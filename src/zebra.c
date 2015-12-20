@@ -338,7 +338,7 @@ int histogram_or_small_waveform_enabled()
         (
             (hist_draw) &&
             #ifdef FEATURE_RAW_OVERLAYS
-            !(/* histobar*/ (raw_histogram_enable == 2) && can_use_raw_overlays_menu()) &&
+            !(RAW_HISTOBAR_ENABLED && can_use_raw_overlays_menu()) &&
             #endif
             1
         )
@@ -477,6 +477,44 @@ static uint8_t* waveform = 0;
  */
 
 #if defined(FEATURE_HISTOGRAM) || defined(FEATURE_WAVEFORM) || defined(FEATURE_VECTORSCOPE)
+#ifdef FEATURE_HISTOGRAM
+static void hist_add_pixel(uint32_t pixel, int Y)
+{
+    if (histogram.is_rgb)
+    {
+        int R, G, B;
+        //~ uyvy2yrgb(pixel, &Y, &R, &G, &B);
+        COMPUTE_UYVY2YRGB(pixel, Y, R, G, B);
+        // YRGB range: 0-255
+        uint32_t R_level = (R * HIST_WIDTH) >> 8;
+        uint32_t G_level = (G * HIST_WIDTH) >> 8;
+        uint32_t B_level = (B * HIST_WIDTH) >> 8;
+        
+        histogram.hist_r[R_level & (HIST_WIDTH-1)]++;
+        histogram.hist_g[G_level & (HIST_WIDTH-1)]++;
+        histogram.hist_b[B_level & (HIST_WIDTH-1)]++;
+    }
+    
+    /* luma component is always computed, since we need histogram.max */
+    /* and it's much less expensive than RGB anyway */
+    histogram.total_px++;
+    uint32_t hist_level = (Y * HIST_WIDTH) >> 8;
+
+    // Ignore the 0 bin.  It generates too much noise
+    unsigned count = ++ (histogram.hist[ hist_level & (HIST_WIDTH-1)]);
+    if( hist_level && count > histogram.max )
+        histogram.max = count;
+}
+#endif
+
+#ifdef FEATURE_WAVEFORM
+static inline void waveform_add_pixel(int x, int Y)
+{
+    uint8_t* w = &WAVEFORM(((x-os.x0) * WAVEFORM_WIDTH) / os.x_ex, (Y * WAVEFORM_HEIGHT) >> 8);
+    if ((*w) < 250) (*w)++;
+}
+#endif
+
 static void
 hist_build()
 {
@@ -498,8 +536,33 @@ hist_build()
     #endif
     
     #ifdef FEATURE_VECTORSCOPE
-    vectorscope_start();
+    int vectorscope_draw = vectorscope_should_draw();
+    
+    if (vectorscope_draw)
+    {
+        vectorscope_start();
+    }
     #endif
+    
+    #ifdef FEATURE_RAW_HISTOGRAM
+    if (RAW_HISTOGRAM_ENABLED && can_use_raw_overlays())
+    {
+        hist_build_raw();
+    }
+    #endif
+    
+    histogram.is_rgb =
+        histogram.is_raw ||    /* RAW histogram is always RGB-based */
+        ((hist_type == 1 ||    /* Use YUV RGB histogram if selected */
+          hist_type == 2) &&   /* Fall back to YUV RGB if we can't use the RAW RGB histogram */
+         !EXT_MONITOR_RCA);    /* However, we cannot use YUV RGB histogram on RCA monitors, because they use YUV411 instead of YUV422 */
+    
+    if (!waveform_draw && !vectorscope_draw && (!hist_draw || histogram.is_raw))
+    {
+        /* optimization: no YUV-based histogram/waveform/scope enabled
+         * => no need to scan the entire image */
+        return;
+    }
     
     int mz = nondigic_zoom_overlay_enabled();
     int off = get_y_skip_offset_for_histogram();
@@ -513,57 +576,29 @@ hist_build()
             if (mz && (pixel == MZ_WHITE || pixel == MZ_BLACK || pixel == MZ_GREEN))
                 continue;
 
-            int Y;
-
+            int Y = UYVY_GET_AVG_Y(pixel);
+            
             #ifdef FEATURE_HISTOGRAM
-            if (hist_colorspace == 1 && !EXT_MONITOR_RCA) // rgb
+            if (hist_draw && !histogram.is_raw)
             {
-                int R, G, B;
-                //~ uyvy2yrgb(pixel, &Y, &R, &G, &B);
-                COMPUTE_UYVY2YRGB(pixel, Y, R, G, B);
-                // YRGB range: 0-255
-                uint32_t R_level = (R * HIST_WIDTH) >> 8;
-                uint32_t G_level = (G * HIST_WIDTH) >> 8;
-                uint32_t B_level = (B * HIST_WIDTH) >> 8;
-                
-                histogram.hist_r[R_level & (HIST_WIDTH-1)]++;
-                histogram.hist_g[G_level & (HIST_WIDTH-1)]++;
-                histogram.hist_b[B_level & (HIST_WIDTH-1)]++;
+                hist_add_pixel(pixel, Y);
             }
-            else // luma
-            #endif
-
-            #if defined(FEATURE_HISTOGRAM) || defined(FEATURE_WAVEFORM)
-            {
-                uint32_t p1 = ((pixel >> 16) & 0xFF00) >> 8;
-                uint32_t p2 = ((pixel >>  0) & 0xFF00) >> 8;
-                Y = (p1+p2) >> 1; 
-            }
-            #endif
-
-            #ifdef FEATURE_HISTOGRAM
-            histogram.total_px++;
-            uint32_t hist_level = (Y * HIST_WIDTH) >> 8;
-
-            // Ignore the 0 bin.  It generates too much noise
-            unsigned count = ++ (histogram.hist[ hist_level & (HIST_WIDTH-1)]);
-            if( hist_level && count > histogram.max )
-                histogram.max = count;
             #endif
             
             #ifdef FEATURE_WAVEFORM
-            // Update the waveform plot
             if (waveform_draw) 
             {
-                uint8_t* w = &WAVEFORM(((x-os.x0) * WAVEFORM_WIDTH) / os.x_ex, (Y * WAVEFORM_HEIGHT) >> 8);
-                if ((*w) < 250) (*w)++;
+                waveform_add_pixel(x, Y);
             }
             #endif
             
             #ifdef FEATURE_VECTORSCOPE
-            int8_t U = (pixel >>  0) & 0xFF;
-            int8_t V = (pixel >> 16) & 0xFF;
-            vectorscope_pixel_step(Y, U, V);
+            if (vectorscope_draw)
+            {
+                int8_t U = (pixel >>  0) & 0xFF;
+                int8_t V = (pixel >> 16) & 0xFF;
+                vectorscope_addpixel(Y, U, V);
+            }
             #endif
         }
     }
@@ -3063,13 +3098,37 @@ struct menu_entry zebra_menus[] = {
         .submenu_width = 700,
         .children =  (struct menu_entry[]) {
             {
-                .name = "Color space",
-                .priv = &hist_colorspace, 
+                .name = "Histogram type",
+                .priv = &hist_type,
+                .update = raw_histo_update,
+                #ifdef FEATURE_RAW_HISTOGRAM
+                .max = 3,
+                #else
                 .max = 1,
-                .choices = (const char *[]) {"Luma", "RGB"},
+                #endif
+                .choices = (const char *[]) {
+                    "YUV-based, Luma",
+                    "YUV-based, RGB",
+                    "RAW-based (RGB)",
+                    "RAW HistoBar (MAX)",
+                },
                 .icon_type = IT_DICE,
-                .help = "Color space for histogram: Luma channel (YUV) / RGB.",
+                .help  = "Choose between YUV-based (JPG) or RAW-based histogram.",
+                .help2 = "If RAW data is not available, it will fall back to YUV-based.",
             },
+            #ifdef FEATURE_RAW_HISTOGRAM
+            {
+                .name = "RAW EV indicator",
+                .priv = &hist_meter,
+                .max = 2,
+                .choices = CHOICES("OFF", "Dynamic Range", "ETTR hint"),
+                .help = "Choose an EV image indicator to display on the histogram.",
+                .help2 = 
+                    " \n"
+                    "Display the dynamic range at current ISO, from noise stdev.\n"
+                    "Show how many stops you can push the exposure to the right.\n"
+            },
+            #endif
             {
                 .name = "Scaling",
                 .priv = &hist_log, 
@@ -3085,27 +3144,6 @@ struct menu_entry zebra_menus[] = {
                 .help = "Display warning dots when one color channel is clipped.",
                 .help2 = "Numbers represent the percentage of pixels clipped.",
             },
-            #ifdef FEATURE_RAW_HISTOGRAM
-            {
-                .name = "Use RAW histogram",
-                .priv = &raw_histogram_enable,
-                .max = 2,
-                .choices = CHOICES("OFF", "Full Histogram", "Simplified HistoBar"),
-                .update = raw_histo_update,
-                .help = "Use RAW based histogram.",
-            },
-            {
-                .name = "RAW EV indicator",
-                .priv = &hist_meter,
-                .max = 2,
-                .choices = CHOICES("OFF", "Dynamic Range", "ETTR hint"),
-                .help = "Choose an EV image indicator to display on the histogram.",
-                .help2 = 
-                    " \n"
-                    "Display the dynamic range at current ISO, from noise stdev.\n"
-                    "Show how many stops you can push the exposure to the right.\n"
-            },
-            #endif
             MENU_EOL
         },
     },
@@ -3885,10 +3923,6 @@ void draw_histogram_and_waveform(int allow_play)
         )
     {
         hist_build(); /* also updates waveform and vectorscope */
-        #ifdef FEATURE_RAW_HISTOGRAM
-        if (raw_histogram_enable && can_use_raw_overlays())
-            hist_build_raw();
-        #endif
     }
 #endif
     
@@ -3904,15 +3938,15 @@ void draw_histogram_and_waveform(int allow_play)
     {
         #ifdef CONFIG_4_3_SCREEN
         if (PLAY_OR_QR_MODE)
-            BMP_LOCK( hist_draw_image( os.x0 + 500,  1, -1); )
+            BMP_LOCK( hist_draw_image( os.x0 + 500,  1); )
         else
         #endif
         if (should_draw_bottom_graphs())
-            BMP_LOCK( hist_draw_image( os.x0 + 50,  480 - hist_height - 1, -1); )
+            BMP_LOCK( hist_draw_image( os.x0 + 50,  480 - hist_height - 1); )
         else if (screen_layout == SCREENLAYOUT_3_2)
-            BMP_LOCK( hist_draw_image( os.x_max - HIST_WIDTH - 2,  os.y_max - (lv ? os.off_169 : 0) - (gui_menu_shown() ? 25 : 0) - hist_height - 1, -1); )
+            BMP_LOCK( hist_draw_image( os.x_max - HIST_WIDTH - 2,  os.y_max - (lv ? os.off_169 + 10 : 0) - hist_height - 1); )
         else
-            BMP_LOCK( hist_draw_image( os.x_max - HIST_WIDTH - 5, os.y0 + 100, -1); )
+            BMP_LOCK( hist_draw_image( os.x_max - HIST_WIDTH - 5, os.y0 + 100); )
     }
 #endif
 
@@ -4632,7 +4666,7 @@ livev_hipriority_task( void* unused )
         {
             /* only raw zebras, raw histogram and raw spotmeter are working in LV raw mode */
             if (zebra_draw && raw_zebra_enable == 1) raw_needed = 1;        /* raw zebras: always */
-            if (hist_draw && raw_histogram_enable) raw_needed = 1;          /* raw hisogram (any kind) */
+            if (hist_draw && RAW_HISTOGRAM_ENABLED) raw_needed = 1;          /* raw hisogram (any kind) */
             if (spotmeter_draw && spotmeter_formula == 3) raw_needed = 1;   /* spotmeter, units: raw */
         }
 

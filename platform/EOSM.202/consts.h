@@ -52,8 +52,6 @@
 
 #define CURRENT_DIALOG_MAYBE (*(int*)0x40FBC)
 
-#define LV_BOTTOM_BAR_DISPLAYED UNAVI_FEEDBACK_TIMER_ACTIVE
-
 //~ #define ISO_ADJUSTMENT_ACTIVE 0 // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
 
     // from a screenshot
@@ -193,9 +191,9 @@
 
 #define UNAVI (MEM(0x5D408) == 2) // Find with Mem Browser // dec CancelUnaviFeedBackTimer
 #define SCROLLHACK (MEM(0x5D43C) != 0) //-450
-#define UNAVI_FEEDBACK_TIMER_ACTIVE (UNAVI || SCROLLHACK)
+#define LV_BOTTOM_BAR_DISPLAYED (UNAVI || SCROLLHACK)
 
-
+#undef UNAVI_FEEDBACK_TIMER_ACTIVE /* no CancelUnaviFeedBackTimer in the firmware */
 
 /******************************************************************************************************************
  * touch_num_fingers_ptr:

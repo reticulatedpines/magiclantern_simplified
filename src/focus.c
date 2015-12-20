@@ -342,7 +342,10 @@ display_lens_hyperfocal()
 
 static MENU_UPDATE_FUNC(dof_info_update)
 {
-    display_lens_hyperfocal();
+    if (info->can_custom_draw)
+    {
+        display_lens_hyperfocal();
+    }
 }
 
 static MENU_UPDATE_FUNC(dof_info_coc_update)
