@@ -678,7 +678,7 @@ int main(int argc, char** argv)
         FILE* t = popen(dcraw_cmd, "r");
         CHECK(t, "%s", filename);
         
-        unsigned int model = get_model_id(filename);
+        const char * model = get_camera_model(filename);
         get_raw_info(model, &raw_info);
 
         int raw_width = 0, raw_height = 0;
@@ -2714,7 +2714,7 @@ static int hdr_interpolate()
         int* delta = malloc(w * sizeof(delta[0]));
 
         /* adjust dark lines to match the bright ones */
-        for (int y = 0; y < h; y ++)
+        for (int y = raw_info.active_area.y1; y < raw_info.active_area.y2; y ++)
         {
             /* apply a constant offset (estimated from unclipped areas) */
             int delta_num = 0;
@@ -2728,14 +2728,14 @@ static int hdr_interpolate()
                 }
             }
 
-            /* compute median difference */
-            int med_delta = median_int_wirth(delta, delta_num);
-            
             if (delta_num < 200)
             {
                 //~ printf("%d: too few points (%d)\n", y, delta_num);
                 continue;
             }
+
+            /* compute median difference */
+            int med_delta = median_int_wirth(delta, delta_num);
 
             if (ABS(med_delta) > 200*16)
             {

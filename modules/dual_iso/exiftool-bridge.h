@@ -2,7 +2,7 @@
 #define _EXIFTOOL_BRIDGE_H
 
 void copy_tags_from_source(const char* source, const char* dest);
-unsigned int get_model_id(const char* filename);
+const char * get_camera_model(const char* filename);
 
 /*
 This function uses EXIF information to calculate the following two ratios:

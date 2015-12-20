@@ -18,24 +18,31 @@ void copy_tags_from_source(const char* source, const char* dest)
     }
 }
 
-unsigned int get_model_id(const char* filename)
+const char * get_camera_model(const char* filename)
 {
-    unsigned tag = DEFAULT_MODEL_ID;
+    static char model[100];
     char exif_cmd[10000];
-    snprintf(exif_cmd, sizeof(exif_cmd), "exiftool -CanonModelID -b \"%s\"", filename);
+    snprintf(exif_cmd, sizeof(exif_cmd), "exiftool -Model -b \"%s\"", filename);
     FILE* exif_file = popen(exif_cmd, "r");
     if(exif_file) 
     {
-        if (!fscanf(exif_file, "%u", &tag))
+        if (fgets(model, sizeof(model), exif_file) == NULL)
             goto err;
         pclose(exif_file);
     }
     else
     {
         err:
-        printf("**WARNING** could not identify the camera (exiftool problem). Assuming it's a 5D Mark III\n");
+        printf("**WARNING** Could not identify the camera from EXIF. Assuming 5D Mark III.\n");
+        return "EOS 5D Mark III";
     }
-    return tag & 0xFFF;
+    
+    if (strncmp(model, "Canon ", 6) == 0)
+    {
+        return model + 6;
+    }
+    
+    return model;
 }
 
 /*
