@@ -2991,14 +2991,16 @@ static MENU_UPDATE_FUNC(bulb_display)
             format_time_hours_minutes_seconds(bulb_duration)
         );
 #ifdef FEATURE_INTERVALOMETER
-    if (!bulb_timer && is_bulb_mode() && interval_enabled) // even if it's not enabled, it will be used for intervalometer
+    if (!bulb_timer && is_bulb_mode())
     {
+        // even if it's not enabled, bulb timer value will be used
+        // for intervalometer and other long exposure tools
         MENU_SET_VALUE(
-            "OFF (%s)",
-            format_time_hours_minutes_seconds(bulb_duration)
+            "%s%s",
+            format_time_hours_minutes_seconds(bulb_duration),
+            bulb_timer || interval_enabled ? "" : " (OFF)"
         );
-        MENU_SET_ICON(MNI_ON, 0);
-        MENU_SET_WARNING(MENU_WARN_INFO, "Always on when in BULB mode and intervalometer running");
+        MENU_SET_WARNING(MENU_WARN_INFO, "Long exposure tools may use bulb timer value, even if BT is disabled.");
     }
 #endif
     
