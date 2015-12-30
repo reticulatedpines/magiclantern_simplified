@@ -549,7 +549,7 @@ static inline int FC(int row, int col)
 
 void find_and_fix_cold_pixels(int fix, int framenumber)
 {
-    #define MAX_COLD_PIXELS 5000
+    #define MAX_COLD_PIXELS 200000
   
     struct xy { int x; int y; };
     
