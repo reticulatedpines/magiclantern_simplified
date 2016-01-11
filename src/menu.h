@@ -387,4 +387,7 @@ char* menu_get_str_value_from_script(const char* name, const char* entry_name);
 int menu_set_value_from_script(const char* name, const char* entry_name, int value);
 int menu_set_str_value_from_script(const char* name, const char* entry_name, char* value, int value_int);
 
+extern void gui_stop_menu( void );
+extern void gui_open_menu( void );
+
 #endif
