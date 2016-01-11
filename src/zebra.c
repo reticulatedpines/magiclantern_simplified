@@ -64,6 +64,9 @@
 #define MZ_BLACK 0x00120034
 #define MZ_GREEN 0xB68DB69E
 
+// spotmeter_formula modes
+#define SPTMTR_F_RGB_PERCENT 4
+
 #ifdef CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
 extern int kill_canon_gui_mode;
 #endif                      // but it will display ML graphics
@@ -2174,8 +2177,9 @@ static MENU_UPDATE_FUNC(spotmeter_menu_display)
             
             spotmeter_formula == 0 ? "Percent" :
             spotmeter_formula == 1 ? "0..255" :
-            spotmeter_formula == 2 ? "RGB" : "RAW",
-            
+            spotmeter_formula == 2 ? "RGB" :          
+            spotmeter_formula == 3 ? "RAW" : "Percent RGB",
+
             spotmeter_draw && spotmeter_position ? ", AFbox" : ""
         );
         
@@ -2376,7 +2380,7 @@ spotmeter_erase()
 
     int xcb = spot_prev_xcb;
     int ycb = spot_prev_ycb;
-    int dx = spotmeter_formula == 2 ? 52 : 26;
+    int dx = spotmeter_formula == 2 ? 52 : (spotmeter_formula == SPTMTR_F_RGB_PERCENT ? 80: 26); 
     int y0 = -13;
     uint32_t* M = (uint32_t*)get_bvram_mirror();
     uint32_t* B = (uint32_t*)bmp_vram();
@@ -2606,6 +2610,18 @@ fallback_from_raw:
             xcb, ycb, 
             "#%02x%02x%02x",
             R,G,B
+        );
+    }
+    else if (spotmeter_formula == SPTMTR_F_RGB_PERCENT)
+    {
+        int uyvy = UYVY_PACK(su,sy,sv,sy);
+        int R,G,B,Y;
+        COMPUTE_UYVY2YRGB(uyvy, Y, R, G, B);
+        bmp_printf(
+            fnt | FONT_ALIGN_CENTER,
+            xcb, ycb, 
+            "%3d%s%3d%s%3d%s",
+            R*100/255,"%", G*100/255, "%", B*100/255, "%"
         );
     }
 }
@@ -3038,11 +3054,11 @@ struct menu_entry zebra_menus[] = {
                 .name = "Spotmeter Unit",
                 .priv = &spotmeter_formula, 
                 #ifdef FEATURE_RAW_SPOTMETER
-                .max = 3,
+                .max = 4,
                 #else
-                .max = 2,
+                .max = 3,
                 #endif
-                .choices = (const char *[]) {"Percent", "0..255", "RGB (HTML)", "RAW (EV)"},
+                .choices = (const char *[]) {"Percent", "0..255", "RGB (HTML)", "RAW (EV)", "RGB (Percent)"},
                 .icon_type = IT_DICE,
                 .help = "Measurement unit for brightness level(s).",
                 .help2 =
@@ -3050,6 +3066,7 @@ struct menu_entry zebra_menus[] = {
                     "8 bit RGB level.\n"
                     "HTML like color codes.\n"
                     "Negative value from clipping, in EV (RAW).\n"
+                    "RGB color in Percentage.\n"
             },
             {
                 .name = "Spot Position",
