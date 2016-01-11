@@ -217,7 +217,10 @@ void tskmon_stack_get_max(uint32_t task_id, uint32_t *used, uint32_t *free)
     *used = tskmon_task_stack_used[task_id & (TSKMON_MAX_TASKS-1)];
 }
 
-static void null_pointer_check()
+/* note: this function reads from a null pointer,
+ * so we have to tell GCC that we really want that */
+static void __attribute__((optimize("-fno-delete-null-pointer-checks")))
+null_pointer_check()
 {
     static volatile int first_time = 1;
     static volatile int value_at_zero = 0;
@@ -305,7 +308,11 @@ static void null_pointer_check()
     }
 }
 
-void tskmon_task_dispatch()
+/* not sure why we have to specify the attribute here as well */
+/* if we don't, gcc inserts a UDF instruction at the end of tskmon_task_dispatch */
+/* could it be a gcc bug? */
+void __attribute__((optimize("-fno-delete-null-pointer-checks")))
+tskmon_task_dispatch()
 {
 #ifdef HIJACK_TASK_ADDR
 
