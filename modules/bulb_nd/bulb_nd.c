@@ -112,7 +112,7 @@ static MENU_SELECT_FUNC(bulb_nd_measure)
 
 PROP_HANDLER(PROP_GUI_STATE)
 {
-    int* data = buf;
+    int* data = (int*)buf;
     if (data[0] == GUISTATE_QR)
     {
         if(running_measure == BULB_ND_MEASURE_STATE_WAIT_PIC_1 || running_measure == BULB_ND_MEASURE_STATE_WAIT_PIC_2)
