@@ -138,7 +138,7 @@ static unsigned int bulb_nd_shoot_cbr()
     }
     else if(running_measure == BULB_ND_MEASURE_STATE_WAIT_PIC_2)
     {
-        bmp_printf(FONT_LARGE, 50, 50, "Attach ND filter and hold SET");
+        bmp_printf(FONT_LARGE, 50, 50, "Attach ND filter and hold SET/Joystick");
     }
     
     if (set_pressed && job_state_ready_to_take_pic() && get_ms_clock_value() - set_pressed > 1000)
@@ -188,12 +188,14 @@ static unsigned int bulb_nd_keypress_cbr(unsigned int key)
 {
     if(is_movie_mode() || is_bulb_mode() || gui_menu_shown() || !display_idle() || !job_state_ready_to_take_pic()) return 1;
     
-    if(key == MODULE_KEY_PRESS_SET)
+    if((key == MODULE_KEY_PRESS_SET) ||
+       (key == MODULE_KEY_JOY_CENTER) )
     {
         set_pressed = get_ms_clock_value();
         return 0;
     }
-    else if(key == MODULE_KEY_UNPRESS_SET)
+    else if((key == MODULE_KEY_UNPRESS_SET) ||
+            (key == MODULE_KEY_UNPRESS_UDLR) )
     {
         set_pressed = 0;
         return 0;
