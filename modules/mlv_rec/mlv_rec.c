@@ -2154,7 +2154,7 @@ static int32_t FAST process_frame()
     /* frame number in file is off by one. nobody needs to know we skipped the first frame */
     hdr->frameNumber = frame_count - 1;
     hdr->cropPosX = (skip_x + 7) & ~7;
-    hdr->cropPosY = (skip_y + 7) & ~7;
+    hdr->cropPosY = skip_y & ~1;
     hdr->panPosX = skip_x;
     hdr->panPosY = skip_y;
     
