@@ -117,7 +117,7 @@
 #define FLASH_MAX_EV 3
 #define FLASH_MIN_EV -10 // not sure if it actually works
 #define FASTEST_SHUTTER_SPEED_RAW 152
-#define MAX_AE_EV 5
+#define MAX_AE_EV 3
 
 #define DIALOG_MnCardFormatBegin (0x60970) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x643F0) // similar
