@@ -190,6 +190,7 @@ static int redraw_in_progress = 0;
 static int hist_countdown = 3; // histogram is slow, so draw it less often
 
 int is_submenu_or_edit_mode_active() { return gui_menu_shown() && SUBMENU_OR_EDIT; }
+int get_menu_edit_mode() { return edit_mode; }
 
 //~ static CONFIG_INT("menu.transparent", semitransparent, 0);
 
@@ -2006,9 +2007,11 @@ static int check_default_warnings(struct menu_entry * entry, char* warning)
     else if (DEPENDS_ON(DEP_MANUAL_FOCUS) && !is_manual_focus())
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires manual focus.");
     else if (DEPENDS_ON(DEP_CFN_AF_HALFSHUTTER) && cfn_get_af_button_assignment() != AF_BTN_HALFSHUTTER && !is_manual_focus())
-        snprintf(warning, MENU_MAX_WARNING_LEN, "Set AF to Half-Shutter from Canon menu (CFn / custom ctrl).");
+        snprintf(warning, MENU_MAX_WARNING_LEN, "Set AF to Half-Shutter from Canon menu (CFn / custom ctrl), or use MF.");
+#if !defined(CONFIG_NO_HALFSHUTTER_AF_IN_LIVEVIEW)
     else if (DEPENDS_ON(DEP_CFN_AF_BACK_BUTTON) && cfn_get_af_button_assignment() == AF_BTN_HALFSHUTTER && !is_manual_focus())
-        snprintf(warning, MENU_MAX_WARNING_LEN, "Set AF to back btn (*) from Canon menu (CFn / custom ctrl).");
+        snprintf(warning, MENU_MAX_WARNING_LEN, "Set AF to back btn (*) from Canon menu (CFn / custom ctrl), or use MF.");
+#endif
     else if (DEPENDS_ON(DEP_EXPSIM) && lv && !lv_luma_is_accurate())
         snprintf(warning, MENU_MAX_WARNING_LEN, EXPSIM_WARNING_MSG);
     //~ else if (DEPENDS_ON(DEP_NOT_EXPSIM) && lv && lv_luma_is_accurate())
@@ -2050,8 +2053,10 @@ static int check_default_warnings(struct menu_entry * entry, char* warning)
             snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with manual focus.");
         else if (WORKS_BEST_IN(DEP_CFN_AF_HALFSHUTTER) && cfn_get_af_button_assignment() != AF_BTN_HALFSHUTTER && !is_manual_focus())
             snprintf(warning, MENU_MAX_WARNING_LEN, "Set AF to Half-Shutter from Canon menu (CFn / custom ctrl).");
+#if !defined(CONFIG_NO_HALFSHUTTER_AF_IN_LIVEVIEW)
         else if (WORKS_BEST_IN(DEP_CFN_AF_BACK_BUTTON) && cfn_get_af_button_assignment() == AF_BTN_HALFSHUTTER && !is_manual_focus())
             snprintf(warning, MENU_MAX_WARNING_LEN, "Set AF to back btn (*) from Canon menu (CFn / custom ctrl).");
+#endif
         //~ else if (WORKS_BEST_IN(DEP_EXPSIM) && lv && !lv_luma_is_accurate())
             //~ snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with ExpSim enabled.");
         //~ else if (WORKS_BEST_IN(DEP_NOT_EXPSIM) && lv && lv_luma_is_accurate())
@@ -2829,15 +2834,17 @@ menu_display(
     int num_visible = get_menu_visible_count(menu);
     int target_height = 370;
     if (is_menu_active("Help")) target_height -= 20;
+    if (is_menu_active("Focus")) target_height -= 70;
     int natural_height = num_visible * font_large.height;
+    int ideal_num_items = target_height / font_large.height;
 
     /* if the menu items does not exceed max count by too much (e.g. 12 instead of 11),
      * prefer to squeeze them vertically in order to avoid scrolling. */
     
     /* but if we can't avoid scrolling, don't squeeze */
-    if (num_visible > MENU_LEN + 1)
+    if (num_visible > ideal_num_items + 1)
     {
-        num_visible = MENU_LEN;
+        num_visible = ideal_num_items;
         natural_height = num_visible * font_large.height;
         /* leave some space for the scroll indicators */
         target_height -= submenu_level ? 16 : 12;
@@ -4112,7 +4119,6 @@ menu_redraw_do()
             if (!menu_lv_transparent_mode && !SUBMENU_OR_EDIT && !junkie_mode)
             {
                 if (is_menu_active("Help")) menu_show_version();
-                if (is_menu_active("Focus")) display_lens_hyperfocal();
             }
             
             if (menu_lv_transparent_mode) 
@@ -5223,7 +5229,7 @@ static void joystick_longpress_check()
     if (joystick_pressed)
     {
         joystick_longpress++;
-        delayed_call(100, joystick_longpress_check);
+        delayed_call(100, joystick_longpress_check, 0);
     }
     
     //~ bmp_printf(FONT_MED, 50, 50, "%d ", joystick_longpress);
@@ -5255,7 +5261,7 @@ static void erase_longpress_check()
     if (erase_pressed)
     {
         erase_longpress++;
-        delayed_call(100, erase_longpress_check);
+        delayed_call(100, erase_longpress_check, 0);
     }
     
     //~ bmp_printf(FONT_MED, 50, 50, "%d ", erase_longpress);
@@ -5326,7 +5332,7 @@ int handle_ml_menu_erase(struct event * event)
             /* if we can make use of a long joystick press, check it */
             joystick_pressed = 1;
             joystick_longpress = 0;
-            delayed_call(100, joystick_longpress_check);
+            delayed_call(100, joystick_longpress_check, 0);
             if (gui_menu_shown()) return 0;
         }
     }
@@ -5353,7 +5359,7 @@ int handle_ml_menu_erase(struct event * event)
         {
             erase_pressed = 1;
             erase_longpress = 0;
-            delayed_call(100, erase_longpress_check);
+            delayed_call(100, erase_longpress_check, 0);
             return 0;
         }
     }

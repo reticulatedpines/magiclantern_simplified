@@ -59,33 +59,30 @@ struct lens_info
         unsigned                WBGain_R; // only used when wb_mode = WB_CUSTOM
         unsigned                WBGain_G; // only used when wb_mode = WB_CUSTOM
         unsigned                WBGain_B; // only used when wb_mode = WB_CUSTOM
-        int8_t          wbs_gm;
-        int8_t          wbs_ba;
+        int8_t                  wbs_gm;
+        int8_t                  wbs_ba;
 
         unsigned                picstyle; // 1 ... 9: std, portrait, landscape, neutral, faithful, monochrome, user 1, user 2, user 3
-/*      int32_t                 contrast;   // -4..4
-        uint32_t                sharpness;  // 0..7
-        uint32_t                saturation; // -4..4
-        uint32_t                color_tone; // -4..4 */
 
-        // Store the raw values before the lookup tables
+        // raw exposure values, in 1/8 EV steps
         uint8_t                 raw_aperture;
         uint8_t                 raw_shutter;
         uint8_t                 raw_iso;
         uint8_t                 raw_iso_auto;
-        uint8_t                 raw_picstyle;
-
-        uint8_t         raw_aperture_min;
-        uint8_t         raw_aperture_max;
-        
-        int flash_ae;
-
-        uint16_t                 lens_id;
+        uint8_t                 raw_picstyle;           /* fixme: move it out */
+        uint8_t                 raw_aperture_min;
+        uint8_t                 raw_aperture_max;
+        int                     flash_ae;
+        uint16_t                lens_id;
+        uint16_t                dof_flags;
+        int                     dof_diffraction_blur;   /* fixme: move those near other DOF fields on next API update */
         //~ float                   lens_rotation;
         //~ float                   lens_step;
 };
 
 extern struct lens_info lens_info;
+
+#define DOF_DIFFRACTION_LIMIT_REACHED 1
 
 #if defined(CONFIG_6D)
 struct prop_lv_lens

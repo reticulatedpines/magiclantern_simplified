@@ -193,7 +193,7 @@ static MENU_UPDATE_FUNC(post_deflicker_update)
     }
     
     if (post_deflicker && post_deflicker_sidecar_type==1)
-        MENU_SET_WARNING(MENU_WARN_INFO, "You must rename *.UFR to *.ufraw: rename 's/UFR$/ufraw' *");
+        MENU_SET_WARNING(MENU_WARN_INFO, "You must rename *.UFR to *.ufraw: rename 's/UFR$/ufraw/' *");
 }
 
 PROP_HANDLER(PROP_GUI_STATE)

@@ -665,6 +665,15 @@ void get_afframe_pos(int W, int H, int* x, int* y)
     *y = (afframe[3] + afframe[5]/2) * H / afframe[1];
 }
 
+/* get sensor resolution, as specified by PROP_LV_AFFRAME */
+/* (to get valid values, one has to go to LiveView at least once) */
+void get_afframe_sensor_res(int* W, int* H)
+{
+    if (W) *W = afframe[0];
+    if (H) *H = afframe[1];
+}
+
+
 #ifdef FEATURE_LV_ZOOM_SETTINGS
 PROP_HANDLER( PROP_HALF_SHUTTER ) {
     zoom_sharpen_step();
@@ -674,12 +683,8 @@ static int zoom_was_triggered_by_halfshutter = 0;
 
 PROP_HANDLER(PROP_LV_DISPSIZE)
 {
-#if defined(CONFIG_6D) || defined(CONFIG_EOSM) 
-ASSERT(buf[0] == 1 || buf[0]==129 || buf[0] == 5 || buf[0] == 10);
-   
-#else
-   ASSERT(buf[0] == 1 || buf[0] == 5 || buf[0] == 10);
-#endif    
+    /* note: 129 is a special screen before zooming in, on newer cameras */
+    ASSERT(buf[0] == 1 || buf[0]==129 || buf[0] == 5 || buf[0] == 10);
     zoom_sharpen_step();
     
     if (buf[0] == 1) zoom_was_triggered_by_halfshutter = 0;
@@ -2296,6 +2301,10 @@ extern void rec_notify_trigger(int rec);
 #ifdef CONFIG_50D
 PROP_HANDLER(PROP_SHOOTING_TYPE)
 {
+    /* there might be a false trigger at startup - issue #1992 */
+    extern int ml_started;
+    if (!ml_started) return;
+
     int rec = (shooting_type == 4 ? 2 : 0);
 
     #ifdef FEATURE_REC_NOTIFY
@@ -2776,7 +2785,7 @@ void ensure_bulb_mode()
             set_shooting_mode(SHOOTMODE_M);
         int shutter = SHUTTER_BULB;
         prop_request_change( PROP_SHUTTER, &shutter, 4 );
-        prop_request_change( PROP_SHUTTER_ALSO, &shutter, 4 );
+        prop_request_change( PROP_SHUTTER_AUTO, &shutter, 4 );  /* todo: is this really needed? */
     #endif
     
     SetGUIRequestMode(0);
@@ -2954,7 +2963,7 @@ bulb_take_pic(int duration)
     lens_cleanup_af();
     if (d0 >= 0) lens_set_drivemode(d0);
     prop_request_change( PROP_SHUTTER, &s0r, 4 );
-    prop_request_change( PROP_SHUTTER_ALSO, &s0r, 4);
+    prop_request_change( PROP_SHUTTER_AUTO, &s0r, 4);
     set_shooting_mode(m0r);
     msleep(200);
     
@@ -2982,14 +2991,16 @@ static MENU_UPDATE_FUNC(bulb_display)
             format_time_hours_minutes_seconds(bulb_duration)
         );
 #ifdef FEATURE_INTERVALOMETER
-    if (!bulb_timer && is_bulb_mode() && interval_enabled) // even if it's not enabled, it will be used for intervalometer
+    if (!bulb_timer && is_bulb_mode())
     {
+        // even if it's not enabled, bulb timer value will be used
+        // for intervalometer and other long exposure tools
         MENU_SET_VALUE(
-            "OFF (%s)",
-            format_time_hours_minutes_seconds(bulb_duration)
+            "%s%s",
+            format_time_hours_minutes_seconds(bulb_duration),
+            bulb_timer || interval_enabled ? "" : " (OFF)"
         );
-        MENU_SET_ICON(MNI_ON, 0);
-        MENU_SET_WARNING(MENU_WARN_INFO, "Always on when in BULB mode and intervalometer running");
+        MENU_SET_WARNING(MENU_WARN_INFO, "Long exposure tools may use bulb timer value, even if BT is disabled.");
     }
 #endif
     
@@ -5911,6 +5922,9 @@ shoot_task( void* unused )
                     intervalometer_pictures_taken = 1;
                     int dt = get_interval_time();
                     intervalometer_next_shot_time = COERCE(intervalometer_next_shot_time + dt, seconds_clock, seconds_clock + dt);
+#ifdef CONFIG_MODULES
+                    module_exec_cbr(CBR_INTERVALOMETER);
+#endif
                 }
                 #endif
             }
@@ -6362,7 +6376,7 @@ shoot_task( void* unused )
             #endif
 
 #ifdef FEATURE_AUDIO_REMOTE_SHOT
-#if defined(CONFIG_7D) || defined(CONFIG_6D) || defined(CONFIG_650D) || defined(CONFIG_700D)
+#if defined(CONFIG_7D) || defined(CONFIG_6D) || defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_EOSM)
             /* experimental for 7D now, has to be made generic */
             static int last_audio_release_running = 0;
             

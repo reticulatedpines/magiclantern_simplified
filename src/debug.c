@@ -295,30 +295,30 @@ FILE * movfile;
 int record_uncomp = 0;
 #endif
 
-static void bsod()
+void bsod()
 {
-    msleep(rand() % 20000 + 2000);
-
     do {
         gui_stop_menu();
         SetGUIRequestMode(1);
         msleep(1000);
     } while (CURRENT_DIALOG_MAYBE != 1);
-
+    NotifyBoxHide();
     canon_gui_disable_front_buffer();
     gui_uilock(UILOCK_EVERYTHING);
     bmp_fill(COLOR_BLUE, 0, 0, 720, 480);
     int fnt = SHADOW_FONT(FONT_MONO_20);
     int h = 20;
-    int y = 50;
+    int y = 20;
     bmp_printf(fnt, 0, y+=h, "   A problem has been detected and Magic Lantern has been"   );
     bmp_printf(fnt, 0, y+=h, "   shut down to prevent damage to your camera."              );
     y += h;
-    bmp_printf(fnt, 0, y+=h, "   If this is the first time you've seen this Stop error"    );
+    bmp_printf(fnt, 0, y+=h, "   If this is the first time you've seen this STOP error"    );
     bmp_printf(fnt, 0, y+=h, "   screen, restart your camera. If this screen appears"      );
     bmp_printf(fnt, 0, y+=h, "   again, follow these steps:"                               );
     y += h;
-    bmp_printf(fnt, 0, y+=h, "   Don't click things you don't know what they do."          );
+    bmp_printf(fnt, 0, y+=h, "   - Go to LiveView and enable DIGIC peaking.  "             );
+    bmp_printf(fnt, 0, y+=h, "   - Take a photo of a calendar, focusing on today's date. " );
+    bmp_printf(fnt, 0, y+=h, "   - Try pressing the magic button quickly enough. "         );
     y += h;
     bmp_printf(fnt, 0, y+=h, "   Technical information:");
     bmp_printf(fnt, 0, y+=h, "   *** STOP 0x000000aa (0x1000af22, 0xdeadbeef, 0xffff)"     );
@@ -2355,44 +2355,6 @@ static void screenshot_start(void* priv, int delta)
     screenshot_sec = 10;
 }
 
-/*void screenshots_for_menu()
-{
-    msleep(1000);
-    extern struct semaphore * gui_sem;
-    give_semaphore(gui_sem);
-
-    select_menu_by_name("Audio", "AGC");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Expo", "ISO");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Overlay", "Magic Zoom");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Movie", "FPS override");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Shoot", "Motion Detect");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Focus", "Follow Focus");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Display", "LV saturation");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Prefs", "Powersave settings...");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Debug", "Free Memory");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Help", "About Magic Lantern");
-    msleep(1000); call("dispcheck");
-}
-*/
-
 static int draw_event = 0;
 
 #ifdef FEATURE_SHOW_IMAGE_BUFFERS_INFO
@@ -3916,11 +3878,6 @@ int handle_tricky_canon_calls(struct event * event)
             break;
         case MLEV_REDRAW:
             _redraw_do();   /* todo: move in gui-common.c */
-            break;
-        case MLEV_TRIGGER_ZEBRAS_FOR_PLAYBACK:
-            #ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
-            handle_livev_playback(event); /* todo: move back to zebra.c */
-            #endif
             break;
     }
     

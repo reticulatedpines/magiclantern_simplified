@@ -39,22 +39,10 @@ CONFIG_INT("module.ignore_crashes", module_ignore_crashes, 0);
 char *module_lockfile = MODULE_PATH"LOADING.LCK";
 
 static struct msg_queue * module_mq = 0;
-#define MSG_MODULE_LOAD_ALL 1
-#define MSG_MODULE_UNLOAD_ALL 2
+// #define MSG_MODULE_LOAD_ALL 1
+// #define MSG_MODULE_UNLOAD_ALL 2
 #define MSG_MODULE_LOAD_OFFLINE_STRINGS 3 /* argument: module index in high half (FFFF0000) */
 #define MSG_MODULE_UNLOAD_OFFLINE_STRINGS 4 /* same argument */
-
-void module_load_all(void)
-{ 
-    msg_queue_post(module_mq, MSG_MODULE_LOAD_ALL); 
-}
-void module_unload_all(void)
-{
-    msg_queue_post(module_mq, MSG_MODULE_UNLOAD_ALL); 
-}
-
-static void _module_load_all(uint32_t);
-static void _module_unload_all(void);
 
 static int module_load_symbols(TCCState *s, char *filename)
 {
@@ -196,12 +184,6 @@ static void _module_load_all(uint32_t list_only)
     {
         console_hide();
     }
-
-#ifdef CONFIG_MODULE_UNLOAD
-    /* ensure all modules are unloaded */
-    console_printf("Unloading modules...\n");
-    _module_unload_all();
-#endif
 
 #ifdef CONFIG_TCC_UNLOAD
     if (module_code)
@@ -397,8 +379,6 @@ static void _module_load_all(uint32_t list_only)
             module_list[mod].info = tcc_get_symbol(state, module_info_name);
             snprintf(module_info_name, sizeof(module_info_name), "%s%s", STR(MODULE_STRINGS_PREFIX), module_list[mod].name);
             module_list[mod].strings = tcc_get_symbol(state, module_info_name);
-            snprintf(module_info_name, sizeof(module_info_name), "%s%s", STR(MODULE_PARAMS_PREFIX), module_list[mod].name);
-            module_list[mod].params = tcc_get_symbol(state, module_info_name);
             snprintf(module_info_name, sizeof(module_info_name), "%s%s", STR(MODULE_PROPHANDLERS_PREFIX), module_list[mod].name);
             module_list[mod].prop_handlers = tcc_get_symbol(state, module_info_name);
             snprintf(module_info_name, sizeof(module_info_name), "%s%s", STR(MODULE_CBR_PREFIX), module_list[mod].name);
@@ -470,7 +450,6 @@ static void _module_load_all(uint32_t list_only)
             {
                 console_printf("  [i] info    at: 0x%08X\n", (uint32_t)module_list[mod].info);
                 console_printf("  [i] strings at: 0x%08X\n", (uint32_t)module_list[mod].strings);
-                console_printf("  [i] params  at: 0x%08X\n", (uint32_t)module_list[mod].params);
                 console_printf("  [i] props   at: 0x%08X\n", (uint32_t)module_list[mod].prop_handlers);
                 console_printf("  [i] cbr     at: 0x%08X\n", (uint32_t)module_list[mod].cbr);
                 console_printf("  [i] config  at: 0x%08X\n", (uint32_t)module_list[mod].config);
@@ -539,42 +518,20 @@ static void _module_load_all(uint32_t list_only)
 
 static void _module_unload_all(void)
 {
-/* unloading is not yet clean, we can end up with tasks running from freed memory or stuff like that */
-#ifdef CONFIG_MODULE_UNLOAD
-    if(module_state)
+    /* unloading is not yet clean, we can end up with tasks running from freed memory or stuff like that */
+    /* we will just call the "deinit" routine for now */
+    /* for experiments on module unloading, see the module-unloading branch */
+    for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
     {
-        TCCState *state = module_state;
-        module_state = NULL;
-        
-        /* unregister all property handlers */
-        prop_reset_registration();
-        
-        /* deinit and clean all modules */
-        for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
+        if(module_list[mod].valid && module_list[mod].enabled && !module_list[mod].error)
         {
-            if(module_list[mod].valid && module_list[mod].enabled && !module_list[mod].error)
+            if(module_list[mod].info && module_list[mod].info->deinit)
             {
-                if(module_list[mod].info && module_list[mod].info->deinit)
-                {
-                    module_list[mod].info->deinit();
-                }
+                module_list[mod].info->deinit();
+                module_list[mod].valid = 0;
             }
-            module_list[mod].valid = 0;
-            module_list[mod].enabled = 0;
-            module_list[mod].error = 0;
-            module_list[mod].info = NULL;
-            module_list[mod].strings = NULL;
-            module_list[mod].params = NULL;
-            module_list[mod].prop_handlers = NULL;
-            module_list[mod].cbr = NULL;
-            strcpy(module_list[mod].name, "");
-            strcpy(module_list[mod].filename, "");
         }
-
-        /* release the global module state */
-        tcc_delete(state);
     }
-#endif
 }
 
 void* module_load(char *filename)
@@ -1327,7 +1284,6 @@ static MENU_UPDATE_FUNC(module_menu_info_update)
     if(module_list[mod_number].valid && !module_list[mod_number].error)
     {
         module_strpair_t *strings = module_list[mod_number].strings;
-        module_parminfo_t *parms = module_list[mod_number].params;
         module_cbr_t *cbr = module_list[mod_number].cbr;
         module_prophandler_t **props = module_list[mod_number].prop_handlers;
 
@@ -1372,20 +1328,6 @@ static MENU_UPDATE_FUNC(module_menu_info_update)
                 y += font_med.height;
             }
         }
-
-        if (parms)
-        {
-            y += 10;
-            bmp_printf(FONT_MED, x - 32, y, "Parameters:");
-            y += font_med.height;
-
-            for (; parms->name != NULL; parms++)
-            {
-                bmp_printf(FONT_MED, x, y, "%s", parms->name);
-                bmp_printf(FONT_MED, x_val, y, "%s", parms->type);
-                y += font_med.height;
-            }
-        }
          
         if (props && *props)
         {
@@ -1425,17 +1367,6 @@ static MENU_UPDATE_FUNC(module_menu_info_update)
         y += font_med.height;
         bmp_printf(FONT_MED, x - 32, y, "More info after you load this module.");
     }
-}
-
-static MENU_SELECT_FUNC(module_menu_load)
-{
-    console_show();
-    module_load_all();
-}
-
-static MENU_SELECT_FUNC(module_menu_unload)
-{
-    module_unload_all();
 }
 
 static MENU_SELECT_FUNC(module_open_submenu)
@@ -1518,20 +1449,6 @@ static struct menu_entry module_debug_menu[] = {
         .submenu_width = 710,
         .help = "Diagnostic options for modules.",
         .children =  (struct menu_entry[]) {
-            #if 0
-            {
-                .name = "Load modules now",
-                .select = module_menu_load,
-                .help = "Loads modules in "MODULE_PATH,
-            },
-            #endif
-            #ifdef CONFIG_MODULE_UNLOAD
-            {
-                .name = "Unload modules now...",
-                .select = module_menu_unload,
-                .help = "Unload loaded modules",
-            },
-            #endif
             {
                  .name = "Disable all modules",
                  .priv = &module_autoload_disabled,
@@ -1692,18 +1609,6 @@ static void module_load_task(void* unused)
         
         switch(msg & 0xFFFF)
         {
-            case MSG_MODULE_LOAD_ALL:
-                _module_load_all(0);
-                module_menu_update();
-                break;
-
-            case MSG_MODULE_UNLOAD_ALL:
-                _module_unload_all();
-                _module_load_all(1);
-                module_menu_update();
-                beep();
-                break;
-            
             case MSG_MODULE_LOAD_OFFLINE_STRINGS:
             {
                 int mod_number = msg >> 16;

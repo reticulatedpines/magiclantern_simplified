@@ -16,12 +16,24 @@
 #include "beep.h"
 #include "zebra.h"
 #include "shoot.h"
+#include "math.h"
+#include "lvinfo.h"
 
 #ifdef FEATURE_LCD_SENSOR_SHORTCUTS
 #include "lcdsensor.h"
 #endif
 
-CONFIG_INT( "dof.diplay", dof_display, 0);
+static CONFIG_INT( "dof.info.display", dof_info_display_lv, 0);
+
+static CONFIG_INT( "dof.info.formula", dof_info_formula, 0);
+#define DOF_FORMULA_SIMPLE 0
+#define DOF_FORMULA_DIFFRACTION_AWARE 1
+
+#ifdef CONFIG_FULLFRAME
+static CONFIG_INT( "dof.info.coc.ff", dof_info_coc, 29);
+#else
+static CONFIG_INT( "dof.info.coc.apsc", dof_info_coc, 19);
+#endif
 
 static void trap_focus_toggle_from_af_dlg();
 void lens_focus_enqueue_step(int dir);
@@ -113,7 +125,132 @@ int get_follow_focus_mode()
 int get_follow_focus_dir_v() { return follow_focus_reverse_v ? -1 : 1; }
 int get_follow_focus_dir_h() { return follow_focus_reverse_h ? -1 : 1; }
 
-void
+/**
+ * Compute the depth of field, accounting for diffraction.
+ *
+ * See:
+ *      http://www.largeformatphotography.info/articles/DoFinDepth.pdf
+ * 
+ * Assumes a ‘generic’ FF or Crop sensor, ie pixel density
+ *
+ * Makes the reasonable assumption that pupillary ratio can be ignored, ie use symmetric lens equations,
+ * as this only introduces a very small correction for non-macro imaging (hence what follows does
+ * not apply for close in macro where dof is around a (few) mm), ie approx 2NC(1+M/p)/M^2,
+ * where N = aperture, c = blur dia (ie coc), M = magnification and p = pupillary ratio.
+ *
+ * Hint: best to use cm in ML, rather than ft, ie more refined feedback
+ *
+ */
+
+void focus_calc_dof()
+{
+    // Total (defocus + diffraction) blur dia in microns
+    uint64_t        coc = dof_info_coc;
+
+    const uint64_t  fd = lens_info.focus_dist * 10; // into mm
+    const uint64_t  fl = lens_info.focal_len; // already in mm
+    
+    // If we have no aperture value then we can't compute any of this
+    // Also not all lenses report the focus length or distance
+    if (fl == 0 || lens_info.aperture == 0 || fd == 0)
+    {
+        lens_info.dof_near      = 0;
+        lens_info.dof_far       = 0;
+        lens_info.hyperfocal    = 0;
+        return;
+    }
+
+    // Set up some dof info
+    const uint64_t  freq = 550;         // mid vis diffraction freq in nm (use 850 if IR)
+    const uint64_t  imag = (fd-fl)/fl;  // inverse of magnification (to keep as integer)
+    const uint64_t  diff = (244*freq*lens_info.aperture*(1+imag)/imag)/1000000; // Diffraction blur in microns
+
+    int dof_flags = 0;
+
+    if (dof_info_formula == DOF_FORMULA_DIFFRACTION_AWARE)
+    {
+        // Test if large aperture diffraction limit reached 
+        if (diff >= coc)
+        {
+            // note: in this case, DOF near and far will collapse to focus distance
+            dof_flags |= DOF_DIFFRACTION_LIMIT_REACHED;
+            coc = 0;
+        }
+        else
+        {
+            // calculate defocus only blur in microns
+            const uint64_t sq = (coc*coc - diff*diff);
+            coc = (int) sqrtf(sq); // Defocus only blur
+        }
+    }
+
+    const uint64_t        fl2 = fl * fl;
+
+    // Calculate hyperfocal distance H 
+    const uint64_t H = coc ? fl + ((10000 * fl2) / (lens_info.aperture  * coc)) : 1000 * 1000;
+    lens_info.hyperfocal = H;
+  
+    // Calculate near and far dofs
+    lens_info.dof_near = (fd*fl*10000)/(10000*fl + imag*lens_info.aperture*coc); // in mm
+    if( fd >= H )
+    {
+        lens_info.dof_far = 1000 * 1000; // infinity
+    }
+    else
+    {
+        lens_info.dof_far = (fd*fl*10000)/(10000*fl - imag*lens_info.aperture*coc); // in mm
+    }
+
+    // update DOF flags
+    lens_info.dof_flags = dof_flags;
+    
+    // make sure we have nonzero DOF values, so they are always displayed
+    lens_info.dof_near = MAX(lens_info.dof_near, 1);
+    lens_info.dof_far = MAX(lens_info.dof_far, 1);
+
+    lens_info.dof_diffraction_blur = (int) diff;
+}
+
+LVINFO_UPDATE_FUNC(focus_dist_update)
+{
+    LVINFO_BUFFER(16);
+    
+    if(lens_info.focus_dist)
+    {
+        snprintf(buffer, sizeof(buffer), "%s", lens_format_dist( lens_info.focus_dist * 10 ));
+        
+        if (dof_info_display_lv && lens_info.dof_far && lens_info.dof_near)
+        {
+            /* do not center it, because it may overlap with the histogram */
+            int x = item->x + item->width/2 - 25;
+
+            /* display it above the bottom bar */
+            /* caveat: in some cases, the top bar may be right above the bottom bar */
+            int y = item->y;
+            int top_bar_pos = get_ml_topbar_pos();
+            if (top_bar_pos > y - 70) y = top_bar_pos;
+            
+            static int prev_x = 0;
+            static int prev_y = 0;
+            
+            if (x != prev_x || y != prev_y)
+            {
+                /* erase when graphic changes position. */
+                bmp_fill(COLOR_EMPTY, prev_x-70, prev_y-36, 140, 26);
+                prev_x = x;
+                prev_y = y;
+            }
+            
+            int fg = lens_info.dof_flags ? COLOR_RED : COLOR_WHITE;
+            bmp_fill(COLOR_BG, x-70, y-36, 140, 26);
+            bmp_printf(FONT(FONT_MED, fg, COLOR_BG) | FONT_ALIGN_RIGHT, x-8, y-33, "%s", lens_format_dist(lens_info.dof_near));
+            bmp_printf(FONT(FONT_MED, fg, COLOR_BG), x+8, y-33, "%s", lens_format_dist(lens_info.dof_far));
+            bmp_fill(fg, x, y-32, 1, 19);
+        }
+    }
+}
+
+static void
 display_lens_hyperfocal()
 {
     unsigned        menu_font = MENU_FONT;
@@ -121,7 +258,7 @@ display_lens_hyperfocal()
     unsigned        height = fontspec_height( font );
 
     int x = 10;
-    int y = 315;
+    int y = 328;
 
     y += 10;
     y += height;
@@ -143,17 +280,20 @@ display_lens_hyperfocal()
         lens_info.aperture % 10
     );
     
-    if (!lv || !lens_info.focus_dist)
+    if (!lv)
     {
         y += height;
         bmp_printf( font, x, y,
-            "Hyperfocal: %s",
-            lens_info.hyperfocal ? lens_format_dist( lens_info.hyperfocal ) : 
-            "unknown, go to LiveView to get focal length"
+            "Focus distance info is only available in LiveView."
         );
+        return;
+    }
+    
+    if (!lens_info.focus_dist)
+    {
         y += height;
         bmp_printf( font, x, y,
-            "Your lens did not report focus distance"
+            "Your lens does not report focus distance."
         );
         return;
     }
@@ -173,7 +313,7 @@ display_lens_hyperfocal()
         lens_format_dist( lens_info.hyperfocal )
     );
 
-    x += 300;
+    x += 280;
     y -= height;
     bmp_printf( font, x, y,
         "DOF Near:   %s",
@@ -187,6 +327,30 @@ display_lens_hyperfocal()
             ? " Infty"
             : lens_format_dist( lens_info.dof_far )
     );
+
+    x = 700;
+    y -= 2 * height;
+
+    y += height;
+    int fg = lens_info.dof_flags & DOF_DIFFRACTION_LIMIT_REACHED ? COLOR_YELLOW : COLOR_WHITE;
+    bmp_printf( FONT(font,fg,COLOR_BLACK) | FONT_ALIGN_RIGHT, x, y, 
+        "Diffraction\n"
+        "blur: %d"SYM_MICRO"m",
+        lens_info.dof_diffraction_blur
+    );
+}
+
+static MENU_UPDATE_FUNC(dof_info_update)
+{
+    if (info->can_custom_draw)
+    {
+        display_lens_hyperfocal();
+    }
+}
+
+static MENU_UPDATE_FUNC(dof_info_coc_update)
+{
+    MENU_SET_VALUE("%d " SYM_MICRO"m", CURRENT_VALUE);
 }
 
 static void wait_notify(int seconds, char* msg)
@@ -1066,12 +1230,6 @@ static struct menu_entry focus_menu[] = {
         },
     },
     #endif
-    {
-        .name = "DOF Display",
-        .priv = &dof_display, 
-        .max  = 1,
-        .help = "Display DOF above Focus distance.",
-    },
     #if defined(FEATURE_FOLLOW_FOCUS) || defined(FEATURE_RACK_FOCUS) || defined(FEATURE_FOCUS_STACKING)
     {
         .name = "Focus Settings",
@@ -1127,6 +1285,41 @@ static struct menu_entry focus_menu[] = {
         },
     },
     #endif
+    {
+        .name = "DOF Settings",
+        .select = menu_open_submenu,
+        .update = dof_info_update,
+        .help = "Settings about Depth of Field info displays.",
+        .depends_on = DEP_LIVEVIEW,
+        .submenu_width = 650,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Circle of Confusion",
+                .priv = &dof_info_coc,
+                .update = dof_info_coc_update,
+                .min  = 1,
+                .max = 100,
+                .help = "Circle of confusion used for DOF calculations.",
+                .help2 = "Default value: 19 for APS-C and 29 for full-frame cameras.",
+            },
+            {
+                .name = "DOF formula",
+                .priv = &dof_info_formula,
+                .max = 1,
+                .choices = CHOICES("Simple", "Diffraction-aware"),
+                .help = "Formula for computing the depth of field:",
+                .help2 = "Simple: only consider defocus blur, ignoring diffraction effects.\n"
+                         "Diffraction-aware: consider both defocus and diffraction blur.\n"
+            },
+            {
+                .name = "DOF info in LiveView",
+                .priv = &dof_info_display_lv,
+                .max  = 1,
+                .help = "Display DOF above Focus distance, in LiveView.",
+            },
+            MENU_EOL,
+        },
+    },
 };
 
 

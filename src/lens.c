@@ -82,100 +82,6 @@ struct lens_info lens_info = {
     .name        = "NO LENS NAME"
 };
 
-
-/** Compute the depth of field for the current lens parameters.
- *
- * This relies heavily on:
- *     http://en.wikipedia.org/wiki/Circle_of_confusion
- * The CoC value given there is 0.019 mm, but we need to scale things
- */
-static void
-calc_dof(
-    struct lens_info * const info
-)
-{
-    #ifdef CONFIG_FULLFRAME
-    const uint64_t        coc = 29; // 1/1000 mm
-    #else
-    const uint64_t        coc = 19; // 1/1000 mm
-    #endif
-    const uint64_t        fd = info->focus_dist * 10; // into mm
-    const uint64_t        fl = info->focal_len; // already in mm
-
-    // If we have no aperture value then we can't compute any of this
-    // Not all lenses report the focus distance
-    if( fl == 0 || info->aperture == 0 )
-    {
-        info->dof_near        = 0;
-        info->dof_far        = 0;
-        info->hyperfocal    = 0;
-        return;
-    }
-
-    const uint64_t        fl2 = fl * fl;
-
-    // The aperture is scaled by 10 and the CoC by 1000,
-    // so scale the focal len, too.  This results in a mm measurement
-    const uint64_t H = ((1000 * fl2) / (info->aperture  * coc)) * 10;
-    info->hyperfocal = H;
-
-    // If we do not have the focus distance, then we can not compute
-    // near and far parameters
-    if( fd == 0 )
-    {
-        info->dof_near        = 0;
-        info->dof_far        = 0;
-        return;
-    }
-
-    // fd is in mm, H is in mm, but the product of H * fd can
-    // exceed 2^32, so we scale it back down before processing
-    info->dof_near = (H * fd) / ( H + fd ); // in mm
-    if( fd >= H )
-        info->dof_far = 1000 * 1000; // infinity
-    else
-    {
-        info->dof_far = (H * fd) / ( H - fd ); // in mm
-    }
-}
-
-/*
-const char *
-lens_format_dist(
-    unsigned        mm
-)
-{
-    static char dist[ 32 ];
-
-    if( mm > 100000 ) // 100 m
-        snprintf( dist, sizeof(dist),
-            "%d.%1dm",
-            mm / 1000,
-            (mm % 1000) / 100
-        );
-    else
-    if( mm > 10000 ) // 10 m
-        snprintf( dist, sizeof(dist),
-            "%2d.%02dm",
-            mm / 1000,
-            (mm % 1000) / 10
-        );
-    else
-    if( mm >  1000 ) // 1 m
-        snprintf( dist, sizeof(dist),
-            "%1d.%03dm",
-            mm / 1000,
-            (mm % 1000)
-        );
-    else
-        snprintf( dist, sizeof(dist),
-            "%dcm",
-            mm / 10
-        );
-
-    return dist;
-}*/
-
 const char * lens_format_dist( unsigned mm)
 {
    static char dist[ 32 ];
@@ -198,17 +104,18 @@ const char * lens_format_dist( unsigned mm)
     }
     else
     {
-        if( mm > 10000 ) // 10 m
+        if ( mm >= 10000 ) // 10 m
         {
-            snprintf( dist, sizeof(dist), "%2d"SYM_SMALL_M, mm / 1000);
+            snprintf( dist, sizeof(dist), "%d"SYM_SMALL_M, mm / 1000);
         }
-        else    if( mm >  1000 ) // 1 m
+        else if( mm >= 1000 ) // 1 m
         {
-            snprintf( dist, sizeof(dist), "%1d.%1d"SYM_SMALL_M, mm / 1000, (mm % 1000)/100 );
+            int meters_x100 = mm / 10;
+            snprintf( dist, sizeof(dist), "%s%d.%02d"SYM_SMALL_M, FMT_FIXEDPOINT2(meters_x100));
         }
         else
         {
-            snprintf( dist, sizeof(dist),"%2d"SYM_SMALL_C SYM_SMALL_M, mm / 10 );
+            snprintf( dist, sizeof(dist),"%d"SYM_SMALL_C SYM_SMALL_M, mm / 10 );
         }
     }
 
@@ -303,6 +210,7 @@ char* get_shootmode_name(int shooting_mode)
         shooting_mode == SHOOTMODE_TV ?         "Tv" :
         shooting_mode == SHOOTMODE_AV ?         "Av" :
         shooting_mode == SHOOTMODE_CA ?         "CA" :
+        shooting_mode == SHOOTMODE_AP ?         "A+" :
         shooting_mode == SHOOTMODE_ADEP ?       "ADEP" :
         shooting_mode == SHOOTMODE_AUTO ?       "Auto" :
         shooting_mode == SHOOTMODE_LANDSCAPE ?  "Landscape" :
@@ -311,6 +219,8 @@ char* get_shootmode_name(int shooting_mode)
         shooting_mode == SHOOTMODE_MACRO ?      "Macro" :
         shooting_mode == SHOOTMODE_SPORTS ?     "Sports" :
         shooting_mode == SHOOTMODE_NIGHT ?      "Night" :
+        shooting_mode == SHOOTMODE_NIGHTH ?     "Night Handheld" :
+        shooting_mode == SHOOTMODE_HDR ?        "HDR Backlight" :
         shooting_mode == SHOOTMODE_BULB ?       "Bulb" :
         shooting_mode == SHOOTMODE_C ?          "C1" :
         shooting_mode == SHOOTMODE_C2 ?         "C2" :
@@ -333,6 +243,7 @@ char* get_shootmode_name_short(int shooting_mode)
         shooting_mode == SHOOTMODE_TV ?         "Tv" :
         shooting_mode == SHOOTMODE_AV ?         "Av" :
         shooting_mode == SHOOTMODE_CA ?         "CA" :
+        shooting_mode == SHOOTMODE_AP ?         "A+" :
         shooting_mode == SHOOTMODE_ADEP ?       "AD" :
         shooting_mode == SHOOTMODE_AUTO ?       "[]" :
         shooting_mode == SHOOTMODE_LANDSCAPE ?  "LD" :
@@ -341,6 +252,8 @@ char* get_shootmode_name_short(int shooting_mode)
         shooting_mode == SHOOTMODE_MACRO ?      "MC" :
         shooting_mode == SHOOTMODE_SPORTS ?     "SP" :
         shooting_mode == SHOOTMODE_NIGHT ?      "NI" :
+        shooting_mode == SHOOTMODE_NIGHTH ?     "NH" :
+        shooting_mode == SHOOTMODE_HDR ?        "HB" :
         shooting_mode == SHOOTMODE_BULB ?       "B"  :
         shooting_mode == SHOOTMODE_C ?          "C1" :
         shooting_mode == SHOOTMODE_C2 ?         "C2" :
@@ -780,9 +693,14 @@ lens_take_picture(
     // in some cases, the MLU setting is ignored; if ML can't detect this properly, this call will actually take a picture
     // if it happens (e.g. with LV active, but camera in QR mode), that's it, we won't try taking another one
     // side effects should be minimal
+#if defined(CONFIG_EOSM)
+    call("Release"); //EOSM is mirrorless no need to check for MLU
+    goto end;
+#else
     int took_pic = mlu_lock_mirror_if_needed();
     if (took_pic) goto end;
-
+#endif
+    
     #if defined(CONFIG_5D2) || defined(CONFIG_50D)
     if (get_mlu())
     {
@@ -1035,6 +953,10 @@ bswap16(
 
 PROP_HANDLER( PROP_MVR_REC_START )
 {
+    /* there might be a false trigger at startup - issue #1992 */
+    extern int ml_started;
+    if (!ml_started) return;
+
     mvr_rec_start_shoot(buf[0]);
     
     #ifdef FEATURE_MOVIE_LOGGING
@@ -1242,10 +1164,13 @@ PROP_HANDLER( PROP_SHUTTER )
 }
 
 static int aperture_ack = -1;
-PROP_HANDLER( PROP_APERTURE2 )
+PROP_HANDLER( PROP_APERTURE )
 {
     //~ NotifyBox(2000, "%x %x %x %x ", buf[0], CONTROL_BV, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
-    if (!CONTROL_BV) lensinfo_set_aperture(buf[0]);
+    if (!CONTROL_BV)
+    {
+        lensinfo_set_aperture(buf[0]);
+    }
     #ifdef FEATURE_EXPO_OVERRIDE
     else if (buf[0] && !gui_menu_shown()
         #ifdef CONFIG_MOVIE_EXPO_OVERRIDE_DISABLE_SYNC_WITH_PROPS
@@ -1261,22 +1186,50 @@ PROP_HANDLER( PROP_APERTURE2 )
     aperture_ack = buf[0];
 }
 
-PROP_HANDLER( PROP_APERTURE ) // for Tv mode
+PROP_HANDLER( PROP_APERTURE_AUTO )
 {
-    if (!CONTROL_BV) lensinfo_set_aperture(buf[0]);
+    /* this gets updated in Tv mode (where PROP_APERTURE is not updated); same for P, Auto and so on */
+    /* it becomes 0 when camera is no longer metering */
+
+    if (shooting_mode == SHOOTMODE_M || shooting_mode == SHOOTMODE_AV)
+    {
+        /* in these modes, aperture is not automatic */
+        /* however, this property sometimes becomes 0 in these modes as well, but this is not desired */
+        if (buf[0] == 0)
+            return;
+    }
+
+    if (!CONTROL_BV)
+    {
+        /* expo override turned off? */
+        lensinfo_set_aperture(buf[0]);
+    }
+
     lens_display_set_dirty();
 }
 
-static int shutter_also_ack = -1;
-PROP_HANDLER( PROP_SHUTTER_ALSO ) // for Av mode
+PROP_HANDLER( PROP_SHUTTER_AUTO )
 {
+    /* this gets updated in Av mode (where PROP_SHUTTER is not updated); same for P, Auto and so on */
+    /* it becomes 0 when camera is no longer metering */
+    
+    if (shooting_mode == SHOOTMODE_M || shooting_mode == SHOOTMODE_TV)
+    {
+        /* in these modes, shutter is not automatic */
+        /* however, this property sometimes becomes 0 in these modes as well, but this is not desired */
+        if (buf[0] == 0)
+            return;
+    }
+    
     if (!CONTROL_BV)
     {
+        /* expo override turned off? */
+        /* todo: double-check if it's still needed */
         if (ABS(buf[0] - lens_info.raw_shutter) > 3) 
             lensinfo_set_shutter(buf[0]);
     }
+    
     lens_display_set_dirty();
-    shutter_also_ack = buf[0];
 }
 
 static int ae_ack = 12345;
@@ -1425,7 +1378,7 @@ void iso_components_update()
 
 static void update_stuff()
 {
-    calc_dof( &lens_info );
+    focus_calc_dof();
     //~ if (gui_menu_shown()) lens_display_set_dirty();
     
     #ifdef FEATURE_MOVIE_LOGGING
@@ -2553,35 +2506,8 @@ static LVINFO_UPDATE_FUNC(wb_update)
     }
 }
 
-
-static LVINFO_UPDATE_FUNC(focus_dist_update)
-{
-    LVINFO_BUFFER(16);
-    extern int dof_display; /* in focus.c */
-    
-    if(lens_info.focus_dist)
-    {
-        snprintf(buffer, sizeof(buffer), "%s", lens_format_dist( lens_info.focus_dist * 10 ));
-        
-        if (dof_display)
-        {
-            int xw = item->x + item->width/2 - 25;  /* do not center it, because it may overlap with the histogram */
-            
-            static int prev_xw = 0;
-            if (xw != prev_xw)
-            {
-                /* erase when graphic changes position. */
-                bmp_fill(COLOR_EMPTY, prev_xw-70, item->y-36, 140, 26);
-                prev_xw = xw;
-            }
-            
-            bmp_fill(COLOR_BG, xw-70, item->y-36, 140, 26);
-            bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG) | FONT_ALIGN_RIGHT, xw-8, item->y-33, "%s", lens_format_dist(lens_info.dof_near));
-            bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG), xw+8, item->y-33, "%s", lens_format_dist(lens_info.dof_far));
-            bmp_fill(COLOR_WHITE, xw, item->y-32, 1, 19);
-        }
-    }
-}
+/* in focus.c */
+extern LVINFO_UPDATE_FUNC(focus_dist_update);
 
 static LVINFO_UPDATE_FUNC(af_mf_update)
 {
