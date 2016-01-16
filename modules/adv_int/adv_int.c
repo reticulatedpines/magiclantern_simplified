@@ -767,7 +767,7 @@ static void adv_int_task()
 
 PROP_HANDLER(PROP_GUI_STATE)
 {
-    int* data = buf;
+    int* data = (int*)buf;
     if (data[0] == GUISTATE_QR)
     {
         if (adv_int_external && !running)
