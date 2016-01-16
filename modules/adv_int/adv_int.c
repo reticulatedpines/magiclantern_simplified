@@ -94,8 +94,11 @@ static MENU_UPDATE_FUNC(update_keyframe_menu)
 
 static void add_keyframe_menu(struct keyframe * kfr)
 {
-    kfr->menu_entry.update = update_keyframe_menu;
-    menu_add("List Keyframes", &(kfr->menu_entry), 1);
+    if (kfr)
+    {
+        kfr->menu_entry.update = update_keyframe_menu;
+        menu_add("List Keyframes", &(kfr->menu_entry), 1);
+    }
 }
 
 /*
@@ -760,7 +763,6 @@ static int running = 0;
 
 static void adv_int_task()
 {
-    running = 1;
     adv_int_cbr();
     running = 0;
 }
@@ -771,7 +773,10 @@ PROP_HANDLER(PROP_GUI_STATE)
     if (data[0] == GUISTATE_QR)
     {
         if (adv_int_external && !running)
+        {
+            running = 1;
             task_create("adv_int_task", 0x1c, 0x1000, adv_int_task, (void*)0);
+        }
     }
 }
 
@@ -998,6 +1003,8 @@ static unsigned int adv_int_init()
 
 static unsigned int adv_int_deinit()
 {
+    delete_keyframe(keyframes);
+    keyframes = NULL;
     return 0;
 }
 
