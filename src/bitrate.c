@@ -347,9 +347,9 @@ static int movie_elapsed_time_01s = 0;   // seconds since starting the current m
 void time_indicator_show()
 {
     if (!get_global_draw()) return;
-    
+
     lvinfo_display(1,0); //force it to update, else stays frozen until other item updates eg. fps
-    
+   
 #if defined(CONFIG_7D)
     bitrate_read_mvr_config();
 #endif
@@ -381,7 +381,7 @@ void time_indicator_show()
         );
 #endif
     }
-    
+   
     //~ if (flicker_being_killed()) // this also kills recording dot
     //~ {
         //~ maru(os.x_max - 28, os.y0 + 12, COLOR_RED);
@@ -413,30 +413,30 @@ bitrate_indicator_display( void * priv, int x, int y, int selected )
 static LVINFO_UPDATE_FUNC(time_indicator_update)
 {
     LVINFO_BUFFER(8);
- 
+
     if (!is_movie_mode())
         return;
- 
+
     if (!time_indicator)
         return;
- 
+
     #ifdef FEATURE_REC_INDICATOR
     if (RECORDING_H264 && !gui_menu_shown() )
     {
- 
+
     // time until filling the card
     // in "movie_elapsed_time_01s" seconds, the camera saved "movie_bytes_written_32k"x32kbytes, and there are left "free_space_32k"x32kbytes
     int time_cardfill = movie_elapsed_time_01s * get_free_space_32k(get_shooting_card()) / movie_bytes_written_32k / 10;
-    
+
     // time until 4 GB
-    int time_4gb = movie_elapsed_time_01s * (4 * 1024 * 1024 / 32 - movie_bytes_written_32k) / movie_bytes_written_32k / 10;
-    
+    int time_4gb = movie_elapsed_time_01s * (4 * 1024 * 1024 / 32 - movie_bytes_written_32k) / movie_bytes_written_32k / 10
+
     // what to display
     int dispvalue = time_indicator == 1 ? movie_elapsed_time_01s / 10:
                     time_indicator == 2 ? time_cardfill :
                     time_indicator == 3 ? MIN(time_4gb, time_cardfill)
                     : 0;
- 
+
     snprintf(
         buffer, sizeof(buffer),
         "%3d:%02d",
@@ -451,12 +451,12 @@ static LVINFO_UPDATE_FUNC(time_indicator_update)
 static CONFIG_INT("buffer.warning.level", buffer_warning_level, 70);
 
 static int warning = 0;
-int is_mvr_buffer_almost_full() 
+int is_mvr_buffer_almost_full()
 {
     if (NOT_RECORDING) return 0;
     if (RECORDING_H264_STARTING) return 1;
     // 2
-    
+
     int ans = MVR_BUFFER_USAGE > (unsigned int)buffer_warning_level;
     if (ans) warning = 1;
     return warning;
@@ -608,9 +608,9 @@ static void bitrate_init()
     lvinfo_add_item(info_item);
     menu_add( "Movie", mov_menus, COUNT(mov_menus) );
     menu_add( "Movie Tweaks", mov_tweak_menus, COUNT(mov_tweak_menus) );
-	#ifdef FEATURE_NITRATE_WAV_RECORD
-	menu_add( "Audio", wav_menus, COUNT(wav_menus) );
-	#endif
+    #ifdef FEATURE_NITRATE_WAV_RECORD
+    menu_add( "Audio", wav_menus, COUNT(wav_menus) );
+    #endif
 }
 
 INIT_FUNC(__FILE__, bitrate_init);
@@ -619,7 +619,7 @@ static void
 bitrate_task( void* unused )
 {
     cbr_init();
-    
+
     TASK_LOOP
     {
 
