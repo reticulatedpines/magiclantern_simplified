@@ -429,7 +429,7 @@ static LVINFO_UPDATE_FUNC(time_indicator_update)
     int time_cardfill = movie_elapsed_time_01s * get_free_space_32k(get_shooting_card()) / movie_bytes_written_32k / 10;
 
     // time until 4 GB
-    int time_4gb = movie_elapsed_time_01s * (4 * 1024 * 1024 / 32 - movie_bytes_written_32k) / movie_bytes_written_32k / 10
+    int time_4gb = movie_elapsed_time_01s * (4 * 1024 * 1024 / 32 - movie_bytes_written_32k) / movie_bytes_written_32k / 10;
 
     // what to display
     int dispvalue = time_indicator == 1 ? movie_elapsed_time_01s / 10:
