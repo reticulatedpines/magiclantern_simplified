@@ -50,6 +50,8 @@ draw_beta_warning()
     bmp_printf(FONT_MED | FONT_ALIGN_CENTER, 360, 250, "Be careful using it for production work.      ");
 
     bmp_printf(FONT_MED | FONT_ALIGN_CENTER, 360, 300, "Enjoy!");
+    
+    bmp_printf(FONT_MED | FONT_ALIGN_CENTER, 360, 350, "(Press any camera button to enter ML settings)");
 
     big_bmp_printf(FONT_MED,  10,  410,
         "Magic Lantern version : %s\n"
