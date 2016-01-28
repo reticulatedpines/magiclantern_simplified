@@ -60,16 +60,16 @@ static int luaCB_lens_newindex(lua_State * L)
  Moves the focus motor a specified number of steps. Only works in LV.
  @tparam int num_steps
  @tparam[opt=1] int step_size
- @tparam[opt=1] int wait
+ @tparam[opt=false] bool wait
  @tparam[opt=0] int extra_delay
  @function focus
  */
 static int luaCB_lens_focus(lua_State * L)
 {
     LUA_PARAM_INT(num_steps, 1);
-    LUA_PARAM_INT_OPTIONAL(step_size, 1, 1);
-    LUA_PARAM_INT_OPTIONAL(wait, 1, 0);
-    LUA_PARAM_INT_OPTIONAL(extra_delay, 1, 0);
+    LUA_PARAM_INT_OPTIONAL(step_size, 2, 1);
+    LUA_PARAM_BOOL_OPTIONAL(wait, 3, 0);
+    LUA_PARAM_INT_OPTIONAL(extra_delay, 4, 0);
     lua_pushboolean(L, lens_focus(num_steps, step_size, wait, extra_delay));
     return 1;
 }
