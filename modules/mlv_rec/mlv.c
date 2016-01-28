@@ -22,6 +22,7 @@
 #include <stdint.h>
 #include <lens.h>
 #include <property.h>
+#include <propvalues.h>
 #include <picstyle.h>
 #include <raw.h>
 #include <fps.h>
@@ -37,14 +38,6 @@ extern char *strncpy(char *dest, const char *src, int n);
 extern const char* get_picstyle_name(int raw_picstyle);
 
 extern struct prop_picstyle_settings picstyle_settings[];
-
-extern int WEAK_FUNC(own_PROPAD_GetPropertyData) PROPAD_GetPropertyData(uint32_t property, void** addr, size_t* len);
-
-static int own_PROPAD_GetPropertyData(uint32_t property, void** addr, size_t* len)
-{
-    trace_write(raw_rec_trace_ctx, "WARNING: This model doesn't have 'PROPAD_GetPropertyData' defined. Reading properties not possible.");
-    return 1;
-}
 
 void mlv_fill_lens(mlv_lens_hdr_t *hdr, uint64_t start_timestamp)
 {
@@ -150,56 +143,14 @@ void mlv_fill_rtci(mlv_rtci_hdr_t *hdr, uint64_t start_timestamp)
 
 void mlv_fill_idnt(mlv_idnt_hdr_t *hdr, uint64_t start_timestamp)
 {
-    char *model_data = NULL;
-    uint64_t *body_data = NULL;
-    size_t model_len = 0;
-    size_t body_len = 0;
-    int err = 0;
-
     /* prepare header */
     mlv_set_type((mlv_hdr_t *)hdr, "IDNT");
     mlv_set_timestamp((mlv_hdr_t *)hdr, start_timestamp);
     hdr->blockSize = sizeof(mlv_idnt_hdr_t);
-
-    /* default values */
-    hdr->cameraName[0] = '\000';
-    hdr->cameraSerial[0] = '\000';
-    hdr->cameraModel = 0;
-
-    /* get camera properties */
-    err = PROPAD_GetPropertyData(PROP_CAM_MODEL, (void **) &model_data, &model_len);
-    if(err || model_len < 36 || !model_data)
-    {
-        trace_write(raw_rec_trace_ctx, "[IDNT] err: %d model_data: 0x%08X model_len: %d", err, model_data, model_len);
-        snprintf((char*)hdr->cameraName, sizeof(hdr->cameraName), "ERR:%d md:0x%8X ml:%d", err, model_data, model_len);
-        return;
-    }
-
-    err = PROPAD_GetPropertyData(PROP_BODY_ID, (void **) &body_data, &body_len);
-    if(err || !body_data || body_len == 0)
-    {
-        trace_write(raw_rec_trace_ctx, "[IDNT] err: %d body_data: 0x%08X body_len: %d", err, body_data, body_len);
-        snprintf((char*)hdr->cameraSerial, sizeof(hdr->cameraSerial), "ERR:%d bd:0x%8X bl:%d", err, body_data, body_len);
-        return;
-    }
-
-    /* different camera serial lengths */
-    if(body_len == 8)
-    {
-        snprintf((char *)hdr->cameraSerial, sizeof(hdr->cameraSerial), "%X%08X", (uint32_t)(*body_data & 0xFFFFFFFF), (uint32_t) (*body_data >> 32));
-    }
-    else if(body_len == 4)
-    {
-        snprintf((char *)hdr->cameraSerial, sizeof(hdr->cameraSerial), "%08X", *((uint32_t*)body_data));
-    }
-    else
-    {
-        snprintf((char *)hdr->cameraSerial, sizeof(hdr->cameraSerial), "(unknown len %d)", body_len);
-    }
-
-    /* properties are ok, so read data */
-    memcpy((char *)hdr->cameraName, &model_data[0], 32);
-    memcpy((char *)&hdr->cameraModel, &model_data[32], 4);
+    
+    hdr->cameraModel = camera_model_id;
+    memcpy(hdr->cameraName, camera_model, 32);
+    memcpy(hdr->cameraSerial, camera_serial, 32);
 
     trace_write(raw_rec_trace_ctx, "[IDNT] cameraName: '%s' cameraModel: 0x%08X cameraSerial: '%s'", hdr->cameraName, hdr->cameraModel, hdr->cameraSerial);
 }
