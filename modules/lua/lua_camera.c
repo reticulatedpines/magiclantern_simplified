@@ -12,6 +12,7 @@
 #include <lens.h>
 #include <shoot.h>
 #include <bmp.h>
+#include <imath.h>
 
 #include "lua_common.h"
 
@@ -304,7 +305,7 @@ static int luaCB_aperture_index(lua_State * L)
     else if(!strcmp(key,"apexf")) lua_pushnumber(L, (RAW2AV(lens_info.raw_aperture) / 10.0));
     /// Get/Set aperture as f-number (floating point)
     // @tfield number value
-    else if(!strcmp(key,"value")) lua_pushnumber(L, APEX_AV(lens_info.raw_aperture) / 8.0);
+    else if(!strcmp(key,"value")) lua_pushnumber(L, lens_info.aperture / 10.0);
     else lua_rawget(L, 1);
     return 1;
 }
@@ -346,7 +347,7 @@ static int luaCB_aperture_newindex(lua_State * L)
     else if(!strcmp(key, "value"))
     {
         LUA_PARAM_NUMBER(value, 3);
-        lens_set_rawaperture((int)roundf((value * 8) + 8));
+        lens_set_rawaperture((int)roundf((log2i(value) * 16) + 8));
     }
     else
     {
