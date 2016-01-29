@@ -61,7 +61,7 @@ static int luaCB_beep(lua_State * L)
 static int luaCB_shoot(lua_State * L)
 {
     LUA_PARAM_INT_OPTIONAL(wait, 1, 64);
-    LUA_PARAM_INT_OPTIONAL(should_af, 2, 1);
+    LUA_PARAM_BOOL_OPTIONAL(should_af, 2, 1);
     int result = lens_take_picture(wait, should_af);
     lua_pushinteger(L, result);
     return 1;
