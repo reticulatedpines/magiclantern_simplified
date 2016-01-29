@@ -255,7 +255,6 @@ NSTUB(0xFF250BF0,  ptp_register_handler)
 // NSTUB(    ???,  ptpPropSetUILock)                        /* present on 650D.104, 700D.113 */
 
 /** Properties **/
-NSTUB(0xFF058284,  PROPAD_GetPropertyData)
 NSTUB(0xFF0575C0, _prop_cleanup)
 NSTUB(0xFF056E38, _prop_request_change)
 NSTUB(0xFF057418,  prop_deliver)
@@ -334,6 +333,7 @@ NSTUB(0xFF1D6638,  vsnprintf)
 ///NSTUB(0xFF03B8EC, PD_GetBatteryPower) not safe to call
 ///NSTUB(0xFF03B3D8,  PD_RemoteRelease)
 ///NSTUB(0xFF057654,  PROP_GetMulticastProperty)
+///NSTUB(0xFF058284,  PROPAD_GetPropertyData)
 ///NSTUB(0xFF064EB8,  PlayWaveData)                            // args: sampling rate, bit, channel, size maybe; wav data ptr is at 0x26F8
 ///NSTUB(0xFF1C042C,  PopEDmac)
 ///NSTUB(0xFF1A16D0,  ReadyLiveViewDevice)

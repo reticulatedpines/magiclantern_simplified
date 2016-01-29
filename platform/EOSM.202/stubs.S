@@ -245,7 +245,6 @@ NSTUB(0xFF45FBDC,  ptp_register_handler)
 // NSTUB(    ???,  ptpPropSetUILock)                        /* present on 650D.104, 700D.113 */
 
 /** Properties **/
-NSTUB(0xFF121774,  PROPAD_GetPropertyData)                  /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 550D.109 */
 NSTUB(0xFF12018C, _prop_cleanup)
 NSTUB(0xFF11FB04, _prop_request_change)
 NSTUB(0xFF1200C0,  prop_deliver)
@@ -317,6 +316,7 @@ NSTUB(0xFFA89B5C - RAM_OFFSET,  vsnprintf)                  // 205CC
 ///NSTUB(0xFF32D348,  MuteOff_0)
 ///NSTUB(0xFF32D300,  MuteOn_0)
 ///NSTUB(0xFF101E04,  PD_RemoteRelease)
+///NSTUB(0xFF121774,  PROPAD_GetPropertyData)                  /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 550D.109 */
 ///NSTUB(   0x35784,  SIO3_ISR)
 ///NSTUB(0xFF1299C4,  SetBitmapVramAddress)
 ///NSTUB(0xFF2BFAEC,  SetNextASIFDACBuffer_1)               // Int16 Direct Control

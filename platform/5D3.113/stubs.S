@@ -246,7 +246,6 @@ NSTUB(0xFF3F4F54,  ptp_register_handler)
 // NSTUB(    ???,  ptpPropSetUILock)                        /* present on 650D.104, 700D.113 */
 
 /** Properties **/
-NSTUB(0xFF12523C,  PROPAD_GetPropertyData)
 NSTUB(0xFF123C88, _prop_cleanup)
 NSTUB(0xFF123600, _prop_request_change)
 NSTUB(0xFF123BBC,  prop_deliver)
@@ -315,6 +314,7 @@ NSTUB(0xFF9F4F3C - RAM_OFFSET,  vsnprintf)
 ///NSTUB(0xff2f3f44, MuteOn_0)
 ///NSTUB(0xff1064c8, PD_RemoteRelease)
 ///NSTUB(0xFF123DE4,  PROP_GetMulticastProperty)
+///NSTUB(0xFF12523C,  PROPAD_GetPropertyData)
 ///NSTUB(0xFF576564,  PackMem_PopEDmacForMemorySuite)
 ///NSTUB(0xFF576634,  PackMem_RegisterEDmacCompleteCBRForMemorySuite)
 ///NSTUB(0xFF5766D0,  PackMem_RegisterEDmacPopCBRForMemorySuite)
