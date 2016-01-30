@@ -151,7 +151,7 @@ static int luaCB_camera_newindex(lua_State * L)
     if(!strcmp(key, "shutter"))
     {
         LUA_PARAM_NUMBER(value, 3);
-        status = lens_set_rawshutter(shutterf_to_raw(value));
+        status = hdr_set_rawshutter(shutterf_to_raw(value));
     }
     else if(!strcmp(key, "aperture"))
     {
@@ -277,27 +277,27 @@ static int luaCB_shutter_newindex(lua_State * L)
     if(!strcmp(key, "raw"))
     {
         LUA_PARAM_INT(value, 3);
-        status = lens_set_rawshutter(value);
+        status = hdr_set_rawshutter(value);
     }
     else if(!strcmp(key, "apex"))
     {
         LUA_PARAM_INT(value, 3);
-        status = lens_set_rawshutter(TV2RAW(value));
+        status = hdr_set_rawshutter(TV2RAW(value));
     }
     else if(!strcmp(key, "apexf"))
     {
         LUA_PARAM_NUMBER(value, 3);
-        status = lens_set_rawshutter(TV2RAW((int)roundf(value * 10)));
+        status = hdr_set_rawshutter(TV2RAW((int)roundf(value * 10)));
     }
     else if(!strcmp(key, "ms"))
     {
         LUA_PARAM_INT(value, 3);
-        status = lens_set_rawshutter(shutter_ms_to_raw(value));
+        status = hdr_set_rawshutter(shutter_ms_to_raw(value));
     }
     else if(!strcmp(key, "value"))
     {
         LUA_PARAM_NUMBER(value, 3);
-        status = lens_set_rawshutter(shutterf_to_raw(value));
+        status = hdr_set_rawshutter(shutterf_to_raw(value));
     }
     else
     {
