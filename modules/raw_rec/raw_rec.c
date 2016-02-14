@@ -177,6 +177,8 @@ static int raw_previewing = 0;
 #define RAW_IS_RECORDING (raw_recording_state == RAW_RECORDING)
 #define RAW_IS_FINISHING (raw_recording_state == RAW_FINISHING)
 
+#define VIDF_HDR_SIZE 4096
+
 /* one video frame */
 struct frame_slot
 {
@@ -334,7 +336,8 @@ static void update_resolution_params()
     /* frame size */
     /* should be multiple of 512, so there's no write speed penalty (see http://chdk.setepontos.com/index.php?topic=9970 ; confirmed by benchmarks) */
     /* should be multiple of 4096 for proper EDMAC alignment */
-    int frame_size_padded = (res_x * res_y * 14/8 + 4095) & ~4095;
+    /* 4096 at the front for the VIDF header */
+    int frame_size_padded = VIDF_HDR_SIZE + ((res_x * res_y * 14/8 + 4095) & ~4095);
     
     /* frame size without rounding */
     /* must be multiple of 4 */
@@ -584,7 +587,7 @@ static MENU_UPDATE_FUNC(aspect_ratio_update)
     write_speed_update(entry, info);
 }
 
-static int add_mem_suite(struct memSuite * mem_suite, int buf_size, int chunk_index)
+static int add_mem_suite(struct memSuite * mem_suite, int chunk_index)
 {
     if(mem_suite)
     {
@@ -609,6 +612,16 @@ static int add_mem_suite(struct memSuite * mem_suite, int buf_size, int chunk_in
                 /* fit as many frames as we can */
                 while (size >= frame_size + 8192 && slot_count < COUNT(slots))
                 {
+                    mlv_vidf_hdr_t* vidf_hdr = (mlv_vidf_hdr_t*) ptr;
+                    memset(vidf_hdr, 0, sizeof(mlv_vidf_hdr_t));
+                    mlv_set_type((mlv_hdr_t*)vidf_hdr, "VIDF");
+                    vidf_hdr->blockSize = frame_size;
+                    vidf_hdr->frameSpace = VIDF_HDR_SIZE - sizeof(mlv_vidf_hdr_t);
+                    vidf_hdr->cropPosX = (skip_x + 7) & ~7;
+                    vidf_hdr->cropPosY = skip_y & ~1;
+                    vidf_hdr->panPosX = skip_x;
+                    vidf_hdr->panPosY = skip_y;
+                    
                     slots[slot_count].ptr = ptr;
                     slots[slot_count].status = SLOT_FREE;
                     ptr += frame_size;
@@ -655,8 +668,8 @@ static int setup_buffers()
     }
         
     int chunk_index = 0;
-    chunk_index = add_mem_suite(shoot_mem_suite, buf_size, chunk_index);
-    chunk_index = add_mem_suite(srm_mem_suite, buf_size, chunk_index);
+    chunk_index = add_mem_suite(shoot_mem_suite, chunk_index);
+    chunk_index = add_mem_suite(srm_mem_suite, chunk_index);
   
     /* we need at least 3 slots */
     if (slot_count < 3)
@@ -1219,7 +1232,7 @@ static int FAST choose_next_capture_slot()
 
 static void frame_add_checks(int slot_index)
 {
-    void* ptr = slots[slot_index].ptr;
+    void* ptr = slots[slot_index].ptr + VIDF_HDR_SIZE;
     uint32_t* frame_end = ptr + frame_size_real - 4;
     uint32_t* after_frame = ptr + frame_size_real;
     *(volatile uint32_t*) frame_end = FRAME_SENTINEL; /* this will be overwritten by EDMAC */
@@ -1228,7 +1241,7 @@ static void frame_add_checks(int slot_index)
 
 static int frame_check_saved(int slot_index)
 {
-    void* ptr = slots[slot_index].ptr;
+    void* ptr = slots[slot_index].ptr + VIDF_HDR_SIZE;
     uint32_t* frame_end = ptr + frame_size_real - 4;
     uint32_t* after_frame = ptr + frame_size_real;
     if (*(volatile uint32_t*) after_frame != FRAME_SENTINEL)
@@ -1279,7 +1292,9 @@ static int FAST process_frame()
     }
 
     /* copy current frame to our buffer and crop it to its final size */
-    void* ptr = slots[capture_slot].ptr;
+    mlv_vidf_hdr_t* vidf_hdr = (mlv_vidf_hdr_t*)slots[capture_slot].ptr;
+    vidf_hdr->frameNumber = slots[capture_slot].frame_number - 1;
+    void* ptr = slots[capture_slot].ptr + VIDF_HDR_SIZE;
     void* fullSizeBuffer = fullsize_buffers[(fullsize_buffer_pos+1) % 2];
 
     /* advance to next buffer for the upcoming capture */
@@ -1386,8 +1401,7 @@ static char* get_wav_file_name(char* raw_movie_filename)
     return wavfile;
 }
 
-#define MLV_ACTUAL_HEADER_SIZE (sizeof(mlv_file_hdr_t) + sizeof(mlv_rawi_hdr_t) + sizeof(mlv_idnt_hdr_t) + sizeof(mlv_expo_hdr_t) + sizeof(mlv_lens_hdr_t) + sizeof(mlv_rtci_hdr_t) + sizeof(mlv_wbal_hdr_t) + sizeof(mlv_vidf_hdr_t))
-#define MLV_HEADER_SIZE 4096
+#define MLV_ACTUAL_HEADER_SIZE (sizeof(mlv_file_hdr_t) + sizeof(mlv_rawi_hdr_t) + sizeof(mlv_idnt_hdr_t) + sizeof(mlv_expo_hdr_t) + sizeof(mlv_lens_hdr_t) + sizeof(mlv_rtci_hdr_t) + sizeof(mlv_wbal_hdr_t))
 
 static mlv_file_hdr_t file_hdr;
 static mlv_rawi_hdr_t rawi_hdr;
@@ -1396,7 +1410,6 @@ static mlv_expo_hdr_t expo_hdr;
 static mlv_lens_hdr_t lens_hdr;
 static mlv_rtci_hdr_t rtci_hdr;
 static mlv_wbal_hdr_t wbal_hdr;
-static mlv_vidf_hdr_t vidf_hdr;
 static uint64_t mlv_start_timestamp = 0;
 uint32_t raw_rec_trace_ctx = TRACE_ERROR;
 
@@ -1430,17 +1443,6 @@ static void init_mlv_chunk_headers(struct raw_info * raw_info)
     mlv_fill_lens(&lens_hdr, mlv_start_timestamp);
     mlv_fill_rtci(&rtci_hdr, mlv_start_timestamp);
     mlv_fill_wbal(&wbal_hdr, mlv_start_timestamp);
-    
-    memset(&vidf_hdr, 0, sizeof(mlv_vidf_hdr_t));
-    mlv_set_type((mlv_hdr_t *)&vidf_hdr, "VIDS");
-    mlv_set_timestamp((mlv_hdr_t *)&vidf_hdr, mlv_start_timestamp);
-    vidf_hdr.blockSize = sizeof(mlv_vidf_hdr_t);
-    vidf_hdr.frameSpace = MLV_HEADER_SIZE - MLV_ACTUAL_HEADER_SIZE;
-    vidf_hdr.cropPosX = (skip_x + 7) & ~7;
-    vidf_hdr.cropPosY = skip_y & ~1;
-    vidf_hdr.panPosX = skip_x;
-    vidf_hdr.panPosY = skip_y;
-    
 }
 
 static int write_mlv_chunk_headers(FILE* f)
@@ -1452,9 +1454,7 @@ static int write_mlv_chunk_headers(FILE* f)
     if (FIO_WriteFile(f, &lens_hdr, lens_hdr.blockSize) != (int)lens_hdr.blockSize) return 0;
     if (FIO_WriteFile(f, &rtci_hdr, rtci_hdr.blockSize) != (int)rtci_hdr.blockSize) return 0;
     if (FIO_WriteFile(f, &wbal_hdr, wbal_hdr.blockSize) != (int)wbal_hdr.blockSize) return 0;
-    if (FIO_WriteFile(f, &vidf_hdr, vidf_hdr.blockSize) != (int)vidf_hdr.blockSize) return 0;
-    FIO_SeekSkipFile(f, MLV_HEADER_SIZE, SEEK_SET);
-    return MLV_HEADER_SIZE;
+    return 1;
 }
 
 static void raw_video_rec_task()
@@ -1501,7 +1501,7 @@ static void raw_video_rec_task()
         goto cleanup;
     }
     init_mlv_chunk_headers(&raw_info);
-    written += write_mlv_chunk_headers(f) / 1024;
+    written += write_mlv_chunk_headers(f);
     if (!written)
     {
         bmp_printf( FONT_MED, 30, 50, "File header write error");
@@ -1698,7 +1698,6 @@ static void raw_video_rec_task()
                 if (!g) goto abort;
                 
                 file_hdr.fileNum = chunk;
-                vidf_hdr.frameNumber = frame_count;
                 write_mlv_chunk_headers(g);
                 
                 /* write the remaining data in the new chunk */
