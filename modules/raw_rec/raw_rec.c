@@ -74,6 +74,8 @@
 #include "raw.h"
 #include "zebra.h"
 #include "fps.h"
+#include "../mlv_rec/mlv.h"
+#include "../trace/trace.h"
 
 /* from mlv_play module */
 extern WEAK_FUNC(ret_0) void mlv_play_file(char *filename);
@@ -580,26 +582,6 @@ static MENU_UPDATE_FUNC(aspect_ratio_update)
         aspect_ratio_update_info(entry, info);
     }
     write_speed_update(entry, info);
-}
-
-/* add a footer to given file handle to  */
-static unsigned int lv_rec_save_footer(FILE *save_file)
-{
-    lv_rec_file_footer_t footer;
-    
-    strcpy((char*)footer.magic, "RAWM");
-    footer.xRes = res_x;
-    footer.yRes = res_y;
-    footer.frameSize = frame_size;
-    footer.frameCount = frame_count - 1; /* last frame is usually gibberish */
-    footer.frameSkip = 1;
-    
-    footer.sourceFpsx1000 = fps_get_current_x1000();
-    footer.raw_info = raw_info;
-
-    int written = FIO_WriteFile(save_file, &footer, sizeof(lv_rec_file_footer_t));
-    
-    return written == sizeof(lv_rec_file_footer_t);
 }
 
 static int add_mem_suite(struct memSuite * mem_suite, int buf_size, int chunk_index)
@@ -1366,7 +1348,7 @@ static char* get_next_raw_movie_file_name()
          * Get unique file names from the current date/time
          * last field gets incremented if there's another video with the same name
          */
-        snprintf(filename, sizeof(filename), "%s/M%02d-%02d%02d.RAW", get_dcim_dir(), now.tm_mday, now.tm_hour, COERCE(now.tm_min + number, 0, 99));
+        snprintf(filename, sizeof(filename), "%s/M%02d-%02d%02d.MLV", get_dcim_dir(), now.tm_mday, now.tm_hour, COERCE(now.tm_min + number, 0, 99));
         
         /* already existing file? */
         uint32_t size;
@@ -1402,6 +1384,77 @@ static char* get_wav_file_name(char* raw_movie_filename)
     /* prefer SD card for saving WAVs (should be faster on 5D3) */
     if (is_dir("B:/")) wavfile[0] = 'B';
     return wavfile;
+}
+
+#define MLV_ACTUAL_HEADER_SIZE (sizeof(mlv_file_hdr_t) + sizeof(mlv_rawi_hdr_t) + sizeof(mlv_idnt_hdr_t) + sizeof(mlv_expo_hdr_t) + sizeof(mlv_lens_hdr_t) + sizeof(mlv_rtci_hdr_t) + sizeof(mlv_wbal_hdr_t) + sizeof(mlv_vidf_hdr_t))
+#define MLV_HEADER_SIZE 4096
+
+static mlv_file_hdr_t file_hdr;
+static mlv_rawi_hdr_t rawi_hdr;
+static mlv_idnt_hdr_t idnt_hdr;
+static mlv_expo_hdr_t expo_hdr;
+static mlv_lens_hdr_t lens_hdr;
+static mlv_rtci_hdr_t rtci_hdr;
+static mlv_wbal_hdr_t wbal_hdr;
+static mlv_vidf_hdr_t vidf_hdr;
+static uint64_t mlv_start_timestamp = 0;
+uint32_t raw_rec_trace_ctx = TRACE_ERROR;
+
+static void init_mlv_chunk_headers(struct raw_info * raw_info)
+{
+    mlv_start_timestamp = mlv_set_timestamp(NULL, 0);
+    
+    memset(&file_hdr, 0, sizeof(mlv_file_hdr_t));
+    mlv_init_fileheader(&file_hdr);
+    file_hdr.fileGuid = mlv_generate_guid();
+    file_hdr.fileNum = 0;
+    file_hdr.fileCount = 0; //autodetect
+    file_hdr.fileFlags = 4;
+    file_hdr.videoClass = 1;
+    file_hdr.audioClass = 0;
+    file_hdr.videoFrameCount = 0; //autodetect
+    file_hdr.audioFrameCount = 0;
+    file_hdr.sourceFpsNom = fps_get_current_x1000();
+    file_hdr.sourceFpsDenom = 1000;
+    
+    memset(&rawi_hdr, 0, sizeof(mlv_rawi_hdr_t));
+    mlv_set_type((mlv_hdr_t *)&rawi_hdr, "RAWI");
+    mlv_set_timestamp((mlv_hdr_t *)&rawi_hdr, mlv_start_timestamp);
+    rawi_hdr.blockSize = sizeof(mlv_rawi_hdr_t);
+    rawi_hdr.xRes = res_x;
+    rawi_hdr.yRes = res_y;
+    rawi_hdr.raw_info = *raw_info;
+    
+    mlv_fill_idnt(&idnt_hdr, mlv_start_timestamp);
+    mlv_fill_expo(&expo_hdr, mlv_start_timestamp);
+    mlv_fill_lens(&lens_hdr, mlv_start_timestamp);
+    mlv_fill_rtci(&rtci_hdr, mlv_start_timestamp);
+    mlv_fill_wbal(&wbal_hdr, mlv_start_timestamp);
+    
+    memset(&vidf_hdr, 0, sizeof(mlv_vidf_hdr_t));
+    mlv_set_type((mlv_hdr_t *)&vidf_hdr, "VIDS");
+    mlv_set_timestamp((mlv_hdr_t *)&vidf_hdr, mlv_start_timestamp);
+    vidf_hdr.blockSize = sizeof(mlv_vidf_hdr_t);
+    vidf_hdr.frameSpace = MLV_HEADER_SIZE - MLV_ACTUAL_HEADER_SIZE;
+    vidf_hdr.cropPosX = (skip_x + 7) & ~7;
+    vidf_hdr.cropPosY = skip_y & ~1;
+    vidf_hdr.panPosX = skip_x;
+    vidf_hdr.panPosY = skip_y;
+    
+}
+
+static int write_mlv_chunk_headers(FILE* f)
+{
+    if (FIO_WriteFile(f, &file_hdr, file_hdr.blockSize) != (int)file_hdr.blockSize) return 0;
+    if (FIO_WriteFile(f, &rawi_hdr, rawi_hdr.blockSize) != (int)rawi_hdr.blockSize) return 0;
+    if (FIO_WriteFile(f, &idnt_hdr, idnt_hdr.blockSize) != (int)idnt_hdr.blockSize) return 0;
+    if (FIO_WriteFile(f, &expo_hdr, expo_hdr.blockSize) != (int)expo_hdr.blockSize) return 0;
+    if (FIO_WriteFile(f, &lens_hdr, lens_hdr.blockSize) != (int)lens_hdr.blockSize) return 0;
+    if (FIO_WriteFile(f, &rtci_hdr, rtci_hdr.blockSize) != (int)rtci_hdr.blockSize) return 0;
+    if (FIO_WriteFile(f, &wbal_hdr, wbal_hdr.blockSize) != (int)wbal_hdr.blockSize) return 0;
+    if (FIO_WriteFile(f, &vidf_hdr, vidf_hdr.blockSize) != (int)vidf_hdr.blockSize) return 0;
+    FIO_SeekSkipFile(f, MLV_HEADER_SIZE, SEEK_SET);
+    return MLV_HEADER_SIZE;
 }
 
 static void raw_video_rec_task()
@@ -1445,6 +1498,13 @@ static void raw_video_rec_task()
     if (!f)
     {
         bmp_printf( FONT_MED, 30, 50, "File create error");
+        goto cleanup;
+    }
+    init_mlv_chunk_headers(&raw_info);
+    written += write_mlv_chunk_headers(f) / 1024;
+    if (!written)
+    {
+        bmp_printf( FONT_MED, 30, 50, "File header write error");
         goto cleanup;
     }
     
@@ -1637,6 +1697,10 @@ static void raw_video_rec_task()
                 FILE* g = FIO_CreateFile(chunk_filename);
                 if (!g) goto abort;
                 
+                file_hdr.fileNum = chunk;
+                vidf_hdr.frameNumber = frame_count;
+                write_mlv_chunk_headers(f);
+                
                 /* write the remaining data in the new chunk */
                 int r2 = FIO_WriteFile(g, ptr + r, size_used - r);
                 if (r2 == size_used - r) /* new chunk worked, continue with it */
@@ -1783,34 +1847,7 @@ abort_and_check_early_stop:
     FIO_RemoveFile(backup_filename);
     msleep(500);
 
-    if (written && f)
-    {
-        /* write footer (metadata) */
-        int footer_ok = lv_rec_save_footer(f);
-        if (!footer_ok)
-        {
-            /* try to save footer in a new chunk */
-            FIO_CloseFile(f); f = 0;
-            chunk_filename = get_next_chunk_file_name(raw_movie_filename, ++chunk);
-            FILE* g = FIO_CreateFile(chunk_filename);
-            if (g)
-            {
-                footer_ok = lv_rec_save_footer(g);
-                FIO_CloseFile(g);
-            }
-        }
-
-        /* still didn't succeed? */
-        if (!footer_ok)
-        {
-            bmp_printf( FONT_MED, 30, 110, 
-                "Footer save error"
-            );
-            beep_times(3);
-            msleep(2000);
-        }
-    }
-    else
+    if (!(written && f))
     {
         bmp_printf( FONT_MED, 30, 110, 
             "Nothing saved, card full maybe."
