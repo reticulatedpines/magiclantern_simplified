@@ -1699,7 +1699,7 @@ static void raw_video_rec_task()
                 
                 file_hdr.fileNum = chunk;
                 vidf_hdr.frameNumber = frame_count;
-                write_mlv_chunk_headers(f);
+                write_mlv_chunk_headers(g);
                 
                 /* write the remaining data in the new chunk */
                 int r2 = FIO_WriteFile(g, ptr + r, size_used - r);
