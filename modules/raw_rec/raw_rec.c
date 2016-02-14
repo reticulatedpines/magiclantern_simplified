@@ -213,6 +213,17 @@ static int idle_time = 0;                         /* time spent by raw_video_rec
 static volatile int writing_task_busy = 0;        /* busy: in the middle of a write operation */
 static volatile int frame_countdown = 0;          /* for waiting X frames */
 
+
+static mlv_file_hdr_t file_hdr;
+static mlv_rawi_hdr_t rawi_hdr;
+static mlv_idnt_hdr_t idnt_hdr;
+static mlv_expo_hdr_t expo_hdr;
+static mlv_lens_hdr_t lens_hdr;
+static mlv_rtci_hdr_t rtci_hdr;
+static mlv_wbal_hdr_t wbal_hdr;
+static uint64_t mlv_start_timestamp = 0;
+uint32_t raw_rec_trace_ctx = TRACE_ERROR;
+
 /* interface to other modules:
  *
  *    unsigned int raw_rec_skip_frame(unsigned char *frame_data)
@@ -1294,6 +1305,7 @@ static int FAST process_frame()
     /* copy current frame to our buffer and crop it to its final size */
     mlv_vidf_hdr_t* vidf_hdr = (mlv_vidf_hdr_t*)slots[capture_slot].ptr;
     vidf_hdr->frameNumber = slots[capture_slot].frame_number - 1;
+    mlv_set_timestamp((mlv_hdr_t*)vidf_hdr, mlv_start_timestamp);
     void* ptr = slots[capture_slot].ptr + VIDF_HDR_SIZE;
     void* fullSizeBuffer = fullsize_buffers[(fullsize_buffer_pos+1) % 2];
 
@@ -1400,18 +1412,6 @@ static char* get_wav_file_name(char* raw_movie_filename)
     if (is_dir("B:/")) wavfile[0] = 'B';
     return wavfile;
 }
-
-#define MLV_ACTUAL_HEADER_SIZE (sizeof(mlv_file_hdr_t) + sizeof(mlv_rawi_hdr_t) + sizeof(mlv_idnt_hdr_t) + sizeof(mlv_expo_hdr_t) + sizeof(mlv_lens_hdr_t) + sizeof(mlv_rtci_hdr_t) + sizeof(mlv_wbal_hdr_t))
-
-static mlv_file_hdr_t file_hdr;
-static mlv_rawi_hdr_t rawi_hdr;
-static mlv_idnt_hdr_t idnt_hdr;
-static mlv_expo_hdr_t expo_hdr;
-static mlv_lens_hdr_t lens_hdr;
-static mlv_rtci_hdr_t rtci_hdr;
-static mlv_wbal_hdr_t wbal_hdr;
-static uint64_t mlv_start_timestamp = 0;
-uint32_t raw_rec_trace_ctx = TRACE_ERROR;
 
 static void init_mlv_chunk_headers(struct raw_info * raw_info)
 {
