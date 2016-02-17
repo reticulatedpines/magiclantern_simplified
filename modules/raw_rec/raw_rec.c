@@ -1306,6 +1306,10 @@ static int FAST process_frame()
     mlv_vidf_hdr_t* vidf_hdr = (mlv_vidf_hdr_t*)slots[capture_slot].ptr;
     vidf_hdr->frameNumber = slots[capture_slot].frame_number - 1;
     mlv_set_timestamp((mlv_hdr_t*)vidf_hdr, mlv_start_timestamp);
+    vidf_hdr->cropPosX = (skip_x + 7) & ~7;
+    vidf_hdr->cropPosY = skip_y & ~1;
+    vidf_hdr->panPosX = skip_x;
+    vidf_hdr->panPosY = skip_y;
     void* ptr = slots[capture_slot].ptr + VIDF_HDR_SIZE;
     void* fullSizeBuffer = fullsize_buffers[(fullsize_buffer_pos+1) % 2];
 
