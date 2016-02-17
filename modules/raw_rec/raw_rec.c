@@ -1454,7 +1454,7 @@ static int write_mlv_chunk_headers(FILE* f)
     if (FIO_WriteFile(f, &lens_hdr, lens_hdr.blockSize) != (int)lens_hdr.blockSize) return 0;
     if (FIO_WriteFile(f, &rtci_hdr, rtci_hdr.blockSize) != (int)rtci_hdr.blockSize) return 0;
     if (FIO_WriteFile(f, &wbal_hdr, wbal_hdr.blockSize) != (int)wbal_hdr.blockSize) return 0;
-    return 1;
+    return sizeof(file_hdr) + sizeof(rawi_hdr) + sizeof(idnt_hdr) + sizeof(expo_hdr) + sizeof(lens_hdr) + sizeof(rtci_hdr) + sizeof(wbal_hdr);
 }
 
 static void raw_video_rec_task()
@@ -1472,6 +1472,7 @@ static void raw_video_rec_task()
     written = 0; /* in KB */
     uint32_t written_chunk = 0; /* in bytes, for current chunk */
     int last_block_size = 0; /* for detecting early stops */
+    static int file_size_limit = 0; /* have we run into the 4GB limit? */
     
     /* disable powersave timer */
     int powersave_prohibit = 2;
@@ -1662,6 +1663,29 @@ static void raw_video_rec_task()
         {
             writing_task_busy = 1;
             
+            /* if we know there's a 4GB file size limit and we're about to exceed it, go ahead and make a new chunk */
+            if (file_size_limit && written_chunk > 0xFFFFFFFF - size_used)
+            {
+                chunk_filename = get_next_chunk_file_name(raw_movie_filename, ++chunk);
+                FILE* g = FIO_CreateFile(chunk_filename);
+                if (!g) goto abort;
+                
+                file_hdr.fileNum = chunk;
+                written_chunk = write_mlv_chunk_headers(g);
+                if (written_chunk)
+                {
+                    FIO_CloseFile(f);
+                    f = g;
+                }
+                else
+                {
+                    FIO_CloseFile(g);
+                    FIO_RemoveFile(chunk_filename);
+                    chunk--;
+                    goto abort;
+                }
+            }
+            
             int t0 = get_ms_clock_value();
             if (!last_write_timestamp) last_write_timestamp = t0;
             idle_time += t0 - last_write_timestamp;
@@ -1675,20 +1699,20 @@ static void raw_video_rec_task()
 
                 if (r == -1)
                 {
+                    file_size_limit = 1;
                     /* 4GB limit? it stops after writing 4294967295 bytes, but FIO_WriteFile may return -1 */
-                    //if ((uint64_t)written_chunk + size_used > 4294967295)
-                    if (1) // renato says it's not working?!
-                    {
-                        r = 4294967295 - written_chunk;
+                    r = 0xFFFFFFFF - written_chunk;
                         
-                        /* 5D2 does not write anything if the call failed, but 5D3 writes exactly 4294967295 */
-                        /* this one should cover both cases in a portable way */
-                        /* on 5D2 will succeed, on 5D3 should fail right away */
-                        FIO_WriteFile(f, ptr, r);
-                    }
-                    else /* idk */
+                    /* 5D2 does not write anything if the call failed, but 5D3 writes exactly 4294967295 */
+                    /* We need to write a null block to cover to the end of the file if anything was written */
+                    /* otherwise the file could end in the middle of a block */
+                    if (FIO_SeekSkipFile(f, 0, SEEK_END) == 0xFFFFFFFF)
                     {
-                        r = 0;
+                        FIO_SeekSkipFile(f, -r, SEEK_END);
+                        mlv_hdr_t nul_hdr;
+                        mlv_set_type(&nul_hdr, "NULL");
+                        nul_hdr.blockSize = r;
+                        FIO_WriteFile(f, &nul_hdr, sizeof(nul_hdr));
                     }
                 }
                 
@@ -1698,20 +1722,18 @@ static void raw_video_rec_task()
                 if (!g) goto abort;
                 
                 file_hdr.fileNum = chunk;
-                write_mlv_chunk_headers(g);
+                written_chunk = write_mlv_chunk_headers(g);
                 
-                /* write the remaining data in the new chunk */
-                int r2 = FIO_WriteFile(g, ptr + r, size_used - r);
-                if (r2 == size_used - r) /* new chunk worked, continue with it */
+                int r2 = written_chunk ? FIO_WriteFile(g, ptr, size_used) : 0;
+                if (r2 == size_used) /* new chunk worked, continue with it */
                 {
                     FIO_CloseFile(f);
                     f = g;
                     written += size_used / 1024;
-                    written_chunk = r2;
+                    written_chunk += r2;
                 }
                 else /* new chunk didn't work, card full */
                 {
-                    /* let's hope we can still save the footer in the current chunk (don't create a new one) */
                     FIO_CloseFile(g);
                     FIO_RemoveFile(chunk_filename);
                     chunk--;
