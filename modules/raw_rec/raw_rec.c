@@ -1506,12 +1506,13 @@ static void raw_video_rec_task()
         goto cleanup;
     }
     init_mlv_chunk_headers(&raw_info);
-    written += write_mlv_chunk_headers(f);
-    if (!written)
+    written_chunk += write_mlv_chunk_headers(f);
+    if (!written_chunk)
     {
         bmp_printf( FONT_MED, 30, 50, "File header write error");
         goto cleanup;
     }
+    written += 1;
     
     /* wait for two frames to be sure everything is refreshed */
     frame_countdown = 2;
@@ -1701,23 +1702,27 @@ static void raw_video_rec_task()
                 /* it failed right away? card must be full */
                 if (written == 0) goto abort;
 
-                if (r == -1)
+                /* failed, but not at 4GB limit, card must be full */
+                if(written_chunk < 0xFFFFFFFF - size_used || (!file_size_limit && written > 0x3FFFFF))
                 {
-                    file_size_limit = 1;
-                    /* 4GB limit? it stops after writing 4294967295 bytes, but FIO_WriteFile may return -1 */
-                    r = 0xFFFFFFFF - written_chunk;
-                        
-                    /* 5D2 does not write anything if the call failed, but 5D3 writes exactly 4294967295 */
-                    /* We need to write a null block to cover to the end of the file if anything was written */
-                    /* otherwise the file could end in the middle of a block */
-                    if (FIO_SeekSkipFile(f, 0, SEEK_END) == 0xFFFFFFFF)
-                    {
-                        FIO_SeekSkipFile(f, -r, SEEK_END);
-                        mlv_hdr_t nul_hdr;
-                        mlv_set_type(&nul_hdr, "NULL");
-                        nul_hdr.blockSize = r;
-                        FIO_WriteFile(f, &nul_hdr, sizeof(nul_hdr));
-                    }
+                    bmp_printf( FONT_MED, 30, 110, "Card Full");
+                    /* don't try and write the remaining frames, the card is full */
+                    writing_queue_head = writing_queue_tail;
+                    goto abort;
+                }
+                file_size_limit = 1;
+                
+                /* 5D2 does not write anything if the call failed, but 5D3 writes exactly 4294967295 */
+                /* We need to write a null block to cover to the end of the file if anything was written */
+                /* otherwise the file could end in the middle of a block */
+                int64_t pos = FIO_SeekSkipFile(f, 0, SEEK_CUR);
+                if (pos > written_chunk + 1)
+                {
+                    FIO_SeekSkipFile(f, written_chunk, SEEK_SET);
+                    mlv_hdr_t nul_hdr;
+                    mlv_set_type(&nul_hdr, "NULL");
+                    nul_hdr.blockSize = MAX(sizeof(nul_hdr), pos - written_chunk);
+                    FIO_WriteFile(f, &nul_hdr, sizeof(nul_hdr));
                 }
                 
                 /* try to create a new chunk */
