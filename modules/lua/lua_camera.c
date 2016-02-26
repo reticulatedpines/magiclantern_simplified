@@ -242,12 +242,9 @@ static int luaCB_shutter_index(lua_State * L)
     /// Get/Set shutter speed in Canon raw units
     // @tfield int raw
     if(!strcmp(key,"raw")) lua_pushinteger(L, lens_info.raw_shutter);
-    /// Get/Set shutter speed in apex units x10
-    // @tfield int apex
-    else if(!strcmp(key,"apex")) lua_pushinteger(L, RAW2TV(lens_info.raw_shutter));
-    /// Get/Set shutter speed in apex units (floating point)
-    // @tfield number apexf
-    else if(!strcmp(key,"apexf")) lua_pushnumber(L, (RAW2TV(lens_info.raw_shutter)/10.0));
+    /// Get/Set shutter speed in APEX units (floating point)
+    // @tfield number apex
+    else if(!strcmp(key,"apex")) lua_pushnumber(L, (RAW2TV(lens_info.raw_shutter)/10.0));
     /// Get/Set shutter speed in milliseconds
     // @tfield int ms
     else if(!strcmp(key,"ms")) lua_pushinteger(L, raw2shutter_ms(lens_info.raw_shutter));
@@ -281,11 +278,6 @@ static int luaCB_shutter_newindex(lua_State * L)
     }
     else if(!strcmp(key, "apex"))
     {
-        LUA_PARAM_INT(value, 3);
-        status = hdr_set_rawshutter(TV2RAW(value));
-    }
-    else if(!strcmp(key, "apexf"))
-    {
         LUA_PARAM_NUMBER(value, 3);
         status = hdr_set_rawshutter(TV2RAW((int)roundf(value * 10)));
     }
@@ -316,12 +308,9 @@ static int luaCB_aperture_index(lua_State * L)
     /// Get/Set aperture in Canon raw units
     // @tfield int raw
     if(!strcmp(key,"raw")) lua_pushinteger(L, lens_info.raw_aperture);
-    /// Get/Set aperture in apex units x10
-    // @tfield int apex
-    else if(!strcmp(key,"apex")) lua_pushinteger(L, RAW2AV(lens_info.raw_aperture));
-    /// Get/Set aperture in apex units (floating point)
-    // @tfield number apexf
-    else if(!strcmp(key,"apexf")) lua_pushnumber(L, (RAW2AV(lens_info.raw_aperture) / 10.0));
+    /// Get/Set aperture in APEX units (floating point)
+    // @tfield number apex
+    else if(!strcmp(key,"apex")) lua_pushnumber(L, (RAW2AV(lens_info.raw_aperture) / 10.0));
     /// Get/Set aperture as f-number (floating point)
     // @tfield number value
     else if(!strcmp(key,"value")) lua_pushnumber(L, lens_info.aperture / 10.0);
@@ -356,11 +345,6 @@ static int luaCB_aperture_newindex(lua_State * L)
     }
     else if(!strcmp(key, "apex"))
     {
-        LUA_PARAM_INT(value, 3);
-        status = hdr_set_rawaperture(AV2RAW(value));
-    }
-    else if(!strcmp(key, "apexf"))
-    {
         LUA_PARAM_NUMBER(value, 3);
         status = hdr_set_rawaperture(AV2RAW((int)roundf(value * 10)));
     }
@@ -386,12 +370,9 @@ static int luaCB_iso_index(lua_State * L)
     /// Get/Set ISO in Canon raw units
     // @tfield int raw
     if(!strcmp(key,"raw")) lua_pushinteger(L, lens_info.raw_iso);
-    /// Get/Set ISO in apex units x10
-    // @tfield int apex
-    else if(!strcmp(key,"apex")) lua_pushinteger(L, RAW2SV(lens_info.raw_iso));
-    /// Get/Set ISO in apex units (floating point)
-    // @tfield number apexf
-    else if(!strcmp(key,"apexf")) lua_pushnumber(L, (RAW2SV(lens_info.raw_iso) / 10.0));
+    /// Get/Set ISO in APEX units (floating point)
+    // @tfield number apex
+    else if(!strcmp(key,"apex")) lua_pushnumber(L, (RAW2SV(lens_info.raw_iso) / 10.0));
     /// Get/Set ISO
     // @tfield int value
     else if(!strcmp(key,"value")) lua_pushinteger(L, raw2iso(lens_info.raw_iso));
@@ -426,11 +407,6 @@ static int luaCB_iso_newindex(lua_State * L)
     }
     else if(!strcmp(key, "apex"))
     {
-        LUA_PARAM_INT(value, 3);
-        status = lens_set_rawiso(SV2RAW(value));
-    }
-    else if(!strcmp(key, "apexf"))
-    {
         LUA_PARAM_NUMBER(value, 3);
         status = lens_set_rawiso(SV2RAW((int)roundf(value * 10)));
     }
@@ -459,13 +435,7 @@ static int luaCB_ec_index(lua_State * L)
     /// Get/Set exposure compensation in Canon raw units
     // @tfield int raw
     if(!strcmp(key,"raw")) lua_pushinteger(L, lens_info.ae);
-    /// Get/Set exposure compensation in apex units x10
-    // @tfield int apex
-    else if(!strcmp(key,"apex")) lua_pushinteger(L, RAW2EC(lens_info.ae));
-    /// Get/Set exposure compensation in EVs (floating point)
-    // @tfield number apexf
-    else if(!strcmp(key,"apexf")) lua_pushnumber(L, (RAW2EC(lens_info.ae) / 10.0));
-    /// Get/Set exposure compensation in EVs
+    /// Get/Set exposure compensation in EV or APEX
     // @tfield number value
     else if(!strcmp(key,"value")) lua_pushnumber(L, RAW2EC(lens_info.ae) / 10.0);
     else lua_rawget(L, 1);
@@ -491,12 +461,7 @@ static int luaCB_ec_newindex(lua_State * L)
         LUA_PARAM_INT(value, 3);
         status = lens_set_ae(value);
     }
-    else if(!strcmp(key, "apex"))
-    {
-        LUA_PARAM_INT(value, 3);
-        status = lens_set_ae(EC2RAW(value));
-    }
-    else if(!strcmp(key, "apexf") || !strcmp(key, "value"))
+    else if(!strcmp(key, "value"))
     {
         LUA_PARAM_NUMBER(value, 3);
         status = lens_set_ae(EC2RAW((int)roundf(value * 10)));
@@ -513,8 +478,6 @@ static int luaCB_fec_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
     if(!strcmp(key,"raw")) lua_pushinteger(L, lens_info.flash_ae);
-    else if(!strcmp(key,"apex")) lua_pushinteger(L, RAW2EC(lens_info.flash_ae));
-    else if(!strcmp(key,"apexf")) lua_pushnumber(L, (RAW2EC(lens_info.flash_ae) / 10.0));
     else if(!strcmp(key,"value")) lua_pushnumber(L, RAW2EC(lens_info.flash_ae) / 10.0);
     else lua_rawget(L, 1);
     return 1;
@@ -536,12 +499,7 @@ static int luaCB_fec_newindex(lua_State * L)
         LUA_PARAM_INT(value, 3);
         status = lens_set_flash_ae(value);
     }
-    else if(!strcmp(key, "apex"))
-    {
-        LUA_PARAM_INT(value, 3);
-        status = lens_set_flash_ae(EC2RAW(value));
-    }
-    else if(!strcmp(key, "apexf") || !strcmp(key, "value"))
+    else if(!strcmp(key, "value"))
     {
         LUA_PARAM_NUMBER(value, 3);
         status = lens_set_flash_ae(EC2RAW((int)roundf(value * 10)));
