@@ -2431,7 +2431,7 @@ unsigned int eos_handle_tio ( unsigned int parm, EOSState *s, unsigned int addre
             break;
     }
 
-    io_log("TIO", s, address, type, value, ret, msg, 0, 0);
+    io_log("TIO", s, address, type, value, ret, msg, msg_arg1, 0);
     return ret;
 }
 
