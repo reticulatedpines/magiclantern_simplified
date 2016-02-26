@@ -131,8 +131,8 @@ static int luaCB_dryos_index(lua_State * L)
     // @tfield directory dcim_dir
     else if(!strcmp(key, "dcim_dir"))
     {
+        lua_pushcfunction(L, luaCB_dryos_directory);
         lua_pushstring(L, get_dcim_dir());
-        lua_pushstring(L, get_config_dir());
         lua_call(L, 1, 1);
     }
     /// Get the ML config directory
