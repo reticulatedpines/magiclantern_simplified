@@ -6316,8 +6316,6 @@ shoot_task( void* unused )
 
             if (PLAY_MODE) get_out_of_play_mode(500);
             
-            if (LV_PAUSED) ResumeLiveView();
-
             if (!intervalometer_running) continue; // back to start of shoot_task loop
             if (gui_menu_shown() || get_halfshutter_pressed()) continue;
 
