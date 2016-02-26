@@ -463,6 +463,22 @@ char* lens_format_shutter(int tv)
     return shutter;
 }
 
+char* lens_format_aperture(int raw_aperture)
+{
+    int f = RAW2VALUE(aperture, raw_aperture);
+    
+    static char aperture[32];
+    if (f < 100)
+    {
+        snprintf(aperture, sizeof(aperture), SYM_F_SLASH"%d.%d", f / 10, f % 10);
+    }
+    else
+    {
+        snprintf(aperture, sizeof(aperture), SYM_F_SLASH"%d", f / 10);
+    }
+    return aperture;
+}
+
 int FAST get_ml_topbar_pos()
 {
     int screen_layout = get_screen_layout();
@@ -1082,9 +1098,6 @@ int val2raw_##param(int val) \
 RAWVAL_FUNC(iso)
 RAWVAL_FUNC(shutter)
 RAWVAL_FUNC(aperture)
-
-#define RAW2VALUE(param,rawvalue) ((int)values_##param[raw2index_##param(rawvalue)])
-#define VALUE2RAW(param,value) ((int)val2raw_##param(value))
 
 static void lensinfo_set_iso(int raw)
 {
@@ -2396,16 +2409,9 @@ static LVINFO_UPDATE_FUNC(av_update)
 {
     LVINFO_BUFFER(8);
 
-    if (lens_info.aperture && lens_info.name[0])
+    if (lens_info.raw_aperture && lens_info.name[0])
     {
-        if (lens_info.aperture < 100)
-        {
-            snprintf(buffer, sizeof(buffer), SYM_F_SLASH"%d.%d", lens_info.aperture / 10, lens_info.aperture % 10);
-        }
-        else
-        {
-            snprintf(buffer, sizeof(buffer), SYM_F_SLASH"%d", lens_info.aperture / 10);
-        }
+        snprintf(buffer, sizeof(buffer), lens_format_aperture(lens_info.raw_aperture));
     }
     
     if (CONTROL_BV)

@@ -248,6 +248,9 @@ char* lens_format_shutter(int tv);
 /** Pretty prints the shutter speed given the shutter reciprocal (times 1000) as input */
 char* lens_format_shutter_reciprocal(int shutter_reciprocal_x1000, int digits);
 
+/** Pretty prints the aperture given the raw value as input */
+char* lens_format_aperture(int av);
+
 #define KELVIN_MIN 1500
 #define KELVIN_MAX 15000
 #define KELVIN_STEP 100
@@ -278,6 +281,9 @@ static const uint8_t  codes_aperture[] =  {0,  10,  11,  12,  13,  14,  15,  16,
 // in 1/2 - 1/3 EV, same values as Canon display:
 //~ static const int values_aperture[] = {0,12,13,14,16,18,20,22,25,28,32,35,40,45,50,56,63,67,71,80,90,95,100,110,130,140,160,180,190,200,220,250,270,290,320,360,380,400,450};
 //~ static const int codes_aperture[] =  {0,13,14,16,19,21,24,27,29,32,35,37,40,44,45,48,51,52,53,56,59,60, 61, 64, 68, 69, 72, 75, 76, 77, 80, 83, 84, 85, 88, 91, 92, 93, 96};
+
+#define RAW2VALUE(param,rawvalue) ((int)values_##param[raw2index_##param(rawvalue)])
+#define VALUE2RAW(param,value) ((int)val2raw_##param(value))
 
 // UNIT_1_8_EV
 #define APEX_TV(raw) ((int)(raw) - 56)
