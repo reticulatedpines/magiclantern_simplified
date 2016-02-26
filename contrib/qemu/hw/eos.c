@@ -1049,6 +1049,9 @@ uint8_t eos_get_mem_b ( EOSState *s, uint32_t addr )
 
 static void io_log(const char * module_name, EOSState *s, unsigned int address, unsigned char type, unsigned int in_value, unsigned int out_value, const char * msg, intptr_t msg_arg1, intptr_t msg_arg2)
 {
+    /* todo: integrate with QEMU's logging/verbosity code */
+    //~ return;
+    
     unsigned int pc = s->cpu->env.regs[15];
     if (!module_name) module_name = "???";
     if (!msg) msg = "???";
@@ -2598,7 +2601,8 @@ unsigned int eos_handle_digic_timer ( unsigned int parm, EOSState *s, unsigned i
 }
 
 /* based on pl181_send_command from hw/sd/pl181.c */
-#define DPRINTF(fmt, ...) do { printf("[SDIO] " fmt , ## __VA_ARGS__); } while (0)
+// #define DPRINTF(fmt, ...) do { printf("[SDIO] " fmt , ## __VA_ARGS__); } while (0)
+#define DPRINTF(fmt, ...) do { } while (0)
 #define SDIO_STATUS_OK              0x1
 #define SDIO_STATUS_ERROR           0x2
 #define SDIO_STATUS_DATA_AVAILABLE  0x200000
