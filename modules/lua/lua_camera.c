@@ -448,7 +448,8 @@ static int luaCB_ec_index(lua_State * L)
 //@function __tostring
 static int luaCB_ec_tostring(lua_State * L)
 {
-    lua_pushfstring(L, "%d.%d", RAW2EC(lens_info.ae) / 10, RAW2EC(lens_info.ae) % 10);
+    int ec = RAW2EC(lens_info.ae);
+    lua_pushfstring(L, "%s%d.%d", FMT_FIXEDPOINT1(ec));
     return 1;
 }
 
@@ -486,7 +487,8 @@ static int luaCB_fec_index(lua_State * L)
 
 static int luaCB_fec_tostring(lua_State * L)
 {
-    lua_pushfstring(L, "%d.%d", RAW2EC(lens_info.flash_ae) / 10, RAW2EC(lens_info.flash_ae) % 10);
+    int fec = RAW2EC(lens_info.flash_ae);
+    lua_pushfstring(L, "%s%d.%d", FMT_FIXEDPOINT1(fec));
     return 1;
 }
 
