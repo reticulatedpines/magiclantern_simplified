@@ -33,6 +33,16 @@ static int luaCB_console_hide(lua_State * L)
 }
 
 /***
+ Clear the console contents
+ @function clear
+ */
+static int luaCB_console_clear(lua_State * L)
+{
+    console_clear();
+    return 0;
+}
+
+/***
  Write some text to the console
  @tparam string text the text to write
  @function write
@@ -50,6 +60,7 @@ static const luaL_Reg consolelib[] =
 {
     { "show", luaCB_console_show },
     { "hide", luaCB_console_hide },
+    { "clear", luaCB_console_clear },
     { "write", luaCB_console_write },
     { NULL, NULL }
 };
