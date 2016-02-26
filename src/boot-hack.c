@@ -262,25 +262,7 @@ my_task_dispatch_hook(
 
 #ifdef CONFIG_QEMU
     char* task_name = get_task_name_from_id(get_current_task());
-    
-    if ((((intptr_t)task->entry & 0xF0000000) == 0xF0000000 || task->entry < RESTARTSTART) &&
-        (   /* only start some whitelisted Canon tasks */
-            #ifndef CONFIG_550D
-            !streq(task_name, "Startup") &&
-            #endif
-            !streq(task_name, "TaskMain") &&
-            !streq(task_name, "PowerMgr") &&
-            !streq(task_name, "EventMgr") &&
-            //~ !streq(task_name, "PropMgr") &&
-        1))
-    {
-        qprintf("[*****] Not starting task %x(%x) %s\n", task->entry, task->arg, task_name);
-        task->entry = &ret_0;
-    }
-    else
-    {
-        qprintf("[*****] Starting task %x(%x) %s\n", task->entry, task->arg, task_name);
-    }
+    qprintf("[*****] Starting task %x(%x) %s\n", task->entry, task->arg, task_name);
 #endif
 
     for( ; mapping < _task_overrides_end ; mapping++ )
@@ -909,11 +891,6 @@ my_init_task(int a, int b, int c, int d)
 
 #ifndef CONFIG_EARLY_PORT
 
-#ifdef CONFIG_QEMU
-    qemu_hptimer_test();
-    qemu_cam_init();
-#endif
-
     // wait for firmware to initialize
     while (!bmp_vram_raw()) msleep(100);
     
@@ -951,11 +928,6 @@ my_init_task(int a, int b, int c, int d)
     }
 
     task_create("ml_init", 0x1e, 0x4000, my_big_init_task, 0 );
-
-#ifdef CONFIG_QEMU  /* fixme: Canon GUI task is not started */
-    extern void ml_gui_main_task();
-    task_create("GuiMainTask", 0x17, 0x2000, ml_gui_main_task, 0);
-#endif
 
     return ans;
 #endif // !CONFIG_EARLY_PORT
