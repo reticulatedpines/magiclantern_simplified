@@ -337,7 +337,7 @@ static void script_define_param_variables(void* tcc, void* script_state)
         p--;
         int _varname = 'a' + p;
         char* varname = (char*)&_varname;
-        console_printf("   Param %s = %d; // %s\n", varname, conf_script_vars[p], script_params[p]);
+        printf("   Param %s = %d; // %s\n", varname, conf_script_vars[p], script_params[p]);
         module_exec(tcc, "tcc_add_symbol", 3, script_state, varname, &conf_script_vars[p]);
     }
 }

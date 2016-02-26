@@ -1255,12 +1255,12 @@ static void menu_remove_entry(struct menu * menu, struct menu_entry * entry)
     }
     if (entry->prev)
     {
-        // console_printf("link %s to %x\n", entry->prev->name, entry->next);
+        // printf("link %s to %x\n", entry->prev->name, entry->next);
         entry->prev->next = entry->next;
     }
     if (entry->next)
     {
-        // console_printf("link %s to %x\n", entry->next->name, entry->prev);
+        // printf("link %s to %x\n", entry->next->name, entry->prev);
         entry->next->prev = entry->prev;
     }
     
@@ -1271,7 +1271,7 @@ static void menu_remove_entry(struct menu * menu, struct menu_entry * entry)
         struct menu * submenu = menu_find_by_name( entry->name, ICON_ML_SUBMENU);
         if (submenu)
         {
-            // console_printf("unlink submenu %s\n", submenu->name);
+            // printf("unlink submenu %s\n", submenu->name);
             submenu->children = 0;
         }
     }
@@ -1281,7 +1281,7 @@ static void menu_remove_entry(struct menu * menu, struct menu_entry * entry)
     {
         if (streq(placeholder->name, entry->name))
         {
-            // console_printf("restore placeholder %s\n", entry->name);
+            // printf("restore placeholder %s\n", entry->name);
             struct menu_entry restored_placeholder = MENU_PLACEHOLDER(placeholder->name);
             placeholder_copy(placeholder, &restored_placeholder);
             break;
@@ -5584,7 +5584,7 @@ end:
 int menu_get_value_from_script(const char* name, const char* entry_name)
 {
     struct menu_entry * entry = entry_find_by_name(name, entry_name);
-    if (!entry) { console_printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
+    if (!entry) { printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
     
     return CURRENT_VALUE;
 }
@@ -5592,7 +5592,7 @@ int menu_get_value_from_script(const char* name, const char* entry_name)
 char* menu_get_str_value_from_script(const char* name, const char* entry_name)
 {
     struct menu_entry * entry = entry_find_by_name(name, entry_name);
-    if (!entry) { console_printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
+    if (!entry) { printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
 
     // this won't work with ML menu on (race condition)
     static struct menu_display_info info;
@@ -5604,7 +5604,7 @@ char* menu_get_str_value_from_script(const char* name, const char* entry_name)
 int menu_set_str_value_from_script(const char* name, const char* entry_name, char* value, int value_int)
 {
     struct menu_entry * entry = entry_find_by_name(name, entry_name);
-    if (!entry) { console_printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
+    if (!entry) { printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
 
     // we will need exclusive access to menu_display_info
     take_semaphore(menu_sem, 0);
@@ -5629,7 +5629,7 @@ int menu_set_str_value_from_script(const char* name, const char* entry_name, cha
 
         if (i > 0 && streq(current, last)) // value not changing? stop here
         {
-            console_printf("Value not changing: %s.\n", current);
+            printf("Value not changing: %s.\n", current);
             break;
         }
         
@@ -5638,7 +5638,7 @@ int menu_set_str_value_from_script(const char* name, const char* entry_name, cha
         
         // for debugging, print this always
         if (i > 50 && i % 10 == 0) // it's getting fishy, maybe it's good to show some progress
-            console_printf("menu_set_str('%s', '%s', '%s'): trying %s (%d), was %s...\n", name, entry_name, value, current, CURRENT_VALUE, last);
+            printf("menu_set_str('%s', '%s', '%s'): trying %s (%d), was %s...\n", name, entry_name, value, current, CURRENT_VALUE, last);
 
         snprintf(last, sizeof(last), "%s", current);
         
@@ -5648,7 +5648,7 @@ int menu_set_str_value_from_script(const char* name, const char* entry_name, cha
         
         msleep(20); // we may need to wait for property handlers to update
     }
-    console_printf("Could not set value '%s' for menu %s -> %s\n", value, name, entry_name);
+    printf("Could not set value '%s' for menu %s -> %s\n", value, name, entry_name);
     give_semaphore(menu_sem);
     return 0; // boo :(
 
@@ -5660,7 +5660,7 @@ ok:
 int menu_set_value_from_script(const char* name, const char* entry_name, int value)
 {
     struct menu_entry * entry = entry_find_by_name(name, entry_name);
-    if (!entry) { console_printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
+    if (!entry) { printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
     
     if( entry->select ) // special item, we need some heuristics
     {
@@ -5676,7 +5676,7 @@ int menu_set_value_from_script(const char* name, const char* entry_name, int val
     }
     else // unknown
     {
-        console_printf("Cannot set value for %s -> %s\n", name, entry->name);
+        printf("Cannot set value for %s -> %s\n", name, entry->name);
         return 0; // boo :(
     }
 }

@@ -12,39 +12,9 @@
 
 void exit(int code) 
 {
-    console_printf("exit(%d)\n", code);
+    printf("exit(%d)\n", code);
     console_show();
     while(1) msleep(100); // fixme: stop the task and exit cleanly
-}
-
-int printf(const char * fmt, ...)
-{
-    va_list            ap;
-    char buf[128];
-    va_start( ap, fmt );
-    vsnprintf( buf, sizeof(buf)-1, fmt, ap );
-    va_end( ap );
-    console_puts(buf);
-    return 0;
-}
-
-int puts(const char * fmt)
-{
-    console_puts(fmt);
-    console_puts("\n");
-    return 0;
-}
-
-int fputs(FILE* unused, const char * fmt)
-{
-    console_puts(fmt);
-    return 0;
-}
-
-int putchar(int c)
-{
-    console_puts((char*)&c);
-    return c;
 }
 
 // no file I/O for now, but feel free to implement it
@@ -130,7 +100,7 @@ int lseek(int fd, int offset, int whence)
 
 FILE* fopen(const char * filename, const char * modes)
 {
-    console_printf("fopen('%s', '%s')\n", filename, modes);
+    printf("fopen('%s', '%s')\n", filename, modes);
     if (modes[0] == 'r')
         return FIO_OpenFile(filename, O_RDONLY | O_SYNC);
     else if (modes[0] == 'w')
