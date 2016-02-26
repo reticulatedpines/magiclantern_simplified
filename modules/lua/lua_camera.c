@@ -45,7 +45,7 @@ static int luaCB_camera_index(lua_State * L)
     {
         lua_newtable(L);
         lua_pushcfunction(L, luaCB_shutter_tostring);
-        lua_setfield(L, -2, "tostring");
+        lua_setfield(L, -2, "__tostring");
         lua_pushcfunction(L, luaCB_shutter_index);
         lua_setfield(L, -2, "__index");
         lua_pushcfunction(L, luaCB_shutter_newindex);
@@ -59,7 +59,7 @@ static int luaCB_camera_index(lua_State * L)
     {
         lua_newtable(L);
         lua_pushcfunction(L, luaCB_aperture_tostring);
-        lua_setfield(L, -2, "tostring");
+        lua_setfield(L, -2, "__tostring");
         lua_pushcfunction(L, luaCB_aperture_index);
         lua_setfield(L, -2, "__index");
         lua_pushcfunction(L, luaCB_aperture_newindex);
@@ -73,7 +73,7 @@ static int luaCB_camera_index(lua_State * L)
     {
         lua_newtable(L);
         lua_pushcfunction(L, luaCB_iso_tostring);
-        lua_setfield(L, -2, "tostring");
+        lua_setfield(L, -2, "__tostring");
         lua_pushcfunction(L, luaCB_iso_index);
         lua_setfield(L, -2, "__index");
         lua_pushcfunction(L, luaCB_iso_newindex);
@@ -87,7 +87,7 @@ static int luaCB_camera_index(lua_State * L)
     {
         lua_newtable(L);
         lua_pushcfunction(L, luaCB_ec_tostring);
-        lua_setfield(L, -2, "tostring");
+        lua_setfield(L, -2, "__tostring");
         lua_pushcfunction(L, luaCB_ec_index);
         lua_setfield(L, -2, "__index");
         lua_pushcfunction(L, luaCB_ec_newindex);
@@ -101,7 +101,7 @@ static int luaCB_camera_index(lua_State * L)
     {
         lua_newtable(L);
         lua_pushcfunction(L, luaCB_fec_tostring);
-        lua_setfield(L, -2, "tostring");
+        lua_setfield(L, -2, "__tostring");
         lua_pushcfunction(L, luaCB_fec_index);
         lua_setfield(L, -2, "__index");
         lua_pushcfunction(L, luaCB_fec_newindex);
@@ -260,7 +260,7 @@ static int luaCB_shutter_index(lua_State * L)
 
 /// Pretty prints the current shutter speed as a string
 //@treturn string
-//@function tostring
+//@function __tostring
 static int luaCB_shutter_tostring(lua_State * L)
 {
     lua_pushstring(L, lens_format_shutter(lens_info.raw_shutter));
@@ -331,7 +331,7 @@ static int luaCB_aperture_index(lua_State * L)
 
 /// Pretty prints the current aperture as a string
 //@treturn string
-//@function tostring
+//@function __tostring
 static int luaCB_aperture_tostring(lua_State * L)
 {
     int a = lens_info.aperture;
@@ -401,7 +401,7 @@ static int luaCB_iso_index(lua_State * L)
 
 /// Pretty prints the current ISO as a string
 //@treturn string
-//@function tostring
+//@function __tostring
 static int luaCB_iso_tostring(lua_State * L)
 {
     if(lens_info.raw_iso)
@@ -475,7 +475,7 @@ static int luaCB_ec_index(lua_State * L)
 
 /// Pretty prints the exposure compensation as a string
 //@treturn string
-//@function tostring
+//@function __tostring
 static int luaCB_ec_tostring(lua_State * L)
 {
     lua_pushfstring(L, "%d.%d", RAW2EC(lens_info.ae) / 10, RAW2EC(lens_info.ae) % 10);
