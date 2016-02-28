@@ -39,7 +39,7 @@ static int luaCB_console_hide(lua_State * L)
  */
 static int luaCB_console_write(lua_State * L)
 {
-    if(lua_isstring(L, 1)) console_puts(lua_tostring(L, 1));
+    if(lua_isstring(L, 1)) puts(lua_tostring(L, 1));
     return 0;
 }
 
