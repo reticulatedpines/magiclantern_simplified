@@ -632,7 +632,7 @@ static int add_mem_suite(struct memSuite * mem_suite, int buf_size, int chunk_in
                     ptr += frame_size;
                     size -= frame_size;
                     slot_count++;
-                    //~ console_printf("slot #%d: %d %x\n", slot_count, tag, ptr);
+                    //~ printf("slot #%d: %d %x\n", slot_count, tag, ptr);
                 }
             }
             chunk = GetNextMemoryChunk(mem_suite, chunk);
@@ -1309,7 +1309,7 @@ static int FAST process_frame()
         return 0;
     }
 
-    //~ console_printf("saving frame %d: slot %d ptr %x\n", frame_count, capture_slot, ptr);
+    //~ printf("saving frame %d: slot %d ptr %x\n", frame_count, capture_slot, ptr);
 
     int ans = (int) edmac_copy_rectangle_start(ptr, fullSizeBuffer, raw_info.pitch, (skip_x+7)/8*14, skip_y/2*2, res_x*14/8, res_y);
 
@@ -1568,7 +1568,7 @@ static void raw_video_rec_task()
             int frame_limit = overflow_time * 1024 / 10 * (measured_write_speed * 9 / 100) * 1024 / frame_size / 10;
             if (frame_limit >= 0 && frame_limit < num_frames)
             {
-                //~ console_printf("careful, will overflow in %d.%d seconds, better write only %d frames\n", overflow_time/10, overflow_time%10, frame_limit);
+                //~ printf("careful, will overflow in %d.%d seconds, better write only %d frames\n", overflow_time/10, overflow_time%10, frame_limit);
                 num_frames = MAX(1, frame_limit - 1);
             }
         }

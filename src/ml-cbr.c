@@ -24,7 +24,7 @@
 #define UNLOCK give_semaphore
 
 #if ML_CBR_DEBUG
-#define dbg_printf(fmt,...) do { console_printf(fmt, ## __VA_ARGS__); } while(0)
+#define dbg_printf(fmt,...) do { printf(fmt, ## __VA_ARGS__); } while(0)
 #else
 #define dbg_printf(fmt,...) do {} while(0)
 #endif

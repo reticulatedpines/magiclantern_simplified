@@ -54,20 +54,20 @@ static int module_load_symbols(TCCState *s, char *filename)
 
     if( FIO_GetFileSize( filename, &size ) != 0 )
     {
-        console_printf("Error loading '%s': File does not exist\n", filename);
+        printf("Error loading '%s': File does not exist\n", filename);
         return -1;
     }
     buf = fio_malloc(size);
     if(!buf)
     {
-        console_printf("Error loading '%s': File too large\n", filename);
+        printf("Error loading '%s': File too large\n", filename);
         return -1;
     }
 
     file = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
     if (!file)
     {
-        console_printf("Error loading '%s': File does not exist\n", filename);
+        printf("Error loading '%s': File does not exist\n", filename);
         fio_free(buf);
         return -1;
     }
@@ -137,7 +137,7 @@ static int module_valid_filename(char* filename)
 /* must be called before unloading TCC */
 static void module_update_core_symbols(TCCState* state)
 {
-    console_printf("Updating symbols...\n");
+    printf("Updating symbols...\n");
 
     extern struct module_symbol_entry _module_symbols_start[];
     extern struct module_symbol_entry _module_symbols_end[];
@@ -152,19 +152,19 @@ static void module_update_core_symbols(TCCState* state)
             if (new_address != module_symbol_entry->address)
             {
                 *(module_symbol_entry->address) = new_address;
-                console_printf("  [i] upd: %s %x => %x\n", module_symbol_entry->name, old_address, new_address);
+                printf("  [i] upd: %s %x => %x\n", module_symbol_entry->name, old_address, new_address);
             }
             else
             {
                 /* you have declared a non-static MODULE_SYMBOL (or MODULE_FUNCTION), which got exported into the SYM file */
                 /* this will not work; fix it by declaring it as static */
                 console_show();
-                console_printf("  [E] wtf: %s (should be static)\n", module_symbol_entry->name);
+                printf("  [E] wtf: %s (should be static)\n", module_symbol_entry->name);
             }
         }
         else
         {
-            console_printf("  [i] 404: %s %x\n", module_symbol_entry->name, old_address);
+            printf("  [i] 404: %s %x\n", module_symbol_entry->name, old_address);
         }
     }
 }
@@ -191,7 +191,7 @@ static void _module_load_all(uint32_t list_only)
     if (module_state)
 #endif
     {
-        console_printf("Modules already loaded.\n");
+        printf("Modules already loaded.\n");
         beep();
         return;
     }
@@ -206,7 +206,7 @@ static void _module_load_all(uint32_t list_only)
         return;
     }
 
-    console_printf("Scanning modules...\n");
+    printf("Scanning modules...\n");
     struct fio_dirent * dirent = FIO_FindFirstEx( MODULE_PATH, &file );
     if( IS_ERROR(dirent) )
     {
@@ -223,7 +223,7 @@ static void _module_load_all(uint32_t list_only)
             char module_name[MODULE_FILENAME_LENGTH];
 
             /* get filename, remove extension and append _init to get the init symbol */
-            //console_printf("  [i] found: %s\n", file.name);
+            //printf("  [i] found: %s\n", file.name);
             
             /* ensure the buffer is null terminated */
             memset(module_name, 0x00, sizeof(module_name));
@@ -259,7 +259,7 @@ static void _module_load_all(uint32_t list_only)
                 module_list[module_cnt].enabled = 0;
                 snprintf(module_list[module_cnt].status, sizeof(module_list[module_cnt].status), "OFF");
                 snprintf(module_list[module_cnt].long_status, sizeof(module_list[module_cnt].long_status), "Module disabled");
-                //console_printf("  [i] %s\n", module_list[module_cnt].long_status);
+                //printf("  [i] %s\n", module_list[module_cnt].long_status);
             }
             else
             {
@@ -314,12 +314,12 @@ static void _module_load_all(uint32_t list_only)
     }
     
     /* load modules */
-    console_printf("Load modules...\n");
+    printf("Load modules...\n");
     for (uint32_t mod = 0; mod < module_cnt; mod++)
     {
         if(module_list[mod].enabled)
         {
-            console_printf("  [i] load: %s\n", module_list[mod].filename);
+            printf("  [i] load: %s\n", module_list[mod].filename);
             int32_t ret = tcc_add_file(state, module_list[mod].long_filename);
             module_list[mod].valid = 1;
 
@@ -329,12 +329,12 @@ static void _module_load_all(uint32_t list_only)
                 module_list[mod].error = 1;
                 snprintf(module_list[mod].status, sizeof(module_list[mod].status), "FileErr");
                 snprintf(module_list[mod].long_status, sizeof(module_list[mod].long_status), "Load failed: %s, ret 0x%02X");
-                console_printf("  [E] %s\n", module_list[mod].long_status);
+                printf("  [E] %s\n", module_list[mod].long_status);
             }
         }
     }
 
-    console_printf("Linking..\n");
+    printf("Linking..\n");
 #ifdef CONFIG_TCC_UNLOAD
     int32_t size = tcc_relocate(state, NULL);
     int32_t reloc_status = -1;
@@ -352,7 +352,7 @@ static void _module_load_all(uint32_t list_only)
     if(ret < 0)
 #endif
     {
-        console_printf("  [E] failed to link modules\n");
+        printf("  [E] failed to link modules\n");
         for (uint32_t mod = 0; mod < module_cnt; mod++)
         {
             if(module_list[mod].enabled)
@@ -367,7 +367,7 @@ static void _module_load_all(uint32_t list_only)
     }
     
     /* load modules symbols */
-    console_printf("Register modules...\n");
+    printf("Register modules...\n");
     for (uint32_t mod = 0; mod < module_cnt; mod++)
     {
         if(module_list[mod].valid && module_list[mod].enabled && !module_list[mod].error)
@@ -400,7 +400,7 @@ static void _module_load_all(uint32_t list_only)
                         module_list[mod].error = 1;
                         snprintf(module_list[mod].status, sizeof(module_list[mod].status), "OldAPI");
                         snprintf(module_list[mod].long_status, sizeof(module_list[mod].long_status), "Wrong version (v%d.%d, expected v%d.%d)\n", module_list[mod].info->api_major, module_list[mod].info->api_minor, MODULE_MAJOR, MODULE_MINOR);
-                        console_printf("  [E] %s\n", module_list[mod].long_status);
+                        printf("  [E] %s\n", module_list[mod].long_status);
                         
                         /* disable active stuff, since the results are unpredictable */
                         module_list[mod].cbr = 0;
@@ -412,7 +412,7 @@ static void _module_load_all(uint32_t list_only)
                     module_list[mod].error = 1;
                     snprintf(module_list[mod].status, sizeof(module_list[mod].status), "Magic");
                     snprintf(module_list[mod].long_status, sizeof(module_list[mod].long_status), "Invalid Magic (0x%X)\n", module_list[mod].info->api_magic);
-                    console_printf("  [E] %s\n", module_list[mod].long_status);
+                    printf("  [E] %s\n", module_list[mod].long_status);
                 }
             }
             else
@@ -420,12 +420,12 @@ static void _module_load_all(uint32_t list_only)
                 module_list[mod].error = 1;
                 snprintf(module_list[mod].status, sizeof(module_list[mod].status), "noInfo");
                 snprintf(module_list[mod].long_status, sizeof(module_list[mod].long_status), "No info structure found (addr 0x%X)\n", (uint32_t)module_list[mod].info);
-                console_printf("  [E] %s\n", module_list[mod].long_status);
+                printf("  [E] %s\n", module_list[mod].long_status);
             }
         }
     }
     
-    console_printf("Load configs...\n");
+    printf("Load configs...\n");
     for (uint32_t mod = 0; mod < module_cnt; mod++)
     {
         if(module_list[mod].enabled && module_list[mod].valid && !module_list[mod].error)
@@ -440,20 +440,20 @@ static void _module_load_all(uint32_t list_only)
     sync_caches();
     
     /* go through all modules and initialize them */
-    console_printf("Init modules...\n");
+    printf("Init modules...\n");
     for (uint32_t mod = 0; mod < module_cnt; mod++)
     {
         if(module_list[mod].valid && module_list[mod].enabled && !module_list[mod].error)
         {
-            console_printf("  [i] Init: '%s'\n", module_list[mod].name);
+            printf("  [i] Init: '%s'\n", module_list[mod].name);
             if(0)
             {
-                console_printf("  [i] info    at: 0x%08X\n", (uint32_t)module_list[mod].info);
-                console_printf("  [i] strings at: 0x%08X\n", (uint32_t)module_list[mod].strings);
-                console_printf("  [i] props   at: 0x%08X\n", (uint32_t)module_list[mod].prop_handlers);
-                console_printf("  [i] cbr     at: 0x%08X\n", (uint32_t)module_list[mod].cbr);
-                console_printf("  [i] config  at: 0x%08X\n", (uint32_t)module_list[mod].config);
-                console_printf("-----------------------------\n");
+                printf("  [i] info    at: 0x%08X\n", (uint32_t)module_list[mod].info);
+                printf("  [i] strings at: 0x%08X\n", (uint32_t)module_list[mod].strings);
+                printf("  [i] props   at: 0x%08X\n", (uint32_t)module_list[mod].prop_handlers);
+                printf("  [i] cbr     at: 0x%08X\n", (uint32_t)module_list[mod].cbr);
+                printf("  [i] config  at: 0x%08X\n", (uint32_t)module_list[mod].config);
+                printf("-----------------------------\n");
             }
             
             /* initialize module */
@@ -481,7 +481,7 @@ static void _module_load_all(uint32_t list_only)
                 while(*props != NULL)
                 {
                     update_properties = 1;
-                    console_printf("  [i] prop %s\n", (*props)->name);
+                    printf("  [i] prop %s\n", (*props)->name);
                     prop_add_handler((*props)->property, (*props)->handler);
                     props++;
                 }
@@ -489,7 +489,7 @@ static void _module_load_all(uint32_t list_only)
             
             if(0)
             {
-                console_printf("-----------------------------\n");
+                printf("-----------------------------\n");
             }
             if (!module_list[mod].error)
             {
@@ -513,7 +513,7 @@ static void _module_load_all(uint32_t list_only)
     module_state = state;
     #endif
     
-    console_printf("Modules loaded\n");
+    printf("Modules loaded\n");
 }
 
 static void _module_unload_all(void)
@@ -1624,7 +1624,7 @@ static void module_load_task(void* unused)
             }
             
             default:
-                console_printf("invalid msg: %d\n", msg);
+                printf("invalid msg: %d\n", msg);
         }
     }
 }
@@ -1632,7 +1632,7 @@ static void module_load_task(void* unused)
 void module_save_configs()
 {
     /* save configuration */
-    console_printf("Save configs...\n");
+    printf("Save configs...\n");
     for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
     {
         if(module_list[mod].valid && module_list[mod].enabled && !module_list[mod].error && module_list[mod].config)
@@ -1644,7 +1644,7 @@ void module_save_configs()
             uint32_t ret = module_config_save(filename, &module_list[mod]);
             if(ret)
             {
-                console_printf("  [E] Error: %d\n", ret);
+                printf("  [E] Error: %d\n", ret);
             }
         }
     }

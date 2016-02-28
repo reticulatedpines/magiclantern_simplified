@@ -255,7 +255,6 @@ NSTUB(0xFF9ED888,  ptp_register_handler)                    // d
 // NSTUB(    ???,  ptpPropSetUILock)                        /* present on 650D.104, 700D.113 */
 
 /** Properties **/
-NSTUB(0xFF85A3D8,  PROPAD_GetPropertyData)                  // str:SearchFromProperty
 NSTUB(0xFF859860, _prop_cleanup)
 NSTUB(0xFF8598C4, _prop_request_change)                     // d
 NSTUB(0xFF859704,  prop_deliver)                            // d
@@ -326,6 +325,7 @@ NSTUB(0xFF98E1E4,  vsnprintf)                               // d
 ///NSTUB(0xFF85DDDC,  MuteOff_0)                               // not quite the same as in other cameras, but should work
 ///NSTUB(0xFF85DD98,  MuteOn_0)                                // idem
 ///NSTUB(0xFF8599E0,  PROP_GetMulticastProperty)
+///NSTUB(0xFF85A3D8,  PROPAD_GetPropertyData)                  // str:SearchFromProperty
 ///NSTUB(0xFF97CA98,  PopEDmac)
 ///NSTUB(0xFFA5F738,  RedrawDisplay)                           // d
 ///NSTUB(0xFF90EC2C,  RemoteRelease)

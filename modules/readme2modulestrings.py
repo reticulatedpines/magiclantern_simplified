@@ -106,6 +106,7 @@ for p in txt.strip("\n").split("\n")[2:]:
         add_string(last_str, desc)
         desc = ""
         last_str = "Help page %d" % help_page_num
+        print >> sys.stderr, "Help page %d: %s" % (help_page_num, p.strip('# '))
         lines_per_page = 0
         p = p[2:].strip()
     desc += "%s\n" % p

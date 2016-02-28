@@ -253,7 +253,6 @@ NSTUB(0xFF29352C,  ptp_register_handler)
 // NSTUB(    ???,  ptpPropSetUILock)                        /* present on 650D.104, 700D.113 */
 
 /** Properties **/
-NSTUB(0xFF05BE34,  PROPAD_GetPropertyData)
 NSTUB(0xFF05B178, _prop_cleanup)
 NSTUB(0xFF05A9F0, _prop_request_change)
 NSTUB(0xFF05AFD0,  prop_deliver)
@@ -323,6 +322,7 @@ NSTUB(0xFF1DA530,  vsnprintf)
 ///NSTUB(0xFF1CD2F8,  MuteOn_0)
 ///NSTUB(0xFF382A0C,  OlcAFFrameApp_handler)
 ///NSTUB(0xFF05B210,  PROP_GetMulticastProperty)
+///NSTUB(0xFF05BE34,  PROPAD_GetPropertyData)
 ///NSTUB(0xFF1C47AC,  PopEDmac)
 ///NSTUB(0xFF323EB8,  RedrawDisplay)
 ///NSTUB(0xFF061A68,  SetBitmapVramAddress)                    // where to find bmp_vram_info

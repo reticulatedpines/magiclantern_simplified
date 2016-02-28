@@ -19,9 +19,6 @@
 
 #undef CONSOLE_DEBUG // logs things to file etc
 
-int console_printf(const char* fmt, ...); // how to replace the normal printf?
-#define printf console_printf
-
 #define CONSOLE_W 80
 #define CONSOLE_H 21
 #define CONSOLE_FONT FONT_MONO_20
@@ -108,7 +105,7 @@ static void console_init()
     #endif
 }
 
-void console_puts(const char* str) // don't DebugMsg from here!
+static void console_puts(const char* str) // don't DebugMsg from here!
 {
     #define NEW_CHAR(c) CONSOLE_BUFFER(console_buffer_index++) = (c)
     
@@ -175,26 +172,6 @@ void console_puts(const char* str) // don't DebugMsg from here!
     }
     
     console_buffer_index = MOD(console_buffer_index, BUFSIZE);
-}
-
-int console_printf(const char* fmt, ...) // don't DebugMsg from here!
-{
-    char buf[256];
-    va_list         ap;
-    va_start( ap, fmt );
-    int len = vsnprintf( buf, 255, fmt, ap );
-    va_end( ap );
-    console_puts(buf);
-	return len;
-}
-
-// used from Lua
-int console_vprintf(const char* fmt, va_list ap) // don't DebugMsg from here!
-{
-    char buf[256];
-    int len = vsnprintf( buf, 255, fmt, ap );
-    console_puts(buf);
-	return len;
 }
 
 void console_show_status()
@@ -357,3 +334,35 @@ console_task( void* unused )
 }
 
 TASK_CREATE( "console_task", console_task, 0, 0x1d, 0x1000 );
+
+/* some functions from standard I/O */
+
+int printf(const char* fmt, ...)
+{
+    char buf[512];
+    va_list         ap;
+    va_start( ap, fmt );
+    int len = vsnprintf( buf, sizeof(buf)-1, fmt, ap );
+    va_end( ap );
+    console_puts(buf);
+    return len;
+}
+
+int puts(const char * fmt)
+{
+    console_puts(fmt);
+    console_puts("\n");
+    return 0;
+}
+
+int fputs(FILE* unused, const char * fmt)
+{
+    console_puts(fmt);
+    return 0;
+}
+
+int putchar(int c)
+{
+    console_puts((char*)&c);
+    return c;
+}

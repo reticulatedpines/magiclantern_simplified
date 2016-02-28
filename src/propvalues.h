@@ -5,6 +5,7 @@ extern char __camera_model_short[8];
 extern char camera_model[32];
 extern uint32_t camera_model_id;
 extern char firmware_version[32];
+extern char camera_serial[32];
 
 #define MODEL_EOS_10D    0x80000168
 #define MODEL_EOS_300D   0x80000170
