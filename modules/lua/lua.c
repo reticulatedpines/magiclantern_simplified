@@ -180,7 +180,7 @@ static unsigned int lua_do_cbr(unsigned int ctx, struct script_event_entry * eve
             }
             else
             {
-                err_printf("lua semaphore timeout (another task is running this script)\n");
+                printf("lua semaphore timeout: %s (%dms)\n", event_name, timeout);
             }
         }
     }

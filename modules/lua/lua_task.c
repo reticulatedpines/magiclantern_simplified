@@ -46,7 +46,7 @@ static void lua_run_task(struct lua_task_func * lua_task_func)
         }
         else
         {
-            err_printf("lua semaphore timeout (another task is running this script)\n");
+            printf("lua semaphore timeout: run task (%dms)\n", 0);
         }
         free(lua_task_func);
     }

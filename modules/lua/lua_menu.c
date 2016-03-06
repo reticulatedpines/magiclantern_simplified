@@ -44,7 +44,7 @@ static void lua_menu_task(lua_State * L)
         }
         else
         {
-            err_printf("lua semaphore timeout (another task is running this script)\n");
+            printf("lua semaphore timeout: lua_menu_task (%dms)\n", 0);
         }
     }
 }
@@ -113,7 +113,7 @@ static MENU_SELECT_FUNC(script_menu_select)
         }
         else
         {
-            err_printf("lua semaphore timeout (another task is running this script)\n");
+            printf("lua semaphore timeout: menu.select (%dms)\n", 500);
         }
     }
 }
@@ -198,7 +198,7 @@ static MENU_UPDATE_FUNC(script_menu_update)
         }
         else
         {
-            err_printf("lua semaphore timeout (another task is running this script)\n");
+            printf("lua semaphore timeout: menu.update (%dms)\n", 100);
         }
     }
 }

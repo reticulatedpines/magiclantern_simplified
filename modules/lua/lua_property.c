@@ -77,7 +77,7 @@ static void lua_prop_task(int unused)
         }
         else
         {
-            err_printf("lua semaphore timeout (another task is running this script)\n");
+            printf("lua semaphore timeout: prop handler %d (%dms)\n", lua_prop->prop_id, 1000);
         }
     }
 }

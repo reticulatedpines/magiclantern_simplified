@@ -121,7 +121,7 @@ static LVINFO_UPDATE_FUNC(lua_lvinfo_update)
     }
     else
     {
-        err_printf("lua semaphore timeout (another task is running this script)\n");
+        printf("lua semaphore timeout: lv.info.update (%dms)\n", 50);
     }
 }
 
