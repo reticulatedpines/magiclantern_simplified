@@ -378,6 +378,7 @@ static lua_State * load_lua_state()
     luaL_requiref(L, "_G", luaopen_base, 1);
     luaL_requiref(L, LUA_LOADLIBNAME, luaopen_package, 1);
     luaL_requiref(L, "globals", luaopen_globals, 0);
+    luaL_requiref(L, LUA_STRLIBNAME, luaopen_string, 0);
     
     luaL_getsubtable(L, LUA_REGISTRYINDEX, "_PRELOAD");
     const luaL_Reg *lib;
