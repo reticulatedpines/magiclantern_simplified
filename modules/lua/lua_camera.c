@@ -244,7 +244,7 @@ static int luaCB_shutter_index(lua_State * L)
     if(!strcmp(key,"raw")) lua_pushinteger(L, lens_info.raw_shutter);
     /// Get/Set shutter speed in APEX units (floating point)
     // @tfield number apex
-    else if(!strcmp(key,"apex")) lua_pushnumber(L, (RAW2TV(lens_info.raw_shutter)/10.0));
+    else if(!strcmp(key,"apex")) lua_pushnumber(L, (APEX10_RAW2TV(lens_info.raw_shutter)/10.0));
     /// Get/Set shutter speed in milliseconds
     // @tfield int ms
     else if(!strcmp(key,"ms")) lua_pushinteger(L, raw2shutter_ms(lens_info.raw_shutter));
@@ -279,7 +279,7 @@ static int luaCB_shutter_newindex(lua_State * L)
     else if(!strcmp(key, "apex"))
     {
         LUA_PARAM_NUMBER(value, 3);
-        status = hdr_set_rawshutter(TV2RAW((int)roundf(value * 10)));
+        status = hdr_set_rawshutter(APEX10_TV2RAW((int)roundf(value * 10)));
     }
     else if(!strcmp(key, "ms"))
     {
@@ -310,7 +310,7 @@ static int luaCB_aperture_index(lua_State * L)
     if(!strcmp(key,"raw")) lua_pushinteger(L, lens_info.raw_aperture);
     /// Get/Set aperture in APEX units (floating point)
     // @tfield number apex
-    else if(!strcmp(key,"apex")) lua_pushnumber(L, (RAW2AV(lens_info.raw_aperture) / 10.0));
+    else if(!strcmp(key,"apex")) lua_pushnumber(L, (APEX10_RAW2AV(lens_info.raw_aperture) / 10.0));
     /// Get/Set aperture as f-number (floating point)
     // @tfield number value
     else if(!strcmp(key,"value")) lua_pushnumber(L, lens_info.aperture / 10.0);
@@ -346,7 +346,7 @@ static int luaCB_aperture_newindex(lua_State * L)
     else if(!strcmp(key, "apex"))
     {
         LUA_PARAM_NUMBER(value, 3);
-        status = hdr_set_rawaperture(AV2RAW((int)roundf(value * 10)));
+        status = hdr_set_rawaperture(APEX10_AV2RAW((int)roundf(value * 10)));
     }
     else if(!strcmp(key, "value"))
     {
@@ -372,7 +372,7 @@ static int luaCB_iso_index(lua_State * L)
     if(!strcmp(key,"raw")) lua_pushinteger(L, lens_info.raw_iso);
     /// Get/Set ISO in APEX units (floating point)
     // @tfield number apex
-    else if(!strcmp(key,"apex")) lua_pushnumber(L, (RAW2SV(lens_info.raw_iso) / 10.0));
+    else if(!strcmp(key,"apex")) lua_pushnumber(L, (APEX10_RAW2SV(lens_info.raw_iso) / 10.0));
     /// Get/Set ISO
     // @tfield int value
     else if(!strcmp(key,"value")) lua_pushinteger(L, raw2iso(lens_info.raw_iso));
@@ -408,7 +408,7 @@ static int luaCB_iso_newindex(lua_State * L)
     else if(!strcmp(key, "apex"))
     {
         LUA_PARAM_NUMBER(value, 3);
-        status = lens_set_rawiso(SV2RAW((int)roundf(value * 10)));
+        status = lens_set_rawiso(APEX10_SV2RAW((int)roundf(value * 10)));
     }
     else if(!strcmp(key, "value"))
     {
@@ -437,7 +437,7 @@ static int luaCB_ec_index(lua_State * L)
     if(!strcmp(key,"raw")) lua_pushinteger(L, lens_info.ae);
     /// Get/Set exposure compensation in EV or APEX
     // @tfield number value
-    else if(!strcmp(key,"value")) lua_pushnumber(L, RAW2EC(lens_info.ae) / 10.0);
+    else if(!strcmp(key,"value")) lua_pushnumber(L, APEX10_RAW2EC(lens_info.ae) / 10.0);
     else lua_rawget(L, 1);
     return 1;
     
@@ -448,7 +448,7 @@ static int luaCB_ec_index(lua_State * L)
 //@function __tostring
 static int luaCB_ec_tostring(lua_State * L)
 {
-    int ec = RAW2EC(lens_info.ae);
+    int ec = APEX10_RAW2EC(lens_info.ae);
     lua_pushfstring(L, "%s%d.%d", FMT_FIXEDPOINT1(ec));
     return 1;
 }
@@ -479,7 +479,7 @@ static int luaCB_fec_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
     if(!strcmp(key,"raw")) lua_pushinteger(L, lens_info.flash_ae);
-    else if(!strcmp(key,"value")) lua_pushnumber(L, RAW2EC(lens_info.flash_ae) / 10.0);
+    else if(!strcmp(key,"value")) lua_pushnumber(L, APEX10_RAW2EC(lens_info.flash_ae) / 10.0);
     else lua_rawget(L, 1);
     return 1;
     
@@ -487,7 +487,7 @@ static int luaCB_fec_index(lua_State * L)
 
 static int luaCB_fec_tostring(lua_State * L)
 {
-    int fec = RAW2EC(lens_info.flash_ae);
+    int fec = APEX10_RAW2EC(lens_info.flash_ae);
     lua_pushfstring(L, "%s%d.%d", FMT_FIXEDPOINT1(fec));
     return 1;
 }

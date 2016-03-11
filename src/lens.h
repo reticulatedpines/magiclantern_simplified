@@ -285,15 +285,15 @@ static const uint8_t  codes_aperture[] =  {0,  10,  11,  12,  13,  14,  15,  16,
 #define APEX_SV(raw) ((int)(raw) - 32)
 
 // UNIT APEX * 10
-#define RAW2TV(raw) APEX_TV(raw) * 10 / 8
-#define RAW2AV(raw) APEX_AV(raw) * 10 / 8
-#define RAW2SV(raw) APEX_SV(raw) * 10 / 8
-#define RAW2EC(raw) raw * 10 / 8
+#define APEX10_RAW2TV(raw) APEX_TV(raw) * 10 / 8
+#define APEX10_RAW2AV(raw) APEX_AV(raw) * 10 / 8
+#define APEX10_RAW2SV(raw) APEX_SV(raw) * 10 / 8
+#define APEX10_RAW2EC(raw) raw * 10 / 8
 
-#define TV2RAW(apex) -APEX_TV(-(apex) * 100 / 125)
-#define AV2RAW(apex) -APEX_AV(-(apex) * 100 / 125)
-#define SV2RAW(apex) -APEX_SV(-(apex) * 100 / 125)
-#define AV2STR(apex) values_aperture[raw2index_aperture(AV2RAW(apex))]
+#define APEX10_TV2RAW(apex) -APEX_TV(-(apex) * 100 / 125)
+#define APEX10_AV2RAW(apex) -APEX_AV(-(apex) * 100 / 125)
+#define APEX10_SV2RAW(apex) -APEX_SV(-(apex) * 100 / 125)
+#define APEX10_AV2VAL(apex) values_aperture[raw2index_aperture(APEX10_AV2RAW(apex))]
 
 // Conversions
 int raw2shutter_ms(int raw_shutter);
