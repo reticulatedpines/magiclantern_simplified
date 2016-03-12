@@ -16,15 +16,27 @@ function request_mode(mode, mode_str)
     end
 end
 
+function round(x)
+    -- https://scriptinghelpers.org/questions/4850/how-do-i-round-numbers-in-lua-answered
+    return x + 0.5 - (x + 0.5) % 1
+end
+
 function api_tests()
     menu.close()
     console.clear()
     console.show()
     printf("Testing module 'camera'...")
     printf("Camera    : %s (%s) %s", camera.model, camera.model_short, camera.firmware)
+    printf("Lens      : %s", lens.name)
     printf("Shoot mode: %s", camera.mode)
     printf("Shutter   : %s (raw %s, %ss, %sms, apex %s)", camera.shutter, camera.shutter.raw, camera.shutter.value, camera.shutter.ms, camera.shutter.apex)
-    printf("Aperture  : %s (raw %s, 1/%s, apex %s)", camera.aperture, camera.aperture.raw, camera.aperture.value, camera.aperture.apex)
+    printf("Aperture  : %s (raw %s, f/%s, apex %s)", camera.aperture, camera.aperture.raw, camera.aperture.value, camera.aperture.apex)
+    printf("Av range  : %s..%s (raw %s..%s, f/%s..f/%s, apex %s..%s)",
+        camera.aperture.min, camera.aperture.max,
+        camera.aperture.min.raw, camera.aperture.max.raw,
+        camera.aperture.min.value, camera.aperture.max.value,
+        camera.aperture.min.apex, camera.aperture.max.apex
+    )
     printf("ISO       : %s (raw %s, %s, apex %s)", camera.iso, camera.iso.raw, camera.iso.value, camera.iso.apex)
     printf("EC        : %s (raw %s, %s EV)", camera.ec, camera.ec.raw, camera.ec.value)
     printf("Flash EC  : %s (raw %s, %s EV)", camera.flash_ec, camera.flash_ec.raw, camera.flash_ec.value)
@@ -89,7 +101,7 @@ function api_tests()
             camera.shutter[field] = _G[field]
             
             if camera.shutter.value ~= value then
-                printf("Error: shutter set to %s=%s, got %ss, expected %ss", field, _G[field], value, camera.shutter.value, value)
+                printf("Error: shutter set to %s=%s, got %ss, expected %ss", field, _G[field], camera.shutter.value, value)
             end
             if camera.shutter.ms ~= ms then
                 printf("Error: shutter set to %s=%s, got %sms, expected %sms", field, _G[field], camera.shutter.ms, ms)
@@ -142,13 +154,67 @@ function api_tests()
             camera.iso[field] = _G[field]
             
             if camera.iso.value ~= value then
-                printf("Error: ISO set to %s=%s, got %s, expected %s", field, _G[field], value, camera.iso.value, value)
+                printf("Error: ISO set to %s=%s, got %s, expected %s", field, _G[field], camera.iso.value, value)
             end
             if camera.iso.apex ~= apex then
-                printf("Error: ISO set to %s=%s, got Sv%, expected Sv%", field, _G[field], camera.iso.apex, apex)
+                printf("Error: ISO set to %s=%s, got Sv%s, expected Sv%s", field, _G[field], camera.iso.apex, apex)
             end
             if camera.iso.raw ~= raw then
                 printf("Error: ISO set to %s=%s, got %s, expected %s (raw)", field, _G[field], camera.iso.raw, raw)
+            end
+        end
+    end
+
+    if camera.aperture.min.raw == camera.aperture.max.raw then
+        printf("This lens does not have variable aperture (skipping test).")
+    else
+        request_mode(MODE.M, "M")
+        printf("Setting aperture to random values...")
+        for k = 1,100 do
+            method = math.random(1,3)
+            if method == 1 then
+                local av = math.random(round(camera.aperture.min.value*10), round(camera.aperture.max.value*10)) / 10
+                camera.aperture.value = av
+                d = math.abs(math.log(camera.aperture.value,2) - math.log(av,2)) * 2
+            elseif method == 2 then
+                local apex = math.random(round(camera.aperture.min.apex*100), round(camera.aperture.max.apex*100)) / 100
+                camera.aperture.apex = apex
+                d = math.abs(camera.aperture.apex - apex)
+            elseif method == 3 then
+                local raw = math.random(camera.aperture.min.raw, camera.aperture.max.raw)
+                camera.aperture.raw = raw
+                d = math.abs(camera.aperture.raw - raw) / 8
+            end
+
+            -- difference between requested and actual aperture should be max 1.5/8 EV
+            if d > 1.5/8 then
+                printf("Error: aperture delta %s EV", d)
+            end
+
+            -- aperture and Av (APEX) should be consistent
+            expected_apex = math.log(camera.aperture.value, 2) * 2
+            if math.abs(expected_apex - camera.aperture.apex) > 0.2 then
+                printf("Error: aperture %s != Av%s, expected %s", camera.aperture.value, camera.aperture.apex, expected_apex)
+            end
+
+            -- setting aperture to the same value, using any method (value,apex,raw)
+            -- should not change anything
+            for i,field in pairs{"value","apex","raw"} do
+                apex  = camera.aperture.apex
+                value = camera.aperture.value
+                raw   = camera.aperture.raw
+                
+                camera.aperture[field] = _G[field]
+                
+                if camera.aperture.value ~= value then
+                    printf("Error: aperture set to %s=%s, got %s, expected %s", field, _G[field], camera.aperture.value, value)
+                end
+                if camera.aperture.apex ~= apex then
+                    printf("Error: aperture set to %s=%s, got Sv%s, expected Sv%s", field, _G[field], camera.aperture.apex, apex)
+                end
+                if camera.aperture.raw ~= raw then
+                    printf("Error: aperture set to %s=%s, got %s, expected %s (raw)", field, _G[field], camera.aperture.raw, raw)
+                end
             end
         end
     end
@@ -187,7 +253,7 @@ function api_tests()
             camera.ec[field] = _G[field]
             
             if camera.ec.value ~= value then
-                printf("Error: EC set to %s=%s, got %s, expected %s EV", field, _G[field], value, camera.ec.value, value)
+                printf("Error: EC set to %s=%s, got %s, expected %s EV", field, _G[field], camera.ec.value, value)
             end
             if camera.ec.raw ~= raw then
                 printf("Error: EC set to %s=%s, got %s, expected %s (raw)", field, _G[field], camera.ec.raw, raw)
@@ -229,7 +295,7 @@ function api_tests()
             camera.flash_ec[field] = _G[field]
             
             if camera.flash_ec.value ~= value then
-                printf("Error: FEC set to %s=%s, got %s, expected %s EV", field, _G[field], value, camera.flash_ec.value, value)
+                printf("Error: FEC set to %s=%s, got %s, expected %s EV", field, _G[field], camera.flash_ec.value, value)
             end
             if camera.flash_ec.raw ~= raw then
                 printf("Error: FEC set to %s=%s, got %s, expected %s (raw)", field, _G[field], camera.flash_ec.raw, raw)
