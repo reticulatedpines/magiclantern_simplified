@@ -6,6 +6,16 @@ function printf(s,...)
     print(s:format(...))
 end
 
+function request_mode(mode, mode_str)
+    while camera.mode ~= mode do
+        printf("Please switch to %s mode.", mode_str, mode)
+        while camera.mode ~= mode do
+            console.show()
+            msleep(1000)
+        end
+    end
+end
+
 function api_tests()
     menu.close()
     console.clear()
@@ -20,6 +30,7 @@ function api_tests()
     printf("Flash EC  : %s (raw %s, %s EV)", camera.flash_ec, camera.flash_ec.raw, camera.flash_ec.value)
     printf("Kelvin    : %s", camera.kelvin)
     
+    request_mode(MODE.M, "M")
     printf("Setting shutter to random values...")
     for k = 1,100 do
         method = math.random(1,4)
@@ -49,12 +60,12 @@ function api_tests()
         end
 
         -- seconds and ms fields should be consistent
-        -- see http://dougkerr.net/Pumpkin/articles/APEX.pdf
         if math.abs(camera.shutter.value - camera.shutter.ms/1000) > 1e-3 then
             printf("Error: shutter %ss != %sms", camera.shutter.value, camera.shutter.ms)
         end
         
         -- seconds and apex should be consistent
+        -- see http://dougkerr.net/Pumpkin/articles/APEX.pdf
         expected_apex = math.log(1/camera.shutter.value,2)
         if math.abs(expected_apex - camera.shutter.apex) > 0.01 then
             printf("Error: shutter %ss != Tv%s, expected %s", camera.shutter.value, camera.shutter.apex, expected_apex)
@@ -92,6 +103,7 @@ function api_tests()
         end
     end
 
+    request_mode(MODE.M, "M")
     printf("Setting ISO to random values...")
     for k = 1,100 do
         method = math.random(1,3)
@@ -130,13 +142,97 @@ function api_tests()
             camera.iso[field] = _G[field]
             
             if camera.iso.value ~= value then
-                printf("Error: ISO set to %s=%s, got %ss, expected %ss", field, _G[field], value, camera.iso.value, value)
+                printf("Error: ISO set to %s=%s, got %s, expected %s", field, _G[field], value, camera.iso.value, value)
             end
             if camera.iso.apex ~= apex then
-                printf("Error: ISO set to %s=%s, got Tv%s, expected Tv%s", field, _G[field], camera.iso.apex, apex)
+                printf("Error: ISO set to %s=%s, got Sv%, expected Sv%", field, _G[field], camera.iso.apex, apex)
             end
             if camera.iso.raw ~= raw then
                 printf("Error: ISO set to %s=%s, got %s, expected %s (raw)", field, _G[field], camera.iso.raw, raw)
+            end
+        end
+    end
+
+    request_mode(MODE.AV, "Av")
+    printf("Setting EC to random values...")
+    for k = 1,100 do
+        method = math.random(1,2)
+        if method == 1 then
+            local ec = math.random(-2*100, 2*100) / 100
+            camera.ec.value = ec
+            d = math.abs(camera.ec.value - ec,2)
+        elseif method == 2 then
+            local raw = math.random(-16, 16)
+            camera.ec.raw = raw
+            d = math.abs(camera.ec.raw - raw) / 8
+        end
+
+        -- difference between requested and actual EC should be max 1.5/8 EV
+        if d > 1.5/8 then
+            printf("Error: EC delta %s EV", d)
+        end
+
+        -- EC and raw should be consistent
+        expected_ec = camera.ec.raw / 8
+        if math.abs(expected_ec - camera.ec.value) > 0.001 then
+            printf("Error: EC raw %s != %s EV, expected %s EV", camera.ec.raw, camera.ec.value, expected_ec)
+        end
+
+        -- setting EC to the same value, using any method (value,raw)
+        -- should not change anything
+        for i,field in pairs{"value","raw"} do
+            value = camera.ec.value
+            raw   = camera.ec.raw
+            
+            camera.ec[field] = _G[field]
+            
+            if camera.ec.value ~= value then
+                printf("Error: EC set to %s=%s, got %s, expected %s EV", field, _G[field], value, camera.ec.value, value)
+            end
+            if camera.ec.raw ~= raw then
+                printf("Error: EC set to %s=%s, got %s, expected %s (raw)", field, _G[field], camera.ec.raw, raw)
+            end
+        end
+    end
+
+    -- copy/paste & replace from EC (those two should behave in the same way)
+    printf("Setting Flash EC to random values...")
+    for k = 1,100 do
+        method = math.random(1,2)
+        if method == 1 then
+            local fec = math.random(-2*100, 2*100) / 100
+            camera.flash_ec.value = fec
+            d = math.abs(camera.flash_ec.value - fec,2)
+        elseif method == 2 then
+            local raw = math.random(-16, 16)
+            camera.flash_ec.raw = raw
+            d = math.abs(camera.flash_ec.raw - raw) / 8
+        end
+
+        -- difference between requested and actual EC should be max 1.5/8 EV
+        if d > 1.5/8 then
+            printf("Error: FEC delta %s EV", d)
+        end
+
+        -- EC and raw should be consistent
+        expected_fec = camera.flash_ec.raw / 8
+        if math.abs(expected_fec - camera.flash_ec.value) > 0.001 then
+            printf("Error: FEC raw %s != %s EV, expected %s EV", camera.flash_ec.raw, camera.flash_ec.value, expected_fec)
+        end
+
+        -- setting EC to the same value, using any method (value,raw)
+        -- should not change anything
+        for i,field in pairs{"value","raw"} do
+            value = camera.flash_ec.value
+            raw   = camera.flash_ec.raw
+            
+            camera.flash_ec[field] = _G[field]
+            
+            if camera.flash_ec.value ~= value then
+                printf("Error: FEC set to %s=%s, got %s, expected %s EV", field, _G[field], value, camera.flash_ec.value, value)
+            end
+            if camera.flash_ec.raw ~= raw then
+                printf("Error: FEC set to %s=%s, got %s, expected %s (raw)", field, _G[field], camera.flash_ec.raw, raw)
             end
         end
     end
