@@ -195,6 +195,67 @@ int raw2iso(int raw_iso)
     return iso;
 }
 
+int expo_value_rounding_ok(int raw, int is_aperture)
+{
+    if (is_aperture)
+    {
+        /* exception: aperture limits are allowed, even if they are not multiples of 1/2 or 1/3 EV */
+        if (raw == lens_info.raw_aperture_min || raw == lens_info.raw_aperture_max)
+            return 1;
+    }
+    
+    int r = ABS(raw) % 8;
+    if (r != 0 && r != 3 && r != 4 && r != 5)
+        return 0;
+    return 1;
+}
+
+int round_shutter(int tv, int slowest_shutter)
+{
+    int tvr;
+    tv = MIN(tv, FASTEST_SHUTTER_SPEED_RAW);
+
+    /* note: it's possible to get a valid shutter just by altering the requested value by 1 */
+    tvr = MAX(tv    , slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
+    tvr = MAX(tv - 1, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
+    tvr = MAX(tv + 1, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
+    return 0;
+}
+
+int round_aperture(int av)
+{
+    int avr;
+
+    /* note: if we don't hit the limits, we can find a valid aperture just by altering the requested value by 1 */
+    /* but if we do hit them... surprises may happen :) */
+    avr = COERCE(av    , lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
+    avr = COERCE(av - 1, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
+    avr = COERCE(av + 1, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
+    avr = COERCE(av - 2, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
+    avr = COERCE(av + 2, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
+    return 0;
+}
+
+int round_expo_comp(int ae)
+{
+    int aer;
+    /* note: it's possible to get a valid exposure compensation just by altering the requested value by 1 */
+    aer = COERCE(ae    , -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
+    aer = COERCE(ae - 1, -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
+    aer = COERCE(ae + 1, -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
+    return 0;
+}
+
+int round_flash_expo_comp(int fec)
+{
+    int fecr;
+    /* note: it's possible to get a valid exposure compensation just by altering the requested value by 1 */
+    fecr = COERCE(fec    , FLASH_MIN_EV * 8, FLASH_MAX_EV * 8); if (expo_value_rounding_ok(fecr, 0)) return fecr;
+    fecr = COERCE(fec - 1, FLASH_MIN_EV * 8, FLASH_MAX_EV * 8); if (expo_value_rounding_ok(fecr, 0)) return fecr;
+    fecr = COERCE(fec + 1, FLASH_MIN_EV * 8, FLASH_MAX_EV * 8); if (expo_value_rounding_ok(fecr, 0)) return fecr;
+    return 0;
+}
+
 char* get_shootmode_name(int shooting_mode)
 {
     return

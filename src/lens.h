@@ -312,11 +312,17 @@ int shutterf_to_raw(float shutterf);
 float raw2shutterf(int raw_shutter);
 int raw2iso(int raw_iso);
 int shutterf_to_raw_noflicker(float shutterf);
-int round_noflicker(float value);
 
 int raw2index_iso(int raw_iso);
 int raw2index_aperture(int raw_aperture);
 int raw2index_shutter(int shutter);
+
+/* round exposure parameters to get the nearest valid value */
+int round_expo_comp(int ae);
+int round_flash_expo_comp(int ae);
+int round_aperture(int av);
+int round_shutter(int tv, int slowest_shutter);
+int expo_value_rounding_ok(int raw, int is_aperture);
 
 #define SWAP_ENDIAN(x) (((x)>>24) | (((x)<<8) & 0x00FF0000) | (((x)>>8) & 0x0000FF00) | ((x)<<24))
 
