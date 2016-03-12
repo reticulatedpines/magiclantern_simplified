@@ -1489,9 +1489,7 @@ PROP_HANDLER(PROP_STROBO_AECOMP)
 
 int lens_set_flash_ae(int fae)
 {
-    fae = COERCE(fae, FLASH_MIN_EV * 8, FLASH_MAX_EV * 8);
-    /* fixme: limits */
-    //~ fae = round_expo_comp(ae);
+    fae = round_flash_expo_comp(fae);
     prop_request_change_wait(PROP_STROBO_AECOMP, &fae, 4, 100);
     return lens_info.flash_ae == fae;
 }
