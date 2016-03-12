@@ -2144,28 +2144,34 @@ int hdr_set_rawiso(int iso)
     return hdr_set_something((int(*)(int))prop_set_rawiso_approx, iso);
 }
 
+/* returns 0 on failure, -1 if it reached exposure limits, 1 otherwise */
 int hdr_set_rawshutter(int shutter)
 {
-    int ok = shutter < FASTEST_SHUTTER_SPEED_RAW && shutter > 13;
-    return hdr_set_something((int(*)(int))prop_set_rawshutter_approx, shutter) && ok;
+    /* fixme: check why 13 and not 16 */
+    int in_range = shutter < FASTEST_SHUTTER_SPEED_RAW && shutter > 13;
+    int ok = hdr_set_something((int(*)(int))prop_set_rawshutter_approx, shutter);
+    return ok ? (in_range ? 1 : -1) : 0;
 }
 
 int hdr_set_rawaperture(int aperture)
 {
-    int ok = aperture < lens_info.raw_aperture_max && aperture > lens_info.raw_aperture_min;
-    return hdr_set_something((int(*)(int))prop_set_rawaperture_approx, aperture) && ok;
+    int in_range = aperture < lens_info.raw_aperture_max && aperture > lens_info.raw_aperture_min;
+    int ok = hdr_set_something((int(*)(int))prop_set_rawaperture_approx, aperture);
+    return ok ? (in_range ? 1 : -1) : 0;
 }
 
 int hdr_set_ae(int ae)
 {
-    int ok = ABS(ae) < MAX_AE_EV * 8;
-    return hdr_set_something((int(*)(int))lens_set_ae, ae) && ok;
+    int in_range = ABS(ae) < MAX_AE_EV * 8;
+    int ok = hdr_set_something((int(*)(int))lens_set_ae, ae);
+    return ok ? (in_range ? 1 : -1) : 0;
 }
 
 int hdr_set_flash_ae(int fae)
 {
-    int ok = fae < FLASH_MAX_EV * 8 && fae > FLASH_MIN_EV * 8;
-    return hdr_set_something((int(*)(int))lens_set_flash_ae, fae) && ok;
+    int in_range = fae < FLASH_MAX_EV * 8 && fae > FLASH_MIN_EV * 8;
+    int ok = hdr_set_something((int(*)(int))lens_set_flash_ae, fae);
+    return ok ? (in_range ? 1 : -1) : 0;
 }
 
 int get_max_analog_iso() { return MAX_ANALOG_ISO; }

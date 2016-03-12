@@ -4680,7 +4680,7 @@ static int hdr_shutter_release(int ev_x8)
         {
             ev_x8 = hdr_iso_shift(ev_x8);
             int fae0 = lens_info.flash_ae;
-            ans = hdr_set_flash_ae(fae0 + ev_x8);
+            ans = hdr_set_flash_ae(fae0 + ev_x8) == 1;
             take_a_pic(AF_DONT_CHANGE);
             hdr_set_flash_ae(fae0);
             hdr_iso_shift_restore();
@@ -4689,7 +4689,7 @@ static int hdr_shutter_release(int ev_x8)
         else if (hdr_type == 2) // aperture
         {
             ev_x8 = COERCE(-ev_x8, lens_info.raw_aperture_min - av0, lens_info.raw_aperture_max - av0);
-            ans = hdr_set_rawaperture(av0 + ev_x8);
+            ans = hdr_set_rawaperture(av0 + ev_x8) == 1;
             if (!manual) ev_x8 = 0; // no need to compensate, Canon meter does it
             // don't return, do the normal exposure bracketing
         }
