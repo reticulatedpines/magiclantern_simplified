@@ -1728,7 +1728,7 @@ static int prop_set_rawshutter_approx(unsigned shutter)
      * 
      * Let's first see what Canon firmware gives us.
      */
-    prop_request_change_wait( PROP_SHUTTER, &shutter, 4, 200);
+    prop_request_change_wait( PROP_SHUTTER, &shutter, 4, 100);
     int delta = (int)lens_info.raw_shutter - (int)shutter;
     
     if (ABS(delta) == 2)
@@ -1736,7 +1736,7 @@ static int prop_set_rawshutter_approx(unsigned shutter)
         /* if we get a rounding error of 2, try altering the shutter speed by one;
          * it will most likely get it right this time */
         shutter -= SGN(delta);
-        prop_request_change_wait( PROP_SHUTTER, &shutter, 4, 200);
+        prop_request_change_wait( PROP_SHUTTER, &shutter, 4, 100);
         delta = (int)lens_info.raw_shutter - (int)shutter;
     }
     
@@ -1747,10 +1747,30 @@ static int prop_set_rawiso(unsigned iso)
 {
     lens_wait_readytotakepic(64);
     if (iso) iso = COERCE(iso, MIN_ISO, MAX_ISO); // ISO 100-25600
-    iso_ack = -1;
-    prop_request_change( PROP_ISO, &iso, 4 );
-    for (int i = 0; i < 10; i++) { if (iso_ack != -1) break; msleep(20); }
-    return iso_ack == (int)iso;
+    prop_request_change_wait( PROP_ISO, &iso, 4, 100);
+    return lens_info.raw_iso == iso;
+}
+
+static int prop_set_rawiso_approx(unsigned iso)
+{
+    /* first try to set it exactly */
+    if (prop_set_rawiso(iso))
+        return 1;
+
+    if (iso)
+    {
+        /* then try to set a value close to the requested one, until it works */
+        for (int d = 1; d < 4; d++)
+        {
+            if (prop_set_rawiso(iso + d))
+                return 1;
+            
+            if (prop_set_rawiso(iso - d))
+                return 1;
+        }
+    }
+    
+    return 0;
 }
 
 /** Exposure primitives (the "dirty" way, via BV control, bypasses protections) */
@@ -2002,7 +2022,6 @@ int lens_set_rawshutter( int shutter )
     return ok;
 }
 
-
 int lens_set_ae( int ae )
 {
     ae_ack = 12345;
@@ -2041,7 +2060,8 @@ static int hdr_set_something(int (*set_something)(int), int arg)
     // first try to set it a few times...
     for (int i = 0; i < 5; i++)
     {
-        if (ml_shutdown_requested) return 0;
+        if (ml_shutdown_requested)
+            return 0;
 
         if (set_something(arg))
             return 1;
@@ -2052,7 +2072,8 @@ static int hdr_set_something(int (*set_something)(int), int arg)
 
     for (int i = 0; i < 5; i++)
     {
-        if (ml_shutdown_requested) return 0;
+        if (ml_shutdown_requested)
+            return 0;
 
         if (set_something(arg))
             return 1;
@@ -2063,7 +2084,8 @@ static int hdr_set_something(int (*set_something)(int), int arg)
 
     for (int i = 0; i < 5; i++)
     {
-        if (ml_shutdown_requested) return 0;
+        if (ml_shutdown_requested)
+            return 0;
 
         if (set_something(arg))
             return 1;
@@ -2075,7 +2097,7 @@ static int hdr_set_something(int (*set_something)(int), int arg)
 
 int hdr_set_rawiso(int iso)
 {
-    return hdr_set_something((int(*)(int))prop_set_rawiso, iso);
+    return hdr_set_something((int(*)(int))prop_set_rawiso_approx, iso);
 }
 
 int hdr_set_rawshutter(int shutter)
