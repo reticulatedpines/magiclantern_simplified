@@ -25,6 +25,11 @@ static int luaCB_aperture_index(lua_State * L);
 static int luaCB_aperture_newindex(lua_State * L);
 static int luaCB_aperture_tostring(lua_State * L);
 
+static int luaCB_min_aperture_index(lua_State * L);
+static int luaCB_min_aperture_tostring(lua_State * L);
+static int luaCB_max_aperture_index(lua_State * L);
+static int luaCB_max_aperture_tostring(lua_State * L);
+
 static int luaCB_iso_index(lua_State * L);
 static int luaCB_iso_newindex(lua_State * L);
 static int luaCB_iso_tostring(lua_State * L);
@@ -315,6 +320,62 @@ static int luaCB_aperture_index(lua_State * L)
     /// Get/Set aperture as f-number (floating point)
     // @tfield number value
     else if(!strcmp(key,"value")) lua_pushnumber(L, lens_info.aperture / 10.0);
+    /// Get/Set minimum (wide open) aperture value (aperture object)
+    // @tfield aperture min
+    else if(!strcmp(key,"min"))
+    {
+        lua_newtable(L);
+        lua_pushcfunction(L, luaCB_min_aperture_tostring);
+        lua_setfield(L, -2, "__tostring");
+        lua_pushcfunction(L, luaCB_min_aperture_index);
+        lua_setfield(L, -2, "__index");
+        lua_pushvalue(L, -1);
+        lua_setmetatable(L, -2);
+    }
+    /// Get/Set maximum (closed) aperture value (aperture object)
+    // @tfield aperture max
+    else if(!strcmp(key,"max"))
+    {
+        lua_newtable(L);
+        lua_pushcfunction(L, luaCB_max_aperture_tostring);
+        lua_setfield(L, -2, "__tostring");
+        lua_pushcfunction(L, luaCB_max_aperture_index);
+        lua_setfield(L, -2, "__index");
+        lua_pushvalue(L, -1);
+        lua_setmetatable(L, -2);
+    }
+    else lua_rawget(L, 1);
+    return 1;
+}
+
+static int luaCB_min_aperture_index(lua_State * L)
+{
+    LUA_PARAM_STRING_OPTIONAL(key, 2, "");
+    /// Get minimum (wide open) aperture in Canon raw units
+    // @tfield int raw
+    if(!strcmp(key,"raw")) lua_pushinteger(L, lens_info.raw_aperture_min);
+    /// Get minimum (wide open) aperture in APEX units (floating point)
+    // @tfield number apex
+    else if(!strcmp(key,"apex")) lua_pushnumber(L, (APEX1000_RAW2AV(lens_info.raw_aperture_min) / 1000.0));
+    /// Get minimum (wide open) aperture as f-number (floating point)
+    // @tfield number value
+    else if(!strcmp(key,"value")) lua_pushnumber(L, RAW2VALUE(aperture, lens_info.raw_aperture_min) / 10.0);
+    else lua_rawget(L, 1);
+    return 1;
+}
+
+static int luaCB_max_aperture_index(lua_State * L)
+{
+    LUA_PARAM_STRING_OPTIONAL(key, 2, "");
+    /// Get maximum (closed) aperture in Canon raw units
+    // @tfield int raw
+    if(!strcmp(key,"raw")) lua_pushinteger(L, lens_info.raw_aperture_max);
+    /// Get maximum (closed) aperture in APEX units (floating point)
+    // @tfield number apex
+    else if(!strcmp(key,"apex")) lua_pushnumber(L, (APEX1000_RAW2AV(lens_info.raw_aperture_max) / 1000.0));
+    /// Get maximum (closed) aperture as f-number (floating point)
+    // @tfield number value
+    else if(!strcmp(key,"value")) lua_pushnumber(L, RAW2VALUE(aperture, lens_info.raw_aperture_max) / 10.0);
     else lua_rawget(L, 1);
     return 1;
 }
@@ -324,8 +385,19 @@ static int luaCB_aperture_index(lua_State * L)
 //@function __tostring
 static int luaCB_aperture_tostring(lua_State * L)
 {
-    int a = lens_info.aperture;
-    lua_pushfstring(L, SYM_F_SLASH"%d.%d", a / 10, a % 10);
+    lua_pushfstring(L, lens_format_aperture(lens_info.raw_aperture));
+    return 1;
+}
+
+static int luaCB_min_aperture_tostring(lua_State * L)
+{
+    lua_pushfstring(L, lens_format_aperture(lens_info.raw_aperture_min));
+    return 1;
+}
+
+static int luaCB_max_aperture_tostring(lua_State * L)
+{
+    lua_pushfstring(L, lens_format_aperture(lens_info.raw_aperture_max));
     return 1;
 }
 
