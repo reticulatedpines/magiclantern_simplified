@@ -1232,13 +1232,11 @@ PROP_HANDLER( PROP_SHUTTER_AUTO )
     lens_display_set_dirty();
 }
 
-static int ae_ack = 12345;
 PROP_HANDLER( PROP_AE )
 {
     const uint32_t value = *(uint32_t *) buf;
     lens_info.ae = (int8_t)value;
     update_stuff();
-    ae_ack = (int8_t)buf[0];
 }
 
 PROP_HANDLER( PROP_WB_MODE_LV )
@@ -1484,22 +1482,18 @@ PROP_HANDLER( PROP_LAST_JOB_STATE )
     #endif
 }
 
-static int fae_ack = 12345;
 PROP_HANDLER(PROP_STROBO_AECOMP)
 {
     lens_info.flash_ae = (int8_t) buf[0];
-    fae_ack = (int8_t) buf[0];
 }
 
 int lens_set_flash_ae(int fae)
 {
     fae = COERCE(fae, FLASH_MIN_EV * 8, FLASH_MAX_EV * 8);
-    fae &= 0xFF;
-    prop_request_change(PROP_STROBO_AECOMP, &fae, 4);
-
-    fae_ack = 12345;
-    for (int i = 0; i < 10; i++) { if (fae_ack != 12345) break; msleep(20); }
-    return fae_ack == (int8_t)fae;
+    /* fixme: limits */
+    //~ fae = round_expo_comp(ae);
+    prop_request_change_wait(PROP_STROBO_AECOMP, &fae, 4, 100);
+    return lens_info.flash_ae == fae;
 }
 
 PROP_HANDLER(PROP_HALF_SHUTTER)
@@ -2024,11 +2018,9 @@ int lens_set_rawshutter( int shutter )
 
 int lens_set_ae( int ae )
 {
-    ae_ack = 12345;
     ae = round_expo_comp(ae);
-    prop_request_change( PROP_AE, &ae, 4 );
-    for (int i = 0; i < 10; i++) { if (ae_ack != 12345) break; msleep(20); }
-    return ae_ack == ae;
+    prop_request_change_wait( PROP_AE, &ae, 4, 100);
+    return lens_info.ae == ae;
 }
 
 void lens_set_drivemode( int dm )
@@ -2123,29 +2115,6 @@ int hdr_set_flash_ae(int fae)
     int ok = fae < FLASH_MAX_EV * 8 && fae > FLASH_MIN_EV * 8;
     return hdr_set_something((int(*)(int))lens_set_flash_ae, fae) && ok;
 }
-
-/*
-void gui_bump_rawshutter(int delta)
-{
-}
-
-void gui_bump_rawiso(int delta)
-{
-}
-
-void gui_bump_rawaperture(int delta)
-{
-}
-
-void lens_task()
-{
-    while(1)
-    {
-    }
-}
-
-TASK_CREATE( "lens_task", lens_task, 0, 0x1a, 0x1000 );
-*/
 
 int get_max_analog_iso() { return MAX_ANALOG_ISO; }
 int get_max_ae_ev() { return MAX_AE_EV; }
