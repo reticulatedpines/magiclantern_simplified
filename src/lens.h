@@ -295,6 +295,16 @@ static const uint8_t  codes_aperture[] =  {0,  10,  11,  12,  13,  14,  15,  16,
 #define APEX10_SV2RAW(apex) -APEX_SV(RSCALE(-(apex), 8, 10))
 #define APEX10_AV2VAL(apex) values_aperture[raw2index_aperture(APEX10_AV2RAW(apex))]
 
+#define APEX1000_RAW2TV(raw) RSCALE(APEX_TV(raw), 1000, 8)
+#define APEX1000_RAW2AV(raw) RSCALE(APEX_AV(raw), 1000, 8)
+#define APEX1000_RAW2SV(raw) RSCALE(APEX_SV(raw), 1000, 8)
+#define APEX1000_RAW2EC(raw) RSCALE((raw), 1000, 8)
+
+#define APEX1000_TV2RAW(apex) -APEX_TV(RSCALE(-(apex), 8, 1000))
+#define APEX1000_AV2RAW(apex) -APEX_AV(RSCALE(-(apex), 8, 1000))    /* pathological case at f/0.8 */
+#define APEX1000_SV2RAW(apex) -APEX_SV(RSCALE(-(apex), 8, 1000))
+#define APEX1000_EC2RAW(apex) RSCALE(apex, 8, 1000)
+
 // Conversions
 int raw2shutter_ms(int raw_shutter);
 int shutter_ms_to_raw(int shutter_ms);
