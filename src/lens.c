@@ -1721,8 +1721,26 @@ static int prop_set_rawshutter_approx(unsigned shutter)
 {
     lens_wait_readytotakepic(64);
     shutter = COERCE(shutter, 16, FASTEST_SHUTTER_SPEED_RAW); // 30s ... 1/8000 or 1/4000
+    
+    /* Some cameras accept any shutter speeds in 1/8 EV increments (in the valid range),
+     * while others only accepts the following values modulo 8: 0,3,4,5.
+     * Therefore, it is possible to get a rounding error of max 1 unit (1/8 EV)
+     * 
+     * Let's first see what Canon firmware gives us.
+     */
     prop_request_change_wait( PROP_SHUTTER, &shutter, 4, 200);
-    return ABS((int)lens_info.raw_shutter - (int)shutter) <= 3;
+    int delta = (int)lens_info.raw_shutter - (int)shutter;
+    
+    if (ABS(delta) == 2)
+    {
+        /* if we get a rounding error of 2, try altering the shutter speed by one;
+         * it will most likely get it right this time */
+        shutter -= SGN(delta);
+        prop_request_change_wait( PROP_SHUTTER, &shutter, 4, 200);
+        delta = (int)lens_info.raw_shutter - (int)shutter;
+    }
+    
+    return ABS(delta) <= 1;
 }
 
 static int prop_set_rawiso(unsigned iso)
