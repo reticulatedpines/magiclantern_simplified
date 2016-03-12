@@ -13,6 +13,7 @@
 #include <shoot.h>
 #include <bmp.h>
 #include <imath.h>
+#include <math.h>
 
 #include "lua_common.h"
 
@@ -164,7 +165,7 @@ static int luaCB_camera_newindex(lua_State * L)
         int i = 0;
         for(i = 0; i < COUNT(values_iso); i++)
             if(values_iso[i] <= value) break;
-        status = lens_set_rawiso(codes_iso[i]);
+        status = hdr_set_rawiso(codes_iso[i]);
     }
     else if(!strcmp(key, "ec"))
     {
@@ -403,20 +404,18 @@ static int luaCB_iso_newindex(lua_State * L)
     if(!strcmp(key, "raw"))
     {
         LUA_PARAM_INT(value, 3);
-        status = lens_set_rawiso(value);
+        status = hdr_set_rawiso(value);
     }
     else if(!strcmp(key, "apex"))
     {
         LUA_PARAM_NUMBER(value, 3);
-        status = lens_set_rawiso(APEX1000_SV2RAW((int)roundf(value * 1000)));
+        status = hdr_set_rawiso(APEX1000_SV2RAW((int)roundf(value * 1000)));
     }
     else if(!strcmp(key, "value"))
     {
         LUA_PARAM_INT(value, 3);
-        int i = 0;
-        for(i = 0; i < COUNT(values_iso); i++)
-            if(values_iso[i] <= value) break;
-        status = lens_set_rawiso(codes_iso[i]);
+        int raw = value ? (int)roundf(log2f(value/3.125) * 8) + 32 : 0;
+        status = hdr_set_rawiso(raw);
     }
     else
     {
