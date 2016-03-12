@@ -157,7 +157,7 @@ static int luaCB_camera_newindex(lua_State * L)
     else if(!strcmp(key, "aperture"))
     {
         LUA_PARAM_NUMBER(value, 3);
-        status = hdr_set_rawaperture((int)roundf((log2i(value) * 16) + 8));
+        status = hdr_set_rawaperture((int)roundf((log2f(value) * 16) + 8));
     }
     else if(!strcmp(key, "iso"))
     {
@@ -352,7 +352,7 @@ static int luaCB_aperture_newindex(lua_State * L)
     else if(!strcmp(key, "value"))
     {
         LUA_PARAM_NUMBER(value, 3);
-        status = hdr_set_rawaperture((int)roundf((log2i(value) * 16) + 8));
+        status = hdr_set_rawaperture((int)roundf((log2f(value) * 16) + 8));
     }
     else
     {

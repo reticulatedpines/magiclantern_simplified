@@ -1224,7 +1224,6 @@ PROP_HANDLER( PROP_SHUTTER )
     lens_display_set_dirty();
 }
 
-static int aperture_ack = -1;
 PROP_HANDLER( PROP_APERTURE )
 {
     //~ NotifyBox(2000, "%x %x %x %x ", buf[0], CONTROL_BV, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
@@ -1244,7 +1243,6 @@ PROP_HANDLER( PROP_APERTURE )
     bv_auto_update();
     #endif
     lens_display_set_dirty();
-    aperture_ack = buf[0];
 }
 
 PROP_HANDLER( PROP_APERTURE_AUTO )
@@ -1702,43 +1700,38 @@ static int prop_set_rawaperture(unsigned aperture)
     int r = aperture % 8;
     if (r != 0 && r != 4 && r != 3 && r != 5 
         && aperture != lens_info.raw_aperture_min && aperture != lens_info.raw_aperture_max)
+    {
         return 0;
+    }
 
     lens_wait_readytotakepic(64);
     aperture = COERCE(aperture, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
-    //~ aperture_ack = -1;
-    prop_request_change( PROP_APERTURE, &aperture, 4 );
-    for (int i = 0; i < 10; i++) { if (aperture_ack == (int)aperture) return 1; msleep(20); }
-    //~ NotifyBox(1000, "%d=%d ", aperture_ack, aperture);
-    return 0;
+    prop_request_change_wait(PROP_APERTURE, &aperture, 4, 200);
+    return lens_info.raw_aperture == aperture;
 }
 
 static int prop_set_rawaperture_approx(unsigned new_av)
 {
-
-    // Canon likes only numbers in 1/3 or 1/2-stop increments
-    new_av = COERCE(new_av, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
-    if (!expo_value_rounding_ok(new_av, 1)) // try to change it by a small amount, so Canon firmware will accept it
-    {
-        int new_av_plus1  = COERCE(new_av + 1, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
-        int new_av_minus1 = COERCE(new_av - 1, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
-        int new_av_plus2  = COERCE(new_av + 2, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
-        int new_av_minus2 = COERCE(new_av - 2, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
-        
-        if (expo_value_rounding_ok(new_av_plus1, 1)) new_av = new_av_plus1;
-        else if (expo_value_rounding_ok(new_av_minus1, 1)) new_av = new_av_minus1;
-        else if (expo_value_rounding_ok(new_av_plus2, 1)) new_av = new_av_plus2;
-        else if (expo_value_rounding_ok(new_av_minus2, 1)) new_av = new_av_minus2;
-    }
+    /* aperture is very tricky; even if we respect the rounding rules
+     * the values might be refused for no apparent reason
+     * so we'll use trial and error, until a value gets accepted
+     */
     
-    if (ABS((int)new_av - (int)lens_info.raw_aperture) <= 3) // nothing to do :)
+    /* first try to set it exactly */
+    if (prop_set_rawaperture(new_av))
         return 1;
 
-    lens_wait_readytotakepic(64);
-    aperture_ack = -1;
-    prop_request_change( PROP_APERTURE, &new_av, 4 );
-    for (int i = 0; i < 20; i++) { if (aperture_ack != -1) break; msleep(20); }
-    return ABS(aperture_ack - (int)new_av) <= 3;
+    /* then try to set a value close to the requested one, until it works */
+    for (int d = 1; d < 4; d++)
+    {
+        if (prop_set_rawaperture(new_av + d))
+            return 1;
+        
+        if (prop_set_rawaperture(new_av - d))
+            return 1;
+    }
+    
+    return 0;
 }
 
 static int prop_set_rawshutter(unsigned shutter)
