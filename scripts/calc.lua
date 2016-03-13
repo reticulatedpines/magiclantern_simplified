@@ -91,7 +91,7 @@ function calc:handle_key(key)
 end
 
 function calc:handle_button(c)
-    if self.error then
+    if self.error or type(self.value) ~= "string" then
         self.value = ""
     end
     self.error = false
@@ -104,8 +104,11 @@ function calc:handle_button(c)
             self.value = "syntax error"
         else
             status,self.value = pcall(result)
-            if self.status == false then
+            if self.status == false or self.value == nil then
                 self.error = true
+                self.value = "syntax error"
+            else
+                self.value = tostring(self.value)
             end
         end
     else
@@ -122,7 +125,7 @@ function calc:draw()
         display.rect(self.left,self.top,self.width,self.cell_size,self.border,self.background)
         local fg = self.foreground
         if self.error then fg = self.error_forground end
-        display.print(self.value,self.left + self.pad,self.top + self.pad,self.font,fg,self.background, self.width - self.pad * 2)
+        display.print(tostring(self.value),self.left + self.pad,self.top + self.pad,self.font,fg,self.background, self.width - self.pad * 2)
         for i=1,self.rows,1 do
             local row = self.buttons[i]
             for j=1,self.cols,1 do
@@ -141,7 +144,9 @@ end
 
 --export all the math functions to the global namespace
 for k,v in pairs(math) do
-    _G[k] = v
+    if k ~= "type" then
+        _G[k] = v
+    end
 end
 
 function inc(val,min,max)
