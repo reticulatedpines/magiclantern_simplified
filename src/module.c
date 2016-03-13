@@ -858,6 +858,16 @@ int module_send_keypress(int module_key)
 
 int handle_module_keys(struct event * event)
 {
+    int count = 1;
+    
+    if (event->param == BGMT_WHEEL_UP || event->param == BGMT_WHEEL_DOWN || event->param == BGMT_WHEEL_LEFT ||  event->param == BGMT_WHEEL_RIGHT)
+    {
+        /* on newer cameras, scrollwheel events may come up grouped in a single event */
+        /* since we only pass single key events to modules, we have to ungroup these events */
+        /* (that is, call the handler as many times as needed) */
+        count = MAX(count, event->arg);
+    }
+    
     for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
     {
         module_cbr_t *cbr = module_list[mod].cbr;
@@ -868,18 +878,22 @@ int handle_module_keys(struct event * event)
                 if(cbr->type == CBR_KEYPRESS)
                 {
                     /* key got handled? */
-                    if(!cbr->handler(module_translate_key(event->param, MODULE_KEY_PORTABLE)))
+                    int pass_to_canon = 1;
+                    for (int i = 0; i < count; i++)
                     {
-                        return 0;
+                        pass_to_canon &= cbr->handler(module_translate_key(event->param, MODULE_KEY_PORTABLE));
                     }
+                    return pass_to_canon;
                 }
                 if(cbr->type == CBR_KEYPRESS_RAW)
                 {
                     /* key got handled? */
-                    if(!cbr->handler((int)event))
+                    int pass_to_canon = 1;
+                    for (int i = 0; i < count; i++)
                     {
-                        return 0;
+                        pass_to_canon &= cbr->handler((int)event);
                     }
+                    return pass_to_canon;
                 }
                 cbr++;
             }
