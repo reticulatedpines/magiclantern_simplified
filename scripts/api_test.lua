@@ -172,10 +172,13 @@ function api_tests()
         printf("Setting aperture to random values...")
         for k = 1,100 do
             method = math.random(1,3)
+            extra_tol = 0
             if method == 1 then
                 local av = math.random(round(camera.aperture.min.value*10), round(camera.aperture.max.value*10)) / 10
                 camera.aperture.value = av
                 d = math.abs(math.log(camera.aperture.value,2) - math.log(av,2)) * 2
+                -- when checking the result, allow a larger difference (0.1 units) - see note below
+                extra_tol = math.abs(math.log(av,2) - math.log(av-0.1,2)) * 2
             elseif method == 2 then
                 local apex = math.random(round(camera.aperture.min.apex*100), round(camera.aperture.max.apex*100)) / 100
                 camera.aperture.apex = apex
@@ -187,8 +190,10 @@ function api_tests()
             end
 
             -- difference between requested and actual aperture should be max 1.5/8 EV
-            if d > 1.5/8 then
-                printf("Error: aperture delta %s EV", d)
+            -- note: when using F-numbers, the difference may be larger, because of the rounding done
+            -- to match Canon values (e.g. raw 48 would be f/5.66 (f/5.7), instead of Canon's f/5.6)
+            if (d > 1.5/8 + extra_tol) then
+                printf("Error: aperture delta %s EV (expected < %s, f/%s, method=%d)", d, 1.5/8 + extra_tol, camera.aperture, method)
             end
 
             -- aperture and Av (APEX) should be consistent
