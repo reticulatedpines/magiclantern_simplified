@@ -1,105 +1,103 @@
 #include "ml-lua-shim.h"
 #include <math.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/stat.h>
 
-int my_getc(FILE * stream)
+int __libc_open(const char * fn, int flags, ...)
 {
-    int c = 0;
-    if(FIO_ReadFile(stream, &c, 1) == 1)
-    {
-        return c;
-    }
-    else
-    {
-        return EOF;
-    }
+    printf("__libc_open(%s,%d)\n", fn, flags);
+    return -1;
 }
 
-FILE * my_fopen(const char * filename, const char * mode)
+int __libc_close(int fd)
 {
-    if(mode == NULL) return NULL;
-    if(mode[0] == 'r' && mode[1] == '+') return FIO_OpenFile(filename, O_RDWR | O_SYNC);
-    else if(mode[0] == 'r') return FIO_OpenFile(filename, O_RDONLY | O_SYNC);
-    else if(mode[0] == 'w') return FIO_CreateFile(filename);
-    else if(mode[0] == 'a') return FIO_CreateFileOrAppend(filename);
-    else return NULL;
+    printf("__libc_close(%d)\n", fd);
+    return -1;
 }
 
-FILE * my_freopen(const char * filename, const char * mode, FILE * f)
+ssize_t __libc_read(int fd, void* buf, size_t count)
 {
-    FIO_CloseFile(f);
-    return my_fopen(filename, mode);
+    printf("__libc_read(%d,%d)\n", fd, count);
+    return -1;
 }
 
-int my_fclose(FILE * stream)
+ssize_t __libc_write(int fd, const void* buf, size_t count)
 {
-    FIO_CloseFile(stream);
+    printf("__libc_write(%d,%d)\n", fd, count);
+    return -1;
+}
+
+ssize_t write(int fd , const void* buf, size_t count)
+{
+    return __libc_write(fd, buf, count);
+}
+
+off_t lseek(int fd, off_t offset, int whence)
+{
+    printf("_lseek(%d,%d,%d)\n", fd, offset, whence);
     return 0;
 }
 
-int my_ferror(FILE * stream)
+int fstat(int fd, struct stat * buf)
 {
-    return 0; //thou shalt not have file errors :P
+    printf("fstat(%d,%x)\n", fd, buf);
+    return -1;
 }
 
-int my_feof(FILE * stream)
+int __rt_sigprocmask(int how, void* set, void* oldsetm, long nr)
 {
-    int c = 0;
-    if(FIO_ReadFile(stream, &c, 1) == 1)
-    {
-        FIO_SeekSkipFile(stream, -1, SEEK_CUR);
-        return 0;
-    }
-    else
-    {
-        return 1;
-    }
-}
-
-int do_nothing()
-{
+    /* idk what I'm supposed to do here */
+    printf("__rt_sigprocmask\n");
     return 0;
 }
 
-char * my_fgets(char * str, int num, FILE * stream )
+int isatty(int desc)
 {
-    int i = 0;
-    for(i = 0; i < num; i++)
-    {
-        int c = my_getc(stream);
-        if(c == EOF) break;
-        str[i] = c;
-        if(c == '\n' || c == '\r')
-        {
-            i++;
-            break;
-        }
-    }
-    str[i] = 0x0;
-    return str;
+    return desc == 0 || desc == 1 || desc == 2;
 }
 
-FILE * my_tmpfile()
-{
-    //TODO: implement this?
-    return NULL;
-}
-
-int my_ungetc(int character, FILE * stream)
-{
-    //this is not really correct
-    FIO_SeekSkipFile(stream, -1, SEEK_CUR);
-    return character;
-}
-
-char* my_getenv(const char* name)
+char* getenv(const char* name)
 {
     //ML doesn't have environment variables
     return NULL;
 }
 
-void my_abort()
+void __thread_doexit(int doexit)
+{
+    printf("__thread_doexit(%d)\n", doexit);
+}
+
+int atexit(void (*f)(void))
+{
+    printf("atexit(%x)\n", f);
+    return 0;
+}
+
+FILE* tmpfile(void)
+{
+    printf("tmpfile\n");
+    return 0;
+}
+
+extern void * __mem_malloc( size_t len, unsigned int flags, const char *file, unsigned int line);
+extern void __mem_free( void * buf);
+
+void* malloc(size_t size)
+{
+    return __mem_malloc(size, 0, "lua", 0);
+}
+
+void free(void* ptr)
+{
+    __mem_free(ptr);
+}
+
+void abort()
 {
     //what should we do here?
+    printf("abort\n");
+    while(1);
 }
 
 //taken from: http://stackoverflow.com/questions/2302969/how-to-implement-char-ftoafloat-num-without-sprintf-library-function-i
@@ -177,96 +175,4 @@ int ftoa(char *s, float n) {
         *(c) = '\0';
     }
     return strlen(s);
-}
-
-//from dietlibc
-
-char *my_strpbrk(const char *s, const char *accept) {
-    if(!s || !accept) return NULL;
-    register unsigned int i;
-    for (; *s; s++)
-        for (i=0; accept[i]; i++)
-            if (*s == accept[i])
-                return (char*)s;
-    return 0;
-}
-
-float my_strtof(const char* s, char** endptr) {
-    register const char*  p     = s;
-    register float        value = 0.;
-    int                   sign  = +1;
-    float                 factor;
-    unsigned int          expo;
-    
-    while ( isspace(*p) )
-        p++;
-    
-    switch (*p) {
-        case '-': sign = -1;
-        case '+': p++;
-        default : break;
-    }
-    
-    while ( (unsigned int)(*p - '0') < 10u )
-        value = value*10 + (*p++ - '0');
-    
-    if ( *p == '.' ) {
-        factor = 1.;
-        
-        p++;
-        while ( (unsigned int)(*p - '0') < 10u ) {
-            factor *= 0.1;
-            value  += (*p++ - '0') * factor;
-        }
-    }
-    
-    if ( (*p | 32) == 'e' ) {
-        expo   = 0;
-        factor = 10.L;
-        
-        switch (*++p) {                 // ja hier weiﬂ ich nicht, was mindestens nach einem 'E' folgenden MUSS.
-            case '-': factor = 0.1;
-            case '+': p++;
-                break;
-            case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
-                break;
-            default : value = 0.L;
-                p     = s;
-                goto done;
-        }
-        
-        while ( (unsigned int)(*p - '0') < 10u )
-            expo = 10 * expo + (*p++ - '0');
-        
-        while ( 1 ) {
-            if ( expo & 1 )
-                value *= factor;
-            if ( (expo >>= 1) == 0 )
-                break;
-            factor *= factor;
-        }
-    }
-    
-done:
-    if ( endptr != NULL )
-        *endptr = (char*)p;
-    
-    return value * sign;
-}
-
-#define __expect(foo,bar) __builtin_expect((long)(foo),bar)
-#define __likely(foo) __expect((foo),1)
-char *my_strstr(const char *haystack, const char *needle) {
-    size_t nl=strlen(needle);
-    size_t hl=strlen(haystack);
-    size_t i;
-    if (!nl) goto found;
-    if (nl>hl) return 0;
-    for (i=hl-nl+1; __likely(i); --i) {
-        if (*haystack==*needle && !memcmp(haystack,needle,nl))
-            found:
-            return (char*)haystack;
-        ++haystack;
-    }
-    return 0;
 }

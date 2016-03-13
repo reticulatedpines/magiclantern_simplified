@@ -34,7 +34,8 @@
 #define __malloc__
 #else
 #define __expect(foo,bar) __builtin_expect((long)(foo),bar)
-#define __attribute_malloc__ __attribute__((__malloc__))
+/* a1ex: this gives a ton of warnings; comment it out */
+//~ #define __attribute_malloc__ __attribute__((__malloc__))
 #endif
 #endif
 

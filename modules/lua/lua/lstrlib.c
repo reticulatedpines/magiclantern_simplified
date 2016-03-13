@@ -10,10 +10,10 @@
 #include "lprefix.h"
 
 
-//#include <ctype.h>
+#include <ctype.h>
 #include <limits.h>
 #include <stddef.h>
-//#include <stdio.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 

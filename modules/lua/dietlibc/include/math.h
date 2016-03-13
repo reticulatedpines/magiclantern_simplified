@@ -107,6 +107,83 @@ double modf(double x, double * iptr);
 double frexp(double x, int *exp);
 double ldexp(double x, int exp);
 
+/* missing functions copied from newlib's math.h */
+#define _PARAMS(paramlist) paramlist
+#define _LONG_LONG_TYPE long long
+
+/* Single precision versions of ANSI functions.  */
+
+extern float atanf _PARAMS((float));
+extern float cosf _PARAMS((float));
+extern float sinf _PARAMS((float));
+extern float tanf _PARAMS((float));
+extern float tanhf _PARAMS((float));
+extern float frexpf _PARAMS((float, int *));
+extern float modff _PARAMS((float, float *));
+extern float ceilf _PARAMS((float));
+extern float fabsf _PARAMS((float));
+extern float floorf _PARAMS((float));
+
+#ifndef _REENT_ONLY
+extern float acosf _PARAMS((float));
+extern float asinf _PARAMS((float));
+extern float atan2f _PARAMS((float, float));
+extern float coshf _PARAMS((float));
+extern float sinhf _PARAMS((float));
+extern float expf _PARAMS((float));
+extern float ldexpf _PARAMS((float, int));
+extern float logf _PARAMS((float));
+extern float log10f _PARAMS((float));
+extern float powf _PARAMS((float, float));
+extern float sqrtf _PARAMS((float));
+extern float fmodf _PARAMS((float, float));
+#endif /* ! defined (_REENT_ONLY) */
+
+/* Other single precision functions.  */
+
+extern float exp2f _PARAMS((float));
+extern float scalblnf _PARAMS((float, long int));
+extern float tgammaf _PARAMS((float));
+extern float nearbyintf _PARAMS((float));
+extern long int lrintf _PARAMS((float));
+extern _LONG_LONG_TYPE llrintf _PARAMS((float));
+extern float roundf _PARAMS((float));
+extern long int lroundf _PARAMS((float));
+extern long long int llroundf _PARAMS((float));
+extern float truncf _PARAMS((float));
+extern float remquof _PARAMS((float, float, int *));
+extern float fdimf _PARAMS((float, float));
+extern float fmaxf _PARAMS((float, float));
+extern float fminf _PARAMS((float, float));
+extern float fmaf _PARAMS((float, float, float));
+
+extern float infinityf _PARAMS((void));
+extern float nanf _PARAMS((const char *));
+extern int finitef _PARAMS((float));
+extern float copysignf _PARAMS((float, float));
+extern float logbf _PARAMS((float));
+extern int ilogbf _PARAMS((float));
+
+extern float asinhf _PARAMS((float));
+extern float cbrtf _PARAMS((float));
+extern float nextafterf _PARAMS((float, float));
+extern float rintf _PARAMS((float));
+extern float scalbnf _PARAMS((float, int));
+extern float log1pf _PARAMS((float));
+extern float expm1f _PARAMS((float));
+
+#ifndef _REENT_ONLY
+extern float acoshf _PARAMS((float));
+extern float atanhf _PARAMS((float));
+extern float remainderf _PARAMS((float, float));
+extern float gammaf _PARAMS((float));
+extern float lgammaf _PARAMS((float));
+extern float erff _PARAMS((float));
+extern float erfcf _PARAMS((float));
+extern float log2f _PARAMS((float));
+extern float hypotf _PARAMS((float, float));
+#endif /* ! defined (_REENT_ONLY) */
+
 __END_DECLS
 
 #endif
