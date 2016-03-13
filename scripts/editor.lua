@@ -335,17 +335,21 @@ function filedialog:show()
     while true do
         local key = keys:getkey()
         if key ~= nil then
-            local result = self:handle_key(key)
-            if result == "Cancel" then 
-                if started then keys:stop() end
-                return nil
-            elseif result == "OK" then
-                if started then keys:stop() end
-                if self.save_mode then return self.current.path..self.save_box.value
-                else return self.selected_value end
-            elseif result ~= nil then
-                if started then keys:stop() end
-                return result
+            -- process all keys in the queue (until getkey() returns nil), then redraw
+            while key ~= nil do
+                local result = self:handle_key(key)
+                if result == "Cancel" then 
+                    if started then keys:stop() end
+                    return nil
+                elseif result == "OK" then
+                    if started then keys:stop() end
+                    if self.save_mode then return self.current.path..self.save_box.value
+                    else return self.selected_value end
+                elseif result ~= nil then
+                    if started then keys:stop() end
+                    return result
+                end
+                key = keys:getkey()
             end
             self:draw()
         end
@@ -516,21 +520,27 @@ function editor:main_loop()
     menu.block(true)
     self:draw()
     keys:start()
-    while true do
+    local exit = false
+    while not exit do
         if menu.visible == false then break end
         local key = keys:getkey()
         if key ~= nil then
-            local redraw = false
-            if self.menu_open then
-                if self:handle_menu_key(key) == false then
-                    break
+            -- process all keys in the queue (until getkey() returns nil), then redraw
+            while key ~= nil do
+                if self.menu_open then
+                    if self:handle_menu_key(key) == false then
+                        exit = true
+                        break
+                    end
+                elseif self.debugging then
+                    if self:handle_debug_key(key) == false then
+                        exit = true
+                        break
+                    end
+                else
+                    self:handle_key(key)
                 end
-            elseif self.debugging then
-                if self:handle_debug_key(key) == false then
-                    break
-                end
-            else
-                self:handle_key(key)
+                key = keys:getkey()
             end
             self:draw()
         end
