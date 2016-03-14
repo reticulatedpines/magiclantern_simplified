@@ -28,36 +28,42 @@ lua.sym: lua.mo
 # Extract the stdio files that we need
 DIET_OBJ = \
 	fopen.o \
+	freopen.o \
 	fclose.o \
 	fread.o \
 	fwrite.o \
 	fseek.o \
-	ungetc.o \
+	ftell.o \
 	fprintf.o \
 	fflush.o \
+	feof.o \
 	fgets.o \
 	fgetc_unlocked.o \
 	fputc_unlocked.o \
+	ungetc.o \
 	fdglue.o \
 	fdglue2.o \
-	ftell.o \
-	feof.o \
 	setvbuf.o \
-	errno.o \
-	errno_location.o \
 	vfprintf.o \
 	__v_printf.o \
 	__ltostr.o \
-	freopen.o \
-	strtol.o \
+	stdin.o \
 	stdout.o \
+	stderr.o \
+	errno.o \
+	errno_location.o \
+	strerror.o \
 	ferror.o \
 	clearerr.o \
-	stderr.o \
-	stdin.o \
-	setjmp.o \
-	sigjmp.o \
-	sigprocmask.o \
+	errlist.o \
+	errlistu.o \
+	strtol.o \
+	strtof.o \
+	strstr.o \
+	strspn.o \
+	strpbrk.o \
+	memchr.o \
+	localeconv.o \
 
 $(DIET_OBJ): $(DIETLIBC_A)
 	$(call build,AR,$(AR) x $? $(DIET_OBJ))
