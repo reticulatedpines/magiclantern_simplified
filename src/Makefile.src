@@ -261,10 +261,13 @@ DIET_OBJ = \
 	strtol.o \
 	strtoul.o \
 	strchr.o \
+	strspn.o \
 	memcmp.o \
 	memmove.o \
+	memchr.o \
 	atoi.o \
 	atol.o \
+	localeconv.o \
 
 $(DIET_OBJ): $(DIETLIBC_A)
 	$(call build,AR,$(AR) x $? $(DIET_OBJ))
