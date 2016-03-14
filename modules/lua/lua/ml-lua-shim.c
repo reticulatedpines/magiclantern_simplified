@@ -3,29 +3,48 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <fio-ml.h>
+
+extern const char * format_memory_size( unsigned size); /* e.g. 2.0GB, 32MB, 2.4kB... */
+
+/* fixme: FIO functions actually return int, not FILE* */
 
 int __libc_open(const char * fn, int flags, ...)
 {
-    printf("__libc_open(%s,%d)\n", fn, flags);
-    return -1;
+    printf("__libc_open(%s, %x)\n", fn, flags);
+    
+    /* not sure if correct */
+    if (flags & O_CREAT)
+    {
+        return (int) FIO_CreateFile(fn);
+    }
+    else
+    {
+        /* will it work? who knows... */
+        return (int) FIO_OpenFile(fn, flags);
+    }
 }
 
 int __libc_close(int fd)
 {
     printf("__libc_close(%d)\n", fd);
-    return -1;
+    FIO_CloseFile((void*)fd);
+    return 0;
 }
 
 ssize_t __libc_read(int fd, void* buf, size_t count)
 {
-    printf("__libc_read(%d,%d)\n", fd, count);
-    return -1;
+    printf("__libc_read(%d,%s)\n", fd, format_memory_size(count));
+    return FIO_ReadFile((void*) fd, buf, count);
+    for (int i = 0; i < 20; i++)
+        printf("%c", ((char*)buf)[i]);
+    printf(" [...]\n");
 }
 
 ssize_t __libc_write(int fd, const void* buf, size_t count)
 {
-    printf("__libc_write(%d,%d)\n", fd, count);
-    return -1;
+    printf("__libc_write(%d,%s)\n", fd, format_memory_size(count));
+    return FIO_WriteFile((void*) fd, buf, count);
 }
 
 ssize_t write(int fd , const void* buf, size_t count)
@@ -35,14 +54,16 @@ ssize_t write(int fd , const void* buf, size_t count)
 
 off_t lseek(int fd, off_t offset, int whence)
 {
-    printf("_lseek(%d,%d,%d)\n", fd, offset, whence);
-    return 0;
+    printf("lseek(%d,%d,%d)\n", fd, offset, whence);
+    return FIO_SeekSkipFile((void*) fd, offset, whence);
 }
 
 int fstat(int fd, struct stat * buf)
 {
+    /* fixme: dummy implementation */
     printf("fstat(%d,%x)\n", fd, buf);
-    return -1;
+    memset(buf, 0, sizeof(*buf));
+    return 0;
 }
 
 int __rt_sigprocmask(int how, void* set, void* oldsetm, long nr)

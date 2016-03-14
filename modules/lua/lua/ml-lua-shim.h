@@ -12,8 +12,6 @@
 #define strcoll(a,b) strcmp(a,b)
 
 int do_nothing();
-char* my_getenv(const char* name);
-void my_abort();
 int ftoa(char *s, float n);
 
 #endif
