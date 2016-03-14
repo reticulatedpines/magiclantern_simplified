@@ -112,7 +112,11 @@ extern void __mem_free( void * buf);
 
 void* malloc(size_t size)
 {
-    return __mem_malloc(size, 0, "lua", 0);
+    /* this appears to be called only from dietlibc stdio
+     * if it has round values, assume it's fio_malloc, for buffering files */
+    int is_fio = !(size & 0xFF);
+    dbg_printf("%smalloc(%s)\n", is_fio ? "fio_" : "", format_memory_size(size));
+    return __mem_malloc(size, is_fio ? 3 : 0, "lua_stdio", 0);
 }
 
 void free(void* ptr)
