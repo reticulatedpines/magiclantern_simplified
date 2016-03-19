@@ -22,8 +22,8 @@ include $(TOP_DIR)/modules/Makefile.modules
 # fixme: how to implement this in a cleaner way?
 lua.sym: lua.mo
 	$(call build,STRIP,$(READELF) -sW $< | grep GLOBAL | grep -v UND | grep -v COM | grep -v "__module_.*$(MODULE_NAME)" | $(AWK) "{print \$$8;}" | sort > localsyms)
-	$(call build,STRIP,$(OBJCOPY) lua.mo lua.mo --localize-symbols localsyms)
-	$(call build,EXPORTS,$(READELF) -sW $< | grep GLOBAL | grep -v UND | grep -v COM | grep -v "__module_.*$(MODULE_NAME)" | $(AWK) "{print \$$2 \" \" \$$8;}" | sort > $@ && cat $@ | rm localsyms)
+	$(call build,STRIP,$(OBJCOPY) lua.mo lua.mo --localize-symbols localsyms | rm localsyms)
+	$(call build,EXPORTS,$(READELF) -sW $< | grep GLOBAL | grep -v UND | grep -v COM | grep -v "__module_.*$(MODULE_NAME)" | $(AWK) "{print \$$2 \" \" \$$8;}" | sort > $@ && cat $@)
 
 # also copy the scripts when running "make install" from the module directory
 install::
