@@ -59,7 +59,6 @@ static int luaCB_dryos_call(lua_State * L)
 
 const char * lua_dryos_directory_fields[] =
 {
-    "path",
     "exists",
     "create",
     "children",
@@ -70,7 +69,6 @@ const char * lua_dryos_directory_fields[] =
 
 const char * lua_dryos_card_fields[] =
 {
-    "_card_ptr",
     "cluster_size",
     "drive_letter",
     "file_number",
