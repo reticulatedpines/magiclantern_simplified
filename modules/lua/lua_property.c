@@ -122,11 +122,11 @@ static void create_lua_property(lua_State * L, unsigned prop_id)
     lua_newtable(L);
     lua_pushinteger(L, prop_id);
     lua_setfield(L, -2, "_id");
+    lua_newtable(L);
     lua_pushcfunction(L, luaCB_property_index);
     lua_setfield(L, -2, "__index");
     lua_pushcfunction(L, luaCB_property_newindex);
     lua_setfield(L, -2, "__newindex");
-    lua_pushvalue(L, -1);
     lua_setmetatable(L, -2);
 }
 
@@ -641,6 +641,12 @@ static int luaCB_property_newindex(lua_State * L)
     else lua_rawset(L, 1);
     return 0;
 }
+
+static const char * lua_property_fields[] =
+{
+    //TODO: put all those properties in here
+    NULL
+};
 
 const luaL_Reg propertylib[] =
 {

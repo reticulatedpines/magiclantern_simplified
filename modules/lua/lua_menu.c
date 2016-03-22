@@ -223,6 +223,36 @@ static int get_index_for_choices(struct menu_entry * menu_entry, const char * va
     return 0;
 }
 
+const char * lua_menu_instance_fields[] =
+{
+    "value",
+    "name",
+    "help",
+    "help2",
+    "advanced",
+    "depends_on",
+    "edit_mode",
+    "hidden",
+    "icon_type",
+    "jhidden",
+    "max",
+    "min",
+    "selected",
+    "shidden",
+    "starred",
+    "submenu_height",
+    "submenu_width",
+    "unit",
+    "works_best_in",
+    "run_in_separate_task",
+    "select",
+    "update",
+    "info",
+    "rinfo",
+    "warning",
+    NULL
+};
+
 /*** Creates a new menu item
  @tparam table definition
  @function new
@@ -280,6 +310,10 @@ static int luaCB_menu_new(lua_State * L)
     lua_setfield(L, -2, "__index");
     lua_pushcfunction(L, luaCB_menu_instance_newindex);
     lua_setfield(L, -2, "__newindex");
+    lua_pushcfunction(L, luaCB_pairs);
+    lua_setfield(L, -2, "__pairs");
+    lua_pushlightuserdata(L, lua_menu_instance_fields);
+    lua_setfield(L, -2, "fields");
     lua_pushcfunction(L, luaCB_menu_remove);
     lua_setfield(L, -2, "remove");
     lua_pushstring(L, parent);
@@ -835,6 +869,12 @@ static int luaCB_menu_remove(lua_State * L)
     }
     return 0;
 }
+
+static const char * lua_menu_fields[] =
+{
+    "visible",
+    NULL
+};
 
 const luaL_Reg menulib[] =
 {

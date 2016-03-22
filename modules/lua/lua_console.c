@@ -49,12 +49,18 @@ static int luaCB_console_clear(lua_State * L)
  */
 static int luaCB_console_write(lua_State * L)
 {
-    if(lua_isstring(L, 1)) puts(lua_tostring(L, 1));
+    if(lua_isstring(L, 1)) printf("%s",lua_tostring(L, 1));
     return 0;
 }
 
 static int luaCB_console_index(lua_State * L) { lua_rawget(L, 1); return 1; }
 static int luaCB_console_newindex(lua_State * L) { lua_rawset(L, 1); return 0; }
+
+
+static const char * lua_console_fields[] =
+{
+    NULL
+};
 
 static const luaL_Reg consolelib[] =
 {

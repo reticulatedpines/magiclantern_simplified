@@ -1,9 +1,10 @@
 -- Test routines for the scripting API
 -- Very incomplete
+require("logger")
 
 function printf(s,...)
-    -- fixme: newlines (io.write doesn't work)
-    print(s:format(...))
+    test_log:writef(s,...)
+    test_log:write("\n")
 end
 
 function request_mode(mode, mode_str)
@@ -21,26 +22,23 @@ function round(x)
     return x + 0.5 - (x + 0.5) % 1
 end
 
+function print_table(t)
+    test_log:write(string.format("%s = ", t))
+    local s,e = xpcall(function()
+        test_log:serialize(_G[t])
+    end, debug.traceback)
+    if s == false then
+        test_log:write(e)
+    end
+end
+
 function api_tests()
     menu.close()
     console.clear()
     console.show()
+    test_log = logger("LUATEST.LOG")
     printf("Testing module 'camera'...")
-    printf("Camera    : %s (%s) %s", camera.model, camera.model_short, camera.firmware)
-    printf("Lens      : %s", lens.name)
-    printf("Shoot mode: %s", camera.mode)
-    printf("Shutter   : %s (raw %s, %ss, %sms, apex %s)", camera.shutter, camera.shutter.raw, camera.shutter.value, camera.shutter.ms, camera.shutter.apex)
-    printf("Aperture  : %s (raw %s, f/%s, apex %s)", camera.aperture, camera.aperture.raw, camera.aperture.value, camera.aperture.apex)
-    printf("Av range  : %s..%s (raw %s..%s, f/%s..f/%s, apex %s..%s)",
-        camera.aperture.min, camera.aperture.max,
-        camera.aperture.min.raw, camera.aperture.max.raw,
-        camera.aperture.min.value, camera.aperture.max.value,
-        camera.aperture.min.apex, camera.aperture.max.apex
-    )
-    printf("ISO       : %s (raw %s, %s, apex %s)", camera.iso, camera.iso.raw, camera.iso.value, camera.iso.apex)
-    printf("EC        : %s (raw %s, %s EV)", camera.ec, camera.ec.raw, camera.ec.value)
-    printf("Flash EC  : %s (raw %s, %s EV)", camera.flash_ec, camera.flash_ec.raw, camera.flash_ec.value)
-    printf("Kelvin    : %s", camera.kelvin)
+    print_table("camera")
     
     request_mode(MODE.M, "M")
     printf("Setting shutter to random values...")
@@ -307,9 +305,24 @@ function api_tests()
             end
         end
     end
-
+    
+    print_table("event")
+    print_table("console")
+    print_table("lv")
+    print_table("lens")
+    print_table("display")
+    print_table("key")
+    print_table("menu")
+    print_table("testmenu")
+    print_table("movie")
+    print_table("dryos")
+    print_table("interval")
+    print_table("battery")
+    print_table("task")
+    print_table("property")
     printf("Done!")
-
+    
+    test_log:close()
     key.wait()
     console.hide()
 end
