@@ -522,10 +522,9 @@ static int raw_update_params_work()
         #endif
 
         #ifdef CONFIG_60D
-        #warning FIXME: are these values correct for 720p and crop modes?
         skip_top    = 26;
-        skip_left   = zoom ? 0 : 152;
-        skip_right  = zoom ? 0 : 2;
+        skip_left   = zoom ? 0 : mv640crop ? 150 : 152;
+        skip_right  = zoom ? 0 : mv640crop ? 0 : 2;
         #endif
 
         #ifdef CONFIG_50D
