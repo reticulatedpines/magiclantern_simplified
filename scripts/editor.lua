@@ -1,5 +1,6 @@
 -- a text editor
 require("keys")
+require("logger")
 
 function inc(val,min,max)
     if val == max then return min end
@@ -727,11 +728,11 @@ function editor:open()
     if f ~= nil then
         self.filename = f
         self:update_title(false, true)
-        self.lines = {}
         self:draw_status("Loading...")
-        for line in io.lines(f) do
-            table.insert(self.lines,line)
-        end
+        local file = io.open(f,"r")
+        --this is much faster than io.lines b/c the file io is all done in one large read request
+        self.lines = logger.tolines(file:read("*a"))
+        file:close()
         self.line = 1
         self.col = 1
         self.scrollbar.table = self.lines
@@ -1191,7 +1192,6 @@ end
 function handle_error(error)
     if error == nil then error = "Unknown Error!\n" end
     local f = FONT.MONO_20
-    print(error)
     display.rect(0,0,display.width,display.height,COLOR.RED,COLOR.BLACK)
     local pos = 10
     for line in error:gmatch("[^\r\n]+") do
@@ -1202,5 +1202,8 @@ function handle_error(error)
         end
         pos = pos + f.height
     end
+    local log = logger("EDITOR.ERR")
+    log:write(error)
+    log:close()
     keys:anykey()
 end
