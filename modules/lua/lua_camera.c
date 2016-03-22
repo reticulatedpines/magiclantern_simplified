@@ -42,6 +42,49 @@ static int luaCB_fec_index(lua_State * L);
 static int luaCB_fec_newindex(lua_State * L);
 static int luaCB_fec_tostring(lua_State * L);
 
+
+static const char * lua_camera_shutter_fields[] =
+{
+    "raw",
+    "apex",
+    "ms",
+    "value",
+    NULL
+};
+
+static const char * lua_camera_aperture_fields[] =
+{
+    "raw",
+    "apex",
+    "value",
+    "min",
+    "max",
+    NULL
+};
+
+static const char * lua_camera_aperture_minmax_fields[] =
+{
+    "raw",
+    "apex",
+    "value",
+    NULL
+};
+
+static const char * lua_camera_iso_fields[] =
+{
+    "raw",
+    "apex",
+    "value",
+    NULL
+};
+
+static const char * lua_camera_ec_fields[] =
+{
+    "raw",
+    "value",
+    NULL
+};
+
 static int luaCB_camera_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
@@ -50,13 +93,17 @@ static int luaCB_camera_index(lua_State * L)
     if(!strcmp(key, "shutter"))
     {
         lua_newtable(L);
+        lua_newtable(L);
         lua_pushcfunction(L, luaCB_shutter_tostring);
         lua_setfield(L, -2, "__tostring");
         lua_pushcfunction(L, luaCB_shutter_index);
         lua_setfield(L, -2, "__index");
         lua_pushcfunction(L, luaCB_shutter_newindex);
         lua_setfield(L, -2, "__newindex");
-        lua_pushvalue(L, -1);
+        lua_pushcfunction(L, luaCB_pairs);
+        lua_setfield(L, -2, "__pairs");
+        lua_pushlightuserdata(L, lua_camera_shutter_fields);
+        lua_setfield(L, -2, "fields");
         lua_setmetatable(L, -2);
     }
     /// Gets an @{aperture} object that represents the lens' aperture
@@ -64,13 +111,17 @@ static int luaCB_camera_index(lua_State * L)
     else if(!strcmp(key, "aperture"))
     {
         lua_newtable(L);
+        lua_newtable(L);
         lua_pushcfunction(L, luaCB_aperture_tostring);
         lua_setfield(L, -2, "__tostring");
         lua_pushcfunction(L, luaCB_aperture_index);
         lua_setfield(L, -2, "__index");
         lua_pushcfunction(L, luaCB_aperture_newindex);
         lua_setfield(L, -2, "__newindex");
-        lua_pushvalue(L, -1);
+        lua_pushcfunction(L, luaCB_pairs);
+        lua_setfield(L, -2, "__pairs");
+        lua_pushlightuserdata(L, lua_camera_aperture_fields);
+        lua_setfield(L, -2, "fields");
         lua_setmetatable(L, -2);
     }
     /// Gets an @{iso} object that represents camera's ISO
@@ -78,13 +129,17 @@ static int luaCB_camera_index(lua_State * L)
     else if(!strcmp(key, "iso"))
     {
         lua_newtable(L);
+        lua_newtable(L);
         lua_pushcfunction(L, luaCB_iso_tostring);
         lua_setfield(L, -2, "__tostring");
         lua_pushcfunction(L, luaCB_iso_index);
         lua_setfield(L, -2, "__index");
         lua_pushcfunction(L, luaCB_iso_newindex);
         lua_setfield(L, -2, "__newindex");
-        lua_pushvalue(L, -1);
+        lua_pushcfunction(L, luaCB_pairs);
+        lua_setfield(L, -2, "__pairs");
+        lua_pushlightuserdata(L, lua_camera_iso_fields);
+        lua_setfield(L, -2, "fields");
         lua_setmetatable(L, -2);
     }
     /// Gets an @{ec} object that represents exposure compensation
@@ -92,13 +147,17 @@ static int luaCB_camera_index(lua_State * L)
     else if(!strcmp(key, "ec"))
     {
         lua_newtable(L);
+        lua_newtable(L);
         lua_pushcfunction(L, luaCB_ec_tostring);
         lua_setfield(L, -2, "__tostring");
         lua_pushcfunction(L, luaCB_ec_index);
         lua_setfield(L, -2, "__index");
         lua_pushcfunction(L, luaCB_ec_newindex);
         lua_setfield(L, -2, "__newindex");
-        lua_pushvalue(L, -1);
+        lua_pushcfunction(L, luaCB_pairs);
+        lua_setfield(L, -2, "__pairs");
+        lua_pushlightuserdata(L, lua_camera_ec_fields);
+        lua_setfield(L, -2, "fields");
         lua_setmetatable(L, -2);
     }
     /// Gets an @{ec} object that represents flash exposure compensation
@@ -106,13 +165,17 @@ static int luaCB_camera_index(lua_State * L)
     else if(!strcmp(key, "flash_ec"))
     {
         lua_newtable(L);
+        lua_newtable(L);
         lua_pushcfunction(L, luaCB_fec_tostring);
         lua_setfield(L, -2, "__tostring");
         lua_pushcfunction(L, luaCB_fec_index);
         lua_setfield(L, -2, "__index");
         lua_pushcfunction(L, luaCB_fec_newindex);
         lua_setfield(L, -2, "__newindex");
-        lua_pushvalue(L, -1);
+        lua_pushcfunction(L, luaCB_pairs);
+        lua_setfield(L, -2, "__pairs");
+        lua_pushlightuserdata(L, lua_camera_ec_fields);
+        lua_setfield(L, -2, "fields");
         lua_setmetatable(L, -2);
     }
     /// Get/Set kelvin white balance
@@ -325,11 +388,15 @@ static int luaCB_aperture_index(lua_State * L)
     else if(!strcmp(key,"min"))
     {
         lua_newtable(L);
+        lua_newtable(L);
         lua_pushcfunction(L, luaCB_min_aperture_tostring);
         lua_setfield(L, -2, "__tostring");
         lua_pushcfunction(L, luaCB_min_aperture_index);
         lua_setfield(L, -2, "__index");
-        lua_pushvalue(L, -1);
+        lua_pushcfunction(L, luaCB_pairs);
+        lua_setfield(L, -2, "__pairs");
+        lua_pushlightuserdata(L, lua_camera_aperture_minmax_fields);
+        lua_setfield(L, -2, "fields");
         lua_setmetatable(L, -2);
     }
     /// Get/Set maximum (closed) aperture value (aperture object)
@@ -337,11 +404,15 @@ static int luaCB_aperture_index(lua_State * L)
     else if(!strcmp(key,"max"))
     {
         lua_newtable(L);
+        lua_newtable(L);
         lua_pushcfunction(L, luaCB_max_aperture_tostring);
         lua_setfield(L, -2, "__tostring");
         lua_pushcfunction(L, luaCB_max_aperture_index);
         lua_setfield(L, -2, "__index");
-        lua_pushvalue(L, -1);
+        lua_pushcfunction(L, luaCB_pairs);
+        lua_setfield(L, -2, "__pairs");
+        lua_pushlightuserdata(L, lua_camera_aperture_minmax_fields);
+        lua_setfield(L, -2, "fields");
         lua_setmetatable(L, -2);
     }
     else lua_rawget(L, 1);
@@ -584,6 +655,26 @@ static int luaCB_fec_newindex(lua_State * L)
     if(!status) return luaL_error(L, "set 'camera.fec.%s' failed", key);
     return 0;
 }
+
+static const char * lua_camera_fields[] =
+{
+    "shutter",
+    "aperture",
+    "iso",
+    "ec",
+    "flash_ec",
+    "kelvin",
+    "mode",
+    "af_mode",
+    "metering_mode",
+    "drive_mode",
+    "model",
+    "model_short",
+    "firmware",
+    "temperature",
+    "state",
+    NULL
+};
 
 static const luaL_Reg cameralib[] =
 {

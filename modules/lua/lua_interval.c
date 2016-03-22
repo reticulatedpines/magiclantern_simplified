@@ -58,6 +58,14 @@ static int luaCB_interval_stop(lua_State * L)
     return 0;
 }
 
+static const char * lua_interval_fields[] =
+{
+    "time",
+    "count",
+    "running",
+    NULL
+};
+
 static const luaL_Reg intervallib[] =
 {
     { "stop", luaCB_interval_stop },

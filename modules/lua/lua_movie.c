@@ -83,6 +83,12 @@ static int luaCB_movie_newindex(lua_State * L)
     return 0;
 }
 
+static const char * lua_movie_fields[] =
+{
+    "recording",
+    NULL
+};
+
 const luaL_Reg movielib[] =
 {
     {"start", luaCB_movie_start},

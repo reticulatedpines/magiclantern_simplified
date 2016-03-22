@@ -57,6 +57,29 @@ static int luaCB_dryos_call(lua_State * L)
     return 1;
 }
 
+const char * lua_dryos_directory_fields[] =
+{
+    "path",
+    "exists",
+    "create",
+    "children",
+    "files",
+    "parent",
+    NULL
+};
+
+const char * lua_dryos_card_fields[] =
+{
+    "_card_ptr",
+    "cluster_size",
+    "drive_letter",
+    "file_number",
+    "folder_number",
+    "free_space",
+    "type",
+    NULL
+};
+
 /***
  Creates a @{directory} object that is used to get information about a directory
  
@@ -94,11 +117,15 @@ static int luaCB_dryos_directory(lua_State * L)
         lua_pushvalue(L, 1);
     }
     lua_setfield(L, -2, "path");
+    lua_newtable(L);
     lua_pushcfunction(L, luaCB_directory_index);
     lua_setfield(L, -2, "__index");
     lua_pushcfunction(L, luaCB_directory_newindex);
     lua_setfield(L, -2, "__newindex");
-    lua_pushvalue(L, -1);
+    lua_pushcfunction(L, luaCB_pairs);
+    lua_setfield(L, -2, "__pairs");
+    lua_pushlightuserdata(L, lua_dryos_directory_fields);
+    lua_setfield(L, -2, "fields");
     lua_setmetatable(L, -2);
     return 1;
 }
@@ -154,11 +181,15 @@ static int luaCB_dryos_index(lua_State * L)
         lua_setfield(L, -2, "_card_ptr");
         lua_pushfstring(L, "%s:/", card->drive_letter);
         lua_setfield(L, -2, "path");
+        lua_newtable(L);
         lua_pushcfunction(L, luaCB_card_index);
         lua_setfield(L, -2, "__index");
         lua_pushcfunction(L, luaCB_card_newindex);
         lua_setfield(L, -2, "__newindex");
-        lua_pushvalue(L, -1);
+        lua_pushcfunction(L, luaCB_pairs);
+        lua_setfield(L, -2, "__pairs");
+        lua_pushlightuserdata(L, lua_dryos_card_fields);
+        lua_setfield(L, -2, "fields");
         lua_setmetatable(L, -2);
     }
     /// Get the shooting card
@@ -172,18 +203,21 @@ static int luaCB_dryos_index(lua_State * L)
         lua_setfield(L, -2, "_card_ptr");
         lua_pushfstring(L, "%s:/", card->drive_letter);
         lua_setfield(L, -2, "path");
+        lua_newtable(L);
         lua_pushcfunction(L, luaCB_card_index);
         lua_setfield(L, -2, "__index");
         lua_pushcfunction(L, luaCB_card_newindex);
         lua_setfield(L, -2, "__newindex");
-        lua_pushvalue(L, -1);
+        lua_pushcfunction(L, luaCB_pairs);
+        lua_setfield(L, -2, "__pairs");
+        lua_pushlightuserdata(L, lua_dryos_card_fields);
+        lua_setfield(L, -2, "fields");
         lua_setmetatable(L, -2);
     }
     /// Gets a table representing the current date/time
     // @tfield date date
     else if(!strcmp(key, "date"))
     {
-        
         /// Represents a date/time
         // @type date
         struct tm tm;
@@ -425,6 +459,19 @@ static int luaCB_card_newindex(lua_State * L)
 {
     return luaL_error(L, "'card' type is readonly");
 }
+
+static const char * lua_dryos_fields[] =
+{
+    "clock",
+    "ms_clock",
+    "prefix",
+    "dcim_dir",
+    "config_dir",
+    "ml_card",
+    "shooting_card",
+    "date",
+    NULL
+};
 
 const luaL_Reg dryoslib[] =
 {

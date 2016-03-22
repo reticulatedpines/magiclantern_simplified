@@ -103,6 +103,11 @@ static int luaCB_task_newindex(lua_State * L)
     return 0;
 }
 
+static const char * lua_task_fields[] =
+{
+    NULL
+};
+
 const luaL_Reg tasklib[] =
 {
     {"create", luaCB_task_create},

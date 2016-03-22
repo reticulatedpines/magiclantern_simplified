@@ -70,6 +70,10 @@ int luaopen_##name(lua_State * L) {\
     lua_setfield(L, -2, "__index");\
     lua_pushcfunction(L, luaCB_##name##_newindex);\
     lua_setfield(L, -2, "__newindex");\
+    lua_pushcfunction(L, luaCB_pairs);\
+    lua_setfield(L, -2, "__pairs");\
+    lua_pushlightuserdata(L, lua_##name##_fields);\
+    lua_setfield(L, -2, "fields");\
     lua_setmetatable(L, -2);\
     return 1;\
 }
@@ -94,6 +98,9 @@ int docall(lua_State *L, int narg, int nres);
 
 int lua_take_semaphore(lua_State * L, int timeout, struct semaphore ** assoc_semaphore);
 int lua_give_semaphore(lua_State * L, struct semaphore ** assoc_semaphore);
+
+int luaCB_next(lua_State * L);
+int luaCB_pairs(lua_State * L);
 
 int luaopen_globals(lua_State * L);
 int luaopen_console(lua_State * L);

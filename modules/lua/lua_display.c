@@ -388,6 +388,14 @@ static int luaCB_bitmap_newindex(lua_State * L)
     return luaL_error(L, "'bitmap' type is readonly");
 }
 
+static const char * lua_display_fields[] =
+{
+    "idle",
+    "height",
+    "width",
+    NULL
+};
+
 const luaL_Reg displaylib[] =
 {
     {"on", luaCB_display_on},
