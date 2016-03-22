@@ -354,7 +354,7 @@ static int luaCB_directory_index(lua_State * L)
     else if(!strcmp(key, "parent"))
     {
         size_t len = strlen(path);
-        if (len > 0 && path[len - 1] == '/')
+        if ((len > 3 || ((len == 2 || len == 3) && path[1] != ':')) && path[len - 1] == '/')
         {
             char * parent_path = copy_string(path);
             parent_path[len - 1] = 0x0;
