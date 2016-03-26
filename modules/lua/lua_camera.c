@@ -531,11 +531,11 @@ static int luaCB_iso_tostring(lua_State * L)
 {
     if(lens_info.raw_iso)
     {
-        lua_pushfstring(L, SYM_ISO"%d", raw2iso(lens_info.raw_iso));
+        lua_pushfstring(L, "%d", raw2iso(lens_info.raw_iso));
     }
     else
     {
-        lua_pushstring(L, SYM_ISO"Auto");
+        lua_pushstring(L, "AutoISO");
     }
     return 1;
 }
