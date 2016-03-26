@@ -522,6 +522,7 @@ int bfnt_char_get_width(int c);
 #define SYM_SMALL_C     "\x89"
 #define SYM_SMALL_M     "\x8A"
 #define SYM_INFTY       "\x8B"
+#define SYM_WARNING     "\x8C"
 #define SYM_COPYRIGHT   "\x8D"
 #define SYM_TRADEMARK   "\x8F"
 #define SYM_REGTRMARK   "\x8E"
