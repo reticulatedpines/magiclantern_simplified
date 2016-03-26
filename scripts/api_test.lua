@@ -73,6 +73,7 @@ function api_tests()
     printf("Flash EC  : %s (raw %s, %s EV)", camera.flash_ec, camera.flash_ec.raw, camera.flash_ec.value)
 
     request_mode(MODE.M, "M")
+    old_value = camera.shutter.raw
     printf("Setting shutter to random values...")
     for k = 1,100 do
         method = math.random(1,4)
@@ -144,8 +145,10 @@ function api_tests()
             end
         end
     end
+    camera.shutter.raw = old_value
 
     request_mode(MODE.M, "M")
+    old_value = camera.iso.raw
     printf("Setting ISO to random values...")
     for k = 1,100 do
         method = math.random(1,3)
@@ -194,11 +197,13 @@ function api_tests()
             end
         end
     end
+    camera.iso.raw = old_value
 
     if camera.aperture.min.raw == camera.aperture.max.raw then
         printf("This lens does not have variable aperture (skipping test).")
     else
         request_mode(MODE.M, "M")
+        old_value = camera.aperture.raw
         printf("Setting aperture to random values...")
         for k = 1,100 do
             method = math.random(1,3)
@@ -252,9 +257,11 @@ function api_tests()
                 end
             end
         end
+        camera.aperture.raw = old_value
     end
 
     request_mode(MODE.AV, "Av")
+    old_value = camera.ec.raw
     printf("Setting EC to random values...")
     for k = 1,100 do
         method = math.random(1,2)
@@ -295,8 +302,10 @@ function api_tests()
             end
         end
     end
+    camera.ec.raw = old_value
 
     -- copy/paste & replace from EC (those two should behave in the same way)
+    old_value = camera.flash_ec.raw
     printf("Setting Flash EC to random values...")
     for k = 1,100 do
         method = math.random(1,2)
@@ -337,6 +346,7 @@ function api_tests()
             end
         end
     end
+    camera.flash_ec.raw = old_value
     
     printf("Done!")
     
