@@ -57,6 +57,21 @@ function api_tests()
 
 
     printf("Testing module 'camera'...")
+    printf("Camera    : %s (%s) %s", camera.model, camera.model_short, camera.firmware)
+    printf("Lens      : %s", lens.name)
+    printf("Shoot mode: %s", camera.mode)
+    printf("Shutter   : %s (raw %s, %ss, %sms, apex %s)", camera.shutter, camera.shutter.raw, camera.shutter.value, camera.shutter.ms, camera.shutter.apex)
+    printf("Aperture  : %s (raw %s, f/%s, apex %s)", camera.aperture, camera.aperture.raw, camera.aperture.value, camera.aperture.apex)
+    printf("Av range  : %s..%s (raw %s..%s, f/%s..f/%s, apex %s..%s)",
+        camera.aperture.min, camera.aperture.max,
+        camera.aperture.min.raw, camera.aperture.max.raw,
+        camera.aperture.min.value, camera.aperture.max.value,
+        camera.aperture.min.apex, camera.aperture.max.apex
+    )
+    printf("ISO       : %s (raw %s, %s, apex %s)", camera.iso, camera.iso.raw, camera.iso.value, camera.iso.apex)
+    printf("EC        : %s (raw %s, %s EV)", camera.ec, camera.ec.raw, camera.ec.value)
+    printf("Flash EC  : %s (raw %s, %s EV)", camera.flash_ec, camera.flash_ec.raw, camera.flash_ec.value)
+
     request_mode(MODE.M, "M")
     printf("Setting shutter to random values...")
     for k = 1,100 do
