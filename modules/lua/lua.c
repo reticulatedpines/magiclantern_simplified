@@ -387,7 +387,7 @@ static int luaCB_global_index(lua_State * L)
 
 int do_lua_next(lua_State * L)
 {
-    int r = lua_next(L, 1);
+    int r = lua_type(L, 1) == LUA_TTABLE && lua_next(L, 1);
     if (!r)
     {
         lua_pushnil(L);
