@@ -32,31 +32,8 @@ function print_table(t)
     end
 end
 
-function api_tests()
-    menu.close()
-    console.clear()
-    console.show()
-    test_log = logger("LUATEST.LOG")
-
-    printf("Generic tests...")
-    print_table("camera")
-    print_table("event")
-    print_table("console")
-    print_table("lv")
-    print_table("lens")
-    print_table("display")
-    print_table("key")
-    print_table("menu")
-    print_table("testmenu")
-    print_table("movie")
-    print_table("dryos")
-    print_table("interval")
-    print_table("battery")
-    print_table("task")
-    print_table("property")
-
-
-    printf("Testing module 'camera'...")
+function test_camera_exposure()
+    printf("Testing exposure settings, module 'camera'...")
     printf("Camera    : %s (%s) %s", camera.model, camera.model_short, camera.firmware)
     printf("Lens      : %s", lens.name)
     printf("Shoot mode: %s", camera.mode)
@@ -347,6 +324,85 @@ function api_tests()
         end
     end
     camera.flash_ec.raw = old_value
+
+    printf("Exposure tests completed.")
+end
+
+function test_lv()
+    printf("Testing module 'lv'...")
+    if lv.enabled then
+        printf("LiveView is running; stopping...");
+        lv.stop()
+        assert(not lv.enabled, "LiveView did not stop")
+        msleep(2000)
+    end
+
+    printf("Starting LiveView...");
+    lv.start()
+    assert(lv.enabled, "LiveView did not start")
+
+    msleep(2000)
+    
+    for i,z in pairs{1, 5, 10, 5, 1, 10, 1} do
+        printf("Setting zoom to x%d...", z)
+        lv.zoom = z
+        assert(lv.zoom == z, "Could not set zoom in LiveView ")
+        lv.wait(5)
+    end
+
+    printf("Pausing LiveView...");
+    lv.pause()
+    assert(lv.enabled, "LiveView stopped")
+    assert(lv.paused, "LiveView could not be paused")
+
+    msleep(2000)
+
+    printf("Resuming LiveView...");
+    lv.resume()
+    assert(lv.enabled, "LiveView stopped")
+    assert(not lv.paused, "LiveView could not be resumed")
+
+    msleep(2000)
+
+    printf("Stopping LiveView...");
+    lv.stop()
+
+    assert(not lv.enabled, "LiveView did not stop")
+    assert(not lv.paused,  "LiveView is disabled, can't be paused")
+    assert(not lv.running, "LiveView is disabled, can't be running")
+
+    msleep(1000)
+
+    printf("LiveView tests completed.");
+end
+
+
+function api_tests()
+    menu.close()
+    console.clear()
+    console.show()
+    test_log = logger("LUATEST.LOG")
+
+    printf("Generic tests...")
+    print_table("camera")
+    print_table("event")
+    print_table("console")
+    print_table("lv")
+    print_table("lens")
+    print_table("display")
+    print_table("key")
+    print_table("menu")
+    print_table("testmenu")
+    print_table("movie")
+    print_table("dryos")
+    print_table("interval")
+    print_table("battery")
+    print_table("task")
+    print_table("property")
+
+    printf("Module tests...")
+    test_camera_exposure()
+    test_lv()
     
     printf("Done!")
     
