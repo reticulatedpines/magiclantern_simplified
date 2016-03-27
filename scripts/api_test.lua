@@ -35,6 +35,51 @@ function print_table(t)
     end
 end
 
+-- used for testing Lua 'strict' mode
+declared_var = nil
+
+function strict_tests()
+    printf("Strict mode tests...")
+
+    -- this should work
+    declared_var = 5
+    assert(declared_var == 5)
+
+    -- this should raise error
+    local s,e = pcall(function() undeclared_var = 7 end)
+    assert(s == false)
+    assert(e:find("assign to undeclared variable 'undeclared_var'"))
+
+    -- same here
+    local s,e = pcall(function() print(undeclared_var) end)
+    assert(s == false)
+    assert(e:find("variable 'undeclared_var' is not declared"))
+
+    printf("Strict mode tests passed.")
+    printf("")
+end
+
+function generic_tests()
+    printf("Generic tests...")
+    print_table("camera")
+    print_table("event")
+    print_table("console")
+    print_table("lv")
+    print_table("lens")
+    print_table("display")
+    print_table("key")
+    print_table("menu")
+    print_table("testmenu")
+    print_table("movie")
+    print_table("dryos")
+    print_table("interval")
+    print_table("battery")
+    print_table("task")
+    print_table("property")
+    printf("Generic tests completed.")
+    printf("")
+end
+
 function test_camera_exposure()
     printf("Testing exposure settings, module 'camera'...")
     printf("Camera    : %s (%s) %s", camera.model, camera.model_short, camera.firmware)
@@ -339,6 +384,7 @@ function test_camera_exposure()
     camera.flash_ec.raw = old_value
 
     printf("Exposure tests completed.")
+    printf("")
 end
 
 function test_lv()
@@ -387,8 +433,8 @@ function test_lv()
     msleep(1000)
 
     printf("LiveView tests completed.");
+    printf("")
 end
-
 
 function api_tests()
     menu.close()
@@ -396,23 +442,9 @@ function api_tests()
     console.show()
     test_log = logger("LUATEST.LOG")
 
-    printf("Generic tests...")
-    print_table("camera")
-    print_table("event")
-    print_table("console")
-    print_table("lv")
-    print_table("lens")
-    print_table("display")
-    print_table("key")
-    print_table("menu")
-    print_table("testmenu")
-    print_table("movie")
-    print_table("dryos")
-    print_table("interval")
-    print_table("battery")
-    print_table("task")
-    print_table("property")
-
+    strict_tests()
+    generic_tests()
+    
     printf("Module tests...")
     test_camera_exposure()
     test_lv()
