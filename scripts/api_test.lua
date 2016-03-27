@@ -436,6 +436,68 @@ function test_lv()
     printf("")
 end
 
+function test_lens_focus()
+    if lens.name == "" then
+        printf("This test requires an electronic lens.")
+        assert(not lens.af, "manual lenses can't autofocus")
+        return
+    end
+    
+    if not lens.af then
+        printf("Please enable autofocus.")
+        printf("(or, remove the lens from the camera to skip this test)")
+        while not lens.af and lens.name ~= "" do
+            console.show()
+            msleep(1000)
+        end
+    end
+    
+    if not lv.running then
+        lv.start()
+        assert(lv.running)
+    end
+    
+    if lens.af then
+        printf("Focus distance: %s",  lens.focus_distance)
+
+        -- note: focus direction is not consistent
+        -- some lenses will focus to infinity, others to macro
+        printf("Focusing backward...")
+        while lens.focus(-1,3,true) do end
+        printf("Focus distance: %s",  lens.focus_distance)
+
+        for i,step in pairs{3,2,1} do
+            printf("Focusing forward with step size %d...", step)
+            local steps_front = 0
+            while lens.focus(1,step,true) do
+                console.write(".")
+                steps_front = steps_front + 1
+            end
+            printf("")
+            printf("Focus distance: %s",  lens.focus_distance)
+            
+            msleep(500)
+            
+            printf("Focusing backward with step size %d...", step)
+            local steps_back = 0
+            while lens.focus(-1,step,true) do
+                console.write(".")
+                steps_back = steps_back + 1
+            end
+            printf("")
+            printf("Focus distance: %s",  lens.focus_distance)
+
+            msleep(500)
+
+            printf("Focus range: %s steps forward, %s steps backward. ",  steps_front, steps_back)
+        end
+        printf("Focus test completed.")
+    else
+        printf("Focus test skipped.")
+    end
+    printf("")
+end
+
 function api_tests()
     menu.close()
     console.clear()
@@ -448,6 +510,7 @@ function api_tests()
     printf("Module tests...")
     test_camera_exposure()
     test_lv()
+    test_lens_focus()
     
     printf("Done!")
     
