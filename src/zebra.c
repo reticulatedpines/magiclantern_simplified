@@ -4164,10 +4164,9 @@ void PauseLiveView() // this should not include "display off" command
     {
         //~ ASSERT(DISPLAY_IS_ON);
         int x = 1;
-        //~ while (get_halfshutter_pressed()) msleep(MIN_MSLEEP);
         BMP_LOCK(
             lv_zoom_before_pause = lv_dispsize;
-            prop_request_change(PROP_LV_ACTION, &x, 4);
+            prop_request_change_wait(PROP_LV_ACTION, &x, 4, 1000);
             msleep(100);
             clrscr();
             lv_paused = 1;
@@ -4190,11 +4189,9 @@ int ResumeLiveView()
     if (LV_PAUSED)
     {
         int x = 0;
-        //~ while (get_halfshutter_pressed()) msleep(MIN_MSLEEP);
         BMP_LOCK(
-            prop_request_change(PROP_LV_ACTION, &x, 4);
-            int iter = 10; while (!lv && iter--) msleep(100);
-            iter = 10; while (!DISPLAY_IS_ON && iter--) msleep(100);
+            prop_request_change_wait(PROP_LV_ACTION, &x, 4, 1000);
+            int iter = 10; while (!DISPLAY_IS_ON && iter--) msleep(100);
         )
         while (sensor_cleaning) msleep(100);
         if (lv) set_lv_zoom(lv_zoom_before_pause);
