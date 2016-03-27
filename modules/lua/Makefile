@@ -29,3 +29,10 @@ lua.sym: lua.mo
 install::
 	$(CP) $(SCRIPT_DIR)/*.lua $(INSTALL_SCRIPTS_DIR)/
 	$(CP) $(SCRIPT_LIB_DIR)/*.lua $(INSTALL_SCRIPTS_LIB_DIR)/
+
+# run a syntax check after compiling
+# fixme: how to execute it only once?
+all:: syntax_check.log
+
+syntax_check.log: $(SCRIPT_DIR)/*.lua $(SCRIPT_LIB_DIR)/*.lua
+	$(call build,LUAC,(for f in $^; do luac -p $$f || true; done) 2> syntax_check.log && cat syntax_check.log)
