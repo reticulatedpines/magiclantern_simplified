@@ -466,30 +466,34 @@ function test_lens_focus()
         while lens.focus(-1,3,true) do end
         printf("Focus distance: %s",  lens.focus_distance)
 
+        msleep(500)
+        
         for i,step in pairs{3,2,1} do
-            printf("Focusing forward with step size %d...", step)
-            local steps_front = 0
-            while lens.focus(1,step,true) do
-                console.write(".")
-                steps_front = steps_front + 1
-            end
-            printf("")
-            printf("Focus distance: %s",  lens.focus_distance)
-            
-            msleep(500)
-            
-            printf("Focusing backward with step size %d...", step)
-            local steps_back = 0
-            while lens.focus(-1,step,true) do
-                console.write(".")
-                steps_back = steps_back + 1
-            end
-            printf("")
-            printf("Focus distance: %s",  lens.focus_distance)
+            for j,wait in pairs{true,false} do
+                printf("Focusing forward with step size %d, wait=%s...", step, wait)
+                local steps_front = 0
+                while lens.focus(1,step,true) do
+                    console.write(".")
+                    steps_front = steps_front + 1
+                end
+                printf("")
+                printf("Focus distance: %s",  lens.focus_distance)
+                
+                msleep(500)
+                
+                printf("Focusing backward with step size %d...", step)
+                local steps_back = 0
+                while lens.focus(-1,step,true) do
+                    console.write(".")
+                    steps_back = steps_back + 1
+                end
+                printf("")
+                printf("Focus distance: %s",  lens.focus_distance)
 
-            msleep(500)
+                msleep(500)
 
-            printf("Focus range: %s steps forward, %s steps backward. ",  steps_front, steps_back)
+                printf("Focus range: %s steps forward, %s steps backward. ",  steps_front, steps_back)
+            end
         end
         printf("Focus test completed.")
     else
