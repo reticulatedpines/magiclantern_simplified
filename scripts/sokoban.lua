@@ -279,6 +279,11 @@ function victory()
     beep();
     draw_maze();
     display.print("YOU WIN :)", 300, 200, FONT.LARGE );
+    
+    local level_menu = sokoban_menu.submenu["Level"]
+    if level_menu.value < level_menu.max then
+        level_menu.value = level_menu.value + 1
+    end
 end
 
 function split_target()
