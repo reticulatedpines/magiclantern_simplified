@@ -22,13 +22,20 @@ static int luaCB_directory_newindex(lua_State * L);
 
 /***
  Calls an eventproc (a function from the camera firmware which can be called by name).
- See Eventprocs. Dangerous.
+ See Eventprocs. Dangerous - you need to compile Lua yourself in order to enable it.
  @tparam string function the name of the function to call
  @param[opt] arg argument to pass to the call
  @function call
  */
 static int luaCB_dryos_call(lua_State * L)
 {
+#if 1
+    return luaL_error(L,
+        "dryos.call() is disabled for safety reasons.\n"
+        "If you know what you are doing, just remove this message and recompile.\n"
+    );
+#endif
+
     LUA_PARAM_STRING(function_name, 1);
     int result = 0;
     int argc = lua_gettop(L);
