@@ -526,32 +526,49 @@ void draw_ml_topbar()
     lvinfo_display(1,0);
 }
 
+static volatile int lv_focus_requests = 0;
 static volatile int lv_focus_done = 1;
 static volatile int lv_focus_error = 0;
 
 PROP_HANDLER( PROP_LV_FOCUS_DONE )
 {
-    lv_focus_done = 1;
+    /* turn off the LED we enabled in lens_focus */
+    info_led_off();
+    
+    lv_focus_requests = 0;
+    
+    if (buf[0] == 0)
+    {
+        /* OK, focus command executed */
+        lv_focus_done = 1;
+    }
+
     if (buf[0] & 0x1000) 
     {
         NotifyBox(1000, "Focus: soft limit reached");
         lv_focus_error = 1;
     }
+    else if (buf[0] & 0xF000) 
+    {
+        NotifyBox(1000, "Focus: unknown error");
+        lv_focus_error = 1;
+    }
 }
 
 static void
-lens_focus_wait( void )
+lens_focus_wait(void)
 {
     for (int i = 0; i < 100; i++)
     {
-        msleep(10);
         if (lv_focus_done) return;
+        if (lv_focus_error) return;
         if (!lv) return;
         if (is_manual_focus()) return;
+        msleep(10);
     }
-    NotifyBox(1000, "Focus error :(");
+    
+    NotifyBox(1000, "Focus not confirmed");
     lv_focus_error = 1;
-    //~ NotifyBox(1000, "Press PLAY twice or reboot");
 }
 
 // this is compatible with all cameras so far, but allows only 3 speeds
@@ -563,6 +580,9 @@ lens_focus(
     int extra_delay
 )
 {
+    lv_focus_done = 0;
+    lv_focus_error = 0;
+
     if (!lv) return 0;
     if (is_manual_focus()) return 0;
     if (lens_info.job_state) return 0;
@@ -579,20 +599,46 @@ lens_focus(
     
     for (int i = 0; i < num_steps; i++)
     {
-        lv_focus_done = 0;
-        info_led_on();
-        if (lv && !mirror_down && DISPLAY_IS_ON && lens_info.job_state == 0)
-            prop_request_change(PROP_LV_LENS_DRIVE_REMOTE, &focus_cmd, 4);
-        if (wait)
+        if (lv && !mirror_down && lens_info.job_state == 0)
         {
-            lens_focus_wait(); // this will sleep at least 10ms
-            if (extra_delay > 10) msleep(extra_delay - 10); 
+            if (wait)
+            {
+                lv_focus_done = 0;
+                
+                /* request and wait for confirmation */
+                info_led_on();
+                prop_request_change_wait(PROP_LV_LENS_DRIVE_REMOTE, &focus_cmd, 4, 1000);
+                
+                /* also wait for confirmation from PROP_LV_FOCUS_DONE */
+                lens_focus_wait();
+                
+                /* also wait a little more if user want so (for really stubborn lenses) */
+                if (extra_delay)
+                {
+                    msleep(extra_delay);
+                }
+            }
+            else
+            {
+                /* keep sending focus commands, but not more than 3
+                 * from the last PROP_LV_FOCUS_DONE event
+                 * this fixes some crashes that appear to be caused
+                 * by filling Canon's focus request queue with our junk
+                 * 
+                 * (not sure what their buffer size is, but with 5, it crashes)
+                 */
+                lv_focus_requests++;
+                
+                if (lv_focus_requests < 3)
+                {
+                    info_led_on();
+                    prop_request_change(PROP_LV_LENS_DRIVE_REMOTE, &focus_cmd, 4);
+                }
+
+                /* open-loop delay, without waiting for confirmation; at least 10ms */
+                msleep(MAX(10, extra_delay));
+            }
         }
-        else
-        {
-            msleep(extra_delay);
-        }
-        info_led_off();
     }
 
     #ifdef FEATURE_MAGIC_ZOOM
@@ -602,8 +648,8 @@ lens_focus(
     idle_wakeup_reset_counters(-10);
     lens_display_set_dirty();
     
-    if (lv_focus_error) { msleep(200); lv_focus_error = 0; return 0; }
-    return 1;
+    /* return 1 on success, 0 on error */
+    return lv_focus_error ? 0 : 1;
 }
 
 static PROP_INT(PROP_ICU_UILOCK, uilock);

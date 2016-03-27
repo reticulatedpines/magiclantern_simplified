@@ -227,7 +227,7 @@ extern int hdr_set_flash_ae(int ae);
 int lens_take_picture( int wait, int allow_af );
 int lens_take_pictures( int wait, int allow_af, int duration );
 
-/** Will block if it is not safe to send the focus command */
+/** Will return 1 on success, 0 on error */
 extern int
 lens_focus(
         int num_steps, 
