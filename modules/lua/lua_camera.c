@@ -337,7 +337,8 @@ static int luaCB_shutter_newindex(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
     
-    if(!lens_info.raw_shutter) return luaL_error(L, "Shutter speed is automatic - cannot adjust manually.");
+    /* this breaks copy2m */
+    //~ if(!lens_info.raw_shutter) return luaL_error(L, "Shutter speed is automatic - cannot adjust manually.");
     
     int status = 1;
     if(!strcmp(key, "raw"))
@@ -478,7 +479,8 @@ static int luaCB_aperture_newindex(lua_State * L)
     
     if (!lens_info.aperture)
     {
-        return luaL_error(L, lens_info.name[0] ? "Aperture is automatic - cannot adjust manually." : "Manual lens - cannot adjust aperture.");
+        /* is it needed? */
+        //~ return luaL_error(L, lens_info.name[0] ? "Aperture is automatic - cannot adjust manually." : "Manual lens - cannot adjust aperture.");
     }
     int status = 1;
     
