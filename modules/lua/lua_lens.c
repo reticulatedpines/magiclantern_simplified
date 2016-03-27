@@ -23,9 +23,9 @@ static int luaCB_lens_index(lua_State * L)
     /// Get the focal length of the lens (in mm)
     // @tfield int focal_length readonly
     else if(!strcmp(key, "focal_length")) lua_pushinteger(L, lens_info.focal_len);
-    /// Get the current focus distance (in cm)
+    /// Get the current focus distance (in mm)
     // @tfield int focus_distance readonly
-    else if(!strcmp(key, "focus_distance")) lua_pushinteger(L, lens_info.focus_dist);
+    else if(!strcmp(key, "focus_distance")) lua_pushinteger(L, lens_info.focus_dist * 10);
     /// Get the hyperfocal distance of the lens (in mm)
     // @tfield int hyperfocal readonly
     else if(!strcmp(key, "hyperfocal")) lua_pushinteger(L, lens_info.hyperfocal);
