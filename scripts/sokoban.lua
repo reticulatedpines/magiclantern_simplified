@@ -106,6 +106,11 @@ maze6 = {
     "  ####  "
 };
 
+-- global variables
+maze = nil
+LINES = nil
+COLUMNS = nil
+
 function string_to_table(str)
     local t = {}
     for i = 1,#str,1 do

@@ -2,6 +2,9 @@
 -- Very incomplete
 require("logger")
 
+-- global logger
+test_log = nil
+
 function printf(s,...)
     test_log:writef(s,...)
     test_log:write("\n")
@@ -50,10 +53,11 @@ function test_camera_exposure()
     printf("Flash EC  : %s (raw %s, %s EV)", camera.flash_ec, camera.flash_ec.raw, camera.flash_ec.value)
 
     request_mode(MODE.M, "M")
-    old_value = camera.shutter.raw
+    local old_value = camera.shutter.raw
     printf("Setting shutter to random values...")
     for k = 1,100 do
-        method = math.random(1,4)
+        local method = math.random(1,4)
+        local d = nil
         if method == 1 then
             local s = math.random(1,30)
             camera.shutter.value = s
@@ -86,7 +90,7 @@ function test_camera_exposure()
         
         -- seconds and apex should be consistent
         -- see http://dougkerr.net/Pumpkin/articles/APEX.pdf
-        expected_apex = math.log(1/camera.shutter.value,2)
+        local expected_apex = math.log(1/camera.shutter.value,2)
         if math.abs(expected_apex - camera.shutter.apex) > 0.01 then
             printf("Error: shutter %ss != Tv%s, expected %s", camera.shutter.value, camera.shutter.apex, expected_apex)
         end
@@ -94,31 +98,32 @@ function test_camera_exposure()
         -- setting shutter to the same value, using any method (s,ms,apex,raw)
         -- should not change anything
         for i,field in pairs{"value","ms","apex","raw"} do
-            apex  = camera.shutter.apex
-            value = camera.shutter.value
-            ms    = camera.shutter.ms
-            raw   = camera.shutter.raw
+            local current = {}
+            current.apex  = camera.shutter.apex
+            current.value = camera.shutter.value
+            current.ms    = camera.shutter.ms
+            current.raw   = camera.shutter.raw
             
             -- ms is integer, so tests at very low values will fail because of roundoff errors
             -- however, if we have set the shutter in ms from the beginning, it will work fine
-            if field == "ms" and ms < 10 and method ~= 2 then
+            if field == "ms" and current.ms < 10 and method ~= 2 then
                 -- how do you write "continue" in Lua?!
                 field = "value"
             end
             
-            camera.shutter[field] = _G[field]
+            camera.shutter[field] = current[field]
             
-            if camera.shutter.value ~= value then
-                printf("Error: shutter set to %s=%s, got %ss, expected %ss", field, _G[field], camera.shutter.value, value)
+            if camera.shutter.value ~= current.value then
+                printf("Error: shutter set to %s=%s, got %ss, expected %ss", field, current[field], camera.shutter.value, current.value)
             end
-            if camera.shutter.ms ~= ms then
-                printf("Error: shutter set to %s=%s, got %sms, expected %sms", field, _G[field], camera.shutter.ms, ms)
+            if camera.shutter.ms ~= current.ms then
+                printf("Error: shutter set to %s=%s, got %sms, expected %sms", field, current[field], camera.shutter.ms, current.ms)
             end
-            if camera.shutter.apex ~= apex then
-                printf("Error: shutter set to %s=%s, got Tv%s, expected Tv%s", field, _G[field], camera.shutter.apex, apex)
+            if camera.shutter.apex ~= current.apex then
+                printf("Error: shutter set to %s=%s, got Tv%s, expected Tv%s", field, current[field], camera.shutter.apex, current.apex)
             end
-            if camera.shutter.raw ~= raw then
-                printf("Error: shutter set to %s=%s, got %s, expected %s (raw)", field, _G[field], camera.shutter.raw, raw)
+            if camera.shutter.raw ~= current.raw then
+                printf("Error: shutter set to %s=%s, got %s, expected %s (raw)", field, current[field], camera.shutter.raw, current.raw)
             end
         end
     end
@@ -128,7 +133,8 @@ function test_camera_exposure()
     old_value = camera.iso.raw
     printf("Setting ISO to random values...")
     for k = 1,100 do
-        method = math.random(1,3)
+        local method = math.random(1,3)
+        local d = nil
         if method == 1 then
             local iso = math.random(100, 6400)
             camera.iso.value = iso
@@ -149,7 +155,7 @@ function test_camera_exposure()
         end
 
         -- ISO and Sv (APEX) should be consistent
-        expected_apex = math.log(camera.iso.value/3.125, 2)
+        local expected_apex = math.log(camera.iso.value/3.125, 2)
         if math.abs(expected_apex - camera.iso.apex) > 0.2 then
             printf("Error: ISO %s != Sv%s, expected %s", camera.iso.value, camera.iso.apex, expected_apex)
         end
@@ -157,20 +163,21 @@ function test_camera_exposure()
         -- setting ISO to the same value, using any method (value,apex,raw)
         -- should not change anything
         for i,field in pairs{"value","apex","raw"} do
-            apex  = camera.iso.apex
-            value = camera.iso.value
-            raw   = camera.iso.raw
+            local current = {}
+            current.apex  = camera.iso.apex
+            current.value = camera.iso.value
+            current.raw   = camera.iso.raw
             
-            camera.iso[field] = _G[field]
+            camera.iso[field] = current[field]
             
-            if camera.iso.value ~= value then
-                printf("Error: ISO set to %s=%s, got %s, expected %s", field, _G[field], camera.iso.value, value)
+            if camera.iso.value ~= current.value then
+                printf("Error: ISO set to %s=%s, got %s, expected %s", field, current[field], camera.iso.value, current.value)
             end
-            if camera.iso.apex ~= apex then
-                printf("Error: ISO set to %s=%s, got Sv%s, expected Sv%s", field, _G[field], camera.iso.apex, apex)
+            if camera.iso.apex ~= current.apex then
+                printf("Error: ISO set to %s=%s, got Sv%s, expected Sv%s", field, current[field], camera.iso.apex, current.apex)
             end
-            if camera.iso.raw ~= raw then
-                printf("Error: ISO set to %s=%s, got %s, expected %s (raw)", field, _G[field], camera.iso.raw, raw)
+            if camera.iso.raw ~= current.raw then
+                printf("Error: ISO set to %s=%s, got %s, expected %s (raw)", field, current[field], camera.iso.raw, current.raw)
             end
         end
     end
@@ -183,8 +190,9 @@ function test_camera_exposure()
         old_value = camera.aperture.raw
         printf("Setting aperture to random values...")
         for k = 1,100 do
-            method = math.random(1,3)
-            extra_tol = 0
+            local method = math.random(1,3)
+            local d = nil
+            local extra_tol = 0
             if method == 1 then
                 local av = math.random(round(camera.aperture.min.value*10), round(camera.aperture.max.value*10)) / 10
                 camera.aperture.value = av
@@ -209,7 +217,7 @@ function test_camera_exposure()
             end
 
             -- aperture and Av (APEX) should be consistent
-            expected_apex = math.log(camera.aperture.value, 2) * 2
+            local expected_apex = math.log(camera.aperture.value, 2) * 2
             if math.abs(expected_apex - camera.aperture.apex) > 0.2 then
                 printf("Error: aperture %s != Av%s, expected %s", camera.aperture.value, camera.aperture.apex, expected_apex)
             end
@@ -217,20 +225,21 @@ function test_camera_exposure()
             -- setting aperture to the same value, using any method (value,apex,raw)
             -- should not change anything
             for i,field in pairs{"value","apex","raw"} do
-                apex  = camera.aperture.apex
-                value = camera.aperture.value
-                raw   = camera.aperture.raw
+                local current = {}
+                current.apex  = camera.aperture.apex
+                current.value = camera.aperture.value
+                current.raw   = camera.aperture.raw
                 
-                camera.aperture[field] = _G[field]
+                camera.aperture[field] = current[field]
                 
-                if camera.aperture.value ~= value then
-                    printf("Error: aperture set to %s=%s, got %s, expected %s", field, _G[field], camera.aperture.value, value)
+                if camera.aperture.value ~= current.value then
+                    printf("Error: aperture set to %s=%s, got %s, expected %s", field, current[field], camera.aperture.value, current.value)
                 end
-                if camera.aperture.apex ~= apex then
-                    printf("Error: aperture set to %s=%s, got Sv%s, expected Sv%s", field, _G[field], camera.aperture.apex, apex)
+                if camera.aperture.apex ~= current.apex then
+                    printf("Error: aperture set to %s=%s, got Sv%s, expected Sv%s", field, current[field], camera.aperture.apex, current.apex)
                 end
-                if camera.aperture.raw ~= raw then
-                    printf("Error: aperture set to %s=%s, got %s, expected %s (raw)", field, _G[field], camera.aperture.raw, raw)
+                if camera.aperture.raw ~= current.raw then
+                    printf("Error: aperture set to %s=%s, got %s, expected %s (raw)", field, current[field], camera.aperture.raw, current.raw)
                 end
             end
         end
@@ -241,7 +250,8 @@ function test_camera_exposure()
     old_value = camera.ec.raw
     printf("Setting EC to random values...")
     for k = 1,100 do
-        method = math.random(1,2)
+        local method = math.random(1,2)
+        local d = nil
         if method == 1 then
             local ec = math.random(-2*100, 2*100) / 100
             camera.ec.value = ec
@@ -258,7 +268,7 @@ function test_camera_exposure()
         end
 
         -- EC and raw should be consistent
-        expected_ec = camera.ec.raw / 8
+        local expected_ec = camera.ec.raw / 8
         if math.abs(expected_ec - camera.ec.value) > 0.001 then
             printf("Error: EC raw %s != %s EV, expected %s EV", camera.ec.raw, camera.ec.value, expected_ec)
         end
@@ -266,16 +276,17 @@ function test_camera_exposure()
         -- setting EC to the same value, using any method (value,raw)
         -- should not change anything
         for i,field in pairs{"value","raw"} do
-            value = camera.ec.value
-            raw   = camera.ec.raw
+            local current = {}
+            current.value = camera.ec.value
+            current.raw   = camera.ec.raw
             
-            camera.ec[field] = _G[field]
+            camera.ec[field] = current[field]
             
-            if camera.ec.value ~= value then
-                printf("Error: EC set to %s=%s, got %s, expected %s EV", field, _G[field], camera.ec.value, value)
+            if camera.ec.value ~= current.value then
+                printf("Error: EC set to %s=%s, got %s, expected %s EV", field, current[field], camera.ec.value, current.value)
             end
-            if camera.ec.raw ~= raw then
-                printf("Error: EC set to %s=%s, got %s, expected %s (raw)", field, _G[field], camera.ec.raw, raw)
+            if camera.ec.raw ~= current.raw then
+                printf("Error: EC set to %s=%s, got %s, expected %s (raw)", field, current[field], camera.ec.raw, current.raw)
             end
         end
     end
@@ -285,7 +296,8 @@ function test_camera_exposure()
     old_value = camera.flash_ec.raw
     printf("Setting Flash EC to random values...")
     for k = 1,100 do
-        method = math.random(1,2)
+        local method = math.random(1,2)
+        local d = nil
         if method == 1 then
             local fec = math.random(-2*100, 2*100) / 100
             camera.flash_ec.value = fec
@@ -302,24 +314,25 @@ function test_camera_exposure()
         end
 
         -- EC and raw should be consistent
-        expected_fec = camera.flash_ec.raw / 8
+        local expected_fec = camera.flash_ec.raw / 8
         if math.abs(expected_fec - camera.flash_ec.value) > 0.001 then
-            printf("Error: FEC raw %s != %s EV, expected %s EV", camera.flash_ec.raw, camera.flash_ec.value, expected_fec)
+            printf("Error: FEC raw %s != %s EV, expected %s EV", camera.flash_ec.raw, camera.flash_ec.value, current.expected_fec)
         end
 
         -- setting EC to the same value, using any method (value,raw)
         -- should not change anything
         for i,field in pairs{"value","raw"} do
-            value = camera.flash_ec.value
-            raw   = camera.flash_ec.raw
+            local current = {}
+            current.value = camera.flash_ec.value
+            current.raw   = camera.flash_ec.raw
             
-            camera.flash_ec[field] = _G[field]
+            camera.flash_ec[field] = current[field]
             
-            if camera.flash_ec.value ~= value then
-                printf("Error: FEC set to %s=%s, got %s, expected %s EV", field, _G[field], camera.flash_ec.value, value)
+            if camera.flash_ec.value ~= current.value then
+                printf("Error: FEC set to %s=%s, got %s, expected %s EV", field, current[field], camera.flash_ec.value, current.value)
             end
-            if camera.flash_ec.raw ~= raw then
-                printf("Error: FEC set to %s=%s, got %s, expected %s (raw)", field, _G[field], camera.flash_ec.raw, raw)
+            if camera.flash_ec.raw ~= current.raw then
+                printf("Error: FEC set to %s=%s, got %s, expected %s (raw)", field, current[field], camera.flash_ec.raw, current.raw)
             end
         end
     end

@@ -78,7 +78,8 @@ function scrollbar.create(step,min,max,x,y,w,h)
     sb.left = x
     sb.width = w
     sb.foreground = COLOR.BLUE
-    if width == nil then sb.w = 2 end
+    -- fixme: neither global width nor sb.w appear to be used anywhere
+    -- if width == nil then sb.w = 2 end
     sb.height = h
     if h == nil then sb.height = display.height - y end
     return sb
