@@ -23,9 +23,9 @@ static int luaCB_lens_index(lua_State * L)
     /// Get the focal length of the lens (in mm)
     // @tfield int focal_length readonly
     else if(!strcmp(key, "focal_length")) lua_pushinteger(L, lens_info.focal_len);
-    /// Get the current focal distance (in cm)
-    // @tfield int focal_distance readonly
-    else if(!strcmp(key, "focal_distance")) lua_pushinteger(L, lens_info.focus_dist);
+    /// Get the current focus distance (in cm)
+    // @tfield int focus_distance readonly
+    else if(!strcmp(key, "focus_distance")) lua_pushinteger(L, lens_info.focus_dist);
     /// Get the hyperfocal distance of the lens (in mm)
     // @tfield int hyperfocal readonly
     else if(!strcmp(key, "hyperfocal")) lua_pushinteger(L, lens_info.hyperfocal);
@@ -45,7 +45,7 @@ static int luaCB_lens_index(lua_State * L)
 static int luaCB_lens_newindex(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
-    if(!strcmp(key, "name") || !strcmp(key, "focal_length") || !strcmp(key, "focal_distance") || !strcmp(key, "hyperfocal") || !strcmp(key, "dof_near") || !strcmp(key, "dof_far") || !strcmp(key, "af"))
+    if(!strcmp(key, "name") || !strcmp(key, "focal_length") || !strcmp(key, "focus_distance") || !strcmp(key, "hyperfocal") || !strcmp(key, "dof_near") || !strcmp(key, "dof_far") || !strcmp(key, "af"))
     {
         return luaL_error(L, "'%s' is readonly!", key);
     }
@@ -78,7 +78,7 @@ static const char * lua_lens_fields[] =
 {
     "name",
     "focal_length",
-    "focal_distance",
+    "focus_distance",
     "hyperfocal",
     "dof_near",
     "dof_far",
