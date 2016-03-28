@@ -31,15 +31,25 @@ static void mem_benchmark_run(char* msg, int* y, int bufsize, mem_bench_fun benc
             continue;
         }
         
-        if (display) display_on(); else display_off();
+        if (display)
+        {
+            display_on();
+        }
+        else
+        {
+            bmp_printf(FONT_LARGE, 0, 0, "%s (display off)", msg);
+            msleep(500);
+            display_off();
+        }
         msleep(100);
     
         int times = 0;
         int t0 = get_ms_clock_value();
         for (int i = 0; i < INT_MAX; i++)
         {
-            bench_fun(arg0, arg1, arg2, arg3);
             if (i%2) info_led_off(); else info_led_on();
+
+            bench_fun(arg0, arg1, arg2, arg3);
 
             /* run the benchmark for roughly 1 second */
             if (get_ms_clock_value_fast() - t0 > 1000)
@@ -173,6 +183,9 @@ static void mem_benchmark_task()
     mem_benchmark_run("read64 cacheable    ", &y, bufsize, (mem_bench_fun)mem_test_read64, (intptr_t)CACHEABLE(buf1),   bufsize, 0, 0);
     mem_benchmark_run("read64 uncacheable  ", &y, bufsize, (mem_bench_fun)mem_test_read64, (intptr_t)UNCACHEABLE(buf1), bufsize, 0, 0);
     mem_benchmark_run("bmp_fill to idle buf", &y, 720*480, (mem_bench_fun)mem_test_bmp_fill, 0, 0, 720, 480);
+
+    bmp_fill(COLOR_BLACK, 0, 0, 720, font_large.height);
+    bmp_printf(FONT_LARGE, 0, 0, "Benchmark complete.");
 
     take_screenshot("bench%d.ppm", SCREENSHOT_BMP);
     msleep(3000);
