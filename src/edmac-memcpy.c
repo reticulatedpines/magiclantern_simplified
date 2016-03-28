@@ -341,7 +341,7 @@ void find_free_edmac_channels()
             if (lv)
             {
                 bmp_printf(FONT_MED, 50, 70, "Write channel #%d seems to work", ch);
-                console_printf("Write channel #%d seems to work\n", ch);
+                printf("Write channel #%d seems to work\n", ch);
                 beep();
             }
             msleep(2000);
@@ -363,7 +363,7 @@ void find_free_edmac_channels()
             if (lv)
             {
                 bmp_printf(FONT_MED, 50, 70, "Read channel #%d seems to work", ch);
-                console_printf("Read channel #%d seems to work\n", ch);
+                printf("Read channel #%d seems to work\n", ch);
                 beep();
             }
             msleep(2000);

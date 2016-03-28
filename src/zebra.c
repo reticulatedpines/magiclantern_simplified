@@ -64,6 +64,9 @@
 #define MZ_BLACK 0x00120034
 #define MZ_GREEN 0xB68DB69E
 
+// spotmeter_formula modes
+#define SPTMTR_F_RGB_PERCENT 4
+
 #ifdef CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
 extern int kill_canon_gui_mode;
 #endif                      // but it will display ML graphics
@@ -338,7 +341,7 @@ int histogram_or_small_waveform_enabled()
         (
             (hist_draw) &&
             #ifdef FEATURE_RAW_OVERLAYS
-            !(/* histobar*/ (raw_histogram_enable == 2) && can_use_raw_overlays_menu()) &&
+            !(RAW_HISTOBAR_ENABLED && can_use_raw_overlays_menu()) &&
             #endif
             1
         )
@@ -477,6 +480,44 @@ static uint8_t* waveform = 0;
  */
 
 #if defined(FEATURE_HISTOGRAM) || defined(FEATURE_WAVEFORM) || defined(FEATURE_VECTORSCOPE)
+#ifdef FEATURE_HISTOGRAM
+static void hist_add_pixel(uint32_t pixel, int Y)
+{
+    if (histogram.is_rgb)
+    {
+        int R, G, B;
+        //~ uyvy2yrgb(pixel, &Y, &R, &G, &B);
+        COMPUTE_UYVY2YRGB(pixel, Y, R, G, B);
+        // YRGB range: 0-255
+        uint32_t R_level = (R * HIST_WIDTH) >> 8;
+        uint32_t G_level = (G * HIST_WIDTH) >> 8;
+        uint32_t B_level = (B * HIST_WIDTH) >> 8;
+        
+        histogram.hist_r[R_level & (HIST_WIDTH-1)]++;
+        histogram.hist_g[G_level & (HIST_WIDTH-1)]++;
+        histogram.hist_b[B_level & (HIST_WIDTH-1)]++;
+    }
+    
+    /* luma component is always computed, since we need histogram.max */
+    /* and it's much less expensive than RGB anyway */
+    histogram.total_px++;
+    uint32_t hist_level = (Y * HIST_WIDTH) >> 8;
+
+    // Ignore the 0 bin.  It generates too much noise
+    unsigned count = ++ (histogram.hist[ hist_level & (HIST_WIDTH-1)]);
+    if( hist_level && count > histogram.max )
+        histogram.max = count;
+}
+#endif
+
+#ifdef FEATURE_WAVEFORM
+static inline void waveform_add_pixel(int x, int Y)
+{
+    uint8_t* w = &WAVEFORM(((x-os.x0) * WAVEFORM_WIDTH) / os.x_ex, (Y * WAVEFORM_HEIGHT) >> 8);
+    if ((*w) < 250) (*w)++;
+}
+#endif
+
 static void
 hist_build()
 {
@@ -498,8 +539,33 @@ hist_build()
     #endif
     
     #ifdef FEATURE_VECTORSCOPE
-    vectorscope_start();
+    int vectorscope_draw = vectorscope_should_draw();
+    
+    if (vectorscope_draw)
+    {
+        vectorscope_start();
+    }
     #endif
+    
+    #ifdef FEATURE_RAW_HISTOGRAM
+    if (RAW_HISTOGRAM_ENABLED && can_use_raw_overlays())
+    {
+        hist_build_raw();
+    }
+    #endif
+    
+    histogram.is_rgb =
+        histogram.is_raw ||    /* RAW histogram is always RGB-based */
+        ((hist_type == 1 ||    /* Use YUV RGB histogram if selected */
+          hist_type == 2) &&   /* Fall back to YUV RGB if we can't use the RAW RGB histogram */
+         !EXT_MONITOR_RCA);    /* However, we cannot use YUV RGB histogram on RCA monitors, because they use YUV411 instead of YUV422 */
+    
+    if (!waveform_draw && !vectorscope_draw && (!hist_draw || histogram.is_raw))
+    {
+        /* optimization: no YUV-based histogram/waveform/scope enabled
+         * => no need to scan the entire image */
+        return;
+    }
     
     int mz = nondigic_zoom_overlay_enabled();
     int off = get_y_skip_offset_for_histogram();
@@ -513,57 +579,29 @@ hist_build()
             if (mz && (pixel == MZ_WHITE || pixel == MZ_BLACK || pixel == MZ_GREEN))
                 continue;
 
-            int Y;
-
+            int Y = UYVY_GET_AVG_Y(pixel);
+            
             #ifdef FEATURE_HISTOGRAM
-            if (hist_colorspace == 1 && !EXT_MONITOR_RCA) // rgb
+            if (hist_draw && !histogram.is_raw)
             {
-                int R, G, B;
-                //~ uyvy2yrgb(pixel, &Y, &R, &G, &B);
-                COMPUTE_UYVY2YRGB(pixel, Y, R, G, B);
-                // YRGB range: 0-255
-                uint32_t R_level = (R * HIST_WIDTH) >> 8;
-                uint32_t G_level = (G * HIST_WIDTH) >> 8;
-                uint32_t B_level = (B * HIST_WIDTH) >> 8;
-                
-                histogram.hist_r[R_level & (HIST_WIDTH-1)]++;
-                histogram.hist_g[G_level & (HIST_WIDTH-1)]++;
-                histogram.hist_b[B_level & (HIST_WIDTH-1)]++;
+                hist_add_pixel(pixel, Y);
             }
-            else // luma
-            #endif
-
-            #if defined(FEATURE_HISTOGRAM) || defined(FEATURE_WAVEFORM)
-            {
-                uint32_t p1 = ((pixel >> 16) & 0xFF00) >> 8;
-                uint32_t p2 = ((pixel >>  0) & 0xFF00) >> 8;
-                Y = (p1+p2) >> 1; 
-            }
-            #endif
-
-            #ifdef FEATURE_HISTOGRAM
-            histogram.total_px++;
-            uint32_t hist_level = (Y * HIST_WIDTH) >> 8;
-
-            // Ignore the 0 bin.  It generates too much noise
-            unsigned count = ++ (histogram.hist[ hist_level & (HIST_WIDTH-1)]);
-            if( hist_level && count > histogram.max )
-                histogram.max = count;
             #endif
             
             #ifdef FEATURE_WAVEFORM
-            // Update the waveform plot
             if (waveform_draw) 
             {
-                uint8_t* w = &WAVEFORM(((x-os.x0) * WAVEFORM_WIDTH) / os.x_ex, (Y * WAVEFORM_HEIGHT) >> 8);
-                if ((*w) < 250) (*w)++;
+                waveform_add_pixel(x, Y);
             }
             #endif
             
             #ifdef FEATURE_VECTORSCOPE
-            int8_t U = (pixel >>  0) & 0xFF;
-            int8_t V = (pixel >> 16) & 0xFF;
-            vectorscope_pixel_step(Y, U, V);
+            if (vectorscope_draw)
+            {
+                int8_t U = (pixel >>  0) & 0xFF;
+                int8_t V = (pixel >> 16) & 0xFF;
+                vectorscope_addpixel(Y, U, V);
+            }
             #endif
         }
     }
@@ -1130,10 +1168,12 @@ static void zebra_update_lut()
 
 #endif
 
-
-static int zebra_digic_dirty = 0;
-
 #ifdef FEATURE_ZEBRA
+
+#ifdef FEATURE_ZEBRA_FAST
+static int zebra_digic_dirty = 0;
+#endif
+
 static void draw_zebras( int Z )
 {
     uint8_t * const bvram = bmp_vram_real();
@@ -2137,8 +2177,9 @@ static MENU_UPDATE_FUNC(spotmeter_menu_display)
             
             spotmeter_formula == 0 ? "Percent" :
             spotmeter_formula == 1 ? "0..255" :
-            spotmeter_formula == 2 ? "RGB" : "RAW",
-            
+            spotmeter_formula == 2 ? "RGB" :          
+            spotmeter_formula == 3 ? "RAW" : "Percent RGB",
+
             spotmeter_draw && spotmeter_position ? ", AFbox" : ""
         );
         
@@ -2339,7 +2380,7 @@ spotmeter_erase()
 
     int xcb = spot_prev_xcb;
     int ycb = spot_prev_ycb;
-    int dx = spotmeter_formula == 2 ? 52 : 26;
+    int dx = spotmeter_formula == 2 ? 52 : (spotmeter_formula == SPTMTR_F_RGB_PERCENT ? 80: 26); 
     int y0 = -13;
     uint32_t* M = (uint32_t*)get_bvram_mirror();
     uint32_t* B = (uint32_t*)bmp_vram();
@@ -2569,6 +2610,18 @@ fallback_from_raw:
             xcb, ycb, 
             "#%02x%02x%02x",
             R,G,B
+        );
+    }
+    else if (spotmeter_formula == SPTMTR_F_RGB_PERCENT)
+    {
+        int uyvy = UYVY_PACK(su,sy,sv,sy);
+        int R,G,B,Y;
+        COMPUTE_UYVY2YRGB(uyvy, Y, R, G, B);
+        bmp_printf(
+            fnt | FONT_ALIGN_CENTER,
+            xcb, ycb, 
+            "%3d%s%3d%s%3d%s",
+            R*100/255,"%", G*100/255, "%", B*100/255, "%"
         );
     }
 }
@@ -3001,11 +3054,11 @@ struct menu_entry zebra_menus[] = {
                 .name = "Spotmeter Unit",
                 .priv = &spotmeter_formula, 
                 #ifdef FEATURE_RAW_SPOTMETER
-                .max = 3,
+                .max = 4,
                 #else
-                .max = 2,
+                .max = 3,
                 #endif
-                .choices = (const char *[]) {"Percent", "0..255", "RGB (HTML)", "RAW (EV)"},
+                .choices = (const char *[]) {"Percent", "0..255", "RGB (HTML)", "RAW (EV)", "RGB (Percent)"},
                 .icon_type = IT_DICE,
                 .help = "Measurement unit for brightness level(s).",
                 .help2 =
@@ -3013,6 +3066,7 @@ struct menu_entry zebra_menus[] = {
                     "8 bit RGB level.\n"
                     "HTML like color codes.\n"
                     "Negative value from clipping, in EV (RAW).\n"
+                    "RGB color in Percentage.\n"
             },
             {
                 .name = "Spot Position",
@@ -3061,13 +3115,37 @@ struct menu_entry zebra_menus[] = {
         .submenu_width = 700,
         .children =  (struct menu_entry[]) {
             {
-                .name = "Color space",
-                .priv = &hist_colorspace, 
+                .name = "Histogram type",
+                .priv = &hist_type,
+                .update = raw_histo_update,
+                #ifdef FEATURE_RAW_HISTOGRAM
+                .max = 3,
+                #else
                 .max = 1,
-                .choices = (const char *[]) {"Luma", "RGB"},
+                #endif
+                .choices = (const char *[]) {
+                    "YUV-based, Luma",
+                    "YUV-based, RGB",
+                    "RAW-based (RGB)",
+                    "RAW HistoBar (MAX)",
+                },
                 .icon_type = IT_DICE,
-                .help = "Color space for histogram: Luma channel (YUV) / RGB.",
+                .help  = "Choose between YUV-based (JPG) or RAW-based histogram.",
+                .help2 = "If RAW data is not available, it will fall back to YUV-based.",
             },
+            #ifdef FEATURE_RAW_HISTOGRAM
+            {
+                .name = "RAW EV indicator",
+                .priv = &hist_meter,
+                .max = 2,
+                .choices = CHOICES("OFF", "Dynamic Range", "ETTR hint"),
+                .help = "Choose an EV image indicator to display on the histogram.",
+                .help2 = 
+                    " \n"
+                    "Display the dynamic range at current ISO, from noise stdev.\n"
+                    "Show how many stops you can push the exposure to the right.\n"
+            },
+            #endif
             {
                 .name = "Scaling",
                 .priv = &hist_log, 
@@ -3083,27 +3161,6 @@ struct menu_entry zebra_menus[] = {
                 .help = "Display warning dots when one color channel is clipped.",
                 .help2 = "Numbers represent the percentage of pixels clipped.",
             },
-            #ifdef FEATURE_RAW_HISTOGRAM
-            {
-                .name = "Use RAW histogram",
-                .priv = &raw_histogram_enable,
-                .max = 2,
-                .choices = CHOICES("OFF", "Full Histogram", "Simplified HistoBar"),
-                .update = raw_histo_update,
-                .help = "Use RAW based histogram.",
-            },
-            {
-                .name = "RAW EV indicator",
-                .priv = &hist_meter,
-                .max = 2,
-                .choices = CHOICES("OFF", "Dynamic Range", "ETTR hint"),
-                .help = "Choose an EV image indicator to display on the histogram.",
-                .help2 = 
-                    " \n"
-                    "Display the dynamic range at current ISO, from noise stdev.\n"
-                    "Show how many stops you can push the exposure to the right.\n"
-            },
-            #endif
             MENU_EOL
         },
     },
@@ -3765,14 +3822,14 @@ int zebra_should_run()
 }
 
 #ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
-static int livev_for_playback_running = 0;
-static void draw_livev_for_playback()
+static int overlays_playback_running = 0;
+static void draw_overlays_playback()
 {
-    livev_for_playback_running = 1;
+    overlays_playback_running = 1;
 
     if (!PLAY_OR_QR_MODE)
     {
-        livev_for_playback_running = 0;
+        overlays_playback_running = 0;
         return;
     }
 
@@ -3786,7 +3843,7 @@ static void draw_livev_for_playback()
     while (!DISPLAY_IS_ON) msleep(100);
     if (!PLAY_OR_QR_MODE)
     {
-        livev_for_playback_running = 0;
+        overlays_playback_running = 0;
         return;
     }
     if (QR_MODE) msleep(300);
@@ -3841,7 +3898,7 @@ BMP_LOCK(
     clean_d_cache(); // to avoid display artifacts
 
     info_led_off();
-    livev_for_playback_running = 0;
+    overlays_playback_running = 0;
 }
 #endif
 
@@ -3872,10 +3929,6 @@ void draw_histogram_and_waveform(int allow_play)
         )
     {
         hist_build(); /* also updates waveform and vectorscope */
-        #ifdef FEATURE_RAW_HISTOGRAM
-        if (raw_histogram_enable && can_use_raw_overlays())
-            hist_build_raw();
-        #endif
     }
 #endif
     
@@ -3891,15 +3944,15 @@ void draw_histogram_and_waveform(int allow_play)
     {
         #ifdef CONFIG_4_3_SCREEN
         if (PLAY_OR_QR_MODE)
-            BMP_LOCK( hist_draw_image( os.x0 + 500,  1, -1); )
+            BMP_LOCK( hist_draw_image( os.x0 + 500,  1); )
         else
         #endif
         if (should_draw_bottom_graphs())
-            BMP_LOCK( hist_draw_image( os.x0 + 50,  480 - hist_height - 1, -1); )
+            BMP_LOCK( hist_draw_image( os.x0 + 50,  480 - hist_height - 1); )
         else if (screen_layout == SCREENLAYOUT_3_2)
-            BMP_LOCK( hist_draw_image( os.x_max - HIST_WIDTH - 2,  os.y_max - (lv ? os.off_169 : 0) - (gui_menu_shown() ? 25 : 0) - hist_height - 1, -1); )
+            BMP_LOCK( hist_draw_image( os.x_max - HIST_WIDTH - 2,  os.y_max - (lv ? os.off_169 + 10 : 0) - hist_height - 1); )
         else
-            BMP_LOCK( hist_draw_image( os.x_max - HIST_WIDTH - 5, os.y0 + 100, -1); )
+            BMP_LOCK( hist_draw_image( os.x_max - HIST_WIDTH - 5, os.y0 + 100); )
     }
 #endif
 
@@ -4199,7 +4252,7 @@ static void idle_bmp_on()
 static int old_backlight_level = 0;
 static void idle_display_dim()
 {
-    ASSERT(lv);
+    ASSERT(lv || lv_paused);
     #ifdef CONFIG_AUTO_BRIGHTNESS
     int backlight_mode = lcd_brightness_mode;
     if (backlight_mode == 0) // can't restore brightness properly in auto mode
@@ -4519,16 +4572,19 @@ int is_focus_peaking_enabled()
 #endif
 }
 
-#ifdef FEATURE_ZEBRA_FAST
 static void digic_zebra_cleanup()
 {
-    if (!DISPLAY_IS_ON) return;
-    EngDrvOut(DIGIC_ZEBRA_REGISTER, 0); 
-    clrscr_mirror();
-    alter_bitmap_palette_entry(FAST_ZEBRA_GRID_COLOR, FAST_ZEBRA_GRID_COLOR, 256, 256);
-    zebra_digic_dirty = 0;
-}
+#ifdef FEATURE_ZEBRA_FAST
+    if (zebra_digic_dirty)
+    {
+        if (!DISPLAY_IS_ON) return;
+        EngDrvOut(DIGIC_ZEBRA_REGISTER, 0); 
+        clrscr_mirror();
+        alter_bitmap_palette_entry(FAST_ZEBRA_GRID_COLOR, FAST_ZEBRA_GRID_COLOR, 256, 256);
+        zebra_digic_dirty = 0;
+    }
 #endif
+}
 
 #ifdef FEATURE_SHOW_OVERLAY_FPS
 void update_lv_fps() // to be called every 10 seconds
@@ -4564,10 +4620,8 @@ livev_hipriority_task( void* unused )
             msleep(100);
         }
 
-        #ifdef FEATURE_ZEBRA_FAST
         int zd = zebra_draw && (lv_luma_is_accurate() || PLAY_OR_QR_MODE) && (zebra_rec || NOT_RECORDING); // when to draw zebras (should match the one from draw_zebra_and_focus)
-        if (zebra_digic_dirty && !zd) digic_zebra_cleanup();
-        #endif
+        if (!zd) digic_zebra_cleanup();
         
 #ifdef CONFIG_RAW_LIVEVIEW
         static int raw_flag = 0;
@@ -4579,12 +4633,10 @@ livev_hipriority_task( void* unused )
             while (RECORDING_H264_STARTING) msleep(100);
             if (!zebra_should_run())
             {
-#ifdef FEATURE_ZEBRA_FAST
-                if (zebra_digic_dirty) digic_zebra_cleanup();
-#endif
+                digic_zebra_cleanup();
                 if (lv && !gui_menu_shown()) redraw();
                 #ifdef CONFIG_ELECTRONIC_LEVEL
-				if (lv) disable_electronic_level();
+                if (lv) disable_electronic_level();
                 #endif
                 #ifdef CONFIG_RAW_LIVEVIEW
                 if (raw_flag) { raw_lv_release(); raw_flag = 0; }
@@ -4620,7 +4672,7 @@ livev_hipriority_task( void* unused )
         {
             /* only raw zebras, raw histogram and raw spotmeter are working in LV raw mode */
             if (zebra_draw && raw_zebra_enable == 1) raw_needed = 1;        /* raw zebras: always */
-            if (hist_draw && raw_histogram_enable) raw_needed = 1;          /* raw hisogram (any kind) */
+            if (hist_draw && RAW_HISTOGRAM_ENABLED) raw_needed = 1;          /* raw hisogram (any kind) */
             if (spotmeter_draw && spotmeter_formula == 3) raw_needed = 1;   /* spotmeter, units: raw */
         }
 
@@ -4932,33 +4984,39 @@ int handle_disp_preset_key(struct event * event)
 }
 
 #ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
-static int livev_playback = 0;
+static int overlays_playback_displayed = 0;
 
-static void livev_playback_toggle()
+static void overlays_playback_clear()
 {
-    if (livev_for_playback_running)
+    if (overlays_playback_displayed)
+    {
+        clrscr();
+        digic_zebra_cleanup();
+        redraw();
+        overlays_playback_displayed = 0;
+    }
+}
+
+/* called from GUI handler */
+static void overlays_playback_toggle()
+{
+    if (overlays_playback_running)
         return;
     
-    livev_playback = !livev_playback;
-    if (livev_playback)
+    if (!overlays_playback_displayed)
     {
-        livev_for_playback_running = 1;
-        task_create("lv_playback", 0x1a, 0x8000, draw_livev_for_playback, 0);
+        /* this may take about 1 second, so let's run it outside GuiMainTask */
+        overlays_playback_running = 1;
+        task_create("lv_playback", 0x1a, 0x8000, draw_overlays_playback, 0);
+        overlays_playback_displayed = 1;
     }
     else
     {
-        clrscr();
-        if (zebra_digic_dirty) digic_zebra_cleanup();
-        redraw();
+        overlays_playback_clear();
     }
 }
-static void livev_playback_reset()
-{
-    if (livev_playback) redraw();
-    livev_playback = 0;
-}
 
-int handle_livev_playback(struct event * event)
+int handle_overlays_playback(struct event * event)
 {
     // enable LiveV stuff in Play mode
     if (PLAY_OR_QR_MODE)
@@ -4967,12 +5025,14 @@ int handle_livev_playback(struct event * event)
         {
 #if defined(BTN_ZEBRAS_FOR_PLAYBACK) && defined(BTN_ZEBRAS_FOR_PLAYBACK_NAME)
             case BTN_ZEBRAS_FOR_PLAYBACK:
-                livev_playback_toggle();
+                /* used in PLAY mode (user pressed button to toggle overlays) */
+                overlays_playback_toggle();
                 return 0;
 #endif
             case MLEV_TRIGGER_ZEBRAS_FOR_PLAYBACK:
-                livev_playback_reset(); // Soft reset if triggered by HS
-                livev_playback_toggle();
+                /* used in QuickReview mode - always show the overlays, no toggle */
+                overlays_playback_displayed = 0;
+                overlays_playback_toggle();
                 return 0;
         }
         
@@ -4986,8 +5046,14 @@ int handle_livev_playback(struct event * event)
 
         else
         {
-            livev_playback_reset();
+            /* some button pressed in play mode, while ML overlays are active? clear them */
+            overlays_playback_clear();
         }
+    }
+    else
+    {
+        /* got out of play mode? ML overlays are for sure no longer active */
+        overlays_playback_displayed = 0;
     }
     return 1;
 }

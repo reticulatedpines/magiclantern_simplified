@@ -93,7 +93,8 @@ if "Summary" not in tags:
 # each section will become "Help page 1", "Help page 2" and so on
 
 # render the RST as html -> txt without the metadata tags
-txt = run('cat README.rst | grep -v -E "^:([^:])+:.+$" | rst2html --no-xml-declaration | python ../html2text.py -b 700')
+# sed command at end is because Windows inserts CR characters all over the place. Removing them should be benign on other platforms. 
+txt = run('cat README.rst | grep -v -E "^:([^:])+:.+$" | rst2html --no-xml-declaration | python ../html2text.py -b 700 | sed "s/\r$//"')
 
 desc = ""
 last_str = "Description"
@@ -105,6 +106,7 @@ for p in txt.strip("\n").split("\n")[2:]:
         add_string(last_str, desc)
         desc = ""
         last_str = "Help page %d" % help_page_num
+        print >> sys.stderr, "Help page %d: %s" % (help_page_num, p.strip('# '))
         lines_per_page = 0
         p = p[2:].strip()
     desc += "%s\n" % p
@@ -117,7 +119,8 @@ add_string(last_str, desc)
 
 # extract version info
 # (prints the latest changeset that affected this module)
-last_change_info = run("LC_TIME=EN hg log . -r 'reverse(ancestors(.))' -l 1 --template '{date|hgdate}\n{node|short}\n{author|user}\n{desc|strip|firstline}'")
+last_change_info = run("sh ../last_change_info.sh")
+
 if len(last_change_info):
     last_change_date, last_changeset, author, commit_msg = last_change_info.split("\n")
     split = last_change_date.split(" ")
@@ -142,7 +145,12 @@ if len(last_change_info):
     add_string("Last update", "%s on %s by %s:\n%s" % (last_changeset, last_change_date, author, commit_msg))
 
 build_date = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
-build_user = run("echo `whoami`@`hostname`")
+
+# echo called from python in Windows behaves differently, better to avoid it.
+if sys.platform == 'win32':
+	build_user = run('whoami').replace("\n", "") + "@" + run('hostname').replace("\n", "")
+else:
+	build_user = run("echo `whoami`@`hostname`")
 
 add_string("Build date", build_date)
 add_string("Build user", build_user)

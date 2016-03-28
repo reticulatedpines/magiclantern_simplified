@@ -291,30 +291,30 @@ FILE * movfile;
 int record_uncomp = 0;
 #endif
 
-static void bsod()
+void bsod()
 {
-    msleep(rand() % 20000 + 2000);
-
     do {
         gui_stop_menu();
         SetGUIRequestMode(1);
         msleep(1000);
     } while (CURRENT_DIALOG_MAYBE != 1);
-
+    NotifyBoxHide();
     canon_gui_disable_front_buffer();
     gui_uilock(UILOCK_EVERYTHING);
     bmp_fill(COLOR_BLUE, 0, 0, 720, 480);
     int fnt = SHADOW_FONT(FONT_MONO_20);
     int h = 20;
-    int y = 50;
+    int y = 20;
     bmp_printf(fnt, 0, y+=h, "   A problem has been detected and Magic Lantern has been"   );
     bmp_printf(fnt, 0, y+=h, "   shut down to prevent damage to your camera."              );
     y += h;
-    bmp_printf(fnt, 0, y+=h, "   If this is the first time you've seen this Stop error"    );
+    bmp_printf(fnt, 0, y+=h, "   If this is the first time you've seen this STOP error"    );
     bmp_printf(fnt, 0, y+=h, "   screen, restart your camera. If this screen appears"      );
     bmp_printf(fnt, 0, y+=h, "   again, follow these steps:"                               );
     y += h;
-    bmp_printf(fnt, 0, y+=h, "   Don't click things you don't know what they do."          );
+    bmp_printf(fnt, 0, y+=h, "   - Go to LiveView and enable DIGIC peaking.  "             );
+    bmp_printf(fnt, 0, y+=h, "   - Take a photo of a calendar, focusing on today's date. " );
+    bmp_printf(fnt, 0, y+=h, "   - Try pressing the magic button quickly enough. "         );
     y += h;
     bmp_printf(fnt, 0, y+=h, "   Technical information:");
     bmp_printf(fnt, 0, y+=h, "   *** STOP 0x000000aa (0x1000af22, 0xdeadbeef, 0xffff)"     );
@@ -430,14 +430,14 @@ static void run_test()
     /* check for memory leaks */
     for (int i = 0; i < 1000; i++)
     {
-        console_printf("%d/1000\n", i);
+        printf("%d/1000\n", i);
         
         /* with this large size, the backend will use fio_malloc, which returns uncacheable pointers */
         void* p = malloc(16*1024*1024 + 64);
         
         if (!p)
         {
-            console_printf("malloc err\n");
+            printf("malloc err\n");
             continue;
         }
         
@@ -458,7 +458,7 @@ static void run_test()
    //~ bfnt_test();
 #ifdef FEATURE_SHOW_SIGNATURE
     console_show();
-    console_printf("FW Signature: 0x%08x", compute_signature((int*)SIG_START, SIG_LEN));
+    printf("FW Signature: 0x%08x", compute_signature((int*)SIG_START, SIG_LEN));
     msleep(1000);
     return;
 #endif
@@ -502,15 +502,15 @@ static void run_test()
 #ifdef CONFIG_MODULES
     console_show();
 
-    console_printf("Loading modules...\n");
+    printf("Loading modules...\n");
     msleep(1000);
     module_load_all();
     return;
 
-    console_printf("\n");
+    printf("\n");
 
-    console_printf("Testing TCC executable...\n");
-    console_printf(" [i] this may take some time\n");
+    printf("Testing TCC executable...\n");
+    printf(" [i] this may take some time\n");
     msleep(1000);
 
     for(int try = 0; try < 100; try++)
@@ -524,7 +524,7 @@ static void run_test()
             ret = module_exec(module, "tcc_new", 0);
             if(!(ret & 0x40000000))
             {
-                console_printf("tcc_new() returned: 0x%08X\n", ret);
+                printf("tcc_new() returned: 0x%08X\n", ret);
             }
             else
             {
@@ -534,11 +534,11 @@ static void run_test()
         }
         else
         {
-            console_printf(" [E] load failed\n");
+            printf(" [E] load failed\n");
         }
     }
 
-    console_printf("Done!\n");
+    printf("Done!\n");
 #endif
 }
 
@@ -719,7 +719,7 @@ static void save_crash_log()
     }
     else
     {
-        console_printf("%s\n", get_assert_msg());
+        printf("%s\n", get_assert_msg());
         console_show();
     }
 
@@ -807,44 +807,6 @@ static void screenshot_start(void* priv, int delta)
 {
     screenshot_sec = 10;
 }
-
-/*void screenshots_for_menu()
-{
-    msleep(1000);
-    extern struct semaphore * gui_sem;
-    give_semaphore(gui_sem);
-
-    select_menu_by_name("Audio", "AGC");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Expo", "ISO");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Overlay", "Magic Zoom");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Movie", "FPS override");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Shoot", "Motion Detect");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Focus", "Follow Focus");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Display", "LV saturation");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Prefs", "Powersave settings...");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Debug", "Free Memory");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Help", "About Magic Lantern");
-    msleep(1000); call("dispcheck");
-}
-*/
 
 static int draw_event = 0;
 
@@ -1576,7 +1538,7 @@ debug_property_handler(
 {
     const uint32_t * const addr = buf;
 
-    /*console_printf("Prop %08x: %2x: %08x %08x %08x %08x\n",
+    /*printf("Prop %08x: %2x: %08x %08x %08x %08x\n",
         property,
         len,
         len > 0x00 ? addr[0] : 0,
@@ -2223,11 +2185,6 @@ int handle_tricky_canon_calls(struct event * event)
         case MLEV_REDRAW:
             _redraw_do();   /* todo: move in gui-common.c */
             break;
-        case MLEV_TRIGGER_ZEBRAS_FOR_PLAYBACK:
-            #ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
-            handle_livev_playback(event); /* todo: move back to zebra.c */
-            #endif
-            break;
     }
     
     return 1;
@@ -2251,6 +2208,6 @@ void EngDrvOut(uint32_t reg, uint32_t value)
     #endif
 
     if (ml_shutdown_requested) return;
-    if (!DISPLAY_IS_ON) return; // these are normally used with display on; otherwise, they may lock-up the camera
+    if (!(MEM(0xC0400008) & 0x2)) return; // this routine requires LCLK enabled
     _EngDrvOut(reg, value);
 }

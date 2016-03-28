@@ -25,7 +25,11 @@
 #define MLEV_AV_LONG -17
 #define MLEV_TRIGGER_ZEBRAS_FOR_PLAYBACK -18
 #define MLEV_JOYSTICK_LONG -19
- 
+
+/* half-shutter button codes (they are consecutive after BGMT_PRESS_HALFSHUTTER) */
+#define BGMT_UNPRESS_HALFSHUTTER (BGMT_PRESS_HALFSHUTTER+1)
+#define BGMT_PRESS_FULLSHUTTER   (BGMT_PRESS_HALFSHUTTER+2)
+#define BGMT_UNPRESS_FULLSHUTTER (BGMT_PRESS_HALFSHUTTER+3)
 
 /** \file
  * DryOS GUI structures and functions.
@@ -160,9 +164,6 @@ extern struct gui_struct gui_struct;
 extern struct gui_task * gui_menu_task;
 
 extern void
-gui_stop_menu( void );
-
-extern void
 gui_hide_menu( int redisplay_time );
 
 //~ 5dc has different gui_state values than DryOS.
@@ -260,7 +261,7 @@ int handle_ml_menu_erase(struct event * event);
 int handle_zoom_trick_event(struct event * event);
 int handle_intervalometer(struct event * event);
 int handle_transparent_overlay(struct event * event);
-int handle_livev_playback(struct event * event);
+int handle_overlays_playback(struct event * event);
 int handle_set_wheel_play(struct event * event);
 int handle_arrow_keys(struct event * event);
 int handle_trap_focus(struct event * event);
@@ -296,6 +297,6 @@ int display_is_on();
 int get_dlg_signature();
 
 /* wrapper for GUI timers */
-void delayed_call(int delay_ms, void(*function)(void));
+void delayed_call(int delay_ms, void(*function)(), void* arg);
 
 #endif

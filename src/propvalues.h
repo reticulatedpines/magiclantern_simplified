@@ -5,6 +5,7 @@ extern char __camera_model_short[8];
 extern char camera_model[32];
 extern uint32_t camera_model_id;
 extern char firmware_version[32];
+extern char camera_serial[32];
 
 #define MODEL_EOS_10D    0x80000168
 #define MODEL_EOS_300D   0x80000170
@@ -105,6 +106,7 @@ extern char copyright_info[64];
 extern int date_format;
 extern int auto_power_off_time;
 extern int video_system_pal;
+extern int lv_focus_status;
 #endif
 
 #define EXT_MONITOR_CONNECTED (ext_monitor_hdmi || _ext_monitor_rca)

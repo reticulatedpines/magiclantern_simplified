@@ -101,7 +101,6 @@ static uint32_t mlv_play_osd_item = 0;
 static uint32_t mlv_play_paused = 0;
 static uint32_t mlv_play_info = 1;
 static uint32_t mlv_play_timer_stop = 1;
-static uint32_t mlv_play_fps_ticks = 0;
 static uint32_t mlv_play_frames_skipped = 0;
 
 /* this structure is used to build the mlv_xref_t table */
@@ -1076,18 +1075,18 @@ static void mlv_play_build_index(char *filename, FILE **chunk_files, uint32_t ch
                 {
                     bmp_printf(FONT_MED, 30, 190, "File #%d ends prematurely, %d bytes read", chunk, read);
                     beep();
-                    msleep(1000);
-                    break;
+                    msleep(2000);
+                    return;
                 }
             }
             
             /* unexpected block header size? */
-            if(buf.blockSize < sizeof(mlv_hdr_t) || buf.blockSize > 10 * 1024 * 1024)
+            if(buf.blockSize < sizeof(mlv_hdr_t) || buf.blockSize > 50 * 1024 * 1024)
             {
                 bmp_printf(FONT_MED, 30, 190, "Invalid header size: %d bytes at 0x%08X", buf.blockSize, position);
                 beep();
-                msleep(1000);
-                break;
+                msleep(2000);
+                return;
             }
 
             /* file header */
@@ -1103,8 +1102,8 @@ static void mlv_play_build_index(char *filename, FILE **chunk_files, uint32_t ch
                 {
                     bmp_printf(FONT_MED, 30, 190, "File ends prematurely during MLVI");
                     beep();
-                    msleep(1000);
-                    break;
+                    msleep(2000);
+                    return;
                 }
 
                 /* is this the first file? */
@@ -1119,8 +1118,8 @@ static void mlv_play_build_index(char *filename, FILE **chunk_files, uint32_t ch
                     {
                         bmp_printf(FONT_MED, 30, 190, "Error: GUID within the file chunks mismatch!");
                         beep();
-                        msleep(1000);
-                        break;
+                        msleep(2000);
+                        return;
                     }
                 }
                 
@@ -1490,18 +1489,8 @@ static void mlv_play_fps_tick(int expiry_value, void *priv)
     {
         msg_queue_post(mlv_play_queue_fps, 0);
     }
-    
-    mlv_play_fps_ticks++;
 
-    /* use high-precision timer for FPS > 2  */
-    if (offset < 500000)
-    {
-        SetHPTimerNextTick(expiry_value, offset, &mlv_play_fps_tick, &mlv_play_fps_tick, NULL);
-    }
-    else
-    {
-        SetTimerAfter(offset / 1000, &mlv_play_fps_tick, &mlv_play_fps_tick, NULL);
-    }
+    SetHPTimerNextTick(expiry_value, offset, &mlv_play_fps_tick, &mlv_play_fps_tick, NULL);
 }
 
 static void mlv_play_stop_fps_timer()
@@ -1513,11 +1502,12 @@ static void mlv_play_stop_fps_timer()
     }
 }
 
-static int mlv_play_start_fps_timer(uint32_t fps_nom, uint32_t fps_denom)
+static void mlv_play_start_fps_timer(uint32_t fps_nom, uint32_t fps_denom)
 {
-    if (fps_nom == 0)
+    if (fps_nom == 0 || fps_nom < 2 * fps_denom)
     {
-        /* bad metadata? play at 24 fps */
+        /* fps too low or bad metadata? play at 24 fps */
+        fps_denom = MAX(fps_denom, 1);
         fps_nom = 24 * fps_denom;
     }
     
@@ -1539,20 +1529,16 @@ static int mlv_play_start_fps_timer(uint32_t fps_nom, uint32_t fps_denom)
     
     /* reset counters */
     mlv_play_frame_div_pos = 0;
-    mlv_play_fps_ticks = 0;
     mlv_play_timer_stop = 0;
     mlv_play_frames_skipped = 0;
     
     /* and finally start timer in 1 us */
     SetHPTimerAfterNow(1, &mlv_play_fps_tick, &mlv_play_fps_tick, NULL);
-    
-    return 1;
 }
 
 static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_count)
 {
     uint32_t fps_timer_started = 0;
-    uint32_t fps_timer_start_attempted = 0;
     uint32_t frame_size = 0;
     uint32_t frame_count = 0;
     mlv_xref_hdr_t *block_xref = NULL;
@@ -1579,6 +1565,13 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
     
     /* load or create index file */
     block_xref = mlv_play_get_index(filename, chunk_files, chunk_count);
+    if (!block_xref)
+    {
+        bmp_printf(FONT_LARGE, 30, 100, "Index error:", filename);
+        bmp_printf(FONT_MED, 40, 100 + font_large.height + 1, filename);
+        return;
+    }
+
     mlv_xref_t *xrefs = (mlv_xref_t *)&(((uint8_t*)block_xref)[sizeof(mlv_xref_hdr_t)]);
     
     /* index building would print on screen */
@@ -1612,20 +1605,23 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
         }
 
         /* if in exact playback and this is a skippable VIDF frame */
-        if(mlv_play_exact_fps && (xrefs[block_xref_pos].frameType == MLV_FRAME_VIDF))
+        if(mlv_play_exact_fps)
         {
-            uint32_t frames_to_skip = 0;
-            msg_queue_count(mlv_play_queue_fps, &frames_to_skip);
-
-            /* skip this frame if we are behind */
-            if(frames_to_skip > 0)
+            if (xrefs[block_xref_pos].frameType == MLV_FRAME_VIDF)
             {
-                uint32_t temp = 0;
-                msg_queue_receive(mlv_play_queue_fps, &temp, 50);
+                uint32_t frames_to_skip = 0;
+                msg_queue_count(mlv_play_queue_fps, &frames_to_skip);
 
-                mlv_play_frames_skipped++;
-                block_xref_pos++;
-                continue;
+                /* skip this frame if we are behind */
+                if(frames_to_skip > 0)
+                {
+                    uint32_t temp = 0;
+                    msg_queue_receive(mlv_play_queue_fps, &temp, 50);
+
+                    mlv_play_frames_skipped++;
+                    block_xref_pos++;
+                    continue;
+                }
             }
         }
         else
@@ -1841,11 +1837,10 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             
             if (mlv_play_exact_fps)
             {
-                if (!fps_timer_start_attempted)
+                if (!fps_timer_started)
                 {
-                    /* timer startup may succeed or not; either way, do not retry, because it will keep beeping */
-                    fps_timer_started = mlv_play_start_fps_timer(main_header.sourceFpsNom, main_header.sourceFpsDenom);
-                    fps_timer_start_attempted = 1;
+                    mlv_play_start_fps_timer(main_header.sourceFpsNom, main_header.sourceFpsDenom);
+                    fps_timer_started = 1;
                 }
                 
                 if (fps_timer_started)
@@ -1859,14 +1854,6 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
                             break;
                         }
                     }
-                }
-            }
-            else
-            {
-                if (!fps_timer_started)
-                {
-                    /* let's give it another chance */
-                    fps_timer_start_attempted = 0;
                 }
             }
             
@@ -1886,7 +1873,6 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
 static void mlv_play_raw(char *filename, FILE **chunk_files, uint32_t chunk_count)
 {
     uint32_t fps_timer_started = 0;
-    uint32_t fps_timer_start_attempted = 0;
     uint32_t chunk_num = 0;
     
     /* read footer information and update global variables, will seek automatically */
@@ -1998,7 +1984,7 @@ static void mlv_play_raw(char *filename, FILE **chunk_files, uint32_t chunk_coun
             }
             
             buffer->frameSize = frame_size;
-            buffer->frameBuffer = malloc(buffer->frameSize);
+            buffer->frameBuffer = fio_malloc(buffer->frameSize);
         }
 
         if(!buffer->frameBuffer)
@@ -2059,11 +2045,10 @@ static void mlv_play_raw(char *filename, FILE **chunk_files, uint32_t chunk_coun
         
         if (mlv_play_exact_fps)
         {
-            if (!fps_timer_start_attempted)
+            if (!fps_timer_started)
             {
-                /* timer startup may succeed or not; either way, do not retry, because it will keep beeping */
-                fps_timer_started = mlv_play_start_fps_timer(fps1000, 1000);
-                fps_timer_start_attempted = 1;
+                mlv_play_start_fps_timer(fps1000, 1000);
+                fps_timer_started = 1;
             }
 
             if (fps_timer_started)
@@ -2077,14 +2062,6 @@ static void mlv_play_raw(char *filename, FILE **chunk_files, uint32_t chunk_coun
                         break;
                     }
                 }
-            }
-        }
-        else
-        {
-            if (!fps_timer_started)
-            {
-                /* let's give it another chance */
-                fps_timer_start_attempted = 0;
             }
         }
 
