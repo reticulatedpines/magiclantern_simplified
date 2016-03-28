@@ -17,7 +17,8 @@ typedef void (*mem_bench_fun)(
 
 static void mem_benchmark_run(char* msg, int* y, int bufsize, mem_bench_fun bench_fun, int arg0, int arg1, int arg2, int arg3)
 {
-    bmp_printf(FONT_LARGE, 0, 0, "%s...", msg);
+    bmp_fill(COLOR_BLACK, 0, 0, 720, font_large.height);
+    bmp_printf(FONT_LARGE, 0, 0, "%s", msg);
 
     int speeds[2];
 
