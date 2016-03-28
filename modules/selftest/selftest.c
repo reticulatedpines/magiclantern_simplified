@@ -1363,6 +1363,35 @@ static struct menu_entry selftest_menu[] =
     #endif
 };
 
+/* fixme: only iterates the card selftestmarks submenu */
+static struct menu_entry * selftest_menu_entry(const char* entry_name)
+{
+    /* menu entries are not yet linked, so iterate as in array, not as in linked list */
+    for(struct menu_entry * entry = selftest_menu[0].children[0].children ; !MENU_IS_EOL(entry) ; entry++ )
+    {
+        if (streq(entry->name, entry_name))
+        {
+            return entry;
+        }
+    }
+    return 0;
+}
+
+/* fixme: move to core */
+static void selftest_menu_show(const char* entry_name)
+{
+    struct menu_entry * entry = selftest_menu_entry(entry_name);
+    if (entry)
+    {
+        entry->shidden = 0;
+    }
+    else
+    {
+        console_show();
+        printf("Could not find '%s'\n", entry_name);
+    }
+}
+
 static unsigned int selftest_init()
 {
     BGMT_PLAY        = module_translate_key(MODULE_KEY_PLAY,        MODULE_KEY_CANON);
@@ -1376,6 +1405,12 @@ static unsigned int selftest_init()
     BGMT_WHEEL_DOWN  = module_translate_key(MODULE_KEY_WHEEL_DOWN,  MODULE_KEY_CANON);
     
     menu_add("Debug", selftest_menu, COUNT(selftest_menu));
+    
+    if (is_camera("7D", "*"))
+    {
+        selftest_menu_show("RPC reliability test (infinite)");
+    }
+    
     return 0;
 }
 
