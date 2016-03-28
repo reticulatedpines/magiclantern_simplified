@@ -39,7 +39,8 @@ static struct menu_entry bench_menu[] =
                         .name = "Card R/W benchmark (5 min)",
                         .select = run_in_separate_task,
                         .priv = card_benchmark_task,
-                        .help = "Check card read/write speed. Uses a 1GB temporary file."
+                        .help = "Check card read/write speed. Uses a 1GB temporary file.",
+                        .help2 = "Usually you want to run it either in movie mode or in PLAY mode."
                     },
                     {
                         .name = "CF+SD write benchmark (1 min)",
@@ -104,7 +105,7 @@ static struct menu_entry bench_menu[] =
                         .select = run_in_separate_task,
                         .priv = peaking_benchmark,
                         .help = "Check how fast peaking runs in PLAY mode (1000 iterations).",
-                        .help2 = "You must enable focus peaking manually before running this."
+                        .help2 = "You must enable focus peaking manually, and have a valid image on the card."
                     },
                     {
                         .name = "Menu benchmark (10s)",
