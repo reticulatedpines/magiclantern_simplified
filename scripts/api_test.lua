@@ -481,7 +481,7 @@ function test_lens_focus()
                 
                 msleep(500)
                 
-                printf("Focusing backward with step size %d...", step)
+                printf("Focusing backward with step size %d, wait=%s...", step, wait)
                 local steps_back = 0
                 while lens.focus(-1,step,true) do
                     console.write(".")
