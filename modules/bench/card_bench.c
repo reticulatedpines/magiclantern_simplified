@@ -78,7 +78,7 @@ static char* print_benchmark_header()
     return mode;
 }
 
-static void card_benchmark_task()
+static void card_benchmark_run(int full_test)
 {
     msleep(1000);
     if (!display_is_on()) { SetGUIRequestMode(DLG_PLAY); msleep(1000); }
@@ -96,17 +96,30 @@ static void card_benchmark_task()
 
     card_benchmark_wr(16*1024*1024, 1, 8);  /* warm-up test */
     card_benchmark_wr(16*1024*1024, 2, 8);
-    card_benchmark_wr(16000000,     3, 8);
-    card_benchmark_wr(4*1024*1024,  4, 8);
-    card_benchmark_wr(4000000,      5, 8);
-    card_benchmark_wr(2*1024*1024,  6, 8);
-    card_benchmark_wr(2000000,      7, 8);
-    card_benchmark_wr(128*1024,     8, 8);
+    if (full_test)
+    {
+        card_benchmark_wr(16000000,     3, 8);
+        card_benchmark_wr(4*1024*1024,  4, 8);
+        card_benchmark_wr(4000000,      5, 8);
+        card_benchmark_wr(2*1024*1024,  6, 8);
+        card_benchmark_wr(2000000,      7, 8);
+        card_benchmark_wr(128*1024,     8, 8);
+    }
     bmp_fill(COLOR_BLACK, 0, 0, 720, font_large.height);
     bmp_printf(FONT_LARGE, 0, 0, "Benchmark complete.");
     take_screenshot("bench%d.ppm", SCREENSHOT_BMP);
     msleep(3000);
     canon_gui_enable_front_buffer(0);
+}
+
+static void card_benchmark_task_quick()
+{
+    card_benchmark_run(0);
+}
+
+static void card_benchmark_task_full()
+{
+    card_benchmark_run(1);
 }
 
 static struct msg_queue * twocard_mq = 0;

@@ -36,11 +36,11 @@ static struct menu_entry bench_menu[] =
                 .help = "CF or SD card benchmarks",
                 .children =  (struct menu_entry[]) {
                     {
-                        .name = "Card R/W benchmark (5 min)",
+                        .name = "Quick R/W benchmark (1 min)",
                         .select = run_in_separate_task,
-                        .priv = card_benchmark_task,
-                        .help = "Check card read/write speed. Uses a 1GB temporary file.",
-                        .help2 = "Usually you want to run it either in movie mode or in PLAY mode."
+                        .priv = card_benchmark_task_quick,
+                        .help = "Check card read/write speed with a 16MB buffer. Uses a 1GB temp file.",
+                        .help2 = "For raw video, you want to run it either in movie mode or in PLAY mode."
                     },
                     {
                         .name = "CF+SD write benchmark (1 min)",
@@ -50,7 +50,14 @@ static struct menu_entry bench_menu[] =
                         .shidden = 1,   /* only appears if you have two cards inserted */
                     },
                     {
-                        .name = "Card buffer benchmark (inf)",
+                        .name = "Buffer R/W benchmark (5 min)",
+                        .select = run_in_separate_task,
+                        .priv = card_benchmark_task_full,
+                        .help = "Checks various buffer sizes. You don't need it for raw video benchmarks,",
+                        .help2 = "but if you want to optimize the video buffering algorithms, try it."
+                    },
+                    {
+                        .name = "Buffer write benchmark (inf)",
                         .select = run_in_separate_task,
                         .priv = card_bufsize_benchmark_task,
                         .help = "Experiment for finding optimal write buffer sizes.",
