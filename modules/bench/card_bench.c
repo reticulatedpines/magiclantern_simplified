@@ -90,9 +90,11 @@ static void card_benchmark_run(int full_test)
 
     print_benchmark_header();
 
-    #ifdef CARD_A_MAKER
-    bmp_printf(FONT_MONO_20, 0, 80, "CF %s %s", CARD_A_MAKER, CARD_A_MODEL);
-    #endif
+    struct card_info * card = get_shooting_card();
+    if (card->maker && card->model)
+    {
+        bmp_printf(FONT_MONO_20, 0, 80, "%s %s %s", card->type, card->maker, card->model);
+    }
 
     card_benchmark_wr(16*1024*1024, 1, 8);  /* warm-up test */
     card_benchmark_wr(16*1024*1024, 2, 8);
@@ -161,9 +163,11 @@ static void twocard_benchmark_task()
     clrscr();
     print_benchmark_header();
 
-    #ifdef CARD_A_MAKER
-    bmp_printf(FONT_MONO_20, 0, 80, "CF %s %s", CARD_A_MAKER, CARD_A_MODEL);
-    #endif
+    struct card_info * card = get_shooting_card();
+    if (card->maker && card->model)
+    {
+        bmp_printf(FONT_MONO_20, 0, 80, "%s %s %s", card->type, card->maker, card->model);
+    }
 
     uint32_t bufsize = 32*1024*1024;
 
@@ -204,9 +208,11 @@ static void card_bufsize_benchmark_task()
     char* mode = print_benchmark_header();
     my_fprintf(log, "%s\n", mode);
 
-    #ifdef CARD_A_MAKER
-    my_fprintf(log, "CF %s %s\n", CARD_A_MAKER, CARD_A_MODEL);
-    #endif
+    struct card_info * card = get_shooting_card();
+    if (card->maker && card->model)
+    {
+        my_fprintf(log, "%s %s %s", card->type, card->maker, card->model);
+    }
 
     while(1)
     {
