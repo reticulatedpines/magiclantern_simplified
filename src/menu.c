@@ -4032,7 +4032,7 @@ static void menu_ensure_canon_dialog()
         if (redraw_flood_stop)
         {
             // Canon dialog timed out?
-#if defined(CONFIG_EOSM)
+#if defined(CONFIG_MENU_TIMEOUT_FIX)
             // force dialog change when canon dialog times out (EOSM, 6D etc)
             // don't try more often than once per second
             static int aux = 0;
