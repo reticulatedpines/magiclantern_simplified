@@ -4812,7 +4812,7 @@ static void piggyback_canon_menu()
 static void close_canon_menu()
 {
 #ifdef GUIMODE_ML_MENU
-    if (GUIMODE_ML_MENU == 0) return;
+    if (CURRENT_DIALOG_MAYBE == 0) return;
     if (sensor_cleaning) return;
     if (gui_state == GUISTATE_MENUDISP) return;
     if (lv) bmp_off(); // mask out the underlying Canon menu :)
