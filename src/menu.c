@@ -4794,16 +4794,14 @@ static void start_redraw_flood()
 static void piggyback_canon_menu()
 {
 #ifdef GUIMODE_ML_MENU
-    #if !defined(CONFIG_EOSM) // EOS M won't open otherwise
-    if (RECORDING) return;
-    #endif
+    int new_gui_mode = GUIMODE_ML_MENU;
+    if (!new_gui_mode) return;
     if (sensor_cleaning) return;
     if (gui_state == GUISTATE_MENUDISP) return;
     NotifyBoxHide();
-    int new_gui_mode = GUIMODE_ML_MENU;
-    if (new_gui_mode) start_redraw_flood();
     if (new_gui_mode != (int)CURRENT_DIALOG_MAYBE) 
     { 
+        start_redraw_flood();
         if (lv) bmp_off(); // mask out the underlying Canon menu :)
         SetGUIRequestMode(new_gui_mode); msleep(200); 
         // bmp will be enabled after first redraw
@@ -4814,7 +4812,7 @@ static void piggyback_canon_menu()
 static void close_canon_menu()
 {
 #ifdef GUIMODE_ML_MENU
-    if (RECORDING) return;
+    if (GUIMODE_ML_MENU == 0) return;
     if (sensor_cleaning) return;
     if (gui_state == GUISTATE_MENUDISP) return;
     if (lv) bmp_off(); // mask out the underlying Canon menu :)
@@ -4881,10 +4879,6 @@ static void menu_close()
     menu_lv_transparent_mode = 0;
     
     close_canon_menu();
-	#ifdef CONFIG_EOSM
-	if (RECORDING_H264)
-	SetGUIRequestMode(0);
-	#endif
     canon_gui_enable_front_buffer(0);
     redraw();
     if (lv) bmp_on();
