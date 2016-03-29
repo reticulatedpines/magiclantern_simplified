@@ -96,8 +96,9 @@ static void card_benchmark_run(int full_test)
         bmp_printf(FONT_MONO_20, 0, 80, "%s %s %s", card->type, card->maker, card->model);
     }
 
-    card_benchmark_wr(16*1024*1024, 1, 8);  /* warm-up test */
-    card_benchmark_wr(16*1024*1024, 2, 8);
+    card_benchmark_wr(16*1024*1024, 1, full_test ? 8 : 2);  /* warm-up test */
+    card_benchmark_wr(16*1024*1024, 2, full_test ? 8 : 2);
+    
     if (full_test)
     {
         card_benchmark_wr(16000000,     3, 8);
