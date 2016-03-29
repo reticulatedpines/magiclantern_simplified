@@ -126,11 +126,31 @@ PROP_HANDLER(PROP_SHOOTING_MODE)
 
 void set_shooting_mode(int m)
 {
-    if (shooting_mode == m) return;
+    if (shooting_mode == m)
+    {
+        /* nothing to do */
+        return;
+    }
+    
+#ifdef CONFIG_SEPARATE_BULB_MODE
+    #define ALLOWED_MODE(x)  (x == SHOOTMODE_M || x == SHOOTMODE_TV || \
+         x == SHOOTMODE_AV || x == SHOOTMODE_P || x == SHOOTMODE_BULB )
+#else
+    #define ALLOWED_MODE(x)  (x == SHOOTMODE_M || x == SHOOTMODE_TV || \
+         x == SHOOTMODE_AV || x == SHOOTMODE_P )
+#endif
+    
+    if (!ALLOWED_MODE(m) || !ALLOWED_MODE(shooting_mode))
+    {
+        /* only allow switching between M, Tv, Av, P and BULB */
+        return;
+    }
+    
+    #undef ALLOWED_MODE
     
     ml_changing_shooting_mode = 1;
-    prop_request_change(PROP_SHOOTING_MODE, &m, 4);
-    msleep(500);
+    prop_request_change_wait(PROP_SHOOTING_MODE, &m, 4, 1000);
+    msleep(500);    /* just in case, since mode switching is quite complex */
     ml_changing_shooting_mode = 0;
 }
 
