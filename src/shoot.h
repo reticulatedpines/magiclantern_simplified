@@ -28,8 +28,9 @@ void movie_end();
 void schedule_movie_start();
 void schedule_movie_end();
 
-/* ask user to switch to movie mode and wait until s/he does */
+/* ask user to switch to movie/photo mode and wait until s/he does */
 void ensure_movie_mode();
+void ensure_photo_mode();
 
 /* to be refactored as callback */
 void mvr_rec_start_shoot();

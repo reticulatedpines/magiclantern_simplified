@@ -1435,6 +1435,16 @@ void ensure_movie_mode()
 #endif
 }
 
+void ensure_photo_mode()
+{
+    while (is_movie_mode())
+    {
+        NotifyBox(2000, "Please switch to photo mode.");
+        msleep(500);
+    }
+    msleep(500); 
+}
+
 #ifdef FEATURE_EXPO_ISO
 
 static MENU_UPDATE_FUNC(iso_icon_update)
