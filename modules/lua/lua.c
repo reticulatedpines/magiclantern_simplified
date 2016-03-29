@@ -486,9 +486,12 @@ static lua_State * load_lua_state()
     lua_setmetatable(L, -2);
     lua_pop(L, 1);
     
-    if(luaL_loadstring(L, strict_lua) || docall(L, 0, LUA_MULTRET))
+    if (strict_lua)
     {
-        err_printf("%s\n", lua_tostring(L, -1));
+        if (luaL_loadstring(L, strict_lua) || docall(L, 0, LUA_MULTRET))
+        {
+            err_printf("%s\n", lua_tostring(L, -1));
+        }
     }
     
     return L;
@@ -525,6 +528,11 @@ static void lua_load_task(int unused)
     int bufsize;
     strict_lua = (char*) read_entire_file(SCRIPTS_DIR "/lib/strict.lua", &bufsize);
     
+    if (!strict_lua)
+    {
+        printf("Warning: strict.lua not found.\n");
+    }
+    
     dirent = FIO_FindFirstEx(SCRIPTS_DIR, &file);
     if(!IS_ERROR(dirent))
     {
@@ -538,7 +546,11 @@ static void lua_load_task(int unused)
         while(FIO_FindNextEx(dirent, &file) == 0);
     }
     
-    fio_free(strict_lua); strict_lua = 0;
+    if (strict_lua)
+    {
+        fio_free(strict_lua);
+        strict_lua = 0;
+    }
     
     lua_loaded = 1;
 }
