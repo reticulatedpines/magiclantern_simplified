@@ -182,8 +182,13 @@ static int luaCB_camera_index(lua_State * L)
     // @tfield int kelvin
     else if(!strcmp(key, "kelvin")) lua_pushinteger(L, lens_info.kelvin);
     /// Get the current camera mode, possible values defined in @{constants.MODE}
+    /// Note: for cameras without a dedicated video mode, it will return MODE.MOVIE
+    /// whenever your camera is configured to record videos.
     // @tfield int mode
-    else if(!strcmp(key, "mode")) lua_pushinteger(L, shooting_mode);
+    else if(!strcmp(key, "mode"))
+    {
+        lua_pushinteger(L, is_movie_mode() ? SHOOTMODE_MOVIE : shooting_mode);
+    }
     /// Get the current auto focus mode
     // @tfield int af_mode readonly
     else if(!strcmp(key, "af_mode")) lua_pushinteger(L, af_mode);
