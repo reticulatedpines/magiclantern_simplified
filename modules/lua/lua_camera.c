@@ -189,9 +189,6 @@ static int luaCB_camera_index(lua_State * L)
     {
         lua_pushinteger(L, is_movie_mode() ? SHOOTMODE_MOVIE : shooting_mode);
     }
-    /// Get the current auto focus mode
-    // @tfield int af_mode readonly
-    else if(!strcmp(key, "af_mode")) lua_pushinteger(L, af_mode);
     /// Get the current metering mode
     // @tfield int metering_mode readonly
     else if(!strcmp(key, "metering_mode")) lua_pushinteger(L, metering_mode);
@@ -255,7 +252,7 @@ static int luaCB_camera_newindex(lua_State * L)
         LUA_PARAM_INT(value, 3);
         lens_set_kelvin(value);
     }
-    else if(!strcmp(key, "model") || !strcmp(key, "firmware") || !strcmp(key, "mode") || !strcmp(key, "af_mode") || !strcmp(key, "metering_mode") || !strcmp(key, "drive_mode") || !strcmp(key, "temperature") || !strcmp(key, "state"))
+    else if(!strcmp(key, "model") || !strcmp(key, "firmware") || !strcmp(key, "mode") || !strcmp(key, "metering_mode") || !strcmp(key, "drive_mode") || !strcmp(key, "temperature") || !strcmp(key, "state"))
     {
         return luaL_error(L, "'%s' is readonly!", key);
     }
@@ -672,7 +669,6 @@ static const char * lua_camera_fields[] =
     "flash_ec",
     "kelvin",
     "mode",
-    "af_mode",
     "metering_mode",
     "drive_mode",
     "model",

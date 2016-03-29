@@ -38,6 +38,9 @@ static int luaCB_lens_index(lua_State * L)
     /// Get whether or not auto focus is enabled
     // @tfield bool af readonly
     else if(!strcmp(key, "af")) lua_pushboolean(L, !is_manual_focus());
+    /// Get the current auto focus mode (may be model-specific)
+    // @tfield int af_mode readonly
+    else if(!strcmp(key, "af_mode")) lua_pushinteger(L, af_mode);
     else lua_rawget(L, 1);
     return 1;
 }
@@ -83,6 +86,7 @@ static const char * lua_lens_fields[] =
     "dof_near",
     "dof_far",
     "af",
+    "af_mode",
     NULL
 };
 
