@@ -4024,38 +4024,39 @@ static void menu_make_sure_selection_is_valid()
 
 CONFIG_INT("menu.upside.down", menu_upside_down, 0);
 
-static void 
+static void menu_ensure_canon_dialog()
+{
+#ifndef CONFIG_VXWORKS
+    if (CURRENT_DIALOG_MAYBE != GUIMODE_ML_MENU && CURRENT_DIALOG_MAYBE != DLG_PLAY)
+    {
+        if (redraw_flood_stop)
+        {
+            // Canon dialog timed out?
+#if defined(CONFIG_MENU_TIMEOUT_FIX)
+            // force dialog change when canon dialog times out (EOSM, 6D etc)
+            // don't try more often than once per second
+            static int aux = 0;
+            if (should_run_polling_action(1000, &aux))
+            {
+                SetGUIRequestMode(GUIMODE_ML_MENU);
+            }
+#else
+            gui_stop_menu(); // better just close ML menu? you don't open it for staring at it anyway...
+            return;
+#endif
+        }
+        else
+        {
+            // Canon dialog didn't come up yet; try again later
+            return;
+        }
+    }
+#endif
+}
+
+static void
 menu_redraw_do()
 {
-        #ifndef CONFIG_VXWORKS
-        if (CURRENT_DIALOG_MAYBE != GUIMODE_ML_MENU && CURRENT_DIALOG_MAYBE != DLG_PLAY)
-        {
-            if (redraw_flood_stop)
-            {
-                // Canon dialog timed out?
-                #if 1
-                gui_stop_menu(); // better just close ML menu? you don't open it for staring at it anyway...
-                return;
-                #else
-                // force dialog change when canon dialog times out (EOSM, 6D etc)
-                // don't try more often than once per second
-                static int aux = 0;
-                if (should_run_polling_action(1000, &aux))
-                {
-                    bmp_off();
-                    start_redraw_flood();
-                    SetGUIRequestMode(GUIMODE_ML_MENU);
-                }
-                #endif
-            }
-            else
-            {
-                // Canon dialog didn't come up yet; try again later
-                return;
-            }
-        }
-        #endif
-
         menu_damage = 0;
         //~ g_submenu_width = 720;
         
@@ -4205,6 +4206,7 @@ void menu_benchmark()
     int t0 = get_ms_clock_value();
     for (int i = 0; i < 500; i++)
     {
+        menu_ensure_canon_dialog();
         menu_redraw_do();
         bmp_printf(FONT_MED, 0, 0, "%d%% ", i/5);
     }
@@ -4229,6 +4231,8 @@ menu_redraw_task()
         {
             redraw_in_progress = 1;
             
+            //make sure to check the canon dialog even if drawing is blocked (for scripts and such that piggyback the ML menu)
+            menu_ensure_canon_dialog();
             if (!menu_redraw_blocked)
             {
                 menu_redraw_do();
@@ -4790,16 +4794,14 @@ static void start_redraw_flood()
 static void piggyback_canon_menu()
 {
 #ifdef GUIMODE_ML_MENU
-    #if !defined(CONFIG_EOSM) // EOS M won't open otherwise
-    if (RECORDING) return;
-    #endif
+    int new_gui_mode = GUIMODE_ML_MENU;
+    if (!new_gui_mode) return;
     if (sensor_cleaning) return;
     if (gui_state == GUISTATE_MENUDISP) return;
     NotifyBoxHide();
-    int new_gui_mode = GUIMODE_ML_MENU;
-    if (new_gui_mode) start_redraw_flood();
     if (new_gui_mode != (int)CURRENT_DIALOG_MAYBE) 
     { 
+        start_redraw_flood();
         if (lv) bmp_off(); // mask out the underlying Canon menu :)
         SetGUIRequestMode(new_gui_mode); msleep(200); 
         // bmp will be enabled after first redraw
@@ -4810,7 +4812,7 @@ static void piggyback_canon_menu()
 static void close_canon_menu()
 {
 #ifdef GUIMODE_ML_MENU
-    if (RECORDING) return;
+    if (CURRENT_DIALOG_MAYBE == 0) return;
     if (sensor_cleaning) return;
     if (gui_state == GUISTATE_MENUDISP) return;
     if (lv) bmp_off(); // mask out the underlying Canon menu :)
@@ -4877,10 +4879,6 @@ static void menu_close()
     menu_lv_transparent_mode = 0;
     
     close_canon_menu();
-	#ifdef CONFIG_EOSM
-	if (RECORDING_H264)
-	SetGUIRequestMode(0);
-	#endif
     canon_gui_enable_front_buffer(0);
     redraw();
     if (lv) bmp_on();
