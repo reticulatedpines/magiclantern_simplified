@@ -970,6 +970,8 @@ static void stress_test_task(void* unused)
 
     msleep(3000); // 60D: display on/off is slow and will continue a while after this
 
+    ensure_photo_mode();
+
     stress_test_picture(2, 2000);
 
     NotifyBox(10000, "LiveView switch...");
