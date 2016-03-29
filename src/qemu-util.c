@@ -289,7 +289,12 @@ static void qemu_key_poll()
             msleep(50);
         }
         
-        if (!gui_menu_shown() && !lv)
+        static int show_help = 1;
+        if (gui_menu_shown())
+        {
+            show_help = 0;
+        }
+        if (show_help)
         {
             qemu_print_help();
         }
