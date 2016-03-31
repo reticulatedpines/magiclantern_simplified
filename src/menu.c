@@ -184,7 +184,6 @@ static int g_submenu_width = 0;
 //~ #define g_submenu_width 720
 static int redraw_flood_stop = 0;
 
-static int redraw_in_progress = 0;
 #define MENU_REDRAW 1
 
 static int hist_countdown = 3; // histogram is slow, so draw it less often
@@ -4024,36 +4023,6 @@ static void menu_make_sure_selection_is_valid()
 
 CONFIG_INT("menu.upside.down", menu_upside_down, 0);
 
-static void menu_ensure_canon_dialog()
-{
-#ifndef CONFIG_VXWORKS
-    if (CURRENT_DIALOG_MAYBE != GUIMODE_ML_MENU && CURRENT_DIALOG_MAYBE != DLG_PLAY)
-    {
-        if (redraw_flood_stop)
-        {
-            // Canon dialog timed out?
-#if defined(CONFIG_MENU_TIMEOUT_FIX)
-            // force dialog change when canon dialog times out (EOSM, 6D etc)
-            // don't try more often than once per second
-            static int aux = 0;
-            if (should_run_polling_action(1000, &aux))
-            {
-                SetGUIRequestMode(GUIMODE_ML_MENU);
-            }
-#else
-            gui_stop_menu(); // better just close ML menu? you don't open it for staring at it anyway...
-            return;
-#endif
-        }
-        else
-        {
-            // Canon dialog didn't come up yet; try again later
-            return;
-        }
-    }
-#endif
-}
-
 static void
 menu_redraw_do()
 {
@@ -4206,13 +4175,37 @@ void menu_benchmark()
     int t0 = get_ms_clock_value();
     for (int i = 0; i < 500; i++)
     {
-        menu_ensure_canon_dialog();
         menu_redraw_do();
         bmp_printf(FONT_MED, 0, 0, "%d%% ", i/5);
     }
     int t1 = get_ms_clock_value();
     clrscr();
     NotifyBox(20000, "Elapsed time: %d ms", t1 - t0);
+}
+
+static int menu_ensure_canon_dialog()
+{
+#ifndef CONFIG_VXWORKS
+    if (CURRENT_DIALOG_MAYBE != GUIMODE_ML_MENU && CURRENT_DIALOG_MAYBE != DLG_PLAY)
+    {
+        if (redraw_flood_stop)
+        {
+            // Canon dialog timed out?
+#if defined(CONFIG_MENU_TIMEOUT_FIX)
+            // force dialog change when canon dialog times out (EOSM, 6D etc)
+            // don't try more often than once per second
+            static int aux = 0;
+            if (should_run_polling_action(1000, &aux))
+            {
+                SetGUIRequestMode(GUIMODE_ML_MENU);
+            }
+#else
+            return 0;
+#endif
+        }
+    }
+#endif
+    return 1;
 }
 
 static struct msg_queue * menu_redraw_queue = 0;
@@ -4223,24 +4216,27 @@ menu_redraw_task()
     menu_redraw_queue = (struct msg_queue *) msg_queue_create("menu_redraw_mq", 1);
     TASK_LOOP
     {
-        //~ msleep(30);
+        /* this loop will only receive redraw messages */
         int msg;
         int err = msg_queue_receive(menu_redraw_queue, (struct event**)&msg, 500);
         if (err) continue;
+        
         if (gui_menu_shown())
         {
-            redraw_in_progress = 1;
+            /* make sure to check the canon dialog even if drawing is blocked
+             * (for scripts and such that piggyback the ML menu) */
+            if (!menu_ensure_canon_dialog())
+            {
+                /* didn't work, close ML menu */
+                gui_stop_menu();
+                continue;
+            }
             
-            //make sure to check the canon dialog even if drawing is blocked (for scripts and such that piggyback the ML menu)
-            menu_ensure_canon_dialog();
             if (!menu_redraw_blocked)
             {
                 menu_redraw_do();
             }
-            msleep(20);
-            redraw_in_progress = 0;
         }
-        //~ else redraw();
     }
 }
 
@@ -5368,13 +5364,6 @@ int handle_ml_menu_erase(struct event * event)
 #endif
 
     return 1;
-}
-
-// this can be called from any task
-static void menu_stop()
-{
-    if (gui_menu_shown())
-        give_semaphore( gui_sem );
 }
 
 void menu_open_submenu(struct menu_entry * entry)
