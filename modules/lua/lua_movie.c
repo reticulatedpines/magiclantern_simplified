@@ -21,7 +21,7 @@
  */
 static int luaCB_movie_start(lua_State* L)
 {
-    if (shooting_type != 3 && shooting_mode != SHOOTMODE_MOVIE)
+    if (!is_movie_mode())
     {
         return luaL_error(L, "Not in movie mode");
     }
@@ -42,7 +42,7 @@ static int luaCB_movie_start(lua_State* L)
  */
 static int luaCB_movie_stop(lua_State* L)
 {
-    if (shooting_type != 3 && shooting_mode != SHOOTMODE_MOVIE)
+    if (!is_movie_mode())
     {
         return luaL_error(L, "Not in movie mode");
     }
