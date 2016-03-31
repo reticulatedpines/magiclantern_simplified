@@ -4912,12 +4912,38 @@ menu_task( void* unused )
     
     TASK_LOOP
     {
-        int menu_or_shortcut_menu_shown = (menu_shown || arrow_keys_shortcuts_active());
-        int dt = (menu_or_shortcut_menu_shown && keyrepeat) ? COERCE(100 + keyrep_countdown*5, 20, 100) : should_draw_zoom_overlay() && menu_lv_transparent_mode ? 2000 : 500;
+        int keyrepeat_active = keyrepeat &&
+            (menu_shown || arrow_keys_shortcuts_active());
+        
+        int transparent_menu_magic_zoom =
+            should_draw_zoom_overlay() && menu_lv_transparent_mode;
+
+        int dt = 
+            (keyrepeat_active)
+                ?   /* repeat delay when holding a key */
+                    COERCE(100 + keyrep_countdown*5, 20, 100)
+                :   /* otherwise (no keys held) */
+                    (transparent_menu_magic_zoom ? 2000 : 500 );
+
         int rc = take_semaphore( gui_sem, dt );
-        if( rc != 0 )
+
+        if( rc == 0 )
         {
-            if (keyrepeat && menu_or_shortcut_menu_shown)
+            /* menu toggle request */
+            if (menu_shown)
+            {
+                menu_close();
+            }
+            else
+            {
+                menu_open();
+                initial_mode = shooting_mode;
+            }
+        }
+        else
+        {
+            /* semaphore timeout - perform periodical checks (polling) */
+            if (keyrepeat_active)
             {
                 if (keyrep_ack) {
                     keyrep_countdown--;
@@ -4929,16 +4955,37 @@ menu_task( void* unused )
                 continue;
             }
 
-            // We woke up after 1 second
-            
+            /* executed once at startup,
+             * and whenever new menus appear/disappear */
             if (menu_flags_load_dirty)
             {
                 config_menu_load_flags();
                 menu_flags_load_dirty = 0;
             }
             
-            if( !menu_shown )
+            if (menu_shown)
             {
+                /* should we still display the menu? */
+                if (sensor_cleaning ||
+                    initial_mode != shooting_mode ||
+                    gui_state == GUISTATE_MENUDISP ||
+                    (!DISPLAY_IS_ON && CURRENT_DIALOG_MAYBE != DLG_PLAY))
+                {
+                    /* close ML menu */
+                    gui_stop_menu();
+                    continue;
+                }
+
+                /* redraw either periodically (every 500ms),
+                 * or on request (menu_damage) */
+                if ((!menu_help_active && !menu_lv_transparent_mode) || menu_damage) {
+                    menu_redraw();
+                }
+            }
+            else
+            {
+                /* menu no longer displayed */
+                /* if we changed anything in the menu, save config */
                 extern int config_autosave;
                 if (config_autosave && (config_dirty || menu_flags_save_dirty) && NOT_RECORDING && !ml_shutdown_requested)
                 {
@@ -4946,47 +4993,8 @@ menu_task( void* unused )
                     config_dirty = 0;
                     menu_flags_save_dirty = 0;
                 }
-                
-                continue;
             }
-
-            if ((!menu_help_active && !menu_lv_transparent_mode) || menu_damage) {
-                menu_redraw();
-            }
-
-            if (sensor_cleaning && menu_shown)
-                menu_close();
-
-            if (initial_mode != shooting_mode && menu_shown)
-                menu_close();
-
-            if (gui_state == GUISTATE_MENUDISP && menu_shown)
-                menu_close();
-
-            if (!DISPLAY_IS_ON && menu_shown && CURRENT_DIALOG_MAYBE != DLG_PLAY)
-                menu_close();
-            
-            continue;
         }
-
-        if( menu_shown )
-        {
-            menu_close();
-            continue;
-        }
-        
-        if (RECORDING && !lv) continue;
-        
-        // Set this flag a bit earlier in order to pause LiveView tasks.
-        // Otherwise, high priority tasks such as focus peaking might delay the menu a bit.
-        //~ menu_shown = true; 
-        
-        // ML menu needs to piggyback on Canon menu, in order to receive wheel events
-        //~ piggyback_canon_menu();
-
-        //~ fake_simple_button(BGMT_PICSTYLE);
-        menu_open();
-        initial_mode = shooting_mode;
     }
 }
 
