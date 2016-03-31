@@ -4777,7 +4777,7 @@ void menu_redraw_flood()
 {
     if (!lv) msleep(100);
     else if (EXT_MONITOR_CONNECTED) msleep(300);
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 5; i++)
     {
         if (redraw_flood_stop) break;
         if (!menu_shown) break;
@@ -4785,7 +4785,7 @@ void menu_redraw_flood()
         menu_redraw_full();
         msleep(20);
     }
-    msleep(500);
+    msleep(50);
     redraw_flood_stop = 1;
 }
 
