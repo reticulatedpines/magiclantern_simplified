@@ -4197,6 +4197,7 @@ static int menu_ensure_canon_dialog()
             static int aux = 0;
             if (should_run_polling_action(1000, &aux))
             {
+                start_redraw_flood();
                 SetGUIRequestMode(GUIMODE_ML_MENU);
             }
 #else
