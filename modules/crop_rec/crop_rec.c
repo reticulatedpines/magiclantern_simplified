@@ -231,8 +231,9 @@ static struct menu_entry crop_rec_menu[] =
 
 static unsigned int crop_rec_init()
 {
-    if (is_camera("5D3",  "1.1.3"))
+    if (is_camera("5D3",  "1.1.3") || is_camera("5D3", "1.2.3"))
     {
+        /* same addresses on both 1.1.3 and 1.2.3 */
         CMOS_WRITE = 0x119CC;
         MEM_CMOS_WRITE = 0xE92D47F0;
         
