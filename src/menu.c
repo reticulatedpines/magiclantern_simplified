@@ -2942,7 +2942,7 @@ skip_name:
         }
 
         char* help2 = 0;
-        if (help1 != info->help && info->help && info->help[0])
+        if (help1 != info->help)
         {
             /* help1 already used for something else?
              * put overriden help (via MENU_SET_HELP) here */
