@@ -81,11 +81,9 @@ static void cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
         return;
     }
 
-    cmos1_newval = 
-        (video_mode_resolution) ? 0xB95 :   /* 50/60fps, touches bottom edge */
-        (video_mode_fps == 30)  ? 0xB8E :   /* 30fps, off-center */
-        (video_mode_fps == 25)  ? 0xB8C :   /* 25fps, slightly off-center */
-                                  0xB8B ;   /* 24fps, almost centered */
+    cmos1_newval = (video_mode_resolution)
+            ? 0xE8E     /* 50/60fps, almost centered */
+            : 0xECB ;   /* 24/25/30fps, almost centered */
     
     /* copy data into a buffer, to make the override temporary */
     /* that means: as soon as we stop executing the hooks, values are back to normal */
