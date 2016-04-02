@@ -7,6 +7,14 @@
 #include <patch.h>
 #include <bmp.h>
 
+#undef CROP_DEBUG
+
+#ifdef CROP_DEBUG
+#define dbg_printf(fmt,...) { printf(fmt, ## __VA_ARGS__); }
+#else
+#define dbg_printf(fmt,...) {}
+#endif
+
 static CONFIG_INT("crop.enabled", crop_enabled, 0);
 
 /* camera-specific parameters */
@@ -15,15 +23,16 @@ static uint32_t MEM_CMOS_WRITE  = 0;
 static uint32_t ADTG_WRITE      = 0;
 static uint32_t MEM_ADTG_WRITE  = 0;
 
-static int cmos1_ok = 0;
-static int cmos1_newval = 0x800;
+static int is_5D3 = 0;
+
+static int cmos_vidmode_ok = 0;
 
 /* return value:
  *  1: registers checked and appear OK (1080p/720p video mode)
  *  0: registers checked and they are not OK (other video mode)
  * -1: registers not checked
  */
-static int check_cmos1(uint16_t* data_buf)
+static int FAST check_cmos_vidmode(uint16_t* data_buf)
 {
     int ok = 1;
     int found = 1;
@@ -32,16 +41,19 @@ static int check_cmos1(uint16_t* data_buf)
         int reg = (*data_buf) >> 12;
         int value = (*data_buf) & 0xFFF;
         
-        if (reg == 1)
+        if (is_5D3)
         {
-            found = 1;
-            if (value != 0x800 &&       /* not 1080p? */
-                value != 0xBC2 &&       /* not 720p? */
-                value != cmos1_newval)  /* not our custom mode? */
+            if (reg == 1)
             {
-                ok = 0;
+                found = 1;
+                if (value != 0x800 &&   /* not 1080p? */
+                    value != 0xBC2)     /* not 720p? */
+                {
+                    ok = 0;
+                }
             }
         }
+        
         data_buf++;
     }
     
@@ -51,7 +63,7 @@ static int check_cmos1(uint16_t* data_buf)
 }
 
 
-static void cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
+static void FAST cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
 {
     /* make sure we are in 1080p/720p mode */
     if (video_mode_resolution > 1)
@@ -69,11 +81,11 @@ static void cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
      */
      
     uint16_t* data_buf = (uint16_t*) regs[0];
-    int ret = check_cmos1(data_buf);
+    int ret = check_cmos_vidmode(data_buf);
     
     if (ret >= 0)
     {
-        cmos1_ok = ret;
+        cmos_vidmode_ok = ret;
     }
     
     if (ret != 1)
@@ -81,9 +93,17 @@ static void cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
         return;
     }
 
-    cmos1_newval = (video_mode_resolution)
+    int cmos_new[8] = {-1, -1, -1, -1, -1, -1, -1, -1};
+    
+    if (is_5D3)
+    {
+        cmos_new[1] = (video_mode_resolution)
             ? 0xE8E     /* 50/60fps, almost centered */
             : 0xECB ;   /* 24/25/30fps, almost centered */
+        
+        cmos_new[2] = 0x10E;
+        cmos_new[6] = 0x170;
+    }
     
     /* copy data into a buffer, to make the override temporary */
     /* that means: as soon as we stop executing the hooks, values are back to normal */
@@ -95,16 +115,11 @@ static void cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
     {
         *copy_ptr = *data_buf;
 
-        int reg       = (*data_buf) >> 12;
-        int old_value = (*data_buf) & 0xFFF;
-        int new_value = (reg == 1) ? cmos1_newval :     /* CMOS[1] */
-                        (reg == 2) ? 0x10E :            /* CMOS[2] */
-                        (reg == 6) ? 0x170 :            /* CMOS[3] */
-                                 old_value ;
-        
-        if (new_value != old_value)
+        int reg = (*data_buf) >> 12;
+        if (cmos_new[reg] != -1)
         {
-            *copy_ptr = (reg << 12) | new_value;
+            *copy_ptr = (reg << 12) | cmos_new[reg];
+            dbg_printf("CMOS[%x] = %x\n", reg, cmos_new[reg]);
         }
         
         data_buf++;
@@ -118,9 +133,9 @@ static void cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
     out_regs[0] = (uint32_t) copy;
 }
 
-static void adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
+static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
 {
-    if (video_mode_resolution > 1 || !cmos1_ok)
+    if (video_mode_resolution > 1 || !cmos_vidmode_ok)
     {
         /* don't patch other video modes */
         return;
@@ -136,15 +151,36 @@ static void adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
     uint32_t* copy_end = &copy[COUNT(copy)];
     uint32_t* copy_ptr = copy;
     
+    struct adtg_new
+    {
+        int dst;
+        int reg;
+        int val;
+    };
+    
+    /* expand this as required */
+    struct adtg_new adtg_new[2] = {{0}};
+    
+    if (is_5D3)
+    {
+        /* ADTG2/4[0x8000] = 5 (set in one call) */
+        /* ADTG2[0x8806] = 0x6088 */
+        adtg_new[0] = (struct adtg_new) {6, 0x8000, 5};
+        adtg_new[1] = (struct adtg_new) {2, 0x8806, 0x6088};
+    }
+    
     while(*data_buf != 0xFFFFFFFF)
     {
         *copy_ptr = *data_buf;
         int reg = (*data_buf) >> 16;
-        if (((reg == 0x8000) && (dst & 6)) ||   /* ADTG2/4[0x8000] */
-            ((reg == 0x8806) && (dst == 2)))    /* ADTG[0x8806] */
+        for (int i = 0; i < COUNT(adtg_new); i++)
         {
-            int new_value = reg == 0x8000 ? 5 : 0x6088;
-            *(uint16_t*)copy_ptr = new_value;
+            if ((reg == adtg_new[i].reg) && (dst & adtg_new[i].dst))
+            {
+                int new_value = adtg_new[i].val;
+                dbg_printf("ADTG%x[%x] = %x\n", dst, reg, new_value);
+                *(uint16_t*)copy_ptr = new_value;
+            }
         }
         data_buf++;
         copy_ptr++;
@@ -161,20 +197,25 @@ static int patch_active = 0;
 
 static void update_patch()
 {
-    if (patch_active)
+    if (crop_enabled && is_movie_mode())
+    {
+        /* install our hooks, if we haven't already do so */
+        if (!patch_active)
+        {
+            patch_hook_function(CMOS_WRITE, MEM_CMOS_WRITE, &cmos_hook, "crop_rec: CMOS[1,2,6] parameters hook");
+            patch_hook_function(ADTG_WRITE, MEM_ADTG_WRITE, &adtg_hook, "crop_rec: ADTG[8000,8806] parameters hook");
+            patch_active = 1;
+        }
+    }
+    else
     {
         /* undo active patches, if any */
-        unpatch_memory(CMOS_WRITE);
-        unpatch_memory(ADTG_WRITE);
-        patch_active = 0;
-    }
-
-    if (!patch_active && crop_enabled && is_movie_mode())
-    {
-        /* install our hooks */
-        patch_hook_function(CMOS_WRITE, MEM_CMOS_WRITE, &cmos_hook, "crop_rec: CMOS[1,2,6] parameters hook");
-        patch_hook_function(ADTG_WRITE, MEM_ADTG_WRITE, &adtg_hook, "crop_rec: ADTG[8000,8806] parameters hook");
-        patch_active = 1;
+        if (patch_active)
+        {
+            unpatch_memory(CMOS_WRITE);
+            unpatch_memory(ADTG_WRITE);
+            patch_active = 0;
+        }
     }
 }
 
@@ -239,6 +280,8 @@ static unsigned int crop_rec_init()
         
         ADTG_WRITE = 0x11640;
         MEM_ADTG_WRITE = 0xE92D47F0;
+        
+        is_5D3 = 1;
     }
     
     menu_add("Movie", crop_rec_menu, COUNT(crop_rec_menu));
