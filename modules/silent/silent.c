@@ -793,13 +793,13 @@ static unsigned int silent_pic_raw_vsync(unsigned int ctx)
     return 0;
 }
 
-static int silent_pic_raw_prepare_buffers(struct memSuite * hSuite)
+static int silent_pic_raw_prepare_buffers(struct memSuite * hSuite, int initial_count)
 {
     /* we'll look for contiguous blocks equal to raw_info.frame_size */
     /* (so we'll make sure we can write raw_info.frame_size starting from ptr) */
     struct memChunk * hChunk = (void*) GetFirstChunkFromSuite(hSuite);
     void* ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
-    int count = 0;
+    int count = initial_count;
 
     while (1)
     {
@@ -810,7 +810,7 @@ static int silent_pic_raw_prepare_buffers(struct memSuite * hSuite)
         //~ printf("remain: %x\n", remain);
 
         /* the EDMAC might write a bit more than that, so we'll use a small safety margin */
-        if (remain < raw_info.frame_size * 33/32)
+        if (remain < raw_info.frame_size * 129/128)
         {
             /* move to next chunk */
             hChunk = GetNextMemoryChunk(hSuite, hChunk);
@@ -857,31 +857,50 @@ silent_pic_take_lv(int interactive)
     }
 
     /* allocate RAM */
-    struct memSuite * hSuite = 0;
+    struct memSuite * hSuite1 = 0;
+    struct memSuite * hSuite2 = 0;
     switch (silent_pic_mode)
     {
         /* allocate as much as we can in burst mode */
         case SILENT_PIC_MODE_BURST:
         case SILENT_PIC_MODE_BURST_END_TRIGGER:
         case SILENT_PIC_MODE_BEST_SHOTS:
-            hSuite = shoot_malloc_suite(0);
+            hSuite1 = shoot_malloc_suite(0);
+            hSuite2 = srm_malloc_suite(0);
             break;
         
         /* allocate only one frame in simple and slitscan modes */
         case SILENT_PIC_MODE_SIMPLE:
         case SILENT_PIC_MODE_SLITSCAN:
-            hSuite = shoot_malloc_suite_contig(raw_info.frame_size * 33/32);
+            hSuite1 = shoot_malloc_suite_contig(raw_info.frame_size * 129/128);
             break;
     }
 
-    if (!hSuite) { beep(); goto cleanup; }
+    if (!hSuite1 && !hSuite2)
+    {
+        /* could not allocate any memory */
+        beep();
+        goto cleanup;
+    }
 
     /* how many pics we can take in the current memory suite? */
     /* we'll have a pointer to each picture slot in sp_frames[], indexed from 0 to sp_buffer_count */
-    sp_buffer_count = silent_pic_raw_prepare_buffers(hSuite);
+    int total_size = 0;
+    sp_buffer_count = 0;
+    
+    if (hSuite1)
+    {
+        total_size += hSuite1->size;
+        sp_buffer_count = silent_pic_raw_prepare_buffers(hSuite1, sp_buffer_count);
+    }
+    if (hSuite2)
+    {
+        total_size += hSuite2->size;
+        sp_buffer_count = silent_pic_raw_prepare_buffers(hSuite2, sp_buffer_count);
+    }
 
     if (sp_buffer_count > 1)
-        bmp_printf(FONT_MED, 0, 83, "Buffer: %d frames (%d%%)", sp_buffer_count, sp_buffer_count * raw_info.frame_size / (hSuite->size / 100));
+        bmp_printf(FONT_MED, 0, 83, "Buffer: %d frames (%d%%)", sp_buffer_count, sp_buffer_count * raw_info.frame_size / (total_size / 100));
 
     if (sp_buffer_count == 0)
     {
@@ -1033,7 +1052,8 @@ silent_pic_take_lv(int interactive)
 cleanup:
     sp_running = 0;
     sp_buffer_count = 0;
-    if (hSuite) shoot_free_suite(hSuite);
+    if (hSuite1) shoot_free_suite(hSuite1);
+    if (hSuite2) srm_free_suite(hSuite2);
     if (raw_flag) raw_lv_release();
     return ok;
 }
