@@ -46,7 +46,7 @@ static CONFIG_INT( "silent.pic.file_format", silent_pic_file_format, 0 );
 #define SILENT_PIC_MODE_SIMPLE 0
 #define SILENT_PIC_MODE_BURST 1
 #define SILENT_PIC_MODE_BURST_END_TRIGGER 2
-#define SILENT_PIC_MODE_BEST_SHOTS 3
+#define SILENT_PIC_MODE_BEST_FOCUS 3
 #define SILENT_PIC_MODE_SLITSCAN 4
 #define SILENT_PIC_MODE_FULLRES 5
 
@@ -116,7 +116,7 @@ static MENU_UPDATE_FUNC(silent_pic_display)
             MENU_SET_VALUE("End Trigger");
             break;
 
-        case SILENT_PIC_MODE_BEST_SHOTS:
+        case SILENT_PIC_MODE_BEST_FOCUS:
             MENU_SET_VALUE("Best Shots");
             break;
 
@@ -305,7 +305,7 @@ static int save_mlv(struct raw_info * raw_info, int capture_time_ms)
      */
     if (silent_pic_mode != SILENT_PIC_MODE_BURST &&
         silent_pic_mode != SILENT_PIC_MODE_BURST_END_TRIGGER &&
-        silent_pic_mode != SILENT_PIC_MODE_BEST_SHOTS
+        silent_pic_mode != SILENT_PIC_MODE_BEST_FOCUS
         )
     {
         static int intervalometer_was_running = 0;
@@ -554,7 +554,7 @@ static unsigned int silent_pic_preview(unsigned int ctx)
     /* use full color preview for slit-scan, since we don't need real-time refresh */
     int ultra_fast = (silent_pic_mode == SILENT_PIC_MODE_SLITSCAN) ? 0 : 1;
     
-    if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
+    if (silent_pic_mode == SILENT_PIC_MODE_BEST_FOCUS)
     {
         for (int i = 0; i < sp_buffer_count; i++)
             if (sp_focus[i] == INT_MAX)
@@ -780,7 +780,7 @@ static unsigned int silent_pic_raw_vsync(unsigned int ctx)
     
     int next_slot = sp_num_frames % sp_buffer_count;
     
-    if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
+    if (silent_pic_mode == SILENT_PIC_MODE_BEST_FOCUS)
     {
         next_slot = silent_pic_raw_choose_next_slot();
     }
@@ -864,7 +864,7 @@ silent_pic_take_lv(int interactive)
         /* allocate as much as we can in burst mode */
         case SILENT_PIC_MODE_BURST:
         case SILENT_PIC_MODE_BURST_END_TRIGGER:
-        case SILENT_PIC_MODE_BEST_SHOTS:
+        case SILENT_PIC_MODE_BEST_FOCUS:
             hSuite1 = shoot_malloc_suite(0);
             hSuite2 = srm_malloc_suite(0);
             break;
@@ -927,13 +927,13 @@ silent_pic_take_lv(int interactive)
             break;
         
         case SILENT_PIC_MODE_BURST_END_TRIGGER:
-        case SILENT_PIC_MODE_BEST_SHOTS:
+        case SILENT_PIC_MODE_BEST_FOCUS:
             sp_max_frames = 1000000;
             break;
     }
     
     /* when triggered from e.g. intervalometer (noninteractive), take a full burst */
-    sp_min_frames = interactive ? 1 : silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS ? 200 : sp_buffer_count;
+    sp_min_frames = interactive ? 1 : silent_pic_mode == SILENT_PIC_MODE_BEST_FOCUS ? 200 : sp_buffer_count;
 
     /* copy the raw_info structure locally (so we can still save the DNGs when video mode changes) */
     struct raw_info local_raw_info = raw_info;
@@ -944,7 +944,7 @@ silent_pic_take_lv(int interactive)
     {
         msleep(20);
         
-        if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
+        if (silent_pic_mode == SILENT_PIC_MODE_BEST_FOCUS)
             silent_pic_raw_show_focus(-1);
         
         if (!lv)
@@ -958,7 +958,7 @@ silent_pic_take_lv(int interactive)
     /* disable the debug flag, no longer needed */
     raw_lv_release(); raw_flag = 0;
     
-    if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
+    if (silent_pic_mode == SILENT_PIC_MODE_BEST_FOCUS)
     {
         /* extrapolate the current focus value for the last two pics */
         extern int focus_value_raw;
@@ -988,7 +988,7 @@ silent_pic_take_lv(int interactive)
         gui_uilock(UILOCK_EVERYTHING & ~1); /* everything but shutter */
         int i0 = MAX(0, sp_num_frames - sp_buffer_count);
         
-        if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
+        if (silent_pic_mode == SILENT_PIC_MODE_BEST_FOCUS)
         {
             sp_num_frames -= i0, i0 = 0; /* save pics starting from index 0, to preserve ordering by focus */
         }
@@ -999,7 +999,7 @@ silent_pic_take_lv(int interactive)
         {
             bmp_printf(FONT_MED, 0, 60, "Saving image %d of %d (%dx%d)...", i+1, sp_num_frames, raw_info.jpeg.width, raw_info.jpeg.height);
 
-            if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
+            if (silent_pic_mode == SILENT_PIC_MODE_BEST_FOCUS)
                 silent_pic_raw_show_focus(i);
 
             local_raw_info.buffer = sp_frames[i % sp_buffer_count];
@@ -1507,14 +1507,21 @@ static struct menu_entry silent_menu[] = {
                 .priv = &silent_pic_mode,
                 .max = 5,
                 .help = "Choose the silent picture mode:",
+                .choices = CHOICES(
+                    "Simple",
+                    "Burst",
+                    "Burst, End Trigger",
+                    "Best Focus",
+                    "Slit-Scan",
+                    "Full-res"
+                ),
                 .help2 = 
                     "Take a silent picture when you press the shutter halfway.\n"
                     "Take pictures until memory gets full, then save to card.\n"
                     "Take pictures continuously, save the last few pics to card.\n"
-                    "Take pictures continuously, save the best (focused) images.\n"
+                    "Take pictures continuously, save the images with best focus.\n"
                     "Distorted pictures for funky effects.\n"
                     "Experimental full-resolution pictures.\n",
-                .choices = CHOICES("Simple", "Burst", "Burst, End Trigger", "Best Shots", "Slit-Scan", "Full-res"),
                 .icon_type = IT_DICE,
             },
             {
