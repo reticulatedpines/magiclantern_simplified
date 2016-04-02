@@ -15,7 +15,16 @@
 #define dbg_printf(fmt,...) {}
 #endif
 
-static CONFIG_INT("crop.enabled", crop_enabled, 0);
+static CONFIG_INT("crop.preset", crop_preset_menu, 0);
+
+/* presets are not enabled right away (we need to go to play mode and back)
+ * so we keep two variables: what's selected in menu and what's actually used */
+static int crop_preset = 0;
+
+#define CROP_PRESET_3X 1
+#define CROP_PRESET_3x3_1X 2
+#define CROP_PRESET_1x3 3
+#define CROP_PRESET_3x1 4
 
 /* camera-specific parameters */
 static uint32_t CMOS_WRITE      = 0;
@@ -62,6 +71,8 @@ static int FAST check_cmos_vidmode(uint16_t* data_buf)
     return -1;
 }
 
+/* pack two 6-bit values into a 12-bit one */
+#define PACK12(lo,hi) ((((lo) & 0x3F) | ((hi) << 6)) & 0xFFF)
 
 static void FAST cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
 {
@@ -97,12 +108,45 @@ static void FAST cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
     
     if (is_5D3)
     {
-        cmos_new[1] = (video_mode_resolution)
-            ? 0xE8E     /* 50/60fps, almost centered */
-            : 0xECB ;   /* 24/25/30fps, almost centered */
-        
-        cmos_new[2] = 0x10E;
-        cmos_new[6] = 0x170;
+        switch (crop_preset)
+        {
+            /* 1:1 (3x) */
+            case CROP_PRESET_3X:
+                /* start/stop scanning line, very large increments */
+                /* note: these are two values, 6 bit each, trial and error */
+                cmos_new[1] = (video_mode_resolution)
+                    ? PACK12(14,10)     /* 720p,  almost centered */
+                    : PACK12(11,11);    /* 1080p, almost centered */
+                
+                cmos_new[2] = 0x10E;    /* read every column, centered crop */
+                cmos_new[6] = 0x170;    /* pink highlights without this */
+                break;
+            
+            /* 3x3 binning in 720p */
+            /* 1080p it's already 3x3, don't change it */
+            case CROP_PRESET_3x3_1X:
+                if (video_mode_resolution)
+                {
+                    /* start/stop scanning line, very large increments */
+                    cmos_new[1] = PACK12(8,29);
+                }
+                break;
+            
+            /* 1x3 binning (read every line, bin every 3 columns) */
+            case CROP_PRESET_1x3:
+                /* start/stop scanning line, very large increments */
+                cmos_new[1] = (video_mode_resolution)
+                    ? PACK12(14,10)     /* 720p,  almost centered */
+                    : PACK12(11,11);    /* 1080p, almost centered */
+                
+                cmos_new[6] = 0x170;    /* pink highlights without this */
+                break;
+
+            /* 3x1 binning (bin every 3 lines, read every column) */
+            case CROP_PRESET_3x1:
+                cmos_new[2] = 0x10E;    /* read every column, centered crop */
+                break;
+        }
     }
     
     /* copy data into a buffer, to make the override temporary */
@@ -121,7 +165,7 @@ static void FAST cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
             *copy_ptr = (reg << 12) | cmos_new[reg];
             dbg_printf("CMOS[%x] = %x\n", reg, cmos_new[reg]);
         }
-        
+
         data_buf++;
         copy_ptr++;
         if (copy_ptr > copy_end) while(1);
@@ -131,6 +175,19 @@ static void FAST cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
     /* pass our modified register list to cmos_write */
     uint32_t* out_regs = stack - 14;
     out_regs[0] = (uint32_t) copy;
+}
+
+static int FAST adtg_lookup(uint32_t* data_buf, int reg_needle)
+{
+    while(*data_buf != 0xFFFFFFFF)
+    {
+        int reg = (*data_buf) >> 16;
+        if (reg == reg_needle)
+        {
+            return *(uint16_t*)data_buf;
+        }
+    }
+    return -1;
 }
 
 static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
@@ -163,10 +220,37 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
     
     if (is_5D3)
     {
-        /* ADTG2/4[0x8000] = 5 (set in one call) */
-        /* ADTG2[0x8806] = 0x6088 */
-        adtg_new[0] = (struct adtg_new) {6, 0x8000, 5};
-        adtg_new[1] = (struct adtg_new) {2, 0x8806, 0x6088};
+        switch (crop_preset)
+        {
+            /* 1:1 (3x) */
+            case CROP_PRESET_3X:
+                /* ADTG2/4[0x8000] = 5 (set in one call) */
+                /* ADTG2[0x8806] = 0x6088 (artifacts without it) */
+                adtg_new[0] = (struct adtg_new) {6, 0x8000, 5};
+                adtg_new[1] = (struct adtg_new) {2, 0x8806, 0x6088};
+                break;
+
+            /* 3x3 binning in 720p (in 1080p it's already 3x3) */
+            case CROP_PRESET_3x3_1X:
+                /* ADTG2/4[0x800C] = 2: vertical binning factor = 3 */
+                adtg_new[0] = (struct adtg_new) {6, 0x800C, 2};
+                break;
+
+            /* 1x3 binning (read every line, bin every 3 columns) */
+            case CROP_PRESET_1x3:
+                /* ADTG2/4[0x800C] = 0: read every line */
+                adtg_new[0] = (struct adtg_new) {6, 0x800C, 0};
+                break;
+
+            /* 3x1 binning (bin every 3 lines, read every column) */
+            /* doesn't work well, figure out why */
+            case CROP_PRESET_3x1:
+                /* ADTG2/4[0x800C] = 2: vertical binning factor = 3 */
+                /* ADTG2[0x8806] = 0x6088 (artifacts worse without it) */
+                adtg_new[0] = (struct adtg_new) {6, 0x800C, 2};
+                adtg_new[1] = (struct adtg_new) {2, 0x8806, 0x6088};
+                break;
+        }
     }
     
     while(*data_buf != 0xFFFFFFFF)
@@ -197,8 +281,11 @@ static int patch_active = 0;
 
 static void update_patch()
 {
-    if (crop_enabled && is_movie_mode())
+    if (crop_preset_menu && is_movie_mode())
     {
+        /* update preset */
+        crop_preset = crop_preset_menu;
+
         /* install our hooks, if we haven't already do so */
         if (!patch_active)
         {
@@ -233,13 +320,18 @@ static MENU_UPDATE_FUNC(crop_update)
         return;
     }
     
-    if (crop_enabled)
+    if (crop_preset_menu)
     {
         if (video_mode_resolution <= 1)
         {
             if (!patch_active)
             {
                 MENU_SET_WARNING(MENU_WARN_ADVICE, "After leaving ML menu, press PLAY twice to enable crop mode.");
+                MENU_SET_RINFO(SYM_WARNING);
+            }
+            else if (crop_preset_menu != crop_preset)
+            {
+                MENU_SET_WARNING(MENU_WARN_ADVICE, "After leaving ML menu, press PLAY twice to use the new setting.");
                 MENU_SET_RINFO(SYM_WARNING);
             }
         }
@@ -261,12 +353,24 @@ static MENU_UPDATE_FUNC(crop_update)
 static struct menu_entry crop_rec_menu[] =
 {
     {
-        .name = "Crop mode (3x)",
-        .priv = &crop_enabled,
+        .name = "Crop mode",
+        .priv = &crop_preset_menu,
         .update = crop_update,
-        .max = 1,
         .depends_on = DEP_MOVIE_MODE,
-        .help = "Change 1080p and 720p movie modes into a 3x (1:1) crop mode.",
+        .max = 3,
+        .choices = CHOICES(
+            "OFF",
+            "1:1 (3x)",
+            "3x3 720p (1x wide)",
+            "1x3 binning",
+            "3x1 binning",      /* doesn't work well */
+        ),
+        .help =
+            "Change 1080p and 720p movie modes into crop modes (select one)\n"
+            "1:1 sensor readout (square pixels in RAW, 3x crop)\n"
+            "3x3 binning in 720p (square pixels in RAW, vertical crop, ratio 29:10)\n"
+            "1x3 binning: read all lines, bin every 3 columns (extreme anamorphic)\n"
+            "3x1 binning: bin every 3 lines, read all columns (extreme anamorphic)\n"
     },
 };
 
@@ -299,7 +403,7 @@ MODULE_INFO_START()
 MODULE_INFO_END()
 
 MODULE_CONFIGS_START()
-    MODULE_CONFIG(crop_enabled)
+    MODULE_CONFIG(crop_preset_menu)
 MODULE_CONFIGS_END()
 
 MODULE_PROPHANDLERS_START()
