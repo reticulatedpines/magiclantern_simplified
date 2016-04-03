@@ -30,8 +30,13 @@ struct lua_prop
     int self_ref;
     unsigned prop_id;
     int prop_handler_ref;
-    unsigned prop_len;
-    void * prop_value;
+};
+
+struct lua_prop_msg
+{
+    unsigned property;
+    void * value;
+    unsigned len;
 };
 
 int lua_prop_task_running = 0;
@@ -43,57 +48,72 @@ static void lua_prop_task(int unused)
     lua_prop_queue = msg_queue_create("lua_prop_queue", 1);
     TASK_LOOP
     {
+        struct lua_prop_msg * msg = NULL;
+        int err = msg_queue_receive(lua_prop_queue, &msg, 0);
+        
+        if(err || !msg) continue;
+        
         struct lua_prop * lua_prop = NULL;
-        int err = msg_queue_receive(lua_prop_queue, &lua_prop, 0);
-        
-        if(err || !lua_prop) continue;
-        
-        lua_State * L = lua_prop->L;
-        struct semaphore * sem = NULL;
-        if(!lua_take_semaphore(L, 1000, &sem) && sem)
+        int found = 0;
+        for(lua_prop = prop_handlers; lua_prop; lua_prop = lua_prop->next)
         {
-            if(lua_rawgeti(L, LUA_REGISTRYINDEX, lua_prop->prop_handler_ref) == LUA_TFUNCTION)
+            if(lua_prop->prop_id == msg->property)
             {
-                lua_rawgeti(L, LUA_REGISTRYINDEX, lua_prop->self_ref);
-                if(lua_prop->prop_len > 4)
-                {
-                    //long, probably a string
-                    size_t len = MIN(lua_prop->prop_len, 255);
-                    char * str = malloc(len + 1);
-                    memcpy(str, lua_prop->prop_value, len);
-                    str[len] = 0x0;
-                    lua_pushstring(L, str);
-                    free(str);
-                }
-                else if(lua_prop->prop_len == 4) lua_pushinteger(L, *((uint32_t*)(lua_prop->prop_value)));
-                else if(lua_prop->prop_len >= 2) lua_pushinteger(L, *((uint16_t*)(lua_prop->prop_value)));
-                else lua_pushinteger(L, *((uint8_t*)(lua_prop->prop_value)));
-                if(docall(L, 2, 0))
-                {
-                    err_printf("script prop handler failed:\n %s\n", lua_tostring(L, -1));
-                }
+                found = 1;
+                break;
             }
-            give_semaphore(sem);
         }
-        else
+        
+        if(found && msg->value)
         {
-            printf("lua semaphore timeout: prop handler %d (%dms)\n", lua_prop->prop_id, 1000);
+            lua_State * L = lua_prop->L;
+            struct semaphore * sem = NULL;
+            if(!lua_take_semaphore(L, 1000, &sem) && sem)
+            {
+                if(lua_rawgeti(L, LUA_REGISTRYINDEX, lua_prop->prop_handler_ref) == LUA_TFUNCTION)
+                {
+                    lua_rawgeti(L, LUA_REGISTRYINDEX, lua_prop->self_ref);
+                    if(msg->len > 4)
+                    {
+                        //long, probably a string
+                        ((char*)(msg->value))[msg->len] = 0x0;
+                        lua_pushstring(L, (char*)(msg->value));
+                    }
+                    else if(msg->len == 4) lua_pushinteger(L, *((uint32_t*)(msg->value)));
+                    else if(msg->len >= 2) lua_pushinteger(L, *((uint16_t*)(msg->value)));
+                    else lua_pushinteger(L, *((uint8_t*)(msg->value)));
+                    if(docall(L, 2, 0))
+                    {
+                        err_printf("script prop handler failed:\n %s\n", lua_tostring(L, -1));
+                    }
+                }
+                give_semaphore(sem);
+            }
+            else
+            {
+                printf("lua semaphore timeout: prop handler %d (%dms)\n", lua_prop->prop_id, 1000);
+            }
         }
+        free(msg->value);
+        free(msg);
     }
 }
 
 static void lua_prophandler(unsigned property, void * priv, void * addr, unsigned len)
 {
-    struct lua_prop * current;
-    for(current = prop_handlers; current; current = current->next)
+    if (!lua_prop_queue) return;
+    struct lua_prop_msg * msg = malloc(sizeof(struct lua_prop_msg));
+    msg->property = property;
+    msg->len = MIN(len,255);
+    msg->value = malloc(msg->len + 1);
+    if(msg->value)
     {
-        if(current->prop_id == property)
-        {
-            current->prop_len = len;
-            if(!current->prop_value) current->prop_value = malloc(len);
-            memcpy(current->prop_value, addr, len);
-            msg_queue_post(lua_prop_queue, (uint32_t)current);
-        }
+        memcpy(msg->value, addr, MIN(len,255));
+        msg_queue_post(lua_prop_queue, (uint32_t)msg);
+    }
+    else
+    {
+        err_printf("lua_prophandler: malloc error");
     }
 }
 
@@ -614,8 +634,6 @@ static int luaCB_property_newindex(lua_State * L)
                 current->L = L;
                 current->prop_id = prop_id;
                 current->next = prop_handlers;
-                current->prop_value = NULL;
-                current->prop_len = 0;
                 prop_handlers = current;
                 lua_pushvalue(L, 3);
                 current->prop_handler_ref = luaL_ref(L, LUA_REGISTRYINDEX);
