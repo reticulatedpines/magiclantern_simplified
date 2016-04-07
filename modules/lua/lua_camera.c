@@ -232,10 +232,8 @@ static int luaCB_camera_newindex(lua_State * L)
     else if(!strcmp(key, "iso"))
     {
         LUA_PARAM_INT(value, 3);
-        int i = 0;
-        for(i = 0; i < COUNT(values_iso); i++)
-            if(values_iso[i] <= value) break;
-        status = hdr_set_rawiso(codes_iso[i]);
+        int raw = value ? (int)roundf(log2f(value/3.125) * 8) + 32 : 0;
+        status = hdr_set_rawiso(raw);
     }
     else if(!strcmp(key, "ec"))
     {
