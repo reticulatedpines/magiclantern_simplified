@@ -105,7 +105,11 @@ function test_camera_exposure()
         local d = nil
         if method == 1 then
             local s = math.random(1,30)
-            camera.shutter.value = s
+            if math.random(1,2) == 1 then
+                camera.shutter.value = s
+            else
+                camera.shutter = s
+            end
             d = math.abs(math.log(camera.shutter.value,2) - math.log(s,2))
         elseif method == 2 then
             local ms = math.random(1,30000)
@@ -182,7 +186,11 @@ function test_camera_exposure()
         local d = nil
         if method == 1 then
             local iso = math.random(100, 6400)
-            camera.iso.value = iso
+            if math.random(1,2) == 1 then
+                camera.iso.value = iso
+            else
+                camera.iso = iso
+            end
             d = math.abs(math.log(camera.iso.value,2) - math.log(iso,2))
         elseif method == 2 then
             local apex = math.random(5*100,11*100)/100
@@ -240,7 +248,11 @@ function test_camera_exposure()
             local extra_tol = 0
             if method == 1 then
                 local av = math.random(round(camera.aperture.min.value*10), round(camera.aperture.max.value*10)) / 10
-                camera.aperture.value = av
+                if math.random(1,2) == 1 then
+                    camera.aperture.value = av
+                else
+                    camera.aperture = av
+                end
                 d = math.abs(math.log(camera.aperture.value,2) - math.log(av,2)) * 2
                 -- when checking the result, allow a larger difference (0.1 units) - see note below
                 extra_tol = math.abs(math.log(av,2) - math.log(av-0.1,2)) * 2
@@ -299,7 +311,11 @@ function test_camera_exposure()
         local d = nil
         if method == 1 then
             local ec = math.random(-2*100, 2*100) / 100
-            camera.ec.value = ec
+            if math.random(1,2) == 1 then
+                camera.ec.value = ec
+            else
+                camera.ec = ec
+            end
             d = math.abs(camera.ec.value - ec,2)
         elseif method == 2 then
             local raw = math.random(-16, 16)
@@ -345,7 +361,11 @@ function test_camera_exposure()
         local d = nil
         if method == 1 then
             local fec = math.random(-2*100, 2*100) / 100
-            camera.flash_ec.value = fec
+            if math.random(1,2) == 1 then
+                camera.flash_ec.value = fec
+            else
+                camera.flash_ec = fec
+            end
             d = math.abs(camera.flash_ec.value - fec,2)
         elseif method == 2 then
             local raw = math.random(-16, 16)
