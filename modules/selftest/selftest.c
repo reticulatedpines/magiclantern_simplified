@@ -1340,6 +1340,54 @@ static void srm_test_task()
     console_hide();
 }
 
+static void malloc_test_task()
+{
+    printf("Small-block malloc test...\n");
+    msleep(2000);
+    console_show();
+    msleep(1000);
+
+    /* allocate up to 50000 small blocks of RAM, 32K each */
+    int N = 50000;
+    int blocksize = 32*1024;
+    void** ptr = malloc(N * sizeof(ptr[0]));
+    if (ptr)
+    {
+        for (int i = 0; i < N; i++)
+        {
+            ptr[i] = 0;
+        }
+
+        for (int i = 0; i < N; i++)
+        {
+            ptr[i] = malloc(blocksize);
+            printf("alloc %d %8x (total %s)\n", i, ptr[i], format_memory_size(i * blocksize));
+            if (ptr[i]) memset(ptr[i], rand(), blocksize);
+            else break;
+        }
+        
+        msleep(2000);
+        
+        for (int i = 0; i < N; i++)
+        {
+            if (ptr[i])
+            {
+                printf("free %x\n", ptr[i]);
+                free(ptr[i]);
+                ptr[i] = 0;
+            }
+        }
+    }
+    free(ptr);
+
+    printf("Small-block malloc test completed.\n\n");
+    printf("You will see an error in the Debug menu,\n");
+    printf("on the 'Free Memory' menu item. That's OK.\n");
+
+    msleep(5000);
+    console_hide();
+}
+
 static struct menu_entry selftest_menu[] =
 {
     {
@@ -1396,6 +1444,12 @@ static struct menu_entry selftest_menu[] =
                 .select     = run_in_separate_task,
                 .priv       = srm_test_task,
                 .help       = "Tests SRM memory allocation routines.",
+            },
+            {
+                .name       = "Small-block malloc test (quick)",
+                .select     = run_in_separate_task,
+                .priv       = malloc_test_task,
+                .help       = "Allocate up to 50000 small blocks, 32K each, until memory gets full."
             },
             MENU_EOL,
         }

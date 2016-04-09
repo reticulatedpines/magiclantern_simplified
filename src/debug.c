@@ -329,36 +329,7 @@ void bsod()
 static void run_test()
 {
     /* todo: cleanup the following tests and move them in the mem_chk module */
-    
-    /* allocate up to 50000 small blocks of RAM, 32K each */
-    int N = 50000;
-    int blocksize = 32*1024;
-    void** ptr = malloc(N * sizeof(ptr[0]));
-    if (ptr)
-    {
-        for (int i = 0; i < N; i++)
-        {
-            ptr[i] = 0;
-        }
 
-        for (int i = 0; i < N; i++)
-        {
-            ptr[i] = malloc(blocksize);
-            bmp_printf(FONT_MONO_20, 0, 0, "alloc %d %8x (total %s)", i, ptr[i], format_memory_size(i * blocksize));
-            if (ptr[i]) memset(ptr[i], rand(), blocksize);
-            else break;
-        }
-        
-        for (int i = 0; i < N; i++)
-        {
-            if (ptr[i])
-            {
-                bmp_printf(FONT_MONO_20, 0, 20, "free %x   ", ptr[i]);
-                free(ptr[i]);
-            }
-        }
-    }
-    free(ptr);
     return;
     
     /* check for memory leaks */
