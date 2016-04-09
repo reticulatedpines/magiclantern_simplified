@@ -37,7 +37,7 @@ lv_rec_file_footer_t lv_rec_footer;
 struct raw_info raw_info;
 
 #define FAIL(fmt,...) { fprintf(stderr, "Error: "); fprintf(stderr, fmt, ## __VA_ARGS__); fprintf(stderr, "\n"); exit(1); }
-#define CHECK(ok, fmt,...) { if (!ok) FAIL(fmt, ## __VA_ARGS__); }
+#define CHECK(ok, fmt,...) { if (!(ok)) FAIL(fmt, ## __VA_ARGS__); }
 
 void fix_vertical_stripes();
 void find_and_fix_cold_pixels(int fix, int framenumber);
