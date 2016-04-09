@@ -16,6 +16,15 @@
 #define REG_RAW_BUFF   0xCF12301C
 #define REG_DISP_TYPE  0xCF123020
 
+int qprint(const char * msg)
+{
+    for (const char* c = msg; *c; c++)
+    {
+        *(volatile uint32_t*)REG_PRINT_CHAR = *c;
+    }
+    return 0;
+}
+
 int qprintf(const char * fmt, ...) // prints in the QEMU console
 {
     va_list ap;
@@ -23,10 +32,7 @@ int qprintf(const char * fmt, ...) // prints in the QEMU console
     va_start( ap, fmt );
     vsnprintf( buf, sizeof(buf)-1, fmt, ap );
     va_end( ap );
-    
-    for (char* c = buf; *c; c++)
-        *(volatile uint32_t*)REG_PRINT_CHAR = *c;
-    
+    qprint(buf);
     return 0;
 }
 
