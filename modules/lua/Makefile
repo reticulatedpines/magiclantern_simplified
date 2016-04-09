@@ -31,7 +31,6 @@ install::
 	$(CP) $(SCRIPT_LIB_DIR)/*.lua $(INSTALL_SCRIPTS_LIB_DIR)/
 
 # run a syntax check after compiling
-# fixme: how to execute it only once?
 all:: syntax_check.log
 
 syntax_check.log: $(SCRIPT_DIR)/*.lua $(SCRIPT_LIB_DIR)/*.lua
