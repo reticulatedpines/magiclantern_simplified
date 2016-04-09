@@ -1388,6 +1388,46 @@ static void malloc_test_task()
     console_hide();
 }
 
+static void memory_leak_test_task()
+{
+    printf("Memory leak test...\n");
+    msleep(2000);
+    console_show();
+    msleep(1000);
+
+    /* check for memory leaks */
+    for (int i = 0; i < 1000; i++)
+    {
+        printf("%d/1000\n", i);
+        
+        /* with this large size, the backend will use fio_malloc, which returns uncacheable pointers */
+        void* p = malloc(16*1024*1024 + 64);
+        
+        if (!p)
+        {
+            printf("malloc err\n");
+            continue;
+        }
+        
+        /* however, user code should not care about this; we have requested a plain old cacheable pointer; did we get one? */
+        ASSERT(p == CACHEABLE(p));
+        
+        /* do something with our memory */
+        memset(p, 1234, 1234);
+        msleep(20);
+        
+        /* done, now free it */
+        /* the backend should put back the uncacheable flag (if handled incorrectly, there may be memory leaks) */
+        free(p);
+        msleep(20);
+    }
+    
+    /* if we managed to arrive here, the test ran successfully */
+    printf("Memory leak test completed.\n");
+    msleep(5000);
+    console_hide();
+}
+
 static struct menu_entry selftest_menu[] =
 {
     {
@@ -1450,6 +1490,12 @@ static struct menu_entry selftest_menu[] =
                 .select     = run_in_separate_task,
                 .priv       = malloc_test_task,
                 .help       = "Allocate up to 50000 small blocks, 32K each, until memory gets full."
+            },
+            {
+                .name       = "Memory leak test (1 minute)",
+                .select     = run_in_separate_task,
+                .priv       = memory_leak_test_task,
+                .help       = "Allocate and free a large block of RAM (16 MB); repeat 1000 times."
             },
             MENU_EOL,
         }
