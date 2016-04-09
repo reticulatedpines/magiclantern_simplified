@@ -1295,7 +1295,7 @@ static void srm_test_task()
     msleep(1000);
 
     printf("Now try taking some pictures during the test.\n");
-    printf("It should not crash.\n");
+    printf("It should work, and it should not crash.\n");
     msleep(5000);
     
     /* we must be able to allocate at least two 25MB buffers on top of what you can get from shoot_malloc */
@@ -1336,6 +1336,7 @@ static void srm_test_task()
     }
     
     printf("SRM memory test completed.\n");
+    printf("Are you able to take pictures now? (you should)\n");
     msleep(5000);
     console_hide();
 }
