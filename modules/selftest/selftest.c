@@ -10,6 +10,7 @@
 #include <timer.h>
 #include <console.h>
 #include <ml_rpc.h>
+#include <screenshot.h>
 
 /* optional routines */
 extern WEAK_FUNC(ret_0) uint32_t ml_rpc_send(uint32_t command, uint32_t parm1, uint32_t parm2, uint32_t parm3, uint32_t wait);
@@ -1266,6 +1267,79 @@ void menu_self_test()
 }
 #endif
 
+static void srm_test_task()
+{
+    printf("SRM memory test...\n");
+    msleep(2000);
+    console_show();
+    msleep(1000);
+    
+    /* let's see how much RAM we can get */
+    struct memSuite * suite = srm_malloc_suite(0);
+    struct memChunk * chunk = GetFirstChunkFromSuite(suite);
+    printf("hSuite %x (%dx%s)\n", suite, suite->num_chunks, format_memory_size(chunk->size));
+    
+    printf("You should not be able to take pictures,\n");
+    printf("but autofocus should work.\n");
+
+    info_led_on();
+    for (int i = 10; i >= 0; i--)
+    {
+        msleep(1000);
+        printf("%d...", i);
+    }
+    printf("\b\b\n");
+    info_led_off();
+    
+    srm_free_suite(suite);
+    msleep(1000);
+
+    printf("Now try taking some pictures during the test.\n");
+    printf("It should not crash.\n");
+    msleep(5000);
+    
+    /* we must be able to allocate at least two 25MB buffers on top of what you can get from shoot_malloc */
+    /* 50D/500D have 27M, 5D3 has 40 */
+    for (int i = 0; i < 1000; i++)
+    {
+        void* buf1 = srm_malloc(25*1024*1024);
+        printf("srm_malloc(25M) => %x\n", buf1);
+        
+        void* buf2 = srm_malloc(25*1024*1024);
+        printf("srm_malloc(25M) => %x\n", buf2);
+
+        /* we must be able to free them in any order, even if the backend doesn't allow that */
+        if (rand()%2)
+        {
+            free(buf1);
+            free(buf2);
+        }
+        else
+        {
+            free(buf2);
+            free(buf1);
+        }
+
+        if (i == 0)
+        {
+            /* delay the first iteration, so you can see what's going on */
+            /* also save a screenshot */
+            msleep(5000);
+            take_screenshot(0, SCREENSHOT_BMP);
+        }
+        
+        if (!buf1 || !buf2)
+        {
+            /* allocation failed? wait before retrying */
+            msleep(1000);
+        }
+    }
+    
+    printf("SRM memory test completed.\n");
+    msleep(5000);
+    console_hide();
+}
+
 static struct menu_entry selftest_menu[] =
 {
     {
@@ -1316,6 +1390,12 @@ static struct menu_entry selftest_menu[] =
                 .select     = run_in_separate_task,
                 .priv       = bmp_fill_test_task,
                 .help       = "Stresses graphics bandwith. Run this while recording.",
+            },
+            {
+                .name       = "SRM memory test (5 minutes)",
+                .select     = run_in_separate_task,
+                .priv       = srm_test_task,
+                .help       = "Tests SRM memory allocation routines.",
             },
             MENU_EOL,
         }
