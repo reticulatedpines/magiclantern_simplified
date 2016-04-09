@@ -166,7 +166,7 @@ static void toggle_display_type()
     /* one of those is for PAL, the other is for NTSC; see BMP_VRAM_START in bmp.c */
     uintptr_t bmp_sd1 = bmp_hdmi + BMP_HDMI_OFFSET + 8;
     uintptr_t bmp_sd2 = bmp_hdmi + BMP_HDMI_OFFSET + 0x3c8;
-    uintptr_t bmp_sd3 = bmp_hdmi + BMP_HDMI_OFFSET + 0x3c0; /* 700D and maybe other newer cameras? */
+    //uintptr_t bmp_sd3 = bmp_hdmi + BMP_HDMI_OFFSET + 0x3c0; /* 700D and maybe other newer cameras? */
     
     int display_type = MEM(REG_DISP_TYPE);
     char* display_modes[] = {   "LCD",  "HDMI-1080",    "HDMI-480", "SD-PAL",   "SD-NTSC"   };
@@ -174,9 +174,10 @@ static void toggle_display_type()
     int hdmi_codes[]      = {   0,       5,              2,          0,          0          };
     int ext_hdmi_codes[]  = {   0,       1,              1,          0,          0          };
     int ext_rca_codes[]   = {   0,       0,              0,          1,          1          };
-    int pal_codes[]       = {   0,       0,              0,          1,          0          };
+    //int pal_codes[]     = {   0,       0,              0,          1,          0          };
     
-    bmp_vram_info[1].vram2 = MEM(REG_BMP_VRAM) = buffers[display_type];
+    MEM(REG_BMP_VRAM) = buffers[display_type];
+    bmp_vram_info[1].vram2 = (void*)buffers[display_type];
     hdmi_code = hdmi_codes[display_type];
     ext_monitor_hdmi = ext_hdmi_codes[display_type];
     _ext_monitor_rca = ext_rca_codes[display_type];
@@ -249,7 +250,7 @@ static void toggle_liveview()
             gui_task_list.current = current = malloc(sizeof(struct gui_task));
             current->priv = malloc(sizeof(struct dialog));
             struct dialog * dialog = current->priv;
-            dialog->handler = &LiveViewApp_handler;
+            dialog->handler = (void*)&LiveViewApp_handler;
         }
 
     }
