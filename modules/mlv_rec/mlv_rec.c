@@ -81,7 +81,8 @@
 #include "mlv_rec.h"
 
 /* an alternative tracing method that embeds the logs into the MLV file itself */
-#define EMBEDDED_LOGGING
+/* looks like it might cause pink frames - http://www.magiclantern.fm/forum/index.php?topic=5473.msg165356#msg165356 */
+#undef EMBEDDED_LOGGING
 
 #if defined(EMBEDDED_LOGGING) && !defined(TRACE_DISABLED)
 #define trace_write                                 mlv_debg_printf
@@ -3992,6 +3993,10 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
     /* if you somehow managed to start recording H.264, let it stop */
     if (RECORDING_H264)
         return 1;
+
+    /* block the zoom key while recording */
+    if (!RAW_IS_IDLE && key == MODULE_KEY_PRESS_ZOOMIN)
+        return 0;
 
     /* start/stop recording with the LiveView key */
     int32_t rec_key_pressed = (key == MODULE_KEY_LV || key == MODULE_KEY_REC);

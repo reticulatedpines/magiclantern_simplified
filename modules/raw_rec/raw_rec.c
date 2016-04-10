@@ -116,8 +116,6 @@ static CONFIG_INT("raw.res.x", resolution_index_x, 12);
 static CONFIG_INT("raw.aspect.ratio", aspect_ratio_index, 10);
 static CONFIG_INT("raw.write.speed", measured_write_speed, 0);
 static CONFIG_INT("raw.skip.frames", allow_frame_skip, 0);
-//~ static CONFIG_INT("raw.sound", sound_rec, 2);
-#define sound_rec 2
 
 static CONFIG_INT("raw.dolly", dolly_mode, 0);
 #define FRAMING_CENTER (dolly_mode == 0)
@@ -1473,14 +1471,6 @@ static void raw_video_rec_task()
         goto cleanup;
     }
 
-    if (sound_rec == 1)
-    {
-        char* wavfile = get_wav_file_name(raw_movie_filename);
-        bmp_printf( FONT_MED, 30, 90, "Sound: %s%s", wavfile + 17, wavfile[0] == 'B' && raw_movie_filename[0] == 'A' ? " on SD card" : "");
-        bmp_printf( FONT_MED, 30, 90, "%s", wavfile);
-        WAV_StartRecord(wavfile);
-    }
-    
     hack_liveview(0);
     
     /* get exclusive access to our edmac channels */
@@ -1490,10 +1480,7 @@ static void raw_video_rec_task()
     raw_recording_state = RAW_RECORDING;
 
     /* try a sync beep (not very precise, but better than nothing) */
-    if (sound_rec == 2)
-    {
-        beep();
-    }
+    beep();
 
     /* signal that we are starting */
     raw_rec_cbr_starting();
@@ -1732,6 +1719,9 @@ abort_and_check_early_stop:
         }
     }
     
+    /* make sure the user doesn't rush to turn off the camera or something */
+    gui_uilock(UILOCK_EVERYTHING);
+    
     /* signal that we are stopping */
     raw_rec_cbr_stopping();
     
@@ -1745,11 +1735,6 @@ abort_and_check_early_stop:
     edmac_memcpy_res_unlock();
 
     set_recording_custom(CUSTOM_RECORDING_NOT_RECORDING);
-
-    if (sound_rec == 1)
-    {
-        WAV_StopRecord();
-    }
 
     /* write remaining frames */
     for (; writing_queue_head != writing_queue_tail; writing_queue_head = MOD(writing_queue_head + 1, COUNT(slots)))
@@ -1823,6 +1808,12 @@ cleanup:
     if (f) FIO_CloseFile(f);
     if (!written) { FIO_RemoveFile(raw_movie_filename); raw_movie_filename = 0; }
     FIO_RemoveFile(backup_filename);
+
+    /* everything saved, we can unlock the buttons.
+     * note: freeing SRM memory will also touch uilocks,
+     * so it's best to call this before free_buffers */
+    gui_uilock(UILOCK_NONE);
+
     free_buffers();
     
     #ifdef DEBUG_BUFFERING_GRAPH
@@ -1843,7 +1834,7 @@ static MENU_SELECT_FUNC(raw_start_stop)
     if (!RAW_IS_IDLE)
     {
         raw_recording_state = RAW_FINISHING;
-        if (sound_rec == 2) beep();
+        beep();
     }
     else
     {
@@ -1910,15 +1901,6 @@ static struct menu_entry raw_video_menu[] =
                 .choices = CHOICES("Square pixels", "16:9", "3:2"),
                 .help  = "Choose aspect ratio of the source image (LiveView buffer).",
                 .help2 = "Useful for video modes with squeezed image (e.g. 720p).",
-            },
-            */
-            /* gets out of sync
-            {
-                .name = "Sound",
-                .priv = &sound_rec,
-                .max = 2,
-                .choices = CHOICES("OFF", "Separate WAV", "Sync beep"),
-                .help = "Sound recording options.",
             },
             */
             {
@@ -2007,6 +1989,10 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
     /* if you somehow managed to start recording H.264, let it stop */
     if (RECORDING_H264)
         return 1;
+    
+    /* block the zoom key while recording */
+    if (!RAW_IS_IDLE && key == MODULE_KEY_PRESS_ZOOMIN)
+        return 0;
 
     /* start/stop recording with the LiveView key */
     int rec_key_pressed = (key == MODULE_KEY_LV || key == MODULE_KEY_REC);
@@ -2169,18 +2155,6 @@ static unsigned int raw_rec_init()
     cam_60d   = is_camera("60D",  "1.1.1");
     cam_500d  = is_camera("500D", "1.1.1");
     
-    for (struct menu_entry * e = raw_video_menu[0].children; !MENU_IS_EOL(e); e++)
-    {
-        /* customize menus for each camera here (e.g. hide what doesn't work) */
-        
-        /* 50D doesn't have sound and can't even beep */
-        if (cam_50d && streq(e->name, "Sound"))
-        {
-            e->shidden = 1;
-            //sound_rec = 0;
-        }
-    }
-
     if (cam_5d2 || cam_50d)
     {
        raw_video_menu[0].help = "Record 14-bit RAW video. Press SET to start.";
@@ -2232,7 +2206,6 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(aspect_ratio_index)
     MODULE_CONFIG(measured_write_speed)
     MODULE_CONFIG(allow_frame_skip)
-    //~ MODULE_CONFIG(sound_rec)
     MODULE_CONFIG(dolly_mode)
     MODULE_CONFIG(preview_mode)
     MODULE_CONFIG(use_srm_memory)
