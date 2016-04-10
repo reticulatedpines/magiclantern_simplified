@@ -466,7 +466,7 @@ silent_pic_take_lv(int interactive)
     msleep(50);
 
     /* update raw geometry, autodetect black/white levels etc */
-    raw_update_params_retry_lv(3);
+    raw_update_params();
 
     /* save it to card */
     bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", raw_info.jpeg.width, raw_info.jpeg.height);
@@ -851,7 +851,7 @@ silent_pic_take_lv(int interactive)
     msleep(100);
  
     /* get image resolution, white level etc; retry if needed */
-    if (!raw_update_params_retry_lv(3))
+    if (!raw_update_params())
     {
         return;
     }

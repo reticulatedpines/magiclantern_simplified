@@ -74,11 +74,9 @@ struct raw_pixblock
 } __attribute__((packed,aligned(2)));
 
 /* call this before performing any raw image analysis */
+/* in LiveView, this will retry as needed */
 /* returns 1=success, 0=failed */
 int raw_update_params();
-
-/* in LiveView, this will retry as needed */
-int raw_update_params_retry_lv(int retries);
 
 /* get a red/green/blue pixel near the specified coords (approximate) */
 int raw_red_pixel(int x, int y);
