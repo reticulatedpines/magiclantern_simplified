@@ -1059,8 +1059,6 @@ static uint32_t add_mem_suite(struct memSuite * mem_suite, uint32_t buf_size)
     return total_size;
 }
 
-
-
 static int32_t setup_buffers()
 {
     uint32_t total_size = 0;
@@ -3912,7 +3910,7 @@ static struct menu_entry raw_video_menu[] =
                 .help2 = "May help with performance.",
             },
             {
-                .name = "Debug trace",
+                .name = "Debug Trace",
                 .priv = &enable_tracing,
                 .max = 1,
                 .help = "Write an execution trace. Causes perfomance drop.",

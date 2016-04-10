@@ -480,7 +480,6 @@ static void refresh_raw_settings(int force)
         static int aux = INT_MIN;
         if (force || should_run_polling_action(250, &aux))
         {
-            /* this one may be called from menu, so don't retry here, to keep the UI responsive */
             if (raw_update_params())
             {
                 update_resolution_params();
