@@ -1306,21 +1306,24 @@ static int black_level_check_left(int ref_mean, int ref_stdev_x100, int y1, int 
         );
 
         dbg_printf(
-            "Black check %d/%d: %d %d, ref %d %d, delta %d/%d\n",
-            i+1, N, local_mean, local_stdev_x100, ref_mean, ref_stdev_x100, local_mean - ref_mean, ref_stdev_x100/200
+            "Black check %d/%d: %d"SYM_PLUSMINUS"%s%d.%02d, ref %d"SYM_PLUSMINUS"%s%d.%02d, delta=%d\n",
+            i+1, N,
+            local_mean, FMT_FIXEDPOINT2(local_stdev_x100),
+            ref_mean, FMT_FIXEDPOINT2(ref_stdev_x100),
+            local_mean - ref_mean
         );
 
-        /* allow the local mean to be within ref_mean +/- ref_sigma */
-        if (ABS(local_mean - ref_mean) > ref_stdev_x100/100)
+        /* allow the local mean to be within ref_mean +/- 2 * ref_sigma */
+        if (ABS(local_mean - ref_mean) > 2 * ref_stdev_x100/100)
         {
-            printf("Black %d/%d: mean too different (%d, ref %d %d)\n", i+1, N, local_mean, ref_mean, ref_stdev_x100);
+            printf("Black %d/%d: mean too different (%d, ref %d"SYM_PLUSMINUS"%s%d.%02d)\n", i+1, N, local_mean, ref_mean, FMT_FIXEDPOINT2(ref_stdev_x100));
             return 0;
         }
 
         /* allow the local sigma to be less than 3 * ref_sigma */
         if (local_stdev_x100 > ref_stdev_x100 * 3)
         {
-            printf("Black %d/%d: stdev too large (%d, ref %d)\n", i+1, N, local_stdev_x100, ref_stdev_x100);
+            printf("Black %d/%d: stdev too large (%d/100, ref %d/100)\n", i+1, N, local_stdev_x100, ref_stdev_x100);
             return 0;
         }
         
