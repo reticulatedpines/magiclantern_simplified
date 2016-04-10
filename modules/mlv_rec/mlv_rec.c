@@ -3994,6 +3994,10 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
     if (RECORDING_H264)
         return 1;
 
+    /* block the zoom key while recording */
+    if (!RAW_IS_IDLE && key == MODULE_KEY_PRESS_ZOOMIN)
+        return 0;
+
     /* start/stop recording with the LiveView key */
     int32_t rec_key_pressed = (key == MODULE_KEY_LV || key == MODULE_KEY_REC);
 
