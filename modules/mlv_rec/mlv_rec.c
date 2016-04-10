@@ -81,7 +81,8 @@
 #include "mlv_rec.h"
 
 /* an alternative tracing method that embeds the logs into the MLV file itself */
-#define EMBEDDED_LOGGING
+/* looks like it might cause pink frames - http://www.magiclantern.fm/forum/index.php?topic=5473.msg165356#msg165356 */
+#undef EMBEDDED_LOGGING
 
 #if defined(EMBEDDED_LOGGING) && !defined(TRACE_DISABLED)
 #define trace_write                                 mlv_debg_printf
