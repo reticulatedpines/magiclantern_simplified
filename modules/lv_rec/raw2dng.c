@@ -69,7 +69,12 @@ int main(int argc, char** argv)
     CHECK(fi, "could not open %s", argv[1]);
     if (sizeof(lv_rec_file_footer_t) != 192) FAIL("sizeof(lv_rec_file_footer_t) = %d, should be 192", sizeof(lv_rec_file_footer_t));
     
-    fseeko(fi, -192, SEEK_END);
+    #if defined(__WIN32)
+        fseeko64(fi, -192, SEEK_END);
+    #else
+        fseeko(fi, -192, SEEK_END);
+    #endif
+    
     int r = fread(&lv_rec_footer, 1, sizeof(lv_rec_file_footer_t), fi);
     CHECK(r == sizeof(lv_rec_file_footer_t), "footer");
     raw_info = lv_rec_footer.raw_info;
@@ -171,7 +176,7 @@ int raw_get_pixel(int x, int y) {
     return p->a;
 }
 
-int raw_set_pixel(int x, int y, int value)
+void raw_set_pixel(int x, int y, int value)
 {
     struct raw_pixblock * p = (void*)raw_info.buffer + y * raw_info.pitch + (x/8)*14;
     switch (x%8) {
@@ -184,7 +189,6 @@ int raw_set_pixel(int x, int y, int value)
         case 6: p->g_lo = value; p->g_hi = value >> 2; break;
         case 7: p->h = value; break;
     }
-    return p->a;
 }
 
 /**
@@ -545,7 +549,7 @@ static inline int FC(int row, int col)
 
 void find_and_fix_cold_pixels(int fix, int framenumber)
 {
-    #define MAX_COLD_PIXELS 5000
+    #define MAX_COLD_PIXELS 200000
   
     struct xy { int x; int y; };
     

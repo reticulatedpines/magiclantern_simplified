@@ -3,18 +3,7 @@
 
 // BGMT Button codes as received by gui_main_task
 
-#define BGMT_BUTTON_HANDLING_EVENT_TYPE 0 // Event type for button handing
 
-// Generic button code sent after many events or initialization (non-deterministic)
-#define BGMT_UNKNOWN1 0xF
-#define BGMT_UNKNOWN2 0x11
-#define BGMT_UNKNOWN3 0x34
-#define BGMT_UNKNOWN4 0x4C
-#define BGMT_UNKNOWN5 0x54
-#define BGMT_UNKNOWN6 0x56
-#define BGMT_UNKNOWN7 0x58
-#define BGMT_UNKNOWN8 0x59
-#define BGMT_UNKNOWN9 0x61
 
 
 
@@ -47,10 +36,7 @@
 #define BGMT_ISO 0x33 // new
 
 #define BGMT_PRESS_HALFSHUTTER 0x48 // was 0x3F, shared with magnify/zoom out
-#define BGMT_UNPRESS_HALFSHUTTER 0x49 // was 0x40, shared with magnify/zoom out, shared with unpress full shutter?
-#define BGMT_PRESS_FULLSHUTTER 0x52    // was 0x41, can't return 0 to block this (to verify)...
 
-//~ #define BGMT_SHUTDOWN 0x53 // new
 
 #define GMT_OLC_INFO_CHANGED 0x61 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
 #define GMT_LOCAL_DIALOG_REFRESH_LV 0x34 // event type = 2, gui code = 0x100000a1 in 600d
@@ -64,7 +50,6 @@
 #define BGMT_FLASH_MOVIE (event->type == 0 && event->param == 0x61 && is_movie_mode() && event->arg == 9)
 #define BGMT_PRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x4000000))
 #define BGMT_UNPRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x4000000) == 0)
-#define FLASH_BTN_MOVIE_MODE (get_disp_pressed() && lv)
 
 #define BGMT_PRESS_ZOOMOUT_MAYBE 0x10
 #define BGMT_UNPRESS_ZOOMOUT_MAYBE 0x11

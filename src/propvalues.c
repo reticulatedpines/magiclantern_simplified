@@ -5,23 +5,46 @@
 #include "dryos.h"
 #include "bmp.h"
 
-#define _propvalues_h_
+#define _DONT_INCLUDE_PROPVALUES_
 #include "property.h"
+#include "shoot.h"
 
 char __camera_model_short[8] = CAMERA_MODEL;
 char camera_model[32];
 uint32_t camera_model_id = 0;
 char firmware_version[32];
+char camera_serial[32];
 
+/* is_camera("5D3", "1.2.3") - will check for a specific camera / firmware version */
+/* is_camera("5D3", "*") - will accept all firmware versions */
 int is_camera(const char * model, const char * firmware)
 {
-    return streq(__camera_model_short, model) && streq(firmware_version, firmware);
+    return 
+        streq(__camera_model_short, model) &&                           /* check camera model */
+        (streq(firmware_version, firmware) || streq(firmware, "*"));    /* check firmware version */
 }
 
 PROP_HANDLER(PROP_CAM_MODEL)
 {
     memcpy((char *)&camera_model_id, (void*)buf + 32, 4);
     snprintf(camera_model, sizeof(camera_model), (const char *)buf);
+}
+
+PROP_HANDLER(PROP_BODY_ID)
+{
+    /* different camera serial lengths */
+    if(len == 8)
+    {
+        snprintf(camera_serial, sizeof(camera_serial), "%X%08X", (uint32_t)(*((uint64_t*)buf) & 0xFFFFFFFF), (uint32_t) (*((uint64_t*)buf) >> 32));
+    }
+    else if(len == 4)
+    {
+        snprintf(camera_serial, sizeof(camera_serial), "%08X", *((uint32_t*)buf));
+    }
+    else
+    {
+        snprintf(camera_serial, sizeof(camera_serial), "(unknown len %d)", len);
+    }
 }
 
 PROP_HANDLER(PROP_FIRMWARE_VER)
@@ -47,10 +70,11 @@ volatile PROP_INT(PROP_LV_MOVIE_SELECT, lv_movie_select);
 volatile PROP_INT(PROP_ACTIVE_SWEEP_STATUS, sensor_cleaning);
 volatile PROP_INT(PROP_BURST_COUNT, burst_count);
 volatile PROP_INT(PROP_BATTERY_POWER, battery_level_bars);
-//~ int battery_level_bars = 0;
-PROP_INT(PROP_MOVIE_SOUND_RECORD, sound_recording_mode);
+volatile PROP_INT(PROP_MOVIE_SOUND_RECORD, sound_recording_mode);
 volatile PROP_INT(PROP_DATE_FORMAT, date_format);
 volatile PROP_INT(PROP_AUTO_POWEROFF_TIME, auto_power_off_time)
+volatile PROP_INT(PROP_VIDEO_SYSTEM, video_system_pal);
+volatile PROP_INT(PROP_LV_FOCUS_STATUS, lv_focus_status);
 
 #ifdef CONFIG_NO_DEDICATED_MOVIE_MODE
 int ae_mode_movie = 1;
@@ -200,4 +224,45 @@ PROP_HANDLER( PROP_COPYRIGHT_STRING )
 {
     if( len > sizeof(copyright_info) ) len = sizeof(copyright_info);
     memcpy( copyright_info, buf, len );
+}
+
+char* get_video_mode_name(int include_fps)
+{
+    static char zoom_msg[12];
+    snprintf(zoom_msg, sizeof(zoom_msg), "ZOOM-X%d", lv_dispsize);
+    
+    char* video_mode = 
+        is_pure_play_photo_mode()                   ? "PLAY-PH"  :      /* Playback, reviewing a picture */
+        is_pure_play_movie_mode()                   ? "PLAY-MV"  :      /* Playback, reviewing a video */
+        is_play_mode()                              ? "PLAY-UNK" :
+        lv && lv_dispsize!=1                        ? zoom_msg   :      /* Some zoom in LiveView */
+        lv && lv_dispsize==1 && !is_movie_mode()    ? "PH-LV"    :      /* Photo LiveView */
+        !is_movie_mode() && QR_MODE                 ? "PH-QR"    :      /* Photo QuickReview (right after taking a picture) */
+        !is_movie_mode()                            ? "PH-UNK"   :
+        video_mode_resolution == 0 && !video_mode_crop && !RECORDING_H264 ? "MV-1080"  :    /* Movie 1080p, standby */
+        video_mode_resolution == 1 && !video_mode_crop && !RECORDING_H264 ? "MV-720"   :    /* Movie 720p, standby */
+        video_mode_resolution == 2 && !video_mode_crop && !RECORDING_H264 ? "MV-480"   :    /* Movie 480p, standby */
+        video_mode_resolution == 0 &&  video_mode_crop && !RECORDING_H264 ? "MVC-1080" :    /* Movie 1080p crop (3x zoom as with 600D), standby */
+        video_mode_resolution == 2 &&  video_mode_crop && !RECORDING_H264 ? "MVC-480"  :    /* Movie 480p crop (as with 550D), standby */
+        video_mode_resolution == 0 && !video_mode_crop &&  RECORDING_H264 ? "REC-1080" :    /* Movie 1080p, recording */
+        video_mode_resolution == 1 && !video_mode_crop &&  RECORDING_H264 ? "REC-720"  :    /* Movie 720p, recording */
+        video_mode_resolution == 2 && !video_mode_crop &&  RECORDING_H264 ? "REC-480"  :    /* Movie 480p, recording */
+        video_mode_resolution == 0 &&  video_mode_crop &&  RECORDING_H264 ? "RECC1080" :    /* Movie 1080p crop, recording */
+        video_mode_resolution == 2 &&  video_mode_crop &&  RECORDING_H264 ? "RECC-480" :    /* Movie 480p crop, recording */
+        "MV-UNK";
+    
+    return video_mode;
+}
+
+char* get_display_device_name()
+{
+    char* display_device = 
+        !EXT_MONITOR_CONNECTED                          ? "LCD"      :          /* Built-in LCD */
+        ext_monitor_hdmi && hdmi_code == 20             ? "HDMI-MIR" :          /* HDMI with mirroring enabled (5D3 1.2.3) */
+        ext_monitor_hdmi && hdmi_code == 5              ? "HDMI1080" :          /* HDMI 1080p (high resolution) */
+        ext_monitor_hdmi && hdmi_code == 2              ? "HDMI480 " :          /* HDMI 480p aka HDMI-VGA (use Force HDMI-VGA from ML menu, Display->Advanced; most cameras drop to this mode while recording); */
+        _ext_monitor_rca && video_system_pal            ? "SD-PAL"   :          /* SD monitor (RCA cable), PAL selected in Canon menu */
+        _ext_monitor_rca && !video_system_pal           ? "SD-NTSC"  : "UNK";   /* SD monitor (RCA cable), NTSC selected in Canon menu */
+    
+    return display_device;
 }

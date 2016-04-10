@@ -313,9 +313,11 @@ static void update_resolution_params()
     if (video_mode_resolution == 1 && lv_dispsize == 1 && is_movie_mode()) /* 720p, image squeezed */
     {
         /* assume the raw image should be 16:9 when de-squeezed */
-        int correct_height = max_res_x * 9 / 16;
+        //int correct_height = max_res_x * 9 / 16;
         //int correct_height = max_res_x * 2 / 3; //TODO : FIX THIS, USE FOR NON-FULLFRAME SENSORS!
-        squeeze_factor = (float)correct_height / max_res_y;
+        //squeeze_factor = (float)correct_height / max_res_y;
+        /* 720p mode uses 5x3 binning (5DMK3) or horizontal binning + vertical skipping (other cameras) */
+        squeeze_factor = 1.6666f; // 5.0/3.0
     }
     else squeeze_factor = 1.0f;
 
@@ -496,9 +498,6 @@ static MENU_UPDATE_FUNC(raw_main_update)
     
     refresh_raw_settings(0);
 
-    if (auto_power_off_time)
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "\"Auto power off\" is enabled in Canon menu. Video may stop.");
-
     if (!RAW_IS_IDLE)
     {
         MENU_SET_VALUE(RAW_IS_RECORDING ? "Recording..." : RAW_IS_PREPARING ? "Starting..." : RAW_IS_FINISHING ? "Stopping..." : "err");
@@ -634,7 +633,7 @@ static int add_mem_suite(struct memSuite * mem_suite, int buf_size, int chunk_in
                     ptr += frame_size;
                     size -= frame_size;
                     slot_count++;
-                    //~ console_printf("slot #%d: %d %x\n", slot_count, tag, ptr);
+                    //~ printf("slot #%d: %d %x\n", slot_count, tag, ptr);
                 }
             }
             chunk = GetNextMemoryChunk(mem_suite, chunk);
@@ -1138,9 +1137,9 @@ static void hack_liveview(int unhack)
             cam_550d ? 0xFF2FE5E4 :
             cam_600d ? 0xFF37AA18 :
             cam_650d ? 0xFF527E38 :
-            cam_6d  ? 0xFF52BE94 :
+            cam_6d   ? 0xFF52C684 :
             cam_eos_m ? 0xFF539C1C :
-            cam_700d ? 0xFF52BA7C :
+            cam_700d ? 0xFF52BB60 :
             cam_7d  ? 0xFF345788 :
             cam_60d ? 0xff36fa3c :
             cam_500d ? 0xFF2ABEF8 :
@@ -1311,7 +1310,7 @@ static int FAST process_frame()
         return 0;
     }
 
-    //~ console_printf("saving frame %d: slot %d ptr %x\n", frame_count, capture_slot, ptr);
+    //~ printf("saving frame %d: slot %d ptr %x\n", frame_count, capture_slot, ptr);
 
     int ans = (int) edmac_copy_rectangle_start(ptr, fullSizeBuffer, raw_info.pitch, (skip_x+7)/8*14, skip_y/2*2, res_x*14/8, res_y);
 
@@ -1421,6 +1420,10 @@ static void raw_video_rec_task()
     written = 0; /* in KB */
     uint32_t written_chunk = 0; /* in bytes, for current chunk */
     int last_block_size = 0; /* for detecting early stops */
+    
+    /* disable powersave timer */
+    int powersave_prohibit = 2;
+    prop_request_change(PROP_ICU_AUTO_POWEROFF, &powersave_prohibit, 4);
 
     /* create a backup file, to make sure we can save the file footer even if the card is full */
     char backup_filename[100];
@@ -1566,7 +1569,7 @@ static void raw_video_rec_task()
             int frame_limit = overflow_time * 1024 / 10 * (measured_write_speed * 9 / 100) * 1024 / frame_size / 10;
             if (frame_limit >= 0 && frame_limit < num_frames)
             {
-                //~ console_printf("careful, will overflow in %d.%d seconds, better write only %d frames\n", overflow_time/10, overflow_time%10, frame_limit);
+                //~ printf("careful, will overflow in %d.%d seconds, better write only %d frames\n", overflow_time/10, overflow_time%10, frame_limit);
                 num_frames = MAX(1, frame_limit - 1);
             }
         }
@@ -1828,6 +1831,11 @@ cleanup:
     #endif
     hack_liveview(1);
     redraw();
+    
+    /* re-enable powersave timer */
+    int powersave_permit = 1;
+    prop_request_change(PROP_ICU_AUTO_POWEROFF, &powersave_permit, 4);
+
     raw_recording_state = RAW_IDLE;
 }
 
@@ -2154,11 +2162,11 @@ static unsigned int raw_rec_init()
     cam_50d   = is_camera("50D",  "1.0.9");
     cam_5d3   = is_camera("5D3",  "1.1.3");
     cam_550d  = is_camera("550D", "1.0.9");
-    cam_6d    = is_camera("6D",   "1.1.3");
+    cam_6d    = is_camera("6D",   "1.1.6");
     cam_600d  = is_camera("600D", "1.0.2");
     cam_650d  = is_camera("650D", "1.0.4");
     cam_7d    = is_camera("7D",   "2.0.3");
-    cam_700d  = is_camera("700D", "1.1.3");
+    cam_700d  = is_camera("700D", "1.1.4");
     cam_60d   = is_camera("60D",  "1.1.1");
     cam_500d  = is_camera("500D", "1.1.1");
     

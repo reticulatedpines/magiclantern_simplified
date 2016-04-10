@@ -8,10 +8,6 @@
 #define LEDON 0x138800
 #define LEDOFF 0x838C00
 
-//~ Format dialog consts
-#define FORMAT_BTN "[Q]"
-#define STR_LOC 11
-
 #define CARD_A_MAKER 0x68C8B
 #define CARD_A_MODEL 0x68CBF
 //~ #define CARD_A_LABEL 0x26E000 not good
@@ -56,7 +52,6 @@
 #define YUV422_HD_BUFFER_1 0x54000000
 #define YUV422_HD_BUFFER_2 0x4ee00000
 //~ #define YUV422_HD_BUFFER_3 0x50000080
-#define IS_HD_BUFFER(x)  (1) // disable the check, it's complicated
 
 // see "focusinfo" and Wiki:Struct_Guessing
 #define FOCUS_CONFIRMATION (*(int*)0x276D0)
@@ -64,15 +59,11 @@
 // See "cam event metering"
 #define HALFSHUTTER_PRESSED (*(int*)0x251D4)
 
-#define GMT_IDLEHANDLER_TASK (*(int*)0x2e81c) // dec create_idleHandler_task
 
 // for gui_main_task
 #define GMT_NFUNCS 7
 #define GMT_FUNCTABLE 0xff796dac // dec gui_main_task
-//#define GMT_IDLEHANDLER_TASK (*(int*)0x2e81c) // dec create_idleHandler_task
 
-#define SENSOR_RES_X 5936
-#define SENSOR_RES_Y 3804
 
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int*)0x29754) == 0xF))
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x29754) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
@@ -173,12 +164,7 @@
 #define DISPLAY_TRAP_FOCUS_MSG_BLANK "          "
 
 #define NUM_PICSTYLES 10
-#define PROP_PICSTYLE_SETTINGS(i) ((i) == 1 ? PROP_PICSTYLE_SETTINGS_AUTO : PROP_PICSTYLE_SETTINGS_STANDARD - 2 + i)
 
-#define MOVIE_MODE_REMAP_X SHOOTMODE_ADEP
-#define MOVIE_MODE_REMAP_Y SHOOTMODE_CA
-#define MOVIE_MODE_REMAP_X_STR "A-DEP"
-#define MOVIE_MODE_REMAP_Y_STR "CA"
 
 #define FLASH_MAX_EV 3
 #define FLASH_MIN_EV -10 // not sure if it actually works
@@ -187,6 +173,10 @@
 
 #define DIALOG_MnCardFormatBegin (0x363BC) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x39B98) // similar
+#define FORMATTING_CF_CARD (MEM(0x363B8) == 1)  // in CreateDialogBox(DlgMnCardFormatBegin), *0x363B8 = HALFWORD(arg0); 1=cf, 2=sd
+#define FORMAT_BTN_NAME "[Q]"
+#define FORMAT_BTN BGMT_Q
+#define FORMAT_STR_LOC 13
 
 #define BULB_MIN_EXPOSURE 500
 
@@ -259,3 +249,6 @@
 // temperature convertion from raw-temperature to celsius
 // http://www.magiclantern.fm/forum/index.php?topic=9673.0
 #define EFIC_CELSIUS ((int)efic_temp * 63 / 100 - 72)
+
+// look for "JudgeBottomInfoDispTimerState(%d)"
+#define JUDGE_BOTTOM_INFO_DISP_TIMER_STATE	0x3334C

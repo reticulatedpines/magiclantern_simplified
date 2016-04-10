@@ -8,10 +8,6 @@
 #define LEDON 0x46
 #define LEDOFF 0x44
 
-//~ Format dialog consts
-#define FORMAT_BTN "[PicSty]"
-#define STR_LOC 6
-
 // thanks Indy
 #define HIJACK_INSTR_BL_CSTART  0xFF812AE8
 #define HIJACK_INSTR_BSS_END 0xFF81093C
@@ -43,7 +39,6 @@
 #define YUV422_HD_BUFFER_1 0x44000080
 #define YUV422_HD_BUFFER_2 0x4C000080
 #define YUV422_HD_BUFFER_3 0x50000080
-#define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080 ) // quick check if x looks like a valid HD buffer
 
 // see "focusinfo" and Wiki:Struct_Guessing
 #define FOCUS_CONFIRMATION (*(int*)0x3C54)
@@ -53,10 +48,7 @@
 // See also "cam event metering"
 #define HALFSHUTTER_PRESSED (*(int*)0x1c10)
 
-#define GMT_IDLEHANDLER_TASK (*(int*)0x134f4) // dec create_idleHandler_task
 
-#define SENSOR_RES_X 5792
-#define SENSOR_RES_Y 3804
 
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int*)0x79B8) == 0xF))
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x79B8) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
@@ -140,12 +132,7 @@ int get_lv_stopped_by_user();
 #define DISPLAY_TRAP_FOCUS_MSG_BLANK "     \n     "
 
 #define NUM_PICSTYLES 9
-#define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
 
-#define MOVIE_MODE_REMAP_X SHOOTMODE_ADEP
-#define MOVIE_MODE_REMAP_Y SHOOTMODE_CA
-#define MOVIE_MODE_REMAP_X_STR "A-DEP"
-#define MOVIE_MODE_REMAP_Y_STR "CA"
 
 #define FLASH_MAX_EV 3
 #define FLASH_MIN_EV -10 // not sure if it actually works
@@ -155,6 +142,9 @@ int get_lv_stopped_by_user();
 
 #define DIALOG_MnCardFormatBegin (0x219EC) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x21B0C) // similar
+#define FORMAT_BTN_NAME "[PicStyle]"
+#define FORMAT_BTN BGMT_PICSTYLE
+#define FORMAT_STR_LOC 6
 
 #define BULB_MIN_EXPOSURE 500
 

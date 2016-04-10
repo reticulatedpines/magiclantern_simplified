@@ -254,7 +254,6 @@ NSTUB(0xFF05993C, _prop_cleanup)
 NSTUB(0xFF059988, _prop_request_change)
 NSTUB(0xFF0597E0,  prop_deliver)
 NSTUB(0xFF059868,  prop_register_slave)                     // called by"GUI_RegisterPropertySlave"
-// NSTUB(    ???,  PROPAD_GetPropertyData)                  /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 550D.109 */
 // NSTUB(    ???,  prop_unregister_slave)                   /* present on 7D.203 */
 
 /** RPC (for 7D) **/
@@ -323,6 +322,7 @@ NSTUB(0xFF1A442C,  vsnprintf)                               /** Look in DebugMsg
 ///NSTUB(0xFF05FF18,  SetBitmapVramAddress)                    // where to find bmp_vram_info
 ///NSTUB(0xFF2B0384,  SetOutputTypeByPressInfoToStorage)
 ///NSTUB(0xFF059AA4, _prop_get_value)
+///NSTUB(0xFF05A57C,  PROPAD_GetPropertyData)
 ///NSTUB(0xFF06670C,  bootdisk_disable)
 ///NSTUB(0xFF066700,  bootdisk_enable)
 ///NSTUB(0xFF386868,  cfReadBlk)

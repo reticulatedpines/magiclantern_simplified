@@ -186,6 +186,8 @@ static void opt_set(int num, int den)
             if (*opt0 < 10000) { bmp_printf(FONT_LARGE, 0, 50, "opt_set: err %d %d %d ", i, j, *opt0); return; }
             (*opt) = (*opt0) * num / den;
         }
+        
+        #if MOV_GOP_OPT_NUM_PARAMS
         for (j = 0; j < MOV_GOP_OPT_NUM_PARAMS; j++)
         {
             int* opt0 = (int*) &(mvr_config_copy.fullhd_30fps_gop_opt_0) + i * MOV_GOP_OPT_STEP + j;
@@ -193,6 +195,7 @@ static void opt_set(int num, int den)
             if (*opt0 < 10000) { bmp_printf(FONT_LARGE, 0, 50, "gop_set: err %d %d %d ", i, j, *opt0); return; }
             (*opt) = (*opt0) * num / den;
         }
+        #endif
     }
 #endif
 }

@@ -52,6 +52,10 @@ static volatile int vsync_counter = 0;
 /* waits for N LiveView frames */
 int wait_lv_frames(int num_frames)
 {
+    #ifdef CONFIG_QEMU
+    return 0;   /* fixme: call the vsync hook from qemu-util */
+    #endif
+    
     vsync_counter = 0;
     int count = 0;
     int frame_duration = 1000000 / fps_get_current_x1000();
@@ -142,7 +146,7 @@ static int FAST stateobj_lv_spy(struct state_object * self, int x, int input, in
 
 // sync ML overlay tools (especially Magic Zoom) with LiveView
 // this is tricky...
-#if defined(CONFIG_5D3) || defined(CONFIG_6D)
+#if defined(CONFIG_DIGIC_V)
     if (self == DISPLAY_STATE && (input == INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER))
         lv_vsync_signal();
 #elif defined(CONFIG_5D2)
@@ -158,16 +162,7 @@ static int FAST stateobj_lv_spy(struct state_object * self, int x, int input, in
 		//600D Goes 3 - 4 - 5 5 and 3 ever 1/2 frame
         lv_vsync_signal();
 	}
-#elif defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_100D) //TODO: Check 700D and 100D
-    if (self == DISPLAY_STATE && (input == INPUT_SET_IMAGE_VRAM_PARAMETER_MUTE_FLIP_CBR)) {
-        lv_vsync_signal();
-    }
-#elif defined(CONFIG_EOSM)
-    if (self == EVF_STATE && input == 15 && old_state == 5) {
-        lv_vsync_signal();
-    }
 #endif
-
     // sync display filters (for these, we need to redirect display buffers
     #ifdef DISPLAY_STATE
     #ifdef CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
@@ -258,67 +253,10 @@ static int stateobj_em_spy(struct state_object * self, int x, int input, int z, 
 }
 #endif
 
-#ifdef SCS_STATE
-static int stateobj_scs_spy(struct state_object * self, int x, int input, int z, int t)
-{
-    int ans = StateTransition(self, x, input, z, t);
-    //scs_iso_override_step(); todo
-    return ans;
-}
-#endif
-
-#ifdef SSS_STATE
-static int stateobj_sss_spy(struct state_object * self, int x, int input, int z, int t)
-{
-    int old_state = self->current_state;
-    int ans = StateTransition(self, x, input, z, t);
-    int new_state = self->current_state;
-
-    #if defined(CONFIG_5D3) || defined(CONFIG_6D)
-    if (old_state == 9 && input == 11 && new_state == 9) // sssCompleteMem1ToRaw
-        raw_buffer_intercept_from_stateobj();
-    #endif
-
-    #if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONIFG_100D) //TODO: Check 700D and 100D
-    if (old_state == 10 && input == 11 && new_state == 2) // delayCompleteRawtoSraw
-        raw_buffer_intercept_from_stateobj();
-    #endif
-
-    return ans;
-}
-#endif
-
-#ifdef SDS_FRONT3_STATE
-static int stateobj_sdsf3_spy(struct state_object * self, int x, int input, int z, int t)
-{
-    int old_state = self->current_state;
-    int ans = StateTransition(self, x, input, z, t);
-    int new_state = self->current_state;
-	
-    #if defined(CONFIG_5D2) || defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_7D) || defined(CONFIG_1100D)
-    // SDSf3:(0)  --  3 sdsMem1toRAWcompress-->(1)
-    // SDSf3:(1)  --  3 sdsMem1toJpegDevelop-->(1)
-    if (old_state == 0 && input == 3 && new_state == 1)
-	{
-        raw_buffer_intercept_from_stateobj();
-    }   
-    #elif defined(CONFIG_50D)
-    //~ FrontState - There are only 2
-    //~ * FF882F00 - Mem1toJpeg
-    //~ * FF882C5C - Mem1 to raw
-    //~ * 9 -> Raw (3) -> 10 -> Jpeg(3) -> 8
-    if (old_state == 9 && input == 3 && new_state == 10)
-    {
-        raw_buffer_intercept_from_stateobj();
-    }
-	#endif
-
-    return ans;
-}
-#endif
-
 static int stateobj_start_spy(struct state_object * stateobj, void* spy)
 {
+    ASSERT(streq(stateobj->type, "StateObject"));
+
     if (!StateTransition)
         StateTransition = (void *)stateobj->StateTransition_maybe;
     
@@ -352,18 +290,6 @@ static void state_init(void* unused)
         stateobj_start_spy(EMState, stateobj_em_spy);
     #endif
 
-    #ifdef SCS_STATE
-        stateobj_start_spy(SCS_STATE, stateobj_scs_spy);
-    #endif
-    
-    #ifdef SSS_STATE
-        stateobj_start_spy(SSS_STATE, stateobj_sss_spy);
-    #endif
-    
-    #ifdef SDS_FRONT3_STATE
-        stateobj_start_spy(SDS_FRONT3_STATE, stateobj_sdsf3_spy);
-    #endif
-    
     #ifdef CONFIG_550D
     display_is_on_550D = (DISPLAY_STATEOBJ->current_state != 0);
     #endif

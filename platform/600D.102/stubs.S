@@ -264,7 +264,6 @@ NSTUB(0xFF2A49A0,  ptp_register_handler)
 // NSTUB(    ???,  ptpPropSetUILock)                        /* present on 650D.104, 700D.113 */
 
 /** Properties **/
-NSTUB(0xFF05CB28,  PROPAD_GetPropertyData)
 NSTUB(0xFF05BE6C, _prop_cleanup)
 NSTUB(0xFF05B6E4, _prop_request_change)
 NSTUB(0xFF05BCC4,  prop_deliver)
@@ -344,6 +343,7 @@ NSTUB(0xFF1F94BC,  vsnprintf)
 ///NSTUB(0xFF039D4C,  PD_GetBatteryPower)
 ///NSTUB(0xFF0396E4,  PD_RemoteRelease)
 ///NSTUB(0xFF05BF04,  PROP_GetMulticastProperty)
+///NSTUB(0xFF05CB28,  PROPAD_GetPropertyData)
 ///NSTUB(0xFF1E09F8,  PopEDmac)
 ///NSTUB( 0xFF1A16D0, ReadyLiveViewDevice )
 ///NSTUB( 0xff33a734, RedrawDisplay )

@@ -79,6 +79,7 @@ static struct semaphore * mfile_sem = 0; /* exclusive access to the list of sele
 static int fileman_filetype_registered = 0;
 
 //Prototypes
+static MENU_UPDATE_FUNC(main_update);
 static MENU_SELECT_FUNC(select_dir);
 static MENU_UPDATE_FUNC(update_dir);
 static MENU_SELECT_FUNC(select_file);
@@ -125,11 +126,21 @@ static struct filetype_handler *fileman_find_filetype(char *extension)
     return NULL;
 }
 
+static MENU_UPDATE_FUNC(main_update)
+{
+    if (!is_submenu_or_edit_mode_active())
+    {
+        /* close the viewer if we are at top level (e.g. if we exit the viewer via half-shutter) */
+        view_file = 0;
+    }
+}
+
 static struct menu_entry fileman_menu[] =
 {
     {
         .name = "File Manager",
         .select = menu_open_submenu,
+        .update = main_update,
         .submenu_width = 710,
         .children =  (struct menu_entry[]) {
             MENU_EOL,
@@ -148,7 +159,7 @@ static void clear_file_menu()
     {
         struct file_entry * next = file_entries->next;
         menu_remove("File Manager", file_entries->menu_entry, 1);
-        //console_printf("%s\n", file_entries->name);
+        //printf("%s\n", file_entries->name);
         free(file_entries);
         file_entries = next;
     }
@@ -366,8 +377,8 @@ static void ScanDir(char *path)
         while (p > srcpath && *p != '/') p--;
         *(p+1) = 0;
 
-        console_printf("src: %s\n",srcpath);
-        console_printf("dst: %s\n",path);
+        printf("src: %s\n",srcpath);
+        printf("dst: %s\n",path);
 
         if(strcmp(path,srcpath) != 0)
         {

@@ -47,7 +47,6 @@
 static char* mvr_logfile_buffer = 0;
 /* delay to be waited after mirror is locked */
 CONFIG_INT("mlu.lens.delay", lens_mlu_delay, 7);
-
 static void update_stuff();
 
 //~ extern struct semaphore * bv_sem;
@@ -55,7 +54,6 @@ void bv_update_lensinfo();
 void bv_auto_update();
 static void lensinfo_set_aperture(int raw);
 static void bv_expsim_shift();
-
 
 static CONFIG_INT("movie.log", movie_log, 0);
 #ifdef CONFIG_FULLFRAME
@@ -84,100 +82,6 @@ struct lens_info lens_info = {
     .name        = "NO LENS NAME"
 };
 
-
-/** Compute the depth of field for the current lens parameters.
- *
- * This relies heavily on:
- *     http://en.wikipedia.org/wiki/Circle_of_confusion
- * The CoC value given there is 0.019 mm, but we need to scale things
- */
-static void
-calc_dof(
-    struct lens_info * const info
-)
-{
-    #ifdef CONFIG_FULLFRAME
-    const uint64_t        coc = 29; // 1/1000 mm
-    #else
-    const uint64_t        coc = 19; // 1/1000 mm
-    #endif
-    const uint64_t        fd = info->focus_dist * 10; // into mm
-    const uint64_t        fl = info->focal_len; // already in mm
-
-    // If we have no aperture value then we can't compute any of this
-    // Not all lenses report the focus distance
-    if( fl == 0 || info->aperture == 0 )
-    {
-        info->dof_near        = 0;
-        info->dof_far        = 0;
-        info->hyperfocal    = 0;
-        return;
-    }
-
-    const uint64_t        fl2 = fl * fl;
-
-    // The aperture is scaled by 10 and the CoC by 1000,
-    // so scale the focal len, too.  This results in a mm measurement
-    const uint64_t H = ((1000 * fl2) / (info->aperture  * coc)) * 10;
-    info->hyperfocal = H;
-
-    // If we do not have the focus distance, then we can not compute
-    // near and far parameters
-    if( fd == 0 )
-    {
-        info->dof_near        = 0;
-        info->dof_far        = 0;
-        return;
-    }
-
-    // fd is in mm, H is in mm, but the product of H * fd can
-    // exceed 2^32, so we scale it back down before processing
-    info->dof_near = (H * fd) / ( H + fd ); // in mm
-    if( fd >= H )
-        info->dof_far = 1000 * 1000; // infinity
-    else
-    {
-        info->dof_far = (H * fd) / ( H - fd ); // in mm
-    }
-}
-
-/*
-const char *
-lens_format_dist(
-    unsigned        mm
-)
-{
-    static char dist[ 32 ];
-
-    if( mm > 100000 ) // 100 m
-        snprintf( dist, sizeof(dist),
-            "%d.%1dm",
-            mm / 1000,
-            (mm % 1000) / 100
-        );
-    else
-    if( mm > 10000 ) // 10 m
-        snprintf( dist, sizeof(dist),
-            "%2d.%02dm",
-            mm / 1000,
-            (mm % 1000) / 10
-        );
-    else
-    if( mm >  1000 ) // 1 m
-        snprintf( dist, sizeof(dist),
-            "%1d.%03dm",
-            mm / 1000,
-            (mm % 1000)
-        );
-    else
-        snprintf( dist, sizeof(dist),
-            "%dcm",
-            mm / 10
-        );
-
-    return dist;
-}*/
-
 const char * lens_format_dist( unsigned mm)
 {
    static char dist[ 32 ];
@@ -200,17 +104,18 @@ const char * lens_format_dist( unsigned mm)
     }
     else
     {
-        if( mm > 10000 ) // 10 m
+        if ( mm >= 10000 ) // 10 m
         {
-            snprintf( dist, sizeof(dist), "%2d"SYM_SMALL_M, mm / 1000);
+            snprintf( dist, sizeof(dist), "%d"SYM_SMALL_M, mm / 1000);
         }
-        else    if( mm >  1000 ) // 1 m
+        else if( mm >= 1000 ) // 1 m
         {
-            snprintf( dist, sizeof(dist), "%1d.%1d"SYM_SMALL_M, mm / 1000, (mm % 1000)/100 );
+            int meters_x100 = mm / 10;
+            snprintf( dist, sizeof(dist), "%s%d.%02d"SYM_SMALL_M, FMT_FIXEDPOINT2(meters_x100));
         }
         else
         {
-            snprintf( dist, sizeof(dist),"%2d"SYM_SMALL_C SYM_SMALL_M, mm / 10 );
+            snprintf( dist, sizeof(dist),"%d"SYM_SMALL_C SYM_SMALL_M, mm / 10 );
         }
     }
 
@@ -305,6 +210,7 @@ char* get_shootmode_name(int shooting_mode)
         shooting_mode == SHOOTMODE_TV ?         "Tv" :
         shooting_mode == SHOOTMODE_AV ?         "Av" :
         shooting_mode == SHOOTMODE_CA ?         "CA" :
+        shooting_mode == SHOOTMODE_AP ?         "A+" :
         shooting_mode == SHOOTMODE_ADEP ?       "ADEP" :
         shooting_mode == SHOOTMODE_AUTO ?       "Auto" :
         shooting_mode == SHOOTMODE_LANDSCAPE ?  "Landscape" :
@@ -313,6 +219,8 @@ char* get_shootmode_name(int shooting_mode)
         shooting_mode == SHOOTMODE_MACRO ?      "Macro" :
         shooting_mode == SHOOTMODE_SPORTS ?     "Sports" :
         shooting_mode == SHOOTMODE_NIGHT ?      "Night" :
+        shooting_mode == SHOOTMODE_NIGHTH ?     "Night Handheld" :
+        shooting_mode == SHOOTMODE_HDR ?        "HDR Backlight" :
         shooting_mode == SHOOTMODE_BULB ?       "Bulb" :
         shooting_mode == SHOOTMODE_C ?          "C1" :
         shooting_mode == SHOOTMODE_C2 ?         "C2" :
@@ -335,6 +243,7 @@ char* get_shootmode_name_short(int shooting_mode)
         shooting_mode == SHOOTMODE_TV ?         "Tv" :
         shooting_mode == SHOOTMODE_AV ?         "Av" :
         shooting_mode == SHOOTMODE_CA ?         "CA" :
+        shooting_mode == SHOOTMODE_AP ?         "A+" :
         shooting_mode == SHOOTMODE_ADEP ?       "AD" :
         shooting_mode == SHOOTMODE_AUTO ?       "[]" :
         shooting_mode == SHOOTMODE_LANDSCAPE ?  "LD" :
@@ -343,6 +252,8 @@ char* get_shootmode_name_short(int shooting_mode)
         shooting_mode == SHOOTMODE_MACRO ?      "MC" :
         shooting_mode == SHOOTMODE_SPORTS ?     "SP" :
         shooting_mode == SHOOTMODE_NIGHT ?      "NI" :
+        shooting_mode == SHOOTMODE_NIGHTH ?     "NH" :
+        shooting_mode == SHOOTMODE_HDR ?        "HB" :
         shooting_mode == SHOOTMODE_BULB ?       "B"  :
         shooting_mode == SHOOTMODE_C ?          "C1" :
         shooting_mode == SHOOTMODE_C2 ?         "C2" :
@@ -374,8 +285,50 @@ void draw_ml_bottombar()
     lvinfo_display(0,1);
 }
 
+static int round_nicely(int x, int digits)
+{
+    int x0 = x;
+    
+    /* round X to N significant digits */
+    /* e.g. 1234 rounded to 2 digits => 1200 */
+    int thr = powi(10, digits);
+    
+    if (x < thr/10) return x;
+    
+    int f = 1;
+    while (x >= thr)
+    {
+        if ((x + 2) / 5 == 25)
+        {
+            /* exception: allow 125, 1250 and so on, because Canon does it as well */
+            x = (x + 2) / 5;
+            f *= 5;
+        }
+        else
+        {
+            x = (x + 5) / 10;
+            f *= 10;
+        }
+    }
+    
+    /* re-round to cancel accumulated errors, if any */
+    x = (x0 + f/2) / f;
+    
+    /* avoid ending in odd digits if the number is large (e.g. allow 11, 13, 19, 21, but don't allow 61 or 79) */
+    int last_digit = x % 10;
+    int next_digit = (x / 10) % 10;
+    if ((last_digit == 1 || last_digit == 3 || last_digit == 7 || last_digit == 9) && next_digit >= 5)
+    {
+        f *= 2;
+        x = (x0 + f/2) / f;
+    }
+    
+    return x * f;
+}
+
 // Pretty prints the shutter speed given the shutter reciprocal (times 1000) as input
-char* lens_format_shutter_reciprocal(int shutter_reciprocal_x1000)
+// To be used in movie mode; it doesn't try too hard to be consistent with Canon values
+char* lens_format_shutter_reciprocal(int shutter_reciprocal_x1000, int digits)
 {
     static char shutter[32];
     if (shutter_reciprocal_x1000 == 0)
@@ -386,27 +339,20 @@ char* lens_format_shutter_reciprocal(int shutter_reciprocal_x1000)
     {
         snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%dK", (shutter_reciprocal_x1000+500000)/1000000);
     }
-    else if (shutter_reciprocal_x1000 == 33333 && is_movie_mode())
-    {
-        /* exception, to avoid flicker with artificial lights (don't round this one to preferred numbers) */
-        snprintf(shutter, sizeof(shutter), SYM_1_SLASH"33");
-    }
     else if (shutter_reciprocal_x1000 > 24000)
     {
-        /* TODO: should use binary search, because the shutter speeds array is sorted */
-        int best_err = INT_MAX;
-        int best_shutter = 0;
-        for (int i = 0; i < COUNT(values_shutter); i++)
+        int shutter_rounded = round_nicely(shutter_reciprocal_x1000, digits);
+        
+        if (digits <= 2)
         {
-            int tested_shutter = values_shutter[i] * 1000;
-            int err = ABS(tested_shutter - shutter_reciprocal_x1000);
-            if (err < best_err)
-            {
-                best_shutter = tested_shutter;
-                best_err = err;
-            }
+            snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%d", shutter_rounded/1000);
         }
-        snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%d", (best_shutter+500)/1000);
+        else
+        {
+            /* todo: compute how many digits should be after the decimal point? */
+            shutter_rounded = (shutter_rounded + 5) / 10;
+            snprintf(shutter, sizeof(shutter), SYM_1_SLASH"%s%d.%02d", FMT_FIXEDPOINT2(shutter_rounded));
+        }
     }
     else if (shutter_reciprocal_x1000 > 3000)
     {
@@ -424,6 +370,7 @@ char* lens_format_shutter_reciprocal(int shutter_reciprocal_x1000)
 }
 
 // Pretty prints the shutter speed given the raw shutter value as input
+// To be used in photo mode; it will try to be somewhat consistent with Canon values
 char* lens_format_shutter(int tv)
 {
     static char shutter[32];
@@ -746,9 +693,14 @@ lens_take_picture(
     // in some cases, the MLU setting is ignored; if ML can't detect this properly, this call will actually take a picture
     // if it happens (e.g. with LV active, but camera in QR mode), that's it, we won't try taking another one
     // side effects should be minimal
+#if defined(CONFIG_EOSM)
+    call("Release"); //EOSM is mirrorless no need to check for MLU
+    goto end;
+#else
     int took_pic = mlu_lock_mirror_if_needed();
     if (took_pic) goto end;
-
+#endif
+    
     #if defined(CONFIG_5D2) || defined(CONFIG_50D)
     if (get_mlu())
     {
@@ -1001,6 +953,10 @@ bswap16(
 
 PROP_HANDLER( PROP_MVR_REC_START )
 {
+    /* there might be a false trigger at startup - issue #1992 */
+    extern int ml_started;
+    if (!ml_started) return;
+
     mvr_rec_start_shoot(buf[0]);
     
     #ifdef FEATURE_MOVIE_LOGGING
@@ -1208,10 +1164,13 @@ PROP_HANDLER( PROP_SHUTTER )
 }
 
 static int aperture_ack = -1;
-PROP_HANDLER( PROP_APERTURE2 )
+PROP_HANDLER( PROP_APERTURE )
 {
     //~ NotifyBox(2000, "%x %x %x %x ", buf[0], CONTROL_BV, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
-    if (!CONTROL_BV) lensinfo_set_aperture(buf[0]);
+    if (!CONTROL_BV)
+    {
+        lensinfo_set_aperture(buf[0]);
+    }
     #ifdef FEATURE_EXPO_OVERRIDE
     else if (buf[0] && !gui_menu_shown()
         #ifdef CONFIG_MOVIE_EXPO_OVERRIDE_DISABLE_SYNC_WITH_PROPS
@@ -1227,22 +1186,50 @@ PROP_HANDLER( PROP_APERTURE2 )
     aperture_ack = buf[0];
 }
 
-PROP_HANDLER( PROP_APERTURE ) // for Tv mode
+PROP_HANDLER( PROP_APERTURE_AUTO )
 {
-    if (!CONTROL_BV) lensinfo_set_aperture(buf[0]);
+    /* this gets updated in Tv mode (where PROP_APERTURE is not updated); same for P, Auto and so on */
+    /* it becomes 0 when camera is no longer metering */
+
+    if (shooting_mode == SHOOTMODE_M || shooting_mode == SHOOTMODE_AV)
+    {
+        /* in these modes, aperture is not automatic */
+        /* however, this property sometimes becomes 0 in these modes as well, but this is not desired */
+        if (buf[0] == 0)
+            return;
+    }
+
+    if (!CONTROL_BV)
+    {
+        /* expo override turned off? */
+        lensinfo_set_aperture(buf[0]);
+    }
+
     lens_display_set_dirty();
 }
 
-static int shutter_also_ack = -1;
-PROP_HANDLER( PROP_SHUTTER_ALSO ) // for Av mode
+PROP_HANDLER( PROP_SHUTTER_AUTO )
 {
+    /* this gets updated in Av mode (where PROP_SHUTTER is not updated); same for P, Auto and so on */
+    /* it becomes 0 when camera is no longer metering */
+    
+    if (shooting_mode == SHOOTMODE_M || shooting_mode == SHOOTMODE_TV)
+    {
+        /* in these modes, shutter is not automatic */
+        /* however, this property sometimes becomes 0 in these modes as well, but this is not desired */
+        if (buf[0] == 0)
+            return;
+    }
+    
     if (!CONTROL_BV)
     {
+        /* expo override turned off? */
+        /* todo: double-check if it's still needed */
         if (ABS(buf[0] - lens_info.raw_shutter) > 3) 
             lensinfo_set_shutter(buf[0]);
     }
+    
     lens_display_set_dirty();
-    shutter_also_ack = buf[0];
 }
 
 static int ae_ack = 12345;
@@ -1391,7 +1378,7 @@ void iso_components_update()
 
 static void update_stuff()
 {
-    calc_dof( &lens_info );
+    focus_calc_dof();
     //~ if (gui_menu_shown()) lens_display_set_dirty();
     
     #ifdef FEATURE_MOVIE_LOGGING
@@ -2372,7 +2359,7 @@ static LVINFO_UPDATE_FUNC(tv_update)
     }
     else if (is_movie_mode())
     {
-        snprintf(buffer, sizeof(buffer), "%s", lens_format_shutter_reciprocal(get_current_shutter_reciprocal_x1000()));
+        snprintf(buffer, sizeof(buffer), "%s", lens_format_shutter_reciprocal(get_current_shutter_reciprocal_x1000(), 2));
     }
     else if (lens_info.raw_shutter)
     {
@@ -2519,16 +2506,8 @@ static LVINFO_UPDATE_FUNC(wb_update)
     }
 }
 
-
-static LVINFO_UPDATE_FUNC(focus_dist_update)
-{
-    LVINFO_BUFFER(16);
-    
-    if(lens_info.focus_dist)
-    {
-        snprintf(buffer, sizeof(buffer), "%s", lens_format_dist( lens_info.focus_dist * 10 ));
-    }
-}
+/* in focus.c */
+extern LVINFO_UPDATE_FUNC(focus_dist_update);
 
 static LVINFO_UPDATE_FUNC(af_mf_update)
 {

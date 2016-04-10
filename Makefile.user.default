@@ -11,7 +11,8 @@ ifeq ($(UNAME), Darwin)
 else
 	# Default settings for remaining operating systems
 	UMOUNT=umount
-	CF_CARD="/media/EOS_DIGITAL/"
+	# CF_CARD=/media/EOS_DIGITAL
+	CF_CARD:=$(shell mount | grep -oE "[^ ]+/EOS_DIGITAL[^ ]*")
 	STAT_CMD=stat -c "%n: %s bytes"
 endif
 
@@ -137,6 +138,7 @@ CONFIG_TINYPY       = n
 # Work in progress - would be nice to run the unmodified autoexec.bin in QEMU, but we are not there yet
 # so, for now, we'll just hack the source code to work around the limitations of the emulator
 CONFIG_QEMU         = n
+CONFIG_QEMU_MENU_SCREENSHOTS = n
 
 # Work in progress - load ML as position-independent code (PIC)
 CONFIG_PIC          = n

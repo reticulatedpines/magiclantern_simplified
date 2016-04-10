@@ -125,10 +125,20 @@ int
 bootflag_write_bootblock( void )
 {
 #if defined(CONFIG_7D)
-    struct cf_device * const dev = (struct cf_device *)cf_device[6];
+    struct cf_device * const dev = (struct cf_device *) cf_device[6];
+#elif defined(CONFIG_5D3)
+    /* dual card slot */
+    int ml_on_cf = (get_ml_card()->drive_letter[0] == 'A');
+    extern struct cf_device ** cf_device_ptr[];
+    struct cf_device * const dev = (struct cf_device *) (ml_on_cf ? cf_device_ptr[0][4] : sd_device[1]);
 #else
-    struct cf_device * const dev = (struct cf_device *)sd_device[1];
+    struct cf_device * const dev = (struct cf_device *) sd_device[1];
 #endif
+
+    if (!dev)
+    {
+        return 0;
+    }
 
     uint8_t *block = fio_malloc( 512 );
     int i;

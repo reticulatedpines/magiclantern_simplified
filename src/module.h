@@ -1,12 +1,13 @@
 #ifndef _module_h_
 #define _module_h_
 
+#include <stdint.h>
+
 #define MODULE_PATH                   "ML/MODULES/"
 
 /* module info structures */
 #define MODULE_INFO_PREFIX            __module_info_
 #define MODULE_STRINGS_PREFIX         __module_strings_
-#define MODULE_PARAMS_PREFIX          __module_params_
 #define MODULE_PROPHANDLERS_PREFIX    __module_prophandlers_
 #define MODULE_CBR_PREFIX             __module_cbr_
 #define MODULE_CONFIG_PREFIX          __module_config_
@@ -50,6 +51,7 @@
 
 #define CBR_CUSTOM_PICTURE_TAKING    11 /* special types of picture taking (e.g. silent pics); so intervalometer and other photo taking routines should use that instead of regular pics */
 #define CBR_INTERVALOMETER           12 /* called after a picture is taken with the intervalometer */
+#define CBR_CONFIG_SAVE              13 /* called when ML configs are being saved */
 
 /* return values from CBRs */
 #define CBR_RET_CONTINUE              0             /* keep calling other CBRs of the same type */
@@ -127,19 +129,6 @@ typedef struct
     unsigned int (*deinit) ();
 } module_info_t;
 
-/* modules can have parameters - optional */
-typedef struct
-{
-    /* pointer to parameter in memory */
-    const void *parameter;
-    /* stringified type like "uint32_t", "int32_t". restrict to stdint.h types */
-    const char *type;
-    /* name of the parameter, must match to variable name */
-    const char *name;
-    /* description for the user */
-    const char *desc;
-} module_parminfo_t;
-
 /* this struct supplies additional information like license, author etc - optional */
 typedef struct
 {
@@ -168,7 +157,7 @@ typedef struct
 typedef struct
 {
     const char *name;
-    void (*handler)(unsigned int property, void * priv, void * addr, unsigned int len);
+    void (*handler)(unsigned int property, void * priv, uint32_t * addr, unsigned int len);
     const unsigned int property;
     const unsigned int property_length;
 } module_prophandler_t;
@@ -184,7 +173,6 @@ typedef struct
     char long_status[MODULE_LONG_STATUS_LENGTH+1];
     module_info_t *info;
     module_strpair_t *strings;
-    module_parminfo_t *params;
     module_prophandler_t **prop_handlers;
     module_cbr_t *cbr;
     module_config_t *config;
@@ -231,13 +219,6 @@ typedef struct
 #define MODULE_CONFIGS_END()                                        { (void *)0, (void *)0 }\
                                                                 };
                                                                 
-#define MODULE_PARAMS_START()                                   MODULE_PARAMS_START_(MODULE_PARAMS_PREFIX,MODULE_NAME)
-#define MODULE_PARAMS_START_(prefix,modname)                    MODULE_PARAMS_START__(prefix,modname)
-#define MODULE_PARAMS_START__(prefix,modname)                   module_parminfo_t prefix##modname[] = {
-#define MODULE_PARAM(var,typestr,descr)                             { .parameter = &var, .name = #var, .type = typestr, .desc = descr },
-#define MODULE_PARAMS_END()                                         { (void *)0, (const char *)0, (const char *)0, (const char *)0 }\
-                                                                };
-
 #define MODULE_PROPHANDLERS_START()                             MODULE_PROPHANDLERS_START_(MODULE_PROPHANDLERS_PREFIX,MODULE_NAME,MODULE_PROPHANDLER_PREFIX)
 #define MODULE_PROPHANDLERS_START_(prefix,modname,ph_prefix)    MODULE_PROPHANDLERS_START__(prefix,modname,ph_prefix)
 #define MODULE_PROPHANDLERS_START__(prefix,modname,ph_prefix)   module_prophandler_t *prefix##modname[] = {
@@ -250,7 +231,7 @@ typedef struct
 #if defined(MODULE)
 #define PROP_HANDLER(id)                                        MODULE_PROP_ENTRY_(MODULE_PROPHANDLER_PREFIX,MODULE_NAME, id, #id)
 #define MODULE_PROP_ENTRY_(prefix,modname,id,idstr)             MODULE_PROP_ENTRY__(prefix,modname,id,idstr)
-#define MODULE_PROP_ENTRY__(prefix,modname,id,idstr)            void prefix##modname##_##id(unsigned int, void *, void *, unsigned int);\
+#define MODULE_PROP_ENTRY__(prefix,modname,id,idstr)            void prefix##modname##_##id(unsigned int, void *, uint32_t *, unsigned int);\
                                                                 module_prophandler_t prefix##modname##_##id##_block = { \
                                                                     .name            = idstr, \
                                                                     .handler         = &prefix##modname##_##id, \
@@ -260,9 +241,16 @@ typedef struct
                                                                 void prefix##modname##_##id( \
                                                                         unsigned int property, \
                                                                         void *       token, \
-                                                                        void *       buf, \
+                                                                        uint32_t *   buf, \
                                                                         unsigned int len \
                                                                 )
+
+#define PROP_INT(id,name) \
+volatile uint32_t name; \
+PROP_HANDLER(id) { \
+        name = buf[0]; \
+}
+
 #endif
 
 
