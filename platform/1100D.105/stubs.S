@@ -250,7 +250,6 @@ NSTUB(0xFF05BBE4, _prop_cleanup)                            // might be good (du
 NSTUB(0xFF05B45C, _prop_request_change)                     // might be good (dumps=1, score=1.7e+02)
 NSTUB(0xFF05BA3C,  prop_deliver)                            // might be good (dumps=1, score=44)
 NSTUB(0xFF05BAC4,  prop_register_slave)                     // might be good (dumps=1, score=39)
-// NSTUB(    ???,  PROPAD_GetPropertyData)                  /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 550D.109 */
 // NSTUB(    ???,  prop_unregister_slave)                   /* present on 7D.203 */
 
 /** RPC (for 7D) **/

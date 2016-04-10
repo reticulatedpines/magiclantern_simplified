@@ -18,6 +18,7 @@
  * Boston, MA  02110-1301, USA.
  */
 
+#include "stdint.h"
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"

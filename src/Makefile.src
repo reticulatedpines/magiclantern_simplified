@@ -204,7 +204,10 @@ magiclantern: $(ML_OBJS-y) $(ML_LIBC)
 reboot.o: $(SRC_DIR)/reboot.c $(PLATFORM_DIR)/version.bin magiclantern.bin
 
 ifndef ML_SRC_REBOOT_OBJ
-ML_SRC_REBOOT_OBJ = reboot.o
+ML_SRC_REBOOT_OBJ = reboot.o \
+	disp_direct.o font_direct.o \
+	strlen.o strcmp.o gcc-libgcc.a \
+	footer.o
 endif
 
 clean::
@@ -300,17 +303,15 @@ $(PLATFORM_DIR)/version.c: FORCE
 	@echo 'const char build_date[] ="'`$(DATE) "+%Y-%m-%d %H:%M:%S %Z"`'";' >> $@
 	@echo 'const char build_user[] = "'`whoami`@`hostname`'";'  >> $@
 
-# this must have exactly 0x11C (284) bytes, see reboot.c
 $(PLATFORM_DIR)/version.bin: FORCE
-	$(call build,"VERSION",echo -e '\b\b\b\bMagic Lantern $(VERSION)') > $@
-	@echo 'Mercurial changeset: '`hg id` >> $@
-	@echo 'Built on '`date -u "+%Y-%m-%d %H:%M:%S"`' by '`whoami`@`hostname` >> $@
+	$(call build,"VERSION",echo '') > $@
 	@echo '' >> $@
-	@echo 'Camera  : $(MODEL)' >> $@
-	@echo 'Firmware: $(FW_VERSION)' >> $@
-	@echo -e '\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n' >> $@
-	@echo -e '\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n' >> $@
-	@truncate -s 284 $@
+	@echo 'Magic Lantern $(VERSION)' >> $@
+	@echo 'Camera   : $(MODEL)' >> $@
+	@echo 'Firmware : $(FW_VERSION)' >> $@
+	@echo 'Changeset: '`hg id` >> $@
+	@echo 'Built on : '`date -u "+%Y-%m-%d %H:%M:%S"`' by '`whoami`@`hostname` >> $@
+	@echo -e '\n\n\n\n\n' >> $@
 
 $(SRC_DIR)/menuindexentries.h:
 	$(call build,"MENU IDX", if [ -f $(DOC_DIR)/menuindex.txt ]; then \
@@ -320,7 +321,7 @@ $(SRC_DIR)/menuindexentries.h:
 		echo "No menuindex.txt! The \"Complete user guide\" menu is empty!" ; \
 		echo "Run make docq to update menuindex.txt." ; \
 		echo ; \
-		truncate -s 0 $@ ; \
+		echo '' > $@ ; \
 	fi)
 
 menuindex.o: $(SRC_DIR)/menuindexentries.h
@@ -329,3 +330,7 @@ clean::
 	$(call rm_files, version.c version.bin)
 
 FORCE:
+
+# fixme: better place for this?
+include $(BUILD_TOOLS_DIR)/Makefile
+

@@ -227,31 +227,31 @@ static struct menu_entry iso_test_menus[] = {
             {
                 .name = "Response curve @ current ISO",
                 .priv = iso_response_curve_current,
-                .select = (void (*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .help = "MOV: point camera at smth bright, 1/30, f1.8. Takes 1 min.",
             },
             {
                 .name = "Test ISO 100x/160x/80x series",
                 .priv = iso_response_curve_160,
-                .select = (void (*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .help = "ISO 100,200..3200, 80eq,160/160eq...2500/eq. Takes 20 min.",
             },
             {
                 .name = "Test 70x/65x/50x series",
                 .priv = iso_response_curve_logain,
-                .select = (void (*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .help = "ISOs with -0.5/-0.7/-0.8 EV of DIGIC gain. Takes 20 mins.",
             },
             {
                 .name = "Test HTP series",
                 .priv = iso_response_curve_htp,
-                .select = (void (*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .help = "Full-stop ISOs with HTP on. Also with -1 EV of DIGIC gain.",
             },
             {
                 .name = "Movie test",
                 .priv = iso_movie_test,
-                .select = (void (*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .help = "Records two test movies, changing settings every 2 seconds.",
             },
             MENU_EOL

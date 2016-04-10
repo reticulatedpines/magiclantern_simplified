@@ -408,9 +408,6 @@ seconds_clock_task( void* unused )
 }
 TASK_CREATE( "clock_task", seconds_clock_task, 0, 0x19, 0x2000 );
 
-
-static PROP_INT(PROP_VIDEO_SYSTEM, pal);
-
 #ifdef FEATURE_INTERVALOMETER
 
 static MENU_UPDATE_FUNC(timelapse_calc_display)
@@ -421,7 +418,7 @@ static MENU_UPDATE_FUNC(timelapse_calc_display)
     int total_time_s = d * total_shots;
     int total_time_m = total_time_s / 60;
     int fps = video_mode_fps;
-    if (!fps) fps = pal ? 25 : 30;
+    if (!fps) fps = video_system_pal ? 25 : 30;
     MENU_SET_WARNING(MENU_WARN_INFO, 
         "Timelapse: %dh%02dm, %d shots, %d fps => %02dm%02ds.", 
         total_time_m / 60, 
@@ -668,6 +665,15 @@ void get_afframe_pos(int W, int H, int* x, int* y)
     *y = (afframe[3] + afframe[5]/2) * H / afframe[1];
 }
 
+/* get sensor resolution, as specified by PROP_LV_AFFRAME */
+/* (to get valid values, one has to go to LiveView at least once) */
+void get_afframe_sensor_res(int* W, int* H)
+{
+    if (W) *W = afframe[0];
+    if (H) *H = afframe[1];
+}
+
+
 #ifdef FEATURE_LV_ZOOM_SETTINGS
 PROP_HANDLER( PROP_HALF_SHUTTER ) {
     zoom_sharpen_step();
@@ -677,12 +683,8 @@ static int zoom_was_triggered_by_halfshutter = 0;
 
 PROP_HANDLER(PROP_LV_DISPSIZE)
 {
-#if defined(CONFIG_6D) || defined(CONFIG_EOSM) 
-ASSERT(buf[0] == 1 || buf[0]==129 || buf[0] == 5 || buf[0] == 10);
-   
-#else
-   ASSERT(buf[0] == 1 || buf[0] == 5 || buf[0] == 10);
-#endif    
+    /* note: 129 is a special screen before zooming in, on newer cameras */
+    ASSERT(buf[0] == 1 || buf[0]==129 || buf[0] == 5 || buf[0] == 10);
     zoom_sharpen_step();
     
     if (buf[0] == 1) zoom_was_triggered_by_halfshutter = 0;
@@ -1259,6 +1261,8 @@ void expfuse_preview_update_task(int dir)
     void* buf_acc = (void*)YUV422_HD_BUFFER_1;
     void* buf_ws  = (void*)YUV422_HD_BUFFER_2;
     void* buf_lv  = get_yuv422_vram()->vram;
+    if (!buf_lv) goto end;
+    
     int numpix    = get_yuv422_vram()->width * get_yuv422_vram()->height;
     if (!expfuse_running)
     {
@@ -1270,14 +1274,16 @@ void expfuse_preview_update_task(int dir)
     }
     next_image_in_play_mode(dir);
     buf_lv = get_yuv422_vram()->vram; // refresh
-    // add new image
+    if (!buf_lv) goto end;
 
+    // add new image
     weighted_mean_yuv_add_acc32bit_src8bit_ws16bit(buf_acc, buf_lv, buf_ws, numpix);
     weighted_mean_yuv_div_dst8bit_src32bit_ws16bit(buf_lv, buf_acc, buf_ws, numpix);
     expfuse_num_images++;
     bmp_printf(FONT_MED, 0, 0, "%d images  ", expfuse_num_images);
     //~ bmp_printf(FONT_LARGE, 0, 480 - font_large.height, "Do not press Delete!");
 
+end:
     give_semaphore(set_maindial_sem);
 }
 
@@ -1334,6 +1340,8 @@ void expo_adjust_playback(int dir)
     take_semaphore(set_maindial_sem, 0);
 
     uint8_t* current_buf = get_yuv422_vram()->vram;
+    if (!current_buf) goto end;
+    
     int w = get_yuv422_vram()->width;
     int h = get_yuv422_vram()->height;
     int buf_size = w * h * 2;
@@ -1398,6 +1406,7 @@ void expo_adjust_playback(int dir)
         }
     }
 
+end:
     give_semaphore(set_maindial_sem);
 #endif
 }
@@ -1608,7 +1617,7 @@ static MENU_UPDATE_FUNC(shutter_display)
         deg = (deg + 5) / 10;
         MENU_SET_VALUE(
             "%s, %d"SYM_DEGREE,
-            lens_format_shutter_reciprocal(s),
+            lens_format_shutter_reciprocal(s, 5),
             deg);
     }
     else
@@ -2293,6 +2302,10 @@ extern void rec_notify_trigger(int rec);
 #ifdef CONFIG_50D
 PROP_HANDLER(PROP_SHOOTING_TYPE)
 {
+    /* there might be a false trigger at startup - issue #1992 */
+    extern int ml_started;
+    if (!ml_started) return;
+
     int rec = (shooting_type == 4 ? 2 : 0);
 
     #ifdef FEATURE_REC_NOTIFY
@@ -2385,7 +2398,7 @@ static void zoom_halfshutter_step()
         if (hs && lv_dispsize == 1 && display_idle())
         {
             #ifdef CONFIG_ZOOM_HALFSHUTTER_UILOCK
-            msleep(200);
+            msleep(500);
             #else
             msleep(50);
             #endif
@@ -2773,7 +2786,7 @@ void ensure_bulb_mode()
             set_shooting_mode(SHOOTMODE_M);
         int shutter = SHUTTER_BULB;
         prop_request_change( PROP_SHUTTER, &shutter, 4 );
-        prop_request_change( PROP_SHUTTER_ALSO, &shutter, 4 );
+        prop_request_change( PROP_SHUTTER_AUTO, &shutter, 4 );  /* todo: is this really needed? */
     #endif
     
     SetGUIRequestMode(0);
@@ -2951,7 +2964,7 @@ bulb_take_pic(int duration)
     lens_cleanup_af();
     if (d0 >= 0) lens_set_drivemode(d0);
     prop_request_change( PROP_SHUTTER, &s0r, 4 );
-    prop_request_change( PROP_SHUTTER_ALSO, &s0r, 4);
+    prop_request_change( PROP_SHUTTER_AUTO, &s0r, 4);
     set_shooting_mode(m0r);
     msleep(200);
     
@@ -2979,14 +2992,17 @@ static MENU_UPDATE_FUNC(bulb_display)
             format_time_hours_minutes_seconds(bulb_duration)
         );
 #ifdef FEATURE_INTERVALOMETER
-    if (!bulb_timer && is_bulb_mode() && interval_enabled) // even if it's not enabled, it will be used for intervalometer
+    if (!bulb_timer && is_bulb_mode())
     {
+        // even if it's not enabled, bulb timer value will be used
+        // for intervalometer and other long exposure tools
         MENU_SET_VALUE(
-            "OFF (%s)",
-            format_time_hours_minutes_seconds(bulb_duration)
+            "%s%s",
+            format_time_hours_minutes_seconds(bulb_duration),
+            bulb_timer || interval_enabled ? "" : " (OFF)"
         );
-        MENU_SET_ICON(MNI_ON, 0);
-        MENU_SET_WARNING(MENU_WARN_INFO, "Always on when in BULB mode and intervalometer running");
+        MENU_SET_WARNING(MENU_WARN_INFO, "Long exposure tools may use bulb timer value, even if BT is disabled.");
+        MENU_SET_RINFO(SYM_WARNING);
     }
 #endif
     
@@ -3160,7 +3176,7 @@ int expo_value_rounding_ok(int raw, int is_aperture)
     if (is_aperture)
         if (raw == lens_info.raw_aperture_min || raw == lens_info.raw_aperture_max) return 1;
     
-    int r = raw % 8;
+    int r = ABS(raw) % 8;
     if (r != 0 && r != 4 && r != 3 && r != 5)
         return 0;
     return 1;
@@ -5908,6 +5924,9 @@ shoot_task( void* unused )
                     intervalometer_pictures_taken = 1;
                     int dt = get_interval_time();
                     intervalometer_next_shot_time = COERCE(intervalometer_next_shot_time + dt, seconds_clock, seconds_clock + dt);
+#ifdef CONFIG_MODULES
+                    module_exec_cbr(CBR_INTERVALOMETER);
+#endif
                 }
                 #endif
             }
@@ -6299,8 +6318,6 @@ shoot_task( void* unused )
 
             if (PLAY_MODE) get_out_of_play_mode(500);
             
-            if (LV_PAUSED) ResumeLiveView();
-
             if (!intervalometer_running) continue; // back to start of shoot_task loop
             if (gui_menu_shown() || get_halfshutter_pressed()) continue;
 
@@ -6315,7 +6332,7 @@ shoot_task( void* unused )
             int canceled = 0;
             if (dt == 0) // crazy mode - needs to be fast
             {
-                int num = interval_stop_after ? interval_stop_after : 100000;
+                int num = interval_stop_after ? interval_stop_after : 9000;
                 canceled = take_fast_pictures(num);
                 intervalometer_pictures_taken += num - 1;
             }
@@ -6359,7 +6376,7 @@ shoot_task( void* unused )
             #endif
 
 #ifdef FEATURE_AUDIO_REMOTE_SHOT
-#if defined(CONFIG_7D) || defined(CONFIG_6D) || defined(CONFIG_650D) || defined(CONFIG_700D)
+#if defined(CONFIG_7D) || defined(CONFIG_6D) || defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_EOSM)
             /* experimental for 7D now, has to be made generic */
             static int last_audio_release_running = 0;
             

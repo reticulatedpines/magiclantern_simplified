@@ -8,10 +8,6 @@
 #define LEDON 0x138800
 #define LEDOFF 0x838C00
 
-//~ Format dialog consts
-#define FORMAT_BTN "[Tap Screen]"
-#define STR_LOC 4
-
 #define HIJACK_INSTR_BL_CSTART  0xFF0C0D80
 #define HIJACK_INSTR_BSS_END 0xFF0C1CBC
 #define HIJACK_FIXBR_BZERO32 0xFF0C1C20
@@ -41,7 +37,6 @@
 // http://magiclantern.wikia.com/wiki/ASM_Zedbra
 #define YUV422_HD_BUFFER_1 0x44000080
 #define YUV422_HD_BUFFER_2 0x46000080
-#define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080 ) // quick check if x looks like a valid HD buffer
 
 // see "focusinfo" and Wiki:Struct_Guessing
 #define FOCUS_CONFIRMATION (*(int*)0x420F0)
@@ -53,13 +48,9 @@
 #define GMT_NFUNCS 7
 #define GMT_FUNCTABLE 0xFF7F9624 // dec gui_main_task
 
-#define SENSOR_RES_X 5280
-#define SENSOR_RES_Y 3528
 
 
 #define CURRENT_DIALOG_MAYBE (*(int*)0x40FBC)
-
-#define LV_BOTTOM_BAR_DISPLAYED UNAVI_FEEDBACK_TIMER_ACTIVE
 
 //~ #define ISO_ADJUSTMENT_ACTIVE 0 // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
 
@@ -122,15 +113,17 @@
 #define DISPLAY_TRAP_FOCUS_MSG_BLANK "          "
 
 #define NUM_PICSTYLES 10
-#define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
 
 #define FLASH_MAX_EV 3
 #define FLASH_MIN_EV -10 // not sure if it actually works
 #define FASTEST_SHUTTER_SPEED_RAW 152
-#define MAX_AE_EV 5
+#define MAX_AE_EV 3
 
 #define DIALOG_MnCardFormatBegin (0x60970) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x643F0) // similar
+#define FORMAT_BTN_NAME "[Trash to change]"
+#define FORMAT_BTN BGMT_PRESS_DOWN
+#define FORMAT_STR_LOC 4
 
 #define BULB_MIN_EXPOSURE 1000
 
@@ -145,12 +138,12 @@
 #define AF_BTN_HALFSHUTTER 0
 #define AF_BTN_STAR 1
 
-	#define IMGPLAY_ZOOM_LEVEL_ADDR (0x51E28) // dec GuiImageZoomDown and look for a negative counter
-	#define IMGPLAY_ZOOM_LEVEL_MAX 14
-	#define IMGPLAY_ZOOM_POS_X MEM(0x8D38C) // CentrePos
-	#define IMGPLAY_ZOOM_POS_Y MEM(0x8D390)
-	#define IMGPLAY_ZOOM_POS_X_CENTER 360
-	#define IMGPLAY_ZOOM_POS_Y_CENTER 240
+#define IMGPLAY_ZOOM_LEVEL_ADDR (0x519CC) // dec GuiImageZoomDown and look for a negative counter
+#define IMGPLAY_ZOOM_LEVEL_MAX 14
+#define IMGPLAY_ZOOM_POS_X MEM(0x8CF1C) // CentrePos
+#define IMGPLAY_ZOOM_POS_Y MEM(0x8CF20)
+//~ #define IMGPLAY_ZOOM_POS_X_CENTER 360
+//~ #define IMGPLAY_ZOOM_POS_Y_CENTER 240
 
     #define BULB_EXPOSURE_CORRECTION 150 // min value for which bulb exif is OK [not tested]
 
@@ -198,9 +191,9 @@
 
 #define UNAVI (MEM(0x5D408) == 2) // Find with Mem Browser // dec CancelUnaviFeedBackTimer
 #define SCROLLHACK (MEM(0x5D43C) != 0) //-450
-#define UNAVI_FEEDBACK_TIMER_ACTIVE (UNAVI || SCROLLHACK)
+#define LV_BOTTOM_BAR_DISPLAYED (UNAVI || SCROLLHACK)
 
-
+#undef UNAVI_FEEDBACK_TIMER_ACTIVE /* no CancelUnaviFeedBackTimer in the firmware */
 
 /******************************************************************************************************************
  * touch_num_fingers_ptr:
@@ -235,3 +228,5 @@
 //~ max volume supported for beeps
 #define ASIF_MAX_VOL 10
 
+// look for "JudgeBottomInfoDispTimerState(%d)"
+#define JUDGE_BOTTOM_INFO_DISP_TIMER_STATE	0x5D43C

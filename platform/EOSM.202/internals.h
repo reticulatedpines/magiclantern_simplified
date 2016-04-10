@@ -1,9 +1,9 @@
 /**
- * Camera internals for EOS-M 1.0.6
+ * Camera internals for EOS-M 2.0.2
  */
 
 /** Properties are persistent (saved in NVRAM) => a mistake can cause permanent damage. Undefine this for new ports. */
-/** The EOS_M port is very young, so we don't enable these for now. **/
+/** The EOS_M port is young, but... let's give it a try! **/
 #define CONFIG_PROP_REQUEST_CHANGE
 
 /** 
@@ -137,5 +137,8 @@
 /** We can control audio settings from ML **/
 //~ #define CONFIG_AUDIO_CONTROLS
 
-/** Hide Canon bottom bar by temporarily disabling their front BMP buffer */
-#define CONFIG_LVAPP_HACK_FBUFF
+/** Hide Canon bottom bar from DebugMsg hook */
+#define CONFIG_LVAPP_HACK_DEBUGMSG
+
+/** Workaround for menu timeout in LiveView */
+#define CONFIG_MENU_TIMEOUT_FIX

@@ -192,7 +192,6 @@ static CONFIG_INT("digic.desaturate", desaturate, 0);
 static CONFIG_INT("digic.negative", negative, 0);
 static CONFIG_INT("digic.swap-uv", swap_uv, 0);
 static CONFIG_INT("digic.cartoon", cartoon, 0);
-static CONFIG_INT("digic.oilpaint", oilpaint, 0);
 static CONFIG_INT("digic.sharp", sharp, 0);
 static CONFIG_INT("digic.zerosharp", zerosharp, 0);
 //~ static CONFIG_INT("digic.fringing", fringing, 0);
@@ -544,7 +543,7 @@ static void vignetting_correction_set_coeffs(int a, int b, int c)
 void vignetting_correction_apply_lvmgr(uint32_t *lvmgr)
 {
     uint32_t index = 0;
-    if(vignetting_correction_enable && lvmgr)
+    if(vignetting_correction_enable && lvmgr && is_movie_mode())
     {
         uint32_t *vign = &lvmgr[0x83];
 
@@ -751,9 +750,9 @@ static MENU_UPDATE_FUNC(shutter_finetune_display)
         
         MENU_SET_VALUE("%s%d.%02d ms", delta > 0 ? "+" : "-", ABS(delta)/100, ABS(delta)%100);
         if (orig_shutter/1000 < 1000)
-            MENU_SET_WARNING(MENU_WARN_INFO, "Shutter speed: 1/%d.%03d -> 1/%d.%03d", orig_shutter/1000, orig_shutter%1000, adjusted_shutter/1000, adjusted_shutter%1000);
+            MENU_SET_WARNING(MENU_WARN_INFO, "Shutter speed: 1/%d.%03d -> 1/%d.%03d (%s%d units)", orig_shutter/1000, orig_shutter%1000, adjusted_shutter/1000, adjusted_shutter%1000, delta > 0 ? "+" : "", shutter_finetune);
         else
-            MENU_SET_WARNING(MENU_WARN_INFO, "Shutter speed: 1/%d -> 1/%d", orig_shutter/1000, adjusted_shutter/1000);
+            MENU_SET_WARNING(MENU_WARN_INFO, "Shutter speed: 1/%d -> 1/%d (%s%d units)", orig_shutter/1000, adjusted_shutter/1000, delta > 0 ? "+" : "", shutter_finetune);
     }
     else
     {
@@ -806,7 +805,7 @@ void image_effects_step()
         }
         EngDrvOutLV(0xc0f2116c, 0xffff0000); // boost picturestyle sharpness to max
     }
-    if (oilpaint)   EngDrvOutLV(0xc0f2135c, -1);
+    //if (oilpaint)   EngDrvOutLV(0xc0f2135c, -1);
     if (sharp)      EngDrvOutLV(0xc0f0f280, -1);
     if (zerosharp)  EngDrvOutLV(0xc0f2116c, 0x0); // sharpness trick: at -1, cancel it completely
 
@@ -999,13 +998,6 @@ static struct menu_entry lv_img_menu[] = {
                 .priv = &sharp, 
                 .max = 1,
                 .help = "Darken sharp edges in bright areas.",
-                .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
-            },
-            {
-                .name = "Noise Reduction", 
-                .priv = &oilpaint, 
-                .max = 1,
-                .help = "Some sort of movie noise reduction, or smearing.",
                 .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
             },
             #endif

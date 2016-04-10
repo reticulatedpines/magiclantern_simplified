@@ -346,7 +346,7 @@ void prop_request_change(unsigned property, const void* addr, size_t len)
 
 ok:
     (void)0;
-    //~ console_printf("prop:%x data:%x len:%x\n", property, MEM(addr), len);
+    //~ printf("prop:%x data:%x len:%x\n", property, MEM(addr), len);
 
     /* call Canon stub */
     extern void _prop_request_change(unsigned property, const void* addr, size_t len);
@@ -388,3 +388,5 @@ REGISTER_PROP_HANDLER(PROP_LV_LENS_DRIVE_REMOTE, NULL);
 REGISTER_PROP_HANDLER(PROP_REMOTE_AFSTART_BUTTON, NULL);
 REGISTER_PROP_HANDLER(PROP_WB_MODE_PH, NULL);
 REGISTER_PROP_HANDLER(PROP_WB_KELVIN_PH, NULL);
+REGISTER_PROP_HANDLER(PROP_ICU_AUTO_POWEROFF, NULL);
+REGISTER_PROP_HANDLER(PROP_REBOOT, NULL);

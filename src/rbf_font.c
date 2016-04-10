@@ -9,6 +9,8 @@
 #define BG_COLOR(f) FONT_BG(f)
 #define MAKE_COLOR(fg,bg) FONT(0,fg,bg)
 
+#define FONT_CONDENSED 0x00100000 /* this bit is not (yet) used, so we use it as internal flag */
+
 #define draw_char(x,y,c,h) do{}while(0)
 
 static int rbf_font_load(char *file, font* f, int maxchar);
@@ -193,6 +195,7 @@ static int rbf_font_load(char *file, font* f, int maxchar)
     alloc_cTable(f);
 
     // read width table (using uncached buffer)
+    memset(&f->wTable[0], 0, sizeof(f->wTable));
     FIO_SeekSkipFile(fd, f->hdr._wmapAddr, SEEK_SET);
     font_read(fd, (unsigned char*)&f->wTable[f->hdr.charFirst], f->charCount);
 
@@ -264,6 +267,7 @@ static void FAST font_draw_char(font *rbf_font, int x, int y, char *cdata, int w
     uint8_t * bmp = bmp_vram();
     int fg = FG_COLOR(fontspec);
     int bg = BG_COLOR(fontspec);
+    int x0 = fontspec & FONT_CONDENSED ? 1 : 0;
     
     // draw pixels for font character
     if (cdata)
@@ -274,7 +278,7 @@ static void FAST font_draw_char(font *rbf_font, int x, int y, char *cdata, int w
             {
                 break;
             }
-            for (xx=0; xx<pixel_width; ++xx)
+            for (xx=x0; xx<pixel_width; ++xx)
             {
                 bmp_putpixel_fast(bmp, x+xx, y+yy, (cdata[yy*width/8+xx/8] & (1<<(xx%8))) ? fg : bg);
             }
@@ -378,16 +382,18 @@ static int rbf_draw_clipped_string(font *rbf_font, int x, int y, const char *str
         int bg = FONT_BG(fontspec);
         int len = maxlen;
         int space = len - rbf_str_width(rbf_font, str);
+        int is_mono = rbf_char_width(rbf_font, 'm') == rbf_char_width(rbf_font, 'i');
         
         /* divide the space across the chars: a space character can accept 5 times more stretch space than a regular letter */
         /* first non-letter (indent) can't be stretched (to render bullet points correctly) */
+        /* monospaced fonts are condensed uniformly */
         int bins = 0;
         char* c = (char*) str;
         int indent = 1;
         while (*c && *(c+1))    /* note: last char should not be stretched */
         {
             if (*c != ' ' && *c != '*') indent = 0;
-            bins += indent ? 0 : space < 0 ? 1 : *c == ' ' ? 10 : 2;
+            bins += is_mono ? 3 : indent ? 0 : space < 0 ? 1 : *c == ' ' ? 10 : 2;
             c++;
         }
         
@@ -398,32 +404,37 @@ static int rbf_draw_clipped_string(font *rbf_font, int x, int y, const char *str
         int dx = bins;
         int dy = ABS(space);
         
-        /* if it requires too much stretching, give up */
-        if (dy > dx)
-            dy = 0;
+        /* if it requires too much stretching, just stretch as much as we can */
+        dy = MIN(dy, dx);
         
         int D = 2*dy - dx;
 
         // Draw chars from string up to max pixel length
         indent = 1;
+        int condensed = 0;
         while (*str && l+rbf_char_width(rbf_font, *str)<=maxlen)
         {
-            l += rbf_draw_char(rbf_font, x+l, y, *str, fontspec);
-            
-            /* Bresenham step */
+            l += rbf_draw_char(rbf_font, x+l, y, *str, fontspec | (condensed ? FONT_CONDENSED : 0) );
             int l0 = l;
-            if (*str != ' ' && *str != '*') indent = 0;
-            int repeat = indent ? 0 : space < 0 ? 1 : *str == ' ' ? 10 : 2;
-            for (int i = 0; i < repeat; i++)
+
+            if (*(str+1))
             {
-                if (D > 0)
+                /* Bresenham step */
+                if (*str != ' ' && *str != '*') indent = 0;
+                int repeat = is_mono ? 3 : indent ? 0 : space < 0 ? 1 : *c == ' ' ? 10 : 2;
+                condensed = 0;
+                for (int i = 0; i < repeat; i++)
                 {
-                    l += SGN(space);
-                    D = D + (2*dy - 2*dx);
-                }
-                else
-                {
-                    D = D + 2*dy;
+                    if (D > 0)
+                    {
+                        l += SGN(space);
+                        D = D + (2*dy - 2*dx);
+                        if (space < 0) condensed = 1;
+                    }
+                    else
+                    {
+                        D = D + 2*dy;
+                    }
                 }
             }
             

@@ -18,20 +18,20 @@ static int script_load_symbols(void* tcc, void* script_state, char *filename)
 
     if( FIO_GetFileSize( filename, &size ) != 0 )
     {
-        console_printf("Error loading '%s': File does not exist\n", filename);
+        printf("Error loading '%s': File does not exist\n", filename);
         return -1;
     }
     buf = fio_malloc(size);
     if(!buf)
     {
-        console_printf("Error loading '%s': File too large\n", filename);
+        printf("Error loading '%s': File too large\n", filename);
         return -1;
     }
 
     file = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
     if(!file)
     {
-        console_printf("Error loading '%s': File does not exist\n", filename);
+        printf("Error loading '%s': File does not exist\n", filename);
         fio_free(buf);
         return -1;
     }
@@ -85,7 +85,7 @@ static int script_load_symbols(void* tcc, void* script_state, char *filename)
 
 static int tcc_compile_and_run(char* filename)
 {
-    console_printf("Compiling script %s...\n", filename);
+    printf("Compiling script %s...\n", filename);
 
     void* tcc = NULL;
     TCCState * script_state = NULL;
@@ -94,14 +94,14 @@ static int tcc_compile_and_run(char* filename)
     tcc = module_load("ML/MODULES/tcc.mo");
     if (!tcc)
     {
-        console_printf("Could not load TCC compiler.\n");
+        printf("Could not load TCC compiler.\n");
         goto err;
     }
     
     script_state = (void*) module_exec(tcc, "tcc_new", 0);
     if (!script_state)
     {
-        console_printf("Could not initialize TCC compiler.\n");
+        printf("Could not initialize TCC compiler.\n");
         goto err;
     }
 
@@ -113,7 +113,7 @@ static int tcc_compile_and_run(char* filename)
     int ret_compile = module_exec(tcc, "tcc_add_file", 2, script_state, filename);
     if (ret_compile < 0)
     {
-        console_printf("Compilation error.\n");
+        printf("Compilation error.\n");
         goto err;
     }
 
@@ -122,28 +122,28 @@ static int tcc_compile_and_run(char* filename)
     int size = module_exec(tcc, "tcc_relocate", 2, script_state, NULL);
     if (size <= 0)
     {
-        console_printf("Linking error.\n");
+        printf("Linking error.\n");
         goto err;
     }
 
     script_buf = (void*) tcc_malloc(size);
     if (!script_buf)
     {
-        console_printf("Malloc error.\n");
+        printf("Malloc error.\n");
         goto err;
     }
     
     int ret_link = module_exec(tcc, "tcc_relocate", 2, script_state, script_buf);
     if (ret_link < 0)
     {
-        console_printf("Relocate error.\n");
+        printf("Relocate error.\n");
         goto err;
     }
         
     void (*script_main)() = (void*) module_exec(tcc, "tcc_get_symbol", 2, script_state, "main");
     if (!script_main)
     {
-        console_printf("Your script should have a main function.\n");
+        printf("Your script should have a main function.\n");
         goto err;
     }
 
@@ -152,7 +152,7 @@ static int tcc_compile_and_run(char* filename)
     module_exec(tcc, "tcc_delete", 1, script_state); script_state = NULL;
     module_unload(tcc); tcc = NULL;
 
-    console_printf("Running script %s...\n", filename);
+    printf("Running script %s...\n", filename);
 
     /* http://repo.or.cz/w/tinycc.git/commit/6ed6a36a51065060bd5e9bb516b85ff796e05f30 */
     sync_caches();
@@ -398,11 +398,11 @@ static void run_script(const char *script)
     int exit_code = tcc_compile_and_run(get_script_path(script_selected));
     if (exit_code == 0)
     {
-        console_puts(    "Script finished.\n");
+        puts(    "Script finished.\n");
     }
     else
     {
-        console_printf(  "Script error: %d.\n", exit_code);
+        printf(  "Script error: %d.\n", exit_code);
         msleep(500);
         gui_stop_menu();
         msleep(500);

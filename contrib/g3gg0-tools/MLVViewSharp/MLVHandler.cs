@@ -17,17 +17,18 @@ namespace mlv_view_sharp
     public class MLVHandler
     {
         public Bitmap CurrentFrame;
-        private LockBitmap LockBitmap = null;
+        public LockBitmap LockBitmap = null;
         public bool FrameUpdated = false; 
         internal float _ExposureCorrection = 0.0f;
         internal Lut3D ColorLut = null;
 
         public int RawFixOffset = 0;
         public bool VideoEnabled = true;
+        public bool DebayeringEnabled = true;
         public bool AudioEnabled = true;
 
         private WaveOut DriverOut;
-        private BufferedWaveProvider WaveProvider;
+        public BufferedWaveProvider WaveProvider;
 
 
         public MLVTypes.mlv_rawi_hdr_t RawiHeader;
@@ -39,14 +40,18 @@ namespace mlv_view_sharp
         public MLVTypes.mlv_styl_hdr_t StylHeader;
         public MLVTypes.mlv_wbal_hdr_t WbalHeader;
         public MLVTypes.mlv_vidf_hdr_t VidfHeader;
+        public MLVTypes.mlv_wavi_hdr_t WaviHeader;
+        public MLVTypes.mlv_audf_hdr_t AudfHeader;
+        
 
         public string InfoString = "";
 
         private Debayer Debayer = new DebayerHalfRes(0);
         private BitUnpack Bitunpack = new BitUnpackCanon();
 
-        private ushort[,] PixelData = new ushort[0, 0];
-        private float[, ,] RGBData = new float[0, 0, 0];
+        public byte[] RawPixelData = new byte[0];
+        public ushort[,] PixelData = new ushort[0, 0];
+        public float[, ,] RGBData = new float[0, 0, 0];
 
 
         float[] camMatrix = new float[] { 0.6722f, -0.0635f, -0.0963f, -0.4287f, 1.2460f, 0.2028f, -0.0908f, 0.2162f, 0.5668f };
@@ -97,6 +102,7 @@ namespace mlv_view_sharp
 
         public void HandleBlock(string type, MLVTypes.mlv_wavi_hdr_t header, byte[] raw_data, int raw_pos, int raw_length)
         {
+            WaviHeader = header;
             if (DriverOut != null)
             {
                 DriverOut.Stop();
@@ -165,6 +171,7 @@ namespace mlv_view_sharp
 
         public void HandleBlock(string type, MLVTypes.mlv_audf_hdr_t header, byte[] rawData, int rawPos, int rawLength)
         {
+            AudfHeader = header;
             if (WaveProvider != null)
             {
                 while (WaveProvider.BufferedBytes + (int)(rawLength - header.frameSpace) > WaveProvider.BufferLength)
@@ -191,7 +198,16 @@ namespace mlv_view_sharp
 
             lock (this)
             {
-                int startPos = rawPos + (int)Math.Max(header.frameSpace - RawFixOffset, 0);
+                int frameSpace = (int)Math.Max(header.frameSpace - RawFixOffset, 0);
+                int startPos = rawPos + frameSpace;
+                int length = rawLength - frameSpace;
+
+                if (!DebayeringEnabled)
+                {
+                    RawPixelData = new byte[length];
+                    Array.Copy(rawData, startPos, RawPixelData, 0, length);
+                    return;
+                }
 
                 /* first extract the raw channel values */
                 Bitunpack.Process(rawData, startPos, rawLength, PixelData);
@@ -317,6 +333,32 @@ namespace mlv_view_sharp
                     HandleBlock(type, (MLVTypes.mlv_wbal_hdr_t)header, raw_data, raw_pos, raw_length);
                     break;
             }
+        }
+
+        public DateTime ParseRtci(MLVTypes.mlv_rtci_hdr_t rtci)
+        {
+            ushort tm_year = (ushort)(rtci.tm_year + 1900);
+            ushort tm_mon = rtci.tm_mon;
+            ushort tm_mday = rtci.tm_mday;
+            ushort tm_hour = rtci.tm_hour;
+            ushort tm_min = rtci.tm_min;
+            ushort tm_sec = rtci.tm_sec;
+
+            if (tm_year > 1900 && tm_mon > 0 && tm_mday > 0)
+            {
+                try
+                {
+                    return new DateTime(tm_year, tm_mon, tm_mday, tm_hour, tm_min, tm_sec);
+                }
+                catch (Exception e)
+                {
+                }
+            }
+            else
+            {
+            }
+
+            return DateTime.Now;
         }
 
         public void SelectDebayer(int downscale)

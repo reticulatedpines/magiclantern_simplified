@@ -87,7 +87,7 @@ int raw_blue_pixel(int x, int y);
 
 /* get/set the pixel at specified coords (exact, but you can get whatever color happens to be there) */
 int raw_get_pixel(int x, int y);
-int raw_set_pixel(int x, int y, int value);
+void raw_set_pixel(int x, int y, int value);
 
 /* get a pixel from a custom raw buffer (not from the main one) */
 int raw_get_pixel_ex(void* raw_buffer, int x, int y);

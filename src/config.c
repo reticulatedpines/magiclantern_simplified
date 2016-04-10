@@ -526,73 +526,6 @@ finish:
 
 
 #ifdef CONFIG_CONFIG_FILE
-#ifdef CONFIG_PICOC
-static char last_preset_file[50] = "";
-static int preset_just_saved = 0;
-static int preset_scripts_dirty = 0;
-
-static char *find_picoc_config_filename()
-{
-    for (int i = 0; i < 10; i++)
-    {
-        snprintf(last_preset_file, sizeof(last_preset_file), "ML/SCRIPTS/PRESET%d.C", i);
-
-        if (GetFileSize(last_preset_file) == 0xFFFFFFFF) // this file does not exist
-            return last_preset_file;
-    }
-    return 0;
-}
-
-// if the user tries to save more presets at a time,
-// he will fill the script directory with identical files
-// so.. let's calm him down :)
-static int preset_user_angry = 0;
-
-static void config_save_as_picoc(void* priv, int delta)
-{
-    if (preset_just_saved)
-    {
-        preset_user_angry = 1;
-        return;
-    }
-
-    char* fn = find_picoc_config_filename();
-    if (fn)
-    {
-        menu_save_current_config_as_picoc_preset(fn);
-        preset_just_saved = 1;
-        preset_scripts_dirty = 1;
-    }
-}
-
-static MENU_UPDATE_FUNC(config_save_as_picoc_update)
-{
-    static int last_displayed = 0;
-    int t = get_ms_clock_value_fast();
-
-    if (preset_just_saved == 2 && t - last_displayed > 2000) // if this menu was not displayed for a while, we can save a new preset
-    {
-        preset_just_saved = 0;
-        preset_user_angry = 0;
-    }
-
-    if (preset_scripts_dirty)
-    {
-        MENU_SET_RINFO("Restart");
-        MENU_SET_WARNING(MENU_WARN_ADVICE, "Restart camera so the new preset appears in Scripts menu.");
-    }
-
-    if (preset_just_saved)
-    {
-        MENU_SET_NAME(last_preset_file + strlen("ML/SCRIPTS/"));
-        if (preset_user_angry)
-            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Change some settings before saving a new preset.");
-        last_displayed = t;
-        preset_just_saved = 2;
-    }
-}
-
-#endif // picoc
 
 static MENU_UPDATE_FUNC(delete_config_update)
 {
@@ -956,17 +889,6 @@ static struct menu_entry cfg_menus[] = {
             .update        = delete_config_update,
             .help  = "This restores ML default settings, by deleting all CFG files.",
         },
-
-        #ifdef CONFIG_PICOC
-        {
-            .name = "Export as PicoC script",
-            .select = config_save_as_picoc,
-            .update = config_save_as_picoc_update,
-            .help =  "Export current menu settings to ML/SCRIPTS/PRESETn.C.",
-            .help2 = "The preset will appear in Scripts menu. Edit/rename on PC.",
-        },
-        #endif
-
         MENU_EOL,
     },
 },
@@ -1005,6 +927,7 @@ void config_save()
     config_save_file(config_file);
     config_menu_save_flags();
     module_save_configs();
+    module_exec_cbr(CBR_CONFIG_SAVE);
     if (config_deleted) config_autosave = 1; /* this can be improved, because it's not doing a proper "undo" */
     config_deleted = 0;
     give_semaphore(config_save_sem);

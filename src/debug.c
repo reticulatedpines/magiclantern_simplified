@@ -160,8 +160,6 @@ static void dump_rom_task(void* priv, int unused)
     dump_big_seg(4, "ML/LOGS/RAM4.BIN");
 }
 
-static PROP_INT(PROP_VIDEO_SYSTEM, pal);
-
 static void dump_img_task(void* priv, int unused)
 {
     for (int i = 5; i > 0; i--)
@@ -175,39 +173,11 @@ static void dump_img_task(void* priv, int unused)
     char pattern[0x80];
     char filename[0x80];
     
-    /* fixme */
-    extern int is_pure_play_photo_mode();
+    char* video_mode = get_video_mode_name(0);
+    char* display_device = get_display_device_name();
     
-    char* video_mode = 
-        PLAY_MODE && is_pure_play_photo_mode()          ? "PLAY-PH"  :      /* Playback, reviewing a picture */
-        PLAY_MODE && is_pure_play_movie_mode()          ? "PLAY-MV"  :      /* Playback, reviewing a video */
-        PLAY_MODE                                       ? "PLAY-UNK" :
-        lv && lv_dispsize==5                            ? "ZOOM-X5"  :      /* Zoom x5 (it's the same in all modes) */
-        lv && lv_dispsize==10                           ? "ZOOM-X10" :      /* Zoom x10 (it's the same in all modes) */
-        lv && lv_dispsize==1 && !is_movie_mode() ? "PH-LV"    :      /* Photo LiveView */
-        !is_movie_mode() && QR_MODE              ? "PH-QR"    :      /* Photo QuickReview (right after taking a picture) */
-        !is_movie_mode()                         ? "PH-UNK"   :
-        video_mode_resolution == 0 && !video_mode_crop && !RECORDING_H264 ? "MV-1080"  :    /* Movie 1080p, standby */
-        video_mode_resolution == 1 && !video_mode_crop && !RECORDING_H264 ? "MV-720"   :    /* Movie 720p, standby */
-        video_mode_resolution == 2 && !video_mode_crop && !RECORDING_H264 ? "MV-480"   :    /* Movie 480p, standby */
-        video_mode_resolution == 0 &&  video_mode_crop && !RECORDING_H264 ? "MVC-1080" :    /* Movie 1080p crop (3x zoom as with 600D), standby */
-        video_mode_resolution == 2 &&  video_mode_crop && !RECORDING_H264 ? "MVC-480"  :    /* Movie 480p crop (as with 550D), standby */
-        video_mode_resolution == 0 && !video_mode_crop &&  RECORDING_H264 ? "REC-1080" :    /* Movie 1080p, recording */
-        video_mode_resolution == 1 && !video_mode_crop &&  RECORDING_H264 ? "REC-720"  :    /* Movie 720p, recording */
-        video_mode_resolution == 2 && !video_mode_crop &&  RECORDING_H264 ? "REC-480"  :    /* Movie 480p, recording */
-        video_mode_resolution == 0 &&  video_mode_crop &&  RECORDING_H264 ? "RECC1080" :    /* Movie 1080p crop, recording */
-        video_mode_resolution == 2 &&  video_mode_crop &&  RECORDING_H264 ? "RECC-480" :    /* Movie 480p crop, recording */
-        "MV-UNK";
-    
-    char* display_mode = 
-        !EXT_MONITOR_CONNECTED                          ? "LCD"      :          /* Built-in LCD */
-        ext_monitor_hdmi && hdmi_code == 20             ? "HDMI-MIR" :          /* HDMI with mirroring enabled (5D3 1.2.3) */
-        ext_monitor_hdmi && hdmi_code == 5              ? "HDMI1080" :          /* HDMI 1080p (high resolution) */
-        ext_monitor_hdmi && hdmi_code == 2              ? "HDMI480 " :          /* HDMI 480p aka HDMI-VGA (use Force HDMI-VGA from ML menu, Display->Advanced; most cameras drop to this mode while recording); */
-        _ext_monitor_rca && pal                         ? "SD-PAL"   :          /* SD monitor (RCA cable), PAL selected in Canon menu */
-        _ext_monitor_rca && !pal                        ? "SD-NTSC"  : "UNK";   /* SD monitor (RCA cable), NTSC selected in Canon menu */
 
-    int path_len = snprintf(pattern, sizeof(pattern), "%s/%s/%s/", CAMERA_MODEL, video_mode, display_mode);
+    int path_len = snprintf(pattern, sizeof(pattern), "%s/%s/%s/", CAMERA_MODEL, video_mode, display_device);
     
     /* make sure the VRAM parameters are updated */
     get_yuv422_vram();
@@ -325,30 +295,30 @@ FILE * movfile;
 int record_uncomp = 0;
 #endif
 
-static void bsod()
+void bsod()
 {
-    msleep(rand() % 20000 + 2000);
-
     do {
         gui_stop_menu();
         SetGUIRequestMode(1);
         msleep(1000);
     } while (CURRENT_DIALOG_MAYBE != 1);
-
+    NotifyBoxHide();
     canon_gui_disable_front_buffer();
     gui_uilock(UILOCK_EVERYTHING);
     bmp_fill(COLOR_BLUE, 0, 0, 720, 480);
     int fnt = SHADOW_FONT(FONT_MONO_20);
     int h = 20;
-    int y = 50;
+    int y = 20;
     bmp_printf(fnt, 0, y+=h, "   A problem has been detected and Magic Lantern has been"   );
     bmp_printf(fnt, 0, y+=h, "   shut down to prevent damage to your camera."              );
     y += h;
-    bmp_printf(fnt, 0, y+=h, "   If this is the first time you've seen this Stop error"    );
+    bmp_printf(fnt, 0, y+=h, "   If this is the first time you've seen this STOP error"    );
     bmp_printf(fnt, 0, y+=h, "   screen, restart your camera. If this screen appears"      );
     bmp_printf(fnt, 0, y+=h, "   again, follow these steps:"                               );
     y += h;
-    bmp_printf(fnt, 0, y+=h, "   Don't click things you don't know what they do."          );
+    bmp_printf(fnt, 0, y+=h, "   - Go to LiveView and enable DIGIC peaking.  "             );
+    bmp_printf(fnt, 0, y+=h, "   - Take a photo of a calendar, focusing on today's date. " );
+    bmp_printf(fnt, 0, y+=h, "   - Try pressing the magic button quickly enough. "         );
     y += h;
     bmp_printf(fnt, 0, y+=h, "   Technical information:");
     bmp_printf(fnt, 0, y+=h, "   *** STOP 0x000000aa (0x1000af22, 0xdeadbeef, 0xffff)"     );
@@ -464,14 +434,14 @@ static void run_test()
     /* check for memory leaks */
     for (int i = 0; i < 1000; i++)
     {
-        console_printf("%d/1000\n", i);
+        printf("%d/1000\n", i);
         
         /* with this large size, the backend will use fio_malloc, which returns uncacheable pointers */
         void* p = malloc(16*1024*1024 + 64);
         
         if (!p)
         {
-            console_printf("malloc err\n");
+            printf("malloc err\n");
             continue;
         }
         
@@ -492,7 +462,7 @@ static void run_test()
    //~ bfnt_test();
 #ifdef FEATURE_SHOW_SIGNATURE
     console_show();
-    console_printf("FW Signature: 0x%08x", compute_signature((int*)SIG_START, SIG_LEN));
+    printf("FW Signature: 0x%08x", compute_signature((int*)SIG_START, SIG_LEN));
     msleep(1000);
     return;
 #endif
@@ -536,15 +506,15 @@ static void run_test()
 #ifdef CONFIG_MODULES
     console_show();
 
-    console_printf("Loading modules...\n");
+    printf("Loading modules...\n");
     msleep(1000);
     module_load_all();
     return;
 
-    console_printf("\n");
+    printf("\n");
 
-    console_printf("Testing TCC executable...\n");
-    console_printf(" [i] this may take some time\n");
+    printf("Testing TCC executable...\n");
+    printf(" [i] this may take some time\n");
     msleep(1000);
 
     for(int try = 0; try < 100; try++)
@@ -558,7 +528,7 @@ static void run_test()
             ret = module_exec(module, "tcc_new", 0);
             if(!(ret & 0x40000000))
             {
-                console_printf("tcc_new() returned: 0x%08X\n", ret);
+                printf("tcc_new() returned: 0x%08X\n", ret);
             }
             else
             {
@@ -568,19 +538,19 @@ static void run_test()
         }
         else
         {
-            console_printf(" [E] load failed\n");
+            printf(" [E] load failed\n");
         }
     }
 
-    console_printf("Done!\n");
+    printf("Done!\n");
 #endif
 }
 
-void run_in_separate_task(void (*priv)(void), int delta)
+void run_in_separate_task(void* routine, int argument)
 {
     gui_stop_menu();
-    if (!priv) return;
-    task_create("run_test", 0x1a, 0x1000, priv, (void*)delta);
+    if (!routine) return;
+    task_create("run_test", 0x1a, 0x1000, (void(*)(void*)) routine, (void*)argument);
 }
 
 
@@ -654,29 +624,11 @@ static char* print_benchmark_header()
     bmp_printf(FONT_MONO_20, 0, 40, "ML %s, %s", build_version, build_id); // this includes camera name
 
     static char mode[100];
-    snprintf(mode, sizeof(mode), "Mode: ");
-    if (lv)
-    {
-        if (lv_dispsize > 1)
-        {
-            STR_APPEND(mode, "LV zoom x%d", lv_dispsize);
-        }
-        else if (is_movie_mode())
-        {
-            char* video_modes[] = {"1920x1080", "1280x720", "640x480"};
-            STR_APPEND(mode, "movie %s%s %dp", video_modes[video_mode_resolution], video_mode_crop ? " crop" : "", video_mode_fps);
-        }
-        else
-        {
-            STR_APPEND(mode, "LV photo");
-        }
-    }
-    else
-    {
-        STR_APPEND(mode, PLAY_MODE ? "playback" : display_idle() ? "photo" : "idk");
-    }
-
-    STR_APPEND(mode, ", Global Draw: %s", get_global_draw() ? "ON" : "OFF");
+    snprintf(mode, sizeof(mode),
+        "Mode: %s %s, Global Draw: %s",
+        get_video_mode_name(1), get_display_device_name(),
+        get_global_draw() ? "ON" : "OFF"
+    );
 
     bmp_printf(FONT_MONO_20, 0, 60, mode);
     return mode;
@@ -1049,7 +1001,7 @@ static void next_tick_cbr(int arg1, void* arg2)
     SetHPTimerNextTick(arg1, 100000, timer_cbr, overrun_cbr, 0);
 }
 
-#define TEST_MSG(fmt, ...) { if (!silence || !ok) log_len += snprintf(log_buf + log_len, maxlen - log_len, fmt, ## __VA_ARGS__); console_printf(fmt, ## __VA_ARGS__); }
+#define TEST_MSG(fmt, ...) { if (!silence || !ok) log_len += snprintf(log_buf + log_len, maxlen - log_len, fmt, ## __VA_ARGS__); printf(fmt, ## __VA_ARGS__); }
 #define TEST_TRY_VOID(x) { x; ok = 1; TEST_MSG("       %s\n", #x); }
 #define TEST_TRY_FUNC(x) { int ans = (int)(x); ok = 1; TEST_MSG("       %s => 0x%x\n", #x, ans); }
 #define TEST_TRY_FUNC_CHECK(x, condition) { int ans = (int)(x); ok = ans condition; TEST_MSG("[%s] %s => 0x%x\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else failed_tests++; }
@@ -1549,7 +1501,7 @@ static void stub_test_task(void* arg)
     }
     fio_free(log_buf);
 
-    console_printf(
+    printf(
         "=========================================================\n"
         "Test complete, %d passed, %d failed.\n.",
         passed_tests, failed_tests
@@ -2314,7 +2266,7 @@ static void save_crash_log()
     }
     else
     {
-        console_printf("%s\n", get_assert_msg());
+        printf("%s\n", get_assert_msg());
         console_show();
     }
 
@@ -2402,44 +2354,6 @@ static void screenshot_start(void* priv, int delta)
 {
     screenshot_sec = 10;
 }
-
-/*void screenshots_for_menu()
-{
-    msleep(1000);
-    extern struct semaphore * gui_sem;
-    give_semaphore(gui_sem);
-
-    select_menu_by_name("Audio", "AGC");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Expo", "ISO");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Overlay", "Magic Zoom");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Movie", "FPS override");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Shoot", "Motion Detect");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Focus", "Follow Focus");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Display", "LV saturation");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Prefs", "Powersave settings...");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Debug", "Free Memory");
-    msleep(1000); call("dispcheck");
-
-    select_menu_by_name("Help", "About Magic Lantern");
-    msleep(1000); call("dispcheck");
-}
-*/
 
 static int draw_event = 0;
 
@@ -2917,7 +2831,7 @@ static struct menu_entry debug_menus[] = {
     #if 0
     {
         .name = "Draw palette",
-        .select        = (void(*)(void*,int))bmp_draw_palette,
+        .select        = bmp_draw_palette,
         .help = "Display a test pattern to see the color palette."
     },
     #endif
@@ -2936,20 +2850,20 @@ static struct menu_entry debug_menus[] = {
     {
         .name        = "Dump ROM and RAM",
         .priv        = dump_rom_task,
-        .select      = (void(*)(void*,int))run_in_separate_task,
+        .select      = run_in_separate_task,
         .help = "ROM0.BIN:F0000000, ROM1.BIN:F8000000, RAM4.BIN"
     },
     {
         .name        = "Dump image buffers",
         .priv        = dump_img_task,
-        .select      = (void(*)(void*,int))run_in_separate_task,
+        .select      = run_in_separate_task,
         .help = "Dump all image buffers (LV, HD, RAW) from current video mode."
     },
 #ifdef FEATURE_DONT_CLICK_ME
     {
         .name        = "Don't click me!",
         .priv =         run_test,
-        .select        = (void(*)(void*,int))run_in_separate_task,
+        .select        = run_in_separate_task,
         .help = "The camera may turn into a 1DX or it may explode."
     },
 #endif
@@ -2957,13 +2871,13 @@ static struct menu_entry debug_menus[] = {
     {
         .name        = "DM Log",
         .priv        = j_debug_intercept,
-        .select      = (void(*)(void*,int))run_in_separate_task,
+        .select      = run_in_separate_task,
         .help = "Log DebugMessages"
     },
     {
         .name        = "TryPostEvent Log",
         .priv        = j_tp_intercept,
-        .select      = (void(*)(void*,int))run_in_separate_task,
+        .select      = run_in_separate_task,
         .help = "Log TryPostEvents"
     },
 #endif
@@ -2977,53 +2891,45 @@ static struct menu_entry debug_menus[] = {
         .children =  (struct menu_entry[]) {
             {
                 .name = "Stubs API test",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = stub_test_task,
                 .help = "Tests Canon functions called by ML. SET=once, PLAY=100x."
             },
-            #ifdef CONFIG_PICOC // the tests depend on some picoc functions
-            {
-                .name = "Menu integrity test",
-                .select = (void(*)(void*,int))run_in_separate_task,
-                .priv = menu_self_test,
-                .help = "Internal menu tests: duplicates, wrap around etc.",
-            },
-            #endif
             #if defined(CONFIG_7D)
             {
                 .name = "RPC reliability test (infinite)",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = rpc_test_task,
                 .help = "Flood master with RPC requests and print delay. "
             },
             #endif
             {
                 .name = "Quick test (around 15 min)",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = stress_test_task,
                 .help = "A quick test which covers basic functionality. "
             },
             {
                 .name = "Random tests (infinite loop)",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = stress_test_random_task,
                 .help = "A thorough test which randomly enables functions from menu. "
             },
             {
                 .name = "Menu backend test (infinite)",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = stress_test_menu_dlg_api_task,
                 .help = "Tests proper usage of Canon API calls in ML menu backend."
             },
             {
                 .name = "Redraw test (infinite)",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = excessive_redraws_task,
                 .help = "Causes excessive redraws for testing the graphics backend",
             },
             {
                 .name = "Rectangle test (infinite)",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = bmp_fill_test_task,
                 .help = "Stresses graphics bandwith. Run this while recording.",
             },
@@ -3039,7 +2945,7 @@ static struct menu_entry debug_menus[] = {
         .children =  (struct menu_entry[]) {
             {
                 .name = "Create a stuck task",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = frozen_task,
                 .help = "Creates a task which will become stuck in an infinite loop."
             },
@@ -3050,13 +2956,13 @@ static struct menu_entry debug_menus[] = {
             },
             {
                 .name = "Division by zero",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = divzero_task,
                 .help = "Performs some math operations which will divide by zero."
             },
             {
                 .name = "Allocate 1MB of RAM",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = alloc_1M_task,
                 .help = "Allocates 1MB RAM from system memory, without freeing it."
             },
@@ -3075,13 +2981,13 @@ static struct menu_entry debug_menus[] = {
         .children =  (struct menu_entry[]) {
             {
                 .name = "Card R/W benchmark (5 min)",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = card_benchmark_task,
                 .help = "Check card read/write speed. Uses a 1GB temporary file."
             },
             {
                 .name = "Card buffer benchmark (inf)",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = card_bufsize_benchmark_task,
                 .help = "Experiment for finding optimal write buffer sizes.",
                 .help2 = "Results saved in BENCH.LOG."
@@ -3089,28 +2995,28 @@ static struct menu_entry debug_menus[] = {
             #ifdef CONFIG_5D3
             {
                 .name = "CF+SD write benchmark (1 min)",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = twocard_benchmark_task,
                 .help = "Write speed on both CF and SD cards at the same time."
             },
             #endif
             {
                 .name = "Memory benchmark (1 min)",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = mem_benchmark_task,
                 .help = "Check memory read/write speed."
             },
             #ifdef FEATURE_FOCUS_PEAK
             {
                 .name = "Focus peaking benchmark (30s)",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = peaking_benchmark,
                 .help = "Check how fast peaking runs in PLAY mode (1000 iterations)."
             },
             #endif
             {
                 .name = "Menu benchmark (10s)",
-                .select = (void(*)(void*,int))run_in_separate_task,
+                .select = run_in_separate_task,
                 .priv = menu_benchmark,
                 .help = "Check speed of menu backend."
             },
@@ -3163,7 +3069,7 @@ static struct menu_entry debug_menus[] = {
 #ifdef FEATURE_GUIMODE_TEST
     {
         .name = "Test GUI modes (DANGEROUS!!!)",
-        .select = (void(*)(void*,int))run_in_separate_task,
+        .select = run_in_separate_task,
         .priv = guimode_test,
         .help = "Cycle through all GUI modes and take screenshots.",
     },
@@ -3326,7 +3232,7 @@ debug_property_handler(
 {
     const uint32_t * const addr = buf;
 
-    /*console_printf("Prop %08x: %2x: %08x %08x %08x %08x\n",
+    /*printf("Prop %08x: %2x: %08x %08x %08x %08x\n",
         property,
         len,
         len > 0x00 ? addr[0] : 0,
@@ -3550,17 +3456,10 @@ static void HijackFormatDialogBox()
     struct dialog * dialog = current->priv;
     if (dialog && MEM(dialog->type) != DLG_SIGNATURE) return;
 
-    /** Defaults for format dialog consts **/
-    #if !defined(FORMAT_BTN)
-        #define FORMAT_BTN "[Q]"
-    #elif !defined(STR_LOC)
-        #define STR_LOC 11
-    #endif
-
     if (keep_ml_after_format)
-        dialog_set_property_str(dialog, 4, "Format card, keep ML " FORMAT_BTN);
+        dialog_set_property_str(dialog, 4, "Format card, keep ML " FORMAT_BTN_NAME);
     else
-        dialog_set_property_str(dialog, 4, "Format card, remove ML " FORMAT_BTN);
+        dialog_set_property_str(dialog, 4, "Format card, remove ML " FORMAT_BTN_NAME);
     dialog_redraw(dialog);
 }
 
@@ -3573,13 +3472,16 @@ static void HijackCurrentDialogBox(int string_id, char* msg)
     dialog_redraw(dialog);
 }
 
-int handle_keep_ml_after_format_toggle()
+int handle_keep_ml_after_format_toggle(struct event * event)
 {
-    if (!MENU_MODE) return 1;
-    if (MEM(DIALOG_MnCardFormatBegin) == 0) return 1;
-    keep_ml_after_format = !keep_ml_after_format;
-    fake_simple_button(MLEV_HIJACK_FORMAT_DIALOG_BOX);
-    return 0;
+    if (event->param == FORMAT_BTN && MENU_MODE && MEM(DIALOG_MnCardFormatBegin))
+    {
+        keep_ml_after_format = !keep_ml_after_format;
+        fake_simple_button(MLEV_HIJACK_FORMAT_DIALOG_BOX);
+        return 0;
+    }
+    
+    return 1;
 }
 
 /**
@@ -3677,6 +3579,11 @@ static void TmpMem_AddFile(char* filename)
     if (filesize == -1) return;
     if (tmp_file_index >= 200) return;
     if (tmp_buffer_ptr + filesize + 10 >= tmp_buffer + TMP_MAX_BUF_SIZE) return;
+    
+    /* don't add the same file twice */
+    for (int i = 0; i < tmp_file_index; i++)
+        if (streq(tmp_files[i].name, filename))
+            return;
 
     read_file(filename, tmp_buffer_ptr, filesize);
     snprintf(tmp_files[tmp_file_index].name, 50, "%s", filename);
@@ -3698,7 +3605,7 @@ static void TmpMem_AddFile(char* filename)
     }
 }
 
-static void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag, int recursive_levels)
+static void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int (*is_valid_filename)(char*), int recursive_levels)
 {
     struct fio_file file;
     struct fio_dirent * dirent = FIO_FindFirstEx( dir, &file );
@@ -3713,14 +3620,15 @@ static void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag, int
             {
                 char new_dir[0x80];
                 snprintf(new_dir, sizeof(new_dir), "%s%s/", dir, file.name);
-                CopyMLDirectoryToRAM_BeforeFormat(new_dir, cropmarks_flag, recursive_levels-1);
+                CopyMLDirectoryToRAM_BeforeFormat(new_dir, is_valid_filename, recursive_levels-1);
             }
             continue; // is a directory
         }
-        if (cropmarks_flag && !is_valid_cropmark_filename(file.name)) continue;
-
-        int n = strlen(file.name);
-        if ((n > 4) && (streq(file.name + n - 4, ".VRM") || streq(file.name + n - 4, ".vrm"))) continue;
+        
+        if (is_valid_filename && !is_valid_filename(file.name))
+        {
+            continue;
+        }
 
         char fn[0x80];
         snprintf(fn, sizeof(fn), "%s%s", dir, file.name);
@@ -3730,19 +3638,48 @@ static void CopyMLDirectoryToRAM_BeforeFormat(char* dir, int cropmarks_flag, int
     FIO_FindClose(dirent);
 }
 
+static int is_valid_fir_filename(char* filename)
+{
+    int n = strlen(filename);
+    if ((n > 4) && (streq(filename + n - 4, ".FIR") || streq(filename + n - 4, ".fir")))
+        return 1;
+    return 0;
+}
+
+static int is_valid_log_filename(char* filename)
+{
+    int n = strlen(filename);
+    if ((n > 4) && (streq(filename + n - 4, ".LOG") || streq(filename + n - 4, ".log")))
+        return 1;
+    return 0;
+}
+
 static void CopyMLFilesToRAM_BeforeFormat()
 {
+    /* this is the most important file, read it first */
     TmpMem_AddFile("AUTOEXEC.BIN");
-    TmpMem_AddFile("MAGIC.FIR");
-    CopyMLDirectoryToRAM_BeforeFormat("ML/", 0, 0);
+    
+    /* some important subdirectories from ML/ */
     CopyMLDirectoryToRAM_BeforeFormat("ML/FONTS/", 0, 0);
-    CopyMLDirectoryToRAM_BeforeFormat("ML/SETTINGS/", 0, 1);
     CopyMLDirectoryToRAM_BeforeFormat("ML/MODULES/", 0, 0);
-    CopyMLDirectoryToRAM_BeforeFormat("ML/SCRIPTS/", 0, 0);
-    CopyMLDirectoryToRAM_BeforeFormat("ML/DATA/", 0, 0);
-    CopyMLDirectoryToRAM_BeforeFormat("ML/CROPMKS/", 1, 0);
-    CopyMLDirectoryToRAM_BeforeFormat("ML/DOC/", 0, 0);
-    CopyMLDirectoryToRAM_BeforeFormat("ML/LOGS/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat("ML/SETTINGS/", 0, 1);
+
+    /* FIR files from root dir */
+    CopyMLDirectoryToRAM_BeforeFormat("", is_valid_fir_filename, 0);
+    
+    /* everything else from ML dir */
+    CopyMLDirectoryToRAM_BeforeFormat("ML/", 0, 2);
+    
+    /* and, if we still have free space, also keep the LOG files from root dir */
+    CopyMLDirectoryToRAM_BeforeFormat("", is_valid_log_filename, 0);
+    
+    /* restore Toshiba FlashAir files, if any */
+    /* (normally, formatting this card from camera disables wifi operation) */
+    /* (not sure which of those are strictly needed) */
+    CopyMLDirectoryToRAM_BeforeFormat("B:/SD_WLAN/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat("B:/GUPIXINF/", 0, 1);
+    TmpMem_AddFile("B:/DCIM/100__TSB/FA000001.JPG");
+
     TmpMem_UpdateSizeDisplay(0);
 }
 
@@ -3762,14 +3699,14 @@ static void CopyMLFilesBack_AfterFormat()
         if(should_run_polling_action(500, &aux))
         {
             snprintf(msg, sizeof(msg), "Restoring %s...", tmp_files[i].name);
-            HijackCurrentDialogBox(STR_LOC, msg);
+            HijackCurrentDialogBox(FORMAT_STR_LOC, msg);
         }
         dump_seg(tmp_files[i].buf, tmp_files[i].size, tmp_files[i].name);
         int sig = compute_signature(tmp_files[i].buf, tmp_files[i].size/4);
         if (sig != tmp_files[i].sig)
         {
             snprintf(msg, sizeof(msg), "Could not restore %s :(", tmp_files[i].name);
-            HijackCurrentDialogBox(STR_LOC, msg);
+            HijackCurrentDialogBox(FORMAT_STR_LOC, msg);
             msleep(2000);
             FIO_RemoveFile(tmp_files[i].name);
             if (i <= 1) return;
@@ -3780,15 +3717,19 @@ static void CopyMLFilesBack_AfterFormat()
     /* make sure we don't enable bootflag when there is no autoexec.bin (anymore) */
     if(check_autoexec())
     {
-        HijackCurrentDialogBox(STR_LOC, "Writing bootflags...");
+        HijackCurrentDialogBox(FORMAT_STR_LOC, "Writing bootflags...");
         
-        extern void bootflag_write_bootblock(void);
-        bootflag_write_bootblock();
+        extern int bootflag_write_bootblock(void);
+        if (!bootflag_write_bootblock())
+        {
+            beep_times(3);
+            NotifyBox(5000, "Bootflags not written, use EosCard");
+        }
     }
 
-    HijackCurrentDialogBox(STR_LOC, "Magic Lantern restored :)");
+    HijackCurrentDialogBox(FORMAT_STR_LOC, "Magic Lantern restored :)");
     msleep(1000);
-    HijackCurrentDialogBox(STR_LOC, "Format");
+    HijackCurrentDialogBox(FORMAT_STR_LOC, "Format");
 }
 
 static void HijackFormatDialogBox_main()
@@ -3796,6 +3737,15 @@ static void HijackFormatDialogBox_main()
     if (!MENU_MODE) return;
     if (MEM(DIALOG_MnCardFormatBegin) == 0) return;
     // at this point, Format dialog box is active
+    
+    #ifdef CONFIG_DUAL_SLOT
+    int ml_on_cf = (get_ml_card()->drive_letter[0] == 'A');
+    if (ml_on_cf != FORMATTING_CF_CARD)
+    {
+        /* we are not formatting the ML card, no need to restore anything */
+        return;
+    }
+    #endif
 
     // make sure we have something to restore :)
     if (!check_autoexec()) return;
@@ -3936,11 +3886,6 @@ int handle_tricky_canon_calls(struct event * event)
         case MLEV_REDRAW:
             _redraw_do();   /* todo: move in gui-common.c */
             break;
-        case MLEV_TRIGGER_ZEBRAS_FOR_PLAYBACK:
-            #ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
-            handle_livev_playback(event); /* todo: move back to zebra.c */
-            #endif
-            break;
     }
     
     return 1;
@@ -3959,7 +3904,11 @@ void display_off()
 // engio functions may fail and lock the camera
 void EngDrvOut(uint32_t reg, uint32_t value)
 {
+    #ifdef CONFIG_QEMU
+    if (!reg) return;   /* fixme: LCD palette not initialized */
+    #endif
+
     if (ml_shutdown_requested) return;
-    if (!DISPLAY_IS_ON) return; // these are normally used with display on; otherwise, they may lock-up the camera
+    if (!(MEM(0xC0400008) & 0x2)) return; // this routine requires LCLK enabled
     _EngDrvOut(reg, value);
 }

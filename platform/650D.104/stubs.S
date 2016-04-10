@@ -254,7 +254,6 @@ NSTUB(0xFF11EFF4, _prop_cleanup)
 NSTUB(0xFF11E96C, _prop_request_change)
 NSTUB(0xFF11EF28,  prop_deliver)
 NSTUB(0xFF11E778,  prop_register_slave)
-// NSTUB(    ???,  PROPAD_GetPropertyData)                  /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 550D.109 */
 // NSTUB(    ???,  prop_unregister_slave)                   /* present on 7D.203 */
 
 /** RPC (for 7D) **/

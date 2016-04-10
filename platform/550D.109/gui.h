@@ -22,9 +22,6 @@
 #define BGMT_PLAY 9
 
 #define BGMT_PRESS_HALFSHUTTER 0x3F
-#define BGMT_UNPRESS_HALFSHUTTER 0x40
-#define BGMT_PRESS_FULLSHUTTER 0x41    // can't return 0 to block this...
-#define BGMT_UNPRESS_FULLSHUTTER 0x42
 
 #define BGMT_LV 0x18
 
@@ -55,7 +52,6 @@
 #define BGMT_FLASH_MOVIE (event->type == 0 && event->param == 0x56 && is_movie_mode() && event->arg == 9)
 #define BGMT_PRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x4000000))
 #define BGMT_UNPRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x4000000) == 0)
-#define FLASH_BTN_MOVIE_MODE get_flash_movie_pressed()
 
 #define BGMT_ISO_MOVIE (event->type == 0 && event->param == 0x56 && is_movie_mode() && event->arg == 0x1b)
 #define BGMT_PRESS_ISO_MOVIE (BGMT_ISO_MOVIE && (*(int*)(event->obj) & 0xe0000))

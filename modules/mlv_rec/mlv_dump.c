@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <strings.h>
 #include <getopt.h>
 #include <inttypes.h>
 #include <time.h>
@@ -105,7 +106,11 @@ enum bug_id
         introduced: 9058cbc13fa4 
         fixed in  : 2da80f3de3d1 
         */
-    BUG_ID_BLOCKSIZE_WRONG = 1
+    BUG_ID_BLOCKSIZE_WRONG = 1,
+    /* 
+        dont know yet where this bug comes from. was reported in http://www.magiclantern.fm/forum/index.php?topic=14703
+    */
+    BUG_ID_FRAMEDATA_MISALIGN = 2
 };
 
 int batch_mode = 0;
@@ -435,8 +440,9 @@ typedef struct
 {
     uint64_t    frameTime;
     uint64_t    frameOffset;
-    uint32_t    fileNumber;
-} PACKED frame_xref_t;
+    uint16_t    fileNumber;
+    uint16_t    frameType;
+} frame_xref_t;
 
 void xref_resize(frame_xref_t **table, int entries, int *allocated)
 {
@@ -460,9 +466,20 @@ void xref_dump(mlv_xref_hdr_t *xref)
 
     for(uint32_t pos = 0; pos < xref->entryCount; pos++)
     {
-        print_msg(MSG_INFO, "Entry %d/%d\n", pos, xref->entryCount);
+        print_msg(MSG_INFO, "Entry %d/%d\n", pos + 1, xref->entryCount);
         print_msg(MSG_INFO, "    File   #%d\n", xrefs[pos].fileNumber);
         print_msg(MSG_INFO, "    Offset 0x%08X\n", xrefs[pos].frameOffset);
+        switch (xrefs[pos].frameType)
+        {
+            case MLV_FRAME_VIDF:
+                print_msg(MSG_INFO, "    Type   VIDF\n");
+                break;
+            case MLV_FRAME_AUDF:
+                print_msg(MSG_INFO, "    Type   AUDF\n");
+                break;
+            default:
+                break;
+        }
     }
 }
 
@@ -551,7 +568,7 @@ uint16_t bitextract(uint16_t *src, int position, int depth)
     return value;
 }
 
-int load_frame(char *filename, uint8_t *frame_buffer)
+int load_frame(char *filename, uint8_t **frame_buffer, uint32_t *frame_buffer_size)
 {
     FILE *in_file = NULL;
     int ret = 0;
@@ -578,6 +595,10 @@ int load_frame(char *filename, uint8_t *frame_buffer)
             goto load_frame_finish;
         }
 
+        print_msg(MSG_INFO, "Block: %c%c%c%c\n", buf.blockType[0], buf.blockType[1], buf.blockType[2], buf.blockType[3]);
+        print_msg(MSG_INFO, "  Offset: 0x%08" PRIx64 "\n", position);
+        print_msg(MSG_INFO, "    Size: %d\n", buf.blockSize);
+        
         /* jump back to the beginning of the block just read */
         file_set_pos(in_file, position, SEEK_SET);
 
@@ -617,9 +638,13 @@ int load_frame(char *filename, uint8_t *frame_buffer)
             }
 
             int frame_size = block_hdr.blockSize - sizeof(mlv_vidf_hdr_t) - block_hdr.frameSpace;
+        
+            /* loading the first frame. report frame size and allocate memory for that frame */
+            *frame_buffer_size = frame_size;
+            *frame_buffer = malloc(frame_size);
 
             file_set_pos(in_file, block_hdr.frameSpace, SEEK_CUR);
-            if(fread(frame_buffer, frame_size, 1, in_file) != 1)
+            if(fread(*frame_buffer, frame_size, 1, in_file) != 1)
             {
                 print_msg(MSG_ERROR, "File '%s' ends in the middle of a block\n", filename);
                 ret = 4;
@@ -727,7 +752,7 @@ void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fileCount
     if(!out_file)
     {
         free(filename);
-        print_msg(MSG_ERROR, "Failed writing into output file\n");
+        print_msg(MSG_ERROR, "Failed writing into .IDX file\n");
         return;
     }
 
@@ -743,8 +768,13 @@ void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fileCount
     file_hdr.audioFrameCount = 0;
     file_hdr.fileNum = fileCount + 1;
 
-    fwrite(&file_hdr, sizeof(mlv_file_hdr_t), 1, out_file);
-
+    if(fwrite(&file_hdr, sizeof(mlv_file_hdr_t), 1, out_file) != 1)
+    {
+        free(filename);
+        print_msg(MSG_ERROR, "Failed writing into .IDX file\n");
+        fclose(out_file);
+        return;
+    }
 
     /* now write XREF block */
     mlv_xref_hdr_t hdr;
@@ -757,7 +787,7 @@ void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fileCount
     if(fwrite(&hdr, sizeof(mlv_xref_hdr_t), 1, out_file) != 1)
     {
         free(filename);
-        print_msg(MSG_ERROR, "Failed writing into output file\n");
+        print_msg(MSG_ERROR, "Failed writing into .IDX file\n");
         fclose(out_file);
         return;
     }
@@ -771,11 +801,12 @@ void save_index(char *base_filename, mlv_file_hdr_t *ref_file_hdr, int fileCount
 
         field.frameOffset = index[entry].frameOffset;
         field.fileNumber = index[entry].fileNumber;
+        field.frameType = index[entry].frameType;
 
         if(fwrite(&field, sizeof(mlv_xref_t), 1, out_file) != 1)
         {
             free(filename);
-            print_msg(MSG_ERROR, "Failed writing into output file\n");
+            print_msg(MSG_ERROR, "Failed writing into .IDX file\n");
             fclose(out_file);
             return;
         }
@@ -805,6 +836,17 @@ FILE **load_all_chunks(char *base_filename, int *entries)
 
     print_msg(MSG_INFO, "File %s opened\n", filename);
 
+    /* get extension and check if it is a .MLV */
+    char *dot = strrchr(filename, '.');
+    if(dot)
+    {
+        dot++;
+        if(strcasecmp(dot, "mlv"))
+        {
+            seq_number = 100;
+        }
+    }
+    
     (*entries)++;
     while(seq_number < 99)
     {
@@ -949,14 +991,23 @@ void show_usage(char *executable)
     print_msg(MSG_INFO, " -b bits             convert image data to given bit depth per channel (1-16)\n");
     print_msg(MSG_INFO, " -z bits             zero the lowest bits, so we have only specified number of bits containing data (1-16) (improves compression rate)\n");
     print_msg(MSG_INFO, " -f frames           frames to save. e.g. '12' saves the first 12 frames, '12-40' saves frames 12 to 40.\n");
+    print_msg(MSG_INFO, " -A fpsx1000         Alter the video file's FPS metadata\n");
     print_msg(MSG_INFO, " -x                  build xref file (indexing)\n");
     print_msg(MSG_INFO, " -m                  write only metadata, no audio or video frames\n");
     print_msg(MSG_INFO, " -n                  write no metadata, only audio and video frames\n");
 
+    print_msg(MSG_INFO, "\n");
+    print_msg(MSG_INFO, "-- Image manipulation --\n");
     print_msg(MSG_INFO, " -a                  average all frames in <inputfile> and output a single-frame MLV from it\n");
+    print_msg(MSG_INFO, " --avg-vertical      [DARKFRAME ONLY] average the resulting frame in vertical direction, so we will extract vertical banding\n");
+    print_msg(MSG_INFO, " --avg-horizontal    [DARKFRAME ONLY] average the resulting frame in horizontal direction, so we will extract horizontal banding\n");
     print_msg(MSG_INFO, " -s mlv_file         subtract the reference frame in given file from every single frame during processing\n");
 
+    print_msg(MSG_INFO, "\n");
+    print_msg(MSG_INFO, "-- Processing --\n");
     print_msg(MSG_INFO, " -e                  delta-encode frames to improve compression, but lose random access capabilities\n");
+    print_msg(MSG_INFO, " -X type             extract only block type\n");
+    print_msg(MSG_INFO, " -I mlv_file         inject data from given MLV file right after MLVI header\n");
 
     /* yet unclear which format to choose, so keep that as reminder */
     //print_msg(MSG_INFO, " -u lut_file         look-up table with 4 * xRes * yRes 16-bit words that is applied before bit depth conversion\n");
@@ -981,6 +1032,8 @@ int main (int argc, char *argv[])
     char *output_filename = NULL;
     char *subtract_filename = NULL;
     char *lut_filename = NULL;
+    char *extract_block = NULL;
+    char *inject_filename = NULL;
     int blocks_processed = 0;
 
     uint32_t frame_start = 0;
@@ -992,6 +1045,8 @@ int main (int argc, char *argv[])
     int delta_encode_mode = 0;
     int xref_mode = 0;
     int average_mode = 0;
+    int average_vert = 0;
+    int average_hor = 0;
     int subtract_mode = 0;
     int no_metadata_mode = 0;
     int only_metadata_mode = 0;
@@ -1005,6 +1060,7 @@ int main (int argc, char *argv[])
     int decompress_output = 0;
     int verbose = 0;
     int lzma_level = 5;
+    int alter_fps = 0;
     char opt = ' ';
 
     int video_xRes = 0;
@@ -1027,6 +1083,7 @@ int main (int argc, char *argv[])
     int black_fix = 0;
     enum bug_id fix_bug = BUG_ID_NONE;
     int fix_bug_1_offset = 0;
+    int fix_bug_2_offset = 0;
     int dng_output = 0;
     int dump_xrefs = 0;
     int fix_cold_pixels = 0;
@@ -1043,6 +1100,8 @@ int main (int argc, char *argv[])
         {"cs3x3",  no_argument, &chroma_smooth_method,  3 },
         {"cs5x5",  no_argument, &chroma_smooth_method,  5 },
         {"fixcp",  no_argument, &fix_cold_pixels,  1 },
+        {"avg-vertical",  no_argument, &average_vert,  1 },
+        {"avg-horizontal",  no_argument, &average_hor,  1 },
         {0,         0,                 0,  0 }
     };
 
@@ -1057,7 +1116,7 @@ int main (int argc, char *argv[])
     }
 
     int index = 0;
-    while ((opt = getopt_long(argc, argv, "F:B:L:txz:emnas:uvrcdo:l:b:f:", long_options, &index)) != -1)
+    while ((opt = getopt_long(argc, argv, "A:F:B:L:txz:emnas:X:I:uvrcdo:l:b:f:", long_options, &index)) != -1)
     {
         switch (opt)
         {
@@ -1072,6 +1131,17 @@ int main (int argc, char *argv[])
                 {
                     fix_bug = MIN(16384, MAX(1, atoi(optarg)));
                     print_msg(MSG_INFO, "FIX BUG #%d [active]\n", fix_bug);
+                    
+                    if(fix_bug == BUG_ID_FRAMEDATA_MISALIGN)
+                    {
+                        char *parm = strchr(optarg, ',');
+                        if(parm && *parm)
+                        {
+                            parm++;
+                            fix_bug_2_offset = MIN(16384, MAX(-16384, atoi(parm)));
+                            print_msg(MSG_INFO, "FIX BUG #%d [active] parameter: %d\n", fix_bug, fix_bug_2_offset);
+                        }
+                    }
                 }
                 break;
               
@@ -1083,6 +1153,18 @@ int main (int argc, char *argv[])
                 else
                 {
                     black_fix = MIN(16384, MAX(1, atoi(optarg)));
+                }
+                break;
+                
+            case 'A':
+                if(!optarg)
+                {
+                    print_msg(MSG_ERROR, "Error: Missing parameter FPSx1000\n");
+                    return ERR_PARAM;
+                }
+                else
+                {
+                    alter_fps = MAX(1, atoi(optarg));
                 }
                 break;
                 
@@ -1148,6 +1230,24 @@ int main (int argc, char *argv[])
                 subtract_filename = strdup(optarg);
                 subtract_mode = 1;
                 decompress_output = 1;
+                break;
+
+            case 'X':
+                if(!optarg || strlen(optarg) != 4)
+                {
+                    print_msg(MSG_ERROR, "Error: Missing block type. e.g. MLVI or RAWI\n");
+                    return ERR_PARAM;
+                }
+                extract_block = strdup(optarg);
+                break;
+
+            case 'I':
+                if(!optarg)
+                {
+                    print_msg(MSG_ERROR, "Error: Missing filename of data to inject\n");
+                    return ERR_PARAM;
+                }
+                inject_filename = strdup(optarg);
                 break;
 
             case 'u':
@@ -1277,6 +1377,11 @@ int main (int argc, char *argv[])
         print_msg(MSG_INFO, "   - Setting black level to %d\n", black_fix);
     }
 
+    if(alter_fps)
+    {
+        print_msg(MSG_INFO, "   - altering FPS metadata for %d/1000 fps\n", alter_fps);
+    }
+
     /* special case - splitting into frames doesnt require a specific output file */
     if(dng_output && !output_filename)
     {
@@ -1346,11 +1451,26 @@ int main (int argc, char *argv[])
             if(average_mode)
             {
                 print_msg(MSG_INFO, "   - Output only one frame with averaged pixel values\n");
-                subtract_mode = 0;
+                if(average_vert)
+                {
+                    print_msg(MSG_INFO, "   - Also average the images in vertical direction to extract vertical banding\n");
+                }
+                if(average_hor)
+                {
+                    print_msg(MSG_INFO, "   - Also average the images in horizontal direction to extract horizontal banding\n");
+                }
             }
             if(subtract_mode)
             {
                 print_msg(MSG_INFO, "   - Subtract reference frame '%s' from single images\n", subtract_filename);
+            }
+            if(extract_block)
+            {
+                print_msg(MSG_INFO, "   - But only write '%s' blocks\n", extract_block);
+            }
+            if(inject_filename)
+            {
+                print_msg(MSG_INFO, "   - Inject data from '%s'\n", inject_filename);
             }
         }
 
@@ -1393,6 +1513,7 @@ int main (int argc, char *argv[])
     memset(&wbal_info, 0x00, sizeof(mlv_wbal_hdr_t));
     memset(&wavi_info, 0x00, sizeof(mlv_wavi_hdr_t));
     memset(&rtci_info, 0x00, sizeof(mlv_rtci_hdr_t));
+    memset(&main_header, 0x00, sizeof(mlv_file_hdr_t));
 
     char info_string[256] = "(MLV Video without INFO blocks)";
 
@@ -1401,9 +1522,11 @@ int main (int argc, char *argv[])
     mlv_xref_t *xrefs = NULL;
     uint32_t block_xref_pos = 0;
 
-    uint32_t frame_buffer_size = 32*1024*1024;
+    uint32_t frame_buffer_size = 1*1024*1024;
+    uint32_t subtract_frame_buffer_size = 0;
 
     uint32_t *frame_arith_buffer = NULL;
+    uint8_t *frame_sub_buffer = NULL;
     uint8_t *frame_buffer = NULL;
     uint8_t *prev_frame_buffer = NULL;
 
@@ -1463,29 +1586,32 @@ int main (int argc, char *argv[])
         }
     }
 
-    if(average_mode || subtract_mode)
-    {
-        frame_arith_buffer = malloc(frame_buffer_size);
-        if(!frame_arith_buffer)
-        {
-            print_msg(MSG_ERROR, "Failed to alloc mem\n");
-            return ERR_MALLOC;
-        }
-        memset(frame_arith_buffer, 0x00, frame_buffer_size);
-    }
-
+    /* this block will load an image from a MLV file, so use its reported frame size for future use */
     if(subtract_mode)
     {
-        int ret = load_frame(subtract_filename, (uint8_t*)frame_arith_buffer);
+        int ret = load_frame(subtract_filename, &frame_sub_buffer, &subtract_frame_buffer_size);
 
         if(ret)
         {
             print_msg(MSG_ERROR, "Failed to load subtract frame (%d)\n", ret);
             return ERR_FILE;
         }
+        
+        frame_buffer_size = subtract_frame_buffer_size;
     }
 
-    //if(delta_encode_mode)
+    if(average_mode)
+    {
+        frame_arith_buffer = malloc(frame_buffer_size * sizeof(uint32_t));
+        if(!frame_arith_buffer)
+        {
+            print_msg(MSG_ERROR, "Failed to alloc mem\n");
+            return ERR_MALLOC;
+        }
+        memset(frame_arith_buffer, 0x00, frame_buffer_size * sizeof(uint32_t));
+    }
+
+    /* always allocate, delta decoding also needs this buffer */
     {
         prev_frame_buffer = malloc(frame_buffer_size);
         if(!prev_frame_buffer)
@@ -1504,6 +1630,7 @@ int main (int argc, char *argv[])
             print_msg(MSG_ERROR, "Failed to alloc mem\n");
             return ERR_MALLOC;
         }
+        memset(frame_buffer, 0x00, frame_buffer_size);
 
         if(!dng_output && output_filename)
         {
@@ -1606,6 +1733,12 @@ read_headers:
                 print_msg(MSG_INFO, "    Frames Video: %d\n", file_hdr.videoFrameCount);
                 print_msg(MSG_INFO, "    Frames Audio: %d\n", file_hdr.audioFrameCount);
             }
+            
+            if(alter_fps)
+            {
+                file_hdr.sourceFpsNom = alter_fps;
+                file_hdr.sourceFpsDenom = 1000;
+            }
 
             /* in xref mode, use every block and get its timestamp etc */
             if(xref_mode)
@@ -1616,13 +1749,17 @@ read_headers:
                 frame_xref_table[frame_xref_entries].frameTime = 0;
                 frame_xref_table[frame_xref_entries].frameOffset = position;
                 frame_xref_table[frame_xref_entries].fileNumber = in_file_num;
+                frame_xref_table[frame_xref_entries].frameType = MLV_FRAME_UNSPECIFIED;
 
                 frame_xref_entries++;
             }
 
             /* is this the first file? */
-            if(file_hdr.fileNum == 0)
+            if(main_header.fileGuid == 0)
             {
+                /* correct header size if needed */
+                file_hdr.blockSize = sizeof(mlv_file_hdr_t);
+
                 memcpy(&main_header, &file_hdr, sizeof(mlv_file_hdr_t));
 
                 total_vidf_count = main_header.videoFrameCount;
@@ -1630,9 +1767,6 @@ read_headers:
 
                 if(mlv_output)
                 {
-                    /* correct header size if needed */
-                    file_hdr.blockSize = sizeof(mlv_file_hdr_t);
-
                     if(average_mode)
                     {
                         file_hdr.videoFrameCount = 1;
@@ -1657,10 +1791,51 @@ read_headers:
                         file_hdr.videoClass &= ~MLV_VIDEO_CLASS_FLAG_DELTA;
                     }
 
-                    if(fwrite(&file_hdr, file_hdr.blockSize, 1, out_file) != 1)
+                    if(!extract_block || !strncasecmp(extract_block, (char*)file_hdr.fileMagic, 4))
                     {
-                        print_msg(MSG_ERROR, "Failed writing into output file\n");
-                        goto abort;
+                        if(fwrite(&file_hdr, file_hdr.blockSize, 1, out_file) != 1)
+                        {
+                            print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
+                            goto abort;
+                        }
+                    }
+                    
+                    if(inject_filename)
+                    {
+                        FILE *inject_file = fopen(inject_filename, "rb");
+                        
+                        if(!inject_file)
+                        {
+                            print_msg(MSG_ERROR, "Failed opening .MLV file to inject\n");
+                            goto abort;
+                        }
+                        
+                        file_set_pos(inject_file, 0, SEEK_END);
+                        uint32_t size = file_get_pos(inject_file);
+                        file_set_pos(inject_file, 0, SEEK_SET);
+                        
+                        uint8_t *buf = malloc(size);
+                        if(!buf)
+                        {
+                            print_msg(MSG_ERROR, "Failed to allocate buffer for data to inject\n");
+                            goto abort;
+                        }
+                        
+                        if(fread(buf, size, 1, inject_file) != 1)
+                        {
+                            print_msg(MSG_ERROR, "Failed to read data form inject file\n");
+                            goto abort;
+                        }
+
+                        if(fwrite(buf, size, 1, out_file) != 1)
+                        {
+                            print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
+                            goto abort;
+                        }
+                        
+                        free(buf);
+                        
+                        fclose(inject_file);
                     }
                 }
             }
@@ -1669,8 +1844,8 @@ read_headers:
                 /* no, its another chunk */
                 if(main_header.fileGuid != file_hdr.fileGuid)
                 {
-                    print_msg(MSG_INFO, "Error: GUID within the file chunks mismatch!\n");
-                    break;
+                    print_msg(MSG_ERROR, "Error: GUID within the file chunks mismatch!\n");
+                    //break;
                 }
 
                 total_vidf_count += file_hdr.videoFrameCount;
@@ -1695,6 +1870,10 @@ read_headers:
                 frame_xref_table[frame_xref_entries].frameTime = buf.timestamp;
                 frame_xref_table[frame_xref_entries].frameOffset = position;
                 frame_xref_table[frame_xref_entries].fileNumber = in_file_num;
+                frame_xref_table[frame_xref_entries].frameType =
+                    !memcmp(buf.blockType, "VIDF", 4) ? MLV_FRAME_VIDF :
+                    !memcmp(buf.blockType, "AUDF", 4) ? MLV_FRAME_AUDF :
+                    MLV_FRAME_UNSPECIFIED;
 
                 frame_xref_entries++;
             }
@@ -1725,14 +1904,14 @@ read_headers:
 
                 if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
                 {
-                    print_msg(MSG_ERROR, "File ends in the middle of a block\n");
+                    print_msg(MSG_ERROR, "AUDF: File ends in the middle of a block\n");
                     goto abort;
                 }
 
                 lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
                 if(verbose)
                 {
-                    print_msg(MSG_INFO, "   Frame: #%d\n", block_hdr.frameNumber);
+                    print_msg(MSG_INFO, "   Frame: #%04d\n", block_hdr.frameNumber);
                     print_msg(MSG_INFO, "   Space: %d\n", block_hdr.frameSpace);
                 }
 
@@ -1740,7 +1919,7 @@ read_headers:
                 
                 if(block_hdr.frameSpace > block_hdr.blockSize - sizeof(mlv_vidf_hdr_t))
                 {
-                    print_msg(MSG_ERROR, "Frame space is larger than block size. Skipping\n");
+                    print_msg(MSG_ERROR, "AUDF: Frame space is larger than block size. Skipping\n");
                     skip_block = 1;
                 }
 
@@ -1752,24 +1931,55 @@ read_headers:
                     int frame_size = block_hdr.blockSize - sizeof(mlv_audf_hdr_t) - block_hdr.frameSpace;
                     void *buf = malloc(frame_size);
 
+                    if(!buf)
+                    {
+                        print_msg(MSG_ERROR, "AUDF: Failed to allocate buffer\n");
+                        goto abort;
+                    }
+                    
                     if(fread(buf, frame_size, 1, in_file) != 1)
                     {
                         free(buf);
-                        print_msg(MSG_ERROR, "File ends in the middle of a block\n");
+                        print_msg(MSG_ERROR, "AUDF: File ends in the middle of a block\n");
                         goto abort;
                     }
 
-                    if(!wavi_info.timestamp)
-                    {
-                        print_msg(MSG_ERROR, "Received AUDF without WAVI, the .wav file might be corrupt\n");
-                    }
 
+                    if(mlv_output && !only_metadata_mode && (!extract_block || !strncasecmp(extract_block, (char*)block_hdr.blockType, 4)))
+                    {
+                        /* correct header size */
+                        block_hdr.blockSize = sizeof(mlv_audf_hdr_t) + frame_size;
+                        
+                        if(fwrite(&block_hdr, sizeof(mlv_audf_hdr_t), 1, out_file) != 1)
+                        {
+                            print_msg(MSG_ERROR, "AUDF: Failed writing into .MLV file\n");
+                            print_msg(MSG_ERROR, "ptr: 0x%08X type: %s\n", &block_hdr, block_hdr.blockType);
+                            goto abort;
+                        }
+                        if(fwrite(buf, frame_size, 1, out_file) != 1)
+                        {
+                            print_msg(MSG_ERROR, "AUDF: Failed writing into .MLV file\n");
+                            goto abort;
+                        }
+                    }
+                
                     /* only write WAV if the WAVI header created a file */
                     if(out_file_wav)
                     {
+                        if(!wavi_info.timestamp)
+                        {
+                            print_msg(MSG_ERROR, "AUDF: Received AUDF without WAVI, the .wav file might be corrupt\n");
+                        }
+                        
                         /* assume block size is uniform, this allows random access */
                         file_set_pos(out_file_wav, wav_header_size + frame_size * block_hdr.frameNumber, SEEK_SET);
-                        fwrite(buf, frame_size, 1, out_file_wav);
+                        
+                        if(fwrite(buf, frame_size, 1, out_file_wav) != 1)
+                        {
+                            print_msg(MSG_ERROR, "AUDF: Failed writing into .WAV file\n");
+                            goto abort;
+                        }
+                        
                         wav_file_size += frame_size;
                     }
                     free(buf);
@@ -1783,7 +1993,7 @@ read_headers:
 
                 if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
                 {
-                    print_msg(MSG_ERROR, "File ends in the middle of a block\n");
+                    print_msg(MSG_ERROR, "VIDF: File ends in the middle of a block\n");
                     goto abort;
                 }
 
@@ -1794,17 +2004,22 @@ read_headers:
 
                 if(verbose)
                 {
-                    print_msg(MSG_INFO, "   Frame: #%d\n", block_hdr.frameNumber);
+                    print_msg(MSG_INFO, "   Frame: #%04d\n", block_hdr.frameNumber);
                     print_msg(MSG_INFO, "    Crop: %dx%d\n", block_hdr.cropPosX, block_hdr.cropPosY);
                     print_msg(MSG_INFO, "     Pan: %dx%d\n", block_hdr.panPosX, block_hdr.panPosY);
                     print_msg(MSG_INFO, "   Space: %d\n", block_hdr.frameSpace);
+                }
+                
+                if(alter_fps)
+                {
+                    block_hdr.timestamp = (((uint64_t)block_hdr.frameNumber * 10000000ULL) / alter_fps) * 1000;
                 }
                 
                 uint32_t skip_block = 0;
                 
                 if(block_hdr.frameSpace > block_hdr.blockSize - sizeof(mlv_vidf_hdr_t))
                 {
-                    print_msg(MSG_ERROR, "Frame space is larger than block size. Skipping\n");
+                    print_msg(MSG_ERROR, "VIDF: Frame space is larger than block size. Skipping\n");
                     skip_block = 1;
                 }
 
@@ -1818,71 +2033,80 @@ read_headers:
                     int frame_size = block_hdr.blockSize - sizeof(mlv_vidf_hdr_t) - block_hdr.frameSpace;
                     int prev_frame_size = frame_size;
 
-                    /* we can correct that frame by fixing frame space */
-                    if(fix_bug == BUG_ID_BLOCKSIZE_WRONG)
+                    uint64_t skipSize = block_hdr.frameSpace;
+                    if(fix_bug == BUG_ID_FRAMEDATA_MISALIGN && (int)block_hdr.frameSpace >= fix_bug_2_offset)
                     {
-                        block_hdr.frameSpace -= fix_bug_1_offset;
+                        print_msg(MSG_INFO, "BUG_ID_FRAMEDATA_MISALIGN: Offset frame data by %d byte\n", fix_bug_2_offset);
+                        skipSize -= fix_bug_2_offset;
+                    }
+                    file_set_pos(in_file, skipSize, SEEK_CUR);
+                    
+                    /* we can correct that frame by fixing frame space */
+                    if(fix_bug == BUG_ID_BLOCKSIZE_WRONG && fix_bug_1_offset != 0)
+                    {
+                        print_msg(MSG_INFO, "BUG_ID_BLOCKSIZE_WRONG: Seeking %d byte\n", fix_bug_1_offset);
+                        file_set_pos(in_file, fix_bug_1_offset, SEEK_CUR);
+                        block_hdr.frameSpace += fix_bug_1_offset;
                         fix_bug_1_offset = 0;
                     }
                     
-                    file_set_pos(in_file, block_hdr.frameSpace, SEEK_CUR);
-                    
                     /* check if there is enough memory for that frame */
-                    if(frame_size > frame_buffer_size)
+                    if(frame_size > (int)frame_buffer_size)
                     {
                         /* no, set new size */
                         frame_buffer_size = frame_size;
                         
-                        /* free the buffers */
-                        free(frame_buffer);
-                        
-                        if(frame_arith_buffer)
-                        {
-                            free(frame_arith_buffer);
-                        }
-                        
-                        if(prev_frame_buffer)
-                        {
-                            free(prev_frame_buffer);
-                        }
-                        
-                        /* and allocate them again if they were used before */
-                        frame_buffer = malloc(frame_buffer_size);
+                        /* realloc buffers */
+                        frame_buffer = realloc(frame_buffer, frame_buffer_size);
                         
                         if(!frame_buffer)
                         {
-                            print_msg(MSG_ERROR, "Failed to allocate %d byte\n", frame_buffer_size);
+                            print_msg(MSG_ERROR, "VIDF: Failed to allocate %d byte\n", frame_buffer_size);
                             goto abort;
                         }
                         
                         if(frame_arith_buffer)
                         {
-                            frame_arith_buffer = malloc(frame_buffer_size);
+                            frame_arith_buffer = realloc(frame_arith_buffer, frame_buffer_size * sizeof(uint32_t));
                             if(!frame_arith_buffer)
                             {
-                                print_msg(MSG_ERROR, "Failed to allocate %d byte\n", frame_buffer_size);
+                                print_msg(MSG_ERROR, "VIDF: Failed to allocate %d byte\n", frame_buffer_size);
+                                goto abort;
+                            }
+                        }
+                        
+                        if(frame_sub_buffer)
+                        {
+                            frame_sub_buffer = realloc(frame_sub_buffer, frame_buffer_size);
+                            if(!frame_sub_buffer)
+                            {
+                                print_msg(MSG_ERROR, "VIDF: Failed to allocate %d byte\n", frame_buffer_size);
                                 goto abort;
                             }
                         }
                         
                         if(prev_frame_buffer)
                         {
-                            prev_frame_buffer = malloc(frame_buffer_size);
+                            prev_frame_buffer = realloc(prev_frame_buffer, frame_buffer_size);
                             if(!prev_frame_buffer)
                             {
-                                print_msg(MSG_ERROR, "Failed to allocate %d byte\n", frame_buffer_size);
+                                print_msg(MSG_ERROR, "VIDF: Failed to allocate %d byte\n", frame_buffer_size);
                                 goto abort;
                             }
-
                         }
                     }
                     
                     if(fread(frame_buffer, frame_size, 1, in_file) != 1)
                     {
-                        print_msg(MSG_ERROR, "File ends in the middle of a block\n");
+                        print_msg(MSG_ERROR, "VIDF: File ends in the middle of a block\n");
                         goto abort;
                     }
 
+                    if(fix_bug == BUG_ID_FRAMEDATA_MISALIGN && (int)block_hdr.frameSpace >= fix_bug_2_offset)
+                    {
+                        file_set_pos(in_file, fix_bug_2_offset, SEEK_CUR);
+                    }
+                    
                     lua_handle_hdr_data(lua_state, buf.blockType, "_data_read", &block_hdr, sizeof(block_hdr), frame_buffer, frame_size);
 
                     if(recompress || decompress || ((raw_output || dng_output) && compressed))
@@ -1925,10 +2149,40 @@ read_headers:
                     /* this value changes in this context */
                     int current_depth = old_depth;
 
+                    /* in subtract mode, subtract reference frame. do that before averaging */
+                    if(subtract_mode)
+                    {
+                        if((int)subtract_frame_buffer_size != frame_size)
+                        {
+                            print_msg(MSG_ERROR, "Error: Frame sizes of footage and subtract frame differ (%d, %d)", frame_size, subtract_frame_buffer_size);
+                            break;
+                        }
+                        
+                        int pitch = video_xRes * current_depth / 8;
+
+                        for(int y = 0; y < video_yRes; y++)
+                        {
+                            uint16_t *src_line = (uint16_t *)&frame_buffer[y * pitch];
+                            uint16_t *sub_line = (uint16_t *)&frame_sub_buffer[y * pitch];
+
+                            for(int x = 0; x < video_xRes; x++)
+                            {
+                                int32_t value = bitextract(src_line, x, current_depth);
+                                int32_t sub_value = bitextract(sub_line, x, current_depth);
+
+                                value -= sub_value;
+                                value += lv_rec_footer.raw_info.black_level; /* should we really add it here? or better subtract it from averaged frame? */
+                                value = COERCE(value, lv_rec_footer.raw_info.black_level, lv_rec_footer.raw_info.white_level);
+
+                                bitinsert(src_line, x, current_depth, value);
+                            }
+                        }
+                    }
+
                     /* in average mode, sum up all pixel values of a pixel position */
                     if(average_mode)
                     {
-                        int pitch = video_xRes * lv_rec_footer.raw_info.bits_per_pixel / 8;
+                        int pitch = video_xRes * current_depth / 8;
 
                         for(int y = 0; y < video_yRes; y++)
                         {
@@ -1936,37 +2190,13 @@ read_headers:
 
                             for(int x = 0; x < video_xRes; x++)
                             {
-                                uint16_t value = bitextract(src_line, x, lv_rec_footer.raw_info.bits_per_pixel);
+                                uint16_t value = bitextract(src_line, x, current_depth);
 
                                 frame_arith_buffer[y * video_xRes + x] += value;
                             }
                         }
 
                         average_samples++;
-                    }
-
-                    /* in subtract mode, subtrace reference frame */
-                    if(subtract_mode)
-                    {
-                        int pitch = video_xRes * lv_rec_footer.raw_info.bits_per_pixel / 8;
-
-                        for(int y = 0; y < video_yRes; y++)
-                        {
-                            uint16_t *src_line = (uint16_t *)&frame_buffer[y * pitch];
-                            uint16_t *sub_line = (uint16_t *)&((uint8_t*)frame_arith_buffer)[y * pitch];
-
-                            for(int x = 0; x < video_xRes; x++)
-                            {
-                                int32_t value = bitextract(src_line, x, lv_rec_footer.raw_info.bits_per_pixel);
-                                int32_t sub_value = bitextract(sub_line, x, lv_rec_footer.raw_info.bits_per_pixel);
-
-                                value -= sub_value;
-                                value += lv_rec_footer.raw_info.black_level;
-                                value = COERCE(value, lv_rec_footer.raw_info.black_level, lv_rec_footer.raw_info.white_level);
-
-                                bitinsert(src_line, x, lv_rec_footer.raw_info.bits_per_pixel, value);
-                            }
-                        }
                     }
 
                     /* now resample bit depth if requested */
@@ -2146,7 +2376,11 @@ read_headers:
                             lua_handle_hdr_data(lua_state, buf.blockType, "_data_write_raw", &block_hdr, sizeof(block_hdr), frame_buffer, frame_size);
 
                             file_set_pos(out_file, (uint64_t)block_hdr.frameNumber * (uint64_t)frame_size, SEEK_SET);
-                            fwrite(frame_buffer, frame_size, 1, out_file);
+                            if(fwrite(frame_buffer, frame_size, 1, out_file) != 1)
+                            {
+                                print_msg(MSG_ERROR, "VIDF: Failed writing into .RAW file\n");
+                                goto abort;
+                            }
                         }
 
                         if(dng_output)
@@ -2231,7 +2465,7 @@ read_headers:
                             else
                             {
                                 // soemthing went wrong. let's proceed anyway
-                                print_msg(MSG_ERROR, "[W] Failed calculating the DateTime from the timestamp\n");
+                                print_msg(MSG_ERROR, "VIDF: [W] Failed calculating the DateTime from the timestamp\n");
                                 dng_set_datetime("", "");
                             }
 
@@ -2248,7 +2482,11 @@ read_headers:
                             }
 
                             /* finally save the DNG */
-                            save_dng(frame_filename, &raw_info);
+                            if(!save_dng(frame_filename, &raw_info))
+                            {
+                                print_msg(MSG_ERROR, "VIDF: Failed writing into .DNG file\n");
+                                goto abort;
+                            }
 
                             /* callout for a saved dng file */
                             lua_call_va(lua_state, "dng_saved", "si", frame_filename, block_hdr.frameNumber);
@@ -2256,7 +2494,7 @@ read_headers:
                             free(frame_filename);
                         }
 
-                        if(mlv_output && !only_metadata_mode && !average_mode)
+                        if(mlv_output && !only_metadata_mode && !average_mode && (!extract_block || !strncasecmp(extract_block, (char*)block_hdr.blockType, 4)))
                         {
                             if(compress_output)
                             {
@@ -2313,12 +2551,12 @@ read_headers:
 
                             if(fwrite(&block_hdr, sizeof(mlv_vidf_hdr_t), 1, out_file) != 1)
                             {
-                                print_msg(MSG_ERROR, "Failed writing into output file\n");
+                                print_msg(MSG_ERROR, "VIDF: Failed writing into .MLV file\n");
                                 goto abort;
                             }
                             if(fwrite(frame_buffer, frame_size, 1, out_file) != 1)
                             {
-                                print_msg(MSG_ERROR, "Failed writing into output file\n");
+                                print_msg(MSG_ERROR, "VIDF: Failed writing into .MLV file\n");
                                 goto abort;
                             }
                         }
@@ -2327,6 +2565,14 @@ read_headers:
                 else
                 {
                     file_set_pos(in_file, position + block_hdr.blockSize, SEEK_SET);
+                    
+                    /* we can correct that frame by fixing frame space */
+                    if(fix_bug == BUG_ID_BLOCKSIZE_WRONG && fix_bug_1_offset != 0)
+                    {
+                        print_msg(MSG_INFO, "BUG_ID_BLOCKSIZE_WRONG: Seeking %d byte\n", fix_bug_1_offset);
+                        file_set_pos(in_file, fix_bug_1_offset, SEEK_CUR);
+                        fix_bug_1_offset = 0;
+                    }
                 }
 
                 vidf_max_number = MAX(vidf_max_number, block_hdr.frameNumber);
@@ -2361,13 +2607,13 @@ read_headers:
                     print_msg(MSG_INFO, "     Flags:       0x%08X\n", lens_info.flags);
                 }
 
-                if(mlv_output && !no_metadata_mode)
+                if(mlv_output && !no_metadata_mode && (!extract_block || !strncasecmp(extract_block, (char*)lens_info.blockType, 4)))
                 {
                     /* correct header size if needed */
                     lens_info.blockSize = sizeof(mlv_lens_hdr_t);
                     if(fwrite(&lens_info, lens_info.blockSize, 1, out_file) != 1)
                     {
-                        print_msg(MSG_ERROR, "Failed writing into output file\n");
+                        print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
                         goto abort;
                     }
                 }
@@ -2408,20 +2654,83 @@ read_headers:
                     }
 
                     /* only output this block if there is any data */
-                    if(mlv_output && !no_metadata_mode)
+                    if(mlv_output && !no_metadata_mode && (!extract_block || !strncasecmp(extract_block, (char*)block_hdr.blockType, 4)))
                     {
                         /* correct header size if needed */
                         block_hdr.blockSize = sizeof(mlv_info_hdr_t) + str_length;
                         if(fwrite(&block_hdr, sizeof(mlv_info_hdr_t), 1, out_file) != 1)
                         {
                             free(buf);
-                            print_msg(MSG_ERROR, "Failed writing into output file\n");
+                            print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
                             goto abort;
                         }
                         if(fwrite(buf, str_length, 1, out_file) != 1)
                         {
                             free(buf);
-                            print_msg(MSG_ERROR, "Failed writing into output file\n");
+                            print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
+                            goto abort;
+                        }
+                    }
+
+                    free(buf);
+                }
+            }
+            else if(!memcmp(buf.blockType, "DEBG", 4))
+            {
+                mlv_debg_hdr_t block_hdr;
+                int32_t hdr_size = MIN(sizeof(mlv_debg_hdr_t), buf.blockSize);
+
+                if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
+                {
+                    print_msg(MSG_ERROR, "File ends in the middle of a block\n");
+                    goto abort;
+                }
+
+                lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
+
+                /* get the string length and malloc a buffer for that string */
+                int str_length = block_hdr.blockSize - hdr_size;
+
+                if(str_length)
+                {
+                    char *buf = malloc(str_length + 1);
+
+                    if(fread(buf, str_length, 1, in_file) != 1)
+                    {
+                        free(buf);
+                        print_msg(MSG_ERROR, "File ends in the middle of a block\n");
+                        goto abort;
+                    }
+
+                    if(verbose)
+                    {
+                        buf[block_hdr.length] = '\000';
+                        print_msg(MSG_INFO, "     String:   '%s'\n", buf);
+                    }
+                    
+                    char *log_filename = malloc(strlen(input_filename) + 6);
+                    snprintf(log_filename, strlen(input_filename) + 6, "%s.log", input_filename);
+                    
+                    FILE *log_file = fopen(log_filename, "ab+");
+                    fwrite(buf, block_hdr.length, 1, log_file);
+                    fclose(log_file);
+                    free(log_filename);
+
+                    /* only output this block if there is any data */
+                    if(mlv_output && !no_metadata_mode)
+                    {
+                        /* correct header size if needed */
+                        block_hdr.blockSize = sizeof(mlv_debg_hdr_t) + str_length;
+                        if(fwrite(&block_hdr, sizeof(mlv_debg_hdr_t), 1, out_file) != 1)
+                        {
+                            free(buf);
+                            print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
+                            goto abort;
+                        }
+                        if(fwrite(buf, str_length, 1, out_file) != 1)
+                        {
+                            free(buf);
+                            print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
                             goto abort;
                         }
                     }
@@ -2451,13 +2760,13 @@ read_headers:
                     print_msg(MSG_INFO, "     Pitch:   %2.2f\n", (double)block_hdr.pitch / 100.0f);
                 }
 
-                if(mlv_output && !no_metadata_mode)
+                if(mlv_output && !no_metadata_mode && (!extract_block || !strncasecmp(extract_block, (char*)block_hdr.blockType, 4)))
                 {
                     /* correct header size if needed */
                     block_hdr.blockSize = sizeof(mlv_elvl_hdr_t);
                     if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
                     {
-                        print_msg(MSG_ERROR, "Failed writing into output file\n");
+                        print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
                         goto abort;
                     }
                 }
@@ -2487,13 +2796,13 @@ read_headers:
                     print_msg(MSG_INFO, "     colortone:  %d\n", block_hdr.colortone);
                 }
 
-                if(mlv_output && !no_metadata_mode)
+                if(mlv_output && !no_metadata_mode && (!extract_block || !strncasecmp(extract_block, (char*)block_hdr.blockType, 4)))
                 {
                     /* correct header size if needed */
                     block_hdr.blockSize = sizeof(mlv_styl_hdr_t);
                     if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
                     {
-                        print_msg(MSG_ERROR, "Failed writing into output file\n");
+                        print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
                         goto abort;
                     }
                 }
@@ -2524,13 +2833,13 @@ read_headers:
                     print_msg(MSG_INFO, "     Shift BA:   %d\n", wbal_info.wbs_ba);
                 }
 
-                if(mlv_output && !no_metadata_mode)
+                if(mlv_output && !no_metadata_mode && (!extract_block || !strncasecmp(extract_block, (char*)wbal_info.blockType, 4)))
                 {
                     /* correct header size if needed */
                     wbal_info.blockSize = sizeof(mlv_wbal_hdr_t);
                     if(fwrite(&wbal_info, wbal_info.blockSize, 1, out_file) != 1)
                     {
-                        print_msg(MSG_ERROR, "Failed writing into output file\n");
+                        print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
                         goto abort;
                     }
                 }
@@ -2557,13 +2866,13 @@ read_headers:
                     print_msg(MSG_INFO, "     Camera Model:  0x%08X\n", idnt_info.cameraModel);
                 }
 
-                if(mlv_output && !no_metadata_mode)
+                if(mlv_output && !no_metadata_mode && (!extract_block || !strncasecmp(extract_block, (char*)idnt_info.blockType, 4)))
                 {
                     /* correct header size if needed */
                     idnt_info.blockSize = sizeof(mlv_idnt_hdr_t);
                     if(fwrite(&idnt_info, idnt_info.blockSize, 1, out_file) != 1)
                     {
-                        print_msg(MSG_ERROR, "Failed writing into output file\n");
+                        print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
                         goto abort;
                     }
                 }
@@ -2593,13 +2902,13 @@ read_headers:
                     print_msg(MSG_INFO, "     Daylight s.: %d\n", rtci_info.tm_isdst);
                 }
 
-                if(mlv_output && !no_metadata_mode)
+                if(mlv_output && !no_metadata_mode && (!extract_block || !strncasecmp(extract_block, (char*)rtci_info.blockType, 4)))
                 {
                     /* correct header size if needed */
                     rtci_info.blockSize = sizeof(mlv_rtci_hdr_t);
                     if(fwrite(&rtci_info, rtci_info.blockSize, 1, out_file) != 1)
                     {
-                        print_msg(MSG_ERROR, "Failed writing into output file\n");
+                        print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
                         goto abort;
                     }
                 }
@@ -2625,13 +2934,13 @@ read_headers:
                     print_msg(MSG_INFO, "  Button: 0x%02X\n", block_hdr.type);
                 }
 
-                if(mlv_output && !no_metadata_mode)
+                if(mlv_output && !no_metadata_mode && (!extract_block || !strncasecmp(extract_block, (char*)block_hdr.blockType, 4)))
                 {
                     /* correct header size if needed */
                     block_hdr.blockSize = sizeof(mlv_mark_hdr_t);
                     if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
                     {
-                        print_msg(MSG_ERROR, "Failed writing into output file\n");
+                        print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
                         goto abort;
                     }
                 }
@@ -2657,16 +2966,16 @@ read_headers:
                     print_msg(MSG_INFO, "     ISO:        %d\n", expo_info.isoValue);
                     print_msg(MSG_INFO, "     ISO Analog: %d\n", expo_info.isoAnalog);
                     print_msg(MSG_INFO, "     ISO DGain:  %d/1024 EV\n", expo_info.digitalGain);
-                    print_msg(MSG_INFO, "     Shutter:    %" PRIu64 " µs (1/%.2f)\n", expo_info.shutterValue, 1000000.0f/(float)expo_info.shutterValue);
+                    print_msg(MSG_INFO, "     Shutter:    %" PRIu64 " microseconds (1/%.2f)\n", expo_info.shutterValue, 1000000.0f/(float)expo_info.shutterValue);
                 }
 
-                if(mlv_output && !no_metadata_mode)
+                if(mlv_output && !no_metadata_mode && (!extract_block || !strncasecmp(extract_block, (char*)expo_info.blockType, 4)))
                 {
                     /* correct header size if needed */
                     expo_info.blockSize = sizeof(mlv_expo_hdr_t);
                     if(fwrite(&expo_info, expo_info.blockSize, 1, out_file) != 1)
                     {
-                        print_msg(MSG_ERROR, "Failed writing into output file\n");
+                        print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
                         goto abort;
                     }
                 }
@@ -2725,7 +3034,7 @@ read_headers:
                 }
 
                 /* always output RAWI blocks, its not just metadata, but important frame format data */
-                if(mlv_output)
+                if(mlv_output && (!extract_block || !strncasecmp(extract_block, (char*)&block_hdr.blockType, 4)))
                 {
                     /* correct header size if needed */
                     block_hdr.blockSize = sizeof(mlv_rawi_hdr_t);
@@ -2737,7 +3046,7 @@ read_headers:
 
                     if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
                     {
-                        print_msg(MSG_ERROR, "Failed writing into output file\n");
+                        print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
                         goto abort;
                     }
                 }
@@ -2771,7 +3080,18 @@ read_headers:
 
                 memcpy(&wavi_info, &block_hdr, sizeof(mlv_wavi_hdr_t));
 
-                if(output_filename && out_file_wav == NULL)
+                if(mlv_output && !no_metadata_mode && (!extract_block || !strncasecmp(extract_block, (char*)block_hdr.blockType, 4)))
+                {
+                    /* correct header size if needed */
+                    block_hdr.blockSize = sizeof(mlv_wavi_hdr_t);
+                    if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
+                    {
+                        print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
+                        goto abort;
+                    }
+                }
+                
+                if(output_filename && out_file_wav == NULL && !extract_block)
                 {
                     size_t name_len = strlen(output_filename) + 5;  // + .wav\0
                     char* wav_file_name = malloc(name_len);
@@ -2789,34 +3109,42 @@ read_headers:
                         goto abort;
                     }
 
+                    int error = 1;
+                    
                     /* Write header */
-                    fwrite("RIFF", 4, 1, out_file_wav);
+                    error &= fwrite("RIFF", 4, 1, out_file_wav);
                     tmp_uint32 = 36; // Two headers combined size, will be patched later
-                    fwrite(&tmp_uint32, 4, 1, out_file_wav);
-                    fwrite("WAVE", 4, 1, out_file_wav);
+                    error &= fwrite(&tmp_uint32, 4, 1, out_file_wav);
+                    error &= fwrite("WAVE", 4, 1, out_file_wav);
 
-                    fwrite("fmt ", 4, 1, out_file_wav);
+                    error &= fwrite("fmt ", 4, 1, out_file_wav);
                     tmp_uint32 = 16; // Header size
-                    fwrite(&tmp_uint32, 4, 1, out_file_wav);
+                    error &= fwrite(&tmp_uint32, 4, 1, out_file_wav);
                     tmp_uint16 = wavi_info.format; // PCM
-                    fwrite(&tmp_uint16, 2, 1, out_file_wav);
+                    error &= fwrite(&tmp_uint16, 2, 1, out_file_wav);
                     tmp_uint16 = wavi_info.channels; // Stereo
-                    fwrite(&tmp_uint16, 2, 1, out_file_wav);
+                    error &= fwrite(&tmp_uint16, 2, 1, out_file_wav);
                     tmp_uint32 = wavi_info.samplingRate; // Sample rate
-                    fwrite(&tmp_uint32, 4, 1, out_file_wav);
+                    error &= fwrite(&tmp_uint32, 4, 1, out_file_wav);
                     tmp_uint32 = wavi_info.bytesPerSecond; // Byte rate (16-bit data, stereo)
-                    fwrite(&tmp_uint32, 4, 1, out_file_wav);
+                    error &= fwrite(&tmp_uint32, 4, 1, out_file_wav);
                     tmp_uint16 = wavi_info.blockAlign; // Block align
-                    fwrite(&tmp_uint16, 2, 1, out_file_wav);
+                    error &= fwrite(&tmp_uint16, 2, 1, out_file_wav);
                     tmp_uint16 = wavi_info.bitsPerSample; // Bits per sample
-                    fwrite(&tmp_uint16, 2, 1, out_file_wav);
+                    error &= fwrite(&tmp_uint16, 2, 1, out_file_wav);
 
-                    fwrite("data", 4, 1, out_file_wav);
+                    error &= fwrite("data", 4, 1, out_file_wav);
                     tmp_uint32 = 0; // Audio data length, will be patched later
-                    fwrite(&tmp_uint32, 4, 1, out_file_wav);
+                    error &= fwrite(&tmp_uint32, 4, 1, out_file_wav);
 
                     wav_file_size = 0;
                     wav_header_size = file_get_pos(out_file_wav);
+                    
+                    if(error != 1)
+                    {
+                        print_msg(MSG_ERROR, "Failed writing into .WAV file\n");
+                        goto abort;
+                    }
                 }
             }
             else if(!memcmp(buf.blockType, "NULL", 4))
@@ -2834,7 +3162,7 @@ read_headers:
                 if(fix_bug == BUG_ID_BLOCKSIZE_WRONG)
                 {
                     char type[5];
-                    uint32_t range = 0x40;
+                    uint32_t range = 0x80;
                     
                     type[4] = '\000';
                     print_msg(MSG_INFO, "BUG_ID_BLOCKSIZE_WRONG: Invalid block at 0x%08" PRIx64 ", trying to fix it\n", position);
@@ -2852,7 +3180,7 @@ read_headers:
                         
                         if(!memcmp(type, "NULL", 4))
                         {
-                            fix_bug_1_offset = offset - range / 2;
+                            fix_bug_1_offset = -(offset - range / 2);
                             print_msg(MSG_INFO, "BUG_ID_BLOCKSIZE_WRONG: Success, offset: %d bytes.\n", fix_bug_1_offset);
                             file_set_pos(in_file, position_previous, SEEK_SET);
                             position = position_previous;
@@ -2900,31 +3228,83 @@ abort:
     /* in average mode, finalize average calculation and output the resulting average */
     if(average_mode)
     {
-        int new_pitch = video_xRes * lv_rec_footer.raw_info.bits_per_pixel / 8;
-        for(int y = 0; y < video_yRes; y++)
+        if(!average_samples)
         {
-            uint16_t *dst_line = (uint16_t *)&frame_buffer[y * new_pitch];
-            for(int x = 0; x < video_xRes; x++)
+            print_msg(MSG_ERROR, "Number of averaged frames is zero. Cannot continue.\n");
+        }
+        else
+        {
+            int new_pitch = video_xRes * lv_rec_footer.raw_info.bits_per_pixel / 8;
+            
+            /* average the pixels in vertical direction, so we will extract vertical banding noise */
+            if(average_vert)
             {
-                uint32_t value = frame_arith_buffer[y * video_xRes + x];
+                for(int x = 0; x < video_xRes; x++)
+                {
+                    uint64_t column = 0;
+                    
+                    for(int y = 0; y < video_yRes; y++)
+                    {
+                        column += frame_arith_buffer[y * video_xRes + x];
+                    }
+                    column /= video_yRes;
+                    for(int y = 0; y < video_yRes; y++)
+                    {
+                        frame_arith_buffer[y * video_xRes + x] = column;
+                    }
+                }
+            }
+            if(average_hor)
+            {
+                for(int y = 0; y < video_yRes; y++)
+                {
+                    uint64_t line = 0;
+                    
+                    for(int x = 0; x < video_xRes; x++)
+                    {
+                        line += frame_arith_buffer[y * video_xRes + x];
+                    }
+                    line /= video_yRes;
+                    for(int x = 0; x < video_xRes; x++)
+                    {
 
-                value /= average_samples;
-                bitinsert(dst_line, x, lv_rec_footer.raw_info.bits_per_pixel, value);
+                        frame_arith_buffer[y * video_xRes + x] = line;
+                    }
+                }
+            }
+            
+            for(int y = 0; y < video_yRes; y++)
+            {
+                uint16_t *dst_line = (uint16_t *)&frame_buffer[y * new_pitch];
+                for(int x = 0; x < video_xRes; x++)
+                {
+                    uint32_t value = frame_arith_buffer[y * video_xRes + x];
+
+                    value /= average_samples;
+                    bitinsert(dst_line, x, lv_rec_footer.raw_info.bits_per_pixel, value);
+                }
+            }
+            
+
+            int frame_size = ((video_xRes * video_yRes * lv_rec_footer.raw_info.bits_per_pixel + 7) / 8);
+
+            mlv_vidf_hdr_t hdr;
+
+            memset(&hdr, 0x00, sizeof(mlv_vidf_hdr_t));
+            memcpy(hdr.blockType, "VIDF", 4);
+            hdr.blockSize = sizeof(mlv_vidf_hdr_t) + frame_size;
+            hdr.frameNumber = 0;
+            hdr.timestamp = last_vidf.timestamp;
+
+            if(fwrite(&hdr, sizeof(mlv_vidf_hdr_t), 1, out_file) != 1)
+            {
+                print_msg(MSG_ERROR, "Failed writing average frame header into .MLV file\n");
+            }
+            if(fwrite(frame_buffer, frame_size, 1, out_file) != 1)
+            {
+                print_msg(MSG_ERROR, "Failed writing average frame data into .MLV file\n");
             }
         }
-
-        int frame_size = ((video_xRes * video_yRes * lv_rec_footer.raw_info.bits_per_pixel + 7) / 8);
-
-        mlv_vidf_hdr_t hdr;
-
-        memset(&hdr, 0x00, sizeof(mlv_vidf_hdr_t));
-        memcpy(hdr.blockType, "VIDF", 4);
-        hdr.blockSize = sizeof(mlv_vidf_hdr_t) + frame_size;
-        hdr.frameNumber = 0;
-        hdr.timestamp = last_vidf.timestamp;
-
-        fwrite(&hdr, sizeof(mlv_vidf_hdr_t), 1, out_file);
-        fwrite(frame_buffer, frame_size, 1, out_file);
     }
 
     if(raw_output)
@@ -2933,7 +3313,10 @@ abort:
         lv_rec_footer.raw_info.bits_per_pixel = 14;
 
         file_set_pos(out_file, 0, SEEK_END);
-        fwrite(&lv_rec_footer, sizeof(lv_rec_file_footer_t), 1, out_file);
+        if(fwrite(&lv_rec_footer, sizeof(lv_rec_file_footer_t), 1, out_file) != 1)
+        {
+            print_msg(MSG_ERROR, "Failed writing into .RAW file\n");
+        }
     }
 
     if(xref_mode)
@@ -2943,6 +3326,33 @@ abort:
         save_index(input_filename, &main_header, in_file_count, frame_xref_table, frame_xref_entries);
     }
 
+    /* fix frame count */
+    if(mlv_output && !extract_block)
+    {
+        /* get extension and set fileNum in header to zero if its a .MLV */
+        char *dot = strrchr(output_filename, '.');
+        if(dot)
+        {
+            dot++;
+            if(!strcasecmp(dot, "mlv"))
+            {
+                main_header.fileNum = 0;
+                main_header.fileCount = 1;
+            }
+        }
+        
+        main_header.videoFrameCount = vidf_frames_processed;
+        main_header.audioFrameCount = audf_frames_processed;
+
+        fseek(out_file, 0L, SEEK_SET);
+        
+        if(fwrite(&main_header, main_header.blockSize, 1, out_file) != 1)
+        {
+            print_msg(MSG_ERROR, "Failed to rewrite header in .MLV file\n");
+        }
+    }
+    
+    
     /* free list of input files */
     for(in_file_num = 0; in_file_num < in_file_count; in_file_num++)
     {
@@ -2960,11 +3370,17 @@ abort:
         /* Patch the WAV size fields */
         uint32_t tmp_uint32 = wav_file_size + 36; /* + header size */
         file_set_pos(out_file_wav, 4, SEEK_SET);
-        fwrite(&tmp_uint32, 4, 1, out_file_wav);
+        if(fwrite(&tmp_uint32, 4, 1, out_file_wav) != 1)
+        {
+            print_msg(MSG_ERROR, "Failed writing into .WAV file\n");
+        }
 
         tmp_uint32 = wav_file_size; /* data size */
         file_set_pos(out_file_wav, 40, SEEK_SET);
-        fwrite(&tmp_uint32, 4, 1, out_file_wav);
+        if(fwrite(&tmp_uint32, 4, 1, out_file_wav) != 1)
+        {
+            print_msg(MSG_ERROR, "Failed writing into .WAV file\n");
+        }
         fclose(out_file_wav);
     }
 

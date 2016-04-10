@@ -246,7 +246,6 @@ NSTUB(0xFFA0FED8,  ptp_register_handler)
 // NSTUB(    ???,  ptpPropSetUILock)                        /* present on 650D.104, 700D.113 */
 
 /** Properties **/
-NSTUB(0xFF85FD3C,  PROPAD_GetPropertyData)                  // str:SearchFromProperty
 NSTUB(0xFF85F1C4, _prop_cleanup)
 NSTUB(0xFF85F228, _prop_request_change)
 NSTUB(0xFF85F068,  prop_deliver)
@@ -320,6 +319,7 @@ NSTUB(0xFF9B7324,  vsnprintf)
 ///NSTUB(0xFFAC7AC8,  OlcAFFrameApp_handler)
 ///NSTUB(0xFF83C1E4,  PD_RemoteRelease)
 ///NSTUB(0xFF85F344,  PROP_GetMulticastProperty)
+///NSTUB(0xFF85FD3C,  PROPAD_GetPropertyData)                  // str:SearchFromProperty
 ///NSTUB(0xFF9A47AC,  PopEDmac)
 ///NSTUB(0xFFA856B8,  RedrawDisplay)
 ///NSTUB(0xFF92EBDC,  RemoteRelease)

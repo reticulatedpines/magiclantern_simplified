@@ -85,6 +85,8 @@ static void call_bootflag_eventproc(char* eventproc)
     }
 }
 
+extern void _prop_request_change(unsigned property, const void* addr, size_t len);
+
 static void
 call_init_funcs()
 {
@@ -159,16 +161,22 @@ static struct boot_flags * const    boot_flags = NVRAM_BOOTFLAGS;
 
 static void print_bootflags()
 {
-    bmp_printf( FONT_SMALL, 600, 0,
-        "Firmware  %d \n"
-        "Bootdisk  %d \n"
-        "RAM_EXE   %d \n"
-        "Update    %d \n",
+    int values_w = bmp_printf( FONT_SMALL | FONT_ALIGN_RIGHT, 710, 0,
+        "%d\n%d\n%d\n%d\n",
         boot_flags->firmware,
         boot_flags->bootdisk,
         boot_flags->ram_exe,
         boot_flags->update
     );
+    
+    char* labels =
+        "Firmware\n"
+        "Bootdisk\n"
+        "RAM_EXE\n"
+        "Update\n";
+    
+    int labels_w = bmp_string_width(FONT_SMALL, labels);
+    bmp_printf( FONT_SMALL, 700 - values_w - labels_w, 0, labels);
 }
 
 /** These are called when new tasks are created */
@@ -270,27 +278,26 @@ copy_and_restart( int offset )
         ;
 }
 
-// check if autoexec.bin is present on the card
-int check_autoexec()
-{
-    FILE * f = FIO_OpenFile("AUTOEXEC.BIN", 0);
-    if (f)
-    {
-        FIO_CloseFile(f);
-        return 1;
-    }
-    return 0;
-}
-
 static void hook_on_canon_menu()
 {
     gui_uilock(UILOCK_EVERYTHING);
-    SetGUIRequestMode(DLG_MENU);
-    for (int i = 0; i < 10; i++)
+    
+    if (CURRENT_DIALOG_MAYBE != DLG_MENU)
     {
-        msleep(100);
+        SetGUIRequestMode(DLG_MENU);
+        
+        /* Canon menu may draw on the screen for a while, but we'll try to be faster */ 
+        for (int i = 0; i < 10; i++)
+        {
+            msleep(100);
+            bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
+            bmp_printf(FONT_LARGE, 0, 0, "Magic Lantern install");
+        }
+    }
+    else
+    {
+        /* we are already in Canon menu - just clear the screen */
         bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
-        bmp_printf(FONT_LARGE, 0, 0, "Magic Lantern install");
     }
 }
 
@@ -329,84 +336,151 @@ int my_init_task(int a, int b, int c, int d)
     return ans;
 }
 
+/* for printing messages */
 static int normal_font = FONT_LARGE;
 static int error_font = FONT(FONT_LARGE, COLOR_RED, COLOR_BLACK);
 static int warning_font = FONT(FONT_LARGE, COLOR_YELLOW, COLOR_BLACK);
+static int y = 0;
+static int FH = 30; /* font height */
+
+static int backup_region(char *file, uint32_t base, uint32_t length)
+{
+    /* already backed up that region? */
+    uint32_t size = 0;
+    if((FIO_GetFileSize( file, &size ) == 0) && (size == length) )
+    {
+        return 1;
+    }
+
+    bmp_printf(FONT_LARGE, 0, y+=FH, "Backing up ROM%d...", file[11] - '0');
+    
+    /* no, create file and store data */
+    FILE* handle = FIO_CreateFile(file);
+    if (handle)
+    {
+        FIO_WriteFile(handle, (void*)base, length);
+        FIO_CloseFile(handle);
+    }
+    else
+    {
+        bmp_printf(error_font, 0, y+=FH, "Could not backup ROM%d.", file[11] - '0');
+        return 0;
+    }
+    
+    return 1;
+}
+
+static int rom_backup()
+{
+    int ok0 = backup_region("ML/LOGS/ROM0.BIN", 0xF0000000, 0x01000000);
+    int ok1 = backup_region("ML/LOGS/ROM1.BIN", 0xF8000000, 0x01000000);
+    return ok0 && ok1;
+}
 
 /** Perform an initial install and configuration */
 /** Return 1 on success, 0 on failure */
 static int install(void)
 {
-    int y = 0;
+    FH = fontspec_font(normal_font)->height;
+    
     bmp_printf(normal_font, 0, y, "Magic Lantern install");
     print_bootflags();
 
-    int autoexec_ok = check_autoexec();
-    if (!autoexec_ok)
+    if (!is_file("AUTOEXEC.BIN"))
     {
-        bmp_printf(warning_font, 0, y+=30, "AUTOEXEC.BIN not found!");
-        bmp_printf(warning_font, 0, y+=30, "Please copy all ML files.");
+        bmp_printf(warning_font, 0, y+=FH, "AUTOEXEC.BIN not found!");
+        bmp_printf(warning_font, 0, y+=FH, "Please copy all ML files.");
         msleep(5000);
         return 0;
     }
 
+    if (!is_dir("ML"))
+    {
+        bmp_printf(warning_font, 0, y+=FH, "ML directory not found!");
+        bmp_printf(warning_font, 0, y+=FH, "Please copy all ML files.");
+        msleep(5000);
+        return 0;
+    }
+
+    if (!is_dir("ML/FONTS"))
+    {
+        bmp_printf(warning_font, 0, y+=FH, "FONTS directory not found!");
+        bmp_printf(warning_font, 0, y+=FH, "Please copy all ML files.");
+        msleep(5000);
+        return 0;
+    }
+
+    int rom_backup_done = rom_backup();
+
     if (boot_flags->firmware)
     {
-        bmp_printf(error_font, 0, y+=30, "MAIN_FIRMWARE flag is DISABLED!");
-        bmp_printf(error_font, 0, y+=30, "Please contact ML developers for a fix.");
+        bmp_printf(error_font, 0, y+=FH, "MAIN_FIRMWARE flag is DISABLED!");
+        bmp_printf(error_font, 0, y+=FH, "Please contact ML developers for a fix.");
         msleep(5000);
         return 0;
     }
 
     if (!boot_flags->bootdisk )
     {
-        bmp_printf(FONT_LARGE, 0, y+=30, "Setting boot flag...");
+        bmp_printf(FONT_LARGE, 0, y+=FH, "Setting boot flag...");
         call_bootflag_eventproc( "EnableBootDisk" );
         if (!boot_flags->bootdisk )
         {
-            bmp_printf(error_font, 0, y+=30, "Could not enable boot flag.");
+            bmp_printf(error_font, 0, y+=FH, "Could not enable boot flag.");
             msleep(5000);
             return 0;
         }
     }
     else
     {
-        bmp_printf(FONT_LARGE, 0, y+=30, "Boot flag is already set.");
+        bmp_printf(FONT_LARGE, 0, y+=FH, "Boot flag is already set.");
     }
 
-    bmp_printf(FONT_LARGE, 0, y+=30, "Making card bootable...");
+    bmp_printf(FONT_LARGE, 0, y+=FH, "Making card bootable...");
     extern int bootflag_write_bootblock();
     int bootflag_written = bootflag_write_bootblock();
     if (!bootflag_written)
     {
-        bmp_printf(warning_font, 0, y+=30, "Could not make the card bootable.");
-        bmp_printf(warning_font, 0, y+=30, "You need to run EOSCard or MacBoot.");
+        bmp_printf(warning_font, 0, y+=FH, "Could not make the card bootable.");
+        bmp_printf(warning_font, 0, y+=FH, "You need to run EOSCard or MacBoot.");
         msleep(5000);
     }
 
-    bmp_printf(FONT_LARGE, 0, y+=30, "Done!");
+    bmp_printf(FONT_LARGE, 0, y+=FH, "Done!");
     bmp_fill(COLOR_BLACK, 0, 430, 720, 50);
-
     y += 60;
+
+    print_bootflags();
+    bmp_printf(FONT(FONT_CANON, COLOR_GREEN2, COLOR_BLACK), 0, y, "Please restart your camera.");
+    y += 60;
+
+    if (rom_backup_done)
+    {
+        int fnt2 = FONT(FONT_MED, COLOR_GRAY(50), COLOR_BLACK);
+        int fnt1 = fnt2 | FONT_ALIGN_JUSTIFIED | FONT_TEXT_WIDTH(720-32);
+        int fh = fontspec_font(fnt1)->height;
+        bmp_printf(fnt1, 0, y+=fh, "After restart, please copy ML/LOGS/ROM*.BIN to PC, in a safe place.");
+        bmp_printf(fnt2, 0, y+=fh, "We may need these files in case of emergency.");
+    }
+
     gui_uilock(UILOCK_SHUTTER);
     
-    for (int i = 30; i > 0; i--)
+    for (int i = 60; i > 0; i--)
     {
-        if (CURRENT_DIALOG_MAYBE == DLG_MENU)
+        if (CURRENT_DIALOG_MAYBE != DLG_MENU || !DISPLAY_IS_ON)
         {
-            print_bootflags();
-            bmp_printf(FONT(FONT_CANON, COLOR_GREEN2, COLOR_BLACK), 0, y, "Please restart your camera.");
+            /* abort if user gets out of Canon menu */
+            return 0;
         }
 
         bmp_printf(FONT(FONT_MED, COLOR_GRAY(50), COLOR_BLACK), 0, 480 - font_med.height, 
-            "For removing the boot flag, please wait for %d seconds.  ", i
+            "To uninstall Magic Lantern, please wait for %d seconds.  ", i
         );
-        msleep(1000);
-        
-        if (!DISPLAY_IS_ON)
-        {
-            info_led_blink(1,50,0);
-        }
+        info_led_blink(1,50,950);
+
+        /* attempt to reset the powersave timer */
+        int prolong = 3; /* AUTO_POWEROFF_PROLONG */
+        _prop_request_change(PROP_ICU_AUTO_POWEROFF, &prolong, 4);
     }
     return 1;
 }
@@ -420,29 +494,29 @@ static int uninstall(void)
 
     if (boot_flags->firmware)
     {
-        bmp_printf(error_font, 0, y+=30, "MAIN_FIRMWARE flag is DISABLED!");
-        bmp_printf(error_font, 0, y+=30, "Please contact ML developers for a fix.");
+        bmp_printf(error_font, 0, y+=FH, "MAIN_FIRMWARE flag is DISABLED!");
+        bmp_printf(error_font, 0, y+=FH, "Please contact ML developers for a fix.");
         msleep(5000);
         return 0;
     }
 
     if (boot_flags->bootdisk )
     {
-        bmp_printf(FONT_LARGE, 0, y+=30, "Disabling boot flag...");
+        bmp_printf(FONT_LARGE, 0, y+=FH, "Disabling boot flag...");
         call_bootflag_eventproc( "DisableBootDisk" );
         if (boot_flags->bootdisk )
         {
-            bmp_printf(error_font, 0, y+=30, "Could not disable boot flag.");
+            bmp_printf(error_font, 0, y+=FH, "Could not disable boot flag.");
             msleep(5000);
             return 0;
         }
     }
     else
     {
-        bmp_printf(FONT_LARGE, 0, y+=30, "Boot flag is not set.");
+        bmp_printf(FONT_LARGE, 0, y+=FH, "Boot flag is not set.");
     }
 
-    bmp_printf(FONT_LARGE, 0, y+=30, "Done!");
+    bmp_printf(FONT_LARGE, 0, y+=FH, "Done!");
     bmp_fill(COLOR_BLACK, 0, 430, 720, 50);
     return 1;
 }
@@ -465,7 +539,7 @@ void install_task()
     
     if (ok)
     {
-        /* install successful, user waited for 30 seconds => uninstall */
+        /* install successful, user waited for 60 seconds => uninstall */
         info_led_on();
         hook_on_canon_menu();
         uninstall();
@@ -473,17 +547,28 @@ void install_task()
     
     /* finish uninstalling */
     gui_uilock(UILOCK_SHUTTER);
-    bmp_printf(FONT_CANON, 0, 430, "Please restart your camera.");
-    print_bootflags();
+    
+    while(1)
+    {
+        if (DISPLAY_IS_ON)
+        {
+            bmp_fill(COLOR_BLACK, 0, 420, 720, 60);
+            int fnt = FONT(FONT_CANON, ok ? COLOR_WHITE : COLOR_RED, COLOR_BLACK);
+            bmp_printf(fnt, 0, 430, "Please restart your camera.");
+            print_bootflags();
+            msleep(1000);
+        }
+        else
+        {
+            info_led_blink(1, 500, 500);
+        }
+    }
 }
 
 void redraw() { clrscr(); }
 
 void gui_uilock(int x)
 {
-    /* call Canon stub */
-    extern void _prop_request_change(unsigned property, const void* addr, size_t len);
-
     int unlocked = 0x41000000;
     _prop_request_change(PROP_ICU_UILOCK, &unlocked, 4);
     msleep(200);
@@ -510,7 +595,7 @@ void redraw_after(int time) {}
 uint32_t edmac_get_address(uint32_t channel) { return 0; }
 void EngDrvOut(uint32_t reg, uint32_t value) {}
 int hdmi_code = 0;
-void update_vram_params(){};
+void _update_vram_params(){};
 void draw_line(int x1, int y1, int x2, int y2, int cl){}
 void NotifyBox(int timeout, char* fmt, ...) {}
 struct memSuite * _shoot_malloc_suite(size_t size) { return 0; }
@@ -518,6 +603,7 @@ struct memSuite * _shoot_malloc_suite_contig(size_t size) { return 0; }
 void _shoot_free_suite(struct memSuite * suite) {}
 struct memSuite * _srm_malloc_suite(int num) { return 0; }
 void _srm_free_suite(struct memSuite * suite) {}
+char* get_current_task_name() { return "?"; }
 
 int y_times_BMPPITCH_cache[BMP_H_PLUS - BMP_H_MINUS];
 
