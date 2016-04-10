@@ -1006,7 +1006,7 @@ static void auto_ettr_on_request_task_fast()
     NotifyBox(100000, "ETTR...");
     raw_lv_request(); raw_requested = 1;
 
-    if (!raw_update_params_retry_lv(3))
+    if (!raw_update_params())
     {
         err_msg = "Raw error";
         goto err;
@@ -1108,7 +1108,7 @@ static void auto_ettr_step_lv_fast()
     
     raw_lv_request();
 
-    if (!raw_update_params_retry_lv(3))
+    if (!raw_update_params())
     {
         NotifyBox(5000, "Raw error");
         goto skip;
@@ -1182,7 +1182,7 @@ static void auto_ettr_on_request_task_slow()
         
         raw_lv_request();
 
-        if (!raw_update_params_retry_lv(3))
+        if (!raw_update_params())
         {
             err_msg = "Raw error";
             goto err;
@@ -1242,7 +1242,7 @@ static void auto_ettr_step_lv_slow()
     int corr = INT_MIN;
     raw_lv_request();
     
-    if (raw_update_params_retry_lv(3))
+    if (raw_update_params())
     {
         corr = auto_ettr_get_correction();
     }

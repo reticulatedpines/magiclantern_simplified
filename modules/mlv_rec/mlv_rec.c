@@ -569,7 +569,7 @@ static void update_resolution_params()
     update_cropping_offsets();
 }
 
-static int mlv_rec_update_raw(int retries)
+static int mlv_rec_update_raw()
 {
     /* we will fail if that is just a LV mode, but no movie mode */
     if(!lv || !is_movie_mode())
@@ -578,7 +578,7 @@ static int mlv_rec_update_raw(int retries)
     }
     
     /* this call will retry internally, and if it fails, we can assume it was indeed something bad */
-    if (!raw_update_params_retry_lv(retries))
+    if (!raw_update_params())
     {
         return 0;
     }
@@ -727,8 +727,7 @@ static void refresh_raw_settings(int32_t force)
         static int aux = INT_MIN;
         if (force || should_run_polling_action(250, &aux))
         {
-            /* this one may be called from menu, so don't retry here, to keep the UI responsive */
-            mlv_rec_update_raw(0);
+            mlv_rec_update_raw();
         }
     }
 }
@@ -3142,7 +3141,7 @@ static void raw_video_rec_task()
 
     /* detect raw parameters (geometry, black level etc) */
     raw_set_dirty();
-    if (!mlv_rec_update_raw(5))
+    if (!mlv_rec_update_raw())
     {
         NotifyBox(5000, "Raw detect error");
         goto cleanup;

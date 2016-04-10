@@ -50,7 +50,7 @@ static int dirty = 0;
 /* if get_ms_clock_value() is less than this, assume the raw data is invalid */
 static int next_retry_lv = 0;
 
-/* mark the raw data dirty for the next few ms (raw_update_params will return failure, to allow the backend to settle) */
+/* mark the raw data dirty for the next few ms (raw_update_params_once will return failure, to allow the backend to settle) */
 static void raw_set_dirty_with_timeout(int timeout_ms)
 {
     next_retry_lv = get_ms_clock_value() + timeout_ms;
@@ -867,7 +867,7 @@ static int raw_update_params_work()
     return 1;
 }
 
-int raw_update_params()
+static int raw_update_params_once()
 {
     get_yuv422_vram();  /* refresh VRAM parameters */
     
@@ -878,11 +878,13 @@ int raw_update_params()
     return ans;
 }
 
-int raw_update_params_retry_lv(int retries)
+int raw_update_params()
 {
-    int ans = raw_update_params();
+    int ans = raw_update_params_once();
+    
+    /* in LiveView, retry 3 times (there may be transient bad frames, resolution changes and so on) */
+    int retries = 3;
 
-    /* in LiveView, retry a few times (there may be transient bad frames, resolution changes and so on) */
     for (int tries = 0; tries < retries && lv && !ans && raw_lv_is_enabled(); tries++)
     {
         /* wait for the next LiveView frame */
@@ -895,7 +897,7 @@ int raw_update_params_retry_lv(int retries)
         }
         
         /* let's try again */
-        ans = raw_update_params();
+        ans = raw_update_params_once();
     }
     
     return ans;
@@ -1194,7 +1196,7 @@ float FAST raw_to_ev(int raw)
          * 
          * Canon implements ExpSim by varying iso/shutter/aperture in full stops, and digital ISO for 1/3 stops.
          * Digital ISO does not affect the raw histogram, so they add -1/3, 0 or +1/3 EV when developing the raw for LV display
-         * We did the same adjustment by adjusting the white level in raw_update_params.
+         * We did the same adjustment by adjusting the white level in raw_update_params_once.
          * But when the correction is -1/3 EV, the white level is greater than 16383,
          * so the overexposure indicators will read a negative EV instead of 0 (they will no longer indicate overexposure).
          * 
@@ -1929,7 +1931,7 @@ int can_use_raw_overlays()
 {
     if (QR_MODE && can_use_raw_overlays_photo())
     {
-        if (!raw_update_params())
+        if (!raw_update_params_once())
         {
             /* XXX: probably not the best place for printing an error message */
             bmp_printf(FONT_MED, 0, 480 - font_med.height, "Raw error, falling back to YUV overlays");
