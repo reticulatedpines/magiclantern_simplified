@@ -1,5 +1,5 @@
-Raw recording v1.1 (MLV Lite)
-=============================
+Raw video v1.1 (MLV Lite)
+=========================
 
 Records 14-bit RAW video.
 
