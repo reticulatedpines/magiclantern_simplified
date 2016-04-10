@@ -1962,7 +1962,8 @@ static struct menu_entry raw_video_menu[] =
         .update = raw_main_update,
         .submenu_width = 710,
         .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
-        .help = "Record 14-bit RAW video. Press LiveView to start.",
+        .help = "Record 14-bit RAW video (MLV format, no sound, basic metadata).",
+        .help2 = "Press LiveView to start recording.",
         .children =  (struct menu_entry[]) {
             {
                 .name = "Resolution",
