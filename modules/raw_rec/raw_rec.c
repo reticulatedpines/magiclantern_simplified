@@ -1733,9 +1733,6 @@ abort_and_check_early_stop:
         }
     }
     
-    /* make sure the user doesn't rush to turn off the camera or something */
-    gui_uilock(UILOCK_EVERYTHING);
-    
     /* signal that we are stopping */
     raw_rec_cbr_stopping();
     
@@ -1827,12 +1824,6 @@ cleanup:
     if (f) FIO_CloseFile(f);
     if (!written) { FIO_RemoveFile(raw_movie_filename); raw_movie_filename = 0; }
     FIO_RemoveFile(backup_filename);
-
-    /* everything saved, we can unlock the buttons.
-     * note: freeing SRM memory will also touch uilocks,
-     * so it's best to call this before free_buffers */
-    gui_uilock(UILOCK_NONE);
-
     free_buffers();
     
     #ifdef DEBUG_BUFFERING_GRAPH
@@ -2017,10 +2008,6 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
     /* if you somehow managed to start recording H.264, let it stop */
     if (RECORDING_H264)
         return 1;
-    
-    /* block the zoom key while recording */
-    if (!RAW_IS_IDLE && key == MODULE_KEY_PRESS_ZOOMIN)
-        return 0;
 
     /* start/stop recording with the LiveView key */
     int rec_key_pressed = (key == MODULE_KEY_LV || key == MODULE_KEY_REC);
