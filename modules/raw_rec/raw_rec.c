@@ -1834,6 +1834,7 @@ static MENU_SELECT_FUNC(raw_start_stop)
     if (!RAW_IS_IDLE)
     {
         raw_recording_state = RAW_FINISHING;
+        beep();
     }
     else
     {
