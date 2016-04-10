@@ -248,7 +248,6 @@ NSTUB(0xFF292A10,  ptp_register_handler)
 // NSTUB(    ???,  ptpPropSetUILock)                        /* present on 650D.104, 700D.113 */
 
 /** Properties **/
-NSTUB(0xFF1319C4,  PROPAD_GetPropertyData)                  // str:SearchFromProperty
 NSTUB(0xFF1303B4, _prop_cleanup)
 NSTUB(0xFF12FD6C, _prop_request_change)
 NSTUB(0xFF1302E8,  prop_deliver)
@@ -322,6 +321,7 @@ NSTUB(0xFFD09CDC - RAM_OFFSET,  vsnprintf)
 ///NSTUB(0xFF31E2A4,  MuteOn_0)
 ///NSTUB(0xFF10ACAC,  PD_RemoteRelease)                        // string: "COM_RemoteRelease:%lx, %lx"
 ///NSTUB(0xFF1304DC,  PROP_GetMulticastProperty)
+///NSTUB(0xFF1319C4,  PROPAD_GetPropertyData)                  // str:SearchFromProperty
 ///NSTUB(0xFF612998,  PackMem_PopEDmacForMemorySuite)
 ///NSTUB(0xFF612BA0,  PackMem_RegisterEDmacAbortCBRForMemorySuite)
 ///NSTUB(0xFF612A68,  PackMem_RegisterEDmacCompleteCBRForMemorySuite)

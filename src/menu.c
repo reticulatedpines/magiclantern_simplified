@@ -184,7 +184,6 @@ static int g_submenu_width = 0;
 //~ #define g_submenu_width 720
 static int redraw_flood_stop = 0;
 
-static int redraw_in_progress = 0;
 #define MENU_REDRAW 1
 
 static int hist_countdown = 3; // histogram is slow, so draw it less often
@@ -1255,12 +1254,12 @@ static void menu_remove_entry(struct menu * menu, struct menu_entry * entry)
     }
     if (entry->prev)
     {
-        // console_printf("link %s to %x\n", entry->prev->name, entry->next);
+        // printf("link %s to %x\n", entry->prev->name, entry->next);
         entry->prev->next = entry->next;
     }
     if (entry->next)
     {
-        // console_printf("link %s to %x\n", entry->next->name, entry->prev);
+        // printf("link %s to %x\n", entry->next->name, entry->prev);
         entry->next->prev = entry->prev;
     }
     
@@ -1271,7 +1270,7 @@ static void menu_remove_entry(struct menu * menu, struct menu_entry * entry)
         struct menu * submenu = menu_find_by_name( entry->name, ICON_ML_SUBMENU);
         if (submenu)
         {
-            // console_printf("unlink submenu %s\n", submenu->name);
+            // printf("unlink submenu %s\n", submenu->name);
             submenu->children = 0;
         }
     }
@@ -1281,7 +1280,7 @@ static void menu_remove_entry(struct menu * menu, struct menu_entry * entry)
     {
         if (streq(placeholder->name, entry->name))
         {
-            // console_printf("restore placeholder %s\n", entry->name);
+            // printf("restore placeholder %s\n", entry->name);
             struct menu_entry restored_placeholder = MENU_PLACEHOLDER(placeholder->name);
             placeholder_copy(placeholder, &restored_placeholder);
             break;
@@ -4024,38 +4023,9 @@ static void menu_make_sure_selection_is_valid()
 
 CONFIG_INT("menu.upside.down", menu_upside_down, 0);
 
-static void 
+static void
 menu_redraw_do()
 {
-        #ifndef CONFIG_VXWORKS
-        if (CURRENT_DIALOG_MAYBE != GUIMODE_ML_MENU && CURRENT_DIALOG_MAYBE != DLG_PLAY)
-        {
-            if (redraw_flood_stop)
-            {
-                // Canon dialog timed out?
-                #if 1
-                gui_stop_menu(); // better just close ML menu? you don't open it for staring at it anyway...
-                return;
-                #else
-                // force dialog change when canon dialog times out (EOSM, 6D etc)
-                // don't try more often than once per second
-                static int aux = 0;
-                if (should_run_polling_action(1000, &aux))
-                {
-                    bmp_off();
-                    start_redraw_flood();
-                    SetGUIRequestMode(GUIMODE_ML_MENU);
-                }
-                #endif
-            }
-            else
-            {
-                // Canon dialog didn't come up yet; try again later
-                return;
-            }
-        }
-        #endif
-
         menu_damage = 0;
         //~ g_submenu_width = 720;
         
@@ -4213,6 +4183,32 @@ void menu_benchmark()
     NotifyBox(20000, "Elapsed time: %d ms", t1 - t0);
 }
 
+static int menu_ensure_canon_dialog()
+{
+#ifndef CONFIG_VXWORKS
+    if (CURRENT_DIALOG_MAYBE != GUIMODE_ML_MENU && CURRENT_DIALOG_MAYBE != DLG_PLAY)
+    {
+        if (redraw_flood_stop)
+        {
+            // Canon dialog timed out?
+#if defined(CONFIG_MENU_TIMEOUT_FIX)
+            // force dialog change when canon dialog times out (EOSM, 6D etc)
+            // don't try more often than once per second
+            static int aux = 0;
+            if (should_run_polling_action(1000, &aux))
+            {
+                start_redraw_flood();
+                SetGUIRequestMode(GUIMODE_ML_MENU);
+            }
+#else
+            return 0;
+#endif
+        }
+    }
+#endif
+    return 1;
+}
+
 static struct msg_queue * menu_redraw_queue = 0;
 
 static void
@@ -4221,22 +4217,35 @@ menu_redraw_task()
     menu_redraw_queue = (struct msg_queue *) msg_queue_create("menu_redraw_mq", 1);
     TASK_LOOP
     {
-        //~ msleep(30);
+        /* this loop will only receive redraw messages */
         int msg;
         int err = msg_queue_receive(menu_redraw_queue, (struct event**)&msg, 500);
         if (err) continue;
+        
         if (gui_menu_shown())
         {
-            redraw_in_progress = 1;
+            if (get_halfshutter_pressed())
+            {
+                /* close menu on half-shutter */
+                /* (the event is not always caught by the key handler) */
+                gui_stop_menu();
+                continue;
+            }
+
+            /* make sure to check the canon dialog even if drawing is blocked
+             * (for scripts and such that piggyback the ML menu) */
+            if (!menu_ensure_canon_dialog())
+            {
+                /* didn't work, close ML menu */
+                gui_stop_menu();
+                continue;
+            }
             
             if (!menu_redraw_blocked)
             {
                 menu_redraw_do();
             }
-            msleep(20);
-            redraw_in_progress = 0;
         }
-        //~ else redraw();
     }
 }
 
@@ -4769,7 +4778,7 @@ void menu_redraw_flood()
 {
     if (!lv) msleep(100);
     else if (EXT_MONITOR_CONNECTED) msleep(300);
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 5; i++)
     {
         if (redraw_flood_stop) break;
         if (!menu_shown) break;
@@ -4777,7 +4786,7 @@ void menu_redraw_flood()
         menu_redraw_full();
         msleep(20);
     }
-    msleep(500);
+    msleep(50);
     redraw_flood_stop = 1;
 }
 
@@ -4790,16 +4799,14 @@ static void start_redraw_flood()
 static void piggyback_canon_menu()
 {
 #ifdef GUIMODE_ML_MENU
-    #if !defined(CONFIG_EOSM) // EOS M won't open otherwise
-    if (RECORDING) return;
-    #endif
+    int new_gui_mode = GUIMODE_ML_MENU;
+    if (!new_gui_mode) return;
     if (sensor_cleaning) return;
     if (gui_state == GUISTATE_MENUDISP) return;
     NotifyBoxHide();
-    int new_gui_mode = GUIMODE_ML_MENU;
-    if (new_gui_mode) start_redraw_flood();
     if (new_gui_mode != (int)CURRENT_DIALOG_MAYBE) 
     { 
+        start_redraw_flood();
         if (lv) bmp_off(); // mask out the underlying Canon menu :)
         SetGUIRequestMode(new_gui_mode); msleep(200); 
         // bmp will be enabled after first redraw
@@ -4810,7 +4817,7 @@ static void piggyback_canon_menu()
 static void close_canon_menu()
 {
 #ifdef GUIMODE_ML_MENU
-    if (RECORDING) return;
+    if (CURRENT_DIALOG_MAYBE == 0) return;
     if (sensor_cleaning) return;
     if (gui_state == GUISTATE_MENUDISP) return;
     if (lv) bmp_off(); // mask out the underlying Canon menu :)
@@ -4877,10 +4884,6 @@ static void menu_close()
     menu_lv_transparent_mode = 0;
     
     close_canon_menu();
-	#ifdef CONFIG_EOSM
-	if (RECORDING_H264)
-	SetGUIRequestMode(0);
-	#endif
     canon_gui_enable_front_buffer(0);
     redraw();
     if (lv) bmp_on();
@@ -4918,12 +4921,38 @@ menu_task( void* unused )
     
     TASK_LOOP
     {
-        int menu_or_shortcut_menu_shown = (menu_shown || arrow_keys_shortcuts_active());
-        int dt = (menu_or_shortcut_menu_shown && keyrepeat) ? COERCE(100 + keyrep_countdown*5, 20, 100) : should_draw_zoom_overlay() && menu_lv_transparent_mode ? 2000 : 500;
+        int keyrepeat_active = keyrepeat &&
+            (menu_shown || arrow_keys_shortcuts_active());
+        
+        int transparent_menu_magic_zoom =
+            should_draw_zoom_overlay() && menu_lv_transparent_mode;
+
+        int dt = 
+            (keyrepeat_active)
+                ?   /* repeat delay when holding a key */
+                    COERCE(100 + keyrep_countdown*5, 20, 100)
+                :   /* otherwise (no keys held) */
+                    (transparent_menu_magic_zoom ? 2000 : 500 );
+
         int rc = take_semaphore( gui_sem, dt );
-        if( rc != 0 )
+
+        if( rc == 0 )
         {
-            if (keyrepeat && menu_or_shortcut_menu_shown)
+            /* menu toggle request */
+            if (menu_shown)
+            {
+                menu_close();
+            }
+            else
+            {
+                menu_open();
+                initial_mode = shooting_mode;
+            }
+        }
+        else
+        {
+            /* semaphore timeout - perform periodical checks (polling) */
+            if (keyrepeat_active)
             {
                 if (keyrep_ack) {
                     keyrep_countdown--;
@@ -4935,16 +4964,37 @@ menu_task( void* unused )
                 continue;
             }
 
-            // We woke up after 1 second
-            
+            /* executed once at startup,
+             * and whenever new menus appear/disappear */
             if (menu_flags_load_dirty)
             {
                 config_menu_load_flags();
                 menu_flags_load_dirty = 0;
             }
             
-            if( !menu_shown )
+            if (menu_shown)
             {
+                /* should we still display the menu? */
+                if (sensor_cleaning ||
+                    initial_mode != shooting_mode ||
+                    gui_state == GUISTATE_MENUDISP ||
+                    (!DISPLAY_IS_ON && CURRENT_DIALOG_MAYBE != DLG_PLAY))
+                {
+                    /* close ML menu */
+                    gui_stop_menu();
+                    continue;
+                }
+
+                /* redraw either periodically (every 500ms),
+                 * or on request (menu_damage) */
+                if ((!menu_help_active && !menu_lv_transparent_mode) || menu_damage) {
+                    menu_redraw();
+                }
+            }
+            else
+            {
+                /* menu no longer displayed */
+                /* if we changed anything in the menu, save config */
                 extern int config_autosave;
                 if (config_autosave && (config_dirty || menu_flags_save_dirty) && NOT_RECORDING && !ml_shutdown_requested)
                 {
@@ -4952,47 +5002,8 @@ menu_task( void* unused )
                     config_dirty = 0;
                     menu_flags_save_dirty = 0;
                 }
-                
-                continue;
             }
-
-            if ((!menu_help_active && !menu_lv_transparent_mode) || menu_damage) {
-                menu_redraw();
-            }
-
-            if (sensor_cleaning && menu_shown)
-                menu_close();
-
-            if (initial_mode != shooting_mode && menu_shown)
-                menu_close();
-
-            if (gui_state == GUISTATE_MENUDISP && menu_shown)
-                menu_close();
-
-            if (!DISPLAY_IS_ON && menu_shown && CURRENT_DIALOG_MAYBE != DLG_PLAY)
-                menu_close();
-            
-            continue;
         }
-
-        if( menu_shown )
-        {
-            menu_close();
-            continue;
-        }
-        
-        if (RECORDING && !lv) continue;
-        
-        // Set this flag a bit earlier in order to pause LiveView tasks.
-        // Otherwise, high priority tasks such as focus peaking might delay the menu a bit.
-        //~ menu_shown = true; 
-        
-        // ML menu needs to piggyback on Canon menu, in order to receive wheel events
-        //~ piggyback_canon_menu();
-
-        //~ fake_simple_button(BGMT_PICSTYLE);
-        menu_open();
-        initial_mode = shooting_mode;
     }
 }
 
@@ -5372,13 +5383,6 @@ int handle_ml_menu_erase(struct event * event)
     return 1;
 }
 
-// this can be called from any task
-static void menu_stop()
-{
-    if (gui_menu_shown())
-        give_semaphore( gui_sem );
-}
-
 void menu_open_submenu(struct menu_entry * entry)
 {
     submenu_level++;
@@ -5584,7 +5588,7 @@ end:
 int menu_get_value_from_script(const char* name, const char* entry_name)
 {
     struct menu_entry * entry = entry_find_by_name(name, entry_name);
-    if (!entry) { console_printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
+    if (!entry) { printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
     
     return CURRENT_VALUE;
 }
@@ -5592,7 +5596,7 @@ int menu_get_value_from_script(const char* name, const char* entry_name)
 char* menu_get_str_value_from_script(const char* name, const char* entry_name)
 {
     struct menu_entry * entry = entry_find_by_name(name, entry_name);
-    if (!entry) { console_printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
+    if (!entry) { printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
 
     // this won't work with ML menu on (race condition)
     static struct menu_display_info info;
@@ -5604,7 +5608,7 @@ char* menu_get_str_value_from_script(const char* name, const char* entry_name)
 int menu_set_str_value_from_script(const char* name, const char* entry_name, char* value, int value_int)
 {
     struct menu_entry * entry = entry_find_by_name(name, entry_name);
-    if (!entry) { console_printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
+    if (!entry) { printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
 
     // we will need exclusive access to menu_display_info
     take_semaphore(menu_sem, 0);
@@ -5629,7 +5633,7 @@ int menu_set_str_value_from_script(const char* name, const char* entry_name, cha
 
         if (i > 0 && streq(current, last)) // value not changing? stop here
         {
-            console_printf("Value not changing: %s.\n", current);
+            printf("Value not changing: %s.\n", current);
             break;
         }
         
@@ -5638,7 +5642,7 @@ int menu_set_str_value_from_script(const char* name, const char* entry_name, cha
         
         // for debugging, print this always
         if (i > 50 && i % 10 == 0) // it's getting fishy, maybe it's good to show some progress
-            console_printf("menu_set_str('%s', '%s', '%s'): trying %s (%d), was %s...\n", name, entry_name, value, current, CURRENT_VALUE, last);
+            printf("menu_set_str('%s', '%s', '%s'): trying %s (%d), was %s...\n", name, entry_name, value, current, CURRENT_VALUE, last);
 
         snprintf(last, sizeof(last), "%s", current);
         
@@ -5648,7 +5652,7 @@ int menu_set_str_value_from_script(const char* name, const char* entry_name, cha
         
         msleep(20); // we may need to wait for property handlers to update
     }
-    console_printf("Could not set value '%s' for menu %s -> %s\n", value, name, entry_name);
+    printf("Could not set value '%s' for menu %s -> %s\n", value, name, entry_name);
     give_semaphore(menu_sem);
     return 0; // boo :(
 
@@ -5660,7 +5664,7 @@ ok:
 int menu_set_value_from_script(const char* name, const char* entry_name, int value)
 {
     struct menu_entry * entry = entry_find_by_name(name, entry_name);
-    if (!entry) { console_printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
+    if (!entry) { printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
     
     if( entry->select ) // special item, we need some heuristics
     {
@@ -5676,7 +5680,7 @@ int menu_set_value_from_script(const char* name, const char* entry_name, int val
     }
     else // unknown
     {
-        console_printf("Cannot set value for %s -> %s\n", name, entry->name);
+        printf("Cannot set value for %s -> %s\n", name, entry->name);
         return 0; // boo :(
     }
 }

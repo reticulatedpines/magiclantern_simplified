@@ -807,7 +807,7 @@ static int silent_pic_raw_prepare_buffers(struct memSuite * hSuite)
         int size = GetSizeOfMemoryChunk(hChunk);
         int used = ptr - ptr0;
         int remain = size - used;
-        //~ console_printf("remain: %x\n", remain);
+        //~ printf("remain: %x\n", remain);
 
         /* the EDMAC might write a bit more than that, so we'll use a small safety margin */
         if (remain < raw_info.frame_size * 33/32)
@@ -816,22 +816,22 @@ static int silent_pic_raw_prepare_buffers(struct memSuite * hSuite)
             hChunk = GetNextMemoryChunk(hSuite, hChunk);
             if (!hChunk)
             {
-                //~ console_printf("no more memory\n");
+                //~ printf("no more memory\n");
                 break;
             }
             ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
-            //~ console_printf("next chunk: %x %x\n", hChunk, ptr);
+            //~ printf("next chunk: %x %x\n", hChunk, ptr);
             continue;
         }
         else /* alright, a new frame fits here */
         {
-            //~ console_printf("FRAME %d: hSuite=%x hChunk=%x ptr=%x\n", count, hSuite, hChunk, ptr);
+            //~ printf("FRAME %d: hSuite=%x hChunk=%x ptr=%x\n", count, hSuite, hChunk, ptr);
             sp_frames[count] = ptr;
             count++;
             ptr = ptr + raw_info.frame_size;
             if (count >= SP_BUFFER_SIZE)
             {
-                //~ console_printf("we have lots of RAM, lol\n");
+                //~ printf("we have lots of RAM, lol\n");
                 break;
             }
         }

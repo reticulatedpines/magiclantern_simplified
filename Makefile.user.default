@@ -11,7 +11,8 @@ ifeq ($(UNAME), Darwin)
 else
 	# Default settings for remaining operating systems
 	UMOUNT=umount
-	CF_CARD="/media/EOS_DIGITAL/"
+	# CF_CARD=/media/EOS_DIGITAL
+	CF_CARD:=$(shell mount | grep -oE "[^ ]+/EOS_DIGITAL[^ ]*")
 	STAT_CMD=stat -c "%n: %s bytes"
 endif
 

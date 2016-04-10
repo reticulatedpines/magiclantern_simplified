@@ -638,7 +638,7 @@ static int add_mem_suite(struct memSuite * mem_suite, int chunk_index)
                     ptr += frame_size;
                     size -= frame_size;
                     slot_count++;
-                    //~ console_printf("slot #%d: %d %x\n", slot_count, tag, ptr);
+                    //~ printf("slot #%d: %d %x\n", slot_count, tag, ptr);
                 }
             }
             chunk = GetNextMemoryChunk(mem_suite, chunk);
@@ -1322,7 +1322,7 @@ static int FAST process_frame()
         return 0;
     }
 
-    //~ console_printf("saving frame %d: slot %d ptr %x\n", frame_count, capture_slot, ptr);
+    //~ printf("saving frame %d: slot %d ptr %x\n", frame_count, capture_slot, ptr);
 
     int ans = (int) edmac_copy_rectangle_start(ptr, fullSizeBuffer, raw_info.pitch, (skip_x+7)/8*14, skip_y/2*2, res_x*14/8, res_y);
 
@@ -1634,7 +1634,7 @@ static void raw_video_rec_task()
             int frame_limit = overflow_time * 1024 / 10 * (measured_write_speed * 9 / 100) * 1024 / frame_size / 10;
             if (frame_limit >= 0 && frame_limit < num_frames)
             {
-                //~ console_printf("careful, will overflow in %d.%d seconds, better write only %d frames\n", overflow_time/10, overflow_time%10, frame_limit);
+                //~ printf("careful, will overflow in %d.%d seconds, better write only %d frames\n", overflow_time/10, overflow_time%10, frame_limit);
                 num_frames = MAX(1, frame_limit - 1);
             }
         }
@@ -1826,6 +1826,9 @@ abort_and_check_early_stop:
         }
     }
     
+    /* make sure the user doesn't rush to turn off the camera or something */
+    gui_uilock(UILOCK_EVERYTHING);
+    
     /* signal that we are stopping */
     raw_rec_cbr_stopping();
     
@@ -1890,6 +1893,12 @@ cleanup:
     if (f) FIO_CloseFile(f);
     if (!written) { FIO_RemoveFile(raw_movie_filename); raw_movie_filename = 0; }
     FIO_RemoveFile(backup_filename);
+
+    /* everything saved, we can unlock the buttons.
+     * note: freeing SRM memory will also touch uilocks,
+     * so it's best to call this before free_buffers */
+    gui_uilock(UILOCK_NONE);
+
     free_buffers();
     
     #ifdef DEBUG_BUFFERING_GRAPH
@@ -2074,6 +2083,10 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
     /* if you somehow managed to start recording H.264, let it stop */
     if (RECORDING_H264)
         return 1;
+    
+    /* block the zoom key while recording */
+    if (!RAW_IS_IDLE && key == MODULE_KEY_PRESS_ZOOMIN)
+        return 0;
 
     /* start/stop recording with the LiveView key */
     int rec_key_pressed = (key == MODULE_KEY_LV || key == MODULE_KEY_REC);

@@ -3001,6 +3001,7 @@ static MENU_UPDATE_FUNC(bulb_display)
             bulb_timer || interval_enabled ? "" : " (OFF)"
         );
         MENU_SET_WARNING(MENU_WARN_INFO, "Long exposure tools may use bulb timer value, even if BT is disabled.");
+        MENU_SET_RINFO(SYM_WARNING);
     }
 #endif
     
@@ -6316,8 +6317,6 @@ shoot_task( void* unused )
 
             if (PLAY_MODE) get_out_of_play_mode(500);
             
-            if (LV_PAUSED) ResumeLiveView();
-
             if (!intervalometer_running) continue; // back to start of shoot_task loop
             if (gui_menu_shown() || get_halfshutter_pressed()) continue;
 

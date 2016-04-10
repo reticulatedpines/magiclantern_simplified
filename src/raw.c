@@ -35,7 +35,7 @@
 /* see also RAW_ZEBRA_TEST and RAW_SPOTMETER_TEST in zebra.c */
 
 #ifdef RAW_DEBUG
-#define dbg_printf(fmt,...) { console_printf(fmt, ## __VA_ARGS__); }
+#define dbg_printf(fmt,...) { printf(fmt, ## __VA_ARGS__); }
 #else
 #define dbg_printf(fmt,...) {}
 #endif

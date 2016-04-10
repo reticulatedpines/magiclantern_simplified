@@ -434,14 +434,14 @@ static void run_test()
     /* check for memory leaks */
     for (int i = 0; i < 1000; i++)
     {
-        console_printf("%d/1000\n", i);
+        printf("%d/1000\n", i);
         
         /* with this large size, the backend will use fio_malloc, which returns uncacheable pointers */
         void* p = malloc(16*1024*1024 + 64);
         
         if (!p)
         {
-            console_printf("malloc err\n");
+            printf("malloc err\n");
             continue;
         }
         
@@ -462,7 +462,7 @@ static void run_test()
    //~ bfnt_test();
 #ifdef FEATURE_SHOW_SIGNATURE
     console_show();
-    console_printf("FW Signature: 0x%08x", compute_signature((int*)SIG_START, SIG_LEN));
+    printf("FW Signature: 0x%08x", compute_signature((int*)SIG_START, SIG_LEN));
     msleep(1000);
     return;
 #endif
@@ -506,15 +506,15 @@ static void run_test()
 #ifdef CONFIG_MODULES
     console_show();
 
-    console_printf("Loading modules...\n");
+    printf("Loading modules...\n");
     msleep(1000);
     module_load_all();
     return;
 
-    console_printf("\n");
+    printf("\n");
 
-    console_printf("Testing TCC executable...\n");
-    console_printf(" [i] this may take some time\n");
+    printf("Testing TCC executable...\n");
+    printf(" [i] this may take some time\n");
     msleep(1000);
 
     for(int try = 0; try < 100; try++)
@@ -528,7 +528,7 @@ static void run_test()
             ret = module_exec(module, "tcc_new", 0);
             if(!(ret & 0x40000000))
             {
-                console_printf("tcc_new() returned: 0x%08X\n", ret);
+                printf("tcc_new() returned: 0x%08X\n", ret);
             }
             else
             {
@@ -538,11 +538,11 @@ static void run_test()
         }
         else
         {
-            console_printf(" [E] load failed\n");
+            printf(" [E] load failed\n");
         }
     }
 
-    console_printf("Done!\n");
+    printf("Done!\n");
 #endif
 }
 
@@ -1001,7 +1001,7 @@ static void next_tick_cbr(int arg1, void* arg2)
     SetHPTimerNextTick(arg1, 100000, timer_cbr, overrun_cbr, 0);
 }
 
-#define TEST_MSG(fmt, ...) { if (!silence || !ok) log_len += snprintf(log_buf + log_len, maxlen - log_len, fmt, ## __VA_ARGS__); console_printf(fmt, ## __VA_ARGS__); }
+#define TEST_MSG(fmt, ...) { if (!silence || !ok) log_len += snprintf(log_buf + log_len, maxlen - log_len, fmt, ## __VA_ARGS__); printf(fmt, ## __VA_ARGS__); }
 #define TEST_TRY_VOID(x) { x; ok = 1; TEST_MSG("       %s\n", #x); }
 #define TEST_TRY_FUNC(x) { int ans = (int)(x); ok = 1; TEST_MSG("       %s => 0x%x\n", #x, ans); }
 #define TEST_TRY_FUNC_CHECK(x, condition) { int ans = (int)(x); ok = ans condition; TEST_MSG("[%s] %s => 0x%x\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else failed_tests++; }
@@ -1501,7 +1501,7 @@ static void stub_test_task(void* arg)
     }
     fio_free(log_buf);
 
-    console_printf(
+    printf(
         "=========================================================\n"
         "Test complete, %d passed, %d failed.\n.",
         passed_tests, failed_tests
@@ -2266,7 +2266,7 @@ static void save_crash_log()
     }
     else
     {
-        console_printf("%s\n", get_assert_msg());
+        printf("%s\n", get_assert_msg());
         console_show();
     }
 
@@ -3232,7 +3232,7 @@ debug_property_handler(
 {
     const uint32_t * const addr = buf;
 
-    /*console_printf("Prop %08x: %2x: %08x %08x %08x %08x\n",
+    /*printf("Prop %08x: %2x: %08x %08x %08x %08x\n",
         property,
         len,
         len > 0x00 ? addr[0] : 0,
