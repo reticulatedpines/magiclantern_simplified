@@ -786,8 +786,13 @@ static int raw_update_params_work()
     }
 
     /* black level looks alright, go ahead and use it */
+    /* log significant changes to console */
+    if (ABS(black_mean - raw_info.black_level) >= 10)
+    {
+        printf("Black level: %d\n", black_mean);
+    }
+    
     raw_info.black_level = black_mean;
-    printf("Black level: %d\n", black_mean);
 
     if (!lv)
     {
