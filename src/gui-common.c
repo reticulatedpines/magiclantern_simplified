@@ -609,8 +609,12 @@ char* get_info_button_name() { return INFO_BTN_NAME; }
 
 void gui_uilock(int what)
 {
-    int unlocked = UILOCK_NONE;
+    /* change just the lower 16 bits, to ensure correct requests;
+     * the higher bits appear to be for requesting the change */
+    int unlocked = UILOCK_REQUEST | (UILOCK_NONE & 0xFFFF);
     prop_request_change_wait(PROP_ICU_UILOCK, &unlocked, 4, 2000);
+    
+    what = UILOCK_REQUEST | (what & 0xFFFF);
     prop_request_change_wait(PROP_ICU_UILOCK, &what, 4, 2000);
 }
 
