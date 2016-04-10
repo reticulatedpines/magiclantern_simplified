@@ -716,6 +716,10 @@ static int raw_update_params_work()
             
             raw_info.width = width;
             raw_info.height = height;
+            
+            /* reset black level to force recomputing */
+            raw_info.black_level = 0;
+            
             return 0;
         }
     }
@@ -740,7 +744,8 @@ static int raw_update_params_work()
     /* black and white autodetection are time-consuming */
     /* only refresh once per second or if dirty, but never while recording */
     static int bw_aux = INT_MIN;
-    int recompute_black_and_white = NOT_RECORDING && (dirty || should_run_polling_action(1000, &bw_aux));
+    int recompute_black_and_white = NOT_RECORDING && 
+        (raw_info.black_level == 0 || dirty || should_run_polling_action(1000, &bw_aux));
 
     if (dirty)
     {
