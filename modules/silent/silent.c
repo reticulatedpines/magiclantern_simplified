@@ -842,6 +842,12 @@ static int silent_pic_raw_prepare_buffers(struct memSuite * hSuite, int initial_
 static int
 silent_pic_take_lv(int interactive)
 {
+    if (lens_info.job_state || !lv)
+    {
+        /* only works in LV, and conflicts with regular picture taking */
+        return 0;
+    }
+
     bmp_printf(FONT_MED, 0, 37, "Preparing...");
     int ok = 1;
     int raw_flag = 0;
