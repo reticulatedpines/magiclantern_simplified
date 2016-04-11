@@ -39,6 +39,7 @@
 #include "shoot.h"
 #include "focus.h"
 #include "lvinfo.h"
+#include "powersave.h"
 
 #include "imgconv.h"
 #include "falsecolor.h"
@@ -4147,65 +4148,6 @@ static void idle_action_do(int* countdown, int* prev_countdown, void(*action_on)
         //~ bmp_printf(FONT_MED, 100, 200, "        ");
     }
     *prev_countdown = c;
-}
-
-#if defined(CONFIG_LIVEVIEW) && defined(FEATURE_POWERSAVE_LIVEVIEW)
-static int lv_zoom_before_pause = 0;
-#endif
-
-void PauseLiveView() // this should not include "display off" command
-{
-#if defined(CONFIG_LIVEVIEW) && defined(FEATURE_POWERSAVE_LIVEVIEW)
-    if (ml_shutdown_requested) return;
-    if (sensor_cleaning) return;
-    if (PLAY_MODE) return;
-    if (MENU_MODE) return;
-    if (LV_NON_PAUSED)
-    {
-        //~ ASSERT(DISPLAY_IS_ON);
-        int x = 1;
-        //~ while (get_halfshutter_pressed()) msleep(MIN_MSLEEP);
-        BMP_LOCK(
-            lv_zoom_before_pause = lv_dispsize;
-            prop_request_change(PROP_LV_ACTION, &x, 4);
-            msleep(100);
-            clrscr();
-            lv_paused = 1;
-        )
-        ASSERT(LV_PAUSED);
-    }
-#endif
-}
-
-// returns 1 if it did wakeup
-int ResumeLiveView()
-{
-    info_led_on();
-    int ans = 0;
-#if defined(CONFIG_LIVEVIEW) && defined(FEATURE_POWERSAVE_LIVEVIEW)
-    if (ml_shutdown_requested) return 0;
-    if (sensor_cleaning) return 0;
-    if (PLAY_MODE) return 0;
-    if (MENU_MODE) return 0;
-    if (LV_PAUSED)
-    {
-        int x = 0;
-        //~ while (get_halfshutter_pressed()) msleep(MIN_MSLEEP);
-        BMP_LOCK(
-            prop_request_change(PROP_LV_ACTION, &x, 4);
-            int iter = 10; while (!lv && iter--) msleep(100);
-            iter = 10; while (!DISPLAY_IS_ON && iter--) msleep(100);
-        )
-        while (sensor_cleaning) msleep(100);
-        if (lv) set_lv_zoom(lv_zoom_before_pause);
-        msleep(100);
-        ans = 1;
-    }
-    lv_paused = 0;
-    idle_wakeup_reset_counters(-1357);
-    info_led_off();
-#endif
-    return ans;
 }
 
 #ifdef FEATURE_POWERSAVE_LIVEVIEW

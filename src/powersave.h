@@ -10,4 +10,12 @@ void powersave_prohibit();
 /* re-enable powersave timer */
 void powersave_permit();
 
+/* stop LiveView activity, leave shutter open */
+/* the sensor is turned off, and the LV image will freeze */
+/* method similar to what Canon code does when entering PLAY mode from LV */
+void PauseLiveView();
+
+/* back to LiveView from paused state */
+int ResumeLiveView();
+
 #endif

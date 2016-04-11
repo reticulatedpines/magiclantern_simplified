@@ -59,8 +59,6 @@ void lv_vsync(int mz);
 int arrow_keys_shortcuts_active();
 
 /* todo: move to powersave.c/h */
-void PauseLiveView();
-int ResumeLiveView();
 void idle_wakeup_reset_counters(int reason);
 void idle_force_powersave_now();
 void idle_force_powersave_in_1s();
