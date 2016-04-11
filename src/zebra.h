@@ -62,8 +62,6 @@ int arrow_keys_shortcuts_active();
 void idle_wakeup_reset_counters(int reason);
 void idle_force_powersave_now();
 void idle_force_powersave_in_1s();
-void display_on();
-void display_off();
 void idle_globaldraw_dis();
 void idle_globaldraw_en();
 int get_last_time_active();

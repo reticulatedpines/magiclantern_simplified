@@ -13,6 +13,7 @@
 #include <zebra.h>
 #include <screenshot.h>
 #include <notify_box.h>
+#include <powersave.h>
 
 #include "lua_common.h"
 

@@ -87,3 +87,20 @@ int ResumeLiveView()
 #endif
     return ans;
 }
+
+
+/* Display on/off */
+/* ============== */
+
+/* handled in debug.c, handle_tricky_canon_calls */
+/* todo: move them here */
+
+void display_on()
+{
+    fake_simple_button(MLEV_TURN_ON_DISPLAY);
+}
+void display_off()
+{
+    fake_simple_button(MLEV_TURN_OFF_DISPLAY);
+}
+

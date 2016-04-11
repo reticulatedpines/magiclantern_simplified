@@ -18,4 +18,8 @@ void PauseLiveView();
 /* back to LiveView from paused state */
 int ResumeLiveView();
 
+/* turn display on/off */
+void display_on();
+void display_off();
+
 #endif
