@@ -103,7 +103,7 @@
 #endif
 
 /** Movie menu **/
-    #define FEATURE_NITRATE
+    //~ #define FEATURE_NITRATE // for experts only
     //~ #define FEATURE_NITRATE_WAV_RECORD // not user-proof at all
     //~ #define FEATURE_VIDEO_HACKS // for experts only
 
