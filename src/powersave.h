@@ -22,4 +22,14 @@ int ResumeLiveView();
 void display_on();
 void display_off();
 
+/* ML powersave in LV */
+int idle_is_powersave_enabled();
+int idle_is_powersave_active();
+int idle_is_powersave_enabled_on_info_disp_key();
+
+/* internal hooks (to be refactored as CBRs) */
+void idle_led_blink_step(int k);
+void idle_powersave_step();
+int handle_powersave_key(struct event * event);
+
 #endif
