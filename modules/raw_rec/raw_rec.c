@@ -115,7 +115,6 @@ CONFIG_INT("raw.video.enabled", raw_video_enabled, 0);
 static CONFIG_INT("raw.res.x", resolution_index_x, 12);
 static CONFIG_INT("raw.aspect.ratio", aspect_ratio_index, 10);
 static CONFIG_INT("raw.write.speed", measured_write_speed, 0);
-static CONFIG_INT("raw.skip.frames", allow_frame_skip, 0);
 
 static CONFIG_INT("raw.dolly", dolly_mode, 0);
 #define FRAMING_CENTER (dolly_mode == 0)
@@ -181,25 +180,24 @@ struct frame_slot
     enum {SLOT_FREE, SLOT_FULL, SLOT_WRITING} status;
 };
 
-static struct memSuite * shoot_mem_suite = 0;           /* memory suite for our buffers */
+static struct memSuite * shoot_mem_suite = 0;     /* memory suite for our buffers */
 static struct memSuite * srm_mem_suite = 0;
 
 static void * fullsize_buffers[2];                /* original image, before cropping, double-buffered */
 static int fullsize_buffer_pos = 0;               /* which of the full size buffers (double buffering) is currently in use */
-static int chunk_list[20];                       /* list of free memory chunk sizes, used for frame estimations */
+static int chunk_list[32];                        /* list of free memory chunk sizes, used for frame estimations */
 
-static struct frame_slot slots[512];              /* frame slots */
+static struct frame_slot slots[511];              /* frame slots */
 static int slot_count = 0;                        /* how many frame slots we have */
 static int capture_slot = -1;                     /* in what slot are we capturing now (index) */
-static volatile int force_new_buffer = 0;         /* if some other task decides it's better to search for a new buffer */
 
-static int writing_queue[COUNT(slots)];           /* queue of completed frames (slot indices) waiting to be saved */
+static int writing_queue[COUNT(slots)+1];         /* queue of completed frames (slot indices) waiting to be saved */
 static int writing_queue_tail = 0;                /* place captured frames here */
 static int writing_queue_head = 0;                /* extract frames to be written from here */ 
 
 static int frame_count = 0;                       /* how many frames we have processed */
-static int frame_skips = 0;                       /* how many frames were dropped/skipped */
-char* raw_movie_filename = 0;                         /* file name for current (or last) movie */
+static int buffer_full = 0;                       /* true when the memory becomes full */
+char* raw_movie_filename = 0;                     /* file name for current (or last) movie */
 static char* chunk_filename = 0;                  /* file name for current movie chunk */
 static uint32_t written = 0;                      /* how many KB we have written in this movie */
 static int writing_time = 0;                      /* time spent by raw_video_rec_task in FIO_WriteFile calls */
@@ -207,34 +205,15 @@ static int idle_time = 0;                         /* time spent by raw_video_rec
 static volatile int writing_task_busy = 0;        /* busy: in the middle of a write operation */
 static volatile int frame_countdown = 0;          /* for waiting X frames */
 
-/* interface to other modules:
- *
- *    unsigned int raw_rec_skip_frame(unsigned char *frame_data)
- *      This function is called on every single raw frame that is received from sensor with a pointer to frame data as parameter.
- *      If the return value is zero, the frame will get save into the saving buffers, else it is skipped
- *      Default: Do not skip frame (0)
- *
- *    unsigned int raw_rec_save_buffer(unsigned int used, unsigned int buffer_count)
- *      This function is called whenever the writing loop is checking if it has data to save to card.
- *      The parameters are the number of used buffers and the total buffer count
- *      Default: Save buffer (1)
- *
- *    unsigned int raw_rec_skip_buffer(unsigned int buffer_index, unsigned int buffer_count);
- *      Whenever the buffers are full, this function is called with the buffer index that is subject to being dropped, the number of frames in this buffer and the total buffer count.
- *      If it returns zero, this buffer will not get thrown away, but the next frame will get dropped.
- *      Default: Do not throw away buffer, but throw away incoming frame (0)
- */
+/* interface to other modules: these are called when recording starts or stops  */
 extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_starting();
 extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_stopping();
-extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_skip_frame(unsigned char *frame_data);
-extern WEAK_FUNC(ret_1) unsigned int raw_rec_cbr_save_buffer(unsigned int used, unsigned int buffer_index, unsigned int frame_count, unsigned int buffer_count);
-extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_skip_buffer(unsigned int buffer_index, unsigned int frame_count, unsigned int buffer_count);
 
-static unsigned int raw_rec_should_preview(unsigned int ctx);
+static int raw_rec_should_preview(void);
 
 static void refresh_cropmarks()
 {
-    if (lv_dispsize > 1 || raw_rec_should_preview(0) || !raw_video_enabled)
+    if (lv_dispsize > 1 || raw_rec_should_preview() || !raw_video_enabled)
     {
         reset_movie_cropmarks();
     }
@@ -717,7 +696,10 @@ static void show_buffer_status()
         if (i > 0 && slots[i].ptr != slots[i-1].ptr + frame_size)
             x += MAX(2, scale);
 
-        int color = slots[i].status == SLOT_FREE ? COLOR_BLACK : slots[i].status == SLOT_WRITING ? COLOR_GREEN1 : slots[i].status == SLOT_FULL ? COLOR_LIGHT_BLUE : COLOR_RED;
+        int color = slots[i].status == SLOT_FREE    ? COLOR_BLACK :
+                    slots[i].status == SLOT_WRITING ? COLOR_GREEN1 :
+                    slots[i].status == SLOT_FULL    ? COLOR_LIGHT_BLUE :
+                                                      COLOR_RED ;
         for (int k = 0; k < scale; k++)
         {
             draw_line(x, y+5, x, y+17, color);
@@ -726,11 +708,6 @@ static void show_buffer_status()
         
         if (scale > 3)
             x++;
-    }
-    
-    if (frame_skips > 0)
-    {
-        bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), x+10, y, "%d skipped frames", frame_skips);
     }
 
 #ifdef DEBUG_BUFFERING_GRAPH
@@ -826,7 +803,7 @@ static LVINFO_UPDATE_FUNC(recording_status)
     int t = (frame_count * 1000 + fps/2) / fps;
     int predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024);
 
-    if (!frame_skips) 
+    if (!buffer_full) 
     {
         snprintf(buffer, sizeof(buffer), "%02d:%02d", t/60, t%60);
         if (predicted >= 10000)
@@ -837,7 +814,7 @@ static LVINFO_UPDATE_FUNC(recording_status)
         {
             int time_left = (predicted-frame_count) * 1000 / fps;
             if (time_left < 10) {
-                 item->color_bg = COLOR_DARK_RED;
+                item->color_bg = COLOR_DARK_RED;
             } else {
                 item->color_bg = COLOR_YELLOW;
             }
@@ -845,7 +822,7 @@ static LVINFO_UPDATE_FUNC(recording_status)
     } 
     else 
     {
-        snprintf(buffer, sizeof(buffer), "%d skipped", frame_skips);
+        snprintf(buffer, sizeof(buffer), "Stopped.", buffer_full);
         item->color_bg = COLOR_DARK_RED;
     }
 }
@@ -866,7 +843,11 @@ static void show_recording_status()
         }
 
         /* No reason to do any work if not displayed */
-        if ((indicator_display != INDICATOR_ON_SCREEN) && (indicator_display != INDICATOR_RAW_BUFFER)) return;
+        if ((indicator_display != INDICATOR_ON_SCREEN) &&
+            (indicator_display != INDICATOR_RAW_BUFFER))
+        {
+            return;
+        }
 
         /* Calculate the stats */
         int fps = fps_get_current_x1000();
@@ -947,14 +928,7 @@ static void show_recording_status()
             rl_icon_width = bfnt_draw_char (ICON_ML_MOVIE,rl_x,rl_y,rl_color,COLOR_BG_DARK);
 
             /* Display the Status */
-            if (!frame_skips) 
-            {
-                bmp_printf (FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), rl_x+rl_icon_width+5, rl_y+5, "%02d:%02d", t/60, t%60);
-            } 
-            else 
-            {
-                bmp_printf (FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), rl_x+rl_icon_width+5, rl_y+5, "%d skipped", frame_skips);
-            }
+            bmp_printf (FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), rl_x+rl_icon_width+5, rl_y+5, "%02d:%02d", t/60, t%60);
 
             if (writing_time)
             {
@@ -1177,8 +1151,7 @@ static int FAST choose_next_capture_slot()
         capture_slot >= 0 && 
         capture_slot + 1 < slot_count && 
         slots[capture_slot + 1].ptr == slots[capture_slot].ptr + frame_size && 
-        slots[capture_slot + 1].status == SLOT_FREE &&
-        !force_new_buffer
+        slots[capture_slot + 1].status == SLOT_FREE
        )
         return capture_slot + 1;
 
@@ -1225,8 +1198,6 @@ static int FAST choose_next_capture_slot()
     /* avoid 32MB writes, they are slower (they require two DMA calls) */
     /* go back a few K and the speed is restored */
     //~ best_len = MIN(best_len, (32*1024*1024 - 8192) / frame_size);
-    
-    force_new_buffer = 0;
 
     return best_index;
 }
@@ -1290,7 +1261,7 @@ static int FAST process_frame()
     else
     {
         /* card too slow */
-        frame_skips++;
+        buffer_full = 1;
         return 0;
     }
 
@@ -1300,12 +1271,6 @@ static int FAST process_frame()
 
     /* advance to next buffer for the upcoming capture */
     fullsize_buffer_pos = (fullsize_buffer_pos + 1) % 2;
-    
-    /* dont process this frame if a module wants to skip that */
-    if(raw_rec_cbr_skip_frame(fullSizeBuffer))
-    {
-        return 0;
-    }
 
     //~ printf("saving frame %d: slot %d ptr %x\n", frame_count, capture_slot, ptr);
 
@@ -1341,7 +1306,7 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
 
     if (!RAW_IS_RECORDING) return 0;
     if (!raw_lv_settings_still_valid()) { raw_recording_state = RAW_FINISHING; return 0; }
-    if (!allow_frame_skip && frame_skips) return 0;
+    if (buffer_full) return 0;
 
     /* double-buffering */
     raw_lv_redirect_edmac(fullsize_buffers[fullsize_buffer_pos % 2]);
@@ -1412,7 +1377,7 @@ static void raw_video_rec_task()
     fullsize_buffer_pos = 0;
     writing_task_busy = 0;
     frame_count = 0;
-    frame_skips = 0;
+    buffer_full = 0;
     FILE* f = 0;
     written = 0; /* in KB */
     uint32_t written_chunk = 0; /* in bytes, for current chunk */
@@ -1499,8 +1464,10 @@ static void raw_video_rec_task()
     /* main recording loop */
     while (RAW_IS_RECORDING && lv)
     {
-        if (!allow_frame_skip && frame_skips)
+        if (buffer_full)
+        {
             goto abort_and_check_early_stop;
+        }
         
         int w_tail = writing_queue_tail; /* this one can be modified outside the loop, so grab it here, just in case */
         int w_head = writing_queue_head; /* this one is modified only here, but use it just for the shorter name */
@@ -1562,12 +1529,6 @@ static void raw_video_rec_task()
         
         int after_last_grouped = MOD(w_head + num_frames, COUNT(writing_queue));
 
-        /* write queue empty? better search for a new larger buffer */
-        if (after_last_grouped == writing_queue_tail)
-        {
-            force_new_buffer = 1;
-        }
-
         void* ptr = slots[first_slot].ptr;
         int size_used = frame_size * num_frames;
 
@@ -1583,9 +1544,7 @@ static void raw_video_rec_task()
             slots[slot_index].status = SLOT_WRITING;
         }
 
-        /* ask an optional external routine if this buffer should get saved now. if none registered, it will return 1 */
-        int ext_gating = 1;
-        if (ext_gating)
+        if (1)
         {
             writing_task_busy = 1;
             
@@ -1677,10 +1636,10 @@ static void raw_video_rec_task()
                 beep();
             }
             
-            if (slots[slot_index].frame_number != last_processed_frame + 1 && !allow_frame_skip)
+            if (slots[slot_index].frame_number != last_processed_frame + 1)
             {
                 bmp_printf( FONT_MED, 30, 110, 
-                    "Frame order error: slot %d, frame %d, expected ", slot_index, slots[slot_index].frame_number, last_processed_frame + 1
+                    "Frame order error: slot %d, frame %d, expected %d ", slot_index, slots[slot_index].frame_number, last_processed_frame + 1
                 );
                 beep();
             }
@@ -1737,7 +1696,7 @@ abort_and_check_early_stop:
     set_recording_custom(CUSTOM_RECORDING_NOT_RECORDING);
 
     /* write remaining frames */
-    for (; writing_queue_head != writing_queue_tail; writing_queue_head = MOD(writing_queue_head + 1, COUNT(slots)))
+    for (; writing_queue_head != writing_queue_tail; writing_queue_head = MOD(writing_queue_head + 1, COUNT(writing_queue)))
     {
         int slot_index = writing_queue[writing_queue_head];
 
@@ -1749,7 +1708,7 @@ abort_and_check_early_stop:
             beep();
         }
 
-        if (slots[slot_index].frame_number != last_processed_frame + 1 && !allow_frame_skip)
+        if (slots[slot_index].frame_number != last_processed_frame + 1)
         {
             bmp_printf( FONT_MED, 30, 110, 
                 "Frame order error: slot %d, frame %d, expected %d ", slot_index, slots[slot_index].frame_number, last_processed_frame + 1
@@ -1829,7 +1788,7 @@ cleanup:
     raw_recording_state = RAW_IDLE;
 }
 
-static MENU_SELECT_FUNC(raw_start_stop)
+static void raw_start_stop()
 {
     if (!RAW_IS_IDLE)
     {
@@ -1923,14 +1882,6 @@ static struct menu_entry raw_video_menu[] =
                 .advanced = 1,
             },
             {
-                .name = "Frame skipping",
-                .priv = &allow_frame_skip,
-                .max = 1,
-                .choices = CHOICES("OFF", "Allow"),
-                .help = "Enable if you don't mind skipping frames (for slow cards).",
-                .advanced = 1,
-            },
-            {
                 .name = "Card warm-up",
                 .priv = &warm_up,
                 .max = 7,
@@ -2006,7 +1957,7 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
         {
             case RAW_IDLE:
             case RAW_RECORDING:
-                raw_start_stop(0,0);
+                raw_start_stop();
                 break;
         }
         return 0;
@@ -2065,7 +2016,7 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
 
 static int preview_dirty = 0;
 
-static unsigned int raw_rec_should_preview(unsigned int ctx)
+static int raw_rec_should_preview(void)
 {
     if (!raw_video_enabled) return 0;
     if (!is_movie_mode()) return 0;
@@ -2094,7 +2045,7 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
     /* just say whether we can preview or not */
     if (ctx == 0)
     {
-        int enabled = raw_rec_should_preview(ctx);
+        int enabled = raw_rec_should_preview();
         if (!enabled && preview_dirty)
         {
             /* cleanup the mess, if any */
@@ -2205,7 +2156,6 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(resolution_index_x)
     MODULE_CONFIG(aspect_ratio_index)
     MODULE_CONFIG(measured_write_speed)
-    MODULE_CONFIG(allow_frame_skip)
     MODULE_CONFIG(dolly_mode)
     MODULE_CONFIG(preview_mode)
     MODULE_CONFIG(use_srm_memory)
