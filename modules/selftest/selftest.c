@@ -12,6 +12,7 @@
 #include <ml_rpc.h>
 #include <edmac-memcpy.h>
 #include <screenshot.h>
+#include <powersave.h>
 
 /* optional routines */
 extern WEAK_FUNC(ret_0) uint32_t ml_rpc_send(uint32_t command, uint32_t parm1, uint32_t parm2, uint32_t parm3, uint32_t wait);

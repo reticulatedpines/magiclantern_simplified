@@ -10,6 +10,7 @@
 #include <property.h>
 #include <zebra.h>
 #include <edmac-memcpy.h>
+#include <powersave.h>
 
 /* fixme: move to core */
 #define DLG_PLAY 1
