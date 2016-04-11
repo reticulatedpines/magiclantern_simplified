@@ -330,13 +330,6 @@ static void run_test()
 {
 }
 
-void run_in_separate_task(void* routine, int argument)
-{
-    gui_stop_menu();
-    if (!routine) return;
-    task_create("run_test", 0x1a, 0x1000, (void(*)(void*)) routine, (void*)argument);
-}
-
 #if CONFIG_DEBUGMSG
 static void dbg_draw_props(int changed);
 static unsigned dbg_last_changed_propindex = 0;
