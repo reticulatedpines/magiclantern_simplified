@@ -116,6 +116,10 @@ static CONFIG_INT("raw.res.x", resolution_index_x, 12);
 static CONFIG_INT("raw.aspect.ratio", aspect_ratio_index, 10);
 static CONFIG_INT("raw.write.speed", measured_write_speed, 0);
 
+static CONFIG_INT("raw.pre-record", pre_record, 0);
+static int pre_record_triggered = 0;    /* becomes 1 once you press REC twice */
+static int pre_record_num_frames = 0;   /* how many frames we should pre-record */
+
 static CONFIG_INT("raw.dolly", dolly_mode, 0);
 #define FRAMING_CENTER (dolly_mode == 0)
 #define FRAMING_PANNING (dolly_mode == 1)
@@ -163,13 +167,15 @@ static int frame_offset_delta_y = 0;
 #define RAW_PREPARING 1
 #define RAW_RECORDING 2
 #define RAW_FINISHING 3
+#define RAW_PRE_RECORDING 4
 
 static int raw_recording_state = RAW_IDLE;
 static int raw_previewing = 0;
 
 #define RAW_IS_IDLE      (raw_recording_state == RAW_IDLE)
 #define RAW_IS_PREPARING (raw_recording_state == RAW_PREPARING)
-#define RAW_IS_RECORDING (raw_recording_state == RAW_RECORDING)
+#define RAW_IS_RECORDING (raw_recording_state == RAW_RECORDING || \
+                          raw_recording_state == RAW_PRE_RECORDING)
 #define RAW_IS_FINISHING (raw_recording_state == RAW_FINISHING)
 
 /* one video frame */
@@ -659,6 +665,18 @@ static int setup_buffers()
         return 0;
     }
     
+    if (pre_record)
+    {
+        /* how much should we pre-record? */
+        const int presets[4] = {1, 2, 5, 10};
+        int requested_seconds = presets[(pre_record-1) & 3];
+        int requested_frames = requested_seconds * fps_get_current_x1000() / 1000;
+
+        /* leave at least 16MB for buffering */
+        int max_frames = slot_count - 16*1024*1024 / frame_size;
+        pre_record_num_frames = MIN(requested_frames, max_frames);
+    }
+    
     return 1;
 }
 
@@ -806,7 +824,11 @@ static LVINFO_UPDATE_FUNC(recording_status)
     if (!buffer_full) 
     {
         snprintf(buffer, sizeof(buffer), "%02d:%02d", t/60, t%60);
-        if (predicted >= 10000)
+        if (raw_recording_state == RAW_PRE_RECORDING)
+        {
+            item->color_bg = COLOR_BLUE;
+        }
+        else if (predicted >= 10000)
         {
             item->color_bg = COLOR_GREEN1;
         }
@@ -908,7 +930,11 @@ static void show_recording_status()
 
             /* If continuous OK, make the movie icon green, else set based on expected time left */
             int rl_color;
-            if (predicted >= 10000) 
+            if (raw_recording_state == RAW_PRE_RECORDING)
+            {
+                rl_color = COLOR_BLUE;
+            }
+            else if (predicted >= 10000) 
             {
                 rl_color = COLOR_GREEN1;
             } 
@@ -1202,6 +1228,61 @@ static int FAST choose_next_capture_slot()
     return best_index;
 }
 
+static void pre_record_vsync_step()
+{
+    if (raw_recording_state == RAW_PRE_RECORDING)
+    {
+        if (pre_record_triggered)
+        {
+            /* queue all captured frames for writing */
+            /* (they are numbered from 1 to frame_count-1; frame 0 is skipped) */
+            /* they are not ordered, which complicates things a bit */
+            int i = 0;
+            for (int current_frame = 1; current_frame < frame_count; current_frame++)
+            {
+                /* consecutive frames tend to be grouped, 
+                 * so this loop will not run every time */
+                while (slots[i].status != SLOT_FULL || slots[i].frame_number != current_frame)
+                {
+                    i = MOD(i+1, slot_count);
+                }
+                
+                writing_queue[writing_queue_tail] = i;
+                writing_queue_tail = MOD(writing_queue_tail + 1, COUNT(writing_queue));
+                i = MOD(i+1, slot_count);
+            }
+            
+            /* done, from now on we can just record normally */
+            raw_recording_state = RAW_RECORDING;
+        }
+        else if (frame_count >= pre_record_num_frames)
+        {
+            /* discard old frames */
+            /* also adjust frame_count so all frames start from 1,
+             * just like the rest of the code assumes */
+            frame_count--;
+            
+            for (int i = 0; i < slot_count; i++)
+            {
+                /* first frame is 1 */
+                if (slots[i].status == SLOT_FULL)
+                {
+                    ASSERT(slots[i].frame_number > 0);
+                    
+                    if (slots[i].frame_number == 1)
+                    {
+                        slots[i].status = SLOT_FREE;
+                    }
+                    else
+                    {
+                        slots[i].frame_number--;
+                    }
+                }
+            }
+        }
+    }
+}
+
 #define FRAME_SENTINEL 0xA5A5A5A5 /* for double-checking EDMAC operations */
 
 static void frame_add_checks(int slot_index)
@@ -1243,6 +1324,11 @@ static int FAST process_frame()
         return 0;
     }
     
+    if (raw_recording_state == RAW_PRE_RECORDING)
+    {
+        pre_record_vsync_step();
+    }
+    
     /* where to save the next frame? */
     capture_slot = choose_next_capture_slot(capture_slot);
     
@@ -1253,10 +1339,18 @@ static int FAST process_frame()
         slots[capture_slot].status = SLOT_FULL;
         frame_add_checks(capture_slot);
 
-        /* send it for saving, even if it isn't done yet */
-        /* it's quite unlikely that FIO DMA will be faster than EDMAC */
-        writing_queue[writing_queue_tail] = capture_slot;
-        writing_queue_tail = MOD(writing_queue_tail + 1, COUNT(writing_queue));
+        if (raw_recording_state == RAW_PRE_RECORDING)
+        {
+            /* pre-recording before trigger? don't queue frames for writing */
+            /* (do nothing here) */
+        }
+        else
+        {
+            /* send it for saving, even if it isn't done yet */
+            /* it's quite unlikely that FIO DMA will be faster than EDMAC */
+            writing_queue[writing_queue_tail] = capture_slot;
+            writing_queue_tail = MOD(writing_queue_tail + 1, COUNT(writing_queue));
+        }
     }
     else
     {
@@ -1380,6 +1474,7 @@ static void raw_video_rec_task()
     buffer_full = 0;
     FILE* f = 0;
     written = 0; /* in KB */
+    pre_record_triggered = 0;
     uint32_t written_chunk = 0; /* in bytes, for current chunk */
     int last_block_size = 0; /* for detecting early stops */
     
@@ -1442,7 +1537,7 @@ static void raw_video_rec_task()
     edmac_memcpy_res_lock();
 
     /* this will enable the vsync CBR and the other task(s) */
-    raw_recording_state = RAW_RECORDING;
+    raw_recording_state = pre_record ? RAW_PRE_RECORDING : RAW_RECORDING;
 
     /* try a sync beep (not very precise, but better than nothing) */
     beep();
@@ -1874,6 +1969,14 @@ static struct menu_entry raw_video_menu[] =
                 .advanced = 1,
             },
             {
+                .name    = "Pre-record",
+                .priv    = &pre_record,
+                .max     = 4,
+                .choices = CHOICES("OFF", "1 second", "2 seconds", "5 seconds", "10 seconds"),
+                .help    = "Pre-records a few seconds of video into memory, discarding old frames.",
+                .help2   = "Press REC twice: 1 - to start pre-recording, 2 - for normal recording.",
+            },
+            {
                 .name = "Digital dolly",
                 .priv = &dolly_mode,
                 .max = 1,
@@ -1958,6 +2061,10 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
             case RAW_IDLE:
             case RAW_RECORDING:
                 raw_start_stop();
+                break;
+            
+            case RAW_PRE_RECORDING:
+                pre_record_triggered = 1;
                 break;
         }
         return 0;
@@ -2156,6 +2263,7 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(resolution_index_x)
     MODULE_CONFIG(aspect_ratio_index)
     MODULE_CONFIG(measured_write_speed)
+    MODULE_CONFIG(pre_record)
     MODULE_CONFIG(dolly_mode)
     MODULE_CONFIG(preview_mode)
     MODULE_CONFIG(use_srm_memory)
