@@ -1458,7 +1458,7 @@ static void raw_video_rec_task()
     raw_set_dirty();
     if (!raw_update_params())
     {
-        bmp_printf( FONT_MED, 30, 50, "Raw detect error");
+        NotifyBox(5000, "Raw detect error");
         goto cleanup;
     }
     
@@ -1467,7 +1467,7 @@ static void raw_video_rec_task()
     /* allocate memory */
     if (!setup_buffers())
     {
-        bmp_printf( FONT_MED, 30, 50, "Memory error");
+        NotifyBox(5000, "Memory error");
         goto cleanup;
     }
 

@@ -851,8 +851,10 @@ silent_pic_take_lv(int interactive)
     msleep(100);
  
     /* get image resolution, white level etc; retry if needed */
-    while (!raw_update_params())
-        msleep(50);
+    if (!raw_update_params())
+    {
+        return;
+    }
 
     /* allocate RAM */
     struct memSuite * hSuite = 0;

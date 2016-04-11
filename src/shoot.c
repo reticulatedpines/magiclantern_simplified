@@ -981,6 +981,7 @@ void center_lv_afframe_do()
         {
             /* center on the raw frame */
             raw_lv_request();
+            
             if (raw_update_params())
             {
                 int delta_x, delta_y;
