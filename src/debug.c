@@ -328,39 +328,6 @@ void bsod()
 
 static void run_test()
 {
-    /* todo: cleanup the following tests and move them in the mem_chk module */
-
-    return;
-    
-    /* check for memory leaks */
-    for (int i = 0; i < 1000; i++)
-    {
-        printf("%d/1000\n", i);
-        
-        /* with this large size, the backend will use fio_malloc, which returns uncacheable pointers */
-        void* p = malloc(16*1024*1024 + 64);
-        
-        if (!p)
-        {
-            printf("malloc err\n");
-            continue;
-        }
-        
-        /* however, user code should not care about this; we have requested a plain old cacheable pointer; did we get one? */
-        ASSERT(p == CACHEABLE(p));
-        
-        /* do something with our memory */
-        memset(p, 1234, 1234);
-        msleep(20);
-        
-        /* done, now free it */
-        /* the backend should put back the uncacheable flag (if handled incorrectly, there may be memory leaks) */
-        free(p);
-        msleep(20);
-    }
-    return;
-
-   //~ bfnt_test();
 #ifdef FEATURE_SHOW_SIGNATURE
     console_show();
     printf("FW Signature: 0x%08x", compute_signature((int*)SIG_START, SIG_LEN));
@@ -369,27 +336,6 @@ static void run_test()
 #endif
 
     #ifdef CONFIG_EDMAC_MEMCPY
-    msleep(2000);
-
-    uint8_t* real = bmp_vram_real();
-    uint8_t* idle = bmp_vram_idle();
-    int xPos = 0;
-    int xOff = 2;
-    int yPos = 0;
-
-    edmac_memcpy_res_lock();
-    edmac_copy_rectangle_adv(BMP_VRAM_START(idle), BMP_VRAM_START(real), 960, 120, 50, 960, 120, 50, 720, 440);
-    while(true)
-    {
-        edmac_copy_rectangle_adv(BMP_VRAM_START(real), BMP_VRAM_START(idle), 960, 120, 50, 960, 120+xPos, 50+yPos, 720-xPos, 440-yPos);
-        xPos += xOff;
-
-        if(xPos >= 100 || xPos <= -100)
-        {
-            xOff *= -1;
-        }
-    }
-    edmac_memcpy_res_unlock();
     return;
     #endif
 

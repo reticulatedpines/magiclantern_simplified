@@ -10,6 +10,7 @@
 #include <timer.h>
 #include <console.h>
 #include <ml_rpc.h>
+#include <edmac-memcpy.h>
 #include <screenshot.h>
 
 /* optional routines */
@@ -1429,6 +1430,45 @@ static void memory_leak_test_task()
     console_hide();
 }
 
+static void edmac_test_task()
+{
+    msleep(2000);
+    
+    /* this test requires display on */
+    
+    if (!display_is_on())
+    {
+        fake_simple_button(BGMT_PLAY);
+        msleep(1000);
+    }
+    
+    if (!display_is_on())
+    {
+        beep();
+        return;
+    }
+
+    uint8_t* real = bmp_vram_real();
+    uint8_t* idle = bmp_vram_idle();
+    int xPos = 0;
+    int xOff = 2;
+    int yPos = 0;
+
+    edmac_memcpy_res_lock();
+    edmac_copy_rectangle_adv(BMP_VRAM_START(idle), BMP_VRAM_START(real), 960, 120, 50, 960, 120, 50, 720, 440);
+    while(true)
+    {
+        edmac_copy_rectangle_adv(BMP_VRAM_START(real), BMP_VRAM_START(idle), 960, 120, 50, 960, 120+xPos, 50+yPos, 720-xPos, 440-yPos);
+        xPos += xOff;
+
+        if(xPos >= 100 || xPos <= -100)
+        {
+            xOff *= -1;
+        }
+    }
+    edmac_memcpy_res_unlock();
+}
+
 static struct menu_entry selftest_menu[] =
 {
     {
@@ -1497,6 +1537,13 @@ static struct menu_entry selftest_menu[] =
                 .select     = run_in_separate_task,
                 .priv       = memory_leak_test_task,
                 .help       = "Allocate and free a large block of RAM (16 MB); repeat 1000 times."
+            },
+            {
+                .name       = "EDMAC screen test (infinite)",
+                .select     = run_in_separate_task,
+                .priv       = edmac_test_task,
+                .help       = "Shift the entire display left and right with EDMAC routines.",
+                .help2      = "Fixme: this will lock up if you change the video mode during the test.",
             },
             MENU_EOL,
         }
