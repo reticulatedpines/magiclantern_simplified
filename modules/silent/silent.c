@@ -13,9 +13,10 @@
 #include <lens.h>
 #include <focus.h>
 #include <string.h>
+#include <battery.h>
+#include <powersave.h>
 #include "../lv_rec/lv_rec.h"
 #include "../mlv_rec/mlv.h"
-#include "battery.h"
 
 static uint64_t ret_0_long() { return 0; }
 
@@ -1309,9 +1310,8 @@ silent_pic_take_fullres(int interactive)
                               : 0;
         delayed_call(100, display_off_if_qr_mode, (void*)preview_delay);
 
-        /* attempt to reset the powersave timer */
-        int prolong = 3; /* AUTO_POWEROFF_PROLONG */
-        prop_request_change(PROP_ICU_AUTO_POWEROFF, &prolong, 4);
+        /* reset the powersave timer */
+        powersave_prolong();
     }
     else
     {
