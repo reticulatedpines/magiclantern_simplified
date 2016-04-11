@@ -180,12 +180,12 @@ struct frame_slot
     enum {SLOT_FREE, SLOT_FULL, SLOT_WRITING} status;
 };
 
-static struct memSuite * shoot_mem_suite = 0;           /* memory suite for our buffers */
+static struct memSuite * shoot_mem_suite = 0;     /* memory suite for our buffers */
 static struct memSuite * srm_mem_suite = 0;
 
 static void * fullsize_buffers[2];                /* original image, before cropping, double-buffered */
 static int fullsize_buffer_pos = 0;               /* which of the full size buffers (double buffering) is currently in use */
-static int chunk_list[20];                       /* list of free memory chunk sizes, used for frame estimations */
+static int chunk_list[20];                        /* list of free memory chunk sizes, used for frame estimations */
 
 static struct frame_slot slots[511];              /* frame slots */
 static int slot_count = 0;                        /* how many frame slots we have */
@@ -206,28 +206,9 @@ static int idle_time = 0;                         /* time spent by raw_video_rec
 static volatile int writing_task_busy = 0;        /* busy: in the middle of a write operation */
 static volatile int frame_countdown = 0;          /* for waiting X frames */
 
-/* interface to other modules:
- *
- *    unsigned int raw_rec_skip_frame(unsigned char *frame_data)
- *      This function is called on every single raw frame that is received from sensor with a pointer to frame data as parameter.
- *      If the return value is zero, the frame will get save into the saving buffers, else it is skipped
- *      Default: Do not skip frame (0)
- *
- *    unsigned int raw_rec_save_buffer(unsigned int used, unsigned int buffer_count)
- *      This function is called whenever the writing loop is checking if it has data to save to card.
- *      The parameters are the number of used buffers and the total buffer count
- *      Default: Save buffer (1)
- *
- *    unsigned int raw_rec_skip_buffer(unsigned int buffer_index, unsigned int buffer_count);
- *      Whenever the buffers are full, this function is called with the buffer index that is subject to being dropped, the number of frames in this buffer and the total buffer count.
- *      If it returns zero, this buffer will not get thrown away, but the next frame will get dropped.
- *      Default: Do not throw away buffer, but throw away incoming frame (0)
- */
+/* interface to other modules: these are called when recording starts or stops  */
 extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_starting();
 extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_stopping();
-extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_skip_frame(unsigned char *frame_data);
-extern WEAK_FUNC(ret_1) unsigned int raw_rec_cbr_save_buffer(unsigned int used, unsigned int buffer_index, unsigned int frame_count, unsigned int buffer_count);
-extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_skip_buffer(unsigned int buffer_index, unsigned int frame_count, unsigned int buffer_count);
 
 static unsigned int raw_rec_should_preview(unsigned int ctx);
 
@@ -1287,12 +1268,6 @@ static int FAST process_frame()
 
     /* advance to next buffer for the upcoming capture */
     fullsize_buffer_pos = (fullsize_buffer_pos + 1) % 2;
-    
-    /* dont process this frame if a module wants to skip that */
-    if(raw_rec_cbr_skip_frame(fullSizeBuffer))
-    {
-        return 0;
-    }
 
     //~ printf("saving frame %d: slot %d ptr %x\n", frame_count, capture_slot, ptr);
 
@@ -1572,9 +1547,7 @@ static void raw_video_rec_task()
             slots[slot_index].status = SLOT_WRITING;
         }
 
-        /* ask an optional external routine if this buffer should get saved now. if none registered, it will return 1 */
-        int ext_gating = 1;
-        if (ext_gating)
+        if (1)
         {
             writing_task_busy = 1;
             
