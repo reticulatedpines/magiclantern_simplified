@@ -177,7 +177,7 @@ static int raw_previewing = 0;
 #define RAW_IS_RECORDING (raw_recording_state == RAW_RECORDING)
 #define RAW_IS_FINISHING (raw_recording_state == RAW_FINISHING)
 
-#define VIDF_HDR_SIZE 4096
+#define VIDF_HDR_SIZE 64
 
 /* one video frame */
 struct frame_slot
@@ -192,7 +192,7 @@ static struct memSuite * srm_mem_suite = 0;
 
 static void * fullsize_buffers[2];                /* original image, before cropping, double-buffered */
 static int fullsize_buffer_pos = 0;               /* which of the full size buffers (double buffering) is currently in use */
-static int chunk_list[20];                       /* list of free memory chunk sizes, used for frame estimations */
+static int chunk_list[32];                        /* list of free memory chunk sizes, used for frame estimations */
 
 static struct frame_slot slots[512];              /* frame slots */
 static int slot_count = 0;                        /* how many frame slots we have */
@@ -346,18 +346,15 @@ static void update_resolution_params()
 
     /* frame size */
     /* should be multiple of 512, so there's no write speed penalty (see http://chdk.setepontos.com/index.php?topic=9970 ; confirmed by benchmarks) */
-    /* should be multiple of 4096 for proper EDMAC alignment */
-    /* 4096 at the front for the VIDF header */
-    int frame_size_padded = VIDF_HDR_SIZE + ((res_x * res_y * 14/8 + 4095) & ~4095);
+    /* let's try 64 for EDMAC alignment */
+    /* 64 at the front for the VIDF header */
+    /* 4 bytes after for checking EDMAC operation */
+    int frame_size_padded = (VIDF_HDR_SIZE + (res_x * res_y * 14/8) + 4 + 511) & ~511;
     
-    /* frame size without rounding */
+    /* frame size without padding */
     /* must be multiple of 4 */
     frame_size_real = res_x * res_y * 14/8;
     ASSERT(frame_size_real % 4 == 0);
-    
-    /* needed for EDMAC double-checking; unlikely to happen, but possible */
-    if (frame_size_real == frame_size_padded)
-        frame_size_padded += 4096;
     
     frame_size = frame_size_padded;
     
@@ -607,43 +604,50 @@ static int add_mem_suite(struct memSuite * mem_suite, int chunk_index)
         while(chunk)
         {
             int size = GetSizeOfMemoryChunk(chunk);
-            void* ptr = GetMemoryAddressOfMemoryChunk(chunk);
-            if (ptr != fullsize_buffers[0]) /* already used */
+            intptr_t ptr = (intptr_t) GetMemoryAddressOfMemoryChunk(chunk);
+
+            /* write it down for future frame predictions */
+            if (chunk_index < COUNT(chunk_list) && size > 64)
             {
-                /* write it down for future frame predictions */
-                if (chunk_index < COUNT(chunk_list) && size > 8192)
-                {
-                    chunk_list[chunk_index] = size - 8192;
-                    chunk_index++;
-                }
-                
-                /* align at 4K */
-                ptr = (void*)(((intptr_t)ptr + 4095) & ~4095);
-                
-                /* fit as many frames as we can */
-                while (size >= frame_size + 8192 && slot_count < COUNT(slots))
-                {
-                    mlv_vidf_hdr_t* vidf_hdr = (mlv_vidf_hdr_t*) ptr;
-                    memset(vidf_hdr, 0, sizeof(mlv_vidf_hdr_t));
-                    mlv_set_type((mlv_hdr_t*)vidf_hdr, "VIDF");
-                    vidf_hdr->blockSize = frame_size;
-                    vidf_hdr->frameSpace = VIDF_HDR_SIZE - sizeof(mlv_vidf_hdr_t);
-                    vidf_hdr->cropPosX = (skip_x + 7) & ~7;
-                    vidf_hdr->cropPosY = skip_y & ~1;
-                    vidf_hdr->panPosX = skip_x;
-                    vidf_hdr->panPosY = skip_y;
-                    
-                    slots[slot_count].ptr = ptr;
-                    slots[slot_count].status = SLOT_FREE;
-                    ptr += frame_size;
-                    size -= frame_size;
-                    slot_count++;
-                    //~ printf("slot #%d: %d %x\n", slot_count, tag, ptr);
-                }
+                chunk_list[chunk_index] = size - 64;
+                chunk_index++;
+                printf("chunk #%d: size=%x (%x)\n",
+                    chunk_index, chunk_list[chunk_index],
+                    format_memory_size(chunk_list[chunk_index])
+                );
             }
+            
+            /* align pointer at 64 bytes */
+            intptr_t ptr_raw = ptr;
+            ptr   = (ptr + 63) & ~63;
+            size -= (ptr - ptr_raw);
+            
+            /* fit as many frames as we can */
+            while (size >= frame_size && slot_count < COUNT(slots))
+            {
+                mlv_vidf_hdr_t* vidf_hdr = (mlv_vidf_hdr_t*) ptr;
+                memset(vidf_hdr, 0, sizeof(mlv_vidf_hdr_t));
+                mlv_set_type((mlv_hdr_t*)vidf_hdr, "VIDF");
+                vidf_hdr->blockSize  = frame_size;
+                vidf_hdr->frameSpace = VIDF_HDR_SIZE - sizeof(mlv_vidf_hdr_t);
+                vidf_hdr->cropPosX   = (skip_x + 7) & ~7;
+                vidf_hdr->cropPosY   = skip_y & ~1;
+                vidf_hdr->panPosX    = skip_x;
+                vidf_hdr->panPosY    = skip_y;
+                
+                slots[slot_count].ptr = (void*) ptr;
+                slots[slot_count].status = SLOT_FREE;
+                ptr  += frame_size;
+                size -= frame_size;
+                slot_count++;
+                printf("slot #%d: %x\n", slot_count, ptr);
+            }
+            
+            /* next chunk */
             chunk = GetNextMemoryChunk(mem_suite, chunk);
         }
     }
+    
     return chunk_index;
 }
 
