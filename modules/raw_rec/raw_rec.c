@@ -190,7 +190,6 @@ static int chunk_list[20];                        /* list of free memory chunk s
 static struct frame_slot slots[511];              /* frame slots */
 static int slot_count = 0;                        /* how many frame slots we have */
 static int capture_slot = -1;                     /* in what slot are we capturing now (index) */
-static volatile int force_new_buffer = 0;         /* if some other task decides it's better to search for a new buffer */
 
 static int writing_queue[COUNT(slots)+1];         /* queue of completed frames (slot indices) waiting to be saved */
 static int writing_queue_tail = 0;                /* place captured frames here */
@@ -1145,8 +1144,7 @@ static int FAST choose_next_capture_slot()
         capture_slot >= 0 && 
         capture_slot + 1 < slot_count && 
         slots[capture_slot + 1].ptr == slots[capture_slot].ptr + frame_size && 
-        slots[capture_slot + 1].status == SLOT_FREE &&
-        !force_new_buffer
+        slots[capture_slot + 1].status == SLOT_FREE
        )
         return capture_slot + 1;
 
@@ -1193,8 +1191,6 @@ static int FAST choose_next_capture_slot()
     /* avoid 32MB writes, they are slower (they require two DMA calls) */
     /* go back a few K and the speed is restored */
     //~ best_len = MIN(best_len, (32*1024*1024 - 8192) / frame_size);
-    
-    force_new_buffer = 0;
 
     return best_index;
 }
@@ -1525,12 +1521,6 @@ static void raw_video_rec_task()
         }
         
         int after_last_grouped = MOD(w_head + num_frames, COUNT(writing_queue));
-
-        /* write queue empty? better search for a new larger buffer */
-        if (after_last_grouped == writing_queue_tail)
-        {
-            force_new_buffer = 1;
-        }
 
         void* ptr = slots[first_slot].ptr;
         int size_used = frame_size * num_frames;
