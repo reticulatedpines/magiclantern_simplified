@@ -210,11 +210,11 @@ static volatile int frame_countdown = 0;          /* for waiting X frames */
 extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_starting();
 extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_stopping();
 
-static unsigned int raw_rec_should_preview(unsigned int ctx);
+static int raw_rec_should_preview(void);
 
 static void refresh_cropmarks()
 {
-    if (lv_dispsize > 1 || raw_rec_should_preview(0) || !raw_video_enabled)
+    if (lv_dispsize > 1 || raw_rec_should_preview() || !raw_video_enabled)
     {
         reset_movie_cropmarks();
     }
@@ -2019,7 +2019,7 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
 
 static int preview_dirty = 0;
 
-static unsigned int raw_rec_should_preview(unsigned int ctx)
+static int raw_rec_should_preview(void)
 {
     if (!raw_video_enabled) return 0;
     if (!is_movie_mode()) return 0;
@@ -2048,7 +2048,7 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
     /* just say whether we can preview or not */
     if (ctx == 0)
     {
-        int enabled = raw_rec_should_preview(ctx);
+        int enabled = raw_rec_should_preview();
         if (!enabled && preview_dirty)
         {
             /* cleanup the mess, if any */
