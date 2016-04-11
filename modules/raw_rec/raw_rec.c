@@ -185,7 +185,7 @@ static struct memSuite * srm_mem_suite = 0;
 
 static void * fullsize_buffers[2];                /* original image, before cropping, double-buffered */
 static int fullsize_buffer_pos = 0;               /* which of the full size buffers (double buffering) is currently in use */
-static int chunk_list[20];                        /* list of free memory chunk sizes, used for frame estimations */
+static int chunk_list[32];                        /* list of free memory chunk sizes, used for frame estimations */
 
 static struct frame_slot slots[511];              /* frame slots */
 static int slot_count = 0;                        /* how many frame slots we have */
