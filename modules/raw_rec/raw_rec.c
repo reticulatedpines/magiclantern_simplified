@@ -696,7 +696,10 @@ static void show_buffer_status()
         if (i > 0 && slots[i].ptr != slots[i-1].ptr + frame_size)
             x += MAX(2, scale);
 
-        int color = slots[i].status == SLOT_FREE ? COLOR_BLACK : slots[i].status == SLOT_WRITING ? COLOR_GREEN1 : slots[i].status == SLOT_FULL ? COLOR_LIGHT_BLUE : COLOR_RED;
+        int color = slots[i].status == SLOT_FREE    ? COLOR_BLACK :
+                    slots[i].status == SLOT_WRITING ? COLOR_GREEN1 :
+                    slots[i].status == SLOT_FULL    ? COLOR_LIGHT_BLUE :
+                                                      COLOR_RED ;
         for (int k = 0; k < scale; k++)
         {
             draw_line(x, y+5, x, y+17, color);
@@ -811,7 +814,7 @@ static LVINFO_UPDATE_FUNC(recording_status)
         {
             int time_left = (predicted-frame_count) * 1000 / fps;
             if (time_left < 10) {
-                 item->color_bg = COLOR_DARK_RED;
+                item->color_bg = COLOR_DARK_RED;
             } else {
                 item->color_bg = COLOR_YELLOW;
             }
@@ -840,7 +843,11 @@ static void show_recording_status()
         }
 
         /* No reason to do any work if not displayed */
-        if ((indicator_display != INDICATOR_ON_SCREEN) && (indicator_display != INDICATOR_RAW_BUFFER)) return;
+        if ((indicator_display != INDICATOR_ON_SCREEN) &&
+            (indicator_display != INDICATOR_RAW_BUFFER))
+        {
+            return;
+        }
 
         /* Calculate the stats */
         int fps = fps_get_current_x1000();
@@ -1632,7 +1639,7 @@ static void raw_video_rec_task()
             if (slots[slot_index].frame_number != last_processed_frame + 1)
             {
                 bmp_printf( FONT_MED, 30, 110, 
-                    "Frame order error: slot %d, frame %d, expected ", slot_index, slots[slot_index].frame_number, last_processed_frame + 1
+                    "Frame order error: slot %d, frame %d, expected %d ", slot_index, slots[slot_index].frame_number, last_processed_frame + 1
                 );
                 beep();
             }
@@ -1781,7 +1788,7 @@ cleanup:
     raw_recording_state = RAW_IDLE;
 }
 
-static MENU_SELECT_FUNC(raw_start_stop)
+static void raw_start_stop()
 {
     if (!RAW_IS_IDLE)
     {
@@ -1950,7 +1957,7 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
         {
             case RAW_IDLE:
             case RAW_RECORDING:
-                raw_start_stop(0,0);
+                raw_start_stop();
                 break;
         }
         return 0;
