@@ -115,7 +115,6 @@ CONFIG_INT("raw.video.enabled", raw_video_enabled, 0);
 static CONFIG_INT("raw.res.x", resolution_index_x, 12);
 static CONFIG_INT("raw.aspect.ratio", aspect_ratio_index, 10);
 static CONFIG_INT("raw.write.speed", measured_write_speed, 0);
-static CONFIG_INT("raw.skip.frames", allow_frame_skip, 0);
 
 static CONFIG_INT("raw.dolly", dolly_mode, 0);
 #define FRAMING_CENTER (dolly_mode == 0)
@@ -198,8 +197,8 @@ static int writing_queue_tail = 0;                /* place captured frames here 
 static int writing_queue_head = 0;                /* extract frames to be written from here */ 
 
 static int frame_count = 0;                       /* how many frames we have processed */
-static int frame_skips = 0;                       /* how many frames were dropped/skipped */
-char* raw_movie_filename = 0;                         /* file name for current (or last) movie */
+static int buffer_full = 0;                       /* true when the memory becomes full */
+char* raw_movie_filename = 0;                     /* file name for current (or last) movie */
 static char* chunk_filename = 0;                  /* file name for current movie chunk */
 static uint32_t written = 0;                      /* how many KB we have written in this movie */
 static int writing_time = 0;                      /* time spent by raw_video_rec_task in FIO_WriteFile calls */
@@ -727,11 +726,6 @@ static void show_buffer_status()
         if (scale > 3)
             x++;
     }
-    
-    if (frame_skips > 0)
-    {
-        bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), x+10, y, "%d skipped frames", frame_skips);
-    }
 
 #ifdef DEBUG_BUFFERING_GRAPH
     {
@@ -826,7 +820,7 @@ static LVINFO_UPDATE_FUNC(recording_status)
     int t = (frame_count * 1000 + fps/2) / fps;
     int predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024);
 
-    if (!frame_skips) 
+    if (!buffer_full) 
     {
         snprintf(buffer, sizeof(buffer), "%02d:%02d", t/60, t%60);
         if (predicted >= 10000)
@@ -845,7 +839,7 @@ static LVINFO_UPDATE_FUNC(recording_status)
     } 
     else 
     {
-        snprintf(buffer, sizeof(buffer), "%d skipped", frame_skips);
+        snprintf(buffer, sizeof(buffer), "Stopped.", buffer_full);
         item->color_bg = COLOR_DARK_RED;
     }
 }
@@ -947,14 +941,7 @@ static void show_recording_status()
             rl_icon_width = bfnt_draw_char (ICON_ML_MOVIE,rl_x,rl_y,rl_color,COLOR_BG_DARK);
 
             /* Display the Status */
-            if (!frame_skips) 
-            {
-                bmp_printf (FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), rl_x+rl_icon_width+5, rl_y+5, "%02d:%02d", t/60, t%60);
-            } 
-            else 
-            {
-                bmp_printf (FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), rl_x+rl_icon_width+5, rl_y+5, "%d skipped", frame_skips);
-            }
+            bmp_printf (FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), rl_x+rl_icon_width+5, rl_y+5, "%02d:%02d", t/60, t%60);
 
             if (writing_time)
             {
@@ -1290,7 +1277,7 @@ static int FAST process_frame()
     else
     {
         /* card too slow */
-        frame_skips++;
+        buffer_full = 1;
         return 0;
     }
 
@@ -1341,7 +1328,7 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
 
     if (!RAW_IS_RECORDING) return 0;
     if (!raw_lv_settings_still_valid()) { raw_recording_state = RAW_FINISHING; return 0; }
-    if (!allow_frame_skip && frame_skips) return 0;
+    if (buffer_full) return 0;
 
     /* double-buffering */
     raw_lv_redirect_edmac(fullsize_buffers[fullsize_buffer_pos % 2]);
@@ -1412,7 +1399,7 @@ static void raw_video_rec_task()
     fullsize_buffer_pos = 0;
     writing_task_busy = 0;
     frame_count = 0;
-    frame_skips = 0;
+    buffer_full = 0;
     FILE* f = 0;
     written = 0; /* in KB */
     uint32_t written_chunk = 0; /* in bytes, for current chunk */
@@ -1499,8 +1486,10 @@ static void raw_video_rec_task()
     /* main recording loop */
     while (RAW_IS_RECORDING && lv)
     {
-        if (!allow_frame_skip && frame_skips)
+        if (buffer_full)
+        {
             goto abort_and_check_early_stop;
+        }
         
         int w_tail = writing_queue_tail; /* this one can be modified outside the loop, so grab it here, just in case */
         int w_head = writing_queue_head; /* this one is modified only here, but use it just for the shorter name */
@@ -1677,7 +1666,7 @@ static void raw_video_rec_task()
                 beep();
             }
             
-            if (slots[slot_index].frame_number != last_processed_frame + 1 && !allow_frame_skip)
+            if (slots[slot_index].frame_number != last_processed_frame + 1)
             {
                 bmp_printf( FONT_MED, 30, 110, 
                     "Frame order error: slot %d, frame %d, expected ", slot_index, slots[slot_index].frame_number, last_processed_frame + 1
@@ -1749,7 +1738,7 @@ abort_and_check_early_stop:
             beep();
         }
 
-        if (slots[slot_index].frame_number != last_processed_frame + 1 && !allow_frame_skip)
+        if (slots[slot_index].frame_number != last_processed_frame + 1)
         {
             bmp_printf( FONT_MED, 30, 110, 
                 "Frame order error: slot %d, frame %d, expected %d ", slot_index, slots[slot_index].frame_number, last_processed_frame + 1
@@ -1920,14 +1909,6 @@ static struct menu_entry raw_video_menu[] =
                 .max = 1,
                 .help = "Smooth panning of the recording window (software dolly).",
                 .help2 = "Use arrow keys (joystick) to move the window.",
-                .advanced = 1,
-            },
-            {
-                .name = "Frame skipping",
-                .priv = &allow_frame_skip,
-                .max = 1,
-                .choices = CHOICES("OFF", "Allow"),
-                .help = "Enable if you don't mind skipping frames (for slow cards).",
                 .advanced = 1,
             },
             {
@@ -2205,7 +2186,6 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(resolution_index_x)
     MODULE_CONFIG(aspect_ratio_index)
     MODULE_CONFIG(measured_write_speed)
-    MODULE_CONFIG(allow_frame_skip)
     MODULE_CONFIG(dolly_mode)
     MODULE_CONFIG(preview_mode)
     MODULE_CONFIG(use_srm_memory)
