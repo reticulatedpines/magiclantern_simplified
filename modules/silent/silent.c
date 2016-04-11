@@ -1114,6 +1114,12 @@ static void long_exposure_fix()
         unsigned shutter = SHUTTER_1_500;
         prop_request_change_wait( PROP_SHUTTER, &shutter, 4, 100);
         void* job = (void*) call("FA_CreateTestImage");
+        /* We need paused lv, otherwise the camera will freeze */
+        if (!LV_PAUSED && gui_state != GUISTATE_QR)
+        {
+            gui_uilock(UILOCK_EVERYTHING);
+            PauseLiveView();
+        }
         call("FA_CaptureTestImage", job);
         call("FA_DeleteTestImage", job);
         
