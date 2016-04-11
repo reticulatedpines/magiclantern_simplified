@@ -1767,6 +1767,13 @@ static void CopyMLFilesToRAM_BeforeFormat()
     /* and, if we still have free space, also keep the LOG files from root dir */
     CopyMLDirectoryToRAM_BeforeFormat("", is_valid_log_filename, 0);
     
+    /* restore Toshiba FlashAir files, if any */
+    /* (normally, formatting this card from camera disables wifi operation) */
+    /* (not sure which of those are strictly needed) */
+    CopyMLDirectoryToRAM_BeforeFormat("B:/SD_WLAN/", 0, 0);
+    CopyMLDirectoryToRAM_BeforeFormat("B:/GUPIXINF/", 0, 1);
+    TmpMem_AddFile("B:/DCIM/100__TSB/FA000001.JPG");
+
     TmpMem_UpdateSizeDisplay(0);
 }
 
@@ -1977,16 +1984,6 @@ int handle_tricky_canon_calls(struct event * event)
     
     return 1;
 }
-
-void display_on()
-{
-    fake_simple_button(MLEV_TURN_ON_DISPLAY);
-}
-void display_off()
-{
-    fake_simple_button(MLEV_TURN_OFF_DISPLAY);
-}
-
 
 // engio functions may fail and lock the camera
 void EngDrvOut(uint32_t reg, uint32_t value)

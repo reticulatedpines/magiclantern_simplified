@@ -16,6 +16,7 @@
 #include "zebra.h"
 #include "fps.h"
 #include "beep.h"
+#include "powersave.h"
 
 #ifdef FEATURE_REC_NOTIFY
 

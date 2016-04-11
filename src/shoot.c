@@ -45,6 +45,7 @@
 #include "imgconv.h"
 #include "fps.h"
 #include "lvinfo.h"
+#include "powersave.h"
 
 #ifdef FEATURE_LCD_SENSOR_REMOTE
 #include "lcdsensor.h"
@@ -3011,6 +3012,7 @@ static MENU_UPDATE_FUNC(bulb_display)
             bulb_timer || interval_enabled ? "" : " (OFF)"
         );
         MENU_SET_WARNING(MENU_WARN_INFO, "Long exposure tools may use bulb timer value, even if BT is disabled.");
+        MENU_SET_RINFO(SYM_WARNING);
     }
 #endif
     

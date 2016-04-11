@@ -165,6 +165,7 @@ ML_SRC_OBJS = \
 	fileprefix.o \
 	lvinfo.o \
 	builtin-enforcing.o \
+	powersave.o \
 	ml-cbr.o \
 	raw.o \
 	chdk-dng.o \
