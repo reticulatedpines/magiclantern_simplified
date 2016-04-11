@@ -188,12 +188,12 @@ static void * fullsize_buffers[2];                /* original image, before crop
 static int fullsize_buffer_pos = 0;               /* which of the full size buffers (double buffering) is currently in use */
 static int chunk_list[20];                       /* list of free memory chunk sizes, used for frame estimations */
 
-static struct frame_slot slots[512];              /* frame slots */
+static struct frame_slot slots[511];              /* frame slots */
 static int slot_count = 0;                        /* how many frame slots we have */
 static int capture_slot = -1;                     /* in what slot are we capturing now (index) */
 static volatile int force_new_buffer = 0;         /* if some other task decides it's better to search for a new buffer */
 
-static int writing_queue[COUNT(slots)];           /* queue of completed frames (slot indices) waiting to be saved */
+static int writing_queue[COUNT(slots)+1];         /* queue of completed frames (slot indices) waiting to be saved */
 static int writing_queue_tail = 0;                /* place captured frames here */
 static int writing_queue_head = 0;                /* extract frames to be written from here */ 
 
@@ -1737,7 +1737,7 @@ abort_and_check_early_stop:
     set_recording_custom(CUSTOM_RECORDING_NOT_RECORDING);
 
     /* write remaining frames */
-    for (; writing_queue_head != writing_queue_tail; writing_queue_head = MOD(writing_queue_head + 1, COUNT(slots)))
+    for (; writing_queue_head != writing_queue_tail; writing_queue_head = MOD(writing_queue_head + 1, COUNT(writing_queue)))
     {
         int slot_index = writing_queue[writing_queue_head];
 
