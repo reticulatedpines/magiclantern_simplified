@@ -842,21 +842,21 @@ static int silent_pic_raw_prepare_buffers(struct memSuite * hSuite, int initial_
 static int
 silent_pic_take_lv(int interactive)
 {
-    bmp_printf(FONT_MED, 0, 37, "Preparing...");
-    int ok = 1;
-
-    /* this enables a LiveView debug flag that gives us 14-bit RAW data. Cool! */
-    int raw_flag = 1;
-    raw_lv_request();
-    msleep(100);
- 
-    /* get image resolution, white level etc; retry if needed */
-    if (!raw_update_params())
+    if (lens_info.job_state || !lv)
     {
-        return;
+        /* only works in LV, and conflicts with regular picture taking */
+        return 0;
     }
 
+    bmp_printf(FONT_MED, 0, 37, "Preparing...");
+    int ok = 1;
+    int raw_flag = 0;
+    
     /* allocate RAM */
+    /* we do this step first to block the shutter asap */
+    /* (gui_uilock doesn't seem to work in this case, because shutter
+     * is already pressed; but allocating the entire SRM memory does!)
+     */
     struct memSuite * hSuite1 = 0;
     struct memSuite * hSuite2 = 0;
     switch (silent_pic_mode)
@@ -865,8 +865,10 @@ silent_pic_take_lv(int interactive)
         case SILENT_PIC_MODE_BURST:
         case SILENT_PIC_MODE_BURST_END_TRIGGER:
         case SILENT_PIC_MODE_BEST_FOCUS:
-            hSuite1 = shoot_malloc_suite(0);
-            hSuite2 = srm_malloc_suite(0);
+            hSuite1 = srm_malloc_suite(0);
+            /* fixme: allocating shoot memory during picture taking causes lockup */
+            if (lens_info.job_state) break;
+            hSuite2 = shoot_malloc_suite(0);
             break;
         
         /* allocate only one frame in simple and slitscan modes */
@@ -880,6 +882,23 @@ silent_pic_take_lv(int interactive)
     {
         /* could not allocate any memory */
         beep();
+        goto cleanup;
+    }
+
+    if (lens_info.job_state || !lv)
+    {
+        /* looks like you managed to press the shutter fully,
+         * or you've got somehow out of LiveView - give up */
+        goto cleanup;
+    }
+
+    /* this enables a LiveView debug flag that gives us 14-bit RAW data. Cool! */
+    raw_flag = 1;
+    raw_lv_request();
+ 
+    /* get image resolution, white level etc */
+    if (!raw_update_params())
+    {
         goto cleanup;
     }
 
@@ -1052,8 +1071,8 @@ silent_pic_take_lv(int interactive)
 cleanup:
     sp_running = 0;
     sp_buffer_count = 0;
-    if (hSuite1) shoot_free_suite(hSuite1);
-    if (hSuite2) srm_free_suite(hSuite2);
+    if (hSuite2) shoot_free_suite(hSuite2);
+    if (hSuite1) srm_free_suite(hSuite1);
     if (raw_flag) raw_lv_release();
     return ok;
 }
