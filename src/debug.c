@@ -328,69 +328,6 @@ void bsod()
 
 static void run_test()
 {
-#ifdef FEATURE_SHOW_SIGNATURE
-    console_show();
-    printf("FW Signature: 0x%08x", compute_signature((int*)SIG_START, SIG_LEN));
-    msleep(1000);
-    return;
-#endif
-
-    #ifdef CONFIG_EDMAC_MEMCPY
-    return;
-    #endif
-
-    call("lv_save_raw", 1);
-    call("aewb_enableaewb", 0);
-    return;
-
-#if 0
-    void exmem_test();
-
-    exmem_test();
-    return;
-#endif
-
-#ifdef CONFIG_MODULES
-    console_show();
-
-    printf("Loading modules...\n");
-    msleep(1000);
-    module_load_all();
-    return;
-
-    printf("\n");
-
-    printf("Testing TCC executable...\n");
-    printf(" [i] this may take some time\n");
-    msleep(1000);
-
-    for(int try = 0; try < 100; try++)
-    {
-        void *module = NULL;
-        uint32_t ret = 0;
-
-        module = module_load(MODULE_PATH"libtcc.mex");
-        if(module)
-        {
-            ret = module_exec(module, "tcc_new", 0);
-            if(!(ret & 0x40000000))
-            {
-                printf("tcc_new() returned: 0x%08X\n", ret);
-            }
-            else
-            {
-                module_exec(module, "tcc_delete", 1, ret);
-            }
-            module_unload(module);
-        }
-        else
-        {
-            printf(" [E] load failed\n");
-        }
-    }
-
-    printf("Done!\n");
-#endif
 }
 
 void run_in_separate_task(void* routine, int argument)
