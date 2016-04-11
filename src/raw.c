@@ -769,7 +769,7 @@ static int raw_update_params_work()
         /* return failure, and make sure the black level is recomputed at next call */
         dirty = 1;
 
-        if (1)
+        if (0)
         {
             /* for debugging: if black check fails, save the bad frame as DNG */
             
