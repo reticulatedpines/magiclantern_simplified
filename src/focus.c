@@ -18,6 +18,7 @@
 #include "shoot.h"
 #include "math.h"
 #include "lvinfo.h"
+#include "powersave.h"
 
 #ifdef FEATURE_LCD_SENSOR_SHORTCUTS
 #include "lcdsensor.h"

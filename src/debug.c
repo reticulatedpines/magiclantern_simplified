@@ -23,6 +23,7 @@
 #include "lvinfo.h"
 #include "timer.h"
 #include "raw.h"
+#include "powersave.h"
 
 #ifdef CONFIG_DEBUG_INTERCEPT
 #include "dm-spy.h"
