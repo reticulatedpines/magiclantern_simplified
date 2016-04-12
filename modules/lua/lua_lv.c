@@ -13,6 +13,7 @@
 #include <property.h>
 #include <zebra.h>
 #include <lvinfo.h>
+#include <powersave.h>
 
 #include "lua_common.h"
 

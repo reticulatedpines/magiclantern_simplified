@@ -3891,16 +3891,6 @@ int handle_tricky_canon_calls(struct event * event)
     return 1;
 }
 
-void display_on()
-{
-    fake_simple_button(MLEV_TURN_ON_DISPLAY);
-}
-void display_off()
-{
-    fake_simple_button(MLEV_TURN_OFF_DISPLAY);
-}
-
-
 // engio functions may fail and lock the camera
 void EngDrvOut(uint32_t reg, uint32_t value)
 {

@@ -74,6 +74,7 @@
 #include "raw.h"
 #include "zebra.h"
 #include "fps.h"
+#include "powersave.h"
 
 /* from mlv_play module */
 extern WEAK_FUNC(ret_0) void mlv_play_file(char *filename);
@@ -1417,10 +1418,9 @@ static void raw_video_rec_task()
     written = 0; /* in KB */
     uint32_t written_chunk = 0; /* in bytes, for current chunk */
     int last_block_size = 0; /* for detecting early stops */
-    
-    /* disable powersave timer */
-    int powersave_prohibit = 2;
-    prop_request_change(PROP_ICU_AUTO_POWEROFF, &powersave_prohibit, 4);
+
+    /* disable Canon's powersaving (30 min in LiveView) */
+    powersave_prohibit();
 
     /* create a backup file, to make sure we can save the file footer even if the card is full */
     char backup_filename[100];
@@ -1822,9 +1822,8 @@ cleanup:
     hack_liveview(1);
     redraw();
     
-    /* re-enable powersave timer */
-    int powersave_permit = 1;
-    prop_request_change(PROP_ICU_AUTO_POWEROFF, &powersave_permit, 4);
+    /* re-enable powersaving  */
+    powersave_permit();
 
     raw_recording_state = RAW_IDLE;
 }
