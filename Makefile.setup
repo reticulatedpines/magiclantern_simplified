@@ -70,7 +70,6 @@ CFLAGS +=\
 	-I$(PLATFORM_INC) \
 	-I$(PLATFORM_INC)/include \
 	-I$(SRC_DIR) \
-	-I$(PICOC_PATH) \
 
 
 NOT_USED_FLAGS=\

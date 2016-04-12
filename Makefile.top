@@ -10,8 +10,6 @@ DATE=date -u
 
 BINARIES_PATH=binaries
 LUA_PATH=$(TOP_DIR)/lua
-PICOC_DIR=$(TOP_DIR)/picoc
-PICOC_PATH=$(PICOC_DIR)
 PWD=$(shell pwd)
 SRC_DIR=$(TOP_DIR)/src
 PLATFORM_PATH=$(TOP_DIR)/platform
