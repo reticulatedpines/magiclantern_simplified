@@ -4221,7 +4221,7 @@ livev_hipriority_task( void* unused )
         #endif
 
         #ifdef CONFIG_ELECTRONIC_LEVEL
-        if (electronic_level && k % 8 == 5)
+        if (electronic_level && k % 2)
             BMP_LOCK( if (lv) show_electronic_level(); )
         #endif
 
