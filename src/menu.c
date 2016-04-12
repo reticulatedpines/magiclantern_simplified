@@ -37,6 +37,7 @@
 #include "console.h"
 #include "debug.h"
 #include "lvinfo.h"
+#include "powersave.h"
 
 #ifdef CONFIG_QEMU
 #define GUIMODE_ML_MENU 0

@@ -308,6 +308,5 @@
     #define FEATURE_SHOW_CMOS_TEMPERATURE
     #define FEATURE_SHOW_EDMAC_INFO
 
-    //~ #define FEATURE_SHOW_SIGNATURE // useful when developing
     //~ #define FEATURE_GUIMODE_TEST // dangerous
     //~ #define FEATURE_SHOW_STATE_FPS // useful for finding vsync hooks

@@ -28,8 +28,9 @@ void movie_end();
 void schedule_movie_start();
 void schedule_movie_end();
 
-/* ask user to switch to movie mode and wait until s/he does */
+/* ask user to switch to movie/photo mode and wait until s/he does */
 void ensure_movie_mode();
+void ensure_photo_mode();
 
 /* to be refactored as callback */
 void mvr_rec_start_shoot();
@@ -46,6 +47,7 @@ int is_pure_play_photo_mode();
 int is_pure_play_photo_or_movie_mode();
 int is_play_mode();
 int is_play_or_qr_mode();
+int is_menu_mode();
 void play_zoom_center_on_selected_af_point();
 
 /* set+maindial actions for playback */
