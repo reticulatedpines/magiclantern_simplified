@@ -38,7 +38,7 @@ NSTUB(0xFF0C1C10,  cstart)
 NSTUB(0xFFAA0468 - RAM_OFFSET,  bzero32)
 NSTUB(0xFFA6C448 - RAM_OFFSET,  create_init_task)           // 2EB8
 NSTUB(0xFF0C5484,  init_task)
-// NSTUB(    ???,  additional_version)                      /* present on 7D.203, 500D.111, 60D.111, 5D3.113, 50D.109, 5D2.212, 600D.102, 550D.109, 1100D.105, 700D.113 */
+///NSTUB(   0x468b8,  additional_version)
 
 /** File I/O **/
 NSTUB(0xFF3468F4,  FIO_CloseFile)
@@ -62,12 +62,9 @@ NSTUB(0xFF0D7674,  GUI_Control)
 NSTUB(0xFF1A805C,  SetGUIRequestMode)
 NSTUB(0xFF0D7D18,  gui_init_end)
 NSTUB(0xFF0D72A0,  gui_main_task)
-// NSTUB(    ???,  gui_massive_event_loop)                  /* present on 7D.203, 500D.111, 5D3.113, 50D.109, 5D2.212, 600D.102, 550D.109, 700D.113 */
-// NSTUB(    ???,  GUI_ChangeMode)                          /* present on 7D.203, 500D.111, 6D.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 700D.113 */
-// NSTUB(    ???,  GUI_SetLvMode)                           /* present on 500D.111, 50D.109, 5D2.212 */
+// NSTUB(    ???,  GUI_SetLvMode)                           /* present on 7D.203, 500D.111, 5D2.212, 50D.109 */
 // NSTUB(    ???,  GUI_SetMovieSize_a)                      /* present on 50D.109 */
 // NSTUB(    ???,  GUI_SetMovieSize_b)                      /* present on 50D.109 */
-// NSTUB(    ???,  Gui_SetSoundRecord)                      /* present on 6D.113, 5D2.212 */
 
 /** ASIF **/
 NSTUB(0xFF1350F0,  PowerAudioOutput)                        // Look for actrlCpowerControl Case 1 Sub
@@ -77,12 +74,12 @@ NSTUB(0xFF10B190,  SetNextASIFADCBuffer)                    // Int16
 NSTUB(0xFF10B378,  SetNextASIFDACBuffer)                    // Int16 Regular
 NSTUB(0xFF134504,  SetSamplingRate)
 NSTUB(0xFF10D148,  SoundDevActiveIn)
-// NSTUB(0xFF10D3A0,  SoundDevShutDownIn)                   // This is the real address
 NSTUB(0xFF10A920,  SoundDevShutDownIn)                      // Temporarily using address for StopASIFDMAADC to resolve MLV_SND issue
 NSTUB(0xFF10A674,  StartASIFDMAADC)                         // To Regular
 NSTUB(0xFF10AA48,  StartASIFDMADAC)                         // Needs Patches Or
 NSTUB(0xFF10A920,  StopASIFDMAADC)                          // Regular -- Stop ASIF ADC - needed for future changes to mlv_snd.c
 NSTUB(0xFF10ACC8,  StopASIFDMADAC)                          // NormalStopAsif
+///NSTUB(0xFF10D3A0,  SoundDevShutDownIn_)                   // This is the real address
 // NSTUB(    ???,  SetASIFMode)                             /* present on 700D.113 */
 // NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
 
@@ -92,6 +89,7 @@ NSTUB(0xFF339ADC, _audio_ic_read)                           // Good Candidate i2
 NSTUB(0xFF339490, _audio_ic_write)                          // str:i2c(int *array)
 NSTUB(0xFF7FBBDC,  audio_thresholds)
 NSTUB(0xFF10CD40,  sounddev_task)
+// NSTUB(    ???, _audio_ic_write_bulk)                     /* present on 6D.116 */
 // NSTUB(    ???,  sounddev_active_in)                      /* present on 7D.203, 500D.111, 60D.111, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
 
 /** Bitmap **/
@@ -152,7 +150,7 @@ NSTUB(0xFFA860CC - RAM_OFFSET,  UnregisterEDmacCompleteCBR)
 NSTUB(0xFFA86248 - RAM_OFFSET,  UnregisterEDmacPopCBR)
 
 /** Electronic Level **/
-// NSTUB(    ???,  GUI_SetRollingPitchingLevelStatus)       /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 600D.102, 650D.104, 550D.109, 700D.113 */
+///NSTUB(0xFF1B4454,  GUI_SetRollingPitchingLevelStatus)
 
 /** Engio **/
 NSTUB(0xFF2C1694, _EngDrvOut)                               // AJ_EngDrvOut_1xVar_to_ShadowStruct
@@ -208,7 +206,6 @@ NSTUB(0xFF2C043C,  mvrSetDefQScale)
 // NSTUB(    ???,  mvrSetFullHDOptSize)                     /* present on 500D.111, 50D.109, 600D.102, 550D.109, 1100D.105 */
 // NSTUB(    ???,  mvrSetGopOptSizeFULLHD)                  /* present on 600D.102, 550D.109, 1100D.105 */
 
-
 /** Interrupts **/
 NSTUB(0xFFAA775C - RAM_OFFSET,  post_isr_hook)
 NSTUB(0xFFAA7758 - RAM_OFFSET,  pre_isr_hook)
@@ -217,10 +214,12 @@ NSTUB(0xFFAA7758 - RAM_OFFSET,  pre_isr_hook)
 
 /** LCD Sensor **/
 // NSTUB(    ???,  DispSensorStart)                         /* present on 500D.111, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 700D.113 */
+// NSTUB(    ???,  LightMeasure_n_Callback_r0)              /* present on 7D.203, 5D2.212 */
 
 /** Making the card bootable **/
 NSTUB(   0x606DC,  sd_device)
 NSTUB(0xFF4F8348,  fsuDecodePartitionTable)                 // AJ_fsuGetPart_related
+// NSTUB(    ???,  cf_device)                               /* present on 550D.109, 60D.111, 7D.203, 1100D.105, 500D.111, 5D2.212, 50D.109 */
 // NSTUB(     ???, cf_device_ptr)                           /* present on 5D3.113 */ -- EOSM doesn't have a cf_device
 
 /** Memory allocation **/
@@ -242,7 +241,6 @@ NSTUB(0xFFA881E8 - RAM_OFFSET,  msg_queue_receive)          // 1EC58
 
 /** PTP **/
 NSTUB(0xFF45FBDC,  ptp_register_handler)
-// NSTUB(    ???,  ptpPropSetUILock)                        /* present on 650D.104, 700D.113 */
 
 /** Properties **/
 NSTUB(0xFF12018C, _prop_cleanup)
@@ -298,28 +296,44 @@ NSTUB(0xFFA89B5C - RAM_OFFSET,  vsnprintf)                  // 205CC
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
 
 /** Unused stubs or porting notes **/
-///NSTUB(   0x468b8,  additional_version)
-///NSTUB(0xFF0D783C,  GUI_ChangeMode)
-///NSTUB(0xFF1B4F70,  Gui_SetSoundRecord)                    // Look for GUI_setsoundrec - Just changes prop
-///NSTUB(0xff658aa8,  LiveViewLevelApp_handler)
-///NSTUB(0xFF623240,  LiveViewWbApp_handler)
-///NSTUB(0xff1a4fc8,  gui_massive_event_loop)
+///NSTUB(0xFFA85FF0 - RAM_OFFSET,  AbortEDmac)
+///NSTUB(0xFF4C3BC0,  CreateDialogBox)
+///NSTUB(0xFF4C2B88,  DeleteDialogBox)
 ///NSTUB(0xFF19991C,  ENCODE_StartEncodeJpeg)
 ///NSTUB(0xFF346824,  FIO_SeekFile)
+///NSTUB(0xFF0D783C,  GUI_ChangeMode)
 ///NSTUB(0xFF1BD13C,  GUI_GetFirmVersion)
 ///NSTUB(0xFFA721A4 - RAM_OFFSET, GetNumberOfChunks)
 ///NSTUB(0xFFA71D5C - RAM_OFFSET, GetRemainOfMemoryChunk)
 ///NSTUB(0xFFA71D8C - RAM_OFFSET, GetSizeOfMemoryChunk)
 ///NSTUB(0xFFA720C4 - RAM_OFFSET, GetSizeOfMemorySuite)
+///NSTUB(0xFFA707A8,  GetTaskName)
+///NSTUB(0xFF1B4F70,  Gui_SetSoundRecord)                    // Look for GUI_setsoundrec - Just changes prop
+///NSTUB(0xff658aa8,  LiveViewLevelApp_handler)
+///NSTUB(0xFF623240,  LiveViewWbApp_handler)
 ///NSTUB(   0x35700,  MREQ_ISR)
 ///NSTUB(0xFF0E5808,  MVR_NotifyLvFrameTiming)
+///NSTUB(0xFF1DD118,  MpuMonClose)
+///NSTUB(0xFF1DD098,  MpuMonOpen)
+///NSTUB(0xFF1DD2B8,  MpuMonRead)
 ///NSTUB(0xFF32D348,  MuteOff_0)
 ///NSTUB(0xFF32D300,  MuteOn_0)
 ///NSTUB(0xFF101E04,  PD_RemoteRelease)
 ///NSTUB(0xFF121774,  PROPAD_GetPropertyData)                  /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 550D.109 */
+///NSTUB(0xFF5FF054,  PackMem_PopEDmacForMemorySuite)
+///NSTUB(0xFF5FF25C,  PackMem_RegisterEDmacAbortCBRForMemorySuite)
+///NSTUB(0xFF5FF124,  PackMem_RegisterEDmacCompleteCBRForMemorySuite)
+///NSTUB(0xFF5FF1C0,  PackMem_RegisterEDmacPopCBRForMemorySuite)
+///NSTUB(0xFF5FEE38,  PackMem_SetEDmacForMemorySuite)
+///NSTUB(0xFF5FEF4C,  PackMem_StartEDmac)
+///NSTUB(0xFFA86038 - RAM_OFFSET,  PopEDmac)                 // From popedmacformemorysuite
+///NSTUB(0xFF425150,  ProcessPathForFurikake)
+///NSTUB(0xFF4E4338,  RedrawDisplay)
 ///NSTUB(   0x35784,  SIO3_ISR)
 ///NSTUB(0xFF1299C4,  SetBitmapVramAddress)
+///NSTUB(0xFFA6EB5C - RAM_OFFSET,  SetHPTimerAfterTimeout)
 ///NSTUB(0xFF2BFAEC,  SetNextASIFDACBuffer_1)               // Int16 Direct Control
+///NSTUB(0xFF10D174,  SoundDevActiveOut)
 ///NSTUB(0xFF2BF578,  StartASIFDMADAC_1)                    // Direct
 ///NSTUB(0xFF111D74,  StartASIFDMADAC_2)                    // SePlayStart
 ///NSTUB(0xFF10AC98,  StopASIFDMADAC_1)                     // NormalStopAsif
@@ -331,67 +345,21 @@ NSTUB(0xFFA89B5C - RAM_OFFSET,  vsnprintf)                  // 205CC
 ///NSTUB(0xFF339938,  StopASIFDMADAC_7)                     // Call Play Stop
 ///NSTUB(0xFF130C94, _audio_ic_read_1)                      // Good Candidate i2c read
 ///NSTUB(0xFF339B00, _audio_ic_read_2)                      // Good Candidate i2c read
+///NSTUB(0xFF0C10E4,  cli_save)
 ///NSTUB(0xFF143C18,  copy_malloc_info_maybe)
 ///NSTUB(0xFF4C135C,  ctrlman_dispatch_event)
+///NSTUB(0xFFA6D968 - RAM_OFFSET,  dm_set_print_level)
+///NSTUB(0xff1a4fc8,  gui_massive_event_loop)
+///NSTUB(0xFF346230,  i2c_read)
 ///NSTUB(0xFF5B6688,  lvae_setdispgain)
+///NSTUB(0xFF2C0968,  mvrSetPrintMovieLog)
+///NSTUB(0xFF2C0378,  mvrSetQscale)
+///NSTUB(0xFF1202E8,  prop_get_value)
+///NSTUB(0xFF2A3378,  ptpPropSetUILock)
 ///NSTUB(0xFF3420F4,  register_func)
 ///NSTUB(    0x8FE4,  register_interrupt)
 ///NSTUB(0xFF642910,  sdReadBlk)
-///NSTUB(   0x8D330,  vram_info)
-///NSTUB(0xFF1B4454,  GUI_SetRollingPitchingLevelStatus)
-///NSTUB(0xFF2A3378,  ptpPropSetUILock)
-
-/** Unused stubs from Tragic Lantern branch **/
-
-/** Audio **/
-///NSTUB(0xFF10D174,  SoundDevActiveOut)
-///NSTUB(0xFF346230,  i2c_read)
-///NSTUB(0xFF133DC0,  send_audio)
-
-/** Debug messages **/
-///NSTUB(0xFFA6D968 - RAM_OFFSET,  dm_set_print_level)
-
-/** Dialog API **/
-///NSTUB(0xFF4C3BC0,  CreateDialogBox)
-///NSTUB(0xFF4C2B88,  DeleteDialogBox)
-///NSTUB(0xFF4E4338,  RedrawDisplay)
-
-/** Edmac **/
-///NSTUB(0xFFA85FF0 - RAM_OFFSET,  AbortEDmac)
-
-/** GUI **/
-///NSTUB(0xFFA6EB5C - RAM_OFFSET,  SetHPTimerAfterTimeout)
-
-/** Interrupts **/
-///NSTUB(0xFF0C10E4,  cli_save)
 ///NSTUB(0xFF0C10F8,  sei_restore)
-
-/* Mpu Mon */
-///NSTUB(0xFF1DD098,  MpuMonOpen)
-///NSTUB(0xFF1DD2B8,  MpuMonRead)
-///NSTUB(0xFF1DD118,  MpuMonClose)
-
-/* H264 Encoder  */
-///NSTUB(0xFF2C0968,  mvrSetPrintMovieLog)
-///NSTUB(0xFF2C0378,  mvrSetQscale)
-
-/** HW Path **/
-///NSTUB(0xFF425150,  ProcessPathForFurikake)
-
-/** Properties **/
-///NSTUB(0xFF1202E8,  prop_get_value)
-
-/** register/unregister CBR names **/
-///NSTUB(0xFF5FF054,  PackMem_PopEDmacForMemorySuite)
-///NSTUB(0xFF5FF25C,  PackMem_RegisterEDmacAbortCBRForMemorySuite)
-///NSTUB(0xFF5FF124,  PackMem_RegisterEDmacCompleteCBRForMemorySuite)
-///NSTUB(0xFF5FF1C0,  PackMem_RegisterEDmacPopCBRForMemorySuite)
-///NSTUB(0xFF5FEE38,  PackMem_SetEDmacForMemorySuite)
-///NSTUB(0xFF5FEF4C,  PackMem_StartEDmac)
-///NSTUB(0xFFA86038 - RAM_OFFSET,  PopEDmac)                 // From popedmacformemorysuite
-
-/** Task info **/
-///NSTUB(0xFFA707A8,  GetTaskName)
-
-/* Touchscreen  */
+///NSTUB(0xFF133DC0,  send_audio)
 ///NSTUB(0xFF334A98,  touch_cbr_canon)
+///NSTUB(   0x8D330,  vram_info)

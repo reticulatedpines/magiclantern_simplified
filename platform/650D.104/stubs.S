@@ -49,6 +49,7 @@ NSTUB(0xFF34290C,  FIO_CloseFile)                           // from Indy
 NSTUB(0xFF343904,  FIO_FindClose)                           // proper name: FindClose
 NSTUB(0xFF343824,  FIO_FindNextEx)
 NSTUB(0xFF3426BC,  FIO_ReadFile)
+NSTUB(0xFF34276C,  FIO_SeekSkipFile)                        /* took relative offset of 700D entry points and compared them to 650Ds. Tests are OK. */
 NSTUB(0xFF34285C,  FIO_WriteFile)                           // from Indy
 NSTUB(0xFF343168, _FIO_CreateDirectory)
 NSTUB(0xFF342568, _FIO_CreateFile)                          // from Indy
@@ -57,7 +58,6 @@ NSTUB(0xFF342A88, _FIO_GetFileSize)
 NSTUB(0xFF3424AC, _FIO_OpenFile)
 NSTUB(0xFF342614, _FIO_RemoveFile)
 NSTUB(0xFF342FA0, _FIO_RenameFile)
-NSTUB(0xFF34276C,  FIO_SeekSkipFile)                        /* took relative offset of 700D entry points and compared them to 650Ds. Tests are OK. */
 
 /** GUI **/
 NSTUB(   0x236A8,  gui_main_struct)
@@ -96,6 +96,7 @@ NSTUB(0xFF335394, _audio_ic_write)
 NSTUB(0xFF7F27F4,  audio_thresholds)
 NSTUB(0xFF10AEBC,  sounddev_active_in)
 NSTUB(0xFF10A9D0,  sounddev_task)
+// NSTUB(    ???, _audio_ic_write_bulk)                     /* present on 6D.116 */
 
 /** Bitmap **/
 NSTUB(   0x505EC,  LCD_Palette)                             // in InitializeBitmapDisplayDevice, right after 0xc0f14800
@@ -200,11 +201,11 @@ NSTUB(0xFF0EA5B8,  SRM_FreeMemoryResourceFor1stJob)
 // NSTUB(    ???,  gui_timer_struct)                        /* present on 7D.203, 500D.111, 60D.111, 50D.109, 5D2.212, 600D.102, 550D.109, 1100D.105 */
 
 /** GUI timers **/
+NSTUB(0xFF51DBD8,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 NSTUB(0xFFA589B8 - RAM_OFFSET,  CancelTimer)
 NSTUB(0xFFA522B8 - RAM_OFFSET,  SetHPTimerAfterNow)
 NSTUB(0xFFA523A8 - RAM_OFFSET,  SetHPTimerNextTick)
 NSTUB(0xFFA587B8 - RAM_OFFSET,  SetTimerAfter)
-NSTUB(0xFF51DBD8,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 
 /** H264 Encoder **/
 NSTUB(   0x31424,  mvr_config)
@@ -227,6 +228,7 @@ NSTUB(0xFF145480,  DispSensorStart)
 NSTUB(   0x48B6C,  sd_device)
 NSTUB(0xFF62B124,  fsuDecodePartitionTable)                 // AJ_fsuGetPart_related
 //NSTUB(   0x20890, cf_device) idk...
+// NSTUB(    ???,  cf_device_ptr)                           /* present on 5D3.113 */
 
 /** Memory allocation **/
 NSTUB(0xFFA54778 - RAM_OFFSET,  GetMemoryInformation)
