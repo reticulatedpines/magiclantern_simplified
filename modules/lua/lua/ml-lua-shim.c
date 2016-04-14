@@ -29,9 +29,12 @@ int __libc_open(const char * fn, int flags, ...)
     uint32_t filesize = 0;
     if (FIO_GetFileSize(fn, &filesize) != 0)
     {
-        dbg_printf("ERR_SIZE\n");
-        errno = ENOENT;
-        return -1;
+        if (!(flags & O_CREAT))
+        {
+            dbg_printf("ERR_SIZE\n");
+            errno = ENOENT;
+            return -1;
+        }
     }
     
     /* not sure if correct */
