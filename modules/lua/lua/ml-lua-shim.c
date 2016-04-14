@@ -4,6 +4,9 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <fio-ml.h>
+#include <errno.h>
+
+#undef DEBUG
 
 #ifdef DEBUG
 #define dbg_printf(fmt,...) { printf(fmt, ## __VA_ARGS__); }
@@ -13,27 +16,49 @@
 
 extern const char * format_memory_size( unsigned size); /* e.g. 2.0GB, 32MB, 2.4kB... */
 
+static uint64_t filesizes[16] = {0};
+
 /* fixme: FIO functions actually return int, not FILE* */
 
 int __libc_open(const char * fn, int flags, ...)
 {
-    dbg_printf("__libc_open(%s, %x)\n", fn, flags);
+    dbg_printf("__libc_open(%s, %x) => ", fn, flags);
+
+    /* get file size first, since we'll get asked about it later via stat */
+    /* fixme: this routine appears to return 32-bit size only */
+    uint32_t filesize = 0;
+    if (FIO_GetFileSize(fn, &filesize) != 0)
+    {
+        dbg_printf("ERR_SIZE\n");
+        errno = ENOENT;
+        return -1;
+    }
     
     /* not sure if correct */
-    if (flags & O_CREAT)
+    int fd = (flags & O_CREAT)
+        ? (int) FIO_CreateFile(fn)
+        : (int) FIO_OpenFile(fn, flags);
+
+    if (!fd)
     {
-        return (int) FIO_CreateFile(fn);
+        dbg_printf("ERR_OPEN\n");
+        errno = ENOENT;
+        return -1;
     }
-    else
-    {
-        /* will it work? who knows... */
-        return (int) FIO_OpenFile(fn, flags);
-    }
+    
+    filesizes[fd & 0xF] = filesize;
+    
+    dbg_printf("%d\n", fd);
+    return fd;
 }
 
 int __libc_close(int fd)
 {
     dbg_printf("__libc_close(%d)\n", fd);
+    if (fd == (fd & 0xF))
+    {
+        filesizes[fd & 0xF] = 0;
+    }
     FIO_CloseFile((void*)fd);
     return 0;
 }
@@ -67,8 +92,12 @@ off_t lseek(int fd, off_t offset, int whence)
 int fstat(int fd, struct stat * buf)
 {
     /* fixme: dummy implementation */
-    dbg_printf("fstat(%d,%x)\n", fd, buf);
+    dbg_printf("fstat(%d,%x) size=%d\n", fd, buf, filesizes[fd & 0xF]);
     memset(buf, 0, sizeof(*buf));
+    if (fd == (fd & 0xF))
+    {
+        buf->st_size = filesizes[fd & 0xF];
+    }
     return 0;
 }
 
