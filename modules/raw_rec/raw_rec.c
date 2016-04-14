@@ -20,13 +20,6 @@
  * - goal #1: 1920x1080 on 1000x cards (achieved and exceeded, reports say 1920x1280 continuous!)
  * - goal #2: maximize number of frames for any given resolution + buffer + card speed configuration
  *   (see buffering strategy; I believe it's close to optimal, though I have no idea how to write a mathematical proof for it)
- * 
- * Usage:
- * - enable modules in Makefile.user (CONFIG_MODULES = y, CONFIG_TCC = y, CONFIG_PICOC = n, CONFIG_CONSOLE = y)
- * - run "make" from modules/raw_rec to compile this module and the DNG converter
- * - run "make install" from platform dir to copy the modules on the card
- * - from Module menu: Load modules now
- * - look in Movie menu
  */
 
 /*
@@ -48,9 +41,6 @@
  * 51 Franklin Street, Fifth Floor,
  * Boston, MA  02110-1301, USA.
  */
-
-
-#define CONFIG_CONSOLE
 
 #define DEBUG_REDRAW_INTERVAL 1000   /* normally 1000; low values like 50 will reduce write speed a lot! */
 #undef DEBUG_BUFFERING_GRAPH      /* some funky graphs */
@@ -79,7 +69,6 @@
 extern WEAK_FUNC(ret_0) void mlv_play_file(char *filename);
 
 /* camera-specific tricks */
-/* todo: maybe add generic functions like is_digic_v, is_5d2 or stuff like that? */
 static int cam_eos_m = 0;
 static int cam_5d2 = 0;
 static int cam_50d = 0;
@@ -290,12 +279,9 @@ static void update_resolution_params()
     /* squeeze factor */
     if (video_mode_resolution == 1 && lv_dispsize == 1 && is_movie_mode()) /* 720p, image squeezed */
     {
-        /* assume the raw image should be 16:9 when de-squeezed */
-        //int correct_height = max_res_x * 9 / 16;
-        //int correct_height = max_res_x * 2 / 3; //TODO : FIX THIS, USE FOR NON-FULLFRAME SENSORS!
-        //squeeze_factor = (float)correct_height / max_res_y;
-        /* 720p mode uses 5x3 binning (5DMK3) or horizontal binning + vertical skipping (other cameras) */
-        squeeze_factor = 1.6666f; // 5.0/3.0
+        /* 720p mode uses 5x3 binning (5DMK3)
+         * or 5x3 horizontal binning + vertical skipping (other cameras) */
+        squeeze_factor = 5.0 / 3.0;
     }
     else squeeze_factor = 1.0f;
 
@@ -1884,16 +1870,6 @@ static struct menu_entry raw_video_menu[] =
                 .update = aspect_ratio_update,
                 .choices = aspect_ratio_choices,
             },
-            /*
-            {
-                .name = "Source ratio",
-                .priv = &source_ratio,
-                .max = 2,
-                .choices = CHOICES("Square pixels", "16:9", "3:2"),
-                .help  = "Choose aspect ratio of the source image (LiveView buffer).",
-                .help2 = "Useful for video modes with squeezed image (e.g. 720p).",
-            },
-            */
             {
                 .name = "Preview",
                 .priv = &preview_mode,
