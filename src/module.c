@@ -868,34 +868,33 @@ int handle_module_keys(struct event * event)
         count = MAX(count, event->arg);
     }
     
-    for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
+    while (count--)
     {
-        module_cbr_t *cbr = module_list[mod].cbr;
-        if(module_list[mod].valid && cbr)
+        for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
         {
-            while(cbr->name)
+            module_cbr_t *cbr = module_list[mod].cbr;
+            if(module_list[mod].valid && cbr)
             {
-                if(cbr->type == CBR_KEYPRESS)
+                while(cbr->name)
                 {
-                    /* key got handled? */
-                    int pass_to_canon = 1;
-                    for (int i = 0; i < count; i++)
+                    if(cbr->type == CBR_KEYPRESS)
                     {
-                        pass_to_canon &= cbr->handler(module_translate_key(event->param, MODULE_KEY_PORTABLE));
+                        /* key got handled? */
+                        if(!cbr->handler(module_translate_key(event->param, MODULE_KEY_PORTABLE)))
+                        {
+                            return 0;
+                        }
                     }
-                    return pass_to_canon;
-                }
-                if(cbr->type == CBR_KEYPRESS_RAW)
-                {
-                    /* key got handled? */
-                    int pass_to_canon = 1;
-                    for (int i = 0; i < count; i++)
+                    if(cbr->type == CBR_KEYPRESS_RAW)
                     {
-                        pass_to_canon &= cbr->handler((int)event);
+                        /* key got handled? */
+                        if(!cbr->handler((int)event))
+                        {
+                            return 0;
+                        }
                     }
-                    return pass_to_canon;
+                    cbr++;
                 }
-                cbr++;
             }
         }
     }
