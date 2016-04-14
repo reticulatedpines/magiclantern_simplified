@@ -122,7 +122,7 @@ static void lua_register_prop_handler(unsigned prop_id)
     if(!lua_prop_task_running)
     {
         lua_prop_task_running = 1;
-        task_create("lua_prop_task", 0x1c, 0x8000, lua_prop_task, 0);
+        task_create("lua_prop_task", 0x1c, 0x10000, lua_prop_task, 0);
     }
     //check for existing prop handler
     struct lua_prop * current;

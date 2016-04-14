@@ -63,7 +63,7 @@ static int luaCB_task_create(lua_State * L)
 {
     if(!lua_isfunction(L, 1)) return luaL_argerror(L, 1, "function expected");
     LUA_PARAM_INT_OPTIONAL(priority, 2, 0x1c);
-    LUA_PARAM_INT_OPTIONAL(stack_size, 3, 0x8000);
+    LUA_PARAM_INT_OPTIONAL(stack_size, 3, 0x10000);
     
     struct lua_task_func * func = malloc(sizeof(struct lua_task_func));
     if(!func) return luaL_error(L, "malloc error\n");

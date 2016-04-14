@@ -557,7 +557,7 @@ static void lua_load_task(int unused)
 
 static unsigned int lua_init()
 {
-    task_create("lua_load_task", 0x1c, 0x8000, lua_load_task, (void*) 0);
+    task_create("lua_load_task", 0x1c, 0x10000, lua_load_task, (void*) 0);
     return 0;
 }
 
