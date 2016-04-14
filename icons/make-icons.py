@@ -91,10 +91,10 @@ process(icons_lowres, "ico-lowres.c")
 # (see also http://www.gnu.org/software/diffutils/manual/html_node/If_002dthen_002delse.html#If_002dthen_002delse )
 
 # merge icons with low resolution versions
-os.system("diff -D CONFIG_LOW_RESOLUTION_DISPLAY ico.c ico-lowres.c > ico_with_lowres_merged.c")
+os.system("diff --ifdef=CONFIG_LOW_RESOLUTION_DISPLAY ico.c ico-lowres.c > ico_with_lowres_merged.c")
 
 # merge 50D specific icons
-os.system("diff -D CONFIG_50D ico_with_lowres_merged.c ico-50D.c > ../src/ico.c")
+os.system("diff --ifdef=CONFIG_50D ico_with_lowres_merged.c ico-50D.c > ../src/ico.c")
 
 # clean up, remove all generated class files
 time.sleep(2)
