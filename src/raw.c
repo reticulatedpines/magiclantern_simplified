@@ -698,6 +698,7 @@ static int raw_update_params_work()
     if (width != raw_info.width || height != raw_info.height)
     {
         /* raw dimensions changed? force a full update, including preview window */
+        printf("Resolution changed: %dx%d -> %dx%d\n", raw_info.width, raw_info.height, width, height);
         dirty = 1;
     }
 
@@ -708,8 +709,6 @@ static int raw_update_params_work()
         if (width != raw_info.width || height != raw_info.height)
         {
             /* raw dimensions changed in LiveView? return failure and wait for the next call */
-            printf("Resolution changed: %dx%d -> %dx%d\n", raw_info.width, raw_info.height, width, height);
-
             /* next valid call can be after two frames (until then, return failure) */
             int frame_duration = 1000000 / fps_get_current_x1000();
             raw_set_dirty_with_timeout(frame_duration * 2);
