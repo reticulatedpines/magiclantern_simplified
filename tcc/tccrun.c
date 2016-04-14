@@ -731,8 +731,8 @@ static TCCSyms tcc_syms[] = {
 #define TCCSYM(a) { #a, &a, },
     TCCSYM(printf)
     //~ TCCSYM(fprintf)
-    TCCSYM(fopen)
-    TCCSYM(fclose)
+    //~ TCCSYM(fopen)
+    //~ TCCSYM(fclose)
 #undef TCCSYM
 #endif
     { NULL, NULL },

@@ -8,6 +8,7 @@
  */
 
 #include <dryos.h>
+#include <compiler.h>
 #include <string.h>
 #include <shoot.h>
 #include <lens.h>

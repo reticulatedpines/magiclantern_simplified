@@ -354,15 +354,3 @@ int puts(const char * fmt)
     console_puts("\n");
     return 0;
 }
-
-int fputs(FILE* unused, const char * fmt)
-{
-    console_puts(fmt);
-    return 0;
-}
-
-int putchar(int c)
-{
-    console_puts((char*)&c);
-    return c;
-}

@@ -7,11 +7,10 @@
 #define lbaselib_c
 #define LUA_LIB
 
-#include "lprefix.h"
 
 
-//#include <ctype.h>
-//#include <stdio.h>
+#include <ctype.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
