@@ -1724,7 +1724,15 @@ abort_and_check_early_stop:
     {
         int slot_index = writing_queue[writing_queue_head];
 
-        if (slots[slot_index].status != SLOT_FULL || frame_check_saved(slot_index) != 1)
+        if (slots[slot_index].status != SLOT_FULL)
+        {
+            bmp_printf( FONT_MED, 30, 110, 
+                "Slot %d: frame %d not saved ", slot_index, slots[slot_index].frame_number
+            );
+            beep();
+        }
+
+        if (slots[slot_index].status != SLOT_FULL)
         {
             bmp_printf( FONT_MED, 30, 110, 
                 "Data corruption at slot %d, frame %d ", slot_index, slots[slot_index].frame_number
