@@ -309,17 +309,14 @@ static void update_resolution_params()
 
     /* frame size */
     /* should be multiple of 512, so there's no write speed penalty (see http://chdk.setepontos.com/index.php?topic=9970 ; confirmed by benchmarks) */
-    /* should be multiple of 4096 for proper EDMAC alignment */
-    int frame_size_padded = (res_x * res_y * 14/8 + 4095) & ~4095;
+    /* should be multiple of 64 for proper EDMAC alignment */
+    /* needed 4 extra bytes for EDMAC double-checking */
+    int frame_size_padded = (res_x * res_y * 14/8 + 4 + 511) & ~511;
     
     /* frame size without rounding */
     /* must be multiple of 4 */
     frame_size_real = res_x * res_y * 14/8;
     ASSERT(frame_size_real % 4 == 0);
-    
-    /* needed for EDMAC double-checking; unlikely to happen, but possible */
-    if (frame_size_real == frame_size_padded)
-        frame_size_padded += 4096;
     
     frame_size = frame_size_padded;
     
@@ -589,29 +586,34 @@ static int add_mem_suite(struct memSuite * mem_suite, int buf_size, int chunk_in
         while(chunk)
         {
             int size = GetSizeOfMemoryChunk(chunk);
-            void* ptr = GetMemoryAddressOfMemoryChunk(chunk);
-            if (ptr != fullsize_buffers[0]) /* already used */
+            intptr_t ptr = (intptr_t) GetMemoryAddressOfMemoryChunk(chunk);
+            /* write it down for future frame predictions */
+            if (chunk_index < COUNT(chunk_list) && size > 64)
             {
-                /* write it down for future frame predictions */
-                if (chunk_index < COUNT(chunk_list) && size > 8192)
-                {
-                    chunk_list[chunk_index] = size - 8192;
-                    chunk_index++;
-                }
-                
-                /* align at 4K */
-                ptr = (void*)(((intptr_t)ptr + 4095) & ~4095);
-                
-                /* fit as many frames as we can */
-                while (size >= frame_size + 8192 && slot_count < COUNT(slots))
-                {
-                    slots[slot_count].ptr = ptr;
-                    slots[slot_count].status = SLOT_FREE;
-                    ptr += frame_size;
-                    size -= frame_size;
-                    slot_count++;
-                    //~ printf("slot #%d: %d %x\n", slot_count, tag, ptr);
-                }
+                chunk_list[chunk_index] = size - 64;
+                printf("chunk #%d: size=%x (%x)\n",
+                    chunk_index+1, chunk_list[chunk_index],
+                    format_memory_size(chunk_list[chunk_index])
+                );
+                chunk_index++;
+            }
+            
+            /* align at 64 bytes */
+            intptr_t ptr_raw = ptr;
+            ptr   = (ptr + 63) & ~63;
+            size -= (ptr - ptr_raw);
+
+            /* fit as many frames as we can */
+            int group_size = 0;
+            while (size >= frame_size && slot_count < COUNT(slots))
+            {
+                slots[slot_count].ptr = (void*) ptr;
+                slots[slot_count].status = SLOT_FREE;
+                ptr += frame_size;
+                size -= frame_size;
+                group_size += frame_size;
+                slot_count++;
+                printf("slot #%d: %x\n", slot_count, ptr);
             }
             chunk = GetNextMemoryChunk(mem_suite, chunk);
         }
