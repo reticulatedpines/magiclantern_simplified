@@ -866,16 +866,18 @@ silent_pic_take_lv(int interactive)
         case SILENT_PIC_MODE_BURST:
         case SILENT_PIC_MODE_BURST_END_TRIGGER:
         case SILENT_PIC_MODE_BEST_FOCUS:
+        {
             hSuite1 = srm_malloc_suite(0);
             /* fixme: allocating shoot memory during picture taking causes lockup */
             if (lens_info.job_state) break;
             hSuite2 = shoot_malloc_suite(0);
             break;
+        }
         
         /* allocate only one frame in simple and slitscan modes */
         case SILENT_PIC_MODE_SIMPLE:
         case SILENT_PIC_MODE_SLITSCAN:
-            hSuite1 = shoot_malloc_suite_contig(raw_info.frame_size * 129/128);
+            hSuite2 = shoot_malloc_suite_contig(raw_info.frame_size * 129/128);
             break;
     }
 
