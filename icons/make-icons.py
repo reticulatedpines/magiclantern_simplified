@@ -94,7 +94,7 @@ process(icons_lowres, "ico-lowres.c")
 os.system("diff --ifdef=CONFIG_LOW_RESOLUTION_DISPLAY ico.c ico-lowres.c > ico_with_lowres_merged.c")
 
 # merge 50D specific icons
-os.system("diff --ifdef=CONFIG_50D ico_with_lowres_merged.c ico-50D.c > ../src/ico.c")
+os.system("diff --ifdef=CONFIG_50D ico-50D.c ico_with_lowres_merged.c > ../src/ico.c")
 
 # clean up, remove all generated class files
 time.sleep(2)
