@@ -35,9 +35,12 @@ int __libc_open(const char * fn, int flags, ...)
     }
     
     /* not sure if correct */
-    int fd = (flags & O_CREAT)
-        ? (int) FIO_CreateFile(fn)
-        : (int) FIO_OpenFile(fn, flags);
+    int fd = 
+        (flags & O_CREAT) && (flags & O_APPEND) ?
+            (int) FIO_CreateFileOrAppend(fn) :
+        (flags & O_CREAT) ?
+            (int) FIO_CreateFile(fn) :
+            (int) FIO_OpenFile(fn, flags);
 
     if (!fd)
     {
