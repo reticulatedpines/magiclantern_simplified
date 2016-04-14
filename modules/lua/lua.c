@@ -521,6 +521,10 @@ static void add_script(const char * filename)
 
 static void lua_load_task(int unused)
 {
+    console_show();
+    msleep(500);
+    console_clear();
+    
     struct fio_file file;
     struct fio_dirent * dirent = 0;
     
@@ -541,6 +545,7 @@ static void lua_load_task(int unused)
             if (!(file.mode & ATTR_DIRECTORY) && (string_ends_with(file.name, ".LUA") || string_ends_with(file.name, ".lua")) && file.name[0] != '.' && file.name[0] != '_')
             {
                 add_script(file.name);
+                msleep(20);
             }
         }
         while(FIO_FindNextEx(dirent, &file) == 0);
@@ -551,6 +556,10 @@ static void lua_load_task(int unused)
         fio_free(strict_lua);
         strict_lua = 0;
     }
+    
+    printf("All scripts loaded.\n");
+    msleep(500);
+    console_hide();
     
     lua_loaded = 1;
 }
