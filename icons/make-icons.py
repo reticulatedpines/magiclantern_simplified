@@ -34,26 +34,14 @@ icons = [
 ]
 
 # On low-res screens, the audio and focus icons are aliasing
-icons_lowres = [
-    'audio-lowres.png',
-    'expo.png',
-    'overlay.png',
-    'movie.png',
-    'shoot.png',
-    'focus-lowres.png',
-    'display.png',
-    'prefs.png',
-    'debug.png',
-    'info.png',
-    'mymenu.png',
-    'script.png',
-    'Q-forward.png',
-    'Q-back.png',
-    'forward.png',
-    'modules.png',
-    'modified.png',
-    'games.png',
-]
+icons_lowres = copy.deepcopy(icons)
+# exchange only low resolution icons
+for n,i in enumerate(icons):
+    if i=='audio.png':
+        icons_lowres[n]='audio-lowres.png'
+
+    if i=='focus.png':
+        icons_lowres[n]='focus-lowres.png'
 
 # the 50D has no Q button, instead the FUNC button has the same functionality
 icons_50D = copy.deepcopy(icons)
@@ -102,25 +90,17 @@ process(icons_lowres, "ico-lowres.c")
 # make a merged #ifdef format output
 # (see also http://www.gnu.org/software/diffutils/manual/html_node/If_002dthen_002delse.html#If_002dthen_002delse )
 
+# merge icons with low resolution versions
+os.system("diff -D CONFIG_LOW_RESOLUTION_DISPLAY ico.c ico-lowres.c > ico_with_lowres_merged.c")
+
 # merge 50D specific icons
-os.system("diff -D CONFIG_50D ico.c ico-50D.c > ico-50D-merged.c")
-
-# merge 5D Mark II specific icons
-os.system("diff -D CONFIG_5D2 ico-50D-merged.c ico-5D2.c > ico-model-specific-merged.c")
-
-# merge model specific icons with low resolution versions
-# and store it in the source folder
-os.system("diff -D CONFIG_LOW_RESOLUTION_DISPLAY ico-model-specific-merged.c ico-lowres.c > ../src/ico.c")
+os.system("diff -D CONFIG_50D ico_with_lowres_merged.c ico-50D.c > ../src/ico.c")
 
 # clean up, remove all generated class files
-time.sleep(5)
+time.sleep(2)
 os.remove("ico.c")
 os.remove("ico.in")
 os.remove("ico-50d.c")
-os.remove("ico-50D-merged.c")
 os.remove("ico-5D2.c")
-os.remove("ico-model-specific-merged.c")
 os.remove("ico-lowres.c")
-
-
-
+os.system("rm *.c")
