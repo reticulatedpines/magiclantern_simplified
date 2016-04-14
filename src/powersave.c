@@ -228,6 +228,10 @@ int handle_powersave_key(struct event * event)
     return 1;
 }
 
+#ifdef CONFIG_LCD_SENSOR
+CONFIG_INT("lcdsensor.wakeup", lcd_sensor_wakeup, 1);
+#endif
+
 void idle_wakeup_reset_counters(int reason) // called from handle_buttons
 {
     if (ml_shutdown_requested) return;

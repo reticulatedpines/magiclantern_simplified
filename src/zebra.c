@@ -3153,12 +3153,6 @@ static struct menu_entry livev_dbg_menus[] = {
     #endif
 };
 
-#ifdef CONFIG_LCD_SENSOR
-CONFIG_INT("lcdsensor.wakeup", lcd_sensor_wakeup, 1);
-#else
-#define lcd_sensor_wakeup 0
-#endif
-
 #ifdef FEATURE_LV_DISPLAY_PRESETS
 struct menu_entry livev_cfg_menus[] = {
     {
