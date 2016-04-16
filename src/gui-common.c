@@ -27,9 +27,6 @@ static int last_time_active = 0;
 int is_canon_bottom_bar_dirty() { return bottom_bar_dirty; }
 int get_last_time_active() { return last_time_active; }
 
-
-PROP_INT(PROP_ICU_UILOCK, uilock);
-
 // disable Canon bottom bar
 
 #if defined(CONFIG_LVAPP_HACK_DEBUGMSG) || defined(CONFIG_LVAPP_HACK)
@@ -612,9 +609,12 @@ char* get_info_button_name() { return INFO_BTN_NAME; }
 
 void gui_uilock(int what)
 {
-    int unlocked = UILOCK_NONE;
-    prop_request_change(PROP_ICU_UILOCK, &unlocked, 4);
-    msleep(50);
+    /* change just the lower 16 bits, to ensure correct requests;
+     * the higher bits appear to be for requesting the change */
+    int unlocked = UILOCK_REQUEST | (UILOCK_NONE & 0xFFFF);
+    prop_request_change_wait(PROP_ICU_UILOCK, &unlocked, 4, 2000);
+    
+    what = UILOCK_REQUEST | (what & 0xFFFF);
     prop_request_change_wait(PROP_ICU_UILOCK, &what, 4, 2000);
 }
 
@@ -625,7 +625,11 @@ void ui_lock(int what)
 
 void fake_simple_button(int bgmt_code)
 {
-    if ((uilock & 0xFFFF) && (bgmt_code >= 0)) return; // Canon events may not be safe to send when UI is locked; ML events are (and should be sent)
+    if ((icu_uilock & 0xFFFF) && (bgmt_code >= 0))
+    {
+        // Canon events may not be safe to send when UI is locked; ML events are (and should be sent)
+        return;
+    }
 
     if (ml_shutdown_requested) return;
     GUI_Control(bgmt_code, 0, FAKE_BTN, 0);
