@@ -6,6 +6,7 @@
 #include <property.h>
 #include <patch.h>
 #include <bmp.h>
+#include <lvinfo.h>
 
 #undef CROP_DEBUG
 
@@ -374,6 +375,62 @@ static struct menu_entry crop_rec_menu[] =
     },
 };
 
+/* Display recording status in top info bar */
+static LVINFO_UPDATE_FUNC(crop_info)
+{
+    LVINFO_BUFFER(16);
+    
+    if (patch_active)
+    {
+        switch (crop_preset)
+        {
+            case CROP_PRESET_3X:
+                snprintf(buffer, sizeof(buffer), "1:1");
+                break;
+
+            case CROP_PRESET_3x3_1X:
+                snprintf(buffer, sizeof(buffer), "3x3");
+                break;
+
+            case CROP_PRESET_1x3:
+                snprintf(buffer, sizeof(buffer), "1x3");
+                break;
+
+            case CROP_PRESET_3x1:
+                snprintf(buffer, sizeof(buffer), "3x1");
+                break;
+        }
+    }
+
+    if (crop_preset_menu)
+    {
+        if (video_mode_resolution <= 1)
+        {
+            if (!patch_active || crop_preset_menu != crop_preset)
+            {
+                STR_APPEND(buffer, " " SYM_WARNING);
+            }
+        }
+    }
+    else /* crop disabled */
+    {
+        if (patch_active)
+        {
+            STR_APPEND(buffer, " " SYM_WARNING);
+        }
+    }
+}
+
+static struct lvinfo_item info_items[] = {
+    {
+        .name = "Crop info",
+        .which_bar = LV_BOTTOM_BAR_ONLY,
+        .update = crop_info,
+        .preferred_position = -50,  /* near the focal length display */
+        .priority = 1,
+    }
+};
+
 static unsigned int crop_rec_init()
 {
     if (is_camera("5D3",  "1.1.3") || is_camera("5D3", "1.2.3"))
@@ -389,6 +446,8 @@ static unsigned int crop_rec_init()
     }
     
     menu_add("Movie", crop_rec_menu, COUNT(crop_rec_menu));
+    lvinfo_add_items (info_items, COUNT(info_items));
+
     return 0;
 }
 
