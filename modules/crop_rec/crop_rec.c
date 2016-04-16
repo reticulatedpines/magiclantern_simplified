@@ -33,6 +33,28 @@ static uint32_t MEM_CMOS_WRITE  = 0;
 static uint32_t ADTG_WRITE      = 0;
 static uint32_t MEM_ADTG_WRITE  = 0;
 
+/* video modes */
+/* note: zoom mode is identified by checking registers directly */
+
+static int is_1080p()
+{
+    /* note: on 5D2 and 5D3 (maybe also 6D, not sure),
+     * sensor configuration in photo mode is identical to 1080p.
+     * other cameras may be different */
+    return !is_movie_mode() || video_mode_resolution == 0;
+}
+
+static int is_720p()
+{
+    return is_movie_mode() && video_mode_resolution == 1;
+}
+
+static int is_supported_mode()
+{
+    if (!lv) return 0;
+    return is_1080p() || is_720p();
+}
+
 static int is_5D3 = 0;
 
 static int cmos_vidmode_ok = 0;
@@ -78,7 +100,7 @@ static int FAST check_cmos_vidmode(uint16_t* data_buf)
 static void FAST cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
 {
     /* make sure we are in 1080p/720p mode */
-    if (!lv || video_mode_resolution > 1)
+    if (!is_supported_mode())
     {
         /* looks like checking properties works fine for detecting
          * changes in video mode, but not for detecting the zoom change */
@@ -115,7 +137,7 @@ static void FAST cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
             case CROP_PRESET_3X:
                 /* start/stop scanning line, very large increments */
                 /* note: these are two values, 6 bit each, trial and error */
-                cmos_new[1] = (video_mode_resolution)
+                cmos_new[1] = (is_720p())
                     ? PACK12(14,10)     /* 720p,  almost centered */
                     : PACK12(11,11);    /* 1080p, almost centered */
                 
@@ -126,7 +148,7 @@ static void FAST cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
             /* 3x3 binning in 720p */
             /* 1080p it's already 3x3, don't change it */
             case CROP_PRESET_3x3_1X:
-                if (video_mode_resolution)
+                if (is_720p())
                 {
                     /* start/stop scanning line, very large increments */
                     cmos_new[1] = PACK12(8,29);
@@ -136,7 +158,7 @@ static void FAST cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
             /* 1x3 binning (read every line, bin every 3 columns) */
             case CROP_PRESET_1x3:
                 /* start/stop scanning line, very large increments */
-                cmos_new[1] = (video_mode_resolution)
+                cmos_new[1] = (is_720p())
                     ? PACK12(14,10)     /* 720p,  almost centered */
                     : PACK12(11,11);    /* 1080p, almost centered */
                 
@@ -193,7 +215,7 @@ static int FAST adtg_lookup(uint32_t* data_buf, int reg_needle)
 
 static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
 {
-    if (!lv || video_mode_resolution > 1 || !cmos_vidmode_ok)
+    if (!is_supported_mode() || !cmos_vidmode_ok)
     {
         /* don't patch other video modes */
         return;
@@ -282,7 +304,7 @@ static int patch_active = 0;
 
 static void update_patch()
 {
-    if (crop_preset_menu && is_movie_mode())
+    if (crop_preset_menu)
     {
         /* update preset */
         crop_preset = crop_preset_menu;
@@ -316,14 +338,14 @@ PROP_HANDLER(PROP_LV_ACTION)
 
 static MENU_UPDATE_FUNC(crop_update)
 {
-    if (!is_movie_mode())
+    if (!lv)
     {
         return;
     }
     
     if (crop_preset_menu)
     {
-        if (video_mode_resolution <= 1)
+        if (is_supported_mode())
         {
             if (!patch_active)
             {
@@ -357,7 +379,6 @@ static struct menu_entry crop_rec_menu[] =
         .name = "Crop mode",
         .priv = &crop_preset_menu,
         .update = crop_update,
-        .depends_on = DEP_MOVIE_MODE,
         .max = 3,
         .choices = CHOICES(
             "OFF",
@@ -385,7 +406,20 @@ static LVINFO_UPDATE_FUNC(crop_info)
         switch (crop_preset)
         {
             case CROP_PRESET_3X:
-                snprintf(buffer, sizeof(buffer), "1:1");
+                /* In movie mode, we are interested in recording sensor pixels
+                 * without any binning (that is, with 1:1 mapping);
+                 * the actual crop factor varies with raw video resolution.
+                 * So, printing 3x is not very accurate, but 1:1 is.
+                 * 
+                 * In photo mode (mild zoom), what changes is the magnification
+                 * of the preview screen; the raw image is not affected.
+                 * We aren't actually previewing at 1:1 at pixel level,
+                 * so printing 1:1 is a little incorrect.
+                 */
+                snprintf(buffer, sizeof(buffer), 
+                    is_movie_mode() ? "1:1"
+                                    : "3x"
+                );
                 break;
 
             case CROP_PRESET_3x3_1X:
@@ -404,7 +438,7 @@ static LVINFO_UPDATE_FUNC(crop_info)
 
     if (crop_preset_menu)
     {
-        if (video_mode_resolution <= 1)
+        if (!is_supported_mode())
         {
             if (!patch_active || crop_preset_menu != crop_preset)
             {
