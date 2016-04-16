@@ -3848,30 +3848,6 @@ clearscreen_loop:
         idle_led_blink_step(k);
 
         if (!lv && !lv_paused) continue;
-
-        // especially for 50D
-        #ifdef CONFIG_KILL_FLICKER
-        if (kill_canon_gui_mode == 1)
-        {
-            if (ZEBRAS_IN_LIVEVIEW && !gui_menu_shown())
-            {
-                int idle = liveview_display_idle() && lv_disp_mode == 0;
-                if (idle)
-                {
-                    if (!canon_gui_front_buffer_disabled())
-                        idle_kill_flicker();
-                }
-                else
-                {
-                    if (canon_gui_front_buffer_disabled())
-                        idle_stop_killing_flicker();
-                }
-                static int prev_idle = 0;
-                if (!idle && prev_idle != idle) redraw();
-                prev_idle = idle;
-            }
-        }
-        #endif
         
         #ifdef FEATURE_CLEAR_OVERLAYS
         if (clearscreen == 3)

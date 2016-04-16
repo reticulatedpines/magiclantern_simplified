@@ -31,5 +31,5 @@ int idle_is_powersave_enabled_on_info_disp_key();
 void idle_led_blink_step(int k);
 void idle_powersave_step();
 int handle_powersave_key(struct event * event);
-
+void idle_kill_flicker();
 #endif
