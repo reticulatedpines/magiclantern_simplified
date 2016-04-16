@@ -435,6 +435,12 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_av_short_for_menu(event) == 0) return 0;
     #endif
 
+    #ifdef FEATURE_MAGIC_ZOOM
+    /* must be before handle_module_keys to allow zoom while recording raw,
+     * but also let the raw recording modules block the zoom keys to avoid crashing */
+    if (handle_zoom_overlay(event) == 0) return 0;
+    #endif
+
     if (handle_module_keys(event) == 0) return 0;
     if (handle_flexinfo_keys(event) == 0) return 0;
 
@@ -503,10 +509,6 @@ int handle_common_events_by_feature(struct event * event)
     #ifdef FEATURE_FOLLOW_FOCUS
     if (handle_follow_focus(event) == 0) return 0;
     if (handle_follow_focus_save_restore(event) == 0) return 0;
-    #endif
-    
-    #ifdef FEATURE_MAGIC_ZOOM
-    if (handle_zoom_overlay(event) == 0) return 0;
     #endif
     
     #ifdef FEATURE_LV_ZOOM_SETTINGS
