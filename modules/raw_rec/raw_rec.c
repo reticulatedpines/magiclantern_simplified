@@ -1718,7 +1718,7 @@ abort_and_check_early_stop:
             beep();
         }
 
-        if (slots[slot_index].status != SLOT_FULL)
+        if (frame_check_saved(slot_index) != 1)
         {
             bmp_printf( FONT_MED, 30, 110, 
                 "Data corruption at slot %d, frame %d ", slot_index, slots[slot_index].frame_number
