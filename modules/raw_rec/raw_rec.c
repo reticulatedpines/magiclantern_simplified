@@ -614,6 +614,18 @@ static int add_mem_suite(struct memSuite * mem_suite, int buf_size, int chunk_in
                 group_size += frame_size;
                 slot_count++;
                 printf("slot #%d: %x\n", slot_count, ptr);
+
+                /* split the group at 32M-512K */
+                /* (after this number, write speed decreases) */
+                /* (CFDMA can write up to FFFF sectors at once) */
+                /* (FFFE just in case) */
+                if (group_size + frame_size > 0xFFFE * 512)
+                {
+                    /* insert a small gap to split the group here */
+                    ptr += 64;
+                    size -= 64;
+                    group_size = 0;
+                }
             }
             chunk = GetNextMemoryChunk(mem_suite, chunk);
         }
