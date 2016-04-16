@@ -52,6 +52,14 @@ int __libc_open(const char * fn, int flags, ...)
         return -1;
     }
     
+    if (fd <= STDERR_FILENO || fd > 0x10)
+    {
+        err_printf("fixme: invalid file descriptor (%d)\n", fd);
+        FIO_CloseFile((void*)fd);
+        errno = ENOENT;
+        return -1;
+    }
+    
     filesizes[fd & 0xF] = filesize;
     
     dbg_printf("%d\n", fd);
@@ -61,27 +69,71 @@ int __libc_open(const char * fn, int flags, ...)
 int __libc_close(int fd)
 {
     dbg_printf("__libc_close(%d)\n", fd);
-    if (fd == (fd & 0xF))
+
+    switch (fd)
     {
-        filesizes[fd & 0xF] = 0;
+        case STDIN_FILENO:
+        case STDOUT_FILENO:
+        case STDERR_FILENO:
+            /* closing standard I/O streams is not supported */
+            errno = ENOTSUP;
+            return -1;
+        
+        case STDERR_FILENO+1 ... 15:
+            filesizes[fd] = 0;
+            FIO_CloseFile((void*)fd);
+            return 0;
+        
+        default:
+            errno = EINVAL;
+            return -1;
     }
-    FIO_CloseFile((void*)fd);
-    return 0;
 }
 
 ssize_t __libc_read(int fd, void* buf, size_t count)
 {
     dbg_printf("__libc_read(%d,%s)\n", fd, format_memory_size(count));
-    return FIO_ReadFile((void*) fd, buf, count);
-    for (int i = 0; i < 20; i++)
-        dbg_printf("%c", ((char*)buf)[i]);
-    dbg_printf(" [...]\n");
+
+    switch (fd)
+    {
+        case STDIN_FILENO:
+            /* todo: read from IME? */
+            errno = ENOSYS;
+            return -1;
+        
+        case STDOUT_FILENO:
+        case STDERR_FILENO:
+            /* idk */
+            errno = ENOTSUP;
+            return -1;
+        
+        default:
+            return FIO_ReadFile((void*) fd, buf, count);
+    }
 }
 
 ssize_t __libc_write(int fd, const void* buf, size_t count)
 {
     dbg_printf("__libc_write(%d,%s)\n", fd, format_memory_size(count));
-    return FIO_WriteFile((void*) fd, buf, count);
+    
+    switch (fd)
+    {
+        case STDIN_FILENO:
+            /* idk */
+            errno = ENOTSUP;
+            return -1;
+        
+        case STDOUT_FILENO:
+            printf("%s", buf);
+            return strlen(buf);
+        
+        case STDERR_FILENO:
+            err_printf("%s", buf);
+            return strlen(buf);
+        
+        default:
+            return FIO_WriteFile((void*) fd, buf, count);
+    }
 }
 
 ssize_t write(int fd , const void* buf, size_t count)
@@ -116,7 +168,9 @@ int __rt_sigprocmask(int how, void* set, void* oldsetm, long nr)
 
 int isatty(int desc)
 {
-    return desc == 0 || desc == 1 || desc == 2;
+    return desc == STDIN_FILENO  ||
+           desc == STDOUT_FILENO ||
+           desc == STDERR_FILENO ;
 }
 
 char* getenv(const char* name)
