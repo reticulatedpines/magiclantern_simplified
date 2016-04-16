@@ -5789,3 +5789,32 @@ void qemu_menu_screenshots()
     while(1);
 }
 #endif
+
+/* run something in new task, with powersave disabled
+ * (usually, such actions are short-lived tasks
+ * that shouldn't be interrupted by Canon's auto power off) */
+
+struct cbr
+{
+    void (*user_routine)();
+    int argument;
+};
+
+static void task_without_powersave(struct cbr * cbr)
+{
+    powersave_prohibit();
+    cbr->user_routine(cbr->argument);
+    free(cbr);
+    powersave_permit();
+}
+
+void run_in_separate_task(void* routine, int argument)
+{
+    gui_stop_menu();
+    if (!routine) return;
+    
+    struct cbr * cbr = malloc(sizeof(struct cbr));
+    cbr->user_routine = routine;
+    cbr->argument = argument;
+    task_create("run_test", 0x1a, 0x8000, task_without_powersave, cbr);
+}

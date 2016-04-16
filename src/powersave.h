@@ -10,10 +10,6 @@ void powersave_prohibit();
 /* re-enable powersave timer */
 void powersave_permit();
 
-/* useful to start tasks directly from menu (pass the routine as .priv) */
-/* note: this disables powersaving while the task is running */
-extern void run_in_separate_task(void* routine, int argument);
-
 /* stop LiveView activity, leave shutter open */
 /* the sensor is turned off, and the LV image will freeze */
 /* method similar to what Canon code does when entering PLAY mode from LV */
