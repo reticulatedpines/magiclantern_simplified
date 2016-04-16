@@ -77,7 +77,7 @@ static int FAST check_cmos_vidmode(uint16_t* data_buf)
 static void FAST cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
 {
     /* make sure we are in 1080p/720p mode */
-    if (video_mode_resolution > 1)
+    if (!lv || video_mode_resolution > 1)
     {
         /* looks like checking properties works fine for detecting
          * changes in video mode, but not for detecting the zoom change */
@@ -192,7 +192,7 @@ static int FAST adtg_lookup(uint32_t* data_buf, int reg_needle)
 
 static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
 {
-    if (video_mode_resolution > 1 || !cmos_vidmode_ok)
+    if (!lv || video_mode_resolution > 1 || !cmos_vidmode_ok)
     {
         /* don't patch other video modes */
         return;
