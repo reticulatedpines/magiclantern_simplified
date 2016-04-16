@@ -80,6 +80,109 @@ function generic_tests()
     printf("")
 end
 
+function stdio_test()
+    local s,e
+    
+    -- these should print to console
+    -- fixme: they should output this:
+    -- Hello, stderr. Hello, stdout. 
+    -- Hello again, stdout.
+    -- Hello again, stderr.
+    io.write("Hello, stdout. ")
+    io.stderr:write("Hello, stderr. ")
+    io.write("\n")
+
+    io.write("Hello again, stdout.\n")
+    io.stderr:write("Hello again, stderr.\n")
+
+    -- not implemented
+    -- I expected error, but...
+    local inp = io.read("*line")
+    print("From stdin:", inp)
+end
+
+function copy_test(src, dst)
+    printf("Copy test: %s -> %s", src, dst)
+    
+    -- will this copy without errors? we'll see
+    -- read source file
+    local fin = io.open(src, "rb")
+    local data = fin:read("*all")
+    fin:close()
+
+    -- save a copy
+    local fout = io.open(dst, "w")
+    fout:write(data)
+    fout:close()
+
+    -- verify
+    fin = io.open(dst, "rb")
+    local check = fin:read("*all")
+    local size = fin:seek("end", 0)
+    fin:close()
+    assert(data == check)
+    assert(size == #data)
+    
+    -- delete the copy
+    assert(dryos.remove(dst) == true)
+    
+    -- check if it was deleted
+    fin = io.open(dst, "rb")
+    assert(fin == nil)
+
+    -- it should return false this time
+    assert(dryos.remove(dst) == false)
+
+    printf("Copy test OK")
+end
+
+function append_test(file)
+    printf("Append test: %s", file)
+
+    local data1 = "Allons enfants de la patrie\n"
+    local data2 = "Le jour de gloire est arrivé !\n"
+    
+    -- make sure the file is not there
+    dryos.remove(file)
+    
+    -- create it
+    local fout = io.open(file, "a")
+    fout:write(data1)
+    fout:close()
+
+    -- verify the contents
+    local fin = io.open(file, "r")
+    local check = fin:read("*all")
+    fin:close()
+    assert(data1 == check)
+
+    -- reopen it to append something
+    fout = io.open(file, "a")
+    fout:write(data2)
+    fout:close()
+
+    -- verify the contents
+    fin = io.open(file, "r")
+    check = fin:read("*all")
+    fin:close()
+    assert(check == data1 .. data2)
+
+    -- delete it
+    assert(dryos.remove(file) == true)
+    
+    -- check if it was deleted
+    fin = io.open(file, "rb")
+    assert(fin == nil)
+
+    printf("Append test OK")
+end
+
+function test_io()
+    stdio_test()
+    copy_test("autoexec.bin", "tmp.bin")
+    append_test("tmp.txt")
+end
+
 function test_camera_exposure()
     printf("Testing exposure settings, module 'camera'...")
     printf("Camera    : %s (%s) %s", camera.model, camera.model_short, camera.firmware)
@@ -532,6 +635,7 @@ function api_tests()
     generic_tests()
     
     printf("Module tests...")
+    test_io()
     test_camera_exposure()
     test_lv()
     test_lens_focus()
