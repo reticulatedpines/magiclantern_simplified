@@ -1584,11 +1584,10 @@ static struct menu_entry selftest_menu[] =
     #endif
 };
 
-/* fixme: only iterates the card selftestmarks submenu */
 static struct menu_entry * selftest_menu_entry(const char* entry_name)
 {
     /* menu entries are not yet linked, so iterate as in array, not as in linked list */
-    for(struct menu_entry * entry = selftest_menu[0].children[0].children ; !MENU_IS_EOL(entry) ; entry++ )
+    for(struct menu_entry * entry = selftest_menu[0].children ; !MENU_IS_EOL(entry) ; entry++ )
     {
         if (streq(entry->name, entry_name))
         {
