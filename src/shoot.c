@@ -2560,11 +2560,12 @@ static void zoom_auto_exposure_step()
     static int es = -1;
     // static int aem = -1;
     
-    if (lv && lv_dispsize > 1 && (!HALFSHUTTER_PRESSED || zoom_was_triggered_by_halfshutter) && !gui_menu_shown())
+    if (lv && lv_dispsize > 1 && !gui_menu_shown())
     {
         // photo mode: disable ExpSim
         // movie mode 5D2: disable ExpSim
-        // movie mode small cams: change PROP_AE_MODE_MOVIE
+        // movie mode small cams: not working (changing PROP_AE_MODE_MOVIE causes issues)
+        // note: turning off the tweak on half-shutter interferes with autofocus
         if (is_movie_mode())
         {
             #ifdef CONFIG_5D2
