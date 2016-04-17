@@ -70,11 +70,14 @@ static int mlv_file_frame_number = 0;
 
 static int long_exposure_fix_enabled = 0;
 
+/* forward reference */
+static struct menu_entry silent_menu[];
 
-static MENU_UPDATE_FUNC(silent_pic_slitscan_display)
+static MENU_UPDATE_FUNC(silent_pic_mode_update)
 {
-    if (silent_pic_mode != SILENT_PIC_MODE_SLITSCAN)
-    MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "This option is only for slit-scan pictures.");
+    /* reveal options for the current shooting mode, if any */
+    silent_menu[0].children[1].shidden =
+        (silent_pic_mode != SILENT_PIC_MODE_SLITSCAN);
 }
 
 static MENU_UPDATE_FUNC(silent_pic_check_mlv)
@@ -1533,16 +1536,17 @@ static struct menu_entry silent_menu[] = {
             {
                 .name = "Silent Mode",
                 .priv = &silent_pic_mode,
+                .update = silent_pic_mode_update,
                 .max = 5,
-                .help = "Choose the silent picture mode:",
                 .choices = CHOICES(
                     "Simple",
                     "Burst",
                     "Burst, End Trigger",
                     "Best Focus",
                     "Slit-Scan",
-                    "Full-res"
+                    "Full-res",
                 ),
+                .help = "Choose the silent picture mode:",
                 .help2 = 
                     "Take a silent picture when you press the shutter halfway.\n"
                     "Take pictures until memory gets full, then save to card.\n"
@@ -1550,13 +1554,18 @@ static struct menu_entry silent_menu[] = {
                     "Take pictures continuously, save the images with best focus.\n"
                     "Distorted pictures for funky effects.\n"
                     "Experimental full-resolution pictures.\n",
-                .icon_type = IT_DICE,
             },
             {
                 .name = "Slit-Scan Mode",
-                .update = silent_pic_slitscan_display,
                 .priv = &silent_pic_slitscan_mode,
                 .max = 4,
+                .choices = CHOICES(
+                    "Top->Bottom",
+                    "Bottom->Top",
+                    "Left->Right",
+                    "Right->Left",
+                    "Horizontal",
+                ),
                 .help = "Choose slitscan mode:",
                 .help2 =
                     "Scan from top to bottom as picture is taken.\n"
@@ -1564,8 +1573,7 @@ static struct menu_entry silent_menu[] = {
                     "Scan from left to right.\n"
                     "Scan from right to left.\n"
                     "Keep scan line in middle of frame, horizontally.\n",
-                .choices = CHOICES("Top->Bottom", "Bottom->Top", "Left->Right", "Right->Left", "Horizontal"),
-                .icon_type = IT_DICE,
+                .shidden = 1,   /* enabled only when choosing slit-scan */
             },
             {
                 .name = "File Format",
@@ -1577,7 +1585,6 @@ static struct menu_entry silent_menu[] = {
                     "DNG is slow, but needs no extra post-processing.\n"
                     "MLV is fast, and will group all frames into a single video file.\n",
                 .choices = CHOICES("DNG", "MLV"),
-                .icon_type = IT_DICE,
             },
             MENU_EOL,
         }
