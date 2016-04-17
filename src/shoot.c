@@ -45,6 +45,7 @@
 #include "imgconv.h"
 #include "fps.h"
 #include "lvinfo.h"
+#include "powersave.h"
 
 #ifdef FEATURE_LCD_SENSOR_REMOTE
 #include "lcdsensor.h"
@@ -981,6 +982,7 @@ void center_lv_afframe_do()
         {
             /* center on the raw frame */
             raw_lv_request();
+            
             if (raw_update_params())
             {
                 int delta_x, delta_y;
@@ -1433,6 +1435,16 @@ void ensure_movie_mode()
     }
     if (!lv) force_liveview();
 #endif
+}
+
+void ensure_photo_mode()
+{
+    while (is_movie_mode())
+    {
+        NotifyBox(2000, "Please switch to photo mode.");
+        msleep(500);
+    }
+    msleep(500); 
 }
 
 #ifdef FEATURE_EXPO_ISO

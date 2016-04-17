@@ -652,8 +652,6 @@ lens_focus(
     return lv_focus_error ? 0 : 1;
 }
 
-static PROP_INT(PROP_ICU_UILOCK, uilock);
-
 void lens_wait_readytotakepic(int wait)
 {
     int i;
@@ -662,7 +660,7 @@ void lens_wait_readytotakepic(int wait)
         if (ml_shutdown_requested) return;
         if (sensor_cleaning) { msleep(50); continue; }
         if (shooting_mode == SHOOTMODE_M && lens_info.raw_shutter == 0) { msleep(50); continue; }
-        if (job_state_ready_to_take_pic() && burst_count > 0 && ((uilock & 0xFF) == 0)) break;
+        if (job_state_ready_to_take_pic() && burst_count > 0 && ((icu_uilock & 0xFF) == 0)) break;
         msleep(50);
         if (NOT_RECORDING) info_led_on();
     }

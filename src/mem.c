@@ -52,12 +52,27 @@ typedef int (*mem_get_max_region_func)();
 
 /* use underscore for allocator functions to prevent other code from calling them directly */
 extern void* _malloc(size_t size);
-extern void _free(void* ptr);
+extern void  _free(void* ptr);
 extern void* _AllocateMemory(size_t size);
-extern void _FreeMemory(void* ptr);
+extern void  _FreeMemory(void* ptr);
 extern void* _alloc_dma_memory(size_t size);
-extern void _free_dma_memory(void* ptr);
-extern int _shoot_get_free_space();
+extern void  _free_dma_memory(void* ptr);
+extern int   _shoot_get_free_space();
+extern struct memSuite *_shoot_malloc_suite(size_t size);
+extern void  _shoot_free_suite(struct memSuite * hSuite);
+extern struct memSuite * _shoot_malloc_suite_contig(size_t size);
+extern void* _shoot_malloc( size_t len );
+extern void  _shoot_free( void * buf );
+
+/* wrappers for the selftest module, not to be used in other code */
+void* __priv_malloc(size_t size)           { return _malloc(size);           }
+void  __priv_free(void* ptr)               { _free(ptr);                     }
+void* __priv_AllocateMemory(size_t size)   { return _AllocateMemory(size);   }
+void  __priv_FreeMemory(void* ptr)         { _FreeMemory(ptr);               }
+void* __priv_alloc_dma_memory(size_t size) { return _alloc_dma_memory(size); }
+void  __priv_free_dma_memory(void* ptr)    { _free_dma_memory(ptr);          }
+void* __priv_shoot_malloc(size_t size)     { return _shoot_malloc(size);     }
+void  __priv_shoot_free(void* ptr)         { _shoot_free(ptr);               }
 
 static struct semaphore * mem_sem = 0;
 
@@ -105,7 +120,7 @@ static int GetMaxRegionForAllocateMemory()
     return a;
 }
 
-static int GetFreeMemForMalloc()
+int GetFreeMemForMalloc()
 {
     return MALLOC_FREE_MEMORY;
 }

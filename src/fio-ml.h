@@ -9,11 +9,13 @@
 
 struct card_info {
     char * drive_letter;
-    char * type;
+    char * type;            /* SD/CF/EXT */
     int cluster_size;
     int free_space_raw;
     int file_number;
     int folder_number;
+    char * maker;           /* only for some cameras; NULL otherwise */
+    char * model;
 };
 
 struct card_info * get_ml_card();

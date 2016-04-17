@@ -7,6 +7,7 @@
 #undef FEATURE_QUICK_ZOOM    //Canon Has it
 #undef FEATURE_IMAGE_EFFECTS // Missing Zero Sharpness :( Regs have changed
 #undef FEATURE_IMAGE_REVIEW_PLAY // not needed, one can press Zoom right away
+#undef FEATURE_NITRATE // needs polishing for nightly builds
 
 /*Work Relatively well*/
 #define FEATURE_FOCUS_PEAK_DISP_FILTER

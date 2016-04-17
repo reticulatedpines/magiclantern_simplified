@@ -369,22 +369,21 @@ static void srm_malloc_cbr(void** dst_ptr, void* raw_buffer, uint32_t raw_buffer
 }
 
 /* after allocating this buffer, you can no longer take pictures (ERR70); will lock the shutter to prevent it */
-PROP_INT(PROP_ICU_UILOCK, uilock);
 static uint32_t old_uilock_shutter;
 
 static void srm_shutter_lock()
 {
     /* block the shutter button to avoid ERR70 */
     /* (only touch the shutter-related bits, just in case) */
-    old_uilock_shutter = uilock & UILOCK_SHUTTER;
-    gui_uilock(uilock | UILOCK_SHUTTER);
+    old_uilock_shutter = icu_uilock & UILOCK_SHUTTER;
+    gui_uilock(icu_uilock | UILOCK_SHUTTER);
 }
 
 static void srm_shutter_unlock()
 {
     /* unlock the shutter button */
     /* (only touch the shutter-related bits, just in case) */
-    int unlocked_shutter = (uilock & ~UILOCK_SHUTTER) | old_uilock_shutter;
+    int unlocked_shutter = (icu_uilock & ~UILOCK_SHUTTER) | old_uilock_shutter;
     gui_uilock(unlocked_shutter);
 }
 

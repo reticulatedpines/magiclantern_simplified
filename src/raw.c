@@ -28,6 +28,8 @@
 #include "menu.h"
 #include "edmac-memcpy.h"
 #include "imgconv.h"
+#include "console.h"
+#include "fps.h"
 
 #undef RAW_DEBUG        /* define it to help with porting */
 #undef RAW_DEBUG_DUMP   /* if you want to save the raw image buffer and the DNG from here */
@@ -42,7 +44,24 @@
 
 static struct semaphore * raw_sem = 0;
 
+/* whether to recompute all the raw parameters (1), or just use cached values(0) */
 static int dirty = 0;
+ 
+/* if get_ms_clock_value() is less than this, assume the raw data is invalid */
+static int next_retry_lv = 0;
+
+/* mark the raw data dirty for the next few ms (raw_update_params_once will return failure, to allow the backend to settle) */
+static void raw_set_dirty_with_timeout(int timeout_ms)
+{
+    next_retry_lv = get_ms_clock_value() + timeout_ms;
+    dirty = 1;
+}
+
+/* call this to force an update of all raw parameters */
+void raw_set_dirty(void)
+{
+    dirty = 1;
+}
 
 /* dual ISO interface */
 static int (*dual_iso_get_recovery_iso)() = MODULE_FUNCTION(dual_iso_get_recovery_iso);
@@ -356,6 +375,9 @@ static int autodetect_black_level(int* black_mean, int* black_stdev);
 static int compute_dynamic_range(int black_mean, int black_stdev, int white_level);
 static int autodetect_white_level(int initial_guess);
 
+/* for debugging, chdk-dng.c */
+extern void reverse_bytes_order(char* buf, int count);
+
 #ifdef CONFIG_RAW_LIVEVIEW
 /* returns 1 on success */
 static int raw_lv_get_resolution(int* width, int* height)
@@ -416,13 +438,12 @@ static int raw_lv_get_resolution(int* width, int* height)
 
 static int raw_update_params_work()
 {
-    //~ static int k = 0;
-    //~ bmp_printf(FONT_MED, 250, 100, "raw update %d called from %s ", k++, get_task_name_from_id(get_current_task()));
-
     #ifdef RAW_DEBUG
     console_show();
     #endif
-    
+
+    dbg_printf("raw update from %s\n", get_task_name_from_id(get_current_task()));
+
     int width = 0;
     int height = 0;
     int skip_left = 0;
@@ -450,7 +471,14 @@ static int raw_update_params_work()
             dbg_printf("LV raw disabled\n");
             return 0;
         }
-        
+
+        if (get_ms_clock_value() < next_retry_lv)
+        {
+            /* LiveView raw data is invalid, wait a bit and request a retry */
+            dbg_printf("LV raw invalid\n");
+            return 0;
+        }
+
         #ifdef CONFIG_RAW_DISABLE_IN_10X_ZOOM
         if (lv_dispsize == 10)
         {
@@ -458,7 +486,7 @@ static int raw_update_params_work()
             return 0;
         }
         #endif
-        
+
         raw_info.buffer = (void*) DEFAULT_RAW_BUFFER;
         
         if (!raw_info.buffer)
@@ -670,16 +698,29 @@ static int raw_update_params_work()
     if (width != raw_info.width || height != raw_info.height)
     {
         /* raw dimensions changed? force a full update, including preview window */
+        printf("Resolution changed: %dx%d -> %dx%d\n", raw_info.width, raw_info.height, width, height);
         dirty = 1;
     }
+
 #ifdef CONFIG_RAW_LIVEVIEW 
-    /* zoom mode changed? refresh params */
+
+    if (lv)
     {
-        static int prev_zoom = 0;
-        int zoom = lv_dispsize;
-        if (zoom != prev_zoom)
-            dirty = 1;
-        prev_zoom = zoom;
+        if (width != raw_info.width || height != raw_info.height)
+        {
+            /* raw dimensions changed in LiveView? return failure and wait for the next call */
+            /* next valid call can be after two frames (until then, return failure) */
+            int frame_duration = 1000000 / fps_get_current_x1000();
+            raw_set_dirty_with_timeout(frame_duration * 2);
+            
+            raw_info.width = width;
+            raw_info.height = height;
+            
+            /* reset black level to force recomputing */
+            raw_info.black_level = 0;
+            
+            return 0;
+        }
     }
 
     /* in zoom mode: yuv position changed? force a refresh */
@@ -702,7 +743,8 @@ static int raw_update_params_work()
     /* black and white autodetection are time-consuming */
     /* only refresh once per second or if dirty, but never while recording */
     static int bw_aux = INT_MIN;
-    int recompute_black_and_white = NOT_RECORDING && (dirty || should_run_polling_action(1000, &bw_aux));
+    int recompute_black_and_white = NOT_RECORDING && 
+        (raw_info.black_level == 0 || dirty || should_run_polling_action(1000, &bw_aux));
 
     if (dirty)
     {
@@ -718,7 +760,43 @@ static int raw_update_params_work()
 
     int black_mean, black_stdev_x100;
     raw_info.white_level = WHITE_LEVEL;
-    raw_info.black_level = autodetect_black_level(&black_mean, &black_stdev_x100);
+    
+    int ok = autodetect_black_level(&black_mean, &black_stdev_x100);
+    
+    if (!ok)
+    {
+        /* return failure, and make sure the black level is recomputed at next call */
+        dirty = 1;
+
+        if (0)
+        {
+            /* for debugging: if black check fails, save the bad frame as DNG */
+            
+            /* make a copy of the raw buffer, because it's being updated while we are saving it */
+            void* buf = malloc(raw_info.frame_size);
+            if (buf)
+            {
+                memcpy(buf, raw_info.buffer, raw_info.frame_size);
+                char filename[50];
+                get_numbered_file_name("bad%02d.dng", 99, filename, sizeof(filename));
+                struct raw_info local_raw_info = raw_info;
+                local_raw_info.buffer = buf;
+                save_dng(filename, &local_raw_info);
+                free(buf);
+            }
+        }
+
+        return 0;
+    }
+
+    /* black level looks alright, go ahead and use it */
+    /* log significant changes to console */
+    if (ABS(black_mean - raw_info.black_level) >= 10)
+    {
+        printf("Black level: %d\n", black_mean);
+    }
+    
+    raw_info.black_level = black_mean;
 
     if (!lv)
     {
@@ -798,7 +876,7 @@ static int raw_update_params_work()
     return 1;
 }
 
-int raw_update_params()
+static int raw_update_params_once()
 {
     get_yuv422_vram();  /* refresh VRAM parameters */
     
@@ -806,6 +884,31 @@ int raw_update_params()
     take_semaphore(raw_sem, 0);
     ans = raw_update_params_work();
     give_semaphore(raw_sem);
+    return ans;
+}
+
+int raw_update_params()
+{
+    int ans = raw_update_params_once();
+    
+    /* in LiveView, retry 3 times (there may be transient bad frames, resolution changes and so on) */
+    int retries = 3;
+
+    for (int tries = 0; tries < retries && lv && !ans && raw_lv_is_enabled(); tries++)
+    {
+        /* wait for the next LiveView frame */
+        wait_lv_frames(1);
+        
+        /* if LV raw settings are marked as "dirty", retrying without waiting will fail for sure */
+        while (get_ms_clock_value() < next_retry_lv)
+        {
+            msleep(10);
+        }
+        
+        /* let's try again */
+        ans = raw_update_params_once();
+    }
+    
     return ans;
 }
 
@@ -1102,7 +1205,7 @@ float FAST raw_to_ev(int raw)
          * 
          * Canon implements ExpSim by varying iso/shutter/aperture in full stops, and digital ISO for 1/3 stops.
          * Digital ISO does not affect the raw histogram, so they add -1/3, 0 or +1/3 EV when developing the raw for LV display
-         * We did the same adjustment by adjusting the white level in raw_update_params.
+         * We did the same adjustment by adjusting the white level in raw_update_params_once.
          * But when the correction is -1/3 EV, the white level is greater than 16383,
          * so the overexposure indicators will read a negative EV instead of 0 (they will no longer indicate overexposure).
          * 
@@ -1185,6 +1288,54 @@ static void autodetect_black_level_calc(int x1, int x2, int y1, int y2, int dx, 
     *out_stdev_x100 = stdev;
 }
 
+static int black_level_check_left(int ref_mean, int ref_stdev_x100, int y1, int y2)
+{
+    const int N = 5;
+    for (int i = 0; i < N; i++)
+    {
+        /* divide the optical black bar in N segments and check them against the global mean and stdev */
+        int ya = ( i ) * (y2 - y1) / N + y1;
+        int yb = (i+1) * (y2 - y1) / N + y1;
+
+        /* make sure ya % 4 == y1 % 4 (important for dual iso, to check the same exposure) */
+        ya = (ya & ~3) + (y1 & 3);
+        
+        int local_mean = 0;
+        int local_stdev_x100 = 0;
+        autodetect_black_level_calc(
+            16, raw_info.active_area.x1 - 16,
+            ya, yb, 
+            3, 16,
+            &local_mean, &local_stdev_x100
+        );
+
+        dbg_printf(
+            "Black check %d/%d: %d"SYM_PLUSMINUS"%s%d.%02d, ref %d"SYM_PLUSMINUS"%s%d.%02d, delta=%d\n",
+            i+1, N,
+            local_mean, FMT_FIXEDPOINT2(local_stdev_x100),
+            ref_mean, FMT_FIXEDPOINT2(ref_stdev_x100),
+            local_mean - ref_mean
+        );
+
+        /* allow the local mean to be within ref_mean +/- 2 * ref_sigma */
+        if (ABS(local_mean - ref_mean) > 2 * ref_stdev_x100/100)
+        {
+            printf("Black %d/%d: mean too different (%d, ref %d"SYM_PLUSMINUS"%s%d.%02d)\n", i+1, N, local_mean, ref_mean, FMT_FIXEDPOINT2(ref_stdev_x100));
+            return 0;
+        }
+
+        /* allow the local sigma to be less than 3 * ref_sigma */
+        if (local_stdev_x100 > ref_stdev_x100 * 3)
+        {
+            printf("Black %d/%d: stdev too large (%d/100, ref %d/100)\n", i+1, N, local_stdev_x100, ref_stdev_x100);
+            return 0;
+        }
+        
+    }
+    return 1;
+}
+
+/* returns 1 on success, 0 on failure */
 static int autodetect_black_level(int* black_mean, int* black_stdev_x100)
 {
     //~ static int k = 0;
@@ -1195,8 +1346,8 @@ static int autodetect_black_level(int* black_mean, int* black_stdev_x100)
     int stdev1 = 0;
     int mean2 = 0;
     int stdev2 = 0;
-    
-    if (raw_info.active_area.x1 > 10) /* use the left black bar for black calibration */
+        
+    if (raw_info.active_area.x1 > 50) /* use the left black bar for black calibration */
     {
         autodetect_black_level_calc(
             16, raw_info.active_area.x1 - 16,
@@ -1210,6 +1361,19 @@ static int autodetect_black_level(int* black_mean, int* black_stdev_x100)
             3, 16,
             &mean2, &stdev2
         );
+        
+        /* for dual iso: increase tolerance of the cleaner exposure (there is interference from the noisier one) */
+        int ref_stdev = MAX(stdev1, stdev2);
+        
+        if (!black_level_check_left(mean1, ref_stdev, raw_info.active_area.y1 + 20, raw_info.active_area.y2 - 20))
+        {
+            return 0;
+        }
+
+        if (!black_level_check_left(mean2, ref_stdev, raw_info.active_area.y1 + 22, raw_info.active_area.y2 - 20))
+        {
+            return 0;
+        }
     }
     else /* use the top black bar for black calibration */
     {
@@ -1225,6 +1389,8 @@ static int autodetect_black_level(int* black_mean, int* black_stdev_x100)
             16, 4,
             &mean2, &stdev2
         );
+        
+        /* todo: consistency check */
     }
     
     /* does it look like dual ISO? take the DR from the cleanest half */
@@ -1336,7 +1502,13 @@ void FAST raw_lv_vsync()
     {
         //~ bmp_printf(FONT_MED, 50, 50, "%x %dx%d  ", buf,  raw_info.pitch, raw_info.height);
         /* pull the raw data into "buf" */
-        edmac_raw_slurp(CACHEABLE(buf), raw_info.pitch, raw_info.height);
+        int width, height;
+        int ok = raw_lv_get_resolution(&width, &height);
+        if (ok)
+        {
+            int pitch = width * 14/8;
+            edmac_raw_slurp(CACHEABLE(buf), pitch, height);
+        }
     }
     else
     {
@@ -1641,11 +1813,11 @@ static void raw_lv_update()
     {
         raw_lv_enable();
         
-        for (int i = 0; i < 20; i++)
+        for (int i = 0; i < 5; i++)
         {
             if (raw_update_params_work())
                 break;
-            msleep(50);
+            wait_lv_frames(1);
         }
     }
     else if (!new_state && lv_raw_enabled)
@@ -1725,11 +1897,6 @@ void raw_force_aspect_ratio_1to1()
     }
 }
 
-void raw_set_dirty()
-{
-    dirty = 1;
-}
-
 int get_dxo_dynamic_range(int raw_iso)
 {
     int iso = raw_iso;
@@ -1775,7 +1942,15 @@ int can_use_raw_overlays_photo()
 int can_use_raw_overlays()
 {
     if (QR_MODE && can_use_raw_overlays_photo())
+    {
+        if (!raw_update_params_once())
+        {
+            /* XXX: probably not the best place for printing an error message */
+            bmp_printf(FONT_MED, 0, 480 - font_med.height, "Raw error, falling back to YUV overlays");
+            return 0;
+        }
         return 1;
+    }
     
 #ifdef CONFIG_RAW_LIVEVIEW
     if (lv && raw_lv_is_enabled())
@@ -1829,11 +2004,14 @@ MENU_UPDATE_FUNC(menu_checkdep_raw)
     }
 }
 
-#ifdef CONFIG_RAW_DISABLE_IN_10X_ZOOM
-/* workaround: disable raw flag in zoom mode (it crashes on some cameras) */
-/* not exactly nice, but better than crashing */
 PROP_HANDLER(PROP_LV_DISPSIZE)
 {
+    /* when changing LV zoom, mark the raw data as invalid for the next 500ms */
+    raw_set_dirty_with_timeout(500);
+
+    #ifdef CONFIG_RAW_DISABLE_IN_10X_ZOOM
+    /* workaround: disable raw flag in zoom mode (it crashes on some cameras) */
+    /* not exactly nice, but better than crashing */
     if (lv_raw_enabled)
     {
         if (buf[0] == 10)
@@ -1853,8 +2031,8 @@ PROP_HANDLER(PROP_LV_DISPSIZE)
             #endif
         }
     }
+    #endif
 }
-#endif
 
 static void raw_init()
 {
