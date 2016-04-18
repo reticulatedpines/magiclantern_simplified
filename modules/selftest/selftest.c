@@ -120,6 +120,8 @@ static void stub_test_task(void* arg)
     char* log_buf = fio_malloc(maxlen);
     if (!log_buf) return;
     
+    msleep(1000);
+    
     console_show();
     
     if (!display_is_on())
