@@ -17,6 +17,8 @@
 /* optional routines */
 extern WEAK_FUNC(ret_0) uint32_t ml_rpc_send(uint32_t command, uint32_t parm1, uint32_t parm2, uint32_t parm3, uint32_t wait);
 extern WEAK_FUNC(ret_0) void ml_rpc_verbose(uint32_t state);
+extern WEAK_FUNC(ret_0) void expfuse_preview_update_task(int direction);
+extern WEAK_FUNC(ret_0) void playback_compare_images_task(int direction);
 
 /* macros are used to get the names from consts.h in the stub test log */
 #define MALLOC_FREE_MEMORY GetFreeMemForMalloc()
