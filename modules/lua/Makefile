@@ -37,6 +37,7 @@ DIET_OBJ = \
 	fprintf.o \
 	fflush.o \
 	feof.o \
+	fputs.o \
 	fgets.o \
 	fgetc_unlocked.o \
 	fputc_unlocked.o \
@@ -47,6 +48,8 @@ DIET_OBJ = \
 	vfprintf.o \
 	__v_printf.o \
 	__ltostr.o \
+	printf.o \
+	vprintf.o \
 	stdin.o \
 	stdout.o \
 	stderr.o \

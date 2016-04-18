@@ -9,10 +9,13 @@
 #undef DEBUG
 
 #ifdef DEBUG
-#define dbg_printf(fmt,...) { printf(fmt, ## __VA_ARGS__); }
+#define dbg_printf(fmt,...) { char msg[256]; snprintf(msg, sizeof(msg), fmt, ## __VA_ARGS__); console_puts(msg); }
 #else
 #define dbg_printf(fmt,...) {}
 #endif
+
+/* note: this does not add newline */
+void console_puts(const char* str);
 
 extern const char * format_memory_size( unsigned size); /* e.g. 2.0GB, 32MB, 2.4kB... */
 
@@ -54,7 +57,7 @@ int __libc_open(const char * fn, int flags, ...)
     
     if (fd <= STDERR_FILENO || fd > 0x10)
     {
-        err_printf("fixme: invalid file descriptor (%d)\n", fd);
+        fprintf(stderr, "fixme: invalid file descriptor (%d)\n", fd);
         FIO_CloseFile((void*)fd);
         errno = ENOENT;
         return -1;
@@ -124,13 +127,23 @@ ssize_t __libc_write(int fd, const void* buf, size_t count)
             return -1;
         
         case STDOUT_FILENO:
-            printf("%s", buf);
-            return strlen(buf);
-        
         case STDERR_FILENO:
-            err_printf("%s", buf);
-            return strlen(buf);
-        
+        {
+            if (fd == STDERR_FILENO)
+            {
+                /* pop the console on error */
+                console_show();
+            }
+            
+            /* the buffer is not null-terminated */
+            char* msg = (char*) buf;
+            int last_char = msg[count-1];
+            msg[count-1] = 0;
+            console_puts(msg);
+            console_puts((char*) &last_char);
+            
+            return count;
+        }
         default:
             return FIO_WriteFile((void*) fd, buf, count);
     }

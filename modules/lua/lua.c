@@ -65,7 +65,7 @@ int lua_take_semaphore(lua_State * L, int timeout, struct semaphore ** assoc_sem
             return take_semaphore(current->semaphore, timeout);
         }
     }
-    err_printf("error: could not find semaphore for lua state\n");
+    fprintf(stderr, "error: could not find semaphore for lua state\n");
     return -1;
 }
 
@@ -80,7 +80,7 @@ int lua_give_semaphore(lua_State * L, struct semaphore ** assoc_semaphore)
             return give_semaphore(current->semaphore);
         }
     }
-    err_printf("error: could not find semaphore for lua state\n");
+    fprintf(stderr, "error: could not find semaphore for lua state\n");
     return -1;
 }
 
@@ -160,7 +160,7 @@ static unsigned int lua_do_cbr(unsigned int ctx, struct script_event_entry * eve
                     lua_pushinteger(L, ctx);
                     if(docall(L, 1, 1))
                     {
-                        err_printf("lua cbr error:\n %s\n", lua_tostring(L, -1));
+                        fprintf(stderr, "lua cbr error:\n %s\n", lua_tostring(L, -1));
                         result = CBR_RET_ERROR;
                         give_semaphore(sem);
                         break;
@@ -490,7 +490,7 @@ static lua_State * load_lua_state()
     {
         if (luaL_loadstring(L, strict_lua) || docall(L, 0, LUA_MULTRET))
         {
-            err_printf("%s\n", lua_tostring(L, -1));
+            fprintf(stderr, "%s\n", lua_tostring(L, -1));
         }
     }
     
@@ -509,13 +509,13 @@ static void add_script(const char * filename)
         if(luaL_loadfile(L, full_path) || docall(L, 0, LUA_MULTRET))
         {
             /* error loading script */
-            err_printf("%s\n", lua_tostring(L, -1));
+            fprintf(stderr, "%s\n", lua_tostring(L, -1));
         }
         give_semaphore(sem);
     }
     else
     {
-        err_printf("load script failed: could not create semaphore\n");
+        fprintf(stderr, "load script failed: could not create semaphore\n");
     }
 }
 
