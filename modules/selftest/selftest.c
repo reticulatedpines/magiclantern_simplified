@@ -253,8 +253,7 @@ static void stub_test_task(void* arg)
         /* SetHPTimerNextTick, SetHPTimerAfterTimeout, SetHPTimerAfterNow */
         {
             /* run these tests in PLAY mode, because the CPU usage is higher in other modes, and may influence the results */
-            SetGUIRequestMode(1);
-            msleep(1000);
+            enter_play_mode();
 
             int64_t t0 = get_us_clock_value();
             int ta0 = 0;
@@ -1439,8 +1438,7 @@ static void edmac_test_task()
     
     if (!display_is_on())
     {
-        SetGUIRequestMode(DLG_PLAY);
-        msleep(1000);
+        enter_play_mode();
     }
     
     if (!display_is_on())
