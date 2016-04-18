@@ -170,16 +170,23 @@ static void mem_perf_test(uint32_t address)
 
 static void mem_perf_test_cached()
 {
+    /* run these tests only in PLAY mode
+     * (they run the inner loops with interrupts disabled,
+     * and they are not very short - enough to disrupt LiveView)
+     */
+    enter_play_mode();
     mem_perf_test(0x00100000);
 }
 
 static void mem_perf_test_uncached()
 {
+    enter_play_mode();
     mem_perf_test(0x40100000);
 }
 
 static void mem_perf_test_rom()
 {
+    enter_play_mode();
     mem_perf_test(0xFF010000);
 }
 #endif
