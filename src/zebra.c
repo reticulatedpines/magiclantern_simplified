@@ -4628,7 +4628,7 @@ static void transparent_overlay_from_play()
 {
     if (!PLAY_MODE) { fake_simple_button(BGMT_PLAY); msleep(1000); }
     make_overlay();
-    get_out_of_play_mode(500);
+    exit_play_qr_mode();
     msleep(500);
     if (!lv) { force_liveview(); msleep(500); }
     msleep(1000);

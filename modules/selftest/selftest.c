@@ -724,7 +724,7 @@ static void stress_test_task(void* unused)
         NotifyBox(1000, "PLAY: image compare: %d", i);
         playback_compare_images_task(1);
     }
-    get_out_of_play_mode(500);
+    exit_play_qr_mode();
     msleep(2000);
 
     fake_simple_button(BGMT_PLAY); msleep(1000);
@@ -733,7 +733,7 @@ static void stress_test_task(void* unused)
         NotifyBox(1000, "PLAY: exposure fusion: %d", i);
         expfuse_preview_update_task(1);
     }
-    get_out_of_play_mode(500);
+    exit_play_qr_mode();
     msleep(2000);
 
     fake_simple_button(BGMT_PLAY); msleep(1000);
@@ -750,7 +750,7 @@ static void stress_test_task(void* unused)
         msleep(200);
     }
     timelapse_playback = 0;
-    get_out_of_play_mode(500);
+    exit_play_qr_mode();
 
     msleep(2000);
 
@@ -1439,7 +1439,7 @@ static void edmac_test_task()
     
     if (!display_is_on())
     {
-        fake_simple_button(BGMT_PLAY);
+        SetGUIRequestMode(DLG_PLAY);
         msleep(1000);
     }
     
