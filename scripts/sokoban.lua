@@ -420,7 +420,7 @@ sokoban_menu = menu.new
 {
     parent  = "Games",
     name    = "Sokoban",
-    help    = "A simple game in Lua"
+    help    = "A simple game in Lua",
     submenu = 
     {
         {
