@@ -596,7 +596,7 @@ function test_lens_focus()
                 printf("Focusing forward with step size %d, wait=%s...", step, wait)
                 local steps_front = 0
                 while lens.focus(1,step,true) do
-                    console.write(".")
+                    io.write(".")
                     steps_front = steps_front + 1
                 end
                 printf("")
@@ -607,7 +607,7 @@ function test_lens_focus()
                 printf("Focusing backward with step size %d, wait=%s...", step, wait)
                 local steps_back = 0
                 while lens.focus(-1,step,true) do
-                    console.write(".")
+                    io.write(".")
                     steps_back = steps_back + 1
                 end
                 printf("")

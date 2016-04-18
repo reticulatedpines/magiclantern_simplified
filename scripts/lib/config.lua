@@ -89,7 +89,7 @@ function config:load()
     if status and result ~= nil then 
         return result 
     else
-        console.write(result)
+        print(result)
         return self.default 
     end
 end

@@ -90,7 +90,7 @@ Writes a string to the log
 function logger:write(str)
     str = tostring(str)
     if self.listener ~= nil then self.listener:write(str) end
-    console.write(str)
+    io.write(str)
     self.logfile:write(str)
 end
 

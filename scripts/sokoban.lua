@@ -15,7 +15,9 @@
 require("keys")
 
 --printf
-function printf(...) console.write(string.format(...)) end
+function printf(...)
+    io.write(string.format(...))
+end
 
 -- http://www.sokobano.de/wiki/index.php?title=Sok_format
 
