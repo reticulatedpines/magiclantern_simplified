@@ -3948,18 +3948,26 @@ BMP_LOCK (
 
         if (dialog && MEM(dialog->type) == DLG_SIGNATURE) // if dialog seems valid
         {
-            #ifdef CONFIG_KILL_FLICKER
             // to redraw, we need access to front buffer
-            int d = canon_gui_front_buffer_disabled();
-            canon_gui_enable_front_buffer(0);
-            #endif
+            int front_buffer_disabled = canon_gui_front_buffer_disabled();
+            if (front_buffer_disabled)
+            {
+                /* temporarily enable front buffer to allow the redraw */
+                canon_gui_enable_front_buffer(0);
+            }
             
             dialog_redraw(dialog); // try to redraw (this has semaphores for winsys)
             
-            #ifdef CONFIG_KILL_FLICKER
-            // restore things back
-            if (d) idle_kill_flicker();
-            #endif
+            if (front_buffer_disabled)
+            {
+                /* disable it back */
+                
+                #ifdef CONFIG_KILL_FLICKER
+                idle_kill_flicker();
+                #else
+                canon_gui_disable_front_buffer();
+                #endif
+            }
         }
         else
         {
@@ -4021,6 +4029,7 @@ static void digic_zebra_cleanup()
     if (zebra_digic_dirty)
     {
         if (!DISPLAY_IS_ON) return;
+        beep();
         EngDrvOut(DIGIC_ZEBRA_REGISTER, 0); 
         clrscr_mirror();
         alter_bitmap_palette_entry(FAST_ZEBRA_GRID_COLOR, FAST_ZEBRA_GRID_COLOR, 256, 256);
