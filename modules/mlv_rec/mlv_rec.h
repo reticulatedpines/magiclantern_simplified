@@ -184,6 +184,8 @@ static void refresh_raw_settings(int32_t force);
 static MENU_UPDATE_FUNC(raw_main_update);
 static MENU_UPDATE_FUNC(aspect_ratio_update_info);
 static MENU_UPDATE_FUNC(resolution_update);
+static MENU_SELECT_FUNC(resolution_change_fine_value);
+static int32_t calc_crop_factor();
 static MENU_UPDATE_FUNC(aspect_ratio_update);
 static MENU_UPDATE_FUNC(start_delay_update);
 static void setup_chunk(uint32_t ptr, uint32_t size);

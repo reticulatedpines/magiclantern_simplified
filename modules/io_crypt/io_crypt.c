@@ -1037,13 +1037,12 @@ static unsigned int iocrypt_init()
         iodev_ctx = 0x9C4A8;
         iodev_ctx_size = 0x20;
     }
-    else if(is_camera("6D", "1.1.3"))
+    else if(is_camera("6D", "1.1.6"))
     {
-        iodev_table = 0x9DF08;
-        iodev_ctx = 0xCC110;
+        iodev_table = 0x9DF18;
+        iodev_ctx = 0xCC130;
         iodev_ctx_size = 0x20;
     }
-	
     /*
     else if(is_camera("650D", "1.0.4"))
     {

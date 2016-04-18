@@ -11,7 +11,7 @@ int main (int argc, char *argv[])
         printf("Invalid parameter count (%d)\n", argc);
         return -1;
     }
-    FILE *f = fopen(argv[1], "r+");
+    FILE *f = fopen(argv[1], "rb+");
     
     if(!f)
     {

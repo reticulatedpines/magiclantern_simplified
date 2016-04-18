@@ -114,8 +114,7 @@ static int vectorscope_coord_uv_to_pos(int U, int V)
     return pos;
 }
 
-static void
-vectorscope_addpixel(uint8_t y, int8_t u, int8_t v)
+void vectorscope_addpixel(uint8_t y, int8_t u, int8_t v)
 {
     if(vectorscope == NULL)
     {
@@ -270,19 +269,8 @@ void vectorscope_request_draw(int flag)
 
 void vectorscope_start()
 {
-    if(vectorscope_draw)
-    {
-        vectorscope_init();
-        vectorscope_clear();
-    }
-}
-
-void vectorscope_pixel_step(int Y, int U, int V)
-{
-    if (vectorscope_draw)
-    {
-        vectorscope_addpixel(Y, U, V);
-    }
+    vectorscope_init();
+    vectorscope_clear();
 }
 
 void vectorscope_redraw()

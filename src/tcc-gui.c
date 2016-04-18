@@ -232,7 +232,7 @@ static void run_script(const char *script)
     }
     else
     {
-        console_printf(  "Script error: %d.\n", exit_code);
+        printf(  "Script error: %d.\n", exit_code);
         msleep(500);
         gui_stop_menu();
         msleep(500);

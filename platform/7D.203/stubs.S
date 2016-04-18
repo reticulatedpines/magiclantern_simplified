@@ -92,6 +92,7 @@ NSTUB(0xFF0730C8, _audio_ic_write)
 NSTUB(0xFF57B014,  audio_thresholds)
 NSTUB(0xFF0640EC,  sounddev_active_in)
 NSTUB(0xFF063C70,  sounddev_task)
+// NSTUB(    ???, _audio_ic_write_bulk)                     /* present on 6D.116 */
 
 /** Bitmap **/
 NSTUB(   0x29A9C,  LCD_Palette)                             // in InitializeBitmapDisplayDevice, right after 0xc0f14800
@@ -223,6 +224,7 @@ NSTUB(0xFF202814,  LightMeasure_n_Callback_r0)
 NSTUB(   0x22938,  cf_device)
 NSTUB(0xFF3D7798,  fsuDecodePartitionTable)                 // AJ_fsuGetPart_related
     //NSTUB(   0x208D8, sd_device)
+// NSTUB(    ???,  cf_device_ptr)                           /* present on 5D3.113 */
 
 /** Memory allocation **/
 NSTUB(0xFF07CAC8,  GetMemoryInformation)
@@ -246,7 +248,6 @@ NSTUB(0xFF15FC84,  ptpPropSetUILock)
 NSTUB(0xFF2885CC,  ptp_register_handler)
 
 /** Properties **/
-NSTUB(0xFF06934C,  PROPAD_GetPropertyData)
 NSTUB(0xFF068734, _prop_cleanup)
 NSTUB(0xFF067FAC, _prop_request_change)
 NSTUB(0xFF06858C,  prop_deliver)
@@ -317,6 +318,7 @@ NSTUB(0xFF209670,  vsnprintf)
 ///NSTUB(0xFF06D6A8,  MuteOn_0)
 ///NSTUB(0xFF35AC90,  OlcAFFrameApp_handler)
 ///NSTUB(0xFF03F4A8,  PD_RemoteRelease)
+///NSTUB(0xFF06934C,  PROPAD_GetPropertyData)
 ///NSTUB(0xFF0687C8,  PROP_GetMulticastProperty)
 ///NSTUB(0xFF3D2644,  PackMem_PopEDmacForMemorySuite)
 ///NSTUB(0xFF3D27CC,  PackMem_RegisterEDmacAbortCBRForMemorySuite)

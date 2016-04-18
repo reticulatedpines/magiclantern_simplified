@@ -127,7 +127,6 @@ LoadCalendarFromRTC(
 );
 
 extern void DryosDebugMsg(int,int,const char *,...);
-//~ #define DebugMsg(a,b,fmt,...) { console_printf(fmt "\n", ## __VA_ARGS__); DryosDebugMsg(a,b,fmt, ## __VA_ARGS__); }
 
 /** custom functions */
 // group starts from 0, number starts from 1
@@ -160,11 +159,12 @@ extern uint32_t _ml_base_address;
 
 // main DryOs commands
 extern void msleep( int amount );
-extern void call( const char* name, ... );
+extern int call( const char* name, ... );
 
 // stdio
 extern int vsnprintf( char* str, size_t n, const char* fmt, va_list ap ); // non-standard; don't export it
 extern int printf(const char* fmt, ... );
+extern int puts(const char* s);
 
 extern size_t strlen( const char* str );
 extern int snprintf( char* str, size_t n, const char* fmt, ... );
@@ -197,6 +197,7 @@ extern int iscntrl( int x );
 void str_make_lowercase(char* s);
 
 /** message queue calls **/
+struct msg_queue;
 extern int32_t msg_queue_receive(struct msg_queue *queue, void *buffer, uint32_t timeout);
 extern int32_t msg_queue_post(struct msg_queue * queue, uint32_t msg);
 extern int32_t msg_queue_count(struct msg_queue *queue, uint32_t *count);

@@ -74,6 +74,7 @@
 #include "raw.h"
 #include "zebra.h"
 #include "fps.h"
+#include "powersave.h"
 
 /* from mlv_play module */
 extern WEAK_FUNC(ret_0) void mlv_play_file(char *filename);
@@ -116,8 +117,6 @@ static CONFIG_INT("raw.res.x", resolution_index_x, 12);
 static CONFIG_INT("raw.aspect.ratio", aspect_ratio_index, 10);
 static CONFIG_INT("raw.write.speed", measured_write_speed, 0);
 static CONFIG_INT("raw.skip.frames", allow_frame_skip, 0);
-//~ static CONFIG_INT("raw.sound", sound_rec, 2);
-#define sound_rec 2
 
 static CONFIG_INT("raw.dolly", dolly_mode, 0);
 #define FRAMING_CENTER (dolly_mode == 0)
@@ -632,7 +631,7 @@ static int add_mem_suite(struct memSuite * mem_suite, int buf_size, int chunk_in
                     ptr += frame_size;
                     size -= frame_size;
                     slot_count++;
-                    //~ console_printf("slot #%d: %d %x\n", slot_count, tag, ptr);
+                    //~ printf("slot #%d: %d %x\n", slot_count, tag, ptr);
                 }
             }
             chunk = GetNextMemoryChunk(mem_suite, chunk);
@@ -1136,9 +1135,9 @@ static void hack_liveview(int unhack)
             cam_550d ? 0xFF2FE5E4 :
             cam_600d ? 0xFF37AA18 :
             cam_650d ? 0xFF527E38 :
-            cam_6d  ? 0xFF52BE94 :
+            cam_6d   ? 0xFF52C684 :
             cam_eos_m ? 0xFF539C1C :
-            cam_700d ? 0xFF52BA7C :
+            cam_700d ? 0xFF52BB60 :
             cam_7d  ? 0xFF345788 :
             cam_60d ? 0xff36fa3c :
             cam_500d ? 0xFF2ABEF8 :
@@ -1309,7 +1308,7 @@ static int FAST process_frame()
         return 0;
     }
 
-    //~ console_printf("saving frame %d: slot %d ptr %x\n", frame_count, capture_slot, ptr);
+    //~ printf("saving frame %d: slot %d ptr %x\n", frame_count, capture_slot, ptr);
 
     int ans = (int) edmac_copy_rectangle_start(ptr, fullSizeBuffer, raw_info.pitch, (skip_x+7)/8*14, skip_y/2*2, res_x*14/8, res_y);
 
@@ -1419,10 +1418,9 @@ static void raw_video_rec_task()
     written = 0; /* in KB */
     uint32_t written_chunk = 0; /* in bytes, for current chunk */
     int last_block_size = 0; /* for detecting early stops */
-    
-    /* disable powersave timer */
-    int powersave_prohibit = 2;
-    prop_request_change(PROP_ICU_AUTO_POWEROFF, &powersave_prohibit, 4);
+
+    /* disable Canon's powersaving (30 min in LiveView) */
+    powersave_prohibit();
 
     /* create a backup file, to make sure we can save the file footer even if the card is full */
     char backup_filename[100];
@@ -1460,7 +1458,7 @@ static void raw_video_rec_task()
     raw_set_dirty();
     if (!raw_update_params())
     {
-        bmp_printf( FONT_MED, 30, 50, "Raw detect error");
+        NotifyBox(5000, "Raw detect error");
         goto cleanup;
     }
     
@@ -1469,18 +1467,10 @@ static void raw_video_rec_task()
     /* allocate memory */
     if (!setup_buffers())
     {
-        bmp_printf( FONT_MED, 30, 50, "Memory error");
+        NotifyBox(5000, "Memory error");
         goto cleanup;
     }
 
-    if (sound_rec == 1)
-    {
-        char* wavfile = get_wav_file_name(raw_movie_filename);
-        bmp_printf( FONT_MED, 30, 90, "Sound: %s%s", wavfile + 17, wavfile[0] == 'B' && raw_movie_filename[0] == 'A' ? " on SD card" : "");
-        bmp_printf( FONT_MED, 30, 90, "%s", wavfile);
-        WAV_StartRecord(wavfile);
-    }
-    
     hack_liveview(0);
     
     /* get exclusive access to our edmac channels */
@@ -1490,10 +1480,7 @@ static void raw_video_rec_task()
     raw_recording_state = RAW_RECORDING;
 
     /* try a sync beep (not very precise, but better than nothing) */
-    if (sound_rec == 2)
-    {
-        beep();
-    }
+    beep();
 
     /* signal that we are starting */
     raw_rec_cbr_starting();
@@ -1568,7 +1555,7 @@ static void raw_video_rec_task()
             int frame_limit = overflow_time * 1024 / 10 * (measured_write_speed * 9 / 100) * 1024 / frame_size / 10;
             if (frame_limit >= 0 && frame_limit < num_frames)
             {
-                //~ console_printf("careful, will overflow in %d.%d seconds, better write only %d frames\n", overflow_time/10, overflow_time%10, frame_limit);
+                //~ printf("careful, will overflow in %d.%d seconds, better write only %d frames\n", overflow_time/10, overflow_time%10, frame_limit);
                 num_frames = MAX(1, frame_limit - 1);
             }
         }
@@ -1732,6 +1719,9 @@ abort_and_check_early_stop:
         }
     }
     
+    /* make sure the user doesn't rush to turn off the camera or something */
+    gui_uilock(UILOCK_EVERYTHING);
+    
     /* signal that we are stopping */
     raw_rec_cbr_stopping();
     
@@ -1745,11 +1735,6 @@ abort_and_check_early_stop:
     edmac_memcpy_res_unlock();
 
     set_recording_custom(CUSTOM_RECORDING_NOT_RECORDING);
-
-    if (sound_rec == 1)
-    {
-        WAV_StopRecord();
-    }
 
     /* write remaining frames */
     for (; writing_queue_head != writing_queue_tail; writing_queue_head = MOD(writing_queue_head + 1, COUNT(slots)))
@@ -1823,6 +1808,12 @@ cleanup:
     if (f) FIO_CloseFile(f);
     if (!written) { FIO_RemoveFile(raw_movie_filename); raw_movie_filename = 0; }
     FIO_RemoveFile(backup_filename);
+
+    /* everything saved, we can unlock the buttons.
+     * note: freeing SRM memory will also touch uilocks,
+     * so it's best to call this before free_buffers */
+    gui_uilock(UILOCK_NONE);
+
     free_buffers();
     
     #ifdef DEBUG_BUFFERING_GRAPH
@@ -1831,9 +1822,8 @@ cleanup:
     hack_liveview(1);
     redraw();
     
-    /* re-enable powersave timer */
-    int powersave_permit = 1;
-    prop_request_change(PROP_ICU_AUTO_POWEROFF, &powersave_permit, 4);
+    /* re-enable powersaving  */
+    powersave_permit();
 
     raw_recording_state = RAW_IDLE;
 }
@@ -1843,7 +1833,7 @@ static MENU_SELECT_FUNC(raw_start_stop)
     if (!RAW_IS_IDLE)
     {
         raw_recording_state = RAW_FINISHING;
-        if (sound_rec == 2) beep();
+        beep();
     }
     else
     {
@@ -1910,15 +1900,6 @@ static struct menu_entry raw_video_menu[] =
                 .choices = CHOICES("Square pixels", "16:9", "3:2"),
                 .help  = "Choose aspect ratio of the source image (LiveView buffer).",
                 .help2 = "Useful for video modes with squeezed image (e.g. 720p).",
-            },
-            */
-            /* gets out of sync
-            {
-                .name = "Sound",
-                .priv = &sound_rec,
-                .max = 2,
-                .choices = CHOICES("OFF", "Separate WAV", "Sync beep"),
-                .help = "Sound recording options.",
             },
             */
             {
@@ -2007,6 +1988,10 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
     /* if you somehow managed to start recording H.264, let it stop */
     if (RECORDING_H264)
         return 1;
+    
+    /* block the zoom key while recording */
+    if (!RAW_IS_IDLE && key == MODULE_KEY_PRESS_ZOOMIN)
+        return 0;
 
     /* start/stop recording with the LiveView key */
     int rec_key_pressed = (key == MODULE_KEY_LV || key == MODULE_KEY_REC);
@@ -2161,26 +2146,14 @@ static unsigned int raw_rec_init()
     cam_50d   = is_camera("50D",  "1.0.9");
     cam_5d3   = is_camera("5D3",  "1.1.3");
     cam_550d  = is_camera("550D", "1.0.9");
-    cam_6d    = is_camera("6D",   "1.1.3");
+    cam_6d    = is_camera("6D",   "1.1.6");
     cam_600d  = is_camera("600D", "1.0.2");
     cam_650d  = is_camera("650D", "1.0.4");
     cam_7d    = is_camera("7D",   "2.0.3");
-    cam_700d  = is_camera("700D", "1.1.3");
+    cam_700d  = is_camera("700D", "1.1.4");
     cam_60d   = is_camera("60D",  "1.1.1");
     cam_500d  = is_camera("500D", "1.1.1");
     
-    for (struct menu_entry * e = raw_video_menu[0].children; !MENU_IS_EOL(e); e++)
-    {
-        /* customize menus for each camera here (e.g. hide what doesn't work) */
-        
-        /* 50D doesn't have sound and can't even beep */
-        if (cam_50d && streq(e->name, "Sound"))
-        {
-            e->shidden = 1;
-            //sound_rec = 0;
-        }
-    }
-
     if (cam_5d2 || cam_50d)
     {
        raw_video_menu[0].help = "Record 14-bit RAW video. Press SET to start.";
@@ -2232,7 +2205,6 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(aspect_ratio_index)
     MODULE_CONFIG(measured_write_speed)
     MODULE_CONFIG(allow_frame_skip)
-    //~ MODULE_CONFIG(sound_rec)
     MODULE_CONFIG(dolly_mode)
     MODULE_CONFIG(preview_mode)
     MODULE_CONFIG(use_srm_memory)

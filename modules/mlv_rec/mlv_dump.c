@@ -568,7 +568,7 @@ uint16_t bitextract(uint16_t *src, int position, int depth)
     return value;
 }
 
-int load_frame(char *filename, uint8_t *frame_buffer)
+int load_frame(char *filename, uint8_t **frame_buffer, uint32_t *frame_buffer_size)
 {
     FILE *in_file = NULL;
     int ret = 0;
@@ -595,6 +595,10 @@ int load_frame(char *filename, uint8_t *frame_buffer)
             goto load_frame_finish;
         }
 
+        print_msg(MSG_INFO, "Block: %c%c%c%c\n", buf.blockType[0], buf.blockType[1], buf.blockType[2], buf.blockType[3]);
+        print_msg(MSG_INFO, "  Offset: 0x%08" PRIx64 "\n", position);
+        print_msg(MSG_INFO, "    Size: %d\n", buf.blockSize);
+        
         /* jump back to the beginning of the block just read */
         file_set_pos(in_file, position, SEEK_SET);
 
@@ -634,9 +638,13 @@ int load_frame(char *filename, uint8_t *frame_buffer)
             }
 
             int frame_size = block_hdr.blockSize - sizeof(mlv_vidf_hdr_t) - block_hdr.frameSpace;
+        
+            /* loading the first frame. report frame size and allocate memory for that frame */
+            *frame_buffer_size = frame_size;
+            *frame_buffer = malloc(frame_size);
 
             file_set_pos(in_file, block_hdr.frameSpace, SEEK_CUR);
-            if(fread(frame_buffer, frame_size, 1, in_file) != 1)
+            if(fread(*frame_buffer, frame_size, 1, in_file) != 1)
             {
                 print_msg(MSG_ERROR, "File '%s' ends in the middle of a block\n", filename);
                 ret = 4;
@@ -988,9 +996,15 @@ void show_usage(char *executable)
     print_msg(MSG_INFO, " -m                  write only metadata, no audio or video frames\n");
     print_msg(MSG_INFO, " -n                  write no metadata, only audio and video frames\n");
 
+    print_msg(MSG_INFO, "\n");
+    print_msg(MSG_INFO, "-- Image manipulation --\n");
     print_msg(MSG_INFO, " -a                  average all frames in <inputfile> and output a single-frame MLV from it\n");
+    print_msg(MSG_INFO, " --avg-vertical      [DARKFRAME ONLY] average the resulting frame in vertical direction, so we will extract vertical banding\n");
+    print_msg(MSG_INFO, " --avg-horizontal    [DARKFRAME ONLY] average the resulting frame in horizontal direction, so we will extract horizontal banding\n");
     print_msg(MSG_INFO, " -s mlv_file         subtract the reference frame in given file from every single frame during processing\n");
 
+    print_msg(MSG_INFO, "\n");
+    print_msg(MSG_INFO, "-- Processing --\n");
     print_msg(MSG_INFO, " -e                  delta-encode frames to improve compression, but lose random access capabilities\n");
     print_msg(MSG_INFO, " -X type             extract only block type\n");
     print_msg(MSG_INFO, " -I mlv_file         inject data from given MLV file right after MLVI header\n");
@@ -1031,6 +1045,8 @@ int main (int argc, char *argv[])
     int delta_encode_mode = 0;
     int xref_mode = 0;
     int average_mode = 0;
+    int average_vert = 0;
+    int average_hor = 0;
     int subtract_mode = 0;
     int no_metadata_mode = 0;
     int only_metadata_mode = 0;
@@ -1084,6 +1100,8 @@ int main (int argc, char *argv[])
         {"cs3x3",  no_argument, &chroma_smooth_method,  3 },
         {"cs5x5",  no_argument, &chroma_smooth_method,  5 },
         {"fixcp",  no_argument, &fix_cold_pixels,  1 },
+        {"avg-vertical",  no_argument, &average_vert,  1 },
+        {"avg-horizontal",  no_argument, &average_hor,  1 },
         {0,         0,                 0,  0 }
     };
 
@@ -1433,7 +1451,14 @@ int main (int argc, char *argv[])
             if(average_mode)
             {
                 print_msg(MSG_INFO, "   - Output only one frame with averaged pixel values\n");
-                subtract_mode = 0;
+                if(average_vert)
+                {
+                    print_msg(MSG_INFO, "   - Also average the images in vertical direction to extract vertical banding\n");
+                }
+                if(average_hor)
+                {
+                    print_msg(MSG_INFO, "   - Also average the images in horizontal direction to extract horizontal banding\n");
+                }
             }
             if(subtract_mode)
             {
@@ -1497,9 +1522,11 @@ int main (int argc, char *argv[])
     mlv_xref_t *xrefs = NULL;
     uint32_t block_xref_pos = 0;
 
-    uint32_t frame_buffer_size = 32*1024*1024;
+    uint32_t frame_buffer_size = 1*1024*1024;
+    uint32_t subtract_frame_buffer_size = 0;
 
     uint32_t *frame_arith_buffer = NULL;
+    uint8_t *frame_sub_buffer = NULL;
     uint8_t *frame_buffer = NULL;
     uint8_t *prev_frame_buffer = NULL;
 
@@ -1559,29 +1586,32 @@ int main (int argc, char *argv[])
         }
     }
 
-    if(average_mode || subtract_mode)
-    {
-        frame_arith_buffer = malloc(frame_buffer_size);
-        if(!frame_arith_buffer)
-        {
-            print_msg(MSG_ERROR, "Failed to alloc mem\n");
-            return ERR_MALLOC;
-        }
-        memset(frame_arith_buffer, 0x00, frame_buffer_size);
-    }
-
+    /* this block will load an image from a MLV file, so use its reported frame size for future use */
     if(subtract_mode)
     {
-        int ret = load_frame(subtract_filename, (uint8_t*)frame_arith_buffer);
+        int ret = load_frame(subtract_filename, &frame_sub_buffer, &subtract_frame_buffer_size);
 
         if(ret)
         {
             print_msg(MSG_ERROR, "Failed to load subtract frame (%d)\n", ret);
             return ERR_FILE;
         }
+        
+        frame_buffer_size = subtract_frame_buffer_size;
     }
 
-    //if(delta_encode_mode)
+    if(average_mode)
+    {
+        frame_arith_buffer = malloc(frame_buffer_size * sizeof(uint32_t));
+        if(!frame_arith_buffer)
+        {
+            print_msg(MSG_ERROR, "Failed to alloc mem\n");
+            return ERR_MALLOC;
+        }
+        memset(frame_arith_buffer, 0x00, frame_buffer_size * sizeof(uint32_t));
+    }
+
+    /* always allocate, delta decoding also needs this buffer */
     {
         prev_frame_buffer = malloc(frame_buffer_size);
         if(!prev_frame_buffer)
@@ -1600,6 +1630,7 @@ int main (int argc, char *argv[])
             print_msg(MSG_ERROR, "Failed to alloc mem\n");
             return ERR_MALLOC;
         }
+        memset(frame_buffer, 0x00, frame_buffer_size);
 
         if(!dng_output && output_filename)
         {
@@ -1726,6 +1757,9 @@ read_headers:
             /* is this the first file? */
             if(main_header.fileGuid == 0)
             {
+                /* correct header size if needed */
+                file_hdr.blockSize = sizeof(mlv_file_hdr_t);
+
                 memcpy(&main_header, &file_hdr, sizeof(mlv_file_hdr_t));
 
                 total_vidf_count = main_header.videoFrameCount;
@@ -1733,9 +1767,6 @@ read_headers:
 
                 if(mlv_output)
                 {
-                    /* correct header size if needed */
-                    file_hdr.blockSize = sizeof(mlv_file_hdr_t);
-
                     if(average_mode)
                     {
                         file_hdr.videoFrameCount = 1;
@@ -2025,21 +2056,8 @@ read_headers:
                         /* no, set new size */
                         frame_buffer_size = frame_size;
                         
-                        /* free the buffers */
-                        free(frame_buffer);
-                        
-                        if(frame_arith_buffer)
-                        {
-                            free(frame_arith_buffer);
-                        }
-                        
-                        if(prev_frame_buffer)
-                        {
-                            free(prev_frame_buffer);
-                        }
-                        
-                        /* and allocate them again if they were used before */
-                        frame_buffer = malloc(frame_buffer_size);
+                        /* realloc buffers */
+                        frame_buffer = realloc(frame_buffer, frame_buffer_size);
                         
                         if(!frame_buffer)
                         {
@@ -2049,8 +2067,18 @@ read_headers:
                         
                         if(frame_arith_buffer)
                         {
-                            frame_arith_buffer = malloc(frame_buffer_size);
+                            frame_arith_buffer = realloc(frame_arith_buffer, frame_buffer_size * sizeof(uint32_t));
                             if(!frame_arith_buffer)
+                            {
+                                print_msg(MSG_ERROR, "VIDF: Failed to allocate %d byte\n", frame_buffer_size);
+                                goto abort;
+                            }
+                        }
+                        
+                        if(frame_sub_buffer)
+                        {
+                            frame_sub_buffer = realloc(frame_sub_buffer, frame_buffer_size);
+                            if(!frame_sub_buffer)
                             {
                                 print_msg(MSG_ERROR, "VIDF: Failed to allocate %d byte\n", frame_buffer_size);
                                 goto abort;
@@ -2059,13 +2087,12 @@ read_headers:
                         
                         if(prev_frame_buffer)
                         {
-                            prev_frame_buffer = malloc(frame_buffer_size);
+                            prev_frame_buffer = realloc(prev_frame_buffer, frame_buffer_size);
                             if(!prev_frame_buffer)
                             {
                                 print_msg(MSG_ERROR, "VIDF: Failed to allocate %d byte\n", frame_buffer_size);
                                 goto abort;
                             }
-
                         }
                     }
                     
@@ -2122,10 +2149,40 @@ read_headers:
                     /* this value changes in this context */
                     int current_depth = old_depth;
 
+                    /* in subtract mode, subtract reference frame. do that before averaging */
+                    if(subtract_mode)
+                    {
+                        if((int)subtract_frame_buffer_size != frame_size)
+                        {
+                            print_msg(MSG_ERROR, "Error: Frame sizes of footage and subtract frame differ (%d, %d)", frame_size, subtract_frame_buffer_size);
+                            break;
+                        }
+                        
+                        int pitch = video_xRes * current_depth / 8;
+
+                        for(int y = 0; y < video_yRes; y++)
+                        {
+                            uint16_t *src_line = (uint16_t *)&frame_buffer[y * pitch];
+                            uint16_t *sub_line = (uint16_t *)&frame_sub_buffer[y * pitch];
+
+                            for(int x = 0; x < video_xRes; x++)
+                            {
+                                int32_t value = bitextract(src_line, x, current_depth);
+                                int32_t sub_value = bitextract(sub_line, x, current_depth);
+
+                                value -= sub_value;
+                                value += lv_rec_footer.raw_info.black_level; /* should we really add it here? or better subtract it from averaged frame? */
+                                value = COERCE(value, lv_rec_footer.raw_info.black_level, lv_rec_footer.raw_info.white_level);
+
+                                bitinsert(src_line, x, current_depth, value);
+                            }
+                        }
+                    }
+
                     /* in average mode, sum up all pixel values of a pixel position */
                     if(average_mode)
                     {
-                        int pitch = video_xRes * lv_rec_footer.raw_info.bits_per_pixel / 8;
+                        int pitch = video_xRes * current_depth / 8;
 
                         for(int y = 0; y < video_yRes; y++)
                         {
@@ -2133,37 +2190,13 @@ read_headers:
 
                             for(int x = 0; x < video_xRes; x++)
                             {
-                                uint16_t value = bitextract(src_line, x, lv_rec_footer.raw_info.bits_per_pixel);
+                                uint16_t value = bitextract(src_line, x, current_depth);
 
                                 frame_arith_buffer[y * video_xRes + x] += value;
                             }
                         }
 
                         average_samples++;
-                    }
-
-                    /* in subtract mode, subtrace reference frame */
-                    if(subtract_mode)
-                    {
-                        int pitch = video_xRes * lv_rec_footer.raw_info.bits_per_pixel / 8;
-
-                        for(int y = 0; y < video_yRes; y++)
-                        {
-                            uint16_t *src_line = (uint16_t *)&frame_buffer[y * pitch];
-                            uint16_t *sub_line = (uint16_t *)&((uint8_t*)frame_arith_buffer)[y * pitch];
-
-                            for(int x = 0; x < video_xRes; x++)
-                            {
-                                int32_t value = bitextract(src_line, x, lv_rec_footer.raw_info.bits_per_pixel);
-                                int32_t sub_value = bitextract(sub_line, x, lv_rec_footer.raw_info.bits_per_pixel);
-
-                                value -= sub_value;
-                                value += lv_rec_footer.raw_info.black_level;
-                                value = COERCE(value, lv_rec_footer.raw_info.black_level, lv_rec_footer.raw_info.white_level);
-
-                                bitinsert(src_line, x, lv_rec_footer.raw_info.bits_per_pixel, value);
-                            }
-                        }
                     }
 
                     /* now resample bit depth if requested */
@@ -3195,36 +3228,82 @@ abort:
     /* in average mode, finalize average calculation and output the resulting average */
     if(average_mode)
     {
-        int new_pitch = video_xRes * lv_rec_footer.raw_info.bits_per_pixel / 8;
-        for(int y = 0; y < video_yRes; y++)
+        if(!average_samples)
         {
-            uint16_t *dst_line = (uint16_t *)&frame_buffer[y * new_pitch];
-            for(int x = 0; x < video_xRes; x++)
+            print_msg(MSG_ERROR, "Number of averaged frames is zero. Cannot continue.\n");
+        }
+        else
+        {
+            int new_pitch = video_xRes * lv_rec_footer.raw_info.bits_per_pixel / 8;
+            
+            /* average the pixels in vertical direction, so we will extract vertical banding noise */
+            if(average_vert)
             {
-                uint32_t value = frame_arith_buffer[y * video_xRes + x];
-
-                value /= average_samples;
-                bitinsert(dst_line, x, lv_rec_footer.raw_info.bits_per_pixel, value);
+                for(int x = 0; x < video_xRes; x++)
+                {
+                    uint64_t column = 0;
+                    
+                    for(int y = 0; y < video_yRes; y++)
+                    {
+                        column += frame_arith_buffer[y * video_xRes + x];
+                    }
+                    column /= video_yRes;
+                    for(int y = 0; y < video_yRes; y++)
+                    {
+                        frame_arith_buffer[y * video_xRes + x] = column;
+                    }
+                }
             }
-        }
+            if(average_hor)
+            {
+                for(int y = 0; y < video_yRes; y++)
+                {
+                    uint64_t line = 0;
+                    
+                    for(int x = 0; x < video_xRes; x++)
+                    {
+                        line += frame_arith_buffer[y * video_xRes + x];
+                    }
+                    line /= video_yRes;
+                    for(int x = 0; x < video_xRes; x++)
+                    {
 
-        int frame_size = ((video_xRes * video_yRes * lv_rec_footer.raw_info.bits_per_pixel + 7) / 8);
+                        frame_arith_buffer[y * video_xRes + x] = line;
+                    }
+                }
+            }
+            
+            for(int y = 0; y < video_yRes; y++)
+            {
+                uint16_t *dst_line = (uint16_t *)&frame_buffer[y * new_pitch];
+                for(int x = 0; x < video_xRes; x++)
+                {
+                    uint32_t value = frame_arith_buffer[y * video_xRes + x];
 
-        mlv_vidf_hdr_t hdr;
+                    value /= average_samples;
+                    bitinsert(dst_line, x, lv_rec_footer.raw_info.bits_per_pixel, value);
+                }
+            }
+            
 
-        memset(&hdr, 0x00, sizeof(mlv_vidf_hdr_t));
-        memcpy(hdr.blockType, "VIDF", 4);
-        hdr.blockSize = sizeof(mlv_vidf_hdr_t) + frame_size;
-        hdr.frameNumber = 0;
-        hdr.timestamp = last_vidf.timestamp;
+            int frame_size = ((video_xRes * video_yRes * lv_rec_footer.raw_info.bits_per_pixel + 7) / 8);
 
-        if(fwrite(&hdr, sizeof(mlv_vidf_hdr_t), 1, out_file) != 1)
-        {
-            print_msg(MSG_ERROR, "Failed writing average frame header into .MLV file\n");
-        }
-        if(fwrite(frame_buffer, frame_size, 1, out_file) != 1)
-        {
-            print_msg(MSG_ERROR, "Failed writing average frame data into .MLV file\n");
+            mlv_vidf_hdr_t hdr;
+
+            memset(&hdr, 0x00, sizeof(mlv_vidf_hdr_t));
+            memcpy(hdr.blockType, "VIDF", 4);
+            hdr.blockSize = sizeof(mlv_vidf_hdr_t) + frame_size;
+            hdr.frameNumber = 0;
+            hdr.timestamp = last_vidf.timestamp;
+
+            if(fwrite(&hdr, sizeof(mlv_vidf_hdr_t), 1, out_file) != 1)
+            {
+                print_msg(MSG_ERROR, "Failed writing average frame header into .MLV file\n");
+            }
+            if(fwrite(frame_buffer, frame_size, 1, out_file) != 1)
+            {
+                print_msg(MSG_ERROR, "Failed writing average frame data into .MLV file\n");
+            }
         }
     }
 
