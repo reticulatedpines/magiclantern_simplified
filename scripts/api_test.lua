@@ -648,7 +648,9 @@ end
 
 testmenu = menu.new
 {
-    name = "Script API tests",
+    name   = "Script API tests",
+    help   = "Various tests for the Lua scripting API.",
+    help2  = "When adding new Lua APIs, tests for them should go here.",
     select = function(this) task.create(api_tests) end,
 }
 

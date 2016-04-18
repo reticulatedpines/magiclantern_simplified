@@ -34,6 +34,7 @@ calc.error = false
 calc.mlmenu = menu.new
 {
     name = "Calculator",
+    help = "A simple calculator in Lua",
     select = function(this)
         task.create(function() calc:run() end)
     end,

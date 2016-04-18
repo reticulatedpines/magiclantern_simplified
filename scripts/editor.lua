@@ -481,6 +481,7 @@ editor.scrollbar = scrollbar.create(editor.font.height,1,1,display.width - 2,20 
 editor.mlmenu = menu.new
 {
     name = "Text Editor",
+    help = "Edit text files or debug Lua scripts",
     icon_type = ICON_TYPE.ACTION,
     select = function(this)
         task.create(function() editor:run() end)

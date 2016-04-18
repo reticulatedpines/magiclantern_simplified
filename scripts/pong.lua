@@ -225,8 +225,9 @@ end
 
 pong_menu = menu.new
 {
-    parent = "Games",
-    name = "Pong",
+    parent  = "Games",
+    name    = "Pong",
+    help    = "A simple game in Lua",
     submenu = 
     {
         {
