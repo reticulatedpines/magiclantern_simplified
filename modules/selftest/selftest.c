@@ -121,6 +121,11 @@ static void stub_test_task(void* arg)
     if (!log_buf) return;
     
     console_show();
+    
+    if (!display_is_on())
+    {
+        enter_play_mode();
+    }
 
     // this test can be repeated many times, as burn-in test
     int n = (int)arg > 0 ? 1 : 100;
