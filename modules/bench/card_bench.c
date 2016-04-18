@@ -82,8 +82,10 @@ static void card_benchmark_run(int full_test)
 {
     msleep(1000);
 
-    if (!display_is_on())
+    if (!lv)
     {
+        /* run the benchmark in either LV on PLAY mode */
+        /* (photo mode is not very interesting) */
         enter_play_mode();
     }
 
@@ -164,7 +166,7 @@ static void twocard_benchmark_task()
 {
     msleep(1000);
 
-    if (!display_is_on())
+    if (!lv)
     {
         enter_play_mode();
     }
@@ -204,7 +206,7 @@ static void card_bufsize_benchmark_task()
 {
     msleep(1000);
 
-    if (!display_is_on())
+    if (!lv)
     {
         enter_play_mode();
     }

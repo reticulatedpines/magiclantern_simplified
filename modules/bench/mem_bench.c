@@ -131,8 +131,10 @@ static void mem_benchmark_task()
 {
     msleep(1000);
     
-    if (!display_is_on())
+    if (!lv)
     {
+        /* run the benchmark in either LV on PLAY mode */
+        /* (photo mode is not very interesting) */
         enter_play_mode();
     }
     
