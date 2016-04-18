@@ -4654,7 +4654,9 @@ PROP_HANDLER(PROP_LV_ACTION)
 
 void peaking_benchmark()
 {
-    int lv0 = lv;
+    int old_lv = lv;
+    int old_peaking = focus_peaking;
+    focus_peaking = 1;
     msleep(1000);
     fake_simple_button(BGMT_PLAY);
     msleep(2000);
@@ -4667,5 +4669,6 @@ void peaking_benchmark()
     int b = get_seconds_clock();
     NotifyBox(10000, "%d seconds => %d fps", b-a, 1000 / (b-a));
     beep();
-    lv = lv0;
+    lv = old_lv;
+    focus_peaking = old_peaking;
 }
