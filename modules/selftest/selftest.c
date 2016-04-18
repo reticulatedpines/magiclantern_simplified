@@ -122,7 +122,14 @@ static void stub_test_task(void* arg)
     char* log_buf = fio_malloc(maxlen);
     if (!log_buf) return;
     
+    msleep(1000);
+    
     console_show();
+    
+    if (!display_is_on())
+    {
+        enter_play_mode();
+    }
 
     // this test can be repeated many times, as burn-in test
     int n = (int)arg > 0 ? 1 : 100;
@@ -255,8 +262,7 @@ static void stub_test_task(void* arg)
         /* SetHPTimerNextTick, SetHPTimerAfterTimeout, SetHPTimerAfterNow */
         {
             /* run these tests in PLAY mode, because the CPU usage is higher in other modes, and may influence the results */
-            SetGUIRequestMode(1);
-            msleep(1000);
+            enter_play_mode();
 
             int64_t t0 = get_us_clock_value();
             int ta0 = 0;
@@ -574,6 +580,8 @@ static void stub_test_task(void* arg)
         beep();
     }
 
+    enter_play_mode();
+
     FILE* log = FIO_CreateFile( "stubtest.log" );
     if (log)
     {
@@ -726,7 +734,7 @@ static void stress_test_task(void* unused)
         NotifyBox(1000, "PLAY: image compare: %d", i);
         playback_compare_images_task(1);
     }
-    get_out_of_play_mode(500);
+    exit_play_qr_mode();
     msleep(2000);
 
     fake_simple_button(BGMT_PLAY); msleep(1000);
@@ -735,7 +743,7 @@ static void stress_test_task(void* unused)
         NotifyBox(1000, "PLAY: exposure fusion: %d", i);
         expfuse_preview_update_task(1);
     }
-    get_out_of_play_mode(500);
+    exit_play_qr_mode();
     msleep(2000);
 
     fake_simple_button(BGMT_PLAY); msleep(1000);
@@ -752,7 +760,7 @@ static void stress_test_task(void* unused)
         msleep(200);
     }
     timelapse_playback = 0;
-    get_out_of_play_mode(500);
+    exit_play_qr_mode();
 
     msleep(2000);
 
@@ -1441,8 +1449,7 @@ static void edmac_test_task()
     
     if (!display_is_on())
     {
-        fake_simple_button(BGMT_PLAY);
-        msleep(1000);
+        enter_play_mode();
     }
     
     if (!display_is_on())

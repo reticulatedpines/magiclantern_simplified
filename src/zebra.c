@@ -4626,14 +4626,16 @@ static void show_overlay()
 
 static void transparent_overlay_from_play()
 {
-    if (!PLAY_MODE) { fake_simple_button(BGMT_PLAY); msleep(1000); }
+    /* go to play mode if not already there */
+    enter_play_mode();
+    
+    /* create overlay from current image */
     make_overlay();
-    get_out_of_play_mode(500);
-    msleep(500);
-    if (!lv) { force_liveview(); msleep(500); }
-    msleep(1000);
-    BMP_LOCK( show_overlay(); )
-    //~ transparent_overlay = 1;
+
+    /* go to LiveView */
+    force_liveview();
+    
+    /* the overlay will now be displayed from cropmarks.c */
 }
 
 PROP_HANDLER(PROP_LV_ACTION)

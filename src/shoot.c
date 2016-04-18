@@ -70,10 +70,8 @@ void display_trap_focus_info();
 void display_lcd_remote_icon(int x0, int y0);
 #endif
 void intervalometer_stop();
-void get_out_of_play_mode(int extra_wait);
 void wait_till_next_second();
 void zoom_sharpen_step();
-static void ensure_play_or_qr_mode_after_shot();
 int take_fast_pictures( int number );
 
 #if  !defined(AUDIO_REM_SHOT_POS_X) && !defined(AUDIO_REM_SHOT_POS_Y)
@@ -1223,9 +1221,13 @@ void playback_compare_images_task(int dir)
 {
     ASSERT(set_maindial_sem);
     take_semaphore(set_maindial_sem, 0);
-
-    if (!PLAY_MODE) { fake_simple_button(BGMT_PLAY); msleep(500); }
-    if (!PLAY_MODE) { NotifyBox(1000, "CompareImages: Not in PLAY mode"); return; }
+    enter_play_mode();
+    
+    if (!PLAY_MODE)
+    {
+        NotifyBox(1000, "CompareImages: Not in PLAY mode");
+        return;
+    }
 
     if (dir == 0) // reserved for intervalometer
     {
@@ -3165,7 +3167,7 @@ static void focus_ramp_step()
     {
         while (lens_info.job_state) msleep(100);
         msleep(300);
-        get_out_of_play_mode(500);
+        exit_play_qr_mode();
         if (!lv) 
         {
             msleep(500);
@@ -4873,37 +4875,41 @@ static int hdr_check_cancel(int init)
     }
     return 0;
 }
-#endif // FEATURE_HDR_BRACKETING
 
 static void ensure_play_or_qr_mode_after_shot()
 {
+    /* wait until picture was captured */
     msleep(300);
-    while (!job_state_ready_to_take_pic()) msleep(100);
+    while (!job_state_ready_to_take_pic())
+    {
+        msleep(100);
+    }
     msleep(500);
-    #define QR_OR_PLAY (DISPLAY_IS_ON && (QR_MODE || PLAY_MODE))
+
+    /* wait for Canon code to go into either QR/PLAY mode,
+     * or back to the shooting screen (LiveView or not) */
     for (int i = 0; i < 20; i++)
     {
         msleep(100);
-        if (QR_OR_PLAY)
+        if (PLAY_OR_QR_MODE && DISPLAY_IS_ON)
             break;
         if (display_idle())
             break;
     }
     
-    if (!QR_OR_PLAY) // image review disabled?
+    /* image review disabled? */
+    if (!PLAY_OR_QR_MODE)
     {
-        while (!job_state_ready_to_take_pic()) msleep(100);
-        fake_simple_button(BGMT_PLAY);
-        for (int i = 0; i < 50; i++)
+        /* check this one once again, just in case */
+        while (!job_state_ready_to_take_pic())
         {
             msleep(100);
-            if (PLAY_MODE) break;
         }
-        msleep(1000);
+        
+        /* force PLAY mode */
+        enter_play_mode();
     }
 }
-
-#ifdef FEATURE_HDR_BRACKETING
 
 static void hdr_check_for_under_or_over_exposure(int* under, int* over)
 {
@@ -4914,7 +4920,6 @@ static void hdr_check_for_under_or_over_exposure(int* under, int* over)
         return;
     }
     
-    //~ if (!silent_pic_enabled)
     ensure_play_or_qr_mode_after_shot();
 
     int under_numpix, over_numpix;
@@ -5229,20 +5234,53 @@ void schedule_movie_start() { movie_start_flag = 1; }
 static int movie_end_flag = 0;
 void schedule_movie_end() { movie_end_flag = 1; }
 
-void get_out_of_play_mode(int extra_wait)
+/* exit from PLAY or QR modes (to LiveView or plain photo mode) */
+void exit_play_qr_mode()
 {
-    if (gui_state == GUISTATE_QR)
+    /* not there? */
+    if (!PLAY_OR_QR_MODE) return;
+
+    /* request new mode */
+    SetGUIRequestMode(0);
+    
+    /* wait up to 2 seconds */
+    for (int i = 0; i < 20 && PLAY_MODE; i++)
     {
-        fake_simple_button(BGMT_PLAY);
-        msleep(200);
-        fake_simple_button(BGMT_PLAY);
+        msleep(100);
     }
-    else if (PLAY_MODE) 
+    
+    /* wait a little extra for the new mode to settle */
+    msleep(200);
+    
+    /* if in LiveView, wait for the first frame */
+    if (lv)
     {
-        fake_simple_button(BGMT_PLAY);
+        wait_lv_frames(1);
     }
-    while (PLAY_MODE) msleep(100);
-    msleep(extra_wait);
+}
+
+/* enter PLAY mode */
+void enter_play_mode()
+{
+    if (PLAY_MODE) return;
+    
+    /* request new mode */
+    SetGUIRequestMode(DLG_PLAY);
+
+    /* wait up to 2 seconds to enter the PLAY mode */
+    for (int i = 0; i < 20 && !PLAY_MODE; i++)
+    {
+        msleep(100);
+    }
+
+    /* also wait for display to come up, up to 1 second */
+    for (int i = 0; i < 10 && !DISPLAY_IS_ON; i++)
+    {
+        msleep(100);
+    }
+    
+    /* wait a little extra for the new mode to settle */
+    msleep(200);
 }
 
 // take one shot, a sequence of HDR shots, or start a movie
@@ -6315,7 +6353,7 @@ shoot_task( void* unused )
                 
                 if (PLAY_MODE && SECONDS_ELAPSED >= image_review_time)
                 {
-                    get_out_of_play_mode(0);
+                    exit_play_qr_mode();
                 }
 
                 if (lens_info.job_state == 0 && liveview_display_idle() && intervalometer_running && !display_turned_off)
@@ -6328,7 +6366,7 @@ shoot_task( void* unused )
             if (interval_stop_after && (int)intervalometer_pictures_taken >= (int)(interval_stop_after))
                 intervalometer_stop();
 
-            if (PLAY_MODE) get_out_of_play_mode(500);
+            if (PLAY_MODE) exit_play_qr_mode();
             
             if (!intervalometer_running) continue; // back to start of shoot_task loop
             if (gui_menu_shown() || get_halfshutter_pressed()) continue;

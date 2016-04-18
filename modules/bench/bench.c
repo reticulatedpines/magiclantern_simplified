@@ -11,9 +11,7 @@
 #include <zebra.h>
 #include <edmac-memcpy.h>
 #include <powersave.h>
-
-/* fixme: move to core */
-#define DLG_PLAY 1
+#include <shoot.h>
 
 extern void peaking_benchmark();
 extern void menu_benchmark();

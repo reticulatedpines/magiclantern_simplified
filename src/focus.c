@@ -383,7 +383,7 @@ static void focus_stack_ensure_preconditions()
         while (!lv)
         {
             focus_stack_check_stop();
-            get_out_of_play_mode(500);
+            exit_play_qr_mode();
             focus_stack_check_stop();
             if (!lv) force_liveview();
             if (lv) break;

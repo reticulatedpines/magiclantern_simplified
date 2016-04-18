@@ -130,7 +130,14 @@ static uint32_t FAST DUMP_ASM mem_test_read32(uint32_t* buf, uint32_t n)
 static void mem_benchmark_task()
 {
     msleep(1000);
-    if (!display_is_on()) { SetGUIRequestMode(DLG_PLAY); msleep(1000); }
+    
+    if (!lv)
+    {
+        /* run the benchmark in either LV on PLAY mode */
+        /* (photo mode is not very interesting) */
+        enter_play_mode();
+    }
+    
     canon_gui_disable_front_buffer();
     clrscr();
     print_benchmark_header();
