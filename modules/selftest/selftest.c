@@ -578,6 +578,8 @@ static void stub_test_task(void* arg)
         beep();
     }
 
+    enter_play_mode();
+
     FILE* log = FIO_CreateFile( "stubtest.log" );
     if (log)
     {
