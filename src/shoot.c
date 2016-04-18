@@ -72,7 +72,6 @@ void display_lcd_remote_icon(int x0, int y0);
 void intervalometer_stop();
 void wait_till_next_second();
 void zoom_sharpen_step();
-static void ensure_play_or_qr_mode_after_shot();
 int take_fast_pictures( int number );
 
 #if  !defined(AUDIO_REM_SHOT_POS_X) && !defined(AUDIO_REM_SHOT_POS_Y)
@@ -1222,9 +1221,13 @@ void playback_compare_images_task(int dir)
 {
     ASSERT(set_maindial_sem);
     take_semaphore(set_maindial_sem, 0);
-
-    if (!PLAY_MODE) { fake_simple_button(BGMT_PLAY); msleep(500); }
-    if (!PLAY_MODE) { NotifyBox(1000, "CompareImages: Not in PLAY mode"); return; }
+    enter_play_mode();
+    
+    if (!PLAY_MODE)
+    {
+        NotifyBox(1000, "CompareImages: Not in PLAY mode");
+        return;
+    }
 
     if (dir == 0) // reserved for intervalometer
     {
@@ -4871,37 +4874,41 @@ static int hdr_check_cancel(int init)
     }
     return 0;
 }
-#endif // FEATURE_HDR_BRACKETING
 
 static void ensure_play_or_qr_mode_after_shot()
 {
+    /* wait until picture was captured */
     msleep(300);
-    while (!job_state_ready_to_take_pic()) msleep(100);
+    while (!job_state_ready_to_take_pic())
+    {
+        msleep(100);
+    }
     msleep(500);
-    #define QR_OR_PLAY (DISPLAY_IS_ON && (QR_MODE || PLAY_MODE))
+
+    /* wait for Canon code to go into either QR/PLAY mode,
+     * or back to the shooting screen (LiveView or not) */
     for (int i = 0; i < 20; i++)
     {
         msleep(100);
-        if (QR_OR_PLAY)
+        if (PLAY_OR_QR_MODE && DISPLAY_IS_ON)
             break;
         if (display_idle())
             break;
     }
     
-    if (!QR_OR_PLAY) // image review disabled?
+    /* image review disabled? */
+    if (!PLAY_OR_QR_MODE)
     {
-        while (!job_state_ready_to_take_pic()) msleep(100);
-        fake_simple_button(BGMT_PLAY);
-        for (int i = 0; i < 50; i++)
+        /* check this one once again, just in case */
+        while (!job_state_ready_to_take_pic())
         {
             msleep(100);
-            if (PLAY_MODE) break;
         }
-        msleep(1000);
+        
+        /* force PLAY mode */
+        enter_play_mode();
     }
 }
-
-#ifdef FEATURE_HDR_BRACKETING
 
 static void hdr_check_for_under_or_over_exposure(int* under, int* over)
 {
@@ -4912,7 +4919,6 @@ static void hdr_check_for_under_or_over_exposure(int* under, int* over)
         return;
     }
     
-    //~ if (!silent_pic_enabled)
     ensure_play_or_qr_mode_after_shot();
 
     int under_numpix, over_numpix;
