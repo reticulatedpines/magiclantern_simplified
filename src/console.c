@@ -105,7 +105,7 @@ static void console_init()
     #endif
 }
 
-static void console_puts(const char* str) // don't DebugMsg from here!
+void console_puts(const char* str) // don't DebugMsg from here!
 {
     #define NEW_CHAR(c) CONSOLE_BUFFER(console_buffer_index++) = (c)
     
