@@ -9,6 +9,9 @@ scrnshot_menu = menu.new
 
 }
 
+-- fixme: this slows down the GUI a lot
+-- also takes many unnecessary screenshots
+-- (for example, on press/unpress events)
 function event.keypress(key)
     if key ~= 0 and scrnshot_menu.value == "ON" then
         display.screenshot()
