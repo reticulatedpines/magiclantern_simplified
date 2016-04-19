@@ -36,7 +36,6 @@ prepare_install_dir:
 	mkdir -p $(INSTALL_DATA_DIR)
 	mkdir -p $(INSTALL_CROPMARKS_DIR)
 	mkdir -p $(INSTALL_SCRIPTS_DIR)
-	mkdir -p $(INSTALL_SCRIPTS_LIB_DIR)
 	mkdir -p $(INSTALL_LOGS_DIR)
 	mkdir -p $(INSTALL_DOC_DIR)
 
@@ -44,11 +43,7 @@ install_extra_data: prepare_install_dir
 	$(CP) $(FONT_DIR)/*.rbf $(INSTALL_FONTS_DIR)/
 	$(CP) $(VRAM_DIR)/*.lut $(INSTALL_DATA_DIR)/
 	$(CP) $(CROP_DIR)/*.bmp $(INSTALL_CROPMARKS_DIR)/
-	$(CP) $(SCRIPT_DIR)/*.lua $(INSTALL_SCRIPTS_DIR)/
-	$(CP) $(SCRIPT_LIB_DIR)/*.lua $(INSTALL_SCRIPTS_LIB_DIR)/
-#	$(CP) $(SCRIPT_DIR)/*.c $(INSTALL_SCRIPTS_DIR)/
-#	$(CP) $(SCRIPT_DIR)/*.py $(INSTALL_SCRIPTS_DIR)/
-
+	$(INSTALL_ALL_SCRIPTS)
 
 copy-autoexec: autoexec.bin
 	$(CP) autoexec.bin $(INSTALL_DIR)

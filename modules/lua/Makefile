@@ -76,11 +76,10 @@ dietlibc.a: $(DIET_OBJ)
 
 # also copy the scripts when running "make install" from the module directory
 install::
-	$(CP) $(SCRIPT_DIR)/*.lua $(INSTALL_SCRIPTS_DIR)/
-	$(CP) $(SCRIPT_LIB_DIR)/*.lua $(INSTALL_SCRIPTS_LIB_DIR)/
+	$(INSTALL_ALL_SCRIPTS)
 
 # run a syntax check after compiling
 all:: syntax_check.log
 
-syntax_check.log: $(SCRIPT_DIR)/*.lua $(SCRIPT_LIB_DIR)/*.lua
+syntax_check.log: $(shell find $(SCRIPT_DIR) -type f -name *.lua)
 	$(call build,LUAC,(for f in $^; do luac -p $$f || true; done) 2> syntax_check.log && cat syntax_check.log)
