@@ -278,39 +278,43 @@ const char * format_memory_size(uint64_t size)
 {
     static char str[16];
     
-    if ( size / 10 >= 1024*1024*1024 )
+    const uint32_t kB = 1024;
+    const uint32_t MB = 1024*1024;
+    const uint64_t GB = 1024*1024*1024;
+    
+    if (size >= 10*GB)
     {
-        int size_gb = size / 1024 / 1024 / 1024;
+        int size_gb = (size + GB/2) / GB;
         snprintf( str, sizeof(str), "%dGB", size_gb);
     }
-    else if ( size >= 1024*1024*1024 )
+    else if ( size >= GB)
     {
-        int size_gb = (size/1024 * 10 + 5)  / 1024 / 1024;
-        snprintf( str, sizeof(str), "%d.%dGB", size_gb/10, size_gb%10);
+        int size_gb10 = (size * 10 + GB/2) / GB;
+        snprintf( str, sizeof(str), "%d.%dGB", size_gb10/10, size_gb10%10);
     }
-    else if ( size >= 10*1024*1024 )
+    else if ( size >= 10*MB )
     {
-        int size_mb = size / 1024 / 1024;
+        int size_mb = ((int) size + MB/2) / MB;
         snprintf( str, sizeof(str), "%dMB", size_mb);
     }
-    else if ( size >= 1024*1024 )
+    else if ( size >= MB )
     {
-        int size_mb = (size * 10 + 5) / 1024 / 1024;
-        snprintf( str, sizeof(str), "%d.%dMB", size_mb/10, size_mb%10);
+        int size_mb10 = ((int) size * 10 + MB/2) / MB;
+        snprintf( str, sizeof(str), "%d.%dMB", size_mb10/10, size_mb10%10);
     }
-    else if ( size >= 10*1024 )
+    else if ( size >= 10*kB )
     {
-        int size_kb = (size * 10 + 5) / 1024;
-        snprintf( str, sizeof(str), "%dkB", size_kb/10);
+        int size_kb = ((int) size + kB/2) / kB;
+        snprintf( str, sizeof(str), "%dkB", size_kb);
     }
-    else if ( size >= 1024 )
+    else if ( size >= kB )
     {
-        int size_kb = (size * 10 + 5) / 1024;
-        snprintf( str, sizeof(str), "%d.%dkB", size_kb/10, size_kb%10);
+        int size_kb10 = ((int) size * 10 + kB/2) / kB;
+        snprintf( str, sizeof(str), "%d.%dkB", size_kb10/10, size_kb10%10);
     }
     else if (size > 0)
     {
-        snprintf( str, sizeof(str), "%d B", size);
+        snprintf( str, sizeof(str), "%d B", (int) size);
     }
     else
     {
