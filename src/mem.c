@@ -274,11 +274,16 @@ static char* file_name_without_path(const char* file)
 }
 
 /* warning: can't call this twice in the same printf */
-const char * format_memory_size( unsigned size)
+const char * format_memory_size(uint64_t size)
 {
     static char str[16];
     
-    if ( size >= 1024*1024*1024 )
+    if ( size / 10 >= 1024*1024*1024 )
+    {
+        int size_gb = size / 1024 / 1024 / 1024;
+        snprintf( str, sizeof(str), "%dGB", size_gb);
+    }
+    else if ( size >= 1024*1024*1024 )
     {
         int size_gb = (size/1024 * 10 + 5)  / 1024 / 1024;
         snprintf( str, sizeof(str), "%d.%dGB", size_gb/10, size_gb%10);
