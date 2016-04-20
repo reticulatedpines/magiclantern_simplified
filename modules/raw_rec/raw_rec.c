@@ -194,6 +194,7 @@ static int buffer_full = 0;                       /* true when the memory become
 char* raw_movie_filename = 0;                     /* file name for current (or last) movie */
 static char* chunk_filename = 0;                  /* file name for current movie chunk */
 static int64_t written_total = 0;                 /* how many bytes we have written in this movie */
+static int64_t written_chunk = 0;                 /* same for current chunk */
 static int writing_time = 0;                      /* time spent by raw_video_rec_task in FIO_WriteFile calls */
 static int idle_time = 0;                         /* time spent by raw_video_rec_task doing something else */
 static volatile int frame_countdown = 0;          /* for waiting X frames */
@@ -1440,6 +1441,108 @@ static int write_mlv_chunk_headers(FILE* f)
     return padded_size;
 }
 
+static int file_size_limit = 0;         /* have we run into the 4GB limit? */
+static int last_write_timestamp = 0;    /* last FIO_WriteFile call */
+static int mlv_chunk = 0;               /* MLV chunk index from header */
+
+/* This saves a group of frames, also taking care of file splitting if required */
+static int write_frames(FILE** pf, void* ptr, int size_used)
+{
+    FILE* f = *pf;
+    
+    /* if we know there's a 4GB file size limit and we're about to exceed it, go ahead and make a new chunk */
+    if (file_size_limit && written_chunk + size_used > 0xFFFFFFFF)
+    {
+        chunk_filename = get_next_chunk_file_name(raw_movie_filename, ++mlv_chunk);
+        FILE* g = FIO_CreateFile(chunk_filename);
+        if (!g) return 0;
+        
+        file_hdr.fileNum = mlv_chunk;
+        written_chunk = write_mlv_chunk_headers(g);
+        written_total += written_chunk;
+        
+        if (written_chunk)
+        {
+            FIO_CloseFile(f);
+            *pf = f = g;
+        }
+        else
+        {
+            FIO_CloseFile(g);
+            FIO_RemoveFile(chunk_filename);
+            mlv_chunk--;
+            return 0;
+        }
+    }
+    
+    int t0 = get_ms_clock_value();
+    if (!last_write_timestamp) last_write_timestamp = t0;
+    idle_time += t0 - last_write_timestamp;
+    int r = FIO_WriteFile(f, ptr, size_used);
+    last_write_timestamp = get_ms_clock_value();
+
+    if (r != size_used) /* 4GB limit or card full? */
+    {
+        /* failed, but not at 4GB limit, card must be full */
+        if (written_chunk + size_used < 0xFFFFFFFF || 
+           (!file_size_limit && written_total > 0x3FFFFF))
+        {
+            /* don't try and write the remaining frames, the card is full */
+            writing_queue_head = writing_queue_tail;
+            return 0;
+        }
+        
+        file_size_limit = 1;
+        
+        /* 5D2 does not write anything if the call failed, but 5D3 writes exactly 4294967295 */
+        /* We need to write a null block to cover to the end of the file if anything was written */
+        /* otherwise the file could end in the middle of a block */
+        int64_t pos = FIO_SeekSkipFile(f, 0, SEEK_CUR);
+        if (pos > written_chunk + 1)
+        {
+            FIO_SeekSkipFile(f, written_chunk, SEEK_SET);
+            mlv_hdr_t nul_hdr;
+            mlv_set_type(&nul_hdr, "NULL");
+            nul_hdr.blockSize = MAX(sizeof(nul_hdr), pos - written_chunk);
+            FIO_WriteFile(f, &nul_hdr, sizeof(nul_hdr));
+        }
+        
+        /* try to create a new chunk */
+        chunk_filename = get_next_chunk_file_name(raw_movie_filename, ++mlv_chunk);
+        FILE* g = FIO_CreateFile(chunk_filename);
+        if (!g) return 0;
+        
+        file_hdr.fileNum = mlv_chunk;
+        written_chunk = write_mlv_chunk_headers(g);
+        written_total += written_chunk;
+        
+        int r2 = written_chunk ? FIO_WriteFile(g, ptr, size_used) : 0;
+        if (r2 == size_used) /* new chunk worked, continue with it */
+        {
+            FIO_CloseFile(f);
+            *pf = f = g;
+            written_total += size_used;
+            written_chunk += size_used;
+        }
+        else /* new chunk didn't work, card full */
+        {
+            FIO_CloseFile(g);
+            FIO_RemoveFile(chunk_filename);
+            mlv_chunk--;
+            return 0;
+        }
+    }
+    else
+    {
+        /* all fine */
+        written_total += size_used;
+        written_chunk += size_used;
+    }
+    
+    writing_time += last_write_timestamp - t0;
+    return 1;
+}
+
 static void raw_video_rec_task()
 {
     //~ console_show();
@@ -1452,9 +1555,9 @@ static void raw_video_rec_task()
     buffer_full = 0;
     FILE* f = 0;
     written_total = 0; /* in bytes */
-    int64_t written_chunk = 0; /* in bytes, for current chunk */
     int last_block_size = 0; /* for detecting early stops */
-    static int file_size_limit = 0; /* have we run into the 4GB limit? */
+    last_write_timestamp = 0;
+    mlv_chunk = 0;
     
     /* disable powersave timer */
     int powersave_prohibit = 2;
@@ -1474,7 +1577,6 @@ static void raw_video_rec_task()
     
     
     /* create output file */
-    int chunk = 0;
     raw_movie_filename = get_next_raw_movie_file_name();
     chunk_filename = raw_movie_filename;
     f = FIO_CreateFile(raw_movie_filename);
@@ -1532,7 +1634,6 @@ static void raw_video_rec_task()
     
     writing_time = 0;
     idle_time = 0;
-    int last_write_timestamp = 0;
     
     /* fake recording status, to integrate with other ml stuff (e.g. hdr video */
     set_recording_custom(CUSTOM_RECORDING_RAW);
@@ -1630,98 +1731,9 @@ static void raw_video_rec_task()
             slots[slot_index].status = SLOT_WRITING;
         }
 
-        if (1)
+        if (!write_frames(&f, ptr, size_used))
         {
-            /* if we know there's a 4GB file size limit and we're about to exceed it, go ahead and make a new chunk */
-            if (file_size_limit && written_chunk + size_used > 0xFFFFFFFF)
-            {
-                chunk_filename = get_next_chunk_file_name(raw_movie_filename, ++chunk);
-                FILE* g = FIO_CreateFile(chunk_filename);
-                if (!g) goto abort;
-                
-                file_hdr.fileNum = chunk;
-                written_chunk = write_mlv_chunk_headers(g);
-                written_total += written_chunk;
-                
-                if (written_chunk)
-                {
-                    FIO_CloseFile(f);
-                    f = g;
-                }
-                else
-                {
-                    FIO_CloseFile(g);
-                    FIO_RemoveFile(chunk_filename);
-                    chunk--;
-                    goto abort;
-                }
-            }
-            
-            int t0 = get_ms_clock_value();
-            if (!last_write_timestamp) last_write_timestamp = t0;
-            idle_time += t0 - last_write_timestamp;
-            int r = FIO_WriteFile(f, ptr, size_used);
-            last_write_timestamp = get_ms_clock_value();
-
-            if (r != size_used) /* 4GB limit or card full? */
-            {
-                /* failed, but not at 4GB limit, card must be full */
-                if (written_chunk + size_used < 0xFFFFFFFF || 
-                   (!file_size_limit && written_total > 0x3FFFFF))
-                {
-                    bmp_printf( FONT_MED, 30, 110, "Card Full");
-                    /* don't try and write the remaining frames, the card is full */
-                    writing_queue_head = writing_queue_tail;
-                    goto abort;
-                }
-                file_size_limit = 1;
-                
-                /* 5D2 does not write anything if the call failed, but 5D3 writes exactly 4294967295 */
-                /* We need to write a null block to cover to the end of the file if anything was written */
-                /* otherwise the file could end in the middle of a block */
-                int64_t pos = FIO_SeekSkipFile(f, 0, SEEK_CUR);
-                if (pos > written_chunk + 1)
-                {
-                    FIO_SeekSkipFile(f, written_chunk, SEEK_SET);
-                    mlv_hdr_t nul_hdr;
-                    mlv_set_type(&nul_hdr, "NULL");
-                    nul_hdr.blockSize = MAX(sizeof(nul_hdr), pos - written_chunk);
-                    FIO_WriteFile(f, &nul_hdr, sizeof(nul_hdr));
-                }
-                
-                /* try to create a new chunk */
-                chunk_filename = get_next_chunk_file_name(raw_movie_filename, ++chunk);
-                FILE* g = FIO_CreateFile(chunk_filename);
-                if (!g) goto abort;
-                
-                file_hdr.fileNum = chunk;
-                written_chunk = write_mlv_chunk_headers(g);
-                written_total += written_chunk;
-                
-                int r2 = written_chunk ? FIO_WriteFile(g, ptr, size_used) : 0;
-                if (r2 == size_used) /* new chunk worked, continue with it */
-                {
-                    FIO_CloseFile(f);
-                    f = g;
-                    written_total += size_used;
-                    written_chunk += size_used;
-                }
-                else /* new chunk didn't work, card full */
-                {
-                    FIO_CloseFile(g);
-                    FIO_RemoveFile(chunk_filename);
-                    chunk--;
-                    goto abort;
-                }
-            }
-            else
-            {
-                /* all fine */
-                written_total += size_used;
-                written_chunk += size_used;
-            }
-            
-            writing_time += last_write_timestamp - t0;
+            goto abort;
         }
 
         /* for detecting early stops */
@@ -1808,7 +1820,6 @@ abort_and_check_early_stop:
     set_recording_custom(CUSTOM_RECORDING_NOT_RECORDING);
 
     /* write remaining frames */
-    /* fixme: what if the 4GB limit is reached here? */
     for (; writing_queue_head != writing_queue_tail; writing_queue_head = MOD(writing_queue_head + 1, COUNT(writing_queue)))
     {
         int slot_index = writing_queue[writing_queue_head];
@@ -1840,7 +1851,12 @@ abort_and_check_early_stop:
 
         slots[slot_index].status = SLOT_WRITING;
         if (indicator_display == INDICATOR_RAW_BUFFER) show_buffer_status();
-        written_total += FIO_WriteFile(f, slots[slot_index].ptr, frame_size);
+        if (!write_frames(&f, slots[slot_index].ptr, frame_size))
+        {
+            NotifyBox(5000, "Card Full");
+            beep();
+            break;
+        }
         slots[slot_index].status = SLOT_FREE;
     }
 
