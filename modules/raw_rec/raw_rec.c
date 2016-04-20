@@ -1454,6 +1454,8 @@ static int write_frames(FILE** pf, void* ptr, int size_used)
     if (file_size_limit && written_chunk + size_used > 0xFFFFFFFF)
     {
         chunk_filename = get_next_chunk_file_name(raw_movie_filename, ++mlv_chunk);
+        printf("About to reach 4GB limit.\n");
+        printf("Creating new chunk: %s\n", chunk_filename);
         FILE* g = FIO_CreateFile(chunk_filename);
         if (!g) return 0;
         
@@ -1463,11 +1465,13 @@ static int write_frames(FILE** pf, void* ptr, int size_used)
         
         if (written_chunk)
         {
+            printf("Success!\n");
             FIO_CloseFile(f);
             *pf = f = g;
         }
         else
         {
+            printf("New chunk didn't work. Card full?\n");
             FIO_CloseFile(g);
             FIO_RemoveFile(chunk_filename);
             mlv_chunk--;
@@ -1483,10 +1487,13 @@ static int write_frames(FILE** pf, void* ptr, int size_used)
 
     if (r != size_used) /* 4GB limit or card full? */
     {
+        printf("Write error.\n");
+        
         /* failed, but not at 4GB limit, card must be full */
         if (written_chunk + size_used < 0xFFFFFFFF || 
            (!file_size_limit && written_total > 0x3FFFFF))
         {
+            printf("Failed before 4GB limit. Card full?\n");
             /* don't try and write the remaining frames, the card is full */
             writing_queue_head = writing_queue_tail;
             return 0;
@@ -1500,6 +1507,7 @@ static int write_frames(FILE** pf, void* ptr, int size_used)
         int64_t pos = FIO_SeekSkipFile(f, 0, SEEK_CUR);
         if (pos > written_chunk + 1)
         {
+            printf("Covering incomplete block.\n");
             FIO_SeekSkipFile(f, written_chunk, SEEK_SET);
             mlv_hdr_t nul_hdr;
             mlv_set_type(&nul_hdr, "NULL");
@@ -1509,6 +1517,7 @@ static int write_frames(FILE** pf, void* ptr, int size_used)
         
         /* try to create a new chunk */
         chunk_filename = get_next_chunk_file_name(raw_movie_filename, ++mlv_chunk);
+        printf("Creating new chunk: %s\n", chunk_filename);
         FILE* g = FIO_CreateFile(chunk_filename);
         if (!g) return 0;
         
@@ -1519,6 +1528,7 @@ static int write_frames(FILE** pf, void* ptr, int size_used)
         int r2 = written_chunk ? FIO_WriteFile(g, ptr, size_used) : 0;
         if (r2 == size_used) /* new chunk worked, continue with it */
         {
+            printf("Success!\n");
             FIO_CloseFile(f);
             *pf = f = g;
             written_total += size_used;
@@ -1526,6 +1536,7 @@ static int write_frames(FILE** pf, void* ptr, int size_used)
         }
         else /* new chunk didn't work, card full */
         {
+            printf("New chunk didn't work. Card full?\n");
             FIO_CloseFile(g);
             FIO_RemoveFile(chunk_filename);
             mlv_chunk--;
