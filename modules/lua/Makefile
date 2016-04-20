@@ -78,6 +78,11 @@ dietlibc.a: $(DIET_OBJ)
 install::
 	$(INSTALL_ALL_SCRIPTS)
 
+# run "make install_extra" to copy scripts from the extra dir
+# into the main scripts dir on the card, so they autostart
+install_extra: install
+	$(CP) $(SCRIPT_DIR)/extra/*.lua $(INSTALL_SCRIPTS_DIR)
+
 # run a syntax check after compiling
 all:: syntax_check.log
 
