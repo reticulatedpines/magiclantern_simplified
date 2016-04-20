@@ -1452,7 +1452,7 @@ static void raw_video_rec_task()
     buffer_full = 0;
     FILE* f = 0;
     written = 0; /* in KB */
-    uint32_t written_chunk = 0; /* in bytes, for current chunk */
+    int64_t written_chunk = 0; /* in bytes, for current chunk */
     int last_block_size = 0; /* for detecting early stops */
     static int file_size_limit = 0; /* have we run into the 4GB limit? */
     
@@ -1634,7 +1634,7 @@ static void raw_video_rec_task()
         if (1)
         {
             /* if we know there's a 4GB file size limit and we're about to exceed it, go ahead and make a new chunk */
-            if (file_size_limit && written_chunk > 0xFFFFFFFF - size_used)
+            if (file_size_limit && written_chunk + size_used > 0xFFFFFFFF)
             {
                 chunk_filename = get_next_chunk_file_name(raw_movie_filename, ++chunk);
                 FILE* g = FIO_CreateFile(chunk_filename);
@@ -1668,7 +1668,8 @@ static void raw_video_rec_task()
                 if (written == 0) goto abort;
 
                 /* failed, but not at 4GB limit, card must be full */
-                if(written_chunk < 0xFFFFFFFF - size_used || (!file_size_limit && written > 0x3FFFFF))
+                if (written_chunk + size_used < 0xFFFFFFFF || 
+                   (!file_size_limit && written > 0x3FFFFF))
                 {
                     bmp_printf( FONT_MED, 30, 110, "Card Full");
                     /* don't try and write the remaining frames, the card is full */
