@@ -1569,7 +1569,7 @@ static void raw_video_rec_task()
     FILE* bf = FIO_CreateFile(backup_filename);
     if (!bf)
     {
-        bmp_printf( FONT_MED, 30, 50, "File create error");
+        NotifyBox(5000, "File create error");
         goto cleanup;
     }
     FIO_WriteFile(bf, (void*)0x40000000, 512*1024);
@@ -1582,14 +1582,14 @@ static void raw_video_rec_task()
     f = FIO_CreateFile(raw_movie_filename);
     if (!f)
     {
-        bmp_printf( FONT_MED, 30, 50, "File create error");
+        NotifyBox(5000, "File create error");
         goto cleanup;
     }
     init_mlv_chunk_headers(&raw_info);
     written_total = written_chunk = write_mlv_chunk_headers(f);
     if (!written_chunk)
     {
-        bmp_printf( FONT_MED, 30, 50, "File header write error");
+        NotifyBox(5000, "Card Full");
         goto cleanup;
     }
     
