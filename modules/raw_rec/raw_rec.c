@@ -1490,8 +1490,7 @@ static int write_frames(FILE** pf, void* ptr, int size_used)
         printf("Write error.\n");
         
         /* failed, but not at 4GB limit, card must be full */
-        if (written_chunk + size_used < 0xFFFFFFFF || 
-           (!file_size_limit && written_total > 0x3FFFFF))
+        if (written_chunk + size_used < 0xFFFFFFFF)
         {
             printf("Failed before 4GB limit. Card full?\n");
             /* don't try and write the remaining frames, the card is full */
