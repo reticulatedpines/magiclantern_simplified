@@ -1563,19 +1563,6 @@ static void raw_video_rec_task()
     int powersave_prohibit = 2;
     prop_request_change(PROP_ICU_AUTO_POWEROFF, &powersave_prohibit, 4);
 
-    /* create a backup file, to make sure we can save the file footer even if the card is full */
-    char backup_filename[100];
-    snprintf(backup_filename, sizeof(backup_filename), "%s/backup.raw", get_dcim_dir());
-    FILE* bf = FIO_CreateFile(backup_filename);
-    if (!bf)
-    {
-        NotifyBox(5000, "File create error");
-        goto cleanup;
-    }
-    FIO_WriteFile(bf, (void*)0x40000000, 512*1024);
-    FIO_CloseFile(bf);
-    
-    
     /* create output file */
     raw_movie_filename = get_next_raw_movie_file_name();
     chunk_filename = raw_movie_filename;
@@ -1860,10 +1847,6 @@ abort_and_check_early_stop:
         slots[slot_index].status = SLOT_FREE;
     }
 
-    /* remove the backup file, to make sure we can save the footer even if card is full */
-    FIO_RemoveFile(backup_filename);
-    msleep(500);
-
     if (!written_total || !f)
     {
         bmp_printf( FONT_MED, 30, 110, 
@@ -1880,7 +1863,6 @@ cleanup:
         FIO_RemoveFile(raw_movie_filename);
         raw_movie_filename = 0;
     }
-    FIO_RemoveFile(backup_filename);
 
     /* everything saved, we can unlock the buttons.
      * note: freeing SRM memory will also touch uilocks,
