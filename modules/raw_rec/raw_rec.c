@@ -196,7 +196,6 @@ static char* chunk_filename = 0;                  /* file name for current movie
 static uint32_t written = 0;                      /* how many KB we have written in this movie */
 static int writing_time = 0;                      /* time spent by raw_video_rec_task in FIO_WriteFile calls */
 static int idle_time = 0;                         /* time spent by raw_video_rec_task doing something else */
-static volatile int writing_task_busy = 0;        /* busy: in the middle of a write operation */
 static volatile int frame_countdown = 0;          /* for waiting X frames */
 
 
@@ -1449,7 +1448,6 @@ static void raw_video_rec_task()
     slot_count = 0;
     capture_slot = -1;
     fullsize_buffer_pos = 0;
-    writing_task_busy = 0;
     frame_count = 0;
     buffer_full = 0;
     FILE* f = 0;
@@ -1635,8 +1633,6 @@ static void raw_video_rec_task()
 
         if (1)
         {
-            writing_task_busy = 1;
-            
             /* if we know there's a 4GB file size limit and we're about to exceed it, go ahead and make a new chunk */
             if (file_size_limit && written_chunk > 0xFFFFFFFF - size_used)
             {
@@ -1726,7 +1722,6 @@ static void raw_video_rec_task()
             }
             
             writing_time += last_write_timestamp - t0;
-            writing_task_busy = 0;
         }
 
         /* for detecting early stops */
