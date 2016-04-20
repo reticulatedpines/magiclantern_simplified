@@ -4,6 +4,7 @@
 // console
 void console_show();
 void console_hide();
+void console_clear();
 
 void console_draw_from_menu();
 

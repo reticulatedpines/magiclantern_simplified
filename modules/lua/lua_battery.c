@@ -76,6 +76,16 @@ static int luaCB_battery_newindex(lua_State * L)
     return 0;
 }
 
+static const char * lua_battery_fields[] =
+{
+    "level",
+    "id",
+    "performance",
+    "time",
+    "drain_rate",
+    NULL
+};
+
 static const luaL_Reg batterylib[] =
 {
     { NULL, NULL }

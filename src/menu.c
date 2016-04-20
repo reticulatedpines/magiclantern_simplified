@@ -5604,7 +5604,7 @@ end:
 int menu_get_value_from_script(const char* name, const char* entry_name)
 {
     struct menu_entry * entry = entry_find_by_name(name, entry_name);
-    if (!entry) { printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
+    if (!entry) { printf("Menu not found: %s -> %s\n", name, entry_name); return 0; }
     
     return CURRENT_VALUE;
 }
@@ -5612,7 +5612,7 @@ int menu_get_value_from_script(const char* name, const char* entry_name)
 char* menu_get_str_value_from_script(const char* name, const char* entry_name)
 {
     struct menu_entry * entry = entry_find_by_name(name, entry_name);
-    if (!entry) { printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
+    if (!entry) { printf("Menu not found: %s -> %s\n", name, entry_name); return 0; }
 
     // this won't work with ML menu on (race condition)
     static struct menu_display_info info;
@@ -5624,7 +5624,7 @@ char* menu_get_str_value_from_script(const char* name, const char* entry_name)
 int menu_set_str_value_from_script(const char* name, const char* entry_name, char* value, int value_int)
 {
     struct menu_entry * entry = entry_find_by_name(name, entry_name);
-    if (!entry) { printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
+    if (!entry) { printf("Menu not found: %s -> %s\n", name, entry_name); return 0; }
 
     // we will need exclusive access to menu_display_info
     take_semaphore(menu_sem, 0);
@@ -5680,7 +5680,7 @@ ok:
 int menu_set_value_from_script(const char* name, const char* entry_name, int value)
 {
     struct menu_entry * entry = entry_find_by_name(name, entry_name);
-    if (!entry) { printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
+    if (!entry) { printf("Menu not found: %s -> %s\n", name, entry_name); return 0; }
     
     if( entry->select ) // special item, we need some heuristics
     {

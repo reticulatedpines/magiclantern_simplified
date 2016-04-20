@@ -224,7 +224,13 @@ void force_liveview()
 void close_liveview()
 {
     if (lv)
-        fake_simple_button(BGMT_LV);
+    {
+        /* in photo mode, just exit LiveView by "pressing" the LiveView button */
+        /* in movie mode, pressing LiveView would start recording,
+         * so go to PLAY mode instead */
+        fake_simple_button(is_movie_mode() ? BGMT_PLAY : BGMT_LV);
+        msleep(1000);
+    }
 }
 
 static CONFIG_INT("shutter.lock", shutter_lock, 0);

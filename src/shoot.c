@@ -3185,56 +3185,6 @@ static void focus_ramp_step()
 
 #endif // FEATURE_FOCUS_RAMPING
 
-int expo_value_rounding_ok(int raw, int is_aperture)
-{
-    if (is_aperture)
-        if (raw == lens_info.raw_aperture_min || raw == lens_info.raw_aperture_max) return 1;
-    
-    int r = ABS(raw) % 8;
-    if (r != 0 && r != 4 && r != 3 && r != 5)
-        return 0;
-    return 1;
-}
-
-int round_shutter(int tv, int slowest_shutter)
-{
-    int tvr;
-    tv = MIN(tv, FASTEST_SHUTTER_SPEED_RAW);
-    tvr = MAX(tv    , slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
-    tvr = MAX(tv - 1, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
-    tvr = MAX(tv + 1, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
-    tvr = MAX(tv - 2, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
-    tvr = MAX(tv + 2, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
-    tvr = MAX(tv + 3, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
-    tvr = MAX(tv + 4, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
-    return 0;
-}
-
-int round_aperture(int av)
-{
-    int avr;
-    avr = COERCE(av    , lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
-    avr = COERCE(av - 1, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
-    avr = COERCE(av + 1, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
-    avr = COERCE(av - 2, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
-    avr = COERCE(av + 2, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
-    avr = COERCE(av + 3, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
-    avr = COERCE(av + 4, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
-    return 0;
-}
-
-int round_expo_comp(int ae)
-{
-    int aer;
-    aer = COERCE(ae    , -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
-    aer = COERCE(ae - 1, -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
-    aer = COERCE(ae + 1, -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
-    aer = COERCE(ae - 2, -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
-    aer = COERCE(ae - 3, -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
-    aer = COERCE(ae - 4, -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
-    return 0;
-}
-
 #ifdef FEATURE_EXPO_LOCK
 
 static CONFIG_INT("expo.lock", expo_lock, 0);
@@ -4746,7 +4696,7 @@ static int hdr_shutter_release(int ev_x8)
         {
             ev_x8 = hdr_iso_shift(ev_x8);
             int fae0 = lens_info.flash_ae;
-            ans = hdr_set_flash_ae(fae0 + ev_x8);
+            ans = hdr_set_flash_ae(fae0 + ev_x8) == 1;
             take_a_pic(AF_DONT_CHANGE);
             hdr_set_flash_ae(fae0);
             hdr_iso_shift_restore();
@@ -4755,7 +4705,7 @@ static int hdr_shutter_release(int ev_x8)
         else if (hdr_type == 2) // aperture
         {
             ev_x8 = COERCE(-ev_x8, lens_info.raw_aperture_min - av0, lens_info.raw_aperture_max - av0);
-            ans = hdr_set_rawaperture(av0 + ev_x8);
+            ans = hdr_set_rawaperture(av0 + ev_x8) == 1;
             if (!manual) ev_x8 = 0; // no need to compensate, Canon meter does it
             // don't return, do the normal exposure bracketing
         }
@@ -4766,7 +4716,7 @@ static int hdr_shutter_release(int ev_x8)
     {
         hdr_iso_shift(ev_x8); // don't change the EV value
         int ae0 = lens_info.ae;
-        ans = MIN(ans, hdr_set_ae(ae0 + ev_x8));
+        ans &= (hdr_set_ae(ae0 + ev_x8) == 1);
         take_a_pic(AF_DONT_CHANGE);
         hdr_set_ae(ae0);
         hdr_iso_shift_restore();
@@ -4820,7 +4770,7 @@ static int hdr_shutter_release(int ev_x8)
             #if defined(CONFIG_5D2) || defined(CONFIG_50D)
             if (get_expsim() == 2) { set_expsim(1); msleep(300); } // can't set shutter slower than 1/30 in movie mode
             #endif
-            ans = MIN(ans, hdr_set_rawshutter(rc));
+            ans &= (hdr_set_rawshutter(rc) == 1);
             take_a_pic(AF_DONT_CHANGE);
         }
         

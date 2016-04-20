@@ -33,23 +33,40 @@ static int luaCB_console_hide(lua_State * L)
 }
 
 /***
+ Clear the console contents
+ @function clear
+ */
+static int luaCB_console_clear(lua_State * L)
+{
+    console_clear();
+    return 0;
+}
+
+/***
  Write some text to the console
  @tparam string text the text to write
  @function write
  */
 static int luaCB_console_write(lua_State * L)
 {
-    if(lua_isstring(L, 1)) puts(lua_tostring(L, 1));
+    if(lua_isstring(L, 1)) printf("%s",lua_tostring(L, 1));
     return 0;
 }
 
 static int luaCB_console_index(lua_State * L) { lua_rawget(L, 1); return 1; }
 static int luaCB_console_newindex(lua_State * L) { lua_rawset(L, 1); return 0; }
 
+
+static const char * lua_console_fields[] =
+{
+    NULL
+};
+
 static const luaL_Reg consolelib[] =
 {
     { "show", luaCB_console_show },
     { "hide", luaCB_console_hide },
+    { "clear", luaCB_console_clear },
     { "write", luaCB_console_write },
     { NULL, NULL }
 };

@@ -1380,4 +1380,11 @@ ST_FUNC void tcc_set_num_callers(int n);
 /* stderr depends on _impure_ptr, and it looks complicated */
 #define fprintf(stderr, ...) printf(# __VA_ARGS__)
 
+/* hacked I/O functions from tcc-glue.c */
+#define open _tcc_open
+#define close _tcc_close
+#define read _tcc_read
+#define lseek _tcc_lseek
+#define exit _tcc_exit
+
 #endif /* _TCC_H */

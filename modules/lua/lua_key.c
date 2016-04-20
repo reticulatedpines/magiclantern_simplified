@@ -82,6 +82,12 @@ static int luaCB_key_newindex(lua_State * L)
     return 0;
 }
 
+static const char * lua_key_fields[] =
+{
+    "last",
+    NULL
+};
+
 const luaL_Reg keylib[] =
 {
     {"press", luaCB_key_press},

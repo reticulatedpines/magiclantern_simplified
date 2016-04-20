@@ -124,10 +124,6 @@ int is_continuous_drive();
 
 /* expo lock */
 void expo_lock_update_value();
-int round_expo_comp(int ae);
-int round_aperture(int av);
-int round_shutter(int tv, int slowest_shutter);
-int expo_value_rounding_ok(int raw, int is_aperture);
 
 /* to be refactored with CBRs (maybe with the lvinfo engine) */
 void iso_refresh_display();
