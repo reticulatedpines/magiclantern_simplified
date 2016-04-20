@@ -193,7 +193,7 @@ static int frame_count = 0;                       /* how many frames we have pro
 static int buffer_full = 0;                       /* true when the memory becomes full */
 char* raw_movie_filename = 0;                     /* file name for current (or last) movie */
 static char* chunk_filename = 0;                  /* file name for current movie chunk */
-static uint32_t written = 0;                      /* how many KB we have written in this movie */
+static int64_t written_total = 0;                 /* how many bytes we have written in this movie */
 static int writing_time = 0;                      /* time spent by raw_video_rec_task in FIO_WriteFile calls */
 static int idle_time = 0;                         /* time spent by raw_video_rec_task doing something else */
 static volatile int frame_countdown = 0;          /* for waiting X frames */
@@ -868,7 +868,7 @@ static void show_recording_status()
         int idle_percent=0;
         if (writing_time)
         {
-            speed = (int)((float)written / (float)writing_time * (1000.0f / 1024.0f * 100.0f)); // KiB and msec -> MiB/s x100
+            speed = (int)((float)written_total / (float)writing_time * (1000.0f / 1024.0f / 1024.0f * 100.0f)); // KiB and msec -> MiB/s x100
             idle_percent = idle_time * 100 / (writing_time + idle_time);
             measured_write_speed = speed;
             speed /= 10;
@@ -898,7 +898,7 @@ static void show_recording_status()
                 snprintf(msg, sizeof(msg),
                     "%s: %d MB, %d.%d MB/s",
                     chunk_filename + 17, /* skip A:/DCIM/100CANON/ */
-                    written / 1024,
+                    (int)(written_total / 1024 / 1024),
                     speed/10, speed%10
                 );
                 if (idle_time)
@@ -1451,7 +1451,7 @@ static void raw_video_rec_task()
     frame_count = 0;
     buffer_full = 0;
     FILE* f = 0;
-    written = 0; /* in KB */
+    written_total = 0; /* in bytes */
     int64_t written_chunk = 0; /* in bytes, for current chunk */
     int last_block_size = 0; /* for detecting early stops */
     static int file_size_limit = 0; /* have we run into the 4GB limit? */
@@ -1484,13 +1484,12 @@ static void raw_video_rec_task()
         goto cleanup;
     }
     init_mlv_chunk_headers(&raw_info);
-    written_chunk += write_mlv_chunk_headers(f);
+    written_total = written_chunk = write_mlv_chunk_headers(f);
     if (!written_chunk)
     {
         bmp_printf( FONT_MED, 30, 50, "File header write error");
         goto cleanup;
     }
-    written += 1;
     
     /* wait for two frames to be sure everything is refreshed */
     frame_countdown = 2;
@@ -1642,6 +1641,8 @@ static void raw_video_rec_task()
                 
                 file_hdr.fileNum = chunk;
                 written_chunk = write_mlv_chunk_headers(g);
+                written_total += written_chunk;
+                
                 if (written_chunk)
                 {
                     FIO_CloseFile(f);
@@ -1664,12 +1665,9 @@ static void raw_video_rec_task()
 
             if (r != size_used) /* 4GB limit or card full? */
             {
-                /* it failed right away? card must be full */
-                if (written == 0) goto abort;
-
                 /* failed, but not at 4GB limit, card must be full */
                 if (written_chunk + size_used < 0xFFFFFFFF || 
-                   (!file_size_limit && written > 0x3FFFFF))
+                   (!file_size_limit && written_total > 0x3FFFFF))
                 {
                     bmp_printf( FONT_MED, 30, 110, "Card Full");
                     /* don't try and write the remaining frames, the card is full */
@@ -1698,14 +1696,15 @@ static void raw_video_rec_task()
                 
                 file_hdr.fileNum = chunk;
                 written_chunk = write_mlv_chunk_headers(g);
+                written_total += written_chunk;
                 
                 int r2 = written_chunk ? FIO_WriteFile(g, ptr, size_used) : 0;
                 if (r2 == size_used) /* new chunk worked, continue with it */
                 {
                     FIO_CloseFile(f);
                     f = g;
-                    written += size_used / 1024;
-                    written_chunk += r2;
+                    written_total += size_used;
+                    written_chunk += size_used;
                 }
                 else /* new chunk didn't work, card full */
                 {
@@ -1718,7 +1717,7 @@ static void raw_video_rec_task()
             else
             {
                 /* all fine */
-                written += size_used / 1024;
+                written_total += size_used;
                 written_chunk += size_used;
             }
             
@@ -1809,6 +1808,7 @@ abort_and_check_early_stop:
     set_recording_custom(CUSTOM_RECORDING_NOT_RECORDING);
 
     /* write remaining frames */
+    /* fixme: what if the 4GB limit is reached here? */
     for (; writing_queue_head != writing_queue_tail; writing_queue_head = MOD(writing_queue_head + 1, COUNT(writing_queue)))
     {
         int slot_index = writing_queue[writing_queue_head];
@@ -1840,7 +1840,7 @@ abort_and_check_early_stop:
 
         slots[slot_index].status = SLOT_WRITING;
         if (indicator_display == INDICATOR_RAW_BUFFER) show_buffer_status();
-        written += FIO_WriteFile(f, slots[slot_index].ptr, frame_size) / 1024;
+        written_total += FIO_WriteFile(f, slots[slot_index].ptr, frame_size);
         slots[slot_index].status = SLOT_FREE;
     }
 
@@ -1848,7 +1848,7 @@ abort_and_check_early_stop:
     FIO_RemoveFile(backup_filename);
     msleep(500);
 
-    if (!(written && f))
+    if (!written_total || !f)
     {
         bmp_printf( FONT_MED, 30, 110, 
             "Nothing saved, card full maybe."
@@ -1859,7 +1859,11 @@ abort_and_check_early_stop:
 
 cleanup:
     if (f) FIO_CloseFile(f);
-    if (!written) { FIO_RemoveFile(raw_movie_filename); raw_movie_filename = 0; }
+    if (!written_total)
+    {
+        FIO_RemoveFile(raw_movie_filename);
+        raw_movie_filename = 0;
+    }
     FIO_RemoveFile(backup_filename);
 
     /* everything saved, we can unlock the buttons.
