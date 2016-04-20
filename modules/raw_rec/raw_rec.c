@@ -1429,7 +1429,16 @@ static int write_mlv_chunk_headers(FILE* f)
     if (FIO_WriteFile(f, &lens_hdr, lens_hdr.blockSize) != (int)lens_hdr.blockSize) return 0;
     if (FIO_WriteFile(f, &rtci_hdr, rtci_hdr.blockSize) != (int)rtci_hdr.blockSize) return 0;
     if (FIO_WriteFile(f, &wbal_hdr, wbal_hdr.blockSize) != (int)wbal_hdr.blockSize) return 0;
-    return sizeof(file_hdr) + sizeof(rawi_hdr) + sizeof(idnt_hdr) + sizeof(expo_hdr) + sizeof(lens_hdr) + sizeof(rtci_hdr) + sizeof(wbal_hdr);
+    int hdr_size = sizeof(file_hdr) + sizeof(rawi_hdr) + sizeof(idnt_hdr) + sizeof(expo_hdr) + sizeof(lens_hdr) + sizeof(rtci_hdr) + sizeof(wbal_hdr);
+    
+    /* insert a null block so the header size is multiple of 512 bytes */
+    mlv_hdr_t nul_hdr;
+    mlv_set_type(&nul_hdr, "NULL");
+    int padded_size = (hdr_size + sizeof(nul_hdr) + 511) & ~511;
+    nul_hdr.blockSize = padded_size - hdr_size;
+    if (FIO_WriteFile(f, &nul_hdr, nul_hdr.blockSize) != (int)nul_hdr.blockSize) return 0;
+    
+    return padded_size;
 }
 
 static void raw_video_rec_task()
