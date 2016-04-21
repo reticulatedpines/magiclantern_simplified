@@ -11,8 +11,8 @@ LUA_LIB_O= lua_globals.o lua_console.o lua_camera.o lua_lv.o lua_lens.o lua_movi
 
 # define the module name - make sure name is max 8 characters
 MODULE_NAME=lua
-MODULE_OBJS=$(LUA_SRC)/ml-lua-shim.o $(CORE_O) $(LIB_O) $(LUA_LIB_O) lua.o
-MODULE_CFLAGS += -DLUA_32BITS -DLUA_COMPAT_FLOATSTRING
+MODULE_OBJS=$(LUA_SRC)/ml-lua-shim.o $(CORE_O) $(LIB_O) $(LUA_LIB_O) lua.o dietlibc.a
+MODULE_CFLAGS += -DLUA_32BITS -DLUA_COMPAT_FLOATSTRING -Idietlibc/include/
 
 # include modules environment
 include $(TOP_DIR)/modules/Makefile.modules
@@ -23,9 +23,69 @@ include $(TOP_DIR)/modules/Makefile.modules
 lua.sym: lua.mo
 	$(call build,STRIP,$(READELF) -sW $< | grep GLOBAL | grep -v UND | grep -v COM | grep -v "__module_.*$(MODULE_NAME)" | $(AWK) "{print \$$8;}" | sort > localsyms)
 	$(call build,STRIP,$(OBJCOPY) lua.mo lua.mo --localize-symbols localsyms)
+	$(call rm_files, localsyms)
 	$(call build,EXPORTS,$(READELF) -sW $< | grep GLOBAL | grep -v UND | grep -v COM | grep -v "__module_.*$(MODULE_NAME)" | $(AWK) "{print \$$2 \" \" \$$8;}" | sort > $@ && cat $@)
+
+# Extract the stdio files that we need
+DIET_OBJ = \
+	fopen.o \
+	freopen.o \
+	fclose.o \
+	fread.o \
+	fwrite.o \
+	fseek.o \
+	ftell.o \
+	fprintf.o \
+	fflush.o \
+	feof.o \
+	fputs.o \
+	fgets.o \
+	fgetc_unlocked.o \
+	fputc_unlocked.o \
+	ungetc.o \
+	fdglue.o \
+	fdglue2.o \
+	setvbuf.o \
+	vfprintf.o \
+	__v_printf.o \
+	__ltostr.o \
+	printf.o \
+	vprintf.o \
+	stdin.o \
+	stdout.o \
+	stderr.o \
+	errno.o \
+	errno_location.o \
+	strerror.o \
+	ferror.o \
+	clearerr.o \
+	errlist.o \
+	errlistu.o \
+	strtol.o \
+	strtof.o \
+	strstr.o \
+	strspn.o \
+	strpbrk.o \
+	memchr.o \
+	localeconv.o \
+
+$(DIET_OBJ): $(DIETLIBC_A)
+	$(call build,AR,$(AR) x $? $(DIET_OBJ))
+
+dietlibc.a: $(DIET_OBJ)
+	$(call build,AR,$(AR) cr $@ $^)
 
 # also copy the scripts when running "make install" from the module directory
 install::
-	$(CP) $(SCRIPT_DIR)/*.lua $(INSTALL_SCRIPTS_DIR)/
-	$(CP) $(SCRIPT_LIB_DIR)/*.lua $(INSTALL_SCRIPTS_LIB_DIR)/
+	$(INSTALL_ALL_SCRIPTS)
+
+# run "make install_extra" to copy scripts from the extra dir
+# into the main scripts dir on the card, so they autostart
+install_extra: install
+	$(CP) $(SCRIPT_DIR)/extra/*.lua $(INSTALL_SCRIPTS_DIR)
+
+# run a syntax check after compiling
+all:: syntax_check.log
+
+syntax_check.log: $(shell find $(SCRIPT_DIR) -type f -name *.lua)
+	$(call build,LUAC,(for f in $^; do luac -p $$f || true; done) 2> syntax_check.log && cat syntax_check.log)

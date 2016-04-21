@@ -45,6 +45,7 @@
 #include "imgconv.h"
 #include "fps.h"
 #include "lvinfo.h"
+#include "powersave.h"
 
 #ifdef FEATURE_LCD_SENSOR_REMOTE
 #include "lcdsensor.h"
@@ -69,10 +70,8 @@ void display_trap_focus_info();
 void display_lcd_remote_icon(int x0, int y0);
 #endif
 void intervalometer_stop();
-void get_out_of_play_mode(int extra_wait);
 void wait_till_next_second();
 void zoom_sharpen_step();
-static void ensure_play_or_qr_mode_after_shot();
 int take_fast_pictures( int number );
 
 #if  !defined(AUDIO_REM_SHOT_POS_X) && !defined(AUDIO_REM_SHOT_POS_Y)
@@ -981,6 +980,7 @@ void center_lv_afframe_do()
         {
             /* center on the raw frame */
             raw_lv_request();
+            
             if (raw_update_params())
             {
                 int delta_x, delta_y;
@@ -1221,9 +1221,13 @@ void playback_compare_images_task(int dir)
 {
     ASSERT(set_maindial_sem);
     take_semaphore(set_maindial_sem, 0);
-
-    if (!PLAY_MODE) { fake_simple_button(BGMT_PLAY); msleep(500); }
-    if (!PLAY_MODE) { NotifyBox(1000, "CompareImages: Not in PLAY mode"); return; }
+    enter_play_mode();
+    
+    if (!PLAY_MODE)
+    {
+        NotifyBox(1000, "CompareImages: Not in PLAY mode");
+        return;
+    }
 
     if (dir == 0) // reserved for intervalometer
     {
@@ -1433,6 +1437,16 @@ void ensure_movie_mode()
     }
     if (!lv) force_liveview();
 #endif
+}
+
+void ensure_photo_mode()
+{
+    while (is_movie_mode())
+    {
+        NotifyBox(2000, "Please switch to photo mode.");
+        msleep(500);
+    }
+    msleep(500); 
 }
 
 #ifdef FEATURE_EXPO_ISO
@@ -2548,11 +2562,12 @@ static void zoom_auto_exposure_step()
     static int es = -1;
     // static int aem = -1;
     
-    if (lv && lv_dispsize > 1 && (!HALFSHUTTER_PRESSED || zoom_was_triggered_by_halfshutter) && !gui_menu_shown())
+    if (lv && lv_dispsize > 1 && !gui_menu_shown())
     {
         // photo mode: disable ExpSim
         // movie mode 5D2: disable ExpSim
-        // movie mode small cams: change PROP_AE_MODE_MOVIE
+        // movie mode small cams: not working (changing PROP_AE_MODE_MOVIE causes issues)
+        // note: turning off the tweak on half-shutter interferes with autofocus
         if (is_movie_mode())
         {
             #ifdef CONFIG_5D2
@@ -3001,6 +3016,7 @@ static MENU_UPDATE_FUNC(bulb_display)
             bulb_timer || interval_enabled ? "" : " (OFF)"
         );
         MENU_SET_WARNING(MENU_WARN_INFO, "Long exposure tools may use bulb timer value, even if BT is disabled.");
+        MENU_SET_RINFO(SYM_WARNING);
     }
 #endif
     
@@ -3151,7 +3167,7 @@ static void focus_ramp_step()
     {
         while (lens_info.job_state) msleep(100);
         msleep(300);
-        get_out_of_play_mode(500);
+        exit_play_qr_mode();
         if (!lv) 
         {
             msleep(500);
@@ -3168,56 +3184,6 @@ static void focus_ramp_step()
 }
 
 #endif // FEATURE_FOCUS_RAMPING
-
-int expo_value_rounding_ok(int raw, int is_aperture)
-{
-    if (is_aperture)
-        if (raw == lens_info.raw_aperture_min || raw == lens_info.raw_aperture_max) return 1;
-    
-    int r = ABS(raw) % 8;
-    if (r != 0 && r != 4 && r != 3 && r != 5)
-        return 0;
-    return 1;
-}
-
-int round_shutter(int tv, int slowest_shutter)
-{
-    int tvr;
-    tv = MIN(tv, FASTEST_SHUTTER_SPEED_RAW);
-    tvr = MAX(tv    , slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
-    tvr = MAX(tv - 1, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
-    tvr = MAX(tv + 1, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
-    tvr = MAX(tv - 2, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
-    tvr = MAX(tv + 2, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
-    tvr = MAX(tv + 3, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
-    tvr = MAX(tv + 4, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
-    return 0;
-}
-
-int round_aperture(int av)
-{
-    int avr;
-    avr = COERCE(av    , lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
-    avr = COERCE(av - 1, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
-    avr = COERCE(av + 1, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
-    avr = COERCE(av - 2, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
-    avr = COERCE(av + 2, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
-    avr = COERCE(av + 3, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
-    avr = COERCE(av + 4, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
-    return 0;
-}
-
-int round_expo_comp(int ae)
-{
-    int aer;
-    aer = COERCE(ae    , -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
-    aer = COERCE(ae - 1, -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
-    aer = COERCE(ae + 1, -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
-    aer = COERCE(ae - 2, -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
-    aer = COERCE(ae - 3, -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
-    aer = COERCE(ae - 4, -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
-    return 0;
-}
 
 #ifdef FEATURE_EXPO_LOCK
 
@@ -4730,7 +4696,7 @@ static int hdr_shutter_release(int ev_x8)
         {
             ev_x8 = hdr_iso_shift(ev_x8);
             int fae0 = lens_info.flash_ae;
-            ans = hdr_set_flash_ae(fae0 + ev_x8);
+            ans = hdr_set_flash_ae(fae0 + ev_x8) == 1;
             take_a_pic(AF_DONT_CHANGE);
             hdr_set_flash_ae(fae0);
             hdr_iso_shift_restore();
@@ -4739,7 +4705,7 @@ static int hdr_shutter_release(int ev_x8)
         else if (hdr_type == 2) // aperture
         {
             ev_x8 = COERCE(-ev_x8, lens_info.raw_aperture_min - av0, lens_info.raw_aperture_max - av0);
-            ans = hdr_set_rawaperture(av0 + ev_x8);
+            ans = hdr_set_rawaperture(av0 + ev_x8) == 1;
             if (!manual) ev_x8 = 0; // no need to compensate, Canon meter does it
             // don't return, do the normal exposure bracketing
         }
@@ -4750,7 +4716,7 @@ static int hdr_shutter_release(int ev_x8)
     {
         hdr_iso_shift(ev_x8); // don't change the EV value
         int ae0 = lens_info.ae;
-        ans = MIN(ans, hdr_set_ae(ae0 + ev_x8));
+        ans &= (hdr_set_ae(ae0 + ev_x8) == 1);
         take_a_pic(AF_DONT_CHANGE);
         hdr_set_ae(ae0);
         hdr_iso_shift_restore();
@@ -4804,7 +4770,7 @@ static int hdr_shutter_release(int ev_x8)
             #if defined(CONFIG_5D2) || defined(CONFIG_50D)
             if (get_expsim() == 2) { set_expsim(1); msleep(300); } // can't set shutter slower than 1/30 in movie mode
             #endif
-            ans = MIN(ans, hdr_set_rawshutter(rc));
+            ans &= (hdr_set_rawshutter(rc) == 1);
             take_a_pic(AF_DONT_CHANGE);
         }
         
@@ -4859,37 +4825,41 @@ static int hdr_check_cancel(int init)
     }
     return 0;
 }
-#endif // FEATURE_HDR_BRACKETING
 
 static void ensure_play_or_qr_mode_after_shot()
 {
+    /* wait until picture was captured */
     msleep(300);
-    while (!job_state_ready_to_take_pic()) msleep(100);
+    while (!job_state_ready_to_take_pic())
+    {
+        msleep(100);
+    }
     msleep(500);
-    #define QR_OR_PLAY (DISPLAY_IS_ON && (QR_MODE || PLAY_MODE))
+
+    /* wait for Canon code to go into either QR/PLAY mode,
+     * or back to the shooting screen (LiveView or not) */
     for (int i = 0; i < 20; i++)
     {
         msleep(100);
-        if (QR_OR_PLAY)
+        if (PLAY_OR_QR_MODE && DISPLAY_IS_ON)
             break;
         if (display_idle())
             break;
     }
     
-    if (!QR_OR_PLAY) // image review disabled?
+    /* image review disabled? */
+    if (!PLAY_OR_QR_MODE)
     {
-        while (!job_state_ready_to_take_pic()) msleep(100);
-        fake_simple_button(BGMT_PLAY);
-        for (int i = 0; i < 50; i++)
+        /* check this one once again, just in case */
+        while (!job_state_ready_to_take_pic())
         {
             msleep(100);
-            if (PLAY_MODE) break;
         }
-        msleep(1000);
+        
+        /* force PLAY mode */
+        enter_play_mode();
     }
 }
-
-#ifdef FEATURE_HDR_BRACKETING
 
 static void hdr_check_for_under_or_over_exposure(int* under, int* over)
 {
@@ -4900,7 +4870,6 @@ static void hdr_check_for_under_or_over_exposure(int* under, int* over)
         return;
     }
     
-    //~ if (!silent_pic_enabled)
     ensure_play_or_qr_mode_after_shot();
 
     int under_numpix, over_numpix;
@@ -5215,20 +5184,53 @@ void schedule_movie_start() { movie_start_flag = 1; }
 static int movie_end_flag = 0;
 void schedule_movie_end() { movie_end_flag = 1; }
 
-void get_out_of_play_mode(int extra_wait)
+/* exit from PLAY or QR modes (to LiveView or plain photo mode) */
+void exit_play_qr_mode()
 {
-    if (gui_state == GUISTATE_QR)
+    /* not there? */
+    if (!PLAY_OR_QR_MODE) return;
+
+    /* request new mode */
+    SetGUIRequestMode(0);
+    
+    /* wait up to 2 seconds */
+    for (int i = 0; i < 20 && PLAY_MODE; i++)
     {
-        fake_simple_button(BGMT_PLAY);
-        msleep(200);
-        fake_simple_button(BGMT_PLAY);
+        msleep(100);
     }
-    else if (PLAY_MODE) 
+    
+    /* wait a little extra for the new mode to settle */
+    msleep(200);
+    
+    /* if in LiveView, wait for the first frame */
+    if (lv)
     {
-        fake_simple_button(BGMT_PLAY);
+        wait_lv_frames(1);
     }
-    while (PLAY_MODE) msleep(100);
-    msleep(extra_wait);
+}
+
+/* enter PLAY mode */
+void enter_play_mode()
+{
+    if (PLAY_MODE) return;
+    
+    /* request new mode */
+    SetGUIRequestMode(DLG_PLAY);
+
+    /* wait up to 2 seconds to enter the PLAY mode */
+    for (int i = 0; i < 20 && !PLAY_MODE; i++)
+    {
+        msleep(100);
+    }
+
+    /* also wait for display to come up, up to 1 second */
+    for (int i = 0; i < 10 && !DISPLAY_IS_ON; i++)
+    {
+        msleep(100);
+    }
+    
+    /* wait a little extra for the new mode to settle */
+    msleep(200);
 }
 
 // take one shot, a sequence of HDR shots, or start a movie
@@ -6301,7 +6303,7 @@ shoot_task( void* unused )
                 
                 if (PLAY_MODE && SECONDS_ELAPSED >= image_review_time)
                 {
-                    get_out_of_play_mode(0);
+                    exit_play_qr_mode();
                 }
 
                 if (lens_info.job_state == 0 && liveview_display_idle() && intervalometer_running && !display_turned_off)
@@ -6314,10 +6316,8 @@ shoot_task( void* unused )
             if (interval_stop_after && (int)intervalometer_pictures_taken >= (int)(interval_stop_after))
                 intervalometer_stop();
 
-            if (PLAY_MODE) get_out_of_play_mode(500);
+            if (PLAY_MODE) exit_play_qr_mode();
             
-            if (LV_PAUSED) ResumeLiveView();
-
             if (!intervalometer_running) continue; // back to start of shoot_task loop
             if (gui_menu_shown() || get_halfshutter_pressed()) continue;
 

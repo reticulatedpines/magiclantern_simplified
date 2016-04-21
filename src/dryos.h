@@ -127,7 +127,6 @@ LoadCalendarFromRTC(
 );
 
 extern void DryosDebugMsg(int,int,const char *,...);
-//~ #define DebugMsg(a,b,fmt,...) { console_printf(fmt "\n", ## __VA_ARGS__); DryosDebugMsg(a,b,fmt, ## __VA_ARGS__); }
 
 /** custom functions */
 // group starts from 0, number starts from 1
@@ -165,6 +164,7 @@ extern int call( const char* name, ... );
 // stdio
 extern int vsnprintf( char* str, size_t n, const char* fmt, va_list ap ); // non-standard; don't export it
 extern int printf(const char* fmt, ... );
+extern int puts(const char* s);
 
 extern size_t strlen( const char* str );
 extern int snprintf( char* str, size_t n, const char* fmt, ... );

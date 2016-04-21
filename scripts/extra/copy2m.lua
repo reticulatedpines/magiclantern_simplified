@@ -74,21 +74,21 @@ end
 
 copy2m_menu = menu.new
 {
-    parent = "Prefs",
-    name = "Copy To M",
-    help = "Copy exposure settings when switching to M",
-    choices = {"Off","On"},
-    value = "Off"
+    parent  = "Prefs",
+    name    = "Copy To M",
+    help    = "Copy exposure settings when switching to M",
+    choices = {"OFF","ON"},
+    value   = "OFF"
 }
 
 function copy2m_menu:select(delta)
-    if self.value == "Off" then self.value = "On" else self.value = "Off" end
+    if self.value == "OFF" then self.value = "ON" else self.value = "OFF" end
     copy2m_update(self.value)
 end
 
 --start/stop the prop handlers to enable/disable this script's functionality
 function copy2m_update(value)
-    if value == "On" then
+    if value == "ON" then
         shutter_value:enable()
         aperture_value:enable()
         iso_value:enable()

@@ -15,7 +15,9 @@
 require("keys")
 
 --printf
-function printf(...) console.write(string.format(...)) end
+function printf(...)
+    io.write(string.format(...))
+end
 
 -- http://www.sokobano.de/wiki/index.php?title=Sok_format
 
@@ -105,6 +107,11 @@ maze6 = {
     "  #  ###",
     "  ####  "
 };
+
+-- global variables
+maze = nil
+LINES = nil
+COLUMNS = nil
 
 function string_to_table(str)
     local t = {}
@@ -274,6 +281,11 @@ function victory()
     beep();
     draw_maze();
     display.print("YOU WIN :)", 300, 200, FONT.LARGE );
+    
+    local level_menu = sokoban_menu.submenu["Level"]
+    if level_menu.value < level_menu.max then
+        level_menu.value = level_menu.value + 1
+    end
 end
 
 function split_target()
@@ -406,8 +418,9 @@ end
 
 sokoban_menu = menu.new
 {
-    parent = "Games",
-    name = "Sokoban",
+    parent  = "Games",
+    name    = "Sokoban",
+    help    = "A simple game in Lua",
     submenu = 
     {
         {

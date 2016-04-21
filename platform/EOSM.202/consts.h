@@ -138,12 +138,12 @@
 #define AF_BTN_HALFSHUTTER 0
 #define AF_BTN_STAR 1
 
-	#define IMGPLAY_ZOOM_LEVEL_ADDR (0x51E28) // dec GuiImageZoomDown and look for a negative counter
-	#define IMGPLAY_ZOOM_LEVEL_MAX 14
-	#define IMGPLAY_ZOOM_POS_X MEM(0x8D38C) // CentrePos
-	#define IMGPLAY_ZOOM_POS_Y MEM(0x8D390)
-	#define IMGPLAY_ZOOM_POS_X_CENTER 360
-	#define IMGPLAY_ZOOM_POS_Y_CENTER 240
+#define IMGPLAY_ZOOM_LEVEL_ADDR (0x519CC) // dec GuiImageZoomDown and look for a negative counter
+#define IMGPLAY_ZOOM_LEVEL_MAX 14
+#define IMGPLAY_ZOOM_POS_X MEM(0x8CF1C) // CentrePos
+#define IMGPLAY_ZOOM_POS_Y MEM(0x8CF20)
+//~ #define IMGPLAY_ZOOM_POS_X_CENTER 360
+//~ #define IMGPLAY_ZOOM_POS_Y_CENTER 240
 
     #define BULB_EXPOSURE_CORRECTION 150 // min value for which bulb exif is OK [not tested]
 

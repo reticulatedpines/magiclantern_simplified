@@ -346,7 +346,7 @@ void prop_request_change(unsigned property, const void* addr, size_t len)
 
 ok:
     (void)0;
-    //~ console_printf("prop:%x data:%x len:%x\n", property, MEM(addr), len);
+    //~ printf("prop:%x data:%x len:%x\n", property, MEM(addr), len);
 
     /* call Canon stub */
     extern void _prop_request_change(unsigned property, const void* addr, size_t len);

@@ -16,13 +16,11 @@ all::
 %.s: %.c
 	$(call build,CC -S,$(CC) $(CFLAGS) -S -o $@ $<)
 %.sym: %
-	$(call build,SYMBOLS,$(READELF) -sW $< | $(GREP) GLOBAL | $(GREP) -E 'FUNC|OBJECT|ABS|NOTYPE' | $(AWK) "{print \$$2 \" \" \$$8;}" | $(GREP) -v '^ ' | $(GREP) -v __config_ | $(GREP) -v -E ' _[a-zA-Z]' | sort > $@)
+	$(call build,SYMBOLS,$(READELF) -sW $< | $(GREP) GLOBAL | $(GREP) -v " UND " | $(GREP) -E 'FUNC|OBJECT|ABS|NOTYPE' | $(AWK) "{print \$$2 \" \" \$$8;}" | $(GREP) -v '^ ' | $(GREP) -v __config_ | $(GREP) -v -E ' _[a-zA-Z]' | sort > $@)
 %.o: $(PLATFORM_DIR)/%.c
 	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
 %.o: $(SRC_DIR)/%.c
 	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
-%.o: $(PICOC_PATH)/%.c
-	$(call build,CC,$(CC) $(CFLAGS) -c -mthumb -fwhole-program -o $@ $<)
 %.i: %.c
 	$(call build,CPP,$(CC) $(CFLAGS) -E -c -o $@ $<)
 %: %.c

@@ -22,13 +22,20 @@ static int luaCB_directory_newindex(lua_State * L);
 
 /***
  Calls an eventproc (a function from the camera firmware which can be called by name).
- See Eventprocs. Dangerous.
+ See Eventprocs. Dangerous - you need to compile Lua yourself in order to enable it.
  @tparam string function the name of the function to call
  @param[opt] arg argument to pass to the call
  @function call
  */
 static int luaCB_dryos_call(lua_State * L)
 {
+#if 1
+    return luaL_error(L,
+        "dryos.call() is disabled for safety reasons.\n"
+        "If you know what you are doing, just remove this message and recompile.\n"
+    );
+#endif
+
     LUA_PARAM_STRING(function_name, 1);
     int result = 0;
     int argc = lua_gettop(L);
@@ -56,6 +63,27 @@ static int luaCB_dryos_call(lua_State * L)
     lua_pushinteger(L, result);
     return 1;
 }
+
+const char * lua_dryos_directory_fields[] =
+{
+    "exists",
+    "create",
+    "children",
+    "files",
+    "parent",
+    NULL
+};
+
+const char * lua_dryos_card_fields[] =
+{
+    "cluster_size",
+    "drive_letter",
+    "file_number",
+    "folder_number",
+    "free_space",
+    "type",
+    NULL
+};
 
 /***
  Creates a @{directory} object that is used to get information about a directory
@@ -94,12 +122,29 @@ static int luaCB_dryos_directory(lua_State * L)
         lua_pushvalue(L, 1);
     }
     lua_setfield(L, -2, "path");
+    lua_newtable(L);
     lua_pushcfunction(L, luaCB_directory_index);
     lua_setfield(L, -2, "__index");
     lua_pushcfunction(L, luaCB_directory_newindex);
     lua_setfield(L, -2, "__newindex");
-    lua_pushvalue(L, -1);
+    lua_pushcfunction(L, luaCB_pairs);
+    lua_setfield(L, -2, "__pairs");
+    lua_pushlightuserdata(L, lua_dryos_directory_fields);
+    lua_setfield(L, -2, "fields");
     lua_setmetatable(L, -2);
+    return 1;
+}
+
+/***
+ Deletes a file from the card.
+ @tparam string filename
+ @treturn bool success
+ @function remove
+ */
+static int luaCB_dryos_remove(lua_State * L)
+{
+    LUA_PARAM_STRING(filename, 1);
+    lua_pushboolean(L, FIO_RemoveFile(filename) == 0);
     return 1;
 }
 
@@ -131,8 +176,8 @@ static int luaCB_dryos_index(lua_State * L)
     // @tfield directory dcim_dir
     else if(!strcmp(key, "dcim_dir"))
     {
+        lua_pushcfunction(L, luaCB_dryos_directory);
         lua_pushstring(L, get_dcim_dir());
-        lua_pushstring(L, get_config_dir());
         lua_call(L, 1, 1);
     }
     /// Get the ML config directory
@@ -154,11 +199,15 @@ static int luaCB_dryos_index(lua_State * L)
         lua_setfield(L, -2, "_card_ptr");
         lua_pushfstring(L, "%s:/", card->drive_letter);
         lua_setfield(L, -2, "path");
+        lua_newtable(L);
         lua_pushcfunction(L, luaCB_card_index);
         lua_setfield(L, -2, "__index");
         lua_pushcfunction(L, luaCB_card_newindex);
         lua_setfield(L, -2, "__newindex");
-        lua_pushvalue(L, -1);
+        lua_pushcfunction(L, luaCB_pairs);
+        lua_setfield(L, -2, "__pairs");
+        lua_pushlightuserdata(L, lua_dryos_card_fields);
+        lua_setfield(L, -2, "fields");
         lua_setmetatable(L, -2);
     }
     /// Get the shooting card
@@ -172,18 +221,21 @@ static int luaCB_dryos_index(lua_State * L)
         lua_setfield(L, -2, "_card_ptr");
         lua_pushfstring(L, "%s:/", card->drive_letter);
         lua_setfield(L, -2, "path");
+        lua_newtable(L);
         lua_pushcfunction(L, luaCB_card_index);
         lua_setfield(L, -2, "__index");
         lua_pushcfunction(L, luaCB_card_newindex);
         lua_setfield(L, -2, "__newindex");
-        lua_pushvalue(L, -1);
+        lua_pushcfunction(L, luaCB_pairs);
+        lua_setfield(L, -2, "__pairs");
+        lua_pushlightuserdata(L, lua_dryos_card_fields);
+        lua_setfield(L, -2, "fields");
         lua_setmetatable(L, -2);
     }
     /// Gets a table representing the current date/time
     // @tfield date date
     else if(!strcmp(key, "date"))
     {
-        
         /// Represents a date/time
         // @type date
         struct tm tm;
@@ -354,7 +406,7 @@ static int luaCB_directory_index(lua_State * L)
     else if(!strcmp(key, "parent"))
     {
         size_t len = strlen(path);
-        if (len > 0 && path[len - 1] == '/')
+        if ((len > 3 || ((len == 2 || len == 3) && path[1] != ':')) && path[len - 1] == '/')
         {
             char * parent_path = copy_string(path);
             parent_path[len - 1] = 0x0;
@@ -426,10 +478,24 @@ static int luaCB_card_newindex(lua_State * L)
     return luaL_error(L, "'card' type is readonly");
 }
 
+static const char * lua_dryos_fields[] =
+{
+    "clock",
+    "ms_clock",
+    "prefix",
+    "dcim_dir",
+    "config_dir",
+    "ml_card",
+    "shooting_card",
+    "date",
+    NULL
+};
+
 const luaL_Reg dryoslib[] =
 {
     {"call", luaCB_dryos_call},
     {"directory", luaCB_dryos_directory},
+    {"remove", luaCB_dryos_remove},
     {NULL, NULL}
 };
 

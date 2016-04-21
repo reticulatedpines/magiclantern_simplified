@@ -75,6 +75,7 @@ NSTUB(0xFF0DF594,  gui_main_task)
 
 /** ASIF **/
 NSTUB(0xFF142D60,  PowerAudioOutput)
+NSTUB(0xFF11CD44,  SetASIFMode)
 NSTUB(0xFF11E9EC,  SetAudioVolumeIn)                        // SetVolumeIn(alc, L, R)
 NSTUB(0xFF11EA20,  SetAudioVolumeOut)                       // 1 <= int volume <= ASIF_MAX_VOL
 NSTUB(0xFF11D0E4,  SetNextASIFADCBuffer)
@@ -86,7 +87,6 @@ NSTUB(0xFF11C5C8,  StartASIFDMAADC)
 NSTUB(0xFF11C99C,  StartASIFDMADAC)
 NSTUB(0xFF11C874,  StopASIFDMAADC)
 NSTUB(0xFF11CC1C,  StopASIFDMADAC)
-NSTUB(0xFF11CD44,  SetASIFMode)
 
 /** Audio **/
 NSTUB(   0x75330,  sounddev)
@@ -94,6 +94,7 @@ NSTUB(0xFF142608, _audio_ic_read)
 NSTUB(0xFF1422A8, _audio_ic_write_bulk)                     // SerialCommanSend(int *array)
 NSTUB(0xFF9D08A4,  audio_thresholds)
 NSTUB(0xFF11E244,  sounddev_task)
+// NSTUB(    ???, _audio_ic_write)                          /* present on 550D.109, EOSM.202, 60D.111, 7D.203, 600D.102, 1100D.105, 5D3.113, 500D.111, 5D2.212, 650D.104, 700D.114 */
 // NSTUB(    ???,  sounddev_active_in)                      /* present on 7D.203, 500D.111, 60D.111, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
 
 /** Bitmap **/
@@ -133,6 +134,7 @@ NSTUB(0xFF3A195C,  PlayMain_handler)
 NSTUB(0xFF5593B4,  PlayMovieGuideApp_handler)
 NSTUB(0xFF53A39C,  ShootOlcApp_handler)                     // AJ_DIALOG.HANDLER_DlgShootOlcInfo.c
 // NSTUB(    ???,  LiveViewApp_handler_end)                 /* present on 60D.111, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
+// NSTUB(    ???,  LiveViewLevelApp_handler)                /* present on 5D3.113 */
 // NSTUB(    ???,  LiveViewWbApp_handler)                   /* present on 7D.203, 5D3.113, 5D2.212 */
 // NSTUB(    ???,  StartPlayProtectGuideApp)                /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  StopPlayProtectGuideApp)                 /* present on 7D.203, 5D2.212 */
@@ -183,8 +185,8 @@ NSTUB(0xFF14A580,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFFCDD8E4 - RAM_OFFSET,  GetFirstChunkFromSuite)
 NSTUB(0xFFCDD2BC - RAM_OFFSET,  GetMemoryAddressOfMemoryChunk)
 NSTUB(0xFFCDE080 - RAM_OFFSET,  GetNextMemoryChunk)
-NSTUB(0xFF0F0090,  SRM_AllocateMemoryResourceFor1stJob)		// 6D.116: also seems to be at 0x00FE0FC8
-NSTUB(0xFF0F40C0,  SRM_FreeMemoryResourceFor1stJob)			// 6D.116: also seems to be at 0x00FE4FF8
+NSTUB(0xFF0F0090,  SRM_AllocateMemoryResourceFor1stJob)     // 6D.116: also seems to be at 0x00FE0FC8
+NSTUB(0xFF0F40C0,  SRM_FreeMemoryResourceFor1stJob)         // 6D.116: also seems to be at 0x00FE4FF8
 
 /** GUI for old cameras **/
 // NSTUB(    ???,  gui_change_lcd_state_post)               /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
@@ -212,8 +214,8 @@ NSTUB(   0x7AEDC,  mvr_config)
 // NSTUB(    ???,  mvrSetGopOptSizeFULLHD)                  /* present on 600D.102, 550D.109, 1100D.105 */
 
 /** Interrupts **/
-NSTUB(0xFFD4660C - RAM_OFFSET,  post_isr_hook)				// unsure: how to find those?
-NSTUB(0xFFD46608 - RAM_OFFSET,  pre_isr_hook)				// unsure: how to find those?
+NSTUB(0xFFD4660C - RAM_OFFSET,  post_isr_hook)              // unsure: how to find those?
+NSTUB(0xFFD46608 - RAM_OFFSET,  pre_isr_hook)               // unsure: how to find those?
 // NSTUB(    ???,  isr_table_handler)                       /* present on 7D_MASTER.203 */
 // NSTUB(    ???,  isr_table_param)                         /* present on 7D_MASTER.203 */
 
@@ -225,6 +227,7 @@ NSTUB(0xFFD46608 - RAM_OFFSET,  pre_isr_hook)				// unsure: how to find those?
 NSTUB(   0x8D6A4,  sd_device)
 NSTUB(0xFF654F88,  fsuDecodePartitionTable)                 // AJ_fsuGetPart_related
 // NSTUB(    ???,  cf_device)                               /* present on 7D.203, 500D.111, 60D.111, 50D.109, 5D2.212, 550D.109, 1100D.105 */
+// NSTUB(    ???,  cf_device_ptr)                           /* present on 5D3.113 */
 
 /** Memory allocation **/
 NSTUB(0xFFCDBE54 - RAM_OFFSET,  GetMemoryInformation)
@@ -248,7 +251,6 @@ NSTUB(0xFF292A10,  ptp_register_handler)
 // NSTUB(    ???,  ptpPropSetUILock)                        /* present on 650D.104, 700D.113 */
 
 /** Properties **/
-NSTUB(0xFF1319C4,  PROPAD_GetPropertyData)                  // str:SearchFromProperty
 NSTUB(0xFF1303B4, _prop_cleanup)
 NSTUB(0xFF12FD6C, _prop_request_change)
 NSTUB(0xFF1302E8,  prop_deliver)
@@ -321,6 +323,7 @@ NSTUB(0xFFD09CDC - RAM_OFFSET,  vsnprintf)
 ///NSTUB(0xFF31E2EC,  MuteOff_0)
 ///NSTUB(0xFF31E2A4,  MuteOn_0)
 ///NSTUB(0xFF10ACAC,  PD_RemoteRelease)                        // string: "COM_RemoteRelease:%lx, %lx"
+///NSTUB(0xFF1319C4,  PROPAD_GetPropertyData)                  // str:SearchFromProperty
 ///NSTUB(0xFF1304DC,  PROP_GetMulticastProperty)
 ///NSTUB(0xFF612998,  PackMem_PopEDmacForMemorySuite)
 ///NSTUB(0xFF612BA0,  PackMem_RegisterEDmacAbortCBRForMemorySuite)
