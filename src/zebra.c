@@ -173,7 +173,7 @@ static CONFIG_INT("disp.mode.x", disp_mode_x, 1);
 static CONFIG_INT( "transparent.overlay", transparent_overlay, 0);
 static CONFIG_INT( "transparent.overlay.x", transparent_overlay_offx, 0);
 static CONFIG_INT( "transparent.overlay.y", transparent_overlay_offy, 0);
-static CONFIG_INT( "transparent.overlay.autoupd", transparent_overlay_auto_update, 1);
+static CONFIG_INT( "transparent.overlay.autoupd", transparent_overlay_auto_update, 0);
 static int transparent_overlay_hidden = 0;
 
 static CONFIG_INT( "global.draw",   global_draw, 3 );
@@ -3848,30 +3848,6 @@ clearscreen_loop:
         idle_led_blink_step(k);
 
         if (!lv && !lv_paused) continue;
-
-        // especially for 50D
-        #ifdef CONFIG_KILL_FLICKER
-        if (kill_canon_gui_mode == 1)
-        {
-            if (ZEBRAS_IN_LIVEVIEW && !gui_menu_shown())
-            {
-                int idle = liveview_display_idle() && lv_disp_mode == 0;
-                if (idle)
-                {
-                    if (!canon_gui_front_buffer_disabled())
-                        idle_kill_flicker();
-                }
-                else
-                {
-                    if (canon_gui_front_buffer_disabled())
-                        idle_stop_killing_flicker();
-                }
-                static int prev_idle = 0;
-                if (!idle && prev_idle != idle) redraw();
-                prev_idle = idle;
-            }
-        }
-        #endif
         
         #ifdef FEATURE_CLEAR_OVERLAYS
         if (clearscreen == 3)
@@ -3972,18 +3948,26 @@ BMP_LOCK (
 
         if (dialog && MEM(dialog->type) == DLG_SIGNATURE) // if dialog seems valid
         {
-            #ifdef CONFIG_KILL_FLICKER
             // to redraw, we need access to front buffer
-            int d = canon_gui_front_buffer_disabled();
-            canon_gui_enable_front_buffer(0);
-            #endif
+            int front_buffer_disabled = canon_gui_front_buffer_disabled();
+            if (front_buffer_disabled)
+            {
+                /* temporarily enable front buffer to allow the redraw */
+                canon_gui_enable_front_buffer(0);
+            }
             
             dialog_redraw(dialog); // try to redraw (this has semaphores for winsys)
             
-            #ifdef CONFIG_KILL_FLICKER
-            // restore things back
-            if (d) idle_kill_flicker();
-            #endif
+            if (front_buffer_disabled)
+            {
+                /* disable it back */
+                
+                #ifdef CONFIG_KILL_FLICKER
+                idle_kill_flicker();
+                #else
+                canon_gui_disable_front_buffer();
+                #endif
+            }
         }
         else
         {
@@ -4045,6 +4029,7 @@ static void digic_zebra_cleanup()
     if (zebra_digic_dirty)
     {
         if (!DISPLAY_IS_ON) return;
+        beep();
         EngDrvOut(DIGIC_ZEBRA_REGISTER, 0); 
         clrscr_mirror();
         alter_bitmap_palette_entry(FAST_ZEBRA_GRID_COLOR, FAST_ZEBRA_GRID_COLOR, 256, 256);
@@ -4641,14 +4626,16 @@ static void show_overlay()
 
 static void transparent_overlay_from_play()
 {
-    if (!PLAY_MODE) { fake_simple_button(BGMT_PLAY); msleep(1000); }
+    /* go to play mode if not already there */
+    enter_play_mode();
+    
+    /* create overlay from current image */
     make_overlay();
-    get_out_of_play_mode(500);
-    msleep(500);
-    if (!lv) { force_liveview(); msleep(500); }
-    msleep(1000);
-    BMP_LOCK( show_overlay(); )
-    //~ transparent_overlay = 1;
+
+    /* go to LiveView */
+    force_liveview();
+    
+    /* the overlay will now be displayed from cropmarks.c */
 }
 
 PROP_HANDLER(PROP_LV_ACTION)
@@ -4669,7 +4656,9 @@ PROP_HANDLER(PROP_LV_ACTION)
 
 void peaking_benchmark()
 {
-    int lv0 = lv;
+    int old_lv = lv;
+    int old_peaking = focus_peaking;
+    focus_peaking = 1;
     msleep(1000);
     fake_simple_button(BGMT_PLAY);
     msleep(2000);
@@ -4682,5 +4671,6 @@ void peaking_benchmark()
     int b = get_seconds_clock();
     NotifyBox(10000, "%d seconds => %d fps", b-a, 1000 / (b-a));
     beep();
-    lv = lv0;
+    lv = old_lv;
+    focus_peaking = old_peaking;
 }

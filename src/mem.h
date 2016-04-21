@@ -24,7 +24,7 @@ extern void __mem_free( void * buf);
 
 /* this may be reused by other code */
 /* warning: not thread safe (but it's OK to use it in menu) */
-const char * format_memory_size( unsigned size); /* e.g. 2.0GB, 32MB, 2.4kB... */
+const char * format_memory_size(uint64_t size); /* e.g. 2.0GB, 32MB, 2.4kB... */
 
 #ifndef NO_MALLOC_REDIRECT
 

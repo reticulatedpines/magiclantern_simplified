@@ -154,7 +154,6 @@
     //~ #define FEATURE_INTERVALOMETER_MOVIE // will be moved to scripts
 
 #ifdef CONFIG_PROP_REQUEST_CHANGE
-    #define FEATURE_FOCUS_RAMPING
     #define FEATURE_BULB_TIMER
     #define FEATURE_BULB_TIMER_SHOW_PREVIOUS_PIC   /* previous picture during exposure */
 #endif

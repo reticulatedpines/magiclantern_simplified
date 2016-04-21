@@ -3,11 +3,12 @@ Benchmarks
 
 Benchmarks (speed tests):
 
-- card benchmark
-- memory benchmark
+- card benchmarks
+- memory benchmarks
 - various feature benchmarks
 
-The card benchmarks are especially important for RAW video recording.
+In particular, the quick card benchmark is useful
+for diagnosing speed issues when recording RAW video.
 
 :Author: a1ex
 :License: GPL

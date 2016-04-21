@@ -30,33 +30,6 @@ void powersave_permit()
     prop_request_change(PROP_ICU_AUTO_POWEROFF, &powersave_permit, 4);
 }
 
-struct cbr
-{
-    void (*user_routine)();
-    int argument;
-};
-
-static void task_without_powersave(struct cbr * cbr)
-{
-    powersave_prohibit();
-    cbr->user_routine(cbr->argument);
-    free(cbr);
-    powersave_permit();
-}
-
-/* run something in new task, with powersave disabled */
-void run_in_separate_task(void* routine, int argument)
-{
-    gui_stop_menu();
-    if (!routine) return;
-    
-    struct cbr * cbr = malloc(sizeof(struct cbr));
-    cbr->user_routine = routine;
-    cbr->argument = argument;
-    task_create("run_test", 0x1a, 0x8000, task_without_powersave, cbr);
-}
-
-
 /* Paused LiveView */
 /* =============== */
 
@@ -70,10 +43,11 @@ void PauseLiveView() // this should not include "display off" command
     if (MENU_MODE) return;
     if (LV_NON_PAUSED)
     {
+        //~ ASSERT(DISPLAY_IS_ON);
         int x = 1;
         BMP_LOCK(
             lv_zoom_before_pause = lv_dispsize;
-            prop_request_change(PROP_LV_ACTION, &x, 4);
+            prop_request_change_wait(PROP_LV_ACTION, &x, 4, 1000);
             msleep(100);
             clrscr();
             lv_paused = 1;
@@ -95,9 +69,8 @@ int ResumeLiveView()
     {
         int x = 0;
         BMP_LOCK(
-            prop_request_change(PROP_LV_ACTION, &x, 4);
-            int iter = 10; while (!lv && iter--) msleep(100);
-            iter = 10; while (!DISPLAY_IS_ON && iter--) msleep(100);
+            prop_request_change_wait(PROP_LV_ACTION, &x, 4, 1000);
+            int iter = 10; while (!DISPLAY_IS_ON && iter--) msleep(100);
         )
         while (sensor_cleaning) msleep(100);
         if (lv) set_lv_zoom(lv_zoom_before_pause);
@@ -171,9 +144,12 @@ static int idle_countdown_display_off_prev = 50;
 static int idle_countdown_globaldraw_prev = 50;
 static int idle_countdown_clrscr_prev = 50;
 
+/* this will block all Canon drawing routines when the camera is idle */
+/* (workaround for 50D) */
 #ifdef CONFIG_KILL_FLICKER
 static int idle_countdown_killflicker = 5;
 static int idle_countdown_killflicker_prev = 5;
+extern int kill_canon_gui_mode;
 #endif
 
 int idle_is_powersave_enabled()
@@ -404,7 +380,27 @@ void idle_globaldraw_en()
 }
 
 #ifdef CONFIG_KILL_FLICKER
-static void idle_kill_flicker()
+
+static void black_bars_50D()
+{
+    if (!get_global_draw()) return;
+    if (!is_movie_mode()) return;
+    get_yuv422_vram();
+    if (video_mode_resolution > 1)
+    {
+        bmp_fill(COLOR_BLACK, os.x0, os.y0, os.off_43, os.y_ex);
+        bmp_fill(COLOR_BLACK, os.x_max - os.off_43, os.y0, os.off_43, os.y_ex);
+    }
+    else
+    {
+        bmp_fill(COLOR_BLACK, os.x0, os.y0, os.x_ex, os.off_169);
+        bmp_fill(COLOR_BLACK, os.x0, os.y_max - os.off_169, os.x_ex, os.off_169);
+    }
+}
+
+
+/* also called from _redraw_do */
+void idle_kill_flicker()
 {
     if (!canon_gui_front_buffer_disabled())
     {
@@ -413,7 +409,7 @@ static void idle_kill_flicker()
         clrscr();
         if (is_movie_mode())
         {
-            black_bars_16x9();
+            black_bars_50D();
             if (RECORDING) {
                 fill_circle(os.x_max - 12, os.y0 + 28, 10, COLOR_RED);
             }
@@ -473,9 +469,32 @@ void idle_powersave_step()
         idle_action_do(&idle_countdown_clrscr, &idle_countdown_clrscr_prev, idle_bmp_off, idle_bmp_on);
     
     #ifdef CONFIG_KILL_FLICKER
-    if (kill_canon_gui_mode == 2) // LV transparent menus and key presses
+    /* see ZEBRAS_IN_LIVEVIEW in zebra.c */
+    int zebras_in_liveview = get_global_draw_setting() & 1;
+    
+    if (kill_canon_gui_mode == 1)
     {
-        if (ZEBRAS_IN_LIVEVIEW && !gui_menu_shown() && lv_disp_mode == 0)
+        if (zebras_in_liveview && !gui_menu_shown())
+        {
+            int idle = liveview_display_idle() && lv_disp_mode == 0;
+            if (idle)
+            {
+                if (!canon_gui_front_buffer_disabled())
+                    idle_kill_flicker();
+            }
+            else
+            {
+                if (canon_gui_front_buffer_disabled())
+                    idle_stop_killing_flicker();
+            }
+            static int prev_idle = 0;
+            if (!idle && prev_idle != idle) redraw();
+            prev_idle = idle;
+        }
+    }
+    else if (kill_canon_gui_mode == 2) // LV transparent menus and key presses
+    {
+        if (zebras_in_liveview && !gui_menu_shown() && lv_disp_mode == 0)
             idle_action_do(&idle_countdown_killflicker, &idle_countdown_killflicker_prev, idle_kill_flicker, idle_stop_killing_flicker);
     }
     #endif

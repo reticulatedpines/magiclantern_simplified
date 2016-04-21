@@ -1,105 +1,236 @@
 #include "ml-lua-shim.h"
 #include <math.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <fio-ml.h>
+#include <errno.h>
 
-int my_getc(FILE * stream)
+#undef DEBUG
+
+#ifdef DEBUG
+#define dbg_printf(fmt,...) { char msg[256]; snprintf(msg, sizeof(msg), fmt, ## __VA_ARGS__); console_puts(msg); }
+#else
+#define dbg_printf(fmt,...) {}
+#endif
+
+/* note: this does not add newline */
+void console_puts(const char* str);
+
+extern const char * format_memory_size( unsigned size); /* e.g. 2.0GB, 32MB, 2.4kB... */
+
+static uint64_t filesizes[16] = {0};
+
+/* fixme: FIO functions actually return int, not FILE* */
+
+int __libc_open(const char * fn, int flags, ...)
 {
-    int c = 0;
-    if(FIO_ReadFile(stream, &c, 1) == 1)
+    dbg_printf("__libc_open(%s, %x) => ", fn, flags);
+
+    /* get file size first, since we'll get asked about it later via stat */
+    /* fixme: this routine appears to return 32-bit size only */
+    uint32_t filesize = 0;
+    if (FIO_GetFileSize(fn, &filesize) != 0)
     {
-        return c;
-    }
-    else
-    {
-        return EOF;
-    }
-}
-
-FILE * my_fopen(const char * filename, const char * mode)
-{
-    if(mode == NULL) return NULL;
-    if(mode[0] == 'r' && mode[1] == '+') return FIO_OpenFile(filename, O_RDWR | O_SYNC);
-    else if(mode[0] == 'r') return FIO_OpenFile(filename, O_RDONLY | O_SYNC);
-    else if(mode[0] == 'w') return FIO_CreateFile(filename);
-    else if(mode[0] == 'a') return FIO_CreateFileOrAppend(filename);
-    else return NULL;
-}
-
-FILE * my_freopen(const char * filename, const char * mode, FILE * f)
-{
-    FIO_CloseFile(f);
-    return my_fopen(filename, mode);
-}
-
-int my_fclose(FILE * stream)
-{
-    FIO_CloseFile(stream);
-    return 0;
-}
-
-int my_ferror(FILE * stream)
-{
-    return 0; //thou shalt not have file errors :P
-}
-
-int my_feof(FILE * stream)
-{
-    int c = 0;
-    if(FIO_ReadFile(stream, &c, 1) == 1)
-    {
-        FIO_SeekSkipFile(stream, -1, SEEK_CUR);
-        return 0;
-    }
-    else
-    {
-        return 1;
-    }
-}
-
-int do_nothing()
-{
-    return 0;
-}
-
-char * my_fgets(char * str, int num, FILE * stream )
-{
-    int i = 0;
-    for(i = 0; i < num; i++)
-    {
-        int c = my_getc(stream);
-        if(c == EOF) break;
-        str[i] = c;
-        if(c == '\n' || c == '\r')
+        if (!(flags & O_CREAT))
         {
-            i++;
-            break;
+            dbg_printf("ERR_SIZE\n");
+            errno = ENOENT;
+            return -1;
         }
     }
-    str[i] = 0x0;
-    return str;
+    
+    /* not sure if correct */
+    int fd = 
+        (flags & O_CREAT) && (flags & O_APPEND) ?
+            (int) FIO_CreateFileOrAppend(fn) :
+        (flags & O_CREAT) ?
+            (int) FIO_CreateFile(fn) :
+            (int) FIO_OpenFile(fn, flags);
+
+    if (!fd)
+    {
+        dbg_printf("ERR_OPEN\n");
+        errno = ENOENT;
+        return -1;
+    }
+    
+    if (fd <= STDERR_FILENO || fd > 0x10)
+    {
+        fprintf(stderr, "fixme: invalid file descriptor (%d)\n", fd);
+        FIO_CloseFile((void*)fd);
+        errno = ENOENT;
+        return -1;
+    }
+    
+    filesizes[fd & 0xF] = filesize;
+    
+    dbg_printf("%d\n", fd);
+    return fd;
 }
 
-FILE * my_tmpfile()
+int __libc_close(int fd)
 {
-    //TODO: implement this?
-    return NULL;
+    dbg_printf("__libc_close(%d)\n", fd);
+
+    switch (fd)
+    {
+        case STDIN_FILENO:
+        case STDOUT_FILENO:
+        case STDERR_FILENO:
+            /* closing standard I/O streams is not supported */
+            errno = ENOTSUP;
+            return -1;
+        
+        case STDERR_FILENO+1 ... 15:
+            filesizes[fd] = 0;
+            FIO_CloseFile((void*)fd);
+            return 0;
+        
+        default:
+            errno = EINVAL;
+            return -1;
+    }
 }
 
-int my_ungetc(int character, FILE * stream)
+ssize_t __libc_read(int fd, void* buf, size_t count)
 {
-    //this is not really correct
-    FIO_SeekSkipFile(stream, -1, SEEK_CUR);
-    return character;
+    dbg_printf("__libc_read(%d,%s)\n", fd, format_memory_size(count));
+
+    switch (fd)
+    {
+        case STDIN_FILENO:
+            /* todo: read from IME? */
+            errno = ENOSYS;
+            return -1;
+        
+        case STDOUT_FILENO:
+        case STDERR_FILENO:
+            /* idk */
+            errno = ENOTSUP;
+            return -1;
+        
+        default:
+            return FIO_ReadFile((void*) fd, buf, count);
+    }
 }
 
-char* my_getenv(const char* name)
+ssize_t __libc_write(int fd, const void* buf, size_t count)
+{
+    dbg_printf("__libc_write(%d,%s)\n", fd, format_memory_size(count));
+    
+    switch (fd)
+    {
+        case STDIN_FILENO:
+            /* idk */
+            errno = ENOTSUP;
+            return -1;
+        
+        case STDOUT_FILENO:
+        case STDERR_FILENO:
+        {
+            if (fd == STDERR_FILENO)
+            {
+                /* pop the console on error */
+                console_show();
+            }
+            
+            /* the buffer is not null-terminated */
+            char* msg = (char*) buf;
+            int last_char = msg[count-1];
+            msg[count-1] = 0;
+            console_puts(msg);
+            console_puts((char*) &last_char);
+            
+            return count;
+        }
+        default:
+            return FIO_WriteFile((void*) fd, buf, count);
+    }
+}
+
+ssize_t write(int fd , const void* buf, size_t count)
+{
+    return __libc_write(fd, buf, count);
+}
+
+off_t lseek(int fd, off_t offset, int whence)
+{
+    dbg_printf("lseek(%d,%d,%d)\n", fd, offset, whence);
+    return FIO_SeekSkipFile((void*) fd, offset, whence);
+}
+
+int fstat(int fd, struct stat * buf)
+{
+    /* fixme: dummy implementation */
+    dbg_printf("fstat(%d,%x) size=%d\n", fd, buf, filesizes[fd & 0xF]);
+    memset(buf, 0, sizeof(*buf));
+    if (fd == (fd & 0xF))
+    {
+        buf->st_size = filesizes[fd & 0xF];
+    }
+    return 0;
+}
+
+int __rt_sigprocmask(int how, void* set, void* oldsetm, long nr)
+{
+    /* idk what I'm supposed to do here */
+    printf("__rt_sigprocmask\n");
+    return 0;
+}
+
+int isatty(int desc)
+{
+    return desc == STDIN_FILENO  ||
+           desc == STDOUT_FILENO ||
+           desc == STDERR_FILENO ;
+}
+
+char* getenv(const char* name)
 {
     //ML doesn't have environment variables
     return NULL;
 }
 
-void my_abort()
+void __thread_doexit(int doexit)
+{
+    printf("__thread_doexit(%d)\n", doexit);
+}
+
+int atexit(void (*f)(void))
+{
+    printf("atexit(%x)\n", f);
+    return 0;
+}
+
+FILE* tmpfile(void)
+{
+    printf("tmpfile\n");
+    return 0;
+}
+
+extern void * __mem_malloc( size_t len, unsigned int flags, const char *file, unsigned int line);
+extern void __mem_free( void * buf);
+
+void* malloc(size_t size)
+{
+    /* this appears to be called only from dietlibc stdio
+     * if it has round values, assume it's fio_malloc, for buffering files */
+    int is_fio = !(size & 0xFF);
+    dbg_printf("%smalloc(%s)\n", is_fio ? "fio_" : "", format_memory_size(size));
+    return __mem_malloc(size, is_fio ? 3 : 0, "lua_stdio", 0);
+}
+
+void free(void* ptr)
+{
+    __mem_free(ptr);
+}
+
+void abort()
 {
     //what should we do here?
+    printf("abort\n");
+    while(1);
 }
 
 //taken from: http://stackoverflow.com/questions/2302969/how-to-implement-char-ftoafloat-num-without-sprintf-library-function-i
@@ -177,96 +308,4 @@ int ftoa(char *s, float n) {
         *(c) = '\0';
     }
     return strlen(s);
-}
-
-//from dietlibc
-
-char *my_strpbrk(const char *s, const char *accept) {
-    if(!s || !accept) return NULL;
-    register unsigned int i;
-    for (; *s; s++)
-        for (i=0; accept[i]; i++)
-            if (*s == accept[i])
-                return (char*)s;
-    return 0;
-}
-
-float my_strtof(const char* s, char** endptr) {
-    register const char*  p     = s;
-    register float        value = 0.;
-    int                   sign  = +1;
-    float                 factor;
-    unsigned int          expo;
-    
-    while ( isspace(*p) )
-        p++;
-    
-    switch (*p) {
-        case '-': sign = -1;
-        case '+': p++;
-        default : break;
-    }
-    
-    while ( (unsigned int)(*p - '0') < 10u )
-        value = value*10 + (*p++ - '0');
-    
-    if ( *p == '.' ) {
-        factor = 1.;
-        
-        p++;
-        while ( (unsigned int)(*p - '0') < 10u ) {
-            factor *= 0.1;
-            value  += (*p++ - '0') * factor;
-        }
-    }
-    
-    if ( (*p | 32) == 'e' ) {
-        expo   = 0;
-        factor = 10.L;
-        
-        switch (*++p) {                 // ja hier weiﬂ ich nicht, was mindestens nach einem 'E' folgenden MUSS.
-            case '-': factor = 0.1;
-            case '+': p++;
-                break;
-            case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
-                break;
-            default : value = 0.L;
-                p     = s;
-                goto done;
-        }
-        
-        while ( (unsigned int)(*p - '0') < 10u )
-            expo = 10 * expo + (*p++ - '0');
-        
-        while ( 1 ) {
-            if ( expo & 1 )
-                value *= factor;
-            if ( (expo >>= 1) == 0 )
-                break;
-            factor *= factor;
-        }
-    }
-    
-done:
-    if ( endptr != NULL )
-        *endptr = (char*)p;
-    
-    return value * sign;
-}
-
-#define __expect(foo,bar) __builtin_expect((long)(foo),bar)
-#define __likely(foo) __expect((foo),1)
-char *my_strstr(const char *haystack, const char *needle) {
-    size_t nl=strlen(needle);
-    size_t hl=strlen(haystack);
-    size_t i;
-    if (!nl) goto found;
-    if (nl>hl) return 0;
-    for (i=hl-nl+1; __likely(i); --i) {
-        if (*haystack==*needle && !memcmp(haystack,needle,nl))
-            found:
-            return (char*)haystack;
-        ++haystack;
-    }
-    return 0;
 }

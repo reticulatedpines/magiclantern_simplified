@@ -81,9 +81,15 @@ static char* print_benchmark_header()
 static void card_benchmark_run(int full_test)
 {
     msleep(1000);
-    if (!display_is_on()) { SetGUIRequestMode(DLG_PLAY); msleep(1000); }
 
-    NotifyBox(2000, "%s Card benchmark (1 GB)...", get_ml_card()->type);
+    if (!lv)
+    {
+        /* run the benchmark in either LV on PLAY mode */
+        /* (photo mode is not very interesting) */
+        enter_play_mode();
+    }
+
+    NotifyBox(2000, "%s Card benchmark (1 GB)...", get_shooting_card()->type);
     msleep(3000);
     canon_gui_disable_front_buffer();
     clrscr();
@@ -159,7 +165,12 @@ static void twocard_write_task(char* filename)
 static void twocard_benchmark_task()
 {
     msleep(1000);
-    if (!display_is_on()) { SetGUIRequestMode(DLG_PLAY); msleep(1000); }
+
+    if (!lv)
+    {
+        enter_play_mode();
+    }
+
     canon_gui_disable_front_buffer();
     clrscr();
     print_benchmark_header();
@@ -194,7 +205,12 @@ static void twocard_benchmark_task()
 static void card_bufsize_benchmark_task()
 {
     msleep(1000);
-    if (!display_is_on()) { SetGUIRequestMode(DLG_PLAY); msleep(1000); }
+
+    if (!lv)
+    {
+        enter_play_mode();
+    }
+
     canon_gui_disable_front_buffer();
     clrscr();
 

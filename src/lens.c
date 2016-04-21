@@ -195,6 +195,67 @@ int raw2iso(int raw_iso)
     return iso;
 }
 
+int expo_value_rounding_ok(int raw, int is_aperture)
+{
+    if (is_aperture)
+    {
+        /* exception: aperture limits are allowed, even if they are not multiples of 1/2 or 1/3 EV */
+        if (raw == lens_info.raw_aperture_min || raw == lens_info.raw_aperture_max)
+            return 1;
+    }
+    
+    int r = ABS(raw) % 8;
+    if (r != 0 && r != 3 && r != 4 && r != 5)
+        return 0;
+    return 1;
+}
+
+int round_shutter(int tv, int slowest_shutter)
+{
+    int tvr;
+    tv = MIN(tv, FASTEST_SHUTTER_SPEED_RAW);
+
+    /* note: it's possible to get a valid shutter just by altering the requested value by 1 */
+    tvr = MAX(tv    , slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
+    tvr = MAX(tv - 1, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
+    tvr = MAX(tv + 1, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
+    return 0;
+}
+
+int round_aperture(int av)
+{
+    int avr;
+
+    /* note: if we don't hit the limits, we can find a valid aperture just by altering the requested value by 1 */
+    /* but if we do hit them... surprises may happen :) */
+    avr = COERCE(av    , lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
+    avr = COERCE(av - 1, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
+    avr = COERCE(av + 1, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
+    avr = COERCE(av - 2, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
+    avr = COERCE(av + 2, lens_info.raw_aperture_min, lens_info.raw_aperture_max); if (expo_value_rounding_ok(avr, 1)) return avr;
+    return 0;
+}
+
+int round_expo_comp(int ae)
+{
+    int aer;
+    /* note: it's possible to get a valid exposure compensation just by altering the requested value by 1 */
+    aer = COERCE(ae    , -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
+    aer = COERCE(ae - 1, -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
+    aer = COERCE(ae + 1, -MAX_AE_EV * 8, MAX_AE_EV * 8); if (expo_value_rounding_ok(aer, 0)) return aer;
+    return 0;
+}
+
+int round_flash_expo_comp(int fec)
+{
+    int fecr;
+    /* note: it's possible to get a valid exposure compensation just by altering the requested value by 1 */
+    fecr = COERCE(fec    , FLASH_MIN_EV * 8, FLASH_MAX_EV * 8); if (expo_value_rounding_ok(fecr, 0)) return fecr;
+    fecr = COERCE(fec - 1, FLASH_MIN_EV * 8, FLASH_MAX_EV * 8); if (expo_value_rounding_ok(fecr, 0)) return fecr;
+    fecr = COERCE(fec + 1, FLASH_MIN_EV * 8, FLASH_MAX_EV * 8); if (expo_value_rounding_ok(fecr, 0)) return fecr;
+    return 0;
+}
+
 char* get_shootmode_name(int shooting_mode)
 {
     return
@@ -402,6 +463,22 @@ char* lens_format_shutter(int tv)
     return shutter;
 }
 
+char* lens_format_aperture(int raw_aperture)
+{
+    int f = RAW2VALUE(aperture, raw_aperture);
+    
+    static char aperture[32];
+    if (f < 100)
+    {
+        snprintf(aperture, sizeof(aperture), SYM_F_SLASH"%d.%d", f / 10, f % 10);
+    }
+    else
+    {
+        snprintf(aperture, sizeof(aperture), SYM_F_SLASH"%d", f / 10);
+    }
+    return aperture;
+}
+
 int FAST get_ml_topbar_pos()
 {
     int screen_layout = get_screen_layout();
@@ -449,32 +526,45 @@ void draw_ml_topbar()
     lvinfo_display(1,0);
 }
 
+static volatile int lv_focus_requests = 0;
 static volatile int lv_focus_done = 1;
 static volatile int lv_focus_error = 0;
 
 PROP_HANDLER( PROP_LV_FOCUS_DONE )
 {
-    lv_focus_done = 1;
+    /* turn off the LED we enabled in lens_focus */
+    info_led_off();
+    
+    lv_focus_requests = 0;
+
+    //~ bmp_printf(FONT_MED, 50, 100, "Focus status: 0x%x  ", buf[0]);
+    
     if (buf[0] & 0x1000) 
     {
         NotifyBox(1000, "Focus: soft limit reached");
         lv_focus_error = 1;
     }
+    else
+    {
+        /* assume all is fine (not sure if correct, but seems to work) */
+        lv_focus_done = 1;
+    }
 }
 
 static void
-lens_focus_wait( void )
+lens_focus_wait(void)
 {
     for (int i = 0; i < 100; i++)
     {
-        msleep(10);
         if (lv_focus_done) return;
+        if (lv_focus_error) return;
         if (!lv) return;
         if (is_manual_focus()) return;
+        msleep(10);
     }
-    NotifyBox(1000, "Focus error :(");
+    
+    NotifyBox(1000, "Focus not confirmed");
     lv_focus_error = 1;
-    //~ NotifyBox(1000, "Press PLAY twice or reboot");
 }
 
 // this is compatible with all cameras so far, but allows only 3 speeds
@@ -486,6 +576,9 @@ lens_focus(
     int extra_delay
 )
 {
+    lv_focus_done = 0;
+    lv_focus_error = 0;
+
     if (!lv) return 0;
     if (is_manual_focus()) return 0;
     if (lens_info.job_state) return 0;
@@ -502,20 +595,46 @@ lens_focus(
     
     for (int i = 0; i < num_steps; i++)
     {
-        lv_focus_done = 0;
-        info_led_on();
-        if (lv && !mirror_down && DISPLAY_IS_ON && lens_info.job_state == 0)
-            prop_request_change(PROP_LV_LENS_DRIVE_REMOTE, &focus_cmd, 4);
-        if (wait)
+        if (lv && !mirror_down && lens_info.job_state == 0)
         {
-            lens_focus_wait(); // this will sleep at least 10ms
-            if (extra_delay > 10) msleep(extra_delay - 10); 
+            if (wait)
+            {
+                lv_focus_done = 0;
+                
+                /* request and wait for confirmation */
+                info_led_on();
+                prop_request_change_wait(PROP_LV_LENS_DRIVE_REMOTE, &focus_cmd, 4, 1000);
+                
+                /* also wait for confirmation from PROP_LV_FOCUS_DONE */
+                lens_focus_wait();
+                
+                /* also wait a little more if user want so (for really stubborn lenses) */
+                if (extra_delay)
+                {
+                    msleep(extra_delay);
+                }
+            }
+            else
+            {
+                /* keep sending focus commands, but not more than 3
+                 * from the last PROP_LV_FOCUS_DONE event
+                 * this fixes some crashes that appear to be caused
+                 * by filling Canon's focus request queue with our junk
+                 * 
+                 * (not sure what their buffer size is, but with 5, it crashes)
+                 */
+                lv_focus_requests++;
+                
+                if (lv_focus_requests < 3)
+                {
+                    info_led_on();
+                    prop_request_change(PROP_LV_LENS_DRIVE_REMOTE, &focus_cmd, 4);
+                }
+
+                /* open-loop delay, without waiting for confirmation; at least 10ms */
+                msleep(MAX(10, extra_delay));
+            }
         }
-        else
-        {
-            msleep(extra_delay);
-        }
-        info_led_off();
     }
 
     #ifdef FEATURE_MAGIC_ZOOM
@@ -525,8 +644,8 @@ lens_focus(
     idle_wakeup_reset_counters(-10);
     lens_display_set_dirty();
     
-    if (lv_focus_error) { msleep(200); lv_focus_error = 0; return 0; }
-    return 1;
+    /* return 1 on success, 0 on error */
+    return lv_focus_error ? 0 : 1;
 }
 
 void lens_wait_readytotakepic(int wait)
@@ -1020,9 +1139,6 @@ RAWVAL_FUNC(iso)
 RAWVAL_FUNC(shutter)
 RAWVAL_FUNC(aperture)
 
-#define RAW2VALUE(param,rawvalue) ((int)values_##param[raw2index_##param(rawvalue)])
-#define VALUE2RAW(param,value) ((int)val2raw_##param(value))
-
 static void lensinfo_set_iso(int raw)
 {
     lens_info.raw_iso = raw;
@@ -1161,7 +1277,6 @@ PROP_HANDLER( PROP_SHUTTER )
     lens_display_set_dirty();
 }
 
-static int aperture_ack = -1;
 PROP_HANDLER( PROP_APERTURE )
 {
     //~ NotifyBox(2000, "%x %x %x %x ", buf[0], CONTROL_BV, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
@@ -1181,7 +1296,6 @@ PROP_HANDLER( PROP_APERTURE )
     bv_auto_update();
     #endif
     lens_display_set_dirty();
-    aperture_ack = buf[0];
 }
 
 PROP_HANDLER( PROP_APERTURE_AUTO )
@@ -1230,13 +1344,11 @@ PROP_HANDLER( PROP_SHUTTER_AUTO )
     lens_display_set_dirty();
 }
 
-static int ae_ack = 12345;
 PROP_HANDLER( PROP_AE )
 {
     const uint32_t value = *(uint32_t *) buf;
     lens_info.ae = (int8_t)value;
     update_stuff();
-    ae_ack = (int8_t)buf[0];
 }
 
 PROP_HANDLER( PROP_WB_MODE_LV )
@@ -1482,22 +1594,16 @@ PROP_HANDLER( PROP_LAST_JOB_STATE )
     #endif
 }
 
-static int fae_ack = 12345;
 PROP_HANDLER(PROP_STROBO_AECOMP)
 {
     lens_info.flash_ae = (int8_t) buf[0];
-    fae_ack = (int8_t) buf[0];
 }
 
 int lens_set_flash_ae(int fae)
 {
-    fae = COERCE(fae, FLASH_MIN_EV * 8, FLASH_MAX_EV * 8);
-    fae &= 0xFF;
-    prop_request_change(PROP_STROBO_AECOMP, &fae, 4);
-
-    fae_ack = 12345;
-    for (int i = 0; i < 10; i++) { if (fae_ack != 12345) break; msleep(20); }
-    return fae_ack == (int8_t)fae;
+    fae = round_flash_expo_comp(fae);
+    prop_request_change_wait(PROP_STROBO_AECOMP, &fae, 4, 100);
+    return lens_info.flash_ae == fae;
 }
 
 PROP_HANDLER(PROP_HALF_SHUTTER)
@@ -1647,43 +1753,38 @@ static int prop_set_rawaperture(unsigned aperture)
     int r = aperture % 8;
     if (r != 0 && r != 4 && r != 3 && r != 5 
         && aperture != lens_info.raw_aperture_min && aperture != lens_info.raw_aperture_max)
+    {
         return 0;
+    }
 
     lens_wait_readytotakepic(64);
     aperture = COERCE(aperture, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
-    //~ aperture_ack = -1;
-    prop_request_change( PROP_APERTURE, &aperture, 4 );
-    for (int i = 0; i < 10; i++) { if (aperture_ack == (int)aperture) return 1; msleep(20); }
-    //~ NotifyBox(1000, "%d=%d ", aperture_ack, aperture);
-    return 0;
+    prop_request_change_wait(PROP_APERTURE, &aperture, 4, 200);
+    return lens_info.raw_aperture == aperture;
 }
 
 static int prop_set_rawaperture_approx(unsigned new_av)
 {
-
-    // Canon likes only numbers in 1/3 or 1/2-stop increments
-    new_av = COERCE(new_av, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
-    if (!expo_value_rounding_ok(new_av, 1)) // try to change it by a small amount, so Canon firmware will accept it
-    {
-        int new_av_plus1  = COERCE(new_av + 1, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
-        int new_av_minus1 = COERCE(new_av - 1, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
-        int new_av_plus2  = COERCE(new_av + 2, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
-        int new_av_minus2 = COERCE(new_av - 2, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
-        
-        if (expo_value_rounding_ok(new_av_plus1, 1)) new_av = new_av_plus1;
-        else if (expo_value_rounding_ok(new_av_minus1, 1)) new_av = new_av_minus1;
-        else if (expo_value_rounding_ok(new_av_plus2, 1)) new_av = new_av_plus2;
-        else if (expo_value_rounding_ok(new_av_minus2, 1)) new_av = new_av_minus2;
-    }
+    /* aperture is very tricky; even if we respect the rounding rules
+     * the values might be refused for no apparent reason
+     * so we'll use trial and error, until a value gets accepted
+     */
     
-    if (ABS((int)new_av - (int)lens_info.raw_aperture) <= 3) // nothing to do :)
+    /* first try to set it exactly */
+    if (prop_set_rawaperture(new_av))
         return 1;
 
-    lens_wait_readytotakepic(64);
-    aperture_ack = -1;
-    prop_request_change( PROP_APERTURE, &new_av, 4 );
-    for (int i = 0; i < 20; i++) { if (aperture_ack != -1) break; msleep(20); }
-    return ABS(aperture_ack - (int)new_av) <= 3;
+    /* then try to set a value close to the requested one, until it works */
+    for (int d = 1; d < 4; d++)
+    {
+        if (prop_set_rawaperture(new_av + d))
+            return 1;
+        
+        if (prop_set_rawaperture(new_av - d))
+            return 1;
+    }
+    
+    return 0;
 }
 
 static int prop_set_rawshutter(unsigned shutter)
@@ -1719,18 +1820,56 @@ static int prop_set_rawshutter_approx(unsigned shutter)
 {
     lens_wait_readytotakepic(64);
     shutter = COERCE(shutter, 16, FASTEST_SHUTTER_SPEED_RAW); // 30s ... 1/8000 or 1/4000
-    prop_request_change_wait( PROP_SHUTTER, &shutter, 4, 200);
-    return ABS((int)lens_info.raw_shutter - (int)shutter) <= 3;
+    
+    /* Some cameras accept any shutter speeds in 1/8 EV increments (in the valid range),
+     * while others only accepts the following values modulo 8: 0,3,4,5.
+     * Therefore, it is possible to get a rounding error of max 1 unit (1/8 EV)
+     * 
+     * Let's first see what Canon firmware gives us.
+     */
+    prop_request_change_wait( PROP_SHUTTER, &shutter, 4, 100);
+    int delta = (int)lens_info.raw_shutter - (int)shutter;
+    
+    if (ABS(delta) == 2)
+    {
+        /* if we get a rounding error of 2, try altering the shutter speed by one;
+         * it will most likely get it right this time */
+        shutter -= SGN(delta);
+        prop_request_change_wait( PROP_SHUTTER, &shutter, 4, 100);
+        delta = (int)lens_info.raw_shutter - (int)shutter;
+    }
+    
+    return ABS(delta) <= 1;
 }
 
 static int prop_set_rawiso(unsigned iso)
 {
     lens_wait_readytotakepic(64);
     if (iso) iso = COERCE(iso, MIN_ISO, MAX_ISO); // ISO 100-25600
-    iso_ack = -1;
-    prop_request_change( PROP_ISO, &iso, 4 );
-    for (int i = 0; i < 10; i++) { if (iso_ack != -1) break; msleep(20); }
-    return iso_ack == (int)iso;
+    prop_request_change_wait( PROP_ISO, &iso, 4, 100);
+    return lens_info.raw_iso == iso;
+}
+
+static int prop_set_rawiso_approx(unsigned iso)
+{
+    /* first try to set it exactly */
+    if (prop_set_rawiso(iso))
+        return 1;
+
+    if (iso)
+    {
+        /* then try to set a value close to the requested one, until it works */
+        for (int d = 1; d < 4; d++)
+        {
+            if (prop_set_rawiso(iso + d))
+                return 1;
+            
+            if (prop_set_rawiso(iso - d))
+                return 1;
+        }
+    }
+    
+    return 0;
 }
 
 /** Exposure primitives (the "dirty" way, via BV control, bypasses protections) */
@@ -1982,14 +2121,11 @@ int lens_set_rawshutter( int shutter )
     return ok;
 }
 
-
 int lens_set_ae( int ae )
 {
-    ae_ack = 12345;
     ae = round_expo_comp(ae);
-    prop_request_change( PROP_AE, &ae, 4 );
-    for (int i = 0; i < 10; i++) { if (ae_ack != 12345) break; msleep(20); }
-    return ae_ack == ae;
+    prop_request_change_wait( PROP_AE, &ae, 4, 100);
+    return lens_info.ae == ae;
 }
 
 void lens_set_drivemode( int dm )
@@ -2021,7 +2157,8 @@ static int hdr_set_something(int (*set_something)(int), int arg)
     // first try to set it a few times...
     for (int i = 0; i < 5; i++)
     {
-        if (ml_shutdown_requested) return 0;
+        if (ml_shutdown_requested)
+            return 0;
 
         if (set_something(arg))
             return 1;
@@ -2032,7 +2169,8 @@ static int hdr_set_something(int (*set_something)(int), int arg)
 
     for (int i = 0; i < 5; i++)
     {
-        if (ml_shutdown_requested) return 0;
+        if (ml_shutdown_requested)
+            return 0;
 
         if (set_something(arg))
             return 1;
@@ -2043,7 +2181,8 @@ static int hdr_set_something(int (*set_something)(int), int arg)
 
     for (int i = 0; i < 5; i++)
     {
-        if (ml_shutdown_requested) return 0;
+        if (ml_shutdown_requested)
+            return 0;
 
         if (set_something(arg))
             return 1;
@@ -2055,66 +2194,48 @@ static int hdr_set_something(int (*set_something)(int), int arg)
 
 int hdr_set_rawiso(int iso)
 {
-    return hdr_set_something((int(*)(int))prop_set_rawiso, iso);
+    return hdr_set_something((int(*)(int))prop_set_rawiso_approx, iso);
 }
 
+/* returns 0 on failure, -1 if it reached exposure limits, 1 otherwise */
 int hdr_set_rawshutter(int shutter)
 {
-    int ok = shutter < FASTEST_SHUTTER_SPEED_RAW && shutter > 13;
-    return hdr_set_something((int(*)(int))prop_set_rawshutter_approx, shutter) && ok;
+    /* fixme: check why 13 and not 16 */
+    int in_range = shutter < FASTEST_SHUTTER_SPEED_RAW && shutter > 13;
+    int ok = hdr_set_something((int(*)(int))prop_set_rawshutter_approx, shutter);
+    return ok ? (in_range ? 1 : -1) : 0;
 }
 
 int hdr_set_rawaperture(int aperture)
 {
-    int ok = aperture < lens_info.raw_aperture_max && aperture > lens_info.raw_aperture_min;
-    return hdr_set_something((int(*)(int))prop_set_rawaperture_approx, aperture) && ok;
+    int in_range = aperture < lens_info.raw_aperture_max && aperture > lens_info.raw_aperture_min;
+    int ok = hdr_set_something((int(*)(int))prop_set_rawaperture_approx, aperture);
+    return ok ? (in_range ? 1 : -1) : 0;
 }
 
 int hdr_set_ae(int ae)
 {
-    int ok = ABS(ae) < MAX_AE_EV * 8;
-    return hdr_set_something((int(*)(int))lens_set_ae, ae) && ok;
+    int in_range = ABS(ae) < MAX_AE_EV * 8;
+    int ok = hdr_set_something((int(*)(int))lens_set_ae, ae);
+    return ok ? (in_range ? 1 : -1) : 0;
 }
 
 int hdr_set_flash_ae(int fae)
 {
-    int ok = fae < FLASH_MAX_EV * 8 && fae > FLASH_MIN_EV * 8;
-    return hdr_set_something((int(*)(int))lens_set_flash_ae, fae) && ok;
+    int in_range = fae < FLASH_MAX_EV * 8 && fae > FLASH_MIN_EV * 8;
+    int ok = hdr_set_something((int(*)(int))lens_set_flash_ae, fae);
+    return ok ? (in_range ? 1 : -1) : 0;
 }
-
-/*
-void gui_bump_rawshutter(int delta)
-{
-}
-
-void gui_bump_rawiso(int delta)
-{
-}
-
-void gui_bump_rawaperture(int delta)
-{
-}
-
-void lens_task()
-{
-    while(1)
-    {
-    }
-}
-
-TASK_CREATE( "lens_task", lens_task, 0, 0x1a, 0x1000 );
-*/
 
 int get_max_analog_iso() { return MAX_ANALOG_ISO; }
 int get_max_ae_ev() { return MAX_AE_EV; }
 #ifdef AE_VALUE
 int get_ae_value() { return AE_VALUE; }
 int get_bv() {
-    return
-        RAW2TV(lens_info.raw_shutter)
-        + RAW2AV(lens_info.raw_aperture)
-        - RAW2SV(lens_info.iso_equiv_raw)
-        + RAW2EC(get_ae_value());
+    return APEX10_RAW2TV(lens_info.raw_shutter)
+         + APEX10_RAW2AV(lens_info.raw_aperture)
+         - APEX10_RAW2SV(lens_info.iso_equiv_raw)
+         + APEX10_RAW2EC(get_ae_value());
 }
 #endif
 #ifdef AE_STATE
@@ -2328,16 +2449,9 @@ static LVINFO_UPDATE_FUNC(av_update)
 {
     LVINFO_BUFFER(8);
 
-    if (lens_info.aperture && lens_info.name[0])
+    if (lens_info.raw_aperture && lens_info.name[0])
     {
-        if (lens_info.aperture < 100)
-        {
-            snprintf(buffer, sizeof(buffer), SYM_F_SLASH"%d.%d", lens_info.aperture / 10, lens_info.aperture % 10);
-        }
-        else
-        {
-            snprintf(buffer, sizeof(buffer), SYM_F_SLASH"%d", lens_info.aperture / 10);
-        }
+        snprintf(buffer, sizeof(buffer), lens_format_aperture(lens_info.raw_aperture));
     }
     
     if (CONTROL_BV)

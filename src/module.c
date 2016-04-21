@@ -858,30 +858,43 @@ int module_send_keypress(int module_key)
 
 int handle_module_keys(struct event * event)
 {
-    for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
+    int count = 1;
+    
+    if (event->param == BGMT_WHEEL_UP || event->param == BGMT_WHEEL_DOWN || event->param == BGMT_WHEEL_LEFT ||  event->param == BGMT_WHEEL_RIGHT)
     {
-        module_cbr_t *cbr = module_list[mod].cbr;
-        if(module_list[mod].valid && cbr)
+        /* on newer cameras, scrollwheel events may come up grouped in a single event */
+        /* since we only pass single key events to modules, we have to ungroup these events */
+        /* (that is, call the handler as many times as needed) */
+        count = MAX(count, event->arg);
+    }
+    
+    while (count--)
+    {
+        for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
         {
-            while(cbr->name)
+            module_cbr_t *cbr = module_list[mod].cbr;
+            if(module_list[mod].valid && cbr)
             {
-                if(cbr->type == CBR_KEYPRESS)
+                while(cbr->name)
                 {
-                    /* key got handled? */
-                    if(!cbr->handler(module_translate_key(event->param, MODULE_KEY_PORTABLE)))
+                    if(cbr->type == CBR_KEYPRESS)
                     {
-                        return 0;
+                        /* key got handled? */
+                        if(!cbr->handler(module_translate_key(event->param, MODULE_KEY_PORTABLE)))
+                        {
+                            return 0;
+                        }
                     }
-                }
-                if(cbr->type == CBR_KEYPRESS_RAW)
-                {
-                    /* key got handled? */
-                    if(!cbr->handler((int)event))
+                    if(cbr->type == CBR_KEYPRESS_RAW)
                     {
-                        return 0;
+                        /* key got handled? */
+                        if(!cbr->handler((int)event))
+                        {
+                            return 0;
+                        }
                     }
+                    cbr++;
                 }
-                cbr++;
             }
         }
     }

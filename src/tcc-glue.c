@@ -10,14 +10,12 @@
 #include "libtcc.h"
 #include "console.h"
 
-void exit(int code) 
+void _tcc_exit(int code) 
 {
     printf("exit(%d)\n", code);
     console_show();
     while(1) msleep(100); // fixme: stop the task and exit cleanly
 }
-
-// no file I/O for now, but feel free to implement it
 
 /* i don't really understand FIO_SeekSkipFile etc yet, so build seek-able open function */
 typedef struct
@@ -27,7 +25,7 @@ typedef struct
     char data;
 } filehandle_t;
 
-int open(const char *pathname, int flags)
+int _tcc_open(const char *pathname, int flags)
 {
     uint32_t size = 0;
     FILE* file = NULL;
@@ -61,7 +59,7 @@ int open(const char *pathname, int flags)
     return (int)handle;
 }
 
-int read(int fd, void *buf, int size)
+int _tcc_read(int fd, void *buf, int size)
 {
     filehandle_t *handle = (filehandle_t *)fd;
     int count = (size + handle->pos < handle->size)? (size) : MAX(handle->size - handle->pos, 0);
@@ -72,13 +70,13 @@ int read(int fd, void *buf, int size)
     return count;
 }
 
-int close(int fd)
+int _tcc_close(int fd)
 {
     fio_free((void*)fd);
     return 0;
 }
 
-int lseek(int fd, int offset, int whence)
+int _tcc_lseek(int fd, int offset, int whence)
 {
     filehandle_t *handle = (filehandle_t *)fd;
     
@@ -96,33 +94,6 @@ int lseek(int fd, int offset, int whence)
     }
     
     return handle->pos;
-}
-
-FILE* fopen(const char * filename, const char * modes)
-{
-    printf("fopen('%s', '%s')\n", filename, modes);
-    if (modes[0] == 'r')
-        return FIO_OpenFile(filename, O_RDONLY | O_SYNC);
-    else if (modes[0] == 'w')
-        return FIO_CreateFile(filename);
-    else printf("fopen: %s n/a\n", modes);
-    return NULL;
-}
-
-int fclose(FILE* stream)
-{
-    FIO_CloseFile(stream);
-    return 0;
-}
-
-size_t fread(void* ptr, size_t size, size_t count, FILE* stream)
-{
-    return FIO_ReadFile(stream, ptr, size * count);
-}
-
-size_t fwrite( const void * ptr, size_t size, size_t count, FILE * stream )
-{
-    return FIO_WriteFile(stream, ptr, size * count);
 }
 
 /*
