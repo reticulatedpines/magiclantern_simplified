@@ -544,11 +544,6 @@ PROP_HANDLER( PROP_LV_FOCUS_DONE )
         NotifyBox(1000, "Focus: soft limit reached");
         lv_focus_error = 1;
     }
-    else if (buf[0] & 0xF000) 
-    {
-        NotifyBox(1000, "Focus: unknown error (%x)", buf[0]);
-        lv_focus_error = 1;
-    }
     else
     {
         /* assume all is fine (not sure if correct, but seems to work) */
