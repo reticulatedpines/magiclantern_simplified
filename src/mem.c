@@ -32,12 +32,6 @@
 #define HISTORY_ENTRIES 256
 #define TASK_NAME_SIZE 12
 
-#ifdef CONFIG_600D
-/* todo: remove this after moving some more stuff to modules */
-#define MEMCHECK_ENTRIES 128
-#define HISTORY_ENTRIES 128
-#endif
-
 #define JUST_FREED 0xF12EEEED   /* FREEED */
 #define UNTRACKED 0xFFFFFFFF
 
