@@ -557,10 +557,11 @@ static void lua_load_task(int unused)
         strict_lua = 0;
     }
     
-    printf("All scripts loaded, press any key.\n");
+    printf("All scripts loaded.\n");
 
+    /* wait for key pressed or for 5-second timeout, whichever comes first */
     last_keypress = 0;
-    while(!last_keypress)
+    for (int i = 0; i < 50 && !last_keypress; i++)
     {
         msleep(100);
     }
