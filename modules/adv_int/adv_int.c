@@ -641,7 +641,7 @@ static void step_focus(int mf_steps)
     {
         while (lens_info.job_state) msleep(100);
         msleep(300);
-        get_out_of_play_mode(500);
+        exit_play_qr_mode();
         if (!lv)
         {
             msleep(500);
