@@ -17,3 +17,4 @@ ML_MODULES_DYNAMIC ?= \
 	lua \
 	bench \
 	selftest \
+	adv_int \
