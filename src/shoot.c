@@ -522,30 +522,6 @@ static MENU_UPDATE_FUNC(intervalometer_display)
 }
 #endif
 
-#ifdef FEATURE_FOCUS_RAMPING
-
-static MENU_UPDATE_FUNC(manual_focus_ramp_print)
-{
-    int steps = bramp_manual_speed_focus_steps_per_shot;
-    if (!steps)
-    {
-        MENU_SET_VALUE("OFF");
-        MENU_SET_ENABLED(0);
-    }
-    else
-    {
-        MENU_SET_VALUE(
-            "%s%d steps/shot",
-            steps > 0 ? "+" : "",
-            steps
-        );
-        int max = log_length(100);
-        MENU_SET_ICON(MNI_PERCENT_ALLOW_OFF, 50 + log_length(ABS(steps)) * 50 / max * SGN(steps));
-    }
-}
-
-#endif
-
 #ifdef FEATURE_AUDIO_REMOTE_SHOT
 static MENU_UPDATE_FUNC(audio_release_display)
 {
@@ -3157,34 +3133,6 @@ static void picq_toggle(void* priv)
 #endif
 
 
-#ifdef FEATURE_FOCUS_RAMPING
-
-static void focus_ramp_step()
-{
-    int mf_steps = bramp_manual_speed_focus_steps_per_shot;
-
-    if (mf_steps && !is_manual_focus())
-    {
-        while (lens_info.job_state) msleep(100);
-        msleep(300);
-        exit_play_qr_mode();
-        if (!lv) 
-        {
-            msleep(500);
-            if (!lv) force_liveview();
-        }
-        set_lv_zoom(5);
-        msleep(1000);
-        NotifyBox(1000, "Focusing...");
-        lens_focus_enqueue_step(-mf_steps);
-        msleep(1000);
-        set_lv_zoom(1);
-        msleep(500);
-    }
-}
-
-#endif // FEATURE_FOCUS_RAMPING
-
 #ifdef FEATURE_EXPO_LOCK
 
 static CONFIG_INT("expo.lock", expo_lock, 0);
@@ -3612,19 +3560,6 @@ static struct menu_entry shoot_menus[] = {
                 .icon_type  = IT_PERCENT_LOG_OFF,
                 .help = "Stop the intervalometer after taking X shots.",
             },
-            #ifdef FEATURE_FOCUS_RAMPING
-            {
-                .name = "Manual FocusRamp",
-                .priv       = &bramp_manual_speed_focus_steps_per_shot,
-                .max = 100,
-                .min = -100,
-                .update = manual_focus_ramp_print,
-                .help  = "Manual focus ramping, in steps per shot. LiveView only.",
-                .help2 = "Tip: enable powersaving features from Prefs menu.",
-                .depends_on = DEP_AUTOFOCUS,
-                .works_best_in = DEP_LIVEVIEW,
-            },
-            #endif
             MENU_EOL
         },
     },
@@ -6355,10 +6290,6 @@ shoot_task( void* unused )
             #ifdef CONFIG_MODULES
             auto_ettr_intervalometer_wait();
             module_exec_cbr(CBR_INTERVALOMETER);
-            #endif
-
-            #ifdef FEATURE_FOCUS_RAMPING
-            focus_ramp_step();
             #endif
             
             idle_force_powersave_now();
