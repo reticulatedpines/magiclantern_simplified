@@ -413,11 +413,19 @@ static int raw_lv_get_resolution(int* width, int* height)
     (void)mv640; (void)mv720; (void)mv1080; (void)mv640; (void)mv1080crop; (void)mv640crop; (void)zoom;
 
     #ifdef CONFIG_5D3
-    /* don't know how to get the resolution without relying on Canon's lv_save_raw */
-    *width  = zoom ? 3744 : mv720 ? 2080 : 2080;
-    *height = zoom ? 1380 : mv720 ?  692 : 1318;    /* height must be exact! copy it from Debug->EDMAC */
+    /*
+     * from adtg_gui.c:
+     * {0xC0F0,   0x6800, 0, "RAW first line|column. Column is / 8 on 5D3 (parallel readout?)"},
+     * {0xC0F0,   0x6804, 0, "RAW last line|column. 5D3: f6e|2fe, first 1|18 => 5936x3950"},
+     */
+    uint32_t top_left = shamem_read(0xC0F06800);
+    uint32_t bot_right = shamem_read(0xC0F06804);
+    *width  = ((bot_right & 0xFFFF) - (top_left & 0xFFFF)) * 8; /* 2080 in 1080p */
+    *height = (bot_right >> 16) - (top_left >> 16) - 1;         /* 1318 in 1080p */
     return 1;
     #endif
+
+    /* don't know how to get the resolution without relying on Canon's lv_save_raw */
 
     #ifdef CONFIG_60D
     *width  = zoom ? 2520 : mv640crop ? 920 : mv720 || mv640 ? 1888 : 1888;
