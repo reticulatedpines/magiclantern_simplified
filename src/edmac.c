@@ -197,11 +197,15 @@ uint32_t edmac_get_connection(uint32_t channel, uint32_t direction)
     }
     else
     {
-        if ( channel < 16 )
+        if (channel == 16)
+        {
+            addr = 0xC0F0501C;
+        }
+        else if (channel < 16)
         {
             addr = 0xC0F05000 + (4 * channel);
         }
-        if ( channel != 16 )
+        else /* channel > 16 */
         {
             uint32_t pos = 0;
             
@@ -214,10 +218,6 @@ uint32_t edmac_get_connection(uint32_t channel, uint32_t direction)
                 pos = channel + 6;
             }
             addr = 0xC0F05200 + (4 * (pos & 0x0F));
-        }
-        else
-        {
-            addr = 0xC0F0501C;
         }
     }
     return shamem_read(addr);
