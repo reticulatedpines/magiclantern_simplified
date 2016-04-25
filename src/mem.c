@@ -975,6 +975,7 @@ static void guess_free_mem_task(void* priv, int delta)
     {
         chunkAvail = GetSizeOfMemoryChunk(currentChunk);
         chunkAddress = (void*)GetMemoryAddressOfMemoryChunk(currentChunk);
+        printf("shoot buffer: %x ... %x\n", chunkAddress, chunkAddress + chunkAvail - 1);
 
         int mb = 10*chunkAvail/1024/1024;
         STR_APPEND(shoot_malloc_frag_desc, mb%10 ? "%s%d.%d" : "%s%d", total ? "+" : "", mb/10, mb%10);
@@ -1013,6 +1014,7 @@ static void guess_free_mem_task(void* priv, int delta)
         chunkAvail = GetSizeOfMemoryChunk(currentChunk);
         chunkAddress = (void*)GetMemoryAddressOfMemoryChunk(currentChunk);
         ASSERT(chunkAvail == srm_buffer_size);
+        printf("srm buffer: %x ... %x\n", chunkAddress, chunkAddress + chunkAvail - 1);
 
         int start = MEMORY_MAP_ADDRESS_TO_INDEX(chunkAddress);
         int width = MEMORY_MAP_ADDRESS_TO_INDEX(chunkAvail);
