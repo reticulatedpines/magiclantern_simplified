@@ -438,8 +438,6 @@ struct memSuite * _srm_malloc_suite(int num_requested_buffers)
             /* (unlike shoot_malloc, here it won't trigger the CBR after freeing something) */
             break;
         }
-
-        printf("srm buffer #%d: %x\n", num_buffers+1, buffers[num_buffers]);
     }
     
     if (num_buffers == 0)
