@@ -43,6 +43,16 @@ for n,i in enumerate(icons):
     if i=='focus.png':
         icons_lowres[n]='focus-lowres.png'
 
+# the 100D has no Q button, instead the Av button has the same functionality
+icons_100D = copy.deepcopy(icons)
+# exchange only 100D model specific icons
+for n,i in enumerate(icons):
+    if i=='Q-forward.png':
+        icons_100D[n]='Av-forward.png'
+
+    if i=='Q-back.png':
+        icons_100D[n]='Av-back.png'
+
 
 # the 50D has no Q button, instead the FUNC button has the same functionality
 icons_50D = copy.deepcopy(icons)
@@ -86,6 +96,7 @@ def process(icons, filename, camera_model):
 
 # generate class files from the list of PNG icons
 process(icons, "ico", "ico")
+process(icons_100D, "ico-100D", "100D")
 process(icons_50D, "ico-50D", "50D")
 process(icons_5D2, "ico-5D2", "5D2")
 process(icons_lowres, "ico-lowres", "low")
@@ -97,12 +108,14 @@ process(icons_lowres, "ico-lowres", "low")
 os.system("diff --ifdef=CONFIG_50D ico.c ico-50D.c > ico-with-50D.c")
 
 # merge 50D with 5D2 specific icons
-# copy result to class file
 os.system("diff --ifdef=CONFIG_5D2 ico-with-50D.c ico-5D2.c > ico-with-50D-5D2.c")
 
+# merge with 100D specific icons
+os.system("diff --ifdef=CONFIG_100D ico-with-50D-5D2.c ico-100D.c > ico-with-50D-5D2-100D.c")
+
 # merge icons with low resolution versions
-# copy result to a different class file
-os.system("diff --ifdef=CONFIG_LOW_RESOLUTION_DISPLAY ico-with-50D-5D2.c ico-lowres.c > ../src/ico.c")
+# copy result to class file
+os.system("diff --ifdef=CONFIG_LOW_RESOLUTION_DISPLAY ico-with-50D-5D2-100D.c ico-lowres.c > ../src/ico.c")
 
 # clean up, remove all generated class files
 os.system("rm *.in *.c")
