@@ -61,8 +61,12 @@ void *calloc(size_t nmemb, size_t size)
 void *realloc(void *ptr, size_t size)
 {
     void *ret = malloc(size);
-    memcpy(ret, ptr, size);
-    free(ptr);
+    
+    if (ptr)
+    {
+        memcpy(ret, ptr, size);
+        free(ptr);
+    }
     
     return ret;
 }
