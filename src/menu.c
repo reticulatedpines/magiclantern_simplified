@@ -37,6 +37,7 @@
 #include "console.h"
 #include "debug.h"
 #include "lvinfo.h"
+#include "powersave.h"
 
 #ifdef CONFIG_QEMU
 #define GUIMODE_ML_MENU 0
@@ -1853,13 +1854,12 @@ static void menu_draw_icon(int x, int y, int type, intptr_t arg, int warn)
 // if line number is too high, display the first line
 
 
-static char* menu_help_get_line(const char* help, int line)
+static char* menu_help_get_line(const char* help, int line, char buf[MENU_MAX_HELP_LEN])
 {
     char * p = strchr(help, '\n');
     if (!p) return (char*) help; // help text contains a single line, no more fuss
 
     // help text contains more than one line, choose the i'th one
-    static char buf[70];
     int i = line;
     if (i < 0) i = 0;
     
@@ -1883,7 +1883,7 @@ static char* menu_help_get_line(const char* help, int line)
     }
     
     // return the substring from "start" to "end"
-    int len = MIN((int)sizeof(buf), end - start + 1);
+    int len = MIN(MENU_MAX_HELP_LEN, end - start + 1);
     snprintf(buf, len, "%s", start);
     return buf;
 }
@@ -2484,44 +2484,60 @@ skip_name:
     // display help
     if (entry->selected && !menu_lv_transparent_mode)
     {
+        char help1_buf[MENU_MAX_HELP_LEN];
+        char help2_buf[MENU_MAX_HELP_LEN];
         int help_color = 70;
         
         /* overriden help will go in first free slot */
         char* help1 = (char*)entry->help;
-        if (!help1) help1 = info->help;
-        
+        if (entry->help)
+        {
+            /* if there are multiple help lines, pick the one that matches current choice */
+            help1 = menu_help_get_line(entry->help, SELECTED_INDEX(entry), help1_buf);
+        }
+        else
+        {
+            /* no help1? put overriden help (via MENU_SET_HELP) here */
+            help1 = info->help;
+        }
+
         if (help1)
         {
             print_help_line(help_color, 10, MENU_HELP_Y_POS, help1);
         }
 
         char* help2 = 0;
-        if (help1 != info->help) help2 = info->help;
-        if (entry->help2)
+        if (help1 != info->help && info->help && info->help[0])
         {
-            help2 = menu_help_get_line(entry->help2, SELECTED_INDEX(entry));
+            /* help1 already used for something else?
+             * put overriden help (via MENU_SET_HELP) here */
+            help2 = info->help;
+        }
+        else if (entry->help2)
+        {
+            /* pick help line according to selected choice */
+            help2 = menu_help_get_line(entry->help2, SELECTED_INDEX(entry), help2_buf);
         }
         
-        char default_help_buf[MENU_MAX_HELP_LEN];
-        if (!help2 || strlen(help2) < 2) // default help just list the choices
+        if (!help2 || !help2[0]) // default help just list the choices
         {
             int num = NUM_CHOICES(entry);
             if (num > 2 && num < 10)
             {
-                default_help_buf[0] = 0;
+                help2_buf[0] = 0;
                 for (int i = entry->min; i <= entry->max; i++)
                 {
                     int len = bmp_string_width(FONT_MED, help2);
                     if (len > 700) break;
-                    STR_APPEND(default_help_buf, "%s%s", pickbox_string(entry, i), i < entry->max ? " / " : ".");
+                    STR_APPEND(help2_buf, "%s%s", pickbox_string(entry, i), i < entry->max ? " / " : ".");
                 }
                 help_color = 50;
-                help2 = default_help_buf;
+                help2 = help2_buf;
             }
         }
 
-        // only show the second help line if there are no audio meters
-        if (!audio_meters_are_drawn())
+        /* only show the second help line if there are no audio meters */
+        if (help2 && !audio_meters_are_drawn())
         {
             print_help_line(help_color, 10, MENU_HELP_Y_POS_2, help2);
         }
@@ -5588,7 +5604,7 @@ end:
 int menu_get_value_from_script(const char* name, const char* entry_name)
 {
     struct menu_entry * entry = entry_find_by_name(name, entry_name);
-    if (!entry) { printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
+    if (!entry) { printf("Menu not found: %s -> %s\n", name, entry_name); return 0; }
     
     return CURRENT_VALUE;
 }
@@ -5596,7 +5612,7 @@ int menu_get_value_from_script(const char* name, const char* entry_name)
 char* menu_get_str_value_from_script(const char* name, const char* entry_name)
 {
     struct menu_entry * entry = entry_find_by_name(name, entry_name);
-    if (!entry) { printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
+    if (!entry) { printf("Menu not found: %s -> %s\n", name, entry_name); return 0; }
 
     // this won't work with ML menu on (race condition)
     static struct menu_display_info info;
@@ -5608,7 +5624,7 @@ char* menu_get_str_value_from_script(const char* name, const char* entry_name)
 int menu_set_str_value_from_script(const char* name, const char* entry_name, char* value, int value_int)
 {
     struct menu_entry * entry = entry_find_by_name(name, entry_name);
-    if (!entry) { printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
+    if (!entry) { printf("Menu not found: %s -> %s\n", name, entry_name); return 0; }
 
     // we will need exclusive access to menu_display_info
     take_semaphore(menu_sem, 0);
@@ -5664,7 +5680,7 @@ ok:
 int menu_set_value_from_script(const char* name, const char* entry_name, int value)
 {
     struct menu_entry * entry = entry_find_by_name(name, entry_name);
-    if (!entry) { printf("Menu not found: %s -> %s\n", name, entry->name); return 0; }
+    if (!entry) { printf("Menu not found: %s -> %s\n", name, entry_name); return 0; }
     
     if( entry->select ) // special item, we need some heuristics
     {
@@ -5773,3 +5789,32 @@ void qemu_menu_screenshots()
     while(1);
 }
 #endif
+
+/* run something in new task, with powersave disabled
+ * (usually, such actions are short-lived tasks
+ * that shouldn't be interrupted by Canon's auto power off) */
+
+struct cbr
+{
+    void (*user_routine)();
+    int argument;
+};
+
+static void task_without_powersave(struct cbr * cbr)
+{
+    powersave_prohibit();
+    cbr->user_routine(cbr->argument);
+    free(cbr);
+    powersave_permit();
+}
+
+void run_in_separate_task(void* routine, int argument)
+{
+    gui_stop_menu();
+    if (!routine) return;
+    
+    struct cbr * cbr = malloc(sizeof(struct cbr));
+    cbr->user_routine = routine;
+    cbr->argument = argument;
+    task_create("run_test", 0x1a, 0x8000, task_without_powersave, cbr);
+}

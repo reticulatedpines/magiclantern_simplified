@@ -35,7 +35,7 @@ extern char camera_serial[32];
 
 #ifndef _DONT_INCLUDE_PROPVALUES_
 extern int lv; // TRUE when LiveView is active
-extern int lv_paused; // only valid if lv is true
+extern int lv_paused; // TRUE if LiveView is paused (in this case, lv is FALSE)
 #endif
 
 #define LV_PAUSED (lv_paused)
@@ -107,6 +107,7 @@ extern int date_format;
 extern int auto_power_off_time;
 extern int video_system_pal;
 extern int lv_focus_status;
+extern int icu_uilock;
 #endif
 
 #define EXT_MONITOR_CONNECTED (ext_monitor_hdmi || _ext_monitor_rca)

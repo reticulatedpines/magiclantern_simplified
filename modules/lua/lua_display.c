@@ -13,6 +13,7 @@
 #include <zebra.h>
 #include <screenshot.h>
 #include <notify_box.h>
+#include <powersave.h>
 
 #include "lua_common.h"
 
@@ -387,6 +388,14 @@ static int luaCB_bitmap_newindex(lua_State * L)
 {
     return luaL_error(L, "'bitmap' type is readonly");
 }
+
+static const char * lua_display_fields[] =
+{
+    "idle",
+    "height",
+    "width",
+    NULL
+};
 
 const luaL_Reg displaylib[] =
 {

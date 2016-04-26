@@ -96,6 +96,7 @@ NSTUB(0xFF056064, _audio_ic_write)
 NSTUB(0xFF054B8C,  sounddev_active_in)
 NSTUB(0xFF0549E8,  sounddev_task)
 //NSTUB( 0xFF48E58C, audio_thresholds ) // not present in 500D - see audio.c (thank you alex).
+// NSTUB(    ???, _audio_ic_write_bulk)                     /* present on 6D.116 */
 
 /** Bitmap **/
 NSTUB(   0x27E40,  LCD_Palette)                             // in InitializeBitmapDisplayDevice, right after 0xc0f14800
@@ -227,6 +228,7 @@ NSTUB(0xFF079B68,  DispSensorStart)
 NSTUB(   0x235E0,  cf_device)                               // in cfReadBlk
 NSTUB(   0x23624,  sd_device)                               // in sdReadBlk
 NSTUB(0xFF330304,  fsuDecodePartitionTable)
+// NSTUB(    ???,  cf_device_ptr)                           /* present on 5D3.113 */
 
 /** Memory allocation **/
 NSTUB(0xFF06AA58,  GetMemoryInformation)                    // called from AllocateMemory
@@ -317,12 +319,12 @@ NSTUB(0xFF1A442C,  vsnprintf)                               /** Look in DebugMsg
 ///NSTUB(   0x37880,  LV_EX_Y)                                 // couldn't find in 500d dump anywhere -- for hdmi related stuff
 ///NSTUB(0xFF05ED84,  MuteOff_0)                               // not quite the same as in other cameras, but should work
 ///NSTUB(0xFF05ED40,  MuteOn_0)                                // idem
+///NSTUB(0xFF05A57C,  PROPAD_GetPropertyData)
 ///NSTUB(0xFF18FD74,  PopEDmac)
 ///NSTUB(0xFF2822A4,  RedrawDisplay)
 ///NSTUB(0xFF05FF18,  SetBitmapVramAddress)                    // where to find bmp_vram_info
 ///NSTUB(0xFF2B0384,  SetOutputTypeByPressInfoToStorage)
 ///NSTUB(0xFF059AA4, _prop_get_value)
-///NSTUB(0xFF05A57C,  PROPAD_GetPropertyData)
 ///NSTUB(0xFF06670C,  bootdisk_disable)
 ///NSTUB(0xFF066700,  bootdisk_enable)
 ///NSTUB(0xFF386868,  cfReadBlk)

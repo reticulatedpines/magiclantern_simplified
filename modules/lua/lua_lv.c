@@ -13,6 +13,7 @@
 #include <property.h>
 #include <zebra.h>
 #include <lvinfo.h>
+#include <powersave.h>
 
 #include "lua_common.h"
 
@@ -29,9 +30,18 @@ struct lvinfo_item_entry
 static int luaCB_lv_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
-    /// Whether or not LV is running.
+    /// Whether or not LV is enabled (may be running or paused).
     // @tfield bool enabled
-    if(!strcmp(key, "enabled")) lua_pushboolean(L, lv);
+    if(!strcmp(key, "enabled")) lua_pushboolean(L, lv || LV_PAUSED);
+    /// Whether or not LV is paused (shutter open, but sensor inactive; useful for powersaving).
+    // @tfield bool paused
+    else if(!strcmp(key, "paused")) lua_pushboolean(L, LV_PAUSED);
+    /// Whether or not LV is running (that is, enabled and not paused).
+    // @tfield bool running
+    else if(!strcmp(key, "running")) lua_pushboolean(L, lv);
+    /// Get/set LiveView zoom factor (1, 5, 10).
+    // @tfield bool zoom
+    else if(!strcmp(key, "zoom")) lua_pushinteger(L, lv_dispsize);
     else lua_rawget(L, 1);
     return 1;
 }
@@ -44,6 +54,22 @@ static int luaCB_lv_newindex(lua_State * L)
         LUA_PARAM_BOOL(value, 3);
         if(value && !lv && !LV_PAUSED) force_liveview();
         else if(lv) close_liveview();
+    }
+    else if(!strcmp(key, "zoom"))
+    {
+        LUA_PARAM_INT(value, 3);
+
+        if (!lv)
+        {
+            return luaL_error(L, "LiveView must be enabled");
+        }
+
+        set_lv_zoom(value);
+
+        if (lv_dispsize != value)
+        {
+            return luaL_error(L, "Could not set LiveView zoom");
+        }
     }
     else
     {
@@ -92,6 +118,27 @@ static int luaCB_lv_stop(lua_State * L)
     return 0;
 }
 
+/***
+ Wait for N LiveView frames in LiveView.
+ @tparam int num_frames
+ @function wait
+ */
+static int luaCB_lv_wait(lua_State * L)
+{
+    LUA_PARAM_INT(num_frames, 1);
+
+    int ok = wait_lv_frames(num_frames);
+
+    if (!ok)
+    {
+        return luaL_error(L,
+            lv ? "lv.wait failed (timeout?)"
+               : "lv.wait failed (LV stopped)"
+        );
+    }
+    return 0;
+}
+
 static LVINFO_UPDATE_FUNC(lua_lvinfo_update)
 {
     struct lvinfo_item_entry * entry = (struct lvinfo_item_entry *)item;
@@ -112,7 +159,7 @@ static LVINFO_UPDATE_FUNC(lua_lvinfo_update)
                 lua_rawgeti(L, LUA_REGISTRYINDEX, entry->self_ref);
                 if(docall(L, 1, 1))
                 {
-                    err_printf("script error:\n %s\n", lua_tostring(L, -1));
+                    fprintf(stderr, "script error:\n %s\n", lua_tostring(L, -1));
                 }
             }
             lua_pop(L,1);
@@ -121,7 +168,7 @@ static LVINFO_UPDATE_FUNC(lua_lvinfo_update)
     }
     else
     {
-        err_printf("lua semaphore timeout (another task is running this script)\n");
+        printf("lua semaphore timeout: lv.info.update (%dms)\n", 50);
     }
 }
 
@@ -318,12 +365,22 @@ static int luaCB_lvinfo_newindex(lua_State * L)
     return 0;
 }
 
+static const char * lua_lv_fields[] =
+{
+    "enabled",
+    "paused",
+    "running",
+    "zoom",
+    NULL
+};
+
 static const luaL_Reg lvlib[] =
 {
     { "start", luaCB_lv_start },
     { "pause", luaCB_lv_pause },
     { "resume", luaCB_lv_resume },
     { "stop", luaCB_lv_stop },
+    { "wait", luaCB_lv_wait },
     { "info", luaCB_lv_info },
     { NULL, NULL }
 };

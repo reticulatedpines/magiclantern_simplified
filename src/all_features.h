@@ -154,7 +154,6 @@
     //~ #define FEATURE_INTERVALOMETER_MOVIE // will be moved to scripts
 
 #ifdef CONFIG_PROP_REQUEST_CHANGE
-    #define FEATURE_FOCUS_RAMPING
     #define FEATURE_BULB_TIMER
     #define FEATURE_BULB_TIMER_SHOW_PREVIOUS_PIC   /* previous picture during exposure */
 #endif
@@ -308,6 +307,5 @@
     #define FEATURE_SHOW_CMOS_TEMPERATURE
     #define FEATURE_SHOW_EDMAC_INFO
 
-    //~ #define FEATURE_SHOW_SIGNATURE // useful when developing
     //~ #define FEATURE_GUIMODE_TEST // dangerous
     //~ #define FEATURE_SHOW_STATE_FPS // useful for finding vsync hooks
