@@ -813,6 +813,8 @@ void* __mem_malloc(size_t size, unsigned int flags, const char* file, unsigned i
 
 void __mem_free(void* buf)
 {
+    if (!buf) return;
+
     take_semaphore(mem_sem, 0);
 
     unsigned int ptr = (unsigned int)buf - MEM_SEC_ZONE;
