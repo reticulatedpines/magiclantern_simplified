@@ -109,6 +109,11 @@ function main()
     -- don't forget to restore them when the game ends
     keys:start()
     menu.block(true)
+    
+    -- wait until menu redrawing finishes, then clear the screen once
+    -- during the game, we will use only incremental redraws
+    -- that don't require double buffering
+    msleep(500)
     display.clear()
     
     game_speed = pong_menu.submenu["Game speed"].value
