@@ -27,7 +27,7 @@
 #define dbg_printf(fmt,...) {}
 #endif
 
-#define MEM_SEC_ZONE 32
+#define MEM_SEC_ZONE 16
 #define MEMCHECK_ENTRIES 256
 #define HISTORY_ENTRIES 256
 #define TASK_NAME_SIZE 12
