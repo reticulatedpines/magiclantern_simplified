@@ -5,7 +5,7 @@
 QEMU_PATH=${QEMU_PATH:=qemu-2.3.0}
 ML=${ML:=magic-lantern}
 
-cp -v *.sh gdbopts ../$ML/contrib/qemu/scripts
+cp -v *.sh *.py gdbopts ../$ML/contrib/qemu/scripts
 cp -v $QEMU_PATH/hw/arm/eos.c $QEMU_PATH/hw/arm/eos.h ../$ML/contrib/qemu/hw
 
 cd $QEMU_PATH
