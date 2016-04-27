@@ -8,6 +8,7 @@
 #include "config.h"
 #include "zebra.h"
 #include "shoot.h"
+#include "alloca.h"
 
 #ifdef CONFIG_QEMU
 #include "qemu-util.h"
@@ -25,7 +26,7 @@
 
 // buffer is circular and filled with spaces
 #define BUFSIZE (CONSOLE_H * CONSOLE_W)
-static char console_buffer[BUFSIZE];
+static char console_buffer[BUFSIZE] = {[0 ... BUFSIZE-1] = ' '};
 static int console_buffer_index = 0;
 #define CONSOLE_BUFFER(i) console_buffer[MOD((i), BUFSIZE)]
 
@@ -88,17 +89,8 @@ static struct menu_entry script_menu[] = {
 };
 #endif
 
-void console_clear()
-{
-    int i;
-    for (i = 0; i < BUFSIZE; i++)
-        console_buffer[i] = ' ';
-}
-
 static void console_init()
 {
-    console_clear();
-
     #ifdef CONSOLE_DEBUG
     menu_add( "Debug", script_menu, COUNT(script_menu) );
     FIO_RemoveFile("ML/LOGS/console.log");
@@ -339,10 +331,14 @@ TASK_CREATE( "console_task", console_task, 0, 0x1d, 0x1000 );
 
 int printf(const char* fmt, ...)
 {
-    char buf[512];
+    /* when called from init_task, 512 bytes are enough to cause stack overflow */
+    extern int ml_started;
+    int buf_size = (ml_started) ? 512 : 64;
+    char* buf = alloca(buf_size);
+    
     va_list         ap;
     va_start( ap, fmt );
-    int len = vsnprintf( buf, sizeof(buf)-1, fmt, ap );
+    int len = vsnprintf( buf, buf_size-1, fmt, ap );
     va_end( ap );
     console_puts(buf);
     return len;
