@@ -2,4 +2,4 @@
 
 QEMU_PATH=${QEMU_PATH:=qemu-2.3.0}
 make -C $QEMU_PATH || exit
-$QEMU_PATH/arm-softmmu/qemu-system-arm -sd sd.img -M $*
+$QEMU_PATH/arm-softmmu/qemu-system-arm -sd sd.img -drive if=ide,file=cf.img -M $*

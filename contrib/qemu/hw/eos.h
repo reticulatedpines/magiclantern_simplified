@@ -96,6 +96,11 @@ typedef struct
     uint32_t status;
 } SDIOState;
 
+typedef struct
+{
+    IDEBus bus;
+} CFState;
+
 struct palette_entry
 {
     uint8_t R;
@@ -191,6 +196,7 @@ typedef struct
     KeybState keyb;
     RTCState rtc;
     SDIOState sd;
+    CFState cf;
     MPUState mpu;
 } EOSState;
 

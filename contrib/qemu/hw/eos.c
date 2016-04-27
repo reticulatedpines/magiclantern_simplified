@@ -13,6 +13,7 @@
 #include "ui/pixel_ops.h"
 #include "hw/display/framebuffer.h"
 #include "hw/sd.h"
+#include <hw/ide/internal.h>
 #include "eos.h"
 
 EOSRegionHandler eos_handlers[] =
@@ -934,6 +935,18 @@ static void eos_init_common(const char *rom_filename, uint32_t rom_start, uint32
         printf("SD init failed\n");
         exit(1);
     }
+    
+    /* init CF card */
+    DriveInfo *dj;
+    dj = drive_get_next(IF_IDE);
+    if (!dj) {
+        printf("CF init failed\n");
+        exit(1);
+    }
+
+    ide_bus_new(&s->cf.bus, sizeof(s->cf.bus), NULL, 0, 2);
+    ide_init2(&s->cf.bus, s->interrupt);
+    ide_create_drive(&s->cf.bus, 0, dj);
 
     if (0)
     {
@@ -3290,62 +3303,63 @@ unsigned int eos_handle_cfdma ( unsigned int parm, EOSState *s, unsigned int add
 
         case 0x21F0:
             msg = "ATA data port";
+            
+            if(type & MODE_WRITE)
+            {
+                /* quiet */
+                ide_data_writew(&s->cf.bus, 0, value);
+                return 0;
+            }
+            else
+            {
+                return ide_data_readw(&s->cf.bus, 0);
+            }
             break;
 
         case 0x21F1:
-            if(type & MODE_WRITE)
-            {
-                msg = "ATA features";
-            }
-            else
-            {
-                msg = "ATA error";
-            }
-            break;
-
         case 0x21F2:
-            msg = "ATA sector count";
-            break;
-
         case 0x21F3:
-            msg = "ATA LBAlo";
-            break;
-
         case 0x21F4:
-            msg = "ATA LBAmid";
-            break;
-
         case 0x21F5:
-            msg = "ATA LBAhi";
-            break;
-
         case 0x21F6:
-            msg = "ATA drive/head port";
-            break;
-
         case 0x21F7:
+        {
+            int offset = address & 0xF;
+
+            const char * regnames[16] = {
+                [1] = "ATA feature/error",
+                [2] = "ATA sector count",
+                [3] = "ATA LBAlo",
+                [4] = "ATA LBAmid",
+                [5] = "ATA LBAhi",
+                [6] = "ATA drive/head port",
+                [7] = "ATA command/status",
+            };
+            msg = regnames[offset];
+
             if(type & MODE_WRITE)
             {
-                msg = "ATA command";
+                ide_ioport_write(&s->cf.bus, offset, value);
             }
             else
             {
-                msg = "ATA status (RDY,DSC)";
-                ret = (1<<6) | (1<<4);
+                return ide_ioport_read(&s->cf.bus, offset);
             }
             break;
-        
+        }
+
         case 0x23F6:
             if(type & MODE_WRITE)
             {
                 msg = "ATA device control: int %s%s";
                 msg_arg1 = (intptr_t) ((value & 2) ? "disable" : "enable");
                 msg_arg2 = (intptr_t) ((value & 4) ? ", soft reset" : "");
+                ide_cmd_write(&s->cf.bus, 0, value);
             }
             else
             {
-                msg = "ATA alternate status (RDY,DSC)";
-                ret = (1<<6) | (1<<4);
+                msg = "ATA alternate status";
+                ret = ide_status_read(&s->cf.bus, 0);
             }
             break;
     }
