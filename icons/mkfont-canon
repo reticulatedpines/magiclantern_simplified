@@ -18,13 +18,13 @@ my @font_range		= 97 .. 114; # a-r
 my $font_chars		= @font_range;
 my $font_type		= 'const unsigned';
 my $font_name		= 'menu_icons';
-my $camera_model	= ' ';
+my $labels	= ' ';
 
 GetOptions(
 	"name=s"		=> \$font_name,
 	"width=i"		=> \$font_width,
 	"height=i"		=> \$font_height,
-	"camera_model=s"=> \$camera_model,
+	"labels=s"		=> \$labels,
 ) or die "$0: Bad argument\n";
 
 # Round the bitmap size up since we might have a partial byte
@@ -72,7 +72,7 @@ while(<>)
 		# Strip trailing spaces for display
 		$row =~ s/ *$//;
 
-		$bytes .= join (", ", @array) . ", // $camera_model: $row \n";
+		$bytes .= join (", ", @array) . ", // $labels: $row \n";
 	}
 
 	$cmaps{$pos} = <<"";

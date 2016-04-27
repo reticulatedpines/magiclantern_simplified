@@ -76,7 +76,7 @@ for n,i in enumerate(icons):
         icons_5D2[n]='picstyle-back.png'
 
 
-def process(icons, filename, camera_model):
+def process(icons, filename, labels):
     # write icons in textual representation to *.in file
     tmp = open(filename+".in", "w")
     k = 0
@@ -92,7 +92,7 @@ def process(icons, filename, camera_model):
 
     tmp.close()
     # convert *.in files to *.c class files
-    os.system("perl mkfont-canon < %s.in > %s.c -width %d -height %d -camera_model %s" % (filename, filename, Wpadded, Hpadded, camera_model))
+    os.system("perl mkfont-canon < %s.in > %s.c -width %d -height %d -labels %s" % (filename, filename, Wpadded, Hpadded, labels))
 
 # generate class files from the list of PNG icons
 process(icons, "ico", "ico")
