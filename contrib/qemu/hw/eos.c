@@ -2013,7 +2013,7 @@ static void mpu_interpret_command(EOSState *s)
     int spell_set;
     for (spell_set = 0; spell_set < COUNT(mpu_init_spells); spell_set++)
     {
-        if (memcmp(s->mpu.recv_buffer+1, mpu_init_spells[spell_set].in_spell+1, s->mpu.recv_buffer[1]) == 0)
+        if (memcmp(s->mpu.recv_buffer+1, mpu_init_spells[spell_set].in_spell+1, mpu_init_spells[spell_set].in_spell[1]) == 0)
         {
             printf(" (recognized spell #%d)\n", spell_set+1);
             
