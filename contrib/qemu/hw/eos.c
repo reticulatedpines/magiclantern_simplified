@@ -2552,15 +2552,10 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             break;
         }
 
-        case 0x301C:
-            /* 40D CF Detect -> set low, so there is no CF */
-            msg = "40D CF detect";
-            ret = 0;
-            break;
-        
-        case 0x3020:
-            /* 5D3 CF Detect -> set low, so there is no CF */
-            msg = "5D3 CF detect";
+        case 0x301C:    /* 40D, 5D2 */
+        case 0x3020:    /* 5D3 */
+            /* set low => CF present */
+            msg = "CF detect";
             ret = 0;
             break;
     }
@@ -3283,12 +3278,14 @@ unsigned int eos_handle_cfdma ( unsigned int parm, EOSState *s, unsigned int add
 {
     unsigned int ret = 0;
     const char * msg = 0;
+    intptr_t msg_arg1 = 0;
+    intptr_t msg_arg2 = 0;
 
     switch(address & 0xFFFF)
     {
         case 0x8104:
-            msg = "5D3 unknown (trying random)";
-            ret = rand();
+            msg = "CFDMA ready maybe?";
+            ret = 4;
             break;
 
         case 0x21F0:
@@ -3333,16 +3330,26 @@ unsigned int eos_handle_cfdma ( unsigned int parm, EOSState *s, unsigned int add
             }
             else
             {
-                msg = "ATA status (returning 'drive fault')";
-                ret = (1<<5) | (1<<0);
+                msg = "ATA status (RDY,DSC)";
+                ret = (1<<6) | (1<<4);
             }
             break;
         
         case 0x23F6:
-            msg = "ATA drive address";
+            if(type & MODE_WRITE)
+            {
+                msg = "ATA device control: int %s%s";
+                msg_arg1 = (intptr_t) ((value & 2) ? "disable" : "enable");
+                msg_arg2 = (intptr_t) ((value & 4) ? ", soft reset" : "");
+            }
+            else
+            {
+                msg = "ATA alternate status (RDY,DSC)";
+                ret = (1<<6) | (1<<4);
+            }
             break;
     }
-    io_log("CFDMA", s, address, type, value, ret, msg, 0, 0);
+    io_log("CFDMA", s, address, type, value, ret, msg, msg_arg1, msg_arg2);
     return ret;
 }
 
