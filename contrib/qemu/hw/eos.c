@@ -2112,8 +2112,25 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             }
             else
             {
-                ret = 0x40000 | 0x80000;
-                msg = "VSW_STATUS";
+                if (eos_get_mem_w(s, 0xffff22e8) == 0xe2166901)
+                {
+                    /* handle 5D2 (ROS) */
+                    if (s->cpu->env.regs[15]==0xffff22e4)
+                    {
+                        ret = 0x4000;
+                        msg = "VSW_STATUS 5D2 0x4000"; 
+                    }
+                    else
+                    {
+                        ret = 0x2000;
+                        msg = "VSW_STATUS 5D2 0x2000";
+                    }
+                }
+                else
+                {
+                    ret = 0x40000 | 0x80000;
+                    msg = "VSW_STATUS";
+                }
             }
             break;
 
