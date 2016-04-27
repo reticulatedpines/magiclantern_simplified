@@ -32,9 +32,6 @@ static int console_buffer_index = 0;
 
 int console_visible = 0;
 
-static char console_help_text[40];
-static char console_status_text[40];
-
 void console_show()
 {
     console_visible = 1;
@@ -53,15 +50,6 @@ void console_toggle()
     else console_show();
 }
 
-void console_set_help_text(char* msg)
-{
-    snprintf(console_help_text, sizeof(console_help_text), "     %s", msg);
-}
-
-void console_set_status_text(char* msg)
-{
-    snprintf(console_status_text, sizeof(console_status_text), "%s%s", msg, strlen(msg) ? "    " : "");
-}
 static void
 console_toggle_menu( void * priv, int delta )
 {
@@ -166,13 +154,6 @@ void console_puts(const char* str) // don't DebugMsg from here!
     console_buffer_index = MOD(console_buffer_index, BUFSIZE);
 }
 
-void console_show_status()
-{
-    int fnt = FONT(CONSOLE_FONT,60, COLOR_BLACK);
-    bmp_printf(fnt, 0, 480 - font_med.height, console_status_text);
-    if (console_visible) bmp_printf(fnt, 720 - font_med.width * strlen(console_help_text), 480 - font_med.height, console_help_text);
-}
-
 static void console_draw(int tiny)
 {
     int cbpos0 = MOD((console_buffer_index / CONSOLE_W) * CONSOLE_W  + CONSOLE_W, BUFSIZE);
@@ -248,8 +229,10 @@ static void console_draw(int tiny)
         //return; // better luck next time :)
     }
     else if (!tiny)
+    {
         /* fixme: prevent Canon code from drawing over the console (ugly) */
         canon_gui_disable_front_buffer();
+    }
     prev_w = w;
     prev_h = h;
 
@@ -313,12 +296,8 @@ console_task( void* unused )
             dirty = 0;
         }
         else if (console_visible && !gui_menu_shown())
-            console_draw(1);
-
-
-        if (!gui_menu_shown() && strlen(console_status_text))
         {
-            console_show_status();
+            console_draw(1);
         }
 
         msleep(200);
