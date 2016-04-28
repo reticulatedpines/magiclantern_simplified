@@ -2136,13 +2136,14 @@ static unsigned int eos_handle_mpu(unsigned int parm, EOSState *s, unsigned int 
 
     if(type & MODE_WRITE)
     {
+        int prev_value = s->mpu.status;
         s->mpu.status = value;
         
         if (value & 2)
         {
             if (s->mpu.receiving)
             {
-                if (s->mpu.recv_index == s->mpu.recv_buffer[0])
+                if (s->mpu.recv_index && s->mpu.recv_index == s->mpu.recv_buffer[0])
                 {
                     msg = "Receive finished";
                     s->mpu.receiving = 0;
@@ -2165,8 +2166,9 @@ static unsigned int eos_handle_mpu(unsigned int parm, EOSState *s, unsigned int 
                 }
             }
         }
-        else
+        else if (prev_value & 2)
         {
+            /* receive request: transition of bit (1<<1) from high to low */
             msg = "Receive request %s";
             msg_arg1 = (intptr_t) "";
             
