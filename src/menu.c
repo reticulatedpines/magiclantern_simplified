@@ -5240,7 +5240,7 @@ static void menu_show_version(void)
         build_user);
 }
 
-#ifdef CONFIG_LONG_PRESS_JOYSTICK_MENU
+#if defined(CONFIG_LONG_PRESS_JOYSTICK_MENU) || defined(CONFIG_LONG_PRESS_SET_MENU)
 static int joystick_pressed = 0;
 static int joystick_longpress = 0;
 static int joy_center_action_disabled = 0;
@@ -5339,7 +5339,7 @@ int handle_ml_menu_erase(struct event * event)
     }
     
     
-#ifdef CONFIG_LONG_PRESS_JOYSTICK_MENU
+#if defined(CONFIG_LONG_PRESS_JOYSTICK_MENU) || defined(CONFIG_LONG_PRESS_SET_MENU)
     /* also trigger menu by a long joystick press */
     if (event->param == BGMT_JOY_CENTER)
     {
@@ -5363,7 +5363,7 @@ int handle_ml_menu_erase(struct event * event)
             if (gui_menu_shown()) return 0;
         }
     }
-    else if (event->param == BGMT_UNPRESS_UDLR)
+    else if (event->param == BGMT_UNPRESS_UDLR || event->param == BGMT_UNPRESS_SET)
     {
         joystick_pressed = 0;
         joy_center_action_disabled = 0;
@@ -5375,7 +5375,23 @@ int handle_ml_menu_erase(struct event * event)
     {
         joy_center_action_disabled = 1;
     }
+#endif
 
+#if defined(CONFIG_LONG_PRESS_SET_MENU)
+    /* open submenus with a long press on SET */
+    /* note: if you enable this, the regular actions will be triggered
+     * when de-pressing SET, which may feel a little sluggish */
+    if (event->param == BGMT_PRESS_SET && !IS_FAKE(event))
+    {
+        if (gui_menu_shown())
+        {
+            /* reuse joystick long-press code for implementation */
+            joystick_pressed = 1;
+            joystick_longpress = 0;
+            delayed_call(20, joystick_longpress_check, 0);
+            return 0;
+        }
+    }
 #endif
 
 #ifdef CONFIG_EOSM

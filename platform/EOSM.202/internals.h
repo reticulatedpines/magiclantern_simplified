@@ -142,3 +142,6 @@
 
 /** Workaround for menu timeout in LiveView */
 #define CONFIG_MENU_TIMEOUT_FIX
+
+/** Long-pressing SET/Q opens submenus */
+#define CONFIG_LONG_PRESS_SET_MENU
