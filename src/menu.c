@@ -5240,7 +5240,7 @@ static void menu_show_version(void)
         build_user);
 }
 
-#ifdef CONFIG_JOY_CENTER_ACTIONS
+#ifdef CONFIG_LONG_PRESS_JOYSTICK_MENU
 static int joystick_pressed = 0;
 static int joystick_longpress = 0;
 static int joy_center_action_disabled = 0;
@@ -5339,7 +5339,7 @@ int handle_ml_menu_erase(struct event * event)
     }
     
     
-#ifdef CONFIG_JOY_CENTER_ACTIONS
+#ifdef CONFIG_LONG_PRESS_JOYSTICK_MENU
     /* also trigger menu by a long joystick press */
     if (event->param == BGMT_JOY_CENTER)
     {

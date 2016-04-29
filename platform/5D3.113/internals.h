@@ -146,7 +146,7 @@
 #define CONFIG_ZOOM_HALFSHUTTER_UILOCK
 
 /** Use joystick for one-finger menu navigation */
-#define CONFIG_JOY_CENTER_ACTIONS
+#define CONFIG_LONG_PRESS_JOYSTICK_MENU
 
 
 /** this method bypasses Canon's lv_save_raw and slurps the raw data directly from connection #0 */
