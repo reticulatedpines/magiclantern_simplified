@@ -5256,20 +5256,20 @@ static void joystick_longpress_check()
     if (joystick_pressed)
     {
         joystick_longpress++;
-        delayed_call(100, joystick_longpress_check, 0);
+        delayed_call(20, joystick_longpress_check, 0);
     }
     
     //~ bmp_printf(FONT_MED, 50, 50, "%d ", joystick_longpress);
     
-    if (joystick_longpress == 5)
+    if (joystick_longpress == 25)
     {
-        /* long press opens ML menu or submenus */
+        /* long press (500ms) opens ML menu or submenus */
         fake_simple_button(MLEV_JOYSTICK_LONG);
         
         /* make sure it won't re-trigger */
         joystick_longpress++;
     }
-    else if (joystick_longpress < 2 && !joystick_pressed && gui_menu_shown())
+    else if (joystick_longpress < 15 && !joystick_pressed && gui_menu_shown())
     {
         /* short press in menu => do a regular SET */
         fake_simple_button(BGMT_PRESS_SET);
@@ -5288,20 +5288,20 @@ static void erase_longpress_check()
     if (erase_pressed)
     {
         erase_longpress++;
-        delayed_call(100, erase_longpress_check, 0);
+        delayed_call(20, erase_longpress_check, 0);
     }
     
     //~ bmp_printf(FONT_MED, 50, 50, "%d ", erase_longpress);
     
-    if (erase_longpress == 5)
+    if (erase_longpress == 25)
     {
-        /* long press opens ML menu */
+        /* long press (500ms) opens ML menu */
         fake_simple_button(BGMT_TRASH);
         
         /* make sure it won't re-trigger */
         erase_longpress++;
     }
-    else if (erase_longpress <= 2 && !erase_pressed)
+    else if (erase_longpress <= 15 && !erase_pressed)
     {
         /* short press => do a regular "down/erase" */
         fake_simple_button(BGMT_PRESS_DOWN);
@@ -5359,7 +5359,7 @@ int handle_ml_menu_erase(struct event * event)
             /* if we can make use of a long joystick press, check it */
             joystick_pressed = 1;
             joystick_longpress = 0;
-            delayed_call(100, joystick_longpress_check, 0);
+            delayed_call(20, joystick_longpress_check, 0);
             if (gui_menu_shown()) return 0;
         }
     }
@@ -5386,7 +5386,7 @@ int handle_ml_menu_erase(struct event * event)
         {
             erase_pressed = 1;
             erase_longpress = 0;
-            delayed_call(100, erase_longpress_check, 0);
+            delayed_call(20, erase_longpress_check, 0);
             return 0;
         }
     }
