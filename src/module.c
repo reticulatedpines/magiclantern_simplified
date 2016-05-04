@@ -9,6 +9,7 @@
 #include "property.h"
 #include "beep.h"
 #include "bmp.h"
+#include "lens.h"
 
 #ifndef CONFIG_MODULES_MODEL_SYM
 #error Not defined file name with symbols
@@ -852,7 +853,28 @@ int module_translate_key(int key, int dest)
 int module_send_keypress(int module_key)
 {
     int key = module_translate_key(module_key, MODULE_KEY_CANON);
-    fake_simple_button(key);
+    switch (module_key)
+    {
+        case MODULE_KEY_PRESS_HALFSHUTTER:
+            SW1(1,0);
+            break;
+
+        case MODULE_KEY_UNPRESS_HALFSHUTTER:
+            SW1(0,0);
+            break;
+
+        case MODULE_KEY_PRESS_FULLSHUTTER:
+            SW2(1,0);
+            break;
+
+        case MODULE_KEY_UNPRESS_FULLSHUTTER:
+            SW1(0,0);
+            break;
+            
+        default:
+            fake_simple_button(key);
+            break;
+    }
     return 0;
 }
 
