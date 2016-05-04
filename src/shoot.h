@@ -12,6 +12,14 @@ void set_interval_time(int seconds);
 void intervalometer_stop();
 int is_intervalometer_running();
 
+/* take a single picture according to current settings */
+/* (regular, bulb, or custom, e.g. silent) */
+int take_a_pic(int should_af);
+
+/* take a sequence of regular pictures in continuous (burst) mode */
+/* (note: your camera must be already in some continuous mode) */
+int take_fast_pictures(int number);
+
 /* take a long exposure image in BULB mode */
 /* returns nonzero if canceled by user, zero otherwise */
 int bulb_take_pic(int duration);
