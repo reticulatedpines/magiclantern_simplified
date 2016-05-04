@@ -182,6 +182,25 @@ function test_io()
     append_test("tmp.txt")
 end
 
+function test_keys()
+    printf("Testing half-shutter...\n")
+    -- open Canon menu
+    key.press(KEY.MENU)
+    msleep(1000)
+    -- fixme: expose things like QR_MODE, PLAY_MODE, enter_play_mode...
+    assert(camera.state == 1)
+    key.press(KEY.HALFSHUTTER)
+    assert(key.last == KEY.HALFSHUTTER)
+    msleep(1000)
+    -- half-shutter should close Canon menu
+    assert(camera.state == 0)
+    key.press(KEY.UNPRESS_HALFSHUTTER)
+    assert(key.last == KEY.UNPRESS_HALFSHUTTER)
+    printf("Half-shutter test OK.\n")
+    
+    -- todo: test other key codes? press/unpress events?
+end
+
 function test_camera_exposure()
     printf("Testing exposure settings, module 'camera'...\n")
     printf("Camera    : %s (%s) %s\n", camera.model, camera.model_short, camera.firmware)
@@ -681,6 +700,7 @@ function api_tests()
     
     printf("Module tests...\n")
     test_io()
+    test_keys()
     test_camera_exposure()
     test_camera_take_pics()
     test_lv()
