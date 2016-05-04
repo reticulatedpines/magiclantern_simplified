@@ -51,9 +51,12 @@
  * ----------------------------------------------------------------------------
  */
 
+#include "arm-mcr.h"
+extern void * __mem_malloc( size_t len, unsigned int flags, const char *file, unsigned int line);
+
 /* Start addresses and the size of the heap */
-#define UMM_MALLOC_CFG__HEAP_ADDR   /* TODO */
-#define UMM_MALLOC_CFG__HEAP_SIZE   /* TODO */
+#define UMM_MALLOC_CFG__HEAP_ADDR __mem_malloc(UMM_MALLOC_CFG__HEAP_SIZE, 0, "umm", 0);
+#define UMM_MALLOC_CFG__HEAP_SIZE (512*1024-32)
 
 /* A couple of macros to make packing structures less compiler dependent */
 
@@ -70,8 +73,8 @@
  * called from within umm_malloc()
  */
 
-#define UMM_CRITICAL_ENTRY()
-#define UMM_CRITICAL_EXIT()
+#define UMM_CRITICAL_ENTRY() uint32_t old_int = cli();
+#define UMM_CRITICAL_EXIT()  sei(old_int);
 
 /*
  * -D UMM_INTEGRITY_CHECK :
@@ -86,9 +89,8 @@
  * 4 bytes, so there might be some trailing "extra" bytes which are not checked
  * for corruption.
  */
-/*
-#define UMM_INTEGRITY_CHECK
-*/
+//~ #define UMM_INTEGRITY_CHECK
+//~ #define UMM_HEAP_CORRUPTION_CB() fprintf(stderr, "!!! heap corruption !!!\n");
 
 /*
  * -D UMM_POISON :
@@ -117,9 +119,7 @@
  * If poison corruption is detected, the message is printed and user-provided
  * callback is called: `UMM_HEAP_CORRUPTION_CB()`
  */
-/*
-#define UMM_POISON
-*/
+//~ #define UMM_POISON
 #define UMM_POISON_SIZE_BEFORE 2
 #define UMM_POISON_SIZE_AFTER 2
 #define UMM_POISONED_BLOCK_LEN_TYPE short

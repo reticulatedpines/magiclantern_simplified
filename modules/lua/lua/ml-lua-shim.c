@@ -1,10 +1,16 @@
 #include "ml-lua-shim.h"
+
+/* undefine realloc, because we'll call the core function here */
+#undef realloc
+void *realloc(void *ptr, size_t size);
+
 #include <math.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <fio-ml.h>
 #include <errno.h>
+#include "umm_malloc/umm_malloc.h"
 
 #undef DEBUG
 
@@ -218,12 +224,65 @@ void* malloc(size_t size)
      * if it has round values, assume it's fio_malloc, for buffering files */
     int is_fio = !(size & 0xFF);
     dbg_printf("%smalloc(%s)\n", is_fio ? "fio_" : "", format_memory_size(size));
-    return __mem_malloc(size, is_fio ? 3 : 0, "lua_stdio", 0);
+    
+    void* ans = 0;
+    
+    if (size < 1024)
+    {
+        /* process small requests with umm_malloc */
+        ans = umm_malloc(size);
+    }
+    
+    if (ans == 0)
+    {
+        /* process large and/or failed requests with core malloc wrapper */
+        ans = __mem_malloc(size, is_fio ? 3 : 0, "lua_stdio", 0);
+    }
+    
+    return ans;
 }
 
 void free(void* ptr)
 {
-    __mem_free(ptr);
+    if (umm_ptr_in_heap(ptr))
+    {
+        umm_free(ptr);
+    }
+    else
+    {
+        __mem_free(ptr);
+    }
+}
+
+int core_reallocs = 0;
+
+void* my_realloc(void* ptr, size_t size)
+{
+    int use_umm =
+        (umm_ptr_in_heap(ptr)) ||
+        (ptr == 0 && size < 1024);
+    
+    void* ans = 0;
+    
+    if (use_umm)
+    {
+        ans = umm_realloc(ptr, size);
+        
+        if (ans == 0 && size > 0)
+        {
+            /* umm_realloc failed? try again using core malloc */
+            ans = __mem_malloc(size, 0, "lua", __LINE__);
+            if (ans) memcpy(ans, ptr, size);
+            umm_free(ptr);
+            core_reallocs++;
+        }
+    }
+    else
+    {
+        ans = realloc(ptr, size);
+    }
+    
+    return ans;
 }
 
 void abort()

@@ -600,7 +600,7 @@ UMM_H_ATTPACKPRE typedef struct umm_block_t {
   } header;
   union {
     umm_ptr free;
-    unsigned char data[4];
+    unsigned char data[12];
   } body;
 } UMM_H_ATTPACKSUF umm_block;
 
@@ -1617,9 +1617,11 @@ static void *_umm_realloc( void *ptr, size_t size ) {
 
     if( (ptr = _umm_malloc( size )) ) {
       memcpy( ptr, oldptr, curSize );
+      _umm_free( oldptr );
     }
 
-    _umm_free( oldptr );
+    /* note: when umm_realloc fails, the old pointer is not freed */
+    /* this gives us a chance to recover and move the pointer to another allocator */
   }
 
   /* Release the critical section... */
@@ -1729,3 +1731,10 @@ size_t umm_free_heap_size( void ) {
 }
 
 /* ------------------------------------------------------------------------ */
+
+int umm_ptr_in_heap(void *ptr)
+{
+    return
+        ptr >= (void*) umm_heap &&
+        ptr <  (void*) umm_heap + umm_numblocks * sizeof(umm_block);
+}

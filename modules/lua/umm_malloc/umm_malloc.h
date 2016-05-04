@@ -38,6 +38,7 @@ void umm_free( void *ptr );
 
 size_t umm_free_heap_size( void );
 
+int umm_ptr_in_heap(void *ptr);
 
 /* ------------------------------------------------------------------------ */
 
