@@ -264,15 +264,13 @@ static int luaCB_camera_newindex(lua_State * L)
 
 /***
  Take a picture
- @tparam[opt=64] int wait how long to wait for camera to be ready to take a picture
  @tparam[opt=true] bool should_af whether or not to use auto focus
  @function shoot
  */
 static int luaCB_camera_shoot(lua_State * L)
 {
-    LUA_PARAM_INT_OPTIONAL(wait, 1, 64);
-    LUA_PARAM_BOOL_OPTIONAL(should_af, 2, 1);
-    int result = lens_take_picture(wait, should_af);
+    LUA_PARAM_BOOL_OPTIONAL(should_af, 1, 1);
+    int result = take_a_pic(should_af);
     lua_pushinteger(L, result);
     return 1;
 }
