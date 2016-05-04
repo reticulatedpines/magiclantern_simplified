@@ -293,13 +293,13 @@ static int luaCB_camera_burst(lua_State * L)
 
 /***
  Take a picture in bulb mode
- @tparam int duration bulb duration in seconds
+ @tparam float duration bulb duration in seconds
  @function bulb
  */
 static int luaCB_camera_bulb(lua_State * L)
 {
-    LUA_PARAM_INT(duration, 1);
-    bulb_take_pic(duration);
+    LUA_PARAM_NUMBER(duration, 1);
+    bulb_take_pic(duration * 1000);
     return 0;
 }
 
