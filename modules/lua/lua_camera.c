@@ -276,6 +276,22 @@ static int luaCB_camera_shoot(lua_State * L)
 }
 
 /***
+ Take N pictures in burst mode.
+ 
+ Note: your camera must be already in some continuous drive mode,
+ otherwise the speed will be slow.
+ 
+ @tparam int num_pictures how many pictures to take
+ @function burst
+ */
+static int luaCB_camera_burst(lua_State * L)
+{
+    LUA_PARAM_INT(num_pictures, 1);
+    take_fast_pictures(num_pictures);
+    return 0;
+}
+
+/***
  Take a picture in bulb mode
  @tparam int duration bulb duration in seconds
  @function bulb
@@ -678,6 +694,7 @@ static const char * lua_camera_fields[] =
 static const luaL_Reg cameralib[] =
 {
     { "shoot", luaCB_camera_shoot },
+    { "burst", luaCB_camera_burst },
     { "bulb", luaCB_camera_bulb },
     { "reboot", luaCB_camera_reboot },
     { NULL, NULL }
