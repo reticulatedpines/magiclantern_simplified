@@ -255,6 +255,7 @@ void free(void* ptr)
 }
 
 int core_reallocs = 0;
+int core_reallocs_size = 0;
 
 void* my_realloc(void* ptr, size_t size)
 {
@@ -275,6 +276,7 @@ void* my_realloc(void* ptr, size_t size)
             if (ans) memcpy(ans, ptr, size);
             umm_free(ptr);
             core_reallocs++;
+            core_reallocs_size += size;
         }
     }
     else

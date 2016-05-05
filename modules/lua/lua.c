@@ -558,10 +558,11 @@ static void lua_load_task(int unused)
     }
     
     extern int core_reallocs;    /* ml-lua-shim.c */
+    extern int core_reallocs_size;
     printf("Free umm_heap : %s\n", format_memory_size(umm_free_heap_size()));
     if (core_reallocs)
     {
-        printf("Core reallocs : %d\n", core_reallocs);
+        printf("Core reallocs : %d (%s)\n", core_reallocs, format_memory_size(core_reallocs_size));
     }
     printf("All scripts loaded.\n");
 
