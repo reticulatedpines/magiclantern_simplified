@@ -16,6 +16,12 @@ else
 	STAT_CMD=stat -c "%n: %s bytes"
 endif
 
+# change this if you have to mount the card every time you run "make install"
+# examples:
+# MOUNT_CARD=gvfs-mount -d /dev/mmcblk0p1
+# MOUNT_CARD=gvfs-mount dav://192.168.0.1/
+MOUNT_CARD=
+
 # Supported camera models
 SUPPORTED_MODELS:=50D 60D 550D 600D 500D 5D2 5D3 7D 650D 700D EOSM 1100D 6D
 

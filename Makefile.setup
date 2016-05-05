@@ -117,3 +117,25 @@ ML_SETUP_CONFIGS_WITH_DIR = $(_CONFIGS-with-dir-file)
 CFLAGS += $(CFLAG_USER)
 FLAGS += $(LFLAG_USER)
 AFLAGS += $(AFLAG_USER)
+
+# install preparing targets are called from both platform and modules
+# however, placing these rules at the top will select "install_prepare"
+# as the default target, which is not what we want
+# fixme: better solution?
+.DEFAULT_GOAL := all
+
+install_prepare:
+	$(INSTALL_PREPARE)
+
+.PHONY: install_prepare
+
+prepare_install_dir: install_prepare
+	mkdir -p $(INSTALL_ML_DIR)
+	mkdir -p $(INSTALL_MODULES_DIR)
+	mkdir -p $(INSTALL_FONTS_DIR)
+	mkdir -p $(INSTALL_SETTINGS_DIR)
+	mkdir -p $(INSTALL_DATA_DIR)
+	mkdir -p $(INSTALL_CROPMARKS_DIR)
+	mkdir -p $(INSTALL_SCRIPTS_DIR)
+	mkdir -p $(INSTALL_LOGS_DIR)
+	mkdir -p $(INSTALL_DOC_DIR)
