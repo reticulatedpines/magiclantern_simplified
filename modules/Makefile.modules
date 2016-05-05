@@ -54,8 +54,12 @@ dump_asm: all
 %.dep: %.mo
 	$(call build,DEPENDS,$(READELF) -sW $< | $(GREP) GLOBAL | $(GREP) 00000000 | $(GREP) UND | $(AWK) "{print \$$8;}" | sort > $@ && cd $(MODULES_DIR) && $(PYTHON) checkdep.py $(MODULE_NAME))
 
-install:: prepare_install_dir all
+# redefine this in module makefile to install additional data along with your module
+install_user_data::
+
+install:: prepare_install_dir all install_user_data
 	$(CP) $(PWD)/$(MODULE_OUTPUT) $(INSTALL_MODULES_DIR)/
+	$(INSTALL_FINISH)
 
 FORCE:
 
