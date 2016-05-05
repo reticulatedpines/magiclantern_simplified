@@ -552,11 +552,11 @@ void install_task()
     {
         if (DISPLAY_IS_ON)
         {
+            msleep(2000);
             bmp_fill(COLOR_BLACK, 0, 420, 720, 60);
-            int fnt = FONT(FONT_CANON, ok ? COLOR_WHITE : COLOR_RED, COLOR_BLACK);
+            int fnt = FONT(FONT_CANON, COLOR_WHITE, COLOR_BLACK);
             bmp_printf(fnt, 0, 430, "Please restart your camera.");
             print_bootflags();
-            msleep(1000);
         }
         else
         {
