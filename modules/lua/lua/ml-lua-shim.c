@@ -222,12 +222,12 @@ void* malloc(size_t size)
 {
     /* this appears to be called only from dietlibc stdio
      * if it has round values, assume it's fio_malloc, for buffering files */
-    int is_fio = !(size & 0xFF);
+    int is_fio = !(size & 0x3FF);
     dbg_printf("%smalloc(%s)\n", is_fio ? "fio_" : "", format_memory_size(size));
     
     void* ans = 0;
     
-    if (size < 1024)
+    if (size < 1024 && !is_fio)
     {
         /* process small requests with umm_malloc */
         ans = umm_malloc(size);
