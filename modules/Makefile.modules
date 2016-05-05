@@ -57,7 +57,10 @@ dump_asm: all
 # redefine this in module makefile to install additional data along with your module
 install_user_data::
 
-install:: prepare_install_dir all install_user_data
+modules_install_dir: install_prepare
+	$(call build,MKDIR,$(MKDIR) -p $(INSTALL_MODULES_DIR))
+
+install:: modules_install_dir all install_user_data
 	$(call build,$(MODULE_OUTPUT),$(CP) $(PWD)/$(MODULE_OUTPUT) $(INSTALL_MODULES_DIR)/)
 	$(INSTALL_FINISH)
 
