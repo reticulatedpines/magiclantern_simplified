@@ -23,7 +23,7 @@ void *realloc(void *ptr, size_t size);
 /* note: this does not add newline */
 void console_puts(const char* str);
 
-extern const char * format_memory_size( unsigned size); /* e.g. 2.0GB, 32MB, 2.4kB... */
+extern const char * format_memory_size( uint64_t size); /* e.g. 2.0GB, 32MB, 2.4kB... */
 
 static uint64_t filesizes[16] = {0};
 
