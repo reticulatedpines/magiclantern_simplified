@@ -567,12 +567,13 @@ void install_task()
 
 void redraw() { clrscr(); }
 
-void gui_uilock(int x)
+void gui_uilock(int what)
 {
-    int unlocked = 0x41000000;
+    int unlocked = UILOCK_REQUEST | (UILOCK_NONE & 0xFFFF);
     _prop_request_change(PROP_ICU_UILOCK, &unlocked, 4);
     msleep(200);
-    _prop_request_change(PROP_ICU_UILOCK, &x, 4);
+    what = UILOCK_REQUEST | (what & 0xFFFF);
+    _prop_request_change(PROP_ICU_UILOCK, &what, 4);
     msleep(200);
 }
 
