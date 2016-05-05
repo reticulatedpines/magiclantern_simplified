@@ -330,6 +330,27 @@ static void run_test()
 {
 }
 
+static void unmount_sd_card()
+{
+    extern void FSUunMountDevice(int drive);
+    
+    msleep(1000);
+    console_clear();
+    console_show();
+    FSUunMountDevice(2);
+    printf("Unmounted SD card.\n");
+    printf("You may now copy files remotely on your wifi card.\n");
+    printf("Press shutter halfway to reboot.\n");
+    
+    while (!get_halfshutter_pressed())
+    {
+        msleep(10);
+    }
+
+    int reboot = 0;
+    prop_request_change(PROP_REBOOT, &reboot, 4);
+}
+
 #if CONFIG_DEBUGMSG
 static void dbg_draw_props(int changed);
 static unsigned dbg_last_changed_propindex = 0;
@@ -1095,6 +1116,15 @@ static struct menu_entry debug_menus[] = {
         .select      = run_in_separate_task,
         .help = "Dump all image buffers (LV, HD, RAW) from current video mode."
     },
+#ifdef FEATURE_UNMOUNT_SD_CARD
+    {
+        .name        = "Unmount SD card",
+        .priv        = unmount_sd_card,
+        .select      = run_in_separate_task,
+        .help        = "Run before uploading files to a Wi-Fi card, to avoid data corruption.",
+        .help2       = "No further writes will be performed on your card from the camera.",
+    },
+#endif
 #ifdef FEATURE_DONT_CLICK_ME
     {
         .name        = "Don't click me!",
