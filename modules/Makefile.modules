@@ -58,7 +58,7 @@ dump_asm: all
 install_user_data::
 
 install:: prepare_install_dir all install_user_data
-	$(CP) $(PWD)/$(MODULE_OUTPUT) $(INSTALL_MODULES_DIR)/
+	$(call build,$(MODULE_OUTPUT),$(CP) $(PWD)/$(MODULE_OUTPUT) $(INSTALL_MODULES_DIR)/)
 	$(INSTALL_FINISH)
 
 FORCE:
