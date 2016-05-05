@@ -130,12 +130,11 @@ install_prepare:
 .PHONY: install_prepare
 
 prepare_install_dir: install_prepare
-	mkdir -p $(INSTALL_ML_DIR)
-	mkdir -p $(INSTALL_MODULES_DIR)
-	mkdir -p $(INSTALL_FONTS_DIR)
-	mkdir -p $(INSTALL_SETTINGS_DIR)
-	mkdir -p $(INSTALL_DATA_DIR)
-	mkdir -p $(INSTALL_CROPMARKS_DIR)
-	mkdir -p $(INSTALL_SCRIPTS_DIR)
-	mkdir -p $(INSTALL_LOGS_DIR)
-	mkdir -p $(INSTALL_DOC_DIR)
+	@echo "[ MKDIR    ]   ML directory structure..."
+	@$(MKDIR) -p $(INSTALL_ML_DIR)
+	@$(MKDIR) -p $(INSTALL_MODULES_DIR)
+	@$(MKDIR) -p $(INSTALL_FONTS_DIR)
+	@$(MKDIR) -p $(INSTALL_DATA_DIR)
+	@$(MKDIR) -p $(INSTALL_CROPMARKS_DIR)
+	@$(MKDIR) -p $(INSTALL_SCRIPTS_DIR)
+	@$(MKDIR) -p $(INSTALL_DOC_DIR)
