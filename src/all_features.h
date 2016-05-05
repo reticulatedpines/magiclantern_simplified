@@ -50,7 +50,6 @@
 #ifdef CONFIG_PROP_REQUEST_CHANGE
     #define FEATURE_WHITE_BALANCE
     #define FEATURE_EXPO_ISO
-    #define FEATURE_EXPO_ISO_HTP
     #define FEATURE_EXPO_SHUTTER
     #define FEATURE_EXPO_APERTURE
     //~ #define FEATURE_INTERMEDIATE_ISO_PHOTO_DISPLAY // only for rebels, not for high-end bodies

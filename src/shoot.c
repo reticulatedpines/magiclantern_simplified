@@ -2344,25 +2344,6 @@ static MENU_UPDATE_FUNC(flash_ae_display)
 }
 #endif
 
-#ifdef FEATURE_EXPO_ISO_HTP
-static void
-htp_toggle( void * priv )
-{
-    int htp = get_htp();
-    if (htp)
-        set_htp(0);
-    else
-        set_htp(1);
-}
-
-static MENU_UPDATE_FUNC(htp_display)
-{
-    int htp = get_htp();
-    MENU_SET_VALUE(htp ? "ON" : "OFF");
-    MENU_SET_ENABLED(htp);
-}
-#endif
-
 #ifdef FEATURE_LV_ZOOM_SETTINGS
 static void zoom_x5_x10_toggle(void* priv, int delta)
 {
@@ -4095,12 +4076,6 @@ static struct menu_entry expo_menus[] = {
     },
     #endif
 
-    #ifdef FEATURE_EXPO_ISO_HTP
-        #ifndef FEATURE_EXPO_ISO
-        #error This requires FEATURE_EXPO_ISO.
-        #endif
-    #endif
-
     #ifdef FEATURE_EXPO_ISO
     {
         .name = "ISO",
@@ -4151,15 +4126,6 @@ static struct menu_entry expo_menus[] = {
                 .edit_mode = EM_MANY_VALUES_LV,
                 .depends_on = DEP_MOVIE_MODE | DEP_MANUAL_ISO,
                 .icon_type = IT_DICE_OFF,
-            },
-            #endif
-            #ifdef FEATURE_EXPO_ISO_HTP
-            {
-                .name = "Highlight Tone P.",
-                .select = (void (*)(void *,int))htp_toggle,
-                .update = htp_display,
-                .icon_type = IT_BOOL,
-                .help = "Highlight Tone Priority. Use with negative ML digital ISO.",
             },
             #endif
             /*
