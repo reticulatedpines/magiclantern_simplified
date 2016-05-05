@@ -337,7 +337,15 @@ static void unmount_sd_card()
     msleep(1000);
     console_clear();
     console_show();
+    
+    /* call shutdown hooks that need to save configs */
+    extern int module_shutdown();
+    config_save_at_shutdown();
+    module_shutdown();
+    
+    /* unmount the SD card */
     FSUunMountDevice(2);
+    
     printf("Unmounted SD card.\n");
     printf("You may now copy files remotely on your wifi card.\n");
     printf("Press shutter halfway to reboot.\n");
