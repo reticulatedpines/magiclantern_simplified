@@ -473,7 +473,7 @@ static int install(void)
             return 0;
         }
 
-        bmp_printf(FONT(FONT_MED, COLOR_GRAY(50), COLOR_BLACK), 0, 480 - font_med.height, 
+        bmp_printf(FONT(FONT_MED, COLOR_YELLOW, COLOR_BLACK), 0, 480 - font_med.height, 
             "To uninstall Magic Lantern, please wait for %d seconds.  ", i
         );
         info_led_blink(1,50,950);
