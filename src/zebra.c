@@ -4029,7 +4029,6 @@ static void digic_zebra_cleanup()
     if (zebra_digic_dirty)
     {
         if (!DISPLAY_IS_ON) return;
-        beep();
         EngDrvOut(DIGIC_ZEBRA_REGISTER, 0); 
         clrscr_mirror();
         alter_bitmap_palette_entry(FAST_ZEBRA_GRID_COLOR, FAST_ZEBRA_GRID_COLOR, 256, 256);
