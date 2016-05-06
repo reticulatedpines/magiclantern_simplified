@@ -100,7 +100,7 @@
 
 #define MVR_GOP_SETTING   (*(int*)(0x194 + MVR_516_STRUCT))
 #define MVR_FRAME_NUMBER  (*(int*)(0x134 + MVR_516_STRUCT)) // in mvrExpStarted
-#define MVR_BYTES_WRITTEN (*(int*)(0x128 + MVR_516_STRUCT)) // in mvrSMEncodeDone
+#define MVR_BYTES_WRITTEN MEM((0x128 + MVR_516_STRUCT)) // in mvrSMEncodeDone
 
 
 #define MOV_RES_AND_FPS_COMBINATIONS 5
