@@ -439,11 +439,6 @@ CONFIG_INT("rec.notify", rec_notify, 3);
 CONFIG_INT("rec.notify", rec_notify, 0);
 #endif
 
-#ifdef CONFIG_5D3
-CONFIG_INT("rec.led.off", rec_led_off, 0);
-// implemented in the modified DebugMsg (for now in gui-common.c)
-#endif
-
 #ifdef FEATURE_REC_NOTIFY
 
 void rec_notify_continuous(int called_from_menu)
@@ -921,15 +916,6 @@ static struct menu_entry movie_tweaks_menus[] = {
                         },
                     .icon_type = IT_DICE_OFF,
                     .help = "Custom REC/STANDBY notifications, visual or audible",
-                    .depends_on = DEP_MOVIE_MODE,
-                },
-                #endif
-                #ifdef CONFIG_5D3
-                {
-                    .name = "Dim REC LED",
-                    .priv = &rec_led_off,
-                    .max = 1,
-                    .help = "Make the red LED light less distracting while recording.",
                     .depends_on = DEP_MOVIE_MODE,
                 },
                 #endif
