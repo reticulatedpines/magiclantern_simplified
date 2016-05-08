@@ -3193,7 +3193,7 @@ menu_display(
     //hide upper menu for vscroll
     int pos = get_menu_selected_pos(menu);
     int num_visible = get_menu_visible_count(menu);
-    int target_height = 370;
+    int target_height = menu->submenu_height ? menu->submenu_height - 54 : 370;
     if (is_menu_active("Help")) target_height -= 20;
     if (is_menu_active("Focus")) target_height -= 70;
     int natural_height = num_visible * font_large.height;
