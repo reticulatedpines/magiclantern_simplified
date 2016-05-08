@@ -58,7 +58,8 @@ const char * format_memory_size(uint64_t size); /* e.g. 2.0GB, 32MB, 2.4kB... */
 
 #endif
 
-
+/* initialization */
+void _mem_init();
 
 
 /* general-purpose memory-related routines (not routed through the backend) */
