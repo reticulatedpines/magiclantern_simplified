@@ -1411,7 +1411,7 @@ void raw_set_geometry(int width, int height, int skip_left, int skip_right, int 
 {
     raw_info.width = width;
     raw_info.height = height;
-    raw_info.pitch = raw_info.width * 14 / 8;
+    raw_info.pitch = raw_info.width * raw_info.bits_per_pixel / 8;
     raw_info.frame_size = raw_info.height * raw_info.pitch;
     raw_info.active_area.x1 = skip_left;
     raw_info.active_area.y1 = skip_top;
