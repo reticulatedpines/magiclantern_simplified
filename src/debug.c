@@ -2045,3 +2045,9 @@ void EngDrvOut(uint32_t reg, uint32_t value)
     if (!(MEM(0xC0400008) & 0x2)) return; // this routine requires LCLK enabled
     _EngDrvOut(reg, value);
 }
+
+void engio_write(uint32_t* reg_list)
+{
+    if (!(MEM(0xC0400008) & 0x2)) return; // this routine requires LCLK enabled
+    _engio_write(reg_list);
+}
