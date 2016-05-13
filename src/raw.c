@@ -1499,7 +1499,11 @@ void FAST raw_lv_vsync()
     
     if (buf && lv_raw_enabled)
     {
-        //~ bmp_printf(FONT_MED, 50, 50, "%x %dx%d  ", buf,  raw_info.pitch, raw_info.height);
+        #ifdef PREFERRED_RAW_TYPE
+        /* this needs to be set for every single frame */
+        EngDrvOutLV(MEM(RAW_TYPE_ADDRESS-4), PREFERRED_RAW_TYPE);
+        #endif
+
         /* pull the raw data into "buf" */
         int width, height;
         int ok = raw_lv_get_resolution(&width, &height);
@@ -1509,18 +1513,9 @@ void FAST raw_lv_vsync()
             edmac_raw_slurp(CACHEABLE(buf), pitch, height);
         }
     }
-    else
-    {
-        //~ bmp_printf(FONT_MED, 50, 50, "%x %d...  ", buf,  lv_raw_enabled);
-    }
     
     /* overriding the buffer is only valid for one frame */
     redirected_raw_buffer = 0;
-    
-    #ifdef PREFERRED_RAW_TYPE
-    /* this needs to be set for every single frame */
-    EngDrvOutLV(MEM(RAW_TYPE_ADDRESS-4), PREFERRED_RAW_TYPE);
-    #endif
 }
 #endif
 
