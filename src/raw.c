@@ -1501,7 +1501,9 @@ void FAST raw_lv_vsync()
     {
         #ifdef PREFERRED_RAW_TYPE
         /* this needs to be set for every single frame */
-        EngDrvOutLV(MEM(RAW_TYPE_ADDRESS-4), PREFERRED_RAW_TYPE);
+        uint32_t raw_type_register = MEM(RAW_TYPE_ADDRESS-4);
+        ASSERT(raw_type_register == 0xC0F08114 || raw_type_register == 0xC0F37014);
+        EngDrvOut(raw_type_register, PREFERRED_RAW_TYPE);
         #endif
 
         /* pull the raw data into "buf" */
