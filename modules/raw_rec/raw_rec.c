@@ -190,6 +190,7 @@ static int writing_queue_tail = 0;                /* place captured frames here 
 static int writing_queue_head = 0;                /* extract frames to be written from here */ 
 
 static int frame_count = 0;                       /* how many frames we have processed */
+static int chunk_frame_count = 0;                 /* how many frames in the current file chunk */
 static int buffer_full = 0;                       /* true when the memory becomes full */
 char* raw_movie_filename = 0;                     /* file name for current (or last) movie */
 static char* chunk_filename = 0;                  /* file name for current movie chunk */
@@ -1299,6 +1300,7 @@ static int FAST process_frame()
 
     /* advance to next frame */
     frame_count++;
+    chunk_frame_count++;
 
     return ans;
 }
@@ -1445,6 +1447,16 @@ static int file_size_limit = 0;         /* have we run into the 4GB limit? */
 static int last_write_timestamp = 0;    /* last FIO_WriteFile call */
 static int mlv_chunk = 0;               /* MLV chunk index from header */
 
+/* update the frame count and close the chunk */
+static void finish_chunk(FILE* f)
+{
+    file_hdr.videoFrameCount = chunk_frame_count;
+    FIO_SeekSkipFile(f, 0, SEEK_SET);
+    FIO_WriteFile(f, &file_hdr, file_hdr.blockSize);
+    FIO_CloseFile(f);
+    chunk_frame_count = 0;
+}
+
 /* This saves a group of frames, also taking care of file splitting if required */
 static int write_frames(FILE** pf, void* ptr, int size_used)
 {
@@ -1453,6 +1465,7 @@ static int write_frames(FILE** pf, void* ptr, int size_used)
     /* if we know there's a 4GB file size limit and we're about to exceed it, go ahead and make a new chunk */
     if (file_size_limit && written_chunk + size_used > 0xFFFFFFFF)
     {
+        finish_chunk(f);
         chunk_filename = get_next_chunk_file_name(raw_movie_filename, ++mlv_chunk);
         printf("About to reach 4GB limit.\n");
         printf("Creating new chunk: %s\n", chunk_filename);
@@ -1466,7 +1479,6 @@ static int write_frames(FILE** pf, void* ptr, int size_used)
         if (written_chunk)
         {
             printf("Success!\n");
-            FIO_CloseFile(f);
             *pf = f = g;
         }
         else
@@ -1514,6 +1526,7 @@ static int write_frames(FILE** pf, void* ptr, int size_used)
             FIO_WriteFile(f, &nul_hdr, sizeof(nul_hdr));
         }
         
+        finish_chunk(f);
         /* try to create a new chunk */
         chunk_filename = get_next_chunk_file_name(raw_movie_filename, ++mlv_chunk);
         printf("Creating new chunk: %s\n", chunk_filename);
@@ -1528,7 +1541,6 @@ static int write_frames(FILE** pf, void* ptr, int size_used)
         if (r2 == size_used) /* new chunk worked, continue with it */
         {
             printf("Success!\n");
-            FIO_CloseFile(f);
             *pf = f = g;
             written_total += size_used;
             written_chunk += size_used;
@@ -1562,6 +1574,7 @@ static void raw_video_rec_task()
     capture_slot = -1;
     fullsize_buffer_pos = 0;
     frame_count = 0;
+    chunk_frame_count = 0;
     buffer_full = 0;
     FILE* f = 0;
     written_total = 0; /* in bytes */
@@ -1867,7 +1880,7 @@ abort_and_check_early_stop:
     }
 
 cleanup:
-    if (f) FIO_CloseFile(f);
+    if (f) finish_chunk(f);
     if (!written_total)
     {
         FIO_RemoveFile(raw_movie_filename);
