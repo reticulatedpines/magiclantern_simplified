@@ -157,9 +157,16 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 /**
  * Renato [http://www.magiclantern.fm/forum/index.php?topic=5614.msg41070#msg41070]:
  * "Best images in: 17, 35, 37, 39, 81, 83, 99"
+ * "Good but sprinkles of many colors: 5, 7, 8, 9, 11, 13, 15..."
+ * 
+ * jonzero [http://www.magiclantern.fm/forum/index.php?topic=5614.msg42140#msg42140]:
+ * "Normal image with a few color pixels - NO BANDING: 5, 7, 8, 9, 11, 13, 15..."
+ * 
+ * First set may have vertical stripes (variable), but no bad pixels
+ * Second set has bad pixels (easy to correct), but no vertical stripes (to be tested)
  * note: values are off by 1
  */
-#define PREFERRED_RAW_TYPE 16
+#define PREFERRED_RAW_TYPE 4
 #define RAW_TYPE_ADDRESS 0x2D168
 #endif
 
