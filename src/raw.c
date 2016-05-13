@@ -34,6 +34,7 @@
 #undef RAW_DEBUG        /* define it to help with porting */
 #undef RAW_DEBUG_DUMP   /* if you want to save the raw image buffer and the DNG from here */
 #undef RAW_DEBUG_BLACK  /* for checking black level calibration */
+#undef RAW_DEBUG_TYPE   /* this lets you select the raw type (for PREFERRED_RAW_TYPE) from menu */
 /* see also RAW_ZEBRA_TEST and RAW_SPOTMETER_TEST in zebra.c */
 
 #ifdef RAW_DEBUG
@@ -1492,6 +1493,9 @@ void FAST raw_lv_redirect_edmac(void* ptr)
 }
 
 #ifdef CONFIG_EDMAC_RAW_SLURP
+
+static int lv_raw_type = PREFERRED_RAW_TYPE;
+
 void FAST raw_lv_vsync()
 {
     /* where should we save the raw data? */
@@ -1503,7 +1507,7 @@ void FAST raw_lv_vsync()
         /* this needs to be set for every single frame */
         uint32_t raw_type_register = MEM(RAW_TYPE_ADDRESS-4);
         ASSERT(raw_type_register == 0xC0F08114 || raw_type_register == 0xC0F37014);
-        EngDrvOut(raw_type_register, PREFERRED_RAW_TYPE);
+        EngDrvOut(raw_type_register, lv_raw_type);
         #endif
 
         /* pull the raw data into "buf" */
@@ -1519,6 +1523,7 @@ void FAST raw_lv_vsync()
     /* overriding the buffer is only valid for one frame */
     redirected_raw_buffer = 0;
 }
+
 #endif
 
 int raw_lv_settings_still_valid()
@@ -2030,9 +2035,28 @@ PROP_HANDLER(PROP_LV_DISPSIZE)
     #endif
 }
 
+#ifdef RAW_DEBUG_TYPE
+#ifndef CONFIG_EDMAC_RAW_SLURP
+    #error Only implemented for CONFIG_EDMAC_RAW_SLURP.
+#endif
+static struct menu_entry debug_menus[] = {
+    {
+        .name = "LV raw type",
+        .priv = &lv_raw_type,
+        .max = 64,
+        .help = "Choose what type of raw stream we should use in LiveView.",
+        .help2 = "See lv_af_raw, lv_rshd_raw, lv_set_raw, KindOfCraw...",
+    },
+};
+#endif
+
 static void raw_init()
 {
     raw_sem = create_named_semaphore("raw_sem", 1);
+    
+    #ifdef RAW_DEBUG_TYPE
+    menu_add("Debug", debug_menus, COUNT(debug_menus));
+    #endif
 }
 
 INIT_FUNC("raw", raw_init);
