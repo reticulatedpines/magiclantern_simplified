@@ -558,6 +558,10 @@ int handle_common_events_by_feature(struct event * event)
     #if defined(FEATURE_LV_BUTTON_PROTECT) || defined(FEATURE_LV_BUTTON_RATE)
     if (handle_lv_play(event) == 0) return 0;
     #endif
+    
+    /* if nothing else uses the arrow keys, use them for moving the focus box */
+    /* (some cameras may block it in certain modes) */
+    if (handle_lv_afframe_workaround(event) == 0) return 0;
 
     return 1;
 }
