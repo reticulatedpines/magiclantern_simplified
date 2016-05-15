@@ -64,7 +64,8 @@ mlv_rtci_hdr_t rtci_hdr;
 mlv_wbal_hdr_t wbal_hdr;
 mlv_vidf_hdr_t vidf_hdr;
 
-void set_outfiname(char *outname, char *inname);
+FILE **load_all_chunks(char *base_filename, int *entries);
+void set_out_file_name(char *outname, char *inname);
 int parse_sidecar(char *scname);
 void init_mlv_structs();
 void set_mlvi_block();
@@ -75,6 +76,9 @@ void set_lens_block();
 void set_wbal_block();
 void set_rtci_block(char *inname);
 void set_vidf_static_block();
+uint64_t mlv_generate_guid();
+uint64_t mlv_prng_lfsr(uint64_t value);
+uint32_t file_set_pos(FILE *stream, uint64_t offset, int whence);
 
 int main(int argc, char** argv)
 {
@@ -100,24 +104,36 @@ int main(int argc, char** argv)
     char* sidecar_name = "";
     int mlvout = 0, sidecar_ok = 0;
     uint64_t frame_dur_us;
-    FILE *fi = NULL;
-    FILE* outfi = NULL;
+    
+    FILE *out_file = NULL;
+    FILE **in_files = NULL;
+    FILE *in_file = NULL;
+    char *in_file_name = argv[1];
+    int in_file_count = 0;
+    int in_file_num = 0;
+    
 
-    fi = fopen(argv[1], "rb");
-    CHECK(fi, "could not open %s", argv[1]);
+    in_files = load_all_chunks(in_file_name, &in_file_count);
+    if(!in_files || !in_file_count)
+    {
+        /* Print this out on RAW chunk opening errors */
+        printf(" - Exiting program\n");
+        exit(1);
+    }
+    else
+    {
+        in_file_num = in_file_count;
+        in_file = in_files[in_file_num-1];
+    }
+
     if (sizeof(lv_rec_file_footer_t) != 192) FAIL("sizeof(lv_rec_file_footer_t) = %d, should be 192", sizeof(lv_rec_file_footer_t));
-    
-    #if defined(__WIN32)
-        fseeko64(fi, -192, SEEK_END);
-    #else
-        fseeko(fi, -192, SEEK_END);
-    #endif
-    
+    file_set_pos(in_file, -192, SEEK_END);
+
     memset(&lv_rec_footer, 0x00, sizeof(lv_rec_file_footer_t));
-    int r = fread(&lv_rec_footer, 1, sizeof(lv_rec_file_footer_t), fi);
+    int r = fread(&lv_rec_footer, 1, sizeof(lv_rec_file_footer_t), in_file);
     CHECK(r == sizeof(lv_rec_file_footer_t), "footer");
     raw_info = lv_rec_footer.raw_info;
-    fseek(fi, 0, SEEK_SET);
+    file_set_pos(in_file, 0, SEEK_SET);
 
     if (strncmp((char*)lv_rec_footer.magic, "RAWM", 4))
         FAIL("This ain't a lv_rec RAW file\n");
@@ -131,7 +147,7 @@ int main(int argc, char** argv)
     //~ lv_rec_footer.frameSize = lv_rec_footer.xRes * lv_rec_footer.yRes * 14/8;
     //~ lv_rec_footer.raw_info.white_level = 16383;
     
-    /* print out lv_rec_footer metadata */
+    /* print out some lv_rec_footer metadata */
     printf("\nResolution  : %d x %d\n", lv_rec_footer.xRes, lv_rec_footer.yRes);
     printf("Frames      : %d\n", lv_rec_footer.frameCount);
     printf("Frame size  : %d bytes\n", lv_rec_footer.frameSize);
@@ -139,7 +155,7 @@ int main(int argc, char** argv)
     printf("Black level : %d\n", lv_rec_footer.raw_info.black_level);
     printf("White level : %d\n\n", lv_rec_footer.raw_info.white_level);
 
-    char* raw = malloc(lv_rec_footer.frameSize);
+    char *raw = malloc(lv_rec_footer.frameSize);
     CHECK(raw, "malloc");
     
     if ((argc > 2) && (strcmp(argv[2], "--mlv") == 0))
@@ -157,14 +173,14 @@ int main(int argc, char** argv)
         }
         
         /* Open MLV file for output */
-        char outfiname[strlen(argv[1])];
-        set_outfiname(outfiname, argv[1]);
-        outfi = fopen(outfiname, "wb");
-        CHECK(outfi, "could not open %s", outfiname);
+        char out_file_name[strlen(argv[1])];
+        set_out_file_name(out_file_name, argv[1]);
+        out_file = fopen(out_file_name, "wb");
+        CHECK(out_file, "could not open %s", out_file_name);
 
         /* Write main file header (MLVI block) */
         set_mlvi_block();
-        if(fwrite(&file_hdr, sizeof(mlv_file_hdr_t), 1, outfi) != 1)
+        if(fwrite(&file_hdr, sizeof(mlv_file_hdr_t), 1, out_file) != 1)
         {
             printf("Failed writing MLVI block into .MLV file\n");
             goto abort;
@@ -172,7 +188,7 @@ int main(int argc, char** argv)
 
         /* Write RAWI block */
         set_rawi_block();
-        if(fwrite(&rawi_hdr, sizeof(mlv_rawi_hdr_t), 1, outfi) != 1)
+        if(fwrite(&rawi_hdr, sizeof(mlv_rawi_hdr_t), 1, out_file) != 1)
         {
             printf("Failed writing RAWI block into .MLV file\n");
             goto abort;
@@ -180,7 +196,7 @@ int main(int argc, char** argv)
         
         /* Write IDNT block */
         if(!sidecar_ok) set_idnt_block();
-        if(fwrite(&idnt_hdr, sizeof(mlv_idnt_hdr_t), 1, outfi) != 1)
+        if(fwrite(&idnt_hdr, sizeof(mlv_idnt_hdr_t), 1, out_file) != 1)
         {
             printf("Failed writing IDNT block into .MLV file\n");
             goto abort;
@@ -188,7 +204,7 @@ int main(int argc, char** argv)
 
         /* Write EXPO block */
         if(!sidecar_ok) set_expo_block();
-        if(fwrite(&expo_hdr, sizeof(mlv_expo_hdr_t), 1, outfi) != 1)
+        if(fwrite(&expo_hdr, sizeof(mlv_expo_hdr_t), 1, out_file) != 1)
         {
             printf("Failed writing EXPO block into .MLV file\n");
             goto abort;
@@ -196,7 +212,7 @@ int main(int argc, char** argv)
 
         /* Write LENS block */
         if(!sidecar_ok) set_lens_block();
-        if(fwrite(&lens_hdr, sizeof(mlv_lens_hdr_t), 1, outfi) != 1)
+        if(fwrite(&lens_hdr, sizeof(mlv_lens_hdr_t), 1, out_file) != 1)
         {
             printf("Failed writing LENS block into .MLV file\n");
             goto abort;
@@ -204,7 +220,7 @@ int main(int argc, char** argv)
 
         /* Write WBAL block */
         if(!sidecar_ok) set_wbal_block();
-        if(fwrite(&wbal_hdr, sizeof(mlv_wbal_hdr_t), 1, outfi) != 1)
+        if(fwrite(&wbal_hdr, sizeof(mlv_wbal_hdr_t), 1, out_file) != 1)
         {
             printf("Failed writing WBAL block into .MLV file\n");
             goto abort;
@@ -212,7 +228,7 @@ int main(int argc, char** argv)
 
         /* Write RTCI block */
         set_rtci_block(argv[1]);
-        if(fwrite(&rtci_hdr, sizeof(mlv_rtci_hdr_t), 1, outfi) != 1)
+        if(fwrite(&rtci_hdr, sizeof(mlv_rtci_hdr_t), 1, out_file) != 1)
         {
             printf("Failed writing RTCI block into .MLV file\n");
             goto abort;
@@ -251,12 +267,32 @@ int main(int argc, char** argv)
     }
 
     int framenumber;
+    in_file_num = 0;
+    in_file = in_files[in_file_num];
     for (framenumber = 0; framenumber < lv_rec_footer.frameCount; framenumber++)
     {
         printf("\rProcessing frame %d of %d ", framenumber+1, lv_rec_footer.frameCount);
         fflush(stdout);
-        int r = fread(raw, 1, lv_rec_footer.frameSize, fi);
-        CHECK(r == lv_rec_footer.frameSize, "fread");
+        
+        unsigned int r = fread(raw, 1, lv_rec_footer.frameSize, in_file);
+        if(r != lv_rec_footer.frameSize && in_file_num < in_file_count)
+        {
+            in_file_num++;
+            in_file = in_files[in_file_num];
+            
+            if(r != 0)
+            {
+                raw += r;
+                unsigned int h = fread(raw, 1, (lv_rec_footer.frameSize - r), in_file);
+                raw -= r;
+                printf("\n\nFrame %d is splitted between neigbour file chunks in a sequence\nReconstructing frame -> %u bytes + %u bytes = %u bytes\n\n", framenumber + 1, r, h, r + h);
+            }
+        }
+        else if(r != lv_rec_footer.frameSize)
+        {
+            printf("\nError: last file is corrupted.");
+            goto abort;
+        }
         
         if (!mlvout)
         {
@@ -281,16 +317,15 @@ int main(int argc, char** argv)
         }
         else
         {
-         
             // VIDF header dynamic data
             vidf_hdr.timestamp += frame_dur_us;
             vidf_hdr.frameNumber = framenumber;
-            if(fwrite(&vidf_hdr, sizeof(mlv_vidf_hdr_t), 1, outfi) != 1)
+            if(fwrite(&vidf_hdr, sizeof(mlv_vidf_hdr_t), 1, out_file) != 1)
             {
                 printf("Failed writing number %d VIDF block header into .MLV file\n", framenumber+1);
                 goto abort;
             }
-            if(fwrite(raw, lv_rec_footer.frameSize, 1, outfi) != 1)
+            if(fwrite(raw, lv_rec_footer.frameSize, 1, out_file) != 1)
             {
                 printf("Failed writing number %d VIDF block data into .MLV file\n", framenumber+1);
                 goto abort;
@@ -302,8 +337,15 @@ int main(int argc, char** argv)
 
 abort:
 
+    /* Close all opened input files and free list of input files */
+    for(in_file_num = 0; in_file_num < in_file_count; in_file_num++)
+    {
+        fclose(in_files[in_file_num]);
+    }
+    free(in_files);
+    
     free(raw);
-    fclose(fi);
+
     if (!mlvout)
     {
         printf(" Done.\n");
@@ -314,7 +356,7 @@ abort:
     }
     else
     {
-        fclose(outfi);
+        fclose(out_file);
         printf(" Done.\n");
     }
     
@@ -322,7 +364,7 @@ abort:
 }
 
 
-void set_outfiname(char *outname, char *inname)
+void set_out_file_name(char *outname, char *inname)
 {
     int namelen = strlen(inname);
     strcpy(outname, inname);
@@ -354,7 +396,7 @@ int parse_sidecar(char *scname)
        If at least one info block matched return 1 otherwise 0 */
     int i = 0, nof = 0, idntf = 0, expof = 0, lensf = 0, wbalf = 0;
     long int mlv_hdr_t_size = sizeof(mlv_hdr_t);
-    fseek(sidecar, mlv_hdr.blockSize - mlv_hdr_t_size, SEEK_CUR);
+    file_set_pos(sidecar, mlv_hdr.blockSize - mlv_hdr_t_size, SEEK_CUR);
     for (i = 0; i < 30; ++i)
     {
         if(fread(&mlv_hdr, sizeof(mlv_hdr_t), 1, sidecar) != 1)
@@ -367,7 +409,7 @@ int parse_sidecar(char *scname)
         {
             if(!idntf)
             {
-                fseek(sidecar, -mlv_hdr_t_size, SEEK_CUR);
+                file_set_pos(sidecar, -mlv_hdr_t_size, SEEK_CUR);
                 if(fread(&idnt_hdr, mlv_hdr.blockSize, 1, sidecar) != 1)
                 {
                     printf(" Error: could not read from %s", scname);
@@ -377,14 +419,14 @@ int parse_sidecar(char *scname)
                 printf(" IDNT");
                 idntf = 1;
             }
-            else fseek(sidecar, mlv_hdr.blockSize - mlv_hdr_t_size, SEEK_CUR);
+            else file_set_pos(sidecar, mlv_hdr.blockSize - mlv_hdr_t_size, SEEK_CUR);
             nof++;
         }
         else if(!memcmp(mlv_hdr.blockType, "EXPO", 4))
         {
             if(!expof)
             {
-                fseek(sidecar, -mlv_hdr_t_size, SEEK_CUR);
+                file_set_pos(sidecar, -mlv_hdr_t_size, SEEK_CUR);
                 if(fread(&expo_hdr, mlv_hdr.blockSize, 1, sidecar) != 1)
                 {
                     printf(" Error: could not read from %s", scname);
@@ -394,14 +436,14 @@ int parse_sidecar(char *scname)
                 printf(" EXPO");
                 expof = 1;
             }
-            else fseek(sidecar, mlv_hdr.blockSize - mlv_hdr_t_size, SEEK_CUR);
+            else file_set_pos(sidecar, mlv_hdr.blockSize - mlv_hdr_t_size, SEEK_CUR);
             nof++;
         }
         else if(!memcmp(mlv_hdr.blockType, "LENS", 4))
         {
             if(!lensf)
             {
-                fseek(sidecar, -mlv_hdr_t_size, SEEK_CUR);
+                file_set_pos(sidecar, -mlv_hdr_t_size, SEEK_CUR);
                 if(fread(&lens_hdr, mlv_hdr.blockSize, 1, sidecar) != 1)
                 {
                     printf(" Error: could not read from %s", scname);
@@ -411,14 +453,14 @@ int parse_sidecar(char *scname)
                 printf(" LENS");
                 lensf = 1;
             }
-            else fseek(sidecar, mlv_hdr.blockSize - mlv_hdr_t_size, SEEK_CUR);
+            else file_set_pos(sidecar, mlv_hdr.blockSize - mlv_hdr_t_size, SEEK_CUR);
             nof++;
         }
         else if(!memcmp(mlv_hdr.blockType, "WBAL", 4))
         {
             if(!wbalf)
             {
-                fseek(sidecar, -mlv_hdr_t_size, SEEK_CUR);
+                file_set_pos(sidecar, -mlv_hdr_t_size, SEEK_CUR);
                 if(fread(&wbal_hdr, mlv_hdr.blockSize, 1, sidecar) != 1)
                 {
                     printf(" Error: could not read from %s", scname);
@@ -428,12 +470,12 @@ int parse_sidecar(char *scname)
                 printf(" WBAL");
                 wbalf = 1;
             }
-            else fseek(sidecar, mlv_hdr.blockSize - mlv_hdr_t_size, SEEK_CUR);
+            else file_set_pos(sidecar, mlv_hdr.blockSize - mlv_hdr_t_size, SEEK_CUR);
             nof++;
         }
         else
         {
-            fseek(sidecar, mlv_hdr.blockSize - mlv_hdr_t_size, SEEK_CUR);
+            file_set_pos(sidecar, mlv_hdr.blockSize - mlv_hdr_t_size, SEEK_CUR);
             if(nof == 0)
             {
                 printf("Found");
@@ -643,6 +685,87 @@ void set_vidf_static_block()
     vidf_hdr.frameSpace = 0;
 }
 
+FILE **load_all_chunks(char *base_filename, int *entries)
+{
+    int seq_number = 0;
+    int max_name_len = strlen(base_filename) + 16;
+    char *filename = malloc(max_name_len);
+    
+    strncpy(filename, base_filename, max_name_len - 1);
+
+    /* get extension and check if it is a .RAW */
+    char *dot = strrchr(filename, '.');
+    if(dot)
+    {
+        dot++;
+        if(strcasecmp(dot, "raw"))
+        {
+            printf("Not a RAW extension %s", filename);
+            free(filename);
+            return NULL;
+        }
+    }
+    else
+    {
+        printf("Incorrect file name %s", filename);
+        free(filename);
+        return NULL;
+    }
+
+    FILE **files = malloc(sizeof(FILE*));
+
+    files[0] = fopen(filename, "rb");
+    if(!files[0])
+    {
+        printf("Failed to open file %s", filename);
+        free(filename);
+        free(files);
+        return NULL;
+    }
+
+    printf("\nFound file %s\n", filename);
+    
+    (*entries)++;
+    while(seq_number < 99)
+    {
+        FILE **realloc_files = realloc(files, (*entries + 1) * sizeof(FILE*));
+
+        if(!realloc_files)
+        {
+            printf("Error: can not realloc memory");
+            free(filename);
+            free(files);
+            return NULL;
+        }
+
+        files = realloc_files;
+
+        /* check for the next file R00, R01 etc */
+        char seq_name[8];
+
+        sprintf(seq_name, "%02d", seq_number);
+        seq_number++;
+
+        strcpy(&filename[strlen(filename) - 2], seq_name);
+
+        /* try to open */
+        files[*entries] = fopen(filename, "rb");
+        if(files[*entries])
+        {
+            printf("Found file %s\n", filename);
+            (*entries)++;
+        }
+        else
+        {
+            printf("--- End of sequence ---\n");
+            break;
+        }
+    }
+
+    free(filename);
+    return files;
+}
+
 uint64_t mlv_prng_lfsr(uint64_t value)
 {
     uint64_t lfsr = value;
@@ -661,7 +784,7 @@ uint64_t mlv_prng_lfsr(uint64_t value)
 
 uint64_t mlv_generate_guid()
 {
-    time_t rawtime; // use HPET instead?
+    time_t rawtime; // use HPET instead? namdvilad upriani iqneboda.
     struct tm *now;
     
     time (&rawtime);
@@ -681,6 +804,15 @@ uint64_t mlv_generate_guid()
 
     /* now run through final prng pass */
     return mlv_prng_lfsr(guid);
+}
+
+uint32_t file_set_pos(FILE *stream, uint64_t offset, int whence)
+{
+#if defined(__WIN32)
+    return fseeko64(stream, offset, whence);
+#else
+    return fseeko(stream, offset, whence);
+#endif
 }
 #endif
 
