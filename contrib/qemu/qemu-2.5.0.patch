@@ -1,8 +1,8 @@
 diff --git a/cpu-exec.c b/cpu-exec.c
-index 2ffeb6e..7152b82 100644
+index c88d0ff..66076d4 100644
 --- a/cpu-exec.c
 +++ b/cpu-exec.c
-@@ -493,8 +493,18 @@ int cpu_exec(CPUArchState *env)
+@@ -500,8 +500,18 @@ int cpu_exec(CPUState *cpu)
                      tcg_ctx.tb_ctx.tb_invalidated_flag = 0;
                  }
                  if (qemu_loglevel_mask(CPU_LOG_EXEC)) {
@@ -22,22 +22,22 @@ index 2ffeb6e..7152b82 100644
                  /* see if we can patch the calling TB. When the TB
                     spans two pages, we cannot safely do a direct
 diff --git a/hw/arm/Makefile.objs b/hw/arm/Makefile.objs
-index 2577f68..8011c66 100644
+index 2195b60..e3e2c14 100644
 --- a/hw/arm/Makefile.objs
 +++ b/hw/arm/Makefile.objs
-@@ -4,6 +4,7 @@ obj-y += integratorcp.o kzm.o mainstone.o musicpal.o nseries.o
- obj-y += omap_sx1.o palm.o realview.o spitz.o stellaris.o
- obj-y += tosa.o versatilepb.o vexpress.o virt.o xilinx_zynq.o z2.o
+@@ -6,6 +6,7 @@ obj-y += tosa.o versatilepb.o vexpress.o virt.o xilinx_zynq.o z2.o
+ obj-$(CONFIG_ACPI) += virt-acpi-build.o
  obj-y += netduino2.o
+ obj-y += sysbus-fdt.o
 +include ../hw/eos/Makefile.objs
  
  obj-y += armv7m.o exynos4210.o pxa2xx.o pxa2xx_gpio.o pxa2xx_pic.o
  obj-$(CONFIG_DIGIC) += digic.o
 diff --git a/memory.c b/memory.c
-index ee3f2a8..833a4b9 100644
+index e193658..9de7251 100644
 --- a/memory.c
 +++ b/memory.c
-@@ -1634,7 +1634,7 @@ static void memory_region_update_container_subregions(MemoryRegion *subregion)
+@@ -1761,7 +1761,7 @@ static void memory_region_update_container_subregions(MemoryRegion *subregion)
                           int128_make64(other->addr))) {
              continue;
          }
@@ -46,7 +46,7 @@ index ee3f2a8..833a4b9 100644
          printf("warning: subregion collision %llx/%llx (%s) "
                 "vs %llx/%llx (%s)\n",
                 (unsigned long long)offset,
-@@ -1671,6 +1671,9 @@ void memory_region_add_subregion(MemoryRegion *mr,
+@@ -1798,6 +1798,9 @@ void memory_region_add_subregion(MemoryRegion *mr,
                                   hwaddr offset,
                                   MemoryRegion *subregion)
  {
@@ -57,10 +57,10 @@ index ee3f2a8..833a4b9 100644
      subregion->priority = 0;
      memory_region_add_subregion_common(mr, offset, subregion);
 diff --git a/target-arm/cpu.c b/target-arm/cpu.c
-index 986f04c..6bd95a1 100644
+index 30739fc..3a08417 100644
 --- a/target-arm/cpu.c
 +++ b/target-arm/cpu.c
-@@ -580,6 +580,31 @@ static void arm926_initfn(Object *obj)
+@@ -711,6 +711,31 @@ static void arm926_initfn(Object *obj)
      cpu->reset_sctlr = 0x00090078;
  }
  
@@ -92,7 +92,7 @@ index 986f04c..6bd95a1 100644
  static void arm946_initfn(Object *obj)
  {
      ARMCPU *cpu = ARM_CPU(obj);
-@@ -1151,6 +1176,8 @@ typedef struct ARMCPUInfo {
+@@ -1328,6 +1353,8 @@ typedef struct ARMCPUInfo {
  static const ARMCPUInfo arm_cpus[] = {
  #if !defined(CONFIG_USER_ONLY) || !defined(TARGET_AARCH64)
      { .name = "arm926",      .initfn = arm926_initfn },
@@ -102,10 +102,10 @@ index 986f04c..6bd95a1 100644
      { .name = "arm1026",     .initfn = arm1026_initfn },
      /* What QEMU calls "arm1136-r2" is actually the 1136 r0p2, i.e. an
 diff --git a/target-arm/helper.c b/target-arm/helper.c
-index d77c6de..2f7c863 100644
+index afc4163..f526e24 100644
 --- a/target-arm/helper.c
 +++ b/target-arm/helper.c
-@@ -4827,11 +4827,16 @@ void arm_cpu_do_interrupt(CPUState *cs)
+@@ -5891,11 +5891,16 @@ void arm_cpu_do_interrupt(CPUState *cs)
      /* Switch to the new mode, and to the correct instruction set.  */
      env->uncached_cpsr = (env->uncached_cpsr & ~CPSR_M) | new_mode;
      env->daif |= mask;
