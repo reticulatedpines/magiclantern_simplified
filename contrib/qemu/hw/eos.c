@@ -45,10 +45,17 @@ EOSRegionHandler eos_handlers[] =
     { "DMA2",         0xC0A20000, 0xC0A200FF, eos_handle_dma, 2 },
     { "DMA3",         0xC0A30000, 0xC0A300FF, eos_handle_dma, 3 },
     { "DMA4",         0xC0A40000, 0xC0A400FF, eos_handle_dma, 4 },
+    { "CHSW",         0xC0F05000, 0xC0F05FFF, eos_handle_edmac_chsw, 0 },
+    { "EDMAC",        0xC0F04000, 0xC0F04FFF, eos_handle_edmac, 0 },
+    { "EDMAC",        0xC0F26000, 0xC0F26FFF, eos_handle_edmac, 1 },
+    { "EDMAC",        0xC0F30000, 0xC0F30FFF, eos_handle_edmac, 2 },
     { "CARTRIDGE",    0xC0F24000, 0xC0F24FFF, eos_handle_cartridge, 0 },
     { "ASIF",         0xC0920000, 0xC0920FFF, eos_handle_asif, 4 },
     { "Display",      0xC0F14000, 0xC0F14FFF, eos_handle_display, 0 },
 
+    /* generic catch-all for everything unhandled from this range */
+    { "ENGIO",        0xC0F00000, 0xC0FFFFFF, eos_handle_engio, 0 },
+    
     { "DIGIC6",       0xD0000000, 0xDFFFFFFF, eos_handle_digic6, 0 },
     
     { "ML helpers",   0xCF123000, 0xCF123EFF, eos_handle_ml_helpers, 0 },
@@ -2592,6 +2599,131 @@ unsigned int eos_handle_ram ( unsigned int parm, EOSState *s, unsigned int addre
 unsigned int eos_handle_cartridge ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
     io_log("Cartridge", s, address, type, value, 0, 0, 0, 0);
+    return 0;
+}
+
+unsigned int eos_handle_edmac ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+{
+    const char * msg = 0;
+    unsigned int ret = 0;
+    int channel = (parm << 4) | ((address >> 8) & 0xF);
+    
+    switch(address & 0xFF)
+    {
+        case 0x00:
+            msg = "control/status";
+            break;
+
+        case 0x04:
+            msg = "flags";
+            break;
+
+        case 0x08:
+            msg = "RAM address";
+            break;
+
+        case 0x0C:
+            msg = "yn|xn";
+            break;
+
+        case 0x10:
+            msg = "yb|xb";
+            break;
+
+        case 0x14:
+            msg = "ya|xa";
+            break;
+
+        case 0x18:
+            msg = "off1b";
+            break;
+
+        case 0x1C:
+            msg = "off1c";
+            break;
+
+        case 0x20:
+            msg = "off1a";
+            break;
+
+        case 0x24:
+            msg = "off2a";
+            break;
+
+        case 0x28:
+            msg = "off3";
+            break;
+    }
+    
+    char name[32];
+    snprintf(name, sizeof(name), "EDMAC#%d", channel);
+    io_log(name, s, address, type, value, ret, msg, 0, 0);
+    return ret;
+}
+
+/* EDMAC channel switch (connections) */
+unsigned int eos_handle_edmac_chsw ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+{
+    const char * msg = 0;
+    int msg_arg1 = 0;
+    int msg_arg2 = 0;
+    unsigned int ret = 0;
+
+    /* 0xC0F05020 - 0xC0F050E0: read edmac connections */
+    /* 0xC0F05000 - 0xC0F0501C: write channel connections for channels 0-6, then 16 */
+    /* 0xC0F05200 - 0xC0F05240: write channel connections for channels > 16 */
+    switch(address & 0xFFF)
+    {
+        case 0x020 ... 0x0E0:
+        {
+            /* read channels  8...13 =>  0...5 */
+            /* read channels 24...29 =>  6...11 */
+            /* read channels 40...43 => 12...15 */
+            int conn = ((address & 0xFF) - 0x20) >> 2;
+            int ch = 
+                (value <=  5) ? value + 8      :
+                (value <= 11) ? value + 16 + 2 :
+                (value <= 15) ? value + 32 - 4 : -1 ;
+            msg = "RAM -> RD#%d -> connection #%d";
+            msg_arg1 = ch;
+            msg_arg2 = conn;
+            break;
+        }
+
+        case 0x000 ... 0x01C:
+        {
+            int conn = value;
+            int ch = (address & 0x1F) >> 2;
+            if (ch == 7) ch = 16;
+            msg = "connection #%d -> WR#%d -> RAM";
+            msg_arg1 = conn;
+            msg_arg2 = ch;
+            break;
+        }
+
+        case 0x200 ... 0x240:
+        {
+            /* write channels 17 ... 22: pos 0...5 */
+            /* write channels 32 ... 33: pos 6...7 */
+            int conn = value;
+            int pos = (address & 0x3F) >> 2;
+            int ch =
+                (pos <= 5) ? pos + 16 + 1
+                           : pos + 32 - 6 ;
+            msg = "connection #%d -> WR#%d -> RAM";
+            msg_arg1 = conn;
+            msg_arg2 = ch;
+            break;
+        }
+    }
+
+    io_log("CHSW", s, address, type, value, ret, msg, msg_arg1, msg_arg2);
+    return ret;
+}
+
+unsigned int eos_handle_engio ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+{
+    io_log("ENGIO", s, address, type, value, 0, 0, 0, 0);
     return 0;
 }
 
