@@ -16,6 +16,7 @@
 #include "eos.h"
 
 #include "hw/eos/model_list.h"
+#include "debug_message_helper.h"
 
 
 /* Machine class */
@@ -157,6 +158,7 @@ EOSRegionHandler eos_handlers[] =
     
     { "ML helpers",   0xCF123000, 0xCF123EFF, eos_handle_ml_helpers, 0 },
     { "FIO wrapper",  0xCF123F00, 0xCF123FFF, eos_handle_ml_fio, 0 },
+    { "GDB Helper",   0xCF999000, 0xCF999FFF, eos_handle_gdb_helpers, 0},
 };
 
 /* io range access */
@@ -596,7 +598,7 @@ unsigned int eos_handle_ml_fio ( unsigned int parm, EOSState *s, unsigned int ad
     return 0;
 }
 
-static void eos_load_image(EOSState *s, const char* file, int offset, int max_size, uint32_t addr, int swap_endian)
+void eos_load_image(EOSState *s, const char* file, int offset, int max_size, uint32_t addr, int swap_endian)
 {
     int size = get_image_size(file);
     if (size < 0)

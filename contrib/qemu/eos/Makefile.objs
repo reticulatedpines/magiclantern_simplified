@@ -1,3 +1,3 @@
 # Paths are relative ../arm
-obj-y += ../eos/eos.o ../eos/model_list.o
-#obj-y += ../eos/eos.o ../eos/serial_flash.o ../eos/debug_message_helper.o
+obj-y += ../eos/eos.o ../eos/model_list.o ../eos/debug_message_helper.o
+#obj-y += ../eos/eos.o ../eos/serial_flash.o
