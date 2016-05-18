@@ -1,0 +1,2 @@
+# Paths are relative ../arm
+obj-y += ../eos/eos.o

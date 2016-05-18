@@ -42,7 +42,8 @@ cd ..
 cp -v ../$ML/contrib/qemu/scripts/* .
 chmod +x *.sh
 cd ${QEMU_NAME}
-cp -v ../../$ML/contrib/qemu/hw/* hw/arm
+mkdir -p hw/eos
+cp -v ../../$ML/contrib/qemu/eos/* hw/eos
 patch -N -p1 < ../../$ML/contrib/qemu/$QEMU_NAME.patch
 cd ..
 
