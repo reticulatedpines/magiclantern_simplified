@@ -4,6 +4,7 @@
 
 #include "hw/sysbus.h"
 #include "hw/sd/sd.h"
+#include "hw/ide/internal.h"
 
 /** Helper macros **/
 #define COUNT(x)        ((int)(sizeof(x)/sizeof((x)[0])))
