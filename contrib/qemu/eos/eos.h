@@ -2,29 +2,6 @@
 
 #define HW_EOS_H
 
-/* macros to define CPU types */
-/*
-#define ML_MACHINE(cam, addr, digic_version) \
-    static void ml_init_##cam(MachineState *args) \
-    { ml_init_common("ROM-"#cam".BIN", addr, digic_version); } \
-    \
-    MachineClass canon_eos_machine_ml_##cam = { \
-        .name = "ML-"#cam, 0, \
-        .desc = "Magic Lantern on Canon EOS "#cam, \
-        .init = &ml_init_##cam, \
-    };
-
-#define EOS_MACHINE(cam, addr, digic_version) \
-    static void eos_init_##cam(MachineState *args) \
-    { eos_init_common("ROM-"#cam".BIN", addr, digic_version); } \
-    \
-    MachineClass canon_eos_machine_##cam = { \
-        .name = #cam, 0, \
-        .desc = "Canon EOS "#cam, \
-        .init = &eos_init_##cam, \
-    };
-*/
-
 /** Some small engio API **/
 #define REG_PRINT_CHAR 0xCF123000
 #define REG_SHUTDOWN   0xCF123004

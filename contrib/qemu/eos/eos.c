@@ -15,6 +15,8 @@
 #include "hw/sd/sd.h"
 #include "eos.h"
 
+#include "hw/eos/model_list.h"
+
 
 /* Machine class */
 
@@ -25,6 +27,7 @@ typedef struct {
     uint32_t digic_version;
 } EosMachineClass;
 
+#define EOS_DESC_BASE "Canon EOS"
 #define TYPE_EOS_MACHINE   "eos"
 #define EOS_MACHINE_GET_CLASS(obj) \
     OBJECT_GET_CLASS(EosMachineClass, obj, TYPE_EOS_MACHINE)
@@ -36,18 +39,19 @@ static void eos_init_common(const char *rom_filename, uint32_t rom_start, uint32
 static void ml_init_common(const char *rom_filename, uint32_t rom_start, uint32_t digic_version);
 static void eos_common_init(MachineState *machine)
 {
-	char rom_filename[24];
+    char rom_filename[24];
     EosMachineClass *emc = EOS_MACHINE_GET_CLASS(machine);
-	snprintf(rom_filename,24,"ROM-%s.BIN",emc->model);
-	eos_init_common(rom_filename, emc->rom_start, emc->digic_version);
-	if (false)
-		ml_init_common(rom_filename, emc->rom_start, emc->digic_version);
+    snprintf(rom_filename,24,"ROM-%s.BIN",emc->model);
+    eos_init_common(rom_filename, emc->rom_start, emc->digic_version);
+    if (false) // For linkage. ML is broken in 2.3.0, so not sure if we should keep it
+        ml_init_common(rom_filename, emc->rom_start, emc->digic_version);
 }
+
 
 static void eos_class_init(ObjectClass *oc, void *data)
 {
     MachineClass *mc = MACHINE_CLASS(oc);
-    mc->desc = "Canon EOS";
+    mc->desc = EOS_DESC_BASE;
     mc->init = eos_common_init;
 }
 static const TypeInfo canon_eos_info = {
@@ -60,66 +64,58 @@ static const TypeInfo canon_eos_info = {
     .class_init = eos_class_init,
 };
 
-#define EOS_MACHINE_CLASS_INIT(cam, addr, digic_ver) \
-    static void eos_##cam##_class_init(ObjectClass *oc, void *data) \
-    { \
-        MachineClass *mc = MACHINE_CLASS(oc); \
-        EosMachineClass *emc = EOS_MACHINE_CLASS(oc); \
-        mc->desc = "Canon EOS "#cam; \
-        emc->model = #cam; \
-        emc->rom_start = addr; \
-        emc->digic_version = digic_ver; \
-    } \
-    static const TypeInfo canon_eos_info_##cam = { \
-        .name = MACHINE_TYPE_NAME(#cam), \
-        .parent = TYPE_EOS_MACHINE, \
-        .class_init = eos_##cam##_class_init, \
-    };
-// FIXME: This could (should) be dynamic.
-//        It's much cleaner with a "model.h" file with a list of
-//        models that are initiated dynamically, or even better, an
-//        external file loaded by the binary.
-EOS_MACHINE_CLASS_INIT(50D,  0xFF010000, 4);
-EOS_MACHINE_CLASS_INIT(60D,  0xFF010000, 4);
-EOS_MACHINE_CLASS_INIT(600D, 0xFF010000, 4);
-EOS_MACHINE_CLASS_INIT(500D, 0xFF010000, 4);
-EOS_MACHINE_CLASS_INIT(5D2,  0xFF810000, 4);
-EOS_MACHINE_CLASS_INIT(5D3,  0xFF0C0000, 5);
-EOS_MACHINE_CLASS_INIT(650D, 0xFF0C0000, 5);
-EOS_MACHINE_CLASS_INIT(100D, 0xFF0C0000, 5);
-EOS_MACHINE_CLASS_INIT(7D,   0xFF010000, 4);
-EOS_MACHINE_CLASS_INIT(550D, 0xFF010000, 4);
-EOS_MACHINE_CLASS_INIT(6D,   0xFF0C0000, 5);
-EOS_MACHINE_CLASS_INIT(70D,  0xFF0C0000, 5);
-EOS_MACHINE_CLASS_INIT(700D, 0xFF0C0000, 5);
-EOS_MACHINE_CLASS_INIT(1100D,0xFF010000, 4);
-EOS_MACHINE_CLASS_INIT(1200D,0xFF0C0000, 4);
-EOS_MACHINE_CLASS_INIT(EOSM, 0xFF0C0000, 5);
-EOS_MACHINE_CLASS_INIT(7D2M, 0xFE0A0000, 6);
-EOS_MACHINE_CLASS_INIT(7D2S, 0xFE0A0000, 6);
+
+static void eos_cam_class_init(ObjectClass *oc, void *data)
+{
+    MachineClass *mc = MACHINE_CLASS(oc);
+    EosMachineClass *emc = EOS_MACHINE_CLASS(oc);
+    const struct eos_model_desc * model = (struct eos_model_desc*) data;
+
+    /* Create description from name */
+    int desc_size = sizeof(EOS_DESC_BASE) + strlen(model->name) + 1;
+    char * desc = (char*)malloc(desc_size * sizeof(char));
+    if (desc) {
+        snprintf(desc, desc_size, EOS_DESC_BASE " %s", model->name);
+    }
+    mc->desc = desc;
+
+    emc->model = model->name;
+    emc->rom_start = model->rom_start;
+    emc->digic_version = model->digic_version;
+}
+
+static void eos_cam_class_finalize(ObjectClass *oc, void *data)
+{
+    MachineClass *mc = MACHINE_CLASS(oc);
+    if (mc->desc) {
+        free((char*)mc->desc);
+        mc->desc = NULL;
+    }
+}
 
 
 static void eos_machine_init(void)
 {
+    /* Register base type */
     type_register_static(&canon_eos_info);
-    type_register_static(&canon_eos_info_50D);
-    type_register_static(&canon_eos_info_60D);
-    type_register_static(&canon_eos_info_600D);
-    type_register_static(&canon_eos_info_500D);
-    type_register_static(&canon_eos_info_5D2);
-    type_register_static(&canon_eos_info_5D3);
-    type_register_static(&canon_eos_info_650D);
-    type_register_static(&canon_eos_info_100D);
-    type_register_static(&canon_eos_info_7D);
-    type_register_static(&canon_eos_info_550D);
-    type_register_static(&canon_eos_info_6D);
-    type_register_static(&canon_eos_info_70D);
-    type_register_static(&canon_eos_info_700D);
-    type_register_static(&canon_eos_info_1100D);
-    type_register_static(&canon_eos_info_1200D);
-    type_register_static(&canon_eos_info_EOSM);
-    type_register_static(&canon_eos_info_7D2M);
-    type_register_static(&canon_eos_info_7D2S);
+
+    /* Base info for camera models */
+    char name[32]; // "XXXX-machine"
+    TypeInfo info = {
+        .name = name,
+        .class_init = eos_cam_class_init,
+        .class_finalize = eos_cam_class_finalize,
+        .parent = TYPE_EOS_MACHINE,
+    };
+
+    /* Loop over all models listed in model_list.c */
+    const struct eos_model_desc * desc = eos_model_list;
+    while (desc->name != NULL) {
+        snprintf(name, 32, "%s" TYPE_MACHINE_SUFFIX, desc->name);
+        info.class_data = (void*)desc;
+        type_register(&info);
+        desc++;
+    }
 }
 
 
@@ -1381,86 +1377,6 @@ static void ml_init_common(const char *rom_filename, uint32_t rom_start, uint32_
     s->cpu->env.regs[13] = 0x1900;
 }
 
-/*
-ML_MACHINE(50D,   0xFF010000, 4);
-ML_MACHINE(60D,   0xFF010000, 4);
-ML_MACHINE(600D,  0xFF010000, 4);
-ML_MACHINE(500D,  0xFF010000, 4);
-ML_MACHINE(5D2,   0xFF810000, 4);
-ML_MACHINE(5D3,   0xFF0C0000, 5);
-ML_MACHINE(650D,  0xFF0C0000, 5);
-ML_MACHINE(100D,  0xFF0C0000, 5);
-ML_MACHINE(7D,    0xFF010000, 4);
-ML_MACHINE(550D,  0xFF010000, 4);
-ML_MACHINE(6D,    0xFF0C0000, 5);
-ML_MACHINE(70D,   0xFF0C0000, 5);
-ML_MACHINE(700D,  0xFF0C0000, 5);
-ML_MACHINE(1100D, 0xFF010000, 4);
-ML_MACHINE(1200D, 0xFF0C0000, 4);
-ML_MACHINE(EOSM,  0xFF0C0000, 5);
-ML_MACHINE(7D2M,  0xFE0A0000, 6);
-ML_MACHINE(7D2S,  0xFE0A0000, 6);
-
-EOS_MACHINE(50D,  0xFF010000, 4);
-EOS_MACHINE(60D,  0xFF010000, 4);
-EOS_MACHINE(600D, 0xFF010000, 4);
-EOS_MACHINE(500D, 0xFF010000, 4);
-EOS_MACHINE(5D2,  0xFF810000, 4);
-EOS_MACHINE(5D3,  0xFF0C0000, 5);
-EOS_MACHINE(650D, 0xFF0C0000, 5);
-EOS_MACHINE(100D, 0xFF0C0000, 5);
-EOS_MACHINE(7D,   0xFF010000, 4);
-EOS_MACHINE(550D, 0xFF010000, 4);
-EOS_MACHINE(6D,   0xFF0C0000, 5);
-EOS_MACHINE(70D,  0xFF0C0000, 5);
-EOS_MACHINE(700D, 0xFF0C0000, 5);
-EOS_MACHINE(1100D,0xFF010000, 4);
-EOS_MACHINE(1200D,0xFF0C0000, 4);
-EOS_MACHINE(EOSM, 0xFF0C0000, 5);
-EOS_MACHINE(7D2M, 0xFE0A0000, 6);
-EOS_MACHINE(7D2S, 0xFE0A0000, 6);
-
-static void eos_machine_init(void)
-{
-    qemu_register_machine(&canon_eos_machine_ml_50D);
-    qemu_register_machine(&canon_eos_machine_ml_60D);
-    qemu_register_machine(&canon_eos_machine_ml_600D);
-    qemu_register_machine(&canon_eos_machine_ml_500D);
-    qemu_register_machine(&canon_eos_machine_ml_5D2);
-    qemu_register_machine(&canon_eos_machine_ml_5D3);
-    qemu_register_machine(&canon_eos_machine_ml_650D);
-    qemu_register_machine(&canon_eos_machine_ml_100D);
-    qemu_register_machine(&canon_eos_machine_ml_7D);
-    qemu_register_machine(&canon_eos_machine_ml_550D);
-    qemu_register_machine(&canon_eos_machine_ml_6D);
-    qemu_register_machine(&canon_eos_machine_ml_70D);
-    qemu_register_machine(&canon_eos_machine_ml_700D);
-    qemu_register_machine(&canon_eos_machine_ml_1100D);
-    qemu_register_machine(&canon_eos_machine_ml_1200D);
-    qemu_register_machine(&canon_eos_machine_ml_EOSM);
-    qemu_register_machine(&canon_eos_machine_ml_7D2M);
-    qemu_register_machine(&canon_eos_machine_ml_7D2S);
-    qemu_register_machine(&canon_eos_machine_50D);
-    qemu_register_machine(&canon_eos_machine_60D);
-    qemu_register_machine(&canon_eos_machine_600D);
-    qemu_register_machine(&canon_eos_machine_500D);
-    qemu_register_machine(&canon_eos_machine_5D2);
-    qemu_register_machine(&canon_eos_machine_5D3);
-    qemu_register_machine(&canon_eos_machine_650D);
-    qemu_register_machine(&canon_eos_machine_100D);
-    qemu_register_machine(&canon_eos_machine_7D);
-    qemu_register_machine(&canon_eos_machine_550D);
-    qemu_register_machine(&canon_eos_machine_6D);
-    qemu_register_machine(&canon_eos_machine_70D);
-    qemu_register_machine(&canon_eos_machine_700D);
-    qemu_register_machine(&canon_eos_machine_1100D);
-    qemu_register_machine(&canon_eos_machine_1200D);
-    qemu_register_machine(&canon_eos_machine_EOSM);
-    qemu_register_machine(&canon_eos_machine_7D2M);
-    qemu_register_machine(&canon_eos_machine_7D2S);
-}
-
-*/
 machine_init(eos_machine_init);
 
 void eos_set_mem_w ( EOSState *s, uint32_t addr, uint32_t val )
