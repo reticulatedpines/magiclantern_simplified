@@ -14,11 +14,15 @@
 #define KWHT   "\x1B[1;37m"
 #define KRESET "\033[0m"
 
+
+// Semaphore tag
+#define SEM_TAG   KRED "[SEM]" KRESET
+
 unsigned int eos_handle_gdb_helpers ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
     // 'set *0xCF999001 = 1'
     if (type & MODE_WRITE) {
-        // This would be better (as we can pass a value), but it does not worl
+        // This would be better (as we can pass a value), but it does not work
         printf("REG_GDB_FLAG: %d\n",value);
     }
 
@@ -31,7 +35,8 @@ unsigned int eos_handle_gdb_helpers ( unsigned int parm, EOSState *s, unsigned i
 
             case REG_GDB_SEM_NEW_IN:
             case REG_GDB_SEM_NEW_OUT:
-            case REG_GDB_SEM_TAKE:
+            case REG_GDB_SEM_TAKE_IN:
+            case REG_GDB_SEM_TAKE_OUT:
             case REG_GDB_SEM_GIVE:
                 eos_debug_semaphore_tracker(s,address);
                 break;
@@ -182,8 +187,9 @@ void eos_debug_semaphore_tracker(EOSState * s, int event)
     } * sem = NULL;
     uint32_t r0 = s->cpu->env.regs[0];
     uint32_t r1 = s->cpu->env.regs[1];
+    uint32_t lr = s->cpu->env.regs[14];
     int i;
-
+    
     switch (event)
     {
         case REG_GDB_SEM_NEW_IN:
@@ -202,7 +208,7 @@ void eos_debug_semaphore_tracker(EOSState * s, int event)
                 sem[semaphore_count-1].semaphore = 0xffffffff;
                 sem[semaphore_count-1].state = r1;
                 sem[semaphore_count-1].name = name;
-                printf("[SEM]  Created named semaphore: %s (state=%d)\n", name, r1);
+                printf(SEM_TAG "  [0x%X] CreateSemaphore(name=\"%s\",state=%d)\n", lr, name, r1);
             }
             break;
 
@@ -211,34 +217,53 @@ void eos_debug_semaphore_tracker(EOSState * s, int event)
             {
                 char * name = sem[semaphore_count-1].name;
                 sem[semaphore_count-1].semaphore = r0;
-                printf("[SEM]  Created named semaphore: %s (value=0x%X)\n", name, r0);
+                printf(SEM_TAG "  Created semaphore: \"%s\" (id=0x%X)\n", name, r0);
             }
             break;
 
-        case REG_GDB_SEM_TAKE:
+        case REG_GDB_SEM_TAKE_IN:
+            printf(SEM_TAG "  [0x%X] TakeSemaphore(id=0x%X) ", lr, r0);
             for (i = 0; i < semaphore_count; i++)
             {
                 if (sem[i].semaphore == r0)
                 {
-                    printf("[SEM]  Take semaphore 0x%X: %s (%d -> 1)\n", 
-                           sem[i].semaphore, sem[i].name, sem[i].state);
-                    sem[i].state = 1;
+                    printf("[name=\"%s\",state=%d]\n", sem[i].name, sem[i].state);
+                    //sem[i].state = 1;
                     return;
                 }
             }
+            printf("[name=?,state=?]\n");
+            break;
+
+        case REG_GDB_SEM_TAKE_OUT:
+            // We expect r1 to be the semaphore. This has to be handled by GDB,
+            // since different ROMS cannot be expected to store it in the same
+            // register.
+            for (i = 0; i < semaphore_count; i++)
+            {
+                if (sem[i].semaphore == r1)
+                {
+                    printf(SEM_TAG "  Got semaphore(id=0x%X) [name=\"%s\",ret=%d]\n", 
+                           r1, sem[i].name, r0);
+                    sem[i].state = 1; // FIXME: if ok
+                    return;
+                }
+            }
+            printf(SEM_TAG "  Got semaphore(id=0x%X) [name=?,ret=%d]\n", r1, r0);
             break;
 
         case REG_GDB_SEM_GIVE:
+            printf(SEM_TAG "  [0x%X] GiveSemaphore(id=0x%X) ", lr, r0);
             for (i = 0; i < semaphore_count; i++)
             {
                 if (sem[i].semaphore == r0)
                 {
-                    printf("[SEM]  Give semaphore 0x%X: %s (%d -> 0)\n", 
-                           sem[i].semaphore, sem[i].name, sem[i].state);
+                    printf("[name=\"%s\",state=%d]\n", sem[i].name, sem[i].state);
                     sem[i].state = 0;
                     return;
                 }
             }
+            printf("[name=?,state=?]\n");
             break;
 
         case REG_GDB_SEM_RESET:
