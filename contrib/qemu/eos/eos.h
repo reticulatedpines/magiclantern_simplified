@@ -80,6 +80,11 @@ typedef struct
     uint32_t status;
 } SDIOState;
 
+typedef struct
+{
+    IDEBus bus;
+} CFState;
+
 struct palette_entry
 {
     uint8_t R;
@@ -175,6 +180,7 @@ typedef struct
     KeybState keyb;
     RTCState rtc;
     SDIOState sd;
+    CFState cf;
     MPUState mpu;
     struct SerialFlashState * sf;
 } EOSState;
@@ -233,6 +239,9 @@ unsigned int eos_handle_sddma ( unsigned int parm, EOSState *s, unsigned int add
 unsigned int eos_handle_cfdma ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_asif ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_display ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
+unsigned int eos_handle_edmac ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
+unsigned int eos_handle_edmac_chsw ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
+unsigned int eos_handle_engio ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 
 unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 
