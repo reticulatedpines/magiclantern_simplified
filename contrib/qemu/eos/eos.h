@@ -176,6 +176,7 @@ typedef struct
     RTCState rtc;
     SDIOState sd;
     MPUState mpu;
+    struct SerialFlashState * sf;
 } EOSState;
 
 typedef struct
@@ -250,6 +251,8 @@ unsigned int flash_get_blocksize(unsigned int rom, unsigned int size, unsigned i
 
 void eos_load_image(EOSState *s, const char* file, int offset, int max_size, uint32_t addr, int swap_endian);
 
+  
+void sdio_trigger_interrupt(EOSState *s, SDIOState *sd);
  
 void io_log(const char * module_name, EOSState *s, unsigned int address, unsigned char type, unsigned int in_value, unsigned int out_value, const char * msg, intptr_t msg_arg1, intptr_t msg_arg2);
 
