@@ -12,8 +12,117 @@
 #include "ui/console.h"
 #include "ui/pixel_ops.h"
 #include "hw/display/framebuffer.h"
-#include "hw/sd.h"
+#include "hw/sd/sd.h"
 #include "eos.h"
+
+
+/* Machine class */
+
+typedef struct {
+    MachineClass parent;
+    const char * model;
+    uint32_t rom_start;
+    uint32_t digic_version;
+} EosMachineClass;
+
+#define TYPE_EOS_MACHINE   "eos"
+#define EOS_MACHINE_GET_CLASS(obj) \
+    OBJECT_GET_CLASS(EosMachineClass, obj, TYPE_EOS_MACHINE)
+#define EOS_MACHINE_CLASS(klass) \
+    OBJECT_CLASS_CHECK(EosMachineClass, klass, TYPE_EOS_MACHINE)
+
+/* FIXME: merge to one function instead */
+static void eos_init_common(const char *rom_filename, uint32_t rom_start, uint32_t digic_version);
+static void ml_init_common(const char *rom_filename, uint32_t rom_start, uint32_t digic_version);
+static void eos_common_init(MachineState *machine)
+{
+	char rom_filename[24];
+    EosMachineClass *emc = EOS_MACHINE_GET_CLASS(machine);
+	snprintf(rom_filename,24,"ROM-%s.BIN",emc->model);
+	eos_init_common(rom_filename, emc->rom_start, emc->digic_version);
+	if (false)
+		ml_init_common(rom_filename, emc->rom_start, emc->digic_version);
+}
+
+static void eos_class_init(ObjectClass *oc, void *data)
+{
+    MachineClass *mc = MACHINE_CLASS(oc);
+    mc->desc = "Canon EOS";
+    mc->init = eos_common_init;
+}
+static const TypeInfo eos_info = {
+    .name = TYPE_EOS_MACHINE,
+    .parent = TYPE_MACHINE,
+    .abstract = true,
+//  .instance_size = sizeof(MachineState), // Could probably be used for something
+//  .instance_init = vexpress_instance_init,
+    .class_size = sizeof(EosMachineClass),
+    .class_init = eos_class_init,
+};
+
+#define EOS_MACHINE_CLASS_INIT(cam, addr, digic_ver) \
+    static void eos_##cam##_class_init(ObjectClass *oc, void *data) \
+    { \
+        MachineClass *mc = MACHINE_CLASS(oc); \
+        EosMachineClass *emc = EOS_MACHINE_CLASS(oc); \
+        mc->desc = "Canon EOS "#cam; \
+        emc->model = #cam; \
+        emc->rom_start = addr; \
+        emc->digic_version = digic_ver; \
+    } \
+    static const TypeInfo canon_eos_info_##cam = { \
+        .name = "eos-"#cam, \
+        .parent = TYPE_EOS_MACHINE, \
+        .class_init = eos_##cam##_class_init, \
+    };
+// FIXME: This could (should) be dynamic.
+//        It's much cleaner with a "model.h" file with a list of
+//        models that are initiated dynamically, or even better, an
+//        external file loaded by the binary.
+EOS_MACHINE_CLASS_INIT(50D,  0xFF010000, 4);
+EOS_MACHINE_CLASS_INIT(60D,  0xFF010000, 4);
+EOS_MACHINE_CLASS_INIT(600D, 0xFF010000, 4);
+EOS_MACHINE_CLASS_INIT(500D, 0xFF010000, 4);
+EOS_MACHINE_CLASS_INIT(5D2,  0xFF810000, 4);
+EOS_MACHINE_CLASS_INIT(5D3,  0xFF0C0000, 5);
+EOS_MACHINE_CLASS_INIT(650D, 0xFF0C0000, 5);
+EOS_MACHINE_CLASS_INIT(100D, 0xFF0C0000, 5);
+EOS_MACHINE_CLASS_INIT(7D,   0xFF010000, 4);
+EOS_MACHINE_CLASS_INIT(550D, 0xFF010000, 4);
+EOS_MACHINE_CLASS_INIT(6D,   0xFF0C0000, 5);
+EOS_MACHINE_CLASS_INIT(70D,  0xFF0C0000, 5);
+EOS_MACHINE_CLASS_INIT(700D, 0xFF0C0000, 5);
+EOS_MACHINE_CLASS_INIT(1100D,0xFF010000, 4);
+EOS_MACHINE_CLASS_INIT(1200D,0xFF0C0000, 4);
+EOS_MACHINE_CLASS_INIT(EOSM, 0xFF0C0000, 5);
+EOS_MACHINE_CLASS_INIT(7D2M, 0xFE0A0000, 6);
+EOS_MACHINE_CLASS_INIT(7D2S, 0xFE0A0000, 6);
+
+
+static void eos_machine_init(void)
+{
+    type_register_static(&canon_eos_info_50D);
+    type_register_static(&canon_eos_info_60D);
+    type_register_static(&canon_eos_info_600D);
+    type_register_static(&canon_eos_info_500D);
+    type_register_static(&canon_eos_info_5D2);
+    type_register_static(&canon_eos_info_5D3);
+    type_register_static(&canon_eos_info_650D);
+    type_register_static(&canon_eos_info_100D);
+    type_register_static(&canon_eos_info_7D);
+    type_register_static(&canon_eos_info_550D);
+    type_register_static(&canon_eos_info_6D);
+    type_register_static(&canon_eos_info_70D);
+    type_register_static(&canon_eos_info_700D);
+    type_register_static(&canon_eos_info_1100D);
+    type_register_static(&canon_eos_info_1200D);
+    type_register_static(&canon_eos_info_EOSM);
+    type_register_static(&canon_eos_info_7D2M);
+    type_register_static(&canon_eos_info_7D2S);
+}
+
+
+
 
 EOSRegionHandler eos_handlers[] =
 {
@@ -957,10 +1066,12 @@ static void eos_update_display(void *parm)
     if (s->disp.is_4bit)
     {
         /* bootloader config, 4 bpp */
+        uint64_t size = height * linesize;
+        MemoryRegionSection section;
+        section = memory_region_find(s->system_mem,s->disp.bmp_vram, size);
         framebuffer_update_display(
             surface,
-            s->system_mem,
-            s->disp.bmp_vram,
+            &section,
             width, height,
             360, linesize, 0, 1,
             draw_line4_32, s,
@@ -982,10 +1093,12 @@ static void eos_update_display(void *parm)
     }
     else
     {
+        uint64_t size = height * linesize;
+        MemoryRegionSection section;
+        section = memory_region_find(s->system_mem,s->disp.bmp_vram, size);
         framebuffer_update_display(
             surface,
-            s->system_mem,
-            s->disp.bmp_vram,
+            &section,
             width, height,
             960, linesize, 0, 1,
             draw_line8_32, s,
@@ -1138,6 +1251,7 @@ static void patch_bootloader_autoexec(EOSState *s)
     s->cpu->env.regs[15] = 0xFFFF0000;
 }
 
+#if 0 /* nkls: removed because it won't compile with newer QEMU */
 static void patch_7D2(EOSState *s)
 {
     int is_7d2m = (eos_get_mem_w(s, 0xFE106062) == 0x0F31EE19);
@@ -1172,6 +1286,7 @@ static void patch_7D2(EOSState *s)
         printf("This ROM doesn't look like a 7D2M\n");
     }
 }
+#endif
 
 static void eos_init_common(const char *rom_filename, uint32_t rom_start, uint32_t digic_version)
 {
@@ -1213,11 +1328,10 @@ static void eos_init_common(const char *rom_filename, uint32_t rom_start, uint32
     }
     
     
-    if (0)
-    {
+#if 0
         /* 7D2 experiments */
         patch_7D2(s);
-    }
+#endif
 
     s->cpu->env.regs[15] = rom_start;
 }
@@ -1266,6 +1380,7 @@ static void ml_init_common(const char *rom_filename, uint32_t rom_start, uint32_
     s->cpu->env.regs[13] = 0x1900;
 }
 
+/*
 ML_MACHINE(50D,   0xFF010000, 4);
 ML_MACHINE(60D,   0xFF010000, 4);
 ML_MACHINE(600D,  0xFF010000, 4);
@@ -1344,6 +1459,7 @@ static void eos_machine_init(void)
     qemu_register_machine(&canon_eos_machine_7D2S);
 }
 
+*/
 machine_init(eos_machine_init);
 
 void eos_set_mem_w ( EOSState *s, uint32_t addr, uint32_t val )
@@ -2713,7 +2829,7 @@ unsigned int eos_handle_tio ( unsigned int parm, EOSState *s, unsigned int addre
 {
     unsigned int ret = 1;
     const char * msg = 0;
-    int msg_arg1 = 0;
+//    int msg_arg1 = 0;
 
     switch(address & 0xFF)
     {
@@ -2734,7 +2850,7 @@ unsigned int eos_handle_tio ( unsigned int parm, EOSState *s, unsigned int addre
 
         case 0x04:
             msg = "Read byte: 0x%02X";
-            msg_arg1 = s->tio_rxbyte & 0xFF;
+//            msg_arg1 = s->tio_rxbyte & 0xFF;
             ret = s->tio_rxbyte & 0xFF;
             break;
         
