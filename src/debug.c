@@ -3940,10 +3940,6 @@ void display_off()
 // engio functions may fail and lock the camera
 void EngDrvOut(uint32_t reg, uint32_t value)
 {
-    #ifdef CONFIG_QEMU
-    if (!reg) return;   /* fixme: LCD palette not initialized */
-    #endif
-
     if (ml_shutdown_requested) return;
     if (!(MEM(0xC0400008) & 0x2)) return; // this routine requires LCLK enabled
     _EngDrvOut(reg, value);
