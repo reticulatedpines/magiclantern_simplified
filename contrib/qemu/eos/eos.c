@@ -21,7 +21,9 @@
 #include "hw/eos/eos_handle_serial_flash.h"
 #include "hw/eos/serial_flash.h"
 #include "hw/eos/eos_utils.h"
+#include "eos_bufcon_100D.h"
 
+#define IGNORE_CONNECT_POLL
 
 /* Machine class */
 
@@ -1634,6 +1636,7 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
 {
     unsigned int ret = 1;
     const char * msg = 0;
+    const char * msg_lookup = 0;
     static int unk = 0;
 
     switch (address & 0xFFFF)
@@ -1878,21 +1881,33 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
         case 0x0164:
             msg = "VIDEO CONNECT";
             ret = 1;
+#ifdef IGNORE_CONNECT_POLL
+            return ret;
+#endif
             break;
 
         case 0x0160:
             msg = "MIC CONNECT";
             ret = 1;
+#ifdef IGNORE_CONNECT_POLL
+            return ret;
+#endif
             break;
         
         case 0x015C:
             msg = "USB CONNECT";
             ret = 0;
+#ifdef IGNORE_CONNECT_POLL
+            return ret;
+#endif
             break;
         
         case 0x0124:
             msg = "HDMI CONNECT";
             ret = 0;
+#ifdef IGNORE_CONNECT_POLL
+            return ret;
+#endif
             break;
 
         case 0xC184:
@@ -1904,7 +1919,19 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
 
     }
 
-    io_log("GPIO", s, address, type, value, ret, msg, 0, 0);
+    msg_lookup = get_bufcon_label(bufcon_label_100D, address);
+    if (msg_lookup != NULL && msg != NULL)
+    {
+        char tmp[128];
+        snprintf(tmp, sizeof(tmp), "%s (%s)", msg_lookup, msg);
+        io_log("GPIO", s, address, type, value, ret, tmp, 0, 0);
+    }
+    else
+    {
+        if (msg == NULL)
+            msg = msg_lookup;
+        io_log("GPIO", s, address, type, value, ret, msg, 0, 0);
+    }
     return ret;
 }
 
@@ -2026,7 +2053,7 @@ unsigned int eos_handle_tio ( unsigned int parm, EOSState *s, unsigned int addre
 {
     unsigned int ret = 1;
     const char * msg = 0;
-//    int msg_arg1 = 0;
+    int msg_arg1 = 0;
 
     switch(address & 0xFF)
     {
@@ -2047,7 +2074,7 @@ unsigned int eos_handle_tio ( unsigned int parm, EOSState *s, unsigned int addre
 
         case 0x04:
             msg = "Read byte: 0x%02X";
-//            msg_arg1 = s->tio_rxbyte & 0xFF;
+            msg_arg1 = s->tio_rxbyte & 0xFF;
             ret = s->tio_rxbyte & 0xFF;
             break;
         
@@ -2085,7 +2112,7 @@ unsigned int eos_handle_tio ( unsigned int parm, EOSState *s, unsigned int addre
             break;
     }
 
-    io_log("TIO", s, address, type, value, ret, msg, 0, 0);
+    io_log("TIO", s, address, type, value, ret, msg, msg_arg1, 0);
     return ret;
 }
 
