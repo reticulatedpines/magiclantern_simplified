@@ -9,17 +9,17 @@
 static const char * spi_opname(int code)
 {
     switch (code) {
-    case 0x01: return "WRSR";    // Write Status Register
-    case 0x05: return "RDSR";    // Read Status Register
-    case 0x08: return "LPWP";    // Low Power Write Poll
-    case 0x06: return "WREN";    // Set Write Enable Latch
-    case 0x04: return "WRDI";    // Reset Write Enable Latch
-    case 0x9f: return "RDID";    // Read identification
-    case 0x03: return "READ";    // Read from Memory Array
-    case 0x02: return "WRITE-B"; // Write byte to Memory
-    case 0x07: return "WRITE-A"; // Write array to Memory
-    case 0x6B: return "QOFR";    // Quad Output Fast Read
-    default:   return "???";
+        case 0x01: return "WRSR";    // Write Status Register
+        case 0x05: return "RDSR";    // Read Status Register
+        case 0x08: return "LPWP";    // Low Power Write Poll
+        case 0x06: return "WREN";    // Set Write Enable Latch
+        case 0x04: return "WRDI";    // Reset Write Enable Latch
+        case 0x9f: return "RDID";    // Read identification
+        case 0x03: return "READ";    // Read from Memory Array
+        case 0x02: return "WRITE-B"; // Write byte to Memory
+        case 0x07: return "WRITE-A"; // Write array to Memory
+        case 0x6B: return "QOFR";    // Quad Output Fast Read
+        default:   return "???";
     }
 }
 
@@ -95,16 +95,22 @@ uint8_t serial_flash_write_poll(SerialFlashState * sf)
 
 uint8_t serial_flash_spi_read(SerialFlashState * sf)
 {
-    int ret = sf->read_value;
+    uint8_t ret = sf->read_value;
     switch (sf->state) {
         case 0x6B: // QOFR: Quad Output Fast Read
         case 0x03: // Read array
+			// printf("A: %X\n",sf->read_value);
+			// printf("B: %X\n",sf->data[sf->data_pointer]);
+			// printf("i: %p[0x%X]\n",sf->data,sf->data_pointer);
             sf->data_pointer++;
 			if (sf->data_pointer >= sf->size)
             	sf->data_pointer -= sf->size;
             sf->read_value = sf->data[sf->data_pointer];
             sf->rw_count++;
             sf->write_poll = 10; // TODO parameter
+			// printf("C: %X\n",sf->read_value);
+			// printf("D: %X\n",sf->data[sf->data_pointer]);
+			// printf("j: %p[0x%X]\n",sf->data,sf->data_pointer);
             break;
 
         case 0x05: // Read status
@@ -129,7 +135,7 @@ uint8_t serial_flash_spi_read(SerialFlashState * sf)
             sf->read_value = 0;
             break;
     }
-    //printf("[EEPROM]: READ >> %d\n", ret);
+    printf("[EEPROM]: READ >> 0x%X\n", ret);
     return ret;
 }
 
@@ -243,8 +249,9 @@ void serial_flash_spi_write(SerialFlashState * sf, uint8_t value)
         if (sf->substate == 3) {
 			if (sf->verbose)
             	printf("[EEPROM]: Verbose: address is now: 0x%06X\n", sf->data_pointer);
-            if (sf->state == 0x03)
+            if (sf->state == 0x03) {
                 sf->read_value = sf->data[sf->data_pointer];
+            }
         }
         sf->write_poll = 10;
 		return;
