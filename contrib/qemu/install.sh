@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 QEMU_NAME=${QEMU_NAME:=qemu-2.5.0}
 ML=${ML:=magic-lantern}
 
