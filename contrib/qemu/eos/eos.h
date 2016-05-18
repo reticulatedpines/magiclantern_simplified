@@ -50,7 +50,7 @@
 #define Q_HELPER_ADDR 0x30000000
 
 /* defines for memory/register access */
-#define INT_ENTRIES 0x100
+#define INT_ENTRIES 0x200
 
 #define MODE_MASK  0xF0
 #define MODE_READ  0x10

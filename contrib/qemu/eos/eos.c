@@ -302,6 +302,11 @@ static void *eos_interrupt_thread(void *parm)
 
         usleep(0x100);
 
+        /* don't loop thread if cpu stopped in gdb */
+        if (cpu_is_stopped(CPU(s->cpu))) {
+            continue;
+        }
+
         qemu_mutex_lock(&s->irq_lock);
 
         s->digic_timer += 0x100;
@@ -1878,6 +1883,15 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
 
 
         /* 100D */
+        //case 0xC0DC: // [0xC022C0DC] <- 0x83DC00  : GPIO_12
+        case 0xC0E0:   // [0xC022C0E0] <- 0xA3D400  : GPIO_13
+            if ((type & MODE_WRITE) && value == 0xA3D400) {
+                msg = "100D Serial flash DMA start?";
+                ret = 0;
+            }
+
+            break;
+
         case 0x0164:
             msg = "VIDEO CONNECT";
             ret = 1;
