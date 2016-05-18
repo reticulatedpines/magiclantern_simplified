@@ -33,9 +33,7 @@ tar jxf $QEMU_NAME.tar.bz2
 
 # initialize a git repo, to make it easy to track changes to QEMU source
 cd $QEMU_NAME
-git init
-git add .
-git commit -m "$QEMU_NAME vanilla" 
+cd .git && cd .. || (git init && git add . && git commit -m "$QEMU_NAME vanilla")
 cd ..
 
 # apply our patch
