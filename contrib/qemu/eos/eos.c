@@ -916,7 +916,6 @@ static void patch_bootloader_autoexec(EOSState *s)
     s->cpu->env.regs[15] = 0xFFFF0000;
 }
 
-#if 0 /* nkls: removed because it won't compile with newer QEMU */
 static void patch_7D2(EOSState *s)
 {
     int is_7d2m = (eos_get_mem_w(s, 0xFE106062) == 0x0F31EE19);
@@ -935,7 +934,7 @@ static void patch_7D2(EOSState *s)
          || old == 0x0F90EE10   /* MRC p15, 0, R0,c0,c0, 4 */
         ) {
             printf("Patching ");
-            target_disas(stdout, &s->cpu->env, addr, 4, 1);
+            target_disas(stdout, CPU(arm_env_get_cpu(&s->cpu->env)), addr, 4, 1);
             MEM_WRITE_ROM(addr, (uint8_t*) &nop, 4);
         }
     }
@@ -951,7 +950,6 @@ static void patch_7D2(EOSState *s)
         printf("This ROM doesn't look like a 7D2M\n");
     }
 }
-#endif
 
 static void eos_init_common(const char *rom_filename, uint32_t rom_start, uint32_t digic_version)
 {
@@ -998,10 +996,11 @@ static void eos_init_common(const char *rom_filename, uint32_t rom_start, uint32
     }
     
     
-#if 0
+    if (0)
+    {
         /* 7D2 experiments */
         patch_7D2(s);
-#endif
+    }
 
     s->cpu->env.regs[15] = rom_start;
 }
