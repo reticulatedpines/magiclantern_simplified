@@ -39,7 +39,7 @@ cd .git && cd .. || (git init && git add . && git commit -m "$QEMU_NAME vanilla"
 cd ..
 
 # apply our patch
-cp -v ../$ML/contrib/qemu/scripts/* .
+cp -vr ../$ML/contrib/qemu/scripts/* .
 chmod +x *.sh
 cd ${QEMU_NAME}
 mkdir -p hw/eos
