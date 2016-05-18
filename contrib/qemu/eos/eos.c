@@ -50,7 +50,7 @@ static void eos_class_init(ObjectClass *oc, void *data)
     mc->desc = "Canon EOS";
     mc->init = eos_common_init;
 }
-static const TypeInfo eos_info = {
+static const TypeInfo canon_eos_info = {
     .name = TYPE_EOS_MACHINE,
     .parent = TYPE_MACHINE,
     .abstract = true,
@@ -71,7 +71,7 @@ static const TypeInfo eos_info = {
         emc->digic_version = digic_ver; \
     } \
     static const TypeInfo canon_eos_info_##cam = { \
-        .name = "eos-"#cam, \
+        .name = MACHINE_TYPE_NAME(#cam), \
         .parent = TYPE_EOS_MACHINE, \
         .class_init = eos_##cam##_class_init, \
     };
@@ -101,6 +101,7 @@ EOS_MACHINE_CLASS_INIT(7D2S, 0xFE0A0000, 6);
 
 static void eos_machine_init(void)
 {
+    type_register_static(&canon_eos_info);
     type_register_static(&canon_eos_info_50D);
     type_register_static(&canon_eos_info_60D);
     type_register_static(&canon_eos_info_600D);
@@ -1091,7 +1092,7 @@ static void eos_update_display(void *parm)
             &first, &last
         );
     }
-    else
+    else if (s->disp.bmp_vram) /* FIXME! nkls: had to add this to prevent segmentation fault */
     {
         uint64_t size = height * linesize;
         MemoryRegionSection section;
