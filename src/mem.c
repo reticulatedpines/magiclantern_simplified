@@ -52,12 +52,27 @@ typedef int (*mem_get_max_region_func)();
 
 /* use underscore for allocator functions to prevent other code from calling them directly */
 extern void* _malloc(size_t size);
-extern void _free(void* ptr);
+extern void  _free(void* ptr);
 extern void* _AllocateMemory(size_t size);
-extern void _FreeMemory(void* ptr);
+extern void  _FreeMemory(void* ptr);
 extern void* _alloc_dma_memory(size_t size);
-extern void _free_dma_memory(void* ptr);
-extern int _shoot_get_free_space();
+extern void  _free_dma_memory(void* ptr);
+extern int   _shoot_get_free_space();
+extern struct memSuite *_shoot_malloc_suite(size_t size);
+extern void  _shoot_free_suite(struct memSuite * hSuite);
+extern struct memSuite * _shoot_malloc_suite_contig(size_t size);
+extern void* _shoot_malloc( size_t len );
+extern void  _shoot_free( void * buf );
+
+/* wrappers for the selftest module, not to be used in other code */
+void* __priv_malloc(size_t size)           { return _malloc(size);           }
+void  __priv_free(void* ptr)               { _free(ptr);                     }
+void* __priv_AllocateMemory(size_t size)   { return _AllocateMemory(size);   }
+void  __priv_FreeMemory(void* ptr)         { _FreeMemory(ptr);               }
+void* __priv_alloc_dma_memory(size_t size) { return _alloc_dma_memory(size); }
+void  __priv_free_dma_memory(void* ptr)    { _free_dma_memory(ptr);          }
+void* __priv_shoot_malloc(size_t size)     { return _shoot_malloc(size);     }
+void  __priv_shoot_free(void* ptr)         { _shoot_free(ptr);               }
 
 static struct semaphore * mem_sem = 0;
 
@@ -105,7 +120,7 @@ static int GetMaxRegionForAllocateMemory()
     return a;
 }
 
-static int GetFreeMemForMalloc()
+int GetFreeMemForMalloc()
 {
     return MALLOC_FREE_MEMORY;
 }
@@ -182,7 +197,7 @@ static struct mem_allocator allocators[] = {
         
         /* no free space check yet; just assume it's BIG */
         .preferred_min_alloc_size = 512 * 1024,
-        .preferred_max_alloc_size = 32 * 1024 * 1024,
+        .preferred_max_alloc_size = 20 * 1024 * 1024,
         .minimum_alloc_size = 5 * 1024,
     },
 #endif
@@ -201,7 +216,7 @@ static struct mem_allocator allocators[] = {
         .is_preferred_for_temporary_space = 2,  /* prefer not to use it, use shoot_malloc if you can */
 
         /* only use it for huge buffers */
-        .minimum_alloc_size = 25 * 1024 * 1024,
+        .minimum_alloc_size = 20 * 1024 * 1024,
     },
 #endif
 #endif  /* CONFIG_INSTALLER */
@@ -406,7 +421,10 @@ static unsigned int memcheck_check(unsigned int ptr, unsigned int entry)
         );
     }
     
-    memcheck_mallocbuf[entry].failed |= failed;
+    if (entry < COUNT(memcheck_mallocbuf))
+    {
+        memcheck_mallocbuf[entry].failed |= failed;
+    }
     
     return failed;
 }
@@ -583,6 +601,14 @@ static void memcheck_free( void * buf, int allocator_index, unsigned int flags)
 
 static int search_for_allocator(int size, int require_preferred_size, int require_preferred_free_space, int require_tmp, int require_dma)
 {
+    dbg_printf("search_for_allocator(%s, prefer %s%s%s%s)\n",
+        format_memory_size(size),
+        require_preferred_size ? "size " : "",
+        require_preferred_free_space ? "space " : "",
+        require_tmp == 1 ? "tmp1 " : require_tmp == 2 ? "tmp2 " : require_tmp == -1 ? "tmp_no" : require_tmp ? "err" : "",
+        require_dma ? "dma " : ""
+    );
+    
     for (int a = 0; a < COUNT(allocators); a++)
     {
         int has_non_dma = allocators[a].malloc ? 1 : 0;
@@ -596,6 +622,7 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
                 (!require_dma && has_non_dma)
            ))
         {
+            dbg_printf("%s: dma mismatch (%d,%d,%d)\n", allocators[a].name, require_dma, has_dma, has_non_dma);
             continue;
         }
 
@@ -605,15 +632,18 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
                 (require_tmp == preferred_for_tmp)
            ))
         {
+            dbg_printf("%s: tmp mismatch (%d,%d)\n", allocators[a].name, require_tmp, preferred_for_tmp);
             continue;
         }
         
         /* matches preferred size criteria? */
+        int preferred_min = allocators[a].preferred_min_alloc_size;
+        int preferred_max = allocators[a].preferred_max_alloc_size ? allocators[a].preferred_max_alloc_size : INT_MAX;
         if 
             (!(
                 (
                     !require_preferred_size ||
-                    (size >= allocators[a].preferred_min_alloc_size && size <= allocators[a].preferred_min_alloc_size)
+                    (size >= preferred_min && size <= preferred_max)
                 )
                 && 
                 (
@@ -622,6 +652,7 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
                 )
            ))
         {
+            dbg_printf("%s: pref size mismatch (req=%d, pref=%d..%d, min=%d)\n", allocators[a].name, size, preferred_min, preferred_max, allocators[a].minimum_alloc_size);
             continue;
         }
         
@@ -641,15 +672,16 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
                 )
            ))
         {
+            dbg_printf("%s: free space mismatch (req=%d,free=%d,pref=%d,min=%d)\n", allocators[a].name, size, free_space, allocators[a].preferred_free_space, allocators[a].minimum_free_space);
             continue;
         }
         
         /* do we have a large enough contiguous chunk? */
         /* use a heuristic if we don't know, use a safety margin even if we know */
-        int max_region = allocators[a].get_max_region ? allocators[a].get_max_region() - 16384 : free_space / 4;
-        //~ dbg_printf("%s: max rgn %s\n", allocators[a].name, format_memory_size(max_region));
+        int max_region = allocators[a].get_max_region ? allocators[a].get_max_region() - 4096 : free_space / 4;
         if (size > max_region)
         {
+            dbg_printf("%s: max region mismatch %s\n", allocators[a].name, format_memory_size(max_region));
             continue;
         }
         
@@ -657,6 +689,7 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
         int max_blocks = allocators[a].maximum_blocks ? allocators[a].maximum_blocks : INT_MAX;
         if (allocators[a].num_blocks >= max_blocks)
         {
+            dbg_printf("%s: not enough free blocks (%d,%d)\n", allocators[a].num_blocks, max_blocks);
             continue;
         }
         
@@ -690,6 +723,15 @@ static int choose_allocator(int size, unsigned int flags)
     /* next, try something that doesn't meet the temporary preference */
     if (prefers_tmp)
     {
+        /* try again preferred size and free space */
+        a = search_for_allocator(size, 1, 1, 0, needs_dma);
+        if (a >= 0) return a;
+
+        /* relax preferred buffer size */
+        a = search_for_allocator(size, 0, 1, 0, needs_dma);
+        if (a >= 0) return a;
+
+        /* relax preferred free space as well */
         a = search_for_allocator(size, 0, 0, 0, needs_dma);
         if (a >= 0) return a;
     }

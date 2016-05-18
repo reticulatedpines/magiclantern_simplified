@@ -21,8 +21,6 @@ all::
 	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
 %.o: $(SRC_DIR)/%.c
 	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
-%.o: $(PICOC_PATH)/%.c
-	$(call build,CC,$(CC) $(CFLAGS) -c -mthumb -fwhole-program -o $@ $<)
 %.i: %.c
 	$(call build,CPP,$(CC) $(CFLAGS) -E -c -o $@ $<)
 %: %.c
@@ -34,6 +32,10 @@ all::
 %.o: %.c
 	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
 autoexec.bin: autoexec $(XOR_CHK)
+	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@)
+	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@)
+	$(call build,XOR_CHK,$(XOR_CHK) $@)
+autoexec-fir.bin: autoexec-fir $(XOR_CHK)
 	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@)
 	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@)
 	$(call build,XOR_CHK,$(XOR_CHK) $@)

@@ -144,7 +144,8 @@ EOSRegionHandler eos_handlers[] =
     { "SFIO4",        0xC0C40000, 0xC0C40FFF, eos_handle_sfio, 4 },
     { "SDDMA1",       0xC0510000, 0xC0510FFF, eos_handle_sddma, 1 },
     { "SDDMA3",       0xC0530000, 0xC0530FFF, eos_handle_sddma, 3 },
-    { "CFDMA",        0xC0620000, 0xC062FFFF, eos_handle_cfdma, 1 },
+    { "CFDMA",        0xC0600000, 0xC060FFFF, eos_handle_cfdma, 0 },
+    { "CFDMA",        0xC0620000, 0xC062FFFF, eos_handle_cfdma, 2 },
     { "TIO",          0xC0800000, 0xC08000FF, eos_handle_tio, 0 },
     { "SIO0",         0xC0820000, 0xC08200FF, eos_handle_sio, 0 },
     { "SIO1",         0xC0820100, 0xC08201FF, eos_handle_sio, 1 },
@@ -1049,6 +1050,9 @@ uint8_t eos_get_mem_b ( EOSState *s, uint32_t addr )
 
 void io_log(const char * module_name, EOSState *s, unsigned int address, unsigned char type, unsigned int in_value, unsigned int out_value, const char * msg, intptr_t msg_arg1, intptr_t msg_arg2)
 {
+    /* todo: integrate with QEMU's logging/verbosity code */
+    //~ return;
+    
     unsigned int pc = s->cpu->env.regs[15];
     if (!module_name) module_name = "???";
     if (!msg) msg = "???";
@@ -1651,8 +1655,25 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             }
             else
             {
-                ret = 0x40000 | 0x80000;
-                msg = "VSW_STATUS";
+                if (eos_get_mem_w(s, 0xffff22e8) == 0xe2166901)
+                {
+                    /* handle 5D2 (ROS) */
+                    if (s->cpu->env.regs[15]==0xffff22e4)
+                    {
+                        ret = 0x4000;
+                        msg = "VSW_STATUS 5D2 0x4000"; 
+                    }
+                    else
+                    {
+                        ret = 0x2000;
+                        msg = "VSW_STATUS 5D2 0x2000";
+                    }
+                }
+                else
+                {
+                    ret = 0x40000 | 0x80000;
+                    msg = "VSW_STATUS";
+                }
             }
             break;
 
@@ -2092,6 +2113,12 @@ unsigned int eos_handle_tio ( unsigned int parm, EOSState *s, unsigned int addre
 
 unsigned int eos_handle_sio ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
+    unsigned int ret = 0;
+    char msg[100];
+    char mod[10];
+    
+    snprintf(mod, sizeof(mod), "SIO%i", parm);
+
     static unsigned int last_sio_data = 0;
     static unsigned int last_sio_setup1 = 0;
     static unsigned int last_sio_setup2 = 0;
@@ -2103,7 +2130,7 @@ unsigned int eos_handle_sio ( unsigned int parm, EOSState *s, unsigned int addre
         case 0x04:
             if((type & MODE_WRITE) && (value & 1))
             {
-                printf("[SIO%i] Transmit: 0x%08X, setup 0x%08X 0x%08X 0x%08X PC: 0x%08X\r\n", parm, last_sio_data, last_sio_setup1, last_sio_setup2, last_sio_setup3, pc );
+                snprintf(msg, sizeof(msg), "Transmit: 0x%08X, setup 0x%08X 0x%08X 0x%08X PC: 0x%08X", last_sio_data, last_sio_setup1, last_sio_setup2, last_sio_setup3, pc );
 
                 switch(s->rtc.transfer_format)
                 {
@@ -2128,7 +2155,8 @@ unsigned int eos_handle_sio ( unsigned int parm, EOSState *s, unsigned int addre
                                 break;
 
                             default:
-                                printf("[SIO%i] RTC: Requested invalid transfer mode 0x%02X at PC: 0x%08X\r\n", parm, value, pc );
+                                snprintf(mod, sizeof(mod), "RTC");
+                                snprintf(msg, sizeof(msg), "Requested invalid transfer mode 0x%02X", value);
                                 break;
                         }
                     }
@@ -2162,11 +2190,11 @@ unsigned int eos_handle_sio ( unsigned int parm, EOSState *s, unsigned int addre
                     default:
                         break;
                 }
-                return 0;
+                ret = 0;
             }
             else
             {
-                return 0;
+                ret = 0;
             }
             break;
 
@@ -2174,63 +2202,68 @@ unsigned int eos_handle_sio ( unsigned int parm, EOSState *s, unsigned int addre
             if(type & MODE_WRITE)
             {
                 last_sio_setup1 = value;
-                return 0;
+                ret = 0;
             }
             else
             {
-                return last_sio_setup1;
+                ret = last_sio_setup1;
             }
+            break;
 
         case 0x10:
             if(type & MODE_WRITE)
             {
                 last_sio_setup3 = value;
-                return 0;
+                ret = 0;
             }
             else
             {
-                return last_sio_setup3;
+                ret = last_sio_setup3;
             }
+            break;
 
         case 0x14:
             if(type & MODE_WRITE)
             {
                 last_sio_setup1 = value;
-                return 0;
+                ret = 0;
             }
             else
             {
-                return last_sio_setup1;
+                ret = last_sio_setup1;
             }
+            break;
 
         case 0x18:
             if(type & MODE_WRITE)
             {
                 last_sio_data = value;
 
-                printf("[SIO%i] Write to TX register PC: 0x%08X\r\n", parm, pc);
-                return 0;
+                snprintf(msg, sizeof(msg), "Write to TX register");
+                ret = 0;
             }
             else
             {
-                return last_sio_data;
+                ret = last_sio_data;
             }
+            break;
 
         case 0x1C:
             if(type & MODE_WRITE)
             {
-                printf("[SIO%i] Write access to RX register\r\n", parm);
-                return 0;
+                snprintf(msg, sizeof(msg), "Write access to RX register");
+                ret = 0;
             }
             else
             {
-                printf("[SIO%i] Read from RX register PC: 0x%08X  read: 0x%02X\r\n", parm, pc, last_sio_data);
-
-                return last_sio_data;
+                snprintf(msg, sizeof(msg), "Read from RX register");
+                ret = last_sio_data;
             }
+            break;
     }
 
-    return 0;
+    io_log(mod, s, address, type, value, ret, msg, 0, 0);
+    return ret;
 }
 
 unsigned int eos_handle_digic_timer ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
@@ -2253,7 +2286,8 @@ unsigned int eos_handle_digic_timer ( unsigned int parm, EOSState *s, unsigned i
 }
 
 /* based on pl181_send_command from hw/sd/pl181.c */
-#define DPRINTF(fmt, ...) do { printf("[SDIO] " fmt , ## __VA_ARGS__); } while (0)
+// #define DPRINTF(fmt, ...) do { printf("[SDIO] " fmt , ## __VA_ARGS__); } while (0)
+#define DPRINTF(fmt, ...) do { } while (0)
 #define SDIO_STATUS_OK              0x1
 #define SDIO_STATUS_ERROR           0x2
 #define SDIO_STATUS_DATA_AVAILABLE  0x200000

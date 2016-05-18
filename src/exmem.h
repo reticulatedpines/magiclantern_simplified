@@ -67,13 +67,6 @@ void DeleteMemorySuite(struct memSuite * suite);
 struct memChunk * CreateMemoryChunk(void* address, size_t size, uint32_t flags);
 int AddMemoryChunk(struct memSuite * suite, struct memChunk * chunk);
 
-/* internal routines called from mem.c */
-struct memSuite *_shoot_malloc_suite(size_t size);
-void _shoot_free_suite(struct memSuite * hSuite);
-struct memSuite * _shoot_malloc_suite_contig(size_t size);
-void * _shoot_malloc( size_t len );
-void _shoot_free( void * buf );
-
 /* similar to shoot_malloc, for very large buffers (32-40 MB) */
 /* usage caveat: you *must* free these as soon as you finish working with them,
  * because you can't take pictures as long as one of those is allocated */

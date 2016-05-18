@@ -65,23 +65,33 @@ echo "   Copy those in `pwd`/ and then run (for 60D):"
 echo
 echo "   cat ROM0.BIN ROM1.BIN > ROM-60D.BIN"
 echo
-echo "3) Enable CONFIG_QEMU=y in your Makefile.user"
+echo "3) Create a sdcard image named sd.img, from the entire card,"
+echo "   NOT just one partition. It's easiest if you have a tiny card."
+echo "   On my system, I used this command on a 256MB card:"
+echo "   dd if=/dev/mmcblk0 of=sd.img"
+echo
+echo "4) Enable CONFIG_QEMU=y in your Makefile.user"
 echo "   from magic-lantern directory, then run 'make clean' to make sure"
 echo "   you will rebuild ML from scratch."
 echo
-echo "4) Create a subdirectory named 'sdcard' or 'cfcard' and copy ML files there."
-echo "   Make sure all ML files are UPPERCASE (just copy them from a FAT32 card)."
-echo "   You should get something like:"
-echo "   `pwd`/sdcard/ML/AUTOEXEC.BIN"
-echo "   `pwd`/sdcard/ML/FONTS/ARGNOR32.RBF"
-echo "   `pwd`/sdcard/ML/MODULES/ARKANOID.MO"
-echo "   and so on."
+echo "   Caveat: you can't run autoexec.bin compiled with CONFIG_QEMU on the camera,"
+echo "   and neither a vanilla autoexec in QEMU (yet), so be careful not to mix them."
 echo
-echo "5) Start emulation with:"
+echo "5) Mount the sd image (you may use mount.sh) and install ML on it, as usual."
+echo "   The card image must be bootable as well, so, if you didn't have ML installed"
+echo "   on the card from which you made the image, you may use make_bootable.sh."
+echo
+echo "6) Start emulation with:"
 echo
 echo "   cd `pwd`/"
-echo "   ./run_ml.sh 60D 111"
+echo "   ./run_canon_fw.sh 60D"
 echo
-echo "   (this will recompile ML and QEMU - handy if you edit the sources often)"
+echo "   This will recompile QEMU, but not ML."
+echo "   Note: Canon GUI emulation (well, a small part of it) only works on 60D."
+echo
+echo "7) Tips & tricks:"
+echo "   - to run plain Canon firmware, either make the card image non-bootable,"
+echo "     or patch the ROM at 0xF8000004 from eos.c to disable the bootflag."
+echo "   - to turn off most log messages, return early from io_log (in eos.c)."
 echo
 echo "Enjoy!"

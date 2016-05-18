@@ -16,6 +16,15 @@
 #define REG_RAW_BUFF   0xCF12301C
 #define REG_DISP_TYPE  0xCF123020
 
+int qprint(const char * msg)
+{
+    for (const char* c = msg; *c; c++)
+    {
+        *(volatile uint32_t*)REG_PRINT_CHAR = *c;
+    }
+    return 0;
+}
+
 int qprintf(const char * fmt, ...) // prints in the QEMU console
 {
     va_list ap;
@@ -23,10 +32,7 @@ int qprintf(const char * fmt, ...) // prints in the QEMU console
     va_start( ap, fmt );
     vsnprintf( buf, sizeof(buf)-1, fmt, ap );
     va_end( ap );
-    
-    for (char* c = buf; *c; c++)
-        *(volatile uint32_t*)REG_PRINT_CHAR = *c;
-    
+    qprint(buf);
     return 0;
 }
 
@@ -160,7 +166,7 @@ static void toggle_display_type()
     /* one of those is for PAL, the other is for NTSC; see BMP_VRAM_START in bmp.c */
     uintptr_t bmp_sd1 = bmp_hdmi + BMP_HDMI_OFFSET + 8;
     uintptr_t bmp_sd2 = bmp_hdmi + BMP_HDMI_OFFSET + 0x3c8;
-    uintptr_t bmp_sd3 = bmp_hdmi + BMP_HDMI_OFFSET + 0x3c0; /* 700D and maybe other newer cameras? */
+    //uintptr_t bmp_sd3 = bmp_hdmi + BMP_HDMI_OFFSET + 0x3c0; /* 700D and maybe other newer cameras? */
     
     int display_type = MEM(REG_DISP_TYPE);
     char* display_modes[] = {   "LCD",  "HDMI-1080",    "HDMI-480", "SD-PAL",   "SD-NTSC"   };
@@ -168,9 +174,10 @@ static void toggle_display_type()
     int hdmi_codes[]      = {   0,       5,              2,          0,          0          };
     int ext_hdmi_codes[]  = {   0,       1,              1,          0,          0          };
     int ext_rca_codes[]   = {   0,       0,              0,          1,          1          };
-    int pal_codes[]       = {   0,       0,              0,          1,          0          };
+    //int pal_codes[]     = {   0,       0,              0,          1,          0          };
     
-    bmp_vram_info[1].vram2 = MEM(REG_BMP_VRAM) = buffers[display_type];
+    MEM(REG_BMP_VRAM) = buffers[display_type];
+    bmp_vram_info[1].vram2 = (void*)buffers[display_type];
     hdmi_code = hdmi_codes[display_type];
     ext_monitor_hdmi = ext_hdmi_codes[display_type];
     _ext_monitor_rca = ext_rca_codes[display_type];
@@ -243,7 +250,7 @@ static void toggle_liveview()
             gui_task_list.current = current = malloc(sizeof(struct gui_task));
             current->priv = malloc(sizeof(struct dialog));
             struct dialog * dialog = current->priv;
-            dialog->handler = &LiveViewApp_handler;
+            dialog->handler = (void*)&LiveViewApp_handler;
         }
 
     }
@@ -289,7 +296,12 @@ static void qemu_key_poll()
             msleep(50);
         }
         
-        if (!gui_menu_shown() && !lv)
+        static int show_help = 1;
+        if (gui_menu_shown())
+        {
+            show_help = 0;
+        }
+        if (show_help)
         {
             qemu_print_help();
         }
@@ -315,7 +327,7 @@ void qemu_cam_init()
     pic_quality = PICQ_RAW;
 }
 
-void hptimer_cbr(int a, int b)
+void hptimer_cbr(int a, void* b)
 {
     qprintf("Hello from HPTimer (%d, %d)\n", a, b);
 }
@@ -327,26 +339,26 @@ void qemu_hptimer_test()
     /* one HPTimer is easy to emulate, but getting them to work in multitasking is hard */
     /* note: configuring 20 timers might cause a few of them to say NOT_ENOUGH_MEMORY */
     /* this test will stress both the HPTimers and the interrupt engine */
-    SetHPTimerAfterNow(9000, hptimer_cbr, hptimer_cbr, 9);
-    SetHPTimerAfterNow(6000, hptimer_cbr, hptimer_cbr, 6);
-    SetHPTimerAfterNow(8000, hptimer_cbr, hptimer_cbr, 8);
-    SetHPTimerAfterNow(4000, hptimer_cbr, hptimer_cbr, 4);
-    SetHPTimerAfterNow(7000, hptimer_cbr, hptimer_cbr, 7);
-    SetHPTimerAfterNow(9000, hptimer_cbr, hptimer_cbr, 10);
-    SetHPTimerAfterNow(5000, hptimer_cbr, hptimer_cbr, 5);
-    SetHPTimerAfterNow(2000, hptimer_cbr, hptimer_cbr, 2);
-    SetHPTimerAfterNow(3000, hptimer_cbr, hptimer_cbr, 3);
-    SetHPTimerAfterNow(1000, hptimer_cbr, hptimer_cbr, 1);
+    SetHPTimerAfterNow(9000, hptimer_cbr, hptimer_cbr, (void*) 9);
+    SetHPTimerAfterNow(6000, hptimer_cbr, hptimer_cbr, (void*) 6);
+    SetHPTimerAfterNow(8000, hptimer_cbr, hptimer_cbr, (void*) 8);
+    SetHPTimerAfterNow(4000, hptimer_cbr, hptimer_cbr, (void*) 4);
+    SetHPTimerAfterNow(7000, hptimer_cbr, hptimer_cbr, (void*) 7);
+    SetHPTimerAfterNow(9000, hptimer_cbr, hptimer_cbr, (void*) 10);
+    SetHPTimerAfterNow(5000, hptimer_cbr, hptimer_cbr, (void*) 5);
+    SetHPTimerAfterNow(2000, hptimer_cbr, hptimer_cbr, (void*) 2);
+    SetHPTimerAfterNow(3000, hptimer_cbr, hptimer_cbr, (void*) 3);
+    SetHPTimerAfterNow(1000, hptimer_cbr, hptimer_cbr, (void*) 1);
 
-    SetHPTimerAfterNow(19000, hptimer_cbr, hptimer_cbr, 19);
-    SetHPTimerAfterNow(16000, hptimer_cbr, hptimer_cbr, 16);
-    SetHPTimerAfterNow(18000, hptimer_cbr, hptimer_cbr, 18);
-    SetHPTimerAfterNow(14000, hptimer_cbr, hptimer_cbr, 14);
-    SetHPTimerAfterNow(17000, hptimer_cbr, hptimer_cbr, 17);
-    SetHPTimerAfterNow(19000, hptimer_cbr, hptimer_cbr, 20);
-    SetHPTimerAfterNow(15000, hptimer_cbr, hptimer_cbr, 15);
-    SetHPTimerAfterNow(12000, hptimer_cbr, hptimer_cbr, 12);
-    SetHPTimerAfterNow(13000, hptimer_cbr, hptimer_cbr, 13);
-    SetHPTimerAfterNow(11000, hptimer_cbr, hptimer_cbr, 11);
+    SetHPTimerAfterNow(19000, hptimer_cbr, hptimer_cbr, (void*) 19);
+    SetHPTimerAfterNow(16000, hptimer_cbr, hptimer_cbr, (void*) 16);
+    SetHPTimerAfterNow(18000, hptimer_cbr, hptimer_cbr, (void*) 18);
+    SetHPTimerAfterNow(14000, hptimer_cbr, hptimer_cbr, (void*) 14);
+    SetHPTimerAfterNow(17000, hptimer_cbr, hptimer_cbr, (void*) 17);
+    SetHPTimerAfterNow(19000, hptimer_cbr, hptimer_cbr, (void*) 20);
+    SetHPTimerAfterNow(15000, hptimer_cbr, hptimer_cbr, (void*) 15);
+    SetHPTimerAfterNow(12000, hptimer_cbr, hptimer_cbr, (void*) 12);
+    SetHPTimerAfterNow(13000, hptimer_cbr, hptimer_cbr, (void*) 13);
+    SetHPTimerAfterNow(11000, hptimer_cbr, hptimer_cbr, (void*) 11);
     msleep(5000);
 }

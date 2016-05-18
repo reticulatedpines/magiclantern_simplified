@@ -441,6 +441,11 @@ int is_play_mode()
     return PLAY_MODE;
 }
 
+int is_menu_mode()
+{
+    return MENU_MODE;
+}
+
 #ifdef FEATURE_SET_MAINDIAL
 
 static void print_set_maindial_hint(int set)
@@ -1909,19 +1914,33 @@ static CONFIG_INT("warn.mode", warn_mode, 0);
 static CONFIG_INT("warn.picq", warn_picq, 0);
 static CONFIG_INT("warn.alo", warn_alo, 0);
 static CONFIG_INT("warn.wb", warn_wb, 0);
+static CONFIG_INT("warn.mf", warn_mf, 0);
 
 static int warn_code = 0;
 static char* get_warn_msg(char* separator)
 {
-    static char msg[222];
+    static char msg[15 + 24 + 15 + 21 + 20 + 10 /* Termination \0 and some spare */];
     msg[0] = '\0';
+    // Max length: 15 (only one can be active)
     if (warn_code & 1 && warn_mode==1) { STR_APPEND(msg, "Mode is not M%s", separator); }
     if (warn_code & 1 && warn_mode==2) { STR_APPEND(msg, "Mode is not Av%s", separator); }
     if (warn_code & 1 && warn_mode==3) { STR_APPEND(msg, "Mode is not Tv%s", separator); }
     if (warn_code & 1 && warn_mode==4) { STR_APPEND(msg, "Mode is not P%s", separator); }
-    if (warn_code & 2) { STR_APPEND(msg, "Pic quality is not RAW%s", separator); } 
+
+    // Max length: 24 (only one can be active)
+    if (warn_code & 2 && warn_picq==1) { STR_APPEND(msg, "Pic quality is not RAW%s", separator); } 
+    if (warn_code & 2 && warn_picq==2) { STR_APPEND(msg, "Pic quality is not fine%s", separator); } 
+
+    // Length: 15
     if (warn_code & 4) { STR_APPEND(msg, "ALO is enabled%s", separator); } 
+
+    // Length: 21
     if (warn_code & 8) { STR_APPEND(msg, "WB isn't set to auto%s", separator); } 
+
+    // Max length: 20 (only one can be active)
+    if (warn_code & 16 && warn_mf == 1) { STR_APPEND(msg, "Focus is not auto%s", separator); } 
+    if (warn_code & 16 && warn_mf == 2) { STR_APPEND(msg, "Focus is not manual%s", separator); } 
+
     return msg;
 }
 
@@ -1985,7 +2004,10 @@ static void warn_step()
 
     int raw = pic_quality & 0x60000;
     int rawsize = pic_quality & 0xF;
-    if (warn_picq && (!raw || rawsize))
+    if (warn_picq == 1 && (!raw || rawsize))
+        warn_code |= 2;
+    
+    if (warn_picq == 2 && !(pic_quality == PICQ_LARGE_FINE || pic_quality == PICQ_RAW || pic_quality == PICQ_RAW_JPG_LARGE_FINE))
         warn_code |= 2;
     
     if (warn_alo && get_alo() != ALO_OFF)
@@ -1993,7 +2015,13 @@ static void warn_step()
 
     if (warn_wb && lens_info.wb_mode)
         warn_code |= 8;
-    
+
+    if (warn_mf == 1 && is_manual_focus())
+        warn_code |= 16;
+        
+    if (warn_mf == 2 && !is_manual_focus())
+        warn_code |= 16;
+
     warn_action(warn_code);
 }
 
@@ -2187,8 +2215,8 @@ static struct menu_entry tweak_menus[] = {
             {
                 .name = "Quality warning",
                 .priv = &warn_picq,
-                .max = 1,
-                .choices = (const char *[]) {"OFF", "other than RAW"},
+                .max = 2,
+                .choices = (const char *[]) {"OFF", "other than RAW", "other than fine"},
                 .help = "Warn if you change the picture quality to something else.",
             },
             {
@@ -2204,6 +2232,13 @@ static struct menu_entry tweak_menus[] = {
                 .max = 1,
                 .choices = (const char *[]) {"OFF", "other than AWB"},
                 .help = "Warn if you disable AWB by mistake.",
+            },
+            {
+                .name = "AF/MF warning",
+                .priv = &warn_mf,
+                .max = 2,
+                .choices = (const char *[]) {"OFF", "other than AF", "other than MF"},
+                .help = "Warn on Manual / Automatic Focus",
             },
             MENU_EOL,
         },
