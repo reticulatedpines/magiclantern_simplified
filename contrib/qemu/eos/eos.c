@@ -163,7 +163,6 @@ EOSRegionHandler eos_handlers[] =
     { "DIGIC6",       0xD0000000, 0xDFFFFFFF, eos_handle_digic6, 0 },
     
     { "ML helpers",   0xCF123000, 0xCF123EFF, eos_handle_ml_helpers, 0 },
-    { "FIO wrapper",  0xCF123F00, 0xCF123FFF, eos_handle_ml_fio, 0 },
     { "GDB Helper",   0xCF999000, 0xCF999FFF, eos_handle_gdb_helpers, 0},
 };
 
@@ -954,7 +953,6 @@ static void patch_7D2(EOSState *s)
 }
 #endif
 
-static void ml_init_old_qemu_helpers(EOSState * s);
 static void eos_init_common(const char *rom_filename, uint32_t rom_start, uint32_t digic_version)
 {
     precompute_yuv2rgb(1);
@@ -1005,45 +1003,7 @@ static void eos_init_common(const char *rom_filename, uint32_t rom_start, uint32
 #endif
 
     s->cpu->env.regs[15] = rom_start;
-
-    if (0) {
-        ml_init_old_qemu_helpers(s);
-    }
 }
-
-static void ml_init_old_qemu_helpers(EOSState * s)
-{
-    /* we will replace Canon stubs with our own implementations */
-    /* see qemu-helper.c, stub_mappings[] */
-    eos_load_image(s, "qemu-helper.bin", 0, -1, Q_HELPER_ADDR, 0);
-    uint32_t magic  = 0x12345678;
-    uint32_t addr   = Q_HELPER_ADDR;
-    while (eos_get_mem_w(s, addr) != magic || eos_get_mem_w(s, addr + 4) != magic)
-    {
-        addr += 4;
-        if (addr > 0x30100000) { fprintf(stderr, "stub list not found\n"); abort(); }
-    }
-    uint32_t ram_offset = eos_get_mem_w(s, addr + 8);
-    addr += 12;
-    while (eos_get_mem_w(s, addr) != magic || eos_get_mem_w(s, addr + 4) != magic)
-    {
-        uint32_t old = eos_get_mem_w(s, addr);
-        uint32_t new = eos_get_mem_w(s, addr + 4);
-        if (old < 0xFF000000)
-            old += ram_offset;
-        uint32_t jmp[] = {FAR_CALL_INSTR, new};
-        printf("[QEMU_HELPER] stub %x -> %x (%x)\n", old, new, eos_get_mem_w(s, old));
-        MEM_WRITE_ROM(old, (uint8_t*)jmp, 8);
-
-        addr += 8;
-        if (addr > 0x30100000) { fprintf(stderr, "stub list error\n"); abort(); }
-    }
-
-    // set entry point
-    s->cpu->env.regs[15] = 0x800000;
-    s->cpu->env.regs[13] = 0x1900;
-}
-
 
 void eos_set_mem_w ( EOSState *s, uint32_t addr, uint32_t val )
 {
