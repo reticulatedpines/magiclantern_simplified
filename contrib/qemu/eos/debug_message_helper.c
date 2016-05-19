@@ -18,6 +18,9 @@
 // Semaphore tag
 #define SEM_TAG   KRED "[SEM]" KRESET
 
+// DebugMsg header
+#define DEBUGMSG_HDR "[DebugMsg] at 0x%08X     (%02x,%02x)                   : "
+
 unsigned int eos_handle_gdb_helpers ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
     // 'set *0xCF999001 = 1'
@@ -62,13 +65,13 @@ void eos_debug_message(EOSState * s, int colorize)
     uint32_t r2 = s->cpu->env.regs[2]; // format string address
     uint32_t r3 = s->cpu->env.regs[3]; // first argument
     uint32_t sp = s->cpu->env.regs[13]; // stack pointer
+    uint32_t lr = s->cpu->env.regs[14]; // return address
 
     char format_string[128]; // 128 bytes should be enough for anyone...
     int arg_i = 0;
     char c;
     uint32_t address = r2;
-
-    printf("[DebugMsg] (%d,%d) ", r0, r1);
+    printf(DEBUGMSG_HDR, lr-4, r0, r1);
     if (colorize) printf(KWHT);
 
     c = eos_get_mem_b(s, address++);
@@ -79,7 +82,7 @@ void eos_debug_message(EOSState * s, int colorize)
         {
             if (c == '\n') {
                 if (colorize) printf(KRESET);
-                printf("\n[DebugMsg] (%d,%d) ", r0, r1);
+                printf("\n"DEBUGMSG_HDR, lr-4, r0, r1);
                 if (colorize) printf(KWHT);
             }
             else if (c != '\r')
