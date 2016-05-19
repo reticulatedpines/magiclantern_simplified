@@ -106,9 +106,9 @@ void eos_debug_message(EOSState * s, int colorize)
             {
                 c = eos_get_mem_b(s, address++);
                 format_string[n++] = c;
-            } while (n < COUNT(format_string) && c != '\0' && !strchr("diuoxXsp%", c));
+            } while (n < COUNT(format_string) && c != '\0' && !strchr("diuoxXsSp%", c));
 
-            if (c == '\0')
+            if (c == '\0' || c == 'S')
             {
                 if (colorize) printf(KFG);
                 printf("%s", format_string);
@@ -172,9 +172,13 @@ void eos_debug_message(EOSState * s, int colorize)
                 }
             }
             else if (!is_long)
+            {
                 printf(format_string, (unsigned int)arg);
+            }
             else 
+            {
                 printf(format_string, (unsigned long int)arg);
+            }
 
             //printf("[%s:%X]",format_string,(uint32_t)arg);
 
