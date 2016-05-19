@@ -2257,7 +2257,7 @@ unsigned int eos_handle_tio ( unsigned int parm, EOSState *s, unsigned int addre
 unsigned int eos_handle_sio ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
     unsigned int ret = 0;
-    char msg[100];
+    char msg[100] = "";
     char mod[10];
     
     snprintf(mod, sizeof(mod), "SIO%i", parm);
