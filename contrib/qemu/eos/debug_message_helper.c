@@ -12,8 +12,13 @@
 #define KRED   "\x1B[1;31m"
 #define KCYN   "\x1B[1;36m"
 #define KWHT   "\x1B[1;37m"
+#define KBLU   "\x1B[1;34m"
 #define KRESET "\033[0m"
 
+// colors for foreground, string format arguments, and errors
+#define KFG KBLU
+#define KFMT KCYN
+#define KERR KRED
 
 // Semaphore tag
 #define SEM_TAG   KRED "[SEM]" KRESET
@@ -72,7 +77,7 @@ void eos_debug_message(EOSState * s, int colorize)
     char c;
     uint32_t address = r2;
     printf(DEBUGMSG_HDR, lr-4, r0, r1);
-    if (colorize) printf(KWHT);
+    if (colorize) printf(KFG);
 
     c = eos_get_mem_b(s, address++);
     while (c)
@@ -83,7 +88,7 @@ void eos_debug_message(EOSState * s, int colorize)
             if (c == '\n') {
                 if (colorize) printf(KRESET);
                 printf("\n"DEBUGMSG_HDR, lr-4, r0, r1);
-                if (colorize) printf(KWHT);
+                if (colorize) printf(KFG);
             }
             else if (c != '\r')
                 putchar(c);
@@ -105,7 +110,7 @@ void eos_debug_message(EOSState * s, int colorize)
 
             if (c == '\0')
             {
-                if (colorize) printf(KWHT);
+                if (colorize) printf(KFG);
                 printf("%s", format_string);
                 continue;
             }
@@ -116,9 +121,9 @@ void eos_debug_message(EOSState * s, int colorize)
             // (I've never seen those in EOS code)
             if (n == COUNT(format_string) || format_string[n-3] == 'h' || (n >= 4 && format_string[n-3] == 'l'))
             {
-                if (colorize) printf(KRED);
+                if (colorize) printf(KERR);
                 printf("[FORMATTING_ERROR]");
-                if (colorize) printf(KWHT);
+                if (colorize) printf(KFG);
                 printf("%.*s", n, format_string);
                 continue;
             }
@@ -131,15 +136,15 @@ void eos_debug_message(EOSState * s, int colorize)
             // or non zero-terminated strings.
             if (format == 's' && strcmp(format_string, "%s") != 0)
             {
-                if (colorize) printf(KRED);
+                if (colorize) printf(KERR);
                 printf("[FORMATTING_ERROR]");
-                if (colorize) printf(KCYN);
+                if (colorize) printf(KFMT);
                 printf("%s", format_string);
-                if (colorize) printf(KWHT);
+                if (colorize) printf(KFG);
                 break;
             }
 
-            if (colorize) printf(KCYN);
+            if (colorize) printf(KFMT);
 
             // note: all ARM types {int, long, void*} are of size 32 bits,
             //       and {char, short} should be expanded to 32 bits.
@@ -147,9 +152,9 @@ void eos_debug_message(EOSState * s, int colorize)
             arg = (arg_i == 0) ? r3 : eos_get_mem_w(s, sp + 4 * (arg_i-1));
             arg_i++;
 
-            //if (colorize) printf(KRED);
+            //if (colorize) printf(KERR);
             //printf("[%s|%lX] ", format_string, arg);
-            //if (colorize) printf(KCYN);
+            //if (colorize) printf(KFMT);
             if (format == 's')
             {
                 uint32_t sarg = arg;
@@ -159,7 +164,7 @@ void eos_debug_message(EOSState * s, int colorize)
                     if (t == '\n') {
                         if (colorize) printf(KRESET);
                         printf("\n[DMSG:%d,%d] ", r0, r1);
-                        if (colorize) printf(KCYN);
+                        if (colorize) printf(KFMT);
                     }
                     else if (t != '\r')
                         putchar(t);
@@ -173,7 +178,7 @@ void eos_debug_message(EOSState * s, int colorize)
 
             //printf("[%s:%X]",format_string,(uint32_t)arg);
 
-            if (colorize) printf(KWHT);
+            if (colorize) printf(KFG);
         }
     }
     if (colorize) printf(KRESET);
