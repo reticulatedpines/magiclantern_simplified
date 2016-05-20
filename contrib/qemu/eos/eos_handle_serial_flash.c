@@ -397,18 +397,18 @@ unsigned int eos_handle_sio_serialflash ( unsigned int parm, EOSState *s, unsign
         switch(address & 0xFF)
         {
             case 0x04:
-		        value = serial_flash_write_poll(s->sf);
+                value = serial_flash_write_poll(s->sf);
                 //printf("[SPI:%i:%02X] ", parm, address & 0xff);
-                // printf("[BUSY] >> %d (pc: 0x%08X)\r\n", value, pc);
+                //printf("[BUSY] >> %d (pc: 0x%08X)\r\n", value, pc);
                 return value;
             case 0x10:
                 //printf("[SPI:%i:%02X] ", parm, address & 0xff);
                 //printf("[WMODE?] >> 0 (write mode?) (pc: 0x%08X)\r\n", pc);
                 return 0; // Unk, set to zero before write
             case 0x1C:
-		        value = serial_flash_spi_read(s->sf);
-                // printf("[SPI:%i:%02X] ", parm, address & 0xff);
-                // printf("[TX] >> 0x%02X (pc: 0x%08X)...\r\n", value, pc);
+                value = serial_flash_spi_read(s->sf);
+                //printf("[SPI:%i:%02X] ", parm, address & 0xff);
+                //printf("[TX] >> 0x%02X (pc: 0x%08X)...\r\n", value, pc);
                 // last_was_tx = 1;
                 return value;
                 //return 0;
@@ -423,8 +423,8 @@ unsigned int eos_handle_sio_serialflash ( unsigned int parm, EOSState *s, unsign
         switch(address & 0xFF)
         {
             case 0x04:
-//                printf("[BUSY] << %d (set wait flag) (pc: 0x%08X)\r\n", value, pc);
-             //   printf("[SPI:%i:%02X] ", parm, address & 0xff);
+                //printf("[BUSY] << %d (set wait flag) (pc: 0x%08X)\r\n", value, pc);
+                //printf("[SPI:%i:%02X] ", parm, address & 0xff);
                 return 0;
             case 0x10:
                 //printf("[SPI:%i:%02X] ", parm, address & 0xff);
@@ -433,7 +433,7 @@ unsigned int eos_handle_sio_serialflash ( unsigned int parm, EOSState *s, unsign
             case 0x18:
                 //printf("[SPI:%i:%02X] ", parm, address & 0xff);
                 //printf("[RX] << 0x%X (pc: 0x%08X)\r\n", value, pc);
-		        serial_flash_spi_write(s->sf,value);
+                serial_flash_spi_write(s->sf,value);
                 return 0;
             case 0x38:
                 //printf("[SPI:%i:%02X] ", parm, address & 0xff);
