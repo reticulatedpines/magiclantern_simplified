@@ -23,6 +23,7 @@ typedef struct SerialFlashState {
     unsigned int substate;
     unsigned int read_value;
     unsigned int write_poll;
+    uint32_t mode;
     
     // Debug state
 	int verbose;

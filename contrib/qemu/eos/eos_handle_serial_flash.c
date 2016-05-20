@@ -412,6 +412,11 @@ unsigned int eos_handle_sio_serialflash ( unsigned int parm, EOSState *s, unsign
                 // last_was_tx = 1;
                 return value;
                 //return 0;
+            case 0x38:
+                value = s->sf->mode;
+                //printf("[SPI:%i:%02X] ", parm, address & 0xff);
+                //printf("[MODE] >> 0x%X (pc: 0x%08X)\r\n", value, pc);
+                return value;
             default:
                 //printf("[SPI:%i:%02X] ", parm, address & 0xff);
                 //printf("[???] >> 0 (pc: 0x%08X)\r\n", pc);
@@ -439,6 +444,7 @@ unsigned int eos_handle_sio_serialflash ( unsigned int parm, EOSState *s, unsign
                 //printf("[SPI:%i:%02X] ", parm, address & 0xff);
                 // Set to (([SF_data,#20] != 1) ? 0x80800408 : 0x80A00408) before write (mode)
                 //printf("[MODE] << 0x%X (pc: 0x%08X)\r\n", value, pc);
+                s->sf->mode = value;
                 return 0;
             default:
                 //printf("[SPI:%i:%02X] ", parm, address & 0xff);
