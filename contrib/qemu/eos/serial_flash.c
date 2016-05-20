@@ -46,6 +46,7 @@ SerialFlashState * serial_flash_init(const char * filename, size_t size)
     // Initialize data
     FILE * f = (filename != NULL) ? fopen(filename, "rb") : NULL;
     if (f != NULL) {
+        fprintf(stderr, "[EOS] loading '%s' as serial flash, size=0x%lX\n", filename, size);
         size_t read_size = fread(sf->data, sizeof(uint8_t), size, f);
         if (read_size != size) {
             fprintf(stderr, "Could not read %zd (0x%zX) bytes from %s (was %zd)\n", size, size, filename, read_size);
@@ -53,7 +54,8 @@ SerialFlashState * serial_flash_init(const char * filename, size_t size)
         }
         fclose(f);
     } else {
-        memset(sf->data,0,size);
+        fprintf(stderr, "Could not open %s\n", filename);
+        exit(1);
     }
     
     return sf;
