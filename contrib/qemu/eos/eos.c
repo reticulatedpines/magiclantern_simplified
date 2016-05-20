@@ -152,7 +152,8 @@ EOSRegionHandler eos_handlers[] =
     { "SIO1",         0xC0820100, 0xC08201FF, eos_handle_sio, 1 },
     { "SIO2",         0xC0820200, 0xC08202FF, eos_handle_sio, 2 },
     { "SIO3",         0xC0820300, 0xC08203FF, eos_handle_sio3, 3 },
-    { "SIO7",         0xC0820700, 0xC08207FF, eos_handle_sio_serialflash, 3 },
+    { "SIO4",         0xC0820400, 0xC08204FF, eos_handle_sio_serialflash, 4 },
+    { "SIO7",         0xC0820700, 0xC08207FF, eos_handle_sio_serialflash, 7 },
     { "MREQ",         0xC0203000, 0xC02030FF, eos_handle_mreq, 0 },
     { "DMA1",         0xC0A10000, 0xC0A100FF, eos_handle_dma, 1 },
     { "DMA2",         0xC0A20000, 0xC0A200FF, eos_handle_dma, 2 },
@@ -998,7 +999,11 @@ static void eos_init_common(const char *rom_filename, uint32_t rom_start, uint32
 
     /* nkls: init SF (FIXME: model detection) */
     if (strcmp(rom_filename, "ROM-100D.BIN") == 0) {
-        s->sf = serial_flash_init("SF.BIN", 0x1000000);
+        s->sf = serial_flash_init("SF-100D.BIN", 0x1000000);
+    }
+
+    if (strcmp(rom_filename, "ROM-70D.BIN") == 0) {
+        s->sf = serial_flash_init("SF-70D.BIN", 0x800000);
     }
 
     if (0)
@@ -1774,6 +1779,16 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             if (s->sf)
                 serial_flash_set_CS(s->sf, (value & 0x100000) ? 1 : 0);
             if (value == 0x83DC00 || value == 0x93D800)
+                return 0; // Quiet
+            ret = 0;
+            break;
+        
+        case 0x002C:
+            /* Serial flash on 70D */
+            msg = "SPI";
+            if (s->sf)
+                serial_flash_set_CS(s->sf, (value & 0x2) ? 1 : 0);
+            if (value == 0x46 || value == 0x44)
                 return 0; // Quiet
             ret = 0;
             break;
