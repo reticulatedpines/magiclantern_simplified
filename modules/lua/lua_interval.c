@@ -24,7 +24,7 @@ static int luaCB_interval_index(lua_State * L)
     else if(!strcmp(key, "count")) lua_pushinteger(L, get_interval_count());
     /// Get whether or not the intervalometer is currently running
     // @tfield bool running
-    else if(!strcmp(key, "running")) lua_pushinteger(L, is_intervalometer_running());
+    else if(!strcmp(key, "running")) lua_pushboolean(L, is_intervalometer_running());
     else lua_rawget(L, 1);
     return 1;
 }
