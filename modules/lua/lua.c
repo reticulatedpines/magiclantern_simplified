@@ -31,6 +31,7 @@
 #include <shoot.h>
 #include <zebra.h>
 #include <focus.h>
+#include <config.h>
 #include "lua_common.h"
 
 struct script_event_entry
@@ -38,6 +39,7 @@ struct script_event_entry
     struct script_event_entry * next;
     int function_ref;
     lua_State * L;
+    int mask;
 };
 
 struct script_semaphore
@@ -225,6 +227,24 @@ set_event_script_entry(&event##_cbr_scripts, L, lua_isfunction(L, -1) ? luaL_ref
 return 0;\
 }\
 
+
+
+static void update_event_cant_unload(struct script_event_entry ** root, lua_State * L)
+{
+    //are there any event handlers for this script left?
+    int any_active_handlers = 0;
+    struct script_event_entry * current;
+    for(current = *root; current; current = current->next)
+    {
+        if(current->L == L && current->function_ref != LUA_NOREF)
+        {
+            any_active_handlers = 1;
+            break;
+        }
+    }
+    if(*root) lua_set_cant_unload(L, any_active_handlers, (*root)->mask);
+}
+
 static void set_event_script_entry(struct script_event_entry ** root, lua_State * L, int function_ref)
 {
     struct script_event_entry * current;
@@ -237,6 +257,7 @@ static void set_event_script_entry(struct script_event_entry ** root, lua_State 
                 luaL_unref(L, LUA_REGISTRYINDEX, current->function_ref);
             }
             current->function_ref = function_ref;
+            update_event_cant_unload(root, L);
             return;
         }
     }
@@ -245,6 +266,8 @@ static void set_event_script_entry(struct script_event_entry ** root, lua_State 
         struct script_event_entry * new_entry = malloc(sizeof(struct script_event_entry));
         if(new_entry)
         {
+            static int event_masks = LUA_EVENT_UNLOAD_MASK;
+            new_entry->mask = *root == NULL ? event_masks++ : (*root)->mask;
             new_entry->next = *root;
             new_entry->L = L;
             new_entry->function_ref = function_ref;
@@ -255,6 +278,7 @@ static void set_event_script_entry(struct script_event_entry ** root, lua_State 
             luaL_error(L, "malloc error creating script event");
         }
     }
+    update_event_cant_unload(root, L);
 }
 
 static int luaCB_event_index(lua_State * L)
@@ -497,25 +521,232 @@ static lua_State * load_lua_state()
     return L;
 }
 
-static void add_script(const char * filename)
+#define SCRIPT_STATE_NOT_RUNNING 0
+#define SCRIPT_STATE_LOADING     1
+#define SCRIPT_STATE_RUNNING     2
+#define SCRIPT_STATE_FAILED      3
+
+struct lua_script
 {
-    lua_State* L = load_lua_state();
-    struct semaphore * sem = new_script_semaphore(L, filename);
+    int menu_state;
+    int state;
+    struct lua_script * next;
+    char * filename;
+    lua_State * L;
+    int cant_unload;
+    struct menu_entry * menu_entry;
+};
+
+static struct lua_script * lua_scripts = NULL;
+
+void lua_set_cant_unload(lua_State * L, int cant_unload, int mask)
+{
+    struct lua_script * current;
+    for (current = lua_scripts; current; current = current->next)
+    {
+        if(current->L == L)
+        {
+            if(cant_unload)
+            {
+                current->cant_unload |= (1 << mask);
+            }
+            else
+            {
+                current->cant_unload &= ~(1 << mask);
+            }
+            return;
+        }
+    }
+    fprintf(stderr, "lua_set_cant_unload: script not found\n");
+}
+
+static void set_autorun(struct lua_script * script)
+{
+    char full_path[MAX_PATH_LEN];
+    snprintf(full_path, MAX_PATH_LEN, "%s%s", get_config_dir(), script->filename);
+    int len = strlen(full_path);
+    if(len > 3)
+    {
+        //change file extension to .LEN
+        full_path[len-2] = 'E';
+        full_path[len-1] = 'N';
+        config_flag_file_setting_save(full_path, script->menu_state);
+    }
+}
+
+static int get_autorun(struct lua_script * script)
+{
+    char full_path[MAX_PATH_LEN];
+    snprintf(full_path, MAX_PATH_LEN, "%s%s", get_config_dir(), script->filename);
+    int len = strlen(full_path);
+    if(len > 3)
+    {
+        //change file extension to .LEN
+        full_path[len-2] = 'E';
+        full_path[len-1] = 'N';
+        return config_flag_file_setting_load(full_path);
+    }
+    return 0;
+}
+
+static void load_script(struct lua_script * script)
+{
+    if(script->L)
+    {
+        fprintf(stderr, "script is already running\n");
+        return;
+    }
+    script->state = SCRIPT_STATE_LOADING;
+    lua_State* L = script->L = load_lua_state();
+    script->cant_unload = 0;
+    struct semaphore * sem = new_script_semaphore(L, script->filename);
     if(sem)
     {
+        int error = 0;
         char full_path[MAX_PATH_LEN];
-        snprintf(full_path, MAX_PATH_LEN, SCRIPTS_DIR "/%s", filename);
-        printf("Loading script: %s\n", filename);
+        snprintf(full_path, MAX_PATH_LEN, SCRIPTS_DIR "/%s", script->filename);
+        printf("Loading script: %s\n", script->filename);
         if(luaL_loadfile(L, full_path) || docall(L, 0, LUA_MULTRET))
         {
             /* error loading script */
             fprintf(stderr, "%s\n", lua_tostring(L, -1));
+            error = 1;
         }
         give_semaphore(sem);
+        
+        //"complex" script that keeps running after load, set autorun
+        if (script->cant_unload)
+        {
+            script->state = SCRIPT_STATE_RUNNING;
+            //if there was an error, disable autorun, otherwise turn it on
+            script->menu_state = !error;
+            set_autorun(script);
+        }
+        //"simple" script didn't create a menu, start a task, or register any event handlers, so we can safely unload it
+        else
+        {
+            lua_close(L);
+            script->L = NULL;
+            script->menu_entry->icon_type = IT_ACTION;
+            script->state = error ? SCRIPT_STATE_FAILED : SCRIPT_STATE_NOT_RUNNING;
+            script->menu_state = 0;
+        }
     }
     else
     {
         fprintf(stderr, "load script failed: could not create semaphore\n");
+    }
+}
+
+static MENU_UPDATE_FUNC(lua_script_menu_update)
+{
+    struct lua_script * script = (struct lua_script *)(entry->priv);
+    if(script)
+    {
+        MENU_SET_RINFO(script->state == SCRIPT_STATE_NOT_RUNNING ? "Not Running" :
+                       script->state == SCRIPT_STATE_LOADING ? "Loading" :
+                       script->state == SCRIPT_STATE_RUNNING ? "Running" :
+                       "Error");
+        if(script->state == SCRIPT_STATE_FAILED)
+        {
+            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Script Failed");
+        }
+        else if(script->state == SCRIPT_STATE_RUNNING)
+        {
+            MENU_SET_HELP(script->menu_state ?
+                          "Running; will autorun on next boot" :
+                          "Running; will not autorun on next boot");
+        }
+        
+        if(script->state == SCRIPT_STATE_NOT_RUNNING || script->state == SCRIPT_STATE_FAILED)
+        {
+            MENU_SET_HELP("Load/run this script");
+            
+            if(!lua_loaded)
+            {
+                MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Please wait for Lua to finish loading...");
+            }
+        }
+    }
+}
+
+static struct lua_script * user_running = NULL;
+static void lua_user_load_task(int unused)
+{
+    if(user_running)
+    {
+        struct lua_script * temp = user_running;
+        user_running = NULL;
+        load_script(temp);
+    }
+}
+
+static MENU_SELECT_FUNC(lua_script_menu_select)
+{
+    struct lua_script * script = (struct lua_script *)priv;
+    if(script)
+    {
+        if(script->state == SCRIPT_STATE_NOT_RUNNING || script->state == SCRIPT_STATE_FAILED)
+        {
+            if(lua_loaded && !user_running)
+            {
+                script->state = SCRIPT_STATE_LOADING;
+                user_running = script;
+                task_create("lua_user_load_task", 0x1c, 0x10000, lua_user_load_task, (void*) 0);
+            }
+        }
+        else if(script->state == SCRIPT_STATE_RUNNING)
+        {
+            //toggle auto_run
+            script->menu_state = !script->menu_state;
+            set_autorun(script);
+        }
+    }
+}
+
+static void add_script(const char * filename)
+{
+    struct lua_script * new_script = malloc(sizeof(struct lua_script));
+    if(new_script)
+    {
+        new_script->filename = copy_string(filename);
+        if(new_script->filename)
+        {
+            new_script->menu_entry = malloc(sizeof(struct menu_entry));
+            new_script->L = NULL;
+            new_script->next = lua_scripts;
+            lua_scripts = new_script;
+            if(new_script->menu_entry)
+            {
+                memset(new_script->menu_entry, 0, sizeof(struct menu_entry));
+                
+                new_script->menu_entry->name = new_script->filename;
+                new_script->menu_entry->min = 0;
+                new_script->menu_entry->max = 1;
+                new_script->menu_entry->icon_type = IT_BOOL;
+                new_script->menu_entry->priv = new_script;
+                new_script->menu_entry->select = lua_script_menu_select;
+                new_script->menu_entry->update = lua_script_menu_update;
+                menu_add("Scripts", new_script->menu_entry, 1);
+                return;
+            }
+            free(new_script->filename);
+        }
+        free(new_script);
+    }
+    fprintf(stderr, "add_script: malloc error\n");
+}
+
+static void lua_do_autoload()
+{
+    struct lua_script * current;
+    for (current = lua_scripts; current; current = current->next)
+    {
+        if(get_autorun(current))
+        {
+            load_script(current);
+            msleep(100);
+        }
     }
 }
 
@@ -545,11 +776,12 @@ static void lua_load_task(int unused)
             if (!(file.mode & ATTR_DIRECTORY) && (string_ends_with(file.name, ".LUA") || string_ends_with(file.name, ".lua")) && file.name[0] != '.' && file.name[0] != '_')
             {
                 add_script(file.name);
-                msleep(100);
             }
         }
         while(FIO_FindNextEx(dirent, &file) == 0);
     }
+    
+    lua_do_autoload();
     
     if (strict_lua)
     {

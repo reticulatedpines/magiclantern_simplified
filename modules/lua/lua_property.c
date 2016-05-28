@@ -600,6 +600,22 @@ static int luaCB_property_index(lua_State * L)
     return 1;
 }
 
+static void update_cant_unload(lua_State * L)
+{
+    //are there any prop handlers for this script left?
+    int any_active_handlers = 0;
+    struct lua_prop * current;
+    for(current = prop_handlers; current; current = current->next)
+    {
+        if(current->L == L && current->prop_handler_ref != LUA_NOREF)
+        {
+            any_active_handlers = 1;
+            break;
+        }
+    }
+    lua_set_cant_unload(L, any_active_handlers, LUA_PROP_UNLOAD_MASK);
+}
+
 static int luaCB_property_newindex(lua_State * L)
 {
     if(lua_isstring(L, 2))
@@ -622,11 +638,15 @@ static int luaCB_property_newindex(lua_State * L)
                     }
                     lua_pushvalue(L, 3);
                     current->prop_handler_ref = lua_isfunction(L, -1) ? luaL_ref(L, LUA_REGISTRYINDEX) : LUA_NOREF;
+                    update_cant_unload(L);
                     return 0;
                 }
             }
             if(!lua_isnil(L, 3))
             {
+                //script created a prop handler so it can't be unloaded
+                lua_set_cant_unload(L, 1, LUA_PROP_UNLOAD_MASK);
+                
                 lua_register_prop_handler(prop_id);
                 //create new prop handler
                 current = malloc(sizeof(struct lua_prop));
@@ -639,6 +659,10 @@ static int luaCB_property_newindex(lua_State * L)
                 current->prop_handler_ref = luaL_ref(L, LUA_REGISTRYINDEX);
                 lua_pushvalue(L, 1);
                 current->self_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+            }
+            else
+            {
+                update_cant_unload(L);
             }
         }
         else

@@ -281,11 +281,6 @@ function victory()
     beep();
     draw_maze();
     display.print("YOU WIN :)", 300, 200, FONT.LARGE );
-    
-    local level_menu = sokoban_menu.submenu["Level"]
-    if level_menu.value < level_menu.max then
-        level_menu.value = level_menu.value + 1
-    end
 end
 
 function split_target()
@@ -370,38 +365,42 @@ function check_solution()
 end
 
 function main()
-
-    setup(sokoban_menu.submenu["Level"].value)
     
     menu.block(true);
     local status,error = xpcall(function()
-        split_target();
-        keys:start()
-        draw_maze();
-        while true do
-            if menu.visible == false then return end
-            -- print_maze();
-            local key = keys:getkey();
-            if key == KEY.LEFT or key == KEY.WHEEL_LEFT then
-                move(0, -1);
-            elseif key == KEY.RIGHT or key == KEY.WHEEL_RIGHT then
-                move(0, 1);
-            elseif key == KEY.UP or key == KEY.WHEEL_UP then
-                move(-1, 0);
-            elseif key == KEY.DOWN or key == KEY.WHEEL_DOWN then
-                move(1, 0);
-            elseif key == KEY.SET or key == KEY.UNPRESS_SET then
-            elseif key == KEY.Q or key == KEY.TRASH or key == KEY.MENU then
-                printf("Exiting...\n");
-                menu.block(false);
-                keys:stop()
-                return;
+        for i = 1,6,1 do
+            setup(i)
+            split_target();
+            keys:start()
+            draw_maze();
+            while true do
+                if menu.visible == false then return end
+                -- print_maze();
+                local key = keys:getkey();
+                if key == KEY.LEFT or key == KEY.WHEEL_LEFT then
+                    move(0, -1);
+                elseif key == KEY.RIGHT or key == KEY.WHEEL_RIGHT then
+                    move(0, 1);
+                elseif key == KEY.UP or key == KEY.WHEEL_UP then
+                    move(-1, 0);
+                elseif key == KEY.DOWN or key == KEY.WHEEL_DOWN then
+                    move(1, 0);
+                elseif key == KEY.SET or key == KEY.UNPRESS_SET then
+                elseif key == KEY.Q or key == KEY.TRASH or key == KEY.MENU then
+                    printf("Exiting...\n");
+                    menu.block(false);
+                    keys:stop()
+                    return;
+                end
+    
+                display.draw(draw_maze)
+                if check_solution() ~= 0 then break end
+    
+                task.yield(100)
             end
-
-            display.draw(draw_maze)
-            if check_solution() ~= 0 then break end
-
-            task.yield(100)
+            
+            beep();
+            task.yield(2000)
         end
         
         printf("You win!\n");
@@ -416,22 +415,4 @@ function main()
     keys:stop()
 end
 
-sokoban_menu = menu.new
-{
-    parent  = "Games",
-    name    = "Sokoban",
-    help    = "A simple game in Lua",
-    submenu = 
-    {
-        {
-            name = "Play",
-            select = function(this) task.create(main) end,
-        },
-        {
-            name = "Level",
-            value = 1,
-            min = 1,
-            max = 6
-        }
-    }
-}
+main()

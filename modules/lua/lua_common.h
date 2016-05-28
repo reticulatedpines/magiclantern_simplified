@@ -31,6 +31,13 @@
 #define CBR_RET_KEYPRESS_HANDLED 0
 //#define CONFIG_VSYNC_EVENTS
 
+#define LUA_MENU_UNLOAD_MASK   0
+#define LUA_TASK_UNLOAD_MASK   1
+#define LUA_PROP_UNLOAD_MASK   2
+#define LUA_LVINFO_UNLOAD_MASK 3
+//this needs to always be last b/c each event takes it's own mask starting at this one
+#define LUA_EVENT_UNLOAD_MASK  4
+
 #define LUA_PARAM_INT(name, index)\
 if(index > lua_gettop(L) || !(lua_isinteger(L, index) || lua_isnumber(L,index))) return luaL_argerror(L, index, "expected integer for param '" #name "'");\
 int name = lua_isinteger(L, index) ? lua_tointeger(L, index) : (int)lua_tonumber(L, index)
@@ -98,6 +105,8 @@ int docall(lua_State *L, int narg, int nres);
 
 int lua_take_semaphore(lua_State * L, int timeout, struct semaphore ** assoc_semaphore);
 int lua_give_semaphore(lua_State * L, struct semaphore ** assoc_semaphore);
+
+void lua_set_cant_unload(lua_State * L, int cant_unload, int mask);
 
 int luaCB_next(lua_State * L);
 int luaCB_pairs(lua_State * L);

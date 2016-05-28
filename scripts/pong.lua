@@ -116,7 +116,8 @@ function main()
     msleep(500)
     display.clear()
     
-    game_speed = pong_menu.submenu["Game speed"].value
+    game_speed = 3
+    counter = 0
 
     ball_dx = game_speed
     ball_dy = math.random(-game_speed, game_speed)
@@ -124,6 +125,13 @@ function main()
     AI_maxspeed = game_speed
 
     while menu.visible do
+        --gradually increase speed
+        counter = counter + 1
+        if counter == 1000 then 
+            counter = 0
+            game_speed = game_speed + 1 
+            AI_maxspeed = game_speed
+        end
         local key = keys:getkey()
         if key == KEY.UP then
             -- up, down: move right paddle (smooth movement)
@@ -228,22 +236,4 @@ function main()
     keys:stop()
 end
 
-pong_menu = menu.new
-{
-    parent  = "Games",
-    name    = "Pong",
-    help    = "A simple game in Lua",
-    submenu = 
-    {
-        {
-            name = "Play",
-            select = function(this) task.create(main) end,
-        },
-        {
-            name = "Game speed",
-            value = 5,
-            min = 1,
-            max = 20
-        }
-    }
-}
+main()

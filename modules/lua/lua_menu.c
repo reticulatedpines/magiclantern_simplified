@@ -297,6 +297,9 @@ static int luaCB_menu_new(lua_State * L)
 {
     if(!lua_istable(L, 1)) return luaL_argerror(L, 1, "expected table");
     
+    //script created a menu so it can't be unloaded
+    lua_set_cant_unload(L, 1, LUA_MENU_UNLOAD_MASK);
+    
     lua_pushvalue(L, 1);
     const char * parent = LUA_FIELD_STRING("parent", "Scripts");
     lua_pop(L, 1);

@@ -185,6 +185,10 @@ static int luaCB_lv_info(lua_State * L)
 {
     struct lvinfo_item_entry * entry = lua_newuserdata(L, sizeof(struct lvinfo_item_entry));
     if(!entry) return luaL_error(L, "malloc error");
+    
+    //script created a lvinfo so it can't be unloaded
+    lua_set_cant_unload(L, 1, LUA_LVINFO_UNLOAD_MASK);
+    
     struct lvinfo_item * item = &(entry->item);
     memset(entry, 0, sizeof(struct lvinfo_item_entry));
     lua_pushvalue(L, -1);
