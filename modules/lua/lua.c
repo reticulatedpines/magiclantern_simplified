@@ -521,6 +521,8 @@ static lua_State * load_lua_state()
     return L;
 }
 
+#define SCRIPT_FLAG_AUTORUN_ENABLED "LEN"
+
 #define SCRIPT_STATE_NOT_RUNNING 0
 #define SCRIPT_STATE_LOADING     1
 #define SCRIPT_STATE_RUNNING     2
@@ -560,30 +562,32 @@ void lua_set_cant_unload(lua_State * L, int cant_unload, int mask)
     fprintf(stderr, "lua_set_cant_unload: script not found\n");
 }
 
-static void set_autorun(struct lua_script * script)
+static int lua_get_config_flag_path(struct lua_script * script, char * full_path, const char * flag)
 {
-    char full_path[MAX_PATH_LEN];
     snprintf(full_path, MAX_PATH_LEN, "%s%s", get_config_dir(), script->filename);
     int len = strlen(full_path);
-    if(len > 3)
+    if(len > 3 && strlen(flag) >= 3)
     {
-        //change file extension to .LEN
-        full_path[len-2] = 'E';
-        full_path[len-1] = 'N';
-        config_flag_file_setting_save(full_path, script->menu_state);
+        memcpy(&(full_path[len - 3]), flag, 3);
+        return 1;
+    }
+    return 0;
+}
+
+static void lua_set_flag(struct lua_script * script, const char * flag, int value)
+{
+    char full_path[MAX_PATH_LEN];
+    if(lua_get_config_flag_path(script, full_path, flag))
+    {
+        config_flag_file_setting_save(full_path, value);
     }
 }
 
-static int get_autorun(struct lua_script * script)
+static int lua_get_flag(struct lua_script * script, const char * flag)
 {
     char full_path[MAX_PATH_LEN];
-    snprintf(full_path, MAX_PATH_LEN, "%s%s", get_config_dir(), script->filename);
-    int len = strlen(full_path);
-    if(len > 3)
+    if(lua_get_config_flag_path(script, full_path, flag))
     {
-        //change file extension to .LEN
-        full_path[len-2] = 'E';
-        full_path[len-1] = 'N';
         return config_flag_file_setting_load(full_path);
     }
     return 0;
@@ -620,7 +624,8 @@ static void load_script(struct lua_script * script)
             script->state = SCRIPT_STATE_RUNNING;
             //if there was an error, disable autorun, otherwise turn it on
             script->menu_state = !error;
-            set_autorun(script);
+            script->menu_entry->icon_type = IT_BOOL;
+            lua_set_flag(script, SCRIPT_FLAG_AUTORUN_ENABLED, script->menu_state);
         }
         //"simple" script didn't create a menu, start a task, or register any event handlers, so we can safely unload it
         else
@@ -643,7 +648,7 @@ static MENU_UPDATE_FUNC(lua_script_menu_update)
     struct lua_script * script = (struct lua_script *)(entry->priv);
     if(script)
     {
-        MENU_SET_RINFO(script->state == SCRIPT_STATE_NOT_RUNNING ? "Not Running" :
+        MENU_SET_VALUE(script->state == SCRIPT_STATE_NOT_RUNNING ? "" :
                        script->state == SCRIPT_STATE_LOADING ? "Loading" :
                        script->state == SCRIPT_STATE_RUNNING ? "Running" :
                        "Error");
@@ -653,14 +658,21 @@ static MENU_UPDATE_FUNC(lua_script_menu_update)
         }
         else if(script->state == SCRIPT_STATE_RUNNING)
         {
+            MENU_SET_RINFO(script->menu_state ?
+                           "AUTORUN" :
+                           "OFF");
             MENU_SET_HELP(script->menu_state ?
-                          "Running; will autorun on next boot" :
-                          "Running; will not autorun on next boot");
+                          "Script is running. Will autorun on next boot." :
+                          "Script is running. Will not autorun on next boot.");
+            MENU_SET_WARNING(MENU_WARN_INFO, script->menu_state ?
+                             "Press SET to disable autorun" :
+                             "Press SET to enable autorun");
         }
         
         if(script->state == SCRIPT_STATE_NOT_RUNNING || script->state == SCRIPT_STATE_FAILED)
         {
             MENU_SET_HELP("Load/run this script");
+            MENU_SET_RINFO("");
             
             if(!lua_loaded)
             {
@@ -699,7 +711,7 @@ static MENU_SELECT_FUNC(lua_script_menu_select)
         {
             //toggle auto_run
             script->menu_state = !script->menu_state;
-            set_autorun(script);
+            lua_set_flag(script, SCRIPT_FLAG_AUTORUN_ENABLED, script->menu_state);
         }
     }
 }
@@ -723,7 +735,7 @@ static void add_script(const char * filename)
                 new_script->menu_entry->name = new_script->filename;
                 new_script->menu_entry->min = 0;
                 new_script->menu_entry->max = 1;
-                new_script->menu_entry->icon_type = IT_BOOL;
+                new_script->menu_entry->icon_type = IT_ACTION;
                 new_script->menu_entry->priv = new_script;
                 new_script->menu_entry->select = lua_script_menu_select;
                 new_script->menu_entry->update = lua_script_menu_update;
@@ -742,7 +754,7 @@ static void lua_do_autoload()
     struct lua_script * current;
     for (current = lua_scripts; current; current = current->next)
     {
-        if(get_autorun(current))
+        if(lua_get_flag(current, SCRIPT_FLAG_AUTORUN_ENABLED))
         {
             load_script(current);
             msleep(100);
