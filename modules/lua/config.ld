@@ -7,21 +7,34 @@ full_description = [[
 Startup
 -------
 The scripting engine looks for scripts in `ML/SCRIPTS`. Scripts should end with `.LUA`.
-Any scripts found get "loaded" at startup by the scripting engine simply running them.
-Therefore the main body of the script should simply *define* the script's menu and
-behavior, not actually *execute* anything.
+
+There are two types of scripts "simple" and "complex". "Simple" scripts do not define
+custom menus, don't start any tasks, and don't leave any event or property handlers
+registered when they finish loading. The user will be able to execute such scripts from
+the 'Scripts' menu and they will not autorun when the camera starts. Also, such scripts
+will be 'unloaded' when they're not actively running, which will help conserve memory.
+
+"Complex" scripts are any scripts that define custom menus, start a task(s), or leave
+event or property handlers registered when they finish loading. On first run the user
+will manually load the script by selecting it in the 'Scripts' menu. When the script
+runs the scripting engine will detect that it is a "complex" script and will set it
+to autorun when the camera boots. The user may also manually disable it from auto
+running.
 
 Menus
 -----
-Scripts are not automatically visible in any specific menu. The script itself should
-define it's own menu (if a menu is needed). See: @{menu}, @{calc.lua}, @{copy2m.lua},
-@{menutest.lua}, @{recdelay.lua}, @{scrnshot.lua}, @{sokoban.lua}
+All script will appear in the 'Scripts' menu. Scripts can be run from here and autorun
+can be toggled on or off. Scripts can also define their own menu(s) elsewhere if they
+need extra settings or parameters. See: @{menu}, @{copy2m.lua}, @{menutest.lua},
+@{recdelay.lua}
 
 State
 -----
-The scripting engine will maintain your script's global state for as long as the camera
-is powered on. So any global variables you declare will persist until the camera is
-turned off.
+For "complex" scripts, the scripting engine will maintain your script's global state
+for as long as the camera is powered on. So any global variables you declare will
+persist until the camera is turned off. "Simple" scripts are unloaded when they finish
+executing, so global state is lost when the script is executed again (if you need to
+persist information from run to run, you can use file I/O).
 
 Each script get's it's own lua state (virtual machine). If you would like scripts to
 share a state, have only one of the scripts in the `ML/SCRIPTS` folder, and have it
