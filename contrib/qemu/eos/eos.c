@@ -144,6 +144,7 @@ EOSRegionHandler eos_handlers[] =
     { "CFDMA",        0xC0600000, 0xC060FFFF, eos_handle_cfdma, 0 },
     { "CFDMA",        0xC0620000, 0xC062FFFF, eos_handle_cfdma, 2 },
     { "TIO",          0xC0800000, 0xC08000FF, eos_handle_tio, 0 },
+    { "TIO",          0xC0270000, 0xC0270000, eos_handle_tio, 1 },
     { "SIO0",         0xC0820000, 0xC08200FF, eos_handle_sio, 0 },
     { "SIO1",         0xC0820100, 0xC08201FF, eos_handle_sio, 1 },
     { "SIO2",         0xC0820200, 0xC08202FF, eos_handle_sio, 2 },
@@ -2246,12 +2247,30 @@ unsigned int eos_handle_tio ( unsigned int parm, EOSState *s, unsigned int addre
     const char * msg = 0;
     int msg_arg1 = 0;
 
+    if (address == 0xC0270000)
+    {
+        /* TIO enable flag on EOS M3? */
+        static int mem = 0;
+        if(type & MODE_WRITE)
+        {
+            mem = value;
+        }
+        else
+        {
+            ret = mem;
+        }
+        
+        /* quiet, since it interferes with TIO messages */
+        return ret;
+    }
+
     switch(address & 0xFF)
     {
         case 0x00:
             if(type & MODE_WRITE)
             {
                 printf("\x1B[31m%c\x1B[0m", value);
+                fflush(stdout);
                 return 0;
             }
             else
