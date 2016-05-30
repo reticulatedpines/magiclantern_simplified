@@ -1036,6 +1036,12 @@ static void eos_init_common(MachineState *machine)
         /* 7D2 experiments */
         patch_7D2(s);
         s->cpu->env.regs[15] = emc->rom_start;
+
+        if (1)
+        {
+            eos_load_image(s, "autoexec.bin", 0, -1, 0x40800000, 0);
+            s->cpu->env.regs[15] = 0x40800000;
+        }
         return;
     }
     
