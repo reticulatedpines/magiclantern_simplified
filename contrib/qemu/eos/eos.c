@@ -1858,28 +1858,32 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             break;
         }
 
-        //case 0x006C:
+        case 0x006C:
         {
-            /* unk state on 100D */
-            static int last_value = 0;
-            msg = "unk 100D state";
-            if(type & MODE_WRITE)
+            if (strcmp(s->model_name, "100D") == 0)
             {
-                last_value = value;
+                return eos_handle_mpu(parm, s, address, type, value);
             }
-            else
+            break;
+        }
+        
+        case 0x009C:
+        {
+            if ((strcmp(s->model_name, "60D") == 0) ||
+                (strcmp(s->model_name, "5D2") == 0))
             {
-                ret = last_value;
+                return eos_handle_mpu(parm, s, address, type, value);
             }
             break;
         }
 
-        case 0x006C:
-     //   case 0x009C: // FIXME!!
-            return eos_handle_mpu(parm, s, address, type, value);
-
         case 0x00BC:
         {
+            if (strcmp(s->model_name, "70D") == 0)
+            {
+                return eos_handle_mpu(parm, s, address, type, value);
+            }
+
             /* 5D2 CF LED */
             static int last_value = 0;
             if(type & MODE_WRITE)
