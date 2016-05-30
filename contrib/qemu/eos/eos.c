@@ -2015,6 +2015,11 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             break;
         }
 
+        case 0x0168:
+            msg = "70D write protect";
+            ret = 0;
+            break;
+        
         case 0x301C:    /* 40D, 5D2 */
         case 0x3020:    /* 5D3 */
             /* set low => CF present */
