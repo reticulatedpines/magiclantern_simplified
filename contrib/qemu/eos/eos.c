@@ -42,22 +42,13 @@ typedef struct {
 #define EOS_MACHINE_CLASS(klass) \
     OBJECT_CLASS_CHECK(EosMachineClass, klass, TYPE_EOS_MACHINE)
 
-/* FIXME: merge to one function instead */
-static void eos_init_common(const char * model, const char * rom_filename, uint32_t rom_start, uint32_t digic_version);
-static void eos_common_init(MachineState *machine)
-{
-    char rom_filename[24];
-    EosMachineClass *emc = EOS_MACHINE_GET_CLASS(machine);
-    snprintf(rom_filename,24,"ROM-%s.BIN",emc->model);
-    eos_init_common(emc->model, rom_filename, emc->rom_start, emc->digic_version);
-}
-
+static void eos_init_common(MachineState *machine);
 
 static void eos_class_init(ObjectClass *oc, void *data)
 {
     MachineClass *mc = MACHINE_CLASS(oc);
     mc->desc = EOS_DESC_BASE;
-    mc->init = eos_common_init;
+    mc->init = eos_init_common;
 }
 static const TypeInfo canon_eos_info = {
     .name = TYPE_EOS_MACHINE,
@@ -976,21 +967,22 @@ static void patch_7D2(EOSState *s)
     }
 }
 
-static void eos_init_common(
-    const char * model,
-    const char * rom_filename,
-    uint32_t rom_start,
-    uint32_t digic_version
-)
+static void eos_init_common(MachineState *machine)
 {
-    precompute_yuv2rgb(1);
+    EosMachineClass *emc = EOS_MACHINE_GET_CLASS(machine);
 
-    EOSState *s = eos_init_cpu(model, digic_version);
+    EOSState *s = eos_init_cpu(emc->model, emc->digic_version);
+
+    char rom_filename[24];
+    snprintf(rom_filename,24,"ROM-%s.BIN",emc->model);
 
     /* populate ROM0 */
     eos_load_image(s, rom_filename, 0, ROM0_SIZE, ROM0_ADDR, 0);
     /* populate ROM1 */
     eos_load_image(s, rom_filename, ROM0_SIZE, ROM1_SIZE, ROM1_ADDR, 0);
+
+    /* for display */
+    precompute_yuv2rgb(1);
 
     /* init SD card */
     DriveInfo *di;
@@ -1048,7 +1040,7 @@ static void eos_init_common(
         patch_7D2(s);
     }
 
-    s->cpu->env.regs[15] = rom_start;
+    s->cpu->env.regs[15] = emc->rom_start;
 }
 
 void eos_set_mem_w ( EOSState *s, uint32_t addr, uint32_t val )
