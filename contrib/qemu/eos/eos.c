@@ -960,6 +960,14 @@ static void patch_7D2(EOSState *s)
         uint32_t one = 1;
         printf("Patching 0x%X (enabling TIO on 7D2M)\n", 0xFEC4DCBC);
         MEM_WRITE_ROM(0xFEC4DCBC, (uint8_t*) &one, 4);
+        
+        uint32_t nop = 0x8000F3AF;
+        MEM_WRITE_ROM(0xFE0A3024, (uint8_t*) &nop, 4);
+        printf("Patching 0x%X (idk, it fails)\n", 0xFE0A3024);
+        
+        uint32_t ret = 0x00004770;
+        MEM_WRITE_ROM(0xFE102B5A, (uint8_t*) &ret, 4);
+        printf("Patching 0x%X (PROPAD_CreateFROMPropertyHandle)\n", 0xFE102B5A);
     }
     else
     {
