@@ -335,7 +335,7 @@ static void *eos_interrupt_thread(void *parm)
         }
 
         /* go through all interrupts and check if they are pending/scheduled */
-        for(pos = 0; pos < INT_ENTRIES; pos++)
+        for(pos = INT_ENTRIES-1; pos > 0; pos--)
         {
             /* it is pending, so trigger int and set to 0 */
             if(s->irq_schedule[pos] == 1)
