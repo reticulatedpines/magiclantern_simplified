@@ -1021,26 +1021,23 @@ static void eos_init_common(MachineState *machine)
         patch_bootloader_autoexec(s);
         return;
     }
-    
-    if (1)
-    {
-        /* make sure the boot flag is enabled */
-        uint32_t flag = 0xFFFFFFFF;
-        MEM_WRITE_ROM(0xF8000004, (uint8_t*) &flag, 4);
 
-        /* emulate the bootloader, not the main firmware */
-        s->cpu->env.regs[15] = 0xFFFF0000;
-        return;
-    }
-    
-    
-    if (0)
+    if ((strcmp(s->model_name, "7D2M") == 0) ||
+        (strcmp(s->model_name, "7D2S") == 0))
     {
         /* 7D2 experiments */
         patch_7D2(s);
+        s->cpu->env.regs[15] = emc->rom_start;
+        return;
     }
+    
+    /* make sure the boot flag is enabled */
+    uint32_t flag = 0xFFFFFFFF;
+    MEM_WRITE_ROM(0xF8000004, (uint8_t*) &flag, 4);
 
-    s->cpu->env.regs[15] = emc->rom_start;
+    /* emulate the bootloader, not the main firmware */
+    s->cpu->env.regs[15] = 0xFFFF0000;
+    return;
 }
 
 void eos_set_mem_w ( EOSState *s, uint32_t addr, uint32_t val )
