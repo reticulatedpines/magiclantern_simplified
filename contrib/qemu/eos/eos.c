@@ -975,6 +975,41 @@ static void patch_7D2(EOSState *s)
     }
 }
 
+static void patch_EOSM3(EOSState *s)
+{
+    uint32_t nop = 0;
+    uint32_t addr;
+    for (addr = 0xFC000000; addr < 0xFE000000; addr += 2)
+    {
+        uint32_t old = eos_get_mem_w(s, addr);
+        if (old == 0x1F11EE06   /* MCR p15, 0, R1,c6,c1, 0 */
+         || old == 0x1F51EE06   /* MCR p15, 0, R1,c6,c1, 2 */
+         || old == 0x1F91EE06   /* MCR p15, 0, R1,c6,c1, 4 */
+         || old == 0x0F12EE06   /* MCR p15, 0, R0,c6,c2, 0 */
+         || old == 0x1F91EE06   /* MCR p15, 0, R1,c6,c1, 4 */
+         || old == 0x0F11EE19   /* MRC p15, 0, R0,c9,c1, 0 */
+         || old == 0x0F11EE09   /* MCR p15, 0, R0,c9,c1, 0 */
+         || old == 0x0F31EE09   /* MCR p15, 0, R0,c9,c1, 1 */
+         || old == 0x0F10EE11   /* MRC p15, 0, R0,c1,c0, 0 */
+         || old == 0x0F31EE19   /* MRC p15, 0, R0,c9,c1, 1 */
+         || old == 0x0F90EE10   /* MRC p15, 0, R0,c0,c0, 4 */
+         || old == 0x2F90EE10   /* MRC p15, 0, R2,c0,c0, 4 */
+         || old == 0x0F10EE01   /* MRC p15, 0, R0,c1,c0, 0 */
+        ) {
+            printf("Patching ");
+            target_disas(stdout, CPU(arm_env_get_cpu(&s->cpu->env)), addr, 4, 1);
+            MEM_WRITE_ROM(addr, (uint8_t*) &nop, 4);
+        }
+    }
+    
+    printf("Patching 0xFC004748 (p15 loop)\n");
+    MEM_WRITE_ROM(0xFC004748, (uint8_t*) &nop, 4);
+
+    printf("Patching 0xFCC637A8 (enabling TIO)\n");
+    uint32_t one = 1;
+    MEM_WRITE_ROM(0xFCC637A8, (uint8_t*) &one, 4);
+}
+
 static void eos_init_common(MachineState *machine)
 {
     EosMachineClass *emc = EOS_MACHINE_GET_CLASS(machine);
@@ -982,12 +1017,19 @@ static void eos_init_common(MachineState *machine)
     EOSState *s = eos_init_cpu(emc->model, emc->digic_version);
 
     char rom_filename[24];
-    snprintf(rom_filename,24,"ROM-%s.BIN",emc->model);
+    snprintf(rom_filename,24,"ROM-%s.BIN",s->model_name);
 
-    /* populate ROM0 */
-    eos_load_image(s, rom_filename, 0, ROM0_SIZE, ROM0_ADDR, 0);
-    /* populate ROM1 */
-    eos_load_image(s, rom_filename, ROM0_SIZE, ROM1_SIZE, ROM1_ADDR, 0);
+    if (emc->digic_version == 6)
+    {
+        eos_load_image(s, rom_filename, 0, 0x2000000, 0xFC000000, 0);
+    }
+    else
+    {
+        /* populate ROM0 */
+        eos_load_image(s, rom_filename, 0, ROM0_SIZE, ROM0_ADDR, 0);
+        /* populate ROM1 */
+        eos_load_image(s, rom_filename, ROM0_SIZE, ROM1_SIZE, ROM1_ADDR, 0);
+    }
 
     /* for display */
     precompute_yuv2rgb(1);
@@ -1042,6 +1084,15 @@ static void eos_init_common(MachineState *machine)
             eos_load_image(s, "autoexec.bin", 0, -1, 0x40800000, 0);
             s->cpu->env.regs[15] = 0x40800000;
         }
+        return;
+    }
+    
+    if (strcmp(s->model_name, "EOSM3") == 0)
+    {
+        patch_EOSM3(s);
+        
+        /* as weird as it looks, the M3 appears to boot from this address */
+        s->cpu->env.regs[15] = 0xFC0045E8;
         return;
     }
     
@@ -3441,6 +3492,18 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
         case 0xD203086C:
             ret = 1;
             msg = "7D2 init";
+            break;
+
+        case 0xD2030000:    /* M3: memif_wait_us */
+        case 0xD20F0000:    /* M3: many reads from FC000382, value seems ignored */
+            return 0;
+
+        case 0xD6040000:    /* M3: appears to expect 0x3008000 or 0x3108000 */
+            ret = 0x3008000;
+            break;
+
+        case 0xD20BF828:
+            msg = "PhySwBootSD";    /* M3: high bits appear used */
             break;
     }
     

@@ -18,6 +18,7 @@ const struct eos_model_desc eos_model_list[] = {
     { "1100D", 0xFF010000, 4 },
     { "1200D", 0xFF0C0000, 4 },
     { "EOSM",  0xFF0C0000, 5 },
+    { "EOSM3", 0xFC000000, 6 },
     { "7D2M",  0xFE0A0000, 6 },
     { "7D2S",  0xFE0A0000, 6 },
     { NULL,    0, 0 },
