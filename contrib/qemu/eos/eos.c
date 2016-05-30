@@ -271,7 +271,7 @@ void eos_load_image(EOSState *s, const char* file, int offset, int max_size, uin
         abort();
     }
 
-    fprintf(stderr, "[EOS] loading '%s' to 0x%08X-0x%08X\n", file, addr, size + addr - 1);
+    fprintf(stderr, "[EOS] loading '%s'", file);
 
     uint8_t* buf = malloc(size);
     if (!buf)
@@ -291,6 +291,15 @@ void eos_load_image(EOSState *s, const char* file, int offset, int max_size, uin
     if ((max_size > 0) && (size > max_size)) {
         size = max_size;
     }
+    
+    fprintf(stderr, " to 0x%08X-0x%08X", addr, size + addr - 1);
+    
+    if (offset)
+    {
+        fprintf(stderr, " (offset 0x%X)", offset);
+    }
+    
+    fprintf(stderr, "\n");
     
     if (swap_endian) {
         reverse_bytes_order(buf + offset, size);
