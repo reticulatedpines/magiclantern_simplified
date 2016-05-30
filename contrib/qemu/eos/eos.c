@@ -43,13 +43,13 @@ typedef struct {
     OBJECT_CLASS_CHECK(EosMachineClass, klass, TYPE_EOS_MACHINE)
 
 /* FIXME: merge to one function instead */
-static void eos_init_common(const char *rom_filename, uint32_t rom_start, uint32_t digic_version);
+static void eos_init_common(const char * model, const char * rom_filename, uint32_t rom_start, uint32_t digic_version);
 static void eos_common_init(MachineState *machine)
 {
     char rom_filename[24];
     EosMachineClass *emc = EOS_MACHINE_GET_CLASS(machine);
     snprintf(rom_filename,24,"ROM-%s.BIN",emc->model);
-    eos_init_common(rom_filename, emc->rom_start, emc->digic_version);
+    eos_init_common(emc->model, rom_filename, emc->rom_start, emc->digic_version);
 }
 
 
@@ -818,10 +818,13 @@ static void eos_key_event(void *parm, int keycode)
 /** EOS CPU SETUP **/
 
 
-static EOSState *eos_init_cpu(int digic_version)
+static EOSState *eos_init_cpu(const char * model, int digic_version)
 {
     EOSState *s = g_new(EOSState, 1);
     memset(s, 0, sizeof(*s));
+    
+    s->model_name = model;
+    s->digic_version = digic_version;
 
     s->verbosity = 0xFFFFFFFF;
     s->tio_rxbyte = 0x100;
@@ -973,11 +976,16 @@ static void patch_7D2(EOSState *s)
     }
 }
 
-static void eos_init_common(const char *rom_filename, uint32_t rom_start, uint32_t digic_version)
+static void eos_init_common(
+    const char * model,
+    const char * rom_filename,
+    uint32_t rom_start,
+    uint32_t digic_version
+)
 {
     precompute_yuv2rgb(1);
 
-    EOSState *s = eos_init_cpu(digic_version);
+    EOSState *s = eos_init_cpu(model, digic_version);
 
     /* populate ROM0 */
     eos_load_image(s, rom_filename, 0, ROM0_SIZE, ROM0_ADDR, 0);

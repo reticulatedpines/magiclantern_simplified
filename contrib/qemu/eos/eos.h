@@ -148,6 +148,9 @@ typedef struct
 
 typedef struct
 {
+    const char* model_name;
+    int digic_version;
+
     ARMCPU *cpu;
     MemoryRegion *system_mem;
     MemoryRegion tcm_code;
