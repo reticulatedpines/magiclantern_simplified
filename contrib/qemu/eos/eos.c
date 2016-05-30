@@ -1006,12 +1006,12 @@ static void eos_init_common(MachineState *machine)
     ide_init2(&s->cf.bus, s->interrupt);
     ide_create_drive(&s->cf.bus, 0, dj);
 
-    /* nkls: init SF (FIXME: model detection) */
-    if (strcmp(rom_filename, "ROM-100D.BIN") == 0) {
+    /* nkls: init SF */
+    if (strcmp(s->model_name, "100D") == 0) {
         s->sf = serial_flash_init("SF-100D.BIN", 0x1000000);
     }
 
-    if (strcmp(rom_filename, "ROM-70D.BIN") == 0) {
+    if (strcmp(s->model_name, "70D") == 0) {
         s->sf = serial_flash_init("SF-70D.BIN", 0x800000);
     }
 
