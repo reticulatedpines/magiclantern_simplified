@@ -57,6 +57,10 @@
 #define MODE_READ  0x10
 #define MODE_WRITE 0x20
 
+/* DryOS timer */
+#define TIMER_INTERRUPT (s->digic_version == 6 ? 0x1B : 0x0A)
+#define DRYOS_TIMER_ID  (s->digic_version == 6 ? 0x01 : 0x02)
+
 typedef struct
 {
     uint8_t transfer_format;
@@ -174,9 +178,9 @@ typedef struct
     uint32_t irq_id;
     QemuMutex irq_lock;
     uint32_t digic_timer;
-    uint32_t timer_reload_value[3];
-    uint32_t timer_current_value[3];
-    uint32_t timer_enabled[3];
+    uint32_t timer_reload_value[20];
+    uint32_t timer_current_value[20];
+    uint32_t timer_enabled[20];
     struct HPTimer HPTimers[8];
     uint32_t clock_enable;
     uint32_t flash_state_machine;

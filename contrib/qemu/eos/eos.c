@@ -125,8 +125,13 @@ EOSRegionHandler eos_handlers[] =
     { "ROM0",         0xF8000000, 0xFFFFFFFF, eos_handle_rom, 0 },
     { "ROM1",         0xF0000000, 0xF7FFFFFF, eos_handle_rom, 1 },
     { "Interrupt",    0xC0201000, 0xC0201FFF, eos_handle_intengine, 0 },
+    { "Interrupt",    0xD4011000, 0xD4011FFF, eos_handle_intengine, 1 },
     { "Timers",       0xC0210000, 0xC0210FFF, eos_handle_timers, 0 },
+    { "Timers",       0xD4000240, 0xD4000410, eos_handle_timers, 1 },
+    { "Timers",       0xD4000280, 0xD4000290, eos_handle_timers, 8 },
+    { "Timers",       0xD40002C0, 0xD40002C0, eos_handle_timers, 8 },
     { "Timer",        0xC0242014, 0xC0242014, eos_handle_digic_timer, 0 },
+    { "Timer",        0xD400000C, 0xD400000C, eos_handle_digic_timer, 1 },  /* not sure */
     { "HPTimer",      0xC0243000, 0xC0243FFF, eos_handle_hptimer, 0 },
     { "GPIO",         0xC0220000, 0xC022FFFF, eos_handle_gpio, 0 },
     { "Basic",        0xC0400000, 0xC0400FFF, eos_handle_basic, 1 },
@@ -321,7 +326,7 @@ static void *eos_interrupt_thread(void *parm)
         s->digic_timer += 0x100;
         s->digic_timer &= 0xFFF00;
         
-        for (pos = 0; pos < 3; pos++)
+        for (pos = 0; pos < COUNT(s->timer_enabled); pos++)
         {
             if (s->timer_enabled[pos])
             {
@@ -344,10 +349,10 @@ static void *eos_interrupt_thread(void *parm)
                 if(s->irq_enabled[pos] && !s->irq_id)
                 {
                     /* timer interrupt will re-fire periodically */
-                    if(pos == 0x0A)
+                    if(pos == TIMER_INTERRUPT)
                     {
-                        //~ printf("[EOS] trigger int 0x%02X (delayed)\n", pos);
-                        s->irq_schedule[pos] = s->timer_reload_value[2] >> 8;
+                        //~ printf("[EOS] trigger int 0x%02X (delayed)\n", pos);    /* quiet */
+                        s->irq_schedule[pos] = s->timer_reload_value[DRYOS_TIMER_ID] >> 8;
                     }
                     else
                     {
@@ -1323,6 +1328,7 @@ unsigned int eos_handle_intengine ( unsigned int parm, EOSState *s, unsigned int
 
     switch(address & 0xFFF)
     {
+        case 0x00:
         case 0x04:
             if(type & MODE_WRITE)
             {
@@ -1333,13 +1339,13 @@ unsigned int eos_handle_intengine ( unsigned int parm, EOSState *s, unsigned int
                 msg = "Requested int reason %x (INT %02Xh)";
                 msg_arg1 = s->irq_id << 2;
                 msg_arg2 = s->irq_id;
-                ret = s->irq_id << 2;
+                ret = s->irq_id << ((address & 0xFFF) ? 2 : 0);
 
                 /* this register resets on read (subsequent reads should report 0) */
                 s->irq_id = 0;
                 cpu_reset_interrupt(CPU(s->cpu), CPU_INTERRUPT_HARD);
 
-                if(msg_arg2 == 0x0A)
+                if(msg_arg2 == TIMER_INTERRUPT)
                 {
                     /* timer interrupt, quiet */
                     return ret;
@@ -1357,12 +1363,19 @@ unsigned int eos_handle_intengine ( unsigned int parm, EOSState *s, unsigned int
                 /* we shouldn't reset s->irq_id here (we already reset it on read) */
                 /* if we reset it here also, it will trigger interrupt 0 incorrectly (on race conditions) */
 
-                if (value == 0x0A)
+                if (value == TIMER_INTERRUPT)
                 {
                     /* timer interrupt, quiet */
                     return 0;
                 }
             }
+            else
+            {
+                /* DIGIC 6: interrupt handler reads this register after writing */
+                /* value seems unused */
+                return 0;
+            }
+
             break;
     }
 
@@ -1392,22 +1405,25 @@ unsigned int eos_handle_timers ( unsigned int parm, EOSState *s, unsigned int ad
     int msg_arg1 = 0;
     int msg_arg2 = 0;
 
-    int timer_id = (address & 0xF00) >> 8;
+    int timer_id = 
+        (parm == 0) ? ((address & 0xF00) >> 8)          /* DIGIC 4/5 timers (0,1,2)*/
+                    : ((address & 0xFC0) >> 6) - 6;     /* DIGIC 6 timers (3,4,5,6,7,8,9,10)*/
+    
     msg_arg1 = timer_id;
     
-    if (timer_id < 3)
+    if (timer_id < COUNT(s->timer_enabled))
     {
-        switch(address & 0xFF)
+        switch(address & 0x1F)
         {
             case 0x00:
                 if(type & MODE_WRITE)
                 {
                     if(value & 1)
                     {
-                        if (timer_id == 2)
+                        if (timer_id == DRYOS_TIMER_ID)
                         {
                             msg = "Timer #%d: starting triggering";
-                            eos_trigger_int(s, 0x0A, s->timer_reload_value[timer_id] >> 8);   /* digic timer */
+                            eos_trigger_int(s, TIMER_INTERRUPT, s->timer_reload_value[timer_id] >> 8);   /* digic timer */
                         }
                         else
                         {
@@ -1433,7 +1449,7 @@ unsigned int eos_handle_timers ( unsigned int parm, EOSState *s, unsigned int ad
                 if(type & MODE_WRITE)
                 {
                     s->timer_reload_value[timer_id] = value;
-                    msg = "Timer #%d: will trigger every %d ms";
+                    msg = "Timer #%d: will trigger after %d ms";
                     msg_arg2 = ((uint64_t)value + 1) / 1000;
                 }
                 break;
