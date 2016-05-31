@@ -125,6 +125,8 @@ struct HPTimer
     int triggered;
 };
 
+#define HPTIMER_INTERRUPT (s->digic_version == 6 ? 0x28 : 0x10)
+
 struct mpu_init_spell
 {
   unsigned char in_spell[128];

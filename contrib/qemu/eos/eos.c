@@ -390,7 +390,7 @@ static void *eos_interrupt_thread(void *parm)
 
         if (trigger_hptimers)
         {
-            eos_trigger_int(s, 0x10, 0);
+            eos_trigger_int(s, HPTIMER_INTERRUPT, 0);
         }
     }
 
