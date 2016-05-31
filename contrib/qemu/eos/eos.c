@@ -1021,6 +1021,12 @@ static void patch_EOSM3(EOSState *s)
     printf("Patching 0xFC1F0116 (usleep)\n");
     uint32_t bx_lr = 0x4770;
     MEM_WRITE_ROM(0xFC1F0116, (uint8_t*) &bx_lr, 2);
+
+    printf("Patching 0xFC0F45B8 (InitExDrivers, locks up)\n");
+    MEM_WRITE_ROM(0xFC0F45B8, (uint8_t*) &bx_lr, 2);
+
+    printf("Patching 0xFC1F455C (DcdcDrv, assert i2c)\n");
+    MEM_WRITE_ROM(0xFC1F455C, (uint8_t*) &bx_lr, 2);
 }
 
 static void eos_init_common(MachineState *machine)
@@ -1163,7 +1169,7 @@ uint8_t eos_get_mem_b ( EOSState *s, uint32_t addr )
 void io_log(const char * module_name, EOSState *s, unsigned int address, unsigned char type, unsigned int in_value, unsigned int out_value, const char * msg, intptr_t msg_arg1, intptr_t msg_arg2)
 {
     /* todo: integrate with QEMU's logging/verbosity code */
-    //~ return;
+    return;
     
     unsigned int pc = s->cpu->env.regs[15];
     if (!module_name) module_name = "???";
