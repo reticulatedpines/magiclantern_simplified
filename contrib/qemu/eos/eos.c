@@ -1032,6 +1032,23 @@ static void patch_EOSM3(EOSState *s)
 
     printf("Patching 0xFC1F455C (DcdcDrv, assert i2c)\n");
     MEM_WRITE_ROM(0xFC1F455C, (uint8_t*) &bx_lr, 2);
+
+    printf("Patching 0xFC4FE848 (JpCore, assert)\n");
+    MEM_WRITE_ROM(0xFC4FE848, (uint8_t*) &bx_lr, 2);
+
+    printf("Patching 0xFC284B20 and 0xFC284B80 (Hdmi_comm, assert)\n");
+    MEM_WRITE_ROM(0xFC284B20, (uint8_t*) &bx_lr, 2);
+    MEM_WRITE_ROM(0xFC284B80, (uint8_t*) &bx_lr, 2);
+
+    printf("Patching 0xFC10C1A4 and 0xFC10C2B2 (DefMarkManLeo, assert)\n");
+    MEM_WRITE_ROM(0xFC10C1A4, (uint8_t*) &bx_lr, 2);
+    MEM_WRITE_ROM(0xFC10C2B2, (uint8_t*) &bx_lr, 2);
+    
+    printf("Patching 0xFCCD7140 (SoundDeviceDuke, assert)\n");
+    MEM_WRITE_ROM(0xFCCD7140, (uint8_t*) &bx_lr, 2);
+    
+    printf("Patching 0xFC1847E4 (MechaCPUFirmTransfer, assert)\n");
+    MEM_WRITE_ROM(0xFC1847E4, (uint8_t*) &bx_lr, 2);
 }
 
 static void eos_init_common(MachineState *machine)
