@@ -168,3 +168,16 @@ define give_semaphore_log
     c
   end
 end
+
+define register_interrupt_log
+  commands
+    silent
+    print_current_location
+    if $r0
+      printf "register_interrupt(%s, 0x%x, 0x%x, 0x%x)\n", $r0, $r1, $r2, $r3
+    else
+      printf "register_interrupt(null, 0x%x, 0x%x, 0x%x)\n", $r1, $r2, $r3
+    end
+    c
+  end
+end
