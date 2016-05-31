@@ -932,6 +932,14 @@ static void patch_bootloader_autoexec(EOSState *s)
     s->cpu->env.regs[15] = 0xFFFF0000;
 }
 
+static void disas_thumb(EOSState *s, uint32_t addr)
+{
+    int old_thumb = s->cpu->env.thumb;
+    s->cpu->env.thumb = 1;
+    target_disas(stdout, CPU(arm_env_get_cpu(&s->cpu->env)), addr, 4, 1);
+    s->cpu->env.thumb = old_thumb;
+}
+
 static void patch_7D2(EOSState *s)
 {
     int is_7d2m = (eos_get_mem_w(s, 0xFE106062) == 0x0F31EE19);
@@ -950,7 +958,7 @@ static void patch_7D2(EOSState *s)
          || old == 0x0F90EE10   /* MRC p15, 0, R0,c0,c0, 4 */
         ) {
             printf("Patching ");
-            target_disas(stdout, CPU(arm_env_get_cpu(&s->cpu->env)), addr, 4, 1);
+            disas_thumb(s, addr);
             MEM_WRITE_ROM(addr, (uint8_t*) &nop, 4);
         }
     }
@@ -997,7 +1005,7 @@ static void patch_EOSM3(EOSState *s)
          || old == 0x0F10EE01   /* MRC p15, 0, R0,c1,c0, 0 */
         ) {
             printf("Patching ");
-            target_disas(stdout, CPU(arm_env_get_cpu(&s->cpu->env)), addr, 4, 1);
+            disas_thumb(s, addr);
             MEM_WRITE_ROM(addr, (uint8_t*) &nop, 4);
         }
     }
