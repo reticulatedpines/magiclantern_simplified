@@ -1,43 +1,11 @@
-target remote localhost:1234
-set pagination off
+# ./run_canon_fw.sh EOSM3 -s -S & arm-none-eabi-gdb -x EOSM3/debugmsg.gdb
 
-define hook-quit
-  set confirm off
-end
+source -v debug-logging.gdb
 
-define KRED
-    printf "%c[1;31m", 0x1B
-end
+set $CURRENT_TASK = 0x803C
 
-define KCYN
-    printf "%c[1;36m", 0x1B
-end
-
-define KBLU
-    printf "%c[1;34m", 0x1B
-end
-
-define KRESET
-    printf "%c[0m", 0x1B
-end
-
-define print_current_location
-  KRESET
-  printf "["
-  KCYN
-  printf "%10s:%08x", ((char***)0x803C)[0][9], $r14
-  KRESET
-  printf " ] "
-end
-
-# DryosDebugMsg - QEMU hook
 b *0xFC37AF70
-commands
-  silent
-  print_current_location
-  set *0xCF999001 = *0xCF999001
-  c
-end
+DebugMsg_log
 
 # DebugMsg0
 b *0xFC361A32
@@ -48,80 +16,31 @@ commands
   c
 end
 
-# assert
 b *0x10E1000
-commands
-  silent
-  print_current_location
-  printf "["
-  KRED
-  printf "ASSERT"
-  KRESET
-  printf "] "
-  printf "%s at %s:%d, %x\n", $r0, $r1, $r2, $r14
-  c
-end
+assert_log
 
-# task_create
 b *0xBFE14A30
-commands
-  silent
-  print_current_location
-  KBLU
-  printf "task_create(%s, prio=%x, stack=%x, entry=%x, arg=%x)\n", $r0, $r1, $r2, $r3, *(int*)$sp
-  KRESET
-  c
-end
+task_create_log
 
-# msleep
 b *0xBFE14998
-commands
-  silent
-  print_current_location
-  printf "msleep(%d)\n", $r0
-  c
-end
+msleep_log
 
-# take_semaphore
+# semaphores
+
 b *0xBFE15400
-commands
-  silent
-  print_current_location
-  printf "take_semaphore(0x%x, %d)\n", $r0, $r1
-  c
-end
+take_semaphore_log
 
 b *0xBFE1546E
-commands
-  silent
-  print_current_location
-  printf "take_semaphore => %d\n", $r0
-  c
-end
+take_semaphore_ret_log
 
 b *0xBFE15472
-commands
-  silent
-  print_current_location
-  printf "take_semaphore => %d\n", $r0
-  c
-end
+take_semaphore_ret_log
 
 b *0xBFE15476
-commands
-  silent
-  print_current_location
-  printf "take_semaphore => %d\n", $r0
-  c
-end
+take_semaphore_ret_log
 
 # give_semaphore
 b *0xBFE15478
-commands
-  silent
-  print_current_location
-  printf "give_semaphore(0x%x)\n", $r0
-  c
-end
+give_semaphore_log
 
 cont

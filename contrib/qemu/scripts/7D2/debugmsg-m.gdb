@@ -1,32 +1,16 @@
-target remote localhost:1234
-set pagination off
+# ./run_canon_fw.sh 7D2M -s -S & arm-none-eabi-gdb -x 7D2/debugmsg-m.gdb
 
-define hook-quit
-  set confirm off
-end
+source -v debug-logging.gdb
 
-# DryosDebugMsg - QEMU hook
+set $CURRENT_TASK = 0x28568
+
 b *0x236
-commands
-  silent
-  set *0xCF999001 = *0xCF999001
-  c
-end
+DebugMsg_log
 
-# task_create
 b *0x1CCC
-commands
-  silent
-  printf "*** task_create(%s, prio=%x, stack=%x, entry=%x, arg=%x)\n", $r0, $r1, $r2, $r3, *(int*)$sp
-  c
-end
+task_create_log
 
-# msleep
 b *0x1C1C
-commands
-  silent
-  printf "*** msleep(%d)\n", $r0
-  c
-end
+msleep_log
 
 cont
