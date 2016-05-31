@@ -56,10 +56,10 @@ index e193658..9de7251 100644
      subregion->priority = 0;
      memory_region_add_subregion_common(mr, offset, subregion);
 diff --git a/target-arm/cpu.c b/target-arm/cpu.c
-index 30739fc..3a08417 100644
+index 30739fc..ba1f136 100644
 --- a/target-arm/cpu.c
 +++ b/target-arm/cpu.c
-@@ -711,6 +711,31 @@ static void arm926_initfn(Object *obj)
+@@ -711,6 +711,32 @@ static void arm926_initfn(Object *obj)
      cpu->reset_sctlr = 0x00090078;
  }
  
@@ -82,6 +82,7 @@ index 30739fc..3a08417 100644
 +    ARMCPU *cpu = ARM_CPU(obj);
 +    set_feature(&cpu->env, ARM_FEATURE_V8);
 +    set_feature(&cpu->env, ARM_FEATURE_DUMMY_C15_REGS);
++    set_feature(&cpu->env, ARM_FEATURE_THUMB_INTERRUPTS);
 +    cpu->midr = 0x41059461;
 +    cpu->ctr = (7 << 25) | (1 << 24) | (4 << 18) | (4 << 15) \
 +             | (2 << 12) | (4 << 6) | (4 << 3) | (2 << 0);
@@ -91,7 +92,7 @@ index 30739fc..3a08417 100644
  static void arm946_initfn(Object *obj)
  {
      ARMCPU *cpu = ARM_CPU(obj);
-@@ -1328,6 +1353,8 @@ typedef struct ARMCPUInfo {
+@@ -1328,6 +1354,8 @@ typedef struct ARMCPUInfo {
  static const ARMCPUInfo arm_cpus[] = {
  #if !defined(CONFIG_USER_ONLY) || !defined(TARGET_AARCH64)
      { .name = "arm926",      .initfn = arm926_initfn },
@@ -100,11 +101,23 @@ index 30739fc..3a08417 100644
      { .name = "arm946",      .initfn = arm946_initfn },
      { .name = "arm1026",     .initfn = arm1026_initfn },
      /* What QEMU calls "arm1136-r2" is actually the 1136 r0p2, i.e. an
+diff --git a/target-arm/cpu.h b/target-arm/cpu.h
+index 815fef8..961e254 100644
+--- a/target-arm/cpu.h
++++ b/target-arm/cpu.h
+@@ -912,6 +912,7 @@ enum arm_features {
+     ARM_FEATURE_V8_SHA256, /* implements SHA256 part of v8 Crypto Extensions */
+     ARM_FEATURE_V8_PMULL, /* implements PMULL part of v8 Crypto Extensions */
+     ARM_FEATURE_THUMB_DSP, /* DSP insns supported in the Thumb encodings */
++    ARM_FEATURE_THUMB_INTERRUPTS,   /* CPU should switch to Thumb mode on interrupt */
+ };
+ 
+ static inline int arm_feature(CPUARMState *env, int feature)
 diff --git a/target-arm/helper.c b/target-arm/helper.c
-index afc4163..f526e24 100644
+index afc4163..083885b 100644
 --- a/target-arm/helper.c
 +++ b/target-arm/helper.c
-@@ -5891,11 +5891,16 @@ void arm_cpu_do_interrupt(CPUState *cs)
+@@ -5891,11 +5891,21 @@ void arm_cpu_do_interrupt(CPUState *cs)
      /* Switch to the new mode, and to the correct instruction set.  */
      env->uncached_cpsr = (env->uncached_cpsr & ~CPSR_M) | new_mode;
      env->daif |= mask;
@@ -116,10 +129,14 @@ index afc4163..f526e24 100644
       * and we should just guard the thumb mode on V4 */
 -    if (arm_feature(env, ARM_FEATURE_V4T)) {
 -        env->thumb = (A32_BANKED_CURRENT_REG_GET(env, sctlr) & SCTLR_TE) != 0;
--    }
 +    //~ if (arm_feature(env, ARM_FEATURE_V4T)) {
 +        //~ env->thumb = (A32_BANKED_CURRENT_REG_GET(env, sctlr) & SCTLR_TE) != 0;
 +    //~ }
++    
++    if (arm_feature(env, ARM_FEATURE_THUMB_INTERRUPTS)) {
++        /* EOS M3: interrupts appear to require Thumb mode */
++        env->thumb = 1;
+     }
 +
      env->regs[14] = env->regs[15] + offset;
      env->regs[15] = addr;
