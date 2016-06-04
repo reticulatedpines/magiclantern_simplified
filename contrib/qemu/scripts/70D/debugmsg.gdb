@@ -11,4 +11,10 @@ DebugMsg_log
 b *0x98CC
 task_create_log
 
+b *0x396bc
+mpu_send_log
+
+b *0x5ed0
+mpu_recv_log
+
 cont

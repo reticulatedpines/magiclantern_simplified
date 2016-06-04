@@ -181,3 +181,39 @@ define register_interrupt_log
     c
   end
 end
+
+define mpu_decode
+  set $buf = $arg0
+  set $size = ((char*)$buf)[0]
+  set $i = 0
+  while $i < $size
+    printf "%02x ", ((char*)$buf)[$i]
+    set $i = $i + 1
+  end
+end
+
+define mpu_send_log
+  commands
+    silent
+    print_current_location
+    KBLU
+    printf "mpu_send( %02x ", ($r1 + 2) & 0xFE
+    mpu_decode $r0
+    printf ")\n"
+    KRESET
+    c
+  end
+end
+
+define mpu_recv_log
+  commands
+    silent
+    print_current_location
+    KBLU
+    printf "mpu_recv( %02x ", ((char*)$r0)[-1]
+    mpu_decode $r0
+    printf ")\n"
+    KRESET
+    c
+  end
+end
