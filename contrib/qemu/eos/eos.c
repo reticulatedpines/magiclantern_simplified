@@ -2346,11 +2346,8 @@ unsigned int eos_handle_tio ( unsigned int parm, EOSState *s, unsigned int addre
         case 0x00:
             if(type & MODE_WRITE)
             {
-                if((value == 0x08 || value == 0x0A || value == 0x0D || (value >= 0x20 && value <= 0x7F)))
-                {
-                    printf("\x1B[31m%c\x1B[0m", value);
-                    return 0;
-                }
+                printf("\x1B[31m%c\x1B[0m", value);
+                return 0;
             }
             else
             {
