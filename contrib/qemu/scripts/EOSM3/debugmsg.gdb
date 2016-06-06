@@ -2,7 +2,8 @@
 
 source -v debug-logging.gdb
 
-set $CURRENT_TASK = 0x803C
+macro define CURRENT_TASK 0x803C
+macro define CURRENT_ISR  (*(int*)0x8160 ? (*(int*)0x8164) : 0)
 
 b *0xFC37AF70
 DebugMsg_log
@@ -39,7 +40,6 @@ take_semaphore_ret_log
 b *0xBFE15476
 take_semaphore_ret_log
 
-# give_semaphore
 b *0xBFE15478
 give_semaphore_log
 

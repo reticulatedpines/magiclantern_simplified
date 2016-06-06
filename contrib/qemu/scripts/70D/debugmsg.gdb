@@ -3,7 +3,8 @@
 
 source -v debug-logging.gdb
 
-set $CURRENT_TASK = 0x7AAC0
+macro define CURRENT_TASK 0x7AAC0
+macro define CURRENT_ISR  (*(int*)0x648 ? (*(int*)0x64C) >> 2 : 0)
 
 b *0x6904
 DebugMsg_log

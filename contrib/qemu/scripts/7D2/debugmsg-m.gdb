@@ -2,7 +2,8 @@
 
 source -v debug-logging.gdb
 
-set $CURRENT_TASK = 0x28568
+macro define CURRENT_TASK 0x28568
+macro define CURRENT_ISR  (*(int*)0x28544 ? (*(int*)0x28548) : 0)
 
 b *0x236
 DebugMsg_log
@@ -30,5 +31,13 @@ msleep_log
 
 b *0x16D8
 register_interrupt_log
+
+b *0xFE0A0D66
+commands
+  silent
+  print_current_location
+  printf "interrupt handler %08x(0x%x)\n", $r1, $r0
+  c
+end
 
 cont

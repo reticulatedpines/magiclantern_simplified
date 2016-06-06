@@ -3,7 +3,8 @@
 source -v debug-logging.gdb
 
 # fixme
-set $CURRENT_TASK = 
+macro define CURRENT_TASK ...
+macro define CURRENT_ISR  ...
 
 b *0x4A74
 DebugMsg_log

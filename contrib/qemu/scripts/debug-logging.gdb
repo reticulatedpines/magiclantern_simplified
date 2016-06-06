@@ -5,6 +5,30 @@
 #    ./run_canon_fw 60D -s -S
 target remote localhost:1234
 
+################################################################################
+#
+# In your main gdb script, you need to set some firmware addresses.
+#
+# CURRENT_TASK:
+#   From task_create, look for a global pointer to current task structure
+#      macro define CURRENT_TASK 0x1234
+#
+# CURRENT_ISR:
+#   From interrupt handler (PC=0x18), find an expression that evaluates to
+#   the current interrupt ID if any is running, or 0 if a normal task is running.
+#   - on DIGIC 4/5, interrupt ID is MEM(0xC0201004) >> 2
+#   - on DIGIC 6,   interrupt ID is MEM(0xD4011000)
+#   To find the expression, look at the interrupt handler code (PC=0x18).
+#   Example for 70D:
+#      macro define CURRENT_ISR  (*(int*)0x648 ? (*(int*)0x64C) >> 2 : 0)
+#
+################################################################################
+
+# dummy definitions
+macro define CURRENT_TASK   ((int)0xFFFFFFFF)
+macro define CURRENT_ISR    ((int)0xFFFFFFFF)
+
+
 # misc preferences
 set pagination off
 set radix 16
@@ -33,12 +57,23 @@ define KRESET
 end
 
 # print current task name and return address
-# (you need to define $CURRENT_TASK address in the firmware - look in task_create)
 define print_current_location
   KRESET
+  if CURRENT_ISR == 0xFFFFFFFF
+    printf "Please define CURRENT_ISR.\n"
+  end
+  if CURRENT_TASK == 0xFFFFFFFF
+    printf "Please define CURRENT_TASK.\n"
+  end
+
   printf "["
-  KCYN
-  printf "%10s:%08x ", ((char***)$CURRENT_TASK)[0][9], $r14-4
+  if CURRENT_ISR > 0
+    KRED
+    printf "   INT-%02Xh:%08x ", CURRENT_ISR, $r14-4
+  else
+    KCYN
+    printf "%10s:%08x ", ((char***)CURRENT_TASK)[0][9], $r14-4
+  end
   KRESET
   printf "] "
 end
