@@ -11,6 +11,8 @@ set radix 16
 
 define hook-quit
   set confirm off
+  kill inferiors 1
+  KRESET
 end
 
 # color output to terminal
