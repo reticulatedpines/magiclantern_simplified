@@ -9,8 +9,14 @@ macro define CURRENT_ISR  (*(int*)0x648 ? (*(int*)0x64C) >> 2 : 0)
 b *0x6904
 DebugMsg_log
 
+b *0x1900
+assert_log
+
 b *0x98CC
 task_create_log
+
+b *0x9174
+register_interrupt_log
 
 b *0x396bc
 mpu_send_log
