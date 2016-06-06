@@ -1357,6 +1357,7 @@ unsigned int eos_handle_intengine ( unsigned int parm, EOSState *s, unsigned int
                 msg_arg1 = s->irq_id << 2;
                 msg_arg2 = s->irq_id;
                 ret = s->irq_id << ((address & 0xFFF) ? 2 : 0);
+                assert(ret);
 
                 /* this register resets on read (subsequent reads should report 0) */
                 s->irq_id = 0;
