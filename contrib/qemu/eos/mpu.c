@@ -788,7 +788,7 @@ void mpu_handle_sio3_interrupt(EOSState *s)
         
         if (num_chars)
         {
-            /* next two num_chars */
+            /* next two chars */
             s->mpu.out_char += 2;
             
             if (s->mpu.out_char < num_chars)
@@ -819,7 +819,9 @@ void mpu_handle_sio3_interrupt(EOSState *s)
                     {
                         /* no more spells */
                         printf("[MPU] spells finished\n");
-                        s->mpu.sending = 0;
+                        
+                        /* we have two more chars to send */
+                        s->mpu.sending = 2;
                     }
                 }
             }
@@ -936,6 +938,12 @@ unsigned int eos_handle_mpu(unsigned int parm, EOSState *s, unsigned int address
     }
     else
     {
+        if (s->mpu.sending == 2)
+        {
+            /* last two chars sent, finished */
+            s->mpu.sending = 0;
+        }
+        
         ret = (s->mpu.sending && !s->mpu.receiving) ? 0x3 :  /* I have data to send */
               (!s->mpu.sending && s->mpu.receiving) ? 0x0 :  /* I'm ready to receive data */
               (s->mpu.sending && s->mpu.receiving)  ? 0x1 :  /* I'm ready to send and receive data */
@@ -966,9 +974,9 @@ int mpu_handle_get_data(EOSState *s, int *hi, int *lo)
     {
         *hi = MPU_CURRENT_OUT_SPELL[s->mpu.out_char];
         *lo = MPU_CURRENT_OUT_SPELL[s->mpu.out_char+1];
-		return 1;
+        return 1;
     }
-	return 0;
+    return 0;
 }
 
 

@@ -1710,7 +1710,7 @@ unsigned int eos_handle_sio3( unsigned int parm, EOSState *s, unsigned int addre
                 else
                 {
                     msg = "No data from MPU";
-                    return 0;
+                    ret = 0;
                 }
             }
             break;
