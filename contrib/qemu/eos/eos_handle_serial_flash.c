@@ -33,15 +33,26 @@ static void sfio_do_transfer( EOSState *s)
     void * source = &s->sf->data[s->sf->data_pointer];
     printf("[EEPROM-DMA]! [0x%X] -> [0x%X] (0x%X bytes)\n", 
            s->sf->data_pointer, s->sd.dma_addr, s->sd.dma_count);
-    for (int i = 0; i < 4; i++) {
-        printf("[EEPROM-DATA]: ");
-        for (int j = 0; j < 8; j++)
-            printf("%02X%02X ", ((uint8_t*)source)[i*16+j*2], ((uint8_t*)source)[i*16+j*2+1]);
-        printf("\n");
+
+    /* the data appears screwed up a bit - offset by half-byte?! */
+    for (int i = 0; i < s->sd.dma_count; i++)
+    {
+        uint8_t this = *(uint8_t*)(source + i);
+        uint8_t next = *(uint8_t*)(source + i + 1);
+        uint8_t byte = (this << 4) | (next >> 4);
+        
+        /* not exactly the most efficient way, but fast enough for our purpose */
+        cpu_physical_memory_write(s->sd.dma_addr, &byte, 1);
+        
+        if (i < 16*4)
+        {
+            printf("%s%02X%s",
+                (i % 16 == 0) ? "[EEPROM-DATA]: " : "",
+                byte,
+                (i % 16 == 15) ? "\n" : " "
+            );
+        }
     }
-    // reverse_bytes_order(source, s->sd.dma_count);
-    cpu_physical_memory_write(s->sd.dma_addr, source, s->sd.dma_count);
-    // reverse_bytes_order(source, s->sd.dma_count);
     s->sd.dma_count = 0;
             //sdio_write_data(&s->sd);
             //sfio_trigger_interrupt(s);
