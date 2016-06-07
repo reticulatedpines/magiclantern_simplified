@@ -1544,14 +1544,16 @@ unsigned int eos_handle_hptimer ( unsigned int parm, EOSState *s, unsigned int a
         case 0x1D4:
             if(type & MODE_WRITE)
             {
-                s->HPTimers[timer_id].output_compare = value & 0xFFF00;
-                msg_arg2 = value;
-                msg = "HPTimer %d/8: output compare %d microseconds";
+                /* round to the next 0x100 multiple, because that's our increment
+                 * for digic_timer */
+                s->HPTimers[timer_id].output_compare = ((value & 0xFFFFF) + 0xFF) & 0xFFF00;
+                msg = "HPTimer %d/8: output compare (delay %d microseconds)";
+                msg_arg2 = (value - s->digic_timer) & 0xFFFFF;
             }
             else
             {
                 ret = s->HPTimers[timer_id].output_compare;
-                msg = "HPTimer %d/8: output compare flags?";
+                msg = "HPTimer %d/8: output compare";
             }
             break;
 
