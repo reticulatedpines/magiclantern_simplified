@@ -966,7 +966,7 @@ unsigned int eos_handle_mpu(unsigned int parm, EOSState *s, unsigned int address
     return ret;
 }
 
-int mpu_handle_get_data(EOSState *s, int *hi, int *lo)
+static int mpu_handle_get_data(EOSState *s, int *hi, int *lo)
 {
     if (s->mpu.spell_set < COUNT(mpu_init_spells) &&
         s->mpu.out_spell >= 0 &&
@@ -979,4 +979,150 @@ int mpu_handle_get_data(EOSState *s, int *hi, int *lo)
     return 0;
 }
 
+unsigned int eos_handle_sio3( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+{
+    int ret = 0;
+    const char * msg = 0;
+    intptr_t msg_arg1 = 0;
+    intptr_t msg_arg2 = 0;
 
+    switch(address & 0xFF)
+    {
+        case 0x04:
+            /* C0820304 
+             * 
+             * write:
+             *      - confirm data sent to MPU, by writing 1; used together with C0820318
+             *      - when sending data from the MPU, each char pair is confirmed
+             *        by sending a 0 back on C0820318, followed by a 1 here
+             *        but the last char pair is not confirmed
+             * 
+             * read:
+             *      - tst 0x1 in SIO3 when sending to MPU, stop if NE
+             *      - guess: 0 if idle, 1 if busy
+             */
+            
+            if(type & MODE_WRITE)
+            {
+                if (value == 1)
+                {
+                    msg = "To MPU <- ack data";
+                }
+                else
+                {
+                    msg = "To MPU <- ???";
+                }
+            }
+            else
+            {
+                msg = "request to send?";
+            }
+            break;
+
+        case 0x10:  /* C0820310: set to 0 at the beginning of SIO3_ISR, not used anywhere else */
+            if(type & MODE_WRITE)
+            {
+                if (value == 0)
+                {
+                    msg = "ISR started";
+                    mpu_handle_sio3_interrupt(s);
+                }
+            }
+            break;
+
+        case 0x18:  /* C0820318 - data sent to MPU */
+            if(type & MODE_WRITE)
+            {
+                if (s->mpu.receiving)
+                {
+                    msg = "Data to MPU, at index %d %s";
+                    msg_arg1 = s->mpu.recv_index;
+                    if (s->mpu.recv_index + 2 < COUNT(s->mpu.recv_buffer))
+                    {
+                        s->mpu.recv_buffer[s->mpu.recv_index++] = (value >> 8) & 0xFF;
+                        s->mpu.recv_buffer[s->mpu.recv_index++] = (value >> 0) & 0xFF;
+                    }
+                    else
+                    {
+                        msg_arg2 = (intptr_t) "(overflow!)";
+                    }
+                }
+                else if (s->mpu.sending && value == 0)
+                {
+                    msg = "Dummy data to MPU";
+                }
+                else
+                {
+                    msg = "Data to MPU (wait a minute, I'm not listening!)";
+                }
+            }
+            break;
+
+        case 0x1C:  /* C082031C - data coming from MPU */
+        
+            if(type & MODE_WRITE)
+            {
+                msg = "Data from MPU (why writing?!)";
+            }
+            else
+            {
+                if (s->mpu.sending)
+                {
+                    int hi = 0, lo = 0;
+                    if (mpu_handle_get_data(s, &hi, &lo)) {
+                        ret = (hi << 8) | lo;
+                        msg = "Data from MPU";
+                    } else {
+                        msg = "From MPU -> out of range (cmd %d, char %d)";
+                        msg_arg1 = s->mpu.out_spell;
+                        msg_arg2 = s->mpu.out_char;
+                        ret = 0;
+                    }
+                }
+                else
+                {
+                    msg = "No data from MPU";
+                    ret = 0;
+                }
+            }
+            break;
+    }
+
+    io_log("SIO3", s, address, type, value, ret, msg, msg_arg1, msg_arg2);
+    return ret;
+}
+
+unsigned int eos_handle_mreq( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+{
+    int ret = 0;
+    const char * msg = 0;
+    intptr_t msg_arg1 = 0;
+    intptr_t msg_arg2 = 0;
+    
+    if ((address & 0xFF) == 0x2C)
+    {
+        /* C020302C */
+        /* set to 0x1C at the beginning of MREQ ISR, and to 0x0C at startup */
+        if(type & MODE_WRITE)
+        {
+            msg = "CTL register %s";
+            if (value == 0x0C)
+            {
+                msg_arg1 = (intptr_t) "init";
+            }
+            else if (value == 0x1C)
+            {
+                msg_arg1 = (intptr_t) "(ISR started)";
+                mpu_handle_mreq_interrupt(s);
+            }
+        }
+        else
+        {
+            msg = "CTL register -> idk, sending 0xC";
+            ret = 0xC;
+        }
+    }
+    
+    io_log("MREQ", s, address, type, value, ret, msg, msg_arg1, msg_arg2);
+    return ret;
+}
