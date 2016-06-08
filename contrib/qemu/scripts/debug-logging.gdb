@@ -252,3 +252,25 @@ define mpu_recv_log
     c
   end
 end
+
+define try_expand_ram_struct
+    if $arg0 > 0x1000 && $arg0 < 0x1000000
+        printf "                       "
+        printf "*0x%x = { %x %x %x %x %x ... }\n", $arg0, *(int*)$arg0, *(int*)($arg0+4), *(int*)($arg0+8), *(int*)($arg0+12), *(int*)($arg0+16)
+    end
+end
+
+define try_post_event_log
+  commands
+    silent
+    print_current_location
+    printf "TryPostEvent('%s', '%s', 0x%x, 0x%x, 0x%x)\n", *(int*)$r0, *(int*)$r1, $r2, $r3, *(int*)$sp
+    try_expand_ram_struct $r3
+    try_expand_ram_struct *(int*)($r3)
+    try_expand_ram_struct *(int*)($r3+4)
+    try_expand_ram_struct *(int*)($r3+8)
+    try_expand_ram_struct *(int*)($r3+12)
+    try_expand_ram_struct *(int*)($r3+16)
+    c
+  end
+end

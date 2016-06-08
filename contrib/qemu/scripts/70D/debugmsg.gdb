@@ -24,4 +24,7 @@ mpu_send_log
 b *0x5ed0
 mpu_recv_log
 
+b *0x3dd24
+try_post_event_log
+
 cont
