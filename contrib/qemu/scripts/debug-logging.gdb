@@ -93,6 +93,7 @@ define DebugMsg_log
     while *(char*)($r2+$i)
       set $num = $num + ( *(char*)($r2+$i) == '%' && *(char*)($r2+$i+1) != '%' )
       set $badfmt = $badfmt + ( *(char*)($r2+$i) == '%' && *(char*)($r2+$i+1) == 'S' )
+      set $badfmt = $badfmt + ( *(char*)($r2+$i) == '"' )
       set $i = $i + 1
     end
     
