@@ -17,15 +17,6 @@ msleep_log
 # b *0x1926
 # take_semaphore_log
 
-# b *0x1994
-# take_semaphore_ret_log
-
-# b *0x1998
-# take_semaphore_ret_log
-
-# b *0x199c
-# take_semaphore_ret_log
-
 # b *0x199e
 # give_semaphore_log
 

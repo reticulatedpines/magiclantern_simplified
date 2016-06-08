@@ -184,15 +184,13 @@ define take_semaphore_log
     silent
     print_current_location
     printf "take_semaphore(0x%x, %d)\n", $r0, $r1
-    c
-  end
-end
-
-define take_semaphore_ret_log
-  commands
-    silent
-    print_current_location
-    printf "take_semaphore => %d\n", $r0
+    tbreak *($lr & ~1)
+    commands
+      silent
+      print_current_location
+      printf "take_semaphore => %d (pc=%x)\n", $r0, $pc
+      c
+    end
     c
   end
 end

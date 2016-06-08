@@ -31,15 +31,6 @@ msleep_log
 b *0xBFE15400
 take_semaphore_log
 
-b *0xBFE1546E
-take_semaphore_ret_log
-
-b *0xBFE15472
-take_semaphore_ret_log
-
-b *0xBFE15476
-take_semaphore_ret_log
-
 b *0xBFE15478
 give_semaphore_log
 
