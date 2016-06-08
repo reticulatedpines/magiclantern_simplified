@@ -27,4 +27,16 @@ mpu_recv_log
 b *0x3dd24
 try_post_event_log
 
+b *0xE8AC
+SetTimerAfter_log
+
+b *0x7F94
+SetHPTimerAfterNow_log
+
+b *0x8094
+SetHPTimerNextTick_log
+
+b *0xEAAC
+CancelTimer_log
+
 cont

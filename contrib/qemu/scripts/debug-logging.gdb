@@ -275,3 +275,65 @@ define try_post_event_log
     c
   end
 end
+
+define delayed_call_print_name
+  if $arg0
+    printf "SetTimerAfter"
+  else
+    printf "SetHPTimerAfterNow"
+  end
+end
+
+# for SetTimerAfter/SetHPTimerAfterNow
+define delayed_call_log
+  # passing strings to printf via $arg0 doesn't work
+  # workaround: 0=SetTimerAfter, 1=SetHPTimerAfterNow (ugly, but at least it works)
+  # another problem: $arg0 disappears in a commands block => save it here
+  set $arg = $arg0
+  commands
+    silent
+    print_current_location
+    delayed_call_print_name $arg
+    printf "(%d, cbr=%x, overrun=%x, arg=%x)\n", $r0, $r1, $r2, $r3
+    if $r1 != $r2
+      KRED
+      printf "not handled: cbr != overrun\n"
+      KRESET
+    end
+    tbreak *$r1
+    commands
+      silent
+      print_current_location
+      delayed_call_print_name $arg
+      printf " calling CBR %x(%x,%x)\n", $pc, $r0, $r1
+      c
+    end
+    c
+  end
+end
+
+define SetTimerAfter_log
+  delayed_call_log 0
+end
+
+define SetHPTimerAfterNow_log
+  delayed_call_log 1
+end
+
+define SetHPTimerNextTick_log
+  commands
+    silent
+    print_current_location
+    printf "SetHPTimerNextTick(last_expiry=%d, offset=%d, cbr=%x, overrun=%x, arg=%x)\n", $r0, $r1, $r2, $r3, *(int*)$sp
+    c
+  end
+end
+
+define CancelTimer_log
+  commands
+    silent
+    print_current_location
+    printf "CancelTimer(%x)\n", $r0
+    c
+  end
+end
