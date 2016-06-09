@@ -1188,19 +1188,69 @@ uint8_t eos_get_mem_b ( EOSState *s, uint32_t addr )
     return buf;
 }
 
+static char* get_current_task_name(EOSState *s)
+{
+    uint32_t current_task_addr = 0;
+    
+    /* fixme: move to model_list.c */
+    if (strcmp(s->model_name, "60D") == 0)
+        current_task_addr = 0x1A2C;
+    else if (strcmp(s->model_name, "70D") == 0)
+        current_task_addr = 0x7AAC0;
+    else if (strcmp(s->model_name, "5D3") == 0)
+        current_task_addr = 0x23E14;
+    else if (strcmp(s->model_name, "7D2M") == 0)
+        current_task_addr = 0x28568;
+    else if (strcmp(s->model_name, "EOSM3") == 0)
+        current_task_addr = 0x803C;
+    
+    if (!current_task_addr)
+    {
+        return 0;
+    }
+    
+    uint32_t current_task_ptr;
+    uint32_t current_task[0x50/4];
+    static char task_name[100];
+    cpu_physical_memory_read(current_task_addr, &current_task_ptr, 4);
+    if (current_task_ptr)
+    {
+        cpu_physical_memory_read(current_task_ptr, current_task, sizeof(current_task));
+        cpu_physical_memory_read(current_task[9], task_name, sizeof(task_name));
+        return task_name;
+    }
+    
+    return 0;
+}
+
 void io_log(const char * module_name, EOSState *s, unsigned int address, unsigned char type, unsigned int in_value, unsigned int out_value, const char * msg, intptr_t msg_arg1, intptr_t msg_arg2)
 {
     /* todo: integrate with QEMU's logging/verbosity code */
-    return;
+    //~ return;
     
     unsigned int pc = s->cpu->env.regs[15];
     if (!module_name) module_name = "???";
     if (!msg) msg = "???";
     
+    char* task_name = get_current_task_name(s);
+    
     char mod_name[50];
     char mod_name_and_pc[50];
     snprintf(mod_name, sizeof(mod_name), "[%s]", module_name);
-    snprintf(mod_name_and_pc, sizeof(mod_name_and_pc), "%-10s at 0x%08X", mod_name, pc);
+
+    if (task_name)
+    {
+        /* trim task name or pad with spaces for alignment */
+        /* note: task_name size is 100 chars, in get_current_task_name */
+        task_name[MAX(5, 15 - (int)strlen(mod_name))] = 0;
+        char spaces[] = "           ";
+        spaces[MAX(0, 15 - (int)strlen(mod_name) - (int)strlen(task_name))] = 0;
+        snprintf(mod_name_and_pc, sizeof(mod_name_and_pc), "%s%s at %s:%08X", mod_name, spaces, task_name, pc);
+    }
+    else
+    {
+        snprintf(mod_name_and_pc, sizeof(mod_name_and_pc), "%-10s at 0x%08X", mod_name, pc);
+    }
     
     /* description may have two optional integer arguments */
     char desc[200];
