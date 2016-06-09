@@ -34,4 +34,14 @@ take_semaphore_log
 b *0xBFE15478
 give_semaphore_log
 
+b *0xFC130FE4
+commands
+  silent
+  print_current_location
+  KRED
+  printf "shutdown!!!\n"
+  KRESET
+  c
+end
+
 cont
