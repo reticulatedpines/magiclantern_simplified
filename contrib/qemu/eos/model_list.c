@@ -6,15 +6,21 @@ struct eos_model_desc eos_model_list[] = {
         /* defaults for DIGIC 4 cameras */
         .digic_version          = 4,
         /* note: some cameras have smaller ROMs, or only one ROM */
+        .rom0_size              = 0x01000000,
+        .rom1_size              = 0x01000000,
     },
     {
         /* defaults for DIGIC 5 cameras */
         .digic_version          = 5,
+        .rom0_size              = 0x01000000,
+        .rom1_size              = 0x01000000,
         .firmware_start         = 0xFF0C0000,
     },
     {
         /* defaults for DIGIC 6 cameras */
         .digic_version          = 6,
+        .rom0_size              = 0x02000000,
+        .rom1_size              = 0x02000000,
     },
     {
         .name                   = "50D",

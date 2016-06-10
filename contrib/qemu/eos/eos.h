@@ -29,8 +29,8 @@
 /** Memory configuration **/
 #define ROM0_ADDR     0xF0000000
 #define ROM1_ADDR     0xF8000000
-#define ROM0_SIZE     (s->model->digic_version == 6 ? 0x02000000 : 0x01000000)
-#define ROM1_SIZE     ROM0_SIZE
+#define ROM0_SIZE     s->model->rom0_size
+#define ROM1_SIZE     s->model->rom1_size
 
 #define TCM_SIZE      0x00001000
 #define RAM_SIZE      0x40000000

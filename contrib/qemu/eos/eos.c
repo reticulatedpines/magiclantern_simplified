@@ -1085,17 +1085,10 @@ static void eos_init_common(MachineState *machine)
     char rom_filename[24];
     snprintf(rom_filename,24,"ROM-%s.BIN",s->model->name);
 
-    if (s->model->digic_version == 6)
-    {
-        eos_load_image(s, rom_filename, 0, 0x2000000, 0xFC000000, 0);
-    }
-    else
-    {
-        /* populate ROM0 */
-        eos_load_image(s, rom_filename, 0, ROM0_SIZE, ROM0_ADDR, 0);
-        /* populate ROM1 */
-        eos_load_image(s, rom_filename, ROM0_SIZE, ROM1_SIZE, ROM1_ADDR, 0);
-    }
+    /* populate ROM0 */
+    eos_load_image(s, rom_filename, 0, ROM0_SIZE, ROM0_ADDR, 0);
+    /* populate ROM1 */
+    eos_load_image(s, rom_filename, ROM0_SIZE, ROM1_SIZE, ROM1_ADDR, 0);
 
     /* for display */
     precompute_yuv2rgb(1);

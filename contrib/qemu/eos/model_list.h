@@ -17,6 +17,8 @@ struct eos_model_desc {
         struct
         {
             uint32_t digic_version;
+            uint32_t rom0_size;
+            uint32_t rom1_size;
             uint32_t firmware_start;
             uint32_t current_task_addr;
             uint32_t mpu_request_register;
@@ -25,7 +27,7 @@ struct eos_model_desc {
         
         /* this must match the number of items in the above struct */
         /* note: you get a compile-time error if params[] is smaller than the struct */
-        uint32_t params[5];
+        uint32_t params[7];
     };
 } __attribute__((packed));
 
