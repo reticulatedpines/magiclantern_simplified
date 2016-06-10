@@ -47,6 +47,7 @@ const struct eos_model_desc eos_model_list[] = {
         .digic_version          = 5,
         .rom_start              = 0xFF0C0000,
         .mpu_request_register   = 0xC022006C,
+        .serial_flash_size      = 0x1000000,
     },
     {
         "7D",
@@ -69,6 +70,7 @@ const struct eos_model_desc eos_model_list[] = {
         .rom_start              = 0xFF0C0000,
         .current_task_addr      = 0x7AAC0,
         .mpu_request_register   = 0xC02200BC,
+        .serial_flash_size      = 0x800000,
     },
     {
         "700D",

@@ -1095,12 +1095,11 @@ static void eos_init_common(MachineState *machine)
     ide_create_drive(&s->cf.bus, 0, dj);
 
     /* nkls: init SF */
-    if (strcmp(s->model->name, "100D") == 0) {
-        s->sf = serial_flash_init("SF-100D.BIN", 0x1000000);
-    }
-
-    if (strcmp(s->model->name, "70D") == 0) {
-        s->sf = serial_flash_init("SF-70D.BIN", 0x800000);
+    if (s->model->serial_flash_size)
+    {
+        char sf_filename[50];
+        snprintf(sf_filename, sizeof(sf_filename), "SF-%s.BIN", s->model->name);
+        s->sf = serial_flash_init(sf_filename, s->model->serial_flash_size);
     }
 
     if (0)
