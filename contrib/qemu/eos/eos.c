@@ -1114,7 +1114,7 @@ static void eos_init_common(MachineState *machine)
     {
         /* 7D2 experiments */
         patch_7D2(s);
-        s->cpu->env.regs[15] = s->model->rom_start;
+        s->cpu->env.regs[15] = s->model->firmware_start;
 
         if (1)
         {

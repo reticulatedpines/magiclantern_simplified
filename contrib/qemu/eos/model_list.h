@@ -6,7 +6,7 @@
 struct eos_model_desc {
     const char * name;
     uint32_t     digic_version;
-    uint32_t     rom_start;
+    uint32_t     firmware_start;
     uint32_t     current_task_addr;
     uint32_t     mpu_request_register;
     uint32_t     serial_flash_size;
