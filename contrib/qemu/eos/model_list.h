@@ -5,8 +5,8 @@
 
 struct eos_model_desc {
     const char * name;
-    uint32_t     rom_start;
     uint32_t     digic_version;
+    uint32_t     rom_start;
 };
 
 extern const struct eos_model_desc eos_model_list[];
