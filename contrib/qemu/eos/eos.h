@@ -56,8 +56,8 @@
 #define MODE_WRITE 0x20
 
 /* DryOS timer */
-#define TIMER_INTERRUPT (s->model->digic_version == 6 ? 0x1B : 0x0A)
-#define DRYOS_TIMER_ID  (s->model->digic_version == 6 ? 0x01 : 0x02)
+#define TIMER_INTERRUPT s->model->dryos_timer_interrupt
+#define DRYOS_TIMER_ID  s->model->dryos_timer_id
 
 typedef struct
 {

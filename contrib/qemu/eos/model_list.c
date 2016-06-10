@@ -8,6 +8,8 @@ struct eos_model_desc eos_model_list[] = {
         /* note: some cameras have smaller ROMs, or only one ROM */
         .rom0_size              = 0x01000000,
         .rom1_size              = 0x01000000,
+        .dryos_timer_id         = 2,
+        .dryos_timer_interrupt  = 0x0A,
     },
     {
         /* defaults for DIGIC 5 cameras */
@@ -15,12 +17,16 @@ struct eos_model_desc eos_model_list[] = {
         .rom0_size              = 0x01000000,
         .rom1_size              = 0x01000000,
         .firmware_start         = 0xFF0C0000,
+        .dryos_timer_id         = 2,
+        .dryos_timer_interrupt  = 0x0A,
     },
     {
         /* defaults for DIGIC 6 cameras */
         .digic_version          = 6,
         .rom0_size              = 0x02000000,
         .rom1_size              = 0x02000000,
+        .dryos_timer_id         = 1,
+        .dryos_timer_interrupt  = 0x1B,
     },
     {
         .name                   = "50D",

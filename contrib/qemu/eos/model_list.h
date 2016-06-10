@@ -20,6 +20,8 @@ struct eos_model_desc {
             uint32_t rom0_size;
             uint32_t rom1_size;
             uint32_t firmware_start;
+            uint32_t dryos_timer_interrupt;
+            uint32_t dryos_timer_id;
             uint32_t current_task_addr;
             uint32_t mpu_request_register;
             uint32_t serial_flash_size;
@@ -27,7 +29,7 @@ struct eos_model_desc {
         
         /* this must match the number of items in the above struct */
         /* note: you get a compile-time error if params[] is smaller than the struct */
-        uint32_t params[7];
+        uint32_t params[9];
     };
 } __attribute__((packed));
 
