@@ -1648,6 +1648,12 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
     const char * msg_lookup = 0;
     static int unk = 0;
 
+    /* 0xC022009C/6C/BC, depending on camera model */
+    if (address == s->model->mpu_request_register)
+    {
+        return eos_handle_mpu(parm, s, address, type, value);
+    }
+
     switch (address & 0xFFFF)
     {
         case 0xCB6C: /* 5D3/6D expect this one to be 0x10 in bootloader (6D:FFFF0544) */
@@ -1861,32 +1867,9 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             break;
         }
 
-        case 0x006C:
-        {
-            if (strcmp(s->model->name, "100D") == 0)
-            {
-                return eos_handle_mpu(parm, s, address, type, value);
-            }
-            break;
-        }
-        
-        case 0x009C:
-        {
-            if ((strcmp(s->model->name, "60D") == 0) ||
-                (strcmp(s->model->name, "5D2") == 0))
-            {
-                return eos_handle_mpu(parm, s, address, type, value);
-            }
-            break;
-        }
-
         case 0x00BC:
         {
-            if ((strcmp(s->model->name, "70D") == 0) ||
-                (strcmp(s->model->name, "5D3") == 0))
-            {
-                return eos_handle_mpu(parm, s, address, type, value);
-            }
+            /* note: some cameras use this for MPU (handled before the case switch) */
 
             /* 5D2 CF LED */
             static int last_value = 0;

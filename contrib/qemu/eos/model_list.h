@@ -8,6 +8,7 @@ struct eos_model_desc {
     uint32_t     digic_version;
     uint32_t     rom_start;
     uint32_t     current_task_addr;
+    uint32_t     mpu_request_register;
 };
 
 extern const struct eos_model_desc eos_model_list[];

@@ -12,6 +12,7 @@ const struct eos_model_desc eos_model_list[] = {
         .digic_version          = 4,
         .rom_start              = 0xFF010000,
         .current_task_addr      = 0x1A2C,
+        .mpu_request_register   = 0xC022009C,
     },
     {
         "600D",
@@ -27,12 +28,14 @@ const struct eos_model_desc eos_model_list[] = {
         "5D2",
         .digic_version          = 4,
         .rom_start              = 0xFF810000,
+        .mpu_request_register   = 0xC022009C,
     },
     {
         "5D3",
         .digic_version          = 5,
         .rom_start              = 0xFF0C0000,
         .current_task_addr      = 0x23E14,
+        .mpu_request_register   = 0xC02200BC,
     },
     {
         "650D",
@@ -43,6 +46,7 @@ const struct eos_model_desc eos_model_list[] = {
         "100D",
         .digic_version          = 5,
         .rom_start              = 0xFF0C0000,
+        .mpu_request_register   = 0xC022006C,
     },
     {
         "7D",
@@ -64,6 +68,7 @@ const struct eos_model_desc eos_model_list[] = {
         .digic_version          = 5,
         .rom_start              = 0xFF0C0000,
         .current_task_addr      = 0x7AAC0,
+        .mpu_request_register   = 0xC02200BC,
     },
     {
         "700D",
