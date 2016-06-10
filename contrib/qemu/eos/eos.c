@@ -901,8 +901,7 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
     //memory_region_add_subregion(s->system_mem, 0xF0000000, &s->rom1);
 
     /* set up io space */
-    uint32_t io_mem_len = (s->model->digic_version == 6 ? IO_MEM_LEN6 : IO_MEM_LEN45);
-    memory_region_init_io(&s->iomem, NULL, &iomem_ops, s, "eos.iomem", io_mem_len);
+    memory_region_init_io(&s->iomem, NULL, &iomem_ops, s, "eos.iomem", s->model->io_mem_size);
     memory_region_add_subregion(s->system_mem, IO_MEM_START, &s->iomem);
 
 #ifdef TRACE_MEM_START

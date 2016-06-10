@@ -40,8 +40,6 @@
 #define RAM2_SIZE     0x40000000
 
 #define IO_MEM_START  0xC0000000    /* common to all DIGICs */
-#define IO_MEM_LEN45  0x10000000    /* for DIGIC 4/5 */
-#define IO_MEM_LEN6   0x20000000    /* for DIGIC 6 */
 
 /* define those for logging RAM access (reads + writes) */
 /* caveat: this area will be marked as IO, so you can't execute anything from there */

@@ -8,6 +8,7 @@ struct eos_model_desc eos_model_list[] = {
         /* note: some cameras have smaller ROMs, or only one ROM */
         .rom0_size              = 0x01000000,
         .rom1_size              = 0x01000000,
+        .io_mem_size            = 0x10000000,
         .dryos_timer_id         = 2,
         .dryos_timer_interrupt  = 0x0A,
     },
@@ -16,6 +17,7 @@ struct eos_model_desc eos_model_list[] = {
         .digic_version          = 5,
         .rom0_size              = 0x01000000,
         .rom1_size              = 0x01000000,
+        .io_mem_size            = 0x10000000,
         .firmware_start         = 0xFF0C0000,
         .dryos_timer_id         = 2,
         .dryos_timer_interrupt  = 0x0A,
@@ -25,6 +27,7 @@ struct eos_model_desc eos_model_list[] = {
         .digic_version          = 6,
         .rom0_size              = 0x02000000,
         .rom1_size              = 0x02000000,
+        .io_mem_size            = 0x20000000,
         .dryos_timer_id         = 1,
         .dryos_timer_interrupt  = 0x1B,
     },
