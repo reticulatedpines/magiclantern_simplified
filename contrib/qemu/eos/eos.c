@@ -2627,7 +2627,8 @@ static void sdio_write_data(SDIOState *sd)
 
 void sdio_trigger_interrupt(EOSState *s, SDIOState *sd)
 {
-    /* after a successful operation, trigger int 0xB1 if requested */
+    /* after a successful operation, trigger interrupt if requested */
+    assert(s->model->sd_driver_interrupt);
     
     if ((sd->cmd_flags == 0x13 || sd->cmd_flags == 0x14)
         && !(sd->status & SDIO_STATUS_DATA_AVAILABLE))
@@ -2639,7 +2640,7 @@ void sdio_trigger_interrupt(EOSState *s, SDIOState *sd)
     
     if ((sd->status & 3) == 1 && sd->irq_flags)
     {
-        eos_trigger_int(s, 0xB1, 0);
+        eos_trigger_int(s, s->model->sd_driver_interrupt, 0);
     }
 }
 

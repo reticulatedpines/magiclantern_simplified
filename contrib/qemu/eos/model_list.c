@@ -11,6 +11,7 @@ struct eos_model_desc eos_model_list[] = {
         .io_mem_size            = 0x10000000,
         .dryos_timer_id         = 2,
         .dryos_timer_interrupt  = 0x0A,
+        .sd_driver_interrupt    = 0xB1,
     },
     {
         /* defaults for DIGIC 5 cameras */
@@ -21,6 +22,7 @@ struct eos_model_desc eos_model_list[] = {
         .firmware_start         = 0xFF0C0000,
         .dryos_timer_id         = 2,
         .dryos_timer_interrupt  = 0x0A,
+        .sd_driver_interrupt    = 0x172,
     },
     {
         /* defaults for DIGIC 6 cameras */
