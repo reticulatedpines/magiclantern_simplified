@@ -1187,21 +1187,7 @@ uint8_t eos_get_mem_b ( EOSState *s, uint32_t addr )
 
 static char* get_current_task_name(EOSState *s)
 {
-    uint32_t current_task_addr = 0;
-    
-    /* fixme: move to model_list.c */
-    if (strcmp(s->model->name, "60D") == 0)
-        current_task_addr = 0x1A2C;
-    else if (strcmp(s->model->name, "70D") == 0)
-        current_task_addr = 0x7AAC0;
-    else if (strcmp(s->model->name, "5D3") == 0)
-        current_task_addr = 0x23E14;
-    else if (strcmp(s->model->name, "7D2M") == 0)
-        current_task_addr = 0x28568;
-    else if (strcmp(s->model->name, "EOSM3") == 0)
-        current_task_addr = 0x803C;
-    
-    if (!current_task_addr)
+    if (!s->model->current_task_addr)
     {
         return 0;
     }
@@ -1209,7 +1195,7 @@ static char* get_current_task_name(EOSState *s)
     uint32_t current_task_ptr;
     uint32_t current_task[0x50/4];
     static char task_name[100];
-    cpu_physical_memory_read(current_task_addr, &current_task_ptr, 4);
+    cpu_physical_memory_read(s->model->current_task_addr, &current_task_ptr, 4);
     if (current_task_ptr)
     {
         cpu_physical_memory_read(current_task_ptr, current_task, sizeof(current_task));
