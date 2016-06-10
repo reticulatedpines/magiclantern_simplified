@@ -29,7 +29,7 @@
 /** Memory configuration **/
 #define ROM0_ADDR     0xF0000000
 #define ROM1_ADDR     0xF8000000
-#define ROM0_SIZE     (s->digic_version == 6 ? 0x02000000 : 0x01000000)
+#define ROM0_SIZE     (s->model->digic_version == 6 ? 0x02000000 : 0x01000000)
 #define ROM1_SIZE     ROM0_SIZE
 
 #define TCM_SIZE      0x00001000
@@ -58,8 +58,8 @@
 #define MODE_WRITE 0x20
 
 /* DryOS timer */
-#define TIMER_INTERRUPT (s->digic_version == 6 ? 0x1B : 0x0A)
-#define DRYOS_TIMER_ID  (s->digic_version == 6 ? 0x01 : 0x02)
+#define TIMER_INTERRUPT (s->model->digic_version == 6 ? 0x1B : 0x0A)
+#define DRYOS_TIMER_ID  (s->model->digic_version == 6 ? 0x01 : 0x02)
 
 typedef struct
 {
@@ -125,7 +125,7 @@ struct HPTimer
     int triggered;
 };
 
-#define HPTIMER_INTERRUPT (s->digic_version == 6 ? 0x28 : 0x10)
+#define HPTIMER_INTERRUPT (s->model->digic_version == 6 ? 0x28 : 0x10)
 
 struct mpu_init_spell
 {
@@ -154,8 +154,8 @@ typedef struct
 
 typedef struct
 {
-    const char* model_name;
-    int digic_version;
+    /* model-specific settings from model_list.c */
+    struct eos_model_desc * model;
 
     ARMCPU *cpu;
     MemoryRegion *system_mem;

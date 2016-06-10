@@ -30,9 +30,7 @@
 
 typedef struct {
     MachineClass parent;
-    const char * model;
-    uint32_t rom_start;
-    uint32_t digic_version;
+    struct eos_model_desc * model;
 } EosMachineClass;
 
 #define EOS_DESC_BASE    "Canon EOS"
@@ -65,7 +63,8 @@ static void eos_cam_class_init(ObjectClass *oc, void *data)
 {
     MachineClass *mc = MACHINE_CLASS(oc);
     EosMachineClass *emc = EOS_MACHINE_CLASS(oc);
-    const struct eos_model_desc * model = (struct eos_model_desc*) data;
+    struct eos_model_desc * model = (struct eos_model_desc*) data;
+    emc->model = model;
 
     /* Create description from name */
     int desc_size = sizeof(EOS_DESC_BASE) + strlen(model->name) + 1;
@@ -74,10 +73,6 @@ static void eos_cam_class_init(ObjectClass *oc, void *data)
         snprintf(desc, desc_size, EOS_DESC_BASE " %s", model->name);
     }
     mc->desc = desc;
-
-    emc->model = model->name;
-    emc->rom_start = model->rom_start;
-    emc->digic_version = model->digic_version;
 }
 
 static void eos_cam_class_finalize(ObjectClass *oc, void *data)
@@ -815,13 +810,12 @@ static void eos_key_event(void *parm, int keycode)
 /** EOS CPU SETUP **/
 
 
-static EOSState *eos_init_cpu(const char * model, int digic_version)
+static EOSState *eos_init_cpu(struct eos_model_desc * model)
 {
     EOSState *s = g_new(EOSState, 1);
     memset(s, 0, sizeof(*s));
     
-    s->model_name = model;
-    s->digic_version = digic_version;
+    s->model = model;
 
     s->verbosity = 0xFFFFFFFF;
     s->tio_rxbyte = 0x100;
@@ -839,7 +833,7 @@ static EOSState *eos_init_cpu(const char * model, int digic_version)
     memory_region_init_alias(&s->ram_uncached, NULL, "eos.ram_uncached", &s->ram, 0x00000000, RAM_SIZE - TCM_SIZE);
     memory_region_add_subregion(s->system_mem, CACHING_BIT | TCM_SIZE, &s->ram_uncached);
 
-    if (digic_version == 6)
+    if (s->model->digic_version == 6)
     {
         memory_region_init_ram(&s->ram2, NULL, "eos.ram2", RAM2_SIZE, &error_abort);
         memory_region_add_subregion(s->system_mem, RAM2_ADDR, &s->ram2);
@@ -879,7 +873,7 @@ static EOSState *eos_init_cpu(const char * model, int digic_version)
     //memory_region_add_subregion(s->system_mem, 0xF0000000, &s->rom1);
 
     /* set up io space */
-    uint32_t io_mem_len = (digic_version == 6 ? IO_MEM_LEN6 : IO_MEM_LEN45);
+    uint32_t io_mem_len = (s->model->digic_version == 6 ? IO_MEM_LEN6 : IO_MEM_LEN45);
     memory_region_init_io(&s->iomem, NULL, &iomem_ops, s, "eos.iomem", io_mem_len);
     memory_region_add_subregion(s->system_mem, IO_MEM_START, &s->iomem);
 
@@ -901,7 +895,7 @@ static EOSState *eos_init_cpu(const char * model, int digic_version)
 
     vmstate_register_ram_global(&s->ram);
 
-    const char* cpu_name = (digic_version == 6) ? "arm-digic6-eos" : "arm946eos";
+    const char* cpu_name = (s->model->digic_version == 6) ? "arm-digic6-eos" : "arm946eos";
     
     s->cpu = cpu_arm_init(cpu_name);
     if (!s->cpu)
@@ -1058,14 +1052,12 @@ static void patch_EOSM3(EOSState *s)
 
 static void eos_init_common(MachineState *machine)
 {
-    EosMachineClass *emc = EOS_MACHINE_GET_CLASS(machine);
-
-    EOSState *s = eos_init_cpu(emc->model, emc->digic_version);
+    EOSState *s = eos_init_cpu(EOS_MACHINE_GET_CLASS(machine)->model);
 
     char rom_filename[24];
-    snprintf(rom_filename,24,"ROM-%s.BIN",s->model_name);
+    snprintf(rom_filename,24,"ROM-%s.BIN",s->model->name);
 
-    if (emc->digic_version == 6)
+    if (s->model->digic_version == 6)
     {
         eos_load_image(s, rom_filename, 0, 0x2000000, 0xFC000000, 0);
     }
@@ -1103,11 +1095,11 @@ static void eos_init_common(MachineState *machine)
     ide_create_drive(&s->cf.bus, 0, dj);
 
     /* nkls: init SF */
-    if (strcmp(s->model_name, "100D") == 0) {
+    if (strcmp(s->model->name, "100D") == 0) {
         s->sf = serial_flash_init("SF-100D.BIN", 0x1000000);
     }
 
-    if (strcmp(s->model_name, "70D") == 0) {
+    if (strcmp(s->model->name, "70D") == 0) {
         s->sf = serial_flash_init("SF-70D.BIN", 0x800000);
     }
 
@@ -1118,12 +1110,12 @@ static void eos_init_common(MachineState *machine)
         return;
     }
 
-    if ((strcmp(s->model_name, "7D2M") == 0) ||
-        (strcmp(s->model_name, "7D2S") == 0))
+    if ((strcmp(s->model->name, "7D2M") == 0) ||
+        (strcmp(s->model->name, "7D2S") == 0))
     {
         /* 7D2 experiments */
         patch_7D2(s);
-        s->cpu->env.regs[15] = emc->rom_start;
+        s->cpu->env.regs[15] = s->model->rom_start;
 
         if (1)
         {
@@ -1133,7 +1125,7 @@ static void eos_init_common(MachineState *machine)
         return;
     }
     
-    if (strcmp(s->model_name, "EOSM3") == 0)
+    if (strcmp(s->model->name, "EOSM3") == 0)
     {
         patch_EOSM3(s);
         
@@ -1198,15 +1190,15 @@ static char* get_current_task_name(EOSState *s)
     uint32_t current_task_addr = 0;
     
     /* fixme: move to model_list.c */
-    if (strcmp(s->model_name, "60D") == 0)
+    if (strcmp(s->model->name, "60D") == 0)
         current_task_addr = 0x1A2C;
-    else if (strcmp(s->model_name, "70D") == 0)
+    else if (strcmp(s->model->name, "70D") == 0)
         current_task_addr = 0x7AAC0;
-    else if (strcmp(s->model_name, "5D3") == 0)
+    else if (strcmp(s->model->name, "5D3") == 0)
         current_task_addr = 0x23E14;
-    else if (strcmp(s->model_name, "7D2M") == 0)
+    else if (strcmp(s->model->name, "7D2M") == 0)
         current_task_addr = 0x28568;
-    else if (strcmp(s->model_name, "EOSM3") == 0)
+    else if (strcmp(s->model->name, "EOSM3") == 0)
         current_task_addr = 0x803C;
     
     if (!current_task_addr)
@@ -1885,7 +1877,7 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
 
         case 0x006C:
         {
-            if (strcmp(s->model_name, "100D") == 0)
+            if (strcmp(s->model->name, "100D") == 0)
             {
                 return eos_handle_mpu(parm, s, address, type, value);
             }
@@ -1894,8 +1886,8 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
         
         case 0x009C:
         {
-            if ((strcmp(s->model_name, "60D") == 0) ||
-                (strcmp(s->model_name, "5D2") == 0))
+            if ((strcmp(s->model->name, "60D") == 0) ||
+                (strcmp(s->model->name, "5D2") == 0))
             {
                 return eos_handle_mpu(parm, s, address, type, value);
             }
@@ -1904,8 +1896,8 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
 
         case 0x00BC:
         {
-            if ((strcmp(s->model_name, "70D") == 0) ||
-                (strcmp(s->model_name, "5D3") == 0))
+            if ((strcmp(s->model->name, "70D") == 0) ||
+                (strcmp(s->model->name, "5D3") == 0))
             {
                 return eos_handle_mpu(parm, s, address, type, value);
             }
