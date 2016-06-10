@@ -48,8 +48,6 @@
 //~ #define TRACE_MEM_START  0x00000000
 //~ #define TRACE_MEM_LEN    0x00800000
 
-#define Q_HELPER_ADDR 0x30000000
-
 /* defines for memory/register access */
 #define INT_ENTRIES 0x200
 
