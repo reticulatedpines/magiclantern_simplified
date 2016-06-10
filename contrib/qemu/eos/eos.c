@@ -1904,7 +1904,8 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
 
         case 0x00BC:
         {
-            if (strcmp(s->model_name, "70D") == 0)
+            if ((strcmp(s->model_name, "70D") == 0) ||
+                (strcmp(s->model_name, "5D3") == 0))
             {
                 return eos_handle_mpu(parm, s, address, type, value);
             }
