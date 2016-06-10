@@ -1,109 +1,124 @@
 #include <stddef.h>
 #include "model_list.h"
 
-const struct eos_model_desc eos_model_list[] = {
+struct eos_model_desc eos_model_list[] = {
     {
-        "50D",
+        /* defaults for DIGIC 4 cameras */
+        .digic_version          = 4,
+        /* note: some cameras have smaller ROMs, or only one ROM */
+    },
+    {
+        /* defaults for DIGIC 5 cameras */
+        .digic_version          = 5,
+        .firmware_start         = 0xFF0C0000,
+    },
+    {
+        /* defaults for DIGIC 6 cameras */
+        .digic_version          = 6,
+    },
+    {
+        .name                   = "50D",
         .digic_version          = 4,
         .firmware_start         = 0xFF010000,
     },
     {
-        "60D",
+        .name                   = "60D",
         .digic_version          = 4,
         .firmware_start         = 0xFF010000,
         .current_task_addr      = 0x1A2C,
         .mpu_request_register   = 0xC022009C,
     },
     {
-        "600D",
+        .name                   = "600D",
         .digic_version          = 4,
         .firmware_start         = 0xFF010000,
     },
     {
-        "500D",
+        .name                   = "500D",
         .digic_version          = 4,
         .firmware_start         = 0xFF010000,
     },
     {
-        "5D2",
+        .name                   = "5D2",
         .digic_version          = 4,
         .firmware_start         = 0xFF810000,
         .mpu_request_register   = 0xC022009C,
     },
     {
-        "5D3",
+        .name                   = "5D3",
         .digic_version          = 5,
         .current_task_addr      = 0x23E14,
         .mpu_request_register   = 0xC02200BC,
     },
     {
-        "650D",
+        .name                   = "650D",
         .digic_version          = 5,
     },
     {
-        "100D",
+        .name                   = "100D",
         .digic_version          = 5,
         .mpu_request_register   = 0xC022006C,
         .serial_flash_size      = 0x1000000,
     },
     {
-        "7D",
+        .name                   = "7D",
         .digic_version          = 4,
         .firmware_start         = 0xFF010000,
     },
     {
-        "550D",
+        .name                   = "550D",
         .digic_version          = 4,
         .firmware_start         = 0xFF010000,
     },
     {
-        "6D",
+        .name                   = "6D",
         .digic_version          = 5,
     },
     {
-        "70D",
+        .name                   = "70D",
         .digic_version          = 5,
         .current_task_addr      = 0x7AAC0,
         .mpu_request_register   = 0xC02200BC,
         .serial_flash_size      = 0x800000,
     },
     {
-        "700D",
+        .name                   = "700D",
         .digic_version          = 5,
     },
     {
-        "1100D",
+        .name                   = "1100D",
         .digic_version          = 4,
         .firmware_start         = 0xFF010000,
     },
     {
-        "1200D",
+        .name                   = "1200D",
         .digic_version          = 4,
         .firmware_start         = 0xFF0C0000,
     },
     {
-        "EOSM",
+        .name                   = "EOSM",
         .digic_version          = 5,
     },
     {
-        "EOSM3",
+        .name                   = "EOSM3",
         .digic_version          = 6,
         .firmware_start         = 0xFC000000,
         .current_task_addr      = 0x803C,
     },
     {
-        "7D2M",
+        .name                   = "7D2M",
         .digic_version          = 6,
         .firmware_start         = 0xFE0A0000,
         .current_task_addr      = 0x28568,
     },
     {
-        "7D2S",
+        .name                   = "7D2S",
         .digic_version          = 6,
         .firmware_start         = 0xFE0A0000,
     },
     {
-        NULL
+        .name = NULL,
+        .digic_version = 0,
     }
 };
 

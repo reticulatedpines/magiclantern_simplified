@@ -98,14 +98,42 @@ static void eos_machine_init(void)
         .class_finalize = eos_cam_class_finalize,
         .parent = TYPE_EOS_MACHINE,
     };
-
+    
     /* Loop over all models listed in model_list.c */
-    const struct eos_model_desc * desc = eos_model_list;
-    while (desc->name != NULL) {
-        snprintf(name, 32, "%s" TYPE_MACHINE_SUFFIX, desc->name);
-        info.class_data = (void*)desc;
-        type_register(&info);
-        desc++;
+    
+    /* fill in the defaults from generic entries */
+    /* note: generic entries don't have a name */
+    for (const struct eos_model_desc * generic = eos_model_list; generic->digic_version; generic++)
+    {
+        if (!generic->name)
+        {
+            for (struct eos_model_desc * model = eos_model_list; model->digic_version; model++)
+            {
+                if (model->name && model->digic_version == generic->digic_version)
+                {
+                    /* copy settings from generic to model */
+                    for (int i = 0; i < COUNT(model->params); i++)
+                    {
+                        if (model->params[i] == 0)
+                        {
+                            // printf("%s: params[%d] = %x\n", model->name, i, generic->params[i]);
+                            model->params[i] = generic->params[i];
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /* then register every supported camera model */
+    for (struct eos_model_desc * model = eos_model_list; model->digic_version; model++)
+    {
+        if (model->name)
+        {
+            snprintf(name, 32, "%s" TYPE_MACHINE_SUFFIX, model->name);
+            info.class_data = (void*)model;
+            type_register(&info);
+        }
     }
 }
 
