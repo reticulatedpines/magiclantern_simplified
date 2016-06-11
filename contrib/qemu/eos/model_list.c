@@ -9,6 +9,7 @@ struct eos_model_desc eos_model_list[] = {
         .rom0_size              = 0x01000000,
         .rom1_size              = 0x01000000,
         .io_mem_size            = 0x10000000,
+        .firmware_start         = 0xFF010000,
         .dryos_timer_id         = 2,
         .dryos_timer_interrupt  = 0x0A,
         .sd_driver_interrupt    = 0xB1,
@@ -36,24 +37,20 @@ struct eos_model_desc eos_model_list[] = {
     {
         .name                   = "50D",
         .digic_version          = 4,
-        .firmware_start         = 0xFF010000,
     },
     {
         .name                   = "60D",
         .digic_version          = 4,
-        .firmware_start         = 0xFF010000,
         .current_task_addr      = 0x1A2C,
         .mpu_request_register   = 0xC022009C,
     },
     {
         .name                   = "600D",
         .digic_version          = 4,
-        .firmware_start         = 0xFF010000,
     },
     {
         .name                   = "500D",
         .digic_version          = 4,
-        .firmware_start         = 0xFF010000,
     },
     {
         .name                   = "5D2",
@@ -80,12 +77,10 @@ struct eos_model_desc eos_model_list[] = {
     {
         .name                   = "7D",
         .digic_version          = 4,
-        .firmware_start         = 0xFF010000,
     },
     {
         .name                   = "550D",
         .digic_version          = 4,
-        .firmware_start         = 0xFF010000,
     },
     {
         .name                   = "6D",
@@ -105,7 +100,6 @@ struct eos_model_desc eos_model_list[] = {
     {
         .name                   = "1100D",
         .digic_version          = 4,
-        .firmware_start         = 0xFF010000,
     },
     {
         .name                   = "1200D",
