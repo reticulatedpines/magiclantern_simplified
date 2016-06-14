@@ -42,7 +42,7 @@ static void sfio_do_transfer( EOSState *s)
         uint8_t byte = (this << 4) | (next >> 4);
         
         /* not exactly the most efficient way, but fast enough for our purpose */
-        cpu_physical_memory_write(s->sd.dma_addr, &byte, 1);
+        cpu_physical_memory_write(s->sd.dma_addr + i, &byte, 1);
         
         if (i < 16*4)
         {
