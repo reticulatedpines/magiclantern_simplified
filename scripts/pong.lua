@@ -21,6 +21,7 @@ ball_y = 240
 
 -- ball speed
 game_speed = 0
+counter = 0
 ball_dx = 0
 ball_dy = 0
 
