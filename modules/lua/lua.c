@@ -959,12 +959,17 @@ static void lua_load_task(int unused)
     {
         do
         {
-            if (!(file.mode & ATTR_DIRECTORY) && (string_ends_with(file.name, ".LUA") || string_ends_with(file.name, ".lua")) && file.name[0] != '.' && file.name[0] != '_')
+            if (!(file.mode & ATTR_DIRECTORY) &&
+                 (string_ends_with(file.name, ".LUA") ||
+                  string_ends_with(file.name, ".lua")) &&
+                 file.name[0] != '.' && file.name[0] != '_'
+            )
             {
                 add_script(file.name);
             }
         }
         while(FIO_FindNextEx(dirent, &file) == 0);
+        FIO_FindClose(dirent);
     }
     
     lua_do_autoload();
