@@ -1,4 +1,5 @@
--- a simple calculator
+-- Calculator
+-- A simple calculator in Lua
 
 require("keys")
 require("logger")

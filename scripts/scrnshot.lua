@@ -1,4 +1,5 @@
--- take a screenshot every time a key is pressed
+-- Screenshot on Keypress
+-- take a screenshot every time a key is pressed.
 
 scrnshot_menu = menu.new
 {

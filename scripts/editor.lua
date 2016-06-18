@@ -1,4 +1,6 @@
--- a text editor
+-- Text Editor
+-- Edit text files or debug Lua scripts
+
 require("keys")
 require("logger")
 

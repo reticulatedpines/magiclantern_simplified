@@ -546,6 +546,8 @@ static lua_State * load_lua_state()
 struct lua_script
 {
     char * filename;
+    char * name;
+    char * description;
     int autorun;
     int state;
     int load_time;
@@ -667,7 +669,7 @@ static MENU_UPDATE_FUNC(lua_script_menu_update)
     if(script)
     {
         MENU_SET_VALUE("");
-        MENU_SET_HELP(script->filename);
+        MENU_SET_HELP(script->description);
 
         if (script->autorun)
         {
@@ -819,6 +821,79 @@ static struct menu_entry script_submenu_template[] = {
     MENU_EOL,
 };
 
+/* extract script name/description from comments */
+/* (it allocates the output buffer and can optionally use a prefix) */
+static char* script_extract_string_from_comments(char* buf, char** output, const char* prefix)
+{
+    char* c = buf;
+    
+    /* skip Lua comment markers and spaces */
+    while (isspace(*c) || *c == '-' || *c == '[')
+    {
+        c++;
+    }
+
+    /* extract script title/description (the current line) */
+    char* p = strchr(c, '\n');
+    if (!p) return c;
+    
+    *p = 0;
+    *output = copy_string(c);
+    *p = '\n';
+    
+    /* strip spaces and Lua comment markers from the end of the string, if any */
+    c = *output + strlen(*output) - 1;
+    while (isspace(*c) || *c == '-' || *c == '[')
+    {
+        *c = 0;
+        c--;
+        if (c == *output) break; 
+    }
+    
+    /* use a prefix, if any */
+    if (prefix)
+    {
+        char* old = *output;
+        uint32_t maxlen = strlen(old) + strlen(*output) + 2 + 1;
+        *output = malloc(maxlen);
+        snprintf(*output, maxlen, "%s: %s", prefix, old);
+        free(old);
+    }
+    
+    return p;
+}
+
+static void script_get_name_from_comments(const char * filename, char ** name, char ** description)
+{
+    *name = 0;
+    *description = 0;
+
+    char full_path[MAX_PATH_LEN];
+    snprintf(full_path, MAX_PATH_LEN, SCRIPTS_DIR "/%s", filename);
+    
+    char buf[256];
+    FILE* f = fopen(full_path, "r");
+    ASSERT(f); if (!f) return;
+    fread(buf, 1, sizeof(buf), f);
+    buf[sizeof(buf)-1] = 0;
+    fclose(f);
+    
+    /* extract name and description */
+    char* c = script_extract_string_from_comments(buf, name, 0);
+    
+    /* name too long? use it as description */
+    /* (todo: check string length with current font instead) */
+    if (name && strlen(*name) > 25)
+    {
+        free(*name); *name = 0;
+        script_extract_string_from_comments(buf, description, filename);
+    }
+    else
+    {
+        script_extract_string_from_comments(c, description, filename);
+    }
+}
+
 static void add_script(const char * filename)
 {
     struct lua_script * new_script = calloc(1, sizeof(struct lua_script));
@@ -834,7 +909,8 @@ static void add_script(const char * filename)
             if(new_script->menu_entry)
             {
                 memcpy(new_script->menu_entry, &script_menu_template, sizeof(script_menu_template));
-                new_script->menu_entry->name = new_script->filename;
+                script_get_name_from_comments(new_script->filename, &new_script->name, &new_script->description);
+                new_script->menu_entry->name = new_script->name ? new_script->name : new_script->filename;
                 new_script->menu_entry->priv = new_script;
                 new_script->menu_entry->children = calloc(COUNT(script_submenu_template), sizeof(script_submenu_template[0]));
                 if (new_script->menu_entry->children)

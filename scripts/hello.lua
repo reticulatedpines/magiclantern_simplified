@@ -1,4 +1,5 @@
--- A very simple script.
+-- Hello, World!
+-- Prints 'Hello World' on the console
 
 menu.close()
 console.show()

@@ -1,9 +1,11 @@
 --[[
  Pong Game
  
+ Simple game to demonstrate Lua scripting capabilities.
+ 
  This game should help you understand:
  - Animation without double-buffering
- - Audible feedback (beps)
+ - Audible feedback (beeps)
  - Basic key processing
  - Lua programming basics
 
