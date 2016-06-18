@@ -792,6 +792,7 @@ static void lua_load_task(int unused)
     lua_do_autoload();
     
     printf("All scripts loaded.\n");
+    lua_loaded = 1;
 
     /* wait for key pressed or for 5-second timeout, whichever comes first */
     last_keypress = 0;
@@ -801,8 +802,6 @@ static void lua_load_task(int unused)
     }
 
     console_hide();
-    
-    lua_loaded = 1;
 }
 
 static unsigned int lua_init()
