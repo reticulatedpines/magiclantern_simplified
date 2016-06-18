@@ -88,7 +88,7 @@ int lua_give_semaphore(lua_State * L, struct semaphore ** assoc_semaphore)
 
 static struct semaphore * new_script_semaphore(lua_State * L, const char * filename)
 {
-    struct script_semaphore * new_semaphore = malloc(sizeof(struct script_semaphore));
+    struct script_semaphore * new_semaphore = calloc(1, sizeof(struct script_semaphore));
     if (new_semaphore)
     {
         new_semaphore->next = script_semaphores;
@@ -263,7 +263,7 @@ static void set_event_script_entry(struct script_event_entry ** root, lua_State 
     }
     if(function_ref != LUA_NOREF)
     {
-        struct script_event_entry * new_entry = malloc(sizeof(struct script_event_entry));
+        struct script_event_entry * new_entry = calloc(1, sizeof(struct script_event_entry));
         if(new_entry)
         {
             static int event_masks = LUA_EVENT_UNLOAD_MASK;
@@ -718,20 +718,18 @@ static MENU_SELECT_FUNC(lua_script_menu_select)
 
 static void add_script(const char * filename)
 {
-    struct lua_script * new_script = malloc(sizeof(struct lua_script));
+    struct lua_script * new_script = calloc(1, sizeof(struct lua_script));
     if(new_script)
     {
         new_script->filename = copy_string(filename);
         if(new_script->filename)
         {
-            new_script->menu_entry = malloc(sizeof(struct menu_entry));
+            new_script->menu_entry = calloc(1, sizeof(struct menu_entry));
             new_script->L = NULL;
             new_script->next = lua_scripts;
             lua_scripts = new_script;
             if(new_script->menu_entry)
             {
-                memset(new_script->menu_entry, 0, sizeof(struct menu_entry));
-                
                 new_script->menu_entry->name = new_script->filename;
                 new_script->menu_entry->min = 0;
                 new_script->menu_entry->max = 1;
