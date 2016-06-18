@@ -696,15 +696,9 @@ static MENU_UPDATE_FUNC(lua_script_menu_update)
     }
 }
 
-static struct lua_script * user_running = NULL;
-static void lua_user_load_task(int unused)
+static void lua_user_load_task(struct lua_script * script)
 {
-    if(user_running)
-    {
-        struct lua_script * temp = user_running;
-        user_running = NULL;
-        load_script(temp);
-    }
+    load_script(script);
 }
 
 static MENU_SELECT_FUNC(lua_script_menu_select)
@@ -714,11 +708,10 @@ static MENU_SELECT_FUNC(lua_script_menu_select)
     {
         if(script->state == SCRIPT_STATE_NOT_RUNNING || script->state == SCRIPT_STATE_FAILED)
         {
-            if(lua_loaded && !user_running)
+            if(lua_loaded)
             {
                 script->state = SCRIPT_STATE_LOADING;
-                user_running = script;
-                task_create("lua_user_load_task", 0x1c, 0x10000, lua_user_load_task, (void*) 0);
+                task_create("lua_user_load_task", 0x1c, 0x10000, lua_user_load_task, script);
             }
         }
         else if(script->state == SCRIPT_STATE_RUNNING)
