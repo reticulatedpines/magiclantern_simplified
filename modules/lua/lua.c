@@ -32,6 +32,7 @@
 #include <zebra.h>
 #include <focus.h>
 #include <config.h>
+#include <bmp.h>
 #include "lua_common.h"
 
 struct script_event_entry
@@ -544,13 +545,14 @@ static lua_State * load_lua_state()
 
 struct lua_script
 {
-    int menu_state;
-    int state;
-    struct lua_script * next;
     char * filename;
-    lua_State * L;
+    int autorun;
+    int state;
+    int load_time;
     int cant_unload;
+    lua_State * L;
     struct menu_entry * menu_entry;
+    struct lua_script * next;
 };
 
 static struct lua_script * lua_scripts = NULL;
@@ -614,6 +616,8 @@ static void load_script(struct lua_script * script)
         fprintf(stderr, "script is already running\n");
         return;
     }
+    
+    script->load_time = get_seconds_clock();
     script->state = SCRIPT_STATE_LOADING;
     lua_State* L = script->L = load_lua_state();
     script->cant_unload = 0;
@@ -637,9 +641,9 @@ static void load_script(struct lua_script * script)
         {
             script->state = SCRIPT_STATE_RUNNING;
             //if there was an error, disable autorun, otherwise turn it on
-            script->menu_state = !error;
             script->menu_entry->icon_type = IT_BOOL;
-            lua_set_flag(script, SCRIPT_FLAG_AUTORUN_ENABLED, script->menu_state);
+            script->autorun = !error;
+            lua_set_flag(script, SCRIPT_FLAG_AUTORUN_ENABLED, script->autorun);
         }
         //"simple" script didn't create a menu, start a task, or register any event handlers, so we can safely unload it
         else
@@ -648,7 +652,7 @@ static void load_script(struct lua_script * script)
             script->L = NULL;
             script->menu_entry->icon_type = IT_ACTION;
             script->state = error ? SCRIPT_STATE_FAILED : SCRIPT_STATE_NOT_RUNNING;
-            script->menu_state = 0;
+            script->load_time = 0;
         }
     }
     else
@@ -662,36 +666,54 @@ static MENU_UPDATE_FUNC(lua_script_menu_update)
     struct lua_script * script = (struct lua_script *)(entry->priv);
     if(script)
     {
-        MENU_SET_VALUE(script->state == SCRIPT_STATE_NOT_RUNNING ? "" :
-                       script->state == SCRIPT_STATE_LOADING ? "Loading" :
-                       script->state == SCRIPT_STATE_RUNNING ? "Running" :
-                       "Error");
-        if(script->state == SCRIPT_STATE_FAILED)
+        MENU_SET_VALUE("");
+        MENU_SET_HELP(script->filename);
+
+        if (script->autorun)
         {
-            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Script Failed");
+            MENU_SET_WARNING(MENU_WARN_INFO, "This script will autorun on next boot.");
         }
-        else if(script->state == SCRIPT_STATE_RUNNING)
+        else
         {
-            MENU_SET_RINFO(script->menu_state ?
-                           "AUTORUN" :
-                           "OFF");
-            MENU_SET_HELP(script->menu_state ?
-                          "Script is running. Will autorun on next boot." :
-                          "Script is running. Will not autorun on next boot.");
-            MENU_SET_WARNING(MENU_WARN_INFO, script->menu_state ?
-                             "Press SET to disable autorun" :
-                             "Press SET to enable autorun");
-        }
-        
-        if(script->state == SCRIPT_STATE_NOT_RUNNING || script->state == SCRIPT_STATE_FAILED)
-        {
-            MENU_SET_HELP("Load/run this script");
-            MENU_SET_RINFO("");
+            MENU_SET_WARNING(MENU_WARN_INFO, "Press SET to load/run this script.");
             
             if(!lua_loaded)
             {
                 MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Please wait for Lua to finish loading...");
             }
+        }
+        
+        /* if a script takes a long time in the LOADING state,
+         * it's probably a simple script that is running for a long time */
+        int script_uptime = script->load_time ? get_seconds_clock() - script->load_time : 0;
+        
+        int fg = script->state ? COLOR_WHITE : COLOR_GRAY(40);
+        int fnt = SHADOW_FONT(FONT(FONT_MED_LARGE, fg, COLOR_BLACK));
+        bmp_printf(fnt | FONT_ALIGN_RIGHT, 680, info->y+2,
+            script->autorun
+                ? "AUTORUN" :
+            script->state == SCRIPT_STATE_NOT_RUNNING
+                ? "" :
+            script->state == SCRIPT_STATE_LOADING
+                ? (script_uptime <= 2 ? "Loading" : "Running") :
+            script->state == SCRIPT_STATE_RUNNING
+                ? "Running"
+                : "Error"
+        );
+
+        switch (script->state)
+        {
+            case SCRIPT_STATE_LOADING:
+                MENU_SET_ICON(MNI_RECORD, 0);
+                break;
+
+            case SCRIPT_STATE_RUNNING:
+                MENU_SET_ICON(MNI_BOOL(script->autorun), 0);
+                break;
+            
+            case SCRIPT_STATE_FAILED:
+                MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Script Failed");
+                break;
         }
     }
 }
@@ -704,24 +726,98 @@ static void lua_user_load_task(struct lua_script * script)
 static MENU_SELECT_FUNC(lua_script_menu_select)
 {
     struct lua_script * script = (struct lua_script *)priv;
-    if(script)
+    ASSERT(script); if (!script) return;
+    
+    /* attempt to start the script */
+    if ( script->state == SCRIPT_STATE_NOT_RUNNING ||
+         script->state == SCRIPT_STATE_FAILED )
     {
-        if(script->state == SCRIPT_STATE_NOT_RUNNING || script->state == SCRIPT_STATE_FAILED)
+        if (lua_loaded)
         {
-            if(lua_loaded)
-            {
-                script->state = SCRIPT_STATE_LOADING;
-                task_create("lua_user_load_task", 0x1c, 0x10000, lua_user_load_task, script);
-            }
-        }
-        else if(script->state == SCRIPT_STATE_RUNNING)
-        {
-            //toggle auto_run
-            script->menu_state = !script->menu_state;
-            lua_set_flag(script, SCRIPT_FLAG_AUTORUN_ENABLED, script->menu_state);
+            script->state = SCRIPT_STATE_LOADING;
+            task_create("lua_user_load_task", 0x1c, 0x10000, lua_user_load_task, script);
+            return;
         }
     }
+    
+    /* if the script is already running, open the submenu */
+    if (!is_submenu_or_edit_mode_active())
+    {
+        menu_open_submenu();
+    }
 }
+
+static MENU_UPDATE_FUNC(lua_script_run_update)
+{
+    MENU_SET_VALUE("");
+
+    struct lua_script * script = (struct lua_script *)entry->priv;
+    ASSERT(script); if (!script) return;
+
+    if ( script->state == SCRIPT_STATE_NOT_RUNNING ||
+         script->state == SCRIPT_STATE_FAILED )
+    {
+        if (!lua_loaded)
+        {
+            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Please wait for Lua to finish loading...");
+        }
+    }
+    else
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Script is running.");
+    }
+}
+
+
+static MENU_SELECT_FUNC(lua_script_toggle_autorun)
+{
+    // toggle auto_run (priv = &script->autorun)
+    // note: any script can be set to autorun
+    struct lua_script * script = (struct lua_script *)(priv - offsetof(struct lua_script, autorun));
+    script->autorun = !script->autorun;
+    lua_set_flag(script, SCRIPT_FLAG_AUTORUN_ENABLED, script->autorun);
+}
+
+static MENU_SELECT_FUNC(lua_script_edit)
+{
+    /* not yet implemented */
+    beep();
+}
+
+static MENU_UPDATE_FUNC(menu_no_value)
+{
+    MENU_SET_VALUE("");
+}
+
+static struct menu_entry script_menu_template = {
+    .icon_type  = IT_ACTION,
+    .select = lua_script_menu_select,
+    .update = lua_script_menu_update,
+};
+
+static struct menu_entry script_submenu_template[] = {
+    {
+        .name       = "Run Script",
+        .select     = lua_script_menu_select,
+        .update     = lua_script_run_update,
+        .icon_type  = IT_ACTION,
+        .help       = "Press SET to load/run this script."
+    },
+    {
+        .name       = "Edit Script",
+        .select     = lua_script_edit,
+        .update     = menu_no_value,
+        .icon_type  = IT_ACTION,
+        .help       = "Load this script in the text editor (EDITOR.LUA)."
+    },
+    {
+        .name       = "Autorun",
+        .select     = lua_script_toggle_autorun,
+        .max        = 1,
+        .help       = "Select whether this script will be loaded at camera startup."
+    },
+    MENU_EOL,
+};
 
 static void add_script(const char * filename)
 {
@@ -737,15 +833,20 @@ static void add_script(const char * filename)
             lua_scripts = new_script;
             if(new_script->menu_entry)
             {
+                memcpy(new_script->menu_entry, &script_menu_template, sizeof(script_menu_template));
                 new_script->menu_entry->name = new_script->filename;
-                new_script->menu_entry->min = 0;
-                new_script->menu_entry->max = 1;
-                new_script->menu_entry->icon_type = IT_ACTION;
                 new_script->menu_entry->priv = new_script;
-                new_script->menu_entry->select = lua_script_menu_select;
-                new_script->menu_entry->update = lua_script_menu_update;
-                menu_add("Scripts", new_script->menu_entry, 1);
-                return;
+                new_script->menu_entry->children = calloc(COUNT(script_submenu_template), sizeof(script_submenu_template[0]));
+                if (new_script->menu_entry->children)
+                {
+                    memcpy(new_script->menu_entry->children, script_submenu_template, COUNT(script_submenu_template) * sizeof(script_submenu_template[0]));
+                    new_script->menu_entry->children[0].priv = new_script;
+                    new_script->menu_entry->children[1].priv = new_script;
+                    new_script->menu_entry->children[2].priv = &new_script->autorun;
+                    menu_add("Scripts", new_script->menu_entry, 1);
+                    return;
+                }
+                free(new_script->menu_entry);
             }
             free(new_script->filename);
         }
@@ -761,6 +862,7 @@ static void lua_do_autoload()
     {
         if(lua_get_flag(current, SCRIPT_FLAG_AUTORUN_ENABLED))
         {
+            current->autorun = 1;
             load_script(current);
             msleep(100);
         }
