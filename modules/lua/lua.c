@@ -52,8 +52,6 @@ struct script_semaphore
 static int lua_loaded = 0;
 int last_keypress = 0;
 
-static char * strict_lua = 0;
-
 static struct script_semaphore * script_semaphores = NULL;
 
 int lua_take_semaphore(lua_State * L, int timeout, struct semaphore ** assoc_semaphore)
@@ -510,6 +508,22 @@ static lua_State * load_lua_state()
     lua_setmetatable(L, -2);
     lua_pop(L, 1);
     
+    /* preload strict.lua once, since it will be used in all scripts */
+    int bufsize;
+    static char * strict_lua = (void*) 0xFFFFFFFF;
+    if (strict_lua == (void*) 0xFFFFFFFF)
+    {
+        strict_lua = (char*) read_entire_file(SCRIPTS_DIR "/lib/strict.lua", &bufsize);
+        
+        if (!strict_lua)
+        {
+            /* allow scripts to run without strict.lua, if not present */
+            printf("Warning: strict.lua not found.\n");
+        }
+        
+        /* note: strict_lua is never freed */
+    }
+    
     if (strict_lua)
     {
         if (luaL_loadstring(L, strict_lua) || docall(L, 0, LUA_MULTRET))
@@ -769,15 +783,6 @@ static void lua_load_task(int unused)
     struct fio_file file;
     struct fio_dirent * dirent = 0;
     
-    /* preload strict.lua once, since it will be used in all scripts */
-    int bufsize;
-    strict_lua = (char*) read_entire_file(SCRIPTS_DIR "/lib/strict.lua", &bufsize);
-    
-    if (!strict_lua)
-    {
-        printf("Warning: strict.lua not found.\n");
-    }
-    
     dirent = FIO_FindFirstEx(SCRIPTS_DIR, &file);
     if(!IS_ERROR(dirent))
     {
@@ -792,12 +797,6 @@ static void lua_load_task(int unused)
     }
     
     lua_do_autoload();
-    
-    if (strict_lua)
-    {
-        fio_free(strict_lua);
-        strict_lua = 0;
-    }
     
     printf("All scripts loaded.\n");
 
