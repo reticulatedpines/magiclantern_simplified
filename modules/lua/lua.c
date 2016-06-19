@@ -649,9 +649,12 @@ static void load_script(struct lua_script * script)
         
         if (script->cant_unload)
         {
-            /* "complex" script that keeps running after load, set autorun */
+            /* "complex" script that keeps running after load
+             * set autorun and hide the "run script" menu
+             */
             script->state = SCRIPT_STATE_RUNNING;
             script->menu_entry->icon_type = IT_BOOL;
+            script->menu_entry->children[0].shidden = 1;
 
             /* if there was an error, disable autorun, otherwise turn it on */
             set_script_autorun(script, !error);
