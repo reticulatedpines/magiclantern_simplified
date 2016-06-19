@@ -541,7 +541,6 @@ static lua_State * load_lua_state()
 #define SCRIPT_STATE_NOT_RUNNING 0
 #define SCRIPT_STATE_LOADING     1
 #define SCRIPT_STATE_RUNNING     2
-#define SCRIPT_STATE_FAILED      3
 
 struct lua_script
 {
@@ -550,6 +549,7 @@ struct lua_script
     char * description;
     int autorun;
     int state;
+    int error;
     int load_time;
     int cant_unload;
     lua_State * L;
@@ -611,6 +611,15 @@ static int lua_get_flag(struct lua_script * script, const char * flag)
     return 0;
 }
 
+static void set_script_autorun(struct lua_script * script, int value)
+{
+    if (script->autorun != value)
+    {
+        script->autorun = value;
+        lua_set_flag(script, SCRIPT_FLAG_AUTORUN_ENABLED, script->autorun);
+    }
+}
+
 static void load_script(struct lua_script * script)
 {
     if(script->L)
@@ -638,23 +647,33 @@ static void load_script(struct lua_script * script)
         }
         give_semaphore(sem);
         
-        //"complex" script that keeps running after load, set autorun
         if (script->cant_unload)
         {
+            /* "complex" script that keeps running after load, set autorun */
             script->state = SCRIPT_STATE_RUNNING;
-            //if there was an error, disable autorun, otherwise turn it on
             script->menu_entry->icon_type = IT_BOOL;
-            script->autorun = !error;
-            lua_set_flag(script, SCRIPT_FLAG_AUTORUN_ENABLED, script->autorun);
+
+            /* if there was an error, disable autorun, otherwise turn it on */
+            set_script_autorun(script, !error);
         }
-        //"simple" script didn't create a menu, start a task, or register any event handlers, so we can safely unload it
         else
         {
+            /* "simple" script didn't create a menu, start a task,
+             * or register any event handlers, so we can safely unload it
+             */
             lua_close(L);
             script->L = NULL;
             script->menu_entry->icon_type = IT_ACTION;
-            script->state = error ? SCRIPT_STATE_FAILED : SCRIPT_STATE_NOT_RUNNING;
+            script->state = SCRIPT_STATE_NOT_RUNNING;
             script->load_time = 0;
+        }
+
+        script->error = error;
+
+        if (error)
+        {
+            /* disable autorun on error */
+            set_script_autorun(script, 0);
         }
     }
     else
@@ -694,13 +713,14 @@ static MENU_UPDATE_FUNC(lua_script_menu_update)
         bmp_printf(fnt | FONT_ALIGN_RIGHT, 680, info->y+2,
             script->autorun
                 ? "AUTORUN" :
+            script->error
+                ? "ERROR" :
             script->state == SCRIPT_STATE_NOT_RUNNING
                 ? "" :
             script->state == SCRIPT_STATE_LOADING
                 ? (script_uptime <= 2 ? "Loading" : "Running") :
             script->state == SCRIPT_STATE_RUNNING
-                ? "Running"
-                : "Error"
+                ? "Running" : "?!"
         );
 
         switch (script->state)
@@ -712,10 +732,12 @@ static MENU_UPDATE_FUNC(lua_script_menu_update)
             case SCRIPT_STATE_RUNNING:
                 MENU_SET_ICON(MNI_BOOL(script->autorun), 0);
                 break;
-            
-            case SCRIPT_STATE_FAILED:
-                MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Script Failed");
-                break;
+        }
+
+
+        if (script->error)
+        {
+            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Script Failed");
         }
     }
 }
@@ -731,8 +753,7 @@ static MENU_SELECT_FUNC(lua_script_menu_select)
     ASSERT(script); if (!script) return;
     
     /* attempt to start the script */
-    if ( script->state == SCRIPT_STATE_NOT_RUNNING ||
-         script->state == SCRIPT_STATE_FAILED )
+    if ( script->state == SCRIPT_STATE_NOT_RUNNING )
     {
         if (lua_loaded)
         {
@@ -756,8 +777,7 @@ static MENU_UPDATE_FUNC(lua_script_run_update)
     struct lua_script * script = (struct lua_script *)entry->priv;
     ASSERT(script); if (!script) return;
 
-    if ( script->state == SCRIPT_STATE_NOT_RUNNING ||
-         script->state == SCRIPT_STATE_FAILED )
+    if ( script->state == SCRIPT_STATE_NOT_RUNNING )
     {
         if (!lua_loaded)
         {
@@ -776,8 +796,7 @@ static MENU_SELECT_FUNC(lua_script_toggle_autorun)
     // toggle auto_run (priv = &script->autorun)
     // note: any script can be set to autorun
     struct lua_script * script = (struct lua_script *)(priv - offsetof(struct lua_script, autorun));
-    script->autorun = !script->autorun;
-    lua_set_flag(script, SCRIPT_FLAG_AUTORUN_ENABLED, script->autorun);
+    set_script_autorun(script, !script->autorun);
 }
 
 static MENU_SELECT_FUNC(lua_script_edit)
