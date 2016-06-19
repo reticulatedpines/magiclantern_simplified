@@ -3,29 +3,19 @@
 #include <stdint.h>
 
 #include "eos.h"
+#include "model_list.h"
 #include "mpu.h"
 
-/* todo: 
- * - remove hardcoding
- * - parse the mpu_send/recv log automatically
- */
-
-/* uncomment one to select a MPU init spell set */
-//~ #define mpu_init_spells mpu_init_spells_5D2
-//~ #define mpu_init_spells mpu_init_spells_60D
-//~ #define mpu_init_spells mpu_init_spells_70D
-#define mpu_init_spells mpu_init_spells_5D3
-
-
-#ifndef mpu_init_spells
-    #error Please select a MPU init spell set and recompile.
-#endif
+/* todo: understand the meaning of these spells,
+ * rather than replaying them blindly */
 
 // Forward declare static functions
 static void mpu_send_next_spell(EOSState *s);
 static void mpu_enqueue_spell(EOSState *s, int spell_set, int out_spell);
 static void mpu_interpret_command(EOSState *s);
 
+static struct mpu_init_spell * mpu_init_spells = 0;
+static int mpu_init_spell_count = 0;
 
 #define MPU_CURRENT_OUT_SPELL mpu_init_spells[s->mpu.spell_set].out_spells[s->mpu.out_spell]
 /**
@@ -1109,7 +1099,7 @@ static void mpu_interpret_command(EOSState *s)
     }
     
     int spell_set;
-    for (spell_set = 0; spell_set < COUNT(mpu_init_spells); spell_set++)
+    for (spell_set = 0; spell_set < mpu_init_spell_count; spell_set++)
     {
         if (memcmp(s->mpu.recv_buffer+1, mpu_init_spells[spell_set].in_spell+1, mpu_init_spells[spell_set].in_spell[1]) == 0)
         {
@@ -1323,7 +1313,7 @@ unsigned int eos_handle_mpu(unsigned int parm, EOSState *s, unsigned int address
 
 static int mpu_handle_get_data(EOSState *s, int *hi, int *lo)
 {
-    if (s->mpu.spell_set < COUNT(mpu_init_spells) &&
+    if (s->mpu.spell_set < mpu_init_spell_count &&
         s->mpu.out_spell >= 0 &&
         s->mpu.out_char >= 0 && s->mpu.out_char < MPU_CURRENT_OUT_SPELL[0])
     {
@@ -1480,4 +1470,24 @@ unsigned int eos_handle_mreq( unsigned int parm, EOSState *s, unsigned int addre
     
     io_log("MREQ", s, address, type, value, ret, msg, msg_arg1, msg_arg2);
     return ret;
+}
+
+void mpu_spells_init(EOSState *s)
+{
+#define MPU_SPELL_SET(cam) \
+    if (strcmp(s->model->name, #cam) == 0) { \
+        mpu_init_spells = mpu_init_spells_##cam; \
+        mpu_init_spell_count = COUNT(mpu_init_spells_##cam); \
+    }
+    
+    MPU_SPELL_SET(60D)
+    MPU_SPELL_SET(5D2)
+    MPU_SPELL_SET(70D)
+    MPU_SPELL_SET(5D3)
+    
+    if (!mpu_init_spell_count)
+    {
+        printf("FIXME: no MPU spells for %s.\n", s->model->name);
+        /* how to get them: http://magiclantern.fm/forum/index.php?topic=2864.msg166938#msg166938 */
+    }
 }

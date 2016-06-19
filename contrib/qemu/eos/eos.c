@@ -1122,6 +1122,9 @@ static void eos_init_common(MachineState *machine)
         s->sf = serial_flash_init(sf_filename, s->model->serial_flash_size);
     }
 
+    /* init MPU */
+    mpu_spells_init(s);
+
     if (0)
     {
         /* 6D bootloader experiment */
