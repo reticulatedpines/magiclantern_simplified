@@ -1819,8 +1819,17 @@ static void CopyMLFilesBack_AfterFormat()
     }
 
     HijackCurrentDialogBox(FORMAT_STR_LOC, "Magic Lantern restored :)");
+    msleep(2000);
+}
+
+static void restart_after_format()
+{
+    /* restart the camera after formatting */
+    HijackCurrentDialogBox(FORMAT_STR_LOC, "Restarting camera...");
     msleep(1000);
-    HijackCurrentDialogBox(FORMAT_STR_LOC, "Format");
+    
+    int reboot = 0;
+    prop_request_change(PROP_REBOOT, &reboot, 4);
 }
 
 static void HijackFormatDialogBox_main()
@@ -1866,10 +1875,15 @@ static void HijackFormatDialogBox_main()
     {
         gui_uilock(UILOCK_EVERYTHING);
         CopyMLFilesBack_AfterFormat();
+        TmpMem_Done();
+        restart_after_format();
+        /* needed? */
         gui_uilock(UILOCK_NONE);
     }
-
-    TmpMem_Done();
+    else
+    {
+        TmpMem_Done();
+    }
 }
 #endif
 
