@@ -85,7 +85,7 @@ int lua_give_semaphore(lua_State * L, struct semaphore ** assoc_semaphore)
     return -1;
 }
 
-static struct semaphore * new_script_semaphore(lua_State * L, const char * filename)
+static struct script_semaphore * new_script_semaphore(lua_State * L, const char * filename)
 {
     struct script_semaphore * new_semaphore = calloc(1, sizeof(struct script_semaphore));
     if (new_semaphore)
@@ -94,10 +94,16 @@ static struct semaphore * new_script_semaphore(lua_State * L, const char * filen
         script_semaphores = new_semaphore;
         new_semaphore->L = L;
         new_semaphore->semaphore = create_named_semaphore(filename, 0);
-        return new_semaphore->semaphore;
+        return new_semaphore;
     }
     return NULL;
 }
+
+static void reuse_script_semaphore(struct script_semaphore * sem, lua_State * L)
+{
+    sem->L = L;
+}
+
 
 /*
  Determines if a string ends in some string
@@ -553,6 +559,7 @@ struct lua_script
     int load_time;
     int cant_unload;
     lua_State * L;
+    struct script_semaphore * sem;
     struct menu_entry * menu_entry;
     struct lua_script * next;
 };
@@ -632,8 +639,20 @@ static void load_script(struct lua_script * script)
     script->state = SCRIPT_STATE_LOADING;
     lua_State* L = script->L = load_lua_state();
     script->cant_unload = 0;
-    struct semaphore * sem = new_script_semaphore(L, script->filename);
-    if(sem)
+    
+    if (!script->sem)
+    {
+        /* create semaphore on first run */
+        script->sem = new_script_semaphore(L, script->filename);
+    }
+    else
+    {
+        /* reuse it for subsequent runs of the same script */
+        /* (fixme: is this semaphore ever used for simple scripts?) */
+        reuse_script_semaphore(script->sem, L);
+    }
+    
+    if (script->sem)
     {
         int error = 0;
         char full_path[MAX_PATH_LEN];
@@ -645,7 +664,7 @@ static void load_script(struct lua_script * script)
             fprintf(stderr, "%s\n", lua_tostring(L, -1));
             error = 1;
         }
-        give_semaphore(sem);
+        give_semaphore(script->sem->semaphore);
         
         if (script->cant_unload)
         {
