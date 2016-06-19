@@ -34,6 +34,7 @@
 #include <config.h>
 #include <bmp.h>
 #include "lua_common.h"
+#include "umm_malloc/umm_malloc.h"
 
 struct script_event_entry
 {
@@ -1072,6 +1073,13 @@ static void lua_load_task(int unused)
     
     lua_do_autoload();
     
+    extern int core_reallocs;    /* ml-lua-shim.c */
+    extern int core_reallocs_size;
+    printf("Free umm_heap : %s\n", format_memory_size(umm_free_heap_size()));
+    if (core_reallocs)
+    {
+        printf("Core reallocs : %d (%s)\n", core_reallocs, format_memory_size(core_reallocs_size));
+    }
     printf("All scripts loaded.\n");
     lua_loaded = 1;
 

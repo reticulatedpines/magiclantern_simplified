@@ -783,7 +783,7 @@ static void edmac_display_page(int i0, int x0, int y0)
         uint32_t addr = edmac_get_address(ch);
         union edmac_size_t
         {
-            struct { short x, y; } size;
+            struct { uint16_t x, y; } size;
             uint32_t raw;
         };
 
@@ -801,22 +801,27 @@ static void edmac_display_page(int i0, int x0, int y0)
         }
 
         if (state != 0 && state != 1)
+        {
             STR_APPEND(msg, " (%x)", state);
+        }
 
         uint32_t dir     = edmac_get_dir(ch);
         uint32_t conn_w  = edmac_get_connection(ch, EDMAC_DIR_WRITE);
         uint32_t conn_r  = edmac_get_connection(ch, EDMAC_DIR_READ);
 
-        if (conn_w != 0 && conn_r != 0xFF)
-        {
-            /* should be unreachable */
-            STR_APPEND(msg, " <%x,%x>", conn_w, conn_r);
-        }
-        else if (dir == EDMAC_DIR_WRITE)
+        int color =
+            dir == EDMAC_DIR_UNUSED ? COLOR_GRAY(20) :   /* unused? */
+            state == 0              ? COLOR_GRAY(50) :   /* inactive? */
+            state == 1              ? COLOR_GREEN1   :   /* active? */
+                                      COLOR_RED      ;   /* no idea */
+
+        if (dir == EDMAC_DIR_WRITE)
         {
             if (conn_w == 0)
             {
-                STR_APPEND(msg, " <w>");
+                /* Write EDMAC, but could not figure out where it's connected */
+                /* May be either unused, or connected to 0 (RAW data) */
+                STR_APPEND(msg, " <w!>");
             }
             else
             {
@@ -827,7 +832,8 @@ static void edmac_display_page(int i0, int x0, int y0)
         {
             if (conn_r == 0xFF)
             {
-                STR_APPEND(msg, " <r>");
+                /* Read EDMAC, but could not figure out where it's connected */
+                STR_APPEND(msg, " <r!>");
             }
             else
             {
@@ -835,13 +841,11 @@ static void edmac_display_page(int i0, int x0, int y0)
             }
         }
 
-        int color =
-            conn_r != 0xFF && dir != EDMAC_DIR_READ ? COLOR_RED      :   /* seems used for read, but dir is not read? */
-            conn_w != 0 && dir != EDMAC_DIR_WRITE   ? COLOR_RED      :   /* seems used for write, but dir is not write? */
-            dir == EDMAC_DIR_UNUSED                 ? COLOR_GRAY(20) :   /* unused? */
-            state == 0                              ? COLOR_GRAY(50) :   /* inactive? */
-            state == 1                              ? COLOR_GREEN1   :   /* active? */
-                                                      COLOR_RED      ;   /* no idea */
+        if (dir != EDMAC_DIR_UNUSED && strchr(msg, '!'))
+        {
+            color = COLOR_YELLOW;
+        }
+
 
         bmp_printf(
             FONT(FONT_MONO_20, color, COLOR_BLACK),
