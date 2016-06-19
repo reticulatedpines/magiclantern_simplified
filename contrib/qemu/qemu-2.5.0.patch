@@ -1,8 +1,8 @@
 diff --git a/cpu-exec.c b/cpu-exec.c
-index 2ffeb6e..7152b82 100644
+index c88d0ff..3d1323e 100644
 --- a/cpu-exec.c
 +++ b/cpu-exec.c
-@@ -493,8 +493,18 @@ int cpu_exec(CPUArchState *env)
+@@ -500,8 +500,17 @@ int cpu_exec(CPUState *cpu)
                      tcg_ctx.tb_ctx.tb_invalidated_flag = 0;
                  }
                  if (qemu_loglevel_mask(CPU_LOG_EXEC)) {
@@ -12,8 +12,7 @@ index 2ffeb6e..7152b82 100644
 +                        /* separate translation blocks by newlines */
 +                        qemu_log("\n");
 +                    }
-+                    log_target_disas(env, tb->pc, tb->size,
-+                             env->thumb | (env->bswap_code << 1));
++                    log_target_disas(cpu, tb->pc, tb->size, 0);
 +#else
                      qemu_log("Trace %p [" TARGET_FMT_lx "] %s\n",
                               tb->tc_ptr, tb->pc, lookup_symbol(tb->pc));
@@ -22,22 +21,22 @@ index 2ffeb6e..7152b82 100644
                  /* see if we can patch the calling TB. When the TB
                     spans two pages, we cannot safely do a direct
 diff --git a/hw/arm/Makefile.objs b/hw/arm/Makefile.objs
-index 2577f68..a5f3829 100644
+index 2195b60..e3e2c14 100644
 --- a/hw/arm/Makefile.objs
 +++ b/hw/arm/Makefile.objs
-@@ -4,6 +4,7 @@ obj-y += integratorcp.o kzm.o mainstone.o musicpal.o nseries.o
- obj-y += omap_sx1.o palm.o realview.o spitz.o stellaris.o
- obj-y += tosa.o versatilepb.o vexpress.o virt.o xilinx_zynq.o z2.o
+@@ -6,6 +6,7 @@ obj-y += tosa.o versatilepb.o vexpress.o virt.o xilinx_zynq.o z2.o
+ obj-$(CONFIG_ACPI) += virt-acpi-build.o
  obj-y += netduino2.o
-+obj-y += eos.o
+ obj-y += sysbus-fdt.o
++include ../hw/eos/Makefile.objs
  
  obj-y += armv7m.o exynos4210.o pxa2xx.o pxa2xx_gpio.o pxa2xx_pic.o
  obj-$(CONFIG_DIGIC) += digic.o
 diff --git a/memory.c b/memory.c
-index ee3f2a8..833a4b9 100644
+index e193658..9de7251 100644
 --- a/memory.c
 +++ b/memory.c
-@@ -1634,7 +1634,7 @@ static void memory_region_update_container_subregions(MemoryRegion *subregion)
+@@ -1761,7 +1761,7 @@ static void memory_region_update_container_subregions(MemoryRegion *subregion)
                           int128_make64(other->addr))) {
              continue;
          }
@@ -46,7 +45,7 @@ index ee3f2a8..833a4b9 100644
          printf("warning: subregion collision %llx/%llx (%s) "
                 "vs %llx/%llx (%s)\n",
                 (unsigned long long)offset,
-@@ -1671,6 +1671,9 @@ void memory_region_add_subregion(MemoryRegion *mr,
+@@ -1798,6 +1798,9 @@ void memory_region_add_subregion(MemoryRegion *mr,
                                   hwaddr offset,
                                   MemoryRegion *subregion)
  {
@@ -57,24 +56,32 @@ index ee3f2a8..833a4b9 100644
      subregion->priority = 0;
      memory_region_add_subregion_common(mr, offset, subregion);
 diff --git a/target-arm/cpu.c b/target-arm/cpu.c
-index 986f04c..6bd95a1 100644
+index 30739fc..ec61c15 100644
 --- a/target-arm/cpu.c
 +++ b/target-arm/cpu.c
-@@ -580,6 +580,31 @@ static void arm926_initfn(Object *obj)
+@@ -711,6 +711,40 @@ static void arm926_initfn(Object *obj)
      cpu->reset_sctlr = 0x00090078;
  }
  
++/* similar to not_v6_cp_reginfo, but .crn was changed from 7 to 15 */
++/* note: this conflicts with ARM_FEATURE_DUMMY_C15_REGS */
++static const ARMCPRegInfo eos_cp_reginfo[] = {
++    { .name = "WFI_eos", .cp = 15, .crn = 15, .crm = 8, .opc1 = 0, .opc2 = 2,
++      .access = PL1_W, .type = ARM_CP_WFI },
++    REGINFO_SENTINEL
++};
++
 +static void arm946eos_initfn(Object *obj)
 +{
 +    ARMCPU *cpu = ARM_CPU(obj);
 +    set_feature(&cpu->env, ARM_FEATURE_V5);
 +    set_feature(&cpu->env, ARM_FEATURE_MPU);
 +    set_feature(&cpu->env, ARM_FEATURE_XSCALE); /* for MCR p15, 0,R0,c9,c1,0 */
-+    set_feature(&cpu->env, ARM_FEATURE_DUMMY_C15_REGS);
 +    cpu->midr = 0x41059461;
 +    cpu->ctr = (7 << 25) | (1 << 24) | (4 << 18) | (4 << 15) \
 +             | (2 << 12) | (4 << 6) | (4 << 3) | (2 << 0);
 +    cpu->reset_sctlr = 0x00000078;
++    define_arm_cp_regs(cpu, eos_cp_reginfo);
 +}
 +
 +static void arm_digic6_eos_initfn(Object *obj)
@@ -83,6 +90,7 @@ index 986f04c..6bd95a1 100644
 +    ARMCPU *cpu = ARM_CPU(obj);
 +    set_feature(&cpu->env, ARM_FEATURE_V8);
 +    set_feature(&cpu->env, ARM_FEATURE_DUMMY_C15_REGS);
++    set_feature(&cpu->env, ARM_FEATURE_THUMB_INTERRUPTS);
 +    cpu->midr = 0x41059461;
 +    cpu->ctr = (7 << 25) | (1 << 24) | (4 << 18) | (4 << 15) \
 +             | (2 << 12) | (4 << 6) | (4 << 3) | (2 << 0);
@@ -92,7 +100,7 @@ index 986f04c..6bd95a1 100644
  static void arm946_initfn(Object *obj)
  {
      ARMCPU *cpu = ARM_CPU(obj);
-@@ -1151,6 +1176,8 @@ typedef struct ARMCPUInfo {
+@@ -1328,6 +1362,8 @@ typedef struct ARMCPUInfo {
  static const ARMCPUInfo arm_cpus[] = {
  #if !defined(CONFIG_USER_ONLY) || !defined(TARGET_AARCH64)
      { .name = "arm926",      .initfn = arm926_initfn },
@@ -101,11 +109,23 @@ index 986f04c..6bd95a1 100644
      { .name = "arm946",      .initfn = arm946_initfn },
      { .name = "arm1026",     .initfn = arm1026_initfn },
      /* What QEMU calls "arm1136-r2" is actually the 1136 r0p2, i.e. an
+diff --git a/target-arm/cpu.h b/target-arm/cpu.h
+index 815fef8..961e254 100644
+--- a/target-arm/cpu.h
++++ b/target-arm/cpu.h
+@@ -912,6 +912,7 @@ enum arm_features {
+     ARM_FEATURE_V8_SHA256, /* implements SHA256 part of v8 Crypto Extensions */
+     ARM_FEATURE_V8_PMULL, /* implements PMULL part of v8 Crypto Extensions */
+     ARM_FEATURE_THUMB_DSP, /* DSP insns supported in the Thumb encodings */
++    ARM_FEATURE_THUMB_INTERRUPTS,   /* CPU should switch to Thumb mode on interrupt */
+ };
+ 
+ static inline int arm_feature(CPUARMState *env, int feature)
 diff --git a/target-arm/helper.c b/target-arm/helper.c
-index d77c6de..2f7c863 100644
+index afc4163..083885b 100644
 --- a/target-arm/helper.c
 +++ b/target-arm/helper.c
-@@ -4827,11 +4827,16 @@ void arm_cpu_do_interrupt(CPUState *cs)
+@@ -5891,11 +5891,21 @@ void arm_cpu_do_interrupt(CPUState *cs)
      /* Switch to the new mode, and to the correct instruction set.  */
      env->uncached_cpsr = (env->uncached_cpsr & ~CPSR_M) | new_mode;
      env->daif |= mask;
@@ -117,11 +137,81 @@ index d77c6de..2f7c863 100644
       * and we should just guard the thumb mode on V4 */
 -    if (arm_feature(env, ARM_FEATURE_V4T)) {
 -        env->thumb = (A32_BANKED_CURRENT_REG_GET(env, sctlr) & SCTLR_TE) != 0;
--    }
 +    //~ if (arm_feature(env, ARM_FEATURE_V4T)) {
 +        //~ env->thumb = (A32_BANKED_CURRENT_REG_GET(env, sctlr) & SCTLR_TE) != 0;
 +    //~ }
++    
++    if (arm_feature(env, ARM_FEATURE_THUMB_INTERRUPTS)) {
++        /* EOS M3: interrupts appear to require Thumb mode */
++        env->thumb = 1;
+     }
 +
      env->regs[14] = env->regs[15] + offset;
      env->regs[15] = addr;
      cs->interrupt_request |= CPU_INTERRUPT_EXITTB;
+diff --git a/target-arm/helper.h b/target-arm/helper.h
+index c2a85c7..8b44f64 100644
+--- a/target-arm/helper.h
++++ b/target-arm/helper.h
+@@ -64,6 +64,7 @@ DEF_HELPER_2(v7m_mrs, i32, env, i32)
+ 
+ DEF_HELPER_3(access_check_cp_reg, void, env, ptr, i32)
+ DEF_HELPER_3(set_cp_reg, void, env, ptr, i32)
++DEF_HELPER_3(print_set_cp_reg, void, env, ptr, i32)
+ DEF_HELPER_2(get_cp_reg, i32, env, ptr)
+ DEF_HELPER_3(set_cp_reg64, void, env, ptr, i64)
+ DEF_HELPER_2(get_cp_reg64, i64, env, ptr)
+diff --git a/target-arm/op_helper.c b/target-arm/op_helper.c
+index 6cd54c8..b05273f 100644
+--- a/target-arm/op_helper.c
++++ b/target-arm/op_helper.c
+@@ -474,6 +474,17 @@ void HELPER(set_cp_reg)(CPUARMState *env, void *rip, uint32_t value)
+     ri->writefn(env, ri, value);
+ }
+ 
++void HELPER(print_set_cp_reg)(CPUARMState *env, void *rip, uint32_t value)
++{
++    const ARMCPRegInfo *ri = rip;
++
++    printf("%08X: MCR p%d,%d,Rd,cr%d,cr%d,%d: %10s <- 0x%X\n",
++        env->regs[15], ri->cp,
++        ri->opc1, ri->crn, ri->crm, ri->opc2,
++        ri->name, value
++    );
++}
++
+ uint32_t HELPER(get_cp_reg)(CPUARMState *env, void *rip)
+ {
+     const ARMCPRegInfo *ri = rip;
+diff --git a/target-arm/translate.c b/target-arm/translate.c
+index 5d22879..77609ca 100644
+--- a/target-arm/translate.c
++++ b/target-arm/translate.c
+@@ -37,6 +37,7 @@
+ 
+ #include "trace-tcg.h"
+ 
++#define LOG_ALL_CP_WRITES
+ 
+ #define ENABLE_ARCH_4T    arm_dc_feature(s, ARM_FEATURE_V4T)
+ #define ENABLE_ARCH_5     arm_dc_feature(s, ARM_FEATURE_V5)
+@@ -7287,6 +7288,19 @@ static int disas_coproc_insn(DisasContext *s, uint32_t insn)
+                 }
+             }
+         } else {
++            #ifdef LOG_ALL_CP_WRITES
++            if (!is64) {
++                /* log all writes to coprocessor registers (32-bit) */
++                TCGv_i32 tmp;
++                TCGv_ptr tmpptr;
++                tmp = load_reg(s, rt);
++                tmpptr = tcg_const_ptr(ri);
++                gen_helper_print_set_cp_reg(cpu_env, tmpptr, tmp);
++                tcg_temp_free_ptr(tmpptr);
++                tcg_temp_free_i32(tmp);
++            }
++            #endif
++            
+             /* Write */
+             if (ri->type & ARM_CP_CONST) {
+                 /* If not forbidden by access permissions, treat as WI */

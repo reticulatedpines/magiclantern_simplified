@@ -1,6 +1,8 @@
 #!/bin/bash
 
-QEMU_NAME=${QEMU_NAME:=qemu-2.3.0}
+set -e
+
+QEMU_NAME=${QEMU_NAME:=qemu-2.5.0}
 ML=${ML:=magic-lantern}
 
 echo
@@ -33,18 +35,33 @@ tar jxf $QEMU_NAME.tar.bz2
 
 # initialize a git repo, to make it easy to track changes to QEMU source
 cd $QEMU_NAME
-git init
-git add .
-git commit -m "$QEMU_NAME vanilla" 
+cd .git && cd .. || (git init && git add . && git commit -m "$QEMU_NAME vanilla")
 cd ..
 
 # apply our patch
-cp -v ../$ML/contrib/qemu/scripts/* .
+cp -vr ../$ML/contrib/qemu/scripts/* .
 chmod +x *.sh
 cd ${QEMU_NAME}
-cp -v ../../$ML/contrib/qemu/hw/* hw/arm
+mkdir -p hw/eos
+cp -v ../../$ML/contrib/qemu/eos/* hw/eos
 patch -N -p1 < ../../$ML/contrib/qemu/$QEMU_NAME.patch
 cd ..
+
+# setup the card image
+if [ ! -f "sd.img" ]; then
+    echo "Setting up SD card image..."
+    cp -v ../$ML/contrib/qemu/sd.img.xz .
+    unxz -v sd.img.xz
+else
+    echo "SD image already exists, skipping."
+fi
+
+if [ ! -f "cf.img" ]; then
+    echo "Setting up CF card image..."
+    cp -v sd.img cf.img
+else
+    echo "CF image already exists, skipping."
+fi
 
 echo ""
 echo "Next steps:"
@@ -64,23 +81,24 @@ echo "   Copy those in `pwd`/ and then run (for 60D):"
 echo
 echo "   cat ROM0.BIN ROM1.BIN > ROM-60D.BIN"
 echo
-echo "3) Create a sdcard image named sd.img, from the entire card,"
-echo "   NOT just one partition. It's easiest if you have a tiny card."
-echo "   On my system, I used this command on a 256MB card:"
-echo "   dd if=/dev/mmcblk0 of=sd.img"
-echo
-echo "4) Enable CONFIG_QEMU=y in your Makefile.user"
+echo "3) Enable CONFIG_QEMU=y in your Makefile.user"
 echo "   from magic-lantern directory, then run 'make clean' to make sure"
 echo "   you will rebuild ML from scratch."
 echo
 echo "   Caveat: you can't run autoexec.bin compiled with CONFIG_QEMU on the camera,"
 echo "   and neither a vanilla autoexec in QEMU (yet), so be careful not to mix them."
 echo
-echo "5) Mount the sd image (you may use mount.sh) and install ML on it, as usual."
-echo "   The card image must be bootable as well, so, if you didn't have ML installed"
-echo "   on the card from which you made the image, you may use make_bootable.sh."
+echo "4) Mount the included SD (or CF) image (you may use mount.sh)"
+echo "   and install ML on it, as usual. The card image must be bootable as well."
 echo
-echo "6) Start emulation with:"
+echo "   The included card image is bootable and contains a small autoexec.bin"
+echo "   that runs on all DIGIC 4/5 cameras and prints some basic info."
+echo
+echo "   To create your own SD/CF image, you need to copy the raw contents"
+echo "   of the entire card, not just one partition. For example:"
+echo "   dd if=/dev/mmcblk0 of=sd.img"
+echo
+echo "5) Start emulation with:"
 echo
 echo "   cd `pwd`/"
 echo "   ./run_canon_fw.sh 60D"
@@ -88,7 +106,7 @@ echo
 echo "   This will recompile QEMU, but not ML."
 echo "   Note: Canon GUI emulation (well, a small part of it) only works on 60D."
 echo
-echo "7) Tips & tricks:"
+echo "6) Tips & tricks:"
 echo "   - to run plain Canon firmware, either make the card image non-bootable,"
 echo "     or patch the ROM at 0xF8000004 from eos.c to disable the bootflag."
 echo "   - to turn off most log messages, return early from io_log (in eos.c)."
