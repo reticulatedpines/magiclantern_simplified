@@ -97,7 +97,6 @@ struct script_menu_entry
     int info_ref;
     int rinfo_ref;
     int submenu_ref;
-    int run_in_separate_task;
 };
 
 char * copy_string(const char * str);

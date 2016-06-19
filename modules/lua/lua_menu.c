@@ -20,36 +20,6 @@ static int luaCB_menu_instance_newindex(lua_State * L);
 static int luaCB_menu_remove(lua_State * L);
 static void load_menu_entry(lua_State * L, struct script_menu_entry * script_entry, struct menu_entry * menu_entry, const char * default_name);
 
-static void lua_menu_task(lua_State * L)
-{
-    if(L)
-    {
-        struct semaphore * sem = NULL;
-        if(!lua_take_semaphore(L, 0, &sem) && sem)
-        {
-            int isnum = 0;
-            int arg_count = lua_tointegerx(L, -1, &isnum);
-            if(isnum) lua_pop(L,1);
-            else arg_count = 0;
-            printf("running script...\n");
-            if(docall(L, arg_count, 0))
-            {
-                printf("script failed:\n %s\n", lua_tostring(L, -1));
-                lua_save_last_error(L);
-            }
-            else
-            {
-                printf("script finished\n");
-            }
-            give_semaphore(sem);
-        }
-        else
-        {
-            printf("lua semaphore timeout: lua_menu_task (%dms)\n", 0);
-        }
-    }
-}
-
 //copied from lua.c
 static int msghandler (lua_State *L) {
     const char *msg = lua_tostring(L, 1);
@@ -88,24 +58,12 @@ static MENU_SELECT_FUNC(script_menu_select)
             {
                 lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->self_ref);
                 lua_pushinteger(L, delta);
-                if(script_entry->run_in_separate_task)
+                if(docall(L, 2, 0))
                 {
-                    static int lua_task_id = 0;
-                    char task_name[32];
-                    snprintf(task_name,32,"lua_menu_task[%d]",lua_task_id++);
-                    lua_pushinteger(L, 2); //push the arg count onto the stack
-                    give_semaphore(sem); //give the semaphore back (the task will take it)
-                    task_create(task_name, 0x1c, 0x8000, lua_menu_task, L);
+                    fprintf(stderr, "script error:\n %s\n", lua_tostring(L, -1));
+                    lua_save_last_error(L);
                 }
-                else
-                {
-                    if(docall(L, 2, 0))
-                    {
-                        fprintf(stderr, "script error:\n %s\n", lua_tostring(L, -1));
-                        lua_save_last_error(L);
-                    }
-                    give_semaphore(sem);
-                }
+                give_semaphore(sem);
             }
             else
             {
@@ -246,7 +204,6 @@ const char * lua_menu_instance_fields[] =
     "submenu_width",
     "unit",
     "works_best_in",
-    "run_in_separate_task",
     "select",
     "update",
     "info",
@@ -499,9 +456,6 @@ static int luaCB_menu_instance_index(lua_State * L)
     /// Suggested operating mode for this menu item
     // @tfield int works_best_in @{constants.DEPENDS_ON}
     else if(!strcmp(key, "works_best_in")) lua_pushinteger(L, script_entry->menu_entry->works_best_in);
-    /// Whether or not the backend should run 'select' in it's own task
-    // @tfield bool run_in_separate_task
-    else if(!strcmp(key, "run_in_separate_task")) lua_pushinteger(L, script_entry->run_in_separate_task);
     /// Function called when menu is toggled
     // @tparam int delta
     // @function select
@@ -584,7 +538,6 @@ static int luaCB_menu_instance_newindex(lua_State * L)
     else if(!strcmp(key, "submenu_width")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->submenu_width = value; }
     else if(!strcmp(key, "unit")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->unit = value; }
     else if(!strcmp(key, "works_best_in")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->works_best_in = value; }
-    else if(!strcmp(key, "run_in_separate_task")) { LUA_PARAM_BOOL(value, 3); script_entry->run_in_separate_task = value; }
     else if(!strcmp(key, "select"))
     {
         if(script_entry->select_ref != LUA_NOREF) luaL_unref(L, LUA_REGISTRYINDEX, script_entry->select_ref);
@@ -691,7 +644,6 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
     memset(menu_entry, 0, sizeof(struct menu_entry));
     script_entry->L = L;
     script_entry->menu_entry = menu_entry;
-    script_entry->run_in_separate_task = LUA_FIELD_BOOL("run_in_separate_task", 0);
     menu_entry->priv = script_entry;
     menu_entry->name = LUA_FIELD_STRING("name", default_name);
     menu_entry->help = LUA_FIELD_STRING("help", "");

@@ -57,9 +57,8 @@ recdelay_menu = menu.new
             name = "Run",
             help = "Start the delay count down now",
             help2 = "You can also use SET to start or cancel the delay",
-            run_in_separate_task = true,
+            select = function(this) task.create(recdelay_main) end,
             depends_on = DEPENDS_ON.MOVIE_MODE,
-            select = recdelay_main
         },
         {
             name = "Delay Amount",
