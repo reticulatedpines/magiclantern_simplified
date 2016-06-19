@@ -35,6 +35,7 @@ static void lua_menu_task(lua_State * L)
             if(docall(L, arg_count, 0))
             {
                 printf("script failed:\n %s\n", lua_tostring(L, -1));
+                lua_save_last_error(L);
             }
             else
             {
@@ -101,6 +102,7 @@ static MENU_SELECT_FUNC(script_menu_select)
                     if(docall(L, 2, 0))
                     {
                         fprintf(stderr, "script error:\n %s\n", lua_tostring(L, -1));
+                        lua_save_last_error(L);
                     }
                     give_semaphore(sem);
                 }

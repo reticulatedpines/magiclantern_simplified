@@ -160,6 +160,7 @@ static LVINFO_UPDATE_FUNC(lua_lvinfo_update)
                 if(docall(L, 1, 1))
                 {
                     fprintf(stderr, "script error:\n %s\n", lua_tostring(L, -1));
+                    lua_save_last_error(L);
                 }
             }
             lua_pop(L,1);

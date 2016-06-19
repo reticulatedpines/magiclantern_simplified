@@ -35,6 +35,7 @@ static void lua_run_task(struct lua_task_func * lua_task_func)
                 if(docall(L, 0, 0))
                 {
                     fprintf(stderr, "script failed:\n %s\n", lua_tostring(L, -1));
+                    lua_save_last_error(L);
                 }
                 else
                 {

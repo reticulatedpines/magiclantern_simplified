@@ -168,6 +168,7 @@ static unsigned int lua_do_cbr(unsigned int ctx, struct script_event_entry * eve
                     if(docall(L, 1, 1))
                     {
                         fprintf(stderr, "lua cbr error:\n %s\n", lua_tostring(L, -1));
+                        lua_save_last_error(L);
                         result = CBR_RET_ERROR;
                         give_semaphore(sem);
                         break;
@@ -553,9 +554,9 @@ struct lua_script
     char * filename;
     char * name;
     char * description;
+    char * last_error;
     int autorun;
     int state;
-    int error;
     int load_time;
     int cant_unload;
     lua_State * L;
@@ -585,6 +586,27 @@ void lua_set_cant_unload(lua_State * L, int cant_unload, int mask)
         }
     }
     fprintf(stderr, "lua_set_cant_unload: script not found\n");
+}
+
+static void lua_clear_last_error(struct lua_script * script)
+{
+    if (script->last_error)
+    {
+        free(script->last_error);
+        script->last_error = 0;
+    }
+}
+
+void lua_save_last_error(lua_State * L)
+{
+    for (struct lua_script * script = lua_scripts; script; script = script->next)
+    {
+        if(script->L == L)
+        {
+            lua_clear_last_error(script);
+            script->last_error = copy_string(lua_tostring(L, -1));
+        }
+    }
 }
 
 static int lua_get_config_flag_path(struct lua_script * script, char * full_path, const char * flag)
@@ -639,6 +661,7 @@ static void load_script(struct lua_script * script)
     script->state = SCRIPT_STATE_LOADING;
     lua_State* L = script->L = load_lua_state();
     script->cant_unload = 0;
+    lua_clear_last_error(script);
     
     if (!script->sem)
     {
@@ -665,7 +688,16 @@ static void load_script(struct lua_script * script)
             error = 1;
         }
         give_semaphore(script->sem->semaphore);
-        
+
+        if (error)
+        {
+            /* save the last error string for this script */
+            lua_save_last_error(L);
+
+            /* disable autorun on error */
+            set_script_autorun(script, 0);
+        }
+
         if (script->cant_unload)
         {
             /* "complex" script that keeps running after load
@@ -675,8 +707,8 @@ static void load_script(struct lua_script * script)
             script->menu_entry->icon_type = IT_BOOL;
             script->menu_entry->children[0].shidden = 1;
 
-            /* if there was an error, disable autorun, otherwise turn it on */
-            set_script_autorun(script, !error);
+            /* enable autorun if there was no error */
+            if (!error) set_script_autorun(script, 1);
         }
         else
         {
@@ -688,14 +720,6 @@ static void load_script(struct lua_script * script)
             script->menu_entry->icon_type = IT_ACTION;
             script->state = SCRIPT_STATE_NOT_RUNNING;
             script->load_time = 0;
-        }
-
-        script->error = error;
-
-        if (error)
-        {
-            /* disable autorun on error */
-            set_script_autorun(script, 0);
         }
     }
     else
@@ -735,7 +759,7 @@ static MENU_UPDATE_FUNC(lua_script_menu_update)
         bmp_printf(fnt | FONT_ALIGN_RIGHT, 680, info->y+2,
             script->autorun
                 ? "AUTORUN" :
-            script->error
+            script->last_error
                 ? "ERROR" :
             script->state == SCRIPT_STATE_NOT_RUNNING
                 ? "" :
@@ -757,9 +781,9 @@ static MENU_UPDATE_FUNC(lua_script_menu_update)
         }
 
 
-        if (script->error)
+        if (script->last_error)
         {
-            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Script Failed");
+            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "%s", script->last_error);
         }
     }
 }

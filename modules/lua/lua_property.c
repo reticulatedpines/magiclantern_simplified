@@ -85,6 +85,7 @@ static void lua_prop_task(int unused)
                     if(docall(L, 2, 0))
                     {
                         fprintf(stderr, "script prop handler failed:\n %s\n", lua_tostring(L, -1));
+                        lua_save_last_error(L);
                     }
                 }
                 give_semaphore(sem);
