@@ -897,35 +897,41 @@ static void script_get_name_from_comments(const char * filename, char ** name, c
 static void add_script(const char * filename)
 {
     struct lua_script * new_script = calloc(1, sizeof(struct lua_script));
-    if(new_script)
+    if (!new_script) goto err;
+
+    new_script->filename = copy_string(filename);
+    if (!new_script->filename) goto err;
+
+    new_script->L = NULL;
+    new_script->next = lua_scripts;
+    lua_scripts = new_script;
+    
+    new_script->menu_entry = calloc(1, sizeof(struct menu_entry));
+    if (!new_script->menu_entry) goto err;
+    
+    memcpy(new_script->menu_entry, &script_menu_template, sizeof(script_menu_template));
+    script_get_name_from_comments(new_script->filename, &new_script->name, &new_script->description);
+    new_script->menu_entry->name = new_script->name ? new_script->name : new_script->filename;
+    new_script->menu_entry->priv = new_script;
+    new_script->menu_entry->children = calloc(COUNT(script_submenu_template), sizeof(script_submenu_template[0]));
+    if (!new_script->menu_entry->children) goto err;
+
+    memcpy(new_script->menu_entry->children, script_submenu_template, COUNT(script_submenu_template) * sizeof(script_submenu_template[0]));
+    new_script->menu_entry->children[0].priv = new_script;
+    new_script->menu_entry->children[1].priv = new_script;
+    new_script->menu_entry->children[2].priv = &new_script->autorun;
+    menu_add("Scripts", new_script->menu_entry, 1);
+    return;
+
+err:
+    if (new_script)
     {
-        new_script->filename = copy_string(filename);
-        if(new_script->filename)
+        if (new_script->menu_entry)
         {
-            new_script->menu_entry = calloc(1, sizeof(struct menu_entry));
-            new_script->L = NULL;
-            new_script->next = lua_scripts;
-            lua_scripts = new_script;
-            if(new_script->menu_entry)
-            {
-                memcpy(new_script->menu_entry, &script_menu_template, sizeof(script_menu_template));
-                script_get_name_from_comments(new_script->filename, &new_script->name, &new_script->description);
-                new_script->menu_entry->name = new_script->name ? new_script->name : new_script->filename;
-                new_script->menu_entry->priv = new_script;
-                new_script->menu_entry->children = calloc(COUNT(script_submenu_template), sizeof(script_submenu_template[0]));
-                if (new_script->menu_entry->children)
-                {
-                    memcpy(new_script->menu_entry->children, script_submenu_template, COUNT(script_submenu_template) * sizeof(script_submenu_template[0]));
-                    new_script->menu_entry->children[0].priv = new_script;
-                    new_script->menu_entry->children[1].priv = new_script;
-                    new_script->menu_entry->children[2].priv = &new_script->autorun;
-                    menu_add("Scripts", new_script->menu_entry, 1);
-                    return;
-                }
-                free(new_script->menu_entry);
-            }
-            free(new_script->filename);
+            free(new_script->menu_entry->children);
+            free(new_script->menu_entry);
         }
+        free(new_script->filename);
         free(new_script);
     }
     fprintf(stderr, "add_script: malloc error\n");
