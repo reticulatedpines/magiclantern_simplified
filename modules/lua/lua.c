@@ -886,6 +886,31 @@ static struct menu_entry script_submenu_template[] = {
     MENU_EOL,
 };
 
+/* from console.c */
+extern int console_visible;
+
+static MENU_SELECT_FUNC(console_toggle)
+{
+    if (console_visible)
+    {
+        console_hide();
+    }
+    else
+    {
+        console_show();
+    }
+}
+
+static struct menu_entry script_console_menu[] = {
+    {
+        .name       = "Show console",
+        .select     = console_toggle,
+        .priv       = &console_visible,
+        .max        = 1,
+        .help       = "Show/hide script console."
+    },
+};
+
 /* extract script name/description from comments */
 /* (it allocates the output buffer and can optionally use a prefix) */
 static char* script_extract_string_from_comments(char* buf, char** output, const char* prefix)
@@ -1042,6 +1067,8 @@ static void lua_load_task(int unused)
         while(FIO_FindNextEx(dirent, &file) == 0);
         FIO_FindClose(dirent);
     }
+
+    menu_add("Scripts", script_console_menu, COUNT(script_console_menu));
     
     lua_do_autoload();
     
