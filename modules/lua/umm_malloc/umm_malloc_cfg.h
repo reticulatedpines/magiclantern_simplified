@@ -56,7 +56,7 @@ extern void * __mem_malloc( size_t len, unsigned int flags, const char *file, un
 
 /* Start addresses and the size of the heap */
 #define UMM_MALLOC_CFG__HEAP_ADDR __mem_malloc(UMM_MALLOC_CFG__HEAP_SIZE, 0, "umm", 0);
-#define UMM_MALLOC_CFG__HEAP_SIZE (512*1024-32)
+#define UMM_MALLOC_CFG__HEAP_SIZE (256*1024-32)
 
 /* A couple of macros to make packing structures less compiler dependent */
 

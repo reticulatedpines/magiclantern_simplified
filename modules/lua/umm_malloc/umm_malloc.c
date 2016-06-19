@@ -600,7 +600,7 @@ UMM_H_ATTPACKPRE typedef struct umm_block_t {
   } header;
   union {
     umm_ptr free;
-    unsigned char data[12];
+    unsigned char data[4];
   } body;
 } UMM_H_ATTPACKSUF umm_block;
 
