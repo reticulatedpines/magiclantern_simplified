@@ -1494,6 +1494,9 @@ void mpu_spells_init(EOSState *s)
     /* 1200D works with 60D MPU spells... and BOOTS THE GUI!!! */
     MPU_SPELL_SET_OTHER_CAM(1200D, 60D)
     
+    /* same for 1100D */
+    MPU_SPELL_SET_OTHER_CAM(1100D, 60D)
+    
     if (!mpu_init_spell_count)
     {
         printf("FIXME: no MPU spells for %s.\n", s->model->name);
