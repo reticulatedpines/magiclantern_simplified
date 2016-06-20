@@ -13,6 +13,7 @@ struct eos_model_desc eos_model_list[] = {
         .dryos_timer_id         = 2,
         .dryos_timer_interrupt  = 0x0A,
         .sd_driver_interrupt    = 0xB1,
+        .mpu_request_register   = 0xC022009C,
     },
     {
         /* defaults for DIGIC 5 cameras */
@@ -42,7 +43,6 @@ struct eos_model_desc eos_model_list[] = {
         .name                   = "60D",
         .digic_version          = 4,
         .current_task_addr      = 0x1A2C,
-        .mpu_request_register   = 0xC022009C,
     },
     {
         .name                   = "600D",
@@ -56,7 +56,6 @@ struct eos_model_desc eos_model_list[] = {
         .name                   = "5D2",
         .digic_version          = 4,
         .firmware_start         = 0xFF810000,
-        .mpu_request_register   = 0xC022009C,
     },
     {
         .name                   = "5D3",
@@ -106,7 +105,6 @@ struct eos_model_desc eos_model_list[] = {
         .digic_version          = 4,
         .firmware_start         = 0xFF0C0000,
         .current_task_addr      = 0x1A2C,
-        .mpu_request_register   = 0xC022009C,
     },
     {
         .name                   = "EOSM",
