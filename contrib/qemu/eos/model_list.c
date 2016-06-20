@@ -105,6 +105,8 @@ struct eos_model_desc eos_model_list[] = {
         .name                   = "1200D",
         .digic_version          = 4,
         .firmware_start         = 0xFF0C0000,
+        .current_task_addr      = 0x1A2C,
+        .mpu_request_register   = 0xC022009C,
     },
     {
         .name                   = "EOSM",
