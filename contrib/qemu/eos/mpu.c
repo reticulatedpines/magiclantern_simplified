@@ -1480,7 +1480,7 @@ void mpu_spells_init(EOSState *s)
         mpu_init_spell_count = COUNT(mpu_init_spells_##cam); \
     }
 
-#define MPU_SPELL_SET(cam1,cam2) \
+#define MPU_SPELL_SET_OTHER_CAM(cam1,cam2) \
     if (strcmp(s->model->name, #cam1) == 0) { \
         mpu_init_spells = mpu_init_spells_##cam2; \
         mpu_init_spell_count = COUNT(mpu_init_spells_##cam2); \
@@ -1492,7 +1492,7 @@ void mpu_spells_init(EOSState *s)
     MPU_SPELL_SET(5D3)
 
     /* 1200D works with 60D MPU spells... and BOOTS THE GUI!!! */
-    MPU_SPELL_SET(1200D, 60D)
+    MPU_SPELL_SET_OTHER_CAM(1200D, 60D)
     
     if (!mpu_init_spell_count)
     {
