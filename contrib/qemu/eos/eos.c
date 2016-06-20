@@ -2172,7 +2172,9 @@ unsigned int eos_handle_dma ( unsigned int parm, EOSState *s, unsigned int addre
 
                     printf("[DMA%i] OK\n", parm);
 
-                    eos_trigger_int(s, interruptId[parm], 0);
+                    /* 1200D assumes the DMA transfer are not instant */
+                    /* (otherwise, assert in Startup task - cannot find property 0x2) */
+                    eos_trigger_int(s, interruptId[parm], count / 10000);
                     
                     /* quiet */
                     return 0;
