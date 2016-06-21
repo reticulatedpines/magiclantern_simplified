@@ -186,6 +186,7 @@ EOSRegionHandler eos_handlers[] =
     { "CARTRIDGE",    0xC0F24000, 0xC0F24FFF, eos_handle_cartridge, 0 },
     { "ASIF",         0xC0920000, 0xC0920FFF, eos_handle_asif, 4 },
     { "Display",      0xC0F14000, 0xC0F14FFF, eos_handle_display, 0 },
+    { "Power",        0xC0F01000, 0xC0F010FF, eos_handle_power_control, 1 },
 
     /* generic catch-all for everything unhandled from this range */
     { "ENGIO",        0xC0F00000, 0xC0FFFFFF, eos_handle_engio, 0 },
@@ -2129,6 +2130,25 @@ unsigned int eos_handle_engio ( unsigned int parm, EOSState *s, unsigned int add
 {
     io_log("ENGIO", s, address, type, value, 0, 0, 0, 0);
     return 0;
+}
+
+unsigned int eos_handle_power_control ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+{
+    unsigned int ret = 0;
+    static uint32_t data[0x100 >> 2];
+    uint32_t index = (address & 0xFF) >> 2;
+    
+    if(type & MODE_WRITE)
+    {
+        data[index] = value;
+    }
+    else
+    {
+        ret = data[index];
+    }
+    
+    io_log("Power", s, address, type, value, ret, 0, 0, 0);
+    return ret;
 }
 
 unsigned int eos_handle_dma ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
