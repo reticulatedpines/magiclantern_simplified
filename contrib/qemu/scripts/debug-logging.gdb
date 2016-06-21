@@ -310,6 +310,19 @@ define register_interrupt_log
   end
 end
 
+# eventprocs (functions that can be called by name)
+define register_func_log
+  commands
+    silent
+    print_current_location
+    KBLU
+    printf "register_func('%s', %x, %x)\n", $r0, $r1, $r2
+    KRESET
+    c
+  end
+end
+
+
 define mpu_decode
   set $buf = $arg0
   set $size = ((char*)$buf)[0]

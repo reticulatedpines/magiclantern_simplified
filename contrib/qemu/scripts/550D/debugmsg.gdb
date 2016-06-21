@@ -29,4 +29,7 @@ give_semaphore_log
 b *0xFF069E70
 take_semaphore_log
 
+b *0xFF06809C
+register_func_log
+
 cont

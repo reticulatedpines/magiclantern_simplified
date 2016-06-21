@@ -30,5 +30,8 @@ take_semaphore_log
 b *0x866C
 give_semaphore_log
 
+# 1.2.3
+b *0xFF13B674
+register_func_log
 
 cont
