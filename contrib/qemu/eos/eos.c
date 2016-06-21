@@ -18,7 +18,6 @@
 #include "hw/eos/model_list.h"
 #include "hw/eos/eos_ml_helpers.h"
 #include "hw/eos/mpu.h"
-#include "hw/eos/eos_handle_serial_flash.h"
 #include "hw/eos/serial_flash.h"
 #include "hw/eos/eos_utils.h"
 #include "eos_bufcon_100D.h"

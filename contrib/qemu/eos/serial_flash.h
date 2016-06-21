@@ -40,7 +40,9 @@ uint8_t serial_flash_write_poll(SerialFlashState * sf);
 uint8_t serial_flash_spi_read(SerialFlashState * sf);
 void serial_flash_spi_write(SerialFlashState * sf, uint8_t value);
 
-
+unsigned int eos_handle_sfio ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
+unsigned int eos_handle_sio_serialflash ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
+unsigned int sfio_trigger_int_DMA ( EOSState *s );
 
 #endif
 
