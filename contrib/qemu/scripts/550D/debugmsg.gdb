@@ -32,4 +32,19 @@ take_semaphore_log
 b *0xFF06809C
 register_func_log
 
+b *0xFF1C4074
+CreateResLockEntry_log
+
+b *0xFF1C4A34
+LockEngineResources_log
+
+b *0xFF1C45BC
+LockEngineResources_log
+
+b *0xFF1C46F8
+UnLockEngineResources_log
+
+b *0xFF1C48F8
+AsyncLockEngineResources_log
+
 cont

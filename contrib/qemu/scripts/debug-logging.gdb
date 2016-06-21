@@ -442,3 +442,103 @@ define CancelTimer_log
     c
   end
 end
+
+define engine_resource_description
+    # gdb bug? shifting by 16 gives 0
+    set $class = $arg0 & 0xFFFF0000
+    set $entry = $arg0 & 0xFFFF
+    if $class == 0x00000000
+        printf "EDMAC write channel"
+    end
+    if $class == 0x00010000
+        printf "EDMAC read channel"
+    end
+    if $class == 0x00020000
+        printf "EDMAC write connection 0x%x", $entry
+    end
+    if $class == 0x00030000
+        printf "EDMAC read connection 0x%x", $entry
+    end
+    if $class == 0x00050000
+        printf "Image processing module"
+    end
+    if $class == 0x00110000
+        printf "Bitmap/ImagePBAccessHandle"
+    end
+end
+
+define engine_resources_list
+  set $i = 0
+  while $i < $arg1
+    printf "    %2d) %8x ", $i, ((int*)$arg0)[$i]
+    engine_resource_description ((int*)$arg0)[$i]
+    printf "\n"
+    set $i = $i + 1
+  end
+end
+
+define CreateResLockEntry_log
+  commands
+    silent
+    print_current_location
+    KBLU
+    printf "CreateResLockEntry(%x, %x)\n", $r0, $r1
+    KRESET
+    tbreak *($lr & ~1)
+    commands
+      silent
+      printf "*** Created ResLock 0x%x:'\n", $r0
+      engine_resources_list ((int*)$r0)[5] ((int*)$r0)[6]
+      c
+    end
+    c
+  end
+end
+
+define LockEngineResources_log
+commands
+    silent
+    print_current_location
+    KYLW
+    printf "LockEngineResources(%x)\n", $r0
+    KRESET
+    eval "set $task_%s = \"wait_rlk 0x%08X\"", CURRENT_TASK_NAME, $r0
+    tbreak *($lr & ~1)
+    commands
+      silent
+      print_current_location
+      if $r0
+        KRED
+      else
+        KGRN
+      end
+      printf "LockEngineResources => %x\n", $r0
+      KRESET
+      eval "set $task_%s = \"ready\"", CURRENT_TASK_NAME
+      c
+    end
+    c
+  end
+end
+
+define AsyncLockEngineResources_log
+  commands
+    silent
+    print_current_location
+    KYLW
+    printf "AsyncLockEngineResources(%x, cbr=%x, arg=%x)\n", $r0, $r1, $r2
+    KRESET
+    c
+  end
+end
+
+define UnLockEngineResources_log
+  commands
+    silent
+    print_current_location
+    KCYN
+    printf "UnLockEngineResources(%x)\n", $r0
+    KRESET
+    c
+  end
+end
