@@ -14,21 +14,23 @@ task_create_log
 b *0x1C1C
 msleep_log
 
-# b *0x1926
-# take_semaphore_log
+b *0x1926
+take_semaphore_log
 
-# b *0x199e
-# give_semaphore_log
+b *0x199e
+give_semaphore_log
 
 b *0x16D8
 register_interrupt_log
 
-b *0xFE0A0D66
-commands
-  silent
-  print_current_location
-  printf "interrupt handler %08x(0x%x)\n", $r1, $r0
-  c
-end
+b *0x1830
+create_semaphore_log
+
+# what's the difference between these two?
+b *0x187C
+create_semaphore_log
+
+b *0x18B4
+delete_semaphore_log
 
 cont

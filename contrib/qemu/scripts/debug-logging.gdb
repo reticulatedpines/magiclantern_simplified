@@ -1,5 +1,6 @@
 # GDB scripts for tracing stuff around the firmware
 # This file contains generic routines that can be used on all cameras.
+# Requires arm-none-eabi-gdb >= 7.7
 
 # To use gdb, start emulation with:
 #    ./run_canon_fw 60D -s -S
@@ -35,6 +36,7 @@ set radix 16
 
 define hook-quit
   set confirm off
+  show convenience
   kill inferiors 1
   KRESET
 end
@@ -52,9 +54,19 @@ define KBLU
     printf "%c[1;34m", 0x1B
 end
 
+define KGRN
+    printf "%c[1;32m", 0x1B
+end
+
+define KYLW
+    printf "%c[1;33m", 0x1B
+end
+
 define KRESET
     printf "%c[0m", 0x1B
 end
+
+macro define CURRENT_TASK_NAME ((char***)CURRENT_TASK)[0][9]
 
 # print current task name and return address
 define print_current_location
@@ -72,7 +84,7 @@ define print_current_location
     printf "   INT-%02Xh:%08x ", CURRENT_ISR, $r14-4
   else
     KCYN
-    printf "%10s:%08x ", ((char***)CURRENT_TASK)[0][9], $r14-4
+    printf "%10s:%08x ", CURRENT_TASK_NAME, $r14-4
   end
   KRESET
   printf "] "
@@ -179,17 +191,92 @@ define assert_log
   end
 end
 
-# take_semaphore
+# semaphores
+
+define create_semaphore_log
+  commands
+    silent
+    print_current_location
+    KBLU
+    printf "create_semaphore('%s', %d)\n", $r0, $r1
+    KRESET
+    set $sem_cr_name = $r0
+    tbreak *($lr & ~1)
+    commands
+      silent
+      if $sem_cr_name == -1234
+        KRED
+        # fixme: create_semaphore is not atomic,
+        # so if two tasks create semaphores at the same time, we may mix them up
+        # (maybe call cli/sei from gdb, or is this check enough?)
+        print "create semaphore: race condition?"
+        KRESET
+      end
+      printf "*** Created semaphore 0x%x: %x '%s'\n", $r0, $sem_cr_name, $sem_cr_name
+      eval "set $sem_%x_name = $sem_cr_name", $r0
+      set $sem_cr_name = -1234
+      c
+    end
+    c
+  end
+end
+
+define delete_semaphore_log
+  commands
+    silent
+    print_current_location
+    printf "delete_semaphore(%x)\n", $r0
+    eval "set $sem_%x_name = -1", $r0
+    c
+  end
+end
+
+define print_sem_name
+ eval "set $sem_name = $sem_%x_name", $arg0
+ if $_isvoid($sem_name)
+   KRED
+   printf " /* sem not created!!! */"
+   KRESET
+ else
+ if $sem_name == -1
+   KRED
+   printf " /* sem deleted!!! */"
+   KRESET
+ else
+ if $sem_name
+  printf " "
+  KCYN
+  printf "'%s'", $sem_name
+  KRESET
+ end
+ end
+ end
+end
+
 define take_semaphore_log
   commands
     silent
     print_current_location
-    printf "take_semaphore(0x%x, %d)\n", $r0, $r1
+    KYLW
+    printf "take_semaphore"
+    KRESET
+    printf "(0x%x", $r0
+    print_sem_name $r0
+    printf ", %d)\n", $r1
+    eval "set $task_%s = \"wait_sem 0x%08X\"", CURRENT_TASK_NAME, $r0
     tbreak *($lr & ~1)
     commands
       silent
       print_current_location
-      printf "take_semaphore => %d (pc=%x)\n", $r0, $pc
+      if $r0
+        KRED
+      else
+        KGRN
+      end
+      printf "take_semaphore => "
+      KRESET
+      printf "%d (pc=%x)\n", $r0, $pc
+      eval "set $task_%s = \"ready\"", CURRENT_TASK_NAME
       c
     end
     c
@@ -200,7 +287,12 @@ define give_semaphore_log
   commands
     silent
     print_current_location
-    printf "give_semaphore(0x%x)\n", $r0
+    KCYN
+    printf "give_semaphore"
+    KRESET
+    printf "(0x%x", $r0
+    print_sem_name $r0
+    printf ")\n"
     c
   end
 end

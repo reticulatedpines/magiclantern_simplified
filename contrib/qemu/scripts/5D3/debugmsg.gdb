@@ -12,4 +12,23 @@ DebugMsg_log
 b *0x8b10
 task_create_log
 
+b *0x83B8
+register_interrupt_log
+
+b *0x8420
+create_semaphore_log
+
+b *0x847C
+create_semaphore_log
+
+b *0x84C8
+delete_semaphore_log
+
+b *0x8580
+take_semaphore_log
+
+b *0x866C
+give_semaphore_log
+
+
 cont
