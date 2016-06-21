@@ -16,7 +16,6 @@
 #include "eos.h"
 
 #include "hw/eos/model_list.h"
-#include "hw/eos/debug_message_helper.h"
 #include "hw/eos/eos_ml_helpers.h"
 #include "hw/eos/mpu.h"
 #include "hw/eos/eos_handle_serial_flash.h"
@@ -194,7 +193,6 @@ EOSRegionHandler eos_handlers[] =
     { "DIGIC6",       0xD0000000, 0xDFFFFFFF, eos_handle_digic6, 0 },
     
     { "ML helpers",   0xCF123000, 0xCF123EFF, eos_handle_ml_helpers, 0 },
-    { "GDB Helper",   0xCF999000, 0xCF999FFF, eos_handle_gdb_helpers, 0},
 };
 
 /* io range access */
