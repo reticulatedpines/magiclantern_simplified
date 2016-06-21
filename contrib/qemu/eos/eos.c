@@ -2073,6 +2073,9 @@ unsigned int eos_handle_edmac_chsw ( unsigned int parm, EOSState *s, unsigned in
     int msg_arg1 = 0;
     int msg_arg2 = 0;
     unsigned int ret = 0;
+    
+    /* fixme: reads not implemented */
+    assert(type & MODE_WRITE);
 
     /* 0xC0F05020 - 0xC0F050E0: read edmac connections */
     /* 0xC0F05000 - 0xC0F0501C: write channel connections for channels 0-6, then 16 */
