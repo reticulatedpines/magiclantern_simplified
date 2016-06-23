@@ -265,4 +265,4 @@
 
 // temperature convertion from raw-temperature to celsius
 // http://www.magiclantern.fm/forum/index.php?topic=9673.0
-#define EFIC_CELSIUS ((int)efic_temp - 128)
+#define EFIC_CELSIUS ((int)efic_temp * 80 / 100 - 93)
