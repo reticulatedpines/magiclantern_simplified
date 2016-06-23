@@ -1090,6 +1090,31 @@ void move_lv_afframe(int dx, int dy)
 #endif
 }
 
+int handle_lv_afframe_workaround(struct event * event)
+{
+    /* allow moving AF frame (focus box) when Canon blocks it */
+    /* most cameras will block the focus box keys in Manual Focus mode while recording */
+    /* 6D seems to block them always in MF, https://bitbucket.org/hudson/magic-lantern/issue/1816/cant-move-focus-box-on-6d */
+    if (
+        #if !defined(CONFIG_6D) /* others? */
+        RECORDING_H264 &&
+        #endif
+        liveview_display_idle() &&
+        is_manual_focus() &&
+    1)
+    {
+        if (event->param == BGMT_PRESS_LEFT)
+            { move_lv_afframe(-300, 0); return 0; }
+        if (event->param == BGMT_PRESS_RIGHT)
+            { move_lv_afframe(300, 0); return 0; }
+        if (event->param == BGMT_PRESS_UP)
+            { move_lv_afframe(0, -300); return 0; }
+        if (event->param == BGMT_PRESS_DOWN)
+            { move_lv_afframe(0, 300); return 0; }
+    }
+    return 1;
+}
+
 static struct semaphore * set_maindial_sem = 0;
 
 #ifdef FEATURE_PLAY_EXPOSURE_FUSION
