@@ -309,16 +309,19 @@ static void adv_int_load(void)
                 while(read_line(buffer, &buf_pos, FILE_BUF_SIZE, line_temp, LINE_BUF_SIZE) > 0)
                 {
                     int kfr_time = parse_next_int(line_temp, LINE_BUF_SIZE);
-                    struct keyframe * new_kfr = new_keyframe(keyframes, kfr_time);
-                    if(new_kfr)
+                    if (kfr_time)
                     {
-                        new_kfr->shutter = parse_property("tv=", line_temp, LINE_BUF_SIZE);
-                        new_kfr->aperture = parse_property("av=", line_temp, LINE_BUF_SIZE);
-                        new_kfr->iso = parse_property("iso=", line_temp, LINE_BUF_SIZE);
-                        new_kfr->focus = parse_property("fcs=", line_temp, LINE_BUF_SIZE);
-                        new_kfr->interval_time = parse_property("int=", line_temp, LINE_BUF_SIZE);
-                        new_kfr->kelvin = parse_property("wb=", line_temp, LINE_BUF_SIZE);
-                        new_kfr->bulb_duration = parse_property("bulb=", line_temp, LINE_BUF_SIZE);
+                        struct keyframe * new_kfr = new_keyframe(keyframes, kfr_time);
+                        if(new_kfr)
+                        {
+                            new_kfr->shutter = parse_property("tv=", line_temp, LINE_BUF_SIZE);
+                            new_kfr->aperture = parse_property("av=", line_temp, LINE_BUF_SIZE);
+                            new_kfr->iso = parse_property("iso=", line_temp, LINE_BUF_SIZE);
+                            new_kfr->focus = parse_property("fcs=", line_temp, LINE_BUF_SIZE);
+                            new_kfr->interval_time = parse_property("int=", line_temp, LINE_BUF_SIZE);
+                            new_kfr->kelvin = parse_property("wb=", line_temp, LINE_BUF_SIZE);
+                            new_kfr->bulb_duration = parse_property("bulb=", line_temp, LINE_BUF_SIZE);
+                        }
                     }
                 }
                 success = TRUE;
