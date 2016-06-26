@@ -783,12 +783,12 @@ PROP_HANDLER(PROP_GUI_STATE)
 static struct menu_entry adv_int_menu[] =
 {
     {
-        .name = "Advanced Intervalometer",
+        .name = "Ramping options",
         .priv = &adv_int,
         .select = menu_open_submenu,
         .max = 1,
         .works_best_in = DEP_M_MODE,
-        .help = "Advanced intervalometer ramping",
+        .help = "Advanced intervalometer ramping options.",
         .children =  (struct menu_entry[])
         {
             {
