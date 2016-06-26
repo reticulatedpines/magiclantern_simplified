@@ -429,28 +429,7 @@ static MENU_UPDATE_FUNC(time_menu_update)
     {
         entry->unit = UNIT_DEC;
         int seconds = get_config_var("interval.time") * keyframe_time;
-        static char msg[50];
-        
-        msg[0] = '\0';
-        if (seconds >= 3600)
-        {
-            STR_APPEND(msg, "%dh", seconds / 3600);
-            seconds = seconds % 3600;
-        }
-        
-        if (seconds >= 60)
-        {
-            STR_APPEND(msg, "%dm", seconds / 60);
-            seconds = seconds % 60;
-        }
-        
-        if (seconds || !msg[0])
-        {
-            STR_APPEND(msg, "%ds", seconds);
-        }
-        
-        MENU_SET_RINFO("%s", msg);
-        
+        MENU_SET_RINFO("%s", format_time_hours_minutes_seconds(seconds));
     }
     if(keyframe_exists(keyframe_time))
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING,"This keyframe already exists, will be overwritten");
