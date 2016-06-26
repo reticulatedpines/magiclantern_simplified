@@ -262,6 +262,7 @@ DIET_OBJ = \
 	strtol.o \
 	strtoul.o \
 	strchr.o \
+	strstr.o \
 	memcmp.o \
 	memmove.o \
 	atoi.o \
