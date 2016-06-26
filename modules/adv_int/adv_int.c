@@ -312,7 +312,7 @@ static int parse_property(const char * property, char * source, size_t max_len)
     return 0;
 }
 
-static MENU_SELECT_FUNC(adv_int_load)
+static void adv_int_load(void)
 {
     char filename[MAX_PATH];
     char line_temp[LINE_BUF_SIZE];
@@ -347,20 +347,27 @@ static MENU_SELECT_FUNC(adv_int_load)
                 success = TRUE;
             }
             else
+            {
                 NotifyBox(2000, "Error: Could not read file");
+            }
             fio_free(buffer);
-             
         }
         else
+        {
             NotifyBox(2000, "Error: Could not create buffer");
+        }
         
         FIO_CloseFile(f);
     }
     else
-        NotifyBox(2000, "Error: Could not open file");
+    {
+        printf("adv_int: sequence file not found.\n%s", filename);
+    }
     
     if(success)
-        NotifyBox(2000, "Sequence File Loaded");
+    {
+        printf("adv_int: sequence file loaded.\n");
+    }
 }
 
 static MENU_SELECT_FUNC(adv_int_save)
@@ -829,19 +836,16 @@ static struct menu_entry adv_int_menu[] =
                 }
             },
             {
-                .name = "Load...",
-                .select = adv_int_load,
-                .help = "Load keyframes from file"
-            },
-            {
-                .name = "Save...",
+                .name   = "Save Keyframes",
                 .select = adv_int_save,
-                .help = "Save current keyframes to file"
+                .help   = "Save current keyframes to file.",
+                .help2  = "This sequence will be auto-loaded at startup."
             },
             {
-                .name = "Clear",
+                .name   = "Clear Keyframes",
                 .select = adv_int_clear,
-                .help = "Clears all keyframes"
+                .help   = "Clears all keyframes.",
+                .help2  = "Note: this will not remove the saved sequence."
             },
             {
                 .name = "New Keyframe...",
@@ -997,6 +1001,7 @@ static struct menu_entry adv_int_menu[] =
 
 static unsigned int adv_int_init()
 {
+    adv_int_load();
     menu_add("Intervalometer", adv_int_menu, COUNT(adv_int_menu));
     return 0;
 }
