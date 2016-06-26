@@ -279,34 +279,11 @@ static int parse_next_int(char* source, size_t max_len)
     }
 }
 
-//for some reason I can't link to strstr
-static char* my_strstr(char* source, const char* search)
-{
-    if(source && search && strlen(source) > 0 && strlen(search) > 0)
-    {
-        for (size_t pos = 0; pos < strlen(source) - strlen(search); pos++)
-        {
-            int found = TRUE;
-            for(size_t i = 0; i < strlen(search); i++)
-            {
-                if(source[pos + i] != search[i])
-                {
-                    found = FALSE;
-                    break;
-                }
-            }
-            if(found)
-                return source + pos;
-        }
-    }
-    return NULL;
-}
-
 static int parse_property(const char * property, char * source, size_t max_len)
 {
     if(source)
     {
-        char * loc = my_strstr(source, property);
+        char * loc = strstr(source, property);
         return loc ? parse_next_int(loc + strlen(property), max_len) : 0;
     }
     return 0;
