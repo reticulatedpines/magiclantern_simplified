@@ -567,6 +567,14 @@ static int auto_ettr_work(int corr)
 
     int shutter_lim = auto_ettr_max_shutter;
 
+    /* if intervalometer is enabled, limit longest exposures
+     * to interval time minus 2 seconds */
+    if (is_intervalometer_running())
+    {
+        int intervalometer_lim = MAX(200, 1000 * (get_interval_time() - 2));
+        shutter_lim = MAX(shutter_lim, shutter_ms_to_raw(intervalometer_lim));
+    }
+
     /* can't go slower than 1/fps in movie mode */
     if (is_movie_mode())
     {
@@ -1506,6 +1514,11 @@ static MENU_UPDATE_FUNC(auto_ettr_max_shutter_update)
         MENU_SET_WARNING(MENU_WARN_INFO, "For long exposures, enable bulb timer (maybe also intervalometer).");
     }
     
+    if (is_intervalometer_running())
+    {
+        MENU_SET_WARNING(MENU_WARN_INFO, "Slowest shutter will be limited by interval time minus 2 seconds.");
+    }
+    
     if (auto_ettr_adjust_mode == 1)
     {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Adjust shutter speed from top scrollwheel, outside menu.");
@@ -1596,7 +1609,7 @@ static struct menu_entry ettr_menu[] =
                 .min = 16,
                 .max = 152,
                 .icon_type = IT_PERCENT,
-                .help = "Slowest shutter speed for ETTR."
+                .help = "Slowest shutter speed for ETTR (longest exposure time)."
             },
             {
                 .name = "Exposure target",
