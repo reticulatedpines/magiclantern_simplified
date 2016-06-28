@@ -39,7 +39,7 @@
 #define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && MEM(0x27D8) && !MEM(0x3D50)) // StartPl1App, but not StartPlEraseApp
 #define MENU_MODE (gui_state == GUISTATE_PLAYMENU && MEM(0x4C48)) // StartMenuMainHeaderApp
 
-#define CURRENT_DIALOG_MAYBE (gui_state == GUISTATE_PLAYMENU ? 1 : 0)
+#define CURRENT_GUI_MODE (gui_state == GUISTATE_PLAYMENU ? 1 : 0)
 
 #define NUM_PICSTYLES 9
 #define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)

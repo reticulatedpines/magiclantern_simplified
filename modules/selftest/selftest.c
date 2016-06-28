@@ -26,7 +26,7 @@ extern WEAK_FUNC(ret_0) void playback_compare_images_task(int direction);
 #define PLAY_MODE is_play_mode()
 #define MENU_MODE is_menu_mode()
 #define HALFSHUTTER_PRESSED get_halfshutter_pressed()
-#define CURRENT_DIALOG_MAYBE get_gui_mode()
+#define CURRENT_GUI_MODE get_gui_mode()
 
 /* button codes */
 static int BGMT_PLAY;
@@ -506,13 +506,13 @@ static void stub_test_task(void* arg)
         TEST_VOID(call("TurnOnDisplay"));
         TEST_FUNC_CHECK(DISPLAY_IS_ON, != 0);
 
-        // SetGUIRequestMode, CURRENT_DIALOG_MAYBE
+        // SetGUIRequestMode, CURRENT_GUI_MODE
         TEST_VOID(SetGUIRequestMode(1); msleep(1000););
-        TEST_FUNC_CHECK(CURRENT_DIALOG_MAYBE, == 1);
+        TEST_FUNC_CHECK(CURRENT_GUI_MODE, == 1);
         TEST_VOID(SetGUIRequestMode(2); msleep(1000););
-        TEST_FUNC_CHECK(CURRENT_DIALOG_MAYBE, == 2);
+        TEST_FUNC_CHECK(CURRENT_GUI_MODE, == 2);
         TEST_VOID(SetGUIRequestMode(0); msleep(1000););
-        TEST_FUNC_CHECK(CURRENT_DIALOG_MAYBE, == 0);
+        TEST_FUNC_CHECK(CURRENT_GUI_MODE, == 0);
         TEST_FUNC_CHECK(display_idle(), != 0);
 
         // GUI_Control

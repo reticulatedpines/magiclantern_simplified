@@ -2749,7 +2749,7 @@ static void grayscale_menus_step()
 
     // optimization: try to only update palette after a display mode change
     // but this is not 100% reliable => update at least once every second
-    int guimode = CURRENT_DIALOG_MAYBE;
+    int guimode = CURRENT_GUI_MODE;
     int d = DISPLAY_IS_ON;
     int b = bmp_color_scheme;
     int sig = (int)get_current_dialog_handler() + d + guimode + b*31415 + get_seconds_clock();

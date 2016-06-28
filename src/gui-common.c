@@ -658,5 +658,5 @@ void redraw_after(int msec)
 int get_gui_mode()
 {
     /* this is GUIMode from SetGUIRequestMode */
-    return CURRENT_DIALOG_MAYBE;
+    return CURRENT_GUI_MODE;
 }

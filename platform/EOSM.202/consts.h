@@ -50,7 +50,7 @@
 
 
 
-#define CURRENT_DIALOG_MAYBE (*(int*)0x40FBC)
+#define CURRENT_GUI_MODE (*(int*)0x40FBC)
 
 //~ #define ISO_ADJUSTMENT_ACTIVE 0 // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
 
@@ -93,8 +93,8 @@
 #define DLG_MOVIE_PRESS_LV_TO_RESUME 0
 /*--------------*/
 
-#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
-#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
+#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == DLG_PLAY)
+#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == DLG_MENU)
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xC0220138) & 1)) //EnableVideoOut
 #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x3DED8 

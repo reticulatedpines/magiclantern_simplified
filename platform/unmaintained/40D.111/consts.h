@@ -63,7 +63,7 @@
 
 #define AE_VALUE 0 // http://www.magiclantern.fm/forum/index.php?topic=7208.100
 
-#define CURRENT_DIALOG_MAYBE (*(int*)0x2A94)
+#define CURRENT_GUI_MODE (*(int*)0x2A94)
 
 #define DLG_PLAY 1
 #define DLG_MENU 2
@@ -81,8 +81,8 @@
 
 
 
-#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
-#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
+#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == DLG_PLAY)
+#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == DLG_MENU)
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 15 or 7
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(7, something)

@@ -364,7 +364,7 @@ static int focus_stack_should_stop = 0;
 static int focus_stack_check_stop()
 {
     if (gui_menu_shown()) focus_stack_should_stop = 1;
-    if (CURRENT_DIALOG_MAYBE == 2) focus_stack_should_stop = 1; // Canon menu open
+    if (CURRENT_GUI_MODE == 2) focus_stack_should_stop = 1; // Canon menu open
     return focus_stack_should_stop;
 }
 
@@ -459,7 +459,7 @@ focus_stack(
         focus_stack_ensure_preconditions();
         if (focus_stack_check_stop()) break;
 
-        if (gui_menu_shown() || CURRENT_DIALOG_MAYBE == 2) break; // menu open? stop here
+        if (gui_menu_shown() || CURRENT_GUI_MODE == 2) break; // menu open? stop here
 
         if (!(
             (!is_bracket && skip_frame && (i == 0)) ||              // first frame in SNAP-stack
@@ -1019,9 +1019,9 @@ focus_misc_task(void* unused)
         }
         
 #ifdef CONFIG_60D
-        if (CURRENT_DIALOG_MAYBE_2 == DLG2_FOCUS_MODE && is_manual_focus())
+        if (CURRENT_GUI_MODE_2 == DLG2_FOCUS_MODE && is_manual_focus())
 #else
-        if (CURRENT_DIALOG_MAYBE == DLG_FOCUS_MODE && is_manual_focus())
+        if (CURRENT_GUI_MODE == DLG_FOCUS_MODE && is_manual_focus())
 #endif
         {   
             #ifdef FEATURE_TRAP_FOCUS
@@ -1029,9 +1029,9 @@ focus_misc_task(void* unused)
             #endif
             
             #ifdef CONFIG_60D
-            while (CURRENT_DIALOG_MAYBE_2 == DLG2_FOCUS_MODE) msleep(100);
+            while (CURRENT_GUI_MODE_2 == DLG2_FOCUS_MODE) msleep(100);
             #else
-            while (CURRENT_DIALOG_MAYBE == DLG_FOCUS_MODE) msleep(100);
+            while (CURRENT_GUI_MODE == DLG_FOCUS_MODE) msleep(100);
             #endif
         }
     }

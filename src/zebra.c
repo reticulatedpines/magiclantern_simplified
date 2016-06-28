@@ -3625,9 +3625,9 @@ int liveview_display_idle()
                   || dialog->handler == (dialog_handler_t) &LiveViewShutterApp_handler
                   #endif
               ) &&
-            CURRENT_DIALOG_MAYBE <= 3 && 
-            #ifdef CURRENT_DIALOG_MAYBE_2
-            CURRENT_DIALOG_MAYBE_2 <= 3 &&
+            CURRENT_GUI_MODE <= 3 && 
+            #ifdef CURRENT_GUI_MODE_2
+            CURRENT_GUI_MODE_2 <= 3 &&
             #endif
             job_state_ready_to_take_pic() &&
             !mirror_down )

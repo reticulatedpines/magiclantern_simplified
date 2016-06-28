@@ -78,7 +78,7 @@
 #define AE_STATE (*(int8_t*)(0x13008 + 0x1C))
 #define AE_VALUE (*(int8_t*)(0x13008 + 0x1D))
 
-#define CURRENT_DIALOG_MAYBE (*(int*)0x37F0)
+#define CURRENT_GUI_MODE (*(int*)0x37F0)
 
 #define DLG_PLAY 1
 #define DLG_MENU 2
@@ -99,8 +99,8 @@ int get_lv_stopped_by_user();
 
 
 
-#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
-#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
+#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == DLG_PLAY)
+#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == DLG_MENU)
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
 #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x1aac // this prop_deliver performs the action for Video Connect and Video Disconnect

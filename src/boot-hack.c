@@ -444,7 +444,7 @@ static void dumper_bootflag()
     bmp_printf(FONT_LARGE, 50, 100, "Please wait...");
     msleep(2000);
 
-    if (CURRENT_DIALOG_MAYBE != DLG_PLAY)
+    if (CURRENT_GUI_MODE != DLG_PLAY)
     {
         bmp_printf(FONT_LARGE, 50, 150, "Hudson, we have a problem!");
         return;

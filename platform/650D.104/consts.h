@@ -55,7 +55,7 @@
 #define GMT_NFUNCS 7
 #define GMT_FUNCTABLE 0xFF7EFE40 // dec gui_main_task
 
-#define CURRENT_DIALOG_MAYBE (*(int*)0x264DC) // in SetGUIRequestMode
+#define CURRENT_GUI_MODE (*(int*)0x264DC) // in SetGUIRequestMode
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)(0x31184)) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
 
     // from a screenshot
@@ -89,12 +89,12 @@
     #define DLG_FOCUS_MODE 0x123456
 
 /* these don't exist in the M */
-#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_DIALOG_MAYBE == 0x24)
+#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_GUI_MODE == 0x24)
 #define DLG_MOVIE_PRESS_LV_TO_RESUME 0
 /*--------------*/
 
-#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
-#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
+#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == DLG_PLAY)
+#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == DLG_MENU)
 
     #define AUDIO_MONITORING_HEADPHONES_CONNECTED 0
     #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0

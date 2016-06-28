@@ -45,13 +45,13 @@
 #define FOCUS_CONFIRMATION (*(int*)0x41C8) // see "focusinfo" and Wiki:Struct_Guessing
 #define HALFSHUTTER_PRESSED (*(int*)0x1b98) // used for Trap Focus and Magic Off.
 //~ #define AF_BUTTON_PRESSED_LV 0
-#define CURRENT_DIALOG_MAYBE (*(int*)0x3964) // GUIMode_maybe in Indy's IDC
+#define CURRENT_GUI_MODE (*(int*)0x3964) // GUIMode_maybe in Indy's IDC
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int8_t*)0x5350) == 0xF) ||((*(int8_t*)0xCBD4) != 0x17)) // dec CancelBottomInfoDispTimer
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x5350) == 0xF) // dec ptpNotifyOlcInfoChanged
 #define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0xCBD0) != 0x17) // dec CancelUnaviFeedBackTimer
 
 
-// From CURRENT_DIALOG_MAYBE
+// From CURRENT_GUI_MODE
 #define DLG_WB 0x2b
 #define DLG_FOCUS_MODE 9
 #define DLG_DRIVE_MODE 8
@@ -61,11 +61,11 @@
 #define DLG_Q_UNAVI 0x23
 #define DLG_FLASH_AE 0x28
 #define DLG_PICQ 0x2d
-#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_DIALOG_MAYBE == 0x1e)
-#define DLG_MOVIE_PRESS_LV_TO_RESUME (CURRENT_DIALOG_MAYBE == 0x1f)
+#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_GUI_MODE == 0x1e)
+#define DLG_MOVIE_PRESS_LV_TO_RESUME (CURRENT_GUI_MODE == 0x1f)
 
-#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
-#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
+#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == DLG_PLAY)
+#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == DLG_MENU)
 
 // for gui_main_task (1100d 105)
 #define GMT_NFUNCS 7

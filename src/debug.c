@@ -297,7 +297,7 @@ void bsod()
         gui_stop_menu();
         SetGUIRequestMode(1);
         msleep(1000);
-    } while (CURRENT_DIALOG_MAYBE != 1);
+    } while (CURRENT_GUI_MODE != 1);
     NotifyBoxHide();
     canon_gui_disable_front_buffer();
     gui_uilock(UILOCK_EVERYTHING);

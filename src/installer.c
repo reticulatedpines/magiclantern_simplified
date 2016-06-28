@@ -67,7 +67,7 @@ static void call_bootflag_eventproc(char* eventproc)
     /* the visible effect is that camera will ask for a firmware update as soon as you remove the card or place a non-ML card */
     
     /* we'll try to call this routine from Canon menu only (where the sensor should be inactive) */
-    if (CURRENT_DIALOG_MAYBE == DLG_MENU && DISPLAY_IS_ON)
+    if (CURRENT_GUI_MODE == DLG_MENU && DISPLAY_IS_ON)
     {
         for (int i = 0; i < 10; i++)
         {
@@ -77,7 +77,7 @@ static void call_bootflag_eventproc(char* eventproc)
 
         /* Horshack suggested to run the bootflag routines with IRQ/FIQ disabled */
         uint32_t old = cli();
-        if (CURRENT_DIALOG_MAYBE == DLG_MENU && DISPLAY_IS_ON)
+        if (CURRENT_GUI_MODE == DLG_MENU && DISPLAY_IS_ON)
         {
             call( eventproc );
         }
@@ -281,7 +281,7 @@ static void hook_on_canon_menu()
 {
     gui_uilock(UILOCK_EVERYTHING);
     
-    if (CURRENT_DIALOG_MAYBE != DLG_MENU)
+    if (CURRENT_GUI_MODE != DLG_MENU)
     {
         SetGUIRequestMode(DLG_MENU);
         
@@ -466,7 +466,7 @@ static int install(void)
     
     for (int i = 60; i > 0; i--)
     {
-        if (CURRENT_DIALOG_MAYBE != DLG_MENU || !DISPLAY_IS_ON)
+        if (CURRENT_GUI_MODE != DLG_MENU || !DISPLAY_IS_ON)
         {
             /* abort if user gets out of Canon menu */
             return 0;
