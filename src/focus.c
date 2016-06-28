@@ -1021,7 +1021,7 @@ focus_misc_task(void* unused)
 #ifdef CONFIG_60D
         if (CURRENT_GUI_MODE_2 == DLG2_FOCUS_MODE && is_manual_focus())
 #else
-        if (CURRENT_GUI_MODE == DLG_FOCUS_MODE && is_manual_focus())
+        if (CURRENT_GUI_MODE == GUIMODE_FOCUS_MODE && is_manual_focus())
 #endif
         {   
             #ifdef FEATURE_TRAP_FOCUS
@@ -1031,7 +1031,7 @@ focus_misc_task(void* unused)
             #ifdef CONFIG_60D
             while (CURRENT_GUI_MODE_2 == DLG2_FOCUS_MODE) msleep(100);
             #else
-            while (CURRENT_GUI_MODE == DLG_FOCUS_MODE) msleep(100);
+            while (CURRENT_GUI_MODE == GUIMODE_FOCUS_MODE) msleep(100);
             #endif
         }
     }

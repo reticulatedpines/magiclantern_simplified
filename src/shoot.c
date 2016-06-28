@@ -5141,7 +5141,7 @@ void enter_play_mode()
     if (PLAY_MODE) return;
     
     /* request new mode */
-    SetGUIRequestMode(DLG_PLAY);
+    SetGUIRequestMode(GUIMODE_PLAY);
 
     /* wait up to 2 seconds to enter the PLAY mode */
     for (int i = 0; i < 20 && !PLAY_MODE; i++)

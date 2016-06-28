@@ -4202,7 +4202,7 @@ void menu_benchmark()
 static int menu_ensure_canon_dialog()
 {
 #ifndef CONFIG_VXWORKS
-    if (CURRENT_GUI_MODE != GUIMODE_ML_MENU && CURRENT_GUI_MODE != DLG_PLAY)
+    if (CURRENT_GUI_MODE != GUIMODE_ML_MENU && CURRENT_GUI_MODE != GUIMODE_PLAY)
     {
         if (redraw_flood_stop)
         {
@@ -4994,7 +4994,7 @@ menu_task( void* unused )
                 if (sensor_cleaning ||
                     initial_mode != shooting_mode ||
                     gui_state == GUISTATE_MENUDISP ||
-                    (!DISPLAY_IS_ON && CURRENT_GUI_MODE != DLG_PLAY))
+                    (!DISPLAY_IS_ON && CURRENT_GUI_MODE != GUIMODE_PLAY))
                 {
                     /* close ML menu */
                     gui_stop_menu();
@@ -5449,7 +5449,7 @@ int handle_quick_access_menu_items(struct event * event)
         #ifdef CURRENT_GUI_MODE_2
         else if (CURRENT_GUI_MODE_2 == DLG2_FOCUS_MODE)
         #else
-        else if (CURRENT_GUI_MODE == DLG_FOCUS_MODE)
+        else if (CURRENT_GUI_MODE == GUIMODE_FOCUS_MODE)
         #endif
         {
             select_menu("Focus", 0);
@@ -5707,11 +5707,11 @@ int menu_request_image_backend()
     static int last_guimode_request = 0;
     int t = get_ms_clock_value();
     
-    if (CURRENT_GUI_MODE != DLG_PLAY)
+    if (CURRENT_GUI_MODE != GUIMODE_PLAY)
     {
         if (t > last_guimode_request + 1000)
         {
-            SetGUIRequestMode(DLG_PLAY);
+            SetGUIRequestMode(GUIMODE_PLAY);
             last_guimode_request = t;
         }
         

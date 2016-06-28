@@ -113,25 +113,25 @@
 
 #define CURRENT_GUI_MODE (*(int*)0x387C)
 #define CURRENT_GUI_MODE_2 (*(int*)0x6A50)
-#define DLG_WB 5
-#define DLG_FOCUS_MODE 9
-#define DLG_DRIVE_MODE 8
-#define DLG_PICTURE_STYLE 4
-#define DLG_PLAY 1
-#define DLG_MENU 2
-#define DLG_Q_UNAVI 0x18
-#define DLG_FLASH_AE 0x22
-#define DLG_PICQ 6
+#define GUIMODE_WB 5
+#define GUIMODE_FOCUS_MODE 9
+#define GUIMODE_DRIVE_MODE 8
+#define GUIMODE_PICTURE_STYLE 4
+#define GUIMODE_PLAY 1
+#define GUIMODE_MENU 2
+#define GUIMODE_Q_UNAVI 0x18
+#define GUIMODE_FLASH_AE 0x22
+#define GUIMODE_PICQ 6
 
-#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_GUI_MODE == 0x1B) //Sure
-#define DLG_MOVIE_PRESS_LV_TO_RESUME (CURRENT_GUI_MODE == 0x1C) //Not Sure
+#define GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_GUI_MODE == 0x1B) //Sure
+#define GUIMODE_MOVIE_PRESS_LV_TO_RESUME (CURRENT_GUI_MODE == 0x1C) //Not Sure
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
 #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x1af8 // this prop_deliver performs the action for Video Connect and Video Disconnect
 #define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0x1b24 // passed as 2nd arg to prop_deliver; 1 = display connected, 0 = not, other values disable this event (trick)
 
-#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == DLG_PLAY)
-#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == DLG_MENU)
+#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_PLAY)
+#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_MENU)
 
 
 #define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 36 : 2)

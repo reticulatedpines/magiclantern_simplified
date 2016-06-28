@@ -303,7 +303,7 @@ movtweak_task_init()
 {
 #ifdef FEATURE_FORCE_LIVEVIEW
     if (!lv && enable_liveview && is_movie_mode()
-        && (DLG_MOVIE_PRESS_LV_TO_RESUME || DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
+        && (GUIMODE_MOVIE_PRESS_LV_TO_RESUME || GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
     {
         force_liveview();
     }
@@ -372,13 +372,13 @@ void movtweak_step()
         }
 
         #ifdef FEATURE_FORCE_LIVEVIEW
-        if ((enable_liveview && DLG_MOVIE_PRESS_LV_TO_RESUME) ||
-            (enable_liveview == 2 && DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
+        if ((enable_liveview && GUIMODE_MOVIE_PRESS_LV_TO_RESUME) ||
+            (enable_liveview == 2 && GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
         {
             msleep(200);
             // double-check
-            if ((enable_liveview && DLG_MOVIE_PRESS_LV_TO_RESUME) ||
-                (enable_liveview == 2 && DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
+            if ((enable_liveview && GUIMODE_MOVIE_PRESS_LV_TO_RESUME) ||
+                (enable_liveview == 2 && GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
                 force_liveview();
         }
         #endif

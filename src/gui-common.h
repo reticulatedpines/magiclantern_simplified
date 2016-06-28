@@ -228,7 +228,7 @@ void redraw();
 void redraw_after(int msec);
 void _redraw_do();  /* private */
 
-/* Change GUI mode. Common modes are 0 (idle), DLG_PLAY and DLG_MENU. */
+/* Change GUI mode. Common modes are 0 (idle), GUIMODE_PLAY and GUIMODE_MENU. */
 void SetGUIRequestMode(int mode);
 int get_gui_mode();
 

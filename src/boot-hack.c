@@ -438,13 +438,13 @@ static void hello_world()
 static void dumper_bootflag()
 {
     msleep(5000);
-    SetGUIRequestMode(DLG_PLAY);
+    SetGUIRequestMode(GUIMODE_PLAY);
     msleep(1000);
     bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
     bmp_printf(FONT_LARGE, 50, 100, "Please wait...");
     msleep(2000);
 
-    if (CURRENT_GUI_MODE != DLG_PLAY)
+    if (CURRENT_GUI_MODE != GUIMODE_PLAY)
     {
         bmp_printf(FONT_LARGE, 50, 150, "Hudson, we have a problem!");
         return;
