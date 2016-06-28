@@ -660,8 +660,3 @@ int get_gui_mode()
     /* this is GUIMode from SetGUIRequestMode */
     return CURRENT_DIALOG_MAYBE;
 }
-
-int get_dlg_signature()
-{
-    return DLG_SIGNATURE;
-}

@@ -1545,7 +1545,7 @@ static void HijackFormatDialogBox()
     if (MEM(DIALOG_MnCardFormatBegin) == 0) return;
     struct gui_task * current = gui_task_list.current;
     struct dialog * dialog = current->priv;
-    if (dialog && MEM(dialog->type) != DLG_SIGNATURE) return;
+    if (dialog && !streq(dialog->type, "DIALOG")) return;
 
     if (keep_ml_after_format)
         dialog_set_property_str(dialog, 4, "Format card, keep ML " FORMAT_BTN_NAME);
@@ -1558,7 +1558,7 @@ static void HijackCurrentDialogBox(int string_id, char* msg)
 {
     struct gui_task * current = gui_task_list.current;
     struct dialog * dialog = current->priv;
-    if (dialog && MEM(dialog->type) != DLG_SIGNATURE) return;
+    if (dialog && !streq(dialog->type, "DIALOG")) return;
     dialog_set_property_str(dialog, string_id, msg);
     dialog_redraw(dialog);
 }
@@ -1583,7 +1583,7 @@ static void HijackDialogBox()
 {
     struct gui_task * current = gui_task_list.current;
     struct dialog * dialog = current->priv;
-    if (dialog && MEM(dialog->type) != DLG_SIGNATURE) return;
+    if (dialog && !streq(dialog->type, "DIALOG")) return;
     int i;
     for (i = 0; i<255; i++) {
             char s[30];

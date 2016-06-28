@@ -171,7 +171,6 @@
 #define BFNT_BITMAP_OFFSET 0xf7c608ec
 #define BFNT_BITMAP_DATA   0xf7c63000
 
-#define DLG_SIGNATURE 0x414944
 
 // from CFn
 #define AF_BTN_HALFSHUTTER 0

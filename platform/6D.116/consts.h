@@ -213,7 +213,6 @@ Output size: 5496 x 3670
 #define BFNT_BITMAP_DATA   0xf036ca58
 
 // todo 6D.116
-#define DLG_SIGNATURE 0x6e6144  //~ look in stubs api stability test log: [Pass] MEM(dialog->type) => 0x6e6144
 
 // from CFn
 #define AF_BTN_HALFSHUTTER 0

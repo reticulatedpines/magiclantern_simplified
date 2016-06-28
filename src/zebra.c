@@ -3925,7 +3925,7 @@ BMP_LOCK (
         struct gui_task * current = gui_task_list.current;
         struct dialog * dialog = current->priv;
 
-        if (dialog && MEM(dialog->type) == DLG_SIGNATURE) // if dialog seems valid
+        if (dialog && streq(dialog->type, "DIALOG")) // if dialog seems valid
         {
             // to redraw, we need access to front buffer
             int front_buffer_disabled = canon_gui_front_buffer_disabled();

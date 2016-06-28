@@ -25,7 +25,6 @@ extern WEAK_FUNC(ret_0) void playback_compare_images_task(int direction);
 #define DISPLAY_IS_ON display_is_on()
 #define PLAY_MODE is_play_mode()
 #define MENU_MODE is_menu_mode()
-#define DLG_SIGNATURE get_dlg_signature()
 #define HALFSHUTTER_PRESSED get_halfshutter_pressed()
 #define CURRENT_DIALOG_MAYBE get_gui_mode()
 
@@ -525,10 +524,10 @@ static void stub_test_task(void* arg)
         TEST_FUNC_CHECK(MENU_MODE, != 0);
         TEST_FUNC_CHECK(PLAY_MODE, == 0);
 
-        // also check DLG_SIGNATURE here, because display is on for sure
+        // also check dialog signature here, because display is on for sure
         struct gui_task * current = gui_task_list.current;
         struct dialog * dialog = current->priv;
-        TEST_FUNC_CHECK(MEM(dialog->type), == DLG_SIGNATURE);
+        TEST_FUNC_CHECK_STR(dialog->type, "DIALOG");
 
         TEST_VOID(GUI_Control(BGMT_MENU, 0, 0, 0); msleep(500););
         TEST_FUNC_CHECK(MENU_MODE, == 0);

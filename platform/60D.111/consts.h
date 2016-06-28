@@ -207,7 +207,6 @@
 #define BFNT_BITMAP_OFFSET 0xff7b4644 // right after character codes (when numbers no longer increase)
 #define BFNT_BITMAP_DATA   0xFF7B6CD0 // these 3 codes are spaced equally, so do the math :)
 
-#define DLG_SIGNATURE 0x006e4944 // just print it
 
 // from CFn
 #define AF_BTN_HALFSHUTTER 0

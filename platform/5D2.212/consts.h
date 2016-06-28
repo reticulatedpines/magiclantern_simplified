@@ -153,7 +153,6 @@ int get_lv_stopped_by_user();
 #define BFNT_BITMAP_OFFSET 0xf7c61108
 #define BFNT_BITMAP_DATA   0xf7c63850
 
- #define DLG_SIGNATURE 0x414944
 
 // from CFn
  #define AF_BTN_HALFSHUTTER 0
