@@ -466,8 +466,9 @@ static void dumper_bootflag()
 }
 #endif
 
-// Only after this task finished, the others are started
-// From here we can do file I/O and maybe other complex stuff
+/* This runs ML initialization routines and starts user tasks.
+ * Unlike init_task, from here we can do file I/O and others.
+ */
 static void my_big_init_task()
 {
     _find_ml_card();
@@ -530,14 +531,6 @@ static void my_big_init_task()
         task->entry = PIC_RESOLVE(task->entry);
         task->arg = PIC_RESOLVE(task->arg);
 #endif
-        //~ DebugMsg( DM_MAGIC, 3,
-            //~ "Creating task %s(%d) pri=%02x flags=%08x",
-            //~ task->name,
-            //~ task->arg,
-            //~ task->priority,
-            //~ task->flags
-        //~ );
-        
         // for debugging: uncomment this to start only some specific tasks
         // tip: use something like grep -nr TASK_CREATE ./ to find all task names
         #if 0
@@ -581,29 +574,11 @@ static void my_big_init_task()
             );
             ml_tasks++;
         }
-        //~ else
-        //~ {
-            //~ bmp_printf(FONT_LARGE, 50, 50, "skip %s  ", task->name);
-            //~ msleep(1000);
-        //~ }
     }
-    //~ bmp_printf( FONT_MED, 0, 85,
-        //~ "Magic Lantern is up and running... %d tasks started.",
-        //~ ml_tasks
-    //~ );
     
     msleep(500);
     ml_started = 1;
-
-    //~ stress_test_menu_dlg_api_task(0);
 }
-
-/*void logo_task(void* unused)
-{
-    show_logo();
-    while (!ml_started) msleep(100);
-    stop_killing_flicker();
-}*/
 
 /** Blocks execution until config is read */
 void hold_your_horses()
