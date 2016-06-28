@@ -491,16 +491,6 @@ static void my_big_init_task()
     call_init_funcs();
     msleep(200); // leave some time for property handlers to run
 
-    #ifdef CONFIG_BATTERY_TEST
-    while(1)
-    {
-        RefreshBatteryLevel_1Hz();
-        wait_till_next_second();
-        batt_display(0, 0, 0, 0);
-    }
-    return;
-    #endif
-
     #if defined(CONFIG_AUTOBACKUP_ROM)
     /* backup ROM first time to be prepared if anything goes wrong. choose low prio */
     /* On 5D3, this needs to run after init functions (after card tests) */
