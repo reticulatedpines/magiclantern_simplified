@@ -56,7 +56,6 @@
 #define GMT_FUNCTABLE 0xFF7EFE40 // dec gui_main_task
 
 #define CURRENT_DIALOG_MAYBE (*(int*)0x264DC) // in SetGUIRequestMode
-#define LV_BOTTOM_BAR_DISPLAYED UNAVI_FEEDBACK_TIMER_ACTIVE
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)(0x31184)) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
 
     // from a screenshot
@@ -157,7 +156,6 @@
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
 #define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 90 : 2) // any from 88...98 ?!
 #define NUM_PICSTYLES 10
-#define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
 
 #define FLASH_MAX_EV 3
 #define FLASH_MIN_EV -10 // not sure if it actually works
@@ -233,7 +231,12 @@
 
 #define UNAVI (MEM(0x4188c)) // dec CancelUnaviFeedBackTimer, then look around that memory area for a location that changes when you keep HS pressed
 #define UNAVI_AV (MEM(0x418C0)) //Same as above, but this location is linked to the exp comp button
-#define UNAVI_FEEDBACK_TIMER_ACTIVE ((UNAVI == 2) || (UNAVI_AV != 0))
+#define LV_BOTTOM_BAR_DISPLAYED ((UNAVI == 2) || (UNAVI_AV != 0))
+
+#define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x41878) != 0x17) // CancelUnaviFeedBackTimer
+
+// look for "JudgeBottomInfoDispTimerState(%d)"
+#define JUDGE_BOTTOM_INFO_DISP_TIMER_STATE 0x418C0
 
 #define DISPLAY_ORIENTATION MEM(0x23C10+0xB8) // read-only; string: UpdateReverseTFT.
 

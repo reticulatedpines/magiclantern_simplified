@@ -132,7 +132,6 @@ int get_lv_stopped_by_user();
 #define DISPLAY_TRAP_FOCUS_MSG_BLANK "     \n     "
 
 #define NUM_PICSTYLES 9
-#define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
 
 
 #define FLASH_MAX_EV 3

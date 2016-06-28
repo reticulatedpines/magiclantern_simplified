@@ -13,9 +13,10 @@
 #include <lens.h>
 #include <focus.h>
 #include <string.h>
+#include <battery.h>
+#include <powersave.h>
 #include "../lv_rec/lv_rec.h"
 #include "../mlv_rec/mlv.h"
-#include "battery.h"
 
 static uint64_t ret_0_long() { return 0; }
 
@@ -46,7 +47,7 @@ static CONFIG_INT( "silent.pic.file_format", silent_pic_file_format, 0 );
 #define SILENT_PIC_MODE_SIMPLE 0
 #define SILENT_PIC_MODE_BURST 1
 #define SILENT_PIC_MODE_BURST_END_TRIGGER 2
-#define SILENT_PIC_MODE_BEST_SHOTS 3
+#define SILENT_PIC_MODE_BEST_FOCUS 3
 #define SILENT_PIC_MODE_SLITSCAN 4
 #define SILENT_PIC_MODE_FULLRES 5
 
@@ -66,6 +67,8 @@ static uint64_t mlv_start_timestamp = 0;
 static char image_file_name[100];
 static uint32_t mlv_max_filesize = 0xFFFFFFFF;
 static int mlv_file_frame_number = 0;
+
+static int long_exposure_fix_enabled = 0;
 
 
 static MENU_UPDATE_FUNC(silent_pic_slitscan_display)
@@ -114,7 +117,7 @@ static MENU_UPDATE_FUNC(silent_pic_display)
             MENU_SET_VALUE("End Trigger");
             break;
 
-        case SILENT_PIC_MODE_BEST_SHOTS:
+        case SILENT_PIC_MODE_BEST_FOCUS:
             MENU_SET_VALUE("Best Shots");
             break;
 
@@ -303,7 +306,7 @@ static int save_mlv(struct raw_info * raw_info, int capture_time_ms)
      */
     if (silent_pic_mode != SILENT_PIC_MODE_BURST &&
         silent_pic_mode != SILENT_PIC_MODE_BURST_END_TRIGGER &&
-        silent_pic_mode != SILENT_PIC_MODE_BEST_SHOTS
+        silent_pic_mode != SILENT_PIC_MODE_BEST_FOCUS
         )
     {
         static int intervalometer_was_running = 0;
@@ -552,7 +555,7 @@ static unsigned int silent_pic_preview(unsigned int ctx)
     /* use full color preview for slit-scan, since we don't need real-time refresh */
     int ultra_fast = (silent_pic_mode == SILENT_PIC_MODE_SLITSCAN) ? 0 : 1;
     
-    if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
+    if (silent_pic_mode == SILENT_PIC_MODE_BEST_FOCUS)
     {
         for (int i = 0; i < sp_buffer_count; i++)
             if (sp_focus[i] == INT_MAX)
@@ -778,7 +781,7 @@ static unsigned int silent_pic_raw_vsync(unsigned int ctx)
     
     int next_slot = sp_num_frames % sp_buffer_count;
     
-    if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
+    if (silent_pic_mode == SILENT_PIC_MODE_BEST_FOCUS)
     {
         next_slot = silent_pic_raw_choose_next_slot();
     }
@@ -791,13 +794,13 @@ static unsigned int silent_pic_raw_vsync(unsigned int ctx)
     return 0;
 }
 
-static int silent_pic_raw_prepare_buffers(struct memSuite * hSuite)
+static int silent_pic_raw_prepare_buffers(struct memSuite * hSuite, int initial_count)
 {
     /* we'll look for contiguous blocks equal to raw_info.frame_size */
     /* (so we'll make sure we can write raw_info.frame_size starting from ptr) */
     struct memChunk * hChunk = (void*) GetFirstChunkFromSuite(hSuite);
     void* ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
-    int count = 0;
+    int count = initial_count;
 
     while (1)
     {
@@ -805,31 +808,31 @@ static int silent_pic_raw_prepare_buffers(struct memSuite * hSuite)
         int size = GetSizeOfMemoryChunk(hChunk);
         int used = ptr - ptr0;
         int remain = size - used;
-        //~ console_printf("remain: %x\n", remain);
+        //~ printf("remain: %x\n", remain);
 
         /* the EDMAC might write a bit more than that, so we'll use a small safety margin */
-        if (remain < raw_info.frame_size * 33/32)
+        if (remain < raw_info.frame_size * 129/128)
         {
             /* move to next chunk */
             hChunk = GetNextMemoryChunk(hSuite, hChunk);
             if (!hChunk)
             {
-                //~ console_printf("no more memory\n");
+                //~ printf("no more memory\n");
                 break;
             }
             ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
-            //~ console_printf("next chunk: %x %x\n", hChunk, ptr);
+            //~ printf("next chunk: %x %x\n", hChunk, ptr);
             continue;
         }
         else /* alright, a new frame fits here */
         {
-            //~ console_printf("FRAME %d: hSuite=%x hChunk=%x ptr=%x\n", count, hSuite, hChunk, ptr);
+            //~ printf("FRAME %d: hSuite=%x hChunk=%x ptr=%x\n", count, hSuite, hChunk, ptr);
             sp_frames[count] = ptr;
             count++;
             ptr = ptr + raw_info.frame_size;
             if (count >= SP_BUFFER_SIZE)
             {
-                //~ console_printf("we have lots of RAM, lol\n");
+                //~ printf("we have lots of RAM, lol\n");
                 break;
             }
         }
@@ -840,44 +843,86 @@ static int silent_pic_raw_prepare_buffers(struct memSuite * hSuite)
 static int
 silent_pic_take_lv(int interactive)
 {
+    if (lens_info.job_state || !lv)
+    {
+        /* only works in LV, and conflicts with regular picture taking */
+        return 0;
+    }
+
     bmp_printf(FONT_MED, 0, 37, "Preparing...");
     int ok = 1;
-
-    /* this enables a LiveView debug flag that gives us 14-bit RAW data. Cool! */
-    int raw_flag = 1;
-    raw_lv_request();
-    msleep(100);
- 
-    /* get image resolution, white level etc; retry if needed */
-    while (!raw_update_params())
-        msleep(50);
-
+    int raw_flag = 0;
+    
     /* allocate RAM */
-    struct memSuite * hSuite = 0;
+    /* we do this step first to block the shutter asap */
+    /* (gui_uilock doesn't seem to work in this case, because shutter
+     * is already pressed; but allocating the entire SRM memory does!)
+     */
+    struct memSuite * hSuite1 = 0;
+    struct memSuite * hSuite2 = 0;
     switch (silent_pic_mode)
     {
         /* allocate as much as we can in burst mode */
         case SILENT_PIC_MODE_BURST:
         case SILENT_PIC_MODE_BURST_END_TRIGGER:
-        case SILENT_PIC_MODE_BEST_SHOTS:
-            hSuite = shoot_malloc_suite(0);
+        case SILENT_PIC_MODE_BEST_FOCUS:
+        {
+            hSuite1 = srm_malloc_suite(0);
+            /* fixme: allocating shoot memory during picture taking causes lockup */
+            if (lens_info.job_state) break;
+            hSuite2 = shoot_malloc_suite(0);
             break;
+        }
         
         /* allocate only one frame in simple and slitscan modes */
         case SILENT_PIC_MODE_SIMPLE:
         case SILENT_PIC_MODE_SLITSCAN:
-            hSuite = shoot_malloc_suite_contig(raw_info.frame_size * 33/32);
+            hSuite2 = shoot_malloc_suite_contig(raw_info.frame_size * 129/128);
             break;
     }
 
-    if (!hSuite) { beep(); goto cleanup; }
+    if (!hSuite1 && !hSuite2)
+    {
+        /* could not allocate any memory */
+        beep();
+        goto cleanup;
+    }
+
+    if (lens_info.job_state || !lv)
+    {
+        /* looks like you managed to press the shutter fully,
+         * or you've got somehow out of LiveView - give up */
+        goto cleanup;
+    }
+
+    /* this enables a LiveView debug flag that gives us 14-bit RAW data. Cool! */
+    raw_flag = 1;
+    raw_lv_request();
+ 
+    /* get image resolution, white level etc */
+    if (!raw_update_params())
+    {
+        goto cleanup;
+    }
 
     /* how many pics we can take in the current memory suite? */
     /* we'll have a pointer to each picture slot in sp_frames[], indexed from 0 to sp_buffer_count */
-    sp_buffer_count = silent_pic_raw_prepare_buffers(hSuite);
+    int total_size = 0;
+    sp_buffer_count = 0;
+    
+    if (hSuite1)
+    {
+        total_size += hSuite1->size;
+        sp_buffer_count = silent_pic_raw_prepare_buffers(hSuite1, sp_buffer_count);
+    }
+    if (hSuite2)
+    {
+        total_size += hSuite2->size;
+        sp_buffer_count = silent_pic_raw_prepare_buffers(hSuite2, sp_buffer_count);
+    }
 
     if (sp_buffer_count > 1)
-        bmp_printf(FONT_MED, 0, 83, "Buffer: %d frames (%d%%)", sp_buffer_count, sp_buffer_count * raw_info.frame_size / (hSuite->size / 100));
+        bmp_printf(FONT_MED, 0, 83, "Buffer: %d frames (%d%%)", sp_buffer_count, sp_buffer_count * raw_info.frame_size / (total_size / 100));
 
     if (sp_buffer_count == 0)
     {
@@ -904,13 +949,13 @@ silent_pic_take_lv(int interactive)
             break;
         
         case SILENT_PIC_MODE_BURST_END_TRIGGER:
-        case SILENT_PIC_MODE_BEST_SHOTS:
+        case SILENT_PIC_MODE_BEST_FOCUS:
             sp_max_frames = 1000000;
             break;
     }
     
     /* when triggered from e.g. intervalometer (noninteractive), take a full burst */
-    sp_min_frames = interactive ? 1 : silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS ? 200 : sp_buffer_count;
+    sp_min_frames = interactive ? 1 : silent_pic_mode == SILENT_PIC_MODE_BEST_FOCUS ? 200 : sp_buffer_count;
 
     /* copy the raw_info structure locally (so we can still save the DNGs when video mode changes) */
     struct raw_info local_raw_info = raw_info;
@@ -921,7 +966,7 @@ silent_pic_take_lv(int interactive)
     {
         msleep(20);
         
-        if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
+        if (silent_pic_mode == SILENT_PIC_MODE_BEST_FOCUS)
             silent_pic_raw_show_focus(-1);
         
         if (!lv)
@@ -935,7 +980,7 @@ silent_pic_take_lv(int interactive)
     /* disable the debug flag, no longer needed */
     raw_lv_release(); raw_flag = 0;
     
-    if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
+    if (silent_pic_mode == SILENT_PIC_MODE_BEST_FOCUS)
     {
         /* extrapolate the current focus value for the last two pics */
         extern int focus_value_raw;
@@ -965,7 +1010,7 @@ silent_pic_take_lv(int interactive)
         gui_uilock(UILOCK_EVERYTHING & ~1); /* everything but shutter */
         int i0 = MAX(0, sp_num_frames - sp_buffer_count);
         
-        if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
+        if (silent_pic_mode == SILENT_PIC_MODE_BEST_FOCUS)
         {
             sp_num_frames -= i0, i0 = 0; /* save pics starting from index 0, to preserve ordering by focus */
         }
@@ -976,7 +1021,7 @@ silent_pic_take_lv(int interactive)
         {
             bmp_printf(FONT_MED, 0, 60, "Saving image %d of %d (%dx%d)...", i+1, sp_num_frames, raw_info.jpeg.width, raw_info.jpeg.height);
 
-            if (silent_pic_mode == SILENT_PIC_MODE_BEST_SHOTS)
+            if (silent_pic_mode == SILENT_PIC_MODE_BEST_FOCUS)
                 silent_pic_raw_show_focus(i);
 
             local_raw_info.buffer = sp_frames[i % sp_buffer_count];
@@ -1029,7 +1074,8 @@ silent_pic_take_lv(int interactive)
 cleanup:
     sp_running = 0;
     sp_buffer_count = 0;
-    if (hSuite) shoot_free_suite(hSuite);
+    if (hSuite2) shoot_free_suite(hSuite2);
+    if (hSuite1) srm_free_suite(hSuite1);
     if (raw_flag) raw_lv_release();
     return ok;
 }
@@ -1081,6 +1127,27 @@ static void display_off_if_qr_mode(int unused, int preview_time)
 }
 
 static uint32_t SLOWEST_SHUTTER = SHUTTER_15s;
+
+static void long_exposure_fix()
+{
+    unsigned shutter_old = lens_info.raw_shutter;
+    if (long_exposure_fix_enabled && shutter_old < SHUTTER_0s8)
+    {
+        unsigned shutter = SHUTTER_1_500;
+        prop_request_change_wait( PROP_SHUTTER, &shutter, 4, 100);
+        void* job = (void*) call("FA_CreateTestImage");
+        /* We need paused lv, otherwise the camera will freeze */
+        if (!LV_PAUSED && gui_state != GUISTATE_QR)
+        {
+            gui_uilock(UILOCK_EVERYTHING);
+            PauseLiveView();
+        }
+        call("FA_CaptureTestImage", job);
+        call("FA_DeleteTestImage", job);
+        
+        prop_request_change_wait( PROP_SHUTTER, &shutter_old, 4, 100);
+    }
+}
 
 static int
 silent_pic_take_fullres(int interactive)
@@ -1292,9 +1359,8 @@ silent_pic_take_fullres(int interactive)
                               : 0;
         delayed_call(100, display_off_if_qr_mode, (void*)preview_delay);
 
-        /* attempt to reset the powersave timer */
-        int prolong = 3; /* AUTO_POWEROFF_PROLONG */
-        prop_request_change(PROP_ICU_AUTO_POWEROFF, &prolong, 4);
+        /* reset the powersave timer */
+        powersave_prolong();
     }
     else
     {
@@ -1316,6 +1382,7 @@ cleanup:
         call("FA_DeleteTestImage", copy_job);
     }
     
+    long_exposure_fix();
     gui_uilock(UILOCK_NONE);
     
     return ok;
@@ -1467,14 +1534,21 @@ static struct menu_entry silent_menu[] = {
                 .priv = &silent_pic_mode,
                 .max = 5,
                 .help = "Choose the silent picture mode:",
+                .choices = CHOICES(
+                    "Simple",
+                    "Burst",
+                    "Burst, End Trigger",
+                    "Best Focus",
+                    "Slit-Scan",
+                    "Full-res"
+                ),
                 .help2 = 
                     "Take a silent picture when you press the shutter halfway.\n"
                     "Take pictures until memory gets full, then save to card.\n"
                     "Take pictures continuously, save the last few pics to card.\n"
-                    "Take pictures continuously, save the best (focused) images.\n"
+                    "Take pictures continuously, save the images with best focus.\n"
                     "Distorted pictures for funky effects.\n"
                     "Experimental full-resolution pictures.\n",
-                .choices = CHOICES("Simple", "Burst", "Burst, End Trigger", "Best Shots", "Slit-Scan", "Full-res"),
                 .icon_type = IT_DICE,
             },
             {
@@ -1522,7 +1596,7 @@ static unsigned int silent_init()
     if (is_camera("500D", "*") || is_camera("550D", "*") || is_camera("600D", "*"))
     {
         /* see http://www.magiclantern.fm/forum/index.php?topic=12523.msg129874#msg129874 */
-        SLOWEST_SHUTTER = SHUTTER_0s8;
+        long_exposure_fix_enabled = 1;
     }
 
     menu_add("Shoot", silent_menu, COUNT(silent_menu));

@@ -70,6 +70,8 @@
 #include <edmac-memcpy.h>
 #include <cache_hacks.h>
 #include <string.h>
+#include <shoot.h>
+#include <powersave.h>
 
 #include "../lv_rec/lv_rec.h"
 #include "../file_man/file_man.h"
@@ -80,7 +82,8 @@
 #include "mlv_rec.h"
 
 /* an alternative tracing method that embeds the logs into the MLV file itself */
-#define EMBEDDED_LOGGING
+/* looks like it might cause pink frames - http://www.magiclantern.fm/forum/index.php?topic=5473.msg165356#msg165356 */
+#undef EMBEDDED_LOGGING
 
 #if defined(EMBEDDED_LOGGING) && !defined(TRACE_DISABLED)
 #define trace_write                                 mlv_debg_printf
@@ -124,8 +127,8 @@ uint32_t raw_rec_trace_ctx = TRACE_ERROR;
  * => if my math is not broken, this traslates to resolution being multiple of 32 pixels horizontally
  * use roughly 10% increments
  **/
-static uint32_t resolution_presets_x[] = {  640,  704,  768,  864,  960,  1152,  1280,  1344,  1472,  1504,  1536,  1600,  1728, 1792,  1856,  1920,  2048,  2240,  2560,  2880,  3584 };
-#define  RESOLUTION_CHOICES_X CHOICES("640","704","768","864","960","1152","1280","1344","1472","1504","1536","1600","1728", "1792","1856","1920","2048","2240","2560","2880","3584")
+static uint32_t resolution_presets_x[] = {  640,  960,  1280,  1600,  1920,  2240,  2560,  2880,  3200,  3520 };
+#define  RESOLUTION_CHOICES_X CHOICES(     "640","960","1280","1600","1920","2240","2560","2880","3200","3520")
 
 static uint32_t aspect_ratio_presets_num[]      = {   5,    4,    3,       8,      25,     239,     235,      22,    2,     185,     16,    5,    3,    4,    12,    1175,    1,    1 };
 static uint32_t aspect_ratio_presets_den[]      = {   1,    1,    1,       3,      10,     100,     100,      10,    1,     100,      9,    3,    2,    3,    10,    1000,    1,    2 };
@@ -140,8 +143,8 @@ static CONFIG_INT("mlv.fast_card_buffers", fast_card_buffers, 1);
 static CONFIG_INT("mlv.tracing", enable_tracing, 0);
 static CONFIG_INT("mlv.display_rec_info", display_rec_info, 1);
 static CONFIG_INT("mlv.show_graph", show_graph, 0);
-static CONFIG_INT("mlv.black_fix", black_fix, 0);
-static CONFIG_INT("mlv.res_x", resolution_index_x, 12);
+static CONFIG_INT("mlv.res.x", resolution_index_x, 4);
+static CONFIG_INT("mlv.res.x.fine", res_x_fine, 0);
 static CONFIG_INT("mlv.aspect_ratio", aspect_ratio_index, 10);
 static CONFIG_INT("mlv.write_speed", measured_write_speed, 0);
 static CONFIG_INT("mlv.skip_frames", allow_frame_skip, 0);
@@ -164,6 +167,7 @@ static int32_t res_x = 0;
 static int32_t res_y = 0;
 static int32_t max_res_x = 0;
 static int32_t max_res_y = 0;
+static int32_t sensor_res_x = 0;
 static float squeeze_factor = 0;
 static int32_t frame_size = 0;
 static int32_t skip_x = 0;
@@ -521,6 +525,13 @@ static void update_cropping_offsets()
     skip_y = sy;
 
     refresh_cropmarks();
+
+    /* mv640crop needs this to center the recorded image */
+    if (is_movie_mode() && video_mode_resolution == 2 && video_mode_crop)
+    {
+        skip_x = skip_x + 51;
+        skip_y = skip_y - 6;
+    }
 }
 
 static void update_resolution_params()
@@ -552,7 +563,7 @@ static void update_resolution_params()
     else squeeze_factor = 1.0f;
 
     /* res X */
-    res_x = MIN(resolution_presets_x[resolution_index_x], max_res_x);
+    res_x = MIN(resolution_presets_x[resolution_index_x] + res_x_fine, max_res_x);
 
     /* res Y */
     int32_t num = aspect_ratio_presets_num[aspect_ratio_index];
@@ -565,6 +576,26 @@ static void update_resolution_params()
     ASSERT(frame_size % 4 == 0);
 
     update_cropping_offsets();
+}
+
+static int mlv_rec_update_raw()
+{
+    /* we will fail if that is just a LV mode, but no movie mode */
+    if(!lv || !is_movie_mode())
+    {
+        return 0;
+    }
+    
+    /* this call will retry internally, and if it fails, we can assume it was indeed something bad */
+    if (!raw_update_params())
+    {
+        return 0;
+    }
+    
+    /* update interal parameters res_x, res_y, frame_size, squeeze_factor and crop offsets  */
+    update_resolution_params();
+    
+    return 1;
 }
 
 static char* guess_aspect_ratio(int32_t res_x, int32_t res_y)
@@ -705,12 +736,26 @@ static void refresh_raw_settings(int32_t force)
         static int aux = INT_MIN;
         if (force || should_run_polling_action(250, &aux))
         {
-            if (raw_update_params())
-            {
-                update_resolution_params();
-            }
+            mlv_rec_update_raw();
         }
     }
+}
+
+static int32_t calc_crop_factor()
+{
+
+    int32_t camera_crop = 162;
+    int32_t sampling_x = 3;
+    
+    if (cam_5d2 || cam_5d3 || cam_6d) camera_crop = 100;
+    
+    if (video_mode_crop || (lv_dispsize > 1)) sampling_x = 1;
+    
+    get_afframe_sensor_res(&sensor_res_x, NULL);
+    if (!sensor_res_x) return 0;
+    if (!res_x) return 0;
+    
+    return camera_crop * (sensor_res_x / sampling_x) / res_x;
 }
 
 static MENU_UPDATE_FUNC(raw_main_update)
@@ -733,6 +778,8 @@ static MENU_UPDATE_FUNC(raw_main_update)
     else
     {
         MENU_SET_VALUE("ON, %dx%d", res_x, res_y);
+        int32_t crop_factor = calc_crop_factor();
+        if (crop_factor) MENU_SET_RINFO("%s%d.%02dx", FMT_FIXEDPOINT2( crop_factor ));
     }
 
     write_speed_update(entry, info);
@@ -766,9 +813,11 @@ static MENU_UPDATE_FUNC(resolution_update)
 
     refresh_raw_settings(1);
 
-    int32_t selected_x = resolution_presets_x[resolution_index_x];
+    int32_t selected_x = resolution_presets_x[resolution_index_x] + res_x_fine;
 
     MENU_SET_VALUE("%dx%d", res_x, res_y);
+    int32_t crop_factor = calc_crop_factor();
+    if (crop_factor) MENU_SET_RINFO("%s%d.%02dx", FMT_FIXEDPOINT2( crop_factor ));
 
     if (selected_x > max_res_x)
     {
@@ -1688,9 +1737,9 @@ static void hack_liveview(int32_t unhack)
             cam_550d ? 0xFF2FE5E4 :
             cam_600d ? 0xFF37AA18 :
             cam_650d ? 0xFF527E38 :
-            cam_6d  ? 0xFF52BE94 :
+            cam_6d   ? 0xFF52C684 :
             cam_eos_m ? 0xFF539C1C :
-            cam_700d ? 0xFF52BA7C :
+            cam_700d ? 0xFF52BB60 :
             cam_7d  ? 0xFF345788 :
             cam_60d ? 0xff36fa3c :
             cam_500d ? 0xFF2ABEF8 :
@@ -2130,7 +2179,7 @@ static int32_t FAST process_frame()
     /* frame number in file is off by one. nobody needs to know we skipped the first frame */
     hdr->frameNumber = frame_count - 1;
     hdr->cropPosX = (skip_x + 7) & ~7;
-    hdr->cropPosY = (skip_y + 7) & ~7;
+    hdr->cropPosY = skip_y & ~1;
     hdr->panPosX = skip_x;
     hdr->panPosY = skip_y;
     
@@ -2373,19 +2422,6 @@ static int32_t mlv_write_rawi(FILE* f, struct raw_info raw_info)
     rawi.xRes = res_x;
     rawi.yRes = res_y;
     rawi.raw_info = raw_info;
-    
-    /* sometimes black level is a bit off. fix that if enabled. ToDo: do all models have 2048? */
-    if(black_fix)
-    {
-        if(cam_50d || cam_5d2)
-        {
-            rawi.raw_info.black_level = 1024;
-        }
-        else
-        {
-            rawi.raw_info.black_level = 2048;
-        }
-    }
 
     return mlv_write_hdr(f, (mlv_hdr_t *)&rawi);
 }
@@ -3112,19 +3148,16 @@ static void raw_video_rec_task()
 
     /* detect raw parameters (geometry, black level etc) */
     raw_set_dirty();
-    if (!raw_update_params())
+    if (!mlv_rec_update_raw())
     {
-        bmp_printf( FONT_MED, 30, 50, "Raw detect error");
+        NotifyBox(5000, "Raw detect error");
         goto cleanup;
     }
 
-    update_resolution_params();
-
     trace_write(raw_rec_trace_ctx, "Resolution: %dx%d @ %d.%03d FPS", res_x, res_y, fps_get_current_x1000()/1000, fps_get_current_x1000()%1000);
     
-    /* disable powersave timer */
-    const int powersave_prohibit = 2;
-    prop_request_change(PROP_ICU_AUTO_POWEROFF, &powersave_prohibit, 4);
+    /* disable Canon's powersaving (30 min in LiveView) */
+    powersave_prohibit();
 
     /* signal that we are starting, call this before any memory allocation to give CBR the chance to allocate memory */
     raw_rec_cbr_starting();
@@ -3569,9 +3602,8 @@ cleanup:
     hack_liveview(1);
     redraw();
 
-    /* re-enable powersave timer */
-    const int powersave_permit = 1;
-    prop_request_change(PROP_ICU_AUTO_POWEROFF, &powersave_permit, 4);
+    /* re-enable powersaving  */
+    powersave_permit();
 
     raw_recording_state = RAW_IDLE;
 }
@@ -3742,6 +3774,36 @@ static MENU_UPDATE_FUNC(raw_tag_take_update)
     }
 }
 
+static MENU_SELECT_FUNC(resolution_change_fine_value)
+{
+    if (!mlv_video_enabled || !lv)
+    {
+        return;
+    }
+    
+    if (get_menu_edit_mode()) {
+        /* preset resolution from pickbox */
+        resolution_index_x = MOD(resolution_index_x + delta, COUNT(resolution_presets_x));
+        res_x_fine = 0;
+        return;
+    }
+    
+    /* fine-tune resolution in 32px increments */
+    uint32_t cur_res = resolution_presets_x[resolution_index_x] + res_x_fine;
+    if (delta < 0) cur_res = MIN(cur_res, max_res_x);
+    cur_res += delta * 32;
+    int last = COUNT(resolution_presets_x)-1;
+    cur_res = COERCE(cur_res, resolution_presets_x[0], resolution_presets_x[last]);
+    
+    /* pick the closest preset */
+    resolution_index_x = 0;
+    while((resolution_index_x < (COUNT(resolution_presets_x) - 1)) && (resolution_presets_x[resolution_index_x+1] <= cur_res)) {
+        resolution_index_x += 1;
+    }
+    res_x_fine = cur_res - resolution_presets_x[resolution_index_x];
+    
+}
+
 static struct menu_entry raw_video_menu[] =
 {
     {
@@ -3757,6 +3819,7 @@ static struct menu_entry raw_video_menu[] =
                 .name = "Resolution",
                 .priv = &resolution_index_x,
                 .max = COUNT(resolution_presets_x) - 1,
+                .select = resolution_change_fine_value,
                 .update = resolution_update,
                 .choices = RESOLUTION_CHOICES_X,
             },
@@ -3854,13 +3917,6 @@ static struct menu_entry raw_video_menu[] =
                 .help2 = "May help with performance.",
             },
             {
-                .name = "Fix Black Level",
-                .priv = &black_fix,
-                .max = 1,
-                .help  = "Forces the black level to 2048 (5D3), 1024 (50D/5D2).",
-                .help2  = "Try this to fix green/magenta casts.",
-            },
-            {
                 .name = "Debug Trace",
                 .priv = &enable_tracing,
                 .max = 1,
@@ -3937,6 +3993,10 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
     /* if you somehow managed to start recording H.264, let it stop */
     if (RECORDING_H264)
         return 1;
+
+    /* block the zoom key while recording */
+    if (!RAW_IS_IDLE && key == MODULE_KEY_PRESS_ZOOMIN)
+        return 0;
 
     /* start/stop recording with the LiveView key */
     int32_t rec_key_pressed = (key == MODULE_KEY_LV || key == MODULE_KEY_REC);
@@ -4113,17 +4173,17 @@ static unsigned int raw_rec_init()
     cam_50d   = is_camera("50D",  "1.0.9");
     cam_5d3   = is_camera("5D3",  "1.1.3");
     cam_550d  = is_camera("550D", "1.0.9");
-    cam_6d    = is_camera("6D",   "1.1.3");
+    cam_6d    = is_camera("6D",   "1.1.6");
     cam_600d  = is_camera("600D", "1.0.2");
     cam_650d  = is_camera("650D", "1.0.4");
     cam_7d    = is_camera("7D",   "2.0.3");
-    cam_700d  = is_camera("700D", "1.1.3");
+    cam_700d  = is_camera("700D", "1.1.4");
     cam_60d   = is_camera("60D",  "1.1.1");
     cam_500d  = is_camera("500D", "1.1.1");
     
     /* not all models support exFAT filesystem */
     uint32_t exFAT = 1;
-    if(cam_5d2 || cam_50d || cam_7d)
+    if(cam_5d2 || cam_50d || cam_500d || cam_7d)
     {
         exFAT = 0;
         large_file_support = 0;
@@ -4222,6 +4282,7 @@ MODULE_PROPHANDLERS_END()
 MODULE_CONFIGS_START()
     MODULE_CONFIG(mlv_video_enabled)
     MODULE_CONFIG(resolution_index_x)
+    MODULE_CONFIG(res_x_fine)
     MODULE_CONFIG(aspect_ratio_index)
     MODULE_CONFIG(measured_write_speed)
     MODULE_CONFIG(allow_frame_skip)
@@ -4243,6 +4304,5 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(show_graph)
     MODULE_CONFIG(large_file_support)
     MODULE_CONFIG(create_dummy)
-    MODULE_CONFIG(black_fix)
     MODULE_CONFIG(create_dirs)
 MODULE_CONFIGS_END()

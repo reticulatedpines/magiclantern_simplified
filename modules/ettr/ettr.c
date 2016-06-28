@@ -743,6 +743,7 @@ static void auto_ettr_step_task(int corr)
     auto_ettr_running = 0;
 }
 
+/* photo mode only, no LV */
 static void auto_ettr_step()
 {
     if (!auto_ettr) return;
@@ -1238,8 +1239,14 @@ static void auto_ettr_step_lv_slow()
     if (!should_run_polling_action(1500, &aux))
         return;
     
+    int corr = INT_MIN;
     raw_lv_request();
-    int corr = auto_ettr_get_correction();
+    
+    if (raw_update_params())
+    {
+        corr = auto_ettr_get_correction();
+    }
+    
     raw_lv_release();
     
     if (corr == INT_MIN)

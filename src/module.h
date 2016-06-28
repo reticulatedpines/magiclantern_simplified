@@ -51,6 +51,7 @@
 
 #define CBR_CUSTOM_PICTURE_TAKING    11 /* special types of picture taking (e.g. silent pics); so intervalometer and other photo taking routines should use that instead of regular pics */
 #define CBR_INTERVALOMETER           12 /* called after a picture is taken with the intervalometer */
+#define CBR_CONFIG_SAVE              13 /* called when ML configs are being saved */
 
 /* return values from CBRs */
 #define CBR_RET_CONTINUE              0             /* keep calling other CBRs of the same type */
@@ -97,7 +98,7 @@
 #define MODULE_KEY_TOUCH_2_FINGER          (37)
 #define MODULE_KEY_UNTOUCH_2_FINGER        (38)
 
-
+int module_translate_key(int key, int dest);
 #define MODULE_KEY_CANON     0
 #define MODULE_KEY_PORTABLE  1
 

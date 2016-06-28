@@ -159,7 +159,6 @@
 #define DISPLAY_TRAP_FOCUS_MSG_BLANK "     \n     "
 
 #define NUM_PICSTYLES 9
-#define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
 
 
 #define FLASH_MAX_EV 3
@@ -171,7 +170,7 @@
 #define DIALOG_MnCardFormatBegin   (0x2524c+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x26434+4) // similar
 #define FORMAT_BTN_NAME "[Q]"
-#define FORMAT_BTN BGMT_Q
+#define FORMAT_BTN BGMT_Q_ALT
 #define FORMAT_STR_LOC 11
 
 #define BULB_MIN_EXPOSURE 1000
@@ -222,7 +221,15 @@
 
 #define DISPLAY_STATEOBJ (*(struct state_object **)0x245c)
 //~ #define DISPLAY_IS_ON (MEM(0xc022010c) & 2) // from BackLightOn
-#define DISPLAY_IS_ON get_display_is_on_550D() // from state object
+
+#ifdef CONFIG_INSTALLER
+    /* we don't have state object hooks running, so we'll use the good old way */
+    #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
+#else
+    /* this workaround prevents crashes when using custom schemes and related display tricks */
+    /* todo: is this still needed? probably not, since we check LCLK now */
+    #define DISPLAY_IS_ON get_display_is_on_550D() // from state object
+#endif
 
 #define LV_STRUCT_PTR 0x1d14
 #define FRAME_SHUTTER *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x5e)

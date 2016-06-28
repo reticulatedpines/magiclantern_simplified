@@ -100,6 +100,7 @@ NSTUB(0xFF852A80,  StopASIFDMADAC)
 //NSTUB( 0x2348	 , sounddev )                    // in sounddev_task								//d
 //NSTUB( 0xff855b68, sounddev_active_in )
 //NSTUB( 0xff855778, sounddev_task )
+// NSTUB(    ???, _audio_ic_write_bulk)                     /* present on 6D.116 */
 // NSTUB(    ???,  audio_thresholds)                        /* present on 7D.203, 60D.111, 6D.113, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 
 /** Bitmap **/
@@ -205,11 +206,11 @@ NSTUB(0xFF889DCC,  gui_post_10000085)                       // should be called 
 NSTUB(0xFF98A990,  gui_timer_something)                     // d
 
 /** GUI timers **/
+NSTUB(0xFFA96A50,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 NSTUB(0xFF86D6A0,  CancelTimer)
 NSTUB(0xFF8652CC,  SetHPTimerAfterNow)
 NSTUB(0xFF86534C,  SetHPTimerNextTick)
 NSTUB(0xFF86D4A0,  SetTimerAfter)
-NSTUB(0xFFA96A50,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 
 /** H264 Encoder **/
 NSTUB(    0x7674,  mvr_config)                              // d
@@ -232,6 +233,7 @@ NSTUB(0xFF9ADD28,  DispSensorStart)                         // d
 NSTUB(   0x1D6FC,  cf_device)                               // in cfReadBlk
 NSTUB(   0x1D744,  sd_device)                               // in sdReadBlk
 NSTUB(0xFFB0A9B4,  fsuDecodePartitionTable)
+// NSTUB(    ???,  cf_device_ptr)                           /* present on 5D3.113 */
 
 /** Memory allocation **/
 NSTUB(0xFF8680C8,  GetMemoryInformation)
@@ -255,7 +257,6 @@ NSTUB(0xFF9ED888,  ptp_register_handler)                    // d
 // NSTUB(    ???,  ptpPropSetUILock)                        /* present on 650D.104, 700D.113 */
 
 /** Properties **/
-NSTUB(0xFF85A3D8,  PROPAD_GetPropertyData)                  // str:SearchFromProperty
 NSTUB(0xFF859860, _prop_cleanup)
 NSTUB(0xFF8598C4, _prop_request_change)                     // d
 NSTUB(0xFF859704,  prop_deliver)                            // d
@@ -325,6 +326,7 @@ NSTUB(0xFF98E1E4,  vsnprintf)                               // d
 ///NSTUB(0xFF834B04,  LVCAF_LensDriveStart)                    // d
 ///NSTUB(0xFF85DDDC,  MuteOff_0)                               // not quite the same as in other cameras, but should work
 ///NSTUB(0xFF85DD98,  MuteOn_0)                                // idem
+///NSTUB(0xFF85A3D8,  PROPAD_GetPropertyData)                  // str:SearchFromProperty
 ///NSTUB(0xFF8599E0,  PROP_GetMulticastProperty)
 ///NSTUB(0xFF97CA98,  PopEDmac)
 ///NSTUB(0xFFA5F738,  RedrawDisplay)                           // d

@@ -15,8 +15,5 @@ ifeq ($(ML_SRC_PROFILE),generic)
 RESTARTSTART  = 0x1FE00000
 endif
 
-# must have 8.3 characters for 64GB EXFAT cards
-UPDATE_NAME_FIR=60D__111.FIR
-
 #End of FW_VERSION == 111
 endif

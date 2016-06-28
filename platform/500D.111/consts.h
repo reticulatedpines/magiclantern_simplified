@@ -159,7 +159,6 @@
 #define DISPLAY_TRAP_FOCUS_MSG_BLANK "       \n       " // not needed, camera redraws the place itself
 
 #define NUM_PICSTYLES 9
-#define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
 
 
 #define FLASH_MAX_EV 3

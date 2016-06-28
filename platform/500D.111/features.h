@@ -14,3 +14,5 @@
 #define FEATURE_INTERMEDIATE_ISO_PHOTO_DISPLAY
 
 #undef FEATURE_MOVIE_RESTART /* https://bitbucket.org/hudson/magic-lantern/issue/1008/500d-movie-restart-function-is-not-working */
+
+#define FEATURE_REC_NOTIFY_BEEP

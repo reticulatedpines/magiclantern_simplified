@@ -46,24 +46,21 @@ asm(
     "LDM   R4, {R1-R3}\n"
     "LDR   R0, [R2]\n"
     "CMP   R0, R1\n"
-    "BEQ   skip_fir_header\n"
+    "BEQ   load_ok\n"
     
     /* reset */
     "reset:\n"
     "BX    R3\n"                    /* -> R1 (magic 0xE12FFF13) */
     ".word   autoexec_bin_footer\n" /* -> R2 (footer address) */
     ".word   "STR(ROMBASEADDR)"\n"  /* -> R3 (reset address) */
-
     
-    /* if used in a .fir file, there is a 0x120 byte address offset.
-       so cut the first 0x120 bytes off autoexec.bin before embedding into .fir
-     */
-     
-    /* as we dont want to waste too much space, embed the version information here. must have exactly 0x100 bytes. */
+    /* embed some human-readable version info */
+    /* (visible if you open autoexec.bin in e.g. Notepad or ML file manager) */
     ".incbin \"version.bin\"\n"
-    
+
     /* ok our code starts here */
-    "skip_fir_header:\n"
+    ".align 2\n"
+    "load_ok:\n"
     "MRS     R0, CPSR\n"
     "BIC     R0, R0, #0x3F\n"   // Clear I,F,T
     "ORR     R0, R0, #0xD3\n"   // Set I,T, M=10011 == supervisor
@@ -138,6 +135,36 @@ static void blink(int n)
 static void fail()
 {
     disp_init();
+
+#ifdef CONFIG_INSTALLER
+    print_line(COLOR_WHITE, 4, "Magic Lantern");
+    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_WHITE, 2, "Incorrect firmware version.");
+    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_GRAY+2, 2, "Expecting a Canon " CAMERA_MODEL ",");
+    print_line(COLOR_GRAY+2, 2, "with firmware version " STR(CONFIG_FW_VERSION) ".");
+    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_WHITE, 2, "");
+  #ifdef CONFIG_70D
+    char* camera_model_line =  "Please try installing ML for 70D " STR(CONFIG_FW_VERSION) ".";
+    camera_model_line[36] = (camera_model_line[36] == 'A') ? 'B' : 'A';
+    print_line(COLOR_WHITE, 2, camera_model_line);
+    print_line(COLOR_WHITE, 2, "");
+  #else
+    print_line(COLOR_WHITE, 2, "Please reinstall Canon firmware " STR(CONFIG_FW_VERSION) ",");
+    print_line(COLOR_WHITE, 2, "even if you already have this version.");
+  #endif
+    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_WHITE, 2, "");
+    print_line(COLOR_GRAY+2, 2, "You may now remove your battery.");
+#else
     print_line(COLOR_WHITE, 4, "Magic Lantern");
     print_line(COLOR_WHITE, 2, VERSION);
     print_line(COLOR_WHITE, 2, "");
@@ -158,13 +185,19 @@ static void fail()
     print_line(COLOR_GRAY+2, 2, "- Make sure you've got the right ML zip");
     print_line(COLOR_GRAY+2, 2, "  for your camera model.");
     print_line(COLOR_GRAY+2, 2, "");
-    print_line(COLOR_GRAY+2, 2, "- Make sure you have the right firmware");
-    print_line(COLOR_GRAY+2, 2, "  version from Canon (reinstall if needed).");
+    print_line(COLOR_GRAY+2, 2, "- If in doubt, upgrade (or downgrade)");
+    char* upgrade_line =        "  your Canon firmware to x.x.x (again).";
+    len = strlen(upgrade_line);
+    upgrade_line[len-14] = fw_version[0];
+    upgrade_line[len-12] = fw_version[1];
+    upgrade_line[len-10] = fw_version[2];
+    print_line(COLOR_GRAY+2, 2, upgrade_line);
     print_line(COLOR_GRAY+2, 2, "");
     print_line(COLOR_GRAY+2, 2, "- To use your camera without Magic Lantern,");
     print_line(COLOR_GRAY+2, 2, "  format this card from your computer.");
     print_line(COLOR_WHITE, 2, "");
     print_line(COLOR_GRAY+2, 2, "You may now remove your battery.");
+#endif
     
     /* I doubt we can still boot Canon firmware from this point, but didn't try */
     while(1);

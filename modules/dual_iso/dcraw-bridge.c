@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include "../../src/raw.h"
 #include "dcraw-bridge.h"
+#include "kelvin.h"
 
 /** Compute the number of entries in a static array */
 #define COUNT(x)        ((int)(sizeof(x)/sizeof((x)[0])))
@@ -12,7 +13,8 @@
 // The follwing two tables are copied straight from dcraw.c
 // Update them as needed :)
 
-static const struct {
+/* also used in kelvin.c */
+const struct {
     const char *prefix;
     short black, maximum, trans[12];
 } table[] = {
@@ -40,6 +42,8 @@ static const struct {
         { 4920,616,-593,-6493,13964,2784,-1774,3178,7005 } },
     { "EOS 60D", 0, 0x2ff7,
         { 6719,-994,-925,-4408,12426,2211,-887,2129,6051 } },
+    { "EOS 70D", 0, 0x3bc7,
+        { 7034,-804,-1014,-4420,12564,2058,-851,1994,5758 } },	
     { "EOS 100D", 0, 0x350f,
         { 6602,-841,-939,-4472,12458,2247,-975,2039,6148 } },
     { "EOS 300D", 0, 0xfa0,
@@ -86,6 +90,9 @@ static const struct {
         { 6847,-614,-1014,-4669,12737,2139,-1197,2488,6846 } },
     { "EOS-1D", 0, 0xe20,
         { 6806,-179,-1020,-8097,16415,1687,-3267,4236,7690 } },
+    
+    /* end of list */
+    { NULL, 0, 0, { 0,0,0,0,0,0,0,0,0 } },
 };
 
 static const struct {
@@ -98,6 +105,7 @@ static const struct {
     { 0x190, "EOS 40D" },    { 0x169, "EOS-1D Mark III" },
     { 0x261, "EOS 50D" },    { 0x281, "EOS-1D Mark IV" },
     { 0x287, "EOS 60D" },    { 0x167, "EOS-1DS" },
+    { 0x325, "EOS 70D" },
     { 0x170, "EOS 300D" },   { 0x188, "EOS-1Ds Mark II" },
     { 0x176, "EOS 450D" },   { 0x215, "EOS-1Ds Mark III" },
     { 0x189, "EOS 350D" },   { 0x324, "EOS-1D C" },
@@ -125,40 +133,38 @@ static int* trans_to_calib(const short* trans)
     return calib;
 }
 
-int get_raw_info(unsigned model_id, struct raw_info* orig)
+static int find_camera_id(const char * model)
 {
-    const char* model = NULL;
-    int i = 0;
-    for(i=0; i<COUNT(unique); ++i)
-    {
-        if(model_id == unique[i].id)
-        {
-            model = unique[i].model;
-            break;
-        }
-    }
-
-    if(model == NULL)
-    {
-        printf("No camera model found with id 0x%x\n", model_id);
-        return -1;
-    }
-    else
-    {
-        printf("Camera          : Canon %s\n", model);
-    }
-
-    for(i=0; i<COUNT(table); ++i)
+    for(int i=0; table[i].prefix; ++i)
     {
         if(strcmp(model, table[i].prefix) == 0)
         {
-            int* calib = trans_to_calib(table[i].trans);
-            memcpy(orig->color_matrix1, calib, 18*sizeof(int));
-            free(calib);
-            return 0;
+            return i;
         }
     }
-
-    printf("No table found for camera model: %s\n", model);
+    
     return -1;
+}
+
+int get_raw_info(const char * model, struct raw_info * raw_info)
+{
+    printf("Camera          : Canon %s", model);
+    
+    int i = find_camera_id(model);
+    if (i == -1)
+    {
+        printf(" (unknown, assuming 5D Mark III)");
+        model = "EOS 5D Mark III";
+        i = find_camera_id(model);
+    }
+    
+    printf("\n");
+    
+    adobe_coeff("Canon", model);
+
+    int* calib = trans_to_calib(table[i].trans);
+    memcpy(raw_info->color_matrix1, calib, 18*sizeof(int));
+    free(calib);
+    
+    return 0;
 }

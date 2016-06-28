@@ -43,7 +43,7 @@ unsigned int tinypy_deinit()
 {
     while (tinypy_running)
     {
-        console_printf("waiting for script...\n");
+        printf("waiting for script...\n");
         msleep(1000);
     }
 
