@@ -414,21 +414,16 @@ static void backup_region(char *file, uint32_t base, uint32_t length)
     free(buf);
 }
 
-static void backup_task()
+static void backup_rom_task()
 {
     backup_region("ML/LOGS/ROM1.BIN", 0xF8000000, 0x01000000);
     backup_region("ML/LOGS/ROM0.BIN", 0xF0000000, 0x01000000);
 }
 #endif
 
-// Only after this task finished, the others are started
-// From here we can do file I/O and maybe other complex stuff
-static void my_big_init_task()
-{
-  _find_ml_card();
-  _load_fonts();
-
 #ifdef CONFIG_HELLO_WORLD
+static void hello_world()
+{
     int sig = compute_signature((int*)SIG_START, 0x10000);
     while(1)
     {
@@ -436,44 +431,58 @@ static void my_big_init_task()
         bmp_printf(FONT_LARGE, 50, 400, "firmware signature = 0x%x", sig);
         info_led_blink(1, 500, 500);
     }
+}
 #endif
 
 #ifdef CONFIG_DUMPER_BOOTFLAG
+static void dumper_bootflag()
+{
     msleep(5000);
     SetGUIRequestMode(DLG_PLAY);
     msleep(1000);
-    update_vram_params();
     bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
-    bmp_printf(FONT_LARGE, 50, 200, "Please wait...");
+    bmp_printf(FONT_LARGE, 50, 100, "Please wait...");
     msleep(2000);
 
     if (CURRENT_DIALOG_MAYBE != DLG_PLAY)
     {
-        bmp_printf(FONT_LARGE, 50, 200, "Hudson, we have a problem!");
+        bmp_printf(FONT_LARGE, 50, 150, "Hudson, we have a problem!");
         return;
     }
+    
+    /* this requires CONFIG_AUTOBACKUP_ROM */
+    bmp_printf(FONT_LARGE, 50, 150, "ROM Backup...");
+    backup_rom_task();
 
     // do try to enable bootflag in LiveView, or during sensor cleaning (it will fail while writing to ROM)
     // no check is done here, other than a large delay and doing this while in Canon menu
-    bmp_printf(FONT_LARGE, 50, 200, "EnableBootDisk");
+    // todo: check whether the issue is still present with interrupts disabled
+    bmp_printf(FONT_LARGE, 50, 200, "EnableBootDisk...");
+    uint32_t old = cli();
     call("EnableBootDisk");
-    
-    msleep(500);
-    FILE* f = FIO_CreateFile("ROM.DAT");
-    if (f)
-    {
-        FIO_WriteFile(f, (void*) 0xFF000000, 0x01000000);
-        FIO_CloseFile(f);
-        bmp_printf(FONT_LARGE, 50, 250, ":)");    
-    }
-    else
-    {
-        bmp_printf(FONT_LARGE, 50, 250, "Oops!");    
-    }
-    info_led_blink(1, 500, 500);
+    sei(old);
+
+    bmp_printf(FONT_LARGE, 50, 250, ":)");
+}
+#endif
+
+// Only after this task finished, the others are started
+// From here we can do file I/O and maybe other complex stuff
+static void my_big_init_task()
+{
+    _find_ml_card();
+    _load_fonts();
+
+#ifdef CONFIG_HELLO_WORLD
+    hello_world();
     return;
 #endif
-    
+
+#ifdef CONFIG_DUMPER_BOOTFLAG
+    dumper_bootflag();
+    return;
+#endif
+   
     call("DisablePowerSave");
     _ml_cbr_init();
     menu_init();
@@ -494,7 +503,7 @@ static void my_big_init_task()
     #if defined(CONFIG_AUTOBACKUP_ROM)
     /* backup ROM first time to be prepared if anything goes wrong. choose low prio */
     /* On 5D3, this needs to run after init functions (after card tests) */
-    task_create("ml_backup", 0x1f, 0x4000, backup_task, 0 );
+    task_create("ml_backup", 0x1f, 0x4000, backup_rom_task, 0 );
     #endif
 
     /* Read ML config. if feature disabled, nothing happens */
