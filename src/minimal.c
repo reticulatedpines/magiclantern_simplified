@@ -134,7 +134,11 @@ my_init_task(int a, int b, int c, int d)
 {
     init_task(a,b,c,d);
     
-    msleep(2000);
+    /* wait for display to initialize */
+    while (!bmp_vram_info[1].vram2)
+    {
+        msleep(100);
+    }
 
     while(1)
     {
