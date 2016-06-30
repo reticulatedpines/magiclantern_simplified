@@ -32,7 +32,7 @@ macro define CURRENT_ISR    ((int)0xFFFFFFFF)
 
 # misc preferences
 set pagination off
-set radix 16
+set output-radix 16
 
 define hook-quit
   set confirm off
@@ -380,7 +380,7 @@ define try_receive_msg_queue_log
     print_mq_name $r0
     printf ", %x, timeout=%d)\n", $r1, $r2
     eval "set $task_%s = \"wait_mq  0x%08X\"", CURRENT_TASK_NAME, $r0
-    eval "set $mq_%s_buf = %x", CURRENT_TASK_NAME, $r1
+    eval "set $mq_%s_buf = 0x%x", CURRENT_TASK_NAME, $r1
     tbreak *($lr & ~1)
     commands
       silent
@@ -414,7 +414,7 @@ define receive_msg_queue_log
     print_mq_name $r0
     printf ", %x)\n", $r1
     eval "set $task_%s = \"wait_mq  0x%08X\"", CURRENT_TASK_NAME, $r0
-    eval "set $mq_%s_buf = %x", CURRENT_TASK_NAME, $r1
+    eval "set $mq_%s_buf = 0x%x", CURRENT_TASK_NAME, $r1
     tbreak *($lr & ~1)
     commands
       silent

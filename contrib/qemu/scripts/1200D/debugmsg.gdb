@@ -21,7 +21,7 @@ mpu_send_log
 b *0xFF10F768
 mpu_recv_log
 
-b *FF10D50C
+b *0xFF10D50C
 commands
   silent
   printf "PROPAD_GetPropertyData(0x%08X)\n", $r0
