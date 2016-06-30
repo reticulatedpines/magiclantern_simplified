@@ -47,4 +47,8 @@ UnLockEngineResources_log
 b *0xFF1C48F8
 AsyncLockEngineResources_log
 
+b *0xFF0638FC
+load_default_date_time_log
+macro define RTC_VALID_FLAG (*(int*)0x26C4)
+
 cont

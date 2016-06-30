@@ -32,4 +32,8 @@ try_receive_msg_queue_log
 b *0xFF1F5B0C
 receive_msg_queue_log
 
+b *0xFF069E6C
+load_default_date_time_log
+macro define RTC_VALID_FLAG (*(int*)0x2744)
+
 cont

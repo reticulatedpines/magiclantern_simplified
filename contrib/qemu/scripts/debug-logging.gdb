@@ -23,12 +23,17 @@ target remote localhost:1234
 #   Example for 70D:
 #      macro define CURRENT_ISR  (*(int*)0x648 ? (*(int*)0x64C) >> 2 : 0)
 #
+# RTC_VALID_FLAG:
+#   Only needed if you use load_default_date_time_log.
+#   In the RTC initialization routine, this flag
+#   is set to 1 if date/time was read successfully.
+#
 ################################################################################
 
 # dummy definitions
 macro define CURRENT_TASK   ((int)0xFFFFFFFF)
 macro define CURRENT_ISR    ((int)0xFFFFFFFF)
-
+macro define RTC_VALID_FLAG ((int)0xFFFFFFFF)
 
 # misc preferences
 set pagination off
@@ -679,6 +684,55 @@ define UnLockEngineResources_log
     KCYN
     printf "UnLockEngineResources(%x)\n", $r0
     KRESET
+    c
+  end
+end
+
+# date/time helpers
+
+define print_date_time
+    # arg0: struct tm *
+    printf "%04d/%02d/%02d %02d:%02d:%02d", \
+      ((int*)$arg0)[5] + 1900, ((int*)$arg0)[4] + 1, ((int*)$arg0)[3], \
+      ((int*)$arg0)[2], ((int*)$arg0)[1], ((int*)$arg0)[0]
+end
+
+define set_date_time
+    # args: struct tm *, year, month, day, hour, minute, second
+    set ((int*)$arg0)[5] = $arg1 - 1900
+    set ((int*)$arg0)[4] = $arg2 - 1
+    set ((int*)$arg0)[3] = $arg3
+    set ((int*)$arg0)[2] = $arg4
+    set ((int*)$arg0)[1] = $arg5
+    set ((int*)$arg0)[0] = $arg6
+end
+
+define load_default_date_time_log
+  commands
+    silent
+    print_current_location
+    printf "load_default_date_time(%x)\n", $r0
+    set $tm = $r0
+    print_date_time $tm
+    tbreak *($lr & ~1)
+    commands
+      silent
+      print_current_location
+      printf "load_default_date_time => "
+      print_date_time $tm
+      printf "\n"
+      print_current_location
+      printf "overriding date/time to : "
+      set_date_time $tm 2015 01 15 13 37 00
+      if RTC_VALID_FLAG == 0xFFFFFFFF
+        printf "Please define RTC_VALID_FLAG.\n"
+      else
+        set RTC_VALID_FLAG = 1
+      end
+      print_date_time $tm
+      printf "\n"
+      c
+    end
     c
   end
 end
