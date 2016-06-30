@@ -297,6 +297,146 @@ define give_semaphore_log
   end
 end
 
+# message queues
+
+define create_msg_queue_log
+  commands
+    silent
+    print_current_location
+    KBLU
+    printf "create_msg_queue('%s', %d)\n", $r0, $r1
+    KRESET
+    set $mq_cr_name = $r0
+    tbreak *($lr & ~1)
+    commands
+      silent
+      if $mq_cr_name == -1234
+        KRED
+        # fixme: create_msg_queue is not atomic,
+        # so if two tasks create message queues at the same time, we may mix them up
+        # (maybe call cli/sei from gdb, or is this check enough?)
+        print "create message queue: race condition?"
+        KRESET
+      end
+      printf "*** Created message queue 0x%x: %x '%s'\n", $r0, $mq_cr_name, $mq_cr_name
+      eval "set $mq_%x_name = $mq_cr_name", $r0
+      set $mq_cr_name = -1234
+      c
+    end
+    c
+  end
+end
+
+# todo: delete_msg_queue_log
+
+define print_mq_name
+ eval "set $mq_name = $mq_%x_name", $arg0
+ if $_isvoid($mq_name)
+   KRED
+   printf " /* mq not created!!! */"
+   KRESET
+ else
+ if $mq_name == -1
+   KRED
+   printf " /* mq deleted!!! */"
+   KRESET
+ else
+ if $mq_name
+  printf " "
+  KCYN
+  printf "'%s'", $mq_name
+  KRESET
+ end
+ end
+ end
+end
+
+# int post_msg_queue(struct msg_queue * queue, int msg);
+# int try_post_msg_queue(struct msg_queue * queue, int msg, int unknown);
+define post_msg_queue_log
+  commands
+    silent
+    print_current_location
+    KCYN
+    printf "post_msg_queue"
+    KRESET
+    printf "(0x%x", $r0
+    print_mq_name $r0
+    printf ", 0x%x)\n", $r1
+    try_expand_ram_struct $r1
+    c
+  end
+end
+
+# int try_receive_msg_queue(struct msg_queue *queue, void *buffer, int timeout);
+define try_receive_msg_queue_log
+  commands
+    silent
+    print_current_location
+    KYLW
+    printf "try_receive_msg_queue"
+    KRESET
+    printf "(0x%x", $r0
+    print_mq_name $r0
+    printf ", %x, timeout=%d)\n", $r1, $r2
+    eval "set $task_%s = \"wait_mq  0x%08X\"", CURRENT_TASK_NAME, $r0
+    eval "set $mq_%s_buf = %x", CURRENT_TASK_NAME, $r1
+    tbreak *($lr & ~1)
+    commands
+      silent
+      print_current_location
+      if $r0
+        KRED
+      else
+        KGRN
+      end
+      printf "try_receive_msg_queue => "
+      KRESET
+      printf "%d (pc=%x)\n", $r0, $pc
+      eval "try_expand_ram_struct $mq_%s_buf", CURRENT_TASK_NAME
+      eval "try_expand_ram_struct *(int*)$mq_%s_buf", CURRENT_TASK_NAME
+      eval "set $task_%s = \"ready\"", CURRENT_TASK_NAME
+      c
+    end
+    c
+  end
+end
+
+# int receive_msg_queue(struct msg_queue *queue, void *buffer);
+define receive_msg_queue_log
+  commands
+    silent
+    print_current_location
+    KYLW
+    printf "receive_msg_queue"
+    KRESET
+    printf "(0x%x", $r0
+    print_mq_name $r0
+    printf ", %x)\n", $r1
+    eval "set $task_%s = \"wait_mq  0x%08X\"", CURRENT_TASK_NAME, $r0
+    eval "set $mq_%s_buf = %x", CURRENT_TASK_NAME, $r1
+    tbreak *($lr & ~1)
+    commands
+      silent
+      print_current_location
+      if $r0
+        KRED
+      else
+        KGRN
+      end
+      printf "receive_msg_queue => "
+      KRESET
+      printf "%d (pc=%x)\n", $r0, $pc
+      eval "try_expand_ram_struct $mq_%s_buf", CURRENT_TASK_NAME
+      eval "set $task_%s = \"ready\"", CURRENT_TASK_NAME
+      c
+    end
+    c
+  end
+end
+
+# interrupts
+
 define register_interrupt_log
   commands
     silent

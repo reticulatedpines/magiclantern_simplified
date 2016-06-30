@@ -17,4 +17,19 @@ mpu_send_log
 b *0xFF05ED84
 mpu_recv_log
 
+b *0xFF1F5944
+create_msg_queue_log
+
+b *0xFF1F5C40
+post_msg_queue_log
+
+b *0xFF1F5B9C
+post_msg_queue_log
+
+b *0xFF1F5A54
+try_receive_msg_queue_log
+
+b *0xFF1F5B0C
+receive_msg_queue_log
+
 cont
