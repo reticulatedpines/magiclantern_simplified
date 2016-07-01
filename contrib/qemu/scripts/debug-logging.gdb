@@ -1,9 +1,9 @@
 # GDB scripts for tracing stuff around the firmware
 # This file contains generic routines that can be used on all cameras.
-# Requires arm-none-eabi-gdb >= 7.7
+# Requires arm-none-eabi-gdb >= 7.7 (gcc-arm-none-eabi-4_9-2015q3 or later)
 
-# To use gdb, start emulation with:
-#    ./run_canon_fw 60D -s -S
+# To use gdb, start emulation with, for example:
+#    ./run_canon_fw.sh 60D -s -S & arm-none-eabi-gdb -x 60D/debugmsg.gdb
 
 set remotetimeout 20
 target remote localhost:1234
