@@ -4,6 +4,8 @@
 
 # To use gdb, start emulation with:
 #    ./run_canon_fw 60D -s -S
+
+set remotetimeout 20
 target remote localhost:1234
 
 ################################################################################
