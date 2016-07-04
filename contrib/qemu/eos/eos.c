@@ -374,12 +374,16 @@ static void *eos_interrupt_thread(void *parm)
                     /* timer interrupt will re-fire periodically */
                     if(pos == TIMER_INTERRUPT)
                     {
-                        //~ printf("[EOS] trigger int 0x%02X (delayed)\n", pos);    /* quiet */
+                        if (qemu_loglevel_mask(CPU_LOG_INT)) {
+                            //~ printf("[EOS] trigger int 0x%02X (delayed)\n", pos);    /* quiet */
+                        }
                         s->irq_schedule[pos] = s->timer_reload_value[DRYOS_TIMER_ID] >> 8;
                     }
                     else
                     {
-                        printf("[EOS] trigger int 0x%02X (delayed)\n", pos);
+                        if (qemu_loglevel_mask(CPU_LOG_INT)) {
+                            printf("[EOS] trigger int 0x%02X (delayed)\n", pos);
+                        }
                         s->irq_schedule[pos] = 0;
                     }
 
@@ -1375,14 +1379,18 @@ unsigned int eos_trigger_int(EOSState *s, unsigned int id, unsigned int delay)
 
     if(!delay && s->irq_enabled[id] && !s->irq_id)
     {
-        printf("[EOS] trigger int 0x%02X\n", id);
+        if (qemu_loglevel_mask(CPU_LOG_INT)) {
+            printf("[EOS] trigger int 0x%02X\n", id);
+        }
         s->irq_id = id;
         s->irq_enabled[s->irq_id] = 0;
         cpu_interrupt(CPU(s->cpu), CPU_INTERRUPT_HARD);
     }
     else
     {
-        printf("[EOS] trigger int 0x%02X (delayed!)\n", id);
+        if (qemu_loglevel_mask(CPU_LOG_INT)) {
+            printf("[EOS] trigger int 0x%02X (delayed!)\n", id);
+        }
         if(!s->irq_enabled[id])
         {
             delay = 1;
