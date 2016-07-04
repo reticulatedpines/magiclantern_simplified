@@ -185,6 +185,7 @@ EOSRegionHandler eos_handlers[] =
     { "ASIF",         0xC0920000, 0xC0920FFF, eos_handle_asif, 4 },
     { "Display",      0xC0F14000, 0xC0F14FFF, eos_handle_display, 0 },
     { "Power",        0xC0F01000, 0xC0F010FF, eos_handle_power_control, 1 },
+    { "ADC",          0xD9800000, 0xD9800068, eos_handle_adc, 0 },
 
     /* generic catch-all for everything unhandled from this range */
     { "ENGIO",        0xC0F00000, 0xC0FFFFFF, eos_handle_engio, 0 },
@@ -2148,6 +2149,27 @@ unsigned int eos_handle_power_control ( unsigned int parm, EOSState *s, unsigned
     }
     
     io_log("Power", s, address, type, value, ret, 0, 0, 0);
+    return ret;
+}
+
+
+unsigned int eos_handle_adc ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+{
+    const char * msg = 0;
+    int msg_arg1 = 0;
+    unsigned int ret = 0;
+    
+    if(type & MODE_WRITE)
+    {
+    }
+    else
+    {
+        int channel = (address & 0xFF) >> 2;
+        msg = "channel #%d";
+        msg_arg1 = channel;
+    }
+    
+    io_log("ADC", s, address, type, value, ret, msg, msg_arg1, 0);
     return ret;
 }
 
