@@ -403,7 +403,9 @@ static void *eos_interrupt_thread(void *parm)
         {
             if (s->HPTimers[pos].active && s->HPTimers[pos].output_compare == s->digic_timer)
             {
-                printf("[HPTimer] Firing HPTimer %d/8\n", pos+1);
+                if (qemu_loglevel_mask(LOG_IO)) {
+                    printf("[HPTimer] Firing HPTimer %d/8\n", pos+1);
+                }
                 s->HPTimers[pos].triggered = 1;
                 trigger_hptimers = 1;
             }
@@ -1229,8 +1231,10 @@ static char* get_current_task_name(EOSState *s)
 
 void io_log(const char * module_name, EOSState *s, unsigned int address, unsigned char type, unsigned int in_value, unsigned int out_value, const char * msg, intptr_t msg_arg1, intptr_t msg_arg2)
 {
-    /* todo: integrate with QEMU's logging/verbosity code */
-    //~ return;
+    /* log I/O when "-d io" is specified on the command line */
+    if (!qemu_loglevel_mask(LOG_IO)) {
+        return;
+    }
     
     unsigned int pc = s->cpu->env.regs[15];
     if (!module_name) module_name = "???";
