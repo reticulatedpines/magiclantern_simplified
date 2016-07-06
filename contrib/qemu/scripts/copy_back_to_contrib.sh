@@ -8,6 +8,7 @@ ML=${ML:=magic-lantern}
 cp -v *.sh *.py *.gdb gdbopts ../$ML/contrib/qemu/scripts
 cp -v --parents */*.gdb ../$ML/contrib/qemu/scripts
 cp -v $QEMU_PATH/hw/eos/* ../$ML/contrib/qemu/eos
+cp -v $QEMU_PATH/hw/eos/mpu_spells/* ../$ML/contrib/qemu/eos/mpu_spells
 
 cd $QEMU_PATH
 git diff > ../../$ML/contrib/qemu/$QEMU_PATH.patch
