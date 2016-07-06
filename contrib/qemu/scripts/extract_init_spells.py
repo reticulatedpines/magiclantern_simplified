@@ -13,9 +13,14 @@ def format_spell(spell):
     bytes = ["0x" + b for b in bytes]
     return "{ " + ", ".join(bytes) + " },"
 
-f = open(sys.argv[1], "r")
+log_fullpath = sys.argv[1]
+f = open(log_fullpath, "r")
 
-print "struct mpu_init_spell mpu_init_spells[] = { {"
+# logs start with camera model, e.g. 60D-startup.log
+[log_path, log_filename] = os.path.split(log_fullpath)
+model = log_filename[:log_filename.index("-")]
+
+print "struct mpu_init_spell mpu_init_spells_%s[] = { {" % model
 first_block = True
 num = 0
 num2 = 0
