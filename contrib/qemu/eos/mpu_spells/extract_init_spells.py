@@ -60,6 +60,13 @@ for l in f.readlines():
     if m:
         spell = m.groups()[0].strip()
         num2 += 1
+
+        if spell.startswith("06 05 06 "):
+            args = spell.split(" ")[3:5]
+            args = [int(a,16) for a in args]
+            print "        %-56s/* reply #%d.%d, bindReceiveSwitch(%d, %d) */" % (format_spell(spell), num, num2, args[0], args[1])
+            continue
+
         print "        %-56s/* reply #%d.%d */" % (format_spell(spell), num, num2)
         continue
     
