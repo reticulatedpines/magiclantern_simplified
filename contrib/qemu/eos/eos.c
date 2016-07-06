@@ -835,7 +835,8 @@ static void eos_key_event(void *parm, int keycode)
 {
     /* keys sent to guest machine */
     EOSState *s = (EOSState *)parm;
-    s->keyb.buf[(s->keyb.tail++) & 15] = keycode;
+    mpu_send_keypress(s, keycode);
+    //s->keyb.buf[(s->keyb.tail++) & 15] = keycode;
 }
 
 

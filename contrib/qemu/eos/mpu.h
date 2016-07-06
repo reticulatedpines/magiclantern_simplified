@@ -10,5 +10,7 @@ unsigned int eos_handle_mpu(unsigned int parm, EOSState *s, unsigned int address
 unsigned int eos_handle_sio3 ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_mreq ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 
+void mpu_send_keypress(EOSState *s, int keycode);
+
 #endif
 

@@ -42,8 +42,7 @@ static void mpu_send_next_spell(EOSState *s)
         s->mpu.sq_head = (s->mpu.sq_head+1) & (COUNT(s->mpu.send_queue)-1);
         printf("[MPU] Sending spell: ");
 
-        int i;
-        for (i = 0; i < s->mpu.out_spell[0]; i++)
+        for (int i = 0; i < s->mpu.out_spell[0]; i++)
         {
             printf("%02x ", s->mpu.out_spell[i]);
         }
@@ -76,6 +75,36 @@ static void mpu_enqueue_spell(EOSState *s, int spell_set, int out_spell)
     }
 }
 
+static void mpu_enqueue_spell_generic(EOSState *s, unsigned char * spell)
+{
+    int next_tail = (s->mpu.sq_tail+1) & (COUNT(s->mpu.send_queue)-1);
+    if (next_tail != s->mpu.sq_head)
+    {
+        printf("[MPU] Queueing spell: ");
+        for (int i = 0; i < spell[0]; i++)
+        {
+            printf("%02x ", spell[i]);
+        }
+        printf("\n");
+        s->mpu.send_queue[s->mpu.sq_tail] = spell;
+        s->mpu.sq_tail = next_tail;
+    }
+    else
+    {
+        printf("[MPU] ERROR: send queue full\n");
+    }
+}
+
+static void mpu_start_sending(EOSState *s)
+{
+    if (!s->mpu.sending && s->mpu.sq_head != s->mpu.sq_tail)
+    {
+        s->mpu.sending = 1;
+        
+        /* request a MREQ interrupt */
+        eos_trigger_int(s, 0x50, 0);
+    }
+}
 
 static void mpu_interpret_command(EOSState *s)
 {
@@ -98,14 +127,7 @@ static void mpu_interpret_command(EOSState *s)
             {
                 mpu_enqueue_spell(s, spell_set, out_spell);
             }
-            
-            if (!s->mpu.sending && s->mpu.sq_head != s->mpu.sq_tail)
-            {
-                s->mpu.sending = 1;
-                
-                /* request a MREQ interrupt */
-                eos_trigger_int(s, 0x50, 0);
-            }
+            mpu_start_sending(s);
             return;
         }
     }
@@ -146,7 +168,7 @@ void mpu_handle_sio3_interrupt(EOSState *s)
                     if (s->mpu.sq_head != s->mpu.sq_tail)
                     {
                         printf("[MPU] Requesting next spell\n");
-                        eos_trigger_int(s, 0x50, 0);   /* MREQ */
+                        eos_trigger_int(s, 0x50, 1);   /* MREQ */
                     }
                     else
                     {
@@ -460,6 +482,86 @@ unsigned int eos_handle_mreq( unsigned int parm, EOSState *s, unsigned int addre
     return ret;
 }
 
+/* http://www.marjorie.de/ps2/scancode-set1.htm */
+/* returns MPU button codes (lo, hi) */
+static int translate_scancode_2(int scancode, int first_code)
+{
+    switch (first_code)
+    {
+        case 0x00:
+        {
+            switch (scancode)
+            {
+                case 0x10: return 0x3201;             /* Q */
+                case 0x32: return 0x0001;             /* M -> MENU */
+                case 0x39: return 0x0C01;             /* space -> SET */
+                case 0xB9: return 0x0C00;             /* unpress SET */
+                case 0x1A: return 0x0DFF;             /* [ and ] -> main dial */
+                case 0x1B: return 0x0D01;
+                case 0x19: return 0x0301;             /* P -> PLAY */
+                case 0x17: return 0x0101;             /* I -> INFO/DISP */
+                case 0x25: return 0xAAAAAAAA;         /* K: try all key codes */
+            }
+            break;
+        }
+
+        case 0xE0:
+        {
+            switch (scancode)
+            {
+                case 0x49: return 0x0EFF;        /* page up */
+                case 0x51: return 0x0E01;        /* page down */
+                case 0x53: return 0x0401;        /* delete */
+            }
+        }
+    }
+    
+    return -1;
+}
+
+static int translate_scancode(int scancode)
+{
+    static int first_code = 0;
+    
+    if (first_code)
+    {
+        /* special keys (arrows etc) */
+        int key = translate_scancode_2(scancode, first_code);
+        first_code = 0;
+        return key;
+    }
+    
+    if (scancode == 0xE0)
+    {
+        /* wait for second keycode */
+        first_code = scancode;
+        return -1;
+    }
+    
+    /* regular keys */
+    return translate_scancode_2(scancode, 0);
+}
+
+void mpu_send_keypress(EOSState *s, int keycode)
+{
+    /* good news: most MPU button codes appear to be the same across all cameras :) */
+    int key = translate_scancode(keycode);
+    if (key == -1) return;
+
+    printf("Key event: %x -> %04x\n", keycode, key);
+    
+    static unsigned char mpu_keypress_spell[6] = {
+        0x06, 0x05, 0x06, 0x00, 0x00, 0x00
+    };
+    
+    mpu_keypress_spell[3] = key >> 8;
+    mpu_keypress_spell[4] = key & 0xFF;
+    
+    /* fixme: race condition */
+    mpu_enqueue_spell_generic(s, mpu_keypress_spell);
+    mpu_start_sending(s);
+}
+
 void mpu_spells_init(EOSState *s)
 {
 #define MPU_SPELL_SET(cam) \
@@ -486,8 +588,6 @@ void mpu_spells_init(EOSState *s)
     
     /* same for 1100D */
     MPU_SPELL_SET_OTHER_CAM(1100D, 60D)
-
-    //~ MPU_SPELL_SET_OTHER_CAM(600D, 60D)
     
     if (!mpu_init_spell_count)
     {
