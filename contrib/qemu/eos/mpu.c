@@ -17,7 +17,6 @@ static void mpu_interpret_command(EOSState *s);
 static struct mpu_init_spell * mpu_init_spells = 0;
 static int mpu_init_spell_count = 0;
 
-#define MPU_CURRENT_OUT_SPELL mpu_init_spells[s->mpu.spell_set].out_spells[s->mpu.out_spell]
 /**
  * We don't know the meaning of MPU messages yet, so we'll replay them from a log file.
  * Timing is important - if we would just send everything as a response to first message,
@@ -39,17 +38,16 @@ static void mpu_send_next_spell(EOSState *s)
     if (s->mpu.sq_head != s->mpu.sq_tail)
     {
         /* get next spell from the queue */
-        s->mpu.spell_set = s->mpu.send_queue[s->mpu.sq_head].spell_set;
-        s->mpu.out_spell = s->mpu.send_queue[s->mpu.sq_head].out_spell;
+        s->mpu.out_spell = s->mpu.send_queue[s->mpu.sq_head];
         s->mpu.sq_head = (s->mpu.sq_head+1) & (COUNT(s->mpu.send_queue)-1);
-        printf("[MPU] Sending spell #%d.%d ( ", s->mpu.spell_set+1, s->mpu.out_spell+1);
+        printf("[MPU] Sending spell: ");
 
         int i;
-        for (i = 0; i < MPU_CURRENT_OUT_SPELL[0]; i++)
+        for (i = 0; i < s->mpu.out_spell[0]; i++)
         {
-            printf("%02x ", MPU_CURRENT_OUT_SPELL[i]);
+            printf("%02x ", s->mpu.out_spell[i]);
         }
-        printf(")\n");
+        printf("\n");
 
         s->mpu.out_char = -2;
 
@@ -69,8 +67,7 @@ static void mpu_enqueue_spell(EOSState *s, int spell_set, int out_spell)
     if (next_tail != s->mpu.sq_head)
     {
         printf("[MPU] Queueing spell #%d.%d\n", spell_set+1, out_spell+1);
-        s->mpu.send_queue[s->mpu.sq_tail].spell_set = spell_set;
-        s->mpu.send_queue[s->mpu.sq_tail].out_spell = out_spell;
+        s->mpu.send_queue[s->mpu.sq_tail] = mpu_init_spells[spell_set].out_spells[out_spell];
         s->mpu.sq_tail = next_tail;
     }
     else
@@ -120,7 +117,7 @@ void mpu_handle_sio3_interrupt(EOSState *s)
 {
     if (s->mpu.sending)
     {
-        int num_chars = MPU_CURRENT_OUT_SPELL[0];
+        int num_chars = s->mpu.out_spell[0];
         
         if (num_chars)
         {
@@ -144,7 +141,7 @@ void mpu_handle_sio3_interrupt(EOSState *s)
                 }
                 else
                 {
-                    printf("[MPU] spell #%d.%d finished\n", s->mpu.spell_set+1, s->mpu.out_spell+1);
+                    printf("[MPU] spell finished\n");
 
                     if (s->mpu.sq_head != s->mpu.sq_tail)
                     {
@@ -304,12 +301,12 @@ unsigned int eos_handle_mpu(unsigned int parm, EOSState *s, unsigned int address
 
 static int mpu_handle_get_data(EOSState *s, int *hi, int *lo)
 {
-    if (s->mpu.spell_set < mpu_init_spell_count &&
-        s->mpu.out_spell >= 0 &&
-        s->mpu.out_char >= 0 && s->mpu.out_char < MPU_CURRENT_OUT_SPELL[0])
+    if (s->mpu.out_spell &&
+        s->mpu.out_char >= 0 &&
+        s->mpu.out_char < s->mpu.out_spell[0])
     {
-        *hi = MPU_CURRENT_OUT_SPELL[s->mpu.out_char];
-        *lo = MPU_CURRENT_OUT_SPELL[s->mpu.out_char+1];
+        *hi = s->mpu.out_spell[s->mpu.out_char];
+        *lo = s->mpu.out_spell[s->mpu.out_char+1];
         return 1;
     }
     return 0;
@@ -409,9 +406,9 @@ unsigned int eos_handle_sio3( unsigned int parm, EOSState *s, unsigned int addre
                         ret = (hi << 8) | lo;
                         msg = "Data from MPU";
                     } else {
-                        msg = "From MPU -> out of range (cmd %d, char %d)";
-                        msg_arg1 = s->mpu.out_spell;
-                        msg_arg2 = s->mpu.out_char;
+                        msg = "From MPU -> out of range (char %d of %d)";
+                        msg_arg1 = s->mpu.out_char;
+                        msg_arg2 = s->mpu.out_spell[0];
                         ret = 0;
                     }
                 }

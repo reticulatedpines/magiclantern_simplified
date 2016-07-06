@@ -138,11 +138,12 @@ typedef struct
     unsigned char recv_buffer[128];
     int recv_index;
     
-    int spell_set;              /* used for replaying MPU messages */
-    int out_spell;
+    /* used for replaying MPU messages */
+    unsigned char * out_spell;
     int out_char;
 
-    struct { short spell_set; short out_spell; } send_queue[0x100];
+    /* contains pointers to MPU out spells (see mpu_init_spell) */
+    unsigned char * send_queue[0x100];
     int sq_head;                /* for extracting items */
     int sq_tail;                /* for inserting (queueing) items */
 
