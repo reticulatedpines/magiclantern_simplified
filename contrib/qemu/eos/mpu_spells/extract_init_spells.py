@@ -5,7 +5,6 @@
 
 import os, sys, re
 
-comment = True
 first_mpu_send_only = False
 
 def format_spell(spell):
@@ -31,7 +30,7 @@ waitid_prop = None
 for l in f.readlines():
     m = re.match(".* mpu_send\(([^()]*)\)", l)
     if m:
-        spell = m.groups()[0]
+        spell = m.groups()[0].strip()
 
         if first_send or not first_mpu_send_only:
             first_send = False
@@ -44,21 +43,24 @@ for l in f.readlines():
             else: print "        { 0 } } }, {"
             
             if waitid_prop:
-                assert spell.strip().startswith("08 06 00 00 ")
+                assert spell.startswith("08 06 00 00 ")
                 print "    %-60s/* spell #%d, Complete WaitID = %s */" % (format_spell(spell) + " {", num, waitid_prop)
                 waitid_prop = None
                 continue
             
-            if comment: print "    %-60s/* spell #%d */" % (format_spell(spell) + " {", num)
-            else:       print "    " + format_spell(spell) + " {"
+            if spell.startswith("06 05 04 00 "):
+                arg = int(spell.split(" ")[4], 16)
+                print "    %-60s/* spell #%d, NotifyGUIEvent(%d) */" % (format_spell(spell) + " {", num, arg)
+                continue
+            
+            print "    %-60s/* spell #%d */" % (format_spell(spell) + " {", num)
             continue
 
     m = re.match(".* mpu_recv\(([^()]*)\)", l)
     if m:
-        spell = m.groups()[0]
+        spell = m.groups()[0].strip()
         num2 += 1
-        if comment: print "        %-56s/* reply #%d.%d */" % (format_spell(spell), num, num2)
-        else: print "        " + format_spell(spell)
+        print "        %-56s/* reply #%d.%d */" % (format_spell(spell), num, num2)
         continue
     
     # after a Complete WaitID line, the ICU sends to the MPU a message saying it's ready
