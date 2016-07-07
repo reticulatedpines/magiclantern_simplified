@@ -5,6 +5,7 @@
 
 from __future__ import print_function
 import os, sys, re
+from outils import *
 
 first_mpu_send_only = False
 
@@ -15,6 +16,7 @@ def format_spell(spell):
 
 log_fullpath = sys.argv[1]
 f = open(log_fullpath, "r")
+lines = f.readlines()
 
 # logs start with camera model, e.g. 60D-startup.log
 [log_path, log_filename] = os.path.split(log_fullpath)
@@ -28,8 +30,7 @@ num2 = 0
 first_send = True
 waitid_prop = None
 
-lines = f.readlines()
-
+switch_names = get_switch_names(model)
 bind_switches = {}
 last_bind_switch = None
 
@@ -50,29 +51,6 @@ for l in lines:
             assert(bind_switches[last_bind_switch] == (arg1,arg2))
         else:
             bind_switches[last_bind_switch] = arg1,arg2
-
-def get_switch_names(camera_model):
-    switch_names = {}
-    ml_dir = "../../../../../magic-lantern/platform/"
-    
-    # pick one platform directory for this camera (any firmware version)
-    cam_dir = [d for d in os.listdir(ml_dir) 
-                 if camera_model in d
-                 and os.path.isfile(os.path.join(ml_dir, d, "gui.h"))
-              ][0]
-    
-    gui_h = open(os.path.join(ml_dir, cam_dir, "gui.h")).readlines()
-    for l in gui_h:
-        m = re.match(" *#define +([A-Z0-9_]+) +([0-9a-fA-Fx]+)", l)
-        if m:
-            btn_name = m.groups()[0]
-            btn_code = m.groups()[1]
-            try: btn_code = int(btn_code,16) if btn_code.startswith("0x") else int(btn_code)
-            except: continue
-            switch_names[btn_code] = btn_name
-    return switch_names
-    
-switch_names = get_switch_names(model)
 
 for l in lines:
     m = re.match(".* mpu_send\(([^()]*)\)", l)

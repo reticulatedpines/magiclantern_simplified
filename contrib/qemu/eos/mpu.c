@@ -482,25 +482,33 @@ unsigned int eos_handle_mreq( unsigned int parm, EOSState *s, unsigned int addre
     return ret;
 }
 
+#include "mpu_spells/button_codes.h"
+
+static int* button_codes = 0;
+
 /* http://www.marjorie.de/ps2/scancode-set1.htm */
 /* returns MPU button codes (lo, hi) */
 static int translate_scancode_2(int scancode, int first_code)
 {
+    if (!button_codes)
+    {
+        return -1;
+    }
+    
     switch (first_code)
     {
         case 0x00:
         {
             switch (scancode)
             {
-                case 0x10: return 0x3201;             /* Q */
-                case 0x32: return 0x0001;             /* M -> MENU */
-                case 0x39: return 0x0C01;             /* space -> SET */
-                case 0xB9: return 0x0C00;             /* unpress SET */
-                case 0x1A: return 0x0DFF;             /* [ and ] -> main dial */
-                case 0x1B: return 0x0D01;
-                case 0x19: return 0x0301;             /* P -> PLAY */
-                case 0x17: return 0x0101;             /* I -> INFO/DISP */
-                case 0x25: return 0xAAAAAAAA;         /* K: try all key codes */
+                case 0x10: return button_codes[BGMT_Q];             /* Q */
+                case 0x32: return button_codes[BGMT_MENU];          /* M -> MENU */
+                case 0x39: return button_codes[BGMT_PRESS_SET];     /* space -> SET */
+                case 0xB9: return button_codes[BGMT_UNPRESS_SET];   /* unpress SET */
+                case 0x1A: return button_codes[BGMT_WHEEL_LEFT];    /* [ and ] -> main dial */
+                case 0x1B: return button_codes[BGMT_WHEEL_RIGHT];
+                case 0x19: return button_codes[BGMT_PLAY];          /* P -> PLAY */
+                case 0x17: return button_codes[BGMT_INFO];          /* I -> INFO/DISP */
             }
             break;
         }
@@ -509,14 +517,22 @@ static int translate_scancode_2(int scancode, int first_code)
         {
             switch (scancode)
             {
-                case 0x49: return 0x0EFF;        /* page up */
-                case 0x51: return 0x0E01;        /* page down */
-                case 0x53: return 0x0401;        /* delete */
+                case 0x48: return button_codes[BGMT_PRESS_UP];      /* arrows */
+                case 0x4B: return button_codes[BGMT_PRESS_LEFT];
+                case 0x50: return button_codes[BGMT_PRESS_DOWN];
+                case 0x4D: return button_codes[BGMT_PRESS_RIGHT];
+                case 0xC8: return button_codes[BGMT_UNPRESS_UP];
+                case 0xCB: return button_codes[BGMT_UNPRESS_LEFT];
+                case 0xD0: return button_codes[BGMT_UNPRESS_DOWN];
+                case 0xCD: return button_codes[BGMT_UNPRESS_RIGHT];                
+                case 0x49: return button_codes[BGMT_WHEEL_UP];      /* page up */
+                case 0x51: return button_codes[BGMT_WHEEL_DOWN];    /* page down */
+                case 0x53: return button_codes[BGMT_TRASH];         /* delete */
             }
         }
     }
     
-    return -1;
+    return -2;
 }
 
 static int translate_scancode(int scancode)
@@ -546,7 +562,7 @@ void mpu_send_keypress(EOSState *s, int keycode)
 {
     /* good news: most MPU button codes appear to be the same across all cameras :) */
     int key = translate_scancode(keycode);
-    if (key == -1) return;
+    if (key <= 0) return;
 
     printf("Key event: %x -> %04x\n", keycode, key);
     
@@ -575,7 +591,7 @@ void mpu_spells_init(EOSState *s)
         mpu_init_spells = mpu_init_spells_##cam2; \
         mpu_init_spell_count = COUNT(mpu_init_spells_##cam2); \
     }
-    
+
     MPU_SPELL_SET(60D)
     MPU_SPELL_SET(5D2)
     MPU_SPELL_SET(70D)
@@ -585,13 +601,58 @@ void mpu_spells_init(EOSState *s)
 
     /* 1200D works with 60D MPU spells... and BOOTS THE GUI!!! */
     MPU_SPELL_SET_OTHER_CAM(1200D, 60D)
-    
+
     /* same for 1100D */
     MPU_SPELL_SET_OTHER_CAM(1100D, 60D)
-    
+
     if (!mpu_init_spell_count)
     {
         printf("FIXME: no MPU spells for %s.\n", s->model->name);
         /* how to get them: http://magiclantern.fm/forum/index.php?topic=2864.msg166938#msg166938 */
+    }
+
+#define MPU_BUTTON_CODES(cam) \
+    if (strcmp(s->model->name, #cam) == 0) { \
+        button_codes = button_codes_##cam; \
+    }
+
+#define MPU_BUTTON_CODES_OTHER_CAM(cam1,cam2) \
+    if (strcmp(s->model->name, #cam1) == 0) { \
+        button_codes = button_codes_##cam2; \
+    }
+
+    MPU_BUTTON_CODES(100D)
+    MPU_BUTTON_CODES(1100D)
+    MPU_BUTTON_CODES_OTHER_CAM(1200D, 600D)
+    MPU_BUTTON_CODES(500D)
+    MPU_BUTTON_CODES(550D)
+    MPU_BUTTON_CODES(5D2)
+    MPU_BUTTON_CODES(5D3)
+    MPU_BUTTON_CODES(600D)
+    MPU_BUTTON_CODES(60D)
+    MPU_BUTTON_CODES(6D)
+    MPU_BUTTON_CODES(650D)
+    MPU_BUTTON_CODES(700D)
+    MPU_BUTTON_CODES(70D)
+    MPU_BUTTON_CODES(7D)
+    MPU_BUTTON_CODES(EOSM)
+
+    if (!button_codes)
+    {
+        printf("FIXME: no MPU button codes for %s.\n", s->model->name);
+        /* run qemu-2.x.x/hw/eos/mpu_spells/make_button_codes.sh to get them */
+        return;
+    }
+    
+    if (button_codes[BGMT_UNPRESS_UDLR])
+    {
+        assert(button_codes[BGMT_UNPRESS_UP]    == 0);
+        assert(button_codes[BGMT_UNPRESS_DOWN]  == 0);
+        assert(button_codes[BGMT_UNPRESS_LEFT]  == 0);
+        assert(button_codes[BGMT_UNPRESS_RIGHT] == 0);
+        button_codes[BGMT_UNPRESS_UP]    = 
+        button_codes[BGMT_UNPRESS_DOWN]  = 
+        button_codes[BGMT_UNPRESS_LEFT]  = 
+        button_codes[BGMT_UNPRESS_RIGHT] = button_codes[BGMT_UNPRESS_UDLR];
     }
 }
