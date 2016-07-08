@@ -20,7 +20,6 @@
 #define BGMT_UNPRESS_DISP 9 // new, old value for BGMT_PLAY
 #define BGMT_PLAY 0xB // was 9
 #define BGMT_TRASH 0xD // old value for BGMT_PRESS_ZOOM_OUT, was 0xA
-#define BGMT_ZOOM_OUT 0xE // new (unpress?)
 #define BGMT_Q_ALT 0x13
 #define BGMT_Q 0x1C // was 8
 #define BGMT_LV 0x1D // new
