@@ -75,12 +75,17 @@ static void ettr_beep_times(int n)
     }
 }
 
+static int ettr_get_current_long_exposure_time()
+{
+    int seconds = menu_get_value_from_script("Bulb Timer", "Exposure duration");
+    return seconds;
+}
+
 static int ettr_get_current_raw_shutter()
 {
     if (is_bulb_mode())
     {
-        int seconds = menu_get_value_from_script("Bulb Timer", "Exposure duration");
-        return shutterf_to_raw(seconds);
+        return shutterf_to_raw(ettr_get_current_long_exposure_time());
     }
     else
     {
@@ -128,7 +133,17 @@ static char* get_current_exposure_settings()
     {
         STR_APPEND(msg, "/%d", raw2iso(iso2));
     }
-    STR_APPEND(msg, " %s", ettr_format_shutter(ettr_get_current_raw_shutter()));
+    
+    if (is_bulb_mode())
+    {
+        /* note: using ettr_format_shutter here introduces roundoff errors of a few seconds */
+        int seconds = ettr_get_current_long_exposure_time();
+        STR_APPEND(msg, " %s", format_time_hours_minutes_seconds(seconds));
+    }
+    else
+    {
+        STR_APPEND(msg, " %s", lens_format_shutter(lens_info.raw_shutter));
+    }
     return msg;
 }
 
@@ -545,14 +560,14 @@ static int auto_ettr_work(int corr)
             auto_ettr_max_shutter = tv;
             if (lv)
             {
-                NotifyBox(2000, "ETTR: Tv <= %s ", ettr_format_shutter(tv));
+                NotifyBox(2000, "ETTR: Tv <= %s ", lens_format_shutter(tv));
                 prev_tv = tv;
                 return 0; /* wait for next iteration */
             }
             else
             {
                 msleep(1000);
-                bmp_printf(FONT_MED, 0, os.y0, "ETTR: Tv <= %s ", ettr_format_shutter(tv));
+                bmp_printf(FONT_MED, 0, os.y0, "ETTR: Tv <= %s ", lens_format_shutter(tv));
             }
         }
     }
