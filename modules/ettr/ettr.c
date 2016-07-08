@@ -597,8 +597,13 @@ static int auto_ettr_work(int corr)
     iso -= offset;
 
     /* some shutter values are not accepted by Canon firmware */
-    int tvr = round_shutter(tv, shutter_lim);
+    int tvr = (MIN(tv, shutter_lim) >= SHUTTER_30s)
+        ? round_shutter(tv, shutter_lim)
+        : MAX(tv, shutter_lim);
+    
     iso += tvr - tv;
+
+    if (debug_info) printf("tv rounding: %d -> %d limit=%d\n", tv, tvr, shutter_lim);
     
     /* analog iso can be only in 1 EV increments */
     /* prefer rounding towards lower ISOs */
