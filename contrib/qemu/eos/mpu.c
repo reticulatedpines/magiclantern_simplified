@@ -502,11 +502,30 @@ static struct {
     { 0xE0D0,   BGMT_UNPRESS_LEFT,                                                      },
     { 0xE0CB,   BGMT_UNPRESS_DOWN,                                                      },
     { 0xE0CD,   BGMT_UNPRESS_RIGHT,                                                     },
-
-    { 0xE049,   BGMT_WHEEL_UP,          "PgUp, PgDn",   "sub dial (rear scrollwheel)"   },
+    
+    { 0x004F,   BGMT_PRESS_DOWN_LEFT,   "Numpad keys",  "Joystick (8 directions)",      },
+    { 0x0050,   BGMT_PRESS_DOWN,                                                        },
+    { 0x0051,   BGMT_PRESS_DOWN_RIGHT,                                                  },
+    { 0x004B,   BGMT_PRESS_LEFT,                                                        },
+    { 0x004D,   BGMT_PRESS_RIGHT,                                                       },
+    { 0x0047,   BGMT_PRESS_UP_LEFT,                                                     },
+    { 0x0048,   BGMT_PRESS_UP,                                                          },
+    { 0x0049,   BGMT_PRESS_UP_RIGHT,                                                    },
+    { 0x00CF,   BGMT_UNPRESS_UDLR,                                                      },
+    { 0x00D0,   BGMT_UNPRESS_UDLR,                                                      },
+    { 0x00D1,   BGMT_UNPRESS_UDLR,                                                      },
+    { 0x00CB,   BGMT_UNPRESS_UDLR,                                                      },
+    { 0x00CD,   BGMT_UNPRESS_UDLR,                                                      },
+    { 0x00C7,   BGMT_UNPRESS_UDLR,                                                      },
+    { 0x00C8,   BGMT_UNPRESS_UDLR,                                                      },
+    { 0x00C9,   BGMT_UNPRESS_UDLR,                                                      },
+    { 0x004C,   BGMT_JOY_CENTER,        "Numpad 5",     "Joystick center",              },
+    { 0x00CC,   BGMT_UNPRESS_UDLR,                                                      },
+    
+    { 0xE049,   BGMT_WHEEL_UP,          "PgUp, PgDn",   "Sub dial (rear scrollwheel)"   },
     { 0xE051,   BGMT_WHEEL_DOWN,                                                        },
 
-    { 0x001A,   BGMT_WHEEL_LEFT,        "[ and ]",      "main dial (top scrollwheel)",  },
+    { 0x001A,   BGMT_WHEEL_LEFT,        "[ and ]",      "Main dial (top scrollwheel)",  },
     { 0x001B,   BGMT_WHEEL_RIGHT,                                                       },
 
     { 0x0039,   BGMT_PRESS_SET,         "SPACE",        "SET",                          },
@@ -518,6 +537,8 @@ static struct {
     { 0x0019,   BGMT_MENU,              "P",            "PLAY",                         },
     { 0x0017,   BGMT_MENU,              "I",            "INFO/DISP",                    },
     { 0x0010,   BGMT_Q,                 "Q",            "guess",                        },
+    { 0x0026,   BGMT_LV,                "L",            "LiveView",                     },
+    { 0x0011,   BGMT_PICSTYLE,          "W",            "Pic.Style",                    },
 };
 
 /* returns MPU button codes (lo, hi) */
@@ -592,7 +613,7 @@ static void show_keyboard_help(void)
             last_status = key_avail(key_map[i].scancode);
             if (last_status)
             {
-                printf("- %-10s : %s\n", key_map[i].pc_key_name, key_map[i].cam_key_name);
+                printf("- %-12s : %s\n", key_map[i].pc_key_name, key_map[i].cam_key_name);
             }
         }
         else if (last_status && !key_avail(key_map[i].scancode))
@@ -603,7 +624,7 @@ static void show_keyboard_help(void)
         }
     }
     
-    puts("- F1         : show this help");
+    puts("- F1           : show this help");
     puts("");
 }
 
