@@ -46,10 +46,6 @@
 #include "gps.h"
 #endif
 
-#ifdef CONFIG_QEMU
-#include "qemu-util.h"
-#endif
-
 #if defined(CONFIG_HELLO_WORLD)
 #include "fw-signature.h"
 #endif
@@ -259,11 +255,6 @@ my_task_dispatch_hook(
     extern struct task_mapping _task_overrides_start[];
     extern struct task_mapping _task_overrides_end[];
     struct task_mapping * mapping = _task_overrides_start;
-
-#ifdef CONFIG_QEMU
-    char* task_name = get_task_name_from_id(get_current_task());
-    qprintf("[*****] Starting task %x(%x) %s\n", task->entry, task->arg, task_name);
-#endif
 
     for( ; mapping < _task_overrides_end ; mapping++ )
     {
@@ -828,11 +819,6 @@ my_init_task(int a, int b, int c, int d)
     /* ensure binary is not too large */
     if (ml_used_mem > ml_reserved_mem)
     {
-        #ifdef CONFIG_QEMU
-        qprintf("Out of memory: ml_used_mem=%d ml_reserved_mem=%d\n", ml_used_mem, ml_reserved_mem);
-        call("shutdown");
-        #endif
-        
         while(1)
         {
             info_led_blink(3, 500, 500);

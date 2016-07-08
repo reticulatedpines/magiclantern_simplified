@@ -52,10 +52,6 @@ static volatile int vsync_counter = 0;
 /* waits for N LiveView frames */
 int wait_lv_frames(int num_frames)
 {
-    #ifdef CONFIG_QEMU
-    return 0;   /* fixme: call the vsync hook from qemu-util */
-    #endif
-    
     vsync_counter = 0;
     int count = 0;
     int frame_duration = 1000000 / fps_get_current_x1000();
@@ -295,9 +291,7 @@ static void state_init(void* unused)
     #endif
 }
 
-#ifndef CONFIG_QEMU // in QEMU, the state objects are not initialized, so just skip this for now to avoid infinite loops
 INIT_FUNC("state_init", state_init);
-#endif
 
 #ifdef FEATURE_SHOW_STATE_FPS
 void update_state_fps() {

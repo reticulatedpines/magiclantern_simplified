@@ -67,20 +67,6 @@ unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *s, unsigned in
     {
         switch (address)
         {
-            case REG_GET_KEY:
-            {
-                if (s->keyb.head == s->keyb.tail)
-                {
-                    /* no key in queue */
-                    return 0;
-                }
-                else
-                {
-                    /* return a key from the circular buffer */
-                    return s->keyb.buf[(s->keyb.head++) & 15];
-                }
-            }
-
             case REG_BMP_VRAM:
                 return s->disp.bmp_vram;
 
