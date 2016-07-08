@@ -20,8 +20,8 @@
 #define BGMT_REC 0x1E
 
 /* no zoom buttons => fake codes */
-#define BGMT_PRESS_ZOOMIN_MAYBE -0x112
-#define BGMT_UNPRESS_ZOOMIN_MAYBE -0x113
+#define BGMT_PRESS_ZOOM_IN -0x112
+#define BGMT_UNPRESS_ZOOM_IN -0x113
 
 #define BGMT_LV 0x1E
 #define BGMT_Q -0xFFFE // dummy value so button can be faked with fake_simple_button(); negative means internal ML event, not passed to Canon code

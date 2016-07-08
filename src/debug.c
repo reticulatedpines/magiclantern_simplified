@@ -1929,13 +1929,13 @@ int handle_buttons_being_held(struct event * event)
     if (event->param == BGMT_PRESS_HALFSHUTTER) halfshutter_pressed = 1;
     if (event->param == BGMT_UNPRESS_HALFSHUTTER) halfshutter_pressed = 0;
     #endif
-    #ifdef BGMT_UNPRESS_ZOOMIN_MAYBE
-    if (event->param == BGMT_PRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 1; zoom_out_pressed = 0; }
-    if (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 0; zoom_out_pressed = 0; }
+    #ifdef BGMT_UNPRESS_ZOOM_IN
+    if (event->param == BGMT_PRESS_ZOOM_IN) {zoom_in_pressed = 1; zoom_out_pressed = 0; }
+    if (event->param == BGMT_UNPRESS_ZOOM_IN) {zoom_in_pressed = 0; zoom_out_pressed = 0; }
     #endif
-    #ifdef BGMT_PRESS_ZOOMOUT_MAYBE
-    if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 1; zoom_in_pressed = 0; }
-    if (event->param == BGMT_UNPRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 0; zoom_in_pressed = 0; }
+    #ifdef BGMT_PRESS_ZOOM_OUT
+    if (event->param == BGMT_PRESS_ZOOM_OUT) { zoom_out_pressed = 1; zoom_in_pressed = 0; }
+    if (event->param == BGMT_UNPRESS_ZOOM_OUT) { zoom_out_pressed = 0; zoom_in_pressed = 0; }
     #endif
     
     (void)zoom_in_pressed; /* silence warning */

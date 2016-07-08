@@ -57,10 +57,10 @@
         #define BGMT_PRESS_FLASH_MOVIE (0)
         #define BGMT_UNPRESS_FLASH_MOVIE (0)
 
-    #define BGMT_PRESS_ZOOMOUT_MAYBE 0x10
-    #define BGMT_UNPRESS_ZOOMOUT_MAYBE 0x11
+    #define BGMT_PRESS_ZOOM_OUT 0x10
+    #define BGMT_UNPRESS_ZOOM_OUT 0x11
 
-    #define BGMT_PRESS_ZOOMIN_MAYBE 0xe
-    #define BGMT_UNPRESS_ZOOMIN_MAYBE 0xf
+    #define BGMT_PRESS_ZOOM_IN 0xe
+    #define BGMT_UNPRESS_ZOOM_IN 0xf
 
 #endif

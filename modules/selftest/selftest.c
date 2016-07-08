@@ -717,7 +717,7 @@ static void stress_test_task(void* unused)
             case 3: fake_simple_button(BGMT_WHEEL_DOWN); break;
             case 4: fake_simple_button(BGMT_INFO); break;
             case 5: fake_simple_button(BGMT_MENU); break;
-            //~ case 6: fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); break;
+            //~ case 6: fake_simple_button(BGMT_PRESS_ZOOM_IN); break;
         }
         dir = MOD(dir + rand()%3 - 1, 7);
         msleep(20);

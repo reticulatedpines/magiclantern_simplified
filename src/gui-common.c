@@ -331,8 +331,8 @@ int handle_digital_zoom_shortcut(struct event * event)
         case BGMT_UNPRESS_DISP:
             disp_pressed = 0;
             break;
-        case BGMT_PRESS_ZOOMIN_MAYBE: 
-        case BGMT_PRESS_ZOOMOUT_MAYBE:
+        case BGMT_PRESS_ZOOM_IN: 
+        case BGMT_PRESS_ZOOM_OUT:
             disp_zoom_pressed = 1;
             break;
         default:
@@ -344,7 +344,7 @@ int handle_digital_zoom_shortcut(struct event * event)
     {
         if (!video_mode_crop)
         {
-            if (video_mode_resolution == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+            if (video_mode_resolution == 0 && event->param == BGMT_PRESS_ZOOM_IN)
             {
                 if (NOT_RECORDING)
                 {
@@ -357,7 +357,7 @@ int handle_digital_zoom_shortcut(struct event * event)
         }
         else
         {
-            if (event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+            if (event->param == BGMT_PRESS_ZOOM_IN)
             {
                 if (NOT_RECORDING)
                 {
@@ -367,7 +367,7 @@ int handle_digital_zoom_shortcut(struct event * event)
                 NotifyBox(2000, "Zoom greater than 3x is disabled.\n");
                 return 0; // don't allow more than 3x zoom
             }
-            if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE)
+            if (event->param == BGMT_PRESS_ZOOM_OUT)
             {
                 if (NOT_RECORDING)
                 {

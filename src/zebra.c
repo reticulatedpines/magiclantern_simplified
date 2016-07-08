@@ -3270,9 +3270,9 @@ int handle_zoom_overlay(struct event * event)
     // zoom in when recording => enable Magic Zoom 
     if (get_zoom_overlay_trigger_mode() && RECORDING_H264_STARTED && MVR_FRAME_NUMBER > 10 && event->param ==
         #if defined(CONFIG_5D3) || defined(CONFIG_6D)
-        BGMT_PRESS_ZOOMIN_MAYBE
+        BGMT_PRESS_ZOOM_IN
         #else
-        BGMT_UNPRESS_ZOOMIN_MAYBE
+        BGMT_UNPRESS_ZOOM_IN
         #endif
     )
     {
@@ -3281,13 +3281,13 @@ int handle_zoom_overlay(struct event * event)
     }
 
     // if magic zoom is enabled, Zoom In should always disable it 
-    if (is_zoom_overlay_triggered_by_zoom_btn() && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+    if (is_zoom_overlay_triggered_by_zoom_btn() && event->param == BGMT_PRESS_ZOOM_IN)
     {
         zoom_overlay_toggle();
         return 0;
     }
     
-    if (get_zoom_overlay_trigger_mode() && lv_dispsize == 1 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+    if (get_zoom_overlay_trigger_mode() && lv_dispsize == 1 && event->param == BGMT_PRESS_ZOOM_IN)
     {
         #ifdef FEATURE_LCD_SENSOR_SHORTCUTS
         int lcd_sensor_trigger = (get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED);

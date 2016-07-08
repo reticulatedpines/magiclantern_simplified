@@ -4505,7 +4505,7 @@ handle_ml_menu_keys(struct event * event)
         if (!lv) return 1;
         // else fallthru
     #endif
-    case BGMT_PRESS_ZOOMIN_MAYBE:
+    case BGMT_PRESS_ZOOM_IN:
         if (lv) menu_lv_transparent_mode = !menu_lv_transparent_mode;
         else edit_mode = !edit_mode;
         menu_damage = 1;
