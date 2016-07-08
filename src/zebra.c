@@ -39,6 +39,7 @@
 #include "shoot.h"
 #include "focus.h"
 #include "lvinfo.h"
+#include "powersave.h"
 
 #include "imgconv.h"
 #include "falsecolor.h"
@@ -63,6 +64,9 @@
 #define MZ_WHITE 0xFE12FE34
 #define MZ_BLACK 0x00120034
 #define MZ_GREEN 0xB68DB69E
+
+// spotmeter_formula modes
+#define SPTMTR_F_RGB_PERCENT 4
 
 #ifdef CONFIG_KILL_FLICKER // this will block all Canon drawing routines when the camera is idle 
 extern int kill_canon_gui_mode;
@@ -169,7 +173,7 @@ static CONFIG_INT("disp.mode.x", disp_mode_x, 1);
 static CONFIG_INT( "transparent.overlay", transparent_overlay, 0);
 static CONFIG_INT( "transparent.overlay.x", transparent_overlay_offx, 0);
 static CONFIG_INT( "transparent.overlay.y", transparent_overlay_offy, 0);
-static CONFIG_INT( "transparent.overlay.autoupd", transparent_overlay_auto_update, 1);
+static CONFIG_INT( "transparent.overlay.autoupd", transparent_overlay_auto_update, 0);
 static int transparent_overlay_hidden = 0;
 
 static CONFIG_INT( "global.draw",   global_draw, 3 );
@@ -338,7 +342,7 @@ int histogram_or_small_waveform_enabled()
         (
             (hist_draw) &&
             #ifdef FEATURE_RAW_OVERLAYS
-            !(/* histobar*/ (raw_histogram_enable == 2) && can_use_raw_overlays_menu()) &&
+            !(RAW_HISTOBAR_ENABLED && can_use_raw_overlays_menu()) &&
             #endif
             1
         )
@@ -364,13 +368,6 @@ static CONFIG_INT( "spotmeter.position",        spotmeter_position, 1 ); // fixe
 //~ static CONFIG_INT( "unified.loop", unified_loop, 2); // temporary; on/off/auto
 //~ static CONFIG_INT( "zebra.density", zebra_density, 0); 
 //~ static CONFIG_INT( "hd.vram", use_hd_vram, 0); 
-
-CONFIG_INT("idle.display.turn_off.after", idle_display_turn_off_after, 0); // this also enables power saving for intervalometer
-static CONFIG_INT("idle.display.dim.after", idle_display_dim_after, 0);
-static CONFIG_INT("idle.display.gdraw_off.after", idle_display_global_draw_off_after, 0);
-static CONFIG_INT("idle.rec", idle_rec, 0);
-static CONFIG_INT("idle.shortcut.key", idle_shortcut_key, 0);
-static CONFIG_INT("idle.blink", idle_blink, 1);
 
 /**
  * Normal BMP VRAM has its origin in 720x480 center crop
@@ -405,7 +402,8 @@ PROP_HANDLER(PROP_LCD_POSITION)
 }
 #endif
 
-static volatile int idle_globaldraw_disable = 0;
+/* from powersave.c */
+extern int idle_globaldraw_disable;
 
 int get_global_draw() // menu setting, or off if 
 {
@@ -477,6 +475,44 @@ static uint8_t* waveform = 0;
  */
 
 #if defined(FEATURE_HISTOGRAM) || defined(FEATURE_WAVEFORM) || defined(FEATURE_VECTORSCOPE)
+#ifdef FEATURE_HISTOGRAM
+static void hist_add_pixel(uint32_t pixel, int Y)
+{
+    if (histogram.is_rgb)
+    {
+        int R, G, B;
+        //~ uyvy2yrgb(pixel, &Y, &R, &G, &B);
+        COMPUTE_UYVY2YRGB(pixel, Y, R, G, B);
+        // YRGB range: 0-255
+        uint32_t R_level = (R * HIST_WIDTH) >> 8;
+        uint32_t G_level = (G * HIST_WIDTH) >> 8;
+        uint32_t B_level = (B * HIST_WIDTH) >> 8;
+        
+        histogram.hist_r[R_level & (HIST_WIDTH-1)]++;
+        histogram.hist_g[G_level & (HIST_WIDTH-1)]++;
+        histogram.hist_b[B_level & (HIST_WIDTH-1)]++;
+    }
+    
+    /* luma component is always computed, since we need histogram.max */
+    /* and it's much less expensive than RGB anyway */
+    histogram.total_px++;
+    uint32_t hist_level = (Y * HIST_WIDTH) >> 8;
+
+    // Ignore the 0 bin.  It generates too much noise
+    unsigned count = ++ (histogram.hist[ hist_level & (HIST_WIDTH-1)]);
+    if( hist_level && count > histogram.max )
+        histogram.max = count;
+}
+#endif
+
+#ifdef FEATURE_WAVEFORM
+static inline void waveform_add_pixel(int x, int Y)
+{
+    uint8_t* w = &WAVEFORM(((x-os.x0) * WAVEFORM_WIDTH) / os.x_ex, (Y * WAVEFORM_HEIGHT) >> 8);
+    if ((*w) < 250) (*w)++;
+}
+#endif
+
 static void
 hist_build()
 {
@@ -498,8 +534,33 @@ hist_build()
     #endif
     
     #ifdef FEATURE_VECTORSCOPE
-    vectorscope_start();
+    int vectorscope_draw = vectorscope_should_draw();
+    
+    if (vectorscope_draw)
+    {
+        vectorscope_start();
+    }
     #endif
+    
+    #ifdef FEATURE_RAW_HISTOGRAM
+    if (RAW_HISTOGRAM_ENABLED && can_use_raw_overlays())
+    {
+        hist_build_raw();
+    }
+    #endif
+    
+    histogram.is_rgb =
+        histogram.is_raw ||    /* RAW histogram is always RGB-based */
+        ((hist_type == 1 ||    /* Use YUV RGB histogram if selected */
+          hist_type == 2) &&   /* Fall back to YUV RGB if we can't use the RAW RGB histogram */
+         !EXT_MONITOR_RCA);    /* However, we cannot use YUV RGB histogram on RCA monitors, because they use YUV411 instead of YUV422 */
+    
+    if (!waveform_draw && !vectorscope_draw && (!hist_draw || histogram.is_raw))
+    {
+        /* optimization: no YUV-based histogram/waveform/scope enabled
+         * => no need to scan the entire image */
+        return;
+    }
     
     int mz = nondigic_zoom_overlay_enabled();
     int off = get_y_skip_offset_for_histogram();
@@ -513,57 +574,29 @@ hist_build()
             if (mz && (pixel == MZ_WHITE || pixel == MZ_BLACK || pixel == MZ_GREEN))
                 continue;
 
-            int Y;
-
+            int Y = UYVY_GET_AVG_Y(pixel);
+            
             #ifdef FEATURE_HISTOGRAM
-            if (hist_colorspace == 1 && !EXT_MONITOR_RCA) // rgb
+            if (hist_draw && !histogram.is_raw)
             {
-                int R, G, B;
-                //~ uyvy2yrgb(pixel, &Y, &R, &G, &B);
-                COMPUTE_UYVY2YRGB(pixel, Y, R, G, B);
-                // YRGB range: 0-255
-                uint32_t R_level = (R * HIST_WIDTH) >> 8;
-                uint32_t G_level = (G * HIST_WIDTH) >> 8;
-                uint32_t B_level = (B * HIST_WIDTH) >> 8;
-                
-                histogram.hist_r[R_level & (HIST_WIDTH-1)]++;
-                histogram.hist_g[G_level & (HIST_WIDTH-1)]++;
-                histogram.hist_b[B_level & (HIST_WIDTH-1)]++;
+                hist_add_pixel(pixel, Y);
             }
-            else // luma
-            #endif
-
-            #if defined(FEATURE_HISTOGRAM) || defined(FEATURE_WAVEFORM)
-            {
-                uint32_t p1 = ((pixel >> 16) & 0xFF00) >> 8;
-                uint32_t p2 = ((pixel >>  0) & 0xFF00) >> 8;
-                Y = (p1+p2) >> 1; 
-            }
-            #endif
-
-            #ifdef FEATURE_HISTOGRAM
-            histogram.total_px++;
-            uint32_t hist_level = (Y * HIST_WIDTH) >> 8;
-
-            // Ignore the 0 bin.  It generates too much noise
-            unsigned count = ++ (histogram.hist[ hist_level & (HIST_WIDTH-1)]);
-            if( hist_level && count > histogram.max )
-                histogram.max = count;
             #endif
             
             #ifdef FEATURE_WAVEFORM
-            // Update the waveform plot
             if (waveform_draw) 
             {
-                uint8_t* w = &WAVEFORM(((x-os.x0) * WAVEFORM_WIDTH) / os.x_ex, (Y * WAVEFORM_HEIGHT) >> 8);
-                if ((*w) < 250) (*w)++;
+                waveform_add_pixel(x, Y);
             }
             #endif
             
             #ifdef FEATURE_VECTORSCOPE
-            int8_t U = (pixel >>  0) & 0xFF;
-            int8_t V = (pixel >> 16) & 0xFF;
-            vectorscope_pixel_step(Y, U, V);
+            if (vectorscope_draw)
+            {
+                int8_t U = (pixel >>  0) & 0xFF;
+                int8_t V = (pixel >> 16) & 0xFF;
+                vectorscope_addpixel(Y, U, V);
+            }
             #endif
         }
     }
@@ -1130,10 +1163,12 @@ static void zebra_update_lut()
 
 #endif
 
-
-static int zebra_digic_dirty = 0;
-
 #ifdef FEATURE_ZEBRA
+
+#ifdef FEATURE_ZEBRA_FAST
+static int zebra_digic_dirty = 0;
+#endif
+
 static void draw_zebras( int Z )
 {
     uint8_t * const bvram = bmp_vram_real();
@@ -2137,8 +2172,9 @@ static MENU_UPDATE_FUNC(spotmeter_menu_display)
             
             spotmeter_formula == 0 ? "Percent" :
             spotmeter_formula == 1 ? "0..255" :
-            spotmeter_formula == 2 ? "RGB" : "RAW",
-            
+            spotmeter_formula == 2 ? "RGB" :          
+            spotmeter_formula == 3 ? "RAW" : "Percent RGB",
+
             spotmeter_draw && spotmeter_position ? ", AFbox" : ""
         );
         
@@ -2339,7 +2375,7 @@ spotmeter_erase()
 
     int xcb = spot_prev_xcb;
     int ycb = spot_prev_ycb;
-    int dx = spotmeter_formula == 2 ? 52 : 26;
+    int dx = spotmeter_formula == 2 ? 52 : (spotmeter_formula == SPTMTR_F_RGB_PERCENT ? 80: 26); 
     int y0 = -13;
     uint32_t* M = (uint32_t*)get_bvram_mirror();
     uint32_t* B = (uint32_t*)bmp_vram();
@@ -2571,6 +2607,18 @@ fallback_from_raw:
             R,G,B
         );
     }
+    else if (spotmeter_formula == SPTMTR_F_RGB_PERCENT)
+    {
+        int uyvy = UYVY_PACK(su,sy,sv,sy);
+        int R,G,B,Y;
+        COMPUTE_UYVY2YRGB(uyvy, Y, R, G, B);
+        bmp_printf(
+            fnt | FONT_ALIGN_CENTER,
+            xcb, ycb, 
+            "%3d%s%3d%s%3d%s",
+            R*100/255,"%", G*100/255, "%", B*100/255, "%"
+        );
+    }
 }
 
 #endif
@@ -2658,58 +2706,6 @@ int handle_transparent_overlay(struct event * event)
         }
     }
     return 1;
-}
-#endif
-
-#ifdef FEATURE_POWERSAVE_LIVEVIEW
-static char* idle_time_format(int t)
-{
-    static char msg[50];
-    if (t) snprintf(msg, sizeof(msg), "after %d%s", t < 60 ? t : t/60, t < 60 ? "sec" : "min");
-    else snprintf(msg, sizeof(msg), "OFF");
-    return msg;
-}
-
-static PROP_INT(PROP_LCD_BRIGHTNESS_MODE, lcd_brightness_mode);
-
-static MENU_UPDATE_FUNC(idle_display_dim_print)
-{
-    MENU_SET_VALUE(
-        idle_time_format(CURRENT_VALUE)
-    );
-
-    #ifdef CONFIG_AUTO_BRIGHTNESS
-    int backlight_mode = lcd_brightness_mode;
-    if (backlight_mode == 0) // can't restore brightness properly in auto mode
-    {
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "LCD brightness is auto in Canon menu. It won't work.");
-    }
-    #endif
-}
-
-static MENU_UPDATE_FUNC(idle_display_feature_print)
-{
-    MENU_SET_VALUE(
-        idle_time_format(CURRENT_VALUE)
-    );
-}
-
-static int timeout_values[] = {0, 5, 10, 20, 30, 60, 120, 300, 600, 900};
-
-static int current_timeout_index(int t)
-{
-    int i;
-    for (i = 0; i < COUNT(timeout_values); i++)
-        if (t == timeout_values[i]) return i;
-    return 0;
-}
-
-static void idle_timeout_toggle(void* priv, int sign)
-{
-    int* t = (int*)priv;
-    int i = current_timeout_index(*t);
-    i = MOD(i + sign, COUNT(timeout_values));
-    *(int*)priv = timeout_values[i];
 }
 #endif
 
@@ -3001,11 +2997,11 @@ struct menu_entry zebra_menus[] = {
                 .name = "Spotmeter Unit",
                 .priv = &spotmeter_formula, 
                 #ifdef FEATURE_RAW_SPOTMETER
-                .max = 3,
+                .max = 4,
                 #else
-                .max = 2,
+                .max = 3,
                 #endif
-                .choices = (const char *[]) {"Percent", "0..255", "RGB (HTML)", "RAW (EV)"},
+                .choices = (const char *[]) {"Percent", "0..255", "RGB (HTML)", "RAW (EV)", "RGB (Percent)"},
                 .icon_type = IT_DICE,
                 .help = "Measurement unit for brightness level(s).",
                 .help2 =
@@ -3013,6 +3009,7 @@ struct menu_entry zebra_menus[] = {
                     "8 bit RGB level.\n"
                     "HTML like color codes.\n"
                     "Negative value from clipping, in EV (RAW).\n"
+                    "RGB color in Percentage.\n"
             },
             {
                 .name = "Spot Position",
@@ -3061,13 +3058,37 @@ struct menu_entry zebra_menus[] = {
         .submenu_width = 700,
         .children =  (struct menu_entry[]) {
             {
-                .name = "Color space",
-                .priv = &hist_colorspace, 
+                .name = "Histogram type",
+                .priv = &hist_type,
+                .update = raw_histo_update,
+                #ifdef FEATURE_RAW_HISTOGRAM
+                .max = 3,
+                #else
                 .max = 1,
-                .choices = (const char *[]) {"Luma", "RGB"},
+                #endif
+                .choices = (const char *[]) {
+                    "YUV-based, Luma",
+                    "YUV-based, RGB",
+                    "RAW-based (RGB)",
+                    "RAW HistoBar (MAX)",
+                },
                 .icon_type = IT_DICE,
-                .help = "Color space for histogram: Luma channel (YUV) / RGB.",
+                .help  = "Choose between YUV-based (JPG) or RAW-based histogram.",
+                .help2 = "If RAW data is not available, it will fall back to YUV-based.",
             },
+            #ifdef FEATURE_RAW_HISTOGRAM
+            {
+                .name = "RAW EV indicator",
+                .priv = &hist_meter,
+                .max = 2,
+                .choices = CHOICES("OFF", "Dynamic Range", "ETTR hint"),
+                .help = "Choose an EV image indicator to display on the histogram.",
+                .help2 = 
+                    " \n"
+                    "Display the dynamic range at current ISO, from noise stdev.\n"
+                    "Show how many stops you can push the exposure to the right.\n"
+            },
+            #endif
             {
                 .name = "Scaling",
                 .priv = &hist_log, 
@@ -3083,27 +3104,6 @@ struct menu_entry zebra_menus[] = {
                 .help = "Display warning dots when one color channel is clipped.",
                 .help2 = "Numbers represent the percentage of pixels clipped.",
             },
-            #ifdef FEATURE_RAW_HISTOGRAM
-            {
-                .name = "Use RAW histogram",
-                .priv = &raw_histogram_enable,
-                .max = 2,
-                .choices = CHOICES("OFF", "Full Histogram", "Simplified HistoBar"),
-                .update = raw_histo_update,
-                .help = "Use RAW based histogram.",
-            },
-            {
-                .name = "RAW EV indicator",
-                .priv = &hist_meter,
-                .max = 2,
-                .choices = CHOICES("OFF", "Dynamic Range", "ETTR hint"),
-                .help = "Choose an EV image indicator to display on the histogram.",
-                .help2 = 
-                    " \n"
-                    "Display the dynamic range at current ISO, from noise stdev.\n"
-                    "Show how many stops you can push the exposure to the right.\n"
-            },
-            #endif
             MENU_EOL
         },
     },
@@ -3131,10 +3131,6 @@ struct menu_entry zebra_menus[] = {
     },
     #endif
     MENU_PLACEHOLDER("Vectorscope"),
-};
-
-static struct menu_entry level_indic_menus[] = {
-    #ifdef CONFIG_ELECTRONIC_LEVEL
     #ifdef FEATURE_LEVEL_INDICATOR
     {
         .name = "Level Indicator", 
@@ -3144,8 +3140,8 @@ static struct menu_entry level_indic_menus[] = {
         .depends_on = DEP_GLOBAL_DRAW,
     },
     #endif
-    #endif
 };
+
 static struct menu_entry livev_dbg_menus[] = {
     #ifdef FEATURE_SHOW_OVERLAY_FPS
     {
@@ -3155,102 +3151,6 @@ static struct menu_entry livev_dbg_menus[] = {
         .help = "Show the frame rate of overlay loop (zebras, peaking...)"
     },
     #endif
-};
-
-#ifdef CONFIG_BATTERY_INFO
-MENU_UPDATE_FUNC(batt_display)
-{
-    int l = GetBatteryLevel();
-    int r = GetBatteryTimeRemaining();
-    int d = GetBatteryDrainRate();
-    MENU_SET_VALUE(
-        "%d%%, %dh%02dm, %d%%/h",
-        l, 0, 
-        r / 3600, (r % 3600) / 60,
-        d, 0
-    );
-    MENU_SET_ICON(MNI_PERCENT, l);
-}
-#endif
-
-#ifdef CONFIG_LCD_SENSOR
-CONFIG_INT("lcdsensor.wakeup", lcd_sensor_wakeup, 1);
-#else
-#define lcd_sensor_wakeup 0
-#endif
-
-static struct menu_entry powersave_menus[] = {
-#ifdef FEATURE_POWERSAVE_LIVEVIEW
-{
-    .name = "Powersave in LiveView",
-    .select = menu_open_submenu,
-    .submenu_width = 715,
-    .help = "Options for reducing power consumption during idle times.",
-    .depends_on = DEP_LIVEVIEW,
-    .children =  (struct menu_entry[]) {
-        {
-            .name = "Enable power saving",
-            .priv           = &idle_rec,
-            .max = 2,
-            .choices = (const char *[]) {"on Standby", "on Recording", "on STBY+REC"},
-            .help = "If enabled, powersave (see above) works when recording too."
-        },
-        #ifdef CONFIG_LCD_SENSOR
-        {
-            .name = "Use LCD sensor",
-            .priv           = &lcd_sensor_wakeup,
-            .max = 1,
-            .help = "With the LCD sensor you may wakeup or force powersave mode."
-        },
-        #endif
-        {
-            .name = "Use shortcut key",
-            .priv           = &idle_shortcut_key,
-            .max = 1,
-            .choices = (const char *[]) {"OFF", INFO_BTN_NAME},
-            .help = "Shortcut key for enabling powersave modes right away."
-        },
-        {
-            .name = "Dim display",
-            .priv           = &idle_display_dim_after,
-            .update         = idle_display_dim_print,
-            .select         = idle_timeout_toggle,
-            .max            = 900,
-            .icon_type      = IT_PERCENT_LOG_OFF,
-            .help = "Dim LCD display in LiveView when idle, to save power.",
-        },
-        {
-            .name = "Turn off LCD",
-            .priv           = &idle_display_turn_off_after,
-            .update         = idle_display_feature_print,
-            .select         = idle_timeout_toggle,
-            .max            = 900,
-            .icon_type      = IT_PERCENT_LOG_OFF,
-            .help = "Turn off display and pause LiveView when idle and not REC.",
-        },
-        {
-            .name = "Turn off GlobalDraw",
-            .priv           = &idle_display_global_draw_off_after,
-            .update         = idle_display_feature_print,
-            .select         = idle_timeout_toggle,
-            .max            = 900,
-            .icon_type      = IT_PERCENT_LOG_OFF,
-            .help = "Turn off GlobalDraw when idle, to save some CPU cycles.",
-            //~ .edit_mode = EM_MANY_VALUES,
-        },
-        #ifdef CONFIG_BATTERY_INFO
-        {
-            .name = "Battery Level",
-            .update  = batt_display,
-            .icon_type = IT_PERCENT,
-            .help = "Battery remaining. Wait for 2% discharge before reading.",
-            //~ //.essential = FOR_MOVIE | FOR_PHOTO,
-        },
-        #endif
-        MENU_EOL
-    },
-}
-#endif
 };
 
 #ifdef FEATURE_LV_DISPLAY_PRESETS
@@ -3408,27 +3308,6 @@ int handle_zoom_overlay(struct event * event)
         }
     }
 #endif
-
-    /* allow moving AF frame (focus box) when Canon blocks it */
-    /* most cameras will block the focus box keys in Manual Focus mode while recording */
-    /* 6D seems to block them always in MF, https://bitbucket.org/hudson/magic-lantern/issue/1816/cant-move-focus-box-on-6d */
-    if (
-        #if !defined(CONFIG_6D) /* others? */
-        RECORDING_H264 &&
-        #endif
-        liveview_display_idle() &&
-        is_manual_focus() &&
-    1)
-    {
-        if (event->param == BGMT_PRESS_LEFT)
-            { move_lv_afframe(-300, 0); return 0; }
-        if (event->param == BGMT_PRESS_RIGHT)
-            { move_lv_afframe(300, 0); return 0; }
-        if (event->param == BGMT_PRESS_UP)
-            { move_lv_afframe(0, -300); return 0; }
-        if (event->param == BGMT_PRESS_DOWN)
-            { move_lv_afframe(0, 300); return 0; }
-    }
 
     return 1;
 }
@@ -3765,14 +3644,14 @@ int zebra_should_run()
 }
 
 #ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
-static int livev_for_playback_running = 0;
-static void draw_livev_for_playback()
+static int overlays_playback_running = 0;
+static void draw_overlays_playback()
 {
-    livev_for_playback_running = 1;
+    overlays_playback_running = 1;
 
     if (!PLAY_OR_QR_MODE)
     {
-        livev_for_playback_running = 0;
+        overlays_playback_running = 0;
         return;
     }
 
@@ -3786,7 +3665,7 @@ static void draw_livev_for_playback()
     while (!DISPLAY_IS_ON) msleep(100);
     if (!PLAY_OR_QR_MODE)
     {
-        livev_for_playback_running = 0;
+        overlays_playback_running = 0;
         return;
     }
     if (QR_MODE) msleep(300);
@@ -3841,7 +3720,7 @@ BMP_LOCK(
     clean_d_cache(); // to avoid display artifacts
 
     info_led_off();
-    livev_for_playback_running = 0;
+    overlays_playback_running = 0;
 }
 #endif
 
@@ -3872,10 +3751,6 @@ void draw_histogram_and_waveform(int allow_play)
         )
     {
         hist_build(); /* also updates waveform and vectorscope */
-        #ifdef FEATURE_RAW_HISTOGRAM
-        if (raw_histogram_enable && can_use_raw_overlays())
-            hist_build_raw();
-        #endif
     }
 #endif
     
@@ -3891,15 +3766,15 @@ void draw_histogram_and_waveform(int allow_play)
     {
         #ifdef CONFIG_4_3_SCREEN
         if (PLAY_OR_QR_MODE)
-            BMP_LOCK( hist_draw_image( os.x0 + 500,  1, -1); )
+            BMP_LOCK( hist_draw_image( os.x0 + 500,  1); )
         else
         #endif
         if (should_draw_bottom_graphs())
-            BMP_LOCK( hist_draw_image( os.x0 + 50,  480 - hist_height - 1, -1); )
+            BMP_LOCK( hist_draw_image( os.x0 + 50,  480 - hist_height - 1); )
         else if (screen_layout == SCREENLAYOUT_3_2)
-            BMP_LOCK( hist_draw_image( os.x_max - HIST_WIDTH - 2,  os.y_max - (lv ? os.off_169 : 0) - (gui_menu_shown() ? 25 : 0) - hist_height - 1, -1); )
+            BMP_LOCK( hist_draw_image( os.x_max - HIST_WIDTH - 2,  os.y_max - (lv ? os.off_169 + 10 : 0) - hist_height - 1); )
         else
-            BMP_LOCK( hist_draw_image( os.x_max - HIST_WIDTH - 5, os.y0 + 100, -1); )
+            BMP_LOCK( hist_draw_image( os.x_max - HIST_WIDTH - 5, os.y0 + 100); )
     }
 #endif
 
@@ -3935,332 +3810,6 @@ void draw_histogram_and_waveform(int allow_play)
 #endif
 }
 
-static int idle_countdown_display_dim = 50;
-static int idle_countdown_display_off = 50;
-static int idle_countdown_globaldraw = 50;
-static int idle_countdown_clrscr = 50;
-#ifdef FEATURE_POWERSAVE_LIVEVIEW
-static int idle_countdown_display_dim_prev = 50;
-static int idle_countdown_display_off_prev = 50;
-static int idle_countdown_globaldraw_prev = 50;
-static int idle_countdown_clrscr_prev = 50;
-#endif
-
-#ifdef CONFIG_KILL_FLICKER
-static int idle_countdown_killflicker = 5;
-static int idle_countdown_killflicker_prev = 5;
-#endif
-
-static int idle_is_powersave_enabled()
-{
-#ifdef FEATURE_POWERSAVE_LIVEVIEW
-    return idle_display_dim_after || idle_display_turn_off_after || idle_display_global_draw_off_after;
-#else
-    return 0;
-#endif
-}
-
-static int idle_is_powersave_active()
-{
-#ifdef FEATURE_POWERSAVE_LIVEVIEW
-    return (idle_display_dim_after && !idle_countdown_display_dim_prev) || 
-           (idle_display_turn_off_after && !idle_countdown_display_off_prev) || 
-           (idle_display_global_draw_off_after && !idle_countdown_globaldraw_prev);
-#else
-    return 0;
-#endif
-}
-
-void idle_force_powersave_in_1s()
-{
-    idle_countdown_display_off = MIN(idle_countdown_display_off, 10);
-    idle_countdown_display_dim = MIN(idle_countdown_display_dim, 10);
-    idle_countdown_globaldraw  = MIN(idle_countdown_globaldraw, 10);
-}
-
-void idle_force_powersave_now()
-{
-    idle_countdown_display_off = MIN(idle_countdown_display_off, 1);
-    idle_countdown_display_dim = MIN(idle_countdown_display_dim, 1);
-    idle_countdown_globaldraw  = MIN(idle_countdown_globaldraw, 1);
-}
-
-int handle_powersave_key(struct event * event)
-{
-    #ifdef FEATURE_POWERSAVE_LIVEVIEW
-    if (event->param == BGMT_INFO)
-    {
-        if (!idle_shortcut_key) return 1;
-        if (!lv) return 1;
-        if (!idle_is_powersave_enabled()) return 1;
-        if (IS_FAKE(event)) return 1;
-        if (gui_menu_shown()) return 1;
-
-        if (!idle_is_powersave_active())
-        {
-            idle_force_powersave_now();
-            info_led_blink(1,50,0);
-        }
-        return 0;
-    }
-    #endif
-    return 1;
-}
-
-void idle_wakeup_reset_counters(int reason) // called from handle_buttons
-{
-    if (ml_shutdown_requested) return;
-    
-#if 0
-    NotifyBox(2000, "wakeup: %d   ", reason);
-#endif
-
-    //~ bmp_printf(FONT_LARGE, 50, 50, "wakeup: %d   ", reason);
-    
-    // when sensor is covered, timeout changes to 3 seconds
-    #ifdef CONFIG_LCD_SENSOR
-    int sensor_status = lcd_sensor_wakeup && display_sensor && DISPLAY_SENSOR_POWERED;
-    #else
-    int sensor_status = 0;
-    #endif
-
-    // those are for powersaving
-    idle_countdown_display_off = sensor_status ? 25 : idle_display_turn_off_after * 10;
-    idle_countdown_display_dim = sensor_status ? 25 : idle_display_dim_after * 10;
-    idle_countdown_globaldraw  = sensor_status ? 25 : idle_display_global_draw_off_after * 10;
-
-    if (reason == -2345) // disable powersave during recording 
-        return;
-
-    // those are not for powersaving
-    idle_countdown_clrscr = 30;
-    
-    if (reason == -10 || reason == -11) // focus event (todo: should define constants for those)
-        return;
-    
-#ifdef CONFIG_KILL_FLICKER
-    idle_countdown_killflicker = 10;
-#endif
-}
-
-// called at 10 Hz
-static void update_idle_countdown(int* countdown)
-{
-    //~ bmp_printf(FONT_MED, 200, 200, "%d  ", *countdown);
-    if ((liveview_display_idle() && !get_halfshutter_pressed() && !gui_menu_shown()) || !DISPLAY_IS_ON)
-    {
-        if (*countdown)
-            (*countdown)--;
-    }
-    else
-    {
-        idle_wakeup_reset_counters(-100); // will reset all idle countdowns
-    }
-    
-    #ifdef CONFIG_LCD_SENSOR
-    int sensor_status = lcd_sensor_wakeup && display_sensor && DISPLAY_SENSOR_POWERED;
-    #else
-    int sensor_status = 0;
-    #endif
-    static int prev_sensor_status = 0;
-
-    if (sensor_status != prev_sensor_status)
-        idle_wakeup_reset_counters(-1);
-    
-    prev_sensor_status = sensor_status;
-}
-
-static void idle_action_do(int* countdown, int* prev_countdown, void(*action_on)(void), void(*action_off)(void))
-{
-    if (ml_shutdown_requested) return;
-    
-    update_idle_countdown(countdown);
-    int c = *countdown; // *countdown may be changed by "wakeup" => race condition
-    //~ bmp_printf(FONT_MED, 100, 200, "%d->%d ", *prev_countdown, c);
-    if (*prev_countdown && !c)
-    {
-        //~ info_led_blink(1, 50, 50);
-        //~ bmp_printf(FONT_MED, 100, 200, "action  "); msleep(500);
-        action_on();
-        //~ msleep(500);
-        //~ bmp_printf(FONT_MED, 100, 200, "        ");
-    }
-    else if (!*prev_countdown && c)
-    {
-        //~ info_led_blink(1, 50, 50);
-        //~ bmp_printf(FONT_MED, 100, 200, "unaction"); msleep(500);
-        action_off();
-        //~ msleep(500);
-        //~ bmp_printf(FONT_MED, 100, 200, "        ");
-    }
-    *prev_countdown = c;
-}
-
-#if defined(CONFIG_LIVEVIEW) && defined(FEATURE_POWERSAVE_LIVEVIEW)
-static int lv_zoom_before_pause = 0;
-#endif
-
-void PauseLiveView() // this should not include "display off" command
-{
-#if defined(CONFIG_LIVEVIEW) && defined(FEATURE_POWERSAVE_LIVEVIEW)
-    if (ml_shutdown_requested) return;
-    if (sensor_cleaning) return;
-    if (PLAY_MODE) return;
-    if (MENU_MODE) return;
-    if (LV_NON_PAUSED)
-    {
-        //~ ASSERT(DISPLAY_IS_ON);
-        int x = 1;
-        //~ while (get_halfshutter_pressed()) msleep(MIN_MSLEEP);
-        BMP_LOCK(
-            lv_zoom_before_pause = lv_dispsize;
-            prop_request_change(PROP_LV_ACTION, &x, 4);
-            msleep(100);
-            clrscr();
-            lv_paused = 1;
-        )
-        ASSERT(LV_PAUSED);
-    }
-#endif
-}
-
-// returns 1 if it did wakeup
-int ResumeLiveView()
-{
-    info_led_on();
-    int ans = 0;
-#if defined(CONFIG_LIVEVIEW) && defined(FEATURE_POWERSAVE_LIVEVIEW)
-    if (ml_shutdown_requested) return 0;
-    if (sensor_cleaning) return 0;
-    if (PLAY_MODE) return 0;
-    if (MENU_MODE) return 0;
-    if (LV_PAUSED)
-    {
-        int x = 0;
-        //~ while (get_halfshutter_pressed()) msleep(MIN_MSLEEP);
-        BMP_LOCK(
-            prop_request_change(PROP_LV_ACTION, &x, 4);
-            int iter = 10; while (!lv && iter--) msleep(100);
-            iter = 10; while (!DISPLAY_IS_ON && iter--) msleep(100);
-        )
-        while (sensor_cleaning) msleep(100);
-        if (lv) set_lv_zoom(lv_zoom_before_pause);
-        msleep(100);
-        ans = 1;
-    }
-    lv_paused = 0;
-    idle_wakeup_reset_counters(-1357);
-    info_led_off();
-#endif
-    return ans;
-}
-
-#ifdef FEATURE_POWERSAVE_LIVEVIEW
-static void idle_display_off_show_warning()
-{
-    extern int motion_detect;
-    if (motion_detect || RECORDING)
-    {
-        NotifyBox(3000, "DISPLAY OFF...");
-    }
-    else
-    {
-        NotifyBox(3000, "DISPLAY AND SENSOR OFF...");
-    }
-}
-static void idle_display_off()
-{
-    extern int motion_detect;
-    if (!(motion_detect || RECORDING)) PauseLiveView();
-    display_off();
-    msleep(300);
-    idle_countdown_display_off = 0;
-    ASSERT(!(RECORDING && LV_PAUSED));
-    ASSERT(!DISPLAY_IS_ON);
-}
-static void idle_display_on()
-{
-    //~ card_led_blink(5, 50, 50);
-    ResumeLiveView();
-    display_on();
-    redraw();
-    //~ ASSERT(DISPLAY_IS_ON); // it will take a short time until display will turn on
-}
-
-static void idle_bmp_off()
-{
-    bmp_off();
-}
-static void idle_bmp_on()
-{
-    bmp_on();
-}
-
-static int old_backlight_level = 0;
-static void idle_display_dim()
-{
-    ASSERT(lv || lv_paused);
-    #ifdef CONFIG_AUTO_BRIGHTNESS
-    int backlight_mode = lcd_brightness_mode;
-    if (backlight_mode == 0) // can't restore brightness properly in auto mode
-    {
-        NotifyBox(2000, "LCD brightness is automatic.\n"
-                        "ML will not dim the display.");
-        return;
-    }
-    #endif
-
-    old_backlight_level = backlight_level;
-    set_backlight_level(1);
-}
-static void idle_display_undim()
-{
-    if (old_backlight_level)
-    {
-        set_backlight_level(old_backlight_level);
-        old_backlight_level = 0;
-    }
-}
-
-#endif
-
-void idle_globaldraw_dis()
-{
-    idle_globaldraw_disable++;
-}
-void idle_globaldraw_en()
-{
-    if (idle_globaldraw_disable > 0)
-        idle_globaldraw_disable--;
-}
-
-#ifdef CONFIG_KILL_FLICKER
-static void idle_kill_flicker()
-{
-    if (!canon_gui_front_buffer_disabled())
-    {
-        get_yuv422_vram();
-        canon_gui_disable_front_buffer();
-        clrscr();
-        if (is_movie_mode())
-        {
-            black_bars_16x9();
-            if (RECORDING) {
-                fill_circle(os.x_max - 12, os.y0 + 28, 10, COLOR_RED);
-            }
-        }
-    }
-}
-static void idle_stop_killing_flicker()
-{
-    if (canon_gui_front_buffer_disabled())
-    {
-        canon_gui_enable_front_buffer(0);
-    }
-}
-#endif
-
-static PROP_INT(PROP_LOGICAL_CONNECT, logical_connect); // EOS utility?
 
 static void
 clearscreen_task( void* unused )
@@ -4273,43 +3822,11 @@ clearscreen_loop:
         msleep(100);
 
         //~ bmp_printf(FONT_MED, 100, 100, "%d %d %d", idle_countdown_display_dim, idle_countdown_display_off, idle_countdown_globaldraw);
-
-        // Here we're blinking the info LED approximately once every five
-        // seconds to show the user that their camera is still on and has
-        // not dropped into standby mode.  But it's distracting to blink
-        // it every five seconds, and if the user pushed a button recently
-        // then they already _know_ that their camera is still on, so
-        // let's only do it if the camera's buttons have been idle for at
-        // least 30 seconds.
-        if (k % 50 == 0 && !DISPLAY_IS_ON && lens_info.job_state == 0 && NOT_RECORDING && !get_halfshutter_pressed() && !is_intervalometer_running() && idle_blink)
-            if ((get_seconds_clock() - get_last_time_active()) > 30)
-                info_led_blink(1, 10, 10);
+        
+        /* blink LED if screen is turned off */
+        idle_led_blink_step(k);
 
         if (!lv && !lv_paused) continue;
-
-        // especially for 50D
-        #ifdef CONFIG_KILL_FLICKER
-        if (kill_canon_gui_mode == 1)
-        {
-            if (ZEBRAS_IN_LIVEVIEW && !gui_menu_shown())
-            {
-                int idle = liveview_display_idle() && lv_disp_mode == 0;
-                if (idle)
-                {
-                    if (!canon_gui_front_buffer_disabled())
-                        idle_kill_flicker();
-                }
-                else
-                {
-                    if (canon_gui_front_buffer_disabled())
-                        idle_stop_killing_flicker();
-                }
-                static int prev_idle = 0;
-                if (!idle && prev_idle != idle) redraw();
-                prev_idle = idle;
-            }
-        }
-        #endif
         
         #ifdef FEATURE_CLEAR_OVERLAYS
         if (clearscreen == 3)
@@ -4358,53 +3875,11 @@ clearscreen_loop:
             #endif
         }
         #endif
-
-        if (RECORDING && idle_rec == 0) // don't go to powersave when recording
-            idle_wakeup_reset_counters(-2345);
-
-        if (NOT_RECORDING && idle_rec == 1) // don't go to powersave when not recording
-            idle_wakeup_reset_counters(-2345);
-        
-        if (logical_connect)
-            idle_wakeup_reset_counters(-305); // EOS utility
         
         #ifdef FEATURE_POWERSAVE_LIVEVIEW
-        if (idle_display_dim_after)
-            idle_action_do(&idle_countdown_display_dim, &idle_countdown_display_dim_prev, idle_display_dim, idle_display_undim);
-
-        if (idle_display_turn_off_after)
-        {
-            idle_action_do(&idle_countdown_display_off, &idle_countdown_display_off_prev, idle_display_off, idle_display_on);
-
-            // show a warning that display is going to be turned off (and clear it if some button is pressed)
-            static int warning_dirty = 0;
-            if (idle_countdown_display_off == 30)
-            {
-                idle_display_off_show_warning();
-                warning_dirty = 1;
-            }
-            else if (warning_dirty && idle_countdown_display_off > 30)
-            {
-                NotifyBoxHide();
-                warning_dirty = 0;
-            }
-        }
-
-        if (idle_display_global_draw_off_after)
-            idle_action_do(&idle_countdown_globaldraw, &idle_countdown_globaldraw_prev, idle_globaldraw_dis, idle_globaldraw_en);
-
-        if (clearscreen == 2) // clear overlay when idle
-            idle_action_do(&idle_countdown_clrscr, &idle_countdown_clrscr_prev, idle_bmp_off, idle_bmp_on);
+        idle_powersave_step();
         #endif
         
-        #ifdef CONFIG_KILL_FLICKER
-        if (kill_canon_gui_mode == 2) // LV transparent menus and key presses
-        {
-            if (ZEBRAS_IN_LIVEVIEW && !gui_menu_shown() && lv_disp_mode == 0)
-                idle_action_do(&idle_countdown_killflicker, &idle_countdown_killflicker_prev, idle_kill_flicker, idle_stop_killing_flicker);
-        }
-        #endif
-
         #ifdef FEATURE_CROPMARKS
         // since this task runs at 10Hz, I prefer cropmark redrawing here
         cropmark_step();
@@ -4452,18 +3927,26 @@ BMP_LOCK (
 
         if (dialog && MEM(dialog->type) == DLG_SIGNATURE) // if dialog seems valid
         {
-            #ifdef CONFIG_KILL_FLICKER
             // to redraw, we need access to front buffer
-            int d = canon_gui_front_buffer_disabled();
-            canon_gui_enable_front_buffer(0);
-            #endif
+            int front_buffer_disabled = canon_gui_front_buffer_disabled();
+            if (front_buffer_disabled)
+            {
+                /* temporarily enable front buffer to allow the redraw */
+                canon_gui_enable_front_buffer(0);
+            }
             
             dialog_redraw(dialog); // try to redraw (this has semaphores for winsys)
             
-            #ifdef CONFIG_KILL_FLICKER
-            // restore things back
-            if (d) idle_kill_flicker();
-            #endif
+            if (front_buffer_disabled)
+            {
+                /* disable it back */
+                
+                #ifdef CONFIG_KILL_FLICKER
+                idle_kill_flicker();
+                #else
+                canon_gui_disable_front_buffer();
+                #endif
+            }
         }
         else
         {
@@ -4519,16 +4002,19 @@ int is_focus_peaking_enabled()
 #endif
 }
 
-#ifdef FEATURE_ZEBRA_FAST
 static void digic_zebra_cleanup()
 {
-    if (!DISPLAY_IS_ON) return;
-    EngDrvOut(DIGIC_ZEBRA_REGISTER, 0); 
-    clrscr_mirror();
-    alter_bitmap_palette_entry(FAST_ZEBRA_GRID_COLOR, FAST_ZEBRA_GRID_COLOR, 256, 256);
-    zebra_digic_dirty = 0;
-}
+#ifdef FEATURE_ZEBRA_FAST
+    if (zebra_digic_dirty)
+    {
+        if (!DISPLAY_IS_ON) return;
+        EngDrvOut(DIGIC_ZEBRA_REGISTER, 0); 
+        clrscr_mirror();
+        alter_bitmap_palette_entry(FAST_ZEBRA_GRID_COLOR, FAST_ZEBRA_GRID_COLOR, 256, 256);
+        zebra_digic_dirty = 0;
+    }
 #endif
+}
 
 #ifdef FEATURE_SHOW_OVERLAY_FPS
 void update_lv_fps() // to be called every 10 seconds
@@ -4564,10 +4050,8 @@ livev_hipriority_task( void* unused )
             msleep(100);
         }
 
-        #ifdef FEATURE_ZEBRA_FAST
         int zd = zebra_draw && (lv_luma_is_accurate() || PLAY_OR_QR_MODE) && (zebra_rec || NOT_RECORDING); // when to draw zebras (should match the one from draw_zebra_and_focus)
-        if (zebra_digic_dirty && !zd) digic_zebra_cleanup();
-        #endif
+        if (!zd) digic_zebra_cleanup();
         
 #ifdef CONFIG_RAW_LIVEVIEW
         static int raw_flag = 0;
@@ -4579,12 +4063,10 @@ livev_hipriority_task( void* unused )
             while (RECORDING_H264_STARTING) msleep(100);
             if (!zebra_should_run())
             {
-#ifdef FEATURE_ZEBRA_FAST
-                if (zebra_digic_dirty) digic_zebra_cleanup();
-#endif
+                digic_zebra_cleanup();
                 if (lv && !gui_menu_shown()) redraw();
                 #ifdef CONFIG_ELECTRONIC_LEVEL
-				if (lv) disable_electronic_level();
+                if (lv) disable_electronic_level();
                 #endif
                 #ifdef CONFIG_RAW_LIVEVIEW
                 if (raw_flag) { raw_lv_release(); raw_flag = 0; }
@@ -4620,7 +4102,7 @@ livev_hipriority_task( void* unused )
         {
             /* only raw zebras, raw histogram and raw spotmeter are working in LV raw mode */
             if (zebra_draw && raw_zebra_enable == 1) raw_needed = 1;        /* raw zebras: always */
-            if (hist_draw && raw_histogram_enable) raw_needed = 1;          /* raw hisogram (any kind) */
+            if (hist_draw && RAW_HISTOGRAM_ENABLED) raw_needed = 1;          /* raw hisogram (any kind) */
             if (spotmeter_draw && spotmeter_formula == 3) raw_needed = 1;   /* spotmeter, units: raw */
         }
 
@@ -4696,7 +4178,7 @@ livev_hipriority_task( void* unused )
         #endif
 
         #ifdef CONFIG_ELECTRONIC_LEVEL
-        if (electronic_level && k % 8 == 5)
+        if (electronic_level && k % 2)
             BMP_LOCK( if (lv) show_electronic_level(); )
         #endif
 
@@ -4818,7 +4300,7 @@ void update_disp_mode_bits_from_params()
         (focus_peaking        ? 1<<8 : 0) |
         (zoom_overlay_enabled ? 1<<9 : 0) |
         (transparent_overlay  ? 1<<10: 0) |
-        //~ (electronic_level     ? 1<<11: 0) |
+        (electronic_level     ? 1<<11: 0) |
         //~ (defish_preview       ? 1<<12: 0) |
 #ifdef FEATURE_VECTORSCOPE
         (vectorscope_should_draw() ? 1<<13: 0) |
@@ -4854,7 +4336,7 @@ void update_disp_mode_params_from_bits()
     focus_peaking        = bits & (1<<8) ? 1 : 0;
     zoom_overlay_enabled = bits & (1<<9) ? 1 : 0;
     transparent_overlay  = bits & (1<<10)? 1 : 0;
-    //~ electronic_level     = bits & (1<<11)? 1 : 0;
+    electronic_level     = bits & (1<<11)? 1 : 0;
     //~ defish_preview       = bits & (1<<12)? 1 : 0;
 #ifdef FEATURE_VECTORSCOPE
     vectorscope_request_draw(bits & (1<<13)? 1 : 0);
@@ -4915,7 +4397,7 @@ int handle_disp_preset_key(struct event * event)
         if (IS_FAKE(event)) return 1;
         if (gui_menu_shown()) return 1;
         
-        if (idle_is_powersave_enabled() && idle_shortcut_key)
+        if (idle_is_powersave_enabled_on_info_disp_key())
         {
             if (disp_mode == disp_profiles_0 && !idle_is_powersave_active())
                 return handle_powersave_key(event);
@@ -4932,33 +4414,39 @@ int handle_disp_preset_key(struct event * event)
 }
 
 #ifdef FEATURE_OVERLAYS_IN_PLAYBACK_MODE
-static int livev_playback = 0;
+static int overlays_playback_displayed = 0;
 
-static void livev_playback_toggle()
+static void overlays_playback_clear()
 {
-    if (livev_for_playback_running)
+    if (overlays_playback_displayed)
+    {
+        clrscr();
+        digic_zebra_cleanup();
+        redraw();
+        overlays_playback_displayed = 0;
+    }
+}
+
+/* called from GUI handler */
+static void overlays_playback_toggle()
+{
+    if (overlays_playback_running)
         return;
     
-    livev_playback = !livev_playback;
-    if (livev_playback)
+    if (!overlays_playback_displayed)
     {
-        livev_for_playback_running = 1;
-        task_create("lv_playback", 0x1a, 0x8000, draw_livev_for_playback, 0);
+        /* this may take about 1 second, so let's run it outside GuiMainTask */
+        overlays_playback_running = 1;
+        task_create("lv_playback", 0x1a, 0x8000, draw_overlays_playback, 0);
+        overlays_playback_displayed = 1;
     }
     else
     {
-        clrscr();
-        if (zebra_digic_dirty) digic_zebra_cleanup();
-        redraw();
+        overlays_playback_clear();
     }
 }
-static void livev_playback_reset()
-{
-    if (livev_playback) redraw();
-    livev_playback = 0;
-}
 
-int handle_livev_playback(struct event * event)
+int handle_overlays_playback(struct event * event)
 {
     // enable LiveV stuff in Play mode
     if (PLAY_OR_QR_MODE)
@@ -4967,12 +4455,14 @@ int handle_livev_playback(struct event * event)
         {
 #if defined(BTN_ZEBRAS_FOR_PLAYBACK) && defined(BTN_ZEBRAS_FOR_PLAYBACK_NAME)
             case BTN_ZEBRAS_FOR_PLAYBACK:
-                livev_playback_toggle();
+                /* used in PLAY mode (user pressed button to toggle overlays) */
+                overlays_playback_toggle();
                 return 0;
 #endif
             case MLEV_TRIGGER_ZEBRAS_FOR_PLAYBACK:
-                livev_playback_reset(); // Soft reset if triggered by HS
-                livev_playback_toggle();
+                /* used in QuickReview mode - always show the overlays, no toggle */
+                overlays_playback_displayed = 0;
+                overlays_playback_toggle();
                 return 0;
         }
         
@@ -4986,8 +4476,14 @@ int handle_livev_playback(struct event * event)
 
         else
         {
-            livev_playback_reset();
+            /* some button pressed in play mode, while ML overlays are active? clear them */
+            overlays_playback_clear();
         }
+    }
+    else
+    {
+        /* got out of play mode? ML overlays are for sure no longer active */
+        overlays_playback_displayed = 0;
     }
     return 1;
 }
@@ -5000,8 +4496,6 @@ static void zebra_init()
     menu_add( "Debug", livev_dbg_menus, COUNT(livev_dbg_menus) );
     //~ menu_add( "Movie", movie_menus, COUNT(movie_menus) );
     //~ menu_add( "Config", cfg_menus, COUNT(cfg_menus) );
-    menu_add( "Prefs", powersave_menus, COUNT(powersave_menus) );
-    menu_add( "Display", level_indic_menus, COUNT(level_indic_menus) );
     #ifdef FEATURE_CROPMARKS
     menu_add( "Overlay", cropmarks_menu, COUNT(cropmarks_menu) );
     #endif
@@ -5110,23 +4604,21 @@ static void show_overlay()
 
 static void transparent_overlay_from_play()
 {
-    if (!PLAY_MODE) { fake_simple_button(BGMT_PLAY); msleep(1000); }
+    /* go to play mode if not already there */
+    enter_play_mode();
+    
+    /* create overlay from current image */
     make_overlay();
-    get_out_of_play_mode(500);
-    msleep(500);
-    if (!lv) { force_liveview(); msleep(500); }
-    msleep(1000);
-    BMP_LOCK( show_overlay(); )
-    //~ transparent_overlay = 1;
+
+    /* go to LiveView */
+    force_liveview();
+    
+    /* the overlay will now be displayed from cropmarks.c */
 }
 
 PROP_HANDLER(PROP_LV_ACTION)
 {
     zoom_overlay_triggered_by_focus_ring_countdown = 0;
-    
-    #ifdef FEATURE_POWERSAVE_LIVEVIEW
-    idle_display_undim(); // restore LCD brightness, especially for shutdown
-    #endif
     
     idle_globaldraw_disable = 0;
     if (buf[0] == 0) lv_paused = 0;
@@ -5142,7 +4634,9 @@ PROP_HANDLER(PROP_LV_ACTION)
 
 void peaking_benchmark()
 {
-    int lv0 = lv;
+    int old_lv = lv;
+    int old_peaking = focus_peaking;
+    focus_peaking = 1;
     msleep(1000);
     fake_simple_button(BGMT_PLAY);
     msleep(2000);
@@ -5155,5 +4649,6 @@ void peaking_benchmark()
     int b = get_seconds_clock();
     NotifyBox(10000, "%d seconds => %d fps", b-a, 1000 / (b-a));
     beep();
-    lv = lv0;
+    lv = old_lv;
+    focus_peaking = old_peaking;
 }

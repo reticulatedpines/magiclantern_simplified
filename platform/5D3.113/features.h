@@ -5,6 +5,7 @@
 #undef FEATURE_QUICK_ERASE // Canon has it
 #undef FEATURE_IMAGE_EFFECTS // None working
 #undef FEATURE_MOVIE_REC_KEY // Canon has it
+#undef FEATURE_NITRATE // needs polishing for nightly builds
 #undef FEATURE_NITRATE_WAV_RECORD // Not implemented
 #undef FEATURE_AF_PATTERNS // Canon has it
 #undef FEATURE_MLU_HANDHELD // Not needed, Canon's silent mode is much better
@@ -24,3 +25,5 @@
 #undef FEATURE_VOICE_TAGS // No sound recorded
 
 #define FEATURE_LV_FOCUS_BOX_SNAP_TO_X5_RAW
+
+#define FEATURE_UNMOUNT_SD_CARD

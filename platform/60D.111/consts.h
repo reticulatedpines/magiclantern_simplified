@@ -88,7 +88,7 @@
 
 #define MVR_FRAME_NUMBER (*(int*)(312 + MVR_968_STRUCT))
 //#define MVR_LAST_FRAME_SIZE (*(int*)(512 + MVR_968_STRUCT))
-#define MVR_BYTES_WRITTEN (*(int*)(280 + MVR_968_STRUCT))
+#define MVR_BYTES_WRITTEN MEM((280 + MVR_968_STRUCT))
 
 
 #define MOV_RES_AND_FPS_COMBINATIONS 7
@@ -186,7 +186,6 @@
 #define DISPLAY_TRAP_FOCUS_MSG_BLANK "          "
 
 #define NUM_PICSTYLES 9
-#define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
 
 
 #define FLASH_MAX_EV 3
@@ -266,4 +265,4 @@
 
 // temperature convertion from raw-temperature to celsius
 // http://www.magiclantern.fm/forum/index.php?topic=9673.0
-#define EFIC_CELSIUS ((int)efic_temp - 128)
+#define EFIC_CELSIUS ((int)efic_temp * 80 / 100 - 93)

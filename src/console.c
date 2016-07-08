@@ -19,9 +19,6 @@
 
 #undef CONSOLE_DEBUG // logs things to file etc
 
-int console_printf(const char* fmt, ...); // how to replace the normal printf?
-#define printf console_printf
-
 #define CONSOLE_W 80
 #define CONSOLE_H 21
 #define CONSOLE_FONT FONT_MONO_20
@@ -150,8 +147,12 @@ void console_puts(const char* str) // don't DebugMsg from here!
         }
         else if (*c == '\b')
         {
-            console_buffer_index--;
-            CONSOLE_BUFFER(console_buffer_index) = ' ';
+            /* only erase on current line */
+            if (MOD(console_buffer_index, CONSOLE_W) != 0)
+            {
+                console_buffer_index--;
+                CONSOLE_BUFFER(console_buffer_index) = ' ';
+            }
         }
         else if (*c == '\r')
         {
@@ -171,26 +172,6 @@ void console_puts(const char* str) // don't DebugMsg from here!
     }
     
     console_buffer_index = MOD(console_buffer_index, BUFSIZE);
-}
-
-int console_printf(const char* fmt, ...) // don't DebugMsg from here!
-{
-    char buf[256];
-    va_list         ap;
-    va_start( ap, fmt );
-    int len = vsnprintf( buf, 255, fmt, ap );
-    va_end( ap );
-    console_puts(buf);
-	return len;
-}
-
-// used from Lua
-int console_vprintf(const char* fmt, va_list ap) // don't DebugMsg from here!
-{
-    char buf[256];
-    int len = vsnprintf( buf, 255, fmt, ap );
-    console_puts(buf);
-	return len;
 }
 
 void console_show_status()
@@ -304,7 +285,7 @@ static void console_draw(int tiny)
         }
         buf[CONSOLE_W - chopped_columns] = 0;
         int y = yc + fontspec_font(fnt)->height * (i - skipped_lines);
-        printed_width = bmp_printf(fnt | FONT_ALIGN_JUSTIFIED | FONT_TEXT_WIDTH(w), x0, y, buf);
+        printed_width = bmp_printf(fnt | FONT_ALIGN_JUSTIFIED | FONT_TEXT_WIDTH(w), x0, y, "%s", buf);
     }
     
     bmp_draw_rect(60, x0-1, yc-1, printed_width+2, h+2);
@@ -353,3 +334,23 @@ console_task( void* unused )
 }
 
 TASK_CREATE( "console_task", console_task, 0, 0x1d, 0x1000 );
+
+/* some functions from standard I/O */
+
+int printf(const char* fmt, ...)
+{
+    char buf[512];
+    va_list         ap;
+    va_start( ap, fmt );
+    int len = vsnprintf( buf, sizeof(buf)-1, fmt, ap );
+    va_end( ap );
+    console_puts(buf);
+    return len;
+}
+
+int puts(const char * fmt)
+{
+    console_puts(fmt);
+    console_puts("\n");
+    return 0;
+}

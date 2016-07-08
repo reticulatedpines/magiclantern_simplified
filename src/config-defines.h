@@ -27,10 +27,6 @@
     /** It's a good idea to back up ROM contents on the card - just in case **/
     #define CONFIG_AUTOBACKUP_ROM
 
-    /** It's a good idea to run some automated tests **/
-    #define CONFIG_STRESS_TEST
-    #define CONFIG_BENCHMARKS
-
     /** You may want to disable this for troubleshooting **/
     #define CONFIG_CONFIG_FILE
     
@@ -47,9 +43,6 @@
     /** A bunch of debug tools **/
     //~ #define CONFIG_DEBUGMSG 1
 
-    /** Useful to test battery consumption without any other ML code running **/
-    //~ #define CONFIG_BATTERY_TEST
-    
     /** Hack to see what memory regions were touched by Canon code and what seems to be unused */
     /** warning: it will slow down boot by a few seconds */
     //~ #define CONFIG_MARK_UNUSED_MEMORY_AT_STARTUP

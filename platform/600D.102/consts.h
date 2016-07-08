@@ -14,6 +14,11 @@
 #define HIJACK_CACHE_HACK_BSS_END_INSTR  0xE3A01732
 #define HIJACK_CACHE_HACK_INITTASK_ADDR  0xFF0110DC
 
+#define HIJACK_INSTR_BL_CSTART  0xff01019c
+#define HIJACK_INSTR_BSS_END 0xff0110d0
+#define HIJACK_FIXBR_BZERO32 0xff011038
+#define HIJACK_FIXBR_CREATE_ITASK 0xff0110c0
+#define HIJACK_INSTR_MY_ITASK 0xff0110dc
 
 #define HIJACK_TASK_ADDR 0x1a2c
 
@@ -34,7 +39,7 @@
 #define MVR_BUFFER_USAGE MAX(MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND)
 
 #define MVR_FRAME_NUMBER (*(int*)(332 + MVR_992_STRUCT))
-#define MVR_BYTES_WRITTEN (*(int*)(296 + MVR_992_STRUCT))
+#define MVR_BYTES_WRITTEN MEM((296 + MVR_992_STRUCT))
 
 #define MOV_RES_AND_FPS_COMBINATIONS 9
 #define MOV_OPT_NUM_PARAMS 2
@@ -179,7 +184,6 @@
 #define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 68 : 2)
 
 #define NUM_PICSTYLES 10
-#define PROP_PICSTYLE_SETTINGS(i) ((i) == 1 ? PROP_PICSTYLE_SETTINGS_AUTO : PROP_PICSTYLE_SETTINGS_STANDARD - 2 + i)
 
 
 #define FLASH_MAX_EV 3
@@ -264,4 +268,4 @@
 
 // temperature convertion from raw-temperature to celsius
 // http://www.magiclantern.fm/forum/index.php?topic=9673.0
-#define EFIC_CELSIUS ((int)efic_temp * 63 / 100 - 72)
+#define EFIC_CELSIUS ((int)efic_temp * 60 / 100 - 65)

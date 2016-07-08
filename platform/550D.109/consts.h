@@ -96,7 +96,7 @@
 #define MVR_BUFFER_USAGE MAX(MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND)
 
 #define MVR_FRAME_NUMBER  (*(int*)(0xEC + MVR_752_STRUCT)) // in mvrExpStarted
-#define MVR_BYTES_WRITTEN (*(int*)(0xE4 + MVR_752_STRUCT)) // in mvrSMEncodeDone
+#define MVR_BYTES_WRITTEN MEM((0xE4 + MVR_752_STRUCT)) // in mvrSMEncodeDone
 
 
 #define MOV_RES_AND_FPS_COMBINATIONS 7
@@ -159,7 +159,6 @@
 #define DISPLAY_TRAP_FOCUS_MSG_BLANK "     \n     "
 
 #define NUM_PICSTYLES 9
-#define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
 
 
 #define FLASH_MAX_EV 3
@@ -222,7 +221,15 @@
 
 #define DISPLAY_STATEOBJ (*(struct state_object **)0x245c)
 //~ #define DISPLAY_IS_ON (MEM(0xc022010c) & 2) // from BackLightOn
-#define DISPLAY_IS_ON get_display_is_on_550D() // from state object
+
+#ifdef CONFIG_INSTALLER
+    /* we don't have state object hooks running, so we'll use the good old way */
+    #define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
+#else
+    /* this workaround prevents crashes when using custom schemes and related display tricks */
+    /* todo: is this still needed? probably not, since we check LCLK now */
+    #define DISPLAY_IS_ON get_display_is_on_550D() // from state object
+#endif
 
 #define LV_STRUCT_PTR 0x1d14
 #define FRAME_SHUTTER *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x5e)
@@ -236,3 +243,7 @@
 
 //~ max volume supported for beeps
 #define ASIF_MAX_VOL 5
+
+// temperature convertion from raw-temperature to celsius
+// http://www.magiclantern.fm/forum/index.php?topic=9673.0
+#define EFIC_CELSIUS ((int)efic_temp * 210 / 100 - 280)

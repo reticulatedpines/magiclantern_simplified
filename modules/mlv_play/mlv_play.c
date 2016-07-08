@@ -35,6 +35,7 @@
 #include <zebra.h>
 #include <util.h>
 #include <timer.h>
+#include <shoot.h>
 
 #include <string.h>
 
@@ -2091,30 +2092,6 @@ static void mlv_play(char *filename, FILE **chunk_files, uint32_t chunk_count)
     }
 }
 
-static void mlv_play_set_mode(int32_t mode)
-{
-    if (get_gui_mode() == mode)
-    {
-        return;
-    }
-
-    uint32_t loops = 0;
-    
-    SetGUIRequestMode(mode);
-    while (get_gui_mode() != mode || !display_is_on())
-    {
-        msleep(100);
-        loops++;
-        if(loops > 50)
-        {
-            break;
-        }
-    }
-    
-    msleep(500);
-}
-
-
 static void mlv_playlist_build_path(char *directory)
 {
     struct fio_file file;
@@ -2308,14 +2285,14 @@ static void mlv_play_leave_playback()
     }
     
     vram_clear_lv();
-    mlv_play_set_mode(0);
+    exit_play_qr_mode();
 }
 
 static void mlv_play_enter_playback()
 {
     /* prepare display */
     NotifyBoxHide();
-    mlv_play_set_mode(1);
+    enter_play_mode();
     
     /* render task is slave and controlled via these variables */
     mlv_play_render_abort = 0;

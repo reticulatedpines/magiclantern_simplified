@@ -70,13 +70,6 @@ int LensFocus2(int num_steps, int step_size)
     return lens_focus(num_steps, step_size, lens_focus_waitflag, lens_focus_delay*10);
 }
 
-void LensFocusSetup(int stepsize, int stepdelay, int wait)
-{
-    lens_focus_stepsize = COERCE(stepsize, 1, 3);
-    lens_focus_waitflag = wait;
-    lens_focus_delay = stepdelay/10;
-}
-
 static int focus_stack_enabled = 0;
 //~ CONFIG_INT( "focus.stack", focus_stack_enabled, 0);
 
@@ -258,7 +251,7 @@ display_lens_hyperfocal()
     unsigned        height = fontspec_height( font );
 
     int x = 10;
-    int y = 315;
+    int y = 328;
 
     y += 10;
     y += height;
@@ -342,7 +335,10 @@ display_lens_hyperfocal()
 
 static MENU_UPDATE_FUNC(dof_info_update)
 {
-    display_lens_hyperfocal();
+    if (info->can_custom_draw)
+    {
+        display_lens_hyperfocal();
+    }
 }
 
 static MENU_UPDATE_FUNC(dof_info_coc_update)
@@ -380,7 +376,7 @@ static void focus_stack_ensure_preconditions()
         while (!lv)
         {
             focus_stack_check_stop();
-            get_out_of_play_mode(500);
+            exit_play_qr_mode();
             focus_stack_check_stop();
             if (!lv) force_liveview();
             if (lv) break;
@@ -750,7 +746,6 @@ focus_task( void* unused )
 {
     TASK_LOOP
     {
-        msleep(50);
         int err = take_semaphore( focus_task_sem, 500 );
         if (err) continue;
         
@@ -1245,10 +1240,9 @@ static struct menu_entry focus_menu[] = {
                 .name = "Step Delay",
                 .priv = &lens_focus_delay,
                 .update = focus_delay_update,
-                .min = 1,
+                .min = 0,
                 .max = 100,
                 .icon_type = IT_PERCENT_LOG,
-                //~ .choices = CHOICES("10ms", "20ms", "40ms", "80ms", "160ms", "320ms", "640ms"),
                 .help = "Delay between two successive focus commands.",
             },
             {

@@ -126,7 +126,7 @@ static void post_deflicker_task()
     deflicker_waiting--;
     
     int raw_fast = raw_hist_get_percentile_level(post_deflicker_percentile*10, GRAY_PROJECTION_GREEN, 4);
-    //~ console_printf("fast deflick: %d\n", raw_fast);
+    //~ printf("fast deflick: %d\n", raw_fast);
     int raw = raw_fast;
         
     /* no rush? do a precise deflicker */
@@ -138,10 +138,10 @@ static void post_deflicker_task()
     if (!deflicker_waiting)
     {
         int raw_precise = raw_hist_get_percentile_level(post_deflicker_percentile*10, GRAY_PROJECTION_GREEN, 0);
-        //~ console_printf("precise deflick: %d\n", raw_precise);
+        //~ printf("precise deflick: %d\n", raw_precise);
         if (raw_precise > 0 && raw_precise < 16384) raw = raw_precise;
     }
-    //~ else console_printf("hurry, hurry\n");
+    //~ else printf("hurry, hurry\n");
     
     if (raw <= 0 || raw >= 16384)
     {
@@ -158,7 +158,7 @@ static void post_deflicker_task()
     float correction = post_deflicker_target_level - ev;
     deflicker_last_correction_x100 = (int)roundf(correction * 100);
 
-    console_printf("deflick corr: %s%d.%02d\n", FMT_FIXEDPOINT2S(deflicker_last_correction_x100));
+    printf("deflick corr: %s%d.%02d\n", FMT_FIXEDPOINT2S(deflicker_last_correction_x100));
     post_deflicker_save_sidecar_file_for_cr2(post_deflicker_sidecar_type, get_shooting_card()->file_number, correction);
     give_semaphore(deflicker_sem);
 }
@@ -193,7 +193,7 @@ static MENU_UPDATE_FUNC(post_deflicker_update)
     }
     
     if (post_deflicker && post_deflicker_sidecar_type==1)
-        MENU_SET_WARNING(MENU_WARN_INFO, "You must rename *.UFR to *.ufraw: rename 's/UFR$/ufraw' *");
+        MENU_SET_WARNING(MENU_WARN_INFO, "You must rename *.UFR to *.ufraw: rename 's/UFR$/ufraw/' *");
 }
 
 PROP_HANDLER(PROP_GUI_STATE)

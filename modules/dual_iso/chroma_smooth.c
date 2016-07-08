@@ -15,7 +15,7 @@
 #define CHROMA_SMOOTH_MEDIAN opt_med25
 #endif
 
-static void CHROMA_SMOOTH_FUNC(unsigned short * inp, unsigned short * out, int* raw2ev, int* ev2raw)
+static void CHROMA_SMOOTH_FUNC(uint32_t * inp, uint32_t * out, int* raw2ev, int* ev2raw)
 {
     int w = raw_info.width;
     int h = raw_info.height;

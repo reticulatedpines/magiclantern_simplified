@@ -124,13 +124,13 @@ static exposure get_exposure(int bv, int simul) {
     int same_tv_offset = 0;
     if(same_tv) {
         if(simul && lens_av != LENS_AV_THIS) same_tv_offset = MAX(0, lens_av - av_min);
-        else same_tv_offset = MAX(0, RAW2AV(lens_info.raw_aperture_min) - av_min);
+        else same_tv_offset = MAX(0, APEX10_RAW2AV(lens_info.raw_aperture_min) - av_min);
     }
     
     //av
     expo.av = MAX(av_max + (MIN(bv - av_off, 0) * av_step) / 10, av_min);
     if(simul && lens_av != LENS_AV_THIS) expo.av = MAX(lens_av, expo.av);
-    else expo.av = COERCE(expo.av, RAW2AV(lens_info.raw_aperture_min), RAW2AV(lens_info.raw_aperture_max));
+    else expo.av = COERCE(expo.av, APEX10_RAW2AV(lens_info.raw_aperture_min), APEX10_RAW2AV(lens_info.raw_aperture_max));
     
     //av
     expo.sv  = MIN(iso_min - (MIN(bv - (iso_off + same_tv_offset), 0) * iso_step) / 10, iso_max);
@@ -192,9 +192,9 @@ static void autoexpo_task()
     last_bv = bv;
     
     exposure expo = get_exposure(bv, 0);
-    lens_set_rawaperture(AV2RAW(expo.av));
-    lens_set_rawiso(SV2RAW(expo.sv));
-    lens_set_rawshutter(TV2RAW(expo.tv));
+    lens_set_rawaperture(APEX10_AV2RAW(expo.av));
+    lens_set_rawiso(APEX10_SV2RAW(expo.sv));
+    lens_set_rawshutter(APEX10_TV2RAW(expo.tv));
 
     cleanup:
     autoexpo_running = 0;
@@ -278,12 +278,12 @@ static void update_graph()
             
             // sv value
             if(expo.sv != last_expo.sv) {
-                bmp_printf(GRAPH_FONT, x, GRAPH_Y_TEXT(expo.sv), "%d", raw2iso(SV2RAW(expo.sv)));
+                bmp_printf(GRAPH_FONT, x, GRAPH_Y_TEXT(expo.sv), "%d", raw2iso(APEX10_SV2RAW(expo.sv)));
             }
             
             // av value
             if(expo.av != last_expo.av) {
-                int ap = AV2STR(expo.av);
+                int ap = APEX10_AV2VAL(expo.av);
                 bmp_printf(GRAPH_FONT, x, GRAPH_Y_TEXT(expo.av), "%d.%d", ap / 10, ap % 10);
             }
             
@@ -296,7 +296,7 @@ static void update_graph()
             // tv value
             if(expo.tv != last_expo.tv) {
                 bmp_printf(GRAPH_FONT, x, GRAPH_Y_TEXT(expo.tv),
-                    "%s", lens_format_shutter(TV2RAW(expo.tv)));
+                    "%s", lens_format_shutter(APEX10_TV2RAW(expo.tv)));
             }
             
         }
@@ -337,8 +337,8 @@ static MENU_UPDATE_FUNC(ec_curve_upd) {
 
 //others
 static MENU_UPDATE_FUNC(aperture_range_upd) {
-    int apmin = AV2STR(av_min);
-    int apmax = AV2STR(av_max);
+    int apmin = APEX10_AV2VAL(av_min);
+    int apmax = APEX10_AV2VAL(av_max);
     MENU_SET_VALUE(SYM_F_SLASH"%d.%d - "SYM_F_SLASH"%d.%d", apmin / 10, apmin % 10, apmax / 10, apmax % 10);
     MENU_CUSTOM_DRAW(av);
 }
@@ -361,13 +361,13 @@ static MENU_UPDATE_FUNC(lens_av_upd) {
         MENU_SET_ICON(IT_DICE_OFF, 0);
     }
     else if (lens_av == LENS_AV_THIS) {
-        int ap = AV2STR(RAW2AV(lens_info.raw_aperture_min));
+        int ap = APEX10_AV2VAL(APEX10_RAW2AV(lens_info.raw_aperture_min));
         MENU_SET_VALUE("this lens "SYM_F_SLASH"%d.%d", ap / 10, ap % 10);
         MENU_SET_ENABLED(1);
         MENU_SET_ICON(IT_DICE, 0);
     }
     else {
-        int ap = AV2STR(lens_av);
+        int ap = APEX10_AV2VAL(lens_av);
         MENU_SET_VALUE(SYM_F_SLASH"%d.%d", ap / 10, ap % 10);
         MENU_SET_ENABLED(1);
         MENU_SET_ICON(IT_DICE, 0);
@@ -382,7 +382,7 @@ static MENU_SELECT_FUNC(lens_av_set) {
 }
 
 static MENU_UPDATE_FUNC(iso_range_upd) {
-    MENU_SET_VALUE("%d - %d", raw2iso(SV2RAW(iso_min)), raw2iso(SV2RAW(iso_max)));
+    MENU_SET_VALUE("%d - %d", raw2iso(APEX10_SV2RAW(iso_min)), raw2iso(APEX10_SV2RAW(iso_max)));
     MENU_CUSTOM_DRAW(sv);
 }
 
@@ -402,7 +402,7 @@ static MENU_SELECT_FUNC(tv_min_set) {
 }
 
 static MENU_UPDATE_FUNC(tv_min_upd) {
-    MENU_SET_VALUE("%s", lens_format_shutter(TV2RAW(tv_min)));
+    MENU_SET_VALUE("%s", lens_format_shutter(APEX10_TV2RAW(tv_min)));
     MENU_CUSTOM_DRAW(tv);
 }
 
@@ -435,13 +435,13 @@ static MENU_SELECT_FUNC(ec_range_set) { RANGE_SET(ec, -50, 50); }
 static MENU_UPDATE_FUNC(last_bv_upd) {
     if(last_bv != INT_MIN) {
         exposure expo = get_exposure(last_bv, 1);
-        expo.av = AV2STR(expo.av);
+        expo.av = APEX10_AV2VAL(expo.av);
         
         MENU_SET_VALUE("%s%d.%d BV", FMT_FIXEDPOINT1(last_bv));
         MENU_SET_HELP("%s "SYM_F_SLASH"%d.%d   %d ISO   %s%d.%d EC",
-            lens_format_shutter(TV2RAW(expo.tv)),
+            lens_format_shutter(APEX10_TV2RAW(expo.tv)),
             expo.av / 10, expo.av % 10,
-            raw2iso(SV2RAW(expo.sv)),
+            raw2iso(APEX10_SV2RAW(expo.sv)),
             FMT_FIXEDPOINT1S(expo.ec)
         );
     }
