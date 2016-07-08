@@ -116,8 +116,8 @@ Output size: 5496 x 3670
 #define MVR_BUFFER_USAGE MVR_BUFFER_USAGE_FRAME + MVR_BUFFER_USAGE_SOUND
 
 #define MVR_FRAME_NUMBER  (*(int*)(0x1FC + MVR_516_STRUCT)) // in mvrExpStarted
-#define MVR_BYTES_WRITTEN (*(int*)(0xb0 + MVR_516_STRUCT))  //Not sure where to find but works.
-//~ #define MVR_BYTES_WRITTEN (*(int*)(0x1A4 + MVR_516_STRUCT)) //%s : End(%d) (%5dKB/S)
+#define MVR_BYTES_WRITTEN MEM((0xb0 + MVR_516_STRUCT))  //Not sure where to find but works.
+//~ #define MVR_BYTES_WRITTEN MEM((0x1A4 + MVR_516_STRUCT)) //%s : End(%d) (%5dKB/S)
 
 #define AE_STATE (*(int8_t*)(0x7F5A4 + 0x1C)) 
 #define AE_VALUE (*(int8_t*)(0x7F5A4 + 0x1D))

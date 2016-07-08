@@ -67,7 +67,7 @@
 #define MVR_BUFFER_USAGE MAX(MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND)
 
 #define MVR_FRAME_NUMBER  (*(int*)(0xEC + MVR_516_STRUCT)) // in mvrExpStarted
-#define MVR_BYTES_WRITTEN (*(int*)(0xE4 + MVR_516_STRUCT)) // in mvrSMEncodeDone
+#define MVR_BYTES_WRITTEN MEM((0xE4 + MVR_516_STRUCT)) // in mvrSMEncodeDone
 
 #define MOV_RES_AND_FPS_COMBINATIONS 5
 #define MOV_OPT_NUM_PARAMS 2

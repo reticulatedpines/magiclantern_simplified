@@ -82,7 +82,7 @@
 #define MVR_BUFFER_USAGE MAX(MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND)
 
 #define MVR_FRAME_NUMBER  (*(int*)(0x1F4 + MVR_516_STRUCT)) // in mvrExpStarted
-#define MVR_BYTES_WRITTEN (*(int*)(0xb0 + MVR_516_STRUCT))
+#define MVR_BYTES_WRITTEN MEM((0xb0 + MVR_516_STRUCT))
 
 #define MOV_RES_AND_FPS_COMBINATIONS 5 // 3 fullhd, 2 hd, not changing the two VGA modes; worth trying with 9
 #define MOV_OPT_NUM_PARAMS 2
