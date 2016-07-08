@@ -509,6 +509,7 @@ static int translate_scancode_2(int scancode, int first_code)
                 case 0x1B: return button_codes[BGMT_WHEEL_RIGHT];
                 case 0x19: return button_codes[BGMT_PLAY];          /* P -> PLAY */
                 case 0x17: return button_codes[BGMT_INFO];          /* I -> INFO/DISP */
+                case 0x3B: return 0x00F1F1F1;                       /* F1 -> help */
             }
             break;
         }
@@ -558,11 +559,62 @@ static int translate_scancode(int scancode)
     return translate_scancode_2(scancode, 0);
 }
 
+static int key_avail(int scancode)
+{
+    /* check whether a given key is available on current camera model */
+    return translate_scancode_2(scancode & 0xFF, scancode >> 8) > 0;
+}
+
+static int keys_avail(int* scancodes)
+{
+    /* check whether all keys from a null-terminated list are available on current camera */
+    for (int* s = scancodes; *s; s++)
+    {
+        if (!key_avail(*s))
+            return 0;
+    }
+    return 1;
+}
+
+static void show_keyboard_help(void)
+{
+    puts("");
+    puts("Available keys:");
+    /* fixme: scancodes hardcoded twice */
+    if (keys_avail((int[]){0xE048, 0xE04B, 0xE050, 0xE04D, 0}))
+        puts("- Arrow keys : navigation");
+    if (keys_avail((int[]){0xE049, 0xE051, 0}))
+        puts("- PgUp, PgDn : sub dial (rear scrollwheel)");
+    if (keys_avail((int[]){0x1A, 0x1B, 0}))
+        puts("- [ and ]    : main dial (top scrollwheel)");
+    if (key_avail(0x39))
+        puts("- SPACE      : SET");
+    if (key_avail(0xE053))
+        puts("- DELETE     : guess");
+    if (key_avail(0x32))
+        puts("- M          : MENU");
+    if (key_avail(0x19))
+        puts("- P          : PLAY");
+    if (key_avail(0x17))
+        puts("- I          : INFO/DISP");
+    if (key_avail(0x10))
+        puts("- Q          : guess");
+    if (key_avail(0x3B))
+        puts("- F1         : show this help");
+    puts("");
+}
+
 void mpu_send_keypress(EOSState *s, int keycode)
 {
     /* good news: most MPU button codes appear to be the same across all cameras :) */
     int key = translate_scancode(keycode);
     if (key <= 0) return;
+    
+    if (key == 0x00F1F1F1)
+    {
+        show_keyboard_help();
+        return;
+    }
 
     printf("Key event: %x -> %04x\n", keycode, key);
     
@@ -655,4 +707,6 @@ void mpu_spells_init(EOSState *s)
         button_codes[BGMT_UNPRESS_LEFT]  = 
         button_codes[BGMT_UNPRESS_RIGHT] = button_codes[BGMT_UNPRESS_UDLR];
     }
+    
+    show_keyboard_help();
 }
