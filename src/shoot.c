@@ -6338,7 +6338,11 @@ shoot_task( void* unused )
             if(canceled)
                 intervalometer_stop();
             
-            intervalometer_next_shot_time = MAX(intervalometer_next_shot_time, seconds_clock);
+            int overrun = seconds_clock - intervalometer_next_shot_time;
+            if (overrun > 0)
+            {
+                NotifyBox(5000, "Interval time too short (%ds)", overrun);
+            }
             intervalometer_pictures_taken++;
             
             #ifdef CONFIG_MODULES
