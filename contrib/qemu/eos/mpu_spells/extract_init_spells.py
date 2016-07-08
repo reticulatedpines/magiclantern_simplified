@@ -22,7 +22,7 @@ lines = f.readlines()
 [log_path, log_filename] = os.path.split(log_fullpath)
 model = log_filename[:log_filename.index("-")]
 
-print("struct mpu_init_spell mpu_init_spells_%s[] = { {" % model)
+print("static struct mpu_init_spell mpu_init_spells_%s[] = { {" % model)
 first_block = True
 num = 0
 num2 = 0

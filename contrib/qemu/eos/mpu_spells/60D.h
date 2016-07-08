@@ -2,7 +2,7 @@
  * These values are valid for a 60D.
  */
 
-struct mpu_init_spell mpu_init_spells_60D[] = { {
+static struct mpu_init_spell mpu_init_spells_60D[] = { {
     { 0x06, 0x04, 0x02, 0x00, 0x00 }, {                         /* spell #1 */
         { 0x08, 0x07, 0x01, 0x33, 0x09, 0x00, 0x00, 0x00 },     /* reply #1.1 */
         { 0x06, 0x05, 0x01, 0x20, 0x00, 0x00 },                 /* reply #1.2 */
@@ -173,7 +173,8 @@ struct mpu_init_spell mpu_init_spells_60D[] = { {
  * Alternative version: send everything after the first message,
  * with one exception: delay GUI-related messages.
  */
-struct mpu_init_spell mpu_init_spells_60D_alt[] = { {
+#if 0
+static struct mpu_init_spell mpu_init_spells_60D[] = { {
     { 0x06, 0x04, 0x02, 0x00, 0x00 }, {
         { 0x08, 0x07, 0x01, 0x33, 0x09, 0x00, 0x00, 0x00 },
         { 0x06, 0x05, 0x01, 0x20, 0x00, 0x00 },
@@ -257,3 +258,4 @@ struct mpu_init_spell mpu_init_spells_60D_alt[] = { {
         { 0x06, 0x05, 0x08, 0x06, 0x00, 0x00 },
     { 0 } } }
 };
+#endif

@@ -1,7 +1,7 @@
 /**
  * 600D (MENU pressed at startup)
  */
-struct mpu_init_spell mpu_init_spells_600D[] = { {
+static struct mpu_init_spell mpu_init_spells_600D[] = { {
     { 0x06, 0x04, 0x02, 0x00, 0x00 }, {                         /* spell #1 */
         { 0x06, 0x05, 0x01, 0x00, 0x03, 0x00 },                 /* reply #1.1 */
         { 0x06, 0x05, 0x01, 0x05, 0x45, 0x00 },                 /* reply #1.2 */
