@@ -43,9 +43,7 @@ cp -vr ../$ML/contrib/qemu/scripts/* .
 chmod +x *.sh
 cd ${QEMU_NAME}
 mkdir -p hw/eos
-mkdir -p hw/eos/mpu_spells
-cp -v ../../$ML/contrib/qemu/eos/* hw/eos
-cp -v ../../$ML/contrib/qemu/eos/mpu_spells/* hw/eos/mpu_spells
+cp -vr ../../$ML/contrib/qemu/eos/* hw/eos
 patch -N -p1 < ../../$ML/contrib/qemu/$QEMU_NAME.patch
 cd ..
 
