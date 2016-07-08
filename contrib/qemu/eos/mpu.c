@@ -487,6 +487,39 @@ unsigned int eos_handle_mreq( unsigned int parm, EOSState *s, unsigned int addre
 static int* button_codes = 0;
 
 /* http://www.marjorie.de/ps2/scancode-set1.htm */
+/* to create a group of keys, simply name only the first key from the group */
+static struct {
+    int scancode;
+    int gui_code;
+    const char * pc_key_name;
+    const char * cam_key_name;
+} key_map[] = {
+    { 0xE048,   BGMT_PRESS_UP,          "Arrow keys",   "Navigation",                   },
+    { 0xE04B,   BGMT_PRESS_LEFT,                                                        },
+    { 0xE050,   BGMT_PRESS_DOWN,                                                        },
+    { 0xE04D,   BGMT_PRESS_RIGHT,                                                       },
+    { 0xE0C8,   BGMT_UNPRESS_UP,                                                        },
+    { 0xE0D0,   BGMT_UNPRESS_LEFT,                                                      },
+    { 0xE0CB,   BGMT_UNPRESS_DOWN,                                                      },
+    { 0xE0CD,   BGMT_UNPRESS_RIGHT,                                                     },
+
+    { 0xE049,   BGMT_WHEEL_UP,          "PgUp, PgDn",   "sub dial (rear scrollwheel)"   },
+    { 0xE051,   BGMT_WHEEL_DOWN,                                                        },
+
+    { 0x001A,   BGMT_WHEEL_LEFT,        "[ and ]",      "main dial (top scrollwheel)",  },
+    { 0x001B,   BGMT_WHEEL_RIGHT,                                                       },
+
+    { 0x0039,   BGMT_PRESS_SET,         "SPACE",        "SET",                          },
+    { 0x00B9,   BGMT_UNPRESS_SET,                                                       },
+
+    { 0xE053,   BGMT_TRASH,             "DELETE",       "guess"                         },
+
+    { 0x0032,   BGMT_MENU,              "M",            "MENU",                         },
+    { 0x0019,   BGMT_MENU,              "P",            "PLAY",                         },
+    { 0x0017,   BGMT_MENU,              "I",            "INFO/DISP",                    },
+    { 0x0010,   BGMT_Q,                 "Q",            "guess",                        },
+};
+
 /* returns MPU button codes (lo, hi) */
 static int translate_scancode_2(int scancode, int first_code)
 {
@@ -495,44 +528,24 @@ static int translate_scancode_2(int scancode, int first_code)
         return -1;
     }
     
-    switch (first_code)
-    {
-        case 0x00:
-        {
-            switch (scancode)
-            {
-                case 0x10: return button_codes[BGMT_Q];             /* Q */
-                case 0x32: return button_codes[BGMT_MENU];          /* M -> MENU */
-                case 0x39: return button_codes[BGMT_PRESS_SET];     /* space -> SET */
-                case 0xB9: return button_codes[BGMT_UNPRESS_SET];   /* unpress SET */
-                case 0x1A: return button_codes[BGMT_WHEEL_LEFT];    /* [ and ] -> main dial */
-                case 0x1B: return button_codes[BGMT_WHEEL_RIGHT];
-                case 0x19: return button_codes[BGMT_PLAY];          /* P -> PLAY */
-                case 0x17: return button_codes[BGMT_INFO];          /* I -> INFO/DISP */
-                case 0x3B: return 0x00F1F1F1;                       /* F1 -> help */
-            }
-            break;
-        }
+    int code = (first_code << 8) | scancode;
 
-        case 0xE0:
+    if (code == 0x003B)
+    {
+        /* special: F1 -> help */
+        return 0x00F1F1F1;
+    }
+
+    /* lookup MPU key code */
+    for (int i = 0; i < COUNT(key_map); i++)
+    {
+        if (key_map[i].scancode == code)
         {
-            switch (scancode)
-            {
-                case 0x48: return button_codes[BGMT_PRESS_UP];      /* arrows */
-                case 0x4B: return button_codes[BGMT_PRESS_LEFT];
-                case 0x50: return button_codes[BGMT_PRESS_DOWN];
-                case 0x4D: return button_codes[BGMT_PRESS_RIGHT];
-                case 0xC8: return button_codes[BGMT_UNPRESS_UP];
-                case 0xCB: return button_codes[BGMT_UNPRESS_LEFT];
-                case 0xD0: return button_codes[BGMT_UNPRESS_DOWN];
-                case 0xCD: return button_codes[BGMT_UNPRESS_RIGHT];                
-                case 0x49: return button_codes[BGMT_WHEEL_UP];      /* page up */
-                case 0x51: return button_codes[BGMT_WHEEL_DOWN];    /* page down */
-                case 0x53: return button_codes[BGMT_TRASH];         /* delete */
-            }
+            return button_codes[key_map[i].gui_code];
         }
     }
     
+    /* not found */
     return -2;
 }
 
@@ -565,42 +578,32 @@ static int key_avail(int scancode)
     return translate_scancode_2(scancode & 0xFF, scancode >> 8) > 0;
 }
 
-static int keys_avail(int* scancodes)
-{
-    /* check whether all keys from a null-terminated list are available on current camera */
-    for (int* s = scancodes; *s; s++)
-    {
-        if (!key_avail(*s))
-            return 0;
-    }
-    return 1;
-}
-
 static void show_keyboard_help(void)
 {
     puts("");
     puts("Available keys:");
-    /* fixme: scancodes hardcoded twice */
-    if (keys_avail((int[]){0xE048, 0xE04B, 0xE050, 0xE04D, 0}))
-        puts("- Arrow keys : navigation");
-    if (keys_avail((int[]){0xE049, 0xE051, 0}))
-        puts("- PgUp, PgDn : sub dial (rear scrollwheel)");
-    if (keys_avail((int[]){0x1A, 0x1B, 0}))
-        puts("- [ and ]    : main dial (top scrollwheel)");
-    if (key_avail(0x39))
-        puts("- SPACE      : SET");
-    if (key_avail(0xE053))
-        puts("- DELETE     : guess");
-    if (key_avail(0x32))
-        puts("- M          : MENU");
-    if (key_avail(0x19))
-        puts("- P          : PLAY");
-    if (key_avail(0x17))
-        puts("- I          : INFO/DISP");
-    if (key_avail(0x10))
-        puts("- Q          : guess");
-    if (key_avail(0x3B))
-        puts("- F1         : show this help");
+
+    int last_status = 0;
+    
+    for (int i = 0; i < COUNT(key_map); i++)
+    {
+        if (key_map[i].pc_key_name)
+        {
+            last_status = key_avail(key_map[i].scancode);
+            if (last_status)
+            {
+                printf("- %-10s : %s\n", key_map[i].pc_key_name, key_map[i].cam_key_name);
+            }
+        }
+        else if (last_status && !key_avail(key_map[i].scancode))
+        {
+            /* for grouped keys, make sure all codes are available */
+            printf("key code missing: %x %x\n", key_map[i].scancode, key_map[i].gui_code);
+            exit(1);
+        }
+    }
+    
+    puts("- F1         : show this help");
     puts("");
 }
 
