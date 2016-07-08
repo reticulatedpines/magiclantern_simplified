@@ -22,8 +22,8 @@ static int button_codes_100D[] = {
     [BGMT_UNPRESS_UP]                   = 0x1800,
     [BGMT_UNPRESS_ZOOM_IN]              = 0x0900,
     [BGMT_UNPRESS_ZOOM_OUT]             = 0x0A00,
-    [BGMT_WHEEL_DOWN]                   = 0x0D01,
-    [BGMT_WHEEL_UP]                     = 0x0DFF,
+    [BGMT_WHEEL_LEFT]                   = 0x0DFF,
+    [BGMT_WHEEL_RIGHT]                  = 0x0D01,
     [GMT_GUICMD_PRESS_BUTTON_SOMETHING] = 0x2601,
     [BGMT_END_OF_LIST]                  = 0x0000
 };
