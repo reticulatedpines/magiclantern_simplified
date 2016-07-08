@@ -3,12 +3,12 @@
 
 
 // button codes as received by gui_main_task
-#define BGMT_WHEEL_UP 2
-#define BGMT_WHEEL_DOWN 3
+#define BGMT_WHEEL_LEFT 2
+#define BGMT_WHEEL_RIGHT 3
 
 /* no top wheel => use fake negative values => they will fail read-only tests and will not be passed to Canon firmware */
-#define BGMT_WHEEL_LEFT -12345
-#define BGMT_WHEEL_RIGHT -123456
+#define BGMT_WHEEL_UP -12345
+#define BGMT_WHEEL_DOWN -123456
 
 #define BGMT_PRESS_SET 0x4
 #define BGMT_UNPRESS_SET 0x5
