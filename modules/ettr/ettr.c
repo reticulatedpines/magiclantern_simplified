@@ -654,6 +654,13 @@ static int auto_ettr_work(int corr)
         ensure_bulb_mode();
         int seconds = auto_ettr_get_long_exposure_time(tvr);
         
+        if (is_intervalometer_running())
+        {
+            /* in BULB mode, limit longest exposures to interval time minus 3 seconds */
+            int intervalometer_lim = MAX(1, get_interval_time() - 3);
+            seconds = MIN(seconds, intervalometer_lim);
+        }
+        
         /* configure bulb timer with the new exposure */
         menu_set_value_from_script("Bulb Timer", "Exposure duration", seconds);
         oks = 1;
