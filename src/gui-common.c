@@ -58,12 +58,6 @@ static void hacked_DebugMsg(int class, int level, char* fmt, ...)
         }
     }
     #endif
-    
-#ifdef CONFIG_5D3
-    extern int rec_led_off;
-    if ((class == 34 || class == 35) && level == 1 && rec_led_off && RECORDING) // cfWriteBlk, sdWriteBlk
-        *(uint32_t*) (CARD_LED_ADDRESS) = (LEDOFF);
-#endif
 
 #ifdef FRAME_SHUTTER_BLANKING_WRITE
     if (class == 145) /* 5D3-specific? */

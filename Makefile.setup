@@ -127,7 +127,10 @@ AFLAGS += $(AFLAG_USER)
 install_prepare:
 	$(INSTALL_PREPARE)
 
-.PHONY: install_prepare
+install_finish:
+	$(INSTALL_FINISH)
+
+.PHONY: install_prepare install_finish
 
 prepare_install_dir: install_prepare
 	@echo "[ MKDIR    ]   ML directory structure..."

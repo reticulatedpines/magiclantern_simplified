@@ -66,8 +66,7 @@ copy_and_restart( int offset )
     INSTR( HIJACK_INSTR_MY_ITASK ) = (uint32_t) my_init_task;
     
     // Make sure that our self-modifying code clears the cache
-    clean_d_cache();
-    flush_caches();
+    sync_caches();
 
     // We enter after the signature, avoiding the
     // relocation jump that is at the head of the data
