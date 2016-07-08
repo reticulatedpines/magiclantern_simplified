@@ -3,6 +3,9 @@
  */
 
 #include "dryos.h"
+#include "vram.h"
+#include "bmp.h"
+#include "font_direct.h"
 
 /** These are called when new tasks are created */
 static int my_init_task(int a, int b, int c, int d);
@@ -101,15 +104,11 @@ copy_and_restart( int offset )
         ;
 }
 
-/** Initial task setup.
- *
- * This is called instead of the task at 0xFF811DBC.
- * It does all of the stuff to bring up the debug manager,
- * the terminal drivers, stdio, stdlib and armlib.
- */
+#if 0
+/* ROM dumper */
+extern FILE* _FIO_CreateFile(const char* filename );
 
-FILE* _FIO_CreateFile(const char* filename );
-
+/* this cannot run from init_task */
 static void run_test()
 {
     /* change to A:/ for CF cards */
@@ -121,43 +120,41 @@ static void run_test()
         FIO_CloseFile(f);
     }
 }
+#endif
 
-static void null_pointer_check()
-{
-    static int first_time = 1;
-    static int value_at_zero = 0;
-    if (first_time)
-    {
-        value_at_zero = *(int*)0; // assume this is the correct value
-        first_time = 0;
-    }
-    else // did it change? it shouldn't
-    {
-        if (value_at_zero != *(int*)0)
-        {
-            *(uint32_t*)CARD_LED_ADDRESS ^= 2;
-        }
-        else
-        {
-            *(uint32_t*)CARD_LED_ADDRESS = 0x46;
-        }
-    }
-}
-
+/** Initial task setup.
+ *
+ * This is called instead of the task at 0xFF811DBC.
+ * It does all of the stuff to bring up the debug manager,
+ * the terminal drivers, stdio, stdlib and armlib.
+ */
 static int
 my_init_task(int a, int b, int c, int d)
 {
-    int ans = init_task(a,b,c,d);
+    init_task(a,b,c,d);
     
-    msleep(5000);
-
-/*
-    while(1)
+    /* wait for display to initialize */
+    while (!bmp_vram_info[1].vram2)
     {
-        null_pointer_check();
         msleep(100);
     }
-*/
 
-    task_create("test", 0x1e, 0x1000, run_test, 0 );
+    while(1)
+    {
+        MEM(CARD_LED_ADDRESS) = LEDON;
+        msleep(500);
+        MEM(CARD_LED_ADDRESS) = LEDOFF;
+        msleep(500);
+        
+        font_draw(100, 75, COLOR_WHITE, 3, "Hello, World!");
+    }
+    
+    return 0;
+}
+
+/* used by font_draw */
+void disp_set_pixel(int x, int y, int c)
+{
+    uint8_t* bmp = bmp_vram_info[1].vram2;
+    bmp[x + y * 960] = c;
 }
