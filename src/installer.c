@@ -472,7 +472,7 @@ static int install(void)
             return 0;
         }
 
-        bmp_printf(FONT(FONT_MED, COLOR_GRAY(50), COLOR_BLACK), 0, 480 - font_med.height, 
+        bmp_printf(FONT(FONT_MED, COLOR_YELLOW, COLOR_BLACK), 0, 480 - font_med.height, 
             "To uninstall Magic Lantern, please wait for %d seconds.  ", i
         );
         info_led_blink(1,50,950);
@@ -551,11 +551,11 @@ void install_task()
     {
         if (DISPLAY_IS_ON)
         {
+            msleep(2000);
             bmp_fill(COLOR_BLACK, 0, 420, 720, 60);
-            int fnt = FONT(FONT_CANON, ok ? COLOR_WHITE : COLOR_RED, COLOR_BLACK);
+            int fnt = FONT(FONT_CANON, COLOR_WHITE, COLOR_BLACK);
             bmp_printf(fnt, 0, 430, "Please restart your camera.");
             print_bootflags();
-            msleep(1000);
         }
         else
         {
@@ -566,12 +566,13 @@ void install_task()
 
 void redraw() { clrscr(); }
 
-void gui_uilock(int x)
+void gui_uilock(int what)
 {
-    int unlocked = 0x41000000;
+    int unlocked = UILOCK_REQUEST | (UILOCK_NONE & 0xFFFF);
     _prop_request_change(PROP_ICU_UILOCK, &unlocked, 4);
     msleep(200);
-    _prop_request_change(PROP_ICU_UILOCK, &x, 4);
+    what = UILOCK_REQUEST | (what & 0xFFFF);
+    _prop_request_change(PROP_ICU_UILOCK, &what, 4);
     msleep(200);
 }
 
