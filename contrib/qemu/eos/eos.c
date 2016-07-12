@@ -782,7 +782,7 @@ static void eos_update_display(void *parm)
             surface,
             &section,
             width, height,
-            360, linesize, 0, 1,
+            s->disp.bmp_pitch, linesize, 0, 1,
             draw_line4_32, s,
             &first, &last
         );
@@ -795,7 +795,7 @@ static void eos_update_display(void *parm)
             s->disp.bmp_vram,
             s->disp.img_vram,
             width, height, yuv_height,
-            960, yuv_width*2, linesize, 0, s->disp.invalidate,
+            s->disp.bmp_pitch, yuv_width*2, linesize, 0, s->disp.invalidate,
             draw_line8_32_bmp_yuv, s,
             &first, &last
         );
@@ -812,7 +812,7 @@ static void eos_update_display(void *parm)
             surface,
             &section,
             width, height,
-            960, linesize, 0, 1,
+            s->disp.bmp_pitch, linesize, 0, 1,
             draw_line8_32, s,
             &first, &last
         );
@@ -947,7 +947,10 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
     qemu_mutex_init(&s->irq_lock);
     qemu_thread_create(&s->interrupt_thread_id, "eos_interrupt", eos_interrupt_thread, s, QEMU_THREAD_JOINABLE);
 
+    /* init display */
+    precompute_yuv2rgb(1);
     s->disp.con = graphic_console_init(NULL, 0, &eos_display_ops, s);
+    s->disp.bmp_pitch = 960; /* fixme: get it from registers */
     
     qemu_add_kbd_event_handler(eos_key_event, s);
 
@@ -1034,9 +1037,6 @@ static void eos_init_common(MachineState *machine)
     eos_load_image(s, rom_filename, 0, ROM0_SIZE, ROM0_ADDR, 0);
     /* populate ROM1 */
     eos_load_image(s, rom_filename, ROM0_SIZE, ROM1_SIZE, ROM1_ADDR, 0);
-
-    /* for display */
-    precompute_yuv2rgb(1);
 
     /* init SD card */
     DriveInfo *di;
@@ -3082,6 +3082,7 @@ unsigned int eos_handle_display ( unsigned int parm, EOSState *s, unsigned int a
                 int entry = ((address & 0xFFF) - 0x80) / 4;
                 process_palette_entry(value, &s->disp.palette_4bit[entry], entry, &msg);
                 s->disp.is_4bit = 1;
+                s->disp.bmp_pitch = 360;
             }
             break;
 
@@ -3434,6 +3435,8 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
 {
     const char * msg = 0;
     unsigned int ret = 0;
+    
+    static uint32_t palette_addr = 0;
 
     switch (address)
     {
@@ -3446,6 +3449,40 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
         case 0xD2030000:    /* M3: memif_wait_us */
         case 0xD20F0000:    /* M3: many reads from FC000382, value seems ignored */
             return 0;
+        
+        case 0xD2013800:
+        case 0xD201381C:
+            msg = "Display resolution";
+            s->disp.bmp_pitch = value & 0xFFFF;
+            break;
+        
+        case 0xD2030108:
+            s->disp.bmp_vram = value << 8;
+            msg = "BMP VRAM";
+            break;
+
+        case 0xD20139A8:
+        {
+            msg = "Bootloader palette address";
+            palette_addr = value << 4;
+            break;
+        }
+        case 0xD20139A0:
+        {
+            msg = "Bootloader palette confirm";
+            for (int i = 0; i < 16; i++)
+            {
+                uint32_t entry = eos_get_mem_w(s, palette_addr + i*4);
+                /* palette entry is different; adjust it to match DIGIC 4/5 routines */
+                uint8_t* ovuy = (uint8_t*) &entry;
+                ovuy[1] -= 128; ovuy[2] -= 128;
+                entry = (entry >> 8) | 0x3000000;
+                const char* msg;
+                process_palette_entry(entry, &s->disp.palette_8bit[i], i, &msg);
+                printf("%08X: %s\n", entry, msg);
+            }
+            break;
+        }
         
         case 0xD203040C:
         {

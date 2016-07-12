@@ -102,6 +102,7 @@ typedef struct
     uint32_t bmp_vram;
     uint32_t img_vram;
     uint32_t raw_buff;
+    uint32_t bmp_pitch;
     struct palette_entry palette_4bit[16];
     struct palette_entry palette_8bit[256];
     int is_4bit;
