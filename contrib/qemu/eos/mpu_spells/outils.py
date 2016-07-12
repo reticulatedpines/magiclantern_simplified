@@ -34,6 +34,10 @@ def get_switch_names(camera_model):
                 eprint("FIXME: %s = 0" % btn_name)
                 continue
             
+            # this is a different event type
+            if btn_name == "GMT_LOCAL_DIALOG_REFRESH_LV":
+                continue
+            
             switch_names[btn_code] = btn_name
     return switch_names
 

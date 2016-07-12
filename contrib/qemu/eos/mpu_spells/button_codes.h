@@ -118,7 +118,6 @@ static int button_codes_550D[] = {
     [BGMT_WHEEL_UP]                     = 0x0EFF,
     [GMT_GUICMD_OPEN_SLOT_COVER]        = 0x1201,
     [GMT_GUICMD_START_AS_CHECK]         = 0x1100,
-    [GMT_LOCAL_DIALOG_REFRESH_LV]       = 0x0B01,
     [BGMT_END_OF_LIST]                  = 0x0000
 };
 
@@ -168,6 +167,7 @@ static int button_codes_5D3[] = {
     [BGMT_PRESS_LEFT]                   = 0x0B06,
     [BGMT_PRESS_RIGHT]                  = 0x0B05,
     [BGMT_PRESS_SET]                    = 0x0C01,
+    [BGMT_PRESS_UP]                     = 0x0B02,
     [BGMT_PRESS_UP_LEFT]                = 0x0B04,
     [BGMT_PRESS_UP_RIGHT]               = 0x0B03,
     [BGMT_PRESS_ZOOM_IN]                = 0x0801,
@@ -182,7 +182,6 @@ static int button_codes_5D3[] = {
     [GMT_GUICMD_OPEN_SLOT_COVER]        = 0x1201,
     [GMT_GUICMD_PRESS_BUTTON_SOMETHING] = 0x2601,
     [GMT_GUICMD_START_AS_CHECK]         = 0x1100,
-    [GMT_LOCAL_DIALOG_REFRESH_LV]       = 0x0B02,
     [BGMT_END_OF_LIST]                  = 0x0000
 };
 
@@ -271,6 +270,7 @@ static int button_codes_6D[] = {
     [BGMT_Q]                            = 0x2001,
     [BGMT_TRASH]                        = 0x0401,
     [BGMT_UNPRESS_SET]                  = 0x0C00,
+    [BGMT_UNPRESS_UDLR]                 = 0x0B01,
     [BGMT_UNPRESS_ZOOM_IN]              = 0x0800,
     [BGMT_WHEEL_DOWN]                   = 0x0E01,
     [BGMT_WHEEL_LEFT]                   = 0x0DFF,
@@ -279,7 +279,6 @@ static int button_codes_6D[] = {
     [GMT_GUICMD_OPEN_SLOT_COVER]        = 0x1201,
     [GMT_GUICMD_PRESS_BUTTON_SOMETHING] = 0x2601,
     [GMT_GUICMD_START_AS_CHECK]         = 0x1100,
-    [GMT_LOCAL_DIALOG_REFRESH_LV]       = 0x0B01,
     [BGMT_END_OF_LIST]                  = 0x0000
 };
 
