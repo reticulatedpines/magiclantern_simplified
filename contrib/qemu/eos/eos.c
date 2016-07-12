@@ -1021,29 +1021,6 @@ static void patch_7D2(EOSState *s)
 static void patch_EOSM3(EOSState *s)
 {
     uint32_t nop = 0;
-    uint32_t addr;
-    for (addr = 0xFC000000; addr < 0xFE000000; addr += 2)
-    {
-        uint32_t old = eos_get_mem_w(s, addr);
-        if (old == 0x1F11EE06   /* MCR p15, 0, R1,c6,c1, 0 */
-         || old == 0x1F51EE06   /* MCR p15, 0, R1,c6,c1, 2 */
-         || old == 0x1F91EE06   /* MCR p15, 0, R1,c6,c1, 4 */
-         || old == 0x0F12EE06   /* MCR p15, 0, R0,c6,c2, 0 */
-         || old == 0x1F91EE06   /* MCR p15, 0, R1,c6,c1, 4 */
-         || old == 0x0F11EE19   /* MRC p15, 0, R0,c9,c1, 0 */
-         || old == 0x0F11EE09   /* MCR p15, 0, R0,c9,c1, 0 */
-         || old == 0x0F31EE09   /* MCR p15, 0, R0,c9,c1, 1 */
-         || old == 0x0F10EE11   /* MRC p15, 0, R0,c1,c0, 0 */
-         || old == 0x0F31EE19   /* MRC p15, 0, R0,c9,c1, 1 */
-         || old == 0x0F90EE10   /* MRC p15, 0, R0,c0,c0, 4 */
-         || old == 0x2F90EE10   /* MRC p15, 0, R2,c0,c0, 4 */
-         || old == 0x0F10EE01   /* MRC p15, 0, R0,c1,c0, 0 */
-        ) {
-            printf("Patching ");
-            disas_thumb(s, addr);
-            MEM_WRITE_ROM(addr, (uint8_t*) &nop, 4);
-        }
-    }
     
     printf("Patching 0xFC004748 (p15 loop)\n");
     MEM_WRITE_ROM(0xFC004748, (uint8_t*) &nop, 4);
