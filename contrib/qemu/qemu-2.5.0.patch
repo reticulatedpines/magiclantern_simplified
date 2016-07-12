@@ -83,16 +83,27 @@ index 7cb01a8..e46a34b 100644
  };
  
 diff --git a/target-arm/cpu.c b/target-arm/cpu.c
-index 30739fc..ec61c15 100644
+index 30739fc..f7350a2 100644
 --- a/target-arm/cpu.c
 +++ b/target-arm/cpu.c
-@@ -711,6 +711,40 @@ static void arm926_initfn(Object *obj)
+@@ -501,8 +501,9 @@ static void arm_cpu_initfn(Object *obj)
+ static Property arm_cpu_reset_cbar_property =
+             DEFINE_PROP_UINT64("reset-cbar", ARMCPU, reset_cbar, 0);
+ 
++/* fixme: how to change this property from machine code? */
+ static Property arm_cpu_reset_hivecs_property =
+-            DEFINE_PROP_BOOL("reset-hivecs", ARMCPU, reset_hivecs, false);
++            DEFINE_PROP_BOOL("reset-hivecs", ARMCPU, reset_hivecs, true);
+ 
+ static Property arm_cpu_rvbar_property =
+             DEFINE_PROP_UINT64("rvbar", ARMCPU, rvbar, 0);
+@@ -711,6 +712,46 @@ static void arm926_initfn(Object *obj)
      cpu->reset_sctlr = 0x00090078;
  }
  
 +/* similar to not_v6_cp_reginfo, but .crn was changed from 7 to 15 */
 +/* note: this conflicts with ARM_FEATURE_DUMMY_C15_REGS */
-+static const ARMCPRegInfo eos_cp_reginfo[] = {
++static const ARMCPRegInfo eos_digic5_cp_reginfo[] = {
 +    { .name = "WFI_eos", .cp = 15, .crn = 15, .crm = 8, .opc1 = 0, .opc2 = 2,
 +      .access = PL1_W, .type = ARM_CP_WFI },
 +    REGINFO_SENTINEL
@@ -108,26 +119,32 @@ index 30739fc..ec61c15 100644
 +    cpu->ctr = (7 << 25) | (1 << 24) | (4 << 18) | (4 << 15) \
 +             | (2 << 12) | (4 << 6) | (4 << 3) | (2 << 0);
 +    cpu->reset_sctlr = 0x00000078;
-+    define_arm_cp_regs(cpu, eos_cp_reginfo);
++    define_arm_cp_regs(cpu, eos_digic5_cp_reginfo);
 +}
++
++static void cortex_r5_initfn(Object *obj);
++
++static const ARMCPRegInfo eos_digic6_cp_reginfo[] = {
++    { .name = "UNK",  .cp = 15, .opc1 = 0, .crn = 15, .crm = 5, .opc2 = 0,
++      .access = PL1_RW, .type = ARM_CP_CONST },
++    REGINFO_SENTINEL
++};
 +
 +static void arm_digic6_eos_initfn(Object *obj)
 +{
-+    /* this CPU supports Thumb-2 instructions and also SDIV */
++    /* it's very similar to Cortex R5, but code uses some extra CP15 registers */
++    /* CHDK says it's a Cortex R4: https://chdk.setepontos.com/index.php?topic=11316.msg124273#msg124273 */
++    cortex_r5_initfn(obj);
++    
 +    ARMCPU *cpu = ARM_CPU(obj);
-+    set_feature(&cpu->env, ARM_FEATURE_V8);
-+    set_feature(&cpu->env, ARM_FEATURE_DUMMY_C15_REGS);
 +    set_feature(&cpu->env, ARM_FEATURE_THUMB_INTERRUPTS);
-+    cpu->midr = 0x41059461;
-+    cpu->ctr = (7 << 25) | (1 << 24) | (4 << 18) | (4 << 15) \
-+             | (2 << 12) | (4 << 6) | (4 << 3) | (2 << 0);
-+    cpu->reset_sctlr = 0x00000078;
++    define_arm_cp_regs(cpu, eos_digic6_cp_reginfo);
 +}
 +
  static void arm946_initfn(Object *obj)
  {
      ARMCPU *cpu = ARM_CPU(obj);
-@@ -1328,6 +1362,8 @@ typedef struct ARMCPUInfo {
+@@ -1328,6 +1369,8 @@ typedef struct ARMCPUInfo {
  static const ARMCPUInfo arm_cpus[] = {
  #if !defined(CONFIG_USER_ONLY) || !defined(TARGET_AARCH64)
      { .name = "arm926",      .initfn = arm926_initfn },

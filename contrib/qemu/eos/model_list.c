@@ -128,6 +128,11 @@ struct eos_model_desc eos_model_list[] = {
         .firmware_start         = 0xFE0A0000,
     },
     {
+        .name                   = "80D",
+        .digic_version          = 6,
+        .firmware_start         = 0xFE0A0000,
+    },
+    {
         .name = NULL,
         .digic_version = 0,
     }

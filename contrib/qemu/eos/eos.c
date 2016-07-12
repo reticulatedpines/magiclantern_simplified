@@ -1156,9 +1156,12 @@ static void eos_init_common(MachineState *machine)
     if (strcmp(s->model->name, "EOSM3") == 0)
     {
         patch_EOSM3(s);
-        
-        /* as weird as it looks, the M3 appears to boot from this address */
-        s->cpu->env.regs[15] = 0xFC0045E8;
+    }
+    
+    if (s->model->digic_version == 6)
+    {
+        s->cpu->env.regs[15] = eos_get_mem_w(s, 0xFC000000);
+        printf("Start address: 0x%08X\n", s->cpu->env.regs[15]);
         return;
     }
     
