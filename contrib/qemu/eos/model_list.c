@@ -121,6 +121,7 @@ struct eos_model_desc eos_model_list[] = {
         .digic_version          = 6,
         .firmware_start         = 0xFE0A0000,
         .current_task_addr      = 0x28568,
+        .sd_driver_interrupt    = 0xEE, /* fixme: copied from 80D */
     },
     {
         .name                   = "7D2S",

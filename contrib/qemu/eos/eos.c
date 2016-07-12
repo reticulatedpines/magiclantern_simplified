@@ -967,48 +967,22 @@ static void patch_bootloader_autoexec(EOSState *s)
     s->cpu->env.regs[15] = 0xFFFF0000;
 }
 
-static void disas_thumb(EOSState *s, uint32_t addr)
-{
-    int old_thumb = s->cpu->env.thumb;
-    s->cpu->env.thumb = 1;
-    target_disas(stdout, CPU(arm_env_get_cpu(&s->cpu->env)), addr, 4, 1);
-    s->cpu->env.thumb = old_thumb;
-}
-
 static void patch_7D2(EOSState *s)
 {
     int is_7d2m = (eos_get_mem_w(s, 0xFE106062) == 0x0F31EE19);
 
-    uint32_t nop = 0;
-    uint32_t addr;
-    for (addr = 0xFE000000; addr < 0xFE200000; addr += 2)
-    {
-        uint32_t old = eos_get_mem_w(s, addr);
-        if (old == 0x0F12EE06   /* MCR p15, 0, R0,c6,c2, 0 */
-         || old == 0x1F91EE06   /* MCR p15, 0, R1,c6,c1, 4 */
-         || old == 0x0F11EE19   /* MRC p15, 0, R0,c9,c1, 0 */
-         || old == 0x0F11EE09   /* MCR p15, 0, R0,c9,c1, 0 */
-         || old == 0x0F10EE11   /* MRC p15, 0, R0,c1,c0, 0 */
-         || old == 0x0F31EE19   /* MRC p15, 0, R0,c9,c1, 1 */
-         || old == 0x0F90EE10   /* MRC p15, 0, R0,c0,c0, 4 */
-        ) {
-            printf("Patching ");
-            disas_thumb(s, addr);
-            MEM_WRITE_ROM(addr, (uint8_t*) &nop, 4);
-        }
-    }
-
     if (is_7d2m)
     {
+        uint32_t nop = 0x8000F3AF;
+        uint32_t ret = 0x00004770;
         uint32_t one = 1;
+
         printf("Patching 0x%X (enabling TIO on 7D2M)\n", 0xFEC4DCBC);
         MEM_WRITE_ROM(0xFEC4DCBC, (uint8_t*) &one, 4);
         
-        uint32_t nop = 0x8000F3AF;
         MEM_WRITE_ROM(0xFE0A3024, (uint8_t*) &nop, 4);
         printf("Patching 0x%X (idk, it fails)\n", 0xFE0A3024);
         
-        uint32_t ret = 0x00004770;
         MEM_WRITE_ROM(0xFE102B5A, (uint8_t*) &ret, 4);
         printf("Patching 0x%X (PROPAD_CreateFROMPropertyHandle)\n", 0xFE102B5A);
     }
@@ -1122,14 +1096,6 @@ static void eos_init_common(MachineState *machine)
     {
         /* 7D2 experiments */
         patch_7D2(s);
-        s->cpu->env.regs[15] = s->model->firmware_start;
-
-        if (1)
-        {
-            eos_load_image(s, "autoexec.bin", 0, -1, 0x40800000, 0);
-            s->cpu->env.regs[15] = 0x40800000;
-        }
-        return;
     }
     
     if (strcmp(s->model->name, "EOSM3") == 0)
