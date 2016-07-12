@@ -3525,13 +3525,55 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
         case 0xD2030000:    /* M3: memif_wait_us */
         case 0xD20F0000:    /* M3: many reads from FC000382, value seems ignored */
             return 0;
+        
+        case 0xD203040C:
+        {
+            msg = "MR (RAM manufacturer ID)";
+            static int last = 0;
+            if(type & MODE_WRITE)
+            {
+                last = value;
+            }
+            else
+            {
+                /* these should match the values saved in ROM at FC080010 */
+                /* (RAM manufacturer: Micron) */
+                const int values[] = {0x03, 0x01, 0x00, 0x18};
+                ret = values[((last >> 8) - 5) & 3];
+            }
+            break;
+        }
 
+        case 0xD20BF828:
+            msg = "PhySwBootSD";    /* M3: high bits appear used */
+            break;
+
+        case 0xD20B0400:
+            msg = "SD detect";
+            ret = 0;                /* 80D: 0x10000 = no card present */
+            break;
+        
         case 0xD6040000:    /* M3: appears to expect 0x3008000 or 0x3108000 */
             ret = 0x3008000;
             break;
 
-        case 0xD20BF828:
-            msg = "PhySwBootSD";    /* M3: high bits appear used */
+        case 0xD6050000:
+        {
+            static int last = 0;
+            if(type & MODE_WRITE)
+            {
+                last = value;
+            }
+            else
+            {
+                msg = "I2C status?";
+                ret = (last & 0x8000) ? 0x2100100 : 0x20000;
+            }
+            break;
+        }
+
+        case 0xD6060000:
+            msg = "E-FUSE";
             break;
     }
     
