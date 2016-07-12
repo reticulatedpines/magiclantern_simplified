@@ -773,8 +773,11 @@ static void eos_update_display(void *parm)
     {
         /* bootloader config, 4 bpp */
         uint64_t size = height * linesize;
-        MemoryRegionSection section;
-        section = memory_region_find(s->system_mem,s->disp.bmp_vram, size);
+        MemoryRegionSection section = memory_region_find(
+            s->system_mem,
+            s->disp.bmp_vram ? s->disp.bmp_vram : 0x10000000,
+            size
+        );
         framebuffer_update_display(
             surface,
             &section,
