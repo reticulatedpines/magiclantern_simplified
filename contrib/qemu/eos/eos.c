@@ -159,9 +159,11 @@ EOSRegionHandler eos_handlers[] =
     { "Basic",        0xC0720000, 0xC0720FFF, eos_handle_basic, 2 },
     { "SDIO1",        0xC0C10000, 0xC0C10FFF, eos_handle_sdio, 1 },
     { "SDIO2",        0xC0C20000, 0xC0C20FFF, eos_handle_sdio, 2 },
+    { "SDIO6",        0xC8060000, 0xC8060FFF, eos_handle_sdio, 6 },
     { "SFIO4",        0xC0C40000, 0xC0C40FFF, eos_handle_sfio, 4 },
-    { "SDDMA1",       0xC0510000, 0xC0510FFF, eos_handle_sddma, 1 },
-    { "SDDMA3",       0xC0530000, 0xC0530FFF, eos_handle_sddma, 3 },
+    { "SDDMA1",       0xC0510000, 0xC05100FF, eos_handle_sddma, 1 },
+    { "SDDMA3",       0xC0530000, 0xC05300FF, eos_handle_sddma, 3 },
+    { "SDDMA6",       0xC8020000, 0xC80200FF, eos_handle_sddma, 6 },
     { "CFDMA",        0xC0600000, 0xC060FFFF, eos_handle_cfdma, 0 },
     { "CFDMA",        0xC0620000, 0xC062FFFF, eos_handle_cfdma, 2 },
     { "TIO",          0xC0800000, 0xC08000FF, eos_handle_tio, 0 },
@@ -1162,6 +1164,11 @@ static void eos_init_common(MachineState *machine)
     {
         s->cpu->env.regs[15] = eos_get_mem_w(s, 0xFC000000);
         printf("Start address: 0x%08X\n", s->cpu->env.regs[15]);
+
+        /* make sure the boot flag is enabled */
+        uint32_t flag = 0xFFFFFFFF;
+        MEM_WRITE_ROM(0xFC040004, (uint8_t*) &flag, 4);
+
         return;
     }
     
@@ -2691,8 +2698,6 @@ static void sdio_write_data(SDIOState *sd)
 void sdio_trigger_interrupt(EOSState *s, SDIOState *sd)
 {
     /* after a successful operation, trigger interrupt if requested */
-    assert(s->model->sd_driver_interrupt);
-    
     if ((sd->cmd_flags == 0x13 || sd->cmd_flags == 0x14)
         && !(sd->status & SDIO_STATUS_DATA_AVAILABLE))
     {
@@ -2703,6 +2708,7 @@ void sdio_trigger_interrupt(EOSState *s, SDIOState *sd)
     
     if ((sd->status & 3) == 1 && sd->irq_flags)
     {
+        assert(s->model->sd_driver_interrupt);
         eos_trigger_int(s, s->model->sd_driver_interrupt, 0);
     }
 }
@@ -2863,28 +2869,20 @@ unsigned int eos_handle_sddma ( unsigned int parm, EOSState *s, unsigned int add
     unsigned int ret = 0;
     const char * msg = 0;
 
-    switch(address & 0xFFF)
+    switch(address & 0x1F)
     {
-        case 0x14:
-            msg = "70D ???";
-            ret = 1;
-            break;
-        case 0x60:
-        case 0x20:
+        case 0x00:
             msg = "Transfer memory address";
             s->sd.dma_addr = value;
             break;
-        case 0x64:
-        case 0x24:
+        case 0x04:
             msg = "Transfer byte count";
             s->sd.dma_count = value;
             break;
-        case 0x70:
-        case 0x30:
+        case 0x10:
             msg = "Flags/Status";
             break;
-        case 0x78:
-        case 0x38:
+        case 0x18:
             msg = "Transfer start?";
 
             /* DMA transfer? */

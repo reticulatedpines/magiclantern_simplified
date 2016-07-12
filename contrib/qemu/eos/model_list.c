@@ -131,6 +131,7 @@ struct eos_model_desc eos_model_list[] = {
         .name                   = "80D",
         .digic_version          = 6,
         .firmware_start         = 0xFE0A0000,
+        .sd_driver_interrupt    = 0xEE, /* fixme: separate interrupts for SDCON and SDDMA */
     },
     {
         .name = NULL,
