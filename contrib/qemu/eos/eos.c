@@ -3465,6 +3465,18 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
             break;
         }
 
+        case 0xD2090008: /* CLOCK_ENABLE */
+            msg = "CLOCK_ENABLE";
+            if(type & MODE_WRITE)
+            {
+                s->clock_enable_6 = value;
+            }
+            else
+            {
+                ret = s->clock_enable_6;
+            }
+            break;
+
         case 0xD20BF828:
             msg = "PhySwBootSD";    /* M3: high bits appear used */
             break;
