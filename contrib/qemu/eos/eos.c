@@ -951,22 +951,6 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
     return s;
 }
 
-static void patch_bootloader_autoexec(EOSState *s)
-{
-    /* on 6D, patch bootdisk_check and file_read so it will believe it can read autoexec.bin */
-    if (eos_get_mem_w(s, 0xFFFEA10C) != 0xE92D41F0 ||
-        eos_get_mem_w(s, 0xFFFE23CC) != 0xE92D41F0)
-    {
-        printf("This ROM doesn't look like a 6D\n");
-        return;
-    }
-    uint32_t ret_0[2] = { 0xe3a00000, 0xe12fff1e };
-    MEM_WRITE_ROM(0xFFFEA10C, (uint8_t*) ret_0, 8);
-    MEM_WRITE_ROM(0xFFFE23CC, (uint8_t*) ret_0, 8);
-    eos_load_image(s, "autoexec.bin", 0, -1, 0x40800000, 0);
-    s->cpu->env.regs[15] = 0xFFFF0000;
-}
-
 static void patch_7D2(EOSState *s)
 {
     int is_7d2m = (eos_get_mem_w(s, 0xFE106062) == 0x0F31EE19);
@@ -1083,13 +1067,6 @@ static void eos_init_common(MachineState *machine)
 
     /* init MPU */
     mpu_spells_init(s);
-
-    if (0)
-    {
-        /* 6D bootloader experiment */
-        patch_bootloader_autoexec(s);
-        return;
-    }
 
     if ((strcmp(s->model->name, "7D2M") == 0) ||
         (strcmp(s->model->name, "7D2S") == 0))
