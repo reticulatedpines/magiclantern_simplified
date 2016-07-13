@@ -13,6 +13,7 @@ struct eos_model_desc eos_model_list[] = {
         .bootflags_addr         = 0xF8000000,
         .dryos_timer_id         = 2,
         .dryos_timer_interrupt  = 0x0A,
+        .hptimer_interrupt      = 0x10,
         .sd_driver_interrupt    = 0xB1,
         .mpu_request_register   = 0xC022009C,
     },
@@ -26,6 +27,7 @@ struct eos_model_desc eos_model_list[] = {
         .bootflags_addr         = 0xF8000000,
         .dryos_timer_id         = 2,
         .dryos_timer_interrupt  = 0x0A,
+        .hptimer_interrupt      = 0x10,
         .sd_driver_interrupt    = 0x172,
     },
     {
@@ -38,6 +40,7 @@ struct eos_model_desc eos_model_list[] = {
         .bootflags_addr         = 0xFC040000,
         .dryos_timer_id         = 1,
         .dryos_timer_interrupt  = 0x1B,
+        .hptimer_interrupt      = 0x28,
     },
     {
         .name                   = "50D",

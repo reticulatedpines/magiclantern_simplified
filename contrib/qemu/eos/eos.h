@@ -115,7 +115,7 @@ struct HPTimer
     int triggered;
 };
 
-#define HPTIMER_INTERRUPT (s->model->digic_version == 6 ? 0x28 : 0x10)
+#define HPTIMER_INTERRUPT s->model->hptimer_interrupt
 
 struct mpu_init_spell
 {
