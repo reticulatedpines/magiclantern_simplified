@@ -1085,23 +1085,15 @@ static void eos_init_common(MachineState *machine)
     
     if (s->model->digic_version == 6)
     {
+        /* fixme: initial PC should probably be set in cpu.c */
+        /* note: DIGIC 4 and 5 start execution at FFFF0000 (hivecs) */
         s->cpu->env.regs[15] = eos_get_mem_w(s, 0xFC000000);
         printf("Start address: 0x%08X\n", s->cpu->env.regs[15]);
-
-        /* make sure the boot flag is enabled */
-        uint32_t flag = 0xFFFFFFFF;
-        MEM_WRITE_ROM(0xFC040004, (uint8_t*) &flag, 4);
-
-        return;
     }
     
     /* make sure the boot flag is enabled */
     uint32_t flag = 0xFFFFFFFF;
-    MEM_WRITE_ROM(0xF8000004, (uint8_t*) &flag, 4);
-
-    /* emulate the bootloader, not the main firmware */
-    s->cpu->env.regs[15] = 0xFFFF0000;
-    return;
+    MEM_WRITE_ROM(s->model->bootflags_addr + 4, (uint8_t*) &flag, 4);
 }
 
 void eos_set_mem_w ( EOSState *s, uint32_t addr, uint32_t val )

@@ -10,6 +10,7 @@ struct eos_model_desc eos_model_list[] = {
         .rom1_size              = 0x01000000,
         .io_mem_size            = 0x10000000,
         .firmware_start         = 0xFF010000,
+        .bootflags_addr         = 0xF8000000,
         .dryos_timer_id         = 2,
         .dryos_timer_interrupt  = 0x0A,
         .sd_driver_interrupt    = 0xB1,
@@ -22,6 +23,7 @@ struct eos_model_desc eos_model_list[] = {
         .rom1_size              = 0x01000000,
         .io_mem_size            = 0x10000000,
         .firmware_start         = 0xFF0C0000,
+        .bootflags_addr         = 0xF8000000,
         .dryos_timer_id         = 2,
         .dryos_timer_interrupt  = 0x0A,
         .sd_driver_interrupt    = 0x172,
@@ -32,6 +34,8 @@ struct eos_model_desc eos_model_list[] = {
         .rom0_size              = 0x02000000,
         .rom1_size              = 0x02000000,
         .io_mem_size            = 0x20000000,
+        .firmware_start         = 0xFE0A0000,
+        .bootflags_addr         = 0xFC040000,
         .dryos_timer_id         = 1,
         .dryos_timer_interrupt  = 0x1B,
     },
@@ -119,19 +123,16 @@ struct eos_model_desc eos_model_list[] = {
     {
         .name                   = "7D2M",
         .digic_version          = 6,
-        .firmware_start         = 0xFE0A0000,
         .current_task_addr      = 0x28568,
         .sd_driver_interrupt    = 0xEE, /* fixme: copied from 80D */
     },
     {
         .name                   = "7D2S",
         .digic_version          = 6,
-        .firmware_start         = 0xFE0A0000,
     },
     {
         .name                   = "80D",
         .digic_version          = 6,
-        .firmware_start         = 0xFE0A0000,
         .sd_driver_interrupt    = 0xEE, /* fixme: separate interrupts for SDCON and SDDMA */
     },
     {
