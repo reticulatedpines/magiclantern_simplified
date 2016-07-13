@@ -1091,9 +1091,22 @@ static void eos_init_common(MachineState *machine)
         printf("Start address: 0x%08X\n", s->cpu->env.regs[15]);
     }
     
-    /* make sure the boot flag is enabled */
-    uint32_t flag = 0xFFFFFFFF;
-    MEM_WRITE_ROM(s->model->bootflags_addr + 4, (uint8_t*) &flag, 4);
+    /* hijack machine option "firmware" to pass command-line parameters */
+    /* fixme: better way to expose machine-specific options? */
+    QemuOpts *machine_opts = qemu_get_machine_opts();
+    const char *options = qemu_opt_get(machine_opts, "firmware");
+    
+    if (options)
+    {
+        /* fixme: reinventing the wheel */
+        if (strstr(options, "boot=1") || strstr(options, "boot=0"))
+        {
+            /* change the boot flag */
+            uint32_t flag = strstr(options, "boot=1") ? 0xFFFFFFFF : 0;
+            printf("Setting BOOTDISK flag to %X\n", flag);
+            MEM_WRITE_ROM(s->model->bootflags_addr + 4, (uint8_t*) &flag, 4);
+        }
+    }
 }
 
 void eos_set_mem_w ( EOSState *s, uint32_t addr, uint32_t val )
