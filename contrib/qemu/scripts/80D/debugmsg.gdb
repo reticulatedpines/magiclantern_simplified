@@ -22,4 +22,7 @@ commands
   c
 end
 
+# infinite loop (memory regions related?)
+set *(int*)0xFE237EB0 = 0x4770
+
 cont
