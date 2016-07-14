@@ -14,4 +14,12 @@ task_create_log
 b *0xB60
 register_interrupt_log
 
+b *0xFE237C9E
+commands
+  silent
+  print_current_location
+  printf "Memory region: start=%08X end=%08X flags=%08X\n", $r0, $r1, $r2
+  c
+end
+
 cont
