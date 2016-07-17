@@ -240,7 +240,7 @@ index 6cd54c8..cdf663f 100644
  {
      const ARMCPRegInfo *ri = rip;
 diff --git a/target-arm/translate.c b/target-arm/translate.c
-index 5d22879..5513a61 100644
+index 5d22879..d919a46 100644
 --- a/target-arm/translate.c
 +++ b/target-arm/translate.c
 @@ -37,6 +37,8 @@
@@ -252,7 +252,35 @@ index 5d22879..5513a61 100644
  
  #define ENABLE_ARCH_4T    arm_dc_feature(s, ARM_FEATURE_V4T)
  #define ENABLE_ARCH_5     arm_dc_feature(s, ARM_FEATURE_V5)
-@@ -7276,6 +7278,15 @@ static int disas_coproc_insn(DisasContext *s, uint32_t insn)
+@@ -7222,6 +7224,27 @@ static int disas_coproc_insn(DisasContext *s, uint32_t insn)
+         /* Handle special cases first */
+         switch (ri->type & ~(ARM_CP_FLAG_MASK & ~ARM_CP_SPECIAL)) {
+         case ARM_CP_NOP:
++            #if defined(LOG_ALL_CP_READS) || defined(LOG_ALL_CP_WRITES)
++            if (!is64) {
++                /* log all reads to coprocessor registers (32-bit) */
++                TCGv_ptr tmpptr;
++                TCGv_i32 tmp;
++                tmpptr = tcg_const_ptr(ri);
++                if (isread) {
++                    #ifdef LOG_ALL_CP_READS
++                    tmp = load_cpu_offset(ri->fieldoffset);
++                    gen_helper_print_get_cp_reg(cpu_env, tmpptr, tmp);
++                    #endif
++                } else {
++                    #ifdef LOG_ALL_CP_WRITES
++                    tmp = load_reg(s, rt);
++                    gen_helper_print_set_cp_reg(cpu_env, tmpptr, tmp);
++                    #endif
++                }
++                tcg_temp_free_ptr(tmpptr);
++                tcg_temp_free_i32(tmp);
++            }
++            #endif
+             return 0;
+         case ARM_CP_WFI:
+             if (isread) {
+@@ -7276,6 +7299,15 @@ static int disas_coproc_insn(DisasContext *s, uint32_t insn)
                  } else {
                      tmp = load_cpu_offset(ri->fieldoffset);
                  }
@@ -268,7 +296,7 @@ index 5d22879..5513a61 100644
                  if (rt == 15) {
                      /* Destination register of r15 for 32 bit loads sets
                       * the condition codes from the high 4 bits of the value
-@@ -7287,6 +7298,19 @@ static int disas_coproc_insn(DisasContext *s, uint32_t insn)
+@@ -7287,6 +7319,19 @@ static int disas_coproc_insn(DisasContext *s, uint32_t insn)
                  }
              }
          } else {
