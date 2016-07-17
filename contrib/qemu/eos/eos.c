@@ -3589,6 +3589,11 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
         case 0xD6060000:
             msg = "E-FUSE";
             break;
+
+        case 0xD9890014:
+            msg = "Battery level maybe (ADC?)";     /* M3: called from Battery init  */
+            ret = 0x00020310;
+            break;
     }
     
     io_log("DIGIC6", s, address, type, value, ret, msg, 0, 0);
