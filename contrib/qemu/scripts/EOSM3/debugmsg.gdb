@@ -78,4 +78,18 @@ commands
   c
 end
 
+# some weird puts that seems to be supposed to process 13 chars at a time
+b *0x010F3D14
+commands
+  silent
+  print_current_location
+  KRED
+  set $tmp = *(char*)($r2+13)
+  set *(char*)($r2+13) = 0
+  printf "%s\n",$r2
+  set *(char*)($r2+13) = $tmp
+  KRESET
+  c
+end
+
 cont
