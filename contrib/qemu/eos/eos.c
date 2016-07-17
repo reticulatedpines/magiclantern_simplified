@@ -3538,6 +3538,11 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
             }
             break;
 
+        case 0xD20B053C:
+            msg = "PhySwBootSD";        /* M3: card write protect switch? */
+            ret = 0x10000;
+            break;
+
         case 0xD20BF4A0:
             msg = "PhySwKeyboard 0";    /* M3: keyboard  */
             ret = 0x10077ffb;
@@ -3556,10 +3561,6 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
         case 0xD20BF4F0:
             msg = "PhySw Internal Flash + ";    /* M3: Flash + */
             ret = 0x00000840;
-            break;
-        
-        case 0xD20BF828:
-            msg = "PhySwBootSD";        /* M3: high bits appear used */
             break;
 
         case 0xD20B0400:
