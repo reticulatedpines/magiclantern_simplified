@@ -2118,6 +2118,25 @@ unsigned int eos_handle_adc ( unsigned int parm, EOSState *s, unsigned int addre
         int channel = (address & 0xFF) >> 2;
         msg = "channel #%d";
         msg_arg1 = channel;
+        
+        if (strcmp(s->model->name, "EOSM3") == 0)
+        {
+            /* values from Ant123's camera */
+            uint32_t adc_values[] = {
+                0x0000de40, 0x00008c00, 0x00008300, 0x00003ca0,
+                0x00003eb0, 0x00003f00, 0x0000aa90, 0x00000050,
+                0x00003c20, 0x0000fd60, 0x0000f720, 0x00000030,
+                0x00008a80, 0x0000a440, 0x00000020, 0x00000030,
+                0x00000030, 0x00008900, 0x0000fd60, 0x0000fed0,
+                0x0000fed0, 0x00000310, 0x00000020, 0x00000020,
+                0x00000020, 0x00000020, 0x00000010, 0x00000000
+            };
+            
+            if (channel < COUNT(adc_values))
+            {
+                ret = adc_values[channel];
+            }
+        }
     }
     
     io_log("ADC", s, address, type, value, ret, msg, msg_arg1, 0);
