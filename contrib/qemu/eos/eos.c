@@ -984,11 +984,6 @@ static void patch_7D2(EOSState *s)
 
 static void patch_EOSM3(EOSState *s)
 {
-    uint32_t nop = 0;
-    
-    printf("Patching 0xFC004748 (p15 loop)\n");
-    MEM_WRITE_ROM(0xFC004748, (uint8_t*) &nop, 4);
-
     printf("Patching 0xFCC637A8 (enabling TIO)\n");
     uint32_t one = 1;
     MEM_WRITE_ROM(0xFCC637A8, (uint8_t*) &one, 4);
