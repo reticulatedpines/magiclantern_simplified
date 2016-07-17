@@ -41,6 +41,7 @@ struct eos_model_desc eos_model_list[] = {
         .dryos_timer_id         = 1,
         .dryos_timer_interrupt  = 0x1B,
         .hptimer_interrupt      = 0x28,
+        .sd_driver_interrupt    = 0xEE, /* fixme: separate interrupts for SDCON and SDDMA */
     },
     {
         .name                   = "50D",
@@ -127,7 +128,6 @@ struct eos_model_desc eos_model_list[] = {
         .name                   = "7D2M",
         .digic_version          = 6,
         .current_task_addr      = 0x28568,
-        .sd_driver_interrupt    = 0xEE, /* fixme: copied from 80D */
     },
     {
         .name                   = "7D2S",
@@ -136,7 +136,6 @@ struct eos_model_desc eos_model_list[] = {
     {
         .name                   = "80D",
         .digic_version          = 6,
-        .sd_driver_interrupt    = 0xEE, /* fixme: separate interrupts for SDCON and SDDMA */
     },
     {
         .name = NULL,

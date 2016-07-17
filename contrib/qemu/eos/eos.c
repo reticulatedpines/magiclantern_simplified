@@ -2524,7 +2524,7 @@ static void sdio_send_command(SDIOState *sd)
     rlen = sd_do_command(sd->card, &request, response+4);
     if (rlen < 0)
         goto error;
-    if (sd->cmd_flags != 0x11) {
+    if (sd->cmd_flags != 0x11 && sd->cmd_flags != 0x1) {
 #define RWORD(n) (((uint32_t)response[n + 5] << 24) | (response[n + 6] << 16) \
                   | (response[n + 7] << 8) | response[n])
         if (rlen == 0)
