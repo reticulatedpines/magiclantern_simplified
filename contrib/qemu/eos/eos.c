@@ -3538,16 +3538,36 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
             }
             break;
 
+        case 0xD20BF4A0:
+            msg = "PhySwKeyboard 0";    /* M3: keyboard  */
+            ret = 0x10077ffb;
+            break;
+        
+        case 0xD20BF4B0:
+            msg = "PhySw 1";            /* M3:  */
+            ret = 0x00001425;
+            break;
+
+        case 0xD20BF4D8:
+            msg = "PhySw 2";            /* M3:  */
+            ret = 0x20bb4d30;
+            break;
+
+        case 0xD20BF4F0:
+            msg = "PhySw Internal Flash + ";    /* M3: Flash + */
+            ret = 0x00000840;
+            break;
+        
         case 0xD20BF828:
-            msg = "PhySwBootSD";    /* M3: high bits appear used */
+            msg = "PhySwBootSD";        /* M3: high bits appear used */
             break;
 
         case 0xD20B0400:
             msg = "SD detect";
-            ret = 0;                /* 80D: 0x10000 = no card present */
+            ret = 0;                    /* 80D: 0x10000 = no card present */
             break;
         
-        case 0xD6040000:    /* M3: appears to expect 0x3008000 or 0x3108000 */
+        case 0xD6040000:                /* M3: appears to expect 0x3008000 or 0x3108000 */
             ret = 0x3008000;
             break;
 
