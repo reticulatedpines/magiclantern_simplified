@@ -109,11 +109,15 @@ define DebugMsg_log
     set $num = 0
     set $i = 0
     set $badfmt = 0
-    while *(char*)($r2+$i)
-      set $num = $num + ( *(char*)($r2+$i) == '%' && *(char*)($r2+$i+1) != '%' )
-      set $badfmt = $badfmt + ( *(char*)($r2+$i) == '%' && *(char*)($r2+$i+1) == 'S' )
-      set $badfmt = $badfmt + ( *(char*)($r2+$i) == '"' )
+    set $chr = *(char*)($r2+$i)
+    set $nxt = *(char*)($r2+$i+1)
+    while $chr
+      set $num = $num + ( $chr == '%' && $nxt != '%' )
+      set $badfmt = $badfmt + ( $chr == '%' && $nxt == 'S' )
+      set $badfmt = $badfmt + ( $chr == '"' )
       set $i = $i + 1
+      set $chr = $nxt
+      set $nxt = *(char*)($r2+$i+1)
     end
     
     # fixme: is gdb's nested if/else syntax that ugly?
