@@ -61,14 +61,6 @@ struct vram_info
         int             height;
 };
 
-#ifdef CONFIG_VXWORKS
-#define UNCACHEABLE(x) ((void*)(((uint32_t)(x)) |  0x10000000))
-#define CACHEABLE(x)   ((void*)(((uint32_t)(x)) & ~0x10000000))
-#else
-#define UNCACHEABLE(x) ((void*)(((uint32_t)(x)) |  0x40000000))
-#define CACHEABLE(x)   ((void*)(((uint32_t)(x)) & ~0x40000000))
-#endif
-
 void vram_params_set_dirty();
 
 /* internal; also called from bmp.c */
