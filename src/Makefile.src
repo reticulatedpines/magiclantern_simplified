@@ -219,6 +219,7 @@ autoexec: $(ML_SRC_REBOOT_OBJ)
 	$(call build,LD,$(LD) \
 		-o $@ \
 		-e _start \
+		-N \
 		-Ttext $(AUTOEXEC_BASE) \
 		$^ \
 		--cref \
