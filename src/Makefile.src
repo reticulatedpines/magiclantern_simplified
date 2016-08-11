@@ -231,6 +231,7 @@ autoexec-fir: $(ML_SRC_REBOOT_OBJ)
 	$(call build,LD,$(LD) \
 		-o $@ \
 		-e _start \
+		-N \
 		-Ttext $(FIR_BASE) \
 		$^ \
 		--cref \
