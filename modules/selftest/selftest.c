@@ -38,6 +38,7 @@ static int BGMT_WHEEL_LEFT;
 static int BGMT_WHEEL_RIGHT;
 static int BGMT_WHEEL_UP;
 static int BGMT_WHEEL_DOWN;
+static int BGMT_TRASH;
 
 /* some private functions that should not be called from user code */
 extern void* __priv_malloc(size_t size);
@@ -536,6 +537,42 @@ static void stub_test_gui()
     TEST_FUNC_CHECK(HALFSHUTTER_PRESSED, == 1);
     TEST_VOID(SW1(0,100));
     TEST_FUNC_CHECK(HALFSHUTTER_PRESSED, == 0);
+    
+    /* take a picture and go to play mode */
+    lens_take_picture(64, AF_DISABLE);
+    msleep(2000);
+    enter_play_mode();
+    TEST_FUNC_CHECK(is_play_mode(), != 0);
+    TEST_FUNC_CHECK(is_pure_play_photo_mode(), != 0);
+    TEST_FUNC_CHECK(is_pure_play_movie_mode(), == 0);
+    
+    /* try to erase the picture (don't actually erase it; just check dialog codes) */
+    fake_simple_button(BGMT_TRASH);
+    msleep(500);
+    TEST_FUNC_CHECK(is_play_mode(), != 0);
+    TEST_FUNC_CHECK(is_pure_play_photo_mode(), == 0);
+    TEST_FUNC_CHECK(is_pure_play_movie_mode(), == 0);
+    fake_simple_button(BGMT_TRASH);
+    msleep(500);
+
+    /* record a movie and go to play mode */
+    movie_start();
+    msleep(2000);
+    movie_end();
+    msleep(2000);
+    enter_play_mode();
+    TEST_FUNC_CHECK(is_play_mode(), != 0);
+    TEST_FUNC_CHECK(is_pure_play_photo_mode(), == 0);
+    TEST_FUNC_CHECK(is_pure_play_movie_mode(), != 0);
+
+    /* try to erase the movie (don't actually erase it; just check dialog codes) */
+    fake_simple_button(BGMT_TRASH);
+    msleep(500);
+    TEST_FUNC_CHECK(is_play_mode(), != 0);
+    TEST_FUNC_CHECK(is_pure_play_photo_mode(), == 0);
+    TEST_FUNC_CHECK(is_pure_play_movie_mode(), == 0);
+    fake_simple_button(BGMT_TRASH);
+    msleep(500);
 }
 
 static int test_task_created = 0;
@@ -1668,6 +1705,7 @@ static unsigned int selftest_init()
     BGMT_WHEEL_RIGHT = module_translate_key(MODULE_KEY_WHEEL_RIGHT, MODULE_KEY_CANON);
     BGMT_WHEEL_UP    = module_translate_key(MODULE_KEY_WHEEL_UP,    MODULE_KEY_CANON);
     BGMT_WHEEL_DOWN  = module_translate_key(MODULE_KEY_WHEEL_DOWN,  MODULE_KEY_CANON);
+    BGMT_TRASH       = module_translate_key(MODULE_KEY_TRASH,       MODULE_KEY_CANON);
     
     menu_add("Debug", selftest_menu, COUNT(selftest_menu));
     
