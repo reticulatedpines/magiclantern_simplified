@@ -261,9 +261,9 @@ static void stub_test_gui_timers()
         TEST_VOID(msleep(20));
         TEST_FUNC_CHECK(timer_func, == 1);  /* ta0 + 110000 => CBR should be called by now */
         
-        TEST_FUNC_CHECK(ABS(DeltaT(timer_time, t0) - 100000), <= 1000);
-        TEST_FUNC_CHECK(ABS(DeltaT(timer_arg, ta0) - 100000), <= 1000);
-        TEST_FUNC_CHECK(ABS((get_us_clock_value() - t0) - 110000), <= 1000);
+        TEST_FUNC_CHECK(ABS(DeltaT(timer_time, t0) - 100000), <= 2000);
+        TEST_FUNC_CHECK(ABS(DeltaT(timer_arg, ta0) - 100000), <= 2000);
+        TEST_FUNC_CHECK(ABS((get_us_clock_value() - t0) - 110000), <= 2000);
 
         /* this one should call SetHPTimerNextTick in the CBR */
         timer_func = 0;
@@ -277,9 +277,9 @@ static void stub_test_gui_timers()
         TEST_FUNC_CHECK(timer_func, == 3);  /* ta0 + 290000 => timer_cbr should not be called yet */
         TEST_VOID(msleep(20));
         TEST_FUNC_CHECK(timer_func, == 1);  /* ta0 + 310000 => timer_cbr should be called by now */
-        TEST_FUNC_CHECK(ABS(DeltaT(timer_time, t0) - 300000), <= 1000);
-        TEST_FUNC_CHECK(ABS(DeltaT(timer_arg, ta0) - 300000), <= 1000);
-        TEST_FUNC_CHECK(ABS((get_us_clock_value() - t0) - 310000), <= 1000);
+        TEST_FUNC_CHECK(ABS(DeltaT(timer_time, t0) - 300000), <= 2000);
+        TEST_FUNC_CHECK(ABS(DeltaT(timer_arg, ta0) - 300000), <= 2000);
+        TEST_FUNC_CHECK(ABS((get_us_clock_value() - t0) - 310000), <= 2000);
     }
 }
 
