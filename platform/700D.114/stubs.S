@@ -130,7 +130,7 @@ NSTUB(0xFF52C454,  LiveViewApp_handler)
 NSTUB(0xFF52D378,  LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
 NSTUB(0xFF52E800,  LiveViewApp_handler_end)
 NSTUB(0xFF6E6C08,  LiveViewShutterApp_handler)
-NSTUB(0xFF3B9E94,  PlayMain_handler)
+NSTUB(0xFF702A3C,  PlayMain_handler)
 NSTUB(0xFF547300,  PlayMovieGuideApp_handler)
 NSTUB(0xFF5331BC,  ShootOlcApp_handler)
 // NSTUB(    ???,  LiveViewLevelApp_handler)                /* present on 5D3.113 */
