@@ -86,25 +86,25 @@
 #define AE_STATE (*(int8_t*)(0x14CC8 + 0x1C))
 #define AE_VALUE (*(int8_t*)(0x14CC8 + 0x1D))
 
-#define CURRENT_DIALOG_MAYBE (*(int*)0x3a9c)
-#define DLG_WB 0x24
-#define DLG_FOCUS_MODE 0x27
-#define DLG_DRIVE_MODE 0x28
-#define DLG_PICTURE_STYLE 0x23
-#define DLG_PLAY 1
-#define DLG_MENU 2
-#define DLG_Q_UNAVI 0x1E
-#define DLG_FLASH_AE 0x21
-#define DLG_PICQ 0x26
-#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_DIALOG_MAYBE == 0x1B)
-#define DLG_MOVIE_PRESS_LV_TO_RESUME (CURRENT_DIALOG_MAYBE == 0x1B)
+#define CURRENT_GUI_MODE (*(int*)0x3a9c)
+#define GUIMODE_WB 0x24
+#define GUIMODE_FOCUS_MODE 0x27
+#define GUIMODE_DRIVE_MODE 0x28
+#define GUIMODE_PICTURE_STYLE 0x23
+#define GUIMODE_PLAY 1
+#define GUIMODE_MENU 2
+#define GUIMODE_Q_UNAVI 0x1E
+#define GUIMODE_FLASH_AE 0x21
+#define GUIMODE_PICQ 0x26
+#define GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_GUI_MODE == 0x1B)
+#define GUIMODE_MOVIE_PRESS_LV_TO_RESUME (CURRENT_GUI_MODE == 0x1B)
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
 #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x1afc // this prop_deliver performs the action for Video Connect and Video Disconnect
 #define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0x1b20 // passed as 2nd arg to prop_deliver; 1 = display connected, 0 = not, other values disable this event (trick)
 
-#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
-#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
+#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_PLAY)
+#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_MENU)
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 6
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(6, something)
@@ -180,7 +180,6 @@
 #define BFNT_BITMAP_OFFSET 0xFF6206D8
 #define BFNT_BITMAP_DATA   0xFF622B60
 
-#define DLG_SIGNATURE 0x414944
 
 // from CFn
 #define AF_BTN_HALFSHUTTER 0

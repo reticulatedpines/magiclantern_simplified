@@ -23,11 +23,11 @@
 
 #define BGMT_PICSTYLE                 0x13
 
-#define BGMT_PRESS_ZOOMIN_MAYBE       0x0a
-#define BGMT_UNPRESS_ZOOMIN_MAYBE     0x0b
+#define BGMT_PRESS_ZOOM_IN       0x0a
+#define BGMT_UNPRESS_ZOOM_IN     0x0b
 
-#define BGMT_PRESS_ZOOMOUT_MAYBE      0x0c
-#define BGMT_UNPRESS_ZOOMOUT_MAYBE    0x0d
+#define BGMT_PRESS_ZOOM_OUT      0x0c
+#define BGMT_UNPRESS_ZOOM_OUT    0x0d
 
 #define BGMT_PRESS_DIRECT_PRINT       0x0e
 //#define BGMT_UNPRESS_DIRECT_PRINT_     0x0f WRONG MAYBE

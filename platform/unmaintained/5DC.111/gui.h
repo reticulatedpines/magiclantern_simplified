@@ -29,10 +29,10 @@
 #define BGMT_JUMP                   0x5
 #define BGMT_PLAY                   0x6
 #define BGMT_TRASH                  0x7
-#define BGMT_PRESS_ZOOMIN_MAYBE     0x8
-#define BGMT_UNPRESS_ZOOMIN_MAYBE   0x9
-#define BGMT_PRESS_ZOOMOUT_MAYBE    0xa
-#define BGMT_UNPRESS_ZOOMOUT_MAYBE  0xb
+#define BGMT_PRESS_ZOOM_IN     0x8
+#define BGMT_UNPRESS_ZOOM_IN   0x9
+#define BGMT_PRESS_ZOOM_OUT    0xa
+#define BGMT_UNPRESS_ZOOM_OUT  0xb
 #define BGMT_PRESS_DIRECT_PRINT     0xc
 #define BGMT_UNPRESS_DIRECT_PRINT   0xd
 

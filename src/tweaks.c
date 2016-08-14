@@ -490,13 +490,13 @@ static void krzoom_task()
         SetGUIRequestMode(1);
         msleep(50);
     }
-    fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
+    fake_simple_button(BGMT_PRESS_ZOOM_IN);
     krzoom_running = 0;
 }
 
 int handle_krzoom(struct event * event)
 {
-    if (event->param == BGMT_PRESS_ZOOMIN_MAYBE && ken_rockwell_zoom && QR_MODE && !krzoom_running)
+    if (event->param == BGMT_PRESS_ZOOM_IN && ken_rockwell_zoom && QR_MODE && !krzoom_running)
     {
         krzoom_running = 1;
         task_create("krzoom_task", 0x1e, 0x1000, krzoom_task, 0);
@@ -936,13 +936,13 @@ int handle_fast_zoom_in_play_mode(struct event * event)
     if (!quickzoom || !PLAY_MODE) return 1;
     if (!IS_FAKE(event))
     {
-        if (event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+        if (event->param == BGMT_PRESS_ZOOM_IN)
         {
             quickzoom_pressed = 1; // will be reset after it's handled
             quickzoom_unpressed = 0;
             quickzoom_fake_unpressed = 0;
         }
-        else if (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
+        else if (event->param == BGMT_UNPRESS_ZOOM_IN)
         {
             quickzoom_unpressed = 1;
         }
@@ -962,8 +962,8 @@ int handle_fast_zoom_in_play_mode(struct event * event)
                 #ifdef CONFIG_5D3
                 fake_simple_button(BGMT_WHEEL_RIGHT);
                 #else
-                fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
-                fake_simple_button(BGMT_UNPRESS_ZOOMIN_MAYBE);
+                fake_simple_button(BGMT_PRESS_ZOOM_IN);
+                fake_simple_button(BGMT_UNPRESS_ZOOM_IN);
                 #endif
                 return 0;
             }
@@ -972,7 +972,7 @@ int handle_fast_zoom_in_play_mode(struct event * event)
     }
     else
     {
-        if (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
+        if (event->param == BGMT_UNPRESS_ZOOM_IN)
         {
             quickzoom_fake_unpressed = 1;
         }
@@ -1094,7 +1094,7 @@ tweak_task( void* unused)
                     #ifdef CONFIG_5DC
                         MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR), IMGPLAY_ZOOM_LEVEL_MAX - 1);
                         MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4), IMGPLAY_ZOOM_LEVEL_MAX - 1);
-                        fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); 
+                        fake_simple_button(BGMT_PRESS_ZOOM_IN); 
                         fake_simple_button(BGMT_PRESS_UP);
                         fake_simple_button(BGMT_UNPRESS_UDLR);
                         // goes a bit off-center, no big deal
@@ -1105,10 +1105,10 @@ tweak_task( void* unused)
                         MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4), IMGPLAY_ZOOM_LEVEL_MAX - 1);
                         if (quickzoom == 3) play_zoom_center_on_selected_af_point();
                         else if (quickzoom == 4) play_zoom_center_on_last_af_point();
-                        fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); 
+                        fake_simple_button(BGMT_PRESS_ZOOM_IN); 
                         msleep(20);
                     }
-                    fake_simple_button(BGMT_UNPRESS_ZOOMIN_MAYBE);
+                    fake_simple_button(BGMT_UNPRESS_ZOOM_IN);
                     #endif
                     msleep(800); // not sure how to tell when it's safe to start zooming out
                     info_led_off();
@@ -1118,8 +1118,8 @@ tweak_task( void* unused)
                     msleep(100);
                     MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = 0;
                     MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = 0;
-                    fake_simple_button(BGMT_PRESS_ZOOMOUT_MAYBE); 
-                    fake_simple_button(BGMT_UNPRESS_ZOOMOUT_MAYBE);
+                    fake_simple_button(BGMT_PRESS_ZOOM_OUT); 
+                    fake_simple_button(BGMT_UNPRESS_ZOOM_OUT);
                     quickzoom_pressed = 0;
                 }
                 else
@@ -1131,10 +1131,10 @@ tweak_task( void* unused)
                         (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MIN((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) + 3, IMGPLAY_ZOOM_LEVEL_MAX);
                         (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MIN((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) + 3, IMGPLAY_ZOOM_LEVEL_MAX);
                         #endif
-                        fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
+                        fake_simple_button(BGMT_PRESS_ZOOM_IN);
                         msleep(50);
                     }
-                    fake_simple_button(BGMT_UNPRESS_ZOOMIN_MAYBE);
+                    fake_simple_button(BGMT_UNPRESS_ZOOM_IN);
                     quickzoom_pressed = 0;
                 }
             }
@@ -1147,10 +1147,10 @@ tweak_task( void* unused)
                     MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) - 3, 0);
                     MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) - 3, 0);
                     #endif
-                    fake_simple_button(BGMT_PRESS_ZOOMOUT_MAYBE);
+                    fake_simple_button(BGMT_PRESS_ZOOM_OUT);
                     msleep(50); 
                 }
-                fake_simple_button(BGMT_UNPRESS_ZOOMOUT_MAYBE);
+                fake_simple_button(BGMT_UNPRESS_ZOOM_OUT);
             }
             play_zoom_center_pos_update();
         }
@@ -1868,7 +1868,7 @@ void zoom_trick_step()
     {
 
         // action!
-        if (zoom_trick == 1) fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
+        if (zoom_trick == 1) fake_simple_button(BGMT_PRESS_ZOOM_IN);
         if (zoom_trick == 2) arrow_key_mode_toggle();
 
 
@@ -2749,7 +2749,7 @@ static void grayscale_menus_step()
 
     // optimization: try to only update palette after a display mode change
     // but this is not 100% reliable => update at least once every second
-    int guimode = CURRENT_DIALOG_MAYBE;
+    int guimode = CURRENT_GUI_MODE;
     int d = DISPLAY_IS_ON;
     int b = bmp_color_scheme;
     int sig = (int)get_current_dialog_handler() + d + guimode + b*31415 + get_seconds_clock();

@@ -297,7 +297,7 @@ void bsod()
         gui_stop_menu();
         SetGUIRequestMode(1);
         msleep(1000);
-    } while (CURRENT_DIALOG_MAYBE != 1);
+    } while (CURRENT_GUI_MODE != 1);
     NotifyBoxHide();
     canon_gui_disable_front_buffer();
     gui_uilock(UILOCK_EVERYTHING);
@@ -1583,7 +1583,7 @@ static void HijackFormatDialogBox()
     if (MEM(DIALOG_MnCardFormatBegin) == 0) return;
     struct gui_task * current = gui_task_list.current;
     struct dialog * dialog = current->priv;
-    if (dialog && MEM(dialog->type) != DLG_SIGNATURE) return;
+    if (dialog && !streq(dialog->type, "DIALOG")) return;
 
     if (keep_ml_after_format)
         dialog_set_property_str(dialog, 4, "Format card, keep ML " FORMAT_BTN_NAME);
@@ -1596,7 +1596,7 @@ static void HijackCurrentDialogBox(int string_id, char* msg)
 {
     struct gui_task * current = gui_task_list.current;
     struct dialog * dialog = current->priv;
-    if (dialog && MEM(dialog->type) != DLG_SIGNATURE) return;
+    if (dialog && !streq(dialog->type, "DIALOG")) return;
     dialog_set_property_str(dialog, string_id, msg);
     dialog_redraw(dialog);
 }
@@ -1621,7 +1621,7 @@ static void HijackDialogBox()
 {
     struct gui_task * current = gui_task_list.current;
     struct dialog * dialog = current->priv;
-    if (dialog && MEM(dialog->type) != DLG_SIGNATURE) return;
+    if (dialog && !streq(dialog->type, "DIALOG")) return;
     int i;
     for (i = 0; i<255; i++) {
             char s[30];
@@ -1981,13 +1981,13 @@ int handle_buttons_being_held(struct event * event)
     if (event->param == BGMT_PRESS_HALFSHUTTER) halfshutter_pressed = 1;
     if (event->param == BGMT_UNPRESS_HALFSHUTTER) halfshutter_pressed = 0;
     #endif
-    #ifdef BGMT_UNPRESS_ZOOMIN_MAYBE
-    if (event->param == BGMT_PRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 1; zoom_out_pressed = 0; }
-    if (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE) {zoom_in_pressed = 0; zoom_out_pressed = 0; }
+    #ifdef BGMT_UNPRESS_ZOOM_IN
+    if (event->param == BGMT_PRESS_ZOOM_IN) {zoom_in_pressed = 1; zoom_out_pressed = 0; }
+    if (event->param == BGMT_UNPRESS_ZOOM_IN) {zoom_in_pressed = 0; zoom_out_pressed = 0; }
     #endif
-    #ifdef BGMT_PRESS_ZOOMOUT_MAYBE
-    if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 1; zoom_in_pressed = 0; }
-    if (event->param == BGMT_UNPRESS_ZOOMOUT_MAYBE) { zoom_out_pressed = 0; zoom_in_pressed = 0; }
+    #ifdef BGMT_PRESS_ZOOM_OUT
+    if (event->param == BGMT_PRESS_ZOOM_OUT) { zoom_out_pressed = 1; zoom_in_pressed = 0; }
+    if (event->param == BGMT_UNPRESS_ZOOM_OUT) { zoom_out_pressed = 0; zoom_in_pressed = 0; }
     #endif
     
     (void)zoom_in_pressed; /* silence warning */

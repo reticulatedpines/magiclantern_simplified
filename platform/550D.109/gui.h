@@ -31,11 +31,11 @@
 #define BGMT_WHEEL_DOWN 1
 
 // these are not sent always
-#define BGMT_PRESS_ZOOMOUT_MAYBE 0xD
-#define BGMT_UNPRESS_ZOOMOUT_MAYBE 0xE
+#define BGMT_PRESS_ZOOM_OUT 0xD
+#define BGMT_UNPRESS_ZOOM_OUT 0xE
 
-#define BGMT_PRESS_ZOOMIN_MAYBE 0xB
-#define BGMT_UNPRESS_ZOOMIN_MAYBE 0xC
+#define BGMT_PRESS_ZOOM_IN 0xB
+#define BGMT_UNPRESS_ZOOM_IN 0xC
 
 #define BGMT_AV (event->type == 0 && event->param == 0x56 && ( \
 			(is_movie_mode() && event->arg == 0xe) || \

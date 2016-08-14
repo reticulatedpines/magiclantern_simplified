@@ -10,7 +10,6 @@
 #define BGMT_PRESS_DISP 8 // new, old value for BGMT_Q
 #define BGMT_UNPRESS_DISP 9 // new, old value for BGMT_PLAY
 #define BGMT_PLAY 0xB // was 9
-#define BGMT_ZOOM_OUT 0xE // new
 
 #define BGMT_Q 0x1C // was 8
 #define BGMT_Q_ALT 0x13
@@ -34,6 +33,11 @@
 
 #define BGMT_PRESS_HALFSHUTTER 0x48 // was 0x3F, shared with magnify/zoom out
 
+#define BGMT_PRESS_ZOOM_OUT 0x10
+#define BGMT_UNPRESS_ZOOM_OUT 0x11
+
+#define BGMT_PRESS_ZOOM_IN 0xe
+#define BGMT_UNPRESS_ZOOM_IN 0xf
 
 // AV / AE COMP button 
 /// See gui.c for the actual press/unpress handling

@@ -186,7 +186,7 @@ int handle_common_events_startup(struct event * event)
         
         #ifdef CONFIG_5D3
         // block LV button at startup to avoid lockup with manual lenses (Canon bug?)
-        if (event->param == BGMT_LV && !lv && (lv_movie_select == 0 || is_movie_mode()) && !DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED && !DLG_MOVIE_PRESS_LV_TO_RESUME)
+        if (event->param == BGMT_LV && !lv && (lv_movie_select == 0 || is_movie_mode()) && !GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED && !GUIMODE_MOVIE_PRESS_LV_TO_RESUME)
             return 0;
         #endif
                 
@@ -331,8 +331,8 @@ int handle_digital_zoom_shortcut(struct event * event)
         case BGMT_UNPRESS_DISP:
             disp_pressed = 0;
             break;
-        case BGMT_PRESS_ZOOMIN_MAYBE: 
-        case BGMT_PRESS_ZOOMOUT_MAYBE:
+        case BGMT_PRESS_ZOOM_IN: 
+        case BGMT_PRESS_ZOOM_OUT:
             disp_zoom_pressed = 1;
             break;
         default:
@@ -344,7 +344,7 @@ int handle_digital_zoom_shortcut(struct event * event)
     {
         if (!video_mode_crop)
         {
-            if (video_mode_resolution == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+            if (video_mode_resolution == 0 && event->param == BGMT_PRESS_ZOOM_IN)
             {
                 if (NOT_RECORDING)
                 {
@@ -357,7 +357,7 @@ int handle_digital_zoom_shortcut(struct event * event)
         }
         else
         {
-            if (event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+            if (event->param == BGMT_PRESS_ZOOM_IN)
             {
                 if (NOT_RECORDING)
                 {
@@ -367,7 +367,7 @@ int handle_digital_zoom_shortcut(struct event * event)
                 NotifyBox(2000, "Zoom greater than 3x is disabled.\n");
                 return 0; // don't allow more than 3x zoom
             }
-            if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE)
+            if (event->param == BGMT_PRESS_ZOOM_OUT)
             {
                 if (NOT_RECORDING)
                 {
@@ -658,10 +658,5 @@ void redraw_after(int msec)
 int get_gui_mode()
 {
     /* this is GUIMode from SetGUIRequestMode */
-    return CURRENT_DIALOG_MAYBE;
-}
-
-int get_dlg_signature()
-{
-    return DLG_SIGNATURE;
+    return CURRENT_GUI_MODE;
 }

@@ -84,7 +84,7 @@ int display_idle()
     extern thunk ShootOlcApp_handler;
     if (lv) return liveview_display_idle();
     else return gui_state == GUISTATE_IDLE && !gui_menu_shown() &&
-        ((!DISPLAY_IS_ON && CURRENT_DIALOG_MAYBE == 0) || (intptr_t)get_current_dialog_handler() == (intptr_t)&ShootOlcApp_handler);
+        ((!DISPLAY_IS_ON && CURRENT_GUI_MODE == 0) || (intptr_t)get_current_dialog_handler() == (intptr_t)&ShootOlcApp_handler);
 }
 
 int uniwb_is_active() 
@@ -2477,7 +2477,7 @@ int handle_zoom_x5_x10(struct event * event)
     if (get_disp_pressed()) return 1;
     #endif
     
-    if (event->param == BGMT_PRESS_ZOOMIN_MAYBE && liveview_display_idle() && !gui_menu_shown())
+    if (event->param == BGMT_PRESS_ZOOM_IN && liveview_display_idle() && !gui_menu_shown())
     {
         set_lv_zoom(lv_dispsize > 1 ? 1 : zoom_disable_x5 ? 10 : 5);
         return 0;
@@ -5141,7 +5141,7 @@ void enter_play_mode()
     if (PLAY_MODE) return;
     
     /* request new mode */
-    SetGUIRequestMode(DLG_PLAY);
+    SetGUIRequestMode(GUIMODE_PLAY);
 
     /* wait up to 2 seconds to enter the PLAY mode */
     for (int i = 0; i < 20 && !PLAY_MODE; i++)

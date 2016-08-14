@@ -19,8 +19,7 @@
 #define BGMT_PRESS_DISP 8 // new, old value for BGMT_Q
 #define BGMT_UNPRESS_DISP 9 // new, old value for BGMT_PLAY
 #define BGMT_PLAY 0xB // was 9
-#define BGMT_TRASH 0xD // old value for BGMT_PRESS_ZOOMOUT_MAYBE, was 0xA
-#define BGMT_ZOOM_OUT 0xE // new (unpress?)
+#define BGMT_TRASH 0xD // old value for BGMT_PRESS_ZOOM_OUT, was 0xA
 #define BGMT_Q_ALT 0x13
 #define BGMT_Q 0x1C // was 8
 #define BGMT_LV 0x1D // new
@@ -51,11 +50,11 @@
 #define BGMT_PRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x4000000))
 #define BGMT_UNPRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x4000000) == 0)
 
-#define BGMT_PRESS_ZOOMOUT_MAYBE 0x10
-#define BGMT_UNPRESS_ZOOMOUT_MAYBE 0x11
+#define BGMT_PRESS_ZOOM_OUT 0x10
+#define BGMT_UNPRESS_ZOOM_OUT 0x11
 
-#define BGMT_PRESS_ZOOMIN_MAYBE 0xe
-#define BGMT_UNPRESS_ZOOMIN_MAYBE 0xf
+#define BGMT_PRESS_ZOOM_IN 0xe
+#define BGMT_UNPRESS_ZOOM_IN 0xf
 
 #define BTN_ZEBRAS_FOR_PLAYBACK BGMT_PRESS_DISP // what button to use for zebras in Play mode
 #define BTN_ZEBRAS_FOR_PLAYBACK_NAME "DISP"
