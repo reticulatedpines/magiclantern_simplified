@@ -192,6 +192,7 @@ function test_keys()
     -- fixme: expose things like QR_MODE, PLAY_MODE, enter_play_mode...
     assert(camera.state == 1)
     key.press(KEY.HALFSHUTTER)
+    msleep(100)
     assert(key.last == KEY.HALFSHUTTER)
     msleep(1000)
     -- half-shutter should close Canon menu
