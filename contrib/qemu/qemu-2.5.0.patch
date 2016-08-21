@@ -83,7 +83,7 @@ index 7cb01a8..e46a34b 100644
  };
  
 diff --git a/target-arm/cpu.c b/target-arm/cpu.c
-index 30739fc..f7350a2 100644
+index 30739fc..0cc1a77 100644
 --- a/target-arm/cpu.c
 +++ b/target-arm/cpu.c
 @@ -501,8 +501,9 @@ static void arm_cpu_initfn(Object *obj)
@@ -97,7 +97,7 @@ index 30739fc..f7350a2 100644
  
  static Property arm_cpu_rvbar_property =
              DEFINE_PROP_UINT64("rvbar", ARMCPU, rvbar, 0);
-@@ -711,6 +712,46 @@ static void arm926_initfn(Object *obj)
+@@ -711,6 +712,39 @@ static void arm926_initfn(Object *obj)
      cpu->reset_sctlr = 0x00090078;
  }
  
@@ -124,27 +124,38 @@ index 30739fc..f7350a2 100644
 +
 +static void cortex_r5_initfn(Object *obj);
 +
-+static const ARMCPRegInfo eos_digic6_cp_reginfo[] = {
-+    { .name = "UNK",  .cp = 15, .opc1 = 0, .crn = 15, .crm = 5, .opc2 = 0,
-+      .access = PL1_RW, .type = ARM_CP_CONST },
-+    REGINFO_SENTINEL
-+};
-+
 +static void arm_digic6_eos_initfn(Object *obj)
 +{
-+    /* it's very similar to Cortex R5, but code uses some extra CP15 registers */
-+    /* CHDK says it's a Cortex R4: https://chdk.setepontos.com/index.php?topic=11316.msg124273#msg124273 */
++    /* Cortex R4: https://chdk.setepontos.com/index.php?topic=11316.msg124273#msg124273 */
 +    cortex_r5_initfn(obj);
 +    
 +    ARMCPU *cpu = ARM_CPU(obj);
-+    set_feature(&cpu->env, ARM_FEATURE_THUMB_INTERRUPTS);
-+    define_arm_cp_regs(cpu, eos_digic6_cp_reginfo);
++    cpu->midr = 0x411FC143;
++    cpu->reset_sctlr = 0x08ED0878;
 +}
 +
  static void arm946_initfn(Object *obj)
  {
      ARMCPU *cpu = ARM_CPU(obj);
-@@ -1328,6 +1369,8 @@ typedef struct ARMCPUInfo {
+@@ -914,9 +948,15 @@ static void arm_v7m_class_init(ObjectClass *oc, void *data)
+ 
+ static const ARMCPRegInfo cortexr5_cp_reginfo[] = {
+     /* Dummy the TCM region regs for the moment */
+-    { .name = "ATCM", .cp = 15, .opc1 = 0, .crn = 9, .crm = 1, .opc2 = 0,
++    { .name = "ATCM",       .cp = 15, .opc1 = 0, .crn = 9,  .crm = 1, .opc2 = 0,
++      .access = PL1_RW, .type = ARM_CP_CONST },
++    { .name = "BTCM",       .cp = 15, .opc1 = 0, .crn = 9,  .crm = 1, .opc2 = 1,
++      .access = PL1_RW, .type = ARM_CP_CONST },
++    { .name = "INV_DCACHE", .cp = 15, .opc1 = 0, .crn = 15, .crm = 5, .opc2 = 0,
++      .access = PL1_RW, .type = ARM_CP_CONST },
++    { .name = "BUILDOPTS",  .cp = 15, .opc1 = 0, .crn = 15, .crm = 2, .opc2 = CP_ANY,
+       .access = PL1_RW, .type = ARM_CP_CONST },
+-    { .name = "BTCM", .cp = 15, .opc1 = 0, .crn = 9, .crm = 1, .opc2 = 1,
++    { .name = "ACTLR2",     .cp = 15, .opc1 = 0, .crn = 15, .crm = 0, .opc2 = 0,
+       .access = PL1_RW, .type = ARM_CP_CONST },
+     REGINFO_SENTINEL
+ };
+@@ -1328,6 +1368,8 @@ typedef struct ARMCPUInfo {
  static const ARMCPUInfo arm_cpus[] = {
  #if !defined(CONFIG_USER_ONLY) || !defined(TARGET_AARCH64)
      { .name = "arm926",      .initfn = arm926_initfn },
@@ -153,41 +164,30 @@ index 30739fc..f7350a2 100644
      { .name = "arm946",      .initfn = arm946_initfn },
      { .name = "arm1026",     .initfn = arm1026_initfn },
      /* What QEMU calls "arm1136-r2" is actually the 1136 r0p2, i.e. an
-diff --git a/target-arm/cpu.h b/target-arm/cpu.h
-index 815fef8..961e254 100644
---- a/target-arm/cpu.h
-+++ b/target-arm/cpu.h
-@@ -912,6 +912,7 @@ enum arm_features {
-     ARM_FEATURE_V8_SHA256, /* implements SHA256 part of v8 Crypto Extensions */
-     ARM_FEATURE_V8_PMULL, /* implements PMULL part of v8 Crypto Extensions */
-     ARM_FEATURE_THUMB_DSP, /* DSP insns supported in the Thumb encodings */
-+    ARM_FEATURE_THUMB_INTERRUPTS,   /* CPU should switch to Thumb mode on interrupt */
- };
- 
- static inline int arm_feature(CPUARMState *env, int feature)
 diff --git a/target-arm/helper.c b/target-arm/helper.c
-index afc4163..083885b 100644
+index afc4163..46cd503 100644
 --- a/target-arm/helper.c
 +++ b/target-arm/helper.c
 @@ -5891,11 +5891,21 @@ void arm_cpu_do_interrupt(CPUState *cs)
      /* Switch to the new mode, and to the correct instruction set.  */
      env->uncached_cpsr = (env->uncached_cpsr & ~CPSR_M) | new_mode;
      env->daif |= mask;
-+
-+    /* this code breaks DryOS task scheduler */
-+    /* FIXME: only disable it for EOS CPUs */
-+
-     /* this is a lie, as the was no c1_sys on V4T/V5, but who cares
-      * and we should just guard the thumb mode on V4 */
+-    /* this is a lie, as the was no c1_sys on V4T/V5, but who cares
+-     * and we should just guard the thumb mode on V4 */
 -    if (arm_feature(env, ARM_FEATURE_V4T)) {
--        env->thumb = (A32_BANKED_CURRENT_REG_GET(env, sctlr) & SCTLR_TE) != 0;
-+    //~ if (arm_feature(env, ARM_FEATURE_V4T)) {
-+        //~ env->thumb = (A32_BANKED_CURRENT_REG_GET(env, sctlr) & SCTLR_TE) != 0;
-+    //~ }
-+    
-+    if (arm_feature(env, ARM_FEATURE_THUMB_INTERRUPTS)) {
-+        /* EOS M3: interrupts appear to require Thumb mode */
-+        env->thumb = 1;
++
++    if (arm_feature(env, ARM_FEATURE_V6) ||
++        arm_feature(env, ARM_FEATURE_V7) ||
++        arm_feature(env, ARM_FEATURE_V8)) {
++        /* newer processors execute the interrupts in Thumb mode
++         * if the SCTLR TE bit is enabled */
+         env->thumb = (A32_BANKED_CURRENT_REG_GET(env, sctlr) & SCTLR_TE) != 0;
++    } else if (arm_feature(env, ARM_FEATURE_V4T)) {
++        /* there was no c1_sys on V4T/V5,
++         * and we should just guard the thumb mode on V4
++         * note: arm946eos uses the SCTLR TE bit for something else,
++         * so we can't assume this bit being always 0 on older platforms */
++        env->thumb = 0;
      }
 +
      env->regs[14] = env->regs[15] + offset;
