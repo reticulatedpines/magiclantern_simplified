@@ -103,6 +103,7 @@ struct eos_model_desc eos_model_list[] = {
     },
     {
         .name                   = "700D",
+        .serial_flash_size      = 0x800000,
         .digic_version          = 5,
     },
     {
