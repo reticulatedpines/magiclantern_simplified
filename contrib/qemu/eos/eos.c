@@ -1757,12 +1757,6 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             msg = "USB CONNECT";
             ret = 0;
             break;
-        
-        case 0x0138:
-            /* HDMI on 600D */
-            msg = "HDMI CONNECT";
-            ret = 0;
-            break;
 
         case 0x014:
             /* /VSW_ON on 600D */
@@ -1891,6 +1885,7 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             break;
 
         case 0x0164:
+        case 0x0174:    /* 5D3 */
             msg = "VIDEO CONNECT";
             ret = 1;
 #ifdef IGNORE_CONNECT_POLL
@@ -1899,6 +1894,7 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             break;
 
         case 0x0160:
+        case 0x016C:    /* 5D3 */
             msg = "MIC CONNECT";
             ret = 1;
 #ifdef IGNORE_CONNECT_POLL
@@ -1907,6 +1903,7 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             break;
         
         case 0x015C:
+        case 0x017C:    /* 5D3 */
             msg = "USB CONNECT";
             ret = 0;
 #ifdef IGNORE_CONNECT_POLL
@@ -1914,7 +1911,9 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
 #endif
             break;
         
-        case 0x0124:
+        case 0x0124:    /* 100D? */
+        case 0x0138:    /* 600D */
+        case 0x0150:    /* 5D3 */
             msg = "HDMI CONNECT";
             ret = 0;
 #ifdef IGNORE_CONNECT_POLL
