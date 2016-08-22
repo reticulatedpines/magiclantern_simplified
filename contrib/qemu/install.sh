@@ -106,7 +106,8 @@ echo "   cd `pwd`/"
 echo "   ./run_canon_fw.sh 60D"
 echo
 echo "   This will recompile QEMU, but not ML."
-echo "   Note: Canon GUI emulation (well, a small part of it) only works on 60D."
+echo "   Note: Canon GUI emulation (well, a small part of it) only works on"
+echo "   60D, 1100D, 1200D, 5D3 1.1.3."
 echo
 echo "6) Tips & tricks:"
 echo "   - to enable or disable the boot flag in ROM, use something like:"
