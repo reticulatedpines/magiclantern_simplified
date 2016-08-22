@@ -2637,26 +2637,23 @@ static void sdio_send_command(SDIOState *sd)
     if (rlen < 0)
         goto error;
     if (sd->cmd_flags != 0x11 && sd->cmd_flags != 0x1) {
-#define RWORD(n) (((uint32_t)response[n + 5] << 24) | (response[n + 6] << 16) \
-                  | (response[n + 7] << 8) | response[n])
+#define RWORD(n) (((uint32_t)response[n] << 24) | (response[n + 1] << 16) \
+                  | (response[n + 2] << 8) | response[n + 3])
         if (rlen == 0)
             goto error;
         if (rlen != 4 && rlen != 16)
             goto error;
         
-        /* response bytes are shifted by one, and something has to fill the gap */
-        /* guess: response length? (no idea, it appears unused) */
-        response[0] = rlen;
-        
-        sd->response[0] = RWORD(0);
-        sd->response[1] = RWORD(4);
         if (rlen == 4) {
-            sd->response[2] = sd->response[3] = sd->response[4] = 0;
+            /* response bytes are shifted by one, but only for rlen=4 ?! */
+            sd->response[0] = RWORD(5);
+            sd->response[1] = RWORD(1);
+            sd->response[2] = sd->response[3] = 0;
         } else {
-            sd->response[1] = RWORD(4);
+            sd->response[0] = RWORD(16);
+            sd->response[1] = RWORD(12);
             sd->response[2] = RWORD(8);
-            sd->response[3] = RWORD(12);
-            sd->response[4] = RWORD(16);
+            sd->response[3] = RWORD(4);
         }
         DPRINTF("Response received\n");
         sd->status |= SDIO_STATUS_OK;
@@ -2877,10 +2874,6 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
         case 0x40:
             msg = "Response[3]";
             ret = s->sd.response[3];
-            break;
-        case 0x44:
-            msg = "Response[4]";
-            ret = s->sd.response[4];
             break;
         case 0x58:
             msg = "bus width";
