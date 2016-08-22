@@ -145,6 +145,31 @@ typedef struct
 
 typedef struct
 {
+    uint32_t addr;
+    uint16_t xa;
+    uint16_t ya;
+    uint16_t xb;
+    uint16_t yb;
+    uint16_t xn;
+    uint16_t yn;
+    uint32_t off1a;
+    uint32_t off1b;
+    uint32_t off1c;
+    uint32_t off2a;
+    uint32_t off2b;
+    uint32_t off3;
+    uint32_t flags;
+} EDmacChState;
+
+typedef struct
+{
+    EDmacChState ch[64];
+    uint32_t read_conn[16];     /* each connection can get data from a single read channel */
+    uint32_t write_conn[64];    /* each write channel can get data from a single connection */
+} EDMACState;
+
+typedef struct
+{
     /* model-specific settings from model_list.c */
     struct eos_model_desc * model;
 
@@ -183,6 +208,7 @@ typedef struct
     SDIOState sd;
     CFState cf;
     MPUState mpu;
+    EDMACState edmac;
     struct SerialFlashState * sf;
 } EOSState;
 

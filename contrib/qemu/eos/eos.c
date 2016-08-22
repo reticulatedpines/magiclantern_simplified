@@ -1963,55 +1963,157 @@ unsigned int eos_handle_cartridge ( unsigned int parm, EOSState *s, unsigned int
     return 0;
 }
 
+static void edmac_trigger_interrupt(EOSState* s, int channel)
+{
+    /* from register_interrupt calls */
+    const int edmac_interrupts[] = {
+        0x58, 0x59, 0x5A, 0x5B, 0x5C, 0x6D, 0xC0, 0x00, /* write channels 0..6, one unused position */
+        0x5D, 0x5E, 0x5F, 0x6E, 0xC1, 0xC8, 0x00, 0x00, /* read channels 0..5, two unused positions */
+        0xF9, 0x83, 0x8A, 0x00, 0x00, 0x00, 0x00, 0x00, /* write channels 7..9, others unknown */
+        0x8B, 0x92, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* read channels 6..7, others unknown */
+    };
+    
+    assert(channel >= 0 && channel < COUNT(edmac_interrupts));
+    assert(edmac_interrupts[channel]);
+    
+    eos_trigger_int(s, edmac_interrupts[channel], 0);
+}
+
 unsigned int eos_handle_edmac ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
     const char * msg = 0;
     unsigned int ret = 0;
     int channel = (parm << 4) | ((address >> 8) & 0xF);
+    assert(channel < COUNT(s->edmac.ch));
     
     switch(address & 0xFF)
     {
         case 0x00:
             msg = "control/status";
+            if (value == 1)
+            {
+                /* dummy transfer, not implemented yet */
+                printf("[EDMAC#%d] Starting transfer %s 0x%X %s conn", channel,
+                    (channel & 8) ? "from" : "to",
+                    s->edmac.ch[channel].addr,
+                    (channel & 8) ? "to" : "from"
+                );
+                
+                if (channel & 8)
+                {
+                    /* read channel */
+                    for (int i = 0; i < COUNT(s->edmac.read_conn); i++)
+                    {
+                        if (s->edmac.read_conn[i] == channel)
+                        {
+                            printf(" #%d", i);
+                        }
+                    }
+                }
+                else
+                {
+                    printf(" #%d", s->edmac.write_conn[channel]);
+                }
+                
+                printf(", ");
+                
+                if (s->edmac.ch[channel].xa || s->edmac.ch[channel].ya)
+                    printf("A:%dx%d, ", s->edmac.ch[channel].xa, s->edmac.ch[channel].ya+1);
+                if (s->edmac.ch[channel].xb || s->edmac.ch[channel].yb)
+                    printf("B:%dx%d, ", s->edmac.ch[channel].xb, s->edmac.ch[channel].yb+1);
+                if (s->edmac.ch[channel].xn || s->edmac.ch[channel].yn)
+                    printf("N:%dx%d, ", s->edmac.ch[channel].xn, s->edmac.ch[channel].yn+1);
+                
+                printf("flags=0x%X\n", s->edmac.ch[channel].flags);
+                
+                edmac_trigger_interrupt(s, channel);
+            }
             break;
 
         case 0x04:
+            if(type & MODE_WRITE)
+            {
+                s->edmac.ch[channel].flags = value;
+            }
             msg = "flags";
             break;
 
         case 0x08:
             msg = "RAM address";
+            if(type & MODE_WRITE)
+            {
+                s->edmac.ch[channel].addr = value;
+            }
+            else
+            {
+                ret = s->edmac.ch[channel].addr;
+            }
             break;
 
         case 0x0C:
+            if(type & MODE_WRITE)
+            {
+                s->edmac.ch[channel].xn = value & 0xFFFF;
+                s->edmac.ch[channel].yn = value >> 16;
+            }
             msg = "yn|xn";
             break;
 
         case 0x10:
+            if(type & MODE_WRITE)
+            {
+                s->edmac.ch[channel].xb = value & 0xFFFF;
+                s->edmac.ch[channel].yb = value >> 16;
+            }
             msg = "yb|xb";
             break;
 
         case 0x14:
+            if(type & MODE_WRITE)
+            {
+                s->edmac.ch[channel].xa = value & 0xFFFF;
+                s->edmac.ch[channel].ya = value >> 16;
+            }
             msg = "ya|xa";
             break;
 
         case 0x18:
+            if(type & MODE_WRITE)
+            {
+                s->edmac.ch[channel].off1b = value;
+            }
             msg = "off1b";
             break;
 
         case 0x1C:
+            if(type & MODE_WRITE)
+            {
+                s->edmac.ch[channel].off1c = value;
+            }
             msg = "off1c";
             break;
 
         case 0x20:
+            if(type & MODE_WRITE)
+            {
+                s->edmac.ch[channel].off1a = value;
+            }
             msg = "off1a";
             break;
 
         case 0x24:
+            if(type & MODE_WRITE)
+            {
+                s->edmac.ch[channel].off2a = value;
+            }
             msg = "off2a";
             break;
 
         case 0x28:
+            if(type & MODE_WRITE)
+            {
+                s->edmac.ch[channel].off3 = value;
+            }
             msg = "off3";
             break;
     }
@@ -2048,6 +2150,7 @@ unsigned int eos_handle_edmac_chsw ( unsigned int parm, EOSState *s, unsigned in
                 (value <=  5) ? value + 8      :
                 (value <= 11) ? value + 16 + 2 :
                 (value <= 15) ? value + 32 - 4 : -1 ;
+            s->edmac.read_conn[conn] = ch;
             msg = "RAM -> RD#%d -> connection #%d";
             msg_arg1 = ch;
             msg_arg2 = conn;
@@ -2059,6 +2162,7 @@ unsigned int eos_handle_edmac_chsw ( unsigned int parm, EOSState *s, unsigned in
             int conn = value;
             int ch = (address & 0x1F) >> 2;
             if (ch == 7) ch = 16;
+            s->edmac.write_conn[ch] = conn;
             msg = "connection #%d -> WR#%d -> RAM";
             msg_arg1 = conn;
             msg_arg2 = ch;
@@ -2074,6 +2178,7 @@ unsigned int eos_handle_edmac_chsw ( unsigned int parm, EOSState *s, unsigned in
             int ch =
                 (pos <= 5) ? pos + 16 + 1
                            : pos + 32 - 6 ;
+            s->edmac.write_conn[ch] = conn;
             msg = "connection #%d -> WR#%d -> RAM";
             msg_arg1 = conn;
             msg_arg2 = ch;
