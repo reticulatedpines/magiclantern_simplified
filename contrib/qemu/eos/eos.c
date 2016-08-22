@@ -3229,6 +3229,7 @@ unsigned int eos_handle_display ( unsigned int parm, EOSState *s, unsigned int a
                 int entry = ((address & 0xFFF) - 0x800) / 4;
                 process_palette_entry(value, &s->disp.palette_8bit[entry], entry, &msg);
                 s->disp.is_4bit = 0;
+                s->disp.bmp_pitch = 960;
             }
             break;
     }
