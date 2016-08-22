@@ -275,6 +275,9 @@ void serial_flash_spi_write(SerialFlashState * sf, uint8_t value)
 #define SDIO_STATUS_ERROR           0x2
 #define SDIO_STATUS_DATA_AVAILABLE  0x200000
 
+#define BLOCK_SIZE   0x7F0
+#define BLOCK_OFFSET 0x800
+
 static void sfio_do_transfer( EOSState *s)
 {
     printf("[SFIO] eos_handle_sfio (copying now)\n");
@@ -284,22 +287,28 @@ static void sfio_do_transfer( EOSState *s)
            s->sf->data_pointer, s->sd.dma_addr, s->sd.dma_count);
 
     /* the data appears screwed up a bit - offset by half-byte?! */
-    for (int i = 0; i < s->sd.dma_count; i++)
-    {
-        uint8_t this = *(uint8_t*)(source + i);
-        uint8_t next = *(uint8_t*)(source + i + 1);
-        uint8_t byte = (this << 4) | (next >> 4);
-        
-        /* not exactly the most efficient way, but fast enough for our purpose */
-        cpu_physical_memory_write(s->sd.dma_addr + i, &byte, 1);
-        
-        if (i < 16*4)
-        {
-            printf("%s%02X%s",
-                (i % 16 == 0) ? "[EEPROM-DATA]: " : "",
-                byte,
-                (i % 16 == 15) ? "\n" : " "
-            );
+    int num_blocks = (s->sd.dma_count + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    // TODO assert that num_blocks is equal to num blocks sent to controller
+    // TODO assert that BLOCK_SIZE is equal to block size sent to controller
+    for (int i = 0; i < num_blocks; i++) {
+        uint8_t * block_src = (uint8_t*)(source + i*BLOCK_OFFSET);
+        uint32_t  block_dst = (uint32_t)(s->sd.dma_addr + i*BLOCK_SIZE);
+        for (int j = 0; j < BLOCK_SIZE; j++) {
+            uint8_t this = *(uint8_t*)(block_src + j);
+            uint8_t next = *(uint8_t*)(block_src + j + 1);
+            uint8_t byte = (this << 4) | (next >> 4);
+
+            /* not exactly the most efficient way, but fast enough for our purpose */
+            cpu_physical_memory_write(block_dst + j, &byte, 1);
+
+            if (i == 0 && j < 16*4)
+            {
+                printf("%s%02X%s",
+                    (j % 16 == 0) ? "[EEPROM-DATA]: " : "",
+                    byte,
+                    (j % 16 == 15) ? "\n" : " "
+                );
+            }
         }
     }
     s->sd.dma_count = 0;
