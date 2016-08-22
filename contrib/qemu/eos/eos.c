@@ -1620,6 +1620,54 @@ unsigned int eos_handle_hptimer ( unsigned int parm, EOSState *s, unsigned int a
 }
 
 
+// 100D Set_AVS
+static
+unsigned int avs_handle(EOSState *s, int address, int type, int val)
+{
+    // Actual values from a live 100D, possibly reads from an ADC and 
+    // the voltage levels set by some voltage supply. If the wrong 
+    // values are used there will be a divide-by-zero error in Canon
+    // firmware, resulting in assert(0) @ Stub.c.
+    const uint32_t avs_reply[][3] = {
+        { 0x000C00, 0x200400, 0xE8D3 },
+        { 0x000C00, 0x300000, 0x00AA },
+        { 0x100800, 0x200400, 0xBC94 },
+        { 0x100800, 0x300000, 0x0099 },
+    };
+    static int regA = 0, regB = 0;
+    unsigned int ret = 0;
+    const char * msg = "unknown";
+
+    if (type & MODE_WRITE) {
+        switch (address & 0xFFFF) {
+            case 0xC288:
+                msg = "reg A";
+                regA = val;
+                break;
+            case 0xC28C:
+                msg = "reg B";
+                regB = val;
+                break;
+        }
+    } else {
+        switch (address & 0xFFFF) {
+            case 0xF498:
+                for (int i = 0; i < sizeof(avs_reply)/sizeof(avs_reply[0]); i++) {
+                    if (regA == avs_reply[i][0] && regB == avs_reply[i][1]) {
+                        ret = avs_reply[i][2];
+                        msg = "pattern match!";
+                        regA = 0; regB = 0;
+                        break;
+                    }
+                }
+                break;
+        }
+    }
+    io_log("AVS", s, address, type, val, ret, msg, 0, 0);
+    return ret;
+}
+
+
 unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
     unsigned int ret = 1;
@@ -1928,6 +1976,12 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             ret = 0;
             break;
 
+
+        // 100D Set_AVS
+        case 0xC288:
+        case 0xC28C:
+        case 0xF498:
+            return avs_handle(s, address, type, value);
     }
 
     msg_lookup = get_bufcon_label(bufcon_label_100D, address);
@@ -2635,6 +2689,7 @@ static void sdio_send_command(SDIOState *sd)
     rlen = sd_do_command(sd->card, &request, response+4);
     if (rlen < 0)
         goto error;
+
     if (sd->cmd_flags != 0x11 && sd->cmd_flags != 0x1) {
 #define RWORD(n) (((uint32_t)response[n] << 24) | (response[n + 1] << 16) \
                   | (response[n + 2] << 8) | response[n + 3])
@@ -3703,6 +3758,15 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
         case 0xD9890014:
             msg = "Battery level maybe (ADC?)";     /* M3: called from Battery init  */
             ret = 0x00020310;
+            break;
+
+        // 100D AVS
+        case 0xd02c3004: // TST 8
+        case 0xd02c3024: // TST 1
+        case 0xd02c4004: // TST 8
+        case 0xd02c4024: // TST 1
+            msg = "AVS??";
+            ret = 0xff;
             break;
     }
     
