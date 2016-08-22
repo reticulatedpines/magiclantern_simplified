@@ -77,9 +77,11 @@ echo "2) Grab a copy of the Canon firmware from your own camera"
 echo "   (don't request one and don't share it online - it's copyrighted)"
 echo
 echo "   Look on your SD card - you should find ML/LOGS/ROM0.BIN and ROM1.BIN"
-echo "   Copy those in `pwd`/ and then run (for 60D):"
+echo "   Copy them under your camera model's subdirectory, for example:"
+echo "   `pwd`/60D/"
 echo
-echo "   cat ROM0.BIN ROM1.BIN > ROM-60D.BIN"
+echo "   For models that use a serial flash, you may have to dump its contents"
+echo "   using the sf_dump module, then copy SFDATA.BIN as well."
 echo
 echo "3) Enable CONFIG_QEMU=y in your Makefile.user"
 echo "   from magic-lantern directory, then run 'make clean' to make sure"

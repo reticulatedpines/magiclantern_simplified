@@ -33,7 +33,7 @@ struct eos_model_desc eos_model_list[] = {
     {
         /* defaults for DIGIC 6 cameras */
         .digic_version          = 6,
-        .rom0_size              = 0x02000000,
+        .rom0_size              = 0,    /* not dumped yet, camera locks up (?!) */
         .rom1_size              = 0x02000000,
         .io_mem_size            = 0x20000000,
         .firmware_start         = 0xFE0A0000,

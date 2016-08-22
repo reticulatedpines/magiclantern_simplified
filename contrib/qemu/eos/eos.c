@@ -879,33 +879,37 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
     }
 
     /* set up ROM0 */
-    memory_region_init_ram(&s->rom0, NULL, "eos.rom0", ROM0_SIZE, &error_abort);
-    memory_region_add_subregion(s->system_mem, ROM0_ADDR, &s->rom0);
-
-    uint64_t offset;
-    for(offset = ROM0_ADDR + ROM0_SIZE; offset < ROM1_ADDR; offset += ROM0_SIZE)
+    if (ROM0_SIZE)
     {
-        char name[32];
-        MemoryRegion *image = g_new(MemoryRegion, 1);
-        sprintf(name, "eos.rom0_mirror_%02X", (uint32_t)offset >> 24);
+        memory_region_init_ram(&s->rom0, NULL, "eos.rom0", ROM0_SIZE, &error_abort);
+        memory_region_add_subregion(s->system_mem, ROM0_ADDR, &s->rom0);
 
-        memory_region_init_alias(image, NULL, name, &s->rom0, 0x00000000, ROM0_SIZE);
-        memory_region_add_subregion(s->system_mem, offset, image);
+        for(uint64_t offset = ROM0_ADDR + ROM0_SIZE; offset < ROM1_ADDR; offset += ROM0_SIZE)
+        {
+            char name[32];
+            MemoryRegion *image = g_new(MemoryRegion, 1);
+            sprintf(name, "eos.rom0_mirror_%02X", (uint32_t)offset >> 24);
+
+            memory_region_init_alias(image, NULL, name, &s->rom0, 0x00000000, ROM0_SIZE);
+            memory_region_add_subregion(s->system_mem, offset, image);
+        }
     }
 
-    /* set up ROM1 */
-    memory_region_init_ram(&s->rom1, NULL, "eos.rom1", ROM1_SIZE, &error_abort);
-    memory_region_add_subregion(s->system_mem, ROM1_ADDR, &s->rom1);
-
-    // uint64_t offset;
-    for(offset = ROM1_ADDR + ROM1_SIZE; offset < 0x100000000; offset += ROM1_SIZE)
+    if (ROM1_SIZE)
     {
-        char name[32];
-        MemoryRegion *image = g_new(MemoryRegion, 1);
-        sprintf(name, "eos.rom1_mirror_%02X", (uint32_t)offset >> 24);
+        /* set up ROM1 */
+        memory_region_init_ram(&s->rom1, NULL, "eos.rom1", ROM1_SIZE, &error_abort);
+        memory_region_add_subregion(s->system_mem, ROM1_ADDR, &s->rom1);
 
-        memory_region_init_alias(image, NULL, name, &s->rom1, 0x00000000, ROM1_SIZE);
-        memory_region_add_subregion(s->system_mem, offset, image);
+        for(uint64_t offset = ROM1_ADDR + ROM1_SIZE; offset < 0x100000000; offset += ROM1_SIZE)
+        {
+            char name[32];
+            MemoryRegion *image = g_new(MemoryRegion, 1);
+            sprintf(name, "eos.rom1_mirror_%02X", (uint32_t)offset >> 24);
+
+            memory_region_init_alias(image, NULL, name, &s->rom1, 0x00000000, ROM1_SIZE);
+            memory_region_add_subregion(s->system_mem, offset, image);
+        }
     }
 
     //memory_region_init_ram(&s->rom1, "eos.rom", 0x10000000, &error_abort);
@@ -1025,13 +1029,21 @@ static void eos_init_common(MachineState *machine)
 {
     EOSState *s = eos_init_cpu(EOS_MACHINE_GET_CLASS(machine)->model);
 
-    char rom_filename[24];
-    snprintf(rom_filename,24,"ROM-%s.BIN",s->model->name);
-
     /* populate ROM0 */
-    eos_load_image(s, rom_filename, 0, ROM0_SIZE, ROM0_ADDR, 0);
+    if (ROM0_SIZE)
+    {
+        char rom_filename[24];
+        snprintf(rom_filename,24,"%s/ROM0.BIN",s->model->name);
+        eos_load_image(s, rom_filename, 0, ROM0_SIZE, ROM0_ADDR, 0);
+    }
+    
     /* populate ROM1 */
-    eos_load_image(s, rom_filename, ROM0_SIZE, ROM1_SIZE, ROM1_ADDR, 0);
+    if (ROM1_SIZE)
+    {
+        char rom_filename[24];
+        snprintf(rom_filename,24,"%s/ROM1.BIN",s->model->name);
+        eos_load_image(s, rom_filename, 0, ROM1_SIZE, ROM1_ADDR, 0);
+    }
 
     /* init SD card */
     DriveInfo *di;
@@ -1059,7 +1071,7 @@ static void eos_init_common(MachineState *machine)
     if (s->model->serial_flash_size)
     {
         char sf_filename[50];
-        snprintf(sf_filename, sizeof(sf_filename), "SF-%s.BIN", s->model->name);
+        snprintf(sf_filename, sizeof(sf_filename), "%s/SFDATA.BIN", s->model->name);
         s->sf = serial_flash_init(sf_filename, s->model->serial_flash_size);
     }
 
