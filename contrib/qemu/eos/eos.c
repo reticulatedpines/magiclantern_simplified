@@ -3116,6 +3116,10 @@ unsigned int eos_handle_basic ( unsigned int parm, EOSState *s, unsigned int add
                 ret = 2;
             }
             break;
+        
+        case 0x284:
+            msg = "5D3 display init?";
+            ret = 1;
     }
 
     io_log("BASIC", s, address, type, value, ret, msg, 0, 0);
