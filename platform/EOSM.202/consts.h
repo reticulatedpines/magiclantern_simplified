@@ -37,7 +37,6 @@
 // http://magiclantern.wikia.com/wiki/ASM_Zedbra
 #define YUV422_HD_BUFFER_1 0x44000080
 #define YUV422_HD_BUFFER_2 0x46000080
-#define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080 ) // quick check if x looks like a valid HD buffer
 
 // see "focusinfo" and Wiki:Struct_Guessing
 #define FOCUS_CONFIRMATION (*(int*)0x420F0)
@@ -49,13 +48,9 @@
 #define GMT_NFUNCS 7
 #define GMT_FUNCTABLE 0xFF7F9624 // dec gui_main_task
 
-#define SENSOR_RES_X 5280
-#define SENSOR_RES_Y 3528
 
 
-#define CURRENT_DIALOG_MAYBE (*(int*)0x40FBC)
-
-#define LV_BOTTOM_BAR_DISPLAYED UNAVI_FEEDBACK_TIMER_ACTIVE
+#define CURRENT_GUI_MODE (*(int*)0x40FBC)
 
 //~ #define ISO_ADJUSTMENT_ACTIVE 0 // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
 
@@ -74,7 +69,7 @@
 #define MVR_BUFFER_USAGE MAX(MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND)
 
 #define MVR_FRAME_NUMBER  (*(int*)(0x1F4 + MVR_516_STRUCT)) // in mvrExpStarted
-#define MVR_BYTES_WRITTEN (*(int*)(0xb0 + MVR_516_STRUCT))
+#define MVR_BYTES_WRITTEN MEM((0xb0 + MVR_516_STRUCT))
 
 #define MOV_RES_AND_FPS_COMBINATIONS 9
 #define MOV_OPT_NUM_PARAMS 2
@@ -88,18 +83,18 @@
 #define AE_VALUE (*(int8_t*)(0x517A0 + 0x1D))
 
 
-#define DLG_PLAY 1
-#define DLG_MENU 2
-#define DLG_INFO 0x15
-#define DLG_FOCUS_MODE 0x123456
+#define GUIMODE_PLAY 1
+#define GUIMODE_MENU 2
+#define GUIMODE_INFO 0x15
+#define GUIMODE_FOCUS_MODE 0x123456
 
 /* these don't exist in the M */
-#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED 0
-#define DLG_MOVIE_PRESS_LV_TO_RESUME 0
+#define GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED 0
+#define GUIMODE_MOVIE_PRESS_LV_TO_RESUME 0
 /*--------------*/
 
-#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
-#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
+#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_PLAY)
+#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_MENU)
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xC0220138) & 1)) //EnableVideoOut
 #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x3DED8 
@@ -118,16 +113,15 @@
 #define DISPLAY_TRAP_FOCUS_MSG_BLANK "          "
 
 #define NUM_PICSTYLES 10
-#define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
 
 #define FLASH_MAX_EV 3
 #define FLASH_MIN_EV -10 // not sure if it actually works
 #define FASTEST_SHUTTER_SPEED_RAW 152
-#define MAX_AE_EV 5
+#define MAX_AE_EV 3
 
 #define DIALOG_MnCardFormatBegin (0x60970) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x643F0) // similar
-#define FORMAT_BTN_NAME "[DELETE]"
+#define FORMAT_BTN_NAME "[Trash to change]"
 #define FORMAT_BTN BGMT_PRESS_DOWN
 #define FORMAT_STR_LOC 4
 
@@ -138,18 +132,17 @@
 	#define BFNT_BITMAP_OFFSET 0xffcbcb88
 	#define BFNT_BITMAP_DATA   0xffcbfb0c
 
-	#define DLG_SIGNATURE 0x6e6144
 
 // from CFn
 #define AF_BTN_HALFSHUTTER 0
 #define AF_BTN_STAR 1
 
-	#define IMGPLAY_ZOOM_LEVEL_ADDR (0x51E28) // dec GuiImageZoomDown and look for a negative counter
-	#define IMGPLAY_ZOOM_LEVEL_MAX 14
-	#define IMGPLAY_ZOOM_POS_X MEM(0x8D38C) // CentrePos
-	#define IMGPLAY_ZOOM_POS_Y MEM(0x8D390)
-	#define IMGPLAY_ZOOM_POS_X_CENTER 360
-	#define IMGPLAY_ZOOM_POS_Y_CENTER 240
+#define IMGPLAY_ZOOM_LEVEL_ADDR (0x519CC) // dec GuiImageZoomDown and look for a negative counter
+#define IMGPLAY_ZOOM_LEVEL_MAX 14
+#define IMGPLAY_ZOOM_POS_X MEM(0x8CF1C) // CentrePos
+#define IMGPLAY_ZOOM_POS_Y MEM(0x8CF20)
+//~ #define IMGPLAY_ZOOM_POS_X_CENTER 360
+//~ #define IMGPLAY_ZOOM_POS_Y_CENTER 240
 
     #define BULB_EXPOSURE_CORRECTION 150 // min value for which bulb exif is OK [not tested]
 
@@ -197,9 +190,9 @@
 
 #define UNAVI (MEM(0x5D408) == 2) // Find with Mem Browser // dec CancelUnaviFeedBackTimer
 #define SCROLLHACK (MEM(0x5D43C) != 0) //-450
-#define UNAVI_FEEDBACK_TIMER_ACTIVE (UNAVI || SCROLLHACK)
+#define LV_BOTTOM_BAR_DISPLAYED (UNAVI || SCROLLHACK)
 
-
+#undef UNAVI_FEEDBACK_TIMER_ACTIVE /* no CancelUnaviFeedBackTimer in the firmware */
 
 /******************************************************************************************************************
  * touch_num_fingers_ptr:
@@ -234,3 +227,9 @@
 //~ max volume supported for beeps
 #define ASIF_MAX_VOL 10
 
+// look for "JudgeBottomInfoDispTimerState(%d)"
+#define JUDGE_BOTTOM_INFO_DISP_TIMER_STATE	0x5D43C
+
+// temperature convertion from raw-temperature to celsius
+// http://www.magiclantern.fm/forum/index.php?topic=9673.0
+#define EFIC_CELSIUS ((int)efic_temp * 40 / 100 - 60)

@@ -73,10 +73,10 @@ static int translate_scancode(int scancode)
         #ifdef BGMT_RATE
         case 0x13: return BGMT_RATE;                    /* R */
         #endif
-        case 0x0D: return BGMT_PRESS_ZOOMIN_MAYBE;      /* + */
-        //~ case 0x8D: return BGMT_UNPRESS_ZOOMIN_MAYBE;
-        //~ case 0x0C: return BGMT_PRESS_ZOOMOUT_MAYBE;      /* - */
-        //~ case 0x8C: return BGMT_UNPRESS_ZOOMOUT_MAYBE;
+        case 0x0D: return BGMT_PRESS_ZOOM_IN;      /* + */
+        //~ case 0x8D: return BGMT_UNPRESS_ZOOM_IN;
+        //~ case 0x0C: return BGMT_PRESS_ZOOM_OUT;      /* - */
+        //~ case 0x8C: return BGMT_UNPRESS_ZOOM_OUT;
         
         case 0xE0:
         {

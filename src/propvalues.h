@@ -5,6 +5,7 @@ extern char __camera_model_short[8];
 extern char camera_model[32];
 extern uint32_t camera_model_id;
 extern char firmware_version[32];
+extern char camera_serial[32];
 
 #define MODEL_EOS_10D    0x80000168
 #define MODEL_EOS_300D   0x80000170
@@ -34,7 +35,7 @@ extern char firmware_version[32];
 
 #ifndef _DONT_INCLUDE_PROPVALUES_
 extern int lv; // TRUE when LiveView is active
-extern int lv_paused; // only valid if lv is true
+extern int lv_paused; // TRUE if LiveView is paused (in this case, lv is FALSE)
 #endif
 
 #define LV_PAUSED (lv_paused)
@@ -105,6 +106,8 @@ extern char copyright_info[64];
 extern int date_format;
 extern int auto_power_off_time;
 extern int video_system_pal;
+extern int lv_focus_status;
+extern int icu_uilock;
 #endif
 
 #define EXT_MONITOR_CONNECTED (ext_monitor_hdmi || _ext_monitor_rca)

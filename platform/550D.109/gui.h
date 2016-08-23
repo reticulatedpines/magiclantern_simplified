@@ -22,9 +22,6 @@
 #define BGMT_PLAY 9
 
 #define BGMT_PRESS_HALFSHUTTER 0x3F
-#define BGMT_UNPRESS_HALFSHUTTER 0x40
-#define BGMT_PRESS_FULLSHUTTER 0x41    // can't return 0 to block this...
-#define BGMT_UNPRESS_FULLSHUTTER 0x42
 
 #define BGMT_LV 0x18
 
@@ -34,11 +31,11 @@
 #define BGMT_WHEEL_DOWN 1
 
 // these are not sent always
-#define BGMT_PRESS_ZOOMOUT_MAYBE 0xD
-#define BGMT_UNPRESS_ZOOMOUT_MAYBE 0xE
+#define BGMT_PRESS_ZOOM_OUT 0xD
+#define BGMT_UNPRESS_ZOOM_OUT 0xE
 
-#define BGMT_PRESS_ZOOMIN_MAYBE 0xB
-#define BGMT_UNPRESS_ZOOMIN_MAYBE 0xC
+#define BGMT_PRESS_ZOOM_IN 0xB
+#define BGMT_UNPRESS_ZOOM_IN 0xC
 
 #define BGMT_AV (event->type == 0 && event->param == 0x56 && ( \
 			(is_movie_mode() && event->arg == 0xe) || \
@@ -55,7 +52,6 @@
 #define BGMT_FLASH_MOVIE (event->type == 0 && event->param == 0x56 && is_movie_mode() && event->arg == 9)
 #define BGMT_PRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x4000000))
 #define BGMT_UNPRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x4000000) == 0)
-#define FLASH_BTN_MOVIE_MODE get_flash_movie_pressed()
 
 #define BGMT_ISO_MOVIE (event->type == 0 && event->param == 0x56 && is_movie_mode() && event->arg == 0x1b)
 #define BGMT_PRESS_ISO_MOVIE (BGMT_ISO_MOVIE && (*(int*)(event->obj) & 0xe0000))

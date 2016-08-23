@@ -556,8 +556,12 @@ static MENU_UPDATE_FUNC(isoless_check)
 
     int mvi = is_movie_mode();
 
-    int raw = mvi ? FRAME_CMOS_ISO_START && raw_lv_is_enabled() : ((pic_quality & 0xFE00FF) == (PICQ_RAW & 0xFE00FF));
+    /* default checks will not work here - we need full-sized raw in photo mode */
+    int raw = mvi ? raw_lv_is_enabled() : ((pic_quality & 0xFE00FF) == (PICQ_RAW & 0xFE00FF));
 
+    if (mvi && !FRAME_CMOS_ISO_START)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Dual ISO does not work in movie mode on your camera.");
+    
     if (!raw)
         menu_set_warning_raw(entry, info);
 }
@@ -714,7 +718,7 @@ static unsigned int isoless_init()
         CMOS_FLAG_BITS = 2;
         CMOS_EXPECTED_FLAG = 3;
     }
-    else if (is_camera("6D", "1.1.3"))
+    else if (is_camera("6D", "1.1.6"))
     {
         is_6d = 1;
 
@@ -832,7 +836,7 @@ static unsigned int isoless_init()
         CMOS_FLAG_BITS = 2;
         CMOS_EXPECTED_FLAG = 0;
     }
-    else if (is_camera("700D", "1.1.3"))
+    else if (is_camera("700D", "1.1.4"))
     {
         is_700d = 1;    
 

@@ -52,7 +52,6 @@
 #define YUV422_HD_BUFFER_1 0x54000000
 #define YUV422_HD_BUFFER_2 0x4ee00000
 //~ #define YUV422_HD_BUFFER_3 0x50000080
-#define IS_HD_BUFFER(x)  (1) // disable the check, it's complicated
 
 // see "focusinfo" and Wiki:Struct_Guessing
 #define FOCUS_CONFIRMATION (*(int*)0x276D0)
@@ -60,15 +59,11 @@
 // See "cam event metering"
 #define HALFSHUTTER_PRESSED (*(int*)0x251D4)
 
-#define GMT_IDLEHANDLER_TASK (*(int*)0x2e81c) // dec create_idleHandler_task
 
 // for gui_main_task
 #define GMT_NFUNCS 7
 #define GMT_FUNCTABLE 0xff796dac // dec gui_main_task
-//#define GMT_IDLEHANDLER_TASK (*(int*)0x2e81c) // dec create_idleHandler_task
 
-#define SENSOR_RES_X 5936
-#define SENSOR_RES_Y 3804
 
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int*)0x29754) == 0xF))
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x29754) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
@@ -87,7 +82,7 @@
 #define MVR_BUFFER_USAGE MAX(MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND)
 
 #define MVR_FRAME_NUMBER  (*(int*)(0x1F4 + MVR_516_STRUCT)) // in mvrExpStarted
-#define MVR_BYTES_WRITTEN (*(int*)(0xb0 + MVR_516_STRUCT))
+#define MVR_BYTES_WRITTEN MEM((0xb0 + MVR_516_STRUCT))
 
 #define MOV_RES_AND_FPS_COMBINATIONS 5 // 3 fullhd, 2 hd, not changing the two VGA modes; worth trying with 9
 #define MOV_OPT_NUM_PARAMS 2
@@ -98,26 +93,26 @@
 #define AE_STATE (*(int8_t*)(0x2E764 + 0x1C))
 #define AE_VALUE (*(int8_t*)(0x2E764 + 0x1D))
 
-#define CURRENT_DIALOG_MAYBE (*(int*)0x26634) // not sure
+#define CURRENT_GUI_MODE (*(int*)0x26634) // not sure
 
-#define DLG_PLAY 1
-#define DLG_MENU 2
+#define GUIMODE_PLAY 1
+#define GUIMODE_MENU 2
 
 // not sure
-#define DLG_FOCUS_MODE 0x123456
-//~ #define DLG_DRIVE_MODE 8
-//~ #define DLG_PICTURE_STYLE 4
-//~ #define DLG_Q_UNAVI 0x18
-//~ #define DLG_FLASH_AE 0x22
-//~ #define DLG_PICQ 6
+#define GUIMODE_FOCUS_MODE 0x123456
+//~ #define GUIMODE_DRIVE_MODE 8
+//~ #define GUIMODE_PICTURE_STYLE 4
+//~ #define GUIMODE_Q_UNAVI 0x18
+//~ #define GUIMODE_FLASH_AE 0x22
+//~ #define GUIMODE_PICQ 6
 
-#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_DIALOG_MAYBE == 0x24)
-#define DLG_MOVIE_PRESS_LV_TO_RESUME (CURRENT_DIALOG_MAYBE == 0x25)
+#define GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_GUI_MODE == 0x24)
+#define GUIMODE_MOVIE_PRESS_LV_TO_RESUME (CURRENT_GUI_MODE == 0x25)
 
 
 
-#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
-#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
+#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_PLAY)
+#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_MENU)
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED 0
 #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0
@@ -169,12 +164,7 @@
 #define DISPLAY_TRAP_FOCUS_MSG_BLANK "          "
 
 #define NUM_PICSTYLES 10
-#define PROP_PICSTYLE_SETTINGS(i) ((i) == 1 ? PROP_PICSTYLE_SETTINGS_AUTO : PROP_PICSTYLE_SETTINGS_STANDARD - 2 + i)
 
-#define MOVIE_MODE_REMAP_X SHOOTMODE_ADEP
-#define MOVIE_MODE_REMAP_Y SHOOTMODE_CA
-#define MOVIE_MODE_REMAP_X_STR "A-DEP"
-#define MOVIE_MODE_REMAP_Y_STR "CA"
 
 #define FLASH_MAX_EV 3
 #define FLASH_MIN_EV -10 // not sure if it actually works
@@ -195,7 +185,6 @@
 #define BFNT_BITMAP_OFFSET 0xf7366868
 #define BFNT_BITMAP_DATA   0xf736996c
 
-#define DLG_SIGNATURE 0x6E4944
 
 // from CFn
  #define AF_BTN_HALFSHUTTER 0
@@ -258,4 +247,7 @@
 
 // temperature convertion from raw-temperature to celsius
 // http://www.magiclantern.fm/forum/index.php?topic=9673.0
-#define EFIC_CELSIUS ((int)efic_temp * 63 / 100 - 72)
+#define EFIC_CELSIUS ((int)efic_temp * 60 / 100 - 65)
+
+// look for "JudgeBottomInfoDispTimerState(%d)"
+#define JUDGE_BOTTOM_INFO_DISP_TIMER_STATE	0x3334C

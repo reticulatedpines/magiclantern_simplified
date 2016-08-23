@@ -13,16 +13,38 @@ char __camera_model_short[8] = CAMERA_MODEL;
 char camera_model[32];
 uint32_t camera_model_id = 0;
 char firmware_version[32];
+char camera_serial[32];
 
+/* is_camera("5D3", "1.2.3") - will check for a specific camera / firmware version */
+/* is_camera("5D3", "*") - will accept all firmware versions */
 int is_camera(const char * model, const char * firmware)
 {
-    return streq(__camera_model_short, model) && streq(firmware_version, firmware);
+    return 
+        streq(__camera_model_short, model) &&                           /* check camera model */
+        (streq(firmware_version, firmware) || streq(firmware, "*"));    /* check firmware version */
 }
 
 PROP_HANDLER(PROP_CAM_MODEL)
 {
     memcpy((char *)&camera_model_id, (void*)buf + 32, 4);
     snprintf(camera_model, sizeof(camera_model), (const char *)buf);
+}
+
+PROP_HANDLER(PROP_BODY_ID)
+{
+    /* different camera serial lengths */
+    if(len == 8)
+    {
+        snprintf(camera_serial, sizeof(camera_serial), "%X%08X", (uint32_t)(*((uint64_t*)buf) & 0xFFFFFFFF), (uint32_t) (*((uint64_t*)buf) >> 32));
+    }
+    else if(len == 4)
+    {
+        snprintf(camera_serial, sizeof(camera_serial), "%08X", *((uint32_t*)buf));
+    }
+    else
+    {
+        snprintf(camera_serial, sizeof(camera_serial), "(unknown len %d)", len);
+    }
 }
 
 PROP_HANDLER(PROP_FIRMWARE_VER)
@@ -48,11 +70,12 @@ volatile PROP_INT(PROP_LV_MOVIE_SELECT, lv_movie_select);
 volatile PROP_INT(PROP_ACTIVE_SWEEP_STATUS, sensor_cleaning);
 volatile PROP_INT(PROP_BURST_COUNT, burst_count);
 volatile PROP_INT(PROP_BATTERY_POWER, battery_level_bars);
-//~ int battery_level_bars = 0;
-PROP_INT(PROP_MOVIE_SOUND_RECORD, sound_recording_mode);
+volatile PROP_INT(PROP_MOVIE_SOUND_RECORD, sound_recording_mode);
 volatile PROP_INT(PROP_DATE_FORMAT, date_format);
 volatile PROP_INT(PROP_AUTO_POWEROFF_TIME, auto_power_off_time)
 volatile PROP_INT(PROP_VIDEO_SYSTEM, video_system_pal);
+volatile PROP_INT(PROP_LV_FOCUS_STATUS, lv_focus_status);
+volatile PROP_INT(PROP_ICU_UILOCK, icu_uilock);
 
 #ifdef CONFIG_NO_DEDICATED_MOVIE_MODE
 int ae_mode_movie = 1;

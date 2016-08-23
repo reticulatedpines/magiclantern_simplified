@@ -14,6 +14,11 @@
 #define HIJACK_CACHE_HACK_BSS_END_INSTR  0xE3A01732
 #define HIJACK_CACHE_HACK_INITTASK_ADDR  0xFF0110DC
 
+#define HIJACK_INSTR_BL_CSTART  0xff01019c
+#define HIJACK_INSTR_BSS_END 0xff0110d0
+#define HIJACK_FIXBR_BZERO32 0xff011038
+#define HIJACK_FIXBR_CREATE_ITASK 0xff0110c0
+#define HIJACK_INSTR_MY_ITASK 0xff0110dc
 
 #define HIJACK_TASK_ADDR 0x1a2c
 
@@ -34,7 +39,7 @@
 #define MVR_BUFFER_USAGE MAX(MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND)
 
 #define MVR_FRAME_NUMBER (*(int*)(332 + MVR_992_STRUCT))
-#define MVR_BYTES_WRITTEN (*(int*)(296 + MVR_992_STRUCT))
+#define MVR_BYTES_WRITTEN MEM((296 + MVR_992_STRUCT))
 
 #define MOV_RES_AND_FPS_COMBINATIONS 9
 #define MOV_OPT_NUM_PARAMS 2
@@ -64,23 +69,12 @@
 #define YUV422_HD_BUFFER_3 0x48000080
 #define YUV422_HD_BUFFER_4 0x4e000080
 #define YUV422_HD_BUFFER_5 0x50000080
-#define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080 ) // quick check if x looks like a valid HD buffer
 
-#define YUV422_HD_PITCH_IDLE 2112
-#define YUV422_HD_HEIGHT_IDLE 704
 
-#define YUV422_HD_PITCH_ZOOM 2048
-#define YUV422_HD_HEIGHT_ZOOM 680
 
-#define YUV422_HD_PITCH_REC_FULLHD 3440
-#define YUV422_HD_HEIGHT_REC_FULLHD 974
 
 // guess
-#define YUV422_HD_PITCH_REC_720P 2560
-#define YUV422_HD_HEIGHT_REC_720P 580
 
-#define YUV422_HD_PITCH_REC_480P 1280
-#define YUV422_HD_HEIGHT_REC_480P 480
 
 #define FOCUS_CONFIRMATION (*(int*)0x479C)
 #define HALFSHUTTER_PRESSED (*(int*)0x1bdc) // same as 60D
@@ -95,12 +89,8 @@
 #define GMT_FUNCTABLE 0xff56dccc
 
 
-#define SENSOR_RES_X 5202
-#define SENSOR_RES_Y 3465
 
-#define CLK_25FPS 0x1e24c  // this is updated at 25fps and seems to be related to auto exposure
 
-#define AJ_LCD_Palette 0x2CDB0
 
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int8_t*)0x5B28) == 0xF) || ((*(int8_t*)0xC84C) != 0x17))
 #define LV_BOTTOM_BAR_STATE (*(uint8_t*)0x7DF7) // in JudgeBottomInfoDispTimerState, if bottom bar state is 2, Judge returns 0; ML will make it 0 to hide bottom bar
@@ -113,32 +103,29 @@
 
 
 
- #define MOV_REC_STATEOBJ (*(void**)0x5B34)
- #define MOV_REC_CURRENT_STATE *(int*)(MOV_REC_STATEOBJ + 28)
  
 #define AE_STATE (*(int8_t*)(0x7DF7 + 0x1C))
 #define AE_VALUE (*(int8_t*)(0x7DF7 + 0x1D))
 
-#define CURRENT_DIALOG_MAYBE (*(int*)0x3ef4) // GUIMode_maybe
- #define DLG_WB 5
- #define DLG_FOCUS_MODE 9
- #define DLG_DRIVE_MODE 8
- #define DLG_PICTURE_STYLE 4
- #define DLG_PLAY 1
- #define DLG_MENU 2
- #define DLG_Q_UNAVI 0x1F
- #define DLG_FLASH_AE 0x22
- #define DLG_PICQ 6
-#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_DIALOG_MAYBE == 0x1e)
-#define DLG_MOVIE_PRESS_LV_TO_RESUME (CURRENT_DIALOG_MAYBE == 0x1f)
-//~ #define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED 0 // not good
-//~ #define DLG_MOVIE_PRESS_LV_TO_RESUME 0
+#define CURRENT_GUI_MODE (*(int*)0x3ef4) // GUIMode_maybe
+ #define GUIMODE_WB 5
+ #define GUIMODE_FOCUS_MODE 9
+ #define GUIMODE_DRIVE_MODE 8
+ #define GUIMODE_PICTURE_STYLE 4
+ #define GUIMODE_PLAY 1
+ #define GUIMODE_MENU 2
+ #define GUIMODE_Q_UNAVI 0x1F
+ #define GUIMODE_FLASH_AE 0x22
+ #define GUIMODE_PICQ 6
+#define GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_GUI_MODE == 0x1e)
+#define GUIMODE_MOVIE_PRESS_LV_TO_RESUME (CURRENT_GUI_MODE == 0x1f)
+//~ #define GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED 0 // not good
+//~ #define GUIMODE_MOVIE_PRESS_LV_TO_RESUME 0
 
-#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
-#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
+#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_PLAY)
+#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_MENU)
 
 
-#define BTN_METERING_PRESSED_IN_LV 0 // 60D only
 
 // position for ML ISO disp outside LV
 #define MENU_DISP_ISO_POS_X 527
@@ -197,12 +184,7 @@
 #define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 68 : 2)
 
 #define NUM_PICSTYLES 10
-#define PROP_PICSTYLE_SETTINGS(i) ((i) == 1 ? PROP_PICSTYLE_SETTINGS_AUTO : PROP_PICSTYLE_SETTINGS_STANDARD - 2 + i)
 
-#define MOVIE_MODE_REMAP_X SHOOTMODE_ADEP
-#define MOVIE_MODE_REMAP_Y SHOOTMODE_CA
-#define MOVIE_MODE_REMAP_X_STR "A-DEP"
-#define MOVIE_MODE_REMAP_Y_STR "CA"
 
 #define FLASH_MAX_EV 3
 #define FLASH_MIN_EV -5
@@ -223,7 +205,6 @@
 #define BFNT_BITMAP_OFFSET 0xff8971b0
 #define BFNT_BITMAP_DATA   0xff899be4
 
-#define DLG_SIGNATURE 0x006e4944 // just print it
 
 // from CFn
 #define AF_BTN_HALFSHUTTER 0
@@ -286,4 +267,4 @@
 
 // temperature convertion from raw-temperature to celsius
 // http://www.magiclantern.fm/forum/index.php?topic=9673.0
-#define EFIC_CELSIUS ((int)efic_temp * 63 / 100 - 72)
+#define EFIC_CELSIUS ((int)efic_temp * 60 / 100 - 65)

@@ -25,6 +25,7 @@
 // Not supported cameras
 #define SIG_6D_112   0x6D677512
 #define SIG_6D_113   0x6B6A9C6F
+#define SIG_6D_116   0x11cb1ed2
 #define SIG_5D3_113  0x2e2f65f5
 #define SIG_5D3_123  0x672EEACE
 #define SIG_EOSM_106 0x6393A881
@@ -34,6 +35,7 @@
 #define SIG_650D_104 0x4B7FC4D0
 #define SIG_700D_111 0x645D8FD5
 #define SIG_700D_113 0x5AE36B51
+#define SIG_700D_114 0x4b35ce13
 // TODO: multiple 100D.100 out there :(
 #define SIG_100D_100 0x34443B7F
 

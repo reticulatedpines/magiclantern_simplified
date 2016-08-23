@@ -17,7 +17,7 @@
 #include <af_patterns.h>
 #endif
 
-#if defined(CONFIG_LVAPP_HACK_RELOC) || defined(CONFIG_LVAPP_HACK_DEBUGMSG) || defined(CONFIG_LVAPP_HACK_FBUFF)
+#if defined(CONFIG_LVAPP_HACK_RELOC) || defined(CONFIG_LVAPP_HACK_DEBUGMSG)
 #define CONFIG_LVAPP_HACK
 #endif
 
@@ -26,9 +26,6 @@ static int last_time_active = 0;
 
 int is_canon_bottom_bar_dirty() { return bottom_bar_dirty; }
 int get_last_time_active() { return last_time_active; }
-
-
-PROP_INT(PROP_ICU_UILOCK, uilock);
 
 // disable Canon bottom bar
 
@@ -44,15 +41,11 @@ extern int cf_card_workaround;
 
 static void hacked_DebugMsg(int class, int level, char* fmt, ...)
 {
+    #if defined(CONFIG_LVAPP_HACK_DEBUGMSG)
     if (bottom_bar_hack && class == 131 && level == 1)
-    #if defined(CONFIG_5D3_123)
-        MEM(0x332C8) = 0; // LvApp_struct.off_0x60 /*0x332C8*/ = ret_str:JudgeBottomInfoDispTimerState_FF4B7780
-    #elif defined(CONFIG_5D3_113)
-        MEM(0x3334C) = 0; // LvApp_struct.off_0x60 /*0x3334C*/ = ret_str:JudgeBottomInfoDispTimerState_FF4B0970
-    #elif defined(CONFIG_6D)
-        MEM(0x841C0) = 0;
-    #elif defined(CONFIG_EOSM)
-        MEM(0x5D43C) = 0;
+    {
+        MEM(JUDGE_BOTTOM_INFO_DISP_TIMER_STATE) = 0;
+    }
     #endif
 
     #ifdef CONFIG_5D3
@@ -65,12 +58,6 @@ static void hacked_DebugMsg(int class, int level, char* fmt, ...)
         }
     }
     #endif
-    
-#ifdef CONFIG_5D3
-    extern int rec_led_off;
-    if ((class == 34 || class == 35) && level == 1 && rec_led_off && RECORDING) // cfWriteBlk, sdWriteBlk
-        *(uint32_t*) (CARD_LED_ADDRESS) = (LEDOFF);
-#endif
 
 #ifdef FRAME_SHUTTER_BLANKING_WRITE
     if (class == 145) /* 5D3-specific? */
@@ -131,19 +118,15 @@ int handle_other_events(struct event * event)
 
             if (get_halfshutter_pressed()) bottom_bar_dirty = 10;
 
-            #ifdef CONFIG_LVAPP_HACK_FBUFF
-            if (!canon_gui_front_buffer_disabled() && UNAVI_FEEDBACK_TIMER_ACTIVE)
-            {
-                clrscr();
-                canon_gui_disable_front_buffer();
-                bottom_bar_dirty=0;
-            }
-
-            if (canon_gui_front_buffer_disabled() && !UNAVI_FEEDBACK_TIMER_ACTIVE)
-            {
-                canon_gui_enable_front_buffer(0);
-            }
-            #else
+            #ifdef UNAVI_FEEDBACK_TIMER_ACTIVE
+            /*
+             * Hide Canon's Q menu (aka UNAVI) as soon as the user quits it.
+             * 
+             * By default, this menu remains on screen for a few seconds.
+             * After it disappears, we would have to redraw cropmarks, zebras and so on,
+             * which looks pretty ugly, since our redraw is slow.
+             * Better hide the menu right away, then redraw - it feels a lot less sluggish.
+             */
             if (UNAVI_FEEDBACK_TIMER_ACTIVE)
             {
                 /* Canon stub */
@@ -152,7 +135,6 @@ int handle_other_events(struct event * event)
                 bottom_bar_dirty = 0;
             }
             #endif
-
         }
         else
         {
@@ -165,14 +147,13 @@ int handle_other_events(struct event * event)
             bottom_bar_dirty = 0;
         }
 
+        /* Redraw ML bottom bar if Canon bar was displayed over it */
         if (!liveview_display_idle()) bottom_bar_dirty = 0;
         if (bottom_bar_dirty) bottom_bar_dirty--;
-
         if (bottom_bar_dirty == 1)
         {
             lens_display_set_dirty();
         }
-
     }
 #endif
     return 1;
@@ -205,7 +186,7 @@ int handle_common_events_startup(struct event * event)
         
         #ifdef CONFIG_5D3
         // block LV button at startup to avoid lockup with manual lenses (Canon bug?)
-        if (event->param == BGMT_LV && !lv && (lv_movie_select == 0 || is_movie_mode()) && !DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED && !DLG_MOVIE_PRESS_LV_TO_RESUME)
+        if (event->param == BGMT_LV && !lv && (lv_movie_select == 0 || is_movie_mode()) && !GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED && !GUIMODE_MOVIE_PRESS_LV_TO_RESUME)
             return 0;
         #endif
                 
@@ -219,7 +200,16 @@ static int pre_shutdown_requested = 0; // used for preventing wakeup from paused
 void reset_pre_shutdown_flag_step() // called every second
 {
     if (pre_shutdown_requested && !sensor_cleaning)
+    {
         pre_shutdown_requested--;
+        
+        if (!pre_shutdown_requested)
+        {
+            /* false shutdown alarm? */
+            info_led_off();
+            _card_led_off();
+        }
+    }
 }
 
 void check_pre_shutdown_flag() // called from ml_shutdown
@@ -341,8 +331,8 @@ int handle_digital_zoom_shortcut(struct event * event)
         case BGMT_UNPRESS_DISP:
             disp_pressed = 0;
             break;
-        case BGMT_PRESS_ZOOMIN_MAYBE: 
-        case BGMT_PRESS_ZOOMOUT_MAYBE:
+        case BGMT_PRESS_ZOOM_IN: 
+        case BGMT_PRESS_ZOOM_OUT:
             disp_zoom_pressed = 1;
             break;
         default:
@@ -354,7 +344,7 @@ int handle_digital_zoom_shortcut(struct event * event)
     {
         if (!video_mode_crop)
         {
-            if (video_mode_resolution == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+            if (video_mode_resolution == 0 && event->param == BGMT_PRESS_ZOOM_IN)
             {
                 if (NOT_RECORDING)
                 {
@@ -367,7 +357,7 @@ int handle_digital_zoom_shortcut(struct event * event)
         }
         else
         {
-            if (event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+            if (event->param == BGMT_PRESS_ZOOM_IN)
             {
                 if (NOT_RECORDING)
                 {
@@ -377,7 +367,7 @@ int handle_digital_zoom_shortcut(struct event * event)
                 NotifyBox(2000, "Zoom greater than 3x is disabled.\n");
                 return 0; // don't allow more than 3x zoom
             }
-            if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE)
+            if (event->param == BGMT_PRESS_ZOOM_OUT)
             {
                 if (NOT_RECORDING)
                 {
@@ -409,7 +399,9 @@ int handle_common_events_by_feature(struct event * event)
         event->param == GMT_GUICMD_LOCK_OFF)
     {
         pre_shutdown_requested = 4;
+        info_led_on(); _card_led_on();
         config_save_at_shutdown();
+        info_led_on(); _card_led_on();
         return 1;
     }
 
@@ -435,6 +427,12 @@ int handle_common_events_by_feature(struct event * event)
 
     #ifdef CONFIG_MENU_WITH_AV
     if (handle_av_short_for_menu(event) == 0) return 0;
+    #endif
+
+    #ifdef FEATURE_MAGIC_ZOOM
+    /* must be before handle_module_keys to allow zoom while recording raw,
+     * but also let the raw recording modules block the zoom keys to avoid crashing */
+    if (handle_zoom_overlay(event) == 0) return 0;
     #endif
 
     if (handle_module_keys(event) == 0) return 0;
@@ -486,8 +484,8 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_transparent_overlay(event) == 0) return 0; // on 500D, these two share the same key
     #endif
     
-    #if defined(FEATURE_OVERLAYS_IN_PLAYBACK_MODE) && defined(BTN_ZEBRAS_FOR_PLAYBACK) && defined(BTN_ZEBRAS_FOR_PLAYBACK_NAME)
-    if (handle_livev_playback(event) == 0) return 0;
+    #if defined(FEATURE_OVERLAYS_IN_PLAYBACK_MODE)
+    if (handle_overlays_playback(event) == 0) return 0;
     #endif
 
     #if defined(FEATURE_SET_MAINDIAL) || defined(FEATURE_QUICK_ERASE)
@@ -505,10 +503,6 @@ int handle_common_events_by_feature(struct event * event)
     #ifdef FEATURE_FOLLOW_FOCUS
     if (handle_follow_focus(event) == 0) return 0;
     if (handle_follow_focus_save_restore(event) == 0) return 0;
-    #endif
-    
-    #ifdef FEATURE_MAGIC_ZOOM
-    if (handle_zoom_overlay(event) == 0) return 0;
     #endif
     
     #ifdef FEATURE_LV_ZOOM_SETTINGS
@@ -554,6 +548,10 @@ int handle_common_events_by_feature(struct event * event)
     #if defined(FEATURE_LV_BUTTON_PROTECT) || defined(FEATURE_LV_BUTTON_RATE)
     if (handle_lv_play(event) == 0) return 0;
     #endif
+    
+    /* if nothing else uses the arrow keys, use them for moving the focus box */
+    /* (some cameras may block it in certain modes) */
+    if (handle_lv_afframe_workaround(event) == 0) return 0;
 
     return 1;
 }
@@ -607,9 +605,12 @@ char* get_info_button_name() { return INFO_BTN_NAME; }
 
 void gui_uilock(int what)
 {
-    int unlocked = UILOCK_NONE;
-    prop_request_change(PROP_ICU_UILOCK, &unlocked, 4);
-    msleep(50);
+    /* change just the lower 16 bits, to ensure correct requests;
+     * the higher bits appear to be for requesting the change */
+    int unlocked = UILOCK_REQUEST | (UILOCK_NONE & 0xFFFF);
+    prop_request_change_wait(PROP_ICU_UILOCK, &unlocked, 4, 2000);
+    
+    what = UILOCK_REQUEST | (what & 0xFFFF);
     prop_request_change_wait(PROP_ICU_UILOCK, &what, 4, 2000);
 }
 
@@ -620,7 +621,11 @@ void ui_lock(int what)
 
 void fake_simple_button(int bgmt_code)
 {
-    if ((uilock & 0xFFFF) && (bgmt_code >= 0)) return; // Canon events may not be safe to send when UI is locked; ML events are (and should be sent)
+    if ((icu_uilock & 0xFFFF) && (bgmt_code >= 0))
+    {
+        // Canon events may not be safe to send when UI is locked; ML events are (and should be sent)
+        return;
+    }
 
     if (ml_shutdown_requested) return;
     GUI_Control(bgmt_code, 0, FAKE_BTN, 0);
@@ -631,9 +636,9 @@ int display_is_on()
     return DISPLAY_IS_ON;
 }
 
-void delayed_call(int delay_ms, void(*function)(void))
+void delayed_call(int delay_ms, void(*function)(), void* arg)
 {
-    SetTimerAfter(delay_ms, (timerCbr_t)function, (timerCbr_t)function, 0);
+    SetTimerAfter(delay_ms, (timerCbr_t)function, (timerCbr_t)function, arg);
 }
 
 static void redraw_after_cbr()
@@ -643,11 +648,11 @@ static void redraw_after_cbr()
 
 void redraw_after(int msec)
 {
-    delayed_call(msec, redraw_after_cbr);
+    delayed_call(msec, redraw_after_cbr, 0);
 }
 
 int get_gui_mode()
 {
     /* this is GUIMode from SetGUIRequestMode */
-    return CURRENT_DIALOG_MAYBE;
+    return CURRENT_GUI_MODE;
 }

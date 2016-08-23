@@ -7,7 +7,6 @@ static void clrscr_mirror();
 static void cropmark_cache_update_signature();
 static int cropmark_cache_is_valid();
 static void default_movie_cropmarks();
-static void black_bars_16x9();
 static void black_bars();
 
 void cropmark_clear_cache();
@@ -580,25 +579,6 @@ void set_movie_cropmarks(int x, int y, int w, int h)
 void reset_movie_cropmarks()
 {
     cropmarks_x = cropmarks_y = -1;
-}
-
-static void black_bars_16x9()
-{
-#ifdef CONFIG_KILL_FLICKER
-    if (!get_global_draw()) return;
-    if (!is_movie_mode()) return;
-    get_yuv422_vram();
-    if (video_mode_resolution > 1)
-    {
-        bmp_fill(COLOR_BLACK, os.x0, os.y0, os.off_43, os.y_ex);
-        bmp_fill(COLOR_BLACK, os.x_max - os.off_43, os.y0, os.off_43, os.y_ex);
-    }
-    else
-    {
-        bmp_fill(COLOR_BLACK, os.x0, os.y0, os.x_ex, os.off_169);
-        bmp_fill(COLOR_BLACK, os.x0, os.y_max - os.off_169, os.x_ex, os.off_169);
-    }
-#endif
 }
 
 static void cropmark_step()

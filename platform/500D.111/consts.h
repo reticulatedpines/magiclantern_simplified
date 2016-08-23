@@ -38,23 +38,12 @@
 
 #define YUV422_HD_BUFFER_1 0x44000080
 #define YUV422_HD_BUFFER_2 0x46000080
-#define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080 ) // quick check if x looks like a valid HD buffer
 
-/*#define YUV422_HD_PITCH_IDLE 2112
- #define YUV422_HD_HEIGHT_IDLE 704
  
- #define YUV422_HD_PITCH_ZOOM 2048
- #define YUV422_HD_HEIGHT_ZOOM 680
  
- #define YUV422_HD_PITCH_REC_FULLHD 3440
- #define YUV422_HD_HEIGHT_REC_FULLHD 974
  
  // guess
- #define YUV422_HD_PITCH_REC_720P 2560
- #define YUV422_HD_HEIGHT_REC_720P 580
  
- #define YUV422_HD_PITCH_REC_480P 1280
- #define YUV422_HD_HEIGHT_REC_480P 480*/
 
 #define FOCUS_CONFIRMATION (*(int*)0x3edc) // see "focusinfo" and Wiki:Struct_Guessing
 #define HALFSHUTTER_PRESSED (*(int*)0x1b74) // used for Trap Focus and Magic Off.
@@ -68,13 +57,8 @@
 
 #define LV_BOTTOM_BAR_DISPLAYED (MEM(0x329D8) != 3)
 
-#define SENSOR_RES_X 4752
-#define SENSOR_RES_Y 3168
 
-//~ #define FLASH_BTN_MOVIE_MODE (((*(int*)0x14c1c) & 0x40000) && (shooting_mode == SHOOTMODE_MOVIE))
-//~ #define CLK_25FPS 0x1e24c  // this is updated at 25fps and seems to be related to auto exposure
 
-//~ #define AJ_LCD_Palette 0x2CDB0
 
 
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x784C) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
@@ -91,7 +75,7 @@
 #define MVR_BUFFER_USAGE div_maybe(-100*MEM(316 + MVR_190_STRUCT) - 100*MEM(324 + MVR_190_STRUCT) - 100*MEM(496 + MVR_190_STRUCT) - 100*MEM(504 + MVR_190_STRUCT) + 100*MEM(320 + MVR_190_STRUCT) + 100*MEM(328 + MVR_190_STRUCT), -MEM(316 + MVR_190_STRUCT) - MEM(324 + MVR_190_STRUCT) + MEM(320 + MVR_190_STRUCT) + MEM(328 + MVR_190_STRUCT))
 #define MVR_FRAME_NUMBER (*(int*)(300 + MVR_190_STRUCT))
 //#define MVR_LAST_FRAME_SIZE (*(int*)(512 + MVR_190_STRUCT))
-#define MVR_BYTES_WRITTEN (*(int*)(292 + MVR_190_STRUCT))
+#define MVR_BYTES_WRITTEN MEM((292 + MVR_190_STRUCT))
 
 #define MOV_RES_AND_FPS_COMBINATIONS 3
 #define MOV_OPT_NUM_PARAMS 2
@@ -102,25 +86,25 @@
 #define AE_STATE (*(int8_t*)(0x14CC8 + 0x1C))
 #define AE_VALUE (*(int8_t*)(0x14CC8 + 0x1D))
 
-#define CURRENT_DIALOG_MAYBE (*(int*)0x3a9c)
-#define DLG_WB 0x24
-#define DLG_FOCUS_MODE 0x27
-#define DLG_DRIVE_MODE 0x28
-#define DLG_PICTURE_STYLE 0x23
-#define DLG_PLAY 1
-#define DLG_MENU 2
-#define DLG_Q_UNAVI 0x1E
-#define DLG_FLASH_AE 0x21
-#define DLG_PICQ 0x26
-#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_DIALOG_MAYBE == 0x1B)
-#define DLG_MOVIE_PRESS_LV_TO_RESUME (CURRENT_DIALOG_MAYBE == 0x1B)
+#define CURRENT_GUI_MODE (*(int*)0x3a9c)
+#define GUIMODE_WB 0x24
+#define GUIMODE_FOCUS_MODE 0x27
+#define GUIMODE_DRIVE_MODE 0x28
+#define GUIMODE_PICTURE_STYLE 0x23
+#define GUIMODE_PLAY 1
+#define GUIMODE_MENU 2
+#define GUIMODE_Q_UNAVI 0x1E
+#define GUIMODE_FLASH_AE 0x21
+#define GUIMODE_PICQ 0x26
+#define GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_GUI_MODE == 0x1B)
+#define GUIMODE_MOVIE_PRESS_LV_TO_RESUME (CURRENT_GUI_MODE == 0x1B)
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
 #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x1afc // this prop_deliver performs the action for Video Connect and Video Disconnect
 #define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0x1b20 // passed as 2nd arg to prop_deliver; 1 = display connected, 0 = not, other values disable this event (trick)
 
-#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
-#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
+#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_PLAY)
+#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_MENU)
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 6
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(6, something)
@@ -175,12 +159,7 @@
 #define DISPLAY_TRAP_FOCUS_MSG_BLANK "       \n       " // not needed, camera redraws the place itself
 
 #define NUM_PICSTYLES 9
-#define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
 
-#define MOVIE_MODE_REMAP_X SHOOTMODE_ADEP
-#define MOVIE_MODE_REMAP_Y SHOOTMODE_CA
-#define MOVIE_MODE_REMAP_X_STR "A-DEP"
-#define MOVIE_MODE_REMAP_Y_STR "CA"
 
 #define FLASH_MAX_EV 3
 #define FLASH_MIN_EV -10 // not sure if it actually works
@@ -201,7 +180,6 @@
 #define BFNT_BITMAP_OFFSET 0xFF6206D8
 #define BFNT_BITMAP_DATA   0xFF622B60
 
-#define DLG_SIGNATURE 0x414944
 
 // from CFn
 #define AF_BTN_HALFSHUTTER 0
@@ -253,3 +231,7 @@
 
 //~ max volume supported for beeps
 #define ASIF_MAX_VOL 5
+
+// temperature convertion from raw-temperature to celsius
+// http://www.magiclantern.fm/forum/index.php?topic=9673.0
+#define EFIC_CELSIUS ((int)efic_temp * 120 / 100 - 160)

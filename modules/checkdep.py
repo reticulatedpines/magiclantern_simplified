@@ -31,7 +31,7 @@ modules.sort()
 platformdir = "../platform/";
 
 cameras = os.listdir(platformdir);
-cameras = [c for c in cameras if "." in c and "MASTER" not in c and os.path.isdir(os.path.join(platformdir, c))]
+cameras = [c for c in cameras if "." in c and c[0] == c[0].upper() and "MASTER" not in c and os.path.isdir(os.path.join(platformdir, c))]
 cameras.sort()
 
 # what symbols does this module need?

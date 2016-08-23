@@ -32,6 +32,13 @@
 
 static inline int kth_smallest_int(int a[], int n, int k)
 {
+    if (n <= 0 || k < 0)
+    {
+        /* safeguard for invalid calls */
+        printf("error: kth_smallest_int(n=%d, k=%d)\n", n, k);
+        exit(1);
+    }
+
     register int i,j,l,m ;
     register int x ;
 
@@ -54,6 +61,7 @@ static inline int kth_smallest_int(int a[], int n, int k)
     return a[k] ;
 }
 
+/*
 static inline unsigned short kth_smallest_ushort(unsigned short a[], int n, int k)
 {
     register int i,j,l,m ;
@@ -77,6 +85,9 @@ static inline unsigned short kth_smallest_ushort(unsigned short a[], int n, int 
     }
     return a[k] ;
 }
+*/
 
 #define median_int_wirth(a,n) kth_smallest_int(a,n,(((n)&1)?((n)/2):(((n)/2)-1)))
+/*
 #define median_ushort_wirth(a,n) kth_smallest_ushort(a,n,(((n)&1)?((n)/2):(((n)/2)-1)))
+*/

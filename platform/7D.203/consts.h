@@ -63,7 +63,6 @@
 #define YUV422_HD_BUFFER_1 0x44000080
 #define YUV422_HD_BUFFER_2 0x46000080
 
-#define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080) // quick check if x looks like a valid HD buffer
 
     
 #define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)0x225C)
@@ -80,10 +79,7 @@
 // for gui_main_task
 #define GMT_NFUNCS 8
 #define GMT_FUNCTABLE 0xff51193c
-#define GMT_IDLEHANDLER_TASK (*(int*)0x17084) // dec create_idleHandler_task
 
- #define SENSOR_RES_X 5184
- #define SENSOR_RES_Y 3456
 
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int*)0x93D4) == 0xF))
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x93D4) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x93D4) = *(arg2)
@@ -104,7 +100,7 @@
 
 #define MVR_GOP_SETTING   (*(int*)(0x194 + MVR_516_STRUCT))
 #define MVR_FRAME_NUMBER  (*(int*)(0x134 + MVR_516_STRUCT)) // in mvrExpStarted
-#define MVR_BYTES_WRITTEN (*(int*)(0x128 + MVR_516_STRUCT)) // in mvrSMEncodeDone
+#define MVR_BYTES_WRITTEN MEM((0x128 + MVR_516_STRUCT)) // in mvrSMEncodeDone
 
 
 #define MOV_RES_AND_FPS_COMBINATIONS 5
@@ -120,24 +116,24 @@
 #define AE_STATE (*(int8_t*)(0x16B30 + 0x1C)) //CHECK THIS
 #define AE_VALUE (*(int8_t*)(0x16B30 + 0x1D)) //CHECK THIS
 
-#define CURRENT_DIALOG_MAYBE (*(int*)0x3500)
+#define CURRENT_GUI_MODE (*(int*)0x3500)
 
-#define DLG_PLAY 1
-#define DLG_MENU 2
+#define GUIMODE_PLAY 1
+#define GUIMODE_MENU 2
 
 // not sure
-#define DLG_FOCUS_MODE 9
-#define DLG_DRIVE_MODE 8
-#define DLG_PICTURE_STYLE 4
-#define DLG_Q_UNAVI 0x18
-#define DLG_FLASH_AE 0x22
-#define DLG_PICQ 6
+#define GUIMODE_FOCUS_MODE 9
+#define GUIMODE_DRIVE_MODE 8
+#define GUIMODE_PICTURE_STYLE 4
+#define GUIMODE_Q_UNAVI 0x18
+#define GUIMODE_FLASH_AE 0x22
+#define GUIMODE_PICQ 6
 
-#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_DIALOG_MAYBE == 27)
-#define DLG_MOVIE_PRESS_LV_TO_RESUME (CURRENT_DIALOG_MAYBE == 28)
+#define GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_GUI_MODE == 27)
+#define GUIMODE_MOVIE_PRESS_LV_TO_RESUME (CURRENT_GUI_MODE == 28)
 
-#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
-#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
+#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_PLAY)
+#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_MENU)
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED 0
     //~ #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x1aac // this prop_deliver performs the action for Video Connect and Video Disconnect
@@ -193,12 +189,7 @@
 #define DISPLAY_TRAP_FOCUS_MSG_BLANK "     \n     "
 
 #define NUM_PICSTYLES 9
-#define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
 
-//~ #define MOVIE_MODE_REMAP_X SHOOTMODE_ADEP
-//~ #define MOVIE_MODE_REMAP_Y SHOOTMODE_CA
-//~ #define MOVIE_MODE_REMAP_X_STR "A-DEP"
-//~ #define MOVIE_MODE_REMAP_Y_STR "CA"
 
 #define FLASH_MAX_EV 3
 #define FLASH_MIN_EV -10 // not sure if it actually works
@@ -218,7 +209,6 @@
 #define BFNT_BITMAP_OFFSET 0xffd395a4
 #define BFNT_BITMAP_DATA   0xffd3c170
 
-#define DLG_SIGNATURE 0x4C414944
 
 // from CFn
 #define AF_BTN_HALFSHUTTER 0

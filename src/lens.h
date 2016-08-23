@@ -59,33 +59,30 @@ struct lens_info
         unsigned                WBGain_R; // only used when wb_mode = WB_CUSTOM
         unsigned                WBGain_G; // only used when wb_mode = WB_CUSTOM
         unsigned                WBGain_B; // only used when wb_mode = WB_CUSTOM
-        int8_t          wbs_gm;
-        int8_t          wbs_ba;
+        int8_t                  wbs_gm;
+        int8_t                  wbs_ba;
 
         unsigned                picstyle; // 1 ... 9: std, portrait, landscape, neutral, faithful, monochrome, user 1, user 2, user 3
-/*      int32_t                 contrast;   // -4..4
-        uint32_t                sharpness;  // 0..7
-        uint32_t                saturation; // -4..4
-        uint32_t                color_tone; // -4..4 */
 
-        // Store the raw values before the lookup tables
+        // raw exposure values, in 1/8 EV steps
         uint8_t                 raw_aperture;
         uint8_t                 raw_shutter;
         uint8_t                 raw_iso;
         uint8_t                 raw_iso_auto;
-        uint8_t                 raw_picstyle;
-
-        uint8_t         raw_aperture_min;
-        uint8_t         raw_aperture_max;
-        
-        int flash_ae;
-
-        uint16_t                 lens_id;
+        uint8_t                 raw_picstyle;           /* fixme: move it out */
+        uint8_t                 raw_aperture_min;
+        uint8_t                 raw_aperture_max;
+        int                     flash_ae;
+        uint16_t                lens_id;
+        uint16_t                dof_flags;
+        int                     dof_diffraction_blur;   /* fixme: move those near other DOF fields on next API update */
         //~ float                   lens_rotation;
         //~ float                   lens_step;
 };
 
 extern struct lens_info lens_info;
+
+#define DOF_DIFFRACTION_LIMIT_REACHED 1
 
 #if defined(CONFIG_6D) || defined(CONFIG_5D3_123)
 struct prop_lv_lens
@@ -230,7 +227,7 @@ extern int hdr_set_flash_ae(int ae);
 int lens_take_picture( int wait, int allow_af );
 int lens_take_pictures( int wait, int allow_af, int duration );
 
-/** Will block if it is not safe to send the focus command */
+/** Will return 1 on success, 0 on error */
 extern int
 lens_focus(
         int num_steps, 
@@ -250,6 +247,9 @@ char* lens_format_shutter(int tv);
 
 /** Pretty prints the shutter speed given the shutter reciprocal (times 1000) as input */
 char* lens_format_shutter_reciprocal(int shutter_reciprocal_x1000, int digits);
+
+/** Pretty prints the aperture given the raw value as input */
+char* lens_format_aperture(int av);
 
 #define KELVIN_MIN 1500
 #define KELVIN_MAX 15000
@@ -282,21 +282,34 @@ static const uint8_t  codes_aperture[] =  {0,  10,  11,  12,  13,  14,  15,  16,
 //~ static const int values_aperture[] = {0,12,13,14,16,18,20,22,25,28,32,35,40,45,50,56,63,67,71,80,90,95,100,110,130,140,160,180,190,200,220,250,270,290,320,360,380,400,450};
 //~ static const int codes_aperture[] =  {0,13,14,16,19,21,24,27,29,32,35,37,40,44,45,48,51,52,53,56,59,60, 61, 64, 68, 69, 72, 75, 76, 77, 80, 83, 84, 85, 88, 91, 92, 93, 96};
 
+#define RAW2VALUE(param,rawvalue) ((int)values_##param[raw2index_##param(rawvalue)])
+#define VALUE2RAW(param,value) ((int)val2raw_##param(value))
+
 // UNIT_1_8_EV
 #define APEX_TV(raw) ((int)(raw) - 56)
 #define APEX_AV(raw) ((raw) ? (int)(raw) - 8 : 0)
 #define APEX_SV(raw) ((int)(raw) - 32)
 
 // UNIT APEX * 10
-#define RAW2TV(raw) APEX_TV(raw) * 10 / 8
-#define RAW2AV(raw) APEX_AV(raw) * 10 / 8
-#define RAW2SV(raw) APEX_SV(raw) * 10 / 8
-#define RAW2EC(raw) raw * 10 / 8
+#define APEX10_RAW2TV(raw) RSCALE(APEX_TV(raw), 10, 8)
+#define APEX10_RAW2AV(raw) RSCALE(APEX_AV(raw), 10, 8)
+#define APEX10_RAW2SV(raw) RSCALE(APEX_SV(raw), 10, 8)
+#define APEX10_RAW2EC(raw) RSCALE((raw), 10, 8)
 
-#define TV2RAW(apex) -APEX_TV(-(apex) * 100 / 125)
-#define AV2RAW(apex) -APEX_AV(-(apex) * 100 / 125)
-#define SV2RAW(apex) -APEX_SV(-(apex) * 100 / 125)
-#define AV2STR(apex) values_aperture[raw2index_aperture(AV2RAW(apex))]
+#define APEX10_TV2RAW(apex) -APEX_TV(RSCALE(-(apex), 8, 10))
+#define APEX10_AV2RAW(apex) -APEX_AV(RSCALE(-(apex), 8, 10))    /* pathological case at f/0.8 */
+#define APEX10_SV2RAW(apex) -APEX_SV(RSCALE(-(apex), 8, 10))
+#define APEX10_AV2VAL(apex) values_aperture[raw2index_aperture(APEX10_AV2RAW(apex))]
+
+#define APEX1000_RAW2TV(raw) RSCALE(APEX_TV(raw), 1000, 8)
+#define APEX1000_RAW2AV(raw) RSCALE(APEX_AV(raw), 1000, 8)
+#define APEX1000_RAW2SV(raw) RSCALE(APEX_SV(raw), 1000, 8)
+#define APEX1000_RAW2EC(raw) RSCALE((raw), 1000, 8)
+
+#define APEX1000_TV2RAW(apex) -APEX_TV(RSCALE(-(apex), 8, 1000))
+#define APEX1000_AV2RAW(apex) -APEX_AV(RSCALE(-(apex), 8, 1000))    /* pathological case at f/0.8 */
+#define APEX1000_SV2RAW(apex) -APEX_SV(RSCALE(-(apex), 8, 1000))
+#define APEX1000_EC2RAW(apex) RSCALE(apex, 8, 1000)
 
 // Conversions
 int raw2shutter_ms(int raw_shutter);
@@ -305,11 +318,17 @@ int shutterf_to_raw(float shutterf);
 float raw2shutterf(int raw_shutter);
 int raw2iso(int raw_iso);
 int shutterf_to_raw_noflicker(float shutterf);
-int round_noflicker(float value);
 
 int raw2index_iso(int raw_iso);
 int raw2index_aperture(int raw_aperture);
 int raw2index_shutter(int shutter);
+
+/* round exposure parameters to get the nearest valid value */
+int round_expo_comp(int ae);
+int round_flash_expo_comp(int ae);
+int round_aperture(int av);
+int round_shutter(int tv, int slowest_shutter);
+int expo_value_rounding_ok(int raw, int is_aperture);
 
 #define SWAP_ENDIAN(x) (((x)>>24) | (((x)<<8) & 0x00FF0000) | (((x)>>8) & 0x0000FF00) | ((x)<<24))
 

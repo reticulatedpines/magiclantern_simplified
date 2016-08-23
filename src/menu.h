@@ -279,6 +279,7 @@ menu_select(
 extern void menu_numeric_toggle(int* val, int delta, int min, int max);
 
 /* useful to start tasks directly from menu (pass the routine as .priv) */
+/* note: this disables powersaving while the task is running */
 extern void run_in_separate_task(void* routine, int argument);
 
 extern void menu_add( const char * name, struct menu_entry * new_entry, int count );
@@ -372,6 +373,7 @@ extern void mem_menu_init();
 extern void movie_tweak_menu_init();
 extern void afp_menu_init();
 extern int is_submenu_or_edit_mode_active();    /* used in joypress stuff, which should be moved to menu.c */
+int get_menu_edit_mode();
 extern void config_menu_save_flags();
 
 /* call this to confirm the processing of a key-repeated event (when keeping arrow keys pressed in menu) */
@@ -385,5 +387,8 @@ int menu_get_value_from_script(const char* name, const char* entry_name);
 char* menu_get_str_value_from_script(const char* name, const char* entry_name);
 int menu_set_value_from_script(const char* name, const char* entry_name, int value);
 int menu_set_str_value_from_script(const char* name, const char* entry_name, char* value, int value_int);
+
+extern void gui_stop_menu( void );
+extern void gui_open_menu( void );
 
 #endif

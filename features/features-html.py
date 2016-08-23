@@ -241,13 +241,13 @@ modules = [m for m in modules if os.path.isdir(os.path.join("../modules/", m))]
 modules.sort()
 
 # only show modules from Makefile.modules.default, at least for now
-default_modules = ""
+default_modules = set()
 default_modules_lines = open("../modules/Makefile.modules.default").readlines()
 for l in default_modules_lines:
-    m = re.match("ML_MODULES_.*=([a-zA-Z0-9_ ]+)", l)
-    if m:
-        default_modules += m.groups()[0]
-default_modules = [m for m in default_modules.split(" ") if len(m) > 0]
+    # just grab all the words from the makefile...
+    default_modules = set.union(default_modules, l.split())
+
+# ... and cross-check them with actual pathnames
 modules = [m for m in modules if m in default_modules]
 
 # lookup the address in README.rst for each module
@@ -304,6 +304,7 @@ def module_check_cams(m):
             cameras += cams
     return cameras
 
+print >> sys.stderr, modules
 
 for m in modules:
     f = "MODULE__" + m

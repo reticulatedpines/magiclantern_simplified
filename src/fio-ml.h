@@ -1,17 +1,21 @@
 #ifndef fio_5d3_h
 #define fio_5d3_h
 
+#include <stdio.h>
+
 #define CARD_A 0
 #define CARD_B 1
 #define CARD_C 2
 
 struct card_info {
     char * drive_letter;
-    char * type;
+    char * type;            /* SD/CF/EXT */
     int cluster_size;
     int free_space_raw;
     int file_number;
     int folder_number;
+    char * maker;           /* only for some cameras; NULL otherwise */
+    char * model;
 };
 
 struct card_info * get_ml_card();
@@ -22,8 +26,8 @@ struct card_info * get_card(int cardId);
 int get_free_space_32k (const struct card_info * card);
 
 /* returns true if the specified file or directory exists */
-int is_file(char* path);
-int is_dir(char* path);
+int is_file(const char* path);
+int is_dir(const char* path);
 
 /* returns a numbered file name that does not already exist.
  * example:
@@ -39,8 +43,6 @@ int is_dir(char* path);
  * - if all the files numbered from 0 to nmax are used, the function will return -1 and the filename string will be numbered with 0.
  */
 int get_numbered_file_name(const char* pattern, int nmax, char* filename, int maxlen);
-
-typedef struct _file * FILE;
 
 /** \name File I/O flags.
  *
@@ -78,6 +80,8 @@ typedef struct _file * FILE;
 #define     ATTR_DIRECTORY  0x10          /* entry is a directory name */ 
 #define     ATTR_ARCHIVE    0x20          /* file is new or modified */ 
 
+#define FIO_MAX_PATH_LENGTH 0x80
+
 /** We don't know anything about this one. */
 struct fio_dirent;
 
@@ -88,7 +92,7 @@ struct fio_file {
         uint32_t                size;
         uint32_t                timestamp;      // off_0x08;
         uint32_t                off_0x0c;
-        char                    name[ 0x80 ];
+        char                    name[ FIO_MAX_PATH_LENGTH ];
         uint32_t                a;
         uint32_t                b;
         uint32_t                c;

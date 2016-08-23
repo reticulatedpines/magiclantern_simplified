@@ -25,7 +25,11 @@
 #define MLEV_AV_LONG -17
 #define MLEV_TRIGGER_ZEBRAS_FOR_PLAYBACK -18
 #define MLEV_JOYSTICK_LONG -19
- 
+
+/* half-shutter button codes (they are consecutive after BGMT_PRESS_HALFSHUTTER) */
+#define BGMT_UNPRESS_HALFSHUTTER (BGMT_PRESS_HALFSHUTTER+1)
+#define BGMT_PRESS_FULLSHUTTER   (BGMT_PRESS_HALFSHUTTER+2)
+#define BGMT_UNPRESS_FULLSHUTTER (BGMT_PRESS_HALFSHUTTER+3)
 
 /** \file
  * DryOS GUI structures and functions.
@@ -160,9 +164,6 @@ extern struct gui_struct gui_struct;
 extern struct gui_task * gui_menu_task;
 
 extern void
-gui_stop_menu( void );
-
-extern void
 gui_hide_menu( int redisplay_time );
 
 //~ 5dc has different gui_state values than DryOS.
@@ -227,7 +228,7 @@ void redraw();
 void redraw_after(int msec);
 void _redraw_do();  /* private */
 
-/* Change GUI mode (aka CURRENT_DIALOG_MAYBE). Common modes are 0 (idle), DLG_PLAY and DLG_MENU. */
+/* Change GUI mode. Common modes are 0 (idle), GUIMODE_PLAY and GUIMODE_MENU. */
 void SetGUIRequestMode(int mode);
 int get_gui_mode();
 
@@ -260,7 +261,7 @@ int handle_ml_menu_erase(struct event * event);
 int handle_zoom_trick_event(struct event * event);
 int handle_intervalometer(struct event * event);
 int handle_transparent_overlay(struct event * event);
-int handle_livev_playback(struct event * event);
+int handle_overlays_playback(struct event * event);
 int handle_set_wheel_play(struct event * event);
 int handle_arrow_keys(struct event * event);
 int handle_trap_focus(struct event * event);
@@ -276,6 +277,8 @@ int handle_fast_zoom_box(struct event * event);
 int handle_voice_tags(struct event * event);
 int handle_lv_play(struct event * event);
 int handle_fast_zoom_in_play_mode(struct event * event);
+int handle_lv_afframe_workaround(struct event * event);
+
 void spy_event(struct event * event);
 
 int handle_keep_ml_after_format_toggle(struct event * event);
@@ -293,6 +296,6 @@ int get_zoom_out_pressed();
 int display_is_on();
 
 /* wrapper for GUI timers */
-void delayed_call(int delay_ms, void(*function)(void));
+void delayed_call(int delay_ms, void(*function)(), void* arg);
 
 #endif
