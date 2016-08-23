@@ -11,8 +11,66 @@ ifeq ($(UNAME), Darwin)
 else
 	# Default settings for remaining operating systems
 	UMOUNT=umount
-	CF_CARD="/media/EOS_DIGITAL/"
+	# CF_CARD=/media/EOS_DIGITAL
+	CF_CARD:=$(shell mount | grep -oE "[^ ]+/EOS_DIGITAL[^ ]*")
 	STAT_CMD=stat -c "%n: %s bytes"
+endif
+
+# change this if you have to mount the card every time you run "make install"
+# examples:
+# MOUNT_CARD=gvfs-mount -d /dev/mmcblk0p1
+# MOUNT_CARD=gvfs-mount dav://192.168.0.1/
+MOUNT_CARD=
+
+# Experimental setup for Wi-Fi SD cards
+# to enable, run this before "make install":
+#    export WIFI_SD=y
+# alternatives: "make install WIFI_SD=y", "WIFI_SD=y make install"
+# override network names and IP address in Makefile.user
+# fixme: how to enable it from Makefile.user?
+ifeq ($(WIFI_SD),y)
+  # fill in the name of your regular wifi network
+  # leave this empty to disable wifi after installation
+  WIFI_MAIN_NETWORK=<your regular wifi network>
+  
+  # these are for Toshiba FlashAir; you may have to change them for other wifi cards
+  WIFI_CARD_NETWORK=flashair
+  WIFI_CARD_IP=192.168.0.1
+  CF_CARD=/run/user/1000/gvfs/dav:host=$(WIFI_CARD_IP),ssl=false
+  
+  # executed before installation
+  # connect to WIFI_CARD_NETWORK if not already,
+  # and mount card directory via WebDAV
+  INSTALL_PREPARE=$(call build,WIFI_SET,\
+    if !(nmcli conn show --active | grep $(WIFI_CARD_NETWORK)); then \
+      while !(nmcli device wifi list | grep $(WIFI_CARD_NETWORK)); do \
+        if [ `nmcli radio wifi` = disabled ]; \
+          then nmcli radio wifi on; sleep 5; \
+          else nmcli dev wifi rescan 2>/dev/null || true; sleep 2; \
+        fi; \
+        echo -n "."; \
+      done; \
+      nmcli conn up $(WIFI_CARD_NETWORK); \
+    fi; \
+    if !(gvfs-mount -l | grep "dav://$(WIFI_CARD_IP)/"); then \
+      gvfs-mount dav://$(WIFI_CARD_IP)/ ; \
+    fi; )
+  
+  # restore connection to your main wifi network
+  # or just turn it off if you are using a wired network
+  WIFI_RESTORE=$(call build,WIFI_END,\
+    [ "$(WIFI_MAIN_NETWORK)" = "" ] && \
+    (echo "Turning off Wi-Fi..." && nmcli radio wifi off) || \
+    (echo "Connecting to $(WIFI_MAIN_NETWORK)..." && nmcli conn up $(WIFI_MAIN_NETWORK)))
+  
+  UMOUNT_CARD=$(call build,UNMOUNT,sleep 2 && gvfs-mount -u dav://$(WIFI_CARD_IP)/)
+  
+  # executed after installation
+  define INSTALL_FINISH =
+	$(UMOUNT_CARD)
+	$(WIFI_RESTORE)
+	@echo "\nFinished.\nMake sure the camera will not write anything to the card until restart."
+  endef
 endif
 
 # Supported camera models

@@ -67,7 +67,7 @@ static void call_bootflag_eventproc(char* eventproc)
     /* the visible effect is that camera will ask for a firmware update as soon as you remove the card or place a non-ML card */
     
     /* we'll try to call this routine from Canon menu only (where the sensor should be inactive) */
-    if (CURRENT_DIALOG_MAYBE == DLG_MENU && DISPLAY_IS_ON)
+    if (CURRENT_GUI_MODE == GUIMODE_MENU && DISPLAY_IS_ON)
     {
         for (int i = 0; i < 10; i++)
         {
@@ -77,7 +77,7 @@ static void call_bootflag_eventproc(char* eventproc)
 
         /* Horshack suggested to run the bootflag routines with IRQ/FIQ disabled */
         uint32_t old = cli();
-        if (CURRENT_DIALOG_MAYBE == DLG_MENU && DISPLAY_IS_ON)
+        if (CURRENT_GUI_MODE == GUIMODE_MENU && DISPLAY_IS_ON)
         {
             call( eventproc );
         }
@@ -242,8 +242,7 @@ copy_and_restart( int offset )
     INSTR( HIJACK_INSTR_MY_ITASK ) = (uint32_t) my_init_task;
     
     // Make sure that our self-modifying code clears the cache
-    clean_d_cache();
-    flush_caches();
+    sync_caches();
 
     // We enter after the signature, avoiding the
     // relocation jump that is at the head of the data
@@ -282,9 +281,9 @@ static void hook_on_canon_menu()
 {
     gui_uilock(UILOCK_EVERYTHING);
     
-    if (CURRENT_DIALOG_MAYBE != DLG_MENU)
+    if (CURRENT_GUI_MODE != GUIMODE_MENU)
     {
-        SetGUIRequestMode(DLG_MENU);
+        SetGUIRequestMode(GUIMODE_MENU);
         
         /* Canon menu may draw on the screen for a while, but we'll try to be faster */ 
         for (int i = 0; i < 10; i++)
@@ -467,13 +466,13 @@ static int install(void)
     
     for (int i = 60; i > 0; i--)
     {
-        if (CURRENT_DIALOG_MAYBE != DLG_MENU || !DISPLAY_IS_ON)
+        if (CURRENT_GUI_MODE != GUIMODE_MENU || !DISPLAY_IS_ON)
         {
             /* abort if user gets out of Canon menu */
             return 0;
         }
 
-        bmp_printf(FONT(FONT_MED, COLOR_GRAY(50), COLOR_BLACK), 0, 480 - font_med.height, 
+        bmp_printf(FONT(FONT_MED, COLOR_YELLOW, COLOR_BLACK), 0, 480 - font_med.height, 
             "To uninstall Magic Lantern, please wait for %d seconds.  ", i
         );
         info_led_blink(1,50,950);
@@ -552,11 +551,11 @@ void install_task()
     {
         if (DISPLAY_IS_ON)
         {
+            msleep(2000);
             bmp_fill(COLOR_BLACK, 0, 420, 720, 60);
-            int fnt = FONT(FONT_CANON, ok ? COLOR_WHITE : COLOR_RED, COLOR_BLACK);
+            int fnt = FONT(FONT_CANON, COLOR_WHITE, COLOR_BLACK);
             bmp_printf(fnt, 0, 430, "Please restart your camera.");
             print_bootflags();
-            msleep(1000);
         }
         else
         {
@@ -567,12 +566,13 @@ void install_task()
 
 void redraw() { clrscr(); }
 
-void gui_uilock(int x)
+void gui_uilock(int what)
 {
-    int unlocked = 0x41000000;
+    int unlocked = UILOCK_REQUEST | (UILOCK_NONE & 0xFFFF);
     _prop_request_change(PROP_ICU_UILOCK, &unlocked, 4);
     msleep(200);
-    _prop_request_change(PROP_ICU_UILOCK, &x, 4);
+    what = UILOCK_REQUEST | (what & 0xFFFF);
+    _prop_request_change(PROP_ICU_UILOCK, &what, 4);
     msleep(200);
 }
 

@@ -570,13 +570,13 @@ int FIO_MoveFile(char *src,char *dst)
     }
 }
 
-int is_file(char* path)
+int is_file(const char* path)
 {
     uint32_t file_size = 0;
     return !FIO_GetFileSize(path, &file_size);
 }
 
-int is_dir(char* path)
+int is_dir(const char* path)
 {
     struct fio_file file;
     struct fio_dirent * dirent = FIO_FindFirstEx( path, &file );
@@ -732,6 +732,11 @@ static void fio_init()
 {
     #ifdef CONFIG_DUAL_SLOT
     menu_add( "Prefs", card_menus, COUNT(card_menus) );
+    #endif
+    
+    #ifdef CARD_A_MAKER
+    available_cards[CARD_A].maker = (char*) CARD_A_MAKER;
+    available_cards[CARD_A].model = (char*) CARD_A_MODEL;
     #endif
 }
 

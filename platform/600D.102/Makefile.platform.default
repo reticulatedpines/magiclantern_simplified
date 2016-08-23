@@ -12,7 +12,7 @@ ifeq ($(ML_SRC_PROFILE),generic)
 # RESTARTSTART is selected to be just above the end of the bss
 #
 RESTARTSTART    = 0x00C80100
-else ifeq ($(ML_SRC_PROFILE),installer)
+else
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
 #

@@ -22,7 +22,7 @@ else
 endif
 
 	$(eval ML_INSTALLER_BUILD_FIR = python $(ML_BUILD_FIR_DIR)/build_fir.py -r \
-											$(CANON_FIR_PATH) $(ML_BUILD_FIR_PLATFORM_FILE) $(UPDATE_NAME_FIR))
+											$(CANON_FIR_PATH) $(ML_BUILD_FIR_PLATFORM_FILE) $(UPDATE_NAME_FIR) $(FIRMWARE_ID))
 endif
 
 	-$(ML_INSTALLER_BUILD_FIR)

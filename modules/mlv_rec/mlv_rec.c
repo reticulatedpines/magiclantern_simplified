@@ -71,6 +71,7 @@
 #include <cache_hacks.h>
 #include <string.h>
 #include <shoot.h>
+#include <powersave.h>
 
 #include "../lv_rec/lv_rec.h"
 #include "../file_man/file_man.h"
@@ -81,7 +82,8 @@
 #include "mlv_rec.h"
 
 /* an alternative tracing method that embeds the logs into the MLV file itself */
-#define EMBEDDED_LOGGING
+/* looks like it might cause pink frames - http://www.magiclantern.fm/forum/index.php?topic=5473.msg165356#msg165356 */
+#undef EMBEDDED_LOGGING
 
 #if defined(EMBEDDED_LOGGING) && !defined(TRACE_DISABLED)
 #define trace_write                                 mlv_debg_printf
@@ -141,7 +143,6 @@ static CONFIG_INT("mlv.fast_card_buffers", fast_card_buffers, 1);
 static CONFIG_INT("mlv.tracing", enable_tracing, 0);
 static CONFIG_INT("mlv.display_rec_info", display_rec_info, 1);
 static CONFIG_INT("mlv.show_graph", show_graph, 0);
-static CONFIG_INT("mlv.black_fix", black_fix, 0);
 static CONFIG_INT("mlv.res.x", resolution_index_x, 4);
 static CONFIG_INT("mlv.res.x.fine", res_x_fine, 0);
 static CONFIG_INT("mlv.aspect_ratio", aspect_ratio_index, 10);
@@ -524,6 +525,13 @@ static void update_cropping_offsets()
     skip_y = sy;
 
     refresh_cropmarks();
+
+    /* mv640crop needs this to center the recorded image */
+    if (is_movie_mode() && video_mode_resolution == 2 && video_mode_crop)
+    {
+        skip_x = skip_x + 51;
+        skip_y = skip_y - 6;
+    }
 }
 
 static void update_resolution_params()
@@ -568,6 +576,26 @@ static void update_resolution_params()
     ASSERT(frame_size % 4 == 0);
 
     update_cropping_offsets();
+}
+
+static int mlv_rec_update_raw()
+{
+    /* we will fail if that is just a LV mode, but no movie mode */
+    if(!lv || !is_movie_mode())
+    {
+        return 0;
+    }
+    
+    /* this call will retry internally, and if it fails, we can assume it was indeed something bad */
+    if (!raw_update_params())
+    {
+        return 0;
+    }
+    
+    /* update interal parameters res_x, res_y, frame_size, squeeze_factor and crop offsets  */
+    update_resolution_params();
+    
+    return 1;
 }
 
 static char* guess_aspect_ratio(int32_t res_x, int32_t res_y)
@@ -708,10 +736,7 @@ static void refresh_raw_settings(int32_t force)
         static int aux = INT_MIN;
         if (force || should_run_polling_action(250, &aux))
         {
-            if (raw_update_params())
-            {
-                update_resolution_params();
-            }
+            mlv_rec_update_raw();
         }
     }
 }
@@ -2154,7 +2179,7 @@ static int32_t FAST process_frame()
     /* frame number in file is off by one. nobody needs to know we skipped the first frame */
     hdr->frameNumber = frame_count - 1;
     hdr->cropPosX = (skip_x + 7) & ~7;
-    hdr->cropPosY = (skip_y + 7) & ~7;
+    hdr->cropPosY = skip_y & ~1;
     hdr->panPosX = skip_x;
     hdr->panPosY = skip_y;
     
@@ -2397,19 +2422,6 @@ static int32_t mlv_write_rawi(FILE* f, struct raw_info raw_info)
     rawi.xRes = res_x;
     rawi.yRes = res_y;
     rawi.raw_info = raw_info;
-    
-    /* sometimes black level is a bit off. fix that if enabled. ToDo: do all models have 2048? */
-    if(black_fix)
-    {
-        if(cam_50d || cam_5d2)
-        {
-            rawi.raw_info.black_level = 1024;
-        }
-        else
-        {
-            rawi.raw_info.black_level = 2048;
-        }
-    }
 
     return mlv_write_hdr(f, (mlv_hdr_t *)&rawi);
 }
@@ -3136,19 +3148,16 @@ static void raw_video_rec_task()
 
     /* detect raw parameters (geometry, black level etc) */
     raw_set_dirty();
-    if (!raw_update_params())
+    if (!mlv_rec_update_raw())
     {
-        bmp_printf( FONT_MED, 30, 50, "Raw detect error");
+        NotifyBox(5000, "Raw detect error");
         goto cleanup;
     }
 
-    update_resolution_params();
-
     trace_write(raw_rec_trace_ctx, "Resolution: %dx%d @ %d.%03d FPS", res_x, res_y, fps_get_current_x1000()/1000, fps_get_current_x1000()%1000);
     
-    /* disable powersave timer */
-    const int powersave_prohibit = 2;
-    prop_request_change(PROP_ICU_AUTO_POWEROFF, &powersave_prohibit, 4);
+    /* disable Canon's powersaving (30 min in LiveView) */
+    powersave_prohibit();
 
     /* signal that we are starting, call this before any memory allocation to give CBR the chance to allocate memory */
     raw_rec_cbr_starting();
@@ -3593,9 +3602,8 @@ cleanup:
     hack_liveview(1);
     redraw();
 
-    /* re-enable powersave timer */
-    const int powersave_permit = 1;
-    prop_request_change(PROP_ICU_AUTO_POWEROFF, &powersave_permit, 4);
+    /* re-enable powersaving  */
+    powersave_permit();
 
     raw_recording_state = RAW_IDLE;
 }
@@ -3909,13 +3917,6 @@ static struct menu_entry raw_video_menu[] =
                 .help2 = "May help with performance.",
             },
             {
-                .name = "Fix Black Level",
-                .priv = &black_fix,
-                .max = 1,
-                .help  = "Forces the black level to 2048 (5D3), 1024 (50D/5D2).",
-                .help2  = "Try this to fix green/magenta casts.",
-            },
-            {
                 .name = "Debug Trace",
                 .priv = &enable_tracing,
                 .max = 1,
@@ -3992,6 +3993,10 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
     /* if you somehow managed to start recording H.264, let it stop */
     if (RECORDING_H264)
         return 1;
+
+    /* block the zoom key while recording */
+    if (!RAW_IS_IDLE && key == MODULE_KEY_PRESS_ZOOMIN)
+        return 0;
 
     /* start/stop recording with the LiveView key */
     int32_t rec_key_pressed = (key == MODULE_KEY_LV || key == MODULE_KEY_REC);
@@ -4299,6 +4304,5 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(show_graph)
     MODULE_CONFIG(large_file_support)
     MODULE_CONFIG(create_dummy)
-    MODULE_CONFIG(black_fix)
     MODULE_CONFIG(create_dirs)
 MODULE_CONFIGS_END()

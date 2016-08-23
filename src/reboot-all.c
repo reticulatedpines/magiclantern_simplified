@@ -254,8 +254,8 @@ cstart( void )
         blob_start + offset,
         blob_end + offset
     );
-    clean_d_cache();
-    flush_caches();
+    
+    sync_caches();
 
     // Jump into the newly relocated code
     void __attribute__((noreturn))(*copy_and_restart)(int)

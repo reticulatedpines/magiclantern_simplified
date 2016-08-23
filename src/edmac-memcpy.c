@@ -64,18 +64,15 @@ static void edmac_memcpy_init()
     /* lookup the edmac channel indices for reslock */
     int read_edmac_index = edmac_channel_to_index(edmac_read_chan);
     int write_edmac_index = edmac_channel_to_index(edmac_write_chan);
+    ASSERT(read_edmac_index >= 0 && write_edmac_index >= 0);
 
-    if (read_edmac_index >= 0 && write_edmac_index >= 0)
-    {
-        uint32_t resIds[] = {
-            0x00000000 + write_edmac_index, /* write edmac channel */
-            0x00010000 + read_edmac_index, /* read edmac channel */
-            0x00020000 + dmaConnection, /* write connection */
-            0x00030000 + dmaConnection, /* read connection */
-        };
-        resLock = CreateResLockEntry(resIds, 4);
-    }
-    //~ else bmp_printf(FONT_MED, 50, 50, "%d %d %d %d %d ", edmac_write_chan, write_edmac_index, edmac_read_chan, read_edmac_index, dmaConnection, resLock);
+    uint32_t resIds[] = {
+        0x00000000 + write_edmac_index, /* write edmac channel */
+        0x00010000 + read_edmac_index, /* read edmac channel */
+        0x00020000 + dmaConnection, /* write connection */
+        0x00030000 + dmaConnection, /* read connection */
+    };
+    resLock = CreateResLockEntry(resIds, 4);
     
     ASSERT(resLock);
 }
@@ -341,7 +338,7 @@ void find_free_edmac_channels()
             if (lv)
             {
                 bmp_printf(FONT_MED, 50, 70, "Write channel #%d seems to work", ch);
-                console_printf("Write channel #%d seems to work\n", ch);
+                printf("Write channel #%d seems to work\n", ch);
                 beep();
             }
             msleep(2000);
@@ -363,7 +360,7 @@ void find_free_edmac_channels()
             if (lv)
             {
                 bmp_printf(FONT_MED, 50, 70, "Read channel #%d seems to work", ch);
-                console_printf("Read channel #%d seems to work\n", ch);
+                printf("Read channel #%d seems to work\n", ch);
                 beep();
             }
             msleep(2000);

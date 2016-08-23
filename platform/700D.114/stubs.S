@@ -95,6 +95,7 @@ NSTUB(0xFF337E3C, _audio_ic_write)
 NSTUB(0xFF7FD164,  audio_thresholds)
 NSTUB(0xFF10B714,  sounddev_active_in)
 NSTUB(0xFF10B228,  sounddev_task)
+// NSTUB(    ???, _audio_ic_write_bulk)                     /* present on 6D.116 */
 
 /** Bitmap **/
 NSTUB(   0x50ACC,  LCD_Palette)
@@ -199,11 +200,11 @@ NSTUB(0xFF0EA818,  SRM_FreeMemoryResourceFor1stJob)
 // NSTUB(    ???,  gui_timer_struct)                        /* present on 7D.203, 500D.111, 60D.111, 50D.109, 5D2.212, 600D.102, 550D.109, 1100D.105 */
 
 /** GUI timers **/
+NSTUB(0xFF521608,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 NSTUB(0xFFA68688 - RAM_OFFSET,  CancelTimer)
 NSTUB(0xFFA61F88 - RAM_OFFSET,  SetHPTimerAfterNow)
 NSTUB(0xFFA62078 - RAM_OFFSET,  SetHPTimerNextTick)
 NSTUB(0xFFA68488 - RAM_OFFSET,  SetTimerAfter)
-NSTUB(0xFF521608,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 
 /** H264 Encoder **/
 NSTUB(   0x314F4,  mvr_config)
@@ -226,6 +227,7 @@ NSTUB(0xFF146038,  DispSensorStart)
 NSTUB(   0x49000,  sd_device)
 NSTUB(0xFF6300B8,  fsuDecodePartitionTable)
 // NSTUB(    ???,  cf_device)                               /* present on 7D.203, 500D.111, 60D.111, 50D.109, 5D2.212, 550D.109, 1100D.105 */
+// NSTUB(    ???,  cf_device_ptr)                           /* present on 5D3.113 */
 
 /** Memory allocation **/
 NSTUB(0xFFA64448 - RAM_OFFSET,  GetMemoryInformation)
@@ -253,7 +255,6 @@ NSTUB(0xFF11FADC, _prop_cleanup)
 NSTUB(0xFF11F454, _prop_request_change)
 NSTUB(0xFF11FA10,  prop_deliver)
 NSTUB(0xFF11F260,  prop_register_slave)
-// NSTUB(    ???,  PROPAD_GetPropertyData)                  /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 550D.109 */
 // NSTUB(    ???,  prop_unregister_slave)                   /* present on 7D.203 */
 
 /** RPC (for 7D) **/

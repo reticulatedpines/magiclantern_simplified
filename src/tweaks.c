@@ -441,6 +441,11 @@ int is_play_mode()
     return PLAY_MODE;
 }
 
+int is_menu_mode()
+{
+    return MENU_MODE;
+}
+
 #ifdef FEATURE_SET_MAINDIAL
 
 static void print_set_maindial_hint(int set)
@@ -901,13 +906,13 @@ int handle_fast_zoom_in_play_mode(struct event * event)
     if (!quickzoom || !PLAY_MODE) return 1;
     if (!IS_FAKE(event))
     {
-        if (event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+        if (event->param == BGMT_PRESS_ZOOM_IN)
         {
             quickzoom_pressed = 1; // will be reset after it's handled
             quickzoom_unpressed = 0;
             quickzoom_fake_unpressed = 0;
         }
-        else if (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
+        else if (event->param == BGMT_UNPRESS_ZOOM_IN)
         {
             quickzoom_unpressed = 1;
         }
@@ -927,8 +932,8 @@ int handle_fast_zoom_in_play_mode(struct event * event)
                 #ifdef CONFIG_5D3
                 fake_simple_button(BGMT_WHEEL_RIGHT);
                 #else
-                fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
-                fake_simple_button(BGMT_UNPRESS_ZOOMIN_MAYBE);
+                fake_simple_button(BGMT_PRESS_ZOOM_IN);
+                fake_simple_button(BGMT_UNPRESS_ZOOM_IN);
                 #endif
                 return 0;
             }
@@ -937,7 +942,7 @@ int handle_fast_zoom_in_play_mode(struct event * event)
     }
     else
     {
-        if (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
+        if (event->param == BGMT_UNPRESS_ZOOM_IN)
         {
             quickzoom_fake_unpressed = 1;
         }
@@ -1054,7 +1059,7 @@ tweak_task( void* unused)
                     #ifdef CONFIG_5DC
                         MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR), IMGPLAY_ZOOM_LEVEL_MAX - 1);
                         MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4), IMGPLAY_ZOOM_LEVEL_MAX - 1);
-                        fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); 
+                        fake_simple_button(BGMT_PRESS_ZOOM_IN); 
                         fake_simple_button(BGMT_PRESS_UP);
                         fake_simple_button(BGMT_UNPRESS_UDLR);
                         // goes a bit off-center, no big deal
@@ -1065,10 +1070,10 @@ tweak_task( void* unused)
                         MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4), IMGPLAY_ZOOM_LEVEL_MAX - 1);
                         if (quickzoom == 3) play_zoom_center_on_selected_af_point();
                         else if (quickzoom == 4) play_zoom_center_on_last_af_point();
-                        fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); 
+                        fake_simple_button(BGMT_PRESS_ZOOM_IN); 
                         msleep(20);
                     }
-                    fake_simple_button(BGMT_UNPRESS_ZOOMIN_MAYBE);
+                    fake_simple_button(BGMT_UNPRESS_ZOOM_IN);
                     #endif
                     msleep(800); // not sure how to tell when it's safe to start zooming out
                     info_led_off();
@@ -1078,8 +1083,8 @@ tweak_task( void* unused)
                     msleep(100);
                     MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = 0;
                     MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = 0;
-                    fake_simple_button(BGMT_PRESS_ZOOMOUT_MAYBE); 
-                    fake_simple_button(BGMT_UNPRESS_ZOOMOUT_MAYBE);
+                    fake_simple_button(BGMT_PRESS_ZOOM_OUT); 
+                    fake_simple_button(BGMT_UNPRESS_ZOOM_OUT);
                     quickzoom_pressed = 0;
                 }
                 else
@@ -1091,10 +1096,10 @@ tweak_task( void* unused)
                         (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MIN((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) + 3, IMGPLAY_ZOOM_LEVEL_MAX);
                         (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MIN((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) + 3, IMGPLAY_ZOOM_LEVEL_MAX);
                         #endif
-                        fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
+                        fake_simple_button(BGMT_PRESS_ZOOM_IN);
                         msleep(50);
                     }
-                    fake_simple_button(BGMT_UNPRESS_ZOOMIN_MAYBE);
+                    fake_simple_button(BGMT_UNPRESS_ZOOM_IN);
                     quickzoom_pressed = 0;
                 }
             }
@@ -1107,10 +1112,10 @@ tweak_task( void* unused)
                     MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) - 3, 0);
                     MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) - 3, 0);
                     #endif
-                    fake_simple_button(BGMT_PRESS_ZOOMOUT_MAYBE);
+                    fake_simple_button(BGMT_PRESS_ZOOM_OUT);
                     msleep(50); 
                 }
-                fake_simple_button(BGMT_UNPRESS_ZOOMOUT_MAYBE);
+                fake_simple_button(BGMT_UNPRESS_ZOOM_OUT);
             }
             play_zoom_center_pos_update();
         }
@@ -1819,7 +1824,7 @@ void zoom_trick_step()
     {
 
         // action!
-        if (zoom_trick == 1) fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
+        if (zoom_trick == 1) fake_simple_button(BGMT_PRESS_ZOOM_IN);
         if (zoom_trick == 2) arrow_key_mode_toggle();
 
 
@@ -1870,17 +1875,28 @@ static CONFIG_INT("warn.mf", warn_mf, 0);
 static int warn_code = 0;
 static char* get_warn_msg(char* separator)
 {
-    static char msg[222];
+    static char msg[15 + 24 + 15 + 21 + 20 + 10 /* Termination \0 and some spare */];
     msg[0] = '\0';
+    // Max length: 15 (only one can be active)
     if (warn_code & 1 && warn_mode==1) { STR_APPEND(msg, "Mode is not M%s", separator); }
     if (warn_code & 1 && warn_mode==2) { STR_APPEND(msg, "Mode is not Av%s", separator); }
     if (warn_code & 1 && warn_mode==3) { STR_APPEND(msg, "Mode is not Tv%s", separator); }
     if (warn_code & 1 && warn_mode==4) { STR_APPEND(msg, "Mode is not P%s", separator); }
-    if (warn_code & 2) { STR_APPEND(msg, "Pic quality is not RAW%s", separator); } 
+
+    // Max length: 24 (only one can be active)
+    if (warn_code & 2 && warn_picq==1) { STR_APPEND(msg, "Pic quality is not RAW%s", separator); } 
+    if (warn_code & 2 && warn_picq==2) { STR_APPEND(msg, "Pic quality is not fine%s", separator); } 
+
+    // Length: 15
     if (warn_code & 4) { STR_APPEND(msg, "ALO is enabled%s", separator); } 
+
+    // Length: 21
     if (warn_code & 8) { STR_APPEND(msg, "WB isn't set to auto%s", separator); } 
+
+    // Max length: 20 (only one can be active)
     if (warn_code & 16 && warn_mf == 1) { STR_APPEND(msg, "Focus is not auto%s", separator); } 
     if (warn_code & 16 && warn_mf == 2) { STR_APPEND(msg, "Focus is not manual%s", separator); } 
+
     return msg;
 }
 
@@ -1944,7 +1960,10 @@ static void warn_step()
 
     int raw = pic_quality & 0x60000;
     int rawsize = pic_quality & 0xF;
-    if (warn_picq && (!raw || rawsize))
+    if (warn_picq == 1 && (!raw || rawsize))
+        warn_code |= 2;
+    
+    if (warn_picq == 2 && !(pic_quality == PICQ_LARGE_FINE || pic_quality == PICQ_RAW || pic_quality == PICQ_RAW_JPG_LARGE_FINE))
         warn_code |= 2;
     
     if (warn_alo && get_alo() != ALO_OFF)
@@ -2152,8 +2171,8 @@ static struct menu_entry tweak_menus[] = {
             {
                 .name = "Quality warning",
                 .priv = &warn_picq,
-                .max = 1,
-                .choices = (const char *[]) {"OFF", "other than RAW"},
+                .max = 2,
+                .choices = (const char *[]) {"OFF", "other than RAW", "other than fine"},
                 .help = "Warn if you change the picture quality to something else.",
             },
             {
@@ -2696,7 +2715,7 @@ static void grayscale_menus_step()
 
     // optimization: try to only update palette after a display mode change
     // but this is not 100% reliable => update at least once every second
-    int guimode = CURRENT_DIALOG_MAYBE;
+    int guimode = CURRENT_GUI_MODE;
     int d = DISPLAY_IS_ON;
     int b = bmp_color_scheme;
     int sig = (int)get_current_dialog_handler() + d + guimode + b*31415 + get_seconds_clock();

@@ -164,9 +164,6 @@ extern struct gui_struct gui_struct;
 extern struct gui_task * gui_menu_task;
 
 extern void
-gui_stop_menu( void );
-
-extern void
 gui_hide_menu( int redisplay_time );
 
 //~ 5dc has different gui_state values than DryOS.
@@ -231,7 +228,7 @@ void redraw();
 void redraw_after(int msec);
 void _redraw_do();  /* private */
 
-/* Change GUI mode (aka CURRENT_DIALOG_MAYBE). Common modes are 0 (idle), DLG_PLAY and DLG_MENU. */
+/* Change GUI mode. Common modes are 0 (idle), GUIMODE_PLAY and GUIMODE_MENU. */
 void SetGUIRequestMode(int mode);
 int get_gui_mode();
 
@@ -280,6 +277,8 @@ int handle_fast_zoom_box(struct event * event);
 int handle_voice_tags(struct event * event);
 int handle_lv_play(struct event * event);
 int handle_fast_zoom_in_play_mode(struct event * event);
+int handle_lv_afframe_workaround(struct event * event);
+
 void spy_event(struct event * event);
 
 int handle_keep_ml_after_format_toggle(struct event * event);

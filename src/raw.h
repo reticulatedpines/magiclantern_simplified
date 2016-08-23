@@ -74,6 +74,7 @@ struct raw_pixblock
 } __attribute__((packed,aligned(2)));
 
 /* call this before performing any raw image analysis */
+/* in LiveView, this will retry as needed */
 /* returns 1=success, 0=failed */
 int raw_update_params();
 
@@ -146,7 +147,7 @@ void raw_force_aspect_ratio_1to1();
 void raw_set_preview_rect(int x, int y, int w, int h);
 
 /* call this after you have altered the preview settings, and you want to restore the original ones */
-void raw_set_dirty();
+void raw_set_dirty(void);
 
 /* for x5 crop mode: get the offset (in pixels) between raw and yuv frames. Return: 1=OK, 0=failed. */
 int focus_box_get_raw_crop_offset(int* delta_x, int* delta_y); /* this is in shoot.c */
