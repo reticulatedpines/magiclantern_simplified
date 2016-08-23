@@ -103,7 +103,7 @@
 #define MVR_BUFFER_USAGE MAX(MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND)
 
 #define MVR_FRAME_NUMBER  (*(int*)(0x1F4 + MVR_516_STRUCT)) // in mvrExpStarted
-#define MVR_BYTES_WRITTEN (*(int*)(0xb0 + MVR_516_STRUCT))
+#define MVR_BYTES_WRITTEN MEM((0xb0 + MVR_516_STRUCT))
 
 #define MOV_RES_AND_FPS_COMBINATIONS 5 // 3 fullhd, 2 hd, not changing the two VGA modes; worth trying with 9
 #define MOV_OPT_NUM_PARAMS 2
@@ -114,26 +114,26 @@
 #define AE_STATE (*(int8_t*)(0x2E6E4 + 0x1C))
 #define AE_VALUE (*(int8_t*)(0x2E6E4 + 0x1D))
 
-#define CURRENT_DIALOG_MAYBE (*(int*)0x26574) // not sure
+#define CURRENT_GUI_MODE (*(int*)0x26574) // not sure
 
-#define DLG_PLAY 1
-#define DLG_MENU 2
+#define GUIMODE_PLAY 1
+#define GUIMODE_MENU 2
 
 // not sure
-#define DLG_FOCUS_MODE 0x123456
-//~ #define DLG_DRIVE_MODE 8
-//~ #define DLG_PICTURE_STYLE 4
-//~ #define DLG_Q_UNAVI 0x18
-//~ #define DLG_FLASH_AE 0x22
-//~ #define DLG_PICQ 6
+#define GUIMODE_FOCUS_MODE 0x123456
+//~ #define GUIMODE_DRIVE_MODE 8
+//~ #define GUIMODE_PICTURE_STYLE 4
+//~ #define GUIMODE_Q_UNAVI 0x18
+//~ #define GUIMODE_FLASH_AE 0x22
+//~ #define GUIMODE_PICQ 6
 
-#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_DIALOG_MAYBE == 0x24)
-#define DLG_MOVIE_PRESS_LV_TO_RESUME (CURRENT_DIALOG_MAYBE == 0x25)
+#define GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_GUI_MODE == 0x24)
+#define GUIMODE_MOVIE_PRESS_LV_TO_RESUME (CURRENT_GUI_MODE == 0x25)
 
 
 
-#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
-#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
+#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_PLAY)
+#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_MENU)
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED 0
 #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0
@@ -210,7 +210,6 @@
 #define BFNT_BITMAP_OFFSET 0xF7366BC4
 #define BFNT_BITMAP_DATA   0xF7369D38
 
-#define DLG_SIGNATURE 0x414944
 
 // from CFn
  #define AF_BTN_HALFSHUTTER 0
@@ -273,7 +272,7 @@
 
 // temperature conversion from raw-temperature to celsius
 // http://www.magiclantern.fm/forum/index.php?topic=9673.0
-#define EFIC_CELSIUS ((int)efic_temp * 63 / 100 - 72)
+#define EFIC_CELSIUS ((int)efic_temp * 60 / 100 - 65)
 
 #define CANON_SHUTTER_RATING 150000
 

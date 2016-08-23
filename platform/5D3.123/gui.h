@@ -22,10 +22,10 @@
 #define BGMT_REC 0x1E
 
 
-#define BGMT_PRESS_ZOOMIN_MAYBE 0x12
-//~ #define BGMT_UNPRESS_ZOOMIN_MAYBE 0x13
-//~ #define BGMT_PRESS_ZOOMOUT_MAYBE 0x1234 // no zoom out button in play mode?!
-//~ #define BGMT_UNPRESS_ZOOMOUT_MAYBE 0x5678
+#define BGMT_PRESS_ZOOM_IN 0x12
+//~ #define BGMT_UNPRESS_ZOOM_IN 0x13
+//~ #define BGMT_PRESS_ZOOM_OUT 0x1234 // no zoom out button in play mode?!
+//~ #define BGMT_UNPRESS_ZOOM_OUT 0x5678
 
 #define BGMT_LV 0x1E
 #define BGMT_Q 0x1d
