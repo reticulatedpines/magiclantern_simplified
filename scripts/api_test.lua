@@ -178,10 +178,50 @@ function append_test(file)
     printf("Append test OK\n")
 end
 
+function rename_test(src, dst)
+    printf("Rename test: %s -> %s\n", src, dst)
+
+    local data = "Millions saw the apple fall, " ..
+        "but Newton was the one who asked why."
+    
+    -- create the source file
+    local fout = io.open(src, "w")
+    fout:write(data)
+    fout:close()
+
+    -- verify the contents
+    local fin = io.open(src, "r")
+    local check = fin:read("*all")
+    fin:close()
+    assert(check == data)
+
+    -- rename it
+    assert(dryos.rename(src, dst) == true)
+
+    -- verify the contents
+    fin = io.open(dst, "r")
+    check = fin:read("*all")
+    fin:close()
+    assert(check == data)
+    
+    -- check if the source file was deleted
+    assert(io.open(src, "rb") == nil)
+
+    -- cleanup: delete the renamed file
+    assert(dryos.remove(dst) == true)
+    
+    -- check if it was deleted
+    assert(io.open(dst, "rb") == nil)
+
+    printf("Rename test OK\n")
+end
+
 function test_io()
     stdio_test()
     copy_test("autoexec.bin", "tmp.bin")
     append_test("tmp.txt")
+    rename_test("apple.txt", "banana.txt")
+    rename_test("apple.txt", "ML/banana.txt")
 end
 
 function test_keys()
