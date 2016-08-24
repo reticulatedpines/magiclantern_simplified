@@ -981,6 +981,7 @@ void show_usage(char *executable)
     print_msg(MSG_INFO, " --cs3x3             3x3 chroma smoothing\n");
     print_msg(MSG_INFO, " --cs5x5             5x5 chroma smoothing\n");
     print_msg(MSG_INFO, " --no-fixcp          do not fix cold pixels\n");
+    print_msg(MSG_INFO, " --fix-stripes       fix vertical stripes in highlights\n");
 
     print_msg(MSG_INFO, "\n");
     print_msg(MSG_INFO, "-- RAW output --\n");
@@ -1087,6 +1088,7 @@ int main (int argc, char *argv[])
     int dng_output = 0;
     int dump_xrefs = 0;
     int fix_cold_pixels = 1;
+    int fix_vert_stripes = 0;
 
     struct option long_options[] = {
         {"lua",    required_argument, NULL,  'L' },
@@ -1100,6 +1102,7 @@ int main (int argc, char *argv[])
         {"cs3x3",  no_argument, &chroma_smooth_method,  3 },
         {"cs5x5",  no_argument, &chroma_smooth_method,  5 },
         {"no-fixcp",  no_argument, &fix_cold_pixels,  0 },
+        {"fix-stripes",  no_argument, &fix_vert_stripes,  1 },
         {"avg-vertical",  no_argument, &average_vert,  1 },
         {"avg-horizontal",  no_argument, &average_hor,  1 },
         {0,         0,                 0,  0 }
@@ -2420,7 +2423,10 @@ read_headers:
                             }
 
                             /* call raw2dng code */
-                            fix_vertical_stripes();
+                            if (fix_vert_stripes)
+                            {
+                                fix_vertical_stripes();
+                            }
                             
                             if (fix_cold_pixels)
                             {
