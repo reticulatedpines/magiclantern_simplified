@@ -540,8 +540,17 @@ PROP_HANDLER( PROP_LV_FOCUS_DONE )
 
     //~ bmp_printf(FONT_MED, 50, 100, "Focus status: 0x%x  ", buf[0]);
     
-    if (buf[0] & 0x1000) 
+    static int last_pos = 0;
+    static int retries = 2;
+    
+    int error_flag = buf[0] & 0x1000;
+    int focus_changed = last_pos != lens_info.focus_pos;
+    int lens_stuck = error_flag && !focus_changed;
+    
+    if (lens_stuck && retries == 0)
     {
+        /* only trigger the error if the lens did not move at all
+         * after 2 retries */
         NotifyBox(1000, "Focus: soft limit reached");
         lv_focus_error = 1;
     }
@@ -549,7 +558,18 @@ PROP_HANDLER( PROP_LV_FOCUS_DONE )
     {
         /* assume all is fine (not sure if correct, but seems to work) */
         lv_focus_done = 1;
+        
+        if (lens_stuck)
+        {
+            retries--;
+        }
+        else
+        {
+            retries = 2;
+        }
     }
+
+    last_pos = lens_info.focus_pos;
 }
 
 static void
