@@ -1508,22 +1508,6 @@ static void focus_ring_powersave_fix()
     }
 }
 
-#if defined(CONFIG_EOSM)
-PROP_HANDLER( PROP_LV_FOCAL_DISTANCE )
-{
-#ifdef FEATURE_MAGIC_ZOOM
-    if (get_zoom_overlay_trigger_by_focus_ring()) zoom_overlay_set_countdown(300);
-#endif
-    
-    idle_wakeup_reset_counters(-11);
-    lens_display_set_dirty();
-    focus_ring_powersave_fix();
-    
-#ifdef FEATURE_LV_ZOOM_SETTINGS
-    zoom_focus_ring_trigger();
-#endif
-}
-#endif
 PROP_HANDLER( PROP_LV_LENS )
 {
     const struct prop_lv_lens * const lv_lens = (void*) buf;
@@ -1538,7 +1522,6 @@ PROP_HANDLER( PROP_LV_LENS )
 
     //~ lens_info.lens_rotation = *((float*)&lrswap);
     //~ lens_info.lens_step = *((float*)&lsswap);
-#if !defined(CONFIG_EOSM)  
     static unsigned old_focus_dist = 0;
     static unsigned old_focal_len = 0;
     if (lv && (old_focus_dist && lens_info.focus_dist != old_focus_dist) && (old_focal_len && lens_info.focal_len == old_focal_len))
@@ -1557,7 +1540,6 @@ PROP_HANDLER( PROP_LV_LENS )
     }
     old_focus_dist = lens_info.focus_dist;
     old_focal_len = lens_info.focal_len;
-#endif
     update_stuff();
 }
 
