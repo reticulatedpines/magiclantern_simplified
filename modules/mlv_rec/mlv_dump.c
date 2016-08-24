@@ -981,6 +981,7 @@ void show_usage(char *executable)
     print_msg(MSG_INFO, " --cs3x3             3x3 chroma smoothing\n");
     print_msg(MSG_INFO, " --cs5x5             5x5 chroma smoothing\n");
     print_msg(MSG_INFO, " --no-fixcp          do not fix cold pixels\n");
+    print_msg(MSG_INFO, " --fixcp2            fix non-static (moving) cold pixels (slow)\n");
     print_msg(MSG_INFO, " --fix-stripes       fix vertical stripes in highlights\n");
 
     print_msg(MSG_INFO, "\n");
@@ -1102,6 +1103,7 @@ int main (int argc, char *argv[])
         {"cs3x3",  no_argument, &chroma_smooth_method,  3 },
         {"cs5x5",  no_argument, &chroma_smooth_method,  5 },
         {"no-fixcp",  no_argument, &fix_cold_pixels,  0 },
+        {"fixcp2",    no_argument, &fix_cold_pixels,  2 },
         {"fix-stripes",  no_argument, &fix_vert_stripes,  1 },
         {"avg-vertical",  no_argument, &average_vert,  1 },
         {"avg-horizontal",  no_argument, &average_hor,  1 },
@@ -2389,7 +2391,7 @@ read_headers:
                         if(dng_output)
                         {
                             void fix_vertical_stripes();
-                            void find_and_fix_cold_pixels();
+                            void find_and_fix_cold_pixels(int force_analysis);
                             extern struct raw_info raw_info;
 
                             int frame_filename_len = strlen(output_filename) + 32;
@@ -2430,7 +2432,7 @@ read_headers:
                             
                             if (fix_cold_pixels)
                             {
-                                find_and_fix_cold_pixels();
+                                find_and_fix_cold_pixels(fix_cold_pixels == 2);
                             }
 
                             /* this is internal again */
