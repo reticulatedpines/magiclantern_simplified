@@ -701,6 +701,7 @@ function test_lens_focus()
         printf("Focusing backward...\n")
         while lens.focus(-1,3,true) do end
         printf("Focus distance: %s\n",  lens.focus_distance)
+        printf("Focus motor position: %d\n", lens.focus_pos)
 
         msleep(500)
         
@@ -708,13 +709,20 @@ function test_lens_focus()
             for j,wait in pairs{true,false} do
                 printf("Focusing forward with step size %d, wait=%s...\n", step, wait)
                 local steps_front = 0
+                local focus_pos_0 = lens.focus_pos
                 while lens.focus(1,step,true) do
                     printf(".")
                     steps_front = steps_front + 1
                 end
+                
+                -- note: focus distance and position may not be reported right away
+                msleep(500)
+
                 printf("\n")
                 printf("Focus distance: %s\n",  lens.focus_distance)
-                
+                printf("Focus motor position: %d\n", lens.focus_pos)
+                local focus_pos_1 = lens.focus_pos
+
                 msleep(500)
                 
                 printf("Focusing backward with step size %d, wait=%s...\n", step, wait)
@@ -723,15 +731,26 @@ function test_lens_focus()
                     printf(".")
                     steps_back = steps_back + 1
                 end
+                
+                msleep(500)
+
                 printf("\n")
                 printf("Focus distance: %s\n",  lens.focus_distance)
+                printf("Focus motor position: %d\n", lens.focus_pos)
+                local focus_pos_2 = lens.focus_pos
 
                 msleep(500)
 
+                local motor_steps_front = math.abs(focus_pos_1 - focus_pos_0)
+                local motor_steps_back  = math.abs(focus_pos_2 - focus_pos_1)
+                local motor_steps_lost  = math.abs(focus_pos_2 - focus_pos_0)
                 printf("Focus range: %s steps forward, %s steps backward. \n",  steps_front, steps_back)
+                printf("Motor steps: %s forward, %s backward, %s lost. \n",  motor_steps_front, motor_steps_back, motor_steps_lost)
+
+                msleep(500)
             end
         end
-        printf("Focus test completed.\n")
+        printf("\nFocus test completed.\n")
     else
         printf("Focus test skipped.\n")
     end

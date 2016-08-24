@@ -26,6 +26,13 @@ static int luaCB_lens_index(lua_State * L)
     /// Get the current focus distance (in mm)
     // @tfield int focus_distance readonly
     else if(!strcmp(key, "focus_distance")) lua_pushinteger(L, lens_info.focus_dist * 10);
+    /// Get the raw relative focus motor position, in steps.
+    /// This counter is 0 at camera startup, its range depend on the lens,
+    /// and is updated only when the focus motor moves. It will lose track
+    /// of the lens position during manual focus, unless you use a focus-by-wire lens.
+    /// Details: http://www.magiclantern.fm/forum/index.php?topic=4997
+    // @tfield int focus_distance readonly
+    else if(!strcmp(key, "focus_pos")) lua_pushinteger(L, lens_info.focus_pos);
     /// Get the hyperfocal distance of the lens (in mm)
     // @tfield int hyperfocal readonly
     else if(!strcmp(key, "hyperfocal")) lua_pushinteger(L, lens_info.hyperfocal);
