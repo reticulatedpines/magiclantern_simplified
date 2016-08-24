@@ -70,7 +70,6 @@ function generic_tests()
     print_table("display")
     print_table("key")
     print_table("menu")
-    print_table("testmenu")
     print_table("movie")
     print_table("dryos")
     print_table("interval")
@@ -128,8 +127,7 @@ function copy_test(src, dst)
     assert(dryos.remove(dst) == true)
     
     -- check if it was deleted
-    fin = io.open(dst, "rb")
-    assert(fin == nil)
+    assert(io.open(dst, "rb") == nil)
 
     -- it should return false this time
     assert(dryos.remove(dst) == false)
@@ -155,7 +153,7 @@ function append_test(file)
     local fin = io.open(file, "r")
     local check = fin:read("*all")
     fin:close()
-    assert(data1 == check)
+    assert(check == data1)
 
     -- reopen it to append something
     fout = io.open(file, "a")
@@ -172,8 +170,7 @@ function append_test(file)
     assert(dryos.remove(file) == true)
     
     -- check if it was deleted
-    fin = io.open(file, "rb")
-    assert(fin == nil)
+    assert(io.open(file, "rb") == nil)
 
     printf("Append test OK\n")
 end
@@ -217,11 +214,15 @@ function rename_test(src, dst)
 end
 
 function test_io()
+    printf("Testing file I/O...\n")
     stdio_test()
     copy_test("autoexec.bin", "tmp.bin")
     append_test("tmp.txt")
     rename_test("apple.txt", "banana.txt")
     rename_test("apple.txt", "ML/banana.txt")
+
+    printf("File I/O tests completed.\n")
+    printf("\n")
 end
 
 function test_keys()
@@ -242,10 +243,11 @@ function test_keys()
     printf("Half-shutter test OK.\n")
     
     -- todo: test other key codes? press/unpress events?
+    printf("\n")
 end
 
 function test_camera_exposure()
-    printf("Testing exposure settings, module 'camera'...\n")
+    printf("Testing exposure settings...\n")
     printf("Camera    : %s (%s) %s\n", camera.model, camera.model_short, camera.firmware)
     printf("Lens      : %s\n", lens.name)
     printf("Shoot mode: %s\n", camera.mode)
@@ -572,7 +574,7 @@ function test_camera_exposure()
 end
 
 function test_camera_take_pics()
-    printf("Testing module 'camera', picture taking functions...\n")
+    printf("Testing picture taking functions...\n")
     local initial_file_num
 
     request_mode(MODE.M, "M")
@@ -611,10 +613,11 @@ function test_camera_take_pics()
     local elapsed = t1 - t0
     printf("Elapsed time: %s\n", elapsed)
     -- we can't measure this time accurately, so we only do a very rough check
-    assert(elapsed > 9900 and elapsed < 15000)
+    assert(elapsed > 9900 and elapsed < 16000)
     assert((dryos.shooting_card.file_number - initial_file_num) % 10000 == 1)
 
     printf("Picture taking tests completed.\n")
+    printf("\n")
 end
 
 function test_lv()
@@ -667,6 +670,9 @@ function test_lv()
 end
 
 function test_lens_focus()
+    printf("\n")
+    printf("Testing lens focus functionality...\n")
+    
     if lens.name == "" then
         printf("This test requires an electronic lens.\n")
         assert(not lens.af, "manual lenses can't autofocus")
@@ -738,16 +744,17 @@ function api_tests()
     console.show()
     test_log = logger("LUATEST.LOG")
 
+    -- note: each test routine must print a blank line at the end
     strict_tests()
     generic_tests()
     
     printf("Module tests...\n")
     test_io()
     test_keys()
-    test_camera_exposure()
-    test_camera_take_pics()
     test_lv()
     test_lens_focus()
+    test_camera_take_pics()
+    test_camera_exposure()
     
     printf("Done!\n")
     
