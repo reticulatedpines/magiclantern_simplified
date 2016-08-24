@@ -700,10 +700,12 @@ function test_lens_focus()
         -- some lenses will focus to infinity, others to macro
         printf("Focusing backward...\n")
         while lens.focus(-1,3,true) do end
+
+        -- note: focus distance and position may not be reported right away
+        msleep(500)
+
         printf("Focus distance: %s\n",  lens.focus_distance)
         printf("Focus motor position: %d\n", lens.focus_pos)
-
-        msleep(500)
         
         for i,step in pairs{3,2,1} do
             for j,wait in pairs{true,false} do
@@ -715,7 +717,6 @@ function test_lens_focus()
                     steps_front = steps_front + 1
                 end
                 
-                -- note: focus distance and position may not be reported right away
                 msleep(500)
 
                 printf("\n")
