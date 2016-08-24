@@ -264,28 +264,42 @@ static int luaCB_camera_newindex(lua_State * L)
 
 /***
  Take a picture
- @tparam[opt=64] int wait how long to wait for camera to be ready to take a picture
  @tparam[opt=true] bool should_af whether or not to use auto focus
  @function shoot
  */
 static int luaCB_camera_shoot(lua_State * L)
 {
-    LUA_PARAM_INT_OPTIONAL(wait, 1, 64);
-    LUA_PARAM_BOOL_OPTIONAL(should_af, 2, 1);
-    int result = lens_take_picture(wait, should_af);
+    LUA_PARAM_BOOL_OPTIONAL(should_af, 1, 1);
+    int result = take_a_pic(should_af);
     lua_pushinteger(L, result);
     return 1;
 }
 
 /***
+ Take N pictures in burst mode.
+ 
+ Note: your camera must be already in some continuous drive mode,
+ otherwise the speed will be slow.
+ 
+ @tparam int num_pictures how many pictures to take
+ @function burst
+ */
+static int luaCB_camera_burst(lua_State * L)
+{
+    LUA_PARAM_INT(num_pictures, 1);
+    take_fast_pictures(num_pictures);
+    return 0;
+}
+
+/***
  Take a picture in bulb mode
- @tparam int duration bulb duration in seconds
+ @tparam float duration bulb duration in seconds
  @function bulb
  */
 static int luaCB_camera_bulb(lua_State * L)
 {
-    LUA_PARAM_INT(duration, 1);
-    bulb_take_pic(duration);
+    LUA_PARAM_NUMBER(duration, 1);
+    bulb_take_pic(duration * 1000);
     return 0;
 }
 
@@ -680,6 +694,7 @@ static const char * lua_camera_fields[] =
 static const luaL_Reg cameralib[] =
 {
     { "shoot", luaCB_camera_shoot },
+    { "burst", luaCB_camera_burst },
     { "bulb", luaCB_camera_bulb },
     { "reboot", luaCB_camera_reboot },
     { NULL, NULL }

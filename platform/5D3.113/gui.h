@@ -17,7 +17,7 @@
 #define BGMT_TRASH 0xD
 
 #define BGMT_PRESS_DP 0x2f
-#define BGMT_UNPRESS_DP 0x35
+#define BGMT_UNPRESS_DP 0x35    // note: same code as UNPRESS_UDLR
 #define BGMT_RATE 0x21
 #define BGMT_REC 0x1E
 

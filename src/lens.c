@@ -1732,17 +1732,19 @@ LENS_SET_IN_PICSTYLE(color_tone, -4, 4)
 
 void SW1(int v, int wait)
 {
-    //~ int unused;
-    //~ ptpPropButtonSW1(v, 0, &unused);
-    prop_request_change(PROP_REMOTE_SW1, &v, 0);
+    v = COERCE(v, 0, 1);
+    prop_request_change_wait(PROP_REMOTE_SW1, &v, 0, 1000);
+    
+    /* todo: remove the wait argument */
     if (wait) msleep(wait);
 }
 
 void SW2(int v, int wait)
 {
-    //~ int unused;
-    //~ ptpPropButtonSW2(v, 0, &unused);
-    prop_request_change(PROP_REMOTE_SW2, &v, 0);
+    v = COERCE(v, 0, 1);
+    prop_request_change_wait(PROP_REMOTE_SW2, &v, 0, 1000);
+
+    /* todo: remove the wait argument */
     if (wait) msleep(wait);
 }
 

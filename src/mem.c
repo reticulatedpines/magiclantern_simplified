@@ -27,7 +27,7 @@
 #define dbg_printf(fmt,...) {}
 #endif
 
-#define MEM_SEC_ZONE 32
+#define MEM_SEC_ZONE 16
 #define MEMCHECK_ENTRIES 256
 #define HISTORY_ENTRIES 256
 #define TASK_NAME_SIZE 12
@@ -809,6 +809,8 @@ void* __mem_malloc(size_t size, unsigned int flags, const char* file, unsigned i
 
 void __mem_free(void* buf)
 {
+    if (!buf) return;
+
     take_semaphore(mem_sem, 0);
 
     unsigned int ptr = (unsigned int)buf - MEM_SEC_ZONE;
@@ -977,6 +979,7 @@ static void guess_free_mem_task(void* priv, int delta)
     {
         chunkAvail = GetSizeOfMemoryChunk(currentChunk);
         chunkAddress = (void*)GetMemoryAddressOfMemoryChunk(currentChunk);
+        printf("shoot buffer: %x ... %x\n", chunkAddress, chunkAddress + chunkAvail - 1);
 
         int mb = 10*chunkAvail/1024/1024;
         STR_APPEND(shoot_malloc_frag_desc, mb%10 ? "%s%d.%d" : "%s%d", total ? "+" : "", mb/10, mb%10);
@@ -1015,6 +1018,7 @@ static void guess_free_mem_task(void* priv, int delta)
         chunkAvail = GetSizeOfMemoryChunk(currentChunk);
         chunkAddress = (void*)GetMemoryAddressOfMemoryChunk(currentChunk);
         ASSERT(chunkAvail == srm_buffer_size);
+        printf("srm buffer: %x ... %x\n", chunkAddress, chunkAddress + chunkAvail - 1);
 
         int start = MEMORY_MAP_ADDRESS_TO_INDEX(chunkAddress);
         int width = MEMORY_MAP_ADDRESS_TO_INDEX(chunkAvail);

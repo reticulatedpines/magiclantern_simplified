@@ -1,8 +1,10 @@
--- take a screenshot every time a key is pressed
+-- Screenshot on Keypress
+-- take a screenshot every time a key is pressed.
 
 scrnshot_menu = menu.new
 {
-    name    = "Screenshot on Keypress",
+    parent  = "Screenshot on Keypress",
+    name    = "Enabled",
     choices = { "OFF", "ON" },
     value   = "OFF",
     help    = "Take a screenshot every time a key is pressed",

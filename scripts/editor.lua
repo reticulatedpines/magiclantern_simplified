@@ -1,4 +1,6 @@
--- a text editor
+-- Text Editor
+-- Edit text files or debug Lua scripts
+
 require("keys")
 require("logger")
 
@@ -477,23 +479,6 @@ table.sort(editor.menu[4].items)
 
 editor.lines_per_page = (display.height - 20 - FONT.LARGE.height) / editor.font.height / 2
 editor.scrollbar = scrollbar.create(editor.font.height,1,1,display.width - 2,20 + FONT.LARGE.height,2)
-
-editor.mlmenu = menu.new
-{
-    name = "Text Editor",
-    help = "Edit text files or debug Lua scripts",
-    icon_type = ICON_TYPE.ACTION,
-    select = function(this)
-        task.create(function() editor:run() end)
-    end,
-    update = function(this)
-        if editor.filename ~= nil then
-            return editor.filename
-        else
-            return ""
-        end
-    end
-}
 
 -- The main program loop
 function editor:run()
@@ -1219,3 +1204,5 @@ function handle_error(error)
     log:close()
     keys:anykey()
 end
+
+editor:run()

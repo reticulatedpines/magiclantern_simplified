@@ -148,6 +148,25 @@ static int luaCB_dryos_remove(lua_State * L)
     return 1;
 }
 
+/***
+ Renames/moves a file on the card (or between cards).
+ @tparam string filename
+ @treturn bool success
+ @function rename
+ */
+static int luaCB_dryos_rename(lua_State * L)
+{
+    LUA_PARAM_STRING(src, 1);
+    LUA_PARAM_STRING(dst, 2);
+    int err = FIO_RenameFile(src, dst);
+    if (err)
+    {
+        err = FIO_MoveFile(src, dst);
+    }
+    lua_pushboolean(L, err == 0);
+    return 1;
+}
+
 static void setfield (lua_State *L, const char *key, int value) {
     lua_pushinteger(L, value);
     lua_setfield(L, -2, key);
@@ -496,6 +515,7 @@ const luaL_Reg dryoslib[] =
     {"call", luaCB_dryos_call},
     {"directory", luaCB_dryos_directory},
     {"remove", luaCB_dryos_remove},
+    {"rename", luaCB_dryos_rename},
     {NULL, NULL}
 };
 
