@@ -221,6 +221,9 @@ LUA_CBR_FUNC(vsync_setparam)
 static struct script_event_entry * keypress_cbr_scripts = NULL;
 static unsigned int lua_keypress_cbr(unsigned int ctx)
 {
+    /* ignore unknown button codes */
+    if (!ctx) return 1;
+    
     last_keypress = ctx;
     //keypress cbr interprets things backwards from other CBRs
     return lua_do_cbr(ctx, keypress_cbr_scripts, "keypress", 500, CBR_RET_KEYPRESS_NOTHANDLED, CBR_RET_KEYPRESS_HANDLED);
