@@ -78,6 +78,8 @@ struct lens_info
         int                     dof_diffraction_blur;   /* fixme: move those near other DOF fields on next API update */
         //~ float                   lens_rotation;
         //~ float                   lens_step;
+        int                     focus_pos;              /* fine steps, starts at 0, range is lens-dependent,
+                                                         * only updates when motor moves (will lose position during MF) */
 };
 
 extern struct lens_info lens_info;
@@ -148,7 +150,8 @@ struct prop_lv_lens
         uint32_t                off_0x14;
         uint32_t                off_0x18;
         uint32_t                off_0x1c;
-        uint32_t                off_0x20;
+        int16_t                 focus_pos;  /* see lens_info.focus_pos */
+        uint16_t                off_0x22;
         uint32_t                off_0x24;
         uint32_t                off_0x28;
         uint16_t                focal_len;      // off_0x2c;

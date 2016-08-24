@@ -1511,20 +1511,26 @@ static void focus_ring_powersave_fix()
 PROP_HANDLER( PROP_LV_LENS )
 {
     const struct prop_lv_lens * const lv_lens = (void*) buf;
-    lens_info.focal_len    = bswap16( lv_lens->focal_len );
+    lens_info.focal_len     = bswap16( lv_lens->focal_len );
     lens_info.focus_dist    = bswap16( lv_lens->focus_dist );
+    lens_info.focus_pos     = (int16_t) bswap16( lv_lens->focus_pos );
     
     if (lens_info.focal_len > 1000) // bogus values
         lens_info.focal_len = 0;
 
     //~ uint32_t lrswap = SWAP_ENDIAN(lv_lens->lens_rotation);
     //~ uint32_t lsswap = SWAP_ENDIAN(lv_lens->lens_step);
-
     //~ lens_info.lens_rotation = *((float*)&lrswap);
     //~ lens_info.lens_step = *((float*)&lsswap);
+    
     static unsigned old_focus_dist = 0;
+    static int      old_focus_pos = 0;
     static unsigned old_focal_len = 0;
-    if (lv && (old_focus_dist && lens_info.focus_dist != old_focus_dist) && (old_focal_len && lens_info.focal_len == old_focal_len))
+    int focus_dist_changed = (old_focus_dist && lens_info.focus_dist != old_focus_dist);
+    int focus_pos_changed = (lens_info.focus_pos != old_focus_pos);
+    int lens_not_zoomed = (old_focal_len && lens_info.focal_len == old_focal_len);
+
+    if (lv && lens_not_zoomed && (focus_pos_changed || focus_dist_changed))
     {
         #ifdef FEATURE_MAGIC_ZOOM
         if (get_zoom_overlay_trigger_by_focus_ring()) zoom_overlay_set_countdown(300);
@@ -1539,6 +1545,7 @@ PROP_HANDLER( PROP_LV_LENS )
         #endif
     }
     old_focus_dist = lens_info.focus_dist;
+    old_focus_pos = lens_info.focus_pos;
     old_focal_len = lens_info.focal_len;
     update_stuff();
 }
