@@ -2386,7 +2386,7 @@ read_headers:
                         if(dng_output)
                         {
                             void fix_vertical_stripes();
-                            void find_and_fix_cold_pixels(int fix, int framenumber);
+                            void find_and_fix_cold_pixels();
                             extern struct raw_info raw_info;
 
                             int frame_filename_len = strlen(output_filename) + 32;
@@ -2421,7 +2421,11 @@ read_headers:
 
                             /* call raw2dng code */
                             fix_vertical_stripes();
-                            find_and_fix_cold_pixels(fix_cold_pixels, block_hdr.frameNumber);
+                            
+                            if (fix_cold_pixels)
+                            {
+                                find_and_fix_cold_pixels();
+                            }
 
                             /* this is internal again */
                             chroma_smooth(chroma_smooth_method, &raw_info);

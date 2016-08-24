@@ -40,10 +40,8 @@ struct raw_info raw_info;
 #define CHECK(ok, fmt,...) { if (!(ok)) FAIL(fmt, ## __VA_ARGS__); }
 
 void fix_vertical_stripes();
-void find_and_fix_cold_pixels(int fix, int framenumber);
+void find_and_fix_cold_pixels();
 void chroma_smooth();
-
-int fix_cold_pixels = 1; //1=fix cold pixels, 0=disable
 
 #define EV_RESOLUTION 32768
 
@@ -142,7 +140,7 @@ int main(int argc, char** argv)
         snprintf(fn, sizeof(fn), "%s%06d.dng", prefix, framenumber);
 
         fix_vertical_stripes();
-        find_and_fix_cold_pixels(fix_cold_pixels, framenumber);
+        find_and_fix_cold_pixels();
 
         #ifdef CHROMA_SMOOTH
         chroma_smooth();
@@ -547,26 +545,21 @@ static inline int FC(int row, int col)
 }
 
 
-void find_and_fix_cold_pixels(int fix, int framenumber)
+void find_and_fix_cold_pixels()
 {
     #define MAX_COLD_PIXELS 200000
   
     struct xy { int x; int y; };
     
     static struct xy cold_pixel_list[MAX_COLD_PIXELS];
-    static int cold_pixels = 0;
+    static int cold_pixels = -1;
     
     int w = raw_info.width;
     int h = raw_info.height;
     int bad_frame;
     int x,y;
     
-    if ( !fix )
-    {
-        return;
-    }
-    
-    if ( framenumber == 0 ) /*only on the very first frame*/
+    if ( cold_pixels < 0 ) /*only on the very first frame*/
     {
         cold_pixels = 0;
 
