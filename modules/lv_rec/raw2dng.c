@@ -562,13 +562,16 @@ void find_and_fix_cold_pixels(int force_analysis)
     if ( cold_pixels < 0 || force_analysis) /*only on the very first frame, or on request*/
     {
         cold_pixels = 0;
+        
+        /* at sane ISOs, noise stdev is well less than 50, so 200 should be enough */
+        int cold_thr = MAX(0, raw_info.black_level - 200);
 
         for (y = 6; y < h-6; y ++) /*analyse the pixels of the frame*/
         {
             for (x = 6; x < w-6; x ++)
             {
                 int p = raw_get_pixel(x, y);
-                int is_cold = (p < raw_info.black_level - 500);
+                int is_cold = (p < cold_thr);
 
                 if (is_cold && cold_pixels < MAX_COLD_PIXELS) /*generate a list containing the cold pixels*/
                 {
