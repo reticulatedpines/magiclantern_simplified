@@ -166,7 +166,7 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
  * Second set has bad pixels (easy to correct), but no vertical stripes (to be tested)
  * note: values are off by 1
  */
-#define PREFERRED_RAW_TYPE 4
+#define PREFERRED_RAW_TYPE 8
 #define RAW_TYPE_ADDRESS 0x2D168
 #endif
 
