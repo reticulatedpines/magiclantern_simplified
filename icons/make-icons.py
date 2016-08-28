@@ -54,6 +54,15 @@ for n,i in enumerate(icons):
     if i=='Q-back.png':
         icons_100D[n]='Av-back.png'
 
+# the 500D has no Q button, instead the LiveView button has the same functionality
+icons_500D = copy.deepcopy(icons)
+# exchange only 500D model specific icons
+for n,i in enumerate(icons):
+    if i=='Q-forward.png':
+        icons_500D[n]='LiveView-forward.png'
+
+    if i=='Q-back.png':
+        icons_500D[n]='LiveView-back.png'
 
 # the 50D has no Q button, instead the FUNC button has the same functionality
 icons_50D = copy.deepcopy(icons)
@@ -197,6 +206,7 @@ def build_files(icon_lists):
 icon_lists = [
         (icons,         "all",  None),
         (icons_100D,    "100D", "CONFIG_100D"),
+        (icons_500D,    "500D", "CONFIG_500D"),
         (icons_50D,     "50D",  "CONFIG_50D"),
         (icons_5D2,     "5D2",  "CONFIG_5D2"),
         (icons_lowres,  "low",  "CONFIG_LOW_RESOLUTION_DISPLAY"),

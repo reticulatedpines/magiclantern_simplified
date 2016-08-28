@@ -84,7 +84,7 @@ int display_idle()
     extern thunk ShootOlcApp_handler;
     if (lv) return liveview_display_idle();
     else return gui_state == GUISTATE_IDLE && !gui_menu_shown() &&
-        ((!DISPLAY_IS_ON && CURRENT_DIALOG_MAYBE == 0) || (intptr_t)get_current_dialog_handler() == (intptr_t)&ShootOlcApp_handler);
+        ((!DISPLAY_IS_ON && CURRENT_GUI_MODE == 0) || (intptr_t)get_current_dialog_handler() == (intptr_t)&ShootOlcApp_handler);
 }
 
 int uniwb_is_active() 
@@ -1088,6 +1088,31 @@ void move_lv_afframe(int dx, int dy)
     }
     
 #endif
+}
+
+int handle_lv_afframe_workaround(struct event * event)
+{
+    /* allow moving AF frame (focus box) when Canon blocks it */
+    /* most cameras will block the focus box keys in Manual Focus mode while recording */
+    /* 6D seems to block them always in MF, https://bitbucket.org/hudson/magic-lantern/issue/1816/cant-move-focus-box-on-6d */
+    if (
+        #if !defined(CONFIG_6D) /* others? */
+        RECORDING_H264 &&
+        #endif
+        liveview_display_idle() &&
+        is_manual_focus() &&
+    1)
+    {
+        if (event->param == BGMT_PRESS_LEFT)
+            { move_lv_afframe(-300, 0); return 0; }
+        if (event->param == BGMT_PRESS_RIGHT)
+            { move_lv_afframe(300, 0); return 0; }
+        if (event->param == BGMT_PRESS_UP)
+            { move_lv_afframe(0, -300); return 0; }
+        if (event->param == BGMT_PRESS_DOWN)
+            { move_lv_afframe(0, 300); return 0; }
+    }
+    return 1;
 }
 
 static struct semaphore * set_maindial_sem = 0;
@@ -2452,7 +2477,7 @@ int handle_zoom_x5_x10(struct event * event)
     if (get_disp_pressed()) return 1;
     #endif
     
-    if (event->param == BGMT_PRESS_ZOOMIN_MAYBE && liveview_display_idle() && !gui_menu_shown())
+    if (event->param == BGMT_PRESS_ZOOM_IN && liveview_display_idle() && !gui_menu_shown())
     {
         set_lv_zoom(lv_dispsize > 1 ? 1 : zoom_disable_x5 ? 10 : 5);
         return 0;
@@ -5116,7 +5141,7 @@ void enter_play_mode()
     if (PLAY_MODE) return;
     
     /* request new mode */
-    SetGUIRequestMode(DLG_PLAY);
+    SetGUIRequestMode(GUIMODE_PLAY);
 
     /* wait up to 2 seconds to enter the PLAY mode */
     for (int i = 0; i < 20 && !PLAY_MODE; i++)

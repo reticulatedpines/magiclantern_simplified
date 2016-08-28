@@ -25,9 +25,8 @@ extern WEAK_FUNC(ret_0) void playback_compare_images_task(int direction);
 #define DISPLAY_IS_ON display_is_on()
 #define PLAY_MODE is_play_mode()
 #define MENU_MODE is_menu_mode()
-#define DLG_SIGNATURE get_dlg_signature()
 #define HALFSHUTTER_PRESSED get_halfshutter_pressed()
-#define CURRENT_DIALOG_MAYBE get_gui_mode()
+#define CURRENT_GUI_MODE get_gui_mode()
 
 /* button codes */
 static int BGMT_PLAY;
@@ -507,13 +506,13 @@ static void stub_test_task(void* arg)
         TEST_VOID(call("TurnOnDisplay"));
         TEST_FUNC_CHECK(DISPLAY_IS_ON, != 0);
 
-        // SetGUIRequestMode, CURRENT_DIALOG_MAYBE
+        // SetGUIRequestMode, CURRENT_GUI_MODE
         TEST_VOID(SetGUIRequestMode(1); msleep(1000););
-        TEST_FUNC_CHECK(CURRENT_DIALOG_MAYBE, == 1);
+        TEST_FUNC_CHECK(CURRENT_GUI_MODE, == 1);
         TEST_VOID(SetGUIRequestMode(2); msleep(1000););
-        TEST_FUNC_CHECK(CURRENT_DIALOG_MAYBE, == 2);
+        TEST_FUNC_CHECK(CURRENT_GUI_MODE, == 2);
         TEST_VOID(SetGUIRequestMode(0); msleep(1000););
-        TEST_FUNC_CHECK(CURRENT_DIALOG_MAYBE, == 0);
+        TEST_FUNC_CHECK(CURRENT_GUI_MODE, == 0);
         TEST_FUNC_CHECK(display_idle(), != 0);
 
         // GUI_Control
@@ -525,10 +524,10 @@ static void stub_test_task(void* arg)
         TEST_FUNC_CHECK(MENU_MODE, != 0);
         TEST_FUNC_CHECK(PLAY_MODE, == 0);
 
-        // also check DLG_SIGNATURE here, because display is on for sure
+        // also check dialog signature here, because display is on for sure
         struct gui_task * current = gui_task_list.current;
         struct dialog * dialog = current->priv;
-        TEST_FUNC_CHECK(MEM(dialog->type), == DLG_SIGNATURE);
+        TEST_FUNC_CHECK_STR(dialog->type, "DIALOG");
 
         TEST_VOID(GUI_Control(BGMT_MENU, 0, 0, 0); msleep(500););
         TEST_FUNC_CHECK(MENU_MODE, == 0);
@@ -718,7 +717,7 @@ static void stress_test_task(void* unused)
             case 3: fake_simple_button(BGMT_WHEEL_DOWN); break;
             case 4: fake_simple_button(BGMT_INFO); break;
             case 5: fake_simple_button(BGMT_MENU); break;
-            //~ case 6: fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); break;
+            //~ case 6: fake_simple_button(BGMT_PRESS_ZOOM_IN); break;
         }
         dir = MOD(dir + rand()%3 - 1, 7);
         msleep(20);

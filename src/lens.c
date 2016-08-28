@@ -675,7 +675,7 @@ int mlu_lock_mirror_if_needed() // called by lens_take_picture; returns 0 if suc
     if (drive_mode == DRIVE_SELFTIMER_2SEC || drive_mode == DRIVE_SELFTIMER_REMOTE || drive_mode == DRIVE_SELFTIMER_CONTINUOUS)
         return 0;
     
-    if (get_mlu() && CURRENT_DIALOG_MAYBE)
+    if (get_mlu() && CURRENT_GUI_MODE)
     {
         SetGUIRequestMode(0);
         int iter = 20;

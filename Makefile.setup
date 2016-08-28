@@ -63,13 +63,21 @@ CFLAGS +=\
 	-Wdouble-promotion \
 	-ffast-math \
 	-fsingle-precision-constant \
-	-fshort-double \
 	-fno-builtin-printf \
 	-std=gnu99 \
 	-Winline \
 	-I$(PLATFORM_INC) \
 	-I$(PLATFORM_INC)/include \
 	-I$(SRC_DIR) \
+
+# The short-double flag is removed in GCC 6+
+GCC_DUMPVERSION := $(shell ${CC} -dumpversion)
+ifneq (,$(findstring GCC-4,GCC-$(GCC_DUMPVERSION)))
+CFLAGS += -fshort-double
+endif
+ifneq (,$(findstring GCC-5,GCC-$(GCC_DUMPVERSION)))
+CFLAGS += -fshort-double
+endif
 
 
 NOT_USED_FLAGS=\
@@ -127,7 +135,10 @@ AFLAGS += $(AFLAG_USER)
 install_prepare:
 	$(INSTALL_PREPARE)
 
-.PHONY: install_prepare
+install_finish:
+	$(INSTALL_FINISH)
+
+.PHONY: install_prepare install_finish
 
 prepare_install_dir: install_prepare
 	@echo "[ MKDIR    ]   ML directory structure..."

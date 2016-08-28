@@ -91,7 +91,7 @@ Image size:  5496 x 3670
 Output size: 5496 x 3670
 */
 
-#define CURRENT_DIALOG_MAYBE (*(int*)0x7768C)
+#define CURRENT_GUI_MODE (*(int*)0x7768C)
 
 //For Scroll Wheels
 //~ #define LV_BOTTOM_BAR_DISPLAYED (lv_disp_mode)
@@ -116,23 +116,23 @@ Output size: 5496 x 3670
 #define MVR_BUFFER_USAGE MVR_BUFFER_USAGE_FRAME + MVR_BUFFER_USAGE_SOUND
 
 #define MVR_FRAME_NUMBER  (*(int*)(0x1FC + MVR_516_STRUCT)) // in mvrExpStarted
-#define MVR_BYTES_WRITTEN (*(int*)(0xb0 + MVR_516_STRUCT))  //Not sure where to find but works.
-//~ #define MVR_BYTES_WRITTEN (*(int*)(0x1A4 + MVR_516_STRUCT)) //%s : End(%d) (%5dKB/S)
+#define MVR_BYTES_WRITTEN MEM((0xb0 + MVR_516_STRUCT))  //Not sure where to find but works.
+//~ #define MVR_BYTES_WRITTEN MEM((0x1A4 + MVR_516_STRUCT)) //%s : End(%d) (%5dKB/S)
 
 #define AE_STATE (*(int8_t*)(0x7F5A4 + 0x1C)) 
 #define AE_VALUE (*(int8_t*)(0x7F5A4 + 0x1D))
 
-#define DLG_PLAY 1
-#define DLG_MENU 2
+#define GUIMODE_PLAY 1
+#define GUIMODE_MENU 2
 
-#define DLG_FOCUS_MODE 0x123456
+#define GUIMODE_FOCUS_MODE 0x123456
 
-#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_DIALOG_MAYBE == 0x24)
-#define DLG_MOVIE_PRESS_LV_TO_RESUME (CURRENT_DIALOG_MAYBE == 0x25)
+#define GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_GUI_MODE == 0x24)
+#define GUIMODE_MOVIE_PRESS_LV_TO_RESUME (CURRENT_GUI_MODE == 0x25)
 
 
-#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
-#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
+#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_PLAY)
+#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_MENU)
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xC0220174) & 1)) //NE((*0xC0220174 & 0x1)):
 #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x74C94 
@@ -213,7 +213,6 @@ Output size: 5496 x 3670
 #define BFNT_BITMAP_DATA   0xf036ca58
 
 // todo 6D.116
-#define DLG_SIGNATURE 0x6e6144  //~ look in stubs api stability test log: [Pass] MEM(dialog->type) => 0x6e6144
 
 // from CFn
 #define AF_BTN_HALFSHUTTER 0
@@ -291,6 +290,6 @@ Output size: 5496 x 3670
 #define CONFIG_AUDIO_IC_QUEUED 1
 // temperature convertion from raw-temperature to celsius
 // http://www.magiclantern.fm/forum/index.php?topic=9673.0
-#define EFIC_CELSIUS ((int)efic_temp * 85 / 100 - 102)
+#define EFIC_CELSIUS ((int)efic_temp * 80 / 100 - 93)
 
 #define JUDGE_BOTTOM_INFO_DISP_TIMER_STATE  0x84210

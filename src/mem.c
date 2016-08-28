@@ -59,6 +59,7 @@ extern void* _shoot_malloc( size_t len );
 extern void  _shoot_free( void * buf );
 
 /* wrappers for the selftest module, not to be used in other code */
+#ifndef CONFIG_INSTALLER
 void* __priv_malloc(size_t size)           { return _malloc(size);           }
 void  __priv_free(void* ptr)               { _free(ptr);                     }
 void* __priv_AllocateMemory(size_t size)   { return _AllocateMemory(size);   }
@@ -67,6 +68,7 @@ void* __priv_alloc_dma_memory(size_t size) { return _alloc_dma_memory(size); }
 void  __priv_free_dma_memory(void* ptr)    { _free_dma_memory(ptr);          }
 void* __priv_shoot_malloc(size_t size)     { return _shoot_malloc(size);     }
 void  __priv_shoot_free(void* ptr)         { _shoot_free(ptr);               }
+#endif
 
 static struct semaphore * mem_sem = 0;
 

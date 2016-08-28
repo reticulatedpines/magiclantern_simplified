@@ -72,6 +72,7 @@ ML_OBJS-y = \
 	magiclantern.lds \
 	$(ML_ENTRY_OBJ) \
 	minimal.o \
+	font_direct.o \
 	$(PLATFORM_DIR)/stubs.o
 
 else ifeq ($(ML_SRC_PROFILE),installer)
@@ -218,6 +219,7 @@ autoexec: $(ML_SRC_REBOOT_OBJ)
 	$(call build,LD,$(LD) \
 		-o $@ \
 		-e _start \
+		-N \
 		-Ttext $(AUTOEXEC_BASE) \
 		$^ \
 		--cref \
@@ -229,6 +231,7 @@ autoexec-fir: $(ML_SRC_REBOOT_OBJ)
 	$(call build,LD,$(LD) \
 		-o $@ \
 		-e _start \
+		-N \
 		-Ttext $(FIR_BASE) \
 		$^ \
 		--cref \
