@@ -566,9 +566,9 @@ void find_and_fix_cold_pixels(int force_analysis)
         int cold_thr = MAX(0, raw_info.black_level - 200);
 
         /* analyse all pixels of the frame */
-        for (int y = 6; y < h-6; y++)
+        for (int y = 0; y < h; y++)
         {
-            for (int x = 6; x < w-6; x++)
+            for (int x = 0; x < w; x++)
             {
                 int p = raw_get_pixel(x, y);
                 int is_cold = (p < cold_thr);
@@ -602,6 +602,12 @@ void find_and_fix_cold_pixels(int force_analysis)
             {
                 /* exclude the cold pixel itself from the examination */
                 if (i == 0 && j == 0)
+                {
+                    continue;
+                }
+
+                /* exclude out-of-range coords */
+                if (x+j < 0 || x+j >= w || y+i < 0 || y+i >= h)
                 {
                     continue;
                 }
