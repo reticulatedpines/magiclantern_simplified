@@ -556,63 +556,69 @@ void find_and_fix_cold_pixels(int force_analysis)
     
     int w = raw_info.width;
     int h = raw_info.height;
-    int bad_frame;
-    int x,y;
     
-    if ( cold_pixels < 0 || force_analysis) /*only on the very first frame, or on request*/
+    /* scan for bad pixels in the first frame only, or on request*/
+    if (cold_pixels < 0 || force_analysis)
     {
         cold_pixels = 0;
         
         /* at sane ISOs, noise stdev is well less than 50, so 200 should be enough */
         int cold_thr = MAX(0, raw_info.black_level - 200);
 
-        for (y = 6; y < h-6; y ++) /*analyse the pixels of the frame*/
+        /* analyse all pixels of the frame */
+        for (int y = 6; y < h-6; y++)
         {
-            for (x = 6; x < w-6; x ++)
+            for (int x = 6; x < w-6; x++)
             {
                 int p = raw_get_pixel(x, y);
                 int is_cold = (p < cold_thr);
 
-                if (is_cold && cold_pixels < MAX_COLD_PIXELS) /*generate a list containing the cold pixels*/
+                /* create a list containing the cold pixels */
+                if (is_cold && cold_pixels < MAX_COLD_PIXELS)
                 {
                     cold_pixel_list[cold_pixels].x = x;
                     cold_pixel_list[cold_pixels].y = y;
-                    cold_pixels++; /*number of the detected cold pixels*/
+                    cold_pixels++;
                 }
             }
         }
-        printf("\rCold pixels : %d                             \n", (cold_pixels));
+        printf("\rCold pixels : %d\n", (cold_pixels));
     }  
 
-    for (bad_frame = 0; bad_frame < cold_pixels; bad_frame++) /*repair the cold pixels*/
+    /* repair the cold pixels */
+    for (int p = 0; p < cold_pixels; p++)
     {
-        x = cold_pixel_list[bad_frame].x;
-        y = cold_pixel_list[bad_frame].y;
+        int x = cold_pixel_list[p].x;
+        int y = cold_pixel_list[p].y;
       
         int neighbours[100];
-        int i,j;
         int k = 0;
         int fc0 = FC(x, y);
 
-        for (i = -4; i <= 4; i++) /*examine the neighbours of the cold pixel*/
+        /* examine the neighbours of the cold pixel */
+        for (int i = -4; i <= 4; i++)
         {
-            for (j = -4; j <= 4; j++)
+            for (int j = -4; j <= 4; j++)
             {
-                if (i == 0 && j == 0) /* exclude the cold pixel itself from the examination*/
+                /* exclude the cold pixel itself from the examination */
+                if (i == 0 && j == 0)
                 {
                     continue;
                 }
-                        
-                if (FC(x+j, y+i) != fc0) /*examine only the neighbours, which have the same colour, the cold pixel should have*/
+                
+                /* examine only the neighbours of the same color */
+                if (FC(x+j, y+i) != fc0)
                 {
                     continue;
                 }
 
                 int p = raw_get_pixel(x+j, y+i);
                 neighbours[k++] = -p;
-                }
+            }
         }
-        raw_set_pixel(x, y, -median_int_wirth(neighbours, k)); /*replace the cold pixel with the median of the neighbours*/
+        
+        /* replace the cold pixel with the median of the neighbours */
+        raw_set_pixel(x, y, -median_int_wirth(neighbours, k));
     }
     
 }
