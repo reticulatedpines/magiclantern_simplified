@@ -261,7 +261,7 @@ static void add_pixel(int hist[8][FIXP_RANGE], int num[8], int offset, int pa, i
     if (MIN(a,b) < 32)
         return; /* too noisy */
 
-    if (MAX(a,b) > raw_info.white_level / 1.5)
+    if (MAX(a,b) > raw_info.white_level / 1.1)
         return; /* too bright */
         
     /**
@@ -296,30 +296,39 @@ static void detect_vertical_stripes_coeffs()
     memset(hist, 0, sizeof(hist));
     memset(num, 0, sizeof(num));
 
-    /* compute 8 little histograms */
+    /* compute 7 histograms: b./a, c./a ... h./a */
+    /* that is, adjust all columns to make them as bright as a */
+    /* process green pixels only, assuming the image is RGGB */
     struct raw_pixblock * row;
-    for (row = raw_info.buffer; (void*)row < (void*)raw_info.buffer + raw_info.pitch * raw_info.height; row += raw_info.pitch / sizeof(struct raw_pixblock))
+    for (row = raw_info.buffer; (void*)row < (void*)raw_info.buffer + raw_info.pitch * raw_info.height; row += 2 * raw_info.pitch / sizeof(struct raw_pixblock))
     {
-        struct raw_pixblock * p;
-        for (p = row; (void*)p < (void*)row + raw_info.pitch - sizeof(struct raw_pixblock);)
+        /* first line is RG */
+        struct raw_pixblock * rg;
+        for (rg = row; (void*)rg < (void*)row + raw_info.pitch - sizeof(struct raw_pixblock); rg++)
         {
-            int pa = PA - raw_info.black_level;
+            /* next line is GB */
+            struct raw_pixblock * gb = rg + raw_info.pitch / sizeof(struct raw_pixblock);
+
+            struct raw_pixblock * p = rg;
             int pb = PB - raw_info.black_level;
-            int pc = PC - raw_info.black_level;
             int pd = PD - raw_info.black_level;
-            int pe = PE - raw_info.black_level;
             int pf = PF - raw_info.black_level;
-            int pg = PG - raw_info.black_level;
             int ph = PH - raw_info.black_level;
             p++;
-            int pa2 = PA - raw_info.black_level;
             int pb2 = PB - raw_info.black_level;
-            //~ int pc2 = PC - raw_info.black_level;
-            //~ int pd2 = PD - raw_info.black_level;
-            //~ int pe2 = PE - raw_info.black_level;
-            //~ int pf2 = PF - raw_info.black_level;
-            //~ int pg2 = PG - raw_info.black_level;
-            //~ int ph2 = PH - raw_info.black_level;
+            int pd2 = PD - raw_info.black_level;
+            int pf2 = PF - raw_info.black_level;
+            int ph2 = PH - raw_info.black_level;
+            p = gb;
+            //int pa = PA - raw_info.black_level;
+            int pc = PC - raw_info.black_level;
+            int pe = PE - raw_info.black_level;
+            int pg = PG - raw_info.black_level;
+            p++;
+            int pa2 = PA - raw_info.black_level;
+            int pc2 = PC - raw_info.black_level;
+            int pe2 = PE - raw_info.black_level;
+            int pg2 = PG - raw_info.black_level;
             
             /**
              * verification: introducing strong banding in one column
@@ -330,40 +339,20 @@ static void detect_vertical_stripes_coeffs()
             //~ pe2 = pe2 * 1.1;
             
             /**
-             * weight according to distance between corrected and reference pixels
-             * e.g. pc is 2px away from pa, but 6px away from pa2, so pa/pc gets stronger weight than pa2/p3
-             * the improvement is visible in horizontal gradients
+             * Make all columns as bright as a2
+             * use linear interpolation, so when processing column b, for example,
+             * let bi = (b * 1 + b2 * 7) / (7+1)
+             * let ei = (e * 4 + e2 * 4) / (4+4)
+             * and so on, to avoid getting tricked by smooth gradients.
              */
-            
-            add_pixel(hist, num, 2, pa, pc);
-            add_pixel(hist, num, 2, pa, pc);
-            add_pixel(hist, num, 2, pa, pc);
-            add_pixel(hist, num, 2, pa2, pc);
 
-            add_pixel(hist, num, 3, pb, pd);
-            add_pixel(hist, num, 3, pb, pd);
-            add_pixel(hist, num, 3, pb, pd);
-            add_pixel(hist, num, 3, pb2, pd);
-
-            add_pixel(hist, num, 4, pa, pe);
-            add_pixel(hist, num, 4, pa, pe);
-            add_pixel(hist, num, 4, pa2, pe);
-            add_pixel(hist, num, 4, pa2, pe);
-
-            add_pixel(hist, num, 5, pb, pf);
-            add_pixel(hist, num, 5, pb, pf);
-            add_pixel(hist, num, 5, pb2, pf);
-            add_pixel(hist, num, 5, pb2, pf);
-
-            add_pixel(hist, num, 6, pa, pg);
-            add_pixel(hist, num, 6, pa2, pg);
-            add_pixel(hist, num, 6, pa2, pg);
-            add_pixel(hist, num, 6, pa2, pg);
-
-            add_pixel(hist, num, 7, pb, ph);
-            add_pixel(hist, num, 7, pb2, ph);
-            add_pixel(hist, num, 7, pb2, ph);
-            add_pixel(hist, num, 7, pb2, ph);
+            add_pixel(hist, num, 1, pa2, (pb * 1 + pb2 * 7) / 8);
+            add_pixel(hist, num, 2, pa2, (pc * 2 + pc2 * 6) / 8);
+            add_pixel(hist, num, 3, pa2, (pd * 3 + pd2 * 5) / 8);
+            add_pixel(hist, num, 4, pa2, (pe * 4 + pe2 * 4) / 8);
+            add_pixel(hist, num, 5, pa2, (pf * 5 + pf2 * 3) / 8);
+            add_pixel(hist, num, 6, pa2, (pg * 6 + pg2 * 2) / 8);
+            add_pixel(hist, num, 7, pa2, (ph * 7 + ph2 * 1) / 8);
         }
     }
 
@@ -413,12 +402,12 @@ static void detect_vertical_stripes_coeffs()
         fprintf(f, "plot(log2(%d/%d) + [0 0], [0 %d], ['*-' c(%d)]); hold on;\n", stripes_coeffs[j], FIXP_ONE, max[j], j-1);
     }
     fprintf(f, "for i = 1:6, plot(x{i}, h{i}, c(i)); hold on; end;");
+    fprintf(f, "axis([-0.05 0.05])");
     fclose(f);
-    system("octave --persist raw2dng.m");
+    system("octave-cli --persist raw2dng.m");
 #endif
 
     stripes_coeffs[0] = FIXP_ONE;
-    stripes_coeffs[1] = FIXP_ONE;
 
     /* do we really need stripe correction, or it won't be noticeable? or maybe it's just computation error? */
     stripes_correction_needed = 0;
@@ -435,7 +424,7 @@ static void detect_vertical_stripes_coeffs()
         for (j = 0; j < 8; j++)
         {
             if (stripes_coeffs[j])
-                printf("  %.3f", (double)stripes_coeffs[j] / FIXP_ONE);
+                printf("  %.5f", (double)stripes_coeffs[j] / FIXP_ONE);
             else
                 printf("    1  ");
         }
