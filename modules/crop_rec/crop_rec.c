@@ -1513,8 +1513,22 @@ static LVINFO_UPDATE_FUNC(crop_info)
 
     if (crop_rec_needs_lv_refresh())
     {
-        STR_APPEND(buffer, " " SYM_WARNING);
-        item->color_fg = COLOR_YELLOW;
+        if (is_supported_mode())
+        {
+            if (!patch_active || crop_preset_menu != crop_preset)
+            {
+                STR_APPEND(buffer, " " SYM_WARNING);
+                item->color_fg = COLOR_YELLOW;
+            }
+        }
+    }
+    else /* crop disabled */
+    {
+        if (patch_active)
+        {
+            STR_APPEND(buffer, " " SYM_WARNING);
+            item->color_fg = COLOR_YELLOW;
+        }
     }
 }
 
