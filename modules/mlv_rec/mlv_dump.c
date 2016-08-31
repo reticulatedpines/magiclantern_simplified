@@ -1479,14 +1479,6 @@ int main (int argc, char *argv[])
                     print_msg(MSG_INFO, "   - Also average the images in horizontal direction to extract horizontal banding\n");
                 }
             }
-            if(subtract_mode)
-            {
-                print_msg(MSG_INFO, "   - Subtract reference frame '%s' from single images\n", subtract_filename);
-            }
-            if(flatfield_mode)
-            {
-                print_msg(MSG_INFO, "   - Flat-field reference frame '%s'\n", flatfield_filename);
-            }
             if(extract_block)
             {
                 print_msg(MSG_INFO, "   - But only write '%s' blocks\n", extract_block);
@@ -1495,6 +1487,15 @@ int main (int argc, char *argv[])
             {
                 print_msg(MSG_INFO, "   - Inject data from '%s'\n", inject_filename);
             }
+        }
+
+        if(subtract_mode)
+        {
+            print_msg(MSG_INFO, "   - Subtract reference frame '%s'\n", subtract_filename);
+        }
+        if(flatfield_mode)
+        {
+            print_msg(MSG_INFO, "   - Flat-field reference frame '%s'\n", flatfield_filename);
         }
 
         print_msg(MSG_INFO, "   - Output into '%s'\n", output_filename);
@@ -1614,6 +1615,7 @@ int main (int argc, char *argv[])
     /* this block will load an image from a MLV file, so use its reported frame size for future use */
     if(subtract_mode)
     {
+        printf("Loading subtract (dark) frame '%s'\n", flatfield_filename);
         int ret = load_frame(subtract_filename, &frame_sub_buffer, &subtract_frame_buffer_size);
 
         if(ret)
@@ -2211,7 +2213,7 @@ read_headers:
 
                                 value -= sub_value;
                                 value += lv_rec_footer.raw_info.black_level; /* should we really add it here? or better subtract it from averaged frame? */
-                                value = COERCE(value, lv_rec_footer.raw_info.black_level, lv_rec_footer.raw_info.white_level);
+                                value = COERCE(value, 0, (1<<current_depth)-1);
 
                                 bitinsert(src_line, x, current_depth, value);
                             }
