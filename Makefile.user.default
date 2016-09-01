@@ -54,8 +54,13 @@ ifeq ($(WIFI_SD),y)
       done; \
       nmcli conn up $(WIFI_CARD_NETWORK); \
     fi; \
-    if !(gvfs-mount -l | grep "dav://$(WIFI_CARD_IP)/"); then \
-      gvfs-mount dav://$(WIFI_CARD_IP)/ ; \
+    if (ping -c 3 -l 3 $(WIFI_CARD_IP) > /dev/null) ; then \
+      if !(gvfs-mount -l | grep "dav://$(WIFI_CARD_IP)/"); then \
+        gvfs-mount dav://$(WIFI_CARD_IP)/ ; \
+      fi; \
+    else \
+      echo "$(WIFI_CARD_IP) appears to be offline." ; \
+      exit 1; \
     fi; )
   
   # restore connection to your main wifi network
