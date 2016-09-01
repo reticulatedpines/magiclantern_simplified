@@ -282,7 +282,7 @@ static void add_pixel(int hist[8][FIXP_RANGE], int num[8], int offset, int pa, i
     /**
      * add to histogram (for computing the median)
      */
-    int weight = 1;
+    int weight = log2(a);
     hist[offset][F2H(ev)] += weight;
     num[offset] += weight;
 }
