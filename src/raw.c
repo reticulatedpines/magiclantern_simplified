@@ -163,10 +163,10 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
  * "Normal image with a few color pixels - NO BANDING: 5, 7, 8, 9, 11, 13, 15..."
  * 
  * First set may have vertical stripes (variable), but no bad pixels
- * Second set has bad pixels (easy to correct), but no vertical stripes (to be tested)
+ * Second set has bad pixels (easy to correct), and no vertical stripes on some cameras (but still present on others)
  * note: values are off by 1
  */
-#define PREFERRED_RAW_TYPE 8
+#define PREFERRED_RAW_TYPE 16
 #define RAW_TYPE_ADDRESS 0x2D168
 #endif
 
