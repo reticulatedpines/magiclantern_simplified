@@ -77,6 +77,13 @@ static struct menu_entry script_menu[] = {
 };
 #endif
 
+void console_clear()
+{
+    int i;
+    for (i = 0; i < BUFSIZE; i++)
+        console_buffer[i] = ' ';
+}
+
 static void console_init()
 {
     #ifdef CONSOLE_DEBUG
