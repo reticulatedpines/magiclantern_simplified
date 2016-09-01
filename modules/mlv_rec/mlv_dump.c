@@ -982,7 +982,7 @@ void show_usage(char *executable)
     print_msg(MSG_INFO, " --cs5x5             5x5 chroma smoothing\n");
     print_msg(MSG_INFO, " --no-fixcp          do not fix cold pixels\n");
     print_msg(MSG_INFO, " --fixcp2            fix non-static (moving) cold pixels (slow)\n");
-    print_msg(MSG_INFO, " --fix-stripes       fix vertical stripes in highlights\n");
+    print_msg(MSG_INFO, " --no-stripes        do not fix vertical stripes in highlights\n");
 
     print_msg(MSG_INFO, "\n");
     print_msg(MSG_INFO, "-- RAW output --\n");
@@ -1092,7 +1092,7 @@ int main (int argc, char *argv[])
     int dng_output = 0;
     int dump_xrefs = 0;
     int fix_cold_pixels = 1;
-    int fix_vert_stripes = 0;
+    int fix_vert_stripes = 1;
 
     struct option long_options[] = {
         {"lua",    required_argument, NULL,  'L' },
@@ -1107,7 +1107,7 @@ int main (int argc, char *argv[])
         {"cs5x5",  no_argument, &chroma_smooth_method,  5 },
         {"no-fixcp",  no_argument, &fix_cold_pixels,  0 },
         {"fixcp2",    no_argument, &fix_cold_pixels,  2 },
-        {"fix-stripes",  no_argument, &fix_vert_stripes,  1 },
+        {"no-stripes",  no_argument, &fix_vert_stripes,  0 },
         {"avg-vertical",  no_argument, &average_vert,  1 },
         {"avg-horizontal",  no_argument, &average_hor,  1 },
         {0,         0,                 0,  0 }
