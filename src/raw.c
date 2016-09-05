@@ -204,7 +204,7 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 
 #ifdef CONFIG_5D3
 #undef WHITE_LEVEL
-#define WHITE_LEVEL 16382
+#define WHITE_LEVEL 16300
 #endif
 
 /**
