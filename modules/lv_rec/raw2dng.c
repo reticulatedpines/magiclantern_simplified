@@ -40,10 +40,8 @@ struct raw_info raw_info;
 #define CHECK(ok, fmt,...) { if (!(ok)) FAIL(fmt, ## __VA_ARGS__); }
 
 void fix_vertical_stripes();
-void find_and_fix_cold_pixels(int fix, int framenumber);
+void find_and_fix_cold_pixels(int force_analysis);
 void chroma_smooth();
-
-int fix_cold_pixels = 1; //1=fix cold pixels, 0=disable
 
 #define EV_RESOLUTION 32768
 
@@ -142,7 +140,7 @@ int main(int argc, char** argv)
         snprintf(fn, sizeof(fn), "%s%06d.dng", prefix, framenumber);
 
         fix_vertical_stripes();
-        find_and_fix_cold_pixels(fix_cold_pixels, framenumber);
+        find_and_fix_cold_pixels(0);
 
         #ifdef CHROMA_SMOOTH
         chroma_smooth();
@@ -263,7 +261,7 @@ static void add_pixel(int hist[8][FIXP_RANGE], int num[8], int offset, int pa, i
     if (MIN(a,b) < 32)
         return; /* too noisy */
 
-    if (MAX(a,b) > raw_info.white_level / 1.5)
+    if (MAX(a,b) > raw_info.white_level / 1.1)
         return; /* too bright */
         
     /**
@@ -284,7 +282,7 @@ static void add_pixel(int hist[8][FIXP_RANGE], int num[8], int offset, int pa, i
     /**
      * add to histogram (for computing the median)
      */
-    int weight = 1;
+    int weight = log2(a);
     hist[offset][F2H(ev)] += weight;
     num[offset] += weight;
 }
@@ -298,30 +296,39 @@ static void detect_vertical_stripes_coeffs()
     memset(hist, 0, sizeof(hist));
     memset(num, 0, sizeof(num));
 
-    /* compute 8 little histograms */
+    /* compute 7 histograms: b./a, c./a ... h./a */
+    /* that is, adjust all columns to make them as bright as a */
+    /* process green pixels only, assuming the image is RGGB */
     struct raw_pixblock * row;
-    for (row = raw_info.buffer; (void*)row < (void*)raw_info.buffer + raw_info.pitch * raw_info.height; row += raw_info.pitch / sizeof(struct raw_pixblock))
+    for (row = raw_info.buffer; (void*)row < (void*)raw_info.buffer + raw_info.pitch * raw_info.height; row += 2 * raw_info.pitch / sizeof(struct raw_pixblock))
     {
-        struct raw_pixblock * p;
-        for (p = row; (void*)p < (void*)row + raw_info.pitch - sizeof(struct raw_pixblock);)
+        /* first line is RG */
+        struct raw_pixblock * rg;
+        for (rg = row; (void*)rg < (void*)row + raw_info.pitch - sizeof(struct raw_pixblock); rg++)
         {
-            int pa = PA - raw_info.black_level;
+            /* next line is GB */
+            struct raw_pixblock * gb = rg + raw_info.pitch / sizeof(struct raw_pixblock);
+
+            struct raw_pixblock * p = rg;
             int pb = PB - raw_info.black_level;
-            int pc = PC - raw_info.black_level;
             int pd = PD - raw_info.black_level;
-            int pe = PE - raw_info.black_level;
             int pf = PF - raw_info.black_level;
-            int pg = PG - raw_info.black_level;
             int ph = PH - raw_info.black_level;
             p++;
-            int pa2 = PA - raw_info.black_level;
             int pb2 = PB - raw_info.black_level;
-            //~ int pc2 = PC - raw_info.black_level;
-            //~ int pd2 = PD - raw_info.black_level;
-            //~ int pe2 = PE - raw_info.black_level;
-            //~ int pf2 = PF - raw_info.black_level;
-            //~ int pg2 = PG - raw_info.black_level;
-            //~ int ph2 = PH - raw_info.black_level;
+            int pd2 = PD - raw_info.black_level;
+            int pf2 = PF - raw_info.black_level;
+            int ph2 = PH - raw_info.black_level;
+            p = gb;
+            //int pa = PA - raw_info.black_level;
+            int pc = PC - raw_info.black_level;
+            int pe = PE - raw_info.black_level;
+            int pg = PG - raw_info.black_level;
+            p++;
+            int pa2 = PA - raw_info.black_level;
+            int pc2 = PC - raw_info.black_level;
+            int pe2 = PE - raw_info.black_level;
+            int pg2 = PG - raw_info.black_level;
             
             /**
              * verification: introducing strong banding in one column
@@ -332,40 +339,20 @@ static void detect_vertical_stripes_coeffs()
             //~ pe2 = pe2 * 1.1;
             
             /**
-             * weight according to distance between corrected and reference pixels
-             * e.g. pc is 2px away from pa, but 6px away from pa2, so pa/pc gets stronger weight than pa2/p3
-             * the improvement is visible in horizontal gradients
+             * Make all columns as bright as a2
+             * use linear interpolation, so when processing column b, for example,
+             * let bi = (b * 1 + b2 * 7) / (7+1)
+             * let ei = (e * 4 + e2 * 4) / (4+4)
+             * and so on, to avoid getting tricked by smooth gradients.
              */
-            
-            add_pixel(hist, num, 2, pa, pc);
-            add_pixel(hist, num, 2, pa, pc);
-            add_pixel(hist, num, 2, pa, pc);
-            add_pixel(hist, num, 2, pa2, pc);
 
-            add_pixel(hist, num, 3, pb, pd);
-            add_pixel(hist, num, 3, pb, pd);
-            add_pixel(hist, num, 3, pb, pd);
-            add_pixel(hist, num, 3, pb2, pd);
-
-            add_pixel(hist, num, 4, pa, pe);
-            add_pixel(hist, num, 4, pa, pe);
-            add_pixel(hist, num, 4, pa2, pe);
-            add_pixel(hist, num, 4, pa2, pe);
-
-            add_pixel(hist, num, 5, pb, pf);
-            add_pixel(hist, num, 5, pb, pf);
-            add_pixel(hist, num, 5, pb2, pf);
-            add_pixel(hist, num, 5, pb2, pf);
-
-            add_pixel(hist, num, 6, pa, pg);
-            add_pixel(hist, num, 6, pa2, pg);
-            add_pixel(hist, num, 6, pa2, pg);
-            add_pixel(hist, num, 6, pa2, pg);
-
-            add_pixel(hist, num, 7, pb, ph);
-            add_pixel(hist, num, 7, pb2, ph);
-            add_pixel(hist, num, 7, pb2, ph);
-            add_pixel(hist, num, 7, pb2, ph);
+            add_pixel(hist, num, 1, pa2, (pb * 1 + pb2 * 7) / 8);
+            add_pixel(hist, num, 2, pa2, (pc * 2 + pc2 * 6) / 8);
+            add_pixel(hist, num, 3, pa2, (pd * 3 + pd2 * 5) / 8);
+            add_pixel(hist, num, 4, pa2, (pe * 4 + pe2 * 4) / 8);
+            add_pixel(hist, num, 5, pa2, (pf * 5 + pf2 * 3) / 8);
+            add_pixel(hist, num, 6, pa2, (pg * 6 + pg2 * 2) / 8);
+            add_pixel(hist, num, 7, pa2, (ph * 7 + ph2 * 1) / 8);
         }
     }
 
@@ -415,12 +402,12 @@ static void detect_vertical_stripes_coeffs()
         fprintf(f, "plot(log2(%d/%d) + [0 0], [0 %d], ['*-' c(%d)]); hold on;\n", stripes_coeffs[j], FIXP_ONE, max[j], j-1);
     }
     fprintf(f, "for i = 1:6, plot(x{i}, h{i}, c(i)); hold on; end;");
+    fprintf(f, "axis([-0.05 0.05])");
     fclose(f);
-    system("octave --persist raw2dng.m");
+    system("octave-cli --persist raw2dng.m");
 #endif
 
     stripes_coeffs[0] = FIXP_ONE;
-    stripes_coeffs[1] = FIXP_ONE;
 
     /* do we really need stripe correction, or it won't be noticeable? or maybe it's just computation error? */
     stripes_correction_needed = 0;
@@ -437,7 +424,7 @@ static void detect_vertical_stripes_coeffs()
         for (j = 0; j < 8; j++)
         {
             if (stripes_coeffs[j])
-                printf("  %.3f", (double)stripes_coeffs[j] / FIXP_ONE);
+                printf("  %.5f", (double)stripes_coeffs[j] / FIXP_ONE);
             else
                 printf("    1  ");
         }
@@ -547,76 +534,86 @@ static inline int FC(int row, int col)
 }
 
 
-void find_and_fix_cold_pixels(int fix, int framenumber)
+void find_and_fix_cold_pixels(int force_analysis)
 {
     #define MAX_COLD_PIXELS 200000
   
     struct xy { int x; int y; };
     
     static struct xy cold_pixel_list[MAX_COLD_PIXELS];
-    static int cold_pixels = 0;
+    static int cold_pixels = -1;
     
     int w = raw_info.width;
     int h = raw_info.height;
-    int bad_frame;
-    int x,y;
     
-    if ( !fix )
-    {
-        return;
-    }
-    
-    if ( framenumber == 0 ) /*only on the very first frame*/
+    /* scan for bad pixels in the first frame only, or on request*/
+    if (cold_pixels < 0 || force_analysis)
     {
         cold_pixels = 0;
+        
+        /* at sane ISOs, noise stdev is well less than 50, so 200 should be enough */
+        int cold_thr = MAX(0, raw_info.black_level - 200);
 
-        for (y = 6; y < h-6; y ++) /*analyse the pixels of the frame*/
+        /* analyse all pixels of the frame */
+        for (int y = 0; y < h; y++)
         {
-            for (x = 6; x < w-6; x ++)
+            for (int x = 0; x < w; x++)
             {
                 int p = raw_get_pixel(x, y);
-                int is_cold = (p < raw_info.black_level - 500);
+                int is_cold = (p < cold_thr);
 
-                if (is_cold && cold_pixels < MAX_COLD_PIXELS) /*generate a list containing the cold pixels*/
+                /* create a list containing the cold pixels */
+                if (is_cold && cold_pixels < MAX_COLD_PIXELS)
                 {
                     cold_pixel_list[cold_pixels].x = x;
                     cold_pixel_list[cold_pixels].y = y;
-                    cold_pixels++; /*number of the detected cold pixels*/
+                    cold_pixels++;
                 }
             }
         }
-        printf("\rCold pixels : %d                             \n", (cold_pixels));
+        printf("\rCold pixels : %d\n", (cold_pixels));
     }  
 
-    for (bad_frame = 0; bad_frame < cold_pixels; bad_frame++) /*repair the cold pixels*/
+    /* repair the cold pixels */
+    for (int p = 0; p < cold_pixels; p++)
     {
-        x = cold_pixel_list[bad_frame].x;
-        y = cold_pixel_list[bad_frame].y;
+        int x = cold_pixel_list[p].x;
+        int y = cold_pixel_list[p].y;
       
         int neighbours[100];
-        int i,j;
         int k = 0;
         int fc0 = FC(x, y);
 
-        for (i = -4; i <= 4; i++) /*examine the neighbours of the cold pixel*/
+        /* examine the neighbours of the cold pixel */
+        for (int i = -4; i <= 4; i++)
         {
-            for (j = -4; j <= 4; j++)
+            for (int j = -4; j <= 4; j++)
             {
-                if (i == 0 && j == 0) /* exclude the cold pixel itself from the examination*/
+                /* exclude the cold pixel itself from the examination */
+                if (i == 0 && j == 0)
                 {
                     continue;
                 }
-                        
-                if (FC(x+j, y+i) != fc0) /*examine only the neighbours, which have the same colour, the cold pixel should have*/
+
+                /* exclude out-of-range coords */
+                if (x+j < 0 || x+j >= w || y+i < 0 || y+i >= h)
+                {
+                    continue;
+                }
+                
+                /* examine only the neighbours of the same color */
+                if (FC(x+j, y+i) != fc0)
                 {
                     continue;
                 }
 
                 int p = raw_get_pixel(x+j, y+i);
                 neighbours[k++] = -p;
-                }
+            }
         }
-        raw_set_pixel(x, y, -median_int_wirth(neighbours, k)); /*replace the cold pixel with the median of the neighbours*/
+        
+        /* replace the cold pixel with the median of the neighbours */
+        raw_set_pixel(x, y, -median_int_wirth(neighbours, k));
     }
     
 }
