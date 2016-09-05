@@ -74,7 +74,7 @@ ifeq ($(WIFI_SD),y)
       nmcli conn up $(WIFI_MAIN_NETWORK); \
     fi; )
   
-  UMOUNT_CARD=$(call build,UNMOUNT,sleep 2 && gvfs-mount -u dav://$(WIFI_CARD_IP)/)
+  UMOUNT_CARD=$(call build,UNMOUNT,while !(gvfs-mount -u dav://$(WIFI_CARD_IP)/); do sleep 2; done)
   
   # executed after installation
   define INSTALL_FINISH =
