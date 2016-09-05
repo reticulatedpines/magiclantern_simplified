@@ -16,7 +16,7 @@ MODULE_DEPS   = $(MODULE_NAME).d
 
 MODULE_STRINGS   = module_strings.h
 
-HGDIFF_OBJS = hginfo.tmp hgdiff.tmp
+HGDIFF_OBJS = hgdiff.tmp
 
 all:: $(MODULE_OUTPUT) $(MODULE_SYM) $(MODULE_DEP)
 nodep:: $(MODULE_OUTPUT) $(MODULE_SYM)
@@ -46,7 +46,7 @@ README.rst:
 $(MODULE_OUTPUT): $(MODULE_STRINGS) $(MODULE_OBJS) $(HGDIFF_OBJS)
 	$(call build,MODULE,$(LD) -r -o $@ $(MODULE_OBJS))
 	$(call build,STRIP,$(STRIP) --strip-debug --strip-unneeded --discard-all --discard-locals $@)
-	$(call build,OBJCOPY,$(OBJCOPY) --add-section .module_hginfo=hginfo.tmp $@)
+#~ 	$(call build,OBJCOPY,$(OBJCOPY) --add-section .module_hginfo=hginfo.tmp $@)
 	$(call build,OBJCOPY,$(OBJCOPY) --add-section .module_hgdiff=hgdiff.tmp $@)
 
 
@@ -57,7 +57,7 @@ dump_asm: all
 hginfo.tmp: FORCE
 	$(call build,HGDIFF,(echo "Repo path:"; hg root; echo "\nSource:"; hg paths; echo "\nDir state:"; hg log --limit 1) | gzip > $@)
 hgdiff.tmp: FORCE
-	$(call build,HGDIFF,(hg diff -g .) | gzip > $@)
+	$(call build,HGDIFF,(hg diff --nodates .) | gzip > $@)
 %.sym: %.mo
 	$(call build,EXPORTS,$(READELF) -sW $< | grep GLOBAL | grep -v UND | grep -v COM | grep -v "__module_.*$(MODULE_NAME)" | $(AWK) "{print \$$2 \" \" \$$8;}" | sort > $@ && cat $@)
 %.dep: %.mo

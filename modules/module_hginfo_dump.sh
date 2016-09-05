@@ -18,14 +18,16 @@ elif [[ ! -f "$1" ]]; then
     exit 1
 fi
 
-echo "#-------- reading general hg information --------"
-$OBJCOPY -O binary -j .module_hginfo --set-section-flags .module_hginfo=load $@ $TMP_FILE || exit 0
-gunzip < $TMP_FILE
-rm $TMP_FILE
+#~ echo "#-------- reading general hg information --------"
+#~ $OBJCOPY -O binary -j .module_hginfo --set-section-flags .module_hginfo=load $@ $TMP_FILE || exit 0
+#~ gunzip < $TMP_FILE
+#~ rm $TMP_FILE
 
-echo "#-------- reading hg diff --------"
+$OBJCOPY -O binary -j .module_strings --set-section-flags .module_strings=load $@ $TMP_FILE || exit 0
+python2 `dirname $0`/module_strings_dump.py $TMP_FILE
+echo
+#echo "#-------- reading hg diff --------"
 $OBJCOPY -O binary -j .module_hgdiff --set-section-flags .module_hgdiff=load $@ $TMP_FILE || exit 0
 gunzip < $TMP_FILE
 rm $TMP_FILE
-
-echo "#-------- DONE --------"
+#echo "#-------- DONE --------"
