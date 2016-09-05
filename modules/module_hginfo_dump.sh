@@ -3,8 +3,8 @@
 # please set them according to your setup in your environment variables.
 # if not set, the ones are the default values
 ARM_ABI=${ARM_ABI:-none-eabi}
-ARM_PATH=${ARM_PATH:-~/gcc-arm-none-eabi-4_7-2012q4}
-GCC_VERSION=${GCC_VERSION:-4.7.3}
+ARM_PATH=${ARM_PATH:-~/gcc-arm-none-eabi-4_8-2013q4}
+GCC_VERSION=${GCC_VERSION:-4.8.3}
 ARM_BINPATH=${ARM_BINPATH:-$ARM_PATH/bin}
 OBJCOPY=${OBJCOPY:-$ARM_BINPATH/arm-$ARM_ABI-objcopy}
 
