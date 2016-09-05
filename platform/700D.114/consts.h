@@ -58,8 +58,8 @@
 #define CURRENT_GUI_MODE (*(int*)0x2658C) // in SetGUIRequestMode
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)(0x31254)) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
 
-    // from a screenshot
-    #define COLOR_FG_NONLV 1
+// from a Canon screenshot: call("dispcheck")
+#define COLOR_FG_NONLV 80
 
 #define MVR_516_STRUCT (*(void**)0x23734) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
 
