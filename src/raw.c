@@ -1507,7 +1507,9 @@ void FAST raw_lv_redirect_edmac(void* ptr)
 
 #ifdef CONFIG_EDMAC_RAW_SLURP
 
+#ifdef PREFERRED_RAW_TYPE
 static int lv_raw_type = PREFERRED_RAW_TYPE;
+#endif
 
 void FAST raw_lv_vsync()
 {
