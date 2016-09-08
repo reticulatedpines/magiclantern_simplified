@@ -279,7 +279,6 @@ NSTUB(0xFF06F56C,  take_semaphore)                          // might be good (du
 /** Task info **/
 NSTUB(    0x2E00,  task_max)
 NSTUB(0xFF0175F4,  get_current_task)                        // might be good (dumps=1, score=11)
-NSTUB(0xFF07F448,  get_obj_attr)                            // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xFF34E544,  is_taskid_valid)                         // AJ_task_trampoline_related_p10
 
 /** Task sleep **/

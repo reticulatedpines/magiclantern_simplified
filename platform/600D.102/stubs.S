@@ -297,7 +297,6 @@ NSTUB(0xFF070FF0,  take_semaphore)
 /** Task info **/
 NSTUB(    0x3328,  task_max)
 NSTUB(0xFF017618,  get_current_task)                        // called from AJ_armlib_setup_related3
-NSTUB(0xFF080ECC,  get_obj_attr)                            // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xFF3557F0,  is_taskid_valid)                         // AJ_task_trampoline_related_p10
 
 /** Task sleep **/

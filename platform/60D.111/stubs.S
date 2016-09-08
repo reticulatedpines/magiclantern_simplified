@@ -285,7 +285,6 @@ NSTUB(0xFF06E534,  take_semaphore)
 
 /** Task info **/
 NSTUB(    0x3234,  task_max)
-NSTUB(0xFF07E384,  get_obj_attr)                            // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xFF33EF30,  is_taskid_valid)                         // AJ_task_trampoline_related_p10
 NSTUB(    0x1A2C,  current_task)
 
