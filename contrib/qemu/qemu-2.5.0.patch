@@ -83,7 +83,7 @@ index 7cb01a8..e46a34b 100644
  };
  
 diff --git a/target-arm/cpu.c b/target-arm/cpu.c
-index 30739fc..0cc1a77 100644
+index 30739fc..79babf9 100644
 --- a/target-arm/cpu.c
 +++ b/target-arm/cpu.c
 @@ -501,8 +501,9 @@ static void arm_cpu_initfn(Object *obj)
@@ -97,15 +97,76 @@ index 30739fc..0cc1a77 100644
  
  static Property arm_cpu_rvbar_property =
              DEFINE_PROP_UINT64("rvbar", ARMCPU, rvbar, 0);
-@@ -711,6 +712,39 @@ static void arm926_initfn(Object *obj)
+@@ -711,6 +712,100 @@ static void arm926_initfn(Object *obj)
      cpu->reset_sctlr = 0x00090078;
  }
  
++/* cache lockdown emulation */
++/* note: the model is very incomplete, just enough to emulate
++ * the cache hacks from Magic Lantern */
++static uint64_t eos_cache_lockdown_read(CPUARMState *env, const ARMCPRegInfo *ri)
++{
++    printf("Lockdown read %x\n", ri->crm);
++    return 0;
++}
++
++static void eos_cache_patch(uint32_t addr, uint32_t value)
++{
++    uint32_t old;
++    cpu_physical_memory_read(addr, &old, sizeof(old));
++    
++    if (value != old)
++    {
++        printf("Cache patch: [%08X] <- %X\n", addr, value);
++        cpu_physical_memory_write(addr, &value, sizeof(value));
++    }
++}
++
++static void eos_cache_lockdown_write(CPUARMState *env, const ARMCPRegInfo *ri, uint64_t val)
++{
++    static uint32_t index = 0;
++    static uint32_t itag = 0;
++    static uint32_t dtag = 0;
++
++    switch (ri->crm)
++    {
++        case 0:             /* cache debug index register */
++            index = val;
++            break;
++        
++        case 1:             /* icache tag */
++            itag = val;
++            break;
++        
++        case 2:             /* dcache tag */
++            dtag = val;
++            break;
++        
++        case 3:             /* icache value */
++            eos_cache_patch((itag & 0xFFFFFFE0) | (index & 0x1C), val);
++            break;
++        
++        case 4:             /* dcache value */
++            eos_cache_patch((dtag & 0xFFFFFFE0) | (index & 0x1C), val);
++            break;
++    }
++}
++
 +/* similar to not_v6_cp_reginfo, but .crn was changed from 7 to 15 */
 +/* note: this conflicts with ARM_FEATURE_DUMMY_C15_REGS */
 +static const ARMCPRegInfo eos_digic5_cp_reginfo[] = {
-+    { .name = "WFI_eos", .cp = 15, .crn = 15, .crm = 8, .opc1 = 0, .opc2 = 2,
-+      .access = PL1_W, .type = ARM_CP_WFI },
++    { .name = "WFI_eos",     .cp = 15, .crn = 15, .crm = 8, .opc1 = 0, .opc2 = 2,
++      .access = PL1_W,  .type = ARM_CP_WFI },
++    { .name = "CacheDbgIdx", .cp = 15, .crn = 15, .crm = 0, .opc1 = 3, .opc2 = 0,
++      .access = PL1_RW, .readfn = eos_cache_lockdown_read, .writefn = eos_cache_lockdown_write },
++    { .name = "IcacheTag",   .cp = 15, .crn = 15, .crm = 1, .opc1 = 3, .opc2 = 0,
++      .access = PL1_RW, .readfn = eos_cache_lockdown_read, .writefn = eos_cache_lockdown_write },
++    { .name = "DcacheTag",   .cp = 15, .crn = 15, .crm = 2, .opc1 = 3, .opc2 = 0,
++      .access = PL1_RW, .readfn = eos_cache_lockdown_read, .writefn = eos_cache_lockdown_write },
++    { .name = "IcacheVal",   .cp = 15, .crn = 15, .crm = 3, .opc1 = 3, .opc2 = 0,
++      .access = PL1_RW, .readfn = eos_cache_lockdown_read, .writefn = eos_cache_lockdown_write },
++    { .name = "DcacheVal",   .cp = 15, .crn = 15, .crm = 4, .opc1 = 3, .opc2 = 0,
++      .access = PL1_RW, .readfn = eos_cache_lockdown_read, .writefn = eos_cache_lockdown_write },
 +    REGINFO_SENTINEL
 +};
 +
@@ -137,7 +198,7 @@ index 30739fc..0cc1a77 100644
  static void arm946_initfn(Object *obj)
  {
      ARMCPU *cpu = ARM_CPU(obj);
-@@ -914,9 +948,15 @@ static void arm_v7m_class_init(ObjectClass *oc, void *data)
+@@ -914,9 +1009,15 @@ static void arm_v7m_class_init(ObjectClass *oc, void *data)
  
  static const ARMCPRegInfo cortexr5_cp_reginfo[] = {
      /* Dummy the TCM region regs for the moment */
@@ -155,7 +216,7 @@ index 30739fc..0cc1a77 100644
        .access = PL1_RW, .type = ARM_CP_CONST },
      REGINFO_SENTINEL
  };
-@@ -1328,6 +1368,8 @@ typedef struct ARMCPUInfo {
+@@ -1328,6 +1429,8 @@ typedef struct ARMCPUInfo {
  static const ARMCPUInfo arm_cpus[] = {
  #if !defined(CONFIG_USER_ONLY) || !defined(TARGET_AARCH64)
      { .name = "arm926",      .initfn = arm926_initfn },
