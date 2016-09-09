@@ -3683,9 +3683,9 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
             else
             {
                 /* these should match the values saved in ROM at FC080010 */
-                /* (RAM manufacturer: Micron) */
-                const int values[] = {0x03, 0x01, 0x00, 0x18};
-                ret = values[((last >> 8) - 5) & 3];
+                uint32_t mr = s->model->ram_manufacturer_id;
+                int mr_index = (last >> 8) - 5;
+                ret = (mr >> (mr_index * 8)) & 0xFF;
             }
             break;
         }
