@@ -141,6 +141,16 @@ struct eos_model_desc eos_model_list[] = {
         .ram_manufacturer_id    = 0x18000103,   /* RAM manufacturer: Micron */
     },
     {
+        .name                   = "750D",
+        .digic_version          = 6,
+        .ram_manufacturer_id    = 0x14000203,
+    },
+    {
+        .name                   = "760D",
+        .digic_version          = 6,
+        .ram_manufacturer_id    = 0x14000203,
+    },
+    {
         .name = NULL,
         .digic_version = 0,
     }
