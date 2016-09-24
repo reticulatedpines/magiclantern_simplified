@@ -1019,10 +1019,6 @@ static void patch_EOSM3(EOSState *s)
     
     printf("Patching 0xFC1847E4 (MechaCPUFirmTransfer, assert)\n");
     MEM_WRITE_ROM(0xFC1847E4, (uint8_t*) &bx_lr, 2);
-    
-    printf("Patching 0xFC1F6076 (Battery or temperature related, to fix shutdown)\n");
-    uint8_t new_level = 70;   /* return 70 instead of 90 (this value is compared to 80) */
-    MEM_WRITE_ROM(0xFC1F6076, &new_level, 1);
 }
 
 static void eos_init_common(MachineState *machine)
