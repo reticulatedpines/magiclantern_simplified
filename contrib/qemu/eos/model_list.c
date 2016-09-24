@@ -6,7 +6,9 @@ struct eos_model_desc eos_model_list[] = {
         /* defaults for DIGIC 4 cameras */
         .digic_version          = 4,
         /* note: some cameras have smaller ROMs, or only one ROM */
+        .rom0_addr              = 0xF0000000,
         .rom0_size              = 0x01000000,
+        .rom1_addr              = 0xF8000000,
         .rom1_size              = 0x01000000,
         .io_mem_size            = 0x10000000,
         .firmware_start         = 0xFF010000,
@@ -20,7 +22,9 @@ struct eos_model_desc eos_model_list[] = {
     {
         /* defaults for DIGIC 5 cameras */
         .digic_version          = 5,
+        .rom0_addr              = 0xF0000000,
         .rom0_size              = 0x01000000,
+        .rom1_addr              = 0xF8000000,
         .rom1_size              = 0x01000000,
         .io_mem_size            = 0x10000000,
         .firmware_start         = 0xFF0C0000,
@@ -34,6 +38,7 @@ struct eos_model_desc eos_model_list[] = {
         /* defaults for DIGIC 6 cameras */
         .digic_version          = 6,
         .rom0_size              = 0,    /* not dumped yet, camera locks up (?!) */
+        .rom1_addr              = 0xFC000000,
         .rom1_size              = 0x02000000,
         .io_mem_size            = 0x20000000,
         .firmware_start         = 0xFE0A0000,

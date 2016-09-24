@@ -27,8 +27,8 @@
 
 
 /** Memory configuration **/
-#define ROM0_ADDR     0xF0000000
-#define ROM1_ADDR     0xF8000000
+#define ROM0_ADDR     s->model->rom0_addr
+#define ROM1_ADDR     s->model->rom1_addr
 #define ROM0_SIZE     s->model->rom0_size
 #define ROM1_SIZE     s->model->rom1_size
 
