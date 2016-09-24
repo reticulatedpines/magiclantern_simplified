@@ -31,12 +31,13 @@ struct eos_model_desc {
             uint32_t mpu_request_register;
             uint32_t serial_flash_size;
             uint32_t sd_driver_interrupt;
+            uint32_t card_led_address;
             uint32_t ram_manufacturer_id;
         };
         
         /* this must match the number of items in the above struct */
         /* note: you get a compile-time error if params[] is smaller than the struct */
-        uint32_t params[16];
+        uint32_t params[17];
     };
 } __attribute__((packed));
 

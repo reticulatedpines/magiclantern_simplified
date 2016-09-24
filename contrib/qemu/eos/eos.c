@@ -817,7 +817,29 @@ static void eos_update_display(void *parm)
             &first, &last
         );
     }
-    
+
+    if (s->card_led)
+    {
+        /* draw the LED at the bottom-right corner of the screen */
+        int x_led = width - 8;
+        int y_led = height - 8;
+        uint8_t * dest = surface_data(surface);
+        for (int dy = -5; dy <= 5; dy++)
+        {
+            for (int dx = -5; dx <= 5; dx++)
+            {
+                int r2 = dx*dx + dy*dy;
+                if (r2 < 5*5)
+                {
+                    ((uint32_t *) dest)[x_led+dx + width*(y_led+dy)] =
+                        (r2 >= 4*4)         ? rgb_to_pixel32(0, 0, 0)       :
+                        (s->card_led == 1)  ? rgb_to_pixel32(255, 0, 0)     :
+                                              rgb_to_pixel32(64, 64, 64) ;
+                }
+            }
+        }
+    }
+
     if (first >= 0) {
         dpy_gfx_update(s->disp.con, 0, first, width, last - first + 1);
     }
@@ -1663,6 +1685,40 @@ unsigned int avs_handle(EOSState *s, int address, int type, int val)
     return ret;
 }
 
+static int eos_handle_card_led( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+{
+    const char * msg = "Card LED";
+    unsigned int ret = 0;
+    static int stored_value = 0;
+    
+    if (type & MODE_WRITE)
+    {
+        if (s->model->digic_version == 6)
+        {
+            s->card_led = 
+                ((value & 0x0F000F) == 0x0D0002) ?  1 :
+                ((value & 0x0F000F) == 0x0C0003) ? -1 : 0;
+        }
+        else
+        {
+            s->card_led = 
+                (value == 0x46 || value == 0x138800) ?  1 :
+                (value == 0x44 || value == 0x838C00) ? -1 : 0;
+        }
+        
+        /* this will trigger if somebody writes an invalid LED ON/OFF code */
+        assert (s->card_led);
+        
+        stored_value = value;
+    }
+    else
+    {
+        ret = stored_value;
+    }
+    
+    io_log("GPIO", s, address, type, value, ret, msg, 0, 0);
+    return ret;
+}
 
 unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
@@ -1675,6 +1731,12 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
     if (address == s->model->mpu_request_register)
     {
         return eos_handle_mpu(parm, s, address, type, value);
+    }
+
+    /* 0xC0220134/BC/6C/C188/C184, depending on model */
+    if (address == s->model->card_led_address)
+    {
+        return eos_handle_card_led(parm, s, address, type, value);
     }
 
     switch (address & 0xFFFF)
@@ -3621,6 +3683,12 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
     unsigned int ret = 0;
     
     static uint32_t palette_addr = 0;
+    
+    /* 0xD20B0A24/C34/994/224, depending on model */
+    if (address == s->model->card_led_address)
+    {
+        return eos_handle_card_led(parm, s, address, type, value);
+    }
 
     switch (address)
     {

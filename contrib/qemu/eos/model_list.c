@@ -17,6 +17,7 @@ struct eos_model_desc eos_model_list[] = {
         .dryos_timer_interrupt  = 0x0A,
         .hptimer_interrupt      = 0x10,
         .sd_driver_interrupt    = 0xB1,
+        .card_led_address       = 0xC0220134,   /* SD */
         .mpu_request_register   = 0xC022009C,
     },
     {
@@ -33,6 +34,7 @@ struct eos_model_desc eos_model_list[] = {
         .dryos_timer_interrupt  = 0x0A,
         .hptimer_interrupt      = 0x10,
         .sd_driver_interrupt    = 0x172,
+        .card_led_address       = 0xC022C188,   /* SD */
     },
     {
         /* defaults for DIGIC 6 cameras */
@@ -47,10 +49,12 @@ struct eos_model_desc eos_model_list[] = {
         .dryos_timer_interrupt  = 0x1B,
         .hptimer_interrupt      = 0x28,
         .sd_driver_interrupt    = 0xEE, /* fixme: separate interrupts for SDCON and SDDMA */
+        .card_led_address       = 0xD20B0A24,
     },
     {
         .name                   = "50D",
         .digic_version          = 4,
+        .card_led_address       = 0xC02200BC,
     },
     {
         .name                   = "60D",
@@ -69,12 +73,14 @@ struct eos_model_desc eos_model_list[] = {
         .name                   = "5D2",
         .digic_version          = 4,
         .firmware_start         = 0xFF810000,
+        .card_led_address       = 0xC02200BC,
     },
     {
         .name                   = "5D3",
         .digic_version          = 5,
         .current_task_addr      = 0x23E14,
         .mpu_request_register   = 0xC02200BC,
+        .card_led_address       = 0xC022006C,
     },
     {
         .name                   = "650D",
@@ -90,6 +96,7 @@ struct eos_model_desc eos_model_list[] = {
     {
         .name                   = "7D",
         .digic_version          = 4,
+        .card_led_address       = 0xC022006C,
     },
     {
         .name                   = "550D",
@@ -98,12 +105,14 @@ struct eos_model_desc eos_model_list[] = {
     {
         .name                   = "6D",
         .digic_version          = 5,
+        .card_led_address       = 0xC022C184,
     },
     {
         .name                   = "70D",
         .digic_version          = 5,
         .current_task_addr      = 0x7AAC0,
         .mpu_request_register   = 0xC02200BC,
+        .card_led_address       = 0xC022006C,
         .serial_flash_size      = 0x800000,
     },
     {
@@ -120,6 +129,7 @@ struct eos_model_desc eos_model_list[] = {
         .digic_version          = 4,
         .firmware_start         = 0xFF0C0000,
         .current_task_addr      = 0x1A2C,
+        .card_led_address       = 0xC0220134,
     },
     {
         .name                   = "EOSM",
@@ -132,15 +142,18 @@ struct eos_model_desc eos_model_list[] = {
         .rom0_addr              = 0xFB800000,
         .rom0_size              = 0x800000,
         .current_task_addr      = 0x803C,
+        .card_led_address       = 0xD20B0994,
     },
     {
         .name                   = "7D2M",
         .digic_version          = 6,
         .current_task_addr      = 0x28568,
+        .card_led_address       = 0xD20B0C34,
     },
     {
         .name                   = "7D2S",
         .digic_version          = 6,
+        .card_led_address       = 0xD20B0C34,   /* not sure */
     },
     {
         .name                   = "80D",

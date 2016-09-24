@@ -210,6 +210,7 @@ typedef struct
     MPUState mpu;
     EDMACState edmac;
     struct SerialFlashState * sf;
+    uint32_t card_led;  /* 1 = on, -1 = off, 0 = not used */
 } EOSState;
 
 typedef struct
