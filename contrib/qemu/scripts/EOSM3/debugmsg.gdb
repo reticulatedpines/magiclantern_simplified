@@ -62,7 +62,7 @@ post_msg_queue_log
 
 # interrupts
 
-b *0xFC302218
+b *0xBFE14EF4
 register_interrupt_log
 
 
