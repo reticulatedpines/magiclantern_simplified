@@ -17,6 +17,7 @@ struct eos_model_desc eos_model_list[] = {
         .dryos_timer_interrupt  = 0x0A,
         .hptimer_interrupt      = 0x10,
         .sd_driver_interrupt    = 0xB1,
+        .sd_dma_interrupt       = 0xB8,
         .card_led_address       = 0xC0220134,   /* SD */
         .mpu_request_register   = 0xC022009C,
     },
@@ -34,6 +35,7 @@ struct eos_model_desc eos_model_list[] = {
         .dryos_timer_interrupt  = 0x0A,
         .hptimer_interrupt      = 0x10,
         .sd_driver_interrupt    = 0x172,
+        .sd_dma_interrupt       = 0x171,
         .card_led_address       = 0xC022C188,   /* SD */
     },
     {
@@ -48,7 +50,8 @@ struct eos_model_desc eos_model_list[] = {
         .dryos_timer_id         = 1,
         .dryos_timer_interrupt  = 0x1B,
         .hptimer_interrupt      = 0x28,
-        .sd_driver_interrupt    = 0xEE, /* fixme: separate interrupts for SDCON and SDDMA */
+        .sd_driver_interrupt    = 0xEE,
+        .sd_dma_interrupt       = 0xBE,
         .card_led_address       = 0xD20B0A24,
     },
     {

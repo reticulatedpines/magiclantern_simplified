@@ -2878,6 +2878,12 @@ void sdio_trigger_interrupt(EOSState *s, SDIOState *sd)
     {
         assert(s->model->sd_driver_interrupt);
         eos_trigger_int(s, s->model->sd_driver_interrupt, 0);
+        
+        if (sd->dma_enabled)
+        {
+            assert(s->model->sd_dma_interrupt);
+            eos_trigger_int(s, s->model->sd_dma_interrupt, 0);
+        }
     }
 }
 
@@ -2910,7 +2916,7 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
                 /* interpret this command */
                 sdio_send_command(&s->sd);
                 
-                if (value == 0x14)
+                if (value == 0x14 || value == 0x4)
                 {
                     sdio_read_data(&s->sd);
                 }
@@ -3022,6 +3028,9 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
         case 0x88:
             msg = "SDBUFCTR: Set to 0x03 before reading";
             break;
+        case 0xD4:
+            msg = "Data bus monitor (?)";
+            break;
     }
 
     io_log("SDIO", s, address, type, value, ret, msg, msg_arg1, msg_arg2);
@@ -3041,10 +3050,18 @@ unsigned int eos_handle_sddma ( unsigned int parm, EOSState *s, unsigned int add
             break;
         case 0x04:
             msg = "Transfer byte count";
-            s->sd.dma_count = value;
+            if (type & MODE_WRITE)
+            {
+                s->sd.dma_count = value;
+            }
             break;
         case 0x10:
             msg = "Flags/Status";
+            s->sd.dma_enabled = value & 1;
+            break;
+        case 0x14:
+            msg = "Status?";
+            ret = (s->sd.dma_enabled) ? 0x81 : 0;
             break;
         case 0x18:
             msg = "Transfer start?";
