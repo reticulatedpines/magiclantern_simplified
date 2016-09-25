@@ -83,7 +83,7 @@ struct eos_model_desc eos_model_list[] = {
         .digic_version          = 5,
         .current_task_addr      = 0x23E14,
         .mpu_request_register   = 0xC02200BC,
-        .card_led_address       = 0xC022006C,
+        .card_led_address       = 0xC022C06C,
     },
     {
         .name                   = "650D",

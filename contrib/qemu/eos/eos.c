@@ -1703,7 +1703,8 @@ static int eos_handle_card_led( unsigned int parm, EOSState *s, unsigned int add
         {
             s->card_led = 
                 (value == 0x46 || value == 0x138800) ?  1 :
-                (value == 0x44 || value == 0x838C00) ? -1 : 0;
+                (value == 0x44 || value == 0x838C00
+                               || value == 0x038C00) ? -1 : 0;
         }
         
         /* this will trigger if somebody writes an invalid LED ON/OFF code */
