@@ -97,70 +97,74 @@ define print_current_location
   printf "] "
 end
 
+define print_formatted_string
+  # count how many % characters we have
+  # (gdb is very picky about the number of arguments...)
+  # note: 60D uses %S incorrectly at some point, so we don't format that string
+  set $num = 0
+  set $i = 0
+  set $badfmt = 0
+  set $chr = *(char*)($arg0+$i)
+  set $nxt = *(char*)($arg0+$i+1)
+  while $chr
+    set $num = $num + ( $chr == '%' && $nxt != '%' )
+    set $badfmt = $badfmt + ( $chr == '%' && $nxt == 'S' )
+    set $badfmt = $badfmt + ( $chr == '"' )
+    set $i = $i + 1
+    set $chr = $nxt
+    set $nxt = *(char*)($arg0+$i+1)
+  end
+  
+  # fixme: is gdb's nested if/else syntax that ugly?
+  # or, even better: a nicer way to format these strings?
+  if $num == 0 || $badfmt
+    printf "%s\n", $arg0
+  else
+  if $num == 1
+    eval "printf \"%s\n\", $arg1", $arg0
+  else
+  if $num == 2
+    eval "printf \"%s\n\", $arg1, $arg2", $arg0
+  else
+  if $num == 3
+    eval "printf \"%s\n\", $arg1, $arg2, $arg3", $arg0
+  else
+  if $num == 4
+    eval "printf \"%s\n\", $arg1, $arg2, $arg3, $arg4", $arg0
+  else
+  if $num == 5
+    eval "printf \"%s\n\", $arg1, $arg2, $arg3, $arg4, $arg5", $arg0
+  else
+  if $num == 6
+    eval "printf \"%s\n\", $arg1, $arg2, $arg3, $arg4, $arg5, $arg6", $arg0
+  else
+  if $num == 7
+    eval "printf \"%s\n\", $arg1, $arg2, $arg3, $arg4, $arg5, $arg6, $arg7", $arg0
+  else
+  if $num == 8
+    eval "printf \"%s\n\", $arg1, $arg2, $arg3, $arg4, $arg5, $arg6, $arg7, $arg8", $arg0
+  else
+    KRED
+    printf "%s [FIXME: %d args]\n", $arg0, $num
+    KRESET
+  end
+  end
+  end
+  end
+  end
+  end
+  end
+  end
+  end
+end
+
 # trace all DebugMsg calls
 define DebugMsg_log
   commands
     silent
     print_current_location
-
-    # count how many % characters we have
-    # (gdb is very picky about the number of arguments...)
-    # note: 60D uses %S incorrectly at some point, so we don't format that string
-    set $num = 0
-    set $i = 0
-    set $badfmt = 0
-    set $chr = *(char*)($r2+$i)
-    set $nxt = *(char*)($r2+$i+1)
-    while $chr
-      set $num = $num + ( $chr == '%' && $nxt != '%' )
-      set $badfmt = $badfmt + ( $chr == '%' && $nxt == 'S' )
-      set $badfmt = $badfmt + ( $chr == '"' )
-      set $i = $i + 1
-      set $chr = $nxt
-      set $nxt = *(char*)($r2+$i+1)
-    end
-    
-    # fixme: is gdb's nested if/else syntax that ugly?
-    # or, even better: a nicer way to format these strings?
-    if $num == 0 || $badfmt
-      printf "(%02x:%02x) %s\n", $r0, $r1, $r2
-    else
-    if $num == 1
-      eval "printf \"(%02x:%02x) %s\n\", $r3", $r0, $r1, $r2
-    else
-    if $num == 2
-      eval "printf \"(%02x:%02x) %s\n\", $r3, *(int*)$sp", $r0, $r1, $r2
-    else
-    if $num == 3
-      eval "printf \"(%02x:%02x) %s\n\", $r3, *(int*)$sp, *(int*)($sp+4)", $r0, $r1, $r2
-    else
-    if $num == 4
-      eval "printf \"(%02x:%02x), %s\n\", $r3, *(int*)$sp, *(int*)($sp+4), *(int*)($sp+8)", $r0, $r1, $r2
-    else
-    if $num == 5
-      eval "printf \"(%02x:%02x), %s\n\", $r3, *(int*)$sp, *(int*)($sp+4), *(int*)($sp+8), *(int*)($sp+12)", $r0, $r1, $r2
-    else
-    if $num == 6
-      eval "printf \"(%02x:%02x), %s\n\", $r3, *(int*)$sp, *(int*)($sp+4), *(int*)($sp+8), *(int*)($sp+12), *(int*)($sp+16)", $r0, $r1, $r2
-    else
-    if $num == 7
-      eval "printf \"(%02x:%02x), %s\n\", $r3, *(int*)$sp, *(int*)($sp+4), *(int*)($sp+8), *(int*)($sp+12), *(int*)($sp+16), *(int*)($sp+20)", $r0, $r1, $r2
-    else
-    if $num == 8
-      eval "printf \"(%02x:%02x), %s\n\", $r3, *(int*)$sp, *(int*)($sp+4), *(int*)($sp+8), *(int*)($sp+12), *(int*)($sp+16), *(int*)($sp+20), *(int*)($sp+24)", $r0, $r1, $r2
-    else
-      KRED
-      printf "%s [FIXME: %d args]\n", $r2, $num
-      KRESET
-    end
-    end
-    end
-    end
-    end
-    end
-    end
-    end
-    end
+    printf "(%02x:%02x) ", $r0, $r1
+    print_formatted_string $r2 $r3 *(int*)$sp *(int*)($sp+4) *(int*)($sp+8) *(int*)($sp+12) *(int*)($sp+16) *(int*)($sp+20) *(int*)($sp+24)
     c
   end
 end
