@@ -1035,10 +1035,10 @@ static void patch_EOSM3(EOSState *s)
     printf("Patching 0xFC10C1A4 and 0xFC10C2B2 (DefMarkManLeo, assert)\n");
     MEM_WRITE_ROM(0xFC10C1A4, (uint8_t*) &bx_lr, 2);
     MEM_WRITE_ROM(0xFC10C2B2, (uint8_t*) &bx_lr, 2);
-    
-    printf("Patching 0xFCCD7140 (SoundDeviceDuke, assert)\n");
-    MEM_WRITE_ROM(0xFCCD7140, (uint8_t*) &bx_lr, 2);
-    
+
+    printf("Patching 0xFC2A0F38 (SoundTsk, assert)\n");
+    MEM_WRITE_ROM(0xFC2A0F38, (uint8_t*) &bx_lr, 2);
+
     printf("Patching 0xFC1847E4 (MechaCPUFirmTransfer, assert)\n");
     MEM_WRITE_ROM(0xFC1847E4, (uint8_t*) &bx_lr, 2);
 }
