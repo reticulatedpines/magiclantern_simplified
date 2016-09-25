@@ -8,14 +8,12 @@ macro define CURRENT_ISR  (*(int*)0x8160 ? (*(int*)0x8164) : 0)
 b *0xFC37AF70
 DebugMsg_log
 
-# DebugMsg0
 b *0xFC361A32
-commands
-  silent
-  print_current_location
-  printf "[DebugMsg] (%d) %s\n", $r0, $r1
-  c
-end
+DebugMsg1_log
+
+# used for SDIO
+b *0x10F4024
+DebugMsg1_log
 
 b *0x10E1000
 assert_log

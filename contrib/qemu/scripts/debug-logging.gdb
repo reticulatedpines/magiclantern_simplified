@@ -169,6 +169,17 @@ define DebugMsg_log
   end
 end
 
+# DebugMsg-like calls with only one extra argument
+define DebugMsg1_log
+  commands
+    silent
+    print_current_location
+    printf "(%02x) ", $r0
+    print_formatted_string $r1 $r2 $r3 *(int*)$sp *(int*)($sp+4) *(int*)($sp+8) *(int*)($sp+12) *(int*)($sp+16) *(int*)($sp+20)
+    c
+  end
+end
+
 # log task_create calls
 define task_create_log
   commands
