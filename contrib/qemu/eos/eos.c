@@ -1697,14 +1697,18 @@ static int eos_handle_card_led( unsigned int parm, EOSState *s, unsigned int add
         {
             s->card_led = 
                 ((value & 0x0F000F) == 0x0D0002) ?  1 :
-                ((value & 0x0F000F) == 0x0C0003) ? -1 : 0;
+                ((value & 0x0F000F) == 0x0C0003) ? -1 :
+                (value == 0x8A0075)              ? -1 : 0;
         }
         else
         {
             s->card_led = 
-                (value == 0x46 || value == 0x138800) ?  1 :
-                (value == 0x44 || value == 0x838C00
-                               || value == 0x038C00) ? -1 : 0;
+                (value == 0x46 || value == 0x138800
+                               || value == 0x93D800) ?  1 :
+                (value == 0x44 || value == 0x838C00 ||
+                 value == 0x40 || value == 0x038C00
+                               || value == 0x83DC00
+                               || value == 0xE000000) ? -1 : 0;
         }
         
         /* this will trigger if somebody writes an invalid LED ON/OFF code */
@@ -1728,7 +1732,7 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
     const char * msg_lookup = 0;
     static int unk = 0;
 
-    /* 0xC022009C/6C/BC, depending on camera model */
+    /* 0xC022009C/BC/C06C/D06C, depending on camera model */
     if (address == s->model->mpu_request_register)
     {
         return eos_handle_mpu(parm, s, address, type, value);
@@ -1947,27 +1951,6 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             break;
         }
 
-        case 0x00BC:
-        {
-            /* note: some cameras use this for MPU (handled before the case switch) */
-
-            /* 5D2 CF LED */
-            static int last_value = 0;
-            if(type & MODE_WRITE)
-            {
-                last_value = value;
-                msg = value == 0x46 ? "CF LED ON"  :
-                      value == 0x44 ? "CF LED OFF" :
-                                      "CF LED ???" ;
-            }
-            else
-            {
-                ret = last_value;
-                return ret; /* quiet */
-            }
-            break;
-        }
-
         case 0x0168:
             msg = "70D write protect";
             ret = 0;
@@ -2027,14 +2010,6 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             return ret;
 #endif
             break;
-
-        case 0xC184:
-            if (value == 0x138800) msg = "LED ON";
-            else if (value == 0x838C00) msg = "LED OFF";
-            else msg = "LED ???";
-            ret = 0;
-            break;
-
 
         // 100D Set_AVS
         case 0xC288:

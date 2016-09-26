@@ -99,7 +99,7 @@ struct eos_model_desc eos_model_list[] = {
     {
         .name                   = "7D",
         .digic_version          = 4,
-        .card_led_address       = 0xC022006C,
+        .card_led_address       = 0xC022D06C,
     },
     {
         .name                   = "550D",
@@ -115,7 +115,7 @@ struct eos_model_desc eos_model_list[] = {
         .digic_version          = 5,
         .current_task_addr      = 0x7AAC0,
         .mpu_request_register   = 0xC02200BC,
-        .card_led_address       = 0xC022006C,
+        .card_led_address       = 0xC022C06C,
         .serial_flash_size      = 0x800000,
     },
     {
