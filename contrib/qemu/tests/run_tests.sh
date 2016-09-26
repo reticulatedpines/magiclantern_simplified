@@ -32,22 +32,24 @@ for CAM in 5D2 5D3 6D 7D 7D2M 7D2S \
     tests/check_grep.sh tests/$CAM/boot.log -E "K.* READY"
 done
 
-# Portable display test - need to prepare a SD card image
-# The SD image that comes with our QEMU install script is perfect for this test.
+# The next tests require a custom SD card image.
+# The one that comes with our QEMU install script is perfect.
 echo
-echo "Testing display from bootloader..."
-
 echo "Setting up a temporary SD card image..."
 mv sd.img sd-user.img
 cp -v ../magic-lantern/contrib/qemu/sd.img.xz .
 unxz sd.img.xz
 
 function sd_restore {
+  echo
   echo "Restoring your SD card image..."
   mv sd-user.img sd.img
 }
 
 trap sd_restore EXIT
+
+echo
+echo "Testing display from bootloader..."
 
 # These cameras should run the portable display test:
 for CAM in 5D2 5D3 6D 7D 7D2M 7D2S \
@@ -64,6 +66,23 @@ for CAM in 5D2 5D3 6D 7D 7D2M 7D2S \
     tests/check_md5.sh tests/$CAM/ disp
 done
 
+# EOS M3 is different (PowerShot firmware); let's test it too
+echo
+echo "Testing EOS M3..."
+for CAM in EOSM3; do
+    mkdir -p tests/$CAM/
+    rm -f tests/$CAM/boot.log
+    (./run_canon_fw.sh $CAM -nographic -monitor none -s -S & \
+     arm-none-eabi-gdb -x EOSM3/debugmsg.gdb &) &> tests/$CAM/boot.log
+    sleep 0.1
+    ( timeout 10 tail -f -n0 tests/$CAM/boot.log & ) | grep --binary-files=text -qP "\x1B\x5B31ma\x1B\x5B0m\x1B\x5B31my\x1B\x5B0m"
+    killall -INT qemu-system-arm &>> tests/$CAM/boot.log
+
+    printf "SD boot: "; tests/check_grep.sh tests/$CAM/boot.log -om1 "StartDiskboot"
+    printf "Display: "; tests/check_grep.sh tests/$CAM/boot.log -om1 "TurnOnDisplay"
+done
+
+# custom SD image no longer needed
 sd_restore
 trap - EXIT
 
