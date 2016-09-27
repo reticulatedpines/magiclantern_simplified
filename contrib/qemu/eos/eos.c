@@ -758,6 +758,12 @@ static void eos_update_display(void *parm)
     int height      = heights    [s->disp.type];
     int yuv_width   = yuv_widths [s->disp.type];
     int yuv_height  = yuv_heights[s->disp.type];
+    
+    if (s->model->digic_version < 4)
+    {
+        /* for VxWorks bootloader */
+        height /= 2;
+    }
 
     if (width != surface_width(surface) || height != surface_height(surface))
     {
@@ -1958,6 +1964,11 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             ret = 1;
             break;
 
+        case 0x012C:
+            msg = "1000D display";
+            ret = 0;
+            break;
+    
         case 0x00E8:
             /* MIC on 600D */
             msg = "MIC CONNECT";
@@ -3432,8 +3443,8 @@ unsigned int eos_handle_display ( unsigned int parm, EOSState *s, unsigned int a
                 s->disp.img_vram = value;
             }
             break;
-        
-        case 0x80 ... 0xBC:
+
+        case 0x080 ... 0x0BC:
             msg = "4-bit palette";
             if(type & MODE_WRITE)
             {

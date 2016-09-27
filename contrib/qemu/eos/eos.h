@@ -106,6 +106,7 @@ typedef struct
     struct palette_entry palette_4bit[16];
     struct palette_entry palette_8bit[256];
     int is_4bit;
+    int is_half_height;
 } DispState;
 
 struct HPTimer
