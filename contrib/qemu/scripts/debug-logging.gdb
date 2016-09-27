@@ -73,7 +73,8 @@ define KRESET
     printf "%c[0m", 0x1B
 end
 
-macro define CURRENT_TASK_NAME ((char***)CURRENT_TASK)[0][9]
+# task name for DryOS (only if CURRENT_TASK is a valid pointer; otherwise, empty string)
+macro define CURRENT_TASK_NAME (((int*)CURRENT_TASK)[0] ? ((char***)CURRENT_TASK)[0][9] : CURRENT_TASK)
 
 # print current task name and return address
 define print_current_location
