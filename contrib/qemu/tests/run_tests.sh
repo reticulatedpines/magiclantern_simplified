@@ -32,25 +32,28 @@ for CAM in 5D2 5D3 6D 7D 7D2M 7D2S \
     tests/check_grep.sh tests/$CAM/boot.log -E "K.* READY"
 done
 
-# The next tests require a custom SD card image.
+# The next tests require custom SD/CF card imags.
 # The one that comes with our QEMU install script is perfect.
 echo
-echo "Setting up a temporary SD card image..."
+echo "Setting up temporary SD/CF card images..."
 
 function sd_restore {
   echo
-  echo "Restoring your SD card image..."
+  echo "Restoring your SD/CF card images..."
   mv sd-user.img sd.img
+  mv cf-user.img cf.img
 }
 
-# disable CTRL-C while moving the file
+# disable CTRL-C while moving the files
 trap '' SIGINT
 mv sd.img sd-user.img
+mv cf.img cf-user.img
 trap sd_restore EXIT
 trap - SIGINT
 
 cp -v ../magic-lantern/contrib/qemu/sd.img.xz .
 unxz sd.img.xz
+cp sd.img cf.img
 
 echo
 echo "Testing display from bootloader..."
