@@ -32,12 +32,12 @@
 #define ROM0_SIZE     s->model->rom0_size
 #define ROM1_SIZE     s->model->rom1_size
 
-#define TCM_SIZE      0x00001000
-#define RAM_SIZE      0x40000000
-#define CACHING_BIT   0x40000000
-
-#define RAM2_ADDR     0x80000000    /* a second memory block on DIGIC 6? */
-#define RAM2_SIZE     0x40000000
+#define BTCM_ADDR     s->model->btcm_addr
+#define ATCM_ADDR     s->model->atcm_addr
+#define BTCM_SIZE     s->model->btcm_size
+#define ATCM_SIZE     s->model->atcm_size
+#define RAM_SIZE      s->model->ram_size
+#define CACHING_BIT   s->model->caching_bit
 
 #define IO_MEM_START  0xC0000000    /* common to all DIGICs */
 
@@ -179,7 +179,8 @@ typedef struct
     MemoryRegion tcm_data;
     MemoryRegion ram;
     MemoryRegion ram_uncached;
-    MemoryRegion ram2;
+    MemoryRegion ram_uncached0;
+    MemoryRegion ram_extra;
     MemoryRegion rom0;
     MemoryRegion rom1;
     uint8_t *rom0_data;

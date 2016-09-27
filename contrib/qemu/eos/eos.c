@@ -883,21 +883,40 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
 
     s->system_mem = get_system_memory();
 
-    memory_region_init_ram(&s->tcm_code, NULL, "eos.tcm_code", TCM_SIZE, &error_abort);
-    memory_region_add_subregion(s->system_mem, 0x00000000, &s->tcm_code);
-    memory_region_init_ram(&s->tcm_data, NULL, "eos.tcm_data", TCM_SIZE, &error_abort);
-    memory_region_add_subregion(s->system_mem, CACHING_BIT, &s->tcm_data);
+    memory_region_init_ram(&s->tcm_code, NULL, "eos.tcm_code", ATCM_SIZE, &error_abort);
+    memory_region_add_subregion(s->system_mem, ATCM_ADDR, &s->tcm_code);
+    memory_region_init_ram(&s->tcm_data, NULL, "eos.tcm_data", BTCM_SIZE, &error_abort);
+    memory_region_add_subregion(s->system_mem, BTCM_ADDR, &s->tcm_data);
 
     /* set up RAM, cached and uncached */
-    memory_region_init_ram(&s->ram, NULL, "eos.ram", RAM_SIZE - TCM_SIZE, &error_abort);
-    memory_region_add_subregion(s->system_mem, TCM_SIZE, &s->ram);
-    memory_region_init_alias(&s->ram_uncached, NULL, "eos.ram_uncached", &s->ram, 0x00000000, RAM_SIZE - TCM_SIZE);
-    memory_region_add_subregion(s->system_mem, CACHING_BIT | TCM_SIZE, &s->ram_uncached);
-
-    if (s->model->digic_version == 6)
+    /* main RAM starts at 0 */
+    /* the ATCM overlaps the RAM (so far all models);
+     * the BTCM may or may not overlap the uncached RAM (model-dependent) */
+    assert(ATCM_ADDR == 0);
+    
+    if (BTCM_ADDR == CACHING_BIT)
     {
-        memory_region_init_ram(&s->ram2, NULL, "eos.ram2", RAM2_SIZE, &error_abort);
-        memory_region_add_subregion(s->system_mem, RAM2_ADDR, &s->ram2);
+        /* not sure what to do if both TCMs overlap the RAM,
+         * when they have different sizes */
+        assert(ATCM_SIZE == BTCM_SIZE);
+    }
+    
+    memory_region_init_ram(&s->ram, NULL, "eos.ram", RAM_SIZE - ATCM_SIZE, &error_abort);
+    memory_region_add_subregion(s->system_mem, 0 + ATCM_SIZE, &s->ram);
+    memory_region_init_alias(&s->ram_uncached, NULL, "eos.ram_uncached", &s->ram, 0x00000000, RAM_SIZE - ATCM_SIZE);
+    memory_region_add_subregion(s->system_mem, CACHING_BIT + ATCM_SIZE, &s->ram_uncached);
+    
+    if (BTCM_ADDR != CACHING_BIT)
+    {
+        /* I believe there's a small section of RAM visible only as uncacheable (to be tested) */
+        memory_region_init_ram(&s->ram_uncached0, NULL, "eos.ram_uncached0", ATCM_SIZE, &error_abort);
+        memory_region_add_subregion(s->system_mem, CACHING_BIT, &s->ram_uncached0);
+    }
+    
+    if (s->model->ram_extra_addr)
+    {
+        memory_region_init_ram(&s->ram_extra, NULL, "eos.ram_extra", s->model->ram_extra_size, &error_abort);
+        memory_region_add_subregion(s->system_mem, s->model->ram_extra_addr, &s->ram_extra);
     }
 
     /* set up ROM0 */
