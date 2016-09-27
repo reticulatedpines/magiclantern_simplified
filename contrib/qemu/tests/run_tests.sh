@@ -18,7 +18,7 @@ echo "Testing bootloaders..."
 for CAM in 5D2 5D3 6D 7D 7D2M 7D2S \
            50D 60D 70D 80D \
            500D 550D 600D 650D 700D 750D 760D \
-           100D 1100D 1200D EOSM; do
+           100D 1000D 1100D 1200D EOSM; do
     printf "%5s: " $CAM
     mkdir -p tests/$CAM/
     rm -f tests/$CAM/boot.log
@@ -62,7 +62,7 @@ echo "Testing display from bootloader..."
 for CAM in 5D2 5D3 6D 7D 7D2M 7D2S \
            50D 60D 70D 80D \
            500D 550D 600D 650D 700D 750D 760D \
-           100D 1100D 1200D EOSM; do
+           100D 1000D 1100D 1200D EOSM; do
     printf "%5s: " $CAM
     mkdir -p tests/$CAM/
     rm -f tests/$CAM/disp.ppm

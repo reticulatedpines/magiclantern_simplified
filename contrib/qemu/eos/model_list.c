@@ -3,6 +3,27 @@
 
 struct eos_model_desc eos_model_list[] = {
     {
+        /* defaults for DIGIC 3 cameras */
+        .digic_version          = 3,
+        .rom1_addr              = 0xF8000000,
+        .rom1_size              = 0x00800000,
+        .ram_size               = 0x10000000,
+        .caching_bit            = 0x10000000,
+        .atcm_addr              = 0x00000000,
+        .atcm_size              = 0x00001000,
+        .btcm_addr              = 0x40000000,
+        .btcm_size              = 0x00001000,
+        .io_mem_size            = 0x10000000,
+        .firmware_start         = 0xFF810000,
+        .bootflags_addr         = 0xF8000000,
+        .dryos_timer_id         = 2,
+        .dryos_timer_interrupt  = 0x18,
+        .hptimer_interrupt      = 0x10,
+        .sd_driver_interrupt    = 0x4A,
+        .sd_dma_interrupt       = 0x29,
+        .card_led_address       = 0xC02200E0,
+    },
+    {
         /* defaults for DIGIC 4 cameras */
         .digic_version          = 4,
         /* note: some cameras have smaller ROMs, or only one ROM */
@@ -194,6 +215,10 @@ struct eos_model_desc eos_model_list[] = {
         .name                   = "760D",
         .digic_version          = 6,
         .ram_manufacturer_id    = 0x14000203,
+    },
+    {
+        .name                   = "1000D",
+        .digic_version          = 3,
     },
     {
         .name = NULL,

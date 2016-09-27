@@ -145,6 +145,7 @@ EOSRegionHandler eos_handlers[] =
     { "FlashControl", 0xC0000000, 0xC0001FFF, eos_handle_flashctrl, 0 },
     { "ROM0",         0xF8000000, 0xFFFFFFFF, eos_handle_rom, 0 },
     { "ROM1",         0xF0000000, 0xF7FFFFFF, eos_handle_rom, 1 },
+    { "Interrupt",    0xC0200000, 0xC02000FF, eos_handle_intengine_vx, 0 },
     { "Interrupt",    0xC0201000, 0xC0201FFF, eos_handle_intengine, 0 },
     { "Interrupt",    0xD4011000, 0xD4011FFF, eos_handle_intengine, 1 },
     { "Timers",       0xC0210000, 0xC0210FFF, eos_handle_timers, 0 },
@@ -157,6 +158,7 @@ EOSRegionHandler eos_handlers[] =
     { "GPIO",         0xC0220000, 0xC022FFFF, eos_handle_gpio, 0 },
     { "Basic",        0xC0400000, 0xC0400FFF, eos_handle_basic, 1 },
     { "Basic",        0xC0720000, 0xC0720FFF, eos_handle_basic, 2 },
+    { "SDIO0",        0xC0C00000, 0xC0C00FFF, eos_handle_sdio, 0 },
     { "SDIO1",        0xC0C10000, 0xC0C10FFF, eos_handle_sdio, 1 },
     { "SDIO2",        0xC0C20000, 0xC0C20FFF, eos_handle_sdio, 2 },
     { "SDIO6",        0xC8060000, 0xC8060FFF, eos_handle_sdio, 6 },
@@ -775,7 +777,7 @@ static void eos_update_display(void *parm)
         uint64_t size = height * linesize;
         MemoryRegionSection section = memory_region_find(
             s->system_mem,
-            s->disp.bmp_vram ? s->disp.bmp_vram : 0x10000000,
+            s->disp.bmp_vram ? s->disp.bmp_vram : 0x08000000,
             size
         );
         framebuffer_update_display(
@@ -805,7 +807,7 @@ static void eos_update_display(void *parm)
         uint64_t size = height * linesize;
         MemoryRegionSection section = memory_region_find(
             s->system_mem,
-            s->disp.bmp_vram ? s->disp.bmp_vram : 0x10000000,
+            s->disp.bmp_vram ? s->disp.bmp_vram : 0x08000000,
             size
         );
         framebuffer_update_display(
@@ -1385,6 +1387,64 @@ unsigned int eos_trigger_int(EOSState *s, unsigned int id, unsigned int delay)
     return 0;
 }
 
+/* this appears to be an older interface for the same interrupt controller */
+unsigned int eos_handle_intengine_vx ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+{
+    const char * msg = 0;
+    int msg_arg1 = 0;
+    int msg_arg2 = 0;
+    unsigned int ret = 0;
+
+    switch(address & 0xF)
+    {
+        case 0xC:
+            {
+                msg = "Reset interrupts %Xh (%Xh)";
+                msg_arg1 = value;
+
+                for (int i = 0; i < 32; i++)
+                {
+                    if (value & (1<<i))
+                    {
+                        msg_arg2 = ((address & 0xF0) >> 1) + i;
+                        if (msg_arg2 < COUNT(s->irq_enabled))
+                        {
+                            s->irq_enabled[msg_arg2] = 0;
+                        }
+                        cpu_reset_interrupt(CPU(s->cpu), CPU_INTERRUPT_HARD);
+                    }
+                }
+            }
+            break;
+
+        case 0x8:
+            if(type & MODE_WRITE)
+            {
+                msg = "Enabled interrupts %Xh (%Xh)";
+                msg_arg1 = value;
+
+                for (int i = 0; i < 32; i++)
+                {
+                    if (value & (1<<i))
+                    {
+                        msg_arg2 = ((address & 0xF0) >> 1) + i;
+                        if (msg_arg2 < COUNT(s->irq_enabled))
+                        {
+                            s->irq_enabled[msg_arg2] = 1;
+                        }
+                    }
+                }
+            }
+            break;
+    }
+
+    if (qemu_loglevel_mask(CPU_LOG_INT))
+    {
+        io_log("INTvx", s, address, type, value, ret, msg, msg_arg1, msg_arg2);
+    }
+    return ret;
+}
+
 unsigned int eos_handle_intengine ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
     const char * msg = 0;
@@ -1406,7 +1466,12 @@ unsigned int eos_handle_intengine ( unsigned int parm, EOSState *s, unsigned int
                 msg_arg1 = s->irq_id << 2;
                 msg_arg2 = s->irq_id;
                 ret = s->irq_id << ((address & 0xFFF) ? 2 : 0);
-                assert(ret);
+                
+                if (s->model->digic_version > 3)
+                {
+                    /* 1000D doesn't like this... */
+                    assert(ret);
+                }
 
                 /* this register resets on read (subsequent reads should report 0) */
                 s->irq_id = 0;
@@ -1442,11 +1507,28 @@ unsigned int eos_handle_intengine ( unsigned int parm, EOSState *s, unsigned int
                 /* value seems unused */
                 return 0;
             }
+            break;
 
+        case 0x200:
+            if(type & MODE_WRITE)
+            {
+                if (value)
+                {
+                    msg = "Reset IRQ?";
+                    s->irq_id = 0;
+                }
+            }
+            else
+            {
+                msg = "Read after enabling interrupts";
+            }
             break;
     }
 
-    io_log("INT", s, address, type, value, ret, msg, msg_arg1, msg_arg2);
+    if (qemu_loglevel_mask(CPU_LOG_INT))
+    {
+        io_log("INT", s, address, type, value, ret, msg, msg_arg1, msg_arg2);
+    }
     return ret;
 }
 
@@ -1838,9 +1920,9 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             ret = 0x10C;
             break;
         
-        case 0x019C:
-            /* 5D3: return 1 to launch "System & Display Check & Adjustment program" */
-            msg = "5D3 system check";
+        case 0x019C: /* 5D3: return 1 to launch "System & Display Check & Adjustment program" */
+        case 0x0080: /* same for 1000D */
+            msg = "System check";
             ret = 0;
             break;
 
@@ -2466,6 +2548,7 @@ unsigned int eos_handle_tio ( unsigned int parm, EOSState *s, unsigned int addre
     unsigned int ret = 1;
     const char * msg = 0;
     int msg_arg1 = 0;
+    static int enable_tio_interrupt = 0;
 
     if (address == 0xC0270000)
     {
@@ -2490,7 +2573,17 @@ unsigned int eos_handle_tio ( unsigned int parm, EOSState *s, unsigned int addre
             if(type & MODE_WRITE)
             {
                 printf("\x1B[31m%c\x1B[0m", value);
-                fflush(stdout);
+
+                if (enable_tio_interrupt)
+                {
+                    /* if using interrupts, prefer line-buffered output */
+                    eos_trigger_int(s, 0x3A, 0);
+                }
+                else
+                {
+                    /* not all messages have a newline */
+                    fflush(stdout);
+                }
                 return 0;
             }
             else
@@ -2536,6 +2629,13 @@ unsigned int eos_handle_tio ( unsigned int parm, EOSState *s, unsigned int addre
                     return 2;
                 }
             }
+            break;
+
+        case 0x18:
+            /* 1000D expects interrupt 0x3A to be triggered after writing each char */
+            /* most other cameras are upset by this interrupt */
+            enable_tio_interrupt = (value == 0xFFFFFFC4);
+            msg = (value == 0xFFFFFFC4) ? "enable interrupt?" : "interrupt related?";
             break;
     }
 
@@ -3245,6 +3345,7 @@ unsigned int eos_handle_basic ( unsigned int parm, EOSState *s, unsigned int add
         case 0x284:
             msg = "5D3 display init?";
             ret = 1;
+            break;
     }
 
     io_log("BASIC", s, address, type, value, ret, msg, 0, 0);
