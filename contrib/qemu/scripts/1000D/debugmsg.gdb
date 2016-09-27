@@ -2,8 +2,9 @@
 
 source -v debug-logging.gdb
 
-//macro define CURRENT_TASK 0x803C
-//macro define CURRENT_ISR  (*(int*)0x8160 ? (*(int*)0x8164) : 0)
+macro define CURRENT_TASK (*(int*)0x352C0 ? *(int*)0x352C0 : 0x352C0)
+macro define CURRENT_TASK_NAME (((int*)CURRENT_TASK)[0] ? ((char***)CURRENT_TASK)[0][13] : CURRENT_TASK)
+macro define CURRENT_ISR  0
 
 b *0xFFD0D5A4
 DebugMsg_log
