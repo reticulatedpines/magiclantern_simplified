@@ -36,9 +36,6 @@ done
 # The one that comes with our QEMU install script is perfect.
 echo
 echo "Setting up a temporary SD card image..."
-mv sd.img sd-user.img
-cp -v ../magic-lantern/contrib/qemu/sd.img.xz .
-unxz sd.img.xz
 
 function sd_restore {
   echo
@@ -46,7 +43,14 @@ function sd_restore {
   mv sd-user.img sd.img
 }
 
+# disable CTRL-C while moving the file
+trap '' SIGINT
+mv sd.img sd-user.img
 trap sd_restore EXIT
+trap - SIGINT
+
+cp -v ../magic-lantern/contrib/qemu/sd.img.xz .
+unxz sd.img.xz
 
 echo
 echo "Testing display from bootloader..."
