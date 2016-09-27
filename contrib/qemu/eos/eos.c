@@ -3323,15 +3323,11 @@ unsigned int eos_handle_basic ( unsigned int parm, EOSState *s, unsigned int add
             break;
         
         case 0xA4:
-            if(type & MODE_WRITE)
-            {
-            }
-            else
-            {
-                ret = 1;
-            }
+            /* A1100: expects 3 at 0xFFFF0060 */
+            msg = "A1100 init";
+            ret = 3;
             break;
-            
+        
         case 0x244:
             if(type & MODE_WRITE)
             {

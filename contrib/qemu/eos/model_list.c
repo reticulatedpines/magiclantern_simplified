@@ -221,6 +221,16 @@ struct eos_model_desc eos_model_list[] = {
         .digic_version          = 3,
     },
     {
+        .name                   = "A1100",
+        .digic_version          = 4,
+        .rom0_size              = 0x400000,     /* fixme: unknown */
+        .rom1_size              = 0x400000,
+        .ram_size               = 0x10000000,   /* fixme: only 64M */
+        .btcm_addr              = 0x80000000,
+        .io_mem_size            = 0x01000000,
+        .card_led_address       = 0xC02200CC,
+    },
+    {
         .name = NULL,
         .digic_version = 0,
     }
