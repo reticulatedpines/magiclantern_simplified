@@ -221,6 +221,12 @@ struct eos_model_desc eos_model_list[] = {
         .digic_version          = 3,
     },
     {
+        .name                   = "5D",
+        .digic_version          = 3,            /* actually 2 */
+        .io_mem_size            = 0x20000000,
+        .card_led_address       = 0xC02200A0,
+    },
+    {
         .name                   = "A1100",
         .digic_version          = 4,
         .rom0_size              = 0x400000,     /* fixme: unknown */

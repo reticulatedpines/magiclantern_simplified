@@ -15,7 +15,7 @@ export MAKE="echo skipping make"
 # and jump to main firmware:
 echo
 echo "Testing bootloaders..."
-for CAM in 5D2 5D3 6D 7D 7D2M 7D2S \
+for CAM in 5D 5D2 5D3 6D 7D 7D2M 7D2S \
            50D 60D 70D 80D \
            500D 550D 600D 650D 700D 750D 760D \
            100D 1000D 1100D 1200D EOSM; do
@@ -29,7 +29,7 @@ for CAM in 5D2 5D3 6D 7D 7D2M 7D2S \
     ( timeout 2 tail -f -n0 tests/$CAM/boot.log & ) | grep --binary-files=text -qP "\x1B\x5B31mD\x1B\x5B0m\x1B\x5B31mY\x1B\x5B0m"
     killall -INT qemu-system-arm &>> tests/$CAM/boot.log
     
-    tests/check_grep.sh tests/$CAM/boot.log -E "K.* READY"
+    tests/check_grep.sh tests/$CAM/boot.log -E "[KR].* READY"
 done
 
 # The next tests require custom SD/CF card imags.

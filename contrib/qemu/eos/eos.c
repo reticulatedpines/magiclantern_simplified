@@ -156,6 +156,7 @@ EOSRegionHandler eos_handlers[] =
     { "Timer",        0xD400000C, 0xD400000C, eos_handle_digic_timer, 1 },  /* not sure */
     { "HPTimer",      0xC0243000, 0xC0243FFF, eos_handle_hptimer, 0 },
     { "GPIO",         0xC0220000, 0xC022FFFF, eos_handle_gpio, 0 },
+    { "Basic",        0xC0100000, 0xC0100FFF, eos_handle_basic, 0 },
     { "Basic",        0xC0400000, 0xC0400FFF, eos_handle_basic, 1 },
     { "Basic",        0xC0720000, 0xC0720FFF, eos_handle_basic, 2 },
     { "SDIO0",        0xC0C00000, 0xC0C00FFF, eos_handle_sdio, 0 },
@@ -3295,7 +3296,20 @@ unsigned int eos_handle_basic ( unsigned int parm, EOSState *s, unsigned int add
 {
     unsigned int ret = 0;
     const char * msg = 0;
+    
+    /* from C0100000 */
+    if (parm == 0)
+    {
+        if ((address & 0xFFF) == 0x1C)
+        {
+            /* 5D classic: expects 1 at 0xFFFF01A4 */
+            ret = 1;
+        }
+        io_log("BASIC", s, address, type, value, ret, msg, 0, 0);
+        return ret;
+    }
 
+    /* from C0720000 */
     if (parm == 2)
     {
         if ((address & 0xFFF) == 8)
@@ -3307,6 +3321,7 @@ unsigned int eos_handle_basic ( unsigned int parm, EOSState *s, unsigned int add
         return ret;
     }
     
+    /* from C0400000 */
     switch(address & 0xFFF)
     {
         case 0x008: /* CLOCK_ENABLE */
