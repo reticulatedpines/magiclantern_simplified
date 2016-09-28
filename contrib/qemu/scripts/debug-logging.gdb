@@ -5,7 +5,7 @@
 # To use gdb, start emulation with, for example:
 #    ./run_canon_fw.sh 60D -s -S & arm-none-eabi-gdb -x 60D/debugmsg.gdb
 
-set remotetimeout 20
+set tcp connect-timeout 300
 target remote localhost:1234
 
 ################################################################################
