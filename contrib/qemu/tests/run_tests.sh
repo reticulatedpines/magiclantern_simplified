@@ -16,8 +16,8 @@ export MAKE="echo skipping make"
 echo
 echo "Testing bootloaders..."
 for CAM in 5D 5D2 5D3 6D 7D 7D2M 7D2S \
-           50D 60D 70D 80D \
-           500D 550D 600D 650D 700D 750D 760D \
+           40D 50D 60D 70D 80D \
+           400D 450D 500D 550D 600D 650D 700D 750D 760D \
            100D 1000D 1100D 1200D EOSM; do
     printf "%5s: " $CAM
     mkdir -p tests/$CAM/
@@ -29,7 +29,7 @@ for CAM in 5D 5D2 5D3 6D 7D 7D2M 7D2S \
     ( timeout 2 tail -f -n0 tests/$CAM/boot.log & ) | grep --binary-files=text -qP "\x1B\x5B31mD\x1B\x5B0m\x1B\x5B31mY\x1B\x5B0m"
     killall -INT qemu-system-arm &>> tests/$CAM/boot.log
     
-    tests/check_grep.sh tests/$CAM/boot.log -E "[KR].* READY"
+    tests/check_grep.sh tests/$CAM/boot.log -E "([KR].* READY|Intercom)"
 done
 
 # The next tests require custom SD/CF card imags.
@@ -60,14 +60,14 @@ echo "Testing display from bootloader..."
 
 # These cameras should run the portable display test:
 for CAM in 5D 5D2 5D3 6D 7D 7D2M 7D2S \
-           50D 60D 70D 80D \
-           500D 550D 600D 650D 700D 750D 760D \
+           40D 50D 60D 70D 80D \
+           400D 450D 500D 550D 600D 650D 700D 750D 760D \
            100D 1000D 1100D 1200D EOSM; do
     printf "%5s: " $CAM
     mkdir -p tests/$CAM/
     rm -f tests/$CAM/disp.ppm
     rm -f tests/$CAM/disp.log
-    (sleep 3; echo screendump tests/$CAM/disp.ppm; echo quit) \
+    (sleep 4; echo screendump tests/$CAM/disp.ppm; echo quit) \
       | ./run_canon_fw.sh $CAM,firmware="boot=1" -nographic &> tests/$CAM/disp.log
     
     tests/check_md5.sh tests/$CAM/ disp

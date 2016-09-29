@@ -1987,7 +1987,7 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
 
         case 0x012C:
             msg = "1000D display";
-            ret = 0;
+            ret = rand();
             break;
     
         case 0x00E8:
@@ -1997,10 +1997,19 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             break;
         
         case 0x0034:
-            /* USB on 600D */
-            msg = "USB CONNECT";
-            ret = 0;
-            break;
+            if (s->model->digic_version < 4)
+            {
+                msg = "400D init";
+                ret = rand();
+                break;
+            }
+            else
+            {
+                /* USB on 600D */
+                msg = "600D USB CONNECT";
+                ret = 1;
+                break;
+            }
 
         case 0x014:
             /* /VSW_ON on 600D */
