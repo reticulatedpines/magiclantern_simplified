@@ -125,6 +125,8 @@ struct eos_model_desc eos_model_list[] = {
         .current_task_addr      = 0x23E14,
         .mpu_request_register   = 0xC02200BC,
         .card_led_address       = 0xC022C06C,
+        .cf_driver_interrupt    = 0x82,
+        .cf_dma_interrupt       = 0xE3,
     },
     {
         .name                   = "650D",

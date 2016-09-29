@@ -84,6 +84,15 @@ typedef struct
 typedef struct
 {
     IDEBus bus;
+    QemuMutex lock;
+    int interrupt_enabled;
+    int dma_read_request;
+    int dma_write_request;
+    int ata_interrupt_enabled;
+    int pending_interrupt;
+    uint32_t dma_addr;
+    uint32_t dma_count;
+    uint32_t dma_read;
 } CFState;
 
 struct palette_entry
@@ -266,6 +275,7 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
 unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_sddma ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_cfdma ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
+unsigned int eos_handle_cfata ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_asif ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_display ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_edmac ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );

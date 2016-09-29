@@ -162,13 +162,14 @@ EOSRegionHandler eos_handlers[] =
     { "SDIO0",        0xC0C00000, 0xC0C00FFF, eos_handle_sdio, 0 },
     { "SDIO1",        0xC0C10000, 0xC0C10FFF, eos_handle_sdio, 1 },
     { "SDIO2",        0xC0C20000, 0xC0C20FFF, eos_handle_sdio, 2 },
-    { "SDIO6",        0xC8060000, 0xC8060FFF, eos_handle_sdio, 6 },
     { "SFIO4",        0xC0C40000, 0xC0C40FFF, eos_handle_sfio, 4 },
+    { "SDIO6",        0xC8060000, 0xC8060FFF, eos_handle_sdio, 6 },
+    { "CFDMA0",       0xC0500000, 0xC0500FFF, eos_handle_cfdma, 0 },
     { "SDDMA1",       0xC0510000, 0xC05100FF, eos_handle_sddma, 1 },
-    { "SDDMA3",       0xC0530000, 0xC05300FF, eos_handle_sddma, 3 },
+    { "SDDMA3",       0xC0530000, 0xC0530FFF, eos_handle_sddma, 3 },
     { "SDDMA6",       0xC8020000, 0xC80200FF, eos_handle_sddma, 6 },
-    { "CFDMA",        0xC0600000, 0xC060FFFF, eos_handle_cfdma, 0 },
-    { "CFDMA",        0xC0620000, 0xC062FFFF, eos_handle_cfdma, 2 },
+    { "CFATA0",       0xC0600000, 0xC060FFFF, eos_handle_cfata, 0 },
+    { "CFATA2",       0xC0620000, 0xC062FFFF, eos_handle_cfata, 2 },
     { "TIO",          0xC0800000, 0xC08000FF, eos_handle_tio, 0 },
     { "TIO",          0xC0270000, 0xC0270000, eos_handle_tio, 1 },
     { "SIO0",         0xC0820000, 0xC08200FF, eos_handle_sio, 0 },
@@ -334,6 +335,10 @@ void eos_load_image(EOSState *s, const char* file, int offset, int max_size, uin
     free(buf);
 }
 
+static int cfdma_read_data(EOSState *s, CFState *cf);
+static int cfdma_write_data(EOSState *s, CFState *cf);
+static void cfdma_trigger_interrupt(EOSState *s);
+
 static void *eos_interrupt_thread(void *parm)
 {
     EOSState *s = (EOSState *)parm;
@@ -426,6 +431,26 @@ static void *eos_interrupt_thread(void *parm)
         {
             eos_trigger_int(s, HPTIMER_INTERRUPT, 0);
         }
+        
+        qemu_mutex_lock(&s->cf.lock);
+        
+        if (s->cf.dma_read_request)
+        {
+            s->cf.dma_read_request = cfdma_read_data(s, &s->cf);
+        }
+
+        if (s->cf.dma_write_request)
+        {
+            s->cf.dma_write_request = cfdma_write_data(s, &s->cf);
+        }
+        
+        if (s->cf.pending_interrupt && s->cf.interrupt_enabled == 1)
+        {
+            cfdma_trigger_interrupt(s);
+            s->cf.pending_interrupt = 0;
+        }
+        
+        qemu_mutex_unlock(&s->cf.lock);
     }
 
     return NULL;
@@ -1112,6 +1137,9 @@ static void eos_init_common(MachineState *machine)
     ide_bus_new(&s->cf.bus, sizeof(s->cf.bus), NULL, 0, 2);
     ide_init2(&s->cf.bus, s->interrupt);
     ide_create_drive(&s->cf.bus, 0, dj);
+    s->cf.bus.ifs[0].drive_kind = IDE_CFATA;
+    qemu_mutex_init(&s->cf.lock);
+
 
     /* nkls: init SF */
     if (s->model->serial_flash_size)
@@ -3179,32 +3207,185 @@ unsigned int eos_handle_sddma ( unsigned int parm, EOSState *s, unsigned int add
     return ret;
 }
 
+// #define DPRINTF(fmt, ...) do { printf("[CFDMA] " fmt , ## __VA_ARGS__); } while (0)
+#define DPRINTF(fmt, ...) do { } while (0)
+
+static int cfdma_read_data(EOSState *s, CFState *cf)
+{
+    DPRINTF("Reading %d of %d bytes to %x\n", cf->dma_count - cf->dma_read, cf->dma_count, cf->dma_addr + cf->dma_read);
+    
+    assert(cf->dma_count % 4 == 0);
+    
+    /* for some reason, reading many values in a loop sometimes fails */
+    /* in this case, the status register has the DRQ bit cleared */
+    /* and we need to wait until new data arrives in the buffer */
+    while ((cf->dma_read < cf->dma_count) &&
+           (ide_status_read(&cf->bus, 0) & 0x08))    /* DRQ_STAT */
+    {
+        uint32_t value = ide_data_readl(&cf->bus, 0);
+        uint32_t addr = cf->dma_addr + cf->dma_read; 
+        cpu_physical_memory_write(addr, &value, 4);
+        DPRINTF("%08x: %08x\n", addr, value);
+        cf->dma_read += 4;
+    }
+
+    if (cf->dma_read == cf->dma_count)
+    {
+        /* finished? */
+        cfdma_trigger_interrupt(s);
+        return 0;
+    }
+    
+    return 1;
+}
+
+static int cfdma_write_data(EOSState *s, CFState *cf)
+{
+    DPRINTF("Writing %d bytes from %x\n", cf->dma_count, cf->dma_addr);
+
+    /* todo */
+    assert(0);
+}
+
+static void cfdma_trigger_interrupt(EOSState *s)
+{
+    if (s->cf.interrupt_enabled & 0x2000001)
+    {
+        assert(s->model->cf_driver_interrupt);
+        eos_trigger_int(s, s->model->cf_driver_interrupt, 0);
+    }
+
+    if (s->cf.interrupt_enabled & 0x10000)
+    {
+        assert(s->model->cf_dma_interrupt);
+        eos_trigger_int(s, s->model->cf_dma_interrupt, 0);
+    }
+}
+
+#undef DPRINTF
+
 unsigned int eos_handle_cfdma ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+{
+    unsigned int ret = 0;
+    const char * msg = 0;
+
+    qemu_mutex_lock(&s->cf.lock);
+
+    switch(address & 0x1F)
+    {
+        case 0x00:
+            msg = "Transfer memory address";
+            if(type & MODE_WRITE)
+            {
+                s->cf.dma_addr = value;
+            }
+            else
+            {
+                ret = s->cf.dma_addr;
+            }
+            break;
+        case 0x04:
+            msg = "Transfer byte count";
+            if(type & MODE_WRITE)
+            {
+                s->cf.dma_count = value;
+            }
+            else
+            {
+                ret = s->cf.dma_read;
+            }
+            break;
+        case 0x10:
+            msg = "Unknown transfer command";
+            
+            if(type & MODE_WRITE)
+            {
+                if (value == 0x3D)
+                {
+                    msg = "DMA write start";
+                    s->cf.dma_write_request = 1;
+                }
+                else if (value == 0x39 || value == 0x21)
+                {
+                    msg = "DMA read start";
+                    s->cf.dma_read = 0;
+                    
+                    /* for some reason, trying to read large blocks at once
+                     * may fail; not sure what's the proper way to fix it
+                     * workaround: do this in a different task,
+                     * where we may retry as needed */
+                    s->cf.dma_read_request = 1;
+                }
+            }
+            break;
+        case 0x14:
+            msg = "DMA status?";
+            ret = 3;
+            break;
+    }
+
+    io_log("CFDMA", s, address, type, value, ret, msg, 0, 0);
+    qemu_mutex_unlock(&s->cf.lock);
+    return ret;
+}
+
+unsigned int eos_handle_cfata ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
     unsigned int ret = 0;
     const char * msg = 0;
     intptr_t msg_arg1 = 0;
     intptr_t msg_arg2 = 0;
 
+    qemu_mutex_lock(&s->cf.lock);
+
     switch(address & 0xFFFF)
     {
         case 0x8104:
             msg = "CFDMA ready maybe?";
-            ret = 4;
+            ret = (s->cf.dma_read_request || s->cf.dma_write_request) ? 0 : 4;
+            break;
+        
+        case 0x8040:
+            msg = "Interrupt enable?";
+            if(type & MODE_WRITE)
+            {
+                s->cf.interrupt_enabled = value;
+            }
+            break;
+            
+        case 0x8044:
+            msg = "Interrupt related?";
+            if(type & MODE_WRITE)
+            {
+            }
+            else
+            {
+                /* should return what was written to 0x8040?! */
+                ret = s->cf.interrupt_enabled;
+            }
             break;
 
-        case 0x21F0:
+        case 0x21F0:    /* quiet */
+        case 0x2000:    /* still testing */
             msg = "ATA data port";
             
             if(type & MODE_WRITE)
             {
-                /* quiet */
                 ide_data_writew(&s->cf.bus, 0, value);
-                return 0;
+                if ((address & 0xFFFF) == 0x21F0)
+                {
+                    qemu_mutex_unlock(&s->cf.lock);
+                    return 0;
+                }
             }
             else
             {
-                return ide_data_readw(&s->cf.bus, 0);
+                ret = ide_data_readw(&s->cf.bus, 0);
+                if ((address & 0xFFFF) == 0x21F0)
+                {
+                    qemu_mutex_unlock(&s->cf.lock);
+                    return ret;
+                }
             }
             break;
 
@@ -3215,6 +3396,13 @@ unsigned int eos_handle_cfdma ( unsigned int parm, EOSState *s, unsigned int add
         case 0x21F5:
         case 0x21F6:
         case 0x21F7:
+        case 0x2001:
+        case 0x2002:
+        case 0x2003:
+        case 0x2004:
+        case 0x2005:
+        case 0x2006:
+        case 0x2007:
         {
             int offset = address & 0xF;
 
@@ -3232,21 +3420,33 @@ unsigned int eos_handle_cfdma ( unsigned int parm, EOSState *s, unsigned int add
             if(type & MODE_WRITE)
             {
                 ide_ioport_write(&s->cf.bus, offset, value);
+                if (offset == 7 && s->cf.ata_interrupt_enabled)
+                {
+                    /* a command for which interrupts were requested? */
+                    s->cf.pending_interrupt = 1;
+                }
             }
             else
             {
-                return ide_ioport_read(&s->cf.bus, offset);
+                ret = ide_ioport_read(&s->cf.bus, offset);
+                if (offset == 7)
+                {
+                    /* reading the status register clears peding interrupt */
+                    s->cf.pending_interrupt = 0;
+                }
             }
             break;
         }
 
         case 0x23F6:
+        case 0x200E:
             if(type & MODE_WRITE)
             {
                 msg = "ATA device control: int %s%s";
                 msg_arg1 = (intptr_t) ((value & 2) ? "disable" : "enable");
                 msg_arg2 = (intptr_t) ((value & 4) ? ", soft reset" : "");
-                ide_cmd_write(&s->cf.bus, 0, value);
+                ide_cmd_write(&s->cf.bus, 0, value & 2);
+                s->cf.ata_interrupt_enabled = !(value & 2);
             }
             else
             {
@@ -3255,7 +3455,8 @@ unsigned int eos_handle_cfdma ( unsigned int parm, EOSState *s, unsigned int add
             }
             break;
     }
-    io_log("CFDMA", s, address, type, value, ret, msg, msg_arg1, msg_arg2);
+    io_log("CFATA", s, address, type, value, ret, msg, msg_arg1, msg_arg2);
+    qemu_mutex_unlock(&s->cf.lock);
     return ret;
 }
 
