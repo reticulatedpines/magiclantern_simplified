@@ -790,6 +790,13 @@ static void eos_update_display(void *parm)
         /* for VxWorks bootloader */
         height /= 2;
     }
+    
+    if (s->disp.width && s->disp.height)
+    {
+        /* did we manage to get them from registers? override the above stuff */
+        width = s->disp.width;
+        height = s->disp.height;
+    }
 
     if (width != surface_width(surface) || height != surface_height(surface))
     {
@@ -4039,24 +4046,31 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
         case 0xD20F0000:    /* M3: many reads from FC000382, value seems ignored */
             return 0;
         
-        case 0xD2013800:
-        case 0xD201381C:
+        case 0xD2013800:    /* D6 */
+        case 0xD201381C:    /* D6 */
+        case 0xD2018200:    /* 5D4 */
+        case 0xD2018230:    /* 5D4 */
             msg = "Display resolution";
-            s->disp.bmp_pitch = value & 0xFFFF;
+            s->disp.width     = value & 0xFFFF;
+            s->disp.height    = value >> 16;
+            s->disp.bmp_pitch = s->disp.width;
             break;
         
-        case 0xD2030108:
+        case 0xD2030108:    /* D6 */
+        case 0xD2018228:    /* 5D4 */
             s->disp.bmp_vram = value << 8;
             msg = "BMP VRAM";
             break;
 
-        case 0xD20139A8:
+        case 0xD20139A8:    /* D6 */
+        case 0xD2018398:    /* 5D4 */
         {
             msg = "Bootloader palette address";
             palette_addr = value << 4;
             break;
         }
         case 0xD20139A0:
+        case 0xD201839C:
         {
             msg = "Bootloader palette confirm";
             for (int i = 0; i < 16; i++)
@@ -4128,11 +4142,17 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
             ret = 0x00000840;
             break;
 
-        case 0xD20B0400:
+        case 0xD20B0400:                /* 80D: 0x10000 = no card present */
+        case 0xD20B22A8:                /* 5D4: same */
             msg = "SD detect";
-            ret = 0;                    /* 80D: 0x10000 = no card present */
+            ret = 0;
             break;
-        
+
+        case 0xD20B210C:
+            msg = "CF detect";          /* 5D4: same as above */
+            ret = 0x10000;
+            break;
+
         case 0xD6040000:                /* M3: appears to expect 0x3008000 or 0x3108000 */
             ret = 0x3008000;
             break;

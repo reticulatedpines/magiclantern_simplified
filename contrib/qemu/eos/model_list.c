@@ -206,6 +206,7 @@ struct eos_model_desc eos_model_list[] = {
     {
         .name                   = "80D",
         .digic_version          = 6,
+        .ram_size               = 0x40000000,
         .ram_manufacturer_id    = 0x18000103,   /* RAM manufacturer: Micron */
     },
     {
@@ -217,6 +218,13 @@ struct eos_model_desc eos_model_list[] = {
         .name                   = "760D",
         .digic_version          = 6,
         .ram_manufacturer_id    = 0x14000203,
+    },
+    {
+        .name                   = "5D4",
+        .digic_version          = 6,
+        .ram_size               = 0x40000000,
+        .ram_manufacturer_id    = 0x18000103,
+        .card_led_address       = 0xD20B0224,
     },
     {
         .name                   = "1000D",

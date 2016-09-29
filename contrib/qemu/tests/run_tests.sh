@@ -15,7 +15,7 @@ export MAKE="echo skipping make"
 # and jump to main firmware:
 echo
 echo "Testing bootloaders..."
-for CAM in 5D 5D2 5D3 6D 7D 7D2M 7D2S \
+for CAM in 5D 5D2 5D3 5D4 6D 7D 7D2M 7D2S \
            40D 50D 60D 70D 80D \
            400D 450D 500D 550D 600D 650D 700D 750D 760D \
            100D 1000D 1100D 1200D EOSM; do
@@ -59,7 +59,7 @@ echo
 echo "Testing display from bootloader..."
 
 # These cameras should run the portable display test:
-for CAM in 5D 5D2 5D3 6D 7D 7D2M 7D2S \
+for CAM in 5D 5D2 5D3 5D4 6D 7D 7D2M 7D2S \
            40D 50D 60D 70D 80D \
            400D 450D 500D 550D 600D 650D 700D 750D 760D \
            100D 1000D 1100D 1200D EOSM; do
