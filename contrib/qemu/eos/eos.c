@@ -4053,13 +4053,22 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
             msg = "Display resolution";
             s->disp.width     = value & 0xFFFF;
             s->disp.height    = value >> 16;
-            s->disp.bmp_pitch = s->disp.width;
             break;
         
         case 0xD2030108:    /* D6 */
-        case 0xD2018228:    /* 5D4 */
             s->disp.bmp_vram = value << 8;
+            s->disp.bmp_pitch = s->disp.width;
             msg = "BMP VRAM";
+            break;
+
+        case 0xD2018228:    /* 5D4 */
+            s->disp.bmp_vram = value;
+            msg = "BMP VRAM";
+            break;
+        
+        case 0xD201822C:    /* 5D4 */
+            s->disp.bmp_pitch = value;
+            msg = "BMP pitch";
             break;
 
         case 0xD20139A8:    /* D6 */
@@ -4070,7 +4079,7 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
             break;
         }
         case 0xD20139A0:
-        case 0xD201839C:
+        case 0xD2018390:
         {
             msg = "Bootloader palette confirm";
             for (int i = 0; i < 16; i++)
