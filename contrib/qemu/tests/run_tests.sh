@@ -3,7 +3,7 @@
 # Emulator tests
 # This also shows the emulation state on various cameras
 
-EOS_CAMS=( 5D 5D2 5D3 5D4 6D 7D 7D2M 7D2S
+EOS_CAMS=( 5D 5D2 5D3 5D4 6D 7D 7D2M
            40D 50D 60D 70D 80D
            400D 450D 500D 550D 600D 650D 700D 750D 760D
            100D 1000D 1100D 1200D EOSM )
@@ -11,6 +11,8 @@ EOS_CAMS=( 5D 5D2 5D3 5D4 6D 7D 7D2M 7D2S
 POWERSHOT_CAMS=( EOSM3 A1100 )
 
 GUI_CAMS=( 60D 5D3 600D 1200D 1100D )
+
+EOS_SECONDARY_CORES=( 5D4AE 7D2S )
 
 if false ; then
     # to test only specific models
@@ -32,7 +34,7 @@ export MAKE="echo skipping make"
 # and jump to main firmware:
 echo
 echo "Testing bootloaders..."
-for CAM in ${EOS_CAMS[*]}; do
+for CAM in ${EOS_CAMS[*]} ${EOS_SECONDARY_CORES[*]}; do
     printf "%5s: " $CAM
     mkdir -p tests/$CAM/
     rm -f tests/$CAM/boot.log
@@ -43,13 +45,13 @@ for CAM in ${EOS_CAMS[*]}; do
     ( timeout 2 tail -f -n0 tests/$CAM/boot.log & ) | grep --binary-files=text -qP "\x1B\x5B31mD\x1B\x5B0m\x1B\x5B31mY\x1B\x5B0m"
     killall -INT qemu-system-arm &>> tests/$CAM/boot.log
     
-    tests/check_grep.sh tests/$CAM/boot.log -E "([KR].* READY|Intercom)"
+    tests/check_grep.sh tests/$CAM/boot.log -E "([KR].* (READY|AECU)|Intercom)"
 done
 
 # All cameras should run under GDB and start a few tasks
 echo
 echo "Testing GDB scripts..."
-for CAM in ${EOS_CAMS[*]} ${POWERSHOT_CAMS[*]}; do
+for CAM in ${EOS_CAMS[*]} ${EOS_SECONDARY_CORES[*]} ${POWERSHOT_CAMS[*]}; do
     printf "%5s: " $CAM
 
     if [ ! -f $CAM/debugmsg.gdb ]; then

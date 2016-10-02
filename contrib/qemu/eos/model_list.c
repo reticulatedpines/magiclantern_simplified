@@ -227,6 +227,12 @@ struct eos_model_desc eos_model_list[] = {
         .card_led_address       = 0xD20B0224,
     },
     {
+        .name                   = "5D4AE",
+        .digic_version          = 6,
+        .ram_manufacturer_id    = 0x18000103,
+        .card_led_address       = 0xD20B0224,
+    },
+    {
         .name                   = "1000D",
         .digic_version          = 3,
     },
