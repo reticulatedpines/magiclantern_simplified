@@ -5,6 +5,7 @@
 #include "hw/sysbus.h"
 #include "hw/sd/sd.h"
 #include "hw/ide/internal.h"
+#include "hw/char/digic-uart.h"
 
 /** Helper macros **/
 #define COUNT(x)        ((int)(sizeof(x)/sizeof((x)[0])))
@@ -220,6 +221,7 @@ typedef struct
     RTCState rtc;
     SDIOState sd;
     CFState cf;
+    DigicUartState uart;
     MPUState mpu;
     EDMACState edmac;
     struct SerialFlashState * sf;
@@ -264,7 +266,7 @@ unsigned int eos_handle_dma ( unsigned int parm, EOSState *s, unsigned int addre
 unsigned int eos_handle_ram ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_sio ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_cartridge ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
-unsigned int eos_handle_tio ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
+unsigned int eos_handle_uart ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_timers ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_timers_ ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_digic_timer ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );

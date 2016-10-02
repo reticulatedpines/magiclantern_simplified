@@ -40,9 +40,9 @@ for CAM in ${EOS_CAMS[*]} ${EOS_SECONDARY_CORES[*]}; do
     rm -f tests/$CAM/boot.log
     # sorry, couldn't get the monitor working together with log redirection...
     # going to wait for red DY (from READY), with 2 seconds timeout, then kill qemu
-    (./run_canon_fw.sh $CAM,firmware="boot=0" -nographic -monitor none &> tests/$CAM/boot.log) &
+    (./run_canon_fw.sh $CAM,firmware="boot=0" -display none &> tests/$CAM/boot.log) &
     sleep 0.1
-    ( timeout 2 tail -f -n0 tests/$CAM/boot.log & ) | grep --binary-files=text -qP "\x1B\x5B31mD\x1B\x5B0m\x1B\x5B31mY\x1B\x5B0m"
+    ( timeout 5 tail -f -n0 tests/$CAM/boot.log & ) | grep --binary-files=text -qP "\x1B\x5B31mD\x1B\x5B0m\x1B\x5B31mY\x1B\x5B0m"
     killall -INT qemu-system-arm &>> tests/$CAM/boot.log
     
     tests/check_grep.sh tests/$CAM/boot.log -E "([KR].* (READY|AECU)|Intercom)"
@@ -61,7 +61,7 @@ for CAM in ${EOS_CAMS[*]} ${EOS_SECONDARY_CORES[*]} ${POWERSHOT_CAMS[*]}; do
 
     mkdir -p tests/$CAM/
     rm -f tests/$CAM/gdb.log
-    (./run_canon_fw.sh $CAM,firmware="boot=0" -nographic -monitor none -s -S & \
+    (./run_canon_fw.sh $CAM,firmware="boot=0" -display none -s -S & \
      arm-none-eabi-gdb -x $CAM/debugmsg.gdb &) &> tests/$CAM/gdb.log
     sleep 0.1
     ( timeout 10 tail -f -n0 tests/$CAM/gdb.log & ) | grep --binary-files=text -qP "task_create\("
@@ -105,8 +105,8 @@ for CAM in ${EOS_CAMS[*]}; do
     mkdir -p tests/$CAM/
     rm -f tests/$CAM/disp.ppm
     rm -f tests/$CAM/disp.log
-    (sleep 4; echo screendump tests/$CAM/disp.ppm; echo quit) \
-      | ./run_canon_fw.sh $CAM,firmware="boot=1" -nographic &> tests/$CAM/disp.log
+    (sleep 5; echo screendump tests/$CAM/disp.ppm; echo quit) \
+      | ./run_canon_fw.sh $CAM,firmware="boot=1" -display none -monitor stdio &> tests/$CAM/disp.log
     
     tests/check_md5.sh tests/$CAM/ disp
 done
@@ -117,7 +117,7 @@ echo "Testing EOS M3..."
 for CAM in EOSM3; do
     mkdir -p tests/$CAM/
     rm -f tests/$CAM/boot.log
-    (./run_canon_fw.sh $CAM -nographic -monitor none -s -S & \
+    (./run_canon_fw.sh $CAM -display none -s -S & \
      arm-none-eabi-gdb -x EOSM3/debugmsg.gdb &) &> tests/$CAM/boot.log
     sleep 0.1
     ( timeout 10 tail -f -n0 tests/$CAM/boot.log & ) | grep --binary-files=text -qP "\x1B\x5B31ma\x1B\x5B0m\x1B\x5B31my\x1B\x5B0m"
@@ -140,7 +140,7 @@ for CAM in ${GUI_CAMS[*]}; do
     rm -f tests/$CAM/gui.ppm
     rm -f tests/$CAM/gui.log
     (sleep 20; echo screendump tests/$CAM/gui.ppm; echo quit) \
-      | ./run_canon_fw.sh $CAM,firmware="boot=0" -nographic &> tests/$CAM/gui.log
+      | ./run_canon_fw.sh $CAM,firmware="boot=0" -display none -monitor stdio &> tests/$CAM/gui.log
 
     tests/check_md5.sh tests/$CAM/ gui
 done

@@ -12,6 +12,7 @@
 #include "ui/pixel_ops.h"
 #include "hw/display/framebuffer.h"
 #include "hw/sd/sd.h"
+#include "sysemu/char.h"
 #include <hw/ide/internal.h>
 #include "eos.h"
 
@@ -170,8 +171,8 @@ EOSRegionHandler eos_handlers[] =
     { "SDDMA6",       0xC8020000, 0xC80200FF, eos_handle_sddma, 6 },
     { "CFATA0",       0xC0600000, 0xC060FFFF, eos_handle_cfata, 0 },
     { "CFATA2",       0xC0620000, 0xC062FFFF, eos_handle_cfata, 2 },
-    { "TIO",          0xC0800000, 0xC08000FF, eos_handle_tio, 0 },
-    { "TIO",          0xC0270000, 0xC0270000, eos_handle_tio, 1 },
+    { "UART",         0xC0800000, 0xC08000FF, eos_handle_uart, 0 },
+    { "UART",         0xC0270000, 0xC0270000, eos_handle_uart, 1 },
     { "SIO0",         0xC0820000, 0xC08200FF, eos_handle_sio, 0 },
     { "SIO1",         0xC0820100, 0xC08201FF, eos_handle_sio, 1 },
     { "SIO2",         0xC0820200, 0xC08202FF, eos_handle_sio, 2 },
@@ -907,7 +908,42 @@ static void eos_key_event(void *parm, int keycode)
     //s->keyb.buf[(s->keyb.tail++) & 15] = keycode;
 }
 
+/**
+ * UART code taken from hw/char/digic-uart.c
+ * (sorry, couldn't figure out how to reuse it...)
+ */
 
+enum {
+    ST_RX_RDY = (1 << 0),
+    ST_TX_RDY = (1 << 1),
+};
+
+static int eos_uart_can_rx(void *opaque)
+{
+    DigicUartState *s = opaque;
+
+    return !(s->reg_st & ST_RX_RDY);
+}
+
+static void eos_uart_rx(void *opaque, const uint8_t *buf, int size)
+{
+    DigicUartState *s = opaque;
+
+    assert(eos_uart_can_rx(opaque));
+
+    s->reg_st |= ST_RX_RDY;
+    s->reg_rx = *buf;
+}
+
+static void eos_uart_event(void *opaque, int event)
+{
+}
+
+static void eos_uart_reset(DigicUartState *s)
+{
+    s->reg_rx = 0;
+    s->reg_st = ST_TX_RDY;
+}
 
 /** EOS CPU SETUP **/
 
@@ -1155,6 +1191,15 @@ static void eos_init_common(MachineState *machine)
         snprintf(sf_filename, sizeof(sf_filename), "%s/SFDATA.BIN", s->model->name);
         s->sf = serial_flash_init(sf_filename, s->model->serial_flash_size);
     }
+    
+    /* init UART */
+    /* FIXME use a qdev chardev prop instead of qemu_char_get_next_serial() */
+    s->uart.chr = qemu_char_get_next_serial();
+    if (s->uart.chr) {
+        qemu_chr_add_handlers(s->uart.chr, eos_uart_can_rx, eos_uart_rx, eos_uart_event, &s->uart);
+    }
+    eos_uart_reset(&s->uart);
+
 
     /* init MPU */
     mpu_spells_init(s);
@@ -2593,7 +2638,7 @@ unsigned int eos_handle_dma ( unsigned int parm, EOSState *s, unsigned int addre
 }
 
 
-unsigned int eos_handle_tio ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+unsigned int eos_handle_uart ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
     unsigned int ret = 1;
     const char * msg = 0;
@@ -2622,19 +2667,29 @@ unsigned int eos_handle_tio ( unsigned int parm, EOSState *s, unsigned int addre
         case 0x00:
             if(type & MODE_WRITE)
             {
-                printf("\x1B[31m%c\x1B[0m", value);
-
-                if (enable_tio_interrupt)
-                {
-                    /* if using interrupts, prefer line-buffered output */
-                    eos_trigger_int(s, 0x3A, 0);
+                assert(value == (value & 0xFF));
+                
+                if (s->uart.chr) {
+                    qemu_chr_fe_write_all(s->uart.chr, (void*) &value, 1);
                 }
-
-                if (!enable_tio_interrupt || value == '\n')
+                
+                /* fixme: better way to check whether the serial is printing to console? */
+                if (strcmp(s->uart.chr->filename, "stdio") != 0 &&
+                    strcmp(s->uart.chr->filename, "mux") != 0)
                 {
-                    /* not all messages have a newline */
-                    /* (note: we must flush manually on newline, because of the color codes) */
-                    fflush(stdout);
+                    printf("\x1B[31m%c\x1B[0m", value);
+
+                    if (enable_tio_interrupt)
+                    {
+                        /* if using interrupts, prefer line-buffered output */
+                        eos_trigger_int(s, 0x3A, 0);
+                    }
+                    
+                    if (!enable_tio_interrupt || value == '\n')
+                    {
+                        /* not all messages have a newline */
+                        fflush(stdout);
+                    }
                 }
                 return 0;
             }
@@ -2646,8 +2701,9 @@ unsigned int eos_handle_tio ( unsigned int parm, EOSState *s, unsigned int addre
 
         case 0x04:
             msg = "Read byte: 0x%02X";
-            msg_arg1 = s->tio_rxbyte & 0xFF;
-            ret = s->tio_rxbyte & 0xFF;
+            s->uart.reg_st &= ~(ST_RX_RDY);
+            ret = s->uart.reg_rx;
+            msg_arg1 = ret;
             break;
         
         case 0x08:
@@ -2660,7 +2716,7 @@ unsigned int eos_handle_tio ( unsigned int parm, EOSState *s, unsigned int addre
                 if(value & 1)
                 {
                     msg = "Reset RX indicator";
-                    s->tio_rxbyte |= 0x100;
+                    s->uart.reg_st &= ~(ST_RX_RDY);
                 }
                 else
                 {
@@ -2670,16 +2726,9 @@ unsigned int eos_handle_tio ( unsigned int parm, EOSState *s, unsigned int addre
             }
             else
             {
-                if((s->tio_rxbyte & 0x100) == 0)
-                {
-                    msg = "Signalling RX indicator";
-                    ret = 3;
-                }
-                else
-                {
-                    /* quiet */
-                    return 2;
-                }
+                /* status: 1 = character available, 2 = can write */
+                /* quiet */
+                return s->uart.reg_st;
             }
             break;
 
@@ -2691,7 +2740,7 @@ unsigned int eos_handle_tio ( unsigned int parm, EOSState *s, unsigned int addre
             break;
     }
 
-    io_log("TIO", s, address, type, value, ret, msg, msg_arg1, 0);
+    io_log("UART", s, address, type, value, ret, msg, msg_arg1, 0);
     return ret;
 }
 
