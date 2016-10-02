@@ -2629,9 +2629,11 @@ unsigned int eos_handle_tio ( unsigned int parm, EOSState *s, unsigned int addre
                     /* if using interrupts, prefer line-buffered output */
                     eos_trigger_int(s, 0x3A, 0);
                 }
-                else
+
+                if (!enable_tio_interrupt || value == '\n')
                 {
                     /* not all messages have a newline */
+                    /* (note: we must flush manually on newline, because of the color codes) */
                     fflush(stdout);
                 }
                 return 0;

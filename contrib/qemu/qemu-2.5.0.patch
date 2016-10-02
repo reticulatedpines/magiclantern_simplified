@@ -279,7 +279,7 @@ index 6cd54c8..cdf663f 100644
 +{
 +    const ARMCPRegInfo *ri = rip;
 +
-+    printf("%08X: MCR p%d,%d,Rd,cr%d,cr%d,%d: %10s <- 0x%X\n",
++    fprintf(stderr, "%08X: MCR p%d,%d,Rd,cr%d,cr%d,%d: %10s <- 0x%X\n",
 +        env->regs[15], ri->cp,
 +        ri->opc1, ri->crn, ri->crm, ri->opc2,
 +        ri->name, value
@@ -290,7 +290,7 @@ index 6cd54c8..cdf663f 100644
 +{
 +    const ARMCPRegInfo *ri = rip;
 +
-+    printf("%08X: MRC p%d,%d,Rd,cr%d,cr%d,%d: %10s -> 0x%X\n",
++    fprintf(stderr, "%08X: MRC p%d,%d,Rd,cr%d,cr%d,%d: %10s -> 0x%X\n",
 +        env->regs[15], ri->cp,
 +        ri->opc1, ri->crn, ri->crm, ri->opc2,
 +        ri->name, value
