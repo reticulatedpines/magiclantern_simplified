@@ -46,6 +46,31 @@ for CAM in ${EOS_CAMS[*]}; do
     tests/check_grep.sh tests/$CAM/boot.log -E "([KR].* READY|Intercom)"
 done
 
+# All cameras should run under GDB and start a few tasks
+echo
+echo "Testing GDB scripts..."
+for CAM in ${EOS_CAMS[*]} ${POWERSHOT_CAMS[*]}; do
+    printf "%5s: " $CAM
+
+    if [ ! -f $CAM/debugmsg.gdb ]; then
+        echo -e "\e[33m$CAM/debugmsg.gdb not present\e[0m"
+        continue
+    fi
+
+    mkdir -p tests/$CAM/
+    rm -f tests/$CAM/gdb.log
+    (./run_canon_fw.sh $CAM,firmware="boot=0" -nographic -monitor none -s -S & \
+     arm-none-eabi-gdb -x $CAM/debugmsg.gdb &) &> tests/$CAM/gdb.log
+    sleep 0.1
+    ( timeout 10 tail -f -n0 tests/$CAM/gdb.log & ) | grep --binary-files=text -qP "task_create\("
+    sleep 1
+    killall -INT qemu-system-arm &>> tests/$CAM/gdb.log
+    sleep 0.2
+
+    tac tests/$CAM/gdb.log > tmp
+    tests/check_grep.sh tmp -Em1 "task_create\("
+done
+
 # The next tests require custom SD/CF card imags.
 # The one that comes with our QEMU install script is perfect.
 echo
