@@ -3,6 +3,23 @@
 # Emulator tests
 # This also shows the emulation state on various cameras
 
+EOS_CAMS=( 5D 5D2 5D3 5D4 6D 7D 7D2M 7D2S
+           40D 50D 60D 70D 80D
+           400D 450D 500D 550D 600D 650D 700D 750D 760D
+           100D 1000D 1100D 1200D EOSM )
+
+POWERSHOT_CAMS=( EOSM3 A1100 )
+
+GUI_CAMS=( 60D 5D3 600D 1200D 1100D )
+
+if false ; then
+    # to test only specific models
+    EOS_CAMS=(5D)
+    POWERSHOT_CAMS=()
+    GUI_CAMS=()
+fi
+
+# this script runs from qemu/tests/ so we have to go up one level
 cd ..
 
 echo "Compiling..."
@@ -11,14 +28,11 @@ echo "Compiling..."
 # don't recompile each time (for speed)
 export MAKE="echo skipping make"
 
-# These cameras should emulate the bootloader
+# All EOS cameras should emulate the bootloader
 # and jump to main firmware:
 echo
 echo "Testing bootloaders..."
-for CAM in 5D 5D2 5D3 5D4 6D 7D 7D2M 7D2S \
-           40D 50D 60D 70D 80D \
-           400D 450D 500D 550D 600D 650D 700D 750D 760D \
-           100D 1000D 1100D 1200D EOSM; do
+for CAM in ${EOS_CAMS[*]}; do
     printf "%5s: " $CAM
     mkdir -p tests/$CAM/
     rm -f tests/$CAM/boot.log
@@ -58,11 +72,8 @@ cp sd.img cf.img
 echo
 echo "Testing display from bootloader..."
 
-# These cameras should run the portable display test:
-for CAM in 5D 5D2 5D3 5D4 6D 7D 7D2M 7D2S \
-           40D 50D 60D 70D 80D \
-           400D 450D 500D 550D 600D 650D 700D 750D 760D \
-           100D 1000D 1100D 1200D EOSM; do
+# All EOS cameras should run the portable display test:
+for CAM in ${EOS_CAMS[*]}; do
     printf "%5s: " $CAM
     mkdir -p tests/$CAM/
     rm -f tests/$CAM/disp.ppm
@@ -96,7 +107,7 @@ trap - EXIT
 # These cameras should display some Canon GUI:
 echo
 echo "Testing Canon GUI..."
-for CAM in 60D 5D3 600D 1200D 1100D; do
+for CAM in ${GUI_CAMS[*]}; do
     printf "%5s: " $CAM
     mkdir -p tests/$CAM/
     rm -f tests/$CAM/gui.ppm
