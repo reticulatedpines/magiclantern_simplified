@@ -1946,6 +1946,9 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
                     msg = "VSW_STATUS";
                 }
             }
+#ifdef IGNORE_CONNECT_POLL
+            return ret;
+#endif
             break;
 
         case 0xF48C:
@@ -1974,22 +1977,22 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             msg = "master woke up on 7D";
             ret = 0;
             break;
-
-        case 0x0070:
-            /* VIDEO on 600D */
-            msg = "VIDEO CONNECT";
-            ret = 1;
-            break;
         
         case 0x0108:
             /* ERASE SW OFF on 600D */
             msg = "ERASE SW OFF";
             ret = 1;
+#ifdef IGNORE_CONNECT_POLL
+            return ret;
+#endif
             break;
 
         case 0x010C:
             msg = "something from hotplug task on 60D";
             ret = 1;
+#ifdef IGNORE_CONNECT_POLL
+            return ret;
+#endif
             break;
 
         case 0x012C:
@@ -1997,12 +2000,6 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             ret = rand();
             break;
     
-        case 0x00E8:
-            /* MIC on 600D */
-            msg = "MIC CONNECT";
-            ret = 1;
-            break;
-        
         case 0x0034:
             if (s->model->digic_version < 4)
             {
@@ -2015,6 +2012,9 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
                 /* USB on 600D */
                 msg = "600D USB CONNECT";
                 ret = 1;
+#ifdef IGNORE_CONNECT_POLL
+                return ret;
+#endif
                 break;
             }
 
@@ -2123,6 +2123,7 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
 
             break;
 
+        case 0x0070:    /* 600D, 60D */
         case 0x0164:
         case 0x0174:    /* 5D3 */
             msg = "VIDEO CONNECT";
@@ -2132,6 +2133,7 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
 #endif
             break;
 
+        case 0x00E8:    /* 600D, 60D */
         case 0x0160:
         case 0x016C:    /* 5D3 */
             msg = "MIC CONNECT";
