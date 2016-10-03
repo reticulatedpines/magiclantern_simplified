@@ -250,7 +250,7 @@ static int isoless_enable(uint32_t start_addr, int size, int count, uint16_t* ba
             raw &= ~(CMOS_ISO_MASK << (CMOS_FLAG_BITS + CMOS_ISO_BITS));
             raw |= (my_iso2 << (CMOS_FLAG_BITS + CMOS_ISO_BITS));
 
-            if (is_eosm || is_650d || is_700d || is_100d) //TODO: This hack is probably needed on EOSM and 100D
+            if (is_eosm || is_650d || is_700d || is_100d) //TODO: This hack is probably needed on EOSM
             {
                 raw &= 0x7FF; // Clear the MSB to fix line-skipping. 1 -> 8 lines, 0 -> 4 lines
             }  

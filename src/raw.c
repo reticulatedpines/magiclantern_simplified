@@ -293,7 +293,7 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
     -1774, 10000,     3178, 10000,    7005, 10000
 #endif
 	
-#if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_100D) //Same sensor??. checked!
+#if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_100D) // Same sensor
     //~ { "Canon EOS 650D", 0, 0x354d,
     //~ { "Canon EOS M", 0, 0,
     //~ { 6602,-841,-939,-4472,12458,2247,-975,2039,6148 } },
@@ -595,7 +595,7 @@ static int raw_update_params_work()
         skip_bottom = zoom ? 0 : mv1080crop ? 0 : 4;
         #endif
 		
-		#ifdef CONFIG_100D // copy from 700D
+        #ifdef CONFIG_100D // copy from 700D
         skip_top    = 28;
         skip_left   = 72;
         skip_right  = 0;
@@ -606,12 +606,6 @@ static int raw_update_params_work()
         #warning FIXME: are these values correct for 720p and crop modes?
         skip_top    = 26;
         skip_left   = zoom ? 0 : 256;
-        #endif
-		
-        #if defined(CONFIG_70D)
-        skip_top    = 28;
-        skip_left   = 144; // 146 could work, too
-        skip_right  = zoom ? 0 : 8;
         #endif
 		
         dbg_printf("LV raw buffer: %x (%dx%d)\n", raw_info.buffer, width, height);
