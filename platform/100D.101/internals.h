@@ -125,6 +125,4 @@
 /** Hide Canon bottom bar from DebugMsg hook */
 #define CONFIG_LVAPP_HACK_DEBUGMSG
 
-#define CONFIG_QSET_BUTTON_HACK
-
 #define CONFIG_MENU_TIMEOUT_FIX

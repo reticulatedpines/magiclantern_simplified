@@ -5306,31 +5306,32 @@ static void erase_longpress_check()
 #endif
 
 #ifdef CONFIG_100D
-static int erase_pressed = 0;
-static int erase_longpress = 0;
+static int qset_pressed = 0;
+static int qset_longpress = 0;
 
 /* called from GUI timers */
-static void erase_longpress_check()
+static void qset_longpress_check()
 {
-    if (erase_pressed)
+    if (qset_pressed)
     {
-        erase_longpress++;
-        delayed_call(20, erase_longpress_check, 0);
+        qset_longpress++;
+        delayed_call(20, qset_longpress_check, 0);
     }
     
-    //~ bmp_printf(FONT_MED, 50, 50, "%d ", erase_longpress);
+    //~ bmp_printf(FONT_MED, 50, 50, "%d ", qset_longpress);
     
-    if (erase_longpress == 50)
+    if (qset_longpress == 50)
     {
         /* long press opens Q-menu */
         fake_simple_button(BGMT_Q);
         
         /* make sure it won't re-trigger */
-        erase_longpress++;
+        qset_longpress++;
     }
-    else if (erase_longpress <= 15 && !erase_pressed)
+    else if (qset_longpress <= 15 && !qset_pressed)
     {
-        /* short press => do nothing */
+        /* short press => fake SET button (centering AF Frame in LV etc...) */
+        fake_simple_button(BGMT_PRESS_SET);
         return;
     }
 }
@@ -5422,7 +5423,7 @@ int handle_ml_menu_erase(struct event * event)
     }
 #endif
 
-/* probably not best place to implement this but let us avoid dirty hacks for now      */
+/* probably not the best place to implement this but let us avoid dirty hacks for now  */
 /* the combined q/set button needs to return 0 for a short press and we bring back     */
 /* its functionality of calling "Quick Control screen" by a long press.                */
 /* canon menu C.Fn IV / Assign SET button needs to be set to 0:Quick control screen    */
@@ -5456,15 +5457,15 @@ int handle_ml_menu_erase(struct event * event)
     {
         if (gui_state == GUISTATE_IDLE && !gui_menu_shown() && !IS_FAKE(event))
         {
-            erase_pressed = 1;
-            erase_longpress = 0;
-            delayed_call(20, erase_longpress_check, 0);
+            qset_pressed = 1;
+            qset_longpress = 0;
+            delayed_call(20, qset_longpress_check, 0);
             return 0;
         }
     }
     else if (event->param == BGMT_UNPRESS_SET)
     {
-        erase_pressed = 0;
+        qset_pressed = 0;
     }
 #endif
 

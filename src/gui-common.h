@@ -246,7 +246,6 @@ int handle_tricky_canon_calls(struct event * event);
 int handle_select_config_file_by_key_at_startup(struct event * event);
 int handle_disp_preset_key(struct event * event);
 int handle_av_short_for_menu(struct event * event);
-int handle_qset_short_for_menu(struct event * event);
 int handle_module_keys(struct event * event);
 int handle_flexinfo_keys(struct event * event);
 int handle_picoc_keys(struct event * event);

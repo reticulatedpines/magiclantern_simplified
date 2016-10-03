@@ -308,47 +308,6 @@ int handle_av_short_for_menu(struct event* event) {
 } 
 #endif //CONFIG_MENU_WITH_AV
 
-#ifdef CONFIG_QSET_BUTTON_HACK
-int bgmt_qset_status;
-int get_bgmt_qset_status() {
-    return bgmt_qset_status;
-}
-
-int update_bgmt_qset_status(struct event * event) {
-    if (event->param == BGMT_Q) return 1;
-	if (event->param == BGMT_UNPRESS_SET) return 0;
-    return -1; //Annoying compiler :)
-}
-
-/** Q/SET long/short press management code. **/
-int handle_qset_short_for_menu(struct event* event) {
-    static int t_press   = 0;
-    static int t_unpress = 0;
-    unsigned int dt = 0;
-    unsigned int is_idle = (gui_menu_shown() || gui_state == GUISTATE_IDLE);
-    bgmt_qset_status = update_bgmt_qset_status(event);
-
-    /* Assumes that the press event is fired only once 
-     * even if the button is held
-     */ 
-    if(bgmt_qset_status == 1) { // Q/SET PRESSED
-        t_press = get_ms_clock_value();
-        dt = t_press - t_unpress; // Time elapsed since the button was unpressed
-        if(dt < 200) { // Ignore if happened less than 200ms ago (anti-bump)
-            t_press = 0; 
-        } 
-    } else if (bgmt_qset_status == 0) { // Q/SET UNPRESSED
-        t_unpress = get_ms_clock_value();
-        dt = t_unpress - t_press; // Time elapsed since the Q/SET button was pressed
-        if (dt < 600) { // 600ms  -> short press
-            fake_simple_button(BGMT_PRESS_SET);
-        }
-    }
-    //NotifyBox(1000, "Q/SET DEBUG: S %d I %d DT %d", bgmt_qset_status, is_idle, dt);
-    return 1;
-} 
-#endif //CONFIG_QSET_BUTTON_HACK
-
 #ifdef FEATURE_DIGITAL_ZOOM_SHORTCUT
 PROP_INT(PROP_DIGITAL_ZOOM_RATIO, digital_zoom_ratio);
 
@@ -468,10 +427,6 @@ int handle_common_events_by_feature(struct event * event)
 
     #ifdef CONFIG_MENU_WITH_AV
     if (handle_av_short_for_menu(event) == 0) return 0;
-    #endif
-    
-    #ifdef CONFIG_QSET_BUTTON_HACK
-    if (handle_qset_short_for_menu(event) == 0) return 0;
     #endif
 
     #ifdef FEATURE_MAGIC_ZOOM
