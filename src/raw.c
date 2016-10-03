@@ -141,7 +141,7 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #define RAW_PHOTO_EDMAC 0xc0f04208
 #endif
 
-#if defined(CONFIG_5D3) || defined(CONFIG_700D) || defined(CONFIG_6D) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
+#if defined(CONFIG_5D3) || defined(CONFIG_700D) || defined(CONFIG_6D) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_70D) || defined(CONFIG_100D)
 #define RAW_PHOTO_EDMAC 0xc0f04008
 #endif
 
@@ -293,7 +293,7 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
     -1774, 10000,     3178, 10000,    7005, 10000
 #endif
 	
-#if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_100D) //Same sensor??. TODO: Check 700D/100D
+#if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_100D) //Same sensor??. checked!
     //~ { "Canon EOS 650D", 0, 0x354d,
     //~ { "Canon EOS M", 0, 0,
     //~ { 6602,-841,-939,-4472,12458,2247,-975,2039,6148 } },
@@ -367,6 +367,10 @@ static int dynamic_ranges[] = {1062, 1047, 1021, 963,  888, 804, 695, 623, 548};
 
 #ifdef CONFIG_700D
 static int dynamic_ranges[] = {1058, 1053, 1032, 967,  893, 807, 704, 618, 510};
+#endif
+
+#ifdef CONFIG_100D
+static int dynamic_ranges[] = {1067, 1061, 1038, 972, 894, 802, 707, 625, 510};
 #endif
 
 #ifdef CONFIG_60D
@@ -576,7 +580,7 @@ static int raw_update_params_work()
         skip_bottom = 0;
         #endif
 
-        #if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_100D)
+        #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
         #warning FIXME: are these values correct for 720p and crop modes?
         skip_top    = 28;
         skip_left   = 74;
@@ -590,13 +594,26 @@ static int raw_update_params_work()
         skip_right  = 0;
         skip_bottom = zoom ? 0 : mv1080crop ? 0 : 4;
         #endif
+		
+		#ifdef CONFIG_100D // copy from 700D
+        skip_top    = 28;
+        skip_left   = 72;
+        skip_right  = 0;
+        skip_bottom = zoom ? 0 : mv1080crop ? 0 : 4;
+        #endif
 
         #ifdef CONFIG_7D
         #warning FIXME: are these values correct for 720p and crop modes?
         skip_top    = 26;
         skip_left   = zoom ? 0 : 256;
         #endif
-
+		
+        #if defined(CONFIG_70D)
+        skip_top    = 28;
+        skip_left   = 144; // 146 could work, too
+        skip_right  = zoom ? 0 : 8;
+        #endif
+		
         dbg_printf("LV raw buffer: %x (%dx%d)\n", raw_info.buffer, width, height);
         dbg_printf("Skip left:%d right:%d top:%d bottom:%d\n", skip_left, skip_right, skip_top, skip_bottom);
 #else

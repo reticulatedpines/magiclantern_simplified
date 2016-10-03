@@ -94,8 +94,8 @@ zero_bss( void )
         *(bss++) = 0;
 }
 
-#if defined(CONFIG_6D)
-void hijack_6d_guitask()
+#if defined(CONFIG_6D) || defined(CONFIG_100D)
+void hijack_guitask()
 {
     extern void ml_gui_main_task();
     task_create("GuiMainTask", 0x17, 0x2000, ml_gui_main_task, 0);
@@ -182,8 +182,8 @@ copy_and_restart( )
     * install our own handlers.
     */
 
-    //~ Canon changed their task starting method in the 6D so our old hook method doesn't work.
-#ifndef CONFIG_6D
+    //~ Canon changed their task starting method in the 6D, 70D and 100D so our old hook method doesn't work.
+#if !defined(CONFIG_6D) && !defined(CONFIG_100D)
 #if !defined(CONFIG_EARLY_PORT) && !defined(CONFIG_HELLO_WORLD) && !defined(CONFIG_DUMPER_BOOTFLAG)
     // Install our task creation hooks
     task_dispatch_hook = my_task_dispatch_hook;
@@ -791,16 +791,17 @@ my_init_task(int a, int b, int c, int d)
         cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, new_instr, TYPE_DCACHE);
     
     //~ fix start of AllocateMemory pool so it actually shrinks in size.
-    #ifdef CONFIG_6D
+    // 70D and 100D need cache hacking as seen on 6D
+    #if defined(CONFIG_6D) || defined(CONFIG_100D)
         cache_fake(HIJACK_CACHE_HACK_ALLOCMEM_SIZE_ADDR, HIJACK_CACHE_HACK_ALLOCMEM_SIZE_INSTR, TYPE_ICACHE);
     #endif
     }
 #endif
 
-    #ifdef CONFIG_6D
+    #if defined(CONFIG_6D) || defined(CONFIG_100D)
     //Hijack GUI Task Here - Now we're booting with cache hacks and have menu.
-    cache_fake(HIJACK_CACHE_HACK_GUITASK_6D_ADDR, BL_INSTR(HIJACK_CACHE_HACK_GUITASK_6D_ADDR, (uint32_t)hijack_6d_guitask), TYPE_ICACHE);
-    #endif
+    cache_fake(HIJACK_CACHE_HACK_GUITASK_ADDR, BL_INSTR(HIJACK_CACHE_HACK_GUITASK_ADDR, (uint32_t)hijack_guitask), TYPE_ICACHE);
+    #endif    
 #endif // HIJACK_CACHE_HOOK
 
     // Prepare to call Canon's init_task

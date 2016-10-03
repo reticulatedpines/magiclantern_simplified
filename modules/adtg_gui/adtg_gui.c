@@ -1064,7 +1064,15 @@ static unsigned int adtg_gui_init()
     {
         ADTG_WRITE_FUNC = 0x178FC; //"[REG] @@@@@@@@@@@@ Start ADTG[CS:%lx]"
         CMOS_WRITE_FUNC = 0x17A1C; //"[REG] ############ Start CMOS"
-    }    
+    }
+    else if (is_camera("100D", "1.0.1"))
+    {
+        ADTG_WRITE_FUNC = 0x2684c; //"[REG] @@@@@@@@@@@@ Start ADTG[CS:%lx]"
+        CMOS_WRITE_FUNC = 0x26B54; //"[REG] ############ Start CMOS"
+        // following work on iso-research branch
+        // ENGIO_WRITE_FUNC = 0xFF2BC6C4;  // from stubs
+        // ENG_DRV_OUT_FUNC = 0xFF2BC3AC;
+    }	
     else return CBR_RET_ERROR;
 
     

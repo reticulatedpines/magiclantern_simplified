@@ -1,0 +1,16 @@
+#Makefile.setup.platform for 100D
+
+ML_MODULES_SYM_NAME=100D_$(FW_VERSION).sym
+
+ifeq ($(FW_VERSION),101)
+CANON_NAME_FIR=CCF16101.FIR
+ROMBASEADDR	= 0xFF0C0000
+
+ifeq ($(ML_SRC_PROFILE),generic)
+RESTARTSTART    = 0x00B1C100
+else
+RESTARTSTART	= 0x000C53A0
+endif
+
+#End of FW_VERSION == 101
+endif

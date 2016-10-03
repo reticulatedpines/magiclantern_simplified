@@ -40,6 +40,9 @@ static struct menu_entry help_menus[] = {
         #elif defined(CONFIG_EOSM)
         .name = "1-finger Tap",
         .choices = CHOICES("Open submenu (Q)"),
+        #elif defined(CONFIG_100D)
+        .name = "Press Av",
+        .choices = CHOICES("Open submenu (Q)"),
         #else
         .name = "Press Q",
         .choices = CHOICES("Open submenu"),

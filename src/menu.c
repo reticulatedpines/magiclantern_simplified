@@ -5305,6 +5305,37 @@ static void erase_longpress_check()
 }
 #endif
 
+#ifdef CONFIG_100D
+static int erase_pressed = 0;
+static int erase_longpress = 0;
+
+/* called from GUI timers */
+static void erase_longpress_check()
+{
+    if (erase_pressed)
+    {
+        erase_longpress++;
+        delayed_call(20, erase_longpress_check, 0);
+    }
+    
+    //~ bmp_printf(FONT_MED, 50, 50, "%d ", erase_longpress);
+    
+    if (erase_longpress == 50)
+    {
+        /* long press opens Q-menu */
+        fake_simple_button(BGMT_Q);
+        
+        /* make sure it won't re-trigger */
+        erase_longpress++;
+    }
+    else if (erase_longpress <= 15 && !erase_pressed)
+    {
+        /* short press => do nothing */
+        return;
+    }
+}
+#endif
+
 // this should work on most cameras
 int handle_ml_menu_erase(struct event * event)
 {
@@ -5386,6 +5417,52 @@ int handle_ml_menu_erase(struct event * event)
         }
     }
     else if (event->param == BGMT_UNPRESS_DOWN)
+    {
+        erase_pressed = 0;
+    }
+#endif
+
+/* probably not best place to implement this but let us avoid dirty hacks for now      */
+/* the combined q/set button needs to return 0 for a short press and we bring back     */
+/* its functionality of calling "Quick Control screen" by a long press.                */
+/* canon menu C.Fn IV / Assign SET button needs to be set to 0:Quick control screen    */
+/* unallowed options are 1,2,3,4,5 */
+/* to avoid unnecessary discussions we could check and override it at ML boot          */
+/* it will also accept a fake value */
+/* ----------------------------------------------------------------------------------- */
+/* this c.Fn does work for 100D on ML boot:                                            */
+/* int cfn_get_setbtn_assignment()                                                     */
+/* {                                                                                   */
+/*     return GetCFnData(0, 7);                                                        */
+/* }                                                                                   */
+/*                                                                                     */
+/* void cfn_set_setbtn(int value)                                                      */
+/* {                                                                                   */
+/*     SetCFnData(0, 7, value);                                                        */
+/* }                                                                                   */
+/* ---------------- below would move to boot-hack.c ---------------------------------- */
+/*  100D has six options from 0 to 5                                                   */
+/*  we check and assign the value to 0                                                 */
+/*  #if defined(CONFIG_100D)                                                           */
+/*     extern int cfn_get_setbtn_assignment();                                         */
+/*     void cfn_set_setbtn(int value);                                                 */
+/*     if(cfn_get_setbtn_assignment()!=0)                                              */
+/*         cfn_set_setbtn(0);                                                          */
+/*  #endif                                                                             */
+
+#ifdef CONFIG_100D
+    /* triggers Q-menu by a long press on the combined q/set button */
+    if (event->param == BGMT_Q)
+    {
+        if (gui_state == GUISTATE_IDLE && !gui_menu_shown() && !IS_FAKE(event))
+        {
+            erase_pressed = 1;
+            erase_longpress = 0;
+            delayed_call(20, erase_longpress_check, 0);
+            return 0;
+        }
+    }
+    else if (event->param == BGMT_UNPRESS_SET)
     {
         erase_pressed = 0;
     }

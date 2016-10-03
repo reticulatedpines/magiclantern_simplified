@@ -438,7 +438,7 @@ void yuv422_buffer_check()
 
 static inline void * get_yuv422buffer(int offset)
 {
-    #if defined(CONFIG_1100D) || defined(CONFIG_6D)
+    #if defined(CONFIG_1100D) || defined(CONFIG_100D) || defined(CONFIG_6D)
     return (void*)CACHEABLE(YUV422_LV_BUFFER_DISPLAY_ADDR); // Good enough
     #else
     

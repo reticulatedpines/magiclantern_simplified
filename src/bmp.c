@@ -61,6 +61,9 @@
             
         if (((uintptr_t)bmp_buf & 0xFFF) == 0x4c0) // SD 700D
             return (uint8_t*)((uintptr_t)bmp_buf - BMP_HDMI_OFFSET - 0x3c0);
+        
+        if (((uintptr_t)bmp_buf & 0xFFF) == 0xc28) // 100D
+            return (uint8_t*)((uintptr_t)bmp_buf - BMP_HDMI_OFFSET - 0xb28);
 
         // something else - new camera? return it unchanged (failsafe)
         ASSERT(0);
@@ -75,7 +78,7 @@
     /** Returns a pointer to idle BMP vram */
     uint8_t* bmp_vram_idle()
     {
-    #ifdef CONFIG_1100D
+    #if defined(CONFIG_1100D) || defined(CONFIG_100D) // This fixes "dirty" LCD output for 100D
         return (uint8_t *)((((uintptr_t)bmp_vram_real() + 0x80000) ^ 0x80000) - 0x80000);
     #else
         return (uint8_t *)((uintptr_t)bmp_vram_real() ^ 0x80000);
