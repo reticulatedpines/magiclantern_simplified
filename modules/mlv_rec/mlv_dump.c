@@ -1415,7 +1415,7 @@ int main (int argc, char *argv[])
             *ext_dot = '\000';
         }
 
-        strcat(output_filename, "_frame_");
+        strcat(output_filename, "_");
     }
 
     /* display and set/unset variables according to parameters to have a consistent state */
