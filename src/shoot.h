@@ -28,8 +28,9 @@ void movie_end();
 void schedule_movie_start();
 void schedule_movie_end();
 
-/* ask user to switch to movie mode and wait until s/he does */
+/* ask user to switch to movie/photo mode and wait until s/he does */
 void ensure_movie_mode();
+void ensure_photo_mode();
 
 /* to be refactored as callback */
 void mvr_rec_start_shoot();
@@ -40,12 +41,14 @@ void set_lv_zoom(int zoom);
 
 /* todo: move it somewhere else (playback tricks?) */
 void next_image_in_play_mode(int direction);
-void get_out_of_play_mode(int extra_wait);
+void exit_play_qr_mode();
+void enter_play_mode();
 int is_pure_play_movie_mode();      /* tweaks.c, to be moved */
 int is_pure_play_photo_mode();
 int is_pure_play_photo_or_movie_mode();
 int is_play_mode();
 int is_play_or_qr_mode();
+int is_menu_mode();
 void play_zoom_center_on_selected_af_point();
 
 /* set+maindial actions for playback */
@@ -121,10 +124,6 @@ int is_continuous_drive();
 
 /* expo lock */
 void expo_lock_update_value();
-int round_expo_comp(int ae);
-int round_aperture(int av);
-int round_shutter(int tv, int slowest_shutter);
-int expo_value_rounding_ok(int raw, int is_aperture);
 
 /* to be refactored with CBRs (maybe with the lvinfo engine) */
 void iso_refresh_display();

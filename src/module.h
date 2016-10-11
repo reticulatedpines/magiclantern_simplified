@@ -14,6 +14,8 @@
 #define MODULE_PROPHANDLER_PREFIX     __module_prophandler_
 
 #define MODULE_STRINGS_SECTION        __attribute__ ((section(".module_strings")))
+#define MODULE_HGDIFF_SECTION         __attribute__ ((section(".module_hgdiff")))
+#define MODULE_HGINFO_SECTION         __attribute__ ((section(".module_hginfo")))
 
 #define MODULE_MAGIC                  0x5A
 #define STR(x)                        STR_(x)
@@ -98,7 +100,7 @@
 #define MODULE_KEY_TOUCH_2_FINGER          (37)
 #define MODULE_KEY_UNTOUCH_2_FINGER        (38)
 
-
+int module_translate_key(int key, int dest);
 #define MODULE_KEY_CANON     0
 #define MODULE_KEY_PORTABLE  1
 

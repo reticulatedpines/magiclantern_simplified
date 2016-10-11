@@ -347,7 +347,7 @@ MENU_UPDATE_FUNC(tasks_print)
 #include "gps.h"
 #endif
 
-void ml_shutdown()
+static void ml_shutdown()
 {
     check_pre_shutdown_flag();
 

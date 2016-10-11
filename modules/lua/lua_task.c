@@ -34,7 +34,7 @@ static void lua_run_task(struct lua_task_func * lua_task_func)
             {
                 if(docall(L, 0, 0))
                 {
-                    err_printf("script failed:\n %s\n", lua_tostring(L, -1));
+                    fprintf(stderr, "script failed:\n %s\n", lua_tostring(L, -1));
                 }
                 else
                 {
@@ -46,7 +46,7 @@ static void lua_run_task(struct lua_task_func * lua_task_func)
         }
         else
         {
-            err_printf("lua semaphore timeout (another task is running this script)\n");
+            printf("lua semaphore timeout: run task (%dms)\n", 0);
         }
         free(lua_task_func);
     }
@@ -63,7 +63,7 @@ static int luaCB_task_create(lua_State * L)
 {
     if(!lua_isfunction(L, 1)) return luaL_argerror(L, 1, "function expected");
     LUA_PARAM_INT_OPTIONAL(priority, 2, 0x1c);
-    LUA_PARAM_INT_OPTIONAL(stack_size, 3, 0x8000);
+    LUA_PARAM_INT_OPTIONAL(stack_size, 3, 0x10000);
     
     struct lua_task_func * func = malloc(sizeof(struct lua_task_func));
     if(!func) return luaL_error(L, "malloc error\n");
@@ -102,6 +102,11 @@ static int luaCB_task_newindex(lua_State * L)
     lua_rawset(L, 1);
     return 0;
 }
+
+static const char * lua_task_fields[] =
+{
+    NULL
+};
 
 const luaL_Reg tasklib[] =
 {

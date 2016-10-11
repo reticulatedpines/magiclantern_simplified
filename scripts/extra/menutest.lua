@@ -4,7 +4,7 @@ mymenu = menu.new
 {
     parent = "Debug",
     name = "Lua Menu Test",
-    help = "Test of the lua menu API",
+    help = "Test of the Lua menu API",
     submenu =
     { 
         {

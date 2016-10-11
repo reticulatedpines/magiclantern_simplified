@@ -159,8 +159,7 @@ copy_and_restart( )
     INSTR( HIJACK_INSTR_MY_ITASK ) = (uint32_t) my_init_task;
     
     // Make sure that our self-modifying code clears the cache
-    clean_d_cache();
-    flush_caches();
+    sync_caches();
 
     // We enter after the signature, avoiding the
     // relocation jump that is at the head of the data
@@ -415,21 +414,16 @@ static void backup_region(char *file, uint32_t base, uint32_t length)
     free(buf);
 }
 
-static void backup_task()
+static void backup_rom_task()
 {
     backup_region("ML/LOGS/ROM1.BIN", 0xF8000000, 0x01000000);
     backup_region("ML/LOGS/ROM0.BIN", 0xF0000000, 0x01000000);
 }
 #endif
 
-// Only after this task finished, the others are started
-// From here we can do file I/O and maybe other complex stuff
-static void my_big_init_task()
-{
-  _find_ml_card();
-  _load_fonts();
-
 #ifdef CONFIG_HELLO_WORLD
+static void hello_world()
+{
     int sig = compute_signature((int*)SIG_START, 0x10000);
     while(1)
     {
@@ -437,44 +431,59 @@ static void my_big_init_task()
         bmp_printf(FONT_LARGE, 50, 400, "firmware signature = 0x%x", sig);
         info_led_blink(1, 500, 500);
     }
+}
 #endif
 
 #ifdef CONFIG_DUMPER_BOOTFLAG
+static void dumper_bootflag()
+{
     msleep(5000);
-    SetGUIRequestMode(DLG_PLAY);
+    SetGUIRequestMode(GUIMODE_PLAY);
     msleep(1000);
-    update_vram_params();
     bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
-    bmp_printf(FONT_LARGE, 50, 200, "Please wait...");
+    bmp_printf(FONT_LARGE, 50, 100, "Please wait...");
     msleep(2000);
 
-    if (CURRENT_DIALOG_MAYBE != DLG_PLAY)
+    if (CURRENT_GUI_MODE != GUIMODE_PLAY)
     {
-        bmp_printf(FONT_LARGE, 50, 200, "Hudson, we have a problem!");
+        bmp_printf(FONT_LARGE, 50, 150, "Hudson, we have a problem!");
         return;
     }
+    
+    /* this requires CONFIG_AUTOBACKUP_ROM */
+    bmp_printf(FONT_LARGE, 50, 150, "ROM Backup...");
+    backup_rom_task();
 
     // do try to enable bootflag in LiveView, or during sensor cleaning (it will fail while writing to ROM)
     // no check is done here, other than a large delay and doing this while in Canon menu
-    bmp_printf(FONT_LARGE, 50, 200, "EnableBootDisk");
+    // todo: check whether the issue is still present with interrupts disabled
+    bmp_printf(FONT_LARGE, 50, 200, "EnableBootDisk...");
+    uint32_t old = cli();
     call("EnableBootDisk");
-    
-    msleep(500);
-    FILE* f = FIO_CreateFile("ROM.DAT");
-    if (f)
-    {
-        FIO_WriteFile(f, (void*) 0xFF000000, 0x01000000);
-        FIO_CloseFile(f);
-        bmp_printf(FONT_LARGE, 50, 250, ":)");    
-    }
-    else
-    {
-        bmp_printf(FONT_LARGE, 50, 250, "Oops!");    
-    }
-    info_led_blink(1, 500, 500);
+    sei(old);
+
+    bmp_printf(FONT_LARGE, 50, 250, ":)");
+}
+#endif
+
+/* This runs ML initialization routines and starts user tasks.
+ * Unlike init_task, from here we can do file I/O and others.
+ */
+static void my_big_init_task()
+{
+    _find_ml_card();
+    _load_fonts();
+
+#ifdef CONFIG_HELLO_WORLD
+    hello_world();
     return;
 #endif
-    
+
+#ifdef CONFIG_DUMPER_BOOTFLAG
+    dumper_bootflag();
+    return;
+#endif
+   
     call("DisablePowerSave");
     _ml_cbr_init();
     menu_init();
@@ -482,20 +491,10 @@ static void my_big_init_task()
     call_init_funcs();
     msleep(200); // leave some time for property handlers to run
 
-    #ifdef CONFIG_BATTERY_TEST
-    while(1)
-    {
-        RefreshBatteryLevel_1Hz();
-        wait_till_next_second();
-        batt_display(0, 0, 0, 0);
-    }
-    return;
-    #endif
-
     #if defined(CONFIG_AUTOBACKUP_ROM)
     /* backup ROM first time to be prepared if anything goes wrong. choose low prio */
     /* On 5D3, this needs to run after init functions (after card tests) */
-    task_create("ml_backup", 0x1f, 0x4000, backup_task, 0 );
+    task_create("ml_backup", 0x1f, 0x4000, backup_rom_task, 0 );
     #endif
 
     /* Read ML config. if feature disabled, nothing happens */
@@ -522,14 +521,6 @@ static void my_big_init_task()
         task->entry = PIC_RESOLVE(task->entry);
         task->arg = PIC_RESOLVE(task->arg);
 #endif
-        //~ DebugMsg( DM_MAGIC, 3,
-            //~ "Creating task %s(%d) pri=%02x flags=%08x",
-            //~ task->name,
-            //~ task->arg,
-            //~ task->priority,
-            //~ task->flags
-        //~ );
-        
         // for debugging: uncomment this to start only some specific tasks
         // tip: use something like grep -nr TASK_CREATE ./ to find all task names
         #if 0
@@ -573,29 +564,11 @@ static void my_big_init_task()
             );
             ml_tasks++;
         }
-        //~ else
-        //~ {
-            //~ bmp_printf(FONT_LARGE, 50, 50, "skip %s  ", task->name);
-            //~ msleep(1000);
-        //~ }
     }
-    //~ bmp_printf( FONT_MED, 0, 85,
-        //~ "Magic Lantern is up and running... %d tasks started.",
-        //~ ml_tasks
-    //~ );
     
     msleep(500);
     ml_started = 1;
-
-    //~ stress_test_menu_dlg_api_task(0);
 }
-
-/*void logo_task(void* unused)
-{
-    show_logo();
-    while (!ml_started) msleep(100);
-    stop_killing_flicker();
-}*/
 
 /** Blocks execution until config is read */
 void hold_your_horses()

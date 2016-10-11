@@ -71,6 +71,7 @@
 #include <cache_hacks.h>
 #include <string.h>
 #include <shoot.h>
+#include <powersave.h>
 
 #include "../lv_rec/lv_rec.h"
 #include "../file_man/file_man.h"
@@ -524,6 +525,13 @@ static void update_cropping_offsets()
     skip_y = sy;
 
     refresh_cropmarks();
+
+    /* mv640crop needs this to center the recorded image */
+    if (is_movie_mode() && video_mode_resolution == 2 && video_mode_crop)
+    {
+        skip_x = skip_x + 51;
+        skip_y = skip_y - 6;
+    }
 }
 
 static void update_resolution_params()
@@ -3148,9 +3156,8 @@ static void raw_video_rec_task()
 
     trace_write(raw_rec_trace_ctx, "Resolution: %dx%d @ %d.%03d FPS", res_x, res_y, fps_get_current_x1000()/1000, fps_get_current_x1000()%1000);
     
-    /* disable powersave timer */
-    const int powersave_prohibit = 2;
-    prop_request_change(PROP_ICU_AUTO_POWEROFF, &powersave_prohibit, 4);
+    /* disable Canon's powersaving (30 min in LiveView) */
+    powersave_prohibit();
 
     /* signal that we are starting, call this before any memory allocation to give CBR the chance to allocate memory */
     raw_rec_cbr_starting();
@@ -3595,9 +3602,8 @@ cleanup:
     hack_liveview(1);
     redraw();
 
-    /* re-enable powersave timer */
-    const int powersave_permit = 1;
-    prop_request_change(PROP_ICU_AUTO_POWEROFF, &powersave_permit, 4);
+    /* re-enable powersaving  */
+    powersave_permit();
 
     raw_recording_state = RAW_IDLE;
 }

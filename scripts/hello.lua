@@ -11,7 +11,8 @@ end
 
 keymenu = menu.new
 {
-    name = "Hello, World!",
+    name   = "Hello, World!",
+    help   = "Prints 'Hello World' on the console",
     select = function(this) task.create(main) end,
 }
 

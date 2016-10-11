@@ -279,6 +279,7 @@ menu_select(
 extern void menu_numeric_toggle(int* val, int delta, int min, int max);
 
 /* useful to start tasks directly from menu (pass the routine as .priv) */
+/* note: this disables powersaving while the task is running */
 extern void run_in_separate_task(void* routine, int argument);
 
 extern void menu_add( const char * name, struct menu_entry * new_entry, int count );

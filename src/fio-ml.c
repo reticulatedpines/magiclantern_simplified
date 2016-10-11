@@ -733,6 +733,11 @@ static void fio_init()
     #ifdef CONFIG_DUAL_SLOT
     menu_add( "Prefs", card_menus, COUNT(card_menus) );
     #endif
+    
+    #ifdef CARD_A_MAKER
+    available_cards[CARD_A].maker = (char*) CARD_A_MAKER;
+    available_cards[CARD_A].model = (char*) CARD_A_MODEL;
+    #endif
 }
 
 

@@ -14,13 +14,11 @@
 #define HIJACK_CACHE_HACK_BSS_END_INSTR  0xE3A01732
 #define HIJACK_CACHE_HACK_INITTASK_ADDR  0xFF0110DC
 
-#ifdef CONFIG_INSTALLER
 #define HIJACK_INSTR_BL_CSTART  0xff01019c
 #define HIJACK_INSTR_BSS_END 0xff0110d0
 #define HIJACK_FIXBR_BZERO32 0xff011038
 #define HIJACK_FIXBR_CREATE_ITASK 0xff0110c0
 #define HIJACK_INSTR_MY_ITASK 0xff0110dc
-#endif
 
 #define HIJACK_TASK_ADDR 0x1a2c
 
@@ -41,7 +39,7 @@
 #define MVR_BUFFER_USAGE MAX(MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND)
 
 #define MVR_FRAME_NUMBER (*(int*)(332 + MVR_992_STRUCT))
-#define MVR_BYTES_WRITTEN (*(int*)(296 + MVR_992_STRUCT))
+#define MVR_BYTES_WRITTEN MEM((296 + MVR_992_STRUCT))
 
 #define MOV_RES_AND_FPS_COMBINATIONS 9
 #define MOV_OPT_NUM_PARAMS 2
@@ -109,23 +107,23 @@
 #define AE_STATE (*(int8_t*)(0x7DF7 + 0x1C))
 #define AE_VALUE (*(int8_t*)(0x7DF7 + 0x1D))
 
-#define CURRENT_DIALOG_MAYBE (*(int*)0x3ef4) // GUIMode_maybe
- #define DLG_WB 5
- #define DLG_FOCUS_MODE 9
- #define DLG_DRIVE_MODE 8
- #define DLG_PICTURE_STYLE 4
- #define DLG_PLAY 1
- #define DLG_MENU 2
- #define DLG_Q_UNAVI 0x1F
- #define DLG_FLASH_AE 0x22
- #define DLG_PICQ 6
-#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_DIALOG_MAYBE == 0x1e)
-#define DLG_MOVIE_PRESS_LV_TO_RESUME (CURRENT_DIALOG_MAYBE == 0x1f)
-//~ #define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED 0 // not good
-//~ #define DLG_MOVIE_PRESS_LV_TO_RESUME 0
+#define CURRENT_GUI_MODE (*(int*)0x3ef4) // GUIMode_maybe
+ #define GUIMODE_WB 5
+ #define GUIMODE_FOCUS_MODE 9
+ #define GUIMODE_DRIVE_MODE 8
+ #define GUIMODE_PICTURE_STYLE 4
+ #define GUIMODE_PLAY 1
+ #define GUIMODE_MENU 2
+ #define GUIMODE_Q_UNAVI 0x1F
+ #define GUIMODE_FLASH_AE 0x22
+ #define GUIMODE_PICQ 6
+#define GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_GUI_MODE == 0x1e)
+#define GUIMODE_MOVIE_PRESS_LV_TO_RESUME (CURRENT_GUI_MODE == 0x1f)
+//~ #define GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED 0 // not good
+//~ #define GUIMODE_MOVIE_PRESS_LV_TO_RESUME 0
 
-#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
-#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
+#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_PLAY)
+#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_MENU)
 
 
 
@@ -207,7 +205,6 @@
 #define BFNT_BITMAP_OFFSET 0xff8971b0
 #define BFNT_BITMAP_DATA   0xff899be4
 
-#define DLG_SIGNATURE 0x006e4944 // just print it
 
 // from CFn
 #define AF_BTN_HALFSHUTTER 0
@@ -270,4 +267,4 @@
 
 // temperature convertion from raw-temperature to celsius
 // http://www.magiclantern.fm/forum/index.php?topic=9673.0
-#define EFIC_CELSIUS ((int)efic_temp * 63 / 100 - 72)
+#define EFIC_CELSIUS ((int)efic_temp * 60 / 100 - 65)

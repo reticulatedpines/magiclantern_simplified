@@ -38,6 +38,11 @@ int log10i(int x);
 
 #define SGNX(a) ((a) > 0 ? 1 : -1)
 
+/* signed integer scaling with rounding */
+/* reversible: RSCALE(RSCALE(x,num,den),den,num) = x for any num > den > 0 (except overflows) */
+/* tested for 1 <= den <= num < 1000, -1000 < x < 1000 */
+/* tip: passing unsigned arguments should let the compiler optimize out the sign checking */
+#define RSCALE(x,num,den) (((x) * (num) + SGNX(x) * (den)/2) / (den))
 
 // fixed point formatting for printf's
 

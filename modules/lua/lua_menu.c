@@ -44,7 +44,7 @@ static void lua_menu_task(lua_State * L)
         }
         else
         {
-            err_printf("lua semaphore timeout (another task is running this script)\n");
+            printf("lua semaphore timeout: lua_menu_task (%dms)\n", 0);
         }
     }
 }
@@ -100,20 +100,20 @@ static MENU_SELECT_FUNC(script_menu_select)
                 {
                     if(docall(L, 2, 0))
                     {
-                        err_printf("script error:\n %s\n", lua_tostring(L, -1));
+                        fprintf(stderr, "script error:\n %s\n", lua_tostring(L, -1));
                     }
                     give_semaphore(sem);
                 }
             }
             else
             {
-                err_printf("select is not a function\n");
+                fprintf(stderr, "select is not a function\n");
                 give_semaphore(sem);
             }
         }
         else
         {
-            err_printf("lua semaphore timeout (another task is running this script)\n");
+            printf("lua semaphore timeout: menu.select (%dms)\n", 500);
         }
     }
 }
@@ -198,7 +198,7 @@ static MENU_UPDATE_FUNC(script_menu_update)
         }
         else
         {
-            err_printf("lua semaphore timeout (another task is running this script)\n");
+            printf("lua semaphore timeout: menu.update (%dms)\n", 100);
         }
     }
 }
@@ -222,6 +222,36 @@ static int get_index_for_choices(struct menu_entry * menu_entry, const char * va
     }
     return 0;
 }
+
+const char * lua_menu_instance_fields[] =
+{
+    "value",
+    "name",
+    "help",
+    "help2",
+    "advanced",
+    "depends_on",
+    "edit_mode",
+    "hidden",
+    "icon_type",
+    "jhidden",
+    "max",
+    "min",
+    "selected",
+    "shidden",
+    "starred",
+    "submenu_height",
+    "submenu_width",
+    "unit",
+    "works_best_in",
+    "run_in_separate_task",
+    "select",
+    "update",
+    "info",
+    "rinfo",
+    "warning",
+    NULL
+};
 
 /*** Creates a new menu item
  @tparam table definition
@@ -280,6 +310,10 @@ static int luaCB_menu_new(lua_State * L)
     lua_setfield(L, -2, "__index");
     lua_pushcfunction(L, luaCB_menu_instance_newindex);
     lua_setfield(L, -2, "__newindex");
+    lua_pushcfunction(L, luaCB_pairs);
+    lua_setfield(L, -2, "__pairs");
+    lua_pushlightuserdata(L, lua_menu_instance_fields);
+    lua_setfield(L, -2, "fields");
     lua_pushcfunction(L, luaCB_menu_remove);
     lua_setfield(L, -2, "remove");
     lua_pushstring(L, parent);
@@ -289,6 +323,10 @@ static int luaCB_menu_new(lua_State * L)
     lua_pushvalue(L, 1);
     load_menu_entry(L, new_entry, NULL, "unknown");
     menu_add(parent, new_entry->menu_entry, 1);
+    if (!streq(parent, "Scripts"))
+    {
+        printf("  [i] menu: %s - %s\n", parent, new_entry->menu_entry->name);
+    }
     lua_pop(L, 1);
     
     return 1; //return the userdata object
@@ -692,7 +730,7 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
                 }
                 else
                 {
-                    err_printf("invalid choice[%d]\n", choice_index);
+                    fprintf(stderr, "invalid choice[%d]\n", choice_index);
                     menu_entry->choices[choice_index] = NULL;
                     choices_count = choice_index;
                 }
@@ -742,7 +780,7 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
             }
             else
             {
-                err_printf("warning: could not create metatable submenu");
+                fprintf(stderr, "warning: could not create metatable submenu");
             }
             
             for (submenu_index = 0; submenu_index < submenu_count; submenu_index++)
@@ -775,20 +813,20 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
                         }
                         else
                         {
-                            err_printf("warning: could not get metatable submenu");
+                            fprintf(stderr, "warning: could not get metatable submenu");
                         }
                         lua_pop(L, 2);
                     }
                     else
                     {
-                        err_printf("warning: could not get parent metatable");
+                        fprintf(stderr, "warning: could not get parent metatable");
                     }
                     
                     lua_pop(L, 1);//userdata
                 }
                 else
                 {
-                    err_printf("invalid submenu[%d]\n", submenu_index);
+                    fprintf(stderr, "invalid submenu[%d]\n", submenu_index);
                 }
                 lua_pop(L, 1);
             }
@@ -835,6 +873,12 @@ static int luaCB_menu_remove(lua_State * L)
     }
     return 0;
 }
+
+static const char * lua_menu_fields[] =
+{
+    "visible",
+    NULL
+};
 
 const luaL_Reg menulib[] =
 {

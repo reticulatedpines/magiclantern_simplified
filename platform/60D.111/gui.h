@@ -35,11 +35,11 @@
 
 // these are not sent always
 // zoomout sends the same codes as shutter press/release
-#define BGMT_PRESS_ZOOMOUT_MAYBE 0xF
-#define BGMT_UNPRESS_ZOOMOUT_MAYBE 0x10
+#define BGMT_PRESS_ZOOM_OUT 0xF
+#define BGMT_UNPRESS_ZOOM_OUT 0x10
 
-#define BGMT_PRESS_ZOOMIN_MAYBE 0xD
-#define BGMT_UNPRESS_ZOOMIN_MAYBE 0xE
+#define BGMT_PRESS_ZOOM_IN 0xD
+#define BGMT_UNPRESS_ZOOM_IN 0xE
 
 #define GMT_OLC_INFO_CHANGED 0x5A // backtrace copyOlcDataToStorage call in gui_massive_event_loop
 #define GMT_LOCAL_DIALOG_REFRESH_LV 0x34 // event type = 2, gui code = 0x10000098 in 60d, backtrace it in gui_local_post

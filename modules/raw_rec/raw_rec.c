@@ -66,6 +66,7 @@
 #include "fps.h"
 #include "../mlv_rec/mlv.h"
 #include "../trace/trace.h"
+#include "powersave.h"
 
 /* from mlv_play module */
 extern WEAK_FUNC(ret_0) void mlv_play_file(char *filename);
@@ -274,6 +275,13 @@ static void update_cropping_offsets()
     skip_y = sy;
     
     refresh_cropmarks();
+    
+    /* mv640crop needs this to center the recorded image */
+    if (is_movie_mode() && video_mode_resolution == 2 && video_mode_crop)
+    {
+        skip_x = skip_x + 51;
+        skip_y = skip_y - 6;
+    }
 }
 
 static void update_resolution_params()
@@ -1582,9 +1590,7 @@ static void raw_video_rec_task()
     last_write_timestamp = 0;
     mlv_chunk = 0;
     
-    /* disable powersave timer */
-    int powersave_prohibit = 2;
-    prop_request_change(PROP_ICU_AUTO_POWEROFF, &powersave_prohibit, 4);
+    powersave_prohibit();
 
     /* create output file */
     raw_movie_filename = get_next_raw_movie_file_name();
@@ -1842,7 +1848,7 @@ abort_and_check_early_stop:
             beep();
         }
 
-        if (slots[slot_index].status != SLOT_FULL)
+        if (frame_check_saved(slot_index) != 1)
         {
             bmp_printf( FONT_MED, 30, 110, 
                 "Data corruption at slot %d, frame %d ", slot_index, slots[slot_index].frame_number
@@ -1900,9 +1906,8 @@ cleanup:
     hack_liveview(1);
     redraw();
     
-    /* re-enable powersave timer */
-    int powersave_permit = 1;
-    prop_request_change(PROP_ICU_AUTO_POWEROFF, &powersave_permit, 4);
+    /* re-enable powersaving  */
+    powersave_permit();
 
     raw_recording_state = RAW_IDLE;
 }

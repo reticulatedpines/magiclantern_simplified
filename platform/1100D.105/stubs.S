@@ -45,6 +45,7 @@ NSTUB(0xFF1D9620,  FIO_CloseFile)                           // might be good (du
 NSTUB(0xFF1DA5F0,  FIO_FindClose)                           // might be good (dumps=1, score=69)
 NSTUB(0xFF1DA510,  FIO_FindNextEx)                          // might be good (dumps=1, score=50)
 NSTUB(0xFF1D93D0,  FIO_ReadFile)                            // might be good (dumps=1, score=87)
+NSTUB(0xFF1D9480,  FIO_SeekSkipFile)                        /* present on 5D3.113, EOSM.202 */
 NSTUB(0xFF1D9570,  FIO_WriteFile)                           // might be good (dumps=1, score=65)
 NSTUB(0xFF1D9E5C, _FIO_CreateDirectory)                     // might be good (dumps=1, score=13)
 NSTUB(0xFF1D927C, _FIO_CreateFile)                          // might be good (dumps=1, score=50)
@@ -53,7 +54,6 @@ NSTUB(0xFF1D979C, _FIO_GetFileSize)                         // might be good (du
 NSTUB(0xFF1D91C0, _FIO_OpenFile)                            // might be good (dumps=1, score=92)
 NSTUB(0xFF1D9328, _FIO_RemoveFile)                          // might be good (dumps=1, score=53)
 NSTUB(0xFF1D9C94, _FIO_RenameFile)
-NSTUB(0xFF1D9480,  FIO_SeekSkipFile)                        /* present on 5D3.113, EOSM.202 */
 
 /** GUI **/
 NSTUB(    0x1BF4,  gui_main_struct)                         // in gui_main_task
@@ -92,6 +92,7 @@ NSTUB(0xFF069B38, _audio_ic_write)                          // might be good (du
 NSTUB(0xFF5A67E4,  audio_thresholds)
 NSTUB(0xFF0579DC,  sounddev_active_in)
 NSTUB(0xFF057570,  sounddev_task)                           // might be good (dumps=1, score=8.2)
+// NSTUB(    ???, _audio_ic_write_bulk)                     /* present on 6D.116 */
 
 /** Bitmap **/
 NSTUB(   0x1C06C,  LCD_Palette)                             // in InitializeBitmapDisplayDevice, right after 0xc0f14800
@@ -196,11 +197,11 @@ NSTUB(0xFF0A8128,  gui_other_post)                          // might be good (du
 // NSTUB(    ???,  gui_timer_something)                     /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
 
 /** GUI timers **/
+NSTUB(0xFF36C6A4,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 NSTUB(0xFF076470,  CancelTimer)
 NSTUB(0xFF06E260,  SetHPTimerAfterNow)
 NSTUB(0xFF06E354,  SetHPTimerNextTick)
 NSTUB(0xFF076270,  SetTimerAfter)
-NSTUB(0xFF36C6A4,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 
 /** H264 Encoder **/
 NSTUB(    0x5B4C,  mvr_config)
@@ -223,6 +224,7 @@ NSTUB(0xFF1B9248,  mvrSetGopOptSizeFULLHD)                  // might be good (du
 NSTUB(   0x1553C,  cf_device)                               // in cfReadBlk
 NSTUB(   0x15560,  sd_device)                               // in sdReadBlk
 NSTUB(0xFF41686C,  fsuDecodePartitionTable)                 // might be good (dumps=1, score=2.1)
+// NSTUB(    ???,  cf_device_ptr)                           /* present on 5D3.113 */
 
 /** Memory allocation **/
 NSTUB(0xFF070710,  GetMemoryInformation)                    // might be good (dumps=1, score=6.4)
@@ -294,7 +296,7 @@ NSTUB(0xFF07C970,  task_trampoline)                         // might be good (du
 NSTUB(   0x736B4,  lv_path_struct)                          // first arg of SelectPathDriveMode
 NSTUB(0xFF0694E4,  LoadCalendarFromRTC)                     // might be good (dumps=1, score=30)
 NSTUB(0xFF1EBFE0,  vsnprintf)                               // might be good (dumps=1, score=9.5)
-//NSTUB(0xff0707fc, AllocateMemory_do) // malloc struct at 0x2B48
+///NSTUB(0xff0707fc, AllocateMemory_do) // malloc struct at 0x2B48
 // NSTUB(    ???,  EnableImagePhysicalScreenParameter)      /* present on 7D.203, 50D.109, 5D2.212 */
 // NSTUB(    ???,  PtpDps_remote_release_SW1_SW2_worker)    /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */

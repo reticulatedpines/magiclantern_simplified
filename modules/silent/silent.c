@@ -13,9 +13,10 @@
 #include <lens.h>
 #include <focus.h>
 #include <string.h>
+#include <battery.h>
+#include <powersave.h>
 #include "../lv_rec/lv_rec.h"
 #include "../mlv_rec/mlv.h"
-#include "battery.h"
 
 static uint64_t ret_0_long() { return 0; }
 
@@ -865,16 +866,18 @@ silent_pic_take_lv(int interactive)
         case SILENT_PIC_MODE_BURST:
         case SILENT_PIC_MODE_BURST_END_TRIGGER:
         case SILENT_PIC_MODE_BEST_FOCUS:
+        {
             hSuite1 = srm_malloc_suite(0);
             /* fixme: allocating shoot memory during picture taking causes lockup */
             if (lens_info.job_state) break;
             hSuite2 = shoot_malloc_suite(0);
             break;
+        }
         
         /* allocate only one frame in simple and slitscan modes */
         case SILENT_PIC_MODE_SIMPLE:
         case SILENT_PIC_MODE_SLITSCAN:
-            hSuite1 = shoot_malloc_suite_contig(raw_info.frame_size * 129/128);
+            hSuite2 = shoot_malloc_suite_contig(raw_info.frame_size * 129/128);
             break;
     }
 
@@ -1356,9 +1359,8 @@ silent_pic_take_fullres(int interactive)
                               : 0;
         delayed_call(100, display_off_if_qr_mode, (void*)preview_delay);
 
-        /* attempt to reset the powersave timer */
-        int prolong = 3; /* AUTO_POWEROFF_PROLONG */
-        prop_request_change(PROP_ICU_AUTO_POWEROFF, &prolong, 4);
+        /* reset the powersave timer */
+        powersave_prolong();
     }
     else
     {
