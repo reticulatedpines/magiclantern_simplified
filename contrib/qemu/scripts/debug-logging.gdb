@@ -710,6 +710,33 @@ define UnLockEngineResources_log
   end
 end
 
+define StartEDmac_log
+  commands
+    silent
+    print_current_location
+    KBLU
+    printf "StartEDmac(%d, %x)\n", $r0, $r1
+    KRESET
+    c
+  end
+end
+
+define SetEDmac_log
+  commands
+    silent
+    print_current_location
+    KBLU
+    printf "SetEDmac(%d, 0x%x, 0x%x, 0x%x)\n", $r0, $r1, $r2, $r3
+    if $r2
+      printf "                       "
+      printf "{ %dx%d %dx%d %dx%d %d %d %d %d %d }\n", *(int*)($r2+0x14), *(int*)($r2+0x1c), *(int*)($r2+0x18), *(int*)($r2+0x20), *(int*)($r2+0x24), *(int*)($r2+0x28), *(int*)($r2+0x00), *(int*)($r2+0x04), *(int*)($r2+0x08), *(int*)($r2+0x0c), *(int*)($r2+0x10)
+      # xa*ya xb*yb xn*yn off1a off1b off2a off2b off3
+    end
+    KRESET
+    c
+  end
+end
+
 # date/time helpers
 
 define print_date_time
