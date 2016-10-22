@@ -188,6 +188,7 @@ EOSRegionHandler eos_handlers[] =
     { "EDMAC",        0xC0F04000, 0xC0F04FFF, eos_handle_edmac, 0 },
     { "EDMAC",        0xC0F26000, 0xC0F26FFF, eos_handle_edmac, 1 },
     { "EDMAC",        0xC0F30000, 0xC0F30FFF, eos_handle_edmac, 2 },
+    { "PREPRO",       0xC0F08000, 0xC0F08FFF, eos_handle_prepro, 0 },
     { "CARTRIDGE",    0xC0F24000, 0xC0F24FFF, eos_handle_cartridge, 0 },
     { "ASIF",         0xC0920000, 0xC0920FFF, eos_handle_asif, 4 },
     { "Display",      0xC0F14000, 0xC0F14FFF, eos_handle_display, 0 },
@@ -2392,6 +2393,38 @@ static int edmac_do_transfer(EOSState *s, int channel)
     return 1;
 }
 
+static void prepro_execute(EOSState *s)
+{
+    if (s->prepro.adkiz_intr_en)
+    {
+        /* appears to use data from connections 8 and 15 */
+        /* are these hardcoded? */
+        if (s->edmac.conn_data[8].buf && s->edmac.conn_data[15].buf)
+        {
+            printf("[ADKIZ] Dummy operation.\n");
+            
+            /* "consume" the data from those two connections */
+            assert(s->edmac.conn_data[8].buf);
+            assert(s->edmac.conn_data[15].buf);
+
+            /* free it to allow the next operation */
+            free(s->edmac.conn_data[8].buf);
+            s->edmac.conn_data[8].buf = 0;
+            s->edmac.conn_data[8].data_size = 0;
+            
+            free(s->edmac.conn_data[15].buf);
+            s->edmac.conn_data[15].buf = 0;
+            s->edmac.conn_data[15].data_size = 0;
+            
+            eos_trigger_int(s, 0x65, 1);
+        }
+        else
+        {
+            printf("[ADKIZ] Data unavailable; will try again later.\n");
+        }
+    }
+}
+
 unsigned int eos_handle_edmac ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
     const char * msg = 0;
@@ -2422,6 +2455,9 @@ unsigned int eos_handle_edmac ( unsigned int parm, EOSState *s, unsigned int add
                             }
                         }
                     }
+                    
+                    /* some image processing modules may now have input data */
+                    prepro_execute(s);
                 }
                 else
                 {
@@ -2592,6 +2628,186 @@ unsigned int eos_handle_edmac_chsw ( unsigned int parm, EOSState *s, unsigned in
     }
 
     io_log("CHSW", s, address, type, value, ret, msg, msg_arg1, msg_arg2);
+    return ret;
+}
+
+static const char * prepro_reg_name(unsigned int addr)
+{
+    /* http://magiclantern.wikia.com/wiki/Register_Map#Image_PreProcessing */
+    switch(addr)
+    {
+        case 0xC0F08000: return "DARK_ENB";
+        case 0xC0F08004: return "DARK_MODE";
+        case 0xC0F08008: return "DARK_SETUP";
+        case 0xC0F0800C: return "DARK_LIMIT";
+        case 0xC0F08010: return "DARK_SETUP_14_12";
+        case 0xC0F08014: return "DARK_LIMIT_14_12";
+        case 0xC0F08018: return "DARK_SAT_LIMIT";
+
+        case 0xC0F08020: return "SHAD_ENB";
+        case 0xC0F08024: return "SHAD_MODE";
+        case 0xC0F08028: return "SHADE_PRESETUP";
+        case 0xC0F0802C: return "SHAD_POSTSETUP";
+        case 0xC0F08030: return "SHAD_GAIN";
+        case 0xC0F08034: return "SHAD_PRESETUP_14_12";
+        case 0xC0F08038: return "SHAD_POSTSETUP_14_12";
+
+        case 0xC0F08040: return "TWOADD_ENB";
+        case 0xC0F08044: return "TWOADD_MODE";
+        case 0xC0F08048: return "TWOADD_SETUP";
+        case 0xC0F0804C: return "TWOADD_LIMIT";
+        case 0xC0F08050: return "TWOADD_SETUP_14_12";
+        case 0xC0F08054: return "TWOADD_LIMIT_14_12";
+        case 0xC0F08058: return "TWOADD_SAT_LIMIT";
+
+        case 0xC0F08060: return "DSUNPACK_ENB";
+        case 0xC0F08064: return "DSUNPACK_MODE";
+
+        case 0xC0F08070: return "UNPACK24_ENB";
+        case 0xC0F08074: return "UNPACK24_MODE ";
+
+        case 0xC0F08080: return "ADUNPACK_ENB";
+        case 0xC0F08084: return "ADUNPACK_MODE";
+
+        case 0xC0F08090: return "PACK32_ENB";
+        case 0xC0F08094: return "PACK32_MODE";
+
+        case 0xC0F080A0: return "DEF_ENB";
+        case 0xC0F080A4: return "DEF_unk1";
+        case 0xC0F080A8: return "DEF_DEF_MODE";
+        case 0xC0F080AC: return "DEF_DEF_CTRL";
+        case 0xC0F080B0: return "DEF_YB_XB";
+        case 0xC0F080B4: return "DEF_YN_XN";
+        case 0xC0F080BC: return "DEF_YA_XA?";
+        case 0xC0F080C0: return "DEF_BUF_NUM";
+        case 0xC0F080C4: return "DEF_INTR_BE";
+        case 0xC0F080C8: return "DEF_INTR_AE";
+        case 0xC0F080D0: return "DEF_INTR_NUM/DEF_INTR_EN?";
+        case 0xC0F080D4: return "DEF_HOSEI";
+
+        case 0xC0F08100: return "CCDSEL";
+        case 0xC0F08104: return "DS_SEL";
+        case 0xC0F08108: return "OBWB_ISEL";
+        case 0xC0F0810C: return "PROC24_ISEL";
+        case 0xC0F08110: return "DPCME_ISEL";
+        case 0xC0F08114: return "PACK32_ISEL";
+
+        case 0xC0F08120: return "PACK16_ENB";
+        case 0xC0F08124: return "PACK16_MODE";
+
+        case 0xC0F08130: return "DEFM_ENB";
+        case 0xC0F08134: return "DEFM_unk1";
+        case 0xC0F08138: return "DEFM_MODE";
+        case 0xC0F08140: return "DEFM_INTR_NUM";
+        case 0xC0F0814C: return "DEFM_GRADE";
+        case 0xC0F08150: return "DEFM_DAT_TH";
+        case 0xC0F08154: return "DEFM_INTR_CLR";
+        case 0xC0F08158: return "DEFM_INTR_EN";
+        case 0xC0F0815C: return "DEFM_14_12_SEL";
+        case 0xC0F08160: return "DEFM_DAT_TH_14_12";
+        case 0xC0F0816C: return "DEFM_X2MODE";
+
+        case 0xC0F08180: return "HIV_ENB";
+        case 0xC0F08184: return "HIV_V_SIZE";
+        case 0xC0F08188: return "HIV_H_SIZE";
+        case 0xC0F0818C: return "HIV_POS_V_OFST";
+        case 0xC0F08190: return "HIV_POS_H_OFST";
+        case 0xC0F08194: return "HIV_unk1";
+        case 0xC0F08198: return "HIV_unk2";
+        case 0xC0F0819C: return "HIV_POST_SETUP";
+        case 0xC0F081C0: return "HIV_H_SWS_ENB";
+        case 0xC0F08214: return "HIV_PPR_EZ";
+        case 0xC0F08218: return "HIV_IN_SEL";
+
+        case 0xC0F08220: return "ADKIZ_unk1";
+        case 0xC0F08224: return "ADKIZ_THRESHOLD";
+        case 0xC0F08234: return "ADKIZ_TOTAL_SIZE";
+        case 0xC0F08238: return "ADKIZ_INTR_CLR";
+        case 0xC0F0823C: return "ADKIZ_INTR_EN";
+        case 0xC0F08240: return "ADMERG_INTR_EN";
+        case 0xC0F08244: return "ADMERG_TOTAL_SIZE";
+        case 0xC0F08248: return "ADMERG_MergeDefectsCount";
+        case 0xC0F08250: return "ADMERG_2_IN_SE";
+        case 0xC0F0825C: return "ADKIZ_THRESHOLD_14_12";
+
+        case 0xC0F08260: return "UNPACK24_DM_EN";
+        case 0xC0F08264: return "PACK32_DM_EN";
+        case 0xC0F08268: return "PACK32_MODE_H";
+        case 0xC0F0826C: return "unk_MODE_H";
+        case 0xC0F08270: return "DEFC_X2MODE";
+        case 0xC0F08274: return "DSUNPACK_DM_EN";
+        case 0xC0F08278: return "ADUNPACK_DM_EN";
+        case 0xC0F0827C: return "PACK16_CCD2_DM_EN";
+
+        case 0xC0F08280: return "SHAD_CBIT";
+        case 0xC0F08284: return "SHAD_C8MODE";
+        case 0xC0F08288: return "SHAD_C12MODE";
+        case 0xC0F0828C: return "SHAD_RMODE";
+        case 0xC0F08290: return "SHAD_COF_SEL";
+
+        case 0xC0F082A0: return "DARK_KZMK_SAV_A";
+        case 0xC0F082A4: return "DARK_KZMK_SAV_B";
+        case 0xC0F082A8: return "SHAD_KZMK_SAV";
+        case 0xC0F082AC: return "TWOA_KZMK_SAV_A";
+        case 0xC0F082B0: return "TWOA_KZMK_SAV_B";
+        case 0xC0F082B4: return "DEFC_DET_MODE";
+        case 0xC0F082B8: return "PACK16_DEFM_ON";
+        case 0xC0F082BC: return "PACK32_DEFM_ON";
+        case 0xC0F082C4: return "HIV_DEFMARK_CANCEL";
+
+        case 0xC0F082D0: return "PACK16_ISEL";
+        case 0xC0F082D4: return "WDMAC32_ISEL";
+        case 0xC0F082D8: return "WDMAC16_ISEL";
+        case 0xC0F082DC: return "OBINTG_ISEL";
+        case 0xC0F082E0: return "AFFINE_ISEL";
+        case 0xC0F08390: return "OBWB_ISEL2";
+        case 0xC0F08394: return "PROC24_ISEL2";
+        case 0xC0F08398: return "PACK32_ISEL2";
+        case 0xC0F0839C: return "PACK16_ISEL2";
+        case 0xC0F083A0: return "TAIWAN_ISEL";
+
+        case 0xC0F08420: return "HIV_BASE_OFST";
+        case 0xC0F08428: return "HIV_GAIN_DIV";
+        case 0xC0F0842C: return "HIV_PATH";
+
+        case 0xC0F08540: return "RSHD_ENB";
+
+        case 0xC0F085B0: return "PACK32_ILIM";
+        case 0xC0F085B4: return "PACK16_ILIM";
+    }
+    
+    return NULL;
+}
+
+unsigned int eos_handle_prepro ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+{
+    const char * msg = prepro_reg_name(address);
+    unsigned int ret = 0;
+
+    switch (address & 0xFFF)
+    {
+        case 0x240:     /* ADMERG_INTR_EN */
+            if(type & MODE_WRITE)
+            {
+                s->prepro.adkiz_intr_en = value;
+            }
+            break;
+        
+        case 0x0C8:     /* DEF_INTR_AE */
+            if(type & MODE_WRITE)
+            {
+            }
+            else
+            {
+                int AdKizDet_flag = (s->model->digic_version == 4) ? 0x20 : 
+                                    (s->model->digic_version == 5) ? 0x10 : 0;
+                assert(AdKizDet_flag);
+                ret = AdKizDet_flag;   /* Interruppt AdKizDet */
+            }
+            break;
+    }
+
+    io_log("PREPRO", s, address, type, value, ret, msg, 0, 0);
     return ret;
 }
 

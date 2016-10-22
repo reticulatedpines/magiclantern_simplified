@@ -191,6 +191,11 @@ typedef struct
 
 typedef struct
 {
+    uint32_t adkiz_intr_en;
+} PreproState;
+
+typedef struct
+{
     /* model-specific settings from model_list.c */
     struct eos_model_desc * model;
 
@@ -232,6 +237,7 @@ typedef struct
     DigicUartState uart;
     MPUState mpu;
     EDMACState edmac;
+    PreproState prepro;
     struct SerialFlashState * sf;
     uint32_t card_led;  /* 1 = on, -1 = off, 0 = not used */
 } EOSState;
@@ -292,6 +298,7 @@ unsigned int eos_handle_asif ( unsigned int parm, EOSState *s, unsigned int addr
 unsigned int eos_handle_display ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_edmac ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_edmac_chsw ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
+unsigned int eos_handle_prepro ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_engio ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_power_control ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_adc ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
