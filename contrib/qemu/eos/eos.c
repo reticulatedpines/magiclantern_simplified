@@ -189,6 +189,10 @@ EOSRegionHandler eos_handlers[] =
     { "EDMAC",        0xC0F26000, 0xC0F26FFF, eos_handle_edmac, 1 },
     { "EDMAC",        0xC0F30000, 0xC0F30FFF, eos_handle_edmac, 2 },
     { "PREPRO",       0xC0F08000, 0xC0F08FFF, eos_handle_prepro, 0 },
+    { "HEAD",         0xC0F07048, 0xC0F0705B, eos_handle_head, 1 },
+    { "HEAD",         0xC0F0705C, 0xC0F0706F, eos_handle_head, 2 },
+    { "HEAD",         0xC0F07134, 0xC0F07147, eos_handle_head, 3 },
+    { "HEAD",         0xC0F07148, 0xC0F0715B, eos_handle_head, 4 },
     { "CARTRIDGE",    0xC0F24000, 0xC0F24FFF, eos_handle_cartridge, 0 },
     { "ASIF",         0xC0920000, 0xC0920FFF, eos_handle_asif, 4 },
     { "Display",      0xC0F14000, 0xC0F14FFF, eos_handle_display, 0 },
@@ -2263,6 +2267,15 @@ static void edmac_trigger_interrupt(EOSState* s, int channel)
     eos_trigger_int(s, edmac_interrupts[channel], 0);
 }
 
+static int edmac_fix_off1(EOSState *s, int32_t off)
+{
+    /* the value is signed, but the number of bits is model-dependent */
+    int off1_bits = (s->model->digic_version == 4) ? 17 : 
+                    (s->model->digic_version == 5) ? 23 : 0;
+    assert(off1_bits);
+    return off << (32-off1_bits) >> (32-off1_bits);
+}
+
 /* 1 on success, 0 = no data available yet (should retry) */
 static int edmac_do_transfer(EOSState *s, int channel)
 {
@@ -2295,98 +2308,145 @@ static int edmac_do_transfer(EOSState *s, int channel)
     }
     
     printf(" #%d, ", conn);
-    
+
+    /* Hypothesis:
+     * 
+     * - run A=(xa x ya+1) N=xn times
+     * - then run B=(xb x yb+1) once
+     * 
+     * Why?
+     * 
+     * edmac_setup_size(6, 76800):
+     *   [0xC0F0460C] <- 0x12      : yn|xn
+     *   [0xC0F04610] <- 0xC00     : yb|xb
+     *   [0xC0F04614] <- 0x1000    : ya|xa
+     * 0x1000 x 0x12 + 0xC00 = 76800
+     */
+
     if (s->edmac.ch[channel].xa || s->edmac.ch[channel].ya)
-        printf("A:%dx%d, ", s->edmac.ch[channel].xa, s->edmac.ch[channel].ya+1);
+    {
+        printf("A:%dx%dx%d", s->edmac.ch[channel].xa, s->edmac.ch[channel].ya+1, s->edmac.ch[channel].xn);
+        if (s->edmac.ch[channel].off1a) printf(" rowskip=0x%X", s->edmac.ch[channel].off1a);
+        printf(", ");
+    }
     if (s->edmac.ch[channel].xb || s->edmac.ch[channel].yb)
     {
         printf("B:%dx%d", s->edmac.ch[channel].xb, s->edmac.ch[channel].yb+1);
-        if (s->edmac.ch[channel].off1b) printf(" rowskip=%d", s->edmac.ch[channel].off1b);
+        if (s->edmac.ch[channel].off1b) printf(" rowskip=0x%X", s->edmac.ch[channel].off1b);
         printf(", ");
     }
-    if (s->edmac.ch[channel].xn || s->edmac.ch[channel].yn)
-        printf("N:%dx%d, ", s->edmac.ch[channel].xn, s->edmac.ch[channel].yn+1);
     
     printf("flags=0x%X\n", s->edmac.ch[channel].flags);
+
+    /* unknown meaning */
+    assert(s->edmac.ch[channel].off1c == 0);
+    assert(s->edmac.ch[channel].off2a == 0);
+    assert(s->edmac.ch[channel].off2b == 0);
+    assert(s->edmac.ch[channel].off3 == 0);
+    assert(s->edmac.ch[channel].yn == 0);
+
+    int na = s->edmac.ch[channel].xn;
+    int wa = s->edmac.ch[channel].xa;
+    int ha = s->edmac.ch[channel].ya + 1;
+    int32_t offa = edmac_fix_off1(s, s->edmac.ch[channel].off1a);
+
+    int wb = s->edmac.ch[channel].xb;
+    int hb = s->edmac.ch[channel].yb + 1;
+    int32_t offb = edmac_fix_off1(s, s->edmac.ch[channel].off1b);
     
-
-    if (s->edmac.ch[channel].xb || s->edmac.ch[channel].yb)
+    uint32_t data_size = wa * ha * na + wb * hb;
+    
+    if (channel & 8)
     {
-        /* don't know how to handle these yet */
-        assert(s->edmac.ch[channel].xa == 0);
-        assert(s->edmac.ch[channel].ya == 0);
-        assert(s->edmac.ch[channel].xn == 0);
-        assert(s->edmac.ch[channel].yn == 0);
-
-        int w = s->edmac.ch[channel].xb;
-        int h = s->edmac.ch[channel].yb + 1;
-        int32_t off = s->edmac.ch[channel].off1b;
+        /* from memory to image processing modules */
+        uint32_t src = s->edmac.ch[channel].addr;
         
-        /* the value is signed, but the number of bits is model-dependent */
-        int off1_bits = (s->model->digic_version == 4) ? 17 : 
-                        (s->model->digic_version == 5) ? 23 : 0;
-        assert(off1_bits);
-        off = off << (32-off1_bits) >> (32-off1_bits);
+        assert(s->edmac.conn_data[conn].buf == 0);
+        assert(s->edmac.conn_data[conn].data_size == 0);
+        s->edmac.conn_data[conn].buf = malloc(data_size);
+        s->edmac.conn_data[conn].data_size = data_size;
         
-        if (channel & 8)
+        void * ptr = s->edmac.conn_data[conn].buf;
+        for (int k = 0; k < na; k++)
         {
-            /* from memory to image processing modules */
-            uint32_t src = s->edmac.ch[channel].addr;
-            
-            assert(s->edmac.conn_data[conn].buf == 0);
-            assert(s->edmac.conn_data[conn].data_size == 0);
-            s->edmac.conn_data[conn].buf = malloc(w * h);
-            s->edmac.conn_data[conn].data_size = w * h;
-            
-            void * ptr = s->edmac.conn_data[conn].buf;
-            for (int i = 0; i < h; i++)
+            for (int i = 0; i < ha; i++)
             {
-                cpu_physical_memory_read(src, ptr, w);
-                src += w + off;
-                ptr += w;
+                cpu_physical_memory_read(src, ptr, wa);
+                src += wa + offa;
+                ptr += wa;
             }
-            printf("[EDMAC#%d] %dx%d bytes read from %X-%X, off=%d.\n", channel, w, h, s->edmac.ch[channel].addr, src-off-1, off);
         }
-        else
+        for (int i = 0; i < hb; i++)
         {
-            /* from image processing modules to memory */
-            uint32_t dst = s->edmac.ch[channel].addr;
-            
-            if (conn == 0)
-            {
-                /* sensor data? */
-                s->edmac.conn_data[conn].buf = malloc(w * h);
-                s->edmac.conn_data[conn].data_size = w * h;
+            cpu_physical_memory_read(src, ptr, wb);
+            src += wb + offb;
+            ptr += wb;
+        }
+        printf("[EDMAC#%d] %dx%dx%d + %dx%d bytes read from %X-%X, off=%d,%d.\n", channel, wa, ha, na, wb, hb, s->edmac.ch[channel].addr, src-offb-1, offa, offb);
+    }
+    else
+    {
+        /* from image processing modules to memory */
+        uint32_t dst = s->edmac.ch[channel].addr;
+        
+        if (conn == 0)
+        {
+            /* sensor data? */
+            s->edmac.conn_data[conn].buf = malloc(data_size);
+            s->edmac.conn_data[conn].data_size = data_size;
 
-                /* generate something random for now */
-                /* todo: load some image from a DNG */
-                for (int i = 0; i < w * h; i++)
+            /* todo: autodetect all DNG files and cycle between them */
+            char filename[100];
+            snprintf(filename, sizeof(filename), "%s/VRAM/PH-QR/RAW-000.DNG", s->model->name);
+            FILE* f = fopen(filename, "rb");
+            if (f)
+            {
+                printf("Loading photo raw data from %s...\n", filename);
+                /* fixme: hardcoded DNG offset */
+                fseek(f, 33792, SEEK_SET);
+                assert(fread(s->edmac.conn_data[conn].buf, 1, data_size, f) == data_size);
+                fclose(f);
+                reverse_bytes_order(s->edmac.conn_data[conn].buf, data_size);
+            }
+            else
+            {
+                printf("%s not found; generating random noise\n", filename);
+                for (int i = 0; i < data_size; i++)
                 {
                     ((uint8_t*)s->edmac.conn_data[conn].buf)[i] = rand();
                 }
             }
-            
-            if (!s->edmac.conn_data[conn].buf)
-            {
-                printf("[EDMAC#%d] Data unavailable; will try again later.\n", channel);
-                return 0;
-            }
-            assert(s->edmac.conn_data[conn].data_size == w * h);
-
-            void * ptr = s->edmac.conn_data[conn].buf;
-            for (int i = 0; i < h; i++)
-            {
-                cpu_physical_memory_write(dst, ptr, w);
-                dst += w + off;
-                ptr += w;
-            }
-            
-            free(s->edmac.conn_data[conn].buf);
-            s->edmac.conn_data[conn].buf = 0;
-            s->edmac.conn_data[conn].data_size = 0;
-            
-            printf("[EDMAC#%d] %dx%d bytes written to %X-%X, off=%d.\n", channel, w, h, s->edmac.ch[channel].addr, dst-off-1, off);
         }
+        
+        if (!s->edmac.conn_data[conn].buf)
+        {
+            printf("[EDMAC#%d] Data unavailable; will try again later.\n", channel);
+            return 0;
+        }
+        assert(s->edmac.conn_data[conn].data_size == data_size);
+
+        void * ptr = s->edmac.conn_data[conn].buf;
+        for (int k = 0; k < na; k++)
+        {
+            for (int i = 0; i < ha; i++)
+            {
+                cpu_physical_memory_write(dst, ptr, wa);
+                dst += wa + offa;
+                ptr += wa;
+            }
+        }
+        for (int i = 0; i < hb; i++)
+        {
+            cpu_physical_memory_write(dst, ptr, wb);
+            dst += wb + offb;
+            ptr += wb;
+        }
+        
+        free(s->edmac.conn_data[conn].buf);
+        s->edmac.conn_data[conn].buf = 0;
+        s->edmac.conn_data[conn].data_size = 0;
+        
+        printf("[EDMAC#%d] %dx%dx%d + %dx%d bytes written to %X-%X, off=%d,%d.\n", channel, wa, ha, na, wb, hb, s->edmac.ch[channel].addr, dst-offb-1, offa, offb);
     }
     
     edmac_trigger_interrupt(s, channel);
@@ -2421,6 +2481,22 @@ static void prepro_execute(EOSState *s)
         else
         {
             printf("[ADKIZ] Data unavailable; will try again later.\n");
+        }
+    }
+    
+    if (s->prepro.hiv_enb == 0 || s->prepro.hiv_enb == 1)
+    {
+        if (s->edmac.conn_data[15].buf)
+        {
+            printf("[HIV] Dummy operation.\n");
+            assert(s->edmac.conn_data[15].buf);
+            free(s->edmac.conn_data[15].buf);
+            s->edmac.conn_data[15].buf = 0;
+            s->edmac.conn_data[15].data_size = 0;
+        }
+        else
+        {
+            printf("[HIV] Data unavailable; will try again later.\n");
         }
     }
 }
@@ -2476,6 +2552,10 @@ unsigned int eos_handle_edmac ( unsigned int parm, EOSState *s, unsigned int add
             {
                 s->edmac.ch[channel].flags = value;
             }
+            else
+            {
+                value = s->edmac.ch[channel].flags;
+            }
             msg = "flags";
             break;
 
@@ -2497,6 +2577,10 @@ unsigned int eos_handle_edmac ( unsigned int parm, EOSState *s, unsigned int add
                 s->edmac.ch[channel].xn = value & 0xFFFF;
                 s->edmac.ch[channel].yn = value >> 16;
             }
+            else
+            {
+                value = s->edmac.ch[channel].xn | (s->edmac.ch[channel].yn << 16);
+            }
             msg = "yn|xn";
             break;
 
@@ -2505,6 +2589,10 @@ unsigned int eos_handle_edmac ( unsigned int parm, EOSState *s, unsigned int add
             {
                 s->edmac.ch[channel].xb = value & 0xFFFF;
                 s->edmac.ch[channel].yb = value >> 16;
+            }
+            else
+            {
+                value = s->edmac.ch[channel].xb | (s->edmac.ch[channel].yb << 16);
             }
             msg = "yb|xb";
             break;
@@ -2515,6 +2603,10 @@ unsigned int eos_handle_edmac ( unsigned int parm, EOSState *s, unsigned int add
                 s->edmac.ch[channel].xa = value & 0xFFFF;
                 s->edmac.ch[channel].ya = value >> 16;
             }
+            else
+            {
+                value = s->edmac.ch[channel].xa | (s->edmac.ch[channel].ya << 16);
+            }
             msg = "ya|xa";
             break;
 
@@ -2522,6 +2614,10 @@ unsigned int eos_handle_edmac ( unsigned int parm, EOSState *s, unsigned int add
             if(type & MODE_WRITE)
             {
                 s->edmac.ch[channel].off1b = value;
+            }
+            else
+            {
+                value = s->edmac.ch[channel].off1b;
             }
             msg = "off1b";
             break;
@@ -2531,6 +2627,10 @@ unsigned int eos_handle_edmac ( unsigned int parm, EOSState *s, unsigned int add
             {
                 s->edmac.ch[channel].off1c = value;
             }
+            else
+            {
+                value = s->edmac.ch[channel].off1c;
+            }
             msg = "off1c";
             break;
 
@@ -2538,6 +2638,10 @@ unsigned int eos_handle_edmac ( unsigned int parm, EOSState *s, unsigned int add
             if(type & MODE_WRITE)
             {
                 s->edmac.ch[channel].off1a = value;
+            }
+            else
+            {
+                value = s->edmac.ch[channel].off1a;
             }
             msg = "off1a";
             break;
@@ -2547,6 +2651,10 @@ unsigned int eos_handle_edmac ( unsigned int parm, EOSState *s, unsigned int add
             {
                 s->edmac.ch[channel].off2a = value;
             }
+            else
+            {
+                value = s->edmac.ch[channel].off2a;
+            }
             msg = "off2a";
             break;
 
@@ -2554,6 +2662,10 @@ unsigned int eos_handle_edmac ( unsigned int parm, EOSState *s, unsigned int add
             if(type & MODE_WRITE)
             {
                 s->edmac.ch[channel].off3 = value;
+            }
+            else
+            {
+                value = s->edmac.ch[channel].off3;
             }
             msg = "off3";
             break;
@@ -2805,9 +2917,51 @@ unsigned int eos_handle_prepro ( unsigned int parm, EOSState *s, unsigned int ad
                 ret = AdKizDet_flag;   /* Interruppt AdKizDet */
             }
             break;
+        
+        case 0x180:     /* HIV_ENB */
+            if(type & MODE_WRITE)
+            {
+                s->prepro.hiv_enb = value;
+            }
     }
 
     io_log("PREPRO", s, address, type, value, ret, msg, 0, 0);
+    return ret;
+}
+
+unsigned int eos_handle_head ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+{
+    const char * msg = prepro_reg_name(address);
+    unsigned int ret = 0;
+    
+    uint32_t bases[] = { 0, 0xC0F07048, 0xC0F0705C, 0xC0F07134, 0xC0F07148 };
+    uint32_t base = bases[parm];
+    
+    uint32_t interrupts[] = { 0, 0x6A, 0x6B, 0xD9, 0xE0 };
+    
+    switch (address - base)
+    {
+        case 0:
+            msg = "Enable?";
+            break;
+        case 4:
+            msg = "Start?";
+            if(type & MODE_WRITE)
+            {
+                if (value == 0xC)
+                {
+                    eos_trigger_int(s, interrupts[parm], 5);
+                }
+            }
+            break;
+        case 8:
+            msg = "Timer ticks";
+            break;
+    }
+
+    char name[32];
+    snprintf(name, sizeof(name), "HEAD%d", parm);
+    io_log(name, s, address, type, value, ret, msg, 0, 0);
     return ret;
 }
 
