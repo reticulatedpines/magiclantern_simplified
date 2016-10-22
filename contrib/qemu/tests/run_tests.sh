@@ -10,7 +10,7 @@ EOS_CAMS=( 5D 5D2 5D3 5D4 6D 7D 7D2M
 
 POWERSHOT_CAMS=( EOSM3 A1100 )
 
-GUI_CAMS=( 60D 5D3 600D 1200D 1100D )
+GUI_CAMS=( 60D 5D3 550D 600D 1200D 1100D )
 
 EOS_SECONDARY_CORES=( 5D4AE 7D2S )
 
@@ -18,7 +18,7 @@ if false ; then
     # to test only specific models
     EOS_CAMS=(5D)
     POWERSHOT_CAMS=()
-    GUI_CAMS=()
+    GUI_CAMS=(550D)
 fi
 
 # this script runs from qemu/tests/ so we have to go up one level

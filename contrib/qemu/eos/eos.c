@@ -2704,6 +2704,18 @@ unsigned int eos_handle_edmac_chsw ( unsigned int parm, EOSState *s, unsigned in
                 (value <= 11) ? value + 16 + 2 :
                 (value <= 15) ? value + 32 - 4 : -1 ;
             s->edmac.read_conn[conn] = ch;
+            
+            /* make sure this mapping is unique */
+            /* (not sure how it's supposed to work, but...) */
+            for (int c = 0; c < COUNT(s->edmac.read_conn); c++)
+            {
+                if (c != conn && s->edmac.read_conn[c] == ch)
+                {
+                    printf("[CHSW] Warning: disabling RD#%d -> conn #%d.\n", ch, c);
+                    s->edmac.read_conn[c] = 0;
+                }
+            }
+            
             msg = "RAM -> RD#%d -> connection #%d";
             msg_arg1 = ch;
             msg_arg2 = conn;
