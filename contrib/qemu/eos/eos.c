@@ -2262,6 +2262,136 @@ static void edmac_trigger_interrupt(EOSState* s, int channel)
     eos_trigger_int(s, edmac_interrupts[channel], 0);
 }
 
+/* 1 on success, 0 = no data available yet (should retry) */
+static int edmac_do_transfer(EOSState *s, int channel)
+{
+    /* not fully implemented */
+    printf("[EDMAC#%d] Starting transfer %s 0x%X %s conn", channel,
+        (channel & 8) ? "from" : "to",
+        s->edmac.ch[channel].addr,
+        (channel & 8) ? "to" : "from"
+    );
+    
+    uint32_t conn = 0;
+    
+    if (channel & 8)
+    {
+        /* read channel */
+        for (int c = 0; c < COUNT(s->edmac.read_conn); c++)
+        {
+            if (s->edmac.read_conn[c] == channel)
+            {
+                /* can a read operation have multiple destinations? */
+                /* if yes, we don't handle that case yet */
+                assert(conn == 0);
+                conn = c;
+            }
+        }
+    }
+    else
+    {
+        conn = s->edmac.write_conn[channel];
+    }
+    
+    printf(" #%d, ", conn);
+    
+    if (s->edmac.ch[channel].xa || s->edmac.ch[channel].ya)
+        printf("A:%dx%d, ", s->edmac.ch[channel].xa, s->edmac.ch[channel].ya+1);
+    if (s->edmac.ch[channel].xb || s->edmac.ch[channel].yb)
+    {
+        printf("B:%dx%d", s->edmac.ch[channel].xb, s->edmac.ch[channel].yb+1);
+        if (s->edmac.ch[channel].off1b) printf(" rowskip=%d", s->edmac.ch[channel].off1b);
+        printf(", ");
+    }
+    if (s->edmac.ch[channel].xn || s->edmac.ch[channel].yn)
+        printf("N:%dx%d, ", s->edmac.ch[channel].xn, s->edmac.ch[channel].yn+1);
+    
+    printf("flags=0x%X\n", s->edmac.ch[channel].flags);
+    
+
+    if (s->edmac.ch[channel].xb || s->edmac.ch[channel].yb)
+    {
+        /* don't know how to handle these yet */
+        assert(s->edmac.ch[channel].xa == 0);
+        assert(s->edmac.ch[channel].ya == 0);
+        assert(s->edmac.ch[channel].xn == 0);
+        assert(s->edmac.ch[channel].yn == 0);
+
+        int w = s->edmac.ch[channel].xb;
+        int h = s->edmac.ch[channel].yb + 1;
+        int32_t off = s->edmac.ch[channel].off1b;
+        
+        /* the value is signed, but the number of bits is model-dependent */
+        int off1_bits = (s->model->digic_version == 4) ? 17 : 
+                        (s->model->digic_version == 5) ? 23 : 0;
+        assert(off1_bits);
+        off = off << (32-off1_bits) >> (32-off1_bits);
+        
+        if (channel & 8)
+        {
+            /* from memory to image processing modules */
+            uint32_t src = s->edmac.ch[channel].addr;
+            
+            assert(s->edmac.conn_data[conn].buf == 0);
+            assert(s->edmac.conn_data[conn].data_size == 0);
+            s->edmac.conn_data[conn].buf = malloc(w * h);
+            s->edmac.conn_data[conn].data_size = w * h;
+            
+            void * ptr = s->edmac.conn_data[conn].buf;
+            for (int i = 0; i < h; i++)
+            {
+                cpu_physical_memory_read(src, ptr, w);
+                src += w + off;
+                ptr += w;
+            }
+            printf("[EDMAC#%d] %dx%d bytes read from %X-%X, off=%d.\n", channel, w, h, s->edmac.ch[channel].addr, src-off-1, off);
+        }
+        else
+        {
+            /* from image processing modules to memory */
+            uint32_t dst = s->edmac.ch[channel].addr;
+            
+            if (conn == 0)
+            {
+                /* sensor data? */
+                s->edmac.conn_data[conn].buf = malloc(w * h);
+                s->edmac.conn_data[conn].data_size = w * h;
+
+                /* generate something random for now */
+                /* todo: load some image from a DNG */
+                for (int i = 0; i < w * h; i++)
+                {
+                    ((uint8_t*)s->edmac.conn_data[conn].buf)[i] = rand();
+                }
+            }
+            
+            if (!s->edmac.conn_data[conn].buf)
+            {
+                printf("[EDMAC#%d] Data unavailable; will try again later.\n", channel);
+                return 0;
+            }
+            assert(s->edmac.conn_data[conn].data_size == w * h);
+
+            void * ptr = s->edmac.conn_data[conn].buf;
+            for (int i = 0; i < h; i++)
+            {
+                cpu_physical_memory_write(dst, ptr, w);
+                dst += w + off;
+                ptr += w;
+            }
+            
+            free(s->edmac.conn_data[conn].buf);
+            s->edmac.conn_data[conn].buf = 0;
+            s->edmac.conn_data[conn].data_size = 0;
+            
+            printf("[EDMAC#%d] %dx%d bytes written to %X-%X, off=%d.\n", channel, w, h, s->edmac.ch[channel].addr, dst-off-1, off);
+        }
+    }
+    
+    edmac_trigger_interrupt(s, channel);
+    return 1;
+}
+
 unsigned int eos_handle_edmac ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
     const char * msg = 0;
@@ -2275,41 +2405,33 @@ unsigned int eos_handle_edmac ( unsigned int parm, EOSState *s, unsigned int add
             msg = "control/status";
             if (value == 1)
             {
-                /* dummy transfer, not implemented yet */
-                printf("[EDMAC#%d] Starting transfer %s 0x%X %s conn", channel,
-                    (channel & 8) ? "from" : "to",
-                    s->edmac.ch[channel].addr,
-                    (channel & 8) ? "to" : "from"
-                );
-                
                 if (channel & 8)
                 {
-                    /* read channel */
-                    for (int i = 0; i < COUNT(s->edmac.read_conn); i++)
+                    /* read channel: data is always available */
+                    assert(edmac_do_transfer(s, channel));
+                    
+                    /* any pending requests on other channels?
+                     * data might be available now */
+                    for (int ch = 0; ch < COUNT(s->edmac.pending); ch++)
                     {
-                        if (s->edmac.read_conn[i] == channel)
+                        if (s->edmac.pending[ch])
                         {
-                            printf(" #%d", i);
+                            if (edmac_do_transfer(s, ch))
+                            {
+                                s->edmac.pending[ch] = 0;
+                            }
                         }
                     }
                 }
                 else
                 {
-                    printf(" #%d", s->edmac.write_conn[channel]);
+                    /* write channel: data may or may not be available right now */
+                    if (!edmac_do_transfer(s, channel))
+                    {
+                        /* didn't work; schedule it for later */
+                        s->edmac.pending[channel] = 1;
+                    }
                 }
-                
-                printf(", ");
-                
-                if (s->edmac.ch[channel].xa || s->edmac.ch[channel].ya)
-                    printf("A:%dx%d, ", s->edmac.ch[channel].xa, s->edmac.ch[channel].ya+1);
-                if (s->edmac.ch[channel].xb || s->edmac.ch[channel].yb)
-                    printf("B:%dx%d, ", s->edmac.ch[channel].xb, s->edmac.ch[channel].yb+1);
-                if (s->edmac.ch[channel].xn || s->edmac.ch[channel].yn)
-                    printf("N:%dx%d, ", s->edmac.ch[channel].xn, s->edmac.ch[channel].yn+1);
-                
-                printf("flags=0x%X\n", s->edmac.ch[channel].flags);
-                
-                edmac_trigger_interrupt(s, channel);
             }
             break;
 
