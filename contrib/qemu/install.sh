@@ -38,9 +38,16 @@ cd $QEMU_NAME
 cd .git && cd .. || (git init && git add . && git commit -m "$QEMU_NAME vanilla")
 cd ..
 
-# apply our patch
+# copy our helper scripts
 cp -vr ../$ML/contrib/qemu/scripts/* .
 chmod +x *.sh
+
+# copy our testing scripts
+mkdir -p tests
+cp -vr ../$ML/contrib/qemu/tests/* tests/
+chmod +x tests/*.sh
+
+# apply our patch
 cd ${QEMU_NAME}
 mkdir -p hw/eos
 cp -vr ../../$ML/contrib/qemu/eos/* hw/eos
