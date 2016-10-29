@@ -1302,7 +1302,7 @@ PROP_HANDLER(PROP_LV_ACTION)
 
 static MENU_UPDATE_FUNC(crop_update)
 {
-    if (CROP_PRESET_MENU && lv && !is_supported_mode())
+    if (crop_preset_menu && lv && !is_supported_mode())
     {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "This feature only works in 1080p and 720p video modes.");
     }
@@ -1311,78 +1311,23 @@ static MENU_UPDATE_FUNC(crop_update)
 static struct menu_entry crop_rec_menu[] =
 {
     {
-        .name       = "Crop mode",
-        .priv       = &crop_preset_index,
-        .update     = crop_update,
-        .depends_on = DEP_LIVEVIEW,
-        .children =  (struct menu_entry[]) {
-            {
-                .name   = "Target YRES",
-                .priv   = &target_yres,
-                .max    = 3870,
-                .unit   = UNIT_DEC,
-                .help   = "Desired vertical resolution (only for presets with higher resolution).",
-                .help2  = "Decrease if you get corrupted frames (start from max H in raw rec).",
-            },
-            {
-                .name   = "Delta ADTG 0",
-                .priv   = &delta_adtg0,
-                .min    = -500,
-                .max    = 500,
-                .unit   = UNIT_DEC,
-                .help   = "ADTG 0x8178, 0x8196, 0x82F8",
-                .help2  = "May help pushing the resolution a little. Start with small increments.",
-            },
-            {
-                .name   = "Delta ADTG 1",
-                .priv   = &delta_adtg1,
-                .min    = -500,
-                .max    = 500,
-                .unit   = UNIT_DEC,
-                .help   = "ADTG 0x8179, 0x8197, 0x82F9",
-                .help2  = "May help pushing the resolution a little. Start with small increments.",
-            },
-            {
-                .name   = "Delta HEAD3",
-                .priv   = &delta_head3,
-                .min    = -500,
-                .max    = 500,
-                .unit   = UNIT_DEC,
-                .help2  = "May help pushing the resolution a little. Start with small increments.",
-            },
-            {
-                .name   = "Delta HEAD4",
-                .priv   = &delta_head4,
-                .min    = -500,
-                .max    = 500,
-                .unit   = UNIT_DEC,
-                .help2  = "May help pushing the resolution a little. Start with small increments.",
-            },
-            {
-                .name   = "CMOS[1] lo",
-                .priv   = &cmos1_lo,
-                .max    = 63,
-                .unit   = UNIT_DEC,
-                .help   = "Start scanline (very rough). Use for vertical positioning.",
-            },
-            {
-                .name   = "CMOS[1] hi",
-                .priv   = &cmos1_hi,
-                .max    = 63,
-                .unit   = UNIT_DEC,
-                .help   = "End scanline (very rough). Increase if white bar at bottom.",
-                .help2  = "Decrease if you get strange colors as you move the camera.",
-            },
-            {
-                .name   = "CMOS[2]",
-                .priv   = &cmos2,
-                .max    = 0xFFF,
-                .unit   = UNIT_HEX,
-                .help   = "Horizontal position / binning.",
-                .help2  = "Use for horizontal centering.",
-            },
-            MENU_EOL,
-        },
+        .name = "Crop mode",
+        .priv = &crop_preset_menu,
+        .update = crop_update,
+        .max = 3,
+        .choices = CHOICES(
+            "OFF",
+            "1:1 (3x)",
+            "3x3 720p (1x wide)",
+            "1x3 binning",
+            "3x1 binning",      /* doesn't work well */
+        ),
+        .help =
+            "Change 1080p and 720p movie modes into crop modes (select one)\n"
+            "1:1 sensor readout (square pixels in RAW, 3x crop)\n"
+            "3x3 binning in 720p (square pixels in RAW, vertical crop, ratio 29:10)\n"
+            "1x3 binning: read all lines, bin every 3 columns (extreme anamorphic)\n"
+            "3x1 binning: bin every 3 lines, read all columns (extreme anamorphic)\n"
     },
 };
 
@@ -1393,11 +1338,11 @@ static int crop_rec_needs_lv_refresh()
         return 0;
     }
 
-    if (CROP_PRESET_MENU)
+    if (crop_preset_menu)
     {
         if (is_supported_mode())
         {
-            if (!patch_active || CROP_PRESET_MENU != crop_preset)
+            if (!patch_active || crop_preset_menu != crop_preset)
             {
                 return 1;
             }
@@ -1451,9 +1396,10 @@ static unsigned int crop_rec_polling_cbr(unsigned int unused)
         }
         lv_dirty = 0;
     }
-
+    
     return CBR_RET_CONTINUE;
 }
+
 
 /* Display recording status in top info bar */
 static LVINFO_UPDATE_FUNC(crop_info)
@@ -1522,22 +1468,8 @@ static LVINFO_UPDATE_FUNC(crop_info)
 
     if (crop_rec_needs_lv_refresh())
     {
-        if (is_supported_mode())
-        {
-            if (!patch_active || crop_preset_menu != crop_preset)
-            {
-                STR_APPEND(buffer, " " SYM_WARNING);
-                item->color_fg = COLOR_YELLOW;
-            }
-        }
-    }
-    else /* crop disabled */
-    {
-        if (patch_active)
-        {
-            STR_APPEND(buffer, " " SYM_WARNING);
-            item->color_fg = COLOR_YELLOW;
-        }
+        STR_APPEND(buffer, " " SYM_WARNING);
+        item->color_fg = COLOR_YELLOW;
     }
 }
 
