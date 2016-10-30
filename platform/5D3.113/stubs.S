@@ -279,6 +279,7 @@ NSTUB(0xFF9E74C8 - RAM_OFFSET,  take_semaphore)
 /** Task info **/
 NSTUB(   0x25114,  task_max)
 NSTUB(0xFF9F8860 - RAM_OFFSET,  is_taskid_valid)            // AJ_task_trampoline_related_p10
+NSTUB(   0x23E14,  current_task)
 
 /** Task sleep **/
 NSTUB(0xFF9E79A4 - RAM_OFFSET,  msleep)

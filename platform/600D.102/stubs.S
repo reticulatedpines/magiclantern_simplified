@@ -297,6 +297,7 @@ NSTUB(0xFF070FF0,  take_semaphore)
 /** Task info **/
 NSTUB(    0x3328,  task_max)
 NSTUB(0xFF3557F0,  is_taskid_valid)                         // AJ_task_trampoline_related_p10
+NSTUB(    0x1A2C,  current_task)
 
 /** Task sleep **/
 NSTUB(0xFF0714C4,  msleep)                                  // called from EV_GETDONE_CACHE param 0x64
