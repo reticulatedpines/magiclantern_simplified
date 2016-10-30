@@ -18,10 +18,6 @@
 
 extern int is_taskid_valid(int, int, void*);
 
-/* id_x2 is get_current_task() * 2 */
-/* returns 0 on success and puts the output in *task_name_ptr */
-extern int GetTaskName(int id_x2, char** task_name_ptr);
-
 int ml_shutdown_requested = 0;
 
 char* get_current_task_name()
@@ -171,7 +167,7 @@ void task_update_loads() // called every second from clock_task
 int task_check_stack()
 {
     struct task_attr_str task_attr;
-    int id = (int)get_current_task() & 0xFF;
+    int id = current_task->taskId;
 
     /* works, gives the same result as DryOS routine, so... let's just use the DryOS one
      *
@@ -457,7 +453,7 @@ int CheckBmpAcquireRecursiveLock(void* lock, int line, const char* func)
         ml_assert_handler(msg, __FILE__, __LINE__, __func__);
         wait = 0;
     }
-    task_holding_bmp_lock = ((int)get_current_task()) & 0xFF;
+    task_holding_bmp_lock = current_task->taskId;
     line_holding_bmp_lock = line;
     snprintf(func_holding_bmp_lock, sizeof(func_holding_bmp_lock), func);
     return r;

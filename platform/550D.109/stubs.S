@@ -287,7 +287,6 @@ NSTUB(0xFF069E70,  take_semaphore)
 
 /** Task info **/
 NSTUB(    0x3080,  task_max)
-NSTUB(0xFF016B8C,  get_current_task)                        // called from AJ_armlib_setup_related3
 NSTUB(0xFF2E9AB0,  is_taskid_valid)                         // AJ_task_trampoline_related_p10
 
 /** Task sleep **/

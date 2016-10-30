@@ -287,7 +287,6 @@ NSTUB(0xFF866934,  take_semaphore)
 
 /** Task info **/
 NSTUB(    0x30F8,  task_max)
-NSTUB(0xFF8166B4,  get_current_task)
 NSTUB(0xFF8180BC,  is_taskid_valid)                         // AJ_task_trampoline_related_p10
 
 /** Task sleep **/
