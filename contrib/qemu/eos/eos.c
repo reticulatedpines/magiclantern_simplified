@@ -420,7 +420,7 @@ static void *eos_interrupt_thread(void *parm)
         /* note: we can trigger multiple HPTimers on a single interrupt */
         int trigger_hptimers[64] = {0};
         int hptimer_interrupts[COUNT(s->HPTimers)] = {
-            0, 0x1A, 0x1C, 0x1E, 0, 0,
+            0x18, 0x1A, 0x1C, 0x1E, 0, 0,
             HPTIMER_INTERRUPT, HPTIMER_INTERRUPT, HPTIMER_INTERRUPT, HPTIMER_INTERRUPT,
             HPTIMER_INTERRUPT, HPTIMER_INTERRUPT, HPTIMER_INTERRUPT, HPTIMER_INTERRUPT,
         };
@@ -442,7 +442,7 @@ static void *eos_interrupt_thread(void *parm)
         
         qemu_mutex_unlock(&s->irq_lock);
 
-        for (int i = 0; i < COUNT(trigger_hptimers); i++)
+        for (int i = 1; i < COUNT(trigger_hptimers); i++)
         {
             if (trigger_hptimers[i])
             {
@@ -1765,11 +1765,32 @@ unsigned int eos_handle_hptimer ( unsigned int parm, EOSState *s, unsigned int a
         case 0x104:
             if(type & MODE_WRITE)
             {
-                /* round to the next 0x100 multiple, because that's our increment
-                 * for digic_timer */
-                s->HPTimers[timer_id].output_compare = ((value & 0xFFFFF) + 0xFF) & 0xFFF00;
-                msg = "HPTimer #%d: output compare (delay %d microseconds)";
-                msg_arg2 = (value - s->digic_timer) & 0xFFFFF;
+                /* upper rounding, to test for equality with digic_timer */
+                int rounded = (value + 0x100) & 0xFFF00;
+                int old = s->HPTimers[timer_id].output_compare;
+                s->HPTimers[timer_id].output_compare = rounded;
+                
+                /* for some reason, the value set to output compare
+                 * is sometimes a little behind digic_timer */
+                int delay_since_last = ((int32_t)(value - old) << 12) >> 12;
+                int actual_delay = ((int32_t)(rounded - s->digic_timer) << 12) >> 12;
+
+                if (actual_delay < 0)
+                {
+                    /* workaround: when this happens, trigger right away */
+                    s->HPTimers[timer_id].output_compare = s->digic_timer + 0x100;
+                }
+                
+                if (old)
+                {
+                    msg = "HPTimer #%d: output compare (%d microseconds since last)";
+                    msg_arg2 = delay_since_last;
+                }
+                else
+                {
+                    msg = "HPTimer #%d: output compare (delay %d microseconds)";
+                    msg_arg2 = actual_delay;
+                }
             }
             else
             {
