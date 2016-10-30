@@ -227,7 +227,7 @@ typedef struct
     uint32_t timer_reload_value[20];
     uint32_t timer_current_value[20];
     uint32_t timer_enabled[20];
-    struct HPTimer HPTimers[8];
+    struct HPTimer HPTimers[16];
     uint32_t clock_enable;
     uint32_t clock_enable_6;
     uint32_t flash_state_machine;

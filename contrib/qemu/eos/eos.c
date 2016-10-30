@@ -418,24 +418,36 @@ static void *eos_interrupt_thread(void *parm)
 
         /* also check all HPTimers */
         /* note: we can trigger multiple HPTimers on a single interrupt */
-        int trigger_hptimers = 0;
-        for (pos = 0; pos < 8; pos++)
+        int trigger_hptimers[64] = {0};
+        int hptimer_interrupts[COUNT(s->HPTimers)] = {
+            0, 0x1A, 0x1C, 0x1E, 0, 0,
+            HPTIMER_INTERRUPT, HPTIMER_INTERRUPT, HPTIMER_INTERRUPT, HPTIMER_INTERRUPT,
+            HPTIMER_INTERRUPT, HPTIMER_INTERRUPT, HPTIMER_INTERRUPT, HPTIMER_INTERRUPT,
+        };
+        
+        for (pos = 0; pos < COUNT(s->HPTimers); pos++)
         {
             if (s->HPTimers[pos].active && s->HPTimers[pos].output_compare == s->digic_timer)
             {
                 if (qemu_loglevel_mask(LOG_IO)) {
-                    printf("[HPTimer] Firing HPTimer %d/8\n", pos+1);
+                    printf("[HPTimer] Firing HPTimer #%d\n", pos);
                 }
                 s->HPTimers[pos].triggered = 1;
-                trigger_hptimers = 1;
+                int interrupt = hptimer_interrupts[pos];
+                assert(interrupt > 0);
+                assert(interrupt < COUNT(trigger_hptimers));
+                trigger_hptimers[hptimer_interrupts[pos]] = 1;
             }
         }
         
         qemu_mutex_unlock(&s->irq_lock);
 
-        if (trigger_hptimers)
+        for (int i = 0; i < COUNT(trigger_hptimers); i++)
         {
-            eos_trigger_int(s, HPTIMER_INTERRUPT, 0);
+            if (trigger_hptimers[i])
+            {
+                eos_trigger_int(s, i, 0);
+            }
         }
         
         qemu_mutex_lock(&s->cf.lock);
@@ -1729,80 +1741,52 @@ unsigned int eos_handle_hptimer ( unsigned int parm, EOSState *s, unsigned int a
     int msg_arg2 = 0;
     
     unsigned int ret = 0;
-    int timer_id = ((address & 0xF0) >> 4) - 6;
-    msg_arg1 = timer_id + 1;
+    int timer_id = (address & 0x0F0) >> 4;
+    msg_arg1 = timer_id;
 
-    switch(address & 0xFFF)
+    switch(address & 0xF0F)
     {
-        case 0x160:
-        case 0x170:
-        case 0x180:
-        case 0x190:
-        case 0x1A0:
-        case 0x1B0:
-        case 0x1C0:
-        case 0x1D0:
+        case 0x100:
             if(type & MODE_WRITE)
             {
                 s->HPTimers[timer_id].active = value;
 
-                msg = value == 1 ? "HPTimer %d/8: active" :
-                      value == 0 ? "HPTimer %d/8: inactive" :
+                msg = value == 1 ? "HPTimer #%d: active" :
+                      value == 0 ? "HPTimer #%d: inactive" :
                                    "???";
             }
             else
             {
                 ret = s->HPTimers[timer_id].active;
-                msg = "HPTimer %d/8: status?";
+                msg = "HPTimer #%d: status?";
             }
             break;
 
-        case 0x164:
-        case 0x174:
-        case 0x184:
-        case 0x194:
-        case 0x1A4:
-        case 0x1B4:
-        case 0x1C4:
-        case 0x1D4:
+        case 0x104:
             if(type & MODE_WRITE)
             {
                 /* round to the next 0x100 multiple, because that's our increment
                  * for digic_timer */
                 s->HPTimers[timer_id].output_compare = ((value & 0xFFFFF) + 0xFF) & 0xFFF00;
-                msg = "HPTimer %d/8: output compare (delay %d microseconds)";
+                msg = "HPTimer #%d: output compare (delay %d microseconds)";
                 msg_arg2 = (value - s->digic_timer) & 0xFFFFF;
             }
             else
             {
                 ret = s->HPTimers[timer_id].output_compare;
-                msg = "HPTimer %d/8: output compare";
+                msg = "HPTimer #%d: output compare";
             }
             break;
 
-        case 0x260:
-        case 0x270:
-        case 0x280:
-        case 0x290:
-        case 0x2A0:
-        case 0x2B0:
-        case 0x2C0:
-        case 0x2D0:
-            msg = "HPTimer %d/8: ?!";
+        case 0x200:
+            msg = "HPTimer #%d: ?!";
             break;
 
-        case 0x264:
-        case 0x274:
-        case 0x284:
-        case 0x294:
-        case 0x2A4:
-        case 0x2B4:
-        case 0x2C4:
-        case 0x2D4:
-            msg = "HPTimer %d/8: ???";
+        case 0x204:
+            msg = "HPTimer #%d: ???";
             if(type & MODE_WRITE)
             {
-                msg = "HPTimer %d/8: reset trigger?";
+                msg = "HPTimer #%d: reset trigger?";
                 s->HPTimers[timer_id].triggered = 0;
             }
             break;
@@ -1817,7 +1801,7 @@ unsigned int eos_handle_hptimer ( unsigned int parm, EOSState *s, unsigned int a
                 ret = 0;
                 int i;
                 for (i = 0; i < 8; i++)
-                    if (s->HPTimers[i].triggered)
+                    if (s->HPTimers[6+i].triggered)
                         ret |= 1 << (2*i+4);
                 
                 msg = "Which timer(s) triggered";
