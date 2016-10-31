@@ -109,7 +109,7 @@ define print_formatted_string
   set $nxt = *(char*)($arg0+$i+1)
   while $chr
     set $num = $num + ( $chr == '%' && $nxt != '%' )
-    set $badfmt = $badfmt + ( $chr == '%' && $nxt == 'S' )
+    set $badfmt = $badfmt + ( $chr == '%' && ($nxt == 'S' || $nxt == 'R' ))
     set $badfmt = $badfmt + ( $chr == '"' )
     set $i = $i + 1
     set $chr = $nxt
