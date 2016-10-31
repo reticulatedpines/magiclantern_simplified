@@ -3575,7 +3575,7 @@ static void sdio_write_data(SDIOState *sd)
 void sdio_trigger_interrupt(EOSState *s, SDIOState *sd)
 {
     /* after a successful operation, trigger interrupt if requested */
-    if ((sd->cmd_flags == 0x13 || sd->cmd_flags == 0x14)
+    if ((sd->cmd_flags == 0x13 || sd->cmd_flags == 0x14 || sd->cmd_flags == 0x04)
         && !(sd->status & SDIO_STATUS_DATA_AVAILABLE))
     {
         /* if the current command does a data transfer, don't trigger until complete */
@@ -3595,9 +3595,6 @@ void sdio_trigger_interrupt(EOSState *s, SDIOState *sd)
         }
     }
 }
-
-#undef DPRINTF
-#undef EPRINTF
 
 unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
@@ -3628,10 +3625,24 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
                 
                 if (value == 0x14 || value == 0x4)
                 {
-                    sdio_read_data(&s->sd);
+                    if (s->sd.dma_enabled)
+                    {
+                        /* DMA read transfer */
+                        sdio_read_data(&s->sd);
+                        sdio_trigger_interrupt(s,&s->sd);
+                    }
+                    else
+                    {
+                        /* PIO read transfer */
+                        s->sd.status |= SDIO_STATUS_DATA_AVAILABLE;
+                        s->sd.pio_transferred_bytes = 0;
+                    }
                 }
-                
-                sdio_trigger_interrupt(s,&s->sd);
+                else
+                {
+                    /* non-data or write transfer */
+                    sdio_trigger_interrupt(s,&s->sd);
+                }
             }
             break;
         case 0x10:
@@ -3643,13 +3654,12 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
              **/
             if(type & MODE_WRITE)
             {
-                /* not sure */
-                s->sd.status = value;
+                /* writes to this register appear to clear status bits */
+                s->sd.status &= value;
             }
             else
             {
                 ret = s->sd.status;
-                ret = 0x200001;
             }
             break;
         case 0x14:
@@ -3718,7 +3728,36 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
             s->sd.read_block_size = value;
             break;
         case 0x6C:
-            msg = "FIFO data?";
+            msg = "FIFO data";
+            if(type & MODE_WRITE)
+            {
+            }
+            else
+            {
+                if (sd_data_ready(s->sd.card))
+                {
+                    uint32_t value1 = sd_read_data(s->sd.card);
+                    uint32_t value2 = sd_read_data(s->sd.card);
+                    uint32_t value3 = sd_read_data(s->sd.card);
+                    uint32_t value4 = sd_read_data(s->sd.card);
+                    uint32_t value = (value1 << 0) | (value2 << 8) | (value3 << 16) | (value4 << 24);
+                    ret = value;
+                    s->sd.pio_transferred_bytes += 4;
+                    
+                    /* note: CMD18 does not report !sd_data_ready when finished */
+                    if (s->sd.pio_transferred_bytes >= s->sd.transfer_count * s->sd.read_block_size)
+                    {
+                        DPRINTF("PIO transfer completed.\n");
+                        s->sd.status |= SDIO_STATUS_DATA_AVAILABLE;
+                        s->sd.status |= SDIO_STATUS_OK;
+                        sdio_trigger_interrupt(s,&s->sd);
+                    }
+                }
+                else
+                {
+                    EPRINTF("PIO: no data available.\n");
+                }
+            }
             break;
         case 0x70:
             msg = "transfer status?";
@@ -3730,7 +3769,7 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
         case 0x80:
             msg = "transferred blocks";
             /* Goro is very strong. Goro never fails. */
-            ret = s->sd.dma_count / s->sd.read_block_size;
+            ret = s->sd.transfer_count;
             break;
         case 0x84:
             msg = "SDREP: Status register/error codes";
@@ -3789,6 +3828,9 @@ unsigned int eos_handle_sddma ( unsigned int parm, EOSState *s, unsigned int add
     io_log("SDDMA", s, address, type, value, ret, msg, 0, 0);
     return ret;
 }
+
+#undef DPRINTF
+#undef EPRINTF
 
 // #define DPRINTF(fmt, ...) do { printf("[CFDMA] " fmt , ## __VA_ARGS__); } while (0)
 #define DPRINTF(fmt, ...) do { } while (0)
