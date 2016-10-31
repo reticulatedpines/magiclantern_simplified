@@ -20,6 +20,9 @@ struct eos_model_desc eos_model_list[] = {
         .sd_driver_interrupt    = 0x4A,
         .sd_dma_interrupt       = 0x29,
         .card_led_address       = 0xC02200E0,
+        .mpu_request_register   = 0xC0220098,
+        .mpu_control_register   = 0xC0203034,
+        .mpu_request_interrupt  = 0x52,
     },
     {
         /* defaults for DIGIC 4 cameras */
@@ -45,6 +48,8 @@ struct eos_model_desc eos_model_list[] = {
         .sd_dma_interrupt       = 0xB8,
         .card_led_address       = 0xC0220134,   /* SD */
         .mpu_request_register   = 0xC022009C,
+        .mpu_control_register   = 0xC020302C,
+        .mpu_request_interrupt  = 0x50,
     },
     {
         /* defaults for DIGIC 5 cameras */
@@ -68,6 +73,8 @@ struct eos_model_desc eos_model_list[] = {
         .sd_driver_interrupt    = 0x172,
         .sd_dma_interrupt       = 0x171,
         .card_led_address       = 0xC022C188,   /* SD */
+        .mpu_control_register   = 0xC020302C,
+        .mpu_request_interrupt  = 0x50,
     },
     {
         /* defaults for DIGIC 6 cameras */

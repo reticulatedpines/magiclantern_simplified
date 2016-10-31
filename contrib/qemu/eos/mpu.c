@@ -103,7 +103,7 @@ static void mpu_start_sending(EOSState *s)
         s->mpu.sending = 1;
         
         /* request a MREQ interrupt */
-        eos_trigger_int(s, 0x50, 0);
+        eos_trigger_int(s, s->model->mpu_request_interrupt, 0);
     }
 }
 
@@ -169,7 +169,7 @@ void mpu_handle_sio3_interrupt(EOSState *s)
                     if (s->mpu.sq_head != s->mpu.sq_tail)
                     {
                         printf("[MPU] Requesting next spell\n");
-                        eos_trigger_int(s, 0x50, 1);   /* MREQ */
+                        eos_trigger_int(s, s->model->mpu_request_interrupt, 1);   /* MREQ */
                     }
                     else
                     {
@@ -287,7 +287,7 @@ unsigned int eos_handle_mpu(unsigned int parm, EOSState *s, unsigned int address
             {
                 s->mpu.receiving = 1;
                 s->mpu.recv_index = 0;
-                eos_trigger_int(s, 0x50, 0);   /* MREQ */
+                eos_trigger_int(s, s->model->mpu_request_interrupt, 0);   /* MREQ */
                 /* next steps in eos_handle_mreq -> mpu_handle_mreq_interrupt */
             }
         }
@@ -393,6 +393,7 @@ unsigned int eos_handle_sio3( unsigned int parm, EOSState *s, unsigned int addre
                 {
                     msg = "Data to MPU, at index %d %s";
                     msg_arg1 = s->mpu.recv_index;
+                    msg_arg2 = (intptr_t) "";
                     if (s->mpu.recv_index + 2 < COUNT(s->mpu.recv_buffer))
                     {
                         s->mpu.recv_buffer[s->mpu.recv_index++] = (value >> 8) & 0xFF;
@@ -455,7 +456,7 @@ unsigned int eos_handle_mreq( unsigned int parm, EOSState *s, unsigned int addre
     intptr_t msg_arg1 = 0;
     intptr_t msg_arg2 = 0;
     
-    if ((address & 0xFF) == 0x2C)
+    if (address == s->model->mpu_control_register)
     {
         /* C020302C */
         /* set to 0x1C at the beginning of MREQ ISR, and to 0x0C at startup */
@@ -682,6 +683,8 @@ void mpu_spells_init(EOSState *s)
 
     /* same for 1100D */
     MPU_SPELL_SET_OTHER_CAM(1100D, 60D)
+
+    MPU_SPELL_SET_OTHER_CAM(450D, 60D)
 
     if (!mpu_init_spell_count)
     {
