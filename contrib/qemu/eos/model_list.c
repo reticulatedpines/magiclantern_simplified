@@ -256,6 +256,8 @@ struct eos_model_desc eos_model_list[] = {
         .name                   = "450D",
         .digic_version          = 3,
         .current_task_addr      = 0x355C0,
+        .sd_driver_interrupt    = 0x4B,
+        .sd_dma_interrupt       = 0x32,
     },
     {
         .name                   = "40D",
