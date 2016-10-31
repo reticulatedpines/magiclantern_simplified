@@ -3431,8 +3431,9 @@ unsigned int eos_handle_digic_timer ( unsigned int parm, EOSState *s, unsigned i
 }
 
 /* based on pl181_send_command from hw/sd/pl181.c */
-// #define DPRINTF(fmt, ...) do { printf("[SDIO] " fmt , ## __VA_ARGS__); } while (0)
+#define EPRINTF(fmt, ...) do { fprintf(stderr, "[SDIO] " fmt , ## __VA_ARGS__); } while (0)
 #define DPRINTF(fmt, ...) do { } while (0)
+//#define DPRINTF EPRINTF
 #define SDIO_STATUS_OK              0x1
 #define SDIO_STATUS_ERROR           0x2
 #define SDIO_STATUS_DATA_AVAILABLE  0x200000
@@ -3485,7 +3486,7 @@ static void sdio_send_command(SDIOState *sd)
     return;
 
 error:
-    DPRINTF("Error\n");
+    EPRINTF("Error\n");
     sd->status |= SDIO_STATUS_ERROR;
 }
 
@@ -3497,19 +3498,19 @@ static void sdio_read_data(SDIOState *sd)
 
     if (sd->status & SDIO_STATUS_DATA_AVAILABLE)
     {
-        DPRINTF("ERROR: read already done (%x)\n", sd->status);
+        EPRINTF("ERROR: read already done (%x)\n", sd->status);
         return;
     }
     
     if (!sd_data_ready(sd->card))
     {
-        DPRINTF("ERROR: no data available\n");
+        EPRINTF("ERROR: no data available\n");
         return;
     }
 
     if (!sd->dma_enabled)
     {
-        DPRINTF("Reading %dx%d bytes without DMA (not implemented)\n", sd->transfer_count, sd->read_block_size);
+        EPRINTF("Reading %dx%d bytes without DMA (not implemented)\n", sd->transfer_count, sd->read_block_size);
         for (i = 0; i < sd->transfer_count * sd->read_block_size; i++)
         {
             /* dummy read, ignore this data */
@@ -3542,14 +3543,14 @@ static void sdio_write_data(SDIOState *sd)
 
     if (sd->status & SDIO_STATUS_DATA_AVAILABLE)
     {
-        DPRINTF("ERROR: write already done (%x)\n", sd->status);
+        EPRINTF("ERROR: write already done (%x)\n", sd->status);
         return;
     }
 
     if (!sd->dma_enabled)
     {
-        printf("[SDIO] ERROR!!! Writing %dx%d bytes without DMA (not implemented)\n", sd->transfer_count, sd->read_block_size);
-        printf("Cannot continue without risking corruption on the SD card image.\n");
+        EPRINTF("ERROR!!! Writing %dx%d bytes without DMA (not implemented)\n", sd->transfer_count, sd->read_block_size);
+        EPRINTF("Cannot continue without risking corruption on the SD card image.\n");
         exit(1);
     }
 
@@ -3578,7 +3579,7 @@ void sdio_trigger_interrupt(EOSState *s, SDIOState *sd)
         && !(sd->status & SDIO_STATUS_DATA_AVAILABLE))
     {
         /* if the current command does a data transfer, don't trigger until complete */
-        DPRINTF("Data transfer not yet complete\n");
+        DPRINTF("Warning: data transfer not yet complete\n");
         return;
     }
     
@@ -3596,6 +3597,7 @@ void sdio_trigger_interrupt(EOSState *s, SDIOState *sd)
 }
 
 #undef DPRINTF
+#undef EPRINTF
 
 unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
