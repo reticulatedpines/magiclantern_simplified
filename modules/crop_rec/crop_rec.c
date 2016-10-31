@@ -484,16 +484,7 @@ static void FAST cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
         }
     }
 
-    /* menu overrides */
-    if (cmos1_lo || cmos1_hi)
-    {
-        cmos_new[1] = PACK12(cmos1_lo,cmos1_hi);
-    }
 
-    if (cmos2)
-    {
-        cmos_new[2] = cmos2;
-    }
     
     /* copy data into a buffer, to make the override temporary */
     /* that means: as soon as we stop executing the hooks, values are back to normal */
@@ -1260,17 +1251,9 @@ static void update_patch()
         /* install our hooks, if we haven't already do so */
         if (!patch_active)
         {
-            if (is_5D3)
-            {
-                patch_hook_function(CMOS_WRITE, MEM_CMOS_WRITE, &cmos_hook, "crop_rec: CMOS[1,2,6] parameters hook");
-                patch_active = 1;
-            }
-            
-            if (is_5D3 || is_EOSM) 
-            {
-                patch_hook_function(ADTG_WRITE, MEM_ADTG_WRITE, &adtg_hook, "crop_rec: ADTG[8000,8806] parameters hook");
-                patch_active = 1;
-            }
+            patch_hook_function(CMOS_WRITE, MEM_CMOS_WRITE, &cmos_hook, "crop_rec: CMOS[1,2,6] parameters hook");
+            patch_hook_function(ADTG_WRITE, MEM_ADTG_WRITE, &adtg_hook, "crop_rec: ADTG[8000,8806] parameters hook");
+            patch_active = 1;
         }
     }
     else
@@ -1278,17 +1261,9 @@ static void update_patch()
         /* undo active patches, if any */
         if (patch_active)
         {
-            if (is_5D3)
-            {
-                unpatch_memory(CMOS_WRITE);
-                patch_active = 0;
-            }
-            
-            if (is_5D3 || is_EOSM)
-            {
-                unpatch_memory(ADTG_WRITE);
-                patch_active = 0;
-            }
+            unpatch_memory(CMOS_WRITE);
+            unpatch_memory(ADTG_WRITE);
+            patch_active = 0;
         }
     }
 }
@@ -1571,11 +1546,6 @@ static unsigned int crop_rec_init()
         MEM_ADTG_WRITE = 0xE92D43F8;
         
         is_EOSM = 1;
-        
-        /* on EOSM the CMOS hook without anything changed results in
-           black preview data with some minimal noise. So disable
-           the CMOS hook on EOSM for now and fix this value to 1. */
-        if (is_EOSM) cmos_vidmode_ok = 1;
     }
     
     menu_add("Movie", crop_rec_menu, COUNT(crop_rec_menu));
