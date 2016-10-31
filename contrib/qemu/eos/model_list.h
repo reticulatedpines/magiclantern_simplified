@@ -36,6 +36,7 @@ struct eos_model_desc {
             uint32_t dryos_timer_interrupt;
             uint32_t hptimer_interrupt;
             uint32_t current_task_addr;
+            uint32_t current_task_name_offs;
             uint32_t mpu_request_register;
             uint32_t mpu_request_interrupt;
             uint32_t mpu_control_register;
@@ -50,7 +51,7 @@ struct eos_model_desc {
         
         /* this must match the number of items in the above struct */
         /* note: you get a compile-time error if params[] is smaller than the struct */
-        uint32_t params[30];
+        uint32_t params[31];
     };
 } __attribute__((packed));
 

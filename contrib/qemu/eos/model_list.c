@@ -16,6 +16,7 @@ struct eos_model_desc eos_model_list[] = {
         .io_mem_size            = 0x10000000,
         .firmware_start         = 0xFF810000,
         .bootflags_addr         = 0xF8000000,
+        .current_task_name_offs = 0x0D,
         .hptimer_interrupt      = 0x10,
         .sd_driver_interrupt    = 0x4A,
         .sd_dma_interrupt       = 0x29,
@@ -41,6 +42,7 @@ struct eos_model_desc eos_model_list[] = {
         .io_mem_size            = 0x10000000,
         .firmware_start         = 0xFF010000,
         .bootflags_addr         = 0xF8000000,
+        .current_task_name_offs = 0x09,
         .dryos_timer_id         = 2,
         .dryos_timer_interrupt  = 0x0A,
         .hptimer_interrupt      = 0x10,
@@ -67,6 +69,7 @@ struct eos_model_desc eos_model_list[] = {
         .io_mem_size            = 0x10000000,
         .firmware_start         = 0xFF0C0000,
         .bootflags_addr         = 0xF8000000,
+        .current_task_name_offs = 0x09,
         .dryos_timer_id         = 2,
         .dryos_timer_interrupt  = 0x0A,
         .hptimer_interrupt      = 0x10,
@@ -93,6 +96,7 @@ struct eos_model_desc eos_model_list[] = {
         .io_mem_size            = 0x20000000,
         .firmware_start         = 0xFE0A0000,
         .bootflags_addr         = 0xFC040000,
+        .current_task_name_offs = 0x09,
         .dryos_timer_id         = 1,
         .dryos_timer_interrupt  = 0x1B,
         .hptimer_interrupt      = 0x28,
@@ -240,25 +244,30 @@ struct eos_model_desc eos_model_list[] = {
     {
         .name                   = "1000D",
         .digic_version          = 3,
+     /* .current_task_addr      = 0x352C0  */   /* fixme: it's MEM(0x352C0) */
     },
     {
         .name                   = "400D",
         .digic_version          = 3,
         .card_led_address       = 0xC0220000,
+        .current_task_addr      = 0x27C20,
     },
     {
         .name                   = "450D",
         .digic_version          = 3,
+        .current_task_addr      = 0x355C0,
     },
     {
         .name                   = "40D",
         .digic_version          = 3,
+        .current_task_addr      = 0x22E00,
     },
     {
         .name                   = "5D",
         .digic_version          = 3,            /* actually 2 */
         .io_mem_size            = 0x20000000,
         .card_led_address       = 0xC02200A0,
+     /* .current_task_addr      = 0x2D2C4  */   /* fixme: it's MEM(0x2D2C4) */
     },
     {
         .name                   = "A1100",

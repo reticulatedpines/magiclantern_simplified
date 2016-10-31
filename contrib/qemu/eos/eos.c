@@ -1314,8 +1314,9 @@ static char* get_current_task_name(EOSState *s)
     cpu_physical_memory_read(s->model->current_task_addr, &current_task_ptr, 4);
     if (current_task_ptr)
     {
+        int off = s->model->current_task_name_offs;
         cpu_physical_memory_read(current_task_ptr, current_task, sizeof(current_task));
-        cpu_physical_memory_read(current_task[9], task_name, sizeof(task_name));
+        cpu_physical_memory_read(current_task[off], task_name, sizeof(task_name));
         return task_name;
     }
     
