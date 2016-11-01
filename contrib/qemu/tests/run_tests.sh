@@ -21,6 +21,18 @@ if false ; then
     GUI_CAMS=(550D)
 fi
 
+
+# We will use mtools to alter and check the SD/CF image contents.
+# fixme: hardcoded partition offset
+MSD=sd.img@@50688
+MCF=cf.img@@50688
+
+# mtools doesn't like our SD image, for some reason
+export MTOOLS_SKIP_CHECK=1
+export MTOOLS_NO_VFAT=1
+
+
+
 # this script runs from qemu/tests/ so we have to go up one level
 cd ..
 
@@ -95,7 +107,7 @@ trap sd_restore EXIT
 trap - SIGINT
 
 cp -v ../magic-lantern/contrib/qemu/sd.img.xz .
-unxz sd.img.xz
+unxz -k sd.img.xz
 cp sd.img cf.img
 
 echo
@@ -130,7 +142,36 @@ for CAM in EOSM3; do
 done
 
 echo
+echo "Testing file I/O (DCIM directory)..."
+# Most EOS cameras should be able to create the DCIM directory if missing.
+# Currently works only on models that can boot Canon GUI, and also on 100D.
+for CAM in ${GUI_CAMS[*]} 100D; do
+    printf "%5s: " $CAM
+    
+    mkdir -p tests/$CAM/
+    rm -f tests/$CAM/dcim.log
+
+    # remove the DCIM directory from the card images
+    mdeltree -i $MSD ::/DCIM &> /dev/null
+    mdeltree -i $MCF ::/DCIM &> /dev/null
+
+    (sleep 15; echo quit) \
+      | ./run_canon_fw.sh $CAM,firmware="boot=0" -display none -monitor stdio &> tests/$CAM/dcim.log
+    
+    if (mdir -b -i $MSD | grep -q DCIM) || (mdir -b -i $MCF | grep -q DCIM); then
+        echo "OK"
+    else
+        echo -e "\e[31mFAILED!\e[0m"
+    fi
+done
+
+echo
 echo "Preparing portable ROM dumper..."
+
+# re-create the card images, just in case
+rm sd.img
+unxz -k sd.img.xz
+cp sd.img cf.img
 
 ROM_DUMPER_BIN=tests/test-progs/portable-rom-dumper/autoexec.bin
 TMP=tests/tmp
@@ -141,14 +182,6 @@ if [ ! -f $ROM_DUMPER_BIN ]; then
     mkdir -p `dirname $ROM_DUMPER_BIN`
     wget -o $ROM_DUMPER_BIN https://dl.dropboxusercontent.com/u/4124919/debug/portable-rom-dumper/autoexec.bin
 fi
-
-# fixme: hardcoded partition offset
-MSD=sd.img@@50688
-MCF=cf.img@@50688
-
-# mtools doesn't like our SD image, for some reason
-export MTOOLS_SKIP_CHECK=1
-export MTOOLS_NO_VFAT=1
 
 # we don't know whether the camera will use SD or CF, so prepare both
 mcopy -o -i $MSD $ROM_DUMPER_BIN ::
