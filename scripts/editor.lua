@@ -1,5 +1,6 @@
 -- a text editor
 require("keys")
+require("logger")
 
 function inc(val,min,max)
     if val == max then return min end
@@ -77,7 +78,8 @@ function scrollbar.create(step,min,max,x,y,w,h)
     sb.left = x
     sb.width = w
     sb.foreground = COLOR.BLUE
-    if width == nil then sb.w = 2 end
+    -- fixme: neither global width nor sb.w appear to be used anywhere
+    -- if width == nil then sb.w = 2 end
     sb.height = h
     if h == nil then sb.height = display.height - y end
     return sb
@@ -147,7 +149,7 @@ function textbox:handle_key(k)
         self.col = inc(self.col,1,#(self.value) + 1)
     elseif k ==  KEY.LEFT then
         self.col = dec(self.col,1,#(self.value) + 1)
-    elseif k == KEY.WHEEL_LEFT then
+    elseif k == KEY.WHEEL_RIGHT then
         --mod char
         local l = self.value
         if self.col < #l then
@@ -157,7 +159,7 @@ function textbox:handle_key(k)
         else
            self.value = l..string.char(self.min_char)
         end
-    elseif k == KEY.WHEEL_RIGHT then
+    elseif k == KEY.WHEEL_LEFT then
         --mod char
         local l = self.value
         if self.col < #l then
@@ -335,17 +337,21 @@ function filedialog:show()
     while true do
         local key = keys:getkey()
         if key ~= nil then
-            local result = self:handle_key(key)
-            if result == "Cancel" then 
-                if started then keys:stop() end
-                return nil
-            elseif result == "OK" then
-                if started then keys:stop() end
-                if self.save_mode then return self.current.path..self.save_box.value
-                else return self.selected_value end
-            elseif result ~= nil then
-                if started then keys:stop() end
-                return result
+            -- process all keys in the queue (until getkey() returns nil), then redraw
+            while key ~= nil do
+                local result = self:handle_key(key)
+                if result == "Cancel" then 
+                    if started then keys:stop() end
+                    return nil
+                elseif result == "OK" then
+                    if started then keys:stop() end
+                    if self.save_mode then return self.current.path..self.save_box.value
+                    else return self.selected_value end
+                elseif result ~= nil then
+                    if started then keys:stop() end
+                    return result
+                end
+                key = keys:getkey()
             end
             self:draw()
         end
@@ -475,6 +481,7 @@ editor.scrollbar = scrollbar.create(editor.font.height,1,1,display.width - 2,20 
 editor.mlmenu = menu.new
 {
     name = "Text Editor",
+    help = "Edit text files or debug Lua scripts",
     icon_type = ICON_TYPE.ACTION,
     select = function(this)
         task.create(function() editor:run() end)
@@ -516,21 +523,27 @@ function editor:main_loop()
     menu.block(true)
     self:draw()
     keys:start()
-    while true do
+    local exit = false
+    while not exit do
         if menu.visible == false then break end
         local key = keys:getkey()
         if key ~= nil then
-            local redraw = false
-            if self.menu_open then
-                if self:handle_menu_key(key) == false then
-                    break
+            -- process all keys in the queue (until getkey() returns nil), then redraw
+            while key ~= nil do
+                if self.menu_open then
+                    if self:handle_menu_key(key) == false then
+                        exit = true
+                        break
+                    end
+                elseif self.debugging then
+                    if self:handle_debug_key(key) == false then
+                        exit = true
+                        break
+                    end
+                else
+                    self:handle_key(key)
                 end
-            elseif self.debugging then
-                if self:handle_debug_key(key) == false then
-                    break
-                end
-            else
-                self:handle_key(key)
+                key = keys:getkey()
             end
             self:draw()
         end
@@ -562,7 +575,7 @@ function editor:handle_key(k)
         if self.col == 1 then self.line = dec(self.line,1,#(self.lines)) end
         self.col = dec(self.col,1,#(self.lines[self.line]) + 1)
         self:scroll_into_view()
-    elseif k == KEY.WHEEL_LEFT then
+    elseif k == KEY.WHEEL_RIGHT then
         --mod char
         self:update_title(true)
         local l = self.lines[self.line]
@@ -574,7 +587,7 @@ function editor:handle_key(k)
             self.lines[self.line] = l..string.char(self.min_char)
         end
         self:scroll_into_view()
-    elseif k == KEY.WHEEL_RIGHT then
+    elseif k == KEY.WHEEL_LEFT then
         --mod char
         self:update_title(true)
         local l = self.lines[self.line]
@@ -727,11 +740,11 @@ function editor:open()
     if f ~= nil then
         self.filename = f
         self:update_title(false, true)
-        self.lines = {}
         self:draw_status("Loading...")
-        for line in io.lines(f) do
-            table.insert(self.lines,line)
-        end
+        local file = io.open(f,"r")
+        --this is much faster than io.lines b/c the file io is all done in one large read request
+        self.lines = logger.tolines(file:read("*a"))
+        file:close()
         self.line = 1
         self.col = 1
         self.scrollbar.table = self.lines
@@ -1191,7 +1204,6 @@ end
 function handle_error(error)
     if error == nil then error = "Unknown Error!\n" end
     local f = FONT.MONO_20
-    print(error)
     display.rect(0,0,display.width,display.height,COLOR.RED,COLOR.BLACK)
     local pos = 10
     for line in error:gmatch("[^\r\n]+") do
@@ -1202,5 +1214,8 @@ function handle_error(error)
         end
         pos = pos + f.height
     end
+    local log = logger("EDITOR.ERR")
+    log:write(error)
+    log:close()
     keys:anykey()
 end

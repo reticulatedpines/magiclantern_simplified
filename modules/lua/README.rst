@@ -16,3 +16,4 @@ API documentation: http://davidmilligan.github.io/ml-lua/
 :Authors: dmilligan
 :License: GPL
 :Summary: Lua scripting
+:Forum: http://www.magiclantern.fm/forum/index.php?topic=14828.0

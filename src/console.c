@@ -8,6 +8,7 @@
 #include "config.h"
 #include "zebra.h"
 #include "shoot.h"
+#include "alloca.h"
 
 #ifdef CONFIG_QEMU
 #include "qemu-util.h"
@@ -25,14 +26,11 @@
 
 // buffer is circular and filled with spaces
 #define BUFSIZE (CONSOLE_H * CONSOLE_W)
-static char console_buffer[BUFSIZE];
+static char console_buffer[BUFSIZE] = {[0 ... BUFSIZE-1] = ' '};
 static int console_buffer_index = 0;
 #define CONSOLE_BUFFER(i) console_buffer[MOD((i), BUFSIZE)]
 
 int console_visible = 0;
-
-static char console_help_text[40];
-static char console_status_text[40];
 
 void console_show()
 {
@@ -52,15 +50,6 @@ void console_toggle()
     else console_show();
 }
 
-void console_set_help_text(char* msg)
-{
-    snprintf(console_help_text, sizeof(console_help_text), "     %s", msg);
-}
-
-void console_set_status_text(char* msg)
-{
-    snprintf(console_status_text, sizeof(console_status_text), "%s%s", msg, strlen(msg) ? "    " : "");
-}
 static void
 console_toggle_menu( void * priv, int delta )
 {
@@ -97,15 +86,13 @@ void console_clear()
 
 static void console_init()
 {
-    console_clear();
-
     #ifdef CONSOLE_DEBUG
     menu_add( "Debug", script_menu, COUNT(script_menu) );
     FIO_RemoveFile("ML/LOGS/console.log");
     #endif
 }
 
-static void console_puts(const char* str) // don't DebugMsg from here!
+void console_puts(const char* str) // don't DebugMsg from here!
 {
     #define NEW_CHAR(c) CONSOLE_BUFFER(console_buffer_index++) = (c)
     
@@ -172,13 +159,6 @@ static void console_puts(const char* str) // don't DebugMsg from here!
     }
     
     console_buffer_index = MOD(console_buffer_index, BUFSIZE);
-}
-
-void console_show_status()
-{
-    int fnt = FONT(CONSOLE_FONT,60, COLOR_BLACK);
-    bmp_printf(fnt, 0, 480 - font_med.height, console_status_text);
-    if (console_visible) bmp_printf(fnt, 720 - font_med.width * strlen(console_help_text), 480 - font_med.height, console_help_text);
 }
 
 static void console_draw(int tiny)
@@ -256,8 +236,10 @@ static void console_draw(int tiny)
         //return; // better luck next time :)
     }
     else if (!tiny)
+    {
         /* fixme: prevent Canon code from drawing over the console (ugly) */
         canon_gui_disable_front_buffer();
+    }
     prev_w = w;
     prev_h = h;
 
@@ -321,12 +303,8 @@ console_task( void* unused )
             dirty = 0;
         }
         else if (console_visible && !gui_menu_shown())
-            console_draw(1);
-
-
-        if (!gui_menu_shown() && strlen(console_status_text))
         {
-            console_show_status();
+            console_draw(1);
         }
 
         msleep(200);
@@ -339,10 +317,14 @@ TASK_CREATE( "console_task", console_task, 0, 0x1d, 0x1000 );
 
 int printf(const char* fmt, ...)
 {
-    char buf[512];
+    /* when called from init_task, 512 bytes are enough to cause stack overflow */
+    extern int ml_started;
+    int buf_size = (ml_started) ? 512 : 64;
+    char* buf = alloca(buf_size);
+    
     va_list         ap;
     va_start( ap, fmt );
-    int len = vsnprintf( buf, sizeof(buf)-1, fmt, ap );
+    int len = vsnprintf( buf, buf_size-1, fmt, ap );
     va_end( ap );
     console_puts(buf);
     return len;
@@ -353,16 +335,4 @@ int puts(const char * fmt)
     console_puts(fmt);
     console_puts("\n");
     return 0;
-}
-
-int fputs(FILE* unused, const char * fmt)
-{
-    console_puts(fmt);
-    return 0;
-}
-
-int putchar(int c)
-{
-    console_puts((char*)&c);
-    return c;
 }

@@ -11,9 +11,7 @@
 #include <zebra.h>
 #include <edmac-memcpy.h>
 #include <powersave.h>
-
-/* fixme: move to core */
-#define DLG_PLAY 1
+#include <shoot.h>
 
 extern void peaking_benchmark();
 extern void menu_benchmark();
@@ -113,7 +111,7 @@ static struct menu_entry bench_menu[] =
                         .select = run_in_separate_task,
                         .priv = peaking_benchmark,
                         .help = "Check how fast peaking runs in PLAY mode (1000 iterations).",
-                        .help2 = "You must enable focus peaking manually, and have a valid image on the card."
+                        .help2 = "You should have a valid image on the card."
                     },
                     {
                         .name = "Menu benchmark (10s)",

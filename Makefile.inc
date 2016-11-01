@@ -29,26 +29,11 @@ CONFIG_%$(_CONFIGS_install_name): CONFIG_%$(_CONFIGS_compile_name)
 install:: prepare_install_dir install_extra_data $(_CONFIGS_install)
 	$(INSTALL_FINISH)
 
-prepare_install_dir:
-	mkdir -p $(INSTALL_ML_DIR)
-	mkdir -p $(INSTALL_FONTS_DIR)
-	mkdir -p $(INSTALL_SETTINGS_DIR)
-	mkdir -p $(INSTALL_DATA_DIR)
-	mkdir -p $(INSTALL_CROPMARKS_DIR)
-	mkdir -p $(INSTALL_SCRIPTS_DIR)
-	mkdir -p $(INSTALL_SCRIPTS_LIB_DIR)
-	mkdir -p $(INSTALL_LOGS_DIR)
-	mkdir -p $(INSTALL_DOC_DIR)
-
 install_extra_data: prepare_install_dir
 	$(CP) $(FONT_DIR)/*.rbf $(INSTALL_FONTS_DIR)/
 	$(CP) $(VRAM_DIR)/*.lut $(INSTALL_DATA_DIR)/
 	$(CP) $(CROP_DIR)/*.bmp $(INSTALL_CROPMARKS_DIR)/
-	$(CP) $(SCRIPT_DIR)/*.lua $(INSTALL_SCRIPTS_DIR)/
-	$(CP) $(SCRIPT_LIB_DIR)/*.lua $(INSTALL_SCRIPTS_LIB_DIR)/
-#	$(CP) $(SCRIPT_DIR)/*.c $(INSTALL_SCRIPTS_DIR)/
-#	$(CP) $(SCRIPT_DIR)/*.py $(INSTALL_SCRIPTS_DIR)/
-
+	$(INSTALL_ALL_SCRIPTS)
 
 copy-autoexec: autoexec.bin
 	$(CP) autoexec.bin $(INSTALL_DIR)
@@ -78,10 +63,14 @@ installdoc:
 
 prepare_zip: FORCE
 	$(eval INSTALL_DIR = $(PWD)/zip)
+	$(eval INSTALL_PREPARE = )
 	$(eval INSTALL_FINISH = )
+	$(eval WIFI_SD = )
 	$(eval export INSTALL_DIR)
 	$(eval export INSTALL_MODULES_DIR)
+	$(eval export INSTALL_PREPARE)
 	$(eval export INSTALL_FINISH)
+	$(eval export WIFI_SD)
 	$(call rm_dir, $(INSTALL_DIR)/)
 	$(warning remove $(INSTALL_DIR))
 	mkdir -p $(INSTALL_DIR)

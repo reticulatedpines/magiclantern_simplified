@@ -16,7 +16,9 @@
 #include "zebra.h"
 #include "fps.h"
 #include "beep.h"
+#include "lvinfo.h"
 #include "powersave.h"
+
 
 #ifdef FEATURE_REC_NOTIFY
 
@@ -224,7 +226,13 @@ void force_liveview()
 void close_liveview()
 {
     if (lv)
-        fake_simple_button(BGMT_LV);
+    {
+        /* in photo mode, just exit LiveView by "pressing" the LiveView button */
+        /* in movie mode, pressing LiveView would start recording,
+         * so go to PLAY mode instead */
+        fake_simple_button(is_movie_mode() ? BGMT_PLAY : BGMT_LV);
+        msleep(1000);
+    }
 }
 
 static CONFIG_INT("shutter.lock", shutter_lock, 0);
@@ -295,7 +303,7 @@ movtweak_task_init()
 {
 #ifdef FEATURE_FORCE_LIVEVIEW
     if (!lv && enable_liveview && is_movie_mode()
-        && (DLG_MOVIE_PRESS_LV_TO_RESUME || DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
+        && (GUIMODE_MOVIE_PRESS_LV_TO_RESUME || GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
     {
         force_liveview();
     }
@@ -364,13 +372,13 @@ void movtweak_step()
         }
 
         #ifdef FEATURE_FORCE_LIVEVIEW
-        if ((enable_liveview && DLG_MOVIE_PRESS_LV_TO_RESUME) ||
-            (enable_liveview == 2 && DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
+        if ((enable_liveview && GUIMODE_MOVIE_PRESS_LV_TO_RESUME) ||
+            (enable_liveview == 2 && GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
         {
             msleep(200);
             // double-check
-            if ((enable_liveview && DLG_MOVIE_PRESS_LV_TO_RESUME) ||
-                (enable_liveview == 2 && DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
+            if ((enable_liveview && GUIMODE_MOVIE_PRESS_LV_TO_RESUME) ||
+                (enable_liveview == 2 && GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
                 force_liveview();
         }
         #endif
@@ -460,11 +468,6 @@ CONFIG_INT("rec.notify", rec_notify, 3);
 CONFIG_INT("rec.notify", rec_notify, 0);
 #endif
 
-#ifdef CONFIG_5D3
-CONFIG_INT("rec.led.off", rec_led_off, 0);
-// implemented in the modified DebugMsg (for now in gui-common.c)
-#endif
-
 #ifdef FEATURE_REC_NOTIFY
 
 void rec_notify_continuous(int called_from_menu)
@@ -509,10 +512,26 @@ void rec_notify_continuous(int called_from_menu)
     }
     else if (rec_notify == 2)
     {
-        if (RECORDING)
-            bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, COLOR_RED), os.x0 + os.x_ex - 70 - font_large.width * 4, os.y0 + 50, "REC");
-        else
-            bmp_printf(FONT_LARGE, os.x0 + os.x_ex - 70 - font_large.width * 5, os.y0 + 50, "STBY");
+            int screen_layout_menu_index = *get_screen_layout_ptr();
+            int rec_indic_x = os.x_max;
+            int rec_indic_y = get_ml_topbar_pos() + 32;
+            if (screen_layout_menu_index > 2) rec_indic_y = rec_indic_y - 60; // bottom modes need shifting up
+            if (RECORDING)
+            {
+                bmp_printf(
+                FONT(FONT_MED_LARGE, COLOR_WHITE, COLOR_RED),
+                rec_indic_x - 5 * font_med.width, // substracted some pixels to hide the red dot in top 3:2 and top 16:9
+                rec_indic_y,
+                "REC"
+                );
+            }
+            else
+                bmp_printf(
+                FONT_MED_LARGE,
+                rec_indic_x - 6 * font_med.width + 5, // align with ML bars
+                rec_indic_y,
+                "STBY"
+                );       
     }
     
     if (prev != RECORDING_STATE) redraw();
@@ -940,15 +959,6 @@ static struct menu_entry movie_tweaks_menus[] = {
                         },
                     .icon_type = IT_DICE_OFF,
                     .help = "Custom REC/STANDBY notifications, visual or audible",
-                    .depends_on = DEP_MOVIE_MODE,
-                },
-                #endif
-                #ifdef CONFIG_5D3
-                {
-                    .name = "Dim REC LED",
-                    .priv = &rec_led_off,
-                    .max = 1,
-                    .help = "Make the red LED light less distracting while recording.",
                     .depends_on = DEP_MOVIE_MODE,
                 },
                 #endif

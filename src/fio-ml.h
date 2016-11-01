@@ -1,6 +1,8 @@
 #ifndef fio_5d3_h
 #define fio_5d3_h
 
+#include <stdio.h>
+
 #define CARD_A 0
 #define CARD_B 1
 #define CARD_C 2
@@ -41,8 +43,6 @@ int is_dir(const char* path);
  * - if all the files numbered from 0 to nmax are used, the function will return -1 and the filename string will be numbered with 0.
  */
 int get_numbered_file_name(const char* pattern, int nmax, char* filename, int maxlen);
-
-typedef struct _file * FILE;
 
 /** \name File I/O flags.
  *

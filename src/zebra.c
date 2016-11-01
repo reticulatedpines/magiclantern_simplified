@@ -173,7 +173,7 @@ static CONFIG_INT("disp.mode.x", disp_mode_x, 1);
 static CONFIG_INT( "transparent.overlay", transparent_overlay, 0);
 static CONFIG_INT( "transparent.overlay.x", transparent_overlay_offx, 0);
 static CONFIG_INT( "transparent.overlay.y", transparent_overlay_offy, 0);
-static CONFIG_INT( "transparent.overlay.autoupd", transparent_overlay_auto_update, 1);
+static CONFIG_INT( "transparent.overlay.autoupd", transparent_overlay_auto_update, 0);
 static int transparent_overlay_hidden = 0;
 
 static CONFIG_INT( "global.draw",   global_draw, 3 );
@@ -3270,9 +3270,9 @@ int handle_zoom_overlay(struct event * event)
     // zoom in when recording => enable Magic Zoom 
     if (get_zoom_overlay_trigger_mode() && RECORDING_H264_STARTED && MVR_FRAME_NUMBER > 10 && event->param ==
         #if defined(CONFIG_5D3) || defined(CONFIG_6D)
-        BGMT_PRESS_ZOOMIN_MAYBE
+        BGMT_PRESS_ZOOM_IN
         #else
-        BGMT_UNPRESS_ZOOMIN_MAYBE
+        BGMT_UNPRESS_ZOOM_IN
         #endif
     )
     {
@@ -3281,13 +3281,13 @@ int handle_zoom_overlay(struct event * event)
     }
 
     // if magic zoom is enabled, Zoom In should always disable it 
-    if (is_zoom_overlay_triggered_by_zoom_btn() && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+    if (is_zoom_overlay_triggered_by_zoom_btn() && event->param == BGMT_PRESS_ZOOM_IN)
     {
         zoom_overlay_toggle();
         return 0;
     }
     
-    if (get_zoom_overlay_trigger_mode() && lv_dispsize == 1 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+    if (get_zoom_overlay_trigger_mode() && lv_dispsize == 1 && event->param == BGMT_PRESS_ZOOM_IN)
     {
         #ifdef FEATURE_LCD_SENSOR_SHORTCUTS
         int lcd_sensor_trigger = (get_lcd_sensor_shortcuts() && display_sensor && DISPLAY_SENSOR_POWERED);
@@ -3308,27 +3308,6 @@ int handle_zoom_overlay(struct event * event)
         }
     }
 #endif
-
-    /* allow moving AF frame (focus box) when Canon blocks it */
-    /* most cameras will block the focus box keys in Manual Focus mode while recording */
-    /* 6D seems to block them always in MF, https://bitbucket.org/hudson/magic-lantern/issue/1816/cant-move-focus-box-on-6d */
-    if (
-        #if !defined(CONFIG_6D) /* others? */
-        RECORDING_H264 &&
-        #endif
-        liveview_display_idle() &&
-        is_manual_focus() &&
-    1)
-    {
-        if (event->param == BGMT_PRESS_LEFT)
-            { move_lv_afframe(-300, 0); return 0; }
-        if (event->param == BGMT_PRESS_RIGHT)
-            { move_lv_afframe(300, 0); return 0; }
-        if (event->param == BGMT_PRESS_UP)
-            { move_lv_afframe(0, -300); return 0; }
-        if (event->param == BGMT_PRESS_DOWN)
-            { move_lv_afframe(0, 300); return 0; }
-    }
 
     return 1;
 }
@@ -3646,9 +3625,9 @@ int liveview_display_idle()
                   || dialog->handler == (dialog_handler_t) &LiveViewShutterApp_handler
                   #endif
               ) &&
-            CURRENT_DIALOG_MAYBE <= 3 && 
-            #ifdef CURRENT_DIALOG_MAYBE_2
-            CURRENT_DIALOG_MAYBE_2 <= 3 &&
+            CURRENT_GUI_MODE <= 3 && 
+            #ifdef CURRENT_GUI_MODE_2
+            CURRENT_GUI_MODE_2 <= 3 &&
             #endif
             job_state_ready_to_take_pic() &&
             !mirror_down )
@@ -3946,20 +3925,28 @@ BMP_LOCK (
         struct gui_task * current = gui_task_list.current;
         struct dialog * dialog = current->priv;
 
-        if (dialog && MEM(dialog->type) == DLG_SIGNATURE) // if dialog seems valid
+        if (dialog && streq(dialog->type, "DIALOG")) // if dialog seems valid
         {
-            #ifdef CONFIG_KILL_FLICKER
             // to redraw, we need access to front buffer
-            int d = canon_gui_front_buffer_disabled();
-            canon_gui_enable_front_buffer(0);
-            #endif
+            int front_buffer_disabled = canon_gui_front_buffer_disabled();
+            if (front_buffer_disabled)
+            {
+                /* temporarily enable front buffer to allow the redraw */
+                canon_gui_enable_front_buffer(0);
+            }
             
             dialog_redraw(dialog); // try to redraw (this has semaphores for winsys)
             
-            #ifdef CONFIG_KILL_FLICKER
-            // restore things back
-            if (d) idle_kill_flicker();
-            #endif
+            if (front_buffer_disabled)
+            {
+                /* disable it back */
+                
+                #ifdef CONFIG_KILL_FLICKER
+                idle_kill_flicker();
+                #else
+                canon_gui_disable_front_buffer();
+                #endif
+            }
         }
         else
         {
@@ -4617,14 +4604,16 @@ static void show_overlay()
 
 static void transparent_overlay_from_play()
 {
-    if (!PLAY_MODE) { fake_simple_button(BGMT_PLAY); msleep(1000); }
+    /* go to play mode if not already there */
+    enter_play_mode();
+    
+    /* create overlay from current image */
     make_overlay();
-    get_out_of_play_mode(500);
-    msleep(500);
-    if (!lv) { force_liveview(); msleep(500); }
-    msleep(1000);
-    BMP_LOCK( show_overlay(); )
-    //~ transparent_overlay = 1;
+
+    /* go to LiveView */
+    force_liveview();
+    
+    /* the overlay will now be displayed from cropmarks.c */
 }
 
 PROP_HANDLER(PROP_LV_ACTION)
@@ -4645,7 +4634,9 @@ PROP_HANDLER(PROP_LV_ACTION)
 
 void peaking_benchmark()
 {
-    int lv0 = lv;
+    int old_lv = lv;
+    int old_peaking = focus_peaking;
+    focus_peaking = 1;
     msleep(1000);
     fake_simple_button(BGMT_PLAY);
     msleep(2000);
@@ -4658,5 +4649,6 @@ void peaking_benchmark()
     int b = get_seconds_clock();
     NotifyBox(10000, "%d seconds => %d fps", b-a, 1000 / (b-a));
     beep();
-    lv = lv0;
+    lv = old_lv;
+    focus_peaking = old_peaking;
 }

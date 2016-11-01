@@ -476,36 +476,6 @@ static void print_set_maindial_hint(int set)
 }
 #endif
 
-#ifdef FEATURE_KEN_ROCKWELL_ZOOM_5D3
-static CONFIG_INT("qr.zoom.play", ken_rockwell_zoom, 0);
-
-static volatile int krzoom_running = 0;
-static void krzoom_task()
-{
-    krzoom_running = 1;
-    SetGUIRequestMode(0);
-    msleep(50);
-    if (lv)
-    {
-        SetGUIRequestMode(1);
-        msleep(50);
-    }
-    fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
-    krzoom_running = 0;
-}
-
-int handle_krzoom(struct event * event)
-{
-    if (event->param == BGMT_PRESS_ZOOMIN_MAYBE && ken_rockwell_zoom && QR_MODE && !krzoom_running)
-    {
-        krzoom_running = 1;
-        task_create("krzoom_task", 0x1e, 0x1000, krzoom_task, 0);
-        return 0;
-    }
-    return 1;
-}
-#endif
-
 #ifdef FEATURE_SET_MAINDIAL
 static void set_maindial_cleanup()
 {
@@ -936,13 +906,13 @@ int handle_fast_zoom_in_play_mode(struct event * event)
     if (!quickzoom || !PLAY_MODE) return 1;
     if (!IS_FAKE(event))
     {
-        if (event->param == BGMT_PRESS_ZOOMIN_MAYBE)
+        if (event->param == BGMT_PRESS_ZOOM_IN)
         {
             quickzoom_pressed = 1; // will be reset after it's handled
             quickzoom_unpressed = 0;
             quickzoom_fake_unpressed = 0;
         }
-        else if (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
+        else if (event->param == BGMT_UNPRESS_ZOOM_IN)
         {
             quickzoom_unpressed = 1;
         }
@@ -962,8 +932,8 @@ int handle_fast_zoom_in_play_mode(struct event * event)
                 #ifdef CONFIG_5D3
                 fake_simple_button(BGMT_WHEEL_RIGHT);
                 #else
-                fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
-                fake_simple_button(BGMT_UNPRESS_ZOOMIN_MAYBE);
+                fake_simple_button(BGMT_PRESS_ZOOM_IN);
+                fake_simple_button(BGMT_UNPRESS_ZOOM_IN);
                 #endif
                 return 0;
             }
@@ -972,7 +942,7 @@ int handle_fast_zoom_in_play_mode(struct event * event)
     }
     else
     {
-        if (event->param == BGMT_UNPRESS_ZOOMIN_MAYBE)
+        if (event->param == BGMT_UNPRESS_ZOOM_IN)
         {
             quickzoom_fake_unpressed = 1;
         }
@@ -1094,7 +1064,7 @@ tweak_task( void* unused)
                     #ifdef CONFIG_5DC
                         MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR), IMGPLAY_ZOOM_LEVEL_MAX - 1);
                         MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4), IMGPLAY_ZOOM_LEVEL_MAX - 1);
-                        fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); 
+                        fake_simple_button(BGMT_PRESS_ZOOM_IN); 
                         fake_simple_button(BGMT_PRESS_UP);
                         fake_simple_button(BGMT_UNPRESS_UDLR);
                         // goes a bit off-center, no big deal
@@ -1105,10 +1075,10 @@ tweak_task( void* unused)
                         MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4), IMGPLAY_ZOOM_LEVEL_MAX - 1);
                         if (quickzoom == 3) play_zoom_center_on_selected_af_point();
                         else if (quickzoom == 4) play_zoom_center_on_last_af_point();
-                        fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); 
+                        fake_simple_button(BGMT_PRESS_ZOOM_IN); 
                         msleep(20);
                     }
-                    fake_simple_button(BGMT_UNPRESS_ZOOMIN_MAYBE);
+                    fake_simple_button(BGMT_UNPRESS_ZOOM_IN);
                     #endif
                     msleep(800); // not sure how to tell when it's safe to start zooming out
                     info_led_off();
@@ -1118,8 +1088,8 @@ tweak_task( void* unused)
                     msleep(100);
                     MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = 0;
                     MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = 0;
-                    fake_simple_button(BGMT_PRESS_ZOOMOUT_MAYBE); 
-                    fake_simple_button(BGMT_UNPRESS_ZOOMOUT_MAYBE);
+                    fake_simple_button(BGMT_PRESS_ZOOM_OUT); 
+                    fake_simple_button(BGMT_UNPRESS_ZOOM_OUT);
                     quickzoom_pressed = 0;
                 }
                 else
@@ -1131,10 +1101,10 @@ tweak_task( void* unused)
                         (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MIN((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) + 3, IMGPLAY_ZOOM_LEVEL_MAX);
                         (int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MIN((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) + 3, IMGPLAY_ZOOM_LEVEL_MAX);
                         #endif
-                        fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
+                        fake_simple_button(BGMT_PRESS_ZOOM_IN);
                         msleep(50);
                     }
-                    fake_simple_button(BGMT_UNPRESS_ZOOMIN_MAYBE);
+                    fake_simple_button(BGMT_UNPRESS_ZOOM_IN);
                     quickzoom_pressed = 0;
                 }
             }
@@ -1147,10 +1117,10 @@ tweak_task( void* unused)
                     MEM(IMGPLAY_ZOOM_LEVEL_ADDR) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR) - 3, 0);
                     MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) = MAX((int32_t)MEM(IMGPLAY_ZOOM_LEVEL_ADDR + 4) - 3, 0);
                     #endif
-                    fake_simple_button(BGMT_PRESS_ZOOMOUT_MAYBE);
+                    fake_simple_button(BGMT_PRESS_ZOOM_OUT);
                     msleep(50); 
                 }
-                fake_simple_button(BGMT_UNPRESS_ZOOMOUT_MAYBE);
+                fake_simple_button(BGMT_UNPRESS_ZOOM_OUT);
             }
             play_zoom_center_pos_update();
         }
@@ -1868,7 +1838,7 @@ void zoom_trick_step()
     {
 
         // action!
-        if (zoom_trick == 1) fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE);
+        if (zoom_trick == 1) fake_simple_button(BGMT_PRESS_ZOOM_IN);
         if (zoom_trick == 2) arrow_key_mode_toggle();
 
 
@@ -1915,6 +1885,7 @@ static CONFIG_INT("warn.picq", warn_picq, 0);
 static CONFIG_INT("warn.alo", warn_alo, 0);
 static CONFIG_INT("warn.wb", warn_wb, 0);
 static CONFIG_INT("warn.mf", warn_mf, 0);
+static CONFIG_INT("warn.msg", warn_msg, 0);
 
 static int warn_code = 0;
 static char* get_warn_msg(char* separator)
@@ -1946,24 +1917,44 @@ static char* get_warn_msg(char* separator)
 
 static void warn_action(int code)
 {
-    // blink LED every second
-    if (code)
+    // warn_msg:
+    // 0 "LED, popup, beep",
+    // 1 "LED, popup, rep. beep",
+    // 2 "LED, popup",
+    // 3 "popup, beep",
+    // 4 "popup, rep. beep",
+    // 5 "popup only"
+
+    bool led_active = code && warn_msg < 3;
+    bool repeated_beep_active = code && (warn_msg == 1 || warn_msg == 4);
+    bool beep_active = code && (warn_msg == 0 || warn_msg == 1 || warn_msg == 3 || warn_msg == 4);
+
+
+    // blink LED every second, if active
+    if (led_active || repeated_beep_active)
     {
         static int aux = 0;
         if (should_run_polling_action(1000, &aux))
         {
-            static int k = 0; k++;
-            if (k%2) info_led_on(); else info_led_off();
+            if (led_active)
+            {
+                static int k = 0; k++;
+                if (k%2) info_led_on(); else info_led_off();
+            }
+            if (repeated_beep_active)
+            {
+                beep();
+            }
         }
     }
-    
+
     // when warning condition changes, beep
     static int prev_code = 0;
     if (code != prev_code)
     {
         if (code) // not good
         {
-            beep();
+            if (beep_active) beep();
         }
         else // OK, back to good configuration
         {
@@ -2239,6 +2230,18 @@ static struct menu_entry tweak_menus[] = {
                 .max = 2,
                 .choices = (const char *[]) {"OFF", "other than AF", "other than MF"},
                 .help = "Warn on Manual / Automatic Focus",
+            },
+            {
+                .name = "Warning message",
+                .priv = &warn_msg,
+                .max = 5,
+                .choices = (const char *[]) {"LED, popup, beep",
+                                             "LED, popup, rep. beep",
+                                             "LED, popup",
+                                             "popup, beep",
+                                             "popup, rep. beep",
+                                             "popup only"},
+                .help = "Warn type, LED, Messagebox, Beep",
             },
             MENU_EOL,
         },
@@ -2749,7 +2752,7 @@ static void grayscale_menus_step()
 
     // optimization: try to only update palette after a display mode change
     // but this is not 100% reliable => update at least once every second
-    int guimode = CURRENT_DIALOG_MAYBE;
+    int guimode = CURRENT_GUI_MODE;
     int d = DISPLAY_IS_ON;
     int b = bmp_color_scheme;
     int sig = (int)get_current_dialog_handler() + d + guimode + b*31415 + get_seconds_clock();
@@ -3705,7 +3708,7 @@ static struct menu_entry display_menus[] = {
 
 #ifndef CONFIG_5DC
 static struct menu_entry play_menus[] = {
-    #if defined(FEATURE_SET_MAINDIAL) || defined(FEATURE_IMAGE_REVIEW_PLAY) || defined(FEATURE_QUICK_ZOOM) || defined(FEATURE_KEN_ROCKWELL_ZOOM_5D3) || defined(FEATURE_REMEMBER_LAST_ZOOM_POS_5D3) || defined(FEATURE_LV_BUTTON_PROTECT) || defined(FEATURE_LV_BUTTON_RATE) || defined(FEATURE_QUICK_ERASE)
+    #if defined(FEATURE_SET_MAINDIAL) || defined(FEATURE_IMAGE_REVIEW_PLAY) || defined(FEATURE_QUICK_ZOOM) || defined(FEATURE_REMEMBER_LAST_ZOOM_POS_5D3) || defined(FEATURE_LV_BUTTON_PROTECT) || defined(FEATURE_LV_BUTTON_RATE) || defined(FEATURE_QUICK_ERASE)
     {
         .name = "Image review settings",
         .select = menu_open_submenu,
@@ -3760,14 +3763,6 @@ static struct menu_entry play_menus[] = {
                 .help = "Faster zoom in Play mode, for pixel peeping :)",
                 //.essential = FOR_PHOTO,
                 .icon_type = IT_DICE_OFF,
-            },
-            #endif
-            #ifdef FEATURE_KEN_ROCKWELL_ZOOM_5D3
-            {
-                .name = "QRZoom->Play",
-                .priv = &ken_rockwell_zoom, 
-                .max = 1,
-                .help = "When you press Zoom in QR mode, it goes to PLAY mode.",
             },
             #endif
             #ifdef FEATURE_REMEMBER_LAST_ZOOM_POS_5D3

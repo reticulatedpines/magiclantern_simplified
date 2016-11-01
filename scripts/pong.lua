@@ -148,7 +148,7 @@ function main()
         -- algorithm: just follow the ball with some hysteresis, limit max speed and add a little randomness
         -- that is, a slightly less-than-perfect player, so you still get a chance to win the game :P
         AI_bias = coerce(AI_bias + math.random(-1, 1), -10, 10)
-        left_paddle_delta = ball_y - left_paddle_y + AI_bias
+        local left_paddle_delta = ball_y - left_paddle_y + AI_bias
         if left_paddle_delta > 0 then left_paddle_delta = math.max(left_paddle_delta-20, 0) end
         if left_paddle_delta < 0 then left_paddle_delta = math.min(left_paddle_delta+20, 0) end
         left_paddle_delta = coerce(left_paddle_delta, -AI_maxspeed, AI_maxspeed)
@@ -225,8 +225,9 @@ end
 
 pong_menu = menu.new
 {
-    parent = "Games",
-    name = "Pong",
+    parent  = "Games",
+    name    = "Pong",
+    help    = "A simple game in Lua",
     submenu = 
     {
         {

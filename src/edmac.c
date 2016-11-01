@@ -10,14 +10,20 @@
 #define IS_READ(ch)  (((ch) & 8) != 0)
 
 /* channel usage for 5D3 */
+/* from LockEngineResources:
+ * write_edmac_resources:
+ *   0, 1, 2, 3, 4, 5, 6, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x20, 0x21
+ * read_edmac_resources:
+ *   8, 9, 0xA, 0xB, 0xC, 0xD, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x28, 0x29, 0x2A, 0x2B
+ */
 static uint32_t edmac_chanlist[] = 
 {
-    WRITE(0), WRITE(1), WRITE(2), WRITE(3), WRITE(4), WRITE(5), WRITE(6), 0xFFFFFFFF,
-    READ(0), READ(1), READ(2), READ(3), READ(4), READ(5), 0xFFFFFFFF, 0xFFFFFFFF,
-    WRITE(7),  WRITE(8), WRITE(9), WRITE(10), WRITE(11), WRITE(12), WRITE(13), 0xFFFFFFFF,
-    READ(6), READ(7), READ(8), READ(9), READ(10), READ(11), 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+    WRITE(0),  WRITE(1),  WRITE(2),   WRITE(3),   WRITE(4),   WRITE(5),   WRITE(6),   0xFFFFFFFF,
+    READ(0),   READ(1),   READ(2),    READ(3),    READ(4),    READ(5),    0xFFFFFFFF, 0xFFFFFFFF,
+    WRITE(7),  WRITE(8),  WRITE(9),   WRITE(10),  WRITE(11),  WRITE(12),  WRITE(13),  0xFFFFFFFF,
+    READ(6),   READ(7),   READ(8),    READ(9),    READ(10),   READ(11),   0xFFFFFFFF, 0xFFFFFFFF,
     WRITE(14), WRITE(15), 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
-    READ(12), READ(13), READ(14), READ(15), 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF
+    READ(12),  READ(13),  READ(14),   READ(15),   0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
 };
 
 #ifdef CONFIG_DIGIC_V
@@ -197,11 +203,15 @@ uint32_t edmac_get_connection(uint32_t channel, uint32_t direction)
     }
     else
     {
-        if ( channel < 16 )
+        if (channel == 16)
+        {
+            addr = 0xC0F0501C;
+        }
+        else if (channel < 16)
         {
             addr = 0xC0F05000 + (4 * channel);
         }
-        if ( channel != 16 )
+        else /* channel > 16 */
         {
             uint32_t pos = 0;
             
@@ -214,10 +224,6 @@ uint32_t edmac_get_connection(uint32_t channel, uint32_t direction)
                 pos = channel + 6;
             }
             addr = 0xC0F05200 + (4 * (pos & 0x0F));
-        }
-        else
-        {
-            addr = 0xC0F0501C;
         }
     }
     return shamem_read(addr);

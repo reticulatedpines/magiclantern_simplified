@@ -50,7 +50,6 @@
 #ifdef CONFIG_PROP_REQUEST_CHANGE
     #define FEATURE_WHITE_BALANCE
     #define FEATURE_EXPO_ISO
-    #define FEATURE_EXPO_ISO_HTP
     #define FEATURE_EXPO_SHUTTER
     #define FEATURE_EXPO_APERTURE
     //~ #define FEATURE_INTERMEDIATE_ISO_PHOTO_DISPLAY // only for rebels, not for high-end bodies
@@ -154,7 +153,6 @@
     //~ #define FEATURE_INTERVALOMETER_MOVIE // will be moved to scripts
 
 #ifdef CONFIG_PROP_REQUEST_CHANGE
-    #define FEATURE_FOCUS_RAMPING
     #define FEATURE_BULB_TIMER
     #define FEATURE_BULB_TIMER_SHOW_PREVIOUS_PIC   /* previous picture during exposure */
 #endif
@@ -281,8 +279,6 @@
 
     //~ #define FEATURE_EYEFI_TRICKS  // EyeFi tricks confirmed working only on 600D-60D
 
-    //~ #define FEATURE_KEN_ROCKWELL_ZOOM_5D3
-
     //~ #define FEATURE_DIGITAL_ZOOM_SHORTCUT
 
     /* to be refactored with the lvinfo engine */
@@ -308,5 +304,8 @@
     #define FEATURE_SHOW_CMOS_TEMPERATURE
     #define FEATURE_SHOW_EDMAC_INFO
 
+    //~ #define FEATURE_UNMOUNT_SD_CARD
+    
     //~ #define FEATURE_GUIMODE_TEST // dangerous
     //~ #define FEATURE_SHOW_STATE_FPS // useful for finding vsync hooks
+    
