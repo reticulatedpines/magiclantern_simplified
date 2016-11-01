@@ -17,7 +17,7 @@ ifeq ($(ML_SRC_PROFILE),generic)
 # They don't always check for successful mallocs, and this causes weird bugs - camera acting like drunk :)
 RESTARTSTART    = 0xC60100
 
-else ifeq ($(ML_SRC_PROFILE),installer)
+else
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
 #
