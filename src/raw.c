@@ -708,6 +708,12 @@ static int raw_update_params_work()
 
 /*********************** Portable code ****************************************/
 
+    /* skip offsets must be even */
+    skip_left   &= ~1;
+    skip_right  &= ~1;
+    skip_top    &= ~1;
+    skip_bottom &= ~1;
+
     if (width != raw_info.width || height != raw_info.height)
     {
         /* raw dimensions changed? force a full update, including preview window */
