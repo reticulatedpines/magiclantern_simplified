@@ -45,73 +45,8 @@ enum crop_preset {
  * note: the menu choices are camera-dependent */
 static enum crop_preset crop_preset = 0;
 
-/* must be assigned in crop_rec_init */
-static enum crop_preset * crop_presets = 0;
-
-/* current menu selection (*/
-#define CROP_PRESET_MENU crop_presets[crop_preset_index]
-
-/* menu choices for 5D3 */
-static enum crop_preset crop_presets_5d3[] = {
-    CROP_PRESET_OFF,
-    CROP_PRESET_3X,
-    CROP_PRESET_3X_TALL,
-    CROP_PRESET_3x3_1X,
-    CROP_PRESET_3x3_1X_48p,
-    CROP_PRESET_3K,
-    CROP_PRESET_UHD,
-    CROP_PRESET_4K_HFPS,
-    CROP_PRESET_FULLRES_LV,
-  //CROP_PRESET_1x3,
-  //CROP_PRESET_3x1,
-  //CROP_PRESET_40_FPS,
-};
-
-static const char * crop_choices_5d3[] = {
-    "OFF",
-    "1920 1:1",
-    "1920 1:1 tall",
-    "1920 50/60 3x3",
-    "1080p45/48 3x3",
-    "3K 1:1",
-    "UHD 1:1",
-    "4K 1:1 half-fps",
-    "Full-res LiveView",
-  //"1x3 binning",
-  //"3x1 binning",      /* doesn't work well */
-  //"40 fps",
-};
-
-static const char crop_choices_help_5d3[] =
-    "Change 1080p and 720p movie modes into crop modes (select one)";
-
-static const char crop_choices_help2_5d3[] =
-    "\n"
-    "1:1 sensor readout (square raw pixels, 3x crop, good preview in 1080p)\n"
-    "1:1 crop, higher vertical resolution (1920x1920 @ 24p, cropped preview)\n"
-    "1920x960 @ 50p, 1920x800 @ 60p (3x3 binning, cropped preview)\n"
-    "1920x1080 @ 45/48p, 3x3 binning (50/60 FPS in Canon menu)\n"
-    "1:1 3K crop (3072x1920 @ 24p, square raw pixels, preview broken)\n"
-    "1:1 4K UHD crop (3840x1600 @ 24p, square raw pixels, preview broken)\n"
-    "1:1 4K crop (4096x3072 @ 12 fps, half frame rate, preview broken)\n"
-    "Full resolution LiveView (5796x3870 @ 7.45 fps, 5784x3864, preview broken)\n"
-    "1x3 binning: read all lines, bin every 3 columns (extreme anamorphic)\n"
-    "3x1 binning: bin every 3 lines, read all columns (extreme anamorphic)\n"
-    "FPS override test\n";
-
-/* menu choices for EOS M */
-static enum crop_preset crop_presets_eosm[] = {
-    CROP_PRESET_OFF,
-    CROP_PRESET_3x3_1X,
-};
-
-static const char * crop_choices_eosm[] = {
-    "OFF",
-    "3x3 720p",
-};
-
-static const char crop_choices_help_eosm[] =
-    "3x3 binning in 720p (1728x692 with square raw pixels)";
+#define CROP_PRESET_3x3_1X 1
+#define CROP_PRESET_3X 2
 
 static const char crop_choices_help2_eosm[] =
     "On EOS M, when not recording H264, LV defaults to 720p with 5x3 binning.";
@@ -1292,15 +1227,15 @@ static struct menu_entry crop_rec_menu[] =
         .max = 3,
         .choices = CHOICES(
             "OFF",
-            "1:1 (3x)",
             "3x3 720p (1x wide)",
+            "1:1 (3x)",
             "1x3 binning",
             "3x1 binning",      /* doesn't work well */
         ),
         .help =
             "Change 1080p and 720p movie modes into crop modes (select one)\n"
-            "1:1 sensor readout (square pixels in RAW, 3x crop)\n"
             "3x3 binning in 720p (square pixels in RAW, vertical crop, ratio 29:10)\n"
+            "1:1 sensor readout (square pixels in RAW, 3x crop)\n"
             "1x3 binning: read all lines, bin every 3 columns (extreme anamorphic)\n"
             "3x1 binning: bin every 3 lines, read all columns (extreme anamorphic)\n"
     },
@@ -1546,6 +1481,7 @@ static unsigned int crop_rec_init()
         MEM_ADTG_WRITE = 0xE92D43F8;
         
         is_EOSM = 1;
+        crop_rec_menu[0].max = 1;
     }
     
     menu_add("Movie", crop_rec_menu, COUNT(crop_rec_menu));
