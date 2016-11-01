@@ -79,10 +79,12 @@ echo
 echo "Setting up temporary SD/CF card images..."
 
 function sd_restore {
+  trap '' SIGINT
   echo
   echo "Restoring your SD/CF card images..."
   mv sd-user.img sd.img
   mv cf-user.img cf.img
+  trap - SIGINT
 }
 
 # disable CTRL-C while moving the files
@@ -125,6 +127,118 @@ for CAM in EOSM3; do
 
     printf "SD boot: "; tests/check_grep.sh tests/$CAM/boot.log -om1 "StartDiskboot"
     printf "Display: "; tests/check_grep.sh tests/$CAM/boot.log -om1 "TurnOnDisplay"
+done
+
+echo
+echo "Preparing portable ROM dumper..."
+
+ROM_DUMPER_BIN=tests/test-progs/portable-rom-dumper/autoexec.bin
+TMP=tests/tmp
+
+mkdir -p $TMP
+
+if [ ! -f $ROM_DUMPER_BIN ]; then
+    mkdir -p `dirname $ROM_DUMPER_BIN`
+    wget -o $ROM_DUMPER_BIN https://dl.dropboxusercontent.com/u/4124919/debug/portable-rom-dumper/autoexec.bin
+fi
+
+# fixme: hardcoded partition offset
+MSD=sd.img@@50688
+MCF=cf.img@@50688
+
+# mtools doesn't like our SD image, for some reason
+export MTOOLS_SKIP_CHECK=1
+export MTOOLS_NO_VFAT=1
+
+# we don't know whether the camera will use SD or CF, so prepare both
+mcopy -o -i $MSD $ROM_DUMPER_BIN ::
+mcopy -o -i $MCF $ROM_DUMPER_BIN ::
+
+# save the listing of the root filesystem
+mdir -i $MSD > $TMP/sd.lst
+mdir -i $MCF > $TMP/cf.lst
+if ! diff $TMP/sd.lst $TMP/cf.lst ; then
+    echo "Error: SD and CF contents do not match."
+    exit
+fi
+
+function check_rom_md5 {
+    # check ROM dumps from SD/CF card image (the dumper saves MD5 checksums)
+
+    # we don't know yet which image was used (CF or SD)
+    if   mdir -i $MSD ::ROM* &> /dev/null; then
+        DEV=$MSD
+    elif mdir -i $MSD ::ROM* &> /dev/null; then
+        DEV=$MCF
+    else
+        echo -e "\e[31mROMs not saved\e[0m"
+        return
+    fi
+
+    # only one card should contain the ROMs
+    if mdir -i $MCF ::ROM* &> /dev/null && mdir -i $MSD ::ROM* &> /dev/null; then
+        echo -e "\e[31mROMs on both CF and SD\e[0m"
+        return
+    fi
+
+    # copy the ROM files locally to check them
+    rm -f $TMP/ROM*
+    mcopy -i $DEV ::ROM* $TMP/
+
+    # check the MD5 sums
+    cd $TMP/
+    if md5sum --strict --status -c *.MD5; then
+        # OK: print MD5 output normally
+        md5sum -c ROM*.MD5 | tr '\n' '\t'
+        echo ""
+    else
+        # not OK: print the status of each file, in red
+        echo -n -e "\e[31m"
+        md5sum -c ROM*.MD5 2>/dev/null | tr '\n' '\t'
+        echo -e "\e[0m"
+    fi
+    cd $OLDPWD
+
+    # delete the ROM files from the SD/CF images
+    if mdir -i $MSD ::ROM* &> /dev/null; then mdel -i $MSD ::ROM*; fi
+    if mdir -i $MCF ::ROM* &> /dev/null; then mdel -i $MCF ::ROM*; fi
+
+    # check whether other files were created/modified (shouldn't be any)
+    mdir -i $MSD > $TMP/sd2.lst
+    mdir -i $MCF > $TMP/cf2.lst
+    diff -q $TMP/sd.lst $TMP/sd2.lst
+    diff -q $TMP/cf.lst $TMP/cf2.lst
+}
+
+echo "Testing portable ROM dumper..."
+# Most EOS cameras should run the portable ROM dumper.
+for CAM in ${EOS_CAMS[*]}; do
+    printf "%5s: " $CAM
+
+    # The dumper requires the "Open file for write" string present in the firmware.
+    if ! grep -q "Open file for write" $CAM/ROM[01].BIN ; then
+        echo "skipping"
+        continue
+    fi
+    
+    mkdir -p tests/$CAM/
+    rm -f tests/$CAM/romdump.ppm
+    rm -f tests/$CAM/romdump.log
+
+    # make sure there are no ROM files on the card
+    if mdir -i $MSD ::ROM* &> /dev/null; then
+        echo "Error: SD image already contains ROM dumps."
+        continue
+    fi
+    if mdir -i $MCF ::ROM* &> /dev/null; then
+        echo "Error: CF image already contains ROM dumps."
+        continue
+    fi
+
+    (sleep 20; echo screendump tests/$CAM/romdump.ppm; echo quit) \
+      | ./run_canon_fw.sh $CAM,firmware="boot=1" -display none -monitor stdio &> tests/$CAM/romdump.log
+    
+    check_rom_md5 $CAM
 done
 
 # custom SD image no longer needed
