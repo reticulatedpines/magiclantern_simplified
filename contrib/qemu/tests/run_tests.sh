@@ -125,6 +125,43 @@ unxz -k sd.img.xz
 cp sd.img cf.img
 
 echo
+echo "Testing FA_CaptureTestImage..."
+# Models able to display some Canon GUI should capture a still picture as well.
+# This requires a full-res silent picture at qemu/<camera>/VRAM/PH-QR/RAW-000.DNG.
+# Currently working on 60D and 1200D.
+for CAM in 60D 1200D; do
+    printf "%5s: " $CAM
+
+    mkdir -p tests/$CAM/
+    rm -f tests/$CAM/frsp.ppm
+    rm -f tests/$CAM/frsp.log
+    rm -f tests/$CAM/frsp-build.log
+
+    # compile it from ML dir, for each camera
+    FRSP_PATH=../magic-lantern/minimal/qemu-frsp
+    rm -f $FRSP_PATH/autoexec.bin
+    [ $CAM == "1200D" ] && (cd $FRSP_PATH; hg up qemu -C; hg merge 1200D; cd $OLDPWD) &>> tests/$CAM/frsp-build.log
+    MODEL=$CAM make -C $FRSP_PATH clean &>> tests/$CAM/frsp-build.log
+    MODEL=$CAM make -C $FRSP_PATH       &>> tests/$CAM/frsp-build.log
+    [ $CAM == "1200D" ] && (cd $FRSP_PATH; hg up qemu -C; cd $OLDPWD) &>> tests/$CAM/frsp-build.log
+    
+    if [ ! -f $FRSP_PATH/autoexec.bin ]; then
+        echo -e "\e[31mCompile error\e[0m"
+        continue
+    fi
+
+    # copy autoexec.bin to card images
+    mcopy -o -i $MSD $FRSP_PATH/autoexec.bin ::
+    mcopy -o -i $MCF $FRSP_PATH/autoexec.bin ::
+
+    # run the photo capture test
+    (sleep 15; echo screendump tests/$CAM/frsp.ppm; echo quit) \
+      | ./run_canon_fw.sh $CAM,firmware="boot=1" -display none -monitor stdio &> tests/$CAM/frsp.log
+    
+    tests/check_md5.sh tests/$CAM/ frsp
+done
+
+echo
 echo "Testing file I/O (DCIM directory)..."
 # Most EOS cameras should be able to create the DCIM directory if missing.
 # Currently works only on models that can boot Canon GUI, and also on 100D.

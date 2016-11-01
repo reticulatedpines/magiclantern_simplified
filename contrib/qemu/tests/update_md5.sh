@@ -14,7 +14,7 @@ rm */*.md5
 for dir in */; do
     echo $dir
     cd $dir
-    for PPM in gui disp; do
+    for PPM in gui disp frsp; do
       if [ -e $PPM.ppm ]; then
         md5sum $PPM.ppm > $PPM.md5
         cat $PPM.md5
