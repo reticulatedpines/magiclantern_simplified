@@ -60,6 +60,20 @@ for CAM in ${EOS_CAMS[*]} ${EOS_SECONDARY_CORES[*]}; do
     tests/check_grep.sh tests/$CAM/boot.log -E "([KR].* (READY|AECU)|Intercom)"
 done
 
+# These cameras should display some Canon GUI:
+echo
+echo "Testing Canon GUI..."
+for CAM in ${GUI_CAMS[*]}; do
+    printf "%5s: " $CAM
+    mkdir -p tests/$CAM/
+    rm -f tests/$CAM/gui.ppm
+    rm -f tests/$CAM/gui.log
+    (sleep 20; echo screendump tests/$CAM/gui.ppm; echo quit) \
+      | ./run_canon_fw.sh $CAM,firmware="boot=0" -display none -monitor stdio &> tests/$CAM/gui.log
+
+    tests/check_md5.sh tests/$CAM/ gui
+done
+
 # All cameras should run under GDB and start a few tasks
 echo
 echo "Testing GDB scripts..."
@@ -111,6 +125,34 @@ unxz -k sd.img.xz
 cp sd.img cf.img
 
 echo
+echo "Testing file I/O (DCIM directory)..."
+# Most EOS cameras should be able to create the DCIM directory if missing.
+# Currently works only on models that can boot Canon GUI, and also on 100D.
+#for CAM in ${EOS_CAMS[*]}; do
+for CAM in ${GUI_CAMS[*]} 100D; do
+    printf "%5s: " $CAM
+    
+    mkdir -p tests/$CAM/
+    rm -f tests/$CAM/dcim.log
+
+    # remove the DCIM directory from the card images
+    mdeltree -i $MSD ::/DCIM &> /dev/null
+    mdeltree -i $MCF ::/DCIM &> /dev/null
+
+    (sleep 15; echo quit) \
+      | ./run_canon_fw.sh $CAM,firmware="boot=0" -display none -monitor stdio &> tests/$CAM/dcim.log
+    
+    if (mdir -b -i $MSD | grep -q DCIM) || (mdir -b -i $MCF | grep -q DCIM); then
+        echo "OK"
+    else
+        echo -e "\e[31mFAILED!\e[0m"
+    fi
+done
+
+# re-create the card images, just in case
+rm sd.img; unxz -k sd.img.xz; cp sd.img cf.img
+
+echo
 echo "Testing display from bootloader..."
 
 # All EOS cameras should run the portable display test:
@@ -142,36 +184,10 @@ for CAM in EOSM3; do
 done
 
 echo
-echo "Testing file I/O (DCIM directory)..."
-# Most EOS cameras should be able to create the DCIM directory if missing.
-# Currently works only on models that can boot Canon GUI, and also on 100D.
-for CAM in ${GUI_CAMS[*]} 100D; do
-    printf "%5s: " $CAM
-    
-    mkdir -p tests/$CAM/
-    rm -f tests/$CAM/dcim.log
-
-    # remove the DCIM directory from the card images
-    mdeltree -i $MSD ::/DCIM &> /dev/null
-    mdeltree -i $MCF ::/DCIM &> /dev/null
-
-    (sleep 15; echo quit) \
-      | ./run_canon_fw.sh $CAM,firmware="boot=0" -display none -monitor stdio &> tests/$CAM/dcim.log
-    
-    if (mdir -b -i $MSD | grep -q DCIM) || (mdir -b -i $MCF | grep -q DCIM); then
-        echo "OK"
-    else
-        echo -e "\e[31mFAILED!\e[0m"
-    fi
-done
-
-echo
 echo "Preparing portable ROM dumper..."
 
 # re-create the card images, just in case
-rm sd.img
-unxz -k sd.img.xz
-cp sd.img cf.img
+rm sd.img; unxz -k sd.img.xz; cp sd.img cf.img
 
 ROM_DUMPER_BIN=tests/test-progs/portable-rom-dumper/autoexec.bin
 TMP=tests/tmp
@@ -277,17 +293,3 @@ done
 # custom SD image no longer needed
 sd_restore
 trap - EXIT
-
-# These cameras should display some Canon GUI:
-echo
-echo "Testing Canon GUI..."
-for CAM in ${GUI_CAMS[*]}; do
-    printf "%5s: " $CAM
-    mkdir -p tests/$CAM/
-    rm -f tests/$CAM/gui.ppm
-    rm -f tests/$CAM/gui.log
-    (sleep 20; echo screendump tests/$CAM/gui.ppm; echo quit) \
-      | ./run_canon_fw.sh $CAM,firmware="boot=0" -display none -monitor stdio &> tests/$CAM/gui.log
-
-    tests/check_md5.sh tests/$CAM/ gui
-done
