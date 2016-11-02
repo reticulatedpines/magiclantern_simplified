@@ -1700,23 +1700,18 @@ unsigned int eos_handle_timers ( unsigned int parm, EOSState *s, unsigned int ad
                 break;
             
             case 0x08:
+                MMIO_VAR(s->timer_reload_value[timer_id]);
+
                 if(type & MODE_WRITE)
                 {
-                    s->timer_reload_value[timer_id] = value;
                     msg = "Timer #%d: will trigger after %d ms";
                     msg_arg2 = ((uint64_t)value + 1) / 1000;
                 }
                 break;
             
             case 0x0C:
-                if(type & MODE_WRITE)
-                {
-                }
-                else
-                {
-                    msg = "Timer #%d: current value";
-                    ret = s->timer_current_value[timer_id];
-                }
+                msg = "Timer #%d: current value";
+                ret = s->timer_current_value[timer_id];
                 break;
             
             case 0x10:
@@ -1748,17 +1743,16 @@ unsigned int eos_handle_hptimer ( unsigned int parm, EOSState *s, unsigned int a
     switch(address & 0xF0F)
     {
         case 0x100:
+            MMIO_VAR(s->HPTimers[timer_id].active);
+
             if(type & MODE_WRITE)
             {
-                s->HPTimers[timer_id].active = value;
-
                 msg = value == 1 ? "HPTimer #%d: active" :
                       value == 0 ? "HPTimer #%d: inactive" :
                                    "???";
             }
             else
             {
-                ret = s->HPTimers[timer_id].active;
                 msg = "HPTimer #%d: status?";
             }
             break;
@@ -1890,6 +1884,8 @@ static int eos_handle_card_led( unsigned int parm, EOSState *s, unsigned int add
     unsigned int ret = 0;
     static int stored_value = 0;
     
+    MMIO_VAR(stored_value);
+
     if (type & MODE_WRITE)
     {
         if (s->model->digic_version == 6)
@@ -1912,12 +1908,6 @@ static int eos_handle_card_led( unsigned int parm, EOSState *s, unsigned int add
         
         /* this will trigger if somebody writes an invalid LED ON/OFF code */
         assert (s->card_led);
-        
-        stored_value = value;
-    }
-    else
-    {
-        ret = stored_value;
     }
     
     io_log("GPIO", s, address, type, value, ret, msg, 0, 0);
@@ -2143,16 +2133,9 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
         case 0x0098:
         {
             static int last_value = 1;
-            if(type & MODE_WRITE)
-            {
-                last_value = value;
-                msg = (value & 0x02) ? "SRM_SetBusy" 
-                                     : "SRM_ClearBusy" ;
-            }
-            else
-            {
-                ret = last_value;
-            }
+            MMIO_VAR(last_value);
+            msg = (value & 0x02) ? "SRM_SetBusy" 
+                                 : "SRM_ClearBusy" ;
             break;
         }
 
@@ -2602,126 +2585,52 @@ unsigned int eos_handle_edmac ( unsigned int parm, EOSState *s, unsigned int add
             break;
 
         case 0x04:
-            if(type & MODE_WRITE)
-            {
-                s->edmac.ch[channel].flags = value;
-            }
-            else
-            {
-                value = s->edmac.ch[channel].flags;
-            }
             msg = "flags";
+            MMIO_VAR(s->edmac.ch[channel].flags);
             break;
 
         case 0x08:
             msg = "RAM address";
-            if(type & MODE_WRITE)
-            {
-                s->edmac.ch[channel].addr = value;
-            }
-            else
-            {
-                ret = s->edmac.ch[channel].addr;
-            }
+            MMIO_VAR(s->edmac.ch[channel].addr);
             break;
 
         case 0x0C:
-            if(type & MODE_WRITE)
-            {
-                s->edmac.ch[channel].xn = value & 0xFFFF;
-                s->edmac.ch[channel].yn = value >> 16;
-            }
-            else
-            {
-                value = s->edmac.ch[channel].xn | (s->edmac.ch[channel].yn << 16);
-            }
             msg = "yn|xn";
+            MMIO_VAR_2x16(s->edmac.ch[channel].xn, s->edmac.ch[channel].yn);
             break;
 
         case 0x10:
-            if(type & MODE_WRITE)
-            {
-                s->edmac.ch[channel].xb = value & 0xFFFF;
-                s->edmac.ch[channel].yb = value >> 16;
-            }
-            else
-            {
-                value = s->edmac.ch[channel].xb | (s->edmac.ch[channel].yb << 16);
-            }
             msg = "yb|xb";
+            MMIO_VAR_2x16(s->edmac.ch[channel].xb, s->edmac.ch[channel].yb);
             break;
 
         case 0x14:
-            if(type & MODE_WRITE)
-            {
-                s->edmac.ch[channel].xa = value & 0xFFFF;
-                s->edmac.ch[channel].ya = value >> 16;
-            }
-            else
-            {
-                value = s->edmac.ch[channel].xa | (s->edmac.ch[channel].ya << 16);
-            }
             msg = "ya|xa";
+            MMIO_VAR_2x16(s->edmac.ch[channel].xa, s->edmac.ch[channel].ya);
             break;
 
         case 0x18:
-            if(type & MODE_WRITE)
-            {
-                s->edmac.ch[channel].off1b = value;
-            }
-            else
-            {
-                value = s->edmac.ch[channel].off1b;
-            }
-            msg = "off1b";
+            MMIO_VAR(s->edmac.ch[channel].off1b);
             break;
 
         case 0x1C:
-            if(type & MODE_WRITE)
-            {
-                s->edmac.ch[channel].off1c = value;
-            }
-            else
-            {
-                value = s->edmac.ch[channel].off1c;
-            }
             msg = "off1c";
+            MMIO_VAR(s->edmac.ch[channel].off1c);
             break;
 
         case 0x20:
-            if(type & MODE_WRITE)
-            {
-                s->edmac.ch[channel].off1a = value;
-            }
-            else
-            {
-                value = s->edmac.ch[channel].off1a;
-            }
             msg = "off1a";
+            MMIO_VAR(s->edmac.ch[channel].off1a);
             break;
 
         case 0x24:
-            if(type & MODE_WRITE)
-            {
-                s->edmac.ch[channel].off2a = value;
-            }
-            else
-            {
-                value = s->edmac.ch[channel].off2a;
-            }
             msg = "off2a";
+            MMIO_VAR(s->edmac.ch[channel].off2a);
             break;
 
         case 0x28:
-            if(type & MODE_WRITE)
-            {
-                s->edmac.ch[channel].off3 = value;
-            }
-            else
-            {
-                value = s->edmac.ch[channel].off3;
-            }
             msg = "off3";
+            MMIO_VAR(s->edmac.ch[channel].off3);
             break;
     }
     
@@ -2971,10 +2880,7 @@ unsigned int eos_handle_prepro ( unsigned int parm, EOSState *s, unsigned int ad
     switch (address & 0xFFF)
     {
         case 0x240:     /* ADMERG_INTR_EN */
-            if(type & MODE_WRITE)
-            {
-                s->prepro.adkiz_intr_en = value;
-            }
+            MMIO_VAR(s->prepro.adkiz_intr_en);
             break;
         
         case 0x0C8:     /* DEF_INTR_AE */
@@ -2991,28 +2897,20 @@ unsigned int eos_handle_prepro ( unsigned int parm, EOSState *s, unsigned int ad
             break;
         
         case 0x180:     /* HIV_ENB */
-            if(type & MODE_WRITE)
-            {
-                s->prepro.hiv_enb = value;
-            }
+            MMIO_VAR(s->prepro.hiv_enb);
+            break;
 
         case 0x120:     /* PACK16_ENB */
-            if(type & MODE_WRITE)
-            {
-                s->prepro.pack16_enb = value;
-            }
+            MMIO_VAR(s->prepro.pack16_enb);
+            break;
 
         case 0x060:     /* DSUNPACK_ENB */
-            if(type & MODE_WRITE)
-            {
-                s->prepro.dsunpack_enb = value;
-            }
+            MMIO_VAR(s->prepro.dsunpack_enb);
+            break;
 
         case 0x0A0:     /* DEF_ENB */
-            if(type & MODE_WRITE)
-            {
-                s->prepro.def_enb = value;
-            }
+            MMIO_VAR(s->prepro.def_enb);
+            break;
     }
 
     io_log("PREPRO", s, address, type, value, ret, msg, 0, 0);
@@ -3067,14 +2965,7 @@ unsigned int eos_handle_power_control ( unsigned int parm, EOSState *s, unsigned
     static uint32_t data[0x100 >> 2];
     uint32_t index = (address & 0xFF) >> 2;
     
-    if(type & MODE_WRITE)
-    {
-        data[index] = value;
-    }
-    else
-    {
-        ret = data[index];
-    }
+    MMIO_VAR(data[index]);
     
     io_log("Power", s, address, type, value, ret, 0, 0, 0);
     return ret;
@@ -3177,38 +3068,17 @@ unsigned int eos_handle_dma ( unsigned int parm, EOSState *s, unsigned int addre
 
         case 0x18:
             msg = "srcAddr";
-            if(type & MODE_WRITE)
-            {
-                srcAddr = value;
-            }
-            else
-            {
-                return srcAddr;
-            }
+            MMIO_VAR(srcAddr);
             break;
 
         case 0x1C:
             msg = "dstAddr";
-            if(type & MODE_WRITE)
-            {
-                dstAddr = value;
-            }
-            else
-            {
-                return dstAddr;
-            }
+            MMIO_VAR(dstAddr);
             break;
 
         case 0x20:
             msg = "count";
-            if(type & MODE_WRITE)
-            {
-                count = value;
-            }
-            else
-            {
-                return count;
-            }
+            MMIO_VAR(count);
             break;
     }
 
@@ -3231,14 +3101,7 @@ unsigned int eos_handle_uart ( unsigned int parm, EOSState *s, unsigned int addr
     {
         /* TIO enable flag on EOS M3? */
         static int mem = 0;
-        if(type & MODE_WRITE)
-        {
-            mem = value;
-        }
-        else
-        {
-            ret = mem;
-        }
+        MMIO_VAR(mem);
         
         /* quiet, since it interferes with TIO messages */
         return ret;
@@ -3405,7 +3268,6 @@ unsigned int eos_handle_sio ( unsigned int parm, EOSState *s, unsigned int addre
                     default:
                         break;
                 }
-                ret = 0;
             }
             else
             {
@@ -3414,66 +3276,26 @@ unsigned int eos_handle_sio ( unsigned int parm, EOSState *s, unsigned int addre
             break;
 
         case 0x0C:
-            if(type & MODE_WRITE)
-            {
-                last_sio_setup1 = value;
-                ret = 0;
-            }
-            else
-            {
-                ret = last_sio_setup1;
-            }
+            MMIO_VAR(last_sio_setup1);
             break;
 
         case 0x10:
-            if(type & MODE_WRITE)
-            {
-                last_sio_setup3 = value;
-                ret = 0;
-            }
-            else
-            {
-                ret = last_sio_setup3;
-            }
+            MMIO_VAR(last_sio_setup2);
             break;
 
         case 0x14:
-            if(type & MODE_WRITE)
-            {
-                last_sio_setup1 = value;
-                ret = 0;
-            }
-            else
-            {
-                ret = last_sio_setup1;
-            }
+            MMIO_VAR(last_sio_setup3);
             break;
 
         case 0x18:
-            if(type & MODE_WRITE)
-            {
-                last_sio_data = value;
-
-                snprintf(msg, sizeof(msg), "Write to TX register");
-                ret = 0;
-            }
-            else
-            {
-                ret = last_sio_data;
-            }
+            snprintf(msg, sizeof(msg), "TX register");
+            MMIO_VAR(last_sio_data);
             break;
 
         case 0x1C:
-            if(type & MODE_WRITE)
-            {
-                snprintf(msg, sizeof(msg), "Write access to RX register");
-                ret = 0;
-            }
-            else
-            {
-                snprintf(msg, sizeof(msg), "Read from RX register");
-                ret = last_sio_data;
-            }
+            snprintf(msg, sizeof(msg), "RX register");
+            /* fixme */
+            MMIO_VAR(last_sio_data);
             break;
     }
 
@@ -3677,14 +3499,13 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
     {
         case 0x08:
             msg = "DMA";
-            if(type & MODE_WRITE)
-            {
-                s->sd.dma_enabled = value;
-            }
+            MMIO_VAR(s->sd.dma_enabled);
             break;
+
         case 0x0C:
             msg = "Command flags?";
-            s->sd.cmd_flags = value;
+            MMIO_VAR(s->sd.cmd_flags);
+
             if(type & MODE_WRITE)
             {
                 /* reset status before doing any command */
@@ -3715,6 +3536,7 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
                 }
             }
             break;
+
         case 0x10:
             msg = "Status";
             /**
@@ -3732,9 +3554,10 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
                 ret = s->sd.status;
             }
             break;
+
         case 0x14:
             msg = "irq enable?";
-            s->sd.irq_flags = value;
+            MMIO_VAR(s->sd.irq_flags);
 
             /* sometimes, a write command ends with this register
              * other times, it ends with SDDMA register 0x78/0x38
@@ -3750,53 +3573,67 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
              * so we trigger it from here too. */
             sdio_trigger_interrupt(s,&s->sd);
             break;
+
         case 0x18:
             msg = "init?";
             break;
+
         case 0x20:
             msg = "cmd_lo";
-            s->sd.cmd_lo = value;
+            MMIO_VAR(s->sd.cmd_lo);
             break;
+
         case 0x24:
             msg = "cmd_hi";
-            s->sd.cmd_hi = value;
+            MMIO_VAR(s->sd.cmd_hi);
             break;
+
         case 0x28:
             msg = "Response size (bits)";
             break;
+
         case 0x2c:
             msg = "response setup?";
             break;
+
         case 0x34:
             msg = "Response[0]";
             ret = s->sd.response[0];
             break;
+
         case 0x38:
             msg = "Response[1]";
             ret = s->sd.response[1];
             break;
+
         case 0x3C:
             msg = "Response[2]";
             ret = s->sd.response[2];
             break;
+
         case 0x40:
             msg = "Response[3]";
             ret = s->sd.response[3];
             break;
+
         case 0x58:
             msg = "bus width";
             break;
+
         case 0x5c:
             msg = "write block size";
-            s->sd.write_block_size = value;
+            MMIO_VAR(s->sd.write_block_size);
             break;
+
         case 0x64:
             msg = "bus width";
             break;
+
         case 0x68:
             msg = "read block size";
-            s->sd.read_block_size = value;
+            MMIO_VAR(s->sd.read_block_size);
             break;
+
         case 0x6C:
             msg = "FIFO data";
             if(type & MODE_WRITE)
@@ -3829,24 +3666,30 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
                 }
             }
             break;
+
         case 0x70:
             msg = "transfer status?";
             break;
+
         case 0x7c:
             msg = "transfer block count";
-            s->sd.transfer_count = value;
+            MMIO_VAR(s->sd.transfer_count);
             break;
+
         case 0x80:
             msg = "transferred blocks";
             /* Goro is very strong. Goro never fails. */
             ret = s->sd.transfer_count;
             break;
+
         case 0x84:
             msg = "SDREP: Status register/error codes";
             break;
+
         case 0x88:
             msg = "SDBUFCTR: Set to 0x03 before reading";
             break;
+
         case 0xD4:
             msg = "Data bus monitor (?)";
             break;
@@ -3865,18 +3708,18 @@ unsigned int eos_handle_sddma ( unsigned int parm, EOSState *s, unsigned int add
     {
         case 0x00:
             msg = "Transfer memory address";
-            s->sd.dma_addr = value;
+            MMIO_VAR(s->sd.dma_addr);
             break;
         case 0x04:
             msg = "Transfer byte count";
-            if (type & MODE_WRITE)
-            {
-                s->sd.dma_count = value;
-            }
+            MMIO_VAR(s->sd.dma_count);
             break;
         case 0x10:
             msg = "Flags/Status";
-            s->sd.dma_enabled = value & 1;
+            if (type & MODE_WRITE)
+            {
+                s->sd.dma_enabled = value & 1;
+            }
             break;
         case 0x14:
             msg = "Status?";
@@ -3970,14 +3813,7 @@ unsigned int eos_handle_cfdma ( unsigned int parm, EOSState *s, unsigned int add
     {
         case 0x00:
             msg = "Transfer memory address";
-            if(type & MODE_WRITE)
-            {
-                s->cf.dma_addr = value;
-            }
-            else
-            {
-                ret = s->cf.dma_addr;
-            }
+            MMIO_VAR(s->cf.dma_addr);
             break;
         case 0x04:
             msg = "Transfer byte count";
@@ -4042,10 +3878,7 @@ unsigned int eos_handle_cfata ( unsigned int parm, EOSState *s, unsigned int add
         
         case 0x8040:
             msg = "Interrupt enable?";
-            if(type & MODE_WRITE)
-            {
-                s->cf.interrupt_enabled = value;
-            }
+            MMIO_VAR(s->cf.interrupt_enabled);
             break;
             
         case 0x8044:
@@ -4213,16 +4046,8 @@ unsigned int eos_handle_basic ( unsigned int parm, EOSState *s, unsigned int add
     switch(address & 0xFFF)
     {
         case 0x008: /* CLOCK_ENABLE */
-            if(type & MODE_WRITE)
-            {
-                s->clock_enable = value;
-                msg = format_clock_enable(value);
-            }
-            else
-            {
-                ret = s->clock_enable;
-                msg = format_clock_enable(ret);
-            }
+            MMIO_VAR(s->clock_enable);
+            msg = format_clock_enable(s->clock_enable);
             break;
         
         case 0xA4:
@@ -4232,24 +4057,12 @@ unsigned int eos_handle_basic ( unsigned int parm, EOSState *s, unsigned int add
             break;
         
         case 0x244:
-            if(type & MODE_WRITE)
-            {
-            }
-            else
-            {
-                /* idk, expected to be so in 5D3 123 */
-                ret = 1;
-            }
+            /* idk, expected to be so in 5D3 123 */
+            ret = 1;
             break;
         case 0x204:
-            if(type & MODE_WRITE)
-            {
-            }
-            else
-            {
-                /* idk, expected to be so in 5D3 bootloader */
-                ret = 2;
-            }
+            /* idk, expected to be so in 5D3 bootloader */
+            ret = 2;
             break;
         
         case 0x284:
@@ -4328,19 +4141,13 @@ unsigned int eos_handle_display ( unsigned int parm, EOSState *s, unsigned int a
     switch (address & 0xFFF)
     {
         case 0x0D0:
-            if(type & MODE_WRITE)
-            {
-                msg = "BMP VRAM";
-                s->disp.bmp_vram = value;
-            }
+            msg = "BMP VRAM";
+            MMIO_VAR(s->disp.bmp_vram);
             break;
 
         case 0x0E0:
-            if(type & MODE_WRITE)
-            {
-                msg = "YUV VRAM";
-                s->disp.img_vram = value;
-            }
+            msg = "YUV VRAM";
+            MMIO_VAR(s->disp.img_vram);
             break;
 
         case 0x080 ... 0x0BC:
@@ -4730,8 +4537,7 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
         case 0xD2018200:    /* 5D4 */
         case 0xD2018230:    /* 5D4 */
             msg = "Display resolution";
-            s->disp.width     = value & 0xFFFF;
-            s->disp.height    = value >> 16;
+            MMIO_VAR_2x16(s->disp.width, s->disp.height);
             break;
         
         case 0xD2030108:    /* D6 */
@@ -4741,13 +4547,13 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
             break;
 
         case 0xD2018228:    /* 5D4 */
-            s->disp.bmp_vram = value;
             msg = "BMP VRAM";
+            MMIO_VAR(s->disp.bmp_vram);
             break;
         
         case 0xD201822C:    /* 5D4 */
-            s->disp.bmp_pitch = value;
             msg = "BMP pitch";
+            MMIO_VAR(s->disp.bmp_pitch);
             break;
 
         case 0xD20139A8:    /* D6 */
@@ -4795,14 +4601,7 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
 
         case 0xD2090008: /* CLOCK_ENABLE */
             msg = "CLOCK_ENABLE";
-            if(type & MODE_WRITE)
-            {
-                s->clock_enable_6 = value;
-            }
-            else
-            {
-                ret = s->clock_enable_6;
-            }
+            MMIO_VAR(s->clock_enable_6);
             break;
 
         case 0xD20B053C:

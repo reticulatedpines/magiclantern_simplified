@@ -279,6 +279,25 @@ typedef struct
     unsigned int parm;
 } EOSRegionHandler;
 
+/* direct variable mapping for MMIO registers,
+ * to be used in eos_handle_*
+ */
+
+#define MMIO_VAR(var)           \
+    if(type & MODE_WRITE) {     \
+        var = value;            \
+    } else {                    \
+        ret = var;              \
+    }
+
+#define MMIO_VAR_2x16(lo, hi)       \
+    if(type & MODE_WRITE) {         \
+        lo = value & 0xFFFF;        \
+        hi = value >> 16;           \
+    } else {                        \
+        ret = (lo) | ((hi) << 16);  \
+    }
+
 unsigned int eos_handle_rom ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_flashctrl ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_dma ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
