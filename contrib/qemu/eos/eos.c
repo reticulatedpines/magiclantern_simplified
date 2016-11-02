@@ -2632,6 +2632,35 @@ unsigned int eos_handle_edmac ( unsigned int parm, EOSState *s, unsigned int add
             msg = "off3";
             MMIO_VAR(s->edmac.ch[channel].off3);
             break;
+
+        case 0x30:
+            msg = "interrupt reason?";
+            if(type & MODE_WRITE)
+            {
+            }
+            else
+            {
+                /* read channels:
+                 *   0x02 = normal?
+                 *   0x10 = abort?
+                 * write channels:
+                 *   0x01 = normal? (used with PackMem)
+                 *   0x02 = normal?
+                 *   0x04 = pop?
+                 *   0x10 = abort?
+                 */
+                int pop_request = (s->edmac.ch[channel].flags & 0xF) == 6;
+                int abort_request = 0;  /* not sure yet */
+                ret = (abort_request) ? 0x10 :
+                      (pop_request)   ? 0x04 :
+                      (channel & 8)   ? 0x02 :
+                                        0x01 ;
+            }
+            break;
+
+        case 0x34:
+            msg = "abort request?";
+            break;
     }
     
     char name[32];
