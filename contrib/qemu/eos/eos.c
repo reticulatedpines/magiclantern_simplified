@@ -2362,19 +2362,26 @@ static int edmac_do_transfer(EOSState *s, int channel)
     int hb = s->edmac.ch[channel].yb + 1;
     int32_t offb = edmac_fix_off1(s, s->edmac.ch[channel].off1b);
     
-    uint32_t data_size = wa * ha * na + wb * hb;
+    uint32_t transfer_size = wa * ha * na + wb * hb;
     
     if (channel & 8)
     {
         /* from memory to image processing modules */
         uint32_t src = s->edmac.ch[channel].addr;
         
-        assert(s->edmac.conn_data[conn].buf == 0);
-        assert(s->edmac.conn_data[conn].data_size == 0);
-        s->edmac.conn_data[conn].buf = malloc(data_size);
-        s->edmac.conn_data[conn].data_size = data_size;
+        /* repeated transfers will append to existing buffer */
+        uint32_t old_size = s->edmac.conn_data[conn].data_size;
+        uint32_t new_size = old_size + transfer_size;
+        if (s->edmac.conn_data[conn].buf)
+        {
+            printf("[EDMAC] conn #%d: data size %d -> %d.\n",
+                conn, old_size, new_size
+            );
+        }
+        s->edmac.conn_data[conn].buf = realloc(s->edmac.conn_data[conn].buf, new_size );
+        void * ptr = s->edmac.conn_data[conn].buf + old_size;
+        s->edmac.conn_data[conn].data_size = new_size;
         
-        void * ptr = s->edmac.conn_data[conn].buf;
         for (int k = 0; k < na; k++)
         {
             for (int i = 0; i < ha; i++)
@@ -2400,8 +2407,8 @@ static int edmac_do_transfer(EOSState *s, int channel)
         if (conn == 0)
         {
             /* sensor data? */
-            s->edmac.conn_data[conn].buf = malloc(data_size);
-            s->edmac.conn_data[conn].data_size = data_size;
+            s->edmac.conn_data[conn].buf = malloc(transfer_size);
+            s->edmac.conn_data[conn].data_size = transfer_size;
 
             /* todo: autodetect all DNG files and cycle between them */
             char filename[100];
@@ -2412,26 +2419,28 @@ static int edmac_do_transfer(EOSState *s, int channel)
                 printf("Loading photo raw data from %s...\n", filename);
                 /* fixme: hardcoded DNG offset */
                 fseek(f, 33792, SEEK_SET);
-                assert(fread(s->edmac.conn_data[conn].buf, 1, data_size, f) == data_size);
+                assert(fread(s->edmac.conn_data[conn].buf, 1, transfer_size, f) == transfer_size);
                 fclose(f);
-                reverse_bytes_order(s->edmac.conn_data[conn].buf, data_size);
+                reverse_bytes_order(s->edmac.conn_data[conn].buf, transfer_size);
             }
             else
             {
                 printf("%s not found; generating random noise\n", filename);
-                for (int i = 0; i < data_size; i++)
+                for (int i = 0; i < transfer_size; i++)
                 {
                     ((uint8_t*)s->edmac.conn_data[conn].buf)[i] = rand();
                 }
             }
         }
         
-        if (!s->edmac.conn_data[conn].buf)
+        if (s->edmac.conn_data[conn].data_size < transfer_size)
         {
-            printf("[EDMAC#%d] Data unavailable; will try again later.\n", channel);
+            printf("[EDMAC#%d] Data %s; will try again later.\n", channel,
+                s->edmac.conn_data[conn].data_size ? "incomplete" : "unavailable"
+            );
             return 0;
         }
-        assert(s->edmac.conn_data[conn].data_size == data_size);
+        assert(s->edmac.conn_data[conn].buf);
 
         void * ptr = s->edmac.conn_data[conn].buf;
         for (int k = 0; k < na; k++)
@@ -2449,10 +2458,29 @@ static int edmac_do_transfer(EOSState *s, int channel)
             dst += wb + offb;
             ptr += wb;
         }
-        
-        free(s->edmac.conn_data[conn].buf);
-        s->edmac.conn_data[conn].buf = 0;
-        s->edmac.conn_data[conn].data_size = 0;
+
+        uint32_t old_size = s->edmac.conn_data[conn].data_size;
+        uint32_t new_size = old_size - transfer_size;
+
+        if (new_size)
+        {
+            /* only copied some of the data to memory;
+             * shift the remaining data for use with subsequent transfers
+             * (a little slow, kinda reinventing a FIFO)
+             */
+            memmove(s->edmac.conn_data[conn].buf, s->edmac.conn_data[conn].buf + transfer_size, new_size);
+            s->edmac.conn_data[conn].buf = realloc(s->edmac.conn_data[conn].buf, new_size);
+            s->edmac.conn_data[conn].data_size = new_size;
+            printf("[EDMAC] conn #%d: data size %d -> %d.\n",
+                conn, old_size, new_size
+            );
+        }
+        else
+        {
+            free(s->edmac.conn_data[conn].buf);
+            s->edmac.conn_data[conn].buf = 0;
+            s->edmac.conn_data[conn].data_size = 0;
+        }
         
         printf("[EDMAC#%d] %dx%dx%d + %dx%d bytes written to %X-%X, off=%d,%d.\n", channel, wa, ha, na, wb, hb, s->edmac.ch[channel].addr, dst-offb-1, offa, offb);
     }
