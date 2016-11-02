@@ -194,6 +194,9 @@ typedef struct
 {
     uint32_t adkiz_intr_en;     /* for defect detection */
     uint32_t hiv_enb;           /* for row/column pattern noise correction */
+    uint32_t pack16_enb;
+    uint32_t dsunpack_enb;
+    uint32_t def_enb;
 } PreproState;
 
 typedef struct

@@ -2535,6 +2535,24 @@ static void prepro_execute(EOSState *s)
             printf("[HIV] Data unavailable; will try again later.\n");
         }
     }
+
+    if (s->prepro.def_enb == 1)
+    {
+        if (s->edmac.conn_data[1].buf)
+        {
+            int transfer_size = s->edmac.conn_data[1].data_size;
+            int old_size = s->edmac.conn_data[16].data_size;
+            int new_size = old_size + transfer_size;
+            printf("[DEF] Dummy operation (copy %d bytes from conn #1 to #16).\n", transfer_size);
+            if (old_size) printf("[DEF] Data size %d -> %d.\n", old_size, new_size);
+            s->edmac.conn_data[16].buf = realloc(s->edmac.conn_data[16].buf, new_size);
+            s->edmac.conn_data[16].data_size = new_size;
+            memcpy(s->edmac.conn_data[16].buf + old_size, s->edmac.conn_data[1].buf, transfer_size);
+            free(s->edmac.conn_data[1].buf);
+            s->edmac.conn_data[1].buf = 0;
+            s->edmac.conn_data[1].data_size = 0;
+        }
+    }
 }
 
 unsigned int eos_handle_edmac ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
@@ -2976,6 +2994,24 @@ unsigned int eos_handle_prepro ( unsigned int parm, EOSState *s, unsigned int ad
             if(type & MODE_WRITE)
             {
                 s->prepro.hiv_enb = value;
+            }
+
+        case 0x120:     /* PACK16_ENB */
+            if(type & MODE_WRITE)
+            {
+                s->prepro.pack16_enb = value;
+            }
+
+        case 0x060:     /* DSUNPACK_ENB */
+            if(type & MODE_WRITE)
+            {
+                s->prepro.dsunpack_enb = value;
+            }
+
+        case 0x0A0:     /* DEF_ENB */
+            if(type & MODE_WRITE)
+            {
+                s->prepro.def_enb = value;
             }
     }
 
