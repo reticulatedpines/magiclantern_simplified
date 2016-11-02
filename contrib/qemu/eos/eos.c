@@ -2706,11 +2706,13 @@ unsigned int eos_handle_edmac_chsw ( unsigned int parm, EOSState *s, unsigned in
             /* read channels  8...13 =>  0...5 */
             /* read channels 24...29 =>  6...11 */
             /* read channels 40...43 => 12...15 */
-            int conn = ((address & 0xFF) - 0x20) >> 2;
-            int ch = 
+            uint32_t conn = ((address & 0xFF) - 0x20) >> 2;
+            uint32_t ch = 
                 (value <=  5) ? value + 8      :
                 (value <= 11) ? value + 16 + 2 :
                 (value <= 15) ? value + 32 - 4 : -1 ;
+            assert(conn < COUNT(s->edmac.conn_data));
+            assert(ch < COUNT(s->edmac.ch));
             s->edmac.read_conn[conn] = ch;
             
             /* make sure this mapping is unique */
@@ -2732,9 +2734,11 @@ unsigned int eos_handle_edmac_chsw ( unsigned int parm, EOSState *s, unsigned in
 
         case 0x000 ... 0x01C:
         {
-            int conn = value;
-            int ch = (address & 0x1F) >> 2;
+            uint32_t conn = value;
+            uint32_t ch = (address & 0x1F) >> 2;
             if (ch == 7) ch = 16;
+            assert(conn < COUNT(s->edmac.conn_data));
+            assert(ch < COUNT(s->edmac.ch));
             s->edmac.write_conn[ch] = conn;
             msg = "connection #%d -> WR#%d -> RAM";
             msg_arg1 = conn;
@@ -2746,11 +2750,13 @@ unsigned int eos_handle_edmac_chsw ( unsigned int parm, EOSState *s, unsigned in
         {
             /* write channels 17 ... 22: pos 0...5 */
             /* write channels 32 ... 33: pos 6...7 */
-            int conn = value;
-            int pos = (address & 0x3F) >> 2;
-            int ch =
+            uint32_t conn = value;
+            uint32_t pos = (address & 0x3F) >> 2;
+            uint32_t ch =
                 (pos <= 5) ? pos + 16 + 1
                            : pos + 32 - 6 ;
+            assert(conn < COUNT(s->edmac.conn_data));
+            assert(ch < COUNT(s->edmac.ch));
             s->edmac.write_conn[ch] = conn;
             msg = "connection #%d -> WR#%d -> RAM";
             msg_arg1 = conn;

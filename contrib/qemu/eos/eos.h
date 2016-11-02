@@ -184,9 +184,9 @@ typedef struct
 typedef struct
 {
     EDmacChState ch[64];
-    uint32_t read_conn[16];     /* each connection can get data from a single read channel */
+    uint32_t read_conn[32];     /* each connection can get data from a single read channel */
     uint32_t write_conn[64];    /* each write channel can get data from a single connection */
-    EDmacData conn_data[16];    /* for each connection: memory contents transferred via EDMAC (malloc'd) */
+    EDmacData conn_data[32];    /* for each connection: memory contents transferred via EDMAC (malloc'd) */
     uint32_t pending[64];       /* for each channel: true if a transfer is scheduled */
 } EDMACState;
 
