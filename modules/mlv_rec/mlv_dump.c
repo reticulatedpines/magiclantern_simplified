@@ -3010,7 +3010,7 @@ read_headers:
                             if (lv_rec_footer.xRes != raw_info.width)
                             {
                                 raw_info.width = lv_rec_footer.xRes;
-                                raw_info.pitch = raw_info.width * 14/8;
+                                raw_info.pitch = raw_info.width * raw_info.bits_per_pixel / 8;
                                 raw_info.active_area.x1 = 0;
                                 raw_info.active_area.x2 = raw_info.width;
                                 raw_info.jpeg.x = 0;
