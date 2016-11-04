@@ -2004,14 +2004,8 @@ static void FAST process_frame()
     fullsize_buffer_pos = (fullsize_buffer_pos + 1) % 2;
 
     //~ printf("saving frame %d: slot %d ptr %x\n", frame_count, capture_slot, ptr);
-    
-    int pitch = raw_info.pitch;
-    if (bpp != 14)
-    {
-        pitch = raw_info.width * bpp / 8;
-    }
 
-    int ans = (int) edmac_copy_rectangle_start(ptr, fullSizeBuffer, pitch, (skip_x+7)/8*bpp, skip_y/2*2, res_x*bpp/8, res_y);
+    int ans = (int) edmac_copy_rectangle_start(ptr, fullSizeBuffer, raw_info.pitch, (skip_x+7)/8*bpp, skip_y/2*2, res_x*bpp/8, res_y);
 
     /* advance to next frame */
     frame_count++;
@@ -2317,6 +2311,32 @@ static int write_frames(FILE** pf, void* ptr, int size_used, int num_frames)
     return 1;
 }
 
+static void setup_bit_depth()
+{
+    raw_info.bits_per_pixel = bpp;
+    raw_info.pitch = raw_info.width * bpp / 8;
+    
+    if (bpp == 12)
+    {
+        EngDrvOut(0xC0F08094, MODE_12BIT);
+    }
+    else if (bpp == 10)
+    {
+        EngDrvOut(0xC0F08094, MODE_10BIT);
+    }
+}
+
+static void restore_bit_depth()
+{
+    raw_info.bits_per_pixel = 14;
+    raw_info.pitch = raw_info.width * 14 / 8;
+    
+    if (bpp != 14)
+    {
+        EngDrvOut(0xC0F08094, MODE_14BIT);
+    }
+}
+
 static void raw_video_rec_task()
 {
     //~ console_show();
@@ -2391,15 +2411,7 @@ static void raw_video_rec_task()
 
     hack_liveview(0);
     
-    /* setup bit depth */
-    if (bpp == 12)
-    {
-        EngDrvOut(0xC0F08094, MODE_12BIT);
-    }
-    else if (bpp == 10)
-    {
-        EngDrvOut(0xC0F08094, MODE_10BIT);
-    }
+    setup_bit_depth();
     
     /* get exclusive access to our edmac channels */
     edmac_memcpy_res_lock();
@@ -2798,11 +2810,7 @@ cleanup:
     take_screenshot(SCREENSHOT_FILENAME_AUTO, SCREENSHOT_BMP);
     #endif
     
-    /* undo bit depth */
-    if (bpp != 14)
-    {
-        EngDrvOut(0xC0F08094, MODE_14BIT);
-    }
+    restore_bit_depth();
     
     hack_liveview(1);
     redraw();
