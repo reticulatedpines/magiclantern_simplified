@@ -83,4 +83,13 @@ def find_func_from_string(ROM, string, Rd, cond):
             if dest_str == string:
                 return locate_func_start(ROM, i), locate_next_func_call(ROM, i)
 
-
+        # check for: ldr<cond> Rd, [pc, #offset]
+        if (insn & 0xFFFFF000) == (0x059f0000 | (Rd << 12) | (cond << 28)):
+            offset = insn & 0xFFF;
+            pc = i;
+            dest = pc + offset + 8;
+            dest = getLongLE(ROM, dest) - 0xFF800000  # fixme
+            if dest > 0 and dest < len(ROM):
+                dest_str = ROM[dest:dest+len(string)]
+                if dest_str == string:
+                    return locate_func_start(ROM, i), locate_next_func_call(ROM, i)

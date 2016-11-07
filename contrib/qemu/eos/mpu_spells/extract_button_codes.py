@@ -9,7 +9,10 @@ from outils import *
 # load ROM1
 qemu_dir = "../../../../"
 camera_model = sys.argv[1]
-ROM = open(os.path.join(qemu_dir, "ROM-%s.BIN" % camera_model)).read()[16*1024*1024:]
+ROM = open(os.path.join(qemu_dir, "%s/ROM1.BIN" % camera_model)).read()
+rom_size = len(ROM);
+rom_offset = 0x100000000 - rom_size;
+print("ROM:", hex(rom_offset), hex(rom_size))
 
 rom_funcs = [
     ("bindReceiveSwitch",   "bindReceiveSwitch (%d, %d)",   2, 0xE, 0),
@@ -17,8 +20,15 @@ rom_funcs = [
     ("prop_request_change", "pRequestChange",               0, 0x0, 0),
 ]
 
+if camera_model in ["450D", "40D"]:
+    rom_funcs = [
+        ("bindReceiveSwitch",   "[BIND] Switch (%d, %d)",   2, 0xE, 0),
+        ("DebugMsg",            "[BIND] Switch (%d, %d)",   2, 0xE, 1),
+        ("prop_request_change", "pRequestChange",           0, 0xE, 0),
+    ]
+
 for name, string, reg, cond, idx in rom_funcs:
-    addr = (find_func_from_string(ROM, string, reg, cond)[idx] + 0xFF000000) & 0xFFFFFFFF
+    addr = (find_func_from_string(ROM, string, reg, cond)[idx] + rom_offset) & 0xFFFFFFFF
     eprint("%-20s: %X" % (name, addr))
     exec("%s = 0x%X" % (name, addr))
 
@@ -32,10 +42,10 @@ def init_emulator():
     # Initialize emulator in ARM 32-bit mode
     mu = Uc(UC_ARCH_ARM, UC_MODE_ARM)
 
-    # map 16MB memory of ROM and 16MB of RAM
-    mu.mem_map(0xFF000000, 16 * 1024 * 1024, UC_PROT_READ | UC_PROT_EXEC)
+    # map ROM (variable size) and 16MB of RAM
+    mu.mem_map(rom_offset, rom_size, UC_PROT_READ | UC_PROT_EXEC)
     mu.mem_map(0, 16 * 1024 * 1024)
-    mu.mem_write(0xFF000000, ROM)
+    mu.mem_write(rom_offset, ROM)
 
     # patch prop_request_change
     bx_lr = b"\x1e\xff\x2f\xe1"
@@ -59,7 +69,8 @@ def print_DebugMsg(mu):
     if num_args: args.append(r3)
     while len(args) < num_args:
         args.append(mem_read32(mu, sp + (len(args)-1) * 4))
-    msg = msg % tuple(args)
+    try: msg = msg % tuple(args)
+    except ValueError: pass
     eprint("DebugMsg: " + msg)
     return msg
 

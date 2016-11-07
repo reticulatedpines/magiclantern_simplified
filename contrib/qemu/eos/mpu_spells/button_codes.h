@@ -61,6 +61,21 @@ static int button_codes_1100D[] = {
     [BGMT_END_OF_LIST]                  = 0x0000
 };
 
+static int button_codes_450D[] = {
+    [BGMT_INFO]                         = 0x0101,
+    [BGMT_JUMP]                         = 0x0201,
+    [BGMT_MENU]                         = 0x0001,
+    [BGMT_PICSTYLE]                     = 0x1701,
+    [BGMT_PLAY]                         = 0x0301,
+    [BGMT_PRESS_DIRECT_PRINT]           = 0x0501,
+    [BGMT_PRESS_SET]                    = 0x0C01,
+    [BGMT_UNPRESS_SET]                  = 0x0C00,
+    [BGMT_TRASH]                        = 0x0401,
+    [BGMT_WHEEL_LEFT]                   = 0x0DFF,
+    [BGMT_WHEEL_RIGHT]                  = 0x0D01,
+    [BGMT_END_OF_LIST]                  = 0x0000
+};
+
 static int button_codes_500D[] = {
     [BGMT_INFO]                         = 0x0101,
     [BGMT_LV]                           = 0x0501,
