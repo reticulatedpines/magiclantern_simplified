@@ -2261,7 +2261,7 @@ static void edmac_trigger_interrupt(EOSState* s, int channel)
 static int edmac_fix_off1(EOSState *s, int32_t off)
 {
     /* the value is signed, but the number of bits is model-dependent */
-    int off1_bits = (s->model->digic_version == 4) ? 17 : 
+    int off1_bits = (s->model->digic_version <= 4) ? 17 : 
                     (s->model->digic_version == 5) ? 23 : 0;
     assert(off1_bits);
     return off << (32-off1_bits) >> (32-off1_bits);
