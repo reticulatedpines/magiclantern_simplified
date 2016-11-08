@@ -928,8 +928,8 @@ void chroma_smooth(int method, struct raw_info *info)
     int w = info->width;
     int h = info->height;
 
-    unsigned short * aux = malloc(w * h * sizeof(short));
-    unsigned short * aux2 = malloc(w * h * sizeof(short));
+    uint32_t * aux = malloc(w * h * sizeof(uint32_t));
+    uint32_t * aux2 = malloc(w * h * sizeof(uint32_t));
 
     int x,y;
     for (y = 0; y < h; y++)
