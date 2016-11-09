@@ -352,6 +352,7 @@ static void unmount_sd_card()
     
     while (!get_halfshutter_pressed())
     {
+        info_led_on();
         msleep(10);
     }
 
