@@ -8,9 +8,6 @@
 static struct semaphore * edmac_memcpy_sem = 0; /* to allow only one memcpy running at a time */
 static struct semaphore * edmac_read_done_sem = 0; /* to know when memcpy is finished */
 
-static struct edmac_info src_edmac_info;
-static struct edmac_info dst_edmac_info;
-
 /* pick some free (check using debug menu) EDMAC channels write: 0x00-0x06, 0x10-0x16, 0x20-0x21. read: 0x08-0x0D, 0x18-0x1D,0x28-0x2B */
 #if defined(CONFIG_5D2) || defined(CONFIG_50D)
 uint32_t edmac_read_chan = 0x19;
@@ -141,14 +138,18 @@ void* edmac_copy_rectangle_cbr_start(void* dst, void* src, int src_width, int sr
     /* xb is width */
     /* yb is height-1 (number of repetitions) */
     /* off1b is the number of bytes to skip after every xb bytes being transferred */
-    src_edmac_info.xb = w;
-    src_edmac_info.yb = h-1;
-    src_edmac_info.off1b = src_width - w;
+    struct edmac_info src_edmac_info = {
+        .xb = w,
+        .yb = h-1,
+        .off1b = src_width - w,
+    };
     
     /* destination setup has no special cropping */
-    dst_edmac_info.xb = w;
-    dst_edmac_info.yb = h-1;
-    dst_edmac_info.off1b = dst_width - w;
+    struct edmac_info dst_edmac_info = {
+        .xb = w,
+        .yb = h-1,
+        .off1b = dst_width - w,
+    };
     
     SetEDmac(edmac_read_chan, (void*)src_adjusted, &src_edmac_info, dmaFlags);
     SetEDmac(edmac_write_chan, (void*)dst_adjusted, &dst_edmac_info, dmaFlags);
@@ -349,9 +350,10 @@ void edmac_raw_slurp(void* dst, int w, int h)
     
     /* xb is width */
     /* yb is height-1 (number of repetitions) */
-    static struct edmac_info dst_edmac_info;
-    dst_edmac_info.xb = w;
-    dst_edmac_info.yb = h-1;
+    struct edmac_info dst_edmac_info = {
+        .xb = w,
+        .yb = h-1,
+    };
     
     SetEDmac(raw_write_chan, (void*)dst, &dst_edmac_info, dmaFlags);
     
