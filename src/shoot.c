@@ -5153,7 +5153,7 @@ void enter_play_mode()
     }
     
     /* wait a little extra for the new mode to settle */
-    msleep(200);
+    msleep(500);
 }
 
 // take one shot, a sequence of HDR shots, or start a movie
