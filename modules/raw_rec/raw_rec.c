@@ -93,8 +93,8 @@ static int cam_60d = 0;
  * use roughly 10% increments
  **/
 
-static int resolution_presets_x[] = {  640,  704,  768,  864,  960,  1152,  1280,  1344,  1472,  1504,  1536,  1600,  1728, 1792, 1856,  1920,  2048,  2240,  2560,  2880,  3584 };
-#define  RESOLUTION_CHOICES_X CHOICES("640","704","768","864","960","1152","1280","1344","1472","1504","1536","1600","1728", "1792","1856","1920","2048","2240","2560","2880","3584")
+static int resolution_presets_x[] = {  640,  960,  1280,  1600,  1920,  2240,  2560,  2880,  3200,  3520 };
+#define  RESOLUTION_CHOICES_X CHOICES("640","960","1280","1600","1920","2240","2560","2880","3200","3520")
 
 static int aspect_ratio_presets_num[]      = {   5,    4,    3,       8,      25,     239,     235,      22,    2,     185,     16,    5,    3,    4,    12,    1175,    1,    1 };
 static int aspect_ratio_presets_den[]      = {   1,    1,    1,       3,      10,     100,     100,      10,    1,     100,      9,    3,    2,    3,    10,    1000,    1,    2 };
@@ -104,7 +104,8 @@ static const char * aspect_ratio_choices[] = {"5:1","4:1","3:1","2.67:1","2.50:1
 
 CONFIG_INT("raw.video.enabled", raw_video_enabled, 0);
 
-static CONFIG_INT("raw.res.x", resolution_index_x, 12);
+static CONFIG_INT("raw.res.x", resolution_index_x, 4);
+static CONFIG_INT("raw.res_x_fine", res_x_fine, 0);
 static CONFIG_INT("raw.aspect.ratio", aspect_ratio_index, 10);
 static CONFIG_INT("raw.write.speed", measured_write_speed, 0);
 
@@ -140,6 +141,7 @@ static int res_x = 0;
 static int res_y = 0;
 static int max_res_x = 0;
 static int max_res_y = 0;
+static int sensor_res_x = 0;
 static float squeeze_factor = 0;
 static int frame_size = 0;
 static int frame_size_real = 0;
@@ -310,7 +312,7 @@ static void update_resolution_params()
     else squeeze_factor = 1.0f;
 
     /* res X */
-    res_x = MIN(resolution_presets_x[resolution_index_x], max_res_x);
+    res_x = MIN(resolution_presets_x[resolution_index_x] + res_x_fine, max_res_x);
 
     /* res Y */
     int num = aspect_ratio_presets_num[aspect_ratio_index];
@@ -474,6 +476,35 @@ static void refresh_raw_settings(int force)
     }
 }
 
+PROP_HANDLER( PROP_LV_AFFRAME ) {
+    ASSERT(len <= 128);
+    if(!lv) return;
+    
+    sensor_res_x = ((int32_t*)buf)[0];
+}
+
+
+static int32_t calc_crop_factor()
+{
+
+    int32_t camera_crop = 162;
+    int32_t sampling_x = 3;
+    
+    if (cam_5d2 || cam_5d3 || cam_6d) camera_crop = 100;
+    
+    //if (cam_500d || cam_50d) sensor_res_x = 4752;
+    //if (cam_eos_m || cam_550d || cam_600d || cam_650d || cam_700d || cam_60d || cam_7d) sensor_res_x = 5184;
+    //if (cam_6d) sensor_res_x = 5472;
+    //if (cam_5d2) sensor_res_x = 5616;
+    //if (cam_5d3) sensor_res_x = 5760;
+    
+    if (video_mode_crop || (lv_dispsize > 1)) sampling_x = 1;
+    
+    if (!sensor_res_x) return 0;
+    
+    return camera_crop * (sensor_res_x / sampling_x) / res_x;
+}
+
 static MENU_UPDATE_FUNC(raw_main_update)
 {
     // reset_movie_cropmarks if raw_rec is disabled
@@ -491,6 +522,8 @@ static MENU_UPDATE_FUNC(raw_main_update)
     else
     {
         MENU_SET_VALUE("ON, %dx%d", res_x, res_y);
+        int32_t crop_factor = calc_crop_factor();
+        if (crop_factor) MENU_SET_RINFO("%s%d.%02dx", FMT_FIXEDPOINT2( crop_factor ));
     }
 
     write_speed_update(entry, info);
@@ -522,11 +555,15 @@ static MENU_UPDATE_FUNC(resolution_update)
         return;
     }
     
+    res_x = resolution_presets_x[resolution_index_x] + res_x_fine;
+       
     refresh_raw_settings(1);
 
-    int selected_x = resolution_presets_x[resolution_index_x];
+    int selected_x = res_x;
 
     MENU_SET_VALUE("%dx%d", res_x, res_y);
+    int crop_factor = calc_crop_factor();
+    if (crop_factor) MENU_SET_RINFO("%s%d.%02dx", FMT_FIXEDPOINT2( crop_factor ));
     
     if (selected_x > max_res_x)
     {
