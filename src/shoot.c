@@ -856,6 +856,21 @@ int focus_box_get_raw_crop_offset(int* delta_x, int* delta_y)
     /* are we in x5/x10 zoom mode? */
     if (lv && lv_dispsize > 1)
     {
+        #ifdef CONFIG_5D3
+        /* might be generic, need to check */
+        uint32_t is_centered_zoom_mode = shamem_read(0xc0f383d4) & 
+                                         shamem_read(0xc0f383dc) & 
+                                         0x80008000;
+        if (is_centered_zoom_mode)
+        {
+            /* zoom mode patched by crop_rec; assume it's centered */
+            /* todo: get the zoom position directly from the above registers? */
+            *delta_x = 0;
+            *delta_y = 0;
+            return 1;
+        }
+        #endif
+
         /* find out where we are inside the raw frame */
         #ifdef CONFIG_DIGIC_V
         uint32_t pos1 = shamem_read(0xc0f09050);
