@@ -45,8 +45,52 @@ enum crop_preset {
  * note: the menu choices are camera-dependent */
 static enum crop_preset crop_preset = 0;
 
-#define CROP_PRESET_3x3_1X 1
-#define CROP_PRESET_3X 2
+/* must be assigned in crop_rec_init */
+static enum crop_preset * crop_presets = 0;
+
+/* current menu selection (*/
+#define CROP_PRESET_MENU crop_presets[crop_preset_index]
+
+/* menu choices for 5D3 */
+static enum crop_preset crop_presets_5d3[] = {
+    CROP_PRESET_OFF,
+    CROP_PRESET_3X,
+    CROP_PRESET_3x3_1X,
+    CROP_PRESET_1x3,
+  //CROP_PRESET_3x1,
+};
+
+static const char * crop_choices_5d3[] = {
+    "OFF",
+    "1:1 (3x)",
+    "3x3 720p (1x wide)",
+    "1x3 binning",
+  //"3x1 binning",      /* doesn't work well */
+};
+
+static const char crop_choices_help_5d3[] =
+    "Change 1080p and 720p movie modes into crop modes (select one)";
+
+static const char crop_choices_help2_5d3[] =
+    "\n"
+    "1:1 sensor readout (square pixels in RAW, 3x crop)\n"
+    "3x3 binning in 720p (square pixels in RAW, vertical crop, ratio 29:10)\n"
+    "1x3 binning: read all lines, bin every 3 columns (extreme anamorphic)\n"
+    "3x1 binning: bin every 3 lines, read all columns (extreme anamorphic)\n";
+
+/* menu choices for EOS M */
+static enum crop_preset crop_presets_eosm[] = {
+    CROP_PRESET_OFF,
+    CROP_PRESET_3x3_1X,
+};
+
+static const char * crop_choices_eosm[] = {
+    "OFF",
+    "3x3 720p",
+};
+
+static const char crop_choices_help_eosm[] =
+    "3x3 binning in 720p (1728x692 with square raw pixels)";
 
 static const char crop_choices_help2_eosm[] =
     "On EOS M, when not recording H264, LV defaults to 720p with 5x3 binning.";
@@ -1212,7 +1256,7 @@ PROP_HANDLER(PROP_LV_ACTION)
 
 static MENU_UPDATE_FUNC(crop_update)
 {
-    if (crop_preset_menu && lv && !is_supported_mode())
+    if (CROP_PRESET_MENU && lv && !is_supported_mode())
     {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "This feature only works in 1080p and 720p video modes.");
     }
@@ -1221,23 +1265,10 @@ static MENU_UPDATE_FUNC(crop_update)
 static struct menu_entry crop_rec_menu[] =
 {
     {
-        .name = "Crop mode",
-        .priv = &crop_preset_menu,
-        .update = crop_update,
-        .max = 3,
-        .choices = CHOICES(
-            "OFF",
-            "3x3 720p (1x wide)",
-            "1:1 (3x)",
-            "1x3 binning",
-            "3x1 binning",      /* doesn't work well */
-        ),
-        .help =
-            "Change 1080p and 720p movie modes into crop modes (select one)\n"
-            "3x3 binning in 720p (square pixels in RAW, vertical crop, ratio 29:10)\n"
-            "1:1 sensor readout (square pixels in RAW, 3x crop)\n"
-            "1x3 binning: read all lines, bin every 3 columns (extreme anamorphic)\n"
-            "3x1 binning: bin every 3 lines, read all columns (extreme anamorphic)\n"
+        .name       = "Crop mode",
+        .priv       = &crop_preset_index,
+        .update     = crop_update,
+        .depends_on = DEP_LIVEVIEW,
     },
 };
 
@@ -1248,11 +1279,11 @@ static int crop_rec_needs_lv_refresh()
         return 0;
     }
 
-    if (crop_preset_menu)
+    if (CROP_PRESET_MENU)
     {
         if (is_supported_mode())
         {
-            if (!patch_active || crop_preset_menu != crop_preset)
+            if (!patch_active || CROP_PRESET_MENU != crop_preset)
             {
                 return 1;
             }
@@ -1471,6 +1502,11 @@ static unsigned int crop_rec_init()
         MEM_ADTG_WRITE = 0xE92D47F0;
         
         is_5D3 = 1;
+        crop_presets                = crop_presets_5d3;
+        crop_rec_menu[0].choices    = crop_choices_5d3;
+        crop_rec_menu[0].max        = COUNT(crop_choices_5d3) - 1;
+        crop_rec_menu[0].help       = crop_choices_help_5d3;
+        crop_rec_menu[0].help2      = crop_choices_help2_5d3;
     }
     else if (is_camera("EOSM", "2.0.2"))
     {
@@ -1481,7 +1517,11 @@ static unsigned int crop_rec_init()
         MEM_ADTG_WRITE = 0xE92D43F8;
         
         is_EOSM = 1;
-        crop_rec_menu[0].max = 1;
+        crop_presets                = crop_presets_eosm;
+        crop_rec_menu[0].choices    = crop_choices_eosm;
+        crop_rec_menu[0].max        = COUNT(crop_choices_eosm) - 1;
+        crop_rec_menu[0].help       = crop_choices_help_eosm;
+        crop_rec_menu[0].help2      = crop_choices_help2_eosm;
     }
     
     menu_add("Movie", crop_rec_menu, COUNT(crop_rec_menu));
