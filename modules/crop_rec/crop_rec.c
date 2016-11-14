@@ -655,6 +655,7 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
         /* don't patch other video modes */
         return;
     }
+    
 
     if (is_5D3 && !is_720p())
     {
