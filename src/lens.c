@@ -553,6 +553,10 @@ PROP_HANDLER( PROP_LV_FOCUS_DONE )
          * after 2 retries */
         NotifyBox(1000, "Focus: soft limit reached");
         lv_focus_error = 1;
+        
+        /* assume the error was handled (e.g. by reversing direction)
+         * and allow 2 retries for the next attempt */
+        retries = 2;
     }
     else
     {
