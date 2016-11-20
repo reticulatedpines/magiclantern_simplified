@@ -2324,6 +2324,12 @@ static void setup_bit_depth()
     {
         EngDrvOut(0xC0F08094, MODE_10BIT);
     }
+    
+    if (bpp != 14)
+    {
+        /* sometimes the first frame after setting up lower bit depth is garbage */
+        wait_lv_frames(2);
+    }
 }
 
 static void restore_bit_depth()
