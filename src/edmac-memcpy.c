@@ -351,6 +351,11 @@ uint32_t raw_write_chan = 0x4;  /* 0x12 gives corrupted frames on 1.2.3, http://
 uint32_t raw_write_chan = 0x12; /* 60D and newer, including all DIGIC V */
 #endif
 
+#ifdef CONFIG_EOSM
+uint32_t raw_write_chan = 0x12;
+#endif
+
+
 static void edmac_slurp_complete_cbr (void* ctx)
 {
     /* set default CBRs again and stop both DMAs */
@@ -389,6 +394,10 @@ void edmac_raw_slurp(void* dst, int w, int h)
     SetEDmac(raw_write_chan, (void*)dst, &dst_edmac_info, dmaFlags);
     
     /* start transfer. no flags for write, 2 for read channels */
+#ifdef CONFIG_EOSM
     StartEDmac(raw_write_chan, 0);
+#else
+    StartEDmac(raw_write_chan, 2);
+#endif
 }
 #endif /* CONFIG_EDMAC_RAW_SLURP */
