@@ -588,8 +588,38 @@ static MENU_UPDATE_FUNC(resolution_update)
     }
 }
 
-static MENU_SELECT_FUNC(resolution_change_fine_value);
-static int32_t calc_crop_factor();
+static MENU_SELECT_FUNC(resolution_change_fine_value)
+{
+    if (!raw_video_enabled || !lv)
+    {
+        return;
+    }
+    
+    if (get_menu_edit_mode()) {
+        /* pickbox: select a preset */
+        resolution_index_x = COERCE(resolution_index_x + delta, 0, COUNT(resolution_presets_x) - 1);
+        res_x_fine = 0;
+        return;
+    }
+    
+    /* fine-tune resolution in small increments */
+    int cur_res = resolution_presets_x[resolution_index_x] + res_x_fine;
+    cur_res = COERCE(cur_res + delta * 32, resolution_presets_x[0], max_res_x); 
+
+    /* select the closest preset */
+    int max_delta = INT_MAX;
+    for (int i = 0; i < COUNT(resolution_presets_x); i++)
+    {
+        int preset_res = resolution_presets_x[i];
+        int delta = MAX(cur_res * 1024 / preset_res, preset_res * 1024 / cur_res);
+        if (delta < max_delta)
+        {
+            resolution_index_x = i;
+            max_delta = delta;
+        }
+    }
+    res_x_fine = cur_res - resolution_presets_x[resolution_index_x];
+}
 
 static MENU_UPDATE_FUNC(aspect_ratio_update)
 {
@@ -2000,39 +2030,6 @@ static MENU_UPDATE_FUNC(raw_playback_update)
         MENU_SET_VALUE(raw_movie_filename + 17);
     else
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Record a video clip first.");
-}
-
-static MENU_SELECT_FUNC(resolution_change_fine_value)
-{
-    if (!raw_video_enabled || !lv)
-    {
-        return;
-    }
-    
-    if (get_menu_edit_mode()) {
-        /* pickbox: select a preset */
-        resolution_index_x = COERCE(resolution_index_x + delta, 0, COUNT(resolution_presets_x) - 1);
-        res_x_fine = 0;
-        return;
-    }
-    
-    /* fine-tune resolution in small increments */
-    int cur_res = resolution_presets_x[resolution_index_x] + res_x_fine;
-    cur_res = COERCE(cur_res + delta * 32, resolution_presets_x[0], max_res_x); 
-
-    /* select the closest preset */
-    int max_delta = INT_MAX;
-    for (int i = 0; i < COUNT(resolution_presets_x); i++)
-    {
-        int preset_res = resolution_presets_x[i];
-        int delta = MAX(cur_res * 1024 / preset_res, preset_res * 1024 / cur_res);
-        if (delta < max_delta)
-        {
-            resolution_index_x = i;
-            max_delta = delta;
-        }
-    }
-    res_x_fine = cur_res - resolution_presets_x[resolution_index_x];
 }
 
 static struct menu_entry raw_video_menu[] =
