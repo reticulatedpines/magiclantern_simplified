@@ -104,7 +104,7 @@ static const char * aspect_ratio_choices[] = {"5:1","4:1","3:1","2.67:1","2.50:1
 
 CONFIG_INT("raw.video.enabled", raw_video_enabled, 0);
 
-static CONFIG_INT("raw.res.x", resolution_index_x, 4);
+static CONFIG_INT("raw.res_x", resolution_index_x, 4);
 static CONFIG_INT("raw.res_x_fine", res_x_fine, 0);
 static CONFIG_INT("raw.aspect.ratio", aspect_ratio_index, 10);
 static CONFIG_INT("raw.write.speed", measured_write_speed, 0);
@@ -534,7 +534,7 @@ static MENU_UPDATE_FUNC(aspect_ratio_update_info)
     if (squeeze_factor == 1.0f)
     {
         char* ratio = guess_aspect_ratio(res_x, res_y);
-        MENU_SET_HELP("%dx%d (%s)", res_x, res_y, ratio);
+        MENU_SET_HELP("%dx%d (%s).", res_x, res_y, ratio);
     }
     else
     {
@@ -575,6 +575,17 @@ static MENU_UPDATE_FUNC(resolution_update)
     }
 
     write_speed_update(entry, info);
+    
+    if (!get_menu_edit_mode())
+    {
+        int len = strlen(info->help);
+        if (len < 20)
+        {
+            snprintf(info->help + len, MENU_MAX_HELP_LEN - len,
+                " Fine-tune with LEFT/RIGHT or top scrollwheel."
+            );
+        }
+    }
 }
 
 static MENU_SELECT_FUNC(resolution_change_fine_value);
@@ -1999,30 +2010,29 @@ static MENU_SELECT_FUNC(resolution_change_fine_value)
     }
     
     if (get_menu_edit_mode()) {
-        if ((delta > 0) && (resolution_index_x < COUNT(resolution_presets_x) - 1)) resolution_index_x += 1;
-        if ((delta < 0) && (resolution_index_x > 0)) resolution_index_x -= 1;
+        /* pickbox: select a preset */
+        resolution_index_x = COERCE(resolution_index_x + delta, 0, COUNT(resolution_presets_x) - 1);
         res_x_fine = 0;
         return;
     }
     
-    uint32_t cur_res = resolution_presets_x[resolution_index_x] + res_x_fine;
-    
-    if (cur_res >= (uint32_t)max_res_x) {
-        cur_res = max_res_x;
-        if (delta < 0) cur_res -= 32;
-    } else if (cur_res <= resolution_presets_x[0]) {
-        cur_res = resolution_presets_x[0];
-        if (delta > 0) cur_res += 32;
-    } else {
-        cur_res += delta * 32;
-    }
-    
-    resolution_index_x = 0;
-    while((resolution_index_x < (COUNT(resolution_presets_x) - 1)) && (resolution_presets_x[resolution_index_x+1] <= cur_res)) {
-        resolution_index_x += 1;
+    /* fine-tune resolution in small increments */
+    int cur_res = resolution_presets_x[resolution_index_x] + res_x_fine;
+    cur_res = COERCE(cur_res + delta * 32, resolution_presets_x[0], max_res_x); 
+
+    /* select the closest preset */
+    int max_delta = INT_MAX;
+    for (int i = 0; i < COUNT(resolution_presets_x); i++)
+    {
+        int preset_res = resolution_presets_x[i];
+        int delta = MAX(cur_res * 1024 / preset_res, preset_res * 1024 / cur_res);
+        if (delta < max_delta)
+        {
+            resolution_index_x = i;
+            max_delta = delta;
+        }
     }
     res_x_fine = cur_res - resolution_presets_x[resolution_index_x];
-    
 }
 
 static struct menu_entry raw_video_menu[] =
