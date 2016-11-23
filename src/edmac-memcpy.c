@@ -105,11 +105,18 @@ void edmac_memcpy_res_unlock()
 
 void* edmac_copy_rectangle_cbr_start(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h, void (*cbr_r)(void*), void (*cbr_w)(void*), void *cbr_ctx)
 {
-    /* dmaFlags are set up for 16 bytes per transfer, and overflow checking seems to be done every 8 bytes */
-    /* widths that are not modulo 8 will cause overflow (the DMA will not stop) */
-    /* do not remove this check, or risk permanent camera bricking */
-    if (dst_width % 8)
+    /* dmaFlags: 16 (DIGIC 5) or 4 (DIGIC 4) bytes per transfer
+     * in order to successfully stop the EDMAC transfer,
+     * w * h must be mod number of bytes per transfer
+     * (not sure why it works that way, found experimentally)
+     *
+     * Do not remove this check, or risk permanent camera bricking.
+     */
+    if ((w * h) % 16)
+    {
+        printf("Invalid EDMAC output size: %d x %d (mod16 = %d)\n", w, h, (w * h) % 16);
         return 0;
+    }
 
     take_semaphore(edmac_memcpy_sem, 0);
     
