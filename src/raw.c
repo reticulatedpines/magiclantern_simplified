@@ -157,6 +157,12 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
  * see also http://www.magiclantern.fm/forum/index.php?topic=5614.msg39696#msg39696
  */
 
+#ifdef CONFIG_DIGIC_V
+#define RAW_TYPE_REGISTER 0xC0F37014
+#else
+#define RAW_TYPE_REGISTER 0xC0F08114    /* PACK32_ISEL */
+#endif
+
 #ifdef CONFIG_5D3
 /**
  * Renato [http://www.magiclantern.fm/forum/index.php?topic=5614.msg41070#msg41070]:
@@ -171,7 +177,6 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
  * note: values are off by 1
  */
 #define PREFERRED_RAW_TYPE 16
-#define RAW_TYPE_ADDRESS 0x2D168
 #endif
 
 /**
@@ -184,12 +189,10 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 /*
 #ifdef CONFIG_700D
 #define PREFERRED_RAW_TYPE 78
-#define RAW_TYPE_ADDRESS 0x351B8
 #endif
 
 #ifdef CONFIG_650D
 #define PREFERRED_RAW_TYPE 78
-#define RAW_TYPE_ADDRESS 0x350B4
 #endif
 */
 
@@ -1544,9 +1547,7 @@ void FAST raw_lv_vsync()
     {
         #ifdef PREFERRED_RAW_TYPE
         /* this needs to be set for every single frame */
-        uint32_t raw_type_register = MEM(RAW_TYPE_ADDRESS-4);
-        ASSERT(raw_type_register == 0xC0F08114 || raw_type_register == 0xC0F37014);
-        EngDrvOut(raw_type_register, lv_raw_type);
+        EngDrvOut(RAW_TYPE_REGISTER, lv_raw_type);
         #endif
 
         /* pull the raw data into "buf" */
