@@ -242,6 +242,9 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
  * http://www.magiclantern.fm/forum/index.php?topic=6658.0
  */
 
+#ifdef CONFIG_60D
+#define PREFERRED_RAW_TYPE 5
+#endif
 /*
 #ifdef CONFIG_700D
 #define PREFERRED_RAW_TYPE 78
