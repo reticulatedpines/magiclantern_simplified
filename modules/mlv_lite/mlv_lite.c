@@ -149,6 +149,9 @@ static CONFIG_INT("raw.small.hacks", small_hacks, 1);
 static CONFIG_INT("raw.h264.proxy", h264_proxy_menu, 0);
 static CONFIG_INT("raw.sync_beep", sync_beep, 1);
 
+static CONFIG_INT("raw.bppi", bpp_index, 2);
+#define BPP (10 + 2*bpp_index)
+
 static CONFIG_INT("raw.output_format", output_format, 3);
 #define OUTPUT_14BIT_NATIVE 0
 #define OUTPUT_12BIT_UNCOMPRESSED 1
@@ -570,7 +573,7 @@ static int calc_res_y(int res_x, int max_res_y, int num, int den, float squeeze)
     }
     
     /* res_x * res_y must be modulo 16 bytes */
-    switch (MOD(res_x * bpp / 8, 8))
+    switch (MOD(res_x * BPP / 8, 8))
     {
         case 0:     /* res_x is modulo 8 bytes, so res_y must be even */
             return res_y & ~1;
@@ -654,18 +657,18 @@ static void update_resolution_params()
     res_y = calc_res_y(res_x, max_res_y, num, den, squeeze_factor);
 
     /* check EDMAC restrictions (W * H multiple of 16 bytes) */
-    ASSERT((res_x * bpp / 8 * res_y) % 16 == 0);
+    ASSERT((res_x * BPP / 8 * res_y) % 16 == 0);
 
     /* frame size */
     /* should be multiple of 512, so there's no write speed penalty (see http://chdk.setepontos.com/index.php?topic=9970 ; confirmed by benchmarks) */
     /* let's try 64 for EDMAC alignment */
     /* 64 at the front for the VIDF header */
     /* 4 bytes after for checking EDMAC operation */
-    int frame_size_padded = (VIDF_HDR_SIZE + (res_x * res_y * bpp/8) + 4 + 511) & ~511;
+    int frame_size_padded = (VIDF_HDR_SIZE + (res_x * res_y * BPP/8) + 4 + 511) & ~511;
     
     /* frame size without padding */
     /* must be multiple of 4 */
-    frame_size_real = res_x * res_y * bpp/8;
+    frame_size_real = res_x * res_y * BPP/8;
     ASSERT(frame_size_real % 4 == 0);
     
     frame_size = frame_size_padded;
@@ -771,7 +774,7 @@ static char* guess_how_many_frames()
 static MENU_UPDATE_FUNC(write_speed_update)
 {
     int fps = fps_get_current_x1000();
-    int speed = (res_x * res_y * bpp/8 / 1024) * fps / 10 / 1024;
+    int speed = (res_x * res_y * BPP/8 / 1024) * fps / 10 / 1024;
     int ok = speed < measured_write_speed;
     speed /= 10;
 
@@ -1058,7 +1061,7 @@ static int setup_buffers()
 {
     /* allocate memory for double buffering */
     /* (we need a single large contiguous chunk) */
-    int buf_size = raw_info.width * raw_info.height * bpp/8 * 33/32; /* leave some margin, just in case */
+    int buf_size = raw_info.width * raw_info.height * BPP/8 * 33/32; /* leave some margin, just in case */
     ASSERT(fullsize_buffers[0] == 0);
     fullsize_buffers[0] = fio_malloc(buf_size);
     
@@ -2022,7 +2025,7 @@ static void FAST process_frame()
 
     //~ printf("saving frame %d: slot %d ptr %x\n", frame_count, capture_slot, ptr);
 
-    int ans = (int) edmac_copy_rectangle_start(ptr, fullSizeBuffer, raw_info.pitch, (skip_x+7)/8*bpp, skip_y/2*2, res_x*bpp/8, res_y);
+    int ans = (int) edmac_copy_rectangle_start(ptr, fullSizeBuffer, raw_info.pitch, (skip_x+7)/8*BPP, skip_y/2*2, res_x*BPP/8, res_y);
 
     /* advance to next frame */
     frame_count++;
@@ -2149,10 +2152,10 @@ static void init_mlv_chunk_headers(struct raw_info * raw_info)
     rawi_hdr.xRes = res_x;
     rawi_hdr.yRes = res_y;
     rawi_hdr.raw_info = *raw_info;
-    rawi_hdr.raw_info.bits_per_pixel = bpp;
-    rawi_hdr.raw_info.pitch = rawi_hdr.raw_info.width * bpp / 8;
-    rawi_hdr.raw_info.black_level = rawi_hdr.raw_info.black_level >> (14 - bpp);
-    rawi_hdr.raw_info.white_level = rawi_hdr.raw_info.white_level >> (14 - bpp);
+    rawi_hdr.raw_info.bits_per_pixel = BPP;
+    rawi_hdr.raw_info.pitch = rawi_hdr.raw_info.width * BPP / 8;
+    rawi_hdr.raw_info.black_level = rawi_hdr.raw_info.black_level >> (14 - BPP);
+    rawi_hdr.raw_info.white_level = rawi_hdr.raw_info.white_level >> (14 - BPP);
     
     mlv_fill_idnt(&idnt_hdr, mlv_start_timestamp);
     mlv_fill_expo(&expo_hdr, mlv_start_timestamp);
@@ -2330,19 +2333,19 @@ static int write_frames(FILE** pf, void* ptr, int size_used, int num_frames)
 
 static void setup_bit_depth()
 {
-    raw_info.bits_per_pixel = bpp;
-    raw_info.pitch = raw_info.width * bpp / 8;
+    raw_info.bits_per_pixel = BPP;
+    raw_info.pitch = raw_info.width * BPP / 8;
     
-    if (bpp == 12)
+    if (BPP == 12)
     {
         EngDrvOut(0xC0F08094, MODE_12BIT);
     }
-    else if (bpp == 10)
+    else if (BPP == 10)
     {
         EngDrvOut(0xC0F08094, MODE_10BIT);
     }
     
-    if (bpp != 14)
+    if (BPP != 14)
     {
         /* sometimes the first frame after setting up lower bit depth is garbage */
         wait_lv_frames(2);
@@ -2354,7 +2357,7 @@ static void restore_bit_depth()
     raw_info.bits_per_pixel = 14;
     raw_info.pitch = raw_info.width * 14 / 8;
     
-    if (bpp != 14)
+    if (BPP != 14)
     {
         EngDrvOut(0xC0F08094, MODE_14BIT);
     }
@@ -2883,15 +2886,6 @@ static MENU_UPDATE_FUNC(raw_playback_update)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Record a video clip first.");
 }
 
-static MENU_SELECT_FUNC(bpp_select)
-{
-    int* val = (int*)priv;
-    
-    *val = *val + delta * 2;
-    if(*val < 10) *val = 14;
-    else if(*val > 14) *val = 10;
-}
-
 static struct menu_entry raw_video_menu[] =
 {
     {
@@ -2920,12 +2914,11 @@ static struct menu_entry raw_video_menu[] =
                 .choices = aspect_ratio_choices,
             },
             {
-                .name = "Bit Depth",
-                .priv = &bpp,
-                .select = bpp_select,
-                .min = 10,
-                .max = 14,
-                .unit = UNIT_DEC
+                .name = "Bit depth",
+                .priv = &bpp_index,
+                .max = 2,
+                .choices = CHOICES("10", "12", "14"),
+                .unit = UNIT_DEC,
             },
             {
                 .name = "Preview",
@@ -3349,4 +3342,5 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(output_format)
     MODULE_CONFIG(h264_proxy_menu)
     MODULE_CONFIG(bpp)
+    MODULE_CONFIG(bpp_index)
 MODULE_CONFIGS_END()
