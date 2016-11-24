@@ -394,10 +394,6 @@ void edmac_raw_slurp(void* dst, int w, int h)
     SetEDmac(raw_write_chan, (void*)dst, &dst_edmac_info, dmaFlags);
     
     /* start transfer. no flags for write, 2 for read channels */
-#ifdef CONFIG_EOSM
     StartEDmac(raw_write_chan, 0);
-#else
-    StartEDmac(raw_write_chan, 2);
-#endif
 }
 #endif /* CONFIG_EDMAC_RAW_SLURP */
