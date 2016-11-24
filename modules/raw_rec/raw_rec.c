@@ -577,6 +577,9 @@ static MENU_UPDATE_FUNC(resolution_update)
     write_speed_update(entry, info);
 }
 
+static MENU_SELECT_FUNC(resolution_change_fine_value);
+static int32_t calc_crop_factor();
+
 static MENU_UPDATE_FUNC(aspect_ratio_update)
 {
     if (!raw_video_enabled || !lv)
@@ -1988,6 +1991,40 @@ static MENU_UPDATE_FUNC(raw_playback_update)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Record a video clip first.");
 }
 
+static MENU_SELECT_FUNC(resolution_change_fine_value)
+{
+    if (!raw_video_enabled || !lv)
+    {
+        return;
+    }
+    
+    if (get_menu_edit_mode()) {
+        if ((delta > 0) && (resolution_index_x < COUNT(resolution_presets_x) - 1)) resolution_index_x += 1;
+        if ((delta < 0) && (resolution_index_x > 0)) resolution_index_x -= 1;
+        res_x_fine = 0;
+        return;
+    }
+    
+    uint32_t cur_res = resolution_presets_x[resolution_index_x] + res_x_fine;
+    
+    if (cur_res >= (uint32_t)max_res_x) {
+        cur_res = max_res_x;
+        if (delta < 0) cur_res -= 32;
+    } else if (cur_res <= resolution_presets_x[0]) {
+        cur_res = resolution_presets_x[0];
+        if (delta > 0) cur_res += 32;
+    } else {
+        cur_res += delta * 32;
+    }
+    
+    resolution_index_x = 0;
+    while((resolution_index_x < (COUNT(resolution_presets_x) - 1)) && (resolution_presets_x[resolution_index_x+1] <= cur_res)) {
+        resolution_index_x += 1;
+    }
+    res_x_fine = cur_res - resolution_presets_x[resolution_index_x];
+    
+}
+
 static struct menu_entry raw_video_menu[] =
 {
     {
@@ -2004,6 +2041,7 @@ static struct menu_entry raw_video_menu[] =
                 .name = "Resolution",
                 .priv = &resolution_index_x,
                 .max = COUNT(resolution_presets_x) - 1,
+                .select = resolution_change_fine_value,
                 .update = resolution_update,
                 .choices = RESOLUTION_CHOICES_X,
             },
@@ -2306,6 +2344,7 @@ MODULE_CBRS_END()
 MODULE_CONFIGS_START()
     MODULE_CONFIG(raw_video_enabled)
     MODULE_CONFIG(resolution_index_x)
+    MODULE_CONFIG(res_x_fine)    
     MODULE_CONFIG(aspect_ratio_index)
     MODULE_CONFIG(measured_write_speed)
     MODULE_CONFIG(dolly_mode)
