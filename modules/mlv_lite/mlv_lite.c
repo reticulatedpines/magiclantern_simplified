@@ -569,9 +569,22 @@ static int calc_res_y(int res_x, int max_res_y, int num, int den, float squeeze)
         res_y = (res_x * den / num + 1);
     }
     
-    res_y = MIN(res_y, max_res_y);
-    
-    return res_y & ~1;
+    /* res_x * res_y must be modulo 16 bytes */
+    switch (MOD(res_x * bpp / 8, 8))
+    {
+        case 0:     /* res_x is modulo 8 bytes, so res_y must be even */
+            return res_y & ~1;
+
+        case 4:     /* res_x is modulo 4 bytes, so res_y must be modulo 4 as well */
+            return res_y & ~3;
+        
+        case 2:
+        case 6:     /* res_x is modulo 2 bytes, so res_y must be modulo 8 */
+            return res_y & ~7;
+
+        default:    /* should be unreachable */
+            return res_y & ~15;
+    }
 }
 
 static void update_cropping_offsets()
@@ -617,8 +630,10 @@ static void update_resolution_params()
     int right_margin = (raw_info.active_area.x2) / 8 * 8;
     int max = (right_margin - left_margin);
     
-    /* horizontal resolution *MUST* be mod 32 in order to use the fastest EDMAC flags (16 byte transfer) */
-    max &= ~31;
+    /* let's keep image width modulo 4 bytes */
+    /* (EDMAC requires W x H to be modulo 16 bytes) */
+    while ((max * bpp / 8) % 4)
+        max--;
     
     max_res_x = max;
     
@@ -638,6 +653,9 @@ static void update_resolution_params()
     int num = aspect_ratio_presets_num[aspect_ratio_index];
     int den = aspect_ratio_presets_den[aspect_ratio_index];
     res_y = calc_res_y(res_x, max_res_y, num, den, squeeze_factor);
+
+    /* check EDMAC restrictions (W * H multiple of 16 bytes) */
+    ASSERT((res_x * bpp / 8 * res_y) % 16 == 0);
 
     /* frame size */
     /* should be multiple of 512, so there's no write speed penalty (see http://chdk.setepontos.com/index.php?topic=9970 ; confirmed by benchmarks) */
@@ -915,7 +933,7 @@ static MENU_SELECT_FUNC(resolution_change_fine_value)
     
     /* fine-tune resolution in small increments */
     int cur_res = resolution_presets_x[resolution_index_x] + res_x_fine;
-    cur_res = COERCE(cur_res + delta * 32, resolution_presets_x[0], max_res_x); 
+    cur_res = COERCE(cur_res + delta * 16, resolution_presets_x[0], max_res_x); 
 
     /* select the closest preset */
     int max_delta = INT_MAX;
