@@ -149,6 +149,7 @@ NSTUB(0xFF325764,  NormalDisplay)
 NSTUB(0xFF325734,  ReverseDisplay)
 
 /** EDMAC **/
+NSTUB(0xFF1C46F8,  AbortEDmac)
 NSTUB(0xFF1C4424,  ConnectReadEDmac)
 NSTUB(0xFF1C4360,  ConnectWriteEDmac)
 NSTUB(0xFF1C47C0,  RegisterEDmacAbortCBR)
@@ -310,7 +311,6 @@ NSTUB(0xFF1DA530,  vsnprintf)
 
 /** Unused stubs or porting notes **/
 ///NSTUB( 0xFF538000, AJ_memset_R0_addr_R1_Len_R2_byteVal ) // bzero32+4
-///NSTUB([idk], AbortEDmac)
 ///NSTUB( 0xff06f7c4, AllocateMemory_do ) // this one won't throw ERR70 on failure
 ///NSTUB(0xFF37479C,  CancelBottomInfoDispTimer)
 ///NSTUB(0xFF0728C0,  CreateBinarySemaphore)                   // called CreateBinarySemaphore

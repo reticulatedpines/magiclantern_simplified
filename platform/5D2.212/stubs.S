@@ -152,6 +152,7 @@ NSTUB(0xFF9A464C,  StartEDmac)
 NSTUB(0xFF9A47F8,  UnregisterEDmacAbortCBR)
 NSTUB(0xFF9A47AC,  UnregisterEDmacCompleteCBR)
 NSTUB(0xFF9A483C,  UnregisterEDmacPopCBR)
+///NSTUB([idk], AbortEDmac)
 
 /** Electronic Level **/
 // NSTUB(    ???,  GUI_SetRollingPitchingLevelStatus)       /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 600D.102, 650D.104, 550D.109, 700D.113 */
@@ -304,7 +305,6 @@ NSTUB(0xFF9B7324,  vsnprintf)
 /** Unused stubs or porting notes **/
 ///NSTUB(0xFF9B96A8,  AJ_UserLevel_task)
 ///NSTUB(0xFF866158,  AJ_Wait_Vsync)
-///NSTUB([idk], AbortEDmac)
 ///NSTUB(0xFF864508,  AsyncEnableImagePhysicalScreenParameter)
 ///NSTUB(0xFFAACD38,  BeginMovieRecSequence)
 ///NSTUB(0xFFAD2828,  ChangeColorPalette)

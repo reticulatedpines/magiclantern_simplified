@@ -142,6 +142,7 @@ NSTUB(0xFF337C8C,  NormalDisplay)                           // might be good (du
 NSTUB(0xFF337C5C,  ReverseDisplay)                          // might be good (dumps=1, score=3.4)
 
 /** EDMAC **/
+NSTUB(0xFF1D391C,  AbortEDmac)
 NSTUB(0xFF1D3648,  ConnectReadEDmac)
 NSTUB(0xFF1D3584,  ConnectWriteEDmac)
 NSTUB(0xFF1D39E4,  RegisterEDmacAbortCBR)
@@ -302,7 +303,6 @@ NSTUB(0xFF1EBFE0,  vsnprintf)                               // might be good (du
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
 
 /** Unused stubs or porting notes **/
-///NSTUB(0xFF1D391C,  AbortEDmac)
 ///NSTUB(0xff0707fc, AllocateMemory_do) // malloc struct at 0x2B48
 ///NSTUB(0xFF2279C0,  ChangeColorPalette)
 ///NSTUB(0xFF31CAD8,  CreateDialogBox)                         // might be good (dumps=1, score=74)

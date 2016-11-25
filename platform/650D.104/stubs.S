@@ -146,6 +146,7 @@ NSTUB(0xFF4D56E8,  NormalDisplay)                           // xref: Normal star
 NSTUB(0xFF4D56B8,  ReverseDisplay)                          // xref: Reverse start
 
 /** EDMAC **/
+NSTUB(0xFFA5EBC4 - RAM_OFFSET,  AbortEDmac)
 NSTUB(0xFFA5E8D0 - RAM_OFFSET,  ConnectReadEDmac)
 NSTUB(0xFFA5E80C - RAM_OFFSET,  ConnectWriteEDmac)
 NSTUB(0xFFA5ED4C - RAM_OFFSET,  RegisterEDmacAbortCBR)
@@ -306,7 +307,6 @@ NSTUB(0xFFA621C4 - RAM_OFFSET,  vsnprintf)                  // not sure it gets 
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
 
 /** Unused stubs or porting notes **/
-///NSTUB(   0x118E4,  AbortEDmac)
 ///NSTUB(0xFF4B341C,  CreateDialogBox)
 ///NSTUB(0xFF4B23E4,  DeleteDialogBox)
 ///NSTUB(0xFF511E88, ErrCardApp_handler) // Unused

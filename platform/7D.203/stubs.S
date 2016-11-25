@@ -152,6 +152,7 @@ NSTUB(0xFF1F5660,  StartEDmac)
 NSTUB(0xFF1F58B8,  UnregisterEDmacAbortCBR)
 NSTUB(0xFF1F5864,  UnregisterEDmacCompleteCBR)
 NSTUB(0xFF1F5994,  UnregisterEDmacPopCBR)
+///NSTUB([idk], AbortEDmac)
 
 /** Electronic Level **/
 NSTUB(0xFF236E9C,  GUI_SetRollingPitchingLevelStatus)
@@ -302,7 +303,6 @@ NSTUB(0xFF209670,  vsnprintf)
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
 
 /** Unused stubs or porting notes **/
-///NSTUB([idk], AbortEDmac)
 ///NSTUB(0xFF06EDD0,  AsyncEnableImagePhysicalScreenParameter)
 ///NSTUB(0xFF2FFD3C,  CreateDialogBox)
 ///NSTUB(0xFF2FF7C4,  DeleteDialogBox)

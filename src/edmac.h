@@ -57,6 +57,7 @@ struct edmac_info
 void EDMAC_Register_Complete_CBR(unsigned int channel, void (*cbr)(), unsigned int ctx);
 void SetEDmac(unsigned int channel, void *address, struct edmac_info *ptr, int flags);
 void StartEDmac(unsigned int channel, int flags);
+void AbortEDmac(unsigned int channel);
 void ConnectWriteEDmac(unsigned int channel, unsigned int where);
 void ConnectReadEDmac(unsigned int channel, unsigned int where);
 unsigned int GetEdmacAddress(unsigned int channel);
