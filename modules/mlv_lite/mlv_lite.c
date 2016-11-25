@@ -630,11 +630,9 @@ static void update_resolution_params()
     int right_margin = (raw_info.active_area.x2) / 8 * 8;
     int max = (right_margin - left_margin);
     
-    /* let's keep image width modulo 4 bytes and 8 pixels */
+    /* max image width is modulo 2 bytes and 8 pixels */
     /* (EDMAC requires W x H to be modulo 16 bytes) */
     /* (processing tools require W modulo 8 pixels for struct raw_pixblock) */
-    while ((max * bpp / 8) % 4)
-        max -= 8;
     
     max_res_x = max;
     
@@ -933,7 +931,7 @@ static MENU_SELECT_FUNC(resolution_change_fine_value)
     }
     
     /* fine-tune resolution in small increments */
-    int cur_res = resolution_presets_x[resolution_index_x] + res_x_fine;
+    int cur_res = (resolution_presets_x[resolution_index_x] + res_x_fine) & ~15;
     cur_res = COERCE(cur_res + delta * 16, resolution_presets_x[0], max_res_x); 
 
     /* select the closest preset */
