@@ -630,10 +630,11 @@ static void update_resolution_params()
     int right_margin = (raw_info.active_area.x2) / 8 * 8;
     int max = (right_margin - left_margin);
     
-    /* let's keep image width modulo 4 bytes */
+    /* let's keep image width modulo 4 bytes and 8 pixels */
     /* (EDMAC requires W x H to be modulo 16 bytes) */
+    /* (processing tools require W modulo 8 pixels for struct raw_pixblock) */
     while ((max * bpp / 8) % 4)
-        max--;
+        max -= 8;
     
     max_res_x = max;
     
