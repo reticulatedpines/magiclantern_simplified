@@ -2328,6 +2328,10 @@ static struct semaphore * mlv_play_sem = 0;
 
 static void mlv_play_task(void *priv)
 {
+    /* we will later restore that value */
+    int old_black_level = raw_info.black_level;
+    int old_bits_per_pixel = raw_info.bits_per_pixel;
+    
     if (take_semaphore(mlv_play_sem, 100))
     {
         NotifyBox(2000, "mlv_play already running");
@@ -2444,6 +2448,10 @@ cleanup:
     mlv_play_delete_requested = 0;
     mlv_play_osd_delete_selected = 0;
     give_semaphore(mlv_play_sem);
+    
+    /* undo black level change */
+    raw_info.black_level = old_black_level;
+    raw_info.bits_per_pixel = old_bits_per_pixel;
 }
 
 
