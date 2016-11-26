@@ -224,60 +224,86 @@ static MENU_UPDATE_FUNC(edmac_display)
 }
 
 
-/* use this to detect unused edmac channels (call from don't click me) */
+/* attempt to detect available edmac channels */
+static volatile int trying_to_lock = 0;
+static volatile int timed_out = 0;
 
-void find_free_edmac_channels()
+static void check_timeout()
 {
+    timed_out = 1;
+
+    if (lv && trying_to_lock)
+    {
+        int key_play = module_translate_key(MODULE_KEY_PLAY, MODULE_KEY_CANON);
+        fake_simple_button(key_play);
+    }
+}
+
+static int try_lock_edmac_channel(uint32_t resource)
+{
+    uint32_t res[] = { resource };
+    struct LockEntry * resLock = CreateResLockEntry(res, 1);
+
+    /* the Lock call will block if the resource is used by someone else */
+    /* to get past it, try to enter PLAY mode after a timeout */
+    delayed_call(1000, check_timeout, 0);
+    timed_out = 0;
+    trying_to_lock = 1;
+    LockEngineResources(resLock);
+    trying_to_lock = 0;
+    UnLockEngineResources(resLock);
+    int success = !timed_out;
+
+    while (!timed_out)
+        msleep(10);
+    
+    return success;
+}
+
+static void find_free_edmac_channels()
+{
+    console_show();
     msleep(2000);
     
-    for (int i = 0; i < 16; i++)
+    for (int ch = 0; ch < 32; ch++)
     {
+        force_liveview();
+        wait_lv_frames(5);
+
+        int dir = edmac_get_dir(ch);
+        int i = edmac_channel_to_index(ch);
+        uint32_t resource = 0;
+        
+        switch (dir)
         {
-            if (!lv) force_liveview();
-            int ch = edmac_index_to_channel(i, EDMAC_DIR_WRITE);
-            
-            bmp_printf(FONT_MED, 50, 50, 
-                "Trying write channel #%d...\n"
-                "Press PLAY if not working", 
-                ch
-            );
-            
-            uint32_t res[] = { 0x00000000 + i }; /* write edmac channel */
-            struct LockEntry * resLock = CreateResLockEntry(res, 1);
-            LockEngineResources(resLock);
-            UnLockEngineResources(resLock);
-            if (lv)
+            case EDMAC_DIR_WRITE:
             {
-                bmp_printf(FONT_MED, 50, 70, "Write channel #%d seems to work", ch);
-                printf("Write channel #%d seems to work\n", ch);
-                beep();
+                printf("Trying write channel #%d... ", ch);
+                resource = 0x00000000 + i; /* write edmac channel */
+                break;
             }
-            msleep(2000);
+            case EDMAC_DIR_READ:
+            {
+                printf("Trying read channel #%d... ", ch);
+                resource = 0x00010000 + i; /* read edmac channel */
+                break;
+            }
+            default:
+            {
+                printf("Skipping unused channel #%d...\n", ch);
+                continue;
+            }
         }
+
+        if (try_lock_edmac_channel(resource))
         {
-            if (!lv) force_liveview();
-            int ch = edmac_index_to_channel(i, EDMAC_DIR_READ);
-            
-            bmp_printf(FONT_MED, 50, 50, 
-                "Trying read channel #%d...\n"
-                "Press PLAY if not working", 
-                ch
-            );
-            
-            uint32_t res[] = { 0x00010000 + i }; /* read edmac channel */
-            struct LockEntry * resLock = CreateResLockEntry(res, 1);
-            LockEngineResources(resLock);
-            UnLockEngineResources(resLock);
-            if (lv)
-            {
-                bmp_printf(FONT_MED, 50, 70, "Read channel #%d seems to work", ch);
-                printf("Read channel #%d seems to work\n", ch);
-                beep();
-            }
-            msleep(2000);
+            printf("seems to work!\n");
+        }
+        else
+        {
+            printf("\n");
         }
     }
-    console_show();
 }
 
 static struct menu_entry edmac_menu[] =
@@ -305,7 +331,7 @@ static struct menu_entry edmac_menu[] =
                 .name   = "Find free EDMAC channels",
                 .select = run_in_separate_task,
                 .priv   = find_free_edmac_channels,
-                .help   = "Useful to find which channels can be used in current camera mode.\n",
+                .help   = "Useful to find which channels can be used in LiveView.\n",
             },
             MENU_EOL
         }
