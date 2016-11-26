@@ -169,10 +169,18 @@ static CONFIG_INT("mlv.preview", preview_mode, 0);
 static CONFIG_INT("mlv.warm_up", warm_up, 0);
 static CONFIG_INT("mlv.use_srm_memory", use_srm_memory, 1);
 static CONFIG_INT("mlv.small_hacks", small_hacks, 1);
-static CONFIG_INT("mlv.create_dirs", create_dirs, 0);
+static CONFIG_INT("mlv.create_dirs", create_dirs, 0); 
 static CONFIG_INT("mlv.bpp", bpp_mode, 2);
 
 static uint32_t bits_per_pixel[] = { 10, 12, 14 };
+
+/* for PACK16_MODE, DSUNPACK_MODE, ADUNPACK_MODE (mask 0x131) */
+#define MODE_16BIT 0x130
+#define MODE_14BIT 0x030
+#define MODE_12BIT 0x010
+#define MODE_10BIT 0x000
+
+
 
 static int start_delay = 0;
 
@@ -181,6 +189,7 @@ static int32_t res_x = 0;
 static int32_t res_y = 0;
 static int32_t max_res_x = 0;
 static int32_t max_res_y = 0;
+static int32_t sensor_res_x = 0;
 static float squeeze_factor = 0;
 static int32_t frame_size = 0;
 static int32_t skip_x = 0;
@@ -662,7 +671,7 @@ static void update_resolution_params()
 
     /* frame size without rounding */
     /* must be multiple of 4 */
-    frame_size = res_x * res_y * 14/8;
+    frame_size = res_x * res_y * bits_per_pixel[bpp_mode]/8;
     ASSERT(frame_size % 4 == 0);
 
     update_cropping_offsets();
@@ -795,7 +804,7 @@ static char* guess_how_many_frames()
 static MENU_UPDATE_FUNC(write_speed_update)
 {
     int32_t fps = fps_get_current_x1000();
-    int32_t speed = (res_x * res_y * 14/8 / 1024) * fps / 10 / 1024;
+    int32_t speed = (res_x * res_y * bits_per_pixel[bpp_mode] / 8 / 1024) * fps / 10 / 1024;
     int32_t ok = speed < measured_write_speed;
     speed /= 10;
 
@@ -833,7 +842,6 @@ static void refresh_raw_settings(int32_t force)
 
 static int32_t calc_crop_factor()
 {
-
     int sensor_res_x = raw_capture_info.sensor_res_x;
     int camera_crop  = raw_capture_info.sensor_crop;
     int sampling_x   = raw_capture_info.binning_x + raw_capture_info.skipping_x;
@@ -1162,7 +1170,7 @@ static int32_t setup_buffers()
 
     /* allocate memory for double buffering */
     /* (we need a single large contiguous chunk) */
-    uint32_t buf_size = raw_info.width * raw_info.height * 14/8 * 33/32; /* leave some margin, just in case */
+    uint32_t buf_size = raw_info.width * raw_info.height * bits_per_pixel[bpp_mode] / 8 * 33/32; /* leave some margin, just in case */
     ASSERT(fullsize_buffers[0] == 0);
     fullsize_buffers[0] = fio_malloc(buf_size);
     
@@ -2306,7 +2314,7 @@ static int32_t FAST process_frame()
     }
     
     mlv_rec_dma_active = 1;
-    edmac_copy_rectangle_cbr_start(ptr, raw_info.buffer, raw_info.pitch, (skip_x+7)/8*14, skip_y/2*2, res_x*14/8, 0, 0, res_x*14/8, res_y, &mlv_rec_dma_cbr_r, &mlv_rec_dma_cbr_w, NULL);
+    edmac_copy_rectangle_cbr_start(ptr, raw_info.buffer, raw_info.width*bits_per_pixel[bpp_mode]/8, (skip_x+7)/8*bits_per_pixel[bpp_mode], skip_y/2*2, res_x*bits_per_pixel[bpp_mode]/8, 0, 0, res_x*bits_per_pixel[bpp_mode]/8, res_y, &mlv_rec_dma_cbr_r, &mlv_rec_dma_cbr_w, NULL);
     mlv_rec_dma_start = get_us_clock();
 
     /* copy current frame to our buffer and crop it to its final size */
@@ -2537,6 +2545,12 @@ static int32_t mlv_write_rawi(FILE* f, struct raw_info raw_info)
     rawi.xRes = res_x;
     rawi.yRes = res_y;
     rawi.raw_info = raw_info;
+    
+    /* overwrite bpp relevant information */
+    rawi.raw_info.bits_per_pixel = bits_per_pixel[bpp_mode];
+    rawi.raw_info.pitch = rawi.raw_info.width * bits_per_pixel[bpp_mode] / 8;
+    rawi.raw_info.black_level = raw_info.black_level >> (14 - bits_per_pixel[bpp_mode]);
+    rawi.raw_info.white_level = raw_info.white_level >> (14 - bits_per_pixel[bpp_mode]);
 
     return mlv_write_hdr(f, (mlv_hdr_t *)&rawi);
 }
@@ -3327,7 +3341,21 @@ static void raw_video_rec_task()
 
     hack_liveview(0);
 
-
+    /* now overwrite PACK32_MODE */
+    switch(bits_per_pixel[bpp_mode])
+    {
+        case 10:
+            EngDrvOut(0xC0F08094, MODE_10BIT);
+            break;
+            
+        case 12:
+            EngDrvOut(0xC0F08094, MODE_12BIT);
+            break;
+            
+        default:
+            break;
+    }
+    
     do
     {
         /* get exclusive access to our edmac channels */
@@ -3746,7 +3774,19 @@ cleanup:
     {
         raw_tag_take++;
     }
-
+    
+    /* now undo changes to PACK32_MODE */
+    switch(bits_per_pixel[bpp_mode])
+    {
+        case 10:
+        case 12:
+            EngDrvOut(0xC0F08094, MODE_14BIT);
+            break;
+            
+        default:
+            break;
+    }
+    
     hack_liveview(1);
     redraw();
 
@@ -3894,7 +3934,7 @@ PROP_HANDLER(PROP_ROLLING_PITCHING_LEVEL)
 static MENU_SELECT_FUNC(raw_tag_str_start)
 {
     strcpy(raw_tag_str_tmp, raw_tag_str);
-    ime_base_start((unsigned char *)"Enter text", (unsigned char *)raw_tag_str_tmp, sizeof(raw_tag_str_tmp)-1, IME_UTF8, IME_CHARSET_ANY, NULL, raw_tag_str_done, 0, 0, 0, 0);
+    ime_base_start((char *)"Enter text", (char *)raw_tag_str_tmp, sizeof(raw_tag_str_tmp)-1, IME_UTF8, IME_CHARSET_ANY, NULL, raw_tag_str_done, 0, 0, 0, 0);
 }
 
 static MENU_UPDATE_FUNC(raw_tag_str_update)
@@ -3960,7 +4000,7 @@ static struct menu_entry raw_video_menu[] =
         .update = raw_main_update,
         .submenu_width = 710,
         .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
-        .help = "Record 14-bit RAW video. Press LiveView to start.",
+        .help = "Record RAW video. Press LiveView to start.",
         .children =  (struct menu_entry[]) {
             {
                 .name = "Resolution",
@@ -3976,6 +4016,12 @@ static struct menu_entry raw_video_menu[] =
                 .max = COUNT(aspect_ratio_presets_num) - 1,
                 .update = aspect_ratio_update,
                 .choices = aspect_ratio_choices,
+            },
+            {
+                .name = "Bit Depth",
+                .priv = &bpp_mode,
+                .max = 2,
+                .choices = CHOICES("10bpp", "12bpp", "14bpp"),
             },
             {
                 .name = "Create Directory",
@@ -4365,7 +4411,7 @@ static unsigned int raw_rec_init()
 
     if(cam_5d2 || cam_50d)
     {
-       raw_video_menu[0].help = "Record 14-bit RAW video. Press SET to start.";
+       raw_video_menu[0].help = "Record RAW video. Press SET to start.";
     }
 
     menu_add("Movie", raw_video_menu, COUNT(raw_video_menu));
@@ -4436,6 +4482,7 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(mlv_video_enabled)
     MODULE_CONFIG(resolution_index_x)
     MODULE_CONFIG(res_x_fine)
+    MODULE_CONFIG(bpp_mode)
     MODULE_CONFIG(aspect_ratio_index)
     MODULE_CONFIG(measured_write_speed)
     MODULE_CONFIG(allow_frame_skip)
