@@ -4,6 +4,8 @@
 #include <bmp.h>
 #include <menu.h>
 #include <console.h>
+#include <shoot.h>
+#include <beep.h>
 #include <edmac.h>
 
 static int edmac_selection;
@@ -222,18 +224,88 @@ static MENU_UPDATE_FUNC(edmac_display)
 }
 
 
+/* use this to detect unused edmac channels (call from don't click me) */
+
+void find_free_edmac_channels()
+{
+    msleep(2000);
+    
+    for (int i = 0; i < 16; i++)
+    {
+        {
+            if (!lv) force_liveview();
+            int ch = edmac_index_to_channel(i, EDMAC_DIR_WRITE);
+            
+            bmp_printf(FONT_MED, 50, 50, 
+                "Trying write channel #%d...\n"
+                "Press PLAY if not working", 
+                ch
+            );
+            
+            uint32_t res[] = { 0x00000000 + i }; /* write edmac channel */
+            struct LockEntry * resLock = CreateResLockEntry(res, 1);
+            LockEngineResources(resLock);
+            UnLockEngineResources(resLock);
+            if (lv)
+            {
+                bmp_printf(FONT_MED, 50, 70, "Write channel #%d seems to work", ch);
+                printf("Write channel #%d seems to work\n", ch);
+                beep();
+            }
+            msleep(2000);
+        }
+        {
+            if (!lv) force_liveview();
+            int ch = edmac_index_to_channel(i, EDMAC_DIR_READ);
+            
+            bmp_printf(FONT_MED, 50, 50, 
+                "Trying read channel #%d...\n"
+                "Press PLAY if not working", 
+                ch
+            );
+            
+            uint32_t res[] = { 0x00010000 + i }; /* read edmac channel */
+            struct LockEntry * resLock = CreateResLockEntry(res, 1);
+            LockEngineResources(resLock);
+            UnLockEngineResources(resLock);
+            if (lv)
+            {
+                bmp_printf(FONT_MED, 50, 70, "Read channel #%d seems to work", ch);
+                printf("Read channel #%d seems to work\n", ch);
+                beep();
+            }
+            msleep(2000);
+        }
+    }
+    console_show();
+}
+
 static struct menu_entry edmac_menu[] =
 {
     {
-        .name = "Show EDMAC",
+        .name   = "EDMAC tools",
         .select = menu_open_submenu,
-        .help = "Useful for finding image buffers.",
         .children =  (struct menu_entry[]) {
             {
-                .name = "EDMAC display",
-                .priv = &edmac_selection,
-                .max = 49,
-                .update = edmac_display,
+                .name       = "Show EDMAC channels",
+                .select     = menu_open_submenu,
+                .icon_type  = IT_ACTION,
+                .help       = "Useful for finding image buffers.",
+                .children =  (struct menu_entry[]) {
+                    {
+                        .name   = "EDMAC display",
+                        .priv   = &edmac_selection,
+                        .max    = 49,
+                        .update = edmac_display,
+                    },
+                    MENU_EOL
+                },
+            },
+            {
+                .name   = "Find free EDMAC channels",
+                .select = run_in_separate_task,
+                .priv   = find_free_edmac_channels,
+                .help   = "Useful to find which channels can be used in current camera mode.\n",
             },
             MENU_EOL
         }
