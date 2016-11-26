@@ -25,6 +25,8 @@
 
 #define IGNORE_CONNECT_POLL
 
+static void edmac_test_format_size(void);
+
 /* Machine class */
 
 typedef struct {
@@ -1221,6 +1223,8 @@ static void eos_init_common(MachineState *machine)
     /* init MPU */
     mpu_spells_init(s);
 
+    edmac_test_format_size();
+
     if ((strcmp(s->model->name, "7D2M") == 0) ||
         (strcmp(s->model->name, "7D2S") == 0))
     {
@@ -2262,9 +2266,174 @@ static int edmac_fix_off1(EOSState *s, int32_t off)
 {
     /* the value is signed, but the number of bits is model-dependent */
     int off1_bits = (s->model->digic_version <= 4) ? 17 : 
-                    (s->model->digic_version == 5) ? 23 : 0;
+                    (s->model->digic_version == 5) ? 19 : 0;
     assert(off1_bits);
     return off << (32-off1_bits) >> (32-off1_bits);
+}
+
+static char * edmac_format_size_3(
+    int x, int off
+)
+{
+    static char buf[32];
+    snprintf(buf, sizeof(buf),
+        off ? "%d, skip %d" : x ? "%d" : "",
+        x, off
+    );
+    return buf;
+}
+
+static char * edmac_format_size_2(
+    int y, int x,
+    int off1, int off2
+)
+{
+    static char buf[64]; buf[0] = 0;
+    if (off1 == off2)
+    {
+        char * inner = edmac_format_size_3(x, off1);
+        snprintf(buf, sizeof(buf),
+            y == 0 ? "%s" : strchr(inner, ' ') ? "(%s) x %d" : "%sx%d",
+            inner, y+1
+        );
+    }
+    else
+    {
+        /* y may be executed never, once or many times */
+        if (y)
+        {
+            char * inner1 = edmac_format_size_3(x, off1);
+            snprintf(buf, sizeof(buf),
+                y == 0 ? "%s" : strchr(inner1, ' ') ? "(%s) x %d" : "%sx%d",
+                inner1, y
+            );
+        }
+        
+        /* y is executed once */
+        char * inner2 = edmac_format_size_3(x, off2);
+        STR_APPEND(buf, "%s%s", buf[0] && inner2[0] ? ", " : "", inner2);
+    }
+    return buf;
+}
+
+static char * edmac_format_size_1(
+    int y, int xn, int xa, int xb,
+    int off1a, int off1b, int off2, int off3
+)
+{
+    static char buf[128]; buf[0] = 0;
+    if (xa == xb && off1a == off1b && off2 == off3)
+    {
+        char * inner = edmac_format_size_2(y, xa, off1a, off2);
+        snprintf(buf, sizeof(buf),
+            xn == 0 ? "%s" : strchr(inner, ' ') ? "(%s) x %d" : "%sx%d",
+            inner, xn+1
+        );
+    }
+    else
+    {
+        /* xa may be executed never, once or many times */
+        if (xn)
+        {
+            char * inner1 = edmac_format_size_2(y, xa, off1a, off2);
+            snprintf(buf, sizeof(buf),
+                xn == 1 ? "%s" : strchr(inner1, ' ') ? "(%s) x %d" : "%sx%d",
+                inner1, xn
+            );
+        }
+        
+        /* xb is executed once */
+        char * inner2 = edmac_format_size_2(y, xb, off1b, off3);
+        STR_APPEND(buf, "%s%s",
+            !(buf[0] && inner2[0]) ? "" :   /* no separator needed */
+            strlen(buf) > 20 && strlen(inner2) > 20 ? ",\n  " : ", ",   /* newline for long strings */
+            inner2
+        );
+    }
+    return buf;
+}
+
+static char * edmac_format_size(
+    int yn, int ya, int yb, int xn, int xa, int xb,
+    int off1a, int off1b, int off2a, int off2b, int off3
+)
+{
+#if 0
+    const char * names[] = { "yn", "ya", "yb", "xn", "xa", "xb", "off1a", "off1b", "off2a", "off2b", "off3" };
+    int values[] = { yn, ya, yb, xn, xa, xb, off1a, off1b, off2a, off2b, off3 };
+    int len = 0;
+    for (int i = 0; i < COUNT(values); i++)
+        if (values[i])
+            len += printf("%s=%d, ", names[i], values[i]);
+    printf("\b\b: ");
+    for (int i = 0; i < 45 - len; i++)
+        printf(" ");
+    if (len > 45)
+        printf("\n  ");
+#endif
+
+    static char buf[256]; buf[0] = 0;
+    
+    if (ya == yb && off2a == off2b)
+    {
+        char * inner = edmac_format_size_1(ya, xn, xa, xb, off1a, off1b, off2a, off3);
+        snprintf(buf, sizeof(buf),
+            yn == 0 ? "%s" : strchr(inner, ' ') ? "(%s) x %d" : "%sx%d",
+            inner, yn+1
+        );
+    }
+    else
+    {
+        /* ya may be executed never, once or many times */
+        if (yn)
+        {
+            char * inner1 = edmac_format_size_1(ya, xn, xa, xb, off1a, off1b, off2a, off3);
+            snprintf(buf, sizeof(buf),
+                yn == 1 ? "%s" : strchr(inner1, ' ') ? "(%s) x %d" : "%sx%d",
+                inner1, yn
+            );
+        }
+        
+        /* yb is executed once */
+        /* setting the last offset to off1b usually simplifies the formula */
+        char * inner2 = edmac_format_size_1(yb, xn, xa, xb, off1a, off1b, off2b, off3 ? off3 : off1b);
+        STR_APPEND(buf, "%s%s",
+            !(buf[0] && inner2[0]) ? "" :   /* no separator needed */
+            strlen(buf) > 20 && strlen(inner2) > 20 ? ",\n  " : ", ",   /* newline for long strings */
+            inner2
+        );
+    }
+    return buf;
+}
+
+static void edmac_test_format_size(void)
+{
+    return;
+
+    printf("EDMAC format tests:\n");
+    printf("%s\n", edmac_format_size(0, 0, 0x1df, 0, 0, 0x2d0,      0, 0, 0, 0, 0));
+    printf("%s\n", edmac_format_size(0, 0, 0x1df, 0, 0, 0x2d0,      0, 100, 0, 0, 0));
+    printf("%s\n", edmac_format_size(0, 0, 0, 0x1df, 0x2d0, 0x2d0,  0, 0, 0, 0, 0));
+    printf("%s\n", edmac_format_size(0, 0, 0, 0x1000, 0x1000, 0,    0, 0, 0, 0, 0));
+    printf("%s\n", edmac_format_size(0, 0, 0, 0x12, 0x1000, 0xC00,  0, 0, 0, 0, 0));
+    printf("%s\n", edmac_format_size(0, 0, 0xfff, 0x7, 0x20, 0x20,  0, 0, 0, 0, 0));
+    printf("%s\n", edmac_format_size(0, 0, 0xb3f, 0x2, 0xf0, 0xf0,  0, 0, 0, 0, 0));
+    printf("%s\n", edmac_format_size(0, 0, 0, 1055, 3276, 32,       0, 0, 0, 0, 0));
+    printf("%s\n", edmac_format_size(0, 0, 10, 95, 3276, 3276,      0, 0, 0, 0, 0));
+    printf("%s\n", edmac_format_size(3, 0,  7, 95, 3276, 3276,      0, 0, 0, 0, 0));
+    printf("%s\n", edmac_format_size(33,0, 62, 10, 3276, 3276,      0, 0, 0, 0, 0));
+    printf("%s\n", edmac_format_size(5, 2,  3, 10, 3276, 3276,      0, 0, 0, 0, 0));
+    printf("%s\n", edmac_format_size(3, 6,  5, 10, 3276, 3276,      0, 0, 0, 0, 0));
+    printf("%s\n", edmac_format_size(3, 7,  5, 10, 3276, 3276,      0, 0, 0, 0, 0));
+    printf("%s\n", edmac_format_size(8, 9,  7, 10, 3276, 3276,      0, 0, 0, 0, 0));
+    printf("%s\n", edmac_format_size(3, 28, 8, 10, 3276, 3276,      0, 0, 0, 0, 0));
+    printf("%s\n", edmac_format_size(3, 28, 8, 10, 3276, 3276,      0, 100, 0, 0, 0));
+    printf("%s\n", edmac_format_size(3, 28, 8, 10, 3276, 3276,      44, 100, 0, 0, 0));
+    printf("%s\n", edmac_format_size(3, 28, 8, 10, 3276, 1638,      44, 100, 172, 196, 1236));
+    printf("%s\n", edmac_format_size(0, 0, 3839, 2, 768, 768,       0x2a00, 0x2a00, 0, 0xfd5d2d00, 0));
+    printf("%s\n", edmac_format_size(137, 7, 7, 15, 320, 320,      -320,-320,-320,-320,-320));
+    printf("%s\n", edmac_format_size(479, 0, 0, 9, 40, 40,          360, 360, 32, 32, 32));
+    exit(1);
 }
 
 /* 1 on success, 0 = no data available yet (should retry) */
@@ -2300,53 +2469,50 @@ static int edmac_do_transfer(EOSState *s, int channel)
     
     printf(" #%d, ", conn);
 
-    /* Hypothesis:
+    /* Hypothesis
+     * ==========
      * 
-     * - run A=(xa x ya+1) N=xn times
-     * - then run B=(xb x yb+1) once
+     * (
+     *    ((xa, skip off1a) * ya, xa, skip off2a) * xn
+     *     (xb, skip off1b) * ya, xb, skip off3
+     * ) * yn,
      * 
-     * Why?
+     * (
+     *    ((xa, skip off1a) * yb, xa, skip off2b) * xn
+     *     (xb, skip off1b) * yb, xb, skip off3
+     * )
      * 
-     * edmac_setup_size(6, 76800):
-     *   [0xC0F0460C] <- 0x12      : yn|xn
-     *   [0xC0F04610] <- 0xC00     : yb|xb
-     *   [0xC0F04614] <- 0x1000    : ya|xa
-     * 0x1000 x 0x12 + 0xC00 = 76800
      */
 
-    if (s->edmac.ch[channel].xa || s->edmac.ch[channel].ya)
-    {
-        printf("A:%dx%dx%d", s->edmac.ch[channel].xa, s->edmac.ch[channel].ya+1, s->edmac.ch[channel].xn);
-        if (s->edmac.ch[channel].off1a) printf(" rowskip=0x%X", s->edmac.ch[channel].off1a);
-        printf(", ");
-    }
-    if (s->edmac.ch[channel].xb || s->edmac.ch[channel].yb)
-    {
-        printf("B:%dx%d", s->edmac.ch[channel].xb, s->edmac.ch[channel].yb+1);
-        if (s->edmac.ch[channel].off1b) printf(" rowskip=0x%X", s->edmac.ch[channel].off1b);
-        printf(", ");
-    }
+    int xa = s->edmac.ch[channel].xa;
+    int ya = s->edmac.ch[channel].ya;
+    int xb = s->edmac.ch[channel].xb;
+    int yb = s->edmac.ch[channel].yb;
+    int xn = s->edmac.ch[channel].xn;
+    int yn = s->edmac.ch[channel].yn;
+    int off1a = edmac_fix_off1(s, s->edmac.ch[channel].off1a);
+    int off1b = edmac_fix_off1(s, s->edmac.ch[channel].off1b);
+    int off2a = s->edmac.ch[channel].off2a;
+    int off2b = s->edmac.ch[channel].off2b;
+    int off3  = s->edmac.ch[channel].off3;
+    int flags = s->edmac.ch[channel].flags;
     
-    printf("flags=0x%X\n", s->edmac.ch[channel].flags);
+    printf("%s, ", edmac_format_size(yn, ya, yb, xn, xa, xb, off1a, off1b, off2a, off2b, off3));
 
-    /* unknown meaning */
-    assert(s->edmac.ch[channel].off1c == 0);
-    assert(s->edmac.ch[channel].off2a == 0);
-    assert(s->edmac.ch[channel].off2b == 0);
-    assert(s->edmac.ch[channel].off3 == 0);
-    assert(s->edmac.ch[channel].yn == 0);
+    printf("flags=0x%X\n", flags);
 
-    int na = s->edmac.ch[channel].xn;
-    int wa = s->edmac.ch[channel].xa;
-    int ha = s->edmac.ch[channel].ya + 1;
-    int32_t offa = edmac_fix_off1(s, s->edmac.ch[channel].off1a);
-
-    int wb = s->edmac.ch[channel].xb;
-    int hb = s->edmac.ch[channel].yb + 1;
-    int32_t offb = edmac_fix_off1(s, s->edmac.ch[channel].off1b);
+    /* actual amount of data transferred */
+    uint32_t transfer_data_size =
+        (xa * (ya+1) * xn + xb * (ya+1)) * yn +
+        (xa * (yb+1) * xn + xb * (yb+1));
     
-    uint32_t transfer_size = wa * ha * na + wb * hb;
-    
+    /* total size covered, including offsets */
+    uint32_t transfer_data_skip_size =
+        (((xa + off1a) * ya + xa + off2a) * xn +
+         ((xb + off1b) * ya + xb + off3)) * yn +
+        (((xa + off1a) * yb + xa + off2b) * xn +
+          (xb + off1b) * yb + xb + off3);
+
     if (channel & 8)
     {
         /* from memory to image processing modules */
@@ -2354,7 +2520,7 @@ static int edmac_do_transfer(EOSState *s, int channel)
         
         /* repeated transfers will append to existing buffer */
         uint32_t old_size = s->edmac.conn_data[conn].data_size;
-        uint32_t new_size = old_size + transfer_size;
+        uint32_t new_size = old_size + transfer_data_size;
         if (s->edmac.conn_data[conn].buf)
         {
             printf("[EDMAC] conn #%d: data size %d -> %d.\n",
@@ -2362,25 +2528,28 @@ static int edmac_do_transfer(EOSState *s, int channel)
             );
         }
         s->edmac.conn_data[conn].buf = realloc(s->edmac.conn_data[conn].buf, new_size );
-        void * ptr = s->edmac.conn_data[conn].buf + old_size;
+        void * dst = s->edmac.conn_data[conn].buf + old_size;
         s->edmac.conn_data[conn].data_size = new_size;
         
-        for (int k = 0; k < na; k++)
+        for (int jn = 0; jn <= yn; jn++)
         {
-            for (int i = 0; i < ha; i++)
+            int y     = (jn < yn) ? ya    : yb;
+            int off2  = (jn < yn) ? off2a : off2b;
+            for (int in = 0; in <= xn; in++)
             {
-                cpu_physical_memory_read(src, ptr, wa);
-                src += wa + offa;
-                ptr += wa;
+                int x     = (in < xn) ? xa    : xb;
+                int off1  = (in < xn) ? off1a : off1b;
+                int off23 = (in < xn) ? off2  : off3;
+                for (int j = 0; j <= y; j++)
+                {
+                    int off = (j < y) ? off1 : off23;
+                    cpu_physical_memory_read(src, dst, x);
+                    src += x + off;
+                    dst += x;
+                }
             }
         }
-        for (int i = 0; i < hb; i++)
-        {
-            cpu_physical_memory_read(src, ptr, wb);
-            src += wb + offb;
-            ptr += wb;
-        }
-        printf("[EDMAC#%d] %dx%dx%d + %dx%d bytes read from %X-%X, off=%d,%d.\n", channel, wa, ha, na, wb, hb, s->edmac.ch[channel].addr, src-offb-1, offa, offb);
+        printf("[EDMAC#%d] %d bytes read from %X-%X.\n", channel, transfer_data_size, s->edmac.ch[channel].addr, s->edmac.ch[channel].addr + transfer_data_skip_size);
     }
     else
     {
@@ -2390,8 +2559,8 @@ static int edmac_do_transfer(EOSState *s, int channel)
         if (conn == 0)
         {
             /* sensor data? */
-            s->edmac.conn_data[conn].buf = malloc(transfer_size);
-            s->edmac.conn_data[conn].data_size = transfer_size;
+            s->edmac.conn_data[conn].buf = malloc(transfer_data_size);
+            s->edmac.conn_data[conn].data_size = transfer_data_size;
 
             /* todo: autodetect all DNG files and cycle between them */
             char filename[100];
@@ -2402,21 +2571,21 @@ static int edmac_do_transfer(EOSState *s, int channel)
                 printf("Loading photo raw data from %s...\n", filename);
                 /* fixme: hardcoded DNG offset */
                 fseek(f, 33792, SEEK_SET);
-                assert(fread(s->edmac.conn_data[conn].buf, 1, transfer_size, f) == transfer_size);
+                assert(fread(s->edmac.conn_data[conn].buf, 1, transfer_data_size, f) == transfer_data_size);
                 fclose(f);
-                reverse_bytes_order(s->edmac.conn_data[conn].buf, transfer_size);
+                reverse_bytes_order(s->edmac.conn_data[conn].buf, transfer_data_size);
             }
             else
             {
                 printf("%s not found; generating random noise\n", filename);
-                for (int i = 0; i < transfer_size; i++)
+                for (int i = 0; i < transfer_data_size; i++)
                 {
                     ((uint8_t*)s->edmac.conn_data[conn].buf)[i] = rand();
                 }
             }
         }
         
-        if (s->edmac.conn_data[conn].data_size < transfer_size)
+        if (s->edmac.conn_data[conn].data_size < transfer_data_size)
         {
             printf("[EDMAC#%d] Data %s; will try again later.\n", channel,
                 s->edmac.conn_data[conn].data_size ? "incomplete" : "unavailable"
@@ -2425,25 +2594,31 @@ static int edmac_do_transfer(EOSState *s, int channel)
         }
         assert(s->edmac.conn_data[conn].buf);
 
-        void * ptr = s->edmac.conn_data[conn].buf;
-        for (int k = 0; k < na; k++)
+        void * src = s->edmac.conn_data[conn].buf;
+
+        for (int jn = 0; jn <= yn; jn++)
         {
-            for (int i = 0; i < ha; i++)
+            int y     = (jn < yn) ? ya    : yb;
+            int off2  = (jn < yn) ? off2a : off2b;
+            for (int in = 0; in <= xn; in++)
             {
-                cpu_physical_memory_write(dst, ptr, wa);
-                dst += wa + offa;
-                ptr += wa;
+                int x     = (in < xn) ? xa    : xb;
+                int off1  = (in < xn) ? off1a : off1b;
+                int off23 = (in < xn) ? off2  : off3;
+                for (int j = 0; j <= y; j++)
+                {
+                    int off = (j < y) ? off1 : off23;
+                    cpu_physical_memory_write(dst, src, x);
+                    src += x;
+                    dst += x + off;
+                }
             }
-        }
-        for (int i = 0; i < hb; i++)
-        {
-            cpu_physical_memory_write(dst, ptr, wb);
-            dst += wb + offb;
-            ptr += wb;
-        }
+        }        
+        assert(src - s->edmac.conn_data[conn].buf == transfer_data_size);
+        assert(dst - s->edmac.ch[channel].addr == transfer_data_skip_size);
 
         uint32_t old_size = s->edmac.conn_data[conn].data_size;
-        uint32_t new_size = old_size - transfer_size;
+        uint32_t new_size = old_size - transfer_data_size;
 
         if (new_size)
         {
@@ -2451,7 +2626,7 @@ static int edmac_do_transfer(EOSState *s, int channel)
              * shift the remaining data for use with subsequent transfers
              * (a little slow, kinda reinventing a FIFO)
              */
-            memmove(s->edmac.conn_data[conn].buf, s->edmac.conn_data[conn].buf + transfer_size, new_size);
+            memmove(s->edmac.conn_data[conn].buf, s->edmac.conn_data[conn].buf + transfer_data_size, new_size);
             s->edmac.conn_data[conn].buf = realloc(s->edmac.conn_data[conn].buf, new_size);
             s->edmac.conn_data[conn].data_size = new_size;
             printf("[EDMAC] conn #%d: data size %d -> %d.\n",
@@ -2465,8 +2640,11 @@ static int edmac_do_transfer(EOSState *s, int channel)
             s->edmac.conn_data[conn].data_size = 0;
         }
         
-        printf("[EDMAC#%d] %dx%dx%d + %dx%d bytes written to %X-%X, off=%d,%d.\n", channel, wa, ha, na, wb, hb, s->edmac.ch[channel].addr, dst-offb-1, offa, offb);
+        printf("[EDMAC#%d] %d bytes written to %X-%X.\n", channel, transfer_data_size, s->edmac.ch[channel].addr, s->edmac.ch[channel].addr + transfer_data_skip_size);
     }
+
+    /* return end address when reading back the register */
+    s->edmac.ch[channel].addr += transfer_data_skip_size;
     
     edmac_trigger_interrupt(s, channel);
     return 1;
@@ -2610,12 +2788,13 @@ unsigned int eos_handle_edmac ( unsigned int parm, EOSState *s, unsigned int add
             break;
 
         case 0x18:
+            msg = "off1b";
             MMIO_VAR(s->edmac.ch[channel].off1b);
             break;
 
         case 0x1C:
-            msg = "off1c";
-            MMIO_VAR(s->edmac.ch[channel].off1c);
+            msg = "off2b";
+            MMIO_VAR(s->edmac.ch[channel].off2b);
             break;
 
         case 0x20:

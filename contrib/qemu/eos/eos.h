@@ -168,7 +168,6 @@ typedef struct
     uint16_t yn;
     uint32_t off1a;
     uint32_t off1b;
-    uint32_t off1c;
     uint32_t off2a;
     uint32_t off2b;
     uint32_t off3;
