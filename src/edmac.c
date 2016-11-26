@@ -148,6 +148,16 @@ uint32_t edmac_get_address(uint32_t channel)
     return shamem_read(edmac_get_base(channel) + 0x08);
 }
 
+uint32_t edmac_get_pointer(uint32_t channel)
+{
+    if (channel >= NUM_EDMAC_CHANNELS)
+    {
+        return -1;
+    }
+
+    return MEM(edmac_get_base(channel) + 0x08);
+}
+
 uint32_t edmac_get_length(uint32_t channel)
 {
     if (channel >= NUM_EDMAC_CHANNELS)
