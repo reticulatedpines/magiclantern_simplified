@@ -810,23 +810,18 @@ static void edmac_display_page(int i0, int x0, int y0)
         int ch = i0 + i;
 
         uint32_t addr = edmac_get_address(ch);
-        union edmac_size_t
-        {
-            struct { uint16_t x, y; } size;
-            uint32_t raw;
-        };
-
-        union edmac_size_t size = (union edmac_size_t) edmac_get_length(ch);
 
         int state = edmac_get_state(ch);
 
-        if (addr && size.size.x > 0 && size.size.y > 0)
+        struct edmac_info info = edmac_get_info(ch);
+        char * sz = edmac_format_size(&info);
+        if (strlen(sz) <= 10)
         {
-            snprintf(msg, sizeof(msg), "[%2d] %8x: %dx%d", ch, addr, size.size.x, size.size.y);
+            snprintf(msg, sizeof(msg), "[%2d] %8x: %s", ch, addr, sz);
         }
         else
         {
-            snprintf(msg, sizeof(msg), "[%2d] %8x: %x", ch, addr, size.raw);
+            snprintf(msg, sizeof(msg), "[%2d] %8x: %d", ch, addr, edmac_get_total_size(&info, 0));
         }
 
         if (state != 0 && state != 1)
@@ -929,17 +924,19 @@ static void edmac_display_detailed(int channel)
     
     uint32_t conn_w  = edmac_get_connection(channel, EDMAC_DIR_WRITE);
     uint32_t conn_r  = edmac_get_connection(channel, EDMAC_DIR_READ);
+
+    struct edmac_info info = edmac_get_info(channel);
     
     int fh = fontspec_font(FONT_MONO_20)->height;
 
     bmp_printf(FONT_MONO_20, 50, y += fh, "Address    : %8x ", addr);
     bmp_printf(FONT_MONO_20, 50, y += fh, "State      : %8x ", state);
     bmp_printf(FONT_MONO_20, 50, y += fh, "Flags      : %8x ", flags);
+    bmp_printf(FONT_MONO_20, 50, y += fh, "Size       : %s ", edmac_format_size(&info));
     y += fh;
     bmp_printf(FONT_MONO_20, 50, y += fh, "Size A     : %8x (%d x %d) ", size_a.raw, size_a.size.x, size_a.size.y);
     bmp_printf(FONT_MONO_20, 50, y += fh, "Size B     : %8x (%d x %d) ", size_b.raw, size_b.size.x, size_b.size.y);
     bmp_printf(FONT_MONO_20, 50, y += fh, "Size N     : %8x (%d x %d) ", size_n.raw, size_n.size.x, size_n.size.y);
-    y += fh;
     bmp_printf(FONT_MONO_20, 50, y += fh, "off1a      : %8x ", off1a);
     bmp_printf(FONT_MONO_20, 50, y += fh, "off1b      : %8x ", off1b);
     bmp_printf(FONT_MONO_20, 50, y += fh, "off2a      : %8x ", off2a);
