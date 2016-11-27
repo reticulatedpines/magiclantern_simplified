@@ -3670,6 +3670,7 @@ static void sdio_read_data(SDIOState *sd)
     }
 
     sd->status |= SDIO_STATUS_DATA_AVAILABLE;
+    sd->dma_transferred_bytes = sd->dma_count;
 }
 
 static void sdio_write_data(SDIOState *sd)
@@ -3705,6 +3706,7 @@ static void sdio_write_data(SDIOState *sd)
 
     /* not sure */
     sd->status |= SDIO_STATUS_DATA_AVAILABLE;
+    sd->dma_transferred_bytes = sd->dma_count;
 }
 
 void sdio_trigger_interrupt(EOSState *s, SDIOState *sd)
@@ -3747,10 +3749,13 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
 
         case 0x0C:
             msg = "Command flags?";
-            MMIO_VAR(s->sd.cmd_flags);
-
             if(type & MODE_WRITE)
             {
+                /* must return 0? something else?
+                 * maybe clear some flags after executing a command?
+                 */
+                s->sd.cmd_flags = value;
+                
                 /* reset status before doing any command */
                 s->sd.status = 0;
                 
@@ -3759,6 +3764,10 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
                 
                 if (value == 0x14 || value == 0x4)
                 {
+                    /* read transfer */
+                    s->sd.pio_transferred_bytes = 0;
+                    s->sd.dma_transferred_bytes = 0;
+                    
                     if (s->sd.dma_enabled)
                     {
                         /* DMA read transfer */
@@ -3769,11 +3778,17 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
                     {
                         /* PIO read transfer */
                         s->sd.status |= SDIO_STATUS_DATA_AVAILABLE;
-                        s->sd.pio_transferred_bytes = 0;
                     }
                 }
                 else
                 {
+                    if (value == 0x13)  /* also 0x03? */
+                    {
+                        /* write transfer */
+                        s->sd.pio_transferred_bytes = 0;
+                        s->sd.dma_transferred_bytes = 0;
+                    }
+
                     /* non-data or write transfer */
                     sdio_trigger_interrupt(s,&s->sd);
                 }
@@ -3955,7 +3970,19 @@ unsigned int eos_handle_sddma ( unsigned int parm, EOSState *s, unsigned int add
             break;
         case 0x04:
             msg = "Transfer byte count";
-            MMIO_VAR(s->sd.dma_count);
+            if (type & MODE_WRITE)
+            {
+                s->sd.dma_count = value;
+            }
+            else
+            {
+                ret = (s->sd.dma_enabled)
+                    ? s->sd.dma_transferred_bytes
+                    : s->sd.pio_transferred_bytes;
+                
+                /* fixme: M3 fails with the above */
+                ret = 0;
+            }
             break;
         case 0x10:
             msg = "Flags/Status";

@@ -78,6 +78,7 @@ typedef struct
     uint32_t dma_enabled;
     uint32_t dma_addr;
     uint32_t dma_count;
+    uint32_t dma_transferred_bytes;
     uint32_t pio_transferred_bytes;
     uint32_t response[5];
     uint32_t status;
