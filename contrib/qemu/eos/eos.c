@@ -2885,6 +2885,12 @@ unsigned int eos_handle_edmac_chsw ( unsigned int parm, EOSState *s, unsigned in
     
     /* fixme: reads not implemented */
     assert(type & MODE_WRITE);
+    
+    if (value == 0x80000000)
+    {
+        /* ?! used on M3 */
+        goto end;
+    }
 
     /* 0xC0F05020 - 0xC0F050E0: read edmac connections */
     /* 0xC0F05000 - 0xC0F0501C: write channel connections for channels 0-6, then 16 */
@@ -2955,6 +2961,7 @@ unsigned int eos_handle_edmac_chsw ( unsigned int parm, EOSState *s, unsigned in
         }
     }
 
+end:
     io_log("CHSW", s, address, type, value, ret, msg, msg_arg1, msg_arg2);
     return ret;
 }
