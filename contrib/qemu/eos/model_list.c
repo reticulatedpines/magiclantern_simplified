@@ -66,7 +66,7 @@ struct eos_model_desc eos_model_list[] = {
         .atcm_size              = 0x00001000,
         .btcm_addr              = 0x40000000,
         .btcm_size              = 0x00001000,
-        .io_mem_size            = 0x10000000,
+        .io_mem_size            = 0x20000000,
         .firmware_start         = 0xFF0C0000,
         .bootflags_addr         = 0xF8000000,
         .current_task_name_offs = 0x09,
@@ -146,7 +146,6 @@ struct eos_model_desc eos_model_list[] = {
         .digic_version          = 5,
         .mpu_request_register   = 0xC022006C,
         .serial_flash_size      = 0x1000000,
-        .io_mem_size            = 0x20000000,
     },
     {
         .name                   = "7D",

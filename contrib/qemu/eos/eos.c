@@ -186,6 +186,10 @@ EOSRegionHandler eos_handlers[] =
     { "DMA2",         0xC0A20000, 0xC0A200FF, eos_handle_dma, 2 },
     { "DMA3",         0xC0A30000, 0xC0A300FF, eos_handle_dma, 3 },
     { "DMA4",         0xC0A40000, 0xC0A400FF, eos_handle_dma, 4 },
+    { "DMA5",         0xC0A50000, 0xC0A500FF, eos_handle_dma, 5 },
+    { "DMA6",         0xC0A60000, 0xC0A600FF, eos_handle_dma, 6 },
+    { "DMA7",         0xC0A70000, 0xC0A700FF, eos_handle_dma, 7 },
+    { "DMA8",         0xC0A80000, 0xC0A800FF, eos_handle_dma, 8 },
     { "CHSW",         0xC0F05000, 0xC0F05FFF, eos_handle_edmac_chsw, 0 },
     { "EDMAC",        0xC0F04000, 0xC0F04FFF, eos_handle_edmac, 0 },
     { "EDMAC",        0xC0F26000, 0xC0F26FFF, eos_handle_edmac, 1 },
@@ -2205,6 +2209,17 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
 #endif
             break;
 
+        case 0x320C:
+            msg = "Eeko WakeUp";
+            if (type & MODE_WRITE)
+            {
+                if (value == 7)
+                {
+                    eos_trigger_int(s, 0x111, 0);
+                }
+            }
+            break;
+
         // 100D Set_AVS
         case 0xC288:
         case 0xC28C:
@@ -2568,7 +2583,7 @@ static int edmac_do_transfer(EOSState *s, int channel)
         /* from image processing modules to memory */
         uint32_t dst = s->edmac.ch[channel].addr;
         
-        if (conn == 0)
+        if (conn == 0 || conn == 35)
         {
             /* sensor data? */
             s->edmac.conn_data[conn].buf = malloc(transfer_data_size);
@@ -2625,7 +2640,7 @@ static int edmac_do_transfer(EOSState *s, int channel)
                     dst += x + off;
                 }
             }
-        }        
+        }
         assert(src - s->edmac.conn_data[conn].buf == transfer_data_size);
         assert(dst - s->edmac.ch[channel].addr == transfer_data_skip_size);
 
@@ -3158,7 +3173,7 @@ unsigned int eos_handle_head ( unsigned int parm, EOSState *s, unsigned int addr
             {
                 if (value == 0xC)
                 {
-                    eos_trigger_int(s, interrupts[parm], 5);
+                    eos_trigger_int(s, interrupts[parm], 50);
                 }
             }
             break;
@@ -3238,7 +3253,7 @@ unsigned int eos_handle_dma ( unsigned int parm, EOSState *s, unsigned int addre
     static unsigned int srcAddr = 0;
     static unsigned int dstAddr = 0;
     static unsigned int count = 0;
-    unsigned int interruptId[] = { 0x00, 0x2f, 0x74, 0x75, 0x76 };
+    unsigned int interruptId[] = { 0x00, 0x2f, 0x74, 0x75, 0x76, 0xA0, 0xA1, 0xA8, 0xA9 };
 
     switch(address & 0xFF)
     {

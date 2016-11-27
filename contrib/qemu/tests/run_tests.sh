@@ -129,7 +129,7 @@ echo "Testing FA_CaptureTestImage..."
 # Models able to display some Canon GUI should capture a still picture as well.
 # This requires a full-res silent picture at qemu/<camera>/VRAM/PH-QR/RAW-000.DNG.
 # Currently working on 60D and 1200D.
-for CAM in 60D 1200D; do
+for CAM in 5D3 60D 1200D; do
     printf "%5s: " $CAM
 
     mkdir -p tests/$CAM/
