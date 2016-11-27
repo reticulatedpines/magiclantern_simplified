@@ -2256,6 +2256,18 @@ static void edmac_trigger_interrupt(EOSState* s, int channel)
         0x9D, 0x9E, 0x9F, 0xA5, 0x00, 0x00, 0x00, 0x00, /* read channels 12..15, 4 unused positions */
     };
 
+#if 0
+    for (int i = 0; i < COUNT(edmac_interrupts); i++)
+    {
+        int isr = edmac_interrupts[i];
+        if (isr)
+        {
+            printf("    [0x%02X] = \"EDMAC#%d\",\n", isr, i);
+        }
+    }
+    exit(1);
+#endif
+
     assert(channel >= 0 && channel < COUNT(edmac_interrupts));
     assert(edmac_interrupts[channel]);
     
