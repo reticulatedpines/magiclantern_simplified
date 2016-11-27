@@ -1339,6 +1339,7 @@ void io_log(const char * module_name, EOSState *s, unsigned int address, unsigne
     }
     
     unsigned int pc = s->cpu->env.regs[15];
+    unsigned int lr = s->cpu->env.regs[14];
     if (!module_name) module_name = "???";
     if (!msg) msg = "???";
     
@@ -1355,7 +1356,7 @@ void io_log(const char * module_name, EOSState *s, unsigned int address, unsigne
         task_name[MAX(5, 15 - (int)strlen(mod_name))] = 0;
         char spaces[] = "           ";
         spaces[MAX(0, 15 - (int)strlen(mod_name) - (int)strlen(task_name))] = 0;
-        snprintf(mod_name_and_pc, sizeof(mod_name_and_pc), "%s%s at %s:%08X", mod_name, spaces, task_name, pc);
+        snprintf(mod_name_and_pc, sizeof(mod_name_and_pc), "%s%s at %s:%08X:%08X", mod_name, spaces, task_name, pc, lr);
     }
     else
     {
