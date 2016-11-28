@@ -271,10 +271,10 @@ index c2a85c7..2671a2c 100644
  DEF_HELPER_3(set_cp_reg64, void, env, ptr, i64)
  DEF_HELPER_2(get_cp_reg64, i64, env, ptr)
 diff --git a/target-arm/op_helper.c b/target-arm/op_helper.c
-index 6cd54c8..acacc37 100644
+index 6cd54c8..46b07cf 100644
 --- a/target-arm/op_helper.c
 +++ b/target-arm/op_helper.c
-@@ -474,6 +474,123 @@ void HELPER(set_cp_reg)(CPUARMState *env, void *rip, uint32_t value)
+@@ -474,6 +474,144 @@ void HELPER(set_cp_reg)(CPUARMState *env, void *rip, uint32_t value)
      ri->writefn(env, ri, value);
  }
  
@@ -338,6 +338,27 @@ index 6cd54c8..acacc37 100644
 +    if (strcmp(ri->name, "DSB") == 0)
 +    {
 +        return;
++    }
++    
++    /* CACHEMAINT registers come in very large groups;
++     * just display how many calls there were.
++     * fixme: if there are MRC calls, the display order may be wrong
++     */
++    static int cachemaint_count = 0;
++    static uint32_t cachemaint_pc = 0;
++    if (strcmp(ri->name, "CACHEMAINT") == 0)
++    {
++        cachemaint_pc = env->regs[15];
++        cachemaint_count++;
++        return;
++    }
++    else
++    {
++        if (cachemaint_count)
++        {
++            fprintf(stderr, "%08X: MCR p%d, ...          : CACHEMAINT x%d (omitted)\n", cachemaint_pc, ri->cp, cachemaint_count);
++            cachemaint_count = 0;
++        }
 +    }
 +
 +    if (strncmp(ri->name, "946_PRBS", 8) == 0 &&
