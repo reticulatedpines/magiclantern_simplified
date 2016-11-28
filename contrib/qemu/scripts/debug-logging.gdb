@@ -181,6 +181,15 @@ define DebugMsg1_log
   end
 end
 
+define printf_log
+  commands
+    silent
+    print_current_location
+    print_formatted_string $r1 $r2 $r3 *(int*)$sp *(int*)($sp+4) *(int*)($sp+8) *(int*)($sp+12) *(int*)($sp+16) *(int*)($sp+20)
+    c
+  end
+end
+
 # log task_create calls
 define task_create_log
   commands

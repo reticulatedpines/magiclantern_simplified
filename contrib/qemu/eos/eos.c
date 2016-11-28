@@ -1078,7 +1078,9 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
 
     vmstate_register_ram_global(&s->ram);
 
-    const char* cpu_name = (s->model->digic_version == 6) ? "arm-digic6-eos" : "arm946eos";
+    const char* cpu_name = (s->model->digic_version >= 6)
+        ? "arm-digic6-eos"
+        : "arm946eos";
     
     s->cpu = cpu_arm_init(cpu_name);
     if (!s->cpu)
@@ -1248,7 +1250,25 @@ static void eos_init_common(MachineState *machine)
         s->cpu->env.regs[15] = eos_get_mem_w(s, 0xFC000000);
         printf("Start address: 0x%08X\n", s->cpu->env.regs[15]);
     }
-    
+
+    if (strcmp(s->model->name, "5D3eeko") == 0)
+    {
+        /* see EekoBltDmac calls (5D3 1.1.3)
+         * EekoBltDmac(0x0, 0xd0288000, 0xff99541c, 0x6b8c,  0xff508e78, 0x0), from ff508f30
+         * EekoBltDmac(0x0, 0x1e80000,  0xff99c164, 0x10e8,  0xff508e78, 0x0), from ff508fd0
+         * EekoBltDmac(0x0, 0x1e00000,  0xff8bf888, 0x4ef14, 0xff217de8, 0x0), from ff217e34
+         * EekoBltDmac(0x0, 0xd0280000, 0xff99bfa8, 0x1bc,   0xff508e78, 0x0), from ff508fd0
+         */
+
+        eos_load_image(s, "5D3eeko/0.BIN",        0, 0, 0,          0); /* 0x006b8c bytes from 0xff99541c (mapped to address 0) */
+        eos_load_image(s, "5D3eeko/1E00000.DMP",  0, 0, 0x1E00000,  0); /* 0x140000 bytes from 0x1E00000, dumped after taking a photo */
+        eos_load_image(s, "5D3eeko/1E00000.BIN",  0, 0, 0x1E00000,  0); /* 0x04ef14 bytes from 0xff8bf888 (overwrites part of DMP) */
+        eos_load_image(s, "5D3eeko/1E80000.BIN",  0, 0, 0x1E80000,  0); /* 0x0010e8 bytes from 0xff99c164 (overwrites part of DMP) */
+        eos_load_image(s, "5D3eeko/D0280000.BIN", 0, 0, 0x40000000, 0); /* 0x0001bc bytes from 0xff99bfa8 (not sure about destination address) */
+        s->cpu->env.regs[15] = 0;
+        s->cpu->env.thumb = 1;
+    }
+
     /* hijack machine option "firmware" to pass command-line parameters */
     /* fixme: better way to expose machine-specific options? */
     QemuOpts *machine_opts = qemu_get_machine_opts();

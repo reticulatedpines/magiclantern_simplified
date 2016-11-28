@@ -138,6 +138,21 @@ struct eos_model_desc eos_model_list[] = {
         .cf_dma_interrupt       = 0xE3,
     },
     {
+        /* started on request on photo taking, raw develop and others;
+         * see EekoBltDmac, Eeko WakeUp; runs Thumb-2 code */
+        .name                   = "5D3eeko",
+        .digic_version          = 7,            /* hack to get an empty configuration */
+        .ram_size               = 0x00100000,   /* unknown, mapped to 0xD0288000 on main CPU*/
+        .ram_extra_addr         = 0x01E00000,   /* mapped to the same address on main CPU */
+        .ram_extra_size         = 0x00200000,   /* 1E0-1F0, 1F0-1F2, 1F2-1F4 (I/O; fixme) */
+        .caching_bit            = 0x80000000,   /* unused */
+        .io_mem_size            = 0x40000000,   /* really? */
+        .atcm_addr              = 0x00000000,   /* not sure, shouldn't do any harm */
+        .atcm_size              = 0x00010000,
+        .btcm_addr              = 0x40000000,   /* not sure, appears used, but no memory region configured */
+        .btcm_size              = 0x00010000,
+    },
+    {
         .name                   = "650D",
         .digic_version          = 5,
     },

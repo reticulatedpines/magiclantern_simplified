@@ -12,7 +12,7 @@ POWERSHOT_CAMS=( EOSM3 A1100 )
 
 GUI_CAMS=( 60D 5D3 550D 600D 1200D 1100D )
 
-EOS_SECONDARY_CORES=( 5D4AE 7D2S )
+EOS_SECONDARY_CORES=( 5D3eeko 5D4AE 7D2S )
 
 if false ; then
     # to test only specific models
@@ -57,7 +57,7 @@ for CAM in ${EOS_CAMS[*]} ${EOS_SECONDARY_CORES[*]}; do
     ( timeout 5 tail -f -n0 tests/$CAM/boot.log & ) | grep --binary-files=text -qP "\x1B\x5B31mD\x1B\x5B0m\x1B\x5B31mY\x1B\x5B0m"
     killall -INT qemu-system-arm &>> tests/$CAM/boot.log
     
-    tests/check_grep.sh tests/$CAM/boot.log -E "([KR].* (READY|AECU)|Intercom)"
+    tests/check_grep.sh tests/$CAM/boot.log -E "([KR].* (READY|AECU)|Intercom|Dry)"
 done
 
 # These cameras should display some Canon GUI:
