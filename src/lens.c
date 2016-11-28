@@ -1112,8 +1112,18 @@ PROP_HANDLER(PROP_LENS)
     lens_info.lens_focal_min = (info[5] << 8) | info[6];
     lens_info.lens_focal_max = (info[7] << 8) | info[8];
     lens_info.lens_extender = info[0xE];
-    lens_info.lens_version = (info[0x19] << 16) | (info[0x1A] << 8) | info[0x1B];
-    lens_info.lens_capabilities = info[0x1C];
+    
+    /* not all models support this feature */
+    if(len >= 0x1C)
+    {
+        lens_info.lens_version = (info[0x19] << 16) | (info[0x1A] << 8) | info[0x1B];
+        lens_info.lens_capabilities = info[0x1C];
+    }
+    else
+    {
+        lens_info.lens_version = 0;
+        lens_info.lens_capabilities = 0;
+    }
     #endif
     
     if (lens_info.raw_aperture < lens_info.raw_aperture_min || lens_info.raw_aperture > lens_info.raw_aperture_max)
