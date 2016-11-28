@@ -1093,14 +1093,27 @@ PROP_HANDLER( PROP_LENS_NAME )
 PROP_HANDLER(PROP_LENS)
 {
     uint8_t* info = (uint8_t *) buf;
+    
     #ifdef CONFIG_5DC
+    lens_info.lens_exists = 0;
     lens_info.raw_aperture_min = info[2];
     lens_info.raw_aperture_max = info[3];
     lens_info.lens_id = 0;
+    lens_info.lens_focal_min = 0;
+    lens_info.lens_focal_max = 0;
+    lens_info.lens_extender = 0;
+    lens_info.lens_version = 0;
+    lens_info.lens_capabilities = 0;
     #else
+    lens_info.lens_exists = info[0];
     lens_info.raw_aperture_min = info[1];
     lens_info.raw_aperture_max = info[2];
-    lens_info.lens_id = info[4] | (info[5] << 8);
+    lens_info.lens_id = (info[3] << 8) | info[4];
+    lens_info.lens_focal_min = (info[5] << 8) | info[6];
+    lens_info.lens_focal_max = (info[7] << 8) | info[8];
+    lens_info.lens_extender = info[0xE];
+    lens_info.lens_version = (info[0x19] << 16) | (info[0x1A] << 8) | info[0x1B];
+    lens_info.lens_capabilities = info[0x1C];
     #endif
     
     if (lens_info.raw_aperture < lens_info.raw_aperture_min || lens_info.raw_aperture > lens_info.raw_aperture_max)
@@ -1637,9 +1650,98 @@ static struct menu_entry lens_menus[] = {
     #endif
 };
 
+static MENU_UPDATE_FUNC(lens_name_display)
+{
+    if(!lens_info.lens_exists)
+    {
+        MENU_SET_VALUE("(no lens)");
+        return;
+    }
+    MENU_SET_VALUE("%s", lens_info.name );
+}
+
+static MENU_UPDATE_FUNC(lens_id_display)
+{
+    if(!lens_info.lens_exists)
+    {
+        MENU_SET_VALUE("(no lens)");
+        return;
+    }
+    MENU_SET_VALUE("0x%04X", lens_info.lens_id );
+}
+
+static MENU_UPDATE_FUNC(lens_extender_display)
+{
+    if(!lens_info.lens_exists)
+    {
+        MENU_SET_VALUE("(no lens)");
+        return;
+    }
+    MENU_SET_VALUE("0x%02X", lens_info.lens_extender );
+}
+
+static MENU_UPDATE_FUNC(lens_version_display)
+{
+    uint8_t v2 = lens_info.lens_version >> 16;
+    uint8_t v1 = lens_info.lens_version >> 8;
+    uint8_t v0 = lens_info.lens_version;
+    
+    if(!lens_info.lens_exists)
+    {
+        MENU_SET_VALUE("(no lens)");
+        return;
+    }
+    
+    if(lens_info.lens_version)
+    {
+        MENU_SET_VALUE("v%d.%d.%d", v2, v1, v0);
+    }
+    else
+    {
+        MENU_SET_VALUE("(none)");
+    }
+}
+
+static MENU_UPDATE_FUNC(lens_capabilities_display)
+{
+    if(!lens_info.lens_exists)
+    {
+        MENU_SET_VALUE("(no lens)");
+        return;
+    }
+    MENU_SET_VALUE("0x%02X", lens_info.lens_capabilities);
+}
+
+static MENU_UPDATE_FUNC(lens_focal_display)
+{
+    char *unit = "mm";
+    float factor = 1.0f;
+    
+    if(!lens_info.lens_exists)
+    {
+        MENU_SET_VALUE("(no lens)");
+        return;
+    }
+    
+    if(focus_units == 1)
+    {
+        unit = "in";
+        factor = 1/2.54;
+    }
+    
+    if(lens_info.lens_focal_min == lens_info.lens_focal_max)
+    {
+        MENU_SET_VALUE("%d %s", (int)(lens_info.lens_focal_min * factor), unit);
+    }
+    else
+    {
+        MENU_SET_VALUE("%d-%d %s", (int)(lens_info.lens_focal_min * factor), (int)(lens_info.lens_focal_max * factor), unit);
+    }
+}
+
 static struct menu_entry tweak_menus[] = {
    {
-        .name = "Lens Info Prefs",
+        .name = "Lens Info/Prefs",
         .select   = menu_open_submenu,
         .children =  (struct menu_entry[]) {
             #ifndef CONFIG_FULLFRAME
@@ -1658,6 +1760,36 @@ static struct menu_entry tweak_menus[] = {
                 .choices = CHOICES("mm/cm", "ft/in"),
                 .max = 1,
                 .help  = "Can select between Metric and Imperial focus distance units",
+            },
+            {
+                .name = "Name",
+                .update = &lens_name_display,
+                .help  = "Show current lens name",
+            },
+            {
+                .name = "Focal len",
+                .update = &lens_focal_display,
+                .help  = "Show current lens focal length",
+            },
+            {
+                .name = "ID",
+                .update = &lens_id_display,
+                .help  = "Show current lens ID",
+            },
+            {
+                .name = "Version",
+                .update = &lens_version_display,
+                .help  = "Show current lens version string",
+            },
+            {
+                .name = "Capability bits",
+                .update = &lens_capabilities_display,
+                .help  = "Show current lens capability bits",
+            },
+            {
+                .name = "Extender",
+                .update = &lens_extender_display,
+                .help  = "Show current lens extender information byte",
             },
             MENU_EOL
         },

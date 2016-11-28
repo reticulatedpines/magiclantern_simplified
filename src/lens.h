@@ -78,6 +78,14 @@ struct lens_info
         int                     dof_diffraction_blur;   /* fixme: move those near other DOF fields on next API update */
         //~ float                   lens_rotation;
         //~ float                   lens_step;
+        
+        /* those were retrieved from PROP_LENS property */
+        uint8_t                 lens_exists;
+        uint16_t                lens_focal_min;
+        uint16_t                lens_focal_max;
+        uint8_t                 lens_extender;
+        uint8_t                 lens_capabilities;
+        uint32_t                lens_version;
 };
 
 extern struct lens_info lens_info;
