@@ -10,6 +10,7 @@
 #include "bmp.h"
 #include "tskmon.h"
 #include "menu.h"
+#include "crop-mode-hack.h"
 
 /* for CBRs */
 #include "config.h"
@@ -350,7 +351,7 @@ MENU_UPDATE_FUNC(tasks_print)
 static void ml_shutdown()
 {
     check_pre_shutdown_flag();
-
+    movie_crop_hack_disable();
     ml_shutdown_requested = 1;
     
     info_led_on();
