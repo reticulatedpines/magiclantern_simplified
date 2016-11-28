@@ -437,7 +437,7 @@ static void *eos_interrupt_thread(void *parm)
         {
             if (s->HPTimers[pos].active && s->HPTimers[pos].output_compare == s->digic_timer)
             {
-                if (qemu_loglevel_mask(LOG_IO)) {
+                if (qemu_loglevel_mask(EOS_LOG_IO)) {
                     printf("[HPTimer] Firing HPTimer #%d\n", pos);
                 }
                 s->HPTimers[pos].triggered = 1;
@@ -1363,7 +1363,7 @@ static char* get_current_task_name(EOSState *s)
 void io_log(const char * module_name, EOSState *s, unsigned int address, unsigned char type, unsigned int in_value, unsigned int out_value, const char * msg, intptr_t msg_arg1, intptr_t msg_arg2)
 {
     /* log I/O when "-d io" is specified on the command line */
-    if (!qemu_loglevel_mask(LOG_IO)) {
+    if (!qemu_loglevel_mask(EOS_LOG_IO)) {
         return;
     }
     
@@ -3456,9 +3456,8 @@ unsigned int eos_handle_uart ( unsigned int parm, EOSState *s, unsigned int addr
     }
 
 end:
-    if (qemu_loglevel_mask(CPU_LOG_INT))
+    if (qemu_loglevel_mask(EOS_LOG_UART))
     {
-        /* verbose only when debugging interrupts */
         io_log("UART", s, address, type, value, ret, msg, msg_arg1, 0);
     }
     return ret;

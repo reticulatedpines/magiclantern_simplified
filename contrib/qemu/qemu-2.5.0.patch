@@ -33,14 +33,15 @@ index 2195b60..e3e2c14 100644
  obj-y += armv7m.o exynos4210.o pxa2xx.o pxa2xx_gpio.o pxa2xx_pic.o
  obj-$(CONFIG_DIGIC) += digic.o
 diff --git a/include/qemu/log.h b/include/qemu/log.h
-index 362cbc4..2866735 100644
+index 362cbc4..3fefca6 100644
 --- a/include/qemu/log.h
 +++ b/include/qemu/log.h
-@@ -42,6 +42,8 @@ static inline bool qemu_log_enabled(void)
+@@ -42,6 +42,9 @@ static inline bool qemu_log_enabled(void)
  #define CPU_LOG_MMU        (1 << 12)
  #define CPU_LOG_TB_NOCHAIN (1 << 13)
  
-+#define LOG_IO             (1 << 14)
++#define EOS_LOG_IO         (1 << 14)
++#define EOS_LOG_UART       (1 << 15)
 +
  /* Returns true if a bit is set in the current loglevel mask
   */
@@ -69,16 +70,18 @@ index e193658..9de7251 100644
      subregion->priority = 0;
      memory_region_add_subregion_common(mr, offset, subregion);
 diff --git a/qemu-log.c b/qemu-log.c
-index 7cb01a8..e46a34b 100644
+index 7cb01a8..a2a73d6 100644
 --- a/qemu-log.c
 +++ b/qemu-log.c
-@@ -120,6 +120,9 @@ const QEMULogItem qemu_log_items[] = {
+@@ -120,6 +120,11 @@ const QEMULogItem qemu_log_items[] = {
      { CPU_LOG_TB_NOCHAIN, "nochain",
        "do not chain compiled TBs so that \"exec\" and \"cpu\" show\n"
        "complete traces" },
 +      
-+    { LOG_IO, "io",
-+      "log low-level I/O activity" },
++    { EOS_LOG_IO, "io",
++      "EOS: log low-level I/O activity" },
++    { EOS_LOG_UART, "uart",
++      "EOS: log low-level UART activity" },
      { 0, NULL, NULL },
  };
  
