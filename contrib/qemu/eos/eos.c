@@ -151,6 +151,7 @@ EOSRegionHandler eos_handlers[] =
     { "Interrupt",    0xC0200000, 0xC02000FF, eos_handle_intengine_vx, 0 },
     { "Interrupt",    0xC0201000, 0xC0201FFF, eos_handle_intengine, 0 },
     { "Interrupt",    0xD4011000, 0xD4011FFF, eos_handle_intengine, 1 },
+    { "Interrupt",    0xD02C0200, 0xD02C02FF, eos_handle_intengine, 2 },
     { "Timers",       0xC0210000, 0xC0210FFF, eos_handle_timers, 0 },
     { "Timers",       0xD4000240, 0xD4000410, eos_handle_timers, 1 },
     { "Timers",       0xD4000280, 0xD4000290, eos_handle_timers, 8 },
@@ -1586,10 +1587,12 @@ unsigned int eos_handle_intengine ( unsigned int parm, EOSState *s, unsigned int
     int msg_arg2 = 0;
     unsigned int ret = 0;
 
-    switch(address & 0xFFF)
+    switch(address)
     {
-        case 0x00:
-        case 0x04:
+        case 0xC0201000:    /* DIGIC 2,3 */
+        case 0xC0201004:    /* DIGIC 4,5 (returns irq_id << 2) */
+        case 0xD4011000:    /* DIGIC 6 */
+        case 0xD02C0290:    /* 5D3 EEKO */
             if(type & MODE_WRITE)
             {
                 msg = "Wrote int reason ???";
@@ -1599,7 +1602,7 @@ unsigned int eos_handle_intengine ( unsigned int parm, EOSState *s, unsigned int
                 msg = "Requested int reason %x (INT %02Xh)";
                 msg_arg1 = s->irq_id << 2;
                 msg_arg2 = s->irq_id;
-                ret = s->irq_id << ((address & 0xFFF) ? 2 : 0);
+                ret = s->irq_id << ((address & 0xF) ? 2 : 0);
                 
                 if (s->model->digic_version > 3)
                 {
@@ -1619,7 +1622,9 @@ unsigned int eos_handle_intengine ( unsigned int parm, EOSState *s, unsigned int
             }
             break;
 
-        case 0x10:
+        case 0xC0201010:    /* DIGIC <= 5 */
+        case 0xD4011010:    /* DIGIC 6 */
+        case 0xD02C029C:    /* 5D3 EEKO */
             if(type & MODE_WRITE)
             {
                 msg = "Enabled interrupt %02Xh";
@@ -1643,7 +1648,9 @@ unsigned int eos_handle_intengine ( unsigned int parm, EOSState *s, unsigned int
             }
             break;
 
-        case 0x200:
+        case 0xC0201200:    /* DIGIC <= 5 */
+        case 0xD4011200:    /* DIGIC 6 */
+        case 0xD02C02CC:    /* 5D3 EEKO */
             if(type & MODE_WRITE)
             {
                 if (value)
