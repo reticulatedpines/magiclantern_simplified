@@ -175,7 +175,8 @@ EOSRegionHandler eos_handlers[] =
     { "CFATA0",       0xC0600000, 0xC060FFFF, eos_handle_cfata, 0 },
     { "CFATA2",       0xC0620000, 0xC062FFFF, eos_handle_cfata, 2 },
     { "UART",         0xC0800000, 0xC08000FF, eos_handle_uart, 0 },
-    { "UART",         0xC0270000, 0xC0270000, eos_handle_uart, 1 },
+    { "UART",         0xC0810000, 0xC08100FF, eos_handle_uart, 1 },
+    { "UART",         0xC0270000, 0xC0270000, eos_handle_uart, 2 },
     { "SIO0",         0xC0820000, 0xC08200FF, eos_handle_sio, 0 },
     { "SIO1",         0xC0820100, 0xC08201FF, eos_handle_sio, 1 },
     { "SIO2",         0xC0820200, 0xC08202FF, eos_handle_sio, 2 },
@@ -957,6 +958,13 @@ static void eos_uart_rx(void *opaque, const uint8_t *buf, int size)
 
     s->reg_st |= ST_RX_RDY;
     s->reg_rx = *buf;
+    
+    EOSState *es = (EOSState *)(opaque - offsetof(EOSState, uart));
+    if (strcmp(es->model->name, "5D3eeko") == 0)
+    {
+        /* fixme: hardcoded for Eeko */
+        eos_trigger_int(es, 0x39, 0);
+    }
 }
 
 static void eos_uart_event(void *opaque, int event)
@@ -1381,7 +1389,7 @@ void io_log(const char * module_name, EOSState *s, unsigned int address, unsigne
     }
     else
     {
-        snprintf(mod_name_and_pc, sizeof(mod_name_and_pc), "%-10s at 0x%08X", mod_name, pc);
+        snprintf(mod_name_and_pc, sizeof(mod_name_and_pc), "%-10s at 0x%08X:%08X", mod_name, pc, lr);
     }
     
     /* description may have two optional integer arguments */
@@ -3372,9 +3380,7 @@ unsigned int eos_handle_uart ( unsigned int parm, EOSState *s, unsigned int addr
         /* TIO enable flag on EOS M3? */
         static int mem = 0;
         MMIO_VAR(mem);
-        
-        /* quiet, since it interferes with TIO messages */
-        return ret;
+        goto end;
     }
 
     switch(address & 0xFF)
@@ -3397,7 +3403,7 @@ unsigned int eos_handle_uart ( unsigned int parm, EOSState *s, unsigned int addr
                     if (enable_tio_interrupt)
                     {
                         /* if using interrupts, prefer line-buffered output */
-                        eos_trigger_int(s, 0x3A, 0);
+                        eos_trigger_int(s, 0x3A + parm, 0);
                     }
                     
                     if (!enable_tio_interrupt || value == '\n')
@@ -3406,11 +3412,10 @@ unsigned int eos_handle_uart ( unsigned int parm, EOSState *s, unsigned int addr
                         fflush(stdout);
                     }
                 }
-                return 0;
             }
             else
             {
-                return 0;
+                ret = 0;
             }
             break;
 
@@ -3420,10 +3425,6 @@ unsigned int eos_handle_uart ( unsigned int parm, EOSState *s, unsigned int addr
             ret = s->uart.reg_rx;
             msg_arg1 = ret;
             break;
-        
-        case 0x08:
-            /* quiet */
-            return 0;
 
         case 0x14:
             if(type & MODE_WRITE)
@@ -3435,15 +3436,13 @@ unsigned int eos_handle_uart ( unsigned int parm, EOSState *s, unsigned int addr
                 }
                 else
                 {
-                    /* quiet */
-                    return 0;
+                    ret = s->uart.reg_st;
                 }
             }
             else
             {
-                /* status: 1 = character available, 2 = can write */
-                /* quiet */
-                return s->uart.reg_st;
+                msg = "Status: 1 = char available, 2 = can write";
+                ret = s->uart.reg_st;
             }
             break;
 
@@ -3452,10 +3451,16 @@ unsigned int eos_handle_uart ( unsigned int parm, EOSState *s, unsigned int addr
             /* most other cameras are upset by this interrupt */
             enable_tio_interrupt = (value == 0xFFFFFFC4);
             msg = (value == 0xFFFFFFC4) ? "enable interrupt?" : "interrupt related?";
+            ret = 0;
             break;
     }
 
-    io_log("UART", s, address, type, value, ret, msg, msg_arg1, 0);
+end:
+    if (qemu_loglevel_mask(CPU_LOG_INT))
+    {
+        /* verbose only when debugging interrupts */
+        io_log("UART", s, address, type, value, ret, msg, msg_arg1, 0);
+    }
     return ret;
 }
 
