@@ -1268,12 +1268,13 @@ static void eos_init_common(MachineState *machine)
          * EekoBltDmac(0x0, 0x1e00000,  0xff8bf888, 0x4ef14, 0xff217de8, 0x0), from ff217e34
          * EekoBltDmac(0x0, 0xd0280000, 0xff99bfa8, 0x1bc,   0xff508e78, 0x0), from ff508fd0
          */
-
-        eos_load_image(s, "5D3eeko/0.BIN",        0, 0, 0,          0); /* 0x006b8c bytes from 0xff99541c (mapped to address 0) */
-        eos_load_image(s, "5D3eeko/1E00000.DMP",  0, 0, 0x1E00000,  0); /* 0x140000 bytes from 0x1E00000, dumped after taking a photo */
-        eos_load_image(s, "5D3eeko/1E00000.BIN",  0, 0, 0x1E00000,  0); /* 0x04ef14 bytes from 0xff8bf888 (overwrites part of DMP) */
-        eos_load_image(s, "5D3eeko/1E80000.BIN",  0, 0, 0x1E80000,  0); /* 0x0010e8 bytes from 0xff99c164 (overwrites part of DMP) */
-        eos_load_image(s, "5D3eeko/D0280000.BIN", 0, 0, 0x40000000, 0); /* 0x0001bc bytes from 0xff99bfa8 (not sure about destination address) */
+        
+        /* all dumps must be made before starting the Eeko core, but after the above copy calls
+         * 5D3 1.1.3: 0xFF508F78 (right before writing 7 to C022320C) */
+        eos_load_image(s, "5D3eeko/D0288000.DMP", 0, 0, 0,          0); /* 0x008000 bytes */
+        eos_load_image(s, "5D3eeko/D0280000.DMP", 0, 0, 0x40000000, 0); /* 0x004000 bytes */
+        eos_load_image(s, "5D3eeko/1E00000.DMP",  0, 0, 0x1E00000,  0); /* 0x120000 bytes (overlaps 2 regions) */
+        eos_load_image(s, "5D3eeko/1F20000.DMP",  0, 0, 0x1F20000,  0); /* 0x020000 bytes (I/O) */
         s->cpu->env.regs[15] = 0;
         s->cpu->env.thumb = 1;
     }

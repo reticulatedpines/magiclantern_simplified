@@ -9,24 +9,15 @@ macro define CURRENT_ISR  (*(int*)0x4000014C ? *(int*)0x40000010 : 0)
 b *0x1E43E44
 printf_log
 
-#b *0x1E43004
-#printf_log
+# enable early UART output
+set *(int*)0x4000000C = 1
 
-b *0x4D2
-commands
-  silent
-  KGRN
-  printf "%s", $r1
-  KRESET
-  c
-end
-
-b *0xFD6
+b *0x1378
 commands
   silent
   print_current_location
   KRED
-  printf "putch %x %x %x %x\n", $r0, $r1, $r2, $r3
+  printf "init_task\n"
   KRESET
   c
 end
