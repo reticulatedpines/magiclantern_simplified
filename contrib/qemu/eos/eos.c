@@ -154,8 +154,7 @@ EOSRegionHandler eos_handlers[] =
     { "Interrupt",    0xD02C0200, 0xD02C02FF, eos_handle_intengine, 2 },
     { "Timers",       0xC0210000, 0xC0210FFF, eos_handle_timers, 0 },
     { "Timers",       0xD4000240, 0xD4000410, eos_handle_timers, 1 },
-    { "Timers",       0xD4000280, 0xD4000290, eos_handle_timers, 8 },
-    { "Timers",       0xD40002C0, 0xD40002C0, eos_handle_timers, 8 },
+    { "Timers",       0xD02C1500, 0xD02C15FF, eos_handle_timers, 2 },
     { "Timer",        0xC0242014, 0xC0242014, eos_handle_digic_timer, 0 },
     { "Timer",        0xD400000C, 0xD400000C, eos_handle_digic_timer, 1 },  /* not sure */
     { "HPTimer",      0xC0243000, 0xC0243FFF, eos_handle_hptimer, 0 },
@@ -1705,8 +1704,10 @@ unsigned int eos_handle_timers ( unsigned int parm, EOSState *s, unsigned int ad
     int msg_arg2 = 0;
 
     int timer_id = 
-        (parm == 0) ? ((address & 0xF00) >> 8)          /* DIGIC 4/5 timers (0,1,2)*/
-                    : ((address & 0xFC0) >> 6) - 6;     /* DIGIC 6 timers (3,4,5,6,7,8,9,10)*/
+        (parm == 0) ? ((address & 0xF00) >> 8)     :    /* DIGIC 4/5 timers (0,1,2)*/
+        (parm == 1) ? ((address & 0xFC0) >> 6) - 6 :    /* DIGIC 6 timers (3,4,5,6,7,8,9,10)*/
+        (parm == 2) ? 11 :                              /* 5D3 Eeko DryOS timer */
+                      0  ;
     
     msg_arg1 = timer_id;
     

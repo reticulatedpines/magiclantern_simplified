@@ -151,6 +151,8 @@ struct eos_model_desc eos_model_list[] = {
         .atcm_size              = 0x00010000,
         .btcm_addr              = 0x40000000,   /* not sure, appears used, but no memory region configured */
         .btcm_size              = 0x00004000,   /* dump from D0280000 identical to 0xD0288000 after 0x4000 */
+        .dryos_timer_id         = 11,           /* see eos_handle_timers for mapping */
+        .dryos_timer_interrupt  = 0xFE,
     },
     {
         .name                   = "650D",
