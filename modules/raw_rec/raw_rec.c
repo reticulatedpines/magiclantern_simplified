@@ -201,7 +201,7 @@ static int64_t written_total = 0;                 /* how many bytes we have writ
 static int64_t written_chunk = 0;                 /* same for current chunk */
 static int writing_time = 0;                      /* time spent by raw_video_rec_task in FIO_WriteFile calls */
 static int idle_time = 0;                         /* time spent by raw_video_rec_task doing something else */
-
+static uint32_t edmac_active = 0;
 
 static mlv_file_hdr_t file_hdr;
 static mlv_rawi_hdr_t rawi_hdr;
@@ -922,7 +922,7 @@ static LVINFO_UPDATE_FUNC(recording_status)
     } 
     else 
     {
-        snprintf(buffer, sizeof(buffer), "Stopped.", buffer_full);
+        snprintf(buffer, sizeof(buffer), "Stopped.");
         item->color_bg = COLOR_DARK_RED;
     }
 }
@@ -1327,13 +1327,31 @@ static int frame_check_saved(int slot_index)
     return 1;
 }
 
-static int FAST process_frame()
+static void edmac_cbr_r(void *ctx)
+{
+}
+
+static void edmac_cbr_w(void *ctx)
+{
+    edmac_active = 0;
+    edmac_copy_rectangle_adv_cleanup();
+}
+
+static void FAST process_frame()
 {
     /* skip the first frame, it will be gibberish */
     if (frame_count == 0)
     {
         frame_count++;
-        return 0;
+        return;
+    }
+    
+    if (edmac_active)
+    {
+        /* EDMAC too slow */
+        NotifyBox(2000, "EDMAC timeout.");
+        buffer_full = 1;
+        return;
     }
     
     /* where to save the next frame? */
@@ -1355,7 +1373,7 @@ static int FAST process_frame()
     {
         /* card too slow */
         buffer_full = 1;
-        return 0;
+        return;
     }
 
     /* copy current frame to our buffer and crop it to its final size */
@@ -1374,26 +1392,24 @@ static int FAST process_frame()
 
     //~ printf("saving frame %d: slot %d ptr %x\n", frame_count, capture_slot, ptr);
 
-    int ans = (int) edmac_copy_rectangle_start(ptr, fullSizeBuffer, raw_info.pitch, (skip_x+7)/8*14, skip_y/2*2, res_x*14/8, res_y);
+    edmac_active = 1;
+    edmac_copy_rectangle_cbr_start(
+        ptr, fullSizeBuffer,
+        raw_info.pitch,
+        (skip_x+7)/8*14, skip_y/2*2,
+        res_x*14/8, 0, 0, res_x*14/8, res_y,
+        &edmac_cbr_r, &edmac_cbr_w, NULL
+    );
 
     /* advance to next frame */
     frame_count++;
     chunk_frame_count++;
 
-    return ans;
+    return;
 }
 
 static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
 {
-    static int dma_transfer_in_progress = 0;
-    /* there may be DMA transfers started in process_frame, finish them */
-    /* let's assume they are faster than LiveView refresh rate (well, they HAVE to be) */
-    if (dma_transfer_in_progress)
-    {
-        edmac_copy_rectangle_finish();
-        dma_transfer_in_progress = 0;
-    }
-
     if (!raw_video_enabled) return 0;
     if (!is_movie_mode()) return 0;
     
@@ -1409,7 +1425,7 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
     /* double-buffering */
     raw_lv_redirect_edmac(fullsize_buffers[fullsize_buffer_pos % 2]);
 
-    dma_transfer_in_progress = process_frame();
+    process_frame();
 
     return 0;
 }
@@ -1656,6 +1672,7 @@ static void raw_video_rec_task()
     int last_block_size = 0; /* for detecting early stops */
     last_write_timestamp = 0;
     mlv_chunk = 0;
+    edmac_active = 0;
     
     powersave_prohibit();
 
