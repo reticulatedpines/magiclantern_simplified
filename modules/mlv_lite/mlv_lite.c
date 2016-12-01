@@ -934,7 +934,7 @@ static MENU_SELECT_FUNC(resolution_change_fine_value)
     }
     
     /* fine-tune resolution in small increments */
-    int cur_res = (resolution_presets_x[resolution_index_x] + res_x_fine) & ~15;
+    int cur_res = ((resolution_presets_x[resolution_index_x] + res_x_fine) + 15) & ~15;
     cur_res = COERCE(cur_res + delta * 16, resolution_presets_x[0], max_res_x); 
 
     /* select the closest preset */
