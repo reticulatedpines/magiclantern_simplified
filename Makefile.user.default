@@ -61,7 +61,10 @@ ifeq ($(WIFI_SD),y)
   WIFI_RESTORE=$(call build,WIFI_END,\
     [ "$(WIFI_MAIN_NETWORK)" = "" ] && \
     (echo "Turning off Wi-Fi..." && nmcli radio wifi off) || \
-    (echo "Connecting to $(WIFI_MAIN_NETWORK)..." && nmcli conn up $(WIFI_MAIN_NETWORK)))
+    (if !(nmcli conn show --active | grep $(WIFI_MAIN_NETWORK)); then \
+        echo "Connecting to $(WIFI_MAIN_NETWORK)..."; \
+        nmcli conn up $(WIFI_MAIN_NETWORK); \
+    fi))
   
   UMOUNT_CARD=$(call build,UNMOUNT,sleep 2 && gvfs-mount -u dav://$(WIFI_CARD_IP)/)
   
