@@ -572,6 +572,8 @@ static int calc_res_y(int res_x, int max_res_y, int num, int den, float squeeze)
         res_y = (res_x * den / num + 1);
     }
     
+    res_y = MIN(res_y, max_res_y);
+    
     /* res_x * res_y must be modulo 16 bytes */
     switch (MOD(res_x * BPP / 8, 8))
     {
@@ -872,7 +874,7 @@ static MENU_UPDATE_FUNC(aspect_ratio_update_info)
         int num = aspect_ratio_presets_num[aspect_ratio_index];
         int den = aspect_ratio_presets_den[aspect_ratio_index];
         int sq100 = (int)roundf(squeeze_factor*100);
-        int res_y_corrected = calc_res_y(res_x, max_res_y*squeeze_factor, num, den, 1.0f);
+        int res_y_corrected = calc_res_y(res_x, max_res_y, num, den, 1.0f);
         MENU_SET_HELP("%dx%d. Stretch by %s%d.%02dx to get %dx%d (%s) in post.", res_x, res_y, FMT_FIXEDPOINT2(sq100), res_x, res_y_corrected, aspect_ratio_choices[aspect_ratio_index]);
     }
 }
