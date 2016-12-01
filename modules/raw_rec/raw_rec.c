@@ -843,21 +843,6 @@ static void show_recording_status()
     static int auxrec = INT_MIN;
     if (RAW_IS_RECORDING && liveview_display_idle() && should_run_polling_action(DEBUG_REDRAW_INTERVAL, &auxrec))
     {
-
-        /* If displaying in the info bar, force a refresh */
-        if (indicator_display == INDICATOR_IN_LVINFO)
-        {
-            lens_display_set_dirty();
-            return;
-        }
-
-        /* No reason to do any work if not displayed */
-        if ((indicator_display != INDICATOR_ON_SCREEN) &&
-            (indicator_display != INDICATOR_RAW_BUFFER))
-        {
-            return;
-        }
-
         /* Calculate the stats */
         int fps = fps_get_current_x1000();
         int t = (frame_count * 1000 + fps/2) / fps;
@@ -873,7 +858,12 @@ static void show_recording_status()
             speed /= 10;
         }
 
-        if (indicator_display == INDICATOR_RAW_BUFFER)
+        if (indicator_display == INDICATOR_IN_LVINFO)
+        {
+            /* If displaying in the info bar, force a refresh */
+            lens_display_set_dirty();
+        }
+        else if (indicator_display == INDICATOR_RAW_BUFFER)
         {
             show_buffer_status();
 
