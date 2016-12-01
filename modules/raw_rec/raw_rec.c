@@ -201,7 +201,6 @@ static int64_t written_total = 0;                 /* how many bytes we have writ
 static int64_t written_chunk = 0;                 /* same for current chunk */
 static int writing_time = 0;                      /* time spent by raw_video_rec_task in FIO_WriteFile calls */
 static int idle_time = 0;                         /* time spent by raw_video_rec_task doing something else */
-static volatile int frame_countdown = 0;          /* for waiting X frames */
 
 
 static mlv_file_hdr_t file_hdr;
@@ -1408,9 +1407,6 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
     if (!raw_video_enabled) return 0;
     if (!is_movie_mode()) return 0;
     
-    if (frame_countdown)
-        frame_countdown--;
-    
     hack_liveview_vsync();
  
     /* panning window is updated when recording, but also when not recording */
@@ -1691,12 +1687,7 @@ static void raw_video_rec_task()
     }
     
     /* wait for two frames to be sure everything is refreshed */
-    frame_countdown = 2;
-    for (int i = 0; i < 200; i++)
-    {
-        msleep(20);
-        if (frame_countdown == 0) break;
-    }
+    wait_lv_frames(2);
     
     /* detect raw parameters (geometry, black level etc) */
     raw_set_dirty();
