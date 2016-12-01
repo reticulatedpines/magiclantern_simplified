@@ -245,18 +245,24 @@ static void refresh_cropmarks()
     }
 }
 
-static int calc_res_y(int res_x, int num, int den, float squeeze)
+static int calc_res_y(int res_x, int max_res_y, int num, int den, float squeeze)
 {
+    int res_y;
+    
     if (squeeze != 1.0f)
     {
         /* image should be enlarged vertically in post by a factor equal to "squeeze" */
-        return (int)(roundf(res_x * den / num / squeeze) + 1) & ~1;
+        res_y = (int)(roundf(res_x * den / num / squeeze) + 1);
     }
     else
     {
         /* assume square pixels */
-        return (res_x * den / num + 1) & ~1;
+        res_y = (res_x * den / num + 1);
     }
+    
+    res_y = MIN(res_y, max_res_y);
+    
+    return res_y & ~1;
 }
 
 static void update_cropping_offsets()
@@ -325,7 +331,7 @@ static void update_resolution_params()
     /* res Y */
     int num = aspect_ratio_presets_num[aspect_ratio_index];
     int den = aspect_ratio_presets_den[aspect_ratio_index];
-    res_y = MIN(calc_res_y(res_x, num, den, squeeze_factor), max_res_y);
+    res_y = calc_res_y(res_x, max_res_y, num, den, squeeze_factor);
 
     /* frame size */
     /* should be multiple of 512, so there's no write speed penalty (see http://chdk.setepontos.com/index.php?topic=9970 ; confirmed by benchmarks) */
@@ -369,7 +375,7 @@ static char* guess_aspect_ratio(int res_x, int res_y)
     
     if (minerr < 0.05)
     {
-        int h = calc_res_y(res_x, best_num, best_den, squeeze_factor);
+        int h = calc_res_y(res_x, max_res_y, best_num, best_den, squeeze_factor);
         /* if the difference is 1 pixel, consider it exact */
         char* qualifier = ABS(h - res_y) > 1 ? "almost " : "";
         snprintf(msg, sizeof(msg), "%s%d:%d", qualifier, best_num, best_den);
@@ -378,14 +384,14 @@ static char* guess_aspect_ratio(int res_x, int res_y)
     {
         int r = (int)roundf(ratio * 100);
         /* is it 2.35:1 or 2.353:1? */
-        int h = calc_res_y(res_x, r, 100, squeeze_factor);
+        int h = calc_res_y(res_x, max_res_y, r, 100, squeeze_factor);
         char* qualifier = ABS(h - res_y) > 1 ? "almost " : "";
         if (r%100) snprintf(msg, sizeof(msg), "%s%d.%02d:1", qualifier, r/100, r%100);
     }
     else
     {
         int r = (int)roundf((1/ratio) * 100);
-        int h = calc_res_y(res_x, 100, r, squeeze_factor);
+        int h = calc_res_y(res_x, max_res_y, 100, r, squeeze_factor);
         char* qualifier = ABS(h - res_y) > 1 ? "almost " : "";
         if (r%100) snprintf(msg, sizeof(msg), "%s1:%d.%02d", qualifier, r/100, r%100);
     }
@@ -549,7 +555,7 @@ static MENU_UPDATE_FUNC(aspect_ratio_update_info)
         int num = aspect_ratio_presets_num[aspect_ratio_index];
         int den = aspect_ratio_presets_den[aspect_ratio_index];
         int sq100 = (int)roundf(squeeze_factor*100);
-        int res_y_corrected = calc_res_y(res_x, num, den, 1.0f);
+        int res_y_corrected = calc_res_y(res_x, max_res_y, num, den, 1.0f);
         MENU_SET_HELP("%dx%d. Stretch by %s%d.%02dx to get %dx%d (%s) in post.", res_x, res_y, FMT_FIXEDPOINT2(sq100), res_x, res_y_corrected, aspect_ratio_choices[aspect_ratio_index]);
     }
 }
@@ -642,7 +648,7 @@ static MENU_UPDATE_FUNC(aspect_ratio_update)
 
     int num = aspect_ratio_presets_num[aspect_ratio_index];
     int den = aspect_ratio_presets_den[aspect_ratio_index];
-    int selected_y = calc_res_y(res_x, num, den, squeeze_factor);
+    int selected_y = calc_res_y(res_x, max_res_y, num, den, squeeze_factor);
     
     if (selected_y > max_res_y + 2)
     {
