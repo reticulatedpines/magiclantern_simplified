@@ -1624,10 +1624,8 @@ static void FAST raw_preview_color_work(void* raw_buffer, void* lv_buffer, int y
         gamma_g[i]  = COERCE(g_g  * g_g  / 255, 0, 255); /* (it's like a nonlinear curve applied on top of log) */
     }
     
-    int x1 = BM2LV_X(os.x0);
-    int x2 = BM2LV_X(os.x_max);
-    x1 = MAX(x1, RAW2LV_X(MAX(raw_info.active_area.x1, preview_rect_x)));
-    x2 = MIN(x2, RAW2LV_X(MIN(raw_info.active_area.x2, preview_rect_x + preview_rect_w)));
+    int x1 = COERCE(RAW2LV_X(preview_rect_x), 0, vram_lv.width);
+    int x2 = COERCE(RAW2LV_X(preview_rect_x + preview_rect_w), 0, vram_lv.width);
     if (x2 < x1) return;
 
     /* cache the LV to RAW transformation for the inner loop to make it faster */
@@ -1643,11 +1641,10 @@ static void FAST raw_preview_color_work(void* raw_buffer, void* lv_buffer, int y
     {
         int yr = LV2RAW_Y(y) & ~1;
 
-        /* on HDMI screens, BM2LV_DX() may get negative */
-        if((yr <= preview_rect_y || yr >= preview_rect_y + preview_rect_h) && BM2LV_DX(x2-x1) > 0)
+        if (yr <= preview_rect_y || yr >= preview_rect_y + preview_rect_h)
         {
             /* out of range, just fill with black */
-            memset(&lv32[LV(0,y)/4], 0, BM2LV_DX(x2-x1)*2);
+            memset(&lv32[LV(0,y)/4], 0, x2-x1);
             continue;
         }
 
@@ -1716,10 +1713,8 @@ static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1
         gamma[i] = g * g / 255; /* idk, looks better this way */
     }
     
-    int x1 = BM2LV_X(os.x0);
-    int x2 = BM2LV_X(os.x_max);
-    x1 = MAX(x1, RAW2LV_X(MAX(raw_info.active_area.x1, preview_rect_x)));
-    x2 = MIN(x2, RAW2LV_X(MIN(raw_info.active_area.x2, preview_rect_x + preview_rect_w)));
+    int x1 = COERCE(RAW2LV_X(preview_rect_x), 0, vram_lv.width);
+    int x2 = COERCE(RAW2LV_X(preview_rect_x + preview_rect_w), 0, vram_lv.width);
     if (x2 < x1) return;
 
     /* cache the LV to RAW transformation for the inner loop to make it faster */
@@ -1734,11 +1729,10 @@ static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1
     {
         int yr = LV2RAW_Y(y) | 1;
 
-        /* on HDMI screens, BM2LV_DX() may get negative */
-        if((yr <= preview_rect_y || yr >= preview_rect_y + preview_rect_h) && BM2LV_DX(x2-x1) > 0)
+        if (yr <= preview_rect_y || yr >= preview_rect_y + preview_rect_h)
         {
             /* out of range, just fill with black */
-            memset(&lv64[LV(0,y)/8], 0, BM2LV_DX(x2-x1)*2);
+            memset(&lv64[LV(0,y)/8], 0, x2-x1);
             continue;
         }
 
