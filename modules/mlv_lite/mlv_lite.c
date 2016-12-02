@@ -1373,6 +1373,8 @@ static void pre_record_vsync_step()
                     else
                     {
                         slots[i].frame_number--;
+                        ((mlv_vidf_hdr_t*)slots[i].ptr)->frameNumber
+                            = slots[i].frame_number - 1;
                     }
                 }
             }
