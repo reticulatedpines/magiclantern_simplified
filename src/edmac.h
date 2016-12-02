@@ -1,6 +1,8 @@
 #ifndef _edmac_c
 #define _edmac_c
 
+#include "module.h"
+
 #define EDMAC_WRITE_0  0
 #define EDMAC_WRITE_1  1
 #define EDMAC_WRITE_2  2
@@ -79,7 +81,13 @@ int edmac_fix_off1(int32_t off);
 
 struct edmac_info edmac_get_info(uint32_t channel);
 uint32_t edmac_get_total_size(struct edmac_info * info, int include_offsets);
+
+/* provided by edmac.mo */
+#if defined(MODULE)
 char * edmac_format_size(struct edmac_info * info);
+#else
+static char * (*edmac_format_size)(struct edmac_info * info) = MODULE_FUNCTION(edmac_format_size);
+#endif
 
 struct LockEntry *CreateResLockEntry(uint32_t *resIds, uint32_t resIdCount);
 unsigned int LockEngineResources(struct LockEntry *lockEntry);
