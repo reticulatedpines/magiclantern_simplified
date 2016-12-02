@@ -6,8 +6,6 @@ MODULE_OBJS=raw_rec.o
 # include modules environment
 include ../Makefile.modules
 
-all:: raw2dng
-
 R2D_CFLAGS = -I$(SRC_DIR) -m32 -mno-ms-bitfields -D_FILE_OFFSET_BITS=64
 R2D_LFLAGS = -lm -m32
 
