@@ -1475,7 +1475,7 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
                 
                 int rl_icon_width=0;
                 /* Draw the movie camera icon */
-                rl_icon_width = bfnt_draw_char(ICON_ML_MOVIE, MLV_ICON_X, MLV_ICON_Y, rl_color, COLOR_BG_DARK);
+                rl_icon_width = bfnt_draw_char(ICON_ML_MOVIE, MLV_ICON_X, MLV_ICON_Y, rl_color, NO_BG_ERASE);
                 
                 /* Display the Status */
                 bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), MLV_ICON_X+rl_icon_width+5, MLV_ICON_Y+5, "%02d:%02d", t/60, t%60);
@@ -3129,7 +3129,7 @@ static void raw_video_rec_task()
     }
     else if(DISPLAY_REC_INFO_ICON)
     {
-        uint32_t width = bfnt_draw_char(ICON_ML_MOVIE, MLV_ICON_X, MLV_ICON_Y, COLOR_WHITE, COLOR_BG_DARK);
+        uint32_t width = bfnt_draw_char(ICON_ML_MOVIE, MLV_ICON_X, MLV_ICON_Y, COLOR_WHITE, NO_BG_ERASE);
         bmp_printf(FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), MLV_ICON_X + width, MLV_ICON_Y + 5, "Prepare");
     }
     

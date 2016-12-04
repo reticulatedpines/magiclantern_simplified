@@ -126,7 +126,7 @@ static void arkanoid_draw_elem(element * e, int x, int y, int color)
             break;
         case ELEM_FALL_BRICK:
             bmp_draw_rect_chamfer(color, x, y, e->w, e->h, 2, 0);
-            bfnt_draw_char(e->c1, x, y, color, 0);
+            bfnt_draw_char(e->c1, x, y, color, NO_BG_ERASE);
             break;
         case ELEM_ML:
             bmp_printf(FONT(FONT_LARGE, color, 0), 720 / 2 - 13 * font_large.width / 2, 480 / 2 - font_large.width / 2, "Magic Lantern");
