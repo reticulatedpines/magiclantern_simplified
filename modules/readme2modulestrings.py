@@ -44,11 +44,12 @@ def add_string(name, value):
 
 def declare_string_section():
     print
-    print('MODULE_STRINGS_START()')
+    print "#define MODULE_STRINGS() \\"
+    print('  MODULE_STRINGS_START() \\')
     for i, s in enumerate(strings):
         a = chr(ord('a') + i)
-        print "    MODULE_STRING(__module_string_%s_name, __module_string_%s_value)" % (a, a)
-    print('MODULE_STRINGS_END()')
+        print "    MODULE_STRING(__module_string_%s_name, __module_string_%s_value) \\" % (a, a)
+    print('  MODULE_STRINGS_END()')
     
 def is_command_available(name):
     """Check if command `name` is on PATH."""
