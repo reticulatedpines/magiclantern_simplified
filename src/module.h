@@ -196,9 +196,6 @@ typedef struct
 #define MODULE_INIT(func)                                           .init = &func,
 #define MODULE_DEINIT(func)                                         .deinit = &func,
 #define MODULE_LONGNAME(name)                                       .long_name = name,
-#define MODULE_CB_SHOOT_TASK(func)                                  .cb_shoot_task = &func,
-#define MODULE_CB_PRE_SHOOT(func)                                   .cb_pre_shoot = &func,
-#define MODULE_CB_POST_SHOOT(func)                                  .cb_post_shoot = &func,
 #define MODULE_INFO_END()                                       };
                                                                 
 #define MODULE_STRINGS_START()                                  MODULE_STRINGS_START_(MODULE_STRINGS_PREFIX,MODULE_NAME)
