@@ -987,7 +987,7 @@ int bfnt_draw_char(int c, int px, int py, int fg, int bg)
     if (crw+xo > 100) return 0;
     if (ch+yo > 50) return 0;
 
-    //~ bmp_fill(bg, px, py, crw+xo+3, 40);
+    bmp_fill(bg, px, py, crw+xo+3, 40);
 
     int i,j,k;
     for (i = 0; i < ch; i++)
