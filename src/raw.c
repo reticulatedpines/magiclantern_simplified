@@ -1823,12 +1823,6 @@ void FAST raw_preview_fast()
 
 #ifdef CONFIG_RAW_LIVEVIEW
 
-#ifndef CONFIG_EDMAC_RAW_SLURP
-    #ifdef PREFERRED_RAW_TYPE
-    static int old_raw_type = -1;
-    #endif
-#endif
-
 static void raw_lv_enable()
 {
     /* make sure LiveView is fully started before enabling the raw flag */
@@ -1839,12 +1833,6 @@ static void raw_lv_enable()
 
 #ifndef CONFIG_EDMAC_RAW_SLURP
     call("lv_save_raw", 1);
-    
-    #ifdef PREFERRED_RAW_TYPE
-    /* set new raw type; Canon's lv_save_raw will apply it */
-    old_raw_type = MEM(RAW_TYPE_ADDRESS);
-    MEM(RAW_TYPE_ADDRESS) = PREFERRED_RAW_TYPE;
-    #endif
 #endif
 }
 
@@ -1854,15 +1842,6 @@ static void raw_lv_disable()
     
 #ifndef CONFIG_EDMAC_RAW_SLURP
     call("lv_save_raw", 0);
-    
-    #ifdef PREFERRED_RAW_TYPE
-    /* restore old raw type */
-    if (old_raw_type != -1)
-    {
-        MEM(RAW_TYPE_ADDRESS) = old_raw_type;
-        old_raw_type = -1;
-    }
-    #endif
 #endif
 }
 
