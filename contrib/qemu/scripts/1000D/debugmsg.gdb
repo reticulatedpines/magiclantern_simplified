@@ -2,23 +2,26 @@
 
 source -v debug-logging.gdb
 
-macro define CURRENT_TASK (*(int*)0x352C0 ? *(int*)0x352C0 : 0x352C0)
+macro define CURRENT_TASK 0x352C0
 macro define CURRENT_TASK_NAME (((int*)CURRENT_TASK)[0] ? ((char***)CURRENT_TASK)[0][13] : CURRENT_TASK)
 macro define CURRENT_ISR  0
 
-b *0xFFD0D5A4
+b *0xFFD0D5F4
 DebugMsg_log
 
-b *0xFFD1B7D8
+b *0xFFD1B828
 assert_log
 
-b *0xFFD05A04
+b *0xFFD05A54
 task_create_log
 
-b *0xFFD056B8
+b *0xFFD05708
 msleep_log
 
-b *0xFFD03B68
+b *0xFFD03BB8
 register_interrupt_log
+
+b *0xFFCFF864
+register_func_log
 
 cont

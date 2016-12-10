@@ -260,7 +260,7 @@ struct eos_model_desc eos_model_list[] = {
     {
         .name                   = "1000D",
         .digic_version          = 3,
-     /* .current_task_addr      = 0x352C0  */   /* fixme: it's MEM(0x352C0) */
+        .current_task_addr      = 0x352C0,
     },
     {
         .name                   = "400D",
