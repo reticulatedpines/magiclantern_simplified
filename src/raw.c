@@ -2647,7 +2647,8 @@ static struct menu_entry debug_menus[] = {
     {
         .name = "LV raw type",
         .priv = &lv_raw_type,
-        .max = 128,
+        .max  = 0xFFFF,
+        .unit = UNIT_HEX,
         .help = "Choose what type of raw stream we should use in LiveView.",
         .help2 = "See lv_af_raw, lv_rshd_raw, lv_set_raw, KindOfCraw...",
     },
