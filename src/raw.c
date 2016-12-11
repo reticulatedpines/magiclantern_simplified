@@ -118,6 +118,10 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #define DEFAULT_RAW_BUFFER MEM(0x404E4 + 0x44)
 #endif
 
+#ifdef CONFIG_700D
+#define DEFAULT_RAW_BUFFER MEM(0x25B0C + 0x3C)
+#endif
+
 #else
 
 /* with Canon lv_save_raw, just read it from EDMAC */
@@ -452,6 +456,12 @@ static int raw_lv_get_resolution(int* width, int* height)
     #ifdef CONFIG_EOSM
     *width  = video_mode_crop ? 1872 : 1808;
     *height = video_mode_crop ? 1060 : 727;
+    return 1;
+    #endif
+
+    #ifdef CONFIG_700D
+    *width  = zoom ? 2592 : mv1080crop ? 1872 : mv720  ? 1808 : 1808;
+    *height = zoom ? 1108 : mv1080crop ? 1060 : mv720  ?  720 : 1190;
     return 1;
     #endif
 
