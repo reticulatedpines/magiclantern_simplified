@@ -121,6 +121,31 @@ uint32_t edmac_get_base(uint32_t channel)
     return bases[edmac_block] + (edmac_num << 8);
 }
 
+static uint32_t edmac_get_block(uint32_t reg)
+{
+    switch (reg & 0xFFFFF000)
+    {
+        case 0xC0F04000: return 0;
+        case 0xC0F26000: return 1;
+        case 0xC0F30000: return 2;
+        default: return 0xFFFFFFFF;
+    }
+}
+
+uint32_t edmac_get_channel(uint32_t reg)
+{
+    uint32_t block = edmac_get_block(reg);
+    if (block == 0xFFFFFFFF)
+    {
+        return 0xFFFFFFFF;
+    }
+
+    uint32_t ch = ((reg >> 8) & 0xF) + block * 16;
+    //ASSERT(edmac_get_dir(ch) != EDMAC_DIR_UNUSED);
+    //ASSERT(edmac_get_base(ch) == reg);
+    return ch;
+}
+
 uint32_t edmac_get_state(uint32_t channel)
 {
     if (channel >= NUM_EDMAC_CHANNELS)

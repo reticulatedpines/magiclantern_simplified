@@ -70,6 +70,7 @@ uint32_t edmac_index_to_channel(uint32_t index, uint32_t direction);
 uint32_t edmac_get_flags(uint32_t channel);
 uint32_t edmac_get_state(uint32_t channel);     /* 0=idle, 1=running (from hardware) */
 uint32_t edmac_get_base(uint32_t channel);      /* base register */
+uint32_t edmac_get_channel(uint32_t reg);       /* channel from register */
 uint32_t edmac_get_address(uint32_t channel);   /* start address */
 uint32_t edmac_get_pointer(uint32_t channel);   /* current address (from hardware) */
 uint32_t edmac_get_length(uint32_t channel);    /* yb,xb (hi,lo) */
