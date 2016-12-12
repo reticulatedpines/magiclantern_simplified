@@ -7,6 +7,8 @@
 #include <shoot.h>
 #include <beep.h>
 #include <edmac.h>
+#include <timer.h>
+#include <asm.h>
 
 static int edmac_selection;
 
@@ -308,6 +310,188 @@ static void find_free_edmac_channels()
     }
 }
 
+/* log EDMAC state every X microseconds */
+static const int LOG_INTERVAL = 100;
+
+/* a little faster when hardcoded */
+/* should match edmac_chanlist from src/edmac.c */
+static const int edmac_regs[] = {
+    0xC0F04000, 0xC0F04100, 0xC0F04200, 0xC0F04300, 0xC0F04400, 0xC0F04500, 0xC0F04600,
+    0xC0F04800, 0xC0F04900, 0xC0F04A00, 0xC0F04B00, 0xC0F04C00, 0xC0F04D00,
+    0xC0F26000, 0xC0F26100, 0xC0F26200, 0xC0F26300, 0xC0F26400, 0xC0F26500, 0xC0F26600,
+    0xC0F26800, 0xC0F26900, 0xC0F26A00, 0xC0F26B00, 0xC0F26C00, 0xC0F26D00,
+    0xC0F30000, 0xC0F30100,
+    0xC0F30800, 0xC0F30900, 0xC0F30A00, 0xC0F30B00,
+};
+
+static uint32_t edmac_states[2048][COUNT(edmac_regs) + 4] = {{1}};
+static uint32_t edmac_index = 0;
+
+#define CLK_IDX (COUNT(edmac_regs))
+#define TSK_IDX (COUNT(edmac_regs)+1)
+#define OVH_IDX (COUNT(edmac_regs)+2)
+#define XTR_IDX (COUNT(edmac_regs)+3)
+
+struct edmac_extra_info
+{
+    uint32_t ch;
+    uint32_t addr;
+    uint32_t conn;
+    uint32_t cbr;
+    struct edmac_info info;
+};
+
+static struct edmac_extra_info edmac_extra_infos[512];
+static int edmac_extra_index = 0;
+
+static void FAST edmac_spy_poll(int last_expiry, void* unused)
+{
+    uint32_t start_clock = MEM(0xC0242014);
+
+    if (edmac_index >= COUNT(edmac_states))
+    {
+        /* finished */
+        return;
+    }
+    
+    /* schedule next call */
+    SetHPTimerNextTick(last_expiry, LOG_INTERVAL, edmac_spy_poll, edmac_spy_poll, 0);
+
+    /* this routine requires LCLK enabled */
+    if (!(MEM(0xC0400008) & 0x2))
+    {
+        return;
+    }
+
+    /* log events starting with the first meaningful change */
+    static int started = 0;
+
+    for (uint32_t i = 0; i < COUNT(edmac_regs); i++)
+    {
+        /* edmac_get_state/pointer(channel), just faster */
+        uint32_t state = MEM(edmac_regs[i]);
+        uint32_t ptr   = MEM(edmac_regs[i] + 8);
+        ASSERT((state & ~1) == 0);
+        edmac_states[edmac_index][i] = ptr | (state << 31);
+        
+        uint32_t prev_state = (edmac_index)
+            ? (edmac_states[edmac_index-1][i] & 0x80000000)
+            : 0;
+        
+        if (state || ptr)
+        {
+            started = 1;
+        }
+
+        if (state && !prev_state)
+        {
+            /* when a channel is starting, record some extra info,
+             * such as connection and geometry
+             * (this is slow, so we don't record it continuously)
+             */
+
+            if (edmac_extra_index >= COUNT(edmac_extra_infos))
+            {
+                /* buffer full */
+                return;
+            }
+
+            uint32_t ch = edmac_get_channel(edmac_regs[i]);
+            edmac_extra_infos[edmac_extra_index] = (struct edmac_extra_info) {
+                .ch     = ch,
+                .addr   = edmac_get_address(ch),
+                .conn   = edmac_get_connection(ch, edmac_get_dir(ch)),
+                .info   = edmac_get_info(ch),
+                .cbr    = MEM(8 + 32*(ch) + MEM(0x12400)),  /* 5D3 only */
+            };
+
+            edmac_extra_index++;
+        }
+    }
+
+    /* also store:
+     * - microsecond timer
+     * - current task name (pointer)
+     * - estimated overhead for this routine (microseconds)
+     * - extra index (for infos that are not logged continuously)
+     *   (if it was 5 at edmax_index-1 and now it's 7,
+     *    this step stored extra infos at indices 5 and 6)
+     */
+    edmac_states[edmac_index][CLK_IDX] = start_clock;
+    edmac_states[edmac_index][TSK_IDX] = (uint32_t) current_task->name;
+    edmac_states[edmac_index][OVH_IDX] = MEM(0xC0242014) - start_clock;
+    edmac_states[edmac_index][XTR_IDX] = edmac_extra_index;
+
+    if (started)
+    {
+        edmac_index++;
+    }
+}
+
+static void edmac_spy_dump()
+{
+    int len = 0;
+    int maxlen = 8*1024*1024;
+    char* out = fio_malloc(maxlen);
+    if (!out) return;
+    memset(out, ' ', maxlen);
+    
+    uint32_t extra_index = 0;
+
+    for (uint32_t i = 0; i < edmac_index; i++)
+    {
+        for (; extra_index < edmac_states[i][XTR_IDX]; extra_index++)
+        {
+            struct edmac_extra_info info = edmac_extra_infos[extra_index];
+            len += snprintf(out+len, maxlen-len,
+                "EDMAC#%d: addr=0x%x conn=%d cbr=%x name='''%s''' size='''%s'''\n",
+                info.ch, info.addr, info.conn, info.cbr,
+                asm_guess_func_name_from_string(info.cbr),
+                edmac_format_size(&info.info)
+            );
+        }
+
+        snprintf(out+len, maxlen-len, "%08X %s          ",
+            edmac_states[i][CLK_IDX], edmac_states[i][TSK_IDX]
+        );
+        len += 16;
+
+        for (int j = 0; j < COUNT(edmac_regs); j++)
+        {
+            int ch = edmac_get_channel(edmac_regs[j]);
+            len += snprintf(out+len, maxlen-len, " %d:%08X", ch, edmac_states[i][j]);
+        }
+
+        len += snprintf(out+len, maxlen-len, " OVH:%d\n", edmac_states[i][OVH_IDX]);
+    }
+
+    len += snprintf(out+len, maxlen-len, "\nSaved %d events, %d extra infos.\n", edmac_index, edmac_extra_index);
+
+    dump_seg(out, len, "edmacspy.log");
+    free(out);
+    
+    edmac_index = 0;
+    edmac_extra_index = 0;
+}
+
+static void log_edmac_usage()
+{
+    SetHPTimerAfterNow(1000, edmac_spy_poll, edmac_spy_poll, 0);
+    NotifyBox(10000, "Logging EDMAC usage...");
+    
+    /* wait until buffer full */
+    while (edmac_index < COUNT(edmac_states))
+    {
+        info_led_on();
+        msleep(100);
+    }
+    info_led_off();
+
+    NotifyBox(2000, "Saving log...");
+    edmac_spy_dump();
+    NotifyBox(2000, "Finished!");
+}
+
 static struct menu_entry edmac_menu[] =
 {
     {
@@ -334,6 +518,12 @@ static struct menu_entry edmac_menu[] =
                 .select = run_in_separate_task,
                 .priv   = find_free_edmac_channels,
                 .help   = "Useful to find which channels can be used in LiveView.\n",
+            },
+            {
+                .name   = "Log EDMAC usage",
+                .select = run_in_separate_task,
+                .priv   = log_edmac_usage,
+                .help   = "Log EDMAC status changes every 0.1ms.",
             },
             MENU_EOL
         }
