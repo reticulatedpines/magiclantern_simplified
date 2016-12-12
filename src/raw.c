@@ -117,8 +117,6 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #define DEFAULT_RAW_BUFFER_SIZE (0x47F00000 - 0x46798080)
 #endif
 
-#ifdef CONFIG_EOSM
-#define DEFAULT_RAW_BUFFER MEM(0x404E4 + 0x44)
 #endif
 
 #define DEFAULT_RAW_BUFFER_SIZE (0x47F00000 - 0x46798080)
@@ -760,7 +758,6 @@ static int raw_lv_get_resolution(int* width, int* height)
     }
 #endif
 
-    return 1;
 
 #else
     /* autodetect raw size from EDMAC */
