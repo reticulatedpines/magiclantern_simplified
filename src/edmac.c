@@ -32,6 +32,10 @@ static uint32_t edmac_chanlist[] =
 #define NUM_EDMAC_CHANNELS 32
 #endif
 
+/* not sure */
+/* guess: from 0xC0F05020 to 0xC0F05200 we have read connections */
+#define NUM_EDMAC_CONNECTIONS 120
+
 /* http://www.magiclantern.fm/forum/index.php?topic=6740 */
 static uint32_t write_edmacs[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x20, 0x21};
 static uint32_t read_edmacs[]  = {0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x28, 0x29, 0x2A, 0x2B};
@@ -198,7 +202,7 @@ uint32_t edmac_get_connection(uint32_t channel, uint32_t direction)
             dest_chan = channel - 8;
         }
         
-        for(uint32_t pos = 0; pos < 48; pos++)
+        for(uint32_t pos = 0; pos < NUM_EDMAC_CONNECTIONS; pos++)
         {
             addr = 0xC0F05020 + (4 * pos);
             uint32_t dst = shamem_read(addr);
