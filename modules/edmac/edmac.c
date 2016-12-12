@@ -114,7 +114,7 @@ static void edmac_display_detailed(int channel)
 
     uint32_t state = edmac_get_state(channel);
     uint32_t flags = edmac_get_flags(channel);
-    uint32_t addr = edmac_get_address(channel);
+    uint32_t addr  = edmac_get_address(channel);
 
     union edmac_size_t
     {
@@ -131,6 +131,7 @@ static void edmac_display_detailed(int channel)
     uint32_t off1a = shamem_read(base + 0x20);
     uint32_t off2a = shamem_read(base + 0x24);
     uint32_t off3  = shamem_read(base + 0x28);
+    uint32_t off40 = shamem_read(base + 0x40);
 
     uint32_t dir     = edmac_get_dir(channel);
     char* dir_s      = 
@@ -158,6 +159,7 @@ static void edmac_display_detailed(int channel)
     bmp_printf(FONT_MONO_20, 50, y += fh, "off2a      : %8x ", off2a);
     bmp_printf(FONT_MONO_20, 50, y += fh, "off2b      : %8x ", off2b);
     bmp_printf(FONT_MONO_20, 50, y += fh, "off3       : %8x ", off3);
+    bmp_printf(FONT_MONO_20, 50, y += fh, "off40      : %8x ", off40);
     y += fh;
     bmp_printf(FONT_MONO_20, 50, y += fh, "Connection : write=0x%x read=0x%x dir=%s", conn_w, conn_r, dir_s);
 
