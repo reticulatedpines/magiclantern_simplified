@@ -1449,12 +1449,7 @@ static void mlv_play_render_task(uint32_t priv)
             break;
         }
 
-        raw_info.buffer = buffer->frameBuffer;
-        raw_info.bits_per_pixel = buffer->bitDepth;
-        raw_info.black_level = buffer->blackLevel;
-        raw_set_geometry(buffer->xRes, buffer->yRes, 0, 0, 0, 0);
-        raw_force_aspect_ratio_1to1();
-        raw_preview_fast_ex((void*)-1,(void*)-1,-1,-1,mlv_play_quality);
+        mlv_play_render_frame(buffer);
         
         /* if info display is requested, paint it. todo: thats OSD stuff, so it should be removed from here */
         if(mlv_play_info)
