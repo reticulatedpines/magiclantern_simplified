@@ -44,6 +44,7 @@
 #include "../mlv_rec/mlv.h"
 #include "../file_man/file_man.h"
 #include "../lv_rec/lv_rec.h"
+#include "../raw_twk/raw_twk.h"
 
 /* uncomment for live debug messages */
 //~ #define trace_write(trace, fmt, ...) { printf(fmt, ## __VA_ARGS__); printf("\n"); msleep(500); }
@@ -81,6 +82,9 @@ static volatile uint32_t mlv_play_stopfile = 0;
 static CONFIG_INT("play.quality", mlv_play_quality, 0); /* range: 0-1, RAW_PREVIEW_* in raw.h  */
 static CONFIG_INT("play.exact_fps", mlv_play_exact_fps, 0);
 
+static int mlv_play_zoom = 0;
+static int mlv_play_zoom_x_pct = 0;
+static int mlv_play_zoom_y_pct = 0;
 
 static uint32_t mlv_play_trace_ctx = TRACE_ERROR;
 
@@ -782,6 +786,32 @@ static void mlv_play_osd_task(void *priv)
                     mlv_play_osd_act(&mlv_play_osd_pause);
                     mlv_play_osd_pause(NULL, 0, 1);
                     break;
+
+                case MODULE_KEY_PRESS_ZOOMIN:
+                    mlv_play_osd_state = MLV_PLAY_MENU_HIDDEN;
+                    mlv_play_zoom = (mlv_play_zoom + 1) % 4;
+                    raw_twk_set_zoom(mlv_play_zoom, mlv_play_zoom_x_pct, mlv_play_zoom_y_pct);
+                    break;
+                    
+                case MODULE_KEY_PRESS_UP:
+                    mlv_play_zoom_y_pct = MAX(0, mlv_play_zoom_y_pct - 10);
+                    raw_twk_set_zoom(mlv_play_zoom, mlv_play_zoom_x_pct, mlv_play_zoom_y_pct);
+                    break;
+
+                case MODULE_KEY_PRESS_DOWN:
+                    mlv_play_zoom_y_pct = MIN(100, mlv_play_zoom_y_pct + 10);
+                    raw_twk_set_zoom(mlv_play_zoom, mlv_play_zoom_x_pct, mlv_play_zoom_y_pct);
+                    break;
+
+                case MODULE_KEY_PRESS_LEFT:
+                    mlv_play_zoom_x_pct = MAX(0, mlv_play_zoom_x_pct - 10);
+                    raw_twk_set_zoom(mlv_play_zoom, mlv_play_zoom_x_pct, mlv_play_zoom_y_pct);
+                    break;
+
+                case MODULE_KEY_PRESS_RIGHT:
+                    mlv_play_zoom_x_pct = MIN(100, mlv_play_zoom_x_pct + 10);
+                    raw_twk_set_zoom(mlv_play_zoom, mlv_play_zoom_x_pct, mlv_play_zoom_y_pct);
+                    break;
             }
             
             switch(mlv_play_osd_state)
@@ -806,22 +836,28 @@ static void mlv_play_osd_task(void *priv)
                 /* when fading out, still handle and fade back in */
                 case MLV_PLAY_MENU_FADEOUT:
                 {
-                    mlv_play_osd_state = MLV_PLAY_MENU_FADEIN;
-                    mlv_play_osd_handle(key);
+                    if(!mlv_play_zoom)
+                    {
+                        mlv_play_osd_state = MLV_PLAY_MENU_FADEIN;
+                        mlv_play_osd_handle(key);
+                    }
                     break;
                 }
                 
                 case MLV_PLAY_MENU_IDLE:
                 case MLV_PLAY_MENU_HIDDEN:
                 {
-                    if (key == MODULE_KEY_PRESS_SET || key == MODULE_KEY_Q || key == MODULE_KEY_PICSTYLE)
+                    if(!mlv_play_zoom)
                     {
-                        mlv_play_osd_state = MLV_PLAY_MENU_FADEIN;
-                    }
-                    if (key == MODULE_KEY_INFO)
-                    {
-                        clrscr();
-                        mlv_play_info = MOD(mlv_play_info + 1, 2) ? 2 : 0;
+                        if (key == MODULE_KEY_PRESS_SET || key == MODULE_KEY_Q || key == MODULE_KEY_PICSTYLE)
+                        {
+                            mlv_play_osd_state = MLV_PLAY_MENU_FADEIN;
+                        }
+                        if (key == MODULE_KEY_INFO)
+                        {
+                            clrscr();
+                            mlv_play_info = MOD(mlv_play_info + 1, 2) ? 2 : 0;
+                        }
                     }
                     break;
                 }
@@ -1336,9 +1372,29 @@ static void mlv_play_close_chunks(FILE **chunk_files, uint32_t chunk_count)
     }
 }
 
+static void mlv_play_render_frame(frame_buf_t *buffer)
+{
+    raw_info.buffer = buffer->frameBuffer;
+    raw_info.bits_per_pixel = buffer->bitDepth;
+    raw_info.black_level = buffer->blackLevel;
+    raw_set_geometry(buffer->xRes, buffer->yRes, 0, 0, 0, 0);
+    raw_force_aspect_ratio_1to1();
+    
+    if(raw_twk_available())
+    {
+        raw_twk_render(buffer->frameBuffer, buffer->xRes, buffer->yRes, buffer->bitDepth, mlv_play_quality);
+    }
+    else
+    {
+        raw_preview_fast_ex((void*)-1,(void*)-1,-1,-1,mlv_play_quality);
+    }
+}
+
 static void mlv_play_render_task(uint32_t priv)
 {
     uint32_t redraw_loop = 0;
+    
+    frame_buf_t *buffer_paused = NULL;
     
     TASK_LOOP
     {
@@ -1356,8 +1412,9 @@ static void mlv_play_render_task(uint32_t priv)
             break;
         }
         
-        if(mlv_play_paused && !mlv_play_should_stop())
+        if(mlv_play_paused && !mlv_play_should_stop() && buffer_paused)
         {
+            mlv_play_render_frame(buffer_paused);
             msleep(100);
             continue;
         }
@@ -1367,21 +1424,30 @@ static void mlv_play_render_task(uint32_t priv)
         {
             continue;
         }
+        
+        /* if in pause mode, fetch a buffer for pause display and keep it */
+        if(mlv_play_paused)
+        {
+            buffer_paused = buffer;
+            continue;
+        }
+        else if(buffer_paused)
+        {
+            /* free the pause display buffer */
+            msg_queue_post(mlv_play_queue_empty, (uint32_t) buffer_paused);
+            buffer_paused = NULL;
+        }
 
         if(!buffer->frameBuffer)
         {
             bmp_printf(FONT_MED, 30, 400, "buffer empty");
             beep();
             msleep(1000);
+            msg_queue_post(mlv_play_queue_empty, (uint32_t) buffer);
             break;
         }
 
-        raw_info.buffer = buffer->frameBuffer;
-        raw_info.bits_per_pixel = buffer->bitDepth;
-        raw_info.black_level = buffer->blackLevel;
-        raw_set_geometry(buffer->xRes, buffer->yRes, 0, 0, 0, 0);
-        raw_force_aspect_ratio_1to1();
-        raw_preview_fast_ex((void*)-1,(void*)-1,-1,-1,mlv_play_quality);
+        mlv_play_render_frame(buffer);
         
         /* if info display is requested, paint it. todo: thats OSD stuff, so it should be removed from here */
         if(mlv_play_info)
@@ -1426,6 +1492,11 @@ static void mlv_play_render_task(uint32_t priv)
         
         /* finished displaying, requeue frame buffer for refilling */
         msg_queue_post(mlv_play_queue_empty, (uint32_t) buffer);
+    }
+    
+    if(buffer_paused)
+    {
+        msg_queue_post(mlv_play_queue_empty, (uint32_t) buffer_paused);
     }
     
     mlv_play_rendering = 0;
@@ -1490,7 +1561,7 @@ static void mlv_play_fps_tick(int expiry_value, void *priv)
         return;
     }
 
-    if (!mlv_play_paused)
+    //if (!mlv_play_paused)
     {
         msg_queue_post(mlv_play_queue_fps, 0);
     }
@@ -1598,10 +1669,11 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             mlv_play_paused = 1;
         }
 
-        while(mlv_play_paused && !mlv_play_should_stop())
-        {
-            msleep(100);
-        }
+        /* no not pause reader anymore, the renderer might still need a frame */
+        //while(mlv_play_paused && !mlv_play_should_stop())
+        //{
+        //    msleep(100);
+        //}
 
         /* there are various reasons why this read/play task should get stopped */
         if(mlv_play_should_stop())
@@ -1864,8 +1936,19 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
                 }
             }
             
-            /* queue frame buffer for rendering */
-            msg_queue_post(mlv_play_queue_render, (uint32_t) buffer);
+            /* queue frame buffer for rendering, retry if queue is full (happens in pause or for slow rendering) */
+            while(!mlv_play_should_stop())
+            {
+                if(msg_queue_post(mlv_play_queue_render, (uint32_t) buffer))
+                {
+                    msleep(10);
+                }
+                else
+                {
+                    break;
+                }
+            }
+            
         }
         block_xref_pos++;
     }
@@ -2306,6 +2389,11 @@ static void mlv_play_enter_playback()
     mlv_play_rendering = 1;
     task_create("mlv_play_render", 0x1d, 0x4000, mlv_play_render_task, NULL);
     task_create("mlv_play_osd_task", 0x15, 0x4000, mlv_play_osd_task, 0);
+    
+    mlv_play_zoom = 0;
+    mlv_play_zoom_x_pct = 0;
+    mlv_play_zoom_y_pct = 0;
+    raw_twk_set_zoom(mlv_play_zoom, mlv_play_zoom_x_pct, mlv_play_zoom_y_pct);
     
     /* queue a few buffers that are not allocated yet */
     for(int num = 0; num < 3; num++)
