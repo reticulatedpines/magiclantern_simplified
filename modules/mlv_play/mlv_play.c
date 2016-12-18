@@ -72,6 +72,7 @@ static int res_x = 0;
 static int res_y = 0;
 static int frame_count = 0;
 static int frame_size = 0;
+static int bits_per_pixel = 0;
 static unsigned int fps1000 = 0; /* used for RAW playback */
 
 static volatile uint32_t mlv_play_render_abort = 0;
@@ -143,6 +144,7 @@ typedef struct
     uint16_t xRes;
     uint16_t yRes;
     uint16_t bitDepth;
+    uint16_t blackLevel;
 } frame_buf_t;
 
 /* set up two queues - one with empty buffers and one with buffers to render */
@@ -1796,6 +1798,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             }
             
             frame_size = rawi_block.xRes * rawi_block.yRes * rawi_block.raw_info.bits_per_pixel / 8;
+            bits_per_pixel = rawi_block.raw_info.bits_per_pixel;
         }
         else if(!memcmp(buf.blockType, "WAVI", 4))
         {
@@ -1906,6 +1909,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             buffer->xRes = rawi_block.xRes;
             buffer->yRes = rawi_block.yRes;
             buffer->bitDepth = rawi_block.raw_info.bits_per_pixel;
+            buffer->blackLevel = rawi_block.raw_info.black_level;
 
             raw_info.black_level = rawi_block.raw_info.black_level;
             raw_info.white_level = rawi_block.raw_info.white_level;
@@ -2128,6 +2132,7 @@ static void mlv_play_raw(char *filename, FILE **chunk_files, uint32_t chunk_coun
         buffer->xRes = res_x;
         buffer->yRes = res_y;
         buffer->bitDepth = 14;
+        buffer->blackLevel = raw_info.black_level;
         
         if (mlv_play_exact_fps)
         {
@@ -2564,7 +2569,7 @@ FILETYPE_HANDLER(mlv_play_filehandler)
             }
             else if(mlv_play_is_raw(f))
             {
-                strcpy(data, "A 14-bit RAW Video");
+                strcpy(data, "A RAW Video");
             }
             else
             {
