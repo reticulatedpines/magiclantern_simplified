@@ -2339,19 +2339,15 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
 {
     static uint32_t edmac_timeouts = 0;
     
-    if(!mlv_video_enabled || !is_movie_mode())
-    {
-        return 0;
-    }
-    
-    if(!RAW_IS_RECORDING)
-    {
-        return 0;
-    }
     /* just a counter for waiting x frames, decrease whenever non-zero */
     if(frame_countdown)
     {
         frame_countdown--;
+    }
+    
+    if(!mlv_video_enabled || !is_movie_mode())
+    {
+        return 0;
     }
     
     if(!mlv_video_enabled || !is_movie_mode())
@@ -2387,6 +2383,11 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
 
     /* panning window is updated when recording, but also when not recording */
     panning_update();
+    
+    if(!RAW_IS_RECORDING)
+    {
+        return 0;
+    }
     
     if(!raw_lv_settings_still_valid())
     {
