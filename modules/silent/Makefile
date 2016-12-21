@@ -4,7 +4,7 @@ TOP_DIR=../..
 
 # define the module name - make sure name is max 8 characters
 MODULE_NAME=silent
-MODULE_OBJS=silent.o
+MODULE_OBJS=silent.o lossless.o
 
 # include modules environment
 include $(TOP_DIR)/modules/Makefile.modules

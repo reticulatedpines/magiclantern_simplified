@@ -481,6 +481,29 @@ static int save_lossless_dng(char * filename, struct raw_info * raw_info)
     return ok;
 }
 
+{
+    struct raw_info out_raw_info = *raw_info;
+
+    /* fixme: may fail */
+    struct memSuite * out_suite = shoot_malloc_suite_contig(MIN(raw_info->frame_size, 32*1024*1024));
+
+    if (!out_suite)
+    {
+        bmp_printf( FONT_MED, 0, 83, "Malloc error");
+        return 0;
+    }
+
+    out_raw_info.frame_size = lossless_compress_raw(raw_info, out_suite);
+    out_raw_info.buffer = GetMemoryAddressOfMemoryChunk(GetFirstChunkFromSuite(out_suite));
+
+    int ok = save_dng(filename, &out_raw_info);
+    if (!ok) bmp_printf( FONT_MED, 0, 83, "DNG save error (card full?)");
+
+    shoot_free_suite(out_suite);
+
+    return ok;
+}
+
 static int silent_pic_save_file(struct raw_info * raw_info, int capture_time_ms)
 {
     switch (silent_pic_file_format)
@@ -1687,12 +1710,13 @@ static struct menu_entry silent_menu[] = {
                 .name = "File Format",
                 .update = silent_pic_file_format_display,
                 .priv = &silent_pic_file_format,
-                .max = 1,
+                .max = 2,
                 .help = "File format to save the image as:",
                 .help2 =
                     "DNG is slow, but needs no extra post-processing.\n"
-                    "MLV is fast, and will group all frames into a single video file.\n",
-                .choices = CHOICES("DNG", "MLV"),
+                    "MLV is fast, and will group all frames into a single video file.\n"
+                    "Lossless DNG is fast and uses CR2 compression routines (experimental).\n",
+                .choices = CHOICES("DNG", "MLV", "Lossless DNG"),
             },
             MENU_EOL,
         }
@@ -1715,7 +1739,14 @@ static unsigned int silent_init()
         long_exposure_fix_enabled = 1;
     }
 
+    if (!lossless_init())
+    {
+        /* lossless DNG not available; hide from menu */
+        silent_menu[0].children[2].max = 1;
+    }
+
     menu_add("Shoot", silent_menu, COUNT(silent_menu));
+
     return 0;
 }
 
