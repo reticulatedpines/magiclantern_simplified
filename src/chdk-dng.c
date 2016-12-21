@@ -406,11 +406,23 @@ void dng_set_datetime(char *datetime, char *subsectime)
     strncpy(cam_subsectime, subsectime, sizeof(cam_subsectime));
 }
 
+static int is_lossless_jpeg(struct raw_info * raw_info)
+{
+    return MEM(raw_info->buffer) == 0xC4FFD8FF;
+}
+
 
 static void create_dng_header(struct raw_info * raw_info){
     int i,j;
     int extra_offset;
     int raw_offset;
+
+    static int dng_compression = 1;
+
+    if (is_lossless_jpeg(raw_info))
+    {
+        dng_compression = 7; /* JPEG */
+    }
 
     struct dir_entry ifd0[]={
         {0xFE,   T_LONG,       1,  1},                                 // NewSubFileType: Preview Image
@@ -457,7 +469,7 @@ static void create_dng_header(struct raw_info * raw_info){
         {0x100,  T_LONG|T_PTR, 1,  (int)&camera_sensor.raw_rowpix},    // ImageWidth
         {0x101,  T_LONG|T_PTR, 1,  (int)&camera_sensor.raw_rows},      // ImageLength
         {0x102,  T_SHORT|T_PTR,1,  (int)&camera_sensor.bits_per_pixel},// BitsPerSample
-        {0x103,  T_SHORT,      1,  1},                                 // Compression: Uncompressed
+        {0x103,  T_SHORT,      1,  dng_compression},                   // Compression: Uncompressed or JPEG
         {0x106,  T_SHORT,      1,  0x8023},                            // PhotometricInterpretation: CFA
         {0x111,  T_LONG,       1,  0},                                 // StripOffsets: Offset
         {0x115,  T_SHORT,      1,  1},                                 // SamplesPerPixel: 1
@@ -727,7 +739,10 @@ static int write_dng(FILE* fd, struct raw_info * raw_info)
         if (write(fd, dng_header_buf, dng_header_buf_size) != dng_header_buf_size) return 0;
         if (write(fd, thumbnail_buf, dng_th_width*dng_th_height*3) != dng_th_width*dng_th_height*3) return 0;
 
-        reverse_bytes_order(UNCACHEABLE(rawadr), camera_sensor.raw_size);
+        if (!is_lossless_jpeg(raw_info))
+        {
+            reverse_bytes_order(UNCACHEABLE(rawadr), camera_sensor.raw_size);
+        }
         if (write(fd, UNCACHEABLE(rawadr), camera_sensor.raw_size) != camera_sensor.raw_size) return 0;
 
         free_dng_header();
