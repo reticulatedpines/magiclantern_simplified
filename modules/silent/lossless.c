@@ -55,6 +55,7 @@ struct TwoInTwoOutLosslessPath_args
 static struct TwoInTwoOutLosslessPath_args TTL_Args;
 static struct LockEntry * TTL_ResLock = 0;
 static struct semaphore * lossless_sem = 0;
+static int verbose = 1;
 
 static void LosslessCompleteCBR()
 {
@@ -170,11 +171,10 @@ int lossless_compress_raw_start(struct raw_info * raw_info, struct memSuite * ou
 
     SetEDmac(TTL_Args.RD1_Channel, TTL_Args.RD1_Address, &RD1_info, TTL_Args.RD1_Flags);
 
-    void * WR1_Address = GetMemoryAddressOfMemoryChunk(GetFirstChunkFromSuite(TTL_Args.WR1_MemSuite));
-    const char * WR1_SizeFmt = format_memory_size(GetSizeOfMemoryChunk(GetFirstChunkFromSuite(output_memsuite)));
-
-    if (1)
+    if (verbose)
     {
+        void * WR1_Address = GetMemoryAddressOfMemoryChunk(GetFirstChunkFromSuite(TTL_Args.WR1_MemSuite));
+        const char * WR1_SizeFmt = format_memory_size(GetSizeOfMemoryChunk(GetFirstChunkFromSuite(output_memsuite)));
         printf("[TTL] %dx%d %dbpp\n", TTL_Args.xRes, TTL_Args.yRes, TTL_Args.SamplePrecision);
         printf(" WR1: %x EDMAC#%d<%d> (%x %s)\n",  WR1_Address,  TTL_Args.WR1_Channel, TTL_Args.WR1_Connection, TTL_Args.WR1_MemSuite, WR1_SizeFmt);
         printf(" WR2: %x EDMAC#%d<%d>\n", TTL_Args.WR2_Address,  TTL_Args.WR2_Channel, TTL_Args.WR2_Connection);
@@ -201,22 +201,28 @@ int lossless_compress_raw_finish()
 {
     /* wait until finished */
     int err = take_semaphore(lossless_sem, 1000);
-    uint32_t stop_time = get_us_clock_value();
 
-    printf("[TTL] Elapsed time: %d us\n", (int)(stop_time - start_time));
+    if (verbose)
+    {
+        uint32_t stop_time = get_us_clock_value();
+        printf("[TTL] Elapsed time: %d us\n", (int)(stop_time - start_time));
+    }
 
     /* stop processing; this will report output size */
     uint32_t output_size = 0;
     TTL_Stop(&TTL_Args);
     TTL_Finish(TTL_ResLock, &TTL_Args, &output_size);
 
-    /* compute input size (uncompressed) */
-    uint32_t current_ptr = (uint32_t) CACHEABLE(edmac_get_pointer(TTL_Args.RD1_Channel));
-    uint32_t initial_ptr = (uint32_t) CACHEABLE(TTL_Args.RD1_Address);
-    uint32_t input_size = current_ptr - initial_ptr;
+    if (verbose)
+    {
+        /* compute input size (uncompressed) */
+        uint32_t current_ptr = (uint32_t) CACHEABLE(edmac_get_pointer(TTL_Args.RD1_Channel));
+        uint32_t initial_ptr = (uint32_t) CACHEABLE(TTL_Args.RD1_Address);
+        uint32_t input_size = current_ptr - initial_ptr;
 
-    int ratio_x100 = output_size * 10000.0 / input_size;
-    printf("[TTL] Output size : %s (%s%d.%02d%%)\n", format_memory_size(output_size), FMT_FIXEDPOINT2(ratio_x100));
+        int ratio_x100 = output_size * 10000.0 / input_size;
+        printf("[TTL] Output size : %s (%s%d.%02d%%)\n", format_memory_size(output_size), FMT_FIXEDPOINT2(ratio_x100));
+    }
 
     if (err)
     {
