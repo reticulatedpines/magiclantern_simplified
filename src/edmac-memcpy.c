@@ -351,7 +351,7 @@ uint32_t raw_write_chan = 0x4;  /* 0x12 gives corrupted frames on 1.2.3, http://
 uint32_t raw_write_chan = 0x12; /* 60D and newer, including all DIGIC V */
 #endif
 
-#if defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_EOSM)
+#if defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_EOSM) || defined(CONFIG_6D)
 uint32_t raw_write_chan = 0x12;
 #endif
 
