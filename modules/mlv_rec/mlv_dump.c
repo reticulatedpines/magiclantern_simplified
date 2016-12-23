@@ -928,8 +928,8 @@ void chroma_smooth(int method, struct raw_info *info)
     int w = info->width;
     int h = info->height;
 
-    unsigned short * aux = malloc(w * h * sizeof(short));
-    unsigned short * aux2 = malloc(w * h * sizeof(short));
+    uint32_t * aux = malloc(w * h * sizeof(uint32_t));
+    uint32_t * aux2 = malloc(w * h * sizeof(uint32_t));
 
     int x,y;
     for (y = 0; y < h; y++)
@@ -1040,6 +1040,7 @@ int main (int argc, char *argv[])
     char *inject_filename = NULL;
     int blocks_processed = 0;
 
+    int extract_frames = 0;
     uint32_t frame_start = 0;
     uint32_t frame_end = 0;
     uint32_t audf_frames_processed = 0;
@@ -1320,6 +1321,7 @@ int main (int argc, char *argv[])
 
             case 'f':
                 {
+                    extract_frames = 1;
                     char *dash = strchr(optarg, '-');
 
                     /* try to parse "1-10" */
@@ -2514,7 +2516,7 @@ read_headers:
                     }
 
                     /* when no end was specified, save all frames */
-                    uint32_t frame_selected = (!frame_end) || ((block_hdr.frameNumber >= frame_start) && (block_hdr.frameNumber <= frame_end));
+                    uint32_t frame_selected = (!extract_frames) || ((block_hdr.frameNumber >= frame_start) && (block_hdr.frameNumber <= frame_end));
 
                     if(frame_selected)
                     {
