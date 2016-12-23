@@ -126,6 +126,10 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #define DEFAULT_RAW_BUFFER MEM(0x404E4 + 0x44)
 #endif
 
+#ifdef CONFIG_6D
+#define DEFAULT_RAW_BUFFER MEM(0x76d6c + 0x2C)
+#endif
+
 #else
 
 /* with Canon lv_save_raw, just read it from EDMAC */
@@ -197,11 +201,16 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #ifdef CONFIG_60D
 #define PREFERRED_RAW_TYPE 5
 #endif
-/*
+
 #ifdef CONFIG_700D
-#define PREFERRED_RAW_TYPE 78
+#define PREFERRED_RAW_TYPE 0x10
 #endif
 
+#ifdef CONFIG_6D
+#define PREFERRED_RAW_TYPE 0x10
+#endif
+
+/*
 #ifdef CONFIG_650D
 #define PREFERRED_RAW_TYPE 78
 #endif
@@ -468,6 +477,12 @@ static int raw_lv_get_resolution(int* width, int* height)
     *height = video_mode_crop ? 1060 : 727;
     return 1;
     #endif
+
+	#ifdef CONFIG_6D
+		*width  = zoom ? 2768 : mv720 ? 1920 : 1920;
+		*height = zoom ? 988 : mv720 ?  662 : 1252;    /* find correct mv720 height -- must be exact! */   
+		return 1;
+	#endif
 
     /* unknown camera? */
     return 0;
