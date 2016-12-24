@@ -1280,9 +1280,6 @@ int main (int argc, char *argv[])
     /* long options */
     int chroma_smooth_method = 0;
     int black_fix = 0;
-    enum bug_id fix_bug = BUG_ID_NONE;
-    int fix_bug_1_offset = 0;
-    int fix_bug_2_offset = 0;
     int dng_output = 0;
     int dump_xrefs = 0;
     int fix_cold_pixels = 1;
@@ -1413,29 +1410,8 @@ int main (int argc, char *argv[])
                 break;
               
             case 'F':
-                if(!optarg)
-                {
-                    print_msg(MSG_ERROR, "Error: Missing bug ID\n");
-                    print_msg(MSG_ERROR, "    #1 - fix invalid block sizes\n");
-                    return ERR_PARAM;
-                }
-                else
-                {
-                    fix_bug = MIN(16384, MAX(1, atoi(optarg)));
-                    print_msg(MSG_INFO, "FIX BUG #%d [active]\n", fix_bug);
-                    
-                    if(fix_bug == BUG_ID_FRAMEDATA_MISALIGN)
-                    {
-                        char *parm = strchr(optarg, ',');
-                        if(parm && *parm)
-                        {
-                            parm++;
-                            fix_bug_2_offset = MIN(16384, MAX(-16384, atoi(parm)));
-                            print_msg(MSG_INFO, "FIX BUG #%d [active] parameter: %d\n", fix_bug, fix_bug_2_offset);
-                        }
-                    }
-                }
-                break;
+                print_msg(MSG_ERROR, "Error: No bug fix options supported in this version\n");
+                return ERR_PARAM;
               
             case 'B':
                 if(!optarg)
@@ -1972,7 +1948,7 @@ int main (int argc, char *argv[])
     }
 
     print_msg(MSG_INFO, "Processing...\n");
-    uint64_t position_previous = 0;
+    
     do
     {
         mlv_hdr_t buf;
@@ -2027,11 +2003,8 @@ read_headers:
         /* unexpected block header size? */
         if(buf.blockSize < sizeof(mlv_hdr_t) || buf.blockSize > 50 * 1024 * 1024)
         {
-            if(!fix_bug)
-            {
-                print_msg(MSG_ERROR, "Invalid block size at position 0x%08" PRIx64 "\n", position);
-                goto abort;
-            }
+            print_msg(MSG_ERROR, "Invalid block size at position 0x%08" PRIx64 "\n", position);
+            goto abort;
         }
         
         if(autopsy_mode)
@@ -2525,24 +2498,10 @@ read_headers:
                     int decompress = compressed && decompress_output;
 
                     int frame_size = block_hdr.blockSize - sizeof(mlv_vidf_hdr_t) - block_hdr.frameSpace;
-                    int prev_frame_size = frame_size;
-
+                    int prev_frame_size = frame_size;                    
                     uint64_t skipSize = block_hdr.frameSpace;
-                    if(fix_bug == BUG_ID_FRAMEDATA_MISALIGN && (int)block_hdr.frameSpace >= fix_bug_2_offset)
-                    {
-                        print_msg(MSG_INFO, "BUG_ID_FRAMEDATA_MISALIGN: Offset frame data by %d byte\n", fix_bug_2_offset);
-                        skipSize -= fix_bug_2_offset;
-                    }
-                    file_set_pos(in_file, skipSize, SEEK_CUR);
                     
-                    /* we can correct that frame by fixing frame space */
-                    if(fix_bug == BUG_ID_BLOCKSIZE_WRONG && fix_bug_1_offset != 0)
-                    {
-                        print_msg(MSG_INFO, "BUG_ID_BLOCKSIZE_WRONG: Seeking %d byte\n", fix_bug_1_offset);
-                        file_set_pos(in_file, fix_bug_1_offset, SEEK_CUR);
-                        block_hdr.frameSpace += fix_bug_1_offset;
-                        fix_bug_1_offset = 0;
-                    }
+                    file_set_pos(in_file, skipSize, SEEK_CUR);
                     
                     /* check if there is enough memory for that frame */
                     if(frame_size > (int)frame_buffer_size)
@@ -2596,11 +2555,6 @@ read_headers:
                         goto abort;
                     }
 
-                    if(fix_bug == BUG_ID_FRAMEDATA_MISALIGN && (int)block_hdr.frameSpace >= fix_bug_2_offset)
-                    {
-                        file_set_pos(in_file, fix_bug_2_offset, SEEK_CUR);
-                    }
-                    
                     lua_handle_hdr_data(lua_state, buf.blockType, "_data_read", &block_hdr, sizeof(block_hdr), frame_buffer, frame_size);
 
                     if(recompress || decompress || ((raw_output || dng_output) && compressed))
@@ -3179,14 +3133,6 @@ read_headers:
                 else
                 {
                     file_set_pos(in_file, position + block_hdr.blockSize, SEEK_SET);
-                    
-                    /* we can correct that frame by fixing frame space */
-                    if(fix_bug == BUG_ID_BLOCKSIZE_WRONG && fix_bug_1_offset != 0)
-                    {
-                        print_msg(MSG_INFO, "BUG_ID_BLOCKSIZE_WRONG: Seeking %d byte\n", fix_bug_1_offset);
-                        file_set_pos(in_file, fix_bug_1_offset, SEEK_CUR);
-                        fix_bug_1_offset = 0;
-                    }
                 }
 
                 vidf_max_number = MAX(vidf_max_number, block_hdr.frameNumber);
@@ -3868,48 +3814,9 @@ read_headers:
             else
             {
                 print_msg(MSG_INFO, "Unknown Block: %c%c%c%c, skipping\n", buf.blockType[0], buf.blockType[1], buf.blockType[2], buf.blockType[3]);
-                
-                if(fix_bug == BUG_ID_BLOCKSIZE_WRONG)
-                {
-                    char type[5];
-                    uint32_t range = 0x80;
-                    
-                    type[4] = '\000';
-                    print_msg(MSG_INFO, "BUG_ID_BLOCKSIZE_WRONG: Invalid block at 0x%08" PRIx64 ", trying to fix it\n", position);
-                    position += range / 2;
-                    
-                    for(uint32_t offset = 0; offset < range; offset++)
-                    {
-                        file_set_pos(in_file, position, SEEK_SET);
-                        
-                        if(fread(&type, 4, 1, in_file) != 1)
-                        {
-                            print_msg(MSG_ERROR, "BUG_ID_BLOCKSIZE_WRONG: Failed to read from source file\n");
-                            goto abort;
-                        }
-                        
-                        if(!memcmp(type, "NULL", 4))
-                        {
-                            fix_bug_1_offset = -(offset - range / 2);
-                            print_msg(MSG_INFO, "BUG_ID_BLOCKSIZE_WRONG: Success, offset: %d bytes.\n", fix_bug_1_offset);
-                            file_set_pos(in_file, position_previous, SEEK_SET);
-                            position = position_previous;
-                            break;
-                        }
-                        position--;
-                    }
-                    if(memcmp(type, "NULL", 4))
-                    {
-                        print_msg(MSG_ERROR, "BUG_ID_BLOCKSIZE_WRONG: Failed to fix\n");
-                        goto abort;
-                    }
-                }
-                else
-                {
-                    file_set_pos(in_file, position + buf.blockSize, SEEK_SET);
 
-                    lua_handle_hdr(lua_state, buf.blockType, "", 0);
-                }
+                file_set_pos(in_file, position + buf.blockSize, SEEK_SET);
+                lua_handle_hdr(lua_state, buf.blockType, "", 0);
             }
         }
 
@@ -3926,8 +3833,6 @@ read_headers:
                 break;
             }
         }
-        
-        position_previous = position;
     }
     while(!feof(in_file));
 
