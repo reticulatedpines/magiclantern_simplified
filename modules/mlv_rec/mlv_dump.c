@@ -2803,6 +2803,7 @@ read_headers:
                         frame_size = new_size;
                         current_depth = new_depth;
 
+                        frame_buffer = realloc(frame_buffer, frame_size);
                         memcpy(frame_buffer, new_buffer, frame_size);
                         free(new_buffer);
                     }
@@ -3658,6 +3659,49 @@ read_headers:
                     print_msg(MSG_INFO, "      exposure_bias    %d, %d\n", block_hdr.raw_info.exposure_bias[0], block_hdr.raw_info.exposure_bias[1]);
                     print_msg(MSG_INFO, "      cfa_pattern      0x%08X\n", block_hdr.raw_info.cfa_pattern);
                     print_msg(MSG_INFO, "      calibration_ill  %d\n", block_hdr.raw_info.calibration_illuminant1);
+                }
+            
+                int frame_size = MAX(bit_depth, block_hdr.raw_info.bits_per_pixel) * block_hdr.raw_info.height * block_hdr.raw_info.width / 8;
+                
+                frame_buffer_size = frame_size;
+                
+                /* realloc buffers */
+                frame_buffer = realloc(frame_buffer, frame_buffer_size);
+                
+                if(!frame_buffer)
+                {
+                    print_msg(MSG_ERROR, "VIDF: Failed to allocate %d byte\n", frame_buffer_size);
+                    goto abort;
+                }
+                
+                if(frame_arith_buffer)
+                {
+                    frame_arith_buffer = realloc(frame_arith_buffer, frame_buffer_size * sizeof(uint32_t));
+                    if(!frame_arith_buffer)
+                    {
+                        print_msg(MSG_ERROR, "VIDF: Failed to allocate %d byte\n", frame_buffer_size);
+                        goto abort;
+                    }
+                }
+                
+                if(frame_sub_buffer)
+                {
+                    frame_sub_buffer = realloc(frame_sub_buffer, frame_buffer_size);
+                    if(!frame_sub_buffer)
+                    {
+                        print_msg(MSG_ERROR, "VIDF: Failed to allocate %d byte\n", frame_buffer_size);
+                        goto abort;
+                    }
+                }
+                
+                if(prev_frame_buffer)
+                {
+                    prev_frame_buffer = realloc(prev_frame_buffer, frame_buffer_size);
+                    if(!prev_frame_buffer)
+                    {
+                        print_msg(MSG_ERROR, "VIDF: Failed to allocate %d byte\n", frame_buffer_size);
+                        goto abort;
+                    }
                 }
 
                 /* cache these bits when we convert to legacy or resample bit depth */
