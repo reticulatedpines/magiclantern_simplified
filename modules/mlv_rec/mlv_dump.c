@@ -1667,6 +1667,9 @@ int main (int argc, char *argv[])
     {
         int len = strlen(input_filename) + 16;
         output_filename = malloc(len);
+        
+        /* force 14bpp output for DNG code */
+        bit_depth = 14;
 
         strcpy(output_filename, input_filename);
 
