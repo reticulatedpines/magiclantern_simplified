@@ -1858,7 +1858,7 @@ int main (int argc, char *argv[])
         if(block_xref)
         {
             print_msg(MSG_INFO, "XREF table contains %d entries\n", block_xref->entryCount);
-            xrefs = (mlv_xref_t *)((uint32_t)block_xref + sizeof(mlv_xref_hdr_t));
+            xrefs = (mlv_xref_t *)(block_xref + 1);
 
             if(dump_xrefs)
             {
