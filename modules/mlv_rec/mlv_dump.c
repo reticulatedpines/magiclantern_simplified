@@ -2959,6 +2959,21 @@ read_headers:
                             raw_info = lv_rec_footer.raw_info;
                             raw_info.frame_size = frame_size;
                             raw_info.buffer = frame_buffer;
+                            
+                            if(new_depth)
+                            {
+                                raw_info.bits_per_pixel = new_depth;
+                                if(old_depth > new_depth)
+                                {
+                                    raw_info.black_level >>= old_depth - new_depth;
+                                    raw_info.white_level >>= old_depth - new_depth;
+                                }
+                                else
+                                {
+                                    raw_info.black_level <<= new_depth - old_depth;
+                                    raw_info.white_level <<= new_depth - old_depth;
+                                }
+                            }
 
                             /* override the resolution from raw_info with the one from lv_rec_footer, if they don't match */
                             if (lv_rec_footer.xRes != raw_info.width)
@@ -3662,7 +3677,23 @@ read_headers:
 
                     if(bit_depth)
                     {
-                        block_hdr.raw_info.bits_per_pixel = bit_depth;
+                        int new_depth = bit_depth;
+                        int old_depth = block_hdr.raw_info.bits_per_pixel;
+                        if(new_depth != old_depth)
+                        {
+                            block_hdr.raw_info.bits_per_pixel = bit_depth;
+                            //changing bit depth changes the black and white levels
+                            if(old_depth > new_depth)
+                            {
+                                block_hdr.raw_info.black_level >>= old_depth - new_depth;
+                                block_hdr.raw_info.white_level >>= old_depth - new_depth;
+                            }
+                            else
+                            {
+                                block_hdr.raw_info.black_level <<= new_depth - old_depth;
+                                block_hdr.raw_info.white_level <<= new_depth - old_depth;
+                            }
+                        }
                     }
 
                     if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
