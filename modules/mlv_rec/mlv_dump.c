@@ -1661,15 +1661,18 @@ int main (int argc, char *argv[])
     {
         print_msg(MSG_INFO, "   - altering FPS metadata for %d/1000 fps\n", alter_fps);
     }
-
+    
+    /* force 14bpp output for DNG code */
+    if(dng_output)
+    {
+        bit_depth = 14;
+    }
+    
     /* special case - splitting into frames doesnt require a specific output file */
     if(dng_output && !output_filename)
     {
         int len = strlen(input_filename) + 16;
         output_filename = malloc(len);
-        
-        /* force 14bpp output for DNG code */
-        bit_depth = 14;
 
         strcpy(output_filename, input_filename);
 
