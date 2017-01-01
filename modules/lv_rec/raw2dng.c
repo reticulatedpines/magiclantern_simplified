@@ -262,6 +262,7 @@ int main(int argc, char** argv)
         }
 
         raw_info.frame_size = lv_rec_footer.frameSize;
+        set_idnt_block(); // get the camera name to fill appropriate DNG tag
     }
 
     int framenumber;
@@ -310,6 +311,7 @@ int main(int argc, char** argv)
             chroma_smooth();
             #endif
 
+            dng_set_camname((char*)idnt_hdr.cameraName);
             dng_set_framerate(lv_rec_footer.sourceFpsx1000);
             save_dng(fn, &raw_info);
         }
