@@ -384,17 +384,21 @@ static int autodetect_white_level(int initial_guess);
 extern void reverse_bytes_order(char* buf, int count);
 
 #ifdef CONFIG_RAW_LIVEVIEW
+
 #if defined(CONFIG_ALLOCATE_RAW_LV_BUFFER)
 static void* raw_allocated_lv_buffer = 0;
 #endif
+
 static void* raw_get_default_lv_buffer()
 {
-#if defined(DEFAULT_RAW_BUFFER)
+#if !defined(CONFIG_EDMAC_RAW_SLURP)
+    return (void*) shamem_read(RAW_LV_EDMAC);
+#elif defined(DEFAULT_RAW_BUFFER)
     return (void*) DEFAULT_RAW_BUFFER;
 #elif defined(CONFIG_ALLOCATE_RAW_LV_BUFFER)
     return raw_allocated_lv_buffer;
 #else
-    return (void*) shamem_read(RAW_LV_EDMAC);
+    #error DEFAULT_RAW_BUFFER not configured.
 #endif
 }
 /* returns 1 on success */
@@ -1789,11 +1793,14 @@ static void raw_lv_enable()
 
 #ifndef CONFIG_EDMAC_RAW_SLURP
     call("lv_save_raw", 1);
-#elif defined(CONFIG_ALLOCATE_RAW_LV_BUFFER)
-    if(!raw_allocated_lv_buffer) 
-    {
-        raw_allocated_lv_buffer = malloc(RAW_LV_BUFFER_ALLOC_SIZE);
+#endif
+
+#ifdef CONFIG_ALLOCATE_RAW_LV_BUFFER
+    uint32_t old = cli();
+    if(!raw_allocated_lv_buffer) {
+        raw_allocated_lv_buffer = fio_malloc(RAW_LV_BUFFER_ALLOC_SIZE);
     }
+    sei(old);
 #endif
 }
 
@@ -1803,11 +1810,15 @@ static void raw_lv_disable()
     
 #ifndef CONFIG_EDMAC_RAW_SLURP
     call("lv_save_raw", 0);
-#elif defined(CONFIG_ALLOCATE_RAW_LV_BUFFER)
+#endif
+
+#ifdef CONFIG_ALLOCATE_RAW_LV_BUFFER
+    uint32_t old = cli();
     if(raw_allocated_lv_buffer) {
         free(raw_allocated_lv_buffer);
         raw_allocated_lv_buffer = 0;
     }
+    sei(old);
 #endif
 }
 
