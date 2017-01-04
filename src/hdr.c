@@ -13,10 +13,7 @@
 #include "hdr.h"
 #include "fps.h"
 #include "shoot.h" /* for functions that should be moved */
-
-#if defined(CONFIG_MODULES)
 #include "module.h"
-#endif
 
 #ifdef CONFIG_FRAME_SHUTTER_OVERRIDE
 /* todo: refactor it with a menu that actually makes sense */

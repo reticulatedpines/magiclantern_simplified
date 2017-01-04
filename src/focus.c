@@ -16,6 +16,24 @@
 #include "beep.h"
 #include "zebra.h"
 #include "shoot.h"
+#include "math.h"
+#include "lvinfo.h"
+
+#ifdef FEATURE_LCD_SENSOR_SHORTCUTS
+#include "lcdsensor.h"
+#endif
+
+static CONFIG_INT( "dof.info.display", dof_info_display_lv, 0);
+
+static CONFIG_INT( "dof.info.formula", dof_info_formula, 0);
+#define DOF_FORMULA_SIMPLE 0
+#define DOF_FORMULA_DIFFRACTION_AWARE 1
+
+#ifdef CONFIG_FULLFRAME
+static CONFIG_INT( "dof.info.coc.ff", dof_info_coc, 29);
+#else
+static CONFIG_INT( "dof.info.coc.apsc", dof_info_coc, 19);
+#endif
 
 static void trap_focus_toggle_from_af_dlg();
 void lens_focus_enqueue_step(int dir);
@@ -50,13 +68,6 @@ int LensFocus(int num_steps)
 int LensFocus2(int num_steps, int step_size)
 {
     return lens_focus(num_steps, step_size, lens_focus_waitflag, lens_focus_delay*10);
-}
-
-void LensFocusSetup(int stepsize, int stepdelay, int wait)
-{
-    lens_focus_stepsize = COERCE(stepsize, 1, 3);
-    lens_focus_waitflag = wait;
-    lens_focus_delay = stepdelay/10;
 }
 
 static int focus_stack_enabled = 0;
@@ -107,7 +118,132 @@ int get_follow_focus_mode()
 int get_follow_focus_dir_v() { return follow_focus_reverse_v ? -1 : 1; }
 int get_follow_focus_dir_h() { return follow_focus_reverse_h ? -1 : 1; }
 
-void
+/**
+ * Compute the depth of field, accounting for diffraction.
+ *
+ * See:
+ *      http://www.largeformatphotography.info/articles/DoFinDepth.pdf
+ * 
+ * Assumes a ‘generic’ FF or Crop sensor, ie pixel density
+ *
+ * Makes the reasonable assumption that pupillary ratio can be ignored, ie use symmetric lens equations,
+ * as this only introduces a very small correction for non-macro imaging (hence what follows does
+ * not apply for close in macro where dof is around a (few) mm), ie approx 2NC(1+M/p)/M^2,
+ * where N = aperture, c = blur dia (ie coc), M = magnification and p = pupillary ratio.
+ *
+ * Hint: best to use cm in ML, rather than ft, ie more refined feedback
+ *
+ */
+
+void focus_calc_dof()
+{
+    // Total (defocus + diffraction) blur dia in microns
+    uint64_t        coc = dof_info_coc;
+
+    const uint64_t  fd = lens_info.focus_dist * 10; // into mm
+    const uint64_t  fl = lens_info.focal_len; // already in mm
+    
+    // If we have no aperture value then we can't compute any of this
+    // Also not all lenses report the focus length or distance
+    if (fl == 0 || lens_info.aperture == 0 || fd == 0)
+    {
+        lens_info.dof_near      = 0;
+        lens_info.dof_far       = 0;
+        lens_info.hyperfocal    = 0;
+        return;
+    }
+
+    // Set up some dof info
+    const uint64_t  freq = 550;         // mid vis diffraction freq in nm (use 850 if IR)
+    const uint64_t  imag = (fd-fl)/fl;  // inverse of magnification (to keep as integer)
+    const uint64_t  diff = (244*freq*lens_info.aperture*(1+imag)/imag)/1000000; // Diffraction blur in microns
+
+    int dof_flags = 0;
+
+    if (dof_info_formula == DOF_FORMULA_DIFFRACTION_AWARE)
+    {
+        // Test if large aperture diffraction limit reached 
+        if (diff >= coc)
+        {
+            // note: in this case, DOF near and far will collapse to focus distance
+            dof_flags |= DOF_DIFFRACTION_LIMIT_REACHED;
+            coc = 0;
+        }
+        else
+        {
+            // calculate defocus only blur in microns
+            const uint64_t sq = (coc*coc - diff*diff);
+            coc = (int) sqrtf(sq); // Defocus only blur
+        }
+    }
+
+    const uint64_t        fl2 = fl * fl;
+
+    // Calculate hyperfocal distance H 
+    const uint64_t H = coc ? fl + ((10000 * fl2) / (lens_info.aperture  * coc)) : 1000 * 1000;
+    lens_info.hyperfocal = H;
+  
+    // Calculate near and far dofs
+    lens_info.dof_near = (fd*fl*10000)/(10000*fl + imag*lens_info.aperture*coc); // in mm
+    if( fd >= H )
+    {
+        lens_info.dof_far = 1000 * 1000; // infinity
+    }
+    else
+    {
+        lens_info.dof_far = (fd*fl*10000)/(10000*fl - imag*lens_info.aperture*coc); // in mm
+    }
+
+    // update DOF flags
+    lens_info.dof_flags = dof_flags;
+    
+    // make sure we have nonzero DOF values, so they are always displayed
+    lens_info.dof_near = MAX(lens_info.dof_near, 1);
+    lens_info.dof_far = MAX(lens_info.dof_far, 1);
+
+    lens_info.dof_diffraction_blur = (int) diff;
+}
+
+LVINFO_UPDATE_FUNC(focus_dist_update)
+{
+    LVINFO_BUFFER(16);
+    
+    if(lens_info.focus_dist)
+    {
+        snprintf(buffer, sizeof(buffer), "%s", lens_format_dist( lens_info.focus_dist * 10 ));
+        
+        if (dof_info_display_lv && lens_info.dof_far && lens_info.dof_near)
+        {
+            /* do not center it, because it may overlap with the histogram */
+            int x = item->x + item->width/2 - 25;
+
+            /* display it above the bottom bar */
+            /* caveat: in some cases, the top bar may be right above the bottom bar */
+            int y = item->y;
+            int top_bar_pos = get_ml_topbar_pos();
+            if (top_bar_pos > y - 70) y = top_bar_pos;
+            
+            static int prev_x = 0;
+            static int prev_y = 0;
+            
+            if (x != prev_x || y != prev_y)
+            {
+                /* erase when graphic changes position. */
+                bmp_fill(COLOR_EMPTY, prev_x-70, prev_y-36, 140, 26);
+                prev_x = x;
+                prev_y = y;
+            }
+            
+            int fg = lens_info.dof_flags ? COLOR_RED : COLOR_WHITE;
+            bmp_fill(COLOR_BG, x-70, y-36, 140, 26);
+            bmp_printf(FONT(FONT_MED, fg, COLOR_BG) | FONT_ALIGN_RIGHT, x-8, y-33, "%s", lens_format_dist(lens_info.dof_near));
+            bmp_printf(FONT(FONT_MED, fg, COLOR_BG), x+8, y-33, "%s", lens_format_dist(lens_info.dof_far));
+            bmp_fill(fg, x, y-32, 1, 19);
+        }
+    }
+}
+
+static void
 display_lens_hyperfocal()
 {
     unsigned        menu_font = MENU_FONT;
@@ -115,7 +251,7 @@ display_lens_hyperfocal()
     unsigned        height = fontspec_height( font );
 
     int x = 10;
-    int y = 315;
+    int y = 328;
 
     y += 10;
     y += height;
@@ -137,17 +273,20 @@ display_lens_hyperfocal()
         lens_info.aperture % 10
     );
     
-    if (!lv || !lens_info.focus_dist)
+    if (!lv)
     {
         y += height;
         bmp_printf( font, x, y,
-            "Hyperfocal: %s",
-            lens_info.hyperfocal ? lens_format_dist( lens_info.hyperfocal ) : 
-            "unknown, go to LiveView to get focal length"
+            "Focus distance info is only available in LiveView."
         );
+        return;
+    }
+    
+    if (!lens_info.focus_dist)
+    {
         y += height;
         bmp_printf( font, x, y,
-            "Your lens did not report focus distance"
+            "Your lens does not report focus distance."
         );
         return;
     }
@@ -167,7 +306,7 @@ display_lens_hyperfocal()
         lens_format_dist( lens_info.hyperfocal )
     );
 
-    x += 300;
+    x += 280;
     y -= height;
     bmp_printf( font, x, y,
         "DOF Near:   %s",
@@ -181,6 +320,30 @@ display_lens_hyperfocal()
             ? " Infty"
             : lens_format_dist( lens_info.dof_far )
     );
+
+    x = 700;
+    y -= 2 * height;
+
+    y += height;
+    int fg = lens_info.dof_flags & DOF_DIFFRACTION_LIMIT_REACHED ? COLOR_YELLOW : COLOR_WHITE;
+    bmp_printf( FONT(font,fg,COLOR_BLACK) | FONT_ALIGN_RIGHT, x, y, 
+        "Diffraction\n"
+        "blur: %d"SYM_MICRO"m",
+        lens_info.dof_diffraction_blur
+    );
+}
+
+static MENU_UPDATE_FUNC(dof_info_update)
+{
+    if (info->can_custom_draw)
+    {
+        display_lens_hyperfocal();
+    }
+}
+
+static MENU_UPDATE_FUNC(dof_info_coc_update)
+{
+    MENU_SET_VALUE("%d " SYM_MICRO"m", CURRENT_VALUE);
 }
 
 static void wait_notify(int seconds, char* msg)
@@ -201,7 +364,7 @@ static int focus_stack_should_stop = 0;
 static int focus_stack_check_stop()
 {
     if (gui_menu_shown()) focus_stack_should_stop = 1;
-    if (CURRENT_DIALOG_MAYBE == 2) focus_stack_should_stop = 1; // Canon menu open
+    if (CURRENT_GUI_MODE == 2) focus_stack_should_stop = 1; // Canon menu open
     return focus_stack_should_stop;
 }
 
@@ -213,7 +376,7 @@ static void focus_stack_ensure_preconditions()
         while (!lv)
         {
             focus_stack_check_stop();
-            get_out_of_play_mode(500);
+            exit_play_qr_mode();
             focus_stack_check_stop();
             if (!lv) force_liveview();
             if (lv) break;
@@ -296,7 +459,7 @@ focus_stack(
         focus_stack_ensure_preconditions();
         if (focus_stack_check_stop()) break;
 
-        if (gui_menu_shown() || CURRENT_DIALOG_MAYBE == 2) break; // menu open? stop here
+        if (gui_menu_shown() || CURRENT_GUI_MODE == 2) break; // menu open? stop here
 
         if (!(
             (!is_bracket && skip_frame && (i == 0)) ||              // first frame in SNAP-stack
@@ -398,11 +561,11 @@ static MENU_UPDATE_FUNC(focus_show_a)
     if (entry->selected) override_zoom_buttons = 1;
     
     MENU_SET_VALUE(
-        "%s%d%s",
+        "%s%d %s",
         focus_task_delta > 0 ? "+" : 
         focus_task_delta < 0 ? "-" : "",
         ABS(focus_task_delta),
-        focus_task_delta ? "steps from here" : " (here)"
+        focus_task_delta ? "steps from here" : "(here)"
     );
     MENU_SET_ICON(MNI_BOOL(focus_task_delta), 0);
     MENU_SET_ENABLED(focus_task_delta);
@@ -583,7 +746,6 @@ focus_task( void* unused )
 {
     TASK_LOOP
     {
-        msleep(50);
         int err = take_semaphore( focus_task_sem, 500 );
         if (err) continue;
         
@@ -660,16 +822,6 @@ static MENU_UPDATE_FUNC(focus_delay_update)
     MENU_SET_VALUE("%dms", lens_focus_delay*10);
 }
 
-#ifdef FEATURE_MOVIE_AF
-CONFIG_INT("movie.af", movie_af, 0);
-CONFIG_INT("movie.af.aggressiveness", movie_af_aggressiveness, 4);
-CONFIG_INT("movie.af.noisefilter", movie_af_noisefilter, 7); // 0 ... 9
-int movie_af_stepsize = 10;
-#else
-#define movie_af 0
-#endif
-
-
 int focus_value = 0; // heuristic from 0 to 100
 int focus_value_delta = 0;
 int focus_min_value = 0; // to confirm focus variation 
@@ -689,9 +841,6 @@ int get_focus_graph()
 { 
     if (should_draw_bottom_graphs())
         return zebra_should_run();
-
-    if (movie_af && is_movie_mode())
-        return !is_manual_focus() && zebra_should_run();
 
     if (get_trap_focus() && can_lv_trap_focus_be_active())
         return (liveview_display_idle() && get_global_draw()) || get_halfshutter_pressed();
@@ -751,97 +900,6 @@ int is_manual_focus()
     return (af_mode & 0xF) == AF_MODE_MANUAL_FOCUS;
 }
 
-#ifdef FEATURE_MOVIE_AF
-int movie_af_active()
-{
-    return is_movie_mode() && lv && !is_manual_focus() && (focus_done || movie_af==3);
-}
-
-static void movie_af_step(int mag)
-{
-    if (!movie_af_active()) return;
-    
-    #define MAXSTEPSIZE 64
-    #define NP ((int)movie_af_noisefilter)
-    #define NQ (10 - NP)
-    
-    int dirchange = 0;
-    static int dir = 1;
-    static int prev_mag = 0;
-    static int target_focus_rate = 1;
-    if (mag == prev_mag) return;
-    
-    bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, "    ");
-
-    static int dmag = 0;
-    dmag = ((mag - prev_mag) * NQ + dmag * NP) / 10; // focus derivative is filtered (it's noisy)
-    int dmagp = dmag * 10000 / prev_mag;
-    static int dmagp_acc = 0;
-    static int acc_num = 0;
-    dmagp_acc += dmagp;
-    acc_num++;
-    
-    if (focus_done_raw & 0x1000) // bam! focus motor has hit something
-    {
-        dirchange = 1;
-        bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, "BAM!");
-    }
-    else if (movie_af_reverse_dir_request)
-    {
-        dirchange = 1;
-        movie_af_reverse_dir_request = 0;
-        bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, "REV ");
-    }
-    else
-    {
-        if (dmagp_acc < -500 && acc_num >= 2) dirchange = 1;
-        if (ABS(dmagp_acc) < 500)
-        {
-            bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, " !! "); // confused
-        }
-        else
-        {
-            dmagp_acc = 0;
-            acc_num = 0;
-            bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 180, " :) "); // it knows exactly if it's going well or not
-        }
-
-        if (ABS(dmagp) > target_focus_rate) movie_af_stepsize /= 2;       // adjust step size in order to maintain a preset rate of change in focus amount
-        else movie_af_stepsize = movie_af_stepsize * 3 / 2;               // when focus is "locked", derivative of focus amount is very high => step size will be very low
-        movie_af_stepsize = COERCE(movie_af_stepsize, 2, MAXSTEPSIZE);    // when OOF, derivative is very small => will increase focus speed
-    }
-    
-    if (dirchange)
-    {
-        dir = -dir;
-        dmag = 0;
-        target_focus_rate /= 4;
-    }
-    else
-    {
-        target_focus_rate = target_focus_rate * 11/10;
-    }
-    target_focus_rate = COERCE(target_focus_rate, movie_af_aggressiveness * 20, movie_af_aggressiveness * 100);
-
-    focus_done = 0; 
-    static int focus_pos = 0;
-    int focus_delta = movie_af_stepsize * SGN(dir);
-    focus_pos += focus_delta;
-    LensFocus(focus_delta);  // send focus command
-
-    //~ bmp_draw_rect(7, COERCE(350 + focus_pos, 100, 620), COERCE(380 - mag/200, 100, 380), 2, 2);
-    
-    if (get_global_draw())
-    {
-        bmp_fill(0, 8, 151, 128, 10);                                          // display focus info
-        bmp_fill(COLOR_RED, 8, 151, movie_af_stepsize, 5);
-        bmp_fill(COLOR_BLUE, 8, 156, 64 * target_focus_rate / movie_af_aggressiveness / 100, 5);
-        bmp_printf(FONT(FONT_MED, COLOR_WHITE, 0), 30, 160, "%s %d%%   ", dir > 0 ? "FAR " : "NEAR", dmagp/100);
-    }
-    prev_mag = mag;
-}
-#endif
-
 static int trap_focus_autoscaling = 1;
 
 #ifdef FEATURE_TRAP_FOCUS
@@ -858,7 +916,7 @@ int handle_trap_focus(struct event * event)
 
 static int focus_graph_dirty = 0;
 
-#if defined(FEATURE_TRAP_FOCUS) || defined(FEATURE_MAGIC_ZOOM) || defined(FEATURE_MOVIE_AF)
+#if defined(FEATURE_TRAP_FOCUS) || defined(FEATURE_MAGIC_ZOOM)
 
 #define NMAGS 64
 static int mags[NMAGS] = {0};
@@ -939,56 +997,10 @@ PROP_HANDLER(PROP_LV_FOCUS_DATA)
     int focus_mag = focus_mag_a + focus_mag_b;
     #endif
     
-#ifdef FEATURE_MOVIE_AF
-    if (movie_af != 3)
-#endif
-    {
-        update_focus_mag(focus_mag);
-#ifdef FEATURE_MOVIE_AF
-        if ((movie_af == 2) || (movie_af == 1 && get_halfshutter_pressed())) 
-            movie_af_step(focus_mag);
-#endif
-    }
+    update_focus_mag(focus_mag);
 }
 #else
 void plot_focus_mag(){};
-#endif
-
-#ifdef FEATURE_MOVIE_AF
-static void
-movie_af_print(
-    void *          priv,
-    int         x,
-    int         y,
-    int         selected
-)
-{
-    if (movie_af)
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Movie AF      : %s A%d N%d",
-            movie_af == 1 ? "Hold" : movie_af == 2 ? "Cont" : movie_af == 3 ? "CFPk" : "Err",
-            movie_af_aggressiveness,
-            movie_af_noisefilter
-        );
-    else
-        bmp_printf(
-            selected ? MENU_FONT_SEL : MENU_FONT,
-            x, y,
-            "Movie AF      : OFF"
-        );
-}
-
-void movie_af_aggressiveness_bump(void* priv)
-{
-    movie_af_aggressiveness = movie_af_aggressiveness * 2;
-    if (movie_af_aggressiveness > 64) movie_af_aggressiveness = 1;
-}
-void movie_af_noisefilter_bump(void* priv)
-{
-    movie_af_noisefilter = (movie_af_noisefilter + 1) % 10;
-}
 #endif
 
 static void
@@ -1000,16 +1012,6 @@ focus_misc_task(void* unused)
         
         if (hsp_countdown) hsp_countdown--;
 
-#ifdef FEATURE_MOVIE_AF
-        if (movie_af == 3)
-        {
-            int fm = get_spot_focus(100);
-            update_focus_mag(fm);
-            //~ if (get_focus_graph()) plot_focus_mag();
-            movie_af_step(fm);
-        }
-#endif
-
         if (focus_graph_dirty && get_focus_graph()) 
         {
             plot_focus_mag();
@@ -1017,9 +1019,9 @@ focus_misc_task(void* unused)
         }
         
 #ifdef CONFIG_60D
-        if (CURRENT_DIALOG_MAYBE_2 == DLG2_FOCUS_MODE && is_manual_focus())
+        if (CURRENT_GUI_MODE_2 == DLG2_FOCUS_MODE && is_manual_focus())
 #else
-        if (CURRENT_DIALOG_MAYBE == DLG_FOCUS_MODE && is_manual_focus())
+        if (CURRENT_GUI_MODE == GUIMODE_FOCUS_MODE && is_manual_focus())
 #endif
         {   
             #ifdef FEATURE_TRAP_FOCUS
@@ -1027,9 +1029,9 @@ focus_misc_task(void* unused)
             #endif
             
             #ifdef CONFIG_60D
-            while (CURRENT_DIALOG_MAYBE_2 == DLG2_FOCUS_MODE) msleep(100);
+            while (CURRENT_GUI_MODE_2 == DLG2_FOCUS_MODE) msleep(100);
             #else
-            while (CURRENT_DIALOG_MAYBE == DLG_FOCUS_MODE) msleep(100);
+            while (CURRENT_GUI_MODE == GUIMODE_FOCUS_MODE) msleep(100);
             #endif
         }
     }
@@ -1128,19 +1130,6 @@ static struct menu_entry focus_menu[] = {
             MENU_EOL
         },
         #endif
-    },
-    #endif
-    
-    #ifdef FEATURE_MOVIE_AF
-    {
-        .name = "Movie AF",
-        .priv = &movie_af,
-        .update    = movie_af_print,
-        .select     = menu_quaternary_toggle,
-        .select_reverse = movie_af_noisefilter_bump,
-        .select_Q = movie_af_aggressiveness_bump,
-        .help = "Custom AF algorithm in movie mode. Not very efficient."
-        .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE | DEP_AUTOFOCUS,
     },
     #endif
 
@@ -1251,10 +1240,9 @@ static struct menu_entry focus_menu[] = {
                 .name = "Step Delay",
                 .priv = &lens_focus_delay,
                 .update = focus_delay_update,
-                .min = 1,
+                .min = 0,
                 .max = 100,
                 .icon_type = IT_PERCENT_LOG,
-                //~ .choices = CHOICES("10ms", "20ms", "40ms", "80ms", "160ms", "320ms", "640ms"),
                 .help = "Delay between two successive focus commands.",
             },
             {
@@ -1288,6 +1276,41 @@ static struct menu_entry focus_menu[] = {
         },
     },
     #endif
+    {
+        .name = "DOF Settings",
+        .select = menu_open_submenu,
+        .update = dof_info_update,
+        .help = "Settings about Depth of Field info displays.",
+        .depends_on = DEP_LIVEVIEW,
+        .submenu_width = 650,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Circle of Confusion",
+                .priv = &dof_info_coc,
+                .update = dof_info_coc_update,
+                .min  = 1,
+                .max = 100,
+                .help = "Circle of confusion used for DOF calculations.",
+                .help2 = "Default value: 19 for APS-C and 29 for full-frame cameras.",
+            },
+            {
+                .name = "DOF formula",
+                .priv = &dof_info_formula,
+                .max = 1,
+                .choices = CHOICES("Simple", "Diffraction-aware"),
+                .help = "Formula for computing the depth of field:",
+                .help2 = "Simple: only consider defocus blur, ignoring diffraction effects.\n"
+                         "Diffraction-aware: consider both defocus and diffraction blur.\n"
+            },
+            {
+                .name = "DOF info in LiveView",
+                .priv = &dof_info_display_lv,
+                .max  = 1,
+                .help = "Display DOF above Focus distance, in LiveView.",
+            },
+            MENU_EOL,
+        },
+    },
 };
 
 

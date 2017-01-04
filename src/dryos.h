@@ -65,6 +65,9 @@ task_create(
         void *                  arg
 );
 
+extern void *AcquireRecursiveLock(void *lock, int n);
+extern void *CreateRecursiveLock(int n);
+extern void *ReleaseRecursiveLock(void *lock);
 
 struct semaphore;
 
@@ -124,7 +127,6 @@ LoadCalendarFromRTC(
 );
 
 extern void DryosDebugMsg(int,int,const char *,...);
-//~ #define DebugMsg(a,b,fmt,...) { console_printf(fmt "\n", ## __VA_ARGS__); DryosDebugMsg(a,b,fmt, ## __VA_ARGS__); }
 
 /** custom functions */
 // group starts from 0, number starts from 1
@@ -157,10 +159,12 @@ extern uint32_t _ml_base_address;
 
 // main DryOs commands
 extern void msleep( int amount );
-extern void call( const char* name, ... );
+extern int call( const char* name, ... );
 
 // stdio
-int vsnprintf( char* str, size_t n, const char* fmt, va_list ap ); // non-standard; don't export it
+extern int vsnprintf( char* str, size_t n, const char* fmt, va_list ap ); // non-standard; don't export it
+extern int printf(const char* fmt, ... );
+extern int puts(const char* s);
 
 extern size_t strlen( const char* str );
 extern int snprintf( char* str, size_t n, const char* fmt, ... );
@@ -193,6 +197,7 @@ extern int iscntrl( int x );
 void str_make_lowercase(char* s);
 
 /** message queue calls **/
+struct msg_queue;
 extern int32_t msg_queue_receive(struct msg_queue *queue, void *buffer, uint32_t timeout);
 extern int32_t msg_queue_post(struct msg_queue * queue, uint32_t msg);
 extern int32_t msg_queue_count(struct msg_queue *queue, uint32_t *count);
@@ -249,9 +254,27 @@ void _EngDrvOut(uint32_t reg, uint32_t value);    /* Canon stub */
 void EngDrvOut(uint32_t reg, uint32_t value);     /* ML wrapper */
 void EngDrvOutLV(uint32_t reg, uint32_t value);   /* ML wrapper for LiveView-only calls */
 
+/* set multiple ENGIO registers in a single call */
+void _engio_write(uint32_t* reg_list);    /* Canon stub */
+void engio_write(uint32_t* reg_list);     /* ML wrapper */
+
 #ifdef CONFIG_550D
 /** 550D hack for DISPLAY_IS_ON */
 extern int get_display_is_on_550D();
 #endif
+
+#ifdef CONFIG_LCD_SENSOR
+void DispSensorStart();
+#endif
+
+#ifdef CONFIG_5D2
+void StartPlayProtectGuideApp();
+void StopPlayProtectGuideApp();
+void PtpDps_remote_release_SW1_SW2_worker();
+void Gui_SetSoundRecord( int );
+void GUI_SetLvMode( int );
+#endif
+
+int SoundDevActiveIn( uint32_t );
 
 #endif

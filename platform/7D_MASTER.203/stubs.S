@@ -43,7 +43,7 @@ NSTUB(0xFF812B4C,  init_task)
 // NSTUB(    ???,  FIO_FindClose)                           /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???,  FIO_FindNextEx)                          /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???,  FIO_ReadFile)                            /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
-// NSTUB(    ???,  FIO_SeekFile)                            /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
+// NSTUB(    ???,  FIO_SeekSkipFile)                        /* present on 5D3.113, EOSM.202 */
 // NSTUB(    ???,  FIO_WriteFile)                           /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???, _FIO_CreateDirectory)                     /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???, _FIO_CreateFile)                          /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
@@ -69,6 +69,8 @@ NSTUB(0xFF812B4C,  init_task)
 
 /** ASIF **/
 // NSTUB(    ???,  PowerAudioOutput)                        /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
+// NSTUB(    ???,  PowerMicAmp)                             /* present on 650D.104, EOSM.202, 700D.113 */
+// NSTUB(    ???,  SetASIFMode)                             /* present on 700D.113 */
 // NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
 // NSTUB(    ???,  SetAudioVolumeOut)                       /* present on 7D.203, 500D.111, 60D.111, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???,  SetNextASIFADCBuffer)                    /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 5D2.212, 600D.102, 650D.104, 1100D.105, EOSM.202, 700D.113 */
@@ -84,6 +86,7 @@ NSTUB(0xFF812B4C,  init_task)
 /** Audio **/
 // NSTUB(    ???, _audio_ic_read)                           /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???, _audio_ic_write)                          /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
+// NSTUB(    ???, _audio_ic_write_bulk)                     /* present on 6D.116 */
 // NSTUB(    ???,  audio_thresholds)                        /* present on 7D.203, 60D.111, 6D.113, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???,  sounddev)                                /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???,  sounddev_active_in)                      /* present on 7D.203, 500D.111, 60D.111, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
@@ -167,14 +170,18 @@ NSTUB(0xFF9314D8,  shamem_read)
 // NSTUB(    ???,  TryPostStageEvent_end)                   /* present on 6D.113, 650D.104, EOSM.202, 700D.113 */
 
 /** ExMem **/
+// NSTUB(    ???,  AddMemoryChunk)                          /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???,  AllocateContinuousMemoryResource)        /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???,  AllocateMemoryResource)                  /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
+// NSTUB(    ???,  CreateMemoryChunk)                       /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???,  CreateMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
 // NSTUB(    ???,  DeleteMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
 // NSTUB(    ???,  FreeMemoryResource)                      /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???,  GetFirstChunkFromSuite)                  /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???,  GetMemoryAddressOfMemoryChunk)           /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???,  GetNextMemoryChunk)                      /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
+// NSTUB(    ???,  SRM_AllocateMemoryResourceFor1stJob)     /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
+// NSTUB(    ???,  SRM_FreeMemoryResourceFor1stJob)         /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 
 /** GUI for old cameras **/
 // NSTUB(    ???,  gui_change_lcd_state_post)               /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
@@ -186,6 +193,13 @@ NSTUB(0xFF9314D8,  shamem_read)
 // NSTUB(    ???,  gui_post_10000085)                       /* present on 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  gui_timer_something)                     /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  gui_timer_struct)                        /* present on 7D.203, 500D.111, 60D.111, 50D.109, 5D2.212, 600D.102, 550D.109, 1100D.105 */
+
+/** GUI timers **/
+// NSTUB(    ???,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
+// NSTUB(    ???,  CancelTimer)                             /* present on 650D.104 */
+// NSTUB(    ???,  SetHPTimerAfterNow)                      /* present on 7D.203, 5D3.113, 600D.102, 650D.104, EOSM.202 */
+// NSTUB(    ???,  SetHPTimerNextTick)                      /* present on 7D.203, 5D3.113, 600D.102, EOSM.202 */
+// NSTUB(    ???,  SetTimerAfter)                           /* present on 650D.104 */
 
 /** H264 Encoder **/
 // NSTUB(    ???,  mvrFixQScale)                            /* present on 7D.203, 500D.111, 60D.111, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
@@ -206,6 +220,7 @@ NSTUB(0x40000AF8,  isr_table_param)
 
 /** Making the card bootable **/
 // NSTUB(    ???,  cf_device)                               /* present on 7D.203, 500D.111, 60D.111, 50D.109, 5D2.212, 550D.109, 1100D.105 */
+// NSTUB(    ???,  cf_device_ptr)                           /* present on 5D3.113 */
 // NSTUB(    ???,  fsuDecodePartitionTable)                 /* present on 7D.203, 500D.111, 60D.111, 6D.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???,  sd_device)                               /* present on 500D.111, 60D.111, 6D.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 
@@ -243,6 +258,7 @@ NSTUB(0xFF838EA0,  RegisterRPCHandler)
 NSTUB(0xFF838F50,  RequestRPC)
 // NSTUB(    ???,  BulkInIPCTransfer)                       /* present on 7D.203 */
 // NSTUB(    ???,  BulkOutIPCTransfer)                      /* present on 7D.203 */
+// NSTUB(    ???,  QuickOutIPCTransfer)                     /* present on 7D.203 */
 
 /** Recursive locks **/
 // NSTUB(    ???,  AcquireRecursiveLock)                    /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */

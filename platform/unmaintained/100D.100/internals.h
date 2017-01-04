@@ -1,8 +1,10 @@
 /**
- * Camera internals for 700D 1.1.1
+ * Camera internals for 100D 1.0.0
  */
 
-#define CONFIG_HELLO_WORLD
+//#define DEBUG_TASK_DISPATCH
+
+//#define CONFIG_HELLO_WORLD
 
 /** Properties are persistent (saved in NVRAM) => a mistake can cause permanent damage. Undefine this for new ports. */
 /** The 700D port is very young, so we don't enable these for now. **/
@@ -118,7 +120,7 @@
 #define CONFIG_NO_DEDICATED_MOVIE_MODE
 
 /** FIO_RenameFile works **/
-#define CONFIG_FIO_RENAMEFILE_WORKS
+//#define CONFIG_FIO_RENAMEFILE_WORKS
 
 /** FPS override: change timers from EVF state */
 #define CONFIG_FPS_UPDATE_FROM_EVF_STATE

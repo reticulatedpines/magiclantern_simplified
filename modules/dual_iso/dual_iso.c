@@ -83,7 +83,9 @@ extern WEAK_FUNC(ret_0) void raw_lv_request();
 extern WEAK_FUNC(ret_0) void raw_lv_release();
 extern WEAK_FUNC(ret_0) float raw_to_ev(int ev);
 
+int dual_iso_set_enabled(bool enabled);
 int dual_iso_is_enabled();
+int dual_iso_is_active();
 
 /* camera-specific constants */
 
@@ -156,7 +158,7 @@ int dual_iso_calc_dr_improvement(int iso1, int iso2)
 
 int dual_iso_get_dr_improvement()
 {
-    if (!dual_iso_is_enabled())
+    if (!dual_iso_is_active())
         return 0;
     
     int iso1 = 72 + isoless_recovery_iso_index() * 8;
@@ -389,14 +391,29 @@ end:
     return 0;
 }
 
+int dual_iso_set_enabled(bool enabled)
+{
+    if (enabled)
+        isoless_hdr = 1; 
+    else
+        isoless_hdr = 0;
+
+    return 1; // module is loaded & responded != ret_0
+}
+
 int dual_iso_is_enabled()
+{
+    return isoless_hdr;
+}
+
+int dual_iso_is_active()
 {
     return is_movie_mode() ? enabled_lv : enabled_ph;
 }
 
 int dual_iso_get_recovery_iso()
 {
-    if (!dual_iso_is_enabled())
+    if (!dual_iso_is_active())
         return 0;
     
     return 72 + isoless_recovery_iso_index() * 8;
@@ -404,7 +421,7 @@ int dual_iso_get_recovery_iso()
 
 int dual_iso_set_recovery_iso(int iso)
 {
-    if (!dual_iso_is_enabled())
+    if (!dual_iso_is_active())
         return 0;
     
     int max_index = MAX(FRAME_CMOS_ISO_COUNT, PHOTO_CMOS_ISO_COUNT) - 1;
@@ -539,8 +556,12 @@ static MENU_UPDATE_FUNC(isoless_check)
 
     int mvi = is_movie_mode();
 
-    int raw = mvi ? FRAME_CMOS_ISO_START && raw_lv_is_enabled() : ((pic_quality & 0xFE00FF) == (PICQ_RAW & 0xFE00FF));
+    /* default checks will not work here - we need full-sized raw in photo mode */
+    int raw = mvi ? raw_lv_is_enabled() : ((pic_quality & 0xFE00FF) == (PICQ_RAW & 0xFE00FF));
 
+    if (mvi && !FRAME_CMOS_ISO_START)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Dual ISO does not work in movie mode on your camera.");
+    
     if (!raw)
         menu_set_warning_raw(entry, info);
 }
@@ -697,7 +718,7 @@ static unsigned int isoless_init()
         CMOS_FLAG_BITS = 2;
         CMOS_EXPECTED_FLAG = 3;
     }
-    else if (is_camera("6D", "1.1.3"))
+    else if (is_camera("6D", "1.1.6"))
     {
         is_6d = 1;
 
@@ -815,7 +836,7 @@ static unsigned int isoless_init()
         CMOS_FLAG_BITS = 2;
         CMOS_EXPECTED_FLAG = 0;
     }
-    else if (is_camera("700D", "1.1.3"))
+    else if (is_camera("700D", "1.1.4"))
     {
         is_700d = 1;    
 
@@ -860,7 +881,7 @@ static unsigned int isoless_init()
 		/*   00 08B7 405025C0 */
 
 
-        FRAME_CMOS_ISO_START = 0x40502516;
+        FRAME_CMOS_ISO_START = 0x40482516;
         FRAME_CMOS_ISO_COUNT =          6; // from ISO 100 to 3200
         FRAME_CMOS_ISO_SIZE  =         34;
 
@@ -874,7 +895,7 @@ static unsigned int isoless_init()
         00 08B7 4050129C
         */
 
-        PHOTO_CMOS_ISO_START = 0x4050124C;
+        PHOTO_CMOS_ISO_START = 0x4048124C;
         PHOTO_CMOS_ISO_COUNT =          6; // from ISO 100 to 3200
         PHOTO_CMOS_ISO_SIZE  =         16;
 

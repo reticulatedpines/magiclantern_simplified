@@ -27,6 +27,7 @@
 #include "property.h"
 #include "menu.h"
 #include "gui.h"
+#include "console.h"
 #include "audio-common.c"
 
 // Set defaults
@@ -775,6 +776,6 @@ INIT_FUNC("audio.init", audio_menus_init);
 #ifdef FEATURE_MIC_POWER
 void mic_out(int val)
 {
-    console_printf("Fixme: not implemented\n");
+    printf("Fixme: not implemented\n");
 }
 #endif

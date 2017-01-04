@@ -5,6 +5,7 @@
 typedef struct
 {
     uint64_t lfsr_state;
+    uint64_t lfsr_init;
     uint8_t key_uint8[8];
     uint64_t key_uint64[8];
     uint64_t password;

@@ -5,6 +5,7 @@
 #include "menu.h"
 #include "zebra.h"
 #include "imgconv.h"
+#include "greenscreen.h"
 
 CONFIG_INT( "falsecolor.draw", falsecolor_draw, 0);
 CONFIG_INT( "falsecolor.palette", falsecolor_palette, 0);
@@ -38,18 +39,16 @@ extern uint8_t* get_bvram_mirror();
 #ifdef FEATURE_FALSE_COLOR
 void draw_false_downsampled( void )
 {
-    //~ if (vram_width > 720) return;
-    //~ if (!PLAY_MODE)
-    //~ {
-        //~ if (!expsim) return;
-    //~ }
+    //~ if (vram_lv.width > 720) return;
+    if (!PLAY_OR_QR_MODE)
+    {
+        if (!lv_luma_is_accurate()) return;
+    }
     
     // exception: green screen palette is not fixed
     if (falsecolor_palette == 5)
     {
-        /* this one is private, only called from here */
-        extern void aj_green_screen();
-        aj_green_screen();
+        green_screen_step();
         return;
     }
 

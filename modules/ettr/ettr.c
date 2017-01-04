@@ -33,6 +33,7 @@ static CONFIG_INT("auto.ettr.mode", auto_ettr_adjust_mode, 0);
 static CONFIG_INT("auto.ettr.midtone.snr", auto_ettr_midtone_snr_limit, 6);
 static CONFIG_INT("auto.ettr.shadow.snr", auto_ettr_shadow_snr_limit, 2);
 static CONFIG_INT("auto.ettr.dual.iso", auto_ettr_dual_iso_link, 1);
+static CONFIG_INT("auto.ettr.allow.beeps", auto_ettr_allow_beeps, 1);
 
 static int debug_info = 0;
 static int show_metered_areas = 0;
@@ -55,6 +56,23 @@ static int show_metered_areas = 0;
 extern WEAK_FUNC(ret_0) void raw_lv_request();
 extern WEAK_FUNC(ret_0) void raw_lv_release();
 extern WEAK_FUNC(ret_0) int  raw_lv_is_enabled();
+
+/* optional beeps */
+static void ettr_beep()
+{
+    if (auto_ettr_allow_beeps)
+    {
+        beep();
+    }
+}
+
+static void ettr_beep_times(int n)
+{
+    if (auto_ettr_allow_beeps)
+    {
+        beep_times(n);
+    }
+}
 
 static char* get_current_exposure_settings()
 {
@@ -136,7 +154,7 @@ static int auto_ettr_get_correction()
     float ev_median_lo = raw_to_ev(raw_median_lo);
     float ev_shadow_lo = raw_to_ev(raw_shadow_lo);
     
-    int dual_iso = auto_ettr_dual_iso_link && dual_iso_is_enabled();
+    int dual_iso = auto_ettr_dual_iso_link && dual_iso_is_active();
     float ev_median_hi = ev_median_lo;
     float ev_shadow_hi = ev_shadow_lo; /* for dual ISO: for the bright exposure */
     
@@ -432,7 +450,7 @@ static int auto_ettr_work_m(int corr)
     //~ int old_expo = tv - iso;
 
     /* note: expo compensation will not clip with dual ISO, but will clip highlights without it */
-    int dual_iso = auto_ettr_dual_iso_link && dual_iso_is_enabled();
+    int dual_iso = auto_ettr_dual_iso_link && dual_iso_is_active();
     int delta = -corr * 8 / 100;
     
     int expected_expo = tv - iso + delta;               /* will clip without dual ISO */
@@ -668,7 +686,7 @@ static void auto_ettr_step_task(int corr)
     if (status == ETTR_SETTLED)
     {
         /* cool, we got the ideal exposure */
-        beep();
+        ettr_beep();
         ettr_pics_took = 0;
         
         msleep(1000);
@@ -684,21 +702,21 @@ static void auto_ettr_step_task(int corr)
     else if (ettr_pics_took >= 3)
     {
         /* I give up */
-        beep_times(3);
+        ettr_beep_times(3);
         ettr_pics_took = 0;
         msleep(1000);
         bmp_printf(FONT_MED, 0, os.y0, "ETTR: giving up\n%s", get_current_exposure_settings());
     }
     else if (status == ETTR_EXPO_LIMITS_REACHED)
     {
-        beep_times(3);
+        ettr_beep_times(3);
         ettr_pics_took = 0;
         msleep(1000);
         bmp_printf(FONT_MED, 0, os.y0, "ETTR: expo limits reached\n%s", get_current_exposure_settings());
     }
     else if (status == ETTR_EXPO_PRECOND_TIMEOUT)
     {
-        beep_times(3);
+        ettr_beep_times(3);
         ettr_pics_took = 0;
         msleep(1000);
         bmp_printf(FONT_MED, 0, os.y0, "ETTR: timeout while waiting for preconditions\n");
@@ -712,7 +730,7 @@ static void auto_ettr_step_task(int corr)
     }
     else if (AUTO_ETTR_TRIGGER_ALWAYS_ON)
     {
-        beep_times(2);
+        ettr_beep_times(2);
         msleep(1000);
         bmp_printf(FONT_MED, 0, os.y0, "ETTR: next %s (was %s)", get_current_exposure_settings(), prev_exposure_settings);
 
@@ -725,6 +743,7 @@ static void auto_ettr_step_task(int corr)
     auto_ettr_running = 0;
 }
 
+/* photo mode only, no LV */
 static void auto_ettr_step()
 {
     if (!auto_ettr) return;
@@ -943,7 +962,7 @@ static int auto_ettr_prepare_lv(int reset, int force_expsim_and_zoom)
 
 static void auto_ettr_on_request_task_fast()
 {
-    beep();
+    ettr_beep();
     int raw_requested = 0;
     
     char* err_msg = "ETTR failed";
@@ -1051,13 +1070,13 @@ static void auto_ettr_on_request_task_fast()
     }
 
 /* ok: */
-    beep();
+    ettr_beep();
     NotifyBoxHide();
     goto cleanup;
 
 err:
-    beep();
-    beep();
+    ettr_beep();
+    ettr_beep();
     NotifyBox(2000, err_msg);
     goto cleanup;
 
@@ -1143,7 +1162,7 @@ end:
 
 static void auto_ettr_on_request_task_slow()
 {
-    beep();
+    ettr_beep();
     char* err_msg = "ETTR failed";
     
     /* requires LiveView and ExpSim */
@@ -1189,13 +1208,13 @@ static void auto_ettr_on_request_task_slow()
     }
 
 /* ok: */
-    beep();
+    ettr_beep();
     NotifyBoxHide();
     goto cleanup;
 
 err:
-    beep();
-    beep();
+    ettr_beep();
+    ettr_beep();
     NotifyBox(2000, err_msg);
     goto cleanup;
 
@@ -1220,8 +1239,14 @@ static void auto_ettr_step_lv_slow()
     if (!should_run_polling_action(1500, &aux))
         return;
     
+    int corr = INT_MIN;
     raw_lv_request();
-    int corr = auto_ettr_get_correction();
+    
+    if (raw_update_params())
+    {
+        corr = auto_ettr_get_correction();
+    }
+    
     raw_lv_release();
     
     if (corr == INT_MIN)
@@ -1234,7 +1259,9 @@ static void auto_ettr_step_lv_slow()
     int status = auto_ettr_work(corr);
 
     if (status == ETTR_SETTLED)
-        beep();
+    {
+        ettr_beep();
+    }
 }
 
 static void auto_ettr_step_lv()
@@ -1354,8 +1381,7 @@ static MENU_SELECT_FUNC(auto_ettr_max_shutter_toggle)
 
 PROP_HANDLER(PROP_GUI_STATE)
 {
-    int* data = buf;
-    if (data[0] == GUISTATE_QR)
+    if (buf[0] == GUISTATE_QR)
     {
         if (AUTO_ETTR_TRIGGER_PHOTO)
             auto_ettr_step();
@@ -1490,6 +1516,13 @@ static struct menu_entry ettr_menu[] =
                 .advanced = 1,
             },
             {
+                .name = "Allow beeps",
+                .priv = &auto_ettr_allow_beeps,
+                .max = 1,
+                .help =  "Make status beeps (1 = OK, 2 = need more pictures, 3 = error).",
+                .advanced = 1,
+            },
+            {
                 .name = "Show debug info",
                 .priv = &debug_info,
                 .max = 1,
@@ -1573,4 +1606,5 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(auto_ettr_midtone_snr_limit)
     MODULE_CONFIG(auto_ettr_shadow_snr_limit)
     MODULE_CONFIG(auto_ettr_dual_iso_link)
+    MODULE_CONFIG(auto_ettr_allow_beeps)
 MODULE_CONFIGS_END()

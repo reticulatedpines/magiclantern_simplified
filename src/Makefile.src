@@ -15,7 +15,8 @@ CFLAGS += \
 	-DVERSION=\"$(VERSION)\" \
 	-DCAMERA_MODEL=\"$(MODEL)\" \
 	-DCONFIG_DEBUGMSG=$(CONFIG_DEBUGMSG) \
-	-DCONFIG_FW_VERSION=$(FW_VERSION)
+	-DCONFIG_FW_VERSION=$(FW_VERSION) \
+	-DCURRENT_CAMERA_SIGNATURE=SIG_$(MODEL)_$(FW_VERSION)
 
 ifeq ($(ML_BOOT_HACK_OBJ), n)
 ML_BOOT_HACK_OBJ =
@@ -71,6 +72,7 @@ ML_OBJS-y = \
 	magiclantern.lds \
 	$(ML_ENTRY_OBJ) \
 	minimal.o \
+	font_direct.o \
 	$(PLATFORM_DIR)/stubs.o
 
 else ifeq ($(ML_SRC_PROFILE),installer)
@@ -88,7 +90,6 @@ ML_INSTALLER_OBJS = \
 	dialog_test.o \
 	bootflags.o \
 	mem.o \
-	exmem.o \
 	util.o \
 
 ML_OBJS-y += $(ML_INSTALLER_OBJS)
@@ -142,7 +143,7 @@ ML_SRC_OBJS = \
 	$(ML_BOOTFLAGS_OBJ) \
 	dialog_test.o \
 	vram.o \
-	aj_port.o \
+	greenscreen.o \
 	fps-engio.o \
 	shoot.o \
 	hdr.o \
@@ -164,7 +165,13 @@ ML_SRC_OBJS = \
 	screenshot.o \
 	fileprefix.o \
 	lvinfo.o \
-	ml-cbr.o 
+	builtin-enforcing.o \
+	powersave.o \
+	ml-cbr.o \
+	raw.o \
+	chdk-dng.o \
+	edmac-memcpy.o \
+
 
 ML_OBJS-y += $(ML_SRC_OBJS)
 
@@ -197,7 +204,10 @@ magiclantern: $(ML_OBJS-y) $(ML_LIBC)
 reboot.o: $(SRC_DIR)/reboot.c $(PLATFORM_DIR)/version.bin magiclantern.bin
 
 ifndef ML_SRC_REBOOT_OBJ
-ML_SRC_REBOOT_OBJ = reboot.o
+ML_SRC_REBOOT_OBJ = reboot.o \
+	disp_direct.o font_direct.o \
+	strlen.o strcmp.o gcc-libgcc.a \
+	footer.o
 endif
 
 clean::
@@ -207,6 +217,7 @@ autoexec: $(ML_SRC_REBOOT_OBJ)
 	$(call build,LD,$(LD) \
 		-o $@ \
 		-e _start \
+		-N \
 		-Ttext $(AUTOEXEC_BASE) \
 		$^ \
 		--cref \
@@ -218,6 +229,7 @@ autoexec-fir: $(ML_SRC_REBOOT_OBJ)
 	$(call build,LD,$(LD) \
 		-o $@ \
 		-e _start \
+		-N \
 		-Ttext $(FIR_BASE) \
 		$^ \
 		--cref \
@@ -293,17 +305,25 @@ $(PLATFORM_DIR)/version.c: FORCE
 	@echo 'const char build_date[] ="'`$(DATE) "+%Y-%m-%d %H:%M:%S %Z"`'";' >> $@
 	@echo 'const char build_user[] = "'`whoami`@`hostname`'";'  >> $@
 
-# this must have exactly 0x11C (284) bytes, see reboot.c
+# include ML version, camera, firmware, hg changeset, build date,
+# diffs from src and platform/cam directories,
+# and some lines from Makefile.user (CONFIG entries, gcc version)
 $(PLATFORM_DIR)/version.bin: FORCE
-	$(call build,"VERSION",echo -e '\b\b\b\bMagic Lantern $(VERSION)') > $@
-	@echo 'Mercurial changeset: '`hg id` >> $@
-	@echo 'Built on '`date -u "+%Y-%m-%d %H:%M:%S"`' by '`whoami`@`hostname` >> $@
+	$(call build,"VERSION",echo '') > $@
 	@echo '' >> $@
-	@echo 'Camera  : $(MODEL)' >> $@
-	@echo 'Firmware: $(FW_VERSION)' >> $@
-	@echo -e '\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n' >> $@
-	@echo -e '\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n' >> $@
-	@truncate -s 284 $@
+	@echo 'Magic Lantern $(VERSION)' >> $@
+	@echo 'Camera   : $(MODEL)' >> $@
+	@echo 'Firmware : $(FW_VERSION)' >> $@
+	@echo 'Changeset: '`hg id` >> $@
+	@echo 'Built on : '`date -u "+%Y-%m-%d %H:%M:%S"`' by '`whoami`@`hostname` >> $@
+	@echo '' >> $@
+	@hg diff $(SRC_DIR)/ >> $@
+	@hg diff $(PLATFORM_DIR)/ >> $@
+	@echo '' >> $@
+	@echo '' >> $@
+	@cat $(TOP_DIR)/Makefile.user | grep -E "^ *(CONFIG_|.*VERSION)" >> $@ || true
+	@echo '' >> $@
+	@echo '' >> $@
 
 $(SRC_DIR)/menuindexentries.h:
 	$(call build,"MENU IDX", if [ -f $(DOC_DIR)/menuindex.txt ]; then \
@@ -313,7 +333,7 @@ $(SRC_DIR)/menuindexentries.h:
 		echo "No menuindex.txt! The \"Complete user guide\" menu is empty!" ; \
 		echo "Run make docq to update menuindex.txt." ; \
 		echo ; \
-		truncate -s 0 $@ ; \
+		echo '' > $@ ; \
 	fi)
 
 menuindex.o: $(SRC_DIR)/menuindexentries.h
@@ -322,3 +342,7 @@ clean::
 	$(call rm_files, version.c version.bin)
 
 FORCE:
+
+# fixme: better place for this?
+include $(BUILD_TOOLS_DIR)/Makefile
+

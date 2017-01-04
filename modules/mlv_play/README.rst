@@ -1,15 +1,21 @@
 MLV Player
 ==========
 
-Plays Magic Lantern Video files. 
-You need file_man module installed, then you can play the videos from there.
+Plays Magic Lantern video files (both MLV and RAW).
+You can select videos for playback in the file_man module,
+or you can press the PLAY key in LV to play the most recent recording.
+
+* "all": play every video frame
+* "exact": drop video frames to match recorded FPS
 
 Keys:
 
-* SET: toggle quality
-* any other key to stop playback
+* SET: use the on-screen menu
+* PLAY: pause or resume playback
+* INFO: toggle display of video information
+* wheel: switch to previous or next video
 
 :License: GPL
 :Summary: Play MLV/RAW
-:Authors: g3gg0, a1ex
+:Authors: g3gg0, a1ex, ayshih
 :Forum: http://www.magiclantern.fm/forum/index.php?topic=9062.0

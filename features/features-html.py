@@ -35,10 +35,11 @@ FD = {}
 AF = []
 
 for c in cams:
-    cmd = "cpp -I../platform/%s -I../src ../src/config-defines.h -dM | grep FEATURE" % c
+    cmd = "cpp -I../platform/%s -I../src ../src/config-defines.h -dM | grep -E '(FEATURE_|CONFIG_)'" % c
     F = run(cmd)
     for f in F.split('\n'):
         f = f.replace("#define", "").strip()
+        if f.startswith("CONFIG_"): f = "CONFIG__" + f
         #print c,f
         FD[c,f] = True
         AF.append(f)
@@ -93,23 +94,34 @@ for l in af.split("\n"):
         MN_DICT[f] = current_menu
 
 for f in AF:
+    if f.startswith("CONFIG__"):
+        MN_DICT[f[8:]] = "Internals" 
+
+for f in AF:
     mn = MN_DICT.get(f[8:], "Other")
     MN_COUNT[mn] = MN_COUNT.get(mn,0) + 1
 
 menus.append("Other")
+menus.append("Internals")
 
 porting_threads = {
-    '1100D'        :  'http://www.magiclantern.fm/forum/index.php?topic=1009.0',
-    '5DC'        :  'http://www.magiclantern.fm/forum/index.php?topic=1010.0',
-    '650D'        :  'http://www.magiclantern.fm/forum/index.php?topic=7473.0',
+    '5DC'       :  'http://www.magiclantern.fm/forum/index.php?topic=1010.0',
+    '5D2'       :  'http://www.magiclantern.fm/forum/index.php?topic=11205.0',
+    '5D3'       :  'http://www.magiclantern.fm/forum/index.php?topic=11017.0',
     '6D'        :  'http://www.magiclantern.fm/forum/index.php?topic=3904.0',
-    '7D'        :  'http://www.magiclantern.fm/forum/index.php?topic=3974.0',
-    '5D3'        :  'http://www.magiclantern.fm/forum/index.php?topic=2602.0',
-    '40D'        :  'http://www.magiclantern.fm/forum/index.php?topic=1452.0',
-    'EOSM'        :  'http://www.magiclantern.fm/forum/index.php?topic=3648.0',
-    '500D'        :  'http://www.magiclantern.fm/forum/index.php?topic=2317.0',
-    '100D'        :  'http://www.magiclantern.fm/forum/index.php?topic=5529.0',
-    '700D'        :  'http://www.magiclantern.fm/forum/index.php?topic=5951.0',
+    '7D'        :  'http://www.magiclantern.fm/forum/index.php?topic=9848.0',
+    '40D'       :  'http://www.magiclantern.fm/forum/index.php?topic=1452.0',
+    '50D'       :  'http://www.magiclantern.fm/forum/index.php?topic=9852.0',
+    '60D'       :  'http://www.magiclantern.fm/forum/index.php?topic=5653.0',
+    '70D'       :  'http://www.magiclantern.fm/forum/index.php?topic=8419.0',
+    '500D'      :  'http://www.magiclantern.fm/forum/index.php?topic=11864.0',
+    '550D'      :  'http://www.magiclantern.fm/forum/index.php?topic=5582.0',
+    '600D'      :  'http://www.magiclantern.fm/forum/index.php?topic=12010.0',
+    '650D'      :  'http://www.magiclantern.fm/forum/index.php?topic=7473.0',
+    '700D'      :  'http://www.magiclantern.fm/forum/index.php?topic=5951.0',
+    '100D'      :  'http://www.magiclantern.fm/forum/index.php?topic=5529.0',
+    'EOSM'      :  'http://www.magiclantern.fm/forum/index.php?topic=9741.0',
+    '1100D'     :  'http://www.magiclantern.fm/forum/index.php?topic=1009.0',
 }
 
 friendly_names = {}
@@ -142,7 +154,6 @@ feature_links = {
     'FEATURE_GLOBAL_DRAW'               :  'http://wiki.magiclantern.fm/userguide#global_draw',
     'FEATURE_HISTOGRAM'                 :  'http://wiki.magiclantern.fm/userguide#histogram_and_waveform',
     'FEATURE_MAGIC_ZOOM'                :  'http://wiki.magiclantern.fm/userguide#magic_zoom',
-    'FEATURE_RAW_HISTOGRAM'             :  'http://www.magiclantern.fm/forum/index.php?topic=5149.msg31247#msg31247',
     'FEATURE_SPOTMETER'                 :  'http://wiki.magiclantern.fm/userguide#spotmeter',
     'FEATURE_VECTORSCOPE'               :  'http://wiki.magiclantern.fm/userguide#vectorscope',
     'FEATURE_WAVEFORM'                  :  'http://wiki.magiclantern.fm/userguide#histogram_and_waveform',
@@ -171,7 +182,6 @@ feature_links = {
     'FEATURE_LCD_SENSOR_REMOTE'         :  'http://wiki.magiclantern.fm/userguide#lcdsensor_remote',
     'FEATURE_MLU'                       :  'http://wiki.magiclantern.fm/userguide#mirror_lockup',
     'FEATURE_MOTION_DETECT'             :  'http://wiki.magiclantern.fm/userguide#motion_detect',
-    'FEATURE_POST_DEFLICKER'            :  'http://www.magiclantern.fm/forum/index.php?topic=5705',
     'FEATURE_SILENT_PIC'                :  'http://wiki.magiclantern.fm/userguide#silent_pictures',
     'FEATURE_AFMA_TUNING'               :  'http://www.magiclantern.fm/forum/index.php?topic=4648.0',
     'FEATURE_FOCUS_STACKING'            :  'http://wiki.magiclantern.fm/userguide#stack_focus',
@@ -198,13 +208,18 @@ feature_links = {
     'FEATURE_STICKY_HALFSHUTTER'        :  'http://wiki.magiclantern.fm/userguide#misc_key_settings',
     'FEATURE_WARNINGS_FOR_BAD_SETTINGS' :  'http://www.magiclantern.fm/forum/index.php?topic=3820.msg20562#msg20562',
     'FEATURE_DONT_CLICK_ME'             :  'http://wiki.magiclantern.fm/userguide#don_t_click_me',
-    'FEATURE_SCREENSHOT'                :  'http://wiki.magiclantern.fm/userguide#screenshot_10_s',
+    'FEATURE_SCREENSHOT'                :  'http://www.magiclantern.fm/forum/index.php?topic=10540.0',
     'FEATURE_SHOW_CMOS_TEMPERATURE'     :  'http://wiki.magiclantern.fm/userguide#cmos_temperature',
-    'FEATURE_SHOW_CPU_USAGE'            : 'http://wiki.magiclantern.fm/userguide#save_cpu_usage_log',
+    'FEATURE_SHOW_CPU_USAGE'            :  'http://wiki.magiclantern.fm/userguide#save_cpu_usage_log',
     'FEATURE_SHOW_FREE_MEMORY'          :  'http://wiki.magiclantern.fm/userguide#free_memory',
     'FEATURE_SHOW_IMAGE_BUFFERS_INFO'   :  'http://www.magiclantern.fm/forum/index.php?topic=3820.msg20563#msg20563',
     'FEATURE_SHOW_SHUTTER_COUNT'        :  'http://wiki.magiclantern.fm/userguide#shutter_count',
     'FEATURE_SHOW_TASKS'                :  'http://wiki.magiclantern.fm/userguide#show_tasks',
+    
+    'FEATURE_RAW_SPOTMETER'             :  'http://www.magiclantern.fm/forum/index.php?topic=12096',
+    'FEATURE_RAW_HISTOGRAM'             :  'http://www.magiclantern.fm/forum/index.php?topic=12096',
+    'FEATURE_RAW_ZEBRAS'                :  'http://www.magiclantern.fm/forum/index.php?topic=12096',
+    'FEATURE_SHUTTER_FINE_TUNING'       :  'http://www.magiclantern.fm/forum/index.php?topic=5123.0',
 }
 
 readme_links = {}
@@ -217,13 +232,13 @@ modules = [m for m in modules if os.path.isdir(os.path.join("../modules/", m))]
 modules.sort()
 
 # only show modules from Makefile.modules.default, at least for now
-default_modules = ""
+default_modules = set()
 default_modules_lines = open("../modules/Makefile.modules.default").readlines()
 for l in default_modules_lines:
-    m = re.match("ML_MODULES_.*=([a-zA-Z0-9_ ]+)", l)
-    if m:
-        default_modules += m.groups()[0]
-default_modules = [m for m in default_modules.split(" ") if len(m) > 0]
+    # just grab all the words from the makefile...
+    default_modules = set.union(default_modules, l.split())
+
+# ... and cross-check them with actual pathnames
 modules = [m for m in modules if m in default_modules]
 
 # lookup the address in README.rst for each module
@@ -280,6 +295,7 @@ def module_check_cams(m):
             cameras += cams
     return cameras
 
+print >> sys.stderr, modules
 
 for m in modules:
     f = "MODULE__" + m

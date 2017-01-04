@@ -8,6 +8,8 @@ MAKE_SUPPORTED_MODELS:=$(call make_platform_dirs, $(SUPPORTED_MODELS))
 
 all:: all-supported-models all-model
 
+all-supported-unified-models: $(SUPPORTED_UNIFIED_MODELS)
+
 all-supported-models: $(SUPPORTED_MODELS)
 
 clean-supported-models:
@@ -40,3 +42,5 @@ reorder-stubs:
 
 cleanup-stubs:
 	python ../contrib/stub-format/stub-cleanup.py all
+
+pretty-stubs: beautify-stubs reorder-stubs cleanup-stubs

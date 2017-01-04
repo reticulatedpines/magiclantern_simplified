@@ -3,6 +3,7 @@
 #define _ime_base_h_
 
 #ifndef _ime_base_c_
+#include <beep.h>
 #define IME_WEAK(x) WEAK_FUNC(x)
 #else
 #define IME_WEAK(x)
@@ -23,6 +24,7 @@
 #define IME_CHARSET_MATH        0x10
 #define IME_CHARSET_MAIL        0x20
 #define IME_CHARSET_FILENAME    0x40
+#define IME_CHARSET_HEX         0x80
 
 /* all characters are allowed, passing parameter 0x00 will also map to this */
 #define IME_CHARSET_ANY         0xFFFFFFFF
@@ -42,21 +44,21 @@
    
    'selection_length' specifies how many characters starting from caret_pos are selected. 0 if none (plain cursor)
  */
-typedef unsigned int (*t_ime_update_cbr)(void *ctx, unsigned char *text, int caret_pos, int selection_length);
-#define IME_UPDATE_FUNC(func) unsigned int func(void *ctx, unsigned char *text, int caret_pos, int selection_length)
+typedef uint32_t (*t_ime_update_cbr)(void *ctx, char *text, int32_t caret_pos, int32_t selection_length);
+#define IME_UPDATE_FUNC(func) uint32_t func(void *ctx, char *text, int32_t caret_pos, int32_t selection_length)
 
 /* this callback is called when the dialog box was accepted or cancelled
    when the string was entered, status will be IME_OK.
    if the user aborted input, status will be IME_CANCEL.
  */
-typedef unsigned int (*t_ime_done_cbr)(void *ctx, unsigned int status, unsigned char *text);
-#define IME_DONE_FUNC(func) unsigned int func(void *ctx, unsigned int status, unsigned char *text)
+typedef uint32_t (*t_ime_done_cbr)(void *ctx, uint32_t status, char *text);
+#define IME_DONE_FUNC(func) uint32_t func(void *ctx, uint32_t status, char *text)
 
 /* call this function to start the IME system - this is asynchronous if done_cbr is != NULL.
    it will call 'update' if (update != NULL) periodically or on any update_cbr (caret pos or string) and done_cbr when the dialog is finished.
    return the context of the dialog if it was started. this is a paramete for future functions and used to identify the exact dialog.
    
-   the passed text buffer must reserve max_length characters plus the trailing zero byte.
+   the passed text buffer must reserve max_length characters, including the null byte. e.g. you can pass sizeof(buffer) if it is an array.
    
    in case of any other error (e.g. unavailability of some resource) it will return NULL.
    if an error occured, the error message will be placed in the 'text' pointer given, so make sure you use a separate buffer.
@@ -65,8 +67,8 @@ typedef unsigned int (*t_ime_done_cbr)(void *ctx, unsigned int status, unsigned 
    placed its text field that should not be overwritten. your update cbr must handle displaying the string in this case. 
    if you dont care about this, pass all values as zero. 
  */
-extern IME_WEAK(ret_0) void * ime_base_start (unsigned char *caption, unsigned char *text, int max_length, int codepage, int charset, t_ime_update_cbr update_cbr, t_ime_done_cbr done_cbr, int x, int y, int w, int h );
-typedef void * (*t_ime_start) (unsigned char *caption, unsigned char *text, int max_length, int codepage, int charset, t_ime_update_cbr update_cbr, t_ime_done_cbr done_cbr, int x, int y, int w, int h );
+extern IME_WEAK(ret_0) void * ime_base_start (char *caption, char *text, int32_t max_length, int32_t codepage, int32_t charset, t_ime_update_cbr update_cbr, t_ime_done_cbr done_cbr, int32_t x, int32_t y, int32_t w, int32_t h );
+typedef void * (*t_ime_start) (char *caption, char *text, int32_t max_length, int32_t codepage, int32_t charset, t_ime_update_cbr update_cbr, t_ime_done_cbr done_cbr, int32_t x, int32_t y, int32_t w, int32_t h );
 
 /* this structure is passed when registering */
 typedef struct 
@@ -79,7 +81,7 @@ typedef struct
 
 /* IME modules call this function to register themselves. threadsafe */
 #ifndef _ime_base_c_
-static unsigned int ime_base_unavail(t_ime_handler *handler)
+static uint32_t ime_base_unavail(t_ime_handler *handler)
 {
     bmp_printf(FONT_MED, 30, 190, "IME Handler %s installed, but 'ime_base' missing.", handler->name);
     beep();
@@ -87,7 +89,7 @@ static unsigned int ime_base_unavail(t_ime_handler *handler)
     return IME_ERR_UNAVAIL;
 }
 
-extern IME_WEAK(ime_base_unavail) unsigned int ime_base_register(t_ime_handler *handler);
+extern IME_WEAK(ime_base_unavail) uint32_t ime_base_register(t_ime_handler *handler);
 
 #endif
 

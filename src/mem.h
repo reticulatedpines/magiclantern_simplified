@@ -20,10 +20,11 @@ extern void __mem_free( void * buf);
 /* flags */
 #define MEM_DMA       1 /* require uncacheable (DMA) memory (e.g. for file I/O) */
 #define MEM_TEMPORARY 2 /* this memory will be freed quickly (e.g. to use shoot_malloc, that must be free when changing some Canon settings) */
+#define MEM_SRM       4 /* prefer the SRM job memory allocator (take care) */
 
 /* this may be reused by other code */
 /* warning: not thread safe (but it's OK to use it in menu) */
-const char * format_memory_size( unsigned size); /* e.g. 2.0GB, 32MB, 2.4kB... */
+const char * format_memory_size(uint64_t size); /* e.g. 2.0GB, 32MB, 2.4kB... */
 
 #ifndef NO_MALLOC_REDIRECT
 
@@ -47,8 +48,13 @@ const char * format_memory_size( unsigned size); /* e.g. 2.0GB, 32MB, 2.4kB... *
 #define tmp_free            free
 
 /* allocate temporary memory for reading files */
-#define fio_malloc(len)     __mem_malloc(len, MEM_TEMPORARY | MEM_DMA, __FILE__, __LINE__)
+/* (very large buffers will prefer SRM, smaller ones will use shoot_malloc / alloc_dma_memory) */
+#define fio_malloc(len)     __mem_malloc(len, (len > 20*1024*1024 ? MEM_SRM : MEM_TEMPORARY) | MEM_DMA, __FILE__, __LINE__)
 #define fio_free            free
+
+/* allocate from SRM job buffer (for very large chunks) */
+#define srm_malloc(len)     __mem_malloc(len, MEM_SRM | MEM_DMA, __FILE__, __LINE__)
+#define srm_free            free
 
 #endif
 
@@ -63,7 +69,7 @@ extern void * realloc( void * buf, size_t newlen );
 
 #define IS_ML_PTR(val) (((uintptr_t)(val) > (uintptr_t)0x1000) && ((uintptr_t)(val) < (uintptr_t)0x20000000))
 
-#define INVALID_PTR             ((void *)0xFFFFFFFF)
+#define PTR_INVALID             ((void *)0xFFFFFFFF)
 
 /** Check a pointer for error code */
 #define IS_ERROR(ptr)   (1 & (uintptr_t) ptr)
@@ -82,6 +88,15 @@ extern uint32_t shamem_read(uint32_t addr);
         ((((uint32_t)(x)) & 0xF0000000UL) == 0x80000000UL) ? (uint32_t)0xDEADBEAF : \
         *(volatile uint32_t *)(x) \
 )
+
+/* Cacheable/uncacheable RAM pointers */
+#ifdef CONFIG_VXWORKS
+#define UNCACHEABLE(x) ((void*)(((uint32_t)(x)) |  0x10000000))
+#define CACHEABLE(x)   ((void*)(((uint32_t)(x)) & ~0x10000000))
+#else
+#define UNCACHEABLE(x) ((void*)(((uint32_t)(x)) |  0x40000000))
+#define CACHEABLE(x)   ((void*)(((uint32_t)(x)) & ~0x40000000))
+#endif
 
 /* align a pointer at 16, 32 or 64 bits, with floor-like rounding */
 #define ALIGN16(x) ((__typeof__(x))(((uint32_t)(x)) & ~1))
@@ -105,6 +120,6 @@ extern void* edmac_memcpy(void* dest, void* srce, size_t n);
 
 /* free memory info */
 int GetFreeMemForAllocateMemory();
-static int GetFreeMemForMalloc();
+int GetFreeMemForMalloc();
 
 #endif

@@ -1,7 +1,7 @@
 #ifndef _fw_signature_h_
 #define _fw_signature_h_
 
-#include <internals.h>
+#include <config-defines.h>
 
 #define SIG_LEN 0x10000
 
@@ -25,6 +25,7 @@
 // Not supported cameras
 #define SIG_6D_112   0x6D677512
 #define SIG_6D_113   0x6B6A9C6F
+#define SIG_6D_116   0x11cb1ed2
 #define SIG_5D3_113  0x2e2f65f5
 #define SIG_EOSM_106 0x6393A881
 #define SIG_EOSM_202 0x2D7c6dcf
@@ -33,9 +34,9 @@
 #define SIG_650D_104 0x4B7FC4D0
 #define SIG_700D_111 0x645D8FD5
 #define SIG_700D_113 0x5AE36B51
-//TODO: Fix CONFIG_100D
-    #define SIG_100D_101 0xDEADBEEF
-#define SHOULD_CHECK_SIG ((!defined(CONFIG_QEMU)) && (defined(CONFIG_DIGIC_V) || defined(CONFIG_7D) || defined(CONFIG_7D_MASTER)))
+#define SIG_700D_114 0x4b35ce13
+// TODO: multiple 100D.100 out there :(
+#define SIG_100D_100 0x34443B7F
 
 static int compute_signature(int* start, int num)
 {
@@ -47,5 +48,10 @@ static int compute_signature(int* start, int num)
     }
     return c;
 }
+
+#ifdef CONFIG_QEMU
+/* we are using patched ROMs, so the signature will fail for sure; skip it */
+#undef CURRENT_CAMERA_SIGNATURE
+#endif
 
 #endif //_fw_signature_h_

@@ -446,7 +446,7 @@ static void lvinfo_display_bar(struct lvinfo_item * items[], int count, int bar_
         else
         {
             /* no custom draw? use our default print routine */
-            bmp_printf(fnt, x, y, items[i]->value);
+            bmp_printf(fnt, x, y, "%s", items[i]->value);
         }
         prev_right = x + w/2;
         prev_bg = bg;

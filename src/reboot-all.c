@@ -79,8 +79,6 @@ static void fail()
     blink(50);
 }
 
-extern int compute_signature(int* start, int num);
-
 /** Include the relocatable shim code */
 extern uint8_t blob_start_550;
 extern uint8_t blob_end_550;
@@ -256,8 +254,8 @@ cstart( void )
         blob_start + offset,
         blob_end + offset
     );
-    clean_d_cache();
-    flush_caches();
+    
+    sync_caches();
 
     // Jump into the newly relocated code
     void __attribute__((noreturn))(*copy_and_restart)(int)

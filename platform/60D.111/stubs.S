@@ -52,7 +52,7 @@ NSTUB(0xFF1CA3FC,  FIO_CloseFile)
 NSTUB(0xFF1CB3CC,  FIO_FindClose)                           // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
 NSTUB(0xFF1CB2EC,  FIO_FindNextEx)
 NSTUB(0xFF1CA1AC,  FIO_ReadFile)
-NSTUB(0xFF1CA32C,  FIO_SeekFile)
+NSTUB(0xFF1CA25C,  FIO_SeekSkipFile)                        /* present on 5D3.113, EOSM.202 */
 NSTUB(0xFF1CA34C,  FIO_WriteFile)
 NSTUB(0xFF1CAC38, _FIO_CreateDirectory)
 NSTUB(0xFF1CA058, _FIO_CreateFile)
@@ -85,6 +85,8 @@ NSTUB(0xFF06877C,  SetSamplingRate)
 NSTUB(0xFF055328,  StartASIFDMAADC)
 NSTUB(0xFF0554DC,  StartASIFDMADAC)
 NSTUB(0xFF0555B0,  StopASIFDMADAC)
+// NSTUB(    ???,  PowerMicAmp)                             /* present on 650D.104, EOSM.202, 700D.113 */
+// NSTUB(    ???,  SetASIFMode)                             /* present on 700D.113 */
 // NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
 // NSTUB(    ???,  SoundDevActiveIn)                        /* present on 7D.203, 6D.113, 650D.104, EOSM.202, 700D.113 */
 // NSTUB(    ???,  SoundDevShutDownIn)                      /* present on 7D.203, 6D.113, 650D.104, EOSM.202, 700D.113 */
@@ -97,6 +99,7 @@ NSTUB(0xFF0681C4, _audio_ic_write)
 NSTUB(0xFF5ADA3C,  audio_thresholds)                        // after ptr to "ALVFactorySemSignature"
 NSTUB(0xFF0571BC,  sounddev_active_in)
 NSTUB(0xFF056E4C,  sounddev_task)
+// NSTUB(    ???, _audio_ic_write_bulk)                     /* present on 6D.116 */
 
 /** Bitmap **/
 NSTUB(   0x3BFA4,  LCD_Palette)                             // in InitializeBitmapDisplayDevice, right after 0xc0f14800
@@ -176,14 +179,18 @@ NSTUB(0xFF06C7A4,  call)
 // NSTUB(    ???,  TryPostStageEvent_end)                   /* present on 6D.113, 650D.104, EOSM.202, 700D.113 */
 
 /** ExMem **/
+NSTUB(0xFF070FD4,  AddMemoryChunk)
 NSTUB(0xFF073AF4,  AllocateContinuousMemoryResource)        // m_pfContAllocMemoryCBR
 NSTUB(0xFF073AA8,  AllocateMemoryResource)                  // m_pfAllocMemoryCBR
+NSTUB(0xFF070584,  CreateMemoryChunk)
+NSTUB(0xFF070D34,  CreateMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
+NSTUB(0xFF070B64,  DeleteMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
 NSTUB(0xFF073C0C,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFF0710A8,  GetFirstChunkFromSuite)                  // AJ_PackMemory_PackMem_p3
 NSTUB(0xFF070AF0,  GetMemoryAddressOfMemoryChunk)
 NSTUB(0xFF071840,  GetNextMemoryChunk)                      // AJ_PackMemory_PackMem.c_IsChunkSignature_p2
-// NSTUB(    ???,  CreateMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
-// NSTUB(    ???,  DeleteMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
+NSTUB(0xFF02CEC4,  SRM_AllocateMemoryResourceFor1stJob)
+NSTUB(0xFF02F764,  SRM_FreeMemoryResourceFor1stJob)
 
 /** GUI for old cameras **/
 NSTUB(    0x4414,  gui_timer_struct)                        // in GUI_Control_Post.
@@ -195,6 +202,13 @@ NSTUB(    0x4414,  gui_timer_struct)                        // in GUI_Control_Po
 // NSTUB(    ???,  gui_other_post)                          /* present on 7D.203, 500D.111, 50D.109, 5D2.212, 600D.102, 550D.109, 1100D.105 */
 // NSTUB(    ???,  gui_post_10000085)                       /* present on 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  gui_timer_something)                     /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
+
+/** GUI timers **/
+NSTUB(0xFF35CB2C,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
+NSTUB(0xFF0753AC,  CancelTimer)                             /* present on 650D.104 */
+NSTUB(0xFF06D228,  SetHPTimerAfterNow)                      /* present on 7D.203, 5D3.113, 600D.102, 650D.104, EOSM.202 */
+NSTUB(0xFF06D31C,  SetHPTimerNextTick)                      /* present on 7D.203, 5D3.113, 600D.102, EOSM.202 */
+NSTUB(0xFF0751AC,  SetTimerAfter)                           /* present on 650D.104 */
 
 /** H264 Encoder **/
 NSTUB(    0x5DD0,  mvr_config)
@@ -217,6 +231,7 @@ NSTUB(0xFF1ADBCC,  mvrSetDefQScale)
 NSTUB(   0x350FC,  cf_device)                               // in cfReadBlk
 NSTUB(   0x35120,  sd_device)                               // in sdReadBlk
 NSTUB(0xFF404AC4,  fsuDecodePartitionTable)
+// NSTUB(    ???,  cf_device_ptr)                           /* present on 5D3.113 */
 
 /** Memory allocation **/
 NSTUB(0xFF06F6D8,  GetMemoryInformation)                    // called from AllocateMemory
@@ -240,7 +255,6 @@ NSTUB(0xFF29352C,  ptp_register_handler)
 // NSTUB(    ???,  ptpPropSetUILock)                        /* present on 650D.104, 700D.113 */
 
 /** Properties **/
-NSTUB(0xFF05BE34,  PROPAD_GetPropertyData)
 NSTUB(0xFF05B178, _prop_cleanup)
 NSTUB(0xFF05A9F0, _prop_request_change)
 NSTUB(0xFF05AFD0,  prop_deliver)
@@ -250,6 +264,7 @@ NSTUB(0xFF05B058,  prop_register_slave)                     // called by"GUI_Reg
 /** RPC (for 7D) **/
 // NSTUB(    ???,  BulkInIPCTransfer)                       /* present on 7D.203 */
 // NSTUB(    ???,  BulkOutIPCTransfer)                      /* present on 7D.203 */
+// NSTUB(    ???,  QuickOutIPCTransfer)                     /* present on 7D.203 */
 // NSTUB(    ???,  RegisterRPCHandler)                      /* present on 7D.203, 7D_MASTER.203 */
 // NSTUB(    ???,  RequestRPC)                              /* present on 7D.203, 7D_MASTER.203 */
 
@@ -288,7 +303,7 @@ NSTUB(0xFF07B8AC,  task_trampoline)
 NSTUB(   0x52940,  lv_path_struct)                          // first arg of SelectPathDriveMode
 NSTUB(0xFF067B68,  LoadCalendarFromRTC)
 NSTUB(0xFF1DA530,  vsnprintf)
-//NSTUB( 0xff06f7c4, AllocateMemory_do ) // this one won't throw ERR70 on failure
+///NSTUB( 0xff06f7c4, AllocateMemory_do ) // this one won't throw ERR70 on failure
 // NSTUB(    ???,  EnableImagePhysicalScreenParameter)      /* present on 7D.203, 50D.109, 5D2.212 */
 // NSTUB(    ???,  PtpDps_remote_release_SW1_SW2_worker)    /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
@@ -301,12 +316,14 @@ NSTUB(0xFF1DA530,  vsnprintf)
 ///NSTUB(0xFF3076F8, CreateDialogBox)
 ///NSTUB(0xFF306E8C, DeleteDialogBox)
 ///NSTUB(0xFF1C571C,  EngDrvIn)
+///NSTUB(0xFF1CA32C,  FIO_SeekFile)
 ///NSTUB(0xFF0A61DC,  GUI_Control_Post)
 ///NSTUB(0xFF2143A8,  GUI_GetFirmVersion)
 ///NSTUB(0xFF36E594,  HideBottomInfoDisp_maybe)                // look for StartBottomInfoDispTimer
 ///NSTUB(0xFF1CD340,  MuteOff_0)
 ///NSTUB(0xFF1CD2F8,  MuteOn_0)
 ///NSTUB(0xFF382A0C,  OlcAFFrameApp_handler)
+///NSTUB(0xFF05BE34,  PROPAD_GetPropertyData)
 ///NSTUB(0xFF05B210,  PROP_GetMulticastProperty)
 ///NSTUB(0xFF1C47AC,  PopEDmac)
 ///NSTUB(0xFF323EB8,  RedrawDisplay)

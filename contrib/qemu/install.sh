@@ -1,7 +1,7 @@
 #!/bin/bash
 
-QEMU_NAME=qemu-1.6.0
-ML=magic-lantern
+QEMU_NAME=${QEMU_NAME:=qemu-1.6.0}
+ML=${ML:=magic-lantern}
 
 echo
 echo "This will setup QEMU for emulating Magic Lantern."
@@ -46,8 +46,8 @@ echo
 echo "1) Compile QEMU"
 echo
 echo "   cd `pwd`/${QEMU_NAME}"
-echo "   ./configure --target-list=arm-softmmu --disable-docs"
-echo "   make"
+echo "   ./configure --target-list=arm-softmmu --disable-docs --enable-sdl"
+echo "   make -j`grep -c processor /proc/cpuinfo`"
 echo
 echo "2) Grab a copy of the Canon firmware from your own camera"
 echo "   (don't request one and don't share it online - it's copyrighted)"
@@ -57,11 +57,19 @@ echo "   Copy those in `pwd`/ and then run (for 60D):"
 echo
 echo "   cat ROM0.BIN ROM1.BIN > ROM-60D.BIN"
 echo
-echo "3) Enable CONFIG_QEMU=y and ML_SRC_STATIC_FONTS=y in your Makefile.user"
+echo "3) Enable CONFIG_QEMU=y in your Makefile.user"
 echo "   from magic-lantern directory, then run 'make clean' to make sure"
 echo "   you will rebuild ML from scratch."
 echo
-echo "4) Start emulation with:"
+echo "4) Create a subdirectory named 'sdcard' or 'cfcard' and copy ML files there."
+echo "   Make sure all ML files are UPPERCASE (just copy them from a FAT32 card)."
+echo "   You should get something like:"
+echo "   `pwd`/sdcard/ML/AUTOEXEC.BIN"
+echo "   `pwd`/sdcard/ML/FONTS/ARGNOR32.RBF"
+echo "   `pwd`/sdcard/ML/MODULES/ARKANOID.MO"
+echo "   and so on."
+echo
+echo "5) Start emulation with:"
 echo
 echo "   cd `pwd`/"
 echo "   ./run_ml_60D.sh"

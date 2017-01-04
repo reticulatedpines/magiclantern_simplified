@@ -10,8 +10,6 @@ DATE=date -u
 
 BINARIES_PATH=binaries
 LUA_PATH=$(TOP_DIR)/lua
-PICOC_DIR=$(TOP_DIR)/picoc
-PICOC_PATH=$(PICOC_DIR)
 PWD=$(shell pwd)
 SRC_DIR=$(TOP_DIR)/src
 PLATFORM_PATH=$(TOP_DIR)/platform
@@ -25,6 +23,9 @@ MODULES_DIR=$(TOP_DIR)/modules
 BIN_FILES=magiclantern magiclantern.bin autoexec.bin autoexec
 CF_CARD_ML_DIR = $(CF_CARD)/ML
 
+BUILD_TOOLS_DIR=$(TOP_DIR)/build_tools
+XOR_CHK=$(BUILD_TOOLS_DIR)/xor_chk
+
 INSTALL_DIR ?= $(CF_CARD)
 INSTALL_ML_DIR = $(INSTALL_DIR)/ML
 INSTALL_FONTS_DIR= $(INSTALL_ML_DIR)/fonts
@@ -35,7 +36,20 @@ INSTALL_CROPMARKS_DIR= $(INSTALL_ML_DIR)/cropmks
 INSTALL_SCRIPTS_DIR= $(INSTALL_ML_DIR)/scripts
 INSTALL_DOC_DIR = $(INSTALL_ML_DIR)/doc
 INSTALL_LOGS_DIR = $(INSTALL_ML_DIR)/logs
+INSTALL_PREPARE ?= $(MOUNT_CARD)
 INSTALL_FINISH ?= $(UMOUNT) $(CF_CARD)
+
+# this one is called from both platform and modules
+# copies all scripts, preserving directory structure
+# (simpler way to do this?)
+INSTALL_ALL_SCRIPTS = \
+	$(call build,SCRIPTS,\
+		for f in $(shell find $(SCRIPT_DIR) -type f -name *.lua); do \
+			dst=$(INSTALL_SCRIPTS_DIR)/$${f\#\#$(SCRIPT_DIR)/}; \
+			dstdir=`dirname $$dst`; \
+			$(MKDIR) -p $$dstdir; \
+			$(CP) $$f $$dst; \
+		done)
 
 make_loop = +$(foreach entry, $(1), $(MAKE) -C $(entry) $(2);)
 

@@ -42,6 +42,18 @@
 
 #include "ml-cbr.h"
 
+#if defined(FEATURE_GPS_TWEAKS)
+#include "gps.h"
+#endif
+
+#ifdef CONFIG_QEMU
+#include "qemu-util.h"
+#endif
+
+#if defined(CONFIG_HELLO_WORLD)
+#include "fw-signature.h"
+#endif
+
 /** These are called when new tasks are created */
 static void my_task_dispatch_hook( struct context ** );
 static int my_init_task(int a, int b, int c, int d);
@@ -66,10 +78,8 @@ static uint8_t _reloc[ RELOCSIZE ];
 #define FIXUP_BRANCH( rom_addr, dest_addr ) \
     INSTR( rom_addr ) = BL_INSTR( &INSTR( rom_addr ), (dest_addr) )
 
-//#if defined(CONFIG_MEMPATCH_CHECK)
 uint32_t ml_used_mem = 0;
 uint32_t ml_reserved_mem = 0;
-//#endif
 
 /** Specified by the linker */
 extern uint32_t _bss_start[], _bss_end[];
@@ -149,8 +159,7 @@ copy_and_restart( )
     INSTR( HIJACK_INSTR_MY_ITASK ) = (uint32_t) my_init_task;
     
     // Make sure that our self-modifying code clears the cache
-    clean_d_cache();
-    flush_caches();
+    sync_caches();
 
     // We enter after the signature, avoiding the
     // relocation jump that is at the head of the data
@@ -175,7 +184,7 @@ copy_and_restart( )
 
     //~ Canon changed their task starting method in the 6D so our old hook method doesn't work.
 #ifndef CONFIG_6D
-#if !defined(CONFIG_EARLY_PORT) && !defined(CONFIG_HELLO_WORLD)
+#if !defined(CONFIG_EARLY_PORT) && !defined(CONFIG_HELLO_WORLD) && !defined(CONFIG_DUMPER_BOOTFLAG)
     // Install our task creation hooks
     task_dispatch_hook = my_task_dispatch_hook;
     #ifdef CONFIG_TSKMON
@@ -199,6 +208,10 @@ copy_and_restart( )
 }
 
 
+static int _hold_your_horses = 1; // 0 after config is read
+int ml_started = 0; // 1 after ML is fully loaded
+int ml_gui_initialized = 0; // 1 after gui_main_task is started 
+
 #ifndef CONFIG_EARLY_PORT
 
 /** This task does nothing */
@@ -209,9 +222,6 @@ null_task( void )
     return;
 }
 
-static int _hold_your_horses = 1; // 0 after config is read
-int ml_started = 0; // 1 after ML is fully loaded
-int ml_gui_initialized = 0; // 1 after gui_main_task is started 
 
 /**
  * Called by DryOS when it is dispatching (or creating?)
@@ -248,6 +258,29 @@ my_task_dispatch_hook(
     extern struct task_mapping _task_overrides_start[];
     extern struct task_mapping _task_overrides_end[];
     struct task_mapping * mapping = _task_overrides_start;
+
+#ifdef CONFIG_QEMU
+    char* task_name = get_task_name_from_id(get_current_task());
+    
+    if ((((intptr_t)task->entry & 0xF0000000) == 0xF0000000 || task->entry < RESTARTSTART) &&
+        (   /* only start some whitelisted Canon tasks */
+            #ifndef CONFIG_550D
+            !streq(task_name, "Startup") &&
+            #endif
+            !streq(task_name, "TaskMain") &&
+            !streq(task_name, "PowerMgr") &&
+            !streq(task_name, "EventMgr") &&
+            //~ !streq(task_name, "PropMgr") &&
+        1))
+    {
+        qprintf("[*****] Not starting task %x(%x) %s\n", task->entry, task->arg, task_name);
+        task->entry = &ret_0;
+    }
+    else
+    {
+        qprintf("[*****] Starting task %x(%x) %s\n", task->entry, task->arg, task_name);
+    }
+#endif
 
     for( ; mapping < _task_overrides_end ; mapping++ )
     {
@@ -353,8 +386,12 @@ static void backup_region(char *file, uint32_t base, uint32_t length)
     }
     
     /* no, create file and store data */
+
+    void* buf = malloc(BACKUP_BLOCKSIZE);
+    if (!buf) return;
+
     handle = FIO_CreateFile(file);
-    if (handle != INVALID_PTR)
+    if (handle)
     {
       while(pos < length)
       {
@@ -364,120 +401,110 @@ static void backup_region(char *file, uint32_t base, uint32_t length)
           {
               blocksize = length - pos;
           }
-        
-          FIO_WriteFile(handle, &((uint8_t*)base)[pos], blocksize);
+          
+          /* copy to RAM before saving, because ROM is slow and may interfere with LiveView */
+          memcpy(buf, &((uint8_t*)base)[pos], blocksize);
+          
+          FIO_WriteFile(handle, buf, blocksize);
           pos += blocksize;
-        
-          /* to make sure lower prio tasks can also run */
-          msleep(20);
       }
       FIO_CloseFile(handle);
     }
+    
+    free(buf);
 }
 
-static void backup_task()
+static void backup_rom_task()
 {
     backup_region("ML/LOGS/ROM1.BIN", 0xF8000000, 0x01000000);
     backup_region("ML/LOGS/ROM0.BIN", 0xF0000000, 0x01000000);
 }
 #endif
 
-static int compute_signature(int* start, int num)
-{
-        int c = 0;
-        int* p;
-        for (p = start; p < start + num; p++)
-        {
-                c += *p;
-        }
-        return c;
-}
-
-
-// Only after this task finished, the others are started
-// From here we can do file I/O and maybe other complex stuff
-static void my_big_init_task()
-{
-  _find_ml_card();
-
-#if defined(CONFIG_HELLO_WORLD) || defined(CONFIG_DUMPER_BOOTFLAG)
-  _load_fonts();
-#endif
-
 #ifdef CONFIG_HELLO_WORLD
-    uint32_t len = compute_signature(ROMBASEADDR, 0x10000);
+static void hello_world()
+{
+    int sig = compute_signature((int*)SIG_START, 0x10000);
     while(1)
     {
         bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
-        bmp_printf(FONT_LARGE, 50, 400, "firmware signature = 0x%x", len);
+        bmp_printf(FONT_LARGE, 50, 400, "firmware signature = 0x%x", sig);
         info_led_blink(1, 500, 500);
     }
+}
 #endif
+
 #ifdef CONFIG_DUMPER_BOOTFLAG
+static void dumper_bootflag()
+{
     msleep(5000);
-    SetGUIRequestMode(2);
+    SetGUIRequestMode(GUIMODE_PLAY);
+    msleep(1000);
+    bmp_fill(COLOR_BLACK, 0, 0, 720, 480);
+    bmp_printf(FONT_LARGE, 50, 100, "Please wait...");
     msleep(2000);
 
-    if (CURRENT_DIALOG_MAYBE != 2)
+    if (CURRENT_GUI_MODE != GUIMODE_PLAY)
     {
-        bmp_printf(FONT_LARGE, 50, 200, "Hudson, we have a problem!");
+        bmp_printf(FONT_LARGE, 50, 150, "Hudson, we have a problem!");
         return;
     }
+    
+    /* this requires CONFIG_AUTOBACKUP_ROM */
+    bmp_printf(FONT_LARGE, 50, 150, "ROM Backup...");
+    backup_rom_task();
 
     // do try to enable bootflag in LiveView, or during sensor cleaning (it will fail while writing to ROM)
     // no check is done here, other than a large delay and doing this while in Canon menu
-    bmp_printf(FONT_LARGE, 50, 200, "EnableBootDisk");
+    // todo: check whether the issue is still present with interrupts disabled
+    bmp_printf(FONT_LARGE, 50, 200, "EnableBootDisk...");
+    uint32_t old = cli();
     call("EnableBootDisk");
-    
-    msleep(500);
-    FILE* f = FIO_CreateFile("ROM.DAT");
-    if (f != INVALID_PTR) {
-        len=FIO_WriteFile(f, (void*) 0xFF000000, 0x01000000);
-        FIO_CloseFile(f);
-        bmp_printf(FONT_LARGE, 50, 250, ":)");    
-    }
-    else
-        bmp_printf(FONT_LARGE, 50, 250, "Oops!");    
-    info_led_blink(1, 500, 500);
+    sei(old);
+
+    bmp_printf(FONT_LARGE, 50, 250, ":)");
+}
+#endif
+
+/* This runs ML initialization routines and starts user tasks.
+ * Unlike init_task, from here we can do file I/O and others.
+ */
+static void my_big_init_task()
+{
+    _find_ml_card();
+    _load_fonts();
+
+#ifdef CONFIG_HELLO_WORLD
+    hello_world();
     return;
 #endif
-    
+
+#ifdef CONFIG_DUMPER_BOOTFLAG
+    dumper_bootflag();
+    return;
+#endif
+   
     call("DisablePowerSave");
-    _load_fonts();
     _ml_cbr_init();
     menu_init();
     debug_init();
     call_init_funcs();
     msleep(200); // leave some time for property handlers to run
 
-    #ifdef CONFIG_BATTERY_TEST
-    while(1)
-    {
-        RefreshBatteryLevel_1Hz();
-        wait_till_next_second();
-        batt_display(0, 0, 0, 0);
-    }
-    return;
-    #endif
-    
-    #ifdef CONFIG_QEMU
-        #ifdef CONFIG_QEMU_MENU_SCREENSHOTS
-        qemu_menu_screenshots();
-        #else
-        qemu_hello(); // see qemu-util.c
-        #endif
-    #endif
-
     #if defined(CONFIG_AUTOBACKUP_ROM)
     /* backup ROM first time to be prepared if anything goes wrong. choose low prio */
     /* On 5D3, this needs to run after init functions (after card tests) */
-    task_create("ml_backup", 0x1f, 0x4000, backup_task, 0 );
+    task_create("ml_backup", 0x1f, 0x4000, backup_rom_task, 0 );
     #endif
 
     /* Read ML config. if feature disabled, nothing happens */
     config_load();
     
     debug_init_stuff();
+
+    #ifdef FEATURE_GPS_TWEAKS
+    gps_tweaks_startup_hook();
+    #endif
 
     _hold_your_horses = 0; // config read, other overriden tasks may start doing their job
 
@@ -494,14 +521,6 @@ static void my_big_init_task()
         task->entry = PIC_RESOLVE(task->entry);
         task->arg = PIC_RESOLVE(task->arg);
 #endif
-        //~ DebugMsg( DM_MAGIC, 3,
-            //~ "Creating task %s(%d) pri=%02x flags=%08x",
-            //~ task->name,
-            //~ task->arg,
-            //~ task->priority,
-            //~ task->flags
-        //~ );
-        
         // for debugging: uncomment this to start only some specific tasks
         // tip: use something like grep -nr TASK_CREATE ./ to find all task names
         #if 0
@@ -545,29 +564,11 @@ static void my_big_init_task()
             );
             ml_tasks++;
         }
-        //~ else
-        //~ {
-            //~ bmp_printf(FONT_LARGE, 50, 50, "skip %s  ", task->name);
-            //~ msleep(1000);
-        //~ }
     }
-    //~ bmp_printf( FONT_MED, 0, 85,
-        //~ "Magic Lantern is up and running... %d tasks started.",
-        //~ ml_tasks
-    //~ );
     
     msleep(500);
     ml_started = 1;
-
-    //~ stress_test_menu_dlg_api_task(0);
 }
-
-/*void logo_task(void* unused)
-{
-    show_logo();
-    while (!ml_started) msleep(100);
-    stop_killing_flicker();
-}*/
 
 /** Blocks execution until config is read */
 void hold_your_horses()
@@ -629,7 +630,8 @@ void ml_crash_message(char* msg)
 #define CREATETASK_MAIN_LEN (ROM_CREATETASK_MAIN_END - ROM_CREATETASK_MAIN_START)
 #endif
 
-int init_task_patched(int a, int b, int c, int d)
+
+init_task_func init_task_patched(int a, int b, int c, int d)
 {
     // We shrink the AllocateMemory (system memory) pool in order to make space for ML binary
     // Example for the 1100D firmware
@@ -698,7 +700,7 @@ int init_task_patched(int a, int b, int c, int d)
     NotifyBox(10000, "%x ", new_CreateTaskMain); */
     
     // Well... let's cross the fingers and call the relocated stuff
-    return new_init_task(a,b,c,d);
+    return new_init_task;
 
 }
 #endif // CONFIG_ALLOCATE_MEMORY_POOL
@@ -757,7 +759,6 @@ my_init_task(int a, int b, int c, int d)
     /* check for the correct mov instruction */
     if((orig_instr & 0xFFFFF000) == 0xE3A01000)
     {
-#if defined(CONFIG_MEMPATCH_CHECK)
         /* mask out the lowest bits for rotate and immed */
         uint32_t new_address = RESTARTSTART;
         
@@ -779,18 +780,7 @@ my_init_task(int a, int b, int c, int d)
         uint32_t new_end = ROR(new_immed_8, 2 * new_rotate_imm);
         
         ml_reserved_mem = orig_end - new_end;
-        
-        /* ensure binary is not too large */
-        if(ml_used_mem > ml_reserved_mem)
-        {
-            while(1)
-            {
-                info_led_blink(3, 500, 500);
-                info_led_blink(3, 100, 500);
-                msleep(1000);
-            }
-        }
-#endif
+
         /* now patch init task and continue execution */
         cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, new_instr, TYPE_ICACHE);
     }
@@ -805,30 +795,45 @@ my_init_task(int a, int b, int c, int d)
         cache_fake(HIJACK_CACHE_HACK_ALLOCMEM_SIZE_ADDR, HIJACK_CACHE_HACK_ALLOCMEM_SIZE_INSTR, TYPE_ICACHE);
     #endif
     }
-
-    #ifdef ML_RESERVED_MEM // define this if we can't autodetect the reserved memory size
-    ml_reserved_mem = ML_RESERVED_MEM;
-    #endif
 #endif
 
     #ifdef CONFIG_6D
     //Hijack GUI Task Here - Now we're booting with cache hacks and have menu.
-    cache_fake(0xFF0DF6DC, BL_INSTR(0xFF0DF6DC, (uint32_t)hijack_6d_guitask), TYPE_ICACHE);
+    cache_fake(HIJACK_CACHE_HACK_GUITASK_6D_ADDR, BL_INSTR(HIJACK_CACHE_HACK_GUITASK_6D_ADDR, (uint32_t)hijack_6d_guitask), TYPE_ICACHE);
+    #endif
+#endif // HIJACK_CACHE_HOOK
+
+    // Prepare to call Canon's init_task
+    init_task_func init_task_func = &init_task;
+    
+#ifdef CONFIG_ALLOCATE_MEMORY_POOL
+    /* use a patched version of Canon's init_task */
+    /* this call will also tell us how much memory we have reserved for autoexec.bin */
+    init_task_func = init_task_patched(a,b,c,d);
+#endif
+
+    #ifdef ML_RESERVED_MEM // define this if we can't autodetect the reserved memory size
+    ml_reserved_mem = ML_RESERVED_MEM;
     #endif
 
-    int ans = init_task(a,b,c,d);
-    
-    /* no functions/caches need to get patched anymore, we can disable cache hacking again */    
-    /* use all cache pages again, so we run at "full speed" although barely noticeable (<1% speedup/slowdown) */
-    //cache_unlock();
-#else
-    // Call their init task
-    #ifdef CONFIG_ALLOCATE_MEMORY_POOL
-    int ans = init_task_patched(a,b,c,d);
-    #else
-    int ans = init_task(a,b,c,d);
-    #endif // CONFIG_ALLOCATE_MEMORY_POOL
-#endif // HIJACK_CACHE_HOOK
+    /* ensure binary is not too large */
+    if (ml_used_mem > ml_reserved_mem)
+    {
+        #ifdef CONFIG_QEMU
+        qprintf("Out of memory: ml_used_mem=%d ml_reserved_mem=%d\n", ml_used_mem, ml_reserved_mem);
+        call("shutdown");
+        #endif
+        
+        while(1)
+        {
+            info_led_blink(3, 500, 500);
+            info_led_blink(3, 100, 500);
+            msleep(1000);
+        }
+    }
+
+    // memory check OK, call Canon's init_task
+    int ans = init_task_func(a,b,c,d);
 
 #ifdef ARMLIB_OVERFLOWING_BUFFER
     // Restore the overwritten value, if any
@@ -838,11 +843,11 @@ my_init_task(int a, int b, int c, int d)
     }
 #endif
 
-#if defined(CONFIG_CRASH_LOG) && defined(DRYOS_ASSERT_HANDLER)
+#if defined(CONFIG_CRASH_LOG)
     // decompile TH_assert to find out the location
     old_assert_handler = (void*)MEM(DRYOS_ASSERT_HANDLER);
     *(void**)(DRYOS_ASSERT_HANDLER) = (void*)my_assert_handler;
-#endif // (CONFIG_CRASH_LOG) && (DRYOS_ASSERT_HANDLER)
+#endif // (CONFIG_CRASH_LOG)
     
 #ifndef CONFIG_EARLY_PORT
     // Overwrite the PTPCOM message
@@ -883,6 +888,10 @@ my_init_task(int a, int b, int c, int d)
 
 #ifndef CONFIG_EARLY_PORT
 
+#ifdef CONFIG_QEMU
+    qemu_cam_init();
+#endif
+
     // wait for firmware to initialize
     while (!bmp_vram_raw()) msleep(100);
     
@@ -920,6 +929,11 @@ my_init_task(int a, int b, int c, int d)
     }
 
     task_create("ml_init", 0x1e, 0x4000, my_big_init_task, 0 );
+
+#ifdef CONFIG_QEMU  /* fixme: Canon GUI task is not started */
+    extern void ml_gui_main_task();
+    task_create("GuiMainTask", 0x17, 0x2000, ml_gui_main_task, 0);
+#endif
 
     return ans;
 #endif // !CONFIG_EARLY_PORT

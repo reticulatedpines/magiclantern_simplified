@@ -1,7 +1,7 @@
 # extract module strings from README.rst
 
 import sys, re
-import commands
+import subprocess
 from datetime import datetime
 
 from align_string_proportional import word_wrap
@@ -9,7 +9,18 @@ from rbf_read import extent_func, rbf_init_font
 rbf_init_font("../../data/fonts/argnor23.rbf")
 
 def run(cmd):
-    return commands.getstatusoutput(cmd)[1]
+    try:
+        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out = p.communicate()
+        if p.returncode or out[1]:
+            print >> sys.stderr, cmd
+            print >> sys.stderr, out[0]
+            print >> sys.stderr, out[1]
+            exit(1)
+        return out[0]
+    except:
+        print >> sys.stderr, sys.exc_info()
+        exit(1)
 
 # see http://gcc.gnu.org/bugzilla/show_bug.cgi?id=37506 for how to place some strings in a custom section
 # (you must declare all strings as variables, not only the pointers)
@@ -38,6 +49,18 @@ def declare_string_section():
         a = chr(ord('a') + i)
         print "    MODULE_STRING(__module_string_%s_name, __module_string_%s_value)" % (a, a)
     print('MODULE_STRINGS_END()')
+    
+def is_command_available(name):
+    """Check if command `name` is on PATH."""
+    from distutils.spawn import find_executable
+    return find_executable(name) is not None
+
+# return the first command of the list that can be found on the OS
+def get_command_of(commands):
+    """Return the first command of the list `commands` that can be found on the OS."""
+    for command in commands: 
+        if is_command_available(command) == True:
+            return command
 
 inp = open("README.rst").read().replace("\r\n", "\n")
 lines = inp.strip("\n").split("\n")
@@ -81,8 +104,13 @@ if "Summary" not in tags:
 # intro -> "Description" tag;
 # each section will become "Help page 1", "Help page 2" and so on
 
+# possible available commands to check 
+rst2htmlCommands = ["rst2html", "rst2html5", "rst2html.py", "rst2html5.py"]
+rst2htmlCommand = get_command_of(rst2htmlCommands)
+
 # render the RST as html -> txt without the metadata tags
-txt = run('cat README.rst | grep -v -E "^:([^:])+:.+$" | rst2html --no-xml-declaration | python ../html2text.py -b 700')
+# sed command at end is because Windows inserts CR characters all over the place. Removing them should be benign on other platforms. 
+txt = run('cat README.rst | grep -v -E "^:([^:])+:.+$" | ' + rst2htmlCommand + ' | python ../html2text.py -b 700 | sed "s/\r$//"')
 
 desc = ""
 last_str = "Description"
@@ -94,6 +122,7 @@ for p in txt.strip("\n").split("\n")[2:]:
         add_string(last_str, desc)
         desc = ""
         last_str = "Help page %d" % help_page_num
+        print >> sys.stderr, "Help page %d: %s" % (help_page_num, p.strip('# '))
         lines_per_page = 0
         p = p[2:].strip()
     desc += "%s\n" % p
@@ -106,7 +135,8 @@ add_string(last_str, desc)
 
 # extract version info
 # (prints the latest changeset that affected this module)
-last_change_info = run("LC_TIME=EN hg log . -r $(basename $(hg id -n) +):0 -l 1 --template '{date|hgdate}\n{node|short}\n{author|user}\n{desc|strip|firstline}'")
+last_change_info = run("sh ../last_change_info.sh")
+
 if len(last_change_info):
     last_change_date, last_changeset, author, commit_msg = last_change_info.split("\n")
     split = last_change_date.split(" ")
@@ -131,7 +161,12 @@ if len(last_change_info):
     add_string("Last update", "%s on %s by %s:\n%s" % (last_changeset, last_change_date, author, commit_msg))
 
 build_date = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
-build_user = run("echo `whoami`@`hostname`")
+
+# echo called from python in Windows behaves differently, better to avoid it.
+if sys.platform == 'win32':
+	build_user = run('whoami').replace("\n", "") + "@" + run('hostname').replace("\n", "")
+else:
+	build_user = run("echo `whoami`@`hostname`")
 
 add_string("Build date", build_date)
 add_string("Build user", build_user)

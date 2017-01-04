@@ -1,9 +1,9 @@
 /**
- * Camera internals for EOS-M 1.0.6
+ * Camera internals for EOS-M 2.0.2
  */
 
 /** Properties are persistent (saved in NVRAM) => a mistake can cause permanent damage. Undefine this for new ports. */
-/** The EOS_M port is very young, so we don't enable these for now. **/
+/** The EOS_M port is young, but... let's give it a try! **/
 #define CONFIG_PROP_REQUEST_CHANGE
 
 /** 
@@ -73,7 +73,7 @@
 // ~#define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER
 
 /** Therefore, we can implement display filters (features that alter the LiveView image in real-time) **/
-#define CONFIG_DISPLAY_FILTERS
+//~ #define CONFIG_DISPLAY_FILTERS
 
 /** We can override ISO on a per-frame basis, by changing FRAME_ISO (e.g. for HDR video or gradual exposure) **/
 #define CONFIG_FRAME_ISO_OVERRIDE
@@ -97,7 +97,7 @@
 #define CONFIG_RESTORE_AFTER_FORMAT
 
 /** We don't know how to use DMA_MEMCPY (yet) **/
-#define CONFIG_DMA_MEMCPY
+//~ #define CONFIG_DMA_MEMCPY
 
 /** We know how to use edmac_memcpy. This one is really fast (600MB/s!) */
 #define CONFIG_EDMAC_MEMCPY
@@ -134,8 +134,11 @@
 #define CONFIG_RAW_LIVEVIEW
 #define CONFIG_RAW_PHOTO
 
-/** We know how to use engine resource locks */
-#define CONFIG_ENGINE_RESLOCK
-
 /** We can control audio settings from ML **/
 //~ #define CONFIG_AUDIO_CONTROLS
+
+/** Hide Canon bottom bar from DebugMsg hook */
+#define CONFIG_LVAPP_HACK_DEBUGMSG
+
+/** Workaround for menu timeout in LiveView */
+#define CONFIG_MENU_TIMEOUT_FIX

@@ -2,6 +2,8 @@
  *  40D 1.1.1 consts
  */
 
+#define CANON_SHUTTER_RATING 100000
+
 #define CARD_LED_ADDRESS 0xC02200E0 // http://magiclantern.wikia.com/wiki/Led_addresses
 
 #define LEDBLUE     *(volatile int*)0xC02200E8
@@ -36,8 +38,6 @@
 // use memspy
 #define HALFSHUTTER_PRESSED 0
 
-#define DISPLAY_SENSOR_POWERED 0
-
 // for gui_main_task
 #define GMT_IDLEHANDLER_TASK (*(int*)0x2C10) // dec create_idleHandler_task
 
@@ -63,26 +63,26 @@
 
 #define AE_VALUE 0 // http://www.magiclantern.fm/forum/index.php?topic=7208.100
 
-#define CURRENT_DIALOG_MAYBE (*(int*)0x2A94)
+#define CURRENT_GUI_MODE (*(int*)0x2A94)
 
-#define DLG_PLAY 1
-#define DLG_MENU 2
+#define GUIMODE_PLAY 1
+#define GUIMODE_MENU 2
 
-#define DLG_FOCUS_MODE 1234
-#define DLG_DRIVE_MODE 1234
-#define DLG_PICTURE_STYLE 1234
-#define DLG_Q_UNAVI 1234
-#define DLG_FLASH_AE 1234
-#define DLG_PICQ 1234
+#define GUIMODE_FOCUS_MODE 1234
+#define GUIMODE_DRIVE_MODE 1234
+#define GUIMODE_PICTURE_STYLE 1234
+#define GUIMODE_Q_UNAVI 1234
+#define GUIMODE_FLASH_AE 1234
+#define GUIMODE_PICQ 1234
 
 #define _MOVIE_MODE_NON_LIVEVIEW 0
-#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED  0
-#define DLG_MOVIE_PRESS_LV_TO_RESUME 0
+#define GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED  0
+#define GUIMODE_MOVIE_PRESS_LV_TO_RESUME 0
 
 
 
-#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
-#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
+#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_PLAY)
+#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_MENU)
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 15 or 7
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(7, something)
@@ -140,7 +140,6 @@
     #define BFNT_BITMAP_DATA   0xff22b400
     */
     
-    #define DLG_SIGNATURE 0x4c414944
 
 // from CFn
     #define AF_BTN_HALFSHUTTER 0

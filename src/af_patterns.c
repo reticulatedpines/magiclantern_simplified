@@ -150,6 +150,9 @@ static int afp_transformer (int pattern, type_DIRECTION direction) {
 
 int handle_af_patterns(struct event * event)
 {
+    #ifdef CONFIG_60D
+    extern int get_cfn_function_for_set_button();
+    #endif
     if (af_patterns && !lv && gui_state == GUISTATE_IDLE && !DISPLAY_IS_ON)
     {
         switch (event->param)

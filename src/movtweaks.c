@@ -16,6 +16,9 @@
 #include "zebra.h"
 #include "fps.h"
 #include "beep.h"
+#include "lvinfo.h"
+#include "powersave.h"
+
 
 #ifdef FEATURE_REC_NOTIFY
 
@@ -52,6 +55,7 @@ static int hdmi_code_array[8];
 
 PROP_HANDLER(PROP_HDMI_CHANGE_CODE)
 {
+    ASSERT(len == 32);
     memcpy(hdmi_code_array, buf, 32);
 }
 
@@ -125,58 +129,38 @@ PROP_HANDLER(PROP_SHOOTING_MODE)
 
 void set_shooting_mode(int m)
 {
-    if (shooting_mode == m) return;
+    if (shooting_mode == m)
+    {
+        /* nothing to do */
+        return;
+    }
+    
+#ifdef CONFIG_SEPARATE_BULB_MODE
+    #define ALLOWED_MODE(x)  (x == SHOOTMODE_M || x == SHOOTMODE_TV || \
+         x == SHOOTMODE_AV || x == SHOOTMODE_P || x == SHOOTMODE_BULB )
+#else
+    #define ALLOWED_MODE(x)  (x == SHOOTMODE_M || x == SHOOTMODE_TV || \
+         x == SHOOTMODE_AV || x == SHOOTMODE_P )
+#endif
+    
+    if (!ALLOWED_MODE(m) || !ALLOWED_MODE(shooting_mode))
+    {
+        /* only allow switching between M, Tv, Av, P and BULB */
+        return;
+    }
+    
+    #undef ALLOWED_MODE
     
     ml_changing_shooting_mode = 1;
-    prop_request_change(PROP_SHOOTING_MODE, &m, 4);
-    msleep(500);
+    prop_request_change_wait(PROP_SHOOTING_MODE, &m, 4, 1000);
+    msleep(500);    /* just in case, since mode switching is quite complex */
     ml_changing_shooting_mode = 0;
 }
 
 static CONFIG_INT("movie.restart", movie_restart,0);
-
-#ifdef FEATURE_MOVIE_AUTOSTOP_RECORDING
-CONFIG_INT("movie.cliplen", movie_cliplen,0);
-#endif
-
-#ifdef FEATURE_REMAP
-static CONFIG_INT("movie.mode-remap", movie_mode_remap, 0);
-#endif
 static CONFIG_INT("movie.rec-key", movie_rec_key, 0);
 static CONFIG_INT("movie.rec-key-action", movie_rec_key_action, 0);
 static CONFIG_INT("movie.rec-key-long", movie_rec_key_long, 0);
-
-#ifdef FEATURE_MOVIE_AUTOSTOP_RECORDING
-
-static int movie_autostop_running = 0;
-
-static int movie_cliplen_values[] = {0, 1, 2, 3, 4, 5, 10, 15};
-
-static int current_cliplen_index(int t)
-{
-    int i;
-    for (i = 0; i < COUNT(movie_cliplen_values); i++)
-        if (t == movie_cliplen_values[i]) return i;
-    return 0;
-}
-
-static void movie_cliplen_toggle(void* priv, int sign)
-{
-    int* t = (int*)priv;
-    int i = current_cliplen_index(*t);
-    i = MOD(i + sign, COUNT(movie_cliplen_values));
-    *(int*)priv = movie_cliplen_values[i];
-}
-
-static MENU_UPDATE_FUNC(movie_cliplen_display)
-{
-    int val = CURRENT_VALUE;
-    if (val) MENU_SET_VALUE(
-        "after %d min",
-        val
-    );
-}
-#endif
 
 #ifdef FEATURE_MOVIE_REC_KEY
 
@@ -204,27 +188,6 @@ static void movie_rec_halfshutter_step()
         if (NOT_RECORDING && ALLOW_MOVIE_START) schedule_movie_start();
         else if(ALLOW_MOVIE_STOP) schedule_movie_end();
     }
-}
-#endif
-
-#ifdef FEATURE_REMAP // unstable
-void do_movie_mode_remap()
-{
-    if (gui_state == GUISTATE_PLAYMENU) return;
-    if (gui_menu_shown()) return;
-    if (!movie_mode_remap) return;
-    int movie_newmode = movie_mode_remap == 1 ? MOVIE_MODE_REMAP_X : MOVIE_MODE_REMAP_Y;
-    if (shooting_mode == movie_newmode)
-    {
-        ensure_movie_mode();
-    }
-}
-
-static MENU_UPDATE_FUNC(mode_remap_print)
-{
-    MENU_SET_VALUE(
-        movie_mode_remap == 1 ? MOVIE_MODE_REMAP_X_STR : movie_mode_remap == 2 ? MOVIE_MODE_REMAP_Y_STR : "OFF"
-    );
 }
 #endif
 
@@ -263,7 +226,21 @@ void force_liveview()
 void close_liveview()
 {
     if (lv)
-        fake_simple_button(BGMT_LV);
+#ifdef CONFIG_EOSM
+    {
+        /* To shut off LiveView switch to the info screen */
+        SetGUIRequestMode(21);
+        msleep(1000);
+    }
+#else
+    {
+        /* in photo mode, just exit LiveView by "pressing" the LiveView button */
+        /* in movie mode, pressing LiveView would start recording,
+         * so go to PLAY mode instead */
+        fake_simple_button(is_movie_mode() ? BGMT_PLAY : BGMT_LV);
+        msleep(1000);
+    }
+#endif
 }
 
 static CONFIG_INT("shutter.lock", shutter_lock, 0);
@@ -334,7 +311,7 @@ movtweak_task_init()
 {
 #ifdef FEATURE_FORCE_LIVEVIEW
     if (!lv && enable_liveview && is_movie_mode()
-        && (DLG_MOVIE_PRESS_LV_TO_RESUME || DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
+        && (GUIMODE_MOVIE_PRESS_LV_TO_RESUME || GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
     {
         force_liveview();
     }
@@ -390,10 +367,6 @@ void movtweak_step()
             movie_was_stopped_by_set = 0;
         }
     #endif
-
-        #ifdef FEATURE_MOVIE_AUTOSTOP_RECORDING
-        if (NOT_RECORDING) movie_autostop_running = 0;
-        #endif
         
         if (is_movie_mode())
         {
@@ -404,32 +377,16 @@ void movtweak_step()
             #ifdef FEATURE_SHUTTER_LOCK
             if (shutter_lock) shutter_lock_step();
             #endif
-            
-            #ifdef FEATURE_MOVIE_AUTOSTOP_RECORDING
-            if (RECORDING && movie_cliplen) {
-                if (!movie_autostop_running) {
-                    movie_autostop_running = get_seconds_clock();
-                } else {
-                    int dt = (get_seconds_clock() - movie_autostop_running);
-                    int r = movie_cliplen*60 - dt;
-                    if (dt == 0) NotifyBox(2000,"Will stop after %d minute%s", movie_cliplen, movie_cliplen > 1 ? "s" : "");
-                    if (r > 0 && r <= 10) NotifyBox(2000,"Will stop after %d second%s", r, r > 1 ? "s" : "");
-                    if(r < 0) {
-                        schedule_movie_end();
-                    }
-                }
-            }
-            #endif
         }
 
         #ifdef FEATURE_FORCE_LIVEVIEW
-        if ((enable_liveview && DLG_MOVIE_PRESS_LV_TO_RESUME) ||
-            (enable_liveview == 2 && DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
+        if ((enable_liveview && GUIMODE_MOVIE_PRESS_LV_TO_RESUME) ||
+            (enable_liveview == 2 && GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
         {
             msleep(200);
             // double-check
-            if ((enable_liveview && DLG_MOVIE_PRESS_LV_TO_RESUME) ||
-                (enable_liveview == 2 && DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
+            if ((enable_liveview && GUIMODE_MOVIE_PRESS_LV_TO_RESUME) ||
+                (enable_liveview == 2 && GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
                 force_liveview();
         }
         #endif
@@ -513,25 +470,10 @@ void lv_movie_size_toggle(void* priv, int delta)
 }
 #endif
 
-#ifdef FEATURE_LVAE_EXPO_LOCK
-int movie_expo_lock = 0;
-static void movie_expo_lock_toggle()
-{
-    if (!is_movie_mode()) return;
-    movie_expo_lock = !movie_expo_lock;
-    call("lv_ae", !movie_expo_lock);
-}
-#endif
-
 #ifdef CONFIG_BLUE_LED
 CONFIG_INT("rec.notify", rec_notify, 3);
 #else
 CONFIG_INT("rec.notify", rec_notify, 0);
-#endif
-
-#ifdef CONFIG_5D3
-CONFIG_INT("rec.led.off", rec_led_off, 0);
-// implemented in the modified DebugMsg (for now in gui-common.c)
 #endif
 
 #ifdef FEATURE_REC_NOTIFY
@@ -578,10 +520,26 @@ void rec_notify_continuous(int called_from_menu)
     }
     else if (rec_notify == 2)
     {
-        if (RECORDING)
-            bmp_printf(FONT(FONT_LARGE, COLOR_WHITE, COLOR_RED), os.x0 + os.x_ex - 70 - font_large.width * 4, os.y0 + 50, "REC");
-        else
-            bmp_printf(FONT_LARGE, os.x0 + os.x_ex - 70 - font_large.width * 5, os.y0 + 50, "STBY");
+            int screen_layout_menu_index = *get_screen_layout_ptr();
+            int rec_indic_x = os.x_max;
+            int rec_indic_y = get_ml_topbar_pos() + 32;
+            if (screen_layout_menu_index > 2) rec_indic_y = rec_indic_y - 60; // bottom modes need shifting up
+            if (RECORDING)
+            {
+                bmp_printf(
+                FONT(FONT_MED_LARGE, COLOR_WHITE, COLOR_RED),
+                rec_indic_x - 5 * font_med.width, // substracted some pixels to hide the red dot in top 3:2 and top 16:9
+                rec_indic_y,
+                "REC"
+                );
+            }
+            else
+                bmp_printf(
+                FONT_MED_LARGE,
+                rec_indic_x - 6 * font_med.width + 5, // align with ML bars
+                rec_indic_y,
+                "STBY"
+                );       
     }
     
     if (prev != RECORDING_STATE) redraw();
@@ -592,15 +550,13 @@ void rec_notify_trigger(int rec)
 {
     if (RECNOTIFY_BEEP)
     {
-        extern int ml_started;
-        if (rec != 2 && ml_started) { unsafe_beep(); }
+        if (rec != 2) { unsafe_beep(); }
         if (!rec) { msleep(200); unsafe_beep(); }
     }
 
     if (RECNOTIFY_LED)
     {
-        extern int ml_started;
-        if (rec != 2 && ml_started) info_led_on();
+        if (rec != 2) info_led_on();
         if (!rec) info_led_off();
     }
 
@@ -950,11 +906,11 @@ static struct menu_entry mov_menus[] = {
     #endif
     #ifdef FEATURE_GRADUAL_EXPOSURE
     {
-        .name = "Gradual Expo.",
+        .name = "Gradual Exposure",
         .priv = &smooth_iso,
         .max = 1,
         .help   = "Use smooth exposure transitions, by compensating with ISO.",
-        .help2  = "=> adjust ISO, exposure and aperture without large jumps.",
+        .help2  = "=> adjust ISO, shutter speed and aperture without large jumps.",
         .submenu_width = 700,
         .depends_on = DEP_MOVIE_MODE | DEP_MANUAL_ISO,
         .children =  (struct menu_entry[]) {
@@ -964,7 +920,7 @@ static struct menu_entry mov_menus[] = {
                 .min = 1,
                 .max = 7,
                 .icon_type = IT_PERCENT,
-                .choices = CHOICES("1EV / 8 frames", "1EV / 16 frames", "1EV / 32 frames", "1EV / 64 frames", "1EV / 128 frames", "1EV / 256 frames", "1EV / 512 frames"),
+                .choices = CHOICES("1 EV / 8 frames", "1 EV / 16 frames", "1 EV / 32 frames", "1 EV / 64 frames", "1 EV / 128 frames", "1 EV / 256 frames", "1 EV / 512 frames"),
                 .help = "How fast the exposure transitions should be.",
             },
             MENU_EOL
@@ -988,31 +944,6 @@ static struct menu_entry movie_tweaks_menus[] = {
                     .max        = 1,
                     .help = "Auto-restart movie recording, if it happens to stop.",
                     .depends_on = DEP_MOVIE_MODE,
-                },
-                #endif
-                #ifdef FEATURE_MOVIE_AUTOSTOP_RECORDING
-                {
-                    .name    = "Stop recording",
-                    .priv    = &movie_cliplen,
-                    .update  = movie_cliplen_display,
-                    .select  = movie_cliplen_toggle,
-                    .help = "Auto-stop the movie after a set amount of minutes.",
-                    .depends_on = DEP_MOVIE_MODE,
-                },
-                #endif
-                #ifdef FEATURE_REMAP
-                {
-                    .name = "MovieModeRemap",
-                    .priv = &movie_mode_remap,
-                    .update    = mode_remap_print,
-                    .min = 0,
-                    #ifdef CONFIG_50D
-                    .max = 1,
-                    #else
-                    .max = 2,
-                    #endif
-                    .choices = CHOICES("OFF", "A-DEP", "CA"),
-                    .help = "Remap movie mode to A-DEP, CA or C. Shortcut key: ISO+LV.",
                 },
                 #endif
                 #ifdef FEATURE_REC_NOTIFY
@@ -1039,15 +970,6 @@ static struct menu_entry movie_tweaks_menus[] = {
                     .depends_on = DEP_MOVIE_MODE,
                 },
                 #endif
-                #ifdef CONFIG_5D3
-                {
-                    .name = "Dim REC LED",
-                    .priv = &rec_led_off,
-                    .max = 1,
-                    .help = "Make the red LED light less distracting while recording.",
-                    .depends_on = DEP_MOVIE_MODE,
-                },
-                #endif
                 #ifdef FEATURE_FORCE_LIVEVIEW
                 {
                     .name = "Force LiveView",
@@ -1059,15 +981,6 @@ static struct menu_entry movie_tweaks_menus[] = {
                     .depends_on = DEP_MOVIE_MODE,
                 },
                 #endif
-                #ifdef FEATURE_LVAE_EXPO_LOCK
-                {
-                    .name       = "Exposure Lock",
-                    .priv       = &movie_expo_lock,
-                    .select     = movie_expo_lock_toggle,
-                    .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
-                    .help       = "Lock the exposure in movie mode.",
-                },
-                #endif
                 #ifdef FEATURE_SHUTTER_LOCK
                 {
                     .name = "Shutter Lock",
@@ -1077,16 +990,6 @@ static struct menu_entry movie_tweaks_menus[] = {
                     .help2  = "Tip: it prevents you from changing it by mistake.",
                     .depends_on = DEP_MOVIE_MODE,
                 },
-                #endif
-
-                #if 0
-                {
-                    .name = "REC on resume",
-                    .priv = &start_recording_on_resume,
-                    .max = 1,
-                    .help = "Auto-record if camera wakes up due to halfshutter press."
-                    .depends_on = DEP_MOVIE_MODE,
-              },
                 #endif
 
                 MENU_EOL

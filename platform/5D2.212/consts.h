@@ -2,13 +2,11 @@
  *  5D2 2.1.2 consts
  */
 
+#define CANON_SHUTTER_RATING 150000
+
 #define CARD_LED_ADDRESS 0xC02200BC // http://magiclantern.wikia.com/wiki/Led_addresses
 #define LEDON 0x46
 #define LEDOFF 0x44
-
-//~ Format dialog consts
-#define FORMAT_BTN "[PicSty]"
-#define STR_LOC 6
 
 // thanks Indy
 #define HIJACK_INSTR_BL_CSTART  0xFF812AE8
@@ -41,7 +39,6 @@
 #define YUV422_HD_BUFFER_1 0x44000080
 #define YUV422_HD_BUFFER_2 0x4C000080
 #define YUV422_HD_BUFFER_3 0x50000080
-#define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080 ) // quick check if x looks like a valid HD buffer
 
 // see "focusinfo" and Wiki:Struct_Guessing
 #define FOCUS_CONFIRMATION (*(int*)0x3C54)
@@ -51,12 +48,7 @@
 // See also "cam event metering"
 #define HALFSHUTTER_PRESSED (*(int*)0x1c10)
 
-#define DISPLAY_SENSOR_POWERED 0
 
-#define GMT_IDLEHANDLER_TASK (*(int*)0x134f4) // dec create_idleHandler_task
-
-#define SENSOR_RES_X 5792
-#define SENSOR_RES_Y 3804
 
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int*)0x79B8) == 0xF))
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x79B8) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
@@ -75,7 +67,7 @@
 #define MVR_BUFFER_USAGE MAX(MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND)
 
 #define MVR_FRAME_NUMBER  (*(int*)(0xEC + MVR_516_STRUCT)) // in mvrExpStarted
-#define MVR_BYTES_WRITTEN (*(int*)(0xE4 + MVR_516_STRUCT)) // in mvrSMEncodeDone
+#define MVR_BYTES_WRITTEN MEM((0xE4 + MVR_516_STRUCT)) // in mvrSMEncodeDone
 
 #define MOV_RES_AND_FPS_COMBINATIONS 5
 #define MOV_OPT_NUM_PARAMS 2
@@ -86,27 +78,29 @@
 #define AE_STATE (*(int8_t*)(0x13008 + 0x1C))
 #define AE_VALUE (*(int8_t*)(0x13008 + 0x1D))
 
-#define CURRENT_DIALOG_MAYBE (*(int*)0x37F0)
+#define CURRENT_GUI_MODE (*(int*)0x37F0)
 
-#define DLG_PLAY 1
-#define DLG_MENU 2
+#define GUIMODE_PLAY 1
+#define GUIMODE_MENU 2
 
 // not sure
-#define DLG_FOCUS_MODE 9
-#define DLG_DRIVE_MODE 8
-#define DLG_PICTURE_STYLE 4
-#define DLG_Q_UNAVI 0x18
-#define DLG_FLASH_AE 0x22
-#define DLG_PICQ 6
+#define GUIMODE_FOCUS_MODE 9
+#define GUIMODE_DRIVE_MODE 8
+#define GUIMODE_PICTURE_STYLE 4
+#define GUIMODE_Q_UNAVI 0x18
+#define GUIMODE_FLASH_AE 0x22
+#define GUIMODE_PICQ 6
+
+int get_lv_stopped_by_user();
 
 #define _MOVIE_MODE_NON_LIVEVIEW (!lv && !lv_paused && !get_lv_stopped_by_user() && gui_state == GUISTATE_IDLE && lv_movie_select == LVMS_ENABLE_MOVIE && lens_info.job_state == 0 && !HALFSHUTTER_PRESSED)
-#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED  (_MOVIE_MODE_NON_LIVEVIEW && !lens_info.name[0])
-#define DLG_MOVIE_PRESS_LV_TO_RESUME (_MOVIE_MODE_NON_LIVEVIEW && lens_info.name[0])
+#define GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED  (_MOVIE_MODE_NON_LIVEVIEW && !lens_info.name[0])
+#define GUIMODE_MOVIE_PRESS_LV_TO_RESUME (_MOVIE_MODE_NON_LIVEVIEW && lens_info.name[0])
 
 
 
-#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
-#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
+#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_PLAY)
+#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_MENU)
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
 #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x1aac // this prop_deliver performs the action for Video Connect and Video Disconnect
@@ -138,12 +132,7 @@
 #define DISPLAY_TRAP_FOCUS_MSG_BLANK "     \n     "
 
 #define NUM_PICSTYLES 9
-#define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
 
-#define MOVIE_MODE_REMAP_X SHOOTMODE_ADEP
-#define MOVIE_MODE_REMAP_Y SHOOTMODE_CA
-#define MOVIE_MODE_REMAP_X_STR "A-DEP"
-#define MOVIE_MODE_REMAP_Y_STR "CA"
 
 #define FLASH_MAX_EV 3
 #define FLASH_MIN_EV -10 // not sure if it actually works
@@ -153,6 +142,9 @@
 
 #define DIALOG_MnCardFormatBegin (0x219EC) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x21B0C) // similar
+#define FORMAT_BTN_NAME "[PicStyle]"
+#define FORMAT_BTN BGMT_PICSTYLE
+#define FORMAT_STR_LOC 6
 
 #define BULB_MIN_EXPOSURE 500
 
@@ -161,7 +153,6 @@
 #define BFNT_BITMAP_OFFSET 0xf7c61108
 #define BFNT_BITMAP_DATA   0xf7c63850
 
- #define DLG_SIGNATURE 0x414944
 
 // from CFn
  #define AF_BTN_HALFSHUTTER 0

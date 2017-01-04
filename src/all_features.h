@@ -36,7 +36,10 @@
 #endif
 
     #define FEATURE_AUDIO_METERS
+    
+#ifdef CONFIG_BEEP
     #define FEATURE_BEEP
+#endif
     //~ #define FEATURE_WAV_RECORDING
     //~ #define FEATURE_VOICE_TAGS
 
@@ -47,7 +50,6 @@
 #ifdef CONFIG_PROP_REQUEST_CHANGE
     #define FEATURE_WHITE_BALANCE
     #define FEATURE_EXPO_ISO
-    #define FEATURE_EXPO_ISO_HTP
     #define FEATURE_EXPO_SHUTTER
     #define FEATURE_EXPO_APERTURE
     //~ #define FEATURE_INTERMEDIATE_ISO_PHOTO_DISPLAY // only for rebels, not for high-end bodies
@@ -107,7 +109,6 @@
     #define FEATURE_REC_INDICATOR
     #define FEATURE_MOVIE_LOGGING
     #define FEATURE_MOVIE_RESTART
-    //~ #define FEATURE_MOVIE_AUTOSTOP_RECORDING // will be moved to scripts
     #define FEATURE_REC_NOTIFY
     //~ #define FEATURE_REC_NOTIFY_BEEP // this may interfere with sound recording, so only enable it where we know it works
     #define FEATURE_MOVIE_REC_KEY
@@ -140,7 +141,6 @@
 
     // 50D movie hacks
     //~ #define FEATURE_MOVIE_RECORDING_50D
-    //~ #define FEATURE_LVAE_EXPO_LOCK
 
     // 650D / EOSM hacks
     //~ #define FEATURE_CROP_MODE_HACK
@@ -153,7 +153,6 @@
     //~ #define FEATURE_INTERVALOMETER_MOVIE // will be moved to scripts
 
 #ifdef CONFIG_PROP_REQUEST_CHANGE
-    #define FEATURE_FOCUS_RAMPING
     #define FEATURE_BULB_TIMER
     #define FEATURE_BULB_TIMER_SHOW_PREVIOUS_PIC   /* previous picture during exposure */
 #endif
@@ -186,11 +185,6 @@
 
     #define FEATURE_SNAP_SIM
 
-
-#ifdef CONFIG_RAW_PHOTO
-    #define FEATURE_POST_DEFLICKER
-#endif
-
 /** Focus menu **/
     #define FEATURE_TRAP_FOCUS
 
@@ -199,7 +193,6 @@
     #define FEATURE_RACK_FOCUS
     #define FEATURE_FOCUS_STACKING
     #define FEATURE_AF_PATTERNS
-    //~ #define FEATURE_MOVIE_AF // not reliable
 #endif
 
 /** Display menu **/
@@ -244,7 +237,6 @@
     #define FEATURE_PLAY_COMPARE_IMAGES
     #define FEATURE_PLAY_TIMELAPSE
     #define FEATURE_PLAY_EXPOSURE_ADJUST
-    #define FEATURE_PLAY_422
 
     #define FEATURE_IMAGE_REVIEW_PLAY
     #define FEATURE_QUICK_ZOOM
@@ -287,12 +279,12 @@
 
     //~ #define FEATURE_EYEFI_TRICKS  // EyeFi tricks confirmed working only on 600D-60D
 
-    //~ #define FEATURE_KEN_ROCKWELL_ZOOM_5D3
-
     //~ #define FEATURE_DIGITAL_ZOOM_SHORTCUT
 
     /* to be refactored with the lvinfo engine */
     #define FEATURE_FLEXINFO
+
+    //~ #define FEATURE_GPS_TWEAKS  // 6D only for now
 
 /** Debug menu **/
 
@@ -312,6 +304,8 @@
     #define FEATURE_SHOW_CMOS_TEMPERATURE
     #define FEATURE_SHOW_EDMAC_INFO
 
-    //~ #define FEATURE_SHOW_SIGNATURE // useful when developing
+    //~ #define FEATURE_UNMOUNT_SD_CARD
+    
     //~ #define FEATURE_GUIMODE_TEST // dangerous
     //~ #define FEATURE_SHOW_STATE_FPS // useful for finding vsync hooks
+    

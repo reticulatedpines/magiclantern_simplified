@@ -32,8 +32,8 @@ int take_screenshot( char* filename, uint32_t mode )
     }
 
     /* do a fast temporary copy of the VRAMs to minimize motion artifacts (tearing) */
-    bmp_copy = malloc(720 * 480);
-    yuv_copy = malloc(vram_lv.width * vram_lv.pitch);
+    bmp_copy = tmp_malloc(720 * 480);
+    yuv_copy = tmp_malloc(vram_lv.width * vram_lv.pitch);
     if (!bmp_copy) goto err;
     if (!yuv_copy) goto err;
     
@@ -45,7 +45,7 @@ int take_screenshot( char* filename, uint32_t mode )
 
     /* setup output buffer */
     /* todo: support HDMI resolutions? */
-    rgb = malloc(720 * 480 * 3);
+    rgb = fio_malloc(720 * 480 * 3);
     if (!rgb) goto err;
     
     /* fill it with data */
@@ -117,6 +117,10 @@ int take_screenshot( char* filename, uint32_t mode )
     }
     info_led_off();
 
+    /* no longer needed, output image created */
+    free(bmp_copy); bmp_copy = 0;
+    free(yuv_copy); yuv_copy = 0;
+
     /* output filename */
     char path[100];
     
@@ -137,20 +141,16 @@ int take_screenshot( char* filename, uint32_t mode )
     }
 
     FILE *f = FIO_CreateFile(path);
-    if (f == INVALID_PTR)
+    if (!f)
     {
         goto err;
     }
     
     /* 8-bit RGB */
     my_fprintf(f, "P6\n720 480\n255\n");
-    
     FIO_WriteFile(f, rgb, 720*480*3);
-    
     FIO_CloseFile(f);
     free(rgb);
-    free(bmp_copy);
-    free(yuv_copy);
     return 1;
 
 err:

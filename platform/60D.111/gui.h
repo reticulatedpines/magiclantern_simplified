@@ -25,9 +25,6 @@
 #define BGMT_UNLOCK 0x11
 
 #define BGMT_PRESS_HALFSHUTTER 0x41
-#define BGMT_UNPRESS_HALFSHUTTER 0x42
-#define BGMT_PRESS_FULLSHUTTER 0x43
-#define BGMT_UNPRESS_FULLSHUTTER 0x44
 
 #define BGMT_LV 0x1A
 
@@ -38,11 +35,11 @@
 
 // these are not sent always
 // zoomout sends the same codes as shutter press/release
-#define BGMT_PRESS_ZOOMOUT_MAYBE 0xF
-#define BGMT_UNPRESS_ZOOMOUT_MAYBE 0x10
+#define BGMT_PRESS_ZOOM_OUT 0xF
+#define BGMT_UNPRESS_ZOOM_OUT 0x10
 
-#define BGMT_PRESS_ZOOMIN_MAYBE 0xD
-#define BGMT_UNPRESS_ZOOMIN_MAYBE 0xE
+#define BGMT_PRESS_ZOOM_IN 0xD
+#define BGMT_UNPRESS_ZOOM_IN 0xE
 
 #define GMT_OLC_INFO_CHANGED 0x5A // backtrace copyOlcDataToStorage call in gui_massive_event_loop
 #define GMT_LOCAL_DIALOG_REFRESH_LV 0x34 // event type = 2, gui code = 0x10000098 in 60d, backtrace it in gui_local_post
@@ -60,13 +57,8 @@
 #define BGMT_METERING_LV (lv && event->type == 0 && event->param == 0x5a && event->arg == 9)
 #define BGMT_PRESS_METERING_LV (BGMT_METERING_LV && (*(int*)(event->obj) & 0x8000000))
 #define BGMT_UNPRESS_METERING_LV (BGMT_METERING_LV && (*(int*)(event->obj) & 0x8000000) == 0)
-#define FLASH_BTN_MOVIE_MODE 0
 
-#define BGMT_EVENTID_METERING_START 0x41
-#define BGMT_EVENTID_METERING_END 0x42
 
-#define BGMT_GUICMD_OPEN_SLOT_COVER 78
-#define BGMT_GUICMD_CLOSE_SLOT_COVER 79
 
 #define BTN_ZEBRAS_FOR_PLAYBACK BGMT_UNLOCK // what button to use for zebras in Play mode
 #define BTN_ZEBRAS_FOR_PLAYBACK_NAME "UNLOCK"
