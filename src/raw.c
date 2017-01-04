@@ -386,68 +386,51 @@ extern void reverse_bytes_order(char* buf, int count);
 static int raw_lv_get_resolution(int* width, int* height)
 {
 #ifdef CONFIG_EDMAC_RAW_SLURP
-
-    /* params useful for hardcoding buffer sizes, according to video mode */
-    int mv = is_movie_mode();
-    int mv720 = mv && video_mode_resolution == 1;
-    int mv1080 = mv && video_mode_resolution == 0;
-    int mv640 = mv && video_mode_resolution == 2;
-    int mv1080crop = mv && video_mode_resolution == 0 && video_mode_crop;
-    int mv640crop = mv && video_mode_resolution == 2 && video_mode_crop;
-    
-    /* note: 6D reports 129 = 0x81 for zoom x1, and it behaves just like plain (unzoomed) LiveView) */
-    int zoom = (lv_dispsize & 0xF) > 1;
-
-    /* silence warnings; not all cameras have all these modes */
-    (void)mv640; (void)mv720; (void)mv1080; (void)mv640; (void)mv1080crop; (void)mv640crop; (void)zoom;
-
-    #ifdef CONFIG_5D3
     /*
      * from adtg_gui.c:
      * {0xC0F0,   0x6800, 0, "RAW first line|column. Column is / 8 on 5D3 (parallel readout?)"},
      * {0xC0F0,   0x6804, 0, "RAW last line|column. 5D3: f6e|2fe, first 1|18 => 5936x3950"},
+     * 
+     * models with EvfState: these registers are set from SDRV_StartupDevice
+     * (first call, then first call other than engio_write)
      */
-    uint32_t top_left = shamem_read(0xC0F06800);
+  #ifdef CONFIG_DIGIC_V
+    uint32_t top_left  = shamem_read(0xC0F06800);
     uint32_t bot_right = shamem_read(0xC0F06804);
-    *width  = ((bot_right & 0xFFFF) - (top_left & 0xFFFF)) * 8; /* 2080 in 1080p */
-    *height = (bot_right >> 16) - (top_left >> 16) - 1;         /* 1318 in 1080p */
+  #else
+    uint32_t top_left  = shamem_read(0xC0F06084);
+    uint32_t bot_right = shamem_read(0xC0F06088);
+  #endif
+
+    /* this factor probably refers to parallel readout of sensor columns (just a guess) */
+    /* can be found in ROM dumps by looking for 0xC0F06088 or 0xC0F06804 and doing the math */
+  #if defined(CONFIG_5D3) || defined(CONFIG_70D)
+    const int column_factor = 8;
+  #elif defined(CONFIG_500D)
+    const int column_factor = 1;
+  #elif defined(CONFIG_DIGIC_V) /* checked 6D, 650D, 700D, M, 100D */
+    const int column_factor = 4;
+  #else /* most DIGIC 4; checked 60D, 600D, 550D, 5D2, 50D, 7D, 1100D, 1200D, 1300D */
+    const int column_factor = 2;
+  #endif
+
+    *width  = ((bot_right & 0xFFFF) - (top_left & 0xFFFF)) * column_factor;
+    *height = (bot_right >> 16)     - (top_left >> 16);
+
+    /* height may be a little different; 5D3 needs to subtract 1,
+     * EOS M needs to add 1, 100D usually gives exact value
+     * is it really important to have exact height? */
+
+#ifdef CONFIG_EOSM
+    /* EOS M exception */
+    /* http://www.magiclantern.fm/forum/index.php?topic=16608.msg176023#msg176023 */
+    if (lv_dispsize == 1 && !video_mode_crop && !RECORDING_H264 && *height == 1188)
+    {
+        *height = 727;
+    }
+#endif
+
     return 1;
-    #endif
-
-    /* don't know how to get the resolution without relying on Canon's lv_save_raw */
-
-    #ifdef CONFIG_60D
-    *width  = zoom ? 2520 : mv640crop ? 920 : mv720 || mv640 ? 1888 : 1888;
-    *height = zoom ? 1106 : mv640crop ? 624 : mv720 || mv640 ?  720 : 1182;
-    return 1;
-    #endif
-
-    #ifdef CONFIG_600D
-    *width  = zoom ? 2520 : mv1080crop ? 1952 : mv720  ? 1888 : 1888;
-    *height = zoom ? 1106 : mv1080crop ? 1048 : mv720  ?  720 : 1182;
-    return 1;
-    #endif
-    
-    #if defined(CONFIG_650D) || defined(CONFIG_700D)
-    *width  = zoom ? 2592 : mv1080crop ? 1872 : mv720  ? 1808 : 1808;
-    *height = zoom ? 1108 : mv1080crop ? 1060 : mv720  ?  720 : 1190;
-    return 1;
-    #endif
-
-    #ifdef CONFIG_EOSM
-    *width  = video_mode_crop ? 1872 : 1808;
-    *height = video_mode_crop ? 1060 : 727;
-    return 1;
-    #endif
-
-	#ifdef CONFIG_6D
-		*width  = zoom ? 2768 : mv720 ? 1920 : 1920;
-		*height = zoom ? 988 : mv720 ?  662 : 1252;    /* find correct mv720 height -- must be exact! */   
-		return 1;
-	#endif
-
-    /* unknown camera? */
-    return 0;
 
 #else
     /* autodetect raw size from EDMAC */
