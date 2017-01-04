@@ -167,54 +167,16 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
  * => (5D3) lv_set_raw_type(arg0 ? 4 : 7)
  * => MEM(0x2D168) = a bunch of values, default 34, 18 with lv_af on, 14 with lv_af off.
  * see also http://www.magiclantern.fm/forum/index.php?topic=5614.msg39696#msg39696
+ * and http://www.magiclantern.fm/forum/index.php?topic=18393
  */
 
 #ifdef CONFIG_DIGIC_V
 #define RAW_TYPE_REGISTER 0xC0F37014
+#define PREFERRED_RAW_TYPE 0x10         /* CCD; also valid for DIGIC 6 */
 #else
 #define RAW_TYPE_REGISTER 0xC0F08114    /* PACK32_ISEL */
+#define PREFERRED_RAW_TYPE 0x5          /* DIGIC 4: CCD */
 #endif
-
-#ifdef CONFIG_5D3
-/**
- * Renato [http://www.magiclantern.fm/forum/index.php?topic=5614.msg41070#msg41070]:
- * "Best images in: 17, 35, 37, 39, 81, 83, 99"
- * "Good but sprinkles of many colors: 5, 7, 8, 9, 11, 13, 15..."
- * 
- * jonzero [http://www.magiclantern.fm/forum/index.php?topic=5614.msg42140#msg42140]:
- * "Normal image with a few color pixels - NO BANDING: 5, 7, 8, 9, 11, 13, 15..."
- * 
- * First set may have vertical stripes (variable), but no bad pixels
- * Second set has bad pixels (easy to correct), and no vertical stripes on some cameras (but still present on others)
- * note: values are off by 1
- */
-#define PREFERRED_RAW_TYPE 16
-#endif
-
-/**
- * RAW_TYPE 78 (and others) have a frame-wide green pattern on them
- * ACR can clear them but also kills some details and does not do
- * a good job in general. TL;DR Use pink dot remover.
- * http://www.magiclantern.fm/forum/index.php?topic=6658.0
- */
-
-#ifdef CONFIG_60D
-#define PREFERRED_RAW_TYPE 5
-#endif
-
-#ifdef CONFIG_700D
-#define PREFERRED_RAW_TYPE 0x10
-#endif
-
-#ifdef CONFIG_6D
-#define PREFERRED_RAW_TYPE 0x10
-#endif
-
-/*
-#ifdef CONFIG_650D
-#define PREFERRED_RAW_TYPE 78
-#endif
-*/
 
 /** 
  * White level
@@ -1566,9 +1528,7 @@ void FAST raw_lv_redirect_edmac(void* ptr)
 
 #ifdef CONFIG_EDMAC_RAW_SLURP
 
-#ifdef PREFERRED_RAW_TYPE
 static int lv_raw_type = PREFERRED_RAW_TYPE;
-#endif
 
 void FAST raw_lv_vsync()
 {
@@ -1577,10 +1537,8 @@ void FAST raw_lv_vsync()
     
     if (buf && lv_raw_enabled)
     {
-        #ifdef PREFERRED_RAW_TYPE
         /* this needs to be set for every single frame */
         EngDrvOut(RAW_TYPE_REGISTER, lv_raw_type);
-        #endif
 
         /* pull the raw data into "buf" */
         int width, height;
