@@ -13,6 +13,8 @@ for log in \
         600D-startup.log \
         5D2-startup-detailed.log \
         450D-dm-mpu.log \
+        700D-startup.LOG \
+        EOSM-startup.LOG \
     ; do
 
     MODEL=`echo $log | grep -oE "^[A-Z0-9]+"`

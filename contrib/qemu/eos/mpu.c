@@ -32,6 +32,8 @@ static int mpu_init_spell_count = 0;
 #include "mpu_spells/70D.h"
 #include "mpu_spells/550D.h"
 #include "mpu_spells/600D.h"
+#include "mpu_spells/700D.h"
+#include "mpu_spells/EOSM.h"
 #include "mpu_spells/100D.h"
 #include "mpu_spells/450D.h"
 
@@ -677,6 +679,8 @@ void mpu_spells_init(EOSState *s)
     MPU_SPELL_SET(5D3)
     MPU_SPELL_SET(550D)
     MPU_SPELL_SET(600D)
+    MPU_SPELL_SET(700D)
+    MPU_SPELL_SET(EOSM)
     MPU_SPELL_SET(100D)
     MPU_SPELL_SET(450D)
 
