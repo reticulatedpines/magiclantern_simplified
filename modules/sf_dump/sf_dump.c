@@ -5,135 +5,112 @@
 #include <property.h>
 #include <bmp.h>
 #include <menu.h>
+#include <console.h>
 
+#define BUF_SIZE    64*1024
+#define OUT_FILE    "ML/LOGS/SFDATA.BIN"
 
-// Dummy function for testing
-void dummy_call(void) { msleep(1); }
-#define DUMMY_CALL ((uint32_t)dummy_call)
+static int (*SF_CreateSerial)() = NULL;
+static int (*SF_readSerialFlash)(int src, void* dest, int size) = NULL;
+static int (*SF_Destroy)() = NULL;
 
+/* optional; dumping more will just repeat the contents */
+static int SF_flash_size = 0x1000000;
 
-// Lookup table for functions
-const struct serial_functions {
-    const struct device_desc {
-        const char *model, *firmware, *subv;
-    } device;
-    const unsigned int flash_size; // Must be multiple of BUF_SIZE
-    const uint32_t create;
-    const uint32_t destroy;
-    const uint32_t read;
-} serial_functions[] = {
-/*   Model and firmware               Flash size  SF_CreateSerial  SF_DestroySerial  SF_Read     */
-//  {{"100D","1.0.0","4.3.7 60(23)"}, 0x1000000,  DUMMY_CALL,      DUMMY_CALL,       DUMMY_CALL},
-    {{"100D","1.0.0","4.3.7 60(23)"}, 0x1000000,  0xFF144064,      0xFF146A54,       0xFF14400C}
-};
-
-#define BUF_SIZE    1024
-#define NUM_MODELS (int)(sizeof(serial_functions) / sizeof(struct serial_functions))
-#define OUT_FILE   "ML/SFDATA.bin"
-
-
-void sf_dump_task()
-{
-    int y = 1;
-    int next_update = -1;
-
-    // Local variables
-    int32_t i, size;
-
-    // Function addresses
-    void (*SF_CreateSerial)(void) = NULL;
-    void (*SF_DestroySerial)(void) = NULL;
-    void (*SF_Read)(uint32_t src, void * dest, size_t size) = NULL;
-
-
-    // Prepare drawing (copied from other module)
-    msleep(1000);
-    canon_gui_disable_front_buffer();
-    clrscr();
-    bmp_printf(FONT_MED, 0, font_med.height * y++, "Starting SF_DUMP!");
-
-    // Find addresses in lookup table
-    for (i = 0; i < NUM_MODELS; i++) {
-        const struct serial_functions * sfs = &serial_functions[i];
-        if (is_camera(sfs->device.model, sfs->device.firmware) && is_subversion(sfs->device.subv)) {
-            SF_CreateSerial  = (void(*)(void))                 sfs->create;
-            SF_DestroySerial = (void(*)(void))                 sfs->destroy;
-            SF_Read          = (void(*)(uint32_t,void*,size_t))sfs->read;
-            size = sfs->flash_size;
-            break;
-        }
-    }
-
-    // Did we find addresses to use?
-    if (i == NUM_MODELS) {
-        // Not found!
-        bmp_printf(FONT_MED, 0, font_med.height * y++, "This won't work, I have no function addresses for this model");
-        msleep(3000);
-        return;
-    }
-
-    bmp_printf(FONT_MED, 0, font_med.height * y++, "Dumping to file: %s", OUT_FILE);
-    msleep(3000);
-    bmp_printf(FONT_MED, 0, font_med.height * y++, "Dumping serial flash now...");
-
-    // This is where the magic happens
-    {
-        uint8_t buffer[BUF_SIZE];
-        FILE * f = FIO_CreateFile(OUT_FILE);
-
-        SF_CreateSerial();
-        for (i = 0; i < size; i += BUF_SIZE) {
-            int p;
-            SF_Read(i, buffer, BUF_SIZE);
-            FIO_WriteFile(f, buffer, BUF_SIZE);
-
-            if (i > next_update) {
-                p = ( (i * 100) / size ); // Current percentage
-                next_update = (p + 1)*size / 100;
-                bmp_printf(FONT_MED, 0, font_med.height * y, "%d%%   ", p);
-            }
-        }
-        SF_DestroySerial();
-
-        FIO_CloseFile(f);
-    }
-
-    bmp_printf(FONT_MED, 0, font_med.height * y++, "Done!");
-    
-    // Copied from other module...
-    call("dispcheck");
-    msleep(3000);
-    canon_gui_enable_front_buffer(0);
-}
-
-static MENU_UPDATE_FUNC(sf_dump_update)
-{
-}
-
-static MENU_SELECT_FUNC(sf_dump_select)
+static void sf_dump_task()
 {
     gui_stop_menu();
-    task_create("sf_dump_task", 0x1e, 0x1000, sf_dump_task, (void*)0);
+    msleep(1000);
+    console_show();
+    
+    uint8_t* buffer = 0;
+    FILE* f = 0;
+
+    buffer = fio_malloc(BUF_SIZE);
+    if (!buffer) goto cleanup;
+    f = FIO_CreateFile(OUT_FILE);
+    if (!f) goto cleanup;
+
+    // This is where the magic happens
+    printf("Opening serial flash...\n");
+    /* todo: check return values */
+    SF_CreateSerial();
+
+    printf("Dumping serial flash...     ");
+
+    for (int i = 0; i < SF_flash_size; i += BUF_SIZE) {
+        SF_readSerialFlash(i, buffer, BUF_SIZE);
+        FIO_WriteFile(f, buffer, BUF_SIZE);
+        printf("\b\b\b\b%3d%%", (i + BUF_SIZE) * 100 / SF_flash_size);
+    }
+
+    printf("\nClosing serial flash...\n");
+    SF_Destroy();
+
+    printf("Done!\n");
+
+cleanup:
+    if (f) FIO_CloseFile(f);
+    if (buffer) free(buffer);
 }
 
 static struct menu_entry sf_dump_menu[] =
 {
     {
-        .name = "Dump serial flash",
-        .update = &sf_dump_update,
-        .select = &sf_dump_select,
-        .priv = NULL,
+        .name   = "Dump serial flash",
+        .select = run_in_separate_task,
+        .priv   = sf_dump_task,
         .icon_type = IT_ACTION,
     }
 };
 
-unsigned int sf_dump_init()
+static unsigned int sf_dump_init()
 {
+    if (is_camera("5D3", "1.1.3"))
+    {
+        /* not working */
+        SF_CreateSerial     = (void*) 0xFF302BAC;
+        SF_readSerialFlash  = (void*) 0xFF302B54;
+        SF_Destroy          = (void*) 0xFF305488;
+    }
+
+    if (is_camera("100D", "1.0.1"))
+    {
+        /* 1.0.0 4.3.7 60(23): 0xFF144064, 0xFF14400C, 0xFF146A54 */
+        SF_CreateSerial     = (void*) 0xFF143D7C;
+        SF_readSerialFlash  = (void*) 0xFF143D24;
+        SF_Destroy          = (void*) 0xFF14676C;
+        SF_flash_size       = 0x1000000;
+    }
+
+    if (is_camera("700D", "1.1.4"))
+    {
+        SF_CreateSerial     = (void*) 0xFF139578;
+        SF_readSerialFlash  = (void*) 0xFF139520;
+        SF_Destroy          = (void*) 0xFF13BF28;
+        SF_flash_size       = 0x800000;
+    }
+
+    if (is_camera("EOSM", "2.0.2"))
+    {
+        SF_CreateSerial     = (void*) 0xFF1385AC;
+        SF_readSerialFlash  = (void*) 0xFF138554;
+        SF_Destroy          = (void*) 0xFF13AF5C;
+        SF_flash_size       = 0x800000;
+    }
+
+    if (!SF_CreateSerial || !SF_readSerialFlash || !SF_Destroy)
+    {
+        console_show();
+        printf("Serial flash stubs not set for your camera.\n");
+        return CBR_RET_ERROR;
+    }
+    
     menu_add("Debug", sf_dump_menu, COUNT(sf_dump_menu));
     return 0;
 }
 
-unsigned int sf_dump_deinit()
+static unsigned int sf_dump_deinit()
 {
     menu_remove("Debug", sf_dump_menu, COUNT(sf_dump_menu));
     return 0;

@@ -2,17 +2,12 @@ Serial Flash Dumper
 ===================
 
 This module will attempt to dump the serial flash of the device.
-It is intended for the 100D, which store its properties on a 
-non-DMA flash chip, accessed over SPI.
+It is intended for DIGIC 5 and 6 cameras, which store their properties
+on a non-DMA flash chip, accessed over SPI.
 
 Usage: Run from Debug menu.
 
-
-Supported models:
-
-* 100D (100A)
-
-Other models must add addresses to the source code of the module.
+For QEMU, copy ML/LOGS/SFDATA.BIN to qemu/CAM/SFDATA.BIN (near ROM1.BIN).
 
 :Author: nkls
 :License: GPL
