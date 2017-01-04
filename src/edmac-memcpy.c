@@ -2,6 +2,7 @@
 #include "dryos.h"
 #include "edmac.h"
 #include "bmp.h"
+#include "platform/state-object.h"
 
 #ifdef CONFIG_EDMAC_MEMCPY
 
@@ -375,21 +376,7 @@ void find_free_edmac_channels()
 /** this method bypasses Canon's lv_save_raw and slurps the raw data directly from connection #0 */
 #ifdef CONFIG_EDMAC_RAW_SLURP
 
-/* for other cameras, find a free channel with find_free_edmac_channels  */ 
-#ifdef CONFIG_5D3
-uint32_t raw_write_chan = 4;
-#endif
-
-#ifdef CONFIG_60D
-uint32_t raw_write_chan = 1;
-#endif
-
-#ifdef CONFIG_600D 
-// write-index 1, 4, 6, 8, 10, 11, 13
-uint32_t raw_write_chan = 4;
-#endif
-
-#if defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_EOSM) || defined(CONFIG_6D)
+#if defined(EVF_STATE) /* 60D and newer, including all DIGIC V */
 uint32_t raw_write_chan = 0x12;
 #endif
 
