@@ -94,6 +94,7 @@ NSTUB(0xFF10E7EC,  StartASIFDMADAC)
 NSTUB(0xFF10E7B0,  StopASIFDMAADC)
 NSTUB(0xFF10E8C4,  StopASIFDMADAC)
 // NSTUB(    ???,  PowerMicAmp)                             /* present on 650D.104, EOSM.202, 700D.113 */
+// NSTUB(    ???,  SetASIFMode)                             /* present on 6D.116, 700D.114 */
 // NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
 // NSTUB(    ???,  SoundDevActiveIn)                        /* present on 7D.203, 6D.113, 700D.111, 650D.104, EOSM.202 */
 // NSTUB(    ???,  SoundDevShutDownIn)                      /* present on 7D.203, 6D.113, 700D.111, 650D.104, EOSM.202 */
@@ -101,6 +102,7 @@ NSTUB(0xFF10E8C4,  StopASIFDMADAC)
 /** Audio **/
 NSTUB(0xFF137020, _audio_ic_read)
 NSTUB(0xFF136F68, _audio_ic_write)                          // str:Reg_0x_02X_Data_04x
+// NSTUB(    ???, _audio_ic_write_bulk)                     /* present on 6D.116 */
 // NSTUB(    ???,  audio_thresholds)                        /* present on 7D.203, 60D.111, 6D.113, 700D.111, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202 */
 // NSTUB(    ???,  sounddev)                                /* present on 7D.203, 500D.111, 60D.111, 6D.113, 700D.111, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202 */
 // NSTUB(    ???,  sounddev_active_in)                      /* present on 7D.203, 500D.111, 60D.111, 700D.111, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105 */
@@ -260,7 +262,7 @@ NSTUB(0xFF3FDE4C,  ptp_register_handler)
 // NSTUB(    ???,  ptpPropSetUILock)                        /* present on 700D.111, 650D.104 */
 
 /** Properties **/
-NSTUB(0xFF124E4C,  PROPAD_GetPropertyData)
+///NSTUB(0xFF124E4C,  PROPAD_GetPropertyData)
 NSTUB(0xFF123898, _prop_cleanup)
 NSTUB(0xFF123210, _prop_request_change)
 NSTUB(0xFF1237CC,  prop_deliver)
@@ -291,7 +293,7 @@ NSTUB(0xFF9F8D40 - RAM_OFFSET,  take_semaphore)
 
 /** Task info **/
 NSTUB(   0x25024,  task_max)
-NSTUB(0xFF9F94A0,  GetTaskName)
+///NSTUB(0xFF9F94A0,  GetTaskName)
 NSTUB(0xFF9F2CEC - RAM_OFFSET,  get_current_task)
 NSTUB(0xFFA010F4 - RAM_OFFSET,  get_obj_attr)               // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xFFA0A0D8 - RAM_OFFSET,  is_taskid_valid)            // AJ_task_trampoline_related_p10
@@ -307,9 +309,9 @@ NSTUB(0xFF9FE5E8 - RAM_OFFSET,  task_trampoline)
 // NSTUB(    ???,  next_task_ctx)                           /* present on 7D.203 */
 
 /** Misc **/
+NSTUB(0xFF48B788,  FSUunMountDevice)
 NSTUB(0xFF135FD4,  LoadCalendarFromRTC)
 NSTUB(0xFFA067B4 - RAM_OFFSET,  vsnprintf)
-NSTUB(0xFF48B788,  FSUunMountDevice)
 // NSTUB(    ???,  EnableImagePhysicalScreenParameter)      /* present on 7D.203, 50D.109, 5D2.212 */
 // NSTUB(    ???,  PtpDps_remote_release_SW1_SW2_worker)    /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  lv_path_struct)                          /* present on 60D.111, 600D.102, 550D.109, 1100D.105 */

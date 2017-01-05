@@ -7,6 +7,7 @@ top_dir = "../"
 
 # override the autodetection
 force_used = [
+    "SetASIFMode",
     "_audio_ic_write_bulk",
 ]
 force_unused = [
