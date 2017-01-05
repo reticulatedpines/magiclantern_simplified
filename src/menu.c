@@ -4209,13 +4209,8 @@ static int menu_ensure_canon_dialog()
             // Canon dialog timed out?
 #if defined(CONFIG_MENU_TIMEOUT_FIX)
             // force dialog change when canon dialog times out (EOSM, 6D etc)
-            // don't try more often than once per second
-            static int aux = 0;
-            if (should_run_polling_action(1000, &aux))
-            {
-                start_redraw_flood();
-                SetGUIRequestMode(GUIMODE_ML_MENU);
-            }
+            start_redraw_flood();
+            SetGUIRequestMode(GUIMODE_ML_MENU);
 #else
             return 0;
 #endif

@@ -83,12 +83,12 @@ draw_prop_reset( void * priv )
 void _card_led_on()  //See sub_FF32B410 -> sub_FF0800A4
 {
     *(volatile uint32_t*) (CARD_LED_ADDRESS) = 0x800c00;
-    *(volatile uint32_t*) (CARD_LED_ADDRESS) = (LEDON); //0x138000
+    *(volatile uint32_t*) (CARD_LED_ADDRESS) = 0x138000;
 }
 void _card_led_off()  //See sub_FF32B424 -> sub_FF0800B8
 {
     *(volatile uint32_t*) (CARD_LED_ADDRESS) = 0x800c00;
-    *(volatile uint32_t*) (CARD_LED_ADDRESS) = (LEDOFF); //0x38400
+    *(volatile uint32_t*) (CARD_LED_ADDRESS) = 0x38400;
 }
 //TODO: Check if this is correct, because reboot.c said 0x838C00
 #elif defined(CARD_LED_ADDRESS) && defined(LEDON) && defined(LEDOFF)
@@ -2044,4 +2044,10 @@ void EngDrvOut(uint32_t reg, uint32_t value)
     if (ml_shutdown_requested) return;
     if (!(MEM(0xC0400008) & 0x2)) return; // this routine requires LCLK enabled
     _EngDrvOut(reg, value);
+}
+
+void engio_write(uint32_t* reg_list)
+{
+    if (!(MEM(0xC0400008) & 0x2)) return; // this routine requires LCLK enabled
+    _engio_write(reg_list);
 }

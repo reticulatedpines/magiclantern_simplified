@@ -12,6 +12,7 @@ install:: autoexec.bin
 installq: install_prepare autoexec.bin $(ML_MODULES_SYM_NAME)
 	$(CP) autoexec.bin $(INSTALL_DIR)/
 	$(CP) $(ML_MODULES_SYM_NAME) $(INSTALL_MODULES_DIR)/
+	$(INSTALL_FINISH)
 
 include $(TOP_DIR)/Makefile.inc
 

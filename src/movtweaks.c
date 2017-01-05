@@ -226,6 +226,13 @@ void force_liveview()
 void close_liveview()
 {
     if (lv)
+#ifdef CONFIG_EOSM
+    {
+        /* To shut off LiveView switch to the info screen */
+        SetGUIRequestMode(21);
+        msleep(1000);
+    }
+#else
     {
         /* in photo mode, just exit LiveView by "pressing" the LiveView button */
         /* in movie mode, pressing LiveView would start recording,
@@ -233,6 +240,7 @@ void close_liveview()
         fake_simple_button(is_movie_mode() ? BGMT_PLAY : BGMT_LV);
         msleep(1000);
     }
+#endif
 }
 
 static CONFIG_INT("shutter.lock", shutter_lock, 0);

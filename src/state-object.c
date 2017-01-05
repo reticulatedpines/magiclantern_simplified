@@ -13,10 +13,7 @@
 #include <platform/state-object.h>
 #include "property.h"
 #include "fps.h"
-
-#if defined(CONFIG_MODULES)
 #include "module.h"
-#endif
 
 /* to refactor with CBR */
 extern void lv_vsync_signal();

@@ -928,8 +928,8 @@ void chroma_smooth(int method, struct raw_info *info)
     int w = info->width;
     int h = info->height;
 
-    unsigned short * aux = malloc(w * h * sizeof(short));
-    unsigned short * aux2 = malloc(w * h * sizeof(short));
+    uint32_t * aux = malloc(w * h * sizeof(uint32_t));
+    uint32_t * aux2 = malloc(w * h * sizeof(uint32_t));
 
     int x,y;
     for (y = 0; y < h; y++)
@@ -976,11 +976,13 @@ void show_usage(char *executable)
     print_msg(MSG_INFO, "\n");
     print_msg(MSG_INFO, "-- DNG output --\n");
     print_msg(MSG_INFO, " --dng               output frames into separate .dng files. set prefix with -o\n");
-    print_msg(MSG_INFO, " --no-cs             no chroma smoothing\n");
+    print_msg(MSG_INFO, " --no-cs             no chroma smoothing (default)\n");
     print_msg(MSG_INFO, " --cs2x2             2x2 chroma smoothing\n");
     print_msg(MSG_INFO, " --cs3x3             3x3 chroma smoothing\n");
     print_msg(MSG_INFO, " --cs5x5             5x5 chroma smoothing\n");
-    print_msg(MSG_INFO, " --fixcp             fix cold pixels\n");
+    print_msg(MSG_INFO, " --no-fixcp          do not fix cold pixels\n");
+    print_msg(MSG_INFO, " --fixcp2            fix non-static (moving) cold pixels (slow)\n");
+    print_msg(MSG_INFO, " --no-stripes        do not fix vertical stripes in highlights\n");
 
     print_msg(MSG_INFO, "\n");
     print_msg(MSG_INFO, "-- RAW output --\n");
@@ -1002,6 +1004,7 @@ void show_usage(char *executable)
     print_msg(MSG_INFO, " --avg-vertical      [DARKFRAME ONLY] average the resulting frame in vertical direction, so we will extract vertical banding\n");
     print_msg(MSG_INFO, " --avg-horizontal    [DARKFRAME ONLY] average the resulting frame in horizontal direction, so we will extract horizontal banding\n");
     print_msg(MSG_INFO, " -s mlv_file         subtract the reference frame in given file from every single frame during processing\n");
+    print_msg(MSG_INFO, " -t mlv_file         use the reference frame in given file as flat field (gain correction)\n");
 
     print_msg(MSG_INFO, "\n");
     print_msg(MSG_INFO, "-- Processing --\n");
@@ -1031,11 +1034,13 @@ int main (int argc, char *argv[])
     char *input_filename = NULL;
     char *output_filename = NULL;
     char *subtract_filename = NULL;
+    char *flatfield_filename = NULL;
     char *lut_filename = NULL;
     char *extract_block = NULL;
     char *inject_filename = NULL;
     int blocks_processed = 0;
 
+    int extract_frames = 0;
     uint32_t frame_start = 0;
     uint32_t frame_end = 0;
     uint32_t audf_frames_processed = 0;
@@ -1048,6 +1053,7 @@ int main (int argc, char *argv[])
     int average_vert = 0;
     int average_hor = 0;
     int subtract_mode = 0;
+    int flatfield_mode = 0;
     int no_metadata_mode = 0;
     int only_metadata_mode = 0;
     int average_samples = 0;
@@ -1086,7 +1092,8 @@ int main (int argc, char *argv[])
     int fix_bug_2_offset = 0;
     int dng_output = 0;
     int dump_xrefs = 0;
-    int fix_cold_pixels = 0;
+    int fix_cold_pixels = 1;
+    int fix_vert_stripes = 1;
 
     struct option long_options[] = {
         {"lua",    required_argument, NULL,  'L' },
@@ -1099,7 +1106,9 @@ int main (int argc, char *argv[])
         {"cs2x2",  no_argument, &chroma_smooth_method,  2 },
         {"cs3x3",  no_argument, &chroma_smooth_method,  3 },
         {"cs5x5",  no_argument, &chroma_smooth_method,  5 },
-        {"fixcp",  no_argument, &fix_cold_pixels,  1 },
+        {"no-fixcp",  no_argument, &fix_cold_pixels,  0 },
+        {"fixcp2",    no_argument, &fix_cold_pixels,  2 },
+        {"no-stripes",  no_argument, &fix_vert_stripes,  0 },
         {"avg-vertical",  no_argument, &average_vert,  1 },
         {"avg-horizontal",  no_argument, &average_hor,  1 },
         {0,         0,                 0,  0 }
@@ -1116,7 +1125,7 @@ int main (int argc, char *argv[])
     }
 
     int index = 0;
-    while ((opt = getopt_long(argc, argv, "A:F:B:L:txz:emnas:X:I:uvrcdo:l:b:f:", long_options, &index)) != -1)
+    while ((opt = getopt_long(argc, argv, "A:F:B:L:t:xz:emnas:X:I:uvrcdo:l:b:f:", long_options, &index)) != -1)
     {
         switch (opt)
         {
@@ -1232,6 +1241,17 @@ int main (int argc, char *argv[])
                 decompress_output = 1;
                 break;
 
+            case 't':
+                if(!optarg)
+                {
+                    print_msg(MSG_ERROR, "Error: Missing flat-field frame filename\n");
+                    return ERR_PARAM;
+                }
+                flatfield_filename = strdup(optarg);
+                flatfield_mode = 1;
+                decompress_output = 1;
+                break;
+
             case 'X':
                 if(!optarg || strlen(optarg) != 4)
                 {
@@ -1301,6 +1321,7 @@ int main (int argc, char *argv[])
 
             case 'f':
                 {
+                    extract_frames = 1;
                     char *dash = strchr(optarg, '-');
 
                     /* try to parse "1-10" */
@@ -1396,7 +1417,7 @@ int main (int argc, char *argv[])
             *ext_dot = '\000';
         }
 
-        strcat(output_filename, "_frame_");
+        strcat(output_filename, "_");
     }
 
     /* display and set/unset variables according to parameters to have a consistent state */
@@ -1460,10 +1481,6 @@ int main (int argc, char *argv[])
                     print_msg(MSG_INFO, "   - Also average the images in horizontal direction to extract horizontal banding\n");
                 }
             }
-            if(subtract_mode)
-            {
-                print_msg(MSG_INFO, "   - Subtract reference frame '%s' from single images\n", subtract_filename);
-            }
             if(extract_block)
             {
                 print_msg(MSG_INFO, "   - But only write '%s' blocks\n", extract_block);
@@ -1472,6 +1489,15 @@ int main (int argc, char *argv[])
             {
                 print_msg(MSG_INFO, "   - Inject data from '%s'\n", inject_filename);
             }
+        }
+
+        if(subtract_mode)
+        {
+            print_msg(MSG_INFO, "   - Subtract reference frame '%s'\n", subtract_filename);
+        }
+        if(flatfield_mode)
+        {
+            print_msg(MSG_INFO, "   - Flat-field reference frame '%s'\n", flatfield_filename);
         }
 
         print_msg(MSG_INFO, "   - Output into '%s'\n", output_filename);
@@ -1524,9 +1550,11 @@ int main (int argc, char *argv[])
 
     uint32_t frame_buffer_size = 1*1024*1024;
     uint32_t subtract_frame_buffer_size = 0;
+    uint32_t flatfield_frame_buffer_size = 0;
 
     uint32_t *frame_arith_buffer = NULL;
     uint8_t *frame_sub_buffer = NULL;
+    uint8_t *frame_flat_buffer = NULL;
     uint8_t *frame_buffer = NULL;
     uint8_t *prev_frame_buffer = NULL;
 
@@ -1589,6 +1617,7 @@ int main (int argc, char *argv[])
     /* this block will load an image from a MLV file, so use its reported frame size for future use */
     if(subtract_mode)
     {
+        printf("Loading subtract (dark) frame '%s'\n", flatfield_filename);
         int ret = load_frame(subtract_filename, &frame_sub_buffer, &subtract_frame_buffer_size);
 
         if(ret)
@@ -1598,6 +1627,20 @@ int main (int argc, char *argv[])
         }
         
         frame_buffer_size = subtract_frame_buffer_size;
+    }
+
+    if(flatfield_mode)
+    {
+        printf("Loading flat-field frame '%s'\n", flatfield_filename);
+        int ret = load_frame(flatfield_filename, &frame_flat_buffer, &flatfield_frame_buffer_size);
+
+        if(ret)
+        {
+            print_msg(MSG_ERROR, "Failed to load flat-field frame (%d)\n", ret);
+            return ERR_FILE;
+        }
+        
+        frame_buffer_size = flatfield_frame_buffer_size;
     }
 
     if(average_mode)
@@ -2172,7 +2215,120 @@ read_headers:
 
                                 value -= sub_value;
                                 value += lv_rec_footer.raw_info.black_level; /* should we really add it here? or better subtract it from averaged frame? */
-                                value = COERCE(value, lv_rec_footer.raw_info.black_level, lv_rec_footer.raw_info.white_level);
+                                value = COERCE(value, 0, (1<<current_depth)-1);
+
+                                bitinsert(src_line, x, current_depth, value);
+                            }
+                        }
+                    }
+
+                    /* in flat-field mode, divide each image by the normalized reference frame */
+                    if(flatfield_mode)
+                    {
+                        if((int)flatfield_frame_buffer_size != frame_size)
+                        {
+                            print_msg(MSG_ERROR, "Error: Frame sizes of footage and flat-field frame differ (%d, %d)", frame_size, flatfield_frame_buffer_size);
+                            break;
+                        }
+                        
+                        int pitch = video_xRes * current_depth / 8;
+
+                        /* normalize flat frame on each Bayer channel (median) */
+                        /* and adjust all medians using green's 5th percentile to prevent whites from clipping */
+                        static int32_t med[2][2] = {{0,0},{0,0}};
+                        static int32_t pr5[2][2] = {{0,0},{0,0}};
+                        static int32_t adj_num = 0;
+                        static int32_t adj_den = 0;
+
+                        int black = lv_rec_footer.raw_info.black_level;
+                        
+                        if (!med[0][0])
+                        {
+                            /* normalize using frame center only
+                             * (also works on lenses with heavy vignetting) */
+                            
+                            int* hist[2][2];
+                            int total[2][2] = {{0,0},{0,0}};
+                            
+                            hist[0][0] = calloc(1 << current_depth, sizeof(int));
+                            hist[0][1] = calloc(1 << current_depth, sizeof(int));
+                            hist[1][0] = calloc(1 << current_depth, sizeof(int));
+                            hist[1][1] = calloc(1 << current_depth, sizeof(int));
+                            
+                            for(int y = video_yRes/4; y < video_yRes*3/4; y++)
+                            {
+                                uint16_t *flat_line = (uint16_t *)&frame_flat_buffer[y * pitch];
+                                for(int x = video_xRes/4; x < video_xRes*3/4; x++)
+                                {
+                                    uint32_t value = bitextract(flat_line, x, current_depth);
+                                    hist[y%2][x%2][value]++;
+                                    total[y%2][x%2]++;
+                                }
+                            }
+                            
+                            for (int dy = 0; dy < 2; dy++)
+                            {
+                                for (int dx = 0; dx < 2; dx++)
+                                {
+                                    int acc = 0;
+                                    for (int i = 0; i < (1 << current_depth); i++)
+                                    {
+                                        acc += hist[dy][dx][i];
+                                        
+                                        if (acc < total[dy][dx]/20)
+                                        {
+                                            /* 5th percentile */
+                                            pr5[dy][dx] = i - black;
+                                        }
+                                        
+                                        if (acc < total[dy][dx]/2)
+                                        {
+                                            /* median */
+                                            med[dy][dx] = i - black;
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            free(hist[0][0]);
+                            free(hist[0][1]);
+                            free(hist[1][0]);
+                            free(hist[1][1]);
+                            
+                            adj_num = (pr5[0][1] + pr5[1][0]) / 2;
+                            adj_den = (med[0][1] + med[1][0]) / 2;
+
+                            printf("Flat-field median: [%d %d; %d %d], adjusted by %d/%d\n", 
+                                med[0][0], med[0][1],
+                                med[1][0], med[1][1],
+                                adj_num, adj_den
+                            );
+                        }
+                        
+                        for(int y = 0; y < video_yRes; y++)
+                        {
+                            uint16_t *src_line = (uint16_t *)&frame_buffer[y * pitch];
+                            uint16_t *flat_line = (uint16_t *)&frame_flat_buffer[y * pitch];
+
+                            for(int x = 0; x < video_xRes; x++)
+                            {
+                                int32_t value = bitextract(src_line, x, current_depth);
+                                int32_t flat_value = bitextract(flat_line, x, current_depth);
+                                
+                                if (flat_value - black <= 0)
+                                {
+                                    int left  = bitextract(flat_line, MAX(x-1,0), current_depth);
+                                    int right = bitextract(flat_line, MIN(x+1,video_xRes-1), current_depth);
+                                    flat_value = MAX(left, right);
+                                }
+
+                                if (flat_value - black > 0)
+                                {
+                                    value -= black;
+                                    value = (int64_t) value * med[y%2][x%2] * adj_num / adj_den / (flat_value - black);
+                                    value += black;
+                                    value = COERCE(value, 0, (1<<current_depth)-1);
+                                }
 
                                 bitinsert(src_line, x, current_depth, value);
                             }
@@ -2360,7 +2516,7 @@ read_headers:
                     }
 
                     /* when no end was specified, save all frames */
-                    uint32_t frame_selected = (!frame_end) || ((block_hdr.frameNumber >= frame_start) && (block_hdr.frameNumber <= frame_end));
+                    uint32_t frame_selected = (!extract_frames) || ((block_hdr.frameNumber >= frame_start) && (block_hdr.frameNumber <= frame_end));
 
                     if(frame_selected)
                     {
@@ -2386,7 +2542,7 @@ read_headers:
                         if(dng_output)
                         {
                             void fix_vertical_stripes();
-                            void find_and_fix_cold_pixels(int fix, int framenumber);
+                            void find_and_fix_cold_pixels(int force_analysis);
                             extern struct raw_info raw_info;
 
                             int frame_filename_len = strlen(output_filename) + 32;
@@ -2420,8 +2576,15 @@ read_headers:
                             }
 
                             /* call raw2dng code */
-                            fix_vertical_stripes();
-                            find_and_fix_cold_pixels(fix_cold_pixels, block_hdr.frameNumber);
+                            if (fix_vert_stripes)
+                            {
+                                fix_vertical_stripes();
+                            }
+                            
+                            if (fix_cold_pixels)
+                            {
+                                find_and_fix_cold_pixels(fix_cold_pixels == 2);
+                            }
 
                             /* this is internal again */
                             chroma_smooth(chroma_smooth_method, &raw_info);

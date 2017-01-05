@@ -1871,6 +1871,7 @@ static CONFIG_INT("warn.picq", warn_picq, 0);
 static CONFIG_INT("warn.alo", warn_alo, 0);
 static CONFIG_INT("warn.wb", warn_wb, 0);
 static CONFIG_INT("warn.mf", warn_mf, 0);
+static CONFIG_INT("warn.msg", warn_msg, 0);
 
 static int warn_code = 0;
 static char* get_warn_msg(char* separator)
@@ -1902,24 +1903,45 @@ static char* get_warn_msg(char* separator)
 
 static void warn_action(int code)
 {
-    // blink LED every second
-    if (code)
+    // warn_msg:
+    // 0 "LED, popup, beep",
+    // 1 "LED, popup, rep. beep",
+    // 2 "LED, popup",
+    // 3 "popup, beep",
+    // 4 "popup, rep. beep",
+    // 5 "popup only"
+    // 6 "rep. popup"
+
+    bool led_active = code && warn_msg < 3;
+    bool repeated_beep_active = code && (warn_msg == 1 || warn_msg == 4);
+    bool beep_active = code && (warn_msg == 0 || warn_msg == 1 || warn_msg == 3 || warn_msg == 4);
+    bool popup_repeated = warn_msg == 6;
+
+    // blink LED every second, if active
+    if (led_active || repeated_beep_active)
     {
         static int aux = 0;
         if (should_run_polling_action(1000, &aux))
         {
-            static int k = 0; k++;
-            if (k%2) info_led_on(); else info_led_off();
+            if (led_active)
+            {
+                static int k = 0; k++;
+                if (k%2) info_led_on(); else info_led_off();
+            }
+            if (repeated_beep_active)
+            {
+                beep();
+            }
         }
     }
-    
+
     // when warning condition changes, beep
     static int prev_code = 0;
     if (code != prev_code)
     {
         if (code) // not good
         {
-            beep();
+            if (beep_active) beep();
         }
         else // OK, back to good configuration
         {
@@ -1930,7 +1952,7 @@ static void warn_action(int code)
 
     // when warning condition changes, and display is on, show what's the problem
     static int prev_code_d = 0;
-    if (code != prev_code_d && DISPLAY_IS_ON && !gui_menu_shown())
+    if ((code != prev_code_d || popup_repeated) && DISPLAY_IS_ON && !gui_menu_shown())
     {
         NotifyBoxHide(); msleep(200);
         if (code) NotifyBox(3000, get_warn_msg("\n")); 
@@ -2195,6 +2217,19 @@ static struct menu_entry tweak_menus[] = {
                 .max = 2,
                 .choices = (const char *[]) {"OFF", "other than AF", "other than MF"},
                 .help = "Warn on Manual / Automatic Focus",
+            },
+            {
+                .name = "Warning message",
+                .priv = &warn_msg,
+                .max = 6,
+                .choices = (const char *[]) {"LED, popup, beep",
+                                             "LED, popup, rep. beep",
+                                             "LED, popup",
+                                             "popup, beep",
+                                             "popup, rep. beep",
+                                             "popup only",
+                                             "rep. popup"},
+                .help = "Warn type, LED, Messagebox, Beep",
             },
             MENU_EOL,
         },
