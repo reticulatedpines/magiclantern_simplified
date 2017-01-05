@@ -85,6 +85,9 @@ struct task_attr_str {
 /** The head of the running task list */
 extern struct task * current_task;
 
+/** Current interrupt ( << 2 on D4/5, exact value on D2/3/6) */
+extern uint32_t current_interrupt;
+
 /** Official initial task.
  * \note Overridden by reboot shim.
  * \internal

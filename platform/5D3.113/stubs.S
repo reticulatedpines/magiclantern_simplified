@@ -280,6 +280,7 @@ NSTUB(0xFF9E74C8 - RAM_OFFSET,  take_semaphore)
 NSTUB(   0x25114,  task_max)
 NSTUB(0xFF9F8860 - RAM_OFFSET,  is_taskid_valid)            // AJ_task_trampoline_related_p10
 NSTUB(   0x23E14,  current_task)
+NSTUB(     0x674,  current_interrupt)                       // in interrupt handler (0x18), where MEM(C0201004) is stored
 
 /** Task sleep **/
 NSTUB(0xFF9E79A4 - RAM_OFFSET,  msleep)

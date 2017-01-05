@@ -287,6 +287,7 @@ NSTUB(0xFF06E534,  take_semaphore)
 NSTUB(    0x3234,  task_max)
 NSTUB(0xFF33EF30,  is_taskid_valid)                         // AJ_task_trampoline_related_p10
 NSTUB(    0x1A2C,  current_task)
+NSTUB(     0x674,  current_interrupt)                       // in interrupt handler (0x18), where MEM(C0201004) is stored
 
 /** Task sleep **/
 NSTUB(0xFF06EA08,  msleep)                                  // called from EV_GETDONE_CACHE param 0x64

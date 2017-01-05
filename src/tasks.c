@@ -32,9 +32,8 @@ char* get_current_task_name()
     }
     else
     {
-    #ifdef CURRENT_INTERRUPT_ADDR
         static char isr[] = "**INT-00h**";
-        int i = MEM(CURRENT_INTERRUPT_ADDR) >> 2;
+        int i = current_interrupt >> 2;
         int i0 = (i & 0xF);
         int i1 = (i >> 4) & 0xF;
         int i2 = (i >> 8) & 0xF;
@@ -42,9 +41,6 @@ char* get_current_task_name()
         isr[6] = i1 < 10 ? '0' + i1 : 'A' + i1 - 10;
         isr[7] = i0 < 10 ? '0' + i0 : 'A' + i0 - 10;
         return isr;
-    #else
-        return "**INTERRUPT**";
-    #endif
     }
 }
 
