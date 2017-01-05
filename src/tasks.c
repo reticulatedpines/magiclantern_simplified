@@ -49,28 +49,19 @@ char* get_task_name_from_id(int id)
 #if defined(CONFIG_VXWORKS)
 return "?";
 #endif
-
-    if (id == -1)
-    {
-        return "**INTERRUPT**";
-    }
-
-    static char unknown_task[20];
-    char* name = unknown_task;
-    int c = id & 0xFF;
-
-    snprintf(unknown_task, sizeof(unknown_task), "Task#%d", id);
-    
     if(id < 0)
     {
-        return unknown_task;
+        return "?";
     }
+    
+    char* name = "?";
+    int c = id & 0xFF;
 
     struct task_attr_str task_attr;
     int r = is_taskid_valid(1, c, &task_attr); // ok
     if (r==0) {
       if (task_attr.name!=0) name=task_attr.name;
-      else name=unknown_task;
+      else name="?";
     }
     return name;
 }
