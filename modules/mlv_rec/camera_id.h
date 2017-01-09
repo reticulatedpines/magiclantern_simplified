@@ -61,7 +61,7 @@ static const camera_id_t camera_id[] = {
 };
 
 /* Get camera name by model ID and name type (UNIQ, LOC1, LOC2) */ 
-const char * get_camera_name_by_id(unsigned long model_id, int name_type)
+static const char * get_camera_name_by_id(unsigned long model_id, int name_type)
 {
 	int i = 0;
 	const char * camName = "Unknown Model";
