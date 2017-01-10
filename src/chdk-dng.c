@@ -496,8 +496,8 @@ static void create_dng_header(struct raw_info * raw_info){
         {0x8827, T_SHORT|T_PTR,1,  (int)&exif_data.iso},       // ISOSpeedRatings
         {0x9000, T_UNDEFINED,  4,  0x31323230},                // ExifVersion: 2.21
         {0x9003, T_ASCII,      20, (int)cam_datetime},         // DateTimeOriginal
-        {0x9201, T_SRATIONAL,  1,  (int)cam_apex_shutter},     // ShutterSpeedValue (APEX units)
-        {0x9202, T_RATIONAL,   1,  (int)cam_apex_aperture},    // ApertureValue (APEX units)
+        //{0x9201, T_SRATIONAL,  1,  (int)cam_apex_shutter},     // ShutterSpeedValue (APEX units)
+        //{0x9202, T_RATIONAL,   1,  (int)cam_apex_aperture},    // ApertureValue (APEX units)
         {0x9204, T_SRATIONAL,  1,  (int)cam_exp_bias},         // ExposureBias
         {0x9205, T_RATIONAL,   1,  (int)cam_max_av},           // MaxApertureValue
         {0x9207, T_SHORT,      1,  0},                         // Metering mode
