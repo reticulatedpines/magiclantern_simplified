@@ -1045,7 +1045,7 @@ void show_usage(char *executable)
 
     print_msg(MSG_INFO, "-- bugfixes --\n");
     print_msg(MSG_INFO, " --black-fix=value   set black level to <value> (fix green/magenta cast). if no value given, it will be set to 2048.\n");
-    print_msg(MSG_INFO, " --white-fix=value   set white level to <value>. if no value given, it will be set to 16384.\n");
+    print_msg(MSG_INFO, " --white-fix=value   set white level to <value>. if no value given, it will be set to 15000.\n");
     print_msg(MSG_INFO, " --fix-bug=id        fix some special bugs. *only* to be used if given instruction by developers.\n");
     print_msg(MSG_INFO, "\n");
 }
@@ -1419,7 +1419,7 @@ int main (int argc, char *argv[])
             case 'W':
                 if(!optarg)
                 {
-                    white_fix = 16384;
+                    white_fix = 15000;
                 }
                 else
                 {
