@@ -3099,7 +3099,7 @@ read_headers:
 
                             /* set MLV metadata into DNG tags */
                             dng_set_framerate_rational(main_header.sourceFpsNom, main_header.sourceFpsDenom);
-                            dng_set_shutter(1, (int)(1000000.0f/(float)expo_info.shutterValue));
+                            dng_set_shutter(expo_info.shutterValue, 1000000);
                             dng_set_aperture(lens_info.aperture, 100);
                             dng_set_camname((char*)unique_camname);
                             dng_set_description((char*)info_string);
