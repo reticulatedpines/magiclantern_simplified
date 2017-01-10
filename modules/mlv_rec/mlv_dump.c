@@ -1665,24 +1665,26 @@ int main (int argc, char *argv[])
     /* force 14bpp output for DNG code */
     if(dng_output)
     {
+        print_msg(MSG_INFO, "   - Enforcing 14bpp for DNG output\n");
         bit_depth = 14;
-    }
-    
-    /* special case - splitting into frames doesnt require a specific output file */
-    if(dng_output && !output_filename)
-    {
-        int len = strlen(input_filename) + 16;
-        output_filename = malloc(len);
-
-        strcpy(output_filename, input_filename);
-
-        char *ext_dot = strrchr(output_filename, '.');
-        if(ext_dot)
+        
+        /* special case - splitting into frames doesnt require a specific output file */
+        if(!output_filename)
         {
-            *ext_dot = '\000';
-        }
+            int len = strlen(input_filename) + 16;
+            output_filename = malloc(len);
 
-        strcat(output_filename, "_");
+            strcpy(output_filename, input_filename);
+
+            char *ext_dot = strrchr(output_filename, '.');
+            if(ext_dot)
+            {
+                *ext_dot = '\000';
+            }
+
+            strcat(output_filename, "_");
+            print_msg(MSG_INFO, "   - Using output path '%s' for DNGs\n", output_filename);
+        }
     }
 
     /* display and set/unset variables according to parameters to have a consistent state */
@@ -2967,21 +2969,45 @@ read_headers:
                             raw_info.frame_size = frame_size;
                             raw_info.buffer = frame_buffer;
                             
+                            int old_depth = lv_rec_footer.raw_info.bits_per_pixel;
+                            int new_depth = bit_depth;
+                            
+                            /* patch raw info */
                             if(new_depth)
                             {
                                 raw_info.bits_per_pixel = new_depth;
-                                if(old_depth > new_depth)
+                                
+                                /* scale down black level */
+                                if(!black_fix)
                                 {
-                                    raw_info.black_level >>= old_depth - new_depth;
-                                    raw_info.white_level >>= old_depth - new_depth;
+                                    int delta = old_depth - new_depth;
+                                    
+                                    if(delta)
+                                    {
+                                        print_msg(MSG_INFO, "  input black_level/white_level:      %d/%d\n", raw_info.black_level, raw_info.white_level);
+                                        
+                                        if(delta > 0)
+                                        {
+                                            raw_info.black_level >>= delta;
+                                            raw_info.white_level >>= delta;
+                                        }
+                                        else
+                                        {
+                                            raw_info.black_level <<= ABS(delta);
+                                            raw_info.white_level <<= ABS(delta);
+                                        }
+
+                                        print_msg(MSG_INFO, "  scaled by %d bits due to conversion:\n", ABS(delta));
+                                        print_msg(MSG_INFO, "  output black_level/white_level:      %d/%d\n", raw_info.black_level, raw_info.white_level);
+                                    }
                                 }
                                 else
                                 {
-                                    raw_info.black_level <<= new_depth - old_depth;
-                                    raw_info.white_level <<= new_depth - old_depth;
+                                    raw_info.black_level = black_fix;
+                                    print_msg(MSG_INFO, "  black_level      %d (hardcoded)\n", raw_info.black_level);
                                 }
                             }
-
+                            
                             /* override the resolution from raw_info with the one from lv_rec_footer, if they don't match */
                             if (lv_rec_footer.xRes != raw_info.width)
                             {
@@ -3711,13 +3737,10 @@ read_headers:
                 }
 
                 /* cache these bits when we convert to legacy or resample bit depth */
-                //if(raw_output || bit_depth)
-                {
-                    strncpy((char*)lv_rec_footer.magic, "RAWM", 4);
-                    lv_rec_footer.xRes = block_hdr.xRes;
-                    lv_rec_footer.yRes = block_hdr.yRes;
-                    lv_rec_footer.raw_info = block_hdr.raw_info;
-                }
+                strncpy((char*)lv_rec_footer.magic, "RAWM", 4);
+                lv_rec_footer.xRes = block_hdr.xRes;
+                lv_rec_footer.yRes = block_hdr.yRes;
+                lv_rec_footer.raw_info = block_hdr.raw_info;
 
                 /* always output RAWI blocks, its not just metadata, but important frame format data */
                 if(mlv_output && (!extract_block || !strncasecmp(extract_block, (char*)&block_hdr.blockType, 4)))
@@ -3725,24 +3748,41 @@ read_headers:
                     /* correct header size if needed */
                     block_hdr.blockSize = sizeof(mlv_rawi_hdr_t);
 
-                    if(bit_depth)
+                    int old_depth = lv_rec_footer.raw_info.bits_per_pixel;
+                    int new_depth = bit_depth;
+
+                    /* scale down black level */
+                    if(new_depth)
                     {
-                        int new_depth = bit_depth;
-                        int old_depth = block_hdr.raw_info.bits_per_pixel;
-                        if(new_depth != old_depth)
+                        block_hdr.raw_info.bits_per_pixel = new_depth;
+                        
+                        if(!black_fix)
                         {
-                            block_hdr.raw_info.bits_per_pixel = bit_depth;
-                            //changing bit depth changes the black and white levels
-                            if(old_depth > new_depth)
+                            int delta = old_depth - new_depth;
+                            
+                            if(delta)
                             {
-                                block_hdr.raw_info.black_level >>= old_depth - new_depth;
-                                block_hdr.raw_info.white_level >>= old_depth - new_depth;
+                                print_msg(MSG_INFO, "  input black_level/white_level:      %d/%d\n", block_hdr.raw_info.black_level, block_hdr.raw_info.white_level);
+                                
+                                if(delta > 0)
+                                {
+                                    block_hdr.raw_info.black_level >>= delta;
+                                    block_hdr.raw_info.white_level >>= delta;
+                                }
+                                else
+                                {
+                                    block_hdr.raw_info.black_level <<= ABS(delta);
+                                    block_hdr.raw_info.white_level <<= ABS(delta);
+                                }
+
+                                print_msg(MSG_INFO, "  scaled by %d bits due to conversion:\n", ABS(delta));
+                                print_msg(MSG_INFO, "  output black_level/white_level:      %d/%d\n", block_hdr.raw_info.black_level, block_hdr.raw_info.white_level);
                             }
-                            else
-                            {
-                                block_hdr.raw_info.black_level <<= new_depth - old_depth;
-                                block_hdr.raw_info.white_level <<= new_depth - old_depth;
-                            }
+                        }
+                        else
+                        {
+                            block_hdr.raw_info.black_level = black_fix;
+                            print_msg(MSG_INFO, "  black_level      %d (hardcoded)\n", block_hdr.raw_info.black_level);
                         }
                     }
 
