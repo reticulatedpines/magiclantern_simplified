@@ -972,13 +972,13 @@ static char* script_extract_string_from_comments(char* buf, char** output, const
     return p;
 }
 
-static void script_get_name_from_comments(const char * filename, char ** name, char ** description)
+static void script_get_name_from_comments(const char * filename, char ** p_name, char ** p_description)
 {
-    ASSERT(name);
-    ASSERT(description);
+    ASSERT(p_name);
+    ASSERT(p_description);
 
-    *name = 0;
-    *description = 0;
+    *p_name = 0;
+    *p_description = 0;
 
     char full_path[MAX_PATH_LEN];
     snprintf(full_path, MAX_PATH_LEN, SCRIPTS_DIR "/%s", filename);
@@ -991,17 +991,33 @@ static void script_get_name_from_comments(const char * filename, char ** name, c
     fclose(f);
     
     /* extract name and description */
-    char* c = script_extract_string_from_comments(buf, name, 0);
-    
-    /* name too long? use it as description */
-    if (*name && bmp_string_width(FONT_LARGE, *name) > 500)
+    char* c = script_extract_string_from_comments(buf, p_name, 0);
+
+    /* name too long? shorten it and use the full string as description */
+    char * name = *p_name;
+    if (name && bmp_string_width(FONT_LARGE, name) > 450)
     {
-        free(*name); *name = 0;
-        script_extract_string_from_comments(buf, description, filename);
+        script_extract_string_from_comments(buf, p_description, filename);
+
+        /* attempt to break the string at spaces, commas or whatever */
+        int len = strlen(name) - 3;
+        while (bmp_string_width(FONT_LARGE, name) > 450)
+        {
+            for (len--; len > 0; len--)
+            {
+                if (!isalnum(name[len]))
+                {
+                    name[len] = name[len+1] = name[len+2] = '.';
+                    name[len+3] = 0;
+                    break;
+                }
+            }
+        }
     }
     else
     {
-        script_extract_string_from_comments(c, description, filename);
+        /* first line short => OK, use it as script name and next line as description */
+        script_extract_string_from_comments(c, p_description, filename);
     }
 }
 
