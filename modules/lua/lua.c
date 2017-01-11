@@ -496,7 +496,33 @@ int luaCB_pairs(lua_State * L)
     return 3;
 }
 
-static lua_State * load_lua_state()
+/* from lua/lua.c */
+static void createargtable (lua_State *L, char **argv, int argc, int script) {
+  int i, narg;
+  if (script == argc) script = 0;  /* no script name? */
+  narg = argc - (script + 1);  /* number of positive indices */
+  lua_createtable(L, narg, script + 1);
+  for (i = 0; i < argc; i++) {
+    lua_pushstring(L, argv[i]);
+    lua_rawseti(L, -2, i - script);
+  }
+  lua_setglobal(L, "arg");
+}
+
+/* from lua/lua.c */
+static int pushargs (lua_State *L) {
+  int i, n;
+  if (lua_getglobal(L, "arg") != LUA_TTABLE)
+    luaL_error(L, "'arg' is not a table");
+  n = (int)luaL_len(L, -1);
+  luaL_checkstack(L, n + 3, "too many arguments to script");
+  for (i = 1; i <= n; i++)
+    lua_rawgeti(L, -i, i);
+  lua_remove(L, -i);  /* remove table from the stack */
+  return n;
+}
+
+static lua_State * load_lua_state(int argc, char** argv)
 {
     lua_State* L = luaL_newstate();
     luaL_requiref(L, "_G", luaopen_base, 1);
@@ -543,7 +569,9 @@ static lua_State * load_lua_state()
             fprintf(stderr, "%s\n", lua_tostring(L, -1));
         }
     }
-    
+
+    createargtable(L, argv, argc, 0);
+
     return L;
 }
 
@@ -555,7 +583,13 @@ static lua_State * load_lua_state()
 
 struct lua_script
 {
-    char * filename;
+    int argc;
+    union
+    {
+        char * filename;
+        char * argv[5];
+    };
+
     char * name;
     char * description;
     char * last_error;
@@ -663,7 +697,7 @@ static void load_script(struct lua_script * script)
     
     script->load_time = get_seconds_clock();
     script->state = SCRIPT_STATE_LOADING;
-    lua_State* L = script->L = load_lua_state();
+    lua_State* L = script->L = load_lua_state(script->argc, script->argv);
     script->cant_unload = 0;
     lua_clear_last_error(script);
     
@@ -685,12 +719,20 @@ static void load_script(struct lua_script * script)
         char full_path[MAX_PATH_LEN];
         snprintf(full_path, MAX_PATH_LEN, SCRIPTS_DIR "/%s", script->filename);
         printf("Loading script: %s\n", script->filename);
-        if(luaL_loadfile(L, full_path) || docall(L, 0, LUA_MULTRET))
+
+        int status = luaL_loadfile(L, full_path);
+        if (status == LUA_OK) {
+            int n = pushargs(L);  /* push arguments to script */
+            status = docall(L, n, LUA_MULTRET);
+        }
+
+        if (status != LUA_OK)
         {
             /* error loading script */
             fprintf(stderr, "%s\n", lua_tostring(L, -1));
             error = 1;
         }
+
         give_semaphore(script->sem->semaphore);
 
         if (error)
@@ -809,6 +851,7 @@ static MENU_UPDATE_FUNC(lua_script_menu_update)
 
 static void lua_user_load_task(struct lua_script * script)
 {
+    ASSERT(script->filename == script->argv[0]);
     load_script(script);
 }
 
@@ -1026,6 +1069,7 @@ static void add_script(const char * filename)
     struct lua_script * new_script = calloc(1, sizeof(struct lua_script));
     if (!new_script) goto err;
 
+    new_script->argc = 1;
     new_script->filename = copy_string(filename);
     if (!new_script->filename) goto err;
 

@@ -62,6 +62,7 @@ end
 
 function generic_tests()
     printf("Generic tests...\n")
+    print_table("arg")
     print_table("camera")
     print_table("event")
     print_table("console")
@@ -762,5 +763,9 @@ function api_tests()
     key.wait()
     console.hide()
 end
+
+-- check script arguments
+assert(#arg == 0)
+assert(arg[0] == "API_TEST.LUA" or arg[0] == "api_test.lua")
 
 api_tests()
