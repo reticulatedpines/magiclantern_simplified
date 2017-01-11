@@ -909,8 +909,43 @@ static MENU_SELECT_FUNC(lua_script_toggle_autorun)
 
 static MENU_SELECT_FUNC(lua_script_edit)
 {
-    /* not yet implemented */
-    beep();
+    struct lua_script * script = (struct lua_script *)priv;
+    ASSERT(script); if (!script) return;
+
+    struct lua_script * editor = 0;
+    for (struct lua_script * current = lua_scripts; current; current = current->next)
+    {
+        if (strcasecmp(current->filename, "EDITOR.LUA") == 0)
+        {
+            editor = current;
+            break;
+        }
+    }
+
+    if (!editor)
+    {
+        console_show();
+        printf("Could not find EDITOR.LUA.");
+        return;
+    }
+    
+    /* attempt to start the script */
+    if ( editor->state == SCRIPT_STATE_NOT_RUNNING && lua_loaded)
+    {
+        static char full_path[MAX_PATH_LEN];
+        snprintf(full_path, MAX_PATH_LEN, SCRIPTS_DIR "/%s", script->filename);
+
+        editor->argc = 2;
+        editor->argv[1] = full_path;
+
+        editor->state = SCRIPT_STATE_LOADING;
+        task_create("lua_user_load_task", 0x1c, 0x10000, lua_user_load_task, editor);
+    }
+    else
+    {
+        console_show();
+        printf("Could not start EDITOR.LUA.");
+    }
 }
 
 static MENU_UPDATE_FUNC(menu_no_value)
