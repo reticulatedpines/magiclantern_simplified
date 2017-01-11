@@ -712,7 +712,21 @@ static void load_script(struct lua_script * script)
             script->menu_entry->children[0].shidden = 1;
 
             /* enable autorun if there was no error */
-            if (!error) set_script_autorun(script, 1);
+            if (!error)
+            {
+                printf("%s: enabling autorun (reason: %s%s%s%s%s\b\b).\n", script->filename,
+                    script->cant_unload & (1<<LUA_MENU_UNLOAD_MASK)   ? "menu item, " : "",
+                    script->cant_unload & (1<<LUA_TASK_UNLOAD_MASK)   ? "task started, " : "",
+                    script->cant_unload & (1<<LUA_LVINFO_UNLOAD_MASK) ? "LVInfo item, " : "",
+                    script->cant_unload & (1<<LUA_PROP_UNLOAD_MASK)   ? "property handler, " : "",
+                    script->cant_unload & 0xFFFFFFF0                  ? "event handler, " : ""
+                );
+                set_script_autorun(script, 1);
+            }
+            else
+            {
+                printf("%s: not enabling autorun (error).\n", script->filename);
+            }
         }
         else
         {
@@ -724,6 +738,7 @@ static void load_script(struct lua_script * script)
             script->menu_entry->icon_type = IT_ACTION;
             script->state = SCRIPT_STATE_NOT_RUNNING;
             script->load_time = 0;
+            printf("%s: script finished.\n", script->filename);
         }
     }
     else
@@ -761,7 +776,7 @@ static MENU_UPDATE_FUNC(lua_script_menu_update)
         int fg = script->state ? COLOR_WHITE : COLOR_GRAY(40);
         int fnt = SHADOW_FONT(FONT(FONT_MED_LARGE, fg, COLOR_BLACK));
         bmp_printf(fnt | FONT_ALIGN_RIGHT, 680, info->y+2,
-            script->autorun
+            script->autorun && script_uptime >= 2
                 ? "AUTORUN" :
             script->last_error
                 ? "ERROR" :
