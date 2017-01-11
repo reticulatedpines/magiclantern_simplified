@@ -336,7 +336,7 @@ function filedialog:show()
     self:updatefiles()
     self:draw()
     local started = keys:start()
-    while true do
+    while menu.visible do
         local key = keys:getkey()
         if key ~= nil then
             -- process all keys in the queue (until getkey() returns nil), then redraw
@@ -512,8 +512,7 @@ function editor:main_loop()
     self:draw()
     keys:start()
     local exit = false
-    while not exit do
-        if menu.visible == false then break end
+    while menu.visible and not exit do
         local key = keys:getkey()
         if key ~= nil then
             -- process all keys in the queue (until getkey() returns nil), then redraw
