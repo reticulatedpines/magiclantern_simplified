@@ -7,7 +7,7 @@ CR2HDR_LDFLAGS=-lm -m32
 CR2HDR_DEPS=$(SRC_DIR)/chdk-dng.c dcraw-bridge.c exiftool-bridge.c adobedng-bridge.c amaze_demosaic_RT.c dither.c timing.c kelvin.c
 HOST=host
 
-EXIFTOOL_VERS=10.02
+EXIFTOOL_VERS=10.33
 
 ifdef CROSS
 	HOSTCC=$(MINGW_GCC)
@@ -76,6 +76,3 @@ endif
 cr2hdr-win.zip: cr2hdr.exe dcraw.exe exiftool.exe
 # Windows
 	zip $@ $< $^
-
-all:: $(CR2HDR_BIN)
-

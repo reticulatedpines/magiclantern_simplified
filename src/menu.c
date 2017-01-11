@@ -2594,7 +2594,7 @@ menu_post_display()
         );
     }
 
-    if (!CURRENT_DIALOG_MAYBE)
+    if (!CURRENT_GUI_MODE)
     {
         // we can't use the scrollwheel
         // and you need to be careful because you will change shooting settings while recording!
@@ -4202,20 +4202,15 @@ void menu_benchmark()
 static int menu_ensure_canon_dialog()
 {
 #ifndef CONFIG_VXWORKS
-    if (CURRENT_DIALOG_MAYBE != GUIMODE_ML_MENU && CURRENT_DIALOG_MAYBE != DLG_PLAY)
+    if (CURRENT_GUI_MODE != GUIMODE_ML_MENU && CURRENT_GUI_MODE != GUIMODE_PLAY)
     {
         if (redraw_flood_stop)
         {
             // Canon dialog timed out?
 #if defined(CONFIG_MENU_TIMEOUT_FIX)
             // force dialog change when canon dialog times out (EOSM, 6D etc)
-            // don't try more often than once per second
-            static int aux = 0;
-            if (should_run_polling_action(1000, &aux))
-            {
-                start_redraw_flood();
-                SetGUIRequestMode(GUIMODE_ML_MENU);
-            }
+            start_redraw_flood();
+            SetGUIRequestMode(GUIMODE_ML_MENU);
 #else
             return 0;
 #endif
@@ -4505,7 +4500,7 @@ handle_ml_menu_keys(struct event * event)
         if (!lv) return 1;
         // else fallthru
     #endif
-    case BGMT_PRESS_ZOOMIN_MAYBE:
+    case BGMT_PRESS_ZOOM_IN:
         if (lv) menu_lv_transparent_mode = !menu_lv_transparent_mode;
         else edit_mode = !edit_mode;
         menu_damage = 1;
@@ -4820,7 +4815,7 @@ static void piggyback_canon_menu()
     if (sensor_cleaning) return;
     if (gui_state == GUISTATE_MENUDISP) return;
     NotifyBoxHide();
-    if (new_gui_mode != (int)CURRENT_DIALOG_MAYBE) 
+    if (new_gui_mode != (int)CURRENT_GUI_MODE) 
     { 
         start_redraw_flood();
         if (lv) bmp_off(); // mask out the underlying Canon menu :)
@@ -4833,7 +4828,7 @@ static void piggyback_canon_menu()
 static void close_canon_menu()
 {
 #ifdef GUIMODE_ML_MENU
-    if (CURRENT_DIALOG_MAYBE == 0) return;
+    if (CURRENT_GUI_MODE == 0) return;
     if (sensor_cleaning) return;
     if (gui_state == GUISTATE_MENUDISP) return;
     if (lv) bmp_off(); // mask out the underlying Canon menu :)
@@ -4994,7 +4989,7 @@ menu_task( void* unused )
                 if (sensor_cleaning ||
                     initial_mode != shooting_mode ||
                     gui_state == GUISTATE_MENUDISP ||
-                    (!DISPLAY_IS_ON && CURRENT_DIALOG_MAYBE != DLG_PLAY))
+                    (!DISPLAY_IS_ON && CURRENT_GUI_MODE != GUIMODE_PLAY))
                 {
                     /* close ML menu */
                     gui_stop_menu();
@@ -5446,10 +5441,10 @@ int handle_quick_access_menu_items(struct event * event)
             give_semaphore( gui_sem ); 
             return 0;
         }
-        #ifdef CURRENT_DIALOG_MAYBE_2
-        else if (CURRENT_DIALOG_MAYBE_2 == DLG2_FOCUS_MODE)
+        #ifdef CURRENT_GUI_MODE_2
+        else if (CURRENT_GUI_MODE_2 == DLG2_FOCUS_MODE)
         #else
-        else if (CURRENT_DIALOG_MAYBE == DLG_FOCUS_MODE)
+        else if (CURRENT_GUI_MODE == GUIMODE_FOCUS_MODE)
         #endif
         {
             select_menu("Focus", 0);
@@ -5707,11 +5702,11 @@ int menu_request_image_backend()
     static int last_guimode_request = 0;
     int t = get_ms_clock_value();
     
-    if (CURRENT_DIALOG_MAYBE != DLG_PLAY)
+    if (CURRENT_GUI_MODE != GUIMODE_PLAY)
     {
         if (t > last_guimode_request + 1000)
         {
-            SetGUIRequestMode(DLG_PLAY);
+            SetGUIRequestMode(GUIMODE_PLAY);
             last_guimode_request = t;
         }
         
@@ -5764,7 +5759,7 @@ MENU_UPDATE_FUNC(menu_advanced_update)
 void qemu_menu_screenshots()
 {
     /* hack to bypass ML checks */
-    CURRENT_DIALOG_MAYBE = 1;
+    CURRENT_GUI_MODE = 1;
     
     /* hack to avoid picture style warning */
     lens_info.picstyle = 1;

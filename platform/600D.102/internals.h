@@ -105,7 +105,6 @@
 #define CONFIG_PHOTO_MODE_INFO_DISPLAY
 
 /** Show 4 char if camera support only 3 in photo mode (not LiveView) **/
-//~#define AVAIL_SHOT_WORKAROUND // not needed on 600D
 
 /** FIO_RenameFile works **/
 #define CONFIG_FIO_RENAMEFILE_WORKS

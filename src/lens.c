@@ -675,7 +675,7 @@ int mlu_lock_mirror_if_needed() // called by lens_take_picture; returns 0 if suc
     if (drive_mode == DRIVE_SELFTIMER_2SEC || drive_mode == DRIVE_SELFTIMER_REMOTE || drive_mode == DRIVE_SELFTIMER_CONTINUOUS)
         return 0;
     
-    if (get_mlu() && CURRENT_DIALOG_MAYBE)
+    if (get_mlu() && CURRENT_GUI_MODE)
     {
         SetGUIRequestMode(0);
         int iter = 20;
@@ -2609,26 +2609,48 @@ static LVINFO_UPDATE_FUNC(iso_update)
 
 static LVINFO_UPDATE_FUNC(wb_update)
 {
-    LVINFO_BUFFER(8);
+    LVINFO_BUFFER(16);
     
     if( lens_info.wb_mode == WB_KELVIN )
     {
-        snprintf(buffer, sizeof(buffer), lens_info.kelvin >= 10000 ? "%5dK" : "%4dK ", lens_info.kelvin);
+        snprintf(buffer, sizeof(buffer), "%dK", lens_info.kelvin);
     }
     else
     {
-        snprintf(buffer, sizeof(buffer), "%s ",
-            (uniwb_is_active()      ? " UniWB" :
+        snprintf(buffer, sizeof(buffer), "%s",
+            (uniwb_is_active()      ? "UniWB"  :
             (lens_info.wb_mode == 0 ? "AutoWB" : 
-            (lens_info.wb_mode == 1 ? " Sunny" :
+            (lens_info.wb_mode == 1 ? "Sunny"  :
             (lens_info.wb_mode == 2 ? "Cloudy" : 
-            (lens_info.wb_mode == 3 ? "Tungst" : 
-            (lens_info.wb_mode == 4 ? "Fluor." : 
-            (lens_info.wb_mode == 5 ? " Flash" : 
-            (lens_info.wb_mode == 6 ? "Custom" : 
-            (lens_info.wb_mode == 8 ? " Shade" :
+            (lens_info.wb_mode == 3 ? "Tungst." : 
+            (lens_info.wb_mode == 4 ? "Fluor."  : 
+            (lens_info.wb_mode == 5 ? "Flash"   : 
+            (lens_info.wb_mode == 6 ? "Custom"  : 
+            (lens_info.wb_mode == 8 ? "Shade"   :
              "unk")))))))))
         );
+    }
+    
+    int gm = lens_info.wbs_gm;
+    int ba = lens_info.wbs_ba;
+    
+    if (gm || ba)
+    {
+        /* a dot is smaller than a space */
+        if (buffer[strlen(buffer)-1] != '.')
+        {
+            STR_APPEND(buffer, ".");
+        }
+    }
+    
+    if (gm)
+    {
+        STR_APPEND(buffer, "%s%d", gm > 0 ? "G" : "M", ABS(gm));
+    }
+
+    if (ba)
+    {
+        STR_APPEND(buffer, "%s%d", ba > 0 ? "A" : "B", ABS(ba));
     }
 }
 

@@ -25,9 +25,8 @@ extern WEAK_FUNC(ret_0) void playback_compare_images_task(int direction);
 #define DISPLAY_IS_ON display_is_on()
 #define PLAY_MODE is_play_mode()
 #define MENU_MODE is_menu_mode()
-#define DLG_SIGNATURE get_dlg_signature()
 #define HALFSHUTTER_PRESSED get_halfshutter_pressed()
-#define CURRENT_DIALOG_MAYBE get_gui_mode()
+#define CURRENT_GUI_MODE get_gui_mode()
 
 /* button codes */
 static int BGMT_PLAY;
@@ -39,6 +38,7 @@ static int BGMT_WHEEL_LEFT;
 static int BGMT_WHEEL_RIGHT;
 static int BGMT_WHEEL_UP;
 static int BGMT_WHEEL_DOWN;
+static int BGMT_TRASH;
 
 /* some private functions that should not be called from user code */
 extern void* __priv_malloc(size_t size);
@@ -106,476 +106,548 @@ static void next_tick_cbr(int arg1, void* arg2)
     SetHPTimerNextTick(arg1, 100000, timer_cbr, overrun_cbr, 0);
 }
 
-#define TEST_MSG(fmt, ...) { if (!silence || !ok) log_len += snprintf(log_buf + log_len, maxlen - log_len, fmt, ## __VA_ARGS__); printf(fmt, ## __VA_ARGS__); }
-#define TEST_VOID(x) { x; ok = 1; TEST_MSG("       %s\n", #x); }
-#define TEST_FUNC(x) { int ans = (int)(x); ok = 1; TEST_MSG("       %s => 0x%x\n", #x, ans); }
-#define TEST_FUNC_CHECK(x, condition) { int ans = (int)(x); ok = ans condition; TEST_MSG("[%s] %s => 0x%x\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else failed_tests++; }
-#define TEST_FUNC_CHECK_STR(x, expected_string) { char* ans = (char*)(x); ok = streq(ans, expected_string); TEST_MSG("[%s] %s => '%s'\n", ok ? "Pass" : "FAIL", #x, ans); if (ok) passed_tests++; else { failed_tests++; msleep(500); } }
+#define TEST_MSG(fmt, ...) { if (!stub_silence || !stub_ok) stub_log_len += snprintf(stub_log_buf + stub_log_len, stub_max_log_len - stub_log_len, fmt, ## __VA_ARGS__); printf(fmt, ## __VA_ARGS__); }
+#define TEST_VOID(x) { x; stub_ok = 1; TEST_MSG("       %s\n", #x); }
+#define TEST_FUNC(x) { int ans = (int)(x); stub_ok = 1; TEST_MSG("       %s => 0x%x\n", #x, ans); }
+#define TEST_FUNC_CHECK(x, condition) { int ans = (int)(x); stub_ok = ans condition; TEST_MSG("[%s] %s => 0x%x\n", stub_ok ? "Pass" : "FAIL", #x, ans); if (stub_ok) stub_passed_tests++; else stub_failed_tests++; }
+#define TEST_FUNC_CHECK_STR(x, expected_string) { char* ans = (char*)(x); stub_ok = streq(ans, expected_string); TEST_MSG("[%s] %s => '%s'\n", stub_ok ? "Pass" : "FAIL", #x, ans); if (stub_ok) stub_passed_tests++; else { stub_failed_tests++; msleep(500); } }
+
+static char * stub_log_buf = 0;
+static int stub_log_len = 0;
+static int stub_max_log_len = 1024*1024;
+static int stub_silence = 0;
+static int stub_ok = 1;
+static int stub_passed_tests = 0;
+static int stub_failed_tests = 0;
+
+static void stub_test_file_io()
+{
+    /* File I/O */
+    FILE* f;
+    TEST_FUNC_CHECK(f = FIO_CreateFile("test.dat"), != 0);
+    TEST_FUNC_CHECK(FIO_WriteFile(f, (void*)0xFF000000, 0x10000), == 0x10000);
+    TEST_FUNC_CHECK(FIO_WriteFile(f, (void*)0xFF000000, 0x10000), == 0x10000);
+    TEST_VOID(FIO_CloseFile(f));
+    uint32_t size;
+    TEST_FUNC_CHECK(FIO_GetFileSize("test.dat", &size), == 0);
+    TEST_FUNC_CHECK(size, == 0x20000);
+    void* p;
+    TEST_FUNC_CHECK(p = (void*)_alloc_dma_memory(0x20000), != 0);
+    TEST_FUNC_CHECK(f = FIO_OpenFile("test.dat", O_RDONLY | O_SYNC), != 0);
+    TEST_FUNC_CHECK(FIO_ReadFile(f, p, 0x20000), == 0x20000);
+    TEST_VOID(FIO_CloseFile(f));
+    TEST_VOID(_free_dma_memory(p));
+
+    {
+        int count = 0;
+        FILE* f = FIO_CreateFile("test.dat");
+        if (f)
+        {
+            for (int i = 0; i < 1000; i++)
+                count += FIO_WriteFile(f, "Will it blend?\n", 15);
+            FIO_CloseFile(f);
+        }
+        TEST_FUNC_CHECK(count, == 1000*15);
+    }
+    
+    /* FIO_SeekSkipFile test */
+    {
+        void* buf = 0;
+        TEST_FUNC_CHECK(buf = fio_malloc(0x1000000), != 0);
+        memset(buf, 0x13, 0x1000000);
+        if (buf)
+        {
+            /* create a file a little higher than 2 GiB for testing */
+            /* to make sure the stub handles 64-bit position arguments */
+            FILE* f = FIO_CreateFile("test.dat");
+            if (f)
+            {
+                printf("Creating a 2GB file...       ");
+                for (int i = 0; i < 130; i++)
+                {
+                    printf("\b\b\b\b\b\b\b%3d/130", i);
+                    FIO_WriteFile(f, buf, 0x1000000);
+                }
+                printf("\n");
+                FIO_CloseFile(f);
+                TEST_FUNC_CHECK(FIO_GetFileSize_direct("test.dat"), == (int)0x82000000);
+                
+                /* now reopen it to append something */
+                TEST_FUNC_CHECK(f = FIO_OpenFile("test.dat", O_RDWR | O_SYNC), != 0);
+                TEST_FUNC_CHECK(FIO_SeekSkipFile(f, 0, SEEK_END), == (int)0x82000000);
+                TEST_FUNC_CHECK(FIO_WriteFile(f, buf, 0x10), == 0x10);
+
+                /* some more seeking around */
+                TEST_FUNC_CHECK(FIO_SeekSkipFile(f, -0x20, SEEK_END), == (int)0x81fffff0);
+                TEST_FUNC_CHECK(FIO_WriteFile(f, buf, 0x30), == 0x30);
+                TEST_FUNC_CHECK(FIO_SeekSkipFile(f, 0x20, SEEK_SET), == 0x20);
+                TEST_FUNC_CHECK(FIO_SeekSkipFile(f, 0x30, SEEK_CUR), == 0x50);
+                TEST_FUNC_CHECK(FIO_SeekSkipFile(f, -0x20, SEEK_CUR), == 0x30);
+                
+                /* note: seeking past the end of a file does not work on all cameras, so we'll not test that */
+
+                FIO_CloseFile(f);
+                TEST_FUNC_CHECK(FIO_GetFileSize_direct("test.dat"), == (int)0x82000020);
+            }
+        }
+        fio_free(buf);
+    }
+
+    TEST_FUNC_CHECK(FIO_RemoveFile("test.dat"), == 0);
+}
+
+static void stub_test_gui_timers()
+{
+    /* GUI timers */
+    
+    /* SetTimerAfter, CancelTimer */
+    {
+        int t0 = get_us_clock_value()/1000;
+        int ta0 = 0;
+
+        /* this one should overrun */
+        timer_func = 0;
+        TEST_FUNC_CHECK(SetTimerAfter(0, timer_cbr, overrun_cbr, 0), == 0x15);
+        TEST_FUNC_CHECK(timer_func, == 2);
+        ta0 = timer_arg;
+
+        /* this one should not overrun */
+        timer_func = 0;
+        TEST_FUNC_CHECK(SetTimerAfter(1000, timer_cbr, overrun_cbr, 0), % 2 == 0);
+        TEST_VOID(msleep(900));
+        TEST_FUNC_CHECK(timer_func, == 0);  /* ta0 +  900 => CBR should not be called yet */
+        TEST_VOID(msleep(200));
+        TEST_FUNC_CHECK(timer_func, == 1);  /* ta0 + 1100 => CBR should be called by now */
+        TEST_FUNC_CHECK(ABS((timer_time/1000 - t0) - 1000), <= 20);
+        TEST_FUNC_CHECK(ABS((timer_arg - ta0) - 1000), <= 20);
+        // current time: ta0+1100
+
+        /* this one should not call the CBR, because we'll cancel it */
+        timer_func = 0;
+        int timer;
+        TEST_FUNC_CHECK(timer = SetTimerAfter(1000, timer_cbr, overrun_cbr, 0), % 2 == 0);
+        TEST_VOID(msleep(400));
+        TEST_VOID(CancelTimer(timer));
+        TEST_FUNC_CHECK(timer_func, == 0);  /* ta0 + 1500 => CBR should be not be called, and we'll cancel it early */
+        TEST_VOID(msleep(1500));
+        TEST_FUNC_CHECK(timer_func, == 0);  /* ta0 + 3000 => CBR should be not be called, because it was canceled */
+    }
+    
+    /* microsecond timer wraps around at 1048576 */
+    int DeltaT(int a, int b)
+    {
+        return MOD(a - b, 1048576);
+    }
+
+    /* SetHPTimerNextTick, SetHPTimerAfterTimeout, SetHPTimerAfterNow */
+    {
+        /* run these tests in PLAY mode, because the CPU usage is higher in other modes, and may influence the results */
+        enter_play_mode();
+
+        int64_t t0 = get_us_clock_value();
+        int ta0 = 0;
+
+        /* this one should overrun */
+        timer_func = 0;
+        TEST_FUNC_CHECK(SetHPTimerAfterNow(0, timer_cbr, overrun_cbr, 0), == 0x15);
+        TEST_FUNC_CHECK(timer_func, == 2);
+        ta0 = timer_arg;
+
+        /* this one should not overrun */
+        timer_func = 0;
+        TEST_FUNC_CHECK(SetHPTimerAfterNow(100000, timer_cbr, overrun_cbr, 0), % 2 == 0);
+        TEST_VOID(msleep(90));
+        TEST_FUNC_CHECK(timer_func, == 0);  /* ta0 +  90000 => CBR should not be called yet */
+        TEST_VOID(msleep(20));
+        TEST_FUNC_CHECK(timer_func, == 1);  /* ta0 + 110000 => CBR should be called by now */
+        
+        TEST_FUNC_CHECK(ABS(DeltaT(timer_time, t0) - 100000), <= 2000);
+        TEST_FUNC_CHECK(ABS(DeltaT(timer_arg, ta0) - 100000), <= 2000);
+        TEST_FUNC_CHECK(ABS((get_us_clock_value() - t0) - 110000), <= 2000);
+
+        /* this one should call SetHPTimerNextTick in the CBR */
+        timer_func = 0;
+        TEST_FUNC_CHECK(SetHPTimerAfterNow(90000, next_tick_cbr, overrun_cbr, 0), % 2 == 0);
+        TEST_VOID(msleep(80));
+        TEST_FUNC_CHECK(timer_func, == 0);  /* ta0 + 190000 => CBR should not be called yet */
+        TEST_VOID(msleep(20));
+        TEST_FUNC_CHECK(timer_func, == 3);  /* ta0 + 210000 => next_tick_cbr should be called by now */
+                                                /* and it will setup timer_cbr via SetHPTimerNextTick */
+        TEST_VOID(msleep(80));
+        TEST_FUNC_CHECK(timer_func, == 3);  /* ta0 + 290000 => timer_cbr should not be called yet */
+        TEST_VOID(msleep(20));
+        TEST_FUNC_CHECK(timer_func, == 1);  /* ta0 + 310000 => timer_cbr should be called by now */
+        TEST_FUNC_CHECK(ABS(DeltaT(timer_time, t0) - 300000), <= 2000);
+        TEST_FUNC_CHECK(ABS(DeltaT(timer_arg, ta0) - 300000), <= 2000);
+        TEST_FUNC_CHECK(ABS((get_us_clock_value() - t0) - 310000), <= 2000);
+    }
+}
+
+static void stub_test_other_timers()
+{
+    // digic clock, msleep
+    int t0, t1;
+    TEST_FUNC(t0 = *(uint32_t*)0xC0242014);
+    TEST_VOID(msleep(250));
+    TEST_FUNC(t1 = *(uint32_t*)0xC0242014);
+    TEST_FUNC_CHECK(ABS(MOD(t1-t0, 1048576)/1000 - 250), < 30);
+
+    // calendar
+    struct tm now;
+    int s0, s1;
+    TEST_VOID(LoadCalendarFromRTC( &now ));
+    TEST_FUNC(s0 = now.tm_sec);
+
+    TEST_MSG(
+        "       Date/time: %04d/%02d/%02d %02d:%02d:%02d\n",
+        now.tm_year + 1900,
+        now.tm_mon + 1,
+        now.tm_mday,
+        now.tm_hour,
+        now.tm_min,
+        now.tm_sec
+    );
+
+    TEST_VOID(msleep(1500));
+    TEST_VOID(LoadCalendarFromRTC( &now ));
+    TEST_FUNC(s1 = now.tm_sec);
+    TEST_FUNC_CHECK(MOD(s1-s0, 60), >= 1);
+    TEST_FUNC_CHECK(MOD(s1-s0, 60), <= 2);
+}
+
+static void stub_test_malloc_n_allocmem()
+{
+    // mallocs
+    // bypass the memory backend and use low-level calls only for these tests
+    // run this test 200 times to check for memory leaks
+    for (int i = 0; i < 200; i++)
+    {
+        int stub_silence = (i > 0);
+        int m0, m1, m2;
+        void* p;
+        TEST_FUNC(m0 = MALLOC_FREE_MEMORY);
+        TEST_FUNC_CHECK(p = (void*)_malloc(50*1024), != 0);
+        TEST_FUNC_CHECK(CACHEABLE(p), == (int)p);
+        TEST_FUNC(m1 = MALLOC_FREE_MEMORY);
+        TEST_VOID(_free(p));
+        TEST_FUNC(m2 = MALLOC_FREE_MEMORY);
+        TEST_FUNC_CHECK(ABS((m0-m1) - 50*1024), < 2048);
+        TEST_FUNC_CHECK(ABS(m0-m2), < 2048);
+
+        TEST_FUNC(m0 = GetFreeMemForAllocateMemory());
+        TEST_FUNC_CHECK(p = (void*)_AllocateMemory(256*1024), != 0);
+        TEST_FUNC_CHECK(CACHEABLE(p), == (int)p);
+        TEST_FUNC(m1 = GetFreeMemForAllocateMemory());
+        TEST_VOID(_FreeMemory(p));
+        TEST_FUNC(m2 = GetFreeMemForAllocateMemory());
+        TEST_FUNC_CHECK(ABS((m0-m1) - 256*1024), < 2048);
+        TEST_FUNC_CHECK(ABS(m0-m2), < 2048);
+
+        // these buffers may be from different memory pools, just check for leaks in main pools
+        int m01, m02, m11, m12;
+        TEST_FUNC(m01 = MALLOC_FREE_MEMORY);
+        TEST_FUNC(m02 = GetFreeMemForAllocateMemory());
+        TEST_FUNC_CHECK(p = (void*)_alloc_dma_memory(256*1024), != 0);
+        TEST_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
+        TEST_FUNC_CHECK(CACHEABLE(p), != (int)p);
+        TEST_FUNC_CHECK(UNCACHEABLE(CACHEABLE(p)), == (int)p);
+        TEST_VOID(_free_dma_memory(p));
+        TEST_FUNC_CHECK(p = (void*)_shoot_malloc(24*1024*1024), != 0);
+        TEST_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
+        TEST_VOID(_shoot_free(p));
+        TEST_FUNC(m11 = MALLOC_FREE_MEMORY);
+        TEST_FUNC(m12 = GetFreeMemForAllocateMemory());
+        TEST_FUNC_CHECK(ABS(m01-m11), < 2048);
+        TEST_FUNC_CHECK(ABS(m02-m12), < 2048);
+    }
+}
+
+static void stub_test_exmem()
+{
+    // exmem
+    // run this test 20 times to check for memory leaks
+    for (int i = 0; i < 20; i++)
+    {
+        int stub_silence = (i > 0);
+
+        struct memSuite * suite = 0;
+        struct memChunk * chunk = 0;
+        void* p = 0;
+        int total = 0;
+
+        // contiguous allocation
+        TEST_FUNC_CHECK(suite = shoot_malloc_suite_contig(24*1024*1024), != 0);
+        TEST_FUNC_CHECK_STR(suite->signature, "MemSuite");
+        TEST_FUNC_CHECK(suite->num_chunks, == 1);
+        TEST_FUNC_CHECK(suite->size, == 24*1024*1024);
+        TEST_FUNC_CHECK(chunk = GetFirstChunkFromSuite(suite), != 0);
+        TEST_FUNC_CHECK_STR(chunk->signature, "MemChunk");
+        TEST_FUNC_CHECK(chunk->size, == 24*1024*1024);
+        TEST_FUNC_CHECK(p = GetMemoryAddressOfMemoryChunk(chunk), != 0);
+        TEST_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
+        TEST_VOID(shoot_free_suite(suite); suite = 0; chunk = 0;);
+
+        // contiguous allocation, largest block
+        TEST_FUNC_CHECK(suite = shoot_malloc_suite_contig(0), != 0);
+        TEST_FUNC_CHECK_STR(suite->signature, "MemSuite");
+        TEST_FUNC_CHECK(suite->num_chunks, == 1);
+        TEST_FUNC_CHECK(suite->size, > 24*1024*1024);
+        TEST_FUNC_CHECK(chunk = GetFirstChunkFromSuite(suite), != 0);
+        TEST_FUNC_CHECK_STR(chunk->signature, "MemChunk");
+        TEST_FUNC_CHECK(chunk->size, == suite->size);
+        TEST_FUNC_CHECK(p = GetMemoryAddressOfMemoryChunk(chunk), != 0);
+        TEST_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
+        TEST_VOID(shoot_free_suite(suite); suite = 0; chunk = 0;);
+
+        // fragmented allocation
+        TEST_FUNC_CHECK(suite = shoot_malloc_suite(64*1024*1024), != 0);
+        TEST_FUNC_CHECK_STR(suite->signature, "MemSuite");
+        TEST_FUNC_CHECK(suite->num_chunks, > 1);
+        TEST_FUNC_CHECK(suite->size, == 64*1024*1024);
+
+        // iterating through chunks
+        total = 0;
+        TEST_FUNC_CHECK(chunk = GetFirstChunkFromSuite(suite), != 0);
+        while(chunk)
+        {
+            TEST_FUNC_CHECK_STR(chunk->signature, "MemChunk");
+            TEST_FUNC_CHECK(total += chunk->size, <= 64*1024*1024);
+            TEST_FUNC_CHECK(p = GetMemoryAddressOfMemoryChunk(chunk), != 0);
+            TEST_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
+            TEST_FUNC(chunk = GetNextMemoryChunk(suite, chunk));
+        }
+        TEST_FUNC_CHECK(total, == 64*1024*1024);
+        TEST_VOID(shoot_free_suite(suite); suite = 0; chunk = 0; );
+
+        // fragmented allocation, max size
+        TEST_FUNC_CHECK(suite = shoot_malloc_suite(0), != 0);
+        TEST_FUNC_CHECK_STR(suite->signature, "MemSuite");
+        TEST_FUNC_CHECK(suite->num_chunks, > 1);
+        TEST_FUNC_CHECK(suite->size, > 64*1024*1024);
+
+        // iterating through chunks
+        total = 0;
+        TEST_FUNC_CHECK(chunk = GetFirstChunkFromSuite(suite), != 0);
+        while(chunk)
+        {
+            TEST_FUNC_CHECK_STR(chunk->signature, "MemChunk");
+            TEST_FUNC_CHECK(total += chunk->size, <= suite->size);
+            TEST_FUNC_CHECK(p = GetMemoryAddressOfMemoryChunk(chunk), != 0);
+            TEST_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
+            TEST_FUNC(chunk = GetNextMemoryChunk(suite, chunk));
+        }
+        TEST_FUNC_CHECK(total, == suite->size);
+        TEST_VOID(shoot_free_suite(suite); suite = 0; chunk = 0; );
+    }
+}
+
+static void stub_test_strings()
+{
+    // strlen
+    TEST_FUNC_CHECK(strlen("abc"), == 3);
+    TEST_FUNC_CHECK(strlen("qwertyuiop"), == 10);
+    TEST_FUNC_CHECK(strlen(""), == 0);
+
+    // strcpy
+    char msg[10];
+    TEST_FUNC_CHECK(strcpy(msg, "hi there"), == (int)msg);
+    TEST_FUNC_CHECK_STR(msg, "hi there");
+
+    // strcmp, snprintf
+    // gcc will optimize strcmp calls with constant arguments, so use snprintf to force gcc to call strcmp
+    char a[50]; char b[50];
+
+    TEST_FUNC_CHECK(snprintf(a, sizeof(a), "foo"), == 3);
+    TEST_FUNC_CHECK(snprintf(b, sizeof(b), "foo"), == 3);
+    TEST_FUNC_CHECK(strcmp(a, b), == 0);
+
+    TEST_FUNC_CHECK(snprintf(a, sizeof(a), "bar"), == 3);
+    TEST_FUNC_CHECK(snprintf(b, sizeof(b), "baz"), == 3);
+    TEST_FUNC_CHECK(strcmp(a, b), < 0);
+
+    TEST_FUNC_CHECK(snprintf(a, sizeof(a), "Display"), == 7);
+    TEST_FUNC_CHECK(snprintf(b, sizeof(b), "Defishing"), == 9);
+    TEST_FUNC_CHECK(strcmp(a, b), > 0);
+
+    // vsnprintf (called by snprintf)
+    char buf[4];
+    TEST_FUNC_CHECK(snprintf(buf, 3, "%d", 1234), == 2);
+    TEST_FUNC_CHECK_STR(buf, "12");
+
+    // memcpy, memset, bzero32
+    char foo[] __attribute__((aligned(32))) = "qwertyuiop";
+    char bar[] __attribute__((aligned(32))) = "asdfghjkl;";
+    TEST_FUNC_CHECK(memcpy(foo, bar, 6), == (int)foo);
+    TEST_FUNC_CHECK_STR(foo, "asdfghuiop");
+    TEST_FUNC_CHECK(memset(bar, '*', 5), == (int)bar);
+    TEST_FUNC_CHECK_STR(bar, "*****hjkl;");
+    TEST_VOID(bzero32(bar + 5, 5));
+    TEST_FUNC_CHECK_STR(bar, "****");
+}
+
+static void stub_test_engio()
+{
+    // engio
+    TEST_VOID(EngDrvOut(LCD_Palette[0], 0x1234));
+    TEST_FUNC_CHECK(shamem_read(LCD_Palette[0]), == 0x1234);
+}
+
+static void stub_test_display()
+{
+    // call, DISPLAY_IS_ON
+    TEST_VOID(call("TurnOnDisplay"));
+    TEST_FUNC_CHECK(DISPLAY_IS_ON, != 0);
+    TEST_VOID(call("TurnOffDisplay"));
+    TEST_FUNC_CHECK(DISPLAY_IS_ON, == 0);
+    TEST_VOID(call("TurnOnDisplay"));
+    TEST_FUNC_CHECK(DISPLAY_IS_ON, != 0);
+}
+
+static void stub_test_gui()
+{
+    // SetGUIRequestMode, CURRENT_GUI_MODE
+    TEST_VOID(SetGUIRequestMode(1); msleep(1000););
+    TEST_FUNC_CHECK(CURRENT_GUI_MODE, == 1);
+    TEST_VOID(SetGUIRequestMode(2); msleep(1000););
+    TEST_FUNC_CHECK(CURRENT_GUI_MODE, == 2);
+    TEST_VOID(SetGUIRequestMode(0); msleep(1000););
+    TEST_FUNC_CHECK(CURRENT_GUI_MODE, == 0);
+    TEST_FUNC_CHECK(display_idle(), != 0);
+
+    // GUI_Control
+    msleep(1000);
+    TEST_VOID(GUI_Control(BGMT_PLAY, 0, 0, 0); msleep(1000););
+    TEST_FUNC_CHECK(PLAY_MODE, != 0);
+    TEST_FUNC_CHECK(MENU_MODE, == 0);
+    TEST_VOID(GUI_Control(BGMT_MENU, 0, 0, 0); msleep(1000););
+    TEST_FUNC_CHECK(MENU_MODE, != 0);
+    TEST_FUNC_CHECK(PLAY_MODE, == 0);
+
+    // also check dialog signature here, because display is on for sure
+    struct gui_task * current = gui_task_list.current;
+    struct dialog * dialog = current->priv;
+    TEST_FUNC_CHECK_STR(dialog->type, "DIALOG");
+
+    TEST_VOID(GUI_Control(BGMT_MENU, 0, 0, 0); msleep(500););
+    TEST_FUNC_CHECK(MENU_MODE, == 0);
+    TEST_FUNC_CHECK(PLAY_MODE, == 0);
+
+    // sw1
+    TEST_VOID(SW1(1,100));
+    TEST_FUNC_CHECK(HALFSHUTTER_PRESSED, == 1);
+    TEST_VOID(SW1(0,100));
+    TEST_FUNC_CHECK(HALFSHUTTER_PRESSED, == 0);
+    
+    /* take a picture and go to play mode */
+    lens_take_picture(64, AF_DISABLE);
+    msleep(2000);
+    enter_play_mode();
+    TEST_FUNC_CHECK(is_play_mode(), != 0);
+    TEST_FUNC_CHECK(is_pure_play_photo_mode(), != 0);
+    TEST_FUNC_CHECK(is_pure_play_movie_mode(), == 0);
+    
+    /* try to erase the picture (don't actually erase it; just check dialog codes) */
+    fake_simple_button(BGMT_TRASH);
+    msleep(500);
+    TEST_FUNC_CHECK(is_play_mode(), != 0);
+    TEST_FUNC_CHECK(is_pure_play_photo_mode(), == 0);
+    TEST_FUNC_CHECK(is_pure_play_movie_mode(), == 0);
+    fake_simple_button(BGMT_TRASH);
+    msleep(500);
+
+    /* record a movie and go to play mode */
+    movie_start();
+    msleep(2000);
+    movie_end();
+    msleep(2000);
+    enter_play_mode();
+    TEST_FUNC_CHECK(is_play_mode(), != 0);
+    TEST_FUNC_CHECK(is_pure_play_photo_mode(), == 0);
+    TEST_FUNC_CHECK(is_pure_play_movie_mode(), != 0);
+
+    /* try to erase the movie (don't actually erase it; just check dialog codes) */
+    fake_simple_button(BGMT_TRASH);
+    msleep(500);
+    TEST_FUNC_CHECK(is_play_mode(), != 0);
+    TEST_FUNC_CHECK(is_pure_play_photo_mode(), == 0);
+    TEST_FUNC_CHECK(is_pure_play_movie_mode(), == 0);
+    fake_simple_button(BGMT_TRASH);
+    msleep(500);
+}
 
 static int test_task_created = 0;
 static void test_task() { test_task_created = 1; }
 
+static void stub_test_dryos()
+{
+    // task_create
+    TEST_FUNC(task_create("test", 0x1c, 0x1000, test_task, 0));
+    msleep(100);
+    TEST_FUNC_CHECK(test_task_created, == 1);
+    TEST_FUNC_CHECK_STR(get_task_name_from_id(get_current_task()), "run_test");
+    
+    extern int task_max;
+    TEST_FUNC_CHECK(task_max, >= 104);    /* so far, task_max is 104 on most cameras */
+    TEST_FUNC_CHECK(task_max, <= 512);    /* I guess it's not higher than that */
+
+    // mq
+    static struct msg_queue * mq = 0;
+    int m = 0;
+    TEST_FUNC_CHECK(mq = mq ? mq : (void*)msg_queue_create("test", 5), != 0);
+    TEST_FUNC_CHECK(msg_queue_post(mq, 0x1234567), == 0);
+    TEST_FUNC_CHECK(msg_queue_receive(mq, (struct event **) &m, 500), == 0);
+    TEST_FUNC_CHECK(m, == 0x1234567);
+    TEST_FUNC_CHECK(msg_queue_receive(mq, (struct event **) &m, 500), != 0);
+
+    // sem
+    static struct semaphore * sem = 0;
+    TEST_FUNC_CHECK(sem = sem ? sem : create_named_semaphore("test", 1), != 0);
+    TEST_FUNC_CHECK(take_semaphore(sem, 500), == 0);
+    TEST_FUNC_CHECK(take_semaphore(sem, 500), != 0);
+    TEST_FUNC_CHECK(give_semaphore(sem), == 0);
+    TEST_FUNC_CHECK(take_semaphore(sem, 500), == 0);
+    TEST_FUNC_CHECK(give_semaphore(sem), == 0);
+
+    // recursive lock
+    static void * rlock = 0;
+    TEST_FUNC_CHECK(rlock = rlock ? rlock : CreateRecursiveLock(0), != 0);
+    TEST_FUNC_CHECK(AcquireRecursiveLock(rlock, 500), == 0);
+    TEST_FUNC_CHECK(AcquireRecursiveLock(rlock, 500), == 0);
+    TEST_FUNC_CHECK(ReleaseRecursiveLock(rlock), == 0);
+    TEST_FUNC_CHECK(ReleaseRecursiveLock(rlock), == 0);
+    TEST_FUNC_CHECK(ReleaseRecursiveLock(rlock), != 0);
+}
+
 static void stub_test_task(void* arg)
 {
-    int maxlen = 1024*1024;
-    int log_len = 0;
-    char* log_buf = fio_malloc(maxlen);
-    if (!log_buf) return;
+    if (stub_log_buf) return;
+    stub_log_buf = fio_malloc(stub_max_log_len);
+    if (!stub_log_buf) return;
     
     msleep(1000);
     
     console_show();
     
-    if (!display_is_on())
-    {
-        enter_play_mode();
-    }
+    enter_play_mode();
+    TEST_FUNC_CHECK(is_play_mode(), != 0);
 
     // this test can be repeated many times, as burn-in test
     int n = (int)arg > 0 ? 1 : 100;
     msleep(1000);
     info_led_on();
-    int passed_tests = 0;
-    int failed_tests = 0;
-
-    int silence = 0;    // if 1, only failures are logged to file
-    int ok = 1;
 
     for (int i=0; i < n; i++)
     {
-        /* File I/O */
-
-        FILE* f;
-        TEST_FUNC_CHECK(f = FIO_CreateFile("test.dat"), != 0);
-        TEST_FUNC_CHECK(FIO_WriteFile(f, (void*)0xFF000000, 0x10000), == 0x10000);
-        TEST_FUNC_CHECK(FIO_WriteFile(f, (void*)0xFF000000, 0x10000), == 0x10000);
-        TEST_VOID(FIO_CloseFile(f));
-        uint32_t size;
-        TEST_FUNC_CHECK(FIO_GetFileSize("test.dat", &size), == 0);
-        TEST_FUNC_CHECK(size, == 0x20000);
-        void* p;
-        TEST_FUNC_CHECK(p = (void*)_alloc_dma_memory(0x20000), != 0);
-        TEST_FUNC_CHECK(f = FIO_OpenFile("test.dat", O_RDONLY | O_SYNC), != 0);
-        TEST_FUNC_CHECK(FIO_ReadFile(f, p, 0x20000), == 0x20000);
-        TEST_VOID(FIO_CloseFile(f));
-        TEST_VOID(_free_dma_memory(p));
-
-        {
-            int count = 0;
-            FILE* f = FIO_CreateFile("test.dat");
-            if (f)
-            {
-                for (int i = 0; i < 1000; i++)
-                    count += FIO_WriteFile(f, "Will it blend?\n", 15);
-                FIO_CloseFile(f);
-            }
-            TEST_FUNC_CHECK(count, == 1000*15);
-        }
-        
-        /* FIO_SeekSkipFile test */
-        {
-            void* buf = 0;
-            TEST_FUNC_CHECK(buf = fio_malloc(0x1000000), != 0);
-            memset(buf, 0x13, 0x1000000);
-            if (buf)
-            {
-                /* create a file a little higher than 2 GiB for testing */
-                /* to make sure the stub handles 64-bit position arguments */
-                FILE* f = FIO_CreateFile("test.dat");
-                if (f)
-                {
-                    printf("Creating a 2GB file...       ");
-                    for (int i = 0; i < 130; i++)
-                    {
-                        printf("\b\b\b\b\b\b\b%3d/130", i);
-                        FIO_WriteFile(f, buf, 0x1000000);
-                    }
-                    printf("\n");
-                    FIO_CloseFile(f);
-                    TEST_FUNC_CHECK(FIO_GetFileSize_direct("test.dat"), == (int)0x82000000);
-                    
-                    /* now reopen it to append something */
-                    TEST_FUNC_CHECK(f = FIO_OpenFile("test.dat", O_RDWR | O_SYNC), != 0);
-                    TEST_FUNC_CHECK(FIO_SeekSkipFile(f, 0, SEEK_END), == (int)0x82000000);
-                    TEST_FUNC_CHECK(FIO_WriteFile(f, buf, 0x10), == 0x10);
-
-                    /* some more seeking around */
-                    TEST_FUNC_CHECK(FIO_SeekSkipFile(f, -0x20, SEEK_END), == (int)0x81fffff0);
-                    TEST_FUNC_CHECK(FIO_WriteFile(f, buf, 0x30), == 0x30);
-                    TEST_FUNC_CHECK(FIO_SeekSkipFile(f, 0x20, SEEK_SET), == 0x20);
-                    TEST_FUNC_CHECK(FIO_SeekSkipFile(f, 0x30, SEEK_CUR), == 0x50);
-                    TEST_FUNC_CHECK(FIO_SeekSkipFile(f, -0x20, SEEK_CUR), == 0x30);
-                    
-                    /* note: seeking past the end of a file does not work on all cameras, so we'll not test that */
-
-                    FIO_CloseFile(f);
-                    TEST_FUNC_CHECK(FIO_GetFileSize_direct("test.dat"), == (int)0x82000020);
-                }
-            }
-            fio_free(buf);
-        }
-
-        TEST_FUNC_CHECK(FIO_RemoveFile("test.dat"), == 0);
-
-
-        /* GUI timers */
-        
-        /* SetTimerAfter, CancelTimer */
-        {
-            int t0 = get_us_clock_value()/1000;
-            int ta0 = 0;
-
-            /* this one should overrun */
-            timer_func = 0;
-            TEST_FUNC_CHECK(SetTimerAfter(0, timer_cbr, overrun_cbr, 0), == 0x15);
-            TEST_FUNC_CHECK(timer_func, == 2);
-            ta0 = timer_arg;
-
-            /* this one should not overrun */
-            timer_func = 0;
-            TEST_FUNC_CHECK(SetTimerAfter(1000, timer_cbr, overrun_cbr, 0), % 2 == 0);
-            TEST_VOID(msleep(900));
-            TEST_FUNC_CHECK(timer_func, == 0);  /* ta0 +  900 => CBR should not be called yet */
-            TEST_VOID(msleep(200));
-            TEST_FUNC_CHECK(timer_func, == 1);  /* ta0 + 1100 => CBR should be called by now */
-            TEST_FUNC_CHECK(ABS((timer_time/1000 - t0) - 1000), <= 20);
-            TEST_FUNC_CHECK(ABS((timer_arg - ta0) - 1000), <= 20);
-            // current time: ta0+1100
-
-            /* this one should not call the CBR, because we'll cancel it */
-            timer_func = 0;
-            int timer;
-            TEST_FUNC_CHECK(timer = SetTimerAfter(1000, timer_cbr, overrun_cbr, 0), % 2 == 0);
-            TEST_VOID(msleep(400));
-            TEST_VOID(CancelTimer(timer));
-            TEST_FUNC_CHECK(timer_func, == 0);  /* ta0 + 1500 => CBR should be not be called, and we'll cancel it early */
-            TEST_VOID(msleep(1500));
-            TEST_FUNC_CHECK(timer_func, == 0);  /* ta0 + 3000 => CBR should be not be called, because it was canceled */
-        }
-        
-        /* microsecond timer wraps around at 1048576 */
-        int DeltaT(int a, int b)
-        {
-            return MOD(a - b, 1048576);
-        }
-
-        /* SetHPTimerNextTick, SetHPTimerAfterTimeout, SetHPTimerAfterNow */
-        {
-            /* run these tests in PLAY mode, because the CPU usage is higher in other modes, and may influence the results */
-            enter_play_mode();
-
-            int64_t t0 = get_us_clock_value();
-            int ta0 = 0;
-
-            /* this one should overrun */
-            timer_func = 0;
-            TEST_FUNC_CHECK(SetHPTimerAfterNow(0, timer_cbr, overrun_cbr, 0), == 0x15);
-            TEST_FUNC_CHECK(timer_func, == 2);
-            ta0 = timer_arg;
-
-            /* this one should not overrun */
-            timer_func = 0;
-            TEST_FUNC_CHECK(SetHPTimerAfterNow(100000, timer_cbr, overrun_cbr, 0), % 2 == 0);
-            TEST_VOID(msleep(90));
-            TEST_FUNC_CHECK(timer_func, == 0);  /* ta0 +  90000 => CBR should not be called yet */
-            TEST_VOID(msleep(20));
-            TEST_FUNC_CHECK(timer_func, == 1);  /* ta0 + 110000 => CBR should be called by now */
-            
-            TEST_FUNC_CHECK(ABS(DeltaT(timer_time, t0) - 100000), <= 1000);
-            TEST_FUNC_CHECK(ABS(DeltaT(timer_arg, ta0) - 100000), <= 1000);
-            TEST_FUNC_CHECK(ABS((get_us_clock_value() - t0) - 110000), <= 1000);
-
-            /* this one should call SetHPTimerNextTick in the CBR */
-            timer_func = 0;
-            TEST_FUNC_CHECK(SetHPTimerAfterNow(90000, next_tick_cbr, overrun_cbr, 0), % 2 == 0);
-            TEST_VOID(msleep(80));
-            TEST_FUNC_CHECK(timer_func, == 0);  /* ta0 + 190000 => CBR should not be called yet */
-            TEST_VOID(msleep(20));
-            TEST_FUNC_CHECK(timer_func, == 3);  /* ta0 + 210000 => next_tick_cbr should be called by now */
-                                                    /* and it will setup timer_cbr via SetHPTimerNextTick */
-            TEST_VOID(msleep(80));
-            TEST_FUNC_CHECK(timer_func, == 3);  /* ta0 + 290000 => timer_cbr should not be called yet */
-            TEST_VOID(msleep(20));
-            TEST_FUNC_CHECK(timer_func, == 1);  /* ta0 + 310000 => timer_cbr should be called by now */
-            TEST_FUNC_CHECK(ABS(DeltaT(timer_time, t0) - 300000), <= 1000);
-            TEST_FUNC_CHECK(ABS(DeltaT(timer_arg, ta0) - 300000), <= 1000);
-            TEST_FUNC_CHECK(ABS((get_us_clock_value() - t0) - 310000), <= 1000);
-        }
-
-        /* uncomment to test only the timers */
-        //~ continue;
-
-        // strlen
-        TEST_FUNC_CHECK(strlen("abc"), == 3);
-        TEST_FUNC_CHECK(strlen("qwertyuiop"), == 10);
-        TEST_FUNC_CHECK(strlen(""), == 0);
-
-        // strcpy
-        char msg[10];
-        TEST_FUNC_CHECK(strcpy(msg, "hi there"), == (int)msg);
-        TEST_FUNC_CHECK_STR(msg, "hi there");
-
-        // strcmp, snprintf
-        // gcc will optimize strcmp calls with constant arguments, so use snprintf to force gcc to call strcmp
-        char a[50]; char b[50];
-
-        TEST_FUNC_CHECK(snprintf(a, sizeof(a), "foo"), == 3);
-        TEST_FUNC_CHECK(snprintf(b, sizeof(b), "foo"), == 3);
-        TEST_FUNC_CHECK(strcmp(a, b), == 0);
-
-        TEST_FUNC_CHECK(snprintf(a, sizeof(a), "bar"), == 3);
-        TEST_FUNC_CHECK(snprintf(b, sizeof(b), "baz"), == 3);
-        TEST_FUNC_CHECK(strcmp(a, b), < 0);
-
-        TEST_FUNC_CHECK(snprintf(a, sizeof(a), "Display"), == 7);
-        TEST_FUNC_CHECK(snprintf(b, sizeof(b), "Defishing"), == 9);
-        TEST_FUNC_CHECK(strcmp(a, b), > 0);
-
-        // vsnprintf (called by snprintf)
-        char buf[4];
-        TEST_FUNC_CHECK(snprintf(buf, 3, "%d", 1234), == 2);
-        TEST_FUNC_CHECK_STR(buf, "12");
-
-        // memcpy, memset, bzero32
-        char foo[] __attribute__((aligned(32))) = "qwertyuiop";
-        char bar[] __attribute__((aligned(32))) = "asdfghjkl;";
-        TEST_FUNC_CHECK(memcpy(foo, bar, 6), == (int)foo);
-        TEST_FUNC_CHECK_STR(foo, "asdfghuiop");
-        TEST_FUNC_CHECK(memset(bar, '*', 5), == (int)bar);
-        TEST_FUNC_CHECK_STR(bar, "*****hjkl;");
-        TEST_VOID(bzero32(bar + 5, 5));
-        TEST_FUNC_CHECK_STR(bar, "****");
-
-        // digic clock, msleep
-        int t0, t1;
-        TEST_FUNC(t0 = *(uint32_t*)0xC0242014);
-        TEST_VOID(msleep(250));
-        TEST_FUNC(t1 = *(uint32_t*)0xC0242014);
-        TEST_FUNC_CHECK(ABS(MOD(t1-t0, 1048576)/1000 - 250), < 30);
-
-        // calendar
-        struct tm now;
-        int s0, s1;
-        TEST_VOID(LoadCalendarFromRTC( &now ));
-        TEST_FUNC(s0 = now.tm_sec);
-
-        TEST_MSG(
-            "       Date/time: %04d/%02d/%02d %02d:%02d:%02d\n",
-            now.tm_year + 1900,
-            now.tm_mon + 1,
-            now.tm_mday,
-            now.tm_hour,
-            now.tm_min,
-            now.tm_sec
-        );
-
-        TEST_VOID(msleep(1500));
-        TEST_VOID(LoadCalendarFromRTC( &now ));
-        TEST_FUNC(s1 = now.tm_sec);
-        TEST_FUNC_CHECK(MOD(s1-s0, 60), >= 1);
-        TEST_FUNC_CHECK(MOD(s1-s0, 60), <= 2);
-
-        // mallocs
-        // bypass the memory backend and use low-level calls only for these tests
-        // run this test 200 times to check for memory leaks
-        for (int i = 0; i < 200; i++)
-        {
-            int silence = (i > 0);
-            int m0, m1, m2;
-            void* p;
-            TEST_FUNC(m0 = MALLOC_FREE_MEMORY);
-            TEST_FUNC_CHECK(p = (void*)_malloc(50*1024), != 0);
-            TEST_FUNC_CHECK(CACHEABLE(p), == (int)p);
-            TEST_FUNC(m1 = MALLOC_FREE_MEMORY);
-            TEST_VOID(_free(p));
-            TEST_FUNC(m2 = MALLOC_FREE_MEMORY);
-            TEST_FUNC_CHECK(ABS((m0-m1) - 50*1024), < 2048);
-            TEST_FUNC_CHECK(ABS(m0-m2), < 2048);
-
-            TEST_FUNC(m0 = GetFreeMemForAllocateMemory());
-            TEST_FUNC_CHECK(p = (void*)_AllocateMemory(256*1024), != 0);
-            TEST_FUNC_CHECK(CACHEABLE(p), == (int)p);
-            TEST_FUNC(m1 = GetFreeMemForAllocateMemory());
-            TEST_VOID(_FreeMemory(p));
-            TEST_FUNC(m2 = GetFreeMemForAllocateMemory());
-            TEST_FUNC_CHECK(ABS((m0-m1) - 256*1024), < 2048);
-            TEST_FUNC_CHECK(ABS(m0-m2), < 2048);
-
-            // these buffers may be from different memory pools, just check for leaks in main pools
-            int m01, m02, m11, m12;
-            TEST_FUNC(m01 = MALLOC_FREE_MEMORY);
-            TEST_FUNC(m02 = GetFreeMemForAllocateMemory());
-            TEST_FUNC_CHECK(p = (void*)_alloc_dma_memory(256*1024), != 0);
-            TEST_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
-            TEST_FUNC_CHECK(CACHEABLE(p), != (int)p);
-            TEST_FUNC_CHECK(UNCACHEABLE(CACHEABLE(p)), == (int)p);
-            TEST_VOID(_free_dma_memory(p));
-            TEST_FUNC_CHECK(p = (void*)_shoot_malloc(24*1024*1024), != 0);
-            TEST_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
-            TEST_VOID(_shoot_free(p));
-            TEST_FUNC(m11 = MALLOC_FREE_MEMORY);
-            TEST_FUNC(m12 = GetFreeMemForAllocateMemory());
-            TEST_FUNC_CHECK(ABS(m01-m11), < 2048);
-            TEST_FUNC_CHECK(ABS(m02-m12), < 2048);
-        }
-
-        // exmem
-        // run this test 20 times to check for memory leaks
-        for (int i = 0; i < 20; i++)
-        {
-            int silence = (i > 0);
-
-            struct memSuite * suite = 0;
-            struct memChunk * chunk = 0;
-            void* p = 0;
-            int total = 0;
-
-            // contiguous allocation
-            TEST_FUNC_CHECK(suite = shoot_malloc_suite_contig(24*1024*1024), != 0);
-            TEST_FUNC_CHECK_STR(suite->signature, "MemSuite");
-            TEST_FUNC_CHECK(suite->num_chunks, == 1);
-            TEST_FUNC_CHECK(suite->size, == 24*1024*1024);
-            TEST_FUNC_CHECK(chunk = GetFirstChunkFromSuite(suite), != 0);
-            TEST_FUNC_CHECK_STR(chunk->signature, "MemChunk");
-            TEST_FUNC_CHECK(chunk->size, == 24*1024*1024);
-            TEST_FUNC_CHECK(p = GetMemoryAddressOfMemoryChunk(chunk), != 0);
-            TEST_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
-            TEST_VOID(shoot_free_suite(suite); suite = 0; chunk = 0;);
-
-            // contiguous allocation, largest block
-            TEST_FUNC_CHECK(suite = shoot_malloc_suite_contig(0), != 0);
-            TEST_FUNC_CHECK_STR(suite->signature, "MemSuite");
-            TEST_FUNC_CHECK(suite->num_chunks, == 1);
-            TEST_FUNC_CHECK(suite->size, > 24*1024*1024);
-            TEST_FUNC_CHECK(chunk = GetFirstChunkFromSuite(suite), != 0);
-            TEST_FUNC_CHECK_STR(chunk->signature, "MemChunk");
-            TEST_FUNC_CHECK(chunk->size, == suite->size);
-            TEST_FUNC_CHECK(p = GetMemoryAddressOfMemoryChunk(chunk), != 0);
-            TEST_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
-            TEST_VOID(shoot_free_suite(suite); suite = 0; chunk = 0;);
-
-            // fragmented allocation
-            TEST_FUNC_CHECK(suite = shoot_malloc_suite(64*1024*1024), != 0);
-            TEST_FUNC_CHECK_STR(suite->signature, "MemSuite");
-            TEST_FUNC_CHECK(suite->num_chunks, > 1);
-            TEST_FUNC_CHECK(suite->size, == 64*1024*1024);
-
-            // iterating through chunks
-            total = 0;
-            TEST_FUNC_CHECK(chunk = GetFirstChunkFromSuite(suite), != 0);
-            while(chunk)
-            {
-                TEST_FUNC_CHECK_STR(chunk->signature, "MemChunk");
-                TEST_FUNC_CHECK(total += chunk->size, <= 64*1024*1024);
-                TEST_FUNC_CHECK(p = GetMemoryAddressOfMemoryChunk(chunk), != 0);
-                TEST_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
-                TEST_FUNC(chunk = GetNextMemoryChunk(suite, chunk));
-            }
-            TEST_FUNC_CHECK(total, == 64*1024*1024);
-            TEST_VOID(shoot_free_suite(suite); suite = 0; chunk = 0; );
-
-            // fragmented allocation, max size
-            TEST_FUNC_CHECK(suite = shoot_malloc_suite(0), != 0);
-            TEST_FUNC_CHECK_STR(suite->signature, "MemSuite");
-            TEST_FUNC_CHECK(suite->num_chunks, > 1);
-            TEST_FUNC_CHECK(suite->size, > 64*1024*1024);
-
-            // iterating through chunks
-            total = 0;
-            TEST_FUNC_CHECK(chunk = GetFirstChunkFromSuite(suite), != 0);
-            while(chunk)
-            {
-                TEST_FUNC_CHECK_STR(chunk->signature, "MemChunk");
-                TEST_FUNC_CHECK(total += chunk->size, <= suite->size);
-                TEST_FUNC_CHECK(p = GetMemoryAddressOfMemoryChunk(chunk), != 0);
-                TEST_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
-                TEST_FUNC(chunk = GetNextMemoryChunk(suite, chunk));
-            }
-            TEST_FUNC_CHECK(total, == suite->size);
-            TEST_VOID(shoot_free_suite(suite); suite = 0; chunk = 0; );
-        }
-
-        // engio
-        TEST_VOID(EngDrvOut(LCD_Palette[0], 0x1234));
-        TEST_FUNC_CHECK(shamem_read(LCD_Palette[0]), == 0x1234);
-
-        // call, DISPLAY_IS_ON
-        TEST_VOID(call("TurnOnDisplay"));
-        TEST_FUNC_CHECK(DISPLAY_IS_ON, != 0);
-        TEST_VOID(call("TurnOffDisplay"));
-        TEST_FUNC_CHECK(DISPLAY_IS_ON, == 0);
-        TEST_VOID(call("TurnOnDisplay"));
-        TEST_FUNC_CHECK(DISPLAY_IS_ON, != 0);
-
-        // SetGUIRequestMode, CURRENT_DIALOG_MAYBE
-        TEST_VOID(SetGUIRequestMode(1); msleep(1000););
-        TEST_FUNC_CHECK(CURRENT_DIALOG_MAYBE, == 1);
-        TEST_VOID(SetGUIRequestMode(2); msleep(1000););
-        TEST_FUNC_CHECK(CURRENT_DIALOG_MAYBE, == 2);
-        TEST_VOID(SetGUIRequestMode(0); msleep(1000););
-        TEST_FUNC_CHECK(CURRENT_DIALOG_MAYBE, == 0);
-        TEST_FUNC_CHECK(display_idle(), != 0);
-
-        // GUI_Control
-        msleep(1000);
-        TEST_VOID(GUI_Control(BGMT_PLAY, 0, 0, 0); msleep(1000););
-        TEST_FUNC_CHECK(PLAY_MODE, != 0);
-        TEST_FUNC_CHECK(MENU_MODE, == 0);
-        TEST_VOID(GUI_Control(BGMT_MENU, 0, 0, 0); msleep(1000););
-        TEST_FUNC_CHECK(MENU_MODE, != 0);
-        TEST_FUNC_CHECK(PLAY_MODE, == 0);
-
-        // also check DLG_SIGNATURE here, because display is on for sure
-        struct gui_task * current = gui_task_list.current;
-        struct dialog * dialog = current->priv;
-        TEST_FUNC_CHECK(MEM(dialog->type), == DLG_SIGNATURE);
-
-        TEST_VOID(GUI_Control(BGMT_MENU, 0, 0, 0); msleep(500););
-        TEST_FUNC_CHECK(MENU_MODE, == 0);
-        TEST_FUNC_CHECK(PLAY_MODE, == 0);
-
-        // task_create
-        TEST_FUNC(task_create("test", 0x1c, 0x1000, test_task, 0));
-        msleep(100);
-        TEST_FUNC_CHECK(test_task_created, == 1);
-        TEST_FUNC_CHECK_STR(get_task_name_from_id(get_current_task()), "run_test");
-        
-        extern int task_max;
-        TEST_FUNC_CHECK(task_max, >= 104);    /* so far, task_max is 104 on most cameras */
-        TEST_FUNC_CHECK(task_max, <= 512);    /* I guess it's not higher than that */
-
-        // mq
-        static struct msg_queue * mq = 0;
-        int m = 0;
-        TEST_FUNC_CHECK(mq = mq ? mq : (void*)msg_queue_create("test", 5), != 0);
-        TEST_FUNC_CHECK(msg_queue_post(mq, 0x1234567), == 0);
-        TEST_FUNC_CHECK(msg_queue_receive(mq, (struct event **) &m, 500), == 0);
-        TEST_FUNC_CHECK(m, == 0x1234567);
-        TEST_FUNC_CHECK(msg_queue_receive(mq, (struct event **) &m, 500), != 0);
-
-        // sem
-        static struct semaphore * sem = 0;
-        TEST_FUNC_CHECK(sem = sem ? sem : create_named_semaphore("test", 1), != 0);
-        TEST_FUNC_CHECK(take_semaphore(sem, 500), == 0);
-        TEST_FUNC_CHECK(take_semaphore(sem, 500), != 0);
-        TEST_FUNC_CHECK(give_semaphore(sem), == 0);
-        TEST_FUNC_CHECK(take_semaphore(sem, 500), == 0);
-        TEST_FUNC_CHECK(give_semaphore(sem), == 0);
-
-        // recursive lock
-        static void * rlock = 0;
-        TEST_FUNC_CHECK(rlock = rlock ? rlock : CreateRecursiveLock(0), != 0);
-        TEST_FUNC_CHECK(AcquireRecursiveLock(rlock, 500), == 0);
-        TEST_FUNC_CHECK(AcquireRecursiveLock(rlock, 500), == 0);
-        TEST_FUNC_CHECK(ReleaseRecursiveLock(rlock), == 0);
-        TEST_FUNC_CHECK(ReleaseRecursiveLock(rlock), == 0);
-        TEST_FUNC_CHECK(ReleaseRecursiveLock(rlock), != 0);
-
-        // sw1
-        TEST_VOID(SW1(1,100));
-        TEST_FUNC_CHECK(HALFSHUTTER_PRESSED, == 1);
-        TEST_VOID(SW1(0,100));
-        TEST_FUNC_CHECK(HALFSHUTTER_PRESSED, == 0);
+        stub_test_file_io();
+        stub_test_gui_timers();
+        stub_test_other_timers();
+        stub_test_malloc_n_allocmem();
+        stub_test_exmem();
+        stub_test_strings();
+        stub_test_engio();
+        stub_test_display();
+        stub_test_dryos();
+        stub_test_gui();
 
         beep();
     }
@@ -585,15 +657,16 @@ static void stub_test_task(void* arg)
     FILE* log = FIO_CreateFile( "stubtest.log" );
     if (log)
     {
-        FIO_WriteFile(log, log_buf, log_len);
+        FIO_WriteFile(log, stub_log_buf, stub_log_len);
         FIO_CloseFile(log);
     }
-    fio_free(log_buf);
+    fio_free(stub_log_buf);
+    stub_log_buf = 0;
 
     printf(
         "=========================================================\n"
         "Test complete, %d passed, %d failed.\n.",
-        passed_tests, failed_tests
+        stub_passed_tests, stub_failed_tests
     );
 }
 
@@ -718,7 +791,7 @@ static void stress_test_task(void* unused)
             case 3: fake_simple_button(BGMT_WHEEL_DOWN); break;
             case 4: fake_simple_button(BGMT_INFO); break;
             case 5: fake_simple_button(BGMT_MENU); break;
-            //~ case 6: fake_simple_button(BGMT_PRESS_ZOOMIN_MAYBE); break;
+            //~ case 6: fake_simple_button(BGMT_PRESS_ZOOM_IN); break;
         }
         dir = MOD(dir + rand()%3 - 1, 7);
         msleep(20);
@@ -1632,6 +1705,7 @@ static unsigned int selftest_init()
     BGMT_WHEEL_RIGHT = module_translate_key(MODULE_KEY_WHEEL_RIGHT, MODULE_KEY_CANON);
     BGMT_WHEEL_UP    = module_translate_key(MODULE_KEY_WHEEL_UP,    MODULE_KEY_CANON);
     BGMT_WHEEL_DOWN  = module_translate_key(MODULE_KEY_WHEEL_DOWN,  MODULE_KEY_CANON);
+    BGMT_TRASH       = module_translate_key(MODULE_KEY_TRASH,       MODULE_KEY_CANON);
     
     menu_add("Debug", selftest_menu, COUNT(selftest_menu));
     

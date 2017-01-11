@@ -5,14 +5,12 @@
 #define CANON_SHUTTER_RATING 150000
 
 #define CARD_LED_ADDRESS 0xC022D06C // http://magiclantern.wikia.com/wiki/Led_addresses
-#define LEDON 0x138000
-#define LEDOFF 0x38400
+/* turning the LED on/off requires writing two values to the register */
 
 #define CARD_A_MAKER 0x8748F
 #define CARD_A_MODEL 0x874c3
 #define CARD_A_LABEL 0x218000
 
-#define AVAIL_SHOT_WORKAROUND
 #define HIJACK_CACHE_HACK
 
 #if defined(CONFIG_7D_FIR_MASTER)
@@ -100,7 +98,7 @@
 
 #define MVR_GOP_SETTING   (*(int*)(0x194 + MVR_516_STRUCT))
 #define MVR_FRAME_NUMBER  (*(int*)(0x134 + MVR_516_STRUCT)) // in mvrExpStarted
-#define MVR_BYTES_WRITTEN (*(int*)(0x128 + MVR_516_STRUCT)) // in mvrSMEncodeDone
+#define MVR_BYTES_WRITTEN MEM((0x128 + MVR_516_STRUCT)) // in mvrSMEncodeDone
 
 
 #define MOV_RES_AND_FPS_COMBINATIONS 5
@@ -116,24 +114,24 @@
 #define AE_STATE (*(int8_t*)(0x16B30 + 0x1C)) //CHECK THIS
 #define AE_VALUE (*(int8_t*)(0x16B30 + 0x1D)) //CHECK THIS
 
-#define CURRENT_DIALOG_MAYBE (*(int*)0x3500)
+#define CURRENT_GUI_MODE (*(int*)0x3500)
 
-#define DLG_PLAY 1
-#define DLG_MENU 2
+#define GUIMODE_PLAY 1
+#define GUIMODE_MENU 2
 
 // not sure
-#define DLG_FOCUS_MODE 9
-#define DLG_DRIVE_MODE 8
-#define DLG_PICTURE_STYLE 4
-#define DLG_Q_UNAVI 0x18
-#define DLG_FLASH_AE 0x22
-#define DLG_PICQ 6
+#define GUIMODE_FOCUS_MODE 9
+#define GUIMODE_DRIVE_MODE 8
+#define GUIMODE_PICTURE_STYLE 4
+#define GUIMODE_Q_UNAVI 0x18
+#define GUIMODE_FLASH_AE 0x22
+#define GUIMODE_PICQ 6
 
-#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_DIALOG_MAYBE == 27)
-#define DLG_MOVIE_PRESS_LV_TO_RESUME (CURRENT_DIALOG_MAYBE == 28)
+#define GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_GUI_MODE == 27)
+#define GUIMODE_MOVIE_PRESS_LV_TO_RESUME (CURRENT_GUI_MODE == 28)
 
-#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
-#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
+#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_PLAY)
+#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_MENU)
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED 0
     //~ #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x1aac // this prop_deliver performs the action for Video Connect and Video Disconnect
@@ -209,7 +207,6 @@
 #define BFNT_BITMAP_OFFSET 0xffd395a4
 #define BFNT_BITMAP_DATA   0xffd3c170
 
-#define DLG_SIGNATURE 0x4C414944
 
 // from CFn
 #define AF_BTN_HALFSHUTTER 0

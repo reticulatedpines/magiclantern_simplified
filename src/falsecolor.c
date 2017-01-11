@@ -39,11 +39,11 @@ extern uint8_t* get_bvram_mirror();
 #ifdef FEATURE_FALSE_COLOR
 void draw_false_downsampled( void )
 {
-    //~ if (vram_width > 720) return;
-    //~ if (!PLAY_MODE)
-    //~ {
-        //~ if (!expsim) return;
-    //~ }
+    //~ if (vram_lv.width > 720) return;
+    if (!PLAY_OR_QR_MODE)
+    {
+        if (!lv_luma_is_accurate()) return;
+    }
     
     // exception: green screen palette is not fixed
     if (falsecolor_palette == 5)

@@ -259,6 +259,13 @@ static void update_cropping_offsets()
     skip_y = sy;
     
     refresh_cropmarks();
+    
+    /* mv640crop needs this to center the recorded image */
+    if (is_movie_mode() && video_mode_resolution == 2 && video_mode_crop)
+    {
+        skip_x = skip_x + 51;
+        skip_y = skip_y - 6;
+    }
 }
 
 static void update_resolution_params()
