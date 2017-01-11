@@ -959,6 +959,9 @@ static char* script_extract_string_from_comments(char* buf, char** output, const
 
 static void script_get_name_from_comments(const char * filename, char ** name, char ** description)
 {
+    ASSERT(name);
+    ASSERT(description);
+
     *name = 0;
     *description = 0;
 
@@ -976,8 +979,7 @@ static void script_get_name_from_comments(const char * filename, char ** name, c
     char* c = script_extract_string_from_comments(buf, name, 0);
     
     /* name too long? use it as description */
-    /* (todo: check string length with current font instead) */
-    if (name && strlen(*name) > 25)
+    if (*name && bmp_string_width(FONT_LARGE, *name) > 500)
     {
         free(*name); *name = 0;
         script_extract_string_from_comments(buf, description, filename);
