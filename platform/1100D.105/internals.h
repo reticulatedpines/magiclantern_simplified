@@ -127,6 +127,7 @@
 /** We have access to Raw data */
 #define CONFIG_RAW_PHOTO
 #define CONFIG_RAW_LIVEVIEW
+#define CONFIG_EDMAC_MEMCPY
 #define CONFIG_EDMAC_RAW_SLURP
 #define CONFIG_ALLOCATE_RAW_LV_BUFFER
 
