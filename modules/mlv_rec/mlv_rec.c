@@ -1755,27 +1755,6 @@ static void hack_liveview_vsync()
     }
 }
 
-static void cache_require(int lock)
-{
-    static int cache_was_unlocked = 0;
-    if (lock)
-    {
-        if (!cache_locked())
-        {
-            cache_was_unlocked = 1;
-            icache_lock();
-        }
-    }
-    else
-    {
-        if (cache_was_unlocked)
-        {
-            icache_unlock();
-            cache_was_unlocked = 0;
-        }
-    }
-}
-
 /* this is a separate task */
 static void unhack_liveview_vsync(int32_t unused)
 {
