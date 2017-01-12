@@ -376,8 +376,10 @@ void find_free_edmac_channels()
 /** this method bypasses Canon's lv_save_raw and slurps the raw data directly from connection #0 */
 #ifdef CONFIG_EDMAC_RAW_SLURP
 
-#if defined(EVF_STATE) /* 60D and newer, including all DIGIC V */
-uint32_t raw_write_chan = 0x12;
+#if defined(CONFIG_5D3)
+uint32_t raw_write_chan = 0x4;  /* 0x12 gives corrupted frames on 1.2.3, http://www.magiclantern.fm/forum/index.php?topic=10443 */
+#elif defined(EVF_STATE)
+uint32_t raw_write_chan = 0x12; /* 60D and newer, including all DIGIC V */
 #endif
 
 static void edmac_slurp_complete_cbr (void* ctx)
@@ -395,7 +397,7 @@ void edmac_raw_slurp(void* dst, int w, int h)
 #if defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_EOSM)
     uint32_t dmaFlags = 0x20000000;
 #elif defined(CONFIG_6D)
-	uint32_t dmaFlags = 0x40000000;
+    uint32_t dmaFlags = 0x40000000;
 #else
     uint32_t dmaFlags = 0x20001000;
 #endif
