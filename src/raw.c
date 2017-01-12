@@ -1236,7 +1236,9 @@ static int raw_update_params_work()
     /* black and white autodetection are time-consuming */
     /* only refresh once per second or if dirty, but never while recording */
     static int bw_aux = INT_MIN;
-    int recompute_black_and_white = NOT_RECORDING &&
+    int recompute_black_and_white = 
+        NOT_RECORDING &&
+        raw_info.bits_per_pixel == 14 &&
         (raw_info.black_level == 0 || dirty || should_run_polling_action(1000, &bw_aux));
 
     if (dirty)
@@ -1254,6 +1256,7 @@ static int raw_update_params_work()
     int black_mean, black_stdev_x100;
     raw_info.white_level = WHITE_LEVEL;
 
+    ASSERT(raw_info.bits_per_pixel == 14);
     int ok = autodetect_black_level(&black_mean, &black_stdev_x100);
 
     if (!ok)
@@ -1409,6 +1412,12 @@ int raw_update_params()
 
         /* let's try again */
         ans = raw_update_params_once();
+    }
+
+    if (raw_info.bits_per_pixel != 14)
+    {
+        /* hack: this will disable all overlays at bit depths other than 14 */
+        return 0;
     }
 
     return ans;
@@ -2247,6 +2256,9 @@ static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1
 
 void FAST raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int y1, int y2, int quality)
 {
+    if (raw_info.bits_per_pixel != 14)
+        return;
+
     yuv422_buffer_check();
 
     if (raw_buffer == (void*)-1)

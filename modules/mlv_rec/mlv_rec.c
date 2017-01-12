@@ -174,14 +174,6 @@ static CONFIG_INT("mlv.bpp", bpp_mode, 2);
 
 static uint32_t bits_per_pixel[] = { 10, 12, 14 };
 
-/* for PACK16_MODE, DSUNPACK_MODE, ADUNPACK_MODE (mask 0x131) */
-#define MODE_16BIT 0x130
-#define MODE_14BIT 0x030
-#define MODE_12BIT 0x010
-#define MODE_10BIT 0x000
-
-
-
 static int start_delay = 0;
 
 /* state variables */
@@ -3293,34 +3285,12 @@ static void mlv_rec_queue_blocks()
 
 static void setup_bit_depth()
 {
-    raw_info.bits_per_pixel = bits_per_pixel[bpp_mode];
-    raw_info.pitch = raw_info.width * raw_info.bits_per_pixel / 8;
-    
-    if (raw_info.bits_per_pixel == 12)
-    {
-        EngDrvOut(0xC0F08094, MODE_12BIT);
-    }
-    else if (raw_info.bits_per_pixel == 10)
-    {
-        EngDrvOut(0xC0F08094, MODE_10BIT);
-    }
-    
-    if (raw_info.bits_per_pixel != 14)
-    {
-        /* sometimes the first frame after setting up lower bit depth is garbage */
-        wait_lv_frames(2);
-    }
+    raw_lv_request_bpp(bits_per_pixel[bpp_mode]);
 }
 
 static void restore_bit_depth()
 {
-    if (raw_info.bits_per_pixel != 14)
-    {
-        EngDrvOut(0xC0F08094, MODE_14BIT);
-    }
-    
-    raw_info.bits_per_pixel = 14;
-    raw_info.pitch = raw_info.width * 14 / 8;
+    raw_lv_request_bpp(14);
 }
 
 static void raw_video_rec_task()

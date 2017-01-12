@@ -130,6 +130,7 @@ void raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int start_line, int 
 /* you have to call request/release in pairs (be careful not to request once and release twice) */
 void raw_lv_request();
 void raw_lv_release();
+void raw_lv_request_bpp(int bpp);
 int raw_lv_enabled();
 
 /* redirect the LV RAW EDMAC in order to write the raw data at "ptr" */

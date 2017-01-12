@@ -2342,34 +2342,12 @@ static int write_frames(FILE** pf, void* ptr, int size_used, int num_frames)
 
 static void setup_bit_depth()
 {
-    raw_info.bits_per_pixel = BPP;
-    raw_info.pitch = raw_info.width * BPP / 8;
-    
-    if (BPP == 12)
-    {
-        EngDrvOut(0xC0F08094, MODE_12BIT);
-    }
-    else if (BPP == 10)
-    {
-        EngDrvOut(0xC0F08094, MODE_10BIT);
-    }
-    
-    if (BPP != 14)
-    {
-        /* sometimes the first frame after setting up lower bit depth is garbage */
-        wait_lv_frames(2);
-    }
+    raw_lv_request_bpp(BPP);
 }
 
 static void restore_bit_depth()
 {
-    raw_info.bits_per_pixel = 14;
-    raw_info.pitch = raw_info.width * 14 / 8;
-    
-    if (BPP != 14)
-    {
-        EngDrvOut(0xC0F08094, MODE_14BIT);
-    }
+    raw_lv_request_bpp(14);
 }
 
 static void raw_video_rec_task()
