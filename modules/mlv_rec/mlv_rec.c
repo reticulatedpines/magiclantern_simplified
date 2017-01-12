@@ -2539,11 +2539,17 @@ static int32_t mlv_write_rawi(FILE* f, struct raw_info raw_info)
     rawi.xRes = res_x;
     rawi.yRes = res_y;
     rawi.raw_info = raw_info;
-    
+
     /* overwrite bpp relevant information */
-    rawi.raw_info.pitch = rawi.raw_info.width * raw_info.bits_per_pixel / 8;
-    rawi.raw_info.black_level = raw_info.black_level >> (14 - raw_info.bits_per_pixel);
-    rawi.raw_info.white_level = raw_info.white_level >> (14 - raw_info.bits_per_pixel);
+    int BPP = raw_info.bits_per_pixel;
+    rawi.raw_info.pitch = rawi.raw_info.width * BPP / 8;
+
+    /* scale black and white levels, minimizing the roundoff error */
+    int black14 = rawi.raw_info.black_level;
+    int white14 = rawi.raw_info.white_level;
+    int bpp_scaling = (1 << (14 - BPP));
+    rawi.raw_info.black_level = (black14 + bpp_scaling/2) / bpp_scaling;
+    rawi.raw_info.white_level = (white14 + bpp_scaling/2) / bpp_scaling;
 
     return mlv_write_hdr(f, (mlv_hdr_t *)&rawi);
 }
