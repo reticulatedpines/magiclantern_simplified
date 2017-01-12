@@ -1608,7 +1608,7 @@ static void FAST raw_preview_color_work(void* raw_buffer, void* lv_buffer, int y
         if (yr <= preview_rect_y || yr >= preview_rect_y + preview_rect_h)
         {
             /* out of range, just fill with black */
-            memset(&lv32[LV(0,y)/4], 0, x2-x1);
+            memset(&lv32[LV(0,y)/4], 0, (x2-x1)*2);
             continue;
         }
 
@@ -1696,7 +1696,7 @@ static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1
         if (yr <= preview_rect_y || yr >= preview_rect_y + preview_rect_h)
         {
             /* out of range, just fill with black */
-            memset(&lv64[LV(0,y)/8], 0, x2-x1);
+            memset(&lv64[LV(0,y)/8], 0, (x2-x1)*2);
             continue;
         }
 
