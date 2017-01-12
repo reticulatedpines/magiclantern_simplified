@@ -775,8 +775,7 @@ int handle_lv_play(struct event * event)
 }
 #endif
 
-//~ CONFIG_INT("halfshutter.sticky", halfshutter_sticky, 0);
-static int halfshutter_sticky = 0; // it's too easy to forget this on
+static CONFIG_INT("halfshutter.sticky", halfshutter_sticky, 0);
 
 #ifdef FEATURE_STICKY_HALFSHUTTER
 
