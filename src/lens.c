@@ -217,9 +217,12 @@ int round_shutter(int tv, int slowest_shutter)
     tv = MIN(tv, FASTEST_SHUTTER_SPEED_RAW);
 
     /* note: it's possible to get a valid shutter just by altering the requested value by 1 */
+    /* ... unless we hit some limits */
     tvr = MAX(tv    , slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
     tvr = MAX(tv - 1, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
     tvr = MAX(tv + 1, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
+    tvr = MAX(tv - 2, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
+    tvr = MAX(tv + 2, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
     return 0;
 }
 
