@@ -3045,7 +3045,8 @@ read_headers:
 
                 if(!unique_camname)
                 {
-                    if(!(unique_camname = get_camera_name_by_id(idnt_info.cameraModel, UNIQ)))
+                    unique_camname = get_camera_name_by_id(idnt_info.cameraModel, UNIQ);
+                    if(!unique_camname)
                     {
                         unique_camname = (const char*) idnt_info.cameraName;
                     }

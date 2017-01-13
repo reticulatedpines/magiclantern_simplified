@@ -69,7 +69,8 @@ static const char * get_camera_name_by_id(unsigned long model_id, int name_type)
 	{
 		if (camera_id[i].cameraModel == model_id)
 		{
-			if(!(camName = camera_id[i].cameraName[name_type]))
+			camName = camera_id[i].cameraName[name_type];
+			if(!camName)
 			{
 				camName = camera_id[i].cameraName[UNIQ];
 			}
