@@ -1,5 +1,5 @@
 /**
- * Camera internals for 5D3 1.1.3
+ * Camera internals for 5D3 1.2.3
  */
 
 /** Properties are persistent (saved in NVRAM) => a mistake can cause permanent damage. Undefine this for new ports. */
@@ -96,7 +96,7 @@
 /** This camera has no trouble saving Kelvin and/or WBShift in movie mode **/
 //~ #define CONFIG_WB_WORKAROUND
 
-/** We ca restore ML files after formatting the card in the camera **/
+/** We can restore ML files after formatting the card in the camera **/
 #define CONFIG_RESTORE_AFTER_FORMAT
 
 /** We know how to use DMA_MEMCPY, though I don't see any reason for doing so **/

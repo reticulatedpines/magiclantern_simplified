@@ -985,11 +985,6 @@ tweak_task( void* unused)
     struct tm now;
     LoadCalendarFromRTC(&now);
     joke_mode = (now.tm_mday == 1 && now.tm_mon == 3);
-    if (joke_mode)
-    {
-        msleep(1000);
-        joke_mode = display_idle();
-    }
     
     extern void movtweak_task_init();
     movtweak_task_init();
@@ -1216,15 +1211,6 @@ tweak_task( void* unused)
             idle_wakeup_reset_counters(0);
         }
         #endif
-        
-        if (joke_mode)
-        {
-            if (rand() % 1000 == 13 && !RECORDING)
-            {
-                extern void bsod();
-                bsod();
-            }
-        }
     }
 }
 
@@ -2430,6 +2416,16 @@ static void preview_contrast_n_saturation_step()
     if (play_dirty) play_dirty--; else return;
     msleep(100);
 #else
+    if (joke_mode)
+    {
+        if (rand()%5 == 3 && get_seconds_clock() == get_last_time_active() + rand()%3)
+        {
+            int old = backlight_level;
+            set_backlight_level(rand()%8);
+            msleep(rand()%50);
+            set_backlight_level(old);
+        }
+    }
     if (!lv) return;
 #endif
 
@@ -2765,6 +2761,21 @@ static void grayscale_menus_step()
 
     prev_sig = sig;
 
+    #ifdef CONFIG_5D3
+    if (get_yuv422_vram()->vram == 0 && !lv)
+    {
+        /* 5D3-123 quirk: YUV422 RAM is not initialized until going to LiveView or Playback mode
+         * (and even there, you need a valid image first)
+         * Workaround: if YUV422 was not yet initialized by Canon, remove the transparency from color 0 (make it black).
+         * 
+         * Any other cameras requiring this? Probably not, since the quirk is likely related to the dual monitor support.
+         * 
+         * Note: alter_bitmap_palette will not affect color 0, so it will not break this workaround (yet).
+         */
+        alter_bitmap_palette_entry(0, COLOR_BLACK, 256, 256);
+    }
+    #endif
+
     if (bmp_color_scheme || prev_b)
     {
         //~ info_led_on();
@@ -2826,7 +2837,7 @@ void display_shake_step()
     if (!display_shake) return;
     if (!lv) return;
     if (!DISPLAY_IS_ON) return;
-    if (hdmi_code == 5) return;
+    if (hdmi_code >= 5) return;
     static int k; k++;
     if (k%2) return;
     if ((MEM(REG_EDMAC_WRITE_LV_ADDR) & 0xFFFF) != (YUV422_LV_BUFFER_1 & 0xFFFF)) return;
@@ -2882,7 +2893,7 @@ int FAST anamorphic_squeeze_bmp_y(int y)
 {
     if (likely(!anamorphic_preview)) return y;
     if (unlikely(!lv)) return y;
-    if (unlikely(hdmi_code == 5)) return y;
+    if (unlikely(hdmi_code >= 5)) return y;
     if (unlikely(y < 0 || y >= 480)) return y;
 
     static int prev_idx = -1;
@@ -2917,7 +2928,7 @@ static void FAST anamorphic_squeeze()
     if (!anamorphic_preview) return;
     if (!get_global_draw()) return;
     if (!lv) return;
-    if (hdmi_code == 5) return;
+    if (hdmi_code >= 5) return;
     
     int num = anamorphic_ratio_num[anamorphic_ratio_idx];
     int den = anamorphic_ratio_den[anamorphic_ratio_idx];
@@ -3198,12 +3209,19 @@ void display_filter_get_buffers(uint32_t** src_buf, uint32_t** dst_buf)
     // EDMAC may not point exactly to the LV buffer (e.g. it may skip the 16:9 bars or whatever)
     // so we'll try to choose some buffer that's close enough to the EDMAC address
     int c = (int) current;
+
     int b1 = (int)CACHEABLE(YUV422_LV_BUFFER_1);
     int b2 = (int)CACHEABLE(YUV422_LV_BUFFER_2);
     int b3 = (int)CACHEABLE(YUV422_LV_BUFFER_3);
+    #ifdef YUV422_LV_BUFFER_4
+    int b4 = (int)CACHEABLE(YUV422_LV_BUFFER_4);
+    #endif
     if (ABS(c - b1) < 200000) current = (void*)b1;
     else if (ABS(c - b2) < 200000) current = (void*)b2;
     else if (ABS(c - b3) < 200000) current = (void*)b3;
+    #ifdef YUV422_LV_BUFFER_4
+    else if (ABS(c - b4) < 200000) current = (void*)b4;
+    #endif
     
     if (current != prev)
         buff = prev;

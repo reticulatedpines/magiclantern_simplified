@@ -1,5 +1,4 @@
 
-
 ML_BITRATE_OBJ = bitrate-5d3.o
 ML_AF_PATTERNS_OBJ = n
 
@@ -9,4 +8,4 @@ ML_SRC_EXTRA_OBJS = \
 	asm.o
 
 
-CFLAG_USER += -DCONFIG_5D3_113=1
+CFLAG_USER += -DCONFIG_5D3_123=1
