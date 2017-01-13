@@ -59,11 +59,11 @@ static const camera_id_t camera_id[] = {
 	{ 0x00000000, {NULL, NULL, NULL} }
 };
 
-/* Get camera name by model ID and name type (UNIQ, LOC1, LOC2) */ 
+/* Get camera name by model ID and name type (UNIQ, LOC1, LOC2). Returns NULL if camera not matched */
 static const char * get_camera_name_by_id(unsigned long model_id, int name_type)
 {
 	int i = 0;
-	const char * camName = "Unknown Model";
+	const char * camName = NULL;
 
 	while (camera_id[i].cameraModel)
 	{
