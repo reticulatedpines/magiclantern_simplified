@@ -74,17 +74,9 @@
 // See "cam event metering"
 #define HALFSHUTTER_PRESSED (*(int*)0x250E4)
 
-#define DISPLAY_SENSOR_POWERED 0
-
-#define GMT_IDLEHANDLER_TASK (*(int*)0x2E79C) // dec create_idleHandler_task
-
 // for gui_main_task
 #define GMT_NFUNCS 7
 #define GMT_FUNCTABLE 0xFF7A3590 // dec gui_main_task
-//#define GMT_IDLEHANDLER_TASK (*(int*)0x2E79C) // dec create_idleHandler_task
-
-#define SENSOR_RES_X 5936
-#define SENSOR_RES_Y 3804
 
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int*)0x296D4) == 0xF))
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x296D4) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
@@ -186,11 +178,6 @@
 
 #define NUM_PICSTYLES 10
 
-#define MOVIE_MODE_REMAP_X SHOOTMODE_ADEP
-#define MOVIE_MODE_REMAP_Y SHOOTMODE_CA
-#define MOVIE_MODE_REMAP_X_STR "A-DEP"
-#define MOVIE_MODE_REMAP_Y_STR "CA"
-
 #define FLASH_MAX_EV 3
 #define FLASH_MIN_EV -10 // not sure if it actually works
 #define FASTEST_SHUTTER_SPEED_RAW 160
@@ -199,8 +186,9 @@
 #define DIALOG_MnCardFormatBegin (0x36340) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x39B24) // similar
 #define FORMATTING_CF_CARD (MEM(0x3633C) == 1)  // in CreateDialogBox(DlgMnCardFormatBegin), *0x3633C = HALFWORD(arg0); 1=cf, 2=sd
-#define FORMAT_BTN BGMT_Q
+
 #define FORMAT_BTN_NAME "[Q]"
+#define FORMAT_BTN BGMT_Q
 #define FORMAT_STR_LOC 13
 
 #define BULB_MIN_EXPOSURE 500

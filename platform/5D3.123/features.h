@@ -19,8 +19,6 @@
 
 //~ #define FEATURE_VIDEO_HACKS
 
-#define CONFIG_HEXDUMP
-
 #undef FEATURE_VOICE_TAGS // No sound recorded
 
 #define FEATURE_LV_FOCUS_BOX_SNAP_TO_X5_RAW
