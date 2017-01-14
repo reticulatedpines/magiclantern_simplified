@@ -2,8 +2,6 @@
  *  5D3 1.1.3 consts
  */
 
-#define CANON_SHUTTER_RATING 150000
-
 #define CARD_LED_ADDRESS 0xC022C06C // http://magiclantern.wikia.com/wiki/Led_addresses
 #define LEDON 0x138800
 #define LEDOFF 0x838C00
@@ -248,6 +246,8 @@
 // temperature convertion from raw-temperature to celsius
 // http://www.magiclantern.fm/forum/index.php?topic=9673.0
 #define EFIC_CELSIUS ((int)efic_temp * 60 / 100 - 65)
+
+#define CANON_SHUTTER_RATING 150000
 
 // look for "JudgeBottomInfoDispTimerState(%d)"
 #define JUDGE_BOTTOM_INFO_DISP_TIMER_STATE	0x3334C

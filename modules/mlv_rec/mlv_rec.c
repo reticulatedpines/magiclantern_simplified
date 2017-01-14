@@ -100,7 +100,6 @@
 static uint32_t cam_eos_m = 0;
 static uint32_t cam_5d2 = 0;
 static uint32_t cam_50d = 0;
-static uint32_t cam_5d3 = 0;
 static uint32_t cam_500d = 0;
 static uint32_t cam_550d = 0;
 static uint32_t cam_6d = 0;
@@ -110,6 +109,10 @@ static uint32_t cam_7d = 0;
 static uint32_t cam_700d = 0;
 static uint32_t cam_60d = 0;
 static uint32_t cam_100d = 0;
+
+static uint32_t cam_5d3 = 0;
+static uint32_t cam_5d3_113 = 0;
+static uint32_t cam_5d3_123 = 0;
 
 static uint32_t raw_rec_edmac_align = 0x01000;
 static uint32_t raw_rec_write_align = 0x01000;
@@ -1724,7 +1727,7 @@ static void hack_liveview(int32_t unhack)
         call("lv_ae",           unhack ? 1 : 0);  /* for old cameras */
         call("lv_wb",           unhack ? 1 : 0);
 
-        if (cam_50d && !(hdmi_code == 5) && !unhack)
+        if (cam_50d && !(hdmi_code >= 5) && !unhack)
         {
             /* not sure how to unhack this one, and on 5D2 it crashes */
             call("lv_af_fase_addr", 0); //Turn off face detection
@@ -1734,7 +1737,8 @@ static void hack_liveview(int32_t unhack)
         uint32_t dialog_refresh_timer_addr = /* in StartDialogRefreshTimer */
             cam_50d ? 0xffa84e00 :
             cam_5d2 ? 0xffaac640 :
-            cam_5d3 ? 0xff4acda4 :
+            cam_5d3_113 ? 0xff4acda4 :
+            cam_5d3_123 ? 0xFF4B7648 :
             cam_550d ? 0xFF2FE5E4 :
             cam_600d ? 0xFF37AA18 :
             cam_650d ? 0xFF527E38 :
@@ -4173,7 +4177,6 @@ static unsigned int raw_rec_init()
     cam_eos_m = is_camera("EOSM", "2.0.2");
     cam_5d2   = is_camera("5D2",  "2.1.2");
     cam_50d   = is_camera("50D",  "1.0.9");
-    cam_5d3   = is_camera("5D3",  "1.1.3");
     cam_550d  = is_camera("550D", "1.0.9");
     cam_6d    = is_camera("6D",   "1.1.6");
     cam_600d  = is_camera("600D", "1.0.2");
@@ -4183,6 +4186,10 @@ static unsigned int raw_rec_init()
     cam_60d   = is_camera("60D",  "1.1.1");
     cam_100d  = is_camera("100D", "1.0.1");
     cam_500d  = is_camera("500D", "1.1.1");
+
+    cam_5d3_113 = is_camera("5D3",  "1.1.3");
+    cam_5d3_123 = is_camera("5D3",  "1.2.3");
+    cam_5d3 = (cam_5d3_113 || cam_5d3_123);
     
     /* not all models support exFAT filesystem */
     uint32_t exFAT = 1;

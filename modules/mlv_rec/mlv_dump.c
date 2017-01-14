@@ -992,7 +992,7 @@ void show_usage(char *executable)
     print_msg(MSG_INFO, "-- MLV output --\n");
     print_msg(MSG_INFO, " -b bits             convert image data to given bit depth per channel (1-16)\n");
     print_msg(MSG_INFO, " -z bits             zero the lowest bits, so we have only specified number of bits containing data (1-16) (improves compression rate)\n");
-    print_msg(MSG_INFO, " -f frames           frames to save. e.g. '12' saves the first 12 frames, '12-40' saves frames 12 to 40.\n");
+    print_msg(MSG_INFO, " -f frames           frames to save. e.g. '12' saves frames 0 to 12, '12-40' saves frames 12 to 40.\n");
     print_msg(MSG_INFO, " -A fpsx1000         Alter the video file's FPS metadata\n");
     print_msg(MSG_INFO, " -x                  build xref file (indexing)\n");
     print_msg(MSG_INFO, " -m                  write only metadata, no audio or video frames\n");
