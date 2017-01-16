@@ -194,6 +194,7 @@ struct eos_model_desc eos_model_list[] = {
     {
         .name                   = "1100D",
         .digic_version          = 4,
+        .current_task_addr      = 0x1A2C,
     },
     {
         .name                   = "1200D",
