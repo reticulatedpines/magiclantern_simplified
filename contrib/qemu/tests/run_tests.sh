@@ -165,9 +165,9 @@ echo
 echo "Testing file I/O (DCIM directory)..."
 # Most EOS cameras should be able to create the DCIM directory if missing.
 # Currently works only on models that can boot Canon GUI,
-# and also on 100D and 450D.
+# and also on EOSM, 100D and 450D.
 #for CAM in ${EOS_CAMS[*]}; do
-for CAM in ${GUI_CAMS[*]} 100D 450D; do
+for CAM in ${GUI_CAMS[*]} EOSM 100D 450D; do
     printf "%5s: " $CAM
     
     mkdir -p tests/$CAM/
@@ -177,8 +177,16 @@ for CAM in ${GUI_CAMS[*]} 100D 450D; do
     mdeltree -i $MSD ::/DCIM &> /dev/null
     mdeltree -i $MCF ::/DCIM &> /dev/null
 
-    (sleep 15; echo quit) \
-      | ./run_canon_fw.sh $CAM,firmware="boot=0" -display none -monitor stdio &> tests/$CAM/dcim.log
+    if [ -f $CAM/patches.gdb ]; then
+        (./run_canon_fw.sh $CAM,firmware="boot=0" -display none -s -S & \
+         arm-none-eabi-gdb -x $CAM/patches.gdb &) &> tests/$CAM/dcim.log
+        sleep 15
+        killall -INT qemu-system-arm &>> tests/$CAM/dcim.log
+        sleep 0.2
+    else
+        (sleep 15; echo quit) \
+            | ./run_canon_fw.sh $CAM,firmware="boot=0" -display none -monitor stdio &> tests/$CAM/dcim.log
+    fi
     
     if (mdir -b -i $MSD | grep -q DCIM) || (mdir -b -i $MCF | grep -q DCIM); then
         echo "OK"
