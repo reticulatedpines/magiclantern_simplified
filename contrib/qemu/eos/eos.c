@@ -1273,7 +1273,7 @@ static void eos_init_common(MachineState *machine)
         eos_load_image(s, "5D3eeko/D0288000.DMP", 0, 0, 0,          0); /* 0x008000 bytes */
         eos_load_image(s, "5D3eeko/D0280000.DMP", 0, 0, 0x40000000, 0); /* 0x004000 bytes */
         eos_load_image(s, "5D3eeko/1E00000.DMP",  0, 0, 0x1E00000,  0); /* 0x120000 bytes (overlaps 2 regions) */
-        eos_load_image(s, "5D3eeko/1F20000.DMP",  0, 0, 0x1F20000,  0); /* 0x020000 bytes (I/O) */
+        eos_load_image(s, "5D3eeko/1F20000.DMP",  0, 0, 0x1F20000,  0); /* 0x020000 bytes (non-shareable device) */
         s->cpu->env.regs[15] = 0;
         s->cpu->env.thumb = 1;
     }
