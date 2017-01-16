@@ -188,8 +188,11 @@ struct eos_model_desc eos_model_list[] = {
     },
     {
         .name                   = "700D",
-        .serial_flash_size      = 0x800000,
         .digic_version          = 5,
+        .current_task_addr      = 0x233DC,
+        .mpu_request_register   = 0xC022006C,
+        .card_led_address       = 0xC022C188,
+        .serial_flash_size      = 0x800000,
     },
     {
         .name                   = "1100D",
@@ -206,6 +209,10 @@ struct eos_model_desc eos_model_list[] = {
     {
         .name                   = "EOSM",
         .digic_version          = 5,
+        .current_task_addr      = 0x3DE78,
+        .mpu_request_register   = 0xC022006C,
+        .card_led_address       = 0xC022C188,
+        .serial_flash_size      = 0x800000,
     },
     {
         .name                   = "EOSM3",
