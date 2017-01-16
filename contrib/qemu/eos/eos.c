@@ -2877,6 +2877,11 @@ unsigned int eos_handle_edmac ( unsigned int parm, EOSState *s, unsigned int add
             MMIO_VAR(s->edmac.ch[channel].off3);
             break;
 
+        case 0x40:
+            msg = "off40";
+            MMIO_VAR(s->edmac.ch[channel].off40);
+            break;
+
         case 0x30:
             msg = "interrupt reason?";
             if(type & MODE_WRITE)
