@@ -227,6 +227,20 @@ define assert_log
   end
 end
 
+define assert0_log
+  commands
+    silent
+    print_current_location
+    printf "["
+    KRED
+    printf "ASSERT"
+    KRESET
+    printf "] "
+    printf " at %s:%d\n", $r0, $r1
+    c
+  end
+end
+
 # semaphores
 
 define create_semaphore_log
@@ -553,6 +567,7 @@ define try_post_event_log
     try_expand_ram_struct *(int*)($r3+8)
     try_expand_ram_struct *(int*)($r3+12)
     try_expand_ram_struct *(int*)($r3+16)
+    try_expand_ram_struct *(int*)$sp
     c
   end
 end

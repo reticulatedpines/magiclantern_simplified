@@ -1,5 +1,5 @@
 # ./run_canon_fw.sh 5D3eeko -s -S & arm-none-eabi-gdb -x 5D3eeko/debugmsg.gdb
-# only tested on 1.1.3
+# unless otherwise specified, these are valid for both 1.1.3 and 1.2.3
 
 source -v debug-logging.gdb
 
@@ -35,7 +35,47 @@ end
 b *0x1E46C04
 task_create_log
 
-b *0x1E1CD8A
-assert_log
+b *0x52C
+commands
+  silent
+  print_current_location
+  KYLW
+  printf "Interrupt: %x(%x)\n", $r1, $r0
+  KRESET
+  c
+end
+
+b *0x568             
+commands
+  silent
+  print_current_location
+  KYLW
+  printf "set_int_handler(%x, %x, %x)\n", $r2, $r0, $r1
+  KRESET
+  c
+end
+
+b *0x598
+commands
+  silent
+  print_current_location
+  KYLW
+  printf "clr_int_handler(%x)\n", $r0
+  KRESET
+  c
+end
+
+b *0xD22
+commands
+  silent
+  print_current_location
+  KYLW
+  printf "disable_interrupt(%x)\n", $r0
+  KRESET
+  c
+end
+
+b *0x1E002D0
+assert0_log
 
 cont
