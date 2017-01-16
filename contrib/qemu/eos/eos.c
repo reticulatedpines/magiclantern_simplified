@@ -206,6 +206,8 @@ EOSRegionHandler eos_handlers[] =
     { "Power",        0xC0F01000, 0xC0F010FF, eos_handle_power_control, 1 },
     { "ADC",          0xD9800000, 0xD9800068, eos_handle_adc, 0 },
 
+    { "EEKO",         0xD02C2000, 0xD02C243F, eos_handle_eeko_comm, 0 },
+
     /* generic catch-all for everything unhandled from this range */
     { "ENGIO",        0xC0F00000, 0xC0FFFFFF, eos_handle_engio, 0 },
     
@@ -4812,6 +4814,46 @@ unsigned int eos_handle_flashctrl ( unsigned int parm, EOSState *s, unsigned int
     }
 
     io_log("FlashIF", s, address, type, value, ret, msg, 0, 0);
+    return ret;
+}
+
+unsigned int eos_handle_eeko_comm( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+{
+    const char * msg = "INT%Xh: ???";
+    int msg_arg1 = 0;
+    unsigned int ret = 0;
+
+    /* these interrupts are in pairs, e.g. 0x101, 0x102, 0x109, 0x10A ... */
+    /* even indices / odd interrupts (reg offset 0x00, 0x40 ...) are from eeko to icu */
+    /* odd indices / even interrupts (reg offset 0x20, 0x60 ...) are from icu to eeko */
+    const int interrupt_map[] = {
+        0x101, 0x109, 0x111, 0x119, 0x121, 0x129, 0x131, 0x139,
+        0x0FF, 0x107, 0x10F, 0x117, 0x11F, 0x127, 0x12F, 0x137,
+        0x123,
+    };
+    
+    int interrupt_index = (address >> 5) & 0x3F;
+    assert(interrupt_index/2 < COUNT(interrupt_map));
+    int interrupt_id = interrupt_map[interrupt_index/2] + interrupt_index % 2;
+    msg_arg1 = interrupt_id;
+    
+    switch (address & 0x1F)
+    {
+        case 0x04:
+            msg = "INT%Xh: interrupt acknowledged";
+            break;
+        case 0x08:
+            msg = "INT%Xh: setup interrupts? (1)";
+            break;
+        case 0x10:
+            msg = "INT%Xh: trigger interrupt?";
+            break;
+        case 0x18:
+            msg = "INT%Xh: setup interrupts? (B)";
+            break;
+    }
+
+    io_log("EEKO", s, address, type, value, ret, msg, msg_arg1, 0);
     return ret;
 }
 
