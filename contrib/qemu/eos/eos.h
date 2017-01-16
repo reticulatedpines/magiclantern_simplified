@@ -202,6 +202,8 @@ typedef struct
 
 typedef struct
 {
+    const char * workdir;
+
     /* model-specific settings from model_list.c */
     struct eos_model_desc * model;
 

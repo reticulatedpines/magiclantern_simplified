@@ -296,8 +296,12 @@ static const MemoryRegionOps mem_ops = {
 
 
 
-void eos_load_image(EOSState *s, const char* file, int offset, int max_size, uint32_t addr, int swap_endian)
+void eos_load_image(EOSState *s, const char * file_rel, int offset, int max_size, uint32_t addr, int swap_endian)
 {
+    /* all files are loaded from $QEMU_EOS_WORKDIR/CAM/ */
+    char file[1024];
+    snprintf(file, sizeof(file), "%s/%s/%s", s->workdir, s->model->name, file_rel);
+
     int size = get_image_size(file);
     if (size < 0)
     {
@@ -985,8 +989,11 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
 {
     EOSState *s = g_new(EOSState, 1);
     memset(s, 0, sizeof(*s));
-    
+
     s->model = model;
+
+    s->workdir = getenv("QEMU_EOS_WORKDIR");
+    if (!s->workdir) s->workdir = ".";
 
     s->verbosity = 0xFFFFFFFF;
     s->tio_rxbyte = 0x100;
@@ -1181,17 +1188,13 @@ static void eos_init_common(MachineState *machine)
     /* populate ROM0 */
     if (ROM0_SIZE)
     {
-        char rom_filename[24];
-        snprintf(rom_filename,24,"%s/ROM0.BIN",s->model->name);
-        eos_load_image(s, rom_filename, 0, ROM0_SIZE, ROM0_ADDR, 0);
+        eos_load_image(s, "ROM0.BIN", 0, ROM0_SIZE, ROM0_ADDR, 0);
     }
     
     /* populate ROM1 */
     if (ROM1_SIZE)
     {
-        char rom_filename[24];
-        snprintf(rom_filename,24,"%s/ROM1.BIN",s->model->name);
-        eos_load_image(s, rom_filename, 0, ROM1_SIZE, ROM1_ADDR, 0);
+        eos_load_image(s, "ROM1.BIN", 0, ROM1_SIZE, ROM1_ADDR, 0);
     }
 
     /* init SD card */
@@ -1222,8 +1225,8 @@ static void eos_init_common(MachineState *machine)
     /* nkls: init SF */
     if (s->model->serial_flash_size)
     {
-        char sf_filename[50];
-        snprintf(sf_filename, sizeof(sf_filename), "%s/SFDATA.BIN", s->model->name);
+        char sf_filename[1024];
+        snprintf(sf_filename, sizeof(sf_filename), "%s/%s/SFDATA.BIN", s->workdir, s->model->name);
         s->sf = serial_flash_init(sf_filename, s->model->serial_flash_size);
     }
     
@@ -2630,8 +2633,8 @@ static int edmac_do_transfer(EOSState *s, int channel)
             s->edmac.conn_data[conn].data_size = transfer_data_size;
 
             /* todo: autodetect all DNG files and cycle between them */
-            char filename[100];
-            snprintf(filename, sizeof(filename), "%s/VRAM/PH-QR/RAW-000.DNG", s->model->name);
+            char filename[1024];
+            snprintf(filename, sizeof(filename), "%s/%s/VRAM/PH-QR/RAW-000.DNG", s->workdir, s->model->name);
             FILE* f = fopen(filename, "rb");
             if (f)
             {

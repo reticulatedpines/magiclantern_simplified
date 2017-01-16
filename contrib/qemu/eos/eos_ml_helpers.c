@@ -37,7 +37,7 @@ unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *s, unsigned in
                 s->disp.img_vram = (uint32_t) value;
                 if (value)
                 {
-                    eos_load_image(s, "LV-000.422", 0, -1, value, 0);
+                    eos_load_image(s, "VRAM/PH-LV/LV-000.422", 0, -1, value, 0);
                 }
                 else
                 {
@@ -50,7 +50,7 @@ unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *s, unsigned in
                 if (value)
                 {
                     /* fixme: hardcoded strip offset */
-                    eos_load_image(s, "RAW-000.DNG", 33792, -1, value, 1);
+                    eos_load_image(s, "VRAM/PH-LV/RAW-000.DNG", 33792, -1, value, 1);
                 }
                 else
                 {
