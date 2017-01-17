@@ -205,6 +205,9 @@ EOSRegionHandler eos_handlers[] =
     { "Display",      0xC0F14000, 0xC0F14FFF, eos_handle_display, 0 },
     { "Power",        0xC0F01000, 0xC0F010FF, eos_handle_power_control, 1 },
     { "ADC",          0xD9800000, 0xD9800068, eos_handle_adc, 0 },
+    { "JP51",         0xC0E00000, 0xC0E0FFFF, eos_handle_jpcore, 0 },
+    { "JP62",         0xC0E10000, 0xC0E1FFFF, eos_handle_jpcore, 1 },
+    { "JP57",         0xC0E20000, 0xC0E2FFFF, eos_handle_jpcore, 2 },
 
     { "EEKO",         0xD02C2000, 0xD02C243F, eos_handle_eeko_comm, 0 },
 
@@ -4817,6 +4820,122 @@ unsigned int eos_handle_flashctrl ( unsigned int parm, EOSState *s, unsigned int
     }
 
     io_log("FlashIF", s, address, type, value, ret, msg, 0, 0);
+    return ret;
+}
+
+unsigned int eos_handle_jpcore( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+{
+    const char * module_name = 0;
+    const char * msg = 0;
+    unsigned int ret = 0;
+
+    switch (parm)
+    {
+        case 0:
+        {
+            /* used for JPEG and old-style lossless compression (TTJ) */
+            module_name = "JP51";
+            break;
+        }
+
+        case 1:
+        {
+            /* used for H.264 */
+            module_name = "JP62";
+            break;
+        }
+
+        case 2:
+        {
+            /* used for new-style lossless compression (TTL) */
+            module_name = "JP57";
+            break;
+        }
+    }
+
+    /* common */
+    switch(address & 0xFFFF)
+    {
+        case 0x0000:
+            msg = "control/status?";
+            if(type & MODE_WRITE)
+            {
+                if (value & 1)
+                {
+                    msg = "Start JPCORE";
+                    eos_trigger_int(s, 0x64, 100);
+                }
+            }
+            else
+            {
+                ret = 0x1010000;
+            }
+            break;
+
+        case 0x0004:
+            msg = "mode? (encode, decode etc)";
+            break;
+
+        case 0x000C:
+            msg = "operation mode?";
+            break;
+
+        case 0x0010 ... 0x001C:
+            msg = "JPEG tags, packed";
+            break;
+
+        case 0x0024:
+            msg = "output size";
+            break;
+
+        case 0x0030:
+            msg = "JPEGIC status?";
+            ret = 0x1FF;
+            break;
+
+        case 0x0040:
+            msg = "set to 0x600";
+            break;
+
+        case 0x0044:
+            msg = "interrupt status? (70D loop)";
+            ret = rand();
+            break;
+
+        case 0x0080:
+            msg = "slice size";
+            break;
+
+        case 0x0084:
+            msg = "number of components and bit depth";
+            break;
+
+        case 0x008C:
+            msg = "component subsampling";
+            break;
+
+        case 0x0094:
+            msg = "sample properties? for SOS header?";
+            break;
+
+        case 0x00E8:
+            msg = "slice width";
+            break;
+
+        case 0x0EC:
+            msg = "slice height";
+            break;
+
+        case 0x0928:
+            msg = "JpCoreFirm";
+            break;
+
+        case 0x092C:
+            msg = "JpCoreExtStream";
+            break;
+    }
+
+    io_log(module_name, s, address, type, value, ret, msg, 0, 0);
     return ret;
 }
 
