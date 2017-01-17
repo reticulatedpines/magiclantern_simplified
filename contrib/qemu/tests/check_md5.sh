@@ -6,4 +6,4 @@ if [ ! -e $2.md5 ]; then
   exit
 fi
 
-(md5sum -c $2.md5 &> $2.md5.log) && echo "OK" || echo -e "\e[31mFAILED!\e[0m"
+(md5sum -c $2.md5 &> $2.md5.log) && echo "OK" || (echo -e "\e[31mFAILED!\e[0m"; exit 1)

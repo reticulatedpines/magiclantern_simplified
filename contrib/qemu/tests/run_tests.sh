@@ -64,6 +64,9 @@ done
 echo
 echo "Testing Canon GUI..."
 for CAM in ${GUI_CAMS[*]}; do
+  # allow up to 3 retries if unsuccessful
+  # fixme: nondeterministic bugs in emulation
+  for k in 1 2 3; do
     printf "%5s: " $CAM
     mkdir -p tests/$CAM/
     rm -f tests/$CAM/gui.ppm
@@ -71,7 +74,8 @@ for CAM in ${GUI_CAMS[*]}; do
     (sleep 20; echo screendump tests/$CAM/gui.ppm; echo quit) \
       | ./run_canon_fw.sh $CAM,firmware="boot=0" -display none -monitor stdio &> tests/$CAM/gui.log
 
-    tests/check_md5.sh tests/$CAM/ gui
+    tests/check_md5.sh tests/$CAM/ gui && break
+  done
 done
 
 # All cameras should run under GDB and start a few tasks
@@ -130,6 +134,9 @@ echo "Testing FA_CaptureTestImage..."
 # This requires a full-res silent picture at qemu/<camera>/VRAM/PH-QR/RAW-000.DNG.
 # Currently working on 60D and 1200D.
 for CAM in 5D3 60D 1200D; do
+  # allow up to 3 retries if unsuccessful
+  # fixme: nondeterministic bugs in emulation
+  for k in 1 2 3; do
     printf "%5s: " $CAM
 
     mkdir -p tests/$CAM/
@@ -158,7 +165,8 @@ for CAM in 5D3 60D 1200D; do
     (sleep 15; echo screendump tests/$CAM/frsp.ppm; echo quit) \
       | ./run_canon_fw.sh $CAM,firmware="boot=1" -display none -monitor stdio &> tests/$CAM/frsp.log
     
-    tests/check_md5.sh tests/$CAM/ frsp
+    tests/check_md5.sh tests/$CAM/ frsp && break
+  done
 done
 
 echo
@@ -168,6 +176,9 @@ echo "Testing file I/O (DCIM directory)..."
 # and also on EOSM, 100D and 450D.
 #for CAM in ${EOS_CAMS[*]}; do
 for CAM in ${GUI_CAMS[*]} EOSM 100D 450D; do
+  # allow up to 3 retries if unsuccessful
+  # fixme: nondeterministic bugs in emulation
+  for k in 1 2 3; do
     printf "%5s: " $CAM
     
     mkdir -p tests/$CAM/
@@ -190,9 +201,11 @@ for CAM in ${GUI_CAMS[*]} EOSM 100D 450D; do
     
     if (mdir -b -i $MSD | grep -q DCIM) || (mdir -b -i $MCF | grep -q DCIM); then
         echo "OK"
+        break
     else
         echo -e "\e[31mFAILED!\e[0m"
     fi
+  done
 done
 
 # re-create the card images, just in case
