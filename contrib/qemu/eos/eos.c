@@ -2229,6 +2229,7 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
         case 0x00E8:    /* 600D, 60D */
         case 0x0160:
         case 0x016C:    /* 5D3 */
+        case 0x0134:    /* EOSM */
             msg = "MIC CONNECT";
             ret = 1;
 #ifdef IGNORE_CONNECT_POLL
@@ -2238,6 +2239,7 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
         
         case 0x015C:
         case 0x017C:    /* 5D3 */
+        case 0x0130:    /* EOSM */
             msg = "USB CONNECT";
             ret = 0;
 #ifdef IGNORE_CONNECT_POLL
@@ -2246,10 +2248,22 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             break;
         
         case 0x0124:    /* 100D? */
-        case 0x0138:    /* 600D */
         case 0x0150:    /* 5D3 */
             msg = "HDMI CONNECT";
             ret = 0;
+#ifdef IGNORE_CONNECT_POLL
+            return ret;
+#endif
+            break;
+
+        case 0x0138:
+            if (s->model->digic_version == 5) {
+                msg = "VIDEO CONNECT";      /* EOSM; likely other D5 models */
+                ret = 1;                    /* negative logic */
+            } else {
+                msg = "HDMI CONNECT";       /* 600D; likely other D4 models */
+                ret = 0;
+            }
 #ifdef IGNORE_CONNECT_POLL
             return ret;
 #endif
