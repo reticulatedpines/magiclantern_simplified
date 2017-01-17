@@ -119,8 +119,10 @@ static void mpu_interpret_command(EOSState *s)
         printf("%02x ", s->mpu.recv_buffer[i]);
     }
     
-    int spell_set;
-    for (spell_set = 0; spell_set < mpu_init_spell_count; spell_set++)
+    /* some spells may repeat; attempt to follow the sequence
+     * by checking from where it left off at previous message */
+    static int spell_set = 0;
+    for (int k = 0; k < mpu_init_spell_count; k++, spell_set = (spell_set+1) % mpu_init_spell_count)
     {
         if (memcmp(s->mpu.recv_buffer+1, mpu_init_spells[spell_set].in_spell+1, mpu_init_spells[spell_set].in_spell[1]) == 0)
         {
