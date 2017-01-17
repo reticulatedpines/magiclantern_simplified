@@ -397,7 +397,15 @@ unsigned int eos_handle_sio3( unsigned int parm, EOSState *s, unsigned int addre
                     msg = "Data to MPU, at index %d %s";
                     msg_arg1 = s->mpu.recv_index;
                     msg_arg2 = (intptr_t) "";
-                    if (s->mpu.recv_index + 2 < COUNT(s->mpu.recv_buffer))
+                    
+                    if (s->mpu.recv_index == 0 && value == 0)
+                    {
+                        /* fixme: sometimes it gets out of sync
+                         * ignoring null values at index 0 appears to fix it... */
+                        msg_arg2 = (intptr_t) "(empty header!)";
+                        //assert(0);
+                    }
+                    else if (s->mpu.recv_index + 2 < COUNT(s->mpu.recv_buffer))
                     {
                         s->mpu.recv_buffer[s->mpu.recv_index++] = (value >> 8) & 0xFF;
                         s->mpu.recv_buffer[s->mpu.recv_index++] = (value >> 0) & 0xFF;
