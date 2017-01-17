@@ -10,7 +10,7 @@ EOS_CAMS=( 5D 5D2 5D3 5D4 6D 7D 7D2M
 
 POWERSHOT_CAMS=( EOSM3 A1100 )
 
-GUI_CAMS=( 60D 5D3 550D 600D 1200D 1100D )
+GUI_CAMS=( 5D3 60D 70D 100D 550D 600D 1200D 1100D )
 
 EOS_SECONDARY_CORES=( 5D3eeko 5D4AE 7D2S )
 
@@ -173,9 +173,9 @@ echo
 echo "Testing file I/O (DCIM directory)..."
 # Most EOS cameras should be able to create the DCIM directory if missing.
 # Currently works only on models that can boot Canon GUI,
-# and also on EOSM, 100D and 450D.
+# and also on EOSM and 450D.
 #for CAM in ${EOS_CAMS[*]}; do
-for CAM in ${GUI_CAMS[*]} EOSM 100D 450D; do
+for CAM in ${GUI_CAMS[*]} EOSM 450D; do
   # allow up to 3 retries if unsuccessful
   # fixme: nondeterministic bugs in emulation
   for k in 1 2 3; do
