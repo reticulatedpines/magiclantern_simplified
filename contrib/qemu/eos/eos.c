@@ -1184,6 +1184,18 @@ static void patch_EOSM3(EOSState *s)
     MEM_WRITE_ROM(0xFC1847E4, (uint8_t*) &bx_lr, 2);
 }
 
+static void patch_EOSM10(EOSState *s)
+{
+    printf("Patching 0xFCE642A8 (enabling TIO)\n");
+    uint32_t one = 1;
+    MEM_WRITE_ROM(0xFCE642A8, (uint8_t*) &one, 4);
+    
+    /* fixme: timer issue? some interrupt that needs triggered? */
+    printf("Patching 0xFE1ED4D6 (usleep)\n");
+    uint32_t bx_lr = 0x4770;
+    MEM_WRITE_ROM(0xFE1ED4D6, (uint8_t*) &bx_lr, 2);
+}
+
 static void eos_init_common(MachineState *machine)
 {
     EOSState *s = eos_init_cpu(EOS_MACHINE_GET_CLASS(machine)->model);
@@ -1258,7 +1270,12 @@ static void eos_init_common(MachineState *machine)
     {
         patch_EOSM3(s);
     }
-    
+
+    if (strcmp(s->model->name, "EOSM10") == 0)
+    {
+        patch_EOSM10(s);
+    }
+
     if (s->model->digic_version == 6)
     {
         /* fixme: initial PC should probably be set in cpu.c */
@@ -3294,9 +3311,10 @@ unsigned int eos_handle_adc ( unsigned int parm, EOSState *s, unsigned int addre
         msg = "channel #%d";
         msg_arg1 = channel;
         
-        if (strcmp(s->model->name, "EOSM3") == 0)
+        if (strcmp(s->model->name, "EOSM3") == 0 ||
+            strcmp(s->model->name, "EOSM10") == 0)
         {
-            /* values from Ant123's camera */
+            /* values from Ant123's camera (M3) */
             uint32_t adc_values[] = {
                 0x0000de40, 0x00008c00, 0x00008300, 0x00003ca0,
                 0x00003eb0, 0x00003f00, 0x0000aa90, 0x00000050,
@@ -5143,6 +5161,7 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
             {
                 msg = "I2C status?";
                 ret = (last & 0x8000) ? 0x2100100 : 0x20000;
+                ret = rand();
             }
             break;
         }

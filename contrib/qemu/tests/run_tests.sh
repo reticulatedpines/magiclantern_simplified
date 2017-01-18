@@ -8,7 +8,7 @@ EOS_CAMS=( 5D 5D2 5D3 5D4 6D 7D 7D2M
            400D 450D 500D 550D 600D 650D 700D 750D 760D
            100D 1000D 1100D 1200D EOSM )
 
-POWERSHOT_CAMS=( EOSM3 A1100 )
+POWERSHOT_CAMS=( EOSM3 EOSM10 A1100 )
 
 GUI_CAMS=( 5D3 60D 70D 100D 500D 550D 600D 1200D 1100D )
 
@@ -228,8 +228,9 @@ done
 
 # EOS M3 is different (PowerShot firmware); let's test it too
 echo
-echo "Testing EOS M3..."
-for CAM in EOSM3; do
+echo "Testing PowerShot models..."
+for CAM in ${POWERSHOT_CAMS[*]}; do
+    echo "$CAM:"
     mkdir -p tests/$CAM/
     rm -f tests/$CAM/boot.log
     (./run_canon_fw.sh $CAM -display none -s -S & \
@@ -238,8 +239,8 @@ for CAM in EOSM3; do
     ( timeout 10 tail -f -n0 tests/$CAM/boot.log & ) | grep --binary-files=text -qP "\x1B\x5B31ma\x1B\x5B0m\x1B\x5B31my\x1B\x5B0m"
     killall -INT qemu-system-arm &>> tests/$CAM/boot.log
 
-    printf "SD boot: "; tests/check_grep.sh tests/$CAM/boot.log -om1 "StartDiskboot"
-    printf "Display: "; tests/check_grep.sh tests/$CAM/boot.log -om1 "TurnOnDisplay"
+    printf "  SD boot: "; tests/check_grep.sh tests/$CAM/boot.log -om1 "StartDiskboot"
+    printf "  Display: "; tests/check_grep.sh tests/$CAM/boot.log -om1 "TurnOnDisplay"
 done
 
 echo

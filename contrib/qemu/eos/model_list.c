@@ -224,6 +224,15 @@ struct eos_model_desc eos_model_list[] = {
         .card_led_address       = 0xD20B0994,
     },
     {
+        .name                   = "EOSM10",
+        .digic_version          = 6,
+        .firmware_start         = 0xFC000000,
+        .rom0_addr              = 0xFB800000,
+        .rom0_size              = 0x800000,
+        .current_task_addr      = 0x803C,
+        .card_led_address       = 0xD20B0994,   /* unknown, copied from M3 */
+    },
+    {
         .name                   = "7D2M",
         .digic_version          = 6,
         .current_task_addr      = 0x28568,
