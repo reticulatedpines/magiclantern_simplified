@@ -4882,7 +4882,8 @@ unsigned int eos_handle_jpcore( unsigned int parm, EOSState *s, unsigned int add
             }
             else
             {
-                ret = 0x1010000;
+                /* EOSM: this value starts JPCORE, but fails the DCIM test */
+                //ret = 0x1010000;
             }
             break;
 
