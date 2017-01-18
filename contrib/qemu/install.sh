@@ -125,5 +125,7 @@ echo "   - to show the executed ASM code, step by step, use:"
 echo "     ./run_canon_fw.sh 60D -d exec,int -singlestep"
 echo "   - to trace debug messages and various functions in the firmware, use:"
 echo "     ./run_canon_fw.sh 60D -s -S & arm-none-eabi-gdb -x 60D/debugmsg.gdb"
+echo "   - to trace all function calls and export them to IDA:"
+echo "     ./run_canon_fw.sh 60D -d calls -singlestep"
 echo
 echo "Enjoy!"

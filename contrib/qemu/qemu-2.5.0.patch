@@ -1,8 +1,16 @@
 diff --git a/cpu-exec.c b/cpu-exec.c
-index c88d0ff..3d1323e 100644
+index c88d0ff..42e7863 100644
 --- a/cpu-exec.c
 +++ b/cpu-exec.c
-@@ -500,8 +500,17 @@ int cpu_exec(CPUState *cpu)
+@@ -31,6 +31,7 @@
+ #include "hw/i386/apic.h"
+ #endif
+ #include "sysemu/replay.h"
++#include "hw/boards.h"
+ 
+ /* -icount align implementation. */
+ 
+@@ -500,8 +501,112 @@ int cpu_exec(CPUState *cpu)
                      tcg_ctx.tb_ctx.tb_invalidated_flag = 0;
                  }
                  if (qemu_loglevel_mask(CPU_LOG_EXEC)) {
@@ -16,6 +24,101 @@ index c88d0ff..3d1323e 100644
 +#else
                      qemu_log("Trace %p [" TARGET_FMT_lx "] %s\n",
                               tb->tc_ptr, tb->pc, lookup_symbol(tb->pc));
++#endif
++                }
++
++                if (qemu_loglevel_mask(EOS_LOG_CALLS))
++                {
++#if defined(TARGET_ARM)
++                    ARMCPU *arm_cpu = ARM_CPU(cpu);
++                    CPUARMState *env = &arm_cpu->env;
++                    
++                    static FILE * idc = NULL;
++                    static uint32_t prev_pc = 0;
++                    static uint32_t prev_lr = 0;
++                    static uint32_t prev_sp = 0;
++                    static uint32_t prev_size = 0;
++                    if (!idc)
++                    {
++                        char idc_path[100];
++
++                        snprintf(idc_path, sizeof(idc_path), "%s.idc", MACHINE_GET_CLASS(current_machine)->name);
++                        fprintf(stderr, "Exporting called functions to %s.\n", idc_path);
++                        idc = fopen(idc_path, "w");
++                        assert(idc);
++                        
++                        /* QEMU is usually closed with CTRL-C, so call this when finished */
++                        void close_idc(void)
++                        {
++                            fprintf(idc, "}\n");
++                            fclose(idc);
++                        }
++                        atexit(close_idc);
++
++                        fprintf(idc, "/* List of functions called during execution. */\n");
++                        fprintf(idc, "/* Generated from QEMU. */\n\n");
++                        fprintf(idc, "#include <idc.idc>\n\n");
++                        fprintf(idc, "static main() {\n");
++                    }
++                    uint32_t pc = env->regs[15];
++                    uint32_t lr = env->regs[14];
++                    uint32_t sp = env->regs[13];
++                    assert(pc == tb->pc);
++
++                    if (0)
++                    {
++                        fprintf(stderr, "   * PC:%x->%x LR:%x->%x SP:%x->%x */\n",
++                            prev_pc, pc, prev_lr, lr, prev_sp, sp
++                        );
++                    }
++                    
++                    /* bit array for every possible PC & ~3 */
++                    static uint32_t saved_pcs[(1 << 30) / 32] = {0};
++                    
++                    /* when a function call is made:
++                     * - LR is updated with the return address
++                     * - stack is decremented
++                     * - note: the above might also happen during a context switch,
++                     *   so use a heuristic to filter them out
++                     */
++                    if (lr != prev_lr && sp <= prev_sp &&
++                        abs((int)sp - (int)prev_sp) < 1024)
++                    {
++                        /* log each called function to IDC, only once */
++                        int pca = pc >> 2;
++                        if (!(saved_pcs[pca/32] & (1 << (pca%32))))
++                        {
++                            saved_pcs[pca/32] |= (1 << pca%32);
++                            
++                            /* log_target_disas writes to stdout; redirect it to our output file */
++                            /* todo: any other threads that might output to stdout? */
++                            fflush(stdout); fflush(idc);
++                            int old = dup(fileno(stdout));
++                            dup2(fileno(idc), fileno(stderr));
++                            fprintf(stderr, "  /* from "); log_target_disas(cpu, prev_pc, prev_size, 0);
++                            fprintf(stderr, "   *   -> "); log_target_disas(cpu, tb->pc, tb->size, 0);
++                            fprintf(stderr, "   * PC:%x->%x LR:%x->%x SP:%x->%x */\n",
++                                prev_pc, pc, prev_lr, lr, prev_sp, sp
++                            );
++                            fprintf(stderr, "  SetReg(0x%X, \"T\", %d);\n", pc, env->thumb);
++                            fprintf(stderr, "  MakeCode(0x%X);\n", pc);
++                            fprintf(stderr, "  MakeFunction(0x%X, BADADDR);\n", pc);
++                            fprintf(stderr, "\n");
++                            dup2(old, fileno(stderr));
++                        }
++
++                        /* log each call to console */
++                        fprintf(stderr, "%08X: call 0x%X (%s)\n", prev_pc, pc, env->thumb ? "Thumb" : "ARM");
++                    }
++                    
++                    if (pc != prev_pc && pc == (prev_lr & ~1))
++                    {
++                        fprintf(stderr, "%08X: return to 0x%X (%s)\n", prev_pc, pc, env->thumb ? "Thumb" : "ARM");
++                    }
++                    prev_pc = pc;
++                    prev_lr = lr;
++                    prev_sp = sp;
++                    prev_size = tb->size;
 +#endif
                  }
                  /* see if we can patch the calling TB. When the TB
@@ -33,15 +136,16 @@ index 2195b60..e3e2c14 100644
  obj-y += armv7m.o exynos4210.o pxa2xx.o pxa2xx_gpio.o pxa2xx_pic.o
  obj-$(CONFIG_DIGIC) += digic.o
 diff --git a/include/qemu/log.h b/include/qemu/log.h
-index 362cbc4..3fefca6 100644
+index 362cbc4..809426e 100644
 --- a/include/qemu/log.h
 +++ b/include/qemu/log.h
-@@ -42,6 +42,9 @@ static inline bool qemu_log_enabled(void)
+@@ -42,6 +42,10 @@ static inline bool qemu_log_enabled(void)
  #define CPU_LOG_MMU        (1 << 12)
  #define CPU_LOG_TB_NOCHAIN (1 << 13)
  
 +#define EOS_LOG_IO         (1 << 14)
 +#define EOS_LOG_UART       (1 << 15)
++#define EOS_LOG_CALLS      (1 << 16)
 +
  /* Returns true if a bit is set in the current loglevel mask
   */
@@ -70,10 +174,10 @@ index e193658..9de7251 100644
      subregion->priority = 0;
      memory_region_add_subregion_common(mr, offset, subregion);
 diff --git a/qemu-log.c b/qemu-log.c
-index 7cb01a8..a2a73d6 100644
+index 7cb01a8..d45c7c0 100644
 --- a/qemu-log.c
 +++ b/qemu-log.c
-@@ -120,6 +120,11 @@ const QEMULogItem qemu_log_items[] = {
+@@ -120,6 +120,13 @@ const QEMULogItem qemu_log_items[] = {
      { CPU_LOG_TB_NOCHAIN, "nochain",
        "do not chain compiled TBs so that \"exec\" and \"cpu\" show\n"
        "complete traces" },
@@ -82,6 +186,8 @@ index 7cb01a8..a2a73d6 100644
 +      "EOS: log low-level I/O activity" },
 +    { EOS_LOG_UART, "uart",
 +      "EOS: log low-level UART activity" },
++    { EOS_LOG_CALLS, "calls",
++      "EOS: log function calls and export them to IDA" },
      { 0, NULL, NULL },
  };
  
