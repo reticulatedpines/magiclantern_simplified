@@ -117,7 +117,7 @@ static int tcc_compile_and_run(char* filename)
         goto err;
     }
 
-    script_load_symbols(tcc, script_state, "ML/modules/5D3_113.sym");
+    script_load_symbols(tcc, script_state, "ML/modules/5D3_123.sym");
 
     int size = module_exec(tcc, "tcc_relocate", 2, script_state, NULL);
     if (size <= 0)
