@@ -2525,11 +2525,21 @@ read_headers:
                     int recompress = compressed && compress_output;
                     int decompress = compressed && decompress_output;
 
-                    int frame_size = block_hdr.blockSize - sizeof(mlv_vidf_hdr_t) - block_hdr.frameSpace;
+                    /* block_hdr.blockSize includes VIDF header, space (if any), actual frame, and padding (if any) */
+                    /* this formula should match the one used when saving dark frames (which have no spacing/padding) */
+                    int frame_size = ((video_xRes * video_yRes * lv_rec_footer.raw_info.bits_per_pixel + 7) / 8);
+
                     int prev_frame_size = frame_size;                    
-                    uint64_t skipSize = block_hdr.frameSpace;
-                    
-                    file_set_pos(in_file, skipSize, SEEK_CUR);
+                    int64_t skipSizeBefore = block_hdr.frameSpace;
+                    int64_t skipSizeAfter = block_hdr.blockSize - frame_size - block_hdr.frameSpace - sizeof(mlv_vidf_hdr_t);
+
+                    if (skipSizeAfter < 0)
+                    {
+                        print_msg(MSG_ERROR, "VIDF: Frame size + header + space is larger than block size. Skipping\n");
+                        skip_block = 1;
+                    }
+
+                    file_set_pos(in_file, skipSizeBefore, SEEK_CUR);
                     
                     /* check if there is enough memory for that frame */
                     if(frame_size > (int)frame_buffer_size)
@@ -2582,6 +2592,8 @@ read_headers:
                         print_msg(MSG_ERROR, "VIDF: File ends in the middle of a block\n");
                         goto abort;
                     }
+
+                    file_set_pos(in_file, skipSizeAfter, SEEK_CUR);
 
                     lua_handle_hdr_data(lua_state, buf.blockType, "_data_read", &block_hdr, sizeof(block_hdr), frame_buffer, frame_size);
 
