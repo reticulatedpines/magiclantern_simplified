@@ -148,10 +148,12 @@ EOSRegionHandler eos_handlers[] =
     { "FlashControl", 0xC0000000, 0xC0001FFF, eos_handle_flashctrl, 0 },
     { "ROM0",         0xF8000000, 0xFFFFFFFF, eos_handle_rom, 0 },
     { "ROM1",         0xF0000000, 0xF7FFFFFF, eos_handle_rom, 1 },
-    { "Interrupt",    0xC0200000, 0xC02000FF, eos_handle_intengine_vx, 0 },
-    { "Interrupt",    0xC0201000, 0xC0201FFF, eos_handle_intengine, 0 },
-    { "Interrupt",    0xD4011000, 0xD4011FFF, eos_handle_intengine, 1 },
-    { "Interrupt",    0xD02C0200, 0xD02C02FF, eos_handle_intengine, 2 },
+    { "Interrupt",    0xC0200000, 0xC02000FF, eos_handle_intengine_vx, 0 }, /* mostly used on D2/3, but also 60D */
+    { "Interrupt",    0xC0201000, 0xC0201FFF, eos_handle_intengine, 0 },    /* <= D5 */
+    { "Interrupt",    0xD4011000, 0xD4011FFF, eos_handle_intengine, 1 },    /* D6; first core in D7 */
+    { "Interrupt",    0xD5011000, 0xD5011FFF, eos_handle_intengine, 2 },    /* second core in D7 */
+    { "Interrupt",    0xD02C0200, 0xD02C02FF, eos_handle_intengine, 3 },    /* 5D3 eeko */
+    { "Interrupt",    0xC1000000, 0xC100FFFF, eos_handle_intengine_gic, 7 },/* D7 */
     { "Timers",       0xC0210000, 0xC0210FFF, eos_handle_timers, 0 },
     { "Timers",       0xD4000240, 0xD4000410, eos_handle_timers, 1 },
     { "Timers",       0xD02C1500, 0xD02C15FF, eos_handle_timers, 2 },
@@ -214,7 +216,7 @@ EOSRegionHandler eos_handlers[] =
     /* generic catch-all for everything unhandled from this range */
     { "ENGIO",        0xC0F00000, 0xC0FFFFFF, eos_handle_engio, 0 },
     
-    { "DIGIC6",       0xD0000000, 0xDFFFFFFF, eos_handle_digic6, 0 },
+    { "DIGIC6",       0xC8000000, 0xDFFFFFFF, eos_handle_digic6, 0 },
     
     { "ML helpers",   0xCF123000, 0xCF123EFF, eos_handle_ml_helpers, 0 },
 };
@@ -1003,10 +1005,17 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
 
     s->system_mem = get_system_memory();
 
-    memory_region_init_ram(&s->tcm_code, NULL, "eos.tcm_code", ATCM_SIZE, &error_abort);
-    memory_region_add_subregion(s->system_mem, ATCM_ADDR, &s->tcm_code);
-    memory_region_init_ram(&s->tcm_data, NULL, "eos.tcm_data", BTCM_SIZE, &error_abort);
-    memory_region_add_subregion(s->system_mem, BTCM_ADDR, &s->tcm_data);
+    if (ATCM_SIZE)
+    {
+        memory_region_init_ram(&s->tcm_code, NULL, "eos.tcm_code", ATCM_SIZE, &error_abort);
+        memory_region_add_subregion(s->system_mem, ATCM_ADDR, &s->tcm_code);
+    }
+
+    if (BTCM_SIZE)
+    {
+        memory_region_init_ram(&s->tcm_data, NULL, "eos.tcm_data", BTCM_SIZE, &error_abort);
+        memory_region_add_subregion(s->system_mem, BTCM_ADDR, &s->tcm_data);
+    }
 
     /* set up RAM, cached and uncached */
     /* main RAM starts at 0 */
@@ -1026,7 +1035,7 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
     memory_region_init_alias(&s->ram_uncached, NULL, "eos.ram_uncached", &s->ram, 0x00000000, RAM_SIZE - ATCM_SIZE);
     memory_region_add_subregion(s->system_mem, CACHING_BIT + ATCM_SIZE, &s->ram_uncached);
     
-    if (BTCM_ADDR != CACHING_BIT)
+    if (ATCM_SIZE && (BTCM_ADDR != CACHING_BIT))
     {
         /* I believe there's a small section of RAM visible only as uncacheable (to be tested) */
         memory_region_init_ram(&s->ram_uncached0, NULL, "eos.ram_uncached0", ATCM_SIZE, &error_abort);
@@ -1098,9 +1107,11 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
 
     vmstate_register_ram_global(&s->ram);
 
-    const char* cpu_name = (s->model->digic_version >= 6)
-        ? "arm-digic6-eos"
-        : "arm946eos";
+    const char* cpu_name = 
+        (s->model->digic_version <= 5) ? "arm946eos" :
+        (s->model->digic_version == 7) ? "cortex-a9" :
+        (s->model->digic_version >= 6) ? "arm-digic6-eos" :
+                                         "arm946";
     
     s->cpu = cpu_arm_init(cpu_name);
     if (!s->cpu)
@@ -1196,6 +1207,18 @@ static void patch_EOSM10(EOSState *s)
     MEM_WRITE_ROM(0xFE1ED4D6, (uint8_t*) &bx_lr, 2);
 }
 
+static void patch_EOSM5(EOSState *s)
+{
+    /* 0x4060, in the block copied from 0xE001B2E4 to 0x4000 */
+    printf("Patching 0xE001B2E4+0x60 (enabling TIO on DryOs #1)\n");
+    uint32_t one = 1;
+    MEM_WRITE_ROM(0xE001B2E4+0x60, (uint8_t*) &one, 4);
+
+    /* 0x8098, in the block copied from 0xE115CF88 to 0x8000 */
+    printf("Patching 0xE115CF88+0x98 (enabling TIO on DryOs #2)\n");
+    MEM_WRITE_ROM(0xE115CF88+0x98, (uint8_t*) &one, 4);
+}
+
 static void eos_init_common(MachineState *machine)
 {
     EOSState *s = eos_init_cpu(EOS_MACHINE_GET_CLASS(machine)->model);
@@ -1276,11 +1299,23 @@ static void eos_init_common(MachineState *machine)
         patch_EOSM10(s);
     }
 
+    if (strcmp(s->model->name, "EOSM5") == 0)
+    {
+        patch_EOSM5(s);
+    }
+
     if (s->model->digic_version == 6)
     {
         /* fixme: initial PC should probably be set in cpu.c */
         /* note: DIGIC 4 and 5 start execution at FFFF0000 (hivecs) */
         s->cpu->env.regs[15] = eos_get_mem_w(s, 0xFC000000);
+        printf("Start address: 0x%08X\n", s->cpu->env.regs[15]);
+    }
+
+    if (s->model->digic_version == 7)
+    {
+        /* fixme: what configures this address as startup? */
+        s->cpu->env.regs[15] = 0xE0000000;
         printf("Start address: 0x%08X\n", s->cpu->env.regs[15]);
     }
 
@@ -1702,6 +1737,96 @@ unsigned int eos_handle_intengine ( unsigned int parm, EOSState *s, unsigned int
     if (qemu_loglevel_mask(CPU_LOG_INT))
     {
         io_log("INT", s, address, type, value, ret, msg, msg_arg1, msg_arg2);
+    }
+    return ret;
+}
+
+/* Private memory region for Cortex A9, used in EOS M5 */
+/* http://www.csc.lsu.edu/~whaley/teach/FHPO_F11/ARM/CortAProgGuide.pdf#G26.1058874 */
+/* fixme: reuse QEMU implementation from intc/arm_gic.c */
+unsigned int eos_handle_intengine_gic ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+{
+    const char * module = "PRIV";
+    const char * msg = 0;
+    int msg_arg1 = 0;
+    int msg_arg2 = 0;
+    unsigned int ret = 0;
+
+    static int enabled[32] = {0};
+    static int target[1024] = {0};
+
+    switch (address & 0xFFFF)
+    {
+        /* Snoop Control Unit (SCU) */
+        case 0x0000 ... 0x00FF:
+        {
+            module = "SCU";
+            break;
+        }
+
+        /* Interrupt Controller CPU Interface */
+        case 0x0100 ... 0x01FF:
+        {
+            module = "GICC";
+            switch (address & 0xFF)
+            {
+                case 0x0C:
+                {
+                    msg = "GICC_IAR";
+                    ret = 0x20;
+                    break;
+                }
+            }
+            break;
+        }
+
+        /* Interrupt Controller Distributor */
+        case 0x1000 ... 0x1FFF:
+        {
+            module = "GICD";
+            switch (address & 0xFFF)
+            {
+                case 0x100 ... 0x17C:
+                {
+                    msg = "GICD_ISENABLER%d (1C0+%02Xh)";
+                    int word = ((address & 0xFFF) - 0x100) / 4;
+                    msg_arg1 = word;
+                    msg_arg2 = word * 32;
+                    assert(word < COUNT(enabled));
+                    MMIO_VAR(enabled[word]);
+                    break;
+                }
+
+                case 0x180 ... 0x1FC:
+                {
+                    msg = "GICD_ICENABLER%d (1C0+%02Xh)";
+                    int word = ((address & 0xFFF) - 0x180) / 4;
+                    msg_arg1 = word;
+                    msg_arg2 = word * 32;
+                    assert(word < COUNT(enabled));
+                    if(type & MODE_WRITE) {
+                        enabled[word] &= ~value;
+                    }
+                    break;
+                }
+
+                case 0x800 ... 0x880:
+                {
+                    msg = "GICD_ITARGETSR%d (1C0+%02Xh)";
+                    int id = ((address & 0xFFFF) - 0x1800);
+                    msg_arg1 = id;
+                    msg_arg2 = id;
+                    MMIO_VAR(target[id]);
+                    break;
+                }
+            }
+            break;
+        }
+    }
+
+    if (qemu_loglevel_mask(CPU_LOG_INT))
+    {
+        io_log(module, s, address, type, value, ret, msg, msg_arg1, msg_arg2);
     }
     return ret;
 }
@@ -5150,6 +5275,11 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
             ret = 0x3008000;
             break;
 
+        case 0xD5202018:                /* M5: expects 1 at 0xE0009E9C */
+        case 0xD5203018:                /* M5: expects 1 at 0xE0009EBA */
+            ret = 1;
+            break;
+
         case 0xD6050000:
         {
             static int last = 0;
@@ -5182,6 +5312,11 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
         case 0xd02c4024: // TST 1
             msg = "AVS??";
             ret = 0xff;
+            break;
+
+        case 0xC8100154:
+            msg = "IPC?";
+            ret = 0x10001;              /* M5: expects 0x10001 at 0xE0009E66 */
             break;
     }
     

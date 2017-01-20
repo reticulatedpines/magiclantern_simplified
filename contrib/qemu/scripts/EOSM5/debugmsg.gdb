@@ -1,0 +1,75 @@
+# ./run_canon_fw.sh EOSM5 -s -S & arm-none-eabi-gdb -x EOSM5/debugmsg.gdb
+
+source -v debug-logging.gdb
+
+macro define CURRENT_TASK 0x1020
+macro define CURRENT_ISR 0
+
+b *0xDFFC93A2
+task_create_log
+
+# expects to read 1 from DF000000
+b *0xE0017C50
+commands
+  silent
+  set $r1 = 1
+  c
+end
+
+# expects to read 3 from DF000000
+b *0xE0017C6E
+commands
+  silent
+  set $r1 = 3
+  c
+end
+
+# infinite loop, not sure what it does
+b *0xE0008266
+commands
+  silent
+  set $r1 = 1
+  c
+end
+
+b *0xE0008760          
+commands
+  silent
+  print_current_location
+  KYLW
+  printf "set_int_handler(%x, %x, %x)\n", $r2, $r0, $r1
+  KRESET
+  c
+end
+
+b *0xE0008684
+commands
+  silent
+  print_current_location
+  KYLW
+  printf "enable_interrupt_1(%x)\n", $r0
+  KRESET
+  c
+end
+
+b *0xE0028410
+commands
+  silent
+  print_current_location
+  KYLW
+  printf "enable_interrupt_2(%x)\n", $r0
+  KRESET
+  c
+end
+
+b *0xE0008DA6
+commands
+  silent
+  print_current_location
+  KRED
+  printf "dryos_panic(%x, %x)\n", $r0, $r1
+  KRESET
+  c
+end
+
+cont

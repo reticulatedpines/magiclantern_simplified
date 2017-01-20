@@ -105,6 +105,14 @@ struct eos_model_desc eos_model_list[] = {
         .card_led_address       = 0xD20B0A24,
     },
     {
+        /* defaults for DIGIC 7 cameras */
+        .digic_version          = 7,
+        .current_task_name_offs = 0x09,
+        .dryos_timer_id         = 1,
+        .dryos_timer_interrupt  = 0x1B,
+        .hptimer_interrupt      = 0x28,
+    },
+    {
         .name                   = "50D",
         .digic_version          = 4,
         .card_led_address       = 0xC02200BC,
@@ -141,7 +149,7 @@ struct eos_model_desc eos_model_list[] = {
         /* started on request on photo taking, raw develop and others;
          * see EekoBltDmac, Eeko WakeUp; runs Thumb-2 code */
         .name                   = "5D3eeko",
-        .digic_version          = 7,            /* hack to get an empty configuration */
+        .digic_version          = 50,           /* hack to get an empty configuration */
         .ram_size               = 0x00100000,   /* unknown, mapped to 0xD0288000 on main CPU*/
         .ram_extra_addr         = 0x01E00000,   /* mapped to the same address on main CPU */
         .ram_extra_size         = 0x00200000,   /* 1E0-1F0, 1F0-1F2, 1F2-1F4 (I/O; fixme) */
@@ -231,6 +239,19 @@ struct eos_model_desc eos_model_list[] = {
         .rom0_size              = 0x800000,
         .current_task_addr      = 0x803C,
         .card_led_address       = 0xD20B0994,   /* unknown, copied from M3 */
+    },
+    {
+        .name                   = "EOSM5",
+        .digic_version          = 7,
+        .firmware_start         = 0xE0000000,
+        .rom1_addr              = 0xE0000000,
+        .rom1_size              = 0x02000000,
+        .ram_size               = 0x20000000,   /* at least 0x1000 is private */
+        .caching_bit            = 0x40000000,
+        .ram_extra_addr         = 0xDF000000,   /* shared between the two cores? */
+        .ram_extra_size         = 0x01000000,
+        .io_mem_size            = 0x1F000000,
+        .current_task_addr      = 0x1020,
     },
     {
         .name                   = "7D2M",
