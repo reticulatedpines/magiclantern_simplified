@@ -246,11 +246,11 @@ struct eos_model_desc eos_model_list[] = {
         .firmware_start         = 0xE0000000,
         .rom1_addr              = 0xE0000000,
         .rom1_size              = 0x02000000,
-        .ram_size               = 0x20000000,   /* at least 0x1000 is private */
+        .ram_size               = 0x40000000,
         .caching_bit            = 0x40000000,
-        .ram_extra_addr         = 0xDF000000,   /* shared between the two cores? */
-        .ram_extra_size         = 0x01000000,
         .io_mem_size            = 0x1F000000,
+        .ram_extra_addr         = 0xDF000000,
+        .ram_extra_size         = 0x01000000,
         .current_task_addr      = 0x1020,
     },
     {

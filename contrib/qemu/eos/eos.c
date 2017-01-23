@@ -374,7 +374,11 @@ static void *eos_interrupt_thread(void *parm)
         usleep(0x100);
 
         /* don't loop thread if cpu stopped in gdb */
-        if (cpu_is_stopped(CPU(s->cpu))) {
+        if (s->cpu0 && cpu_is_stopped(CPU(s->cpu0))) {
+            continue;
+        }
+
+        if (s->cpu1 && cpu_is_stopped(CPU(s->cpu1))) {
             continue;
         }
 
@@ -423,7 +427,9 @@ static void *eos_interrupt_thread(void *parm)
 
                     s->irq_id = pos;
                     s->irq_enabled[s->irq_id] = 0;
-                    cpu_interrupt(CPU(s->cpu), CPU_INTERRUPT_HARD);
+
+                    /* fixme: CURRENT_CPU not valid here */
+                    cpu_interrupt(CPU(s->cpu0), CPU_INTERRUPT_HARD);
                 }
             }
 
@@ -1000,6 +1006,22 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
     s->workdir = getenv("QEMU_EOS_WORKDIR");
     if (!s->workdir) s->workdir = ".";
 
+    const char* cpu_name = 
+        (s->model->digic_version <= 5) ? "arm946eos" :
+        (s->model->digic_version == 7) ? "cortex-a9" :
+        (s->model->digic_version >= 6) ? "arm-digic6-eos" :
+                                         "arm946";
+    
+    s->cpu0 = cpu_arm_init(cpu_name);
+    assert(s->cpu0);
+
+    if (s->model->digic_version == 7)
+    {
+        s->cpu1 = cpu_arm_init(cpu_name);
+        assert(s->cpu1);
+        CPU(s->cpu1)->halted = 1;
+    }
+
     s->verbosity = 0xFFFFFFFF;
     s->tio_rxbyte = 0x100;
 
@@ -1106,19 +1128,6 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
                                 */
 
     vmstate_register_ram_global(&s->ram);
-
-    const char* cpu_name = 
-        (s->model->digic_version <= 5) ? "arm946eos" :
-        (s->model->digic_version == 7) ? "cortex-a9" :
-        (s->model->digic_version >= 6) ? "arm-digic6-eos" :
-                                         "arm946";
-    
-    s->cpu = cpu_arm_init(cpu_name);
-    if (!s->cpu)
-    {
-        fprintf(stderr, "Unable to find CPU definition\n");
-        exit(1);
-    }
 
     s->rtc.transfer_format = 0xFF;
 
@@ -1308,15 +1317,16 @@ static void eos_init_common(MachineState *machine)
     {
         /* fixme: initial PC should probably be set in cpu.c */
         /* note: DIGIC 4 and 5 start execution at FFFF0000 (hivecs) */
-        s->cpu->env.regs[15] = eos_get_mem_w(s, 0xFC000000);
-        printf("Start address: 0x%08X\n", s->cpu->env.regs[15]);
+        s->cpu0->env.regs[15] = eos_get_mem_w(s, 0xFC000000);
+        printf("Start address: 0x%08X\n", s->cpu0->env.regs[15]);
     }
 
     if (s->model->digic_version == 7)
     {
         /* fixme: what configures this address as startup? */
-        s->cpu->env.regs[15] = 0xE0000000;
-        printf("Start address: 0x%08X\n", s->cpu->env.regs[15]);
+        s->cpu0->env.regs[15] = 0xE0000000;
+        s->cpu1->env.regs[15] = 0xE0000000;
+        printf("Start address: 0x%08X\n", s->cpu0->env.regs[15]);
     }
 
     if (strcmp(s->model->name, "5D3eeko") == 0)
@@ -1334,8 +1344,8 @@ static void eos_init_common(MachineState *machine)
         eos_load_image(s, "D0280000.DMP", 0, 0, 0x40000000, 0); /* 0x004000 bytes */
         eos_load_image(s, "1E00000.DMP",  0, 0, 0x1E00000,  0); /* 0x120000 bytes (overlaps 2 regions) */
         eos_load_image(s, "1F20000.DMP",  0, 0, 0x1F20000,  0); /* 0x020000 bytes (non-shareable device) */
-        s->cpu->env.regs[15] = 0;
-        s->cpu->env.thumb = 1;
+        s->cpu0->env.regs[15] = 0;
+        s->cpu0->env.thumb = 1;
     }
 
     /* hijack machine option "firmware" to pass command-line parameters */
@@ -1426,9 +1436,17 @@ void io_log(const char * module_name, EOSState *s, unsigned int address, unsigne
     if (!qemu_loglevel_mask(EOS_LOG_IO)) {
         return;
     }
+
+    /* on multicore machines, print CPU index for each message */
+    char cpu_name[] = "[CPU0] ";
+    if (CPU_NEXT(first_cpu)) {
+        cpu_name[4] = '0' + current_cpu->cpu_index;
+    } else {
+        cpu_name[0] = 0;
+    }
     
-    unsigned int pc = s->cpu->env.regs[15];
-    unsigned int lr = s->cpu->env.regs[14];
+    unsigned int pc = CURRENT_CPU->env.regs[15];
+    unsigned int lr = CURRENT_CPU->env.regs[14];
     if (!module_name) module_name = "???";
     if (!msg) msg = "???";
     
@@ -1456,7 +1474,8 @@ void io_log(const char * module_name, EOSState *s, unsigned int address, unsigne
     char desc[200];
     snprintf(desc, sizeof(desc), msg, msg_arg1, msg_arg2);
     
-    printf("%-28s [0x%08X] %s 0x%-8X%s%s\n",
+    printf("%s%-28s [0x%08X] %s 0x%-8X%s%s\n",
+        cpu_name,
         mod_name_and_pc,
         address,
         type & MODE_WRITE ? "<-" : "->",
@@ -1572,7 +1591,8 @@ unsigned int eos_trigger_int(EOSState *s, unsigned int id, unsigned int delay)
         }
         s->irq_id = id;
         s->irq_enabled[s->irq_id] = 0;
-        cpu_interrupt(CPU(s->cpu), CPU_INTERRUPT_HARD);
+        /* fixme: CURRENT_CPU not valid outside MMIO handlers */
+        cpu_interrupt(CPU(s->cpu0), CPU_INTERRUPT_HARD);
     }
     else
     {
@@ -1614,7 +1634,7 @@ unsigned int eos_handle_intengine_vx ( unsigned int parm, EOSState *s, unsigned 
                         {
                             s->irq_enabled[msg_arg2] = 0;
                         }
-                        cpu_reset_interrupt(CPU(s->cpu), CPU_INTERRUPT_HARD);
+                        cpu_reset_interrupt(CPU(CURRENT_CPU), CPU_INTERRUPT_HARD);
                     }
                 }
             }
@@ -1680,7 +1700,7 @@ unsigned int eos_handle_intengine ( unsigned int parm, EOSState *s, unsigned int
 
                 /* this register resets on read (subsequent reads should report 0) */
                 s->irq_id = 0;
-                cpu_reset_interrupt(CPU(s->cpu), CPU_INTERRUPT_HARD);
+                cpu_reset_interrupt(CPU(CURRENT_CPU), CPU_INTERRUPT_HARD);
 
                 if(msg_arg2 == TIMER_INTERRUPT)
                 {
@@ -1833,7 +1853,7 @@ unsigned int eos_handle_intengine_gic ( unsigned int parm, EOSState *s, unsigned
 
 unsigned int eos_handle_timers_ ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
-    unsigned int pc = s->cpu->env.regs[15];
+    unsigned int pc = CURRENT_CPU->env.regs[15];
 
     if(type & MODE_WRITE)
     {
@@ -3647,7 +3667,7 @@ unsigned int eos_handle_sio ( unsigned int parm, EOSState *s, unsigned int addre
     static unsigned int last_sio_setup1 = 0;
     static unsigned int last_sio_setup2 = 0;
     static unsigned int last_sio_setup3 = 0;
-    unsigned int pc = s->cpu->env.regs[15];
+    unsigned int pc = CURRENT_CPU->env.regs[15];
 
     switch(address & 0xFF)
     {
@@ -4688,7 +4708,7 @@ unsigned int flash_get_blocksize(unsigned int rom, unsigned int size, unsigned i
 
 unsigned int eos_handle_rom ( unsigned int rom, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
-    unsigned int pc = s->cpu->env.regs[15];
+    unsigned int pc = CURRENT_CPU->env.regs[15];
     unsigned int ret = 0;
     unsigned int real_address = 0;
     unsigned int byte_offset = 0;
@@ -5317,6 +5337,12 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
         case 0xC8100154:
             msg = "IPC?";
             ret = 0x10001;              /* M5: expects 0x10001 at 0xE0009E66 */
+            break;
+
+        case 0xD2101504:
+            msg = "Wake up CPU1?";       /* M5: wake up the second CPU? */
+            assert(s->cpu1);
+            CPU(s->cpu1)->halted = 0;
             break;
     }
     

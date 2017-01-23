@@ -26,6 +26,7 @@
 #define FAR_CALL_INSTR   0xe51ff004    // ldr pc, [pc,#-4]
 #define LOOP_INSTR       0xeafffffe    // 1: b 1b
 
+#define CURRENT_CPU   s->cpus[current_cpu->cpu_index]
 
 /** Memory configuration **/
 #define ROM0_ADDR     s->model->rom0_addr
@@ -207,7 +208,16 @@ typedef struct
     /* model-specific settings from model_list.c */
     struct eos_model_desc * model;
 
-    ARMCPU *cpu;
+    union
+    {
+        ARMCPU * cpus[2];
+        struct
+        {
+            ARMCPU *cpu0;
+            ARMCPU *cpu1;
+        };
+    };
+    
     MemoryRegion *system_mem;
     MemoryRegion tcm_code;
     MemoryRegion tcm_data;

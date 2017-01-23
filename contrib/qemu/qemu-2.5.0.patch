@@ -1,5 +1,5 @@
 diff --git a/cpu-exec.c b/cpu-exec.c
-index c88d0ff..42e7863 100644
+index c88d0ff..88254d7 100644
 --- a/cpu-exec.c
 +++ b/cpu-exec.c
 @@ -31,6 +31,7 @@
@@ -10,7 +10,7 @@ index c88d0ff..42e7863 100644
  
  /* -icount align implementation. */
  
-@@ -500,8 +501,112 @@ int cpu_exec(CPUState *cpu)
+@@ -500,8 +501,115 @@ int cpu_exec(CPUState *cpu)
                      tcg_ctx.tb_ctx.tb_invalidated_flag = 0;
                  }
                  if (qemu_loglevel_mask(CPU_LOG_EXEC)) {
@@ -19,6 +19,9 @@ index c88d0ff..42e7863 100644
 +                    if (!singlestep) {
 +                        /* separate translation blocks by newlines */
 +                        qemu_log("\n");
++                    }
++                    if (CPU_NEXT(first_cpu)) {
++                        qemu_log("[CPU%d] ", current_cpu->cpu_index);
 +                    }
 +                    log_target_disas(cpu, tb->pc, tb->size, 0);
 +#else
@@ -377,10 +380,10 @@ index c2a85c7..2671a2c 100644
  DEF_HELPER_3(set_cp_reg64, void, env, ptr, i64)
  DEF_HELPER_2(get_cp_reg64, i64, env, ptr)
 diff --git a/target-arm/op_helper.c b/target-arm/op_helper.c
-index 6cd54c8..46b07cf 100644
+index 6cd54c8..54595d2 100644
 --- a/target-arm/op_helper.c
 +++ b/target-arm/op_helper.c
-@@ -474,6 +474,144 @@ void HELPER(set_cp_reg)(CPUARMState *env, void *rip, uint32_t value)
+@@ -474,6 +474,156 @@ void HELPER(set_cp_reg)(CPUARMState *env, void *rip, uint32_t value)
      ri->writefn(env, ri, value);
  }
  
@@ -436,6 +439,15 @@ index 6cd54c8..46b07cf 100644
 +    return linebuf;
 +}
 +
++static void print_cpu_mpidr(CPUARMState *env)
++{
++    if (arm_feature(env, ARM_FEATURE_V7MP)) {
++        ARMCPU *cpu = ARM_CPU(arm_env_get_cpu(env));
++        uint64_t mpidr = cpu->mp_affinity;
++        fprintf(stderr, "[CPU%d] ", (int) mpidr & 0xFF);
++    }
++}
++
 +void HELPER(print_set_cp_reg)(CPUARMState *env, void *rip, uint32_t value)
 +{
 +    const ARMCPRegInfo *ri = rip;
@@ -462,6 +474,7 @@ index 6cd54c8..46b07cf 100644
 +    {
 +        if (cachemaint_count)
 +        {
++            print_cpu_mpidr(env);
 +            fprintf(stderr, "%08X: MCR p%d, ...          : CACHEMAINT x%d (omitted)\n", cachemaint_pc, ri->cp, cachemaint_count);
 +            cachemaint_count = 0;
 +        }
@@ -505,6 +518,7 @@ index 6cd54c8..46b07cf 100644
 +        );
 +    }
 +
++    print_cpu_mpidr(env);
 +    fprintf(stderr, "%08X: MCR p%d,%d,Rd,cr%d,cr%d,%d: %10s <- 0x%-8X %s\n",
 +        env->regs[15], ri->cp,
 +        ri->opc1, ri->crn, ri->crm, ri->opc2,
@@ -515,6 +529,7 @@ index 6cd54c8..46b07cf 100644
 +{
 +    const ARMCPRegInfo *ri = rip;
 +
++    print_cpu_mpidr(env);
 +    fprintf(stderr, "%08X: MRC p%d,%d,Rd,cr%d,cr%d,%d: %10s -> 0x%X\n",
 +        env->regs[15], ri->cp,
 +        ri->opc1, ri->crn, ri->crm, ri->opc2,

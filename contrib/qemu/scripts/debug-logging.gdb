@@ -30,12 +30,16 @@ target remote localhost:1234
 #   In the RTC initialization routine, this flag
 #   is set to 1 if date/time was read successfully.
 #
+# NUM_CORES:
+#   Defaults to 1; only needed on multi-core machines.
+#
 ################################################################################
 
 # dummy definitions
 macro define CURRENT_TASK   ((int)0xFFFFFFFF)
 macro define CURRENT_ISR    ((int)0xFFFFFFFF)
 macro define RTC_VALID_FLAG ((int)0xFFFFFFFF)
+macro define NUM_CORES      1
 
 # misc preferences
 set pagination off
@@ -86,12 +90,20 @@ define print_current_location
     printf "Please define CURRENT_TASK.\n"
   end
 
+  if NUM_CORES > 1
+    printf "[CPU%d] ", ($_thread-1)
+  end
+
   printf "["
   if CURRENT_ISR > 0
     KRED
     printf "   INT-%02Xh:%08x ", CURRENT_ISR, $r14-4
   else
-    KCYN
+    if $_thread == 1
+      KCYN
+    else
+      KYLW
+    end
     printf "%10s:%08x ", CURRENT_TASK_NAME, $r14-4
   end
   KRESET
