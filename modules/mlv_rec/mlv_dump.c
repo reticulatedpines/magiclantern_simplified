@@ -1096,7 +1096,7 @@ int main (int argc, char *argv[])
     int fix_cold_pixels = 1;
     int fix_vert_stripes = 1;
     
-    const char * unique_camname = NULL;
+    const char * unique_camname = "(unknown)";
 
     struct option long_options[] = {
         {"lua",    required_argument, NULL,  'L' },
@@ -3043,13 +3043,10 @@ read_headers:
                     }
                 }
 
+                unique_camname = get_camera_name_by_id(idnt_info.cameraModel, UNIQ);
                 if(!unique_camname)
                 {
-                    unique_camname = get_camera_name_by_id(idnt_info.cameraModel, UNIQ);
-                    if(!unique_camname)
-                    {
-                        unique_camname = (const char*) idnt_info.cameraName;
-                    }
+                    unique_camname = (const char*) idnt_info.cameraName;
                 }
             }
             else if(!memcmp(buf.blockType, "RTCI", 4))
