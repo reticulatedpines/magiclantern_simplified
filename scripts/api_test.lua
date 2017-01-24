@@ -709,7 +709,7 @@ function test_lens_focus()
             for j,wait in pairs{true,false} do
                 printf("Focusing forward with step size %d, wait=%s...\n", step, wait)
                 local steps_front = 0
-                while lens.focus(1,step,true) do
+                while lens.focus(1,step,wait) do
                     printf(".")
                     steps_front = steps_front + 1
                 end
@@ -720,7 +720,7 @@ function test_lens_focus()
                 
                 printf("Focusing backward with step size %d, wait=%s...\n", step, wait)
                 local steps_back = 0
-                while lens.focus(-1,step,true) do
+                while lens.focus(-1,step,wait) do
                     printf(".")
                     steps_back = steps_back + 1
                 end
