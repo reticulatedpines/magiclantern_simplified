@@ -549,7 +549,16 @@ PROP_HANDLER( PROP_LV_FOCUS_DONE )
     int error_flag = buf[0] & 0x1000;
     int focus_changed = last_pos != lens_info.focus_pos;
     int lens_stuck = error_flag && !focus_changed;
-    
+
+    if (lens_stuck)
+    {
+        printf("Lens stuck? (%d, %x)\n", retries, buf[0]);
+    }
+    else
+    {
+        printf("Lens moving (%d, %x)\n", lens_info.focus_pos - last_pos, buf[0]);
+    }
+
     if (lens_stuck && retries == 0)
     {
         /* only trigger the error if the lens did not move at all
