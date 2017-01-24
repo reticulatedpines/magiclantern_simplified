@@ -97,17 +97,20 @@ struct prop_lv_lens
         uint32_t                off_0x14;
         uint32_t                off_0x18;
         uint32_t                off_0x1c;
-        uint32_t                off_0x20;
-        uint32_t                off_0x24;
+        uint16_t                off_0x20;
+        uint8_t                 off_0x22;
+        uint16_t                focus_pos; // off_0x23
+        uint8_t                 off_0x25;
+        uint16_t                off_0x26;
         uint32_t                off_0x28;
-        uint16_t                off_unk0;        
-        uint8_t                 off_unk1;
-        uint16_t                focal_len;      
-        uint16_t                off_unk2;
-        uint16_t                focus_dist;      
-        uint32_t                off_0x30;
-        uint32_t                off_0x34;
-        uint8_t                 off_0x38;
+        uint16_t                off_0x2c;        
+        uint8_t                 off_0x2e;
+        uint16_t                focal_len;  // off_0x2f
+        uint16_t                off_0x31;
+        uint16_t                focus_dist; // off_0x33
+        uint32_t                off_0x35;
+        uint32_t                off_0x39;
+        uint8_t                 off_0x3d;
 
 } __attribute__((packed));
 
@@ -116,24 +119,25 @@ SIZE_CHECK_STRUCT( prop_lv_lens, 62 );
 #elif defined(CONFIG_EOSM)
 struct prop_lv_lens
 {
-        uint32_t                lens_rotation; // 
-        uint32_t                lens_step; // 
-        uint32_t                off_0x08;  // 
-        uint32_t                off_0x0c;  // 
-        uint32_t                off_0x10;  // 
-        uint32_t                off_0x14;  // 
-        uint32_t                off_0x18;  // 
-        uint32_t                off_0x1c;  // 
-        uint32_t                off_0x20;  // 
-        uint32_t                off_0x24;  // 
-        uint32_t                off_0x28;  // L10  - names not accurate
-        uint16_t                off_0x30;  //      
-        uint16_t                focal_len; // 
-        uint16_t                focus_dist; // One FD
-        uint16_t                focus_dist2;//       
-        uint16_t                off_0x38;  // 
-        uint32_t                off_0x3c;  // 
-        uint8_t                 off_0x3D;  // 
+        uint32_t                lens_rotation;
+        uint32_t                lens_step;
+        uint32_t                off_0x08;
+        uint32_t                off_0x0c;
+        uint32_t                off_0x10;
+        uint32_t                off_0x14;
+        uint32_t                off_0x18;
+        uint32_t                off_0x1c;
+        uint16_t                off_0x20;
+        uint16_t                focus_pos;  // off_0x22; guess (not tested)
+        uint32_t                off_0x24;
+        uint32_t                off_0x28;
+        uint16_t                off_0x2c;
+        uint16_t                focal_len;  // off_0x2e
+        uint16_t                focus_dist; // One FD; off_0x30
+        uint16_t                focus_dist2;// off_0x32
+        uint16_t                off_0x34;
+        uint32_t                off_0x36;
+        uint8_t                 off_0x3a;
         
 } __attribute__((packed));
 
@@ -150,7 +154,7 @@ struct prop_lv_lens
         uint32_t                off_0x14;
         uint32_t                off_0x18;
         uint32_t                off_0x1c;
-        int16_t                 focus_pos;  /* see lens_info.focus_pos */
+        int16_t                 focus_pos;  /* off_0x20; see lens_info.focus_pos */
         uint16_t                off_0x22;
         uint32_t                off_0x24;
         uint32_t                off_0x28;
