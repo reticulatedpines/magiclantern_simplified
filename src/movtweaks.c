@@ -220,6 +220,7 @@ void force_liveview()
     info_led_off();
     if (!lv) fake_simple_button(BGMT_LV);
     msleep(1500);
+    wait_lv_frames(3);
 #endif
 }
 
