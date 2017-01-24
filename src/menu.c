@@ -5110,41 +5110,49 @@ void select_menu(char* name, int entry_index)
 
 void select_menu_by_name(char* name, const char* entry_name)
 {
-    struct menu * menu_that_was_selected = 0;
-    int entry_was_selected = 0;
-    struct menu * menu = menus;
-    for( ; menu ; menu = menu->next )
+    /* select the first menu that matches the name, if any given */
+    /* otherwise, keep the selection unchanged */
+    struct menu * selected_menu = 0;
+    for(struct menu * menu = menus; menu ; menu = menu->next )
     {
-        menu->selected = streq(menu->name, name) && !menu_that_was_selected;
-        if (menu->selected) menu_that_was_selected = menu;
-        if (menu->selected)
+        if (streq(menu->name, name))
         {
-            struct menu_entry * entry = menu->children;
-            
-            int i;
-            for(i = 0 ; entry ; entry = entry->next, i++ )
-            {
-                entry->selected = streq(entry->name, entry_name) && !entry_was_selected;
-                if (entry->selected) entry_was_selected = 1;
-            }
+            selected_menu = menu;
+            break;
         }
     }
     
-    if (!menu_that_was_selected)
+    if (selected_menu)
     {
-        // menu not found, just select the first one one
-        menus->selected = 1;
-        menu_that_was_selected = menus;
-    }
-    if (!entry_was_selected)
-    {
-        // entry not found
-        if (menu_that_was_selected && menu_that_was_selected->children)
+        /* update selection flag for all entries from this menu */
+        for(struct menu * menu = menus; menu; menu = menu->next)
         {
-            menu_that_was_selected->children->selected = 1;
+            menu->selected = (menu == selected_menu);
+
+            if (menu->selected && entry_name) 
+            {
+                /* process menu entries from the selected menu in a similar way */
+                struct menu_entry * selected_entry = 0;
+                for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
+                {
+                    if (streq(entry->name, entry_name))
+                    {
+                        selected_entry = entry;
+                        break;
+                    }
+                }
+                
+                if (selected_entry)
+                {
+                    /* update selection flag for all entries from this menu */
+                    for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
+                    {
+                        entry->selected = (entry == selected_entry);
+                    }
+                }
+            }
         }
     }
-    //~ menu_damage = 1;
 }
 
 static struct menu_entry * entry_find_by_name(const char* name, const char* entry_name)
