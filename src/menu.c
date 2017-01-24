@@ -5144,6 +5144,9 @@ void select_menu_by_name(char* name, const char* entry_name)
 
 static struct menu_entry * entry_find_by_name(const char* name, const char* entry_name)
 {
+    struct menu_entry * ans = 0;
+    int count = 0;
+
     struct menu * menu = menus;
     for( ; menu ; menu = menu->next )
     {
@@ -5154,14 +5157,29 @@ static struct menu_entry * entry_find_by_name(const char* name, const char* entr
             int i;
             for(i = 0 ; entry ; entry = entry->next, i++ )
             {
+                if (entry->parent_menu != menu)
+                {
+                    /* skip items from dynamic submenus ("not at home") */
+                    continue;
+                }
+
                 if (streq(entry->name, entry_name))
                 {
-                    return entry;
+                    ans = entry;
+                    count++;
                 }
             }
         }
     }
-    return 0;
+
+    if (count > 1)
+    {
+        console_show();
+        printf("Duplicate menu: %s (%d)\n", entry_name, count);
+        return 0;
+    }
+
+    return ans;
 }
 
 static void hide_menu_by_name(char* name, char* entry_name)
