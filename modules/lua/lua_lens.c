@@ -11,7 +11,7 @@
 #include <string.h>
 #include <lens.h>
 #include <focus.h>
-
+#include <module.h>
 #include "lua_common.h"
 
 static int luaCB_lens_index(lua_State * L)
@@ -77,6 +77,88 @@ static int luaCB_lens_focus(lua_State * L)
     return 1;
 }
 
+static int wait_focus_status(int timeout, int value)
+{
+    int t0 = get_ms_clock_value();
+
+    while (get_ms_clock_value() - t0 < timeout)
+    {
+        msleep(10);
+
+        if (lv_focus_status == value)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/***
+ Performs autofocus, similar to half-shutter press.
+ @treturn bool whether the operation was successful or not
+ @function focus
+ */
+static int luaCB_lens_autofocus(lua_State * L)
+{
+    int focus_command_sent = 0;
+
+    if (is_manual_focus())
+    {
+        goto error;
+    }
+
+    lens_setup_af(AF_ENABLE);
+    module_send_keypress(MODULE_KEY_PRESS_HALFSHUTTER);
+    focus_command_sent = 1;
+
+    if (!lv)
+    {
+        for (int i = 0; i < 20; i++)
+        {
+            msleep(100);
+        
+            /* FIXME: this may fail on recent models where trap focus is not working */
+            if (get_focus_confirmation())
+            {
+                goto success;
+            }
+        }
+
+        goto error;
+    }
+
+    /* 3 = focusing, 1 = idle */
+    if (wait_focus_status(1000, 3))
+    {
+        if (wait_focus_status(5000, 1))
+        {
+            goto success;
+        }
+        else
+        {
+            /* timeout */
+            printf("Focus status: %d\n", lv_focus_status);
+            goto error;
+        }
+    }
+
+error:
+    lua_pushboolean(L, false);
+    goto cleanup;
+
+success:
+    lua_pushboolean(L, true);
+    goto cleanup;
+
+cleanup:
+    if (focus_command_sent)
+    {
+        module_send_keypress(MODULE_KEY_UNPRESS_HALFSHUTTER);
+        lens_cleanup_af();
+    }
+    return 1;
+}
+
 static const char * lua_lens_fields[] =
 {
     "name",
@@ -92,7 +174,8 @@ static const char * lua_lens_fields[] =
 
 static const luaL_Reg lenslib[] =
 {
-    { "focus", luaCB_lens_focus },
+    { "focus",      luaCB_lens_focus },
+    { "autofocus",  luaCB_lens_autofocus },
     { NULL, NULL }
 };
 

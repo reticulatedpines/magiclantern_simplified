@@ -687,14 +687,23 @@ function test_lens_focus()
             console.show()
             msleep(1000)
         end
+        msleep(1000)
     end
-    
+
     if not lv.running then
+        printf("Autofocus outside LiveView...\n")
+        assert(lens.autofocus())
+
         lv.start()
         assert(lv.running)
     end
-    
+
     if lens.af then
+        printf("Focus distance: %s\n",  lens.focus_distance)
+
+        printf("Autofocus in LiveView...\n")
+        assert(lens.autofocus())
+
         printf("Focus distance: %s\n",  lens.focus_distance)
 
         -- note: focus direction is not consistent
