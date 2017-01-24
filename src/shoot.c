@@ -55,10 +55,7 @@
 /* only included for clock CBRs (to be removed after refactoring) */
 #include "battery.h"
 #include "tskmon.h"
-
-#if defined(CONFIG_MODULES)
 #include "module.h"
-#endif
 
 static CONFIG_INT( "shoot.num", pics_to_take_at_once, 0);
 static CONFIG_INT( "shoot.af",  shoot_use_af, 0 );
@@ -232,7 +229,7 @@ void set_interval_time(int seconds)
 }
 #endif
 
-static const char* format_time_hours_minutes_seconds(int seconds)
+const char* format_time_hours_minutes_seconds(int seconds)
 {
     static char msg[50];
     
@@ -6275,7 +6272,11 @@ shoot_task( void* unused )
             if(canceled)
                 intervalometer_stop();
             
-            intervalometer_next_shot_time = MAX(intervalometer_next_shot_time, seconds_clock);
+            int overrun = seconds_clock - intervalometer_next_shot_time;
+            if (overrun > 0)
+            {
+                NotifyBox(5000, "Interval time too short (%ds)", overrun);
+            }
             intervalometer_pictures_taken++;
             
             #ifdef CONFIG_MODULES
@@ -6394,7 +6395,7 @@ void iso_refresh_display() // in photo mode
             bmp_fill(bg, MENU_DISP_ISO_POS_X, MENU_DISP_ISO_POS_Y-10, 175, 85);
             char msg[30];
             snprintf(msg, sizeof(msg), "%d ", raw2iso(lens_info.raw_iso));
-            int w = bfnt_draw_char(ICON_ISO, MENU_DISP_ISO_POS_X + 5, MENU_DISP_ISO_POS_Y + 10, COLOR_FG_NONLV, bg);
+            int w = bfnt_draw_char(ICON_ISO, MENU_DISP_ISO_POS_X + 5, MENU_DISP_ISO_POS_Y + 10, COLOR_FG_NONLV, NO_BG_ERASE);
             bmp_printf(FONT(FONT_CANON, COLOR_FG_NONLV, bg), MENU_DISP_ISO_POS_X + w + 10, MENU_DISP_ISO_POS_Y + 10, msg);
         }
     }

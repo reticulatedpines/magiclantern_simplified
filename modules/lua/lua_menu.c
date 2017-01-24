@@ -287,7 +287,7 @@ static int luaCB_menu_new(lua_State * L)
     menu_add(parent, new_entry->menu_entry, 1);
     if (!streq(parent, "Scripts"))
     {
-        printf("  [i] menu: %s - %s\n", parent, new_entry->menu_entry->name);
+        printf(" [i] menu: %s - %s\n", parent, new_entry->menu_entry->name);
     }
     lua_pop(L, 1);
     
@@ -343,9 +343,19 @@ static int luaCB_menu_block(lua_State * L)
 }
 
 /// Open ML menu
+// @param[opt] menu name of the parent menu ('Audio', 'Expo', 'Overlay', 'Shoot', 'Movie', etc)
+// @param[opt] entry name of the menu entry
 // @function open
 static int luaCB_menu_open(lua_State * L)
 {
+    LUA_PARAM_STRING_OPTIONAL(menu, 1, NULL);
+    LUA_PARAM_STRING_OPTIONAL(entry, 2, NULL);
+
+    if (menu)
+    {
+        select_menu_by_name((char *) menu, entry);
+    }
+
     gui_open_menu();
     msleep(1000);
     return 0;

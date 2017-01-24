@@ -130,7 +130,7 @@ NSTUB(0xFF52C454,  LiveViewApp_handler)
 NSTUB(0xFF52D378,  LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
 NSTUB(0xFF52E800,  LiveViewApp_handler_end)
 NSTUB(0xFF6E6C08,  LiveViewShutterApp_handler)
-NSTUB(0xFF3B9E94,  PlayMain_handler)
+NSTUB(0xFF702A3C,  PlayMain_handler)
 NSTUB(0xFF547300,  PlayMovieGuideApp_handler)
 NSTUB(0xFF5331BC,  ShootOlcApp_handler)
 // NSTUB(    ???,  LiveViewLevelApp_handler)                /* present on 5D3.113 */
@@ -299,6 +299,7 @@ NSTUB(0xFFA68B30 - RAM_OFFSET,  task_trampoline)
 NSTUB(0xFF1315DC,  LoadCalendarFromRTC)
 NSTUB(0xFFA71E94 - RAM_OFFSET,  vsnprintf)
 // NSTUB(    ???,  EnableImagePhysicalScreenParameter)      /* present on 7D.203, 50D.109, 5D2.212 */
+// NSTUB(    ???,  FSUunMountDevice)                        /* present on 5D3.113 */
 // NSTUB(    ???,  PtpDps_remote_release_SW1_SW2_worker)    /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  lv_path_struct)                          /* present on 60D.111, 600D.102, 550D.109, 1100D.105 */
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */

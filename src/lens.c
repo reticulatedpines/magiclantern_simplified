@@ -217,9 +217,12 @@ int round_shutter(int tv, int slowest_shutter)
     tv = MIN(tv, FASTEST_SHUTTER_SPEED_RAW);
 
     /* note: it's possible to get a valid shutter just by altering the requested value by 1 */
+    /* ... unless we hit some limits */
     tvr = MAX(tv    , slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
     tvr = MAX(tv - 1, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
     tvr = MAX(tv + 1, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
+    tvr = MAX(tv - 2, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
+    tvr = MAX(tv + 2, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
     return 0;
 }
 
@@ -335,7 +338,7 @@ int FAST get_ml_bottombar_pos()
     else if (screen_layout == SCREENLAYOUT_UNDER_16_9) bottom = MIN(os.y_max - os.off_169 + 54, 480);
 
     if (gui_menu_shown())
-        bottom = 480 + (hdmi_code == 5 ? 40 : 0); // force it at the bottom of menu
+        bottom = 480 + (hdmi_code >= 5 ? 40 : 0); // force it at the bottom of menu
 
     return bottom - 34;
 }
@@ -487,7 +490,7 @@ int FAST get_ml_topbar_pos()
     int y = 0;
     if (gui_menu_shown())
     {
-        y = (hdmi_code == 5 ? 40 : 2); // force it at the top of menu
+        y = (hdmi_code >= 5 ? 40 : 2); // force it at the top of menu
     }
     else
     {
@@ -825,10 +828,20 @@ lens_take_picture(
     int should_af
 )
 {
-    if (ml_taking_pic) return -1;
+    if (ml_taking_pic)
+    {
+        return -1;
+    }
+
     ml_taking_pic = 1;
 
-    if (should_af != AF_DONT_CHANGE) lens_setup_af(should_af);
+    int file_number_before = get_shooting_card()->file_number;
+
+    if (should_af != AF_DONT_CHANGE)
+    {
+        lens_setup_af(should_af);
+    }
+    
     //~ take_semaphore(lens_sem, 0);
     lens_wait_readytotakepic(64);
     
@@ -878,27 +891,45 @@ lens_take_picture(
     SW1(0,0);
     #endif
 
-end:
+end:;
+    int ret = 0;
     if( !wait )
     {
         //~ give_semaphore(lens_sem);
-        if (should_af != AF_DONT_CHANGE) lens_cleanup_af();
-        ml_taking_pic = 0;
-        return 0;
+        goto finish;
     }
     else
     {
         msleep(200);
 
-        if (drive_mode == DRIVE_SELFTIMER_2SEC) msleep(2000);
-        if (drive_mode == DRIVE_SELFTIMER_REMOTE || drive_mode == DRIVE_SELFTIMER_CONTINUOUS) msleep(10000);
+        if (drive_mode == DRIVE_SELFTIMER_2SEC)
+        {
+            msleep(2000);
+        }
+        if (drive_mode == DRIVE_SELFTIMER_REMOTE || drive_mode == DRIVE_SELFTIMER_CONTINUOUS)
+        {
+            msleep(10000);
+        }
 
         lens_wait_readytotakepic(wait);
+
+        while (get_shooting_card()->file_number == file_number_before)
+        {
+            msleep(50);
+        }
+
         //~ give_semaphore(lens_sem);
-        if (should_af != AF_DONT_CHANGE) lens_cleanup_af();
-        ml_taking_pic = 0;
-        return lens_info.job_state;
+        ret = lens_info.job_state;
+        goto finish;
     }
+
+finish:
+    if (should_af != AF_DONT_CHANGE)
+    {
+        lens_cleanup_af();
+    }
+    ml_taking_pic = 0;
+    return ret;
 }
 
 #ifdef FEATURE_MOVIE_LOGGING
@@ -2622,26 +2653,48 @@ static LVINFO_UPDATE_FUNC(iso_update)
 
 static LVINFO_UPDATE_FUNC(wb_update)
 {
-    LVINFO_BUFFER(8);
+    LVINFO_BUFFER(16);
     
     if( lens_info.wb_mode == WB_KELVIN )
     {
-        snprintf(buffer, sizeof(buffer), lens_info.kelvin >= 10000 ? "%5dK" : "%4dK ", lens_info.kelvin);
+        snprintf(buffer, sizeof(buffer), "%dK", lens_info.kelvin);
     }
     else
     {
-        snprintf(buffer, sizeof(buffer), "%s ",
-            (uniwb_is_active()      ? " UniWB" :
+        snprintf(buffer, sizeof(buffer), "%s",
+            (uniwb_is_active()      ? "UniWB"  :
             (lens_info.wb_mode == 0 ? "AutoWB" : 
-            (lens_info.wb_mode == 1 ? " Sunny" :
+            (lens_info.wb_mode == 1 ? "Sunny"  :
             (lens_info.wb_mode == 2 ? "Cloudy" : 
-            (lens_info.wb_mode == 3 ? "Tungst" : 
-            (lens_info.wb_mode == 4 ? "Fluor." : 
-            (lens_info.wb_mode == 5 ? " Flash" : 
-            (lens_info.wb_mode == 6 ? "Custom" : 
-            (lens_info.wb_mode == 8 ? " Shade" :
+            (lens_info.wb_mode == 3 ? "Tungst." : 
+            (lens_info.wb_mode == 4 ? "Fluor."  : 
+            (lens_info.wb_mode == 5 ? "Flash"   : 
+            (lens_info.wb_mode == 6 ? "Custom"  : 
+            (lens_info.wb_mode == 8 ? "Shade"   :
              "unk")))))))))
         );
+    }
+    
+    int gm = lens_info.wbs_gm;
+    int ba = lens_info.wbs_ba;
+    
+    if (gm || ba)
+    {
+        /* a dot is smaller than a space */
+        if (buffer[strlen(buffer)-1] != '.')
+        {
+            STR_APPEND(buffer, ".");
+        }
+    }
+    
+    if (gm)
+    {
+        STR_APPEND(buffer, "%s%d", gm > 0 ? "G" : "M", ABS(gm));
+    }
+
+    if (ba)
+    {
+        STR_APPEND(buffer, "%s%d", ba > 0 ? "A" : "B", ABS(ba));
     }
 }
 

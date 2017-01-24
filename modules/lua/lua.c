@@ -496,7 +496,33 @@ int luaCB_pairs(lua_State * L)
     return 3;
 }
 
-static lua_State * load_lua_state()
+/* from lua/lua.c */
+static void createargtable (lua_State *L, char **argv, int argc, int script) {
+  int i, narg;
+  if (script == argc) script = 0;  /* no script name? */
+  narg = argc - (script + 1);  /* number of positive indices */
+  lua_createtable(L, narg, script + 1);
+  for (i = 0; i < argc; i++) {
+    lua_pushstring(L, argv[i]);
+    lua_rawseti(L, -2, i - script);
+  }
+  lua_setglobal(L, "arg");
+}
+
+/* from lua/lua.c */
+static int pushargs (lua_State *L) {
+  int i, n;
+  if (lua_getglobal(L, "arg") != LUA_TTABLE)
+    luaL_error(L, "'arg' is not a table");
+  n = (int)luaL_len(L, -1);
+  luaL_checkstack(L, n + 3, "too many arguments to script");
+  for (i = 1; i <= n; i++)
+    lua_rawgeti(L, -i, i);
+  lua_remove(L, -i);  /* remove table from the stack */
+  return n;
+}
+
+static lua_State * load_lua_state(int argc, char** argv)
 {
     lua_State* L = luaL_newstate();
     luaL_requiref(L, "_G", luaopen_base, 1);
@@ -543,7 +569,9 @@ static lua_State * load_lua_state()
             fprintf(stderr, "%s\n", lua_tostring(L, -1));
         }
     }
-    
+
+    createargtable(L, argv, argc, 0);
+
     return L;
 }
 
@@ -555,7 +583,13 @@ static lua_State * load_lua_state()
 
 struct lua_script
 {
-    char * filename;
+    int argc;
+    union
+    {
+        char * filename;
+        char * argv[5];
+    };
+
     char * name;
     char * description;
     char * last_error;
@@ -663,7 +697,7 @@ static void load_script(struct lua_script * script)
     
     script->load_time = get_seconds_clock();
     script->state = SCRIPT_STATE_LOADING;
-    lua_State* L = script->L = load_lua_state();
+    lua_State* L = script->L = load_lua_state(script->argc, script->argv);
     script->cant_unload = 0;
     lua_clear_last_error(script);
     
@@ -685,12 +719,20 @@ static void load_script(struct lua_script * script)
         char full_path[MAX_PATH_LEN];
         snprintf(full_path, MAX_PATH_LEN, SCRIPTS_DIR "/%s", script->filename);
         printf("Loading script: %s\n", script->filename);
-        if(luaL_loadfile(L, full_path) || docall(L, 0, LUA_MULTRET))
+
+        int status = luaL_loadfile(L, full_path);
+        if (status == LUA_OK) {
+            int n = pushargs(L);  /* push arguments to script */
+            status = docall(L, n, LUA_MULTRET);
+        }
+
+        if (status != LUA_OK)
         {
             /* error loading script */
             fprintf(stderr, "%s\n", lua_tostring(L, -1));
             error = 1;
         }
+
         give_semaphore(script->sem->semaphore);
 
         if (error)
@@ -712,7 +754,24 @@ static void load_script(struct lua_script * script)
             script->menu_entry->children[0].shidden = 1;
 
             /* enable autorun if there was no error */
-            if (!error) set_script_autorun(script, 1);
+            if (!error)
+            {
+                if (lua_loaded)
+                {
+                    printf(" [i] %s: enabling autorun (reason: %s%s%s%s%s\b\b).\n", script->filename,
+                        script->cant_unload & (1<<LUA_MENU_UNLOAD_MASK)   ? "menu item, " : "",
+                        script->cant_unload & (1<<LUA_TASK_UNLOAD_MASK)   ? "task started, " : "",
+                        script->cant_unload & (1<<LUA_LVINFO_UNLOAD_MASK) ? "LVInfo item, " : "",
+                        script->cant_unload & (1<<LUA_PROP_UNLOAD_MASK)   ? "property handler, " : "",
+                        script->cant_unload & 0xFFFFFFF0                  ? "event handler, " : ""
+                    );
+                }
+                set_script_autorun(script, 1);
+            }
+            else
+            {
+                printf(" [E] %s: not enabling autorun (error).\n", script->filename);
+            }
         }
         else
         {
@@ -724,6 +783,7 @@ static void load_script(struct lua_script * script)
             script->menu_entry->icon_type = IT_ACTION;
             script->state = SCRIPT_STATE_NOT_RUNNING;
             script->load_time = 0;
+            printf("%s: script finished.\n", script->filename);
         }
     }
     else
@@ -758,15 +818,15 @@ static MENU_UPDATE_FUNC(lua_script_menu_update)
          * it's probably a simple script that is running for a long time */
         int script_uptime = script->load_time ? get_seconds_clock() - script->load_time : 0;
         
-        int fg = script->state ? COLOR_WHITE : COLOR_GRAY(40);
+        int fg = script->state ? COLOR_WHITE : entry->selected ? COLOR_GRAY(50) : COLOR_GRAY(10);
         int fnt = SHADOW_FONT(FONT(FONT_MED_LARGE, fg, COLOR_BLACK));
         bmp_printf(fnt | FONT_ALIGN_RIGHT, 680, info->y+2,
-            script->autorun
+            script->autorun && script_uptime >= 2
                 ? "AUTORUN" :
             script->last_error
                 ? "ERROR" :
             script->state == SCRIPT_STATE_NOT_RUNNING
-                ? "" :
+                ? script->filename :
             script->state == SCRIPT_STATE_LOADING
                 ? (script_uptime <= 2 ? "Loading" : "Running") :
             script->state == SCRIPT_STATE_RUNNING
@@ -794,6 +854,7 @@ static MENU_UPDATE_FUNC(lua_script_menu_update)
 
 static void lua_user_load_task(struct lua_script * script)
 {
+    ASSERT(script->filename == script->argv[0]);
     load_script(script);
 }
 
@@ -851,8 +912,43 @@ static MENU_SELECT_FUNC(lua_script_toggle_autorun)
 
 static MENU_SELECT_FUNC(lua_script_edit)
 {
-    /* not yet implemented */
-    beep();
+    struct lua_script * script = (struct lua_script *)priv;
+    ASSERT(script); if (!script) return;
+
+    struct lua_script * editor = 0;
+    for (struct lua_script * current = lua_scripts; current; current = current->next)
+    {
+        if (strcasecmp(current->filename, "EDITOR.LUA") == 0)
+        {
+            editor = current;
+            break;
+        }
+    }
+
+    if (!editor)
+    {
+        console_show();
+        printf("Could not find EDITOR.LUA.");
+        return;
+    }
+    
+    /* attempt to start the script */
+    if ( editor->state == SCRIPT_STATE_NOT_RUNNING && lua_loaded)
+    {
+        static char full_path[MAX_PATH_LEN];
+        snprintf(full_path, MAX_PATH_LEN, SCRIPTS_DIR "/%s", script->filename);
+
+        editor->argc = 2;
+        editor->argv[1] = full_path;
+
+        editor->state = SCRIPT_STATE_LOADING;
+        task_create("lua_user_load_task", 0x1c, 0x10000, lua_user_load_task, editor);
+    }
+    else
+    {
+        console_show();
+        printf("Could not start EDITOR.LUA.");
+    }
 }
 
 static MENU_UPDATE_FUNC(menu_no_value)
@@ -957,10 +1053,13 @@ static char* script_extract_string_from_comments(char* buf, char** output, const
     return p;
 }
 
-static void script_get_name_from_comments(const char * filename, char ** name, char ** description)
+static void script_get_name_from_comments(const char * filename, char ** p_name, char ** p_description)
 {
-    *name = 0;
-    *description = 0;
+    ASSERT(p_name);
+    ASSERT(p_description);
+
+    *p_name = 0;
+    *p_description = 0;
 
     char full_path[MAX_PATH_LEN];
     snprintf(full_path, MAX_PATH_LEN, SCRIPTS_DIR "/%s", filename);
@@ -973,18 +1072,33 @@ static void script_get_name_from_comments(const char * filename, char ** name, c
     fclose(f);
     
     /* extract name and description */
-    char* c = script_extract_string_from_comments(buf, name, 0);
-    
-    /* name too long? use it as description */
-    /* (todo: check string length with current font instead) */
-    if (name && strlen(*name) > 25)
+    char* c = script_extract_string_from_comments(buf, p_name, 0);
+
+    /* name too long? shorten it and use the full string as description */
+    char * name = *p_name;
+    if (name && bmp_string_width(FONT_LARGE, name) > 450)
     {
-        free(*name); *name = 0;
-        script_extract_string_from_comments(buf, description, filename);
+        script_extract_string_from_comments(buf, p_description, filename);
+
+        /* attempt to break the string at spaces, commas or whatever */
+        int len = strlen(name) - 3;
+        while (bmp_string_width(FONT_LARGE, name) > 450)
+        {
+            for (len--; len > 0; len--)
+            {
+                if (!isalnum(name[len]))
+                {
+                    name[len] = name[len+1] = name[len+2] = '.';
+                    name[len+3] = 0;
+                    break;
+                }
+            }
+        }
     }
     else
     {
-        script_extract_string_from_comments(c, description, filename);
+        /* first line short => OK, use it as script name and next line as description */
+        script_extract_string_from_comments(c, p_description, filename);
     }
 }
 
@@ -993,6 +1107,7 @@ static void add_script(const char * filename)
     struct lua_script * new_script = calloc(1, sizeof(struct lua_script));
     if (!new_script) goto err;
 
+    new_script->argc = 1;
     new_script->filename = copy_string(filename);
     if (!new_script->filename) goto err;
 
@@ -1038,6 +1153,12 @@ static void lua_do_autoload()
     {
         if(lua_get_flag(current, SCRIPT_FLAG_AUTORUN_ENABLED))
         {
+            if (!console_visible)
+            {
+                /* only show Lua script loading messages at startup (on demand) */
+                console_clear();
+                console_show();
+            }
             current->autorun = 1;
             load_script(current);
             msleep(100);
@@ -1047,9 +1168,8 @@ static void lua_do_autoload()
 
 static void lua_load_task(int unused)
 {
-    console_show();
+    /* wait until other modules (hopefully) finish loading */
     msleep(500);
-    console_clear();
     
     struct fio_file file;
     struct fio_dirent * dirent = 0;

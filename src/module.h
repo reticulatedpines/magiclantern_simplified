@@ -13,7 +13,9 @@
 #define MODULE_CONFIG_PREFIX          __module_config_
 #define MODULE_PROPHANDLER_PREFIX     __module_prophandler_
 
-#define MODULE_STRINGS_SECTION        __attribute__ ((section(".module_strings")))
+#define MODULE_STRINGS_SECTION        __attribute__ ((section(".module_strings"),unused))
+#define MODULE_HGDIFF_SECTION         __attribute__ ((section(".module_hgdiff")))
+#define MODULE_HGINFO_SECTION         __attribute__ ((section(".module_hginfo")))
 
 #define MODULE_MAGIC                  0x5A
 #define STR(x)                        STR_(x)
@@ -104,7 +106,7 @@ int module_translate_key(int key, int dest);
 
 
 /* update major if older modules will *not* be compatible */
-#define MODULE_MAJOR 6
+#define MODULE_MAJOR 7
 /* update minor if older modules will be compatible, but newer module will not run on older magic lantern versions */
 #define MODULE_MINOR 0
 /* update patch if nothing regarding to compatibility changes */
@@ -194,11 +196,12 @@ typedef struct
 #define MODULE_INIT(func)                                           .init = &func,
 #define MODULE_DEINIT(func)                                         .deinit = &func,
 #define MODULE_LONGNAME(name)                                       .long_name = name,
-#define MODULE_CB_SHOOT_TASK(func)                                  .cb_shoot_task = &func,
-#define MODULE_CB_PRE_SHOOT(func)                                   .cb_pre_shoot = &func,
-#define MODULE_CB_POST_SHOOT(func)                                  .cb_post_shoot = &func,
-#define MODULE_INFO_END()                                       };
-                                                                
+#define MODULE_INFO_END()                                       }; \
+    MODULE_STRINGS();
+/* ^^^ module strings are auto-included after the info block
+ * => they end up only in the file that defines module info.
+ */
+                              
 #define MODULE_STRINGS_START()                                  MODULE_STRINGS_START_(MODULE_STRINGS_PREFIX,MODULE_NAME)
 #define MODULE_STRINGS_START_(prefix,modname)                   MODULE_STRINGS_START__(prefix,modname)
 #define MODULE_STRINGS_START__(prefix,modname)                  module_strpair_t prefix##modname[] MODULE_STRINGS_SECTION = {

@@ -263,7 +263,7 @@ int should_draw_zoom_overlay()
     if (!zoom_overlay_enabled) return 0;
     if (!zebra_should_run()) return 0;
     if (EXT_MONITOR_RCA) return 0;
-    if (hdmi_code == 5) return 0;
+    if (hdmi_code >= 5) return 0;
     #if defined(CONFIG_DISPLAY_FILTERS) && defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER) && !defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY)
     extern int display_broken_for_mz(); /* tweaks.c */
     if (display_broken_for_mz()) return 0;
@@ -437,7 +437,7 @@ int get_global_draw() // menu setting, or off if
             #endif
             !LV_PAUSED && 
             #ifdef CONFIG_5D3
-            !(hdmi_code==5 && video_mode_resolution>0) && // unusual VRAM parameters
+            !(hdmi_code >= 5 && video_mode_resolution>0) && // unusual VRAM parameters
             #endif
             job_state_ready_to_take_pic();
     }
@@ -2085,7 +2085,7 @@ static MENU_UPDATE_FUNC(global_draw_display)
     }
 
     #ifdef CONFIG_5D3
-    if (hdmi_code==5 && video_mode_resolution>0) // unusual VRAM parameters
+    if (hdmi_code >= 5 && video_mode_resolution>0) // unusual VRAM parameters
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not compatible with HDMI 50p/60p.");
     #endif
     if (lv && lv_disp_mode && ZEBRAS_IN_LIVEVIEW)
@@ -2144,7 +2144,7 @@ static MENU_UPDATE_FUNC(zoom_overlay_display)
 
     if (EXT_MONITOR_RCA)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Magic Zoom does not work with SD monitors");
-    else if (hdmi_code == 5)
+    else if (hdmi_code >= 5)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Magic Zoom does not work in HDMI 1080i.");
     #if defined(CONFIG_DISPLAY_FILTERS) && defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER) && !defined(CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY)
     extern int display_broken_for_mz(); /* tweaks.c */
@@ -3409,7 +3409,7 @@ static void draw_zoom_overlay(int dirty)
 
     // select buffer where MZ should be written (camera-specific, guesswork)
     #if defined(CONFIG_5D2) || defined(CONFIG_EOSM) || defined(CONFIG_50D)
-    /* fixme: ugly hack */
+    #warning FIXME: this method uses busy waiting, which causes high CPU usage and overheating when using Magic Zoom
     void busy_vsync(int hd, int timeout_ms)
     {
         int timeout_us = timeout_ms * 1000;
@@ -3429,10 +3429,21 @@ static void draw_zoom_overlay(int dirty)
     lvr = (uint16_t*) shamem_read(REG_EDMAC_WRITE_LV_ADDR);
     busy_vsync(0, 20);
     #endif
+
     #if defined(CONFIG_DIGIC_V) && ! defined(CONFIG_EOSM)
     lvr = CACHEABLE(YUV422_LV_BUFFER_DISPLAY_ADDR);
-    if (lvr != CACHEABLE(YUV422_LV_BUFFER_1) && lvr != CACHEABLE(YUV422_LV_BUFFER_2) && lvr != CACHEABLE(YUV422_LV_BUFFER_3)) return;
-    #else
+    if (
+        lvr != CACHEABLE(YUV422_LV_BUFFER_1) && 
+        lvr != CACHEABLE(YUV422_LV_BUFFER_2) && 
+        lvr != CACHEABLE(YUV422_LV_BUFFER_3) &&
+        #ifdef YUV422_LV_BUFFER_4
+        lvr != CACHEABLE(YUV422_LV_BUFFER_4) &&
+        #endif
+       1)
+    {
+        /* refuse to draw on invalid buffer addresses */
+        return;
+    }
     #endif
     
     if (!lvr) return;

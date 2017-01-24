@@ -179,13 +179,13 @@ void bmp_putpixel_fast(uint8_t * const bvram, int x, int y, uint8_t color);
 #define FONT_DYN(font_id,fg,bg) FONT((font_id)<<16,fg,bg)
 
 /* should match the font loading order from rbf_font.c, rbf_init */
-#define FONT_MONO_12  FONT_DYN(0, 0, 0)
-#define FONT_MONO_20  FONT_DYN(1, 0, 0)
-#define FONT_SANS_23  FONT_DYN(2, 0, 0)
-#define FONT_SANS_28  FONT_DYN(3, 0, 0)
-#define FONT_SANS_32  FONT_DYN(4, 0, 0)
+#define FONT_MONO_12  FONT_DYN(0, COLOR_WHITE, COLOR_BLACK)
+#define FONT_MONO_20  FONT_DYN(1, COLOR_WHITE, COLOR_BLACK)
+#define FONT_SANS_23  FONT_DYN(2, COLOR_WHITE, COLOR_BLACK)
+#define FONT_SANS_28  FONT_DYN(3, COLOR_WHITE, COLOR_BLACK)
+#define FONT_SANS_32  FONT_DYN(4, COLOR_WHITE, COLOR_BLACK)
 
-#define FONT_CANON    FONT_DYN(7, 0, 0) /* uses a different backend */
+#define FONT_CANON    FONT_DYN(7, COLOR_WHITE, COLOR_BLACK) /* uses a different backend */
 
 /* common fonts */
 #define FONT_SMALL      FONT_MONO_12
@@ -317,6 +317,10 @@ void bmp_draw_rect_chamfer(int color, int x0, int y0, int w, int h, int a, int t
 #define COLOR_DARK_CYAN1_MOD 24
 #define COLOR_DARK_CYAN2_MOD 25
 //#define COLOR_DARK_YELLOW_MOD 26
+
+/* to be used instead of background color, to draw only the foreground pixels */
+/* currently implemented only for bfnt_draw_char (FONT_CANON and ICON_ML_*)   */
+#define NO_BG_ERASE 0xFF
 
 static inline uint32_t
 color_word(

@@ -62,6 +62,7 @@ end
 
 function generic_tests()
     printf("Generic tests...\n")
+    print_table("arg")
     print_table("camera")
     print_table("event")
     print_table("console")
@@ -436,7 +437,7 @@ function test_camera_exposure()
             -- note: when using F-numbers, the difference may be larger, because of the rounding done
             -- to match Canon values (e.g. raw 48 would be f/5.66 (f/5.7), instead of Canon's f/5.6)
             if (d > 1.5/8 + extra_tol) then
-                printf("Error: aperture delta %s EV (expected < %s, f/%s, method=%d)\n", d, 1.5/8 + extra_tol, camera.aperture, method)
+                printf("Error: aperture delta %s EV (expected < %s, %s, method=%d)\n", d, 1.5/8 + extra_tol, camera.aperture, method)
             end
 
             -- aperture and Av (APEX) should be consistent
@@ -686,14 +687,23 @@ function test_lens_focus()
             console.show()
             msleep(1000)
         end
+        msleep(1000)
     end
-    
+
     if not lv.running then
+        printf("Autofocus outside LiveView...\n")
+        assert(lens.autofocus())
+
         lv.start()
         assert(lv.running)
     end
-    
+
     if lens.af then
+        printf("Focus distance: %s\n",  lens.focus_distance)
+
+        printf("Autofocus in LiveView...\n")
+        assert(lens.autofocus())
+
         printf("Focus distance: %s\n",  lens.focus_distance)
 
         -- note: focus direction is not consistent
@@ -712,7 +722,7 @@ function test_lens_focus()
                 printf("Focusing forward with step size %d, wait=%s...\n", step, wait)
                 local steps_front = 0
                 local focus_pos_0 = lens.focus_pos
-                while lens.focus(1,step,true) do
+                while lens.focus(1,step,wait) do
                     printf(".")
                     steps_front = steps_front + 1
                 end
@@ -728,7 +738,7 @@ function test_lens_focus()
                 
                 printf("Focusing backward with step size %d, wait=%s...\n", step, wait)
                 local steps_back = 0
-                while lens.focus(-1,step,true) do
+                while lens.focus(-1,step,wait) do
                     printf(".")
                     steps_back = steps_back + 1
                 end
@@ -782,5 +792,9 @@ function api_tests()
     key.wait()
     console.hide()
 end
+
+-- check script arguments
+assert(#arg == 0)
+assert(arg[0] == "API_TEST.LUA" or arg[0] == "api_test.lua")
 
 api_tests()

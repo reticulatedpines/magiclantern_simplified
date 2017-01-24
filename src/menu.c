@@ -1960,7 +1960,7 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
 static void submenu_key_hint(int x, int y, int fg, int bg, int chr)
 {
     bmp_fill(bg, x+12, y+1, 25, 30);
-    bfnt_draw_char(chr, x, y-5, fg, COLOR_BLACK);
+    bfnt_draw_char(chr, x, y-5, fg, NO_BG_ERASE);
 }
 
 static void menu_clean_footer()
@@ -2234,7 +2234,7 @@ static void display_customize_marker(struct menu_entry * entry, int x, int y)
 {
     // star marker
     if (entry->starred)
-        bfnt_draw_char(ICON_ML_MYMENU, x, y-4, COLOR_GREEN1, COLOR_BLACK);
+        bfnt_draw_char(ICON_ML_MYMENU, x, y-4, COLOR_GREEN1, NO_BG_ERASE);
     
     // hidden marker
     else if (HAS_CURRENT_HIDDEN_FLAG(entry))
@@ -2598,7 +2598,7 @@ menu_post_display()
     {
         // we can't use the scrollwheel
         // and you need to be careful because you will change shooting settings while recording!
-        bfnt_draw_char(ICON_MAINDIAL, 680, 395, MENU_WARNING_COLOR, MENU_BG_COLOR_HEADER_FOOTER);
+        bfnt_draw_char(ICON_MAINDIAL, 680, 395, MENU_WARNING_COLOR, NO_BG_ERASE);
         draw_line(720, 405, 680, 427, MENU_WARNING_COLOR);
         draw_line(720, 406, 680, 428, MENU_WARNING_COLOR);
     }
@@ -3496,14 +3496,14 @@ menus_display(
             int icon_char = menu->icon ? menu->icon : menu->name[0];
             int icon_width = bfnt_char_get_width(icon_char);
             int x_ico = x + (icon_spacing - icon_width) / 2 + 1;
-            bfnt_draw_char(icon_char, x_ico, y + 2, fg, bg);
+            bfnt_draw_char(icon_char, x_ico, y + 2, fg, NO_BG_ERASE);
 
             if (menu->selected)
             {
                     //~ bmp_printf(FONT_MED, 720 - strlen(menu->name)*font_med.width, 50, menu->name);
                 //~ else
                 if (!junkie_mode)
-                    bmp_printf(FONT(FONT_CANON, fg, bg), 5, y, "%s", menu->name);
+                    bmp_printf(FONT(FONT_CANON, fg, NO_BG_ERASE), 5, y, "%s", menu->name);
                 
                 int x1 = x - 1;
                 int x2 = x1 + icon_spacing + 2;
@@ -3643,7 +3643,7 @@ submenu_display(struct menu * submenu)
         w = 720-2*bx;
         bmp_fill(MENU_BG_COLOR_HEADER_FOOTER,  bx,  by, w, 40);
         bmp_fill(COLOR_BLACK,  bx,  by + 40, w, h-40);
-        bmp_printf(FONT(FONT_CANON, COLOR_WHITE, 40),  bx + 15,  by+2, "%s", submenu->name);
+        bmp_printf(FONT(FONT_CANON, COLOR_WHITE, NO_BG_ERASE),  bx + 15,  by+2, "%s", submenu->name);
 
         for (int i = 0; i < 5; i++)
             bmp_draw_rect(45,  bx-i,  by-i, w+i*2, h+i*2);
@@ -4111,7 +4111,7 @@ menu_redraw_do()
             {
                 draw_ml_topbar();
                 draw_ml_bottombar();
-                bfnt_draw_char(ICON_ML_Q_BACK, 680, -5, COLOR_WHITE, COLOR_BLACK);
+                bfnt_draw_char(ICON_ML_Q_BACK, 680, -5, COLOR_WHITE, NO_BG_ERASE);
             }
 
             if (beta_should_warn()) draw_beta_warning();
@@ -4209,13 +4209,8 @@ static int menu_ensure_canon_dialog()
             // Canon dialog timed out?
 #if defined(CONFIG_MENU_TIMEOUT_FIX)
             // force dialog change when canon dialog times out (EOSM, 6D etc)
-            // don't try more often than once per second
-            static int aux = 0;
-            if (should_run_polling_action(1000, &aux))
-            {
-                start_redraw_flood();
-                SetGUIRequestMode(GUIMODE_ML_MENU);
-            }
+            start_redraw_flood();
+            SetGUIRequestMode(GUIMODE_ML_MENU);
 #else
             return 0;
 #endif

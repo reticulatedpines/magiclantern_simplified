@@ -11,7 +11,7 @@
 #include <string.h>
 #include <lens.h>
 #include <focus.h>
-
+#include <module.h>
 #include "lua_common.h"
 
 static int luaCB_lens_index(lua_State * L)
@@ -69,9 +69,15 @@ static int luaCB_lens_newindex(lua_State * L)
 /***
  Moves the focus motor a specified number of steps. Only works in LV.
  @tparam int num_steps
- @tparam[opt=2] int step_size
- @tparam[opt=true] bool wait
- @tparam[opt=0] int extra_delay
+ @tparam[opt=2] int step_size Allowed values: 1, 2 or 3
+ @tparam[opt=true] bool wait Wait until each focus command finishes, before queueing others
+ 
+    wait=false may give smoother movements, but may no longer return accurate status for each command,
+    and the exact behavior may camera- or lens-dependent. Use with care.
+ @tparam[opt=0 if wait else 10ms] int delay Delay between focus commands (ms)
+ 
+    With wait=true, the delay is after each focus command is finished (as reported by Canon firmware)
+    With wait=false, the delay is after each focus command is sent (without waiting for it to finish)
  @function focus
  */
 static int luaCB_lens_focus(lua_State * L)
@@ -79,8 +85,90 @@ static int luaCB_lens_focus(lua_State * L)
     LUA_PARAM_INT(num_steps, 1);
     LUA_PARAM_INT_OPTIONAL(step_size, 2, 2);
     LUA_PARAM_BOOL_OPTIONAL(wait, 3, true);
-    LUA_PARAM_INT_OPTIONAL(extra_delay, 4, 0);
-    lua_pushboolean(L, lens_focus(num_steps, step_size, wait, extra_delay));
+    LUA_PARAM_INT_OPTIONAL(delay, 4, wait ? 0 : 10);
+    lua_pushboolean(L, lens_focus(num_steps, step_size, wait, delay));
+    return 1;
+}
+
+static int wait_focus_status(int timeout, int value)
+{
+    int t0 = get_ms_clock_value();
+
+    while (get_ms_clock_value() - t0 < timeout)
+    {
+        msleep(10);
+
+        if (lv_focus_status == value)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/***
+ Performs autofocus, similar to half-shutter press.
+ @treturn bool whether the operation was successful or not
+ @function focus
+ */
+static int luaCB_lens_autofocus(lua_State * L)
+{
+    int focus_command_sent = 0;
+
+    if (is_manual_focus())
+    {
+        goto error;
+    }
+
+    lens_setup_af(AF_ENABLE);
+    module_send_keypress(MODULE_KEY_PRESS_HALFSHUTTER);
+    focus_command_sent = 1;
+
+    if (!lv)
+    {
+        for (int i = 0; i < 20; i++)
+        {
+            msleep(100);
+        
+            /* FIXME: this may fail on recent models where trap focus is not working */
+            if (get_focus_confirmation())
+            {
+                goto success;
+            }
+        }
+
+        goto error;
+    }
+
+    /* 3 = focusing, 1 = idle */
+    if (wait_focus_status(1000, 3))
+    {
+        if (wait_focus_status(5000, 1))
+        {
+            goto success;
+        }
+        else
+        {
+            /* timeout */
+            printf("Focus status: %d\n", lv_focus_status);
+            goto error;
+        }
+    }
+
+error:
+    lua_pushboolean(L, false);
+    goto cleanup;
+
+success:
+    lua_pushboolean(L, true);
+    goto cleanup;
+
+cleanup:
+    if (focus_command_sent)
+    {
+        module_send_keypress(MODULE_KEY_UNPRESS_HALFSHUTTER);
+        lens_cleanup_af();
+    }
     return 1;
 }
 
@@ -99,7 +187,8 @@ static const char * lua_lens_fields[] =
 
 static const luaL_Reg lenslib[] =
 {
-    { "focus", luaCB_lens_focus },
+    { "focus",      luaCB_lens_focus },
+    { "autofocus",  luaCB_lens_autofocus },
     { NULL, NULL }
 };
 

@@ -185,13 +185,6 @@ bmp_puts(
     
     uint32_t    fg_color    = fontspec_fg( fontspec );
     uint32_t    bg_color    = fontspec_bg( fontspec );
-
-    // Special case -- fg=bg=0 => white on black
-    if( fg_color == 0 && bg_color == 0 )
-    {
-        fg_color = COLOR_WHITE;
-        bg_color = COLOR_BLACK;
-    }
     
     int len = rbf_draw_string((void*)font_dynamic[FONT_ID(fontspec)].bitmap, *x, *y, s, FONT(fontspec, fg_color, bg_color));
     *x += len;
@@ -994,7 +987,10 @@ int bfnt_draw_char(int c, int px, int py, int fg, int bg)
     if (crw+xo > 100) return 0;
     if (ch+yo > 50) return 0;
 
-    //~ bmp_fill(bg, px, py, crw+xo+3, 40);
+    if (bg != NO_BG_ERASE)
+    {
+        bmp_fill(bg, px, py, crw+xo+3, 40);
+    }
 
     int i,j,k;
     for (i = 0; i < ch; i++)
@@ -1085,11 +1081,11 @@ void bmp_flip(uint8_t* dst, uint8_t* src, int voffset)
     if (!dst) return;
     int i,j;
 
-    int H_LO = hdmi_code == 5 ? BMP_H_MINUS : 0;
-    int H_HI = hdmi_code == 5 ? BMP_H_PLUS : 480;
+    int H_LO = hdmi_code >= 5 ? BMP_H_MINUS : 0;
+    int H_HI = hdmi_code >= 5 ? BMP_H_PLUS : 480;
 
-    int W_LO = hdmi_code == 5 ? BMP_W_MINUS : 0;
-    int W_HI = hdmi_code == 5 ? BMP_W_PLUS : 720;
+    int W_LO = hdmi_code >= 5 ? BMP_W_MINUS : 0;
+    int W_HI = hdmi_code >= 5 ? BMP_W_PLUS : 720;
 
     for (i = H_LO; i < H_HI; i++) // -30 ... 510
     {
@@ -1112,11 +1108,11 @@ void bmp_flip_ex(uint8_t* dst, uint8_t* src, uint8_t* mirror, int voffset)
     if (!dst) return;
     int i,j;
 
-    int H_LO = hdmi_code == 5 ? BMP_H_MINUS : 0;
-    int H_HI = hdmi_code == 5 ? BMP_H_PLUS : 480;
+    int H_LO = hdmi_code >= 5 ? BMP_H_MINUS : 0;
+    int H_HI = hdmi_code >= 5 ? BMP_H_PLUS : 480;
 
-    int W_LO = hdmi_code == 5 ? BMP_W_MINUS : 0;
-    int W_HI = hdmi_code == 5 ? BMP_W_PLUS : 720;
+    int W_LO = hdmi_code >= 5 ? BMP_W_MINUS : 0;
+    int W_HI = hdmi_code >= 5 ? BMP_W_PLUS : 720;
 
     for (i = H_LO; i < H_HI; i++) // -30 ... 510
     {
