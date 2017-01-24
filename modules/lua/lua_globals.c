@@ -54,21 +54,6 @@ static int luaCB_beep(lua_State * L)
 }
 
 /***
- Take a picture
- @tparam[opt=64] int wait how long to wait for camera to be ready to take a picture
- @tparam[opt=true] bool should_af whether or not to use auto focus
- @function shoot
- */
-static int luaCB_shoot(lua_State * L)
-{
-    LUA_PARAM_INT_OPTIONAL(wait, 1, 64);
-    LUA_PARAM_BOOL_OPTIONAL(should_af, 2, 1);
-    int result = lens_take_picture(wait, should_af);
-    lua_pushinteger(L, result);
-    return 1;
-}
-
-/***
  Pauses for ms miliseconds and allows other tasks to run.
  @tparam int amount number of milliseconds to sleep
  @function msleep
@@ -120,7 +105,6 @@ static const luaL_Reg globallib[] =
 {
     { "msleep", luaCB_msleep },
     { "beep", luaCB_beep },
-    { "shoot", luaCB_shoot },
     { "led_on", luaCB_led_on },
     { "led_off", luaCB_led_off },
     { "led_blink", luaCB_led_blink },
