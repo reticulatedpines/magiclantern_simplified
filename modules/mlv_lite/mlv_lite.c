@@ -2904,8 +2904,7 @@ static struct menu_entry raw_video_menu[] =
                 .name = "Bit depth",
                 .priv = &bpp_index,
                 .max = 2,
-                .choices = CHOICES("10", "12", "14"),
-                .unit = UNIT_DEC,
+                .choices = CHOICES("10bpp", "12bpp", "14bpp"),
             },
             {
                 .name = "Preview",
