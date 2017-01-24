@@ -593,6 +593,8 @@ struct lua_script
     char * name;
     char * description;
     char * last_error;
+    const char * last_menu_parent;
+    const char * last_menu_entry;
     int autorun;
     int state;
     int load_time;
@@ -643,6 +645,22 @@ void lua_save_last_error(lua_State * L)
         {
             lua_clear_last_error(script);
             script->last_error = copy_string(lua_tostring(L, -1));
+        }
+    }
+}
+
+/* called when a script registers a menu,
+ * so we know to tell the user where the new menu is
+ */
+void lua_set_last_menu(lua_State * L, const char * parent_menu, const char * menu_entry)
+{
+    for (struct lua_script * script = lua_scripts; script; script = script->next)
+    {
+        if(script->L == L)
+        {
+            printf(" [i] menu: %s - %s\n", parent_menu, menu_entry);
+            script->last_menu_parent = parent_menu;
+            script->last_menu_entry = menu_entry;
         }
     }
 }
@@ -751,7 +769,6 @@ static void load_script(struct lua_script * script)
              */
             script->state = SCRIPT_STATE_RUNNING;
             script->menu_entry->icon_type = IT_BOOL;
-            script->menu_entry->children[0].shidden = 1;
 
             /* enable autorun if there was no error */
             if (!error)
@@ -873,12 +890,6 @@ static MENU_SELECT_FUNC(lua_script_menu_select)
             return;
         }
     }
-    
-    /* if the script is already running, open the submenu */
-    if (!is_submenu_or_edit_mode_active())
-    {
-        menu_open_submenu();
-    }
 }
 
 static MENU_UPDATE_FUNC(lua_script_run_update)
@@ -897,7 +908,14 @@ static MENU_UPDATE_FUNC(lua_script_run_update)
     }
     else
     {
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Script is running.");
+        if (script->last_menu_parent && script->last_menu_entry)
+        {
+            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Script is running. Menu: %s -> %s.", script->last_menu_parent, script->last_menu_entry);
+        }
+        else
+        {
+            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Script is running.");
+        }
     }
 }
 
@@ -958,7 +976,7 @@ static MENU_UPDATE_FUNC(menu_no_value)
 
 static struct menu_entry script_menu_template = {
     .icon_type  = IT_ACTION,
-    .select = lua_script_menu_select,
+    .select = menu_open_submenu,
     .update = lua_script_menu_update,
 };
 

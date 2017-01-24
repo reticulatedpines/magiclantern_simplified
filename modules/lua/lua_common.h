@@ -107,6 +107,7 @@ int lua_give_semaphore(lua_State * L, struct semaphore ** assoc_semaphore);
 
 void lua_set_cant_unload(lua_State * L, int cant_unload, int mask);
 void lua_save_last_error(lua_State * L);
+void lua_set_last_menu(lua_State * L, const char * parent_menu, const char * menu_entry);
 
 int luaCB_next(lua_State * L);
 int luaCB_pairs(lua_State * L);
