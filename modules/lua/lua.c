@@ -756,18 +756,21 @@ static void load_script(struct lua_script * script)
             /* enable autorun if there was no error */
             if (!error)
             {
-                printf("%s: enabling autorun (reason: %s%s%s%s%s\b\b).\n", script->filename,
-                    script->cant_unload & (1<<LUA_MENU_UNLOAD_MASK)   ? "menu item, " : "",
-                    script->cant_unload & (1<<LUA_TASK_UNLOAD_MASK)   ? "task started, " : "",
-                    script->cant_unload & (1<<LUA_LVINFO_UNLOAD_MASK) ? "LVInfo item, " : "",
-                    script->cant_unload & (1<<LUA_PROP_UNLOAD_MASK)   ? "property handler, " : "",
-                    script->cant_unload & 0xFFFFFFF0                  ? "event handler, " : ""
-                );
+                if (lua_loaded)
+                {
+                    printf(" [i] %s: enabling autorun (reason: %s%s%s%s%s\b\b).\n", script->filename,
+                        script->cant_unload & (1<<LUA_MENU_UNLOAD_MASK)   ? "menu item, " : "",
+                        script->cant_unload & (1<<LUA_TASK_UNLOAD_MASK)   ? "task started, " : "",
+                        script->cant_unload & (1<<LUA_LVINFO_UNLOAD_MASK) ? "LVInfo item, " : "",
+                        script->cant_unload & (1<<LUA_PROP_UNLOAD_MASK)   ? "property handler, " : "",
+                        script->cant_unload & 0xFFFFFFF0                  ? "event handler, " : ""
+                    );
+                }
                 set_script_autorun(script, 1);
             }
             else
             {
-                printf("%s: not enabling autorun (error).\n", script->filename);
+                printf(" [E] %s: not enabling autorun (error).\n", script->filename);
             }
         }
         else
@@ -1150,6 +1153,12 @@ static void lua_do_autoload()
     {
         if(lua_get_flag(current, SCRIPT_FLAG_AUTORUN_ENABLED))
         {
+            if (!console_visible)
+            {
+                /* only show Lua script loading messages at startup (on demand) */
+                console_clear();
+                console_show();
+            }
             current->autorun = 1;
             load_script(current);
             msleep(100);
@@ -1159,9 +1168,8 @@ static void lua_do_autoload()
 
 static void lua_load_task(int unused)
 {
-    console_show();
+    /* wait until other modules (hopefully) finish loading */
     msleep(500);
-    console_clear();
     
     struct fio_file file;
     struct fio_dirent * dirent = 0;
