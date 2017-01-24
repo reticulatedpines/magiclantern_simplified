@@ -62,9 +62,15 @@ static int luaCB_lens_newindex(lua_State * L)
 /***
  Moves the focus motor a specified number of steps. Only works in LV.
  @tparam int num_steps
- @tparam[opt=2] int step_size
- @tparam[opt=true] bool wait
- @tparam[opt=0] int extra_delay
+ @tparam[opt=2] int step_size Allowed values: 1, 2 or 3
+ @tparam[opt=true] bool wait Wait until each focus command finishes, before queueing others
+ 
+    wait=false may give smoother movements, but may no longer return accurate status for each command,
+    and the exact behavior may camera- or lens-dependent. Use with care.
+ @tparam[opt=0 if wait else 10ms] int delay Delay between focus commands (ms)
+ 
+    With wait=true, the delay is after each focus command is finished (as reported by Canon firmware)
+    With wait=false, the delay is after each focus command is sent (without waiting for it to finish)
  @function focus
  */
 static int luaCB_lens_focus(lua_State * L)
@@ -72,8 +78,8 @@ static int luaCB_lens_focus(lua_State * L)
     LUA_PARAM_INT(num_steps, 1);
     LUA_PARAM_INT_OPTIONAL(step_size, 2, 2);
     LUA_PARAM_BOOL_OPTIONAL(wait, 3, true);
-    LUA_PARAM_INT_OPTIONAL(extra_delay, 4, 0);
-    lua_pushboolean(L, lens_focus(num_steps, step_size, wait, extra_delay));
+    LUA_PARAM_INT_OPTIONAL(delay, 4, wait ? 0 : 10);
+    lua_pushboolean(L, lens_focus(num_steps, step_size, wait, delay));
     return 1;
 }
 
