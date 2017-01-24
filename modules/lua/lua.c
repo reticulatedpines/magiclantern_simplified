@@ -302,12 +302,12 @@ static int luaCB_event_newindex(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
     
-    /// Called before a picture is taken
+    // Called before a picture is taken
     // @param arg unused
     // @treturn bool whether or not to continue executing CBRs for this event
     // @function pre_shoot
     SCRIPT_CBR_SET(pre_shoot);
-    /// Called after a picture is taken
+    // Called after a picture is taken
     // @param arg unused
     // @treturn bool whether or not to continue executing CBRs for this event
     // @function post_shoot
