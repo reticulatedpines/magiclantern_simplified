@@ -13,6 +13,7 @@
 #include <edmac-memcpy.h>
 #include <screenshot.h>
 #include <powersave.h>
+#include <focus.h>
 
 /* optional routines */
 extern WEAK_FUNC(ret_0) uint32_t ml_rpc_send(uint32_t command, uint32_t parm1, uint32_t parm2, uint32_t parm3, uint32_t wait);
@@ -119,6 +120,90 @@ static int stub_silence = 0;
 static int stub_ok = 1;
 static int stub_passed_tests = 0;
 static int stub_failed_tests = 0;
+
+static int wait_focus_status(int timeout, int value)
+{
+    int t0 = get_ms_clock_value();
+
+    while (get_ms_clock_value() - t0 < timeout)
+    {
+        msleep(10);
+
+        if (lv_focus_status == value)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static void stub_test_af()
+{
+    /* Autofocus (with or without LiveView) */
+    int lv0 = lv;
+
+    /* test this loop 10 times */
+    for (int k = 0; k < 10; k++)
+    {
+        if (k < 5) force_liveview();
+        else close_liveview();
+
+        while (is_manual_focus())
+        {
+            NotifyBox(2000, "Please enable autofocus.");
+            msleep(1000);
+        }
+
+        /* assume half-shutter is not pressed before starting the test */
+        TEST_FUNC_CHECK(HALFSHUTTER_PRESSED, == 0);
+
+        /* enable autofocus on half-shutter */
+        /* lv_focus_status expected to be 3 when focusing and 1 when idle */
+        lens_setup_af(AF_ENABLE);
+        module_send_keypress(MODULE_KEY_PRESS_HALFSHUTTER);
+        TEST_FUNC_CHECK(HALFSHUTTER_PRESSED, == 1);
+        if (lv)
+        {
+            TEST_FUNC_CHECK(wait_focus_status(1000, 3), == 1);
+        }
+        else
+        {
+            msleep(1000);
+            TEST_FUNC_CHECK(get_focus_confirmation(), != 0);
+        }
+        module_send_keypress(MODULE_KEY_UNPRESS_HALFSHUTTER);
+        msleep(500);
+        TEST_FUNC_CHECK(HALFSHUTTER_PRESSED, == 0);
+        TEST_FUNC_CHECK(lv_focus_status, == 1)
+        lens_cleanup_af();
+
+        /* disable autofocus on half-shutter */
+        /* this time, autofocus should fail */
+        lens_setup_af(AF_DISABLE);
+        module_send_keypress(MODULE_KEY_PRESS_HALFSHUTTER);
+        TEST_FUNC_CHECK(HALFSHUTTER_PRESSED, == 1);
+        if (lv)
+        {
+            TEST_FUNC_CHECK(wait_focus_status(1000, 3), == 0);
+        }
+        else
+        {
+            msleep(1000);
+            TEST_FUNC_CHECK(get_focus_confirmation(), == 0);
+        }
+        module_send_keypress(MODULE_KEY_UNPRESS_HALFSHUTTER);
+        msleep(500);
+        TEST_FUNC_CHECK(HALFSHUTTER_PRESSED, == 0);
+        TEST_FUNC_CHECK(lv_focus_status, == 1)
+        lens_cleanup_af();
+    }
+
+    if (lv0)
+    {
+        /* if the test was started from LiveView, return to LV */
+        force_liveview();
+    }
+}
 
 static void stub_test_file_io()
 {
@@ -638,6 +723,7 @@ static void stub_test_task(void* arg)
 
     for (int i=0; i < n; i++)
     {
+        stub_test_af();
         stub_test_file_io();
         stub_test_gui_timers();
         stub_test_other_timers();
