@@ -128,7 +128,7 @@ char * copy_string(const char * str)
 /***
  Event Handlers.
  
- Scripts can repsond to events by setting the functions in the 'event' table.
+ Scripts can respond to events by setting the functions in the 'event' table.
  Event handler functions can take one integer parameter, and must return a boolean
  that specifies whether or not the backend should continue executing event handlers
  for this particular event.

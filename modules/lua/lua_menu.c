@@ -1,5 +1,5 @@
 /***
- Functions for interacting with the ML menu
+ Functions for interacting with the ML menu.
  
  @author Magic Lantern Team
  @copyright 2014
@@ -212,31 +212,29 @@ const char * lua_menu_instance_fields[] =
     NULL
 };
 
-/*** Creates a new menu item
+/*** Creates a new menu item.
  @tparam table definition
  @function new
  @return a menu object
  @usage
 mymenu = menu.new
 {
-    parent = "Scripts",
-    name = "Lua Test Script",
-    help = "Some help for this script",
-    value = 1,
+    parent  = "Movie",
+    name    = "Lua Test Script",
+    help    = "Some help for this script.",
     submenu =
     { 
         {
-            name = "Run",
-            help = "Run this script.",
-            icon_type = ICON_TYPE.ACTION,
-            update = "",
+            name    = "Run",
+            help    = "Run some action.",
+            update  = "",
         },
         {
-            name = "Parameter Example",
-            help = "Help for Parameter Example",
-            min = 0,
-            max = 100,
-            unit = UNIT.DEC,
+            name    = "Parameter Example",
+            help    = "Help for Parameter Example",
+            min     = 0,
+            max     = 100,
+            unit    = UNIT.DEC,
             warning = function(this) if this.value == 5 then return "this value is not supported" end end,
         },
         {
@@ -294,11 +292,11 @@ static int luaCB_menu_new(lua_State * L)
     return 1; //return the userdata object
 }
 
-/// Set the value of some existing ML menu entry
-// @param menu name of the parent menu ('Audio', 'Expo', 'Overlay', 'Shoot', 'Movie', etc)
-// @param entry name of the menu entry
-// @param value the value to set
-// @return whether or not the call was sucessful
+/// Set the value of some existing ML menu entry.
+// @tparam string menu name of the parent menu ('Audio', 'Expo', 'Overlay', 'Shoot', 'Movie', etc).
+// @tparam string entry name of the menu entry.
+// @tparam ?int|string value the value to set.
+// @treturn bool whether or not the call was sucessful.
 // @function set
 static int luaCB_menu_set(lua_State * L)
 {
@@ -319,10 +317,10 @@ static int luaCB_menu_set(lua_State * L)
     return 1;
 }
 
-/// Get the value of some existing ML menu entry
-// @param menu name of the parent menu ('Audio', 'Expo', 'Overlay', 'Shoot', 'Movie', etc)
-// @param entry name of the menu entry
-// @return the value of the menu entry
+/// Get the value of some existing ML menu entry.
+// @tparam string menu name of the parent menu ('Audio', 'Expo', 'Overlay', 'Shoot', 'Movie', etc)
+// @tparam string entry name of the menu entry
+// @treturn int the value of the menu entry (current selection)
 // @function get
 static int luaCB_menu_get(lua_State * L)
 {
@@ -332,8 +330,8 @@ static int luaCB_menu_get(lua_State * L)
     return 1;
 }
 
-/// Block the ML menu from redrawing (if you wand to do custom drawing)
-// @tparam bool enaabled
+/// Block the ML menu from redrawing (if you wand to do custom drawing).
+// @tparam bool enabled
 // @function block
 static int luaCB_menu_block(lua_State * L)
 {
@@ -342,7 +340,9 @@ static int luaCB_menu_block(lua_State * L)
     return 0;
 }
 
-/// Open ML menu
+/// Open ML menu.
+///
+/// Optionally, it may also select the requested menu.
 // @param[opt] menu name of the parent menu ('Audio', 'Expo', 'Overlay', 'Shoot', 'Movie', etc)
 // @param[opt] entry name of the menu entry
 // @function open
@@ -361,7 +361,7 @@ static int luaCB_menu_open(lua_State * L)
     return 0;
 }
 
-/// Close ML menu
+/// Close ML menu.
 // @function close
 static int luaCB_menu_close(lua_State * L)
 {
@@ -373,7 +373,7 @@ static int luaCB_menu_close(lua_State * L)
 static int luaCB_menu_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
-    /// Get whether or not the ML menu is visible
+    /// Get whether or not the ML menu is visible.
     //@tfield bool visible
     if(!strcmp(key, "visible")) lua_pushboolean(L, gui_menu_shown());
     else lua_rawget(L, 1);
@@ -388,7 +388,7 @@ static int luaCB_menu_newindex(lua_State * L)
     return 0;
 }
 
-/// Represents a menu item
+/// Represents a menu item.
 // @type menu
 
 static int luaCB_menu_instance_index(lua_State * L)
@@ -398,7 +398,7 @@ static int luaCB_menu_instance_index(lua_State * L)
     if(!script_entry || !script_entry->menu_entry) return luaL_argerror(L, 1, "internal error: userdata was NULL");
     
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
-    /// current value of the menu item
+    /// current value of the menu item.
     // @tfield ?int|string value
     if(!strcmp(key, "value"))
     {
@@ -411,62 +411,62 @@ static int luaCB_menu_instance_index(lua_State * L)
             lua_pushinteger(L, script_entry->menu_value);
         }
     }
-    /// Name for the menu item
+    /// Name for the menu item.
     // @tfield string name
     else if(!strcmp(key, "name")) lua_pushstring(L, script_entry->menu_entry->name);
-    /// Help text for the menu item (line 1)
+    /// Help text for the menu item (line 1).
     // @tfield string help
     else if(!strcmp(key, "help")) lua_pushstring(L, script_entry->menu_entry->help);
-    /// Help text for the menu item (line 2)
+    /// Help text for the menu item (line 2).
     // @tfield string help2
     else if(!strcmp(key, "help2")) lua_pushstring(L, script_entry->menu_entry->help2);
-    /// Advanced setting in submenus
+    /// Advanced setting in submenus.
     // @tfield bool advanced
     else if(!strcmp(key, "advanced")) lua_pushinteger(L, script_entry->menu_entry->advanced);
     /// Dependencies for this menu item.
     // If the dependecies are not met, the item will be greyed out and a warning will appear at the bottom of the screen.
     // @tfield int depends_on @{constants.DEPENDS_ON}
     else if(!strcmp(key, "depends_on")) lua_pushinteger(L, script_entry->menu_entry->depends_on);
-    /// Editing mode for the menu item
+    /// Editing mode for the menu item.
     // @tfield int edit_mode
     else if(!strcmp(key, "edit_mode")) lua_pushinteger(L, script_entry->menu_entry->edit_mode);
-    /// Hidden from main menu
+    /// Hidden from main menu.
     // @tfield bool hidden
     else if(!strcmp(key, "hidden")) lua_pushboolean(L, script_entry->menu_entry->hidden);
-    /// The type of icon to use for this menu item
+    /// The type of icon to use for this menu item (override only if the default choice is not good).
     // @tfield int icon_type @{constants.ICON_TYPE}
     else if(!strcmp(key, "icon_type")) lua_pushinteger(L, script_entry->menu_entry->icon_type);
-    /// Hidden from junkie menu
+    /// Hidden from junkie menu.
     // @tfield bool jhidden
     else if(!strcmp(key, "jhidden")) lua_pushboolean(L, script_entry->menu_entry->jhidden);
-    /// The maximum value the menu item can have
+    /// The maximum value the menu item can have.
     // @tfield int max
     else if(!strcmp(key, "max")) lua_pushinteger(L, script_entry->menu_entry->max);
-    /// The minimum value the menu item can have
+    /// The minimum value the menu item can have.
     // @tfield int min
     else if(!strcmp(key, "min")) lua_pushinteger(L, script_entry->menu_entry->min);
-    /// Whether or not the menu is selected
+    /// Whether or not the menu is selected.
     // @tfield int selected
     else if(!strcmp(key, "selected")) lua_pushboolean(L, script_entry->menu_entry->selected);
-    /// Special hide, not toggleable by user
+    /// Special hide, not toggleable by user.
     // @tfield bool shidden
     else if(!strcmp(key, "shidden")) lua_pushboolean(L, script_entry->menu_entry->shidden);
-    /// Present in "my menu"
+    /// Present in "my menu".
     // @tfield bool starred
     else if(!strcmp(key, "starred")) lua_pushboolean(L, script_entry->menu_entry->starred);
-    /// Submenu Height
+    /// Submenu Height.
     // @tfield int submenu_height
     else if(!strcmp(key, "submenu_height")) lua_pushinteger(L, script_entry->menu_entry->submenu_height);
-    /// Submenu Width
-    // @tfield int submenu_width
+    /// Submenu Width.
+    // @tfield int[opt] submenu_width (override if needed)
     else if(!strcmp(key, "submenu_width")) lua_pushinteger(L, script_entry->menu_entry->submenu_width);
-    /// The unit for the menu item's value
+    /// The unit for the menu item's value.
     // @tfield int unit @{constants.UNIT}
     else if(!strcmp(key, "unit")) lua_pushinteger(L, script_entry->menu_entry->unit);
-    /// Suggested operating mode for this menu item
+    /// Suggested operating mode for this menu item.
     // @tfield int works_best_in @{constants.DEPENDS_ON}
     else if(!strcmp(key, "works_best_in")) lua_pushinteger(L, script_entry->menu_entry->works_best_in);
-    /// Function called when menu is toggled
+    /// Function called when menu is toggled.
     // @tparam int delta
     // @function select
     else if(!strcmp(key, "select")) lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->select_ref);
@@ -478,7 +478,7 @@ static int luaCB_menu_instance_index(lua_State * L)
     // @return string
     // @function info
     else if(!strcmp(key, "info")) lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->info_ref);
-    /// Function called when menu is displayed. Return a string to be displayed on the right side of the menu item
+    /// Function called when menu is displayed. Return a string to be displayed on the right side of the menu item.
     // @return string
     // @function rinfo
     else if(!strcmp(key, "rinfo")) lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->rinfo_ref);
@@ -680,7 +680,7 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
     menu_entry->jhidden = LUA_FIELD_BOOL("jhidden", 0);
     menu_entry->shidden = LUA_FIELD_BOOL("shidden", 0);
     menu_entry->starred = LUA_FIELD_BOOL("starred", 0);
-    /// List of strings to display as choices in the menu item
+    /// List of strings to display as choices in the menu item.
     // @tfield table choices
     if(lua_getfield(L, -1, "choices") == LUA_TTABLE)
     {
@@ -724,7 +724,7 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
     /* all menu entries have an update function */
     menu_entry->update = script_menu_update;
 
-    /// Table of more menu tables that define a submenu
+    /// Table of more menu tables that define a submenu.
     // @tfield table submenu
     if(lua_getfield(L, -1, "submenu") == LUA_TTABLE)
     {
@@ -815,7 +815,7 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
     
 }
 
-/// Removes this menu entry
+/// Removes this menu entry.
 // @function remove
 static int luaCB_menu_remove(lua_State * L)
 {

@@ -83,7 +83,10 @@ static int luaCB_task_create(lua_State * L)
 
 /***
  Yields execution of this script to other tasks and event handlers
- @tparam int duration how long to sleep for in ms
+ (also from the same script).
+
+ TODO: replace with msleep?
+ @tparam int duration how long to sleep for in ms.
  @function yield
  */
 static int luaCB_task_yield(lua_State * L)

@@ -55,7 +55,13 @@ static int luaCB_beep(lua_State * L)
 
 /***
  Pauses for ms miliseconds and allows other tasks to run.
- @tparam int amount number of milliseconds to sleep
+
+ This will block other tasks/events from this script, but will allow
+ other scripts, ML tasks or Canon tasks.
+ 
+ TODO: make it identical to task.yield?
+
+ @tparam int amount number of milliseconds to sleep.
  @function msleep
  */
 static int luaCB_msleep(lua_State * L)

@@ -407,8 +407,8 @@ static int luaCB_aperture_index(lua_State * L)
     /// Get/Set aperture as f-number (floating point).
     // @tfield number value
     else if(!strcmp(key,"value")) lua_pushnumber(L, lens_info.aperture / 10.0);
-    /// Get/Set minimum (wide open) aperture value (aperture object).
-    // @tfield aperture min
+    /// Get minimum (wide open) aperture value (aperture object).
+    // @tfield aperture min readonly
     else if(!strcmp(key,"min"))
     {
         lua_newtable(L);
@@ -423,8 +423,8 @@ static int luaCB_aperture_index(lua_State * L)
         lua_setfield(L, -2, "fields");
         lua_setmetatable(L, -2);
     }
-    /// Get/Set maximum (closed) aperture value (aperture object).
-    // @tfield aperture max
+    /// Get maximum (closed) aperture value (aperture object).
+    // @tfield aperture max readonly
     else if(!strcmp(key,"max"))
     {
         lua_newtable(L);

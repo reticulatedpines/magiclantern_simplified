@@ -1,5 +1,9 @@
 /***
- Battery properties
+ Battery properties.
+ 
+ Only available on cameras that report battery percentage in Canon menu.
+ 
+ These cameras have CONFIG\_BATTERY\_INFO enabled on the [feature comparison matrix](http://builds.magiclantern.fm/features.html).
  
  @author Magic Lantern Team
  @copyright 2014

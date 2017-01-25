@@ -17,28 +17,34 @@
 static int luaCB_lens_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
-    /// Get the name of the lens (reported by the lens)
+    /// Get the name of the lens (reported by the lens).
     // @tfield string name readonly
     if(!strcmp(key, "name")) lua_pushstring(L, lens_info.name);
-    /// Get the focal length of the lens (in mm)
+    /// Get the focal length of the lens (in mm). Only updated in LiveView.
     // @tfield int focal_length readonly
     else if(!strcmp(key, "focal_length")) lua_pushinteger(L, lens_info.focal_len);
-    /// Get the current focus distance (in mm)
+    /// Get the current focus distance (in mm). Only updated in LiveView.
     // @tfield int focus_distance readonly
     else if(!strcmp(key, "focus_distance")) lua_pushinteger(L, lens_info.focus_dist * 10);
-    /// Get the hyperfocal distance of the lens (in mm)
+    /// Get the hyperfocal distance of the lens (in mm). Only updated in LiveView.
+    ///
+    /// Computed from focal length, focus distance and aperture, see Focus -> DOF Settings menu for options.
     // @tfield int hyperfocal readonly
     else if(!strcmp(key, "hyperfocal")) lua_pushinteger(L, lens_info.hyperfocal);
-    /// Get the distance to the DOF near (in mm)
+    /// Get the distance to the DOF near (in mm). Only updated in LiveView.
+    ///
+    /// Computed from focal length, focus distance and aperture, see Focus -> DOF Settings menu for options.
     // @tfield int dof_near readonly
     else if(!strcmp(key, "dof_near")) lua_pushinteger(L, lens_info.dof_near);
-    /// Get the distance to the DOF far (in mm)
+    /// Get the distance to the DOF far (in mm). Only updated in LiveView.
+    ///
+    /// Computed from focal length, focus distance and aperture, see Focus -> DOF Settings menu for options.
     // @tfield int dof_far readonly
     else if(!strcmp(key, "dof_far")) lua_pushinteger(L, lens_info.dof_far);
-    /// Get whether or not auto focus is enabled
+    /// Get whether or not auto focus is enabled.
     // @tfield bool af readonly
     else if(!strcmp(key, "af")) lua_pushboolean(L, !is_manual_focus());
-    /// Get the current auto focus mode (may be model-specific)
+    /// Get the current auto focus mode (may be model-specific, see PROP\_AF\_MODE in property.h).
     // @tfield int af_mode readonly
     else if(!strcmp(key, "af_mode")) lua_pushinteger(L, af_mode);
     else lua_rawget(L, 1);
@@ -60,7 +66,9 @@ static int luaCB_lens_newindex(lua_State * L)
 }
 
 /***
- Moves the focus motor a specified number of steps. Only works in LV.
+ Moves the focus motor a specified number of steps.
+ 
+ Only works in LiveView.
  @tparam int num_steps How many steps to move the focus motor (signed).
  @tparam[opt=2] int step_size Allowed values: 1, 2 or 3.
  @tparam[opt=true] bool wait Wait until each focus command finishes, before queueing others.
@@ -70,11 +78,13 @@ static int luaCB_lens_newindex(lua_State * L)
  
  Only disable if you know what you are doing.
  
- @tparam[opt=0 if wait else 10ms] int delay Delay between focus commands (ms)
+ @tparam[opt] int delay Delay between focus commands (ms)
  
- With wait=true, the delay is after each focus command is finished (as reported by Canon firmware).
+ With wait=true, the delay is after each focus command is executed (as reported by Canon firmware).
  
- With wait=false, the delay is after each focus command is sent (without waiting for it to finish).
+ With wait=false, the delay is after each focus command is started (without waiting for it to finish).
+ 
+ (_default_ 0 if wait=true, 10ms if wait=false)
  
  
  @function focus
@@ -107,8 +117,10 @@ static int wait_focus_status(int timeout, int value)
 
 /***
  Performs autofocus, similar to half-shutter press.
+ 
+ Works in both LiveView and in plain photo mode.
  @treturn bool whether the operation was successful or not.
- @function focus
+ @function autofocus
  */
 static int luaCB_lens_autofocus(lua_State * L)
 {

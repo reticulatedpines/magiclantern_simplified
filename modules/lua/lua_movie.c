@@ -60,8 +60,8 @@ static int luaCB_movie_stop(lua_State* L)
 static int luaCB_movie_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
-    /// Get whether or not the camera is recording a movie
-    // @tfield bool recording
+    /// Get whether or not the camera is recording a movie.
+    // @tfield bool recording readonly
     if(!strcmp(key, "recording")) lua_pushboolean(L, RECORDING);
     else lua_rawget(L, 1);
     return 1;
