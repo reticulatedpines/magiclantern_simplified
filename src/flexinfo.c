@@ -14,10 +14,6 @@
 
 #ifdef FEATURE_FLEXINFO
 
-#if !defined(BGMT_Q) //use picstyle button if Q is not present
-#define BGMT_Q BGMT_PICSTYLE
-#endif
-
 /* the menu is not so useful for end users, but makes it easy to tweak item positions for developers.
    actually only developer build ML from source, so keep it enabled until its in a more mature state and the next release is coming.
 */

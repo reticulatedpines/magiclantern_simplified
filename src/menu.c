@@ -4644,32 +4644,9 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_UNTOUCH_2_FINGER:
         return handle_ml_menu_touch(event);
 #endif
-#ifdef BGMT_RATE
-    case BGMT_RATE:
-#endif
-#if defined(BGMT_Q)
+
+    /* Q is always defined */
     case BGMT_Q:
-#endif
-#ifdef BGMT_Q_ALT
-    case BGMT_Q_ALT:
-#endif
-//~ #ifdef BGMT_JOY_CENTER
-    //~ case BGMT_JOY_CENTER:
-//~ #endif
-#if defined(CONFIG_5D2) || defined(CONFIG_7D)
-    case BGMT_PICSTYLE:
-#endif
-#ifdef CONFIG_50D
-    case BGMT_FUNC:
-    //~ case BGMT_LV:
-#endif
-#ifdef CONFIG_500D
-    case BGMT_LV:
-#endif
-#ifdef CONFIG_5DC
-    case BGMT_JUMP:
-    case BGMT_PRESS_DIRECT_PRINT:
-#endif
     case MLEV_JOYSTICK_LONG:
         if (menu_help_active) { menu_help_active = 0; /* menu_damage = 1; */ break; }
         menu_entry_select( menu, 2 ); // Q action select

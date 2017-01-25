@@ -31,6 +31,12 @@
 #define BGMT_PRESS_FULLSHUTTER   (BGMT_PRESS_HALFSHUTTER+2)
 #define BGMT_UNPRESS_FULLSHUTTER (BGMT_PRESS_HALFSHUTTER+3)
 
+/* make sure all cameras have a Q event, to simplify portable code */
+/* negative events are not passed to Canon firmware */
+#ifndef BGMT_Q
+#define BGMT_Q -0x879001
+#endif
+
 /** \file
  * DryOS GUI structures and functions.
  */
