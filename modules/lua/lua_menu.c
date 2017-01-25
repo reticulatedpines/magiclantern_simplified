@@ -378,7 +378,7 @@ static int luaCB_menu_new(lua_State * L)
     menu_add(parent, new_entry->menu_entry, 1);
     if (!streq(parent, "Scripts"))
     {
-        printf(" [i] menu: %s - %s\n", parent, new_entry->menu_entry->name);
+        lua_set_last_menu(L, parent, new_entry->menu_entry->name);
     }
     lua_pop(L, 1);
     
