@@ -182,16 +182,16 @@ static void setboolfield (lua_State *L, const char *key, int value) {
 static int luaCB_dryos_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
-    /// Get the value of the seconds clock
+    /// Get the number of the seconds since camera startup.
     // @tfield int clock
     if(!strcmp(key, "clock")) lua_pushinteger(L, get_seconds_clock());
-    /// Get the value of the milliseconds clock
+    /// Get the number of milliseconds since camera startup.
     // @tfield int ms_clock
     else if(!strcmp(key, "ms_clock")) lua_pushinteger(L, get_ms_clock_value());
-    /// Get/Set the image filename prefix
+    /// Get/Set the image filename prefix (e.g.&nbsp;"IMG_").
     // @tfield string prefix
     else if(!strcmp(key, "prefix")) lua_pushstring(L, get_file_prefix());
-    /// Get the DCIM directory
+    /// Get the DCIM directory.
     // @tfield directory dcim_dir
     else if(!strcmp(key, "dcim_dir"))
     {
@@ -199,7 +199,7 @@ static int luaCB_dryos_index(lua_State * L)
         lua_pushstring(L, get_dcim_dir());
         lua_call(L, 1, 1);
     }
-    /// Get the ML config directory
+    /// Get the ML config directory.
     // @tfield directory config_dir
     else if(!strcmp(key, "config_dir"))
     {
@@ -207,7 +207,7 @@ static int luaCB_dryos_index(lua_State * L)
         lua_pushstring(L, get_config_dir());
         lua_call(L, 1, 1);
     }
-    /// Get the card ML started from
+    /// Get the card ML was started from.
     // @tfield card ml_card
     else if(!strcmp(key, "ml_card"))
     {
@@ -229,7 +229,7 @@ static int luaCB_dryos_index(lua_State * L)
         lua_setfield(L, -2, "fields");
         lua_setmetatable(L, -2);
     }
-    /// Get the shooting card
+    /// Get the shooting card (the one selected in Canon menu for taking pictures / recording videos).
     // @tfield card shooting_card
     else if(!strcmp(key, "shooting_card"))
     {

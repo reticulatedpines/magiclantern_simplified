@@ -304,42 +304,62 @@ static int luaCB_event_newindex(lua_State * L)
     
     // Called before a picture is taken
     // @param arg unused
-    // @treturn bool whether or not to continue executing CBRs for this event
+    // @treturn bool whether or not to continue executing CBRs for this event.
+    //
+    // Recommended: true (no real reason to block other CBRs here).
     // @function pre_shoot
     SCRIPT_CBR_SET(pre_shoot);
     // Called after a picture is taken
     // @param arg unused
-    // @treturn bool whether or not to continue executing CBRs for this event
+    // @treturn bool whether or not to continue executing CBRs for this event.
+    //
+    // Recommended: true (no real reason to block other CBRs here).
     // @function post_shoot
     SCRIPT_CBR_SET(post_shoot);
-    /// Called periodicaly from shoot_task
+    /// Called periodicaly from shoot_task.
     // @param arg unused
-    // @treturn bool whether or not to continue executing CBRs for this event
+    // @treturn bool whether or not to continue executing CBRs for this event.
+    //
+    // Recommended: true (no real reason to block other CBRs here).
     // @function shoot_task
     SCRIPT_CBR_SET(shoot_task);
-    /// Called each second
+    /// Called once per second.
+    /// Should return quickly, because other tasks may rely on timing accuracy.
     // @param arg unused
-    // @treturn bool whether or not to continue executing CBRs for this event
+    // @treturn bool whether or not to continue executing CBRs for this event.
+    //
+    // Recommended: true (no real reason to block other CBRs here).
     // @function seconds_clock
     SCRIPT_CBR_SET(seconds_clock);
-    /// Called when a key is pressed
+    /// Called when a key is pressed.
     // @tparam int key the key that was pressed, see @{constants.KEY}
-    // @treturn bool whether or not to continue executing CBRs for this event
+    // @treturn bool whether or not to continue executing CBRs for this event.
+    //
+    // Returning false will prevent other modules and/or Canon firmware from processing this event.
+    //
+    // For all unhandled events, return true.
     // @function keypress
     SCRIPT_CBR_SET(keypress);
-    /// Special types of picture taking (e.g. silent pics); so intervalometer and other photo taking routines should use that instead of regular pics
+    /// Special types of picture taking (e.g.&nbsp;silent pics)
+    /// so intervalometer and other photo taking routines should use that instead of regular pics.
     // @param arg unused
-    // @treturn bool whether or not to continue executing CBRs for this event
+    // @treturn bool whether or not to continue executing CBRs for this event.
+    //
+    // Recommended: false if your code took a custom picture, true otherwise.
     // @function custom_picture_taking
     SCRIPT_CBR_SET(custom_picture_taking);
-    /// Called after a picture is taken with the intervalometer
+    /// Called after a picture is taken with the intervalometer.
     // @tparam int interval_count the current interval count
-    // @treturn bool whether or not to continue executing CBRs for this event
+    // @treturn bool whether or not to continue executing CBRs for this event.
+    //
+    // Recommended: true (no real reason to block other CBRs here).
     // @function intervalometer
     SCRIPT_CBR_SET(intervalometer);
-    /// Called when configs are being saved; save any config data for your script here
+    /// Called when configs are being saved; save any config data for your script here.
     // @param arg unused
-    // @treturn bool whether or not to continue executing CBRs for this event
+    // @treturn bool whether or not to continue executing CBRs for this event.
+    //
+    // Recommended: true (no real reason to block other CBRs here).
     // @function config_save
     SCRIPT_CBR_SET(config_save);
 #ifdef CONFIG_VSYNC_EVENTS

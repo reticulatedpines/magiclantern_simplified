@@ -61,16 +61,22 @@ static int luaCB_lens_newindex(lua_State * L)
 
 /***
  Moves the focus motor a specified number of steps. Only works in LV.
- @tparam int num_steps
- @tparam[opt=2] int step_size Allowed values: 1, 2 or 3
- @tparam[opt=true] bool wait Wait until each focus command finishes, before queueing others
+ @tparam int num_steps How many steps to move the focus motor (signed).
+ @tparam[opt=2] int step_size Allowed values: 1, 2 or 3.
+ @tparam[opt=true] bool wait Wait until each focus command finishes, before queueing others.
  
-    wait=false may give smoother movements, but may no longer return accurate status for each command,
-    and the exact behavior may camera- or lens-dependent. Use with care.
+ wait=false may give smoother movements, but may no longer return accurate status for each command,
+ and the exact behavior may camera- or lens-dependent.
+ 
+ Only disable if you know what you are doing.
+ 
  @tparam[opt=0 if wait else 10ms] int delay Delay between focus commands (ms)
  
-    With wait=true, the delay is after each focus command is finished (as reported by Canon firmware)
-    With wait=false, the delay is after each focus command is sent (without waiting for it to finish)
+ With wait=true, the delay is after each focus command is finished (as reported by Canon firmware).
+ 
+ With wait=false, the delay is after each focus command is sent (without waiting for it to finish).
+ 
+ 
  @function focus
  */
 static int luaCB_lens_focus(lua_State * L)
@@ -101,7 +107,7 @@ static int wait_focus_status(int timeout, int value)
 
 /***
  Performs autofocus, similar to half-shutter press.
- @treturn bool whether the operation was successful or not
+ @treturn bool whether the operation was successful or not.
  @function focus
  */
 static int luaCB_lens_autofocus(lua_State * L)
