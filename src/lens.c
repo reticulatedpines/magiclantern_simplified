@@ -637,13 +637,24 @@ lens_focus(
             if (wait)
             {
                 lv_focus_done = 0;
-                
-                /* request and wait for confirmation */
                 info_led_on();
+
+#ifdef CONFIG_5D2   /* todo: 50D, 500D, others? */
+                uint32_t pfAfComplete_counter = MEM(0x46A8);
+
+                prop_request_change(PROP_LV_LENS_DRIVE_REMOTE, &focus_cmd, 4);
+
+                while (MEM(0x46A8) == pfAfComplete_counter)
+                {
+                    msleep(10);
+                }
+#else
+                /* request and wait for confirmation */
                 prop_request_change_wait(PROP_LV_LENS_DRIVE_REMOTE, &focus_cmd, 4, 1000);
-                
+
                 /* also wait for confirmation from PROP_LV_FOCUS_DONE */
                 lens_focus_wait();
+#endif
                 
                 /* also wait a little more if user want so (for really stubborn lenses) */
                 if (extra_delay)
