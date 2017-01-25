@@ -192,14 +192,11 @@ const char * lua_menu_instance_fields[] =
     "advanced",
     "depends_on",
     "edit_mode",
-    "hidden",
     "icon_type",
-    "jhidden",
     "max",
     "min",
     "selected",
-    "shidden",
-    "starred",
+    "hidden",
     "submenu_height",
     "submenu_width",
     "unit",
@@ -430,15 +427,9 @@ static int luaCB_menu_instance_index(lua_State * L)
     /// Editing mode for the menu item.
     // @tfield int edit_mode
     else if(!strcmp(key, "edit_mode")) lua_pushinteger(L, script_entry->menu_entry->edit_mode);
-    /// Hidden from main menu.
-    // @tfield bool hidden
-    else if(!strcmp(key, "hidden")) lua_pushboolean(L, script_entry->menu_entry->hidden);
     /// The type of icon to use for this menu item (override only if the default choice is not good).
     // @tfield int icon_type @{constants.ICON_TYPE}
     else if(!strcmp(key, "icon_type")) lua_pushinteger(L, script_entry->menu_entry->icon_type);
-    /// Hidden from junkie menu.
-    // @tfield bool jhidden
-    else if(!strcmp(key, "jhidden")) lua_pushboolean(L, script_entry->menu_entry->jhidden);
     /// The maximum value the menu item can have.
     // @tfield int max
     else if(!strcmp(key, "max")) lua_pushinteger(L, script_entry->menu_entry->max);
@@ -448,12 +439,9 @@ static int luaCB_menu_instance_index(lua_State * L)
     /// Whether or not the menu is selected.
     // @tfield int selected
     else if(!strcmp(key, "selected")) lua_pushboolean(L, script_entry->menu_entry->selected);
-    /// Special hide, not toggleable by user.
-    // @tfield bool shidden
-    else if(!strcmp(key, "shidden")) lua_pushboolean(L, script_entry->menu_entry->shidden);
-    /// Present in "my menu".
-    // @tfield bool starred
-    else if(!strcmp(key, "starred")) lua_pushboolean(L, script_entry->menu_entry->starred);
+    /// Hidden from menu.
+    // @tfield bool hidden
+    else if(!strcmp(key, "hidden")) lua_pushboolean(L, script_entry->menu_entry->shidden);
     /// Submenu Height.
     // @tfield int submenu_height
     else if(!strcmp(key, "submenu_height")) lua_pushinteger(L, script_entry->menu_entry->submenu_height);
@@ -536,14 +524,11 @@ static int luaCB_menu_instance_newindex(lua_State * L)
     else if(!strcmp(key, "advanced")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->advanced = value; }
     else if(!strcmp(key, "depends_on")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->depends_on = value; }
     else if(!strcmp(key, "edit_mode")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->edit_mode = value; }
-    else if(!strcmp(key, "hidden")) { LUA_PARAM_BOOL(value, 3); script_entry->menu_entry->hidden = value; }
     else if(!strcmp(key, "icon_type")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->icon_type = value; }
-    else if(!strcmp(key, "jhidden")) { LUA_PARAM_BOOL(value, 3); script_entry->menu_entry->jhidden = value; }
     else if(!strcmp(key, "max")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->max = value; }
     else if(!strcmp(key, "min")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->min = value; }
     else if(!strcmp(key, "selected")) { LUA_PARAM_BOOL(value, 3); script_entry->menu_entry->selected = value; }
-    else if(!strcmp(key, "shidden")) { LUA_PARAM_BOOL(value, 3); script_entry->menu_entry->shidden = value; }
-    else if(!strcmp(key, "starred")) { LUA_PARAM_BOOL(value, 3); script_entry->menu_entry->starred = value; }
+    else if(!strcmp(key, "hidden")) { LUA_PARAM_BOOL(value, 3); script_entry->menu_entry->shidden = value; }
     else if(!strcmp(key, "submenu_height")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->submenu_height = value; }
     else if(!strcmp(key, "submenu_width")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->submenu_width = value; }
     else if(!strcmp(key, "unit")) { LUA_PARAM_INT(value, 3); script_entry->menu_entry->unit = value; }
@@ -676,10 +661,7 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
     menu_entry->works_best_in = LUA_FIELD_INT("works_best_in", 0);
     menu_entry->submenu_width = LUA_FIELD_INT("submenu_width", 0);
     menu_entry->submenu_height = LUA_FIELD_INT("submenu_height", 0);
-    menu_entry->hidden = LUA_FIELD_BOOL("hidden", 0);
-    menu_entry->jhidden = LUA_FIELD_BOOL("jhidden", 0);
-    menu_entry->shidden = LUA_FIELD_BOOL("shidden", 0);
-    menu_entry->starred = LUA_FIELD_BOOL("starred", 0);
+    menu_entry->hidden = LUA_FIELD_BOOL("shidden", 0);
     /// List of strings to display as choices in the menu item.
     // @tfield table choices
     if(lua_getfield(L, -1, "choices") == LUA_TTABLE)
