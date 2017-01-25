@@ -208,7 +208,7 @@ static int luaCB_lv_info(lua_State * L)
     item->value = LUA_FIELD_STRING("value", "unknown");
     item->priority = LUA_FIELD_INT("priority", 0);
     item->preferred_position = LUA_FIELD_INT("preferred_position", 0);
-    item->which_bar = LUA_FIELD_INT("which_bar", 0);
+    item->which_bar = LUA_FIELD_INT("which_bar", LV_WHEREVER_IT_FITS);
     entry->custom_drawing = LUA_FIELD_BOOL("custom_drawing", 0);
     
     if(lua_getfield(L, -1, "update") == LUA_TFUNCTION)
@@ -276,7 +276,7 @@ static int luaCB_lvinfo_index(lua_State * L)
     /// Get/Set the which bar the item appears on (see enum lvinfo_bar in lvinfo.h).
     ///
     /// TODO: constants.
-    // @tfield[opt=top] int bar
+    // @tfield[opt=anywhere] int bar
     else if(!strcmp(key, "bar")) lua_pushinteger(L, item->which_bar);
     /// Get/Set the item width; default: measured from value and fontspec.
     ///
