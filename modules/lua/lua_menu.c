@@ -183,6 +183,102 @@ static int get_index_for_choices(struct menu_entry * menu_entry, const char * va
     return 0;
 }
 
+/// Get the value of some existing ML menu entry.
+// @tparam string menu name of the parent menu ('Audio', 'Expo', 'Overlay', 'Shoot', 'Movie', etc)
+// @tparam string entry name of the menu entry
+// @treturn int the value of the menu entry (current selection)
+// @function get
+static int luaCB_menu_get(lua_State * L)
+{
+    LUA_PARAM_STRING(menu, 1);
+    LUA_PARAM_STRING(entry, 2);
+    lua_pushinteger(L, menu_get_value_from_script(menu, entry));
+    return 1;
+}
+
+/// Set the value of some existing ML menu entry.
+// @tparam string menu name of the parent menu ('Audio', 'Expo', 'Overlay', 'Shoot', 'Movie', etc).
+// @tparam string entry name of the menu entry.
+// @tparam ?int|string value the value to set.
+// @treturn bool whether or not the call was sucessful.
+// @function set
+static int luaCB_menu_set(lua_State * L)
+{
+    LUA_PARAM_STRING(menu, 1);
+    LUA_PARAM_STRING(entry, 2);
+    if(lua_isinteger(L, 3))
+    {
+        LUA_PARAM_INT(value, 3);
+        lua_pushboolean(L, menu_set_value_from_script(menu, entry, value));
+    }
+    else
+    {
+        LUA_PARAM_STRING(value, 3);
+        char * copy = copy_string(value);
+        lua_pushboolean(L, menu_set_str_value_from_script(menu, entry, copy, -1));
+        free(copy);
+    }
+    return 1;
+}
+
+/// Open ML menu.
+///
+/// Optionally, it may also select the requested menu.
+// @param[opt] menu name of the parent menu ('Audio', 'Expo', 'Overlay', 'Shoot', 'Movie', etc)
+// @param[opt] entry name of the menu entry
+// @function open
+static int luaCB_menu_open(lua_State * L)
+{
+    LUA_PARAM_STRING_OPTIONAL(menu, 1, NULL);
+    LUA_PARAM_STRING_OPTIONAL(entry, 2, NULL);
+
+    if (menu)
+    {
+        select_menu_by_name((char *) menu, entry);
+    }
+
+    gui_open_menu();
+    msleep(1000);
+    return 0;
+}
+
+/// Close ML menu.
+// @function close
+static int luaCB_menu_close(lua_State * L)
+{
+    gui_stop_menu();
+    msleep(1000);
+    return 0;
+}
+
+/// Block the ML menu from redrawing (if you wand to do custom drawing).
+// @tparam bool enabled
+// @function block
+static int luaCB_menu_block(lua_State * L)
+{
+    LUA_PARAM_BOOL(enabled, 1);
+    menu_redraw_blocked = enabled;
+    return 0;
+}
+
+static int luaCB_menu_index(lua_State * L)
+{
+    LUA_PARAM_STRING_OPTIONAL(key, 2, "");
+    /// Get whether or not the ML menu is visible.
+    //@tfield bool visible
+    if(!strcmp(key, "visible")) lua_pushboolean(L, gui_menu_shown());
+    else lua_rawget(L, 1);
+    return 1;
+}
+
+static int luaCB_menu_newindex(lua_State * L)
+{
+    LUA_PARAM_STRING_OPTIONAL(key, 2, "");
+    if(!strcmp(key, "visible")) return luaL_error(L, "'%s' is readonly!", key);
+    else lua_rawset(L, 1);
+    return 0;
+}
+
 const char * lua_menu_instance_fields[] =
 {
     "value",
@@ -235,7 +331,7 @@ mymenu = menu.new
             warning = function(this) if this.value == 5 then return "this value is not supported" end end,
         },
         {
-            name = "Choices Example",
+            name    = "Choices Example",
             choices = { "choice1", "choice2", "choice3" },
         }
     },
@@ -289,102 +385,6 @@ static int luaCB_menu_new(lua_State * L)
     return 1; //return the userdata object
 }
 
-/// Set the value of some existing ML menu entry.
-// @tparam string menu name of the parent menu ('Audio', 'Expo', 'Overlay', 'Shoot', 'Movie', etc).
-// @tparam string entry name of the menu entry.
-// @tparam ?int|string value the value to set.
-// @treturn bool whether or not the call was sucessful.
-// @function set
-static int luaCB_menu_set(lua_State * L)
-{
-    LUA_PARAM_STRING(menu, 1);
-    LUA_PARAM_STRING(entry, 2);
-    if(lua_isinteger(L, 3))
-    {
-        LUA_PARAM_INT(value, 3);
-        lua_pushboolean(L, menu_set_value_from_script(menu, entry, value));
-    }
-    else
-    {
-        LUA_PARAM_STRING(value, 3);
-        char * copy = copy_string(value);
-        lua_pushboolean(L, menu_set_str_value_from_script(menu, entry, copy, -1));
-        free(copy);
-    }
-    return 1;
-}
-
-/// Get the value of some existing ML menu entry.
-// @tparam string menu name of the parent menu ('Audio', 'Expo', 'Overlay', 'Shoot', 'Movie', etc)
-// @tparam string entry name of the menu entry
-// @treturn int the value of the menu entry (current selection)
-// @function get
-static int luaCB_menu_get(lua_State * L)
-{
-    LUA_PARAM_STRING(menu, 1);
-    LUA_PARAM_STRING(entry, 2);
-    lua_pushinteger(L, menu_get_value_from_script(menu, entry));
-    return 1;
-}
-
-/// Block the ML menu from redrawing (if you wand to do custom drawing).
-// @tparam bool enabled
-// @function block
-static int luaCB_menu_block(lua_State * L)
-{
-    LUA_PARAM_BOOL(enabled, 1);
-    menu_redraw_blocked = enabled;
-    return 0;
-}
-
-/// Open ML menu.
-///
-/// Optionally, it may also select the requested menu.
-// @param[opt] menu name of the parent menu ('Audio', 'Expo', 'Overlay', 'Shoot', 'Movie', etc)
-// @param[opt] entry name of the menu entry
-// @function open
-static int luaCB_menu_open(lua_State * L)
-{
-    LUA_PARAM_STRING_OPTIONAL(menu, 1, NULL);
-    LUA_PARAM_STRING_OPTIONAL(entry, 2, NULL);
-
-    if (menu)
-    {
-        select_menu_by_name((char *) menu, entry);
-    }
-
-    gui_open_menu();
-    msleep(1000);
-    return 0;
-}
-
-/// Close ML menu.
-// @function close
-static int luaCB_menu_close(lua_State * L)
-{
-    gui_stop_menu();
-    msleep(1000);
-    return 0;
-}
-
-static int luaCB_menu_index(lua_State * L)
-{
-    LUA_PARAM_STRING_OPTIONAL(key, 2, "");
-    /// Get whether or not the ML menu is visible.
-    //@tfield bool visible
-    if(!strcmp(key, "visible")) lua_pushboolean(L, gui_menu_shown());
-    else lua_rawget(L, 1);
-    return 1;
-}
-
-static int luaCB_menu_newindex(lua_State * L)
-{
-    LUA_PARAM_STRING_OPTIONAL(key, 2, "");
-    if(!strcmp(key, "visible")) return luaL_error(L, "'%s' is readonly!", key);
-    else lua_rawset(L, 1);
-    return 0;
-}
-
 /// Represents a menu item.
 // @type menu
 
@@ -395,7 +395,7 @@ static int luaCB_menu_instance_index(lua_State * L)
     if(!script_entry || !script_entry->menu_entry) return luaL_argerror(L, 1, "internal error: userdata was NULL");
     
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
-    /// current value of the menu item.
+    /// Current value of the menu item.
     // @tfield ?int|string value
     if(!strcmp(key, "value"))
     {
@@ -831,12 +831,12 @@ static const char * lua_menu_fields[] =
 
 const luaL_Reg menulib[] =
 {
-    {"new", luaCB_menu_new},
-    {"set", luaCB_menu_set},
     {"get", luaCB_menu_get},
+    {"set", luaCB_menu_set},
     {"open", luaCB_menu_open},
     {"close", luaCB_menu_close},
     {"block", luaCB_menu_block},
+    {"new", luaCB_menu_new},
     {NULL, NULL}
 };
 
