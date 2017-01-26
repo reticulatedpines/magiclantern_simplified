@@ -95,6 +95,7 @@ char *strdup(const char *s);
 #include "../lv_rec/lv_rec.h"
 #include "../../src/raw.h"
 #include "mlv.h"
+#include "camera_id.h"
 
 enum bug_id
 {
@@ -1094,6 +1095,8 @@ int main (int argc, char *argv[])
     int dump_xrefs = 0;
     int fix_cold_pixels = 1;
     int fix_vert_stripes = 1;
+    
+    const char * unique_camname = "(unknown)";
 
     struct option long_options[] = {
         {"lua",    required_argument, NULL,  'L' },
@@ -2593,7 +2596,7 @@ read_headers:
                             dng_set_framerate_rational(main_header.sourceFpsNom, main_header.sourceFpsDenom);
                             dng_set_shutter(1, (int)(1000000.0f/(float)expo_info.shutterValue));
                             dng_set_aperture(lens_info.aperture, 100);
-                            dng_set_camname((char*)idnt_info.cameraName);
+                            dng_set_camname((char*)unique_camname);
                             dng_set_description((char*)info_string);
                             dng_set_lensmodel((char*)lens_info.lensName);
                             dng_set_focal(lens_info.focalLength, 1);
@@ -3038,6 +3041,12 @@ read_headers:
                         print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
                         goto abort;
                     }
+                }
+
+                unique_camname = get_camera_name_by_id(idnt_info.cameraModel, UNIQ);
+                if(!unique_camname)
+                {
+                    unique_camname = (const char*) idnt_info.cameraName;
                 }
             }
             else if(!memcmp(buf.blockType, "RTCI", 4))
