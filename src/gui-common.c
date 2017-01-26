@@ -253,7 +253,7 @@ static int handle_Q_button_equiv(struct event * event)
          * to other modules/scripts directly (they will be all seen as Q).
          * outside ML menu, they retain their regular functionality.
          */
-        return 0;
+        return 1;
     }
 
     switch (event->param)
