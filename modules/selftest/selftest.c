@@ -150,8 +150,16 @@ static void stub_test_af()
 
         while (is_manual_focus())
         {
-            NotifyBox(2000, "Please enable autofocus.");
+            NotifyBox(2000, 
+                "Please enable autofocus.\n"
+                "Press half-shutter to skip."
+            );
             msleep(1000);
+
+            if (HALFSHUTTER_PRESSED)
+            {
+                return;
+            }
         }
 
         /* assume half-shutter is not pressed before starting the test */
@@ -162,19 +170,23 @@ static void stub_test_af()
         lens_setup_af(AF_ENABLE);
         module_send_keypress(MODULE_KEY_PRESS_HALFSHUTTER);
         TEST_FUNC_CHECK(HALFSHUTTER_PRESSED, == 1);
-        if (lv)
-        {
+        if (lv) {
             TEST_FUNC_CHECK(wait_focus_status(1000, 3), == 1);
-        }
-        else
-        {
+            TEST_FUNC_CHECK(lv_focus_status, == 3)
+        } else {
             msleep(1000);
             TEST_FUNC_CHECK(get_focus_confirmation(), != 0);
         }
+
         module_send_keypress(MODULE_KEY_UNPRESS_HALFSHUTTER);
         msleep(500);
         TEST_FUNC_CHECK(HALFSHUTTER_PRESSED, == 0);
-        TEST_FUNC_CHECK(lv_focus_status, == 1)
+        if (lv) {
+            TEST_FUNC_CHECK(wait_focus_status(1000, 3), == 0);
+            TEST_FUNC_CHECK(lv_focus_status, == 1)
+        } else {
+            TEST_FUNC_CHECK(get_focus_confirmation(), == 0);
+        }
         lens_cleanup_af();
 
         /* disable autofocus on half-shutter */
