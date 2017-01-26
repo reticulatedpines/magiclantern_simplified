@@ -33,6 +33,7 @@
 #include "config-defines.h"
 #include "compiler.h"
 #include "dialog.h"
+#include "consts.h"
 #include "gui.h"
 #include "gui-common.h"
 #include "vram.h"
@@ -41,7 +42,6 @@
 #include "tasks.h"
 #include "debug.h"
 #include "audio.h"
-#include "consts.h"
 #include <stdarg.h>
 #include "exmem.h"
 #include "mem.h"
