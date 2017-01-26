@@ -855,9 +855,7 @@ static MENU_UPDATE_FUNC(lua_script_menu_update)
          * it's probably a simple script that is running for a long time */
         int script_uptime = script->load_time ? get_seconds_clock() - script->load_time : 0;
         
-        int fg = script->state ? COLOR_WHITE : entry->selected ? COLOR_GRAY(50) : COLOR_GRAY(10);
-        int fnt = SHADOW_FONT(FONT(FONT_MED_LARGE, fg, COLOR_BLACK));
-        bmp_printf(fnt | FONT_ALIGN_RIGHT, 680, info->y+2,
+        const char * script_status = 
             script->autorun && script_uptime >= 2
                 ? "AUTORUN" :
             script->last_error
@@ -867,8 +865,18 @@ static MENU_UPDATE_FUNC(lua_script_menu_update)
             script->state == SCRIPT_STATE_LOADING
                 ? (script_uptime <= 2 ? "Loading" : "Running") :
             script->state == SCRIPT_STATE_RUNNING
-                ? "Running" : "?!"
-        );
+                ? "Running" : "?!";
+        
+        if (info->can_custom_draw)
+        {
+            int fg = script->state ? COLOR_WHITE : entry->selected ? COLOR_GRAY(50) : COLOR_GRAY(10);
+            int fnt = SHADOW_FONT(FONT(FONT_MED_LARGE, fg, COLOR_BLACK));
+            bmp_printf(fnt | FONT_ALIGN_RIGHT, 680, info->y+2, script_status);
+        }
+        else
+        {
+            MENU_SET_RINFO(script_status);
+        }
 
         switch (script->state)
         {
