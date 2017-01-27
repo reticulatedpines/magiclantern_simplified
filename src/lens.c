@@ -585,7 +585,6 @@ lens_focus(
 
     if (!lv) return 0;
     if (is_manual_focus()) return 0;
-    if (lens_info.job_state) return 0;
 
     if (num_steps < 0)
     {
