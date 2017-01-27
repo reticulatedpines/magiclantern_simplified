@@ -226,6 +226,35 @@ function test_io()
     printf("\n")
 end
 
+function taskA()
+    printf("Task A started.\n")
+    local i
+    for i = 1,100 do
+        printf("Task A: %d\n", i)
+        task.yield(math.random(10,50))
+    end
+end
+
+function taskB()
+    printf("Task B started.\n")
+    local i
+    for i = 1,100 do
+        printf("Task B: %d\n", i)
+        task.yield(math.random(10,50))
+    end
+end
+
+function test_multitasking()
+    printf("Testing multitasking...\n")
+
+    task.create(taskA)
+    task.create(taskB)
+    task.yield(5000)
+
+    printf("Multitasking tests completed.\n")
+    printf("\n")
+end
+
 function test_keys()
     printf("Testing half-shutter...\n")
     -- open Canon menu
@@ -760,6 +789,7 @@ function api_tests()
     
     printf("Module tests...\n")
     test_io()
+    test_multitasking()
     test_keys()
     test_lv()
     test_lens_focus()
