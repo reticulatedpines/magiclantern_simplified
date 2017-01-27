@@ -97,7 +97,12 @@ static int luaCB_lens_focus(lua_State * L)
     LUA_PARAM_INT_OPTIONAL(step_size, 2, 2);
     LUA_PARAM_BOOL_OPTIONAL(wait, 3, true);
     LUA_PARAM_INT_OPTIONAL(delay, 4, wait ? 0 : 30);
+
+    if (!lv) return luaL_error(L, "lens.focus() only works in LiveView.");
+    if (is_manual_focus()) return luaL_error(L, "lens.focus() requires autofocus enabled.");
+
     lua_pushboolean(L, lens_focus(num_steps, step_size, wait, delay));
+
     return 1;
 }
 
