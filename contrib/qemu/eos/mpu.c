@@ -700,6 +700,9 @@ void mpu_spells_init(EOSState *s)
     /* same for 1100D */
     MPU_SPELL_SET_OTHER_CAM(1100D, 60D)
 
+    /* 500D works with 550D MPU spells... and BOOTS THE GUI!!! */
+    MPU_SPELL_SET_OTHER_CAM(500D, 550D)
+
     if (!mpu_init_spell_count)
     {
         printf("FIXME: no MPU spells for %s.\n", s->model->name);
