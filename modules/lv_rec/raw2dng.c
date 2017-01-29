@@ -25,6 +25,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include "string.h"
+#include "strings.h"
 #include "math.h"
 #include "lv_rec.h"
 #include <raw.h>
