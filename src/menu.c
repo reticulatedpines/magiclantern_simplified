@@ -2880,7 +2880,7 @@ static int mod_menu_select_func(struct menu_entry * entry)
         return 1;
     
     /* don't delete currently selected entry */
-    if (entry == mod_menu_selected_entry)
+    if (mod_menu->selected && entry == mod_menu_selected_entry)
         return 1;
     
     /* anything from submenu was changed? */
