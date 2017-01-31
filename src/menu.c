@@ -1318,6 +1318,86 @@ menu_remove(
     }
 }
 
+
+/* Usage counters
+ * ==============
+ * We use a long-term and a short-term counter
+ * so if some item is frequently used during e.g. one day,
+ * it should appear quickly in the auto menu,
+ * and should disappear if no longer used in the following days,
+ * but if some other item is used let's say once or twice every day,
+ * it should also appear appear in the menu,
+ * but it should not disappear if unused for 2-3 days.
+ */
+
+/* these act as a forgetting factor for all other entries */
+/* except we only need to update the current entry in O(1) */
+static float usage_counter_delta_long = 1.0;
+static float usage_counter_delta_short = 1.0;
+
+/* normalize the usage counters so the next increment is 1.0 */
+static void menu_normalize_usage_counters(void)
+{
+    for (struct menu * menu = menus; menu ; menu = menu->next)
+    {
+        for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
+        {
+            entry->usage_counter_long_term  /= usage_counter_delta_long;
+            entry->usage_counter_short_term /= usage_counter_delta_short;
+        }
+    }
+    usage_counter_delta_long  = 1.0;
+    usage_counter_delta_short = 1.0;
+}
+
+/* update usage counters for the selected entry */
+/* (called when user clicks on it) */
+static void menu_update_usage_counters(struct menu_entry * entry)
+{
+    if (!entry->parent_menu->selected)
+    {
+        /* not at home? use original entry */
+        /* fixme: remove the lookup */
+        entry = entry_find_by_name(entry->parent_menu->name, entry->name);
+        if (!entry) return;
+    }
+
+    /* selecting the same menu entry multiple times during a short time span
+     * should count as one */
+    static struct menu_entry * prev_entry = 0;
+    static int prev_timestamp = 0;
+    int ms_clock = get_ms_clock_value_fast();
+    if (entry == prev_entry)
+    {
+        int elapsed = ms_clock - prev_timestamp;
+        if (elapsed < 5000)
+        {
+            /* same entry selected recently? skip it */
+            prev_timestamp = ms_clock;
+            return;
+        }
+    }
+    prev_entry = entry;
+    prev_timestamp = ms_clock;
+
+    /* update increments (equivalent to adjusting the forgetting factors) */
+    usage_counter_delta_long  *= 1.001;
+    usage_counter_delta_short *= 1.1;
+
+    /* update the counters for current entry */
+    /* note: the increment is higher than for the older entries, */
+    /* so it's as if those older entries used a forgetting factor */
+    entry->usage_counter_long_term  += usage_counter_delta_long;
+    entry->usage_counter_short_term += usage_counter_delta_short;
+
+    /* update dirty flag */
+    menu_flags_save_dirty = 1;
+}
+
+/*
+ * Display routines
+ */
+
 static void dot(int x, int y, int color, int radius)
 {
     fill_circle(x+16, y+16, radius, color);
@@ -3778,6 +3858,10 @@ menu_entry_select(
         return;
     }
 
+    /* usage counters are only updated for actual toggles */
+    /* they are not updated during submenu navigation */
+    int entry_used = 0;
+
     if(mode == 1) // decrement
     {
         if (entry->select)
@@ -3794,6 +3878,7 @@ menu_entry_select(
             else
                 menu_numeric_toggle_fast(entry->priv, -1, entry->min, entry->max, entry->unit == UNIT_TIME);
         }
+        entry_used = 1;
     }
     else if (mode == 2) // Q
     {
@@ -3805,8 +3890,17 @@ menu_entry_select(
             edit_mode = 0;
             submenu_level = MAX(submenu_level - 1, 0);
         }
-        else if ( entry->select_Q ) entry->select_Q( entry->priv, 1); // caution: entry may now be a dangling pointer
-        else menu_toggle_submenu();
+        else if ( entry->select_Q )
+        {
+            // caution: entry may now be a dangling pointer
+            // fixme: when?
+            entry->select_Q( entry->priv, 1);
+            entry_used = 1;
+        }
+        else
+        {
+            menu_toggle_submenu();
+        }
 
          // submenu with a single entry? promote it as pickbox
         if (submenu_level && promotable_to_pickbox)
@@ -3840,8 +3934,16 @@ menu_entry_select(
             else if (entry->edit_mode == EM_MANY_VALUES_LV && lv) menu_lv_transparent_mode = !menu_lv_transparent_mode;
             else if (entry->edit_mode == EM_MANY_VALUES_LV && !lv) edit_mode = !edit_mode;
             else if (SHOULD_USE_EDIT_MODE(entry)) edit_mode = !edit_mode;
-            else if (entry->select) entry->select( entry->priv, 1);
-            else if IS_ML_PTR(entry->priv) menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max, entry->unit == UNIT_TIME);
+            else if (entry->select)
+            {
+                entry->select( entry->priv, 1);
+                entry_used = (entry->select != menu_open_submenu);
+            }
+            else if IS_ML_PTR(entry->priv)
+            {
+                menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max, entry->unit == UNIT_TIME);
+                entry_used = 1;
+            }
         }
     }
     else // increment (same logic as decrement)
@@ -3857,10 +3959,17 @@ menu_entry_select(
             else
                 menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max, entry->unit == UNIT_TIME);
         }
+
+        entry_used = 1;
     }
     
     if(entry->unit == UNIT_TIME && edit_mode && caret_position == 0) caret_position = 1;
-    
+
+    if (entry_used)
+    {
+        menu_update_usage_counters(entry);
+    }
+
     config_dirty = 1;
     mod_menu_dirty = 1;
 }
@@ -5164,34 +5273,6 @@ static struct menu_entry * entry_find_by_name(const char* name, const char* entr
     return 0;
 }
 
-static void hide_menu_by_name(char* name, char* entry_name)
-{
-    struct menu * menu = menu_find_by_name(name, 0);
-    struct menu_entry * entry = entry_find_by_name(name, entry_name);
-    if (menu && entry)
-    {
-        entry->hidden = 1;
-    }
-}
-
-static void jhide_menu_by_name(char* name, char* entry_name)
-{
-    struct menu * menu = menu_find_by_name(name, 0);
-    struct menu_entry * entry = entry_find_by_name(name, entry_name);
-    if (menu && entry)
-    {
-        entry->jhidden = 1;
-    }
-}
-static void star_menu_by_name(char* name, char* entry_name)
-{
-    struct menu_entry * entry = entry_find_by_name(name, entry_name);
-    if (entry)
-    {
-        entry->starred = 1;
-    }
-}
-
 static void select_menu_by_icon(int icon)
 {
     take_semaphore(menu_sem, 0);
@@ -5456,19 +5537,22 @@ int handle_quick_access_menu_items(struct event * event)
     return 1;
 }
 
-static int menu_get_flags(struct menu_entry * entry)
+static int menu_pack_flags(struct menu_entry * entry)
 {
-    return entry->starred + entry->hidden*2 + entry->jhidden*4;
+    return
+        entry->starred * 1 +
+        entry->hidden  * 2 +
+        entry->jhidden * 4 ;
 }
 
-static void menu_set_flags(char* menu_name, char* entry_name, int flags)
+static void menu_unpack_flags(struct menu_entry * entry, uint32_t flags)
 {
     if (flags & 1)
-        star_menu_by_name(menu_name, entry_name);
+        entry->starred = 1;
     if (flags & 2)
-        hide_menu_by_name(menu_name, entry_name);
+        entry->hidden  = 1;
     if (flags & 4)
-        jhide_menu_by_name(menu_name, entry_name);
+        entry->jhidden = 1;
 }
 
 #define CFG_APPEND(fmt, ...) ({ lastlen = snprintf(cfg + cfglen, CFG_SIZE - cfglen, fmt, ## __VA_ARGS__); cfglen += lastlen; })
@@ -5476,6 +5560,8 @@ static void menu_set_flags(char* menu_name, char* entry_name, int flags)
 
 static void menu_save_flags(char* filename)
 {
+    menu_normalize_usage_counters();
+
     char* cfg = fio_malloc(CFG_SIZE);
     cfg[0] = '\0';
     int cfglen = 0;
@@ -5495,10 +5581,17 @@ static void menu_save_flags(char* filename)
             if (!entry->name) continue;
             if (!entry->name[0]) continue;
 
-            int flags = menu_get_flags(entry);
-            if (flags)
+            uint32_t flags = menu_pack_flags(entry);
+
+            if (flags || entry->usage_counters)
             {
-                CFG_APPEND("%d %s\\%s\n", flags, menu->name, entry->name);
+                CFG_APPEND("%d %08X %08X %s\\%s\n",
+                    flags,
+                    entry->usage_counter_long_term_raw,
+                    entry->usage_counter_short_term_raw,
+                    menu->name,
+                    entry->name
+                );
             }
         }
     }
@@ -5533,12 +5626,21 @@ static void menu_load_flags(char* filename)
             {
                 buf[i] = 0;
                 buf[sep] = 0;
-                char* menu_name = &buf[prev+3];
+                char* menu_name = &buf[prev+21];
                 char* entry_name = &buf[sep+1];
-                int flags = buf[prev+1] - '0';
+                uint32_t flags = buf[prev+1] - '0';
+                uint32_t usage_counter_l = strtol(&buf[prev+3], 0, 16);
+                uint32_t usage_counter_s = strtol(&buf[prev+12], 0, 16);
                 //~ NotifyBox(2000, "%s -> %s", menu_name, entry_name); msleep(2000);
                 
-                menu_set_flags(menu_name, entry_name, flags);
+                /* fixme: entries with same name may give trouble */
+                struct menu_entry * entry = entry_find_by_name(menu_name, entry_name);
+                if (entry)
+                {
+                    menu_unpack_flags(entry, flags);
+                    entry->usage_counter_long_term_raw = usage_counter_l;
+                    entry->usage_counter_short_term_raw = usage_counter_s;
+                }
             }
             prev = i;
         }
@@ -5550,7 +5652,7 @@ static void menu_load_flags(char* filename)
 static void config_menu_load_flags()
 {
     char menu_config_file[0x80];
-    snprintf(menu_config_file, sizeof(menu_config_file), "%sMENU.CFG", get_config_dir());
+    snprintf(menu_config_file, sizeof(menu_config_file), "%sMENUS.CFG", get_config_dir());
     menu_load_flags(menu_config_file);
     my_menu_dirty = 1;
 }
@@ -5559,7 +5661,7 @@ void config_menu_save_flags()
 {
     if (!menu_flags_save_dirty) return;
     char menu_config_file[0x80];
-    snprintf(menu_config_file, sizeof(menu_config_file), "%sMENU.CFG", get_config_dir());
+    snprintf(menu_config_file, sizeof(menu_config_file), "%sMENUS.CFG", get_config_dir());
     menu_save_flags(menu_config_file);
 }
 

@@ -176,6 +176,17 @@ struct menu_entry
         
         uint32_t depends_on;     // hard requirement, won't work otherwise
         uint32_t works_best_in;  // soft requirement, it will work, but not as well
+
+        /* internal */
+        union
+        {
+            uint64_t usage_counters;
+            struct
+            {
+                union { float usage_counter_long_term;  uint32_t usage_counter_long_term_raw;  };
+                union { float usage_counter_short_term; uint32_t usage_counter_short_term_raw; };
+            };
+        };
 };
 
 
