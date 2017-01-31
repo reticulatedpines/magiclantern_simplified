@@ -76,6 +76,9 @@ static int my_menu_dirty = 0;
 static struct menu * mod_menu;
 static int mod_menu_dirty = 1;
 
+#define IS_DYNAMIC_MENU(menu) \
+    ((menu) == my_menu || (menu) == mod_menu)
+
 //for vscroll
 #define MENU_LEN 11
 
@@ -420,7 +423,7 @@ void customize_menu_init()
     menu_add("Prefs", customize_menu, COUNT(customize_menu));
 
     // this is added at the end, after all the others
-    my_menu = menu_find_by_name( MY_MENU_NAME,ICON_ML_MYMENU  );
+    my_menu = menu_find_by_name( MY_MENU_NAME, ICON_ML_MYMENU  );
     menu_add(MY_MENU_NAME, my_menu_placeholders, COUNT(my_menu_placeholders));
     
     mod_menu = menu_find_by_name(MOD_MENU_NAME, ICON_ML_MODIFIED);
@@ -2385,7 +2388,8 @@ entry_print(
         fnt = (fnt & ~FONT_MASK) | FONT_MED_LARGE;
         y_font_offset = (h - (int)fontspec_font(fnt)->height) / 2;
 
-        if (my_menu->selected)                   /* in My Menu, we will include the submenu name in the original entry */
+        /* in My Menu and Recent menu, we will include the submenu name in the original entry */
+        if (my_menu->selected)// || mru_menu->selected)
         {
             /* how much space we have to print our stuff? (we got some extra because of the smaller font) */
             int max_len = w;
@@ -2816,7 +2820,7 @@ dyn_menu_rebuild(struct menu * dyn_menu, int (*select_func)(struct menu_entry * 
     struct menu * menu = menus;
     for( ; menu ; menu = menu->next )
     {
-        if (menu == my_menu || menu == mod_menu)
+        if (IS_DYNAMIC_MENU(menu))
             continue;
         
         if (IS_SUBMENU(menu))
@@ -5570,8 +5574,8 @@ static void menu_save_flags(char* filename)
     struct menu * menu = menus;
     for( ; menu ; menu = menu->next )
     {
-        if (menu == my_menu) continue;
-        if (menu == mod_menu) continue;
+        if (IS_DYNAMIC_MENU(menu))
+            continue;
         
         struct menu_entry * entry = menu->children;
         
