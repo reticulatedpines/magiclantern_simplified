@@ -21,18 +21,12 @@
  */
 static int luaCB_movie_start(lua_State* L)
 {
-    if (!is_movie_mode())
-    {
-        return luaL_error(L, "Not in movie mode");
-    }
-    else if (RECORDING)
-    {
-        return luaL_error(L, "Already recording");
-    }
-    else
-    {
-        movie_start();
-    }
+    if (!is_movie_mode())   return luaL_error(L, "Not in movie mode.");
+    if (!lv)                return luaL_error(L, "Not in LiveView.");
+    if (gui_menu_shown())   return luaL_error(L, "Please close ML menu.");
+    if (RECORDING)          return luaL_error(L, "Already recording.");
+
+    movie_start();
     return 0;
 }
 
@@ -42,18 +36,12 @@ static int luaCB_movie_start(lua_State* L)
  */
 static int luaCB_movie_stop(lua_State* L)
 {
-    if (!is_movie_mode())
-    {
-        return luaL_error(L, "Not in movie mode");
-    }
-    else if (!RECORDING)
-    {
-        return luaL_error(L, "Not recording");
-    }
-    else
-    {
-        movie_end();
-    }
+    if (!is_movie_mode())   return luaL_error(L, "Not in movie mode.");
+    if (!lv)                return luaL_error(L, "Not in LiveView.");
+    if (gui_menu_shown())   return luaL_error(L, "Please close ML menu.");
+    if (!RECORDING)         return luaL_error(L, "Not recording.");
+
+    movie_end();
     return 0;
 }
 

@@ -777,6 +777,50 @@ function test_lens_focus()
     printf("\n")
 end
 
+function test_movie()
+    printf("\n")
+    printf("Testing movie recording...\n")
+
+    -- we must be in photo mode (from previous tests)
+    assert(camera.mode ~= MODE.MOVIE)
+
+    -- this should raise error
+    local s,e = pcall(movie.start)
+    assert(s == false)
+    assert(e:find("movie mode"))
+
+    request_mode(MODE.MOVIE, "Movie")
+
+    -- this should also raise error, as we are not exactly in LiveView
+    lv.pause()
+    local s,e = pcall(movie.start)
+    assert(s == false)
+    assert(e:find("LiveView"))
+    menu.close()
+    lv.resume()
+
+    -- this should raise error, because the LiveView button has a special
+    -- function in ML menu (so we can't just press it to start recording)
+    menu.open()
+    local s,e = pcall(movie.start)
+    assert(s == false)
+    assert(e:find("menu"))
+    menu.close()
+
+    -- now it should work
+    -- hide the console for a nicer look
+    console.hide()
+    movie.start()
+    assert(movie.recording)
+    msleep(1000)
+    movie.stop()
+    assert(not movie.recording)
+    console.show()
+
+    printf("Movie recording tests completed.\n")
+    printf("\n")
+end
+
 function api_tests()
     menu.close()
     console.clear()
@@ -789,12 +833,13 @@ function api_tests()
     
     printf("Module tests...\n")
     test_io()
-    test_multitasking()
+    --test_multitasking()
     test_keys()
     test_lv()
     test_lens_focus()
     test_camera_take_pics()
     test_camera_exposure()
+    test_movie()
     
     printf("Done!\n")
     
