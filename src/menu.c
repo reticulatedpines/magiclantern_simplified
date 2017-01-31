@@ -1338,9 +1338,16 @@ menu_remove(
 static float usage_counter_delta_long = 1.0;
 static float usage_counter_delta_short = 1.0;
 
+/* threshold for displaying the most used menu items */
+/* max value is used only for showing debug info */
+static float usage_counter_thr = 0;
+static float usage_counter_max = 0;
+
 /* normalize the usage counters so the next increment is 1.0 */
 static void menu_normalize_usage_counters(void)
 {
+    take_semaphore(menu_sem, 0);
+
     for (struct menu * menu = menus; menu ; menu = menu->next)
     {
         for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
@@ -1351,18 +1358,28 @@ static void menu_normalize_usage_counters(void)
     }
     usage_counter_delta_long  = 1.0;
     usage_counter_delta_short = 1.0;
+
+    give_semaphore(menu_sem);
 }
 
 /* update usage counters for the selected entry */
 /* (called when user clicks on it) */
 static void menu_update_usage_counters(struct menu_entry * entry)
 {
+    take_semaphore(menu_sem, 0);
+
     if (!entry->parent_menu->selected)
     {
         /* not at home? use original entry */
         /* fixme: remove the lookup */
         entry = entry_find_by_name(entry->parent_menu->name, entry->name);
-        if (!entry) return;
+        if (!entry) goto end;
+    }
+
+    if (streq(entry->parent_menu->name, "Modules"))
+    {
+        /* ignore this special menu */
+        goto end;
     }
 
     /* selecting the same menu entry multiple times during a short time span
@@ -1377,7 +1394,7 @@ static void menu_update_usage_counters(struct menu_entry * entry)
         {
             /* same entry selected recently? skip it */
             prev_timestamp = ms_clock;
-            return;
+            goto end;
         }
     }
     prev_entry = entry;
@@ -1393,8 +1410,71 @@ static void menu_update_usage_counters(struct menu_entry * entry)
     entry->usage_counter_long_term  += usage_counter_delta_long;
     entry->usage_counter_short_term += usage_counter_delta_short;
 
-    /* update dirty flag */
+    /* update dirty flags */
     menu_flags_save_dirty = 1;
+    my_menu_dirty = 1;
+
+end:
+    give_semaphore(menu_sem);
+}
+
+static void menu_usage_counters_update_threshold()
+{
+    take_semaphore(menu_sem, 0);
+
+    int num_entries = 0;
+
+    /* count the menu items */
+    for (struct menu * menu = menus; menu ; menu = menu->next)
+    {
+        if (IS_DYNAMIC_MENU(menu))
+            continue;
+        for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
+        {
+            num_entries++;
+        }
+    }
+
+    /* extract the usage counters into an array */
+    /* and compute the max value too */
+    float * counters = malloc(sizeof(float) * num_entries);
+    if (!counters) goto end;
+
+    int k = 0;
+    for (struct menu * menu = menus; menu ; menu = menu->next)
+    {
+        if (IS_DYNAMIC_MENU(menu))
+            continue;
+        for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
+        {
+            float counter = MAX(entry->usage_counter_long_term, entry->usage_counter_short_term);
+            counters[k++] = counter;
+            usage_counter_max = MAX(usage_counter_max, counter);
+        }
+    }
+
+    /* sort the usage counters */
+    /* we only need counters[10], so no need to sort the entire thing */
+    for (int i = 0; i < MIN(num_entries, 11); i++)
+    {
+        for (int j = i+1; j < num_entries; j++)
+        {
+            if (counters[i] < counters[j])
+            {
+                float aux = counters[i];
+                counters[i] = counters[j];
+                counters[j] = aux;
+            }
+        }
+    }
+
+    /* pick a threshold that selects the best 11 */
+    usage_counter_thr = MAX(counters[10], 0.01);
+
+    free(counters);
+
+end:
+    give_semaphore(menu_sem);
 }
 
 /*
@@ -2540,6 +2620,14 @@ skip_name:
             submenu_key_hint(720-35, y + y_icon_offset, 40, COLOR_BLACK, ICON_ML_FORWARD);
     }
 
+    if (my_menu->selected && streq(my_menu->name, "Recent"))
+    {
+        /* debug info: show usage counters as small bars */
+        int bar_color = entry->selected ? COLOR_LIGHT_BLUE : COLOR_GRAY(5);
+        selection_bar_backend(bar_color, COLOR_BLACK, 580, y + 10, entry->usage_counter_long_term * 100 / usage_counter_max, 5);
+        selection_bar_backend(bar_color, COLOR_BLACK, 580, y + 18, entry->usage_counter_short_term * 100 / usage_counter_max, 5);
+    }
+
     // selection bar params
     int xl = x - 5 + x_font_offset;
     int xc = x - 5 + x_font_offset;
@@ -2751,6 +2839,13 @@ menu_entry_process(
     return 1;
 }
 
+
+/*
+ * Dynamic menus
+ * (My Menu / Recent menu, Modified menu)
+ * 
+ */
+
 static void
 dyn_menu_add_entry(struct menu * dyn_menu, struct menu_entry * entry, struct menu_entry * dyn_entry)
 {
@@ -2805,6 +2900,13 @@ static int mod_menu_select_func(struct menu_entry * entry)
     }
     
     return 0;
+}
+
+static int mru_menu_select_func(struct menu_entry * entry)
+{
+    return
+        entry->usage_counter_long_term  >= usage_counter_thr ||
+        entry->usage_counter_short_term >= usage_counter_thr ;
 }
 
 #define DYN_MENU_DO_NOT_EXPAND_SUBMENUS 0
@@ -2893,7 +2995,19 @@ static int
 my_menu_rebuild()
 {
     my_menu_dirty = 0;
-    return dyn_menu_rebuild(my_menu, my_menu_select_func, my_menu_placeholders, COUNT(my_menu_placeholders), DYN_MENU_EXPAND_ALL_SUBMENUS);
+    int ok = dyn_menu_rebuild(my_menu, my_menu_select_func, my_menu_placeholders, COUNT(my_menu_placeholders), DYN_MENU_EXPAND_ALL_SUBMENUS);
+
+    if (!menu_has_visible_items(my_menu))
+    {
+        /* no user preferences? build it dynamically from usage counters */
+        my_menu->name = "Recent";
+        menu_normalize_usage_counters();
+        menu_usage_counters_update_threshold();
+        return dyn_menu_rebuild(my_menu, mru_menu_select_func, my_menu_placeholders, COUNT(my_menu_placeholders), DYN_MENU_EXPAND_ALL_SUBMENUS);
+    }
+
+    my_menu->name = MY_MENU_NAME;
+    return ok;
 }
 
 static int mod_menu_rebuild()
