@@ -3629,6 +3629,13 @@ menus_display(
     if (mod_menu_dirty)
         mod_menu_rebuild();
 
+    if (get_selected_menu()->icon != menu_first_by_icon)
+    {
+        select_menu_by_icon(menu_first_by_icon);
+    }
+
+    menu_make_sure_selection_is_valid();
+
     struct menu * submenu = 0;
     if (submenu_level)
         submenu = get_current_submenu();
@@ -4324,8 +4331,6 @@ menu_redraw_do()
                 bmp_fill(COLOR_BLACK, 0, 40, 720, 400 );
             }
             //~ prev_z = z;
-
-            menu_make_sure_selection_is_valid();
             
             menus_display( menus, 0, 0 ); 
 
@@ -5153,9 +5158,6 @@ menu_task( void* unused )
     debug_menu_init();
     
     int initial_mode = 0; // shooting mode when menu was opened (if changed, menu should close)
-    
-    select_menu_by_icon(menu_first_by_icon);
-    menu_make_sure_selection_is_valid();
     
     TASK_LOOP
     {
