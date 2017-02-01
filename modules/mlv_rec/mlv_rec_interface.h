@@ -14,10 +14,12 @@ typedef struct
 
 
 /* event types, can be combined */
-#define MLV_REC_EVENT_STARTED     (1U<<0)
-#define MLV_REC_EVENT_STOPPING    (1U<<1)
-#define MLV_REC_EVENT_STOPPED     (1U<<2)
-#define MLV_REC_EVENT_CYCLIC      (1U<<3)
+#define MLV_REC_EVENT_STARTING    (1U<<0)
+#define MLV_REC_EVENT_STARTED     (1U<<1)
+#define MLV_REC_EVENT_STOPPING    (1U<<2)
+#define MLV_REC_EVENT_STOPPED     (1U<<3)
+#define MLV_REC_EVENT_CYCLIC      (1U<<4)
+#define MLV_REC_EVENT_BLOCK       (1U<<5)
 
 #if defined(__MLV_REC_C__)
 uint32_t mlv_rec_unregister_cbr(event_cbr_t cbr);
