@@ -204,7 +204,6 @@ static void unhack_liveview_vsync(int32_t unused);
 static void hack_liveview_vsync();
 static void unhack_liveview_vsync(int32_t unused);
 static void hack_liveview(int32_t unhack);
-void mlv_rec_queue_block(mlv_hdr_t *hdr);
 void mlv_rec_set_rel_timestamp(mlv_hdr_t *hdr, uint64_t timestamp);
 int32_t mlv_rec_get_free_slot();
 void mlv_rec_get_slot_info(int32_t slot, uint32_t *size, void **address);

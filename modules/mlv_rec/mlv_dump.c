@@ -1589,6 +1589,7 @@ int main (int argc, char *argv[])
     /* start processing */
     lv_rec_file_footer_t lv_rec_footer;
     mlv_file_hdr_t main_header;
+    mlv_diso_hdr_t diso_info;
     mlv_lens_hdr_t lens_info;
     mlv_expo_hdr_t expo_info;
     mlv_idnt_hdr_t idnt_info;
@@ -1599,6 +1600,7 @@ int main (int argc, char *argv[])
 
     /* initialize stuff */
     memset(&lv_rec_footer, 0x00, sizeof(lv_rec_file_footer_t));
+    memset(&diso_info, 0x00, sizeof(mlv_diso_hdr_t));
     memset(&lens_info, 0x00, sizeof(mlv_lens_hdr_t));
     memset(&expo_info, 0x00, sizeof(mlv_expo_hdr_t));
     memset(&idnt_info, 0x00, sizeof(mlv_idnt_hdr_t));
@@ -3454,6 +3456,38 @@ read_headers:
                     if(error != 1)
                     {
                         print_msg(MSG_ERROR, "Failed writing into .WAV file\n");
+                        goto abort;
+                    }
+                }
+            }
+            else if(!memcmp(buf.blockType, "DISO", 4))
+            {
+                uint32_t hdr_size = MIN(sizeof(mlv_diso_hdr_t), buf.blockSize);
+
+                if(fread(&diso_info, hdr_size, 1, in_file) != 1)
+                {
+                    print_msg(MSG_ERROR, "File ends in the middle of a block\n");
+                    goto abort;
+                }
+
+                /* skip remaining data, if there is any */
+                file_set_pos(in_file, position + diso_info.blockSize, SEEK_SET);
+
+                lua_handle_hdr(lua_state, buf.blockType, &diso_info, sizeof(diso_info));
+
+                if(verbose)
+                {
+                    print_msg(MSG_INFO, "     Mode:        %d\n", diso_info.dualMode);
+                    print_msg(MSG_INFO, "     ISO Value:   %d\n", diso_info.isoValue);
+                }
+
+                if(mlv_output && !no_metadata_mode && (!extract_block || !strncasecmp(extract_block, (char*)diso_info.blockType, 4)))
+                {
+                    /* correct header size if needed */
+                    diso_info.blockSize = sizeof(mlv_lens_hdr_t);
+                    if(fwrite(&diso_info, diso_info.blockSize, 1, out_file) != 1)
+                    {
+                        print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
                         goto abort;
                     }
                 }

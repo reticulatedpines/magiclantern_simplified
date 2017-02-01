@@ -53,6 +53,8 @@
 //#define CONFIG_CONSOLE
 //#define TRACE_DISABLED
 
+#define __MLV_REC_C__
+
 #include <module.h>
 #include <dryos.h>
 #include <property.h>
@@ -80,6 +82,7 @@
 
 #include "mlv.h"
 #include "mlv_rec.h"
+#include "mlv_rec_interface.h"
 
 /* an alternative tracing method that embeds the logs into the MLV file itself */
 /* looks like it might cause pink frames - http://www.magiclantern.fm/forum/index.php?topic=5473.msg165356#msg165356 */
@@ -247,6 +250,77 @@ static int32_t raw_tag_take = 0;
 static int32_t mlv_file_count = 0;
 
 static volatile int32_t frame_countdown = 0;          /* for waiting X frames */
+
+/* registry of all other modules CBRs */
+static cbr_entry_t registered_cbrs[32];
+
+uint32_t mlv_rec_register_cbr(uint32_t event, event_cbr_t cbr, void *ctx)
+{
+    if(RAW_IS_RECORDING)
+    {
+        return 0;
+    }
+    
+    uint32_t ret = 0;
+    uint32_t old_int = cli();
+    for(int pos = 0; pos < COUNT(registered_cbrs); pos++)
+    {
+        if(registered_cbrs[pos].cbr == NULL)
+        {
+            registered_cbrs[pos].event = event;
+            registered_cbrs[pos].cbr = cbr;
+            registered_cbrs[pos].ctx = ctx;
+            ret = 1;
+            break;
+        }
+    }
+    sei(old_int);
+    
+    return ret;
+}
+
+uint32_t mlv_rec_unregister_cbr(event_cbr_t cbr)
+{
+    if(RAW_IS_RECORDING)
+    {
+        return 0;
+    }
+    
+    uint32_t ret = 0;
+    uint32_t old_int = cli();
+    for(int pos = 0; registered_cbrs[pos].cbr && pos < COUNT(registered_cbrs); pos++)
+    {
+        if(registered_cbrs[pos].cbr == cbr)
+        {
+            int32_t remaining = COUNT(registered_cbrs) - pos - 1;
+            
+            registered_cbrs[pos].cbr = NULL;
+            
+            if(remaining > 0)
+            {
+                memcpy(&registered_cbrs[pos], &registered_cbrs[pos + 1], remaining * sizeof(cbr_entry_t));
+                registered_cbrs[COUNT(registered_cbrs)-1].ctx = NULL;
+                ret = 1;
+                break;
+            }
+        }
+    }
+    sei(old_int);
+    
+    return ret;
+}
+
+static void mlv_rec_call_cbr(uint32_t event, mlv_hdr_t *hdr)
+{
+    for(int pos = 0; registered_cbrs[pos].cbr && pos < COUNT(registered_cbrs); pos++)
+    {
+        if(registered_cbrs[pos].event & event)
+        {
+            registered_cbrs[pos].cbr(event, registered_cbrs[pos].ctx, hdr);
+        }
+    }
+}
+
 
 #if defined(EMBEDDED_LOGGING)
 /* START: helper code for logging into MLV files */
@@ -1438,6 +1512,8 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
             mlv_rtci_hdr_t *rtci_hdr = malloc(sizeof(mlv_rtci_hdr_t));
             mlv_fill_rtci(rtci_hdr, mlv_start_timestamp);
             msg_queue_post(mlv_block_queue, (uint32_t) rtci_hdr);
+            
+            mlv_rec_call_cbr(MLV_REC_EVENT_CYCLIC, NULL);
         }
 
         if(should_run_polling_action(MLV_INFO_BLOCK_INTERVAL, &block_queueing) && (mlv_metadata & MLV_METADATA_CYCLIC))
@@ -1777,9 +1853,12 @@ static void hack_liveview(int32_t unhack)
     }
 }
 
-void mlv_rec_queue_block(mlv_hdr_t *hdr)
+uint32_t mlv_rec_queue_block(mlv_hdr_t *hdr)
 {
+    mlv_set_timestamp(hdr, mlv_start_timestamp);
     msg_queue_post(mlv_block_queue, (uint32_t) hdr);
+    
+    return 1;
 }
 
 void mlv_rec_set_rel_timestamp(mlv_hdr_t *hdr, uint64_t timestamp)
@@ -2245,6 +2324,7 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
             edmac_timeouts = 0;
             raw_recording_state = RAW_FINISHING;
             raw_rec_cbr_stopping();
+            mlv_rec_call_cbr(MLV_REC_EVENT_STOPPING, NULL);
         }
         return 0;
     }
@@ -2264,6 +2344,7 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
     {
         raw_recording_state = RAW_FINISHING;
         raw_rec_cbr_stopping();
+        mlv_rec_call_cbr(MLV_REC_EVENT_STOPPING, NULL);
         return 0;
     }
     
@@ -2901,6 +2982,7 @@ static void raw_writer_task(uint32_t writer)
 abort:
             raw_recording_state = RAW_FINISHING;
             raw_rec_cbr_stopping();
+            mlv_rec_call_cbr(MLV_REC_EVENT_STOPPING, NULL);
             NotifyBox(5000, "Recording stopped:\n '%s'", error_message);
             /* this is error beep, not audio sync beep */
             beep_times(2);
@@ -3315,6 +3397,7 @@ static void raw_video_rec_task()
 
         /* some modules may do some specific stuff right when we started recording */
         raw_rec_cbr_started();
+        mlv_rec_call_cbr(MLV_REC_EVENT_STARTED, NULL);
 
         while((raw_recording_state == RAW_RECORDING) || (used_slots > 0))
         {
@@ -3349,6 +3432,7 @@ static void raw_video_rec_task()
                 trace_write(raw_rec_trace_ctx, "<-- stopped recording, frame was skipped");
                 raw_recording_state = RAW_FINISHING;
                 raw_rec_cbr_stopping();
+                mlv_rec_call_cbr(MLV_REC_EVENT_STOPPING, NULL);
             }
 
             /* how fast are we writing? does this speed match our benchmarks? */
@@ -3465,6 +3549,7 @@ static void raw_video_rec_task()
                             mlv_rec_release_dummies();
                             raw_recording_state = RAW_FINISHING;
                             raw_rec_cbr_stopping();
+                            mlv_rec_call_cbr(MLV_REC_EVENT_STOPPING, NULL);
                         }
                         raw_prepare_chunk(handle->file_handle, &handle->file_header);
                     }
@@ -3582,6 +3667,7 @@ static void raw_video_rec_task()
         /* done, this will stop the vsync CBR and the copying task */
         raw_recording_state = RAW_FINISHING;
         raw_rec_cbr_stopping();
+        mlv_rec_call_cbr(MLV_REC_EVENT_STOPPING, NULL);
 
         /* queue two aborts to cancel tasks */
         msg_queue_receive(mlv_job_alloc_queue, &write_job, 0);
@@ -3619,6 +3705,7 @@ static void raw_video_rec_task()
 cleanup:
     /* signal that we are stopping */
     raw_rec_cbr_stopped();
+    mlv_rec_call_cbr(MLV_REC_EVENT_STOPPED, NULL);
 
     /*
     if(DISPLAY_REC_INFO_DEBUG)
@@ -3657,6 +3744,7 @@ static MENU_SELECT_FUNC(raw_start_stop)
         abort_test = 1;
         raw_recording_state = RAW_FINISHING;
         raw_rec_cbr_stopping();
+        mlv_rec_call_cbr(MLV_REC_EVENT_STOPPING, NULL);
     }
     else
     {
