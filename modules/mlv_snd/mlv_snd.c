@@ -34,6 +34,7 @@
 
 #include "../trace/trace.h"
 #include "../mlv_rec/mlv.h"
+#include "../mlv_rec/mlv_rec_interface.h"
 
 #define MLV_SND_BUFFERS 4
 
@@ -59,7 +60,6 @@ extern void mlv_rec_get_slot_info(int32_t slot, uint32_t *size, void **address);
 extern int32_t mlv_rec_get_free_slot();
 extern void mlv_rec_release_slot(int32_t slot, uint32_t write);
 extern void mlv_rec_set_rel_timestamp(mlv_hdr_t *hdr, uint64_t timestamp);
-extern void mlv_rec_queue_block(mlv_hdr_t *hdr);
 
 static volatile int32_t mlv_snd_rec_active = 0;
 static struct msg_queue * volatile mlv_snd_buffers_empty = NULL;
@@ -461,49 +461,45 @@ static void mlv_snd_queue_wavi()
     mlv_rec_queue_block((mlv_hdr_t *)hdr);
 }
 
-/* public functions for raw_rec */
-uint32_t raw_rec_cbr_starting()
+/* callback functions for mlv_rec */
+static void mlv_snd_cbr_starting(uint32_t event, void *ctx, mlv_hdr_t *hdr)
 {
     if(!mlv_snd_enabled)
     {
-        return 0;
+        return;
     }
     
     if(mlv_snd_state == MLV_SND_STATE_IDLE)
     {
-        trace_write(trace_ctx, "raw_rec_cbr_starting: starting mlv_snd");
+        trace_write(trace_ctx, "mlv_snd_cbr_starting: starting mlv_snd");
         mlv_snd_rec_active = 1;
         mlv_snd_start();
     }
-    
-    return 0;
 }
 
-uint32_t raw_rec_cbr_started()
+static void mlv_snd_cbr_started(uint32_t event, void *ctx, mlv_hdr_t *hdr)
 {
     if(mlv_snd_state == MLV_SND_STATE_PREPARE)
     {
-        trace_write(trace_ctx, "raw_rec_cbr_started: allocating buffers");
+        trace_write(trace_ctx, "mlv_snd_cbr_started: allocating buffers");
         mlv_snd_alloc_buffers();
         mlv_snd_queue_wavi();
     }
-    return 0;
 }
 
-uint32_t raw_rec_cbr_stopping()
+static void mlv_snd_cbr_stopping(uint32_t event, void *ctx, mlv_hdr_t *hdr)
 {
     if(mlv_snd_state != MLV_SND_STATE_IDLE)
     {
-        trace_write(trace_ctx, "raw_rec_cbr_stopping: stopping");
+        trace_write(trace_ctx, "mlv_snd_cbr_stopping: stopping");
         mlv_snd_stop();
         mlv_snd_rec_active = 0;
     }
-    return 0;
 }
 
-uint32_t raw_rec_cbr_mlv_block(mlv_hdr_t *hdr)
+static void mlv_snd_cbr_mlv_block(uint32_t event, void *ctx, mlv_hdr_t *hdr)
 {
-    if(!memcmp(hdr->blockType, "MLVI", 4))
+    if(hdr && !memcmp(hdr->blockType, "MLVI", 4))
     {
         mlv_file_hdr_t *file_hdr = (mlv_file_hdr_t *)hdr;
         
@@ -511,7 +507,6 @@ uint32_t raw_rec_cbr_mlv_block(mlv_hdr_t *hdr)
         file_hdr->audioClass = 1; /* 0=none, 1=WAV */
         file_hdr->audioFrameCount = mlv_snd_frame_number;
     }
-    return 0;
 }
 
 static void mlv_snd_trace_buf(char *caption, uint8_t *buffer, uint32_t length)
@@ -623,8 +618,15 @@ static unsigned int mlv_snd_init()
     menu_add("Audio", mlv_snd_menu, COUNT(mlv_snd_menu));
     trace_write(trace_ctx, "mlv_snd_init: done");
     
+    /* register callbacks */
+    mlv_rec_register_cbr(MLV_REC_EVENT_STARTING, &mlv_snd_cbr_starting, NULL);
+    mlv_rec_register_cbr(MLV_REC_EVENT_STARTED, &mlv_snd_cbr_started, NULL);
+    mlv_rec_register_cbr(MLV_REC_EVENT_STOPPING, &mlv_snd_cbr_stopping, NULL);
+    mlv_rec_register_cbr(MLV_REC_EVENT_BLOCK, &mlv_snd_cbr_mlv_block, NULL);
+    
     return 0;
 }
+
 
 static unsigned int mlv_snd_deinit()
 {
