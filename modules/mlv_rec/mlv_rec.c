@@ -2323,7 +2323,6 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
         {
             edmac_timeouts = 0;
             raw_recording_state = RAW_FINISHING;
-            raw_rec_cbr_stopping();
             mlv_rec_call_cbr(MLV_REC_EVENT_STOPPING, NULL);
         }
         return 0;
@@ -2343,7 +2342,6 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
     if(!raw_lv_settings_still_valid())
     {
         raw_recording_state = RAW_FINISHING;
-        raw_rec_cbr_stopping();
         mlv_rec_call_cbr(MLV_REC_EVENT_STOPPING, NULL);
         return 0;
     }
@@ -2430,7 +2428,7 @@ static int32_t mlv_rec_get_chunk_filename(char* base_name, char* filename, int32
 
 static int32_t mlv_write_hdr(FILE* f, mlv_hdr_t *hdr)
 {
-    raw_rec_cbr_mlv_block(hdr);
+    mlv_rec_call_cbr(MLV_REC_EVENT_BLOCK, NULL);
 
     uint32_t written = FIO_WriteFile(f, hdr, hdr->blockSize);
 
@@ -2981,7 +2979,6 @@ static void raw_writer_task(uint32_t writer)
         {
 abort:
             raw_recording_state = RAW_FINISHING;
-            raw_rec_cbr_stopping();
             mlv_rec_call_cbr(MLV_REC_EVENT_STOPPING, NULL);
             NotifyBox(5000, "Recording stopped:\n '%s'", error_message);
             /* this is error beep, not audio sync beep */
@@ -3054,7 +3051,7 @@ static void enqueue_buffer(uint32_t writer, write_job_t *write_job)
             }
             else
             {
-                raw_rec_cbr_mlv_block(block);
+                mlv_rec_call_cbr(MLV_REC_EVENT_BLOCK, NULL);
 
                 /* prepend the given block if possible or requeue it in case of error */
                 int32_t ret = mlv_prepend_block(slot, block);
@@ -3284,7 +3281,7 @@ static void raw_video_rec_task()
     powersave_prohibit();
 
     /* signal that we are starting, call this before any memory allocation to give CBR the chance to allocate memory */
-    raw_rec_cbr_starting();
+    mlv_rec_call_cbr(MLV_REC_EVENT_STARTING, NULL);
 
     /* allocate memory */
     if(!setup_buffers())
@@ -3396,7 +3393,6 @@ static void raw_video_rec_task()
         raw_recording_state = RAW_RECORDING;
 
         /* some modules may do some specific stuff right when we started recording */
-        raw_rec_cbr_started();
         mlv_rec_call_cbr(MLV_REC_EVENT_STARTED, NULL);
 
         while((raw_recording_state == RAW_RECORDING) || (used_slots > 0))
@@ -3431,7 +3427,6 @@ static void raw_video_rec_task()
                 NotifyBox(5000, "Frame skipped. Stopping");
                 trace_write(raw_rec_trace_ctx, "<-- stopped recording, frame was skipped");
                 raw_recording_state = RAW_FINISHING;
-                raw_rec_cbr_stopping();
                 mlv_rec_call_cbr(MLV_REC_EVENT_STOPPING, NULL);
             }
 
@@ -3548,7 +3543,6 @@ static void raw_video_rec_task()
                             /* try to free up some space and exit */
                             mlv_rec_release_dummies();
                             raw_recording_state = RAW_FINISHING;
-                            raw_rec_cbr_stopping();
                             mlv_rec_call_cbr(MLV_REC_EVENT_STOPPING, NULL);
                         }
                         raw_prepare_chunk(handle->file_handle, &handle->file_header);
@@ -3666,7 +3660,6 @@ static void raw_video_rec_task()
 
         /* done, this will stop the vsync CBR and the copying task */
         raw_recording_state = RAW_FINISHING;
-        raw_rec_cbr_stopping();
         mlv_rec_call_cbr(MLV_REC_EVENT_STOPPING, NULL);
 
         /* queue two aborts to cancel tasks */
@@ -3704,7 +3697,6 @@ static void raw_video_rec_task()
 
 cleanup:
     /* signal that we are stopping */
-    raw_rec_cbr_stopped();
     mlv_rec_call_cbr(MLV_REC_EVENT_STOPPED, NULL);
 
     /*
@@ -3743,7 +3735,6 @@ static MENU_SELECT_FUNC(raw_start_stop)
     {
         abort_test = 1;
         raw_recording_state = RAW_FINISHING;
-        raw_rec_cbr_stopping();
         mlv_rec_call_cbr(MLV_REC_EVENT_STOPPING, NULL);
     }
     else
