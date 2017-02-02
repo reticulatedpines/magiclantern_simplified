@@ -171,7 +171,7 @@ static int is_visible(struct menu_entry * entry)
         (
             !(HAS_CURRENT_HIDDEN_FLAG(entry) || IMPLICIT_MY_MENU_HIDING(entry)) ||
             customize_mode ||
-            junkie_mode==2
+            junkie_mode==3
        )
        &&
        (
@@ -1418,7 +1418,7 @@ end:
     give_semaphore(menu_sem);
 }
 
-static void menu_usage_counters_update_threshold()
+static void menu_usage_counters_update_threshold(int num)
 {
     take_semaphore(menu_sem, 0);
 
@@ -1454,8 +1454,8 @@ static void menu_usage_counters_update_threshold()
     }
 
     /* sort the usage counters */
-    /* we only need counters[10], so no need to sort the entire thing */
-    for (int i = 0; i < MIN(num_entries, 11); i++)
+    /* we only need counters[num-1], so no need to sort the entire thing */
+    for (int i = 0; i < MIN(num_entries, num); i++)
     {
         for (int j = i+1; j < num_entries; j++)
         {
@@ -1468,8 +1468,8 @@ static void menu_usage_counters_update_threshold()
         }
     }
 
-    /* pick a threshold that selects the best 11 */
-    usage_counter_thr = MAX(counters[10], 0.01);
+    /* pick a threshold that selects the best "num" entries */
+    usage_counter_thr = MAX(counters[num-1], 0.01);
 
     free(counters);
 
@@ -2909,6 +2909,11 @@ static int mru_menu_select_func(struct menu_entry * entry)
         entry->usage_counter_short_term >= usage_counter_thr ;
 }
 
+static int mru_junkie_my_menu_select_func(struct menu_entry * entry)
+{
+    return entry->jstarred;
+}
+
 #define DYN_MENU_DO_NOT_EXPAND_SUBMENUS 0
 #define DYN_MENU_EXPAND_ALL_SUBMENUS 1
 #define DYN_MENU_EXPAND_ONLY_ACTIVE_SUBMENUS 2
@@ -2991,6 +2996,66 @@ dyn_menu_rebuild(struct menu * dyn_menu, int (*select_func)(struct menu_entry * 
     return 1; // success
 }
 
+/* hide menu items infrequently used (based on usage counters)
+ * min_items:     if some menus end with too few items, move them to My Menu
+ * count_max:     length of the longest menu (output)
+ * count_my:      length of My Menu (result with current min_items)
+ * count_my_next: length of My Menu (what would happen with min_items + 1)
+ */
+static void junkie_menu_rebuild(int min_items, int * count_max, int * count_my, int * count_my_next)
+{
+    *count_max = 0;
+    *count_my = 0;
+    *count_my_next = 0;
+
+    for (struct menu * menu = menus; menu ; menu = menu->next)
+    {
+        if (IS_DYNAMIC_MENU(menu))
+            continue;
+
+        int count = 0;
+        for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
+        {
+            if (!IS_SUBMENU(menu))
+            {
+                /* items from regular menus; select based on usage counters */
+                entry->jhidden = !mru_menu_select_func(entry);
+                entry->jstarred = 0;
+                count += (entry->jhidden) ? 0 : 1;
+            }
+            else
+            {
+                /* items from submenus will be selected for My Menu in the next block */
+                entry->jhidden = 0;
+                entry->jstarred = 0;
+            }
+        }
+        *count_max = MAX(*count_max, count);
+
+        /* too few items in this menu? move them to My Menu */
+        /* note: submenus will always have count=0 here */
+        if (count < min_items)
+        {
+            for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
+            {
+                if (mru_menu_select_func(entry))
+                {
+                    entry->jhidden = 1;
+                    entry->jstarred = 1;
+                    (*count_my)++;
+                }
+            }
+        }
+
+        if (count == min_items)
+        {
+            (*count_my_next) += count;
+        }
+    }
+    
+    (*count_my_next) += (*count_my);
+}
+
 static int
 my_menu_rebuild()
 {
@@ -3002,8 +3067,40 @@ my_menu_rebuild()
         /* no user preferences? build it dynamically from usage counters */
         my_menu->name = "Recent";
         menu_normalize_usage_counters();
-        menu_usage_counters_update_threshold();
-        return dyn_menu_rebuild(my_menu, mru_menu_select_func, my_menu_placeholders, COUNT(my_menu_placeholders), DYN_MENU_EXPAND_ALL_SUBMENUS);
+
+        if (junkie_mode)
+        {
+            /* Build junkie menu.
+             * Items from "small" menus are moved into My Menu.
+             * Threshold is increased until My Menu becomes
+             * not much bigger than the longest menu.
+             */
+            menu_usage_counters_update_threshold(junkie_mode * 10);
+
+            int min = 2;
+            int count_max, count_my, count_my_next;
+            do
+            {
+                junkie_menu_rebuild(min, &count_max, &count_my, &count_my_next);
+                min++;
+            }
+            while (min < 5 && count_my_next <= count_max + 2);
+
+            if (count_my > 0 && count_my < count_max - 2)
+            {
+                /* for some reason, My Menu ended up with few items */
+                /* let's add some more */
+                menu_usage_counters_update_threshold(junkie_mode * 10 + count_max - count_my - 2);
+                junkie_menu_rebuild(min-1, &count_max, &count_my, &count_my_next);
+            }
+
+            return dyn_menu_rebuild(my_menu, mru_junkie_my_menu_select_func, my_menu_placeholders, COUNT(my_menu_placeholders), DYN_MENU_EXPAND_ALL_SUBMENUS);
+        }
+        else
+        {
+            menu_usage_counters_update_threshold(10);
+            return dyn_menu_rebuild(my_menu, mru_menu_select_func, my_menu_placeholders, COUNT(my_menu_placeholders), DYN_MENU_EXPAND_ALL_SUBMENUS);
+        }
     }
 
     my_menu->name = MY_MENU_NAME;
@@ -4701,14 +4798,10 @@ handle_ml_menu_keys(struct event * event)
         }
         else
         {
-            // double click will go to "extra junkie" mode (nothing hidden)
-            static int last_t = 0;
-            int t = get_ms_clock_value();
-            if (t > last_t && t < last_t + 300)
-                junkie_mode = !junkie_mode*2;
-            else
-                junkie_mode = !junkie_mode;
-            last_t = t;
+            // each MENU press adjusts number of Junkie items
+            // (off, 10, 20); 3 = show all (unused)
+            junkie_mode = MOD(junkie_mode+1, 3);
+            my_menu_dirty = 1;
         }
         break;
     }

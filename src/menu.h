@@ -159,6 +159,7 @@ struct menu_entry
         unsigned starred    : 1; // present in "my menu"
         unsigned hidden     : 1; // hidden from main menu
         unsigned jhidden    : 1; // hidden from junkie menu
+        unsigned jstarred   : 1; // in junkie menu, auto-placed in My Menu
         unsigned shidden    : 1; // special hide, not toggleable by user
         
         unsigned advanced   : 1; // advanced setting in submenus; add a MENU_ADVANCED_TOGGLE if you use it
