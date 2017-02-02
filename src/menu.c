@@ -289,12 +289,19 @@ static void beta_set_warned()
 }
 #endif
 
+static MENU_SELECT_FUNC(customize_toggle)
+{
+    customize_mode = !customize_mode;
+    my_menu_dirty = 1;
+    mod_menu_dirty = 1;
+}
+
 static struct menu_entry customize_menu[] = {
     {
-        .name = "Customize Menus",
-        .priv = &customize_mode,
-        .max = 1,
-        //~ .choices = CHOICES("OFF", "MyMenu items", "Hide items"),
+        .name   = "Customize Menus",
+        .priv   = &customize_mode,
+        .max    = 1,
+        .select = customize_toggle,
     }
 };
 
@@ -3062,7 +3069,7 @@ my_menu_rebuild()
     my_menu_dirty = 0;
     int ok = dyn_menu_rebuild(my_menu, my_menu_select_func, my_menu_placeholders, COUNT(my_menu_placeholders), DYN_MENU_EXPAND_ALL_SUBMENUS);
 
-    if (!menu_has_visible_items(my_menu))
+    if (!menu_has_visible_items(my_menu) && !customize_mode)
     {
         /* no user preferences? build it dynamically from usage counters */
         my_menu->name = "Recent";
@@ -3109,11 +3116,12 @@ my_menu_rebuild()
 
 static int mod_menu_rebuild()
 {
-    /* don't be so aggressive with updates (they are a bit CPU-intensive) */
-    static int last_update = -1;
-    if (!should_run_polling_action(200, &last_update))
-        return 1;
-    
+    if (customize_mode)
+    {
+        /* clear this menu during customizations */
+        return dyn_menu_rebuild(mod_menu, (void*) ret_0, mod_menu_placeholders, COUNT(mod_menu_placeholders), DYN_MENU_EXPAND_ONLY_ACTIVE_SUBMENUS);
+    }
+
     mod_menu_dirty = 0;
     
     mod_menu_selected_entry = get_selected_entry(mod_menu);
