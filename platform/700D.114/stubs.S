@@ -214,8 +214,8 @@ NSTUB(0xFF2C1790,  mvrSetDefQScale)
 // NSTUB(    ???,  mvrSetGopOptSizeFULLHD)                  /* present on 600D.102, 550D.109, 1100D.105 */
 
 /** Interrupts **/
-NSTUB(0xFFA806D0 - RAM_OFFSET,  post_isr_hook)
-NSTUB(0xFFA806CC - RAM_OFFSET,  pre_isr_hook)
+NSTUB(0x232D0,     post_isr_hook)
+NSTUB(0x232CC,     pre_isr_hook)
 // NSTUB(    ???,  isr_table_handler)                       /* present on 7D_MASTER.203 */
 // NSTUB(    ???,  isr_table_param)                         /* present on 7D_MASTER.203 */
 
