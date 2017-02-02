@@ -2627,7 +2627,7 @@ skip_name:
             submenu_key_hint(720-35, y + y_icon_offset, 40, COLOR_BLACK, ICON_ML_FORWARD);
     }
 
-    if (my_menu->selected && streq(my_menu->name, "Recent"))
+    if (my_menu->selected && streq(my_menu->name, "Recent") && !junkie_mode)
     {
         /* debug info: show usage counters as small bars */
         int bar_color = entry->selected ? COLOR_LIGHT_BLUE : COLOR_GRAY(5);
@@ -3437,7 +3437,7 @@ entry_print_junkie(
 
     if (sel) // display the full selected entry normally
     {
-        entry_print(MENU_OFFSET, 390, 10, font_large.height, entry, info, 0);
+        entry_print(MENU_OFFSET, 390, 330, font_large.height, entry, info, 0);
         
         // brighten the selection
         if (bg == COLOR_GREEN1) bg = COLOR_GREEN2;
