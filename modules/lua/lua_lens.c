@@ -89,6 +89,7 @@ static int luaCB_lens_newindex(lua_State * L)
  (_default_ 0 if wait=true, 30ms if wait=false)
  
  
+ @treturn bool whether the operation was successful or not.
  @function focus
  */
 static int luaCB_lens_focus(lua_State * L)
