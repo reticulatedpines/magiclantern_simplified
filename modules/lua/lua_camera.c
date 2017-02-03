@@ -88,7 +88,7 @@ static const char * lua_camera_ec_fields[] =
 static int luaCB_camera_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
-    /// Gets a @{shutter} object that represents the camera's current shutter speed
+    /// Gets a @{shutter} object that represents the camera's current shutter speed.
     // @tfield shutter shutter
     if(!strcmp(key, "shutter"))
     {
@@ -106,7 +106,7 @@ static int luaCB_camera_index(lua_State * L)
         lua_setfield(L, -2, "fields");
         lua_setmetatable(L, -2);
     }
-    /// Gets an @{aperture} object that represents the lens' aperture
+    /// Gets an @{aperture} object that represents the lens' aperture.
     // @tfield aperture aperture
     else if(!strcmp(key, "aperture"))
     {
@@ -124,7 +124,7 @@ static int luaCB_camera_index(lua_State * L)
         lua_setfield(L, -2, "fields");
         lua_setmetatable(L, -2);
     }
-    /// Gets an @{iso} object that represents camera's ISO
+    /// Gets an @{iso} object that represents camera's ISO.
     // @tfield iso iso
     else if(!strcmp(key, "iso"))
     {
@@ -142,7 +142,7 @@ static int luaCB_camera_index(lua_State * L)
         lua_setfield(L, -2, "fields");
         lua_setmetatable(L, -2);
     }
-    /// Gets an @{ec} object that represents exposure compensation
+    /// Gets an @{ec} object that represents exposure compensation.
     // @tfield ec ec
     else if(!strcmp(key, "ec"))
     {
@@ -160,7 +160,7 @@ static int luaCB_camera_index(lua_State * L)
         lua_setfield(L, -2, "fields");
         lua_setmetatable(L, -2);
     }
-    /// Gets an @{ec} object that represents flash exposure compensation
+    /// Gets an @{ec} object that represents flash exposure compensation.
     // @tfield ec flash_ec
     else if(!strcmp(key, "flash_ec"))
     {
@@ -178,10 +178,11 @@ static int luaCB_camera_index(lua_State * L)
         lua_setfield(L, -2, "fields");
         lua_setmetatable(L, -2);
     }
-    /// Get/Set kelvin white balance
+    /// Get/Set kelvin white balance.
     // @tfield int kelvin
     else if(!strcmp(key, "kelvin")) lua_pushinteger(L, lens_info.kelvin);
-    /// Get the current camera mode, possible values defined in @{constants.MODE}
+    /// Get the current camera mode, possible values defined in @{constants.MODE}.
+    ///
     /// Note: for cameras without a dedicated video mode, it will return MODE.MOVIE
     /// whenever your camera is configured to record videos.
     // @tfield int mode
@@ -189,25 +190,33 @@ static int luaCB_camera_index(lua_State * L)
     {
         lua_pushinteger(L, is_movie_mode() ? SHOOTMODE_MOVIE : shooting_mode);
     }
-    /// Get the current metering mode
+    /// Get the current metering mode (see PROP\_METERING\_MODE in property.h).
+    ///
+    /// TODO: add constants and setter.
     // @tfield int metering_mode readonly
     else if(!strcmp(key, "metering_mode")) lua_pushinteger(L, metering_mode);
-    /// Get the current drive mode
+    /// Get the current drive mode (see PROP\_DRIVE in property.h).
+    ///
+    /// TODO: add constants and setter.
     // @tfield int drive_mode readonly
     else if(!strcmp(key, "drive_mode")) lua_pushinteger(L, drive_mode);
-    /// Get the model name of the camera
+    /// Get the model name of the camera (e.g.&nbsp;"Canon EOS 60D").
     // @tfield string model readonly
     else if(!strcmp(key, "model")) lua_pushstring(L, camera_model);
-    /// Get the shortened model name of the camera (e.g. 5D3)
+    /// Get the shortened model name of the camera (e.g.&nbsp;"5D3").
     // @tfield string model_short readonly
     else if(!strcmp(key, "model_short")) lua_pushstring(L, __camera_model_short);
-    /// Get the Canon firmware version string
+    /// Get the Canon firmware version string (e.g.&nbsp;"1.2.3").
     // @tfield string firmware readonly
     else if(!strcmp(key, "firmware")) lua_pushstring(L, firmware_version);
-    /// Get the temperature from the efic chip in raw units
+    /// Get the temperature from the EFIC chip in raw units.
+    ///
+    /// TODO: Celsius.
     // @tfield int temperature readonly
     else if(!strcmp(key, "temperature")) lua_pushinteger(L, efic_temp);
-    /// Get the current Canon GUI state of the camera (PLAY, QR, LV, etc)
+    /// Get the current Canon GUI state of the camera (PLAY, QR etc; see gui-common.h).
+    ///
+    /// TODO: add constants; expose functions to change GUI mode.
     // @tfield int state readonly
     else if(!strcmp(key, "state")) lua_pushinteger(L, gui_state);
     else lua_rawget(L, 1);
@@ -263,34 +272,48 @@ static int luaCB_camera_newindex(lua_State * L)
 }
 
 /***
- Take a picture
- @tparam[opt=64] int wait how long to wait for camera to be ready to take a picture
- @tparam[opt=true] bool should_af whether or not to use auto focus
+ Take a picture.
+ @tparam[opt=false] bool should_af whether or not to use autofocus.
  @function shoot
  */
 static int luaCB_camera_shoot(lua_State * L)
 {
-    LUA_PARAM_INT_OPTIONAL(wait, 1, 64);
-    LUA_PARAM_BOOL_OPTIONAL(should_af, 2, 1);
-    int result = lens_take_picture(wait, should_af);
+    LUA_PARAM_BOOL_OPTIONAL(should_af, 1, 0);
+    int result = take_a_pic(should_af);
     lua_pushinteger(L, result);
     return 1;
 }
 
 /***
- Take a picture in bulb mode
- @tparam int duration bulb duration in seconds
- @function bulb
+ Take N pictures in burst mode.
+ 
+ Note: your camera must be already in some continuous drive mode,
+ otherwise the speed will be slow.
+ 
+ @tparam int num_pictures how many pictures to take.
+ @function burst
  */
-static int luaCB_camera_bulb(lua_State * L)
+static int luaCB_camera_burst(lua_State * L)
 {
-    LUA_PARAM_INT(duration, 1);
-    bulb_take_pic(duration);
+    LUA_PARAM_INT(num_pictures, 1);
+    take_fast_pictures(num_pictures);
     return 0;
 }
 
 /***
- Restart the camera
+ Take a picture in bulb mode.
+ @tparam float duration bulb duration in seconds.
+ @function bulb
+ */
+static int luaCB_camera_bulb(lua_State * L)
+{
+    LUA_PARAM_NUMBER(duration, 1);
+    bulb_take_pic(duration * 1000);
+    return 0;
+}
+
+/***
+ Restart the camera.
  @function reboot
  */
 static int luaCB_camera_reboot(lua_State * L)
@@ -308,23 +331,23 @@ static int luaCB_camera_reboot(lua_State * L)
 static int luaCB_shutter_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
-    /// Get/Set shutter speed in Canon raw units
+    /// Get/Set shutter speed in Canon raw units.
     // @tfield int raw
     if(!strcmp(key,"raw")) lua_pushinteger(L, lens_info.raw_shutter);
-    /// Get/Set shutter speed in APEX units (floating point)
+    /// Get/Set shutter speed in APEX units (floating point).
     // @tfield number apex
     else if(!strcmp(key,"apex")) lua_pushnumber(L, (APEX1000_RAW2TV(lens_info.raw_shutter)/1000.0));
-    /// Get/Set shutter speed in milliseconds
+    /// Get/Set shutter speed in milliseconds.
     // @tfield int ms
     else if(!strcmp(key,"ms")) lua_pushinteger(L, raw2shutter_ms(lens_info.raw_shutter));
-    /// Get/Set shutter speed in seconds (floating point)
+    /// Get/Set shutter speed in seconds (floating point).
     // @tfield number value
     else if(!strcmp(key,"value")) lua_pushnumber(L, raw2shutterf(lens_info.raw_shutter));
     else lua_rawget(L, 1);
     return 1;
 }
 
-/// Pretty prints the current shutter speed as a string
+/// Pretty prints the current shutter speed as a string.
 //@treturn string
 //@function __tostring
 static int luaCB_shutter_tostring(lua_State * L)
@@ -369,23 +392,23 @@ static int luaCB_shutter_newindex(lua_State * L)
     return 0;
 }
 
-/// Represents the lens's aperture
+/// Represents the lens's aperture.
 //@type aperture
 
 static int luaCB_aperture_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
-    /// Get/Set aperture in Canon raw units
+    /// Get/Set aperture in Canon raw units.
     // @tfield int raw
     if(!strcmp(key,"raw")) lua_pushinteger(L, lens_info.raw_aperture);
-    /// Get/Set aperture in APEX units (floating point)
+    /// Get/Set aperture in APEX units (floating point).
     // @tfield number apex
     else if(!strcmp(key,"apex")) lua_pushnumber(L, (APEX1000_RAW2AV(lens_info.raw_aperture) / 1000.0));
-    /// Get/Set aperture as f-number (floating point)
+    /// Get/Set aperture as f-number (floating point).
     // @tfield number value
     else if(!strcmp(key,"value")) lua_pushnumber(L, lens_info.aperture / 10.0);
-    /// Get/Set minimum (wide open) aperture value (aperture object)
-    // @tfield aperture min
+    /// Get minimum (wide open) aperture value (aperture object).
+    // @tfield aperture min readonly
     else if(!strcmp(key,"min"))
     {
         lua_newtable(L);
@@ -400,8 +423,8 @@ static int luaCB_aperture_index(lua_State * L)
         lua_setfield(L, -2, "fields");
         lua_setmetatable(L, -2);
     }
-    /// Get/Set maximum (closed) aperture value (aperture object)
-    // @tfield aperture max
+    /// Get maximum (closed) aperture value (aperture object).
+    // @tfield aperture max readonly
     else if(!strcmp(key,"max"))
     {
         lua_newtable(L);
@@ -423,13 +446,13 @@ static int luaCB_aperture_index(lua_State * L)
 static int luaCB_min_aperture_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
-    /// Get minimum (wide open) aperture in Canon raw units
+    // Get minimum (wide open) aperture in Canon raw units
     // @tfield int raw
     if(!strcmp(key,"raw")) lua_pushinteger(L, lens_info.raw_aperture_min);
-    /// Get minimum (wide open) aperture in APEX units (floating point)
+    // Get minimum (wide open) aperture in APEX units (floating point)
     // @tfield number apex
     else if(!strcmp(key,"apex")) lua_pushnumber(L, (APEX1000_RAW2AV(lens_info.raw_aperture_min) / 1000.0));
-    /// Get minimum (wide open) aperture as f-number (floating point)
+    // Get minimum (wide open) aperture as f-number (floating point)
     // @tfield number value
     else if(!strcmp(key,"value")) lua_pushnumber(L, RAW2VALUE(aperture, lens_info.raw_aperture_min) / 10.0);
     else lua_rawget(L, 1);
@@ -439,20 +462,20 @@ static int luaCB_min_aperture_index(lua_State * L)
 static int luaCB_max_aperture_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
-    /// Get maximum (closed) aperture in Canon raw units
+    // Get maximum (closed) aperture in Canon raw units
     // @tfield int raw
     if(!strcmp(key,"raw")) lua_pushinteger(L, lens_info.raw_aperture_max);
-    /// Get maximum (closed) aperture in APEX units (floating point)
+    // Get maximum (closed) aperture in APEX units (floating point)
     // @tfield number apex
     else if(!strcmp(key,"apex")) lua_pushnumber(L, (APEX1000_RAW2AV(lens_info.raw_aperture_max) / 1000.0));
-    /// Get maximum (closed) aperture as f-number (floating point)
+    // Get maximum (closed) aperture as f-number (floating point)
     // @tfield number value
     else if(!strcmp(key,"value")) lua_pushnumber(L, RAW2VALUE(aperture, lens_info.raw_aperture_max) / 10.0);
     else lua_rawget(L, 1);
     return 1;
 }
 
-/// Pretty prints the current aperture as a string
+/// Pretty prints the current aperture as a string.
 //@treturn string
 //@function __tostring
 static int luaCB_aperture_tostring(lua_State * L)
@@ -507,26 +530,26 @@ static int luaCB_aperture_newindex(lua_State * L)
     return 0;
 }
 
-/// Represents the camera ISO
+/// Represents the camera ISO.
 //@type iso
 
 static int luaCB_iso_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
-    /// Get/Set ISO in Canon raw units
+    /// Get/Set ISO in Canon raw units.
     // @tfield int raw
     if(!strcmp(key,"raw")) lua_pushinteger(L, lens_info.raw_iso);
-    /// Get/Set ISO in APEX units (floating point)
+    /// Get/Set ISO in APEX units (floating point).
     // @tfield number apex
     else if(!strcmp(key,"apex")) lua_pushnumber(L, (APEX1000_RAW2SV(lens_info.raw_iso) / 1000.0));
-    /// Get/Set ISO
+    /// Get/Set ISO (e.g.&nbsp;100, 200).
     // @tfield int value
     else if(!strcmp(key,"value")) lua_pushinteger(L, raw2iso(lens_info.raw_iso));
     else lua_rawget(L, 1);
     return 1;
 }
 
-/// Pretty prints the current ISO as a string
+/// Pretty prints the current ISO as a string.
 //@treturn string
 //@function __tostring
 static int luaCB_iso_tostring(lua_State * L)
@@ -570,16 +593,16 @@ static int luaCB_iso_newindex(lua_State * L)
     return 0;
 }
 
-/// Represents the exposure compensation
+/// Represents the exposure compensation.
 //@type ec
 
 static int luaCB_ec_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
-    /// Get/Set exposure compensation in Canon raw units
+    /// Get/Set exposure compensation in Canon raw units.
     // @tfield int raw
     if(!strcmp(key,"raw")) lua_pushinteger(L, lens_info.ae);
-    /// Get/Set exposure compensation in EV or APEX
+    /// Get/Set exposure compensation in EV or APEX (both are identical here).
     // @tfield number value
     else if(!strcmp(key,"value")) lua_pushnumber(L, APEX1000_RAW2EC(lens_info.ae) / 1000.0);
     else lua_rawget(L, 1);
@@ -587,7 +610,7 @@ static int luaCB_ec_index(lua_State * L)
     
 }
 
-/// Pretty prints the exposure compensation as a string
+/// Pretty prints the exposure compensation as a string.
 //@treturn string
 //@function __tostring
 static int luaCB_ec_tostring(lua_State * L)
@@ -680,6 +703,7 @@ static const char * lua_camera_fields[] =
 static const luaL_Reg cameralib[] =
 {
     { "shoot", luaCB_camera_shoot },
+    { "burst", luaCB_camera_burst },
     { "bulb", luaCB_camera_bulb },
     { "reboot", luaCB_camera_reboot },
     { NULL, NULL }

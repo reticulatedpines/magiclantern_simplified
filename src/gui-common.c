@@ -241,6 +241,49 @@ int handle_scrollwheel_fast_clicks(struct event * event)
     return 1;
 }
 
+/* Q is always defined */
+/* if some models don't have it, we are going to use some other button instead. */
+/* some mappings are valid for cameras with a Q button as well */
+static int handle_Q_button_equiv(struct event * event)
+{
+    if (!gui_menu_shown())
+    {
+        /* only remap other buttons while in ML menu */
+        /* note: in ML menu, these buttons will no longer be available
+         * to other modules/scripts directly (they will be all seen as Q).
+         * outside ML menu, they retain their regular functionality.
+         */
+        return 1;
+    }
+
+    switch (event->param)
+    {
+#ifdef BGMT_RATE
+    case BGMT_RATE:
+#endif
+#ifdef BGMT_Q_ALT
+    case BGMT_Q_ALT:
+#endif
+#if defined(CONFIG_5D2) || defined(CONFIG_7D)
+    case BGMT_PICSTYLE:
+#endif
+#ifdef CONFIG_50D
+    case BGMT_FUNC:
+#endif
+#ifdef CONFIG_500D
+    case BGMT_LV:
+#endif
+#ifdef CONFIG_5DC
+    case BGMT_JUMP:
+    case BGMT_PRESS_DIRECT_PRINT:
+#endif
+        fake_simple_button(BGMT_Q);
+        return 0;
+    }
+    
+    return 1;
+}
+
 #ifdef CONFIG_MENU_WITH_AV
 int bgmt_av_status;
 int get_bgmt_av_status() {
@@ -424,6 +467,9 @@ int handle_common_events_by_feature(struct event * event)
     // as a record of when the user was last actively pushing buttons.
     if (event->param != GMT_OLC_INFO_CHANGED)
         last_time_active = get_seconds_clock();
+
+    /* convert Q replacement events into BGMT_Q */
+    if (handle_Q_button_equiv(event) == 0) return 0;
 
     #ifdef CONFIG_MENU_WITH_AV
     if (handle_av_short_for_menu(event) == 0) return 0;

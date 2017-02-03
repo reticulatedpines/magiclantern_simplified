@@ -53,7 +53,7 @@ int clock()
 void *calloc(size_t nmemb, size_t size)
 {
     void *ret = malloc(nmemb * size);
-    memset(ret, 0x00, nmemb * size);
+    if (ret) memset(ret, 0x00, nmemb * size);
     
     return ret;
 }
@@ -61,8 +61,12 @@ void *calloc(size_t nmemb, size_t size)
 void *realloc(void *ptr, size_t size)
 {
     void *ret = malloc(size);
-    memcpy(ret, ptr, size);
-    free(ptr);
+    
+    if (ptr)
+    {
+        memcpy(ret, ptr, size);
+        free(ptr);
+    }
     
     return ret;
 }

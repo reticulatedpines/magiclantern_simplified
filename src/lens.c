@@ -585,7 +585,6 @@ lens_focus(
 
     if (!lv) return 0;
     if (is_manual_focus()) return 0;
-    if (lens_info.job_state) return 0;
 
     if (num_steps < 0)
     {
@@ -804,10 +803,20 @@ lens_take_picture(
     int should_af
 )
 {
-    if (ml_taking_pic) return -1;
+    if (ml_taking_pic)
+    {
+        return -1;
+    }
+
     ml_taking_pic = 1;
 
-    if (should_af != AF_DONT_CHANGE) lens_setup_af(should_af);
+    int file_number_before = get_shooting_card()->file_number;
+
+    if (should_af != AF_DONT_CHANGE)
+    {
+        lens_setup_af(should_af);
+    }
+    
     //~ take_semaphore(lens_sem, 0);
     lens_wait_readytotakepic(64);
     
@@ -857,27 +866,45 @@ lens_take_picture(
     SW1(0,0);
     #endif
 
-end:
+end:;
+    int ret = 0;
     if( !wait )
     {
         //~ give_semaphore(lens_sem);
-        if (should_af != AF_DONT_CHANGE) lens_cleanup_af();
-        ml_taking_pic = 0;
-        return 0;
+        goto finish;
     }
     else
     {
         msleep(200);
 
-        if (drive_mode == DRIVE_SELFTIMER_2SEC) msleep(2000);
-        if (drive_mode == DRIVE_SELFTIMER_REMOTE || drive_mode == DRIVE_SELFTIMER_CONTINUOUS) msleep(10000);
+        if (drive_mode == DRIVE_SELFTIMER_2SEC)
+        {
+            msleep(2000);
+        }
+        if (drive_mode == DRIVE_SELFTIMER_REMOTE || drive_mode == DRIVE_SELFTIMER_CONTINUOUS)
+        {
+            msleep(10000);
+        }
 
         lens_wait_readytotakepic(wait);
+
+        while (get_shooting_card()->file_number == file_number_before)
+        {
+            msleep(50);
+        }
+
         //~ give_semaphore(lens_sem);
-        if (should_af != AF_DONT_CHANGE) lens_cleanup_af();
-        ml_taking_pic = 0;
-        return lens_info.job_state;
+        ret = lens_info.job_state;
+        goto finish;
     }
+
+finish:
+    if (should_af != AF_DONT_CHANGE)
+    {
+        lens_cleanup_af();
+    }
+    ml_taking_pic = 0;
+    return ret;
 }
 
 #ifdef FEATURE_MOVIE_LOGGING
@@ -1746,17 +1773,19 @@ LENS_SET_IN_PICSTYLE(color_tone, -4, 4)
 
 void SW1(int v, int wait)
 {
-    //~ int unused;
-    //~ ptpPropButtonSW1(v, 0, &unused);
-    prop_request_change(PROP_REMOTE_SW1, &v, 0);
+    v = COERCE(v, 0, 1);
+    prop_request_change_wait(PROP_REMOTE_SW1, &v, 0, 1000);
+    
+    /* todo: remove the wait argument */
     if (wait) msleep(wait);
 }
 
 void SW2(int v, int wait)
 {
-    //~ int unused;
-    //~ ptpPropButtonSW2(v, 0, &unused);
-    prop_request_change(PROP_REMOTE_SW2, &v, 0);
+    v = COERCE(v, 0, 1);
+    prop_request_change_wait(PROP_REMOTE_SW2, &v, 0, 1000);
+
+    /* todo: remove the wait argument */
     if (wait) msleep(wait);
 }
 

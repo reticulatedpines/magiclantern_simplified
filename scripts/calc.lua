@@ -1,4 +1,5 @@
--- a simple calculator
+-- Calculator
+-- A simple calculator in Lua
 
 require("keys")
 require("logger")
@@ -30,16 +31,6 @@ calc.width = (calc.cols) * calc.cell_size
 calc.left = display.width // 2 - calc.width // 2
 calc.top = display.height // 2 - calc.height // 2
 calc.error = false
-
-calc.mlmenu = menu.new
-{
-    name = "Calculator",
-    help = "A simple calculator in Lua",
-    select = function(this)
-        task.create(function() calc:run() end)
-    end,
-    update = function(this) return calc.value end
-}
 
 -- The main program loop
 function calc:run()
@@ -181,3 +172,5 @@ function handle_error(error)
     log:close()
     keys:anykey()
 end
+
+calc:run()

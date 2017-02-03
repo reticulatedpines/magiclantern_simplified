@@ -17,7 +17,7 @@ int module_send_keypress(int module_key);
 
 /***
  Send a keypress.
- @tparam int key the key to press
+ @tparam constants.KEY key the key to press.
  @function press
  */
 static int luaCB_key_press(lua_State * L)
@@ -29,9 +29,9 @@ static int luaCB_key_press(lua_State * L)
 
 /***
  Wait for a key to be pressed.
- @tparam[opt] int key
+ @tparam[opt] constants.KEY key
  @tparam[opt] int timeout
- @treturn int the key that was pressed
+ @treturn constants.KEY the key that was pressed.
  @function wait
  */
 static int luaCB_key_wait(lua_State * L)

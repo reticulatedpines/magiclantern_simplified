@@ -35,6 +35,7 @@ static void lua_run_task(struct lua_task_func * lua_task_func)
                 if(docall(L, 0, 0))
                 {
                     fprintf(stderr, "script failed:\n %s\n", lua_tostring(L, -1));
+                    lua_save_last_error(L);
                 }
                 else
                 {
@@ -68,18 +69,25 @@ static int luaCB_task_create(lua_State * L)
     struct lua_task_func * func = malloc(sizeof(struct lua_task_func));
     if(!func) return luaL_error(L, "malloc error\n");
     
+    //script created a task so it can't be unloaded
+    lua_set_cant_unload(L, 1, LUA_TASK_UNLOAD_MASK);
+    
     func->L = L;
     func->function_ref = luaL_ref(L, LUA_REGISTRYINDEX);
     char task_name[32];
     static int lua_task_id = 0;
     snprintf(task_name,32,"lua_run_task[%d]",lua_task_id++);
-    task_create(task_name, priority, stack_size, lua_run_task, func);
+    uint32_t ret = (uint32_t) task_create(task_name, priority, stack_size, lua_run_task, func);
+    if (ret & 1) return luaL_error(L, "task not started\n");
     return 0;
 }
 
 /***
  Yields execution of this script to other tasks and event handlers
- @tparam int duration how long to sleep for in ms
+ (also from the same script).
+
+ TODO: replace with msleep?
+ @tparam int duration how long to sleep for in ms.
  @function yield
  */
 static int luaCB_task_yield(lua_State * L)

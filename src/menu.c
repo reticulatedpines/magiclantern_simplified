@@ -2130,7 +2130,7 @@ static void pickbox_draw(struct menu_entry * entry, int x0, int y0)
 static void submenu_key_hint(int x, int y, int fg, int bg, int chr)
 {
     bmp_fill(bg, x+12, y+1, 25, 30);
-    bfnt_draw_char(chr, x, y-5, fg, COLOR_BLACK);
+    bfnt_draw_char(chr, x, y-5, fg, NO_BG_ERASE);
 }
 
 static void menu_clean_footer()
@@ -2404,7 +2404,7 @@ static void display_customize_marker(struct menu_entry * entry, int x, int y)
 {
     // star marker
     if (entry->starred)
-        bfnt_draw_char(ICON_ML_MYMENU, x, y-4, COLOR_GREEN1, COLOR_BLACK);
+        bfnt_draw_char(ICON_ML_MYMENU, x, y-4, COLOR_GREEN1, NO_BG_ERASE);
     
     // hidden marker
     else if (HAS_CURRENT_HIDDEN_FLAG(entry))
@@ -2777,7 +2777,7 @@ menu_post_display()
     {
         // we can't use the scrollwheel
         // and you need to be careful because you will change shooting settings while recording!
-        bfnt_draw_char(ICON_MAINDIAL, 680, 395, MENU_WARNING_COLOR, MENU_BG_COLOR_HEADER_FOOTER);
+        bfnt_draw_char(ICON_MAINDIAL, 680, 395, MENU_WARNING_COLOR, NO_BG_ERASE);
         draw_line(720, 405, 680, 427, MENU_WARNING_COLOR);
         draw_line(720, 406, 680, 428, MENU_WARNING_COLOR);
     }
@@ -3125,12 +3125,17 @@ static int mod_menu_rebuild()
     mod_menu_dirty = 0;
     
     mod_menu_selected_entry = get_selected_entry(mod_menu);
-    mod_menu_selected_entry = entry_find_by_name(mod_menu_selected_entry->parent_menu->name, mod_menu_selected_entry->name);
+
+    /* mod_menu_selected_entry must be from the regular menu (not the dynamic one) */
+    if (mod_menu_selected_entry && mod_menu_selected_entry->name)
+    {
+        mod_menu_selected_entry = entry_find_by_name(mod_menu_selected_entry->parent_menu->name, mod_menu_selected_entry->name);
+    }
     
     int ok = dyn_menu_rebuild(mod_menu, mod_menu_select_func, mod_menu_placeholders, COUNT(mod_menu_placeholders), DYN_MENU_EXPAND_ONLY_ACTIVE_SUBMENUS);
     
     /* make sure the selection doesn't move because of updating */
-    if (mod_menu->selected)
+    if (mod_menu->selected && mod_menu_selected_entry)
     {
         select_menu_by_name(MOD_MENU_NAME, mod_menu_selected_entry->name);
     }
@@ -3806,14 +3811,14 @@ menus_display(
             int icon_char = menu->icon ? menu->icon : menu->name[0];
             int icon_width = bfnt_char_get_width(icon_char);
             int x_ico = x + (icon_spacing - icon_width) / 2 + 1;
-            bfnt_draw_char(icon_char, x_ico, y + 2, fg, bg);
+            bfnt_draw_char(icon_char, x_ico, y + 2, fg, NO_BG_ERASE);
 
             if (menu->selected)
             {
                     //~ bmp_printf(FONT_MED, 720 - strlen(menu->name)*font_med.width, 50, menu->name);
                 //~ else
                 if (!junkie_mode)
-                    bmp_printf(FONT(FONT_CANON, fg, bg), 5, y, "%s", menu->name);
+                    bmp_printf(FONT(FONT_CANON, fg, NO_BG_ERASE), 5, y, "%s", menu->name);
                 
                 int x1 = x - 1;
                 int x2 = x1 + icon_spacing + 2;
@@ -3953,7 +3958,7 @@ submenu_display(struct menu * submenu)
         w = 720-2*bx;
         bmp_fill(MENU_BG_COLOR_HEADER_FOOTER,  bx,  by, w, 40);
         bmp_fill(COLOR_BLACK,  bx,  by + 40, w, h-40);
-        bmp_printf(FONT(FONT_CANON, COLOR_WHITE, 40),  bx + 15,  by+2, "%s", submenu->name);
+        bmp_printf(FONT(FONT_CANON, COLOR_WHITE, NO_BG_ERASE),  bx + 15,  by+2, "%s", submenu->name);
 
         for (int i = 0; i < 5; i++)
             bmp_draw_rect(45,  bx-i,  by-i, w+i*2, h+i*2);
@@ -4448,7 +4453,7 @@ menu_redraw_do()
             {
                 draw_ml_topbar();
                 draw_ml_bottombar();
-                bfnt_draw_char(ICON_ML_Q_BACK, 680, -5, COLOR_WHITE, COLOR_BLACK);
+                bfnt_draw_char(ICON_ML_Q_BACK, 680, -5, COLOR_WHITE, NO_BG_ERASE);
             }
 
             if (beta_should_warn()) draw_beta_warning();
@@ -4972,32 +4977,9 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_UNTOUCH_2_FINGER:
         return handle_ml_menu_touch(event);
 #endif
-#ifdef BGMT_RATE
-    case BGMT_RATE:
-#endif
-#if defined(BGMT_Q)
+
+    /* Q is always defined */
     case BGMT_Q:
-#endif
-#ifdef BGMT_Q_ALT
-    case BGMT_Q_ALT:
-#endif
-//~ #ifdef BGMT_JOY_CENTER
-    //~ case BGMT_JOY_CENTER:
-//~ #endif
-#if defined(CONFIG_5D2) || defined(CONFIG_7D)
-    case BGMT_PICSTYLE:
-#endif
-#ifdef CONFIG_50D
-    case BGMT_FUNC:
-    //~ case BGMT_LV:
-#endif
-#ifdef CONFIG_500D
-    case BGMT_LV:
-#endif
-#ifdef CONFIG_5DC
-    case BGMT_JUMP:
-    case BGMT_PRESS_DIRECT_PRINT:
-#endif
     case MLEV_JOYSTICK_LONG:
         if (menu_help_active) { menu_help_active = 0; /* menu_damage = 1; */ break; }
         menu_entry_select( menu, 2 ); // Q action select
@@ -5435,45 +5417,56 @@ void select_menu(char* name, int entry_index)
 
 void select_menu_by_name(char* name, const char* entry_name)
 {
-    struct menu * menu_that_was_selected = 0;
-    int entry_was_selected = 0;
-    struct menu * menu = menus;
-    for( ; menu ; menu = menu->next )
+    /* select the first menu that matches the name, if any given */
+    /* otherwise, keep the selection unchanged */
+    struct menu * selected_menu = 0;
+    for(struct menu * menu = menus; menu ; menu = menu->next )
     {
-        menu->selected = streq(menu->name, name) && !menu_that_was_selected;
-        if (menu->selected) menu_that_was_selected = menu;
-        if (menu->selected)
+        if (streq(menu->name, name))
         {
-            struct menu_entry * entry = menu->children;
-            
-            int i;
-            for(i = 0 ; entry ; entry = entry->next, i++ )
-            {
-                entry->selected = streq(entry->name, entry_name) && !entry_was_selected;
-                if (entry->selected) entry_was_selected = 1;
-            }
+            selected_menu = menu;
+            break;
         }
     }
     
-    if (!menu_that_was_selected)
+    if (selected_menu)
     {
-        // menu not found, just select the first one one
-        menus->selected = 1;
-        menu_that_was_selected = menus;
-    }
-    if (!entry_was_selected)
-    {
-        // entry not found
-        if (menu_that_was_selected && menu_that_was_selected->children)
+        /* update selection flag for all entries from this menu */
+        for(struct menu * menu = menus; menu; menu = menu->next)
         {
-            menu_that_was_selected->children->selected = 1;
+            menu->selected = (menu == selected_menu);
+
+            if (menu->selected && entry_name) 
+            {
+                /* process menu entries from the selected menu in a similar way */
+                struct menu_entry * selected_entry = 0;
+                for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
+                {
+                    if (streq(entry->name, entry_name))
+                    {
+                        selected_entry = entry;
+                        break;
+                    }
+                }
+                
+                if (selected_entry)
+                {
+                    /* update selection flag for all entries from this menu */
+                    for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
+                    {
+                        entry->selected = (entry == selected_entry);
+                    }
+                }
+            }
         }
     }
-    //~ menu_damage = 1;
 }
 
 static struct menu_entry * entry_find_by_name(const char* name, const char* entry_name)
 {
+    struct menu_entry * ans = 0;
+    int count = 0;
+
     struct menu * menu = menus;
     for( ; menu ; menu = menu->next )
     {
@@ -5484,14 +5477,29 @@ static struct menu_entry * entry_find_by_name(const char* name, const char* entr
             int i;
             for(i = 0 ; entry ; entry = entry->next, i++ )
             {
+                if (entry->parent_menu != menu)
+                {
+                    /* skip items from dynamic submenus ("not at home") */
+                    continue;
+                }
+
                 if (streq(entry->name, entry_name))
                 {
-                    return entry;
+                    ans = entry;
+                    count++;
                 }
             }
         }
     }
-    return 0;
+
+    if (count > 1)
+    {
+        console_show();
+        printf("Duplicate menu: %s (%d)\n", entry_name, count);
+        return 0;
+    }
+
+    return ans;
 }
 
 static void select_menu_by_icon(int icon)

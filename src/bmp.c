@@ -185,13 +185,6 @@ bmp_puts(
     
     uint32_t    fg_color    = fontspec_fg( fontspec );
     uint32_t    bg_color    = fontspec_bg( fontspec );
-
-    // Special case -- fg=bg=0 => white on black
-    if( fg_color == 0 && bg_color == 0 )
-    {
-        fg_color = COLOR_WHITE;
-        bg_color = COLOR_BLACK;
-    }
     
     int len = rbf_draw_string((void*)font_dynamic[FONT_ID(fontspec)].bitmap, *x, *y, s, FONT(fontspec, fg_color, bg_color));
     *x += len;
@@ -994,7 +987,10 @@ int bfnt_draw_char(int c, int px, int py, int fg, int bg)
     if (crw+xo > 100) return 0;
     if (ch+yo > 50) return 0;
 
-    //~ bmp_fill(bg, px, py, crw+xo+3, 40);
+    if (bg != NO_BG_ERASE)
+    {
+        bmp_fill(bg, px, py, crw+xo+3, 40);
+    }
 
     int i,j,k;
     for (i = 0; i < ch; i++)

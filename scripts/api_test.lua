@@ -1,5 +1,7 @@
+-- Script API Tests
 -- Test routines for the scripting API
--- Very incomplete
+-- When adding new Lua APIs, tests for them should go here.
+
 require("logger")
 
 -- global logger
@@ -60,6 +62,7 @@ end
 
 function generic_tests()
     printf("Generic tests...\n")
+    print_table("arg")
     print_table("camera")
     print_table("event")
     print_table("console")
@@ -68,7 +71,6 @@ function generic_tests()
     print_table("display")
     print_table("key")
     print_table("menu")
-    print_table("testmenu")
     print_table("movie")
     print_table("dryos")
     print_table("interval")
@@ -126,8 +128,7 @@ function copy_test(src, dst)
     assert(dryos.remove(dst) == true)
     
     -- check if it was deleted
-    fin = io.open(dst, "rb")
-    assert(fin == nil)
+    assert(io.open(dst, "rb") == nil)
 
     -- it should return false this time
     assert(dryos.remove(dst) == false)
@@ -153,7 +154,7 @@ function append_test(file)
     local fin = io.open(file, "r")
     local check = fin:read("*all")
     fin:close()
-    assert(data1 == check)
+    assert(check == data1)
 
     -- reopen it to append something
     fout = io.open(file, "a")
@@ -170,20 +171,113 @@ function append_test(file)
     assert(dryos.remove(file) == true)
     
     -- check if it was deleted
-    fin = io.open(file, "rb")
-    assert(fin == nil)
+    assert(io.open(file, "rb") == nil)
 
     printf("Append test OK\n")
 end
 
+function rename_test(src, dst)
+    printf("Rename test: %s -> %s\n", src, dst)
+
+    local data = "Millions saw the apple fall, " ..
+        "but Newton was the one who asked why."
+    
+    -- create the source file
+    local fout = io.open(src, "w")
+    fout:write(data)
+    fout:close()
+
+    -- verify the contents
+    local fin = io.open(src, "r")
+    local check = fin:read("*all")
+    fin:close()
+    assert(check == data)
+
+    -- rename it
+    assert(dryos.rename(src, dst) == true)
+
+    -- verify the contents
+    fin = io.open(dst, "r")
+    check = fin:read("*all")
+    fin:close()
+    assert(check == data)
+    
+    -- check if the source file was deleted
+    assert(io.open(src, "rb") == nil)
+
+    -- cleanup: delete the renamed file
+    assert(dryos.remove(dst) == true)
+    
+    -- check if it was deleted
+    assert(io.open(dst, "rb") == nil)
+
+    printf("Rename test OK\n")
+end
+
 function test_io()
+    printf("Testing file I/O...\n")
     stdio_test()
     copy_test("autoexec.bin", "tmp.bin")
     append_test("tmp.txt")
+    rename_test("apple.txt", "banana.txt")
+    rename_test("apple.txt", "ML/banana.txt")
+
+    printf("File I/O tests completed.\n")
+    printf("\n")
+end
+
+function taskA()
+    printf("Task A started.\n")
+    local i
+    for i = 1,100 do
+        printf("Task A: %d\n", i)
+        task.yield(math.random(10,50))
+    end
+end
+
+function taskB()
+    printf("Task B started.\n")
+    local i
+    for i = 1,100 do
+        printf("Task B: %d\n", i)
+        task.yield(math.random(10,50))
+    end
+end
+
+function test_multitasking()
+    printf("Testing multitasking...\n")
+
+    task.create(taskA)
+    task.create(taskB)
+    task.yield(5000)
+
+    printf("Multitasking tests completed.\n")
+    printf("\n")
+end
+
+function test_keys()
+    printf("Testing half-shutter...\n")
+    -- open Canon menu
+    key.press(KEY.MENU)
+    msleep(1000)
+    -- fixme: expose things like QR_MODE, PLAY_MODE, enter_play_mode...
+    assert(camera.state == 1)
+    key.press(KEY.HALFSHUTTER)
+    msleep(100)
+    assert(key.last == KEY.HALFSHUTTER)
+    msleep(1000)
+    -- half-shutter should close Canon menu
+    assert(camera.state == 0)
+    key.press(KEY.UNPRESS_HALFSHUTTER)
+    assert(key.last == KEY.UNPRESS_HALFSHUTTER)
+    printf("Half-shutter test OK.\n")
+    
+    -- todo: test other key codes? press/unpress events?
+    printf("\n")
 end
 
 function test_camera_exposure()
-    printf("Testing exposure settings, module 'camera'...\n")
+    printf("Testing exposure settings...\n")
     printf("Camera    : %s (%s) %s\n", camera.model, camera.model_short, camera.firmware)
     printf("Lens      : %s\n", lens.name)
     printf("Shoot mode: %s\n", camera.mode)
@@ -372,7 +466,7 @@ function test_camera_exposure()
             -- note: when using F-numbers, the difference may be larger, because of the rounding done
             -- to match Canon values (e.g. raw 48 would be f/5.66 (f/5.7), instead of Canon's f/5.6)
             if (d > 1.5/8 + extra_tol) then
-                printf("Error: aperture delta %s EV (expected < %s, f/%s, method=%d)\n", d, 1.5/8 + extra_tol, camera.aperture, method)
+                printf("Error: aperture delta %s EV (expected < %s, %s, method=%d)\n", d, 1.5/8 + extra_tol, camera.aperture, method)
             end
 
             -- aperture and Av (APEX) should be consistent
@@ -509,6 +603,53 @@ function test_camera_exposure()
     printf("\n")
 end
 
+function test_camera_take_pics()
+    printf("Testing picture taking functions...\n")
+    local initial_file_num
+
+    request_mode(MODE.M, "M")
+    camera.shutter = 1/50
+    msleep(2000)
+    
+    printf("Snap simulation test...\n")
+    assert(menu.set("Shoot Preferences", "Snap Simulation", 1))
+    initial_file_num = dryos.shooting_card.file_number
+    camera.shoot()
+    assert(dryos.shooting_card.file_number == initial_file_num)
+    assert(menu.set("Shoot Preferences", "Snap Simulation", 0))
+
+    msleep(2000)
+
+    printf("Single picture...\n")
+    initial_file_num = dryos.shooting_card.file_number
+    camera.shoot()
+    assert((dryos.shooting_card.file_number - initial_file_num) % 10000 == 1)
+    
+    msleep(2000)
+
+    printf("Two burst pictures...\n")
+    printf("Ideally, the camera should be in some continuous shooting mode (not checked).\n")
+    initial_file_num = dryos.shooting_card.file_number
+    camera.burst(2)
+    assert((dryos.shooting_card.file_number - initial_file_num) % 10000 == 2)
+
+    msleep(2000)
+
+    printf("Bulb picture...\n")
+    local t0 = dryos.ms_clock
+    initial_file_num = dryos.shooting_card.file_number
+    camera.bulb(10)
+    local t1 = dryos.ms_clock
+    local elapsed = t1 - t0
+    printf("Elapsed time: %s\n", elapsed)
+    -- we can't measure this time accurately, so we only do a very rough check
+    assert(elapsed > 9900 and elapsed < 16000)
+    assert((dryos.shooting_card.file_number - initial_file_num) % 10000 == 1)
+
+    printf("Picture taking tests completed.\n")
+    printf("\n")
+end
+
 function test_lv()
     printf("Testing module 'lv'...\n")
     if lv.enabled then
@@ -559,6 +700,9 @@ function test_lv()
 end
 
 function test_lens_focus()
+    printf("\n")
+    printf("Testing lens focus functionality...\n")
+    
     if lens.name == "" then
         printf("This test requires an electronic lens.\n")
         assert(not lens.af, "manual lenses can't autofocus")
@@ -572,14 +716,23 @@ function test_lens_focus()
             console.show()
             msleep(1000)
         end
+        msleep(1000)
     end
-    
+
     if not lv.running then
+        printf("Autofocus outside LiveView...\n")
+        assert(lens.autofocus())
+
         lv.start()
         assert(lv.running)
     end
-    
+
     if lens.af then
+        printf("Focus distance: %s\n",  lens.focus_distance)
+
+        printf("Autofocus in LiveView...\n")
+        assert(lens.autofocus())
+
         printf("Focus distance: %s\n",  lens.focus_distance)
 
         -- note: focus direction is not consistent
@@ -594,7 +747,7 @@ function test_lens_focus()
             for j,wait in pairs{true,false} do
                 printf("Focusing forward with step size %d, wait=%s...\n", step, wait)
                 local steps_front = 0
-                while lens.focus(1,step,true) do
+                while lens.focus(1,step,wait) do
                     printf(".")
                     steps_front = steps_front + 1
                 end
@@ -605,7 +758,7 @@ function test_lens_focus()
                 
                 printf("Focusing backward with step size %d, wait=%s...\n", step, wait)
                 local steps_back = 0
-                while lens.focus(-1,step,true) do
+                while lens.focus(-1,step,wait) do
                     printf(".")
                     steps_back = steps_back + 1
                 end
@@ -624,20 +777,69 @@ function test_lens_focus()
     printf("\n")
 end
 
+function test_movie()
+    printf("\n")
+    printf("Testing movie recording...\n")
+
+    -- we must be in photo mode (from previous tests)
+    assert(camera.mode ~= MODE.MOVIE)
+
+    -- this should raise error
+    local s,e = pcall(movie.start)
+    assert(s == false)
+    assert(e:find("movie mode"))
+
+    request_mode(MODE.MOVIE, "Movie")
+
+    -- this should also raise error, as we are not exactly in LiveView
+    lv.pause()
+    local s,e = pcall(movie.start)
+    assert(s == false)
+    assert(e:find("LiveView"))
+    menu.close()
+    lv.resume()
+
+    -- this should raise error, because the LiveView button has a special
+    -- function in ML menu (so we can't just press it to start recording)
+    menu.open()
+    local s,e = pcall(movie.start)
+    assert(s == false)
+    assert(e:find("menu"))
+    menu.close()
+
+    -- now it should work
+    -- hide the console for a nicer look
+    console.hide()
+    movie.start()
+    assert(movie.recording)
+    msleep(1000)
+    movie.stop()
+    assert(not movie.recording)
+    console.show()
+
+    printf("Movie recording tests completed.\n")
+    printf("\n")
+end
+
 function api_tests()
     menu.close()
     console.clear()
     console.show()
     test_log = logger("LUATEST.LOG")
 
+    -- note: each test routine must print a blank line at the end
     strict_tests()
     generic_tests()
     
     printf("Module tests...\n")
     test_io()
-    test_camera_exposure()
+    --test_multitasking()
+    test_keys()
     test_lv()
     test_lens_focus()
+    test_camera_take_pics()
+    test_camera_exposure()
+    test_movie()
     
     printf("Done!\n")
     
@@ -646,11 +848,8 @@ function api_tests()
     console.hide()
 end
 
-testmenu = menu.new
-{
-    name   = "Script API tests",
-    help   = "Various tests for the Lua scripting API.",
-    help2  = "When adding new Lua APIs, tests for them should go here.",
-    select = function(this) task.create(api_tests) end,
-}
+-- check script arguments
+assert(#arg == 0)
+assert(arg[0] == "API_TEST.LUA" or arg[0] == "api_test.lua")
 
+api_tests()
