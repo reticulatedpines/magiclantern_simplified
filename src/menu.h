@@ -162,6 +162,7 @@ struct menu_entry
         unsigned jhidden    : 1; // hidden from junkie menu
         unsigned jstarred   : 1; // in junkie menu, auto-placed in My Menu
         unsigned shidden    : 1; // special hide, not toggleable by user
+        unsigned placeholder: 1; // place reserved for a future menu
         
         unsigned advanced   : 1; // advanced setting in submenus; add a MENU_ADVANCED_TOGGLE if you use it
 
@@ -340,8 +341,8 @@ menu_init( void );
 #define MENU_EOL { .priv = MENU_EOL_PRIV }
 #define MENU_IS_EOL(entry) ((intptr_t)(entry)->priv == -1)
 
-#define MENU_PLACEHOLDER(namae) { .name = namae, .priv = (void*) -2, .shidden = 1 }
-#define MENU_IS_PLACEHOLDER(entry) ((intptr_t)(entry)->priv == -2)
+#define MENU_PLACEHOLDER(namae) { .name = namae, .placeholder = 1, .shidden = 1 }
+#define MENU_IS_PLACEHOLDER(entry) ((entry)->placeholder == 1)
 
 #define MENU_ADVANCED_TOGGLE { .select = menu_advanced_toggle, .update = menu_advanced_update }
 

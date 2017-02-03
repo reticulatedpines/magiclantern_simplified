@@ -1141,6 +1141,7 @@ menu_update_placeholder(struct menu * menu, struct menu_entry * new_entry)
             placeholder_copy(entry, new_entry);
             entry->shidden = 0;
             new_entry->shidden = 1;
+            new_entry->placeholder = 1;
             
             if (entry->starred)
                 my_menu_dirty = 1;
@@ -4034,9 +4035,7 @@ menu_entry_customize_toggle(
     if (menu == my_menu) // special case
     {
         // lookup the corresponding entry in normal menus, and toggle that one instead
-        char* name = (char*) entry->name;   // trick so we don't find the same menu
-        entry->name = 0;                    // (this menu will be rebuilt anyway, so... no big deal)
-        entry = entry_find_by_name(entry->parent_menu->name, name);
+        entry = entry_find_by_name(entry->parent_menu->name, entry->name);
         if (!entry) { beep(); return; }
         if (!entry->starred) return;
         menu_entry_star_toggle(entry); // should not fail
@@ -5472,6 +5471,10 @@ static struct menu_entry * entry_find_by_name(const char* name, const char* entr
     struct menu * menu = menus;
     for( ; menu ; menu = menu->next )
     {
+        /* skip dynamic menus */
+        if (IS_DYNAMIC_MENU(menu))
+            continue;
+        
         if (streq(menu->name, name))
         {
             struct menu_entry * entry = menu->children;
@@ -5479,11 +5482,9 @@ static struct menu_entry * entry_find_by_name(const char* name, const char* entr
             int i;
             for(i = 0 ; entry ; entry = entry->next, i++ )
             {
-                if (entry->parent_menu != menu)
-                {
-                    /* skip items from dynamic submenus ("not at home") */
+                /* skip placeholders */
+                if (MENU_IS_PLACEHOLDER(entry))
                     continue;
-                }
 
                 if (streq(entry->name, entry_name))
                 {
