@@ -2826,13 +2826,13 @@ static int mod_menu_rebuild()
     /* mod_menu_selected_entry must be from the regular menu (not the dynamic one) */
     if (mod_menu_selected_entry && mod_menu_selected_entry->name)
     {
-        entry_find_by_name(mod_menu_selected_entry->parent_menu->name, mod_menu_selected_entry->name);
+        mod_menu_selected_entry = entry_find_by_name(mod_menu_selected_entry->parent_menu->name, mod_menu_selected_entry->name);
     }
     
     int ok = dyn_menu_rebuild(mod_menu, mod_menu_select_func, mod_menu_placeholders, COUNT(mod_menu_placeholders), DYN_MENU_EXPAND_ONLY_ACTIVE_SUBMENUS);
     
     /* make sure the selection doesn't move because of updating */
-    if (mod_menu->selected && !mod_menu_selected_entry)
+    if (mod_menu->selected && mod_menu_selected_entry)
     {
         select_menu_by_name(MOD_MENU_NAME, mod_menu_selected_entry->name);
     }
