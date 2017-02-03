@@ -1132,6 +1132,14 @@ static void
 menu_update_placeholder(struct menu * menu, struct menu_entry * new_entry)
 {
     if (!menu) return;
+
+    if (MENU_IS_PLACEHOLDER(new_entry))
+    {
+        menu->has_placeholders = 1;
+        return;
+    }
+
+    if (!menu->has_placeholders) return;
     
     for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
     {
@@ -1153,11 +1161,10 @@ menu_update_placeholder(struct menu * menu, struct menu_entry * new_entry)
 }
 
 void
-menu_add_base(
+menu_add(
     const char *        name,
     struct menu_entry * new_entry,
-    int         count,
-    bool update_placeholders
+    int                 count
 )
 {
 #if defined(POSITION_INDEPENDENT)
@@ -1192,6 +1199,7 @@ menu_add_base(
         new_entry->selected = 1;
         menu_update_split_pos(menu, new_entry);
         entry_guess_icon_type(new_entry);
+        menu_update_placeholder(menu, new_entry);
         new_entry++;
         count--;
     }
@@ -1211,7 +1219,7 @@ menu_add_base(
         head            = new_entry;
         menu_update_split_pos(menu, new_entry);
         entry_guess_icon_type(new_entry);
-        if (update_placeholders) menu_update_placeholder(menu, new_entry);
+        menu_update_placeholder(menu, new_entry);
         new_entry++;
     }
     
@@ -1248,17 +1256,6 @@ menu_add_base(
         entry = entry->prev;
         if (!entry) break;
     }
-}
-
-void
-menu_add(
-    const char *        name,
-    struct menu_entry * new_entry,
-    int         count
-)
-{
-    // Update placeholders
-    menu_add_base(name, new_entry, count, true);
 }
 
 static void menu_remove_entry(struct menu * menu, struct menu_entry * entry)

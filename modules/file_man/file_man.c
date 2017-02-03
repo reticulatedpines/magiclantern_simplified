@@ -311,7 +311,7 @@ static void build_file_menu()
         ptr++;
     }
 
-    menu_add_base("File Manager", compacted, count, false); // do not update placeholders
+    menu_add("File Manager", compacted, count);
 }
 
 static struct semaphore * scandir_sem = 0;

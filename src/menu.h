@@ -262,17 +262,18 @@ struct menu_entry
 
 struct menu
 {
-        struct menu *           next;
-        struct menu *           prev;
-        const char *            name;
-        struct menu_entry *     children;
-        int                     selected;
-        int icon;
-        int16_t submenu_width;
-        int16_t submenu_height;
-        int16_t scroll_pos;
-        int split_pos; // the limit between name and value columns
-        char advanced;
+    struct menu *       next;
+    struct menu *       prev;
+    const char *        name;
+    struct menu_entry * children;
+    int                 selected;
+    int                 icon;
+    int16_t             submenu_width;
+    int16_t             submenu_height;
+    int16_t             scroll_pos;
+    int16_t             split_pos; // the limit between name and value columns
+    unsigned            advanced : 1;
+    unsigned            has_placeholders: 1;
 };
 
 #define IS_SUBMENU(menu) (menu->icon == ICON_ML_SUBMENU)
@@ -297,7 +298,6 @@ extern void menu_numeric_toggle(int* val, int delta, int min, int max);
 extern void run_in_separate_task(void* routine, int argument);
 
 extern void menu_add( const char * name, struct menu_entry * new_entry, int count );
-extern void menu_add_base( const char * name, struct menu_entry * new_entry, int count, bool update_placeholders );
 
 extern void menu_remove(const char * name, struct menu_entry * old_entry, int count);
 
