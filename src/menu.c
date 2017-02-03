@@ -969,23 +969,21 @@ menu_find_by_name(
 
 static int get_menu_visible_count(struct menu * menu)
 {
-    struct menu_entry * entry = menu->children;
-
     int n = 0;
-    while( entry )
+    for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
     {
         if (is_visible(entry))
+        {
             n ++;
-        entry = entry->next;
+        }
     }
     return n;
 }
 
 static int get_menu_selected_pos(struct menu * menu)
 {
-    struct menu_entry * entry = menu->children;
     int n = 0;
-    while( entry )
+    for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
     {
         if (is_visible(entry))
         {
@@ -993,7 +991,6 @@ static int get_menu_selected_pos(struct menu * menu)
             if (entry->selected)
                 return n;
         }
-        entry = entry->next;
     }
     return 0;
 }
@@ -1013,19 +1010,16 @@ menu_has_visible_items(struct menu * menu)
             return 0;
     }
     
-    struct menu_entry * entry = menu->children;
-    while( entry )
+    for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
     {
-        if (entry == &customize_menu[0]) // hide the Customize menu if everything else from Prefs is also hidden
-            goto next;
+        /* hide the Customize menu if everything else from Prefs is also hidden */
+        if (entry == &customize_menu[0]) 
+            continue;
 
         if (is_visible(entry))
         {
             return 1;
         }
-        
-        next:
-        entry = entry->next;
     }
     return 0;
 }
@@ -1033,14 +1027,12 @@ menu_has_visible_items(struct menu * menu)
 static int
 are_there_any_visible_menus()
 {
-    struct menu * menu = menus;
-    while( menu )
+    for (struct menu * menu = menus; menu; menu = menu->next)
     {
         if (!IS_SUBMENU(menu) && menu_has_visible_items(menu))
         {
             return 1;
         }
-        menu = menu->next;
     }
     return 0;
 }
@@ -1234,14 +1226,12 @@ menu_add(
         if (entry->children)
         {
             int count = 0;
-            struct menu_entry * child = entry->children;
-            while (!MENU_IS_EOL(child)) 
+            for (struct menu_entry * child = entry->children; !MENU_IS_EOL(child); child++)
             { 
                 child->parent = entry;
                 child->depends_on |= entry->depends_on; // inherit dependencies
                 child->works_best_in |= entry->works_best_in;
                 count++; 
-                child++;
             }
             struct menu * submenu = menu_find_by_name( entry->name, ICON_ML_SUBMENU);
             if (submenu->children != entry->children) // submenu is reused, do not add it twice
@@ -1356,7 +1346,7 @@ static void menu_normalize_usage_counters(void)
 {
     take_semaphore(menu_sem, 0);
 
-    for (struct menu * menu = menus; menu ; menu = menu->next)
+    for (struct menu * menu = menus; menu; menu = menu->next)
     {
         for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
         {
@@ -1433,7 +1423,7 @@ static void menu_usage_counters_update_threshold(int num)
     int num_entries = 0;
 
     /* count the menu items */
-    for (struct menu * menu = menus; menu ; menu = menu->next)
+    for (struct menu * menu = menus; menu; menu = menu->next)
     {
         if (IS_DYNAMIC_MENU(menu))
             continue;
@@ -1449,7 +1439,7 @@ static void menu_usage_counters_update_threshold(int num)
     if (!counters) goto end;
 
     int k = 0;
-    for (struct menu * menu = menus; menu ; menu = menu->next)
+    for (struct menu * menu = menus; menu; menu = menu->next)
     {
         if (IS_DYNAMIC_MENU(menu))
             continue;
@@ -2896,9 +2886,7 @@ static int mod_menu_select_func(struct menu_entry * entry)
         struct menu * submenu = menu_find_by_name(entry->name, ICON_ML_SUBMENU);
         if (submenu)
         {
-            struct menu_entry * e = submenu->children;
-            
-            for(; e ; e = e->next)
+            for (struct menu_entry * e = submenu->children; e; e = e->next)
             {
                 if (mod_menu_select_func(e))
                     return 1;
@@ -2931,8 +2919,7 @@ dyn_menu_rebuild(struct menu * dyn_menu, int (*select_func)(struct menu_entry * 
     dyn_menu->split_pos = -20;
 
     int i = 0;
-    struct menu * menu = menus;
-    for( ; menu ; menu = menu->next )
+    for (struct menu * menu = menus; menu; menu = menu->next)
     {
         if (IS_DYNAMIC_MENU(menu))
             continue;
@@ -2940,9 +2927,7 @@ dyn_menu_rebuild(struct menu * dyn_menu, int (*select_func)(struct menu_entry * 
         if (IS_SUBMENU(menu))
             continue;
 
-        struct menu_entry * entry = menu->children;
-        
-        for(; entry ; entry = entry->next)
+        for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
         {
             if (entry->shidden)
                 continue;
@@ -2969,9 +2954,7 @@ dyn_menu_rebuild(struct menu * dyn_menu, int (*select_func)(struct menu_entry * 
                 struct menu * submenu = menu_find_by_name(entry->name, ICON_ML_SUBMENU);
                 if (submenu)
                 {
-                    struct menu_entry * e = submenu->children;
-                    
-                    for(; e ; e = e->next)
+                    for(struct menu_entry * e = submenu->children; e; e = e->next)
                     {
                         if (select_func(e))
                         {
@@ -3015,7 +2998,7 @@ static void junkie_menu_rebuild(int min_items, int * count_max, int * count_my, 
     *count_my = 0;
     *count_my_next = 0;
 
-    for (struct menu * menu = menus; menu ; menu = menu->next)
+    for (struct menu * menu = menus; menu; menu = menu->next)
     {
         if (IS_DYNAMIC_MENU(menu))
             continue;
@@ -3562,9 +3545,7 @@ static int junkie_get_selection_y(struct menu * menu, int* h)
     
     int y = 0;
 
-    struct menu_entry * entry = menu->children;
-    
-    while( entry )
+    for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
     {
         if (is_visible(entry))
         {
@@ -3576,7 +3557,6 @@ static int junkie_get_selection_y(struct menu * menu, int* h)
             space_left -= dh;
             num--;
         }
-        entry = entry->next;
     }
     return 0;
 }
@@ -3595,8 +3575,7 @@ static void junkie_update_selection_pos(struct menu * menu)
 
 static void junkie_sync_selection()
 {
-    struct menu * menu = menus;
-    for( ; menu ; menu = menu->next )
+    for (struct menu * menu = menus; menu; menu = menu->next)
     {
         if (!menu->selected && !IS_SUBMENU(menu))
         {
@@ -3621,9 +3600,7 @@ menu_display_junkie(
     if (!menu_lv_transparent_mode && menu->selected)
         menu_clean_footer();
 
-    struct menu_entry * entry = menu->children;
-
-    while( entry )
+    for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
     {
         if (is_visible(entry))
         {
@@ -3644,8 +3621,6 @@ menu_display_junkie(
             space_left -= dh;
             num--;
         }
-
-        entry = entry->next;
     }
 
     // all menus displayed, now some extra stuff
@@ -3662,8 +3637,7 @@ show_hidden_items(struct menu * menu, int force_clear)
         snprintf(hidden_msg, sizeof(hidden_msg), "Hidden: ");
         int hidden_count = 0;
 
-        struct menu_entry * entry = menu->children;
-        while( entry )
+        for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
         {
             if (HAS_HIDDEN_FLAG(entry) && entry->name)
             {
@@ -3675,7 +3649,6 @@ show_hidden_items(struct menu * menu, int force_clear)
                 hidden_msg[MIN(len+15, (int)sizeof(hidden_msg))] = '\0';
                 hidden_count++;
             }
-            entry = entry->next;
         }
         STR_APPEND(hidden_msg, customize_mode ? "." : " (Prefs->Customize).");
         
@@ -4639,10 +4612,11 @@ static struct menu_entry * get_selected_entry(struct menu * menu)  // argument i
             if( menu->selected )
                 break;
     }
-    struct menu_entry * entry = menu->children;
-    for( ; entry ; entry = entry->next )
+    for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
+    {
         if( entry->selected )
             return entry;
+    }
     return 0;
 }
 
@@ -5397,17 +5371,16 @@ int is_menu_active(char* name)
 
 void select_menu(char* name, int entry_index)
 {
-    struct menu * menu = menus;
-    for( ; menu ; menu = menu->next )
+    for (struct menu * menu = menus; menu; menu = menu->next)
     {
         menu->selected = streq(menu->name, name);
         if (menu->selected)
         {
             struct menu_entry * entry = menu->children;
-            
-            int i;
-            for(i = 0 ; entry ; entry = entry->next, i++ )
+            for(int i = 0; entry; entry = entry->next, i++)
+            {
                 entry->selected = (i == entry_index);
+            }
         }
     }
     //~ menu_damage = 1;
@@ -5418,7 +5391,7 @@ void select_menu_by_name(char* name, const char* entry_name)
     /* select the first menu that matches the name, if any given */
     /* otherwise, keep the selection unchanged */
     struct menu * selected_menu = 0;
-    for(struct menu * menu = menus; menu ; menu = menu->next )
+    for (struct menu * menu = menus; menu; menu = menu->next)
     {
         if (streq(menu->name, name))
         {
@@ -5430,7 +5403,7 @@ void select_menu_by_name(char* name, const char* entry_name)
     if (selected_menu)
     {
         /* update selection flag for all entries from this menu */
-        for(struct menu * menu = menus; menu; menu = menu->next)
+        for (struct menu * menu = menus; menu; menu = menu->next)
         {
             menu->selected = (menu == selected_menu);
 
@@ -5465,8 +5438,7 @@ static struct menu_entry * entry_find_by_name(const char* name, const char* entr
     struct menu_entry * ans = 0;
     int count = 0;
 
-    struct menu * menu = menus;
-    for( ; menu ; menu = menu->next )
+    for (struct menu * menu = menus; menu; menu = menu->next)
     {
         /* skip dynamic menus */
         if (IS_DYNAMIC_MENU(menu))
@@ -5474,10 +5446,7 @@ static struct menu_entry * entry_find_by_name(const char* name, const char* entr
         
         if (streq(menu->name, name))
         {
-            struct menu_entry * entry = menu->children;
-            
-            int i;
-            for(i = 0 ; entry ; entry = entry->next, i++ )
+            for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
             {
                 /* skip placeholders */
                 if (MENU_IS_PLACEHOLDER(entry))
@@ -5505,14 +5474,14 @@ static struct menu_entry * entry_find_by_name(const char* name, const char* entr
 static void select_menu_by_icon(int icon)
 {
     take_semaphore(menu_sem, 0);
-    struct menu * menu = menus;
-    for( ; menu ; menu = menu->next )
+    for (struct menu * menu = menus; menu; menu = menu->next)
     {
         if (menu->icon == icon) // found!
         {
-            struct menu * menu = menus;
-            for( ; menu ; menu = menu->next )
-                menu->selected = menu->icon == icon;
+            for (struct menu * menu = menus; menu; menu = menu->next)
+            {
+                menu->selected = (menu->icon == icon);
+            }
             break;
         }
     }
@@ -5796,16 +5765,12 @@ static void menu_save_flags(char* filename)
     int cfglen = 0;
     int lastlen = 0;
 
-    struct menu * menu = menus;
-    for( ; menu ; menu = menu->next )
+    for (struct menu * menu = menus; menu; menu = menu->next)
     {
         if (IS_DYNAMIC_MENU(menu))
             continue;
         
-        struct menu_entry * entry = menu->children;
-        
-        int i;
-        for(i = 0 ; entry ; entry = entry->next, i++ )
+        for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
         {
             if (!entry->name) continue;
             if (!entry->name[0]) continue;
@@ -5901,13 +5866,9 @@ void config_menu_save_flags()
     cfg[0] = '\0';
 
     int unnamed = 0;
-    struct menu * menu = menus;
-    for( ; menu ; menu = menu->next )
+    for (struct menu * menu = menus; menu; menu = menu->next)
     {
-        struct menu_entry * entry = menu->children;
-        
-        int i;
-        for(i = 0 ; entry ; entry = entry->next, i++ )
+        for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
         {
             CFG_APPEND("%s\\%s\n", menu->name, entry->name);
             if (strlen(entry->name) == 0 || strlen(menu->name) == 0) unnamed++;
