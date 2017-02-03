@@ -1186,6 +1186,7 @@ menu_add_base(
         //~ if (new_entry->id == 0) new_entry->id = menu_id_increment++;
         new_entry->next     = NULL;
         new_entry->prev     = NULL;
+        new_entry->parent   = 0;
         new_entry->parent_menu = menu;
         new_entry->selected = 1;
         menu_update_split_pos(menu, new_entry);
@@ -1203,6 +1204,7 @@ menu_add_base(
         new_entry->selected = 0;
         new_entry->next     = NULL;
         new_entry->prev     = head;
+        new_entry->parent   = 0;
         new_entry->parent_menu = menu;
         head->next      = new_entry;
         head            = new_entry;
@@ -1226,6 +1228,7 @@ menu_add_base(
             struct menu_entry * child = entry->children;
             while (!MENU_IS_EOL(child)) 
             { 
+                child->parent = entry;
                 child->depends_on |= entry->depends_on; // inherit dependencies
                 child->works_best_in |= entry->works_best_in;
                 count++; 
@@ -2148,13 +2151,12 @@ static int check_default_warnings(struct menu_entry * entry, char* warning)
     /* all submenu entries depend on the master entry, if any */
     if (IS_SUBMENU(entry->parent_menu))
     {
-        struct menu_entry * parent_entry = entry_find_by_name(0, entry->parent_menu->name);
-        if (parent_entry && IS_ML_PTR(parent_entry->priv))
+        if (entry->parent && IS_ML_PTR(entry->parent->priv))
         {
-            if (!MENU_INT(parent_entry))
+            if (!MENU_INT(entry->parent))
             {
-                int is_plural = parent_entry->name[strlen(parent_entry->name)-1] == 's';
-                snprintf(warning, MENU_MAX_WARNING_LEN, "%s %s disabled.", parent_entry->name, is_plural ? "are" : "is");
+                int is_plural = entry->parent->name[strlen(entry->parent->name)-1] == 's';
+                snprintf(warning, MENU_MAX_WARNING_LEN, "%s %s disabled.", entry->parent->name, is_plural ? "are" : "is");
                 return MENU_WARN_NOT_WORKING;
             }
         }
@@ -5470,7 +5472,7 @@ static struct menu_entry * entry_find_by_name(const char* name, const char* entr
     struct menu * menu = menus;
     for( ; menu ; menu = menu->next )
     {
-        if (!name || streq(menu->name, name))
+        if (streq(menu->name, name))
         {
             struct menu_entry * entry = menu->children;
             

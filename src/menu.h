@@ -137,10 +137,11 @@ typedef void (*menu_update_func)(                    // called before displaying
 
 struct menu_entry
 {
-        struct menu_entry *     next;
-        struct menu_entry *     prev;
+        struct menu_entry * next;
+        struct menu_entry * prev;
         struct menu_entry * children;
-        struct menu * parent_menu; // mostly for custom menus, so we know where each entry comes from
+        struct menu_entry * parent;
+        struct menu       * parent_menu; // mostly for custom menus, so we know where each entry comes from
 
         const char * name;
         void * priv;
