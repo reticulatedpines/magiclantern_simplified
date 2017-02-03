@@ -79,6 +79,10 @@ static int mod_menu_dirty = 1;
 #define IS_DYNAMIC_MENU(menu) \
     ((menu) == my_menu || (menu) == mod_menu)
 
+/* menu is checked for duplicate entries after adding new items */
+static void check_duplicate_entries();
+static int duplicate_check_dirty = 1;
+
 //for vscroll
 #define MENU_LEN 11
 
@@ -1173,6 +1177,7 @@ menu_add(
         return;
     
     menu_flags_load_dirty = 1;
+    duplicate_check_dirty = 1;
     
     int count0 = count; // for submenus
 
@@ -3706,6 +3711,9 @@ menus_display(
 {
     g_submenu_width = 720;
 
+    if (duplicate_check_dirty)
+        check_duplicate_entries();
+
     if (my_menu_dirty)
         my_menu_rebuild();
     
@@ -6104,4 +6112,34 @@ void run_in_separate_task(void* routine, int argument)
     cbr->user_routine = routine;
     cbr->argument = argument;
     task_create("run_test", 0x1a, 0x8000, task_without_powersave, cbr);
+}
+
+/* fixme: may be slow on large menus */
+static void check_duplicate_entries()
+{
+    duplicate_check_dirty = 0;
+
+    info_led_on();
+
+    for (struct menu * menu = menus; menu; menu = menu->next)
+    {
+        if (IS_DYNAMIC_MENU(menu))
+            continue;
+        
+        for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
+        {
+            if (!entry->name)
+                continue;
+
+            if (entry->shidden)
+                continue;
+
+            /* make sure each item can be looked up by name */
+            /* entry_find_by_name will print a warning if there are duplicates */
+            struct menu_entry * e = entry_find_by_name(menu->name, entry->name);
+            ASSERT(e == 0 || e == entry);
+        }
+    }
+
+    info_led_off();
 }
