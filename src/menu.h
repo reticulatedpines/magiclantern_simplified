@@ -107,7 +107,7 @@ struct menu_display_info
                                 } while(0)
 
 #define MENU_SET_ENABLED(val)   info->enabled = (val) // whether the feature is ON or OFF
-#define MENU_SET_ICON(ico, arg)  ({ info->icon = (ico); info->icon_arg = (arg); })
+#define MENU_SET_ICON(ico, arg)  do { info->icon = (ico); info->icon_arg = (arg); } while(0)
 
 struct menu_entry;
 struct menu_display_info;

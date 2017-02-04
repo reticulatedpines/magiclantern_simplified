@@ -172,7 +172,7 @@ int rand (void);
 #endif
 //~ #define ASSERT(x) {}
 
-#define STR_APPEND(orig,fmt,...) ({ int _len = strlen(orig); snprintf(orig + _len, sizeof(orig) - _len, fmt, ## __VA_ARGS__); });
+#define STR_APPEND(orig,fmt,...) do { int _len = strlen(orig); snprintf(orig + _len, sizeof(orig) - _len, fmt, ## __VA_ARGS__); } while(0)
 
 #if defined(POSITION_INDEPENDENT)
 extern uint32_t _ml_base_address;

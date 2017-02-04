@@ -887,7 +887,7 @@ static int stripes_correction_needed = 0;
 
 #define COERCE(x,lo,hi) MAX(MIN((x),(hi)),(lo))
 
-#define STR_APPEND(orig,fmt,...) ({ int _len = strlen(orig); snprintf(orig + _len, sizeof(orig) - _len, fmt, ## __VA_ARGS__); });
+#define STR_APPEND(orig,fmt,...) do { int _len = strlen(orig); snprintf(orig + _len, sizeof(orig) - _len, fmt, ## __VA_ARGS__); } while(0)
 
 #define PA ((int)(p->a))
 #define PB ((int)(p->b_lo | (p->b_hi << 12)))
