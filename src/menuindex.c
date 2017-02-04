@@ -4,7 +4,6 @@
 #include "menu.h"
 #include "menuhelp.h"
 
-void menu_open_submenu();
 extern void menu_easy_advanced_display(void* priv, int x0, int y0, int selected);
 
 static void menu_nav_help_open(void* priv, int delta)
