@@ -970,7 +970,9 @@ int module_exec(void *module, char *symbol, int count, ...)
             uint32_t parms[10];
             for(int parm = 0; parm < count; parm++)
             {
+                #ifndef PYCPARSER   /* va_arg not supported? */
                 parms[parm] = va_arg(args,uint32_t);
+                #endif
             }
 
             switch(count)

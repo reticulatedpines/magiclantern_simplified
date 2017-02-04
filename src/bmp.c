@@ -1166,7 +1166,9 @@ int bfnt_draw_char(int c, int px, int py, int fg, int bg)
     // if c < 0 we can always proceed as these are built-in via ico.c
     if (c >= 0 && !bfnt_ok())
     {
+        #ifndef PYCPARSER   /* circular dependency */
         bmp_printf(FONT_SMALL, 0, 0, "font addr bad");
+        #endif
         return 0;
     }
 
