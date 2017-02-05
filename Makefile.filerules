@@ -13,12 +13,33 @@ all::
 # file type rules
 #
 #
+
+ifeq ($(PREPRO),y)
+# save preprocessed C files (.c -> .i -> .o)
+%.i: %.c
+	$(call build,CPP,$(CC) $(DEPFLAGS_I) $(CFLAGS) -E -o $@ $<)
+%.i: $(PLATFORM_DIR)/%.c
+	$(call build,CPP,$(CC) $(DEPFLAGS_I) $(CFLAGS) -E -o $@ $<)
+%.i: $(SRC_DIR)/%.c
+	$(call build,CPP,$(CC) $(DEPFLAGS_I) $(CFLAGS) -E -o $@ $<)
+
+%.o: %.i
+	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
+%.o: $(PLATFORM_DIR)/%.i
+	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
+%.o: $(SRC_DIR)/%.i
+	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
+
+else
+# classic compilation (.c -> .o)
 %.o: %.c
-	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
+	$(call build,CC,$(CC) $(DEPFLAGS_C) $(CFLAGS) -c -o $@ $<)
 %.o: $(PLATFORM_DIR)/%.c
-	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
+	$(call build,CC,$(CC) $(DEPFLAGS_C) $(CFLAGS) -c -o $@ $<)
 %.o: $(SRC_DIR)/%.c
-	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
+	$(call build,CC,$(CC) $(DEPFLAGS_C) $(CFLAGS) -c -o $@ $<)
+
+endif
 
 %.o: %.S
 	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
@@ -27,9 +48,6 @@ all::
 %.o: $(SRC_DIR)/%.S
 	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
 
-# fixme: not working
-%.i: %.c
-	$(call build,CPP,$(CC) $(CFLAGS) -E -o $@ $<)
 %.s: %.c
 	$(call build,CC -S,$(CC) $(CFLAGS) -S -o $@ $<)
 

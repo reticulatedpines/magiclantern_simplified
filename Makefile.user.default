@@ -233,3 +233,8 @@ CONFIG_QEMU         = n
 
 # Work in progress - load ML as position-independent code (PIC)
 CONFIG_PIC          = n
+
+
+
+# enable to save preprocessed C files (*.i)
+PREPRO              = n

@@ -34,10 +34,17 @@ define rm_dir
 	@-$(RM) -rf $1
 endef
 
+DEPFLAGS_C=\
+	-Wp,-MMD,$(patsubst %.c,%.d,$(dir $@)$(notdir $@)) \
+	-Wp,-MT,$@ \
+	-Wp,-MP
+
+DEPFLAGS_I=\
+	-Wp,-MMD,$(patsubst %.i,%.d,$(dir $@)$(notdir $@)) \
+	-Wp,-MT,$@ \
+	-Wp,-MP
 
 FLAGS=\
-	-Wp,-MMD,$(patsubst %.o,%.d,$(dir $@)$(notdir $@)) \
-	-Wp,-MT,$@ \
 	-nostdlib \
 	-fomit-frame-pointer \
 	-fno-strict-aliasing \
@@ -151,3 +158,9 @@ prepare_install_dir: install_prepare
 	@$(MKDIR) -p $(INSTALL_CROPMARKS_DIR)
 	@$(MKDIR) -p $(INSTALL_SCRIPTS_DIR)
 	@$(MKDIR) -p $(INSTALL_DOC_DIR)
+
+# disable built-in rules
+.SUFFIXES:
+
+# do not delete these intermediate files
+.PRECIOUS:: %.i
