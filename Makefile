@@ -124,7 +124,11 @@ doxygen_clean:
 
 features.html: FORCE
 	cd features; python2 features-html.py > ../features.html
- 
+
+tasks:
+	python -m doctest build_tools/check_tasks.py
+	python build_tools/check_tasks.py
+
 FORCE:
 
 # we want ML platforms to be built sequentially, to avoid conflicts
