@@ -404,6 +404,7 @@ struct memSuite * _srm_malloc_suite(int num_requested_buffers)
     }
     
     srm_shutter_lock();
+    msleep(50);
 
     if (lens_info.job_state)
     {
