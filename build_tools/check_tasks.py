@@ -86,6 +86,7 @@ def friendly_func_name(func_name):
     >>> friendly_func_name("src/bar.c:print")
     'bar.c:print'
     """
+    func_name = func_name.replace("_prop_handler_", "PROP_HANDLER:")
     if func_name.startswith(current_file + ":"):
         return func_name[len(current_file + ":"):]
     if "/" in func_name:
@@ -288,13 +289,14 @@ def tag_functions(source_file, dest_file):
             last += 1
             lines.append(l)
         line_map.append(last)
+    lines.append("")
 
     i = 0
     with open(dest_file, "w") as out:
         for f,s,l in sorted(func_list, key=lambda x: x[1]):
             if s != source_file:
                 continue
-            while i < line_map[l]-2:
+            while i < line_map[l-1]-1:
                 out.write(lines[i])
                 i += 1
             
@@ -306,10 +308,19 @@ def tag_functions(source_file, dest_file):
             
             if lines[i-1].strip() != "" and not lines[i-1].strip().startswith("/"):
                 out.write("\n")
-            
+
+            # if the function name is not present on the next line, show it in comments
+            # (happens if the function was defined in some macro, see e.g. cfn.c)
+            func_short = f.split(":")[-1]
+            if func_short.startswith("_prop_handler_") or func_short.startswith("__module_prophandler_"):
+                func_short = "PROP_HANDLER"
+            show_func = (func_short not in lines[i] + lines[i+1])
+
             if func_tasks[f]:
                 func_tasks[f] = list(set(func_tasks[f]))
                 task_cmt = ", ".join(func_tasks[f])
+                if show_func:
+                    task_cmt = "%s: %s" % (friendly_func_name(f), task_cmt)
                 out.write("/*** %s ***/\n" % task_cmt);
             
             if 1:
@@ -318,6 +329,8 @@ def tag_functions(source_file, dest_file):
                     task_cmt = \
                         "ANY task" if "ANY" in tasks else (
                         ", ".join(tasks) if tasks else "?")
+                    if show_func:
+                        task_cmt = "%s: %s" % (friendly_func_name(f), task_cmt)
                     out.write("/*** %s ***/\n" % task_cmt);
 
                 # couldn't find it? try printing the callers
