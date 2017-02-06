@@ -300,6 +300,9 @@ def tag_functions(source_file, dest_file):
                 out.write(lines[i])
                 i += 1
             
+            if "PROP_INT" in lines[i]:
+                continue
+            
             keywords_before = lines[i].strip().split(" ")
             if (";" in lines[i] or
                not (set(["static", "int", "void"]) & set(keywords_before))):
