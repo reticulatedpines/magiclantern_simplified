@@ -237,4 +237,10 @@ CONFIG_PIC          = n
 
 
 # enable to save preprocessed C files (*.i)
+# this applies to modules as well (but CONFIG entries are not)
 PREPRO              = n
+
+# enable to turn off things not understood by pycparser
+# for static analysis only; do not execute the resulting code!
+# this applies to modules as well (but CONFIG entries are not)
+PYCPARSER           = n

@@ -94,6 +94,11 @@ AFLAGS=\
     
 -LFLAGS=
 
+ifeq ($(PYCPARSER),y)
+# both core and modules
+CFLAGS += -DPYCPARSER
+endif
+
 ifdef CONFIG_SMALL_FONTS
 $(error CONFIG_SMALL_FONTS must be renamed to ML_SRC_SMALL_FONTS)
 endif

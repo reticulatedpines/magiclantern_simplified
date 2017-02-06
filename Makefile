@@ -125,9 +125,19 @@ doxygen_clean:
 features.html: FORCE
 	cd features; python2 features-html.py > ../features.html
 
+# static analysis: annotate each function with its caller tasks
+# requires a custom build that will generate some invalid code (fixme)
+# that's why "make clean" commands are used before AND after the analysis
 tasks:
 	python -m doctest build_tools/check_tasks.py
-	python build_tools/check_tasks.py
+	make -C platform/5D3.113/ clean
+	make -C platform/5D3.113/ PREPRO=y PYCPARSER=y
+	make -i -C modules/ clean
+	make -i -C modules/ PREPRO=y PYCPARSER=y
+	make -i -C modules/lua clean
+	cd platform/5D3.113; python ../../build_tools/check_tasks.py *.i ../../modules/*/*.i
+	make -i -C modules/ clean
+	make -C platform/5D3.113 clean
 
 FORCE:
 

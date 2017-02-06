@@ -8,173 +8,53 @@
 from __future__ import print_function
 import os, sys, re
 from collections import defaultdict
-from pycparser import c_parser, c_ast, parse_file
+from pycparser import c_parser, c_ast, preprocess_file
 from copy import copy, deepcopy
 
-# copied from build log (5D3 1.1.3)
-# fixme: extract from Makefile
-source_files = [
-    "src/boot-hack.c",
-    "src/fio-ml.c",
-    "src/mem.c",
-    "src/ico.c",
-    "src/edmac.c",
-    "src/menu.c",
-    "src/debug.c",
-    "src/rand.c",
-    "src/posix.c",
-    "src/util.c",
-    "src/imath.c",
-    "src/electronic_level.c",
-    "platform/5D3.113/cfn.c",
-    "src/gui.c",
-    "src/picstyle.c",
-    "src/exmem.c",
-    "src/bmp.c",
-    "src/rbf_font.c",
-    "src/config.c",
-    "src/stdio.c",
-    "src/bitrate-5d3.c",
-    "src/lcdsensor.c",
-    "src/tweaks.c",
-    "src/tweaks-eyefi.c",
-    "src/lens.c",
-    "src/property.c",
-    "src/propvalues.c",
-    "src/gui-common.c",
-    "src/chdk-gui_draw.c",
-    "src/movtweaks.c",
-    "src/menuhelp.c",
-    "src/menuindex.c",
-    "src/focus.c",
-    "src/notify_box.c",
-    "src/bootflags.c",
-    "src/dialog_test.c",
-    "src/vram.c",
-    "src/greenscreen.c",
-    "src/fps-engio.c",
-    "src/shoot.c",
-    "src/hdr.c",
-    "src/lv-img-engio.c",
-    "src/state-object.c",
-    "src/tasks.c",
-    "src/vsync-lite.c",
-    "src/tskmon.c",
-    "src/battery.c",
-    "src/imgconv.c",
-    "src/histogram.c",
-    "src/falsecolor.c",
-    "src/audio-ak.c",
-    "src/zebra.c",
-    "src/vectorscope.c",
-    "src/beep.c",
-    "src/crop-mode-hack.c",
-    "src/ph_info_disp.c",
-    "src/flexinfo.c",
-    "src/screenshot.c",
-    "src/fileprefix.c",
-    "src/lvinfo.c",
-    "src/builtin-enforcing.c",
-    "src/powersave.c",
-    "src/ml-cbr.c",
-    "src/raw.c",
-    "src/chdk-dng.c",
-    "src/edmac-memcpy.c",
-    "src/console.c",
-    "src/tcc-glue.c",
-    "src/module.c",
-    "src/video_hacks.c",
-    "src/afma.c",
-    "src/asm.c",
-]
+def lookup_c(filepath):
+    # to be called from platform/cam
+    # (to match .i files)
+    if filepath.startswith("modules/"):
+        dir, file = os.path.split(filepath)
+        name, ext = os.path.splitext(file)
+        cfile = os.path.join(dir, name + ".c")
+        assert os.path.isfile(cfile)
+        return cfile
 
-# fixme: extract from Makefile, fix Lua
-module_files = [
-    "modules/raw_rec/raw_rec.c",
-    "modules/mlv_play/mlv_play.c",
-    "modules/mlv_rec/mlv_rec.c",
-    "modules/mlv_rec/mlv.c",
-    "modules/mlv_snd/mlv_snd.c",
-    "modules/file_man/file_man.c",
-    "modules/pic_view/pic_view.c",
-    "modules/ettr/ettr.c",
-    "modules/dual_iso/dual_iso.c",
-    "modules/silent/silent.c",
-    "modules/dot_tune/dot_tune.c",
-    "modules/autoexpo/autoexpo.c",
-    "modules/arkanoid/arkanoid.c",
-    "modules/deflick/deflick.c",
-    #~ "modules/lua/lua_globals.c",
-    #~ "modules/lua/lua_console.c",
-    #~ "modules/lua/lua_camera.c",
-    #~ "modules/lua/lua_lv.c",
-    #~ "modules/lua/lua_lens.c",
-    #~ "modules/lua/lua_movie.c",
-    #~ "modules/lua/lua_display.c",
-    #~ "modules/lua/lua_key.c",
-    #~ "modules/lua/lua_menu.c",
-    #~ "modules/lua/lua_dryos.c",
-    #~ "modules/lua/lua_interval.c",
-    #~ "modules/lua/lua_battery.c",
-    #~ "modules/lua/lua_task.c",
-    #~ "modules/lua/lua_property.c",
-    #~ "modules/lua/lua_constants.c",
-    #~ "modules/lua/lua.c",
-    "modules/bench/bench.c",
-    "modules/selftest/selftest.c",
-    "modules/adv_int/adv_int.c",
-]
+    dir, file = os.path.split(filepath)
+    name, ext = os.path.splitext(file)
+    cfile = os.path.join(dir, name + ".c")
+    if os.path.isfile(cfile): return cfile
+    cfile = os.path.join("../../src", name + ".c")
+    if os.path.isfile(cfile): return cfile
+    
+    print(filepath, dir, file, cfile)
+    assert 0
 
-# troubleshooting
-if 0:
-    source_files = ["src/menu.c"]
-    module_files = ["modules/adv_int/adv_int.c"]
+prepro_files = [f for f in sys.argv if f.endswith(".i")]
+source_files = [lookup_c(f) for f in prepro_files]
 
-def parse_src(filename):
-    ast = parse_file(
-        filename, use_cpp=True,
-        cpp_path="arm-none-eabi-cpp",
-        cpp_args=[
-            '-Isrc', 
-            '-Iplatform/5D3.113',
-            '-Iplatform/5D3.113/include',
-            '-D__extension__=',
-            '-D__attribute__(x)=',
-            '-D__builtin_va_list=int',
-            '-D_GNU_SOURCE',
-            '-DPYCPARSER',
-            '-DCONFIG_MAGICLANTERN=1',
-            '-DCONFIG_5D3=1',
-            '-DRESTARTSTART=0',
-            '-DROMBASEADDR=0',
-            '-DCONFIG_CONSOLE',
-            '-DCONFIG_TCC',
-            '-DCONFIG_MODULES',
-            '-DCONFIG_MODULES_MODEL_SYM="5D3.sym"'
-        ]
-    )
-    return ast
+def parse_prepro(filename):
+    os.system("sed -i 's/asm volatile/asm/' '%s'" % filename)
+    os.system("sed -i 's/asm __volatile__/asm/' '%s'" % filename)
 
-def parse_module(filename):
-    mod_name = filename.split("/")[-2]
-    ast = parse_file(
-        filename, use_cpp=True,
-        cpp_path="arm-none-eabi-cpp",
-        cpp_args=[
-            '-Isrc', 
-            '-Iplatform/all', 
-            '-Imodules/%s' % mod_name, 
-            '-D__extension__=',
-            '-D__attribute__(x)=',
-            '-D__builtin_va_list=int',
-            '-D_GNU_SOURCE',
-            '-DPYCPARSER',
-            '-DMODULE',
-            '-DMODULE_NAME=%s' % mod_name,
-            '-DCONFIG_MAGICLANTERN',
-        ]
-    )
-    return ast
+    cpp_path = "arm-none-eabi-cpp"
+    cpp_args = [
+        '-Dasm(...)=',
+        '-D__asm__(...)=',
+        '-D__extension__=',
+        '-D__attribute__(...)=',
+        '-D__builtin_va_list=int',
+    ]
+
+    text = preprocess_file(filename, cpp_path, cpp_args)
+    
+    # pycparser doesn't like a C file to begin with ;
+    # (happens after removing the first asm block from arm-mcr.h)
+    text = "struct __dummy__;\n" + text;
+    #~ print(text)
+
+    return c_parser.CParser().parse(text, lookup_c(filename))
 
 # globals
 current_file = "foo/bar.c"
@@ -394,13 +274,26 @@ def get_tasks(func, level=0):
 # tag each function with the task(s) where it's called from,
 # with autogenerated comments before the function body: /*** ... ***/
 def tag_functions(source_file, dest_file):
-    lines = open(source_file).readlines()
+    lines_raw = open(source_file).readlines()
+
+    # filter old autogenerated comments
+    last = -1
+    line_map = []
+    lines = []
+    for l in lines_raw:
+        if l.startswith("/*** ") and l.endswith(" ***/\n"):
+            pass
+        else:
+            last += 1
+            lines.append(l)
+        line_map.append(last)
+
     i = 0
     with open(dest_file, "w") as out:
         for f,s,l in sorted(func_list, key=lambda x: x[1]):
             if s != source_file:
                 continue
-            while i < l-2:
+            while i < line_map[l]-2:
                 out.write(lines[i])
                 i += 1
             
@@ -448,19 +341,38 @@ def cleanup_tags(source_file, dest_file):
             out.write(l)
 
 if __name__ == "__main__":
-    for current_file in source_files + module_files:
-        print(current_file)
-        cleanup_tags(current_file, current_file)
-        if current_file in source_files:
-            ast = parse_src(current_file)
+    
+    if "clean" in sys.argv:
+        for current_file in source_files:
+            print("cleaning", current_file)
+            cleanup_tags(current_file, current_file)
+        raise SystemExit
+    
+    start_dir = os.getcwd()
+    for prepro_file in prepro_files:
+        if prepro_file.startswith("../../modules/"):
+            module_path, prepro_file = os.path.split(prepro_file)
+            print("Entering", module_path)
+            os.chdir(module_path)
         else:
-            ast = parse_module(current_file)
+            os.chdir(start_dir)
+        current_file = lookup_c(prepro_file)
+        print(current_file, prepro_file)
+        ast = parse_prepro(prepro_file)
         scan_func_defs(ast)
         scan_structs(ast)
         scan_func_calls(ast)
 
     # overwrite files (we have them in hg anyway)
-    for current_file in source_files + module_files:
+    for current_file in source_files:
+
+        if current_file.startswith("../../modules/"):
+            module_path, current_file = os.path.split(current_file)
+            print("Entering", module_path)
+            os.chdir(module_path)
+        else:
+            os.chdir(start_dir)
+
         print("Writing %s..." % current_file)
         tag_functions(current_file, current_file)
 
