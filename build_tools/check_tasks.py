@@ -45,6 +45,7 @@ def parse_prepro(filename):
         '-D__extension__=',
         '-D__attribute__(...)=',
         '-D__builtin_va_list=int',
+        '-D__builtin_va_arg(a,b)=0',
     ]
 
     text = preprocess_file(filename, cpp_path, cpp_args)

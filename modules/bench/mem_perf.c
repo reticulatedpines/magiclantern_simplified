@@ -25,7 +25,6 @@ static uint32_t mem_perf_runtime = 50; /* msec */
 
 static void mem_perf_asm_128(uint32_t address, uint32_t size, uint32_t loops)
 {
-#ifndef PYCPARSER
     asm volatile ("\
        MOV R6, %[loops]\r\n\
        \r\n\
@@ -46,7 +45,6 @@ static void mem_perf_asm_128(uint32_t address, uint32_t size, uint32_t loops)
        BNE mem_perf_asm_loop_outer\r\n\
        " : : [address]"r"(address), [size]"r"(size), [loops]"r"(loops) : "r2", "r3", "r4", "r5", "r6"
     );
-#endif
 }
 
 static float mem_perf_run(uint32_t block_size, uint32_t address)

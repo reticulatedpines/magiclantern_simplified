@@ -669,6 +669,13 @@ static void stub_test_file_io()
     TEST_FUNC_CHECK(is_file("test.dat"), == 0);
 }
 
+/* microsecond timer wraps around at 1048576 */
+static int DeltaT(int a, int b)
+{
+    return MOD(a - b, 1048576);
+}
+
+
 static void stub_test_gui_timers()
 {
     /* GUI timers */
@@ -705,14 +712,6 @@ static void stub_test_gui_timers()
         TEST_VOID(msleep(1500));
         TEST_FUNC_CHECK(timer_func, == 0);  /* ta0 + 3000 => CBR should be not be called, because it was canceled */
     }
-
-#ifndef PYCPARSER
-    /* microsecond timer wraps around at 1048576 */
-    int DeltaT(int a, int b)
-    {
-        return MOD(a - b, 1048576);
-    }
-#endif
 
     /* SetHPTimerNextTick, SetHPTimerAfterTimeout, SetHPTimerAfterNow */
     {
