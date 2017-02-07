@@ -23,7 +23,7 @@ all::
 
 ifeq ($(PREPRO),y)
 # save preprocessed C files (.c -> .i -> .o)
-%.o: %.i
+%.o: %.i %.t
 	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
 else
 # classic compilation (.c -> .o)
@@ -41,6 +41,11 @@ endif
 	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
 %.o: $(SRC_DIR)/%.S
 	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
+
+# fake target: check thread safety with clang
+%.t: %.i
+	$(call build,CLANG,clang -fsyntax-only -Wno-everything -Wthread-safety \
+	-target armv5-none-eabi -mcpu=arm946e-s $<)
 
 %.s: %.c
 	$(call build,CC -S,$(CC) $(CFLAGS) -S -o $@ $<)

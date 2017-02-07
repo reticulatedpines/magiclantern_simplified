@@ -4,6 +4,7 @@
 #ifndef THREAD_SAFETY_ANALYSIS_MUTEX_H
 #define THREAD_SAFETY_ANALYSIS_MUTEX_H
 
+#if 0
 // Enable thread safety attributes only with clang.
 // The attributes can be safely erased when compiling with other compilers.
 #if defined(__clang__) && (!defined(SWIG))
@@ -11,7 +12,9 @@
 #else
 #define THREAD_ANNOTATION_ATTRIBUTE__(x)   // no-op
 #endif
+#endif
 
+#pragma GCC diagnostic ignored "-Wattributes"
 #define THREAD_ANNOTATION_ATTRIBUTE__(x)   __attribute__((x))
 
 #define CAPABILITY(x) \
