@@ -14,8 +14,6 @@ all::
 #
 #
 
-ifeq ($(PREPRO),y)
-# save preprocessed C files (.c -> .i -> .o)
 %.i: %.c
 	$(call build,CPP,$(CC) $(DEPFLAGS_I) $(CFLAGS) -E -o $@ $<)
 %.i: $(PLATFORM_DIR)/%.c
@@ -23,13 +21,10 @@ ifeq ($(PREPRO),y)
 %.i: $(SRC_DIR)/%.c
 	$(call build,CPP,$(CC) $(DEPFLAGS_I) $(CFLAGS) -E -o $@ $<)
 
+ifeq ($(PREPRO),y)
+# save preprocessed C files (.c -> .i -> .o)
 %.o: %.i
 	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
-%.o: $(PLATFORM_DIR)/%.i
-	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
-%.o: $(SRC_DIR)/%.i
-	$(call build,CC,$(CC) $(CFLAGS) -c -o $@ $<)
-
 else
 # classic compilation (.c -> .o)
 %.o: %.c
@@ -38,7 +33,6 @@ else
 	$(call build,CC,$(CC) $(DEPFLAGS_C) $(CFLAGS) -c -o $@ $<)
 %.o: $(SRC_DIR)/%.c
 	$(call build,CC,$(CC) $(DEPFLAGS_C) $(CFLAGS) -c -o $@ $<)
-
 endif
 
 %.o: %.S
