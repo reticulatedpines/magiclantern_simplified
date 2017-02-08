@@ -11,6 +11,13 @@
 
 
 //Definitions
+
+enum file_entry_type {
+    TYPE_DIR,
+    TYPE_FILE,
+    TYPE_ACTION,
+};
+
 #define MAX_PATH_LEN 0x80
 struct file_entry
 {
@@ -18,7 +25,7 @@ struct file_entry
     struct menu_entry * menu_entry;
     char name[MAX_PATH_LEN];
     unsigned int size;
-    unsigned int type: 2;
+    enum file_entry_type type;
     unsigned int timestamp;
 };
 
@@ -27,11 +34,6 @@ typedef struct _multi_files
     struct _multi_files *next;
     char name[MAX_PATH_LEN];
 }FILES_LIST;
-
-
-#define TYPE_DIR 0
-#define TYPE_FILE 1
-#define TYPE_ACTION 2
 
 enum _FILER_OP {
     FILE_OP_NONE,
@@ -166,7 +168,7 @@ static void clear_file_menu()
     free(compacted);
 }
 
-static struct file_entry * add_file_entry(char* txt, int type, int size, int timestamp)
+static struct file_entry * add_file_entry(char* txt, enum file_entry_type type, int size, int timestamp)
 {
     struct file_entry * fe = malloc(sizeof(struct file_entry));
     if (!fe) return 0;
@@ -192,22 +194,27 @@ static struct file_entry * add_file_entry(char* txt, int type, int size, int tim
 
     fe->type = type;
     fe->menu_entry->select_Q = BrowseUpMenu;
-    if (fe->type == TYPE_DIR)
+
+    /* note: each update function must display a name */
+    switch (fe->type)
     {
-        fe->menu_entry->select = select_dir;
-        fe->menu_entry->update = update_dir;
+        case TYPE_DIR:
+            fe->menu_entry->select = select_dir;
+            fe->menu_entry->update = update_dir;
+            break;
+
+        case TYPE_FILE:
+            fe->menu_entry->select = select_file;
+            fe->menu_entry->update = update_file;
+            break;
+
+        case TYPE_ACTION:
+            fe->menu_entry->select = default_select_action;
+            fe->menu_entry->update = update_action;
+            fe->menu_entry->icon_type = IT_ACTION;
+            break;
     }
-    else if (fe->type == TYPE_FILE)
-    {
-        fe->menu_entry->select = select_file;
-        fe->menu_entry->update = update_file;
-    }
-    else if (fe->type == TYPE_ACTION)
-    {
-        fe->menu_entry->select = default_select_action;
-        fe->menu_entry->update = update_action;
-        fe->menu_entry->icon_type = IT_ACTION;
-    }
+
     fe->next = file_entries;
     file_entries = fe;
     return fe;
