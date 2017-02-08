@@ -1669,7 +1669,12 @@ static void FAST focus_found_pixel(int x, int y, int e, int thr, uint8_t * const
     color = (color << 8) | color;
     
 #ifdef FEATURE_ANAMORPHIC_PREVIEW
-    y = anamorphic_squeeze_bmp_y(y);
+    if (!focus_peaking_lores)
+    {
+        /* lo-res peaking is computed from the display-filtered (squeezed) image */
+        /* hi-res peaking is computed from the HD buffer (unsqueezed) */
+        y = anamorphic_squeeze_bmp_y(y);
+    }
 #endif
     
     uint16_t * const b_row = (uint16_t*)( bvram + BM_R(y) );   // 2 pixels
@@ -1791,6 +1796,14 @@ draw_zebra_and_focus( int Z, int F )
         int xStart = os.x0 + 8;
         int xEnd = os.x_max - 8;
         int n_over = 0;
+        
+        #ifdef FEATURE_ANAMORPHIC_PREVIEW
+        if (focus_peaking_lores)
+        {
+            yStart = anamorphic_squeeze_bmp_y(yStart);
+            yEnd = anamorphic_squeeze_bmp_y(yEnd);
+        }
+        #endif
         
         const uint8_t* p8; // that's a moving pointer
         
