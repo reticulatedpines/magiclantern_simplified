@@ -4009,16 +4009,27 @@ menu_entry_customize_toggle(
 {
     struct menu_entry * entry = get_selected_entry(menu);
     if (!entry) return;
+    if (!entry->name) return;
+
+    /* make sure the customized menu entry can be looked up by name */
+    struct menu_entry * entry_by_name = entry_find_by_name(entry->parent_menu->name, entry->name);
+    if (!entry_by_name)
+    {
+        beep();
+        printf("Not found: %s\n", entry->name);
+        return;
+    }
 
     if (menu == my_menu) // special case
     {
         // lookup the corresponding entry in normal menus, and toggle that one instead
-        entry = entry_find_by_name(entry->parent_menu->name, entry->name);
-        if (!entry) { beep(); return; }
-        if (!entry->starred) return;
-        menu_entry_star_toggle(entry); // should not fail
+        struct menu_entry * orig_entry = entry_by_name;
+        if (!orig_entry->starred) return;
+        menu_entry_star_toggle(orig_entry); // should not fail
         return;
     }
+
+    ASSERT(entry_by_name == entry);
 
     if (entry->starred && HAS_CURRENT_HIDDEN_FLAG(entry)) // both flags active, abnormal
     {
@@ -5443,6 +5454,11 @@ void select_menu_by_name(char* name, const char* entry_name)
 
 static struct menu_entry * entry_find_by_name(const char* name, const char* entry_name)
 {
+    if (!name || !entry_name)
+    {
+        return 0;
+    }
+
     struct menu_entry * ans = 0;
     int count = 0;
 
