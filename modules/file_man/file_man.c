@@ -181,7 +181,13 @@ static struct file_entry * add_file_entry(char* txt, int type, int size, int tim
     fe->size = size;
     fe->timestamp = timestamp;
 
-    fe->menu_entry->name = fe->name;
+    /* named menus are checked for duplicates (slow)
+     * this will be noticeable on folders with many files
+     * therefore, we will leave the menu unnamed
+     * and show the file name from the menu update function
+     */
+    //fe->menu_entry->name = fe->name;
+
     fe->menu_entry->priv = fe;
 
     fe->type = type;
@@ -584,6 +590,8 @@ static MENU_SELECT_FUNC(select_dir)
 
 static MENU_UPDATE_FUNC(update_dir)
 {
+    struct file_entry * fe = (struct file_entry *) entry->priv;
+    MENU_SET_NAME("%s", fe->name);
     MENU_SET_VALUE("");
     MENU_SET_ICON(MNI_AUTO, 0);
     update_status(entry, info);
@@ -1158,6 +1166,7 @@ static MENU_UPDATE_FUNC(update_status)
 static MENU_UPDATE_FUNC(update_file)
 {
     struct file_entry * fe = (struct file_entry *) entry->priv;
+    MENU_SET_NAME("%s", fe->name);
     MENU_SET_VALUE("");
     MENU_SET_RINFO("%s", format_date_size(fe->size,fe->timestamp));
 
@@ -1219,6 +1228,8 @@ static MENU_SELECT_FUNC(default_select_action)
 
 static MENU_UPDATE_FUNC(update_action)
 {
+    struct file_entry * fe = (struct file_entry *) entry->priv;
+    MENU_SET_NAME("%s", fe->name);
     MENU_SET_VALUE("");
     update_status(entry, info);
     if (entry->selected) view_file = 0;
