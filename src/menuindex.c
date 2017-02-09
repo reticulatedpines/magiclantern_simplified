@@ -104,8 +104,10 @@ static struct menu_entry help_menus[] = {
     #endif
     #ifdef ARROW_MODE_TOGGLE_KEY
     {
+        /* note: on some models, the two keys are identical,
+         * causing a duplicate menu item (workaround: extra space) */
         .select = menu_nav_help_open,
-        .name = "Press "ARROW_MODE_TOGGLE_KEY,
+        .name = "Press "ARROW_MODE_TOGGLE_KEY" ",
         .choices = CHOICES("Shortcuts (LV only)"),
     },
     #endif
