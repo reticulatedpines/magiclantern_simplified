@@ -134,8 +134,9 @@ int FAST get_y_skip_offset_for_histogram()
 static int is_zoom_mode_so_no_zebras() 
 { 
     if (!lv) return 0;
-    if (lv_dispsize == 1) return 0;
-    if (raw_lv_is_enabled()) return 0; /* exception: in raw mode we can record crop videos */
+    if (lv_dispsize == 1) return 0;     /* always on in x1 */
+    if (lv_dispsize > 5) return 1;      /* always disable in x10 zoom and also in the special x1 mode from some recent models (0x81) */
+    if (raw_lv_is_enabled()) return 0;  /* exception: in raw mode we can record crop videos */
     
     return 1;
 }
