@@ -2064,6 +2064,22 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
     return 0;
 }
 
+static char dcim_dir_suffix[6];
+
+PROP_HANDLER(PROP_DCIM_DIR_SUFFIX)
+{
+    snprintf(dcim_dir_suffix, sizeof(dcim_dir_suffix), (const char *)buf);
+}
+
+static const char* get_cf_dcim_dir()
+{
+    static char dcim_dir[FIO_MAX_PATH_LENGTH];
+    struct card_info * card = get_shooting_card();
+    if (is_dir("A:/")) card = get_card(CARD_A);
+    snprintf(dcim_dir, sizeof(dcim_dir), "%s:/DCIM/%03d%s", card->drive_letter, card->folder_number, dcim_dir_suffix);
+    return dcim_dir;
+}
+
 static char* get_next_raw_movie_file_name()
 {
     static char filename[100];
@@ -2387,6 +2403,18 @@ static void raw_video_rec_task()
 
     /* disable Canon's powersaving (30 min in LiveView) */
     powersave_prohibit();
+
+    /* create a backup file, to make sure we can save the file footer even if the card is full */
+    char backup_filename[100];
+    snprintf(backup_filename, sizeof(backup_filename), "%s/backup.raw", get_dcim_dir());
+    FILE* bf = FIO_CreateFile(backup_filename);
+    if (!bf)
+    {
+        bmp_printf( FONT_MED, 30, 50, "File create error");
+        goto cleanup;
+    }
+    FIO_WriteFile(bf, (void*)0x40000000, 512*1024);
+    FIO_CloseFile(bf);
 
     /* wait for two frames to be sure everything is refreshed */
     wait_lv_frames(2);
@@ -2953,7 +2981,7 @@ static struct menu_entry raw_video_menu[] =
                 .priv   = &h264_proxy,
                 .max    = 1,
                 .help   = "Record a H.264 video at the same time.",
-                .help2  = "Will reduce write speed and available memory.",
+                .help2  = "For best performance, record H.264 on SD and RAW on CF.",
                 .advanced = 1,
             },
             {
@@ -3356,6 +3384,10 @@ MODULE_CBRS_START()
     MODULE_CBR(CBR_DISPLAY_FILTER, raw_rec_update_preview, 0)
     MODULE_NAMED_CBR("snd_rec_enabled", raw_rec_snd_rec_cbr)
 MODULE_CBRS_END()
+
+MODULE_PROPHANDLERS_START()
+    MODULE_PROPHANDLER(PROP_DCIM_DIR_SUFFIX)
+MODULE_PROPHANDLERS_END()
 
 MODULE_CONFIGS_START()
     MODULE_CONFIG(raw_video_enabled)
