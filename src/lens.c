@@ -217,9 +217,12 @@ int round_shutter(int tv, int slowest_shutter)
     tv = MIN(tv, FASTEST_SHUTTER_SPEED_RAW);
 
     /* note: it's possible to get a valid shutter just by altering the requested value by 1 */
+    /* ... unless we hit some limits */
     tvr = MAX(tv    , slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
     tvr = MAX(tv - 1, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
     tvr = MAX(tv + 1, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
+    tvr = MAX(tv - 2, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
+    tvr = MAX(tv + 2, slowest_shutter); if (expo_value_rounding_ok(tvr, 0)) return tvr;
     return 0;
 }
 
@@ -335,7 +338,7 @@ int FAST get_ml_bottombar_pos()
     else if (screen_layout == SCREENLAYOUT_UNDER_16_9) bottom = MIN(os.y_max - os.off_169 + 54, 480);
 
     if (gui_menu_shown())
-        bottom = 480 + (hdmi_code == 5 ? 40 : 0); // force it at the bottom of menu
+        bottom = 480 + (hdmi_code >= 5 ? 40 : 0); // force it at the bottom of menu
 
     return bottom - 34;
 }
@@ -487,7 +490,7 @@ int FAST get_ml_topbar_pos()
     int y = 0;
     if (gui_menu_shown())
     {
-        y = (hdmi_code == 5 ? 40 : 2); // force it at the top of menu
+        y = (hdmi_code >= 5 ? 40 : 2); // force it at the top of menu
     }
     else
     {
