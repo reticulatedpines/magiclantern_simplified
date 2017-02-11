@@ -507,13 +507,13 @@ static void FAST default_movie_cropmarks()
     {
         if(video_mode_resolution > 1) // 4:3
         {
-            crop_x = (os.off_43 << 16) | (os.x_max - os.off_43);
-            crop_y = (os.y0 << 16) | (os.y_max - os.y0);
+            crop_x = ((os.x0 + os.off_43) << 16) | (os.x_max - os.off_43);
+            crop_y = (os.y0 << 16) | os.y_max;
         }
         else
         {
-            crop_x = (os.x0 << 16) | (os.x_max - os.x0);
-            crop_y = (os.off_169 << 16) | (os.y_max - os.off_169);
+            crop_x = (os.x0 << 16) | os.x_max;
+            crop_y = ((os.y0 + os.off_169) << 16) | (os.y_max - os.off_169);
         }
     }
     
