@@ -2377,6 +2377,15 @@ static void raw_video_rec_task()
     writing_time = 0;
     idle_time = 0;
     mlv_chunk = 0;
+
+    if (h264_proxy)
+    {
+        /* start H.264 recording */
+        ASSERT(!RECORDING_H264);
+        movie_start();
+    }
+
+    /* disable Canon's powersaving (30 min in LiveView) */
     powersave_prohibit();
 
     /* wait for two frames to be sure everything is refreshed */
@@ -2831,6 +2840,12 @@ cleanup:
     /* re-enable powersaving  */
     powersave_permit();
 
+    if (h264_proxy && RECORDING_H264)
+    {
+        /* stop H.264 recording */
+        movie_end();
+    }
+
     raw_recording_state = RAW_IDLE;
 }
 
@@ -2934,6 +2949,14 @@ static struct menu_entry raw_video_menu[] =
                 .advanced = 1,
             },
             {
+                .name   = "H.264 proxy",
+                .priv   = &h264_proxy,
+                .max    = 1,
+                .help   = "Record a H.264 video at the same time.",
+                .help2  = "Will reduce write speed and available memory.",
+                .advanced = 1,
+            },
+            {
                 .name = "Card warm-up",
                 .priv = &warm_up,
                 .max = 7,
@@ -3005,7 +3028,7 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
         return 1;
 
     /* if you somehow managed to start recording H.264, let it stop */
-    if (RECORDING_H264)
+    if (RECORDING_H264 && !h264_proxy)
         return 1;
     
     /* block the zoom key while recording */
@@ -3083,6 +3106,28 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
     }
     
     return 1;
+}
+
+static unsigned int raw_rec_keypress_cbr_raw(unsigned int raw_event)
+{
+    struct event * event = (struct event *) raw_event;
+
+    if (h264_proxy)
+    {
+        if (IS_FAKE(event))
+        {
+            if (raw_recording_state == RAW_PREPARING ||
+                raw_recording_state == RAW_FINISHING)
+            {
+                /* fake events (generated from ML) are not processed */
+                /* they are probably for starting/stopping H.264 */
+                return 1;
+            }
+        }
+    }
+
+    int key = module_translate_key(event->param, MODULE_KEY_PORTABLE);
+    return raw_rec_keypress_cbr(key);
 }
 
 static int preview_dirty = 0;
@@ -3306,7 +3351,7 @@ MODULE_INFO_END()
 
 MODULE_CBRS_START()
     MODULE_CBR(CBR_VSYNC, raw_rec_vsync_cbr, 0)
-    MODULE_CBR(CBR_KEYPRESS, raw_rec_keypress_cbr, 0)
+    MODULE_CBR(CBR_KEYPRESS_RAW, raw_rec_keypress_cbr_raw, 0)
     MODULE_CBR(CBR_SHOOT_TASK, raw_rec_polling_cbr, 0)
     MODULE_CBR(CBR_DISPLAY_FILTER, raw_rec_update_preview, 0)
     MODULE_NAMED_CBR("snd_rec_enabled", raw_rec_snd_rec_cbr)
@@ -3329,4 +3374,5 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(h264_proxy_menu)
     MODULE_CONFIG(bpp)
     MODULE_CONFIG(bpp_index)
+    MODULE_CONFIG(h264_proxy)
 MODULE_CONFIGS_END()
