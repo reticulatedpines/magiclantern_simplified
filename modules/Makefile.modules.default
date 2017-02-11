@@ -1,7 +1,7 @@
 MODULE_CFLAGS += -I../../src/
 ML_MODULES_STATIC ?=
 ML_MODULES_DYNAMIC ?= \
-	raw_rec \
+	mlv_lite \
 	mlv_play \
 	mlv_rec \
 	mlv_snd \
