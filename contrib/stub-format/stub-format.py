@@ -14,6 +14,7 @@ data_structs = [
     "LCD_Palette",
     "sd_device",
     "cf_device",
+    "cf_device_ptr",
     "task_max",
     "gui_main_struct",
     "mvr_config",

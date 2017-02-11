@@ -598,6 +598,8 @@ int hdmi_code = 0;
 void _update_vram_params(){};
 void draw_line(int x1, int y1, int x2, int y2, int cl){}
 void NotifyBox(int timeout, char* fmt, ...) {}
+struct vram_info lv_vram;
+struct vram_info * get_yuv422_vram() { lv_vram.vram = 0; return &lv_vram; }
 struct memSuite * _shoot_malloc_suite(size_t size) { return 0; }
 struct memSuite * _shoot_malloc_suite_contig(size_t size) { return 0; }
 void _shoot_free_suite(struct memSuite * suite) {}

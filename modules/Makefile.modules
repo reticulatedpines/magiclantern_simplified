@@ -46,18 +46,33 @@ README.rst:
 $(MODULE_OUTPUT): $(MODULE_STRINGS) $(MODULE_OBJS) $(HGDIFF_OBJS)
 	$(call build,MODULE,$(LD) -r -o $@ $(MODULE_OBJS))
 	$(call build,STRIP,$(STRIP) --strip-debug --strip-unneeded --discard-all --discard-locals $@)
-#~ 	$(call build,OBJCOPY,$(OBJCOPY) --add-section .module_hginfo=hginfo.tmp $@)
 	$(call build,OBJCOPY,$(OBJCOPY) --add-section .module_hgdiff=hgdiff.tmp $@)
+	$(call rm_files, $(HGDIFF_OBJS))
 
+#~ 	$(call build,OBJCOPY,$(OBJCOPY) --add-section .module_hginfo=hginfo.tmp $@)
 
 # tag any function with DUMP_ASM, then run "make dump_asm" from module directory
 dump_asm: all
 	$(OBJDUMP) -d -M reg-names-raw --section=.dump_asm $(MODULE_OBJS)
 
 hginfo.tmp: FORCE
-	$(call build,HGDIFF,(echo "Repo path:"; hg root; echo "\nSource:"; hg paths; echo "\nDir state:"; hg log --limit 1) | gzip > $@)
+	$(call build,HGDIFF,(\
+		echo "Repo path:"; hg root; \
+		echo "\nSource:"; hg paths; \
+		echo "\nDir state:"; hg log --limit 1\
+	) | gzip > $@)
+
 hgdiff.tmp: FORCE
-	$(call build,HGDIFF,(hg diff --nodates .) | gzip > $@)
+	$(call build,HGDIFF,(\
+		hg locate --include . \
+		&& hg diff --nodates . \
+		|| (\
+				hg add -I "*.[chS]" -I Makefile -I README.rst -X module_strings.h > /dev/null; \
+				hg diff --nodates .; \
+				hg forget "set:added()" > /dev/null \
+		) \
+	) | gzip > $@)
+
 %.sym: %.mo
 	$(call build,EXPORTS,$(READELF) -sW $< | grep GLOBAL | grep -v UND | grep -v COM | grep -v "__module_.*$(MODULE_NAME)" | $(AWK) "{print \$$2 \" \" \$$8;}" | sort > $@ && cat $@)
 %.dep: %.mo
