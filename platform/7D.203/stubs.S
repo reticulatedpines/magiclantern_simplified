@@ -92,6 +92,7 @@ NSTUB(0xFF0730C8, _audio_ic_write)
 NSTUB(0xFF57B014,  audio_thresholds)
 NSTUB(0xFF0640EC,  sounddev_active_in)
 NSTUB(0xFF063C70,  sounddev_task)
+// NSTUB(    ???, _audio_ic_write_bulk)                     /* present on 6D.116 */
 
 /** Bitmap **/
 NSTUB(   0x29A9C,  LCD_Palette)                             // in InitializeBitmapDisplayDevice, right after 0xc0f14800
@@ -223,6 +224,7 @@ NSTUB(0xFF202814,  LightMeasure_n_Callback_r0)
 NSTUB(   0x22938,  cf_device)
 NSTUB(0xFF3D7798,  fsuDecodePartitionTable)                 // AJ_fsuGetPart_related
     //NSTUB(   0x208D8, sd_device)
+// NSTUB(    ???,  cf_device_ptr)                           /* present on 5D3.113 */
 
 /** Memory allocation **/
 NSTUB(0xFF07CAC8,  GetMemoryInformation)
@@ -296,6 +298,7 @@ NSTUB(0xFF075210,  LoadCalendarFromRTC)
 NSTUB(0xFF16004C,  PtpDps_remote_release_SW1_SW2_worker)    // called from: ptpRemoteRelease Occupy
 NSTUB(0xFF5517B0,  lv_path_struct)
 NSTUB(0xFF209670,  vsnprintf)
+// NSTUB(    ???,  FSUunMountDevice)                        /* present on 5D3.113 */
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
 
 /** Unused stubs or porting notes **/
@@ -316,8 +319,8 @@ NSTUB(0xFF209670,  vsnprintf)
 ///NSTUB(0xFF06D6A8,  MuteOn_0)
 ///NSTUB(0xFF35AC90,  OlcAFFrameApp_handler)
 ///NSTUB(0xFF03F4A8,  PD_RemoteRelease)
-///NSTUB(0xFF0687C8,  PROP_GetMulticastProperty)
 ///NSTUB(0xFF06934C,  PROPAD_GetPropertyData)
+///NSTUB(0xFF0687C8,  PROP_GetMulticastProperty)
 ///NSTUB(0xFF3D2644,  PackMem_PopEDmacForMemorySuite)
 ///NSTUB(0xFF3D27CC,  PackMem_RegisterEDmacAbortCBRForMemorySuite)
 ///NSTUB(0xFF3D26EC,  PackMem_RegisterEDmacCompleteCBRForMemorySuite)

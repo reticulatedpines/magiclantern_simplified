@@ -228,7 +228,7 @@ void redraw();
 void redraw_after(int msec);
 void _redraw_do();  /* private */
 
-/* Change GUI mode (aka CURRENT_DIALOG_MAYBE). Common modes are 0 (idle), DLG_PLAY and DLG_MENU. */
+/* Change GUI mode. Common modes are 0 (idle), GUIMODE_PLAY and GUIMODE_MENU. */
 void SetGUIRequestMode(int mode);
 int get_gui_mode();
 
@@ -269,7 +269,6 @@ int handle_follow_focus(struct event * event);
 int handle_follow_focus_save_restore(struct event * event);
 int handle_zoom_overlay(struct event * event);
 int handle_zoom_x5_x10(struct event * event);
-int handle_krzoom(struct event * event);
 int handle_quick_access_menu_items(struct event * event);
 int handle_fps_events(struct event * event);
 int handle_expo_preset(struct event * event);
@@ -278,6 +277,8 @@ int handle_fast_zoom_box(struct event * event);
 int handle_voice_tags(struct event * event);
 int handle_lv_play(struct event * event);
 int handle_fast_zoom_in_play_mode(struct event * event);
+int handle_lv_afframe_workaround(struct event * event);
+
 void spy_event(struct event * event);
 
 int handle_keep_ml_after_format_toggle(struct event * event);

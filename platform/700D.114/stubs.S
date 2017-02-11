@@ -95,6 +95,7 @@ NSTUB(0xFF337E3C, _audio_ic_write)
 NSTUB(0xFF7FD164,  audio_thresholds)
 NSTUB(0xFF10B714,  sounddev_active_in)
 NSTUB(0xFF10B228,  sounddev_task)
+// NSTUB(    ???, _audio_ic_write_bulk)                     /* present on 6D.116 */
 
 /** Bitmap **/
 NSTUB(   0x50ACC,  LCD_Palette)
@@ -129,7 +130,7 @@ NSTUB(0xFF52C454,  LiveViewApp_handler)
 NSTUB(0xFF52D378,  LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
 NSTUB(0xFF52E800,  LiveViewApp_handler_end)
 NSTUB(0xFF6E6C08,  LiveViewShutterApp_handler)
-NSTUB(0xFF3B9E94,  PlayMain_handler)
+NSTUB(0xFF702A3C,  PlayMain_handler)
 NSTUB(0xFF547300,  PlayMovieGuideApp_handler)
 NSTUB(0xFF5331BC,  ShootOlcApp_handler)
 // NSTUB(    ???,  LiveViewLevelApp_handler)                /* present on 5D3.113 */
@@ -199,11 +200,11 @@ NSTUB(0xFF0EA818,  SRM_FreeMemoryResourceFor1stJob)
 // NSTUB(    ???,  gui_timer_struct)                        /* present on 7D.203, 500D.111, 60D.111, 50D.109, 5D2.212, 600D.102, 550D.109, 1100D.105 */
 
 /** GUI timers **/
+NSTUB(0xFF521608,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 NSTUB(0xFFA68688 - RAM_OFFSET,  CancelTimer)
 NSTUB(0xFFA61F88 - RAM_OFFSET,  SetHPTimerAfterNow)
 NSTUB(0xFFA62078 - RAM_OFFSET,  SetHPTimerNextTick)
 NSTUB(0xFFA68488 - RAM_OFFSET,  SetTimerAfter)
-NSTUB(0xFF521608,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 
 /** H264 Encoder **/
 NSTUB(   0x314F4,  mvr_config)
@@ -213,10 +214,10 @@ NSTUB(0xFF2C1790,  mvrSetDefQScale)
 // NSTUB(    ???,  mvrSetGopOptSizeFULLHD)                  /* present on 600D.102, 550D.109, 1100D.105 */
 
 /** Interrupts **/
+NSTUB(0x232D0,     post_isr_hook)
+NSTUB(0x232CC,     pre_isr_hook)
 // NSTUB(    ???,  isr_table_handler)                       /* present on 7D_MASTER.203 */
 // NSTUB(    ???,  isr_table_param)                         /* present on 7D_MASTER.203 */
-// NSTUB(    ???,  post_isr_hook)                           /* present on 7D.203, 6D.113, 5D3.113, EOSM.202 */
-// NSTUB(    ???,  pre_isr_hook)                            /* present on 7D.203, 6D.113, 5D3.113, 7D_MASTER.203, EOSM.202 */
 
 /** LCD Sensor **/
 NSTUB(0xFF146038,  DispSensorStart)
@@ -226,6 +227,7 @@ NSTUB(0xFF146038,  DispSensorStart)
 NSTUB(   0x49000,  sd_device)
 NSTUB(0xFF6300B8,  fsuDecodePartitionTable)
 // NSTUB(    ???,  cf_device)                               /* present on 7D.203, 500D.111, 60D.111, 50D.109, 5D2.212, 550D.109, 1100D.105 */
+// NSTUB(    ???,  cf_device_ptr)                           /* present on 5D3.113 */
 
 /** Memory allocation **/
 NSTUB(0xFFA64448 - RAM_OFFSET,  GetMemoryInformation)
@@ -297,6 +299,7 @@ NSTUB(0xFFA68B30 - RAM_OFFSET,  task_trampoline)
 NSTUB(0xFF1315DC,  LoadCalendarFromRTC)
 NSTUB(0xFFA71E94 - RAM_OFFSET,  vsnprintf)
 // NSTUB(    ???,  EnableImagePhysicalScreenParameter)      /* present on 7D.203, 50D.109, 5D2.212 */
+// NSTUB(    ???,  FSUunMountDevice)                        /* present on 5D3.113 */
 // NSTUB(    ???,  PtpDps_remote_release_SW1_SW2_worker)    /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  lv_path_struct)                          /* present on 60D.111, 600D.102, 550D.109, 1100D.105 */
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */

@@ -110,6 +110,7 @@ NSTUB(0xFF06A144, _audio_ic_write)
 NSTUB(0xFF5DF9A0,  audio_thresholds)                        // find "ALV_Initialize", then pointer to "AudioLevel", thresholds are following array of 41 values
 NSTUB(0xFF057BE0,  sounddev_active_in)                      // "SoundDevActiveIn"
 NSTUB(0xFF057774,  sounddev_task)                           // "[SND] _SoundDeviceTask"
+// NSTUB(    ???, _audio_ic_write_bulk)                     /* present on 6D.116 */
 
 /** Bitmap **/
 NSTUB(   0x1C36C,  LCD_Palette)                             // in InitializeBitmapDisplayDevice, right after 0xc0f14800
@@ -214,11 +215,11 @@ NSTUB(0xFF0AAB3C,  gui_other_post)
 // NSTUB(    ???,  gui_timer_something)                     /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
 
 /** GUI timers **/
+NSTUB(0xFF373930,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 NSTUB(0xFF077EF4,  CancelTimer)
 NSTUB(0xFF06FCE4,  SetHPTimerAfterNow)
 NSTUB(0xFF06FDD8,  SetHPTimerNextTick)
 NSTUB(0xFF077CF4,  SetTimerAfter)
-NSTUB(0xFF373930,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 
 /** H264 Encoder **/
 NSTUB(    0x6290,  mvr_config)
@@ -241,6 +242,7 @@ NSTUB(0xFF08397C,  DispSensorStart)
 NSTUB(   0x1574C,  sd_device)                               // in sdReadBlk
 NSTUB(0xFF4319A4,  fsuDecodePartitionTable)
 //NSTUB( 0x15728, cf_device )                // in cfReadBlk
+// NSTUB(    ???,  cf_device_ptr)                           /* present on 5D3.113 */
 
 /** Memory allocation **/
 NSTUB(0xFF072194,  GetMemoryInformation)                    // called from AllocateMemory
@@ -315,6 +317,7 @@ NSTUB(0xFF1F94BC,  vsnprintf)
 //NSTUB( 0xff37aee4, ChangeHDMIOutputSizeToFULLHD)
 //NSTUB( 0xff37b174, ChangeHDMIOutputSizeToVGA)
 // NSTUB(    ???,  EnableImagePhysicalScreenParameter)      /* present on 7D.203, 50D.109, 5D2.212 */
+// NSTUB(    ???,  FSUunMountDevice)                        /* present on 5D3.113 */
 // NSTUB(    ???,  PtpDps_remote_release_SW1_SW2_worker)    /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
 
@@ -342,8 +345,8 @@ NSTUB(0xFF1F94BC,  vsnprintf)
 ///NSTUB(0xFF1E95F4,  MuteOn_0)
 ///NSTUB(0xFF039D4C,  PD_GetBatteryPower)
 ///NSTUB(0xFF0396E4,  PD_RemoteRelease)
-///NSTUB(0xFF05BF04,  PROP_GetMulticastProperty)
 ///NSTUB(0xFF05CB28,  PROPAD_GetPropertyData)
+///NSTUB(0xFF05BF04,  PROP_GetMulticastProperty)
 ///NSTUB(0xFF1E09F8,  PopEDmac)
 ///NSTUB( 0xFF1A16D0, ReadyLiveViewDevice )
 ///NSTUB( 0xff33a734, RedrawDisplay )

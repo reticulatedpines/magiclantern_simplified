@@ -70,13 +70,6 @@ int LensFocus2(int num_steps, int step_size)
     return lens_focus(num_steps, step_size, lens_focus_waitflag, lens_focus_delay*10);
 }
 
-void LensFocusSetup(int stepsize, int stepdelay, int wait)
-{
-    lens_focus_stepsize = COERCE(stepsize, 1, 3);
-    lens_focus_waitflag = wait;
-    lens_focus_delay = stepdelay/10;
-}
-
 static int focus_stack_enabled = 0;
 //~ CONFIG_INT( "focus.stack", focus_stack_enabled, 0);
 
@@ -371,7 +364,7 @@ static int focus_stack_should_stop = 0;
 static int focus_stack_check_stop()
 {
     if (gui_menu_shown()) focus_stack_should_stop = 1;
-    if (CURRENT_DIALOG_MAYBE == 2) focus_stack_should_stop = 1; // Canon menu open
+    if (CURRENT_GUI_MODE == 2) focus_stack_should_stop = 1; // Canon menu open
     return focus_stack_should_stop;
 }
 
@@ -383,7 +376,7 @@ static void focus_stack_ensure_preconditions()
         while (!lv)
         {
             focus_stack_check_stop();
-            get_out_of_play_mode(500);
+            exit_play_qr_mode();
             focus_stack_check_stop();
             if (!lv) force_liveview();
             if (lv) break;
@@ -466,7 +459,7 @@ focus_stack(
         focus_stack_ensure_preconditions();
         if (focus_stack_check_stop()) break;
 
-        if (gui_menu_shown() || CURRENT_DIALOG_MAYBE == 2) break; // menu open? stop here
+        if (gui_menu_shown() || CURRENT_GUI_MODE == 2) break; // menu open? stop here
 
         if (!(
             (!is_bracket && skip_frame && (i == 0)) ||              // first frame in SNAP-stack
@@ -753,7 +746,6 @@ focus_task( void* unused )
 {
     TASK_LOOP
     {
-        msleep(50);
         int err = take_semaphore( focus_task_sem, 500 );
         if (err) continue;
         
@@ -1027,9 +1019,9 @@ focus_misc_task(void* unused)
         }
         
 #ifdef CONFIG_60D
-        if (CURRENT_DIALOG_MAYBE_2 == DLG2_FOCUS_MODE && is_manual_focus())
+        if (CURRENT_GUI_MODE_2 == DLG2_FOCUS_MODE && is_manual_focus())
 #else
-        if (CURRENT_DIALOG_MAYBE == DLG_FOCUS_MODE && is_manual_focus())
+        if (CURRENT_GUI_MODE == GUIMODE_FOCUS_MODE && is_manual_focus())
 #endif
         {   
             #ifdef FEATURE_TRAP_FOCUS
@@ -1037,9 +1029,9 @@ focus_misc_task(void* unused)
             #endif
             
             #ifdef CONFIG_60D
-            while (CURRENT_DIALOG_MAYBE_2 == DLG2_FOCUS_MODE) msleep(100);
+            while (CURRENT_GUI_MODE_2 == DLG2_FOCUS_MODE) msleep(100);
             #else
-            while (CURRENT_DIALOG_MAYBE == DLG_FOCUS_MODE) msleep(100);
+            while (CURRENT_GUI_MODE == GUIMODE_FOCUS_MODE) msleep(100);
             #endif
         }
     }
@@ -1248,10 +1240,9 @@ static struct menu_entry focus_menu[] = {
                 .name = "Step Delay",
                 .priv = &lens_focus_delay,
                 .update = focus_delay_update,
-                .min = 1,
+                .min = 0,
                 .max = 100,
                 .icon_type = IT_PERCENT_LOG,
-                //~ .choices = CHOICES("10ms", "20ms", "40ms", "80ms", "160ms", "320ms", "640ms"),
                 .help = "Delay between two successive focus commands.",
             },
             {

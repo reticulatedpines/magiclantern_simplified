@@ -74,7 +74,7 @@ function config.create_from_menu(m)
     if m.submenu ~= nil then
         --todo: recurse into sub-submenus
         for k,v in pairs(m.submenu) do
-             v.value = cfg.data[m.name]
+             v.value = cfg.data[k]
         end
     end
     return cfg
@@ -89,7 +89,7 @@ function config:load()
     if status and result ~= nil then 
         return result 
     else
-        console.write(result)
+        print(result)
         return self.default 
     end
 end

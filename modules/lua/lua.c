@@ -50,6 +50,8 @@ struct script_semaphore
 static int lua_loaded = 0;
 int last_keypress = 0;
 
+static char * strict_lua = 0;
+
 static struct script_semaphore * script_semaphores = NULL;
 
 int lua_take_semaphore(lua_State * L, int timeout, struct semaphore ** assoc_semaphore)
@@ -63,7 +65,7 @@ int lua_take_semaphore(lua_State * L, int timeout, struct semaphore ** assoc_sem
             return take_semaphore(current->semaphore, timeout);
         }
     }
-    err_printf("error: could not find semaphore for lua state\n");
+    fprintf(stderr, "error: could not find semaphore for lua state\n");
     return -1;
 }
 
@@ -78,7 +80,7 @@ int lua_give_semaphore(lua_State * L, struct semaphore ** assoc_semaphore)
             return give_semaphore(current->semaphore);
         }
     }
-    err_printf("error: could not find semaphore for lua state\n");
+    fprintf(stderr, "error: could not find semaphore for lua state\n");
     return -1;
 }
 
@@ -115,7 +117,7 @@ char * copy_string(const char * str)
     return copy;
 }
 
-/*** 
+/***
  Event Handlers.
  
  Scripts can repsond to events by setting the functions in the 'event' table.
@@ -123,7 +125,7 @@ char * copy_string(const char * str)
  that specifies whether or not the backend should continue executing event handlers
  for this particular event.
  
- Event handlers will not run if there's already a script or another event handler 
+ Event handlers will not run if there's already a script or another event handler
  actively executing at the same time.
  
  @author Magic Lantern Team
@@ -131,10 +133,10 @@ char * copy_string(const char * str)
  @license GPL
  @module event
  @usage
-event.keypress = function(key)
-    print("You pressed a key: "..key)
-    return false
-end
+ event.keypress = function(key)
+ print("You pressed a key: "..key)
+ return false
+ end
  */
 
 
@@ -158,7 +160,7 @@ static unsigned int lua_do_cbr(unsigned int ctx, struct script_event_entry * eve
                     lua_pushinteger(L, ctx);
                     if(docall(L, 1, 1))
                     {
-                        err_printf("lua cbr error:\n %s\n", lua_tostring(L, -1));
+                        fprintf(stderr, "lua cbr error:\n %s\n", lua_tostring(L, -1));
                         result = CBR_RET_ERROR;
                         give_semaphore(sem);
                         break;
@@ -180,7 +182,7 @@ static unsigned int lua_do_cbr(unsigned int ctx, struct script_event_entry * eve
             }
             else
             {
-                err_printf("lua semaphore timeout (another task is running this script)\n");
+                printf("lua semaphore timeout: %s (%dms)\n", event_name, timeout);
             }
         }
     }
@@ -190,7 +192,7 @@ static unsigned int lua_do_cbr(unsigned int ctx, struct script_event_entry * eve
 #define LUA_CBR_FUNC(name, arg, timeout)\
 static struct script_event_entry * name##_cbr_scripts = NULL;\
 static unsigned int lua_##name##_cbr(unsigned int ctx) {\
-    return lua_do_cbr(arg, name##_cbr_scripts, #name, timeout, CBR_RET_CONTINUE, CBR_RET_STOP);\
+return lua_do_cbr(arg, name##_cbr_scripts, #name, timeout, CBR_RET_CONTINUE, CBR_RET_STOP);\
 }\
 
 LUA_CBR_FUNC(pre_shoot, ctx, 500)
@@ -218,9 +220,9 @@ static unsigned int lua_keypress_cbr(unsigned int ctx)
 #define SCRIPT_CBR_SET(event) \
 if(!strcmp(key, #event))\
 {\
-    lua_pushvalue(L, 3);\
-    set_event_script_entry(&event##_cbr_scripts, L, lua_isfunction(L, -1) ? luaL_ref(L, LUA_REGISTRYINDEX) : LUA_NOREF); \
-    return 0;\
+lua_pushvalue(L, 3);\
+set_event_script_entry(&event##_cbr_scripts, L, lua_isfunction(L, -1) ? luaL_ref(L, LUA_REGISTRYINDEX) : LUA_NOREF); \
+return 0;\
 }\
 
 static void set_event_script_entry(struct script_event_entry ** root, lua_State * L, int function_ref)
@@ -316,6 +318,19 @@ static int luaCB_event_newindex(lua_State * L)
     return 0;
 }
 
+static const char * lua_event_fields[] =
+{
+    "pre_shoot",
+    "post_shoot",
+    "shoot_task",
+    "seconds_clock",
+    "keypress",
+    "custom_picture_taking",
+    "intervalometer",
+    "config_save",
+    NULL
+};
+
 static const luaL_Reg eventlib[] =
 {
     { NULL, NULL }
@@ -372,12 +387,88 @@ static int luaCB_global_index(lua_State * L)
     return 0;
 }
 
+int do_lua_next(lua_State * L)
+{
+    int r = lua_type(L, 1) == LUA_TTABLE && lua_next(L, 1);
+    if (!r)
+    {
+        lua_pushnil(L);
+        lua_pushnil(L);
+    }
+    return 2;
+}
+
+int luaCB_next(lua_State * L)
+{
+    lua_getmetatable(L, 1);
+    lua_getfield(L, -1, "fields");
+    const char ** fields = (const char **)lua_touserdata(L, -1);
+    lua_pop(L, 2);
+    
+    if(lua_isnil(L, 2))
+    {
+        if(fields && fields[0])
+        {
+            lua_pushstring(L, fields[0]);
+        }
+        else
+        {
+            lua_pushvalue(L, 2);
+            return do_lua_next(L);
+        }
+    }
+    else if(lua_type(L, 2) == LUA_TSTRING)
+    {
+        LUA_PARAM_STRING(key, 2);
+        int found = 0;
+        for(int i = 0; fields[i]; i++)
+        {
+            if(!strcmp(key, fields[i]))
+            {
+                if(fields && fields[i+1])
+                {
+                    lua_pushstring(L, fields[i+1]);
+                    found = true;
+                    break;
+                }
+                else
+                {
+                    lua_pushnil(L);
+                    return do_lua_next(L);
+                }
+            }
+        }
+        if(!found)
+        {
+            lua_pushvalue(L, 2);
+            return do_lua_next(L);
+        }
+    }
+    else
+    {
+        lua_pushvalue(L, 2);
+        return do_lua_next(L);
+    }
+    lua_pushvalue(L, -1);
+    lua_gettable(L, 1);
+    return 2;
+}
+
+int luaCB_pairs(lua_State * L)
+{
+    lua_pushcfunction(L, luaCB_next);
+    lua_pushvalue(L, 1);
+    lua_pushnil(L);
+    return 3;
+}
+
 static lua_State * load_lua_state()
 {
     lua_State* L = luaL_newstate();
     luaL_requiref(L, "_G", luaopen_base, 1);
     luaL_requiref(L, LUA_LOADLIBNAME, luaopen_package, 1);
     luaL_requiref(L, "globals", luaopen_globals, 0);
+    luaL_requiref(L, LUA_STRLIBNAME, luaopen_string, 0);
     
     luaL_getsubtable(L, LUA_REGISTRYINDEX, "_PRELOAD");
     const luaL_Reg *lib;
@@ -395,6 +486,14 @@ static lua_State * load_lua_state()
     lua_setmetatable(L, -2);
     lua_pop(L, 1);
     
+    if (strict_lua)
+    {
+        if (luaL_loadstring(L, strict_lua) || docall(L, 0, LUA_MULTRET))
+        {
+            fprintf(stderr, "%s\n", lua_tostring(L, -1));
+        }
+    }
+    
     return L;
 }
 
@@ -410,39 +509,71 @@ static void add_script(const char * filename)
         if(luaL_loadfile(L, full_path) || docall(L, 0, LUA_MULTRET))
         {
             /* error loading script */
-            err_printf("%s\n", lua_tostring(L, -1));
+            fprintf(stderr, "%s\n", lua_tostring(L, -1));
         }
         give_semaphore(sem);
     }
     else
     {
-        err_printf("load script failed: could not create semaphore\n");
+        fprintf(stderr, "load script failed: could not create semaphore\n");
     }
 }
 
 static void lua_load_task(int unused)
 {
+    console_show();
+    msleep(500);
+    console_clear();
+    
     struct fio_file file;
     struct fio_dirent * dirent = 0;
+    
+    /* preload strict.lua once, since it will be used in all scripts */
+    int bufsize;
+    strict_lua = (char*) read_entire_file(SCRIPTS_DIR "/lib/strict.lua", &bufsize);
+    
+    if (!strict_lua)
+    {
+        printf("Warning: strict.lua not found.\n");
+    }
     
     dirent = FIO_FindFirstEx(SCRIPTS_DIR, &file);
     if(!IS_ERROR(dirent))
     {
         do
         {
-            if (!(file.mode & ATTR_DIRECTORY) && (string_ends_with(file.name, ".LUA") || string_ends_with(file.name, ".lua")) && file.name[0] != '.')
+            if (!(file.mode & ATTR_DIRECTORY) && (string_ends_with(file.name, ".LUA") || string_ends_with(file.name, ".lua")) && file.name[0] != '.' && file.name[0] != '_')
             {
                 add_script(file.name);
+                msleep(100);
             }
         }
         while(FIO_FindNextEx(dirent, &file) == 0);
     }
+    
+    if (strict_lua)
+    {
+        fio_free(strict_lua);
+        strict_lua = 0;
+    }
+    
+    printf("All scripts loaded.\n");
+
+    /* wait for key pressed or for 5-second timeout, whichever comes first */
+    last_keypress = 0;
+    for (int i = 0; i < 50 && !last_keypress; i++)
+    {
+        msleep(100);
+    }
+
+    console_hide();
+    
     lua_loaded = 1;
 }
 
 static unsigned int lua_init()
 {
-    task_create("lua_load_task", 0x1c, 0x8000, lua_load_task, (void*) 0);
+    task_create("lua_load_task", 0x1c, 0x10000, lua_load_task, (void*) 0);
     return 0;
 }
 
@@ -452,24 +583,24 @@ static unsigned int lua_deinit()
 }
 
 MODULE_INFO_START()
-    MODULE_INIT(lua_init)
-    MODULE_DEINIT(lua_deinit)
+MODULE_INIT(lua_init)
+MODULE_DEINIT(lua_deinit)
 MODULE_INFO_END()
 
 MODULE_CBRS_START()
-    MODULE_CBR(CBR_PRE_SHOOT, lua_pre_shoot_cbr, 0)
-    MODULE_CBR(CBR_POST_SHOOT, lua_post_shoot_cbr, 0)
-    MODULE_CBR(CBR_SHOOT_TASK, lua_shoot_task_cbr, 0)
-    MODULE_CBR(CBR_SECONDS_CLOCK, lua_seconds_clock_cbr, 0)
-    MODULE_CBR(CBR_KEYPRESS, lua_keypress_cbr, 0)
-    MODULE_CBR(CBR_CUSTOM_PICTURE_TAKING, lua_custom_picture_taking_cbr, 0)
-    MODULE_CBR(CBR_INTERVALOMETER, lua_intervalometer_cbr, 0)
-    MODULE_CBR(CBR_CONFIG_SAVE, lua_config_save_cbr, 0)
+MODULE_CBR(CBR_PRE_SHOOT, lua_pre_shoot_cbr, 0)
+MODULE_CBR(CBR_POST_SHOOT, lua_post_shoot_cbr, 0)
+MODULE_CBR(CBR_SHOOT_TASK, lua_shoot_task_cbr, 0)
+MODULE_CBR(CBR_SECONDS_CLOCK, lua_seconds_clock_cbr, 0)
+MODULE_CBR(CBR_KEYPRESS, lua_keypress_cbr, 0)
+MODULE_CBR(CBR_CUSTOM_PICTURE_TAKING, lua_custom_picture_taking_cbr, 0)
+MODULE_CBR(CBR_INTERVALOMETER, lua_intervalometer_cbr, 0)
+MODULE_CBR(CBR_CONFIG_SAVE, lua_config_save_cbr, 0)
 
 #ifdef CONFIG_VSYNC_EVENTS
-    MODULE_CBR(CBR_VSYNC, lua_vsync_cbr, 0)
-    MODULE_CBR(CBR_DISPLAY_FILTER, lua_display_filter_cbr, 0)
-    MODULE_CBR(CBR_VSYNC_SETPARAM, lua_vsync_setparam_cbr, 0)
+MODULE_CBR(CBR_VSYNC, lua_vsync_cbr, 0)
+MODULE_CBR(CBR_DISPLAY_FILTER, lua_display_filter_cbr, 0)
+MODULE_CBR(CBR_VSYNC_SETPARAM, lua_vsync_setparam_cbr, 0)
 #endif
 
 MODULE_CBRS_END()

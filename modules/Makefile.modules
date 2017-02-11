@@ -16,6 +16,8 @@ MODULE_DEPS   = $(MODULE_NAME).d
 
 MODULE_STRINGS   = module_strings.h
 
+HGDIFF_OBJS = hgdiff.tmp
+
 all:: $(MODULE_OUTPUT) $(MODULE_SYM) $(MODULE_DEP)
 nodep:: $(MODULE_OUTPUT) $(MODULE_SYM)
 delete_if_failed:
@@ -33,7 +35,7 @@ delete_if_failed:
 -include $(MODULE_DEPS)
 
 clean::
-	$(call rm_files, $(MODULE_OBJS) $(MODULE_OUTPUT) $(MODULE_SYM) $(MODULE_DEP) $(MODULE_STRINGS) *.o *.d *.dep *.sym hgstamp)
+	$(call rm_files, $(MODULE_OBJS) $(MODULE_OUTPUT) $(MODULE_SYM) $(MODULE_DEP) $(MODULE_STRINGS) $(HGDIFF_OBJS) *.o *.d *.dep *.sym hgstamp)
 
 module_strings.h: README.rst hgstamp
 	$(call build,README, $(PYTHON) ../readme2modulestrings.py > $@)
@@ -41,21 +43,50 @@ module_strings.h: README.rst hgstamp
 README.rst:
 	$(call build,README,echo -e "$(MODULE_NAME)\n========\n\nPlease write a one-page description for your module here.\n\nYou may also add some metadata:\n\n:Author: <your name here>\n:License: <your license here>\n:Website: <your website here>\n\n" > $@)
 
-$(MODULE_OUTPUT): $(MODULE_STRINGS) $(MODULE_OBJS)
+$(MODULE_OUTPUT): $(MODULE_STRINGS) $(MODULE_OBJS) $(HGDIFF_OBJS)
 	$(call build,MODULE,$(LD) -r -o $@ $(MODULE_OBJS))
 	$(call build,STRIP,$(STRIP) --strip-debug --strip-unneeded --discard-all --discard-locals $@)
+	$(call build,OBJCOPY,$(OBJCOPY) --add-section .module_hgdiff=hgdiff.tmp $@)
+	$(call rm_files, $(HGDIFF_OBJS))
+
+#~ 	$(call build,OBJCOPY,$(OBJCOPY) --add-section .module_hginfo=hginfo.tmp $@)
 
 # tag any function with DUMP_ASM, then run "make dump_asm" from module directory
 dump_asm: all
 	$(OBJDUMP) -d -M reg-names-raw --section=.dump_asm $(MODULE_OBJS)
+
+hginfo.tmp: FORCE
+	$(call build,HGDIFF,(\
+		echo "Repo path:"; hg root; \
+		echo "\nSource:"; hg paths; \
+		echo "\nDir state:"; hg log --limit 1\
+	) | gzip > $@)
+
+hgdiff.tmp: FORCE
+	$(call build,HGDIFF,(\
+		hg locate --include . \
+		&& hg diff --nodates . \
+		|| (\
+				hg add -I "*.[chS]" -I Makefile -I README.rst -X module_strings.h > /dev/null; \
+				hg diff --nodates .; \
+				hg forget "set:added()" > /dev/null \
+		) \
+	) | gzip > $@)
 
 %.sym: %.mo
 	$(call build,EXPORTS,$(READELF) -sW $< | grep GLOBAL | grep -v UND | grep -v COM | grep -v "__module_.*$(MODULE_NAME)" | $(AWK) "{print \$$2 \" \" \$$8;}" | sort > $@ && cat $@)
 %.dep: %.mo
 	$(call build,DEPENDS,$(READELF) -sW $< | $(GREP) GLOBAL | $(GREP) 00000000 | $(GREP) UND | $(AWK) "{print \$$8;}" | sort > $@ && cd $(MODULES_DIR) && $(PYTHON) checkdep.py $(MODULE_NAME))
 
-install:: all
-	$(CP) $(PWD)/$(MODULE_OUTPUT) $(INSTALL_MODULES_DIR)/
+# redefine this in module makefile to install additional data along with your module
+install_user_data::
+
+modules_install_dir: install_prepare
+	$(call build,MKDIR,$(MKDIR) -p $(INSTALL_MODULES_DIR))
+
+install:: modules_install_dir all install_user_data
+	$(call build,$(MODULE_OUTPUT),$(CP) $(PWD)/$(MODULE_OUTPUT) $(INSTALL_MODULES_DIR)/)
+	$(INSTALL_FINISH)
 
 FORCE:
 

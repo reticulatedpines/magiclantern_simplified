@@ -1,39 +1,11 @@
 #include <dryos.h>
 #include <property.h>
+#include <cfn-generic.h>
 
-PROP_INT(PROP_HTP, htp);
-PROP_INT(PROP_MLU, mlu);
-
-int alo;
-PROP_HANDLER(PROP_ALO) 
-{
-	alo = buf[0] & 3;
-//    buf[0]  actual ALO setting (maybe disabled by Manual mode or HTP)  
-//    buf[1]  original ALO setting (5D3 also has this)
-//    buf[2]  1: disable ALO in Manual mode 0: no effect (5D3 also has this)
-}
-
-int get_htp() { return htp; }
-void set_htp(int value)
-{
-    value = COERCE(value, 0, 1);
-    prop_request_change(PROP_HTP, &value, 4);
-}
-
-int get_alo() { return alo; }
-
-//void set_alo(int value)
-//{
-//	value = COERCE(value, 0, 3);
-//	prop_request_change(PROP_ALO, &value, 4);
-//}
-
-int get_mlu() { return mlu; }
-void set_mlu(int value) 
-{
-    value = COERCE(value, 0, 1);
-    prop_request_change(PROP_MLU, &value, 4);
-}
+GENERIC_GET_ALO
+GENERIC_GET_HTP
+GENERIC_GET_MLU
+GENERIC_SET_MLU
 
 // POS 8 (shutter): 0=AF-ON, 1=METER, 2=*
 // POS 10 (af on): 0=AF-ON, 1=AEL+FEL, 2=AF-OFF, 5=*H, 8=*, 3=FEL, 7=OFF

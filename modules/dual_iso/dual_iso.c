@@ -556,8 +556,12 @@ static MENU_UPDATE_FUNC(isoless_check)
 
     int mvi = is_movie_mode();
 
-    int raw = mvi ? FRAME_CMOS_ISO_START && raw_lv_is_enabled() : ((pic_quality & 0xFE00FF) == (PICQ_RAW & 0xFE00FF));
+    /* default checks will not work here - we need full-sized raw in photo mode */
+    int raw = mvi ? raw_lv_is_enabled() : ((pic_quality & 0xFE00FF) == (PICQ_RAW & 0xFE00FF));
 
+    if (mvi && !FRAME_CMOS_ISO_START)
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Dual ISO does not work in movie mode on your camera.");
+    
     if (!raw)
         menu_set_warning_raw(entry, info);
 }

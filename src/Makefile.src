@@ -72,6 +72,7 @@ ML_OBJS-y = \
 	magiclantern.lds \
 	$(ML_ENTRY_OBJ) \
 	minimal.o \
+	font_direct.o \
 	$(PLATFORM_DIR)/stubs.o
 
 else ifeq ($(ML_SRC_PROFILE),installer)
@@ -165,6 +166,7 @@ ML_SRC_OBJS = \
 	fileprefix.o \
 	lvinfo.o \
 	builtin-enforcing.o \
+	powersave.o \
 	ml-cbr.o \
 	raw.o \
 	chdk-dng.o \
@@ -179,9 +181,7 @@ else ifndef ML_OBJS-y
 $(error ML_OBJS-y is not defined)
 endif
 
-ifneq ($(ML_SRC_PROFILE),minimal)
 ML_OBJS-y += $(ML_SRC_EXTRA_OBJS)
-endif
 
 ifdef ML_SRC_EXCLUDE_OBJS
 ML_OBJS-y := $(filter-out $(ML_SRC_EXCLUDE_OBJS), $(ML_OBJS-y))
@@ -217,6 +217,7 @@ autoexec: $(ML_SRC_REBOOT_OBJ)
 	$(call build,LD,$(LD) \
 		-o $@ \
 		-e _start \
+		-N \
 		-Ttext $(AUTOEXEC_BASE) \
 		$^ \
 		--cref \
@@ -228,6 +229,7 @@ autoexec-fir: $(ML_SRC_REBOOT_OBJ)
 	$(call build,LD,$(LD) \
 		-o $@ \
 		-e _start \
+		-N \
 		-Ttext $(FIR_BASE) \
 		$^ \
 		--cref \
@@ -303,6 +305,9 @@ $(PLATFORM_DIR)/version.c: FORCE
 	@echo 'const char build_date[] ="'`$(DATE) "+%Y-%m-%d %H:%M:%S %Z"`'";' >> $@
 	@echo 'const char build_user[] = "'`whoami`@`hostname`'";'  >> $@
 
+# include ML version, camera, firmware, hg changeset, build date,
+# diffs from src and platform/cam directories,
+# and some lines from Makefile.user (CONFIG entries, gcc version)
 $(PLATFORM_DIR)/version.bin: FORCE
 	$(call build,"VERSION",echo '') > $@
 	@echo '' >> $@
@@ -311,7 +316,14 @@ $(PLATFORM_DIR)/version.bin: FORCE
 	@echo 'Firmware : $(FW_VERSION)' >> $@
 	@echo 'Changeset: '`hg id` >> $@
 	@echo 'Built on : '`date -u "+%Y-%m-%d %H:%M:%S"`' by '`whoami`@`hostname` >> $@
-	@echo -e '\n\n\n\n\n' >> $@
+	@echo '' >> $@
+	@hg diff $(SRC_DIR)/ >> $@
+	@hg diff $(PLATFORM_DIR)/ >> $@
+	@echo '' >> $@
+	@echo '' >> $@
+	@cat $(TOP_DIR)/Makefile.user | grep -E "^ *(CONFIG_|.*VERSION)" >> $@ || true
+	@echo '' >> $@
+	@echo '' >> $@
 
 $(SRC_DIR)/menuindexentries.h:
 	$(call build,"MENU IDX", if [ -f $(DOC_DIR)/menuindex.txt ]; then \

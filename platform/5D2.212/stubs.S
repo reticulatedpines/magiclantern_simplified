@@ -92,6 +92,7 @@ NSTUB(0xFF859638, _audio_ic_write)
 NSTUB(0xFFCB4B0C,  audio_thresholds)                        // delta = 40 bytes compared to 2.1.1, as with StartFactoryMenuApp
 NSTUB(0xFF85B454,  sounddev_active_in)
 NSTUB(0xFF85B0E4,  sounddev_task)
+// NSTUB(    ???, _audio_ic_write_bulk)                     /* present on 6D.116 */
 
 /** Bitmap **/
 NSTUB(   0x27660,  LCD_Palette)                             // in InitializeBitmapDisplayDevice, right after 0xc0f14800
@@ -223,6 +224,7 @@ NSTUB(0xFF9B1BE0,  LightMeasure_n_Callback_r0)
 NSTUB(   0x20890,  cf_device)
 NSTUB(   0x208D8,  sd_device)
 NSTUB(0xFFB30CC0,  fsuDecodePartitionTable)
+// NSTUB(    ???,  cf_device_ptr)                           /* present on 5D3.113 */
 
 /** Memory allocation **/
 NSTUB(0xFF86EF10,  GetMemoryInformation)
@@ -295,6 +297,7 @@ NSTUB(0xFF86412C,  EnableImagePhysicalScreenParameter)
 NSTUB(0xFF8696D8,  LoadCalendarFromRTC)
 NSTUB(0xFF92EEB8,  PtpDps_remote_release_SW1_SW2_worker)    // called from: ptpRemoteRelease Occupy
 NSTUB(0xFF9B7324,  vsnprintf)
+// NSTUB(    ???,  FSUunMountDevice)                        /* present on 5D3.113 */
 // NSTUB(    ???,  lv_path_struct)                          /* present on 60D.111, 600D.102, 550D.109, 1100D.105 */
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
 
@@ -318,8 +321,8 @@ NSTUB(0xFF9B7324,  vsnprintf)
 ///NSTUB(0xFF864358,  MuteOn_0)
 ///NSTUB(0xFFAC7AC8,  OlcAFFrameApp_handler)
 ///NSTUB(0xFF83C1E4,  PD_RemoteRelease)
-///NSTUB(0xFF85F344,  PROP_GetMulticastProperty)
 ///NSTUB(0xFF85FD3C,  PROPAD_GetPropertyData)                  // str:SearchFromProperty
+///NSTUB(0xFF85F344,  PROP_GetMulticastProperty)
 ///NSTUB(0xFF9A47AC,  PopEDmac)
 ///NSTUB(0xFFA856B8,  RedrawDisplay)
 ///NSTUB(0xFF92EBDC,  RemoteRelease)

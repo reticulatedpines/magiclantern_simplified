@@ -35,7 +35,7 @@ extern char camera_serial[32];
 
 #ifndef _DONT_INCLUDE_PROPVALUES_
 extern int lv; // TRUE when LiveView is active
-extern int lv_paused; // only valid if lv is true
+extern int lv_paused; // TRUE if LiveView is paused (in this case, lv is FALSE)
 #endif
 
 #define LV_PAUSED (lv_paused)

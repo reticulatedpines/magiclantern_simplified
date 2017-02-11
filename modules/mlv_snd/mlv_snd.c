@@ -40,6 +40,9 @@ static uint32_t trace_ctx = TRACE_ERROR;
 
 static CONFIG_INT("mlv.snd.enabled", mlv_snd_enabled, 0);
 static CONFIG_INT("mlv.snd.mlv_snd_enable_tracing", mlv_snd_enable_tracing, 0);
+static CONFIG_INT("mlv.snd.bit.depth", mlv_snd_in_bits_per_sample, 16);
+static CONFIG_INT("mlv.snd.sample.rate", mlv_snd_in_sample_rate, 48000);
+static CONFIG_INT("mlv.snd.sample.rate.selection", mlv_snd_rate_sel, 0);
 
 int mlv_snd_is_enabled()
 {
@@ -72,10 +75,7 @@ static volatile uint32_t mlv_snd_in_buffer_size = 0;
 static uint32_t mlv_snd_rates[] = { 48000, 44100, 22050, 11025, 8000 };
 #define MLV_SND_RATE_TEXT "48kHz", "44.1kHz", "22kHz", "11kHz", "8kHz"
 
-static uint32_t mlv_snd_rate_sel = 0;
-static uint32_t mlv_snd_in_sample_rate = 0;
 static uint32_t mlv_snd_in_channels = 2;
-static uint32_t mlv_snd_in_bits_per_sample = 16;
 
 typedef struct
 {
@@ -638,4 +638,7 @@ MODULE_CBRS_END()
 MODULE_CONFIGS_START()
     MODULE_CONFIG(mlv_snd_enabled)
     MODULE_CONFIG(mlv_snd_enable_tracing)
+    MODULE_CONFIG(mlv_snd_in_bits_per_sample)
+    MODULE_CONFIG(mlv_snd_rate_sel)
+    MODULE_CONFIG(mlv_snd_in_sample_rate)
 MODULE_CONFIGS_END()

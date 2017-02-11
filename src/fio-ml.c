@@ -71,7 +71,7 @@ int get_free_space_32k(const struct card_info* card)
 
 
 static CONFIG_INT("card.test", card_test_enabled, 1);
-static CONFIG_INT("card.force_type", card_force_type, 0);
+static CONFIG_INT("card.force_type", card_force_type, 1);
 
 #ifndef CONFIG_INSTALLER
 #ifdef CONFIG_5D3
@@ -732,6 +732,11 @@ static void fio_init()
 {
     #ifdef CONFIG_DUAL_SLOT
     menu_add( "Prefs", card_menus, COUNT(card_menus) );
+    #endif
+    
+    #ifdef CARD_A_MAKER
+    available_cards[CARD_A].maker = (char*) CARD_A_MAKER;
+    available_cards[CARD_A].model = (char*) CARD_A_MODEL;
     #endif
 }
 

@@ -99,6 +99,7 @@ NSTUB(0xFF0681C4, _audio_ic_write)
 NSTUB(0xFF5ADA3C,  audio_thresholds)                        // after ptr to "ALVFactorySemSignature"
 NSTUB(0xFF0571BC,  sounddev_active_in)
 NSTUB(0xFF056E4C,  sounddev_task)
+// NSTUB(    ???, _audio_ic_write_bulk)                     /* present on 6D.116 */
 
 /** Bitmap **/
 NSTUB(   0x3BFA4,  LCD_Palette)                             // in InitializeBitmapDisplayDevice, right after 0xc0f14800
@@ -203,11 +204,11 @@ NSTUB(    0x4414,  gui_timer_struct)                        // in GUI_Control_Po
 // NSTUB(    ???,  gui_timer_something)                     /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
 
 /** GUI timers **/
+NSTUB(0xFF35CB2C,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 NSTUB(0xFF0753AC,  CancelTimer)                             /* present on 650D.104 */
 NSTUB(0xFF06D228,  SetHPTimerAfterNow)                      /* present on 7D.203, 5D3.113, 600D.102, 650D.104, EOSM.202 */
 NSTUB(0xFF06D31C,  SetHPTimerNextTick)                      /* present on 7D.203, 5D3.113, 600D.102, EOSM.202 */
 NSTUB(0xFF0751AC,  SetTimerAfter)                           /* present on 650D.104 */
-NSTUB(0xFF35CB2C,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 
 /** H264 Encoder **/
 NSTUB(    0x5DD0,  mvr_config)
@@ -230,6 +231,7 @@ NSTUB(0xFF1ADBCC,  mvrSetDefQScale)
 NSTUB(   0x350FC,  cf_device)                               // in cfReadBlk
 NSTUB(   0x35120,  sd_device)                               // in sdReadBlk
 NSTUB(0xFF404AC4,  fsuDecodePartitionTable)
+// NSTUB(    ???,  cf_device_ptr)                           /* present on 5D3.113 */
 
 /** Memory allocation **/
 NSTUB(0xFF06F6D8,  GetMemoryInformation)                    // called from AllocateMemory
@@ -301,14 +303,15 @@ NSTUB(0xFF07B8AC,  task_trampoline)
 NSTUB(   0x52940,  lv_path_struct)                          // first arg of SelectPathDriveMode
 NSTUB(0xFF067B68,  LoadCalendarFromRTC)
 NSTUB(0xFF1DA530,  vsnprintf)
-//NSTUB( 0xff06f7c4, AllocateMemory_do ) // this one won't throw ERR70 on failure
 // NSTUB(    ???,  EnableImagePhysicalScreenParameter)      /* present on 7D.203, 50D.109, 5D2.212 */
+// NSTUB(    ???,  FSUunMountDevice)                        /* present on 5D3.113 */
 // NSTUB(    ???,  PtpDps_remote_release_SW1_SW2_worker)    /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
 
 /** Unused stubs or porting notes **/
 ///NSTUB( 0xFF538000, AJ_memset_R0_addr_R1_Len_R2_byteVal ) // bzero32+4
 ///NSTUB([idk], AbortEDmac)
+///NSTUB( 0xff06f7c4, AllocateMemory_do ) // this one won't throw ERR70 on failure
 ///NSTUB(0xFF37479C,  CancelBottomInfoDispTimer)
 ///NSTUB(0xFF0728C0,  CreateBinarySemaphore)                   // called CreateBinarySemaphore
 ///NSTUB(0xFF3076F8, CreateDialogBox)
@@ -321,8 +324,8 @@ NSTUB(0xFF1DA530,  vsnprintf)
 ///NSTUB(0xFF1CD340,  MuteOff_0)
 ///NSTUB(0xFF1CD2F8,  MuteOn_0)
 ///NSTUB(0xFF382A0C,  OlcAFFrameApp_handler)
-///NSTUB(0xFF05B210,  PROP_GetMulticastProperty)
 ///NSTUB(0xFF05BE34,  PROPAD_GetPropertyData)
+///NSTUB(0xFF05B210,  PROP_GetMulticastProperty)
 ///NSTUB(0xFF1C47AC,  PopEDmac)
 ///NSTUB(0xFF323EB8,  RedrawDisplay)
 ///NSTUB(0xFF061A68,  SetBitmapVramAddress)                    // where to find bmp_vram_info

@@ -87,12 +87,12 @@
         #define BGMT_UNPRESS_FLASH_MOVIE (0)
         #define FLASH_BTN_MOVIE_MODE (get_disp_pressed() && lv)
 
-    #define BGMT_PRESS_ZOOMOUT_MAYBE 0x10
-    #define BGMT_UNPRESS_ZOOMOUT_MAYBE 0x11
+    #define BGMT_PRESS_ZOOM_OUT 0x10
+    #define BGMT_UNPRESS_ZOOM_OUT 0x11
 #endif
-    #define BGMT_PRESS_ZOOMIN_MAYBE 0xe
+    #define BGMT_PRESS_ZOOM_IN 0xe
 #if 0
-    #define BGMT_UNPRESS_ZOOMIN_MAYBE 0xf
+    #define BGMT_UNPRESS_ZOOM_IN 0xf
 
     /* can't be PLAY */
     //~ #define BTN_ZEBRAS_FOR_PLAYBACK BGMT_PLAY // what button to use for zebras in Play mode
