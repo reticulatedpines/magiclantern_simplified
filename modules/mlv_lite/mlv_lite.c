@@ -2082,11 +2082,22 @@ static char* get_next_raw_movie_file_name()
 
     for (int number = 0 ; number < 100; number++)
     {
-        /**
-         * Get unique file names from the current date/time
-         * last field gets incremented if there's another video with the same name
-         */
-        snprintf(filename, sizeof(filename), "%s/M%02d-%02d%02d.MLV", get_dcim_dir(), now.tm_mday, now.tm_hour, COERCE(now.tm_min + number, 0, 99));
+        if (h264_proxy)
+        {
+            /**
+             * Try to match Canon movie file names
+             * Use the file number from the H.264 card; increment if there are duplicates
+             */
+            snprintf(filename, sizeof(filename), "%s/%s%04d.MLV", get_cf_dcim_dir(), get_file_prefix(), MOD(get_shooting_card()->file_number + number, 10000));
+        }
+        else
+        {
+            /**
+             * Get unique file names from the current date/time
+             * last field gets incremented if there's another video with the same name
+             */
+            snprintf(filename, sizeof(filename), "%s/M%02d-%02d%02d.MLV", get_cf_dcim_dir(), now.tm_mday, now.tm_hour, COERCE(now.tm_min + number, 0, 99));
+        }
         
         /* already existing file? */
         uint32_t size;
