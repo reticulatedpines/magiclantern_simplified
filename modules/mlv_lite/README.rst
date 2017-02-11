@@ -11,7 +11,8 @@ You may want to load mlv_play for reviewing clips.
 
 For details, please see the "Raw Video" section on the Magic Lantern forum.
 
-:Authors: g3gg0, a1ex
+:Authors: g3gg0, a1ex, dmilligan
 :License: GPL
 :Summary: Records 14-bit RAW video
-:Forum: http://www.magiclantern.fm/forum/index.php?board=49.0
+:Forum: http://www.magiclantern.fm/forum/index.php?topic=16650.0
+
