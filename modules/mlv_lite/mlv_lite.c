@@ -64,6 +64,8 @@
 #include "raw.h"
 #include "zebra.h"
 #include "fps.h"
+#include "../mlv_rec/mlv.h"
+#include "../trace/trace.h"
 #include "powersave.h"
 
 /* from mlv_play module */
@@ -94,8 +96,8 @@ static int cam_5d3_123 = 0;
  * use roughly 10% increments
  **/
 
-static int resolution_presets_x[] = {  640,  704,  768,  864,  960,  1152,  1280,  1344,  1472,  1504,  1536,  1600,  1728, 1792, 1856,  1920,  2048,  2240,  2560,  2880,  3584 };
-#define  RESOLUTION_CHOICES_X CHOICES("640","704","768","864","960","1152","1280","1344","1472","1504","1536","1600","1728", "1792","1856","1920","2048","2240","2560","2880","3584")
+static int resolution_presets_x[] = {  640,  960,  1280,  1600,  1920,  2240,  2560,  2880,  3200,  3520 };
+#define  RESOLUTION_CHOICES_X CHOICES("640","960","1280","1600","1920","2240","2560","2880","3200","3520")
 
 static int aspect_ratio_presets_num[]      = {   5,    4,    3,       8,      25,     239,     235,      22,    2,     185,     16,    5,    3,    4,    12,    1175,    1,    1 };
 static int aspect_ratio_presets_den[]      = {   1,    1,    1,       3,      10,     100,     100,      10,    1,     100,      9,    3,    2,    3,    10,    1000,    1,    2 };
@@ -105,7 +107,8 @@ static const char * aspect_ratio_choices[] = {"5:1","4:1","3:1","2.67:1","2.50:1
 
 CONFIG_INT("raw.video.enabled", raw_video_enabled, 0);
 
-static CONFIG_INT("raw.res.x", resolution_index_x, 12);
+static CONFIG_INT("raw.res_x", resolution_index_x, 4);
+static CONFIG_INT("raw.res_x_fine", res_x_fine, 0);
 static CONFIG_INT("raw.aspect.ratio", aspect_ratio_index, 10);
 static CONFIG_INT("raw.write.speed", measured_write_speed, 0);
 
@@ -141,6 +144,7 @@ static int res_x = 0;
 static int res_y = 0;
 static int max_res_x = 0;
 static int max_res_y = 0;
+static int sensor_res_x = 0;
 static float squeeze_factor = 0;
 static int frame_size = 0;
 static int frame_size_real = 0;
@@ -164,6 +168,8 @@ static int raw_previewing = 0;
 #define RAW_IS_PREPARING (raw_recording_state == RAW_PREPARING)
 #define RAW_IS_RECORDING (raw_recording_state == RAW_RECORDING)
 #define RAW_IS_FINISHING (raw_recording_state == RAW_FINISHING)
+
+#define VIDF_HDR_SIZE 64
 
 /* one video frame */
 struct frame_slot
@@ -190,14 +196,25 @@ static int writing_queue_tail = 0;                /* place captured frames here 
 static int writing_queue_head = 0;                /* extract frames to be written from here */ 
 
 static int frame_count = 0;                       /* how many frames we have processed */
+static int chunk_frame_count = 0;                 /* how many frames in the current file chunk */
 static int buffer_full = 0;                       /* true when the memory becomes full */
 char* raw_movie_filename = 0;                     /* file name for current (or last) movie */
 static char* chunk_filename = 0;                  /* file name for current movie chunk */
-static uint32_t written = 0;                      /* how many KB we have written in this movie */
+static int64_t written_total = 0;                 /* how many bytes we have written in this movie */
+static int64_t written_chunk = 0;                 /* same for current chunk */
 static int writing_time = 0;                      /* time spent by raw_video_rec_task in FIO_WriteFile calls */
 static int idle_time = 0;                         /* time spent by raw_video_rec_task doing something else */
-static volatile int writing_task_busy = 0;        /* busy: in the middle of a write operation */
-static volatile int frame_countdown = 0;          /* for waiting X frames */
+static uint32_t edmac_active = 0;
+
+static mlv_file_hdr_t file_hdr;
+static mlv_rawi_hdr_t rawi_hdr;
+static mlv_idnt_hdr_t idnt_hdr;
+static mlv_expo_hdr_t expo_hdr;
+static mlv_lens_hdr_t lens_hdr;
+static mlv_rtci_hdr_t rtci_hdr;
+static mlv_wbal_hdr_t wbal_hdr;
+static uint64_t mlv_start_timestamp = 0;
+uint32_t raw_rec_trace_ctx = TRACE_ERROR;
 
 /* interface to other modules: these are called when recording starts or stops  */
 extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_starting();
@@ -297,7 +314,7 @@ static void update_resolution_params()
     else squeeze_factor = 1.0f;
 
     /* res X */
-    res_x = MIN(resolution_presets_x[resolution_index_x], max_res_x);
+    res_x = MIN(resolution_presets_x[resolution_index_x] + res_x_fine, max_res_x);
 
     /* res Y */
     int num = aspect_ratio_presets_num[aspect_ratio_index];
@@ -306,11 +323,12 @@ static void update_resolution_params()
 
     /* frame size */
     /* should be multiple of 512, so there's no write speed penalty (see http://chdk.setepontos.com/index.php?topic=9970 ; confirmed by benchmarks) */
-    /* should be multiple of 64 for proper EDMAC alignment */
-    /* needed 4 extra bytes for EDMAC double-checking */
-    int frame_size_padded = (res_x * res_y * 14/8 + 4 + 511) & ~511;
+    /* let's try 64 for EDMAC alignment */
+    /* 64 at the front for the VIDF header */
+    /* 4 bytes after for checking EDMAC operation */
+    int frame_size_padded = (VIDF_HDR_SIZE + (res_x * res_y * 14/8) + 4 + 511) & ~511;
     
-    /* frame size without rounding */
+    /* frame size without padding */
     /* must be multiple of 4 */
     frame_size_real = res_x * res_y * 14/8;
     ASSERT(frame_size_real % 4 == 0);
@@ -460,6 +478,35 @@ static void refresh_raw_settings(int force)
     }
 }
 
+PROP_HANDLER( PROP_LV_AFFRAME ) {
+    ASSERT(len <= 128);
+    if(!lv) return;
+    
+    sensor_res_x = ((int32_t*)buf)[0];
+}
+
+
+static int32_t calc_crop_factor()
+{
+
+    int32_t camera_crop = 162;
+    int32_t sampling_x = 3;
+    
+    if (cam_5d2 || cam_5d3 || cam_6d) camera_crop = 100;
+    
+    //if (cam_500d || cam_50d) sensor_res_x = 4752;
+    //if (cam_eos_m || cam_550d || cam_600d || cam_650d || cam_700d || cam_60d || cam_7d) sensor_res_x = 5184;
+    //if (cam_6d) sensor_res_x = 5472;
+    //if (cam_5d2) sensor_res_x = 5616;
+    //if (cam_5d3) sensor_res_x = 5760;
+    
+    if (video_mode_crop || (lv_dispsize > 1)) sampling_x = 1;
+    
+    if (!sensor_res_x) return 0;
+    
+    return camera_crop * (sensor_res_x / sampling_x) / res_x;
+}
+
 static MENU_UPDATE_FUNC(raw_main_update)
 {
     // reset_movie_cropmarks if raw_rec is disabled
@@ -477,6 +524,8 @@ static MENU_UPDATE_FUNC(raw_main_update)
     else
     {
         MENU_SET_VALUE("ON, %dx%d", res_x, res_y);
+        int32_t crop_factor = calc_crop_factor();
+        if (crop_factor) MENU_SET_RINFO("%s%d.%02dx", FMT_FIXEDPOINT2( crop_factor ));
     }
 
     write_speed_update(entry, info);
@@ -487,7 +536,7 @@ static MENU_UPDATE_FUNC(aspect_ratio_update_info)
     if (squeeze_factor == 1.0f)
     {
         char* ratio = guess_aspect_ratio(res_x, res_y);
-        MENU_SET_HELP("%dx%d (%s)", res_x, res_y, ratio);
+        MENU_SET_HELP("%dx%d (%s).", res_x, res_y, ratio);
     }
     else
     {
@@ -508,11 +557,15 @@ static MENU_UPDATE_FUNC(resolution_update)
         return;
     }
     
+    res_x = resolution_presets_x[resolution_index_x] + res_x_fine;
+       
     refresh_raw_settings(1);
 
-    int selected_x = resolution_presets_x[resolution_index_x];
+    int selected_x = res_x;
 
     MENU_SET_VALUE("%dx%d", res_x, res_y);
+    int crop_factor = calc_crop_factor();
+    if (crop_factor) MENU_SET_RINFO("%s%d.%02dx", FMT_FIXEDPOINT2( crop_factor ));
     
     if (selected_x > max_res_x)
     {
@@ -524,6 +577,50 @@ static MENU_UPDATE_FUNC(resolution_update)
     }
 
     write_speed_update(entry, info);
+    
+    if (!get_menu_edit_mode())
+    {
+        int len = strlen(info->help);
+        if (len < 20)
+        {
+            snprintf(info->help + len, MENU_MAX_HELP_LEN - len,
+                " Fine-tune with LEFT/RIGHT or top scrollwheel."
+            );
+        }
+    }
+}
+
+static MENU_SELECT_FUNC(resolution_change_fine_value)
+{
+    if (!raw_video_enabled || !lv)
+    {
+        return;
+    }
+    
+    if (get_menu_edit_mode()) {
+        /* pickbox: select a preset */
+        resolution_index_x = COERCE(resolution_index_x + delta, 0, COUNT(resolution_presets_x) - 1);
+        res_x_fine = 0;
+        return;
+    }
+    
+    /* fine-tune resolution in small increments */
+    int cur_res = resolution_presets_x[resolution_index_x] + res_x_fine;
+    cur_res = COERCE(cur_res + delta * 32, resolution_presets_x[0], max_res_x); 
+
+    /* select the closest preset */
+    int max_delta = INT_MAX;
+    for (int i = 0; i < COUNT(resolution_presets_x); i++)
+    {
+        int preset_res = resolution_presets_x[i];
+        int delta = MAX(cur_res * 1024 / preset_res, preset_res * 1024 / cur_res);
+        if (delta < max_delta)
+        {
+            resolution_index_x = i;
+            max_delta = delta;
+        }
+    }
+    res_x_fine = cur_res - resolution_presets_x[resolution_index_x];
 }
 
 static MENU_UPDATE_FUNC(aspect_ratio_update)
@@ -554,27 +651,7 @@ static MENU_UPDATE_FUNC(aspect_ratio_update)
     write_speed_update(entry, info);
 }
 
-/* add a footer to given file handle to  */
-static unsigned int lv_rec_save_footer(FILE *save_file)
-{
-    lv_rec_file_footer_t footer;
-    
-    strcpy((char*)footer.magic, "RAWM");
-    footer.xRes = res_x;
-    footer.yRes = res_y;
-    footer.frameSize = frame_size;
-    footer.frameCount = frame_count - 1; /* last frame is usually gibberish */
-    footer.frameSkip = 1;
-    
-    footer.sourceFpsx1000 = fps_get_current_x1000();
-    footer.raw_info = raw_info;
-
-    int written = FIO_WriteFile(save_file, &footer, sizeof(lv_rec_file_footer_t));
-    
-    return written == sizeof(lv_rec_file_footer_t);
-}
-
-static int add_mem_suite(struct memSuite * mem_suite, int buf_size, int chunk_index)
+static int add_mem_suite(struct memSuite * mem_suite, int chunk_index)
 {
     if(mem_suite)
     {
@@ -584,6 +661,7 @@ static int add_mem_suite(struct memSuite * mem_suite, int buf_size, int chunk_in
         {
             int size = GetSizeOfMemoryChunk(chunk);
             intptr_t ptr = (intptr_t) GetMemoryAddressOfMemoryChunk(chunk);
+
             /* write it down for future frame predictions */
             if (chunk_index < COUNT(chunk_list) && size > 64)
             {
@@ -595,7 +673,7 @@ static int add_mem_suite(struct memSuite * mem_suite, int buf_size, int chunk_in
                 chunk_index++;
             }
             
-            /* align at 64 bytes */
+            /* align pointer at 64 bytes */
             intptr_t ptr_raw = ptr;
             ptr   = (ptr + 63) & ~63;
             size -= (ptr - ptr_raw);
@@ -604,6 +682,16 @@ static int add_mem_suite(struct memSuite * mem_suite, int buf_size, int chunk_in
             int group_size = 0;
             while (size >= frame_size && slot_count < COUNT(slots))
             {
+                mlv_vidf_hdr_t* vidf_hdr = (mlv_vidf_hdr_t*) ptr;
+                memset(vidf_hdr, 0, sizeof(mlv_vidf_hdr_t));
+                mlv_set_type((mlv_hdr_t*)vidf_hdr, "VIDF");
+                vidf_hdr->blockSize  = frame_size;
+                vidf_hdr->frameSpace = VIDF_HDR_SIZE - sizeof(mlv_vidf_hdr_t);
+                vidf_hdr->cropPosX   = (skip_x + 7) & ~7;
+                vidf_hdr->cropPosY   = skip_y & ~1;
+                vidf_hdr->panPosX    = skip_x;
+                vidf_hdr->panPosY    = skip_y;
+                
                 slots[slot_count].ptr = (void*) ptr;
                 slots[slot_count].status = SLOT_FREE;
                 ptr += frame_size;
@@ -624,9 +712,12 @@ static int add_mem_suite(struct memSuite * mem_suite, int buf_size, int chunk_in
                     group_size = 0;
                 }
             }
+            
+            /* next chunk */
             chunk = GetNextMemoryChunk(mem_suite, chunk);
         }
     }
+    
     return chunk_index;
 }
 
@@ -662,8 +753,8 @@ static int setup_buffers()
     }
         
     int chunk_index = 0;
-    chunk_index = add_mem_suite(shoot_mem_suite, buf_size, chunk_index);
-    chunk_index = add_mem_suite(srm_mem_suite, buf_size, chunk_index);
+    chunk_index = add_mem_suite(shoot_mem_suite, chunk_index);
+    chunk_index = add_mem_suite(srm_mem_suite, chunk_index);
   
     /* we need at least 3 slots */
     if (slot_count < 3)
@@ -834,7 +925,7 @@ static LVINFO_UPDATE_FUNC(recording_status)
     } 
     else 
     {
-        snprintf(buffer, sizeof(buffer), "Stopped.", buffer_full);
+        snprintf(buffer, sizeof(buffer), "Stopped.");
         item->color_bg = COLOR_DARK_RED;
     }
 }
@@ -855,7 +946,7 @@ static void show_recording_status()
         int idle_percent=0;
         if (writing_time)
         {
-            speed = (int)((float)written / (float)writing_time * (1000.0f / 1024.0f * 100.0f)); // KiB and msec -> MiB/s x100
+            speed = (int)((float)written_total / (float)writing_time * (1000.0f / 1024.0f / 1024.0f * 100.0f)); // KiB and msec -> MiB/s x100
             idle_percent = idle_time * 100 / (writing_time + idle_time);
             measured_write_speed = speed;
             speed /= 10;
@@ -890,7 +981,7 @@ static void show_recording_status()
                 snprintf(msg, sizeof(msg),
                     "%s: %d MB, %d.%d MB/s",
                     chunk_filename + 17, /* skip A:/DCIM/100CANON/ */
-                    written / 1024,
+                    (int)(written_total / 1024 / 1024),
                     speed/10, speed%10
                 );
                 if (idle_time)
@@ -1212,7 +1303,7 @@ static int FAST choose_next_capture_slot()
 
 static void frame_add_checks(int slot_index)
 {
-    void* ptr = slots[slot_index].ptr;
+    void* ptr = slots[slot_index].ptr + VIDF_HDR_SIZE;
     uint32_t* frame_end = ptr + frame_size_real - 4;
     uint32_t* after_frame = ptr + frame_size_real;
     *(volatile uint32_t*) frame_end = FRAME_SENTINEL; /* this will be overwritten by EDMAC */
@@ -1221,7 +1312,7 @@ static void frame_add_checks(int slot_index)
 
 static int frame_check_saved(int slot_index)
 {
-    void* ptr = slots[slot_index].ptr;
+    void* ptr = slots[slot_index].ptr + VIDF_HDR_SIZE;
     uint32_t* frame_end = ptr + frame_size_real - 4;
     uint32_t* after_frame = ptr + frame_size_real;
     if (*(volatile uint32_t*) after_frame != FRAME_SENTINEL)
@@ -1240,13 +1331,31 @@ static int frame_check_saved(int slot_index)
     return 1;
 }
 
-static int FAST process_frame()
+static void edmac_cbr_r(void *ctx)
+{
+}
+
+static void edmac_cbr_w(void *ctx)
+{
+    edmac_active = 0;
+    edmac_copy_rectangle_adv_cleanup();
+}
+
+static void FAST process_frame()
 {
     /* skip the first frame, it will be gibberish */
     if (frame_count == 0)
     {
         frame_count++;
-        return 0;
+        return;
+    }
+    
+    if (edmac_active)
+    {
+        /* EDMAC too slow */
+        NotifyBox(2000, "EDMAC timeout.");
+        buffer_full = 1;
+        return;
     }
     
     /* where to save the next frame? */
@@ -1268,11 +1377,18 @@ static int FAST process_frame()
     {
         /* card too slow */
         buffer_full = 1;
-        return 0;
+        return;
     }
 
     /* copy current frame to our buffer and crop it to its final size */
-    void* ptr = slots[capture_slot].ptr;
+    mlv_vidf_hdr_t* vidf_hdr = (mlv_vidf_hdr_t*)slots[capture_slot].ptr;
+    vidf_hdr->frameNumber = slots[capture_slot].frame_number - 1;
+    mlv_set_timestamp((mlv_hdr_t*)vidf_hdr, mlv_start_timestamp);
+    vidf_hdr->cropPosX = (skip_x + 7) & ~7;
+    vidf_hdr->cropPosY = skip_y & ~1;
+    vidf_hdr->panPosX = skip_x;
+    vidf_hdr->panPosY = skip_y;
+    void* ptr = slots[capture_slot].ptr + VIDF_HDR_SIZE;
     void* fullSizeBuffer = fullsize_buffers[(fullsize_buffer_pos+1) % 2];
 
     /* advance to next buffer for the upcoming capture */
@@ -1280,30 +1396,26 @@ static int FAST process_frame()
 
     //~ printf("saving frame %d: slot %d ptr %x\n", frame_count, capture_slot, ptr);
 
-    int ans = (int) edmac_copy_rectangle_start(ptr, fullSizeBuffer, raw_info.pitch, (skip_x+7)/8*14, skip_y/2*2, res_x*14/8, res_y);
+    edmac_active = 1;
+    edmac_copy_rectangle_cbr_start(
+        ptr, fullSizeBuffer,
+        raw_info.pitch,
+        (skip_x+7)/8*14, skip_y/2*2,
+        res_x*14/8, 0, 0, res_x*14/8, res_y,
+        &edmac_cbr_r, &edmac_cbr_w, NULL
+    );
 
     /* advance to next frame */
     frame_count++;
+    chunk_frame_count++;
 
-    return ans;
+    return;
 }
 
 static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
 {
-    static int dma_transfer_in_progress = 0;
-    /* there may be DMA transfers started in process_frame, finish them */
-    /* let's assume they are faster than LiveView refresh rate (well, they HAVE to be) */
-    if (dma_transfer_in_progress)
-    {
-        edmac_copy_rectangle_finish();
-        dma_transfer_in_progress = 0;
-    }
-
     if (!raw_video_enabled) return 0;
     if (!is_movie_mode()) return 0;
-    
-    if (frame_countdown)
-        frame_countdown--;
     
     hack_liveview_vsync();
  
@@ -1317,7 +1429,7 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
     /* double-buffering */
     raw_lv_redirect_edmac(fullsize_buffers[fullsize_buffer_pos % 2]);
 
-    dma_transfer_in_progress = process_frame();
+    process_frame();
 
     return 0;
 }
@@ -1335,7 +1447,7 @@ static char* get_next_raw_movie_file_name()
          * Get unique file names from the current date/time
          * last field gets incremented if there's another video with the same name
          */
-        snprintf(filename, sizeof(filename), "%s/M%02d-%02d%02d.RAW", get_dcim_dir(), now.tm_mday, now.tm_hour, COERCE(now.tm_min + number, 0, 99));
+        snprintf(filename, sizeof(filename), "%s/M%02d-%02d%02d.MLV", get_dcim_dir(), now.tm_mday, now.tm_hour, COERCE(now.tm_min + number, 0, 99));
         
         /* already existing file? */
         uint32_t size;
@@ -1373,6 +1485,181 @@ static char* get_wav_file_name(char* raw_movie_filename)
     return wavfile;
 }
 
+static void init_mlv_chunk_headers(struct raw_info * raw_info)
+{
+    mlv_start_timestamp = mlv_set_timestamp(NULL, 0);
+    
+    memset(&file_hdr, 0, sizeof(mlv_file_hdr_t));
+    mlv_init_fileheader(&file_hdr);
+    file_hdr.fileGuid = mlv_generate_guid();
+    file_hdr.fileNum = 0;
+    file_hdr.fileCount = 0; //autodetect
+    file_hdr.fileFlags = 4;
+    file_hdr.videoClass = 1;
+    file_hdr.audioClass = 0;
+    file_hdr.videoFrameCount = 0; //autodetect
+    file_hdr.audioFrameCount = 0;
+    file_hdr.sourceFpsNom = fps_get_current_x1000();
+    file_hdr.sourceFpsDenom = 1000;
+    
+    memset(&rawi_hdr, 0, sizeof(mlv_rawi_hdr_t));
+    mlv_set_type((mlv_hdr_t *)&rawi_hdr, "RAWI");
+    mlv_set_timestamp((mlv_hdr_t *)&rawi_hdr, mlv_start_timestamp);
+    rawi_hdr.blockSize = sizeof(mlv_rawi_hdr_t);
+    rawi_hdr.xRes = res_x;
+    rawi_hdr.yRes = res_y;
+    rawi_hdr.raw_info = *raw_info;
+    
+    mlv_fill_idnt(&idnt_hdr, mlv_start_timestamp);
+    mlv_fill_expo(&expo_hdr, mlv_start_timestamp);
+    mlv_fill_lens(&lens_hdr, mlv_start_timestamp);
+    mlv_fill_rtci(&rtci_hdr, mlv_start_timestamp);
+    mlv_fill_wbal(&wbal_hdr, mlv_start_timestamp);
+}
+
+static int write_mlv_chunk_headers(FILE* f)
+{
+    if (FIO_WriteFile(f, &file_hdr, file_hdr.blockSize) != (int)file_hdr.blockSize) return 0;
+    if (FIO_WriteFile(f, &rawi_hdr, rawi_hdr.blockSize) != (int)rawi_hdr.blockSize) return 0;
+    if (FIO_WriteFile(f, &idnt_hdr, idnt_hdr.blockSize) != (int)idnt_hdr.blockSize) return 0;
+    if (FIO_WriteFile(f, &expo_hdr, expo_hdr.blockSize) != (int)expo_hdr.blockSize) return 0;
+    if (FIO_WriteFile(f, &lens_hdr, lens_hdr.blockSize) != (int)lens_hdr.blockSize) return 0;
+    if (FIO_WriteFile(f, &rtci_hdr, rtci_hdr.blockSize) != (int)rtci_hdr.blockSize) return 0;
+    if (FIO_WriteFile(f, &wbal_hdr, wbal_hdr.blockSize) != (int)wbal_hdr.blockSize) return 0;
+    int hdr_size = sizeof(file_hdr) + sizeof(rawi_hdr) + sizeof(idnt_hdr) + sizeof(expo_hdr) + sizeof(lens_hdr) + sizeof(rtci_hdr) + sizeof(wbal_hdr);
+    
+    /* insert a null block so the header size is multiple of 512 bytes */
+    mlv_hdr_t nul_hdr;
+    mlv_set_type(&nul_hdr, "NULL");
+    int padded_size = (hdr_size + sizeof(nul_hdr) + 511) & ~511;
+    nul_hdr.blockSize = padded_size - hdr_size;
+    if (FIO_WriteFile(f, &nul_hdr, nul_hdr.blockSize) != (int)nul_hdr.blockSize) return 0;
+    
+    return padded_size;
+}
+
+static int file_size_limit = 0;         /* have we run into the 4GB limit? */
+static int last_write_timestamp = 0;    /* last FIO_WriteFile call */
+static int mlv_chunk = 0;               /* MLV chunk index from header */
+
+/* update the frame count and close the chunk */
+static void finish_chunk(FILE* f)
+{
+    file_hdr.videoFrameCount = chunk_frame_count;
+    FIO_SeekSkipFile(f, 0, SEEK_SET);
+    FIO_WriteFile(f, &file_hdr, file_hdr.blockSize);
+    FIO_CloseFile(f);
+    chunk_frame_count = 0;
+}
+
+/* This saves a group of frames, also taking care of file splitting if required */
+static int write_frames(FILE** pf, void* ptr, int size_used)
+{
+    FILE* f = *pf;
+    
+    /* if we know there's a 4GB file size limit and we're about to exceed it, go ahead and make a new chunk */
+    if (file_size_limit && written_chunk + size_used > 0xFFFFFFFF)
+    {
+        finish_chunk(f);
+        chunk_filename = get_next_chunk_file_name(raw_movie_filename, ++mlv_chunk);
+        printf("About to reach 4GB limit.\n");
+        printf("Creating new chunk: %s\n", chunk_filename);
+        FILE* g = FIO_CreateFile(chunk_filename);
+        if (!g) return 0;
+        
+        file_hdr.fileNum = mlv_chunk;
+        written_chunk = write_mlv_chunk_headers(g);
+        written_total += written_chunk;
+        
+        if (written_chunk)
+        {
+            printf("Success!\n");
+            *pf = f = g;
+        }
+        else
+        {
+            printf("New chunk didn't work. Card full?\n");
+            FIO_CloseFile(g);
+            FIO_RemoveFile(chunk_filename);
+            mlv_chunk--;
+            return 0;
+        }
+    }
+    
+    int t0 = get_ms_clock_value();
+    if (!last_write_timestamp) last_write_timestamp = t0;
+    idle_time += t0 - last_write_timestamp;
+    int r = FIO_WriteFile(f, ptr, size_used);
+    last_write_timestamp = get_ms_clock_value();
+
+    if (r != size_used) /* 4GB limit or card full? */
+    {
+        printf("Write error.\n");
+        
+        /* failed, but not at 4GB limit, card must be full */
+        if (written_chunk + size_used < 0xFFFFFFFF)
+        {
+            printf("Failed before 4GB limit. Card full?\n");
+            /* don't try and write the remaining frames, the card is full */
+            writing_queue_head = writing_queue_tail;
+            return 0;
+        }
+        
+        file_size_limit = 1;
+        
+        /* 5D2 does not write anything if the call failed, but 5D3 writes exactly 4294967295 */
+        /* We need to write a null block to cover to the end of the file if anything was written */
+        /* otherwise the file could end in the middle of a block */
+        int64_t pos = FIO_SeekSkipFile(f, 0, SEEK_CUR);
+        if (pos > written_chunk + 1)
+        {
+            printf("Covering incomplete block.\n");
+            FIO_SeekSkipFile(f, written_chunk, SEEK_SET);
+            mlv_hdr_t nul_hdr;
+            mlv_set_type(&nul_hdr, "NULL");
+            nul_hdr.blockSize = MAX(sizeof(nul_hdr), pos - written_chunk);
+            FIO_WriteFile(f, &nul_hdr, sizeof(nul_hdr));
+        }
+        
+        finish_chunk(f);
+        /* try to create a new chunk */
+        chunk_filename = get_next_chunk_file_name(raw_movie_filename, ++mlv_chunk);
+        printf("Creating new chunk: %s\n", chunk_filename);
+        FILE* g = FIO_CreateFile(chunk_filename);
+        if (!g) return 0;
+        
+        file_hdr.fileNum = mlv_chunk;
+        written_chunk = write_mlv_chunk_headers(g);
+        written_total += written_chunk;
+        
+        int r2 = written_chunk ? FIO_WriteFile(g, ptr, size_used) : 0;
+        if (r2 == size_used) /* new chunk worked, continue with it */
+        {
+            printf("Success!\n");
+            *pf = f = g;
+            written_total += size_used;
+            written_chunk += size_used;
+        }
+        else /* new chunk didn't work, card full */
+        {
+            printf("New chunk didn't work. Card full?\n");
+            FIO_CloseFile(g);
+            FIO_RemoveFile(chunk_filename);
+            mlv_chunk--;
+            return 0;
+        }
+    }
+    else
+    {
+        /* all fine */
+        written_total += size_used;
+        written_chunk += size_used;
+    }
+    
+    writing_time += last_write_timestamp - t0;
+    return 1;
+}
+
 static void raw_video_rec_task()
 {
     //~ console_show();
@@ -1381,48 +1668,37 @@ static void raw_video_rec_task()
     slot_count = 0;
     capture_slot = -1;
     fullsize_buffer_pos = 0;
-    writing_task_busy = 0;
     frame_count = 0;
+    chunk_frame_count = 0;
     buffer_full = 0;
     FILE* f = 0;
-    written = 0; /* in KB */
-    uint32_t written_chunk = 0; /* in bytes, for current chunk */
+    written_total = 0; /* in bytes */
     int last_block_size = 0; /* for detecting early stops */
-
-    /* disable Canon's powersaving (30 min in LiveView) */
+    last_write_timestamp = 0;
+    mlv_chunk = 0;
+    edmac_active = 0;
+    
     powersave_prohibit();
 
-    /* create a backup file, to make sure we can save the file footer even if the card is full */
-    char backup_filename[100];
-    snprintf(backup_filename, sizeof(backup_filename), "%s/backup.raw", get_dcim_dir());
-    FILE* bf = FIO_CreateFile(backup_filename);
-    if (!bf)
-    {
-        bmp_printf( FONT_MED, 30, 50, "File create error");
-        goto cleanup;
-    }
-    FIO_WriteFile(bf, (void*)0x40000000, 512*1024);
-    FIO_CloseFile(bf);
-    
-    
     /* create output file */
-    int chunk = 0;
     raw_movie_filename = get_next_raw_movie_file_name();
     chunk_filename = raw_movie_filename;
     f = FIO_CreateFile(raw_movie_filename);
     if (!f)
     {
-        bmp_printf( FONT_MED, 30, 50, "File create error");
+        NotifyBox(5000, "File create error");
+        goto cleanup;
+    }
+    init_mlv_chunk_headers(&raw_info);
+    written_total = written_chunk = write_mlv_chunk_headers(f);
+    if (!written_chunk)
+    {
+        NotifyBox(5000, "Card Full");
         goto cleanup;
     }
     
     /* wait for two frames to be sure everything is refreshed */
-    frame_countdown = 2;
-    for (int i = 0; i < 200; i++)
-    {
-        msleep(20);
-        if (frame_countdown == 0) break;
-    }
+    wait_lv_frames(2);
     
     /* detect raw parameters (geometry, black level etc) */
     raw_set_dirty();
@@ -1457,7 +1733,6 @@ static void raw_video_rec_task()
     
     writing_time = 0;
     idle_time = 0;
-    int last_write_timestamp = 0;
     
     /* fake recording status, to integrate with other ml stuff (e.g. hdr video */
     set_recording_custom(CUSTOM_RECORDING_RAW);
@@ -1555,72 +1830,9 @@ static void raw_video_rec_task()
             slots[slot_index].status = SLOT_WRITING;
         }
 
-        if (1)
+        if (!write_frames(&f, ptr, size_used))
         {
-            writing_task_busy = 1;
-            
-            int t0 = get_ms_clock_value();
-            if (!last_write_timestamp) last_write_timestamp = t0;
-            idle_time += t0 - last_write_timestamp;
-            int r = FIO_WriteFile(f, ptr, size_used);
-            last_write_timestamp = get_ms_clock_value();
-
-            if (r != size_used) /* 4GB limit or card full? */
-            {
-                /* it failed right away? card must be full */
-                if (written == 0) goto abort;
-
-                if (r == -1)
-                {
-                    /* 4GB limit? it stops after writing 4294967295 bytes, but FIO_WriteFile may return -1 */
-                    //if ((uint64_t)written_chunk + size_used > 4294967295)
-                    if (1) // renato says it's not working?!
-                    {
-                        r = 4294967295 - written_chunk;
-                        
-                        /* 5D2 does not write anything if the call failed, but 5D3 writes exactly 4294967295 */
-                        /* this one should cover both cases in a portable way */
-                        /* on 5D2 will succeed, on 5D3 should fail right away */
-                        FIO_WriteFile(f, ptr, r);
-                    }
-                    else /* idk */
-                    {
-                        r = 0;
-                    }
-                }
-                
-                /* try to create a new chunk */
-                chunk_filename = get_next_chunk_file_name(raw_movie_filename, ++chunk);
-                FILE* g = FIO_CreateFile(chunk_filename);
-                if (!g) goto abort;
-                
-                /* write the remaining data in the new chunk */
-                int r2 = FIO_WriteFile(g, ptr + r, size_used - r);
-                if (r2 == size_used - r) /* new chunk worked, continue with it */
-                {
-                    FIO_CloseFile(f);
-                    f = g;
-                    written += size_used / 1024;
-                    written_chunk = r2;
-                }
-                else /* new chunk didn't work, card full */
-                {
-                    /* let's hope we can still save the footer in the current chunk (don't create a new one) */
-                    FIO_CloseFile(g);
-                    FIO_RemoveFile(chunk_filename);
-                    chunk--;
-                    goto abort;
-                }
-            }
-            else
-            {
-                /* all fine */
-                written += size_used / 1024;
-                written_chunk += size_used;
-            }
-            
-            writing_time += last_write_timestamp - t0;
-            writing_task_busy = 0;
+            goto abort;
         }
 
         /* for detecting early stops */
@@ -1738,42 +1950,16 @@ abort_and_check_early_stop:
 
         slots[slot_index].status = SLOT_WRITING;
         if (indicator_display == INDICATOR_RAW_BUFFER) show_buffer_status();
-        written += FIO_WriteFile(f, slots[slot_index].ptr, frame_size) / 1024;
+        if (!write_frames(&f, slots[slot_index].ptr, frame_size))
+        {
+            NotifyBox(5000, "Card Full");
+            beep();
+            break;
+        }
         slots[slot_index].status = SLOT_FREE;
     }
 
-    /* remove the backup file, to make sure we can save the footer even if card is full */
-    FIO_RemoveFile(backup_filename);
-    msleep(500);
-
-    if (written && f)
-    {
-        /* write footer (metadata) */
-        int footer_ok = lv_rec_save_footer(f);
-        if (!footer_ok)
-        {
-            /* try to save footer in a new chunk */
-            FIO_CloseFile(f); f = 0;
-            chunk_filename = get_next_chunk_file_name(raw_movie_filename, ++chunk);
-            FILE* g = FIO_CreateFile(chunk_filename);
-            if (g)
-            {
-                footer_ok = lv_rec_save_footer(g);
-                FIO_CloseFile(g);
-            }
-        }
-
-        /* still didn't succeed? */
-        if (!footer_ok)
-        {
-            bmp_printf( FONT_MED, 30, 110, 
-                "Footer save error"
-            );
-            beep_times(3);
-            msleep(2000);
-        }
-    }
-    else
+    if (!written_total || !f)
     {
         bmp_printf( FONT_MED, 30, 110, 
             "Nothing saved, card full maybe."
@@ -1783,9 +1969,12 @@ abort_and_check_early_stop:
     }
 
 cleanup:
-    if (f) FIO_CloseFile(f);
-    if (!written) { FIO_RemoveFile(raw_movie_filename); raw_movie_filename = 0; }
-    FIO_RemoveFile(backup_filename);
+    if (f) finish_chunk(f);
+    if (!written_total)
+    {
+        FIO_RemoveFile(raw_movie_filename);
+        raw_movie_filename = 0;
+    }
 
     /* everything saved, we can unlock the buttons.
      * note: freeing SRM memory will also touch uilocks,
@@ -1854,12 +2043,14 @@ static struct menu_entry raw_video_menu[] =
         .update = raw_main_update,
         .submenu_width = 710,
         .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
-        .help = "Record 14-bit RAW video. Press LiveView to start.",
+        .help = "Record 14-bit RAW video (MLV format, no sound, basic metadata).",
+        .help2 = "Press LiveView to start recording.",
         .children =  (struct menu_entry[]) {
             {
                 .name = "Resolution",
                 .priv = &resolution_index_x,
                 .max = COUNT(resolution_presets_x) - 1,
+                .select = resolution_change_fine_value,
                 .update = resolution_update,
                 .choices = RESOLUTION_CHOICES_X,
             },
@@ -2165,6 +2356,7 @@ MODULE_CBRS_END()
 MODULE_CONFIGS_START()
     MODULE_CONFIG(raw_video_enabled)
     MODULE_CONFIG(resolution_index_x)
+    MODULE_CONFIG(res_x_fine)    
     MODULE_CONFIG(aspect_ratio_index)
     MODULE_CONFIG(measured_write_speed)
     MODULE_CONFIG(dolly_mode)
