@@ -2116,20 +2116,12 @@ static char* get_next_chunk_file_name(char* base_name, int chunk)
     return filename;
 }
 
-/* this tells the audio backend that we are going to record sound */
-static ml_cbr_action raw_rec_snd_rec_cbr (const char *event, void *data)
+/* a bit of a hack: this tells the audio backend that we are going to record sound */
+/* => it will show audio meters and disable beeps */
+int mlv_snd_is_enabled()
 {
-    uint32_t *status = (uint32_t*)data;
-    
-    if(use_h264_proxy() && sound_recording_enabled_canon())
-    {
-        *status = 1;
-        return ML_CBR_STOP;
-    }
-    
-    return ML_CBR_CONTINUE;
+    return h264_proxy && sound_recording_enabled_canon();
 }
-
 
 static char* get_wav_file_name(char* raw_movie_filename)
 {
