@@ -2361,6 +2361,7 @@ static void restore_bit_depth()
 {
     raw_lv_request_bpp(14);
 }
+extern thunk ErrCardForLVApp_handler;
 
 static void raw_video_rec_task()
 {
@@ -2738,7 +2739,7 @@ abort_and_check_early_stop:
     raw_recording_state = RAW_FINISHING;
 
     /* wait until the other tasks calm down */
-    msleep(500);
+    wait_lv_frames(2);
 
     /* signal end of recording to the compression task */
     msg_queue_post(compress_mq, INT_MIN);
@@ -2864,7 +2865,8 @@ cleanup:
     /* re-enable powersaving  */
     powersave_permit();
 
-    if (h264_proxy && RECORDING_H264)
+    if (h264_proxy && RECORDING_H264 &&
+        get_current_dialog_handler() != &ErrCardForLVApp_handler)
     {
         /* stop H.264 recording */
         movie_end();
