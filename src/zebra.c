@@ -4143,7 +4143,7 @@ livev_hipriority_task( void* unused )
 
         int mz = should_draw_zoom_overlay();
 
-        lv_vsync(mz);
+        _lv_vsync(mz);
         guess_fastrefresh_direction();
 
         #ifdef FEATURE_MAGIC_ZOOM

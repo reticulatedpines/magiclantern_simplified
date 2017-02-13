@@ -53,7 +53,7 @@ int digic_zoom_overlay_enabled();
 int nondigic_zoom_overlay_enabled();
 
 /* MZ vsync in vsync-lite.c (to be cleaned up somehow) */
-void lv_vsync(int mz);
+void _lv_vsync(int mz);
 
 /* todo: move to separate file */
 int arrow_keys_shortcuts_active();

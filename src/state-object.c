@@ -16,7 +16,7 @@
 #include "module.h"
 
 /* to refactor with CBR */
-extern void lv_vsync_signal();
+extern void _lv_vsync_signal();
 extern void hdr_step();
 extern void raw_lv_vsync();
 extern int hdr_kill_flicker();
@@ -144,19 +144,19 @@ static int FAST stateobj_lv_spy(struct state_object * self, int x, int input, in
 // this is tricky...
 #if defined(CONFIG_DIGIC_V)
     if (self == DISPLAY_STATE && (input == INPUT_ENABLE_IMAGE_PHYSICAL_SCREEN_PARAMETER))
-        lv_vsync_signal();
+        _lv_vsync_signal();
 #elif defined(CONFIG_5D2)
     if (self == LV_STATE)//&& old_state == 4)
     {
-        //~ lv_vsync_signal();
+        //~ _lv_vsync_signal();
     }
 #elif defined(CONFIG_60D)
     if (self == EVF_STATE && input == 5 && old_state == 5) // evfReadOutDoneInterrupt
-        lv_vsync_signal();
+        _lv_vsync_signal();
 #elif defined(CONFIG_600D)
     if (self == EVF_STATE && old_state == 5) {  
         //600D Goes 3 - 4 - 5 5 and 3 ever 1/2 frame
-        lv_vsync_signal();
+        _lv_vsync_signal();
     }
 #endif
     // sync display filters (for these, we need to redirect display buffers
