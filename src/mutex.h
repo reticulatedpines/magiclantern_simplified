@@ -12,6 +12,7 @@
 #else
 #define THREAD_ANNOTATION_ATTRIBUTE__(x)   // no-op
 #endif
+
 #endif
 
 #pragma GCC diagnostic ignored "-Wattributes"
@@ -73,5 +74,14 @@
 
 #define NO_THREAD_SAFETY_ANALYSIS \
   THREAD_ANNOTATION_ATTRIBUTE__(no_thread_safety_analysis)
+
+typedef int CAPABILITY("role") ThreadRole;
+#define THREAD_ROLE(role) static __attribute__((unused)) ThreadRole role
+
+THREAD_ROLE(GuiMainTask);          /* Canon's GUI task (where we hook button events; all MENU_SELECT_FUNC's run from here) */
+THREAD_ROLE(LiveViewTask);         /* Canon's LiveView task (e.g. vsync hook) */
+THREAD_ROLE(LiveVHiPrioTask);      /* ML's "fast" overlays task (zebras, peaking etc) */
+THREAD_ROLE(LiveVLoPrioTask);      /* ML's "slow" overlays task (histogram, waveform etc) */
+THREAD_ROLE(MenuRedrawTask);       /* all MENU_UPDATE_FUNC's run from here */
 
 #endif  // THREAD_SAFETY_ANALYSIS_MUTEX_H
