@@ -43,9 +43,12 @@ endif
 	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
 
 # fake target: check thread safety with clang
+# ignore read warnings for now (assume one writer and multiple readers are fine)
 %.t: %.i
 	$(call build,CLANG,clang -fsyntax-only -Wno-everything -Wthread-safety \
-	-target armv5-none-eabi -mcpu=arm946e-s $<)
+	-target armv5-none-eabi -mcpu=arm946e-s \
+	-fno-caret-diagnostics \
+	 $< 2>&1 >/dev/null | grep -v "reading variable" || true)
 
 %.s: %.c
 	$(call build,CC -S,$(CC) $(CFLAGS) -S -o $@ $<)
