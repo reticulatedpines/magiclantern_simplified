@@ -13,14 +13,20 @@
 /* all registered info items go here */
 /* note: these are somewhat private; they get first sorted in top/bottom bars,
  * and most of the code works at bar level, without accessing _info_items directly */
-static struct lvinfo_item * _info_items[MAX_ITEMS];
-static int _info_items_count = 0;
-static int layout_dirty = 0;
 static struct semaphore * lvinfo_sem = 0;
 
-static int default_font = FONT_MED_LARGE | FONT_ALIGN_CENTER;   /* used in normal situations */
-static int small_font = FONT_MED | FONT_ALIGN_CENTER;           /* used if the layout gets really tight */
+static GUARDED_BY(lvinfo_sem)   struct lvinfo_item * _info_items[MAX_ITEMS];
+static GUARDED_BY(lvinfo_sem)   int _info_items_count = 0;
+static GUARDED_BY(lvinfo_sem)   int layout_dirty = 0;
 
+static GUARDED_BY(lvinfo_sem)   int default_font = FONT_MED_LARGE;   /* used in normal situations */
+static GUARDED_BY(lvinfo_sem)   int small_font = FONT_MED;           /* used if the layout gets really tight */
+
+/* fixme: false thread safety warning
+ * when called from INIT_FUNC's, the semaphore may not be initialized yet
+ * but these functions are called sequentially, so there's no race condition possible
+ */
+NO_THREAD_SAFETY_ANALYSIS
 void lvinfo_add_items(struct lvinfo_item * items, int count)
 {
     if (lvinfo_sem) take_semaphore(lvinfo_sem, 0);
@@ -44,7 +50,8 @@ static int is_active(struct lvinfo_item * item)
 }
 
 /* call the update functions and compute the metrics */
-static void lvinfo_update_items(struct lvinfo_item * items[], int count, int override_font)
+static REQUIRES(lvinfo_sem)
+void lvinfo_update_items(struct lvinfo_item * items[], int count, int override_font)
 {
     /* everybody measure themselves! */
     for (int i = 0; i < count; i++)
@@ -75,7 +82,8 @@ static void lvinfo_update_items(struct lvinfo_item * items[], int count, int ove
     }
 }
 
-static int lvinfo_check_if_needs_reflow(struct lvinfo_item * items[], int count, int bar_x, int bar_width)
+static REQUIRES(lvinfo_sem)
+int lvinfo_check_if_needs_reflow(struct lvinfo_item * items[], int count, int bar_x, int bar_width)
 {
     int too_tight = 0;
     int max_spacing = INT_MIN;
@@ -119,7 +127,8 @@ static int lvinfo_check_if_needs_reflow(struct lvinfo_item * items[], int count,
 
 
 /* assign some items from the global list to top/bottom bars */
-static void lvinfo_distribute_items(int which_bar, struct lvinfo_item * items[], int* count, int* space)
+static REQUIRES(lvinfo_sem)
+void lvinfo_distribute_items(int which_bar, struct lvinfo_item * items[], int* count, int* space)
 {
     for (int i = 0; i < _info_items_count; i++)
     {
@@ -136,7 +145,8 @@ static void lvinfo_distribute_items(int which_bar, struct lvinfo_item * items[],
     }
 }
 
-static void lvinfo_mark_all_as_not_placed()
+static REQUIRES(lvinfo_sem)
+void lvinfo_mark_all_as_not_placed()
 {
     for (int i = 0; i < _info_items_count; i++)
     {
@@ -145,7 +155,8 @@ static void lvinfo_mark_all_as_not_placed()
 }
 
 /* how many items are still left to be placed? */
-static int lvinfo_remaining_items()
+static REQUIRES(lvinfo_sem)
+int lvinfo_remaining_items()
 {
     int count = 0;
     for (int i = 0; i < _info_items_count; i++)
@@ -159,7 +170,8 @@ static int lvinfo_remaining_items()
 }
 
 /* distribute spacing evenly between items */
-static void lvinfo_justify_items(struct lvinfo_item * items[], int count, int total_width)
+static REQUIRES(lvinfo_sem)
+void lvinfo_justify_items(struct lvinfo_item * items[], int count, int total_width)
 {
     int used_items = 0;
     int used_width = 0;
@@ -189,7 +201,8 @@ static void lvinfo_justify_items(struct lvinfo_item * items[], int count, int to
 }
 
 /* heuristic that tells whether we should try to enlarge the font */
-static int lvinfo_should_enlarge(struct lvinfo_item * items[], int count, int total_width)
+static REQUIRES(lvinfo_sem)
+int lvinfo_should_enlarge(struct lvinfo_item * items[], int count, int total_width)
 {
     int used_items = 0;
     int used_width = 0;
@@ -208,7 +221,8 @@ static int lvinfo_should_enlarge(struct lvinfo_item * items[], int count, int to
 
 /* shrink some items or hide low-priority ones */
 /* returns: INT_MIN if nothing was discarded, INT_MAX if error, otherwise it returns the priority of last item discarded */
-static int lvinfo_squeeze_space(struct lvinfo_item * items[], int count, int total_width)
+static REQUIRES(lvinfo_sem)
+int lvinfo_squeeze_space(struct lvinfo_item * items[], int count, int total_width)
 {
     int used_items = 0;
     int used_width = 0;
@@ -300,7 +314,8 @@ static int lvinfo_squeeze_space(struct lvinfo_item * items[], int count, int tot
     return INT_MAX;
 }
 
-static void lvinfo_valign_items(struct lvinfo_item * items[], int count, int bar_y, int bar_height)
+static REQUIRES(lvinfo_sem)
+void lvinfo_valign_items(struct lvinfo_item * items[], int count, int bar_y, int bar_height)
 {
     for (int i = 0; i < count; i++)
     {
@@ -308,7 +323,8 @@ static void lvinfo_valign_items(struct lvinfo_item * items[], int count, int bar
     }
 }
 
-static void lvinfo_sort_by_position(struct lvinfo_item * items[], int count)
+static REQUIRES(lvinfo_sem)
+void lvinfo_sort_by_position(struct lvinfo_item * items[], int count)
 {
     /* sort by preferred position */
     /* we need to use a stable sorting algorithm, so items with the same preferred position will not get swapped */
@@ -330,12 +346,13 @@ static void lvinfo_sort_by_position(struct lvinfo_item * items[], int count)
 }
 
 /* top/bottom bar */
-static struct lvinfo_item * top_items[MAX_ITEMS];
-static struct lvinfo_item * bot_items[MAX_ITEMS];
-static int top_count = 0;
-static int bot_count = 0;
+static GUARDED_BY(lvinfo_sem)   struct lvinfo_item * top_items[MAX_ITEMS];
+static GUARDED_BY(lvinfo_sem)   struct lvinfo_item * bot_items[MAX_ITEMS];
+static GUARDED_BY(lvinfo_sem)   int top_count = 0;
+static GUARDED_BY(lvinfo_sem)   int bot_count = 0;
 
-static void lvinfo_refresh_layout()
+static REQUIRES(lvinfo_sem)
+void lvinfo_refresh_layout()
 {
     /* try 3 layouts:
      * normal (large font),
@@ -388,7 +405,8 @@ static void lvinfo_refresh_layout()
     lvinfo_justify_items(bot_items, bot_count, TOTAL_WIDTH);
 }
 
-static void lvinfo_display_bar(struct lvinfo_item * items[], int count, int bar_x, int bar_y, int bar_width, int bar_height)
+static REQUIRES(lvinfo_sem)
+void lvinfo_display_bar(struct lvinfo_item * items[], int count, int bar_x, int bar_y, int bar_width, int bar_height)
 {
     int default_bg = FONT_BG(default_font);
     int default_bg_out = (default_bg == COLOR_BG_DARK ? 0 : default_bg);
@@ -466,7 +484,8 @@ static void lvinfo_display_bar(struct lvinfo_item * items[], int count, int bar_
     }
 }
 
-static void lvinfo_align_and_display(struct lvinfo_item * items[], int count, int bar_x, int bar_y, int bar_width, int bar_height)
+static REQUIRES(lvinfo_sem)
+void lvinfo_align_and_display(struct lvinfo_item * items[], int count, int bar_x, int bar_y, int bar_width, int bar_height)
 {
     #ifdef LVINFO_PERF_MON
     int64_t t0 = get_us_clock();
