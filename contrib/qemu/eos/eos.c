@@ -4491,6 +4491,17 @@ unsigned int eos_handle_display ( unsigned int parm, EOSState *s, unsigned int a
             }
             break;
 
+        case 0x400 ... 0x7FC:
+            msg = "8-bit palette";
+            if(type & MODE_WRITE)
+            {
+                int entry = ((address & 0xFFF) - 0x400) / 4;
+                process_palette_entry(value, &s->disp.palette_8bit[entry], entry, &msg);
+                s->disp.is_4bit = 0;
+                s->disp.bmp_pitch = 960;
+            }
+            break;
+
         case 0x800 ... 0xBFC:
             msg = "8-bit palette";
             if(type & MODE_WRITE)
