@@ -30,6 +30,7 @@ static int mpu_init_spell_count = 0;
 #include "mpu_spells/5D2.h"
 #include "mpu_spells/5D3.h"
 #include "mpu_spells/70D.h"
+#include "mpu_spells/500D.h"
 #include "mpu_spells/550D.h"
 #include "mpu_spells/600D.h"
 #include "mpu_spells/700D.h"
@@ -693,15 +694,13 @@ void mpu_spells_init(EOSState *s)
     MPU_SPELL_SET(EOSM)
     MPU_SPELL_SET(100D)
     MPU_SPELL_SET(450D)
+    MPU_SPELL_SET(500D)
 
     /* 1200D works with 60D MPU spells... and BOOTS THE GUI!!! */
     MPU_SPELL_SET_OTHER_CAM(1200D, 60D)
 
     /* same for 1100D */
     MPU_SPELL_SET_OTHER_CAM(1100D, 60D)
-
-    /* 500D works with 550D MPU spells... and BOOTS THE GUI!!! */
-    MPU_SPELL_SET_OTHER_CAM(500D, 550D)
 
     if (!mpu_init_spell_count)
     {

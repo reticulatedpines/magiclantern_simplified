@@ -1,0 +1,31 @@
+--- 500D.h
++++ 500D.h
+@@ -1,3 +1,6 @@
++/**
++ * 500D (menu navigation works)
++ */
+ static struct mpu_init_spell mpu_init_spells_500D[] = { {
+     { 0x06, 0x04, 0x02, 0x00, 0x00 }, {                         /* spell #1 */
+         { 0x0a, 0x08, 0x03, 0x2f, 0x00, 0x00, 0x00, 0x00, 0x00 },/* reply #1.1 */
+@@ -111,7 +114,7 @@
+         { 0x06, 0x05, 0x06, 0x1c, 0x00, 0x00 },                 /* reply #26.5, bindReceiveSwitch(28, 0) */
+         { 0 } } }, {
+     { 0x06, 0x05, 0x03, 0x19, 0x00, 0x00 }, {                   /* spell #27 */
+-        { 0x06, 0x05, 0x06, 0x00, 0x01, 0x00 },                 /* reply #27.1, BGMT_MENU, GUI_Control:6, bindReceiveSwitch(0, 1) */
++     // { 0x06, 0x05, 0x06, 0x00, 0x01, 0x00 },                 /* reply #27.1, BGMT_MENU, GUI_Control:6, bindReceiveSwitch(0, 1) */
+         { 0x06, 0x05, 0x03, 0x17, 0x98, 0x00 },                 /* reply #27.2 */
+         { 0 } } }, {
+     { 0x06, 0x05, 0x04, 0x00, 0x01, 0x00 }, {                   /* spell #28, NotifyGUIEvent(1) */
+@@ -122,9 +125,9 @@
+     { 0x08, 0x06, 0x00, 0x00, 0x04, 0x00, 0x00 }, {             /* spell #29, Complete WaitID = 0x80020000 */
+         { 0 } } }, {
+     { 0x06, 0x05, 0x03, 0x19, 0x00, 0x00 }, {                   /* spell #30 */
+-        { 0x06, 0x05, 0x06, 0x0d, 0x01, 0x00 },                 /* reply #30.1, BGMT_WHEEL_RIGHT, GUI_Control:3, bindReceiveSwitch(13, 1) */
+-        { 0x06, 0x05, 0x06, 0x0d, 0x01, 0x00 },                 /* reply #30.2, BGMT_WHEEL_RIGHT, GUI_Control:3, bindReceiveSwitch(13, 1) */
+-        { 0x06, 0x05, 0x06, 0x00, 0x01, 0x00 },                 /* reply #30.3, BGMT_MENU, GUI_Control:6, bindReceiveSwitch(0, 1) */
++     // { 0x06, 0x05, 0x06, 0x0d, 0x01, 0x00 },                 /* reply #30.1, BGMT_WHEEL_RIGHT, GUI_Control:3, bindReceiveSwitch(13, 1) */
++     // { 0x06, 0x05, 0x06, 0x0d, 0x01, 0x00 },                 /* reply #30.2, BGMT_WHEEL_RIGHT, GUI_Control:3, bindReceiveSwitch(13, 1) */
++     // { 0x06, 0x05, 0x06, 0x00, 0x01, 0x00 },                 /* reply #30.3, BGMT_MENU, GUI_Control:6, bindReceiveSwitch(0, 1) */
+         { 0 } } }, {
+     { 0x06, 0x05, 0x04, 0x00, 0x00, 0x00 }, {                   /* spell #31, NotifyGUIEvent(0) */
+         { 0x06, 0x05, 0x06, 0x09, 0x00, 0x00 },                 /* reply #31.1, BGMT_UNPRESS_ZOOM_IN, GUI_Control:12, bindReceiveSwitch(9, 0) */
