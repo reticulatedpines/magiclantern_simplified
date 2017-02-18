@@ -921,6 +921,8 @@ static void eos_update_display(void *parm)
                 }
             }
         }
+        first = MIN(first, y_led-5);
+        last = MAX(last, y_led+5);
     }
 
     if (first >= 0) {
