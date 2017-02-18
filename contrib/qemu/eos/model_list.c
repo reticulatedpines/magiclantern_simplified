@@ -125,10 +125,12 @@ struct eos_model_desc eos_model_list[] = {
     {
         .name                   = "600D",
         .digic_version          = 4,
+        .current_task_addr      = 0x1A2C,
     },
     {
         .name                   = "500D",
         .digic_version          = 4,
+        .current_task_addr      = 0x1A74,
     },
     {
         .name                   = "5D2",
@@ -180,6 +182,7 @@ struct eos_model_desc eos_model_list[] = {
     {
         .name                   = "550D",
         .digic_version          = 4,
+        .current_task_addr      = 0x1A20,
     },
     {
         .name                   = "6D",
