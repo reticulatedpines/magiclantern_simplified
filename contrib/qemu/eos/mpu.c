@@ -43,6 +43,9 @@ static void mpu_send_next_spell(EOSState *s)
     if (s->mpu.sq_head != s->mpu.sq_tail)
     {
         /* get next spell from the queue */
+        /* note: send_queue always contains copies of messages
+         * allocated on mpu_enqueue_spell* and freed here */
+        free(s->mpu.out_spell);
         s->mpu.out_spell = s->mpu.send_queue[s->mpu.sq_head];
         s->mpu.sq_head = (s->mpu.sq_head+1) & (COUNT(s->mpu.send_queue)-1);
         printf("[MPU] Sending spell: ");
@@ -65,13 +68,22 @@ static void mpu_send_next_spell(EOSState *s)
     }
 }
 
+static unsigned char * copy_spell(unsigned char * spell)
+{
+    int len = spell[0];
+    void * copy = malloc(len);
+    assert(copy);
+    memcpy(copy, spell, len);
+    return copy;
+}
+
 static void mpu_enqueue_spell(EOSState *s, int spell_set, int out_spell)
 {
     int next_tail = (s->mpu.sq_tail+1) & (COUNT(s->mpu.send_queue)-1);
     if (next_tail != s->mpu.sq_head)
     {
         printf("[MPU] Queueing spell #%d.%d\n", spell_set+1, out_spell+1);
-        s->mpu.send_queue[s->mpu.sq_tail] = mpu_init_spells[spell_set].out_spells[out_spell];
+        s->mpu.send_queue[s->mpu.sq_tail] = copy_spell(mpu_init_spells[spell_set].out_spells[out_spell]);
         s->mpu.sq_tail = next_tail;
     }
     else
@@ -91,7 +103,7 @@ static void mpu_enqueue_spell_generic(EOSState *s, unsigned char * spell)
             printf("%02x ", spell[i]);
         }
         printf("\n");
-        s->mpu.send_queue[s->mpu.sq_tail] = spell;
+        s->mpu.send_queue[s->mpu.sq_tail] = copy_spell(spell);
         s->mpu.sq_tail = next_tail;
     }
     else
@@ -665,7 +677,8 @@ void mpu_send_keypress(EOSState *s, int keycode)
     mpu_keypress_spell[3] = key >> 8;
     mpu_keypress_spell[4] = key & 0xFF;
     
-    /* fixme: race condition */
+    /* todo: check whether a race condition is still possible */
+    /* (is this function called from the same thread as I/O handlers or not?) */
     mpu_enqueue_spell_generic(s, mpu_keypress_spell);
     mpu_start_sending(s);
 }
