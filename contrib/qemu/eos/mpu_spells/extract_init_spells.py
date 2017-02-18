@@ -50,7 +50,7 @@ for l in lines:
         if last_bind_switch is not None:
             arg1 = int(m.groups()[0])
             arg2 = int(m.groups()[1],16)
-            if (arg1,arg2) in bind_switches:
+            if last_bind_switch in bind_switches:
                 assert(bind_switches[last_bind_switch] == (arg1,arg2))
             else:
                 bind_switches[last_bind_switch] = arg1,arg2
