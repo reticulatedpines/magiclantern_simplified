@@ -75,18 +75,18 @@ for CAM in ${MENU_CAMS[*]}; do
     rm -f tests/$CAM/menu.log
 
     if [ -f $CAM/patches.gdb ]; then
-        (./run_canon_fw.sh $CAM,firmware="boot=0" -vnc localhost:12345 -s -S & \
+        (./run_canon_fw.sh $CAM,firmware="boot=0" -vnc :12345 -s -S & \
             arm-none-eabi-gdb -x $CAM/patches.gdb &) &> tests/$CAM/menu.log
     else
-        (./run_canon_fw.sh $CAM,firmware="boot=0" -vnc localhost:12345 &) \
+        (./run_canon_fw.sh $CAM,firmware="boot=0" -vnc :12345 &) \
             &> tests/$CAM/menu.log
     fi
     sleep 15
 
     count=0;
     for key in f1 m right right down m; do
-        vncdotool -s localhost:12345 key $key; sleep 1
-        vncdotool -s localhost:12345 capture tests/$CAM/menu$((count++)).png
+        vncdotool -s :12345 key $key; sleep 1
+        vncdotool -s :12345 capture tests/$CAM/menu$((count++)).png
         echo -n .
     done
 
