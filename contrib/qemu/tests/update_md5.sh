@@ -3,7 +3,7 @@
 echo "This will mark *all* test results as good."
 echo "Will open all screenshots in gthumb so you can review them."
 sleep 2
-gthumb */*.ppm 2>/dev/null
+gthumb */*.p[pn][mg] 2>/dev/null
 
 echo -n "Continue? [y/n] "
 read answer
@@ -14,10 +14,10 @@ rm */*.md5
 for dir in */; do
     echo $dir
     cd $dir
-    for PPM in gui disp frsp; do
-      if [ -e $PPM.ppm ]; then
-        md5sum $PPM.ppm > $PPM.md5
-        cat $PPM.md5
+    for TEST in gui disp frsp menu; do
+      if ls $TEST*.p[pn][mg] > /dev/null 2>&1; then
+        md5sum $TEST*.p[pn][mg] > $TEST.md5
+        cat $TEST.md5
       fi
     done
     cd ..

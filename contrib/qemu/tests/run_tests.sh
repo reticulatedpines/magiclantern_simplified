@@ -10,6 +10,8 @@ EOS_CAMS=( 5D 5D2 5D3 5D4 6D 7D 7D2M
 
 POWERSHOT_CAMS=( EOSM3 EOSM10 EOSM5 A1100 )
 
+MENU_CAMS=( 500D )
+
 GUI_CAMS=( 5D3 60D 70D 100D 500D 550D 600D 1200D 1100D )
 
 EOS_SECONDARY_CORES=( 5D3eeko 5D4AE 7D2S )
@@ -58,6 +60,40 @@ for CAM in ${EOS_CAMS[*]} ${EOS_SECONDARY_CORES[*]}; do
     killall -INT qemu-system-arm &>> tests/$CAM/boot.log
     
     tests/check_grep.sh tests/$CAM/boot.log -E "([KR].* (READY|AECU)|Intercom|Dry)"
+done
+
+# These cameras should be able to navigate Canon menu:
+echo
+echo "Testing Canon menu..."
+for CAM in ${MENU_CAMS[*]}; do
+  # allow up to 3 retries if unsuccessful
+  # fixme: nondeterministic bugs in emulation
+  for k in 1 2 3; do
+    printf "%5s: " $CAM
+    mkdir -p tests/$CAM/
+    rm -f tests/$CAM/menu.ppm
+    rm -f tests/$CAM/menu.log
+
+    if [ -f $CAM/patches.gdb ]; then
+        (./run_canon_fw.sh $CAM,firmware="boot=0" -vnc localhost:12345 -s -S & \
+            arm-none-eabi-gdb -x $CAM/patches.gdb &) &> tests/$CAM/menu.log
+    else
+        (./run_canon_fw.sh $CAM,firmware="boot=0" -vnc localhost:12345 &) \
+            &> tests/$CAM/menu.log
+    fi
+    sleep 15
+
+    count=0;
+    for key in f1 m right right down m; do
+        vncdotool -s localhost:12345 key $key; sleep 1
+        vncdotool -s localhost:12345 capture tests/$CAM/menu$((count++)).png
+        echo -n .
+    done
+
+    killall -INT qemu-system-arm &>> tests/$CAM/menu.log
+
+    tests/check_md5.sh tests/$CAM/ menu && break
+  done
 done
 
 # These cameras should display some Canon GUI:
