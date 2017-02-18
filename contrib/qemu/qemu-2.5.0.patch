@@ -1,5 +1,5 @@
 diff --git a/cpu-exec.c b/cpu-exec.c
-index c88d0ff..88254d7 100644
+index c88d0ff..36eedc7 100644
 --- a/cpu-exec.c
 +++ b/cpu-exec.c
 @@ -31,6 +31,7 @@
@@ -10,7 +10,7 @@ index c88d0ff..88254d7 100644
  
  /* -icount align implementation. */
  
-@@ -500,8 +501,115 @@ int cpu_exec(CPUState *cpu)
+@@ -500,8 +501,118 @@ int cpu_exec(CPUState *cpu)
                      tcg_ctx.tb_ctx.tb_invalidated_flag = 0;
                  }
                  if (qemu_loglevel_mask(CPU_LOG_EXEC)) {
@@ -37,6 +37,7 @@ index c88d0ff..88254d7 100644
 +                    CPUARMState *env = &arm_cpu->env;
 +                    
 +                    static FILE * idc = NULL;
++                    static int stderr_dup = 0;
 +                    static uint32_t prev_pc = 0;
 +                    static uint32_t prev_lr = 0;
 +                    static uint32_t prev_sp = 0;
@@ -62,6 +63,8 @@ index c88d0ff..88254d7 100644
 +                        fprintf(idc, "/* Generated from QEMU. */\n\n");
 +                        fprintf(idc, "#include <idc.idc>\n\n");
 +                        fprintf(idc, "static main() {\n");
++
++                        stderr_dup = dup(fileno(stderr));
 +                    }
 +                    uint32_t pc = env->regs[15];
 +                    uint32_t lr = env->regs[14];
@@ -93,10 +96,10 @@ index c88d0ff..88254d7 100644
 +                        {
 +                            saved_pcs[pca/32] |= (1 << pca%32);
 +                            
-+                            /* log_target_disas writes to stdout; redirect it to our output file */
-+                            /* todo: any other threads that might output to stdout? */
-+                            fflush(stdout); fflush(idc);
-+                            int old = dup(fileno(stdout));
++                            /* log_target_disas writes to stderr; redirect it to our output file */
++                            /* todo: any other threads that might output to stderr? */
++                            assert(stderr_dup);
++                            fflush(stderr); fflush(idc);
 +                            dup2(fileno(idc), fileno(stderr));
 +                            fprintf(stderr, "  /* from "); log_target_disas(cpu, prev_pc, prev_size, 0);
 +                            fprintf(stderr, "   *   -> "); log_target_disas(cpu, tb->pc, tb->size, 0);
@@ -107,7 +110,7 @@ index c88d0ff..88254d7 100644
 +                            fprintf(stderr, "  MakeCode(0x%X);\n", pc);
 +                            fprintf(stderr, "  MakeFunction(0x%X, BADADDR);\n", pc);
 +                            fprintf(stderr, "\n");
-+                            dup2(old, fileno(stderr));
++                            dup2(stderr_dup, fileno(stderr));
 +                        }
 +
 +                        /* log each call to console */
