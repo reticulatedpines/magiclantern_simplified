@@ -20,6 +20,14 @@ $(ALL_SUPPORTED_MODELS)::
 7D:: 7D_MASTER
 	$(MAKE) -C $(PLATFORM_PATH)/7D.203
 
+5D3.113:
+	$(MAKE) -C $(PLATFORM_PATH)/5D3.113
+
+5D3.123:
+	$(MAKE) -C $(PLATFORM_PATH)/5D3.123
+
+5D3: 5D3.113 5D3.123
+
 7DFIR: 7D_MASTER 7D
 	dd if=$(PLATFORM_PATH)/7D.203/autoexec.bin of=$(PLATFORM_PATH)/7D.203/autoexec.fir bs=288 skip=1 >/dev/null 2>&1
 	dd if=$(PLATFORM_PATH)/7D_MASTER.203/autoexec.bin of=$(PLATFORM_PATH)/7D_MASTER.203/autoexec.fir bs=288 skip=1 >/dev/null 2>&1

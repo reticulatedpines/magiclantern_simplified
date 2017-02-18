@@ -1,5 +1,5 @@
-Raw recording v2.0 (MLV)
-========================
+Raw video v2.0 (MLV)
+====================
 
 Records 14-bit RAW video in MLV format (with metadata).
 
