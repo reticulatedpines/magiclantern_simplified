@@ -37,20 +37,27 @@ last_bind_switch = None
 for l in lines:
     # match bindReceiveSwitch with GUI_Control, both from MainCtrl task
     # note: GUI_Control messages can be sent from other tasks
-    m = re.match(" +MainCtrl:.*bindReceiveSwitch *\(([^()]*)\)", l)
+    m = re.match(".* MainCtrl:.*bindReceiveSwitch *\(([^()]*)\)", l)
     if m:
         args = m.groups()[0].split(",")
         args = tuple([int(a) for a in args])
-        last_bind_switch = args
+        # old models have some extra bindReceiveSwitch lines with a single argument; ignore them
+        if len(args) == 2:
+            last_bind_switch = args
         continue
-    m = re.match(" +MainCtrl:.*GUI_Control:([0-9]+) +0x([0-9])+", l)
-    if m and last_bind_switch is not None:
-        arg1 = int(m.groups()[0])
-        arg2 = int(m.groups()[1],16)
-        if (arg1,arg2) in bind_switches:
-            assert(bind_switches[last_bind_switch] == (arg1,arg2))
+    m = re.match(".* MainCtrl:.*GUI_Control:([0-9]+) +0x([0-9])+", l)
+    if m:
+        if last_bind_switch is not None:
+            arg1 = int(m.groups()[0])
+            arg2 = int(m.groups()[1],16)
+            if (arg1,arg2) in bind_switches:
+                assert(bind_switches[last_bind_switch] == (arg1,arg2))
+            else:
+                bind_switches[last_bind_switch] = arg1,arg2
+            last_bind_switch = None
         else:
-            bind_switches[last_bind_switch] = arg1,arg2
+            print("GUI_Control without bindReceiveSwitch", file=sys.stderr)
+            print(l, file=sys.stderr)
 
 for l in lines:
     m = re.match(".* mpu_send\(([^()]*)\)", l)
@@ -73,9 +80,34 @@ for l in lines:
                 waitid_prop = None
                 continue
             
+            if spell.startswith("06 05 01 00 "):
+                arg = int(spell.split(" ")[4], 16)
+                print("    %-60s/* spell #%d, PROP_SHOOTING_MODE(%d) */" % (format_spell(spell) + " {", num, arg))
+                continue
+            
+            if spell.startswith("06 05 03 07 "):
+                arg = int(spell.split(" ")[4], 16)
+                print("    %-60s/* spell #%d, PROP_BURST_COUNT(%d) */" % (format_spell(spell) + " {", num, arg))
+                continue
+            
             if spell.startswith("06 05 04 00 "):
                 arg = int(spell.split(" ")[4], 16)
                 print("    %-60s/* spell #%d, NotifyGUIEvent(%d) */" % (format_spell(spell) + " {", num, arg))
+                continue
+            
+            if spell.startswith("06 05 04 01 "):
+                arg = int(spell.split(" ")[4], 16)
+                print("    %-60s/* spell #%d, PROP_ICU_UILOCK(%x) */" % (format_spell(spell) + " {", num, arg))
+                continue
+            
+            if spell.startswith("08 06 01 27 00 "):
+                arg = int(spell.split(" ")[5], 16)
+                print("    %-60s/* spell #%d, PROP_CARD1_FOLDER_NUMBER(%d) */" % (format_spell(spell) + " {", num, arg))
+                continue
+            
+            if spell.startswith("08 07 01 2a "):
+                arg = int(spell.split(" ")[4], 16) * 256 + int(spell.split(" ")[5], 16)
+                print("    %-60s/* spell #%d, PROP_CARD2_FILE_NUMBER(%d) */" % (format_spell(spell) + " {", num, arg))
                 continue
             
             print("    %-60s/* spell #%d */" % (format_spell(spell) + " {", num))
@@ -97,6 +129,21 @@ for l in lines:
                 print(", GUI_Control:%d" % btn_code, end="")
             print(", bindReceiveSwitch(%d, %d)" % (args[0], args[1]), end="")
 
+        if spell.startswith("06 05 01 00 "):
+            arg = int(spell.split(" ")[4], 16)
+            print(", PROP_SHOOTING_MODE(%d)" % arg, end="")
+
+        if spell.startswith("06 05 04 00 "):
+            arg = int(spell.split(" ")[4], 16)
+            print(", PROP_GUI_STATE(%d)" % arg, end="")
+
+        if spell[5:].startswith(" 0a 08 "):
+            print(", PD_NotifyOlcInfoChanged", end="")
+
+        if spell.startswith("08 06 01 24 00 "):
+            arg = int(spell.split(" ")[5], 16)
+            print(", PROP_CARD2_STATUS(%d)" % arg, end="")
+
         print(" */")
         continue
     
@@ -112,5 +159,5 @@ for l in lines:
     if m:
         waitid_prop = m.groups()[0]
 
-print("    { 0 } } }")
+print("        { 0 } } }")
 print("};")
