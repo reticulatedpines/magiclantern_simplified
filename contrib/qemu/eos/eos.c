@@ -2275,7 +2275,7 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             {
                 /* USB on 600D */
                 msg = "600D USB CONNECT";
-                ret = 1;
+                ret = 0;
 #ifdef IGNORE_CONNECT_POLL
                 return ret;
 #endif
