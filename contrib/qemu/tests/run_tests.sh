@@ -84,7 +84,7 @@ for CAM in ${MENU_CAMS[*]}; do
     sleep 15
 
     count=0;
-    for key in f1 m right right down m; do
+    for key in f1 m i i right right up m p p; do
         vncdotool -s :12345 key $key; sleep 1
         vncdotool -s :12345 capture tests/$CAM/menu$((count++)).png
         echo -n .
