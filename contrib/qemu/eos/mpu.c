@@ -562,8 +562,8 @@ static struct {
     { 0xE053,   BGMT_TRASH,             "DELETE",       "guess"                         },
 
     { 0x0032,   BGMT_MENU,              "M",            "MENU",                         },
-    { 0x0019,   BGMT_MENU,              "P",            "PLAY",                         },
-    { 0x0017,   BGMT_MENU,              "I",            "INFO/DISP",                    },
+    { 0x0019,   BGMT_PLAY,              "P",            "PLAY",                         },
+    { 0x0017,   BGMT_INFO,              "I",            "INFO/DISP",                    },
     { 0x0010,   BGMT_Q,                 "Q",            "guess",                        },
     { 0x0026,   BGMT_LV,                "L",            "LiveView",                     },
     { 0x0011,   BGMT_PICSTYLE,          "W",            "Pic.Style",                    },
