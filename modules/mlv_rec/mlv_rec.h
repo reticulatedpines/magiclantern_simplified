@@ -64,7 +64,6 @@
 #define MLV_METADATA_CYCLIC   4
 #define MLV_METADATA_ALL      0xFF
 
-
 /* one video frame */
 struct frame_slot
 {
@@ -83,6 +82,14 @@ struct frame_slot_group
     int32_t len;
     int32_t size;
 };
+
+/* structure entry for registered CBR routines */
+typedef struct
+{
+    uint32_t event;
+    void *ctx;
+    event_cbr_t cbr;
+} cbr_entry_t;
 
 /* this job type is Manager -> Writer for telling which blocks to write */
 typedef struct
