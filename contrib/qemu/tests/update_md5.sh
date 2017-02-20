@@ -14,7 +14,7 @@ rm */*.md5
 for dir in */; do
     echo $dir
     cd $dir
-    for TEST in gui disp frsp menu; do
+    for TEST in gui disp frsp menu format; do
       if ls $TEST*.p[pn][mg] > /dev/null 2>&1; then
         md5sum $TEST*.p[pn][mg] > $TEST.md5
         cat $TEST.md5

@@ -121,6 +121,41 @@ for CAM in ${MENU_CAMS[*]}; do
   done
 done
 
+# These cameras should be able to format the virtual card:
+echo
+echo "Testing card formatting..."
+for CAM in 500D; do
+  # allow up to 3 retries if unsuccessful
+  # fixme: nondeterministic bugs in emulation
+  for k in 1 2 3; do
+    printf "%5s: " $CAM
+    mkdir -p tests/$CAM/
+    rm -f tests/$CAM/format.ppm
+    rm -f tests/$CAM/format.log
+
+    if [ -f $CAM/patches.gdb ]; then
+        (./run_canon_fw.sh $CAM,firmware="boot=0" -vnc :12345 -s -S & \
+            arm-none-eabi-gdb -x $CAM/patches.gdb &) &> tests/$CAM/format.log
+    else
+        (./run_canon_fw.sh $CAM,firmware="boot=0" -vnc :12345 &) \
+            &> tests/$CAM/format.log
+    fi
+    sleep 15
+
+    count=0;
+    for key in m space right space wait wait wait f1 space; do
+        if [ $key = wait ]; then sleep 1; continue; fi
+        vncdotool -s :12345 key $key; sleep 1
+        vncdotool -s :12345 capture tests/$CAM/format$((count++)).png
+        echo -n .
+    done
+
+    killall -INT qemu-system-arm &>> tests/$CAM/format.log
+
+    tests/check_md5.sh tests/$CAM/ format && break
+  done
+done
+
 # These cameras should display some Canon GUI:
 echo
 echo "Testing Canon GUI..."
