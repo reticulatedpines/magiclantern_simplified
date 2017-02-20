@@ -990,6 +990,7 @@ static void setup_chunk(uint32_t ptr, uint32_t size)
             mlv_hdr_t *write_align_hdr = (mlv_hdr_t *)((uint32_t)vidf_hdr + vidf_hdr->blockSize);
             memset(write_align_hdr, 0xA5, write_size_align);
             mlv_set_type(write_align_hdr, "NULL");
+            write_align_hdr->timestamp = 0;
             write_align_hdr->blockSize = write_size_align;
         }
 
@@ -1946,6 +1947,7 @@ void mlv_rec_get_slot_info(int32_t slot, uint32_t *size, void **address)
 
     /* set old header to a skipped header format */
     mlv_set_type((mlv_hdr_t *)vidf, "NULL");
+    vidf->timestamp = 0;
 
     /* backup old size into free space */
     ((uint32_t*) vidf)[sizeof(mlv_vidf_hdr_t)/4] = vidf->blockSize;
