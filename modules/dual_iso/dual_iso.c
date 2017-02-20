@@ -940,16 +940,22 @@ static uint32_t get_photo_cmos_iso_start_200d(void)
     return ram_copy_start;
 }
 
+/* callback routine for mlv_rec to add a custom DISO block after recording started (which already was specified in mlv.h in definition phase) */
 void isoless_mlv_rec_cbr (uint32_t event, void *ctx, mlv_hdr_t *hdr)
 {
-    static mlv_diso_hdr_t dual_iso_block;
+    /* construct a free-able pointer to later pass it to mlv_rec_queue_block */
+    mlv_diso_hdr_t *dual_iso_block = malloc(sizeof(mlv_diso_hdr_t));
     
-    mlv_set_type((mlv_hdr_t *)&dual_iso_block, "DISO");
-    dual_iso_block.blockSize = sizeof(dual_iso_block);
-    dual_iso_block.dualMode = dual_iso_is_active();
-    dual_iso_block.isoValue = isoless_recovery_iso;
+    /* set the correct type and size */
+    mlv_set_type((mlv_hdr_t *)dual_iso_block, "DISO");
+    dual_iso_block->blockSize = sizeof(mlv_diso_hdr_t);
     
-    mlv_rec_queue_block((mlv_hdr_t *)&dual_iso_block);
+    /* and fill with data */
+    dual_iso_block->dualMode = dual_iso_is_active();
+    dual_iso_block->isoValue = isoless_recovery_iso;
+    
+    /* finally pass it to mlv_rec which will free the block when it has been processed */
+    mlv_rec_queue_block((mlv_hdr_t *)dual_iso_block);
 }
 
 static unsigned int isoless_init()
