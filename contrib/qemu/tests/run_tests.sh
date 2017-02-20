@@ -44,6 +44,31 @@ echo "Compiling..."
 # don't recompile each time (for speed)
 export MAKE="echo skipping make"
 
+# Most of the tests require custom SD/CF card imags.
+# The one that comes with our QEMU install script is perfect.
+echo
+echo "Setting up temporary SD/CF card images..."
+
+function sd_restore {
+  trap '' SIGINT
+  echo
+  echo "Restoring your SD/CF card images..."
+  mv sd-user.img sd.img
+  mv cf-user.img cf.img
+  trap - SIGINT
+}
+
+# disable CTRL-C while moving the files
+trap '' SIGINT
+mv sd.img sd-user.img
+mv cf.img cf-user.img
+trap sd_restore EXIT
+trap - SIGINT
+
+cp -v ../magic-lantern/contrib/qemu/sd.img.xz .
+unxz -k sd.img.xz
+cp sd.img cf.img
+
 # All EOS cameras should emulate the bootloader
 # and jump to main firmware:
 echo
@@ -139,30 +164,8 @@ for CAM in ${EOS_CAMS[*]} ${EOS_SECONDARY_CORES[*]} ${POWERSHOT_CAMS[*]}; do
     tests/check_grep.sh tmp -Em1 "task_create\("
 done
 
-# The next tests require custom SD/CF card imags.
-# The one that comes with our QEMU install script is perfect.
-echo
-echo "Setting up temporary SD/CF card images..."
-
-function sd_restore {
-  trap '' SIGINT
-  echo
-  echo "Restoring your SD/CF card images..."
-  mv sd-user.img sd.img
-  mv cf-user.img cf.img
-  trap - SIGINT
-}
-
-# disable CTRL-C while moving the files
-trap '' SIGINT
-mv sd.img sd-user.img
-mv cf.img cf-user.img
-trap sd_restore EXIT
-trap - SIGINT
-
-cp -v ../magic-lantern/contrib/qemu/sd.img.xz .
-unxz -k sd.img.xz
-cp sd.img cf.img
+# re-create the card images, just in case
+rm sd.img; unxz -k sd.img.xz; cp sd.img cf.img
 
 echo
 echo "Testing FA_CaptureTestImage..."
