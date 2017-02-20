@@ -216,7 +216,8 @@ EOSRegionHandler eos_handlers[] =
     /* generic catch-all for everything unhandled from this range */
     { "ENGIO",        0xC0F00000, 0xC0FFFFFF, eos_handle_engio, 0 },
     
-    { "DIGIC6",       0xC8000000, 0xDFFFFFFF, eos_handle_digic6, 0 },
+    { "DIGIC6",       0xD0000000, 0xDFFFFFFF, eos_handle_digic6, 0 },
+    { "DIGIC6",       0xC8100000, 0xC8100FFF, eos_handle_digic6, 1 },
     
     { "ML helpers",   0xCF123000, 0xCF123EFF, eos_handle_ml_helpers, 0 },
 };
