@@ -69,6 +69,26 @@ cp -v ../magic-lantern/contrib/qemu/sd.img.xz .
 unxz -k sd.img.xz
 cp sd.img cf.img
 
+# send a keypress and wait for the screen to match a checksum
+# save the screenshot, regardless of match result
+# vncexpect key md5 timeout capture
+function vncexpect {
+    vncdo -s :12345 key $1
+    rm -f $4
+    if vncdo -s :12345 -v -v -t $3 expect-md5 $2 &> tests/vncdo.log; then
+        echo -n "."
+        vncdo -s :12345 capture $4
+        return 0
+    else
+        vncdo -s :12345 capture $4
+        echo ""
+        echo "$2  expected"
+        md5sum $4
+        return 1
+    fi
+    return $ret
+}
+
 # All EOS cameras should emulate the bootloader
 # and jump to main firmware:
 echo
@@ -117,9 +137,12 @@ for CAM in ${MENU_CAMS[*]}; do
 
     killall -INT qemu-system-arm &>> tests/$CAM/menu.log
 
-    tests/check_md5.sh tests/$CAM/ menu && break
+    tests/check_md5.sh tests/$CAM/ menu && break || cat tests/$CAM/menu.md5.log
   done
 done
+
+# re-create the card images, just in case
+rm sd.img; unxz -k sd.img.xz; cp sd.img cf.img
 
 # These cameras should be able to format the virtual card:
 echo
@@ -152,7 +175,95 @@ for CAM in 500D; do
 
     killall -INT qemu-system-arm &>> tests/$CAM/format.log
 
-    tests/check_md5.sh tests/$CAM/ format && break
+    tests/check_md5.sh tests/$CAM/ format && break || cat tests/$CAM/format.md5.log
+  done
+done
+
+# These cameras should be able to format the virtual card
+# and also restore Magic Lantern:
+echo
+echo "Testing ML restore after format..."
+TST=fmtrestore
+for CAM in 500D; do
+  # allow up to 5 retries if unsuccessful
+  # fixme: nondeterministic bugs in emulation
+  for k in 1 2 3 4 5; do
+
+    # re-create the card images
+    rm sd.img; unxz -k sd.img.xz; cp sd.img cf.img
+
+    printf "%5s: " $CAM
+    mkdir -p tests/$CAM/
+    rm -f tests/$CAM/$TST*.png
+    rm -f tests/$CAM/$TST.log
+
+    wget -q -O tests/test-progs/ml-500D.zip https://builds.magiclantern.fm/jenkins/job/500D.111/431/artifact/platform/500D.111/magiclantern-Nightly.2017Feb12.500D111.zip
+    rm -rf tests/test-progs/ml-500D/
+    unzip -q -d tests/test-progs/ml-500D/ tests/test-progs/ml-500D.zip
+    mcopy -o -s -i $MSD tests/test-progs/ml-500D/* ::
+
+    # check it 3 times (to make sure ML is actually restored)
+    # screenshots are slightly different on the first run,
+    # runs 2 and 3 must be identical, as the free space
+    # no longer depends on the initial card contents.
+    count=0;
+    for t in 1 2 3; do
+        mdel -i $MSD ::/ML/MODULES/LOADING.LCK 2>/dev/null
+
+        if [ -f $CAM/patches.gdb ]; then
+            (./run_canon_fw.sh $CAM,firmware="boot=1" -vnc :12345 -s -S & \
+                arm-none-eabi-gdb -x $CAM/patches.gdb &) &>> tests/$CAM/$TST.log
+        else
+            (./run_canon_fw.sh $CAM,firmware="boot=1" -vnc :12345 &) \
+                &>> tests/$CAM/$TST.log
+        fi
+
+        sleep 25
+
+        # fixme: how to align these nicely?
+        MAIN_SCREEN=d2ab306b1db2ffb1229a6e86542e24ac
+        MENU_FORMAT=cae4d8a555d5aa3cc004bd234d3edd74
+        if [ $t -eq 1 ]; then
+            FMT_KEEP_ML=077adcdd48ce3c275d94e467f0114045
+            FMT_RMOV_ML=a418b9f5d2565f0989910156cbe47c60
+            FMT_KEEP_OK=7cdf0d8dd2dde291bca0276cf68694b0
+        else
+            FMT_KEEP_ML=303015f7866ef679ec4f6bfed576db54
+            FMT_RMOV_ML=511b286bfb698b5ad1543429e26c9ebe
+            FMT_KEEP_OK=3cd45fb4f2d79b75c919d07d68c1bc4d
+        fi
+        FMT_BUSYDLG=9dac09e19003ad60eb0b1e6442710d00
+        ML_RESTORED=1a287dd9c3fc75ee82bdb5ba1b30a339
+        RESTARTING_=3044730d98d5da3e5e5f27642adf878a
+
+        # fixme: remove duplicate count++, png, break
+        T=tests/$CAM/$TST
+        vncexpect f1    $MAIN_SCREEN 30 $T$((count++)).png || break # wait for main info screen with ML loaded
+        vncexpect f1    $MAIN_SCREEN 5  $T$((count++)).png || break # also wait for LED activity to settle
+        vncexpect f1    $MAIN_SCREEN 5  $T$((count++)).png || break # (the ROM autobackup may take a while)
+        vncexpect f1    $MAIN_SCREEN 5  $T$((count++)).png || break # 
+        vncexpect m     $MENU_FORMAT 10 $T$((count++)).png || break # MENU
+        vncexpect space $FMT_KEEP_ML 20 $T$((count++)).png || break # SET on Format
+        vncexpect l     $FMT_RMOV_ML 2  $T$((count++)).png || break # select "remove ML"
+        vncexpect l     $FMT_KEEP_ML 2  $T$((count++)).png || break # select "keep ML" on Format
+        vncexpect right $FMT_KEEP_OK 2  $T$((count++)).png || break # select OK
+        vncexpect space $FMT_BUSYDLG 10 $T$((count++)).png || break # SET, wait for BUSY dialog
+        vncexpect f1    $ML_RESTORED 20 $T$((count++)).png || break # wait for "Magic Lantern restored"
+        vncexpect f1    $RESTARTING_ 10 $T$((count++)).png || break # wait for "Restarting camera..."
+
+        killall -INT qemu-system-arm &>> tests/$CAM/$TST.log
+        sleep 5
+
+        if [ $t -eq 3 ]; then
+            echo " OK"   # one complete test run, stop here
+            break 2      # (break the "for k" loop)
+        else
+            echo -n " "
+        fi
+    done
+
+    killall -INT qemu-system-arm &>> tests/$CAM/$TST.log
+    echo -e "\e[31mFAILED!\e[0m"
   done
 done
 
@@ -330,7 +441,7 @@ mkdir -p $TMP
 
 if [ ! -f $ROM_DUMPER_BIN ]; then
     mkdir -p `dirname $ROM_DUMPER_BIN`
-    wget -o $ROM_DUMPER_BIN https://dl.dropboxusercontent.com/u/4124919/debug/portable-rom-dumper/autoexec.bin
+    wget -O $ROM_DUMPER_BIN https://dl.dropboxusercontent.com/u/4124919/debug/portable-rom-dumper/autoexec.bin
 fi
 
 # we don't know whether the camera will use SD or CF, so prepare both

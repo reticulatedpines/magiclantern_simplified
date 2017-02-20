@@ -1,0 +1,96 @@
+diff --git a/vncdotool/client.py b/vncdotool/client.py
+index a26f254..7af291e 100644
+--- a/vncdotool/client.py
++++ b/vncdotool/client.py
+@@ -9,10 +9,12 @@ MIT License
+ from . import rfb
+ from twisted.internet.defer import Deferred
+ from twisted.internet import reactor
++from cStringIO import StringIO
+ 
+ import math
+ import time
+ import logging
++import md5
+ 
+ log = logging.getLogger('vncdotool.client')
+ 
+@@ -259,6 +261,15 @@ class VNCDoToolClient(rfb.RFBClient):
+         log.debug('expectScreen %s', filename)
+         return self._expectFramebuffer(filename, 0, 0, maxrms)
+ 
++    def expectScreenMD5(self, md5sum):
++        """ Wait until the display matches a target image
++
++            md5sum: the checksum of the image to compare against
++                    (same as the checksum of a PNG screenshot)
++        """
++        log.debug('expectScreenMD5 %s', md5sum)
++        return self._expectFramebufferMD5(md5sum)
++
+     def expectRegion(self, filename, x, y, maxrms=0):
+         """ Wait until a portion of the screen matches the target image
+ 
+@@ -278,6 +289,13 @@ class VNCDoToolClient(rfb.RFBClient):
+ 
+         return self.deferred
+ 
++    def _expectFramebufferMD5(self, md5sum):
++        self.framebufferUpdateRequest(incremental=1)
++        self.deferred = Deferred()
++        self.deferred.addCallback(self._expectCompareMD5, md5sum)
++
++        return self.deferred
++
+     def _expectCompare(self, image, box, maxrms):
+         image = image.crop(box)
+ 
+@@ -298,6 +316,26 @@ class VNCDoToolClient(rfb.RFBClient):
+ 
+         return self.deferred
+ 
++    def _expectCompareMD5(self, image, md5sum):
++        # image = image.crop(box)
++
++        output = StringIO()
++        image.save(output, format='png')
++        im_data = output.getvalue()
++        im_md5 = md5.new(im_data).hexdigest()
++        log.debug('md5 %s %s' % (im_md5, im_md5 == md5sum))
++
++        if im_md5 == md5sum:
++            return self
++
++        self.deferred = Deferred()
++        self.deferred.addCallback(self._expectCompareMD5, md5sum)
++
++        # fixme: incremental=1 sometimes gives incorrect image
++        self.framebufferUpdateRequest()
++
++        return self.deferred
++
+     def mouseMove(self, x, y):
+         """ Move the mouse pointer to position (x, y)
+         """
+diff --git a/vncdotool/command.py b/vncdotool/command.py
+index b440d11..862ec1e 100644
+--- a/vncdotool/command.py
++++ b/vncdotool/command.py
+@@ -103,6 +103,7 @@ class VNCDoToolOptionParser(optparse.OptionParser):
+             '  drag X Y\t\tmove the mouse to X,Y in small steps',
+             '  rcapture FILE X Y W H\tcapture a region of the screen',
+             '  rexpect FILE X Y\texpect that matches a region of the screen',
++            '  expect-md5 checksum\texpect that matches the checksum of a PNG capture',
+             '',
+             'If a filename is given commands will be read from it, or stdin `-`',
+             '',
+@@ -173,6 +174,9 @@ def build_command_list(factory, args, delay=None, warp=1.0):
+             filename = args.pop(0)
+             rms = int(args.pop(0))
+             factory.deferred.addCallback(client.expectScreen, filename, rms)
++        elif cmd == 'expect-md5':
++            md5sum = args.pop(0)
++            factory.deferred.addCallback(client.expectScreenMD5, md5sum)
+         elif cmd == 'rcapture':
+             filename = args.pop(0)
+             x = int(args.pop(0))
