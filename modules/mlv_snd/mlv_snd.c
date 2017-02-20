@@ -202,6 +202,7 @@ static void mlv_snd_flush_entries(struct msg_queue *queue, uint32_t clear)
         {
             trace_write(trace_ctx, "mlv_snd_flush_entries: NULL slot %d entry", entry->mlv_slot_id);
             mlv_set_type((mlv_hdr_t *)hdr, "NULL");
+            hdr->timestamp = 0;
         }
         else
         {
@@ -288,9 +289,9 @@ static void mlv_snd_queue_slot()
         
         mlv_set_type((mlv_hdr_t *)hdr, "NULL");
         hdr->blockSize = block_size;
-        hdr->frameNumber = 0xFFFFFFFF;
+        hdr->frameNumber = 0;
         hdr->frameSpace = hdr_size - sizeof(mlv_audf_hdr_t);
-        hdr->timestamp = 0xFFFFFFFFFFFFFFFF;
+        hdr->timestamp = 0;
         
         /* store information about the buffer in the according queue entry */
         audio_data_t *entry = malloc(sizeof(audio_data_t));
@@ -321,7 +322,7 @@ static void mlv_snd_queue_slot()
     
     mlv_set_type((mlv_hdr_t *)hdr, "NULL");
     hdr->blockSize = size - used;
-    hdr->timestamp = 0xFFFFFFFFFFFFFFFF;
+    hdr->timestamp = 0;
 }
 
 
