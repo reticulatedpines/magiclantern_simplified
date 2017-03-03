@@ -1296,7 +1296,7 @@ silent_pic_take_fullres(int interactive)
         /* however this won't trigger ETTR & co (but you'll see a warning in the menu) */
         int old_gui_state = gui_state;
         gui_state = GUISTATE_QR;
-        int ok = raw_update_params();
+        ok = raw_update_params();
         gui_state = old_gui_state;
         if (!ok)
         {
