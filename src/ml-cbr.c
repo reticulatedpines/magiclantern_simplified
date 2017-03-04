@@ -248,13 +248,15 @@ void ml_notify_cbr(const char * event, void * data) {
     ASSERT(event != NULL);
     LOCK(ml_cbr_lock);
     struct cbr_record * record = find_record(event, 0);
-    if (record) {
-        struct cbr_node * call = record->first;
-        while (call != NULL) {
-            if (call->cbr != NULL) {
-                if (call->cbr(event, data) == ML_CBR_STOP) {
-                    break;
-                }
+    if (record == NULL) {
+        UNLOCK(ml_cbr_lock);
+        return;
+    }
+    struct cbr_node * call = record->first;
+    while (call != NULL) {
+        if (call->cbr != NULL) {
+            if (call->cbr(event, data) == ML_CBR_STOP) {
+                break;
             }
             call = call->next;
         }
