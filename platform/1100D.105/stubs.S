@@ -294,13 +294,14 @@ NSTUB(     0x674,  current_interrupt)                       // in interrupt hand
 NSTUB(   0x736B4,  lv_path_struct)                          // first arg of SelectPathDriveMode
 NSTUB(0xFF0694E4,  LoadCalendarFromRTC)                     // might be good (dumps=1, score=30)
 NSTUB(0xFF1EBFE0,  vsnprintf)                               // might be good (dumps=1, score=9.5)
-///NSTUB(0xff0707fc, AllocateMemory_do) // malloc struct at 0x2B48
 // NSTUB(    ???,  EnableImagePhysicalScreenParameter)      /* present on 7D.203, 50D.109, 5D2.212 */
+// NSTUB(    ???,  FSUunMountDevice)                        /* present on 5D3.113 */
 // NSTUB(    ???,  PtpDps_remote_release_SW1_SW2_worker)    /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
 
 /** Unused stubs or porting notes **/
 ///NSTUB(0xFF1D391C,  AbortEDmac)
+///NSTUB(0xff0707fc, AllocateMemory_do) // malloc struct at 0x2B48
 ///NSTUB(0xFF2279C0,  ChangeColorPalette)
 ///NSTUB(0xFF31CAD8,  CreateDialogBox)                         // might be good (dumps=1, score=74)
 ///NSTUB(0xFF06C914,  DebugMsg)                                // might be good (dumps=1, score=1.1e+03)
