@@ -1257,6 +1257,10 @@ static volatile int switched_contexts[2];
  * Tasks with higher priority will always interrupt a lower-priority one,
  * even if the latter never yields.
  */
+
+/* define this to test the behavior of DryOS tasks with identical priority */
+#undef TEST_EQUAL_PRIO
+
 static void DUMP_ASM test_loop(void (*func)(int))
 {
     tests_running++;
@@ -1281,12 +1285,14 @@ static void DUMP_ASM test_loop(void (*func)(int))
         switched_calls[id] += (c1 != c0);
         calls_per_task[id]++;
 
+#if !defined(TEST_EQUAL_PRIO)
         /* task 1 has higher priority, so it will never be interrupted by task 0 */
         /* unless we call msleep or some other waiting function (sem, mq, event) */
         if (id)
         {
             msleep(rand() % 20);
         }
+#endif
     }
 
     tests_running--;
@@ -1305,9 +1311,16 @@ static void test_2_tasks(char * func_name, void (*func)(int))
     for (int k = 0; k < 5 && !threading_errors; k++)
     {
         /* note: the main test task is started with priority 0x1a */
+
+#if defined(TEST_EQUAL_PRIO)
+        /* test for tasks with equal priority */
+        task_create("A", 0x18, 0x8000, test_loop, func);
+        task_create("B", 0x18, 0x8000, test_loop, func);
+#else
         /* task B runs with higher priority (lower number) */
         task_create("A", 0x19, 0x8000, test_loop, func);
         task_create("B", 0x18, 0x8000, test_loop, func);
+#endif
 
         /* wait for the two tasks to start (tests not running yet) */
         msleep(100);
@@ -1353,7 +1366,9 @@ static void thread_test_task(void* arg)
     msleep(1000);
     console_show();
 
-  //test_2_tasks("nop", nop_test);
+#ifdef TEST_EQUAL_PRIO
+    test_2_tasks("nop", nop_test);
+#endif
     test_2_tasks("lens_format_dist", lens_format_dist_test);
     test_2_tasks("LoadCalendarFromRTC", rtc_test);
     test_2_tasks("PauseLiveView", pause_lv_test);
