@@ -1193,6 +1193,172 @@ static void stub_test_task(void* arg)
     stub_log_buf = 0;
 }
 
+static volatile int threading_errors = 0;
+
+static void nop_test(int task_id)
+{
+    for (volatile int x = 0; x < 20000000; x++)
+    {
+        asm("nop");
+    }
+}
+
+static void puts_test()
+{
+    puts(get_current_task_name());
+}
+
+static void rtc_test(int task_id)
+{
+    struct tm now;
+    LoadCalendarFromRTC(&now);
+#if 0
+    printf(
+        "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b"
+        "%d: %04d/%02d/%02d %02d:%02d:%02d",
+        task_id,
+        now.tm_year + 1900,
+        now.tm_mon + 1,
+        now.tm_mday,
+        now.tm_hour,
+        now.tm_min,
+        now.tm_sec
+    );
+#endif
+}
+
+static void lens_format_dist_test(int task_id)
+{
+    int dist = (task_id == 1) ? 1234 : 567;
+    const char * expected = 
+        (task_id == 1) ? "1.23" SYM_SMALL_M
+                       : "56" SYM_SMALL_C SYM_SMALL_M ;
+
+    /* this should fail, as it's not thread-safe */
+    const char * dist_str = lens_format_dist(dist);
+    threading_errors += !streq(dist_str, expected);
+}
+
+static void pause_lv_test(int task_id)
+{
+    PauseLiveView();
+    ResumeLiveView();
+}
+
+static volatile int tests_running = 0;
+static volatile int calls_per_task[2];
+static volatile int switched_calls[2];
+static volatile int switched_contexts[2];
+
+/* DryOS tasks with identical priority appear to never interrupt each other,
+ * unless each task voluntarily yields somehow (msleep, take_semaphore,
+ * msg_queue_receive, event flags etc).
+ * 
+ * Tasks with higher priority will always interrupt a lower-priority one,
+ * even if the latter never yields.
+ */
+static void DUMP_ASM test_loop(void (*func)(int))
+{
+    tests_running++;
+    int id = get_current_task_name()[0] - 'A';
+
+    /* task 1 (higher priority) will start later, to interrupt task 0 */
+    msleep(id ? 300 : 200);
+
+    int t0 = get_ms_clock_value();
+    while (get_ms_clock_value() - t0 < 500)
+    {
+        /* assume there are 2 tasks running, with IDs 0 and 1 */
+        /* record how many times the other task ran during our test function */
+        int c0 = calls_per_task[!id];
+
+        /* call the tested function */
+        func(id);
+
+        /* update stats */
+        int c1 = calls_per_task[!id];
+        switched_contexts[id] += (c1 - c0);
+        switched_calls[id] += (c1 != c0);
+        calls_per_task[id]++;
+
+        /* task 1 has higher priority, so it will never be interrupted by task 0 */
+        /* unless we call msleep or some other waiting function (sem, mq, event) */
+        if (id)
+        {
+            msleep(rand() % 20);
+        }
+    }
+
+    tests_running--;
+}
+
+static void test_2_tasks(char * func_name, void (*func)(int))
+{
+    printf("\n%s ", func_name);
+
+    /* reset stats */
+    switched_calls[0] = switched_calls[1] = 0;
+    calls_per_task[0] = calls_per_task[1] = 0;
+    switched_contexts[0] = switched_contexts[1] = 0;
+    threading_errors = 0;
+
+    for (int k = 0; k < 5 && !threading_errors; k++)
+    {
+        /* note: the main test task is started with priority 0x1a */
+        /* task B runs with higher priority (lower number) */
+        task_create("A", 0x19, 0x8000, test_loop, func);
+        task_create("B", 0x18, 0x8000, test_loop, func);
+
+        /* wait for the two tasks to start (tests not running yet) */
+        msleep(100);
+        ASSERT(tests_running == 2);
+
+        /* speed up DryOS timer from 10ms to 0.2ms to get more context switches */
+        /* (OK outside LiveView; very small values will result in lockup) */
+        MEM(0xC0210208) = 200;
+
+        info_led_on();
+        while (tests_running)
+        {
+            msleep(100);
+        }
+        info_led_off();
+
+        /* set DryOS timer back to 10ms */
+        MEM(0xC0210208) = 9999;
+
+        /* progress indicator */
+        printf(".");
+        msleep(500);
+    }
+
+    printf("\n");
+
+    if (threading_errors)
+    {
+        printf(" !!! %d errors !!!\n", threading_errors);
+    }
+
+    printf(
+        " %d+%d calls, %d+%d with context switched,\n"
+        " %d+%d context switches in the test function.\n",
+        calls_per_task[0], calls_per_task[1],
+        switched_calls[0], switched_calls[1],
+        switched_contexts[0], switched_contexts[1]
+    );
+}
+
+static void thread_test_task(void* arg)
+{
+    msleep(1000);
+    console_show();
+
+  //test_2_tasks("nop", nop_test);
+    test_2_tasks("lens_format_dist", lens_format_dist_test);
+    test_2_tasks("LoadCalendarFromRTC", rtc_test);
+    test_2_tasks("PauseLiveView", pause_lv_test);
+}
+
 static void rpc_test_task(void* unused)
 {
     uint32_t loops = 0;
@@ -2224,6 +2390,12 @@ static struct menu_entry selftest_menu[] =
                 .select     = run_in_separate_task,
                 .priv       = stub_test_task,
                 .help       = "Tests Canon functions called by ML. SET=once, PLAY=100x."
+            },
+            {
+                .name       = "Thread safety test",
+                .select     = run_in_separate_task,
+                .priv       = thread_test_task,
+                .help       = "Tests various functions for thread safety. WIP."
             },
             {
                 .name       = "RPC reliability test (infinite)",
