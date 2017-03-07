@@ -1298,6 +1298,13 @@ static void eos_init_common(MachineState *machine)
 
     edmac_test_format_size();
 
+    if (strcmp(s->model->name, "7D") == 0)
+    {
+        printf("Disabling IPC (boot flag 0x24)\n");
+        uint32_t flag = 0;
+        MEM_WRITE_ROM(s->model->bootflags_addr + 0x24, (uint8_t*) &flag, 4);
+    }
+
     if ((strcmp(s->model->name, "7D2M") == 0) ||
         (strcmp(s->model->name, "7D2S") == 0))
     {
@@ -2126,6 +2133,7 @@ static int eos_handle_card_led( unsigned int parm, EOSState *s, unsigned int add
                 (value == 0x44 || value == 0x838C00 ||
                  value == 0x40 || value == 0x038C00
                                || value == 0x83DC00
+                               || value == 0x800C00   /* 7D */
                                || value == 0xE000000) ? -1 : 0;
         }
         

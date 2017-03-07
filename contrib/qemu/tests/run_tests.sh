@@ -502,7 +502,7 @@ function check_rom_md5 {
     # we don't know yet which image was used (CF or SD)
     if   mdir -i $MSD ::ROM* &> /dev/null; then
         DEV=$MSD
-    elif mdir -i $MSD ::ROM* &> /dev/null; then
+    elif mdir -i $MCF ::ROM* &> /dev/null; then
         DEV=$MCF
     else
         echo -e "\e[31mROMs not saved\e[0m"
@@ -569,7 +569,10 @@ for CAM in ${EOS_CAMS[*]}; do
         continue
     fi
 
-    (sleep 20; echo screendump tests/$CAM/romdump.ppm; echo quit) \
+    # for some reason, 7D is slower
+    [ $CAM == "7D" ] && timeout=40 || timeout=20
+
+    (sleep $timeout; echo screendump tests/$CAM/romdump.ppm; echo quit) \
       | ./run_canon_fw.sh $CAM,firmware="boot=1" -display none -monitor stdio &> tests/$CAM/romdump.log
     
     check_rom_md5 $CAM
