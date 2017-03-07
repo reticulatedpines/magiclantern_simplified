@@ -847,7 +847,13 @@ static void eos_update_display(void *parm)
         surface = qemu_console_surface(s->disp.con);
         s->disp.invalidate = 1;
     }
-    
+
+    if (s->card_led)
+    {
+        /* fixme: inefficient (redraws non-dirty areas) */
+        s->disp.invalidate = 1;
+    }
+
     int first, last;
     
     first = 0;
@@ -922,8 +928,6 @@ static void eos_update_display(void *parm)
                 }
             }
         }
-        first = MIN(first, y_led-5);
-        last = MAX(last, y_led+5);
     }
 
     if (first >= 0) {
