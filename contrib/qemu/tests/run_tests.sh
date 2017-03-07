@@ -107,6 +107,46 @@ for CAM in ${EOS_CAMS[*]} ${EOS_SECONDARY_CORES[*]}; do
     tests/check_grep.sh tests/$CAM/boot.log -E "([KR].* (READY|AECU)|Intercom|Dry)"
 done
 
+# All EOS cameras should load autoexec.bin, run HPTimer functions
+# and print current task name (this actually tests some ML stubs)
+echo
+echo "Testing HPTimer and task name..."
+for CAM in ${EOS_CAMS[*]}; do
+    printf "%5s: " $CAM
+
+    mkdir -p tests/$CAM/
+    rm -f tests/$CAM/hptimer.log
+    rm -f tests/$CAM/hptimer-build.log
+
+    # compile it from ML dir, for each camera
+    HPTIMER_PATH=../magic-lantern/minimal/qemu-hptimer
+    rm -f $HPTIMER_PATH/autoexec.bin
+    make MODEL=$CAM -C $HPTIMER_PATH clean &>> tests/$CAM/hptimer-build.log
+    make MODEL=$CAM -C $HPTIMER_PATH       &>> tests/$CAM/hptimer-build.log
+    
+    if [ ! -f $HPTIMER_PATH/autoexec.bin ]; then
+        echo -e "\e[31mCompile error\e[0m"
+        continue
+    fi
+
+    # copy autoexec.bin to card images
+    mcopy -o -i $MSD $HPTIMER_PATH/autoexec.bin ::
+    mcopy -o -i $MCF $HPTIMER_PATH/autoexec.bin ::
+
+    # run the HPTimer test
+    (./run_canon_fw.sh $CAM,firmware="boot=1" -display none &> tests/$CAM/hptimer.log) &
+    sleep 0.5
+    ( timeout 10 tail -f -n0 tests/$CAM/hptimer.log & ) | grep --binary-files=text -qP "\x1B\x5B34mH\x1B\x5B0m\x1B\x5B34me\x1B\x5B0m"
+    sleep 2
+    killall -INT qemu-system-arm &>> tests/$CAM/hptimer.log
+    
+    tests/check_grep.sh tests/$CAM/hptimer.log -m1 "Hello from task run_test"
+    printf "       "
+    tests/check_grep.sh tests/$CAM/hptimer.log -m1 "Hello from HPTimer" && continue
+    printf "       "
+    tests/check_grep.sh tests/$CAM/hptimer.log -m1 "Hello from task init" && continue
+done
+
 # These cameras should be able to navigate Canon menu:
 echo
 echo "Testing Canon menu..."
@@ -333,8 +373,8 @@ for CAM in 5D3 60D 1200D; do
     FRSP_PATH=../magic-lantern/minimal/qemu-frsp
     rm -f $FRSP_PATH/autoexec.bin
     [ $CAM == "1200D" ] && (cd $FRSP_PATH; hg up qemu -C; hg merge 1200D; cd $OLDPWD) &>> tests/$CAM/frsp-build.log
-    MODEL=$CAM make -C $FRSP_PATH clean &>> tests/$CAM/frsp-build.log
-    MODEL=$CAM make -C $FRSP_PATH       &>> tests/$CAM/frsp-build.log
+    make MODEL=$CAM -C $FRSP_PATH clean &>> tests/$CAM/frsp-build.log
+    make MODEL=$CAM -C $FRSP_PATH       &>> tests/$CAM/frsp-build.log
     [ $CAM == "1200D" ] && (cd $FRSP_PATH; hg up qemu -C; cd $OLDPWD) &>> tests/$CAM/frsp-build.log
     
     if [ ! -f $FRSP_PATH/autoexec.bin ]; then
