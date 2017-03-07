@@ -101,7 +101,7 @@ for CAM in ${EOS_CAMS[*]} ${EOS_SECONDARY_CORES[*]}; do
     # going to wait for red DY (from READY), with 2 seconds timeout, then kill qemu
     (./run_canon_fw.sh $CAM,firmware="boot=0" -display none &> tests/$CAM/boot.log) &
     sleep 0.5
-    ( timeout 5 tail -f -n0 tests/$CAM/boot.log & ) | grep --binary-files=text -qP "\x1B\x5B31mD\x1B\x5B0m\x1B\x5B31mY\x1B\x5B0m"
+    ( timeout 5 tail -f -n100000 tests/$CAM/boot.log & ) | grep --binary-files=text -qP "\x1B\x5B31mD\x1B\x5B0m\x1B\x5B31mY\x1B\x5B0m"
     killall -INT qemu-system-arm &>> tests/$CAM/boot.log
     
     tests/check_grep.sh tests/$CAM/boot.log -E "([KR].* (READY|AECU)|Intercom|Dry)"
@@ -136,7 +136,7 @@ for CAM in ${EOS_CAMS[*]}; do
     # run the HPTimer test
     (./run_canon_fw.sh $CAM,firmware="boot=1" -display none &> tests/$CAM/hptimer.log) &
     sleep 0.5
-    ( timeout 10 tail -f -n0 tests/$CAM/hptimer.log & ) | grep --binary-files=text -qP "\x1B\x5B34mH\x1B\x5B0m\x1B\x5B34me\x1B\x5B0m"
+    ( timeout 10 tail -f -n100000 tests/$CAM/hptimer.log & ) | grep --binary-files=text -qP "\x1B\x5B34mH\x1B\x5B0m\x1B\x5B34me\x1B\x5B0m"
     sleep 2
     killall -INT qemu-system-arm &>> tests/$CAM/hptimer.log
     
@@ -341,7 +341,7 @@ for CAM in ${EOS_CAMS[*]} ${EOS_SECONDARY_CORES[*]} ${POWERSHOT_CAMS[*]}; do
     (./run_canon_fw.sh $CAM,firmware="boot=0" -display none -s -S & \
      arm-none-eabi-gdb -x $CAM/debugmsg.gdb &) &> tests/$CAM/gdb.log
     sleep 0.5
-    ( timeout 10 tail -f -n0 tests/$CAM/gdb.log & ) | grep --binary-files=text -qP "task_create\("
+    ( timeout 10 tail -f -n100000 tests/$CAM/gdb.log & ) | grep --binary-files=text -qP "task_create\("
     sleep 1
     killall -INT qemu-system-arm &>> tests/$CAM/gdb.log
     sleep 0.2
@@ -461,7 +461,7 @@ for CAM in ${POWERSHOT_CAMS[*]}; do
     (./run_canon_fw.sh $CAM -display none -s -S & \
      arm-none-eabi-gdb -x EOSM3/debugmsg.gdb &) &> tests/$CAM/boot.log
     sleep 0.5
-    ( timeout 10 tail -f -n0 tests/$CAM/boot.log & ) | grep --binary-files=text -qP "\x1B\x5B31ma\x1B\x5B0m\x1B\x5B31my\x1B\x5B0m"
+    ( timeout 10 tail -f -n100000 tests/$CAM/boot.log & ) | grep --binary-files=text -qP "\x1B\x5B31ma\x1B\x5B0m\x1B\x5B31my\x1B\x5B0m"
     killall -INT qemu-system-arm &>> tests/$CAM/boot.log
 
     printf "  SD boot: "; tests/check_grep.sh tests/$CAM/boot.log -om1 "StartDiskboot"
