@@ -451,7 +451,7 @@ static int raw_update_params_work()
     console_show();
     #endif
 
-    dbg_printf("raw update from %s\n", get_task_name_from_id(get_current_task()));
+    dbg_printf("raw update from %s\n", get_current_task_name());
 
     int width = 0;
     int height = 0;

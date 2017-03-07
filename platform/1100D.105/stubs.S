@@ -278,8 +278,6 @@ NSTUB(0xFF06F56C,  take_semaphore)                          // might be good (du
 
 /** Task info **/
 NSTUB(    0x2E00,  task_max)
-NSTUB(0xFF0175F4,  get_current_task)                        // might be good (dumps=1, score=11)
-NSTUB(0xFF07F448,  get_obj_attr)                            // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xFF34E544,  is_taskid_valid)                         // AJ_task_trampoline_related_p10
 
 /** Task sleep **/
@@ -289,8 +287,8 @@ NSTUB(0xFF06FA40,  msleep)                                  // might be good (du
 NSTUB(    0x193C,  task_dispatch_hook)
 NSTUB(0xFF06FAF4,  task_create)                             // might be good (dumps=1, score=23)
 NSTUB(0xFF07C970,  task_trampoline)                         // might be good (dumps=1, score=0.5)
-// NSTUB(    ???,  current_task_ctx)                        /* present on 7D.203 */
-// NSTUB(    ???,  next_task_ctx)                           /* present on 7D.203 */
+NSTUB(    0x1A2C,  current_task)
+NSTUB(     0x674,  current_interrupt)                       // in interrupt handler (0x18), where MEM(C0201004) is stored
 
 /** Misc **/
 NSTUB(   0x736B4,  lv_path_struct)                          // first arg of SelectPathDriveMode

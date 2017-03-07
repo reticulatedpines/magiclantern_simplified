@@ -1680,23 +1680,6 @@ static void raw_video_rec_task()
     
     powersave_prohibit();
 
-    /* create output file */
-    raw_movie_filename = get_next_raw_movie_file_name();
-    chunk_filename = raw_movie_filename;
-    f = FIO_CreateFile(raw_movie_filename);
-    if (!f)
-    {
-        NotifyBox(5000, "File create error");
-        goto cleanup;
-    }
-    init_mlv_chunk_headers(&raw_info);
-    written_total = written_chunk = write_mlv_chunk_headers(f);
-    if (!written_chunk)
-    {
-        NotifyBox(5000, "Card Full");
-        goto cleanup;
-    }
-    
     /* wait for two frames to be sure everything is refreshed */
     wait_lv_frames(2);
     
@@ -1709,6 +1692,24 @@ static void raw_video_rec_task()
     }
     
     update_resolution_params();
+
+    /* create output file */
+    raw_movie_filename = get_next_raw_movie_file_name();
+    chunk_filename = raw_movie_filename;
+    f = FIO_CreateFile(raw_movie_filename);
+    if (!f)
+    {
+        NotifyBox(5000, "File create error");
+        goto cleanup;
+    }
+
+    init_mlv_chunk_headers(&raw_info);
+    written_total = written_chunk = write_mlv_chunk_headers(f);
+    if (!written_chunk)
+    {
+        NotifyBox(5000, "Card Full");
+        goto cleanup;
+    }
 
     /* allocate memory */
     if (!setup_buffers())
