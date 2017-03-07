@@ -4637,11 +4637,13 @@ unsigned int eos_handle_display ( unsigned int parm, EOSState *s, unsigned int a
     switch (address & 0xFFF)
     {
         case 0x0D0:
+        case 0x0D4:
             msg = "BMP VRAM";
             MMIO_VAR(s->disp.bmp_vram);
             break;
 
         case 0x0E0:
+        case 0x0E4:
             msg = "YUV VRAM";
             MMIO_VAR(s->disp.img_vram);
             break;
