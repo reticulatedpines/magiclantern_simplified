@@ -752,9 +752,14 @@ function test_lens_focus()
         msleep(1000)
     end
 
+    -- note: some lenses may be able to AF only in LiveView
+    -- so let's check each mode regardless of the other
+
     if not lv.running then
-        printf("Autofocus outside LiveView...\n")
-        assert(lens.autofocus())
+        if lens.af then
+            printf("Autofocus outside LiveView...\n")
+            assert(lens.autofocus())
+        end
 
         lv.start()
         assert(lv.running)
