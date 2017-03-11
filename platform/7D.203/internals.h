@@ -129,3 +129,6 @@
 
 /** Use joystick for one-finger menu navigation */
 #define CONFIG_JOY_CENTER_ACTIONS
+
+/** likely similar to 550D, but not tested */
+//~ #define CONFIG_FOCUS_COMMANDS_PROP_NOT_CONFIRMED

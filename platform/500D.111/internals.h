@@ -127,3 +127,6 @@
 
 /** LV RAW has trouble with 10x zoom, disable it */
 #define CONFIG_RAW_DISABLE_IN_10X_ZOOM
+
+/** Focus commands are not confirmed in LiveView (lens_focus - requires pfAfComplete_counter stub) */
+#define CONFIG_FOCUS_COMMANDS_PROP_NOT_CONFIRMED

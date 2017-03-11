@@ -305,6 +305,7 @@ NSTUB(0xFF0771BC,  task_trampoline)
 NSTUB(0xFF06366C,  LoadCalendarFromRTC)
 NSTUB(0xFF4B39AC,  lv_path_struct)
 NSTUB(0xFF1D6638,  vsnprintf)
+NSTUB(    0x5218,  pfAfComplete_counter)
 //NSTUB(0xFF2FEA48, ChangeHDMIOutputSizeToFULLHD)
 //NSTUB(0xFF2FECB0, ChangeHDMIOutputSizeToVGA)
 // NSTUB(    ???,  EnableImagePhysicalScreenParameter)      /* present on 7D.203, 50D.109, 5D2.212 */

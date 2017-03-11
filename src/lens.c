@@ -639,12 +639,18 @@ lens_focus(
                 lv_focus_done = 0;
                 info_led_on();
 
-#ifdef CONFIG_5D2   /* todo: 50D, 500D, others? */
-                uint32_t pfAfComplete_counter = MEM(0x46A8);
+#ifdef CONFIG_FOCUS_COMMANDS_PROP_NOT_CONFIRMED
+                /* in old models, each focus command is confirmed by pfAfComplete interrupt */
+                /* it's not safe to send commands before that (camera crashes) */
+                /* properties are not confirmed, so prop_request_change_wait would time out */
+                /* not all cameras having this string require this though (550D, maybe 7D as well) */
+                /* todo: VxWorks cameras may require this too */
+                extern volatile int pfAfComplete_counter;
+                int old = pfAfComplete_counter;
 
                 prop_request_change(PROP_LV_LENS_DRIVE_REMOTE, &focus_cmd, 4);
 
-                while (MEM(0x46A8) == pfAfComplete_counter)
+                while (pfAfComplete_counter == old)
                 {
                     msleep(10);
                 }
