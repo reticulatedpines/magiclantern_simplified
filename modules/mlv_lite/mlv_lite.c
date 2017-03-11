@@ -2009,7 +2009,7 @@ void process_frame()
             /* send it for saving, even if it isn't done yet */
             /* it's quite unlikely that FIO DMA will be faster than EDMAC */
             writing_queue[writing_queue_tail] = capture_slot;
-            writing_queue_tail = MOD(writing_queue_tail + 1, COUNT(writing_queue));
+            INC_MOD(writing_queue_tail, COUNT(writing_queue));
         }
     }
     else
@@ -2624,7 +2624,7 @@ static void raw_video_rec_task()
         int size_used = frame_size * num_frames;
 
         /* mark these frames as "writing" */
-        for (int i = w_head; i != after_last_grouped; i = MOD(i+1, COUNT(writing_queue)))
+        for (int i = w_head; i != after_last_grouped; INC_MOD(i, COUNT(writing_queue)))
         {
             int slot_index = writing_queue[i];
             if (OUTPUT_COMPRESSION && !slots[slot_index].is_meta)
@@ -2676,7 +2676,7 @@ static void raw_video_rec_task()
         last_block_size = MOD(after_last_grouped - w_head, COUNT(writing_queue));
 
         /* mark these frames as "free" so they can be reused */
-        for (int i = w_head; i != after_last_grouped; i = MOD(i+1, COUNT(writing_queue)))
+        for (int i = w_head; i != after_last_grouped; INC_MOD(i, COUNT(writing_queue)))
         {
             if (i == writing_queue_tail)
             {
