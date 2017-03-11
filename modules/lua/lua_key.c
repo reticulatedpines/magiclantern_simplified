@@ -29,6 +29,10 @@ static int luaCB_key_press(lua_State * L)
 
 /***
  Wait for a key to be pressed.
+ 
+ FIXME: while waiting for a key to be pressed,
+ other tasks or event handlers from the same script cannot run.
+ 
  @tparam[opt] constants.KEY key
  @tparam[opt] int timeout
  @treturn constants.KEY the key that was pressed.
@@ -41,19 +45,26 @@ static int luaCB_key_wait(lua_State * L)
     timeout *= 10;
     last_keypress = 0;
     int time = 0;
-    lua_give_semaphore(L, NULL);
+
+    if (lua_get_cant_yield(L))
+    {
+        return luaL_error(L, "FIXME: cannot use task.yield() or key.wait() from two tasks");
+    }
+
+    //lua_give_semaphore(L, NULL);
+
     //TODO: probably better to use a semaphore
     while((key && last_keypress != key) || (!key && !last_keypress))
     {
         msleep(100);
         if(timeout && time++ > timeout)
         {
-            lua_take_semaphore(L, 0, NULL);
+            //lua_take_semaphore(L, 0, NULL);
             lua_pushinteger(L, 0);
             return 1;
         }
     }
-    lua_take_semaphore(L, 0, NULL);
+    //lua_take_semaphore(L, 0, NULL);
     lua_pushinteger(L, last_keypress);
     return 1;
 }
