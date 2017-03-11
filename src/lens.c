@@ -1784,6 +1784,7 @@ static struct menu_entry lens_info_menus[] = {
    {
         .name = "Lens info",
         .select   = menu_open_submenu,
+        .submenu_width = 700,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Name",
@@ -1806,7 +1807,7 @@ static struct menu_entry lens_info_menus[] = {
                 .help  = "Show current lens version string",
             },
             {
-                .name = "Capability bits",
+                .name = "Capability",
                 .update = &lens_capabilities_display,
                 .help  = "Show current lens capability bits",
             },
@@ -1826,6 +1827,11 @@ crop_factor_menu_init()
 {
     menu_add("Prefs", tweak_menus, COUNT(tweak_menus));
     menu_add("Debug", lens_info_menus, COUNT(lens_info_menus));
+
+    /* hack: lens name is usually long */
+    /* force all submenu values to the left to maintain a nice layout */
+    /* todo: better backend support? */
+    lens_info_menus[0].children[0].parent_menu->split_pos = -10;
 }
 
 static void
