@@ -1680,7 +1680,19 @@ static MENU_UPDATE_FUNC(lens_id_display)
         MENU_SET_VALUE("(no lens)");
         return;
     }
-    MENU_SET_VALUE("0x%04X", lens_info.lens_id );
+
+    /* exiftool displays this as decimal */
+    MENU_SET_VALUE("0x%04X (%d)", lens_info.lens_id, lens_info.lens_id);
+}
+
+static MENU_UPDATE_FUNC(lens_serial_display)
+{
+    if(!lens_info.lens_exists)
+    {
+        MENU_SET_VALUE("(no lens)");
+        return;
+    }
+    MENU_SET_VALUE("%02x%08X", (uint32_t)(lens_info.lens_serial >> 32), (uint32_t)lens_info.lens_serial);
 }
 
 static MENU_UPDATE_FUNC(lens_extender_display)
@@ -1789,32 +1801,38 @@ static struct menu_entry lens_info_menus[] = {
             {
                 .name = "Name",
                 .update = &lens_name_display,
-                .help  = "Show current lens name",
+                .help  = "Show current lens name (as reported by your lens or adapter).",
+                .help2 = "Read-only.",
             },
             {
                 .name = "Focal len",
                 .update = &lens_focal_display,
-                .help  = "Show current lens focal length",
+                .help  = "Show current lens focal length.",
+                .help2 = "Read-only. Zoom lenses are only updated in LiveView.",
             },
             {
-                .name = "ID",
+                .name = "Lens ID",
                 .update = &lens_id_display,
-                .help  = "Show current lens ID",
+                .help  = "Show current lens ID. Should match exiftool TEST.CR2 -LensType -b.",
+                .help2 = "Read-only. Lenses from different manufacturers may have the same ID.",
             },
             {
                 .name = "Version",
                 .update = &lens_version_display,
-                .help  = "Show current lens version string",
+                .help  = "Show current lens version string.",
+                .help2 = "Read-only.",
             },
             {
                 .name = "Capability",
                 .update = &lens_capabilities_display,
-                .help  = "Show current lens capability bits",
+                .help  = "Show current lens capability bits.",
+                .help2 = "Read-only.",
             },
             {
                 .name = "Extender",
                 .update = &lens_extender_display,
-                .help  = "Show current lens extender information byte",
+                .help  = "Show current lens extender information byte.",
+                .help2 = "Read-only.",
             },
             MENU_EOL
         },
