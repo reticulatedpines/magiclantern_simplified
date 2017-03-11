@@ -1754,7 +1754,7 @@ static MENU_UPDATE_FUNC(lens_focal_display)
 
 static struct menu_entry tweak_menus[] = {
    {
-        .name = "Lens Info/Prefs",
+        .name = "Lens Info Prefs",
         .select   = menu_open_submenu,
         .children =  (struct menu_entry[]) {
             #ifndef CONFIG_FULLFRAME
@@ -1774,6 +1774,17 @@ static struct menu_entry tweak_menus[] = {
                 .max = 1,
                 .help  = "Can select between Metric and Imperial focus distance units",
             },
+            MENU_EOL
+        }
+    }
+};
+
+/* better place for this menu? */
+static struct menu_entry lens_info_menus[] = {
+   {
+        .name = "Lens info",
+        .select   = menu_open_submenu,
+        .children =  (struct menu_entry[]) {
             {
                 .name = "Name",
                 .update = &lens_name_display,
@@ -1814,6 +1825,7 @@ void
 crop_factor_menu_init()
 {
     menu_add("Prefs", tweak_menus, COUNT(tweak_menus));
+    menu_add("Debug", lens_info_menus, COUNT(lens_info_menus));
 }
 
 static void
