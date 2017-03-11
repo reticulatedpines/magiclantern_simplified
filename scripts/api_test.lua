@@ -290,19 +290,22 @@ end
 
 function test_keys()
     printf("Testing half-shutter...\n")
-    -- open Canon menu
-    key.press(KEY.MENU)
-    msleep(1000)
-    -- fixme: expose things like QR_MODE, PLAY_MODE, enter_play_mode...
-    assert(camera.state == 1)
-    key.press(KEY.HALFSHUTTER)
-    msleep(100)
-    assert(key.last == KEY.HALFSHUTTER)
-    msleep(1000)
-    -- half-shutter should close Canon menu
-    assert(camera.state == 0)
-    key.press(KEY.UNPRESS_HALFSHUTTER)
-    assert(key.last == KEY.UNPRESS_HALFSHUTTER)
+    for i = 1,10 do
+        -- open Canon menu
+        key.press(KEY.MENU)
+        msleep(1000)
+        -- fixme: expose things like QR_MODE, PLAY_MODE, enter_play_mode...
+        assert(camera.state == 1)
+        key.press(KEY.HALFSHUTTER)
+        msleep(200)
+        assert(key.last == KEY.HALFSHUTTER)
+        msleep(1000)
+        -- half-shutter should close Canon menu
+        assert(camera.state == 0)
+        key.press(KEY.UNPRESS_HALFSHUTTER)
+        msleep(200)
+        assert(key.last == KEY.UNPRESS_HALFSHUTTER)
+    end
     printf("Half-shutter test OK.\n")
     
     -- todo: test other key codes? press/unpress events?
