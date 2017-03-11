@@ -114,7 +114,7 @@ static int luaCB_lens_focus(lua_State * L)
     return 1;
 }
 
-static int wait_focus_status(int timeout, int value)
+static int wait_focus_status(int timeout, int value1, int value2)
 {
     int t0 = get_ms_clock_value();
 
@@ -122,7 +122,7 @@ static int wait_focus_status(int timeout, int value)
     {
         msleep(10);
 
-        if (lv_focus_status == value)
+        if (lv_focus_status == value1 || lv_focus_status == value2)
         {
             return 1;
         }
@@ -166,10 +166,10 @@ static int luaCB_lens_autofocus(lua_State * L)
         goto error;
     }
 
-    /* 3 = focusing, 1 = idle */
-    if (wait_focus_status(1000, 3))
+    /* 3 = focusing, 1 = idle (most models), 2 = idle (100D) */
+    if (wait_focus_status(1000, 3, 3))
     {
-        if (wait_focus_status(5000, 1))
+        if (wait_focus_status(5000, 1, 2))
         {
             goto success;
         }
