@@ -140,3 +140,6 @@
 
 /** Use joystick for one-finger menu navigation */
 #define CONFIG_JOY_CENTER_ACTIONS
+
+/** Focus commands are not confirmed in LiveView (lens_focus - requires pfAfComplete_counter stub) */
+#define CONFIG_FOCUS_COMMANDS_PROP_NOT_CONFIRMED

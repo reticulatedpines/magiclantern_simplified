@@ -543,16 +543,49 @@ PROP_HANDLER( PROP_LV_FOCUS_DONE )
 
     //~ bmp_printf(FONT_MED, 50, 100, "Focus status: 0x%x  ", buf[0]);
     
-    if (buf[0] & 0x1000) 
+    static int last_pos = 0;
+    static int retries = 2;
+    
+    int error_flag = buf[0] & 0x1000;
+    int focus_changed = last_pos != lens_info.focus_pos;
+    int lens_stuck = error_flag && !focus_changed;
+
+    if (lens_stuck)
     {
+        printf("Lens stuck? (%d, %x)\n", retries, buf[0]);
+    }
+    else
+    {
+        printf("Lens moving (%d, %x)\n", lens_info.focus_pos - last_pos, buf[0]);
+    }
+
+    if (lens_stuck && retries == 0)
+    {
+        /* only trigger the error if the lens did not move at all
+         * after 2 retries */
         NotifyBox(1000, "Focus: soft limit reached");
         lv_focus_error = 1;
+        
+        /* assume the error was handled (e.g. by reversing direction)
+         * and allow 2 retries for the next attempt */
+        retries = 2;
     }
     else
     {
         /* assume all is fine (not sure if correct, but seems to work) */
         lv_focus_done = 1;
+        
+        if (lens_stuck)
+        {
+            retries--;
+        }
+        else
+        {
+            retries = 2;
+        }
     }
+
+    last_pos = lens_info.focus_pos;
 }
 
 static void
@@ -603,13 +636,30 @@ lens_focus(
             if (wait)
             {
                 lv_focus_done = 0;
-                
-                /* request and wait for confirmation */
                 info_led_on();
+
+#ifdef CONFIG_FOCUS_COMMANDS_PROP_NOT_CONFIRMED
+                /* in old models, each focus command is confirmed by pfAfComplete interrupt */
+                /* it's not safe to send commands before that (camera crashes) */
+                /* properties are not confirmed, so prop_request_change_wait would time out */
+                /* not all cameras having this string require this though (550D, maybe 7D as well) */
+                /* todo: VxWorks cameras may require this too */
+                extern volatile int pfAfComplete_counter;
+                int old = pfAfComplete_counter;
+
+                prop_request_change(PROP_LV_LENS_DRIVE_REMOTE, &focus_cmd, 4);
+
+                while (pfAfComplete_counter == old)
+                {
+                    msleep(10);
+                }
+#else
+                /* request and wait for confirmation */
                 prop_request_change_wait(PROP_LV_LENS_DRIVE_REMOTE, &focus_cmd, 4, 1000);
-                
+
                 /* also wait for confirmation from PROP_LV_FOCUS_DONE */
                 lens_focus_wait();
+#endif
                 
                 /* also wait a little more if user want so (for really stubborn lenses) */
                 if (extra_delay)
@@ -1538,40 +1588,29 @@ static void focus_ring_powersave_fix()
     }
 }
 
-#if defined(CONFIG_EOSM)
-PROP_HANDLER( PROP_LV_FOCAL_DISTANCE )
-{
-#ifdef FEATURE_MAGIC_ZOOM
-    if (get_zoom_overlay_trigger_by_focus_ring()) zoom_overlay_set_countdown(300);
-#endif
-    
-    idle_wakeup_reset_counters(-11);
-    lens_display_set_dirty();
-    focus_ring_powersave_fix();
-    
-#ifdef FEATURE_LV_ZOOM_SETTINGS
-    zoom_focus_ring_trigger();
-#endif
-}
-#endif
 PROP_HANDLER( PROP_LV_LENS )
 {
     const struct prop_lv_lens * const lv_lens = (void*) buf;
-    lens_info.focal_len    = bswap16( lv_lens->focal_len );
+    lens_info.focal_len     = bswap16( lv_lens->focal_len );
     lens_info.focus_dist    = bswap16( lv_lens->focus_dist );
+    lens_info.focus_pos     = (int16_t) bswap16( lv_lens->focus_pos );
     
     if (lens_info.focal_len > 1000) // bogus values
         lens_info.focal_len = 0;
 
     //~ uint32_t lrswap = SWAP_ENDIAN(lv_lens->lens_rotation);
     //~ uint32_t lsswap = SWAP_ENDIAN(lv_lens->lens_step);
-
     //~ lens_info.lens_rotation = *((float*)&lrswap);
     //~ lens_info.lens_step = *((float*)&lsswap);
-#if !defined(CONFIG_EOSM)  
+    
     static unsigned old_focus_dist = 0;
+    static int      old_focus_pos = 0;
     static unsigned old_focal_len = 0;
-    if (lv && (old_focus_dist && lens_info.focus_dist != old_focus_dist) && (old_focal_len && lens_info.focal_len == old_focal_len))
+    int focus_dist_changed = (old_focus_dist && lens_info.focus_dist != old_focus_dist);
+    int focus_pos_changed = (lens_info.focus_pos != old_focus_pos);
+    int lens_not_zoomed = (old_focal_len && lens_info.focal_len == old_focal_len);
+
+    if (lv && lens_not_zoomed && (focus_pos_changed || focus_dist_changed))
     {
         #ifdef FEATURE_MAGIC_ZOOM
         if (get_zoom_overlay_trigger_by_focus_ring()) zoom_overlay_set_countdown(300);
@@ -1586,8 +1625,8 @@ PROP_HANDLER( PROP_LV_LENS )
         #endif
     }
     old_focus_dist = lens_info.focus_dist;
+    old_focus_pos = lens_info.focus_pos;
     old_focal_len = lens_info.focal_len;
-#endif
     update_stuff();
 }
 

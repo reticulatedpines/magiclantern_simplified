@@ -115,3 +115,6 @@
 
 /** Use a patched LiveViewApp dialog hander to hide Canon bottom bar */
 #define CONFIG_LVAPP_HACK_RELOC
+
+/** Focus commands are confirmed in LiveView, even though the pfAfComplete stub is present... */
+//~ #define CONFIG_FOCUS_COMMANDS_PROP_NOT_CONFIRMED
