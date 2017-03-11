@@ -244,12 +244,45 @@ function taskB()
     end
 end
 
+function taskC()
+    printf("Task C started.\n")
+    msleep(math.random(10,50))
+    printf("Task C finished.\n")
+end
+
+function taskD()
+    io.write("Task D started.\n")
+    msleep(math.random(10,50))
+    io.write("Task D finished.\n")
+end
+
 function test_multitasking()
     printf("Testing multitasking...\n")
 
-    task.create(taskA)
-    task.create(taskB)
-    task.yield(5000)
+    -- FIXME: this fails
+    --task.create(taskA)
+    --task.create(taskB)
+    --task.yield(5000)
+    
+    printf("Only one task allowed to interrupt...\n")
+
+    -- small test with logging to file
+    for i = 1,10 do
+        task.create(taskC)
+        printf("Main task yielding.\n")
+        task.yield(math.random(10,50))
+        printf("Main task back.\n")
+    end
+
+    -- larger test with logging to console only
+    for i = 1,1000 do
+        task.create(taskD)
+        io.write("Main task yielding.\n")
+        task.yield(math.random(10,50))
+        io.write("Main task back.\n")
+    end
+
+    task.yield(500)
 
     printf("Multitasking tests completed.\n")
     printf("\n")
@@ -853,7 +886,9 @@ function api_tests()
     
     printf("Module tests...\n")
     test_io()
-    --test_multitasking()
+    msleep(1000)
+    test_multitasking()
+    
     test_keys()
     test_lv()
     test_lens_focus()
