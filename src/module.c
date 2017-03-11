@@ -899,23 +899,29 @@ int handle_module_keys(struct event * event)
             {
                 if(cbr->type == CBR_KEYPRESS)
                 {
-                    /* key got handled? */
-                    int pass_to_canon = 1;
+                    int pass_event = 1;
+                    /* one event may include multiple key presses - decompose it */
                     for (int i = 0; i < count; i++)
                     {
-                        pass_to_canon &= cbr->handler(module_translate_key(event->param, MODULE_KEY_PORTABLE));
+                        int portable_key = module_translate_key(event->param, MODULE_KEY_PORTABLE);
+                        pass_event &= cbr->handler(portable_key);
                     }
-                    return pass_to_canon;
+                    if (!pass_event)
+                    {
+                        /* key handled */
+                        return 0;
+                    }
                 }
                 if(cbr->type == CBR_KEYPRESS_RAW)
                 {
-                    /* key got handled? */
-                    int pass_to_canon = 1;
-                    for (int i = 0; i < count; i++)
+                    /* raw event includes counter - let's pass it only once */
+                    int pass_event = cbr->handler((int)event);
+
+                    if (!pass_event)
                     {
-                        pass_to_canon &= cbr->handler((int)event);
+                        /* key handled */
+                        return 0;
                     }
-                    return pass_to_canon;
                 }
                 cbr++;
             }
