@@ -1503,7 +1503,6 @@ static void FAST process_frame()
 
     /* advance to next frame */
     frame_count++;
-    chunk_frame_count++;
 
     return;
 }
@@ -1649,8 +1648,11 @@ static void finish_chunk(FILE* f)
 }
 
 /* This saves a group of frames, also taking care of file splitting if required */
-static int write_frames(FILE** pf, void* ptr, int size_used)
+static int write_frames(FILE** pf, void* ptr, int size_used, int num_frames)
 {
+    /* note: num_frames can be computed as size_used / frame_size, but compressed frames are around the corner) */
+    ASSERT(num_frames == size_used / frame_size);
+
     FILE* f = *pf;
     
     /* if we know there's a 4GB file size limit and we're about to exceed it, go ahead and make a new chunk */
@@ -1735,6 +1737,7 @@ static int write_frames(FILE** pf, void* ptr, int size_used)
             *pf = f = g;
             written_total += size_used;
             written_chunk += size_used;
+            chunk_frame_count += num_frames;
         }
         else /* new chunk didn't work, card full */
         {
@@ -1750,6 +1753,7 @@ static int write_frames(FILE** pf, void* ptr, int size_used)
         /* all fine */
         written_total += size_used;
         written_chunk += size_used;
+        chunk_frame_count += num_frames;
     }
     
     writing_time += last_write_timestamp - t0;
@@ -1927,7 +1931,7 @@ static void raw_video_rec_task()
             slots[slot_index].status = SLOT_WRITING;
         }
 
-        if (!write_frames(&f, ptr, size_used))
+        if (!write_frames(&f, ptr, size_used, num_frames))
         {
             goto abort;
         }
@@ -2047,7 +2051,7 @@ abort_and_check_early_stop:
 
         slots[slot_index].status = SLOT_WRITING;
         if (indicator_display == INDICATOR_RAW_BUFFER) show_buffer_status();
-        if (!write_frames(&f, slots[slot_index].ptr, frame_size))
+        if (!write_frames(&f, slots[slot_index].ptr, frame_size, 1))
         {
             NotifyBox(5000, "Card Full");
             beep();
