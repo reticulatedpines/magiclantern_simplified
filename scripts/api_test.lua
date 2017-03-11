@@ -849,6 +849,8 @@ function test_movie()
     assert(e:find("movie mode"))
 
     request_mode(MODE.MOVIE, "Movie")
+    lv.start()
+    assert(lv.running)
 
     -- this should also raise error, as we are not exactly in LiveView
     lv.pause()
