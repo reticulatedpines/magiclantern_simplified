@@ -131,6 +131,7 @@ static CONFIG_INT("raw.write.speed", measured_write_speed, 0);
 static CONFIG_INT("raw.pre-record", pre_record, 0);
 static int pre_record_triggered = 0;    /* becomes 1 once you press REC twice */
 static int pre_record_num_frames = 0;   /* how many frames we should pre-record */
+static int pre_record_first_frame = 0;  /* first frame index from pre-recording buffer */
 
 static CONFIG_INT("raw.dolly", dolly_mode, 0);
 #define FRAMING_CENTER (dolly_mode == 0)
@@ -1897,22 +1898,50 @@ static void FAST pre_record_vsync_step()
 
         if (pre_record_triggered)
         {
-            /* make sure we have a free slot, no matter what */
-            pre_record_discard_frame_if_no_free_slots();
-
-            pre_record_queue_frames();
-    
-            if (rec_trigger != REC_TRIGGER_HALFSHUTTER_PRE_ONLY)
+            /* queue all captured frames for writing */
+            /* (they are numbered from 1 to frame_count-1; frame 0 is skipped) */
+            /* they are not ordered, which complicates things a bit */
+            int i = 0;
+            for (int current_frame = pre_record_first_frame; current_frame < frame_count; current_frame++)
             {
-                /* done, from now on we can just record normally */
-                raw_recording_state = RAW_RECORDING;
+                /* consecutive frames tend to be grouped, 
+                 * so this loop will not run every time */
+                while (slots[i].status != SLOT_FULL || slots[i].frame_number != current_frame)
+                {
+                    INC_MOD(i, slot_count);
+                }
+                
+                writing_queue[writing_queue_tail] = i;
+                INC_MOD(writing_queue_tail, COUNT(writing_queue));
+                INC_MOD(i, slot_count);
             }
-            else
+            
+            /* done, from now on we can just record normally */
+            raw_recording_state = RAW_RECORDING;
+        }
+        else if (frame_count >= pre_record_num_frames)
+        {
+            /* discard old frames */
+            /* also adjust frame_count so all frames start from 1,
+             * just like the rest of the code assumes */
+            frame_count--;
+            
+            for (int i = 0; i < slot_count; i++)
             {
-                /* do not resume recording; just start a new pre-recording "session" */
-                /* trick to allow reusing all frames for pre-recording */
-                pre_record_triggered = 0;
-                pre_record_first_frame = frame_count;
+                /* first frame is "pre_record_first_frame" */
+                if (slots[i].status == SLOT_FULL)
+                {
+                    if (slots[i].frame_number == pre_record_first_frame)
+                    {
+                        slots[i].status = SLOT_FREE;
+                    }
+                    else if (slots[i].frame_number > pre_record_first_frame)
+                    {
+                        slots[i].frame_number--;
+                        ((mlv_vidf_hdr_t*)slots[i].ptr)->frameNumber
+                            = slots[i].frame_number - 1;
+                    }
+                }
             }
         }
     }
@@ -2403,6 +2432,7 @@ static void raw_video_rec_task()
     writing_time = 0;
     idle_time = 0;
     mlv_chunk = 0;
+    pre_record_first_frame = 0;
 
     if (h264_proxy)
     {
