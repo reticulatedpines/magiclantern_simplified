@@ -676,7 +676,8 @@ function test_camera_take_pics()
     local elapsed = t1 - t0
     printf("Elapsed time: %s\n", elapsed)
     -- we can't measure this time accurately, so we only do a very rough check
-    assert(elapsed > 9900 and elapsed < 16000)
+    -- slow cards may be an issue, so let's allow a wide error margin
+    assert(elapsed > 9900 and elapsed < 30000)
     assert((dryos.shooting_card.file_number - initial_file_num) % 10000 == 1)
 
     printf("Picture taking tests completed.\n")
