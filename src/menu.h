@@ -137,10 +137,11 @@ typedef void (*menu_update_func)(                    // called before displaying
 
 struct menu_entry
 {
-        struct menu_entry *     next;
-        struct menu_entry *     prev;
+        struct menu_entry * next;
+        struct menu_entry * prev;
         struct menu_entry * children;
-        struct menu * parent_menu; // mostly for custom menus, so we know where each entry comes from
+        struct menu_entry * parent;
+        struct menu       * parent_menu; // mostly for custom menus, so we know where each entry comes from
 
         const char * name;
         void * priv;
@@ -159,7 +160,9 @@ struct menu_entry
         unsigned starred    : 1; // present in "my menu"
         unsigned hidden     : 1; // hidden from main menu
         unsigned jhidden    : 1; // hidden from junkie menu
+        unsigned jstarred   : 1; // in junkie menu, auto-placed in My Menu
         unsigned shidden    : 1; // special hide, not toggleable by user
+        unsigned placeholder: 1; // place reserved for a future menu
         
         unsigned advanced   : 1; // advanced setting in submenus; add a MENU_ADVANCED_TOGGLE if you use it
 
@@ -176,6 +179,17 @@ struct menu_entry
         
         uint32_t depends_on;     // hard requirement, won't work otherwise
         uint32_t works_best_in;  // soft requirement, it will work, but not as well
+
+        /* internal */
+        union
+        {
+            uint64_t usage_counters;
+            struct
+            {
+                union { float usage_counter_long_term;  uint32_t usage_counter_long_term_raw;  };
+                union { float usage_counter_short_term; uint32_t usage_counter_short_term_raw; };
+            };
+        };
 };
 
 
@@ -248,17 +262,18 @@ struct menu_entry
 
 struct menu
 {
-        struct menu *           next;
-        struct menu *           prev;
-        const char *            name;
-        struct menu_entry *     children;
-        int                     selected;
-        int icon;
-        int16_t submenu_width;
-        int16_t submenu_height;
-        int16_t scroll_pos;
-        int split_pos; // the limit between name and value columns
-        char advanced;
+    struct menu *       next;
+    struct menu *       prev;
+    const char *        name;
+    struct menu_entry * children;
+    int                 selected;
+    int                 icon;
+    int16_t             submenu_width;
+    int16_t             submenu_height;
+    int16_t             scroll_pos;
+    int16_t             split_pos; // the limit between name and value columns
+    unsigned            advanced : 1;
+    unsigned            has_placeholders: 1;
 };
 
 #define IS_SUBMENU(menu) (menu->icon == ICON_ML_SUBMENU)
@@ -283,7 +298,6 @@ extern void menu_numeric_toggle(int* val, int delta, int min, int max);
 extern void run_in_separate_task(void* routine, int argument);
 
 extern void menu_add( const char * name, struct menu_entry * new_entry, int count );
-extern void menu_add_base( const char * name, struct menu_entry * new_entry, int count, bool update_placeholders );
 
 extern void menu_remove(const char * name, struct menu_entry * old_entry, int count);
 
@@ -327,8 +341,8 @@ menu_init( void );
 #define MENU_EOL { .priv = MENU_EOL_PRIV }
 #define MENU_IS_EOL(entry) ((intptr_t)(entry)->priv == -1)
 
-#define MENU_PLACEHOLDER(namae) { .name = namae, .priv = (void*) -2, .shidden = 1 }
-#define MENU_IS_PLACEHOLDER(entry) ((intptr_t)(entry)->priv == -2)
+#define MENU_PLACEHOLDER(namae) { .name = namae, .placeholder = 1, .shidden = 1 }
+#define MENU_IS_PLACEHOLDER(entry) ((entry)->placeholder == 1)
 
 #define MENU_ADVANCED_TOGGLE { .select = menu_advanced_toggle, .update = menu_advanced_update }
 

@@ -212,8 +212,6 @@ void canon_gui_disable();
 void canon_gui_enable();
 int canon_gui_disabled();
 
-extern void menu_open_submenu();
-
 int detect_double_click(int key, int pressed_code, int unpressed_code);
 
 int handle_common_events_startup(struct event * event);

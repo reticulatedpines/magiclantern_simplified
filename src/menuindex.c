@@ -4,7 +4,6 @@
 #include "menu.h"
 #include "menuhelp.h"
 
-void menu_open_submenu();
 extern void menu_easy_advanced_display(void* priv, int x0, int y0, int selected);
 
 static void menu_nav_help_open(void* priv, int delta)
@@ -17,6 +16,15 @@ static MENU_UPDATE_FUNC(user_guide_display)
     MENU_SET_VALUE("");
 }
 
+static MENU_UPDATE_FUNC(set_scrollwheel_display)
+{
+    if (info->can_custom_draw)
+    {
+        int x = bmp_string_width(MENU_FONT, entry->name) + 40;
+        bfnt_draw_char(ICON_MAINDIAL, x, info->y - 5, COLOR_WHITE, NO_BG_ERASE);
+    }
+}
+
 static struct menu_entry help_menus[] = {
     {
         .select = menu_nav_help_open,
@@ -26,13 +34,13 @@ static struct menu_entry help_menus[] = {
     {
         .select = menu_nav_help_open,
         #if defined(CONFIG_500D)
-        .name = "LiveView",
+        .name = "Press LiveView " SYM_LV,
         .choices = CHOICES("Open submenu (Q)"),
         #elif defined(CONFIG_50D)
         .name = "Press FUNC",
         .choices = CHOICES("Open submenu (Q)"),
         #elif defined(CONFIG_5D2)
-        .name = "Pict.Style",
+        .name = "Press Pict.Style",
         .choices = CHOICES("Open submenu (Q)"),
         #elif defined(CONFIG_5DC) || defined(CONFIG_40D)
         .name = "Press JUMP",
@@ -54,9 +62,9 @@ static struct menu_entry help_menus[] = {
     },
     #if defined(CONFIG_5D2) || defined(CONFIG_50D)
     {
-        .name = "LongJoystick",
+        .name = "Joystick long-press",
         .select = menu_nav_help_open,
-        .choices = CHOICES("Submenu one-handed"),
+        .choices = CHOICES("Open submenu"),
         
         .children =  (struct menu_entry[]) {
             {
@@ -67,8 +75,9 @@ static struct menu_entry help_menus[] = {
     },
     #endif
     {
-        .select = menu_nav_help_open,
-        .name = "SET/PLAY",
+        .select  = menu_nav_help_open,
+        .name    = "SET / ",
+        .update  = set_scrollwheel_display,
         .choices = CHOICES("Edit values"),
     },
     {
@@ -76,7 +85,7 @@ static struct menu_entry help_menus[] = {
         #ifdef CONFIG_500D
         .name = "Zoom In",
         #else
-        .name = SYM_LV"/ZoomIn",
+        .name = SYM_LV" or Zoom In",
         #endif
         .choices = CHOICES("Edit in LiveView"),
     },
@@ -95,8 +104,10 @@ static struct menu_entry help_menus[] = {
     #endif
     #ifdef ARROW_MODE_TOGGLE_KEY
     {
+        /* note: on some models, the two keys are identical,
+         * causing a duplicate menu item (workaround: extra space) */
         .select = menu_nav_help_open,
-        .name = "Press "ARROW_MODE_TOGGLE_KEY,
+        .name = "Press "ARROW_MODE_TOGGLE_KEY" ",
         .choices = CHOICES("Shortcuts (LV only)"),
     },
     #endif

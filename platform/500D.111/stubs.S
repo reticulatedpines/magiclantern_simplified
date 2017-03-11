@@ -128,7 +128,7 @@ NSTUB(0xFF371068,  ErrCardForLVApp_handler)
 NSTUB(0xFF2A0D94,  ErrForCamera_handler)                    // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
 NSTUB(0xFF2AE79C,  LiveViewApp_handler)
 NSTUB(0xFF2BE2F4,  PlayMain_handler)
-NSTUB(0xFF3C0638,  PlayMovieGuideApp_handler)
+NSTUB(0xFF36F6E8,  PlayMovieGuideApp_handler)
 NSTUB(0xFF2C5D1C,  ShootOlcApp_handler)
 // NSTUB(    ???,  HideUnaviFeedBack_maybe)                 /* present on 60D.111, 6D.113, 5D3.113, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???,  LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)/* present on 60D.111, 6D.113, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */

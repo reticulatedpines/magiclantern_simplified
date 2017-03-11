@@ -11,6 +11,13 @@
 
 
 //Definitions
+
+enum file_entry_type {
+    TYPE_DIR,
+    TYPE_FILE,
+    TYPE_ACTION,
+};
+
 #define MAX_PATH_LEN 0x80
 struct file_entry
 {
@@ -18,7 +25,7 @@ struct file_entry
     struct menu_entry * menu_entry;
     char name[MAX_PATH_LEN];
     unsigned int size;
-    unsigned int type: 2;
+    enum file_entry_type type;
     unsigned int timestamp;
 };
 
@@ -27,11 +34,6 @@ typedef struct _multi_files
     struct _multi_files *next;
     char name[MAX_PATH_LEN];
 }FILES_LIST;
-
-
-#define TYPE_DIR 0
-#define TYPE_FILE 1
-#define TYPE_ACTION 2
 
 enum _FILER_OP {
     FILE_OP_NONE,
@@ -166,7 +168,7 @@ static void clear_file_menu()
     free(compacted);
 }
 
-static struct file_entry * add_file_entry(char* txt, int type, int size, int timestamp)
+static struct file_entry * add_file_entry(char* txt, enum file_entry_type type, int size, int timestamp)
 {
     struct file_entry * fe = malloc(sizeof(struct file_entry));
     if (!fe) return 0;
@@ -181,27 +183,38 @@ static struct file_entry * add_file_entry(char* txt, int type, int size, int tim
     fe->size = size;
     fe->timestamp = timestamp;
 
-    fe->menu_entry->name = fe->name;
+    /* named menus are checked for duplicates (slow)
+     * this will be noticeable on folders with many files
+     * therefore, we will leave the menu unnamed
+     * and show the file name from the menu update function
+     */
+    //fe->menu_entry->name = fe->name;
+
     fe->menu_entry->priv = fe;
 
     fe->type = type;
     fe->menu_entry->select_Q = BrowseUpMenu;
-    if (fe->type == TYPE_DIR)
+
+    /* note: each update function must display a name */
+    switch (fe->type)
     {
-        fe->menu_entry->select = select_dir;
-        fe->menu_entry->update = update_dir;
+        case TYPE_DIR:
+            fe->menu_entry->select = select_dir;
+            fe->menu_entry->update = update_dir;
+            break;
+
+        case TYPE_FILE:
+            fe->menu_entry->select = select_file;
+            fe->menu_entry->update = update_file;
+            break;
+
+        case TYPE_ACTION:
+            fe->menu_entry->select = default_select_action;
+            fe->menu_entry->update = update_action;
+            fe->menu_entry->icon_type = IT_ACTION;
+            break;
     }
-    else if (fe->type == TYPE_FILE)
-    {
-        fe->menu_entry->select = select_file;
-        fe->menu_entry->update = update_file;
-    }
-    else if (fe->type == TYPE_ACTION)
-    {
-        fe->menu_entry->select = default_select_action;
-        fe->menu_entry->update = update_action;
-        fe->menu_entry->icon_type = IT_ACTION;
-    }
+
     fe->next = file_entries;
     file_entries = fe;
     return fe;
@@ -311,7 +324,7 @@ static void build_file_menu()
         ptr++;
     }
 
-    menu_add_base("File Manager", compacted, count, false); // do not update placeholders
+    menu_add("File Manager", compacted, count);
 }
 
 static struct semaphore * scandir_sem = 0;
@@ -584,6 +597,8 @@ static MENU_SELECT_FUNC(select_dir)
 
 static MENU_UPDATE_FUNC(update_dir)
 {
+    struct file_entry * fe = (struct file_entry *) entry->priv;
+    MENU_SET_NAME("%s", fe->name);
     MENU_SET_VALUE("");
     MENU_SET_ICON(MNI_AUTO, 0);
     update_status(entry, info);
@@ -1158,6 +1173,7 @@ static MENU_UPDATE_FUNC(update_status)
 static MENU_UPDATE_FUNC(update_file)
 {
     struct file_entry * fe = (struct file_entry *) entry->priv;
+    MENU_SET_NAME("%s", fe->name);
     MENU_SET_VALUE("");
     MENU_SET_RINFO("%s", format_date_size(fe->size,fe->timestamp));
 
@@ -1219,6 +1235,8 @@ static MENU_SELECT_FUNC(default_select_action)
 
 static MENU_UPDATE_FUNC(update_action)
 {
+    struct file_entry * fe = (struct file_entry *) entry->priv;
+    MENU_SET_NAME("%s", fe->name);
     MENU_SET_VALUE("");
     update_status(entry, info);
     if (entry->selected) view_file = 0;

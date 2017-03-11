@@ -887,8 +887,6 @@ void digic_iso_step()
 #endif
 }
 
-void menu_open_submenu();
-
 static struct menu_entry lv_img_menu[] = {
     #ifdef FEATURE_VIGNETTING_CORRECTION
     {
