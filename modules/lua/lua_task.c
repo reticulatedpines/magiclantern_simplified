@@ -37,10 +37,6 @@ static void lua_run_task(struct lua_task_func * lua_task_func)
                     fprintf(stderr, "script failed:\n %s\n", lua_tostring(L, -1));
                     lua_save_last_error(L);
                 }
-                else
-                {
-                    printf("script finished\n");
-                }
                 luaL_unref(L, LUA_REGISTRYINDEX, lua_task_func->function_ref);
             }
             give_semaphore(sem);
@@ -85,6 +81,15 @@ static int luaCB_task_create(lua_State * L)
 /***
  Yields execution of this script to other tasks and event handlers
  (also from the same script).
+ 
+ FIXME: once a task executed yield(), other tasks or event handlers
+ from the same script, that might interrupt the former, **must not** execute yield().
+ Otherwise, an error will be thrown to prevent memory corruption, camera lockup or worse.
+
+ The above limitation is a very dirty hack - a proper fix should be implemented
+ by somebody familiar with multitasking in Lua.
+ Help is more than welcome, as this topic is
+ [not exactly our cup of tea](http://www.magiclantern.fm/forum/index.php?topic=14828.msg179227#msg179227).
 
  TODO: replace with msleep?
  @tparam int duration how long to sleep for in ms.
@@ -93,9 +98,19 @@ static int luaCB_task_create(lua_State * L)
 static int luaCB_task_yield(lua_State * L)
 {
     LUA_PARAM_INT(duration, 1);
+
+    /* hack: figure out whether we might be interrupting
+     * somebody else who called task.yield() */
+    if (lua_get_cant_yield(L))
+    {
+        return luaL_error(L, "FIXME: cannot use task.yield() from two tasks");
+    }
+
+    lua_set_cant_yield(L, 1);
     lua_give_semaphore(L, NULL);
     msleep(duration);
     lua_take_semaphore(L, 0, NULL);
+    lua_set_cant_yield(L, 0);
     return 0;
 }
 

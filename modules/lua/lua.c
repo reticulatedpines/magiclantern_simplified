@@ -619,6 +619,7 @@ struct lua_script
     int state;
     int load_time;
     int cant_unload;
+    int cant_yield;
     lua_State * L;
     struct script_semaphore * sem;
     struct menu_entry * menu_entry;
@@ -685,6 +686,33 @@ void lua_set_last_menu(lua_State * L, const char * parent_menu, const char * men
     }
 }
 
+/* hack to prevent some unsafe yield calls */
+/* fixme: proper thread safety */
+void lua_set_cant_yield(lua_State * L, int cant_yield)
+{
+    for (struct lua_script * script = lua_scripts; script; script = script->next)
+    {
+        if(script->L == L)
+        {
+            script->cant_yield = cant_yield;
+        }
+    }
+}
+
+int lua_get_cant_yield(lua_State * L)
+{
+    for (struct lua_script * script = lua_scripts; script; script = script->next)
+    {
+        if(script->L == L)
+        {
+            return script->cant_yield;
+        }
+    }
+    return -1;
+}
+
+
+
 static int lua_get_config_flag_path(struct lua_script * script, char * full_path, const char * flag)
 {
     snprintf(full_path, MAX_PATH_LEN, "%s%s", get_config_dir(), script->filename);
@@ -737,6 +765,7 @@ static void load_script(struct lua_script * script)
     script->state = SCRIPT_STATE_LOADING;
     lua_State* L = script->L = load_lua_state(script->argc, script->argv);
     script->cant_unload = 0;
+    script->cant_yield = 0;
     lua_clear_last_error(script);
     
     if (!script->sem)
