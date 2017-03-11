@@ -86,6 +86,7 @@ struct lens_info
         uint8_t                 lens_extender;
         uint8_t                 lens_capabilities;
         uint32_t                lens_version;
+        uint64_t                lens_serial;
 };
 
 extern struct lens_info lens_info;

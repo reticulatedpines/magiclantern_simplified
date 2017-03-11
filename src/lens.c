@@ -1121,6 +1121,18 @@ PROP_HANDLER(PROP_LENS)
     {
         lens_info.lens_version = (info[0x19] << 16) | (info[0x1A] << 8) | info[0x1B];
         lens_info.lens_capabilities = info[0x1C];
+        
+        /* not sure how big the lens serial is; exiftool shows 5 bytes in htmlDump */
+        uint32_t lens_serial_lo = 
+             info[0x18]        |
+            (info[0x17] << 8)  |
+            (info[0x16] << 16) |
+            (info[0x15] << 24) ;
+        uint32_t lens_serial_hi = 
+             info[0x14]        ;
+        lens_info.lens_serial = 
+             (uint64_t) lens_serial_lo | 
+            ((uint64_t) lens_serial_hi << 32);
     }
     else
     {
@@ -1692,7 +1704,19 @@ static MENU_UPDATE_FUNC(lens_serial_display)
         MENU_SET_VALUE("(no lens)");
         return;
     }
-    MENU_SET_VALUE("%02x%08X", (uint32_t)(lens_info.lens_serial >> 32), (uint32_t)lens_info.lens_serial);
+
+    if(lens_info.lens_serial)
+    {
+        MENU_SET_VALUE(
+            "%02x%08X", /* to match exiftool display */ 
+            (uint32_t)(lens_info.lens_serial >> 32),
+            (uint32_t)lens_info.lens_serial
+        );
+    }
+    else
+    {
+        MENU_SET_VALUE("(none)");
+    }
 }
 
 static MENU_UPDATE_FUNC(lens_extender_display)
@@ -1815,6 +1839,12 @@ static struct menu_entry lens_info_menus[] = {
                 .update = &lens_id_display,
                 .help  = "Show current lens ID. Should match exiftool TEST.CR2 -LensType -b.",
                 .help2 = "Read-only. Lenses from different manufacturers may have the same ID.",
+            },
+            {
+                .name = "Serial num",
+                .update = &lens_serial_display,
+                .help  = "Show current lens serial number. Not all cameras report this.",
+                .help2 = "Read-only. Should match exiftool TEST.CR2 -LensSerialNumber .",
             },
             {
                 .name = "Version",
