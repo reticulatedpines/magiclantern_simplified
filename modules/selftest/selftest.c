@@ -169,6 +169,7 @@ static void stub_test_af()
         /* lv_focus_status expected to be 3 when focusing and 1 or 2 when idle */
         lens_setup_af(AF_ENABLE);
         module_send_keypress(MODULE_KEY_PRESS_HALFSHUTTER);
+        msleep(200);
         TEST_FUNC_CHECK(HALFSHUTTER_PRESSED, == 1);
         if (lv) {
             TEST_FUNC_CHECK(wait_focus_status(1000, 3), == 1);
