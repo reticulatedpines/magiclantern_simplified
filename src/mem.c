@@ -88,7 +88,7 @@ struct mem_allocator
     int preferred_min_alloc_size;           /* if size is outside this range, it will try from other allocators */
     int preferred_max_alloc_size;           /* (but if it can't find any, it may still use this buffer) */
     int preferred_free_space;               /* if free space would drop under this, will try from other allocators first */
-    int minimum_free_space;                 /* will never allocate if free space would drop under this */
+    int minimum_free_space;                 /* will only use as a last resort if free space would drop under this */
     int minimum_alloc_size;                 /* will never allocate a buffer smaller than this */
     int maximum_blocks;                     /* will never allocate more than N buffers */
     
@@ -746,7 +746,13 @@ static int choose_allocator(int size, unsigned int flags)
     }
     
     /* DMA is mandatory, don't relax it */
-    
+
+    if (size < 64*1024)
+    {
+        dbg_printf("%s: using as a last resort\n", allocators[1].name);
+        return 1;
+    }
+
     /* if we arrive here, you should probably solder some memory chips on the mainboard */
     return -1;
 }
