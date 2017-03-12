@@ -671,13 +671,14 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
         if (!(
                 (
                     /* preferred free space is... well... optional */
-                    !require_preferred_free_space ||
+                    (require_preferred_free_space <= 0) ||
                     (free_space - size - 1024 > allocators[a].preferred_free_space)
                 )
                 &&
                 (
-                    /* minimum_free_space is mandatory */
-                    free_space - size - 1024 > allocators[a].minimum_free_space
+                    /* minimum_free_space is important, but can be relaxed as a last resort, for small buffers */
+                    (require_preferred_free_space == -1 && size < allocators[a].minimum_free_space / 16) ||
+                    (free_space - size - 1024 > allocators[a].minimum_free_space)
                 )
            ))
         {
@@ -747,11 +748,10 @@ static int choose_allocator(int size, unsigned int flags)
     
     /* DMA is mandatory, don't relax it */
 
-    if (size < 64*1024)
-    {
-        dbg_printf("%s: using as a last resort\n", allocators[1].name);
-        return 1;
-    }
+    /* for small buffers, let's try an allocator with large minimum_free_space */
+    /* where breaking this constraint is unlikely to cause issues */
+    a = search_for_allocator(size, 0, -1, 0, needs_dma);
+    if (a >= 0) return a;
 
     /* if we arrive here, you should probably solder some memory chips on the mainboard */
     return -1;
