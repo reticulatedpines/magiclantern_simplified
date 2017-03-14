@@ -1121,11 +1121,11 @@ int setup_buffers()
         /* how much should we pre-record? */
         const int presets[5] = {0, 1, 2, 5, 10};
         int requested_seconds = presets[MOD(pre_record, COUNT(presets))];
-        int requested_frames = requested_seconds * fps_get_current_x1000() / 1000;
+        int requested_frames = (requested_seconds * fps_get_current_x1000() + 500) / 1000;
 
         /* leave at least 16MB for buffering */
         int max_frames = slot_count - 16*1024*1024 / frame_size;
-        pre_record_num_frames = COERCE(requested_frames, 1, max_frames);
+        pre_record_num_frames = COERCE(requested_frames - 1, 1, max_frames);
         printf("Pre-rec: %d frames (max %d)\n", pre_record_num_frames, max_frames);
     }
     
