@@ -736,7 +736,7 @@ static char* guess_aspect_ratio(int res_x, int res_y)
     return msg;
 }
 
-static int predict_frames(int write_speed)
+static int predict_frames(int write_speed, int available_slots)
 {
     int fps = fps_get_current_x1000();
     int capture_speed = frame_size / 1000 * fps;
@@ -744,11 +744,13 @@ static int predict_frames(int write_speed)
     if (buffer_fill_speed <= 0)
         return INT_MAX;
     
-    int total_slots = 0;
-    for (int i = 0; i < COUNT(chunk_list); i++)
-        total_slots += chunk_list[i] / frame_size;
+    if (!available_slots)
+    {
+        for (int i = 0; i < COUNT(chunk_list); i++)
+            available_slots += chunk_list[i] / frame_size;
+    }
     
-    float buffer_fill_time = total_slots * frame_size / (float) buffer_fill_speed;
+    float buffer_fill_time = available_slots * frame_size / (float) buffer_fill_speed;
     int frames = buffer_fill_time * fps / 1000;
     return frames;
 }
@@ -762,8 +764,8 @@ static char* guess_how_many_frames()
     int write_speed_lo = measured_write_speed * 1024 / 100 * 1024 - 512 * 1024;
     int write_speed_hi = measured_write_speed * 1024 / 100 * 1024 + 512 * 1024;
     
-    int f_lo = predict_frames(write_speed_lo);
-    int f_hi = predict_frames(write_speed_hi);
+    int f_lo = predict_frames(write_speed_lo, 0);
+    int f_hi = predict_frames(write_speed_hi, 0);
     
     static char msg[50];
     if (f_lo < 5000)
@@ -1123,8 +1125,19 @@ int setup_buffers()
         int requested_seconds = presets[MOD(pre_record, COUNT(presets))];
         int requested_frames = (requested_seconds * fps_get_current_x1000() + 500) / 1000;
 
-        /* leave at least 16MB for buffering */
-        int max_frames = slot_count - 16*1024*1024 / frame_size;
+        /* reserve at least 10 frames for buffering */
+        int max_frames = slot_count - 10;
+
+        /* if resolution is very high, reserve more, to avoid running out of steam */
+        /* heuristic: reserve enough to get 500 frames with 90% of the measured write speed */
+        /* but not more than half of available memory */
+        int assumed_write_speed = measured_write_speed  * 1024 / 100 * 1024 * 9 / 10;
+        while (predict_frames(assumed_write_speed, slot_count - max_frames) < 500 &&
+               max_frames > slot_count/2)
+        {
+            max_frames--;
+        }
+        
         pre_record_num_frames = COERCE(requested_frames - 1, 1, max_frames);
         printf("Pre-rec: %d frames (max %d)\n", pre_record_num_frames, max_frames);
     }
@@ -1215,7 +1228,7 @@ static void show_buffer_status()
         int ymin = 120;
         int ymax = 400;
         int y = ymin + free * (ymax - ymin) / slot_count;
-        dot(x-16, y-16, COLOR_BLACK, 3);
+        fill_circle(x, y, 3, COLOR_BLACK);
         static int prev_x = 0;
         static int prev_y = 0;
         if (prev_x && prev_y && prev_x < x)
@@ -1226,7 +1239,7 @@ static void show_buffer_status()
         prev_y = y;
         bmp_draw_rect(COLOR_BLACK, 0, ymin, 720, ymax-ymin);
         
-        int xp = predict_frames(measured_write_speed * 1024 / 100 * 1024) % 720;
+        int xp = predict_frames(measured_write_speed * 1024 / 100 * 1024, 0) % 720;
         draw_line(xp, ymax, xp, ymin, COLOR_RED);
     }
 #endif
@@ -1299,7 +1312,7 @@ static LVINFO_UPDATE_FUNC(recording_status)
     /* Calculate the stats */
     int fps = fps_get_current_x1000();
     int t = (frame_count * 1000 + fps/2) / fps;
-    int predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024);
+    int predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024, 0);
 
     if (!buffer_full) 
     {
@@ -1339,7 +1352,7 @@ static void show_recording_status()
         /* Calculate the stats */
         int fps = fps_get_current_x1000();
         int t = (frame_count * 1000 + fps/2) / fps;
-        int predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024);
+        int predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024, 0);
 
         int speed=0;
         int idle_percent=0;
