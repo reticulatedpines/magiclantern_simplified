@@ -994,6 +994,14 @@ static MENU_UPDATE_FUNC(aspect_ratio_update)
     write_speed_update(entry, info);
 }
 
+static MENU_UPDATE_FUNC(pre_recording_update)
+{
+    MENU_SET_VALUE(
+        pre_record ? "%d second%s" : "OFF",
+        pre_record, pre_record == 1 ? "" : "s"
+    );
+}
+
 static REQUIRES(RawRecTask)
 int add_mem_suite(struct memSuite * mem_suite, int chunk_index)
 {
@@ -1121,8 +1129,7 @@ int setup_buffers()
     if (pre_record || rec_trigger)
     {
         /* how much should we pre-record? */
-        const int presets[5] = {0, 1, 2, 5, 10};
-        int requested_seconds = presets[MOD(pre_record, COUNT(presets))];
+        int requested_seconds = pre_record;
         int requested_frames = (requested_seconds * fps_get_current_x1000() + 500) / 1000;
 
         /* reserve at least 10 frames for buffering */
@@ -3012,8 +3019,8 @@ static struct menu_entry raw_video_menu[] =
             {
                 .name    = "Pre-record",
                 .priv    = &pre_record,
-                .max     = 4,
-                .choices = CHOICES("OFF", "1 second", "2 seconds", "5 seconds", "10 seconds"),
+                .max     = 10,
+                .update  = pre_recording_update,
                 .help    = "Pre-records a few seconds of video into memory, discarding old frames.",
                 .help2   = "Press REC twice: 1 - to start pre-recording, 2 - for normal recording.",
             },
