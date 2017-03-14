@@ -736,6 +736,14 @@ static char* guess_aspect_ratio(int res_x, int res_y)
     return msg;
 }
 
+static int count_available_slots()
+{
+    int available_slots = 0;
+    for (int i = 0; i < COUNT(chunk_list); i++)
+        available_slots += chunk_list[i] / frame_size;
+    return available_slots;
+}
+
 static int predict_frames(int write_speed, int available_slots)
 {
     int fps = fps_get_current_x1000();
@@ -746,8 +754,7 @@ static int predict_frames(int write_speed, int available_slots)
     
     if (!available_slots)
     {
-        for (int i = 0; i < COUNT(chunk_list); i++)
-            available_slots += chunk_list[i] / frame_size;
+        available_slots = count_available_slots();
     }
     
     float buffer_fill_time = available_slots * frame_size / (float) buffer_fill_speed;
@@ -994,12 +1001,66 @@ static MENU_UPDATE_FUNC(aspect_ratio_update)
     write_speed_update(entry, info);
 }
 
+static int pre_record_calc_max_frames(int slot_count)
+{
+    /* reserve at least 10 frames for buffering */
+    int max_frames = slot_count - 10;
+
+    /* if resolution is very high, reserve more, to avoid running out of steam */
+    /* heuristic: reserve enough to get 500 frames with 90% of the measured write speed */
+    /* but not more than half of available memory */
+    int assumed_write_speed = measured_write_speed  * 1024 / 100 * 1024 * 9 / 10;
+    while (predict_frames(assumed_write_speed, slot_count - max_frames) < 500 &&
+           max_frames > slot_count/2)
+    {
+        max_frames--;
+    }
+
+    /* if we have to record only 1 frame after the trigger,
+     * we can simply buffer as much as we want
+     * (unless the user triggers frames really fast)
+     */
+    if (rec_trigger == REC_TRIGGER_HALFSHUTTER_1_FRAME)
+    {
+        max_frames = slot_count - 5;
+    }
+
+    return max_frames;
+}
+
+static int pre_record_calc_num_frames(int slot_count, int max_frames)
+{
+    int requested_seconds = pre_record;
+    int requested_frames = (requested_seconds * fps_get_current_x1000() + 500) / 1000;
+    return COERCE(requested_frames - 1, 1, max_frames);
+}
+
 static MENU_UPDATE_FUNC(pre_recording_update)
 {
     MENU_SET_VALUE(
         pre_record ? "%d second%s" : "OFF",
         pre_record, pre_record == 1 ? "" : "s"
     );
+
+    int slot_count = count_available_slots();
+    if (slot_count)
+    {
+        int max_frames = pre_record_calc_max_frames(slot_count);
+        int pre_frames = pre_record_calc_num_frames(slot_count, max_frames);
+        if (pre_frames == max_frames)
+        {
+            int fps = fps_get_current_x1000();
+            int total_sec = (slot_count * 1000 * 10 + fps/2) / fps;
+            int pre_sec   = (pre_frames * 1000 * 10 + fps/2) / fps;
+            MENU_SET_RINFO("max %d.%d", pre_sec/10, pre_sec%10);
+            MENU_SET_WARNING(
+                MENU_WARN_INFO,
+                "Using %d.%ds (%d frames) out of %d.%ds (%d frames) for pre-recording.",
+                pre_sec/10, pre_sec%10, pre_frames,
+                total_sec/10, total_sec%10, slot_count
+            );
+        }
+    }
 }
 
 static REQUIRES(RawRecTask)
@@ -1129,32 +1190,8 @@ int setup_buffers()
     if (pre_record || rec_trigger)
     {
         /* how much should we pre-record? */
-        int requested_seconds = pre_record;
-        int requested_frames = (requested_seconds * fps_get_current_x1000() + 500) / 1000;
-
-        /* reserve at least 10 frames for buffering */
-        int max_frames = slot_count - 10;
-
-        /* if resolution is very high, reserve more, to avoid running out of steam */
-        /* heuristic: reserve enough to get 500 frames with 90% of the measured write speed */
-        /* but not more than half of available memory */
-        int assumed_write_speed = measured_write_speed  * 1024 / 100 * 1024 * 9 / 10;
-        while (predict_frames(assumed_write_speed, slot_count - max_frames) < 500 &&
-               max_frames > slot_count/2)
-        {
-            max_frames--;
-        }
-
-        /* if we have to record only 1 frame after the trigger,
-         * we can simply buffer as much as we want
-         * (unless the user triggers frames really fast)
-         */
-        if (rec_trigger == REC_TRIGGER_HALFSHUTTER_1_FRAME)
-        {
-            max_frames = slot_count - 5;
-        }
-
-        pre_record_num_frames = COERCE(requested_frames - 1, 1, max_frames);
+        int max_frames = pre_record_calc_max_frames(slot_count);
+        pre_record_num_frames = pre_record_calc_num_frames(slot_count, max_frames);
         printf("Pre-rec: %d frames (max %d)\n", pre_record_num_frames, max_frames);
     }
     
