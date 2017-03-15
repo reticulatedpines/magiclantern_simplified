@@ -89,6 +89,20 @@ int lossless_init()
         TTL_Finish      = (void *) 0xFF3D4760;  /* called next; calls UnlockEngineResources and returns output size from JpCoreCompleteCBR */
     }
 
+    if (is_camera("5D3", "1.2.3"))
+    {
+        /* ProcessTwoInTwoOutLosslessPath, 5D3 1.2.3 */
+        TTL_SetArgs     = (void *) 0xFF327DE8;  /* fills TTL_Args struct; PictureSize(Mem1ToRaw) */
+        TTL_Prepare     = (void *) 0xFF3DD574;  /* called right after ProcessTwoInTwoOutLosslessPath(R) Start; */
+                                                /* calls [TTL] GetPathResources and sets up the encoder for RAW/SRAW/MRAW */
+        TTL_RegisterCBR = (void *) 0xFF3DC668;  /* RegisterTwoInTwoOutLosslessPathCompleteCBR */
+        TTL_SetFlags    = (void *) 0xFF32FF2C;  /* called next, with PictureType as arguments */
+        TTL_Start       = (void *) 0xFF3DD5E4;  /* called next; starts the EDmac transfers */
+        TTL_Stop        = (void *) 0xFF3DD61C;  /* called right after sssStopMem1ToRawPath */
+        TTL_Finish      = (void *) 0xFF3DD654;  /* called next; calls UnlockEngineResources and returns output size from JpCoreCompleteCBR */
+    }
+
+
     lossless_sem = create_named_semaphore(0, 0);
 
     uint32_t resources[] = {
