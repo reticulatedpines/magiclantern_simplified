@@ -1030,6 +1030,67 @@ void show_usage(char *executable)
     print_msg(MSG_INFO, "\n");
 }
 
+void print_sampling_info(int bin, int skip, char * what)
+{
+    if (bin + skip == 1) {
+        print_msg(MSG_INFO, "read every %s", what);
+    } else if (skip == 0) {
+        print_msg(MSG_INFO, "bin %d %s%s", bin, what, bin == 1 ? "" : "s");
+    } else {
+        print_msg(MSG_INFO, "%s %d %s%s", bin == 1 ? "read" : "bin", bin, what, bin == 1 ? "" : "s");
+        if (skip) {
+            print_msg(MSG_INFO, ", skip %d", skip);
+        }
+    }
+}
+
+void print_capture_info(mlv_rawc_hdr_t * rawc)
+{
+    print_msg(
+        MSG_INFO, "    raw_capture_info:\n"
+    );
+    print_msg(
+        MSG_INFO, "      sensor res      %dx%d\n",
+        rawc->raw_capture_info.sensor_res_x,
+        rawc->raw_capture_info.sensor_res_y
+    );
+    print_msg(
+        MSG_INFO, "      sensor crop     %d.%02d\n",
+        rawc->raw_capture_info.sensor_crop / 100,
+        rawc->raw_capture_info.sensor_crop % 100
+    );
+    
+    int sampling_x = rawc->raw_capture_info.binning_x + rawc->raw_capture_info.skipping_x;
+    int sampling_y = rawc->raw_capture_info.binning_y + rawc->raw_capture_info.skipping_y;
+    
+    print_msg(
+        MSG_INFO, "      sampling        %dx%d (",
+        sampling_y, sampling_x
+    );
+    print_sampling_info(
+        rawc->raw_capture_info.binning_y,
+        rawc->raw_capture_info.skipping_y,
+        "line"
+    );
+    print_msg(MSG_INFO, ", ");
+    print_sampling_info(
+        rawc->raw_capture_info.binning_x,
+        rawc->raw_capture_info.skipping_x,
+        "column"
+    );
+    print_msg(MSG_INFO, ")\n");
+
+    if (rawc->raw_capture_info.offset_x != -32768 &&
+        rawc->raw_capture_info.offset_y != -32768)
+    {
+        print_msg(
+            MSG_INFO, "      offset          %d,%d\n",
+            rawc->raw_capture_info.offset_x,
+            rawc->raw_capture_info.offset_y
+        );
+    }
+}
+
 int main (int argc, char *argv[])
 {
     char *input_filename = NULL;
@@ -3223,6 +3284,27 @@ read_headers:
                     }
                 }
             }
+            else if(!memcmp(buf.blockType, "RAWC", 4))
+            {
+                mlv_rawc_hdr_t block_hdr;
+                uint32_t hdr_size = MIN(sizeof(mlv_rawc_hdr_t), buf.blockSize);
+
+                if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
+                {
+                    print_msg(MSG_ERROR, "File ends in the middle of a block\n");
+                    goto abort;
+                }
+
+                /* skip remaining data, if there is any */
+                file_set_pos(in_file, position + block_hdr.blockSize, SEEK_SET);
+                
+                lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
+
+                if(verbose)
+                {
+                    print_capture_info(&block_hdr);
+                }
+            }            
             else if(!memcmp(buf.blockType, "WAVI", 4))
             {
                 mlv_wavi_hdr_t block_hdr;
