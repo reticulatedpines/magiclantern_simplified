@@ -92,6 +92,13 @@ typedef struct {
 }  mlv_rawi_hdr_t;
 
 typedef struct {
+    uint8_t     blockType[4];   /* RAWC - raw image capture information */
+    uint32_t    blockSize;      /* sizeof(mlv_rawc_hdr_t) */
+    uint64_t    timestamp;      /* hardware counter timestamp */
+    struct raw_capture_info raw_capture_info;  /* from raw.h */
+}  mlv_rawc_hdr_t;
+
+typedef struct {
     uint8_t     blockType[4];    /* when audioClass is WAV, this block contains format details  compatible to RIFF */
     uint32_t    blockSize;    /* total frame size */
     uint64_t    timestamp;    /* hardware counter timestamp for this frame (relative to recording start) */
