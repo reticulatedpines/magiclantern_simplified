@@ -2255,6 +2255,12 @@ void init_mlv_chunk_headers(struct raw_info * raw_info)
     rawi_hdr.yRes = res_y;
     rawi_hdr.raw_info = *raw_info;
 
+    memset(&rawc_hdr, 0, sizeof(mlv_rawc_hdr_t));
+    mlv_set_type((mlv_hdr_t *)&rawc_hdr, "RAWC");
+    mlv_set_timestamp((mlv_hdr_t *)&rawc_hdr, mlv_start_timestamp);
+    rawc_hdr.blockSize = sizeof(mlv_rawc_hdr_t);
+    rawc_hdr.raw_capture_info = raw_capture_info;
+
     /* overwrite bpp relevant information */
     rawi_hdr.raw_info.bits_per_pixel = BPP;
     rawi_hdr.raw_info.pitch = rawi_hdr.raw_info.width * BPP / 8;
