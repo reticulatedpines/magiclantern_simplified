@@ -1071,157 +1071,45 @@ void print_capture_info(mlv_rawc_hdr_t * rawc)
     );
     print_msg(
         MSG_INFO, "      sensor res      %dx%d\n",
-        rawc->sensor_res_x,
-        rawc->sensor_res_y
+        rawc->raw_capture_info.sensor_res_x,
+        rawc->raw_capture_info.sensor_res_y
     );
     print_msg(
-        MSG_INFO, "      sensor crop     %d.%02d (%s)\n",
-        rawc->sensor_crop / 100,
-        rawc->sensor_crop % 100,
-        rawc->sensor_crop == 100 ? "Full frame" : 
-        rawc->sensor_crop == 162 ? "APS-C" : "35mm equiv"
+        MSG_INFO, "      sensor crop     %d.%02d\n",
+        rawc->raw_capture_info.sensor_crop / 100,
+        rawc->raw_capture_info.sensor_crop % 100
     );
     
-    int sampling_x = rawc->binning_x + rawc->skipping_x;
-    int sampling_y = rawc->binning_y + rawc->skipping_y;
+    int sampling_x = rawc->raw_capture_info.binning_x + rawc->raw_capture_info.skipping_x;
+    int sampling_y = rawc->raw_capture_info.binning_y + rawc->raw_capture_info.skipping_y;
     
     print_msg(
         MSG_INFO, "      sampling        %dx%d (",
         sampling_y, sampling_x
     );
     print_sampling_info(
-        rawc->binning_y,
-        rawc->skipping_y,
+        rawc->raw_capture_info.binning_y,
+        rawc->raw_capture_info.skipping_y,
         "line"
     );
     print_msg(MSG_INFO, ", ");
     print_sampling_info(
-        rawc->binning_x,
-        rawc->skipping_x,
+        rawc->raw_capture_info.binning_x,
+        rawc->raw_capture_info.skipping_x,
         "column"
     );
     print_msg(MSG_INFO, ")\n");
 
-    if (rawc->offset_x != -32768 &&
-        rawc->offset_y != -32768)
+    if (rawc->raw_capture_info.offset_x != -32768 &&
+        rawc->raw_capture_info.offset_y != -32768)
     {
         print_msg(
             MSG_INFO, "      offset          %d,%d\n",
-            rawc->offset_x,
-            rawc->offset_y
+            rawc->raw_capture_info.offset_x,
+            rawc->raw_capture_info.offset_y
         );
     }
 }
-
-int get_header_size(void *type)
-{
-#define HEADER_SIZE(h,s) do {if(!memcmp(type, h, 4)) { return sizeof(s); } } while(0)
-
-    HEADER_SIZE("MLVI", mlv_file_hdr_t);
-    HEADER_SIZE("VIDF", mlv_vidf_hdr_t);
-    HEADER_SIZE("AUDF", mlv_vidf_hdr_t);
-    HEADER_SIZE("RAWI", mlv_rawi_hdr_t);
-    HEADER_SIZE("RAWC", mlv_rawc_hdr_t);
-    HEADER_SIZE("WAVI", mlv_wavi_hdr_t);
-    HEADER_SIZE("EXPO", mlv_expo_hdr_t);
-    HEADER_SIZE("LENS", mlv_lens_hdr_t);
-    HEADER_SIZE("RTCI", mlv_rtci_hdr_t);
-    HEADER_SIZE("IDNT", mlv_idnt_hdr_t);
-    HEADER_SIZE("XREF", mlv_xref_hdr_t);
-    HEADER_SIZE("INFO", mlv_info_hdr_t);
-    HEADER_SIZE("DISO", mlv_diso_hdr_t);
-    HEADER_SIZE("MARK", mlv_mark_hdr_t);
-    HEADER_SIZE("STYL", mlv_styl_hdr_t);
-    HEADER_SIZE("ELVL", mlv_elvl_hdr_t);
-    HEADER_SIZE("WBAL", mlv_wbal_hdr_t);
-    HEADER_SIZE("DEBG", mlv_debg_hdr_t);
-    HEADER_SIZE("VERS", mlv_vers_hdr_t);
-    
-    return 0;
-
-#undef HEADER_SIZE
-}
-
-
-/* from ptpcam */
-static void print_safe(char *buf, int size)
-{
-  int i;
-  for (i=0; i<size; i++)
-  {
-    if ( buf[i] < ' ' || buf[i] > '~' )
-    {
-      print_msg(MSG_INFO, ".");
-    } else {
-      print_msg(MSG_INFO, "%c",buf[i]);
-    }
-  }
-}
-
-static void hexdump(char *buf, unsigned int size, unsigned int offset)
-{
-  unsigned int start_offset = offset;
-  unsigned int i;
-  char s[16];
-
-  if ( offset % 16 != 0 )
-  {
-      print_msg(MSG_INFO, "0x%08X (+0x%04X)  ",offset, offset-start_offset);
-      for (i=0; i<(offset%16); i++)
-      {
-        print_msg(MSG_INFO, "   ");
-      }
-      if ( offset % 16 > 8 )
-      {
-        print_msg(MSG_INFO, " ");
-      }
-      memset(s,' ',offset%16);
-  }
-  for (i=0; ; i++, offset++)
-  {
-    if ( offset % 16 == 0 )
-    {
-      if ( i > 0 )
-      {
-        print_msg(MSG_INFO, " |");
-        print_safe(s,16);
-        print_msg(MSG_INFO, "|\n");
-      }
-      print_msg(MSG_INFO, "0x%08X (+0x%04X)",offset, offset-start_offset);
-      if (i < size)
-      {
-        print_msg(MSG_INFO, " ");
-      }
-    }
-    if ( offset % 8 == 0 )
-    {
-      print_msg(MSG_INFO, " ");
-    }
-    if ( i == size )
-    {
-      break;
-    }
-    print_msg(MSG_INFO, "%02x ",(unsigned char) buf[i]);
-    s[offset%16] = buf[i];
-  }
-  if ( offset % 16 != 0 )
-  {
-      for (i=0; i<16-(offset%16); i++)
-      {
-        print_msg(MSG_INFO, "   ");
-      }
-      if ( offset % 16 < 8 )
-      {
-        print_msg(MSG_INFO, " ");
-      }
-      memset(s+(offset%16),' ',16-(offset%16));
-      print_msg(MSG_INFO, " |");
-      print_safe(s,16);
-      print_msg(MSG_INFO, "|");
-  }
-  print_msg(MSG_INFO, "\n");
-}
-
 
 int main (int argc, char *argv[])
 {
