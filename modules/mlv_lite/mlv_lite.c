@@ -148,7 +148,6 @@ static int res_x = 0;
 static int res_y = 0;
 static int max_res_x = 0;
 static int max_res_y = 0;
-static int sensor_res_x = 0;
 static float squeeze_factor = 0;
 static int frame_size = 0;
 static int frame_size_real = 0;
@@ -484,31 +483,11 @@ static void refresh_raw_settings(int force)
     }
 }
 
-PROP_HANDLER( PROP_LV_AFFRAME ) {
-    ASSERT(len <= 128);
-    if(!lv) return;
-    
-    sensor_res_x = ((int32_t*)buf)[0];
-}
-
-
-static int32_t calc_crop_factor()
+static int calc_crop_factor()
 {
-
-    int32_t camera_crop = 162;
-    int32_t sampling_x = 3;
-    
-    if (cam_5d2 || cam_5d3 || cam_6d) camera_crop = 100;
-    
-    //if (cam_500d || cam_50d) sensor_res_x = 4752;
-    //if (cam_eos_m || cam_550d || cam_600d || cam_650d || cam_700d || cam_60d || cam_7d) sensor_res_x = 5184;
-    //if (cam_6d) sensor_res_x = 5472;
-    //if (cam_5d2) sensor_res_x = 5616;
-    //if (cam_5d3) sensor_res_x = 5760;
-    
-    if (video_mode_crop || (lv_dispsize > 1)) sampling_x = 1;
-    
-    if (!sensor_res_x) return 0;
+    int sensor_res_x = raw_capture_info.sensor_res_x;
+    int camera_crop  = raw_capture_info.sensor_crop;
+    int sampling_x   = raw_capture_info.binning_x + raw_capture_info.skipping_x;
     
     return camera_crop * (sensor_res_x / sampling_x) / res_x;
 }
@@ -530,7 +509,7 @@ static MENU_UPDATE_FUNC(raw_main_update)
     else
     {
         MENU_SET_VALUE("ON, %dx%d", res_x, res_y);
-        int32_t crop_factor = calc_crop_factor();
+        int crop_factor = calc_crop_factor();
         if (crop_factor) MENU_SET_RINFO("%s%d.%02dx", FMT_FIXEDPOINT2( crop_factor ));
     }
 

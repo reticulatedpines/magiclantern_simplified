@@ -309,6 +309,26 @@ struct raw_info raw_info = {
     .dynamic_range = 1100,              // not correct; use numbers from DxO instead
 };
 
+struct raw_capture_info raw_capture_info = {
+    #ifdef CONFIG_FULLFRAME
+    .sensor_crop = 100,         /* 1.0 */
+    #else
+    .sensor_crop = 162,         /* 1.62x (APS-C) */
+    #endif
+    .binning_x   = 1,
+    .binning_y   = 1,
+    .skipping_x  = 0,
+    .skipping_y  = 0,
+    .offset_x    = SHRT_MIN,
+    .offset_y    = SHRT_MIN,
+};
+
+PROP_HANDLER(PROP_LV_AFFRAME)
+{
+    raw_capture_info.sensor_res_x = buf[0];
+    raw_capture_info.sensor_res_y = buf[1];
+}
+
  /**
  * Dynamic range, from DxO
  * e.g. http://www.dxomark.com/index.php/Cameras/Camera-Sensor-Database/Canon/EOS-5D-Mark-III
@@ -626,7 +646,7 @@ static int raw_update_params_work()
             dbg_printf("Photo raw size error\n");
             return 0;
         }
-        
+
         /**
          * The RAW file has unused areas, called "optical black" (OB); we need to skip them.
          * 
@@ -715,6 +735,33 @@ static int raw_update_params_work()
         printf("Resolution changed: %dx%d -> %dx%d\n", raw_info.width, raw_info.height, width, height);
         dirty = 1;
     }
+
+    /* photo mode and crop/zoom modes use 1:1 readout */
+    /* LiveView uses 3x3 column binning / line skipping on most models */
+    /* and 3x5 in 720p */
+    if (!lv || zoom || video_mode_crop)
+    {
+        raw_capture_info.binning_x  = raw_capture_info.binning_y  = 1;
+        raw_capture_info.skipping_x = raw_capture_info.skipping_y = 0;
+        raw_capture_info.offset_x   = raw_capture_info.offset_y   = lv ? SHRT_MIN : 0;
+    }
+    else
+    {
+        raw_capture_info.binning_x  = 3; raw_capture_info.skipping_x = 0;
+#ifdef CONFIG_5D3
+        raw_capture_info.skipping_y = 0; raw_capture_info.binning_y  = mv720 ? 5 : 3;
+#else
+        raw_capture_info.binning_y  = 1; raw_capture_info.skipping_y = mv720 ? 4 : 2;
+#endif
+        raw_capture_info.offset_x   =    raw_capture_info.offset_y   = SHRT_MIN;
+    }
+    dbg_printf(
+        "Subsampling mode: %dB%dSx%dB%dS (%dx%d %d.%02d)\n",
+        raw_capture_info.binning_x, raw_capture_info.skipping_x,
+        raw_capture_info.binning_y, raw_capture_info.skipping_y,
+        raw_capture_info.sensor_res_x, raw_capture_info.sensor_res_y,
+        raw_capture_info.sensor_crop / 100, raw_capture_info.sensor_crop % 100
+    );
 
 #ifdef CONFIG_RAW_LIVEVIEW 
 
