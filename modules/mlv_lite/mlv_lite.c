@@ -213,6 +213,7 @@ static uint32_t edmac_active = 0;
 
 static mlv_file_hdr_t file_hdr;
 static mlv_rawi_hdr_t rawi_hdr;
+static mlv_rawc_hdr_t rawc_hdr;
 static mlv_idnt_hdr_t idnt_hdr;
 static mlv_expo_hdr_t expo_hdr;
 static mlv_lens_hdr_t lens_hdr;
@@ -1583,7 +1584,13 @@ static void init_mlv_chunk_headers(struct raw_info * raw_info)
     rawi_hdr.xRes = res_x;
     rawi_hdr.yRes = res_y;
     rawi_hdr.raw_info = *raw_info;
-    
+
+    memset(&rawc_hdr, 0, sizeof(mlv_rawc_hdr_t));
+    mlv_set_type((mlv_hdr_t *)&rawc_hdr, "RAWC");
+    mlv_set_timestamp((mlv_hdr_t *)&rawc_hdr, mlv_start_timestamp);
+    rawc_hdr.blockSize = sizeof(mlv_rawc_hdr_t);
+    rawc_hdr.raw_capture_info = raw_capture_info;
+
     mlv_fill_idnt(&idnt_hdr, mlv_start_timestamp);
     mlv_fill_expo(&expo_hdr, mlv_start_timestamp);
     mlv_fill_lens(&lens_hdr, mlv_start_timestamp);
@@ -1595,12 +1602,14 @@ static int write_mlv_chunk_headers(FILE* f)
 {
     if (FIO_WriteFile(f, &file_hdr, file_hdr.blockSize) != (int)file_hdr.blockSize) return 0;
     if (FIO_WriteFile(f, &rawi_hdr, rawi_hdr.blockSize) != (int)rawi_hdr.blockSize) return 0;
+    if (FIO_WriteFile(f, &rawc_hdr, rawc_hdr.blockSize) != (int)rawc_hdr.blockSize) return 0;
     if (FIO_WriteFile(f, &idnt_hdr, idnt_hdr.blockSize) != (int)idnt_hdr.blockSize) return 0;
     if (FIO_WriteFile(f, &expo_hdr, expo_hdr.blockSize) != (int)expo_hdr.blockSize) return 0;
     if (FIO_WriteFile(f, &lens_hdr, lens_hdr.blockSize) != (int)lens_hdr.blockSize) return 0;
     if (FIO_WriteFile(f, &rtci_hdr, rtci_hdr.blockSize) != (int)rtci_hdr.blockSize) return 0;
     if (FIO_WriteFile(f, &wbal_hdr, wbal_hdr.blockSize) != (int)wbal_hdr.blockSize) return 0;
-    int hdr_size = sizeof(file_hdr) + sizeof(rawi_hdr) + sizeof(idnt_hdr) + sizeof(expo_hdr) + sizeof(lens_hdr) + sizeof(rtci_hdr) + sizeof(wbal_hdr);
+    int hdr_size = sizeof(file_hdr) + sizeof(rawi_hdr) + sizeof(rawc_hdr) + sizeof(idnt_hdr) 
+        + sizeof(expo_hdr) + sizeof(lens_hdr) + sizeof(rtci_hdr) + sizeof(wbal_hdr);
     
     /* insert a null block so the header size is multiple of 512 bytes */
     mlv_hdr_t nul_hdr;
