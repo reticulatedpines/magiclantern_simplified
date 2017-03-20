@@ -55,6 +55,8 @@
 #define CBR_INTERVALOMETER           12 /* called after a picture is taken with the intervalometer */
 #define CBR_CONFIG_SAVE              13 /* called when ML configs are being saved */
 
+#define CBR_RAW_INFO_UPDATE          14 /* called after raw_info is updated successfully */
+
 /* return values from CBRs */
 #define CBR_RET_CONTINUE              0             /* keep calling other CBRs of the same type */
 #define CBR_RET_STOP                  1             /* stop calling other CBRs */

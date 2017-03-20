@@ -944,6 +944,7 @@ static int raw_update_params_once()
     int ans = 0;
     take_semaphore(raw_sem, 0);
     ans = raw_update_params_work();
+    if (ans) module_exec_cbr(CBR_RAW_INFO_UPDATE);
     give_semaphore(raw_sem);
     return ans;
 }
@@ -1855,7 +1856,10 @@ static void raw_lv_update()
         for (int i = 0; i < 5; i++)
         {
             if (raw_update_params_work())
+            {
+                module_exec_cbr(CBR_RAW_INFO_UPDATE);
                 break;
+            }
             wait_lv_frames(1);
         }
     }
