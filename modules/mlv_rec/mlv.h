@@ -96,34 +96,7 @@ typedef struct {
     uint8_t     blockType[4];   /* RAWC - raw image capture information */
     uint32_t    blockSize;      /* sizeof(mlv_rawc_hdr_t) */
     uint64_t    timestamp;      /* hardware counter timestamp */
-
-    /* see struct raw_capture_info from raw.h */
-
-    /* sensor attributes: resolution, crop factor */
-    uint16_t sensor_res_x;      /* sensor resolution */
-    uint16_t sensor_res_y;      /* 2-3 GPixel cameras anytime soon? (to overflow this) */
-    uint16_t sensor_crop;       /* sensor crop factor x100 */
-    uint16_t reserved;          /* reserved for future use */
-
-    /* video mode attributes */
-    /* (how the sensor is configured for image capture) */
-    /* subsampling factor: (binning_x+skipping_x) x (binning_y+skipping_y) */
-    uint8_t  binning_x;         /* 3 (1080p and 720p); 1 (crop, zoom) */
-    uint8_t  skipping_x;        /* so far, 0 everywhere */
-    uint8_t  binning_y;         /* 1 (most cameras in 1080/720p; also all crop modes); 3 (5D3 1080p); 5 (5D3 720p) */
-    uint8_t  skipping_y;        /* 2 (most cameras in 1080p); 4 (most cameras in 720p); 0 (5D3) */
-    int16_t  offset_x;          /* crop offset (top-left active pixel) - optional (SHRT_MIN if unknown) */
-    int16_t  offset_y;          /* relative to top-left active pixel from a full-res image (FRSP or CR2) */
-   
-    /* The captured *active* area (raw_info.active_area) will be mapped
-     * on a full-res image (which does not use subsampling) as follows:
-     *   active_width  = raw_info.active_area.x2 - raw_info.active_area.x1
-     *   active_height = raw_info.active_area.y2 - raw_info.active_area.y1
-     *   .x1 (left)  : offset_x + full_res.active_area.x1
-     *   .y1 (top)   : offset_y + full_res.active_area.y1
-     *   .x2 (right) : offset_x + active_width  * (binning_x+skipping_x) + full_res.active_area.x1
-     *   .y2 (bottom): offset_y + active_height * (binning_y+skipping_y) + full_res.active_area.y1
-     */
+    struct raw_capture_info raw_capture_info;  /* from raw.h */
 }  mlv_rawc_hdr_t;
 
 typedef struct {
