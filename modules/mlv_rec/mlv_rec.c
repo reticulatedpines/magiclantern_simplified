@@ -2422,6 +2422,18 @@ static int32_t mlv_write_rawi(FILE* f, struct raw_info raw_info)
     return mlv_write_hdr(f, (mlv_hdr_t *)&rawi);
 }
 
+static int32_t mlv_write_rawc(FILE* f)
+{
+    mlv_rawc_hdr_t rawc;
+
+    mlv_set_type((mlv_hdr_t *)&rawc, "RAWC");
+    mlv_set_timestamp((mlv_hdr_t *)&rawc, mlv_start_timestamp);
+    rawc.blockSize = sizeof(mlv_rawc_hdr_t);
+    rawc.raw_capture_info = raw_capture_info;
+
+    return mlv_write_hdr(f, (mlv_hdr_t *)&rawc);
+}
+
 static uint32_t find_largest_buffer(uint32_t start_group, write_job_t *write_job, uint32_t max_size)
 {
     write_job_t job;
@@ -2532,6 +2544,7 @@ static void raw_prepare_chunk(FILE *f, mlv_file_hdr_t *hdr)
     if(hdr->fileNum == 0)
     {
         mlv_write_rawi(f, raw_info);
+        mlv_write_rawc(f);
         mlv_write_info(f);
 
         mlv_rtci_hdr_t rtci_hdr;
