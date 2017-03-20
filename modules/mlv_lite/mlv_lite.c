@@ -846,7 +846,6 @@ static int calc_crop_factor()
     int sensor_res_x = raw_capture_info.sensor_res_x;
     int camera_crop  = raw_capture_info.sensor_crop;
     int sampling_x   = raw_capture_info.binning_x + raw_capture_info.skipping_x;
-
     if (res_x == 0) return 0;
     return camera_crop * (sensor_res_x / sampling_x) / res_x;
 }

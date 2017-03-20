@@ -1175,6 +1175,19 @@ static int raw_update_params_work()
         raw_capture_info.binning_x  = 3; raw_capture_info.skipping_x = 0;
 #ifdef CONFIG_5D3
         raw_capture_info.skipping_y = 0; raw_capture_info.binning_y  = mv720 ? 5 : 3;
+#else
+        raw_capture_info.binning_y  = 1; raw_capture_info.skipping_y = mv720 ? 4 : 2;
+#endif
+        raw_capture_info.offset_x   =    raw_capture_info.offset_y   = SHRT_MIN;
+    }
+    dbg_printf(
+        "Subsampling mode: %dB%dSx%dB%dS (%dx%d %d.%02d)\n",
+        raw_capture_info.binning_x, raw_capture_info.skipping_x,
+        raw_capture_info.binning_y, raw_capture_info.skipping_y,
+        raw_capture_info.sensor_res_x, raw_capture_info.sensor_res_y,
+        raw_capture_info.sensor_crop / 100, raw_capture_info.sensor_crop % 100
+    );
+
 #elif CONFIG_EOSM
         raw_capture_info.binning_y  = 1; raw_capture_info.skipping_y = (mv720 || !RECORDING_H264) ? 4 : 2;
 #else
