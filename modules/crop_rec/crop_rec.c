@@ -24,6 +24,8 @@ static CONFIG_INT("crop.preset", crop_preset_index, 0);
 enum crop_preset {
     CROP_PRESET_OFF = 0,
     CROP_PRESET_3X,
+    CROP_PRESET_3X_VRES,
+    CROP_PRESET_3K,
     CROP_PRESET_3x3_1X,
     CROP_PRESET_1x3,
     CROP_PRESET_3x1,
@@ -44,6 +46,8 @@ static enum crop_preset * crop_presets = 0;
 static enum crop_preset crop_presets_5d3[] = {
     CROP_PRESET_OFF,
     CROP_PRESET_3X,
+    CROP_PRESET_3X_VRES,
+    CROP_PRESET_3K,
     CROP_PRESET_3x3_1X,
     CROP_PRESET_1x3,
   //CROP_PRESET_3x1,
@@ -52,6 +56,8 @@ static enum crop_preset crop_presets_5d3[] = {
 static const char * crop_choices_5d3[] = {
     "OFF",
     "1:1 (3x)",
+    "1:1 (3x) +Vres",
+    "1:1 (3K)",
     "3x3 720p (1x wide)",
     "1x3 binning",
   //"3x1 binning",      /* doesn't work well */
@@ -62,7 +68,9 @@ static const char crop_choices_help_5d3[] =
 
 static const char crop_choices_help2_5d3[] =
     "\n"
-    "1:1 sensor readout (square pixels in RAW, 3x crop)\n"
+    "1:1 sensor readout (square raw pixels, 3x crop, good preview in 1080p)\n"
+    "1:1 sensor readout with higher vertical resolution (cropped preview)\n"
+    "1:1 3K crop (square raw pixels, 3072x2048 @ 24p, preview broken)\n"
     "3x3 binning in 720p (square pixels in RAW, vertical crop, ratio 29:10)\n"
     "1x3 binning: read all lines, bin every 3 columns (extreme anamorphic)\n"
     "3x1 binning: bin every 3 lines, read all columns (extreme anamorphic)\n";
@@ -90,6 +98,20 @@ static uint32_t MEM_CMOS_WRITE  = 0;
 static uint32_t ADTG_WRITE      = 0;
 static uint32_t MEM_ADTG_WRITE  = 0;
 
+static uint32_t xres_delta = 0;
+static uint32_t yres_delta = 0;
+static uint32_t cmos1_lo = 0, cmos1_hi = 0;
+
+/* 5D3 vertical resolution increments over default configuration */
+#define YRES_DELTA (\
+    (yres_delta)           ? yres_delta : \
+    (video_mode_fps == 24) ? 758 : \
+    (video_mode_fps == 25) ? 510 : \
+    (video_mode_fps == 30) ? 290 : \
+    (video_mode_fps == 50) ? 148 : \
+    (video_mode_fps == 60) ? 108 : \
+                               0)
+
 /* video modes */
 /* note: zoom mode is identified by checking registers directly */
 
@@ -110,6 +132,8 @@ static int is_supported_mode()
 {
     if (!lv) return 0;
     return is_1080p() || is_720p();
+}
+
 static int cmos_vidmode_ok = 0;
 
 /* return value:
@@ -135,6 +159,18 @@ static int FAST check_cmos_vidmode(uint16_t* data_buf)
                     value != 0xBC2)     /* not 720p? */
                 {
                     ok = 0;
+                }
+            }
+        }
+        
+        if (is_EOSM)
+        {
+            if (reg == 7)
+            {
+                found = 1;
+                /* prevent running in 600D hack crop mode */
+                if (value != 0x800) 
+                {
                     ok = 0;
                 }
             }
@@ -150,6 +186,9 @@ static int FAST check_cmos_vidmode(uint16_t* data_buf)
 
 /* pack two 6-bit values into a 12-bit one */
 #define PACK12(lo,hi) ((((lo) & 0x3F) | ((hi) << 6)) & 0xFFF)
+
+/* pack two 16-bit values into a 32-bit one */
+#define PACK32(lo,hi) (((uint32_t)(lo) & 0xFFFF) | ((uint32_t)(hi) << 16))
 
 static void FAST cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
 {
@@ -199,6 +238,20 @@ static void FAST cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
                 cmos_new[6] = 0x170;    /* pink highlights without this */
                 break;
             
+            case CROP_PRESET_3X_VRES:
+            case CROP_PRESET_3K:
+                cmos_new[1] =           /* vertical centering (trial and error) */
+                    (video_mode_fps == 24) ? PACK12(8,13)  :
+                    (video_mode_fps == 25) ? PACK12(8,12)  :
+                    (video_mode_fps == 30) ? PACK12(9,11)  :
+                    (video_mode_fps >= 50) ? PACK12(13,10) :
+                                             (uint32_t) -1 ;
+                cmos_new[2] = (crop_preset == CROP_PRESET_3K)
+                    ? 0x0BE             /* centered 3K crop */
+                    : 0x10E;            /* centered 1920 crop */
+                cmos_new[6] = 0x170;    /* pink highlights without this */
+                break;
+            
             /* 3x3 binning in 720p */
             /* 1080p it's already 3x3, don't change it */
             case CROP_PRESET_3x3_1X:
@@ -237,7 +290,11 @@ static void FAST cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
         }
     }
 
-
+    /* menu overrides */
+    if (cmos1_lo || cmos1_hi)
+    {
+        cmos_new[1] = PACK12(cmos1_lo,cmos1_hi);
+    }
     
     /* copy data into a buffer, to make the override temporary */
     /* that means: as soon as we stop executing the hooks, values are back to normal */
@@ -264,6 +321,20 @@ static void FAST cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
 
     /* pass our modified register list to cmos_write */
     regs[0] = (uint32_t) copy;
+}
+
+static uint32_t nrzi_encode( uint32_t in_val )
+{
+    uint32_t out_val = 0;
+    uint32_t old_bit = 0;
+    for (int num = 0; num < 32; num++)
+    {
+        uint32_t bit = in_val & 1<<(30-num) ? 1 : 0;
+        if (bit != old_bit)
+            out_val |= (1 << (30-num));
+        old_bit = bit;
+    }
+    return out_val;
 }
 
 static int FAST adtg_lookup(uint32_t* data_buf, int reg_needle)
@@ -312,7 +383,7 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
     };
     
     /* expand this as required */
-    struct adtg_new adtg_new[3] = {{0}};
+    struct adtg_new adtg_new[6] = {{0}};
 
     /* scan for shutter blanking and make both zoom and non-zoom value equal */
     /* (the values are different when using FPS override with ADTG shutter override) */
@@ -341,6 +412,18 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
                 adtg_new[0] = (struct adtg_new) {6, 0x8000, 5};
                 adtg_new[1] = (struct adtg_new) {2, 0x8806, 0x6088};
                 adtg_new[2] = (struct adtg_new) {6, 0x805E, shutter_blanking};
+                break;
+
+            case CROP_PRESET_3X_VRES:
+            case CROP_PRESET_3K:
+                /* same as the simple 3x crop ... */
+                adtg_new[0] = (struct adtg_new) {6, 0x8000, 5};
+                adtg_new[1] = (struct adtg_new) {2, 0x8806, 0x6088};
+                adtg_new[2] = (struct adtg_new) {6, 0x805E, shutter_blanking};
+                /* ... plus some more registers to adjust vertical resolution */
+                adtg_new[3] = (struct adtg_new) {6, 0x8178, nrzi_encode(0x529 + YRES_DELTA)};
+                adtg_new[4] = (struct adtg_new) {6, 0x8196, nrzi_encode(0x529 + YRES_DELTA)};
+                adtg_new[5] = (struct adtg_new) {6, 0x82F8, nrzi_encode(0x528 + YRES_DELTA)};
                 break;
 
             /* 3x3 binning in 720p (in 1080p it's already 3x3) */
@@ -414,6 +497,7 @@ static void update_patch()
             unpatch_memory(CMOS_WRITE);
             unpatch_memory(ADTG_WRITE);
             patch_active = 0;
+            crop_preset = 0;
         }
     }
 }
@@ -440,6 +524,33 @@ static struct menu_entry crop_rec_menu[] =
         .priv       = &crop_preset_index,
         .update     = crop_update,
         .depends_on = DEP_LIVEVIEW,
+        .children =  (struct menu_entry[]) {
+            {
+                .name   = "Extra XRES",
+                .priv   = &xres_delta,
+                .max    = 1024,
+                .unit   = UNIT_DEC,
+            },
+            {
+                .name   = "Extra YRES",
+                .priv   = &yres_delta,
+                .max    = 1024,
+                .unit   = UNIT_DEC,
+            },
+            {
+                .name   = "CMOS[1] lo",
+                .priv   = &cmos1_lo,
+                .max    = 63,
+                .unit   = UNIT_DEC,
+            },
+            {
+                .name   = "CMOS[1] hi",
+                .priv   = &cmos1_hi,
+                .max    = 63,
+                .unit   = UNIT_DEC,
+            },
+            MENU_EOL,
+        },
     },
 };
 
@@ -509,6 +620,41 @@ static unsigned int crop_rec_polling_cbr(unsigned int unused)
         lv_dirty = 0;
     }
     
+    if (patch_active && !lv_dirty)
+    {
+        if (CROP_PRESET_MENU == CROP_PRESET_3X_VRES ||
+            CROP_PRESET_MENU == CROP_PRESET_3K)
+        {
+            uint32_t raw_res = shamem_read(0xC0F06804);
+            uint32_t xres = raw_res & 0xFFFF;
+            uint32_t yres = raw_res >> 16;
+
+            /* change 1080p and 720p modes */
+            if (raw_res == 0x528011B ||
+                raw_res == 0x2B6011B)
+            {
+                /* adjust raw resolution and also HEAD3 and HEAD4 timers */
+                if (CROP_PRESET_MENU == CROP_PRESET_3K)
+                {
+                    /* this gives 3072 in raw_rec (active area) */
+                    xres = 3416/8;
+                }
+                
+                xres += xres_delta;
+                yres += YRES_DELTA;
+                
+                /* raw resolution */
+                EngDrvOutLV(0xC0F06804, PACK32(xres, yres));
+                
+                /* HEAD3 timer */
+                EngDrvOutLV(0xC0F0713C, shamem_read(0xC0F0713C) + YRES_DELTA);
+                
+                /* HEAD4 timer */
+                EngDrvOutLV(0xC0F07150, shamem_read(0xC0F07150) + YRES_DELTA);
+            }
+        }
+    }
+    
     return CBR_RET_CONTINUE;
 }
 
@@ -536,6 +682,14 @@ static LVINFO_UPDATE_FUNC(crop_info)
                     is_movie_mode() ? "1:1"
                                     : "3x"
                 );
+                break;
+
+            case CROP_PRESET_3X_VRES:
+                snprintf(buffer, sizeof(buffer), "1:1V");
+                break;
+
+            case CROP_PRESET_3K:
+                snprintf(buffer, sizeof(buffer), "3K");
                 break;
 
             case CROP_PRESET_3x3_1X:
@@ -586,6 +740,8 @@ static unsigned int raw_info_update_cbr(unsigned int unused)
         switch (crop_preset)
         {
             case CROP_PRESET_3X:
+            case CROP_PRESET_3X_VRES:
+            case CROP_PRESET_3K:
             case CROP_PRESET_3x1:
                 raw_capture_info.binning_x    = raw_capture_info.binning_y  = 1;
                 raw_capture_info.skipping_x   = raw_capture_info.skipping_y = 0;
@@ -601,6 +757,8 @@ static unsigned int raw_info_update_cbr(unsigned int unused)
         switch (crop_preset)
         {
             case CROP_PRESET_3X:
+            case CROP_PRESET_3X_VRES:
+            case CROP_PRESET_3K:
             case CROP_PRESET_1x3:
                 raw_capture_info.binning_y = 1; raw_capture_info.skipping_y = 0;
                 break;
