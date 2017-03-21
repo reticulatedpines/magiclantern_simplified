@@ -1608,9 +1608,13 @@ static void FAST raw_preview_color_work(void* raw_buffer, void* lv_buffer, int y
         if (yr <= preview_rect_y || yr >= preview_rect_y + preview_rect_h)
         {
             /* out of range, just fill with black */
-            memset(&lv32[LV(0,y)/4], 0, (x2-x1)*2);
+            memset(&lv32[LV(0,y)/4], 0, vram_lv.pitch);
             continue;
         }
+
+        /* fill left/right borders with black */
+        memset(&lv32[LV(0,y)/4],  0, LV(x1,y) - LV(0,y)/4*4);
+        memset(&lv32[LV(x2,y)/4], 0, LV(0,1) - LV(x2,0)/4*4);
 
         struct raw_pixblock * row = (void*)raw + yr * raw_info.pitch;
         
@@ -1696,14 +1700,18 @@ static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1
         if (yr <= preview_rect_y || yr >= preview_rect_y + preview_rect_h)
         {
             /* out of range, just fill with black */
-            memset(&lv64[LV(0,y)/8], 0, (x2-x1)*2);
+            memset(&lv64[LV(0,y)/8], 0, vram_lv.pitch);
             continue;
         }
+
+        /* fill left/right borders with black */
+        memset(&lv64[LV(0,y)/8],  0, LV(x1,y) - LV(0,y)/8*8);
+        memset(&lv64[LV(x2,y)/8], 0, LV(0,1) - LV(x2,0)/8*8);
 
         struct raw_pixblock * row = (void*)raw + yr * raw_info.pitch;
         
         if (y%2) continue;
-        
+
         for (int x = x1; x < x2; x += 4)
         {
             int xr = lv2rx[x];
