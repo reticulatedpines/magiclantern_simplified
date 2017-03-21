@@ -906,15 +906,13 @@ static MENU_UPDATE_FUNC(resolution_update)
         return;
     }
     
-    res_x = resolution_presets_x[resolution_index_x] + res_x_fine;
-       
     refresh_raw_settings(1);
-
-    int selected_x = res_x;
 
     MENU_SET_VALUE("%dx%d", res_x, res_y);
     int crop_factor = calc_crop_factor();
     if (crop_factor) MENU_SET_RINFO("%s%d.%02dx", FMT_FIXEDPOINT2( crop_factor ));
+
+    int selected_x = resolution_presets_x[resolution_index_x] + res_x_fine;
     
     if (selected_x > max_res_x)
     {
