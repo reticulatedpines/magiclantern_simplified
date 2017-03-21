@@ -1075,9 +1075,11 @@ void print_capture_info(mlv_rawc_hdr_t * rawc)
         rawc->raw_capture_info.sensor_res_y
     );
     print_msg(
-        MSG_INFO, "      sensor crop     %d.%02d\n",
+        MSG_INFO, "      sensor crop     %d.%02d (%s)\n",
         rawc->raw_capture_info.sensor_crop / 100,
-        rawc->raw_capture_info.sensor_crop % 100
+        rawc->raw_capture_info.sensor_crop % 100,
+        rawc->raw_capture_info.sensor_crop == 100 ? "Full frame" : 
+        rawc->raw_capture_info.sensor_crop == 162 ? "APS-C" : "35mm equiv"
     );
     
     int sampling_x = rawc->raw_capture_info.binning_x + rawc->raw_capture_info.skipping_x;
