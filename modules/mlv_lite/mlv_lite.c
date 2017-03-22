@@ -111,8 +111,8 @@ static int cam_5d3_123 = 0;
  * use roughly 10% increments
  **/
 
-static int resolution_presets_x[] = {  640,  960,  1280,  1600,  1920,  2240,  2560,  2880,  3200,  3520 };
-#define  RESOLUTION_CHOICES_X CHOICES("640","960","1280","1600","1920","2240","2560","2880","3200","3520")
+static int resolution_presets_x[] = {  640,  960,  1280,  1600,  1920,  2240,  2560,  2880,  3072,  3520,  4096,  5796 };
+#define  RESOLUTION_CHOICES_X CHOICES("640","960","1280","1600","1920","2240","2560","2880","3072","3520","4096","5796")
 
 static int aspect_ratio_presets_num[]      = {   5,    4,    3,       8,      25,     239,     235,      22,    2,     185,     16,    5,    3,    4,    12,    1175,    1,    1 };
 static int aspect_ratio_presets_den[]      = {   1,    1,    1,       3,      10,     100,     100,      10,    1,     100,      9,    3,    2,    3,    10,    1000,    1,    2 };
