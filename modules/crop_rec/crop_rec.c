@@ -24,12 +24,15 @@ static CONFIG_INT("crop.preset", crop_preset_index, 0);
 enum crop_preset {
     CROP_PRESET_OFF = 0,
     CROP_PRESET_3X,
-    CROP_PRESET_3X_VRES,
+    CROP_PRESET_3X_TALL,
     CROP_PRESET_3K,
+    CROP_PRESET_4K_HFPS,
+    CROP_PRESET_UHD,
     CROP_PRESET_FULLRES_LV,
     CROP_PRESET_3x3_1X,
     CROP_PRESET_1x3,
     CROP_PRESET_3x1,
+    CROP_PRESET_40_FPS,
 };
 
 /* presets are not enabled right away (we need to go to play mode and back)
@@ -47,23 +50,29 @@ static enum crop_preset * crop_presets = 0;
 static enum crop_preset crop_presets_5d3[] = {
     CROP_PRESET_OFF,
     CROP_PRESET_3X,
-    CROP_PRESET_3X_VRES,
+    CROP_PRESET_3X_TALL,
     CROP_PRESET_3K,
+    CROP_PRESET_UHD,
+    CROP_PRESET_4K_HFPS,
     CROP_PRESET_FULLRES_LV,
     CROP_PRESET_3x3_1X,
     CROP_PRESET_1x3,
   //CROP_PRESET_3x1,
+    CROP_PRESET_40_FPS,
 };
 
 static const char * crop_choices_5d3[] = {
     "OFF",
-    "1:1 (3x)",
-    "1:1 (3x) +Vres",
-    "1:1 (3K)",
+    "3x (1:1)",
+    "3x tall (1:1)",
+    "3K (1:1)",
+    "UHD (1:1)",
+    "4K (1:1 half-fps)",
     "Full-res LiveView",
     "3x3 720p (1x wide)",
     "1x3 binning",
   //"3x1 binning",      /* doesn't work well */
+    "40 fps",
 };
 
 static const char crop_choices_help_5d3[] =
@@ -73,11 +82,14 @@ static const char crop_choices_help2_5d3[] =
     "\n"
     "1:1 sensor readout (square raw pixels, 3x crop, good preview in 1080p)\n"
     "1:1 sensor readout with higher vertical resolution (cropped preview)\n"
-    "1:1 3K crop (square raw pixels, 3072x2048 @ 24p, preview broken)\n"
+    "1:1 3K crop (3072x2048 @ 24p, square raw pixels, preview broken)\n"
+    "1:1 4K UHD crop (3840x1640 @ 24p, square raw pixels, preview broken)\n"
+    "1:1 4K crop (4096x3072 @ 12 fps, half frame rate, preview broken)\n"
     "Full resolution LiveView (5796x3870 @ 7.4 fps, preview broken)\n"
     "3x3 binning in 720p (square pixels in RAW, vertical crop, ratio 29:10)\n"
     "1x3 binning: read all lines, bin every 3 columns (extreme anamorphic)\n"
-    "3x1 binning: bin every 3 lines, read all columns (extreme anamorphic)\n";
+    "3x1 binning: bin every 3 lines, read all columns (extreme anamorphic)\n"
+    "FPS override test\n";
 
 /* menu choices for EOS M */
 static enum crop_preset crop_presets_eosm[] = {
@@ -106,18 +118,70 @@ static uint32_t MEM_ENGIO_WRITE = 0;
 
 static uint32_t xres_delta = 0;
 static uint32_t yres_delta = 0;
+static int32_t  yres_adj1 = 0;
+static int32_t  yres_adj2 = 0;
+static int32_t  yres_adj3 = 0;
 static uint32_t cmos1_lo = 0, cmos1_hi = 0;
+static uint32_t cmos2 = 0;
 
 /* 5D3 vertical resolution increments over default configuration */
-#define YRES_DELTA (\
-    (yres_delta)           ? yres_delta : \
-    (crop_preset == CROP_PRESET_FULLRES_LV) ? 2612 : \
-    (video_mode_fps == 24) ? 758 : \
-    (video_mode_fps == 25) ? 510 : \
-    (video_mode_fps == 30) ? 290 : \
-    (video_mode_fps == 50) ? 148 : \
-    (video_mode_fps == 60) ? 108 : \
-                               0)
+/* note that first scanline may be moved down (see reg_override_top_bar) */
+/* so you need to subtract 30 or 40 from some of these values */
+static inline int calc_yres_delta()
+{
+    if (yres_delta)
+    {
+        /* user override */
+        return yres_delta;
+    }
+
+    switch (crop_preset)
+    {
+        case CROP_PRESET_3X_TALL:
+            return 
+                (video_mode_fps == 24) ? 788 :  /* 1290 -> 2048 (top bar adjusted by 30px) */
+                (video_mode_fps == 25) ? 540 :  /* 1290 -> 1800 (top bar adjusted by 30px) */
+                (video_mode_fps == 30) ? 300 :  /* 1290 -> 1560 (top bar adjusted by 30px) */
+                (video_mode_fps == 50) ? 168 :  /*  672 ->  800 (top bar adjusted by 40px) */
+                (video_mode_fps == 60) ? 118 :  /*  672 ->  750 (top bar adjusted by 40px) */
+                                           0 ;
+
+        case CROP_PRESET_3K:
+            return
+                (video_mode_fps == 24) ? 660 :  /* 1290 -> 1920 (top bar adjusted by 30px) */
+                (video_mode_fps == 25) ? 540 :  /* 1290 -> 1800 (top bar adjusted by 30px) */
+                (video_mode_fps == 30) ? 280 :  /* 1290 -> 1540 (top bar adjusted by 30px) */
+                (video_mode_fps == 50) ? 168 :  /*  672 ->  800 (top bar adjusted by 40px) */
+                (video_mode_fps == 60) ?  88 :  /*  672 ->  720 (top bar adjusted by 40px) */
+                                           0 ;
+
+        case CROP_PRESET_4K_HFPS:
+            return
+                (video_mode_fps == 24) ? 1812 :  /* 1290 -> 3072 (top bar adjusted by 30px) */
+                (video_mode_fps == 25) ? 1812 :  /* 1290 -> 3072 (top bar adjusted by 30px) */
+                (video_mode_fps == 30) ? 1300 :  /* 1290 -> 2560 (top bar adjusted by 30px) */
+                (video_mode_fps == 50) ?  808 :  /*  672 -> 1440 (top bar adjusted by 30px) */
+                (video_mode_fps == 60) ?  568 :  /*  672 -> 1200 (top bar adjusted by 30px) */
+                                            0 ;
+
+        case CROP_PRESET_UHD:
+            return
+                (video_mode_fps == 24) ? 382 :  /* 1290 -> 1640 (top bar adjusted by 30px) */
+                (video_mode_fps == 25) ? 302 :  /* 1290 -> 1560 (top bar adjusted by 30px) */
+                (video_mode_fps == 30) ?  22 :  /* 1290 -> 1280 (top bar adjusted by 30px) */
+                (video_mode_fps == 50) ?  48 :  /*  672 ->  680 (top bar adjusted by 30px) */
+                (video_mode_fps == 60) ? -52 :  /*  672 ->  580 (top bar adjusted by 30px) */
+                                           0 ;
+
+        case CROP_PRESET_FULLRES_LV:
+            return 2612;    /* 7.4 fps */
+    }
+
+    ASSERT(0);
+    return 0;
+}
+
+#define YRES_DELTA calc_yres_delta()
 
 /* video modes */
 /* note: zoom mode is identified by checking registers directly */
@@ -238,24 +302,57 @@ static void FAST cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
                 /* start/stop scanning line, very large increments */
                 /* note: these are two values, 6 bit each, trial and error */
                 cmos_new[1] = (is_720p())
-                    ? PACK12(14,10)     /* 720p,  almost centered */
+                    ? PACK12(13,10)     /* 720p,  almost centered */
                     : PACK12(11,11);    /* 1080p, almost centered */
                 
                 cmos_new[2] = 0x10E;    /* read every column, centered crop */
                 cmos_new[6] = 0x170;    /* pink highlights without this */
                 break;
             
-            case CROP_PRESET_3X_VRES:
-            case CROP_PRESET_3K:
+            case CROP_PRESET_3X_TALL:
                 cmos_new[1] =           /* vertical centering (trial and error) */
                     (video_mode_fps == 24) ? PACK12(8,13)  :
                     (video_mode_fps == 25) ? PACK12(8,12)  :
                     (video_mode_fps == 30) ? PACK12(9,11)  :
-                    (video_mode_fps >= 50) ? PACK12(13,10) :
+                    (video_mode_fps >= 50) ? PACK12(13,10) :    /* 12,10 has better centering, but overflows */
                                              (uint32_t) -1 ;
-                cmos_new[2] = (crop_preset == CROP_PRESET_3K)
-                    ? 0x0BE             /* centered 3K crop */
-                    : 0x10E;            /* centered 1920 crop */
+                cmos_new[2] = 0x10E;    /* horizontal centering (trial and error) */
+                cmos_new[6] = 0x170;    /* pink highlights without this */
+                break;
+
+            case CROP_PRESET_3K:
+                cmos_new[1] =           /* vertical centering (trial and error) */
+                    (video_mode_fps == 24) ? PACK12(8,12)  :
+                    (video_mode_fps == 25) ? PACK12(8,12)  :
+                    (video_mode_fps == 30) ? PACK12(9,11)  :
+                    (video_mode_fps == 50) ? PACK12(13,10) :
+                    (video_mode_fps == 60) ? PACK12(14,10) :    /* 13,10 has better centering, but overflows */
+                                             (uint32_t) -1 ;
+                cmos_new[2] = 0x0BE;    /* horizontal centering (trial and error) */
+                cmos_new[6] = 0x170;    /* pink highlights without this */
+                break;
+
+            case CROP_PRESET_UHD:
+                cmos_new[1] =
+                    (video_mode_fps == 24) ? PACK12(4,9)  :
+                    (video_mode_fps == 25) ? PACK12(4,9)  :
+                    (video_mode_fps == 30) ? PACK12(5,8)  :
+                    (video_mode_fps == 50) ? PACK12(12,9) :
+                    (video_mode_fps == 60) ? PACK12(13,9) :
+                                            (uint32_t) -1 ;
+                cmos_new[2] = 0x08E;    /* horizontal centering (trial and error) */
+                cmos_new[6] = 0x170;    /* pink highlights without this */
+                break;
+
+            case CROP_PRESET_4K_HFPS:
+                cmos_new[1] =
+                    (video_mode_fps == 24) ? PACK12(4,15)  :
+                    (video_mode_fps == 25) ? PACK12(4,15)  :
+                    (video_mode_fps == 30) ? PACK12(6,14)  :
+                    (video_mode_fps == 50) ? PACK12(10,11) :
+                    (video_mode_fps == 60) ? PACK12(12,11) :
+                                            (uint32_t) -1 ;
+                cmos_new[2] = 0x07E;    /* horizontal centering (trial and error) */
                 cmos_new[6] = 0x170;    /* pink highlights without this */
                 break;
 
@@ -307,6 +404,11 @@ static void FAST cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
     if (cmos1_lo || cmos1_hi)
     {
         cmos_new[1] = PACK12(cmos1_lo,cmos1_hi);
+    }
+
+    if (cmos2)
+    {
+        cmos_new[2] = cmos2;
     }
     
     /* copy data into a buffer, to make the override temporary */
@@ -427,7 +529,7 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
                 adtg_new[2] = (struct adtg_new) {6, 0x805E, shutter_blanking};
                 break;
 
-            case CROP_PRESET_3X_VRES:
+            case CROP_PRESET_3X_TALL:
             case CROP_PRESET_3K:
                 /* same as the simple 3x crop ... */
                 adtg_new[0] = (struct adtg_new) {6, 0x8000, 5};
@@ -439,7 +541,23 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
                 adtg_new[5] = (struct adtg_new) {6, 0x82F8, nrzi_encode(0x528 + YRES_DELTA)};
                 break;
 
+            case CROP_PRESET_4K_HFPS:
+            case CROP_PRESET_UHD:
+                /* same as the simple 3x crop ... */
+                adtg_new[0] = (struct adtg_new) {6, 0x8000, 5};
+                adtg_new[1] = (struct adtg_new) {2, 0x8806, 0x6088};
+                adtg_new[2] = (struct adtg_new) {6, 0x805E, shutter_blanking};
+                /* ... plus some more registers to adjust vertical resolution */
+                adtg_new[3] = (struct adtg_new) {6, 0x8178, nrzi_encode(0x529 + YRES_DELTA + yres_adj1)};
+                adtg_new[4] = (struct adtg_new) {6, 0x8196, nrzi_encode(0x529 + YRES_DELTA + yres_adj1)};
+                adtg_new[5] = (struct adtg_new) {6, 0x82F8, nrzi_encode(0x528 + YRES_DELTA + yres_adj1)};
+                adtg_new[6] = (struct adtg_new) {6, 0x8179, nrzi_encode(0x535 + YRES_DELTA + yres_adj2)};
+                adtg_new[7] = (struct adtg_new) {6, 0x8197, nrzi_encode(0x535 + YRES_DELTA + yres_adj2)};
+                adtg_new[8] = (struct adtg_new) {6, 0x82F9, nrzi_encode(0x580 + YRES_DELTA + yres_adj2)};
+                break;
+
             case CROP_PRESET_FULLRES_LV:
+            //~ case CROP_PRESET_4K_HFPS:
                 /* same as the simple 3x crop ... */
                 adtg_new[0] = (struct adtg_new) {6, 0x8000, 5};
                 adtg_new[1] = (struct adtg_new) {2, 0x8806, 0x6088};
@@ -473,6 +591,11 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
                 adtg_new[0] = (struct adtg_new) {6, 0x800C, 2};
                 adtg_new[1] = (struct adtg_new) {2, 0x8806, 0x6088};
                 break;
+
+            case CROP_PRESET_40_FPS:
+                adtg_new[6] = (struct adtg_new) {6, 0x8179, nrzi_encode(0x535)};
+                adtg_new[7] = (struct adtg_new) {6, 0x8197, nrzi_encode(0x535)};
+                adtg_new[8] = (struct adtg_new) {6, 0x82F9, nrzi_encode(0x5DB)};
         }
     }
     
@@ -499,7 +622,189 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
     regs[1] = (uint32_t) copy;
 }
 
-static inline int reg_override_fullres_lv(uint32_t reg)
+/* this is used to cover the black bar at the top of the image in 1:1 modes */
+/* (used in most other presets) */
+static inline uint32_t reg_override_top_bar(uint32_t reg, uint32_t old_val)
+{
+    switch (reg)
+    {
+        /* raw start line/column */
+        /* move start line down by 30 pixels (1080p) or 40 pixels (720p) */
+        /* not sure where this offset comes from */
+        case 0xC0F06800:
+            return (video_mode_fps <= 30) ? 0x1F0017 : 0x290017;
+    }
+
+    return 0;
+}
+
+/* these are required for increasing vertical resolution */
+/* (used in most other presets) */
+static inline uint32_t reg_override_HEAD34(uint32_t reg, uint32_t old_val)
+{
+    switch (reg)
+    {
+        /* HEAD3 timer */
+        case 0xC0F0713C:
+            return old_val + YRES_DELTA + yres_adj3;
+
+        /* HEAD4 timer */
+        case 0xC0F07150:
+            return old_val + YRES_DELTA + yres_adj3;
+    }
+
+    return 0;
+}
+
+static inline uint32_t reg_override_common(uint32_t reg, uint32_t old_val)
+{
+    uint32_t a = reg_override_top_bar(reg, old_val);
+    if (a) return a;
+
+    uint32_t b = reg_override_HEAD34(reg, old_val);
+    if (b) return b;
+
+    return 0;
+}
+
+static inline uint32_t reg_override_3X_tall(uint32_t reg, uint32_t old_val)
+{
+    switch (reg)
+    {
+        /* raw resolution (end line/column) */
+        case 0xC0F06804:
+            return old_val + (YRES_DELTA << 16);
+    }
+
+    return reg_override_common(reg, old_val);
+}
+
+static inline uint32_t reg_override_fps(uint32_t reg, uint32_t timerA, uint32_t timerB)
+{
+    /* hardware register requires timer-1 */
+    timerA--;
+    timerB--;
+
+    switch (reg)
+    {
+        case 0xC0F06824:
+        case 0xC0F06828:
+        case 0xC0F0682C:
+        case 0xC0F06830:
+        case 0xC0F06010:
+            return timerA;
+        
+        case 0xC0F06008:
+        case 0xC0F0600C:
+            return timerA | (timerA << 16);
+
+        case 0xC0F06014:
+            return timerB;
+    }
+
+    return 0;
+}
+
+static inline uint32_t reg_override_3K(uint32_t reg, uint32_t old_val)
+{
+    /* FPS timer A, for increasing horizontal resolution */
+    /* 25p uses 480 (OK), 24p uses 440 (too small); */
+    /* only override in 24p, 30p and 60p modes */
+    if (video_mode_fps != 25 && video_mode_fps !=  50)
+    {
+        int timerA = 455;
+        int timerB =
+            (video_mode_fps == 24) ? 2200 :
+            (video_mode_fps == 30) ? 1760 :
+            (video_mode_fps == 60) ?  880 :
+                                       -1 ;
+
+        int a = reg_override_fps(reg, timerA, timerB);
+        if (a) return a;
+    }
+
+    switch (reg)
+    {
+        /* raw resolution (end line/column) */
+        /* X: (3072+140)/8 + 0x17, adjusted for 3072 in raw_rec */
+        case 0xC0F06804:
+            return (old_val & 0xFFFF0000) + 0x1AB + (YRES_DELTA << 16);
+
+    }
+
+    return reg_override_common(reg, old_val);
+}
+
+static inline uint32_t reg_override_4K_hfps(uint32_t reg, uint32_t old_val)
+{
+    /* FPS timer A, for increasing horizontal resolution */
+    /* trial and error to allow 4096; 572 is too low, 576 looks fine */
+    /* pick some values with small roundoff error */
+    int timerA =
+        (video_mode_fps < 30)  ?  585 : /* for 23.976/2 and 25/2 fps */
+                                  579 ; /* for all others */
+
+    /* FPS timer B, tuned to get half of the frame rate from Canon menu */
+    int timerB =
+        (video_mode_fps == 24) ? 3422 :
+        (video_mode_fps == 25) ? 3282 :
+        (video_mode_fps == 30) ? 2766 :
+        (video_mode_fps == 50) ? 1658 :
+        (video_mode_fps == 60) ? 1383 :
+                                   -1 ;
+
+    int a = reg_override_fps(reg, timerA, timerB);
+    if (a) return a;
+
+    switch (reg)
+    {
+        /* 720p requires same top bar adjustment as 1080p */
+        /* this is unlike other presets; why? */
+        case 0xC0F06800:
+            return 0x1F0017;
+
+        /* raw resolution (end line/column) */
+        /* X: (4096+140)/8 + 0x18, adjusted for 4096 in raw_rec */
+        case 0xC0F06804:
+            return (old_val & 0xFFFF0000) + 0x22A + (YRES_DELTA << 16);
+    }
+
+    return reg_override_common(reg, old_val);
+}
+
+static inline uint32_t reg_override_UHD(uint32_t reg, uint32_t old_val)
+{
+    /* FPS timer A, for increasing horizontal resolution */
+    /* trial and error to allow 3840; 512 is too low */
+    int timerA = 544;
+    int timerB =
+        (video_mode_fps == 24) ? 1840 :
+        (video_mode_fps == 25) ? 1764 :
+        (video_mode_fps == 30) ? 1472 :
+        (video_mode_fps == 50) ?  882 :
+        (video_mode_fps == 60) ?  736 :
+                                   -1 ;
+
+    int a = reg_override_fps(reg, timerA, timerB);
+    if (a) return a;
+
+    switch (reg)
+    {
+        /* 720p requires same top bar adjustment as 1080p */
+        /* this is unlike other presets; why? */
+        case 0xC0F06800:
+            return 0x1F0017;
+
+        /* raw resolution (end line/column) */
+        /* X: (3840+140)/8 + 0x18, adjusted for 3840 in raw_rec */
+        case 0xC0F06804:
+            return (old_val & 0xFFFF0000) + 0x20A + (YRES_DELTA << 16);
+    }
+
+    return reg_override_common(reg, old_val);
+}
+
+static inline uint32_t reg_override_fullres_lv(uint32_t reg, uint32_t old_val)
 {
     switch (reg)
     {
@@ -525,11 +830,38 @@ static inline int reg_override_fullres_lv(uint32_t reg)
         case 0xC0F06014:
             return 0xFFE;           /* 7.4 fps */
 
+        /* HEAD3 timer */
         case 0xC0F0713C:
-            return 0x55e + YRES_DELTA;  /* HEAD3 timer */
+            return 0x55e + YRES_DELTA + yres_adj3;
 
+        /* HEAD4 timer */
         case 0xC0F07150:
-            return 0x527 + YRES_DELTA;  /* HEAD4 timer */
+            return 0x527 + YRES_DELTA + yres_adj3;
+    }
+
+    /* no need to adjust the black bar */
+    return reg_override_HEAD34(reg, old_val);
+}
+
+/* just for testing */
+/* (might be useful for FPS override on e.g. 70D) */
+static inline uint32_t reg_override_40_fps(uint32_t reg, uint32_t old_val)
+{
+    switch (reg)
+    {
+        case 0xC0F06824:
+        case 0xC0F06828:
+        case 0xC0F0682C:
+        case 0xC0F06830:
+        case 0xC0F06010:
+            return 0x18F;
+        
+        case 0xC0F06008:
+        case 0xC0F0600C:
+            return 0x18F018F;
+
+        case 0xC0F06014:
+            return 0x5DB;
     }
 
     return 0;
@@ -537,7 +869,17 @@ static inline int reg_override_fullres_lv(uint32_t reg)
 
 static void FAST engio_write_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
 {
-    if (CROP_PRESET_MENU != CROP_PRESET_FULLRES_LV)
+    uint32_t (*reg_override_func)(uint32_t, uint32_t) = 
+      //(crop_preset == CROP_PRESET_3X)         ? reg_override_top_bar    : /* fixme: corrupted image */
+        (crop_preset == CROP_PRESET_3X_TALL)    ? reg_override_3X_tall    :
+        (crop_preset == CROP_PRESET_3K)         ? reg_override_3K         :
+        (crop_preset == CROP_PRESET_4K_HFPS)    ? reg_override_4K_hfps         :
+        (crop_preset == CROP_PRESET_UHD)        ? reg_override_UHD     :
+        (crop_preset == CROP_PRESET_40_FPS)     ? reg_override_40_fps     :
+        (crop_preset == CROP_PRESET_FULLRES_LV) ? reg_override_fullres_lv :
+                                                  0                       ;
+
+    if (!reg_override_func)
     {
         return;
     }
@@ -551,10 +893,12 @@ static void FAST engio_write_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
     for (uint32_t * buf = (uint32_t *) regs[0]; *buf != 0xFFFFFFFF; buf += 2)
     {
         uint32_t reg = *buf;
+        uint32_t old = *(buf+1);
         
-        int new = reg_override_fullres_lv(reg);
+        int new = reg_override_func(reg, old);
         if (new)
         {
+            printf("[%x] %x: %x -> %x\n", regs[0], reg, old, new);
             *(buf+1) = new;
         }
     }
@@ -626,24 +970,60 @@ static struct menu_entry crop_rec_menu[] =
                 .priv   = &xres_delta,
                 .max    = 1024,
                 .unit   = UNIT_DEC,
+                .help   = "Additional horizontal resolution (from Canon's video mode)",
             },
             {
                 .name   = "Extra YRES",
                 .priv   = &yres_delta,
+                .min    = -1024,
                 .max    = 4096,
                 .unit   = UNIT_DEC,
+                .help   = "Additional vertical resolution (from Canon's video mode)",
+            },
+            {
+                .name   = "YRES adjust 1",
+                .priv   = &yres_adj1,
+                .min    = -500,
+                .max    = 500,
+                .unit   = UNIT_DEC,
+                .help   = "ADTG 0x8178, 0x8196, 0x82F8",
+            },
+            {
+                .name   = "YRES adjust 2",
+                .priv   = &yres_adj2,
+                .min    = -500,
+                .max    = 500,
+                .unit   = UNIT_DEC,
+                .help   = "ADTG 0x8179, 0x8197, 0x82F9",
+            },
+            {
+                .name   = "YRES adjust 3",
+                .priv   = &yres_adj3,
+                .min    = -500,
+                .max    = 500,
+                .unit   = UNIT_DEC,
+                .help   = "HEAD3 and HEAD4",
             },
             {
                 .name   = "CMOS[1] lo",
                 .priv   = &cmos1_lo,
                 .max    = 63,
                 .unit   = UNIT_DEC,
+                .help   = "Start scanline (very rough)",
             },
             {
                 .name   = "CMOS[1] hi",
                 .priv   = &cmos1_hi,
                 .max    = 63,
                 .unit   = UNIT_DEC,
+                .help   = "End scanline (very rough)",
+            },
+            {
+                .name   = "CMOS[2]",
+                .priv   = &cmos2,
+                .max    = 0xFFF,
+                .unit   = UNIT_HEX,
+                .help   = "Horizontal position / binning",
             },
             MENU_EOL,
         },
@@ -715,42 +1095,7 @@ static unsigned int crop_rec_polling_cbr(unsigned int unused)
         }
         lv_dirty = 0;
     }
-    
-    if (patch_active && !lv_dirty)
-    {
-        if (CROP_PRESET_MENU == CROP_PRESET_3X_VRES ||
-            CROP_PRESET_MENU == CROP_PRESET_3K)
-        {
-            uint32_t raw_res = shamem_read(0xC0F06804);
-            uint32_t xres = raw_res & 0xFFFF;
-            uint32_t yres = raw_res >> 16;
 
-            /* change 1080p and 720p modes */
-            if (raw_res == 0x528011B ||
-                raw_res == 0x2B6011B)
-            {
-                /* adjust raw resolution and also HEAD3 and HEAD4 timers */
-                if (CROP_PRESET_MENU == CROP_PRESET_3K)
-                {
-                    /* this gives 3072 in raw_rec (active area) */
-                    xres = 3416/8;
-                }
-                
-                xres += xres_delta;
-                yres += YRES_DELTA;
-                
-                /* raw resolution */
-                EngDrvOutLV(0xC0F06804, PACK32(xres, yres));
-                
-                /* HEAD3 timer */
-                EngDrvOutLV(0xC0F0713C, shamem_read(0xC0F0713C) + YRES_DELTA);
-                
-                /* HEAD4 timer */
-                EngDrvOutLV(0xC0F07150, shamem_read(0xC0F07150) + YRES_DELTA);
-            }
-        }
-    }
-    
     return CBR_RET_CONTINUE;
 }
 
@@ -780,12 +1125,20 @@ static LVINFO_UPDATE_FUNC(crop_info)
                 );
                 break;
 
-            case CROP_PRESET_3X_VRES:
-                snprintf(buffer, sizeof(buffer), "1:1V");
+            case CROP_PRESET_3X_TALL:
+                snprintf(buffer, sizeof(buffer), "1:1T");
                 break;
 
             case CROP_PRESET_3K:
                 snprintf(buffer, sizeof(buffer), "3K");
+                break;
+
+            case CROP_PRESET_4K_HFPS:
+                snprintf(buffer, sizeof(buffer), "4K");
+                break;
+
+            case CROP_PRESET_UHD:
+                snprintf(buffer, sizeof(buffer), "UHD");
                 break;
 
             case CROP_PRESET_FULLRES_LV:
@@ -844,8 +1197,10 @@ static unsigned int raw_info_update_cbr(unsigned int unused)
         switch (crop_preset)
         {
             case CROP_PRESET_3X:
-            case CROP_PRESET_3X_VRES:
+            case CROP_PRESET_3X_TALL:
             case CROP_PRESET_3K:
+            case CROP_PRESET_4K_HFPS:
+            case CROP_PRESET_UHD:
             case CROP_PRESET_FULLRES_LV:
             case CROP_PRESET_3x1:
                 raw_capture_info.binning_x    = raw_capture_info.binning_y  = 1;
@@ -862,8 +1217,10 @@ static unsigned int raw_info_update_cbr(unsigned int unused)
         switch (crop_preset)
         {
             case CROP_PRESET_3X:
-            case CROP_PRESET_3X_VRES:
+            case CROP_PRESET_3X_TALL:
             case CROP_PRESET_3K:
+            case CROP_PRESET_4K_HFPS:
+            case CROP_PRESET_UHD:
             case CROP_PRESET_FULLRES_LV:
             case CROP_PRESET_1x3:
                 raw_capture_info.binning_y = 1; raw_capture_info.skipping_y = 0;
@@ -880,19 +1237,38 @@ static unsigned int raw_info_update_cbr(unsigned int unused)
         }
 
         /* update skip offsets */
+        /* start from LiveView values */
+        int skip_left       = 146;
+        int skip_right      = 2;
+        int skip_top        = 28;
+        int skip_bottom     = 0;
+
         switch (crop_preset)
         {
             case CROP_PRESET_FULLRES_LV:
-            {
                 /* photo mode values */
-                int skip_left = 138;
-                int skip_right = 2;
-                int skip_top = 60;      /* fixme: this is different, why? */
-                int skip_bottom = 0;
-                raw_set_geometry(raw_info.width, raw_info.height, skip_left, skip_right, skip_top, skip_bottom);
+                skip_left       = 138;
+                skip_right      = 2;
+                skip_top        = 60;   /* fixme: this is different, why? */
                 break;
-            }
+
+            case CROP_PRESET_UHD:
+            case CROP_PRESET_4K_HFPS:
+                skip_top        = 30;
+                skip_right      = 0;    /* required for 3840 - tight fit */
+                break;
+
+            case CROP_PRESET_3X:
+            case CROP_PRESET_1x3:
+                skip_top        = 60;
+                break;
+
+            case CROP_PRESET_3x3_1X:
+                skip_top        = 30;
+                break;
         }
+
+        raw_set_geometry(raw_info.width, raw_info.height, skip_left, skip_right, skip_top, skip_bottom);
     }
     return 0;
 }
