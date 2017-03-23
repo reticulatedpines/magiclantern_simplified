@@ -113,8 +113,9 @@ echo "   cd `pwd`/"
 echo "   ./run_canon_fw.sh 60D"
 echo
 echo "   This will recompile QEMU, but not ML."
-echo "   Note: Canon GUI emulation (well, a small part of it) only works on"
-echo "   60D, 1100D, 1200D, 5D3 1.1.3."
+echo
+echo "   Note: Canon GUI emulation (menu navigation, no LiveView) only works on"
+echo -n "   "; grep --color=never -oP "(?<=MENU_CAMS=\( ).*(?=\))" tests/run_tests.sh;
 echo
 echo "6) Tips & tricks:"
 echo "   - to enable or disable the boot flag in ROM, use something like:"
@@ -125,6 +126,8 @@ echo "   - to show the executed ASM code, step by step, use:"
 echo "     ./run_canon_fw.sh 60D -d exec,int -singlestep"
 echo "   - to trace debug messages and various functions in the firmware, use:"
 echo "     ./run_canon_fw.sh 60D -s -S & arm-none-eabi-gdb -x 60D/debugmsg.gdb"
+echo "   - some camera models require GDB patches to bypass tricky code sequences:"
+echo "     ./run_canon_fw.sh 700D -s -S & arm-none-eabi-gdb -x 700D/patches.gdb"
 echo "   - to trace all function calls and export them to IDA:"
 echo "     ./run_canon_fw.sh 60D -d calls -singlestep"
 echo
