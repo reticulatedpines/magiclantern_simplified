@@ -10,11 +10,34 @@ EOS_CAMS=( 5D 5D2 5D3 5D4 6D 7D 7D2M
 
 POWERSHOT_CAMS=( EOSM3 EOSM10 EOSM5 A1100 )
 
-MENU_CAMS=( 500D )
-
-GUI_CAMS=( 5D3 60D 70D 100D 500D 550D 600D 1200D 1100D )
-
 EOS_SECONDARY_CORES=( 5D3eeko 5D4AE 7D2S )
+
+GUI_CAMS=( 5D3 60D 70D 500D 550D 600D 700D 100D 1100D 1200D )
+
+MENU_CAMS=( 60D 500D 550D 600D 700D 100D 1100D 1200D )
+
+declare -A MENU_SEQUENCE
+MENU_SEQUENCE[60D]="f1 i i i i m right right down down space m m p p"
+MENU_SEQUENCE[500D]="f1 m i i right right up m p p"
+MENU_SEQUENCE[550D]="m i i right right down down down space space p p" # info screen not working
+MENU_SEQUENCE[600D]="i i m right right p p" # starts with sensor cleaning animation; no info screen?
+MENU_SEQUENCE[700D]="f1 m right right p p" # starts in movie mode, no lens
+MENU_SEQUENCE[100D]="f1 left space i i i m right up up space up space p p" # starts with date/time screen
+MENU_SEQUENCE[1100D]="f1 left space i i m i i left m p p down right space right right space up right space" # starts with date/time screen; drive mode not working
+MENU_SEQUENCE[1200D]="f1 left space i i m i i space m m p p down right space right right space up right space" # starts with date/time screen; drive mode not working
+
+FMT_SEQ="space right space wait wait wait f1 space"
+# these are customized for my ROM dumps (keys required to select the Format menu)
+# TODO: some generic way to navigate to Format menu?
+declare -A FORMAT_SEQUENCE
+FORMAT_SEQUENCE[60D]="m $FMT_SEQ"
+FORMAT_SEQUENCE[500D]="m $FMT_SEQ"
+FORMAT_SEQUENCE[550D]="m $FMT_SEQ"
+FORMAT_SEQUENCE[600D]="m right right right $FMT_SEQ"
+FORMAT_SEQUENCE[700D]="m right right right right $FMT_SEQ"  # fixme: free space wrong before format
+FORMAT_SEQUENCE[100D]="m $FMT_SEQ"                          # fixme: free space wrong before format
+FORMAT_SEQUENCE[1100D]="m right right down $FMT_SEQ"
+FORMAT_SEQUENCE[1200D]="m left left $FMT_SEQ"
 
 if false ; then
     # to test only specific models
@@ -156,7 +179,7 @@ for CAM in ${MENU_CAMS[*]}; do
   for k in 1 2 3; do
     printf "%5s: " $CAM
     mkdir -p tests/$CAM/
-    rm -f tests/$CAM/menu.ppm
+    rm -f tests/$CAM/menu*[0-9].png
     rm -f tests/$CAM/menu.log
 
     if [ -f $CAM/patches.gdb ]; then
@@ -169,7 +192,7 @@ for CAM in ${MENU_CAMS[*]}; do
     sleep 15
 
     count=0;
-    for key in f1 m i i right right up m p p; do
+    for key in ${MENU_SEQUENCE[$CAM]}; do
         vncdotool -s :12345 key $key; sleep 1
         vncdotool -s :12345 capture tests/$CAM/menu$((count++)).png
         echo -n .
@@ -181,20 +204,20 @@ for CAM in ${MENU_CAMS[*]}; do
   done
 done
 
-# re-create the card images, just in case
-rm sd.img; unxz -k sd.img.xz; cp sd.img cf.img
-
 # These cameras should be able to format the virtual card:
 echo
 echo "Testing card formatting..."
-for CAM in 500D; do
+for CAM in ${MENU_CAMS[*]}; do
   # allow up to 3 retries if unsuccessful
   # fixme: nondeterministic bugs in emulation
   for k in 1 2 3; do
     printf "%5s: " $CAM
     mkdir -p tests/$CAM/
-    rm -f tests/$CAM/format.ppm
+    rm -f tests/$CAM/format*[0-9].png
     rm -f tests/$CAM/format.log
+
+    # re-create the card images before each test
+    rm sd.img; unxz -k sd.img.xz; cp sd.img cf.img
 
     if [ -f $CAM/patches.gdb ]; then
         (./run_canon_fw.sh $CAM,firmware="boot=0" -vnc :12345 -s -S & \
@@ -206,7 +229,7 @@ for CAM in 500D; do
     sleep 15
 
     count=0;
-    for key in m space right space wait wait wait f1 space; do
+    for key in ${FORMAT_SEQUENCE[$CAM]}; do
         if [ $key = wait ]; then sleep 1; continue; fi
         vncdotool -s :12345 key $key; sleep 1
         vncdotool -s :12345 capture tests/$CAM/format$((count++)).png
