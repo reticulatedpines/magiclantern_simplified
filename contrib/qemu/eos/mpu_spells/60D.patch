@@ -17,9 +17,14 @@
          { 0 } } },
      { { 0x08, 0x06, 0x03, 0x18, 0x00, 0x00, 0x00 }, {           /* spell #29 */
          { 0 } } },
-@@ -164,3 +168,94 @@
+@@ -163,4 +167,99 @@
+         { 0 } } },
      { { 0x06, 0x05, 0x03, 0x19, 0x00, 0x00 }, {                 /* spell #43 */
          { 0 } } },
++
++    #include "NotifyGUIEvent.h"
++    #include "UILock.h"
++    #include "CardFormat.h"
  };
 +
 +/**

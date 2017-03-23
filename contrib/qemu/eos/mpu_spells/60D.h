@@ -167,6 +167,10 @@ static struct mpu_init_spell mpu_init_spells_60D[] = {
         { 0 } } },
     { { 0x06, 0x05, 0x03, 0x19, 0x00, 0x00 }, {                 /* spell #43 */
         { 0 } } },
+
+    #include "NotifyGUIEvent.h"
+    #include "UILock.h"
+    #include "CardFormat.h"
 };
 
 /**
