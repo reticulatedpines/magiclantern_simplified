@@ -118,7 +118,17 @@ for l in lines:
         spell = m.groups()[0].strip()
         num2 += 1
 
-        print("        %-56s/* reply #%d.%d" % (format_spell(spell) + ",", num, num2), end="")
+        # comment out button codes
+        cmt = "  "
+        if spell.startswith("06 05 06 "):
+            args = spell.split(" ")[3:5]
+            args = tuple([int(a,16) for a in args])
+            if args in bind_switches:
+                btn_code = bind_switches[args][0]
+                if btn_code in switch_names:
+                    cmt = "//"
+
+        print("     %s %-56s/* reply #%d.%d" % (cmt, format_spell(spell) + ",", num, num2), end="")
         
         if spell.startswith("06 05 06 "):
             args = spell.split(" ")[3:5]
