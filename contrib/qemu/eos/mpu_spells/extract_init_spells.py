@@ -12,7 +12,7 @@ first_mpu_send_only = False
 def format_spell(spell):
     bytes = spell.split(" ")
     bytes = ["0x" + b for b in bytes]
-    return "{ " + ", ".join(bytes) + " },"
+    return "{ " + ", ".join(bytes) + " }"
 
 log_fullpath = sys.argv[1]
 f = open(log_fullpath, "r")
@@ -22,7 +22,7 @@ lines = f.readlines()
 [log_path, log_filename] = os.path.split(log_fullpath)
 model = log_filename[:log_filename.index("-")]
 
-print("static struct mpu_init_spell mpu_init_spells_%s[] = { {" % model)
+print("static struct mpu_init_spell mpu_init_spells_%s[] = {" % model)
 first_block = True
 num = 0
 num2 = 0
@@ -72,52 +72,53 @@ for l in lines:
             num2 = 0
             
             if first_block: first_block = False
-            else: print("        { 0 } } }, {")
+            else: print("        { 0 } } },")
             
             if waitid_prop:
                 assert spell.startswith("08 06 00 00 ")
-                print("    %-60s/* spell #%d, Complete WaitID = %s */" % (format_spell(spell) + " {", num, waitid_prop))
+                print("    { %-58s/* spell #%d, Complete WaitID = %s */" % (format_spell(spell) + ", {", num, waitid_prop))
                 waitid_prop = None
                 continue
             
             if spell.startswith("06 05 01 00 "):
                 arg = int(spell.split(" ")[4], 16)
-                print("    %-60s/* spell #%d, PROP_SHOOTING_MODE(%d) */" % (format_spell(spell) + " {", num, arg))
+                print("    { %-58s/* spell #%d, PROP_SHOOTING_MODE(%d) */" % (format_spell(spell) + ", {", num, arg))
                 continue
             
             if spell.startswith("06 05 03 07 "):
                 arg = int(spell.split(" ")[4], 16)
-                print("    %-60s/* spell #%d, PROP_BURST_COUNT(%d) */" % (format_spell(spell) + " {", num, arg))
+                print("    { %-58s/* spell #%d, PROP_BURST_COUNT(%d) */" % (format_spell(spell) + ", {", num, arg))
                 continue
             
             if spell.startswith("06 05 04 00 "):
                 arg = int(spell.split(" ")[4], 16)
-                print("    %-60s/* spell #%d, NotifyGUIEvent(%d) */" % (format_spell(spell) + " {", num, arg))
+                print("    { %-58s/* spell #%d, NotifyGUIEvent(%d) */" % (format_spell(spell) + ", {", num, arg))
                 continue
             
             if spell.startswith("06 05 04 01 "):
                 arg = int(spell.split(" ")[4], 16)
-                print("    %-60s/* spell #%d, PROP_ICU_UILOCK(%x) */" % (format_spell(spell) + " {", num, arg))
+                print("    { %-58s/* spell #%d, PROP_ICU_UILOCK(%x) */" % (format_spell(spell) + ", {", num, arg))
                 continue
             
             if spell.startswith("08 06 01 27 00 "):
                 arg = int(spell.split(" ")[5], 16)
-                print("    %-60s/* spell #%d, PROP_CARD1_FOLDER_NUMBER(%d) */" % (format_spell(spell) + " {", num, arg))
+                print("    { %-58s/* spell #%d, PROP_CARD1_FOLDER_NUMBER(%d) */" % (format_spell(spell) + ", {", num, arg))
                 continue
             
             if spell.startswith("08 07 01 2a "):
                 arg = int(spell.split(" ")[4], 16) * 256 + int(spell.split(" ")[5], 16)
-                print("    %-60s/* spell #%d, PROP_CARD2_FILE_NUMBER(%d) */" % (format_spell(spell) + " {", num, arg))
+                print("    { %-58s/* spell #%d, PROP_CARD2_FILE_NUMBER(%d) */" % (format_spell(spell) + ", {", num, arg))
                 continue
             
-            print("    %-60s/* spell #%d */" % (format_spell(spell) + " {", num))
+            print("    { %-58s/* spell #%d */" % (format_spell(spell) + ", {", num))
             continue
 
     m = re.match(".* mpu_recv\(([^()]*)\)", l)
     if m:
         spell = m.groups()[0].strip()
         num2 += 1
-        print("        %-56s/* reply #%d.%d" % (format_spell(spell), num, num2), end="")
+
+        print("        %-56s/* reply #%d.%d" % (format_spell(spell) + ",", num, num2), end="")
         
         if spell.startswith("06 05 06 "):
             args = spell.split(" ")[3:5]
@@ -159,5 +160,5 @@ for l in lines:
     if m:
         waitid_prop = m.groups()[0]
 
-print("        { 0 } } }")
+print("        { 0 } } },")
 print("};")
