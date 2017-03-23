@@ -2176,6 +2176,11 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             ret = 0;
             break;
 
+        case 0xFA0C:
+            msg = "100D: locks up";
+            ret = rand();
+            break;
+
         case 0xF100:
             if(type & MODE_WRITE)
             {
