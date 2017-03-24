@@ -125,7 +125,7 @@ for CAM in ${EOS_CAMS[*]} ${EOS_SECONDARY_CORES[*]}; do
     (./run_canon_fw.sh $CAM,firmware="boot=0" -display none &> tests/$CAM/boot.log) &
     sleep 0.5
     ( timeout 5 tail -f -n100000 tests/$CAM/boot.log & ) | grep --binary-files=text -qP "\x1B\x5B31mD\x1B\x5B0m\x1B\x5B31mY\x1B\x5B0m"
-    killall -INT qemu-system-arm &>> tests/$CAM/boot.log
+    killall -INT qemu-system-arm &>> tests/$CAM/boot.log; sleep 1
     
     tests/check_grep.sh tests/$CAM/boot.log -E "([KR].* (READY|AECU)|Intercom|Dry)"
 done
@@ -161,7 +161,7 @@ for CAM in ${EOS_CAMS[*]}; do
     sleep 0.5
     ( timeout 10 tail -f -n100000 tests/$CAM/hptimer.log & ) | grep --binary-files=text -qP "\x1B\x5B34mH\x1B\x5B0m\x1B\x5B34me\x1B\x5B0m"
     sleep 2
-    killall -INT qemu-system-arm &>> tests/$CAM/hptimer.log
+    killall -INT qemu-system-arm &>> tests/$CAM/hptimer.log; sleep 1
     
     tests/check_grep.sh tests/$CAM/hptimer.log -m1 "Hello from task run_test"
     printf "       "
@@ -182,6 +182,8 @@ for CAM in ${MENU_CAMS[*]}; do
     rm -f tests/$CAM/menu*[0-9].png
     rm -f tests/$CAM/menu.log
 
+    sleep 5
+
     if [ -f $CAM/patches.gdb ]; then
         (./run_canon_fw.sh $CAM,firmware="boot=0" -vnc :12345 -s -S & \
             arm-none-eabi-gdb -x $CAM/patches.gdb &) &> tests/$CAM/menu.log
@@ -198,7 +200,7 @@ for CAM in ${MENU_CAMS[*]}; do
         echo -n .
     done
 
-    killall -INT qemu-system-arm &>> tests/$CAM/menu.log
+    killall -INT qemu-system-arm &>> tests/$CAM/menu.log; sleep 1
 
     tests/check_md5.sh tests/$CAM/ menu && break || cat tests/$CAM/menu.md5.log
   done
@@ -236,7 +238,7 @@ for CAM in ${MENU_CAMS[*]}; do
         echo -n .
     done
 
-    killall -INT qemu-system-arm &>> tests/$CAM/format.log
+    killall -INT qemu-system-arm &>> tests/$CAM/format.log; sleep 1
 
     tests/check_md5.sh tests/$CAM/ format && break || cat tests/$CAM/format.md5.log
   done
@@ -314,8 +316,7 @@ for CAM in 500D; do
         vncexpect f1    $ML_RESTORED 20 $T$((count++)).png || break # wait for "Magic Lantern restored"
         vncexpect f1    $RESTARTING_ 10 $T$((count++)).png || break # wait for "Restarting camera..."
 
-        killall -INT qemu-system-arm &>> tests/$CAM/$TST.log
-        sleep 5
+        killall -INT qemu-system-arm &>> tests/$CAM/$TST.log; sleep 5
 
         if [ $t -eq 3 ]; then
             echo " OK"   # one complete test run, stop here
@@ -325,7 +326,7 @@ for CAM in 500D; do
         fi
     done
 
-    killall -INT qemu-system-arm &>> tests/$CAM/$TST.log
+    killall -INT qemu-system-arm &>> tests/$CAM/$TST.log; sleep 1
     echo -e "\e[31mFAILED!\e[0m"
   done
 done
@@ -366,8 +367,7 @@ for CAM in ${EOS_CAMS[*]} ${EOS_SECONDARY_CORES[*]} ${POWERSHOT_CAMS[*]}; do
     sleep 0.5
     ( timeout 10 tail -f -n100000 tests/$CAM/gdb.log & ) | grep --binary-files=text -qP "task_create\("
     sleep 1
-    killall -INT qemu-system-arm &>> tests/$CAM/gdb.log
-    sleep 0.2
+    killall -INT qemu-system-arm &>> tests/$CAM/gdb.log; sleep 1
 
     tac tests/$CAM/gdb.log > tmp
     tests/check_grep.sh tmp -Em1 "task_create\("
@@ -440,8 +440,7 @@ for CAM in ${GUI_CAMS[*]} EOSM 450D; do
         (./run_canon_fw.sh $CAM,firmware="boot=0" -display none -s -S & \
          arm-none-eabi-gdb -x $CAM/patches.gdb &) &> tests/$CAM/dcim.log
         sleep 15
-        killall -INT qemu-system-arm &>> tests/$CAM/dcim.log
-        sleep 0.2
+        killall -INT qemu-system-arm &>> tests/$CAM/dcim.log; sleep 1
     else
         (sleep 15; echo quit) \
             | ./run_canon_fw.sh $CAM,firmware="boot=0" -display none -monitor stdio &> tests/$CAM/dcim.log
@@ -485,7 +484,7 @@ for CAM in ${POWERSHOT_CAMS[*]}; do
      arm-none-eabi-gdb -x EOSM3/debugmsg.gdb &) &> tests/$CAM/boot.log
     sleep 0.5
     ( timeout 10 tail -f -n100000 tests/$CAM/boot.log & ) | grep --binary-files=text -qP "\x1B\x5B31ma\x1B\x5B0m\x1B\x5B31my\x1B\x5B0m"
-    killall -INT qemu-system-arm &>> tests/$CAM/boot.log
+    killall -INT qemu-system-arm &>> tests/$CAM/boot.log; sleep 1
 
     printf "  SD boot: "; tests/check_grep.sh tests/$CAM/boot.log -om1 "StartDiskboot"
     printf "  Display: "; tests/check_grep.sh tests/$CAM/boot.log -om1 "TurnOnDisplay"
