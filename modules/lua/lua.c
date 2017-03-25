@@ -620,6 +620,7 @@ struct lua_script
     int load_time;
     int cant_unload;
     int cant_yield;
+    int tasks_started;
     lua_State * L;
     struct script_semaphore * sem;
     struct menu_entry * menu_entry;
@@ -628,6 +629,10 @@ struct lua_script
 
 static struct lua_script * lua_scripts = NULL;
 
+/* note: when specifying LUA_TASK_UNLOAD_MASK,
+ * the caller must have started or stopped one task (not more, not less)
+ * because this routine also keeps a counter of how many tasks were started
+ */
 void lua_set_cant_unload(lua_State * L, int cant_unload, int mask)
 {
     struct lua_script * current;
@@ -635,6 +640,19 @@ void lua_set_cant_unload(lua_State * L, int cant_unload, int mask)
     {
         if(current->L == L)
         {
+            if (mask & LUA_TASK_UNLOAD_MASK)
+            {
+                /* the script started or stopped one task */
+                current->tasks_started += (cant_unload ? 1 : -1);
+                
+                if (!cant_unload && current->tasks_started)
+                {
+                    /* if there are still tasks running,
+                     * we cannot allow unloading yet */
+                    mask &= ~LUA_TASK_UNLOAD_MASK;
+                }
+            }
+
             if(cant_unload)
             {
                 current->cant_unload |= (1 << mask);
@@ -766,6 +784,7 @@ static void load_script(struct lua_script * script)
     lua_State* L = script->L = load_lua_state(script->argc, script->argv);
     script->cant_unload = 0;
     script->cant_yield = 0;
+    script->tasks_started = 0;
     lua_clear_last_error(script);
     
     if (!script->sem)

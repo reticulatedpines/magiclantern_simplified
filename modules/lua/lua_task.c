@@ -30,15 +30,39 @@ static void lua_run_task(struct lua_task_func * lua_task_func)
         struct semaphore * sem = NULL;
         if(!lua_take_semaphore(L, 0, &sem) && sem)
         {
+            if (lua_get_cant_yield(L) == -1)
+            {
+                /* main task was unloaded? continuing would be use after free */
+                fprintf(stderr, "[Lua] will not start new tasks.\n");
+                goto skip;
+            }
+            
             if(lua_rawgeti(L, LUA_REGISTRYINDEX, lua_task_func->function_ref) == LUA_TFUNCTION)
             {
+                /* script created a task;
+                 * it can't be unloaded while this task is running */
+                lua_set_cant_unload(L, 1, LUA_TASK_UNLOAD_MASK);
+
+                fprintf(stderr, "[Lua] task starting.\n", lua_tostring(L, -1));
+
                 if(docall(L, 0, 0))
                 {
-                    fprintf(stderr, "script failed:\n %s\n", lua_tostring(L, -1));
+                    fprintf(stderr, "[Lua] task error:\n%s\n", lua_tostring(L, -1));
                     lua_save_last_error(L);
                 }
                 luaL_unref(L, LUA_REGISTRYINDEX, lua_task_func->function_ref);
+
+                fprintf(stderr, "[Lua] task finished.\n");
+
+                /* If all tasks started by the script are finished
+                 * _before_ the main task ends, the script can be unloaded.
+                 * Note: lua_set_cant_unload keeps a counter of tasks
+                 * (number of calls LUA_TASK_UNLOAD_MASK)
+                 */
+                lua_set_cant_unload(L, 0, LUA_TASK_UNLOAD_MASK);
             }
+
+        skip:
             give_semaphore(sem);
         }
         else
@@ -64,9 +88,6 @@ static int luaCB_task_create(lua_State * L)
     
     struct lua_task_func * func = malloc(sizeof(struct lua_task_func));
     if(!func) return luaL_error(L, "malloc error\n");
-    
-    //script created a task so it can't be unloaded
-    lua_set_cant_unload(L, 1, LUA_TASK_UNLOAD_MASK);
     
     func->L = L;
     func->function_ref = luaL_ref(L, LUA_REGISTRYINDEX);
