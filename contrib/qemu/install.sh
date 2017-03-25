@@ -90,14 +90,7 @@ echo
 echo "   For models that use a serial flash, you may have to dump its contents"
 echo "   using the sf_dump module, then copy SFDATA.BIN as well."
 echo
-echo "3) Enable CONFIG_QEMU=y in your Makefile.user"
-echo "   from magic-lantern directory, then run 'make clean' to make sure"
-echo "   you will rebuild ML from scratch."
-echo
-echo "   Caveat: you can't run autoexec.bin compiled with CONFIG_QEMU on the camera,"
-echo "   and neither a vanilla autoexec in QEMU (yet), so be careful not to mix them."
-echo
-echo "4) Mount the included SD (or CF) image (you may use mount.sh)"
+echo "3) Mount the included SD (or CF) image (you may use mount.sh)"
 echo "   and install ML on it, as usual. The card image must be bootable as well."
 echo
 echo "   The included card image is bootable and contains a small autoexec.bin"
@@ -107,7 +100,7 @@ echo "   To create your own SD/CF image, you need to copy the raw contents"
 echo "   of the entire card, not just one partition. For example:"
 echo "   dd if=/dev/mmcblk0 of=sd.img"
 echo
-echo "5) Start emulation with:"
+echo "4) Start emulation with:"
 echo
 echo "   cd `pwd`/"
 echo "   ./run_canon_fw.sh 60D"
@@ -117,7 +110,7 @@ echo
 echo "   Note: Canon GUI emulation (menu navigation, no LiveView) only works on"
 echo -n "   "; grep --color=never -oP "(?<=MENU_CAMS=\( ).*(?=\))" tests/run_tests.sh;
 echo
-echo "6) Tips & tricks:"
+echo "5) Tips & tricks:"
 echo "   - to enable or disable the boot flag in ROM, use something like:"
 echo "     ./run_canon_fw.sh 60D,firmware=\"boot=1\""
 echo "   - to show MMIO activity (registers) and interrupts, use:"
@@ -130,5 +123,9 @@ echo "   - some camera models require GDB patches to bypass tricky code sequence
 echo "     ./run_canon_fw.sh 700D -s -S & arm-none-eabi-gdb -x 700D/patches.gdb"
 echo "   - to trace all function calls and export them to IDA:"
 echo "     ./run_canon_fw.sh 60D -d calls -singlestep"
+echo "   - you may enable additional debug code (such as printing to QEMU console)"
+echo "     by compiling ML with CONFIG_QEMU=y in your Makefile.user (also run make clean)."
+echo "   - caveat: you cannot run autoexec.bin compiled with CONFIG_QEMU on the camera." 
+
 echo
 echo "Enjoy!"
