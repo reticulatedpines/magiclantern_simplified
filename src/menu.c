@@ -5726,7 +5726,8 @@ void menu_toggle_submenu()
 
 int handle_quick_access_menu_items(struct event * event)
 {
-#ifdef BGMT_Q
+/* only for cameras with a native (not emulated) Q button */
+#if defined(BGMT_Q) && BGMT_Q > 0
     // quick access to some menu items
     #ifdef BGMT_Q_ALT
     if (event->param == BGMT_Q_ALT && !gui_menu_shown())
