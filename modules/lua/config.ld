@@ -10,21 +10,26 @@ Startup
 The scripting engine looks for scripts in `ML/SCRIPTS`. Scripts should end with `.LUA`.
 
 There are two types of scripts "simple" and "complex". "Simple" scripts do not define
-custom menus, don't start any tasks, and don't leave any event or property handlers
+custom menus, don't leave any background tasks running, or any event or property handlers
 registered when they finish loading. The user will be able to execute such scripts from
 the 'Scripts' menu and they will not autorun when the camera starts. Also, such scripts
 will be 'unloaded' when they're not actively running, which will help conserve memory.
 
-"Complex" scripts are any scripts that define custom menus, start a task(s), or leave
-event or property handlers registered when they finish loading. These scripts
+"Complex" scripts are any scripts that define custom menus, start background task(s),
+or leave event or property handlers registered when they finish loading. These scripts
 cannot be unloaded; they will run in background until the camera is turned off.
+
+Tasks, event handlers and property handlers are allowed in simple scripts
+as long as they are cleaned up before the main task exits
+(that is, the top-level code from your script).
+See @{unload.lua} and @{api_test.lua} for examples.
 
 Menus
 -----
 All script will appear in the 'Scripts' menu. Scripts can be run from here and autorun
 can be toggled on or off. Scripts can also define their own menu(s) elsewhere if they
 need extra settings or parameters. See: @{menu}, @{copy2m.lua}, @{menutest.lua},
-@{recdelay.lua}
+@{recdelay.lua}.
 
 State
 -----
@@ -34,7 +39,7 @@ persist until the camera is turned off. "Simple" scripts are unloaded when they 
 executing, so global state is lost when the script is executed again (if you need to
 persist information from run to run, you can use file I/O).
 
-Each script get's it's own lua state (virtual machine). If you would like scripts to
+Each script gets it's own Lua state (virtual machine). If you would like scripts to
 share a state, have only one of the scripts in the `ML/SCRIPTS` folder, and have it
 call the other scripts with dofile() or require()
 
@@ -59,9 +64,9 @@ yielded when the script returns from a call.
 When writing a script, you should be mindful of the context (task) from which your
 script is running, and consider when it might be appropriate to start something in a
 separate task (to keep from blocking some ML or Canon task), or when to yield (to
-keep the script from blocking itself)
+keep the script from blocking itself).
 
-See: @{task}
+See: @{task}, @{api_test.lua}, @{unload.lua}, @{recdelay.lua}, @{calc.lua}, @{editor.lua}.
 
 Library Scripts
 ---------------
@@ -87,10 +92,9 @@ about blocking Canon code, but doing so will block subsequent property handlers.
 
 Errors
 ------
-Unhandled errors are logged to the "console". You can turn it on from Debug >
-Modules debug > Show Console. This is also where you will see the output of
-the print() function. You can also implement your own error handling
-see @{editor.lua}
+Unhandled errors are logged to the "console". You can turn it on from Scripts > Show Console.
+This is also where you will see the output of the print() function.
+You can also implement your own error handling, see @{editor.lua}.
 
 Standard Libraries
 ------------------
