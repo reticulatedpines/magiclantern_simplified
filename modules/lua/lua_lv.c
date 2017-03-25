@@ -159,7 +159,7 @@ static LVINFO_UPDATE_FUNC(lua_lvinfo_update)
                 lua_rawgeti(L, LUA_REGISTRYINDEX, entry->self_ref);
                 if(docall(L, 1, 1))
                 {
-                    fprintf(stderr, "script error:\n %s\n", lua_tostring(L, -1));
+                    fprintf(stderr, "[Lua] script error:\n %s\n", lua_tostring(L, -1));
                     lua_save_last_error(L);
                 }
             }
@@ -169,7 +169,7 @@ static LVINFO_UPDATE_FUNC(lua_lvinfo_update)
     }
     else
     {
-        printf("lua semaphore timeout: lv.info.update (%dms)\n", 50);
+        printf("[Lua] semaphore timeout: lv.info.update (%dms)\n", 50);
     }
 }
 

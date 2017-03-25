@@ -43,7 +43,7 @@ static void lua_run_task(struct lua_task_func * lua_task_func)
                  * it can't be unloaded while this task is running */
                 lua_set_cant_unload(L, 1, LUA_TASK_UNLOAD_MASK);
 
-                fprintf(stderr, "[Lua] task starting.\n", lua_tostring(L, -1));
+                printf("[Lua] task starting.\n", lua_tostring(L, -1));
 
                 if(docall(L, 0, 0))
                 {
@@ -52,7 +52,7 @@ static void lua_run_task(struct lua_task_func * lua_task_func)
                 }
                 luaL_unref(L, LUA_REGISTRYINDEX, lua_task_func->function_ref);
 
-                fprintf(stderr, "[Lua] task finished.\n");
+                printf("[Lua] task exiting.\n");
 
                 /* If all tasks started by the script are finished
                  * _before_ the main task ends, the script can be unloaded.
@@ -61,13 +61,18 @@ static void lua_run_task(struct lua_task_func * lua_task_func)
                  */
                 lua_set_cant_unload(L, 0, LUA_TASK_UNLOAD_MASK);
             }
+            else
+            {
+                /* should be covered in luaCB_task_create */
+                ASSERT(0);
+            }
 
         skip:
             give_semaphore(sem);
         }
         else
         {
-            printf("lua semaphore timeout: run task (%dms)\n", 0);
+            printf("[Lua] semaphore error: run task\n");
         }
         free(lua_task_func);
     }

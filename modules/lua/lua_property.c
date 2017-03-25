@@ -84,7 +84,7 @@ static void lua_prop_task(int unused)
                     else lua_pushinteger(L, *((uint8_t*)(msg->value)));
                     if(docall(L, 2, 0))
                     {
-                        fprintf(stderr, "script prop handler failed:\n %s\n", lua_tostring(L, -1));
+                        fprintf(stderr, "[Lua] prop handler failed:\n %s\n", lua_tostring(L, -1));
                         lua_save_last_error(L);
                     }
                 }
@@ -92,7 +92,7 @@ static void lua_prop_task(int unused)
             }
             else
             {
-                printf("lua semaphore timeout: prop handler %d (%dms)\n", lua_prop->prop_id, 1000);
+                printf("[Lua] semaphore timeout: prop handler %d (%dms)\n", lua_prop->prop_id, 1000);
             }
         }
         free(msg->value);
@@ -114,7 +114,7 @@ static void lua_prophandler(unsigned property, void * priv, void * addr, unsigne
     }
     else
     {
-        fprintf(stderr, "lua_prophandler: malloc error");
+        fprintf(stderr, "[Lua] lua_prophandler: malloc error");
     }
 }
 

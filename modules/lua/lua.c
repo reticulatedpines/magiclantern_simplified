@@ -67,7 +67,7 @@ int lua_take_semaphore(lua_State * L, int timeout, struct semaphore ** assoc_sem
             return take_semaphore(current->semaphore, timeout);
         }
     }
-    fprintf(stderr, "error: could not find semaphore for lua state\n");
+    fprintf(stderr, "[Lua] error: could not find semaphore for lua state\n");
     return -1;
 }
 
@@ -82,7 +82,7 @@ int lua_give_semaphore(lua_State * L, struct semaphore ** assoc_semaphore)
             return give_semaphore(current->semaphore);
         }
     }
-    fprintf(stderr, "error: could not find semaphore for lua state\n");
+    fprintf(stderr, "[Lua] error: could not find semaphore for lua state\n");
     return -1;
 }
 
@@ -168,7 +168,7 @@ static unsigned int lua_do_cbr(unsigned int ctx, struct script_event_entry * eve
                     lua_pushinteger(L, ctx);
                     if(docall(L, 1, 1))
                     {
-                        fprintf(stderr, "lua cbr error:\n %s\n", lua_tostring(L, -1));
+                        fprintf(stderr, "[Lua] cbr error:\n %s\n", lua_tostring(L, -1));
                         lua_save_last_error(L);
                         result = CBR_RET_ERROR;
                         give_semaphore(sem);
@@ -191,7 +191,7 @@ static unsigned int lua_do_cbr(unsigned int ctx, struct script_event_entry * eve
             }
             else
             {
-                printf("lua semaphore timeout: %s (%dms)\n", event_name, timeout);
+                printf("[Lua] semaphore timeout: %s (%dms)\n", event_name, timeout);
             }
         }
     }
@@ -576,7 +576,7 @@ static lua_State * load_lua_state(int argc, char** argv)
         if (!strict_lua)
         {
             /* allow scripts to run without strict.lua, if not present */
-            printf("Warning: strict.lua not found.\n");
+            printf("[Lua] warning: strict.lua not found.\n");
         }
         
         /* note: strict_lua is never freed */
@@ -664,7 +664,7 @@ void lua_set_cant_unload(lua_State * L, int cant_unload, int mask)
             return;
         }
     }
-    fprintf(stderr, "lua_set_cant_unload: script not found\n");
+    fprintf(stderr, "[Lua] lua_set_cant_unload: script not found\n");
 }
 
 static void lua_clear_last_error(struct lua_script * script)
@@ -697,7 +697,7 @@ void lua_set_last_menu(lua_State * L, const char * parent_menu, const char * men
     {
         if(script->L == L)
         {
-            printf(" [i] menu: %s - %s\n", parent_menu, menu_entry);
+            printf("[Lua] menu: %s - %s\n", parent_menu, menu_entry);
             script->last_menu_parent = parent_menu;
             script->last_menu_entry = menu_entry;
         }
@@ -775,7 +775,7 @@ static void load_script(struct lua_script * script)
 {
     if(script->L)
     {
-        fprintf(stderr, "script is already running\n");
+        fprintf(stderr, "[Lua] script is already running\n");
         return;
     }
     
@@ -804,7 +804,7 @@ static void load_script(struct lua_script * script)
         int error = 0;
         char full_path[MAX_PATH_LEN];
         snprintf(full_path, MAX_PATH_LEN, SCRIPTS_DIR "/%s", script->filename);
-        printf("Loading script: %s\n", script->filename);
+        printf("[Lua] loading script: %s.\n", script->filename);
 
         int status = luaL_loadfile(L, full_path);
         if (status == LUA_OK) {
@@ -843,7 +843,7 @@ static void load_script(struct lua_script * script)
             {
                 if (lua_loaded)
                 {
-                    printf(" [i] %s: enabling autorun (reason: %s%s%s%s%s\b\b).\n", script->filename,
+                    printf("[Lua] %s: enabling autorun (reason: %s%s%s%s%s\b\b).\n", script->filename,
                         script->cant_unload & (1<<LUA_MENU_UNLOAD_MASK)   ? "menu item, " : "",
                         script->cant_unload & (1<<LUA_TASK_UNLOAD_MASK)   ? "task started, " : "",
                         script->cant_unload & (1<<LUA_LVINFO_UNLOAD_MASK) ? "LVInfo item, " : "",
@@ -855,7 +855,7 @@ static void load_script(struct lua_script * script)
             }
             else
             {
-                printf(" [E] %s: not enabling autorun (error).\n", script->filename);
+                printf("[Lua] %s: not enabling autorun (error).\n", script->filename);
             }
         }
         else
@@ -868,12 +868,12 @@ static void load_script(struct lua_script * script)
             script->menu_entry->icon_type = IT_ACTION;
             script->state = SCRIPT_STATE_NOT_RUNNING;
             script->load_time = 0;
-            printf("%s: script finished.\n", script->filename);
+            printf("[Lua] script finished: %s.\n\n", script->filename);
         }
     }
     else
     {
-        fprintf(stderr, "load script failed: could not create semaphore\n");
+        fprintf(stderr, "[Lua] load script failed: could not create semaphore\n");
     }
 }
 
@@ -1022,7 +1022,7 @@ static MENU_SELECT_FUNC(lua_script_edit)
     if (!editor)
     {
         console_show();
-        printf("Could not find EDITOR.LUA.");
+        printf("[Lua] could not find EDITOR.LUA.");
         return;
     }
     
@@ -1041,7 +1041,7 @@ static MENU_SELECT_FUNC(lua_script_edit)
     else
     {
         console_show();
-        printf("Could not start EDITOR.LUA.");
+        printf("[Lua] could not start EDITOR.LUA.");
     }
 }
 
@@ -1237,7 +1237,7 @@ err:
         free(new_script->filename);
         free(new_script);
     }
-    fprintf(stderr, "add_script: malloc error\n");
+    fprintf(stderr, "[Lua] add_script: malloc error\n");
 }
 
 static void lua_do_autoload()
@@ -1292,12 +1292,12 @@ static void lua_load_task(int unused)
     
     extern int core_reallocs;    /* ml-lua-shim.c */
     extern int core_reallocs_size;
-    printf("Free umm_heap : %s\n", format_memory_size(umm_free_heap_size()));
+    printf("[Lua] free umm_heap : %s\n", format_memory_size(umm_free_heap_size()));
     if (core_reallocs)
     {
-        printf("Core reallocs : %d (%s)\n", core_reallocs, format_memory_size(core_reallocs_size));
+        printf("[Lua] core reallocs : %d (%s)\n", core_reallocs, format_memory_size(core_reallocs_size));
     }
-    printf("All scripts loaded.\n");
+    printf("[Lua] all scripts loaded.\n");
     lua_loaded = 1;
 
     /* wait for key pressed or for 5-second timeout, whichever comes first */
