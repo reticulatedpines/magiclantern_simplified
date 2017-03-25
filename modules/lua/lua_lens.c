@@ -176,7 +176,7 @@ static int luaCB_lens_autofocus(lua_State * L)
         else
         {
             /* timeout */
-            printf("[Lua] focus status: %d\n", lv_focus_status);
+            printf("[%s] focus status: %d\n", lua_get_script_filename(L), lv_focus_status);
             goto error;
         }
     }

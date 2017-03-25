@@ -112,6 +112,8 @@ void lua_set_last_menu(lua_State * L, const char * parent_menu, const char * men
 void lua_set_cant_yield(lua_State * L, int cant_yield);
 int  lua_get_cant_yield(lua_State * L);
 
+const char * lua_get_script_filename(lua_State * L);
+
 int luaCB_next(lua_State * L);
 int luaCB_pairs(lua_State * L);
 

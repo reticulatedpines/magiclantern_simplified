@@ -67,7 +67,7 @@ int lua_take_semaphore(lua_State * L, int timeout, struct semaphore ** assoc_sem
             return take_semaphore(current->semaphore, timeout);
         }
     }
-    fprintf(stderr, "[Lua] error: could not find semaphore for lua state\n");
+    fprintf(stderr, "[%s] error: could not find semaphore for lua state\n", lua_get_script_filename(L));
     return -1;
 }
 
@@ -82,7 +82,7 @@ int lua_give_semaphore(lua_State * L, struct semaphore ** assoc_semaphore)
             return give_semaphore(current->semaphore);
         }
     }
-    fprintf(stderr, "[Lua] error: could not find semaphore for lua state\n");
+    fprintf(stderr, "[%s] error: could not find semaphore for lua state\n", lua_get_script_filename(L));
     return -1;
 }
 
@@ -168,7 +168,7 @@ static unsigned int lua_do_cbr(unsigned int ctx, struct script_event_entry * eve
                     lua_pushinteger(L, ctx);
                     if(docall(L, 1, 1))
                     {
-                        fprintf(stderr, "[Lua] cbr error:\n %s\n", lua_tostring(L, -1));
+                        fprintf(stderr, "[%s] cbr error:\n %s\n", lua_get_script_filename(L), lua_tostring(L, -1));
                         lua_save_last_error(L);
                         result = CBR_RET_ERROR;
                         give_semaphore(sem);
@@ -191,7 +191,7 @@ static unsigned int lua_do_cbr(unsigned int ctx, struct script_event_entry * eve
             }
             else
             {
-                printf("[Lua] semaphore timeout: %s (%dms)\n", event_name, timeout);
+                printf("[%s] semaphore timeout: %s (%dms)\n", lua_get_script_filename(L), event_name, timeout);
             }
         }
     }
@@ -697,7 +697,7 @@ void lua_set_last_menu(lua_State * L, const char * parent_menu, const char * men
     {
         if(script->L == L)
         {
-            printf("[Lua] menu: %s - %s\n", parent_menu, menu_entry);
+            printf("[%s] menu: %s - %s\n", lua_get_script_filename(L), parent_menu, menu_entry);
             script->last_menu_parent = parent_menu;
             script->last_menu_entry = menu_entry;
         }
@@ -729,7 +729,17 @@ int lua_get_cant_yield(lua_State * L)
     return -1;
 }
 
-
+const char * lua_get_script_filename(lua_State * L)
+{
+    for (struct lua_script * script = lua_scripts; script; script = script->next)
+    {
+        if(script->L == L)
+        {
+            return script->filename;
+        }
+    }
+    return "?";
+}
 
 static int lua_get_config_flag_path(struct lua_script * script, char * full_path, const char * flag)
 {
@@ -766,7 +776,7 @@ static void load_script(struct lua_script * script)
 {
     if(script->L)
     {
-        fprintf(stderr, "[Lua] script is already running\n");
+        fprintf(stderr, "[%s] script is already running.\n", script->filename);
         return;
     }
     
@@ -795,7 +805,7 @@ static void load_script(struct lua_script * script)
         int error = 0;
         char full_path[MAX_PATH_LEN];
         snprintf(full_path, MAX_PATH_LEN, SCRIPTS_DIR "/%s", script->filename);
-        printf("[Lua] loading script: %s.\n", script->filename);
+        printf("[%s] script starting.\n", script->filename);
 
         int status = luaL_loadfile(L, full_path);
         if (status == LUA_OK) {
@@ -826,7 +836,7 @@ static void load_script(struct lua_script * script)
             script->state = SCRIPT_STATE_RUNNING_IN_BACKGROUND;
             script->menu_entry->icon_type = IT_BOOL;
 
-            printf("[Lua] running %s in background.\n", script->filename);
+            printf("[%s] running in background.\n", script->filename);
         }
         else
         {
@@ -838,7 +848,7 @@ static void load_script(struct lua_script * script)
             script->menu_entry->icon_type = IT_ACTION;
             script->state = SCRIPT_STATE_NOT_RUNNING;
             script->load_time = 0;
-            printf("[Lua] script finished: %s.\n\n", script->filename);
+            printf("[%s] script finished.\n\n", script->filename);
         }
     }
     else

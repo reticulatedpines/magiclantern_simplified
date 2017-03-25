@@ -33,7 +33,7 @@ static void lua_run_task(struct lua_task_func * lua_task_func)
             if (lua_get_cant_yield(L) == -1)
             {
                 /* main task was unloaded? continuing would be use after free */
-                fprintf(stderr, "[Lua] will not start new tasks.\n");
+                fprintf(stderr, "[%s] will not start new tasks.\n", lua_get_script_filename(L));
                 goto skip;
             }
             
@@ -43,16 +43,16 @@ static void lua_run_task(struct lua_task_func * lua_task_func)
                  * it can't be unloaded while this task is running */
                 lua_set_cant_unload(L, 1, LUA_TASK_UNLOAD_MASK);
 
-                printf("[Lua] task starting.\n", lua_tostring(L, -1));
+                printf("[%s] task starting.\n", lua_get_script_filename(L));
 
                 if(docall(L, 0, 0))
                 {
-                    fprintf(stderr, "[Lua] task error:\n%s\n", lua_tostring(L, -1));
+                    fprintf(stderr, "[%s] task error:\n%s\n", lua_get_script_filename(L), lua_tostring(L, -1));
                     lua_save_last_error(L);
                 }
                 luaL_unref(L, LUA_REGISTRYINDEX, lua_task_func->function_ref);
 
-                printf("[Lua] task exiting.\n");
+                printf("[%s] task exiting.\n", lua_get_script_filename(L));
 
                 /* If all tasks started by the script are finished
                  * _before_ the main task ends, the script can be unloaded.
@@ -72,7 +72,7 @@ static void lua_run_task(struct lua_task_func * lua_task_func)
         }
         else
         {
-            printf("[Lua] semaphore error: run task\n");
+            printf("[%s] semaphore error: run task\n", lua_get_script_filename(L));
         }
         free(lua_task_func);
     }

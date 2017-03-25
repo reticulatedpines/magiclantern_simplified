@@ -60,20 +60,20 @@ static MENU_SELECT_FUNC(script_menu_select)
                 lua_pushinteger(L, delta);
                 if(docall(L, 2, 0))
                 {
-                    fprintf(stderr, "[Lua] script error:\n %s\n", lua_tostring(L, -1));
+                    fprintf(stderr, "[%s] script error:\n %s\n", lua_get_script_filename(L), lua_tostring(L, -1));
                     lua_save_last_error(L);
                 }
                 give_semaphore(sem);
             }
             else
             {
-                fprintf(stderr, "[Lua] select is not a function\n");
+                fprintf(stderr, "[%s] select is not a function\n", lua_get_script_filename(L));
                 give_semaphore(sem);
             }
         }
         else
         {
-            printf("[Lua] semaphore timeout: menu.select (%dms)\n", 500);
+            printf("[%s] semaphore timeout: menu.select (%dms)\n", lua_get_script_filename(L), 500);
         }
     }
 }
@@ -158,7 +158,7 @@ static MENU_UPDATE_FUNC(script_menu_update)
         }
         else
         {
-            printf("[Lua] semaphore timeout: menu.update (%dms)\n", 100);
+            printf("[%s] semaphore timeout: menu.update (%dms)\n", lua_get_script_filename(L), 100);
         }
     }
 }
@@ -679,7 +679,7 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
                 }
                 else
                 {
-                    fprintf(stderr, "[Lua] invalid choice[%d]\n", choice_index);
+                    fprintf(stderr, "[%s] invalid choice[%d]\n", lua_get_script_filename(L), choice_index);
                     menu_entry->choices[choice_index] = NULL;
                     choices_count = choice_index;
                 }
@@ -729,7 +729,7 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
             }
             else
             {
-                fprintf(stderr, "[Lua] warning: could not create metatable submenu");
+                fprintf(stderr, "[%s] warning: could not create metatable submenu", lua_get_script_filename(L));
             }
             
             for (submenu_index = 0; submenu_index < submenu_count; submenu_index++)
@@ -762,20 +762,20 @@ static void load_menu_entry(lua_State * L, struct script_menu_entry * script_ent
                         }
                         else
                         {
-                            fprintf(stderr, "[Lua] warning: could not get metatable submenu");
+                            fprintf(stderr, "[%s] warning: could not get metatable submenu", lua_get_script_filename(L));
                         }
                         lua_pop(L, 2);
                     }
                     else
                     {
-                        fprintf(stderr, "[Lua] warning: could not get parent metatable");
+                        fprintf(stderr, "[%s] warning: could not get parent metatable", lua_get_script_filename(L));
                     }
                     
                     lua_pop(L, 1);//userdata
                 }
                 else
                 {
-                    fprintf(stderr, "[Lua] invalid submenu[%d]\n", submenu_index);
+                    fprintf(stderr, "[%s] invalid submenu[%d]\n", lua_get_script_filename(L), submenu_index);
                 }
                 lua_pop(L, 1);
             }
