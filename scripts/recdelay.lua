@@ -1,4 +1,4 @@
--- Delayed Start (Movie)
+-- Movie Delayed Start
 -- starts movie recording after a delay
 
 recdelay_running = false
@@ -6,6 +6,7 @@ recdelay_stop = false
 recdelay_countdown = 0
 
 function recdelay_main()
+    menu.close()
     if recdelay_running then recdelay_stop = true return end
     if camera.mode == MODE.MOVIE and movie.recording == false and recdelay_menu.submenu["Delay Amount"].value > 0 then
         recdelay_running = true
@@ -62,6 +63,7 @@ recdelay_menu = menu.new
         },
         {
             name = "Delay Amount",
+            value = 5,
             min = 0,
             max = 600,
             unit = UNIT.TIME,
@@ -69,6 +71,7 @@ recdelay_menu = menu.new
         },
         {
             name = "Stop After",
+            value = 10,
             min = 0,
             max = 1800,
             unit = UNIT.TIME
