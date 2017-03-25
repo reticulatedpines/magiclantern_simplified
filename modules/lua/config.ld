@@ -16,11 +16,8 @@ the 'Scripts' menu and they will not autorun when the camera starts. Also, such 
 will be 'unloaded' when they're not actively running, which will help conserve memory.
 
 "Complex" scripts are any scripts that define custom menus, start a task(s), or leave
-event or property handlers registered when they finish loading. On first run the user
-will manually load the script by selecting it in the 'Scripts' menu. When the script
-runs the scripting engine will detect that it is a "complex" script and will set it
-to autorun when the camera boots. The user may also manually disable it from auto
-running.
+event or property handlers registered when they finish loading. These scripts
+cannot be unloaded; they will run in background until the camera is turned off.
 
 Menus
 -----

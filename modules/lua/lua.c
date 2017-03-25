@@ -597,9 +597,9 @@ static lua_State * load_lua_state(int argc, char** argv)
 
 #define SCRIPT_FLAG_AUTORUN_ENABLED "LEN"
 
-#define SCRIPT_STATE_NOT_RUNNING 0
-#define SCRIPT_STATE_LOADING     1
-#define SCRIPT_STATE_RUNNING     2
+#define SCRIPT_STATE_NOT_RUNNING            0
+#define SCRIPT_STATE_LOADING_OR_RUNNING     1
+#define SCRIPT_STATE_RUNNING_IN_BACKGROUND  2
 
 struct lua_script
 {
@@ -762,15 +762,6 @@ static int lua_get_flag(struct lua_script * script, const char * flag)
     return 0;
 }
 
-static void set_script_autorun(struct lua_script * script, int value)
-{
-    if (script->autorun != value)
-    {
-        script->autorun = value;
-        lua_set_flag(script, SCRIPT_FLAG_AUTORUN_ENABLED, script->autorun);
-    }
-}
-
 static void load_script(struct lua_script * script)
 {
     if(script->L)
@@ -780,7 +771,7 @@ static void load_script(struct lua_script * script)
     }
     
     script->load_time = get_seconds_clock();
-    script->state = SCRIPT_STATE_LOADING;
+    script->state = SCRIPT_STATE_LOADING_OR_RUNNING;
     lua_State* L = script->L = load_lua_state(script->argc, script->argv);
     script->cant_unload = 0;
     script->cant_yield = 0;
@@ -825,9 +816,6 @@ static void load_script(struct lua_script * script)
         {
             /* save the last error string for this script */
             lua_save_last_error(L);
-
-            /* disable autorun on error */
-            set_script_autorun(script, 0);
         }
 
         if (script->cant_unload)
@@ -835,28 +823,10 @@ static void load_script(struct lua_script * script)
             /* "complex" script that keeps running after load
              * set autorun and hide the "run script" menu
              */
-            script->state = SCRIPT_STATE_RUNNING;
+            script->state = SCRIPT_STATE_RUNNING_IN_BACKGROUND;
             script->menu_entry->icon_type = IT_BOOL;
 
-            /* enable autorun if there was no error */
-            if (!error)
-            {
-                if (lua_loaded)
-                {
-                    printf("[Lua] %s: enabling autorun (reason: %s%s%s%s%s\b\b).\n", script->filename,
-                        script->cant_unload & (1<<LUA_MENU_UNLOAD_MASK)   ? "menu item, " : "",
-                        script->cant_unload & (1<<LUA_TASK_UNLOAD_MASK)   ? "task started, " : "",
-                        script->cant_unload & (1<<LUA_LVINFO_UNLOAD_MASK) ? "LVInfo item, " : "",
-                        script->cant_unload & (1<<LUA_PROP_UNLOAD_MASK)   ? "property handler, " : "",
-                        script->cant_unload & 0xFFFFFFF0                  ? "event handler, " : ""
-                    );
-                }
-                set_script_autorun(script, 1);
-            }
-            else
-            {
-                printf("[Lua] %s: not enabling autorun (error).\n", script->filename);
-            }
+            printf("[Lua] running %s in background.\n", script->filename);
         }
         else
         {
@@ -877,13 +847,64 @@ static void load_script(struct lua_script * script)
     }
 }
 
+static MENU_UPDATE_FUNC(script_print_state)
+{
+    struct lua_script * script = (struct lua_script *)(entry->priv);
+    if (!script) return;
+
+    if (script->last_error)
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "%s", script->last_error);
+        return;
+    }
+
+    switch (script->state)
+    {
+        case SCRIPT_STATE_NOT_RUNNING:
+            MENU_SET_WARNING(MENU_WARN_INFO, "Press SET to load/run this script.");
+            break;
+
+        case SCRIPT_STATE_LOADING_OR_RUNNING:
+            MENU_SET_WARNING(MENU_WARN_INFO, "Script is running.");
+            break;
+
+        case SCRIPT_STATE_RUNNING_IN_BACKGROUND:
+            if (script->last_menu_parent && script->last_menu_entry)
+            {
+                MENU_SET_WARNING(MENU_WARN_INFO,
+                    "Running in background. Menu: %s -> %s.",
+                    script->last_menu_parent, script->last_menu_entry
+                );
+            }
+            else
+            {
+                MENU_SET_WARNING(MENU_WARN_INFO,
+                    "Running in background. Complex script%s%s%s%s%s.",
+                    script->cant_unload & (1<<LUA_TASK_UNLOAD_MASK)   ? "; task running" : "",
+                    script->cant_unload & (1<<LUA_LVINFO_UNLOAD_MASK) ? "; LVInfo item" : "",
+                    script->cant_unload & (1<<LUA_PROP_UNLOAD_MASK)   ? "; property handler" : "",
+                    script->cant_unload & 0xFFFFFFF0                  ? "; event handler" : "",
+                    script->cant_unload & (1<<LUA_MENU_UNLOAD_MASK)   ? "; menu item" : ""
+                );
+            }
+            break;
+    }
+}
+
 static MENU_UPDATE_FUNC(lua_script_menu_update)
 {
+    if(!lua_loaded)
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Please wait for Lua to finish loading...");
+        return;
+    }
+
     struct lua_script * script = (struct lua_script *)(entry->priv);
     if(script)
     {
         MENU_SET_VALUE("");
         MENU_SET_HELP(script->description);
+        MENU_SET_ENABLED(1);
 
         if (script->autorun)
         {
@@ -891,33 +912,29 @@ static MENU_UPDATE_FUNC(lua_script_menu_update)
         }
         else
         {
-            MENU_SET_WARNING(MENU_WARN_INFO, "Press SET to load/run this script.");
-            
-            if(!lua_loaded)
-            {
-                MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Please wait for Lua to finish loading...");
-            }
+            script_print_state(entry, info);
         }
-        
+
         /* if a script takes a long time in the LOADING state,
          * it's probably a simple script that is running for a long time */
         int script_uptime = script->load_time ? get_seconds_clock() - script->load_time : 0;
         
         const char * script_status = 
-            script->autorun && script_uptime >= 2
+            script->autorun
                 ? "AUTORUN" :
             script->last_error
                 ? "ERROR" :
             script->state == SCRIPT_STATE_NOT_RUNNING
                 ? script->filename :
-            script->state == SCRIPT_STATE_LOADING
-                ? (script_uptime <= 2 ? "Loading" : "Running") :
-            script->state == SCRIPT_STATE_RUNNING
-                ? "Running" : "?!";
+            script->state == SCRIPT_STATE_LOADING_OR_RUNNING
+                ? "Running" :
+            script->state == SCRIPT_STATE_RUNNING_IN_BACKGROUND
+                ? "Running (BG)" : "?!";
         
         if (info->can_custom_draw)
         {
-            int fg = script->state ? COLOR_WHITE : entry->selected ? COLOR_GRAY(50) : COLOR_GRAY(10);
+            int fg = (script->state || script->autorun || script->last_error)
+                ? COLOR_WHITE : entry->selected ? COLOR_GRAY(50) : COLOR_GRAY(10);
             int fnt = SHADOW_FONT(FONT(FONT_MED_LARGE, fg, COLOR_BLACK));
             bmp_printf(fnt | FONT_ALIGN_RIGHT, 680, info->y+2, script_status);
         }
@@ -928,19 +945,13 @@ static MENU_UPDATE_FUNC(lua_script_menu_update)
 
         switch (script->state)
         {
-            case SCRIPT_STATE_LOADING:
+            case SCRIPT_STATE_LOADING_OR_RUNNING:
                 MENU_SET_ICON(MNI_RECORD, 0);
                 break;
 
-            case SCRIPT_STATE_RUNNING:
-                MENU_SET_ICON(MNI_BOOL(script->autorun), 0);
+            case SCRIPT_STATE_RUNNING_IN_BACKGROUND:
+                MENU_SET_ICON(MNI_ON, 1);
                 break;
-        }
-
-
-        if (script->last_error)
-        {
-            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "%s", script->last_error);
         }
     }
 }
@@ -961,7 +972,7 @@ static MENU_SELECT_FUNC(lua_script_menu_select)
     {
         if (lua_loaded)
         {
-            script->state = SCRIPT_STATE_LOADING;
+            script->state = SCRIPT_STATE_LOADING_OR_RUNNING;
             task_create("lua_user_load_task", 0x1c, 0x10000, lua_user_load_task, script);
             return;
         }
@@ -970,28 +981,16 @@ static MENU_SELECT_FUNC(lua_script_menu_select)
 
 static MENU_UPDATE_FUNC(lua_script_run_update)
 {
+    struct lua_script * script = (struct lua_script *)(entry->priv);
+    if (!script) return;
+
     MENU_SET_VALUE("");
 
-    struct lua_script * script = (struct lua_script *)entry->priv;
-    ASSERT(script); if (!script) return;
-
-    if ( script->state == SCRIPT_STATE_NOT_RUNNING )
+    script_print_state(entry, info);
+    
+    if (script->state != SCRIPT_STATE_NOT_RUNNING)
     {
-        if (!lua_loaded)
-        {
-            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Please wait for Lua to finish loading...");
-        }
-    }
-    else
-    {
-        if (script->last_menu_parent && script->last_menu_entry)
-        {
-            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Script is running. Menu: %s -> %s.", script->last_menu_parent, script->last_menu_entry);
-        }
-        else
-        {
-            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Script is running.");
-        }
+        info->warning_level = MENU_WARN_NOT_WORKING;
     }
 }
 
@@ -1001,7 +1000,8 @@ static MENU_SELECT_FUNC(lua_script_toggle_autorun)
     // toggle auto_run (priv = &script->autorun)
     // note: any script can be set to autorun
     struct lua_script * script = (struct lua_script *)(priv - offsetof(struct lua_script, autorun));
-    set_script_autorun(script, !script->autorun);
+    script->autorun = !script->autorun;
+    lua_set_flag(script, SCRIPT_FLAG_AUTORUN_ENABLED, script->autorun);
 }
 
 static MENU_SELECT_FUNC(lua_script_edit)
@@ -1035,7 +1035,7 @@ static MENU_SELECT_FUNC(lua_script_edit)
         editor->argc = 2;
         editor->argv[1] = full_path;
 
-        editor->state = SCRIPT_STATE_LOADING;
+        editor->state = SCRIPT_STATE_LOADING_OR_RUNNING;
         task_create("lua_user_load_task", 0x1c, 0x10000, lua_user_load_task, editor);
     }
     else
@@ -1287,6 +1287,7 @@ static void lua_load_task(int unused)
     }
 
     menu_add("Scripts", script_console_menu, COUNT(script_console_menu));
+    lua_loaded = 1;
     
     lua_do_autoload();
     
@@ -1298,7 +1299,6 @@ static void lua_load_task(int unused)
         printf("[Lua] core reallocs : %d (%s)\n", core_reallocs, format_memory_size(core_reallocs_size));
     }
     printf("[Lua] all scripts loaded.\n");
-    lua_loaded = 1;
 
     /* wait for key pressed or for 5-second timeout, whichever comes first */
     last_keypress = 0;
