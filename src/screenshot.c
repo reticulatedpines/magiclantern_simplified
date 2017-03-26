@@ -62,9 +62,10 @@ int take_screenshot( char* filename, uint32_t mode )
                 /* get pixel at (x,y) */
                 p = bmp_copy[x + y*720];
                 
-                /* get palette entry (including our DIGIC pokes, if any) */
-                pal = shamem_read(LCD_Palette[3*p]);
-                if (!pal) pal = LCD_Palette[3*p + 2];
+                /* get palette entry */
+                /* there are two copies of the palette;
+                 * our modifications (if any) are saved in the first copy */
+                pal = LCD_Palette[3*p + 2];
                 opacity = (pal >> 24) & 0xFF;
                 Y = (pal >> 16) & 0xFF;
                 U = (pal >>  8) & 0xFF;
