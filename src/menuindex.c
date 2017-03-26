@@ -98,7 +98,7 @@ static struct menu_entry help_menus[] = {
     /* if BTN_ZEBRAS_FOR_PLAYBACK_NAME is undefined, you must define it (or undefine FEATURE_OVERLAYS_IN_PLAYBACK_MODE) */
     {
         .select = menu_nav_help_open,
-        .name = "Press "BTN_ZEBRAS_FOR_PLAYBACK_NAME,
+        .name = "Press "BTN_ZEBRAS_FOR_PLAYBACK_NAME"  ",
         .choices = CHOICES("Overlays (PLAY only)"),
     },
     #endif
