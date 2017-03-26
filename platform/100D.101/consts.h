@@ -74,7 +74,8 @@
 // #define ISO_ADJUSTMENT_ACTIVE ((*(int*)(0x6B930)) == 0xF)       // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
 
 // from a screenshot
-#define COLOR_FG_NONLV 1
+// https://bitbucket.org/hudson/magic-lantern/history-node/c46ffb21e7a7/platform/700D.114/consts.h?at=unified
+#define COLOR_FG_NONLV 80 // copy a1ex's commit 3ca5551 from 700D 
 
 #define MVR_516_STRUCT (*(void**)0x65608)                       // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
 
@@ -141,8 +142,8 @@
 #define ISO_RANGE_POS_Y 105
 
 //for Mirror Lock Up enabled on display
-#define MLU_STATUS_POS_X 316
-#define MLU_STATUS_POS_Y 310
+#define MLU_STATUS_POS_X 390
+#define MLU_STATUS_POS_Y 415
 
 #define WBS_GM_POS_X 365
 #define WBS_GM_POS_Y 230
@@ -261,3 +262,7 @@
 #define DISPLAY_ORIENTATION MEM(0x65BA4) // (0x65AF0+B4) read-only; string: UpdateReverseTFT.
 
 #define JUDGE_BOTTOM_INFO_DISP_TIMER_STATE 0x7B944 // (0x7B8EC + 0x58)
+
+// temperature convertion from raw-temperature to celsius
+// http://www.magiclantern.fm/forum/index.php?topic=9673.msg180240#msg180240
+#define EFIC_CELSIUS ((int)efic_temp - 128)
