@@ -131,7 +131,7 @@
 
 // for ML hdr display
 #define HDR_STATUS_POS_X 562
-#define HDR_STATUS_POS_Y 100
+#define HDR_STATUS_POS_Y 30
 
 //for HTP mode on display
 #define HTP_STATUS_POS_X 500
