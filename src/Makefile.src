@@ -2,7 +2,7 @@
 # Magic Lantern Core source files and rules
 #
 
-all:: autoexec.bin
+all:: autoexec.bin print_build_info
 
 clean::
 	$(call rm_files, *.o *.d autoexec autoexec.bin magiclantern magiclantern.bin)
@@ -223,7 +223,6 @@ autoexec: $(ML_SRC_REBOOT_OBJ)
 		--cref \
 		-Map=autoexec.map \
 	); \
-	$(READELF) -l magiclantern | $(GREP) -C 2 MemSiz
 
 autoexec-fir: $(ML_SRC_REBOOT_OBJ)
 	$(call build,LD,$(LD) \
@@ -321,9 +320,15 @@ $(PLATFORM_DIR)/version.bin: FORCE
 	@hg diff $(PLATFORM_DIR)/ >> $@
 	@echo '' >> $@
 	@echo '' >> $@
-	@cat $(TOP_DIR)/Makefile.user | grep -E "^ *(CONFIG_|.*VERSION)" >> $@ || true
+	@(cat $(TOP_DIR)/Makefile.user 2>/dev/null) | grep -E "^ *(CONFIG_|[A-Z0-9_]*VERSION)" >> $@ || true
 	@echo '' >> $@
 	@echo '' >> $@
+
+print_build_info: FORCE
+	@$(READELF) -l magiclantern | $(GREP) -C 2 MemSiz
+	@echo
+	@(cat $(TOP_DIR)/Makefile.user 2>/dev/null) | grep -E "^ *(CONFIG_|[A-Z0-9_]*VERSION)" || true
+	@echo
 
 $(SRC_DIR)/menuindexentries.h:
 	$(call build,"MENU IDX", if [ -f $(DOC_DIR)/menuindex.txt ]; then \
