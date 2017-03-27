@@ -878,7 +878,7 @@ silent_pic_take_lv(int interactive)
         /* allocate only one frame in simple and slitscan modes */
         case SILENT_PIC_MODE_SIMPLE:
         case SILENT_PIC_MODE_SLITSCAN:
-            hSuite2 = shoot_malloc_suite_contig(raw_info.frame_size * 129/128);
+            hSuite1 = srm_malloc_suite(1);
             break;
     }
 
