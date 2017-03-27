@@ -810,8 +810,9 @@ static int silent_pic_raw_prepare_buffers(struct memSuite * hSuite, int initial_
         int remain = size - used;
         //~ printf("remain: %x\n", remain);
 
-        /* the EDMAC might write a bit more than that, so we'll use a small safety margin */
-        if (remain < raw_info.frame_size * 129/128)
+        /* the EDMAC might write a bit more than that,
+         * so we'll use a small safety margin (2 extra lines) */
+        if (remain < raw_info.frame_size + 2 * raw_info.pitch)
         {
             /* move to next chunk */
             hChunk = GetNextMemoryChunk(hSuite, hChunk);
@@ -1074,8 +1075,8 @@ silent_pic_take_lv(int interactive)
 cleanup:
     sp_running = 0;
     sp_buffer_count = 0;
-    if (hSuite2) shoot_free_suite(hSuite2);
     if (hSuite1) srm_free_suite(hSuite1);
+    if (hSuite2) shoot_free_suite(hSuite2);
     if (raw_flag) raw_lv_release();
     return ok;
 }
