@@ -136,7 +136,7 @@ static int pre_record_first_frame = 0;  /* first frame index from pre-recording 
 static CONFIG_INT("raw.rec-trigger", rec_trigger, 0);
 #define REC_TRIGGER_HALFSHUTTER_START_STOP 1
 #define REC_TRIGGER_HALFSHUTTER_HOLD 2
-#define REC_TRIGGER_HALFSHUTTER_1_FRAME 3
+#define REC_TRIGGER_HALFSHUTTER_PRE_ONLY 3
 
 static CONFIG_INT("raw.dolly", dolly_mode, 0);
 #define FRAMING_CENTER (dolly_mode == 0)
@@ -1018,7 +1018,7 @@ static int pre_record_calc_max_frames(int slot_count)
      * we can simply buffer as much as we want
      * (unless the user triggers frames really fast)
      */
-    if (rec_trigger == REC_TRIGGER_HALFSHUTTER_1_FRAME)
+    if (rec_trigger == REC_TRIGGER_HALFSHUTTER_PRE_ONLY)
     {
         max_frames = slot_count - 5;
     }
@@ -2076,17 +2076,19 @@ void process_frame()
             /* pre-recording before trigger? don't queue frames for writing */
             /* (do nothing here) */
         }
+        else if (rec_trigger == REC_TRIGGER_HALFSHUTTER_PRE_ONLY)
+        {
+            /* we already had one frame in the pre-recording buffer */
+            /* it's already queued, so all that's left to do is to pause recording */
+            pre_record_triggered = 0;
+            frame_count--;
+        }
         else
         {
             /* send it for saving, even if it isn't done yet */
             /* it's quite unlikely that FIO DMA will be faster than EDMAC */
             writing_queue[writing_queue_tail] = capture_slot;
             INC_MOD(writing_queue_tail, COUNT(writing_queue));
-                
-            if (rec_trigger == REC_TRIGGER_HALFSHUTTER_1_FRAME)
-            {
-                pre_record_triggered = 0;
-            }
         }
     }
     else
@@ -3069,12 +3071,12 @@ static struct menu_entry raw_video_menu[] =
                 .name    = "Rec trigger",
                 .priv    = &rec_trigger,
                 .max     = 3,
-                .choices = CHOICES("OFF", "Half-shut: start/pause", "Half-shut: hold", "Half-shut: 1 frame"),
+                .choices = CHOICES("OFF", "Half-shut: start/pause", "Half-shut: hold", "Half-shut: pre only"),
                 .help    = "Use external trigger to start/pause recording within a video clip.",
                 .help2   = "Disabled (press REC as usual).\n"
                            "Press half-shutter to start/pause recording within the current clip.\n"
                            "Press and hold the shutter halfway to record (e.g. for short events).\n"
-                           "Press half-shutter to record a single frame (use with external trigger).\n",
+                           "Half-shutter to save only the pre-recorded frames (at least 1 frame).\n",
             },
             {
                 .name = "Digital dolly",
@@ -3216,7 +3218,7 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
                 }
 
                 case REC_TRIGGER_HALFSHUTTER_HOLD:
-                case REC_TRIGGER_HALFSHUTTER_1_FRAME:
+                case REC_TRIGGER_HALFSHUTTER_PRE_ONLY:
                 {
                     pre_record_triggered = 1;
                     break;
