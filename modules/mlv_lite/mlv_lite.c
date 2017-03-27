@@ -1001,15 +1001,16 @@ static MENU_UPDATE_FUNC(aspect_ratio_update)
 
 static int pre_record_calc_max_frames(int slot_count)
 {
-    /* reserve at least 10 frames for buffering */
-    int max_frames = slot_count - 10;
+    /* reserve at least 10 frames for buffering 
+     * but no more than half of available RAM */
+    int max_frames = MAX(slot_count / 2, slot_count - 10);
 
     /* if resolution is very high, reserve more, to avoid running out of steam */
     /* heuristic: reserve enough to get 500 frames with 90% of the measured write speed */
     /* but not more than half of available memory */
     int assumed_write_speed = measured_write_speed  * 1024 / 100 * 1024 * 9 / 10;
-    while (predict_frames(assumed_write_speed, slot_count - max_frames) < 500 &&
-           max_frames > slot_count/2)
+    while (max_frames > slot_count / 2 &&
+        predict_frames(assumed_write_speed, slot_count - max_frames) < 500)
     {
         max_frames--;
     }
@@ -1020,9 +1021,10 @@ static int pre_record_calc_max_frames(int slot_count)
      */
     if (rec_trigger == REC_TRIGGER_HALFSHUTTER_PRE_ONLY)
     {
-        max_frames = slot_count - 5;
+        max_frames = slot_count - 2;
     }
 
+    ASSERT(max_frames > 0);
     return max_frames;
 }
 
