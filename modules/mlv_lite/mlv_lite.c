@@ -1030,7 +1030,7 @@ static int pre_record_calc_num_frames(int slot_count, int max_frames)
 {
     int requested_seconds = pre_record;
     int requested_frames = (requested_seconds * fps_get_current_x1000() + 500) / 1000;
-    return COERCE(requested_frames - 1, 1, max_frames);
+    return COERCE(requested_frames, 1, max_frames);
 }
 
 static MENU_UPDATE_FUNC(pre_recording_update)
@@ -1362,7 +1362,7 @@ static LVINFO_UPDATE_FUNC(recording_status)
 
     /* Calculate the stats */
     int fps = fps_get_current_x1000();
-    int t = (frame_count * 1000) / fps;
+    int t = ((frame_count-1) * 1000) / fps;
     int predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024, 0);
 
     if (!buffer_full) 
@@ -1374,7 +1374,7 @@ static LVINFO_UPDATE_FUNC(recording_status)
             
             if (pre_recording_buffer_full())
             {
-                int t = (frame_count * 1000 * 10) / fps;
+                int t = ((frame_count-1) * 1000 * 10) / fps;
                 snprintf(buffer, sizeof(buffer), "%02d:%02d.%d", t/10/60, (t/10)%60, t % 10);
             }
         }
@@ -1408,7 +1408,7 @@ static void show_recording_status()
     {
         /* Calculate the stats */
         int fps = fps_get_current_x1000();
-        int t = (frame_count * 1000) / fps;
+        int t = ((frame_count-1) * 1000) / fps;
         int predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024, 0);
 
         int speed=0;
@@ -1498,7 +1498,7 @@ static void show_recording_status()
 
             if (pre_recording_buffer_full())
             {
-                int t = (frame_count * 1000 * 10) / fps;
+                int t = ((frame_count-1) * 1000 * 10) / fps;
                 bmp_printf (FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), rl_x+rl_icon_width+5, rl_y+5, "%02d:%02d.%d", t/10/60, (t/10)%60, t % 10);
             }
 
