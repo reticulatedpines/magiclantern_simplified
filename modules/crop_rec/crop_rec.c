@@ -1076,6 +1076,8 @@ static inline uint32_t reg_override_40_fps(uint32_t reg, uint32_t old_val)
     return 0;
 }
 
+static int engio_vidmode_ok = 0;
+
 static void FAST engio_write_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
 {
     uint32_t (*reg_override_func)(uint32_t, uint32_t) = 
@@ -1095,7 +1097,20 @@ static void FAST engio_write_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
         return;
     }
 
-    if (!is_supported_mode() || !cmos_vidmode_ok)
+    /* cmos_vidmode_ok doesn't help;
+     * we can identify the current video mode from 0xC0F06804 */
+    for (uint32_t * buf = (uint32_t *) regs[0]; *buf != 0xFFFFFFFF; buf += 2)
+    {
+        uint32_t reg = *buf;
+        uint32_t old = *(buf+1);
+        if (reg == 0xC0F06804)
+        {
+            engio_vidmode_ok =
+                (old == 0x528011B || old == 0x2B6011B);
+        }
+    }
+
+    if (!is_supported_mode() || !engio_vidmode_ok)
     {
         /* don't patch other video modes */
         return;
