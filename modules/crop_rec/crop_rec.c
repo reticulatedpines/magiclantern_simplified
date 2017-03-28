@@ -33,6 +33,7 @@ enum crop_preset {
     CROP_PRESET_1x3,
     CROP_PRESET_3x1,
     CROP_PRESET_40_FPS,
+    NUM_CROP_PRESETS
 };
 
 /* presets are not enabled right away (we need to go to play mode and back)
@@ -82,10 +83,10 @@ static const char crop_choices_help2_5d3[] =
     "\n"
     "1:1 sensor readout (square raw pixels, 3x crop, good preview in 1080p)\n"
     "1:1 sensor readout with higher vertical resolution (cropped preview)\n"
-    "1:1 3K crop (3072x2048 @ 24p, square raw pixels, preview broken)\n"
+    "1:1 3K crop (3072x1920 @ 24p, square raw pixels, preview broken)\n"
     "1:1 4K UHD crop (3840x1640 @ 24p, square raw pixels, preview broken)\n"
     "1:1 4K crop (4096x3072 @ 12 fps, half frame rate, preview broken)\n"
-    "Full resolution LiveView (5796x3870 @ 7.4 fps, preview broken)\n"
+    "Full resolution LiveView (5796x3870 @ 7.4 fps, 5784x3864, preview broken)\n"
     "3x3 binning in 720p (square pixels in RAW, vertical crop, ratio 29:10)\n"
     "1x3 binning: read all lines, bin every 3 columns (extreme anamorphic)\n"
     "3x1 binning: bin every 3 lines, read all columns (extreme anamorphic)\n"
@@ -116,65 +117,106 @@ static uint32_t MEM_ADTG_WRITE  = 0;
 static uint32_t ENGIO_WRITE     = 0;
 static uint32_t MEM_ENGIO_WRITE = 0;
 
-static uint32_t xres_delta = 0;
-static uint32_t yres_delta = 0;
+static int32_t  target_xres = 0;
+static int32_t  target_yres = 0;
 static int32_t  yres_adj1 = 0;
 static int32_t  yres_adj2 = 0;
 static int32_t  yres_adj3 = 0;
 static uint32_t cmos1_lo = 0, cmos1_hi = 0;
 static uint32_t cmos2 = 0;
 
-/* 5D3 vertical resolution increments over default configuration */
-/* note that first scanline may be moved down (see reg_override_top_bar) */
-/* so you need to subtract 30 or 40 from some of these values */
-static inline int calc_yres_delta()
+/* helper to allow indexing various properties of Canon's video modes */
+static inline int get_video_mode_index()
 {
-    if (yres_delta)
-    {
-        /* user override */
-        return yres_delta;
-    }
+    return
+        (video_mode_fps == 24) ?  0 :
+        (video_mode_fps == 25) ?  1 :
+        (video_mode_fps == 30) ?  2 :
+        (video_mode_fps == 50) ?  3 :
+     /* (video_mode_fps == 60) */ 4 ;
+}
+
+/* optical black area sizes */
+/* not sure how to adjust them from registers, so... hardcode them here */
+static inline void FAST calc_skip_offsets(int * p_skip_left, int * p_skip_right, int * p_skip_top, int * p_skip_bottom)
+{
+    /* start from LiveView values */
+    int skip_left       = 146;
+    int skip_right      = 2;
+    int skip_top        = 28;
+    int skip_bottom     = 0;
 
     switch (crop_preset)
     {
-        case CROP_PRESET_3X_TALL:
-            return 
-                (video_mode_fps == 24) ? 788 :  /* 1290 -> 2048 (top bar adjusted by 30px) */
-                (video_mode_fps == 25) ? 540 :  /* 1290 -> 1800 (top bar adjusted by 30px) */
-                (video_mode_fps == 30) ? 300 :  /* 1290 -> 1560 (top bar adjusted by 30px) */
-                (video_mode_fps == 50) ? 168 :  /*  672 ->  800 (top bar adjusted by 40px) */
-                (video_mode_fps == 60) ? 118 :  /*  672 ->  750 (top bar adjusted by 40px) */
-                                           0 ;
+        case CROP_PRESET_FULLRES_LV:
+            /* photo mode values */
+            skip_left       = 138;
+            skip_right      = 2;
+            skip_top        = 60;   /* fixme: this is different, why? */
+            break;
 
         case CROP_PRESET_3K:
-            return
-                (video_mode_fps == 24) ? 660 :  /* 1290 -> 1920 (top bar adjusted by 30px) */
-                (video_mode_fps == 25) ? 540 :  /* 1290 -> 1800 (top bar adjusted by 30px) */
-                (video_mode_fps == 30) ? 280 :  /* 1290 -> 1540 (top bar adjusted by 30px) */
-                (video_mode_fps == 50) ? 168 :  /*  672 ->  800 (top bar adjusted by 40px) */
-                (video_mode_fps == 60) ?  88 :  /*  672 ->  720 (top bar adjusted by 40px) */
-                                           0 ;
-
-        case CROP_PRESET_4K_HFPS:
-            return
-                (video_mode_fps == 24) ? 1812 :  /* 1290 -> 3072 (top bar adjusted by 30px) */
-                (video_mode_fps == 25) ? 1812 :  /* 1290 -> 3072 (top bar adjusted by 30px) */
-                (video_mode_fps == 30) ? 1300 :  /* 1290 -> 2560 (top bar adjusted by 30px) */
-                (video_mode_fps == 50) ?  808 :  /*  672 -> 1440 (top bar adjusted by 30px) */
-                (video_mode_fps == 60) ?  568 :  /*  672 -> 1200 (top bar adjusted by 30px) */
-                                            0 ;
-
         case CROP_PRESET_UHD:
-            return
-                (video_mode_fps == 24) ? 382 :  /* 1290 -> 1640 (top bar adjusted by 30px) */
-                (video_mode_fps == 25) ? 302 :  /* 1290 -> 1560 (top bar adjusted by 30px) */
-                (video_mode_fps == 30) ?  22 :  /* 1290 -> 1280 (top bar adjusted by 30px) */
-                (video_mode_fps == 50) ?  48 :  /*  672 ->  680 (top bar adjusted by 30px) */
-                (video_mode_fps == 60) ? -52 :  /*  672 ->  580 (top bar adjusted by 30px) */
-                                           0 ;
+        case CROP_PRESET_4K_HFPS:
+            skip_right      = 0;    /* required for 3840 - tight fit */
+            /* fall-through */
+        
+        case CROP_PRESET_3X_TALL:
+            skip_top        = 30;
+            break;
 
-        case CROP_PRESET_FULLRES_LV:
-            return 2612;    /* 7.4 fps */
+        case CROP_PRESET_3X:
+        case CROP_PRESET_1x3:
+            skip_top        = 60;
+            break;
+    }
+
+    if (p_skip_left)   *p_skip_left    = skip_left;
+    if (p_skip_right)  *p_skip_right   = skip_right;
+    if (p_skip_top)    *p_skip_top     = skip_top;
+    if (p_skip_bottom) *p_skip_bottom  = skip_bottom;
+}
+
+/* Vertical resolution from current unmodified video mode */
+/* (active area only, as seen by mlv_lite) */
+static inline int get_default_yres()
+{
+    return 
+        (video_mode_fps <= 30) ? 1290 : 672;
+}
+
+/* skip_top from unmodified video mode (raw.c, LiveView skip offsets) */
+static inline int get_default_skip_top()
+{
+    return 
+        (video_mode_fps <= 30) ? 28 : 20;
+}
+
+/* max resolution for each video mode (trial and error) */
+static int max_resolutions[NUM_CROP_PRESETS][5] = {
+    [CROP_PRESET_3X_TALL]       = { 2048, 1800, 1560,  800,  750 },
+    [CROP_PRESET_3K]            = { 1920, 1800, 1540,  800,  720 },
+    [CROP_PRESET_4K_HFPS]       = { 3072, 3072, 2560, 1440, 1200 },
+    [CROP_PRESET_UHD]           = { 1640, 1560, 1280,  680,  580 },
+    [CROP_PRESET_FULLRES_LV]    = { 3870, 3870, 3870, 3870, 3870 },
+};
+
+/* 5D3 vertical resolution increments over default configuration */
+/* note that first scanline may be moved down by 30 px (see reg_override_top_bar) */
+static inline int FAST calc_yres_delta()
+{
+    int desired_yres = (target_yres) ? target_yres
+        : max_resolutions[crop_preset][get_video_mode_index()];
+
+    if (desired_yres)
+    {
+        /* user override */
+        int skip_top;
+        calc_skip_offsets(0, 0, &skip_top, 0);
+        int default_yres = get_default_yres();
+        int default_skip_top = get_default_skip_top();
+        int top_adj = (crop_preset == CROP_PRESET_FULLRES_LV) ? 0 : 30;
+        return desired_yres - default_yres + skip_top - default_skip_top + top_adj;
     }
 
     ASSERT(0);
@@ -629,10 +671,10 @@ static inline uint32_t reg_override_top_bar(uint32_t reg, uint32_t old_val)
     switch (reg)
     {
         /* raw start line/column */
-        /* move start line down by 30 pixels (1080p) or 40 pixels (720p) */
+        /* move start line down by 30 pixels */
         /* not sure where this offset comes from */
         case 0xC0F06800:
-            return (video_mode_fps <= 30) ? 0x1F0017 : 0x290017;
+            return 0x1F0017;
     }
 
     return 0;
@@ -728,7 +770,7 @@ static inline uint32_t reg_override_3K(uint32_t reg, uint32_t old_val)
         /* raw resolution (end line/column) */
         /* X: (3072+140)/8 + 0x17, adjusted for 3072 in raw_rec */
         case 0xC0F06804:
-            return (old_val & 0xFFFF0000) + 0x1AB + (YRES_DELTA << 16);
+            return (old_val & 0xFFFF0000) + 0x1AA + (YRES_DELTA << 16);
 
     }
 
@@ -758,11 +800,6 @@ static inline uint32_t reg_override_4K_hfps(uint32_t reg, uint32_t old_val)
 
     switch (reg)
     {
-        /* 720p requires same top bar adjustment as 1080p */
-        /* this is unlike other presets; why? */
-        case 0xC0F06800:
-            return 0x1F0017;
-
         /* raw resolution (end line/column) */
         /* X: (4096+140)/8 + 0x18, adjusted for 4096 in raw_rec */
         case 0xC0F06804:
@@ -790,11 +827,6 @@ static inline uint32_t reg_override_UHD(uint32_t reg, uint32_t old_val)
 
     switch (reg)
     {
-        /* 720p requires same top bar adjustment as 1080p */
-        /* this is unlike other presets; why? */
-        case 0xC0F06800:
-            return 0x1F0017;
-
         /* raw resolution (end line/column) */
         /* X: (3840+140)/8 + 0x18, adjusted for 3840 in raw_rec */
         case 0xC0F06804:
@@ -812,7 +844,7 @@ static inline uint32_t reg_override_fullres_lv(uint32_t reg, uint32_t old_val)
             return 0x10018;         /* raw start line/column, from photo mode */
         
         case 0xC0F06804:            /* 1080p 0x528011B, photo 0xF6E02FE */
-            return 0x52802FE + (YRES_DELTA << 16);
+            return (old_val & 0xFFFF0000) + 0x2FE + (YRES_DELTA << 16);
         
         case 0xC0F06824:
         case 0xC0F06828:
@@ -829,14 +861,6 @@ static inline uint32_t reg_override_fullres_lv(uint32_t reg, uint32_t old_val)
 
         case 0xC0F06014:
             return 0xFFE;           /* 7.4 fps */
-
-        /* HEAD3 timer */
-        case 0xC0F0713C:
-            return 0x55e + YRES_DELTA + yres_adj3;
-
-        /* HEAD4 timer */
-        case 0xC0F07150:
-            return 0x527 + YRES_DELTA + yres_adj3;
     }
 
     /* no need to adjust the black bar */
@@ -966,19 +990,18 @@ static struct menu_entry crop_rec_menu[] =
         .depends_on = DEP_LIVEVIEW,
         .children =  (struct menu_entry[]) {
             {
-                .name   = "Extra XRES",
-                .priv   = &xres_delta,
-                .max    = 1024,
+                .name   = "Target XRES",
+                .priv   = &target_xres,
+                .max    = 5960,
                 .unit   = UNIT_DEC,
-                .help   = "Additional horizontal resolution (from Canon's video mode)",
+                .help   = "Desired vertical resolution (not working in all presets).",
             },
             {
-                .name   = "Extra YRES",
-                .priv   = &yres_delta,
-                .min    = -1024,
-                .max    = 4096,
+                .name   = "Target YRES",
+                .priv   = &target_yres,
+                .max    = 3870,
                 .unit   = UNIT_DEC,
-                .help   = "Additional vertical resolution (from Canon's video mode)",
+                .help   = "Desired vertical resolution (not working in all presets).",
             },
             {
                 .name   = "YRES adjust 1",
@@ -1237,37 +1260,8 @@ static unsigned int raw_info_update_cbr(unsigned int unused)
         }
 
         /* update skip offsets */
-        /* start from LiveView values */
-        int skip_left       = 146;
-        int skip_right      = 2;
-        int skip_top        = 28;
-        int skip_bottom     = 0;
-
-        switch (crop_preset)
-        {
-            case CROP_PRESET_FULLRES_LV:
-                /* photo mode values */
-                skip_left       = 138;
-                skip_right      = 2;
-                skip_top        = 60;   /* fixme: this is different, why? */
-                break;
-
-            case CROP_PRESET_UHD:
-            case CROP_PRESET_4K_HFPS:
-                skip_top        = 30;
-                skip_right      = 0;    /* required for 3840 - tight fit */
-                break;
-
-            case CROP_PRESET_3X:
-            case CROP_PRESET_1x3:
-                skip_top        = 60;
-                break;
-
-            case CROP_PRESET_3x3_1X:
-                skip_top        = 30;
-                break;
-        }
-
+        int skip_left, skip_right, skip_top, skip_bottom;
+        calc_skip_offsets(&skip_left, &skip_right, &skip_top, &skip_bottom);
         raw_set_geometry(raw_info.width, raw_info.height, skip_left, skip_right, skip_top, skip_bottom);
     }
     return 0;
