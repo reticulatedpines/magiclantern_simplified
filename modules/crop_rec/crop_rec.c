@@ -59,25 +59,24 @@ static enum crop_preset crop_presets_5d3[] = {
     CROP_PRESET_UHD,
     CROP_PRESET_4K_HFPS,
     CROP_PRESET_FULLRES_LV,
-    CROP_PRESET_1x3,
+  //CROP_PRESET_1x3,
   //CROP_PRESET_3x1,
-    CROP_PRESET_40_FPS,
+  //CROP_PRESET_40_FPS,
 };
 
 static const char * crop_choices_5d3[] = {
     "OFF",
-    "1920 1:1 3x",
-    //"1920 1:1 tall",
+    "1920 1:1",
     "1920 1:1 tall",
-    "1920 3x3 tall",
+    "1920 50/60 3x3",
     "1080p45/48 3x3",
     "3K 1:1",
     "UHD 1:1",
     "4K 1:1 half-fps",
     "Full-res LiveView",
-    "1x3 binning",
+  //"1x3 binning",
   //"3x1 binning",      /* doesn't work well */
-    "40 fps",
+  //"40 fps",
 };
 
 static const char crop_choices_help_5d3[] =
@@ -92,7 +91,7 @@ static const char crop_choices_help2_5d3[] =
     "1:1 3K crop (3072x1920 @ 24p, square raw pixels, preview broken)\n"
     "1:1 4K UHD crop (3840x1600 @ 24p, square raw pixels, preview broken)\n"
     "1:1 4K crop (4096x3072 @ 12 fps, half frame rate, preview broken)\n"
-    "Full resolution LiveView (5796x3870 @ 7.4 fps, 5784x3864, preview broken)\n"
+    "Full resolution LiveView (5796x3870 @ 7.45 fps, 5784x3864, preview broken)\n"
     "1x3 binning: read all lines, bin every 3 columns (extreme anamorphic)\n"
     "3x1 binning: bin every 3 lines, read all columns (extreme anamorphic)\n"
     "FPS override test\n";
@@ -144,11 +143,11 @@ static int is_supported_mode()
     return is_1080p() || is_720p();
 }
 
-static int32_t  target_xres = 0;
 static int32_t  target_yres = 0;
-static int32_t  yres_adj1 = 0;
-static int32_t  yres_adj2 = 0;
-static int32_t  yres_adj3 = 0;
+static int32_t  delta_adtg0 = 0;
+static int32_t  delta_adtg1 = 0;
+static int32_t  delta_head3 = 0;
+static int32_t  delta_head4 = 0;
 static uint32_t cmos1_lo = 0, cmos1_hi = 0;
 static uint32_t cmos2 = 0;
 
@@ -243,9 +242,10 @@ static inline int get_default_skip_top()
 /* it's usually possible to push the numbers a few pixels further,
  * at the risk of corrupted frames */
 static int max_resolutions[NUM_CROP_PRESETS][5] = {
+                                /*   24p   25p   30p   50p   60p */
     [CROP_PRESET_3X_TALL]       = { 1920, 1728, 1536,  960,  800 },
     [CROP_PRESET_3x3_1X]        = { 1290, 1290, 1290,  960,  800 },
-    [CROP_PRESET_3x3_1X_48p]    = { 1290, 1290, 1290, 1080, 1080 },
+    [CROP_PRESET_3x3_1X_48p]    = { 1290, 1290, 1290, 1080, 1080 }, /* 1080p45/48 */
     [CROP_PRESET_3K]            = { 1920, 1728, 1504,  760,  680 },
     [CROP_PRESET_UHD]           = { 1600, 1500, 1200,  640,  540 },
     [CROP_PRESET_4K_HFPS]       = { 2560, 2560, 2500, 1440, 1200 },
@@ -657,9 +657,9 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
             case CROP_PRESET_4K_HFPS:
             case CROP_PRESET_FULLRES_LV:
                 /* adjust vertical resolution */
-                adtg_new[3] = (struct adtg_new) {6, 0x8178, nrzi_encode(0x529 + YRES_DELTA + yres_adj1)};
-                adtg_new[4] = (struct adtg_new) {6, 0x8196, nrzi_encode(0x529 + YRES_DELTA + yres_adj1)};
-                adtg_new[5] = (struct adtg_new) {6, 0x82F8, nrzi_encode(0x528 + YRES_DELTA + yres_adj1)};
+                adtg_new[3] = (struct adtg_new) {6, 0x8178, nrzi_encode(0x529 + YRES_DELTA + delta_adtg0)};
+                adtg_new[4] = (struct adtg_new) {6, 0x8196, nrzi_encode(0x529 + YRES_DELTA + delta_adtg0)};
+                adtg_new[5] = (struct adtg_new) {6, 0x82F8, nrzi_encode(0x528 + YRES_DELTA + delta_adtg0)};
                 break;
         }
 
@@ -673,9 +673,9 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
                 /* the following are required for breaking the ~2100px barrier */
                 /* (0x891, 0x891, 0x8E2 at 24p; lower values affect bottom lines) */
                 /* see also http://www.magiclantern.fm/forum/index.php?topic=11965 */
-                adtg_new[6] = (struct adtg_new) {6, 0x8179, nrzi_encode(0x535 + YRES_DELTA + yres_adj2)};
-                adtg_new[7] = (struct adtg_new) {6, 0x8197, nrzi_encode(0x535 + YRES_DELTA + yres_adj2)};
-                adtg_new[8] = (struct adtg_new) {6, 0x82F9, nrzi_encode(0x580 + YRES_DELTA + yres_adj2)};
+                adtg_new[6] = (struct adtg_new) {6, 0x8179, nrzi_encode(0x535 + YRES_DELTA + delta_adtg1)};
+                adtg_new[7] = (struct adtg_new) {6, 0x8197, nrzi_encode(0x535 + YRES_DELTA + delta_adtg1)};
+                adtg_new[8] = (struct adtg_new) {6, 0x82F9, nrzi_encode(0x580 + YRES_DELTA + delta_adtg1)};
                 break;
         }
 
@@ -740,11 +740,11 @@ static inline uint32_t reg_override_HEAD34(uint32_t reg, uint32_t old_val)
     {
         /* HEAD3 timer */
         case 0xC0F0713C:
-            return old_val + YRES_DELTA + yres_adj3;
+            return old_val + YRES_DELTA + delta_head3;
 
         /* HEAD4 timer */
         case 0xC0F07150:
-            return old_val + YRES_DELTA + yres_adj3;
+            return old_val + YRES_DELTA + delta_head4;
     }
 
     return 0;
@@ -818,11 +818,11 @@ static inline uint32_t reg_override_3X_tall(uint32_t reg, uint32_t old_val)
 
         /* HEAD3 timer */
         case 0xC0F0713C:
-            return old_val + YRES_DELTA + yres_adj3 + head_adj;
+            return old_val + YRES_DELTA + delta_head3 + head_adj;
 
         /* HEAD4 timer */
         case 0xC0F07150:
-            return old_val + YRES_DELTA + yres_adj3 + head_adj;
+            return old_val + YRES_DELTA + delta_head4 + head_adj;
     }
 
     return reg_override_common(reg, old_val);
@@ -870,11 +870,11 @@ static inline uint32_t reg_override_3x3_tall(uint32_t reg, uint32_t old_val)
 
         /* HEAD3 timer */
         case 0xC0F0713C:
-            return old_val + YRES_DELTA + yres_adj3 + head_adj;
+            return old_val + YRES_DELTA + delta_head3 + head_adj;
 
         /* HEAD4 timer */
         case 0xC0F07150:
-            return old_val + YRES_DELTA + yres_adj3 + head_adj;
+            return old_val + YRES_DELTA + delta_head4 + head_adj;
     }
 
     return reg_override_common(reg, old_val);
@@ -918,12 +918,12 @@ static inline uint32_t reg_override_3x3_48p(uint32_t reg, uint32_t old_val)
         /* HEAD3 timer */
         /* 2B4 in 50/60p */
         case 0xC0F0713C:
-            return 0x2A4 + YRES_DELTA + yres_adj3;
+            return 0x2A4 + YRES_DELTA + delta_head3;
 
         /* HEAD4 timer */
         /* 2E6 in 50p (too high), 26D in 60p */
         case 0xC0F07150:
-            return 0x26D + YRES_DELTA + yres_adj3;
+            return 0x26D + YRES_DELTA + delta_head4;
     }
 
     return reg_override_common(reg, old_val);
@@ -1192,63 +1192,69 @@ static struct menu_entry crop_rec_menu[] =
         .depends_on = DEP_LIVEVIEW,
         .children =  (struct menu_entry[]) {
             {
-                .name   = "Target XRES",
-                .priv   = &target_xres,
-                .max    = 5960,
-                .unit   = UNIT_DEC,
-                .help   = "Desired vertical resolution (not working in all presets).",
-            },
-            {
                 .name   = "Target YRES",
                 .priv   = &target_yres,
                 .max    = 3870,
                 .unit   = UNIT_DEC,
-                .help   = "Desired vertical resolution (not working in all presets).",
+                .help   = "Desired vertical resolution (only for presets with higher resolution).",
+                .help2  = "Decrease if you get corrupted frames (start from max H in raw rec).",
             },
             {
-                .name   = "YRES adjust 1",
-                .priv   = &yres_adj1,
+                .name   = "Delta ADTG 0",
+                .priv   = &delta_adtg0,
                 .min    = -500,
                 .max    = 500,
                 .unit   = UNIT_DEC,
                 .help   = "ADTG 0x8178, 0x8196, 0x82F8",
+                .help2  = "May help pushing the resolution a little. Start with small increments.",
             },
             {
-                .name   = "YRES adjust 2",
-                .priv   = &yres_adj2,
+                .name   = "Delta ADTG 1",
+                .priv   = &delta_adtg1,
                 .min    = -500,
                 .max    = 500,
                 .unit   = UNIT_DEC,
                 .help   = "ADTG 0x8179, 0x8197, 0x82F9",
+                .help2  = "May help pushing the resolution a little. Start with small increments.",
             },
             {
-                .name   = "YRES adjust 3",
-                .priv   = &yres_adj3,
+                .name   = "Delta HEAD3",
+                .priv   = &delta_head3,
                 .min    = -500,
                 .max    = 500,
                 .unit   = UNIT_DEC,
-                .help   = "HEAD3 and HEAD4",
+                .help2  = "May help pushing the resolution a little. Start with small increments.",
+            },
+            {
+                .name   = "Delta HEAD4",
+                .priv   = &delta_head4,
+                .min    = -500,
+                .max    = 500,
+                .unit   = UNIT_DEC,
+                .help2  = "May help pushing the resolution a little. Start with small increments.",
             },
             {
                 .name   = "CMOS[1] lo",
                 .priv   = &cmos1_lo,
                 .max    = 63,
                 .unit   = UNIT_DEC,
-                .help   = "Start scanline (very rough)",
+                .help   = "Start scanline (very rough). Use for vertical positioning.",
             },
             {
                 .name   = "CMOS[1] hi",
                 .priv   = &cmos1_hi,
                 .max    = 63,
                 .unit   = UNIT_DEC,
-                .help   = "End scanline (very rough)",
+                .help   = "End scanline (very rough). Increase if white bar at bottom.",
+                .help2  = "Decrease if you get strange colors as you move the camera.",
             },
             {
                 .name   = "CMOS[2]",
                 .priv   = &cmos2,
                 .max    = 0xFFF,
                 .unit   = UNIT_HEX,
-                .help   = "Horizontal position / binning",
+                .help   = "Horizontal position / binning.",
+                .help2  = "Use for horizontal centering.",
             },
             MENU_EOL,
         },
