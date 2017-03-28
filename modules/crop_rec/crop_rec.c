@@ -30,6 +30,7 @@ enum crop_preset {
     CROP_PRESET_UHD,
     CROP_PRESET_FULLRES_LV,
     CROP_PRESET_3x3_1X,
+    CROP_PRESET_3x3_1X_48p,
     CROP_PRESET_1x3,
     CROP_PRESET_3x1,
     CROP_PRESET_40_FPS,
@@ -52,11 +53,12 @@ static enum crop_preset crop_presets_5d3[] = {
     CROP_PRESET_OFF,
     CROP_PRESET_3X,
     CROP_PRESET_3X_TALL,
+    CROP_PRESET_3x3_1X,
+    CROP_PRESET_3x3_1X_48p,
     CROP_PRESET_3K,
     CROP_PRESET_UHD,
     CROP_PRESET_4K_HFPS,
     CROP_PRESET_FULLRES_LV,
-    CROP_PRESET_3x3_1X,
     CROP_PRESET_1x3,
   //CROP_PRESET_3x1,
     CROP_PRESET_40_FPS,
@@ -64,13 +66,15 @@ static enum crop_preset crop_presets_5d3[] = {
 
 static const char * crop_choices_5d3[] = {
     "OFF",
-    "3x (1:1)",
-    "3x tall (1:1)",
-    "3K (1:1)",
-    "UHD (1:1)",
-    "4K (1:1 half-fps)",
+    "1920 1:1 3x",
+    //"1920 1:1 tall",
+    "1920 1:1 tall",
+    "1920 3x3 tall",
+    "1080p45/48 3x3",
+    "3K 1:1",
+    "UHD 1:1",
+    "4K 1:1 half-fps",
     "Full-res LiveView",
-    "3x3 720p (1x wide)",
     "1x3 binning",
   //"3x1 binning",      /* doesn't work well */
     "40 fps",
@@ -82,12 +86,13 @@ static const char crop_choices_help_5d3[] =
 static const char crop_choices_help2_5d3[] =
     "\n"
     "1:1 sensor readout (square raw pixels, 3x crop, good preview in 1080p)\n"
-    "1:1 sensor readout with higher vertical resolution (cropped preview)\n"
+    "1:1 crop, higher vertical resolution (1920x1920 @ 24p, cropped preview)\n"
+    "1920x960 @ 50p, 1920x800 @ 60p (3x3 binning, cropped preview)\n"
+    "1920x1080 @ 45/48p, 3x3 binning (50/60 FPS in Canon menu)\n"
     "1:1 3K crop (3072x1920 @ 24p, square raw pixels, preview broken)\n"
-    "1:1 4K UHD crop (3840x1640 @ 24p, square raw pixels, preview broken)\n"
+    "1:1 4K UHD crop (3840x1600 @ 24p, square raw pixels, preview broken)\n"
     "1:1 4K crop (4096x3072 @ 12 fps, half frame rate, preview broken)\n"
     "Full resolution LiveView (5796x3870 @ 7.4 fps, 5784x3864, preview broken)\n"
-    "3x3 binning in 720p (square pixels in RAW, vertical crop, ratio 29:10)\n"
     "1x3 binning: read all lines, bin every 3 columns (extreme anamorphic)\n"
     "3x1 binning: bin every 3 lines, read all columns (extreme anamorphic)\n"
     "FPS override test\n";
@@ -116,6 +121,28 @@ static uint32_t ADTG_WRITE      = 0;
 static uint32_t MEM_ADTG_WRITE  = 0;
 static uint32_t ENGIO_WRITE     = 0;
 static uint32_t MEM_ENGIO_WRITE = 0;
+
+/* video modes */
+/* note: zoom mode is identified by checking registers directly */
+
+static int is_1080p()
+{
+    /* note: on 5D2 and 5D3 (maybe also 6D, not sure),
+     * sensor configuration in photo mode is identical to 1080p.
+     * other cameras may be different */
+    return !is_movie_mode() || video_mode_resolution == 0;
+}
+
+static int is_720p()
+{
+    return is_movie_mode() && video_mode_resolution == 1;
+}
+
+static int is_supported_mode()
+{
+    if (!lv) return 0;
+    return is_1080p() || is_720p();
+}
 
 static int32_t  target_xres = 0;
 static int32_t  target_yres = 0;
@@ -169,12 +196,32 @@ static inline void FAST calc_skip_offsets(int * p_skip_left, int * p_skip_right,
         case CROP_PRESET_1x3:
             skip_top        = 60;
             break;
+
+        case CROP_PRESET_3x3_1X:
+        case CROP_PRESET_3x3_1X_48p:
+            if (is_720p()) skip_top = 0;
+            break;
     }
 
     if (p_skip_left)   *p_skip_left    = skip_left;
     if (p_skip_right)  *p_skip_right   = skip_right;
     if (p_skip_top)    *p_skip_top     = skip_top;
     if (p_skip_bottom) *p_skip_bottom  = skip_bottom;
+}
+
+/* to be in sync with 0xC0F06800 */
+static int get_top_bar_adjustment()
+{
+    switch (crop_preset)
+    {
+        case CROP_PRESET_FULLRES_LV:
+            return 0;                   /* 0x10018: photo mode value, unchanged */
+        case CROP_PRESET_3x3_1X:
+        case CROP_PRESET_3x3_1X_48p:
+            if (is_720p()) return 28;   /* 0x1D0017 from 0x10017 */
+        default:
+            return 30;                  /* 0x1F0017 from 0x10017 */
+    }
 }
 
 /* Vertical resolution from current unmodified video mode */
@@ -193,11 +240,15 @@ static inline int get_default_skip_top()
 }
 
 /* max resolution for each video mode (trial and error) */
+/* it's usually possible to push the numbers a few pixels further,
+ * at the risk of corrupted frames */
 static int max_resolutions[NUM_CROP_PRESETS][5] = {
-    [CROP_PRESET_3X_TALL]       = { 2048, 1800, 1560,  800,  750 },
-    [CROP_PRESET_3K]            = { 1920, 1800, 1540,  800,  720 },
-    [CROP_PRESET_4K_HFPS]       = { 3072, 3072, 2560, 1440, 1200 },
-    [CROP_PRESET_UHD]           = { 1640, 1560, 1280,  680,  580 },
+    [CROP_PRESET_3X_TALL]       = { 1920, 1728, 1536,  960,  800 },
+    [CROP_PRESET_3x3_1X]        = { 1290, 1290, 1290,  960,  800 },
+    [CROP_PRESET_3x3_1X_48p]    = { 1290, 1290, 1290, 1080, 1080 },
+    [CROP_PRESET_3K]            = { 1920, 1728, 1504,  760,  680 },
+    [CROP_PRESET_UHD]           = { 1600, 1500, 1200,  640,  540 },
+    [CROP_PRESET_4K_HFPS]       = { 2560, 2560, 2500, 1440, 1200 },
     [CROP_PRESET_FULLRES_LV]    = { 3870, 3870, 3870, 3870, 3870 },
 };
 
@@ -215,7 +266,7 @@ static inline int FAST calc_yres_delta()
         calc_skip_offsets(0, 0, &skip_top, 0);
         int default_yres = get_default_yres();
         int default_skip_top = get_default_skip_top();
-        int top_adj = (crop_preset == CROP_PRESET_FULLRES_LV) ? 0 : 30;
+        int top_adj = get_top_bar_adjustment();
         return desired_yres - default_yres + skip_top - default_skip_top + top_adj;
     }
 
@@ -225,27 +276,7 @@ static inline int FAST calc_yres_delta()
 
 #define YRES_DELTA calc_yres_delta()
 
-/* video modes */
-/* note: zoom mode is identified by checking registers directly */
 
-static int is_1080p()
-{
-    /* note: on 5D2 and 5D3 (maybe also 6D, not sure),
-     * sensor configuration in photo mode is identical to 1080p.
-     * other cameras may be different */
-    return !is_movie_mode() || video_mode_resolution == 0;
-}
-
-static int is_720p()
-{
-    return is_movie_mode() && video_mode_resolution == 1;
-}
-
-static int is_supported_mode()
-{
-    if (!lv) return 0;
-    return is_1080p() || is_720p();
-}
 
 static int cmos_vidmode_ok = 0;
 
@@ -356,10 +387,26 @@ static void FAST cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
                     (video_mode_fps == 24) ? PACK12(8,13)  :
                     (video_mode_fps == 25) ? PACK12(8,12)  :
                     (video_mode_fps == 30) ? PACK12(9,11)  :
-                    (video_mode_fps >= 50) ? PACK12(13,10) :    /* 12,10 has better centering, but overflows */
+                    (video_mode_fps == 50) ? PACK12(12,10) :
+                    (video_mode_fps == 60) ? PACK12(13,10) :
                                              (uint32_t) -1 ;
                 cmos_new[2] = 0x10E;    /* horizontal centering (trial and error) */
                 cmos_new[6] = 0x170;    /* pink highlights without this */
+                break;
+
+            /* 3x3 binning in 720p */
+            /* 1080p it's already 3x3, don't change it */
+            case CROP_PRESET_3x3_1X:
+            case CROP_PRESET_3x3_1X_48p:
+                if (is_720p())
+                {
+                    /* start/stop scanning line, very large increments */
+                    cmos_new[1] =
+                        (crop_preset == CROP_PRESET_3x3_1X_48p) ? PACK12(3,15) :
+                        (video_mode_fps == 50)                  ? PACK12(4,14) :
+                        (video_mode_fps == 60)                  ? PACK12(6,14) :
+                                                                 (uint32_t) -1 ;
+                }
                 break;
 
             case CROP_PRESET_3K:
@@ -393,7 +440,7 @@ static void FAST cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
                     (video_mode_fps == 30) ? PACK12(6,14)  :
                     (video_mode_fps == 50) ? PACK12(10,11) :
                     (video_mode_fps == 60) ? PACK12(12,11) :
-                                            (uint32_t) -1 ;
+                                             (uint32_t) -1 ;
                 cmos_new[2] = 0x07E;    /* horizontal centering (trial and error) */
                 cmos_new[6] = 0x170;    /* pink highlights without this */
                 break;
@@ -404,16 +451,6 @@ static void FAST cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
                 cmos_new[6] = 0x170;    /* pink highlights without this */
                 break;
 
-            /* 3x3 binning in 720p */
-            /* 1080p it's already 3x3, don't change it */
-            case CROP_PRESET_3x3_1X:
-                if (is_720p())
-                {
-                    /* start/stop scanning line, very large increments */
-                    cmos_new[1] = PACK12(8,29);
-                }
-                break;
-            
             /* 1x3 binning (read every line, bin every 3 columns) */
             case CROP_PRESET_1x3:
                 /* start/stop scanning line, very large increments */
@@ -516,7 +553,17 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
         /* don't patch other video modes */
         return;
     }
-    
+
+    if (is_5D3 && !is_720p())
+    {
+        if (crop_preset == CROP_PRESET_3x3_1X ||
+            crop_preset == CROP_PRESET_3x3_1X_48p)
+        {
+            /* these presets only have effect in 720p mode */
+            return;
+        }
+    }
+
     /* This hook is called from the DebugMsg's in adtg_write,
      * so if we change the register list address, it won't be able to override them.
      * Workaround: let's call it here. */
@@ -557,12 +604,17 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
         }
     }
 
-    if (is_5D3 || is_EOSM)
+    if (is_5D3)
     {
         switch (crop_preset)
         {
-            /* 1:1 (3x) */
+            /* all 1:1 modes (3x, 3K, 4K...) */
             case CROP_PRESET_3X:
+            case CROP_PRESET_3X_TALL:
+            case CROP_PRESET_3K:
+            case CROP_PRESET_UHD:
+            case CROP_PRESET_4K_HFPS:
+            case CROP_PRESET_FULLRES_LV:
                 /* ADTG2/4[0x8000] = 5 (set in one call) */
                 /* ADTG2[0x8806] = 0x6088 (artifacts without it) */
                 /* ADTG[0x805E]: shutter blanking for zoom mode  */
@@ -571,50 +623,9 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
                 adtg_new[2] = (struct adtg_new) {6, 0x805E, shutter_blanking};
                 break;
 
-            case CROP_PRESET_3X_TALL:
-            case CROP_PRESET_3K:
-                /* same as the simple 3x crop ... */
-                adtg_new[0] = (struct adtg_new) {6, 0x8000, 5};
-                adtg_new[1] = (struct adtg_new) {2, 0x8806, 0x6088};
-                adtg_new[2] = (struct adtg_new) {6, 0x805E, shutter_blanking};
-                /* ... plus some more registers to adjust vertical resolution */
-                adtg_new[3] = (struct adtg_new) {6, 0x8178, nrzi_encode(0x529 + YRES_DELTA)};
-                adtg_new[4] = (struct adtg_new) {6, 0x8196, nrzi_encode(0x529 + YRES_DELTA)};
-                adtg_new[5] = (struct adtg_new) {6, 0x82F8, nrzi_encode(0x528 + YRES_DELTA)};
-                break;
-
-            case CROP_PRESET_4K_HFPS:
-            case CROP_PRESET_UHD:
-                /* same as the simple 3x crop ... */
-                adtg_new[0] = (struct adtg_new) {6, 0x8000, 5};
-                adtg_new[1] = (struct adtg_new) {2, 0x8806, 0x6088};
-                adtg_new[2] = (struct adtg_new) {6, 0x805E, shutter_blanking};
-                /* ... plus some more registers to adjust vertical resolution */
-                adtg_new[3] = (struct adtg_new) {6, 0x8178, nrzi_encode(0x529 + YRES_DELTA + yres_adj1)};
-                adtg_new[4] = (struct adtg_new) {6, 0x8196, nrzi_encode(0x529 + YRES_DELTA + yres_adj1)};
-                adtg_new[5] = (struct adtg_new) {6, 0x82F8, nrzi_encode(0x528 + YRES_DELTA + yres_adj1)};
-                adtg_new[6] = (struct adtg_new) {6, 0x8179, nrzi_encode(0x535 + YRES_DELTA + yres_adj2)};
-                adtg_new[7] = (struct adtg_new) {6, 0x8197, nrzi_encode(0x535 + YRES_DELTA + yres_adj2)};
-                adtg_new[8] = (struct adtg_new) {6, 0x82F9, nrzi_encode(0x580 + YRES_DELTA + yres_adj2)};
-                break;
-
-            case CROP_PRESET_FULLRES_LV:
-            //~ case CROP_PRESET_4K_HFPS:
-                /* same as the simple 3x crop ... */
-                adtg_new[0] = (struct adtg_new) {6, 0x8000, 5};
-                adtg_new[1] = (struct adtg_new) {2, 0x8806, 0x6088};
-                adtg_new[2] = (struct adtg_new) {6, 0x805E, shutter_blanking};
-                /* ... plus some more registers to adjust vertical resolution */
-                adtg_new[3] = (struct adtg_new) {6, 0x8178, nrzi_encode(0x529 + YRES_DELTA)};
-                adtg_new[4] = (struct adtg_new) {6, 0x8196, nrzi_encode(0x529 + YRES_DELTA)};
-                adtg_new[5] = (struct adtg_new) {6, 0x82F8, nrzi_encode(0x528 + YRES_DELTA)};
-                adtg_new[6] = (struct adtg_new) {6, 0x8179, nrzi_encode(MAX(0x891, 0x591 + YRES_DELTA))};
-                adtg_new[7] = (struct adtg_new) {6, 0x8197, nrzi_encode(MAX(0x891, 0x591 + YRES_DELTA))};
-                adtg_new[8] = (struct adtg_new) {6, 0x82F9, nrzi_encode(MAX(0x8E2, 0x5E2 + YRES_DELTA))};
-                break;
-
             /* 3x3 binning in 720p (in 1080p it's already 3x3) */
             case CROP_PRESET_3x3_1X:
+            case CROP_PRESET_3x3_1X_48p:
                 /* ADTG2/4[0x800C] = 2: vertical binning factor = 3 */
                 adtg_new[0] = (struct adtg_new) {6, 0x800C, 2};
                 break;
@@ -633,14 +644,55 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
                 adtg_new[0] = (struct adtg_new) {6, 0x800C, 2};
                 adtg_new[1] = (struct adtg_new) {2, 0x8806, 0x6088};
                 break;
+        }
 
+        /* all modes with higher vertical resolution */
+        switch (crop_preset)
+        {
+            case CROP_PRESET_3X_TALL:
+            case CROP_PRESET_3x3_1X:
+            case CROP_PRESET_3x3_1X_48p:
+            case CROP_PRESET_3K:
+            case CROP_PRESET_UHD:
+            case CROP_PRESET_4K_HFPS:
+            case CROP_PRESET_FULLRES_LV:
+                /* adjust vertical resolution */
+                adtg_new[3] = (struct adtg_new) {6, 0x8178, nrzi_encode(0x529 + YRES_DELTA + yres_adj1)};
+                adtg_new[4] = (struct adtg_new) {6, 0x8196, nrzi_encode(0x529 + YRES_DELTA + yres_adj1)};
+                adtg_new[5] = (struct adtg_new) {6, 0x82F8, nrzi_encode(0x528 + YRES_DELTA + yres_adj1)};
+                break;
+        }
+
+        /* some modes require additional height adjustments */
+        switch (crop_preset)
+        {
+            case CROP_PRESET_FULLRES_LV:
+            case CROP_PRESET_UHD:
+            case CROP_PRESET_4K_HFPS:
             case CROP_PRESET_40_FPS:
-                adtg_new[6] = (struct adtg_new) {6, 0x8179, nrzi_encode(0x535)};
-                adtg_new[7] = (struct adtg_new) {6, 0x8197, nrzi_encode(0x535)};
-                adtg_new[8] = (struct adtg_new) {6, 0x82F9, nrzi_encode(0x5DB)};
+                /* the following are required for breaking the ~2100px barrier */
+                /* (0x891, 0x891, 0x8E2 at 24p; lower values affect bottom lines) */
+                /* see also http://www.magiclantern.fm/forum/index.php?topic=11965 */
+                adtg_new[6] = (struct adtg_new) {6, 0x8179, nrzi_encode(0x535 + YRES_DELTA + yres_adj2)};
+                adtg_new[7] = (struct adtg_new) {6, 0x8197, nrzi_encode(0x535 + YRES_DELTA + yres_adj2)};
+                adtg_new[8] = (struct adtg_new) {6, 0x82F9, nrzi_encode(0x580 + YRES_DELTA + yres_adj2)};
+                break;
+        }
+
+    }
+
+    if (is_EOSM)
+    {
+        switch (crop_preset)
+        {
+            /* 3x3 binning in 720p (in 1080p it's already 3x3) */
+            case CROP_PRESET_3x3_1X:
+                /* ADTG2/4[0x800C] = 2: vertical binning factor = 3 */
+                adtg_new[0] = (struct adtg_new) {6, 0x800C, 2};
+                break;
         }
     }
-    
+
     while(*data_buf != 0xFFFFFFFF)
     {
         *copy_ptr = *data_buf;
@@ -709,18 +761,6 @@ static inline uint32_t reg_override_common(uint32_t reg, uint32_t old_val)
     return 0;
 }
 
-static inline uint32_t reg_override_3X_tall(uint32_t reg, uint32_t old_val)
-{
-    switch (reg)
-    {
-        /* raw resolution (end line/column) */
-        case 0xC0F06804:
-            return old_val + (YRES_DELTA << 16);
-    }
-
-    return reg_override_common(reg, old_val);
-}
-
 static inline uint32_t reg_override_fps(uint32_t reg, uint32_t timerA, uint32_t timerB)
 {
     /* hardware register requires timer-1 */
@@ -745,6 +785,148 @@ static inline uint32_t reg_override_fps(uint32_t reg, uint32_t timerA, uint32_t 
     }
 
     return 0;
+}
+
+static inline uint32_t reg_override_3X_tall(uint32_t reg, uint32_t old_val)
+{
+    /* change FPS timers to increase vertical resolution */
+    if (video_mode_fps >= 50)
+    {
+        int timerA = 400;
+
+        int timerB =
+            (video_mode_fps == 50) ? 1200 :
+            (video_mode_fps == 60) ? 1001 :
+                                       -1 ;
+
+        int a = reg_override_fps(reg, timerA, timerB);
+        if (a) return a;
+    }
+
+    /* fine-tuning head timers appears to help
+     * pushing the resolution a tiny bit further */
+    int head_adj =
+        (video_mode_fps == 50) ? -30 :
+        (video_mode_fps == 60) ? -20 :
+                                   0 ;
+
+    switch (reg)
+    {
+        /* raw resolution (end line/column) */
+        case 0xC0F06804:
+            return old_val + (YRES_DELTA << 16);
+
+        /* HEAD3 timer */
+        case 0xC0F0713C:
+            return old_val + YRES_DELTA + yres_adj3 + head_adj;
+
+        /* HEAD4 timer */
+        case 0xC0F07150:
+            return old_val + YRES_DELTA + yres_adj3 + head_adj;
+    }
+
+    return reg_override_common(reg, old_val);
+}
+
+static inline uint32_t reg_override_3x3_tall(uint32_t reg, uint32_t old_val)
+{
+    if (!is_720p())
+    {
+        /* 1080p not patched in 3x3 */
+        return 0;
+    }
+
+    /* change FPS timers to increase vertical resolution */
+    if (video_mode_fps >= 50)
+    {
+        int timerA = 400;
+
+        int timerB =
+            (video_mode_fps == 50) ? 1200 :
+            (video_mode_fps == 60) ? 1001 :
+                                       -1 ;
+
+        int a = reg_override_fps(reg, timerA, timerB);
+        if (a) return a;
+    }
+
+    /* fine-tuning head timers appears to help
+     * pushing the resolution a tiny bit further */
+    int head_adj =
+        (video_mode_fps == 50) ? -10 :
+        (video_mode_fps == 60) ? -20 :
+                                   0 ;
+
+    switch (reg)
+    {
+        /* for some reason, top bar disappears with the common overrides */
+        /* very tight fit - every pixel counts here */
+        case 0xC0F06800:
+            return 0x1D0017;
+
+        /* raw resolution (end line/column) */
+        case 0xC0F06804:
+            return old_val + (YRES_DELTA << 16);
+
+        /* HEAD3 timer */
+        case 0xC0F0713C:
+            return old_val + YRES_DELTA + yres_adj3 + head_adj;
+
+        /* HEAD4 timer */
+        case 0xC0F07150:
+            return old_val + YRES_DELTA + yres_adj3 + head_adj;
+    }
+
+    return reg_override_common(reg, old_val);
+}
+
+static inline uint32_t reg_override_3x3_48p(uint32_t reg, uint32_t old_val)
+{
+    if (!is_720p())
+    {
+        /* 1080p not patched in 3x3 */
+        return 0;
+    }
+
+    /* change FPS timers to increase vertical resolution */
+    if (video_mode_fps >= 50)
+    {
+        int timerA =
+            (video_mode_fps == 50) ? 401 :
+            (video_mode_fps == 60) ? 400 :
+                                      -1 ;
+        int timerB =
+            (video_mode_fps == 50) ? 1330 : /* 45p */
+            (video_mode_fps == 60) ? 1250 : /* 48p */
+                                       -1 ;
+
+        int a = reg_override_fps(reg, timerA, timerB);
+        if (a) return a;
+    }
+
+    switch (reg)
+    {
+        /* for some reason, top bar disappears with the common overrides */
+        /* very tight fit - every pixel counts here */
+        case 0xC0F06800:
+            return 0x1D0017;
+
+        /* raw resolution (end line/column) */
+        case 0xC0F06804:
+            return old_val + (YRES_DELTA << 16);
+
+        /* HEAD3 timer */
+        /* 2B4 in 50/60p */
+        case 0xC0F0713C:
+            return 0x2A4 + YRES_DELTA + yres_adj3;
+
+        /* HEAD4 timer */
+        /* 2E6 in 50p (too high), 26D in 60p */
+        case 0xC0F07150:
+            return 0x26D + YRES_DELTA + yres_adj3;
+    }
+
+    return reg_override_common(reg, old_val);
 }
 
 static inline uint32_t reg_override_3K(uint32_t reg, uint32_t old_val)
@@ -812,14 +994,17 @@ static inline uint32_t reg_override_4K_hfps(uint32_t reg, uint32_t old_val)
 static inline uint32_t reg_override_UHD(uint32_t reg, uint32_t old_val)
 {
     /* FPS timer A, for increasing horizontal resolution */
-    /* trial and error to allow 3840; 512 is too low */
-    int timerA = 544;
+    /* trial and error to allow 3840; 536 is too low */
+    int timerA = 
+        (video_mode_fps == 25) ? 547 :
+        (video_mode_fps == 50) ? 546 :
+                                 550 ;
     int timerB =
-        (video_mode_fps == 24) ? 1840 :
-        (video_mode_fps == 25) ? 1764 :
-        (video_mode_fps == 30) ? 1472 :
-        (video_mode_fps == 50) ?  882 :
-        (video_mode_fps == 60) ?  736 :
+        (video_mode_fps == 24) ? 1820 :
+        (video_mode_fps == 25) ? 1755 :
+        (video_mode_fps == 30) ? 1456 :
+        (video_mode_fps == 50) ?  879 :
+        (video_mode_fps == 60) ?  728 :
                                    -1 ;
 
     int a = reg_override_fps(reg, timerA, timerB);
@@ -860,7 +1045,7 @@ static inline uint32_t reg_override_fullres_lv(uint32_t reg, uint32_t old_val)
             return 0x3170317;
 
         case 0xC0F06014:
-            return 0xFFE;           /* 7.4 fps */
+            return 0xFE2;           /* 7.45 fps */
     }
 
     /* no need to adjust the black bar */
@@ -894,11 +1079,13 @@ static inline uint32_t reg_override_40_fps(uint32_t reg, uint32_t old_val)
 static void FAST engio_write_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
 {
     uint32_t (*reg_override_func)(uint32_t, uint32_t) = 
-      //(crop_preset == CROP_PRESET_3X)         ? reg_override_top_bar    : /* fixme: corrupted image */
+      //(crop_preset == CROP_PRESET_3X)         ? reg_override_top_bar     : /* fixme: corrupted image */
         (crop_preset == CROP_PRESET_3X_TALL)    ? reg_override_3X_tall    :
+        (crop_preset == CROP_PRESET_3x3_1X)     ? reg_override_3x3_tall   :
+        (crop_preset == CROP_PRESET_3x3_1X_48p) ? reg_override_3x3_48p    :
         (crop_preset == CROP_PRESET_3K)         ? reg_override_3K         :
-        (crop_preset == CROP_PRESET_4K_HFPS)    ? reg_override_4K_hfps         :
-        (crop_preset == CROP_PRESET_UHD)        ? reg_override_UHD     :
+        (crop_preset == CROP_PRESET_4K_HFPS)    ? reg_override_4K_hfps    :
+        (crop_preset == CROP_PRESET_UHD)        ? reg_override_UHD        :
         (crop_preset == CROP_PRESET_40_FPS)     ? reg_override_40_fps     :
         (crop_preset == CROP_PRESET_FULLRES_LV) ? reg_override_fullres_lv :
                                                   0                       ;
@@ -1169,6 +1356,7 @@ static LVINFO_UPDATE_FUNC(crop_info)
                 break;
 
             case CROP_PRESET_3x3_1X:
+            case CROP_PRESET_3x3_1X_48p:
                 snprintf(buffer, sizeof(buffer), "3x3");
                 break;
 
@@ -1231,6 +1419,7 @@ static unsigned int raw_info_update_cbr(unsigned int unused)
                 break;
 
             case CROP_PRESET_3x3_1X:
+            case CROP_PRESET_3x3_1X_48p:
             case CROP_PRESET_1x3:
                 raw_capture_info.binning_x = 3; raw_capture_info.skipping_x = 0;
                 break;
@@ -1250,6 +1439,7 @@ static unsigned int raw_info_update_cbr(unsigned int unused)
                 break;
 
             case CROP_PRESET_3x3_1X:
+            case CROP_PRESET_3x3_1X_48p:
             case CROP_PRESET_3x1:
             {
                 int b = (is_5D3) ? 3 : 1;
