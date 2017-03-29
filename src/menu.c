@@ -5409,6 +5409,8 @@ void select_menu(char* name, int entry_index)
 
 void select_menu_by_name(char* name, const char* entry_name)
 {
+    take_semaphore(menu_sem, 0);
+
     /* select the first menu that matches the name, if any given */
     /* otherwise, keep the selection unchanged */
     struct menu * selected_menu = 0;
@@ -5420,9 +5422,16 @@ void select_menu_by_name(char* name, const char* entry_name)
             break;
         }
     }
-    
+
     if (selected_menu)
     {
+        if (IS_SUBMENU(selected_menu))
+        {
+            /* submenus are hard; you need to select all parents along the way */
+            give_semaphore(menu_sem);
+            return;
+        }
+
         /* update selection flag for all entries from this menu */
         for (struct menu * menu = menus; menu; menu = menu->next)
         {
@@ -5451,7 +5460,12 @@ void select_menu_by_name(char* name, const char* entry_name)
                 }
             }
         }
+
+        /* update other internal state (see menu_move) */
+        menu_first_by_icon = selected_menu->icon;
     }
+
+    give_semaphore(menu_sem);
 }
 
 static struct menu_entry * entry_find_by_name(const char* name, const char* entry_name)
