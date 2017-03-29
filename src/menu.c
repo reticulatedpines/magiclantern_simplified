@@ -6003,6 +6003,13 @@ int menu_set_value_from_script(const char* name, const char* entry_name, int val
     }
     else if IS_ML_PTR(entry->priv) // numeric item, just set it
     {
+        if (entry->max > entry->min)
+        {
+            /* perform range checking */
+            if (value < entry->min) return 0;
+            if (value > entry->max) return 0;
+        }
+
         *(int*)(entry->priv) = value;
         return 1; // success!
     }
