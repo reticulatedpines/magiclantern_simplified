@@ -130,12 +130,13 @@ int lossless_init()
 
 static uint32_t start_time = 0;
 
-int lossless_compress_raw_start(struct raw_info * raw_info, struct memSuite * output_memsuite)
+/* returns output size if successful, negative on error */
+int lossless_compress_raw(struct raw_info * raw_info, struct memSuite * output_memsuite)
 {
     if (!TTL_ResLock || !lossless_sem || !TTL_Start)
     {
         /* not initialized */
-        return 0;
+        return -1;
     }
 
     int width = raw_info->width;
@@ -208,11 +209,6 @@ int lossless_compress_raw_start(struct raw_info * raw_info, struct memSuite * ou
     /* this starts the EDmac channels */
     TTL_Start(&TTL_Args);
 
-    return 1;
-}
-
-int lossless_compress_raw_finish()
-{
     /* wait until finished */
     int err = take_semaphore(lossless_sem, 1000);
 
@@ -244,15 +240,4 @@ int lossless_compress_raw_finish()
     }
 
     return output_size;
-}
-
-/* returns output size if successful, negative on error */
-int lossless_compress_raw(struct raw_info * raw_info, struct memSuite * output_memsuite)
-{
-    if (!lossless_compress_raw_start(raw_info, output_memsuite))
-    {
-        return -1;
-    }
-
-    return lossless_compress_raw_finish();
 }
