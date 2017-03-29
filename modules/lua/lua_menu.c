@@ -196,6 +196,22 @@ static int luaCB_menu_get(lua_State * L)
     return 1;
 }
 
+/// Get the value of some existing ML menu entry, as string.
+// @tparam string menu name of the parent menu ('Audio', 'Expo', 'Overlay', 'Shoot', 'Movie', etc)
+// @tparam string entry name of the menu entry
+// @treturn string the value of the menu entry (current selection)
+// @function gets
+static int luaCB_menu_gets(lua_State * L)
+{
+    LUA_PARAM_STRING(menu, 1);
+    LUA_PARAM_STRING(entry, 2);
+    struct menu_display_info info;
+    char * str = menu_get_str_value_from_script(menu, entry, &info);
+    if (!str) return luaL_error(L, "menu not found");
+    lua_pushstring(L, str);
+    return 1;
+}
+
 /// Set the value of some existing ML menu entry.
 // @tparam string menu name of the parent menu ('Audio', 'Expo', 'Overlay', 'Shoot', 'Movie', etc).
 // @tparam string entry name of the menu entry.
@@ -836,6 +852,7 @@ static const char * lua_menu_fields[] =
 const luaL_Reg menulib[] =
 {
     {"get", luaCB_menu_get},
+    {"gets", luaCB_menu_gets},
     {"set", luaCB_menu_set},
     {"open", luaCB_menu_open},
     {"close", luaCB_menu_close},
