@@ -222,21 +222,8 @@ static int luaCB_menu_set(lua_State * L)
 }
 
 /// Open ML menu.
-///
-/// Optionally, it may also select the requested menu.
-// @param[opt] menu name of the parent menu ('Audio', 'Expo', 'Overlay', 'Shoot', 'Movie', etc)
-// @param[opt] entry name of the menu entry
-// @function open
 static int luaCB_menu_open(lua_State * L)
 {
-    LUA_PARAM_STRING_OPTIONAL(menu, 1, NULL);
-    LUA_PARAM_STRING_OPTIONAL(entry, 2, NULL);
-
-    if (menu)
-    {
-        select_menu_by_name((char *) menu, entry);
-    }
-
     gui_open_menu();
     msleep(1000);
     return 0;
@@ -249,6 +236,23 @@ static int luaCB_menu_close(lua_State * L)
     gui_stop_menu();
     msleep(1000);
     return 0;
+}
+
+/// Select an item from ML menu.
+// @tparam[opt] string menu name of the parent menu ('Audio', 'Expo', 'Overlay', 'Shoot', 'Movie', etc)
+// @tparam[opt] string entry name of the menu entry
+// @treturn bool whether or not the call was sucessful.
+// @function select
+static int luaCB_menu_select(lua_State * L)
+{
+    LUA_PARAM_STRING(menu, 1);
+    LUA_PARAM_STRING_OPTIONAL(entry, 2, NULL);
+    select_menu_by_name((char *) menu, entry);
+    lua_pushboolean(L, 
+        entry ? is_menu_entry_selected((char *) menu, (char *) entry)
+              : is_menu_selected((char *) menu)
+    );
+    return 1;
 }
 
 /// Block the ML menu from redrawing (if you wand to do custom drawing).
@@ -835,6 +839,7 @@ const luaL_Reg menulib[] =
     {"set", luaCB_menu_set},
     {"open", luaCB_menu_open},
     {"close", luaCB_menu_close},
+    {"select", luaCB_menu_select},
     {"block", luaCB_menu_block},
     {"new", luaCB_menu_new},
     {NULL, NULL}
