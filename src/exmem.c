@@ -404,6 +404,7 @@ struct memSuite * _srm_malloc_suite(int num_requested_buffers)
     }
     
     srm_shutter_lock();
+    msleep(50);
 
     if (lens_info.job_state)
     {
@@ -413,9 +414,9 @@ struct memSuite * _srm_malloc_suite(int num_requested_buffers)
         return 0;
     }
 
-    void* buffers[10];
+    void* buffers[16];
     
-    if (num_requested_buffers <= 0)
+    if (num_requested_buffers <= 0 || num_requested_buffers > COUNT(buffers))
     {
         /* if you request 0, this means allocate as much as you can */
         num_requested_buffers = COUNT(buffers);
@@ -424,7 +425,7 @@ struct memSuite * _srm_malloc_suite(int num_requested_buffers)
     int num_buffers = 0;
     
     /* try to allocate the number of requested buffers (or less, if not possible) */
-    for (num_buffers = 0; num_buffers < MIN(num_requested_buffers, COUNT(buffers)); num_buffers++)
+    for (num_buffers = 0; num_buffers < num_requested_buffers; num_buffers++)
     {
         /* allocate a large contiguous buffer, normally used for RAW photo capture */
         buffers[num_buffers] = 0;
