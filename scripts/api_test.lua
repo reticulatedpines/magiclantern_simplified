@@ -226,6 +226,117 @@ function test_io()
     printf("\n")
 end
 
+function test_menu()
+    printf("Testing menu API...\n")
+
+    menu.open()
+    assert(menu.select("Expo", "ISO"))
+
+    -- menu values should be set-able as string (displayed value)
+    -- or as integer (internal value)
+    assert(menu.set("Expo", "ISO", "200"))
+    assert(camera.iso.value == 200)
+    msleep(1000)
+
+    -- int should be promoted to string because of custom logic in Expo->ISO menu
+    assert(menu.set("Expo", "ISO", 1600))
+    assert(camera.iso.value == 1600)
+    msleep(1000)
+
+    -- move selection (not required for set to work; just for user interface)
+    assert(menu.select("Expo", "Picture Style"))
+
+    -- picture styles should be set-able as string
+    -- numeric works too, as it sets the internal index
+    assert(menu.set("Expo", "Picture Style", "Portrait"))
+    msleep(1000)
+    assert(menu.set("Expo", "Picture Style", "Landscape"))
+    msleep(1000)
+    assert(menu.set("Expo", "Picture Style", 5)) -- OK, selects Neutral
+    msleep(1000)
+    assert(not menu.set("Expo", "Picture Style", 1234)) -- should fail, out of range
+    msleep(1000)
+
+    assert(menu.select("Overlay"))
+    assert(menu.select("Movie"))
+    assert(menu.select("Shoot"))
+
+    assert(menu.select("Shoot", "Advanced Bracket"))
+
+    -- boolean items should be set-able as int (0 or 1)
+    assert(menu.set("Shoot", "Advanced Bracket", 1))
+    assert(menu.get("Shoot", "Advanced Bracket") == 1)
+    msleep(1000)
+
+    -- or as string (if the user interface displays "ON" or "OFF")
+    -- here, actual string will be "ON, 10s" or similar (also accepted)
+    assert(menu.set("Shoot", "Intervalometer", "ON"))
+    assert(menu.get("Shoot", "Intervalometer") == 1)
+    msleep(1000)
+
+    -- turning off should be straightforward
+    assert(menu.set("Shoot", "Advanced Bracket", "OFF"))
+    assert(menu.get("Shoot", "Advanced Bracket") == 0)
+    msleep(1000)
+
+    assert(menu.set("Shoot", "Intervalometer", 0))
+    assert(menu.get("Shoot", "Intervalometer") == 0)
+    msleep(1000)
+
+    -- move to Intervalometer menu
+    assert(menu.select("Shoot", "Intervalometer"))
+    msleep(1000)
+
+    -- enter the submenu
+    -- TODO: menu.select should handle submenus as well
+    assert(not menu.select("Intervalometer", "Take a pic every"))
+    key.press(KEY.Q)
+    msleep(1000)
+
+    -- note: setting menu by string works by brute force
+    -- that is, trying every possible value and comparing the string
+    -- the range for this menu is huge, so it only checks round values
+    -- for speed reasons (so entering 1m10s will fail)
+    -- smaller ranges are OK for trying every single value
+    assert(menu.set("Intervalometer", "Take a pic every", "1m30s"))
+    assert(menu.get("Intervalometer", "Take a pic every") == 90)
+    msleep(1000)
+
+    -- actual string will be 10s
+    assert(menu.set("Intervalometer", "Take a pic every", "10"))
+    assert(menu.get("Intervalometer", "Take a pic every") == 10)
+    msleep(1000)
+
+    -- integer should work as well - e.g. 1m10s should work now
+    assert(menu.set("Intervalometer", "Take a pic every", 70))
+    assert(menu.get("Intervalometer", "Take a pic every") == 70)
+    msleep(1000)
+
+    -- out of range, should fail
+    assert(not menu.set("Intervalometer", "Take a pic every", 7000000))
+    assert(menu.get("Intervalometer", "Take a pic every") == 70)
+    msleep(1000)
+
+    -- exit submenu
+    key.press(KEY.Q)
+    msleep(1000)
+
+    -- non-existent menus; should fail
+    assert(not menu.select("Dinosaur"))
+    assert(not menu.select("Shoot", "Crocodile"))
+
+    menu.close()
+
+    -- exercise the menu backend a bit
+    for i = 1,5 do
+        menu.open()
+        menu.close()
+    end
+
+    printf("Menu tests completed.\n")
+    printf("\n")
+end
+
 function taskA()
     printf("Task A started.\n")
     local i
@@ -896,6 +1007,7 @@ function api_tests()
     generic_tests()
     
     printf("Module tests...\n")
+    test_menu()
     test_io()
     msleep(1000)
     test_multitasking()
