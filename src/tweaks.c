@@ -977,15 +977,9 @@ static void play_zoom_center_pos_update()
 
 #endif // FEATURE_QUICK_ZOOM
 
-static int joke_mode = 0;
-
 static void
 tweak_task( void* unused)
 {
-    struct tm now;
-    LoadCalendarFromRTC(&now);
-    joke_mode = (now.tm_mday == 1 && now.tm_mon == 3);
-    
     extern void movtweak_task_init();
     movtweak_task_init();
     
@@ -2416,16 +2410,6 @@ static void preview_contrast_n_saturation_step()
     if (play_dirty) play_dirty--; else return;
     msleep(100);
 #else
-    if (joke_mode)
-    {
-        if (rand()%5 == 3 && get_seconds_clock() == get_last_time_active() + rand()%3)
-        {
-            int old = backlight_level;
-            set_backlight_level(rand()%8);
-            msleep(rand()%50);
-            set_backlight_level(old);
-        }
-    }
     if (!lv) return;
 #endif
 

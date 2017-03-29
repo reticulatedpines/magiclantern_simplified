@@ -1358,9 +1358,6 @@ silent_pic_take_fullres(int interactive)
             image_review_time ? COERCE(intervalometer_remaining, 0, image_review_time * 1000 - save_time) 
                               : 0;
         delayed_call(100, display_off_if_qr_mode, (void*)preview_delay);
-
-        /* reset the powersave timer */
-        powersave_prolong();
     }
     else
     {
@@ -1430,6 +1427,10 @@ silent_pic_take(unsigned int interactive) // for remote release, set interactive
         if (!lv) force_liveview();
         ok = silent_pic_take_lv(interactive);
     }
+
+    /* reset the powersave timer */
+    powersave_prolong();
+
     return ok ? CBR_RET_STOP : CBR_RET_ERROR;
 }
 
