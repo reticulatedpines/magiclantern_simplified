@@ -215,7 +215,7 @@ static int luaCB_menu_set(lua_State * L)
     {
         LUA_PARAM_STRING(value, 3);
         char * copy = copy_string(value);
-        lua_pushboolean(L, menu_set_str_value_from_script(menu, entry, copy, -1));
+        lua_pushboolean(L, menu_set_str_value_from_script(menu, entry, copy, INT_MIN));
         free(copy);
     }
     return 1;

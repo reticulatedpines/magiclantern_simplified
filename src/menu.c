@@ -657,7 +657,7 @@ void menu_numeric_toggle_time(int * val, int delta, int min, int max)
     set_config_var_ptr(val, new_val);
 }
 
-static void menu_numeric_toggle_fast(int* val, int delta, int min, int max, int is_time)
+static void menu_numeric_toggle_fast(int* val, int delta, int min, int max, int is_time, int ignore_timing)
 {
     ASSERT(IS_ML_PTR(val));
     
@@ -666,10 +666,12 @@ static void menu_numeric_toggle_fast(int* val, int delta, int min, int max, int 
     int t = get_ms_clock_value();
     
     if(is_time)
+    {
         menu_numeric_toggle_time(val, delta, min, max);
+    }
     else if (max - min > 20)
     {
-        if (t - prev_t < 200 && prev_delta < 200)
+        if (t - prev_t < 200 && prev_delta < 200 && !ignore_timing)
             menu_numeric_toggle_R20(val, delta, min, max);
         else
             menu_numeric_toggle_long_range(val, delta, min, max);
@@ -4101,7 +4103,7 @@ menu_entry_select(
             if (editing_with_caret(entry) || (entry->unit == UNIT_HEX))
                 menu_numeric_toggle(entry->priv, get_delta(entry,-1), entry->min, entry->max);
             else
-                menu_numeric_toggle_fast(entry->priv, -1, entry->min, entry->max, entry->unit == UNIT_TIME);
+                menu_numeric_toggle_fast(entry->priv, -1, entry->min, entry->max, entry->unit == UNIT_TIME, 0);
         }
         entry_used = 1;
     }
@@ -4166,7 +4168,7 @@ menu_entry_select(
             }
             else if IS_ML_PTR(entry->priv)
             {
-                menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max, entry->unit == UNIT_TIME);
+                menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max, entry->unit == UNIT_TIME, 0);
                 entry_used = 1;
             }
         }
@@ -4182,7 +4184,7 @@ menu_entry_select(
             if (editing_with_caret(entry) || (entry->unit == UNIT_HEX))
                 menu_numeric_toggle(entry->priv, get_delta(entry,1), entry->min, entry->max);
             else
-                menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max, entry->unit == UNIT_TIME);
+                menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max, entry->unit == UNIT_TIME, 0);
         }
 
         entry_used = 1;
@@ -5938,6 +5940,23 @@ int menu_set_str_value_from_script(const char* name, const char* entry_name, cha
     struct menu_entry * entry = entry_find_by_name(name, entry_name);
     if (!entry) { printf("Menu not found: %s -> %s\n", name, entry_name); return 0; }
 
+    /* if the menu item has multiple choices defined,
+     * or just a valid min/max range, it's easy */
+    if (IS_ML_PTR(entry->priv) && (entry->choices || (entry->max > entry->min)))
+    {
+        for (int i = entry->min; i < entry->max; i++)
+        {
+            if (streq(value, pickbox_string(entry, i)))
+            {
+                *(int*)(entry->priv) = i;
+                return 1;
+            }
+        }
+    }
+
+    /* otherwise, we need to check the hard way -
+     * maybe the menu logic sets some custom values that are not easy to guess */
+
     // we will need exclusive access to menu_display_info
     take_semaphore(menu_sem, 0);
     
@@ -5946,39 +5965,121 @@ int menu_set_str_value_from_script(const char* name, const char* entry_name, cha
     char last[MENU_MAX_VALUE_LEN];
     snprintf(first, sizeof(first), "%s", menu_get_str_value_from_script(name, entry_name));
     snprintf(last, sizeof(last), "%s", menu_get_str_value_from_script(name, entry_name));
-    
-    for (int i = 0; i < 500; i++) // keep cycling until we get the desired value (or until it repeats the same value)
+
+    /* keep cycling until we get the desired value */
+    /* other stop conditions:
+     * - repeats the same value
+     * - goes back to initial value
+     * - timeout 2 seconds
+     */
+    int wait_retries = 0;
+    int tstart = get_ms_clock_value();
+    for (int i = 0; get_ms_clock_value() - tstart < 2000; i++)
     {
         char* current = menu_get_str_value_from_script(name, entry_name);
         if (streq(current, value))
-            goto ok; // success!!
-
-        if (startswith(current, value) && !isdigit(current[strlen(value)]))
-            goto ok; // accept 3500 instead of 3500K, or ON instead of ON,blahblah, but not 160 instead of 1600
-        
-        if (IS_ML_PTR(entry->priv) && CURRENT_VALUE == value_int)
-            goto ok; // also success!
-
-        if (i > 0 && streq(current, last)) // value not changing? stop here
         {
-            printf("Value not changing: %s.\n", current);
+            //~ printf("menu_set('%s', '%s'): match str (%s)\n", entry_name, value, current);
+            goto ok; // success!!
+        }
+
+        /* optional argument to allow numeric match? */
+        if (value_int != INT_MIN && IS_ML_PTR(entry->priv) && CURRENT_VALUE == value_int)
+        {
+            //~ printf("menu_set('%s', '%s'): match int (%d, %s)\n", entry_name, value, value_int, current);
+            goto ok; // also success!
+        }
+
+        /* accept 3500 instead of 3500K, or ON instead of ON,blahblah
+         * but not 160 instead of 1600, or 1m instead of 1m10s */
+        int len_val = strlen(value);
+        int len_cur = strlen(current);
+        if (len_val < len_cur && startswith(current, value))
+        {
+            /* comma after the requested value? ok, assume separator */
+            if (current[len_val] == ',')
+            {
+                //~ printf("menu_set('%s', '%s'): match comma (%s)\n", entry_name, value, current);
+                goto ok;
+            }
+            
+            /* requested 10, got 10m? accept (but refuse 105) */
+            if (len_cur == len_val + 1 && !isdigit(current[len_val]))
+            {
+                //~ printf("menu_set('%s', '%s'): match 1-chr suffix (%s)\n", entry_name, value, current);
+                goto ok;
+            }
+
+            /* requested 10, got 10cm? accept (but refuse 10.5) */
+            if (len_cur == len_val + 2 && !isdigit(current[len_val]) && !isdigit(current[len_val+1]))
+            {
+                //~ printf("menu_set('%s', '%s'): match 2-chr suffix (%s)\n", entry_name, value, current);
+                goto ok;
+            }
+        }
+        
+        if (i > 0 && streq(current, last)) // value not changing?
+        {
+            if (wait_retries < 5)
+            {
+                /* we may need to wait for other tasks */
+                //~ printf("menu_set('%s', '%s'): wait (%s, %d)\n", entry_name, value, current, retries);
+                msleep(100);
+                wait_retries++;
+                /* check the current string again */
+                continue;
+            }
+            
+            printf("menu_set('%s', '%s'): value not changing (%s)\n", entry_name, value, current);
             break;
         }
         
         if (i > 0 && streq(current, first)) // back to first value? stop here
+        {
+            printf("menu_set('%s', '%s'): back to first value (%s)\n", entry_name, value, current);
             break;
+        }
         
         // for debugging, print this always
         if (i > 50 && i % 10 == 0) // it's getting fishy, maybe it's good to show some progress
-            printf("menu_set_str('%s', '%s', '%s'): trying %s (%d), was %s...\n", name, entry_name, value, current, CURRENT_VALUE, last);
+        {
+            printf("menu_set('%s', '%s') [%d]: trying %s (%d), was %s...\n", entry_name, value, i, current, CURRENT_VALUE, last);
+        }
 
         snprintf(last, sizeof(last), "%s", current);
-        
-        if (entry->select) entry->select( entry->priv, 1);
-        else if IS_ML_PTR(entry->priv) menu_numeric_toggle_long_range(entry->priv, 1, entry->min, entry->max);
-        else break;
-        
-        msleep(20); // we may need to wait for property handlers to update
+        wait_retries = 0;
+
+        if (entry->select)
+        {
+            /* custom menu selection logic */
+            entry->select( entry->priv, 1);
+
+            /* the custom logic might rely on other tasks to update */
+            msleep(50);
+        }
+        else if IS_ML_PTR(entry->priv)
+        {
+            if (entry->max - entry->min > 1000)
+            {
+                /* for very long min-max ranges, don't try every single value */
+                menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max, entry->unit == UNIT_TIME, 1);
+            }
+            else
+            {
+                /* for reasonable min-max ranges, try every single value */
+                (*(int*)(entry->priv))++;
+                
+                if (*(int*)(entry->priv) > entry->max)
+                {
+                    *(int*)(entry->priv) = entry->min;
+                }
+            }
+        }
+        else
+        {
+            printf("menu_set('%s', '%s') don't know how to toggle\n", entry_name, value);
+            break;
+        }
     }
     printf("Could not set value '%s' for menu %s -> %s\n", value, name, entry_name);
     give_semaphore(menu_sem);
