@@ -257,7 +257,7 @@ function test_menu()
     assert(menu.set("Expo", "Picture Style", "Landscape"))
     assert(menu.get("Expo", "Picture Style", "") == "Landscape")
     msleep(1000)
-    assert(not menu.set("Expo", "Picture Style", 1234)) -- should fail, out of range
+    assert(menu.set("Expo", "Picture Style", 1234) == false) -- should fail, out of range
     assert(menu.get("Expo", "Picture Style", "") == "Landscape") -- old selection should not change
     msleep(1000)
 
@@ -295,7 +295,7 @@ function test_menu()
 
     -- enter the submenu
     -- TODO: menu.select should handle submenus as well
-    assert(not menu.select("Intervalometer", "Take a pic every"))
+    assert(menu.select("Intervalometer", "Take a pic every") == false)
     key.press(KEY.Q)
     msleep(1000)
 
@@ -322,7 +322,7 @@ function test_menu()
     msleep(1000)
 
     -- out of range, should fail
-    assert(not menu.set("Intervalometer", "Take a pic every", 7000000))
+    assert(menu.set("Intervalometer", "Take a pic every", 7000000) == false)
     assert(menu.get("Intervalometer", "Take a pic every") == 70)
     assert(menu.get("Intervalometer", "Take a pic every", "") == "1m10s")
     msleep(1000)
@@ -332,8 +332,14 @@ function test_menu()
     msleep(1000)
 
     -- non-existent menus; should fail
-    assert(not menu.select("Dinosaur"))
-    assert(not menu.select("Shoot", "Crocodile"))
+    assert(menu.select("Dinosaur") == false)
+    assert(menu.select("Shoot", "Crocodile") == false)
+
+    -- menu.get/set return nil if the menu was not found
+    assert(menu.get("Shoot", "Introvolometer") == nil)
+    assert(menu.get("Shoot", "Brack", "") == nil)
+    assert(menu.set("Shoot", "Introvolometer", 1) == nil)
+    assert(menu.set("Shoot", "Introvolometer", "OFF") == nil)
 
     menu.close()
 

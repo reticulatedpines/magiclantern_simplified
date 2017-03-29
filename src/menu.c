@@ -5932,7 +5932,11 @@ end:
 int menu_get_value_from_script(const char* name, const char* entry_name)
 {
     struct menu_entry * entry = entry_find_by_name(name, entry_name);
-    if (!entry) { printf("Menu not found: %s -> %s\n", name, entry_name); return 0; }
+    if (!entry)
+    {
+        printf("Menu not found: %s -> %s\n", name, entry_name);
+        return INT_MIN;
+    }
     
     return CURRENT_VALUE;
 }
@@ -5941,7 +5945,11 @@ int menu_get_value_from_script(const char* name, const char* entry_name)
 static char* menu_get_str_value_from_script_do(const char* name, const char* entry_name, struct menu_display_info * info)
 {
     struct menu_entry * entry = entry_find_by_name(name, entry_name);
-    if (!entry) { printf("Menu not found: %s -> %s\n", name, entry_name); return 0; }
+    if (!entry)
+    {
+        printf("Menu not found: %s -> %s\n", name, entry_name);
+        return NULL;
+    }
 
     /* not thread-safe; must be guarded by menu_sem */
     entry_default_display_info(entry, info);
@@ -5961,7 +5969,11 @@ char* menu_get_str_value_from_script(const char* name, const char* entry_name, s
 int menu_set_str_value_from_script(const char* name, const char* entry_name, char* value, int value_int)
 {
     struct menu_entry * entry = entry_find_by_name(name, entry_name);
-    if (!entry) { printf("Menu not found: %s -> %s\n", name, entry_name); return 0; }
+    if (!entry)
+    {
+        printf("Menu not found: %s -> %s\n", name, entry_name);
+        return INT_MIN;
+    }
 
     /* if the menu item has multiple choices defined,
      * or just a valid min/max range, it's easy */
@@ -6117,7 +6129,11 @@ ok:
 int menu_set_value_from_script(const char* name, const char* entry_name, int value)
 {
     struct menu_entry * entry = entry_find_by_name(name, entry_name);
-    if (!entry) { printf("Menu not found: %s -> %s\n", name, entry_name); return 0; }
+    if (!entry)
+    {
+        printf("Menu not found: %s -> %s\n", name, entry_name);
+        return INT_MIN;
+    }
     
     if( entry->select ) // special item, we need some heuristics
     {

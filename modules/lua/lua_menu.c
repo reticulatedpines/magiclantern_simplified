@@ -187,7 +187,7 @@ static int get_index_for_choices(struct menu_entry * menu_entry, const char * va
 // @tparam string menu name of the parent menu ('Audio', 'Expo', 'Overlay', 'Shoot', 'Movie', etc)
 // @tparam string entry name of the menu entry
 // @tparam[opt] string as_string pass empty string "" to get the result as string (default is int)
-// @treturn ?int|string the value of the menu entry (current selection)
+// @treturn ?int|string|nil the current value of the requested menu entry (nil if menu entry not found)
 // @function get
 static int luaCB_menu_get(lua_State * L)
 {
@@ -199,13 +199,14 @@ static int luaCB_menu_get(lua_State * L)
     {
         struct menu_display_info info;
         char * str = menu_get_str_value_from_script(menu, entry, &info);
-        if (!str) return luaL_error(L, "menu not found");
-        lua_pushstring(L, str);
+        if (!str) lua_pushnil(L);
+        else lua_pushstring(L, str);
     }
     else
     {
-        /* fixme: error checking is not done */
-        lua_pushinteger(L, menu_get_value_from_script(menu, entry));
+        int val = menu_get_value_from_script(menu, entry);
+        if (val == INT_MIN) lua_pushnil(L);
+        else lua_pushinteger(L, val);
     }
     return 1;
 }
@@ -214,24 +215,30 @@ static int luaCB_menu_get(lua_State * L)
 // @tparam string menu name of the parent menu ('Audio', 'Expo', 'Overlay', 'Shoot', 'Movie', etc).
 // @tparam string entry name of the menu entry.
 // @tparam ?int|string value the value to set.
-// @treturn bool whether or not the call was sucessful.
+// @treturn ?bool|nil whether or not the call was sucessful, or nil if the requested menu entry was not found.
 // @function set
 static int luaCB_menu_set(lua_State * L)
 {
     LUA_PARAM_STRING(menu, 1);
     LUA_PARAM_STRING(entry, 2);
+    int result = INT_MIN;
     if(lua_isinteger(L, 3))
     {
         LUA_PARAM_INT(value, 3);
-        lua_pushboolean(L, menu_set_value_from_script(menu, entry, value));
+        result = menu_set_value_from_script(menu, entry, value);
+        lua_pushboolean(L, result);
     }
     else
     {
         LUA_PARAM_STRING(value, 3);
         char * copy = copy_string(value);
-        lua_pushboolean(L, menu_set_str_value_from_script(menu, entry, copy, INT_MIN));
+        result = menu_set_str_value_from_script(menu, entry, copy, INT_MIN);
         free(copy);
     }
+
+    if (result == INT_MIN) lua_pushnil(L);
+    else lua_pushboolean(L, result);
+
     return 1;
 }
 
