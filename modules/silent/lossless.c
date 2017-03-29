@@ -131,16 +131,17 @@ int lossless_init()
 static uint32_t start_time = 0;
 
 /* returns output size if successful, negative on error */
-int lossless_compress_raw(struct raw_info * raw_info, struct memSuite * output_memsuite)
+int lossless_compress_raw_rectangle(
+    struct memSuite * dst_suite, void * src,
+    int src_width, int src_x, int src_y,
+    int width, int height
+)
 {
     if (!TTL_ResLock || !lossless_sem || !TTL_Start)
     {
         /* not initialized */
         return -1;
     }
-
-    int width = raw_info->width;
-    int height = raw_info->height;
 
     /* setup photo quality (valid values: 0=RAW, 1=MRAW, 2=SRAW, 14, 15) */
     TTL_SetArgs(0, &TTL_Args, 0);
@@ -156,10 +157,17 @@ int lossless_compress_raw(struct raw_info * raw_info, struct memSuite * output_m
     /* fixme: 5D3/6D only */
     TTL_Args.WR1_Channel = 0x11;
 
+    /* set starting point (top-left corner) */
+    /* we need to skip a multiple of 8 pixels horizontally for raw_pixblock alignment
+     * and an even number of pixels vertically, to preserve the Bayer pattern
+     */
+    uint32_t src_adjusted = ((uint32_t)src & 0x1FFFFFFF)
+        + ((src_x/8*8) + (src_y/2*2) * src_width) * 14/8;
+
     /* set buffers */
-    TTL_Args.WR1_MemSuite = output_memsuite;
+    TTL_Args.WR1_MemSuite = dst_suite;
     TTL_Args.WR2_Address  = 0;
-    TTL_Args.RD1_Address  = raw_info->buffer;
+    TTL_Args.RD1_Address  = (void *) src_adjusted;
 
     /* configure the processing modules */
     TTL_Prepare(TTL_ResLock, &TTL_Args);
@@ -180,16 +188,17 @@ int lossless_compress_raw(struct raw_info * raw_info, struct memSuite * output_m
      * => the input EDMAC will simply read the image as usual.
      */
     struct edmac_info RD1_info = {
-        .xb = width * raw_info->bits_per_pixel / 8,
-        .yb = height - 1,
+        .xb     = width * 14/8,
+        .yb     = height - 1,
+        .off1b  = src_width * 14/8 - width * 14/8,
     };
 
     SetEDmac(TTL_Args.RD1_Channel, TTL_Args.RD1_Address, &RD1_info, TTL_Args.RD1_Flags);
 
-    if (verbose)
+    if (verbose >= 2)
     {
         void * WR1_Address = GetMemoryAddressOfMemoryChunk(GetFirstChunkFromSuite(TTL_Args.WR1_MemSuite));
-        const char * WR1_SizeFmt = format_memory_size(GetSizeOfMemoryChunk(GetFirstChunkFromSuite(output_memsuite)));
+        const char * WR1_SizeFmt = format_memory_size(GetSizeOfMemoryChunk(GetFirstChunkFromSuite(dst_suite)));
         printf("[TTL] %dx%d %dbpp\n", TTL_Args.xRes, TTL_Args.yRes, TTL_Args.SamplePrecision);
         printf(" WR1: %x EDMAC#%d<%d> (%x %s)\n",  WR1_Address,  TTL_Args.WR1_Channel, TTL_Args.WR1_Connection, TTL_Args.WR1_MemSuite, WR1_SizeFmt);
         printf(" WR2: %x EDMAC#%d<%d>\n", TTL_Args.WR2_Address,  TTL_Args.WR2_Channel, TTL_Args.WR2_Connection);
@@ -212,7 +221,7 @@ int lossless_compress_raw(struct raw_info * raw_info, struct memSuite * output_m
     /* wait until finished */
     int err = take_semaphore(lossless_sem, 1000);
 
-    if (verbose)
+    if (verbose >= 2)
     {
         uint32_t stop_time = get_us_clock_value();
         printf("[TTL] Elapsed time: %d us\n", (int)(stop_time - start_time));
@@ -223,12 +232,10 @@ int lossless_compress_raw(struct raw_info * raw_info, struct memSuite * output_m
     TTL_Stop(&TTL_Args);
     TTL_Finish(TTL_ResLock, &TTL_Args, &output_size);
 
-    if (verbose)
+    if (verbose >= 1)
     {
         /* compute input size (uncompressed) */
-        uint32_t current_ptr = (uint32_t) CACHEABLE(edmac_get_pointer(TTL_Args.RD1_Channel));
-        uint32_t initial_ptr = (uint32_t) CACHEABLE(TTL_Args.RD1_Address);
-        uint32_t input_size = current_ptr - initial_ptr;
+        uint32_t input_size = RD1_info.xb * (RD1_info.yb + 1);
 
         int ratio_x100 = output_size * 10000.0 / input_size;
         printf("[TTL] Output size : %s (%s%d.%02d%%)\n", format_memory_size(output_size), FMT_FIXEDPOINT2(ratio_x100));
@@ -241,3 +248,13 @@ int lossless_compress_raw(struct raw_info * raw_info, struct memSuite * output_m
 
     return output_size;
 }
+
+int lossless_compress_raw(struct raw_info * raw_info, struct memSuite * output_memsuite)
+{
+    return lossless_compress_raw_rectangle(
+        output_memsuite, raw_info->buffer,
+        raw_info->width, 0, 0,
+        raw_info->width, raw_info->height
+    );
+}
+
