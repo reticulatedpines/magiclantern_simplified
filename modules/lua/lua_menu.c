@@ -186,29 +186,27 @@ static int get_index_for_choices(struct menu_entry * menu_entry, const char * va
 /// Get the value of some existing ML menu entry.
 // @tparam string menu name of the parent menu ('Audio', 'Expo', 'Overlay', 'Shoot', 'Movie', etc)
 // @tparam string entry name of the menu entry
-// @treturn int the value of the menu entry (current selection)
+// @tparam[opt] string as_string pass empty string "" to get the result as string (default is int)
+// @treturn ?int|string the value of the menu entry (current selection)
 // @function get
 static int luaCB_menu_get(lua_State * L)
 {
     LUA_PARAM_STRING(menu, 1);
     LUA_PARAM_STRING(entry, 2);
-    lua_pushinteger(L, menu_get_value_from_script(menu, entry));
-    return 1;
-}
-
-/// Get the value of some existing ML menu entry, as string.
-// @tparam string menu name of the parent menu ('Audio', 'Expo', 'Overlay', 'Shoot', 'Movie', etc)
-// @tparam string entry name of the menu entry
-// @treturn string the value of the menu entry (current selection)
-// @function gets
-static int luaCB_menu_gets(lua_State * L)
-{
-    LUA_PARAM_STRING(menu, 1);
-    LUA_PARAM_STRING(entry, 2);
-    struct menu_display_info info;
-    char * str = menu_get_str_value_from_script(menu, entry, &info);
-    if (!str) return luaL_error(L, "menu not found");
-    lua_pushstring(L, str);
+    LUA_PARAM_STRING_OPTIONAL(as_string, 3, NULL);
+    
+    if (as_string)
+    {
+        struct menu_display_info info;
+        char * str = menu_get_str_value_from_script(menu, entry, &info);
+        if (!str) return luaL_error(L, "menu not found");
+        lua_pushstring(L, str);
+    }
+    else
+    {
+        /* fixme: error checking is not done */
+        lua_pushinteger(L, menu_get_value_from_script(menu, entry));
+    }
     return 1;
 }
 
@@ -852,7 +850,6 @@ static const char * lua_menu_fields[] =
 const luaL_Reg menulib[] =
 {
     {"get", luaCB_menu_get},
-    {"gets", luaCB_menu_gets},
     {"set", luaCB_menu_set},
     {"open", luaCB_menu_open},
     {"close", luaCB_menu_close},

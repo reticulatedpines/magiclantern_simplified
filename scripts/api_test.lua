@@ -249,16 +249,16 @@ function test_menu()
     -- picture styles should be set-able as string
     -- numeric works too, as it sets the internal index
     assert(menu.set("Expo", "Picture Style", "Portrait"))
-    assert(menu.gets("Expo", "Picture Style") == "Portrait")
+    assert(menu.get("Expo", "Picture Style", "") == "Portrait")
     msleep(1000)
     assert(menu.set("Expo", "Picture Style", 5)) -- OK, selects Neutral
     -- skip string test, as other camera models may use different indices
     msleep(1000)
     assert(menu.set("Expo", "Picture Style", "Landscape"))
-    assert(menu.gets("Expo", "Picture Style") == "Landscape")
+    assert(menu.get("Expo", "Picture Style", "") == "Landscape")
     msleep(1000)
     assert(not menu.set("Expo", "Picture Style", 1234)) -- should fail, out of range
-    assert(menu.gets("Expo", "Picture Style") == "Landscape") -- old selection should not change
+    assert(menu.get("Expo", "Picture Style", "") == "Landscape") -- old selection should not change
     msleep(1000)
 
     assert(menu.select("Overlay"))
@@ -281,12 +281,12 @@ function test_menu()
     -- turning off should be straightforward
     assert(menu.set("Shoot", "Advanced Bracket", "OFF"))
     assert(menu.get("Shoot", "Advanced Bracket") == 0)
-    assert(menu.gets("Shoot", "Advanced Bracket") == "OFF")
+    assert(menu.get("Shoot", "Advanced Bracket", "") == "OFF")
     msleep(1000)
 
     assert(menu.set("Shoot", "Intervalometer", 0))
     assert(menu.get("Shoot", "Intervalometer") == 0)
-    assert(menu.gets("Shoot", "Intervalometer") == "OFF")
+    assert(menu.get("Shoot", "Intervalometer", "") == "OFF")
     msleep(1000)
 
     -- move to Intervalometer menu
@@ -306,25 +306,25 @@ function test_menu()
     -- smaller ranges are OK for trying every single value
     assert(menu.set("Intervalometer", "Take a pic every", "1m30s"))
     assert(menu.get("Intervalometer", "Take a pic every") == 90)
-    assert(menu.gets("Intervalometer", "Take a pic every") == "1m30s")
+    assert(menu.get("Intervalometer", "Take a pic every", "") == "1m30s")
     msleep(1000)
 
     -- actual string will be 10s
     assert(menu.set("Intervalometer", "Take a pic every", "10"))
     assert(menu.get("Intervalometer", "Take a pic every") == 10)
-    assert(menu.gets("Intervalometer", "Take a pic every") == "10s")
+    assert(menu.get("Intervalometer", "Take a pic every", "") == "10s")
     msleep(1000)
 
     -- integer should work as well - e.g. 1m10s should work now
     assert(menu.set("Intervalometer", "Take a pic every", 70))
     assert(menu.get("Intervalometer", "Take a pic every") == 70)
-    assert(menu.gets("Intervalometer", "Take a pic every") == "1m10s")
+    assert(menu.get("Intervalometer", "Take a pic every", "") == "1m10s")
     msleep(1000)
 
     -- out of range, should fail
     assert(not menu.set("Intervalometer", "Take a pic every", 7000000))
     assert(menu.get("Intervalometer", "Take a pic every") == 70)
-    assert(menu.gets("Intervalometer", "Take a pic every") == "1m10s")
+    assert(menu.get("Intervalometer", "Take a pic every", "") == "1m10s")
     msleep(1000)
 
     -- exit submenu
