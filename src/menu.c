@@ -5937,16 +5937,25 @@ int menu_get_value_from_script(const char* name, const char* entry_name)
     return CURRENT_VALUE;
 }
 
-char* menu_get_str_value_from_script(const char* name, const char* entry_name)
+/* not thread-safe */
+static char* menu_get_str_value_from_script_do(const char* name, const char* entry_name, struct menu_display_info * info)
 {
     struct menu_entry * entry = entry_find_by_name(name, entry_name);
     if (!entry) { printf("Menu not found: %s -> %s\n", name, entry_name); return 0; }
 
-    // this won't work with ML menu on (race condition)
-    static struct menu_display_info info;
-    entry_default_display_info(entry, &info);
-    if (entry->update) entry->update(entry, &info);
-    return info.value;
+    /* not thread-safe; must be guarded by menu_sem */
+    entry_default_display_info(entry, info);
+    if (entry->update) entry->update(entry, info);
+    return info->value;
+}
+
+/* requires passing a pointer to a local struct menu_display_info for thread safety */
+char* menu_get_str_value_from_script(const char* name, const char* entry_name, struct menu_display_info * info)
+{
+    take_semaphore(menu_sem, 0);
+    char* ans = menu_get_str_value_from_script_do(name, entry_name, info);
+    give_semaphore(menu_sem);
+    return ans;
 }
 
 int menu_set_str_value_from_script(const char* name, const char* entry_name, char* value, int value_int)
@@ -5971,14 +5980,15 @@ int menu_set_str_value_from_script(const char* name, const char* entry_name, cha
     /* otherwise, we need to check the hard way -
      * maybe the menu logic sets some custom values that are not easy to guess */
 
-    // we will need exclusive access to menu_display_info
+    // entry_default_display_info is not thread safe
     take_semaphore(menu_sem, 0);
     
     // if it doesn't seem to cycle, cancel earlier
     char first[MENU_MAX_VALUE_LEN];
     char last[MENU_MAX_VALUE_LEN];
-    snprintf(first, sizeof(first), "%s", menu_get_str_value_from_script(name, entry_name));
-    snprintf(last, sizeof(last), "%s", menu_get_str_value_from_script(name, entry_name));
+    struct menu_display_info info;
+    snprintf(first, sizeof(first), "%s", menu_get_str_value_from_script_do(name, entry_name, &info));
+    snprintf(last, sizeof(last), "%s", menu_get_str_value_from_script_do(name, entry_name, &info));
 
     /* keep cycling until we get the desired value */
     /* other stop conditions:
@@ -5990,7 +6000,7 @@ int menu_set_str_value_from_script(const char* name, const char* entry_name, cha
     int tstart = get_ms_clock_value();
     for (int i = 0; get_ms_clock_value() - tstart < 2000; i++)
     {
-        char* current = menu_get_str_value_from_script(name, entry_name);
+        char* current = menu_get_str_value_from_script_do(name, entry_name, &info);
         if (streq(current, value))
         {
             //~ printf("menu_set('%s', '%s'): match str (%s)\n", entry_name, value, current);
