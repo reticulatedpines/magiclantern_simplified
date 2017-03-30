@@ -1961,22 +1961,65 @@ static struct msg_queue * compress_mq = 0;
 
 static void compress_task()
 {
-    compress_mq = msg_queue_create("compress_mq", 1);
-
-    while(1)
+    if (!compress_mq)
     {
-        void * out_ptr;
+        compress_mq = msg_queue_create("compress_mq", 1);
+        ASSERT(compress_mq);
+    }
+
+    /* get exclusive access to our edmac channels */
+    if (OUTPUT_COMPRESSION == 0)
+    {
+        edmac_memcpy_res_lock();
+        printf("EDMAC copy resources locked.\n");
+    }
+
+    /* run as long as the main recorder task requires it */
+    while (1)
+    {
+        uint32_t out_ptr;
         msg_queue_receive(compress_mq, (struct event**)&out_ptr, 0);
 
-        struct memSuite * outSuite = CreateMemorySuite(out_ptr, frame_size, 0);
-        int compressed_size = lossless_compress_raw_rectangle(
-            outSuite, raw_info.buffer,
-            raw_info.width, skip_x, skip_y,
-            res_x, res_y
-        );
-        ASSERT(compressed_size < frame_size);
-        MEM(out_ptr + frame_size_real - 4) = 0;
-        DeleteMemorySuite(outSuite);
+        if (!out_ptr)
+        {
+            /* request to stop */
+            break;
+        }
+
+        int fullsize_index = out_ptr & 1;
+        out_ptr &= ~3;
+        void* fullSizeBuffer = fullsize_buffers[fullsize_index];
+
+        if (OUTPUT_COMPRESSION)
+        {
+            struct memSuite * outSuite = CreateMemorySuite((void*)out_ptr, frame_size, 0);
+            int compressed_size = lossless_compress_raw_rectangle(
+                outSuite, fullSizeBuffer,
+                raw_info.width, skip_x, skip_y,
+                res_x, res_y
+            );
+            ASSERT(compressed_size < frame_size);
+            MEM(out_ptr + frame_size_real - 4) = 0;
+            DeleteMemorySuite(outSuite);
+        }
+        else
+        {
+            edmac_active = 1;
+            edmac_copy_rectangle_cbr_start(
+                (void*)out_ptr, fullSizeBuffer,
+                raw_info.pitch,
+                (skip_x+7)/8*BPP, skip_y/2*2,
+                res_x*BPP/8, 0, 0, res_x*BPP/8, res_y,
+                &edmac_cbr_r, &edmac_cbr_w, NULL
+            );
+        }
+    }
+
+    /* exclusive edmac access no longer needed */
+    if (OUTPUT_COMPRESSION == 0)
+    {
+        edmac_memcpy_res_unlock();
+        printf("EDMAC copy resources unlocked.\n");
     }
 }
 
@@ -2054,7 +2097,6 @@ void FAST process_frame()
     vidf_hdr->panPosX = skip_x;
     vidf_hdr->panPosY = skip_y;
     void* ptr = slots[capture_slot].ptr + VIDF_HDR_SIZE;
-    void* fullSizeBuffer = fullsize_buffers[(fullsize_buffer_pos+1) % 2];
 
     /* advance to next buffer for the upcoming capture */
     fullsize_buffer_pos = (fullsize_buffer_pos + 1) % 2;
@@ -2458,6 +2500,10 @@ static void raw_video_rec_task()
     pre_record_triggered = !pre_record && !rec_trigger;
     pre_record_first_frame = 0;
 
+    uint32_t result = (uint32_t)
+        task_create("compress_task", 0x0F, 0x1000, compress_task, (void*)0);
+    ASSERT(!(result & 1));
+
     if (h264_proxy)
     {
         /* start H.264 recording */
@@ -2525,12 +2571,6 @@ static void raw_video_rec_task()
     hack_liveview(0);
     
     setup_bit_depth();
-    
-    /* get exclusive access to our edmac channels */
-    if (output_format == OUTPUT_14BIT_NATIVE)
-    {
-        edmac_memcpy_res_lock();
-    }
 
     /* this will enable the vsync CBR and the other task(s) */
     raw_recording_state = RAW_RECORDING;
@@ -2825,6 +2865,8 @@ abort_and_check_early_stop:
         /* PauseLiveView breaks UI locks - why? */
         gui_uilock(UILOCK_EVERYTHING);
     }
+    /* end the compression task */
+    msg_queue_post(compress_mq, 0);
 
     /* write all queued blocks, if any */
     uint32_t msg_count = 0;
@@ -3496,7 +3538,6 @@ static unsigned int raw_rec_init()
     lossless_init();
 
     raw_preview_lock = create_named_semaphore(0, 1);
-
     ASSERT(((uint32_t)task_create("compress_task", 0x0F, 0x1000, compress_task, (void*)0) & 1) == 0);
 
     return 0;
