@@ -1006,16 +1006,6 @@ int add_mem_suite(struct memSuite * mem_suite, int chunk_index)
             int group_size = 0;
             while (size >= max_frame_size && slot_count < COUNT(slots))
             {
-                mlv_vidf_hdr_t* vidf_hdr = (mlv_vidf_hdr_t*) ptr;
-                memset(vidf_hdr, 0, sizeof(mlv_vidf_hdr_t));
-                mlv_set_type((mlv_hdr_t*)vidf_hdr, "VIDF");
-                vidf_hdr->blockSize  = max_frame_size;
-                vidf_hdr->frameSpace = VIDF_HDR_SIZE - sizeof(mlv_vidf_hdr_t);
-                vidf_hdr->cropPosX   = (skip_x + 7) & ~7;
-                vidf_hdr->cropPosY   = skip_y & ~1;
-                vidf_hdr->panPosX    = skip_x;
-                vidf_hdr->panPosY    = skip_y;
-                
                 slots[slot_count].ptr = (void*) ptr;
                 slots[slot_count].size = max_frame_size;
                 slots[slot_count].status = SLOT_FREE;
@@ -1023,7 +1013,7 @@ int add_mem_suite(struct memSuite * mem_suite, int chunk_index)
                 size -= max_frame_size;
                 group_size += max_frame_size;
                 slot_count++;
-                printf("slot #%d: %x\n", slot_count, ptr);
+                //printf("slot #%d: %x\n", slot_count, ptr);
 
                 /* split the group at 32M-512K */
                 /* (after this number, write speed decreases) */
@@ -2097,14 +2087,14 @@ void FAST process_frame()
         return;
     }
 
-    /* copy current frame to our buffer and crop it to its final size */
-    mlv_vidf_hdr_t* vidf_hdr = (mlv_vidf_hdr_t*)slots[capture_slot].ptr;
-    vidf_hdr->frameNumber = slots[capture_slot].frame_number - 1;
-    mlv_set_timestamp((mlv_hdr_t*)vidf_hdr, mlv_start_timestamp);
-    vidf_hdr->cropPosX = (skip_x + 7) & ~7;
-    vidf_hdr->cropPosY = skip_y & ~1;
-    vidf_hdr->panPosX = skip_x;
-    vidf_hdr->panPosY = skip_y;
+    /* set VIDF metadata for this frame */
+    vidf_hdr.frameNumber = slots[capture_slot].frame_number - 1;
+    mlv_set_timestamp((mlv_hdr_t*)&vidf_hdr, mlv_start_timestamp);
+    vidf_hdr.cropPosX = (skip_x + 7) & ~7;
+    vidf_hdr.cropPosY = skip_y & ~1;
+    vidf_hdr.panPosX = skip_x;
+    vidf_hdr.panPosY = skip_y;
+    *(mlv_vidf_hdr_t*)(slots[capture_slot].ptr) = vidf_hdr;
     void* ptr = slots[capture_slot].ptr + VIDF_HDR_SIZE;
 
     /* advance to next buffer for the upcoming capture */
@@ -2112,6 +2102,7 @@ void FAST process_frame()
 
     //~ printf("saving frame %d: slot %d ptr %x\n", frame_count, capture_slot, ptr);
 
+    /* copy current frame to our buffer and crop it to its final size */
     /* for some reason, compression cannot be started from vsync */
     /* let's delegate it to another task */
     if (output_format == OUTPUT_14BIT_LOSSLESS)
@@ -2297,6 +2288,12 @@ void init_mlv_chunk_headers(struct raw_info * raw_info)
     /* WAVI will be valid only if we record sound; otherwise NULL and zeroed out */
     memset(&wavi_hdr, 0, sizeof(mlv_wavi_hdr_t));
     mlv_fill_wavi(&wavi_hdr, mlv_start_timestamp);
+
+    /* init MLV header for each frame (VIDF) */
+    memset(&vidf_hdr, 0, sizeof(mlv_vidf_hdr_t));
+    mlv_set_type((mlv_hdr_t*)&vidf_hdr, "VIDF");
+    vidf_hdr.blockSize  = max_frame_size;
+    vidf_hdr.frameSpace = VIDF_HDR_SIZE - sizeof(mlv_vidf_hdr_t);
 }
 
 static int write_mlv_chunk_headers(FILE* f)
