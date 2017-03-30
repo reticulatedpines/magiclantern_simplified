@@ -152,105 +152,9 @@ static CONFIG_INT("raw.warm.up", warm_up, 0);
 static CONFIG_INT("raw.use.srm.memory", use_srm_memory, 1);
 static CONFIG_INT("raw.small.hacks", small_hacks, 1);
 
-static CONFIG_INT("raw.h264.proxy", h264_proxy_menu, 0);
-static CONFIG_INT("raw.sync_beep", sync_beep, 1);
-
-static CONFIG_INT("raw.bppi", bpp_index, 2);
-#define BPP (10 + 2*bpp_index)
-
-static CONFIG_INT("raw.output_format", output_format, 3);
+static CONFIG_INT("raw.output_format", output_format, 1);
 #define OUTPUT_14BIT_NATIVE 0
-#define OUTPUT_12BIT_UNCOMPRESSED 1
-#define OUTPUT_10BIT_UNCOMPRESSED 2
-#define OUTPUT_14BIT_LOSSLESS 3
-#define OUTPUT_12BIT_LOSSLESS 4
-#define OUTPUT_AUTO_BIT_LOSSLESS 5
-#define OUTPUT_COMPRESSION (output_format>2)
-
-/* container BPP (variable for uncompressed, always 14 for lossless JPEG) */
-static const int bpp_container[] = { 14, 12, 10, 14, 14, 14, 14, 14, 14 };
-
-/* "fake" lower bit depths using digital gain (for lossless JPEG) */
-//static const int bpp_digi_gain[] = { 14, 14, 14, 14, 12, 11, 10,  9,  8 };
-
-#define BPP     bpp_container[output_format]
-#define BPP_D   (raw_digital_gain_ok() ? bpp_digital_gain() : 14)
-
-static int bpp_digital_gain()
-{
-    if (output_format <= OUTPUT_14BIT_LOSSLESS)
-    {
-        return 14;
-    }
-
-    if (output_format == OUTPUT_12BIT_LOSSLESS)
-    {
-        return 12;
-    }
-
-    /* auto, depending on ISO */
-    /* 5D3 noise levels (raw_diag, dark frame, 1/50, ISO 100-25600, ~50C):
-     * octave code to get recommendations (copy/paste):
-     * see https://theory.uchicago.edu/~ejm/pix/20d/tests/noise/noise-p3.html (third figure)
-           isos   = [100 200 400 800 1600 3200 6400 12800 25600];
-           noises = [6.7 6.9 7.1 7.8  9.0 11.7 16.8  33.6  66.7];   % 3x3 (1080p; 720p is very close)
-           noisez = [6.1 6.4 7.1 8.6 11.8 18.4 31.4  62.5 123.5];   % 1:1 (5x zoom, crop modes)
-           divide = [1 4 8 16 32 64];
-           for i = 1:6,
-               fullhd = [log2(2**14/divide(i)), isos(noises/divide(i) < 2.5 & noises/divide(i) > 0.49 )]
-               crop11 = [log2(2**14/divide(i)), isos(noisez/divide(i) < 2.5 & noisez/divide(i) > 0.49 )]
-           end
-     */
-
-    int sampling_x   = raw_capture_info.binning_x + raw_capture_info.skipping_x;
-    int sampling_y   = raw_capture_info.binning_y + raw_capture_info.skipping_y;
-    int is_crop = (sampling_x == 1 && sampling_y == 1);
-
-    if (lens_info.raw_iso == 0)
-    {
-        /* no auto ISO, please */
-        return 11;
-    }
-
-    if (lens_info.iso_analog_raw <= (is_crop ? ISO_400 : ISO_800))
-    {
-        return 11;
-    }
-
-    if (lens_info.iso_analog_raw <= (is_crop ? ISO_1600 : ISO_3200))
-    {
-        return 10;
-    }
-
-    if (lens_info.iso_analog_raw <= (is_crop ? ISO_3200 : ISO_6400))
-    {
-        return 9;
-    }
-
-    return 8;
-}
-
-static int raw_digital_gain_ok()
-{
-    if (output_format > OUTPUT_14BIT_LOSSLESS)
-    {
-        /* fixme: not working in modes with higher resolution */
-        /* the numbers here are an upper bound that should cover all models */
-        /* our hi-res crop_rec modes will go higher than these limits, so this heuristic should be OK */
-        int default_width  = (lv_dispsize > 1) ? 3744 : 2080;
-        int default_height = (lv_dispsize > 1) ? 1380 : video_mode_fps <= 30 ? 2080 : 728;
-
-        if (raw_info.width > default_width || raw_info.height > default_height)
-        {
-            return 0;
-        }
-    }
-
-    /* no known contraindications */
-    /* note: temporary overrides such as half-shutter
-     * are handled in setup_bit_depth_digital_gain */
-    return 1;
-}
+#define OUTPUT_14BIT_LOSSLESS 1
 
 /* Recording Status Indicator Options */
 #define INDICATOR_OFF        0
@@ -2053,8 +1957,31 @@ static void edmac_cbr_w(void *ctx)
     edmac_copy_rectangle_adv_cleanup();
 }
 
+static struct msg_queue * compress_mq = 0;
+
+static void compress_task()
+{
+    compress_mq = msg_queue_create("compress_mq", 1);
+
+    while(1)
+    {
+        void * out_ptr;
+        msg_queue_receive(compress_mq, (struct event**)&out_ptr, 0);
+
+        struct memSuite * outSuite = CreateMemorySuite(out_ptr, frame_size, 0);
+        int compressed_size = lossless_compress_raw_rectangle(
+            outSuite, raw_info.buffer,
+            raw_info.width, skip_x, skip_y,
+            res_x, res_y
+        );
+        ASSERT(compressed_size < frame_size);
+        MEM(out_ptr + frame_size_real - 4) = 0;
+        DeleteMemorySuite(outSuite);
+    }
+}
+
 static REQUIRES(LiveViewTask) FAST
-void process_frame()
+void FAST process_frame()
 {
     /* skip the first frame, it will be gibberish */
     if (frame_count == 0)
@@ -2134,7 +2061,24 @@ void process_frame()
 
     //~ printf("saving frame %d: slot %d ptr %x\n", frame_count, capture_slot, ptr);
 
-    int ans = (int) edmac_copy_rectangle_start(ptr, fullSizeBuffer, raw_info.pitch, (skip_x+7)/8*BPP, skip_y/2*2, res_x*BPP/8, res_y);
+    /* for some reason, compression cannot be started from vsync */
+    /* let's delegate it to another task */
+    if (output_format == OUTPUT_14BIT_LOSSLESS)
+    {
+        ASSERT(compress_mq);
+        msg_queue_post(compress_mq, (uint32_t) ptr);
+    }
+    else
+    {
+        edmac_active = 1;
+        edmac_copy_rectangle_cbr_start(
+            ptr, fullSizeBuffer,
+            raw_info.pitch,
+            (skip_x+7)/8*14, skip_y/2*2,
+            res_x*14/8, 0, 0, res_x*14/8, res_y,
+            &edmac_cbr_r, &edmac_cbr_w, NULL
+        );
+    }
 
     /* advance to next frame */
     frame_count++;
@@ -2583,7 +2527,10 @@ static void raw_video_rec_task()
     setup_bit_depth();
     
     /* get exclusive access to our edmac channels */
-    edmac_memcpy_res_lock();
+    if (output_format == OUTPUT_14BIT_NATIVE)
+    {
+        edmac_memcpy_res_lock();
+    }
 
     /* this will enable the vsync CBR and the other task(s) */
     raw_recording_state = RAW_RECORDING;
@@ -2862,8 +2809,11 @@ abort_and_check_early_stop:
     /* wait until the other tasks calm down */
     wait_lv_frames(2);
 
-    /* signal end of recording to the compression task */
-    msg_queue_post(compress_mq, INT_MIN);
+    /* exclusive edmac access no longer needed */
+    if (output_format == OUTPUT_14BIT_NATIVE)
+    {
+        edmac_memcpy_res_unlock();
+    }
     
     set_recording_custom(CUSTOM_RECORDING_NOT_RECORDING);
 
@@ -2875,7 +2825,7 @@ abort_and_check_early_stop:
         /* PauseLiveView breaks UI locks - why? */
         gui_uilock(UILOCK_EVERYTHING);
     }
-    
+
     /* write all queued blocks, if any */
     uint32_t msg_count = 0;
     msg_queue_count(mlv_block_queue, &msg_count);
@@ -3067,6 +3017,18 @@ static struct menu_entry raw_video_menu[] =
                 .priv = &bpp_index,
                 .max = 2,
                 .choices = CHOICES("10bpp", "12bpp", "14bpp"),
+            },
+            {
+                .name       = "Data format",
+                .priv       = &output_format,
+                .max        = 1,
+                .choices    = CHOICES(
+                                "14-bit",
+                                "14-bit lossless",
+                              ),
+                .help       = "Choose the output format (bit depth, compression) for the raw stream:\n",
+                .help2      = "14-bit: native uncompressed format from Canon firmware.\n"
+                              "14-bit lossless: compressed with Canon's Lossless JPEG routines (about 55-65%).\n"
             },
             {
                 .name = "Preview",

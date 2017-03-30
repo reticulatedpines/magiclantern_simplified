@@ -1,7 +1,7 @@
 
 # define the module name - make sure name is max 8 characters
 MODULE_NAME=mlv_lite
-MODULE_OBJS=mlv_lite.o ../mlv_rec/mlv.o
+MODULE_OBJS=mlv_lite.o ../mlv_rec/mlv.o ../silent/lossless.o
 
 # include modules environment
 include ../Makefile.modules
