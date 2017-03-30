@@ -209,7 +209,9 @@ static GUARDED_BY(LiveVHiPrioTask)  int raw_previewing = 0;
 struct frame_slot
 {
     void* ptr;          /* image data */
-    int size;           /* max_frame_size for uncompressed data, lower for compressed */
+    int size;           /* total size, including overheads (VIDF, padding);
+                           max_frame_size for uncompressed data, lower for compressed */
+    int payload_size;   /* size effectively used by image data */
     int frame_number;   /* from 0 to n */
     int is_meta;        /* when used by some other module and does not contain VIDF, disables consistency checks used for video frame slots */
     enum {
@@ -217,7 +219,7 @@ struct frame_slot
         SLOT_RESERVED,      /* it may become available when resizing the previous slots */
         SLOT_CAPTURING,     /* in progress */
         SLOT_LOCKED,        /* locked by some other module */
-        SLOT_FULL,          /* contains fully captured image data */
+        SLOT_FULL,          /* contains image data (can be fully captured or in progress - test with frame_check_saved) */
         SLOT_WRITING        /* it's being saved to card */
     } status;
 };
@@ -968,6 +970,22 @@ static MENU_UPDATE_FUNC(pre_recording_update)
     }
 }
 
+static REQUIRES(settings_sem)
+void add_reserved_slots(void * ptr, int n)
+{
+    /* each group has some additional (empty) slots,
+     * to be used when frames are compressed
+     * (we don't know the compressed size in advance,
+     * so we'll resize them on the fly) */
+    for (int i = 0; i < n; i++)
+    {
+        slots[slot_count].ptr = ptr;
+        slots[slot_count].size = 0;
+        slots[slot_count].status = SLOT_RESERVED;
+        slot_count++;
+    }
+}
+
 static REQUIRES(RawRecTask)
 int add_mem_suite(struct memSuite * mem_suite, int chunk_index)
 {
@@ -979,12 +997,6 @@ int add_mem_suite(struct memSuite * mem_suite, int chunk_index)
         {
             int size = GetSizeOfMemoryChunk(chunk);
             intptr_t ptr = (intptr_t) GetMemoryAddressOfMemoryChunk(chunk);
-
-            /* use-after-free from raw backend? skip this chunk */
-            if ((void*)ptr + 0x100 == raw_info.buffer)
-            {
-                goto next;
-            }
 
             /* write it down for future frame predictions */
             if (chunk_index < COUNT(chunk_list) && size > 64)
@@ -1008,6 +1020,7 @@ int add_mem_suite(struct memSuite * mem_suite, int chunk_index)
             {
                 slots[slot_count].ptr = (void*) ptr;
                 slots[slot_count].size = max_frame_size;
+                slots[slot_count].payload_size = frame_size_uncompressed;
                 slots[slot_count].status = SLOT_FREE;
                 ptr += max_frame_size;
                 size -= max_frame_size;
@@ -1022,13 +1035,15 @@ int add_mem_suite(struct memSuite * mem_suite, int chunk_index)
                 if (group_size + max_frame_size > 0xFFFE * 512)
                 {
                     /* insert a small gap to split the group here */
+                    add_reserved_slots((void*)ptr, group_size / max_frame_size);
                     ptr += 64;
                     size -= 64;
                     group_size = 0;
                 }
             }
-        
-        next:
+            
+            add_reserved_slots((void*)ptr, group_size / max_frame_size);
+            
             /* next chunk */
             chunk = GetNextMemoryChunk(mem_suite, chunk);
         }
@@ -1675,9 +1690,113 @@ static void shrink_slot(int slot_index, int new_frame_size)
     int new_size = (VIDF_HDR_SIZE + new_frame_size + 4 + 511) & ~511;
     int old_size = slots[i].size;
     int dif_size = old_size - new_size;
-    ASSERT(dif_size >= 0);
+    ASSERT(dif_size > 0);
 
     //printf("Shrink slot %d from %d to %d.\n", i, old_size, new_size);
+
+    slots[i].size = new_size;
+    slots[i].payload_size = new_frame_size;
+    ((mlv_vidf_hdr_t*)slots[i].ptr)->blockSize
+        = slots[i].size;
+
+    int linked =
+        (i+1 < COUNT(slots)) &&
+        (slots[i+1].status == SLOT_FREE || slots[i+1].status == SLOT_RESERVED) &&
+        (slots[i+1].ptr == slots[i].ptr + old_size);
+
+    if (linked)
+    {
+        /* adjust the next slot from the same chunk (increase its size) */
+        slots[i+1].ptr  -= dif_size;
+        slots[i+1].size += dif_size;
+        
+        /* if it's big enough, mark it as available */
+        if (slots[i+1].size >= max_frame_size)
+        {
+            if (slots[i+1].status == SLOT_RESERVED)
+            {
+                //printf("Slot %d becomes available (%d >= %d).\n", i, slots[i+1].size, max_frame_size);
+            }
+            else
+            {
+                /* existing free slots will get shifted, without changing their size */
+                ASSERT(slots[i+1].size - dif_size == max_frame_size);
+            }
+            shrink_slot(i+1, frame_size_uncompressed);
+            ASSERT(slots[i+1].size == max_frame_size);
+            slots[i+1].status = SLOT_FREE;
+        }
+    }
+
+    sei(old_int);
+}
+
+static void free_slot(int slot_index)
+{
+    int i = slot_index;
+
+    slots[i].status = SLOT_RESERVED;
+    
+    if (slots[i].size == max_frame_size)
+    {
+        slots[i].status = SLOT_FREE;
+        return;
+    }
+
+    ASSERT(slots[i].size < max_frame_size);
+
+    /* re-allocate all reserved slots from this chunk to full frames */
+    /* the remaining reserved slots will be moved at the end */
+
+    /* this is called from both vsync and raw_rec_task */
+    uint32_t old_int = cli();
+
+    /* find first slot from this chunk */
+    while ((i-1 >= 0) &&
+           (slots[i-1].status == SLOT_FREE || slots[i-1].status == SLOT_RESERVED) &&
+           (slots[i].ptr == slots[i-1].ptr + slots[i-1].size))
+    {
+        i--;
+    }
+    int start = i;
+
+    /* find last slot from this chunk */
+    i = slot_index;
+    while ((i+1 < COUNT(slots)) &&
+           (slots[i+1].status == SLOT_FREE || slots[i+1].status == SLOT_RESERVED) &&
+           (slots[i+1].ptr == slots[i].ptr + slots[i].size))
+    {
+        i++;
+    }
+    int end = i;
+
+    //printf("Reallocating slots %d...%d.\n", start, end);
+    void * start_ptr = slots[start].ptr;
+    void * end_ptr = slots[end].ptr + slots[end].size;
+    void * ptr = start_ptr;
+    for (i = start; i <= end; i++)
+    {
+        slots[i].ptr = ptr;
+
+        if (ptr + max_frame_size <= end_ptr)
+        {
+            slots[i].status = SLOT_FREE;
+            slots[i].size = max_frame_size;
+        }
+        else
+        {
+            /* first reserved slot will have non-zero size */
+            /* all others 0 */
+            slots[i].status = SLOT_RESERVED;
+            slots[i].size = end_ptr - ptr;
+            ASSERT(slots[i].size < max_frame_size);
+        }
+        ptr += slots[i].size;
+    }
+
+    sei(old_int);
+}
+
     
     if (dif_size ==  0)
     {
@@ -1919,17 +2038,27 @@ static void FAST pre_record_vsync_step()
 static void frame_add_checks(int slot_index)
 {
     void* ptr = slots[slot_index].ptr + VIDF_HDR_SIZE;
-    uint32_t* frame_end = ptr + frame_size_uncompressed - 4;
-    uint32_t* after_frame = ptr + frame_size_uncompressed;
+    uint32_t edmac_size = (slots[slot_index].payload_size + 3) & ~3;
+    uint32_t* frame_end = ptr + edmac_size - 4;
+    uint32_t* after_frame = ptr + edmac_size;
     *(volatile uint32_t*) frame_end = FRAME_SENTINEL; /* this will be overwritten by EDMAC */
     *(volatile uint32_t*) after_frame = FRAME_SENTINEL; /* this shalt not be overwritten */
+}
+
+static void frame_mark_complete(int slot_index)
+{
+    void* ptr = slots[slot_index].ptr + VIDF_HDR_SIZE;
+    uint32_t edmac_size = (slots[slot_index].payload_size + 3) & ~3;
+    uint32_t* after_frame = ptr + edmac_size;
+    *(volatile uint32_t*) after_frame = FRAME_SENTINEL;
 }
 
 static int frame_check_saved(int slot_index)
 {
     void* ptr = slots[slot_index].ptr + VIDF_HDR_SIZE;
-    uint32_t* frame_end = ptr + frame_size_uncompressed - 4;
-    uint32_t* after_frame = ptr + frame_size_uncompressed;
+    uint32_t edmac_size = (slots[slot_index].payload_size + 3) & ~3;
+    uint32_t* frame_end = ptr + edmac_size - 4;
+    uint32_t* after_frame = ptr + edmac_size;
     if (*(volatile uint32_t*) after_frame != FRAME_SENTINEL)
     {
         /* EDMAC overflow */
@@ -1976,17 +2105,19 @@ static void compress_task()
     /* run as long as the main recorder task requires it */
     while (1)
     {
-        uint32_t out_ptr;
-        msg_queue_receive(compress_mq, (struct event**)&out_ptr, 0);
+        uint32_t msg;
+        msg_queue_receive(compress_mq, (struct event**)&msg, 0);
 
-        if (!out_ptr)
+        if (msg == 0xFFFFFFFF)
         {
             /* request to stop */
             break;
         }
 
-        int fullsize_index = out_ptr & 1;
-        out_ptr &= ~3;
+        int slot_index = msg & 0xFFFF;
+        int fullsize_index = msg >> 16;
+
+        void* out_ptr = slots[slot_index].ptr + VIDF_HDR_SIZE;
         void* fullSizeBuffer = fullsize_buffers[fullsize_index];
 
         if (OUTPUT_COMPRESSION)
@@ -1998,8 +2129,11 @@ static void compress_task()
                 res_x, res_y
             );
             ASSERT(compressed_size < max_frame_size);
-            MEM(out_ptr + frame_size_uncompressed - 4) = 0;
             DeleteMemorySuite(outSuite);
+            
+            /* resize frame slots on the fly, to compressed size */
+            shrink_slot(slot_index, compressed_size);
+            frame_mark_complete(slot_index);
         }
         else
         {
@@ -2095,7 +2229,6 @@ void FAST process_frame()
     vidf_hdr.panPosX = skip_x;
     vidf_hdr.panPosY = skip_y;
     *(mlv_vidf_hdr_t*)(slots[capture_slot].ptr) = vidf_hdr;
-    void* ptr = slots[capture_slot].ptr + VIDF_HDR_SIZE;
 
     /* advance to next buffer for the upcoming capture */
     fullsize_buffer_pos = (fullsize_buffer_pos + 1) % 2;
@@ -2105,22 +2238,8 @@ void FAST process_frame()
     /* copy current frame to our buffer and crop it to its final size */
     /* for some reason, compression cannot be started from vsync */
     /* let's delegate it to another task */
-    if (output_format == OUTPUT_14BIT_LOSSLESS)
-    {
-        ASSERT(compress_mq);
-        msg_queue_post(compress_mq, (uint32_t) ptr);
-    }
-    else
-    {
-        edmac_active = 1;
-        edmac_copy_rectangle_cbr_start(
-            ptr, fullSizeBuffer,
-            raw_info.pitch,
-            (skip_x+7)/8*14, skip_y/2*2,
-            res_x*14/8, 0, 0, res_x*14/8, res_y,
-            &edmac_cbr_r, &edmac_cbr_w, NULL
-        );
-    }
+    ASSERT(compress_mq);
+    msg_queue_post(compress_mq, capture_slot | (fullsize_buffer_pos << 16));
 
     /* advance to next frame */
     frame_count++;
@@ -2871,7 +2990,7 @@ abort_and_check_early_stop:
         gui_uilock(UILOCK_EVERYTHING);
     }
     /* end the compression task */
-    msg_queue_post(compress_mq, 0);
+    msg_queue_post(compress_mq, 0xFFFFFFFF);
 
     /* write all queued blocks, if any */
     uint32_t msg_count = 0;
@@ -2944,7 +3063,7 @@ abort_and_check_early_stop:
             beep();
             break;
         }
-        slots[slot_index].status = SLOT_FREE;
+        free_slot(slot_index);
     }
 
     if (!written_total || !f)
