@@ -1031,10 +1031,10 @@ void add_reserved_slots(void * ptr, int n)
      * so we'll resize them on the fly) */
     for (int i = 0; i < n; i++)
     {
-        slots[slot_count].ptr = ptr;
-        slots[slot_count].size = 0;
-        slots[slot_count].status = SLOT_RESERVED;
-        slot_count++;
+        slots[total_slot_count].ptr = ptr;
+        slots[total_slot_count].size = 0;
+        slots[total_slot_count].status = SLOT_RESERVED;
+        total_slot_count++;
     }
 }
 
@@ -1068,17 +1068,18 @@ int add_mem_suite(struct memSuite * mem_suite, int chunk_index)
 
             /* fit as many frames as we can */
             int group_size = 0;
-            while (size >= max_frame_size && slot_count < COUNT(slots))
+            while (size >= max_frame_size && total_slot_count < COUNT(slots))
             {
-                slots[slot_count].ptr = (void*) ptr;
-                slots[slot_count].size = max_frame_size;
-                slots[slot_count].payload_size = frame_size_uncompressed;
-                slots[slot_count].status = SLOT_FREE;
+                slots[total_slot_count].ptr = (void*) ptr;
+                slots[total_slot_count].size = max_frame_size;
+                slots[total_slot_count].payload_size = frame_size_uncompressed;
+                slots[total_slot_count].status = SLOT_FREE;
                 ptr += max_frame_size;
                 size -= max_frame_size;
                 group_size += max_frame_size;
-                slot_count++;
-                //printf("slot #%d: %x\n", slot_count, ptr);
+                total_slot_count++;
+                valid_slot_count++;
+                //printf("slot #%d: %x\n", total_slot_count, ptr);
 
                 /* split the group at 32M-512K */
                 /* (after this number, write speed decreases) */
@@ -1141,7 +1142,7 @@ int setup_buffers()
     chunk_index = add_mem_suite(srm_mem_suite, chunk_index);
   
     /* we need at least 3 slots */
-    if (slot_count < 3)
+    if (valid_slot_count < 3)
     {
         return 0;
     }
@@ -1153,13 +1154,9 @@ int setup_buffers()
     if (pre_record || rec_trigger)
     {
         /* how much should we pre-record? */
-        const int presets[4] = {1, 2, 5, 10};
-        int requested_seconds = presets[(pre_record-1) & 3];
-        int requested_frames = requested_seconds * fps_get_current_x1000() / 1000;
-
-        /* leave at least 16MB for buffering */
-        int max_frames = slot_count - 16*1024*1024 / max_frame_size;
-        pre_record_num_frames = MIN(requested_frames, max_frames);
+        int max_frames = pre_record_calc_max_frames(valid_slot_count);
+        pre_record_num_frames = pre_record_calc_num_frames(valid_slot_count, max_frames);
+        printf("Pre-rec: %d frames (max %d)\n", pre_record_num_frames, max_frames);
     }
     
     return 1;
@@ -1179,7 +1176,7 @@ void free_buffers()
 static int count_free_slots()
 {
     int free_slots = 0;
-    for (int i = 0; i < slot_count; i++)
+    for (int i = 0; i < total_slot_count; i++)
         if (slots[i].status == SLOT_FREE)
             free_slots++;
     return free_slots;
@@ -1195,7 +1192,7 @@ static void show_buffer_status()
     int y = BUFFER_DISPLAY_Y + 50;
     uint32_t chunk_start = (uint32_t) slots[0].ptr;
 
-    for (int i = 0; i < slot_count; i++)
+    for (int i = 0; i < total_slot_count; i++)
     {
         if (i > 0 && slots[i].ptr != slots[i-1].ptr + slots[i-1].size)
         {
@@ -1232,7 +1229,7 @@ static void show_buffer_status()
         int x = frame_count % 720;
         int ymin = 120;
         int ymax = 400;
-        int y = ymin + free * (ymax - ymin) / slot_count;
+        int y = ymin + free * (ymax - ymin) / valid_slot_count;
         fill_circle(x, y, 3, COLOR_BLACK);
         static int prev_x = 0;
         static int prev_y = 0;
@@ -1658,7 +1655,7 @@ int choose_next_capture_slot()
     /* O(1) */
     if (
         capture_slot >= 0 && 
-        capture_slot + 1 < slot_count && 
+        capture_slot + 1 < total_slot_count && 
         slots[capture_slot + 1].ptr == slots[capture_slot].ptr + slots[capture_slot].size && 
         slots[capture_slot + 1].status == SLOT_FREE &&
         !force_new_buffer
@@ -1667,13 +1664,13 @@ int choose_next_capture_slot()
 
     /* choose a new buffer? */
     /* choose the largest contiguous free section */
-    /* O(n), n = slot_count */
+    /* O(n), n = total_slot_count */
     int len = 0;
     void* prev_ptr = PTR_INVALID;
     int prev_size = 0;
     int best_len = 0;
     int best_index = -1;
-    for (int i = 0; i < slot_count; i++)
+    for (int i = 0; i < total_slot_count; i++)
     {
         if (slots[i].status == SLOT_FREE)
         {
@@ -1959,7 +1956,7 @@ static void FAST pre_record_discard_frame()
     /* also adjust frame_count so all frames start from 1,
      * just like the rest of the code assumes */
 
-    for (int i = 0; i < slot_count; i++)
+    for (int i = 0; i < total_slot_count; i++)
     {
         /* at the moment of this call, there should be no slots in progress */
         ASSERT(slots[i].status != SLOT_CAPTURING);
@@ -2007,7 +2004,7 @@ static void FAST pre_record_queue_frames()
 
 static void pre_record_discard_frame_if_no_free_slots()
 {
-    for (int i = 0; i < slot_count; i++)
+    for (int i = 0; i < total_slot_count; i++)
     {
         if (slots[i].status == SLOT_FREE)
         {
