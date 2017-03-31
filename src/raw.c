@@ -2378,12 +2378,47 @@ void raw_lv_request()
     raw_lv_update();
     give_semaphore(raw_sem);
 }
+
 void raw_lv_release()
 {
     take_semaphore(raw_sem, 0);
     raw_lv_request_count--;
     ASSERT(raw_lv_request_count >= 0);
     raw_lv_update();
+    give_semaphore(raw_sem);
+}
+
+void raw_lv_request_bpp(int bpp)
+{
+    take_semaphore(raw_sem, 0);
+
+    /* raw bit depth setup is done from PACK32_MODE register (mask 0x131) */
+    const uint32_t PACK32_MODE = 0xC0F08094;
+    enum {
+        MODE_16BIT = 0x130,
+        MODE_14BIT = 0x030,
+        MODE_12BIT = 0x010,
+        MODE_10BIT = 0x000,
+    };
+    const uint32_t modes[] = { MODE_10BIT, MODE_12BIT, MODE_14BIT, MODE_16BIT};
+
+    int bpp_index = COERCE((bpp-10)/2, 0, COUNT(modes));
+
+    if (shamem_read(PACK32_MODE) == modes[bpp_index])
+    {
+        /* no change needed */
+        ASSERT(raw_info.bits_per_pixel == bpp);
+    }
+    else
+    {
+        EngDrvOut(PACK32_MODE, modes[bpp_index]);
+        raw_info.bits_per_pixel = bpp;
+        raw_info.pitch = raw_info.width * raw_info.bits_per_pixel / 8;
+        raw_info.frame_size = raw_info.pitch * raw_info.height;
+        /* fixme: after switching bit depth, EDMAC needs 1-2 frames to settle */
+        wait_lv_frames(2);
+    }
+
     give_semaphore(raw_sem);
 }
 #endif
@@ -2466,7 +2501,10 @@ int can_use_raw_overlays()
 
 #ifdef CONFIG_RAW_LIVEVIEW
     if (lv && raw_lv_is_enabled())
-        return 1;
+    {
+        /* currently, raw overlays only work with 14 bits per pixel */
+        return raw_info.bits_per_pixel == 14;
+    }
 #endif
 
     return 0;
@@ -2554,7 +2592,8 @@ static struct menu_entry debug_menus[] = {
     {
         .name = "LV raw type",
         .priv = &lv_raw_type,
-        .max = 64,
+        .max  = 0xFFFF,
+        .unit = UNIT_HEX,
         .help = "Choose what type of raw stream we should use in LiveView.",
         .help2 = "See lv_af_raw, lv_rshd_raw, lv_set_raw, KindOfCraw...",
     },
