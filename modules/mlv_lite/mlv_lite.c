@@ -1140,53 +1140,38 @@ static void show_buffer_status()
 {
     if (!liveview_display_idle()) return;
     
-    int scale = MAX(1, (300 / slot_count + 1) & ~1);
-    int x = BUFFER_DISPLAY_X;
-    int y = BUFFER_DISPLAY_Y;
+    int y = BUFFER_DISPLAY_Y + 50;
+    uint32_t chunk_start = (uint32_t) slots[0].ptr;
+
     for (int i = 0; i < slot_count; i++)
     {
         if (i > 0 && slots[i].ptr != slots[i-1].ptr + slots[i-1].size)
-            x += MAX(2, scale);
-
-        int color = slots[i].status == SLOT_FREE    ? COLOR_BLACK :
-                    slots[i].status == SLOT_WRITING ? COLOR_GREEN1 :
-                    slots[i].status == SLOT_FULL    ? COLOR_LIGHT_BLUE :
-                                                      COLOR_RED ;
-        for (int k = 0; k < scale; k++)
         {
-            if (i > 0 && slots[i].ptr != slots[i-1].ptr + slots[i-1].size)
-            {
-                /* new chunk */
-                chunk_start = (uint32_t) slots[i].ptr;
-                y += 10;
-                if (y > 400) return;
-            }
-
-            int color = slots[i].status == SLOT_FREE      ? COLOR_GRAY(10) :
-                        slots[i].is_meta                  ? COLOR_BLUE :
-                        slots[i].status == SLOT_WRITING   ? COLOR_GREEN1 :
-                        slots[i].status == SLOT_FULL      ? COLOR_LIGHT_BLUE :
-                        slots[i].status == SLOT_RESERVED  ? COLOR_GRAY(50) :
-                        slots[i].status == SLOT_LOCKED    ? COLOR_YELLOW :
-                                                            COLOR_RED ;
-
-            uint32_t x1 = (uint32_t) slots[i].ptr - chunk_start;
-            uint32_t x2 = x1 + slots[i].size;
-            x1 = 650 * (x1/1024) / (32*1024) + BUFFER_DISPLAY_X;
-            x2 = 650 * (x2/1024) / (32*1024) + BUFFER_DISPLAY_X;
-            x1 = COERCE(x1, 0, 720);
-            x2 = COERCE(x2, 0, 720);
-
-            for (uint32_t x = x1; x < x2; x++)
-            {
-                draw_line(x, y, x, y+7, color);
-            }
-            draw_line(x1, y, x1, y+7, COLOR_BLACK);
-            draw_line(x2, y, x2, y+7, COLOR_BLACK);
+            /* new chunk */
+            chunk_start = (uint32_t) slots[i].ptr;
+            y += 10;
+            if (y > 400) return;
         }
-        
-        if (scale > 3)
-            x++;
+
+        int color = slots[i].status == SLOT_FREE      ? COLOR_GRAY(10) :
+                    slots[i].status == SLOT_WRITING   ? COLOR_GREEN1 :
+                    slots[i].status == SLOT_FULL      ? COLOR_LIGHT_BLUE :
+                    slots[i].status == SLOT_RESERVED  ? COLOR_GRAY(50) :
+                                                        COLOR_RED ;
+
+        uint32_t x1 = (uint32_t) slots[i].ptr - chunk_start;
+        uint32_t x2 = x1 + slots[i].size;
+        x1 = 650 * (x1/1024) / (32*1024) + BUFFER_DISPLAY_X;
+        x2 = 650 * (x2/1024) / (32*1024) + BUFFER_DISPLAY_X;
+        x1 = COERCE(x1, 0, 720);
+        x2 = COERCE(x2, 0, 720);
+
+        for (uint32_t x = x1; x < x2; x++)
+        {
+            draw_line(x, y, x, y+7, color);
+        }
+        draw_line(x1, y, x1, y+7, COLOR_BLACK);
+        draw_line(x2, y, x2, y+7, COLOR_BLACK);
     }
 
 #ifdef DEBUG_BUFFERING_GRAPH
@@ -1348,14 +1333,14 @@ static void show_recording_status()
             show_buffer_status();
 
             if (predicted < 10000)
-                bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), BUFFER_DISPLAY_X, BUFFER_DISPLAY_Y+22,
+                bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), BUFFER_DISPLAY_X, BUFFER_DISPLAY_Y,
                     "%02d:%02d, %d frames / %d expected  ",
                     t/60, t%60,
                     frame_count,
                     predicted
                 );
             else
-                bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), BUFFER_DISPLAY_X, BUFFER_DISPLAY_Y+22,
+                bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), BUFFER_DISPLAY_X, BUFFER_DISPLAY_Y,
                     "%02d:%02d, %d frames, continuous OK  ",
                     t/60, t%60,
                     frame_count
@@ -1375,7 +1360,7 @@ static void show_recording_status()
                     if (idle_percent) { STR_APPEND(msg, ", %d%% idle", idle_percent); }
                     else { STR_APPEND(msg, ", %dms idle", idle_time); }
                 }
-                bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), BUFFER_DISPLAY_X, BUFFER_DISPLAY_Y+22+font_med.height, "%s", msg);
+                bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), BUFFER_DISPLAY_X, BUFFER_DISPLAY_Y+font_med.height, "%s", msg);
             }
         }
         else if (indicator_display == INDICATOR_ON_SCREEN)
@@ -3267,7 +3252,7 @@ static struct menu_entry raw_video_menu[] =
                 .advanced = 1,
             },
             {
-                .name = "Show buffer graph",
+                .name = "Show buffers",
                 .priv = &show_graph,
                 .max = 1,
                 .help = "Displays a graph of the current buffer usage and expected frames.",
