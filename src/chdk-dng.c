@@ -408,7 +408,7 @@ void dng_set_datetime(char *datetime, char *subsectime)
 
 static int is_lossless_jpeg(struct raw_info * raw_info)
 {
-    return MEM(raw_info->buffer) == 0xC4FFD8FF;
+    return *(uint32_t*)(raw_info->buffer) == 0xC4FFD8FF;
 }
 
 
@@ -702,6 +702,12 @@ static void create_thumbnail(struct raw_info * raw_info)
 {
     register int i, j, x, y, yadj, xadj;
     register char *buf = thumbnail_buf;
+    
+    if (is_lossless_jpeg(raw_info))
+    {
+        memset(thumbnail_buf, 0, dng_th_width*dng_th_height*3);
+        return;
+    }
 
     // The sensor bayer patterns are:
     //  0x02010100  0x01000201  0x01020001
