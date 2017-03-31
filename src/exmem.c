@@ -4,6 +4,7 @@
 #include "bmp.h"
 #include "property.h"
 #include "lens.h"
+#include "raw.h"
 
 extern void* _malloc(size_t size);
 extern void _free(void* ptr);
@@ -636,8 +637,14 @@ void* _srm_malloc(size_t size)
             /* populate the buffers available for this large malloc, and mark them as unused */
             void* buffer = GetMemoryAddressOfMemoryChunk(chunk);
             ASSERT(buffer);
-            srm_malloc_buffers[i].buffer = buffer;
-            srm_malloc_buffers[i].used = 0;
+            
+            /* the raw backend may exploit a SRM use after free, intentionally */
+            /* consider it allocated */
+            if (raw_info.buffer == buffer + 0x100)
+            {
+                srm_malloc_buffers[i].buffer = buffer;
+                srm_malloc_buffers[i].used = 0;
+            }
             
             chunk = GetNextMemoryChunk(srm_malloc_hSuite, chunk);
             i++;

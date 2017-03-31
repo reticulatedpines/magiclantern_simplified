@@ -93,25 +93,16 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #endif
 
 #ifdef CONFIG_5D3_113
-/* MEM(0x2600C + 0x2c) = 0x4B152000; appears free until 0x4CE00000 */
-#define DEFAULT_RAW_BUFFER MEM(0x2600C + 0x2c)
-#define DEFAULT_RAW_BUFFER_SIZE (0x4CDF0000 - 0x4B152000)
+//#define DEFAULT_RAW_BUFFER MEM(0x2600C + 0x2c)
 #endif
 
 #ifdef CONFIG_5D3_123
-/* MEM(0x25f1c + 0x34) (0x4d31a000) is used near 0x4d600000 in photo mode
- * that's probably just because the memory layout changes
- * next buffer is at 0x4ee00000; can we assume it can be safely reused by us?
- * (Free Memory dialog, memory map with CONFIG_MARK_UNUSED_MEMORY_AT_STARTUP)
- */
-#define DEFAULT_RAW_BUFFER MEM(0x25f1c + 0x34)
-#define DEFAULT_RAW_BUFFER_SIZE (0x4e000000 - 0x4d31a000)
+//#define DEFAULT_RAW_BUFFER MEM(0x25f1c + 0x34)
 #endif
 
 #ifdef CONFIG_5D3
-/* for higher resolutions we'll allocate a new buffer, as needed */
 #define CONFIG_ALLOCATE_RAW_LV_BUFFER
-/* buffer size for a full-res LiveView image */
+#define CONFIG_ALLOCATE_RAW_LV_BUFFER_SRM_DUMMY
 #define RAW_LV_BUFFER_ALLOC_SIZE ((0x527 + 2612) * (0x2FE - 0x18)*8 * 14/8)
 #endif
 
@@ -2262,6 +2253,28 @@ static void raw_lv_enable()
     call("lv_save_raw", 1);
 #endif
 
+#ifdef CONFIG_ALLOCATE_RAW_LV_BUFFER
+    uint32_t old = cli();
+    if(!raw_allocated_lv_buffer) {
+        #ifdef CONFIG_ALLOCATE_RAW_LV_BUFFER_SRM_DUMMY
+        /* dummy allocation, exploiting use after free */
+        /* this assumes nobody will touch the SRM memory while in LiveView */
+        /* or if they do, they are aware of our trick */
+        struct memSuite * suite = srm_malloc_suite(1);
+        if (suite)
+        {
+            /* the SRM memory backend may also be managed by our malloc wrappers */
+            /* leave some unused space - if it ever gets allocated by other task
+             * and overwritten by us, let the backend free it */
+            void * srm_buf = GetMemoryAddressOfMemoryChunk(GetFirstChunkFromSuite(suite));
+            raw_allocated_lv_buffer = srm_buf + 0x100;
+            srm_free_suite(suite);
+        }
+        #else
+        raw_allocated_lv_buffer = fio_malloc(RAW_LV_BUFFER_ALLOC_SIZE);
+        #endif
+    }
+
 #ifdef DEFAULT_RAW_BUFFER
 #ifdef CONFIG_MARK_UNUSED_MEMORY_AT_STARTUP
     /* is it really unused? check on first use */
@@ -2288,23 +2301,25 @@ static void raw_lv_enable()
     }
 #endif
 #endif
-
-#ifdef CONFIG_EDMAC_RAW_SLURP
-    raw_lv_realloc_buffer();
-#endif
+    
 }
 
 static void raw_lv_disable()
 {
     lv_raw_enabled = 0;
-    raw_info.buffer = 0;
-
 #ifndef CONFIG_EDMAC_RAW_SLURP
     call("lv_save_raw", 0);
 #endif
 
 #ifdef CONFIG_ALLOCATE_RAW_LV_BUFFER
-    raw_lv_free_buffer();
+    uint32_t old = cli();
+    if(raw_allocated_lv_buffer) {
+        #ifndef CONFIG_ALLOCATE_RAW_LV_BUFFER_SRM_DUMMY
+        free(raw_allocated_lv_buffer);
+        #endif
+        raw_allocated_lv_buffer = 0;
+    }
+    sei(old);
 #endif
 }
 
