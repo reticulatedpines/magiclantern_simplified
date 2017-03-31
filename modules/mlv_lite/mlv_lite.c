@@ -2351,7 +2351,8 @@ void init_mlv_chunk_headers(struct raw_info * raw_info)
     file_hdr.fileNum = 0;
     file_hdr.fileCount = 0; //autodetect
     file_hdr.fileFlags = 4;
-    file_hdr.videoClass = 1;
+    file_hdr.videoClass = MLV_VIDEO_CLASS_RAW |
+        (OUTPUT_COMPRESSION ? MLV_VIDEO_CLASS_FLAG_LJ92 : 0);
     file_hdr.audioClass = 0;
     file_hdr.videoFrameCount = 0; //autodetect
     file_hdr.audioFrameCount = 0;
