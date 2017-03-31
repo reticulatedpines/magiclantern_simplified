@@ -2136,6 +2136,11 @@ static void compress_task()
         printf("EDMAC copy resources locked.\n");
     }
 
+    /* fixme: setting size 0x41a100, 0x41a200 or nearby value results in lockup, why?! */
+    /* fixme: will overflow if the input data is not a valid image */
+    struct memSuite * outSuite = CreateMemorySuite(0, 32*1024*1024, 0);
+    struct memChunk * outChunk = GetFirstChunkFromSuite(outSuite);
+
     /* run as long as the main recorder task requires it */
     while (1)
     {
@@ -2156,14 +2161,13 @@ static void compress_task()
 
         if (OUTPUT_COMPRESSION)
         {
-            struct memSuite * outSuite = CreateMemorySuite((void*)out_ptr, max_frame_size, 0);
+            outChunk->memory_address = out_ptr;
             int compressed_size = lossless_compress_raw_rectangle(
                 outSuite, fullSizeBuffer,
                 raw_info.width, skip_x, skip_y,
                 res_x, res_y
             );
             ASSERT(compressed_size < max_frame_size);
-            DeleteMemorySuite(outSuite);
             
             /* resize frame slots on the fly, to compressed size */
             shrink_slot(slot_index, compressed_size);
@@ -2188,6 +2192,8 @@ static void compress_task()
         edmac_memcpy_res_unlock();
         printf("EDMAC copy resources unlocked.\n");
     }
+
+    DeleteMemorySuite(outSuite);
 }
 
 static REQUIRES(LiveViewTask) FAST
