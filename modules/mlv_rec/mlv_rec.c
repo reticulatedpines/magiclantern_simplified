@@ -4129,7 +4129,7 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
     struct display_filter_buffers * buffers = (struct display_filter_buffers *) ctx;
 
     raw_previewing = 1;
-    raw_set_preview_rect(skip_x, skip_y, res_x, res_y);
+    raw_set_preview_rect(skip_x, skip_y, res_x, res_y, 1);
     raw_force_aspect_ratio_1to1();
     raw_preview_fast_ex(
         (void*)-1,
