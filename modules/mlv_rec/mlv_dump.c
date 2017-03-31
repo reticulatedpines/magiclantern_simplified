@@ -29,6 +29,7 @@
 #include <getopt.h>
 #include <inttypes.h>
 #include <time.h>
+#include <assert.h>
 
 /* dng related headers */
 #include <chdk-dng.h>
@@ -2411,19 +2412,42 @@ read_headers:
                 if((raw_output || mlv_output || dng_output || lua_state) && !skip_block)
                 {
                     /* if already compressed, we have to decompress it first */
-                    int compressed = main_header.videoClass & MLV_VIDEO_CLASS_FLAG_LZMA;
-                    int recompress = compressed && compress_output;
-                    int decompress = compressed && decompress_output;
+                    int compressed_lzma = main_header.videoClass & MLV_VIDEO_CLASS_FLAG_LZMA;
+                    int compressed_lj92 = main_header.videoClass & MLV_VIDEO_CLASS_FLAG_LJ92;
+                    int recompress = compressed_lzma && compress_output;
+                    int decompress = compressed_lzma && decompress_output;
 
                     /* block_hdr.blockSize includes VIDF header, space (if any), actual frame, and padding (if any) */
                     /* this formula should match the one used when saving dark frames (which have no spacing/padding) */
                     int frame_size = ((video_xRes * video_yRes * lv_rec_footer.raw_info.bits_per_pixel + 7) / 8);
 
                     int prev_frame_size = frame_size;                    
-                    int64_t skipSizeBefore = block_hdr.frameSpace;
-                    int64_t skipSizeAfter = block_hdr.blockSize - frame_size - block_hdr.frameSpace - sizeof(mlv_vidf_hdr_t);
+                    int32_t skipSizeBefore = block_hdr.frameSpace;
+                    int32_t skipSizeAfter = block_hdr.blockSize - frame_size - block_hdr.frameSpace - sizeof(mlv_vidf_hdr_t);
 
-                    if (skipSizeAfter < 0)
+                    if (compressed_lj92)
+                    {
+                        /* hack: ignore computed frame size and skip processing;
+                         * just read the entire block and dump it to DNG
+                         * fixme: decompression (see mlv_rec_lj92 branch)
+                         */
+                        if (verbose)
+                        {
+                            print_msg(MSG_INFO, "    LJ92: processing skipped\n");
+                        }
+                        frame_size += skipSizeAfter;
+                        skipSizeAfter = 0;
+                        fix_vert_stripes = 0;
+                        fix_cold_pixels = 0;
+                        assert(!chroma_smooth_method);
+                        assert(!subtract_mode);
+                        assert(!flatfield_mode);
+                        assert(!average_mode);
+                        assert(!bit_zap);
+                        assert(!delta_encode_mode);
+                        assert(!raw_output);
+                    }
+                    else if (skipSizeAfter < 0)
                     {
                         print_msg(MSG_ERROR, "VIDF: Frame size + header + space is larger than block size. Skipping\n");
                         skip_block = 1;
@@ -2487,7 +2511,7 @@ read_headers:
 
                     lua_handle_hdr_data(lua_state, buf.blockType, "_data_read", &block_hdr, sizeof(block_hdr), frame_buffer, frame_size);
 
-                    if(recompress || decompress || ((raw_output || dng_output) && compressed))
+                    if(recompress || decompress || ((raw_output || dng_output) && compressed_lzma))
                     {
 #ifdef MLV_USE_LZMA
                         size_t lzma_out_size = *(uint32_t *)frame_buffer;
