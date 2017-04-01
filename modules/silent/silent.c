@@ -812,6 +812,18 @@ static int silent_pic_raw_prepare_buffers(struct memSuite * hSuite, int initial_
     while (1)
     {
         void* ptr0 = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
+
+        /* use-after-free from raw backend? skip this chunk */
+        if (ptr0 + 0x100 == raw_info.buffer)
+        {
+            /* fixme: borrow the logic from mlv_lite (less convoluted) */
+            //~ printf("skipping chunk\n");
+            hChunk = GetNextMemoryChunk(hSuite, hChunk);
+            if (!hChunk) break;
+            ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
+            continue;
+        }
+
         int size = GetSizeOfMemoryChunk(hChunk);
         int used = ptr - ptr0;
         int remain = size - used;
@@ -885,7 +897,7 @@ silent_pic_take_lv(int interactive)
         /* allocate only one frame in simple and slitscan modes */
         case SILENT_PIC_MODE_SIMPLE:
         case SILENT_PIC_MODE_SLITSCAN:
-            hSuite1 = srm_malloc_suite(1);
+            hSuite1 = srm_malloc_suite(2);
             break;
     }
 
@@ -1033,7 +1045,7 @@ silent_pic_take_lv(int interactive)
                 silent_pic_raw_show_focus(i);
 
             local_raw_info.buffer = sp_frames[i % sp_buffer_count];
-            raw_set_preview_rect(raw_info.active_area.x1, raw_info.active_area.y1, raw_info.active_area.x2 - raw_info.active_area.x1, raw_info.active_area.y2 - raw_info.active_area.y1, 0);
+            raw_set_preview_rect(raw_info.active_area.x1, raw_info.active_area.y1, raw_info.active_area.x2 - raw_info.active_area.x1, raw_info.active_area.y2 - raw_info.active_area.y1, 1);
             raw_force_aspect_ratio_1to1();
             raw_preview_fast_ex(local_raw_info.buffer, (void*)-1, -1, -1, -1);
             ok = silent_pic_save_file(&local_raw_info, 0);
