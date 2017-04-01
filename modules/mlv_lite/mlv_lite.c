@@ -233,7 +233,7 @@ static GUARDED_BY(RawRecTask)   void * fullsize_buffers[2];         /* original 
 static GUARDED_BY(LiveViewTask) int fullsize_buffer_pos = 0;        /* which of the full size buffers (double buffering) is currently in use */
 static GUARDED_BY(RawRecTask)   int chunk_list[32];                 /* list of free memory chunk sizes, used for frame estimations */
 
-static volatile                 struct frame_slot slots[511];       /* frame slots */
+static volatile                 struct frame_slot slots[1023];       /* frame slots */
 static GUARDED_BY(RawRecTask)   int slot_count = 0;                 /* how many frame slots we have */
 static GUARDED_BY(LiveViewTask) int capture_slot = -1;              /* in what slot are we capturing now (index) */
 static volatile                 int force_new_buffer = 0;           /* if some other task decides it's better to search for a new buffer */
@@ -1029,7 +1029,7 @@ void add_reserved_slots(void * ptr, int n)
      * to be used when frames are compressed
      * (we don't know the compressed size in advance,
      * so we'll resize them on the fly) */
-    for (int i = 0; i < n; i++)
+    for (int i = 0; i < n && total_slot_count < COUNT(slots); i++)
     {
         slots[total_slot_count].ptr = ptr;
         slots[total_slot_count].size = 0;
