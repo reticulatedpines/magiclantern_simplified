@@ -2249,7 +2249,7 @@ void FAST process_frame()
         else
         {
             /* send it for saving, even if it isn't done yet */
-            /* it's quite unlikely that FIO DMA will be faster than EDMAC */
+            /* (the recording thread will wait until it's done) */
             writing_queue[writing_queue_tail] = capture_slot;
             INC_MOD(writing_queue_tail, COUNT(writing_queue));
         }
@@ -2798,6 +2798,9 @@ static void raw_video_rec_task()
             continue;
         }
 
+        /* race condition with compress_task */
+        uint32_t old_int = cli();
+
         int first_slot = writing_queue[w_head];
 
         /* check whether the first frame was filled by EDMAC (it may be sent in advance) */
@@ -2805,6 +2808,7 @@ static void raw_video_rec_task()
         
         if (slots[first_slot].status != SLOT_FULL)
         {
+            sei(old_int);
             msleep(20);
             continue;
         }
@@ -2851,7 +2855,9 @@ static void raw_video_rec_task()
             
             group_size += slots[slot_index].size;
         }
-        
+
+        sei(old_int);
+
         /* grouped frames from w_head to last_grouped (including both ends) */
         int num_frames = MOD(last_grouped - w_head + 1, COUNT(writing_queue));
         
