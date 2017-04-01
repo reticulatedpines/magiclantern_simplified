@@ -7,6 +7,8 @@
 #include <patch.h>
 #include <bmp.h>
 #include <lvinfo.h>
+#include <powersave.h>
+#include <raw.h>
 
 #undef CROP_DEBUG
 
@@ -1045,7 +1047,7 @@ static inline uint32_t reg_override_fullres_lv(uint32_t reg, uint32_t old_val)
             return 0x3170317;
 
         case 0xC0F06014:
-            return 0xFE2;           /* 7.45 fps */
+            return 0xFFE;           /* 7.4 fps */
     }
 
     /* no need to adjust the black bar */
