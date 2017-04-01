@@ -801,60 +801,46 @@ static unsigned int silent_pic_raw_vsync(unsigned int ctx)
     return 0;
 }
 
-static int silent_pic_raw_prepare_buffers(struct memSuite * hSuite, int initial_count)
+static int silent_pic_raw_prepare_buffers(struct memSuite * mem_suite, int initial_count)
 {
     /* we'll look for contiguous blocks equal to raw_info.frame_size */
     /* (so we'll make sure we can write raw_info.frame_size starting from ptr) */
-    struct memChunk * hChunk = (void*) GetFirstChunkFromSuite(hSuite);
-    void* ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
-    int count = initial_count;
 
-    while (1)
+    int count = 0;
+    int max_frame_size = (raw_info.frame_size + 255) & ~255;
+
+    if (mem_suite)
     {
-        void* ptr0 = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
-
-        /* use-after-free from raw backend? skip this chunk */
-        if (ptr0 + 0x100 == raw_info.buffer)
+        /* use all chunks larger than max_frame_size for recording */
+        struct memChunk * chunk = GetFirstChunkFromSuite(mem_suite);
+        while(chunk)
         {
-            /* fixme: borrow the logic from mlv_lite (less convoluted) */
-            //~ printf("skipping chunk\n");
-            hChunk = GetNextMemoryChunk(hSuite, hChunk);
-            if (!hChunk) break;
-            ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
-            continue;
-        }
+            int size = GetSizeOfMemoryChunk(chunk);
+            intptr_t ptr = (intptr_t) GetMemoryAddressOfMemoryChunk(chunk);
 
-        int size = GetSizeOfMemoryChunk(hChunk);
-        int used = ptr - ptr0;
-        int remain = size - used;
-        //~ printf("remain: %x\n", remain);
-
-        /* the EDMAC might write a bit more than that,
-         * so we'll use a small safety margin (2 extra lines) */
-        if (remain < raw_info.frame_size + 2 * raw_info.pitch)
-        {
-            /* move to next chunk */
-            hChunk = GetNextMemoryChunk(hSuite, hChunk);
-            if (!hChunk)
+            /* use-after-free from raw backend? skip this chunk */
+            if ((void*)ptr + 0x100 == raw_info.buffer)
             {
-                //~ printf("no more memory\n");
-                break;
+                goto next;
             }
-            ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
-            //~ printf("next chunk: %x %x\n", hChunk, ptr);
-            continue;
-        }
-        else /* alright, a new frame fits here */
-        {
-            //~ printf("FRAME %d: hSuite=%x hChunk=%x ptr=%x\n", count, hSuite, hChunk, ptr);
-            sp_frames[count] = ptr;
-            count++;
-            ptr = ptr + raw_info.frame_size;
-            if (count >= SP_BUFFER_SIZE)
+            
+            /* align pointer at 64 bytes */
+            intptr_t ptr_raw = ptr;
+            ptr   = (ptr + 63) & ~63;
+            size -= (ptr - ptr_raw);
+
+            /* fit as many frames as we can */
+            while (size >= max_frame_size && count < COUNT(sp_frames))
             {
-                //~ printf("we have lots of RAM, lol\n");
-                break;
+                sp_frames[count] = (void*) ptr;
+                ptr  += max_frame_size;
+                size -= max_frame_size;
+                count++;
             }
+        
+        next:
+            /* next chunk */
+            chunk = GetNextMemoryChunk(mem_suite, chunk);
         }
     }
     return count;
