@@ -55,7 +55,7 @@ struct TwoInTwoOutLosslessPath_args
 static struct TwoInTwoOutLosslessPath_args TTL_Args;
 static struct LockEntry * TTL_ResLock = 0;
 static struct semaphore * lossless_sem = 0;
-static int verbose = 1;
+static int verbose = 0;
 
 static void LosslessCompleteCBR()
 {
