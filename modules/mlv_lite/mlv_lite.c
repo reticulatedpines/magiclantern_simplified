@@ -1724,9 +1724,15 @@ static void shrink_slot(int slot_index, int new_frame_size)
     int new_size = (VIDF_HDR_SIZE + new_frame_size + 4 + 511) & ~511;
     int old_size = slots[i].size;
     int dif_size = old_size - new_size;
-    ASSERT(dif_size > 0);
+    ASSERT(dif_size >= 0);
 
     //printf("Shrink slot %d from %d to %d.\n", i, old_size, new_size);
+    
+    if (dif_size ==  0)
+    {
+        /* nothing to do */
+        return;
+    }
 
     slots[i].size = new_size;
     slots[i].payload_size = new_frame_size;
