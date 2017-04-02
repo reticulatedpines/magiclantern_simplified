@@ -592,7 +592,21 @@ static int adjust_shutter_blanking(int old)
     float frame_duration_current = 1000.0 / current_fps;
 
     float orig_shutter = frame_duration_orig * current_exposure / fps_timer_b_orig;
-    float new_shutter = orig_shutter;
+
+    float new_shutter =
+        (current_fps == default_fps) ?
+        ({
+            /* same FPS? adjust to match the original shutter speed */
+            orig_shutter;
+        }) :
+        ({
+            /* in modes with different FPS, map the available range
+             * of 1/4000...1/30 (24-30p) or 1/4000...1/60 (50-60p)
+             * from minimum allowed (1/15000) to 1/fps */
+            int max_fps_shutter = (video_mode_fps <= 30) ? 33333 : 64000;
+            int default_fps_adj = 1e9 / (1e9 / max_fps_shutter - 250);
+            (orig_shutter - 250e-6) * default_fps_adj / current_fps;
+        });
 
     uint32_t (*reg_override_func)(uint32_t, uint32_t) = 
         get_engio_reg_override_func();
