@@ -809,7 +809,6 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
 
                 if (reg == 0x805E || reg == 0x8060)
                 {
-                    printf("Blanking = %x\n", new_value);
                     /* also override in original data structure */
                     /* to be picked up on the screen indicators */
                     *(uint16_t*)data_buf = new_value;
