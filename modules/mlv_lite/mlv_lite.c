@@ -121,9 +121,9 @@ static CONFIG_INT("raw.dolly", dolly_mode, 0);
 #define FRAMING_PANNING (dolly_mode == 1)
 
 static CONFIG_INT("raw.preview", preview_mode, 0);
-#define PREVIEW_AUTO (preview_mode == 0)
-#define PREVIEW_CANON (preview_mode == 1)
-#define PREVIEW_ML (preview_mode == 2)
+#define PREVIEW_AUTO   (preview_mode == 0)
+#define PREVIEW_CANON  (preview_mode == 1)
+#define PREVIEW_ML     (preview_mode == 2)
 #define PREVIEW_HACKED (preview_mode == 3)
 
 static CONFIG_INT("raw.warm.up", warm_up, 0);
@@ -2167,11 +2167,11 @@ static struct menu_entry raw_video_menu[] =
                 .name = "Preview",
                 .priv = &preview_mode,
                 .max = 3,
-                .choices = CHOICES("Auto", "Canon", "ML Grayscale", "HaCKeD"),
+                .choices = CHOICES("Auto", "Real-time", "Framing", "Frozen"),
                 .help2 = "Auto: ML chooses what's best for each video mode\n"
-                         "Canon: plain old LiveView. Framing is not always correct.\n"
-                         "ML Grayscale: looks ugly, but at least framing is correct.\n"
-                         "HaCKeD: try to squeeze a little speed by killing LiveView.\n",
+                         "Plain old LiveView (color and real-time). Framing is not always correct.\n"
+                         "Slow (not real-time) and low-resolution, but has correct framing.\n"
+                         "Freeze LiveView to squeeze a little more speed.\n",
                 .advanced = 1,
             },
             {
@@ -2336,19 +2336,44 @@ static int raw_rec_should_preview(void)
 
     /* keep x10 mode unaltered, for focusing */
     if (lv_dispsize == 10) return 0;
-    
-    if (PREVIEW_AUTO)
-        /* enable preview in x5 mode, since framing doesn't match */
-        return lv_dispsize == 5;
 
+    /* framing is incorrect in modes with high resolutions
+     * (e.g. x5 zoom, crop_rec) */
+    int raw_active_width = raw_info.active_area.x2 - raw_info.active_area.x1;
+    int raw_active_height = raw_info.active_area.y2 - raw_info.active_area.y1;
+    int framing_incorrect =
+        raw_active_width > 2000 ||
+        raw_active_height > (video_mode_fps <= 30 ? 1300 : 720);
+
+    /* some modes have Canon preview totally broken */
+    int preview_broken = (lv_dispsize == 1 && raw_active_width > 2000);
+
+    int prefer_framing_preview = 
+        (res_x < max_res_x * 80/100) ? 1 :  /* prefer correct framing instead of large black bars */
+        (res_x*9 < res_y*16)         ? 1 :  /* tall aspect ratio -> prevent image hiding under info bars*/
+        (framing_incorrect)          ? 1 :  /* use correct framing in modes where Canon preview is incorrect */
+                                       0 ;  /* otherwise, use plain LiveView */
+
+    if (PREVIEW_AUTO)
+    {
+        /* half-shutter overrides default choice */
+        if (preview_broken) return 1;
+        return prefer_framing_preview ^ get_halfshutter_pressed();
+    }
     else if (PREVIEW_CANON)
+    {
         return 0;
-    
+    }
     else if (PREVIEW_ML)
+    {
         return 1;
-    
+    }
     else if (PREVIEW_HACKED)
-        return RAW_IS_RECORDING || get_halfshutter_pressed() || lv_dispsize == 5;
+    {
+        if (preview_broken) return 1;
+        return (RAW_IS_RECORDING || prefer_framing_preview)
+            ^ get_halfshutter_pressed();
+    }
     
     return 0;
 }
@@ -2367,7 +2392,14 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
         }
         return enabled;
     }
-    
+
+    /* only consider speed when the recorder is actually busy */
+    int queued_frames = MOD(writing_queue_tail - writing_queue_head, COUNT(writing_queue));
+    int need_for_speed = (RAW_IS_RECORDING) && (
+        (PREVIEW_HACKED && queued_frames > slot_count / 8) ||
+        (queued_frames > slot_count / 4)
+    );
+
     struct display_filter_buffers * buffers = (struct display_filter_buffers *) ctx;
 
     raw_previewing = 1;
@@ -2378,15 +2410,16 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
         PREVIEW_HACKED && RAW_RECORDING ? (void*)-1 : buffers->dst_buf,
         -1,
         -1,
-        get_halfshutter_pressed() ? RAW_PREVIEW_COLOR_HALFRES : RAW_PREVIEW_GRAY_ULTRA_FAST
+        (need_for_speed && !get_halfshutter_pressed())
+            ? RAW_PREVIEW_GRAY_ULTRA_FAST
+            : RAW_PREVIEW_COLOR_HALFRES
     );
     raw_previewing = 0;
 
-    if (!RAW_IS_IDLE)
+    if (need_for_speed)
     {
         /* be gentle with the CPU, save it for recording (especially if the buffer is almost full) */
-        //~ msleep(free_buffers <= 2 ? 2000 : used_buffers > 1 ? 1000 : 100);
-        msleep(1000);
+        msleep((queued_frames > slot_count / 2) ? 1000 : 500);
     }
 
     preview_dirty = 1;
