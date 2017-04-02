@@ -2866,12 +2866,11 @@ static struct menu_entry raw_video_menu[] =
                 .name = "Preview",
                 .priv = &preview_mode,
                 .max = 3,
-                .choices = CHOICES("Auto", "Real-time", "Framing", "Frozen LV"),
-                .help  = "Raw video preview (long half-shutter press to override):",
+                .choices = CHOICES("Auto", "Real-time", "Framing", "Frozen"),
                 .help2 = "Auto: ML chooses what's best for each video mode\n"
                          "Plain old LiveView (color and real-time). Framing is not always correct.\n"
                          "Slow (not real-time) and low-resolution, but has correct framing.\n"
-                         "Freeze LiveView for more speed; uses 'Framing' preview if Global Draw ON.\n",
+                         "Freeze LiveView to squeeze a little more speed.\n",
                 .advanced = 1,
             },
             {
@@ -3103,21 +3102,21 @@ static int raw_rec_should_preview(void)
     {
         /* half-shutter overrides default choice */
         if (preview_broken) return 1;
-        return prefer_framing_preview ^ long_halfshutter_press;
+        return prefer_framing_preview ^ get_halfshutter_pressed();
     }
     else if (PREVIEW_CANON)
     {
-        return long_halfshutter_press;
+        return 0;
     }
     else if (PREVIEW_ML)
     {
-        return !long_halfshutter_press;
+        return 1;
     }
     else if (PREVIEW_HACKED)
     {
         if (preview_broken) return 1;
         return (RAW_IS_RECORDING || prefer_framing_preview)
-            ^ long_halfshutter_press;
+            ^ get_halfshutter_pressed();
     }
     
     return 0;
@@ -3141,8 +3140,8 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
     /* only consider speed when the recorder is actually busy */
     int queued_frames = MOD(writing_queue_tail - writing_queue_head, COUNT(writing_queue));
     int need_for_speed = (RAW_IS_RECORDING) && (
-        (PREVIEW_HACKED && queued_frames > slot_count / 8) ||
-        (queued_frames > slot_count / 4)
+        (PREVIEW_HACKED && queued_frames > valid_slot_count / 8) ||
+        (queued_frames > valid_slot_count / 4)
     );
 
     struct display_filter_buffers * buffers = (struct display_filter_buffers *) ctx;
@@ -3165,12 +3164,11 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
     );
     raw_previewing = 0;
 
-    /* be gentle with the CPU, save it for recording (especially if the buffer is almost full) */
-    msleep(
-        (need_for_speed)
-            ? ((queued_frames > slot_count / 2) ? 1000 : 500)
-            : 50
-    );
+    if (need_for_speed)
+    {
+        /* be gentle with the CPU, save it for recording (especially if the buffer is almost full) */
+        msleep((queued_frames > valid_slot_count / 2) ? 1000 : 500);
+    }
 
     preview_dirty = 1;
     return 1;
