@@ -1378,7 +1378,9 @@ static void mlv_play_render_frame(frame_buf_t *buffer)
     raw_info.bits_per_pixel = buffer->bitDepth;
     raw_info.black_level = buffer->blackLevel;
     raw_set_geometry(buffer->xRes, buffer->yRes, 0, 0, 0, 0);
-    raw_force_aspect_ratio_1to1();
+
+    /* fixme: read aspect ratio from metadata */
+    raw_force_aspect_ratio(1, 1);
     
     if(raw_twk_available())
     {

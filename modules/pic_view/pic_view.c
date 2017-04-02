@@ -150,7 +150,7 @@ static int dng_show(char* filename)
     raw_info.buffer = buf;
 
     raw_set_geometry(raw_info.width, raw_info.height, raw_info.active_area.x1, raw_info.width - raw_info.active_area.x2, raw_info.active_area.y1, raw_info.height - raw_info.active_area.y2);
-    raw_force_aspect_ratio_1to1();
+    raw_force_aspect_ratio(1, 1);
 
     vram_clear_lv();
     raw_preview_fast_ex((void*)-1, (void*)-1, -1, -1, RAW_PREVIEW_COLOR_HALFRES);

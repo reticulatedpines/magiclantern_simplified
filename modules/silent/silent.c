@@ -618,7 +618,7 @@ static unsigned int silent_pic_preview(unsigned int ctx)
     }
     
     raw_set_preview_rect(raw_info.active_area.x1, raw_info.active_area.y1, raw_info.active_area.x2 - raw_info.active_area.x1, raw_info.active_area.y2 - raw_info.active_area.y1, 1);
-    raw_force_aspect_ratio_1to1();
+    raw_force_aspect_ratio(0, 0);
     raw_preview_fast_ex(raw_buf, preview_buf, first_line, last_line, ultra_fast);
 
     /* we have modified the raw preview rectangle; will force a refresh of raw parameters when preview is no longer needed */
