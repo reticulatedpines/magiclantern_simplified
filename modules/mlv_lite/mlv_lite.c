@@ -358,8 +358,8 @@ static char* guess_aspect_ratio(int res_x, int res_y)
     float ratio = (float)res_x / res_y;
     float minerr = 100;
     /* common ratios that are expressed as integer numbers, e.g. 3:2, 16:9, but not 2.35:1 */
-    static int common_ratios_x[] = {1, 2, 3, 3, 4, 16, 5, 5};
-    static int common_ratios_y[] = {1, 1, 1, 2, 3, 9,  4, 3};
+    static int common_ratios_x[] = {1, 2, 3, 4, 5, 3, 4, 16, 5, 5};
+    static int common_ratios_y[] = {1, 1, 1, 1, 1, 2, 3, 9,  4, 3};
     for (int i = 0; i < COUNT(common_ratios_x); i++)
     {
         int num = common_ratios_x[i];
@@ -549,6 +549,12 @@ static MENU_UPDATE_FUNC(aspect_ratio_update_info)
     {
         char* ratio = guess_aspect_ratio(res_x, res_y);
         MENU_SET_HELP("%dx%d (%s).", res_x, res_y, ratio);
+
+        if (!streq(ratio, info->value))
+        {
+            /* aspect ratio different from requested value? */
+            MENU_SET_RINFO("%s", ratio);
+        }
     }
     else
     {
