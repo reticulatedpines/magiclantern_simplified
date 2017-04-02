@@ -1080,7 +1080,7 @@ silent_pic_take_lv(int interactive)
 
             local_raw_info.buffer = sp_frames[i % sp_buffer_count];
             raw_set_preview_rect(raw_info.active_area.x1, raw_info.active_area.y1, raw_info.active_area.x2 - raw_info.active_area.x1, raw_info.active_area.y2 - raw_info.active_area.y1, 1);
-            raw_force_aspect_ratio_1to1();
+            raw_force_aspect_ratio(0, 0);
             raw_preview_fast_ex(local_raw_info.buffer, (void*)-1, -1, -1, -1);
             ok = silent_pic_save_file(&local_raw_info, 0);
             if (!ok) break;
