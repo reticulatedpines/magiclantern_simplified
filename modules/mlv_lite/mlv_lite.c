@@ -2866,11 +2866,11 @@ static struct menu_entry raw_video_menu[] =
                 .name = "Preview",
                 .priv = &preview_mode,
                 .max = 3,
-                .choices = CHOICES("Auto", "Real-time", "Framing", "Frozen"),
+                .choices = CHOICES("Auto", "Real-time", "Framing", "Frozen LV"),
                 .help2 = "Auto: ML chooses what's best for each video mode\n"
                          "Plain old LiveView (color and real-time). Framing is not always correct.\n"
                          "Slow (not real-time) and low-resolution, but has correct framing.\n"
-                         "Freeze LiveView to squeeze a little more speed.\n",
+                         "Freeze LiveView for more speed; uses 'Framing' preview if Global Draw ON.\n",
                 .advanced = 1,
             },
             {
