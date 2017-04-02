@@ -279,7 +279,7 @@ static int frame_offset_delta_y = 0;
 #define RAW_PRE_RECORDING 4
 
 static int raw_recording_state = RAW_IDLE;
-static int raw_previewing = 0;
+static struct semaphore * raw_preview_lock = 0;
 
 #define RAW_IS_IDLE      (raw_recording_state == RAW_IDLE)
 #define RAW_IS_PREPARING (raw_recording_state == RAW_PREPARING)
@@ -782,8 +782,10 @@ static void refresh_raw_settings(int force)
 {
     if (!lv) return;
     
-    if (RAW_IS_IDLE && !raw_previewing)
+    if (RAW_IS_IDLE)
     {
+        take_semaphore(raw_preview_lock, 0);
+
         /* autodetect the resolution (update 4 times per second) */
         static int aux = INT_MIN;
         if (force || should_run_polling_action(250, &aux))
@@ -793,6 +795,8 @@ static void refresh_raw_settings(int force)
                 update_resolution_params();
             }
         }
+
+        give_semaphore(raw_preview_lock);
     }
 }
 
@@ -3143,9 +3147,15 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
 
     struct display_filter_buffers * buffers = (struct display_filter_buffers *) ctx;
 
-    raw_previewing = 1;
+    /* fixme: any call to raw_update_params() from another task
+     * will reset the preview window (possibly during our preview)
+     * resulting in some sort of flicker.
+     * We'll take care of our own updates with raw_preview_lock.
+     * Raw overlays (histogram etc) seem to be well-behaved. */
+    take_semaphore(raw_preview_lock, 0);
+
     raw_set_preview_rect(skip_x, skip_y, res_x, res_y, 1);
-    raw_force_aspect_ratio_1to1();
+    raw_force_aspect_ratio(0, 0);
 
     /* when recording, preview both full-size buffers,
      * to make sure it's not recording every other frame */
@@ -3159,7 +3169,8 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
             ? RAW_PREVIEW_GRAY_ULTRA_FAST
             : RAW_PREVIEW_COLOR_HALFRES
     );
-    raw_previewing = 0;
+
+    give_semaphore(raw_preview_lock);
 
     if (need_for_speed)
     {
