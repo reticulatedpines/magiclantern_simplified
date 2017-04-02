@@ -143,7 +143,7 @@ int raw_lv_shave_right(int offset);
 int raw_lv_settings_still_valid();
 
 void raw_set_geometry(int width, int height, int skip_left, int skip_right, int skip_top, int skip_bottom);
-void raw_force_aspect_ratio_1to1();
+void raw_force_aspect_ratio(int factor_x, int factor_y);
 void raw_set_preview_rect(int x, int y, int w, int h, int obey_info_bars);
 
 /* call this after you have altered the preview settings, and you want to restore the original ones */

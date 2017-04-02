@@ -2439,19 +2439,23 @@ void raw_lv_request_bpp(int bpp)
 #endif
 
 /* may not be correct on 4:3 screens */
-void raw_force_aspect_ratio_1to1()
+/* ratios are optional - if zero, they are taken from raw_capture_info */
+void raw_force_aspect_ratio(int rx, int ry)
 {
-    if (lv2raw.sy < lv2raw.sx) /* image too tall */
+    if (rx == 0) rx = raw_capture_info.binning_x + raw_capture_info.skipping_x;
+    if (ry == 0) ry = raw_capture_info.binning_y + raw_capture_info.skipping_y;
+
+    if (lv2raw.sy*ry < lv2raw.sx*rx) /* image too tall */
     {
-        lv2raw.sy = lv2raw.sx;
+        lv2raw.sy = lv2raw.sx*rx/ry;
         int height = RAW2LV_DY(preview_rect_h);
         int offset = (BM2LV_DY(os.y_ex) - height) / 2;
         int skip_top = preview_rect_y;
         lv2raw.ty = skip_top - LV2RAW_DY(os.y0) - LV2RAW_DY(offset);
     }
-    else if (lv2raw.sx < lv2raw.sy) /* image too wide */
+    else if (lv2raw.sx*rx < lv2raw.sy*ry) /* image too wide */
     {
-        lv2raw.sx = lv2raw.sy;
+        lv2raw.sx = lv2raw.sy*ry/rx;
         int width = RAW2LV_DX(preview_rect_w);
         int offset = (vram_lv.width - width) / 2;
         int skip_left = preview_rect_x;
