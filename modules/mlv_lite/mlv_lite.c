@@ -44,6 +44,7 @@
 
 #define DEBUG_REDRAW_INTERVAL 1000   /* normally 1000; low values like 50 will reduce write speed a lot! */
 #undef DEBUG_BUFFERING_GRAPH      /* some funky graphs */
+static int show_graph = 0;
 
 #include <module.h>
 #include <dryos.h>
@@ -1642,58 +1643,136 @@ int choose_next_capture_slot()
     return best_index;
 }
 
-static void FAST pre_record_vsync_step()
+static void shrink_slot(int slot_index, int new_frame_size)
 {
-    if (raw_recording_state == RAW_RECORDING)
+    uint32_t old_int = cli();
+
+    int i = slot_index;
+
+    /* round to 512 multiples for file write speed - see frame_size_padded */
+    int new_size = (VIDF_HDR_SIZE + new_frame_size + 4 + 511) & ~511;
+    int old_size = slots[i].size;
+    int dif_size = old_size - new_size;
+    ASSERT(dif_size >= 0);
+
+    //printf("Shrink slot %d from %d to %d.\n", i, old_size, new_size);
+    
+    if (dif_size ==  0)
     {
-        if (!pre_record_triggered)
-        {
-            /* return to pre-recording state */
-            pre_record_first_frame = frame_count;
-            raw_recording_state = RAW_PRE_RECORDING;
-            mlv_rec_call_cbr(MLV_REC_EVENT_STARTED, NULL);
-            printf("Pre-rec: back to pre-recording (frame %d).\n", pre_record_first_frame);
-            /* fall through the next block */
-        }
+        /* nothing to do */
+        return;
     }
 
-    if (raw_recording_state == RAW_PRE_RECORDING)
+    slots[i].size = new_size;
+    slots[i].payload_size = new_frame_size;
+    ((mlv_vidf_hdr_t*)slots[i].ptr)->blockSize
+        = slots[i].size;
+
+    int linked =
+        (i+1 < COUNT(slots)) &&
+        (slots[i+1].status == SLOT_FREE || slots[i+1].status == SLOT_RESERVED) &&
+        (slots[i+1].ptr == slots[i].ptr + old_size);
+
+    if (linked)
     {
-        ASSERT(pre_record_num_frames);
-
-        if (!pre_record_first_frame)
+        /* adjust the next slot from the same chunk (increase its size) */
+        slots[i+1].ptr  -= dif_size;
+        slots[i+1].size += dif_size;
+        
+        /* if it's big enough, mark it as available */
+        if (slots[i+1].size >= max_frame_size)
         {
-            /* start pre-recording (first attempt) */
-            pre_record_first_frame = frame_count;
-            printf("Pre-rec: starting from frame %d.\n", pre_record_first_frame);
-        }
-
-        if (pre_record_triggered)
-        {
-            /* make sure we have a free slot, no matter what */
-            pre_record_discard_frame_if_no_free_slots();
-
-            pre_record_queue_frames();
-    
-            if (rec_trigger != REC_TRIGGER_HALFSHUTTER_PRE_ONLY)
+            if (slots[i+1].status == SLOT_RESERVED)
             {
-                /* done, from now on we can just record normally */
-                raw_recording_state = RAW_RECORDING;
-                mlv_rec_call_cbr(MLV_REC_EVENT_STARTED, NULL);
+                //printf("Slot %d becomes available (%d >= %d).\n", i, slots[i+1].size, max_frame_size);
+                slots[i+1].status = SLOT_FREE;
+                valid_slot_count++;
             }
             else
             {
-                /* do not resume recording; just start a new pre-recording "session" */
-                /* trick to allow reusing all frames for pre-recording */
-                pre_record_triggered = 0;
-                pre_record_first_frame = frame_count;
+                /* existing free slots will get shifted, without changing their size */
+                ASSERT(slots[i+1].size - dif_size == max_frame_size);
+                ASSERT(slots[i+1].status == SLOT_FREE);
             }
-        }
-        else if (pre_recording_buffer_full())
-        {
-            pre_record_discard_frame();
+            shrink_slot(i+1, frame_size_uncompressed);
+            ASSERT(slots[i+1].size == max_frame_size);
         }
     }
+
+    sei(old_int);
+}
+
+static void free_slot(int slot_index)
+{
+    int i = slot_index;
+
+    slots[i].status = SLOT_RESERVED;
+    
+    if (slots[i].size == max_frame_size)
+    {
+        slots[i].status = SLOT_FREE;
+        valid_slot_count++;
+        return;
+    }
+
+    ASSERT(slots[i].size < max_frame_size);
+
+    /* re-allocate all reserved slots from this chunk to full frames */
+    /* the remaining reserved slots will be moved at the end */
+
+    /* this is called from both vsync and raw_rec_task */
+    uint32_t old_int = cli();
+
+    /* find first slot from this chunk */
+    while ((i-1 >= 0) &&
+           (slots[i-1].status == SLOT_FREE || slots[i-1].status == SLOT_RESERVED) &&
+           (slots[i].ptr == slots[i-1].ptr + slots[i-1].size))
+    {
+        i--;
+    }
+    int start = i;
+
+    /* find last slot from this chunk */
+    i = slot_index;
+    while ((i+1 < COUNT(slots)) &&
+           (slots[i+1].status == SLOT_FREE || slots[i+1].status == SLOT_RESERVED) &&
+           (slots[i+1].ptr == slots[i].ptr + slots[i].size))
+    {
+        i++;
+    }
+    int end = i;
+
+    //printf("Reallocating slots %d...%d.\n", start, end);
+    void * start_ptr = slots[start].ptr;
+    void * end_ptr = slots[end].ptr + slots[end].size;
+    void * ptr = start_ptr;
+    for (i = start; i <= end; i++)
+    {
+        slots[i].ptr = ptr;
+        
+        if (slots[i].status == SLOT_FREE)
+        {
+            valid_slot_count--;
+        }
+
+        if (ptr + max_frame_size <= end_ptr)
+        {
+            slots[i].status = SLOT_FREE;
+            slots[i].size = max_frame_size;
+            valid_slot_count++;
+        }
+        else
+        {
+            /* first reserved slot will have non-zero size */
+            /* all others 0 */
+            slots[i].status = SLOT_RESERVED;
+            slots[i].size = end_ptr - ptr;
+            ASSERT(slots[i].size < max_frame_size);
+        }
+        ptr += slots[i].size;
+    }
+
+    sei(old_int);
 }
 
 static void FAST pre_record_discard_frame()
@@ -1712,116 +1791,6 @@ static void FAST pre_record_discard_frame()
         {
             if (slots[i].frame_number == pre_record_first_frame)
             {
-                free_slot(i);
-                frame_count--;
-            }
-            else if (slots[i].frame_number > pre_record_first_frame)
-            {
-                slots[i].frame_number--;
-                ((mlv_vidf_hdr_t*)slots[i].ptr)->frameNumber
-                    = slots[i].frame_number - 1;
-            }
-        }
-    }
-}
-
-static void FAST pre_record_queue_frames()
-{
-    /* queue all captured frames for writing */
-    /* (they are numbered from 1 to frame_count-1; frame 0 is skipped) */
-    /* they are not ordered, which complicates things a bit */
-    printf("Pre-rec: queueing frames %d to %d.\n", pre_record_first_frame, frame_count-1);
-
-    int i = 0;
-    for (int current_frame = pre_record_first_frame; current_frame < frame_count; current_frame++)
-    {
-        /* consecutive frames tend to be grouped, 
-         * so this loop will not run every time */
-        while (slots[i].status != SLOT_FULL || slots[i].frame_number != current_frame)
-        {
-            INC_MOD(i, total_slot_count);
-        }
-        
-        writing_queue[writing_queue_tail] = i;
-        INC_MOD(writing_queue_tail, COUNT(writing_queue));
-        INC_MOD(i, total_slot_count);
-    }
-}
-
-static void pre_record_discard_frame_if_no_free_slots()
-{
-    for (int i = 0; i < total_slot_count; i++)
-    {
-        if (slots[i].status == SLOT_FREE)
-        {
-            return;
-        }
-    }
-
-    pre_record_discard_frame();
-}
-
-static void FAST pre_record_vsync_step()
-{
-    if (raw_recording_state == RAW_RECORDING)
-    {
-        if (!pre_record_triggered)
-        {
-            /* return to pre-recording state */
-            pre_record_first_frame = frame_count;
-            raw_recording_state = RAW_PRE_RECORDING;
-            mlv_rec_call_cbr(MLV_REC_EVENT_STARTED, NULL);
-            printf("Pre-rec: back to pre-recording (frame %d).\n", pre_record_first_frame);
-            /* fall through the next block */
-        }
-    }
-
-    if (raw_recording_state == RAW_PRE_RECORDING)
-    {
-        ASSERT(pre_record_num_frames);
-
-        if (!pre_record_first_frame)
-        {
-            /* start pre-recording (first attempt) */
-            pre_record_first_frame = frame_count;
-            printf("Pre-rec: starting from frame %d.\n", pre_record_first_frame);
-        }
-
-        if (pre_record_triggered)
-        {
-            /* make sure we have a free slot, no matter what */
-            pre_record_discard_frame_if_no_free_slots();
-
-            pre_record_queue_frames();
-    
-            if (rec_trigger != REC_TRIGGER_HALFSHUTTER_PRE_ONLY)
-            {
-                /* done, from now on we can just record normally */
-                raw_recording_state = RAW_RECORDING;
-                mlv_rec_call_cbr(MLV_REC_EVENT_STARTED, NULL);
-            }
-            else
-            {
-                /* do not resume recording; just start a new pre-recording "session" */
-                /* trick to allow reusing all frames for pre-recording */
-                pre_record_triggered = 0;
-                pre_record_first_frame = frame_count;
-                /* first frame is 1 */
-                if (slots[i].status == SLOT_FULL)
-                {
-                    ASSERT(slots[i].frame_number > 0);
-                    
-                    if (slots[i].frame_number == 1)
-                    {
-                        slots[i].status = SLOT_FREE;
-                    }
-                    else
-                    {
-                        slots[i].frame_number--;
-                        ((mlv_vidf_hdr_t*)slots[i].ptr)->frameNumber
-                            = slots[i].frame_number - 1;
-                    }
-                }
                 free_slot(i);
                 frame_count--;
             }
