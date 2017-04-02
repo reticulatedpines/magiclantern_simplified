@@ -9,6 +9,7 @@
 #include <lvinfo.h>
 #include <powersave.h>
 #include <raw.h>
+#include <fps.h>
 
 #undef CROP_DEBUG
 
@@ -449,7 +450,7 @@ static void FAST cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
 
             case CROP_PRESET_FULLRES_LV:
                 cmos_new[1] = 0x800;    /* from photo mode */
-                cmos_new[2] = 0x008;    /* from photo mode */
+                cmos_new[2] = 0x00E;    /* 8 in photo mode; E enables shutter speed control from ADTG 805E */
                 cmos_new[6] = 0x170;    /* pink highlights without this */
                 break;
 
@@ -523,7 +524,7 @@ static uint32_t nrzi_encode( uint32_t in_val )
 {
     uint32_t out_val = 0;
     uint32_t old_bit = 0;
-    for (int num = 0; num < 32; num++)
+    for (int num = 0; num < 31; num++)
     {
         uint32_t bit = in_val & 1<<(30-num) ? 1 : 0;
         if (bit != old_bit)
@@ -531,6 +532,19 @@ static uint32_t nrzi_encode( uint32_t in_val )
         old_bit = bit;
     }
     return out_val;
+}
+
+static uint32_t nrzi_decode( uint32_t in_val )
+{
+    uint32_t val = 0;
+    if (in_val & 0x8000)
+        val |= 0x8000;
+    for (int num = 0; num < 31; num++)
+    {
+        uint32_t old_bit = (val & 1<<(30-num+1)) >> 1;
+        val |= old_bit ^ (in_val & 1<<(30-num));
+    }
+    return val;
 }
 
 static int FAST adtg_lookup(uint32_t* data_buf, int reg_needle)
@@ -544,6 +558,68 @@ static int FAST adtg_lookup(uint32_t* data_buf, int reg_needle)
         }
     }
     return -1;
+}
+
+static void * get_engio_reg_override_func();
+
+/* adapted from fps_override_shutter_blanking in fps-engio.c */
+static int adjust_shutter_blanking(int old)
+{
+    /* sensor duty cycle: range 0 ... timer B */
+    int current_blanking = nrzi_decode(old);
+
+    /* from SENSOR_TIMING_TABLE (fps-engio.c) */
+    const int default_timerB[] = { 0x8E3, 0x7D0, 0x71C, 0x3E8, 0x38E };
+    const int default_fps_1k[] = { 23976, 25000, 29970, 50000, 59940 };
+    int video_mode = get_video_mode_index();
+
+    int fps_timer_b_orig = default_timerB[video_mode];
+
+    int current_exposure = fps_timer_b_orig - current_blanking;
+    
+    /* wrong assumptions? */
+    if (current_exposure < 0)
+    {
+        return old;
+    }
+
+    int default_fps = default_fps_1k[video_mode];
+    int current_fps = fps_get_current_x1000();
+
+    dbg_printf("FPS %d->%d\n", default_fps, current_fps);
+
+    float frame_duration_orig = 1000.0 / default_fps;
+    float frame_duration_current = 1000.0 / current_fps;
+
+    float orig_shutter = frame_duration_orig * current_exposure / fps_timer_b_orig;
+    float new_shutter = orig_shutter;
+
+    uint32_t (*reg_override_func)(uint32_t, uint32_t) = 
+        get_engio_reg_override_func();
+
+    /* what value we are going to use for overriding timer B? */
+    int fps_timer_b = (reg_override_func)
+        ? (int) reg_override_func(0xC0F06014, fps_timer_b_orig)
+        : fps_timer_b_orig;
+
+    /* will we actually override it? */
+    fps_timer_b = fps_timer_b ? fps_timer_b + 1 : fps_timer_b_orig;
+
+    dbg_printf("Timer B %d->%d\n", fps_timer_b_orig, fps_timer_b);
+
+    int new_exposure = new_shutter * fps_timer_b / frame_duration_current;
+    int new_blanking = COERCE(fps_timer_b - new_exposure, 2, fps_timer_b - 2);
+
+    dbg_printf("Exposure %d->%d (timer B units)\n", current_exposure, new_exposure);
+
+#ifdef CROP_DEBUG
+    float chk_shutter = frame_duration_current * new_exposure / fps_timer_b;
+    dbg_printf("Shutter %d->%d us\n", (int)(orig_shutter*1e6), (int)(chk_shutter*1e6));
+#endif
+
+    dbg_printf("Blanking %d->%d\n", current_blanking, new_blanking);
+
+    return nrzi_encode(new_blanking);
 }
 
 extern WEAK_FUNC(ret_0) void fps_override_shutter_blanking();
@@ -606,8 +682,20 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
         }
     }
 
+    /* some modes may need adjustments to maintain exposure */
+    if (shutter_blanking)
+    {
+        shutter_blanking = adjust_shutter_blanking(shutter_blanking);
+    }
+
     if (is_5D3)
     {
+        /* all modes may want to override shutter speed */
+        /* ADTG[0x8060]: shutter blanking for 3x3 mode  */
+        /* ADTG[0x805E]: shutter blanking for zoom mode  */
+        adtg_new[0] = (struct adtg_new) {6, 0x8060, shutter_blanking};
+        adtg_new[1] = (struct adtg_new) {6, 0x805E, shutter_blanking};
+
         switch (crop_preset)
         {
             /* all 1:1 modes (3x, 3K, 4K...) */
@@ -619,23 +707,21 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
             case CROP_PRESET_FULLRES_LV:
                 /* ADTG2/4[0x8000] = 5 (set in one call) */
                 /* ADTG2[0x8806] = 0x6088 (artifacts without it) */
-                /* ADTG[0x805E]: shutter blanking for zoom mode  */
-                adtg_new[0] = (struct adtg_new) {6, 0x8000, 5};
-                adtg_new[1] = (struct adtg_new) {2, 0x8806, 0x6088};
-                adtg_new[2] = (struct adtg_new) {6, 0x805E, shutter_blanking};
+                adtg_new[2] = (struct adtg_new) {6, 0x8000, 5};
+                adtg_new[3] = (struct adtg_new) {2, 0x8806, 0x6088};
                 break;
 
             /* 3x3 binning in 720p (in 1080p it's already 3x3) */
             case CROP_PRESET_3x3_1X:
             case CROP_PRESET_3x3_1X_48p:
                 /* ADTG2/4[0x800C] = 2: vertical binning factor = 3 */
-                adtg_new[0] = (struct adtg_new) {6, 0x800C, 2};
+                adtg_new[2] = (struct adtg_new) {6, 0x800C, 2};
                 break;
 
             /* 1x3 binning (read every line, bin every 3 columns) */
             case CROP_PRESET_1x3:
                 /* ADTG2/4[0x800C] = 0: read every line */
-                adtg_new[0] = (struct adtg_new) {6, 0x800C, 0};
+                adtg_new[2] = (struct adtg_new) {6, 0x800C, 0};
                 break;
 
             /* 3x1 binning (bin every 3 lines, read every column) */
@@ -643,8 +729,8 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
             case CROP_PRESET_3x1:
                 /* ADTG2/4[0x800C] = 2: vertical binning factor = 3 */
                 /* ADTG2[0x8806] = 0x6088 (artifacts worse without it) */
-                adtg_new[0] = (struct adtg_new) {6, 0x800C, 2};
-                adtg_new[1] = (struct adtg_new) {2, 0x8806, 0x6088};
+                adtg_new[2] = (struct adtg_new) {6, 0x800C, 2};
+                adtg_new[3] = (struct adtg_new) {2, 0x8806, 0x6088};
                 break;
         }
 
@@ -659,9 +745,9 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
             case CROP_PRESET_4K_HFPS:
             case CROP_PRESET_FULLRES_LV:
                 /* adjust vertical resolution */
-                adtg_new[3] = (struct adtg_new) {6, 0x8178, nrzi_encode(0x529 + YRES_DELTA + delta_adtg0)};
-                adtg_new[4] = (struct adtg_new) {6, 0x8196, nrzi_encode(0x529 + YRES_DELTA + delta_adtg0)};
-                adtg_new[5] = (struct adtg_new) {6, 0x82F8, nrzi_encode(0x528 + YRES_DELTA + delta_adtg0)};
+                adtg_new[4] = (struct adtg_new) {6, 0x8178, nrzi_encode(0x529 + YRES_DELTA + delta_adtg0)};
+                adtg_new[5] = (struct adtg_new) {6, 0x8196, nrzi_encode(0x529 + YRES_DELTA + delta_adtg0)};
+                adtg_new[6] = (struct adtg_new) {6, 0x82F8, nrzi_encode(0x528 + YRES_DELTA + delta_adtg0)};
                 break;
         }
 
@@ -675,9 +761,9 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
                 /* the following are required for breaking the ~2100px barrier */
                 /* (0x891, 0x891, 0x8E2 at 24p; lower values affect bottom lines) */
                 /* see also http://www.magiclantern.fm/forum/index.php?topic=11965 */
-                adtg_new[6] = (struct adtg_new) {6, 0x8179, nrzi_encode(0x535 + YRES_DELTA + delta_adtg1)};
-                adtg_new[7] = (struct adtg_new) {6, 0x8197, nrzi_encode(0x535 + YRES_DELTA + delta_adtg1)};
-                adtg_new[8] = (struct adtg_new) {6, 0x82F9, nrzi_encode(0x580 + YRES_DELTA + delta_adtg1)};
+                adtg_new[7] = (struct adtg_new) {6, 0x8179, nrzi_encode(0x535 + YRES_DELTA + delta_adtg1)};
+                adtg_new[8] = (struct adtg_new) {6, 0x8197, nrzi_encode(0x535 + YRES_DELTA + delta_adtg1)};
+                adtg_new[9] = (struct adtg_new) {6, 0x82F9, nrzi_encode(0x580 + YRES_DELTA + delta_adtg1)};
                 break;
         }
 
@@ -706,6 +792,14 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
                 int new_value = adtg_new[i].val;
                 dbg_printf("ADTG%x[%x] = %x\n", dst, reg, new_value);
                 *(uint16_t*)copy_ptr = new_value;
+
+                if (reg == 0x805E || reg == 0x8060)
+                {
+                    printf("Blanking = %x\n", new_value);
+                    /* also override in original data structure */
+                    /* to be picked up on the screen indicators */
+                    *(uint16_t*)data_buf = new_value;
+                }
             }
         }
         data_buf++;
@@ -1080,7 +1174,7 @@ static inline uint32_t reg_override_40_fps(uint32_t reg, uint32_t old_val)
 
 static int engio_vidmode_ok = 0;
 
-static void FAST engio_write_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
+static void * get_engio_reg_override_func()
 {
     uint32_t (*reg_override_func)(uint32_t, uint32_t) = 
       //(crop_preset == CROP_PRESET_3X)         ? reg_override_top_bar     : /* fixme: corrupted image */
@@ -1093,6 +1187,13 @@ static void FAST engio_write_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
         (crop_preset == CROP_PRESET_40_FPS)     ? reg_override_40_fps     :
         (crop_preset == CROP_PRESET_FULLRES_LV) ? reg_override_fullres_lv :
                                                   0                       ;
+    return reg_override_func;
+}
+
+static void FAST engio_write_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
+{
+    uint32_t (*reg_override_func)(uint32_t, uint32_t) = 
+        get_engio_reg_override_func();
 
     if (!reg_override_func)
     {
