@@ -626,13 +626,10 @@ static void update_resolution_params()
     max_res_y = raw_info.jpeg.height & ~1;
 
     /* squeeze factor */
-    if (video_mode_resolution == 1 && lv_dispsize == 1 && is_movie_mode()) /* 720p, image squeezed */
-    {
-        /* 720p mode uses 5x3 binning (5DMK3)
-         * or 5x3 horizontal binning + vertical skipping (other cameras) */
-        squeeze_factor = 5.0 / 3.0;
-    }
-    else squeeze_factor = 1.0f;
+    int sampling_x   = raw_capture_info.binning_x + raw_capture_info.skipping_x;
+    int sampling_y   = raw_capture_info.binning_y + raw_capture_info.skipping_y;
+
+    squeeze_factor = sampling_y * 1.0 / sampling_x;
 
     /* res X */
     res_x = MIN(resolution_presets_x[resolution_index_x] + res_x_fine, max_res_x);
