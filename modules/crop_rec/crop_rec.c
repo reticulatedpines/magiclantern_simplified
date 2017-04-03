@@ -632,7 +632,7 @@ static int adjust_shutter_blanking(int old)
     dbg_printf("Timer B %d->%d\n", fps_timer_b_orig, fps_timer_b);
 
     int new_exposure = new_shutter * fps_timer_b / frame_duration_current;
-    int new_blanking = COERCE(fps_timer_b - new_exposure, 2, fps_timer_b - 2);
+    int new_blanking = COERCE(fps_timer_b - new_exposure, 10, fps_timer_b - 2);
 
     dbg_printf("Exposure %d->%d (timer B units)\n", current_exposure, new_exposure);
 
