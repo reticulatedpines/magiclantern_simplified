@@ -867,8 +867,14 @@ static MENU_UPDATE_FUNC(rolling_shutter_print)
     if (vertical_res)
     {
         int rolling_shutter_ms_x10 = (int)roundf(line_readout_time_us * vertical_res / 100.0f);
+        int frame_duration_us = (int)roundf(1e9 / fps_get_current_x1000());
+        int rolling_shutter_percent = (int)roundf(line_readout_time_us * vertical_res * 100 / frame_duration_us);
         
-        MENU_SET_WARNING(MAX(MENU_WARN_INFO, old_warn), "Rolling shutter: %s%d.%d ms at %dx%d.", FMT_FIXEDPOINT1(rolling_shutter_ms_x10), horizontal_res, vertical_res);
+        MENU_SET_WARNING(MAX(MENU_WARN_INFO, old_warn), "Rolling shutter: %s%d.%d ms (%d%%) at %dx%d.",
+            FMT_FIXEDPOINT1(rolling_shutter_ms_x10),
+            rolling_shutter_percent, 0,
+            horizontal_res, vertical_res
+        );
     }
     else
     {
