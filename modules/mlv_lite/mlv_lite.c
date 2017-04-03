@@ -2228,10 +2228,17 @@ static void compress_task()
                 raw_info.width, skip_x, skip_y,
                 res_x, res_y
             );
-            ASSERT(compressed_size < max_frame_size);
+            
+            if (compressed_size >= frame_size_uncompressed-512)
+            {
+                printf("\nCompressed size higher than uncompressed - corrupted frame?\n");
+                printf("Please reboot, then decrease vertical resolution in crop_rec menu.\n\n");
+                buffer_full = 1;
+                ASSERT(0);
+            }
             
             /* resize frame slots on the fly, to compressed size */
-            shrink_slot(slot_index, compressed_size);
+            shrink_slot(slot_index, MIN(compressed_size, frame_size_uncompressed-512));
             
             /* our old EDMAC check assumes frame sizes known in advance - not the case here */
             frame_fake_edmac_check(slot_index);
