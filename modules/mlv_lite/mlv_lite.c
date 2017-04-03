@@ -2135,28 +2135,43 @@ static void compress_task()
         ASSERT(compress_mq);
     }
 
-    /* get exclusive access to our edmac channels */
-    if (OUTPUT_COMPRESSION == 0)
-    {
-        edmac_memcpy_res_lock();
-        printf("EDMAC copy resources locked.\n");
-    }
-
     /* fixme: setting size 0x41a100, 0x41a200 or nearby value results in lockup, why?! */
     /* fixme: will overflow if the input data is not a valid image */
     struct memSuite * outSuite = CreateMemorySuite(0, 32*1024*1024, 0);
     struct memChunk * outChunk = GetFirstChunkFromSuite(outSuite);
 
-    /* run as long as the main recorder task requires it */
+    /* run forever */
     while (1)
     {
         uint32_t msg;
         msg_queue_receive(compress_mq, (struct event**)&msg, 0);
 
-        if (msg == 0xFFFFFFFF)
+        if (msg == (uint32_t) INT_MAX)
         {
-            /* request to stop */
-            break;
+            /* start recording */
+
+            if (OUTPUT_COMPRESSION == 0)
+            {
+                /* get exclusive access to our edmac channels */
+                edmac_memcpy_res_lock();
+                printf("EDMAC copy resources locked.\n");
+            }
+
+            continue;
+        }
+
+        if (msg == (uint32_t) INT_MIN)
+        {
+            /* stop_recording */
+
+            if (OUTPUT_COMPRESSION == 0)
+            {
+                /* exclusive edmac access no longer needed */
+                edmac_memcpy_res_unlock();
+                printf("EDMAC copy resources unlocked.\n");
+            }
+
+            continue;
         }
 
         int slot_index = msg & 0xFFFF;
@@ -2200,13 +2215,7 @@ static void compress_task()
         slots[slot_index].status = SLOT_FULL;
     }
 
-    /* exclusive edmac access no longer needed */
-    if (OUTPUT_COMPRESSION == 0)
-    {
-        edmac_memcpy_res_unlock();
-        printf("EDMAC copy resources unlocked.\n");
-    }
-
+    /* unreachable for now */
     DeleteMemorySuite(outSuite);
 }
 
@@ -2677,10 +2686,6 @@ static void raw_video_rec_task()
     pre_record_triggered = !pre_record && !rec_trigger;
     pre_record_first_frame = 0;
 
-    uint32_t result = (uint32_t)
-        task_create("compress_task", 0x0F, 0x1000, compress_task, (void*)0);
-    ASSERT(!(result & 1));
-
     if (h264_proxy)
     {
         /* start H.264 recording */
@@ -2757,7 +2762,10 @@ static void raw_video_rec_task()
 
     /* signal that we are starting */
     raw_rec_cbr_starting();
-    
+
+    /* signal start of recording to the compression task */
+    msg_queue_post(compress_mq, INT_MAX);
+
     writing_time = 0;
     idle_time = 0;
     
@@ -3729,6 +3737,7 @@ static unsigned int raw_rec_init()
     lossless_init();
 
     raw_preview_lock = create_named_semaphore(0, 1);
+
     ASSERT(((uint32_t)task_create("compress_task", 0x0F, 0x1000, compress_task, (void*)0) & 1) == 0);
 
     return 0;
