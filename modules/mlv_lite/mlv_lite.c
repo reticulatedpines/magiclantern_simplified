@@ -1124,7 +1124,7 @@ static void cache_require(int lock)
 
 static void unhack_liveview_vsync(int unused);
 
-static void hack_liveview_vsync()
+static void FAST hack_liveview_vsync()
 {
     if (cam_5d2 || cam_50d)
     {
@@ -1182,7 +1182,6 @@ static void hack_liveview_vsync()
     
     if (should_hack)
     {
-        int y = 100;
         for (int channel = 0; channel < 32; channel++)
         {
             /* silence out the EDMACs used for HD and LV buffers */
@@ -1190,7 +1189,7 @@ static void hack_liveview_vsync()
             if (pitch == vram_lv.pitch || pitch == vram_hd.pitch)
             {
                 uint32_t reg = edmac_get_base(channel);
-                bmp_printf(FONT_SMALL, 30, y += font_small.height, "Hack %x %dx%d ", reg, shamem_read(reg + 0x10) & 0xFFFF, shamem_read(reg + 0x10) >> 16);
+                //printf("Hack %d %x %dx%d\n", channel, reg, shamem_read(reg + 0x10) & 0xFFFF, shamem_read(reg + 0x10) >> 16);
                 *(volatile uint32_t *)(reg + 0x10) = shamem_read(reg + 0x10) & 0xFFFF;
             }
         }
