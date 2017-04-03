@@ -1510,6 +1510,8 @@ static void show_recording_status()
 
 static unsigned int raw_rec_polling_cbr(unsigned int unused)
 {
+    if (!compress_mq) return 0;
+
     raw_lv_request_update();
     
     if (!raw_video_enabled)
@@ -2166,11 +2168,9 @@ static void edmac_cbr_w(void *ctx)
 
 static void compress_task()
 {
-    if (!compress_mq)
-    {
-        compress_mq = msg_queue_create("compress_mq", 10);
-        ASSERT(compress_mq);
-    }
+    ASSERT(compress_mq == 0);
+    compress_mq = msg_queue_create("compress_mq", 10);
+    ASSERT(compress_mq);
 
     /* fixme: setting size 0x41a100, 0x41a200 or nearby value results in lockup, why?! */
     /* fixme: will overflow if the input data is not a valid image */
@@ -2351,8 +2351,9 @@ static REQUIRES(LiveViewTask)
 unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
 {
     if (!raw_video_enabled) return 0;
+    if (!compress_mq) return 0;
     if (!is_movie_mode()) return 0;
-    
+
     hack_liveview_vsync();
  
     /* panning window is updated when recording, but also when not recording */
@@ -3436,6 +3437,12 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
     
     if (rec_key_pressed)
     {
+        if (!compress_mq)
+        {
+            /* not initialized; block the event */
+            return 0;
+        }
+
         switch(raw_recording_state)
         {
             case RAW_IDLE:
@@ -3648,6 +3655,8 @@ static int raw_rec_should_preview(void)
 static REQUIRES(LiveVHiPrioTask)
 unsigned int raw_rec_update_preview(unsigned int ctx)
 {
+    if (!compress_mq) return 0;
+
     /* just say whether we can preview or not */
     if (ctx == 0)
     {
