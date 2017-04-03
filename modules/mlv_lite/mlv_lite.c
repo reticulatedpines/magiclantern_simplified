@@ -128,7 +128,7 @@ static CONFIG_INT("raw.res_x_fine", res_x_fine, 0);
 static CONFIG_INT("raw.aspect.ratio", aspect_ratio_index, 10);
 
 static CONFIG_INT("raw.write.speed", measured_write_speed, 0);
-static CONFIG_INT("raw.avg_compress_ratio", avg_compression_ratio, 0);
+static int measured_compression_ratio;
 
 static CONFIG_INT("raw.pre-record", pre_record, 0);
 static int pre_record_triggered = 0;    /* becomes 1 once you press REC twice */
@@ -242,6 +242,9 @@ static volatile                 int force_new_buffer = 0;           /* if some o
 static GUARDED_BY(LiveViewTask) int writing_queue[COUNT(slots)+1];  /* queue of completed frames (slot indices) waiting to be saved */
 static GUARDED_BY(LiveViewTask) int writing_queue_tail = 0;         /* place captured frames here */
 static GUARDED_BY(RawRecTask)   int writing_queue_head = 0;         /* extract frames to be written from here */ 
+
+/* for compress_task */
+static struct msg_queue * compress_mq = 0;
 
 static GUARDED_BY(LiveViewTask) int frame_count = 0;                /* how many frames we have processed */
 static GUARDED_BY(LiveViewTask) int skipped_frames = 0;             /* how many frames we had to drop (only done during pre-recording) */
@@ -653,7 +656,7 @@ static int count_available_slots()
     return available_slots;
 }
 
-static int get_avg_compression_ratio()
+static int get_estimated_compression_ratio()
 {
     if (OUTPUT_COMPRESSION == 0)
     {
@@ -661,11 +664,10 @@ static int get_avg_compression_ratio()
         return 100;
     }
 
-    if (avg_compression_ratio)
+    if (measured_compression_ratio)
     {
-        /* we have a measurement from latest clip */
-        /* fixme: handle different bit depths */
-        return avg_compression_ratio;
+        /* we have a measurement from a recent frame */
+        return measured_compression_ratio;
     }
 
     /* reasonable defaults */
@@ -687,7 +689,7 @@ static int get_avg_compression_ratio()
 static int predict_frames(int write_speed, int available_slots)
 {
     int fps = fps_get_current_x1000();
-    int capture_speed = max_frame_size / 1000 * fps / 100 * get_avg_compression_ratio();
+    int capture_speed = max_frame_size / 1000 * fps / 100 * get_estimated_compression_ratio();
     int buffer_fill_speed = capture_speed - write_speed;
     if (buffer_fill_speed <= 0)
         return INT_MAX;
@@ -736,7 +738,7 @@ static MENU_UPDATE_FUNC(write_speed_update)
 {
     int fps = fps_get_current_x1000();
     int speed = (res_x * res_y * BPP/8 / 1024) * fps / 1024
-        * get_avg_compression_ratio() / 100 / 10;
+        * get_estimated_compression_ratio() / 100 / 10;
     int ok = speed < measured_write_speed;
     speed /= 10;
 
@@ -746,17 +748,45 @@ static MENU_UPDATE_FUNC(write_speed_update)
     }
     else
     {
-        if (!measured_write_speed)
-            MENU_SET_WARNING(ok ? MENU_WARN_INFO : MENU_WARN_ADVICE, 
-                "Write speed needed: %d.%d MB/s at %d.%03d fps.",
-                speed/10, speed%10, fps/1000, fps%1000
-            );
-        else
-            MENU_SET_WARNING(ok ? MENU_WARN_INFO : MENU_WARN_ADVICE, 
-                "%d.%d MB/s at %d.%03dp. %s",
-                speed/10, speed%10, fps/1000, fps%1000,
-                guess_how_many_frames()
-            );
+        char compress[8];
+        snprintf(compress, sizeof(compress),
+            OUTPUT_COMPRESSION ? " (%d%%)" : "",
+            get_estimated_compression_ratio(), 0
+        );
+        MENU_SET_WARNING(ok ? MENU_WARN_INFO : MENU_WARN_ADVICE, 
+            "%d.%d MB/s at %d.%03dp%s. %s",
+            speed/10, speed%10, fps/1000, fps%1000,
+            compress, guess_how_many_frames()
+        );
+    }
+}
+
+static void measure_compression_ratio()
+{
+    ASSERT(RAW_IS_IDLE);
+
+    /* compress the current frame to estimate the ratio */
+    /* set up a dummy slot configuration */
+    slots[0].ptr = fio_malloc(max_frame_size);
+    if (slots[0].ptr)
+    {
+        slots[0].size = max_frame_size;
+        slots[0].status = SLOT_CAPTURING;
+        ASSERT(fullsize_buffers[1] == 0);
+        fullsize_buffers[1] = UNCACHEABLE(raw_info.buffer);
+
+        msg_queue_post(compress_mq, INT_MAX);
+        msg_queue_post(compress_mq, 1 << 16);
+        msg_queue_post(compress_mq, INT_MIN);
+
+        while (slots[0].status == SLOT_CAPTURING)
+        {
+            msleep(10);
+        }
+
+        measured_compression_ratio = (slots[0].size/128) * 100 / (max_frame_size/128);
+        free(slots[0].ptr); slots[0].ptr = 0;
+        fullsize_buffers[1] = 0;
     }
 }
 
@@ -770,11 +800,18 @@ static void refresh_raw_settings(int force)
 
         /* autodetect the resolution (update 4 times per second) */
         static int aux = INT_MIN;
+        static int aux2 = INT_MIN;
         if (force || should_run_polling_action(250, &aux))
         {
             if (raw_update_params())
             {
                 update_resolution_params();
+
+                /* update compression ratio once every 2 seconds */
+                if (OUTPUT_COMPRESSION && compress_mq && should_run_polling_action(2000, &aux2))
+                {
+                    measure_compression_ratio();
+                }
             }
         }
 
@@ -953,7 +990,7 @@ static MENU_UPDATE_FUNC(output_format_update)
             MENU_SET_RINFO("70%%");
             break;
         default:
-            MENU_SET_RINFO("~%d%%", get_avg_compression_ratio());
+            MENU_SET_RINFO("~%d%%", get_estimated_compression_ratio());
             break;
     }
 }
@@ -1171,6 +1208,8 @@ void free_buffers()
     srm_mem_suite = 0;
     if (fullsize_buffers[0]) fio_free(fullsize_buffers[0]);
     fullsize_buffers[0] = 0;
+    ASSERT(fullsize_buffers[1] == UNCACHEABLE(raw_info.buffer));
+    fullsize_buffers[1] = 0;
 }
 
 static int count_free_slots()
@@ -2125,13 +2164,11 @@ static void edmac_cbr_w(void *ctx)
     edmac_copy_rectangle_adv_cleanup();
 }
 
-static struct msg_queue * compress_mq = 0;
-
 static void compress_task()
 {
     if (!compress_mq)
     {
-        compress_mq = msg_queue_create("compress_mq", 1);
+        compress_mq = msg_queue_create("compress_mq", 10);
         ASSERT(compress_mq);
     }
 
@@ -2710,6 +2747,11 @@ static void raw_video_rec_task()
 
     /* wait for two frames to be sure everything is refreshed */
     wait_lv_frames(2);
+
+    /* make sure preview or raw updates are not running */
+    /* (they won't start in RAW_PREPARING, but we might catch them running) */
+    take_semaphore(raw_preview_lock, 0);
+    give_semaphore(raw_preview_lock);
     
     /* detect raw parameters (geometry, black level etc) */
     raw_set_dirty();
@@ -3144,14 +3186,6 @@ cleanup:
     {
         FIO_RemoveFile(raw_movie_filename);
         raw_movie_filename = 0;
-    }
-
-    if (OUTPUT_COMPRESSION)
-    {
-        /* estimate compression ratio */
-        /* fixme: handle different compression levels */
-        avg_compression_ratio = written_total / frame_count
-            * 100 / (res_x * res_y * 14/8);
     }
 
     /* everything saved, we can unlock the buttons.
@@ -3767,7 +3801,6 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(res_x_fine)    
     MODULE_CONFIG(aspect_ratio_index)
     MODULE_CONFIG(measured_write_speed)
-    MODULE_CONFIG(avg_compression_ratio)
     MODULE_CONFIG(pre_record)
     MODULE_CONFIG(rec_trigger)
     MODULE_CONFIG(dolly_mode)
