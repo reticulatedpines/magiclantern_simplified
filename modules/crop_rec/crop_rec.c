@@ -241,7 +241,7 @@ static int max_resolutions[NUM_CROP_PRESETS][5] = {
     [CROP_PRESET_3x3_1X]        = { 1290, 1290, 1290,  960,  800 },
     [CROP_PRESET_3x3_1X_48p]    = { 1290, 1290, 1290, 1080, 1080 }, /* 1080p45/48 */
     [CROP_PRESET_3K]            = { 1920, 1728, 1504,  760,  680 },
-    [CROP_PRESET_UHD]           = { 1600, 1500, 1200,  640,  540 },
+    [CROP_PRESET_UHD]           = { 1536, 1472, 1120,  640,  540 },
     [CROP_PRESET_4K_HFPS]       = { 2560, 2560, 2500, 1440, 1200 },
     [CROP_PRESET_FULLRES_LV]    = { 3870, 3870, 3870, 3870, 3870 },
 };
