@@ -1156,7 +1156,17 @@ int setup_buffers()
     int chunk_index = 0;
     chunk_index = add_mem_suite(shoot_mem_suite, chunk_index);
     chunk_index = add_mem_suite(srm_mem_suite, chunk_index);
-  
+
+    if (srm_mem_suite)
+    {
+        /* keeping SRM allocated will block the half-shutter
+         * and may show BUSY on the screen. */
+        /* assuming no other task will allocate during recording, 
+         * this intentional use-after-free should be fine */
+        srm_free_suite(srm_mem_suite);
+        srm_mem_suite = 0;
+    }
+
     /* we need at least 3 slots */
     if (valid_slot_count < 3)
     {
