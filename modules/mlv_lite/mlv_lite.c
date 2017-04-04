@@ -789,29 +789,33 @@ static void refresh_raw_settings(int force)
 {
     if (!lv) return;
     
-    if (RAW_IS_IDLE)
+    if (!RAW_IS_IDLE) return;
+
+    take_semaphore(raw_preview_lock, 0);
+
+    /* if we got the semaphore before raw_rec_task started, all fine */
+    /* if we got it afterwards, RAW_IS_IDLE is no longer true => stop */
+    if (!RAW_IS_IDLE) goto end;
+
+    /* autodetect the resolution (update 4 times per second) */
+    static int aux = INT_MIN;
+    static int aux2 = INT_MIN;
+    if (force || should_run_polling_action(250, &aux))
     {
-        take_semaphore(raw_preview_lock, 0);
-
-        /* autodetect the resolution (update 4 times per second) */
-        static int aux = INT_MIN;
-        static int aux2 = INT_MIN;
-        if (force || should_run_polling_action(250, &aux))
+        if (raw_update_params())
         {
-            if (raw_update_params())
-            {
-                update_resolution_params();
+            update_resolution_params();
 
-                /* update compression ratio once every 2 seconds */
-                if (OUTPUT_COMPRESSION && compress_mq && should_run_polling_action(2000, &aux2))
-                {
-                    measure_compression_ratio();
-                }
+            /* update compression ratio once every 2 seconds */
+            if (OUTPUT_COMPRESSION && compress_mq && should_run_polling_action(2000, &aux2))
+            {
+                measure_compression_ratio();
             }
         }
-
-        give_semaphore(raw_preview_lock);
     }
+
+end:
+    give_semaphore(raw_preview_lock);
 }
 
 static int calc_crop_factor()
@@ -2814,11 +2818,6 @@ static void raw_video_rec_task()
 
     /* wait for two frames to be sure everything is refreshed */
     wait_lv_frames(2);
-
-    /* make sure preview or raw updates are not running */
-    /* (they won't start in RAW_PREPARING, but we might catch them running) */
-    take_semaphore(raw_preview_lock, 0);
-    give_semaphore(raw_preview_lock);
     
     /* detect raw parameters (geometry, black level etc) */
     raw_set_dirty();
