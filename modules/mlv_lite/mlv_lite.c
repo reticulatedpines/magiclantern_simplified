@@ -597,7 +597,13 @@ static void update_resolution_params()
     ASSERT(frame_size_uncompressed % 4 == 0);
     
     max_frame_size = frame_size_padded;
-    
+
+    if (OUTPUT_COMPRESSION)
+    {
+        /* assume the compressed output will not exceed this */
+        max_frame_size = (max_frame_size / 100 * 85) & ~511;
+    }
+
     update_cropping_offsets();
 }
 
@@ -782,7 +788,7 @@ static void measure_compression_ratio()
         msleep(10);
     }
 
-    measured_compression_ratio = (slots[0].size/128) * 100 / (max_frame_size/128);
+    measured_compression_ratio = (slots[0].size/128) * 100 / (frame_size_uncompressed/128);
 }
 
 static void refresh_raw_settings(int force)
@@ -1905,7 +1911,7 @@ static void free_slot(int slot_index)
                 ASSERT(slots[i+1].size - dif_size == max_frame_size);
                 ASSERT(slots[i+1].status == SLOT_FREE);
             }
-            shrink_slot(i+1, frame_size_uncompressed);
+            shrink_slot(i+1, max_frame_size - VIDF_HDR_SIZE - 4);
             ASSERT(slots[i+1].size == max_frame_size);
         }
     }
@@ -2298,16 +2304,23 @@ static void compress_task()
                 res_x, res_y
             );
             
-            if (compressed_size >= frame_size_uncompressed-512)
+            if (compressed_size >= frame_size_uncompressed)
             {
                 printf("\nCompressed size higher than uncompressed - corrupted frame?\n");
                 printf("Please reboot, then decrease vertical resolution in crop_rec menu.\n\n");
                 buffer_full = 1;
                 ASSERT(0);
             }
-            
+            else if (compressed_size > max_frame_size - VIDF_HDR_SIZE - 4)
+            {
+                printf("Compressed size too high - too much detail or noise?\n");
+                printf("Consider using uncompressed 10/12-bit.");
+                buffer_full = 1;
+                ASSERT(0);
+            }
+
             /* resize frame slots on the fly, to compressed size */
-            shrink_slot(slot_index, MIN(compressed_size, frame_size_uncompressed-512));
+            shrink_slot(slot_index, MIN(compressed_size, max_frame_size - VIDF_HDR_SIZE - 4));
             
             /* our old EDMAC check assumes frame sizes known in advance - not the case here */
             frame_fake_edmac_check(slot_index);
