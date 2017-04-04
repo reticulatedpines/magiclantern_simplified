@@ -1251,7 +1251,7 @@ static void FAST engio_write_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
         int new = reg_override_func(reg, old);
         if (new)
         {
-            printf("[%x] %x: %x -> %x\n", regs[0], reg, old, new);
+            dbg_printf("[%x] %x: %x -> %x\n", regs[0], reg, old, new);
             *(buf+1) = new;
         }
     }
