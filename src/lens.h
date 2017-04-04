@@ -79,7 +79,8 @@ struct lens_info
         //~ float                   lens_rotation;
         //~ float                   lens_step;
         int                     focus_pos;              /* fine steps, starts at 0, range is lens-dependent,
-        
+                                                         * only updates when motor moves (will lose position during MF) */
+
         /* those were retrieved from PROP_LENS property */
         uint8_t                 lens_exists;
         uint16_t                lens_focal_min;
