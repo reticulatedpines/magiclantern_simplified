@@ -767,27 +767,24 @@ static void measure_compression_ratio()
 
     /* compress the current frame to estimate the ratio */
     /* set up a dummy slot configuration */
-    slots[0].ptr = fio_malloc(max_frame_size);
-    if (slots[0].ptr)
+    slots[0].ptr = 0;   /* do not save output */
+    slots[0].size = max_frame_size;
+    slots[0].status = SLOT_CAPTURING;
+    total_slot_count = 1;
+    ASSERT(fullsize_buffers[1] == 0);
+    fullsize_buffers[1] = raw_info.buffer;
+
+    msg_queue_post(compress_mq, INT_MAX);
+    msg_queue_post(compress_mq, 1 << 16);
+    msg_queue_post(compress_mq, INT_MIN);
+
+    while (slots[0].status == SLOT_CAPTURING)
     {
-        slots[0].size = max_frame_size;
-        slots[0].status = SLOT_CAPTURING;
-        ASSERT(fullsize_buffers[1] == 0);
-        fullsize_buffers[1] = UNCACHEABLE(raw_info.buffer);
-
-        msg_queue_post(compress_mq, INT_MAX);
-        msg_queue_post(compress_mq, 1 << 16);
-        msg_queue_post(compress_mq, INT_MIN);
-
-        while (slots[0].status == SLOT_CAPTURING)
-        {
-            msleep(10);
-        }
-
-        measured_compression_ratio = (slots[0].size/128) * 100 / (max_frame_size/128);
-        free(slots[0].ptr); slots[0].ptr = 0;
-        fullsize_buffers[1] = 0;
+        msleep(10);
     }
+
+    measured_compression_ratio = (slots[0].size/128) * 100 / (max_frame_size/128);
+    fullsize_buffers[1] = 0;
 }
 
 static void refresh_raw_settings(int force)
@@ -2224,7 +2221,7 @@ static void compress_task()
         {
             outChunk->memory_address = out_ptr;
             int compressed_size = lossless_compress_raw_rectangle(
-                outSuite, fullSizeBuffer,
+                slots[slot_index].ptr ? outSuite : NULL, fullSizeBuffer,
                 raw_info.width, skip_x, skip_y,
                 res_x, res_y
             );
