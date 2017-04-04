@@ -1778,7 +1778,7 @@ static void shrink_slot(int slot_index, int new_frame_size)
         = slots[i].size;
 
     int linked =
-        (i+1 < COUNT(slots)) &&
+        (i+1 < total_slot_count) &&
         (slots[i+1].status == SLOT_FREE || slots[i+1].status == SLOT_RESERVED) &&
         (slots[i+1].ptr == slots[i].ptr + old_size);
 
@@ -1953,7 +1953,7 @@ static void free_slot(int slot_index)
 
     /* find last slot from this chunk */
     i = slot_index;
-    while ((i+1 < COUNT(slots)) &&
+    while ((i+1 < total_slot_count) &&
            (slots[i+1].status == SLOT_FREE || slots[i+1].status == SLOT_RESERVED) &&
            (slots[i+1].ptr == slots[i].ptr + slots[i].size))
     {
