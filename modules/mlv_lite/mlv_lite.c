@@ -3770,11 +3770,12 @@ unsigned int raw_rec_update_preview(unsigned int ctx)
 
     give_semaphore(raw_preview_lock);
 
-    if (need_for_speed)
-    {
-        /* be gentle with the CPU, save it for recording (especially if the buffer is almost full) */
-        msleep((queued_frames > valid_slot_count / 2) ? 1000 : 500);
-    }
+    /* be gentle with the CPU, save it for recording (especially if the buffer is almost full) */
+    msleep(
+        (need_for_speed)
+            ? ((queued_frames > valid_slot_count / 2) ? 1000 : 500)
+            : 50
+    );
 
     preview_dirty = 1;
     return 1;
