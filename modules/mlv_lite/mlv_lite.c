@@ -771,11 +771,9 @@ static void measure_compression_ratio()
     slots[0].size = max_frame_size;
     slots[0].status = SLOT_CAPTURING;
     total_slot_count = 1;
-    ASSERT(fullsize_buffers[1] == 0);
-    fullsize_buffers[1] = raw_info.buffer;
 
     msg_queue_post(compress_mq, INT_MAX);
-    msg_queue_post(compress_mq, 1 << 16);
+    msg_queue_post(compress_mq, 0);
     msg_queue_post(compress_mq, INT_MIN);
 
     while (slots[0].status == SLOT_CAPTURING)
@@ -784,7 +782,6 @@ static void measure_compression_ratio()
     }
 
     measured_compression_ratio = (slots[0].size/128) * 100 / (max_frame_size/128);
-    fullsize_buffers[1] = 0;
 }
 
 static void refresh_raw_settings(int force)
@@ -1142,22 +1139,6 @@ int add_mem_suite(struct memSuite * mem_suite, int chunk_index)
 static REQUIRES(RawRecTask)
 int setup_buffers()
 {
-    /* allocate memory for double buffering */
-    /* (we need a single large contiguous chunk) */
-    int buf_size = raw_info.width * raw_info.height * BPP/8 * 33/32; /* leave some margin, just in case */
-    ASSERT(fullsize_buffers[0] == 0);
-    fullsize_buffers[0] = fio_malloc(buf_size);
-    
-    /* reuse Canon's buffer */
-    fullsize_buffers[1] = UNCACHEABLE(raw_info.buffer);
-
-    /* anything wrong? */
-    if(fullsize_buffers[0] == 0 || fullsize_buffers[1] == 0)
-    {
-        /* buffers will be freed by caller in the cleanup section */
-        return 0;
-    }
-
     /* allocate the entire memory, but only use large chunks */
     /* yes, this may be a bit wasteful, but at least it works */
     
@@ -1203,10 +1184,6 @@ void free_buffers()
     shoot_mem_suite = 0;
     if (srm_mem_suite) srm_free_suite(srm_mem_suite);
     srm_mem_suite = 0;
-    if (fullsize_buffers[0]) fio_free(fullsize_buffers[0]);
-    fullsize_buffers[0] = 0;
-    ASSERT(fullsize_buffers[1] == UNCACHEABLE(raw_info.buffer));
-    fullsize_buffers[1] = 0;
 }
 
 static int count_free_slots()
@@ -2209,19 +2186,17 @@ static void compress_task()
         }
 
         int slot_index = msg & 0xFFFF;
-        int fullsize_index = msg >> 16;
 
         /* we must receive a slot marked as "capturing in progress */
         ASSERT(slots[slot_index].status == SLOT_CAPTURING);
 
         void* out_ptr = slots[slot_index].ptr + VIDF_HDR_SIZE;
-        void* fullSizeBuffer = fullsize_buffers[fullsize_index];
 
         if (OUTPUT_COMPRESSION)
         {
             outChunk->memory_address = out_ptr;
             int compressed_size = lossless_compress_raw_rectangle(
-                slots[slot_index].ptr ? outSuite : NULL, fullSizeBuffer,
+                slots[slot_index].ptr ? outSuite : NULL, raw_info.buffer,
                 raw_info.width, skip_x, skip_y,
                 res_x, res_y
             );
@@ -2244,7 +2219,7 @@ static void compress_task()
         {
             edmac_active = 1;
             edmac_copy_rectangle_cbr_start(
-                (void*)out_ptr, fullSizeBuffer,
+                (void*)out_ptr, raw_info.buffer,
                 raw_info.pitch,
                 (skip_x+7)/8*BPP, skip_y/2*2,
                 res_x*BPP/8, 0, 0, res_x*BPP/8, res_y,
@@ -2334,16 +2309,13 @@ void FAST process_frame()
     vidf_hdr.panPosY = skip_y;
     *(mlv_vidf_hdr_t*)(slots[capture_slot].ptr) = vidf_hdr;
 
-    /* advance to next buffer for the upcoming capture */
-    fullsize_buffer_pos = (fullsize_buffer_pos + 1) % 2;
-
     //~ printf("saving frame %d: slot %d ptr %x\n", frame_count, capture_slot, ptr);
 
     /* copy current frame to our buffer and crop it to its final size */
     /* for some reason, compression cannot be started from vsync */
     /* let's delegate it to another task */
     ASSERT(compress_mq);
-    msg_queue_post(compress_mq, capture_slot | (fullsize_buffer_pos << 16));
+    msg_queue_post(compress_mq, capture_slot);
 
     /* advance to next frame */
     frame_count++;
@@ -2373,9 +2345,6 @@ unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
         skip_frames--;
         return 0;
     }
-
-    /* double-buffering */
-    raw_lv_redirect_edmac(fullsize_buffers[fullsize_buffer_pos % 2]);
 
     process_frame();
 
