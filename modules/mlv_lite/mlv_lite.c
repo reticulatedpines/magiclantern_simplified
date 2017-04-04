@@ -783,12 +783,7 @@ static void measure_compression_ratio()
     msg_queue_post(compress_mq, 0);
     msg_queue_post(compress_mq, INT_MIN);
 
-    while (slots[0].status == SLOT_CAPTURING)
-    {
-        msleep(10);
-    }
-
-    measured_compression_ratio = (slots[0].size/128) * 100 / (frame_size_uncompressed/128);
+    /* compression ratio will be updated in compress_task */
 }
 
 static void refresh_raw_settings(int force)
@@ -2324,6 +2319,8 @@ static void compress_task()
             
             /* our old EDMAC check assumes frame sizes known in advance - not the case here */
             frame_fake_edmac_check(slot_index);
+
+            measured_compression_ratio = (compressed_size/128) * 100 / (frame_size_uncompressed/128);
         }
         else
         {
