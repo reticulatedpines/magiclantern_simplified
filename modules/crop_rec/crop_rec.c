@@ -1414,11 +1414,15 @@ static unsigned int crop_rec_polling_cbr(unsigned int unused)
         {
             /* let's check this once again, just in case */
             /* (possible race condition that would result in unnecessary refresh) */
-            msleep(200);
+            msleep(500);
             if (crop_rec_needs_lv_refresh())
             {
+                info_led_on();
+                gui_uilock(UILOCK_EVERYTHING);
                 PauseLiveView();
                 ResumeLiveView();
+                gui_uilock(UILOCK_NONE);
+                info_led_off();
             }
         }
         lv_dirty = 0;
