@@ -603,7 +603,7 @@ static void update_resolution_params()
     if (OUTPUT_COMPRESSION)
     {
         /* assume the compressed output will not exceed this */
-        max_frame_size = (max_frame_size / 100 * 85) & ~511;
+        max_frame_size = (max_frame_size / 100 * 85) & ~4095;
     }
 
     update_cropping_offsets();
@@ -2257,8 +2257,6 @@ static void compress_task()
 
     /* fixme: setting size 0x41a100, 0x41a200 or nearby value results in lockup, why?! */
     /* fixme: will overflow if the input data is not a valid image */
-    struct memSuite * outSuite = CreateMemorySuite(0, 32*1024*1024, 0);
-    struct memChunk * outChunk = GetFirstChunkFromSuite(outSuite);
 
     /* run forever */
     while (1)
@@ -2310,13 +2308,20 @@ static void compress_task()
 
         if (OUTPUT_COMPRESSION)
         {
-            outChunk->memory_address = out_ptr;
+            /* PackMem appears to require stricter memory alignment */
+            ASSERT(((uint32_t)out_ptr & 0x3F) == 0);
+            ASSERT((max_frame_size & 0xFFF) == 0);
+            struct memSuite * outSuite = CreateMemorySuite(out_ptr, max_frame_size, 0);
+            ASSERT(outSuite);
+
             int compressed_size = lossless_compress_raw_rectangle(
                 outSuite, raw_info.buffer,
                 raw_info.width, skip_x, skip_y,
                 res_x, res_y
             );
-            
+
+            DeleteMemorySuite(outSuite);
+
             if (compressed_size >= frame_size_uncompressed)
             {
                 printf("\nCompressed size higher than uncompressed - corrupted frame?\n");
@@ -2355,9 +2360,6 @@ static void compress_task()
         /* mark it as completed */
         slots[slot_index].status = SLOT_FULL;
     }
-
-    /* unreachable for now */
-    DeleteMemorySuite(outSuite);
 }
 
 static REQUIRES(LiveViewTask) FAST
