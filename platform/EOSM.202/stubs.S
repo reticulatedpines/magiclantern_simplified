@@ -272,9 +272,9 @@ NSTUB(0xFFA70048 - RAM_OFFSET,  take_semaphore)
 
 /** Task info **/
 NSTUB(   0x3F14C,  task_max)
-NSTUB(0xFFA6BABC - RAM_OFFSET,  get_current_task)
-NSTUB(0xFFA783FC - RAM_OFFSET,  get_obj_attr)               // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xFFA96530 - RAM_OFFSET,  is_taskid_valid)            // AJ_task_trampoline_related_p10
+NSTUB(   0x3DE78,  current_task)
+NSTUB(     0x674,  current_interrupt)                       // in interrupt handler (0x18), where MEM(C0201004) is stored
 
 /** Task sleep **/
 NSTUB(0xFFA70524 - RAM_OFFSET,  msleep)                     // 6F94
@@ -307,7 +307,6 @@ NSTUB(0xFFA89B5C - RAM_OFFSET,  vsnprintf)                  // 205CC
 ///NSTUB(0xFFA71D5C - RAM_OFFSET, GetRemainOfMemoryChunk)
 ///NSTUB(0xFFA71D8C - RAM_OFFSET, GetSizeOfMemoryChunk)
 ///NSTUB(0xFFA720C4 - RAM_OFFSET, GetSizeOfMemorySuite)
-///NSTUB(0xFFA707A8,  GetTaskName)
 ///NSTUB(0xFF1B4F70,  Gui_SetSoundRecord)                    // Look for GUI_setsoundrec - Just changes prop
 ///NSTUB(0xff658aa8,  LiveViewLevelApp_handler)
 ///NSTUB(0xFF623240,  LiveViewWbApp_handler)

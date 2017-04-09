@@ -70,11 +70,14 @@ static int mlv_file_frame_number = 0;
 
 static int long_exposure_fix_enabled = 0;
 
+/* forward reference */
+static struct menu_entry silent_menu[];
 
-static MENU_UPDATE_FUNC(silent_pic_slitscan_display)
+static MENU_UPDATE_FUNC(silent_pic_mode_update)
 {
-    if (silent_pic_mode != SILENT_PIC_MODE_SLITSCAN)
-    MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "This option is only for slit-scan pictures.");
+    /* reveal options for the current shooting mode, if any */
+    silent_menu[0].children[1].shidden =
+        (silent_pic_mode != SILENT_PIC_MODE_SLITSCAN);
 }
 
 static MENU_UPDATE_FUNC(silent_pic_check_mlv)
@@ -810,8 +813,9 @@ static int silent_pic_raw_prepare_buffers(struct memSuite * hSuite, int initial_
         int remain = size - used;
         //~ printf("remain: %x\n", remain);
 
-        /* the EDMAC might write a bit more than that, so we'll use a small safety margin */
-        if (remain < raw_info.frame_size * 129/128)
+        /* the EDMAC might write a bit more than that,
+         * so we'll use a small safety margin (2 extra lines) */
+        if (remain < raw_info.frame_size + 2 * raw_info.pitch)
         {
             /* move to next chunk */
             hChunk = GetNextMemoryChunk(hSuite, hChunk);
@@ -877,7 +881,7 @@ silent_pic_take_lv(int interactive)
         /* allocate only one frame in simple and slitscan modes */
         case SILENT_PIC_MODE_SIMPLE:
         case SILENT_PIC_MODE_SLITSCAN:
-            hSuite2 = shoot_malloc_suite_contig(raw_info.frame_size * 129/128);
+            hSuite1 = srm_malloc_suite(1);
             break;
     }
 
@@ -1074,8 +1078,8 @@ silent_pic_take_lv(int interactive)
 cleanup:
     sp_running = 0;
     sp_buffer_count = 0;
-    if (hSuite2) shoot_free_suite(hSuite2);
     if (hSuite1) srm_free_suite(hSuite1);
+    if (hSuite2) shoot_free_suite(hSuite2);
     if (raw_flag) raw_lv_release();
     return ok;
 }
@@ -1292,7 +1296,7 @@ silent_pic_take_fullres(int interactive)
         /* however this won't trigger ETTR & co (but you'll see a warning in the menu) */
         int old_gui_state = gui_state;
         gui_state = GUISTATE_QR;
-        int ok = raw_update_params();
+        ok = raw_update_params();
         gui_state = old_gui_state;
         if (!ok)
         {
@@ -1358,9 +1362,6 @@ silent_pic_take_fullres(int interactive)
             image_review_time ? COERCE(intervalometer_remaining, 0, image_review_time * 1000 - save_time) 
                               : 0;
         delayed_call(100, display_off_if_qr_mode, (void*)preview_delay);
-
-        /* reset the powersave timer */
-        powersave_prolong();
     }
     else
     {
@@ -1430,6 +1431,10 @@ silent_pic_take(unsigned int interactive) // for remote release, set interactive
         if (!lv) force_liveview();
         ok = silent_pic_take_lv(interactive);
     }
+
+    /* reset the powersave timer */
+    powersave_prolong();
+
     return ok ? CBR_RET_STOP : CBR_RET_ERROR;
 }
 
@@ -1532,16 +1537,17 @@ static struct menu_entry silent_menu[] = {
             {
                 .name = "Silent Mode",
                 .priv = &silent_pic_mode,
+                .update = silent_pic_mode_update,
                 .max = 5,
-                .help = "Choose the silent picture mode:",
                 .choices = CHOICES(
                     "Simple",
                     "Burst",
                     "Burst, End Trigger",
                     "Best Focus",
                     "Slit-Scan",
-                    "Full-res"
+                    "Full-res",
                 ),
+                .help = "Choose the silent picture mode:",
                 .help2 = 
                     "Take a silent picture when you press the shutter halfway.\n"
                     "Take pictures until memory gets full, then save to card.\n"
@@ -1549,13 +1555,18 @@ static struct menu_entry silent_menu[] = {
                     "Take pictures continuously, save the images with best focus.\n"
                     "Distorted pictures for funky effects.\n"
                     "Experimental full-resolution pictures.\n",
-                .icon_type = IT_DICE,
             },
             {
                 .name = "Slit-Scan Mode",
-                .update = silent_pic_slitscan_display,
                 .priv = &silent_pic_slitscan_mode,
                 .max = 4,
+                .choices = CHOICES(
+                    "Top->Bottom",
+                    "Bottom->Top",
+                    "Left->Right",
+                    "Right->Left",
+                    "Horizontal",
+                ),
                 .help = "Choose slitscan mode:",
                 .help2 =
                     "Scan from top to bottom as picture is taken.\n"
@@ -1563,8 +1574,7 @@ static struct menu_entry silent_menu[] = {
                     "Scan from left to right.\n"
                     "Scan from right to left.\n"
                     "Keep scan line in middle of frame, horizontally.\n",
-                .choices = CHOICES("Top->Bottom", "Bottom->Top", "Left->Right", "Right->Left", "Horizontal"),
-                .icon_type = IT_DICE,
+                .shidden = 1,   /* enabled only when choosing slit-scan */
             },
             {
                 .name = "File Format",
@@ -1576,7 +1586,6 @@ static struct menu_entry silent_menu[] = {
                     "DNG is slow, but needs no extra post-processing.\n"
                     "MLV is fast, and will group all frames into a single video file.\n",
                 .choices = CHOICES("DNG", "MLV"),
-                .icon_type = IT_DICE,
             },
             MENU_EOL,
         }
