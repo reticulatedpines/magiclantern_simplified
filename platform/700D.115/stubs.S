@@ -281,9 +281,9 @@ NSTUB(0xFFA63290 - RAM_OFFSET,  take_semaphore)
 
 /** Task info **/
 NSTUB(   0x247B0,  task_max)
-NSTUB(0xFFA5F4E4 - RAM_OFFSET,  get_current_task)
-NSTUB(0xFFA6B644 - RAM_OFFSET,  get_obj_attr)
-NSTUB(0xFFA768E4 - RAM_OFFSET,  is_taskid_valid)
+NSTUB(0xFFA76A4C - RAM_OFFSET,  is_taskid_valid)
+NSTUB(   0x233DC,  current_task)
+NSTUB(     0x674,  current_interrupt)                       // in interrupt handler (0x18), where MEM(C0201004) is stored
 
 /** Task sleep **/
 NSTUB(0xFFA6376C - RAM_OFFSET,  msleep)
