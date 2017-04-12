@@ -312,6 +312,7 @@ NSTUB(0xFF9FE5E8 - RAM_OFFSET,  task_trampoline)
 NSTUB(0xFF48B788,  FSUunMountDevice)
 NSTUB(0xFF135FD4,  LoadCalendarFromRTC)
 NSTUB(0xFFA067B4 - RAM_OFFSET,  vsnprintf)
+NSTUB(0x23F4C,     terminateShutdown_save_settings)
 NSTUB(0x23F50,     terminateAbort_save_settings)
 // NSTUB(    ???,  EnableImagePhysicalScreenParameter)      /* present on 7D.203, 50D.109, 5D2.212 */
 // NSTUB(    ???,  PtpDps_remote_release_SW1_SW2_worker)    /* present on 7D.203, 5D2.212 */
