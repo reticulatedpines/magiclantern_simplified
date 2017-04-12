@@ -1695,19 +1695,23 @@ static void fps_task()
             continue;
         }
 
+        int default_fps = calc_fps_x1000(fps_timer_a_orig, fps_timer_b_orig);
         int f = fps_values_x1000[fps_override_index];
         
         if (fps_sync_shutter && !is_movie_mode())
         {
-            int default_fps = calc_fps_x1000(fps_timer_a_orig, fps_timer_b_orig);
             f = MIN(1000000 / raw2shutter_ms(lens_info.raw_shutter), default_fps);
+        }
+        
+        if (lv_dispsize == 10 && get_halfshutter_pressed())
+        {
+            /* x10 zoom - disable FPS override to check focus */
+            f = default_fps;
         }
         
         #ifdef FEATURE_FPS_RAMPING
         if (FPS_RAMP) // artistic effect - http://www.magiclantern.fm/forum/index.php?topic=2963.0
         {
-            int default_fps = calc_fps_x1000(fps_timer_a_orig, fps_timer_b_orig);
-
             f = MIN(f, default_fps); // no overcranking possible with FPS ramping
             
             int total_duration = fps_ramp_timings[fps_ramp_duration];
