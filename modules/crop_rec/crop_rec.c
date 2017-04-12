@@ -1024,6 +1024,12 @@ static inline uint32_t reg_override_3x3_48p(uint32_t reg, uint32_t old_val)
         if (a) return a;
     }
 
+    /* fine-tuning head timers appears to help
+     * pushing the resolution a tiny bit further */
+    int head_adj =
+        (video_mode_fps == 60) ? -10 :
+                                   0 ;
+
     switch (reg)
     {
         /* for some reason, top bar disappears with the common overrides */
@@ -1036,14 +1042,14 @@ static inline uint32_t reg_override_3x3_48p(uint32_t reg, uint32_t old_val)
             return old_val + (YRES_DELTA << 16);
 
         /* HEAD3 timer */
-        /* 2B4 in 50/60p */
+        /* 2E6 in 50p, 2B4 in 60p */
         case 0xC0F0713C:
-            return 0x2A0 + YRES_DELTA + delta_head3;
+            return 0x2B4 + YRES_DELTA + delta_head3 + head_adj;
 
         /* HEAD4 timer */
-        /* 2E6 in 50p (too high), 26D in 60p */
+        /* 2B4 in 50p, 26D in 60p */
         case 0xC0F07150:
-            return 0x26D + YRES_DELTA + delta_head4;
+            return 0x26D + YRES_DELTA + delta_head4 + head_adj;
     }
 
     return reg_override_common(reg, old_val);
