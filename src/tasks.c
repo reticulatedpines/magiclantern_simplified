@@ -388,6 +388,11 @@ PROP_HANDLER(PROP_ABORT)
         terminateAbort_save_settings = 0;
 #endif
 
+        #if defined(CONFIG_MODULES)
+        /* if no hard crash, load the modules after taking the battery out */
+        module_shutdown();
+        #endif
+
         /* keep the LEDs on until shutdown completes */
         info_led_on();
         delayed_call(20, leds_on, 0);
