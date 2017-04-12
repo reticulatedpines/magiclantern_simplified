@@ -330,6 +330,9 @@ static void leds_on()
     delayed_call(20, leds_on, 0);
 }
 
+/* to refactor with CBR */
+extern int module_shutdown();
+
 static void ml_shutdown()
 {
 #ifdef CONFIG_RP
@@ -353,8 +356,6 @@ static void ml_shutdown()
 #endif    
     config_save_at_shutdown();
 #if defined(CONFIG_MODULES)
-    /* to refactor with CBR */
-    extern int module_shutdown();
     module_shutdown();
 #endif
 }
@@ -381,6 +382,11 @@ PROP_HANDLER(PROP_ABORT)
     {
         /* keep the LEDs on until shutdown completes */
         delayed_call(20, leds_on, 0);
+
+        #if defined(CONFIG_MODULES)
+        /* if no hard crash, load the modules after taking the battery out */
+        module_shutdown();
+        #endif
     }
 }
 

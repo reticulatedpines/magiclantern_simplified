@@ -466,8 +466,6 @@ int handle_common_events_by_feature(struct event * event)
     {
         pre_shutdown_requested = 4;
         info_led_on(); _card_led_on();
-        config_save_at_shutdown();
-        info_led_on(); _card_led_on();
         return 1;
     }
 
