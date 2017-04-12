@@ -381,6 +381,13 @@ PROP_HANDLER(PROP_ABORT)
 
     if (buf[0] == 1)
     {
+        /* 5D3: this prevents RING and RASEN from being saved
+         * when opening battery door (check with e.g. PROP_VIDEO_SYSTEM) */
+#ifdef CONFIG_5D3
+        extern int terminateAbort_save_settings;
+        terminateAbort_save_settings = 0;
+#endif
+
         /* keep the LEDs on until shutdown completes */
         info_led_on();
         delayed_call(20, leds_on, 0);
