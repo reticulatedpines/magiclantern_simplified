@@ -1223,8 +1223,8 @@ int setup_buffers()
 
     printf("Allocated %d slots.\n", valid_slot_count);
 
-    /* we need at least 3 slots */
-    if (valid_slot_count < 3)
+    /* we need at least 2 slots */
+    if (valid_slot_count < 2)
     {
         return 0;
     }
@@ -2444,10 +2444,14 @@ void FAST process_frame()
     if (capture_slot < 0 && raw_recording_state == RAW_PRE_RECORDING)
     {
         /* pre-recording? we can just discard frames as needed */
-        pre_record_discard_frame();
-        capture_slot = choose_next_capture_slot();
-        ASSERT(capture_slot >= 0);
-        bmp_printf(FONT_MED, 50, 50, "Skipped %d frames", ++skipped_frames);
+        do
+        {
+            pre_record_discard_frame();
+            capture_slot = choose_next_capture_slot();
+            skipped_frames++;
+        }
+        while (capture_slot < 0);
+        bmp_printf(FONT_MED, 50, 50, "Skipped %d frames", skipped_frames);
     }
 
     if (capture_slot >= 0)
