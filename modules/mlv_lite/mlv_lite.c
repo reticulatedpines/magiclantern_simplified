@@ -1111,10 +1111,12 @@ int add_mem_suite(struct memSuite * mem_suite, int chunk_index)
             if (chunk_index < COUNT(chunk_list) && size > 64)
             {
                 chunk_list[chunk_index] = size - 64;
+                /*
                 printf("chunk #%d: size=%x (%x)\n",
                     chunk_index+1, chunk_list[chunk_index],
                     format_memory_size(chunk_list[chunk_index])
                 );
+                */
                 chunk_index++;
             }
 
@@ -1169,7 +1171,18 @@ int setup_buffers()
     /* (we need a single large contiguous chunk) */
     int buf_size = raw_info.width * raw_info.height * BPP/8 * 33/32; /* leave some margin, just in case */
     ASSERT(fullsize_buffers[0] == 0);
-    fullsize_buffers[0] = fio_malloc(buf_size);
+
+    if (buf_size > 20 * 1024 * 1024 - 1024)
+    {
+        /* large buffers? assume single-buffering is safe */
+        printf("Using single buffering (check with Show EDMAC).\n");
+        fullsize_buffers[0] = UNCACHEABLE(raw_info.buffer);
+    }
+    else
+    {
+        printf("Using double buffering.\n");
+        fullsize_buffers[0] = fio_malloc(buf_size);
+    }
     
     /* reuse Canon's buffer */
     fullsize_buffers[1] = UNCACHEABLE(raw_info.buffer);
@@ -1208,6 +1221,8 @@ int setup_buffers()
         srm_mem_suite = 0;
     }
 
+    printf("Allocated %d slots.\n", valid_slot_count);
+
     /* we need at least 3 slots */
     if (valid_slot_count < 3)
     {
@@ -1236,7 +1251,12 @@ void free_buffers()
     shoot_mem_suite = 0;
     if (srm_mem_suite) srm_free_suite(srm_mem_suite);
     srm_mem_suite = 0;
-    if (fullsize_buffers[0]) fio_free(fullsize_buffers[0]);
+
+    if (fullsize_buffers[0] &&
+        fullsize_buffers[0] != UNCACHEABLE(raw_info.buffer))
+    {
+        fio_free(fullsize_buffers[0]);
+    }
     fullsize_buffers[0] = 0;
     ASSERT(fullsize_buffers[1] == UNCACHEABLE(raw_info.buffer));
     fullsize_buffers[1] = 0;
