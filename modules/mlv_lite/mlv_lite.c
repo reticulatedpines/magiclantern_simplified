@@ -1409,8 +1409,10 @@ static LVINFO_UPDATE_FUNC(recording_status)
     if ((indicator_display != INDICATOR_IN_LVINFO) || RAW_IS_IDLE) return;
 
     /* Calculate the stats */
-    int fps = fps_get_current_x1000();
-    int t = ((frame_count-1) * 1000) / fps;
+    int fps = fps_get_current_x1000();  /* FPS x1000 */
+    int p = pre_recorded_frames();      /* pre-recorded frames */
+    int r = (frame_count - 1 - p);      /* recorded frames */
+    int t = (r * 1000) / fps;           /* recorded time - truncated */
     int predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024, 0);
 
     if (!buffer_full) 
@@ -1420,11 +1422,27 @@ static LVINFO_UPDATE_FUNC(recording_status)
         {
             item->color_bg = COLOR_BLUE;
             
-            if (pre_recording_buffer_full())
-            {
-                int t = ((frame_count-1) * 1000 * 10) / fps;
-                snprintf(buffer, sizeof(buffer), "%02d:%02d.%d", t/10/60, (t/10)%60, t % 10);
-            }
+            /* display as recorded + pre-recorded (optionally with frames) */
+            /* sequence at 7.4 fps: 0.0, 0.1 ... 0.7, 1.0, 1.1 ... 1.6, 2.0, 2.1 ... 2.7, 3.0 ... */
+            /* (full seconds considered at 0, 8, 15, 23, 30, 37, 45, 52, 60, 67, 74...) */
+            int P = (p * 1000) / fps;
+            int R = (r * 1000) / fps;
+            int rm = R / 60;
+            int rs = R % 60;
+            int rf = r - ((rs + rm * 60) * fps + 999) / 1000;
+            int ps = P % 60;
+            int pf = p - (ps * fps + 999) / 1000;
+
+            /* show decimals? */
+            int rd = rf && pre_recording_buffer_full();
+            int pd = pf && pre_recording_buffer_full();
+
+            /* build the string */
+            int len = 0;
+            if (1)  len += snprintf(buffer + len, sizeof(buffer) - len, "%02d:%02d", rm, rs);
+            if (rd) len += snprintf(buffer + len, sizeof(buffer) - len, ".%d", rf);
+            if (1)  len += snprintf(buffer + len, sizeof(buffer) - len, " + %02d", ps);
+            if (pd) len += snprintf(buffer + len, sizeof(buffer) - len, ".%d", pf);
         }
         else if (predicted >= 10000)
         {
