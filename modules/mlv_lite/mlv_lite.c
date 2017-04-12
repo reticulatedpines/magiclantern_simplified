@@ -260,8 +260,6 @@ static GUARDED_BY(RawRecTask)   int idle_time = 0;                  /* time spen
 static volatile                 uint32_t edmac_active = 0;
 static volatile                 uint32_t skip_frames = 0;
 
-static void * scratch_buffer = 0;                 /* temporary storage (from SRM, with use-after-free) */
-
 /* for compress_task */
 static struct msg_queue * compress_mq = 0;
 
@@ -773,11 +771,10 @@ static MENU_UPDATE_FUNC(write_speed_update)
 static void measure_compression_ratio()
 {
     ASSERT(RAW_IS_IDLE);
-    if (!scratch_buffer) return;
 
     /* compress the current frame to estimate the ratio */
     /* set up a dummy slot configuration */
-    slots[0].ptr = scratch_buffer;
+    slots[0].ptr = 0;   /* do not save output */
     slots[0].size = max_frame_size;
     slots[0].status = SLOT_CAPTURING;
     total_slot_count = 1;
@@ -1173,14 +1170,11 @@ int setup_buffers()
     }
         
     int chunk_index = 0;
-    chunk_index = add_mem_suite(srm_mem_suite, chunk_index);
     chunk_index = add_mem_suite(shoot_mem_suite, chunk_index);
+    chunk_index = add_mem_suite(srm_mem_suite, chunk_index);
 
     if (srm_mem_suite)
     {
-        /* if enabled, first slot will be from SRM */
-        scratch_buffer = slots[0].ptr;
-        
         /* keeping SRM allocated will block the half-shutter
          * and may show BUSY on the screen. */
         /* assuming no other task will allocate during recording, 
@@ -2125,6 +2119,7 @@ static void FAST pre_record_vsync_step()
 
 static void frame_add_checks(int slot_index)
 {
+    ASSERT(slots[slot_index].ptr);
     void* ptr = slots[slot_index].ptr + VIDF_HDR_SIZE;
     uint32_t edmac_size = (slots[slot_index].payload_size + 3) & ~3;
     uint32_t* frame_end = ptr + edmac_size - 4;
@@ -2135,6 +2130,7 @@ static void frame_add_checks(int slot_index)
 
 static void frame_fake_edmac_check(int slot_index)
 {
+    ASSERT(slots[slot_index].ptr);
     void* ptr = slots[slot_index].ptr + VIDF_HDR_SIZE;
     uint32_t edmac_size = (slots[slot_index].payload_size + 3) & ~3;
     uint32_t* after_frame = ptr + edmac_size;
@@ -2143,6 +2139,7 @@ static void frame_fake_edmac_check(int slot_index)
 
 static int frame_check_saved(int slot_index)
 {
+    ASSERT(slots[slot_index].ptr);
     void* ptr = slots[slot_index].ptr + VIDF_HDR_SIZE;
     uint32_t edmac_size = (slots[slot_index].payload_size + 3) & ~3;
     uint32_t* frame_end = ptr + edmac_size - 4;
@@ -2302,7 +2299,6 @@ static void compress_task()
         ASSERT(slots[slot_index].status == SLOT_CAPTURING);
 
         void* out_ptr = slots[slot_index].ptr + VIDF_HDR_SIZE;
-        ASSERT(slots[slot_index].ptr);
 
         edmac_start_clock = MEM(0xC0242014);
 
@@ -2315,7 +2311,7 @@ static void compress_task()
             ASSERT(outSuite);
 
             int compressed_size = lossless_compress_raw_rectangle(
-                outSuite, raw_info.buffer,
+                slots[slot_index].ptr ? outSuite : NULL, raw_info.buffer,
                 raw_info.width, skip_x, skip_y,
                 res_x, res_y
             );
@@ -2337,11 +2333,14 @@ static void compress_task()
                 ASSERT(0);
             }
 
-            /* resize frame slots on the fly, to compressed size */
-            shrink_slot(slot_index, MIN(compressed_size, max_frame_size - VIDF_HDR_SIZE - 4));
-            
-            /* our old EDMAC check assumes frame sizes known in advance - not the case here */
-            frame_fake_edmac_check(slot_index);
+            if (slots[slot_index].ptr)
+            {
+                /* resize frame slots on the fly, to compressed size */
+                shrink_slot(slot_index, MIN(compressed_size, max_frame_size - VIDF_HDR_SIZE - 4));
+                
+                /* our old EDMAC check assumes frame sizes known in advance - not the case here */
+                frame_fake_edmac_check(slot_index);
+            }
 
             measured_compression_ratio = (compressed_size/128) * 100 / (frame_size_uncompressed/128);
         }
