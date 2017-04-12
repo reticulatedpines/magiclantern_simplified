@@ -1165,7 +1165,7 @@ static inline uint32_t reg_override_fullres_lv(uint32_t reg, uint32_t old_val)
             return 0x3170317;
 
         case 0xC0F06014:
-            return 0xFFE;           /* 7.4 fps */
+            return 1482 + YRES_DELTA;   /* up to 7.4 fps */
     }
 
     /* no need to adjust the black bar */
