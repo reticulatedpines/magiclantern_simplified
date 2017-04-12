@@ -808,6 +808,7 @@ static void refresh_raw_settings(int force)
 
     /* if we got the semaphore before raw_rec_task started, all fine */
     /* if we got it afterwards, RAW_IS_IDLE is no longer true => stop */
+    /* raw_rec_task is unable to change the state while we have the semaphore */
     if (!RAW_IS_IDLE) goto end;
 
     /* autodetect the resolution (update 4 times per second) */
