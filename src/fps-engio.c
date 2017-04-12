@@ -1751,7 +1751,6 @@ static void fps_task()
         if (FPS_RAMP) // artistic effect - http://www.magiclantern.fm/forum/index.php?topic=2963.0
         {
             f = MIN(f, default_fps); // no overcranking possible with FPS ramping
-
             int total_duration = fps_ramp_timings[fps_ramp_duration];
             float delta = 1.0 / 50 / total_duration;
 
