@@ -217,6 +217,8 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #define RAW_TYPE_REGISTER 0xC0F08114    /* PACK32_ISEL */
 #endif
 
+#define SHAD_GAIN_REGISTER 0xC0F08030
+
 #ifdef CONFIG_5D3
 /**
  * Renato [http://www.magiclantern.fm/forum/index.php?topic=5614.msg41070#msg41070]:
@@ -1341,7 +1343,7 @@ static int raw_update_params_work()
          * so we do this by compensating the white level manually
          * warning: this may exceed 16383!
          */
-        int shad_gain = shamem_read(0xc0f08030);
+        int shad_gain = shamem_read(SHAD_GAIN_REGISTER);
 
         raw_info.white_level -= raw_info.black_level;
         raw_info.white_level = raw_info.white_level * 3444 / shad_gain; /* 0.25 EV correction, so LiveView matches CR2 exposure */
@@ -2019,6 +2021,7 @@ void FAST raw_lv_redirect_edmac(void* ptr)
 #ifdef CONFIG_EDMAC_RAW_SLURP
 
 static int lv_raw_type = PREFERRED_RAW_TYPE;
+static int lv_raw_gain = 0;
 
 void FAST raw_lv_vsync()
 {
@@ -2029,6 +2032,14 @@ void FAST raw_lv_vsync()
     {
         /* this needs to be set for every single frame */
         EngDrvOut(RAW_TYPE_REGISTER, lv_raw_type);
+
+        if (lv_raw_gain)
+        {
+            /* optional - adjust digital gain */
+            /* fixme: hardcoded for 5D3 */
+            EngDrvOut(RAW_TYPE_REGISTER, 0x12);
+            EngDrvOut(SHAD_GAIN_REGISTER, lv_raw_gain);
+        }
 
         /* pull the raw data into "buf" */
         int width, height;
@@ -2499,6 +2510,27 @@ void raw_lv_request_bpp(int bpp)
 
     give_semaphore(raw_sem);
 }
+
+void raw_lv_request_digital_gain(int gain)
+{
+    take_semaphore(raw_sem, 0);
+
+    if (gain)
+    {
+        lv_raw_gain = gain;
+        raw_info.white_level = (WHITE_LEVEL - 2048) * gain / 4096 + 2048;
+        raw_info.black_level = 2048;
+    }
+    else
+    {
+        lv_raw_gain = 0;
+        raw_info.white_level = WHITE_LEVEL;
+        /* fixme: what to do with black level? */
+    }
+    
+    give_semaphore(raw_sem);
+}
+
 #endif
 
 /* may not be correct on 4:3 screens */

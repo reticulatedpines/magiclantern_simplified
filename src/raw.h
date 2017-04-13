@@ -131,6 +131,7 @@ void raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int start_line, int 
 void raw_lv_request();
 void raw_lv_release();
 void raw_lv_request_bpp(int bpp);
+void raw_lv_request_digital_gain(int gain); /* 4096 = 1.0, 0 = disable */
 int raw_lv_enabled();
 
 /* redirect the LV RAW EDMAC in order to write the raw data at "ptr" */
