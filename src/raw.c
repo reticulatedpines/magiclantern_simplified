@@ -30,6 +30,7 @@
 #include "imgconv.h"
 #include "console.h"
 #include "fps.h"
+#include "platform/state-object.h"
 
 #undef RAW_DEBUG        /* define it to help with porting */
 #undef RAW_DEBUG_DUMP   /* if you want to save the raw image buffer and the DNG from here */
@@ -283,6 +284,14 @@ static int get_default_white_level()
     
     return WHITE_LEVEL;
 }
+
+/**
+ * Hardcode black level on models where it's fixed.
+ * Will only be used if autodetection gives a close result.
+ */
+#if defined(EVF_STATE)  /* 60D and newer */
+#define BLACK_LEVEL 2047
+#endif
 
 /**
  * Color matrix should be copied from DCRAW.
@@ -1276,11 +1285,19 @@ static int raw_update_params_work()
         return 1;
     }
 
-    int black_mean, black_stdev_x100;
     raw_info.white_level = get_default_white_level();
 
     ASSERT(raw_info.bits_per_pixel == 14);
+    int black_mean = 0, black_stdev_x100 = 0;
     int ok = autodetect_black_level(&black_mean, &black_stdev_x100);
+
+    #ifdef BLACK_LEVEL
+    if (ABS(black_mean - BLACK_LEVEL) < 64)
+    {
+        /* if we know the exact value, nail it down */
+        black_mean = BLACK_LEVEL;
+    }
+    #endif
 
     if (!ok)
     {
@@ -2549,7 +2566,7 @@ void raw_lv_request_digital_gain(int gain)
     {
         lv_raw_gain = gain;
         raw_info.white_level = get_default_white_level();
-        raw_info.black_level = 2048;
+        raw_info.black_level = BLACK_LEVEL;
     }
     else
     {
