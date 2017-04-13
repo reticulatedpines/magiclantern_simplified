@@ -3464,7 +3464,7 @@ static void raw_start_stop()
     }
     else
     {
-        raw_recording_state = RAW_PREPARING;
+        /* raw_rec_task will change state to RAW_PREPARING */
         gui_stop_menu();
         task_create("raw_rec_task", 0x19, 0x1000, raw_video_rec_task, (void*)0);
     }
