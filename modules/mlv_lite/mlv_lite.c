@@ -2419,9 +2419,13 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
     raw_previewing = 1;
     raw_set_preview_rect(skip_x, skip_y, res_x, res_y, 1);
     raw_force_aspect_ratio_1to1();
+
+    /* when recording, preview both full-size buffers,
+     * to make sure it's not recording every other frame */
+    static int fi = 0; fi = !fi;
     raw_preview_fast_ex(
-        (void*)-1,
-        PREVIEW_HACKED && RAW_RECORDING ? (void*)-1 : buffers->dst_buf,
+        RAW_IS_RECORDING ? fullsize_buffers[fi] : (void*)-1,
+        PREVIEW_HACKED && RAW_IS_RECORDING ? (void*)-1 : buffers->dst_buf,
         -1,
         -1,
         (need_for_speed && !get_halfshutter_pressed())
