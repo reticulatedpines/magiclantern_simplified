@@ -416,7 +416,12 @@ static int raw_lv_get_resolution(int* width, int* height)
 
     /* height may be a little different; 5D3 needs to subtract 1,
      * EOS M needs to add 1, 100D usually gives exact value
-     * is it really important to have exact height? */
+     * is it really important to have exact height?
+     * for some raw types, yes! */
+
+#ifdef CONFIG_5D3
+    (*height)--;
+#endif
 
 #ifdef CONFIG_EOSM
     /* EOS M exception */
