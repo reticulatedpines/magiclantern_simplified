@@ -791,34 +791,37 @@ static MENU_UPDATE_FUNC(write_speed_update)
     }
 }
 
+/* called when starting to record (for uncompressed 10/12 bpp) */
 static void setup_bit_depth()
 {
-    if (OUTPUT_COMPRESSION)
-    {
-        int div = 1 << (14 - BPP_D);
-        raw_lv_request_digital_gain(4096 / div);
-    }
-    else
-    {
-        raw_lv_request_bpp(BPP);
-    }
+    raw_lv_request_bpp(BPP);
 }
 
+/* called when recording ends */
 static void restore_bit_depth()
 {
     raw_lv_request_bpp(14);
-    raw_lv_request_digital_gain(0);
+}
+
+/* called in standby, when changing lossless compression preset
+ * we configure this in standby to estimate compression ratio
+ * when BPP_D is 14, it will restore default settings */
+static void setup_bit_depth_digital_gain()
+{
+    static int prev_bpp_d = 0;
+    int bpp_d = BPP_D;
+    if (bpp_d != prev_bpp_d)
+    {
+        int div = 1 << (14 - bpp_d);
+        raw_lv_request_digital_gain(bpp_d == 14 ? 0 : 4096 / div);
+        wait_lv_frames(2);
+        prev_bpp_d = bpp_d;
+    }
 }
 
 static void measure_compression_ratio()
 {
     ASSERT(RAW_IS_IDLE);
-
-    if (BPP_D != 14)
-    {
-        setup_bit_depth();
-        wait_lv_frames(2);
-    }
 
     /* compress the current frame to estimate the ratio */
     /* set up a dummy slot configuration */
@@ -841,12 +844,6 @@ static void measure_compression_ratio()
 
     ASSERT(measured_compression_ratio);
     fullsize_buffers[1] = 0;
-
-    if (BPP_D != 14)
-    {
-        restore_bit_depth();
-        wait_lv_frames(2);
-    }
 }
 
 static int setup_buffers();
@@ -873,6 +870,8 @@ static void refresh_raw_settings(int force)
         if (raw_update_params())
         {
             update_resolution_params();
+
+            setup_bit_depth_digital_gain();
 
             if (chunk_list[0] == 0)
             {
@@ -3857,6 +3856,7 @@ static int raw_rec_should_preview(void)
         (res_x < max_res_x * 80/100) ? 1 :  /* prefer correct framing instead of large black bars */
         (res_x*9 < res_y*16)         ? 1 :  /* tall aspect ratio -> prevent image hiding under info bars*/
         (framing_incorrect)          ? 1 :  /* use correct framing in modes where Canon preview is incorrect */
+        (BPP_D != 14)                ? 1 :  /* digital gain used? Canon preview will be dark, use ours */
                                        0 ;  /* otherwise, use plain LiveView */
 
     /* only override on long half-shutter press, when not autofocusing */
