@@ -2120,6 +2120,15 @@ static void FAST raw_preview_color_work(void* raw_buffer, void* lv_buffer, int y
         return;
     }
 
+    /* scale useful range (black...white) to 0...1023 or less */
+    int black = raw_info.black_level;
+    int white = raw_info.white_level;
+    int div = 0;
+    while (((white-black) >> div) >= 1024)
+    {
+        div++;
+    }
+
     /* white balance 2,1,2 => use two gamma curves to simplify code */
     uint8_t gamma_rb[1024];
     uint8_t gamma_g[1024];
@@ -2127,11 +2136,11 @@ static void FAST raw_preview_color_work(void* raw_buffer, void* lv_buffer, int y
     for (int i = 0; i < 1024; i++)
     {
         /* only show 10 bits */
-        int black = (raw_info.black_level>>4);
-        int g_rb = (i > black) ? (log2f(i - black) + 1) * 255 / 10 : 0;
-        int g_g  = (i > black) ? (log2f(i - black)) * 255 / 10 : 0;
-        gamma_rb[i] = COERCE(g_rb * g_rb / 255, 0, 255); /* idk, looks better this way */
-        gamma_g[i]  = COERCE(g_g  * g_g  / 255, 0, 255); /* (it's like a nonlinear curve applied on top of log) */
+        int g_rb = COERCE(raw_to_ev((i << div) + black) + 11, 0, 10) * 255 / 10;
+        int g_g  = COERCE(raw_to_ev((i << div) + black) + 10, 0, 10) * 255 / 10;
+        /* gamma 2 */
+        gamma_rb[i] = COERCE(g_rb * g_rb / 255, 0, 255);
+        gamma_g[i]  = COERCE(g_g  * g_g  / 255, 0, 255);
     }
 
     int x1 = COERCE(RAW2LV_X(preview_rect_x), 0, vram_lv.width);
@@ -2177,31 +2186,33 @@ static void FAST raw_preview_color_work(void* raw_buffer, void* lv_buffer, int y
             switch (xr%8)
             {
                 case 0:
-                    r = PA >> 4;
-                    g = (PB + QA) >> 5;
-                    b = QB >> 4;
+                    r = PA;
+                    g = (PB + QA) >> 1;
+                    b = QB;
                     break;
                 case 2:
-                    r = PC >> 4;
-                    g = (PD + QC) >> 5;
-                    b = QD >> 4;
+                    r = PC;
+                    g = (PD + QC) >> 1;
+                    b = QD;
                     break;
                 case 4:
-                    r = PE >> 4;
-                    g = (PF + QE) >> 5;
-                    b = QF >> 4;
+                    r = PE;
+                    g = (PF + QE) >> 1;
+                    b = QF;
                     break;
                 case 6:
-                    r = PG >> 4;
-                    g = (PH + QG) >> 5;
-                    b = QH >> 4;
+                    r = PG;
+                    g = (PH + QG) >> 1;
+                    b = QH;
                     break;
                 default:
                     r = g = b = 0;
             }
-            r = gamma_rb[r];
-            g = gamma_g [g];
-            b = gamma_rb[b];
+            
+            /* div is chosen so that ((white-black) >> div) < 1024 */
+            r = gamma_rb[COERCE(r - black, 0, white-black) >> div];
+            g = gamma_g [COERCE(g - black, 0, white-black) >> div];
+            b = gamma_rb[COERCE(b - black, 0, white-black) >> div];
 
             uint32_t yuv = rgb2yuv422(r,g,b);
             lv32[LV(x,y)/4] = yuv;
@@ -2229,12 +2240,22 @@ static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1
         return;
     }
 
+    /* scale useful range (black...white) to 0...1023 or less */
+    int black = raw_info.black_level;
+    int white = raw_info.white_level;
+    int div = 0;
+    while (((white-black) >> div) >= 1024)
+    {
+        div++;
+    }
+
     uint8_t gamma[1024];
 
     for (int i = 0; i < 1024; i++)
     {
-        int g = (i > (raw_info.black_level>>4)) ? log2f(i - (raw_info.black_level>>4)) * 255 / 10 : 0;
-        gamma[i] = g * g / 255; /* idk, looks better this way */
+        /* only show 10 bits */
+        int g = COERCE(raw_to_ev((i << div) + black) + 10, 0, 10) * 255 / 10;
+        gamma[i] = g * g / 255; /* gamma 2 */
     }
 
     int x1 = COERCE(RAW2LV_X(preview_rect_x), 0, vram_lv.width);
@@ -2273,7 +2294,7 @@ static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1
             int xr = lv2rx[x];
             struct raw_pixblock * p = row + (xr/8);
             int c = p->a;
-            uint64_t Y = gamma[c >> 4];
+            uint64_t Y = gamma[COERCE(c - black, 0, white-black) >> div];
             Y = (Y << 8) | (Y << 24) | (Y << 40) | (Y << 56);
             int idx = LV(x,y)/8;
             lv64[idx] = Y;
