@@ -567,6 +567,8 @@ static struct {
     { 0x0010,   BGMT_Q,                 "Q",            "guess",                        },
     { 0x0026,   BGMT_LV,                "L",            "LiveView",                     },
     { 0x0011,   BGMT_PICSTYLE,          "W",            "Pic.Style",                    },
+
+    { 0x0030,   GMT_GUICMD_OPEN_BATT_COVER, "B",        "Open battery cover",           },
 };
 
 /* returns MPU button codes (lo, hi) */

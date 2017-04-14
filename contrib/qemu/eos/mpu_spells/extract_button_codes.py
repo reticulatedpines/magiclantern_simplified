@@ -135,6 +135,11 @@ for x in range(40):
     try_button_code(x, 0)
     try_button_code(x, 1)
 
+# GMT_GUICMD_OPEN_BATT_COVER is harder to find,
+# but consistent with GMT_GUICMD_OPEN_SLOT_COVER
+name_to_mpu["GMT_GUICMD_OPEN_BATT_COVER"] = tuple(map(sum,
+    zip(name_to_mpu["GMT_GUICMD_OPEN_SLOT_COVER"], (1, 0))))
+
 print("static int button_codes_%s[] = {" % camera_model)
 for n,v in sorted(name_to_mpu.iteritems()):
     print("    %-35s = 0x%02X%02X," % ("[%s]" % n, v[0], v[1]))

@@ -276,4 +276,9 @@ static struct mpu_init_spell mpu_init_spells_70D[] = {
      // { 0x06, 0x05, 0x06, 0x0b, 0x06, 0x00 },                 /* reply #68.2, BGMT_PRESS_LEFT, GUI_Control:52, bindReceiveSwitch(11, 6) */
      // { 0x06, 0x05, 0x06, 0x0b, 0x00, 0x00 },                 /* reply #68.3, BGMT_UNPRESS_UDLR, GUI_Control:54, bindReceiveSwitch(11, 0) */
         { 0 } } },
+
+//~ #include "NotifyGUIEvent.h"
+    #include "UILock.h"
+//~ #include "CardFormat.h"
+    #include "Shutdown.h"
 };

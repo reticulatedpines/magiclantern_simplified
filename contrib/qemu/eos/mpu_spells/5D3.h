@@ -194,4 +194,9 @@ static struct mpu_init_spell mpu_init_spells_5D3[] = {
         { 0 } } },
     { { 0x06, 0x05, 0x03, 0x19, 0x00, 0x00 }, {                 /* spell #49 */
         { 0 } } },
+
+//~ #include "NotifyGUIEvent.h"
+    #include "UILock.h"
+//~ #include "CardFormat.h"
+    #include "Shutdown.h"
 };

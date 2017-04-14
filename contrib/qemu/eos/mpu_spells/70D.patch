@@ -78,11 +78,13 @@
          { 0x06, 0x05, 0x01, 0x8a, 0x00, 0x00 },                 /* reply #47.1 */
          { 0 } } },
      { { 0x08, 0x07, 0x03, 0x68, 0x00, 0x00, 0x00, 0x00 }, {     /* spell #48 */
-@@ -271,5 +275,6 @@
-         { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #68.1, GMT_GUICMD_PRESS_BUTTON_SOMETHING, GUI_Control:84, bindReceiveSwitch(38, 1) */
-         { 0x06, 0x05, 0x06, 0x0b, 0x06, 0x00 },                 /* reply #68.2, BGMT_PRESS_LEFT, GUI_Control:52, bindReceiveSwitch(11, 6) */
-         { 0x06, 0x05, 0x06, 0x0b, 0x00, 0x00 },                 /* reply #68.3, BGMT_UNPRESS_UDLR, GUI_Control:54, bindReceiveSwitch(11, 0) */
--        { 0 } } },
-+        { 0 } } }
- };
+@@ -272,4 +276,9 @@
+      // { 0x06, 0x05, 0x06, 0x0b, 0x06, 0x00 },                 /* reply #68.2, BGMT_PRESS_LEFT, GUI_Control:52, bindReceiveSwitch(11, 6) */
+      // { 0x06, 0x05, 0x06, 0x0b, 0x00, 0x00 },                 /* reply #68.3, BGMT_UNPRESS_UDLR, GUI_Control:54, bindReceiveSwitch(11, 0) */
+         { 0 } } },
 +
++//~ #include "NotifyGUIEvent.h"
++    #include "UILock.h"
++//~ #include "CardFormat.h"
++    #include "Shutdown.h"
+ };

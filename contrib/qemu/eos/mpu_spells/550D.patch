@@ -7,7 +7,7 @@
  static struct mpu_init_spell mpu_init_spells_550D[] = {
      { { 0x06, 0x04, 0x02, 0x00, 0x00 }, {                       /* spell #1 */
          { 0x06, 0x05, 0x01, 0x37, 0x00, 0x00 },                 /* reply #1.1 */
-@@ -142,15 +145,12 @@
+@@ -142,15 +145,13 @@
      { { 0x06, 0x05, 0x03, 0x19, 0x00, 0x00 }, {                 /* spell #35 */
       // { 0x06, 0x05, 0x06, 0x00, 0x01, 0x00 },                 /* reply #35.1, BGMT_MENU, GUI_Control:6, bindReceiveSwitch(0, 1) */
          { 0 } } },
@@ -26,4 +26,5 @@
 +    #include "NotifyGUIEvent.h"
 +    #include "UILock.h"
 +    #include "CardFormat.h"
++//~ #include "Shutdown.h"
  };
