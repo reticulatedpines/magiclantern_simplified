@@ -821,3 +821,13 @@ define load_default_date_time_log
     c
   end
 end
+
+define log_result
+  tbreak *($lr & ~1)
+  commands
+    silent
+    print_current_location
+    printf " => 0x%x\n", $r0
+    c
+  end
+end
