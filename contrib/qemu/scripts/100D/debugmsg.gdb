@@ -2,12 +2,14 @@
 
 source -v debug-logging.gdb
 
-# fixme
-macro define CURRENT_TASK ...
-macro define CURRENT_ISR  ...
+macro define CURRENT_TASK 0x652AC
+macro define CURRENT_ISR  (*(int*)0x652B0 ? (*(int*)0x64C) >> 2 : 0)
 
 b *0x4A74
 DebugMsg_log
+
+b *0x79E8
+task_create_log
 
 cont
 

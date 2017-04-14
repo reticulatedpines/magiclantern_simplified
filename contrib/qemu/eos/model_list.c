@@ -173,6 +173,7 @@ struct eos_model_desc eos_model_list[] = {
         .digic_version          = 5,
         .mpu_request_register   = 0xC022006C,
         .serial_flash_size      = 0x1000000,
+        .current_task_addr      = 0x652AC,
     },
     {
         .name                   = "7D",
