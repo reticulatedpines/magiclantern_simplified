@@ -235,11 +235,13 @@ NSTUB(    0x7544,  give_semaphore)
 NSTUB(    0x7458,  take_semaphore)
 
 /** Task info **/
-NSTUB(    0x259C,  get_current_task)                        
+NSTUB(    0x259C,  get_current_task)
 NSTUB(0xFFAABFD8 - RAM_OFFSET,  get_obj_attr)               // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xFFAE833C - RAM_OFFSET,  is_taskid_valid)            // AJ_task_trampoline_related_p10
 NSTUB(   0x6669C,  task_max)
-
+NSTUB(   0x652AC,  current_task)
+NSTUB(     0x698,  current_interrupt)                       // in interrupt handler (0x18), where MEM(C0201004) is stored
+ 
 /** Task sleep **/
 NSTUB(    0x7934,  msleep)
 
