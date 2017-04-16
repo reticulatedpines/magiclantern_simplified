@@ -94,7 +94,7 @@ static const char * crop_choices_eosm[] = {
 };
 
 static const char crop_choices_help_eosm[] =
-    "3x3 skipping in 720p (1728x692 with square raw pixels)";
+    "3x3 binning in 720p (1728x692 with square raw pixels)";
 
 static const char crop_choices_help2_eosm[] =
     "On EOS M, when not recording H264, LV defaults to 720p with 5x3 binning.";
@@ -114,7 +114,7 @@ static const char crop_choices_help_700d[] =
     "Change 1080p and 720p movie modes into crop modes (one choice)";
 
 static const char crop_choices_help2_700d[] =
-    "3x3 skipping in 720p (square pixels in RAW, vertical crop, up to 1736x688)";
+    "3x3 binning in 720p (square pixels in RAW, vertical crop, up to 1736x688)";
 
 /* camera-specific parameters */
 static uint32_t CMOS_WRITE      = 0;
