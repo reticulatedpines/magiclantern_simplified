@@ -378,8 +378,6 @@ static void eos_interrupt_timer_body(EOSState *s)
             return;
         }
 
-        qemu_mutex_lock(&s->irq_lock);
-
         s->digic_timer += 0x100;
         s->digic_timer &= 0xFFF00;
         
@@ -459,8 +457,6 @@ static void eos_interrupt_timer_body(EOSState *s)
                 trigger_hptimers[hptimer_interrupts[pos]] = 1;
             }
         }
-        
-        qemu_mutex_unlock(&s->irq_lock);
 
         for (int i = 1; i < COUNT(trigger_hptimers); i++)
         {
@@ -469,9 +465,7 @@ static void eos_interrupt_timer_body(EOSState *s)
                 eos_trigger_int(s, i, 0);
             }
         }
-        
-        qemu_mutex_lock(&s->cf.lock);
-        
+
         if (s->cf.dma_read_request)
         {
             s->cf.dma_read_request = cfdma_read_data(s, &s->cf);
@@ -487,8 +481,6 @@ static void eos_interrupt_timer_body(EOSState *s)
             cfdma_trigger_interrupt(s);
             s->cf.pending_interrupt = 0;
         }
-        
-        qemu_mutex_unlock(&s->cf.lock);
     }
 
 }
@@ -1140,8 +1132,6 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
 
     s->rtc.transfer_format = 0xFF;
 
-    qemu_mutex_init(&s->irq_lock);
-
     int64_t now = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
     s->interrupt_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, eos_interrupt_timer_cb, s);
     timer_mod_anticipate_ns(s->interrupt_timer, now + 0x100 * 1000);
@@ -1278,7 +1268,6 @@ static void eos_init_common(MachineState *machine)
     ide_init2(&s->cf.bus, s->interrupt);
     ide_create_drive(&s->cf.bus, 0, dj);
     s->cf.bus.ifs[0].drive_kind = IDE_CFATA;
-    qemu_mutex_init(&s->cf.lock);
 
 
     /* nkls: init SF */
@@ -1601,8 +1590,6 @@ unsigned int eos_handler ( EOSState *s, unsigned int address, unsigned char type
 
 unsigned int eos_trigger_int(EOSState *s, unsigned int id, unsigned int delay)
 {
-    qemu_mutex_lock(&s->irq_lock);
-
     if(!delay && s->irq_enabled[id] && !s->irq_id)
     {
         if (qemu_loglevel_mask(CPU_LOG_INT)) {
@@ -1624,8 +1611,6 @@ unsigned int eos_trigger_int(EOSState *s, unsigned int id, unsigned int delay)
         }
         s->irq_schedule[id] = MAX(delay, 1);
     }
-
-    qemu_mutex_unlock(&s->irq_lock);
     return 0;
 }
 
@@ -1964,9 +1949,6 @@ unsigned int eos_handle_timers ( unsigned int parm, EOSState *s, unsigned int ad
 
 unsigned int eos_handle_hptimer ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
-    /* not sure if it's really needed, but... just in case */
-    qemu_mutex_lock(&s->irq_lock);
-
     const char * msg = 0;
     int msg_arg1 = 0;
     int msg_arg2 = 0;
@@ -2061,7 +2043,6 @@ unsigned int eos_handle_hptimer ( unsigned int parm, EOSState *s, unsigned int a
     }
 
     io_log("HPTimer", s, address, type, value, ret, msg, msg_arg1, msg_arg2);
-    qemu_mutex_unlock(&s->irq_lock);
     return ret;
 }
 
@@ -4325,8 +4306,6 @@ unsigned int eos_handle_cfdma ( unsigned int parm, EOSState *s, unsigned int add
     unsigned int ret = 0;
     const char * msg = 0;
 
-    qemu_mutex_lock(&s->cf.lock);
-
     switch(address & 0x1F)
     {
         case 0x00:
@@ -4374,7 +4353,6 @@ unsigned int eos_handle_cfdma ( unsigned int parm, EOSState *s, unsigned int add
     }
 
     io_log("CFDMA", s, address, type, value, ret, msg, 0, 0);
-    qemu_mutex_unlock(&s->cf.lock);
     return ret;
 }
 
@@ -4384,8 +4362,6 @@ unsigned int eos_handle_cfata ( unsigned int parm, EOSState *s, unsigned int add
     const char * msg = 0;
     intptr_t msg_arg1 = 0;
     intptr_t msg_arg2 = 0;
-
-    qemu_mutex_lock(&s->cf.lock);
 
     switch(address & 0xFFFF)
     {
@@ -4420,7 +4396,6 @@ unsigned int eos_handle_cfata ( unsigned int parm, EOSState *s, unsigned int add
                 ide_data_writew(&s->cf.bus, 0, value);
                 if ((address & 0xFFFF) == 0x21F0)
                 {
-                    qemu_mutex_unlock(&s->cf.lock);
                     return 0;
                 }
             }
@@ -4429,7 +4404,6 @@ unsigned int eos_handle_cfata ( unsigned int parm, EOSState *s, unsigned int add
                 ret = ide_data_readw(&s->cf.bus, 0);
                 if ((address & 0xFFFF) == 0x21F0)
                 {
-                    qemu_mutex_unlock(&s->cf.lock);
                     return ret;
                 }
             }
@@ -4502,7 +4476,6 @@ unsigned int eos_handle_cfata ( unsigned int parm, EOSState *s, unsigned int add
             break;
     }
     io_log("CFATA", s, address, type, value, ret, msg, msg_arg1, msg_arg2);
-    qemu_mutex_unlock(&s->cf.lock);
     return ret;
 }
 
