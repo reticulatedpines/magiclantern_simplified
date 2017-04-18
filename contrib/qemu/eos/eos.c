@@ -3161,7 +3161,7 @@ unsigned int eos_handle_edmac ( unsigned int parm, EOSState *s, unsigned int add
                  *   0x10 = abort?
                  */
                 int pop_request = (s->edmac.ch[channel].flags & 0xF) == 6;
-                int abort_request = 0;  /* not sure yet */
+                int abort_request = (s->edmac.ch[channel].off34 == 3);
                 ret = (abort_request) ? 0x10 :
                       (pop_request)   ? 0x04 :
                       (channel & 8)   ? 0x02 :
@@ -3170,7 +3170,17 @@ unsigned int eos_handle_edmac ( unsigned int parm, EOSState *s, unsigned int add
             break;
 
         case 0x34:
-            msg = "abort request?";
+            msg = "off34";
+            MMIO_VAR(s->edmac.ch[channel].off34);
+
+            if(type & MODE_WRITE)
+            {
+                if (s->edmac.ch[channel].off34 == 3)
+                {
+                    msg = "abort request";
+                    edmac_trigger_interrupt(s, channel, 1);
+                }
+            }
             break;
     }
     

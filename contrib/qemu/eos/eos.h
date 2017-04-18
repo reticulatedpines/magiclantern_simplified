@@ -187,6 +187,7 @@ typedef struct
     uint32_t off2a;
     uint32_t off2b;
     uint32_t off3;
+    uint32_t off34;     /* 3 = abort request */
     uint32_t off40;
     uint32_t flags;
 } EDmacChState;
