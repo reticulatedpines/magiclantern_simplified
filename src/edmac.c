@@ -272,9 +272,21 @@ int edmac_fix_off1(int32_t off)
 {
     /* the value is signed, but the number of bits is model-dependent */
 #ifdef CONFIG_DIGIC_V
-    int off1_bits = 19;
+    const int off1_bits = 19;
 #else
-    int off1_bits = 17; /* checked on DIGIC 3 and 4 */
+    const int off1_bits = 17; /* checked on DIGIC 3 and 4 */
+#endif
+
+    return off << (32-off1_bits) >> (32-off1_bits);
+}
+
+int edmac_fix_off2(int32_t off)
+{
+    /* the value is signed, but the number of bits is model-dependent */
+#ifdef CONFIG_DIGIC_V
+    const int off2_bits = 32;
+#else
+    const int off2_bits = 28; /* checked on DIGIC 3 and 4 */
 #endif
 
     return off << (32-off1_bits) >> (32-off1_bits);
@@ -292,9 +304,9 @@ struct edmac_info edmac_get_info(uint32_t channel)
         .yn    = shamem_read(base + 0x0C) >> 16,
         .off1a = edmac_fix_off1(shamem_read(base + 0x20)),
         .off1b = edmac_fix_off1(shamem_read(base + 0x18)),
-        .off2a = shamem_read(base + 0x24),
-        .off2b = shamem_read(base + 0x1C),
-        .off3  = shamem_read(base + 0x28),
+        .off2a = edmac_fix_off2(shamem_read(base + 0x24)),
+        .off2b = edmac_fix_off2(shamem_read(base + 0x1C)),
+        .off3  = edmac_fix_off2(shamem_read(base + 0x28)),
     };
     return info;
 }

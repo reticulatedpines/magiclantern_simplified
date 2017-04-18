@@ -77,8 +77,10 @@ uint32_t edmac_get_length(uint32_t channel);    /* yb,xb (hi,lo) */
 uint32_t edmac_get_connection(uint32_t channel, uint32_t direction);
 uint32_t edmac_get_dir(uint32_t channel);
 
-/* off1 is signed on some odd number of bits; use this to extend the sign bit to int32 */
+/* off1/off2 are signed on some odd number of bits;
+ * use this to extend the sign bit to int32 */
 int edmac_fix_off1(int32_t off);
+int edmac_fix_off2(int32_t off);
 
 struct edmac_info edmac_get_info(uint32_t channel);
 uint32_t edmac_get_total_size(struct edmac_info * info, int include_offsets);
