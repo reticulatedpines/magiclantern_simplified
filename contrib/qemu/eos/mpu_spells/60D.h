@@ -171,7 +171,7 @@ static struct mpu_init_spell mpu_init_spells_60D[] = {
     #include "NotifyGUIEvent.h"
     #include "UILock.h"
     #include "CardFormat.h"
-    #include "Shutdown.h"
+//~ #include "Shutdown.h"
 };
 
 /**
