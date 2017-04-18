@@ -2546,7 +2546,7 @@ unsigned int eos_handle_cartridge ( unsigned int parm, EOSState *s, unsigned int
     return 0;
 }
 
-static void edmac_trigger_interrupt(EOSState* s, int channel)
+static void edmac_trigger_interrupt(EOSState* s, int channel, int delay)
 {
     /* from register_interrupt calls */
     const int edmac_interrupts[] = {
@@ -2573,7 +2573,7 @@ static void edmac_trigger_interrupt(EOSState* s, int channel)
     assert(channel >= 0 && channel < COUNT(edmac_interrupts));
     assert(edmac_interrupts[channel]);
     
-    eos_trigger_int(s, edmac_interrupts[channel], 0);
+    eos_trigger_int(s, edmac_interrupts[channel], delay);
 }
 
 static int edmac_fix_off1(EOSState *s, int32_t off)
@@ -2968,8 +2968,12 @@ static int edmac_do_transfer(EOSState *s, int channel)
 
     /* return end address when reading back the register */
     s->edmac.ch[channel].addr += transfer_data_skip_size;
-    
-    edmac_trigger_interrupt(s, channel);
+
+    /* assume 200 MB/s transfer speed */
+    int delay = transfer_data_size * 1e6 / (200*1024*1024) / 0x100;
+    printf("[EDMAC#%d] transfer delay %d x 256 us.\n", channel, delay);
+
+    edmac_trigger_interrupt(s, channel, delay);
     return 1;
 }
 
