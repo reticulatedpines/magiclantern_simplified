@@ -7,7 +7,6 @@
 #include "exec/memory-internal.h"
 #include "exec/ram_addr.h"
 #include "hw/sysbus.h"
-#include "qemu/thread.h"
 #include "ui/console.h"
 #include "ui/pixel_ops.h"
 #include "hw/display/framebuffer.h"
@@ -364,23 +363,19 @@ static int cfdma_read_data(EOSState *s, CFState *cf);
 static int cfdma_write_data(EOSState *s, CFState *cf);
 static void cfdma_trigger_interrupt(EOSState *s);
 
-static void *eos_interrupt_thread(void *parm)
-{
-    EOSState *s = (EOSState *)parm;
 
-    while (1)
+static void eos_interrupt_timer_body(EOSState *s)
+{
     {
         uint32_t pos;
 
-        usleep(0x100);
-
         /* don't loop thread if cpu stopped in gdb */
         if (s->cpu0 && cpu_is_stopped(CPU(s->cpu0))) {
-            continue;
+            return;
         }
 
         if (s->cpu1 && cpu_is_stopped(CPU(s->cpu1))) {
-            continue;
+            return;
         }
 
         qemu_mutex_lock(&s->irq_lock);
@@ -496,7 +491,14 @@ static void *eos_interrupt_thread(void *parm)
         qemu_mutex_unlock(&s->cf.lock);
     }
 
-    return NULL;
+}
+
+static void eos_interrupt_timer_cb(void *parm)
+{
+    EOSState *s = (EOSState *)parm;
+    eos_interrupt_timer_body(s);
+    int64_t now = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
+    timer_mod_anticipate_ns(s->interrupt_timer, now + 0x100*1000); // 0x100 us
 }
 
 
@@ -1139,7 +1141,10 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
     s->rtc.transfer_format = 0xFF;
 
     qemu_mutex_init(&s->irq_lock);
-    qemu_thread_create(&s->interrupt_thread_id, "eos_interrupt", eos_interrupt_thread, s, QEMU_THREAD_JOINABLE);
+
+    int64_t now = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
+    s->interrupt_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, eos_interrupt_timer_cb, s);
+    timer_mod_anticipate_ns(s->interrupt_timer, now + 0x100 * 1000);
 
     /* init display */
     precompute_yuv2rgb(1);
