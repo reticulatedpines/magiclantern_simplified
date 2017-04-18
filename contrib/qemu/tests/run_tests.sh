@@ -174,9 +174,6 @@ done
 echo
 echo "Testing Canon menu..."
 for CAM in ${MENU_CAMS[*]}; do
-  # allow up to 3 retries if unsuccessful
-  # fixme: nondeterministic bugs in emulation
-  for k in 1 2 3; do
     printf "%5s: " $CAM
     mkdir -p tests/$CAM/
     rm -f tests/$CAM/menu*[0-9].png
@@ -202,17 +199,13 @@ for CAM in ${MENU_CAMS[*]}; do
 
     killall -INT qemu-system-arm &>> tests/$CAM/menu.log; sleep 1
 
-    tests/check_md5.sh tests/$CAM/ menu && break || cat tests/$CAM/menu.md5.log
-  done
+    tests/check_md5.sh tests/$CAM/ menu || cat tests/$CAM/menu.md5.log
 done
 
 # These cameras should be able to format the virtual card:
 echo
 echo "Testing card formatting..."
 for CAM in ${MENU_CAMS[*]}; do
-  # allow up to 3 retries if unsuccessful
-  # fixme: nondeterministic bugs in emulation
-  for k in 1 2 3; do
     printf "%5s: " $CAM
     mkdir -p tests/$CAM/
     rm -f tests/$CAM/format*[0-9].png
@@ -240,8 +233,7 @@ for CAM in ${MENU_CAMS[*]}; do
 
     killall -INT qemu-system-arm &>> tests/$CAM/format.log; sleep 1
 
-    tests/check_md5.sh tests/$CAM/ format && break || cat tests/$CAM/format.md5.log
-  done
+    tests/check_md5.sh tests/$CAM/ format || cat tests/$CAM/format.md5.log
 done
 
 # These cameras should be able to format the virtual card
@@ -250,10 +242,6 @@ echo
 echo "Testing ML restore after format..."
 TST=fmtrestore
 for CAM in 500D; do
-  # allow up to 5 retries if unsuccessful
-  # fixme: nondeterministic bugs in emulation
-  for k in 1 2 3 4 5; do
-
     # re-create the card images
     rm sd.img; unxz -k sd.img.xz; cp sd.img cf.img
 
@@ -328,16 +316,12 @@ for CAM in 500D; do
 
     killall -INT qemu-system-arm &>> tests/$CAM/$TST.log; sleep 1
     echo -e "\e[31mFAILED!\e[0m"
-  done
 done
 
 # These cameras should display some Canon GUI:
 echo
 echo "Testing Canon GUI..."
 for CAM in ${GUI_CAMS[*]}; do
-  # allow up to 3 retries if unsuccessful
-  # fixme: nondeterministic bugs in emulation
-  for k in 1 2 3; do
     printf "%5s: " $CAM
     mkdir -p tests/$CAM/
     rm -f tests/$CAM/gui.ppm
@@ -345,8 +329,7 @@ for CAM in ${GUI_CAMS[*]}; do
     (sleep 20; echo screendump tests/$CAM/gui.ppm; echo quit) \
       | ./run_canon_fw.sh $CAM,firmware="boot=0" -display none -monitor stdio &> tests/$CAM/gui.log
 
-    tests/check_md5.sh tests/$CAM/ gui && break
-  done
+    tests/check_md5.sh tests/$CAM/ gui
 done
 
 # All cameras should run under GDB and start a few tasks
@@ -382,9 +365,6 @@ echo "Testing FA_CaptureTestImage..."
 # This requires a full-res silent picture at qemu/<camera>/VRAM/PH-QR/RAW-000.DNG.
 # Currently working on 60D and 1200D.
 for CAM in 5D3 60D 1200D; do
-  # allow up to 3 retries if unsuccessful
-  # fixme: nondeterministic bugs in emulation
-  for k in 1 2 3; do
     printf "%5s: " $CAM
 
     mkdir -p tests/$CAM/
@@ -413,8 +393,7 @@ for CAM in 5D3 60D 1200D; do
     (sleep 15; echo screendump tests/$CAM/frsp.ppm; echo quit) \
       | ./run_canon_fw.sh $CAM,firmware="boot=1" -display none -monitor stdio &> tests/$CAM/frsp.log
     
-    tests/check_md5.sh tests/$CAM/ frsp && break
-  done
+    tests/check_md5.sh tests/$CAM/ frsp
 done
 
 echo
@@ -424,9 +403,6 @@ echo "Testing file I/O (DCIM directory)..."
 # and also on EOSM and 450D.
 #for CAM in ${EOS_CAMS[*]}; do
 for CAM in ${GUI_CAMS[*]} EOSM 450D; do
-  # allow up to 3 retries if unsuccessful
-  # fixme: nondeterministic bugs in emulation
-  for k in 1 2 3; do
     printf "%5s: " $CAM
     
     mkdir -p tests/$CAM/
@@ -448,11 +424,9 @@ for CAM in ${GUI_CAMS[*]} EOSM 450D; do
     
     if (mdir -b -i $MSD | grep -q DCIM) || (mdir -b -i $MCF | grep -q DCIM); then
         echo "OK"
-        break
     else
         echo -e "\e[31mFAILED!\e[0m"
     fi
-  done
 done
 
 # re-create the card images, just in case
