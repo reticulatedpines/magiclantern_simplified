@@ -2526,6 +2526,15 @@ static int edmac_fix_off1(EOSState *s, int32_t off)
     return off << (32-off1_bits) >> (32-off1_bits);
 }
 
+static int edmac_fix_off2(EOSState *s, int32_t off)
+{
+    /* the value is signed, but the number of bits is model-dependent */
+    int off2_bits = (s->model->digic_version <= 4) ? 28 : 
+                    (s->model->digic_version == 5) ? 32 : 0;
+    assert(off2_bits);
+    return off << (32-off2_bits) >> (32-off2_bits);
+}
+
 static char * edmac_format_size_3(
     int x, int off
 )
@@ -2747,10 +2756,10 @@ static int edmac_do_transfer(EOSState *s, int channel)
     int yn = s->edmac.ch[channel].yn;
     int off1a = edmac_fix_off1(s, s->edmac.ch[channel].off1a);
     int off1b = edmac_fix_off1(s, s->edmac.ch[channel].off1b);
-    int off2a = s->edmac.ch[channel].off2a;
-    int off2b = s->edmac.ch[channel].off2b;
-    int off3  = s->edmac.ch[channel].off3;
-    int flags = s->edmac.ch[channel].flags;
+    int off2a = edmac_fix_off2(s, s->edmac.ch[channel].off2a);
+    int off2b = edmac_fix_off2(s, s->edmac.ch[channel].off2b);
+    int off3  = edmac_fix_off2(s, s->edmac.ch[channel].off3);
+    int flags = edmac_fix_off2(s, s->edmac.ch[channel].flags);
     
     printf("%s, ", edmac_format_size(yn, ya, yb, xn, xa, xb, off1a, off1b, off2a, off2b, off3));
 
