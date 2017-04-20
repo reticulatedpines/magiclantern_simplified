@@ -38,6 +38,7 @@ enum crop_preset {
     CROP_PRESET_1x3,
     CROP_PRESET_3x1,
     CROP_PRESET_40_FPS,
+    CROP_PRESET_CENTER_Z,
     NUM_CROP_PRESETS
 };
 
@@ -56,19 +57,33 @@ static enum crop_preset * crop_presets = 0;
 static enum crop_preset crop_presets_5d3[] = {
     CROP_PRESET_OFF,
     CROP_PRESET_3X,
-    CROP_PRESET_CENTER_Z,
+    CROP_PRESET_3X_TALL,
     CROP_PRESET_3x3_1X,
-    CROP_PRESET_1x3,
+    CROP_PRESET_3x3_1X_48p,
+    CROP_PRESET_3K,
+    CROP_PRESET_UHD,
+    CROP_PRESET_4K_HFPS,
+    CROP_PRESET_CENTER_Z,
+    CROP_PRESET_FULLRES_LV,
+  //CROP_PRESET_1x3,
   //CROP_PRESET_3x1,
+  //CROP_PRESET_40_FPS,
 };
 
 static const char * crop_choices_5d3[] = {
     "OFF",
-    "1:1 (3x 1080p/720p)",
-    "1:1 (centered x5 zoom)",
-    "3x3 720p (1x wide)",
-    "1x3 binning",
+    "1920 1:1",
+    "1920 1:1 tall",
+    "1920 50/60 3x3",
+    "1080p45/48 3x3",
+    "3K 1:1",
+    "UHD 1:1",
+    "4K 1:1 half-fps",
+    "3.5K 1:1 centered x5",
+    "Full-res LiveView",
+  //"1x3 binning",
   //"3x1 binning",      /* doesn't work well */
+  //"40 fps",
 };
 
 static const char crop_choices_help_5d3[] =
@@ -364,6 +379,9 @@ static int FAST check_cmos_vidmode(uint16_t* data_buf)
 
 /* pack two 6-bit values into a 12-bit one */
 #define PACK12(lo,hi) ((((lo) & 0x3F) | ((hi) << 6)) & 0xFFF)
+
+/* pack two 16-bit values into a 32-bit one */
+#define PACK32(lo,hi) (((uint32_t)(lo) & 0xFFFF) | ((uint32_t)(hi) << 16))
 
 /* pack two 16-bit values into a 32-bit one */
 #define PACK32(lo,hi) (((uint32_t)(lo) & 0xFFFF) | ((uint32_t)(hi) << 16))
@@ -1471,26 +1489,36 @@ static LVINFO_UPDATE_FUNC(crop_info)
         /* default behavior for unsupported modes */
         snprintf(buffer, sizeof(buffer), SYM_WARNING);
 
-        if (lv_dispsize == 1)
+        if (lv_dispsize > 1)
         {
+            /* special: x5 zoom */
             switch (crop_preset)
             {
-                case CROP_PRESET_3X:
-                    /* In movie mode, we are interested in recording sensor pixels
-                     * without any binning (that is, with 1:1 mapping);
-                     * the actual crop factor varies with raw video resolution.
-                     * So, printing 3x is not very accurate, but 1:1 is.
-                     * 
-                     * In photo mode (mild zoom), what changes is the magnification
-                     * of the preview screen; the raw image is not affected.
-                     * We aren't actually previewing at 1:1 at pixel level,
-                     * so printing 1:1 is a little incorrect.
-                     */
-                    snprintf(buffer, sizeof(buffer), 
-                        is_movie_mode() ? "1:1"
-                                        : "3x"
-                    );
+                case CROP_PRESET_CENTER_Z:
+                    snprintf(buffer, sizeof(buffer), "1:1");
                     break;
+            }
+            goto warn;
+        }
+
+        switch (crop_preset)
+        {
+            case CROP_PRESET_3X:
+                /* In movie mode, we are interested in recording sensor pixels
+                 * without any binning (that is, with 1:1 mapping);
+                 * the actual crop factor varies with raw video resolution.
+                 * So, printing 3x is not very accurate, but 1:1 is.
+                 * 
+                 * In photo mode (mild zoom), what changes is the magnification
+                 * of the preview screen; the raw image is not affected.
+                 * We aren't actually previewing at 1:1 at pixel level,
+                 * so printing 1:1 is a little incorrect.
+                 */
+                snprintf(buffer, sizeof(buffer), 
+                    is_movie_mode() ? "1:1"
+                                    : "3x"
+                );
+                break;
 
             case CROP_PRESET_3X_TALL:
                 snprintf(buffer, sizeof(buffer), "1:1T");
@@ -1524,13 +1552,10 @@ static LVINFO_UPDATE_FUNC(crop_info)
             case CROP_PRESET_3x1:
                 snprintf(buffer, sizeof(buffer), "3x1");
                 break;
-
-            default:
-                snprintf(buffer, sizeof(buffer), "??");
-                break;
         }
     }
 
+warn:
     if (crop_rec_needs_lv_refresh())
     {
         if (!streq(buffer, SYM_WARNING))
