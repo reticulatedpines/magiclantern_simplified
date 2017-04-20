@@ -159,11 +159,12 @@ static int is_supported_mode()
 {
     if (!lv) return 0;
 
-    /* note: zoom check is covered by check_cmos_vidmode */
     switch (crop_preset)
     {
+        /* note: zoom check is also covered by check_cmos_vidmode */
+        /* (we need to apply CMOS settings before PROP_LV_DISPSIZE fires) */
         case CROP_PRESET_CENTER_Z:
-            return 1;
+            return lv_dispsize < 10;
 
         default:
             return is_1080p() || is_720p();
@@ -1470,7 +1471,7 @@ static unsigned int crop_rec_polling_cbr(unsigned int unused)
         lv_dirty = 0;
     }
 
-    if (lv_dispsize > 1 && crop_preset == CROP_PRESET_CENTER_Z)
+    if (lv_dispsize == 5 && crop_preset == CROP_PRESET_CENTER_Z)
     {
         center_canon_preview();
     }
@@ -1489,7 +1490,7 @@ static LVINFO_UPDATE_FUNC(crop_info)
         /* default behavior for unsupported modes */
         snprintf(buffer, sizeof(buffer), SYM_WARNING);
 
-        if (lv_dispsize > 1)
+        if (lv_dispsize == 5)
         {
             /* special: x5 zoom */
             switch (crop_preset)
