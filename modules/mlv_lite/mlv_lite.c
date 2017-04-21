@@ -192,6 +192,8 @@ static int raw_digital_gain_ok()
     }
 
     /* no known contraindications */
+    /* note: temporary overrides such as half-shutter
+     * are handled in setup_bit_depth_digital_gain */
     return 1;
 }
 
@@ -829,6 +831,13 @@ static void setup_bit_depth_digital_gain()
 {
     static int prev_bpp_d = 0;
     int bpp_d = BPP_D;
+
+    if (RAW_IS_IDLE && (lv_dispsize == 10 || get_halfshutter_pressed()))
+    {
+        /* undo bit depth setup while focusing */
+        bpp_d = 14;
+    }
+
     if (bpp_d != prev_bpp_d)
     {
         int div = 1 << (14 - bpp_d);
