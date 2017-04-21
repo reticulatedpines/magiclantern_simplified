@@ -174,7 +174,26 @@ static const int bpp_container[] = { 14, 12, 10, 14, 14, 14, 14, 14, 14 };
 static const int bpp_digi_gain[] = { 14, 14, 14, 14, 12, 11, 10,  9,  8 };
 
 #define BPP     bpp_container[output_format]
-#define BPP_D   bpp_digi_gain[output_format]
+#define BPP_D   (raw_digital_gain_ok() ? bpp_digi_gain[output_format] : 14)
+
+
+static int raw_digital_gain_ok()
+{
+    if (output_format > OUTPUT_14BIT_LOSSLESS)
+    {
+        /* fixme: not working in modes with higher resolution */
+        int default_width  = (lv_dispsize > 1) ? 3744 : 2080;
+        int default_height = (lv_dispsize > 1) ? 1380 : video_mode_fps <= 30 ? 2080 : 692;
+
+        if (raw_info.width > default_width || raw_info.height > default_height)
+        {
+            return 0;
+        }
+    }
+
+    /* no known contraindications */
+    return 1;
+}
 
 /* Recording Status Indicator Options */
 #define INDICATOR_OFF        0
@@ -1066,6 +1085,14 @@ static MENU_UPDATE_FUNC(output_format_update)
         default:
             MENU_SET_RINFO("~%d%%", get_estimated_compression_ratio());
             break;
+    }
+
+    if (output_format > OUTPUT_14BIT_LOSSLESS)
+    {
+        if (!raw_digital_gain_ok())
+        {
+            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Lossless 8...12-bit not working in video modes with increased resolution.");
+        }
     }
 }
 
