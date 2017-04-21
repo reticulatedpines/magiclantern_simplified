@@ -304,7 +304,7 @@ static const uint8_t  codes_aperture[] =  {0,  10,  11,  12,  13,  14,  15,  16,
 // UNIT_1_8_EV
 #define APEX_TV(raw) ((int)(raw) - 56)
 #define APEX_AV(raw) ((raw) ? (int)(raw) - 8 : 0)
-#define APEX_SV(raw) ((int)(raw) - 32)
+#define APEX_SV(raw) ((raw) ? (int)(raw) - 32 : 0)
 
 // UNIT APEX * 10
 #define APEX10_RAW2TV(raw) RSCALE(APEX_TV(raw), 10, 8)
@@ -314,7 +314,7 @@ static const uint8_t  codes_aperture[] =  {0,  10,  11,  12,  13,  14,  15,  16,
 
 #define APEX10_TV2RAW(apex) -APEX_TV(RSCALE(-(apex), 8, 10))
 #define APEX10_AV2RAW(apex) -APEX_AV(RSCALE(-(apex), 8, 10))    /* pathological case at f/0.8 */
-#define APEX10_SV2RAW(apex) -APEX_SV(RSCALE(-(apex), 8, 10))
+#define APEX10_SV2RAW(apex) -APEX_SV(RSCALE(-(apex), 8, 10))    /* pathological case at ISO 3.125 */
 #define APEX10_AV2VAL(apex) values_aperture[raw2index_aperture(APEX10_AV2RAW(apex))]
 
 #define APEX1000_RAW2TV(raw) RSCALE(APEX_TV(raw), 1000, 8)
@@ -324,7 +324,7 @@ static const uint8_t  codes_aperture[] =  {0,  10,  11,  12,  13,  14,  15,  16,
 
 #define APEX1000_TV2RAW(apex) -APEX_TV(RSCALE(-(apex), 8, 1000))
 #define APEX1000_AV2RAW(apex) -APEX_AV(RSCALE(-(apex), 8, 1000))    /* pathological case at f/0.8 */
-#define APEX1000_SV2RAW(apex) -APEX_SV(RSCALE(-(apex), 8, 1000))
+#define APEX1000_SV2RAW(apex) -APEX_SV(RSCALE(-(apex), 8, 1000))    /* pathological case at ISO 3.125 */
 #define APEX1000_EC2RAW(apex) RSCALE(apex, 8, 1000)
 
 // Conversions
