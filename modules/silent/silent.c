@@ -138,16 +138,23 @@ static MENU_UPDATE_FUNC(silent_pic_display)
             MENU_SET_VALUE("Full-res");
             break;
     }
-    
-    if (silent_pic_file_format == SILENT_PIC_FILE_FORMAT_MLV)
+
+    switch (silent_pic_file_format)
     {
-        MENU_SET_HELP("File format: 14-bit MLV, group frames in a single file.");
-        MENU_APPEND_VALUE(", MLV");
-    }
-    else
-    {
-        MENU_SET_HELP("File format: 14-bit DNG, individual files.");
-        MENU_APPEND_VALUE(", DNG");
+        case SILENT_PIC_FILE_FORMAT_MLV:
+            MENU_SET_HELP("File format: 14-bit MLV, group frames in a single file.");
+            MENU_APPEND_VALUE(", MLV");
+            break;
+
+        case SILENT_PIC_FILE_FORMAT_DNG:
+            MENU_SET_HELP("File format: 14-bit uncompressed DNG, individual files.");
+            MENU_APPEND_VALUE(", DNG");
+            break;
+
+        case SILENT_PIC_FILE_FORMAT_LOSSLESS_DNG:
+            MENU_SET_HELP("File format: 14-bit lossless DNG, individual files.");
+            MENU_APPEND_VALUE(", L-DNG");
+            break;
     }
     
     if (silent_pic_mode == SILENT_PIC_MODE_FULLRES && (shooting_mode != SHOOTMODE_M || is_movie_mode()))
@@ -456,24 +463,20 @@ static int save_lossless_dng(char * filename, struct raw_info * raw_info, struct
     /* compress the image in-place */
 
     /* skip the top bar (that way, we'll be able to avoid race conditions) */
-    /* note: this does not operate on global raw_info, so overwriting temporarily is OK */
-    struct raw_info old_raw_info = *raw_info;
-    int dy = raw_info->active_area.y1;
-    int dm = dy * raw_info->pitch;
-    raw_info->buffer += dm;
-    raw_info->frame_size -= dm;
-    raw_info->height -= dy;
-    raw_info->active_area.y1 -= dy;
-    raw_info->active_area.y2 -= dy;
+    int dy = out_raw_info.active_area.y1;
+    int dm = dy * out_raw_info.pitch;
+    void * output_buffer = out_raw_info.buffer;     /* output buffer = real buffer */
+    out_raw_info.buffer += dm;                      /* input buffer = real buffer + top bar size */
+    out_raw_info.frame_size -= dm;
+    out_raw_info.height -= dy;
+    out_raw_info.active_area.y1 -= dy;
+    out_raw_info.active_area.y2 -= dy;
 
-    /* fixme: why passing the real buffer size result in lockup? */
-    struct memSuite * out_suite = CreateMemorySuite(out_raw_info.buffer, 10*1024*1024, 0);
-    out_raw_info.frame_size = lossless_compress_raw(raw_info, out_suite);
+    struct memSuite * out_suite = CreateMemorySuite(output_buffer, raw_info->frame_size & ~0xFFF, 0);
+    out_raw_info.frame_size = lossless_compress_raw(&out_raw_info, out_suite);
     ASSERT(out_raw_info.frame_size < raw_info->frame_size);
+    out_raw_info.buffer = output_buffer;
     DeleteMemorySuite(out_suite);
-
-    /* restore raw_info */
-    *raw_info = old_raw_info;
 
     int ok = save_dng(filename, &out_raw_info);
     if (!ok) bmp_printf( FONT_MED, 0, 83, "DNG save error (card full?)");
@@ -881,7 +884,7 @@ static int silent_pic_raw_prepare_buffers(struct memSuite * mem_suite, int initi
     /* we'll look for contiguous blocks equal to raw_info.frame_size */
     /* (so we'll make sure we can write raw_info.frame_size starting from ptr) */
 
-    int count = 0;
+    int count = initial_count;
     int max_frame_size = (raw_info.frame_size + 255) & ~255;
 
     if (mem_suite)
@@ -953,6 +956,8 @@ silent_pic_take_lv(int interactive)
      */
     struct memSuite * hSuiteX = 0;
 
+    memset(sp_frames, 0, sizeof(sp_frames));
+
     switch (silent_pic_mode)
     {
         /* allocate as much as we can in burst mode */
@@ -1002,23 +1007,30 @@ silent_pic_take_lv(int interactive)
     if (hSuite1)
     {
         total_size += hSuite1->size;
-        sp_buffer_count += silent_pic_raw_prepare_buffers(hSuite1, sp_buffer_count);
+        sp_buffer_count = silent_pic_raw_prepare_buffers(hSuite1, sp_buffer_count);
     }
     if (hSuite2)
     {
         total_size += hSuite2->size;
-        sp_buffer_count += silent_pic_raw_prepare_buffers(hSuite2, sp_buffer_count);
+        sp_buffer_count = silent_pic_raw_prepare_buffers(hSuite2, sp_buffer_count);
     }
 
     if (sp_buffer_count > 1)
+    {
         bmp_printf(FONT_MED, 0, 83, "Buffer: %d frames (%d%%)", sp_buffer_count, sp_buffer_count * raw_info.frame_size / (total_size / 100));
+    }
 
     if (sp_buffer_count == 0)
     {
         bmp_printf(FONT_MED, 0, 83, "Buffer error");
         goto cleanup;
     }
-    
+
+    for (int i = 0; i < sp_buffer_count; i++)
+    {
+        ASSERT(sp_frames[i]);
+    }
+
     /* misc initializers */
     sp_num_frames = 0;
     sp_slitscan_line = 0;
@@ -1436,7 +1448,6 @@ silent_pic_take_fullres(int interactive)
             memcpy(local_raw_info.buffer, raw_info.buffer, local_raw_info.frame_size);
         }
 
-        /* todo: use copy_buf for lossless DNG, as shoot_malloc may fail on some cameras */
         ok = silent_pic_save_file(&local_raw_info, capture_time, 0);
         int t1 = get_ms_clock();
         save_time = t1 - t0;
