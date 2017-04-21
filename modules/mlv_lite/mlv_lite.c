@@ -2485,23 +2485,23 @@ static void compress_task()
 
             DeleteMemorySuite(outSuite);
 
-            if (compressed_size >= frame_size_uncompressed)
-            {
-                printf("\nCompressed size higher than uncompressed - corrupted frame?\n");
-                printf("Please reboot, then decrease vertical resolution in crop_rec menu.\n\n");
-                buffer_full = 1;
-                ASSERT(0);
-            }
-            else if (compressed_size > max_frame_size - VIDF_HDR_SIZE - 4)
-            {
-                printf("Compressed size too high - too much detail or noise?\n");
-                printf("Consider using uncompressed 10/12-bit.");
-                buffer_full = 1;
-                ASSERT(0);
-            }
-
             if (slots[slot_index].ptr)
             {
+                if (compressed_size >= frame_size_uncompressed)
+                {
+                    printf("\nCompressed size higher than uncompressed - corrupted frame?\n");
+                    printf("Please reboot, then decrease vertical resolution in crop_rec menu.\n\n");
+                    buffer_full = 1;
+                    ASSERT(0);
+                }
+                else if (compressed_size > max_frame_size - VIDF_HDR_SIZE - 4)
+                {
+                    printf("Compressed size too high - too much detail or noise?\n");
+                    printf("Consider using uncompressed 10/12-bit.");
+                    buffer_full = 1;
+                    ASSERT(0);
+                }
+
                 /* resize frame slots on the fly, to compressed size */
                 shrink_slot(slot_index, MIN(compressed_size, max_frame_size - VIDF_HDR_SIZE - 4));
                 
