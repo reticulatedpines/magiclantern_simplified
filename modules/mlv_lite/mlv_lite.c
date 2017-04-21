@@ -66,6 +66,7 @@ static int show_edmac = 0;
 #include "raw.h"
 #include "zebra.h"
 #include "focus.h"
+#include "lens.h"
 #include "fps.h"
 #include "../mlv_rec/mlv.h"
 #include "../mlv_rec/mlv_rec_interface.h"
@@ -161,21 +162,71 @@ static CONFIG_INT("raw.output_format", output_format, 1);
 #define OUTPUT_10BIT_UNCOMPRESSED 2
 #define OUTPUT_14BIT_LOSSLESS 3
 #define OUTPUT_12BIT_LOSSLESS 4
-#define OUTPUT_11BIT_LOSSLESS 5
-#define OUTPUT_10BIT_LOSSLESS 6
-#define OUTPUT_9_BIT_LOSSLESS 7
-#define OUTPUT_8_BIT_LOSSLESS 8
+#define OUTPUT_AUTO_BIT_LOSSLESS 5
 #define OUTPUT_COMPRESSION (output_format>2)
 
 /* container BPP (variable for uncompressed, always 14 for lossless JPEG) */
 static const int bpp_container[] = { 14, 12, 10, 14, 14, 14, 14, 14, 14 };
 
 /* "fake" lower bit depths using digital gain (for lossless JPEG) */
-static const int bpp_digi_gain[] = { 14, 14, 14, 14, 12, 11, 10,  9,  8 };
+//static const int bpp_digi_gain[] = { 14, 14, 14, 14, 12, 11, 10,  9,  8 };
 
 #define BPP     bpp_container[output_format]
-#define BPP_D   (raw_digital_gain_ok() ? bpp_digi_gain[output_format] : 14)
+#define BPP_D   (raw_digital_gain_ok() ? bpp_digital_gain() : 14)
 
+static int bpp_digital_gain()
+{
+    if (output_format <= OUTPUT_14BIT_LOSSLESS)
+    {
+        return 14;
+    }
+
+    if (output_format == OUTPUT_12BIT_LOSSLESS)
+    {
+        return 12;
+    }
+
+    /* auto, depending on ISO */
+    /* 5D3 noise levels (raw_diag, dark frame, 1/50, ISO 100-25600, ~50C):
+     * octave code to get recommendations (copy/paste):
+     * see https://theory.uchicago.edu/~ejm/pix/20d/tests/noise/noise-p3.html (third figure)
+           isos   = [100 200 400 800 1600 3200 6400 12800 25600];
+           noises = [6.7 6.9 7.1 7.8  9.0 11.7 16.8  33.6  66.7];   % 3x3 (1080p; 720p is very close)
+           noisez = [6.1 6.4 7.1 8.6 11.8 18.4 31.4  62.5 123.5];   % 1:1 (5x zoom, crop modes)
+           divide = [1 4 8 16 32 64];
+           for i = 1:6,
+               fullhd = [log2(2**14/divide(i)), isos(noises/divide(i) < 2.5 & noises/divide(i) > 0.49 )]
+               crop11 = [log2(2**14/divide(i)), isos(noisez/divide(i) < 2.5 & noisez/divide(i) > 0.49 )]
+           end
+     */
+
+    int sampling_x   = raw_capture_info.binning_x + raw_capture_info.skipping_x;
+    int sampling_y   = raw_capture_info.binning_y + raw_capture_info.skipping_y;
+    int is_crop = (sampling_x == 1 && sampling_y == 1);
+
+    if (lens_info.raw_iso == 0)
+    {
+        /* no auto ISO, please */
+        return 11;
+    }
+
+    if (lens_info.iso_analog_raw <= (is_crop ? ISO_400 : ISO_800))
+    {
+        return 11;
+    }
+
+    if (lens_info.iso_analog_raw <= (is_crop ? ISO_1600 : ISO_3200))
+    {
+        return 10;
+    }
+
+    if (lens_info.iso_analog_raw <= (is_crop ? ISO_3200 : ISO_6400))
+    {
+        return 9;
+    }
+
+    return 8;
+}
 
 static int raw_digital_gain_ok()
 {
@@ -722,14 +773,10 @@ static int get_estimated_compression_ratio()
             return 60;
         case OUTPUT_12BIT_LOSSLESS:
             return 52;
-        case OUTPUT_11BIT_LOSSLESS:
+        default:
+            /* handle possible overflows from old config */
+            output_format = OUTPUT_AUTO_BIT_LOSSLESS;
             return 50;
-        case OUTPUT_10BIT_LOSSLESS:
-            return 48;
-        case OUTPUT_9_BIT_LOSSLESS:
-            return 45;
-        case OUTPUT_8_BIT_LOSSLESS:
-            return 40;
     }
     
     /* should be unreachable */
@@ -1098,6 +1145,8 @@ static MENU_UPDATE_FUNC(output_format_update)
 
     if (output_format > OUTPUT_14BIT_LOSSLESS)
     {
+        MENU_SET_VALUE("%d-bit lossless", BPP_D);
+
         if (!raw_digital_gain_ok())
         {
             MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Lossless 8...12-bit not working in video modes with increased resolution.");
@@ -3572,7 +3621,7 @@ static struct menu_entry raw_video_menu[] =
             {
                 .name       = "Data format",
                 .priv       = &output_format,
-                .max        = 8,
+                .max        = 5,
                 .update     = output_format_update,
                 .choices    = CHOICES(
                                 "14-bit",
@@ -3580,10 +3629,7 @@ static struct menu_entry raw_video_menu[] =
                                 "10-bit",
                                 "14-bit lossless",
                                 "12-bit lossless",
-                                "11-bit lossless",
-                                "10-bit lossless",
-                                "9-bit lossless",
-                                "8-bit lossless",
+                                "11...8-bit lossless",
                               ),
                 .help       = "Choose the output format (bit depth, compression) for the raw stream:",
                 .help2      = "14-bit: native uncompressed format used in Canon firmware.\n"
@@ -3591,19 +3637,7 @@ static struct menu_entry raw_video_menu[] =
                               "10-bit: uncompressed, 4 LSB trimmed (small loss of detail in shadows).\n"
                               "14-bit compressed with Canon's Lossless JPEG. Recommended ISO < 100.\n"
                               "Signal divided by 4 before compression. Recommended ISO 100-1600.\n"
-                              "Signal divided by 8 before compression. Recommended ISO 100-6400.\n"
-                              "Signal divided by 16 before compression. Recommended ISO 1600+.\n"
-                              "Signal divided by 32 before compression. Recommended ISO 6400+.\n"
-                              "Signal divided by 64 before compression. Recommenedd ISO 12800+.\n",
-                /* 5D3 noise levels (raw_diag, dark frame, 1/50, ISO 100-25600, ~50C):
-                 * octave code to get recommendations:
-                 * isos   = [100 200 400 800 1600 3200 6400 12800 25600];
-                 * noises = [6.7 6.9 7.1 7.8  9.0 11.7 16.8  33.6  66.7];
-                 * gains  = [1 4 8 16 32 64];
-                 * for i = 1:6,
-                 *     [log2(2**14/gains(i)), isos(noises/gains(i) < 2.5 & noises/gains(i) > 0.5 )]
-                 * end
-                 */
+                              "Signal divided by 8/16/32/64 before compression, depending on ISO.\n"
             },
             {
                 .name = "Preview",
