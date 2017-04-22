@@ -92,10 +92,17 @@ static const char crop_choices_help_5d3[] =
 static const char crop_choices_help2_5d3[] =
     "\n"
     "1:1 sensor readout (square raw pixels, 3x crop, good preview in 1080p)\n"
+    "1:1 crop, higher vertical resolution (1920x1920 @ 24p, cropped preview)\n"
+    "1920x960 @ 50p, 1920x800 @ 60p (3x3 binning, cropped preview)\n"
+    "1920x1080 @ 45/48p, 3x3 binning (50/60 FPS in Canon menu)\n"
+    "1:1 3K crop (3072x1920 @ 24p, square raw pixels, preview broken)\n"
+    "1:1 4K UHD crop (3840x1600 @ 24p, square raw pixels, preview broken)\n"
+    "1:1 4K crop (4096x3072 @ 12.5 fps, half frame rate, preview broken)\n"
     "1:1 readout in x5 zoom mode (centered raw, high res, cropped preview)\n"
-    "3x3 binning in 720p (square pixels in RAW, vertical crop, ratio 29:10)\n"
+    "Full resolution LiveView (5796x3870 @ 7.4 fps, 5784x3864, preview broken)\n"
     "1x3 binning: read all lines, bin every 3 columns (extreme anamorphic)\n"
-    "3x1 binning: bin every 3 lines, read all columns (extreme anamorphic)\n";
+    "3x1 binning: bin every 3 lines, read all columns (extreme anamorphic)\n"
+    "FPS override test\n";
 
 /* menu choices for EOS M */
 static enum crop_preset crop_presets_eosm[] = {
@@ -276,7 +283,7 @@ static int max_resolutions[NUM_CROP_PRESETS][5] = {
     [CROP_PRESET_3x3_1X_48p]    = { 1290, 1290, 1290, 1080, 1080 }, /* 1080p45/48 */
     [CROP_PRESET_3K]            = { 1920, 1728, 1504,  760,  680 },
     [CROP_PRESET_UHD]           = { 1536, 1472, 1120,  640,  540 },
-    [CROP_PRESET_4K_HFPS]       = { 2560, 2560, 2500, 1440, 1200 },
+    [CROP_PRESET_4K_HFPS]       = { 3072, 3072, 2500, 1440, 1200 },
     [CROP_PRESET_FULLRES_LV]    = { 3870, 3870, 3870, 3870, 3870 },
 };
 
