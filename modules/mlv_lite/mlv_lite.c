@@ -1227,8 +1227,56 @@ static MENU_UPDATE_FUNC(rec_trigger_update)
     }
 }
 
+static void * alloc_fullsize_buffer(struct memSuite * mem_suite, int fullres_buf_size)
+{
+    void * best_buffer = 0;
+    int min_wasted_space = INT_MAX;
+
+    if(mem_suite)
+    {
+        /* use all chunks larger than max_frame_size for recording */
+        struct memChunk * chunk = GetFirstChunkFromSuite(mem_suite);
+        while(chunk)
+        {
+            int size = GetSizeOfMemoryChunk(chunk);
+            intptr_t ptr = (intptr_t) GetMemoryAddressOfMemoryChunk(chunk);
+
+            /* use-after-free from raw backend? skip this chunk */
+            if ((void*)ptr + 0x100 == raw_info.buffer)
+            {
+                printf("Skipping %x (raw buffer).\n", ptr);
+                goto next;
+            }
+
+            /* pick the buffer with the least amount of wasted space */
+            if (size >= fullres_buf_size)
+            {
+                int wasted = (size - fullres_buf_size - 64) % max_frame_size;
+                if (wasted < min_wasted_space)
+                {
+                    /* found a better one */ 
+                    best_buffer = (void *) ptr;
+                    min_wasted_space = wasted;
+                }
+            }
+            
+        next:
+            /* next chunk */
+            chunk = GetNextMemoryChunk(mem_suite, chunk);
+        }
+    }
+
+    if (best_buffer)
+    {
+        printf("Using double-buffering (frame size %s", format_memory_size(max_frame_size));
+        printf(", wasted %s).\n", format_memory_size(min_wasted_space));
+    }
+
+    return best_buffer;
+}
+
 static REQUIRES(settings_sem)
-void add_reserved_slots(void * ptr, int n)
+static void add_reserved_slots(void * ptr, int n)
 {
     /* each group has some additional (empty) slots,
      * to be used when frames are compressed
@@ -1244,7 +1292,7 @@ void add_reserved_slots(void * ptr, int n)
 }
 
 static REQUIRES(RawRecTask)
-int add_mem_suite(struct memSuite * mem_suite, int chunk_index)
+static int add_mem_suite(struct memSuite * mem_suite, int chunk_index, int fullres_buf_size)
 {
     if(mem_suite)
     {
@@ -1254,6 +1302,21 @@ int add_mem_suite(struct memSuite * mem_suite, int chunk_index)
         {
             int size = GetSizeOfMemoryChunk(chunk);
             intptr_t ptr = (intptr_t) GetMemoryAddressOfMemoryChunk(chunk);
+
+            /* use-after-free from raw backend? skip this chunk */
+            if ((void*)ptr + 0x100 == raw_info.buffer)
+            {
+                printf("Skipping %x (raw buffer).\n", ptr);
+                goto next;
+            }
+
+            /* already used for a full-size buffer? */
+            if ((void*)ptr == fullsize_buffers[0])
+            {
+                ptr += fullres_buf_size;
+                size -= fullres_buf_size;
+                printf("%x: %s after full-res buffer.\n", ptr, format_memory_size(size));
+            }
 
             /* write it down for future frame predictions */
             if (chunk_index < COUNT(chunk_list) && size > 64)
@@ -1315,32 +1378,33 @@ int add_mem_suite(struct memSuite * mem_suite, int chunk_index)
 static REQUIRES(RawRecTask)
 int setup_buffers()
 {
-    /* allocate memory for double buffering */
-    /* (we need a single large contiguous chunk) */
-    int buf_size = raw_info.width * raw_info.height * BPP/8 * 33/32; /* leave some margin, just in case */
     ASSERT(fullsize_buffers[0] == 0);
 
-    if (buf_size > 20 * 1024 * 1024 - 1024)
+    /* allocate memory for double buffering */
+    /* (we need a single large contiguous chunk) */
+
+    /* the EDMAC on old models might copy a little more,
+     * depending on how the EDMAC size was interpreted back then
+     * todo: double-check (for now, allocate a bit more, just in case)
+     */
+    int fullres_buf_size = raw_info.width * (raw_info.height + 2) * BPP/8;
+
+    if (fullres_buf_size > 20 * 1024 * 1024 - 1024 && !OUTPUT_COMPRESSION)
     {
-        /* large buffers? assume single-buffering is safe */
+        /* large buffers? assume single-buffering is safe for uncompressed output */
         printf("Using single buffering (check with Show EDMAC).\n");
         fullsize_buffers[0] = UNCACHEABLE(raw_info.buffer);
     }
+
+#if 0
     else
     {
-        printf("Using double buffering.\n");
-        fullsize_buffers[0] = fio_malloc(buf_size);
+        /* fixme: using fio_malloc with large buffers
+         * prevents the use of srm_malloc_suite */
+        printf("Using double buffering (%s).\n", format_memory_size(fullres_buf_size));
+        fullsize_buffers[0] = fio_malloc(fullres_buf_size);
     }
-    
-    /* reuse Canon's buffer */
-    fullsize_buffers[1] = UNCACHEABLE(raw_info.buffer);
-
-    /* anything wrong? */
-    if(fullsize_buffers[0] == 0 || fullsize_buffers[1] == 0)
-    {
-        /* buffers will be freed by caller in the cleanup section */
-        return 0;
-    }
+#endif
 
     /* allocate the entire memory, but only use large chunks */
     /* yes, this may be a bit wasteful, but at least it works */
@@ -1354,10 +1418,40 @@ int setup_buffers()
     {
         return 0;
     }
-        
+
+    /* allocate a full-size buffer, if we haven't one already */
+    if (!fullsize_buffers[0])
+    {
+        printf("Trying double buffering (shoot, full size %s)...\n", format_memory_size(fullres_buf_size));
+        fullsize_buffers[0] = alloc_fullsize_buffer(shoot_mem_suite, fullres_buf_size);
+    }
+    if (!fullsize_buffers[0])
+    {
+        printf("Trying double buffering (SRM)...\n");
+        fullsize_buffers[0] = alloc_fullsize_buffer(srm_mem_suite, fullres_buf_size);
+    }
+    if (!fullsize_buffers[0])
+    {
+        /* still unsuccessful? */
+        printf("Falling back to single buffering (check with Show EDMAC).\n");
+        fullsize_buffers[0] = UNCACHEABLE(raw_info.buffer);
+    }
+
+    /* reuse Canon's buffer */
+    fullsize_buffers[1] = UNCACHEABLE(raw_info.buffer);
+
+    /* anything wrong? */
+    if(fullsize_buffers[0] == 0 || fullsize_buffers[1] == 0)
+    {
+        /* buffers will be freed by caller in the cleanup section */
+        printf("Could not allocate full-size buffers.\n");
+        return 0;
+    }
+
     int chunk_index = 0;
-    chunk_index = add_mem_suite(shoot_mem_suite, chunk_index);
-    chunk_index = add_mem_suite(srm_mem_suite, chunk_index);
+    chunk_index = add_mem_suite(shoot_mem_suite, chunk_index, fullres_buf_size);
+    printf("%d slots from shoot_malloc.\n", valid_slot_count);
+    chunk_index = add_mem_suite(srm_mem_suite, chunk_index, fullres_buf_size);
 
     if (srm_mem_suite)
     {
