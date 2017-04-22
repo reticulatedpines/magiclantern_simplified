@@ -694,6 +694,13 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
     }
     
 
+    if (crop_preset == CROP_PRESET_CENTER_Z)
+    {
+        /* no ADTG overrides required */
+        /* fixme: they will actually interfere with shutter speed */
+        return;
+    }
+
     if (is_5D3 && !is_720p())
     {
         if (crop_preset == CROP_PRESET_3x3_1X ||
