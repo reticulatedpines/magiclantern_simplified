@@ -67,6 +67,7 @@ static int show_edmac = 0;
 #include "zebra.h"
 #include "focus.h"
 #include "lens.h"
+#include "focus.h"
 #include "fps.h"
 #include "../mlv_rec/mlv.h"
 #include "../mlv_rec/mlv_rec_interface.h"
@@ -3644,6 +3645,7 @@ static struct menu_entry raw_video_menu[] =
                 .priv = &preview_mode,
                 .max = 3,
                 .choices = CHOICES("Auto", "Real-time", "Framing", "Frozen LV"),
+                .help  = "Raw video preview (long half-shutter press to override):",
                 .help2 = "Auto: ML chooses what's best for each video mode\n"
                          "Plain old LiveView (color and real-time). Framing is not always correct.\n"
                          "Slow (not real-time) and low-resolution, but has correct framing.\n"
@@ -3970,21 +3972,21 @@ static int raw_rec_should_preview(void)
     {
         /* half-shutter overrides default choice */
         if (preview_broken) return 1;
-        return prefer_framing_preview ^ get_halfshutter_pressed();
+        return prefer_framing_preview ^ long_halfshutter_press;
     }
     else if (PREVIEW_CANON)
     {
-        return 0;
+        return long_halfshutter_press;
     }
     else if (PREVIEW_ML)
     {
-        return 1;
+        return !long_halfshutter_press;
     }
     else if (PREVIEW_HACKED)
     {
         if (preview_broken) return 1;
         return (RAW_IS_RECORDING || prefer_framing_preview)
-            ^ get_halfshutter_pressed();
+            ^ long_halfshutter_press;
     }
     
     return 0;
