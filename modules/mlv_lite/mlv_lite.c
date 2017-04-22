@@ -63,6 +63,7 @@
 #include "beep.h"
 #include "raw.h"
 #include "zebra.h"
+#include "focus.h"
 #include "fps.h"
 #include "../mlv_rec/mlv.h"
 #include "../trace/trace.h"
@@ -2182,6 +2183,7 @@ static struct menu_entry raw_video_menu[] =
                 .priv = &preview_mode,
                 .max = 3,
                 .choices = CHOICES("Auto", "Real-time", "Framing", "Frozen LV"),
+                .help  = "Raw video preview (long half-shutter press to override):",
                 .help2 = "Auto: ML chooses what's best for each video mode\n"
                          "Plain old LiveView (color and real-time). Framing is not always correct.\n"
                          "Slow (not real-time) and low-resolution, but has correct framing.\n"
@@ -2368,25 +2370,55 @@ static int raw_rec_should_preview(void)
         (framing_incorrect)          ? 1 :  /* use correct framing in modes where Canon preview is incorrect */
                                        0 ;  /* otherwise, use plain LiveView */
 
+    /* only override on long half-shutter press, when not autofocusing */
+    /* todo: move these in core, with a proper API */
+    static int long_halfshutter_press = 0;
+    static int last_hs_unpress = 0;
+    static int autofocusing = 0;
+
+    if (!get_halfshutter_pressed())
+    {
+        autofocusing = 0;
+        long_halfshutter_press = 0;
+        last_hs_unpress = get_ms_clock_value();
+    }
+    else
+    {
+        if (lv_focus_status == 3)
+        {
+            autofocusing = 1;
+        }
+        if (get_ms_clock_value() - last_hs_unpress > 500)
+        {
+            long_halfshutter_press = 1;
+        }
+    }
+
+    if (autofocusing)
+    {
+        /* disable our preview during autofocus */
+        return 0;
+    }
+
     if (PREVIEW_AUTO)
     {
         /* half-shutter overrides default choice */
         if (preview_broken) return 1;
-        return prefer_framing_preview ^ get_halfshutter_pressed();
+        return prefer_framing_preview ^ long_halfshutter_press;
     }
     else if (PREVIEW_CANON)
     {
-        return 0;
+        return long_halfshutter_press;
     }
     else if (PREVIEW_ML)
     {
-        return 1;
+        return !long_halfshutter_press;
     }
     else if (PREVIEW_HACKED)
     {
         if (preview_broken) return 1;
         return (RAW_IS_RECORDING || prefer_framing_preview)
-            ^ get_halfshutter_pressed();
+            ^ long_halfshutter_press;
     }
     
     return 0;
