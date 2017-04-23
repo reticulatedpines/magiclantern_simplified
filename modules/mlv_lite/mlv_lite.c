@@ -1341,9 +1341,16 @@ static int add_mem_suite(struct memSuite * mem_suite, int chunk_index, int fullr
             while (size >= max_frame_size && total_slot_count < COUNT(slots))
             {
                 slots[total_slot_count].ptr = (void*) ptr;
-                slots[total_slot_count].size = max_frame_size;
-                slots[total_slot_count].payload_size = frame_size_uncompressed;
                 slots[total_slot_count].status = SLOT_FREE;
+                slots[total_slot_count].size = max_frame_size;
+
+                /* fixme: duplicate code (shrink_slot, frame_size_uncompressed etc) */
+                slots[total_slot_count].payload_size = 
+                    (OUTPUT_COMPRESSION) ? max_frame_size - VIDF_HDR_SIZE - 4
+                                         : frame_size_uncompressed ;
+                int checked_size = (slots[total_slot_count].payload_size + VIDF_HDR_SIZE + 4 + 511) & ~511;
+                ASSERT(checked_size == slots[total_slot_count].size);
+
                 ptr += max_frame_size;
                 size -= max_frame_size;
                 group_size += max_frame_size;
@@ -2433,6 +2440,8 @@ static void frame_add_checks(int slot_index)
     uint32_t edmac_size = (slots[slot_index].payload_size + 3) & ~3;
     uint32_t* frame_end = ptr + edmac_size - 4;
     uint32_t* after_frame = ptr + edmac_size;
+    uint32_t* last_valid = slots[slot_index].ptr + slots[slot_index].size - 4;
+    ASSERT(after_frame <= last_valid);
     *(volatile uint32_t*) frame_end = FRAME_SENTINEL; /* this will be overwritten by EDMAC */
     *(volatile uint32_t*) after_frame = FRAME_SENTINEL; /* this shalt not be overwritten */
 }
