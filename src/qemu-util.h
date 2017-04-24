@@ -25,6 +25,10 @@ void qemu_hptimer_test();
 #define REG_RAW_BUFF   0xCF12301C
 #define REG_DISP_TYPE  0xCF123020
 
+/* print a 32-bit number (also works very early in the boot process) */
+/* number formatting done in QEMU */
+static inline void qprintn(int32_t num) { MEM(REG_PRINT_NUM) = num; }
+
 #else /* without CONFIG_QEMU */
 
 /* these don't execute anything on regular builds (without CONFIG_QEMU) */
@@ -32,6 +36,7 @@ void qemu_hptimer_test();
 /* but the calls will still be type-checked, unlike ifdef */
 static inline int qprintf(const char * fmt, ...) { return 0; }
 static inline int qprint(const char * msg) { return 0; }
+static inline void qprintn(int num) { }
 
 #endif
 #endif
