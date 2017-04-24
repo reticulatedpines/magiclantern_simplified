@@ -3,6 +3,8 @@
 # Convert a set of QEMU logs to HTML format.
 # Usage: ./html_logs.sh *.html
 
+mkdir -p html/
+cp ansi.css html/
 for f in $*; do
   html=html/$f.html
   html_dir=`dirname $html`
@@ -12,4 +14,3 @@ for f in $*; do
   python ansi_cleanup.py $f | ansi2html > $html
   perl -i -pe 'BEGIN{undef $/;} s/<style.*style>/<link href="'"$css"'" rel="stylesheet" type="text\/css"\/>/smg' $html
 done
-cp ansi.css html/

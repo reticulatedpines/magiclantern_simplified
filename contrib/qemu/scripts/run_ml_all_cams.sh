@@ -14,6 +14,8 @@ INCREMENTAL=${INCREMENTAL:=}                # skip make clean (default: full reb
 AUTOEXEC_ONLY=${AUTOEXEC_ONLY:=}            # copy only autoexec.bin (default: make zip and full install)
 ML_OPTIONS=${ML_OPTIONS:=}                  # ML compile options (e.g. "CONFIG_QEMU=y")
 
+QEMU_SCRIPT="$QEMU_SCRIPT; echo quit"
+
 . ./mtools_setup.sh
 
 cd ../magic-lantern/platform
@@ -53,7 +55,6 @@ for cam in [[:upper:]]*/ [[:digit:]]*/; do
     CAM_FW=${cam////}
 
     # setup QEMU command line
-    QEMU_SCRIPT="$QEMU_SCRIPT; echo quit"
     LOGNAME=$LOG_PREFIX$CAM_FW$LOG_SUFFIX.log
     QEMU_INVOKE="./run_canon_fw.sh $CAM,firmware='boot=$BOOT' -display none -monitor stdio $QEMU_ARGS"
 
