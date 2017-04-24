@@ -115,7 +115,7 @@ copy_and_restart( )
     cache_lock();
 
     /* patch init code to start our init task instead of canons default */
-    qprintf("[BOOT] changing init_task from %x to %x.\n" MEM(HIJACK_CACHE_HACK_INITTASK_ADDR), my_init_task);
+    qprint("[BOOT] patching init_task from "); qprintn(MEM(HIJACK_CACHE_HACK_INITTASK_ADDR));
     cache_fake(HIJACK_CACHE_HACK_INITTASK_ADDR, (uint32_t) my_init_task, TYPE_DCACHE);
 
     /* now start main firmware */
@@ -192,7 +192,7 @@ copy_and_restart( )
 #ifndef CONFIG_6D
 #if !defined(CONFIG_EARLY_PORT) && !defined(CONFIG_HELLO_WORLD) && !defined(CONFIG_DUMPER_BOOTFLAG)
     // Install our task creation hooks
-    qprintf("[BOOT] installing task dispatch hook at %x.\n", &task_dispatch_hook);
+    qprint("[BOOT] installing task dispatch hook at "); qprintn((int)&task_dispatch_hook);
     task_dispatch_hook = my_task_dispatch_hook;
     #ifdef CONFIG_TSKMON
     tskmon_init();
@@ -658,6 +658,9 @@ init_task_func init_task_patched(int a, int b, int c, int d)
     uint32_t* addr_AllocMem_end     = (void*)(CreateTaskMain_reloc_buf + ROM_ALLOCMEM_END + CreateTaskMain_offset);
     uint32_t* addr_BL_AllocMem_init = (void*)(CreateTaskMain_reloc_buf + ROM_ALLOCMEM_INIT + CreateTaskMain_offset);
 
+    qprint("[BOOT] changing sys_mem_end:\n");
+    qdisas((uint32_t)addr_AllocMem_end);
+
     #if defined(CONFIG_550D)
     // change end limit to 0xc60000 => reserve 640K for ML
     *addr_AllocMem_end = MOV_R1_0xC60000_INSTR;
@@ -667,6 +670,8 @@ init_task_func init_task_patched(int a, int b, int c, int d)
     *addr_AllocMem_end = MOV_R1_0xC80000_INSTR;
     ml_reserved_mem = 512 * 1024;
     #endif
+
+    qdisas((uint32_t)addr_AllocMem_end);
 
     // relocating CreateTaskMain does some nasty things, so, right after patching,
     // we jump back to ROM version; at least, what's before patching seems to be relocated properly
