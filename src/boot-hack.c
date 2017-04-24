@@ -39,7 +39,7 @@
 
 #include "boot-hack.h"
 #include "reloc.h"
-
+#include "qemu-util.h"
 #include "ml-cbr.h"
 
 #if defined(FEATURE_GPS_TWEAKS)
@@ -115,6 +115,7 @@ copy_and_restart( )
     cache_lock();
 
     /* patch init code to start our init task instead of canons default */
+    qprintf("[BOOT] changing init_task from %x to %x.\n" MEM(HIJACK_CACHE_HACK_INITTASK_ADDR), my_init_task);
     cache_fake(HIJACK_CACHE_HACK_INITTASK_ADDR, (uint32_t) my_init_task, TYPE_DCACHE);
 
     /* now start main firmware */
@@ -141,8 +142,16 @@ copy_and_restart( )
      * calls bzero(), then loads bs_end and calls
      * create_init_task
      */
-    // Reserve memory after the BSS for our application
     #if !defined(CONFIG_ALLOCATE_MEMORY_POOL) // Some cameras load ML into the AllocateMemory pool (like 5500D/1100D)
+    // Reserve memory after the BSS for our application
+    // This is done by resizing the malloc memory pool (user_mem_start in DryOS memory map),
+    // We are going to change its start address, to begin right after our BSS,
+    // (which is the last segment in our binary - see magiclantern.lds.S). */
+    // Malloc memory is usually specified by its start and end address.
+    // Exception: DIGIC 6 uses start address + size.
+    // Cannot use qprintf here (no snprintf); qprintn includes newline.
+    qprint("[BOOT] changing user_mem_start from "); qprintn(INSTR(HIJACK_INSTR_BSS_END));
+    qprint("       to "); qprintn((uintptr_t)_bss_end);
     INSTR( HIJACK_INSTR_BSS_END ) = (uintptr_t) _bss_end;
     ml_reserved_mem = (uintptr_t)_bss_end - RESTARTSTART;
     #endif
@@ -152,6 +161,7 @@ copy_and_restart( )
     FIXUP_BRANCH( HIJACK_FIXBR_CREATE_ITASK, create_init_task );
 
     // Set our init task to run instead of the firmware one
+    qprint("[BOOT] changing init_task from "); qprintn(INSTR( HIJACK_INSTR_MY_ITASK ));
     INSTR( HIJACK_INSTR_MY_ITASK ) = (uint32_t) my_init_task;
     
     // Make sure that our self-modifying code clears the cache
@@ -182,6 +192,7 @@ copy_and_restart( )
 #ifndef CONFIG_6D
 #if !defined(CONFIG_EARLY_PORT) && !defined(CONFIG_HELLO_WORLD) && !defined(CONFIG_DUMPER_BOOTFLAG)
     // Install our task creation hooks
+    qprintf("[BOOT] installing task dispatch hook at %x.\n", &task_dispatch_hook);
     task_dispatch_hook = my_task_dispatch_hook;
     #ifdef CONFIG_TSKMON
     tskmon_init();
@@ -703,6 +714,7 @@ my_init_task(int a, int b, int c, int d)
 
     // this is generic
     ml_used_mem = (uint32_t)&_bss_end - (uint32_t)&_text_start;
+    qprintf("[BOOT] autoexec.bin loaded at %X - %X.\n", &_text_start, &_bss_end);
 
 #ifdef HIJACK_CACHE_HACK
     /* as we do not return in the middle of te init task as in the hijack-through-copy method, we have to install the hook here */
@@ -792,6 +804,8 @@ my_init_task(int a, int b, int c, int d)
     /* ensure binary is not too large */
     if (ml_used_mem > ml_reserved_mem)
     {
+        qprintf("[BOOT] out of memory: ml_used_mem=%d ml_reserved_mem=%d\n", ml_used_mem, ml_reserved_mem);
+
         while(1)
         {
             info_led_blink(3, 500, 500);
