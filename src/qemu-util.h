@@ -1,6 +1,8 @@
 #ifndef _qemu_util_h
 #define _qemu_util_h
 
+#ifdef CONFIG_QEMU
+
 /* print messages to the QEMU console */
 int qprintf(const char * fmt, ...);
 
@@ -23,4 +25,13 @@ void qemu_hptimer_test();
 #define REG_RAW_BUFF   0xCF12301C
 #define REG_DISP_TYPE  0xCF123020
 
+#else /* without CONFIG_QEMU */
+
+/* these don't execute anything on regular builds (without CONFIG_QEMU) */
+/* also, the strings used as arguments won't be included in the compiled binary */
+/* but the calls will still be type-checked, unlike ifdef */
+static inline int qprintf(const char * fmt, ...) { return 0; }
+static inline int qprint(const char * msg) { return 0; }
+
+#endif
 #endif
