@@ -20,6 +20,7 @@ void qemu_hptimer_test();
 #define REG_SHUTDOWN   0xCF123004
 #define REG_DUMP_VRAM  0xCF123008
 #define REG_PRINT_NUM  0xCF12300C
+#define REG_DISAS_32   0xCF123010
 #define REG_BMP_VRAM   0xCF123014
 #define REG_IMG_VRAM   0xCF123018
 #define REG_RAW_BUFF   0xCF12301C
@@ -27,7 +28,16 @@ void qemu_hptimer_test();
 
 /* print a 32-bit number (also works very early in the boot process) */
 /* number formatting done in QEMU */
-static inline void qprintn(int32_t num) { MEM(REG_PRINT_NUM) = num; }
+static inline void qprintn(int32_t num)
+{
+    *(volatile uint32_t *)(REG_PRINT_NUM) = num;
+}
+
+/* disassemble a 32-bit address */
+static inline void qdisas(uint32_t addr)
+{
+    *(volatile uint32_t *)(REG_DISAS_32) = addr;
+}
 
 #else /* without CONFIG_QEMU */
 
@@ -37,6 +47,7 @@ static inline void qprintn(int32_t num) { MEM(REG_PRINT_NUM) = num; }
 static inline int qprintf(const char * fmt, ...) { return 0; }
 static inline int qprint(const char * msg) { return 0; }
 static inline void qprintn(int num) { }
+static inline void qdisas(uint32_t addr) { }
 
 #endif
 #endif

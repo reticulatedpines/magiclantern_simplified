@@ -24,6 +24,12 @@ unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *s, unsigned in
                 printf("\x1B[32m%x (%d)\x1B[0m\n", (uint32_t)value, (uint32_t)value);
                 return 0;
 
+            case REG_DISAS_32:      /* disassemble address (32-bit, ARM or Thumb) */
+                printf("\x1B[32m");
+                target_disas(stdout, CPU(arm_env_get_cpu(&s->cpu0->env)), value & ~1, 4, value & 1);
+                printf("\x1B[0m");
+                return 0;
+
             case REG_SHUTDOWN:
                 printf("Goodbye!\n");
                 qemu_system_shutdown_request();
