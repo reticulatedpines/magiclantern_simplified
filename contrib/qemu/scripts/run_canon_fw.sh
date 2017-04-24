@@ -18,13 +18,13 @@ function is_mounted
 
 if is_mounted sd.img; then
     echo
-    echo "Error: please unmonut the SD image."
+    echo "Error: please unmount the SD image."
     exit 1
 fi
 
 if is_mounted cf.img; then
     echo
-    echo "Error: please unmonut the CF image."
+    echo "Error: please unmount the CF image."
     exit 1
 fi
 

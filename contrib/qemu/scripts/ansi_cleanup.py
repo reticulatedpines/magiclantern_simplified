@@ -52,5 +52,5 @@ out = ansi_cleanup(data)
 print out
 print ansi_reset
 ratio = len(out) * 100 / len(data)
-print >> sys.stderr, "Size after cleanup: %d%%" % ratio
+#~ print >> sys.stderr, "Size after cleanup: %d%%" % ratio
 #~ print >> sys.stderr, repr(out)

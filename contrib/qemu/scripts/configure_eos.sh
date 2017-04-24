@@ -6,4 +6,4 @@
 # QEMU_CPPFLAGS is derived from QEMU_CFLAGS in ./configure
 CC="gcc --std=gnu99" \
     ./configure --target-list=arm-softmmu --disable-docs --enable-sdl \
-    --extra-cflags="-Wno-error=deprecated-declarations"
+    --extra-cflags="-Wno-error=deprecated-declarations" $*
