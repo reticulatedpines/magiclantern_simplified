@@ -1045,12 +1045,12 @@ void show_usage(char *executable)
 
     /* yet unclear which format to choose, so keep that as reminder */
     //print_msg(MSG_INFO, " -u lut_file         look-up table with 4 * xRes * yRes 16-bit words that is applied before bit depth conversion\n");
-#ifdef MLV_USE_LZMA
-    print_msg(MSG_INFO, " -c                  (re-)compress video and audio frames using LZMA (set bpp to 16 to improve compression rate)\n");
-    print_msg(MSG_INFO, " -d                  decompress compressed video and audio frames using LZMA\n");
-    print_msg(MSG_INFO, " -l level            set compression level from 0=fastest to 9=best compression\n");
+
+#if defined(MLV_USE_LZMA) || defined(MLV_USE_LJ92)
+    print_msg(MSG_INFO, " -c                  (re-)compress video and audio frames using LJ92)\n");
+    print_msg(MSG_INFO, " -d                  decompress compressed video and audio frames using LZMA or LJ92\n");
 #else
-    print_msg(MSG_INFO, " -c, -d, -l          NOT AVAILABLE: compression support was not compiled into this release\n");
+    print_msg(MSG_INFO, " -c, -d              NOT AVAILABLE: compression support was not compiled into this release\n");
 #endif
     print_msg(MSG_INFO, "\n");
 
@@ -1160,22 +1160,11 @@ int main (int argc, char *argv[])
     int compress_output = 0;
     int decompress_output = 0;
     int verbose = 0;
-    int lzma_level = 5;
     int alter_fps = 0;
     char opt = ' ';
 
     int video_xRes = 0;
     int video_yRes = 0;
-
-#ifdef MLV_USE_LZMA
-    /* this may need some tuning */
-    int lzma_dict = 1<<27;
-    int lzma_lc = 0;
-    int lzma_lp = 1;
-    int lzma_pb = 1;
-    int lzma_fb = 16;
-    int lzma_threads = 8;
-#endif
 
     lua_State *lua_state = NULL;
 
@@ -1464,7 +1453,7 @@ int main (int argc, char *argv[])
                 break;
 
             case 'c':
-#ifdef MLV_USE_LZMA
+#if defined(MLV_USE_LJ92)
                 compress_output = 1;
 #else
                 print_msg(MSG_ERROR, "Error: Compression support was not compiled into this release\n");
@@ -1473,7 +1462,7 @@ int main (int argc, char *argv[])
                 break;
 
             case 'd':
-#ifdef MLV_USE_LZMA
+#if defined(MLV_USE_LZMA) || defined(MLV_USE_LJ92)
                 decompress_output = 1;
 #else
                 print_msg(MSG_ERROR, "Error: Compression support was not compiled into this release\n");
@@ -1488,10 +1477,6 @@ int main (int argc, char *argv[])
                     return ERR_PARAM;
                 }
                 output_filename = strdup(optarg);
-                break;
-
-            case 'l':
-                lzma_level = MIN(9, MAX(0, atoi(optarg)));
                 break;
 
             case 'f':
@@ -2525,6 +2510,7 @@ read_headers:
                             {
                                 if(verbose)
                                 {
+                                    print_msg(MSG_INFO, "    LJ92: Decompressing\n");
                                     print_msg(MSG_INFO, "    LJ92: %dx%dx%d %d bpp (%d bytes buffer)\n", lj92_width, lj92_height, lj92_components, lj92_bitdepth, out_size);
                                 }
                             }
@@ -2535,7 +2521,7 @@ read_headers:
                             }
                             
                             /* we need a temporary buffer so we dont overwrite source data */
-                            uint8_t *decompressed = malloc(out_size);
+                            uint16_t *decompressed = malloc(out_size);
                             
                             ret = lj92_decode(handle, decompressed, lj92_width * lj92_height * lj92_components, 0, NULL, 0);
 
@@ -2551,29 +2537,26 @@ read_headers:
                             }
                             
                             /* repack the 16 bit words containing values with max 14 bit */
-                            int jl92_pitch = video_xRes * 16 / 8;
                             int orig_pitch = video_xRes * lv_rec_footer.raw_info.bits_per_pixel / 8;
 
                             for(int y = 0; y < video_yRes; y++)
                             {
-                                void *src_line = &decompressed[y * jl92_pitch];
+                                uint16_t *src_line = &decompressed[y * video_xRes];
                                 void *dst_line = &frame_buffer[y * orig_pitch];
 
                                 for(int x = 0; x < video_xRes; x++)
                                 {
-                                    uint16_t value = bitextract(src_line, x, 16);
-
-                                    bitinsert(dst_line, x, lv_rec_footer.raw_info.bits_per_pixel, value);
+                                    bitinsert(dst_line, x, lv_rec_footer.raw_info.bits_per_pixel, src_line[x]);
                                 }
                             }
+                            
                             free(decompressed);
 #else
                             print_msg(MSG_INFO, "    LJ92: not compiled into this release, aborting.\n");
                             goto abort;
 #endif
                         }
-                        
-                        if(compressed_lzma)
+                        else if(compressed_lzma)
                         {
 #ifdef MLV_USE_LZMA
                             size_t lzma_out_size = *(uint32_t *)frame_buffer;
@@ -3158,75 +3141,76 @@ read_headers:
                         {
                             if(compress_output)
                             {
-#ifdef MLV_USE_LJ92_COMPRESSION
+#ifdef MLV_USE_LJ92
                                 uint8_t *compressed = NULL;
                                 int compressed_size = 0;
-                                int lj92_bitdepth = old_depth;
-                                
-                                /* when data is shrunk to some bpp depth, tell this the encoder */
-                                if(bit_zap)
-                                {
-                                    lj92_bitdepth = bit_zap;
-                                }
-                                
-                                /* now shift right to have used data right aligned */
-                                uint32_t shift_value = MIN(16,MAX(0, 16 - lj92_bitdepth));
                                 
                                 /* split the single channels into image tiles */
-                                uint16_t *dst_buf = malloc(video_yRes * video_xRes * sizeof(uint16_t));
-                                uint16_t *src_buf = (uint16_t *)frame_buffer;
+                                int compress_buffer_size = video_xRes * video_yRes * sizeof(uint16_t);
+                                uint16_t *compress_buffer = malloc(compress_buffer_size);
 
-#if defined(COMPRESS_BAYER_TILES)
-                                int lj92_xres = video_xRes;
-                                int lj92_yres = video_yRes;
-
-                                for(int y = 0; y < video_yRes; y++)
-                                {
-                                    int src_y = ((2 * y) % video_yRes) + ((2 * y) / video_yRes);
-                                    
-                                    uint16_t *src_line = &src_buf[src_y * video_xRes];
-                                    uint16_t *dst_line = &dst_buf[y * video_xRes];
-
-                                    for(int x = 0; x < video_xRes; x++)
-                                    {
-                                        int src_x = ((2 * x) % video_xRes) + ((2 * x) / video_xRes);
-                                        dst_line[x] = src_line[src_x] >> shift_value;
-                                    }
-                                }
-#else
-                                /* just line up RGRGRG and GBGBGB into one pixel line */
-                                int lj92_xres = video_xRes * 2;
-                                int lj92_yres = video_yRes / 2;
+                                /* repack the 16 bit words containing values with max 14 bit */
+                                int orig_pitch = video_xRes * lv_rec_footer.raw_info.bits_per_pixel / 8;
 
                                 for(int y = 0; y < video_yRes; y++)
                                 {
-                                    uint16_t *src_line = &src_buf[y * video_xRes];
-                                    uint16_t *dst_line = &dst_buf[y * video_xRes];
+                                    void *src_line = &frame_buffer[y * orig_pitch];
+                                    uint16_t *dst_line = &compress_buffer[y * video_xRes];
 
                                     for(int x = 0; x < video_xRes; x++)
                                     {
-                                        dst_line[x] = src_line[x] >> shift_value;
+                                        dst_line[x] = bitextract(src_line, x, lv_rec_footer.raw_info.bits_per_pixel);
                                     }
                                 }
-#endif
                                 
-                                int ret = lj92_encode(dst_buf, lj92_xres, lj92_yres, lj92_bitdepth, 4, lj92_xres * lj92_yres, 0, NULL, 0, &compressed, &compressed_size);
-                                free(dst_buf);
+                                /* trying to compress with the same properties as the camera compresses, but..
+                                   a small problem here, the compress part of the lj92 lib currently used seems not to allow multiple components.
+                                   i.e. a line of RGRGRGRG... would be one component and the next line of GBGBGBGB the second.
+                                   unfortunately the image would have to get compressed a bit less efficient as a single-component image.
+                                   
+                                   a1ex had a good workaround that implies setting xres*2 and yres/2 which would help the compressor.
+                                   
+                                   canon compression:
+                                     1872x624x2 14 bpp
+                                     2348480 -> 4088448  (57.44% ratio)
+                                     
+                                   single component compression: 
+                                     1872x1248x1 14 bpp
+                                     3515085 -> 4088448  (85.98% ratio)
+
+                                   single component "x2" compression:
+                                     3744x624x1 14 bpp 
+                                     2353223 -> 4088448  (57.56% ratio)
+
+                                   so this method gets quite close to canon's in-camera compression.
+                                   while the resolution outputs differ, the real image data is the same.
+                                   
+                                   downside: we cannot double check if the lj92-reported resolution matches the RAWI information.
+                                */
+                                int lj92_components = 1;
+                                int lj92_width = video_xRes * 2;
+                                int lj92_height = video_yRes / 2;
+                                int lj92_bitdepth = old_depth;
+                                
+                                if(verbose)
+                                {
+                                    print_msg(MSG_INFO, "    LJ92: Compressing\n");
+                                    print_msg(MSG_INFO, "    LJ92: %dx%dx%d %d bpp (%d bytes buffer)\n", lj92_width, lj92_height, lj92_components, lj92_bitdepth, compress_buffer_size);
+                                }
+                                
+                                int ret = lj92_encode(compress_buffer, lj92_width, lj92_height, lj92_bitdepth, 2, lj92_width * lj92_height, 0, NULL, 0, &compressed, &compressed_size);
+                                free(compress_buffer);
 
                                 if(ret == LJ92_ERROR_NONE)
                                 {
                                     if(verbose)
                                     {
-                                        print_msg(MSG_INFO, "    LJ92: "FMT_SIZE" -> "FMT_SIZE"  (%2.2f%%) %dx%d %d bpp\n", frame_size, compressed_size, ((float)compressed_size * 100.0f) / (float)frame_size, lj92_xres, lj92_yres, lj92_bitdepth);
+                                        print_msg(MSG_INFO, "    LJ92: "FMT_SIZE" -> "FMT_SIZE"  (%2.2f%% ratio)\n", frame_size, compressed_size, ((float)compressed_size * 100.0f) / (float)frame_size);
                                     }
                                     
-                                    /* store original frame size */
-                                    *(uint32_t *)frame_buffer = frame_size;
-                                    
                                     /* set new compressed size and copy buffers */
-                                    frame_size = compressed_size + 4;
-                                    memcpy(&frame_buffer[4], compressed, compressed_size);
-                                    
+                                    frame_size = compressed_size;
+                                    memcpy(frame_buffer, compressed, compressed_size);
                                 }
                                 else
                                 {
@@ -3235,50 +3219,15 @@ read_headers:
                                 }
                                 
                                 free(compressed);
-
-#elif defined(MLV_USE_LZMA_COMPRESSION)
-
-                                size_t lzma_out_size = 2 * frame_size;
-                                size_t lzma_in_size = frame_size;
-                                size_t lzma_props_size = LZMA_PROPS_SIZE;
-                                unsigned char *lzma_out = malloc(lzma_out_size + LZMA_PROPS_SIZE);
-
-                                int ret = LzmaCompress(
-                                    &lzma_out[LZMA_PROPS_SIZE], &lzma_out_size,
-                                    (unsigned char *)frame_buffer, lzma_in_size,
-                                    &lzma_out[0], &lzma_props_size,
-                                    lzma_level, lzma_dict, lzma_lc, lzma_lp, lzma_pb, lzma_fb, lzma_threads
-                                    );
-
-                                if(ret == SZ_OK)
-                                {
-                                    /* store original frame size */
-                                    *(uint32_t *)frame_buffer = frame_size;
-
-                                    /* set new compressed size and copy buffers */
-                                    frame_size = lzma_out_size + LZMA_PROPS_SIZE + 4;
-                                    memcpy(&frame_buffer[4], lzma_out, frame_size - 4);
-
-                                    if(verbose)
-                                    {
-                                        print_msg(MSG_INFO, "    LZMA: "FMT_SIZE" -> "FMT_SIZE"  (%2.2f%%)\n", lzma_in_size, frame_size, ((float)lzma_out_size * 100.0f) / (float)lzma_in_size);
-                                    }
-                                }
-                                else
-                                {
-                                    print_msg(MSG_INFO, "    LZMA: Failed (%d)\n", ret);
-                                    goto abort;
-                                }
-                                free(lzma_out);
 #else
                                 print_msg(MSG_INFO, "    no compression type compiled into this release, aborting.\n");
                                 goto abort;
 #endif
                             }
 
-                            if(frame_size != prev_frame_size)
+                            if(frame_size != prev_frame_size && !verbose)
                             {
-                                print_msg(MSG_INFO, "  saving: "FMT_SIZE" -> "FMT_SIZE"  (%2.2f%%)\n", prev_frame_size, frame_size, ((float)frame_size * 100.0f) / (float)prev_frame_size);
+                                print_msg(MSG_INFO, "  saving: "FMT_SIZE" -> "FMT_SIZE"  (%2.2f%% ratio)\n", prev_frame_size, frame_size, ((float)frame_size * 100.0f) / (float)prev_frame_size);
                             }
 
                             lua_handle_hdr_data(lua_state, buf.blockType, "_data_write_mlv", &block_hdr, sizeof(block_hdr), frame_buffer, frame_size);
