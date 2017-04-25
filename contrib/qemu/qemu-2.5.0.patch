@@ -141,17 +141,51 @@ index 2195b60..e3e2c14 100644
  
  obj-y += armv7m.o exynos4210.o pxa2xx.o pxa2xx_gpio.o pxa2xx_pic.o
  obj-$(CONFIG_DIGIC) += digic.o
+diff --git a/include/exec/memory.h b/include/exec/memory.h
+index 0f07159..40c3940 100644
+--- a/include/exec/memory.h
++++ b/include/exec/memory.h
+@@ -1356,6 +1356,19 @@ void address_space_unmap(AddressSpace *as, void *buffer, hwaddr len,
+                          int is_write, hwaddr access_len);
+ 
+ 
++/* memory_set_access_logging_cb: allow logging guest memory accesses
++ * using callbacks.
++ * 
++ * Currently implemented only for ARM 32-bit (LDR/STR).
++ * 
++ * @mem_log_cb: callback to be called when memory access takes place
++ * @opaque: argument passed to mem_log_cb
++ * @access_mode: bit field (PROT_READ, PROT_WRITE); fixme - better constants? define new ones?
++ */
++void memory_set_access_logging_cb(
++    void (*mem_log_cb)(void * opaque, hwaddr addr, uint64_t value, unsigned size, int is_write),
++    void * opaque, int access_mode);
++
+ #endif
+ 
+ #endif
 diff --git a/include/qemu/log.h b/include/qemu/log.h
-index 362cbc4..809426e 100644
+index 362cbc4..f5da368 100644
 --- a/include/qemu/log.h
 +++ b/include/qemu/log.h
-@@ -42,6 +42,10 @@ static inline bool qemu_log_enabled(void)
+@@ -42,6 +42,20 @@ static inline bool qemu_log_enabled(void)
  #define CPU_LOG_MMU        (1 << 12)
  #define CPU_LOG_TB_NOCHAIN (1 << 13)
  
 +#define EOS_LOG_IO         (1 << 14)
 +#define EOS_LOG_UART       (1 << 15)
 +#define EOS_LOG_CALLS      (1 << 16)
++
++#define EOS_LOG_RAM_R      (1 << 17)
++#define EOS_LOG_RAM_W      (1 << 18)
++#define EOS_LOG_ROM_R      (1 << 19)
++#define EOS_LOG_ROM_W      (1 << 20)
++#define EOS_LOG_RAM        (EOS_LOG_RAM_R | EOS_LOG_RAM_W)
++#define EOS_LOG_ROM        (EOS_LOG_ROM_R | EOS_LOG_ROM_W)
++#define EOS_LOG_MEM_R      (EOS_LOG_RAM_R | EOS_LOG_ROM_R)
++#define EOS_LOG_MEM_W      (EOS_LOG_RAM_W | EOS_LOG_ROM_W)
++#define EOS_LOG_MEM        (EOS_LOG_RAM   | EOS_LOG_ROM)
 +
  /* Returns true if a bit is set in the current loglevel mask
   */
@@ -180,10 +214,10 @@ index e193658..9de7251 100644
      subregion->priority = 0;
      memory_region_add_subregion_common(mr, offset, subregion);
 diff --git a/qemu-log.c b/qemu-log.c
-index 7cb01a8..d45c7c0 100644
+index 7cb01a8..3fdff1f 100644
 --- a/qemu-log.c
 +++ b/qemu-log.c
-@@ -120,6 +120,13 @@ const QEMULogItem qemu_log_items[] = {
+@@ -120,6 +120,25 @@ const QEMULogItem qemu_log_items[] = {
      { CPU_LOG_TB_NOCHAIN, "nochain",
        "do not chain compiled TBs so that \"exec\" and \"cpu\" show\n"
        "complete traces" },
@@ -194,6 +228,18 @@ index 7cb01a8..d45c7c0 100644
 +      "EOS: log low-level UART activity" },
 +    { EOS_LOG_CALLS, "calls",
 +      "EOS: log function calls and export them to IDA" },
++    { EOS_LOG_RAM, "ram",
++      "EOS: log all RAM reads and writes" },
++    { EOS_LOG_ROM, "rom",
++      "EOS: log all ROM reads and writes" },
++    { EOS_LOG_RAM_R, "ramr",
++      "EOS: log all RAM reads" },
++    { EOS_LOG_ROM_R, "romr",
++      "EOS: log all ROM reads" },
++    { EOS_LOG_RAM_W, "ramw",
++      "EOS: log all RAM writes" },
++    { EOS_LOG_ROM_W, "romw",
++      "EOS: log all ROM writes" },
      { 0, NULL, NULL },
  };
  
@@ -370,10 +416,10 @@ index afc4163..46cd503 100644
      env->regs[15] = addr;
      cs->interrupt_request |= CPU_INTERRUPT_EXITTB;
 diff --git a/target-arm/helper.h b/target-arm/helper.h
-index c2a85c7..2671a2c 100644
+index c2a85c7..98aa94b 100644
 --- a/target-arm/helper.h
 +++ b/target-arm/helper.h
-@@ -64,6 +64,8 @@ DEF_HELPER_2(v7m_mrs, i32, env, i32)
+@@ -64,10 +64,15 @@ DEF_HELPER_2(v7m_mrs, i32, env, i32)
  
  DEF_HELPER_3(access_check_cp_reg, void, env, ptr, i32)
  DEF_HELPER_3(set_cp_reg, void, env, ptr, i32)
@@ -382,11 +428,18 @@ index c2a85c7..2671a2c 100644
  DEF_HELPER_2(get_cp_reg, i32, env, ptr)
  DEF_HELPER_3(set_cp_reg64, void, env, ptr, i64)
  DEF_HELPER_2(get_cp_reg64, i64, env, ptr)
+ 
++DEF_HELPER_3(log_ldr, void, i32, i32, i32)
++DEF_HELPER_3(log_str, void, i32, i32, i32)
++
+ DEF_HELPER_3(msr_i_pstate, void, env, i32, i32)
+ DEF_HELPER_1(clear_pstate_ss, void, env)
+ DEF_HELPER_1(exception_return, void, env)
 diff --git a/target-arm/op_helper.c b/target-arm/op_helper.c
-index 6cd54c8..54595d2 100644
+index 6cd54c8..8b7ac11 100644
 --- a/target-arm/op_helper.c
 +++ b/target-arm/op_helper.c
-@@ -474,6 +474,156 @@ void HELPER(set_cp_reg)(CPUARMState *env, void *rip, uint32_t value)
+@@ -474,6 +474,171 @@ void HELPER(set_cp_reg)(CPUARMState *env, void *rip, uint32_t value)
      ri->writefn(env, ri, value);
  }
  
@@ -528,6 +581,7 @@ index 6cd54c8..54595d2 100644
 +        ri->name, value, desc
 +    );
 +}
++
 +void HELPER(print_get_cp_reg)(CPUARMState *env, void *rip, uint32_t value)
 +{
 +    const ARMCPRegInfo *ri = rip;
@@ -540,11 +594,25 @@ index 6cd54c8..54595d2 100644
 +    );
 +}
 +
++/* fixme: how to pass a pointer here, to call the registered CBR directly? */
++extern void log_ldr_cb(uint32_t addr, uint32_t value, uint32_t opc);
++extern void log_str_cb(uint32_t addr, uint32_t value, uint32_t opc);
++
++void HELPER(log_ldr)(uint32_t addr, uint32_t value, uint32_t opc)
++{
++    log_ldr_cb(addr, value, opc);
++}
++
++void HELPER(log_str)(uint32_t addr, uint32_t value, uint32_t opc)
++{
++    log_str_cb(addr, value, opc);
++}
++
  uint32_t HELPER(get_cp_reg)(CPUARMState *env, void *rip)
  {
      const ARMCPRegInfo *ri = rip;
 diff --git a/target-arm/translate.c b/target-arm/translate.c
-index 5d22879..d919a46 100644
+index 5d22879..a413e2c 100644
 --- a/target-arm/translate.c
 +++ b/target-arm/translate.c
 @@ -37,6 +37,8 @@
@@ -556,7 +624,109 @@ index 5d22879..d919a46 100644
  
  #define ENABLE_ARCH_4T    arm_dc_feature(s, ARM_FEATURE_V4T)
  #define ENABLE_ARCH_5     arm_dc_feature(s, ARM_FEATURE_V5)
-@@ -7222,6 +7224,27 @@ static int disas_coproc_insn(DisasContext *s, uint32_t insn)
+@@ -923,25 +925,101 @@ static inline void store_reg_from_load(DisasContext *s, int reg, TCGv_i32 var)
+  */
+ #if TARGET_LONG_BITS == 32
+ 
++/* fixme: should be moved to memory.c and accessed somehow from there? */
++/* fixme: use MemoryRegionOps? The read callback doesn't accept address and value */
++struct mem_log
++{
++    void (*read_cb)(void * opaque, hwaddr addr, uint64_t value, unsigned size, int is_write);
++    void * read_arg;
++    void (*write_cb)(void * opaque, hwaddr addr, uint64_t value, unsigned size, int is_write);
++    void * write_arg;
++} mem_log;
++
++void memory_set_access_logging_cb(
++    void (*mem_log_cb)(void * opaque, hwaddr addr, uint64_t value, unsigned size, int is_write),
++    void * opaque, int access_mode)
++{
++    if (access_mode & PROT_READ) {
++        mem_log.read_cb = mem_log_cb;
++        mem_log.read_arg = opaque;
++    }
++    if (access_mode & PROT_WRITE) {
++        mem_log.write_cb = mem_log_cb;
++        mem_log.write_arg = opaque;
++    }
++}
++
++/* called from helper_log_ldr */
++void log_ldr_cb(uint32_t addr, uint32_t value, uint32_t opc)
++{
++    if (mem_log.read_cb) {
++        unsigned size = 1 << (opc & MO_SIZE);
++        mem_log.read_cb(mem_log.read_arg, addr, value, size, 0);
++    }
++}
++
++/* called from helper_log_str */
++void log_str_cb(uint32_t addr, uint32_t value, uint32_t opc)
++{
++    if (mem_log.write_cb) {
++        unsigned size = 1 << (opc & MO_SIZE);
++        mem_log.write_cb(mem_log.write_arg, addr, value, size, 1);
++    }
++}
++
++static inline void gen_log_ldr(TCGv_i32 addr, TCGv_i32 val, int opc)
++{
++    /* called after the actual LDR, to get the value too */
++    /* only compile the logging code if a CBR was registered */
++    if (mem_log.read_cb) {
++        TCGv_i32 opc_reg = tcg_temp_new_i32();
++        tcg_gen_movi_i32(opc_reg, opc);
++        gen_helper_log_ldr(addr, val, opc_reg);
++        tcg_temp_free_i32(opc_reg);
++    }
++}
++
++static inline void gen_log_str(TCGv_i32 addr, TCGv_i32 val, int opc)
++{
++    /* called before the actual STR */
++    /* only compile the logging code if a CBR was registered */
++    if (mem_log.write_cb) {
++        TCGv_i32 opc_reg = tcg_temp_new_i32();
++        tcg_gen_movi_i32(opc_reg, opc);
++        gen_helper_log_str(addr, val, opc_reg);
++        tcg_temp_free_i32(opc_reg);
++    }
++}
++
+ #define DO_GEN_LD(SUFF, OPC)                                             \
+ static inline void gen_aa32_ld##SUFF(TCGv_i32 val, TCGv_i32 addr, int index) \
+ {                                                                        \
+     tcg_gen_qemu_ld_i32(val, addr, index, OPC);                          \
++    gen_log_ldr(addr, val, OPC);                                         \
+ }
+ 
+ #define DO_GEN_ST(SUFF, OPC)                                             \
+ static inline void gen_aa32_st##SUFF(TCGv_i32 val, TCGv_i32 addr, int index) \
+ {                                                                        \
++    gen_log_str(addr, val, OPC);                                         \
+     tcg_gen_qemu_st_i32(val, addr, index, OPC);                          \
+ }
+ 
+ static inline void gen_aa32_ld64(TCGv_i64 val, TCGv_i32 addr, int index)
+ {
++    if (mem_log.read_cb) {
++        /* not implemented */
++        assert(0);
++    }
+     tcg_gen_qemu_ld_i64(val, addr, index, MO_TEQ);
+ }
+ 
+ static inline void gen_aa32_st64(TCGv_i64 val, TCGv_i32 addr, int index)
+ {
++    if (mem_log.write_cb) {
++        /* not implemented */
++        assert(0);
++    }
+     tcg_gen_qemu_st_i64(val, addr, index, MO_TEQ);
+ }
+ 
+@@ -7222,6 +7300,27 @@ static int disas_coproc_insn(DisasContext *s, uint32_t insn)
          /* Handle special cases first */
          switch (ri->type & ~(ARM_CP_FLAG_MASK & ~ARM_CP_SPECIAL)) {
          case ARM_CP_NOP:
@@ -584,7 +754,7 @@ index 5d22879..d919a46 100644
              return 0;
          case ARM_CP_WFI:
              if (isread) {
-@@ -7276,6 +7299,15 @@ static int disas_coproc_insn(DisasContext *s, uint32_t insn)
+@@ -7276,6 +7375,15 @@ static int disas_coproc_insn(DisasContext *s, uint32_t insn)
                  } else {
                      tmp = load_cpu_offset(ri->fieldoffset);
                  }
@@ -600,7 +770,7 @@ index 5d22879..d919a46 100644
                  if (rt == 15) {
                      /* Destination register of r15 for 32 bit loads sets
                       * the condition codes from the high 4 bits of the value
-@@ -7287,6 +7319,19 @@ static int disas_coproc_insn(DisasContext *s, uint32_t insn)
+@@ -7287,6 +7395,19 @@ static int disas_coproc_insn(DisasContext *s, uint32_t insn)
                  }
              }
          } else {
@@ -620,3 +790,16 @@ index 5d22879..d919a46 100644
              /* Write */
              if (ri->type & ARM_CP_CONST) {
                  /* If not forbidden by access permissions, treat as WI */
+diff --git a/target-arm/translate.h b/target-arm/translate.h
+index 53ef971..260331a 100644
+--- a/target-arm/translate.h
++++ b/target-arm/translate.h
+@@ -151,4 +151,8 @@ void arm_free_cc(DisasCompare *cmp);
+ void arm_jump_cc(DisasCompare *cmp, TCGLabel *label);
+ void arm_gen_test_cc(int cc, TCGLabel *label);
+ 
++/* fixme: duplicate declaration in op_helper.c */
++void log_ldr_cb(uint32_t addr, uint32_t value, uint32_t opc);
++void log_str_cb(uint32_t addr, uint32_t value, uint32_t opc);
++
+ #endif /* TARGET_ARM_TRANSLATE_H */

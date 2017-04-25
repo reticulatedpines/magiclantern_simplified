@@ -43,17 +43,13 @@
 
 #define IO_MEM_START  0xC0000000    /* common to all DIGICs */
 
-/* define those for logging RAM access (reads + writes) */
-/* caveat: this area will be marked as IO, so you can't execute anything from there */
-//~ #define TRACE_MEM_START  0x00000000
-//~ #define TRACE_MEM_LEN    0x00800000
-
 /* defines for memory/register access */
 #define INT_ENTRIES 0x200
 
 #define MODE_MASK  0xF0
 #define MODE_READ  0x10
 #define MODE_WRITE 0x20
+#define FORCE_LOG  0x80 /* force logging in io_log */
 
 /* DryOS timer */
 #define TIMER_INTERRUPT s->model->dryos_timer_interrupt
@@ -227,8 +223,6 @@ typedef struct
     MemoryRegion rom0;
     MemoryRegion rom1;
     MemoryRegion iomem;
-    MemoryRegion tracemem;
-    MemoryRegion tracemem_uncached;
     qemu_irq interrupt;
     QemuThread interrupt_thread_id;
     uint32_t verbosity;

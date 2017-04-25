@@ -13,6 +13,7 @@
 #include "hw/sd/sd.h"
 #include "sysemu/char.h"
 #include <hw/ide/internal.h>
+#include "hw/arm/arm.h"
 #include "eos.h"
 
 #include "hw/eos/model_list.h"
@@ -143,7 +144,6 @@ machine_init(eos_machine_init);
 
 EOSRegionHandler eos_handlers[] =
 {
-    { "RAM Trace",    0x00000000, 0x10000000, eos_handle_ram, 0 },
     { "FlashControl", 0xC0000000, 0xC0001FFF, eos_handle_flashctrl, 0 },
     { "ROM0",         0xF8000000, 0xFFFFFFFF, eos_handle_rom, 0 },
     { "ROM1",         0xF0000000, 0xF7FFFFFF, eos_handle_rom, 1 },
@@ -250,55 +250,6 @@ static const MemoryRegionOps iomem_ops = {
     },
 };
 
-#ifdef TRACE_MEM_START
-/* memory trace */
-static uint8_t trace_mem[TRACE_MEM_LEN];
-
-static uint64_t eos_mem_read(void * base_addr, hwaddr addr, uint32_t size)
-{
-    uint32_t ret = 0;
-    
-    switch(size)
-    {
-        case 1:
-            ret = *(uint8_t*)(trace_mem + addr);
-            break;
-        case 2:
-            ret = *(uint16_t*)(trace_mem + addr);
-            break;
-        case 4:
-            ret = *(uint32_t*)(trace_mem + addr);
-            break;
-    }
-    
-    printf("MEM(0x%08x) => 0x%x\n", (uint32_t)addr + (uint32_t)(uintptr_t)base_addr, ret);
-    return ret;
-}
-
-static void eos_mem_write(void * base_addr, hwaddr addr, uint64_t val, uint32_t size)
-{
-    printf("MEM(0x%08x) = 0x%x\n", (uint32_t)addr + (uint32_t)(uintptr_t)base_addr, (uint32_t)val);
-    switch(size)
-    {
-        case 1:
-            *(uint8_t*)(trace_mem + addr) = val;
-            break;
-        case 2:
-            *(uint16_t*)(trace_mem + addr) = val;
-            break;
-        case 4:
-            *(uint32_t*)(trace_mem + addr) = val;
-            break;
-    }
-}
-
-static const MemoryRegionOps mem_ops = {
-    .read = eos_mem_read,
-    .write = eos_mem_write,
-    .endianness = DEVICE_NATIVE_ENDIAN,
-};
-#endif
-
 /* fixme: how to get this called? */
 /* no luck with memory_region_rom_device_set_romd... */
 static uint64_t eos_rom_read(void * opaque, hwaddr addr, uint32_t size)
@@ -355,6 +306,38 @@ static const MemoryRegionOps rom_ops = {
     .endianness = DEVICE_NATIVE_ENDIAN,
 };
 
+static inline int should_log_memory_region(MemoryRegion * mr)
+{
+    if (mr->ram && qemu_loglevel_mask(EOS_LOG_RAM)) {
+        return 1;
+    }
+
+    if (mr->rom_device && qemu_loglevel_mask(EOS_LOG_ROM)) {
+        return 1;
+    }
+
+    return 0;
+}
+
+
+static void eos_log_mem(void * opaque, hwaddr addr, uint64_t value, int size, int is_write)
+{
+    /* find out what kind of memory is this */
+    /* fixme: can be slow */
+    hwaddr l = 4;
+    hwaddr addr1;
+    MemoryRegion * mr = address_space_translate(&address_space_memory, addr, &addr1, &l, is_write);
+
+    if (!should_log_memory_region(mr))
+    {
+        return;
+    }
+
+    EOSState* s = (EOSState*) opaque;
+    int mode = is_write ? MODE_WRITE : MODE_READ;
+    assert(strncmp(mr->name, "eos.", 4) == 0);
+    io_log(mr->name + 4, s, addr, mode | FORCE_LOG, value, value, "", 0, 0);
+}
 
 void eos_load_image(EOSState *s, const char * file_rel, int offset, int max_size, uint32_t addr, int swap_endian)
 {
@@ -1177,15 +1160,6 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
     memory_region_init_io(&s->iomem, NULL, &iomem_ops, s, "eos.iomem", s->model->io_mem_size);
     memory_region_add_subregion(s->system_mem, IO_MEM_START, &s->iomem);
 
-#ifdef TRACE_MEM_START
-    /* optional memory access logging */
-    memory_region_init_io(&s->tracemem, NULL, &mem_ops, (void*)TRACE_MEM_START, "eos.tracemem", TRACE_MEM_LEN);
-    memory_region_add_subregion(s->system_mem, TRACE_MEM_START, &s->tracemem);
-
-    memory_region_init_io(&s->tracemem_uncached, NULL, &mem_ops, (void*)(TRACE_MEM_START | CACHING_BIT), "eos.tracemem_u", TRACE_MEM_LEN);
-    memory_region_add_subregion(s->system_mem, TRACE_MEM_START | CACHING_BIT, &s->tracemem_uncached);
-#endif
-
     /*ROMState *rom0 = eos_rom_register(0xF8000000, NULL, "ROM1", ROM1_SIZE,
                                 NULL,
                                 0x100, 0x100, 32,
@@ -1194,6 +1168,14 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
                                 */
 
     vmstate_register_ram_global(&s->ram);
+
+    if (qemu_loglevel_mask(EOS_LOG_MEM)) {
+        printf("Enabling memory access logging.\n");
+        int access_mode =
+            (qemu_loglevel_mask(EOS_LOG_MEM_R) ? PROT_READ : 0) |
+            (qemu_loglevel_mask(EOS_LOG_MEM_W) ? PROT_WRITE : 0);
+        memory_set_access_logging_cb(eos_log_mem, s, access_mode);
+    }
 
     s->rtc.transfer_format = 0xFF;
 
@@ -1512,7 +1494,7 @@ static char* get_current_task_name(EOSState *s)
 void io_log(const char * module_name, EOSState *s, unsigned int address, unsigned char type, unsigned int in_value, unsigned int out_value, const char * msg, intptr_t msg_arg1, intptr_t msg_arg2)
 {
     /* log I/O when "-d io" is specified on the command line */
-    if (!qemu_loglevel_mask(EOS_LOG_IO)) {
+    if (!qemu_loglevel_mask(EOS_LOG_IO) && !(type & FORCE_LOG)) {
         return;
     }
 
