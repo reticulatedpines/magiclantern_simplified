@@ -2114,8 +2114,8 @@ read_headers:
                 print_msg(MSG_INFO, "    File        : %d / %d\n", file_hdr.fileNum, file_hdr.fileCount);
                 print_msg(MSG_INFO, "    Frames Video: %d\n", file_hdr.videoFrameCount);
                 print_msg(MSG_INFO, "    Frames Audio: %d\n", file_hdr.audioFrameCount);
-                print_msg(MSG_INFO, "    Video class: 0x%08X\n", file_hdr.videoClass);
-                print_msg(MSG_INFO, "    Audio class: 0x%08X\n", file_hdr.audioClass);
+                print_msg(MSG_INFO, "    Class Video : 0x%08X\n", file_hdr.videoClass);
+                print_msg(MSG_INFO, "    Class Audio : 0x%08X\n", file_hdr.audioClass);
             }
             
             if(alter_fps)
