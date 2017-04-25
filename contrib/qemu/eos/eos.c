@@ -309,10 +309,25 @@ static uint64_t eos_rom_read(void * opaque, hwaddr addr, uint32_t size)
 
 static void eos_rom_write(void * opaque, hwaddr addr, uint64_t value, uint32_t size)
 {
+    const char * msg = 0;
     EOSState * s = (EOSState *)((intptr_t) opaque & ~1);
     uint32_t rom_id = (intptr_t) opaque & 1;
     uint32_t rom_addr = (rom_id) ? ROM1_ADDR : ROM0_ADDR;;
     uint32_t address = rom_addr + addr;
+
+    if (strcmp(s->model->name, "1300D") == 0)
+    {
+        if (address == 0xF8000000 && size == 1 && value == 6)
+        {
+            /* Reading flash model ID? */
+            /* Startup code writes to this address, but expects to read
+             * different values: C2 25 39, 20 BB 19 or 01 02 19. */
+            msg = "Flash model ID?";
+            uint32_t model_id = 0x003925C2;
+            MEM_WRITE_ROM(address, (uint8_t *) &model_id, 4);
+            goto end;
+        }
+    }
 
     switch(size)
     {
@@ -327,10 +342,11 @@ static void eos_rom_write(void * opaque, hwaddr addr, uint64_t value, uint32_t s
             break;
     }
 
+end:;
     /* log all ROM writes */
     char name[16];
     snprintf(name, sizeof(name), "ROM%d:%d", rom_id, size);
-    io_log(name, s, address, MODE_WRITE, value, 0, 0, 0, 0);
+    io_log(name, s, address, MODE_WRITE, value, 0, msg, 0, 0);
 }
 
 static const MemoryRegionOps rom_ops = {
