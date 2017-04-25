@@ -60,7 +60,7 @@ for CAM_DIR in [[:upper:]]*/ [[:digit:]]*/; do
             make -C $CAM_DIR zip VERSION=qemu $MLOptions
             rm -rf qemu-tmp/
             mkdir qemu-tmp
-            unzip $CAM_DIR/magiclantern-qemu.zip -d qemu-tmp -q
+            unzip -q $CAM_DIR/magiclantern-qemu.zip -d qemu-tmp
             cd ../../qemu/
             mcopy -o -i $MSD ../magic-lantern/platform/$CAM_DIR/* ::
             mcopy -o -i $MCF ../magic-lantern/platform/$CAM_DIR/* ::
