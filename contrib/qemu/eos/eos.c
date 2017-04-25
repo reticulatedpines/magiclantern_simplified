@@ -2274,12 +2274,21 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
 #endif
             break;
 
-        case 0xF48C:
-            /* 6D: return -1 here to launch "System & Display Check & Adjustment program" */
-            msg = "70D/6D SD detect?";
-            ret = 0x10C;
+      case 0xF48C:
+            if(strcmp(s->model->name, "1300D") == 0)
+            {
+                /* 1300D: return 0 here to bypass "System & Display Check & Adjustment program" */
+                msg = "System check";
+                ret = 0;    
+            }  
+            else 
+            {        
+                /* 6D: return -1 here to launch "System & Display Check & Adjustment program" */
+                msg = "70D/6D SD detect?";
+                ret = 0x10C;
+            }
             break;
-        
+    
         case 0x019C: /* 5D3: return 1 to launch "System & Display Check & Adjustment program" */
         case 0x0080: /* same for 1000D */
             msg = "System check";

@@ -219,6 +219,13 @@ struct eos_model_desc eos_model_list[] = {
         .card_led_address       = 0xC0220134,
     },
     {
+        .name                   = "1300D",
+        .digic_version          = 4,
+        .rom0_size              = 0x02000000,
+        .rom1_size              = 0x02000000,
+        .firmware_start         = 0xFF0C0000,
+    },
+    {
         .name                   = "EOSM",
         .digic_version          = 5,
         .current_task_addr      = 0x3DE78,
