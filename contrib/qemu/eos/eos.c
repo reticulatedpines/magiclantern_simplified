@@ -2210,7 +2210,8 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
     static int unk = 0;
 
     /* 0xC022009C/BC/C06C/D06C, depending on camera model */
-    if (address == s->model->mpu_request_register)
+    if (address == s->model->mpu_request_register ||
+        address == s->model->mpu_status_register)
     {
         return eos_handle_mpu(parm, s, address, type, value);
     }

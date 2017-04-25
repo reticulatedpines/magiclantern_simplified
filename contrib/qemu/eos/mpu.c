@@ -245,6 +245,8 @@ unsigned int eos_handle_mpu(unsigned int parm, EOSState *s, unsigned int address
      * - tst 0x2 in SIO3 and MREQ ISRs
      * - should return 0x44 when sending data to MPU
      * - and 0x47 when receiving data from MPU
+     * - 1300D uses 0x83DC00 = reqest to send, 0x93D800 idle
+     * - 1300D: status reg is 0xC022F484, tested for 0x40000 instead of 2 
      */
     
     int ret = 0;
@@ -255,10 +257,12 @@ unsigned int eos_handle_mpu(unsigned int parm, EOSState *s, unsigned int address
 
     if(type & MODE_WRITE)
     {
+        assert(address == s->model->mpu_request_register);
+
         int prev_value = s->mpu.status;
         s->mpu.status = value;
         
-        if (value & 2)
+        if (value & 0x100002)
         {
             if (s->mpu.receiving)
             {
@@ -285,7 +289,7 @@ unsigned int eos_handle_mpu(unsigned int parm, EOSState *s, unsigned int address
                 }
             }
         }
-        else if (prev_value & 2)
+        else if (prev_value & 0x100002)
         {
             /* receive request: transition of bit (1<<1) from high to low */
             msg = "Receive request %s";
@@ -312,18 +316,20 @@ unsigned int eos_handle_mpu(unsigned int parm, EOSState *s, unsigned int address
     }
     else
     {
+        assert(address == s->model->mpu_status_register);
+
         if (s->mpu.sending == 2)
         {
             /* last two chars sent, finished */
             s->mpu.sending = 0;
         }
         
-        ret = (s->mpu.sending && !s->mpu.receiving) ? 0x3 :  /* I have data to send */
-              (!s->mpu.sending && s->mpu.receiving) ? 0x0 :  /* I'm ready to receive data */
-              (s->mpu.sending && s->mpu.receiving)  ? 0x1 :  /* I'm ready to send and receive data */
-                                                      0x2 ;  /* I believe this is some error code */
-        ret |= (s->mpu.status & 0xFFFFFFFC);                 /* The other bits are unknown;
-                                                                they are set to 0x44 by writing to the register */
+        ret = (s->mpu.sending && !s->mpu.receiving) ? 0x40003 :  /* I have data to send */
+              (!s->mpu.sending && s->mpu.receiving) ? 0x00000 :  /* I'm ready to receive data */
+              (s->mpu.sending && s->mpu.receiving)  ? 0x00001 :  /* I'm ready to send and receive data */
+                                                      0x40002 ;  /* I believe this is some error code */
+        ret |= (s->mpu.status & 0xFFFBFFFC);                     /* The other bits are unknown;
+                                                                    they are set to 0x44 by writing to the register */
 
         msg = "status (sending=%d, receiving=%d)";
         msg_arg1 = s->mpu.sending;
@@ -713,6 +719,7 @@ void mpu_spells_init(EOSState *s)
 
     /* 1200D works with 60D MPU spells... and BOOTS THE GUI!!! */
     MPU_SPELL_SET_OTHER_CAM(1200D, 60D)
+    MPU_SPELL_SET_OTHER_CAM(1300D, 60D)
 
     /* same for 1100D */
     MPU_SPELL_SET_OTHER_CAM(1100D, 60D)
