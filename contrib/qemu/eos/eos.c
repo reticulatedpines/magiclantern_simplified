@@ -304,8 +304,19 @@ static const MemoryRegionOps mem_ops = {
 void eos_load_image(EOSState *s, const char * file_rel, int offset, int max_size, uint32_t addr, int swap_endian)
 {
     /* all files are loaded from $QEMU_EOS_WORKDIR/CAM/ */
+    /* or $QEMU_EOS_WORKDIR/CAM/FIRM_VER/ if specified */
     char file[1024];
-    snprintf(file, sizeof(file), "%s/%s/%s", s->workdir, s->model->name, file_rel);
+
+    if (s->model->firmware_version)
+    {
+        /* load from the firmware version directory */
+        snprintf(file, sizeof(file), "%s/%s/%d/%s", s->workdir, s->model->name, s->model->firmware_version, file_rel);
+    }
+    else
+    {
+        /* second try, from the camera directory (some files may be common) */
+        snprintf(file, sizeof(file), "%s/%s/%s", s->workdir, s->model->name, file_rel);
+    }
 
     int size = get_image_size(file);
     if (size < 0)
@@ -1234,6 +1245,17 @@ static void eos_init_common(MachineState *machine)
 {
     EOSState *s = eos_init_cpu(EOS_MACHINE_GET_CLASS(machine)->model);
 
+    /* hijack machine option "firmware" to pass command-line parameters */
+    /* e.g. ./run_canon_fw 5D3,firmware="113;boot=1" */
+    /* fixme: better way to expose machine-specific options? */
+    QemuOpts *machine_opts = qemu_get_machine_opts();
+    const char *options = qemu_opt_get(machine_opts, "firmware");
+    if (options)
+    {
+        /* first numeric argument is firmware version (e.g. 113) */
+        s->model->firmware_version = atoi(options);
+    }
+
     /* populate ROM0 */
     if (ROM0_SIZE)
     {
@@ -1355,11 +1377,6 @@ static void eos_init_common(MachineState *machine)
         s->cpu0->env.regs[15] = 0;
         s->cpu0->env.thumb = 1;
     }
-
-    /* hijack machine option "firmware" to pass command-line parameters */
-    /* fixme: better way to expose machine-specific options? */
-    QemuOpts *machine_opts = qemu_get_machine_opts();
-    const char *options = qemu_opt_get(machine_opts, "firmware");
     
     if (options)
     {

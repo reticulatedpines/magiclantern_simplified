@@ -28,16 +28,20 @@ for CAM_DIR in [[:upper:]]*/ [[:digit:]]*/; do
     # get cam name (e.g. 50D) and cam name with firmware version (e.g. 50D.111)
     CAM=${CAM_DIR//.*/}
     CAM_FW=${CAM_DIR////}
+    FW=${CAM_FW//*./}
+
+    # only specify firmware version to QEMU for 5D3
+    [ "$CAM" = "5D3" ] && QFW="$FW;" || QFW=
 
     # replace camera-specific variables in script arguments 
     export CAM
+    export FW
     export CAM_FW
     export CAM_DIR
     BuildDir=`echo $BUILD_DIR | envsubst`
     QemuArgs=`echo $QEMU_ARGS | envsubst`
     QemuScript=`echo $QEMU_SCRIPT | envsubst`
     MLOptions=`echo $ML_OPTIONS | envsubst`
-    
 
     # only compile ML if BOOT=1
     if [ "$BOOT" == "1" ]; then
@@ -72,7 +76,7 @@ for CAM_DIR in [[:upper:]]*/ [[:digit:]]*/; do
 
     # setup QEMU command line
     LogName=$LOG_PREFIX$CAM_FW$LOG_SUFFIX.log
-    QemuInvoke="./run_canon_fw.sh $CAM,firmware='boot=$BOOT' -display none -monitor stdio $QemuArgs"
+    QemuInvoke="./run_canon_fw.sh $CAM,firmware='${QFW}boot=$BOOT' -display none -monitor stdio $QemuArgs"
 
     if [ "$GDB_SCRIPT" ] && [ -f "$CAM/$GDB_SCRIPT" ]; then
         # GDB runs unattended (from script)
