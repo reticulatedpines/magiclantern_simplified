@@ -299,6 +299,45 @@ static const MemoryRegionOps mem_ops = {
 };
 #endif
 
+/* fixme: how to get this called? */
+/* no luck with memory_region_rom_device_set_romd... */
+static uint64_t eos_rom_read(void * opaque, hwaddr addr, uint32_t size)
+{
+    fprintf(stderr, "ROM read: %x %x\n", (int)addr, (int)size);
+    return 0;
+}
+
+static void eos_rom_write(void * opaque, hwaddr addr, uint64_t value, uint32_t size)
+{
+    EOSState * s = (EOSState *)((intptr_t) opaque & ~1);
+    uint32_t rom_id = (intptr_t) opaque & 1;
+    uint32_t rom_addr = (rom_id) ? ROM1_ADDR : ROM0_ADDR;;
+    uint32_t address = rom_addr + addr;
+
+    switch(size)
+    {
+        case 1:
+            MEM_WRITE_ROM(address, (uint8_t *) &value, 1);
+            break;
+        case 2:
+            MEM_WRITE_ROM(address, (uint8_t *) &value, 2);
+            break;
+        case 4:
+            MEM_WRITE_ROM(address, (uint8_t *) &value, 4);
+            break;
+    }
+
+    /* log all ROM writes */
+    char name[16];
+    snprintf(name, sizeof(name), "ROM%d:%d", rom_id, size);
+    io_log(name, s, address, MODE_WRITE, value, 0, 0, 0, 0);
+}
+
+static const MemoryRegionOps rom_ops = {
+    .read = eos_rom_read,
+    .write = eos_rom_write,
+    .endianness = DEVICE_NATIVE_ENDIAN,
+};
 
 
 void eos_load_image(EOSState *s, const char * file_rel, int offset, int max_size, uint32_t addr, int swap_endian)
@@ -1007,6 +1046,28 @@ static void eos_uart_reset(DigicUartState *s)
 
 /** EOS CPU SETUP **/
 
+static void eos_init_rom(EOSState *s, int rom_id, MemoryRegion * rom, uint32_t rom_addr, uint32_t rom_size, uint64_t rom_limit)
+{
+    char name[32];
+    uint32_t start_addr = rom_addr;
+
+    /* main ROM */
+    sprintf(name, "eos.rom%d", rom_id);
+    /* fixme: not a very nice way to pass both EOSState * and rom ID */
+    void * rom_ops_arg = (void *)((uintptr_t) s | rom_id);
+    memory_region_init_rom_device(rom, NULL, &rom_ops, rom_ops_arg, name, rom_size, &error_abort);
+    memory_region_add_subregion(s->system_mem, start_addr, rom);
+
+    /* mirrored ROMs (aliases: changing one will update all others) */
+    for(uint64_t offset = start_addr + rom_size; offset < rom_limit; offset += rom_size)
+    {
+        sprintf(name, "eos.rom%d_mirror", rom_id);
+        MemoryRegion *image = g_new(MemoryRegion, 1);
+        memory_region_init_alias(image, NULL, name, rom, 0x00000000, rom_size);
+        memory_region_add_subregion(s->system_mem, offset, image);
+    }
+}
+
 
 static EOSState *eos_init_cpu(struct eos_model_desc * model)
 {
@@ -1085,35 +1146,12 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
     /* set up ROM0 */
     if (ROM0_SIZE)
     {
-        memory_region_init_ram(&s->rom0, NULL, "eos.rom0", ROM0_SIZE, &error_abort);
-        memory_region_add_subregion(s->system_mem, ROM0_ADDR, &s->rom0);
-
-        for(uint64_t offset = ROM0_ADDR + ROM0_SIZE; offset < ROM1_ADDR; offset += ROM0_SIZE)
-        {
-            char name[32];
-            MemoryRegion *image = g_new(MemoryRegion, 1);
-            sprintf(name, "eos.rom0_mirror_%02X", (uint32_t)offset >> 24);
-
-            memory_region_init_alias(image, NULL, name, &s->rom0, 0x00000000, ROM0_SIZE);
-            memory_region_add_subregion(s->system_mem, offset, image);
-        }
+        eos_init_rom(s, 0, &s->rom0, ROM0_ADDR, ROM0_SIZE, ROM1_ADDR);
     }
 
     if (ROM1_SIZE)
     {
-        /* set up ROM1 */
-        memory_region_init_ram(&s->rom1, NULL, "eos.rom1", ROM1_SIZE, &error_abort);
-        memory_region_add_subregion(s->system_mem, ROM1_ADDR, &s->rom1);
-
-        for(uint64_t offset = ROM1_ADDR + ROM1_SIZE; offset < 0x100000000; offset += ROM1_SIZE)
-        {
-            char name[32];
-            MemoryRegion *image = g_new(MemoryRegion, 1);
-            sprintf(name, "eos.rom1_mirror_%02X", (uint32_t)offset >> 24);
-
-            memory_region_init_alias(image, NULL, name, &s->rom1, 0x00000000, ROM1_SIZE);
-            memory_region_add_subregion(s->system_mem, offset, image);
-        }
+        eos_init_rom(s, 1, &s->rom1, ROM1_ADDR, ROM1_SIZE, 0x100000000);
     }
 
     //memory_region_init_ram(&s->rom1, "eos.rom", 0x10000000, &error_abort);

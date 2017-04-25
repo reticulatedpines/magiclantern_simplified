@@ -226,8 +226,6 @@ typedef struct
     MemoryRegion ram_extra;
     MemoryRegion rom0;
     MemoryRegion rom1;
-    uint8_t *rom0_data;
-    uint8_t *rom1_data;
     MemoryRegion iomem;
     MemoryRegion tracemem;
     MemoryRegion tracemem_uncached;
