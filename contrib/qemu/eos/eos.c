@@ -1709,7 +1709,6 @@ unsigned int eos_handle_intengine_vx ( unsigned int parm, EOSState *s, unsigned 
                         {
                             s->irq_enabled[msg_arg2] = 0;
                         }
-                        cpu_reset_interrupt(CPU(CURRENT_CPU), CPU_INTERRUPT_HARD);
                     }
                 }
             }
@@ -1820,6 +1819,7 @@ unsigned int eos_handle_intengine ( unsigned int parm, EOSState *s, unsigned int
                 {
                     msg = "Reset IRQ?";
                     s->irq_id = 0;
+                    cpu_reset_interrupt(CPU(CURRENT_CPU), CPU_INTERRUPT_HARD);
                 }
             }
             else
