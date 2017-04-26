@@ -1498,7 +1498,7 @@ static char* get_current_task_name(EOSState *s)
     uint32_t current_task[0x50/4];
     static char task_name[100];
     cpu_physical_memory_read(s->model->current_task_addr, &current_task_ptr, 4);
-    if (current_task_ptr)
+    if (current_task_ptr && current_task_ptr < 0x1000000)
     {
         int off = s->model->current_task_name_offs;
         cpu_physical_memory_read(current_task_ptr, current_task, sizeof(current_task));
