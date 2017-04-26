@@ -166,10 +166,10 @@ index 0f07159..40c3940 100644
  
  #endif
 diff --git a/include/qemu/log.h b/include/qemu/log.h
-index 362cbc4..f5da368 100644
+index 362cbc4..10d3af2 100644
 --- a/include/qemu/log.h
 +++ b/include/qemu/log.h
-@@ -42,6 +42,20 @@ static inline bool qemu_log_enabled(void)
+@@ -42,6 +42,21 @@ static inline bool qemu_log_enabled(void)
  #define CPU_LOG_MMU        (1 << 12)
  #define CPU_LOG_TB_NOCHAIN (1 << 13)
  
@@ -186,6 +186,7 @@ index 362cbc4..f5da368 100644
 +#define EOS_LOG_MEM_R      (EOS_LOG_RAM_R | EOS_LOG_ROM_R)
 +#define EOS_LOG_MEM_W      (EOS_LOG_RAM_W | EOS_LOG_ROM_W)
 +#define EOS_LOG_MEM        (EOS_LOG_RAM   | EOS_LOG_ROM)
++#define EOS_LOG_RAM_DBG    (1 << 21)
 +
  /* Returns true if a bit is set in the current loglevel mask
   */
@@ -214,10 +215,10 @@ index e193658..9de7251 100644
      subregion->priority = 0;
      memory_region_add_subregion_common(mr, offset, subregion);
 diff --git a/qemu-log.c b/qemu-log.c
-index 7cb01a8..3fdff1f 100644
+index 7cb01a8..2501ef5 100644
 --- a/qemu-log.c
 +++ b/qemu-log.c
-@@ -120,6 +120,25 @@ const QEMULogItem qemu_log_items[] = {
+@@ -120,6 +120,27 @@ const QEMULogItem qemu_log_items[] = {
      { CPU_LOG_TB_NOCHAIN, "nochain",
        "do not chain compiled TBs so that \"exec\" and \"cpu\" show\n"
        "complete traces" },
@@ -240,6 +241,8 @@ index 7cb01a8..3fdff1f 100644
 +      "EOS: log all RAM writes" },
 +    { EOS_LOG_ROM_W, "romw",
 +      "EOS: log all ROM writes" },
++    { EOS_LOG_RAM_DBG | EOS_LOG_RAM, "ram_dbg",
++      "EOS: self-test for the RAM logging routines" },
      { 0, NULL, NULL },
  };
  

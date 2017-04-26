@@ -49,7 +49,8 @@
 #define MODE_MASK  0xF0
 #define MODE_READ  0x10
 #define MODE_WRITE 0x20
-#define FORCE_LOG  0x80 /* force logging in io_log */
+#define FORCE_LOG  0x01 /* force logging in io_log */
+#define NOCHK_LOG  0x02 /* do not check this memory access */
 
 /* DryOS timer */
 #define TIMER_INTERRUPT s->model->dryos_timer_interrupt
@@ -352,9 +353,6 @@ unsigned int flash_get_blocksize(unsigned int rom, unsigned int size, unsigned i
 
 void eos_load_image(EOSState *s, const char* file, int offset, int max_size, uint32_t addr, int swap_endian);
 
-  
-void sdio_trigger_interrupt(EOSState *s, SDIOState *sd);
- 
 void io_log(const char * module_name, EOSState *s, unsigned int address, unsigned char type, unsigned int in_value, unsigned int out_value, const char * msg, intptr_t msg_arg1, intptr_t msg_arg2);
 
 /* EOS ROM device */
@@ -372,5 +370,8 @@ ROMState *eos_rom_register(hwaddr base, DeviceState *qdev, const char *name, hwa
 
 #define MEM_WRITE_ROM(addr, buf, size) \
     cpu_physical_memory_write_rom(&address_space_memory, addr, buf, size)
+
+void eos_mem_read(EOSState *s, hwaddr addr, void * buf, int size);
+void eos_mem_write(EOSState *s, hwaddr addr, void * buf, int size);
 
 #endif /* HW_EOS_H */

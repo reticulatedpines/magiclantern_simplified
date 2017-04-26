@@ -319,9 +319,76 @@ static inline int should_log_memory_region(MemoryRegion * mr)
     return 0;
 }
 
-
-static void eos_log_mem(void * opaque, hwaddr addr, uint64_t value, int size, int is_write)
+static void eos_log_selftest(EOSState *s, hwaddr addr, uint64_t value, uint32_t size, int flags)
 {
+    int is_write = flags & 1;
+    int no_check = flags & NOCHK_LOG;
+
+    /* check reads - they must match the memory contents */
+    if (!no_check && !is_write)
+    {
+        uint64_t check;
+        uint64_t mask = (1 << (size*8)) - 1;
+        assert(size <= 4);
+        cpu_physical_memory_read(addr, &check, size);
+        if ((check & mask) != (value & mask))
+        {
+            printf("FIXME: %x: %x vs %x (R%d)\n", (int)addr, (int)value, (int)check, size);
+        }
+    }
+
+    if (is_write)
+    {
+        /* rebuild a second copy of the RAM */
+        static uint32_t * buf = 0; if (!buf) buf = calloc(1, s->model->ram_size);
+        static uint32_t * ram = 0; if (!ram) ram = calloc(1, s->model->ram_size);
+
+        /* ckeck both copies every now and then to make sure they are identical (slow) */
+        static int k = 0; k++;
+        if ((k % 0x100000 == 0) && (!no_check))
+        {
+            cpu_physical_memory_read(0, ram, s->model->ram_size);
+            for (int i = 0; i < s->model->ram_size/4; i++)
+            {
+                if (buf[i] != ram[i])
+                {
+                    printf("FIXME: %x: %x vs %x (W%d)\n", i*4, (int)buf[i], (int)ram[i], size);
+                    buf[i] = ram[i];
+                }
+            }
+        }
+        
+        uint32_t address = addr;
+        if (address >= 0x40001000)
+        {
+            address &= ~0x40000000;
+        }
+        if (address < 0x40000000)
+        {
+            switch (size)
+            {
+                case 1:
+                    ((uint8_t *)buf)[address] = value;
+                    break;
+                case 2:
+                    ((uint16_t *)buf)[address/2] = value;
+                    break;
+                case 4:
+                    ((uint32_t *)buf)[address/4] = value;
+                    break;
+                default:
+                    assert(0);
+            }
+        }
+    }
+}
+
+static void eos_log_mem(void * opaque, hwaddr addr, uint64_t value, uint32_t size, int flags)
+{
+    const char * msg = "";
+    int is_write = flags & 1;
+    int mode = is_write ? MODE_WRITE : MODE_READ;
+
     /* find out what kind of memory is this */
     /* fixme: can be slow */
     hwaddr l = 4;
@@ -334,9 +401,65 @@ static void eos_log_mem(void * opaque, hwaddr addr, uint64_t value, int size, in
     }
 
     EOSState* s = (EOSState*) opaque;
-    int mode = is_write ? MODE_WRITE : MODE_READ;
+
+    if (qemu_loglevel_mask(EOS_LOG_RAM_DBG))
+    {
+        /* perform a self-test to make sure the loggers capture
+         * all memory write events correctly (not sure how to check reads)
+         */
+        eos_log_selftest(s, addr, value, size, flags);
+    }
+    else
+    {
+        /* with -d mem, log memory accesses in the same way as I/O */
+        /* -d mem_dbg does not print them unless you also specify io */
+        mode |= FORCE_LOG;
+    }
+    
+
+    switch (size)
+    {
+        case 1:
+            msg = "8-bit";
+            break;
+        case 2:
+            msg = "16-bit";
+            break;
+        case 4:
+            break;
+        default:
+            assert(0);
+    }
+
+    /* all our memory region names start with eos. */
     assert(strncmp(mr->name, "eos.", 4) == 0);
-    io_log(mr->name + 4, s, addr, mode | FORCE_LOG, value, value, "", 0, 0);
+    io_log(mr->name + 4, s, addr, mode, value, value, msg, 0, 0);
+}
+
+void eos_mem_read(EOSState *s, hwaddr addr, void * buf, int size)
+{
+    cpu_physical_memory_read(addr, buf, size);
+
+    if (qemu_loglevel_mask(EOS_LOG_MEM_R))
+    {
+        for (int i = 0; i < size; i += 4)
+        {
+            eos_log_mem(s, addr + i, *(uint32_t*)(buf + i), 4, NOCHK_LOG);
+        }
+    }
+}
+
+void eos_mem_write(EOSState *s, hwaddr addr, void * buf, int size)
+{
+    if (qemu_loglevel_mask(EOS_LOG_MEM_W))
+    {
+        for (int i = 0; i < size; i += 4)
+        {
+            eos_log_mem(s, addr + i, *(uint32_t*)(buf + i), 4, 1 | NOCHK_LOG);
+        }
+    }
+
+    cpu_physical_memory_write(addr, buf, size);
 }
 
 void eos_load_image(EOSState *s, const char * file_rel, int offset, int max_size, uint32_t addr, int swap_endian)
@@ -1429,16 +1552,19 @@ static void eos_init_common(MachineState *machine)
 
 void eos_set_mem_w ( EOSState *s, uint32_t addr, uint32_t val )
 {
+    assert(0);
     cpu_physical_memory_write(addr, &val, sizeof(val));
 }
 
 void eos_set_mem_h ( EOSState *s, uint32_t addr, uint16_t val )
 {
+    assert(0);
     cpu_physical_memory_write(addr, &val, sizeof(val));
 }
 
 void eos_set_mem_b ( EOSState *s, uint32_t addr, uint8_t val )
 {
+    assert(0);
     cpu_physical_memory_write(addr, &val, sizeof(val));
 }
 
@@ -2870,7 +2996,7 @@ static int edmac_do_transfer(EOSState *s, int channel)
                 for (int j = 0; j <= y; j++)
                 {
                     int off = (j < y) ? off1 : off23;
-                    cpu_physical_memory_read(src, dst, x);
+                    eos_mem_read(s, src, dst, x);
                     src += x + off;
                     dst += x;
                 }
@@ -2935,7 +3061,7 @@ static int edmac_do_transfer(EOSState *s, int channel)
                 for (int j = 0; j <= y; j++)
                 {
                     int off = (j < y) ? off1 : off23;
-                    cpu_physical_memory_write(dst, src, x);
+                    eos_mem_write(s, dst, src, x);
                     src += x;
                     dst += x + off;
                 }
@@ -3589,8 +3715,8 @@ unsigned int eos_handle_dma ( unsigned int parm, EOSState *s, unsigned int addre
                     {
                         uint32_t transfer = (remain > blocksize) ? blocksize : remain;
 
-                        cpu_physical_memory_rw(src, buf, transfer, 0);
-                        cpu_physical_memory_rw(dst, buf, transfer, 1);
+                        eos_mem_read(s, src, buf, transfer);
+                        eos_mem_write(s, dst, buf, transfer);
 
                         remain -= transfer;
                         src += transfer;
@@ -3928,8 +4054,9 @@ error:
 
 /* inspired from pl181_fifo_run from hw/sd/pl181.c */
 /* only DMA transfers implemented */
-static void sdio_read_data(SDIOState *sd)
+static void sdio_read_data(EOSState *s)
 {
+    SDIOState *sd = &s->sd;
     int i;
 
     if (sd->status & SDIO_STATUS_DATA_AVAILABLE)
@@ -3967,15 +4094,16 @@ static void sdio_read_data(SDIOState *sd)
         uint32_t value = (value1 << 0) | (value2 << 8) | (value3 << 16) | (value4 << 24);
         
         uint32_t addr = sd->dma_addr + i*4; 
-        cpu_physical_memory_write(addr, &value, 4);
+        eos_mem_write(s, addr, &value, 4);
     }
 
     sd->status |= SDIO_STATUS_DATA_AVAILABLE;
     sd->dma_transferred_bytes = sd->dma_count;
 }
 
-static void sdio_write_data(SDIOState *sd)
+static void sdio_write_data(EOSState *s)
 {
+    SDIOState *sd = &s->sd;
     int i;
 
     if (sd->status & SDIO_STATUS_DATA_AVAILABLE)
@@ -3997,7 +4125,7 @@ static void sdio_write_data(SDIOState *sd)
     {
         uint32_t addr = sd->dma_addr + i*4; 
         uint32_t value;
-        cpu_physical_memory_read(addr, &value, 4);
+        eos_mem_read(s, addr, &value, 4);
         
         sd_write_data(sd->card, (value >>  0) & 0xFF);
         sd_write_data(sd->card, (value >>  8) & 0xFF);
@@ -4010,8 +4138,10 @@ static void sdio_write_data(SDIOState *sd)
     sd->dma_transferred_bytes = sd->dma_count;
 }
 
-void sdio_trigger_interrupt(EOSState *s, SDIOState *sd)
+static void sdio_trigger_interrupt(EOSState *s)
 {
+    SDIOState *sd = &s->sd;
+
     /* after a successful operation, trigger interrupt if requested */
     if ((sd->cmd_flags == 0x13 || sd->cmd_flags == 0x14 || sd->cmd_flags == 0x04)
         && !(sd->status & SDIO_STATUS_DATA_AVAILABLE))
@@ -4072,8 +4202,8 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
                     if (s->sd.dma_enabled)
                     {
                         /* DMA read transfer */
-                        sdio_read_data(&s->sd);
-                        sdio_trigger_interrupt(s,&s->sd);
+                        sdio_read_data(s);
+                        sdio_trigger_interrupt(s);
                     }
                     else
                     {
@@ -4091,7 +4221,7 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
                     }
 
                     /* non-data or write transfer */
-                    sdio_trigger_interrupt(s,&s->sd);
+                    sdio_trigger_interrupt(s);
                 }
             }
             break;
@@ -4124,13 +4254,13 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
             
             if (s->sd.cmd_flags == 0x13 && s->sd.dma_enabled && value)
             {
-                sdio_write_data(&s->sd);
+                sdio_write_data(s);
             }
 
             /* sometimes this register is configured after the transfer is started */
             /* since in our implementation, transfers are instant, this would miss the interrupt,
              * so we trigger it from here too. */
-            sdio_trigger_interrupt(s,&s->sd);
+            sdio_trigger_interrupt(s);
             break;
 
         case 0x18:
@@ -4216,7 +4346,7 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
                         DPRINTF("PIO transfer completed.\n");
                         s->sd.status |= SDIO_STATUS_DATA_AVAILABLE;
                         s->sd.status |= SDIO_STATUS_OK;
-                        sdio_trigger_interrupt(s,&s->sd);
+                        sdio_trigger_interrupt(s);
                     }
                 }
                 else
@@ -4302,8 +4432,8 @@ unsigned int eos_handle_sddma ( unsigned int parm, EOSState *s, unsigned int add
             /* DMA transfer? */
             if (s->sd.cmd_flags == 0x13)
             {
-                sdio_write_data(&s->sd);
-                sdio_trigger_interrupt(s,&s->sd);
+                sdio_write_data(s);
+                sdio_trigger_interrupt(s);
             }
 
             break;
@@ -4333,7 +4463,7 @@ static int cfdma_read_data(EOSState *s, CFState *cf)
     {
         uint32_t value = ide_data_readl(&cf->bus, 0);
         uint32_t addr = cf->dma_addr + cf->dma_read; 
-        cpu_physical_memory_write(addr, &value, 4);
+        eos_mem_write(s, addr, &value, 4);
         DPRINTF("%08x: %08x\n", addr, value);
         cf->dma_read += 4;
     }
