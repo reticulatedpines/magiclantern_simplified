@@ -45,7 +45,7 @@ MLV_LIBS += $(LZMA_LIB)
 MLV_LIBS_MINGW += $(LZMA_LIB_MINGW)
 
 MLV_DUMP_OBJS=mlv_dump.host.o $(SRC_DIR)/chdk-dng.host.o ../lv_rec/raw2dng.host.o lj92.host.o $(LZMA_LIB) 
-MLV_DUMP_OBJS_MINGW=mlv_dump.w32.o $(SRC_DIR)/chdk-dng.w32.o ../lv_rec/raw2dng.w32.o $(LZMA_LIB_MINGW) 
+MLV_DUMP_OBJS_MINGW=mlv_dump.w32.o $(SRC_DIR)/chdk-dng.w32.o ../lv_rec/raw2dng.w32.o lj92.w32.o $(LZMA_LIB_MINGW) 
 
 
 clean::
