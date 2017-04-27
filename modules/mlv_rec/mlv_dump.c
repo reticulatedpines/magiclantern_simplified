@@ -2157,13 +2157,14 @@ read_headers:
                     }
 
                     /* set the output compression flag */
+
                     if(compress_output)
                     {
-                        file_hdr.videoClass |= MLV_VIDEO_CLASS_FLAG_LZMA;
+                        file_hdr.videoClass |= MLV_VIDEO_CLASS_FLAG_LJ92;
                     }
                     else
                     {
-                        file_hdr.videoClass &= ~MLV_VIDEO_CLASS_FLAG_LZMA;
+                        file_hdr.videoClass &= ~MLV_VIDEO_CLASS_FLAG_LJ92;
                     }
 
                     if(delta_encode_mode)
@@ -4179,6 +4180,24 @@ abort:
         
         main_header.videoFrameCount = vidf_frames_processed;
         main_header.audioFrameCount = audf_frames_processed;
+
+        if(compress_output)
+        {
+            main_header.videoClass |= MLV_VIDEO_CLASS_FLAG_LJ92;
+        }
+        else
+        {
+            main_header.videoClass &= ~MLV_VIDEO_CLASS_FLAG_LJ92;
+        }
+
+        if(delta_encode_mode)
+        {
+            main_header.videoClass |= MLV_VIDEO_CLASS_FLAG_DELTA;
+        }
+        else
+        {
+            main_header.videoClass &= ~MLV_VIDEO_CLASS_FLAG_DELTA;
+        }
 
         fseek(out_file, 0L, SEEK_SET);
         
