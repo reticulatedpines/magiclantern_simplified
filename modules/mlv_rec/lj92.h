@@ -1,25 +1,25 @@
 /*
- lj92.h
- (c) Andrew Baldwin 2014
+lj92.h
+(c) Andrew Baldwin 2014
 
- Permission is hereby granted, free of charge, to any person obtaining a copy of
- this software and associated documentation files (the "Software"), to deal in
- the Software without restriction, including without limitation the rights to
- use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
- of the Software, and to permit persons to whom the Software is furnished to do
- so, subject to the following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
 
- The above copyright notice and this permission notice shall be included in all
- copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- SOFTWARE.
- */
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 #ifndef LJ92_H
 #define LJ92_H
@@ -29,7 +29,7 @@ enum LJ92_ERRORS {
     LJ92_ERROR_CORRUPT = -1,
     LJ92_ERROR_NO_MEMORY = -2,
     LJ92_ERROR_BAD_HANDLE = -3,
-    LJ92_ERROR_TOO_WIDE = -4
+    LJ92_ERROR_TOO_WIDE = -4,
 };
 
 typedef struct _ljp* lj92;
@@ -40,8 +40,9 @@ typedef struct _ljp* lj92;
  * Returns status code.
  * If status == LJ92_ERROR_NONE, handle must be closed with lj92_close
  */
-int lj92_open(lj92* lj, const uint8_t* data, int datalen, int* width,
-              int* height, int* bitdepth, int* components); // Width, height and bitdepth
+int lj92_open(lj92* lj, // Return handle here
+              uint8_t* data,int datalen, // The encoded data
+              int* width,int* height,int* bitdepth,int* components); // Width, height, bitdepth and components
 
 /* Release a decoder object */
 void lj92_close(lj92 lj);
