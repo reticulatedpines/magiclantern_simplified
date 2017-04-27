@@ -6,7 +6,7 @@
 EOS_CAMS=( 5D 5D2 5D3 5D4 6D 7D 7D2M
            40D 50D 60D 70D 80D
            400D 450D 500D 550D 600D 650D 700D 750D 760D
-           100D 1000D 1100D 1200D EOSM )
+           100D 1000D 1100D 1200D 1300D EOSM )
 
 POWERSHOT_CAMS=( EOSM3 EOSM10 EOSM5 A1100 )
 
@@ -477,7 +477,7 @@ mkdir -p $TMP
 
 if [ ! -f $ROM_DUMPER_BIN ]; then
     mkdir -p `dirname $ROM_DUMPER_BIN`
-    wget -O $ROM_DUMPER_BIN https://dl.dropboxusercontent.com/u/4124919/debug/portable-rom-dumper/autoexec.bin
+    wget -O $ROM_DUMPER_BIN http://a1ex.magiclantern.fm/debug/portable-rom-dumper/qemu/autoexec.bin
 fi
 
 # we don't know whether the camera will use SD or CF, so prepare both
