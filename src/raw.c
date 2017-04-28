@@ -94,14 +94,15 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #endif
 
 #ifdef CONFIG_5D3_113
-//#define DEFAULT_RAW_BUFFER MEM(0x2600C + 0x2c)
+#define DEFAULT_RAW_BUFFER MEM(0x2600C + 0x2c)
 #endif
 
 #ifdef CONFIG_5D3_123
-//#define DEFAULT_RAW_BUFFER MEM(0x25f1c + 0x34)
+#define DEFAULT_RAW_BUFFER MEM(0x25f1c + 0x34)
 #endif
 
 #ifdef CONFIG_5D3
+#define DEFAULT_RAW_BUFFER_SIZE (9*1024*1024)   /* at least 3744*1380*14/8; apparently more */
 #define CONFIG_ALLOCATE_RAW_LV_BUFFER
 #define CONFIG_ALLOCATE_RAW_LV_BUFFER_SRM_DUMMY
 #define RAW_LV_BUFFER_ALLOC_SIZE ((0x527 + 2612) * (0x2FE - 0x18)*8 * 14/8)
@@ -722,7 +723,6 @@ extern void reverse_bytes_order(char* buf, int count);
 static void * raw_allocated_lv_buffer = 0;
 static void * raw_lv_buffer = 0;
 static int raw_lv_buffer_size = 0;
-#endif
 
 /* our default LiveView buffer (which can be DEFAULT_RAW_BUFFER or allocated) */
 static void* raw_get_default_lv_buffer()
@@ -2374,6 +2374,11 @@ static void raw_lv_enable()
     call("lv_save_raw", 1);
 #endif
 
+#ifdef DEFAULT_RAW_BUFFER
+    raw_lv_buffer = (void *) DEFAULT_RAW_BUFFER;
+    raw_lv_buffer_size = DEFAULT_RAW_BUFFER_SIZE;
+#endif
+
 #ifdef CONFIG_ALLOCATE_RAW_LV_BUFFER
     uint32_t old = cli();
     if(!raw_allocated_lv_buffer) {
@@ -2422,25 +2427,19 @@ static void raw_lv_enable()
     }
 #endif
 #endif
-    
 }
 
 static void raw_lv_disable()
 {
     lv_raw_enabled = 0;
+    raw_info.buffer = 0;
+
 #ifndef CONFIG_EDMAC_RAW_SLURP
     call("lv_save_raw", 0);
 #endif
 
 #ifdef CONFIG_ALLOCATE_RAW_LV_BUFFER
-    uint32_t old = cli();
-    if(raw_allocated_lv_buffer) {
-        #ifndef CONFIG_ALLOCATE_RAW_LV_BUFFER_SRM_DUMMY
-        free(raw_allocated_lv_buffer);
-        #endif
-        raw_allocated_lv_buffer = 0;
-    }
-    sei(old);
+    raw_lv_free_buffer();
 #endif
 }
 
