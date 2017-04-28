@@ -157,7 +157,9 @@ static CONFIG_INT("raw.warm.up", warm_up, 0);
 static CONFIG_INT("raw.use.srm.memory", use_srm_memory, 1);
 static CONFIG_INT("raw.small.hacks", small_hacks, 1);
 
-static CONFIG_INT("raw.output_format", output_format, 1);
+static CONFIG_INT("raw.h264.proxy", h264_proxy_menu, 0);
+
+static CONFIG_INT("raw.output_format", output_format, 3);
 #define OUTPUT_14BIT_NATIVE 0
 #define OUTPUT_12BIT_UNCOMPRESSED 1
 #define OUTPUT_10BIT_UNCOMPRESSED 2
@@ -1225,6 +1227,58 @@ static MENU_UPDATE_FUNC(rec_trigger_update)
     {
         MENU_SET_VALUE("Half-shut: %s", pre_record ? "pre only" : "1-frame");
     }
+}
+
+static MENU_UPDATE_FUNC(h264_proxy_update)
+{
+    if (h264_proxy_menu)
+    {
+        if (lv_dispsize == 5)
+        {
+            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not compatible with x5 zoom.");
+        }
+
+        /* fixme: duplicate code */
+        int default_width  = 2080;
+        int default_height = video_mode_fps <= 30 ? 2080 : 692;
+
+        if (raw_info.width > default_width)
+        {
+            MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Not working in video modes with broken preview.");
+        }
+
+        if (raw_info.height > default_height)
+        {
+            MENU_SET_WARNING(MENU_WARN_ADVICE, "Framing in H.264 is not accurate in modes with higher vertical resolution.");
+        }
+
+        if (get_shooting_card()->drive_letter[0] == 'A')
+        {
+            MENU_SET_WARNING(MENU_WARN_ADVICE, "For best performance, record H.264 on SD. RAW is always saved on CF.");
+        }
+    }
+}
+
+static inline int use_h264_proxy()
+{
+    if (!h264_proxy_menu)
+    {
+        return 0;
+    }
+
+    if (lv_dispsize == 5)
+    {
+        return 0;
+    }
+
+    int default_width  = 2080;
+    if (raw_info.width > default_width)
+    {
+        return 0;
+    }
+
+    /* no known contraindications */
+    return 1;
 }
 
 static void * alloc_fullsize_buffer(struct memSuite * mem_suite, int fullres_buf_size)
@@ -2825,7 +2879,7 @@ static char* get_next_raw_movie_file_name()
 
     for (int number = 0 ; number < 100; number++)
     {
-        if (h264_proxy)
+        if (use_h264_proxy())
         {
             /**
              * Try to match Canon movie file names
@@ -2867,7 +2921,7 @@ static char* get_next_chunk_file_name(char* base_name, int chunk)
 /* => it will show audio meters and disable beeps */
 int mlv_snd_is_enabled()
 {
-    return h264_proxy && sound_recording_enabled_canon();
+    return use_h264_proxy() && sound_recording_enabled_canon();
 }
 
 static char* get_wav_file_name(char* raw_movie_filename)
@@ -3160,7 +3214,7 @@ static void raw_video_rec_task()
     pre_record_triggered = !pre_record && !rec_trigger;
     pre_record_first_frame = 0;
 
-    if (h264_proxy)
+    if (use_h264_proxy())
     {
         /* start H.264 recording */
         ASSERT(!RECORDING_H264);
@@ -3640,7 +3694,7 @@ cleanup:
     /* re-enable powersaving  */
     powersave_permit();
 
-    if (h264_proxy && RECORDING_H264 &&
+    if (use_h264_proxy() && RECORDING_H264 &&
         get_current_dialog_handler() != &ErrCardForLVApp_handler)
     {
         /* stop H.264 recording */
@@ -3785,8 +3839,9 @@ static struct menu_entry raw_video_menu[] =
             },
             {
                 .name   = "H.264 proxy",
-                .priv   = &h264_proxy,
+                .priv   = &h264_proxy_menu,
                 .max    = 1,
+                .update = h264_proxy_update,
                 .help   = "Record a H.264 video at the same time.",
                 .help2  = "For best performance, record H.264 on SD and RAW on CF.",
                 .advanced = 1,
@@ -3864,7 +3919,7 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
         return 1;
 
     /* if you somehow managed to start recording H.264, let it stop */
-    if (RECORDING_H264 && !h264_proxy)
+    if (RECORDING_H264 && !use_h264_proxy())
         return 1;
     
     /* block the zoom key while recording */
@@ -3995,7 +4050,7 @@ static unsigned int raw_rec_keypress_cbr_raw(unsigned int raw_event)
 {
     struct event * event = (struct event *) raw_event;
 
-    if (h264_proxy)
+    if (use_h264_proxy())
     {
         if (IS_FAKE(event))
         {
@@ -4263,8 +4318,7 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(warm_up)
     MODULE_CONFIG(sync_beep)
     MODULE_CONFIG(output_format)
-    MODULE_CONFIG(h264_proxy_menu)
     MODULE_CONFIG(bpp)
     MODULE_CONFIG(bpp_index)
-    MODULE_CONFIG(h264_proxy)
+    MODULE_CONFIG(h264_proxy_menu)
 MODULE_CONFIGS_END()
