@@ -3166,7 +3166,6 @@ int write_frames(FILE** pf, void* ptr, int group_size, int num_frames)
         chunk_frame_count += num_frames;
     }
     
-    writing_time += last_write_timestamp - t0;
     return 1;
 }
 
@@ -3302,9 +3301,6 @@ static void raw_video_rec_task()
 
     /* signal start of recording to the compression task */
     msg_queue_post(compress_mq, INT_MAX);
-
-    writing_time = 0;
-    idle_time = 0;
     
     /* fake recording status, to integrate with other ml stuff (e.g. hdr video */
     set_recording_custom(CUSTOM_RECORDING_RAW);
