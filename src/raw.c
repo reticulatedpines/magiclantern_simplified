@@ -830,7 +830,9 @@ static void raw_lv_free_buffer()
 {
     printf("Freeing LV raw buffer %x.\n", raw_lv_buffer);
     if(raw_allocated_lv_buffer) {
+        #ifndef CONFIG_ALLOCATE_RAW_LV_BUFFER_SRM_DUMMY
         free(raw_allocated_lv_buffer);
+        #endif
         raw_allocated_lv_buffer = 0;
     }
     raw_lv_buffer = 0;
@@ -2412,8 +2414,6 @@ static void raw_lv_enable()
         info_led_off();
     }
 #endif
-    raw_lv_buffer = (void *) DEFAULT_RAW_BUFFER;
-    raw_lv_buffer_size = DEFAULT_RAW_BUFFER_SIZE;
 #endif
 
 #ifdef CONFIG_ALLOCATE_RAW_LV_BUFFER
