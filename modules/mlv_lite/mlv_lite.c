@@ -42,8 +42,6 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#define DEBUG_REDRAW_INTERVAL 1000   /* normally 1000; low values like 50 will reduce write speed a lot! */
-#undef DEBUG_BUFFERING_GRAPH      /* some funky graphs */
 static int show_graph = 0;
 static int show_edmac = 0;
 
@@ -1577,41 +1575,43 @@ static void show_buffer_status()
 {
     if (!liveview_display_idle()) return;
     
-    int y = BUFFER_DISPLAY_Y + 50;
-    uint32_t chunk_start = (uint32_t) slots[0].ptr;
-
-    for (int i = 0; i < total_slot_count; i++)
+    if (show_graph == 1)
     {
-        if (i > 0 && slots[i].ptr != slots[i-1].ptr + slots[i-1].size)
+        int y = BUFFER_DISPLAY_Y + 50;
+        uint32_t chunk_start = (uint32_t) slots[0].ptr;
+
+        for (int i = 0; i < total_slot_count; i++)
         {
-            /* new chunk */
-            chunk_start = (uint32_t) slots[i].ptr;
-            y += 10;
-            if (y > 400) return;
+            if (i > 0 && slots[i].ptr != slots[i-1].ptr + slots[i-1].size)
+            {
+                /* new chunk */
+                chunk_start = (uint32_t) slots[i].ptr;
+                y += 10;
+                if (y > 400) return;
+            }
+
+            int color = slots[i].status == SLOT_FREE      ? COLOR_GRAY(10) :
+                        slots[i].status == SLOT_WRITING   ? COLOR_GREEN1 :
+                        slots[i].status == SLOT_FULL      ? COLOR_LIGHT_BLUE :
+                        slots[i].status == SLOT_RESERVED  ? COLOR_GRAY(50) :
+                                                            COLOR_RED ;
+
+            uint32_t x1 = (uint32_t) slots[i].ptr - chunk_start;
+            uint32_t x2 = x1 + slots[i].size;
+            x1 = 650 * (x1/1024) / (32*1024) + BUFFER_DISPLAY_X;
+            x2 = 650 * (x2/1024) / (32*1024) + BUFFER_DISPLAY_X;
+            x1 = COERCE(x1, 0, 720);
+            x2 = COERCE(x2, 0, 720);
+
+            for (uint32_t x = x1; x < x2; x++)
+            {
+                draw_line(x, y, x, y+7, color);
+            }
+            draw_line(x1, y, x1, y+7, COLOR_BLACK);
+            draw_line(x2, y, x2, y+7, COLOR_BLACK);
         }
-
-        int color = slots[i].status == SLOT_FREE      ? COLOR_GRAY(10) :
-                    slots[i].status == SLOT_WRITING   ? COLOR_GREEN1 :
-                    slots[i].status == SLOT_FULL      ? COLOR_LIGHT_BLUE :
-                    slots[i].status == SLOT_RESERVED  ? COLOR_GRAY(50) :
-                                                        COLOR_RED ;
-
-        uint32_t x1 = (uint32_t) slots[i].ptr - chunk_start;
-        uint32_t x2 = x1 + slots[i].size;
-        x1 = 650 * (x1/1024) / (32*1024) + BUFFER_DISPLAY_X;
-        x2 = 650 * (x2/1024) / (32*1024) + BUFFER_DISPLAY_X;
-        x1 = COERCE(x1, 0, 720);
-        x2 = COERCE(x2, 0, 720);
-
-        for (uint32_t x = x1; x < x2; x++)
-        {
-            draw_line(x, y, x, y+7, color);
-        }
-        draw_line(x1, y, x1, y+7, COLOR_BLACK);
-        draw_line(x2, y, x2, y+7, COLOR_BLACK);
     }
-
-#ifdef DEBUG_BUFFERING_GRAPH
+    else
     {
         int free = count_free_slots();
         int x = frame_count % 720;
@@ -1628,11 +1628,22 @@ static void show_buffer_status()
         prev_x = x;
         prev_y = y;
         bmp_draw_rect(COLOR_BLACK, 0, ymin, 720, ymax-ymin);
-        
-        int xp = predict_frames(measured_write_speed * 1024 / 100 * 1024, 0) % 720;
+
+        /* absolute estimation of number of frames, with current write speed */
+        int xp = predict_frames(
+            measured_write_speed * 1024 / 100 * 1024,
+            valid_slot_count
+        ) % 720;
         draw_line(xp, ymax, xp, ymin, COLOR_RED);
+
+        /* relative estimation, from now on*/
+        int xr = predict_frames(
+            measured_write_speed * 1024 / 100 * 1024,
+            free
+        ) % 720;
+
+        draw_line(x, y, x+xr, ymin, COLOR_YELLOW);
     }
-#endif
 }
 
 static void panning_update()
@@ -1761,7 +1772,8 @@ static void show_recording_status()
 {
     /* Determine if we should redraw */
     static int auxrec = INT_MIN;
-    if (RAW_IS_RECORDING && liveview_display_idle() && should_run_polling_action(DEBUG_REDRAW_INTERVAL, &auxrec))
+    int redraw_interval = (show_graph == 2) ? 50 : 1000;
+    if (RAW_IS_RECORDING && liveview_display_idle() && should_run_polling_action(redraw_interval, &auxrec))
     {
         /* Calculate the stats */
         int fps = fps_get_current_x1000();
@@ -3677,11 +3689,7 @@ cleanup:
     gui_uilock(UILOCK_NONE);
 
     free_buffers();
-    
-    #ifdef DEBUG_BUFFERING_GRAPH
-    take_screenshot(SCREENSHOT_FILENAME_AUTO, SCREENSHOT_BMP);
-    #endif
-    
+
     restore_bit_depth();
     
     hack_liveview(1);
@@ -3867,9 +3875,10 @@ static struct menu_entry raw_video_menu[] =
                 .advanced = 1,
             },
             {
-                .name = "Show buffers",
+                .name = "Show graph",
                 .priv = &show_graph,
-                .max = 1,
+                .choices = CHOICES("OFF", "Buffers", "Buffer usage"),
+                .max = 2,
                 .help = "Displays a graph of the current buffer usage and expected frames.",
                 .advanced = 1,
             },
