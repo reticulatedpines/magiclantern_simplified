@@ -219,14 +219,17 @@ struct raw_capture_info {
     uint8_t  skipping_x;    /* so far, 0 everywhere */
     uint8_t  binning_y;     /* 1 (most cameras in 1080/720p; also all crop modes); 3 (5D3 1080p); 5 (5D3 720p) */
     uint8_t  skipping_y;    /* 2 (most cameras in 1080p); 4 (most cameras in 720p); 0 (5D3) */
-    int16_t  offset_x;      /* crop offset (top-left corner) - optional (SHRT_MIN if unknown) */
-    int16_t  offset_y;      /* relative to a full-res silent picture (usually slightly larger than a CR2) */
+    int16_t  offset_x;      /* crop offset (top-left active pixel) - optional (SHRT_MIN if unknown) */
+    int16_t  offset_y;      /* relative to top-left active pixel from a full-res image (FRSP or CR2) */
    
-    /* The captured area (described by raw_info, including borders) will be:
-     *   left  : offset_x
-     *   top   : offset_y
-     *   right : offset_x + raw_info.width  * (binning_x+skipping_x)
-     *   bottom: offset_y + raw_info.height * (binning_y+skipping_y)
+    /* The captured *active* area (raw_info.active_area) will be mapped
+     * on a full-res image (which does not use subsampling) as follows:
+     *   active_width  = raw_info.active_area.x2 - raw_info.active_area.x1
+     *   active_height = raw_info.active_area.y2 - raw_info.active_area.y1
+     *   .x1 (left)  : offset_x + full_res.active_area.x1
+     *   .y1 (top)   : offset_y + full_res.active_area.y1
+     *   .x2 (right) : offset_x + active_width  * (binning_x+skipping_x) + full_res.active_area.x1
+     *   .y2 (bottom): offset_y + active_height * (binning_y+skipping_y) + full_res.active_area.y1
      */
 };
 
