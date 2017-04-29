@@ -94,17 +94,31 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #endif
 
 #ifdef CONFIG_5D3_113
-#define DEFAULT_RAW_BUFFER MEM(0x2600C + 0x2c)
+//~ #define DEFAULT_RAW_BUFFER MEM(0x2600C + 0x2c)
+//~ #define DEFAULT_RAW_BUFFER_SIZE (9*1024*1024)
 #endif
 
 #ifdef CONFIG_5D3_123
-#define DEFAULT_RAW_BUFFER MEM(0x25f1c + 0x34)
+//~ #define DEFAULT_RAW_BUFFER MEM(0x25f1c + 0x34)
+//~ #define DEFAULT_RAW_BUFFER_SIZE (9*1024*1024)   /* incorrect? */
 #endif
 
 #ifdef CONFIG_5D3
-#define DEFAULT_RAW_BUFFER_SIZE (9*1024*1024)   /* at least 3744*1380*14/8; apparently more */
+/* MEM(0x25f1c + 0x34) (0x4d31a000) is used near 0x4d600000 in photo mode
+ * that means, after 2.9MB (in the middle of our raw buffer)
+ * the data structure appears to be re-initialized as soon as leaving LiveView
+ * let's use from 0x4d600100; next buffer is at 0x4ee00000
+ * to check: our raw buffer shouldn't be overwritten when pausing LiveView
+ * or when recording H.264 or when doing anything else in LiveView
+ * (it will be overwritten when taking a sequence of burst pictures) 
+ */
+#define DEFAULT_RAW_BUFFER  0x4d600100
+#define DEFAULT_RAW_BUFFER_SIZE (0x4ee00000 - 0x4d600100)
+
+/* for higher resolutions we'll allocate a new buffer, as needed */
 #define CONFIG_ALLOCATE_RAW_LV_BUFFER
 #define CONFIG_ALLOCATE_RAW_LV_BUFFER_SRM_DUMMY
+/* buffer size for a full-res LiveView image */
 #define RAW_LV_BUFFER_ALLOC_SIZE ((0x527 + 2612) * (0x2FE - 0x18)*8 * 14/8)
 #endif
 
@@ -2375,6 +2389,29 @@ static void raw_lv_enable()
 #endif
 
 #ifdef DEFAULT_RAW_BUFFER
+#ifdef CONFIG_MARK_UNUSED_MEMORY_AT_STARTUP
+    /* is it really unused? check on first use */
+    static int first_time = 1;
+    if (first_time)
+    {
+        first_time = 0;
+        info_led_on();
+        uint32_t start = DEFAULT_RAW_BUFFER;
+        uint32_t end = start + DEFAULT_RAW_BUFFER_SIZE;
+        printf("Checking %x-%x...\n", start, end);
+        for (uint32_t a = start; a < end; a += 4)
+        {
+            if (MEM(a) != 0x124B1DE0)
+            {
+                ASSERT(0);
+                printf("%x: %x\n", a, MEM(a));
+                first_time = 1; /* check again */
+                return;
+            }
+        }
+        info_led_off();
+    }
+#endif
     raw_lv_buffer = (void *) DEFAULT_RAW_BUFFER;
     raw_lv_buffer_size = DEFAULT_RAW_BUFFER_SIZE;
 #endif
