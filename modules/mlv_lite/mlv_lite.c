@@ -3353,7 +3353,7 @@ static void raw_video_rec_task()
         /* writing queue empty? nothing to do */ 
         if (w_head == w_tail)
         {
-            msleep(20);
+            msleep(10);
             continue;
         }
 
@@ -3425,11 +3425,11 @@ static void raw_video_rec_task()
             int overflow_time = free_slots * 1000 * 10 / fps;
             /* better underestimate write speed a little */
             int avg_frame_size = group_size / num_frames;
-            int frame_limit = overflow_time * 1024 / 10 * (measured_write_speed * 9 / 100) * 1024 / avg_frame_size / 10;
+            int frame_limit = overflow_time * 1024 / 10 * (measured_write_speed * 5 / 100) * 1024 / avg_frame_size / 10;
             if (frame_limit >= 0 && frame_limit < num_frames)
             {
-                //~ printf("careful, will overflow in %d.%d seconds, better write only %d frames\n", overflow_time/10, overflow_time%10, frame_limit);
-                num_frames = MAX(1, frame_limit - 1);
+                printf("will overflow in %d.%d seconds; writing %d/%d frames\n", overflow_time/10, overflow_time%10, frame_limit, num_frames);
+                num_frames = MAX(1, frame_limit);
             }
         }
         
@@ -3545,7 +3545,7 @@ abort:
             last_block_size = 0; /* ignore early stop check */
 
 abort_and_check_early_stop:
-            if (last_block_size > 2)
+            if (last_block_size > 3)
             {
                 bmp_printf( FONT_MED, 30, 90, 
                     "Early stop (%d). Should have recorded a few more frames.", last_block_size
