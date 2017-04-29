@@ -1555,11 +1555,7 @@ void free_buffers()
     if (srm_mem_suite) srm_free_suite(srm_mem_suite);
     srm_mem_suite = 0;
 
-    if (fullsize_buffers[0] &&
-        fullsize_buffers[0] != UNCACHEABLE(raw_info.buffer))
-    {
-        fio_free(fullsize_buffers[0]);
-    }
+    /* this buffer is allocated from one of the suites -> nothing to do */
     fullsize_buffers[0] = 0;
     ASSERT(fullsize_buffers[1] == UNCACHEABLE(raw_info.buffer));
     fullsize_buffers[1] = 0;
