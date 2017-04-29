@@ -745,12 +745,21 @@ static char* guess_aspect_ratio(int res_x, int res_y)
     return msg;
 }
 
-static int count_available_slots()
+static int estimate_available_slots()
 {
     int available_slots = 0;
     for (int i = 0; i < COUNT(chunk_list); i++)
         available_slots += chunk_list[i] / frame_size;
     return available_slots;
+}
+
+static int count_free_slots()
+{
+    int free_slots = 0;
+    for (int i = 0; i < total_slot_count; i++)
+        if (slots[i].status == SLOT_FREE)
+            free_slots++;
+    return free_slots;
 }
 
 static int get_estimated_compression_ratio()
@@ -788,17 +797,16 @@ static int get_estimated_compression_ratio()
 static int predict_frames(int write_speed, int available_slots)
 {
     int fps = fps_get_current_x1000();
-    int capture_speed = max_frame_size / 1000 * fps / 100 * get_estimated_compression_ratio();
+    int avg_frame_size = (OUTPUT_COMPRESSION)
+         ? frame_size_uncompressed / 100 * get_estimated_compression_ratio()
+         : max_frame_size;
+    int capture_speed = avg_frame_size / 1000 * fps;
     int buffer_fill_speed = capture_speed - write_speed;
+
     if (buffer_fill_speed <= 0)
         return INT_MAX;
     
-    if (!available_slots)
-    {
-        available_slots = count_available_slots();
-    }
-    
-    float buffer_fill_time = available_slots * frame_size / (float) buffer_fill_speed;
+    float buffer_fill_time = available_slots * avg_frame_size / (float) buffer_fill_speed;
     int frames = buffer_fill_time * fps / 1000;
     return frames;
 }
@@ -808,17 +816,22 @@ static char* guess_how_many_frames()
 {
     if (!measured_write_speed) return "";
     if (!chunk_list[0]) return "";
-    
-    int write_speed_lo = measured_write_speed * 1024 / 100 * 1024 - 512 * 1024;
-    int write_speed_hi = measured_write_speed * 1024 / 100 * 1024 + 512 * 1024;
-    
-    int f_lo = predict_frames(write_speed_lo, 0);
-    int f_hi = predict_frames(write_speed_hi, 0);
+
+    /* assume some variation around the measured value */
+    int write_speed    = measured_write_speed * 1024 / 100 * 1024;
+    int write_speed_lo = measured_write_speed * 1024 / 100 * 1024 / 100 * 95;
+    int write_speed_hi = measured_write_speed * 1024 / 100 * 1024 / 100 * 105;
+
+    /* we have some overhead, not sure how to model it */
+    int avail_slots = MAX(estimate_available_slots() - 3, 2);
+
+    int f_lo = predict_frames(write_speed_lo / 100 * 97, avail_slots);
+    int f_hi = predict_frames(write_speed_hi / 100 * 97, avail_slots);
     
     static char msg[50];
     if (f_lo < 5000)
     {
-        int write_speed = (write_speed_lo + write_speed_hi) / 2;
+        f_hi = MIN(f_hi, 10000);
         write_speed = (write_speed * 10 + 512 * 1024) / (1024 * 1024);
         if (f_lo != f_hi)
             snprintf(msg, sizeof(msg), "Expect %d-%d frames at %d.%dMB/s.", f_lo, f_hi, write_speed / 10, write_speed % 10);
@@ -1198,7 +1211,7 @@ static MENU_UPDATE_FUNC(pre_recording_update)
         pre_record, pre_record == 1 ? "" : "s"
     );
 
-    int slot_count = count_available_slots();
+    int slot_count = estimate_available_slots();
     if (slot_count)
     {
         int max_frames = pre_record_calc_max_frames(slot_count);
@@ -1559,15 +1572,6 @@ void free_buffers()
     fullsize_buffers[1] = 0;
 }
 
-static int count_free_slots()
-{
-    int free_slots = 0;
-    for (int i = 0; i < total_slot_count; i++)
-        if (slots[i].status == SLOT_FREE)
-            free_slots++;
-    return free_slots;
-}
-
 #define BUFFER_DISPLAY_X 30
 #define BUFFER_DISPLAY_Y 50
 
@@ -1703,27 +1707,35 @@ static void raw_lv_request_update()
     }
 }
 
-/* Display recording status in top info bar */
-static LVINFO_UPDATE_FUNC(recording_status)
+/* returns color */
+static int update_status(char * buffer, int buffer_size)
 {
-    LVINFO_BUFFER(16);
-    
-    if ((indicator_display != INDICATOR_IN_LVINFO) || RAW_IS_IDLE) return;
-
     /* Calculate the stats */
     int fps = fps_get_current_x1000();  /* FPS x1000 */
     int p = pre_recorded_frames();      /* pre-recorded frames */
     int r = (frame_count - 1 - p);      /* recorded frames */
     int t = (r * 1000) / fps;           /* recorded time - truncated */
-    int predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024, 0);
+
+    /* estimate how many number of frames we can record from now on */
+    int predicted_frames_left = predict_frames(
+        measured_write_speed * 1024 / 105 * 1024,
+        count_free_slots()
+    );
+
+    /* estimate time left */
+    int time_left = predicted_frames_left * 1000 / fps;
+
+    /* string length */
+    int len = 0;
 
     if (!buffer_full) 
     {
-        snprintf(buffer, sizeof(buffer), "%02d:%02d", t/60, t%60);
+        /* time display while recording */
+        len = snprintf(buffer, buffer_size, "%02d:%02d", t/60, t%60);
+
+        /* special display for pre-recording */
         if (raw_recording_state == RAW_PRE_RECORDING)
         {
-            item->color_bg = COLOR_BLUE;
-            
             /* display as recorded + pre-recorded (optionally with frames) */
             /* sequence at 7.4 fps: 0.0, 0.1 ... 0.7, 1.0, 1.1 ... 1.6, 2.0, 2.1 ... 2.7, 3.0 ... */
             /* (full seconds considered at 0, 8, 15, 23, 30, 37, 45, 52, 60, 67, 74...) */
@@ -1740,151 +1752,147 @@ static LVINFO_UPDATE_FUNC(recording_status)
             int pd = pf && pre_recording_buffer_full();
 
             /* build the string */
-            int len = 0;
-            if (1)  len += snprintf(buffer + len, sizeof(buffer) - len, "%02d:%02d", rm, rs);
-            if (rd) len += snprintf(buffer + len, sizeof(buffer) - len, ".%d", rf);
-            if (1)  len += snprintf(buffer + len, sizeof(buffer) - len, " + %02d", ps);
-            if (pd) len += snprintf(buffer + len, sizeof(buffer) - len, ".%d", pf);
+            len = 0;
+            if (1)  len += snprintf(buffer + len, buffer_size - len, "%02d:%02d", rm, rs);
+            if (rd) len += snprintf(buffer + len, buffer_size - len, ".%d", rf);
+            if (1)  len += snprintf(buffer + len, buffer_size - len, " + %02d", ps);
+            if (pd) len += snprintf(buffer + len, buffer_size - len, ".%d", pf);
+
+            /* display in blue */
+            return COLOR_BLUE;
         }
-        else if (predicted >= 10000)
+        else if (predicted_frames_left > 10000)
         {
-            item->color_bg = COLOR_GREEN1;
+            /* assume continuous recording */
+            return COLOR_GREEN1;
+        }
+        else if (RAW_IS_RECORDING)
+        {
+            if (time_left < 100)
+            {
+                len += snprintf(buffer + len, buffer_size - len, " ~ %02d", time_left);
+            }
+
+            /* warning - recording not continuous */
+            return (time_left < 10) ? COLOR_DARK_RED : COLOR_ORANGE;
         }
         else
         {
-            int time_left = (predicted-frame_count) * 1000 / fps;
-            if (time_left < 10) {
-                item->color_bg = COLOR_DARK_RED;
-            } else {
-                item->color_bg = COLOR_YELLOW;
-            }
+            /* preparing, finishing */
+            return COLOR_YELLOW;
         }
     } 
     else 
     {
-        snprintf(buffer, sizeof(buffer), "Stopped.");
-        item->color_bg = COLOR_DARK_RED;
+        /* recording stopped - show number of frames */ 
+        len = snprintf(buffer, buffer_size, "%d frames", frame_count - 1);
+        return COLOR_DARK_RED;
     }
+}
+
+/* Display recording status in top info bar */
+static LVINFO_UPDATE_FUNC(recording_status)
+{
+    static int aux = 0;
+    static int prev_color = 0;
+    if (!should_run_polling_action(800, &aux))
+    {
+        /* don't update much more often than 1 second */
+        item->color_bg = prev_color;
+        return;
+    }
+
+    LVINFO_BUFFER(16);
+    
+    if ((indicator_display != INDICATOR_IN_LVINFO) || RAW_IS_IDLE) return;
+    if (!measured_write_speed) return;
+
+    prev_color = item->color_bg = update_status(buffer, sizeof(buffer));
 }
 
 /* Display the 'Recording...' icon and status */
 static void show_recording_status()
 {
-    /* Determine if we should redraw */
     static int auxrec = INT_MIN;
     int redraw_interval = (show_graph == 2) ? 50 : 1000;
-    if (RAW_IS_RECORDING && liveview_display_idle() && should_run_polling_action(redraw_interval, &auxrec))
+    if (!should_run_polling_action(redraw_interval, &auxrec))
     {
-        /* Calculate the stats */
-        int fps = fps_get_current_x1000();
-        int t = ((frame_count-1) * 1000) / fps;
-        int predicted = predict_frames(measured_write_speed * 1024 / 100 * 1024, 0);
+        /* don't update very often */
+        return;
+    }
 
-        int speed=0;
-        int idle_percent=0;
+    /* update average write speed */
+    static int speed = 0;
+    static int idle_percent = 0;
+    if (RAW_IS_RECORDING && !buffer_full)
+    {
         if (writing_time)
         {
-            speed = (int)((float)written_total / (float)writing_time * (1000.0f / 1024.0f / 1024.0f * 100.0f)); // KiB and msec -> MiB/s x100
+            speed = written_total * 100 / 1024 / writing_time; // KiB and msec -> MiB/s x100
             idle_percent = idle_time * 100 / (writing_time + idle_time);
             measured_write_speed = speed;
             speed /= 10;
         }
+    }
 
-        if (indicator_display == INDICATOR_IN_LVINFO)
+    /* Determine if we should redraw */
+    if (!RAW_IS_IDLE && liveview_display_idle())
+    {
+        switch (indicator_display)
         {
-            /* If displaying in the info bar, force a refresh */
-            lens_display_set_dirty();
-        }
-        else if (indicator_display == INDICATOR_RAW_BUFFER)
-        {
-            show_buffer_status();
+            case INDICATOR_IN_LVINFO:
+                /* If displaying in the info bar, force a refresh */
+                lens_display_set_dirty();
+                break;
 
-            if (predicted < 10000)
-                bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), BUFFER_DISPLAY_X, BUFFER_DISPLAY_Y,
-                    "%02d:%02d, %d frames / %d expected  ",
-                    t/60, t%60,
-                    frame_count,
-                    predicted
-                );
-            else
-                bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), BUFFER_DISPLAY_X, BUFFER_DISPLAY_Y,
-                    "%02d:%02d, %d frames, continuous OK  ",
-                    t/60, t%60,
-                    frame_count
-                );
+            case INDICATOR_RAW_BUFFER:
+                show_buffer_status();
+                /* fall-through */
+                break;
 
-            if (writing_time)
+            case INDICATOR_ON_SCREEN:
             {
-                char msg[50];
-                snprintf(msg, sizeof(msg),
-                    "%s: %d MB, %d.%d MB/s",
-                    chunk_filename + 17, /* skip A:/DCIM/100CANON/ */
-                    (int)(written_total / 1024 / 1024),
-                    speed/10, speed%10
+                /* Position the Recording Icon */
+                int rl_x = 500;
+                int rl_y = 40;
+                int rl_icon_width=0;
+
+                /* Use the same status as the LVInfo indicator */
+                char status[16];
+                int rl_color = update_status(status, sizeof(status));
+                int len = strlen(status);
+                snprintf(status + len, sizeof(status) - len, "               ");
+
+                /* Draw the movie camera icon */
+                rl_icon_width = bfnt_draw_char(
+                    ICON_ML_MOVIE,
+                    rl_x, rl_y,
+                    rl_color, COLOR_BG_DARK
                 );
-                if (idle_time)
+
+                /* Display the Status */
+                bmp_printf(
+                    FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK),
+                    rl_x+rl_icon_width+5, rl_y+5,
+                    status
+                );
+
+                /* Additional info over the LVInfo indicator */
+                /* (recording speed etc) */
+                if (writing_time)
                 {
-                    if (idle_percent) { STR_APPEND(msg, ", %d%% idle", idle_percent); }
-                    else { STR_APPEND(msg, ", %dms idle", idle_time); }
+                    char msg[50];
+                    snprintf(msg, sizeof(msg), "%d.%01dMB/s", speed/10, speed%10);
+                    if (idle_time)
+                    {
+                        if (idle_percent) { STR_APPEND(msg, ", %d%% idle", idle_percent); }
+                        else { STR_APPEND(msg,", %dms idle", idle_time); }
+                    }
+                    bmp_printf (FONT(FONT_SMALL, COLOR_WHITE, COLOR_BG_DARK), rl_x+rl_icon_width+5, rl_y+5+font_med.height, "%s  ", msg);
                 }
-                bmp_printf( FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), BUFFER_DISPLAY_X, BUFFER_DISPLAY_Y+font_med.height, "%s", msg);
-            }
-        }
-        else if (indicator_display == INDICATOR_ON_SCREEN)
-        {
-
-            /* Position the Recording Icon */
-            int rl_x = 500;
-            int rl_y = 40;
-
-            /* If continuous OK, make the movie icon green, else set based on expected time left */
-            int rl_color;
-            if (raw_recording_state == RAW_PRE_RECORDING)
-            {
-                rl_color = COLOR_BLUE;
-            }
-            else if (predicted >= 10000) 
-            {
-                rl_color = COLOR_GREEN1;
-            } 
-            else 
-            {
-                int time_left = (predicted-frame_count) * 1000 / fps;
-                if (time_left < 10) {
-                    rl_color = COLOR_DARK_RED;
-                } else {
-                    rl_color = COLOR_YELLOW;
-                }
-            }
-
-            int rl_icon_width=0;
-
-            /* Draw the movie camera icon */
-            rl_icon_width = bfnt_draw_char (ICON_ML_MOVIE,rl_x,rl_y,rl_color,NO_BG_ERASE);
-
-            /* Display the Status */
-            bmp_printf (FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), rl_x+rl_icon_width+5, rl_y+5, "%02d:%02d   ", t/60, t%60);
-
-            if (pre_recording_buffer_full())
-            {
-                int t = ((frame_count-1) * 1000 * 10) / fps;
-                bmp_printf (FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), rl_x+rl_icon_width+5, rl_y+5, "%02d:%02d.%d", t/10/60, (t/10)%60, t % 10);
-            }
-
-            if (writing_time)
-            {
-                char msg[50];
-                snprintf(msg, sizeof(msg), "%d.%01dMB/s", speed/10, speed%10);
-                if (idle_time)
-                {
-                    if (idle_percent) { STR_APPEND(msg, ", %d%% idle  ", idle_percent); }
-                    else { STR_APPEND(msg,", %dms idle  ", idle_time); }
-                }
-                bmp_printf (FONT(FONT_SMALL, COLOR_WHITE, COLOR_BG_DARK), rl_x+rl_icon_width+5, rl_y+5+font_med.height, "%s", msg);
             }
         }
     }
-    return;
 }
 
 static unsigned int raw_rec_polling_cbr(unsigned int unused)
