@@ -947,16 +947,13 @@ menu_find_by_name(
         return NULL;
     }
 
+    memset(new_menu, 0, sizeof(struct menu));
     new_menu->name      = name;
     new_menu->icon      = icon;
     new_menu->prev      = menu;
     new_menu->next      = NULL; // Inserting at end
-    new_menu->children  = NULL;
-    new_menu->submenu_width = 0;
-    new_menu->submenu_height = 0;
     new_menu->split_pos = -16;
-    new_menu->scroll_pos = 0;
-    new_menu->advanced = 0;
+
     // menu points to the last entry or NULL if there are none
     if( menu )
     {
