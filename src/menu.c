@@ -6059,7 +6059,6 @@ menu_help_go_to_selected_entry(
     struct menu_entry * entry = get_selected_menu_entry(menu);
     if (!entry) return;
     menu_help_go_to_label((char*) entry->name, 0);
-    give_semaphore(menu_sem);
 }
 
 static void menu_show_version(void)
