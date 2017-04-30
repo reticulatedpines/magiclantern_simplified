@@ -239,10 +239,10 @@ static int history_index = 0;
 
 struct memcheck_hdr
 {
-    unsigned int id;
-    unsigned int length;
-    uint16_t allocator;
+    uint16_t allocator;     /* this is overwritten after calling free */
     uint16_t flags;
+    unsigned int length;    /* maybe this too, depending on allocator */
+    unsigned int id;        /* on double free attempts, we will read this one after free */
 };
 
 struct memcheck_entry
@@ -602,6 +602,10 @@ static void memcheck_free( void * buf, int allocator_index, unsigned int flags)
     {
         allocators[allocator_index].free((void*)ptr);
     }
+
+    /* make sure we can still detect double-free bugs */
+    /* (the deallocator may overwrite it) */
+    ASSERT(((struct memcheck_hdr *)ptr)->id == JUST_FREED);
 }
 
 static int search_for_allocator(int size, int require_preferred_size, int require_preferred_free_space, int require_tmp, int require_dma)
