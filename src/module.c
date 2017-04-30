@@ -75,14 +75,17 @@ static int module_load_symbols(TCCState *s, char *filename)
     FIO_ReadFile(file, buf, size);
     FIO_CloseFile(file);
 
-    while(buf[pos])
+    while(pos < size && buf[pos])
     {
         char address_buf[16];
         char symbol_buf[128];
         uint32_t length = 0;
         uint32_t address = 0;
 
-        while(buf[pos + length] && buf[pos + length] != ' ' && length < sizeof(address_buf))
+        while (pos + length < size &&
+               buf[pos + length] &&
+               buf[pos + length] != ' ' &&
+               length < sizeof(address_buf))
         {
             address_buf[length] = buf[pos + length];
             length++;
@@ -92,7 +95,11 @@ static int module_load_symbols(TCCState *s, char *filename)
         pos += length + 1;
         length = 0;
 
-        while(buf[pos + length] && buf[pos + length] != '\r' && buf[pos + length] != '\n' && length < sizeof(symbol_buf))
+        while (pos + length < size &&
+               buf[pos + length] &&
+               buf[pos + length] != '\r' &&
+               buf[pos + length] != '\n' &&
+               length < sizeof(symbol_buf))
         {
             symbol_buf[length] = buf[pos + length];
             length++;
@@ -102,7 +109,10 @@ static int module_load_symbols(TCCState *s, char *filename)
         pos += length + 1;
         length = 0;
 
-        while(buf[pos + length] && (buf[pos + length] == '\r' || buf[pos + length] == '\n'))
+        while (pos + length < size &&
+               buf[pos + length] &&
+              (buf[pos + length] == '\r' ||
+               buf[pos + length] == '\n'))
         {
             pos++;
         }

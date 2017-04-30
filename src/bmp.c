@@ -945,7 +945,10 @@ static uint8_t* bfnt_find_char(int code)
     int* codes = (int*) BFNT_CHAR_CODES;
     int* off = (int*) BFNT_BITMAP_OFFSET;
 
-    if (code <= 'z') return (uint8_t*) (BFNT_BITMAP_DATA + off[code - 0x20]);
+    if (code >= 0x20 && code <= 'z')
+    {
+        return (uint8_t*) (BFNT_BITMAP_DATA + off[code - 0x20]);
+    }
 
     int i;
     for (i = 0; i < n; i++)
