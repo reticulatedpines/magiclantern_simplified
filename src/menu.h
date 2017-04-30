@@ -272,8 +272,8 @@ struct menu
     int16_t             submenu_height;
     int16_t             scroll_pos;
     int16_t             split_pos; // the limit between name and value columns
-    unsigned            advanced : 1;
-    unsigned            has_placeholders: 1;
+    char                advanced;
+    char                has_placeholders;
 };
 
 #define IS_SUBMENU(menu) (menu->icon == ICON_ML_SUBMENU)
