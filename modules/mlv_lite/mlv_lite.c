@@ -2142,314 +2142,8 @@ int choose_next_capture_slot()
     return best_index;
 }
 
-static void shrink_slot(int slot_index, int new_frame_size)
-{
-    uint32_t old_int = cli();
-
-    int i = slot_index;
-
-    /* round to 512 multiples for file write speed - see frame_size_padded */
-    int new_size = (VIDF_HDR_SIZE + new_frame_size + 4 + 511) & ~511;
-    int old_size = slots[i].size;
-    int dif_size = old_size - new_size;
-    ASSERT(dif_size >= 0);
-
-    //printf("Shrink slot %d from %d to %d.\n", i, old_size, new_size);
-    
-    if (dif_size ==  0)
-    {
-        /* nothing to do */
-        return;
-    }
-
-    slots[i].size = new_size;
-    slots[i].payload_size = new_frame_size;
-    ((mlv_vidf_hdr_t*)slots[i].ptr)->blockSize
-        = slots[i].size;
-
-    int linked =
-        (i+1 < total_slot_count) &&
-        (slots[i+1].status == SLOT_FREE || slots[i+1].status == SLOT_RESERVED) &&
-        (slots[i+1].ptr == slots[i].ptr + old_size);
-
-    if (linked)
-    {
-        /* adjust the next slot from the same chunk (increase its size) */
-        slots[i+1].ptr  -= dif_size;
-        slots[i+1].size += dif_size;
-        
-        /* if it's big enough, mark it as available */
-        if (slots[i+1].size >= max_frame_size)
-        {
-            if (slots[i+1].status == SLOT_RESERVED)
-            {
-                //printf("Slot %d becomes available (%d >= %d).\n", i, slots[i+1].size, max_frame_size);
-            }
-            else
-            {
-                /* existing free slots will get shifted, without changing their size */
-                ASSERT(slots[i+1].size - dif_size == max_frame_size);
-            }
-            shrink_slot(i+1, frame_size_uncompressed);
-            ASSERT(slots[i+1].size == max_frame_size);
-            slots[i+1].status = SLOT_FREE;
-        }
-    }
-
-    sei(old_int);
-}
-
-static void free_slot(int slot_index)
-{
-    int i = slot_index;
-
-    slots[i].status = SLOT_RESERVED;
-    
-    if (slots[i].size == max_frame_size)
-    {
-        slots[i].status = SLOT_FREE;
-        return;
-    }
-
-    ASSERT(slots[i].size < max_frame_size);
-
-    /* re-allocate all reserved slots from this chunk to full frames */
-    /* the remaining reserved slots will be moved at the end */
-
-    /* this is called from both vsync and raw_rec_task */
-    uint32_t old_int = cli();
-
-    /* find first slot from this chunk */
-    while ((i-1 >= 0) &&
-           (slots[i-1].status == SLOT_FREE || slots[i-1].status == SLOT_RESERVED) &&
-           (slots[i].ptr == slots[i-1].ptr + slots[i-1].size))
-    {
-        i--;
-    }
-    int start = i;
-
-    /* find last slot from this chunk */
-    i = slot_index;
-    while ((i+1 < COUNT(slots)) &&
-           (slots[i+1].status == SLOT_FREE || slots[i+1].status == SLOT_RESERVED) &&
-           (slots[i+1].ptr == slots[i].ptr + slots[i].size))
-    {
-        i++;
-    }
-    int end = i;
-
-    //printf("Reallocating slots %d...%d.\n", start, end);
-    void * start_ptr = slots[start].ptr;
-    void * end_ptr = slots[end].ptr + slots[end].size;
-    void * ptr = start_ptr;
-    for (i = start; i <= end; i++)
-    {
-        slots[i].ptr = ptr;
-
-        if (ptr + max_frame_size <= end_ptr)
-        {
-            slots[i].status = SLOT_FREE;
-            slots[i].size = max_frame_size;
-        }
-        else
-        {
-            /* first reserved slot will have non-zero size */
-            /* all others 0 */
-            slots[i].status = SLOT_RESERVED;
-            slots[i].size = end_ptr - ptr;
-            ASSERT(slots[i].size < max_frame_size);
-        }
-        ptr += slots[i].size;
-    }
-
-    sei(old_int);
-}
-
-    
-    if (dif_size ==  0)
-    {
-        /* nothing to do */
-        return;
-    }
-
-    slots[i].size = new_size;
-    slots[i].payload_size = new_frame_size;
-    ((mlv_vidf_hdr_t*)slots[i].ptr)->blockSize
-        = slots[i].size;
-
-    int linked =
-        (i+1 < COUNT(slots)) &&
-        (slots[i+1].status == SLOT_FREE || slots[i+1].status == SLOT_RESERVED) &&
-        (slots[i+1].ptr == slots[i].ptr + old_size);
-
-    if (linked)
-    {
-        /* adjust the next slot from the same chunk (increase its size) */
-        slots[i+1].ptr  -= dif_size;
-        slots[i+1].size += dif_size;
-        
-        /* if it's big enough, mark it as available */
-        if (slots[i+1].size >= max_frame_size)
-        {
-            if (slots[i+1].status == SLOT_RESERVED)
-            {
-                //printf("Slot %d becomes available (%d >= %d).\n", i, slots[i+1].size, max_frame_size);
-                slots[i+1].status = SLOT_FREE;
-                valid_slot_count++;
-            }
-            else
-            {
-                /* existing free slots will get shifted, without changing their size */
-                ASSERT(slots[i+1].size - dif_size == max_frame_size);
-                ASSERT(slots[i+1].status == SLOT_FREE);
-            }
-            shrink_slot(i+1, max_frame_size - VIDF_HDR_SIZE - 4);
-            ASSERT(slots[i+1].size == max_frame_size);
-        }
-    }
-
-    sei(old_int);
-}
-
-static void free_slot(int slot_index)
-{
-    int i = slot_index;
-
-    slots[i].status = SLOT_RESERVED;
-    
-    if (slots[i].size == max_frame_size)
-    {
-        slots[i].status = SLOT_FREE;
-        valid_slot_count++;
-        return;
-    }
-
-    ASSERT(slots[i].size < max_frame_size);
-
-    /* re-allocate all reserved slots from this chunk to full frames */
-    /* the remaining reserved slots will be moved at the end */
-
-    /* this is called from both vsync and raw_rec_task */
-    uint32_t old_int = cli();
-
-    /* find first slot from this chunk */
-    while ((i-1 >= 0) &&
-           (slots[i-1].status == SLOT_FREE || slots[i-1].status == SLOT_RESERVED) &&
-           (slots[i].ptr == slots[i-1].ptr + slots[i-1].size))
-    {
-        i--;
-    }
-    int start = i;
-
-    /* find last slot from this chunk */
-    i = slot_index;
-    while ((i+1 < total_slot_count) &&
-           (slots[i+1].status == SLOT_FREE || slots[i+1].status == SLOT_RESERVED) &&
-           (slots[i+1].ptr == slots[i].ptr + slots[i].size))
-    {
-        i++;
-    }
-    int end = i;
-
-    //printf("Reallocating slots %d...%d.\n", start, end);
-    void * start_ptr = slots[start].ptr;
-    void * end_ptr = slots[end].ptr + slots[end].size;
-    void * ptr = start_ptr;
-    for (i = start; i <= end; i++)
-    {
-        slots[i].ptr = ptr;
-        
-        if (slots[i].status == SLOT_FREE)
-        {
-            valid_slot_count--;
-        }
-
-        if (ptr + max_frame_size <= end_ptr)
-        {
-            slots[i].status = SLOT_FREE;
-            slots[i].size = max_frame_size;
-            valid_slot_count++;
-        }
-        else
-        {
-            /* first reserved slot will have non-zero size */
-            /* all others 0 */
-            slots[i].status = SLOT_RESERVED;
-            slots[i].size = end_ptr - ptr;
-            ASSERT(slots[i].size < max_frame_size);
-        }
-        ptr += slots[i].size;
-    }
-
-    sei(old_int);
-}
-
-static void FAST pre_record_discard_frame()
-{
-    /* discard old frames */
-    /* also adjust frame_count so all frames start from 1,
-     * just like the rest of the code assumes */
-
-    for (int i = 0; i < total_slot_count; i++)
-    {
-        /* at the moment of this call, there should be no slots in progress */
-        ASSERT(slots[i].status != SLOT_CAPTURING);
-
-        /* first frame is "pre_record_first_frame" */
-        if (slots[i].status == SLOT_FULL)
-        {
-            if (slots[i].frame_number == pre_record_first_frame)
-            {
-                free_slot(i);
-                frame_count--;
-            }
-            else if (slots[i].frame_number > pre_record_first_frame)
-            {
-                slots[i].frame_number--;
-                ((mlv_vidf_hdr_t*)slots[i].ptr)->frameNumber
-                    = slots[i].frame_number - 1;
-            }
-        }
-    }
-}
-
-static void FAST pre_record_queue_frames()
-{
-    /* queue all captured frames for writing */
-    /* (they are numbered from 1 to frame_count-1; frame 0 is skipped) */
-    /* they are not ordered, which complicates things a bit */
-    printf("Pre-rec: queueing frames %d to %d.\n", pre_record_first_frame, frame_count-1);
-
-    int i = 0;
-    for (int current_frame = pre_record_first_frame; current_frame < frame_count; current_frame++)
-    {
-        /* consecutive frames tend to be grouped, 
-         * so this loop will not run every time */
-        while (slots[i].status != SLOT_FULL || slots[i].frame_number != current_frame)
-        {
-            INC_MOD(i, total_slot_count);
-        }
-        
-        writing_queue[writing_queue_tail] = i;
-        INC_MOD(writing_queue_tail, COUNT(writing_queue));
-        INC_MOD(i, total_slot_count);
-    }
-}
-
-static void pre_record_discard_frame_if_no_free_slots()
-{
-    for (int i = 0; i < total_slot_count; i++)
-    {
-        if (slots[i].status == SLOT_FREE)
-        {
-            return;
-        }
-    }
-
-    pre_record_discard_frame();
-}
-
-static void FAST pre_record_vsync_step()
+static REQUIRES(LiveViewTask)
+void pre_record_vsync_step()
 {
     if (raw_recording_state == RAW_RECORDING)
     {
@@ -2503,7 +2197,8 @@ static void FAST pre_record_vsync_step()
 
 #define FRAME_SENTINEL 0xA5A5A5A5 /* for double-checking EDMAC operations */
 
-static void frame_add_checks(int slot_index)
+static REQUIRES(LiveViewTask)
+void frame_add_checks(int slot_index)
 {
     ASSERT(slots[slot_index].ptr);
     void* ptr = slots[slot_index].ptr + VIDF_HDR_SIZE;
@@ -2516,16 +2211,8 @@ static void frame_add_checks(int slot_index)
     *(volatile uint32_t*) after_frame = FRAME_SENTINEL; /* this shalt not be overwritten */
 }
 
-static void frame_fake_edmac_check(int slot_index)
-{
-    ASSERT(slots[slot_index].ptr);
-    void* ptr = slots[slot_index].ptr + VIDF_HDR_SIZE;
-    uint32_t edmac_size = (slots[slot_index].payload_size + 3) & ~3;
-    uint32_t* after_frame = ptr + edmac_size;
-    *(volatile uint32_t*) after_frame = FRAME_SENTINEL;
-}
-
-static int frame_check_saved(int slot_index)
+static REQUIRES(RawRecTask)
+int frame_check_saved(int slot_index)
 {
     ASSERT(slots[slot_index].ptr);
     void* ptr = slots[slot_index].ptr + VIDF_HDR_SIZE;
@@ -3177,16 +2864,17 @@ int write_frames(FILE** pf, void* ptr, int group_size, int num_frames)
     return 1;
 }
 
-static void setup_bit_depth()
+/* note: called from raw_video_rec_task */
+/* vsync does not run at this time, so we can take its role momentarily */
+static REQUIRES(LiveViewTask)
+void init_vsync_vars()
 {
-    raw_lv_request_bpp(BPP);
+    frame_count = 0;
+    capture_slot = -1;
+    fullsize_buffer_pos = 0;
+    buffer_full = 0;
+    edmac_active = 0;
 }
-
-static void restore_bit_depth()
-{
-    raw_lv_request_bpp(14);
-}
-extern thunk ErrCardForLVApp_handler;
 
 static REQUIRES(RawRecTask)
 static void raw_video_rec_task()
@@ -3216,8 +2904,6 @@ static void raw_video_rec_task()
     writing_time = 0;
     idle_time = 0;
     mlv_chunk = 0;
-    edmac_active = 0;
-    int liveview_hacked = 0;
 
     if (lv_dispsize == 10)
     {
