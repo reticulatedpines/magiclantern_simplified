@@ -26,7 +26,7 @@ static GUARDED_BY(lvinfo_sem)   int small_font = FONT_MED;           /* used if 
  * when called from INIT_FUNC's, the semaphore may not be initialized yet
  * but these functions are called sequentially, so there's no race condition possible
  */
-NO_THREAD_SAFETY_ANALYSIS
+EXCLUDES(lvinfo_sem) NO_THREAD_SAFETY_ANALYSIS
 void lvinfo_add_items(struct lvinfo_item * items, int count)
 {
     if (lvinfo_sem) take_semaphore(lvinfo_sem, 0);
@@ -566,6 +566,7 @@ void lvinfo_align_and_display(struct lvinfo_item * items[], int count, int bar_x
     #endif
 }
 
+EXCLUDES(lvinfo_sem)
 void lvinfo_display(int top, int bottom)
 {
     take_semaphore(lvinfo_sem, 0);
