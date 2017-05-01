@@ -226,7 +226,7 @@ index e193658..9de7251 100644
      subregion->priority = 0;
      memory_region_add_subregion_common(mr, offset, subregion);
 diff --git a/qemu-log.c b/qemu-log.c
-index 7cb01a8..232d123 100644
+index 7cb01a8..4026932 100644
 --- a/qemu-log.c
 +++ b/qemu-log.c
 @@ -22,7 +22,7 @@
@@ -256,7 +256,7 @@ index 7cb01a8..232d123 100644
  {
      qemu_loglevel = log_flags;
      if (qemu_loglevel && !qemu_logfile) {
-@@ -120,6 +120,38 @@ const QEMULogItem qemu_log_items[] = {
+@@ -120,6 +120,40 @@ const QEMULogItem qemu_log_items[] = {
      { CPU_LOG_TB_NOCHAIN, "nochain",
        "do not chain compiled TBs so that \"exec\" and \"cpu\" show\n"
        "complete traces" },
@@ -265,10 +265,12 @@ index 7cb01a8..232d123 100644
 +      "EOS: log low-level I/O activity" },
 +    { EOS_LOG_CALLS, "calls",
 +      "EOS: log function calls and export them to IDA" },
-+    { EOS_LOG_UART, "uart",
-+      "EOS: log low-level UART activity" },
++    { EOS_LOG_MPU, "mpu",
++      "EOS: log low-level MPU activity" },
 +    { EOS_LOG_SFLASH, "sflash",
 +      "EOS: log low-level serial flash activity" },
++    { EOS_LOG_UART, "uart",
++      "EOS: log low-level UART activity" },
 +
 +    { EOS_LOG_RAM, "ram",
 +      "EOS: log all RAM reads and writes" },
@@ -295,7 +297,7 @@ index 7cb01a8..232d123 100644
      { 0, NULL, NULL },
  };
  
-@@ -132,10 +164,10 @@ static int cmp1(const char *s1, int n, const char *s2)
+@@ -132,10 +166,10 @@ static int cmp1(const char *s1, int n, const char *s2)
  }
  
  /* takes a comma separated list of log masks. Return 0 if error. */
