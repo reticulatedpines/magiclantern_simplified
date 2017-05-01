@@ -1,5 +1,5 @@
 diff --git a/cpu-exec.c b/cpu-exec.c
-index c88d0ff..36eedc7 100644
+index c88d0ff..f0c4297 100644
 --- a/cpu-exec.c
 +++ b/cpu-exec.c
 @@ -31,6 +31,7 @@
@@ -10,7 +10,24 @@ index c88d0ff..36eedc7 100644
  
  /* -icount align implementation. */
  
-@@ -500,8 +501,118 @@ int cpu_exec(CPUState *cpu)
+@@ -332,6 +333,16 @@ static void cpu_handle_debug_exception(CPUState *cpu)
+     cc->debug_excp_handler(cpu);
+ }
+ 
++static void (*tb_exec_cb)(void *opaque, CPUState *cpu, TranslationBlock *tb);
++static void * tb_exec_opaque;
++
++void cpu_set_tb_exec_cb(void (*cb)(void *opaque, CPUState *cpu, TranslationBlock *tb),
++                        void *opaque)
++{
++    tb_exec_cb = cb;
++    tb_exec_opaque = opaque;
++}
++
+ /* main execution loop */
+ 
+ int cpu_exec(CPUState *cpu)
+@@ -500,8 +511,120 @@ int cpu_exec(CPUState *cpu)
                      tcg_ctx.tb_ctx.tb_invalidated_flag = 0;
                  }
                  if (qemu_loglevel_mask(CPU_LOG_EXEC)) {
@@ -29,7 +46,9 @@ index c88d0ff..36eedc7 100644
                               tb->tc_ptr, tb->pc, lookup_symbol(tb->pc));
 +#endif
 +                }
-+
++                if (tb_exec_cb) {
++                    tb_exec_cb(tb_exec_opaque, cpu, tb);
++                }
 +                if (qemu_loglevel_mask(EOS_LOG_CALLS))
 +                {
 +#if defined(TARGET_ARM)
@@ -141,6 +160,18 @@ index 2195b60..e3e2c14 100644
  
  obj-y += armv7m.o exynos4210.o pxa2xx.o pxa2xx_gpio.o pxa2xx_pic.o
  obj-$(CONFIG_DIGIC) += digic.o
+diff --git a/include/exec/exec-all.h b/include/exec/exec-all.h
+index d900b0d..1ad5332 100644
+--- a/include/exec/exec-all.h
++++ b/include/exec/exec-all.h
+@@ -405,4 +405,7 @@ extern int singlestep;
+ extern CPUState *tcg_current_cpu;
+ extern bool exit_request;
+ 
++void cpu_set_tb_exec_cb(void (*cb)(void *opaque, CPUState *cpu, TranslationBlock *tb),
++                        void *opaque);
++
+ #endif
 diff --git a/include/exec/memory.h b/include/exec/memory.h
 index 0f07159..40c3940 100644
 --- a/include/exec/memory.h
