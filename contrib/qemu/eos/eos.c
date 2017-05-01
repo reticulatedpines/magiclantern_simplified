@@ -4012,8 +4012,14 @@ static void sdio_trigger_interrupt(EOSState *s)
         DPRINTF("Warning: data transfer not yet complete\n");
         return;
     }
-    
-    if ((sd->status & 3) == 1 && sd->irq_flags)
+
+    if (!sd->irq_flags)
+    {
+        /* no interrupt requested */
+        return;
+    }
+
+    if (sd->status & 3)
     {
         assert(s->model->sd_driver_interrupt);
         eos_trigger_int(s, s->model->sd_driver_interrupt, 0);
@@ -4023,6 +4029,10 @@ static void sdio_trigger_interrupt(EOSState *s)
             assert(s->model->sd_dma_interrupt);
             eos_trigger_int(s, s->model->sd_dma_interrupt, 0);
         }
+    }
+    else
+    {
+        EPRINTF("Warning: not triggering interrupt (status=%x)\n", sd->status);
     }
 }
 
