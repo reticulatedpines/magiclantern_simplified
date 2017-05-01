@@ -1575,6 +1575,8 @@ int main (int argc, char *argv[])
         if(compress_output == 1)
         {
             print_msg(MSG_INFO, "   - Compress frames written into DNG (slow)\n");
+            print_msg(MSG_INFO, "   - Enforcing 14bpp for DNG output\n");
+            bit_depth = 14;
         }
         else if(compress_output > 1)
         {
@@ -1584,8 +1586,8 @@ int main (int argc, char *argv[])
         else
         {
             print_msg(MSG_INFO, "   - Decompressing before writing DNG\n");
-            //print_msg(MSG_INFO, "   - Enforcing 14bpp for DNG output\n");
-            //bit_depth = 14;
+            print_msg(MSG_INFO, "   - Enforcing 14bpp for DNG output\n");
+            bit_depth = 14;
             decompress_input = 1;
         }
         
