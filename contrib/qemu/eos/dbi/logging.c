@@ -91,6 +91,8 @@ static void eos_log_selftest(EOSState *s, hwaddr addr, uint64_t value, uint32_t 
 void eos_log_mem(void * opaque, hwaddr addr, uint64_t value, uint32_t size, int flags)
 {
     const char * msg = "";
+    intptr_t msg_arg1 = 0;
+    intptr_t msg_arg2 = 0;
     int is_write = flags & 1;
     int mode = is_write ? MODE_WRITE : MODE_READ;
 
@@ -126,19 +128,31 @@ void eos_log_mem(void * opaque, hwaddr addr, uint64_t value, uint32_t size, int 
     {
         case 1:
             msg = "8-bit";
+            value &= 0xFF;
             break;
         case 2:
             msg = "16-bit";
+            value &= 0xFFFFF;
             break;
         case 4:
+            value &= 0xFFFFFFFF;
             break;
         default:
             assert(0);
     }
 
+    if (is_write)
+    {
+        /* log the old value as well */
+        msg_arg2 = (intptr_t) msg;
+        msg_arg1 = 0;
+        msg = "was 0x%X; %s";
+        cpu_physical_memory_read(addr, &msg_arg1, size);
+    }
+
     /* all our memory region names start with eos. */
     assert(strncmp(mr->name, "eos.", 4) == 0);
-    io_log(mr->name + 4, s, addr, mode, value, value, msg, 0, 0);
+    io_log(mr->name + 4, s, addr, mode, value, value, msg, msg_arg1, msg_arg2);
 }
 
 static void eos_log_calls(CPUState *cpu, TranslationBlock *tb)
