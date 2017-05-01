@@ -48,13 +48,13 @@ static void mpu_send_next_spell(EOSState *s)
         free(s->mpu.out_spell);
         s->mpu.out_spell = s->mpu.send_queue[s->mpu.sq_head];
         s->mpu.sq_head = (s->mpu.sq_head+1) & (COUNT(s->mpu.send_queue)-1);
-        printf("[MPU] Sending spell: ");
+        fprintf(stderr, "[MPU] Sending spell: ");
 
         for (int i = 0; i < s->mpu.out_spell[0]; i++)
         {
-            printf("%02x ", s->mpu.out_spell[i]);
+            fprintf(stderr, "%02x ", s->mpu.out_spell[i]);
         }
-        printf("\n");
+        fprintf(stderr, "\n");
 
         s->mpu.out_char = -2;
 
@@ -63,7 +63,7 @@ static void mpu_send_next_spell(EOSState *s)
     }
     else
     {
-        printf("[MPU] Nothing more to send.\n");
+        fprintf(stderr, "[MPU] Nothing more to send.\n");
         s->mpu.sending = 0;
     }
 }
@@ -82,13 +82,13 @@ static void mpu_enqueue_spell(EOSState *s, int spell_set, int out_spell)
     int next_tail = (s->mpu.sq_tail+1) & (COUNT(s->mpu.send_queue)-1);
     if (next_tail != s->mpu.sq_head)
     {
-        printf("[MPU] Queueing spell #%d.%d\n", spell_set+1, out_spell+1);
+        fprintf(stderr, "[MPU] Queueing spell #%d.%d\n", spell_set+1, out_spell+1);
         s->mpu.send_queue[s->mpu.sq_tail] = copy_spell(mpu_init_spells[spell_set].out_spells[out_spell]);
         s->mpu.sq_tail = next_tail;
     }
     else
     {
-        printf("[MPU] ERROR: send queue full\n");
+        fprintf(stderr, "[MPU] ERROR: send queue full\n");
     }
 }
 
@@ -97,18 +97,18 @@ static void mpu_enqueue_spell_generic(EOSState *s, unsigned char * spell)
     int next_tail = (s->mpu.sq_tail+1) & (COUNT(s->mpu.send_queue)-1);
     if (next_tail != s->mpu.sq_head)
     {
-        printf("[MPU] Queueing spell: ");
+        fprintf(stderr, "[MPU] Queueing spell: ");
         for (int i = 0; i < spell[0]; i++)
         {
-            printf("%02x ", spell[i]);
+            fprintf(stderr, "%02x ", spell[i]);
         }
-        printf("\n");
+        fprintf(stderr, "\n");
         s->mpu.send_queue[s->mpu.sq_tail] = copy_spell(spell);
         s->mpu.sq_tail = next_tail;
     }
     else
     {
-        printf("[MPU] ERROR: send queue full\n");
+        fprintf(stderr, "[MPU] ERROR: send queue full\n");
     }
 }
 
@@ -125,11 +125,11 @@ static void mpu_start_sending(EOSState *s)
 
 static void mpu_interpret_command(EOSState *s)
 {
-    printf("[MPU] Received: ");
+    fprintf(stderr, "[MPU] Received: ");
     int i;
     for (i = 0; i < s->mpu.recv_index; i++)
     {
-        printf("%02x ", s->mpu.recv_buffer[i]);
+        fprintf(stderr, "%02x ", s->mpu.recv_buffer[i]);
     }
     
     /* some spells may repeat; attempt to follow the sequence
@@ -139,7 +139,7 @@ static void mpu_interpret_command(EOSState *s)
     {
         if (memcmp(s->mpu.recv_buffer+1, mpu_init_spells[spell_set].in_spell+1, mpu_init_spells[spell_set].in_spell[1]) == 0)
         {
-            printf(" (recognized spell #%d)\n", spell_set+1);
+            fprintf(stderr, " (recognized spell #%d)\n", spell_set+1);
             
             int out_spell;
             for (out_spell = 0; mpu_init_spells[spell_set].out_spells[out_spell][0]; out_spell++)
@@ -151,7 +151,7 @@ static void mpu_interpret_command(EOSState *s)
         }
     }
     
-    printf(" (unknown spell)\n");
+    fprintf(stderr, " (unknown spell)\n");
 }
 
 void mpu_handle_sio3_interrupt(EOSState *s)
@@ -168,7 +168,7 @@ void mpu_handle_sio3_interrupt(EOSState *s)
             if (s->mpu.out_char < num_chars)
             {
                 /*
-                printf(
+                fprintf(stderr, 
                     "[MPU] Sending spell #%d.%d, chars %d & %d out of %d\n", 
                     s->mpu.spell_set+1, s->mpu.out_spell+1,
                     s->mpu.out_char+1, s->mpu.out_char+2,
@@ -182,17 +182,17 @@ void mpu_handle_sio3_interrupt(EOSState *s)
                 }
                 else
                 {
-                    printf("[MPU] spell finished\n");
+                    fprintf(stderr, "[MPU] spell finished\n");
 
                     if (s->mpu.sq_head != s->mpu.sq_tail)
                     {
-                        printf("[MPU] Requesting next spell\n");
+                        fprintf(stderr, "[MPU] Requesting next spell\n");
                         eos_trigger_int(s, s->model->mpu_request_interrupt, 1);   /* MREQ */
                     }
                     else
                     {
                         /* no more spells */
-                        printf("[MPU] spells finished\n");
+                        fprintf(stderr, "[MPU] spells finished\n");
                         
                         /* we have two more chars to send */
                         s->mpu.sending = 2;
@@ -207,7 +207,7 @@ void mpu_handle_sio3_interrupt(EOSState *s)
         if (s->mpu.recv_index < s->mpu.recv_buffer[0])
         {
             /* more data to receive */
-            printf("[MPU] Request more data\n");
+            fprintf(stderr, "[MPU] Request more data\n");
             eos_trigger_int(s, 0x36, 0);   /* SIO3 */
         }
     }
@@ -224,13 +224,13 @@ void mpu_handle_mreq_interrupt(EOSState *s)
     {
         if (s->mpu.recv_index == 0)
         {
-            printf("[MPU] receiving next message\n");
+            fprintf(stderr, "[MPU] receiving next message\n");
         }
         else
         {
             /* if a message is started in SIO3, it should continue with SIO3's, without triggering another MREQ */
             /* it appears to be harmless,  but I'm not sure what happens with more than 1 message queued */
-            printf("[MPU] next message was started in SIO3\n");
+            fprintf(stderr, "[MPU] next message was started in SIO3\n");
         }
         eos_trigger_int(s, 0x36, 0);   /* SIO3 */
     }
@@ -649,13 +649,13 @@ static void show_keyboard_help(void)
             last_status = key_avail(key_map[i].scancode);
             if (last_status)
             {
-                printf("- %-12s : %s\n", key_map[i].pc_key_name, key_map[i].cam_key_name);
+                fprintf(stderr, "- %-12s : %s\n", key_map[i].pc_key_name, key_map[i].cam_key_name);
             }
         }
         else if (last_status && !key_avail(key_map[i].scancode))
         {
             /* for grouped keys, make sure all codes are available */
-            printf("key code missing: %x %x\n", key_map[i].scancode, key_map[i].gui_code);
+            fprintf(stderr, "key code missing: %x %x\n", key_map[i].scancode, key_map[i].gui_code);
             exit(1);
         }
     }
@@ -676,7 +676,7 @@ void mpu_send_keypress(EOSState *s, int keycode)
         return;
     }
 
-    printf("Key event: %x -> %04x\n", keycode, key);
+    fprintf(stderr, "Key event: %x -> %04x\n", keycode, key);
     
     static unsigned char mpu_keypress_spell[6] = {
         0x06, 0x05, 0x06, 0x00, 0x00, 0x00
@@ -726,7 +726,7 @@ void mpu_spells_init(EOSState *s)
 
     if (!mpu_init_spell_count)
     {
-        printf("FIXME: no MPU spells for %s.\n", s->model->name);
+        fprintf(stderr, "FIXME: no MPU spells for %s.\n", s->model->name);
         /* how to get them: http://magiclantern.fm/forum/index.php?topic=2864.msg166938#msg166938 */
     }
 
@@ -759,7 +759,7 @@ void mpu_spells_init(EOSState *s)
 
     if (!button_codes)
     {
-        printf("FIXME: no MPU button codes for %s.\n", s->model->name);
+        fprintf(stderr, "FIXME: no MPU button codes for %s.\n", s->model->name);
         /* run qemu-2.x.x/hw/eos/mpu_spells/make_button_codes.sh to get them */
         return;
     }

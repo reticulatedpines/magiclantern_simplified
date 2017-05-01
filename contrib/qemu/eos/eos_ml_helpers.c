@@ -17,21 +17,21 @@ unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *s, unsigned in
         switch (address)
         {
             case REG_PRINT_CHAR:    /* print in blue */
-                printf(KBLU"%c"KRESET, (uint8_t)value);
+                fprintf(stderr, KBLU"%c"KRESET, (uint8_t)value);
                 return 0;
 
             case REG_PRINT_NUM:     /* print in green */
-                printf(KGRN"%x (%d)"KRESET"\n", (uint32_t)value, (uint32_t)value);
+                fprintf(stderr, KGRN"%x (%d)"KRESET"\n", (uint32_t)value, (uint32_t)value);
                 return 0;
 
             case REG_DISAS_32:      /* disassemble address (32-bit, ARM or Thumb) */
-                printf(KGRN);
-                target_disas(stdout, CPU(arm_env_get_cpu(&s->cpu0->env)), value & ~1, 4, value & 1);
-                printf(KRESET);
+                fprintf(stderr, KGRN);
+                target_disas(stderr, CPU(arm_env_get_cpu(&s->cpu0->env)), value & ~1, 4, value & 1);
+                fprintf(stderr, KRESET);
                 return 0;
 
             case REG_SHUTDOWN:
-                printf("Goodbye!\n");
+                fprintf(stderr, "Goodbye!\n");
                 qemu_system_shutdown_request();
                 return 0;
             
@@ -47,7 +47,7 @@ unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *s, unsigned in
                 }
                 else
                 {
-                    printf("Image buffer disabled\n");
+                    fprintf(stderr, "Image buffer disabled\n");
                 }
                 return 0;
             
@@ -60,7 +60,7 @@ unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *s, unsigned in
                 }
                 else
                 {
-                    printf("Raw buffer disabled\n");
+                    fprintf(stderr, "Raw buffer disabled\n");
                 }
                 return 0;
 
