@@ -605,7 +605,7 @@ static void memcheck_free( void * buf, int allocator_index, unsigned int flags)
 
     /* make sure we can still detect double-free bugs */
     /* (the deallocator may overwrite it) */
-    ASSERT(((struct memcheck_hdr *)ptr)->id == JUST_FREED);
+    //ASSERT(((struct memcheck_hdr *)ptr)->id == JUST_FREED);
 }
 
 static int search_for_allocator(int size, int require_preferred_size, int require_preferred_free_space, int require_tmp, int require_dma)
