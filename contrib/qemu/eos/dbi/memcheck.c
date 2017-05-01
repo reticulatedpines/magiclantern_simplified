@@ -196,7 +196,7 @@ void eos_memcheck_log_mem(EOSState *s, hwaddr addr, uint64_t value, uint32_t siz
         (is_write || !is_memcpy(s, pc)) &&  /* don't check memcpy for reads */
         !is_heap_routine(s, pc))            /* don't check malloc/free routines */
     {
-        printf(KLRED"[%s:%x:%x] address %x %s after free (%x)" KRESET "\n",
+        fprintf(stderr, KLRED"[%s:%x:%x] address %x %s after free (%x)" KRESET "\n",
             eos_get_current_task_name(s), pc, lr,
             (int)addr, is_write ? "written" : "read", (int)value
         );
@@ -225,7 +225,7 @@ void eos_memcheck_log_mem(EOSState *s, hwaddr addr, uint64_t value, uint32_t siz
                 }
             }
         }
-        printf(KLRED"[%s:%x:%x] address %x %s TCM (%x)"KRESET"\n",
+        fprintf(stderr, KLRED"[%s:%x:%x] address %x %s TCM (%x)"KRESET"\n",
             eos_get_current_task_name(s), pc, lr,
             (int)addr, is_write ? "written to" : "read from", (int)value
         );
@@ -242,7 +242,7 @@ ignore:;
             !is_memcpy(s, pc) &&
             !is_heap_routine(s, pc))
         {
-            printf(KLRED"[%s:%x:%x] address %x uninitialized (read %x)"KRESET"\n",
+            fprintf(stderr, KLRED"[%s:%x:%x] address %x uninitialized (read %x)"KRESET"\n",
                 eos_get_current_task_name(s), pc, lr,
                 (int)addr, (int)value
             );
@@ -402,7 +402,7 @@ static void getenv_hex(const char * env_name, uint32_t * var, uint32_t default_v
 
 void eos_memcheck_init(EOSState *s)
 {
-    printf("Marking all memory as uninitialized...\n");
+    fprintf(stderr, "Marking all memory as uninitialized...\n");
     mem_set_status(0, s->model->ram_size, MS_NOINIT);
     /* fixme: also check both TCMs */
 
