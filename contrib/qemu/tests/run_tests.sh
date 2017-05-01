@@ -26,7 +26,7 @@ MENU_SEQUENCE[100D]="f1 left space i i i m right up up space up space p p" # sta
 MENU_SEQUENCE[1100D]="f1 left space i i m i i left m p p down right space right right space up right space" # starts with date/time screen; drive mode not working
 MENU_SEQUENCE[1200D]="f1 left space i i m i i space m m p p down right space right right space up right space" # starts with date/time screen; drive mode not working
 
-FMT_SEQ="space right space wait wait wait f1 space"
+FMT_SEQ="space right space wait f1 space"
 # these are customized for my ROM dumps (keys required to select the Format menu)
 # TODO: some generic way to navigate to Format menu?
 declare -A FORMAT_SEQUENCE
@@ -286,7 +286,6 @@ for CAM in 500D; do
             FMT_RMOV_ML=511b286bfb698b5ad1543429e26c9ebe
             FMT_KEEP_OK=3cd45fb4f2d79b75c919d07d68c1bc4d
         fi
-        FMT_BUSYDLG=9dac09e19003ad60eb0b1e6442710d00
         ML_RESTORED=1a287dd9c3fc75ee82bdb5ba1b30a339
         RESTARTING_=3044730d98d5da3e5e5f27642adf878a
 
@@ -301,8 +300,7 @@ for CAM in 500D; do
         vncexpect l     $FMT_RMOV_ML 2  $T$((count++)).png || break # select "remove ML"
         vncexpect l     $FMT_KEEP_ML 2  $T$((count++)).png || break # select "keep ML" on Format
         vncexpect right $FMT_KEEP_OK 2  $T$((count++)).png || break # select OK
-        vncexpect space $FMT_BUSYDLG 10 $T$((count++)).png || break # SET, wait for BUSY dialog
-        vncexpect f1    $ML_RESTORED 20 $T$((count++)).png || break # wait for "Magic Lantern restored"
+        vncexpect space $ML_RESTORED 20 $T$((count++)).png || break # SET, wait for "Magic Lantern restored"
         vncexpect f1    $RESTARTING_ 10 $T$((count++)).png || break # wait for "Restarting camera..."
 
         killall -INT qemu-system-arm &>> tests/$CAM/$TST.log; sleep 5
