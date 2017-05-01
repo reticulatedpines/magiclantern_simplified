@@ -13,13 +13,13 @@
 
 /* hardcoded; find it with:
  * readelf magiclantern -a | grep " memcpy$" */
-static const int ml_memcpy = 0x0974c0;
+static const int ml_memcpy = 0x969B0;
 static const int ml_memcpy_size = 0x96B50 - 0x969EC;
 
 /* our own read-after-free, in __mem_free */
 /* if wrong: lots of warning messages containing f12eeeed during ML module loading */
 /* not needed if MEMCHECK_CHECK is undefined */
-static const int ml_double_free_check = 0x500b0;
+static const int ml_double_free_check = 0x5001c;
 
 struct memcheck_stubs
 {
@@ -41,9 +41,21 @@ struct memcheck_stubs
 
     /* allow these routines to use-after-free */
     uint32_t heap_routines[8][2];
+
+    /* address used to store whether the guest is handling interrupts or not */
+    uint32_t interrupt_active;
+
+    /* interrupt end addresses, from main interrupt handling routine
+     * (called from 0x18 -> 0x4B0 -> other handlers -> two exit paths */
+    uint32_t isr_end[2];
+
+    /* gdb breakpoint at ML's my_task_dispatch_hook and see who calls it */
+    uint32_t calls_task_dispatch_hook;
 };
 
 static struct memcheck_stubs stubs;
+
+static bool interrupt_handling;
 
 /* 2 bits for each address */
 /* ull because it's shifted and used against a 64-bit value */
@@ -173,9 +185,10 @@ static int is_memcpy(EOSState *s, uint32_t pc)
 void eos_memcheck_log_mem(EOSState *s, hwaddr addr, uint64_t value, uint32_t size, int flags)
 {
     int is_write = flags & 1;
+    int is_read = !is_write;
     int no_check = flags & NOCHK_LOG;
-    int pc = CURRENT_CPU->env.regs[15];
-    int lr = CURRENT_CPU->env.regs[14];
+    uint32_t pc = CURRENT_CPU->env.regs[15];
+    uint32_t lr = CURRENT_CPU->env.regs[14];
 
     /* fixme: only first byte is checked */
     if (!no_check &&
@@ -183,21 +196,43 @@ void eos_memcheck_log_mem(EOSState *s, hwaddr addr, uint64_t value, uint32_t siz
         (is_write || !is_memcpy(s, pc)) &&  /* don't check memcpy for reads */
         !is_heap_routine(s, pc))            /* don't check malloc/free routines */
     {
-        printf(KLRED"[%s:%x:%x] %x %s after free (%x)" KRESET "\n",
+        printf(KLRED"[%s:%x:%x] address %x %s after free (%x)" KRESET "\n",
             eos_get_current_task_name(s), pc, lr,
             (int)addr, is_write ? "written" : "read", (int)value
         );
     }
 
-    if (0 && addr < 0x1000 && pc > 0x1000)
+    /* only interrupts and other TCM code are allowed to use the TCM */
+    /* with few exceptions */
+    if (addr < 0x1000 &&
+        pc >= 0x1000 &&
+        !(addr == stubs.interrupt_active && is_read) && /* allow reading this flag from anywhere */
+        !interrupt_handling)
     {
-        printf(KLRED"[%s:%x:%x] %x %s TCM (%x)"KRESET"\n",
+        if (addr == 0 && is_read)
+        {
+            /* it might be ML's own null pointer check (in task_dispatch_hook) */
+            /* let's figure it out from the stack */
+            uint32_t stack[32];
+            uint32_t sp = CURRENT_CPU->env.regs[13];
+            cpu_physical_memory_read(sp, stack, sizeof(stack));
+            for (int i = 0; i < COUNT(stack); i++)
+            {
+                if (stack[i] == stubs.calls_task_dispatch_hook + 4)
+                {
+                    /* fixme: less convoluted check? */
+                    goto ignore;
+                }
+            }
+        }
+        printf(KLRED"[%s:%x:%x] address %x %s TCM (%x)"KRESET"\n",
             eos_get_current_task_name(s), pc, lr,
             (int)addr, is_write ? "written to" : "read from", (int)value
         );
+ignore:;
     }
 
-    if (!is_write)
+    if (is_read)
     {
         /* fixme: only first byte is checked */
         /* fixme: why do we have to exclude heap routines here? */
@@ -207,7 +242,7 @@ void eos_memcheck_log_mem(EOSState *s, hwaddr addr, uint64_t value, uint32_t siz
             !is_memcpy(s, pc) &&
             !is_heap_routine(s, pc))
         {
-            printf(KLRED"[%s:%x:%x] %x uninitialized (%x)"KRESET"\n",
+            printf(KLRED"[%s:%x:%x] address %x uninitialized (read %x)"KRESET"\n",
                 eos_get_current_task_name(s), pc, lr,
                 (int)addr, (int)value
             );
@@ -340,6 +375,15 @@ void eos_memcheck_log_exec(EOSState *s, uint32_t pc)
             mem_set_status(start, start+size, MS_FREED | MS_NOINIT);
         }
     }
+
+    if (pc == 0x18)
+    {
+        interrupt_handling = 1;
+    }
+    else if (pc == stubs.isr_end[0] || pc == stubs.isr_end[1])
+    {
+        interrupt_handling = 0;
+    }
 }
 
 void eos_memcheck_init(EOSState *s)
@@ -358,7 +402,6 @@ void eos_memcheck_init(EOSState *s)
             .memcpy_end     = { 0xFF3EBC2C },
             .init_heap      =   0xFF06A4CC,
             .checked_heaps  = { 0x300000 },
-
             .heap_routines  = {
                                 { 0xff06a4f4, 0xFF06B5CC }, /* AllocateMemory */
                                 { 0xFF018F70, 0xFF019110 }, /* malloc */
@@ -366,7 +409,10 @@ void eos_memcheck_init(EOSState *s)
                                 { 0xff06c15c, 0xFF06C188 }, /* PackMem get size? */
                                 { 0xFF06CC4C, 0xFF06CCA8 }, /* GetNextMemoryChunk?! why? */
                                 { 0xff06beec, 0xFF06BF98 }, /* DeleteMemorySuite?! why? */
-                              }, 
+                              },
+            .interrupt_active           = 0x664,
+            .isr_end                    = { 0x660, 0x64C },
+            .calls_task_dispatch_hook   = 0xff012dd0,
         };
     }
     else
