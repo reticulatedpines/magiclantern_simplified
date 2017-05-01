@@ -166,31 +166,108 @@ index 0f07159..40c3940 100644
  
  #endif
 diff --git a/include/qemu/log.h b/include/qemu/log.h
-index 362cbc4..10d3af2 100644
+index 362cbc4..5a52339 100644
 --- a/include/qemu/log.h
 +++ b/include/qemu/log.h
-@@ -42,6 +42,21 @@ static inline bool qemu_log_enabled(void)
+@@ -12,7 +12,7 @@
+ 
+ /* Private global variables, don't use */
+ extern FILE *qemu_logfile;
+-extern int qemu_loglevel;
++extern uint64_t qemu_loglevel;
+ 
+ /* 
+  * The new API:
+@@ -42,9 +42,40 @@ static inline bool qemu_log_enabled(void)
  #define CPU_LOG_MMU        (1 << 12)
  #define CPU_LOG_TB_NOCHAIN (1 << 13)
  
-+#define EOS_LOG_IO         (1 << 14)
-+#define EOS_LOG_UART       (1 << 15)
-+#define EOS_LOG_CALLS      (1 << 16)
++/* various EOS options */
++/* some of them are just defined for future use */
++#define EOS_LOG_VERBOSE    (1LL << 20)
++#define EOS_LOG_IO         (1LL << 21)
++#define EOS_LOG_UART       (1LL << 22)
++#define EOS_LOG_CALLS      (1LL << 23)
++#define EOS_LOG_CALLSTACK  (1LL << 24)
++#define EOS_LOG_MPU        (1LL << 25)
++#define EOS_LOG_SDCF       (1LL << 26)
++#define EOS_LOG_SFLASH     (1LL << 27)
++#define EOS_LOG_PFLASH     (1LL << 28)
++#define EOS_LOG_DMA        (1LL << 29)
++#define EOS_LOG_EDMAC      (1LL << 30)
 +
-+#define EOS_LOG_RAM_R      (1 << 17)
-+#define EOS_LOG_RAM_W      (1 << 18)
-+#define EOS_LOG_ROM_R      (1 << 19)
-+#define EOS_LOG_ROM_W      (1 << 20)
++/* guest memory tracing (logging) */
++#define EOS_LOG_RAM_R      (1LL << 40)
++#define EOS_LOG_RAM_W      (1LL << 41)
++#define EOS_LOG_ROM_R      (1LL << 42)
++#define EOS_LOG_ROM_W      (1LL << 43)
 +#define EOS_LOG_RAM        (EOS_LOG_RAM_R | EOS_LOG_RAM_W)
 +#define EOS_LOG_ROM        (EOS_LOG_ROM_R | EOS_LOG_ROM_W)
 +#define EOS_LOG_MEM_R      (EOS_LOG_RAM_R | EOS_LOG_ROM_R)
 +#define EOS_LOG_MEM_W      (EOS_LOG_RAM_W | EOS_LOG_ROM_W)
 +#define EOS_LOG_MEM        (EOS_LOG_RAM   | EOS_LOG_ROM)
-+#define EOS_LOG_RAM_DBG    (1 << 21)
++#define EOS_LOG_RAM_DBG    (1LL << 44)    /* self-test */
++
++/* analysis tools */
++#define EOS_LOG_RAM_MEMCHK (1LL << 50)    /* like valgrind memcheck */
++#define EOS_LOG_RAM_TSKMEM (1LL << 51)    /* check task memory ownership assumptions */
++#define EOS_LOG_RAM_SEMCHK (1LL << 52)    /* check semaphore usage (like helgrind) */
 +
  /* Returns true if a bit is set in the current loglevel mask
   */
- static inline bool qemu_loglevel_mask(int mask)
+-static inline bool qemu_loglevel_mask(int mask)
++static inline bool qemu_loglevel_mask(uint64_t mask)
+ {
+     return (qemu_loglevel & mask) != 0;
+ }
+@@ -67,7 +98,7 @@ qemu_log_vprintf(const char *fmt, va_list va)
+ 
+ /* log only if a bit is set on the current loglevel mask
+  */
+-void GCC_FMT_ATTR(2, 3) qemu_log_mask(int mask, const char *fmt, ...);
++void GCC_FMT_ATTR(2, 3) qemu_log_mask(uint64_t mask, const char *fmt, ...);
+ 
+ 
+ /* Special cases: */
+@@ -95,7 +126,7 @@ static inline void log_cpu_state(CPUState *cpu, int flags)
+  *
+  * Logs the output of cpu_dump_state() if loglevel includes @mask.
+  */
+-static inline void log_cpu_state_mask(int mask, CPUState *cpu, int flags)
++static inline void log_cpu_state_mask(uint64_t mask, CPUState *cpu, int flags)
+ {
+     if (qemu_loglevel & mask) {
+         log_cpu_state(cpu, flags);
+@@ -152,7 +183,7 @@ static inline void qemu_log_set_file(FILE *f)
+ 
+ /* define log items */
+ typedef struct QEMULogItem {
+-    int mask;
++    uint64_t mask;
+     const char *name;
+     const char *help;
+ } QEMULogItem;
+@@ -163,9 +194,9 @@ extern const QEMULogItem qemu_log_items[];
+  * changing the log level; it should only be accessed via
+  * the qemu_set_log() wrapper.
+  */
+-void do_qemu_set_log(int log_flags, bool use_own_buffers);
++void do_qemu_set_log(uint64_t log_flags, bool use_own_buffers);
+ 
+-static inline void qemu_set_log(int log_flags)
++static inline void qemu_set_log(uint64_t log_flags)
+ {
+ #ifdef CONFIG_USER_ONLY
+     do_qemu_set_log(log_flags, true);
+@@ -175,7 +206,7 @@ static inline void qemu_set_log(int log_flags)
+ }
+ 
+ void qemu_set_log_filename(const char *filename);
+-int qemu_str_to_log_mask(const char *str);
++uint64_t qemu_str_to_log_mask(const char *str);
+ 
+ /* Print a usage message listing all the valid logging categories
+  * to the specified FILE*.
 diff --git a/memory.c b/memory.c
 index e193658..9de7251 100644
 --- a/memory.c
@@ -215,9 +292,36 @@ index e193658..9de7251 100644
      subregion->priority = 0;
      memory_region_add_subregion_common(mr, offset, subregion);
 diff --git a/qemu-log.c b/qemu-log.c
-index 7cb01a8..2501ef5 100644
+index 7cb01a8..cecc3bc 100644
 --- a/qemu-log.c
 +++ b/qemu-log.c
+@@ -22,7 +22,7 @@
+ 
+ static char *logfilename;
+ FILE *qemu_logfile;
+-int qemu_loglevel;
++uint64_t qemu_loglevel;
+ static int log_append = 0;
+ 
+ void qemu_log(const char *fmt, ...)
+@@ -36,7 +36,7 @@ void qemu_log(const char *fmt, ...)
+     va_end(ap);
+ }
+ 
+-void qemu_log_mask(int mask, const char *fmt, ...)
++void qemu_log_mask(uint64_t mask, const char *fmt, ...)
+ {
+     va_list ap;
+ 
+@@ -48,7 +48,7 @@ void qemu_log_mask(int mask, const char *fmt, ...)
+ }
+ 
+ /* enable or disable low levels log */
+-void do_qemu_set_log(int log_flags, bool use_own_buffers)
++void do_qemu_set_log(uint64_t log_flags, bool use_own_buffers)
+ {
+     qemu_loglevel = log_flags;
+     if (qemu_loglevel && !qemu_logfile) {
 @@ -120,6 +120,27 @@ const QEMULogItem qemu_log_items[] = {
      { CPU_LOG_TB_NOCHAIN, "nochain",
        "do not chain compiled TBs so that \"exec\" and \"cpu\" show\n"
@@ -246,6 +350,19 @@ index 7cb01a8..2501ef5 100644
      { 0, NULL, NULL },
  };
  
+@@ -132,10 +153,10 @@ static int cmp1(const char *s1, int n, const char *s2)
+ }
+ 
+ /* takes a comma separated list of log masks. Return 0 if error. */
+-int qemu_str_to_log_mask(const char *str)
++uint64_t qemu_str_to_log_mask(const char *str)
+ {
+     const QEMULogItem *item;
+-    int mask;
++    uint64_t mask;
+     const char *p, *p1;
+ 
+     p = str;
 diff --git a/target-arm/cpu.c b/target-arm/cpu.c
 index 30739fc..79babf9 100644
 --- a/target-arm/cpu.c
@@ -806,3 +923,16 @@ index 53ef971..260331a 100644
 +void log_str_cb(uint32_t addr, uint32_t value, uint32_t opc);
 +
  #endif /* TARGET_ARM_TRANSLATE_H */
+diff --git a/vl.c b/vl.c
+index 4211ff1..93d4df4 100644
+--- a/vl.c
++++ b/vl.c
+@@ -4102,7 +4102,7 @@ int main(int argc, char **argv, char **envp)
+     }
+ 
+     if (log_mask) {
+-        int mask;
++        uint64_t mask;
+         mask = qemu_str_to_log_mask(log_mask);
+         if (!mask) {
+             qemu_print_log_usage(stdout);
