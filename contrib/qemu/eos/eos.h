@@ -16,6 +16,15 @@
 #define BM(x,y) ((x) + (y) * BMPPITCH)
 
 
+/** ANSI colors **/
+#define KRED   "\x1B[31m"
+#define KBLU   "\x1B[34m"
+#define KGRN   "\x1B[32m"
+#define KLRED  "\x1B[1;31m"
+#define KCYN   "\x1B[1;36m"
+#define KWHT   "\x1B[1;37m"
+#define KRESET "\x1B[0m"
+
 /** ARM macros **/
 
 #define B_INSTR(pc,dest) \
