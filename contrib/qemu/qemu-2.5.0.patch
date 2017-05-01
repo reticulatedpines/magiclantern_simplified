@@ -226,7 +226,7 @@ index e193658..9de7251 100644
      subregion->priority = 0;
      memory_region_add_subregion_common(mr, offset, subregion);
 diff --git a/qemu-log.c b/qemu-log.c
-index 7cb01a8..cecc3bc 100644
+index 7cb01a8..f8ac430 100644
 --- a/qemu-log.c
 +++ b/qemu-log.c
 @@ -22,7 +22,7 @@
@@ -256,7 +256,7 @@ index 7cb01a8..cecc3bc 100644
  {
      qemu_loglevel = log_flags;
      if (qemu_loglevel && !qemu_logfile) {
-@@ -120,6 +120,27 @@ const QEMULogItem qemu_log_items[] = {
+@@ -120,6 +120,35 @@ const QEMULogItem qemu_log_items[] = {
      { CPU_LOG_TB_NOCHAIN, "nochain",
        "do not chain compiled TBs so that \"exec\" and \"cpu\" show\n"
        "complete traces" },
@@ -281,10 +281,18 @@ index 7cb01a8..cecc3bc 100644
 +      "EOS: log all ROM writes" },
 +    { EOS_LOG_RAM_DBG | EOS_LOG_RAM, "ram_dbg",
 +      "EOS: self-test for the RAM logging routines" },
++
++    { EOS_LOG_RAM_MEMCHK | EOS_LOG_RAM, "memchk",
++      "EOS: check memory usage (malloc/free, uninitialized values)" },
++
++    { EOS_LOG_VERBOSE, "v", "" },
++    { EOS_LOG_VERBOSE, "verbose",
++      "EOS: very detailed debug messages" },
++
      { 0, NULL, NULL },
  };
  
-@@ -132,10 +153,10 @@ static int cmp1(const char *s1, int n, const char *s2)
+@@ -132,10 +161,10 @@ static int cmp1(const char *s1, int n, const char *s2)
  }
  
  /* takes a comma separated list of log masks. Return 0 if error. */

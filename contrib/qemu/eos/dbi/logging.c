@@ -10,6 +10,7 @@
 #include "../eos.h"
 #include "../model_list.h"
 #include "logging.h"
+#include "memcheck.h"
 
 static inline int should_log_memory_region(MemoryRegion * mr)
 {
@@ -108,6 +109,7 @@ void eos_log_mem(void * opaque, hwaddr addr, uint64_t value, uint32_t size, int 
     }
 
     EOSState* s = (EOSState*) opaque;
+    bool some_tool_executed = false;
 
     if (qemu_loglevel_mask(EOS_LOG_RAM_DBG))
     {
@@ -115,14 +117,28 @@ void eos_log_mem(void * opaque, hwaddr addr, uint64_t value, uint32_t size, int 
          * all memory write events correctly (not sure how to check reads)
          */
         eos_log_selftest(s, addr, value, size, flags);
+        some_tool_executed = true;
     }
-    else
+
+    if (qemu_loglevel_mask(EOS_LOG_RAM_MEMCHK))
     {
-        /* with -d mem, log memory accesses in the same way as I/O */
-        /* -d mem_dbg does not print them unless you also specify io */
-        mode |= FORCE_LOG;
+        /* in memcheck.c */
+        eos_memcheck_log_mem(s, addr, value, size, flags);
+        some_tool_executed = true;
     }
-    
+
+    if (some_tool_executed && !(qemu_loglevel_mask(EOS_LOG_VERBOSE) &&
+                                qemu_loglevel_mask(EOS_LOG_IO)))
+    {
+        /* when executing some memory checking tool,
+         * do not log messages unless -d io,verbose is specified
+         */
+        return;
+    }
+
+    /* we are going log memory accesses in the same way as I/O */
+    /* even if -d io was not specified */
+    mode |= FORCE_LOG;
 
     switch (size)
     {
@@ -257,17 +273,28 @@ static void tb_exec_cb(void *opaque, CPUState *cpu, TranslationBlock *tb)
     {
         eos_log_calls(cpu, tb);
     }
+
+    if (qemu_loglevel_mask(EOS_LOG_RAM_MEMCHK))
+    {
+        eos_memcheck_log_exec(opaque, tb->pc);
+    }
 }
 
 void eos_logging_init(EOSState *s)
 {
     cpu_set_tb_exec_cb(tb_exec_cb, s);
 
-    if (qemu_loglevel_mask(EOS_LOG_MEM)) {
+    if (qemu_loglevel_mask(EOS_LOG_MEM))
+    {
         fprintf(stderr, "Enabling memory access logging.\n");
-        int access_mode =
+        int mem_access_mode =
             (qemu_loglevel_mask(EOS_LOG_MEM_R) ? PROT_READ : 0) |
             (qemu_loglevel_mask(EOS_LOG_MEM_W) ? PROT_WRITE : 0);
-        memory_set_access_logging_cb(eos_log_mem, s, access_mode);
+        memory_set_access_logging_cb(eos_log_mem, s, mem_access_mode);
+    }
+
+    if (qemu_loglevel_mask(EOS_LOG_RAM_MEMCHK))
+    {
+        eos_memcheck_init(s);
     }
 }

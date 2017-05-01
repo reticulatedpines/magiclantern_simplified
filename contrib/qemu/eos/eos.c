@@ -313,6 +313,9 @@ void eos_mem_read(EOSState *s, hwaddr addr, void * buf, int size)
 
     if (qemu_loglevel_mask(EOS_LOG_MEM_R))
     {
+        /* only aligned accesses implemented */
+        assert((size & 3) == 0);
+
         for (int i = 0; i < size; i += 4)
         {
             eos_log_mem(s, addr + i, *(uint32_t*)(buf + i), 4, NOCHK_LOG);
@@ -324,6 +327,8 @@ void eos_mem_write(EOSState *s, hwaddr addr, void * buf, int size)
 {
     if (qemu_loglevel_mask(EOS_LOG_MEM_W))
     {
+        /* only aligned accesses implemented */
+        assert((size & 3) == 0);
         for (int i = 0; i < size; i += 4)
         {
             eos_log_mem(s, addr + i, *(uint32_t*)(buf + i), 4, 1 | NOCHK_LOG);
@@ -1461,7 +1466,7 @@ uint8_t eos_get_mem_b ( EOSState *s, uint32_t addr )
     return buf;
 }
 
-static char* get_current_task_name(EOSState *s)
+char * eos_get_current_task_name(EOSState *s)
 {
     if (!s->model->current_task_addr)
     {
@@ -1503,7 +1508,7 @@ void io_log(const char * module_name, EOSState *s, unsigned int address, unsigne
     if (!module_name) module_name = "???";
     if (!msg) msg = "???";
     
-    char* task_name = get_current_task_name(s);
+    char * task_name = eos_get_current_task_name(s);
     
     char mod_name[50];
     char mod_name_and_pc[50];
