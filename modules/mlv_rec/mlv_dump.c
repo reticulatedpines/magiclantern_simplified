@@ -2408,6 +2408,14 @@ read_headers:
                     skip_block = 1;
                 }
 
+                /* 
+                  conditions when to process this block:
+                    a) if we should output a RAW file
+                    b) if we should output a MLV file
+                    c) if we should output DNG files
+                    d) if LUA is enabled
+                    e) but not if this block should be skipped (due to inconsistent header data)
+                */
                 if((raw_output || mlv_output || dng_output || lua_state) && !skip_block)
                 {
                     /* if already compressed, we have to decompress it first */
@@ -2416,24 +2424,46 @@ read_headers:
                     int compressed = compressed_lzma || compressed_lj92;
                     int recompress = compressed && compress_output;
                     int decompress = compressed && decompress_output;
+                    
+                    /*
+                      run decompression routine when
+                        a) we shall re-compress the output (option -c for compressed input)
+                        b) we shall de-compress the output (option -d)
+                        c) we have compressed input and should write DNG or RAW 
+                    */
+                    int run_decompressor = recompress || decompress || ((raw_output || dng_output) && compressed);
+                    
+                    /*
+                      write this block when following conditions are true
+                        a) we are writing a MLV file
+                        b) this is NOT "only-metadata" mode
+                        c) this is not average mode (where video data will accumulate and be written as last)
+                        d) this block should get extracted in case of extraction mode
+                    */
+                    int write_block = mlv_output && !only_metadata_mode && !average_mode && (!extract_block || !strncasecmp(extract_block, (char*)block_hdr.blockType, 4));
 
-                    /* block_hdr.blockSize includes VIDF header, space (if any), actual frame, and padding (if any) */
-                    /* this formula should match the one used when saving dark frames (which have no spacing/padding) */
+                    /*
+                      the frame_size is the size of the raw video frame.
+                      for uncompressed files, the VIDF contains this amount of bytes along with some padding.
+                      compressed files can contain arbitrary payload sizes.
+                      the decompressed content however must match the frame_size.
+                       */
                     int frame_size = ((video_xRes * video_yRes * lv_rec_footer.raw_info.bits_per_pixel + 7) / 8);
 
-                    int prev_frame_size = frame_size;                    
-                    int32_t skipSizeBefore = block_hdr.frameSpace;
-                    int32_t skipSizeAfter = block_hdr.blockSize - frame_size - block_hdr.frameSpace - sizeof(mlv_vidf_hdr_t);
-
-
-                    file_set_pos(in_file, skipSizeBefore, SEEK_CUR);
+                    /* 
+                      block_hdr.blockSize includes VIDF header, space (if any), actual frame, and padding (if any).
+                      calc the sizes before and after real video data payload.
+                    */
+                    int prev_frame_size = frame_size;
                     
+                    /* cache frame size as there are modes where the stored size does not match the frame's size (e.g. compressed frames) */
                     int read_size = frame_size;
                     
-                    if (compressed_lj92)
+                    /* when the block is compressed, read the whole content, not just "frame_size" */
+                    if(compressed)
                     {
-                        read_size = block_hdr.blockSize - sizeof(mlv_vidf_hdr_t) - skipSizeBefore;
-                        skipSizeAfter = 0;
+                        /* just read everything right behind the frameSpace */
+                        read_size = block_hdr.blockSize - sizeof(mlv_vidf_hdr_t) - block_hdr.frameSpace;
                     }
                     
                     /* check if there is enough memory for that frame */
@@ -2481,6 +2511,9 @@ read_headers:
                             }
                         }
                     }
+
+                    /* so skip frameSpace and read payload */
+                    file_set_pos(in_file, block_hdr.frameSpace, SEEK_CUR);
                     
                     if(fread(frame_buffer, read_size, 1, in_file) != 1)
                     {
@@ -2488,11 +2521,9 @@ read_headers:
                         goto abort;
                     }
 
-                    file_set_pos(in_file, skipSizeAfter, SEEK_CUR);
-
                     lua_handle_hdr_data(lua_state, buf.blockType, "_data_read", &block_hdr, sizeof(block_hdr), frame_buffer, read_size);
 
-                    if(recompress || decompress || ((raw_output || dng_output) && compressed))
+                    if(run_decompressor)
                     {
                         if(compressed_lj92)
                         {
@@ -3138,7 +3169,7 @@ read_headers:
                             free(frame_filename);
                         }
 
-                        if(mlv_output && !only_metadata_mode && !average_mode && (!extract_block || !strncasecmp(extract_block, (char*)block_hdr.blockType, 4)))
+                        if(write_block)
                         {
                             if(compress_output)
                             {
@@ -3251,10 +3282,9 @@ read_headers:
                         }
                     }
                 }
-                else
-                {
-                    file_set_pos(in_file, position + block_hdr.blockSize, SEEK_SET);
-                }
+                
+                /* no matter what the block handlers above did, skip that block */
+                file_set_pos(in_file, position + block_hdr.blockSize, SEEK_SET);
 
                 vidf_max_number = MAX(vidf_max_number, block_hdr.frameNumber);
 
@@ -3269,9 +3299,6 @@ read_headers:
                     print_msg(MSG_ERROR, "File ends in the middle of a block\n");
                     goto abort;
                 }
-
-                /* skip remaining data, if there is any */
-                file_set_pos(in_file, position + lens_info.blockSize, SEEK_SET);
 
                 lua_handle_hdr(lua_state, buf.blockType, &lens_info, sizeof(lens_info));
 
@@ -3485,9 +3512,6 @@ read_headers:
                     goto abort;
                 }
 
-                /* skip remaining data, if there is any */
-                file_set_pos(in_file, position + block_hdr.blockSize, SEEK_SET);
-
                 lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
 
                 if(verbose)
@@ -3517,9 +3541,6 @@ read_headers:
                     print_msg(MSG_ERROR, "File ends in the middle of a block\n");
                     goto abort;
                 }
-
-                /* skip remaining data, if there is any */
-                file_set_pos(in_file, position + block_hdr.blockSize, SEEK_SET);
 
                 lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
 
@@ -3552,9 +3573,6 @@ read_headers:
                     print_msg(MSG_ERROR, "File ends in the middle of a block\n");
                     goto abort;
                 }
-
-                /* skip remaining data, if there is any */
-                file_set_pos(in_file, position + wbal_info.blockSize, SEEK_SET);
 
                 lua_handle_hdr(lua_state, buf.blockType, &wbal_info, sizeof(wbal_info));
 
@@ -3589,9 +3607,6 @@ read_headers:
                     print_msg(MSG_ERROR, "File ends in the middle of a block\n");
                     goto abort;
                 }
-
-                /* skip remaining data, if there is any */
-                file_set_pos(in_file, position + idnt_info.blockSize, SEEK_SET);
 
                 lua_handle_hdr(lua_state, buf.blockType, &idnt_info, sizeof(idnt_info));
 
@@ -3629,9 +3644,6 @@ read_headers:
                     goto abort;
                 }
 
-                /* skip remaining data, if there is any */
-                file_set_pos(in_file, position + rtci_info.blockSize, SEEK_SET);
-
                 lua_handle_hdr(lua_state, buf.blockType, &rtci_info, sizeof(rtci_info));
 
                 if(verbose)
@@ -3666,9 +3678,6 @@ read_headers:
                     goto abort;
                 }
 
-                /* skip remaining data, if there is any */
-                file_set_pos(in_file, position + block_hdr.blockSize, SEEK_SET);
-
                 lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
 
                 if(verbose)
@@ -3696,9 +3705,6 @@ read_headers:
                     print_msg(MSG_ERROR, "File ends in the middle of a block\n");
                     goto abort;
                 }
-
-                /* skip remaining data, if there is any */
-                file_set_pos(in_file, position + expo_info.blockSize, SEEK_SET);
 
                 lua_handle_hdr(lua_state, buf.blockType, &expo_info, sizeof(expo_info));
 
@@ -3732,9 +3738,6 @@ read_headers:
                     print_msg(MSG_ERROR, "File ends in the middle of a block\n");
                     goto abort;
                 }
-
-                /* skip remaining data, if there is any */
-                file_set_pos(in_file, position + block_hdr.blockSize, SEEK_SET);
                 
                 lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
 
@@ -3904,9 +3907,6 @@ read_headers:
                     print_msg(MSG_ERROR, "File ends in the middle of a block\n");
                     goto abort;
                 }
-
-                /* skip remaining data, if there is any */
-                file_set_pos(in_file, position + block_hdr.blockSize, SEEK_SET);
                 
                 lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
 
@@ -3925,9 +3925,6 @@ read_headers:
                     print_msg(MSG_ERROR, "File ends in the middle of a block\n");
                     goto abort;
                 }
-
-                /* skip remaining data, if there is any */
-                file_set_pos(in_file, position + block_hdr.blockSize, SEEK_SET);
 
                 lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
 
@@ -4027,19 +4024,20 @@ read_headers:
             }
             else if(!memcmp(buf.blockType, "NULL", 4))
             {
-                file_set_pos(in_file, position + buf.blockSize, SEEK_SET);
+                /* those are just placeholders. ignore them. */
             }
             else if(!memcmp(buf.blockType, "BKUP", 4))
             {
-                file_set_pos(in_file, position + buf.blockSize, SEEK_SET);
+                /* once they were used to backup headers during frame processing in mlv_rec and could have appeared in a file. no need anymore. */
             }
             else
             {
                 print_msg(MSG_INFO, "Unknown Block: %c%c%c%c, skipping\n", buf.blockType[0], buf.blockType[1], buf.blockType[2], buf.blockType[3]);
 
-                file_set_pos(in_file, position + buf.blockSize, SEEK_SET);
                 lua_handle_hdr(lua_state, buf.blockType, "", 0);
             }
+            
+            file_set_pos(in_file, position + buf.blockSize, SEEK_SET);
         }
 
         /* count any read block, no matter if header or video frame */
