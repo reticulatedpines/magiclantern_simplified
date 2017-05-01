@@ -27,6 +27,7 @@
 #define dbg_printf(fmt,...) {}
 #endif
 
+#define MEMCHECK_CHECK          /* disable if running in qemu with -d memcheck */
 #define MEM_SEC_ZONE 16
 #define MEMCHECK_ENTRIES 256
 #define HISTORY_ENTRIES 256
@@ -332,6 +333,10 @@ static const char * format_memory_size_and_flags( unsigned size, unsigned flags)
 /* second arg is optional, -1 if not available */
 static unsigned int memcheck_check(unsigned int ptr, unsigned int entry)
 {
+#ifndef MEMCHECK_CHECK
+    return 0;
+#endif
+
     unsigned int failed = 0;
     unsigned int failed_pos = 0;
     
@@ -456,6 +461,10 @@ static unsigned int memcheck_get_failed()
 
 static void memcheck_add(unsigned int ptr, const char *file, unsigned int line)
 {
+#ifndef MEMCHECK_CHECK
+    return;
+#endif
+
     int tries = MEMCHECK_ENTRIES;
     
     unsigned int state = cli();
@@ -485,6 +494,10 @@ static void memcheck_add(unsigned int ptr, const char *file, unsigned int line)
 
 static void memcheck_remove(unsigned int ptr, unsigned int failed)
 {
+#ifndef MEMCHECK_CHECK
+    return;
+#endif
+
     unsigned int buf_pos = ((struct memcheck_hdr *)ptr)->id;
     ((struct memcheck_hdr *)ptr)->id = JUST_FREED;
     
@@ -534,7 +547,8 @@ static void *memcheck_malloc( unsigned int len, const char *file, unsigned int l
     /* some allocators may return invalid ptr; discard it and return 0, as C malloc does */
     if ((intptr_t)ptr & 1) return 0;
     if (!ptr) return 0;
-    
+
+#ifdef MEMCHECK_CHECK
     /* fill MEM_SEC_ZONE with 0xA5 */
     for(unsigned pos = 0; pos < MEM_SEC_ZONE; pos++)
     {
@@ -545,7 +559,8 @@ static void *memcheck_malloc( unsigned int len, const char *file, unsigned int l
     {
         ((unsigned char *)ptr)[pos] = 0xA5;
     }
-    
+#endif
+
     /* did our allocator return a cacheable or uncacheable pointer? */
     unsigned int uncacheable_flag = (ptr == (unsigned int) UNCACHEABLE(ptr)) ? UNCACHEABLE_FLAG : 0;
     
