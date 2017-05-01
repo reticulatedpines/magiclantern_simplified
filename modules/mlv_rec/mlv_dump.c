@@ -1047,7 +1047,8 @@ void show_usage(char *executable)
     //print_msg(MSG_INFO, " -u lut_file         look-up table with 4 * xRes * yRes 16-bit words that is applied before bit depth conversion\n");
 
 #if defined(MLV_USE_LZMA) || defined(MLV_USE_LJ92)
-    print_msg(MSG_INFO, " -c                  (re-)compress video and audio frames using LJ92)\n");
+    print_msg(MSG_INFO, " -c                  compress video and audio frames using LJ92. if already compressed, then decompress and recompress again.\n");
+    print_msg(MSG_INFO, "                     specify twice to pass through unmodified compressed (lossless) data to DNG which speeds up writing, but skips preprocessing\n");
     print_msg(MSG_INFO, " -d                  decompress compressed video and audio frames using LZMA or LJ92\n");
 #else
     print_msg(MSG_INFO, " -c, -d              NOT AVAILABLE: compression support was not compiled into this release\n");
@@ -1158,7 +1159,7 @@ int main (int argc, char *argv[])
     int bit_depth = 0;
     int bit_zap = 0;
     int compress_output = 0;
-    int decompress_output = 0;
+    int decompress_input = 0;
     int verbose = 0;
     int alter_fps = 0;
     char opt = ' ';
@@ -1390,7 +1391,7 @@ int main (int argc, char *argv[])
 
             case 'a':
                 average_mode = 1;
-                decompress_output = 1;
+                decompress_input = 1;
                 //no_metadata_mode = 1;
                 break;
 
@@ -1402,7 +1403,7 @@ int main (int argc, char *argv[])
                 }
                 subtract_filename = strdup(optarg);
                 subtract_mode = 1;
-                decompress_output = 1;
+                decompress_input = 1;
                 break;
 
             case 't':
@@ -1413,7 +1414,7 @@ int main (int argc, char *argv[])
                 }
                 flatfield_filename = strdup(optarg);
                 flatfield_mode = 1;
-                decompress_output = 1;
+                decompress_input = 1;
                 break;
 
             case 'X':
@@ -1454,7 +1455,7 @@ int main (int argc, char *argv[])
 
             case 'c':
 #if defined(MLV_USE_LJ92)
-                compress_output = 1;
+                compress_output++;
 #else
                 print_msg(MSG_ERROR, "Error: Compression support was not compiled into this release\n");
                 return ERR_PARAM;
@@ -1463,7 +1464,7 @@ int main (int argc, char *argv[])
 
             case 'd':
 #if defined(MLV_USE_LZMA) || defined(MLV_USE_LJ92)
-                decompress_output = 1;
+                decompress_input = 1;
 #else
                 print_msg(MSG_ERROR, "Error: Compression support was not compiled into this release\n");
                 return ERR_PARAM;
@@ -1571,9 +1572,22 @@ int main (int argc, char *argv[])
     /* force 14bpp output for DNG code */
     if(dng_output)
     {
-        print_msg(MSG_INFO, "   - Enforcing 14bpp for DNG output\n");
-        bit_depth = 14;
-        decompress_output = 1;
+        if(compress_output == 1)
+        {
+            print_msg(MSG_INFO, "   - Compress frames written into DNG (slow)\n");
+        }
+        else if(compress_output > 1)
+        {
+            print_msg(MSG_INFO, "   - Writing original compressed lossless payload into DNG\n");
+            print_msg(MSG_INFO, "   - WARNING: These compressed DNGs will not undergo any preprocessing like stripe fix etc\n");
+        }
+        else
+        {
+            print_msg(MSG_INFO, "   - Decompressing before writing DNG\n");
+            //print_msg(MSG_INFO, "   - Enforcing 14bpp for DNG output\n");
+            //bit_depth = 14;
+            decompress_input = 1;
+        }
         
         /* special case - splitting into frames doesnt require a specific output file */
         if(!output_filename)
@@ -1602,7 +1616,6 @@ int main (int argc, char *argv[])
             print_msg(MSG_INFO, "   - Convert to DNG frames\n");
 
             delta_encode_mode = 0;
-            compress_output = 0;
             mlv_output = 0;
             raw_output = 0;
         }
@@ -2157,14 +2170,16 @@ read_headers:
                     }
 
                     /* set the output compression flag */
-
                     if(compress_output)
                     {
                         file_hdr.videoClass |= MLV_VIDEO_CLASS_FLAG_LJ92;
+                        file_hdr.videoClass &= ~MLV_VIDEO_CLASS_FLAG_LZMA;
                     }
-                    else
+                    
+                    if(decompress_input)
                     {
                         file_hdr.videoClass &= ~MLV_VIDEO_CLASS_FLAG_LJ92;
+                        file_hdr.videoClass &= ~MLV_VIDEO_CLASS_FLAG_LZMA;
                     }
 
                     if(delta_encode_mode)
@@ -2423,13 +2438,13 @@ read_headers:
                     int compressed_lj92 = main_header.videoClass & MLV_VIDEO_CLASS_FLAG_LJ92;
                     int compressed = compressed_lzma || compressed_lj92;
                     int recompress = compressed && compress_output;
-                    int decompress = compressed && decompress_output;
+                    int decompress = compressed && decompress_input;
                     
                     /*
                       run decompression routine when
                         a) we shall re-compress the output (option -c for compressed input)
                         b) we shall de-compress the output (option -d)
-                        c) we have compressed input and should write DNG or RAW 
+                        c) we have compressed input and should write DNG or RAW
                     */
                     int run_decompressor = recompress || decompress || ((raw_output || dng_output) && compressed);
                     
@@ -2440,8 +2455,39 @@ read_headers:
                         c) this is not average mode (where video data will accumulate and be written as last)
                         d) this block should get extracted in case of extraction mode
                     */
-                    int write_block = mlv_output && !only_metadata_mode && !average_mode && (!extract_block || !strncasecmp(extract_block, (char*)block_hdr.blockType, 4));
+                    int write_block = mlv_output && !only_metadata_mode && !average_mode && (!extract_block || !strncasecmp(extract_block, (char*)block_hdr.blockType, 4));             
 
+                    /*
+                      compress_output can be set to 0, 1 or 2. run if set to other than zero.
+                    */
+                    int run_compressor = compress_output != 0;
+                    
+                    /*
+                      special case:
+                        when specified "-c -c" on commandline, pass through unmodified lossless data into DNG files.
+                        this will be a lot faster, but requires the user to fix striping and stuff on its own.
+                    */
+                    if(dng_output && compress_output > 1)
+                    {
+                        if(!compressed)
+                        {
+                            print_msg(MSG_ERROR, "    DNG: pass-through original lossless data not possible, source is uncompressed!\n");
+                            goto abort;
+                        }
+                        print_msg(MSG_INFO, "    DNG: pass-through original lossless data\n");
+                        run_decompressor = 0;
+                        run_compressor = 0;
+                        fix_vert_stripes = 0;
+                        fix_cold_pixels = 0;
+                        assert(!chroma_smooth_method);
+                        assert(!subtract_mode);
+                        assert(!flatfield_mode);
+                        assert(!average_mode);
+                        assert(!bit_zap);
+                        assert(!delta_encode_mode);
+                        assert(!raw_output);
+                    }
+                    
                     /*
                       the frame_size is the size of the raw video frame.
                       for uncompressed files, the VIDF contains this amount of bytes along with some padding.
@@ -2450,12 +2496,6 @@ read_headers:
                        */
                     int frame_size = ((video_xRes * video_yRes * lv_rec_footer.raw_info.bits_per_pixel + 7) / 8);
 
-                    /* 
-                      block_hdr.blockSize includes VIDF header, space (if any), actual frame, and padding (if any).
-                      calc the sizes before and after real video data payload.
-                    */
-                    int prev_frame_size = frame_size;
-                    
                     /* cache frame size as there are modes where the stored size does not match the frame's size (e.g. compressed frames) */
                     int read_size = frame_size;
                     
@@ -2467,7 +2507,7 @@ read_headers:
                     }
                     
                     /* check if there is enough memory for that frame */
-                    if(read_size > (int)frame_buffer_size)
+                    if(read_size != (int)frame_buffer_size)
                     {
                         /* no, set new size */
                         frame_buffer_size = read_size;
@@ -2521,7 +2561,7 @@ read_headers:
                         goto abort;
                     }
 
-                    lua_handle_hdr_data(lua_state, buf.blockType, "_data_read", &block_hdr, sizeof(block_hdr), frame_buffer, read_size);
+                    lua_handle_hdr_data(lua_state, buf.blockType, "_data_read", &block_hdr, sizeof(block_hdr), frame_buffer, frame_buffer_size);
 
                     if(run_decompressor)
                     {
@@ -2534,10 +2574,11 @@ read_headers:
                             int lj92_bitdepth = 0;
                             int lj92_components = 0;
 
-                            int ret = lj92_open(&handle, (uint8_t *)frame_buffer, read_size, &lj92_width, &lj92_height, &lj92_bitdepth, &lj92_components);
+                            int ret = lj92_open(&handle, (uint8_t *)frame_buffer, frame_buffer_size, &lj92_width, &lj92_height, &lj92_bitdepth, &lj92_components);
 
+                            /* this is the raw data size with 16 bit words. it's just temporary */
                             size_t out_size = lj92_width * lj92_height * sizeof(uint16_t) * lj92_components;
-
+                            
                             if(ret == LJ92_ERROR_NONE)
                             {
                                 if(verbose)
@@ -2548,11 +2589,20 @@ read_headers:
                             }
                             else
                             {
-                                print_msg(MSG_INFO, "    LJ92: Failed (%d)\n", ret);
+                                print_msg(MSG_ERROR, "    LJ92: Failed (%d)\n", ret);
                                 goto abort;
                             }
                             
-                            /* we need a temporary buffer so we dont overwrite source data */
+                            /* do a proper size check before we continue */
+                            int lj92_frame_size = ((lj92_width * lj92_height * lj92_components * lv_rec_footer.raw_info.bits_per_pixel + 7) / 8);
+                            
+                            if(lj92_frame_size != frame_size)
+                            {
+                                print_msg(MSG_ERROR, "    LJ92: decompressed image size (%d) does not match size retrieved from RAWI (%d)\n", lj92_frame_size, frame_size);
+                                goto abort;
+                            }
+                            
+                            /* we need a temporary buffer so we don't overwrite source data */
                             uint16_t *decompressed = malloc(out_size);
                             
                             ret = lj92_decode(handle, decompressed, lj92_width * lj92_height * lj92_components, 0, NULL, 0);
@@ -2565,8 +2615,12 @@ read_headers:
                             
                             if(verbose)
                             {
-                                print_msg(MSG_INFO, "    LJ92: "FMT_SIZE" -> "FMT_SIZE"  (%2.2f%% ratio)\n", read_size, frame_size, ((float)read_size * 100.0f) / (float)frame_size);
+                                print_msg(MSG_INFO, "    LJ92: "FMT_SIZE" -> "FMT_SIZE"  (%2.2f%% ratio)\n", frame_buffer_size, frame_size, ((float)frame_buffer_size * 100.0f) / (float)frame_size);
                             }
+                            
+                            frame_buffer = realloc(frame_buffer, frame_size);
+                            frame_buffer_size = frame_size;
+                            assert(frame_buffer);
                             
                             /* repack the 16 bit words containing values with max 14 bit */
                             int orig_pitch = video_xRes * lv_rec_footer.raw_info.bits_per_pixel / 8;
@@ -2592,7 +2646,7 @@ read_headers:
                         {
 #ifdef MLV_USE_LZMA
                             size_t lzma_out_size = *(uint32_t *)frame_buffer;
-                            size_t lzma_in_size = read_size - LZMA_PROPS_SIZE - 4;
+                            size_t lzma_in_size = frame_buffer_size - LZMA_PROPS_SIZE - 4;
                             size_t lzma_props_size = LZMA_PROPS_SIZE;
                             unsigned char *lzma_out = malloc(lzma_out_size);
 
@@ -2604,8 +2658,11 @@ read_headers:
 
                             if(ret == SZ_OK)
                             {
-                                read_size = lzma_out_size;
-                                memcpy(frame_buffer, lzma_out, read_size);
+                                frame_buffer = realloc(frame_buffer, lzma_out_size);
+                                frame_buffer_size = lzma_out_size;
+                                assert(frame_buffer);
+                                memcpy(frame_buffer, lzma_out, frame_buffer_size);
+                                
                                 if(verbose)
                                 {
                                     print_msg(MSG_INFO, "    LZMA: "FMT_SIZE" -> "FMT_SIZE"  (%2.2f%%)\n", lzma_in_size, lzma_out_size, ((float)lzma_out_size * 100.0f) / (float)lzma_in_size);
@@ -2961,7 +3018,7 @@ read_headers:
 
                     if(frame_selected)
                     {
-                        lua_handle_hdr_data(lua_state, buf.blockType, "_data_write", &block_hdr, sizeof(block_hdr), frame_buffer, frame_size);
+                        lua_handle_hdr_data(lua_state, buf.blockType, "_data_write", &block_hdr, sizeof(block_hdr), frame_buffer, frame_buffer_size);
 
                         if(raw_output)
                         {
@@ -2979,21 +3036,16 @@ read_headers:
                                 goto abort;
                             }
                         }
-
+                        
+                        /* before compressing do stuff necessary for DNG output */
                         if(dng_output)
                         {
                             void fix_vertical_stripes();
                             void find_and_fix_cold_pixels(int force_analysis);
                             extern struct raw_info raw_info;
 
-                            int frame_filename_len = strlen(output_filename) + 32;
-                            char *frame_filename = malloc(frame_filename_len);
-                            snprintf(frame_filename, frame_filename_len, "%s%06d.dng", output_filename, block_hdr.frameNumber);
-
-                            lua_handle_hdr_data(lua_state, buf.blockType, "_data_write_dng", &block_hdr, sizeof(block_hdr), frame_buffer, frame_size);
-
                             raw_info = lv_rec_footer.raw_info;
-                            raw_info.frame_size = frame_size;
+                            raw_info.frame_size = frame_buffer_size;
                             raw_info.buffer = frame_buffer;
                             
                             int old_depth = lv_rec_footer.raw_info.bits_per_pixel;
@@ -3012,7 +3064,6 @@ read_headers:
                                 {
                                     if(delta)
                                     {
-                                        
                                         if(delta > 0)
                                         {
                                             raw_info.black_level >>= delta;
@@ -3100,6 +3151,114 @@ read_headers:
 
                             /* this is internal again */
                             chroma_smooth(chroma_smooth_method, &raw_info);
+                        }                        
+
+                        if(run_compressor)
+                        {
+#ifdef MLV_USE_LJ92
+                            uint8_t *compressed = NULL;
+                            int compressed_size = 0;
+                            
+                            /* split the single channels into image tiles */
+                            int compress_buffer_size = video_xRes * video_yRes * sizeof(uint16_t);
+                            uint16_t *compress_buffer = malloc(compress_buffer_size);
+
+                            /* repack the 16 bit words containing values with max 14 bit */
+                            int orig_pitch = video_xRes * lv_rec_footer.raw_info.bits_per_pixel / 8;
+
+                            for(int y = 0; y < video_yRes; y++)
+                            {
+                                void *src_line = &frame_buffer[y * orig_pitch];
+                                uint16_t *dst_line = &compress_buffer[y * video_xRes];
+
+                                for(int x = 0; x < video_xRes; x++)
+                                {
+                                    dst_line[x] = bitextract(src_line, x, lv_rec_footer.raw_info.bits_per_pixel);
+                                }
+                            }
+                            
+                            /* trying to compress with the same properties as the camera compresses, but..
+                               a small problem here, the compress part of the lj92 lib currently used seems not to allow multiple components.
+                               i.e. a line of RGRGRGRG... would be one component and the next line of GBGBGBGB the second.
+                               unfortunately the image would have to get compressed a bit less efficient as a single-component image.
+                               
+                               a1ex had a good workaround that implies setting xres*2 and yres/2 which would help the compressor.
+                               
+                               canon compression:
+                                 1872x624x2 14 bpp
+                                 2348480 -> 4088448  (57.44% ratio)
+                                 
+                               single component compression: 
+                                 1872x1248x1 14 bpp
+                                 3515085 -> 4088448  (85.98% ratio)
+
+                               single component "x2" compression:
+                                 3744x624x1 14 bpp 
+                                 2353223 -> 4088448  (57.56% ratio)
+
+                               so this method gets quite close to canon's in-camera compression.
+                               while the resolution outputs differ, the real image data is the same.
+                               
+                               downside: we cannot double check if the lj92-reported resolution matches the RAWI information.
+                            */
+                            int lj92_components = 1;
+                            int lj92_width = video_xRes * 2;
+                            int lj92_height = video_yRes / 2;
+                            int lj92_bitdepth = old_depth;
+                            
+                            if(verbose)
+                            {
+                                print_msg(MSG_INFO, "    LJ92: Compressing\n");
+                                print_msg(MSG_INFO, "    LJ92: %dx%dx%d %d bpp (%d bytes buffer)\n", lj92_width, lj92_height, lj92_components, lj92_bitdepth, compress_buffer_size);
+                            }
+                            
+                            int ret = lj92_encode(compress_buffer, lj92_width, lj92_height, lj92_bitdepth, 2, lj92_width * lj92_height, 0, NULL, 0, &compressed, &compressed_size);
+                            free(compress_buffer);
+
+                            if(ret == LJ92_ERROR_NONE)
+                            {
+                                if(verbose)
+                                {
+                                    print_msg(MSG_INFO, "    LJ92: "FMT_SIZE" -> "FMT_SIZE"  (%2.2f%% ratio)\n", frame_size, compressed_size, ((float)compressed_size * 100.0f) / (float)frame_size);
+                                }
+                                
+                                /* set new compressed size and copy buffers */
+                                frame_buffer = realloc(frame_buffer, compressed_size);
+                                assert(frame_buffer);
+                                memcpy(frame_buffer, compressed, compressed_size);
+                                frame_buffer_size = compressed_size;
+                            }
+                            else
+                            {
+                                print_msg(MSG_INFO, "    LJ92: Failed (%d)\n", ret);
+                                goto abort;
+                            }
+                            
+                            free(compressed);
+#else
+                            print_msg(MSG_INFO, "    no compression type compiled into this release, aborting.\n");
+                            goto abort;
+#endif
+                        }
+
+                        if(frame_buffer_size != (uint32_t)frame_size && !verbose)
+                        {
+                            print_msg(MSG_INFO, "  saving: "FMT_SIZE" -> "FMT_SIZE"  (%2.2f%% ratio)\n", frame_size, frame_buffer_size, ((float)frame_buffer_size * 100.0f) / (float)frame_size);
+                        }
+
+                        /* now finally write the DNG file */
+                        if(dng_output)
+                        {
+                            extern struct raw_info raw_info;
+
+                            raw_info.frame_size = frame_buffer_size;
+                            raw_info.buffer = frame_buffer;
+                            
+                            int frame_filename_len = strlen(output_filename) + 32;
+                            char *frame_filename = malloc(frame_filename_len);
+                            snprintf(frame_filename, frame_filename_len, "%s%06d.dng", output_filename, block_hdr.frameNumber);
+
+                            lua_handle_hdr_data(lua_state, buf.blockType, "_data_write_dng", &block_hdr, sizeof(block_hdr), frame_buffer, frame_buffer_size);
 
                             /* set MLV metadata into DNG tags */
                             dng_set_framerate_rational(main_header.sourceFpsNom, main_header.sourceFpsDenom);
@@ -3171,101 +3330,10 @@ read_headers:
 
                         if(write_block)
                         {
-                            if(compress_output)
-                            {
-#ifdef MLV_USE_LJ92
-                                uint8_t *compressed = NULL;
-                                int compressed_size = 0;
-                                
-                                /* split the single channels into image tiles */
-                                int compress_buffer_size = video_xRes * video_yRes * sizeof(uint16_t);
-                                uint16_t *compress_buffer = malloc(compress_buffer_size);
-
-                                /* repack the 16 bit words containing values with max 14 bit */
-                                int orig_pitch = video_xRes * lv_rec_footer.raw_info.bits_per_pixel / 8;
-
-                                for(int y = 0; y < video_yRes; y++)
-                                {
-                                    void *src_line = &frame_buffer[y * orig_pitch];
-                                    uint16_t *dst_line = &compress_buffer[y * video_xRes];
-
-                                    for(int x = 0; x < video_xRes; x++)
-                                    {
-                                        dst_line[x] = bitextract(src_line, x, lv_rec_footer.raw_info.bits_per_pixel);
-                                    }
-                                }
-                                
-                                /* trying to compress with the same properties as the camera compresses, but..
-                                   a small problem here, the compress part of the lj92 lib currently used seems not to allow multiple components.
-                                   i.e. a line of RGRGRGRG... would be one component and the next line of GBGBGBGB the second.
-                                   unfortunately the image would have to get compressed a bit less efficient as a single-component image.
-                                   
-                                   a1ex had a good workaround that implies setting xres*2 and yres/2 which would help the compressor.
-                                   
-                                   canon compression:
-                                     1872x624x2 14 bpp
-                                     2348480 -> 4088448  (57.44% ratio)
-                                     
-                                   single component compression: 
-                                     1872x1248x1 14 bpp
-                                     3515085 -> 4088448  (85.98% ratio)
-
-                                   single component "x2" compression:
-                                     3744x624x1 14 bpp 
-                                     2353223 -> 4088448  (57.56% ratio)
-
-                                   so this method gets quite close to canon's in-camera compression.
-                                   while the resolution outputs differ, the real image data is the same.
-                                   
-                                   downside: we cannot double check if the lj92-reported resolution matches the RAWI information.
-                                */
-                                int lj92_components = 1;
-                                int lj92_width = video_xRes * 2;
-                                int lj92_height = video_yRes / 2;
-                                int lj92_bitdepth = old_depth;
-                                
-                                if(verbose)
-                                {
-                                    print_msg(MSG_INFO, "    LJ92: Compressing\n");
-                                    print_msg(MSG_INFO, "    LJ92: %dx%dx%d %d bpp (%d bytes buffer)\n", lj92_width, lj92_height, lj92_components, lj92_bitdepth, compress_buffer_size);
-                                }
-                                
-                                int ret = lj92_encode(compress_buffer, lj92_width, lj92_height, lj92_bitdepth, 2, lj92_width * lj92_height, 0, NULL, 0, &compressed, &compressed_size);
-                                free(compress_buffer);
-
-                                if(ret == LJ92_ERROR_NONE)
-                                {
-                                    if(verbose)
-                                    {
-                                        print_msg(MSG_INFO, "    LJ92: "FMT_SIZE" -> "FMT_SIZE"  (%2.2f%% ratio)\n", frame_size, compressed_size, ((float)compressed_size * 100.0f) / (float)frame_size);
-                                    }
-                                    
-                                    /* set new compressed size and copy buffers */
-                                    frame_size = compressed_size;
-                                    memcpy(frame_buffer, compressed, compressed_size);
-                                }
-                                else
-                                {
-                                    print_msg(MSG_INFO, "    LJ92: Failed (%d)\n", ret);
-                                    goto abort;
-                                }
-                                
-                                free(compressed);
-#else
-                                print_msg(MSG_INFO, "    no compression type compiled into this release, aborting.\n");
-                                goto abort;
-#endif
-                            }
-
-                            if(frame_size != prev_frame_size && !verbose)
-                            {
-                                print_msg(MSG_INFO, "  saving: "FMT_SIZE" -> "FMT_SIZE"  (%2.2f%% ratio)\n", prev_frame_size, frame_size, ((float)frame_size * 100.0f) / (float)prev_frame_size);
-                            }
-
-                            lua_handle_hdr_data(lua_state, buf.blockType, "_data_write_mlv", &block_hdr, sizeof(block_hdr), frame_buffer, frame_size);
+                            lua_handle_hdr_data(lua_state, buf.blockType, "_data_write_mlv", &block_hdr, sizeof(block_hdr), frame_buffer, frame_buffer_size);
 
                             /* delete free space and correct header size if needed */
-                            block_hdr.blockSize = sizeof(mlv_vidf_hdr_t) + frame_size;
+                            block_hdr.blockSize = sizeof(mlv_vidf_hdr_t) + frame_buffer_size;
                             block_hdr.frameSpace = 0;
                             block_hdr.frameNumber -= frame_start;
 
@@ -3274,7 +3342,7 @@ read_headers:
                                 print_msg(MSG_ERROR, "VIDF: Failed writing into .MLV file\n");
                                 goto abort;
                             }
-                            if(fwrite(frame_buffer, frame_size, 1, out_file) != 1)
+                            if(fwrite(frame_buffer, frame_buffer_size, 1, out_file) != 1)
                             {
                                 print_msg(MSG_ERROR, "VIDF: Failed writing into .MLV file\n");
                                 goto abort;
@@ -4184,7 +4252,7 @@ abort:
             main_header.videoClass |= MLV_VIDEO_CLASS_FLAG_LJ92;
             main_header.videoClass &= ~MLV_VIDEO_CLASS_FLAG_LZMA;
         }
-        if(decompress_output)
+        if(decompress_input)
         {
             main_header.videoClass &= ~MLV_VIDEO_CLASS_FLAG_LJ92;
             main_header.videoClass &= ~MLV_VIDEO_CLASS_FLAG_LZMA;
@@ -4198,7 +4266,7 @@ abort:
         {
             main_header.videoClass &= ~MLV_VIDEO_CLASS_FLAG_DELTA;
         }
-
+        
         fseek(out_file, 0L, SEEK_SET);
         
         if(fwrite(&main_header, main_header.blockSize, 1, out_file) != 1)
