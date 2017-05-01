@@ -1138,7 +1138,7 @@ menu_update_placeholder(struct menu * menu, struct menu_entry * new_entry)
     
     for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
     {
-        if (entry != new_entry && MENU_IS_PLACEHOLDER(entry) && streq(entry->name, new_entry->name))
+        if (entry != new_entry && MENU_IS_PLACEHOLDER(entry) && entry->name && streq(entry->name, new_entry->name))
         { /* found, let's try to swap the entries */
             
             placeholder_copy(entry, new_entry);
@@ -2705,7 +2705,7 @@ skip_name:
                 help2_buf[0] = 0;
                 for (int i = entry->min; i <= entry->max; i++)
                 {
-                    int len = bmp_string_width(FONT_MED, help2);
+                    int len = bmp_string_width(FONT_MED, help2_buf);
                     if (len > 700) break;
                     STR_APPEND(help2_buf, "%s%s", pickbox_string(entry, i), i < entry->max ? " / " : ".");
                 }
@@ -5370,6 +5370,7 @@ int is_menu_entry_selected(char* menu_name, char* entry_name)
     {
         struct menu_entry * entry = get_selected_entry(menu);
         if (!entry) return 0;
+        if (!entry->name) return 0;
         return streq(entry->name, entry_name);
     }
     return 0;
@@ -5445,7 +5446,7 @@ void select_menu_by_name(char* name, const char* entry_name)
                 struct menu_entry * selected_entry = 0;
                 for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
                 {
-                    if (streq(entry->name, entry_name))
+                    if (entry->name && streq(entry->name, entry_name))
                     {
                         selected_entry = entry;
                         break;
@@ -5494,7 +5495,7 @@ static struct menu_entry * entry_find_by_name(const char* name, const char* entr
                 if (MENU_IS_PLACEHOLDER(entry))
                     continue;
 
-                if (streq(entry->name, entry_name))
+                if (entry->name && streq(entry->name, entry_name))
                 {
                     ans = entry;
                     count++;
