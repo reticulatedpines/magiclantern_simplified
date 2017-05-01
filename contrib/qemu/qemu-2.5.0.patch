@@ -1,5 +1,5 @@
 diff --git a/cpu-exec.c b/cpu-exec.c
-index c88d0ff..f0c4297 100644
+index c88d0ff..0c0b3ef 100644
 --- a/cpu-exec.c
 +++ b/cpu-exec.c
 @@ -31,6 +31,7 @@
@@ -27,7 +27,7 @@ index c88d0ff..f0c4297 100644
  /* main execution loop */
  
  int cpu_exec(CPUState *cpu)
-@@ -500,8 +511,120 @@ int cpu_exec(CPUState *cpu)
+@@ -500,8 +511,23 @@ int cpu_exec(CPUState *cpu)
                      tcg_ctx.tb_ctx.tb_invalidated_flag = 0;
                  }
                  if (qemu_loglevel_mask(CPU_LOG_EXEC)) {
@@ -48,103 +48,6 @@ index c88d0ff..f0c4297 100644
 +                }
 +                if (tb_exec_cb) {
 +                    tb_exec_cb(tb_exec_opaque, cpu, tb);
-+                }
-+                if (qemu_loglevel_mask(EOS_LOG_CALLS))
-+                {
-+#if defined(TARGET_ARM)
-+                    ARMCPU *arm_cpu = ARM_CPU(cpu);
-+                    CPUARMState *env = &arm_cpu->env;
-+                    
-+                    static FILE * idc = NULL;
-+                    static int stderr_dup = 0;
-+                    static uint32_t prev_pc = 0;
-+                    static uint32_t prev_lr = 0;
-+                    static uint32_t prev_sp = 0;
-+                    static uint32_t prev_size = 0;
-+                    if (!idc)
-+                    {
-+                        char idc_path[100];
-+
-+                        snprintf(idc_path, sizeof(idc_path), "%s.idc", MACHINE_GET_CLASS(current_machine)->name);
-+                        fprintf(stderr, "Exporting called functions to %s.\n", idc_path);
-+                        idc = fopen(idc_path, "w");
-+                        assert(idc);
-+                        
-+                        /* QEMU is usually closed with CTRL-C, so call this when finished */
-+                        void close_idc(void)
-+                        {
-+                            fprintf(idc, "}\n");
-+                            fclose(idc);
-+                        }
-+                        atexit(close_idc);
-+
-+                        fprintf(idc, "/* List of functions called during execution. */\n");
-+                        fprintf(idc, "/* Generated from QEMU. */\n\n");
-+                        fprintf(idc, "#include <idc.idc>\n\n");
-+                        fprintf(idc, "static main() {\n");
-+
-+                        stderr_dup = dup(fileno(stderr));
-+                    }
-+                    uint32_t pc = env->regs[15];
-+                    uint32_t lr = env->regs[14];
-+                    uint32_t sp = env->regs[13];
-+                    assert(pc == tb->pc);
-+
-+                    if (0)
-+                    {
-+                        fprintf(stderr, "   * PC:%x->%x LR:%x->%x SP:%x->%x */\n",
-+                            prev_pc, pc, prev_lr, lr, prev_sp, sp
-+                        );
-+                    }
-+                    
-+                    /* bit array for every possible PC & ~3 */
-+                    static uint32_t saved_pcs[(1 << 30) / 32] = {0};
-+                    
-+                    /* when a function call is made:
-+                     * - LR is updated with the return address
-+                     * - stack is decremented
-+                     * - note: the above might also happen during a context switch,
-+                     *   so use a heuristic to filter them out
-+                     */
-+                    if (lr != prev_lr && sp <= prev_sp &&
-+                        abs((int)sp - (int)prev_sp) < 1024)
-+                    {
-+                        /* log each called function to IDC, only once */
-+                        int pca = pc >> 2;
-+                        if (!(saved_pcs[pca/32] & (1 << (pca%32))))
-+                        {
-+                            saved_pcs[pca/32] |= (1 << pca%32);
-+                            
-+                            /* log_target_disas writes to stderr; redirect it to our output file */
-+                            /* todo: any other threads that might output to stderr? */
-+                            assert(stderr_dup);
-+                            fflush(stderr); fflush(idc);
-+                            dup2(fileno(idc), fileno(stderr));
-+                            fprintf(stderr, "  /* from "); log_target_disas(cpu, prev_pc, prev_size, 0);
-+                            fprintf(stderr, "   *   -> "); log_target_disas(cpu, tb->pc, tb->size, 0);
-+                            fprintf(stderr, "   * PC:%x->%x LR:%x->%x SP:%x->%x */\n",
-+                                prev_pc, pc, prev_lr, lr, prev_sp, sp
-+                            );
-+                            fprintf(stderr, "  SetReg(0x%X, \"T\", %d);\n", pc, env->thumb);
-+                            fprintf(stderr, "  MakeCode(0x%X);\n", pc);
-+                            fprintf(stderr, "  MakeFunction(0x%X, BADADDR);\n", pc);
-+                            fprintf(stderr, "\n");
-+                            dup2(stderr_dup, fileno(stderr));
-+                        }
-+
-+                        /* log each call to console */
-+                        fprintf(stderr, "%08X: call 0x%X (%s)\n", prev_pc, pc, env->thumb ? "Thumb" : "ARM");
-+                    }
-+                    
-+                    if (pc != prev_pc && pc == (prev_lr & ~1))
-+                    {
-+                        fprintf(stderr, "%08X: return to 0x%X (%s)\n", prev_pc, pc, env->thumb ? "Thumb" : "ARM");
-+                    }
-+                    prev_pc = pc;
-+                    prev_lr = lr;
-+                    prev_sp = sp;
-+                    prev_size = tb->size;
-+#endif
                  }
                  /* see if we can patch the calling TB. When the TB
                     spans two pages, we cannot safely do a direct

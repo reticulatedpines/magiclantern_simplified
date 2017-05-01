@@ -1313,6 +1313,9 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
     
     qemu_add_kbd_event_handler(eos_key_event, s);
 
+    /* start logging (see the dbi subdir) */
+    eos_logging_init(s);
+
     return s;
 }
 
