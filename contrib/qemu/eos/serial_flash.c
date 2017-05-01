@@ -299,7 +299,7 @@ static void sfio_do_transfer( EOSState *s)
             uint8_t byte = (this << 4) | (next >> 4);
 
             /* not exactly the most efficient way, but fast enough for our purpose */
-            cpu_physical_memory_write(block_dst + j, &byte, 1);
+            eos_mem_write(s, block_dst + j, &byte, 1);
 
             if (i == 0 && j < 16*4)
             {
@@ -767,7 +767,7 @@ unsigned int eos_handle_spidma ( unsigned int parm, EOSState *s, unsigned int ad
                     {
                         void * source = &s->sf->data[s->sf->data_pointer];
                         fprintf(stderr, "[EEPR-DMA]  [0x%X] -> [0x%X] (0x%X bytes)\n", s->sf->data_pointer, dma_addr, dma_count);
-                        cpu_physical_memory_write(dma_addr, source, dma_count);
+                        eos_mem_write(s, dma_addr, source, dma_count);
                         dma_count = 0;
                     }
                 }
@@ -777,12 +777,12 @@ unsigned int eos_handle_spidma ( unsigned int parm, EOSState *s, unsigned int ad
         case 0x38:
             msg = "Transfer start?";
 
-            //cpu_physical_memory_write(dma_addr, &sf_data[sf_address], dma_count);
+            //eos_mem_write(s, dma_addr, &sf_data[sf_address], dma_count);
             if (dma_count > 0)
             {
                 void * source = &s->sf->data[s->sf->data_pointer];
                 fprintf(stderr, "[EEPR-DMA]! [0x%X] -> [0x%X] (0x%X bytes)\n", s->sf->data_pointer, dma_addr, dma_count);
-                cpu_physical_memory_write(dma_addr, source, dma_count);
+                eos_mem_write(s, dma_addr, source, dma_count);
                 dma_count = 0;
             }
             //sdio_write_data(&s->sd);

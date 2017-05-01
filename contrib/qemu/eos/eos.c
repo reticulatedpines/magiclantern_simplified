@@ -313,12 +313,10 @@ void eos_mem_read(EOSState *s, hwaddr addr, void * buf, int size)
 
     if (qemu_loglevel_mask(EOS_LOG_MEM_R))
     {
-        /* only aligned accesses implemented */
-        assert((size & 3) == 0);
-
-        for (int i = 0; i < size; i += 4)
+        /* fixme: can be optimized */
+        for (int i = 0; i < size; i++)
         {
-            eos_log_mem(s, addr + i, *(uint32_t*)(buf + i), 4, NOCHK_LOG);
+            eos_log_mem(s, addr + i, *(uint8_t*)(buf + i), 1, NOCHK_LOG);
         }
     }
 }
@@ -327,11 +325,10 @@ void eos_mem_write(EOSState *s, hwaddr addr, void * buf, int size)
 {
     if (qemu_loglevel_mask(EOS_LOG_MEM_W))
     {
-        /* only aligned accesses implemented */
-        assert((size & 3) == 0);
-        for (int i = 0; i < size; i += 4)
+        /* fixme: can be optimized */
+        for (int i = 0; i < size; i ++)
         {
-            eos_log_mem(s, addr + i, *(uint32_t*)(buf + i), 4, 1 | NOCHK_LOG);
+            eos_log_mem(s, addr + i, *(uint8_t*)(buf + i), 1, 1 | NOCHK_LOG);
         }
     }
 
