@@ -11,15 +11,15 @@
 #include "../model_list.h"
 #include "memcheck.h"
 
-/* hardcoded; find it with:
- * readelf magiclantern -a | grep " memcpy$" */
-static const int ml_memcpy = 0x969B0;
-static const int ml_memcpy_size = 0x96B50 - 0x969EC;
+/* readelf magiclantern -a | grep " memcpy$" */
+/* memccpy is next - useful to find out the size */
+static uint32_t ml_memcpy = 0;
+static uint32_t ml_memcpy_size = 0;
 
 /* our own read-after-free, in __mem_free */
 /* if wrong: lots of warning messages containing f12eeeed during ML module loading */
 /* not needed if MEMCHECK_CHECK is undefined */
-static const int ml_double_free_check = 0x5001c;
+static const int ml_double_free_check = 0;
 
 struct memcheck_stubs
 {
@@ -386,11 +386,39 @@ void eos_memcheck_log_exec(EOSState *s, uint32_t pc)
     }
 }
 
+static void getenv_hex(const char * env_name, uint32_t * var, uint32_t default_value)
+{
+    char * env = getenv(env_name);
+
+    if (env)
+    {
+        *var = strtoul(env, NULL, 16);
+    }
+    else
+    {
+        *var = default_value;
+    }
+}
+
 void eos_memcheck_init(EOSState *s)
 {
     printf("Marking all memory as uninitialized...\n");
     mem_set_status(0, s->model->ram_size, MS_NOINIT);
     /* fixme: also check both TCMs */
+
+    uint32_t ml_memccpy;
+    getenv_hex("QEMU_EOS_ML_MEMCPY", &ml_memcpy, 0);
+    getenv_hex("QEMU_EOS_ML_MEMCCPY", &ml_memccpy, 0);
+    ml_memcpy_size = ml_memccpy - ml_memcpy - 4;
+
+    if (ml_memcpy)
+    {
+        fprintf(stderr, "ML memcpy: %x - %x\n", ml_memcpy, ml_memcpy + ml_memcpy_size);
+    }
+    else
+    {
+        fprintf(stderr, "FIXME: ML memcpy stub unknown (set QEMU_EOS_ML_MEMCC?PY).\n");
+    }
 
     /* todo: identify stubs in a way that does not require hardcoding? */
     if (strcmp(s->model->name, "500D") == 0)

@@ -72,6 +72,9 @@ for CAM_DIR in [[:upper:]]*/ [[:digit:]]*/; do
             mcopy -o -s -i $MCF ../magic-lantern/platform/qemu-tmp/ML/ ::
             rm -rf qemu-tmp/
         fi
+
+        # export any ML symbols we might want to use in QEMU
+        ./export_ml_syms.sh $CAM_FW
     fi
 
     # setup QEMU command line
