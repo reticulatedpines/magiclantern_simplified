@@ -250,6 +250,7 @@ for CAM in 500D; do
     rm -f tests/$CAM/$TST*.png
     rm -f tests/$CAM/$TST.log
 
+    mkdir -p tests/test-progs/
     wget -q -O tests/test-progs/ml-500D.zip https://builds.magiclantern.fm/jenkins/job/500D.111/431/artifact/platform/500D.111/magiclantern-Nightly.2017Feb12.500D111.zip
     rm -rf tests/test-progs/ml-500D/
     unzip -q -d tests/test-progs/ml-500D/ tests/test-progs/ml-500D.zip
@@ -477,7 +478,7 @@ mkdir -p $TMP
 
 if [ ! -f $ROM_DUMPER_BIN ]; then
     mkdir -p `dirname $ROM_DUMPER_BIN`
-    wget -O $ROM_DUMPER_BIN http://a1ex.magiclantern.fm/debug/portable-rom-dumper/qemu/autoexec.bin
+    wget -q -O $ROM_DUMPER_BIN http://a1ex.magiclantern.fm/debug/portable-rom-dumper/qemu/autoexec.bin
 fi
 
 # we don't know whether the camera will use SD or CF, so prepare both
