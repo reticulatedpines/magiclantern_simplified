@@ -945,16 +945,6 @@ void writeHeader(lje* self) {
     int w = self->encodedWritten;
     uint8_t* e = self->encoded;
     e[w++] = 0xff; e[w++] = 0xd8; //SOI
-    e[w++] = 0xff; e[w++] = 0xc3; //SOF3
-        // Write SOF
-        e[w++] = 0x0; e[w++] = 11; //Lf, frame header length
-        e[w++] = self->bitdepth;
-        e[w++] = self->height>>8; e[w++] = self->height&0xFF;
-        e[w++] = self->width>>8; e[w++] = self->width&0xFF;
-        e[w++] = 1; // Components
-        e[w++] = 0; // Component ID
-        e[w++] = 0x11; // Component X/Y
-        e[w++] = 0; // Unused (Quantisation)
     e[w++] = 0xff; e[w++] = 0xc4; //HUFF
     // Write HUFF
         int count = 0;
@@ -969,6 +959,16 @@ void writeHeader(lje* self) {
         for (int i=0;i<count;i++) {
             e[w++] = self->huffval[i];
         }
+    e[w++] = 0xff; e[w++] = 0xc3; //SOF3
+        // Write SOF
+        e[w++] = 0x0; e[w++] = 11; //Lf, frame header length
+        e[w++] = self->bitdepth;
+        e[w++] = self->height>>8; e[w++] = self->height&0xFF;
+        e[w++] = self->width>>8; e[w++] = self->width&0xFF;
+        e[w++] = 1; // Components
+        e[w++] = 0; // Component ID
+        e[w++] = 0x11; // Component X/Y
+        e[w++] = 0; // Unused (Quantisation)
     e[w++] = 0xff; e[w++] = 0xda; //SCAN
     // Write SCAN
         e[w++] = 0x0; e[w++] = 8; //Ls, scan header length
