@@ -383,7 +383,4 @@ ROMState *eos_rom_register(hwaddr base, DeviceState *qdev, const char *name, hwa
 void eos_mem_read(EOSState *s, hwaddr addr, void * buf, int size);
 void eos_mem_write(EOSState *s, hwaddr addr, void * buf, int size);
 
-/* from dbi/ */
-void eos_logging_init(EOSState *s);
-
 #endif /* HW_EOS_H */
