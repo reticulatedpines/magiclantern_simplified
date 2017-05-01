@@ -4182,10 +4182,12 @@ abort:
         if(compress_output)
         {
             main_header.videoClass |= MLV_VIDEO_CLASS_FLAG_LJ92;
+            main_header.videoClass &= ~MLV_VIDEO_CLASS_FLAG_LZMA;
         }
-        else
+        if(decompress_output)
         {
             main_header.videoClass &= ~MLV_VIDEO_CLASS_FLAG_LJ92;
+            main_header.videoClass &= ~MLV_VIDEO_CLASS_FLAG_LZMA;
         }
 
         if(delta_encode_mode)
