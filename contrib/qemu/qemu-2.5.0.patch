@@ -63,6 +63,20 @@ index 2195b60..e3e2c14 100644
  
  obj-y += armv7m.o exynos4210.o pxa2xx.o pxa2xx_gpio.o pxa2xx_pic.o
  obj-$(CONFIG_DIGIC) += digic.o
+diff --git a/hw/ide/qdev.c b/hw/ide/qdev.c
+index 788b361..6aaeced 100644
+--- a/hw/ide/qdev.c
++++ b/hw/ide/qdev.c
+@@ -245,7 +245,8 @@ static void ide_dev_instance_init(Object *obj)
+ 
+ static int ide_hd_initfn(IDEDevice *dev)
+ {
+-    return ide_dev_initfn(dev, IDE_HD);
++    /* fixme: forcing IDE type to IDE_CFATA (was ID_HD) */
++    return ide_dev_initfn(dev, IDE_CFATA);
+ }
+ 
+ static int ide_cd_initfn(IDEDevice *dev)
 diff --git a/include/exec/exec-all.h b/include/exec/exec-all.h
 index d900b0d..1ad5332 100644
 --- a/include/exec/exec-all.h

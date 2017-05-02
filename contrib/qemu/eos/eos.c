@@ -4264,6 +4264,13 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
 
 unsigned int eos_handle_sddma ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
+    if (strcmp(s->model->name, "5D2") == 0)
+    {
+        /* other models use SDDMA on the same address */
+        /* todo: make it generic? */
+        return eos_handle_cfdma(parm, s, address, type, value);
+    }
+    
     unsigned int ret = 0;
     const char * msg = 0;
 
@@ -4322,6 +4329,7 @@ unsigned int eos_handle_sddma ( unsigned int parm, EOSState *s, unsigned int add
 
 #define CFD_EPRINTF(fmt, ...) EPRINTF("[CFDMA] ", EOS_LOG_SDCF, fmt, ## __VA_ARGS__)
 #define CFD_DPRINTF(fmt, ...) DPRINTF("[CFDMA] ", EOS_LOG_SDCF, fmt, ## __VA_ARGS__)
+#define CFD_VPRINTF(fmt, ...) VPRINTF("[CFDMA] ", EOS_LOG_SDCF, fmt, ## __VA_ARGS__)
 #define CFA_EPRINTF(fmt, ...) EPRINTF("[CFATA] ", EOS_LOG_SDCF, fmt, ## __VA_ARGS__)
 #define CFA_DPRINTF(fmt, ...) DPRINTF("[CFATA] ", EOS_LOG_SDCF, fmt, ## __VA_ARGS__)
 
@@ -4340,7 +4348,7 @@ static int cfdma_read_data(EOSState *s, CFState *cf)
         uint32_t value = ide_data_readl(&cf->bus, 0);
         uint32_t addr = cf->dma_addr + cf->dma_read; 
         eos_mem_write(s, addr, &value, 4);
-        CFD_DPRINTF("%08x: %08x\n", addr, value);
+        CFD_VPRINTF("%08x: %08x\n", addr, value);
         cf->dma_read += 4;
     }
 
@@ -4364,6 +4372,8 @@ static int cfdma_write_data(EOSState *s, CFState *cf)
 
 static void cfdma_trigger_interrupt(EOSState *s)
 {
+    CFD_DPRINTF("trigger interrupt? %x\n", s->cf.interrupt_enabled);
+
     if (s->cf.interrupt_enabled & 0x2000001)
     {
         assert(s->model->cf_driver_interrupt);
