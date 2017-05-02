@@ -3858,9 +3858,8 @@ unsigned int eos_handle_digic_timer ( unsigned int parm, EOSState *s, unsigned i
 }
 
 /* based on pl181_send_command from hw/sd/pl181.c */
-#define EPRINTF(fmt, ...) do { fprintf(stderr, "[SDIO] " fmt , ## __VA_ARGS__); } while (0)
-#define DPRINTF(fmt, ...) do { } while (0)
-//#define DPRINTF EPRINTF
+#define SD_EPRINTF(fmt, ...) EPRINTF("[SDIO] ", EOS_LOG_SDCF, fmt, ## __VA_ARGS__)
+#define SD_DPRINTF(fmt, ...) DPRINTF("[SDIO] ", EOS_LOG_SDCF, fmt, ## __VA_ARGS__)
 #define SDIO_STATUS_OK              0x1
 #define SDIO_STATUS_ERROR           0x2
 #define SDIO_STATUS_DATA_AVAILABLE  0x200000
@@ -3879,7 +3878,7 @@ static void sdio_send_command(SDIOState *sd)
 
     request.cmd = cmd;
     request.arg = param;
-    DPRINTF("Command %d %08x\n", request.cmd, request.arg);
+    SD_DPRINTF("Command %d %08x\n", request.cmd, request.arg);
     rlen = sd_do_command(sd->card, &request, response+4);
     if (rlen < 0)
         goto error;
@@ -3903,17 +3902,17 @@ static void sdio_send_command(SDIOState *sd)
             sd->response[2] = RWORD(8);
             sd->response[3] = RWORD(4);
         }
-        DPRINTF("Response received\n");
+        SD_DPRINTF("Response received\n");
         sd->status |= SDIO_STATUS_OK;
 #undef RWORD
     } else {
-        DPRINTF("Command sent\n");
+        SD_DPRINTF("Command sent\n");
         sd->status |= SDIO_STATUS_OK;
     }
     return;
 
 error:
-    EPRINTF("Error\n");
+    SD_EPRINTF("Error\n");
     sd->status |= SDIO_STATUS_ERROR;
 }
 
@@ -3926,19 +3925,19 @@ static void sdio_read_data(EOSState *s)
 
     if (sd->status & SDIO_STATUS_DATA_AVAILABLE)
     {
-        EPRINTF("ERROR: read already done (%x)\n", sd->status);
+        SD_EPRINTF("ERROR: read already done (%x)\n", sd->status);
         return;
     }
     
     if (!sd_data_ready(sd->card))
     {
-        EPRINTF("ERROR: no data available\n");
+        SD_EPRINTF("ERROR: no data available\n");
         return;
     }
 
     if (!sd->dma_enabled)
     {
-        EPRINTF("Reading %dx%d bytes without DMA (not implemented)\n", sd->transfer_count, sd->read_block_size);
+        SD_EPRINTF("Reading %dx%d bytes without DMA (not implemented)\n", sd->transfer_count, sd->read_block_size);
         for (i = 0; i < sd->transfer_count * sd->read_block_size; i++)
         {
             /* dummy read, ignore this data */
@@ -3948,7 +3947,7 @@ static void sdio_read_data(EOSState *s)
         return;
     }
 
-    DPRINTF("Reading %d bytes to %x\n", sd->dma_count, sd->dma_addr);
+    SD_DPRINTF("Reading %d bytes to %x\n", sd->dma_count, sd->dma_addr);
 
     for (i = 0; i < sd->dma_count/4; i++)
     {
@@ -3973,18 +3972,18 @@ static void sdio_write_data(EOSState *s)
 
     if (sd->status & SDIO_STATUS_DATA_AVAILABLE)
     {
-        EPRINTF("ERROR: write already done (%x)\n", sd->status);
+        SD_EPRINTF("ERROR: write already done (%x)\n", sd->status);
         return;
     }
 
     if (!sd->dma_enabled)
     {
-        EPRINTF("ERROR!!! Writing %dx%d bytes without DMA (not implemented)\n", sd->transfer_count, sd->read_block_size);
-        EPRINTF("Cannot continue without risking corruption on the SD card image.\n");
+        SD_EPRINTF("ERROR!!! Writing %dx%d bytes without DMA (not implemented)\n", sd->transfer_count, sd->read_block_size);
+        SD_EPRINTF("Cannot continue without risking corruption on the SD card image.\n");
         exit(1);
     }
 
-    DPRINTF("Writing %d bytes from %x\n", sd->dma_count, sd->dma_addr);
+    SD_DPRINTF("Writing %d bytes from %x\n", sd->dma_count, sd->dma_addr);
 
     for (i = 0; i < sd->dma_count/4; i++)
     {
@@ -4012,7 +4011,7 @@ static void sdio_trigger_interrupt(EOSState *s)
         && !(sd->status & SDIO_STATUS_DATA_AVAILABLE))
     {
         /* if the current command does a data transfer, don't trigger until complete */
-        DPRINTF("Warning: data transfer not yet complete\n");
+        SD_DPRINTF("Warning: data transfer not yet complete\n");
         return;
     }
 
@@ -4033,9 +4032,9 @@ static void sdio_trigger_interrupt(EOSState *s)
             eos_trigger_int(s, s->model->sd_dma_interrupt, 0);
         }
     }
-    else
+    else if (sd->status)
     {
-        EPRINTF("Warning: not triggering interrupt (status=%x)\n", sd->status);
+        SD_DPRINTF("Warning: not triggering interrupt (status=%x)\n", sd->status);
     }
 }
 
@@ -4218,7 +4217,7 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
                     /* note: CMD18 does not report !sd_data_ready when finished */
                     if (s->sd.pio_transferred_bytes >= s->sd.transfer_count * s->sd.read_block_size)
                     {
-                        DPRINTF("PIO transfer completed.\n");
+                        SD_DPRINTF("PIO transfer completed.\n");
                         s->sd.status |= SDIO_STATUS_DATA_AVAILABLE;
                         s->sd.status |= SDIO_STATUS_OK;
                         sdio_trigger_interrupt(s);
@@ -4226,7 +4225,7 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
                 }
                 else
                 {
-                    EPRINTF("PIO: no data available.\n");
+                    SD_EPRINTF("PIO: no data available.\n");
                 }
             }
             break;
@@ -4318,15 +4317,17 @@ unsigned int eos_handle_sddma ( unsigned int parm, EOSState *s, unsigned int add
     return ret;
 }
 
-#undef DPRINTF
-#undef EPRINTF
+#undef SD_DPRINTF
+#undef SD_EPRINTF
 
-// #define DPRINTF(fmt, ...) do { fprintf(stderr, "[CFDMA] " fmt , ## __VA_ARGS__); } while (0)
-#define DPRINTF(fmt, ...) do { } while (0)
+#define CFD_EPRINTF(fmt, ...) EPRINTF("[CFDMA] ", EOS_LOG_SDCF, fmt, ## __VA_ARGS__)
+#define CFD_DPRINTF(fmt, ...) DPRINTF("[CFDMA] ", EOS_LOG_SDCF, fmt, ## __VA_ARGS__)
+#define CFA_EPRINTF(fmt, ...) EPRINTF("[CFATA] ", EOS_LOG_SDCF, fmt, ## __VA_ARGS__)
+#define CFA_DPRINTF(fmt, ...) DPRINTF("[CFATA] ", EOS_LOG_SDCF, fmt, ## __VA_ARGS__)
 
 static int cfdma_read_data(EOSState *s, CFState *cf)
 {
-    DPRINTF("Reading %d of %d bytes to %x\n", cf->dma_count - cf->dma_read, cf->dma_count, cf->dma_addr + cf->dma_read);
+    CFD_DPRINTF("Reading %d of %d bytes to %x\n", cf->dma_count - cf->dma_read, cf->dma_count, cf->dma_addr + cf->dma_read);
     
     assert(cf->dma_count % 4 == 0);
     
@@ -4339,7 +4340,7 @@ static int cfdma_read_data(EOSState *s, CFState *cf)
         uint32_t value = ide_data_readl(&cf->bus, 0);
         uint32_t addr = cf->dma_addr + cf->dma_read; 
         eos_mem_write(s, addr, &value, 4);
-        DPRINTF("%08x: %08x\n", addr, value);
+        CFD_DPRINTF("%08x: %08x\n", addr, value);
         cf->dma_read += 4;
     }
 
@@ -4355,7 +4356,7 @@ static int cfdma_read_data(EOSState *s, CFState *cf)
 
 static int cfdma_write_data(EOSState *s, CFState *cf)
 {
-    DPRINTF("Writing %d bytes from %x\n", cf->dma_count, cf->dma_addr);
+    CFD_DPRINTF("Writing %d bytes from %x\n", cf->dma_count, cf->dma_addr);
 
     /* todo */
     assert(0);
@@ -4375,8 +4376,6 @@ static void cfdma_trigger_interrupt(EOSState *s)
         eos_trigger_int(s, s->model->cf_dma_interrupt, 0);
     }
 }
-
-#undef DPRINTF
 
 unsigned int eos_handle_cfdma ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
@@ -4555,6 +4554,11 @@ unsigned int eos_handle_cfata ( unsigned int parm, EOSState *s, unsigned int add
     io_log("CFATA", s, address, type, value, ret, msg, msg_arg1, msg_arg2);
     return ret;
 }
+
+#undef CFA_DPRINTF
+#undef CFA_EPRINTF
+#undef CFD_DPRINTF
+#undef CFD_EPRINTF
 
 static char* format_clock_enable(int value)
 {

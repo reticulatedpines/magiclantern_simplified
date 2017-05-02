@@ -9,20 +9,11 @@
 /* todo: understand the meaning of these spells,
  * rather than replaying them blindly */
 
-/* MPU_DPRINTF only gets printed when using -d mpu */
-/* MPU_VPRINTF requires -d mpu,verbose */
-/* MPU_EPRINTF is always printed */
-/* MPU_*PRINTF0 does not print the header */
-
-#define DPRINTF(header, fmt, ...) do { qemu_log_mask(EOS_LOG_MPU, header fmt, ## __VA_ARGS__); } while (0)
-#define EPRINTF(header, fmt, ...) do { fprintf(stderr, header fmt, ## __VA_ARGS__); } while (0)
-#define VPRINTF(header, fmt, ...) do { if (qemu_loglevel_mask(EOS_LOG_VERBOSE)) qemu_log_mask(EOS_LOG_MPU, header fmt, ## __VA_ARGS__); } while (0)
-
-#define MPU_DPRINTF(fmt, ...) DPRINTF("[MPU] ", fmt, ## __VA_ARGS__)
-#define MPU_EPRINTF(fmt, ...) EPRINTF("[MPU] ", fmt, ## __VA_ARGS__)
-#define MPU_VPRINTF(fmt, ...) VPRINTF("[MPU] ", fmt, ## __VA_ARGS__)
-#define MPU_DPRINTF0(fmt, ...) DPRINTF("", fmt, ## __VA_ARGS__)
-#define MPU_EPRINTF0(fmt, ...) EPRINTF("", fmt, ## __VA_ARGS__)
+#define MPU_DPRINTF(fmt, ...) DPRINTF("[MPU] ", EOS_LOG_MPU, fmt, ## __VA_ARGS__)
+#define MPU_EPRINTF(fmt, ...) EPRINTF("[MPU] ", EOS_LOG_MPU, fmt, ## __VA_ARGS__)
+#define MPU_VPRINTF(fmt, ...) VPRINTF("[MPU] ", EOS_LOG_MPU, fmt, ## __VA_ARGS__)
+#define MPU_DPRINTF0(fmt, ...) DPRINTF("",      EOS_LOG_MPU, fmt, ## __VA_ARGS__)
+#define MPU_EPRINTF0(fmt, ...) EPRINTF("",      EOS_LOG_MPU, fmt, ## __VA_ARGS__)
 
 // Forward declare static functions
 static void mpu_send_next_spell(EOSState *s);

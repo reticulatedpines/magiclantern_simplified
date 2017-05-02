@@ -10,14 +10,10 @@
 
 #include "serial_flash.h"
 
-/* DPRINTF only gets printed when using -d sflash */
-#define DPRINTF(tag, fmt, ...) do { qemu_log_mask(EOS_LOG_SFLASH, "["tag"] "fmt, ## __VA_ARGS__); } while (0)
-#define EPRINTF(tag, fmt, ...) do { fprintf(stderr, "["tag"] "fmt, ## __VA_ARGS__); } while (0)
-
-#define SF_DPRINTF(fmt, ...) DPRINTF("SFIO", fmt, ## __VA_ARGS__)
-#define SF_EPRINTF(fmt, ...) EPRINTF("SFIO", fmt, ## __VA_ARGS__)
-#define EE_DPRINTF(fmt, ...) DPRINTF("EEPROM", fmt, ## __VA_ARGS__)
-#define EE_EPRINTF(fmt, ...) EPRINTF("EEPROM", fmt, ## __VA_ARGS__)
+#define SF_DPRINTF(fmt, ...) DPRINTF("[SFIO] ",   EOS_LOG_SFLASH, fmt, ## __VA_ARGS__)
+#define SF_EPRINTF(fmt, ...) EPRINTF("[SFIO] ",   EOS_LOG_SFLASH, fmt, ## __VA_ARGS__)
+#define EE_DPRINTF(fmt, ...) DPRINTF("[EEPROM] ", EOS_LOG_SFLASH, fmt, ## __VA_ARGS__)
+#define EE_EPRINTF(fmt, ...) EPRINTF("[EEPROM] ", EOS_LOG_SFLASH, fmt, ## __VA_ARGS__)
 
 static const char * spi_opname(int code)
 {
@@ -142,7 +138,7 @@ uint8_t serial_flash_spi_read(SerialFlashState * sf)
             break;
 
         default:
-            fprintf(stderr, "[EEPROM]: Error: read SO in state=%d\n", sf->state);
+            EE_EPRINTF("Error: read SO in state=%d\n", sf->state);
             sf->read_value = 0;
             break;
     }
@@ -208,7 +204,7 @@ void serial_flash_spi_write(SerialFlashState * sf, uint8_t value)
                 break;
 
             default:
-                fprintf(stderr, "[EEPROM]: Error: Illegal opcode 0x%02X\n", value);
+                EE_EPRINTF("Error: Illegal opcode 0x%02X\n", value);
                 break;
         }
         return;
@@ -258,7 +254,7 @@ void serial_flash_spi_write(SerialFlashState * sf, uint8_t value)
     }
 
     // Otherwise invalid
-    fprintf(stderr, "[EEPROM]: Error: WRITE in illegal state (state = %02Xh:%d, val=%d)\n", sf->state, sf->substate, value);
+    EE_EPRINTF("WRITE in illegal state (state = %02Xh:%d, val=%d)\n", sf->state, sf->substate, value);
 }
 
 

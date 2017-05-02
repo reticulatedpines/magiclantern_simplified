@@ -15,6 +15,14 @@
 #define BMPPITCH 960
 #define BM(x,y) ((x) + (y) * BMPPITCH)
 
+/** Logging macros **/
+/* DPRINTF only gets printed when using -d device (-d mpu etc) */
+/* VPRINTF requires -d verbose (e.g. -d mpu,verbose) */
+/* EPRINTF is always printed */
+/* usually they are used to build device-specific macros, e.g. MPU_DPRINTF */
+#define EPRINTF(header, log_mask, fmt, ...) do { fprintf(stderr, header fmt, ## __VA_ARGS__); } while (0)
+#define DPRINTF(header, log_mask, fmt, ...) do { qemu_log_mask(log_mask, header fmt, ## __VA_ARGS__); } while (0)
+#define VPRINTF(header, log_mask, fmt, ...) do { if (qemu_loglevel_mask(EOS_LOG_VERBOSE)) qemu_log_mask(log_mask, header fmt, ## __VA_ARGS__); } while (0)
 
 /** ANSI colors **/
 #define KRED   "\x1B[31m"
