@@ -151,6 +151,10 @@ for l in lines:
         if spell[5:].startswith(" 0a 08 "):
             print(", PD_NotifyOlcInfoChanged", end="")
 
+        if spell.startswith("08 06 01 23 00 "):
+            arg = int(spell.split(" ")[5], 16)
+            print(", PROP_CARD1_STATUS(%d)" % arg, end="")
+
         if spell.startswith("08 06 01 24 00 "):
             arg = int(spell.split(" ")[5], 16)
             print(", PROP_CARD2_STATUS(%d)" % arg, end="")
