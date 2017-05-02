@@ -46,6 +46,16 @@ if false ; then
     GUI_CAMS=(550D)
 fi
 
+function set_gui_timeout {
+    if [ $CAM == "100D" ]; then
+        # 100D appears slower, for some reason
+        GUI_TIMEOUT=10
+    else
+        # 500D needs less than 2 seconds; let's be a bit conservative
+        GUI_TIMEOUT=5
+    fi
+}
+
 
 # We will use mtools to alter and check the SD/CF image contents.
 # fixme: hardcoded partition offset
@@ -121,11 +131,11 @@ for CAM in ${EOS_CAMS[*]} ${EOS_SECONDARY_CORES[*]}; do
     mkdir -p tests/$CAM/
     rm -f tests/$CAM/boot.log
     # sorry, couldn't get the monitor working together with log redirection...
-    # going to wait for red DY (from READY), with 2 seconds timeout, then kill qemu
+    # going to wait for red DY (from READY), with 1 second timeout, then kill qemu
     (./run_canon_fw.sh $CAM,firmware="boot=0" -display none &> tests/$CAM/boot.log) &
-    sleep 0.5
-    ( timeout 5 tail -f -n100000 tests/$CAM/boot.log & ) | grep --binary-files=text -qP "\x1B\x5B31mD\x1B\x5B0m\x1B\x5B31mY\x1B\x5B0m"
-    killall -INT qemu-system-arm &>> tests/$CAM/boot.log; sleep 1
+    sleep 0.2
+    ( timeout 1 tail -f -n100000 tests/$CAM/boot.log & ) | grep --binary-files=text -qP "\x1B\x5B31mD\x1B\x5B0m\x1B\x5B31mY\x1B\x5B0m"
+    killall -INT qemu-system-arm &>> tests/$CAM/boot.log; sleep 0.2
     
     tests/check_grep.sh tests/$CAM/boot.log -E "([KR].* (READY|AECU)|Intercom|Dry)"
 done
@@ -158,10 +168,10 @@ for CAM in ${EOS_CAMS[*]}; do
 
     # run the HPTimer test
     (./run_canon_fw.sh $CAM,firmware="boot=1" -display none &> tests/$CAM/hptimer.log) &
-    sleep 0.5
-    ( timeout 10 tail -f -n100000 tests/$CAM/hptimer.log & ) | grep --binary-files=text -qP "\x1B\x5B34mH\x1B\x5B0m\x1B\x5B34me\x1B\x5B0m"
-    sleep 2
-    killall -INT qemu-system-arm &>> tests/$CAM/hptimer.log; sleep 1
+    sleep 0.2
+    ( timeout 1 tail -f -n100000 tests/$CAM/hptimer.log & ) | grep --binary-files=text -qP "\x1B\x5B34mH\x1B\x5B0m\x1B\x5B34me\x1B\x5B0m"
+    sleep 1
+    killall -INT qemu-system-arm &>> tests/$CAM/hptimer.log; sleep 0.2
     
     tests/check_grep.sh tests/$CAM/hptimer.log -m1 "Hello from task run_test"
     printf "       "
@@ -179,8 +189,6 @@ for CAM in ${MENU_CAMS[*]}; do
     rm -f tests/$CAM/menu*[0-9].png
     rm -f tests/$CAM/menu.log
 
-    sleep 5
-
     if [ -f $CAM/patches.gdb ]; then
         (./run_canon_fw.sh $CAM,firmware="boot=0" -vnc :12345 -s -S & \
             arm-none-eabi-gdb -x $CAM/patches.gdb &) &> tests/$CAM/menu.log
@@ -188,16 +196,18 @@ for CAM in ${MENU_CAMS[*]}; do
         (./run_canon_fw.sh $CAM,firmware="boot=0" -vnc :12345 &) \
             &> tests/$CAM/menu.log
     fi
-    sleep 15
+
+    set_gui_timeout
+    sleep $GUI_TIMEOUT
 
     count=0;
     for key in ${MENU_SEQUENCE[$CAM]}; do
-        vncdotool -s :12345 key $key; sleep 1
+        vncdotool -s :12345 key $key; sleep 0.5
         vncdotool -s :12345 capture tests/$CAM/menu$((count++)).png
         echo -n .
     done
 
-    killall -INT qemu-system-arm &>> tests/$CAM/menu.log; sleep 1
+    killall -INT qemu-system-arm &>> tests/$CAM/menu.log; sleep 0.5
 
     tests/check_md5.sh tests/$CAM/ menu || cat tests/$CAM/menu.md5.log
 done
@@ -221,17 +231,19 @@ for CAM in ${MENU_CAMS[*]}; do
         (./run_canon_fw.sh $CAM,firmware="boot=0" -vnc :12345 &) \
             &> tests/$CAM/format.log
     fi
-    sleep 15
+
+    set_gui_timeout
+    sleep $GUI_TIMEOUT
 
     count=0;
     for key in ${FORMAT_SEQUENCE[$CAM]}; do
         if [ $key = wait ]; then sleep 1; continue; fi
-        vncdotool -s :12345 key $key; sleep 1
+        vncdotool -s :12345 key $key; sleep 0.5
         vncdotool -s :12345 capture tests/$CAM/format$((count++)).png
         echo -n .
     done
 
-    killall -INT qemu-system-arm &>> tests/$CAM/format.log; sleep 1
+    killall -INT qemu-system-arm &>> tests/$CAM/format.log; sleep 0.5
 
     tests/check_md5.sh tests/$CAM/ format || cat tests/$CAM/format.md5.log
 done
@@ -272,7 +284,7 @@ for CAM in 500D; do
                 &>> tests/$CAM/$TST.log
         fi
 
-        sleep 25
+        sleep 5
 
         # fixme: how to align these nicely?
         MAIN_SCREEN=d2ab306b1db2ffb1229a6e86542e24ac
@@ -325,7 +337,9 @@ for CAM in ${GUI_CAMS[*]}; do
     mkdir -p tests/$CAM/
     rm -f tests/$CAM/gui.ppm
     rm -f tests/$CAM/gui.log
-    (sleep 20; echo screendump tests/$CAM/gui.ppm; echo quit) \
+    set_gui_timeout
+
+    (sleep $GUI_TIMEOUT; echo screendump tests/$CAM/gui.ppm; echo quit) \
       | ./run_canon_fw.sh $CAM,firmware="boot=0" -display none -monitor stdio &> tests/$CAM/gui.log
 
     tests/check_md5.sh tests/$CAM/ gui
@@ -347,7 +361,7 @@ for CAM in ${EOS_CAMS[*]} ${EOS_SECONDARY_CORES[*]} ${POWERSHOT_CAMS[*]}; do
     (./run_canon_fw.sh $CAM,firmware="boot=0" -display none -s -S & \
      arm-none-eabi-gdb -x $CAM/debugmsg.gdb &) &> tests/$CAM/gdb.log
     sleep 0.5
-    ( timeout 10 tail -f -n100000 tests/$CAM/gdb.log & ) | grep --binary-files=text -qP "task_create\("
+    ( timeout 2 tail -f -n100000 tests/$CAM/gdb.log & ) | grep --binary-files=text -qP "task_create\("
     sleep 1
     killall -INT qemu-system-arm &>> tests/$CAM/gdb.log; sleep 1
 
@@ -389,7 +403,7 @@ for CAM in 5D3 60D 1200D; do
     mcopy -o -i $MCF $FRSP_PATH/autoexec.bin ::
 
     # run the photo capture test
-    (sleep 15; echo screendump tests/$CAM/frsp.ppm; echo quit) \
+    (sleep 10; echo screendump tests/$CAM/frsp.ppm; echo quit) \
       | ./run_canon_fw.sh $CAM,firmware="boot=1" -display none -monitor stdio &> tests/$CAM/frsp.log
     
     tests/check_md5.sh tests/$CAM/ frsp
@@ -414,10 +428,10 @@ for CAM in ${GUI_CAMS[*]} 5D2 EOSM 450D; do
     if [ -f $CAM/patches.gdb ]; then
         (./run_canon_fw.sh $CAM,firmware="boot=0" -display none -s -S & \
          arm-none-eabi-gdb -x $CAM/patches.gdb &) &> tests/$CAM/dcim.log
-        sleep 15
+        sleep 5
         killall -INT qemu-system-arm &>> tests/$CAM/dcim.log; sleep 1
     else
-        (sleep 15; echo quit) \
+        (sleep 5; echo quit) \
             | ./run_canon_fw.sh $CAM,firmware="boot=0" -display none -monitor stdio &> tests/$CAM/dcim.log
     fi
     
