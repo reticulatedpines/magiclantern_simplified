@@ -281,13 +281,12 @@ static void sfio_do_transfer( EOSState *s)
     for (int i = 0; i < num_blocks; i++) {
         uint8_t * block_src = (uint8_t*)(source + i*BLOCK_OFFSET);
         uint32_t  block_dst = (uint32_t)(s->sd.dma_addr + i*BLOCK_SIZE);
+        uint8_t block[BLOCK_SIZE];
         for (int j = 0; j < BLOCK_SIZE; j++) {
             uint8_t this = *(uint8_t*)(block_src + j);
             uint8_t next = *(uint8_t*)(block_src + j + 1);
             uint8_t byte = (this << 4) | (next >> 4);
-
-            /* not exactly the most efficient way, but fast enough for our purpose */
-            eos_mem_write(s, block_dst + j, &byte, 1);
+            block[j] = byte;
 
             if (i == 0 && j < 16*4)
             {
@@ -298,6 +297,7 @@ static void sfio_do_transfer( EOSState *s)
                 );
             }
         }
+        eos_mem_write(s, block_dst, block, BLOCK_SIZE);
     }
     s->sd.dma_count = 0;
             //sdio_write_data(&s->sd);
