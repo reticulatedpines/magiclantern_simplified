@@ -32,17 +32,18 @@ static int mpu_init_spell_count = 0;
  * Although not perfect, that guess is a good starting point.
  */
 
-#include "mpu_spells/60D.h"
 #include "mpu_spells/5D2.h"
 #include "mpu_spells/5D3.h"
+#include "mpu_spells/50D.h"
+#include "mpu_spells/60D.h"
 #include "mpu_spells/70D.h"
+#include "mpu_spells/450D.h"
 #include "mpu_spells/500D.h"
 #include "mpu_spells/550D.h"
 #include "mpu_spells/600D.h"
 #include "mpu_spells/700D.h"
-#include "mpu_spells/EOSM.h"
 #include "mpu_spells/100D.h"
-#include "mpu_spells/450D.h"
+#include "mpu_spells/EOSM.h"
 
 static void mpu_send_next_spell(EOSState *s)
 {
@@ -716,17 +717,18 @@ void mpu_spells_init(EOSState *s)
         mpu_init_spell_count = COUNT(mpu_init_spells_##cam2); \
     }
 
-    MPU_SPELL_SET(60D)
     MPU_SPELL_SET(5D2)
-    MPU_SPELL_SET(70D)
     MPU_SPELL_SET(5D3)
+    MPU_SPELL_SET(50D)
+    MPU_SPELL_SET(60D)
+    MPU_SPELL_SET(70D)
+    MPU_SPELL_SET(450D)
+    MPU_SPELL_SET(500D)
     MPU_SPELL_SET(550D)
     MPU_SPELL_SET(600D)
     MPU_SPELL_SET(700D)
-    MPU_SPELL_SET(EOSM)
     MPU_SPELL_SET(100D)
-    MPU_SPELL_SET(450D)
-    MPU_SPELL_SET(500D)
+    MPU_SPELL_SET(EOSM)
 
     /* 1200D works with 60D MPU spells... and BOOTS THE GUI!!! */
     MPU_SPELL_SET_OTHER_CAM(1200D, 60D)

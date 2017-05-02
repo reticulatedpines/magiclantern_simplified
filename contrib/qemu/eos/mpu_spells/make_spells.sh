@@ -16,6 +16,7 @@ for log in \
         700D-startup.LOG \
         EOSM-startup.LOG \
         500D-startup-menudisp.log \
+        50D-startup-format.log \
     ; do
 
     MODEL=`echo $log | grep -oE "^[A-Z0-9]+"`
