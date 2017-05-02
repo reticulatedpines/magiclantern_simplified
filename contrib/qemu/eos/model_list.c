@@ -118,6 +118,8 @@ struct eos_model_desc eos_model_list[] = {
         .name                   = "50D",
         .digic_version          = 4,
         .card_led_address       = 0xC02200BC,
+        .cf_driver_interrupt    = 0x82,
+        .cf_dma_interrupt       = 0xE3,
     },
     {
         .name                   = "60D",

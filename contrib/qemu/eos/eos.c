@@ -2474,7 +2474,8 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             return ret;
 #endif
             break;
-        
+
+        case 0x003C:    /* 5D2, 50D */
         case 0x0124:    /* 100D? */
         case 0x0150:    /* 5D3 */
             msg = "HDMI CONNECT";
@@ -4264,7 +4265,8 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
 
 unsigned int eos_handle_sddma ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
-    if (strcmp(s->model->name, "5D2") == 0)
+    if (strcmp(s->model->name, "5D2") == 0 ||
+        strcmp(s->model->name, "50D") == 0)
     {
         /* other models use SDDMA on the same address */
         /* todo: make it generic? */
