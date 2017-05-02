@@ -4364,10 +4364,29 @@ static int cfdma_read_data(EOSState *s, CFState *cf)
 
 static int cfdma_write_data(EOSState *s, CFState *cf)
 {
-    CFD_DPRINTF("Writing %d bytes from %x\n", cf->dma_count, cf->dma_addr);
+    CFD_DPRINTF("Writing %d of %d bytes from %x\n", cf->dma_count - cf->dma_written, cf->dma_count, cf->dma_addr + cf->dma_written);
 
-    /* todo */
-    assert(0);
+    assert(cf->dma_count % 4 == 0);
+
+    /* it appears to accept one sector at a time, for some reason */
+    while ((cf->dma_written < cf->dma_count) &&
+           (ide_status_read(&cf->bus, 0) & 0x08))    /* DRQ_STAT */
+    {
+        uint32_t value;
+        uint32_t addr = cf->dma_addr + cf->dma_written; 
+        eos_mem_read(s, addr, &value, 4);
+        ide_data_writel(&cf->bus, 0, value);
+        cf->dma_written += 4;
+    }
+
+    if (cf->dma_written == cf->dma_count)
+    {
+        /* finished? */
+        cfdma_trigger_interrupt(s);
+        return 0;
+    }
+
+    return 1;
 }
 
 static void cfdma_trigger_interrupt(EOSState *s)
@@ -4417,6 +4436,7 @@ unsigned int eos_handle_cfdma ( unsigned int parm, EOSState *s, unsigned int add
                 if (value == 0x3D)
                 {
                     msg = "DMA write start";
+                    s->cf.dma_written = 0;
                     s->cf.dma_write_request = 1;
                 }
                 else if (value == 0x39 || value == 0x21)
@@ -4426,7 +4446,7 @@ unsigned int eos_handle_cfdma ( unsigned int parm, EOSState *s, unsigned int add
                     
                     /* for some reason, trying to read large blocks at once
                      * may fail; not sure what's the proper way to fix it
-                     * workaround: do this in a different task,
+                     * workaround: do this in the interrupt timer callback,
                      * where we may retry as needed */
                     s->cf.dma_read_request = 1;
                 }

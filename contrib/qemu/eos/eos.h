@@ -110,6 +110,7 @@ typedef struct
     uint32_t dma_addr;
     uint32_t dma_count;
     uint32_t dma_read;
+    uint32_t dma_written;
 } CFState;
 
 struct palette_entry
