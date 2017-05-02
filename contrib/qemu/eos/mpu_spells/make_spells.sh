@@ -11,7 +11,7 @@ for log in \
         70D-startup-nf.log \
         5D3-startup2.log \
         600D-startup.log \
-        5D2-startup-detailed.log \
+        5D2-startup-ilia.log \
         450D-dm-mpu.log \
         700D-startup.LOG \
         EOSM-startup.LOG \
