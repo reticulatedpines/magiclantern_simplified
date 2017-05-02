@@ -14,9 +14,10 @@ EOS_SECONDARY_CORES=( 5D3eeko 5D4AE 7D2S )
 
 GUI_CAMS=( 5D3 50D 60D 70D 500D 550D 600D 700D 100D 1100D 1200D )
 
-MENU_CAMS=( 60D 500D 550D 600D 700D 100D 1100D 1200D )
+MENU_CAMS=( 50D 60D 500D 550D 600D 700D 100D 1100D 1200D )
 
 declare -A MENU_SEQUENCE
+MENU_SEQUENCE[50D]="f1 left space i i i m up space space m w w p p"
 MENU_SEQUENCE[60D]="f1 i i i i m left left up space m m p p"
 MENU_SEQUENCE[500D]="f1 m i i right right up m p p"
 MENU_SEQUENCE[550D]="m i i right right down down down space space p p" # info screen not working
@@ -30,6 +31,7 @@ FMT_SEQ="space right space wait f1 space"
 # these are customized for my ROM dumps (keys required to select the Format menu)
 # TODO: some generic way to navigate to Format menu?
 declare -A FORMAT_SEQUENCE
+FORMAT_SEQUENCE[50D]="m down down $FMT_SEQ"
 FORMAT_SEQUENCE[60D]="m left left left left $FMT_SEQ"
 FORMAT_SEQUENCE[500D]="m $FMT_SEQ"
 FORMAT_SEQUENCE[550D]="m $FMT_SEQ"
