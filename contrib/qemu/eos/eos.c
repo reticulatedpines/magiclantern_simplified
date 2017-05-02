@@ -26,6 +26,9 @@
 
 #define IGNORE_CONNECT_POLL
 
+#define DIGIC_TIMER_STEP 0x100
+#define DIGIC_TIMER_MASK (0xFFFFF & ~(DIGIC_TIMER_STEP-1))
+
 static void edmac_test_format_size(void);
 
 /* Machine class */
@@ -423,14 +426,14 @@ static void eos_interrupt_timer_body(EOSState *s)
             return;
         }
 
-        s->digic_timer += 0x100;
-        s->digic_timer &= 0xFFF00;
+        s->digic_timer += DIGIC_TIMER_STEP;
+        s->digic_timer &= DIGIC_TIMER_MASK;
         
         for (pos = 0; pos < COUNT(s->timer_enabled); pos++)
         {
             if (s->timer_enabled[pos])
             {
-                s->timer_current_value[pos] += 0x100;
+                s->timer_current_value[pos] += DIGIC_TIMER_STEP;
 
                 if (s->timer_current_value[pos] > s->timer_reload_value[pos])
                 {
@@ -535,7 +538,7 @@ static void eos_interrupt_timer_cb(void *parm)
     EOSState *s = (EOSState *)parm;
     eos_interrupt_timer_body(s);
     int64_t now = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
-    timer_mod_anticipate_ns(s->interrupt_timer, now + 0x100*1000); // 0x100 us
+    timer_mod_anticipate_ns(s->interrupt_timer, now + DIGIC_TIMER_STEP*1000); // DIGIC_TIMER_STEP us
 }
 
 
@@ -1169,7 +1172,7 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
 
     int64_t now = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
     s->interrupt_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, eos_interrupt_timer_cb, s);
-    timer_mod_anticipate_ns(s->interrupt_timer, now + 0x100 * 1000);
+    timer_mod_anticipate_ns(s->interrupt_timer, now + DIGIC_TIMER_STEP * 1000);
 
     /* init display */
     precompute_yuv2rgb(1);
@@ -2025,7 +2028,7 @@ unsigned int eos_handle_hptimer ( unsigned int parm, EOSState *s, unsigned int a
             if(type & MODE_WRITE)
             {
                 /* upper rounding, to test for equality with digic_timer */
-                int rounded = (value + 0x100) & 0xFFF00;
+                int rounded = (value + DIGIC_TIMER_STEP) & DIGIC_TIMER_MASK;
                 int old = s->HPTimers[timer_id].output_compare;
                 s->HPTimers[timer_id].output_compare = rounded;
                 
@@ -2037,7 +2040,7 @@ unsigned int eos_handle_hptimer ( unsigned int parm, EOSState *s, unsigned int a
                 if (actual_delay < 0)
                 {
                     /* workaround: when this happens, trigger right away */
-                    s->HPTimers[timer_id].output_compare = s->digic_timer + 0x100;
+                    s->HPTimers[timer_id].output_compare = s->digic_timer + DIGIC_TIMER_STEP;
                 }
                 
                 if (old)
