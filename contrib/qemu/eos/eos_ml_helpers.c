@@ -17,8 +17,20 @@ unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *s, unsigned in
         switch (address)
         {
             case REG_PRINT_CHAR:    /* print in blue */
-                fprintf(stderr, KBLU"%c"KRESET, (uint8_t)value);
+            {
+                /* line buffered output on stderr */
+                /* fixme: nicer way? */
+                static char buf[100];
+                static int len = 0;
+                buf[len++] = value;
+                buf[len] = 0;
+                if (value == '\n' || len == COUNT(buf))
+                {
+                    fprintf(stderr, KBLU"%s"KRESET, buf);
+                    len = 0;
+                }
                 return 0;
+            }
 
             case REG_PRINT_NUM:     /* print in green */
                 fprintf(stderr, KGRN"%x (%d)"KRESET"\n", (uint32_t)value, (uint32_t)value);
