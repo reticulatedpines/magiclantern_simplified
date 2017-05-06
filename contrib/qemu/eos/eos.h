@@ -43,7 +43,7 @@
 #define FAR_CALL_INSTR   0xe51ff004    // ldr pc, [pc,#-4]
 #define LOOP_INSTR       0xeafffffe    // 1: b 1b
 
-#define CURRENT_CPU   s->cpus[current_cpu->cpu_index]
+#define CURRENT_CPU   s->cpus[current_cpu ? current_cpu->cpu_index : 0]
 
 /** Memory configuration **/
 #define ROM0_ADDR     s->model->rom0_addr

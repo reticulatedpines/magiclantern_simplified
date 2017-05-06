@@ -470,8 +470,7 @@ static void eos_interrupt_timer_body(EOSState *s)
                     s->irq_id = pos;
                     s->irq_enabled[s->irq_id] = 0;
 
-                    /* fixme: CURRENT_CPU not valid here */
-                    cpu_interrupt(CPU(s->cpu0), CPU_INTERRUPT_HARD);
+                    cpu_interrupt(CPU(CURRENT_CPU), CPU_INTERRUPT_HARD);
                 }
             }
 
@@ -1647,8 +1646,7 @@ unsigned int eos_trigger_int(EOSState *s, unsigned int id, unsigned int delay)
         }
         s->irq_id = id;
         s->irq_enabled[s->irq_id] = 0;
-        /* fixme: CURRENT_CPU not valid outside MMIO handlers */
-        cpu_interrupt(CPU(s->cpu0), CPU_INTERRUPT_HARD);
+        cpu_interrupt(CPU(CURRENT_CPU), CPU_INTERRUPT_HARD);
     }
     else
     {
