@@ -116,6 +116,7 @@ static void mem_set_status(uint32_t start, uint32_t end, uint64_t status)
 {
     start &= ~0x40000000;
     end   &= ~0x40000000;
+    assert(end <= 0x20000000);
 
     /* can be optimized; keep it simple for now */
     for (uint32_t addr = start; addr < end; addr++)
@@ -130,6 +131,8 @@ static void copy_mem_status(uint32_t src, uint32_t dst, uint32_t size)
 {
     src &= ~0x40000000;
     dst &= ~0x40000000;
+    assert(src + size <= 0x20000000);
+    assert(dst + size <= 0x20000000);
 
     /* can be optimized; keep it simple for now */
     for (uint32_t i = 0; i < size; i++)
