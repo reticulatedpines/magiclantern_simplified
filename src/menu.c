@@ -319,6 +319,7 @@ static int is_customize_selected(struct menu * menu) // argument is optional, ju
 
 #define MY_MENU_ENTRY \
         { \
+            .name = "(empty)", \
             .hidden = 1, \
             .jhidden = 1, \
         },

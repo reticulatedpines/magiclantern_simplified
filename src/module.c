@@ -1449,6 +1449,7 @@ static struct menu_entry module_submenu[] = {
 
 #define MODULE_ENTRY(i) \
         { \
+            .name = "Module", \
             .priv = (void*)i, \
             .select = module_menu_update_select, \
             .select_Q = module_open_submenu, \

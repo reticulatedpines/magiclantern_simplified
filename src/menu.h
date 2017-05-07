@@ -345,7 +345,7 @@ menu_init( void );
 #define MENU_PLACEHOLDER(namae) { .name = namae, .placeholder = 1, .shidden = 1 }
 #define MENU_IS_PLACEHOLDER(entry) ((entry)->placeholder == 1)
 
-#define MENU_ADVANCED_TOGGLE { .select = menu_advanced_toggle, .update = menu_advanced_update }
+#define MENU_ADVANCED_TOGGLE { .name = "Advanced...", .select = menu_advanced_toggle, .update = menu_advanced_update }
 
 extern MENU_SELECT_FUNC(menu_advanced_toggle);
 extern MENU_UPDATE_FUNC(menu_advanced_update);
