@@ -921,12 +921,15 @@ menu_find_by_name(
     int icon
 )
 {
+    ASSERT(name);
+
     take_semaphore( menu_sem, 0 );
 
     struct menu *       menu = menus;
 
     for( ; menu ; menu = menu->next )
     {
+        ASSERT(menu->name);
         if( streq( menu->name, name ) )
         {
             if (icon && !menu->icon) menu->icon = icon;
@@ -1186,8 +1189,9 @@ menu_add(
     if( !head )
     {
         // First one -- insert it as the selected item
+        // fixme: duplicate code
         head = menu->children = new_entry;
-        //~ if (new_entry->id == 0) new_entry->id = menu_id_increment++;
+        ASSERT(new_entry->name);
         new_entry->next     = NULL;
         new_entry->prev     = NULL;
         new_entry->parent   = 0;
@@ -1206,6 +1210,7 @@ menu_add(
 
     for (int i = 0; i < count; i++)
     {
+        ASSERT(new_entry->name);
         new_entry->selected = 0;
         new_entry->next     = NULL;
         new_entry->prev     = head;
