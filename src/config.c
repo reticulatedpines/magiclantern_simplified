@@ -695,7 +695,11 @@ static MENU_UPDATE_FUNC(config_preset_update)
 {
     int preset_changed = (config_new_preset_index != config_preset_index);
     char* current_preset_name = get_config_preset_name();
-    MENU_SET_RINFO(current_preset_name);
+
+    if (current_preset_name)
+    {
+        MENU_SET_RINFO(current_preset_name);
+    }
 
     if (config_new_preset_index == 1) /* startup shooting mode */
     {
