@@ -276,7 +276,9 @@ static void tb_exec_cb(void *opaque, CPUState *cpu, TranslationBlock *tb)
 
     if (qemu_loglevel_mask(EOS_LOG_RAM_MEMCHK))
     {
-        eos_memcheck_log_exec(opaque, tb->pc);
+        ARMCPU *arm_cpu = ARM_CPU(cpu);
+        CPUARMState *env = &arm_cpu->env;
+        eos_memcheck_log_exec(opaque, tb->pc, env);
     }
 }
 

@@ -346,7 +346,7 @@ static int malloc_overlap(uint32_t dst, uint32_t src, uint32_t size)
 }
 
 /* fixme: many addresses hardcoded to 500D */
-void eos_memcheck_log_exec(EOSState *s, uint32_t pc)
+void eos_memcheck_log_exec(EOSState *s, uint32_t pc, CPUARMState *env)
 {
     /* for some reason, this may called multiple times on the same PC */
     static uint32_t prev_pc = 0xFFFFFFFF;
@@ -367,8 +367,8 @@ void eos_memcheck_log_exec(EOSState *s, uint32_t pc)
         assert(id >= 0);
 
         assert(malloc_lr[id] == 0);
-        malloc_lr[id] = CURRENT_CPU->env.regs[14];
-        malloc_size[id] = CURRENT_CPU->env.regs[0];
+        malloc_lr[id] = env->regs[14];
+        malloc_size[id] = env->regs[0];
         qemu_log_mask(EOS_LOG_VERBOSE, "[%x] malloc(%x) lr=%x\n", id, malloc_size[id], malloc_lr[id]);
     }
 
@@ -376,7 +376,7 @@ void eos_memcheck_log_exec(EOSState *s, uint32_t pc)
     {
         if (pc == malloc_lr[id])
         {
-            int malloc_ptr = CURRENT_CPU->env.regs[0];
+            int malloc_ptr = env->regs[0];
             qemu_log_mask(EOS_LOG_VERBOSE, "[%x] malloc => %x\n", id, malloc_ptr);
             mem_set_status(malloc_ptr, malloc_ptr + malloc_size[id], MS_NOINIT);
             assert(is_uninitialized(malloc_ptr));
@@ -414,7 +414,7 @@ void eos_memcheck_log_exec(EOSState *s, uint32_t pc)
 
     if (pc == stubs.free[0] || pc == stubs.free[1] || pc == stubs.free[2] || pc == stubs.free[3])
     {
-        int free_ptr = CURRENT_CPU->env.regs[0];
+        int free_ptr = env->regs[0];
         qemu_log_mask(EOS_LOG_VERBOSE, "free %x ", free_ptr);
         for (int i = 0; i < COUNT(malloc_list); i++)
         {
@@ -427,7 +427,7 @@ void eos_memcheck_log_exec(EOSState *s, uint32_t pc)
                 assert(is_freed(free_ptr));
                 malloc_list[i].ptr = 0;
                 malloc_list[i].ptf = free_ptr;
-                malloc_list[i].caller = CURRENT_CPU->env.regs[14];
+                malloc_list[i].caller = env->regs[14];
             }
         }
     }
@@ -444,10 +444,10 @@ void eos_memcheck_log_exec(EOSState *s, uint32_t pc)
         assert(id >= 0);
 
         assert(memcpy_lr[id] == 0);
-        memcpy_dst[id] = CURRENT_CPU->env.regs[0];
-        memcpy_src[id] = CURRENT_CPU->env.regs[1];
-        memcpy_num[id] = CURRENT_CPU->env.regs[2];
-        memcpy_lr[id]  = CURRENT_CPU->env.regs[14];
+        memcpy_dst[id] = env->regs[0];
+        memcpy_src[id] = env->regs[1];
+        memcpy_num[id] = env->regs[2];
+        memcpy_lr[id]  = env->regs[14];
         qemu_log_mask(EOS_LOG_VERBOSE,
             "[%s:%x:%d] memcpy(%x, %x, %x)\n",
             eos_get_current_task_name(s), memcpy_lr[id], id,
@@ -500,8 +500,8 @@ void eos_memcheck_log_exec(EOSState *s, uint32_t pc)
 
     if (pc == stubs.init_heap)   /* init_heap */
     {
-        int start = CURRENT_CPU->env.regs[0];
-        int size  = CURRENT_CPU->env.regs[1];
+        int start = env->regs[0];
+        int size  = env->regs[1];
         fprintf(stderr, "init_heap %x %x\n", start, start+size);
 
         if (start == stubs.checked_heaps[0] ||
