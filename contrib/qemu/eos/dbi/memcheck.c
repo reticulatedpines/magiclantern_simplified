@@ -220,6 +220,8 @@ static int is_memcpy(EOSState *s, uint32_t pc)
     return 0;
 }
 
+static void diagnose_addr(uint32_t addr);
+
 void eos_memcheck_log_mem(EOSState *s, hwaddr addr, uint64_t value, uint32_t size, int flags)
 {
     int is_write = flags & 1;
@@ -238,6 +240,7 @@ void eos_memcheck_log_mem(EOSState *s, hwaddr addr, uint64_t value, uint32_t siz
             eos_get_current_task_name(s), pc, lr,
             (int)addr, is_write ? "written" : "read", (int)value
         );
+        diagnose_addr(addr);
     }
 
     /* only interrupts and other TCM code are allowed to use the TCM */
@@ -284,6 +287,7 @@ ignore:;
                 eos_get_current_task_name(s), pc, lr,
                 (int)addr, (int)value
             );
+            diagnose_addr(addr);
         }
     }
     else /* write */
@@ -310,15 +314,30 @@ ignore:;
 static int malloc_lr[4] = {0};
 static int malloc_size[4] = {0};
 
-static int malloc_list_p[16384] = {0};
-static int malloc_list_s[16384] = {0};
+static int malloc_list_p[16384] = {0};  /* allocated blocks (start pointer) */
+static int malloc_list_s[16384] = {0};  /* block sizes */
+static int malloc_list_l[16384] = {0};  /* caller address (LR) */
+static int malloc_list_f[16384] = {0};  /* freed blocks */
+static int malloc_list_a[16384] = {0};  /* age */
 static int malloc_idx = 0;
+static int malloc_age = 0;
 
 static uint32_t memcpy_lr[4]  = {0};
 static uint32_t memcpy_src[4] = {0};
 static uint32_t memcpy_dst[4] = {0};
 static uint32_t memcpy_num[4] = {0};
 static uint64_t memcpy_chk[4] = {0};
+
+static int malloc_overlap(uint32_t dst, uint32_t src, uint32_t size)
+{
+    uint32_t src_s = src & ~0x40000000;
+    uint32_t dst_s = dst & ~0x40000000;
+    uint32_t src_e = src_s + size;
+    uint32_t dst_e = dst_s + size;
+
+    return ((src_s < dst_s && src_e > dst_s) ||
+            (src_s > dst_s && src_s < dst_e));
+}
 
 /* fixme: many addresses hardcoded to 500D */
 void eos_memcheck_log_exec(EOSState *s, uint32_t pc)
@@ -331,33 +350,36 @@ void eos_memcheck_log_exec(EOSState *s, uint32_t pc)
     /* our uninitialized stubs are 0 - don't log this address */
     if (!pc) return;
 
-    /* allow a few multi-tasked calls */
-    int id = (malloc_lr[0] == 0) ? 0 :
-             (malloc_lr[1] == 0) ? 1 :
-             (malloc_lr[2] == 0) ? 2 :
-             (malloc_lr[3] == 0) ? 3 :
-                                  -1 ;
-    assert(id >= 0);
-
     if (pc == stubs.malloc[0] || pc == stubs.malloc[1] || pc == stubs.malloc[2] || pc == stubs.malloc[3])
     {
+        /* allow a few multi-tasked calls */
+        int id = (malloc_lr[0] == 0) ? 0 :
+                 (malloc_lr[1] == 0) ? 1 :
+                 (malloc_lr[2] == 0) ? 2 :
+                 (malloc_lr[3] == 0) ? 3 :
+                                      -1 ;
+        assert(id >= 0);
+
         assert(malloc_lr[id] == 0);
         malloc_lr[id] = CURRENT_CPU->env.regs[14];
         malloc_size[id] = CURRENT_CPU->env.regs[0];
         qemu_log_mask(EOS_LOG_VERBOSE, "[%x] malloc(%x) lr=%x\n", id, malloc_size[id], malloc_lr[id]);
     }
 
-    for (id = 0; id < COUNT(malloc_lr); id++)
+    for (int id = 0; id < COUNT(malloc_lr); id++)
     {
         if (pc == malloc_lr[id])
         {
-            malloc_lr[id] = 0;
             int malloc_ptr = CURRENT_CPU->env.regs[0];
             qemu_log_mask(EOS_LOG_VERBOSE, "[%x] malloc => %x\n", id, malloc_ptr);
             mem_set_status(malloc_ptr, malloc_ptr + malloc_size[id], MS_NOINIT);
             assert(is_uninitialized(malloc_ptr));
 
-            while (malloc_list_p[malloc_idx])
+            int malloc_idx0 = malloc_idx;
+            int keep_free_blocks = 1;
+
+            while (malloc_list_p[malloc_idx] || 
+                  (malloc_list_f[malloc_idx] && keep_free_blocks))
             {
                 malloc_idx++;
 
@@ -365,9 +387,20 @@ void eos_memcheck_log_exec(EOSState *s, uint32_t pc)
                 {
                     malloc_idx = 0;
                 }
+
+                if (malloc_idx == malloc_idx0)
+                {
+                    fprintf(stderr, "Warning: discarding one free block\n");
+                    keep_free_blocks = 0;
+                }
             }
+            assert(malloc_list_f[malloc_idx] == 0);
             malloc_list_p[malloc_idx] = malloc_ptr;
             malloc_list_s[malloc_idx] = malloc_size[id];
+            malloc_list_l[malloc_idx] = malloc_lr[id];
+            malloc_list_f[malloc_idx] = 0;
+            malloc_list_a[malloc_idx] = malloc_age++;
+            malloc_lr[id] = 0;
         }
     }
 
@@ -385,7 +418,8 @@ void eos_memcheck_log_exec(EOSState *s, uint32_t pc)
                 mem_set_status(free_ptr, free_ptr + size, MS_FREED | MS_NOINIT);
                 assert(is_freed(free_ptr));
                 malloc_list_p[i] = 0;
-                malloc_list_s[i] = 0;
+                malloc_list_f[i] = free_ptr;
+                malloc_list_l[i] = CURRENT_CPU->env.regs[14];
             }
         }
     }
@@ -421,12 +455,7 @@ void eos_memcheck_log_exec(EOSState *s, uint32_t pc)
             );
         }
 
-        uint32_t src_s = memcpy_src[id] & ~0x40000000;
-        uint32_t dst_s = memcpy_dst[id] & ~0x40000000;
-        uint32_t src_e = src_s + memcpy_num[id];
-        uint32_t dst_e = dst_s + memcpy_num[id];
-        if ((src_s < dst_s && src_e > dst_s) ||
-            (src_s > dst_s && src_s < dst_e))
+        if (malloc_overlap(memcpy_dst[id], memcpy_src[id], memcpy_num[id]))
         {
             fprintf(stderr,
                 KLRED"[%s:%x:%x] source and destination overlap in memcpy(%x, %x, %x)"KRESET"\n",
@@ -452,7 +481,10 @@ void eos_memcheck_log_exec(EOSState *s, uint32_t pc)
                 eos_get_current_task_name(s), memcpy_lr[id],
                 memcpy_dst[id], memcpy_src[id], memcpy_num[id]
             );
-            assert(memcpy_chk[id] == mem_status_checksum(memcpy_src[id], memcpy_num[id]));
+            if (!malloc_overlap(memcpy_dst[id], memcpy_src[id], memcpy_num[id]))
+            {
+                assert(memcpy_chk[id] == mem_status_checksum(memcpy_src[id], memcpy_num[id]));
+            }
             copy_mem_status(memcpy_src[id], memcpy_dst[id], memcpy_num[id]);
             memcpy_lr[id] = 0;
         }
@@ -483,6 +515,63 @@ void eos_memcheck_log_exec(EOSState *s, uint32_t pc)
         interrupt_handling = 0;
     }
 }
+
+static void diagnose_addr(uint32_t addr)
+{
+    int found = 0;
+    int printed = 0;
+    int age_found = INT_MAX;
+
+    for (int k = 0; k < COUNT(malloc_list_p); k++)
+    {
+        int i = MOD(malloc_idx - k, COUNT(malloc_list_p));
+        if (malloc_list_p[i])
+        {
+            uint32_t start = malloc_list_p[i];
+            uint32_t end = start + malloc_list_s[i];
+            if (addr >= start && addr < end)
+            {
+                /* valgrind is GPL, so we can copy their messages :) */
+                fprintf(stderr, 
+                    KLRED"Address %x is %d bytes inside a block of size %d (%x-%x) alloc'd at %x"KRESET"\n",
+                    addr, addr - start, end - start, start, end, malloc_list_l[i]
+                );
+                found++; printed++;
+            }
+        }
+
+        if (is_freed(addr) && malloc_list_f[i])
+        {
+            uint32_t start = malloc_list_f[i];
+            uint32_t end = start + malloc_list_s[i];
+            if (addr >= start && addr < end)
+            {
+                /* fixme: print blocks sorted by age */
+                /* initially they are found in sorted order, but that changes on longer runs */
+                /* workaround: always print if a newer location is found (even if it's a little more verbose) */
+                int age = malloc_age - malloc_list_a[i];
+                int show = (found == 0) || age < age_found || qemu_loglevel_mask(EOS_LOG_VERBOSE);
+                age_found = MIN(age_found, age);
+
+                if (show)
+                {
+                    fprintf(stderr, 
+                        KLRED"Address %x is %d bytes inside a block of size %d (%x-%x) age %d free'd at %x"KRESET"\n",
+                        addr, addr - start, end - start, start, end, age, malloc_list_l[i]
+                    );
+                    printed++;
+                }
+                found++;
+            }
+        }
+    }
+
+    if (found > printed)
+    {
+        fprintf(stderr, KLRED"%d older location(s) not displayed (use -d memchk,v to show them)"KRESET"\n", found - printed);
+    }
+}
+
 
 static void getenv_hex(const char * env_name, uint32_t * var, uint32_t default_value)
 {

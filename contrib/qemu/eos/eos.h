@@ -15,6 +15,12 @@
 #define BMPPITCH 960
 #define BM(x,y) ((x) + (y) * BMPPITCH)
 
+// mod like in math... x mod n is from 0 to n-1
+#define MOD(x,m) \
+   ({ int _x = (x); \
+      int _m = (m); \
+     (_x % _m + _m) % _m; })
+
 /** Logging macros **/
 /* DPRINTF only gets printed when using -d device (-d mpu etc) */
 /* VPRINTF requires -d verbose (e.g. -d mpu,verbose) */
