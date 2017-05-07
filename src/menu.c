@@ -5036,20 +5036,28 @@ menu_init( void )
     gui_sem = create_named_semaphore( "gui", 0 );
     menu_redraw_sem = create_named_semaphore( "menu_r", 1);
 
-    struct menu * m = NULL;
-    m = menu_find_by_name( "Audio",     ICON_ML_AUDIO   );
-    m = menu_find_by_name( "Expo",      ICON_ML_EXPO    );
-    m = menu_find_by_name( "Overlay",   ICON_ML_OVERLAY );
-    m = menu_find_by_name( "Movie",     ICON_ML_MOVIE   );
-    m = menu_find_by_name( "Shoot",     ICON_ML_SHOOT   );
-    m = menu_find_by_name( "Focus",     ICON_ML_FOCUS   );
-    m = menu_find_by_name( "Display",   ICON_ML_DISPLAY );
-    m = menu_find_by_name( "Prefs",     ICON_ML_PREFS   );
-    m = menu_find_by_name( "Scripts",   ICON_ML_SCRIPT  );
-    m = menu_find_by_name( "Games",     ICON_ML_GAMES  );
-    m = menu_find_by_name( "Modules",   ICON_ML_MODULES ); if (m) m->split_pos = 11;
-    m = menu_find_by_name( "Debug",     ICON_ML_DEBUG   );
-    m = menu_find_by_name( "Help",      ICON_ML_INFO    );
+    menu_find_by_name( "Audio",     ICON_ML_AUDIO   );
+    menu_find_by_name( "Expo",      ICON_ML_EXPO    );
+    menu_find_by_name( "Overlay",   ICON_ML_OVERLAY );
+    menu_find_by_name( "Movie",     ICON_ML_MOVIE   );
+    menu_find_by_name( "Shoot",     ICON_ML_SHOOT   );
+    menu_find_by_name( "Focus",     ICON_ML_FOCUS   );
+    menu_find_by_name( "Display",   ICON_ML_DISPLAY );
+    menu_find_by_name( "Prefs",     ICON_ML_PREFS   );
+    menu_find_by_name( "Scripts",   ICON_ML_SCRIPT  );
+    menu_find_by_name( "Games",     ICON_ML_GAMES  );
+    menu_find_by_name( "Modules",   ICON_ML_MODULES );
+    menu_find_by_name( "Debug",     ICON_ML_DEBUG   );
+    menu_find_by_name( "Help",      ICON_ML_INFO    );
+
+    struct menu * m = menu_find_by_name( "Modules", 0 );
+    ASSERT(m);
+    m->split_pos = -11;
+    m->no_name_lookup = 1;
+
+    m = menu_find_by_name( "Help", 0 );
+    ASSERT(m);
+    m->no_name_lookup = 1;
 }
 
 /*

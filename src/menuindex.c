@@ -98,16 +98,14 @@ static struct menu_entry help_menus[] = {
     /* if BTN_ZEBRAS_FOR_PLAYBACK_NAME is undefined, you must define it (or undefine FEATURE_OVERLAYS_IN_PLAYBACK_MODE) */
     {
         .select = menu_nav_help_open,
-        .name = "Press "BTN_ZEBRAS_FOR_PLAYBACK_NAME"  ",
+        .name = "Press "BTN_ZEBRAS_FOR_PLAYBACK_NAME,
         .choices = CHOICES("Overlays (PLAY only)"),
     },
     #endif
     #ifdef ARROW_MODE_TOGGLE_KEY
     {
-        /* note: on some models, the two keys are identical,
-         * causing a duplicate menu item (workaround: extra space) */
         .select = menu_nav_help_open,
-        .name = "Press "ARROW_MODE_TOGGLE_KEY" ",
+        .name = "Press "ARROW_MODE_TOGGLE_KEY,
         .choices = CHOICES("Shortcuts (LV only)"),
     },
     #endif
