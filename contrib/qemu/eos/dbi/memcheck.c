@@ -129,23 +129,58 @@ static void mem_set_status(uint32_t start, uint32_t end, uint64_t status)
 
 static void copy_mem_status(uint32_t src, uint32_t dst, uint32_t size)
 {
-    src &= ~0x40000000;
     dst &= ~0x40000000;
-    assert(src + size <= 0x20000000);
     assert(dst + size <= 0x20000000);
+
+    if (src >= 0xF0000000)
+    {
+        /* reading from ROM */
+        for (uint32_t i = 0; i < size; i++)
+        {
+            /* only change the initialization flag */
+            set_initialized(dst + i);
+        }
+        return;
+    }
+
+    src &= ~0x40000000;
+    assert(src + size <= 0x20000000);
 
     /* can be optimized; keep it simple for now */
     for (uint32_t i = 0; i < size; i++)
     {
-        uint32_t si = 2 * (src + size);
-        uint32_t di = 2 * (dst + size);
-        uint64_t sm = (3 << (si & 63));
-        uint64_t dm = (3 << (di & 63));
-        mem_status[di/64] &= ~dm;
-        mem_status[di/64] |= (mem_status[di/64] & sm);
+        /* only copy the initialization flag */
+        if (is_uninitialized(src + i)) {
+            set_uninitialized(dst + i);
+        } else {
+            set_initialized(dst + i);
+        }
     }
 }
 
+/* weak checksum on memory status flags, for internal use only */
+static uint64_t mem_status_checksum(uint32_t src, uint32_t size)
+{
+    if (src >= 0xF0000000)
+    {
+        return -1;
+    }
+
+    src &= ~0x40000000;
+    assert(src + size <= 0x20000000);
+
+    uint64_t check = 0;
+
+    for (uint32_t addr = src; addr < src + size; addr++)
+    {
+        uint32_t i = 2 * addr;
+        uint64_t flags = mem_status[i/64] & (MS_MASK << (i & 63));
+        check += flags;
+        check += (flags) ? 0 : (addr - src);
+    }
+
+    return check;
+}
 
 static int is_heap_routine(EOSState *s, uint32_t pc)
 {
@@ -279,6 +314,12 @@ static int malloc_list_p[16384] = {0};
 static int malloc_list_s[16384] = {0};
 static int malloc_idx = 0;
 
+static uint32_t memcpy_lr[4]  = {0};
+static uint32_t memcpy_src[4] = {0};
+static uint32_t memcpy_dst[4] = {0};
+static uint32_t memcpy_num[4] = {0};
+static uint64_t memcpy_chk[4] = {0};
+
 /* fixme: many addresses hardcoded to 500D */
 void eos_memcheck_log_exec(EOSState *s, uint32_t pc)
 {
@@ -349,18 +390,72 @@ void eos_memcheck_log_exec(EOSState *s, uint32_t pc)
         }
     }
 
-    if (pc == stubs.memcpy[0] || pc == stubs.memcpy[1] || pc == stubs.memcpy[2] || pc == stubs.memcpy[3])
+    if (pc == stubs.memcpy[0] || pc == stubs.memcpy[1] || pc == stubs.memcpy[2] || pc == stubs.memcpy[3] ||
+        pc == ml_memcpy)
     {
-        int dst = CURRENT_CPU->env.regs[0];
-        int src = CURRENT_CPU->env.regs[1];
-        int num = CURRENT_CPU->env.regs[2];
-        int lr  = CURRENT_CPU->env.regs[14];
+        /* allow a few multi-tasked calls */
+        int id = (memcpy_lr[0] == 0) ? 0 :
+                 (memcpy_lr[1] == 0) ? 1 :
+                 (memcpy_lr[2] == 0) ? 2 :
+                 (memcpy_lr[3] == 0) ? 3 :
+                                      -1 ;
+        assert(id >= 0);
+
+        assert(memcpy_lr[id] == 0);
+        memcpy_dst[id] = CURRENT_CPU->env.regs[0];
+        memcpy_src[id] = CURRENT_CPU->env.regs[1];
+        memcpy_num[id] = CURRENT_CPU->env.regs[2];
+        memcpy_lr[id]  = CURRENT_CPU->env.regs[14];
         qemu_log_mask(EOS_LOG_VERBOSE,
-            "[%s:%x] memcpy %x %x %x\n",
-            eos_get_current_task_name(s), lr,
-            dst, src, num
+            "[%s:%x:%d] memcpy(%x, %x, %x)\n",
+            eos_get_current_task_name(s), memcpy_lr[id], id,
+            memcpy_dst[id], memcpy_src[id], memcpy_num[id]
         );
-        copy_mem_status(src, dst, num);
+
+        if ((int32_t)memcpy_num[id] < 0)
+        {
+            fprintf(stderr,
+                KLRED"[%s:%x:%x] negative size argument to memcpy(%x, %x, %x)?"KRESET"\n",
+                eos_get_current_task_name(s), pc, memcpy_lr[id],
+                memcpy_dst[id], memcpy_src[id], memcpy_num[id]
+            );
+        }
+
+        uint32_t src_s = memcpy_src[id] & ~0x40000000;
+        uint32_t dst_s = memcpy_dst[id] & ~0x40000000;
+        uint32_t src_e = src_s + memcpy_num[id];
+        uint32_t dst_e = dst_s + memcpy_num[id];
+        if ((src_s < dst_s && src_e > dst_s) ||
+            (src_s > dst_s && src_s < dst_e))
+        {
+            fprintf(stderr,
+                KLRED"[%s:%x:%x] source and destination overlap in memcpy(%x, %x, %x)"KRESET"\n",
+                eos_get_current_task_name(s), pc, memcpy_lr[id],
+                memcpy_dst[id], memcpy_src[id], memcpy_num[id]
+            );
+        }
+
+        /* note: memcpy writes to memory */
+        /* we'll let it do whatever it does, and we will
+         * overwrite the initialization flags when it returns.
+         * note: it must not change the flags of src
+         */
+        memcpy_chk[id] = mem_status_checksum(memcpy_src[id], memcpy_num[id]);
+        qemu_log_mask(EOS_LOG_VERBOSE, "Flags checksum: %lx\n", memcpy_chk[id]);
+    }
+    for (int id = 0; id < COUNT(memcpy_lr); id++)
+    {
+        if (pc == memcpy_lr[id])
+        {
+            qemu_log_mask(EOS_LOG_VERBOSE,
+                "[%s:%x] memcpy(%x, %x, %x) finished.\n",
+                eos_get_current_task_name(s), memcpy_lr[id],
+                memcpy_dst[id], memcpy_src[id], memcpy_num[id]
+            );
+            assert(memcpy_chk[id] == mem_status_checksum(memcpy_src[id], memcpy_num[id]));
+            copy_mem_status(memcpy_src[id], memcpy_dst[id], memcpy_num[id]);
+            memcpy_lr[id] = 0;
+        }
     }
 
     if (pc == stubs.init_heap)   /* init_heap */
