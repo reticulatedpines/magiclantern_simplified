@@ -76,9 +76,6 @@ static int my_menu_dirty = 0;
 static struct menu * mod_menu;
 static int mod_menu_dirty = 1;
 
-#define IS_DYNAMIC_MENU(menu) \
-    ((menu) == my_menu || (menu) == mod_menu)
-
 /* menu is checked for duplicate entries after adding new items */
 static void check_duplicate_entries();
 static int duplicate_check_dirty = 1;
@@ -437,9 +434,11 @@ void customize_menu_init()
     // this is added at the end, after all the others
     my_menu = menu_find_by_name( MY_MENU_NAME, ICON_ML_MYMENU  );
     menu_add(MY_MENU_NAME, my_menu_placeholders, COUNT(my_menu_placeholders));
+    my_menu->no_name_lookup = 1;
     
     mod_menu = menu_find_by_name(MOD_MENU_NAME, ICON_ML_MODIFIED);
     menu_add(MOD_MENU_NAME, mod_menu_placeholders, COUNT(mod_menu_placeholders));
+    mod_menu->no_name_lookup = 1;
 }
 
 static struct menu * menus;
@@ -1395,7 +1394,7 @@ static void menu_update_usage_counters(struct menu_entry * entry)
         if (!entry) goto end;
     }
 
-    if (streq(entry->parent_menu->name, "Modules"))
+    if (entry->parent_menu->no_name_lookup)
     {
         /* ignore this special menu */
         goto end;
@@ -1446,8 +1445,9 @@ static void menu_usage_counters_update_threshold(int num)
     /* count the menu items */
     for (struct menu * menu = menus; menu; menu = menu->next)
     {
-        if (IS_DYNAMIC_MENU(menu))
+        if (menu->no_name_lookup)
             continue;
+
         for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
         {
             num_entries++;
@@ -1462,8 +1462,9 @@ static void menu_usage_counters_update_threshold(int num)
     int k = 0;
     for (struct menu * menu = menus; menu; menu = menu->next)
     {
-        if (IS_DYNAMIC_MENU(menu))
+        if (menu->no_name_lookup)
             continue;
+
         for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
         {
             float counter = MAX(entry->usage_counter_long_term, entry->usage_counter_short_term);
@@ -2936,9 +2937,9 @@ dyn_menu_rebuild(struct menu * dyn_menu, int (*select_func)(struct menu_entry * 
     int i = 0;
     for (struct menu * menu = menus; menu; menu = menu->next)
     {
-        if (IS_DYNAMIC_MENU(menu))
+        if (menu->no_name_lookup)
             continue;
-        
+
         if (IS_SUBMENU(menu))
             continue;
 
@@ -3015,7 +3016,7 @@ static void junkie_menu_rebuild(int min_items, int * count_max, int * count_my, 
 
     for (struct menu * menu = menus; menu; menu = menu->next)
     {
-        if (IS_DYNAMIC_MENU(menu))
+        if (menu->no_name_lookup)
             continue;
 
         int count = 0;
@@ -4017,6 +4018,14 @@ menu_entry_customize_toggle(
     struct menu *   menu
 )
 {
+    if (menu->no_name_lookup && menu != my_menu)
+    {
+        /* we depend on name look-ups */
+        /* my_menu is a special case, see below */
+        beep();
+        return;
+    }
+
     struct menu_entry * entry = get_selected_entry(menu);
     if (!entry) return;
 
@@ -4033,7 +4042,9 @@ menu_entry_customize_toggle(
     {
         // lookup the corresponding entry in normal menus, and toggle that one instead
         struct menu_entry * orig_entry = entry_by_name;
-        if (!orig_entry->starred) return;
+        ASSERT(orig_entry->starred);
+        ASSERT(orig_entry->parent_menu);
+        ASSERT(orig_entry->parent_menu->no_name_lookup == 0);
         menu_entry_star_toggle(orig_entry); // should not fail
         return;
     }
@@ -5488,10 +5499,10 @@ static struct menu_entry * entry_find_by_name(const char* name, const char* entr
 
     for (struct menu * menu = menus; menu; menu = menu->next)
     {
-        /* skip dynamic menus */
-        if (IS_DYNAMIC_MENU(menu))
+        /* skip special menus */
+        if (menu->no_name_lookup)
             continue;
-        
+
         if (streq(menu->name, name))
         {
             for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
@@ -5816,9 +5827,9 @@ static void menu_save_flags(char* filename)
 
     for (struct menu * menu = menus; menu; menu = menu->next)
     {
-        if (IS_DYNAMIC_MENU(menu))
+        if (menu->no_name_lookup)
             continue;
-        
+
         for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
         {
             if (!entry->name) continue;
@@ -6296,9 +6307,9 @@ static void check_duplicate_entries()
 
     for (struct menu * menu = menus; menu; menu = menu->next)
     {
-        if (IS_DYNAMIC_MENU(menu))
+        if (menu->no_name_lookup)
             continue;
-        
+
         for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
         {
             if (entry->shidden)

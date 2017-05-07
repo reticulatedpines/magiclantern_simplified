@@ -275,6 +275,8 @@ struct menu
     int16_t             split_pos;          /* [override] the limit between name and value columns; negative values are internal, positive are user overrides */
     char                advanced;           /* [internal] whether this submenu shows advanced entries or not */
     char                has_placeholders;   /* [internal] whether this menu has placeholders (to force the location of certain menu entries) */
+    char                no_name_lookup;     /* [override] use to disable name lookup for this entry (e.g. entries with duplicate names, or huge menus) */
+                                            /*            note: this will disable all functionality depending on name look-up (such as usage counters, selecting for My Menu etc) */
 };
 
 #define IS_SUBMENU(menu) (menu->icon == ICON_ML_SUBMENU)
