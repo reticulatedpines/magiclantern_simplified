@@ -1094,7 +1094,7 @@ static void menu_update_split_pos(struct menu * menu, struct menu_entry * entry)
 {
     // auto adjust width so that all things can be printed nicely
     // only "negative" numbers are auto-adjusted (if you override the width, you do so with a positive value)
-    if (entry->name && menu->split_pos < 0)// && entry->priv)
+    if (menu->split_pos < 0)// && entry->priv)
     {
         menu->split_pos = -MAX(-menu->split_pos, bmp_string_width(FONT_LARGE, entry->name)/20 + 2);
         if (-menu->split_pos > 28) menu->split_pos = -28;
@@ -1138,11 +1138,14 @@ menu_update_placeholder(struct menu * menu, struct menu_entry * new_entry)
         return;
     }
 
-    if (!menu->has_placeholders) return;
+    if (!menu->has_placeholders)
+    {
+        return;
+    }
     
     for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
     {
-        if (entry != new_entry && MENU_IS_PLACEHOLDER(entry) && entry->name && streq(entry->name, new_entry->name))
+        if (entry != new_entry && MENU_IS_PLACEHOLDER(entry) && streq(entry->name, new_entry->name))
         { /* found, let's try to swap the entries */
             
             placeholder_copy(entry, new_entry);
@@ -2294,12 +2297,6 @@ entry_default_display_info(
     info->warning_level = check_default_warnings(entry, warning);
     
     snprintf(name, sizeof(name), "%s", entry->name);
-    
-    /* for junkie mode, short_name will get copied, short_value is empty by default */
-    /*if(entry->short_name && strlen(entry->short_name))
-    {
-        snprintf(short_name, sizeof(short_name), "%s", entry->short_name);
-    }*/
 
     if (entry->choices && SELECTED_INDEX(entry) >= 0 && SELECTED_INDEX(entry) < NUM_CHOICES(entry))
     {
@@ -4022,7 +4019,6 @@ menu_entry_customize_toggle(
 {
     struct menu_entry * entry = get_selected_entry(menu);
     if (!entry) return;
-    if (!entry->name) return;
 
     /* make sure the customized menu entry can be looked up by name */
     struct menu_entry * entry_by_name = entry_find_by_name(entry->parent_menu->name, entry->name);
@@ -5455,7 +5451,7 @@ void select_menu_by_name(char* name, const char* entry_name)
                 struct menu_entry * selected_entry = 0;
                 for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
                 {
-                    if (entry->name && streq(entry->name, entry_name))
+                    if (streq(entry->name, entry_name))
                     {
                         selected_entry = entry;
                         break;
@@ -5504,7 +5500,7 @@ static struct menu_entry * entry_find_by_name(const char* name, const char* entr
                 if (MENU_IS_PLACEHOLDER(entry))
                     continue;
 
-                if (entry->name && streq(entry->name, entry_name))
+                if (streq(entry->name, entry_name))
                 {
                     ans = entry;
                     count++;
@@ -6305,14 +6301,12 @@ static void check_duplicate_entries()
         
         for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
         {
-            if (!entry->name)
-                continue;
-
             if (entry->shidden)
                 continue;
 
             /* make sure each item can be looked up by name */
             /* entry_find_by_name will print a warning if there are duplicates */
+            ASSERT(entry->name);
             struct menu_entry * e = entry_find_by_name(menu->name, entry->name);
             ASSERT(e == 0 || e == entry);
         }
