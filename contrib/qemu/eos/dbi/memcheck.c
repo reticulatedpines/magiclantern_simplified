@@ -328,34 +328,8 @@ struct malloc_list_item malloc_list[16384] = {{0}};
 static int malloc_idx = 0;  /* index in malloc_list */
 static int malloc_num = 0;  /* number of malloc calls */
 
-static uint32_t memcpy_lr[4]  = {0};
-static uint32_t memcpy_src[4] = {0};
-static uint32_t memcpy_dst[4] = {0};
-static uint32_t memcpy_num[4] = {0};
-static uint64_t memcpy_chk[4] = {0};
-
-static int malloc_overlap(uint32_t dst, uint32_t src, uint32_t size)
+static void exec_log_malloc(EOSState *s, uint32_t pc, CPUARMState *env)
 {
-    uint32_t src_s = src & ~0x40000000;
-    uint32_t dst_s = dst & ~0x40000000;
-    uint32_t src_e = src_s + size;
-    uint32_t dst_e = dst_s + size;
-
-    return ((src_s < dst_s && src_e > dst_s) ||
-            (src_s > dst_s && src_s < dst_e));
-}
-
-/* fixme: many addresses hardcoded to 500D */
-void eos_memcheck_log_exec(EOSState *s, uint32_t pc, CPUARMState *env)
-{
-    /* for some reason, this may called multiple times on the same PC */
-    static uint32_t prev_pc = 0xFFFFFFFF;
-    if (prev_pc == pc) return;
-    prev_pc = pc;
-
-    /* our uninitialized stubs are 0 - don't log this address */
-    if (!pc) return;
-
     if (pc == stubs.malloc[0] || pc == stubs.malloc[1] || pc == stubs.malloc[2] || pc == stubs.malloc[3])
     {
         /* allow a few multi-tasked calls */
@@ -432,6 +406,42 @@ void eos_memcheck_log_exec(EOSState *s, uint32_t pc, CPUARMState *env)
         }
     }
 
+    if (pc == stubs.init_heap)   /* init_heap */
+    {
+        int start = env->regs[0];
+        int size  = env->regs[1];
+        fprintf(stderr, "init_heap %x %x\n", start, start+size);
+
+        if (start == stubs.checked_heaps[0] ||
+            start == stubs.checked_heaps[1] ||
+            start == stubs.checked_heaps[2] ||
+            start == stubs.checked_heaps[3])
+        {
+            fprintf(stderr, "Checking this heap.\n");
+            mem_set_status(start, start+size, MS_FREED | MS_NOINIT);
+        }
+    }
+}
+
+static uint32_t memcpy_lr[4]  = {0};
+static uint32_t memcpy_src[4] = {0};
+static uint32_t memcpy_dst[4] = {0};
+static uint32_t memcpy_num[4] = {0};
+static uint64_t memcpy_chk[4] = {0};
+
+static int memcpy_overlaps(uint32_t dst, uint32_t src, uint32_t size)
+{
+    uint32_t src_s = src & ~0x40000000;
+    uint32_t dst_s = dst & ~0x40000000;
+    uint32_t src_e = src_s + size;
+    uint32_t dst_e = dst_s + size;
+
+    return ((src_s < dst_s && src_e > dst_s) ||
+            (src_s > dst_s && src_s < dst_e));
+}
+
+static void exec_log_memcpy(EOSState *s, uint32_t pc, CPUARMState *env)
+{
     if (pc == stubs.memcpy[0] || pc == stubs.memcpy[1] || pc == stubs.memcpy[2] || pc == stubs.memcpy[3] ||
         pc == ml_memcpy)
     {
@@ -463,7 +473,7 @@ void eos_memcheck_log_exec(EOSState *s, uint32_t pc, CPUARMState *env)
             );
         }
 
-        if (malloc_overlap(memcpy_dst[id], memcpy_src[id], memcpy_num[id]))
+        if (memcpy_overlaps(memcpy_dst[id], memcpy_src[id], memcpy_num[id]))
         {
             fprintf(stderr,
                 KLRED"[%s:%x:%x] source and destination overlap in memcpy(%x, %x, %x)"KRESET"\n",
@@ -489,7 +499,7 @@ void eos_memcheck_log_exec(EOSState *s, uint32_t pc, CPUARMState *env)
                 eos_get_current_task_name(s), memcpy_lr[id],
                 memcpy_dst[id], memcpy_src[id], memcpy_num[id]
             );
-            if (!malloc_overlap(memcpy_dst[id], memcpy_src[id], memcpy_num[id]))
+            if (!memcpy_overlaps(memcpy_dst[id], memcpy_src[id], memcpy_num[id]))
             {
                 assert(memcpy_chk[id] == mem_status_checksum(memcpy_src[id], memcpy_num[id]));
             }
@@ -497,22 +507,21 @@ void eos_memcheck_log_exec(EOSState *s, uint32_t pc, CPUARMState *env)
             memcpy_lr[id] = 0;
         }
     }
+}
 
-    if (pc == stubs.init_heap)   /* init_heap */
-    {
-        int start = env->regs[0];
-        int size  = env->regs[1];
-        fprintf(stderr, "init_heap %x %x\n", start, start+size);
+/* fixme: many addresses hardcoded to 500D */
+void eos_memcheck_log_exec(EOSState *s, uint32_t pc, CPUARMState *env)
+{
+    /* for some reason, this may called multiple times on the same PC */
+    static uint32_t prev_pc = 0xFFFFFFFF;
+    if (prev_pc == pc) return;
+    prev_pc = pc;
 
-        if (start == stubs.checked_heaps[0] ||
-            start == stubs.checked_heaps[1] ||
-            start == stubs.checked_heaps[2] ||
-            start == stubs.checked_heaps[3])
-        {
-            fprintf(stderr, "Checking this heap.\n");
-            mem_set_status(start, start+size, MS_FREED | MS_NOINIT);
-        }
-    }
+    /* our uninitialized stubs are 0 - don't log this address */
+    if (!pc) return;
+
+    exec_log_malloc(s, pc, env);
+    exec_log_memcpy(s, pc, env);
 
     if (pc == 0x18)
     {
