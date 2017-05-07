@@ -314,13 +314,19 @@ ignore:;
 static int malloc_lr[4] = {0};
 static int malloc_size[4] = {0};
 
-static int malloc_list_p[16384] = {0};  /* allocated blocks (start pointer) */
-static int malloc_list_s[16384] = {0};  /* block sizes */
-static int malloc_list_l[16384] = {0};  /* caller address (LR) */
-static int malloc_list_f[16384] = {0};  /* freed blocks */
-static int malloc_list_a[16384] = {0};  /* age */
-static int malloc_idx = 0;
-static int malloc_age = 0;
+struct malloc_list_item
+{
+    uint32_t ptr;           /* start pointer for allocated blocks */
+    uint32_t ptf;           /* start pointer for freed blocks */
+    uint32_t size;          /* block size */
+    uint32_t caller;        /* caller address */
+    int seq;                /* sequence ID (number of malloc calls before this) to compute age */
+};
+
+/* circular buffer */
+struct malloc_list_item malloc_list[16384] = {{0}};
+static int malloc_idx = 0;  /* index in malloc_list */
+static int malloc_num = 0;  /* number of malloc calls */
 
 static uint32_t memcpy_lr[4]  = {0};
 static uint32_t memcpy_src[4] = {0};
@@ -378,12 +384,12 @@ void eos_memcheck_log_exec(EOSState *s, uint32_t pc)
             int malloc_idx0 = malloc_idx;
             int keep_free_blocks = 1;
 
-            while (malloc_list_p[malloc_idx] || 
-                  (malloc_list_f[malloc_idx] && keep_free_blocks))
+            while (malloc_list[malloc_idx].ptr || 
+                  (malloc_list[malloc_idx].ptf && keep_free_blocks))
             {
                 malloc_idx++;
 
-                if (malloc_idx == COUNT(malloc_list_p))
+                if (malloc_idx == COUNT(malloc_list))
                 {
                     malloc_idx = 0;
                 }
@@ -394,12 +400,14 @@ void eos_memcheck_log_exec(EOSState *s, uint32_t pc)
                     keep_free_blocks = 0;
                 }
             }
-            assert(malloc_list_f[malloc_idx] == 0);
-            malloc_list_p[malloc_idx] = malloc_ptr;
-            malloc_list_s[malloc_idx] = malloc_size[id];
-            malloc_list_l[malloc_idx] = malloc_lr[id];
-            malloc_list_f[malloc_idx] = 0;
-            malloc_list_a[malloc_idx] = malloc_age++;
+            assert(malloc_list[malloc_idx].ptf == 0);
+            malloc_list[malloc_idx] = (struct malloc_list_item) {
+                .ptr    = malloc_ptr,
+                .ptf    = 0,
+                .size   = malloc_size[id],
+                .caller = malloc_lr[id],
+                .seq    = malloc_num++,
+            };
             malloc_lr[id] = 0;
         }
     }
@@ -408,18 +416,18 @@ void eos_memcheck_log_exec(EOSState *s, uint32_t pc)
     {
         int free_ptr = CURRENT_CPU->env.regs[0];
         qemu_log_mask(EOS_LOG_VERBOSE, "free %x ", free_ptr);
-        for (int i = 0; i < COUNT(malloc_list_p); i++)
+        for (int i = 0; i < COUNT(malloc_list); i++)
         {
             /* fixme: going backwards from malloc_idx may be faster on average */
-            if (malloc_list_p[i] == free_ptr)
+            if (malloc_list[i].ptr == free_ptr)
             {
-                int size = malloc_list_s[i];
+                int size = malloc_list[i].size;
                 qemu_log_mask(EOS_LOG_VERBOSE, "size %x\n", size);
                 mem_set_status(free_ptr, free_ptr + size, MS_FREED | MS_NOINIT);
                 assert(is_freed(free_ptr));
-                malloc_list_p[i] = 0;
-                malloc_list_f[i] = free_ptr;
-                malloc_list_l[i] = CURRENT_CPU->env.regs[14];
+                malloc_list[i].ptr = 0;
+                malloc_list[i].ptf = free_ptr;
+                malloc_list[i].caller = CURRENT_CPU->env.regs[14];
             }
         }
     }
@@ -522,34 +530,34 @@ static void diagnose_addr(uint32_t addr)
     int printed = 0;
     int age_found = INT_MAX;
 
-    for (int k = 0; k < COUNT(malloc_list_p); k++)
+    for (int k = 0; k < COUNT(malloc_list); k++)
     {
-        int i = MOD(malloc_idx - k, COUNT(malloc_list_p));
-        if (malloc_list_p[i])
+        int i = MOD(malloc_idx - k, COUNT(malloc_list));
+        if (malloc_list[i].ptr)
         {
-            uint32_t start = malloc_list_p[i];
-            uint32_t end = start + malloc_list_s[i];
+            uint32_t start = malloc_list[i].ptr;
+            uint32_t end = start + malloc_list[i].size;
             if (addr >= start && addr < end)
             {
                 /* valgrind is GPL, so we can copy their messages :) */
                 fprintf(stderr, 
                     KLRED"Address %x is %d bytes inside a block of size %d (%x-%x) alloc'd at %x"KRESET"\n",
-                    addr, addr - start, end - start, start, end, malloc_list_l[i]
+                    addr, addr - start, end - start, start, end, malloc_list[i].caller
                 );
                 found++; printed++;
             }
         }
 
-        if (is_freed(addr) && malloc_list_f[i])
+        if (is_freed(addr) && malloc_list[i].ptf)
         {
-            uint32_t start = malloc_list_f[i];
-            uint32_t end = start + malloc_list_s[i];
+            uint32_t start = malloc_list[i].ptf;
+            uint32_t end = start + malloc_list[i].size;
             if (addr >= start && addr < end)
             {
                 /* fixme: print blocks sorted by age */
                 /* initially they are found in sorted order, but that changes on longer runs */
                 /* workaround: always print if a newer location is found (even if it's a little more verbose) */
-                int age = malloc_age - malloc_list_a[i];
+                int age = malloc_num - malloc_list[i].seq;
                 int show = (found == 0) || age < age_found || qemu_loglevel_mask(EOS_LOG_VERBOSE);
                 age_found = MIN(age_found, age);
 
@@ -557,7 +565,7 @@ static void diagnose_addr(uint32_t addr)
                 {
                     fprintf(stderr, 
                         KLRED"Address %x is %d bytes inside a block of size %d (%x-%x) age %d free'd at %x"KRESET"\n",
-                        addr, addr - start, end - start, start, end, age, malloc_list_l[i]
+                        addr, addr - start, end - start, start, end, age, malloc_list[i].caller
                     );
                     printed++;
                 }
