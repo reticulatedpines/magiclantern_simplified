@@ -137,48 +137,49 @@ typedef void (*menu_update_func)(                    // called before displaying
 
 struct menu_entry
 {
-        struct menu_entry * next;
+        struct menu_entry * next;           /* [readonly] linked list pointers (set by menu_add) */
         struct menu_entry * prev;
-        struct menu_entry * children;
-        struct menu_entry * parent;
-        struct menu       * parent_menu; // mostly for custom menus, so we know where each entry comes from
+        struct menu_entry * children;       /* [init,opt] submenu entries */
+        struct menu_entry * parent;         /* [readonly] parent menu entry, only for entries in submenus */
+        struct menu       * parent_menu;    /* [readonly] always valid; used for custom menus, so we know where each entry comes from */
 
-        const char * name;
-        void * priv;
+        const char * name;          /* always valid; must be unique, as name look-ups are used often */
+        void * priv;                /* [opt] usually pointer to int32 value, but can be anything */
         
-        int min;
+        int min;                    /* [opt] valid toggle range (for int32); not enforced */
         int max;
         
-        const char** choices;
+        const char** choices;       /* [opt] pickbox choices (use the CHOICES macro; dynamic choices are difficult, but possible) */
 
-        menu_select_func select;
-        menu_select_func select_Q;
-        menu_update_func update;
+        menu_select_func select;    /* [opt] function called on SET/left/right (or when changing the value from script) */
+        menu_select_func select_Q;  /* [opt] function called when pressing Q or equivalent button */
+        menu_update_func update;    /* [opt] function called before display (or when reading the value from script) */
 
-        unsigned selected   : 1;
+        unsigned selected   : 1;    /* [readonly] only one entry from each menu has this property */
 
-        unsigned starred    : 1; // present in "my menu"
-        unsigned hidden     : 1; // hidden from main menu
-        unsigned jhidden    : 1; // hidden from junkie menu
-        unsigned jstarred   : 1; // in junkie menu, auto-placed in My Menu
-        unsigned shidden    : 1; // special hide, not toggleable by user
-        unsigned placeholder: 1; // place reserved for a future menu
+        unsigned starred    : 1;    /* [internal] present in "my menu" */
+        unsigned hidden     : 1;    /* [internal] hidden from main menu */
+        unsigned jhidden    : 1;    /* [internal] hidden from junkie menu  */
+        unsigned jstarred   : 1;    /* [internal] in junkie menu, auto-placed in My Menu */
+        unsigned shidden    : 1;    /* [opt] special hide, not toggleable from GUI, but can be set by user code */
+        unsigned placeholder: 1;    /* [internal] place reserved for a future menu (see MENU_PLACEHOLDER) */
         
-        unsigned advanced   : 1; // advanced setting in submenus; add a MENU_ADVANCED_TOGGLE if you use it
+        unsigned advanced   : 1;    /* [opt] advanced setting in submenus; add a MENU_ADVANCED_TOGGLE if you use it */
 
-        unsigned edit_mode  : 2;
-        unsigned unit       : 4;
-        unsigned icon_type  : 4;
+        unsigned edit_mode  : 2;    /* [opt] EM_ constants (fine-tune edit behavior) */
+        unsigned unit       : 4;    /* [opt] UNIT_ constants (fine-tune display and toggle behavior) */
+        unsigned icon_type  : 4;    /* [auto-set,override] IT_ constants (to be specified only when automatic detection fails) */
         
-        const char * help;
-        const char * help2;
+        const char * help;          /* [opt] first help line; can be customized for each choice using \n as separator */
+        const char * help2;         /* [opt] second help line (one-size-fits-all or per-choice, same as above) */
     
-        // not required for entry item, but makes it easier to declare in existing menu structures
-        int16_t submenu_width; 
-        int16_t submenu_height;
+        /* not required for entry item, but makes it easier to declare in existing menu structures  */
+        int16_t submenu_width;      /* [opt] copied to submenu, if any (see struct menu) */
+        int16_t submenu_height;     /* [opt] same */
         
-        uint32_t depends_on;     // hard requirement, won't work otherwise
-        uint32_t works_best_in;  // soft requirement, it will work, but not as well
+        /* predefined warning messages for commonly-used cases (for others cases, use MENU_SET_WARNING) */
+        uint32_t depends_on;        /* [opt] hard requirement, won't work otherwise */
+        uint32_t works_best_in;     /* [opt] soft requirement, it will work, but not as well */
 
         /* internal */
         union
@@ -262,18 +263,18 @@ struct menu_entry
 
 struct menu
 {
-    struct menu *       next;
+    struct menu *       next;               /* [auto-set] linked list pointers */
     struct menu *       prev;
-    const char *        name;
-    struct menu_entry * children;
-    int                 selected;
-    int                 icon;
-    int16_t             submenu_width;
-    int16_t             submenu_height;
-    int16_t             scroll_pos;
-    int16_t             split_pos; // the limit between name and value columns
-    char                advanced;
-    char                has_placeholders;
+    const char *        name;               /* [init] always valid (specified when creating) */
+    struct menu_entry * children;           /* [auto-set] menu entries (set on menu_add) */
+    int                 selected;           /* [readonly] only one menu has this property */
+    int                 icon;               /* [init,opt] displayed icon; IT_SUBMENU identifies submenus (in the same "namespace", just hidden) */
+    int16_t             submenu_width;      /* [auto-set,opt] width of the displayed submenu (copied from menu_entry; todo: autodetect?) */
+    int16_t             submenu_height;     /* [auto-set,opt] height --"-- */
+    int16_t             scroll_pos;         /* [internal] number of visible items to skip (because of scroll position) */
+    int16_t             split_pos;          /* [override] the limit between name and value columns; negative values are internal, positive are user overrides */
+    char                advanced;           /* [internal] whether this submenu shows advanced entries or not */
+    char                has_placeholders;   /* [internal] whether this menu has placeholders (to force the location of certain menu entries) */
 };
 
 #define IS_SUBMENU(menu) (menu->icon == ICON_ML_SUBMENU)
