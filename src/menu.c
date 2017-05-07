@@ -1192,6 +1192,10 @@ menu_add(
         // fixme: duplicate code
         head = menu->children = new_entry;
         ASSERT(new_entry->name);
+        ASSERT(new_entry->next == NULL);
+        ASSERT(new_entry->prev == NULL);
+        //ASSERT(new_entry->parent == NULL);
+        ASSERT(new_entry->parent_menu == NULL);
         new_entry->next     = NULL;
         new_entry->prev     = NULL;
         new_entry->parent   = 0;
@@ -1211,6 +1215,10 @@ menu_add(
     for (int i = 0; i < count; i++)
     {
         ASSERT(new_entry->name);
+        ASSERT(new_entry->next == NULL);
+        ASSERT(new_entry->prev == NULL);
+        //ASSERT(new_entry->parent == NULL);
+        ASSERT(new_entry->parent_menu == NULL);
         new_entry->selected = 0;
         new_entry->next     = NULL;
         new_entry->prev     = head;
