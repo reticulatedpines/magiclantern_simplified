@@ -10,6 +10,7 @@
 #include "../eos.h"
 #include "../model_list.h"
 #include "memcheck.h"
+#include "logging.h"
 
 /* readelf magiclantern -a | grep " memcpy$" */
 /* memccpy is next - useful to find out the size */
@@ -241,6 +242,7 @@ void eos_memcheck_log_mem(EOSState *s, hwaddr addr, uint64_t value, uint32_t siz
             (int)addr, is_write ? "written" : "read", (int)value
         );
         diagnose_addr(addr);
+        eos_callstack_print(s, KLRED"Call stack: ", " ", KRESET"\n"); 
     }
 
     /* only interrupts and other TCM code are allowed to use the TCM */
@@ -270,6 +272,7 @@ void eos_memcheck_log_mem(EOSState *s, hwaddr addr, uint64_t value, uint32_t siz
             eos_get_current_task_name(s), pc, lr,
             (int)addr, is_write ? "written to" : "read from", (int)value
         );
+        eos_callstack_print(s, KLRED"Call stack: ", " ", KRESET"\n"); 
 ignore:;
     }
 
@@ -288,6 +291,7 @@ ignore:;
                 (int)addr, (int)value
             );
             diagnose_addr(addr);
+            eos_callstack_print(s, KLRED"Call stack: ", " ", KRESET"\n"); 
         }
     }
     else /* write */

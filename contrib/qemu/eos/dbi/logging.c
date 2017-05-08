@@ -304,6 +304,26 @@ int eos_callstack_indent(EOSState *s)
     return call_stack_indent(get_stackid(s), 0, 0);
 }
 
+int eos_callstack_print(EOSState *s, const char * prefix, const char * sep, const char * suffix)
+{
+    uint8_t id = get_stackid(s);
+
+    if (!call_stack_num[id])
+    {
+        /* empty? */
+        return 0;
+    }
+
+    int len = fprintf(stderr, "%s", prefix);
+    for (int k = call_stack_num[id]-1; k >= 0; k--)
+    {
+        uint32_t pc = call_stacks[id][k].lr;
+        len += fprintf(stderr, "%x%s", pc, sep);
+    }
+    len += fprintf(stderr, "%s", suffix);
+    return len;
+}
+
 static void print_location(EOSState *s, uint32_t prev_pc, uint32_t prev_lr)
 {
     if (interrupt_level) {
