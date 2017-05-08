@@ -301,7 +301,7 @@ static int call_stack_indent(uint8_t id, int initial_len, int max_initial_len)
 
 int eos_callstack_indent(EOSState *s)
 {
-    if (qemu_loglevel_mask(EOS_LOG_VERBOSE)) {
+    if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
         return call_stack_indent(get_stackid(s), 0, 0);
     } else {
         return 0;
@@ -310,7 +310,7 @@ int eos_callstack_indent(EOSState *s)
 
 int eos_callstack_get_indent(EOSState *s)
 {
-    if (qemu_loglevel_mask(EOS_LOG_VERBOSE)) {
+    if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
         return call_stack_num[get_stackid(s)];
     } else {
         return 0;
@@ -357,7 +357,7 @@ static int print_call_location(EOSState *s, uint32_t pc, uint32_t lr)
 }
 
 
-static void eos_log_calls(EOSState *s, CPUState *cpu, TranslationBlock *tb)
+static void eos_log_callstack(EOSState *s, CPUState *cpu, TranslationBlock *tb)
 {
     ARMCPU *arm_cpu = ARM_CPU(cpu);
     CPUARMState *env = &arm_cpu->env;
@@ -406,12 +406,15 @@ static void eos_log_calls(EOSState *s, CPUState *cpu, TranslationBlock *tb)
             if (pc == call_stacks[id][k].lr)
             {
                 call_stack_num[id] = k;
-                if (qemu_loglevel_mask(EOS_LOG_VERBOSE)) {
+                if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
                     int len = call_stack_indent(id, 0, 0);
                     len += fprintf(stderr, "return to 0x%X (%s)", pc, env->thumb ? "Thumb" : "ARM");
                     len += indent(len, 64);
                     print_call_location(s, prev_pc, prev_lr);
                 }
+
+                /* todo: callback here? */
+
                 goto end;
             }
         }
@@ -442,14 +445,19 @@ static void eos_log_calls(EOSState *s, CPUState *cpu, TranslationBlock *tb)
         }
         if (lr == prev_pc + 4)
         {
-            eos_idc_log_call(cpu, env, tb, prev_pc, prev_lr, prev_sp, prev_size);
-            if (qemu_loglevel_mask(EOS_LOG_VERBOSE)) {
+            if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
                 int len = call_stack_indent(id, 0, 0);
                 len += fprintf(stderr, "call 0x%X (%s)", pc, env->thumb ? "Thumb" : "ARM");
                 len += indent(len, 64);
                 print_call_location(s, prev_pc, prev_lr);
+
+                /* also save to IDC if -calls was specified (but not -callstack) */
+                eos_idc_log_call(cpu, env, tb, prev_pc, prev_lr, prev_sp, prev_size);
             }
             call_stack_push(id, lr, sp);
+
+            /* todo: callback here? */
+
             goto end;
         }
     }
@@ -464,7 +472,7 @@ static void eos_log_calls(EOSState *s, CPUState *cpu, TranslationBlock *tb)
             interrupt_level++;
             id = get_stackid(s);
             assert(id == 0xFE);
-            if (qemu_loglevel_mask(EOS_LOG_VERBOSE)) {
+            if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
                 int len = call_stack_indent(id, 0, 0);
                 len += fprintf(stderr, KCYN"interrupt"KRESET);
                 len -= strlen(KCYN KRESET);
@@ -507,7 +515,7 @@ static void eos_log_calls(EOSState *s, CPUState *cpu, TranslationBlock *tb)
             /* interrupts may be nested - just clear the stack */
             call_stack_num[id] = 0;
 
-            if (qemu_loglevel_mask(EOS_LOG_VERBOSE)) {
+            if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
                 int len = call_stack_indent(id, 0, 0);
                 len += fprintf(stderr, KCYN"return from interrupt"KRESET" to %x", pc);
                 if (pc != old_pc && pc != old_pc + 4) len += fprintf(stderr, " (old=%x)", old_pc);
@@ -521,7 +529,7 @@ static void eos_log_calls(EOSState *s, CPUState *cpu, TranslationBlock *tb)
         }
 
         /* unknown jump case, to be diagnosed manually */
-        if (qemu_loglevel_mask(EOS_LOG_VERBOSE)) {
+        if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
             int len = call_stack_indent(id, 0, 0);
             len += fprintf(stderr, KCYN"PC jump? 0x%X (%s)"KRESET, pc, env->thumb ? "Thumb" : "ARM");
             len -= strlen(KCYN KRESET);
@@ -541,9 +549,13 @@ end:
 
 static void tb_exec_cb(void *opaque, CPUState *cpu, TranslationBlock *tb)
 {
-    if (qemu_loglevel_mask(EOS_LOG_CALLS))
+    if (qemu_loglevel_mask(EOS_LOG_CALLSTACK))
     {
-        eos_log_calls(opaque, cpu, tb);
+        /* - callstack only exposes this functionality
+         *   to other "modules" on request
+         * - calls is verbose and implies callstack
+         */
+        eos_log_callstack(opaque, cpu, tb);
     }
 
     if (qemu_loglevel_mask(EOS_LOG_RAM_MEMCHK))
@@ -570,5 +582,11 @@ void eos_logging_init(EOSState *s)
     if (qemu_loglevel_mask(EOS_LOG_RAM_MEMCHK))
     {
         eos_memcheck_init(s);
+    }
+
+    if (qemu_loglevel_mask(EOS_LOG_CALLSTACK))
+    {
+        fprintf(stderr, "Enabling singlestep.\n");
+        singlestep = 1;
     }
 }
