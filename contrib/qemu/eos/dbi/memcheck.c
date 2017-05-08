@@ -407,23 +407,23 @@ static void exec_log_malloc(EOSState *s, uint32_t pc, CPUARMState *env)
     if (pc == stubs.free[0] || pc == stubs.free[1] || pc == stubs.free[2] || pc == stubs.free[3])
     {
         int free_ptr = env->regs[0];
-            if (qemu_loglevel_mask(EOS_LOG_VERBOSE)) {
-                eos_print_location(s, pc, lr, "", " ");
-                fprintf(stderr, "free %x ", free_ptr);
-            }
+        int free_size = -1;
         for (int i = 0; i < COUNT(malloc_list); i++)
         {
             /* fixme: going backwards from malloc_idx may be faster on average */
             if (malloc_list[i].ptr == free_ptr)
             {
-                int size = malloc_list[i].size;
-                qemu_log_mask(EOS_LOG_VERBOSE, "size %x\n", size);
-                mem_set_status(free_ptr, free_ptr + size, MS_FREED | MS_NOINIT);
+                free_size = malloc_list[i].size;
+                mem_set_status(free_ptr, free_ptr + free_size, MS_FREED | MS_NOINIT);
                 assert(is_freed(free_ptr));
                 malloc_list[i].ptr = 0;
                 malloc_list[i].ptf = free_ptr;
                 malloc_list[i].caller = env->regs[14];
             }
+        }
+        if (qemu_loglevel_mask(EOS_LOG_VERBOSE)) {
+            eos_print_location(s, pc, lr, "", " ");
+            fprintf(stderr, "free %x size %x\n", free_ptr, free_size);
         }
     }
 
