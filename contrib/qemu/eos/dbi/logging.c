@@ -171,17 +171,12 @@ void eos_log_mem(void * opaque, hwaddr addr, uint64_t value, uint32_t size, int 
     io_log(mr->name + 4, s, addr, mode, value, value, msg, msg_arg1, msg_arg2);
 }
 
-static void eos_log_calls(CPUState *cpu, TranslationBlock *tb)
+static void eos_idc_log_call(CPUState *cpu, CPUARMState *env,
+    TranslationBlock *tb, uint32_t prev_pc, uint32_t prev_lr, uint32_t prev_sp, uint32_t prev_size)
 {
-    ARMCPU *arm_cpu = ARM_CPU(cpu);
-    CPUARMState *env = &arm_cpu->env;
-    
     static FILE * idc = NULL;
     static int stderr_dup = 0;
-    static uint32_t prev_pc = 0;
-    static uint32_t prev_lr = 0;
-    static uint32_t prev_sp = 0;
-    static uint32_t prev_size = 0;
+
     if (!idc)
     {
         char idc_path[100];
@@ -206,6 +201,47 @@ static void eos_log_calls(CPUState *cpu, TranslationBlock *tb)
 
         stderr_dup = dup(fileno(stderr));
     }
+
+    /* bit array for every possible PC & ~3 */
+    static uint32_t saved_pcs[(1 << 30) / 32] = {0};
+
+    uint32_t pc = env->regs[15];
+    uint32_t lr = env->regs[14];
+    uint32_t sp = env->regs[13];
+
+    /* log each called function to IDC, only once */
+    int pca = pc >> 2;
+    if (!(saved_pcs[pca/32] & (1 << (pca%32))))
+    {
+        saved_pcs[pca/32] |= (1 << pca%32);
+        
+        /* log_target_disas writes to stderr; redirect it to our output file */
+        /* todo: any other threads that might output to stderr? */
+        assert(stderr_dup);
+        fflush(stderr); fflush(idc);
+        dup2(fileno(idc), fileno(stderr));
+        fprintf(stderr, "  /* from "); log_target_disas(cpu, prev_pc, prev_size, 0);
+        fprintf(stderr, "   *   -> "); log_target_disas(cpu, tb->pc, tb->size, 0);
+        fprintf(stderr, "   * PC:%x->%x LR:%x->%x SP:%x->%x */\n",
+            prev_pc, pc, prev_lr, lr, prev_sp, sp
+        );
+        fprintf(stderr, "  SetReg(0x%X, \"T\", %d);\n", pc, env->thumb);
+        fprintf(stderr, "  MakeCode(0x%X);\n", pc);
+        fprintf(stderr, "  MakeFunction(0x%X, BADADDR);\n", pc);
+        fprintf(stderr, "\n");
+        dup2(stderr_dup, fileno(stderr));
+    }
+}
+
+static void eos_log_calls(CPUState *cpu, TranslationBlock *tb)
+{
+    ARMCPU *arm_cpu = ARM_CPU(cpu);
+    CPUARMState *env = &arm_cpu->env;
+    
+    static uint32_t prev_pc = 0;
+    static uint32_t prev_lr = 0;
+    static uint32_t prev_sp = 0;
+    static uint32_t prev_size = 0;
     uint32_t pc = env->regs[15];
     uint32_t lr = env->regs[14];
     uint32_t sp = env->regs[13];
@@ -217,10 +253,7 @@ static void eos_log_calls(CPUState *cpu, TranslationBlock *tb)
             prev_pc, pc, prev_lr, lr, prev_sp, sp
         );
     }
-    
-    /* bit array for every possible PC & ~3 */
-    static uint32_t saved_pcs[(1 << 30) / 32] = {0};
-    
+
     /* when a function call is made:
      * - LR is updated with the return address
      * - stack is decremented
@@ -230,28 +263,7 @@ static void eos_log_calls(CPUState *cpu, TranslationBlock *tb)
     if (lr != prev_lr && sp <= prev_sp &&
         abs((int)sp - (int)prev_sp) < 1024)
     {
-        /* log each called function to IDC, only once */
-        int pca = pc >> 2;
-        if (!(saved_pcs[pca/32] & (1 << (pca%32))))
-        {
-            saved_pcs[pca/32] |= (1 << pca%32);
-            
-            /* log_target_disas writes to stderr; redirect it to our output file */
-            /* todo: any other threads that might output to stderr? */
-            assert(stderr_dup);
-            fflush(stderr); fflush(idc);
-            dup2(fileno(idc), fileno(stderr));
-            fprintf(stderr, "  /* from "); log_target_disas(cpu, prev_pc, prev_size, 0);
-            fprintf(stderr, "   *   -> "); log_target_disas(cpu, tb->pc, tb->size, 0);
-            fprintf(stderr, "   * PC:%x->%x LR:%x->%x SP:%x->%x */\n",
-                prev_pc, pc, prev_lr, lr, prev_sp, sp
-            );
-            fprintf(stderr, "  SetReg(0x%X, \"T\", %d);\n", pc, env->thumb);
-            fprintf(stderr, "  MakeCode(0x%X);\n", pc);
-            fprintf(stderr, "  MakeFunction(0x%X, BADADDR);\n", pc);
-            fprintf(stderr, "\n");
-            dup2(stderr_dup, fileno(stderr));
-        }
+        eos_idc_log_call(cpu, env, tb, prev_pc, prev_lr, prev_sp, prev_size);
 
         /* log each call to console */
         fprintf(stderr, "%08X: call 0x%X (%s)\n", prev_pc, pc, env->thumb ? "Thumb" : "ARM");
