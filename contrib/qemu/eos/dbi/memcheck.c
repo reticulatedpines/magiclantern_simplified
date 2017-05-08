@@ -225,6 +225,7 @@ static void diagnose_addr(uint32_t addr);
 
 static void print_location_KLRED(EOSState *s, uint32_t pc, uint32_t lr)
 {
+    eos_callstack_indent(s);
     eos_print_location(s, pc, lr, KLRED, " ");
 }
 
@@ -356,6 +357,7 @@ static void exec_log_malloc(EOSState *s, uint32_t pc, CPUARMState *env)
         malloc_size[id] = env->regs[0];
 
         if (qemu_loglevel_mask(EOS_LOG_VERBOSE)) {
+            eos_callstack_indent(s);
             eos_print_location(s, pc, lr, "", " ");
             fprintf(stderr, "malloc(%x)\n", malloc_size[id]);
         }
@@ -367,6 +369,7 @@ static void exec_log_malloc(EOSState *s, uint32_t pc, CPUARMState *env)
         {
             int malloc_ptr = env->regs[0];
             if (qemu_loglevel_mask(EOS_LOG_VERBOSE)) {
+                eos_callstack_indent(s);
                 eos_print_location(s, pc, lr, "", " ");
                 fprintf(stderr, "malloc => %x\n", malloc_ptr);
             }
@@ -422,6 +425,7 @@ static void exec_log_malloc(EOSState *s, uint32_t pc, CPUARMState *env)
             }
         }
         if (qemu_loglevel_mask(EOS_LOG_VERBOSE)) {
+            eos_callstack_indent(s);
             eos_print_location(s, pc, lr, "", " ");
             fprintf(stderr, "free %x size %x\n", free_ptr, free_size);
         }
@@ -431,6 +435,7 @@ static void exec_log_malloc(EOSState *s, uint32_t pc, CPUARMState *env)
     {
         int start = env->regs[0];
         int size  = env->regs[1];
+        eos_callstack_indent(s);
         eos_print_location(s, pc, lr, "", " ");
         fprintf(stderr, "init_heap %x %x\n", start, start+size);
 
@@ -481,6 +486,7 @@ static void exec_log_memcpy(EOSState *s, uint32_t pc, CPUARMState *env)
         memcpy_num[id] = env->regs[2];
         memcpy_lr[id]  = env->regs[14];
         if (qemu_loglevel_mask(EOS_LOG_VERBOSE)) {
+            eos_callstack_indent(s);
             eos_print_location(s, pc, memcpy_lr[id], "", " ");
             fprintf(stderr,"memcpy(%x, %x, %x)\n",
                 memcpy_dst[id], memcpy_src[id], memcpy_num[id]
@@ -509,13 +515,17 @@ static void exec_log_memcpy(EOSState *s, uint32_t pc, CPUARMState *env)
          * note: it must not change the flags of src
          */
         memcpy_chk[id] = mem_status_checksum(memcpy_src[id], memcpy_num[id]);
-        qemu_log_mask(EOS_LOG_VERBOSE, "Flags checksum: %lx\n", memcpy_chk[id]);
+        if (qemu_loglevel_mask(EOS_LOG_VERBOSE)) {
+            eos_callstack_indent(s);
+            fprintf(stderr, "Flags checksum: %lx\n", memcpy_chk[id]);
+        }
     }
     for (int id = 0; id < COUNT(memcpy_lr); id++)
     {
         if (pc == memcpy_lr[id])
         {
             if (qemu_loglevel_mask(EOS_LOG_VERBOSE)) {
+                eos_callstack_indent(s);
                 eos_print_location(s, pc, memcpy_lr[id], "", " ");
                 fprintf(stderr, "memcpy(%x, %x, %x) finished.\n",
                     memcpy_dst[id], memcpy_src[id], memcpy_num[id]

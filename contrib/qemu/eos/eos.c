@@ -1530,7 +1530,10 @@ void io_log(const char * module_name, EOSState *s, unsigned int address, unsigne
     
     char mod_name[50];
     char mod_name_and_pc[50];
-    snprintf(mod_name, sizeof(mod_name), "[%s]", module_name);
+    int indent = eos_callstack_get_indent(s);
+    char indent_spaces[] = "                ";
+    indent_spaces[MIN(indent, sizeof(indent_spaces)-1)] = 0;
+    snprintf(mod_name, sizeof(mod_name), "%s[%s]", indent_spaces, module_name);
 
     if (task_name)
     {

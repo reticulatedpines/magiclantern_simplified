@@ -11,6 +11,9 @@ void eos_log_mem(void * opaque, hwaddr addr, uint64_t value, uint32_t size, int 
 /* print spaces to stderr according to call stack depth */
 int eos_callstack_indent(EOSState *s);
 
+/* just get the value, without printing */
+int eos_callstack_get_indent(EOSState *s);
+
 /* print the current call stack to stderr */
 int eos_callstack_print(EOSState *s, const char * prefix, const char * sep, const char * suffix);
 

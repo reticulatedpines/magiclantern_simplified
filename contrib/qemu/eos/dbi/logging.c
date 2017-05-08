@@ -284,7 +284,7 @@ static uint32_t call_stack_pop(uint8_t id)
 static int indent(int initial_len, int target_indent)
 {
     char buf[128];
-    int len = target_indent - initial_len;
+    int len = MAX(0, target_indent - initial_len);
     assert(len < sizeof(buf));
     memset(buf, ' ', len);
     buf[len] = 0;
@@ -301,7 +301,20 @@ static int call_stack_indent(uint8_t id, int initial_len, int max_initial_len)
 
 int eos_callstack_indent(EOSState *s)
 {
-    return call_stack_indent(get_stackid(s), 0, 0);
+    if (qemu_loglevel_mask(EOS_LOG_VERBOSE)) {
+        return call_stack_indent(get_stackid(s), 0, 0);
+    } else {
+        return 0;
+    }
+}
+
+int eos_callstack_get_indent(EOSState *s)
+{
+    if (qemu_loglevel_mask(EOS_LOG_VERBOSE)) {
+        return call_stack_num[get_stackid(s)];
+    } else {
+        return 0;
+    }
 }
 
 int eos_callstack_print(EOSState *s, const char * prefix, const char * sep, const char * suffix)
@@ -340,7 +353,7 @@ int eos_print_location(EOSState *s, uint32_t pc, uint32_t lr, const char * prefi
 
 static int print_call_location(EOSState *s, uint32_t pc, uint32_t lr)
 {
-    return eos_print_location(s, pc, lr, "at ", "\n");
+    return eos_print_location(s, pc, lr, " at ", "\n");
 }
 
 
