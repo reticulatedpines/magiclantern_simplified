@@ -223,6 +223,11 @@ static int is_memcpy(EOSState *s, uint32_t pc)
 
 static void diagnose_addr(uint32_t addr);
 
+static void print_location_KLRED(EOSState *s, uint32_t pc, uint32_t lr)
+{
+    eos_print_location(s, pc, lr, KLRED, " ");
+}
+
 void eos_memcheck_log_mem(EOSState *s, hwaddr addr, uint64_t value, uint32_t size, int flags)
 {
     int is_write = flags & 1;
@@ -237,8 +242,8 @@ void eos_memcheck_log_mem(EOSState *s, hwaddr addr, uint64_t value, uint32_t siz
         (is_write || !is_memcpy(s, pc)) &&  /* don't check memcpy for reads */
         !is_heap_routine(s, pc))            /* don't check malloc/free routines */
     {
-        fprintf(stderr, KLRED"[%s:%x:%x] address %x %s after free (%x)" KRESET "\n",
-            eos_get_current_task_name(s), pc, lr,
+        print_location_KLRED(s, pc, lr);
+        fprintf(stderr, "address %x %s after free (%x)" KRESET "\n",
             (int)addr, is_write ? "written" : "read", (int)value
         );
         diagnose_addr(addr);
@@ -268,8 +273,8 @@ void eos_memcheck_log_mem(EOSState *s, hwaddr addr, uint64_t value, uint32_t siz
                 }
             }
         }
-        fprintf(stderr, KLRED"[%s:%x:%x] address %x %s TCM (%x)"KRESET"\n",
-            eos_get_current_task_name(s), pc, lr,
+        print_location_KLRED(s, pc, lr);
+        fprintf(stderr, "address %x %s TCM (%x)"KRESET"\n",
             (int)addr, is_write ? "written to" : "read from", (int)value
         );
         eos_callstack_print(s, KLRED"Call stack: ", " ", KRESET"\n"); 
@@ -286,8 +291,8 @@ ignore:;
             !is_memcpy(s, pc) &&
             !is_heap_routine(s, pc))
         {
-            fprintf(stderr, KLRED"[%s:%x:%x] address %x uninitialized (read %x)"KRESET"\n",
-                eos_get_current_task_name(s), pc, lr,
+            print_location_KLRED(s, pc, lr);
+            fprintf(stderr, "address %x uninitialized (read %x)"KRESET"\n",
                 (int)addr, (int)value
             );
             diagnose_addr(addr);
@@ -334,6 +339,8 @@ static int malloc_num = 0;  /* number of malloc calls */
 
 static void exec_log_malloc(EOSState *s, uint32_t pc, CPUARMState *env)
 {
+    int lr = env->regs[14];
+
     if (pc == stubs.malloc[0] || pc == stubs.malloc[1] || pc == stubs.malloc[2] || pc == stubs.malloc[3])
     {
         /* allow a few multi-tasked calls */
@@ -347,7 +354,11 @@ static void exec_log_malloc(EOSState *s, uint32_t pc, CPUARMState *env)
         assert(malloc_lr[id] == 0);
         malloc_lr[id] = env->regs[14];
         malloc_size[id] = env->regs[0];
-        qemu_log_mask(EOS_LOG_VERBOSE, "[%x] malloc(%x) lr=%x\n", id, malloc_size[id], malloc_lr[id]);
+
+        if (qemu_loglevel_mask(EOS_LOG_VERBOSE)) {
+            eos_print_location(s, pc, lr, "", " ");
+            fprintf(stderr, "malloc(%x)\n", malloc_size[id]);
+        }
     }
 
     for (int id = 0; id < COUNT(malloc_lr); id++)
@@ -355,7 +366,10 @@ static void exec_log_malloc(EOSState *s, uint32_t pc, CPUARMState *env)
         if (pc == malloc_lr[id])
         {
             int malloc_ptr = env->regs[0];
-            qemu_log_mask(EOS_LOG_VERBOSE, "[%x] malloc => %x\n", id, malloc_ptr);
+            if (qemu_loglevel_mask(EOS_LOG_VERBOSE)) {
+                eos_print_location(s, pc, lr, "", " ");
+                fprintf(stderr, "malloc => %x\n", malloc_ptr);
+            }
             mem_set_status(malloc_ptr, malloc_ptr + malloc_size[id], MS_NOINIT);
             assert(is_uninitialized(malloc_ptr));
 
@@ -393,7 +407,10 @@ static void exec_log_malloc(EOSState *s, uint32_t pc, CPUARMState *env)
     if (pc == stubs.free[0] || pc == stubs.free[1] || pc == stubs.free[2] || pc == stubs.free[3])
     {
         int free_ptr = env->regs[0];
-        qemu_log_mask(EOS_LOG_VERBOSE, "free %x ", free_ptr);
+            if (qemu_loglevel_mask(EOS_LOG_VERBOSE)) {
+                eos_print_location(s, pc, lr, "", " ");
+                fprintf(stderr, "free %x ", free_ptr);
+            }
         for (int i = 0; i < COUNT(malloc_list); i++)
         {
             /* fixme: going backwards from malloc_idx may be faster on average */
@@ -414,6 +431,7 @@ static void exec_log_malloc(EOSState *s, uint32_t pc, CPUARMState *env)
     {
         int start = env->regs[0];
         int size  = env->regs[1];
+        eos_print_location(s, pc, lr, "", " ");
         fprintf(stderr, "init_heap %x %x\n", start, start+size);
 
         if (start == stubs.checked_heaps[0] ||
@@ -462,26 +480,25 @@ static void exec_log_memcpy(EOSState *s, uint32_t pc, CPUARMState *env)
         memcpy_src[id] = env->regs[1];
         memcpy_num[id] = env->regs[2];
         memcpy_lr[id]  = env->regs[14];
-        qemu_log_mask(EOS_LOG_VERBOSE,
-            "[%s:%x:%d] memcpy(%x, %x, %x)\n",
-            eos_get_current_task_name(s), memcpy_lr[id], id,
-            memcpy_dst[id], memcpy_src[id], memcpy_num[id]
-        );
+        if (qemu_loglevel_mask(EOS_LOG_VERBOSE)) {
+            eos_print_location(s, pc, memcpy_lr[id], "", " ");
+            fprintf(stderr,"memcpy(%x, %x, %x)\n",
+                memcpy_dst[id], memcpy_src[id], memcpy_num[id]
+            );
+        }
 
         if ((int32_t)memcpy_num[id] < 0)
         {
-            fprintf(stderr,
-                KLRED"[%s:%x:%x] negative size argument to memcpy(%x, %x, %x)?"KRESET"\n",
-                eos_get_current_task_name(s), pc, memcpy_lr[id],
+            print_location_KLRED(s, pc, memcpy_lr[id]);
+            fprintf(stderr, "negative size argument to memcpy(%x, %x, %x)?"KRESET"\n",
                 memcpy_dst[id], memcpy_src[id], memcpy_num[id]
             );
         }
 
         if (memcpy_overlaps(memcpy_dst[id], memcpy_src[id], memcpy_num[id]))
         {
-            fprintf(stderr,
-                KLRED"[%s:%x:%x] source and destination overlap in memcpy(%x, %x, %x)"KRESET"\n",
-                eos_get_current_task_name(s), pc, memcpy_lr[id],
+            print_location_KLRED(s, pc, memcpy_lr[id]);
+            fprintf(stderr, "source and destination overlap in memcpy(%x, %x, %x)"KRESET"\n",
                 memcpy_dst[id], memcpy_src[id], memcpy_num[id]
             );
         }
@@ -498,11 +515,12 @@ static void exec_log_memcpy(EOSState *s, uint32_t pc, CPUARMState *env)
     {
         if (pc == memcpy_lr[id])
         {
-            qemu_log_mask(EOS_LOG_VERBOSE,
-                "[%s:%x] memcpy(%x, %x, %x) finished.\n",
-                eos_get_current_task_name(s), memcpy_lr[id],
-                memcpy_dst[id], memcpy_src[id], memcpy_num[id]
-            );
+            if (qemu_loglevel_mask(EOS_LOG_VERBOSE)) {
+                eos_print_location(s, pc, memcpy_lr[id], "", " ");
+                fprintf(stderr, "memcpy(%x, %x, %x) finished.\n",
+                    memcpy_dst[id], memcpy_src[id], memcpy_num[id]
+                );
+            }
             if (!memcpy_overlaps(memcpy_dst[id], memcpy_src[id], memcpy_num[id]))
             {
                 assert(memcpy_chk[id] == mem_status_checksum(memcpy_src[id], memcpy_num[id]));

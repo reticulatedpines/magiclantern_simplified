@@ -324,19 +324,25 @@ int eos_callstack_print(EOSState *s, const char * prefix, const char * sep, cons
     return len;
 }
 
-static void print_location(EOSState *s, uint32_t prev_pc, uint32_t prev_lr)
+int eos_print_location(EOSState *s, uint32_t pc, uint32_t lr, const char * prefix, const char * suffix)
 {
     if (interrupt_level) {
-        fprintf(stderr, "at [INT-%02x:%x:%x]\n", s->irq_id, prev_pc, prev_lr);
+        return fprintf(stderr, "%s[INT-%02X:%x:%x]%s", prefix, s->irq_id, pc, lr, suffix);
     } else {
         char * task_name = eos_get_current_task_name(s);
         if (task_name) {
-            fprintf(stderr, "at [%s:%x:%x]\n", task_name, prev_pc, prev_lr);
+            return fprintf(stderr, "%s[%s:%x:%x]%s", prefix, task_name, pc, lr, suffix);
         } else {
-            fprintf(stderr, "at [%x:%x]\n", prev_pc, prev_lr);
+            return fprintf(stderr, "%s[%x:%x]%s", prefix, pc, lr, suffix);
         }
     }
 }
+
+static int print_call_location(EOSState *s, uint32_t pc, uint32_t lr)
+{
+    return eos_print_location(s, pc, lr, "at ", "\n");
+}
+
 
 static void eos_log_calls(EOSState *s, CPUState *cpu, TranslationBlock *tb)
 {
@@ -391,7 +397,7 @@ static void eos_log_calls(EOSState *s, CPUState *cpu, TranslationBlock *tb)
                     int len = call_stack_indent(id, 0, 0);
                     len += fprintf(stderr, "return to 0x%X (%s)", pc, env->thumb ? "Thumb" : "ARM");
                     len += indent(len, 64);
-                    print_location(s, prev_pc, prev_lr);
+                    print_call_location(s, prev_pc, prev_lr);
                 }
                 goto end;
             }
@@ -428,7 +434,7 @@ static void eos_log_calls(EOSState *s, CPUState *cpu, TranslationBlock *tb)
                 int len = call_stack_indent(id, 0, 0);
                 len += fprintf(stderr, "call 0x%X (%s)", pc, env->thumb ? "Thumb" : "ARM");
                 len += indent(len, 64);
-                print_location(s, prev_pc, prev_lr);
+                print_call_location(s, prev_pc, prev_lr);
             }
             call_stack_push(id, lr, sp);
             goto end;
@@ -450,7 +456,7 @@ static void eos_log_calls(EOSState *s, CPUState *cpu, TranslationBlock *tb)
                 len += fprintf(stderr, KCYN"interrupt"KRESET);
                 len -= strlen(KCYN KRESET);
                 len += indent(len, 64);
-                print_location(s, prev_pc, prev_lr);
+                print_call_location(s, prev_pc, prev_lr);
             }
             if (interrupt_level == 1) assert(call_stack_num[id] == 0);
             call_stack_push(id, prev_pc, sp);
@@ -494,7 +500,7 @@ static void eos_log_calls(EOSState *s, CPUState *cpu, TranslationBlock *tb)
                 if (pc != old_pc && pc != old_pc + 4) len += fprintf(stderr, " (old=%x)", old_pc);
                 len -= strlen(KCYN KRESET);
                 len += indent(len, 64);
-                print_location(s, prev_pc, prev_lr);
+                print_call_location(s, prev_pc, prev_lr);
             }
 
             interrupt_level = 0;
@@ -507,7 +513,7 @@ static void eos_log_calls(EOSState *s, CPUState *cpu, TranslationBlock *tb)
             len += fprintf(stderr, KCYN"PC jump? 0x%X (%s)"KRESET, pc, env->thumb ? "Thumb" : "ARM");
             len -= strlen(KCYN KRESET);
             len += indent(len, 64);
-            print_location(s, prev_pc, prev_lr);
+            print_call_location(s, prev_pc, prev_lr);
             call_stack_indent(id, 0, 0);
             target_disas(stderr, CPU(arm_env_get_cpu(env)), prev_pc, 4, 0);
         }

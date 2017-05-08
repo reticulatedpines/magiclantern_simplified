@@ -13,3 +13,6 @@ int eos_callstack_indent(EOSState *s);
 
 /* print the current call stack to stderr */
 int eos_callstack_print(EOSState *s, const char * prefix, const char * sep, const char * suffix);
+
+/* print location (pc:lr, annotated with current task or interrupt) */
+int eos_print_location(EOSState *s, uint32_t pc, uint32_t lr, const char * prefix, const char * suffix);
