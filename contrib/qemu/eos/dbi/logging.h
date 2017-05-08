@@ -7,3 +7,6 @@
 void eos_logging_init(EOSState *s);
 
 void eos_log_mem(void * opaque, hwaddr addr, uint64_t value, uint32_t size, int flags);
+
+/* print spaces to stderr according to call stack depth */
+int eos_callstack_indent(EOSState *s);

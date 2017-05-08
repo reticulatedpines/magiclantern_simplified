@@ -171,6 +171,12 @@ void eos_log_mem(void * opaque, hwaddr addr, uint64_t value, uint32_t size, int 
     io_log(mr->name + 4, s, addr, mode, value, value, msg, msg_arg1, msg_arg2);
 }
 
+
+
+/* ----------------------------------------------------------------------------- */
+
+
+
 static void eos_idc_log_call(CPUState *cpu, CPUARMState *env,
     TranslationBlock *tb, uint32_t prev_pc, uint32_t prev_lr, uint32_t prev_sp, uint32_t prev_size)
 {
@@ -233,12 +239,91 @@ static void eos_idc_log_call(CPUState *cpu, CPUARMState *env,
     }
 }
 
-static void eos_log_calls(CPUState *cpu, TranslationBlock *tb)
+/* call stack reconstruction */
+/* fixme: adapt panda's callstack_instr rather than reinventing the wheel */
+
+/* todo: move it in EOSState? */
+static uint32_t interrupt_level = 0;
+
+static uint8_t get_stackid(EOSState *s)
+{
+    if (interrupt_level)
+    {
+        return 0xFE;
+    }
+
+    return eos_get_current_task_id(s) & 0x7F;
+}
+
+struct call_stack_entry
+{
+    uint32_t lr;    /* location of call (LR) */
+    uint32_t sp;    /* stack pointer before the call */
+};
+
+static struct call_stack_entry call_stacks[256][128];
+static int call_stack_num[256] = {0};
+
+static void call_stack_push(uint8_t id, uint32_t lr, uint32_t sp)
+{
+    assert(call_stack_num[id] < COUNT(call_stacks[0]));
+    call_stacks[id][call_stack_num[id]++] = (struct call_stack_entry) {
+        .lr = lr,
+        .sp = sp,
+    };
+}
+
+#if 0
+static uint32_t call_stack_pop(uint8_t id)
+{
+    assert(call_stack_num[id] > 0);
+    return call_stacks[id][--call_stack_num[id]].lr;
+}
+#endif
+
+static int indent(int initial_len, int target_indent)
+{
+    char buf[128];
+    int len = target_indent - initial_len;
+    assert(len < sizeof(buf));
+    memset(buf, ' ', len);
+    buf[len] = 0;
+    fprintf(stderr, "%s", buf);
+    return len;
+}
+
+static int call_stack_indent(uint8_t id, int initial_len, int max_initial_len)
+{
+    int len = initial_len;
+    len += indent(initial_len, max_initial_len + call_stack_num[id]);
+    return len;
+}
+
+int eos_callstack_indent(EOSState *s)
+{
+    return call_stack_indent(get_stackid(s), 0, 0);
+}
+
+static void print_location(EOSState *s, uint32_t prev_pc, uint32_t prev_lr)
+{
+    if (interrupt_level) {
+        fprintf(stderr, "at [INT-%02x:%x:%x]\n", s->irq_id, prev_pc, prev_lr);
+    } else {
+        char * task_name = eos_get_current_task_name(s);
+        if (task_name) {
+            fprintf(stderr, "at [%s:%x:%x]\n", task_name, prev_pc, prev_lr);
+        } else {
+            fprintf(stderr, "at [%x:%x]\n", prev_pc, prev_lr);
+        }
+    }
+}
+
+static void eos_log_calls(EOSState *s, CPUState *cpu, TranslationBlock *tb)
 {
     ARMCPU *arm_cpu = ARM_CPU(cpu);
     CPUARMState *env = &arm_cpu->env;
     
-    static uint32_t prev_pc = 0;
+    static uint32_t prev_pc = 0xFFFF0000;
     static uint32_t prev_lr = 0;
     static uint32_t prev_sp = 0;
     static uint32_t prev_size = 0;
@@ -253,26 +338,162 @@ static void eos_log_calls(CPUState *cpu, TranslationBlock *tb)
             prev_pc, pc, prev_lr, lr, prev_sp, sp
         );
     }
+    /* when returning from a function call,
+     * it may decrement the call stack by 1 or more levels
+     * see e.g. tail calls (B func) - in this case, one BX LR
+     * does two returns (or maybe more, if tail calls are nested)
+     * 
+     * idea from panda callstack_instr: just look up each PC in the call stack
+     * (for speed: only check this for PC not advancing by 1 instruction)
+     */
+
+    if (pc != prev_pc + 4)
+    {
+        uint8_t id = get_stackid(s);
+
+        if (call_stack_num[id])
+        {
+            prev_lr = call_stacks[id][call_stack_num[id]-1].lr;
+        }
+
+        for (int k = call_stack_num[id]-1; k >= 0; k--)
+        {
+            if (interrupt_level && k == 0)
+            {
+                /* return from interrupt; handled later */
+                continue;
+            }
+
+            if (pc == call_stacks[id][k].lr)
+            {
+                call_stack_num[id] = k;
+                if (qemu_loglevel_mask(EOS_LOG_VERBOSE)) {
+                    int len = call_stack_indent(id, 0, 0);
+                    len += fprintf(stderr, "return to 0x%X (%s)", pc, env->thumb ? "Thumb" : "ARM");
+                    len += indent(len, 64);
+                    print_location(s, prev_pc, prev_lr);
+                }
+                goto end;
+            }
+        }
+    }
+
 
     /* when a function call is made:
      * - LR is updated with the return address
-     * - stack is decremented
+     * - stack may be decremented (not always)
      * - note: the above might also happen during a context switch,
      *   so use a heuristic to filter them out
      */
     if (lr != prev_lr && sp <= prev_sp &&
         abs((int)sp - (int)prev_sp) < 1024)
     {
-        eos_idc_log_call(cpu, env, tb, prev_pc, prev_lr, prev_sp, prev_size);
+        uint8_t id = get_stackid(s);
 
-        /* log each call to console */
-        fprintf(stderr, "%08X: call 0x%X (%s)\n", prev_pc, pc, env->thumb ? "Thumb" : "ARM");
+        if (lr == pc + 4 && pc == prev_pc + 4)
+        {
+            /* we have executed a MOV LR, PC */
+            /* let's ignore it without updating prev_lr */
+            uint32_t insn;
+            cpu_physical_memory_read(prev_pc, &insn, sizeof(insn));
+            assert(insn == 0xe1a0e00f);
+            assert(prev_sp == sp);
+            lr = prev_lr;
+            goto end;
+        }
+        if (lr == prev_pc + 4)
+        {
+            eos_idc_log_call(cpu, env, tb, prev_pc, prev_lr, prev_sp, prev_size);
+            if (qemu_loglevel_mask(EOS_LOG_VERBOSE)) {
+                int len = call_stack_indent(id, 0, 0);
+                len += fprintf(stderr, "call 0x%X (%s)", pc, env->thumb ? "Thumb" : "ARM");
+                len += indent(len, 64);
+                print_location(s, prev_pc, prev_lr);
+            }
+            call_stack_push(id, lr, sp);
+            goto end;
+        }
     }
-    
-    if (pc != prev_pc && pc == (prev_lr & ~1))
+
+    /* check all other large PC jumps */
+    if (abs((int)pc - (int)prev_pc) > 16)
     {
-        fprintf(stderr, "%08X: return to 0x%X (%s)\n", prev_pc, pc, env->thumb ? "Thumb" : "ARM");
+        uint8_t id = get_stackid(s);
+
+        if (pc == 0x18)
+        {
+            interrupt_level++;
+            id = get_stackid(s);
+            assert(id == 0xFE);
+            if (qemu_loglevel_mask(EOS_LOG_VERBOSE)) {
+                int len = call_stack_indent(id, 0, 0);
+                len += fprintf(stderr, KCYN"interrupt"KRESET);
+                len -= strlen(KCYN KRESET);
+                len += indent(len, 64);
+                print_location(s, prev_pc, prev_lr);
+            }
+            if (interrupt_level == 1) assert(call_stack_num[id] == 0);
+            call_stack_push(id, prev_pc, sp);
+            goto end;
+        }
+
+        if (prev_pc == 0x18)
+        {
+            /* jump from the interrupt vector - ignore */
+            goto end;
+        }
+
+        uint32_t insn;
+        cpu_physical_memory_read(prev_pc, &insn, sizeof(insn));
+
+        if ((insn & 0x0F000000) == 0x0A000000)
+        {
+            /* branch - ignore */
+            goto end;
+        }
+
+        if ((insn == 0xe8fd901f || insn == 0xe8fddfff) && prev_pc < 0x1000)
+        {
+            /* this must be return from interrupt */
+            /* note: internal returns inside an interrupt were handled as normal returns */
+            assert(interrupt_level > 0);
+            assert(id == 0xFE);
+            if (interrupt_level == 1) assert(call_stack_num[id] == 1);
+            else assert(call_stack_num[id] >= 1);
+
+            /* it may return to the old "userspace" address,
+             * or maybe to another one (if task switched) */
+            uint32_t old_pc = call_stacks[id][0].lr;
+
+            /* interrupts may be nested - just clear the stack */
+            call_stack_num[id] = 0;
+
+            if (qemu_loglevel_mask(EOS_LOG_VERBOSE)) {
+                int len = call_stack_indent(id, 0, 0);
+                len += fprintf(stderr, KCYN"return from interrupt"KRESET" to %x", pc);
+                if (pc != old_pc && pc != old_pc + 4) len += fprintf(stderr, " (old=%x)", old_pc);
+                len -= strlen(KCYN KRESET);
+                len += indent(len, 64);
+                print_location(s, prev_pc, prev_lr);
+            }
+
+            interrupt_level = 0;
+            goto end;
+        }
+
+        /* unknown jump case, to be diagnosed manually */
+        if (qemu_loglevel_mask(EOS_LOG_VERBOSE)) {
+            int len = call_stack_indent(id, 0, 0);
+            len += fprintf(stderr, KCYN"PC jump? 0x%X (%s)"KRESET, pc, env->thumb ? "Thumb" : "ARM");
+            len -= strlen(KCYN KRESET);
+            len += indent(len, 64);
+            print_location(s, prev_pc, prev_lr);
+            call_stack_indent(id, 0, 0);
+            target_disas(stderr, CPU(arm_env_get_cpu(env)), prev_pc, 4, 0);
+        }
     }
+
+end:
     prev_pc = pc;
     prev_lr = lr;
     prev_sp = sp;
@@ -283,7 +504,7 @@ static void tb_exec_cb(void *opaque, CPUState *cpu, TranslationBlock *tb)
 {
     if (qemu_loglevel_mask(EOS_LOG_CALLS))
     {
-        eos_log_calls(cpu, tb);
+        eos_log_calls(opaque, cpu, tb);
     }
 
     if (qemu_loglevel_mask(EOS_LOG_RAM_MEMCHK))

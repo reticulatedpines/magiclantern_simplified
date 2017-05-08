@@ -400,5 +400,6 @@ void eos_mem_read(EOSState *s, hwaddr addr, void * buf, int size);
 void eos_mem_write(EOSState *s, hwaddr addr, void * buf, int size);
 
 char * eos_get_current_task_name(EOSState *s);
+uint8_t eos_get_current_task_id(EOSState *s);
 
 #endif /* HW_EOS_H */
