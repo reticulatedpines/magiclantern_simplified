@@ -257,19 +257,25 @@ static uint8_t get_stackid(EOSState *s)
 
 struct call_stack_entry
 {
-    uint32_t lr;    /* location of call (LR) */
-    uint32_t sp;    /* stack pointer before the call */
+    uint32_t pc;        /* called function */
+    uint32_t lr;        /* location of call (LR) */
+    uint32_t sp;        /* stack pointer before the call */
+    uint32_t regs[4];   /* first 4 arguments (others can be found on the stack, if needed) */
 };
 
 static struct call_stack_entry call_stacks[256][128];
 static int call_stack_num[256] = {0};
 
-static void call_stack_push(uint8_t id, uint32_t lr, uint32_t sp)
+static void call_stack_push(uint8_t id,
+    uint32_t pc, uint32_t lr, uint32_t sp,
+    uint32_t r0, uint32_t r1, uint32_t r2, uint32_t r3)
 {
     assert(call_stack_num[id] < COUNT(call_stacks[0]));
     call_stacks[id][call_stack_num[id]++] = (struct call_stack_entry) {
+        .pc = pc,
         .lr = lr,
         .sp = sp,
+        .regs = { r0, r1, r2, r3 },
     };
 }
 
@@ -280,6 +286,74 @@ static uint32_t call_stack_pop(uint8_t id)
     return call_stacks[id][--call_stack_num[id]].lr;
 }
 #endif
+
+static uint32_t callstack_frame_size(uint8_t id, unsigned level)
+{
+    if (level == 0)
+    {
+        /* unknown */
+        return 0;
+    }
+
+    uint32_t sp = call_stacks[id][level].sp;
+    uint32_t next_sp = call_stacks[id][level-1].sp;
+    if (sp <= next_sp)
+    {
+        /* stack decreased => easy */
+        return next_sp - sp;
+    }
+
+    /* stack increased => unknown */
+    return 0;
+}
+
+uint32_t eos_callstack_get_caller_param(EOSState *s, int call_depth, enum param_type param_type)
+{
+    uint8_t id = get_stackid(s);
+    int level = call_stack_num[id] - call_depth - 1;
+    assert(level >= 0);
+
+    switch (param_type)
+    {
+        case CALLER_STACKFRAME_SIZE:
+            return callstack_frame_size(id, level);
+
+        case CALLER_PC:
+            return call_stacks[id][level].pc;
+
+        case CALLER_LR:
+            return call_stacks[id][level].lr;
+
+        case CALLER_SP:
+            return call_stacks[id][level].sp;
+
+        case CALL_DEPTH:
+            return call_stack_num[id];
+
+        default:
+            break;
+    }
+
+    /* default: positive value = function argument index */
+    int arg_index = param_type;
+
+    if (arg_index < 4)
+    {
+        /* first 4 args are in registers */
+        return call_stacks[id][level].regs[arg_index];
+    }
+    else
+    {
+        /* all others are on the stack */
+        /* assume they are in the first caller's stack frame */
+        uint32_t frame_size = callstack_frame_size(id, level);
+        assert((arg_index - 4) < frame_size / 4);
+        uint32_t arg_addr = call_stacks[id][level].sp + (arg_index - 4) * 4;
+        uint32_t arg = 0;
+        cpu_physical_memory_read(arg_addr, &arg, 4);
+        return arg;
+    }
+}
 
 static int indent(int initial_len, int target_indent)
 {
@@ -454,7 +528,7 @@ static void eos_log_callstack(EOSState *s, CPUState *cpu, TranslationBlock *tb)
                 /* also save to IDC if -calls was specified (but not -callstack) */
                 eos_idc_log_call(cpu, env, tb, prev_pc, prev_lr, prev_sp, prev_size);
             }
-            call_stack_push(id, lr, sp);
+            call_stack_push(id, pc, lr, sp, env->regs[0], env->regs[1], env->regs[2], env->regs[3]);
 
             /* todo: callback here? */
 
@@ -480,7 +554,7 @@ static void eos_log_callstack(EOSState *s, CPUState *cpu, TranslationBlock *tb)
                 print_call_location(s, prev_pc, prev_lr);
             }
             if (interrupt_level == 1) assert(call_stack_num[id] == 0);
-            call_stack_push(id, prev_pc, sp);
+            call_stack_push(id, pc, prev_pc, sp, env->regs[0], env->regs[1], env->regs[2], env->regs[3]);
             goto end;
         }
 
