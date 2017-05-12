@@ -266,7 +266,7 @@ struct call_stack_entry
 static struct call_stack_entry call_stacks[256][128];
 static int call_stack_num[256] = {0};
 
-static void call_stack_push(uint8_t id,
+static inline void call_stack_push(uint8_t id,
     uint32_t pc, uint32_t lr, uint32_t sp,
     uint32_t r0, uint32_t r1, uint32_t r2, uint32_t r3)
 {
@@ -402,10 +402,21 @@ int eos_callstack_print(EOSState *s, const char * prefix, const char * sep, cons
     }
 
     int len = fprintf(stderr, "%s", prefix);
+    uint32_t pc = CURRENT_CPU->env.regs[15];
+    uint32_t sp = CURRENT_CPU->env.regs[13];
+
+    uint32_t stack_top, stack_bot;
+    if (eos_get_current_task_stack(s, &stack_top, &stack_bot))
+    {
+        len += fprintf(stderr, "[%x-%x] ", stack_top, stack_bot);
+    }
+
+    len += fprintf(stderr, "(%x:%x)%s", pc, sp, sep);
     for (int k = call_stack_num[id]-1; k >= 0; k--)
     {
-        uint32_t pc = call_stacks[id][k].lr;
-        len += fprintf(stderr, "%x%s", pc, sep);
+        uint32_t lr = call_stacks[id][k].lr;
+        uint32_t sp = call_stacks[id][k].sp;
+        len += fprintf(stderr, "%x:%x%s", lr, sp, sep);
     }
     len += fprintf(stderr, "%s", suffix);
     return len;

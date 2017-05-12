@@ -1506,6 +1506,27 @@ uint8_t eos_get_current_task_id(EOSState *s)
     return 0xFF;
 }
 
+int eos_get_current_task_stack(EOSState *s, uint32_t * top, uint32_t * bottom)
+{
+    if (!s->model->current_task_addr)
+    {
+        return 0;
+    }
+    
+    uint32_t current_task_ptr;
+    uint32_t current_stack[2];
+    cpu_physical_memory_read(s->model->current_task_addr, &current_task_ptr, 4);
+    if (current_task_ptr && current_task_ptr < 0x1000000)
+    {
+        cpu_physical_memory_read(current_task_ptr + 0x1c, current_stack, 8);
+        *bottom = current_stack[0];
+        *top = current_stack[0] + current_stack[1];
+        return 1;
+    }
+    
+    return 0;
+}
+
 void io_log(const char * module_name, EOSState *s, unsigned int address, unsigned char type, unsigned int in_value, unsigned int out_value, const char * msg, intptr_t msg_arg1, intptr_t msg_arg2)
 {
     /* log I/O when "-d io" is specified on the command line */
