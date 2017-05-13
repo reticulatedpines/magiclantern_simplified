@@ -493,7 +493,7 @@ static void eos_log_callstack(EOSState *s, CPUState *cpu, TranslationBlock *tb)
                 call_stack_num[id] = k;
                 if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
                     int len = call_stack_indent(id, 0, 0);
-                    len += fprintf(stderr, "return to 0x%X (%s)", pc, env->thumb ? "Thumb" : "ARM");
+                    len += fprintf(stderr, "return %x to 0x%X (%s)", env->regs[0], pc, env->thumb ? "Thumb" : "ARM");
                     len += indent(len, 64);
                     print_call_location(s, prev_pc, prev_lr);
                 }
@@ -532,7 +532,11 @@ static void eos_log_callstack(EOSState *s, CPUState *cpu, TranslationBlock *tb)
         {
             if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
                 int len = call_stack_indent(id, 0, 0);
-                len += fprintf(stderr, "call 0x%X (%s)", pc, env->thumb ? "Thumb" : "ARM");
+                /* fixme: guess the number of arguments */
+                len += fprintf(stderr, "call 0x%X(%x, %x, %x, %x) %s sp=%x",
+                    pc, env->regs[0], env->regs[1], env->regs[2], env->regs[3],
+                    env->thumb ? "Thumb" : "ARM", sp
+                );
                 len += indent(len, 64);
                 print_call_location(s, prev_pc, prev_lr);
 
