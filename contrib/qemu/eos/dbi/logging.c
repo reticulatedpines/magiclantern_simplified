@@ -558,10 +558,23 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
     static uint32_t prev_lr = 0;
     static uint32_t prev_sp = 0;
     static uint32_t prev_size = 0;
-    uint32_t pc = env->regs[15];
+    uint32_t pc = env->regs[15] | env->thumb;
     uint32_t lr = env->regs[14];
     uint32_t sp = env->regs[13];
-    assert(pc == tb->pc);
+
+    /* with the Thumb bit cleared */
+    uint32_t pc0 = pc & ~1;
+    uint32_t lr0 = lr & ~1;
+    uint32_t prev_pc0 = prev_pc & ~1;
+
+    /* tb->pc always has the Thumb bit cleared */
+    assert(pc0 == tb->pc);
+
+    /* for some reason, this may called multiple times on the same PC */
+    if (prev_pc == pc && prev_sp == sp && prev_lr == lr) return;
+
+    /* our uninitialized stubs are 0 - don't log this address */
+    if (!pc0) return;
 
     if (0)
     {
@@ -578,7 +591,8 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
      * (for speed: only check this for PC not advancing by 1 instruction)
      */
 
-    if (pc != prev_pc + 4)
+    if (pc != prev_pc + 4 &&
+        pc != prev_pc + 2)
     {
         uint8_t id = get_stackid(s);
 
@@ -601,7 +615,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                 call_stack_num[id] = k;
                 if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
                     int len = call_stack_indent(id, 0, 0);
-                    len += fprintf(stderr, "return %x to 0x%X (%s)", env->regs[0], pc, env->thumb ? "Thumb" : "ARM");
+                    len += fprintf(stderr, "return %x to 0x%X", env->regs[0], pc | env->thumb);
                     len += indent(len, 64);
                     print_call_location(s, prev_pc, prev_lr);
                 }
@@ -636,14 +650,13 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
             lr = prev_lr;
             goto end;
         }
-        if (lr == prev_pc + 4)
+        if (lr0 == prev_pc0 + 4)
         {
             if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
                 int len = call_stack_indent(id, 0, 0);
                 /* fixme: guess the number of arguments */
-                len += fprintf(stderr, "call 0x%X(%x, %x, %x, %x) %s sp=%x",
-                    pc, env->regs[0], env->regs[1], env->regs[2], env->regs[3],
-                    env->thumb ? "Thumb" : "ARM", sp
+                len += fprintf(stderr, "call 0x%X(%x, %x, %x, %x)",
+                    pc | env->thumb, env->regs[0], env->regs[1], env->regs[2], env->regs[3]
                 );
                 len += indent(len, 64);
                 print_call_location(s, prev_pc, prev_lr);
@@ -664,7 +677,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
     {
         uint8_t id = get_stackid(s);
 
-        if (pc == 0x18)
+        if (pc0 == 0x18)
         {
             interrupt_level++;
             id = get_stackid(s);
@@ -681,59 +694,81 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
             goto end;
         }
 
-        if (prev_pc == 0x18)
+        if (prev_pc0 == 0x18)
         {
             /* jump from the interrupt vector - ignore */
             goto end;
         }
 
         uint32_t insn;
-        cpu_physical_memory_read(prev_pc, &insn, sizeof(insn));
+        cpu_physical_memory_read(prev_pc0, &insn, sizeof(insn));
 
-        if ((insn & 0x0F000000) == 0x0A000000)
+        if (prev_pc & 1)
         {
-            /* branch - ignore */
-            goto end;
-        }
-
-        if ((insn == 0xe8fd901f || insn == 0xe8fddfff) && prev_pc < 0x1000)
-        {
-            /* this must be return from interrupt */
-            /* note: internal returns inside an interrupt were handled as normal returns */
-            assert(interrupt_level > 0);
-            assert(id == 0xFE);
-            if (interrupt_level == 1) assert(call_stack_num[id] == 1);
-            else assert(call_stack_num[id] >= 1);
-
-            /* it may return to the old "userspace" address,
-             * or maybe to another one (if task switched) */
-            uint32_t old_pc = call_stacks[id][0].lr;
-
-            /* interrupts may be nested - just clear the stack */
-            call_stack_num[id] = 0;
-
-            if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
-                int len = call_stack_indent(id, 0, 0);
-                len += fprintf(stderr, KCYN"return from interrupt"KRESET" to %x", pc);
-                if (pc != old_pc && pc != old_pc + 4) len += fprintf(stderr, " (old=%x)", old_pc);
-                len -= strlen(KCYN KRESET);
-                len += indent(len, 64);
-                print_call_location(s, prev_pc, prev_lr);
+            if (insn == 0xc000e9bd && interrupt_level > 0)
+            {
+                /* fixme: triggers before the first interrupt */
+                /* fixme: only a few (lucky) cases are working fine */
+                goto reti;
             }
 
-            interrupt_level = 0;
-            goto end;
+            if ((insn & 0xF000) == 0xD000)
+            {
+                /* branch - ignore (guess) */
+                goto end;
+            }
+        }
+        else /* ARM */
+        {
+            if ((insn & 0x0F000000) == 0x0A000000)
+            {
+                /* branch - ignore */
+                goto end;
+            }
+
+            if ((insn == 0xe8fd901f || insn == 0xe8fddfff) && prev_pc < 0x1000)
+            {
+            reti:
+                /* this must be return from interrupt */
+                /* note: internal returns inside an interrupt were handled as normal returns */
+                assert(interrupt_level > 0);
+                assert(id == 0xFE);
+                if (interrupt_level == 1) assert(call_stack_num[id] == 1);
+                else assert(call_stack_num[id] >= 1);
+
+                /* it may return to the old "userspace" address,
+                 * or maybe to another one (if task switched) */
+                uint32_t old_pc = call_stacks[id][0].lr;
+
+                /* interrupts may be nested - just clear the stack */
+                call_stack_num[id] = 0;
+
+                if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
+                    int len = call_stack_indent(id, 0, 0);
+                    len += fprintf(stderr, KCYN"return from interrupt"KRESET" to %x", pc);
+                    if (pc != old_pc && pc != old_pc + 4) len += fprintf(stderr, " (old=%x)", old_pc);
+                    len -= strlen(KCYN KRESET);
+                    len += indent(len, 64);
+                    print_call_location(s, prev_pc, prev_lr);
+                }
+
+                interrupt_level = 0;
+                goto end;
+            }
         }
 
         /* unknown jump case, to be diagnosed manually */
         if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
             int len = call_stack_indent(id, 0, 0);
-            len += fprintf(stderr, KCYN"PC jump? 0x%X (%s)"KRESET, pc, env->thumb ? "Thumb" : "ARM");
+            len += fprintf(stderr, KCYN"PC jump? 0x%X lr=%x"KRESET, pc | env->thumb, lr);
             len -= strlen(KCYN KRESET);
             len += indent(len, 64);
             print_call_location(s, prev_pc, prev_lr);
             call_stack_indent(id, 0, 0);
-            target_disas(stderr, CPU(arm_env_get_cpu(env)), prev_pc, 4, 0);
+            /* hm, target_disas used to look at flags for ARM or Thumb... */
+            int t0 = env->thumb; env->thumb = prev_pc & 1;
+            target_disas(stderr, CPU(arm_env_get_cpu(env)), prev_pc0, prev_size, 0);
+            env->thumb = t0;
         }
     }
 
