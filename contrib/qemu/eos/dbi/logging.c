@@ -507,7 +507,6 @@ static void eos_callstack_log_mem(EOSState *s, hwaddr _addr, uint64_t _value, ui
                     call_stacks[id][level].num_args = MAX(arg_num, call_stacks[id][level].num_args);
 
                     if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
-
                         uint32_t pc = CURRENT_CPU->env.regs[15];
                         uint32_t lr = CURRENT_CPU->env.regs[14];
                         int len = eos_callstack_indent(s);
@@ -592,19 +591,16 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
      * does two returns (or maybe more, if tail calls are nested)
      * 
      * idea from panda callstack_instr: just look up each PC in the call stack
-     * (for speed: only check this for PC not advancing by 1 instruction)
+     * for speed: only check this for PC not advancing by 1 instruction
+     * that's not enough, as about 30% of calls are "jumps" (!)
+     * other heuristic: a return must either set PC=LR (BX LR) or change SP
      */
 
     if (pc != prev_pc + 4 &&
-        pc != prev_pc + 2)
+        pc != prev_pc + 2 &&
+        (pc == lr || sp != prev_sp))
     {
         uint8_t id = get_stackid(s);
-
-        if (call_stack_num[id])
-        {
-            int level = call_stack_num[id] - 1;
-            prev_lr = call_stacks[id][level].lr;
-        }
 
         for (int k = call_stack_num[id]-1; k >= 0; k--)
         {
@@ -624,6 +620,17 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                     print_call_location(s, prev_pc, prev_lr);
                 }
 
+                /* to check whether this heuristic affects the results */
+                /* (normally it should be optimized out...) */
+                if (0 && !(pc == lr || sp != prev_sp))
+                {
+                    eos_callstack_indent(s);
+                    eos_callstack_print(s, "cstack:", " ", "\n");
+                    target_disas(stderr, CPU(arm_env_get_cpu(env)), prev_pc0, prev_size, 0);
+                    target_disas(stderr, CPU(arm_env_get_cpu(env)), pc0, prev_size, 0);
+                    assert(0);
+                }
+
                 /* todo: callback here? */
 
                 goto end;
@@ -633,12 +640,15 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
 
 
     /* when a function call is made:
-     * - LR is updated with the return address
-     * - stack may be decremented (not always)
+     * - PC jumps
+     * - LR may be updated with the return address (not always - e.g. calls in a loop)
+     * - stack may be decremented (not always - e.g. very simple functions don't use stack)
      * - note: the above might also happen during a context switch,
      *   so use a heuristic to filter them out
      */
-    if (lr != prev_lr && sp <= prev_sp &&
+    if (pc != prev_pc + 4 &&
+        pc != prev_pc + 2 &&
+        sp <= prev_sp &&
         abs((int)sp - (int)prev_sp) < 1024)
     {
         uint8_t id = get_stackid(s);
