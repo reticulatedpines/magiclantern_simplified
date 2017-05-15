@@ -89,6 +89,8 @@ static void eos_log_selftest(EOSState *s, hwaddr addr, uint64_t value, uint32_t 
     }
 }
 
+static void eos_callstack_log_mem(EOSState *s, hwaddr _addr, uint64_t _value, uint32_t size, int flags);
+
 void eos_log_mem(void * opaque, hwaddr addr, uint64_t value, uint32_t size, int flags)
 {
     const char * msg = "";
@@ -118,6 +120,11 @@ void eos_log_mem(void * opaque, hwaddr addr, uint64_t value, uint32_t size, int 
          */
         eos_log_selftest(s, addr, value, size, flags);
         some_tool_executed = true;
+    }
+
+    if (qemu_loglevel_mask(EOS_LOG_CALLSTACK))
+    {
+        eos_callstack_log_mem(s, addr, value, size, flags);
     }
 
     if (qemu_loglevel_mask(EOS_LOG_RAM_MEMCHK))
@@ -261,6 +268,7 @@ struct call_stack_entry
     uint32_t lr;        /* location of call (LR) */
     uint32_t sp;        /* stack pointer before the call */
     uint32_t regs[4];   /* first 4 arguments (others can be found on the stack, if needed) */
+    uint32_t num_args;
 };
 
 static struct call_stack_entry call_stacks[256][128];
@@ -275,6 +283,7 @@ static inline void call_stack_push(uint8_t id,
         .pc = pc,
         .lr = lr,
         .sp = sp,
+        .num_args = 4,  /* fixme */
         .regs = { r0, r1, r2, r3 },
     };
 }
@@ -297,7 +306,7 @@ static uint32_t callstack_frame_size(uint8_t id, unsigned level)
 
     uint32_t sp = call_stacks[id][level].sp;
     uint32_t next_sp = call_stacks[id][level-1].sp;
-    if (sp <= next_sp)
+    if (sp <= next_sp && next_sp - sp < 0x10000)
     {
         /* stack decreased => easy */
         return next_sp - sp;
@@ -326,6 +335,9 @@ uint32_t eos_callstack_get_caller_param(EOSState *s, int call_depth, enum param_
 
         case CALLER_SP:
             return call_stacks[id][level].sp;
+
+        case CALLER_NUM_ARGS:
+            return call_stacks[id][level].num_args;
 
         case CALL_DEPTH:
             return call_stack_num[id];
@@ -441,8 +453,103 @@ static int print_call_location(EOSState *s, uint32_t pc, uint32_t lr)
     return eos_print_location(s, pc, lr, " at ", "\n");
 }
 
+static void eos_callstack_log_mem(EOSState *s, hwaddr _addr, uint64_t _value, uint32_t size, int flags)
+{
+    uint32_t addr = _addr;
+    uint32_t value = _value;
+    int is_write = flags & 1;
+    int is_read = !is_write;
+    uint32_t sp = CURRENT_CPU->env.regs[13];
 
-static void eos_log_callstack(EOSState *s, CPUState *cpu, TranslationBlock *tb)
+    if (is_read && 
+        addr > sp &&
+        addr < sp + 0x100)
+    {
+        uint8_t id = get_stackid(s);
+        int call_depth = call_stack_num[id];
+        if (call_depth)
+        {
+            uint32_t caller1_sp = eos_callstack_get_caller_param(s, 0, CALLER_SP);
+
+            if (addr >= caller1_sp)
+            {
+                /* read access in 1st caller stack frame or beyond? */
+                uint32_t caller1_frame_size = eos_callstack_get_caller_param(s, 0, CALLER_STACKFRAME_SIZE);
+                uint32_t caller2_sp = caller1_sp + caller1_frame_size;
+
+                if (addr < caller2_sp)
+                {
+                    /* reading more than 4 arguments from stack? */
+
+                    int level = call_stack_num[id] - 1;
+                    int num_args = call_stacks[id][level].num_args;
+                    for (int i = 0; i < num_args; i++)
+                    {
+                        uint32_t arg = eos_callstack_get_caller_param(s, 0, i);
+                        if (arg >= sp && arg <= addr)
+                        {
+                            /* found a pointer to this address
+                             * probably a local variable */
+                            return;
+                        }
+                    }
+
+                    int arg_num = 5 + (addr - caller1_sp) / 4;
+                    if (arg_num > 9)
+                    {
+                        return;
+                    }
+
+                    call_stacks[id][level].num_args = MAX(arg_num, call_stacks[id][level].num_args);
+
+                    if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
+
+                        uint32_t pc = CURRENT_CPU->env.regs[15];
+                        uint32_t lr = CURRENT_CPU->env.regs[14];
+                        int len = eos_callstack_indent(s);
+                        len += fprintf(stderr, "arg%d = %x", arg_num, value);
+                        len += indent(len, 64);
+                        print_call_location(s, pc, lr);
+                        if (arg_num > 10)
+                        {
+                            eos_callstack_indent(s);
+                            eos_callstack_print(s, "cstack:", " ", "\n");
+                            assert(0);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (is_write && qemu_loglevel_mask(EOS_LOG_CALLS))
+    {
+        uint8_t id = get_stackid(s);
+        int call_depth = call_stack_num[id];
+        if (call_depth)
+        {
+            int level = call_stack_num[id] - 1;
+            int num_args = call_stacks[id][level].num_args;
+            for (int i = 0; i < num_args; i++)
+            {
+                uint32_t arg = eos_callstack_get_caller_param(s, 0, i);
+                if (addr == arg)
+                {
+                    uint32_t pc = CURRENT_CPU->env.regs[15];
+                    uint32_t lr = CURRENT_CPU->env.regs[14];
+                    int len = eos_callstack_indent(s);
+                    len += fprintf(stderr, "*%x = %x", addr, value);
+                    len += indent(len, 60);
+                    len += fprintf(stderr, "arg%d", i + 1);
+                    len += indent(len, 64);
+                    print_call_location(s, pc, lr);
+                }
+            }
+        }
+    }
+}
+
+static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock *tb)
 {
     ARMCPU *arm_cpu = ARM_CPU(cpu);
     CPUARMState *env = &arm_cpu->env;
@@ -477,7 +584,8 @@ static void eos_log_callstack(EOSState *s, CPUState *cpu, TranslationBlock *tb)
 
         if (call_stack_num[id])
         {
-            prev_lr = call_stacks[id][call_stack_num[id]-1].lr;
+            int level = call_stack_num[id] - 1;
+            prev_lr = call_stacks[id][level].lr;
         }
 
         for (int k = call_stack_num[id]-1; k >= 0; k--)
@@ -644,7 +752,7 @@ static void tb_exec_cb(void *opaque, CPUState *cpu, TranslationBlock *tb)
          *   to other "modules" on request
          * - calls is verbose and implies callstack
          */
-        eos_log_callstack(opaque, cpu, tb);
+        eos_callstack_log_exec(opaque, cpu, tb);
     }
 
     if (qemu_loglevel_mask(EOS_LOG_RAM_MEMCHK))
