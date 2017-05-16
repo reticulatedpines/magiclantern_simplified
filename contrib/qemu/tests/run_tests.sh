@@ -435,22 +435,6 @@ for CAM in 500D; do
     echo -e "\e[31mFAILED!\e[0m"
 done
 
-# These cameras should display some Canon GUI:
-echo
-echo "Testing Canon GUI..."
-for CAM in ${GUI_CAMS[*]}; do
-    printf "%5s: " $CAM
-    mkdir -p tests/$CAM/
-    rm -f tests/$CAM/gui.ppm
-    rm -f tests/$CAM/gui.log
-    set_gui_timeout
-
-    (sleep $GUI_TIMEOUT; echo screendump tests/$CAM/gui.ppm; echo quit) \
-      | ./run_canon_fw.sh $CAM,firmware="boot=0" -display none -monitor stdio &> tests/$CAM/gui.log
-
-    tests/check_md5.sh tests/$CAM/ gui
-done
-
 # All cameras should run under GDB and start a few tasks
 echo
 echo "Testing GDB scripts..."
