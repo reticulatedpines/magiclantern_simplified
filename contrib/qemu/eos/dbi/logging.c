@@ -655,8 +655,6 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
         sp <= prev_sp &&
         abs((int)sp - (int)prev_sp) < 1024)
     {
-        uint8_t id = get_stackid(s);
-
         if (lr == pc + 4 && pc == prev_pc + 4)
         {
             /* we have executed a MOV LR, PC */
@@ -670,6 +668,8 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
         }
         if (lr0 == prev_pc0 + 4)
         {
+            uint8_t id = get_stackid(s);
+
             if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
                 int len = call_stack_indent(id, 0, 0);
                 /* fixme: guess the number of arguments */
@@ -686,6 +686,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                 /* also save to IDC if -calls was specified (but not -callstack) */
                 eos_idc_log_call(cpu, env, tb, prev_pc, prev_lr, prev_sp, prev_size);
             }
+
             call_stack_push(id, pc, lr, sp, env->regs[0], env->regs[1], env->regs[2], env->regs[3], 0);
 
             /* todo: callback here? */
@@ -694,34 +695,32 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
         }
     }
 
+    if (pc0 == 0x18)
+    {
+        interrupt_level++;
+        uint8_t id = get_stackid(s);
+        assert(id == 0xFE);
+        if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
+            int len = call_stack_indent(id, 0, 0);
+            len += fprintf(stderr, KCYN"interrupt"KRESET);
+            len -= strlen(KCYN KRESET);
+            len += indent(len, 64);
+            print_call_location(s, prev_pc, prev_lr);
+        }
+        if (interrupt_level == 1) assert(call_stack_num[id] == 0);
+        call_stack_push(id, pc, prev_pc, sp, env->regs[0], env->regs[1], env->regs[2], env->regs[3], 1);
+        goto end;
+    }
+
+    if (prev_pc0 == 0x18)
+    {
+        /* jump from the interrupt vector - ignore */
+        goto end;
+    }
+
     /* check all other large PC jumps */
     if (abs((int)pc - (int)prev_pc) > 16)
     {
-        uint8_t id = get_stackid(s);
-
-        if (pc0 == 0x18)
-        {
-            interrupt_level++;
-            id = get_stackid(s);
-            assert(id == 0xFE);
-            if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
-                int len = call_stack_indent(id, 0, 0);
-                len += fprintf(stderr, KCYN"interrupt"KRESET);
-                len -= strlen(KCYN KRESET);
-                len += indent(len, 64);
-                print_call_location(s, prev_pc, prev_lr);
-            }
-            if (interrupt_level == 1) assert(call_stack_num[id] == 0);
-            call_stack_push(id, pc, prev_pc, sp, env->regs[0], env->regs[1], env->regs[2], env->regs[3], 1);
-            goto end;
-        }
-
-        if (prev_pc0 == 0x18)
-        {
-            /* jump from the interrupt vector - ignore */
-            goto end;
-        }
-
         uint32_t insn;
         cpu_physical_memory_read(prev_pc0, &insn, sizeof(insn));
 
@@ -754,6 +753,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                 /* this must be return from interrupt */
                 /* note: internal returns inside an interrupt were handled as normal returns */
                 assert(interrupt_level > 0);
+                uint8_t id = get_stackid(s);
                 assert(id == 0xFE);
 
                 int interrupt_entries = 0;
@@ -803,6 +803,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
 
         /* unknown jump case, to be diagnosed manually */
         if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
+            uint8_t id = get_stackid(s);
             int len = call_stack_indent(id, 0, 0);
             len += fprintf(stderr, KCYN"PC jump? 0x%X lr=%x"KRESET, pc | env->thumb, lr);
             len -= strlen(KCYN KRESET);
