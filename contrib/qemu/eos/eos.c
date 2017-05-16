@@ -654,7 +654,7 @@ static void draw_line8_32(void *opaque,
         }
         else
         {
-            r = g = b = rand();
+            r = g = b = 128;
             ((uint32_t *) d)[0] = rgb_to_pixel32(r, g, b);
         }
         s ++;
