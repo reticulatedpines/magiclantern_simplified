@@ -13,8 +13,10 @@ POWERSHOT_CAMS=( EOSM3 EOSM10 EOSM5 A1100 )
 EOS_SECONDARY_CORES=( 5D3eeko 5D4AE 7D2S )
 
 GUI_CAMS=( 5D2 5D3 50D 60D 70D 500D 550D 600D 700D 100D 1100D 1200D )
-
 MENU_CAMS=( 5D2 50D 60D 500D 550D 600D 700D 100D 1100D 1200D )
+SD_CAMS=( 5D3 5D4 6D 60D 70D 80D 450D 500D 550D 600D 650D 700D 750D 760D
+           100D 1000D 1100D 1200D 1300D EOSM )
+CF_CAMS=( 5D 5D2 5D3 5D4 7D 7D2M 40D 50D 400D )
 
 declare -A MENU_SEQUENCE
 MENU_SEQUENCE[5D2]="f1 left space i i i m up up up space m m w w p p"
@@ -125,6 +127,106 @@ function vncexpect {
     fi
     return $ret
 }
+
+echo
+echo "Testing call/return trace on fromutility..."
+
+# We should get a valid call/return trace on the bootloader,
+# which loads FROMUTILITY if autoexec.bin is not present on a bootable card.
+# There are no timed interrupts here, so the process should be deterministic.
+# Note: our CF emulation is not deterministic, so we'll test only SD models.
+# The results are assumed to be correct, but they were not thoroughly checked.
+# Feel free to report bugs, corner cases and so on.
+
+# remove autoexec.bin from card images (to get the FROMUTILITY menu)
+mdel -i $MSD ::/autoexec.bin
+mdel -i $MCF ::/autoexec.bin
+
+for CAM in ${SD_CAMS[*]}; do
+    printf "%5s: " $CAM
+
+    mkdir -p tests/$CAM/
+    rm -f tests/$CAM/calls-from*.log
+
+    # run the call/return test
+    ./run_canon_fw.sh $CAM,firmware="boot=1" \
+        -display none -d calls -serial stdio \
+        > tests/$CAM/calls-from-uart.log \
+        2> tests/$CAM/calls-from-raw.log &
+    sleep 0.2
+    (timeout 20 tail -f -n100000 tests/$CAM/calls-from-uart.log & ) | grep -q "FROMUTIL"
+    sleep 0.5
+    killall -INT qemu-system-arm &>> /dev/null; sleep 0.2
+
+    # extract call/return lines
+    # remove infinite loop at the end, if any
+    cat tests/$CAM/calls-from-raw.log \
+        | grep -E "call |return " \
+        | python remove_end_loop.py \
+        > tests/$CAM/calls-from.log
+
+    # extract only the basic info (call address indented, return address)
+    # useful for checking when the log format changes
+    # fixme: how to transform "return 0xVALUE to 0xADDR" into "return to 0xADDR" with shell scripting?
+    cat tests/$CAM/calls-from.log | grep -oP " *call 0x[0-9A-F]+| to 0x[0-9A-F]+" \
+        > tests/$CAM/calls-from-basic.log
+
+    # also copy the IDC file for checking its MD5
+    # this might work on CF models too, even if some nondeterminism is present (not tested)
+    cp $CAM.idc tests/$CAM/calls-from.idc
+
+    if grep -q "FROMUTIL" tests/$CAM/calls-from-uart.log; then
+      grep -oEm1 "FROMUTIL[^*]*" tests/$CAM/calls-from-uart.log | tr -d '\n'
+    else
+      if grep -q "AUTOEXEC.BIN not found" tests/$CAM/calls-from-uart.log; then
+        echo -en "\e[33mFROMUTILITY not executed  \e[0m"
+      else
+        echo -e "\e[31mFAILED!\e[0m"
+        continue
+      fi
+    fi
+    echo -n ' '
+    tests/check_md5.sh tests/$CAM/ calls-from || cat tests/$CAM/calls-from.md5.log
+done
+
+# -d callstack triggered quite a few nondeterministic assertions during development
+# so, running it on all cameras where Canon menu can be navigated should be a good test
+# logging the entire call/return trace is possible, but very slow and not repeatable
+echo
+echo "Testing Canon menu with callstack enabled..."
+for CAM in ${MENU_CAMS[*]}; do
+    printf "%5s: " $CAM
+    mkdir -p tests/$CAM/
+    rm -f tests/$CAM/menu*[0-9].png
+    rm -f tests/$CAM/menu.log
+
+    if [ -f $CAM/patches.gdb ]; then
+        (./run_canon_fw.sh $CAM,firmware="boot=0" -vnc :12345 -d callstack -s -S & \
+            arm-none-eabi-gdb -x $CAM/patches.gdb &) &> tests/$CAM/menu.log
+    else
+        (./run_canon_fw.sh $CAM,firmware="boot=0" -vnc :12345 -d callstack &) \
+            &> tests/$CAM/menu.log
+    fi
+
+    set_gui_timeout
+    sleep $((2*$GUI_TIMEOUT))
+
+    count=0;
+    for key in ${MENU_SEQUENCE[$CAM]}; do
+        # some GUI operations are very slow under -d callstack (many small functions called)
+        # for most of them, 1 second is enough, but the logic would be more complex
+        vncdotool -s :12345 key $key; sleep 3
+        vncdotool -s :12345 capture tests/$CAM/menu$((count++)).png
+        echo -n .
+    done
+
+    killall -INT qemu-system-arm &>> tests/$CAM/menu.log; sleep 0.5
+
+    tests/check_md5.sh tests/$CAM/ menu || cat tests/$CAM/menu.md5.log
+done
+
+# re-create the card images
+rm sd.img; unxz -k sd.img.xz; cp sd.img cf.img
 
 # All EOS cameras should emulate the bootloader
 # and jump to main firmware:
