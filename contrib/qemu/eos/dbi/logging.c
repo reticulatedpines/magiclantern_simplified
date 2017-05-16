@@ -617,7 +617,11 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                     int len = call_stack_indent(id, 0, 0);
                     len += fprintf(stderr, "return %x to 0x%X", env->regs[0], pc | env->thumb);
                     len += indent(len, 64);
-                    print_call_location(s, prev_pc, prev_lr);
+
+                    /* print LR from the call stack, so it will always show the caller */
+                    int level = call_stack_num[id] - 1;
+                    uint32_t stack_lr = level >= 0 ? call_stacks[id][level].lr : 0;
+                    print_call_location(s, prev_pc, stack_lr);
                 }
 
                 /* to check whether this heuristic affects the results */
@@ -673,7 +677,11 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                     pc | env->thumb, env->regs[0], env->regs[1], env->regs[2], env->regs[3]
                 );
                 len += indent(len, 64);
-                print_call_location(s, prev_pc, prev_lr);
+
+                /* print LR from the call stack, so it will always show the caller */
+                int level = call_stack_num[id] - 1;
+                uint32_t stack_lr = level >= 0 ? call_stacks[id][level].lr : 0;
+                print_call_location(s, prev_pc, stack_lr);
 
                 /* also save to IDC if -calls was specified (but not -callstack) */
                 eos_idc_log_call(cpu, env, tb, prev_pc, prev_lr, prev_sp, prev_size);
