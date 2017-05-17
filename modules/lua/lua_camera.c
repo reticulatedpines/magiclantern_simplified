@@ -285,6 +285,20 @@ static int luaCB_camera_shoot(lua_State * L)
 }
 
 /***
+ Wait until the camera is idle (not processing pictures).
+ 
+ Normally, camera.shoot() returns as soon as the next picture can be taken,
+ while image compression and saving happen in background.
+ */
+static int luaCB_camera_wait(lua_State * L)
+{
+    while (lens_info.job_state) {
+        msleep(20);
+    }
+    return 0;
+}
+
+/***
  Take N pictures in burst mode.
  
  Note: your camera must be already in some continuous drive mode,
@@ -705,6 +719,7 @@ static const luaL_Reg cameralib[] =
     { "shoot", luaCB_camera_shoot },
     { "burst", luaCB_camera_burst },
     { "bulb", luaCB_camera_bulb },
+    { "wait", luaCB_camera_wait },
     { "reboot", luaCB_camera_reboot },
     { NULL, NULL }
 };
