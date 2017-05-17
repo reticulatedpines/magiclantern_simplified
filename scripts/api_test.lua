@@ -766,6 +766,18 @@ function test_camera_exposure()
     printf("\n")
 end
 
+function print_file_size(filename)
+    local f = io.open(filename, "rb")
+    if f then
+        local size = f:seek("end", 0)
+        f:close()
+        printf("%s: %s\n", filename, size);
+        return size
+    else
+        printf("%s not found.\n", filename);
+    end
+end
+
 function test_camera_take_pics()
     printf("Testing picture taking functions...\n")
     local initial_file_num
@@ -784,24 +796,102 @@ function test_camera_take_pics()
     msleep(2000)
 
     printf("Single picture...\n")
+    -- let's also check if we can find the image file
+    -- fixme: a way to check these routines when the image number wraps around at 10000
     initial_file_num = dryos.shooting_card.file_number
+    local image_path = dryos.dcim_dir.path ..  dryos.image_prefix .. string.format("%04d", (initial_file_num + 1) % 10000)
+    local image_path_cr2 = image_path .. ".CR2"
+    local image_path_jpg = image_path .. ".JPG"
+    -- the image file(s) should not be present before taking the picture :)
+    assert(io.open(image_path_cr2, "rb") == nil)
+    assert(io.open(image_path_jpg, "rb") == nil)
+
     camera.shoot()
+
+    -- but either CR2 or JPG should be there afterwards (or maybe both)
     assert((dryos.shooting_card.file_number - initial_file_num) % 10000 == 1)
-    
+    camera.wait()
+    local size_cr2 = print_file_size(image_path_cr2)
+    local size_jpg = print_file_size(image_path_jpg)
+    assert(size_cr2 or size_jpg)
+
     msleep(2000)
 
     printf("Two burst pictures...\n")
     printf("Ideally, the camera should be in some continuous shooting mode (not checked).\n")
     initial_file_num = dryos.shooting_card.file_number
+
+    -- we should also be able to change the file prefix
+    local old_prefix = dryos.image_prefix
+    dryos.image_prefix = "ABC_"
+    assert(dryos.image_prefix == "ABC_")
+    local image1_path = dryos.dcim_dir.path ..  dryos.image_prefix .. string.format("%04d", (initial_file_num + 1) % 10000)
+    local image1_path_cr2 = image1_path .. ".CR2"
+    local image1_path_jpg = image1_path .. ".JPG"
+    local image2_path = dryos.dcim_dir.path ..  dryos.image_prefix .. string.format("%04d", (initial_file_num + 2) % 10000)
+    local image2_path_cr2 = image2_path .. ".CR2"
+    local image2_path_jpg = image2_path .. ".JPG"
+    assert(io.open(image1_path_cr2, "rb") == nil)
+    assert(io.open(image1_path_jpg, "rb") == nil)
+    assert(io.open(image2_path_cr2, "rb") == nil)
+    assert(io.open(image2_path_jpg, "rb") == nil)
+
     camera.burst(2)
+
     assert((dryos.shooting_card.file_number - initial_file_num) % 10000 == 2)
+    camera.wait()
+    local size1_cr2 = print_file_size(image1_path_cr2)
+    local size1_jpg = print_file_size(image1_path_jpg)
+    local size2_cr2 = print_file_size(image2_path_cr2)
+    local size2_jpg = print_file_size(image2_path_jpg)
+    assert(size1_cr2 or size1_jpg)
+    assert(size2_cr2 or size2_jpg)
+    dryos.image_prefix = ""     -- empty string restores the old prefix
+    assert(dryos.image_prefix == old_prefix)
+
+    -- let's try some more
+    dryos.image_prefix = "XYZ_"
+    assert(dryos.image_prefix == "XYZ_")
+    dryos.image_prefix = "1234"
+    assert(dryos.image_prefix == "1234")
+    dryos.image_prefix = "$#@!"
+    assert(dryos.image_prefix == "$#@!")
+    dryos.image_prefix = ""
+    assert(dryos.image_prefix == old_prefix)
+
+    printf("Bracketed pictures...\n")
+    initial_file_num = dryos.shooting_card.file_number
+    camera.shutter.value = 1/500
+    camera.shoot()
+    camera.shutter.value = 1/50
+    camera.shoot()
+    camera.shutter.value = 1/5
+    camera.shoot()
+    assert((dryos.shooting_card.file_number - initial_file_num) % 10000 == 3)
+    camera.wait()
+    -- fixme: how to check metadata in the files?
+    for i = dryos.shooting_card.file_number - 2, dryos.shooting_card.file_number do
+        image_path = dryos.dcim_dir.path ..  dryos.image_prefix .. string.format("%04d", i % 10000)
+        image_path_cr2 = image_path .. ".CR2"
+        image_path_jpg = image_path .. ".JPG"
+        local size_cr2 = print_file_size(image_path_cr2)
+        local size_jpg = print_file_size(image_path_jpg)
+        assert(size_cr2 or size_jpg)
+    end
 
     msleep(2000)
 
     printf("Bulb picture...\n")
     local t0 = dryos.ms_clock
     initial_file_num = dryos.shooting_card.file_number
+    image_path = dryos.dcim_dir.path ..  dryos.image_prefix .. string.format("%04d", (initial_file_num + 1) % 10000)
+    image_path_cr2 = image_path .. ".CR2"
+    image_path_jpg = image_path .. ".JPG"
+    assert(io.open(image_path_cr2, "rb") == nil)
+    assert(io.open(image_path_jpg, "rb") == nil)
+
     camera.bulb(10)
+
     local t1 = dryos.ms_clock
     local elapsed = t1 - t0
     printf("Elapsed time: %s\n", elapsed)
@@ -809,9 +899,14 @@ function test_camera_take_pics()
     -- slow cards may be an issue, so let's allow a wide error margin
     assert(elapsed > 9900 and elapsed < 30000)
     assert((dryos.shooting_card.file_number - initial_file_num) % 10000 == 1)
+    camera.wait()
+    local size_cr2 = print_file_size(image_path_cr2)
+    local size_jpg = print_file_size(image_path_jpg)
+    assert(size_cr2 or size_jpg)
 
     printf("Picture taking tests completed.\n")
     printf("\n")
+    msleep(5000)
 end
 
 function test_lv()
@@ -1023,15 +1118,14 @@ function api_tests()
     generic_tests()
     
     printf("Module tests...\n")
-    test_menu()
     test_io()
+    test_camera_take_pics()
+    test_menu()
     msleep(1000)
     test_multitasking()
-    
     test_keys()
     test_lv()
     test_lens_focus()
-    test_camera_take_pics()
     test_camera_exposure()
     test_movie()
     
