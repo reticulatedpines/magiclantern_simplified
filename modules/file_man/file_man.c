@@ -319,6 +319,14 @@ static void build_file_menu()
     }
 
     menu_add("File Manager", compacted, count);
+
+    /* disable name lookup on this submenu */
+    /* (it will take effect as soon as we have a non-empty submenu; further calls are superfluous) */
+    if (compacted)
+    {
+        ASSERT(compacted->parent_menu);
+        compacted->parent_menu->no_name_lookup = 1;
+    }
 }
 
 static struct semaphore * scandir_sem = 0;
