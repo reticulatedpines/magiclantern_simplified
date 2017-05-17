@@ -200,8 +200,10 @@ static int luaCB_dryos_index(lua_State * L)
     // @tfield int ms_clock
     else if(!strcmp(key, "ms_clock")) lua_pushinteger(L, get_ms_clock_value());
     /// Get/Set the image filename prefix (e.g.&nbsp;"IMG_").
-    // @tfield string prefix
-    else if(!strcmp(key, "prefix")) lua_pushstring(L, get_file_prefix());
+    ///
+    /// Set to empty string to restore default value.
+    // @tfield string image_prefix
+    else if(!strcmp(key, "image_prefix")) lua_pushstring(L, get_file_prefix());
     /// Get the DCIM directory.
     // @tfield directory dcim_dir
     else if(!strcmp(key, "dcim_dir"))
@@ -310,12 +312,29 @@ static int luaCB_dryos_newindex(lua_State * L)
     {
         return luaL_error(L, "'%s' is readonly!", key);
     }
-    else if(!strcmp(key, "prefix"))
+    else if(!strcmp(key, "image_prefix"))
     {
         static char prefix[8];
+        static int prefix_key = 0;
         LUA_PARAM_STRING(new_prefix, 3);
-        strncpy(prefix, new_prefix, 7);
-        file_prefix_set(prefix);
+
+        int len = strlen(new_prefix);
+        if (len != 0 && len != 4)
+        {
+            return luaL_error(L, "invalid prefix length (4 chars, 0 to reset)");
+        }
+
+        if (prefix_key)
+        {
+            file_prefix_reset(prefix_key);
+            prefix_key = 0;
+        }
+
+        if (len == 4)
+        {
+            strncpy(prefix, new_prefix, 7);
+            prefix_key = file_prefix_set(prefix);
+        }
     }
     else
     {
@@ -514,7 +533,7 @@ static const char * lua_dryos_fields[] =
 {
     "clock",
     "ms_clock",
-    "prefix",
+    "image_prefix",
     "dcim_dir",
     "config_dir",
     "ml_card",
