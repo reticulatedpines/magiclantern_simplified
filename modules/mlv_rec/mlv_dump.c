@@ -1012,24 +1012,18 @@ void show_usage(char *executable)
 
     print_msg(MSG_INFO, "\n");
     print_msg(MSG_INFO, "-- MLV autopsy --\n");
-    print_msg(MSG_INFO, "  --skip-block <block#>        skip given block number, as if it wasn't present\n");
-    print_msg(MSG_INFO, "  --skip-type <type>           skip given block type (e.g. VIDF, AUDF, etc), as if they weren't present\n");
-    print_msg(MSG_INFO, "  --extract <block#>           extract the block at given position into autopsy file\n");
-    print_msg(MSG_INFO, "  --extract-type <type>        extract the block type (e.g. VERS, LENS, etc) into autopsy file\n");
-    print_msg(MSG_INFO, "  --replace <block#>           replace block with data from given autopsy file; requires --autopsy-file\n");
-    print_msg(MSG_INFO, "  --payload-only               extract/replace affect not the whole block, but only payload\n");
-    print_msg(MSG_INFO, "  --header-only                extract/replace affect not the whole block, but only header\n");
-    print_msg(MSG_INFO, "  --autopsy-file <file>        extract/replace from this file\n");
-    print_msg(MSG_INFO, "  --hex                        extract prints the selected data as hexdump on screen\n");
-    print_msg(MSG_INFO, "  --ascii                      extract prints the selected data as ASCII on screen (only suitable for VERS and DEBG)\n");
-    print_msg(MSG_INFO, "  --visualize                  visualize block types, most likely you want to use --skip-xref along with it\n");
-    print_msg(MSG_INFO, "\n");
-    print_msg(MSG_INFO, "-- MLV manipulation --\n");
-    print_msg(MSG_INFO, "  --skip-xref                  skip loading .IDX (XREF) file, read block in the MLV file's order instead of presorted\n");
-    print_msg(MSG_INFO, "  -m                           write only metadata, no audio or video frames\n");
-    print_msg(MSG_INFO, "  -n                           write no metadata, only audio and video frames\n");
-    print_msg(MSG_INFO, "  -I <mlv_file>                inject data from given MLV file right after MLVI header\n");
-    print_msg(MSG_INFO, "  -X type                      extract only block type int output file\n");
+    print_msg(MSG_INFO, " --skip-block <block#>        skip given block number\n");
+    print_msg(MSG_INFO, " --skip-type <type>           skip given block type (e.g. VIDF, AUDF etc)\n");
+    print_msg(MSG_INFO, " --extract <block#>           extract only the block at given into output file\n");
+    print_msg(MSG_INFO, " --replace <block#>           replace block with data from given source file\n");
+    print_msg(MSG_INFO, " --autopsy-file <file>        extract/insert from this file\n");
+    print_msg(MSG_INFO, " --payload-only               features above extract/replace affect not the whole block, but only payload\n");
+    print_msg(MSG_INFO, " --header-only                features above extract/replace affect not the whole block, but only header\n");
+    print_msg(MSG_INFO, " --relaxed                    do not exit on every error, skip blocks that are erroneous\n");
+    print_msg(MSG_INFO, " -m                           write only metadata, no audio or video frames\n");
+    print_msg(MSG_INFO, " -n                           write no metadata, only audio and video frames\n");
+    print_msg(MSG_INFO, " -I <mlv_file>                inject data from given MLV file right after MLVI header\n");
+    print_msg(MSG_INFO, " -X type                      extract only block type\n");
     
     print_msg(MSG_INFO, "\n");
     print_msg(MSG_INFO, "-- Image manipulation --\n");
@@ -1041,7 +1035,7 @@ void show_usage(char *executable)
 
     print_msg(MSG_INFO, "\n");
     print_msg(MSG_INFO, "-- Processing --\n");
-    print_msg(MSG_INFO, "  -e                  delta-encode frames to improve compression, but lose random access capabilities\n");
+    print_msg(MSG_INFO, " -e                  delta-encode frames to improve compression, but lose random access capabilities\n");
 
     /* yet unclear which format to choose, so keep that as reminder */
     //print_msg(MSG_INFO, " -u lut_file         look-up table with 4 * xRes * yRes 16-bit words that is applied before bit depth conversion\n");
@@ -1125,6 +1119,34 @@ void print_capture_info(mlv_rawc_hdr_t * rawc)
     }
 }
 
+int get_header_size(void *type)
+{
+#define HEADER_SIZE(h,s) do {if(!memcmp(type, h, 4)) { return sizeof(s); } } while(0)
+
+    HEADER_SIZE("MLVI", mlv_file_hdr_t);
+    HEADER_SIZE("VIDF", mlv_vidf_hdr_t);
+    HEADER_SIZE("AUDF", mlv_vidf_hdr_t);
+    HEADER_SIZE("RAWI", mlv_rawi_hdr_t);
+    HEADER_SIZE("RAWC", mlv_rawc_hdr_t);
+    HEADER_SIZE("WAVI", mlv_wavi_hdr_t);
+    HEADER_SIZE("EXPO", mlv_expo_hdr_t);
+    HEADER_SIZE("LENS", mlv_lens_hdr_t);
+    HEADER_SIZE("RTCI", mlv_rtci_hdr_t);
+    HEADER_SIZE("IDNT", mlv_idnt_hdr_t);
+    HEADER_SIZE("XREF", mlv_xref_hdr_t);
+    HEADER_SIZE("INFO", mlv_info_hdr_t);
+    HEADER_SIZE("DISO", mlv_diso_hdr_t);
+    HEADER_SIZE("MARK", mlv_mark_hdr_t);
+    HEADER_SIZE("STYL", mlv_styl_hdr_t);
+    HEADER_SIZE("ELVL", mlv_elvl_hdr_t);
+    HEADER_SIZE("WBAL", mlv_wbal_hdr_t);
+    HEADER_SIZE("DEBG", mlv_debg_hdr_t);
+    
+    return 0;
+
+#undef HEADER_SIZE
+}
+
 int main (int argc, char *argv[])
 {
     char *input_filename = NULL;
@@ -1153,6 +1175,7 @@ int main (int argc, char *argv[])
     int no_metadata_mode = 0;
     int only_metadata_mode = 0;
     int average_samples = 0;
+    int relaxed = 0;
 
     int mlv_output = 0;
     int raw_output = 0;
@@ -1318,7 +1341,6 @@ int main (int argc, char *argv[])
                 }
                 break;
                 
-              
             case 'B':
                 if(!optarg)
                 {
@@ -2115,7 +2137,6 @@ read_headers:
                 print_msg(MSG_ERROR, "File ends in the middle of a block\n");
                 goto abort;
             }
-            file_set_pos(in_file, position + file_hdr.blockSize, SEEK_SET);
 
             lua_handle_hdr(lua_state, buf.blockType, &file_hdr, sizeof(file_hdr));
 
@@ -2225,7 +2246,7 @@ read_headers:
                         
                         if(fread(buf, size, 1, inject_file) != 1)
                         {
-                            print_msg(MSG_ERROR, "Failed to read data form inject file\n");
+                            print_msg(MSG_ERROR, "Failed to read data from inject file\n");
                             goto abort;
                         }
 
@@ -2290,6 +2311,7 @@ read_headers:
             {
                 print_msg(MSG_INFO, "Block: %c%c%c%c\n", buf.blockType[0], buf.blockType[1], buf.blockType[2], buf.blockType[3]);
                 print_msg(MSG_INFO, "  Offset: 0x%08" PRIx64 "\n", position);
+                print_msg(MSG_INFO, "  Number: %d\n", blocks_processed);
                 print_msg(MSG_INFO, "    Size: %d\n", buf.blockSize);
 
                 /* NULL blocks don't have timestamps */
@@ -3233,12 +3255,20 @@ read_headers:
                             else
                             {
                                 print_msg(MSG_INFO, "    LJ92: Failed (%d)\n", ret);
+                                if(relaxed)
+                                {
+                                    goto skip_block;
+                                }
                                 goto abort;
                             }
                             
                             free(compressed);
 #else
                             print_msg(MSG_INFO, "    no compression type compiled into this release, aborting.\n");
+                            if(relaxed)
+                            {
+                                goto skip_block;
+                            }
                             goto abort;
 #endif
                         }
@@ -3321,6 +3351,10 @@ read_headers:
                             if(!save_dng(frame_filename, &raw_info))
                             {
                                 print_msg(MSG_ERROR, "VIDF: Failed writing into .DNG file\n");
+                                if(relaxed)
+                                {
+                                    goto skip_block;
+                                }
                                 goto abort;
                             }
 
@@ -4106,10 +4140,11 @@ read_headers:
 
                 lua_handle_hdr(lua_state, buf.blockType, "", 0);
             }
-            
-            file_set_pos(in_file, position + buf.blockSize, SEEK_SET);
         }
 
+skip_block:
+        file_set_pos(in_file, position + buf.blockSize, SEEK_SET);
+            
         /* count any read block, no matter if header or video frame */
         blocks_processed++;
 
