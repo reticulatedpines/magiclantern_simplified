@@ -183,11 +183,18 @@ void eos_log_mem(void * opaque, hwaddr addr, uint64_t value, uint32_t size, int 
 /* ----------------------------------------------------------------------------- */
 
 
+static FILE * idc = NULL;
+
+/* QEMU is usually closed with CTRL-C, so call this when finished */
+static void close_idc(void)
+{
+    fprintf(idc, "}\n");
+    fclose(idc);
+}
 
 static void eos_idc_log_call(CPUState *cpu, CPUARMState *env,
     TranslationBlock *tb, uint32_t prev_pc, uint32_t prev_lr, uint32_t prev_sp, uint32_t prev_size)
 {
-    static FILE * idc = NULL;
     static int stderr_dup = 0;
 
     if (!idc)
@@ -198,13 +205,7 @@ static void eos_idc_log_call(CPUState *cpu, CPUARMState *env,
         fprintf(stderr, "Exporting called functions to %s.\n", idc_path);
         idc = fopen(idc_path, "w");
         assert(idc);
-        
-        /* QEMU is usually closed with CTRL-C, so call this when finished */
-        void close_idc(void)
-        {
-            fprintf(idc, "}\n");
-            fclose(idc);
-        }
+
         atexit(close_idc);
 
         fprintf(idc, "/* List of functions called during execution. */\n");
