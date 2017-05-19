@@ -236,6 +236,7 @@ struct eos_model_desc eos_model_list[] = {
         .firmware_start         = 0xFF0C0000,
         .mpu_request_register   = 0xC022D0C4,
         .mpu_status_register    = 0xC022F484,
+        .current_task_addr      = 0x31170,
     },
     {
         .name                   = "EOSM",
