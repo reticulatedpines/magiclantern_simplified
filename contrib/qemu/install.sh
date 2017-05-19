@@ -30,12 +30,12 @@ echo "*** Setting up QEMU in `pwd`..."
 echo
 
 # get qemu
-wget -c http://wiki.qemu-project.org/download/$QEMU_NAME.tar.bz2
+wget --progress=dot:giga -c http://wiki.qemu-project.org/download/$QEMU_NAME.tar.bz2
 tar jxf $QEMU_NAME.tar.bz2
 
 # initialize a git repo, to make it easy to track changes to QEMU source
 cd $QEMU_NAME
-cd .git && cd .. || (git init && git add . && git commit -m "$QEMU_NAME vanilla")
+cd .git && cd .. || (git init && git add . && git commit -q -m "$QEMU_NAME vanilla")
 cd ..
 
 # copy our helper scripts
@@ -78,7 +78,7 @@ echo "1) Compile QEMU"
 echo
 echo "   cd `pwd`/${QEMU_NAME}"
 echo "   ../configure_eos.sh"
-echo "   make -j`grep -c processor /proc/cpuinfo`"
+echo "   make -j`grep -c processor /proc/cpuinfo || sysctl -n hw.ncpu || echo 1`"
 echo
 echo "2) Grab a copy of the Canon firmware from your own camera"
 echo "   (don't request one and don't share it online - it's copyrighted)"
