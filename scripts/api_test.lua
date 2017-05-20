@@ -230,8 +230,83 @@ function test_io()
     printf("\n")
 end
 
+function test_camera_gui()
+    printf("Testing Canon GUI functions...\n")
+
+    camera.gui.play = true
+    assert(camera.gui.play == true)
+
+    -- half-shutter should exit playback mode
+    key.press(KEY.HALFSHUTTER)
+    msleep(1000)
+    assert(camera.gui.play == false)
+    key.press(KEY.UNPRESS_HALFSHUTTER)
+
+    -- randomly switch between PLAY, MENU and IDLE (with or without LiveView)
+    for i = 1,100 do
+        -- we can request MENU or PLAY mode from anywhere
+        -- we can only exit these modes if we are already there
+        if math.random(1,2) == 1 then
+            if math.random(1,2) == 1 then
+                printf("Enter PLAY mode...\n");
+                camera.gui.play = true
+                assert(camera.gui.play == true)
+                assert(camera.gui.menu == false)
+                assert(camera.gui.idle == false)
+            elseif camera.gui.play then
+                printf("Exit PLAY mode...\n");
+                camera.gui.play = false
+                assert(camera.gui.play == false)
+                assert(camera.gui.menu == false)
+                assert(camera.gui.idle == true)
+            end
+        else
+            if math.random(1,2) == 1 then
+                printf("Enter MENU mode...\n");
+                camera.gui.menu = true
+                assert(camera.gui.menu == true)
+                assert(camera.gui.play == false)
+                assert(camera.gui.idle == false)
+            elseif camera.gui.menu then
+                printf("Exit MENU mode...\n");
+                camera.gui.menu = false
+                assert(camera.gui.menu == false)
+                assert(camera.gui.play == false)
+                assert(camera.gui.idle == true)
+            end
+        end
+
+        -- also play around with LiveView
+        if camera.gui.menu == false and camera.gui.play == false then
+            if math.random(1,2) == 1 then
+                -- do something with LiveView, but not as often as switching MENU/PLAY
+                if not lv.enabled then
+                    printf("Start LiveView...\n");
+                    lv.start()
+                elseif lv.paused then
+                    printf("Resume LiveView...\n");
+                    lv.resume()
+                elseif math.random(1,10) < 9 then
+                    -- this gets taken less often than the next one, why?
+                    -- fixme: biased random?
+                    printf("Pause LiveView...\n");
+                    lv.pause()
+                else
+                    printf("Stop LiveView...\n");
+                    lv.stop()
+                end
+            end
+        end
+    end
+
+    lv.stop()
+
+    printf("Canon GUI tests completed.\n")
+    printf("\n")
+end
+
 function test_menu()
-    printf("Testing menu API...\n")
+    printf("Testing ML menu API...\n")
 
     menu.open()
     assert(menu.select("Expo", "ISO"))
@@ -387,7 +462,9 @@ function test_menu()
     -- exercise the menu backend a bit
     for i = 1,5 do
         menu.open()
+        assert(camera.gui.idle == false)
         menu.close()
+        assert(camera.gui.idle == true)
     end
 
     printf("Menu tests completed.\n")
@@ -460,16 +537,17 @@ function test_keys()
     printf("Testing half-shutter...\n")
     for i = 1,10 do
         -- open Canon menu
-        key.press(KEY.MENU)
+        camera.gui.menu = true
         msleep(1000)
-        -- fixme: expose things like QR_MODE, PLAY_MODE, enter_play_mode...
-        assert(camera.state == 1)
+        assert(camera.gui.menu == true)
+        assert(camera.gui.idle == false)
         key.press(KEY.HALFSHUTTER)
         msleep(200)
         assert(key.last == KEY.HALFSHUTTER)
         msleep(1000)
         -- half-shutter should close Canon menu
-        assert(camera.state == 0)
+        assert(camera.gui.menu == false)
+        assert(camera.gui.idle == true)
         key.press(KEY.UNPRESS_HALFSHUTTER)
         msleep(200)
         assert(key.last == KEY.UNPRESS_HALFSHUTTER)
@@ -856,6 +934,13 @@ function test_camera_take_pics()
     local size_jpg = print_file_size(image_path_jpg)
     assert(size_cr2 or size_jpg)
 
+    -- let's review it
+    assert(camera.gui.qr or camera.gui.idle)
+    camera.gui.play = true
+    assert(camera.gui.play == true)
+    assert(camera.gui.play_photo == true)
+    assert(camera.gui.play_movie == false)
+
     msleep(2000)
 
     printf("Two burst pictures...\n")
@@ -969,6 +1054,7 @@ function test_lv()
     assert(lv.enabled, "LiveView did not start")
     assert(not lens.autofocusing)
     assert(lv.vidmode == "PH-LV")
+    assert(camera.gui.idle == true)
 
     msleep(2000)
 
@@ -1224,6 +1310,13 @@ function test_movie()
     assert(not movie.recording)
     console.show(); assert(console.visible)
 
+    -- let's review it
+    assert(camera.gui.idle == true)
+    camera.gui.play = true
+    assert(camera.gui.play == true)
+    assert(camera.gui.play_movie == true)
+    assert(camera.gui.play_photo == false)
+
     printf("Movie recording tests completed.\n")
     printf("\n")
 end
@@ -1240,6 +1333,7 @@ function api_tests()
     
     printf("Module tests...\n")
     test_io()
+    test_camera_gui()
     test_menu()
     test_camera_take_pics()
     msleep(1000)
