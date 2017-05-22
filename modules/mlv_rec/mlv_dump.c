@@ -2614,6 +2614,10 @@ read_headers:
                             else
                             {
                                 print_msg(MSG_ERROR, "    LJ92: Failed (%d)\n", ret);
+                                if(relaxed)
+                                {
+                                    goto skip_block;
+                                }
                                 goto abort;
                             }
                             
@@ -2633,7 +2637,11 @@ read_headers:
 
                             if(ret != LJ92_ERROR_NONE)
                             {
-                                print_msg(MSG_INFO, "    LJ92: Failed (%d)\n", ret);
+                                print_msg(MSG_ERROR, "    LJ92: Failed (%d)\n", ret);
+                                if(relaxed)
+                                {
+                                    goto skip_block;
+                                }
                                 goto abort;
                             }
                             
@@ -3254,11 +3262,7 @@ read_headers:
                             }
                             else
                             {
-                                print_msg(MSG_INFO, "    LJ92: Failed (%d)\n", ret);
-                                if(relaxed)
-                                {
-                                    goto skip_block;
-                                }
+                                print_msg(MSG_ERROR, "    LJ92: Failed (%d)\n", ret);
                                 goto abort;
                             }
                             
