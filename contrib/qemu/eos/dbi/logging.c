@@ -647,28 +647,14 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
 
 
     /* when a function call is made:
-     * - PC jumps
-     * - LR may be updated with the return address (not always - e.g. calls in a loop)
-     * - stack may be decremented (not always - e.g. very simple functions don't use stack)
-     * - note: the above might also happen during a context switch,
-     *   so use a heuristic to filter them out
+     * - PC jumps (it does not execute the next instruction)
+     * - LR contains the return address (but that doesn't mean it's always modified, e.g. calls in a loop)
+     * - SP is unchanged (it may be decremented inside the function, but not when executing the call)
      */
     if (pc != prev_pc + 4 &&
         pc != prev_pc + 2 &&
-        sp <= prev_sp &&
-        abs((int)sp - (int)prev_sp) < 1024)
+        sp == prev_sp)
     {
-        if (lr == pc + 4 && pc == prev_pc + 4)
-        {
-            /* we have executed a MOV LR, PC */
-            /* let's ignore it without updating prev_lr */
-            uint32_t insn;
-            cpu_physical_memory_read(prev_pc, &insn, sizeof(insn));
-            assert(insn == 0xe1a0e00f);
-            assert(prev_sp == sp);
-            lr = prev_lr;
-            goto end;
-        }
         if (lr0 == prev_pc0 + 4)
         {
             uint8_t id = get_stackid(s);
