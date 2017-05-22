@@ -4163,8 +4163,12 @@ skip_block:
 
 abort:
 
-    print_msg(MSG_INFO, "Processed %d video frames\n", vidf_frames_processed);
+    {
+        float fps = main_header.sourceFpsNom / (float)main_header.sourceFpsDenom;
 
+        print_msg(MSG_INFO, "Processed %d video frames at %2.2f FPS (%2.2f s)\n", vidf_frames_processed, fps, vidf_frames_processed / fps);
+    }
+    
     /* in average mode, finalize average calculation and output the resulting average */
     if(average_mode)
     {
