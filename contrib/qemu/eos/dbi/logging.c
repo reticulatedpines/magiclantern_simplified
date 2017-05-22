@@ -194,8 +194,8 @@ static void close_idc(void)
     fclose(idc);
 }
 
-static void eos_idc_log_call(CPUState *cpu, CPUARMState *env,
-    TranslationBlock *tb, uint32_t prev_pc, uint32_t prev_lr, uint32_t prev_sp, uint32_t prev_size)
+static void eos_idc_log_call(EOSState *s, CPUState *cpu, CPUARMState *env,
+    TranslationBlock *tb, uint32_t prev_pc, uint32_t prev_lr, uint32_t prev_size)
 {
     static int stderr_dup = 0;
 
@@ -238,8 +238,10 @@ static void eos_idc_log_call(CPUState *cpu, CPUARMState *env,
         dup2(fileno(idc), fileno(stderr));
         fprintf(stderr, "  /* from "); log_target_disas(cpu, prev_pc, prev_size, 0);
         fprintf(stderr, "   *   -> "); log_target_disas(cpu, tb->pc, tb->size, 0);
-        fprintf(stderr, "   * PC:%x->%x LR:%x->%x SP:%x->%x */\n",
-            prev_pc, pc, prev_lr, lr, prev_sp, sp
+        char * task_name = eos_get_current_task_name(s);
+        fprintf(stderr, "   * %s%sPC:%x->%x LR:%x->%x SP:%x */\n",
+            task_name ? task_name : "", task_name ? " " : "",
+            prev_pc, pc, prev_lr, lr, sp
         );
         fprintf(stderr, "  SetReg(0x%X, \"T\", %d);\n", pc, env->thumb);
         fprintf(stderr, "  MakeCode(0x%X);\n", pc);
@@ -673,7 +675,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                 print_call_location(s, prev_pc, stack_lr);
 
                 /* also save to IDC if -calls was specified (but not -callstack) */
-                eos_idc_log_call(cpu, env, tb, prev_pc, prev_lr, prev_sp, prev_size);
+                eos_idc_log_call(s, cpu, env, tb, prev_pc, prev_lr, prev_size);
             }
 
             call_stack_push(id, pc, lr, sp, env->regs[0], env->regs[1], env->regs[2], env->regs[3], 0);
