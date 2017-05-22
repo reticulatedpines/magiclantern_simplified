@@ -599,6 +599,31 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
             prev_pc, pc, prev_lr, lr, prev_sp, sp
         );
     }
+
+    if (pc0 == 0x18)
+    {
+        /* handle interrupt jumps first */
+        interrupt_level++;
+        uint8_t id = get_stackid(s);
+        assert(id == 0xFE);
+        if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
+            int len = call_stack_indent(id, 0, 0);
+            len += fprintf(stderr, KCYN"interrupt"KRESET);
+            len -= strlen(KCYN KRESET);
+            len += indent(len, CALLSTACK_RIGHT_ALIGN);
+            print_call_location(s, prev_pc, prev_lr);
+        }
+        if (interrupt_level == 1) assert(call_stack_num[id] == 0);
+        call_stack_push(id, env->regs, prev_pc, 1);
+        goto end;
+    }
+
+    if (prev_pc0 == 0x18)
+    {
+        /* jump from the interrupt vector - ignore */
+        goto end;
+    }
+
     /* when returning from a function call,
      * it may decrement the call stack by 1 or more levels
      * see e.g. tail calls (B func) - in this case, one BX LR
@@ -683,65 +708,42 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
 
 
     /* when a function call is made:
-     * - PC jumps (it does not execute the next instruction)
      * - LR contains the return address (but that doesn't mean it's always modified, e.g. calls in a loop)
+     * - PC jumps (it does not execute the next instruction after the call)
      * - SP is unchanged (it may be decremented inside the function, but not when executing the call)
+     * - note: the first two also happen when handling an interrupt, so we check this case earlier
      */
-    if (pc != prev_pc + 4 &&
-        pc != prev_pc + 2 &&
-        sp == prev_sp)
+    if (lr0 == prev_pc0 + 4 &&
+        pc != prev_pc + 4 &&
+        pc != prev_pc + 2)
     {
-        if (lr0 == prev_pc0 + 4)
-        {
-            uint8_t id = get_stackid(s);
+        assert(sp == prev_sp);
 
-            if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
-                int len = call_stack_indent(id, 0, 0);
-                /* fixme: guess the number of arguments */
-                len += fprintf(stderr, "call 0x%X(%x, %x, %x, %x)",
-                    pc | env->thumb, env->regs[0], env->regs[1], env->regs[2], env->regs[3]
-                );
-                len += indent(len, CALLSTACK_RIGHT_ALIGN);
-
-                /* print LR from the call stack, so it will always show the caller */
-                int level = call_stack_num[id] - 1;
-                uint32_t stack_lr = level >= 0 ? call_stacks[id][level].lr : 0;
-                print_call_location(s, prev_pc, stack_lr);
-            }
-
-            if (qemu_loglevel_mask(EOS_LOG_IDC)) {
-                /* save to IDC if requested */
-                eos_idc_log_call(s, cpu, env, tb, prev_pc, prev_lr, prev_size);
-            }
-
-            call_stack_push(id, env->regs, lr, 0);
-
-            /* todo: callback here? */
-
-            goto end;
-        }
-    }
-
-    if (pc0 == 0x18)
-    {
-        interrupt_level++;
         uint8_t id = get_stackid(s);
-        assert(id == 0xFE);
+
         if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
             int len = call_stack_indent(id, 0, 0);
-            len += fprintf(stderr, KCYN"interrupt"KRESET);
-            len -= strlen(KCYN KRESET);
+            /* fixme: guess the number of arguments */
+            len += fprintf(stderr, "call 0x%X(%x, %x, %x, %x)",
+                pc | env->thumb, env->regs[0], env->regs[1], env->regs[2], env->regs[3]
+            );
             len += indent(len, CALLSTACK_RIGHT_ALIGN);
-            print_call_location(s, prev_pc, prev_lr);
-        }
-        if (interrupt_level == 1) assert(call_stack_num[id] == 0);
-        call_stack_push(id, env->regs, prev_pc, 1);
-        goto end;
-    }
 
-    if (prev_pc0 == 0x18)
-    {
-        /* jump from the interrupt vector - ignore */
+            /* print LR from the call stack, so it will always show the caller */
+            int level = call_stack_num[id] - 1;
+            uint32_t stack_lr = level >= 0 ? call_stacks[id][level].lr : 0;
+            print_call_location(s, prev_pc, stack_lr);
+        }
+
+        if (qemu_loglevel_mask(EOS_LOG_IDC)) {
+            /* save to IDC if requested */
+            eos_idc_log_call(s, cpu, env, tb, prev_pc, prev_lr, prev_size);
+        }
+
+        call_stack_push(id, env->regs, lr, 0);
+
+        /* todo: callback here? */
+
         goto end;
     }
 
