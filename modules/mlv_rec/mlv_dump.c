@@ -1020,6 +1020,8 @@ void show_usage(char *executable)
     print_msg(MSG_INFO, " --payload-only               features above extract/replace affect not the whole block, but only payload\n");
     print_msg(MSG_INFO, " --header-only                features above extract/replace affect not the whole block, but only header\n");
     print_msg(MSG_INFO, " --relaxed                    do not exit on every error, skip blocks that are erroneous\n");
+    print_msg(MSG_INFO, " --visualize                  visualize block types, most likely you want to use --skip-xref along with it\n");
+    print_msg(MSG_INFO, " --skip-xref                  skip loading .IDX (XREF) file, read block in the MLV file's order instead of presorted\n");
     print_msg(MSG_INFO, " -m                           write only metadata, no audio or video frames\n");
     print_msg(MSG_INFO, " -n                           write no metadata, only audio and video frames\n");
     print_msg(MSG_INFO, " -I <mlv_file>                inject data from given MLV file right after MLVI header\n");
@@ -1176,6 +1178,8 @@ int main (int argc, char *argv[])
     int only_metadata_mode = 0;
     int average_samples = 0;
     int relaxed = 0;
+    int visualize = 0;
+    int skip_xref = 0;
 
     int mlv_output = 0;
     int raw_output = 0;
@@ -1803,7 +1807,7 @@ int main (int argc, char *argv[])
         in_file = in_files[in_file_num];
     }
 
-    if(!xref_mode)
+    if(!xref_mode && !skip_xref)
     {
         block_xref = load_index(input_filename);
 
@@ -1925,6 +1929,8 @@ read_headers:
 
         if(fread(&buf, sizeof(mlv_hdr_t), 1, in_file) != 1)
         {
+            print_msg(MSG_INFO, "\n");
+            
             if(block_xref)
             {
                 print_msg(MSG_INFO, "Reached EOF of chunk %d/%d after %i blocks total. This should never happen or your index file is wrong.\n", in_file_num, in_file_count, blocks_processed);
@@ -1957,6 +1963,70 @@ read_headers:
         {
             print_msg(MSG_ERROR, "Invalid block size at position 0x%08" PRIx64 "\n", position);
             goto abort;
+        }
+        
+        /* show all block types in a more convenient style, but needs little housekeeping code */
+        if(visualize)
+        {
+            static uint8_t last_type[4];
+            
+            /* housekeeping here */
+            if(!memcmp(buf.blockType, "VIDF", 4))
+            {
+                vidf_frames_processed++;
+            }
+            if(!memcmp(buf.blockType, "AUDF", 4))
+            {
+                audf_frames_processed++;
+            }
+            if(!memcmp(buf.blockType, "MLVI", 4))
+            {
+                mlv_file_hdr_t file_hdr;
+                uint32_t hdr_size = MIN(sizeof(mlv_file_hdr_t), buf.blockSize);
+
+                /* read the whole header block, but limit size to either our local type size or the written block size */
+                if(fread(&file_hdr, hdr_size, 1, in_file) != 1)
+                {
+                    print_msg(MSG_ERROR, "File ends in the middle of a block\n");
+                    goto abort;
+                }
+
+                /* is this the first file? */
+                if(main_header.fileGuid == 0)
+                {
+                    /* correct header size if needed */
+                    file_hdr.blockSize = sizeof(mlv_file_hdr_t);
+
+                    memcpy(&main_header, &file_hdr, sizeof(mlv_file_hdr_t));
+                }
+            }
+            
+            /* repetetive frames are printed with a plus */
+            if(!memcmp(buf.blockType, last_type, 4))
+            {
+                print_msg(MSG_INFO, "+");
+            }
+            else
+            {
+                /* one line per video frame, if not repeated */
+                if(!memcmp(buf.blockType, "VIDF", 4))
+                {
+                    print_msg(MSG_INFO, "\n");
+                }
+                
+                print_msg(MSG_INFO, "[%c%c%c%c]", buf.blockType[0], buf.blockType[1], buf.blockType[2], buf.blockType[3]);
+                
+                /* also a new line after header */
+                if(!memcmp(buf.blockType, "MLVI", 4))
+                {
+                    print_msg(MSG_INFO, "\n");
+                }
+                
+                /* remember last type */
+                memcpy(last_type, buf.blockType, 4);
+            }
+            
+            goto skip_block;
         }
         
         if(autopsy_mode)
@@ -4158,6 +4228,7 @@ skip_block:
             block_xref_pos++;
             if(block_xref_pos >= block_xref->entryCount)
             {
+                print_msg(MSG_INFO, "\n");
                 print_msg(MSG_INFO, "Reached end of all files after %i blocks\n", blocks_processed);
                 break;
             }
@@ -4267,7 +4338,7 @@ abort:
         }
     }
 
-    if(xref_mode)
+    if(xref_mode && !autopsy_mode && !visualize)
     {
         print_msg(MSG_INFO, "XREF table contains %d entries\n", frame_xref_entries);
         xref_sort(frame_xref_table, frame_xref_entries);
