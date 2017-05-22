@@ -269,31 +269,34 @@ static uint8_t get_stackid(EOSState *s)
 
 struct call_stack_entry
 {
-    uint32_t pc;        /* called function */
-    uint32_t lr;        /* location of call (LR) */
-    uint32_t sp;        /* stack pointer before the call */
-    uint32_t regs[4];   /* first 4 arguments (others can be found on the stack, if needed) */
+    union
+    {
+        struct
+        {
+            uint32_t R0;  uint32_t R1; uint32_t R2;  uint32_t R3;
+            uint32_t R4;  uint32_t R5; uint32_t R6;  uint32_t R7;
+            uint32_t R8;  uint32_t R9; uint32_t R10; uint32_t R11;
+            uint32_t R12; uint32_t sp; uint32_t lr;  uint32_t pc;
+        };
+        uint32_t regs[16];
+    };
     uint32_t num_args;
     uint32_t is_interrupt;
-};
+} __attribute__((packed));
 
 static struct call_stack_entry call_stacks[256][128];
 static int call_stack_num[256] = {0};
 
-static inline void call_stack_push(uint8_t id,
-    uint32_t pc, uint32_t lr, uint32_t sp,
-    uint32_t r0, uint32_t r1, uint32_t r2, uint32_t r3,
-    uint32_t is_interrupt)
+static inline void call_stack_push(uint8_t id, uint32_t * regs, uint32_t lr, uint32_t is_interrupt)
 {
     assert(call_stack_num[id] < COUNT(call_stacks[0]));
-    call_stacks[id][call_stack_num[id]++] = (struct call_stack_entry) {
-        .pc = pc,
-        .lr = lr,
-        .sp = sp,
-        .num_args = 4,  /* fixme */
-        .regs = { r0, r1, r2, r3 },
-        .is_interrupt = is_interrupt,
-    };
+
+    struct call_stack_entry * entry = &call_stacks[id][call_stack_num[id]];
+    memcpy(entry->regs, regs, sizeof(entry->regs));
+    entry->num_args = 4;    /* fixme */
+    entry->lr = lr;         /* allow overriding LR */
+    entry->is_interrupt = is_interrupt;
+    call_stack_num[id]++;
 }
 
 #if 0
@@ -629,6 +632,31 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                     print_call_location(s, prev_pc, stack_lr);
                 }
 
+                /* check whether the scratch registers were preserved as specified in the ABI */
+                for (int i = 4; i <= 11; i++)
+                {
+                    if (env->regs[i] != call_stacks[id][k].regs[i])
+                    {
+                        int len = eos_callstack_indent(s);
+                        len += fprintf(stderr, KCYN"Warning: R%d not restored"KRESET" (0x%x -> 0x%x)", i, call_stacks[id][k].regs[i], env->regs[i]);
+                        len -= strlen(KCYN KRESET);
+                        len += indent(len, CALLSTACK_RIGHT_ALIGN);
+                        uint32_t stack_lr = call_stacks[id][k].lr;
+                        print_call_location(s, prev_pc, stack_lr);
+                    }
+                }
+
+                if (sp != call_stacks[id][k].sp)
+                {
+                    /* fixme: this is OK when ML patches the startup process, but not OK otherwise */
+                    int len = eos_callstack_indent(s);
+                    len += fprintf(stderr, KCYN"Warning: SP not restored"KRESET" (0x%x -> 0x%x)", call_stacks[id][k].sp, sp);
+                    len -= strlen(KCYN KRESET);
+                    len += indent(len, CALLSTACK_RIGHT_ALIGN);
+                    uint32_t stack_lr = call_stacks[id][k].lr;
+                    print_call_location(s, prev_pc, stack_lr);
+                }
+
                 /* to check whether this heuristic affects the results */
                 /* (normally it should be optimized out...) */
                 if (0 && !(pc == lr || sp != prev_sp))
@@ -678,7 +706,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                 eos_idc_log_call(s, cpu, env, tb, prev_pc, prev_lr, prev_size);
             }
 
-            call_stack_push(id, pc, lr, sp, env->regs[0], env->regs[1], env->regs[2], env->regs[3], 0);
+            call_stack_push(id, env->regs, lr, 0);
 
             /* todo: callback here? */
 
@@ -699,7 +727,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
             print_call_location(s, prev_pc, prev_lr);
         }
         if (interrupt_level == 1) assert(call_stack_num[id] == 0);
-        call_stack_push(id, pc, prev_pc, sp, env->regs[0], env->regs[1], env->regs[2], env->regs[3], 1);
+        call_stack_push(id, env->regs, prev_pc, 1);
         goto end;
     }
 
