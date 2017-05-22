@@ -12,6 +12,8 @@
 #include "logging.h"
 #include "memcheck.h"
 
+#define CALLSTACK_RIGHT_ALIGN 80
+
 static inline int should_log_memory_region(MemoryRegion * mr)
 {
     if (mr->ram && qemu_loglevel_mask(EOS_LOG_RAM)) {
@@ -512,7 +514,7 @@ static void eos_callstack_log_mem(EOSState *s, hwaddr _addr, uint64_t _value, ui
                         uint32_t lr = CURRENT_CPU->env.regs[14];
                         int len = eos_callstack_indent(s);
                         len += fprintf(stderr, "arg%d = %x", arg_num, value);
-                        len += indent(len, 64);
+                        len += indent(len, CALLSTACK_RIGHT_ALIGN);
                         print_call_location(s, pc, lr);
                         if (arg_num > 10)
                         {
@@ -543,9 +545,9 @@ static void eos_callstack_log_mem(EOSState *s, hwaddr _addr, uint64_t _value, ui
                     uint32_t lr = CURRENT_CPU->env.regs[14];
                     int len = eos_callstack_indent(s);
                     len += fprintf(stderr, "*%x = %x", addr, value);
-                    len += indent(len, 60);
+                    len += indent(len, CALLSTACK_RIGHT_ALIGN - 4);
                     len += fprintf(stderr, "arg%d", i + 1);
-                    len += indent(len, 64);
+                    len += indent(len, CALLSTACK_RIGHT_ALIGN);
                     print_call_location(s, pc, lr);
                 }
             }
@@ -617,7 +619,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                 if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
                     int len = call_stack_indent(id, 0, 0);
                     len += fprintf(stderr, "return %x to 0x%X", env->regs[0], pc | env->thumb);
-                    len += indent(len, 64);
+                    len += indent(len, CALLSTACK_RIGHT_ALIGN);
 
                     /* print LR from the call stack, so it will always show the caller */
                     int level = call_stack_num[id] - 1;
@@ -677,7 +679,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                 len += fprintf(stderr, "call 0x%X(%x, %x, %x, %x)",
                     pc | env->thumb, env->regs[0], env->regs[1], env->regs[2], env->regs[3]
                 );
-                len += indent(len, 64);
+                len += indent(len, CALLSTACK_RIGHT_ALIGN);
 
                 /* print LR from the call stack, so it will always show the caller */
                 int level = call_stack_num[id] - 1;
@@ -705,7 +707,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
             int len = call_stack_indent(id, 0, 0);
             len += fprintf(stderr, KCYN"interrupt"KRESET);
             len -= strlen(KCYN KRESET);
-            len += indent(len, 64);
+            len += indent(len, CALLSTACK_RIGHT_ALIGN);
             print_call_location(s, prev_pc, prev_lr);
         }
         if (interrupt_level == 1) assert(call_stack_num[id] == 0);
@@ -794,7 +796,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                     len += fprintf(stderr, KCYN"return from interrupt"KRESET" to %x", pc);
                     if (pc != old_pc && pc != old_pc + 4) len += fprintf(stderr, " (old=%x)", old_pc);
                     len -= strlen(KCYN KRESET);
-                    len += indent(len, 64);
+                    len += indent(len, CALLSTACK_RIGHT_ALIGN);
                     print_call_location(s, prev_pc, prev_lr);
                 }
 
@@ -808,7 +810,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
             int len = call_stack_indent(id, 0, 0);
             len += fprintf(stderr, KCYN"PC jump? 0x%X lr=%x"KRESET, pc | env->thumb, lr);
             len -= strlen(KCYN KRESET);
-            len += indent(len, 64);
+            len += indent(len, CALLSTACK_RIGHT_ALIGN);
             print_call_location(s, prev_pc, prev_lr);
             call_stack_indent(id, 0, 0);
             /* hm, target_disas used to look at flags for ARM or Thumb... */
