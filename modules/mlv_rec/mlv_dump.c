@@ -1813,12 +1813,21 @@ int main (int argc, char *argv[])
 
         if(block_xref)
         {
-            print_msg(MSG_INFO, "XREF table contains %d entries\n", block_xref->entryCount);
-            xrefs = (mlv_xref_t *)(block_xref + 1);
-
-            if(dump_xrefs)
+            if(block_xref->entryCount == 0)
             {
-                xref_dump(block_xref);
+                print_msg(MSG_INFO, "Empty XREF table, will be ignored\n");
+                free(block_xref);
+                block_xref= NULL;
+            }
+            else
+            {
+                print_msg(MSG_INFO, "XREF table contains %d entries\n", block_xref->entryCount);
+                xrefs = (mlv_xref_t *)(block_xref + 1);
+
+                if(dump_xrefs)
+                {
+                    xref_dump(block_xref);
+                }
             }
         }
         else
