@@ -241,7 +241,7 @@ index e193658..9de7251 100644
      subregion->priority = 0;
      memory_region_add_subregion_common(mr, offset, subregion);
 diff --git a/qemu-log.c b/qemu-log.c
-index 7cb01a8..a52c3a0 100644
+index 7cb01a8..96d4a5e 100644
 --- a/qemu-log.c
 +++ b/qemu-log.c
 @@ -22,7 +22,7 @@
@@ -304,8 +304,8 @@ index 7cb01a8..a52c3a0 100644
 +
 +    { EOS_LOG_CALLSTACK | CPU_LOG_TB_NOCHAIN, "callstack",
 +      "EOS: reconstruct call stack (implies nochain,singlestep)" },
-+    { EOS_LOG_CALLS | EOS_LOG_CALLSTACK | CPU_LOG_TB_NOCHAIN, "calls",
-+      "EOS: log function calls (implies callstack,nochain,singlestep)" },
++    { EOS_LOG_CALLS | EOS_LOG_RAM_R | EOS_LOG_CALLSTACK | CPU_LOG_TB_NOCHAIN, "calls",
++      "EOS: log function calls (implies callstack,ramr,nochain,singlestep)" },
 +    { EOS_LOG_IDC | EOS_LOG_CALLSTACK | CPU_LOG_TB_NOCHAIN, "idc",
 +      "EOS: export called functions to IDA (implies callstack,nochain,singlestep)" },
 +

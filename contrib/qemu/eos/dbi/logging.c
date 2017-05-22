@@ -129,6 +129,12 @@ void eos_log_mem(void * opaque, hwaddr addr, uint64_t value, uint32_t size, int 
         eos_callstack_log_mem(s, addr, value, size, flags);
     }
 
+    if (qemu_loglevel_mask(EOS_LOG_CALLS))
+    {
+        /* note: calls implies callstack */
+        some_tool_executed = true;
+    }
+
     if (qemu_loglevel_mask(EOS_LOG_RAM_MEMCHK))
     {
         /* in memcheck.c */
