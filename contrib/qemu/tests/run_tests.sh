@@ -180,6 +180,11 @@ for CAM in ${SD_CAMS[*]}; do
     # this might work on CF models too, even if some nondeterminism is present (not tested)
     cp $CAM.idc tests/$CAM/calls-from.idc
 
+    # extract only the call address from IDC
+    # useful for checking when some additional info changes (e.g. comments)
+    cat tests/$CAM/calls-from.idc | grep -o "MakeFunction(.*)" \
+        > tests/$CAM/calls-from-basic.idc
+
     if grep -q "FROMUTIL" tests/$CAM/calls-from-uart.log; then
       grep -oEm1 "FROMUTIL[^*]*" tests/$CAM/calls-from-uart.log | tr -d '\n'
     else
