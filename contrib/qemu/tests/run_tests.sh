@@ -153,9 +153,9 @@ for CAM in ${SD_CAMS[*]}; do
     mkdir -p tests/$CAM/
     rm -f tests/$CAM/calls-from*.log
 
-    # run the call/return test
+    # log all function calls/returns and export to IDC
     ./run_canon_fw.sh $CAM,firmware="boot=1" \
-        -display none -d calls -serial stdio \
+        -display none -d calls,idc -serial stdio \
         > tests/$CAM/calls-from-uart.log \
         2> tests/$CAM/calls-from-raw.log &
     sleep 0.2

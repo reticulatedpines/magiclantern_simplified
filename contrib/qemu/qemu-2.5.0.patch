@@ -114,7 +114,7 @@ index 0f07159..40c3940 100644
  
  #endif
 diff --git a/include/qemu/log.h b/include/qemu/log.h
-index 362cbc4..5a52339 100644
+index 362cbc4..5fe6194 100644
 --- a/include/qemu/log.h
 +++ b/include/qemu/log.h
 @@ -12,7 +12,7 @@
@@ -126,7 +126,7 @@ index 362cbc4..5a52339 100644
  
  /* 
   * The new API:
-@@ -42,9 +42,40 @@ static inline bool qemu_log_enabled(void)
+@@ -42,9 +42,41 @@ static inline bool qemu_log_enabled(void)
  #define CPU_LOG_MMU        (1 << 12)
  #define CPU_LOG_TB_NOCHAIN (1 << 13)
  
@@ -135,14 +135,12 @@ index 362cbc4..5a52339 100644
 +#define EOS_LOG_VERBOSE    (1LL << 20)
 +#define EOS_LOG_IO         (1LL << 21)
 +#define EOS_LOG_UART       (1LL << 22)
-+#define EOS_LOG_CALLS      (1LL << 23)
-+#define EOS_LOG_CALLSTACK  (1LL << 24)
-+#define EOS_LOG_MPU        (1LL << 25)
-+#define EOS_LOG_SDCF       (1LL << 26)
-+#define EOS_LOG_SFLASH     (1LL << 27)
-+#define EOS_LOG_PFLASH     (1LL << 28)
-+#define EOS_LOG_DMA        (1LL << 29)
-+#define EOS_LOG_EDMAC      (1LL << 30)
++#define EOS_LOG_MPU        (1LL << 23)
++#define EOS_LOG_SDCF       (1LL << 24)
++#define EOS_LOG_SFLASH     (1LL << 25)
++#define EOS_LOG_PFLASH     (1LL << 26)
++#define EOS_LOG_DMA        (1LL << 27)
++#define EOS_LOG_EDMAC      (1LL << 28)
 +
 +/* guest memory tracing (logging) */
 +#define EOS_LOG_RAM_R      (1LL << 40)
@@ -157,9 +155,12 @@ index 362cbc4..5a52339 100644
 +#define EOS_LOG_RAM_DBG    (1LL << 44)    /* self-test */
 +
 +/* analysis tools */
-+#define EOS_LOG_RAM_MEMCHK (1LL << 50)    /* like valgrind memcheck */
-+#define EOS_LOG_RAM_TSKMEM (1LL << 51)    /* check task memory ownership assumptions */
-+#define EOS_LOG_RAM_SEMCHK (1LL << 52)    /* check semaphore usage (like helgrind) */
++#define EOS_LOG_CALLSTACK  (1LL << 50)    /* backend: provide call stack to other tools */
++#define EOS_LOG_CALLS      (1LL << 51)    /* log all calls and returns to console */
++#define EOS_LOG_IDC        (1LL << 52)    /* export unique calls to IDA */
++#define EOS_LOG_RAM_MEMCHK (1LL << 53)    /* like valgrind memcheck */
++#define EOS_LOG_RAM_TSKMEM (1LL << 54)    /* check task memory ownership assumptions */
++#define EOS_LOG_RAM_SEMCHK (1LL << 55)    /* check semaphore usage (like helgrind) */
 +
  /* Returns true if a bit is set in the current loglevel mask
   */
@@ -168,7 +169,7 @@ index 362cbc4..5a52339 100644
  {
      return (qemu_loglevel & mask) != 0;
  }
-@@ -67,7 +98,7 @@ qemu_log_vprintf(const char *fmt, va_list va)
+@@ -67,7 +99,7 @@ qemu_log_vprintf(const char *fmt, va_list va)
  
  /* log only if a bit is set on the current loglevel mask
   */
@@ -177,7 +178,7 @@ index 362cbc4..5a52339 100644
  
  
  /* Special cases: */
-@@ -95,7 +126,7 @@ static inline void log_cpu_state(CPUState *cpu, int flags)
+@@ -95,7 +127,7 @@ static inline void log_cpu_state(CPUState *cpu, int flags)
   *
   * Logs the output of cpu_dump_state() if loglevel includes @mask.
   */
@@ -186,7 +187,7 @@ index 362cbc4..5a52339 100644
  {
      if (qemu_loglevel & mask) {
          log_cpu_state(cpu, flags);
-@@ -152,7 +183,7 @@ static inline void qemu_log_set_file(FILE *f)
+@@ -152,7 +184,7 @@ static inline void qemu_log_set_file(FILE *f)
  
  /* define log items */
  typedef struct QEMULogItem {
@@ -195,7 +196,7 @@ index 362cbc4..5a52339 100644
      const char *name;
      const char *help;
  } QEMULogItem;
-@@ -163,9 +194,9 @@ extern const QEMULogItem qemu_log_items[];
+@@ -163,9 +195,9 @@ extern const QEMULogItem qemu_log_items[];
   * changing the log level; it should only be accessed via
   * the qemu_set_log() wrapper.
   */
@@ -207,7 +208,7 @@ index 362cbc4..5a52339 100644
  {
  #ifdef CONFIG_USER_ONLY
      do_qemu_set_log(log_flags, true);
-@@ -175,7 +206,7 @@ static inline void qemu_set_log(int log_flags)
+@@ -175,7 +207,7 @@ static inline void qemu_set_log(int log_flags)
  }
  
  void qemu_set_log_filename(const char *filename);
@@ -240,7 +241,7 @@ index e193658..9de7251 100644
      subregion->priority = 0;
      memory_region_add_subregion_common(mr, offset, subregion);
 diff --git a/qemu-log.c b/qemu-log.c
-index 7cb01a8..a6382c9 100644
+index 7cb01a8..a52c3a0 100644
 --- a/qemu-log.c
 +++ b/qemu-log.c
 @@ -22,7 +22,7 @@
@@ -270,7 +271,7 @@ index 7cb01a8..a6382c9 100644
  {
      qemu_loglevel = log_flags;
      if (qemu_loglevel && !qemu_logfile) {
-@@ -120,6 +120,45 @@ const QEMULogItem qemu_log_items[] = {
+@@ -120,6 +120,47 @@ const QEMULogItem qemu_log_items[] = {
      { CPU_LOG_TB_NOCHAIN, "nochain",
        "do not chain compiled TBs so that \"exec\" and \"cpu\" show\n"
        "complete traces" },
@@ -301,13 +302,15 @@ index 7cb01a8..a6382c9 100644
 +    { EOS_LOG_RAM_DBG | EOS_LOG_RAM, "ram_dbg",
 +      "EOS: self-test for the RAM logging routines" },
 +
-+    { EOS_LOG_RAM_MEMCHK | EOS_LOG_RAM, "memchk",
-+      "EOS: check memory usage (malloc/free, uninitialized values)" },
-+
 +    { EOS_LOG_CALLSTACK | CPU_LOG_TB_NOCHAIN, "callstack",
 +      "EOS: reconstruct call stack (implies nochain,singlestep)" },
 +    { EOS_LOG_CALLS | EOS_LOG_CALLSTACK | CPU_LOG_TB_NOCHAIN, "calls",
-+      "EOS: log function calls and export them to IDA (implies callstack,nochain,singlestep)" },
++      "EOS: log function calls (implies callstack,nochain,singlestep)" },
++    { EOS_LOG_IDC | EOS_LOG_CALLSTACK | CPU_LOG_TB_NOCHAIN, "idc",
++      "EOS: export called functions to IDA (implies callstack,nochain,singlestep)" },
++
++    { EOS_LOG_RAM_MEMCHK | EOS_LOG_RAM, "memchk",
++      "EOS: check memory usage (malloc/free, uninitialized values)" },
 +
 +    { EOS_LOG_VERBOSE, "v", "" },
 +    { EOS_LOG_VERBOSE, "verbose",
@@ -316,7 +319,7 @@ index 7cb01a8..a6382c9 100644
      { 0, NULL, NULL },
  };
  
-@@ -132,10 +171,10 @@ static int cmp1(const char *s1, int n, const char *s2)
+@@ -132,10 +173,10 @@ static int cmp1(const char *s1, int n, const char *s2)
  }
  
  /* takes a comma separated list of log masks. Return 0 if error. */

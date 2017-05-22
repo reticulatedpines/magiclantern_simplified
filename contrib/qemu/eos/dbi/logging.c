@@ -185,6 +185,7 @@ void eos_log_mem(void * opaque, hwaddr addr, uint64_t value, uint32_t size, int 
 /* ----------------------------------------------------------------------------- */
 
 
+static char idc_path[100];
 static FILE * idc = NULL;
 
 /* QEMU is usually closed with CTRL-C, so call this when finished */
@@ -192,6 +193,7 @@ static void close_idc(void)
 {
     fprintf(idc, "}\n");
     fclose(idc);
+    fprintf(stderr, "%s saved.\n", idc_path);
 }
 
 static void eos_idc_log_call(EOSState *s, CPUState *cpu, CPUARMState *env,
@@ -201,8 +203,6 @@ static void eos_idc_log_call(EOSState *s, CPUState *cpu, CPUARMState *env,
 
     if (!idc)
     {
-        char idc_path[100];
-
         snprintf(idc_path, sizeof(idc_path), "%s.idc", MACHINE_GET_CLASS(current_machine)->name);
         fprintf(stderr, "Exporting called functions to %s.\n", idc_path);
         idc = fopen(idc_path, "w");
@@ -701,8 +701,10 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                 int level = call_stack_num[id] - 1;
                 uint32_t stack_lr = level >= 0 ? call_stacks[id][level].lr : 0;
                 print_call_location(s, prev_pc, stack_lr);
+            }
 
-                /* also save to IDC if -calls was specified (but not -callstack) */
+            if (qemu_loglevel_mask(EOS_LOG_IDC)) {
+                /* save to IDC if requested */
                 eos_idc_log_call(s, cpu, env, tb, prev_pc, prev_lr, prev_size);
             }
 
