@@ -28,7 +28,14 @@ if is_mounted cf.img; then
     exit 1
 fi
 
+# recompile QEMU
 $MAKE -C $QEMU_PATH || exit
+
+# clear the terminal
+# (since the logs are very large, being able to scroll at the beginning is helpful)
+tput reset
+
+# run the emulation
 $QEMU_PATH/arm-softmmu/qemu-system-arm \
     -drive if=sd,format=raw,file=sd.img \
     -drive if=ide,format=raw,file=cf.img \
