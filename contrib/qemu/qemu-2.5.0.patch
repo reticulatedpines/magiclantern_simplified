@@ -113,6 +113,35 @@ index 0f07159..40c3940 100644
  #endif
  
  #endif
+diff --git a/include/hw/elf_ops.h b/include/hw/elf_ops.h
+index 0010c44..6b5fd81 100644
+--- a/include/hw/elf_ops.h
++++ b/include/hw/elf_ops.h
+@@ -140,8 +140,9 @@ static int glue(load_symbols, SZ)(struct elfhdr *ehdr, int fd, int must_swab,
+         /* We are only interested in function symbols.
+            Throw everything else away.  */
+         if (syms[i].st_shndx == SHN_UNDEF ||
+-                syms[i].st_shndx >= SHN_LORESERVE ||
+-                ELF_ST_TYPE(syms[i].st_info) != STT_FUNC) {
++           (syms[i].st_shndx != SHN_ABS &&         /* allow ABS symbols (ML stubs) */
++              (syms[i].st_shndx >= SHN_LORESERVE ||
++               ELF_ST_TYPE(syms[i].st_info) != STT_FUNC))) {
+             nsyms--;
+             if (i < nsyms) {
+                 syms[i] = syms[nsyms];
+@@ -159,7 +160,11 @@ static int glue(load_symbols, SZ)(struct elfhdr *ehdr, int fd, int must_swab,
+     qsort(syms, nsyms, sizeof(*syms), glue(symcmp, SZ));
+     for (i = 0; i < nsyms - 1; i++) {
+         if (syms[i].st_size == 0) {
+-            syms[i].st_size = syms[i + 1].st_value - syms[i].st_value;
++            if (syms[i].st_shndx != SHN_ABS) {
++                syms[i].st_size = syms[i + 1].st_value - syms[i].st_value;
++            } else {
++                syms[i].st_size = 4;
++            }
+         }
+     }
+ 
 diff --git a/include/qemu/log.h b/include/qemu/log.h
 index 362cbc4..5fe6194 100644
 --- a/include/qemu/log.h
@@ -241,7 +270,7 @@ index e193658..9de7251 100644
      subregion->priority = 0;
      memory_region_add_subregion_common(mr, offset, subregion);
 diff --git a/qemu-log.c b/qemu-log.c
-index 7cb01a8..96d4a5e 100644
+index 7cb01a8..e683128 100644
 --- a/qemu-log.c
 +++ b/qemu-log.c
 @@ -22,7 +22,7 @@

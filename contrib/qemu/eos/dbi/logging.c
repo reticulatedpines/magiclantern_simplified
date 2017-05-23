@@ -5,8 +5,10 @@
 #include "qemu/osdep.h"
 #include "qapi/error.h"
 #include "cpu.h"
-
+#include "elf.h"
 #include "hw/boards.h"
+#include "hw/loader.h"
+
 #include "../eos.h"
 #include "../model_list.h"
 #include "logging.h"
@@ -454,6 +456,14 @@ int eos_callstack_print(EOSState *s, const char * prefix, const char * sep, cons
 
 int eos_print_location(EOSState *s, uint32_t pc, uint32_t lr, const char * prefix, const char * suffix)
 {
+    char name_suffix[512];
+
+    const char * name = lookup_symbol(pc);
+    if (name && name[0]) {
+        snprintf(name_suffix, sizeof(name_suffix), " (%s)%s", name, suffix);
+        suffix = name_suffix;
+    }
+
     if (interrupt_level) {
         return fprintf(stderr, "%s[INT-%02X:%x:%x]%s", prefix, s->irq_id, pc, lr, suffix);
     } else {
@@ -722,10 +732,15 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
         uint8_t id = get_stackid(s);
 
         if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
+            const char * name = lookup_symbol(pc);
             int len = call_stack_indent(id, 0, 0);
+            len += fprintf(stderr, "call 0x%X", pc | env->thumb);
+            if (name && name[0]) {
+                len += fprintf(stderr, " %s", name);
+            }
             /* fixme: guess the number of arguments */
-            len += fprintf(stderr, "call 0x%X(%x, %x, %x, %x)",
-                pc | env->thumb, env->regs[0], env->regs[1], env->regs[2], env->regs[3]
+            len += fprintf(stderr, "(%x, %x, %x, %x)",
+                env->regs[0], env->regs[1], env->regs[2], env->regs[3]
             );
             len += indent(len, CALLSTACK_RIGHT_ALIGN);
 
@@ -872,13 +887,22 @@ static void tb_exec_cb(void *opaque, CPUState *cpu, TranslationBlock *tb)
     }
 }
 
+static void load_symbols(const char * elf_filename)
+{
+    fprintf(stderr, "[EOS] loading symbols from %s ", elf_filename);
+    uint64_t lo, hi;
+    int size = load_elf(elf_filename, 0, 0, 0, &lo, &hi, 0, EM_ARM, 1);
+    fprintf(stderr, "(%lX-%lX)\n", lo, hi);
+    assert(size > 0);
+}
+
 void eos_logging_init(EOSState *s)
 {
     cpu_set_tb_exec_cb(tb_exec_cb, s);
 
     if (qemu_loglevel_mask(EOS_LOG_MEM))
     {
-        fprintf(stderr, "Enabling memory access logging.\n");
+        fprintf(stderr, "[EOS] enabling memory access logging.\n");
         int mem_access_mode =
             (qemu_loglevel_mask(EOS_LOG_MEM_R) ? PROT_READ : 0) |
             (qemu_loglevel_mask(EOS_LOG_MEM_W) ? PROT_WRITE : 0);
@@ -892,7 +916,17 @@ void eos_logging_init(EOSState *s)
 
     if (qemu_loglevel_mask(EOS_LOG_CALLSTACK))
     {
-        fprintf(stderr, "Enabling singlestep.\n");
+        fprintf(stderr, "[EOS] enabling singlestep.\n");
         singlestep = 1;
+    }
+
+    const char * ml_path = getenv("QEMU_ML_PATH");
+    if (ml_path && ml_path[0])
+    {
+        char sym[512];
+        snprintf(sym, sizeof(sym), "%s/autoexec", ml_path);
+        load_symbols(sym);
+        snprintf(sym, sizeof(sym), "%s/magiclantern", ml_path);
+        load_symbols(sym);
     }
 }
