@@ -124,7 +124,7 @@ int get_follow_focus_dir_h() { return follow_focus_reverse_h ? -1 : 1; }
  * See:
  *      http://www.largeformatphotography.info/articles/DoFinDepth.pdf
  * 
- * Assumes a â€˜genericâ€™ FF or Crop sensor, ie pixel density
+ * Assumes a ‘generic’ FF or Crop sensor, ie pixel density
  *
  * Makes the reasonable assumption that pupillary ratio can be ignored, ie use symmetric lens equations,
  * as this only introduces a very small correction for non-macro imaging (hence what follows does
@@ -138,11 +138,12 @@ int get_follow_focus_dir_h() { return follow_focus_reverse_h ? -1 : 1; }
 void focus_calc_dof()
 {
     // Total (defocus + diffraction) blur dia in microns
-    uint64_t        coc = dof_info_coc;
+    uint64_t        coc = dof_info_coc*10; // from ML setting, converted to tenths here, as the base unit for blurs, to increase 'division accuracy'
+    uint64_t        coc_hfd = 0; // variable used to calculate HFD
 
     const uint64_t  fd = lens_info.focus_dist * 10; // into mm
     const uint64_t  fl = lens_info.focal_len; // already in mm
-    
+
     // If we have no aperture value then we can't compute any of this
     // Also not all lenses report the focus length or distance
     if (fl == 0 || lens_info.aperture == 0 || fd == 0)
@@ -153,10 +154,12 @@ void focus_calc_dof()
         return;
     }
 
-    // Set up some dof info
+    // Set up some dof info. Note lens_info.aperture = 10*N, eg at F/16 lens_info.aperture = 160
+    // Diffraction blur = 2.44*freq*N*(1+mag). Where Mag = fl/(x-fl), and x = fd, say
     const uint64_t  freq = 550;         // mid vis diffraction freq in nm (use 850 if IR)
-    const uint64_t  imag = (fd-fl)/fl;  // inverse of magnification (to keep as integer)
-    const uint64_t  diff = (244*freq*lens_info.aperture*(1+imag)/imag)/1000000; // Diffraction blur in microns
+    // ie at fl = 10 and fd = 200, mag = 10/(200-10) = 0.05. But note for 100mm macro lens at min fd = 300, mag = 100/(300-100) = 0.5
+    const uint64_t  diff_hfd = (244*freq*lens_info.aperture)/100000; // Estimation of diffraction blur in tenths of microns, without (1+mag) factor as really small. Used for HFD with diffraction
+    const uint64_t  diff = diff_hfd*fd/(fd-fl); // Diffraction blur (in tenths of units) in microns at fd, using  (1+mag), ie being technically correct :-)
 
     int dof_flags = 0;
 
@@ -171,27 +174,31 @@ void focus_calc_dof()
         }
         else
         {
-            // calculate defocus only blur in microns
+            // calculate defocus only blurs for fd and hfd, in tenths of micron
             const uint64_t sq = (coc*coc - diff*diff);
-            coc = (int) sqrtf(sq); // Defocus only blur
+            const uint64_t sq_hfd = (coc*coc - diff_hfd*diff_hfd);
+            coc_hfd = (int) sqrtf(sq_hfd); // Estimate of defocus blur at HFD in tenths of units. Doesn't vary when focus changes, as ignore (smal) magnification effect
+            coc = (int) sqrtf(sq); // Focus distance aware defocus blur in tenths of units
+
         }
     }
 
     const uint64_t        fl2 = fl * fl;
 
-    // Calculate hyperfocal distance H 
-    const uint64_t H = coc ? fl + ((10000 * fl2) / (lens_info.aperture  * coc)) : 1000 * 1000;
+    // Calculate defocus hyperfocal distance H. Note this is diffraction aware, but is indepedent of fd
+    const uint64_t H = coc ? fl + ((100000 * fl2) / (lens_info.aperture  * coc_hfd)) : 1000 * 1000; // use coc to test for diffraction limit reached
     lens_info.hyperfocal = H;
   
     // Calculate near and far dofs
-    lens_info.dof_near = (fd*fl*10000)/(10000*fl + imag*lens_info.aperture*coc); // in mm
+    const uint64_t  temp = lens_info.aperture*coc*(fd-fl) // note aperture and coc in tenths of their units, hence the 100000 factor below
+    lens_info.dof_near = (fd*fl2*100000)/(100000*fl2 + temp); // in mm
     if( fd >= H )
     {
         lens_info.dof_far = 1000 * 1000; // infinity
     }
     else
     {
-        lens_info.dof_far = (fd*fl*10000)/(10000*fl - imag*lens_info.aperture*coc); // in mm
+        lens_info.dof_far = (fd*fl2*100000)/(100000*fl2 - temp); // in mm
     }
 
     // update DOF flags
@@ -201,7 +208,7 @@ void focus_calc_dof()
     lens_info.dof_near = MAX(lens_info.dof_near, 1);
     lens_info.dof_far = MAX(lens_info.dof_far, 1);
 
-    lens_info.dof_diffraction_blur = (int) diff;
+    lens_info.dof_diffraction_blur = (int) (diff+5)/10; // at point of focus rounded up/down to nearest integer
 }
 
 LVINFO_UPDATE_FUNC(focus_dist_update)
