@@ -581,7 +581,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
     ARMCPU *arm_cpu = ARM_CPU(cpu);
     CPUARMState *env = &arm_cpu->env;
     
-    static uint32_t prev_pc = 0xFFFF0000;
+    static uint32_t prev_pc = 0xFFFFFFFF;
     static uint32_t prev_lr = 0;
     static uint32_t prev_sp = 0;
     static uint32_t prev_size = 0;
@@ -763,7 +763,8 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
     }
 
     /* check all other large PC jumps */
-    if (abs((int)pc - (int)prev_pc) > 16)
+    if (abs((int)pc - (int)prev_pc) > 16 &&
+        prev_pc != 0xFFFFFFFF)
     {
         uint32_t insn;
         cpu_physical_memory_read(prev_pc0, &insn, sizeof(insn));
