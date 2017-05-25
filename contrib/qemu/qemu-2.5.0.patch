@@ -362,7 +362,7 @@ index 7cb01a8..e683128 100644
  
      p = str;
 diff --git a/target-arm/cpu.c b/target-arm/cpu.c
-index 30739fc..79babf9 100644
+index 30739fc..9574387 100644
 --- a/target-arm/cpu.c
 +++ b/target-arm/cpu.c
 @@ -501,8 +501,9 @@ static void arm_cpu_initfn(Object *obj)
@@ -385,7 +385,7 @@ index 30739fc..79babf9 100644
 + * the cache hacks from Magic Lantern */
 +static uint64_t eos_cache_lockdown_read(CPUARMState *env, const ARMCPRegInfo *ri)
 +{
-+    printf("Lockdown read %x\n", ri->crm);
++    fprintf(stderr, "Lockdown read %x\n", ri->crm);
 +    return 0;
 +}
 +
@@ -396,7 +396,7 @@ index 30739fc..79babf9 100644
 +    
 +    if (value != old)
 +    {
-+        printf("Cache patch: [%08X] <- %X\n", addr, value);
++        fprintf(stderr, "Cache patch: [%08X] <- %X\n", addr, value);
 +        cpu_physical_memory_write(addr, &value, sizeof(value));
 +    }
 +}
