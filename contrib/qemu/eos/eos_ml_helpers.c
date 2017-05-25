@@ -9,7 +9,20 @@
 #include "eos.h"
 #include "eos_ml_helpers.h"
 
-
+static void print_char(char value)
+{
+    /* line buffered output on stderr */
+    /* fixme: nicer way? */
+    static char buf[100];
+    static int len = 0;
+    buf[len++] = value;
+    buf[len] = 0;
+    if (value == '\n' || len == COUNT(buf))
+    {
+        fprintf(stderr, KBLU"%s"KRESET, buf);
+        len = 0;
+    }
+}
 unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
     if(type & MODE_WRITE)
@@ -18,23 +31,19 @@ unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *s, unsigned in
         {
             case REG_PRINT_CHAR:    /* print in blue */
             {
-                /* line buffered output on stderr */
-                /* fixme: nicer way? */
-                static char buf[100];
-                static int len = 0;
-                buf[len++] = value;
-                buf[len] = 0;
-                if (value == '\n' || len == COUNT(buf))
-                {
-                    fprintf(stderr, KBLU"%s"KRESET, buf);
-                    len = 0;
-                }
+                print_char(value);
                 return 0;
             }
 
-            case REG_PRINT_NUM:     /* print in green */
-                fprintf(stderr, KGRN"%x (%d)"KRESET"\n", (uint32_t)value, (uint32_t)value);
+            case REG_PRINT_NUM:     /* print an int32 from the guest */
+            {
+                char num[32];
+                snprintf(num, sizeof(num), "0x%x (%d) ", (uint32_t)value, (uint32_t)value);
+                for (char * ch = num; *ch; ch++) {
+                    print_char(*ch);
+                }
                 return 0;
+            }
 
             case REG_DISAS_32:      /* disassemble address (32-bit, ARM or Thumb) */
                 fprintf(stderr, KGRN);
