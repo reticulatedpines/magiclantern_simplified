@@ -3003,12 +3003,14 @@ read_headers:
                             }
                         }
 
+                        /* update uncompressed frame and buffer size */
                         frame_size = new_size;
                         frame_buffer_size = new_size;
                         current_depth = new_depth;
 
-                        frame_buffer = realloc(frame_buffer, frame_size);
-                        memcpy(frame_buffer, new_buffer, frame_size);
+                        frame_buffer = realloc(frame_buffer, frame_buffer_size);
+                        assert(frame_buffer);
+                        memcpy(frame_buffer, new_buffer, frame_buffer_size);
                         free(new_buffer);
                     }
 
@@ -3163,8 +3165,8 @@ read_headers:
                             int old_depth = lv_rec_footer.raw_info.bits_per_pixel;
                             int new_depth = bit_depth;
                             
-                            /* patch raw info */
-                            if(new_depth)
+                            /* patch raw info if bit depth changed */
+                            if(new_depth != old_depth)
                             {
                                 raw_info.bits_per_pixel = new_depth;
                                 int delta = old_depth - new_depth;
@@ -3231,7 +3233,7 @@ read_headers:
                             }
                             
                             /* override the resolution from raw_info with the one from lv_rec_footer, if they don't match */
-                            if (lv_rec_footer.xRes != raw_info.width)
+                            if(lv_rec_footer.xRes != raw_info.width)
                             {
                                 raw_info.width = lv_rec_footer.xRes;
                                 raw_info.pitch = raw_info.width * raw_info.bits_per_pixel / 8;
@@ -3241,7 +3243,7 @@ read_headers:
                                 raw_info.jpeg.width = raw_info.width;
                             }
 
-                            if (lv_rec_footer.yRes != raw_info.height)
+                            if(lv_rec_footer.yRes != raw_info.height)
                             {
                                 raw_info.height = lv_rec_footer.yRes;
                                 raw_info.active_area.y1 = 0;
@@ -3251,12 +3253,12 @@ read_headers:
                             }
 
                             /* call raw2dng code */
-                            if (fix_vert_stripes)
+                            if(fix_vert_stripes)
                             {
                                 fix_vertical_stripes();
                             }
                             
-                            if (fix_cold_pixels)
+                            if(fix_cold_pixels)
                             {
                                 find_and_fix_cold_pixels(fix_cold_pixels == 2);
                             }
