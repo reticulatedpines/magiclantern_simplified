@@ -598,7 +598,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
     assert(pc0 == tb->pc);
 
     /* for some reason, this may called multiple times on the same PC */
-    if (prev_pc == pc && prev_sp == sp && prev_lr == lr) return;
+    if (prev_pc0 == pc0 && prev_sp == sp && prev_lr == lr) return;
 
     /* our uninitialized stubs are 0 - don't log this address */
     if (!pc0) return;
@@ -723,9 +723,8 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
      * - SP is unchanged (it may be decremented inside the function, but not when executing the call)
      * - note: the first two also happen when handling an interrupt, so we check this case earlier
      */
-    if (lr0 == prev_pc0 + 4 &&
-        pc != prev_pc + 4 &&
-        pc != prev_pc + 2)
+    if (lr0 == prev_pc0 + prev_size &&
+        pc != prev_pc + prev_size)
     {
         assert(sp == prev_sp);
 
@@ -859,6 +858,8 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
             int t0 = env->thumb; env->thumb = prev_pc & 1;
             target_disas(stderr, CPU(arm_env_get_cpu(env)), prev_pc0, prev_size, 0);
             env->thumb = t0;
+            //call_stack_indent(id, 0, 0);
+            //eos_callstack_print(s, "Call stack: ", " ", "\n");
         }
     }
 
