@@ -383,6 +383,10 @@ void eos_load_image(EOSState *s, const char * file_rel, int offset, int max_size
         abort();
     }
 
+    if ((max_size > 0) && (size + offset != max_size)) {
+        fprintf(stderr, " (expected size 0x%08X, got 0x%08X)", max_size, size);
+    }
+
     size = size - offset;
 
     if ((max_size > 0) && (size > max_size)) {
@@ -1399,10 +1403,10 @@ static void eos_init_common(MachineState *machine)
         
         /* all dumps must be made before starting the Eeko core, but after the above copy calls
          * 5D3 1.1.3: 0xFF508F78 (right before writing 7 to C022320C) */
-        eos_load_image(s, "D0288000.DMP", 0, 0, 0,          0); /* 0x008000 bytes */
-        eos_load_image(s, "D0280000.DMP", 0, 0, 0x40000000, 0); /* 0x004000 bytes */
-        eos_load_image(s, "1E00000.DMP",  0, 0, 0x1E00000,  0); /* 0x120000 bytes (overlaps 2 regions) */
-        eos_load_image(s, "1F20000.DMP",  0, 0, 0x1F20000,  0); /* 0x020000 bytes (non-shareable device) */
+        eos_load_image(s, "D0288000.DMP", 0, 0x008000, 0,          0);
+        eos_load_image(s, "D0280000.DMP", 0, 0x004000, 0x40000000, 0);
+        eos_load_image(s, "1E00000.DMP",  0, 0x120000, 0x1E00000,  0); /* overlaps 2 regions */
+        eos_load_image(s, "1F20000.DMP",  0, 0x020000, 0x1F20000,  0); /* non-shareable device */
         s->cpu0->env.regs[15] = 0;
         s->cpu0->env.thumb = 1;
     }
