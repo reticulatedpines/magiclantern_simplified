@@ -134,6 +134,127 @@ function kill_qemu {
 }
 
 echo
+echo "Testing call/return trace until the first interrupt"
+echo "and some basic consistency checks 1 second after..."
+
+# Interrupts are (currently) non-deterministic, so we'll test
+# the call/return trace until the first interrupt is enabled.
+
+# Eeko is also a good target for testing call/return trace, because:
+# - simple Thumb code from the bootloader (unlike DIGIC 6 cameras,
+#   where the bootloader is plain ARM)
+# - the overall structure is different enough to cause issues
+
+for CAM in ${EOS_SECONDARY_CORES[*]} ${EOS_CAMS[*]}; do
+    printf "%7s: " $CAM
+
+    mkdir -p tests/$CAM/
+    rm -f tests/$CAM/calls-fint*.log
+
+    # log all function calls/returns and interrupts
+    ./run_canon_fw.sh $CAM,firmware="boot=0" \
+        -display none -d calls,io,int -serial stdio \
+        > tests/$CAM/calls-fint-uart.log \
+        2> tests/$CAM/calls-fint-raw.log &
+    sleep 0.2
+    (timeout 10 tail -f -n100000 tests/$CAM/calls-fint-raw.log & ) | grep -q "Enabled interrupt"
+    sleep 1
+    kill_qemu
+
+    # trim the log file until the first interrupt
+    # (in other words, extract the deterministic part)
+    cat tests/$CAM/calls-fint-raw.log \
+        | grep --binary-files=text -m1 -B 1000 "Enabled interrupt" \
+        > tests/$CAM/calls-fint-trim.log
+
+    # extract call/return lines (before any interrupts)
+    ansi2txt < tests/$CAM/calls-fint-trim.log \
+        | grep -E "call |return " \
+        > tests/$CAM/calls-fint.log
+
+    if grep -qE "([KR].* (READY|AECU)|Dry|Boot)" tests/$CAM/calls-fint-uart.log; then
+      msg=`grep --text -oEm1 "([KR].* (READY|AECU)|Dry|Boot)[a-zA-Z >]*" tests/$CAM/calls-fint-uart.log`
+      printf "%-16s" "$msg"
+    else
+      echo -en "\e[33mBad output\e[0m      "
+    fi
+    echo -n ' '
+
+    ints=`ansi2txt < tests/$CAM/calls-fint-raw.log | grep -E "interrupt *at " | grep -v "return" | wc -l`
+    reti=`ansi2txt < tests/$CAM/calls-fint-raw.log | grep "return from interrupt" | wc -l | tr -d '\n'`
+    if (( ints == 0 )); then
+      echo -en "\e[33mno interrupts\e[0m "
+    else
+      echo -n "$ints ints, "
+      if (( reti == 0 )); then
+        echo -e "\e[31mno reti\e[0m"
+        continue
+      fi
+      echo -n "$reti reti "
+      if (( ints > reti + 1 )); then
+          echo -en "\e[33mtoo few reti\e[0m "
+      fi
+      if (( reti > ints )); then
+          echo -e "\e[31mtoo many reti\e[0m"
+          continue
+      fi
+    fi
+
+    tests/check_md5.sh tests/$CAM/ calls-fint || cat tests/$CAM/calls-fint.md5.log
+done
+
+echo
+echo "Testing unique calls (sorted IDC) until emulation settles..."
+
+# Even with some non-determinisim from interrupts, the functions called
+# should be the same (maybe in different order). Therefore, sorting
+# the IDC file should give consistent results.
+
+for CAM in 5D3eeko ${EOS_CAMS[*]}; do
+    printf "%7s: " $CAM
+
+    mkdir -p tests/$CAM/
+    rm -f tests/$CAM/calls-sorted*.log
+
+    # log all function calls/returns and export to IDC
+    ./run_canon_fw.sh $CAM,firmware="boot=0" \
+        -display none -d idc -serial stdio \
+        > tests/$CAM/calls-sorted-uart.log \
+        2> tests/$CAM/calls-sorted-raw.log &
+
+    # wait until the IDC file no longer grows
+    # (hopefully the emulation settled somehow)
+    size_after=
+    changed=0
+    unchanged=0
+    for i in `seq 1 30`; do
+        sleep 1
+        size_before=$size_after
+        size_after=`stat --printf="%s" $CAM.idc`
+        if [[ $size_before == $size_after ]]; then
+            echo -n "."
+            unchanged=$((unchanged+1))
+            if (( unchanged > 1 + changed/2 )); then
+              echo -n " "
+              break;
+            fi
+        else
+            echo -n "+"
+            changed=$((changed+1))
+        fi
+    done
+
+    kill_qemu || continue
+
+    # extract only the call address from IDC
+    # and sort the file, because our emulation is not deterministic
+    cat $CAM.idc | grep -o "MakeFunction(.*)" \
+        | sort > tests/$CAM/calls-sorted.idc
+
+    tests/check_md5.sh tests/$CAM/ calls-sorted || cat tests/$CAM/calls-sorted.md5.log
+done
+
+echo
 echo "Testing call/return trace on fromutility..."
 
 # We should get a valid call/return trace on the bootloader,
@@ -187,13 +308,11 @@ for CAM in ${SD_CAMS[*]}; do
 
     if grep -q "FROMUTIL" tests/$CAM/calls-from-uart.log; then
       grep -oEm1 "FROMUTIL[^*]*" tests/$CAM/calls-from-uart.log | tr -d '\n'
-    else
-      if grep -q "AUTOEXEC.BIN not found" tests/$CAM/calls-from-uart.log; then
+    elif grep -q "AUTOEXEC.BIN not found" tests/$CAM/calls-from-uart.log; then
         echo -en "\e[33mFROMUTILITY not executed  \e[0m"
-      else
+    else
         echo -e "\e[31mFAILED!\e[0m"
         continue
-      fi
     fi
     echo -n ' '
     tests/check_md5.sh tests/$CAM/ calls-from || cat tests/$CAM/calls-from.md5.log
