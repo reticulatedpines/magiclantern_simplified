@@ -459,7 +459,7 @@ static void eos_interrupt_timer_body(EOSState *s)
                     if(pos == TIMER_INTERRUPT)
                     {
                         if (qemu_loglevel_mask(CPU_LOG_INT)) {
-                            //~ fprintf(stderr, "[EOS] trigger int 0x%02X (delayed)\n", pos);    /* quiet */
+                            fprintf(stderr, "[EOS] trigger int 0x%02X (delayed)\n", pos);    /* quiet */
                         }
                         s->irq_schedule[pos] = s->timer_reload_value[DRYOS_TIMER_ID] >> 8;
                     }
@@ -1800,7 +1800,7 @@ unsigned int eos_handle_intengine ( unsigned int parm, EOSState *s, unsigned int
                 s->irq_id = 0;
                 cpu_reset_interrupt(CPU(CURRENT_CPU), CPU_INTERRUPT_HARD);
 
-                if(msg_arg2 == TIMER_INTERRUPT)
+                if (msg_arg2 == TIMER_INTERRUPT && !qemu_loglevel_mask(CPU_LOG_INT))
                 {
                     /* timer interrupt, quiet */
                     return ret;
@@ -1820,7 +1820,7 @@ unsigned int eos_handle_intengine ( unsigned int parm, EOSState *s, unsigned int
                 /* we shouldn't reset s->irq_id here (we already reset it on read) */
                 /* if we reset it here also, it will trigger interrupt 0 incorrectly (on race conditions) */
 
-                if (value == TIMER_INTERRUPT)
+                if (value == TIMER_INTERRUPT && !qemu_loglevel_mask(CPU_LOG_INT))
                 {
                     /* timer interrupt, quiet */
                     return 0;
@@ -2401,9 +2401,14 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             /* Serial flash on 100D */
             msg = "SPI";
             if (s->sf)
+            {
                 serial_flash_set_CS(s->sf, (value & 0x100000) ? 1 : 0);
-            if (value == 0x83DC00 || value == 0x93D800)
-                return 0; // Quiet
+            }
+            if (!qemu_loglevel_mask(EOS_LOG_SFLASH))
+            {
+                if (value == 0x83DC00 || value == 0x93D800)
+                    return 0; // Quiet
+            }
             ret = 0;
             break;
         
@@ -2411,9 +2416,14 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             /* Serial flash on 70D */
             msg = "SPI";
             if (s->sf)
+            {
                 serial_flash_set_CS(s->sf, (value & 0x2) ? 1 : 0);
-            if (value == 0x46 || value == 0x44)
-                return 0; // Quiet
+            }
+            if (!qemu_loglevel_mask(EOS_LOG_SFLASH))
+            {
+                if (value == 0x46 || value == 0x44)
+                    return 0; // Quiet
+            }
             ret = 0;
             break;
 
@@ -3661,8 +3671,10 @@ unsigned int eos_handle_dma ( unsigned int parm, EOSState *s, unsigned int addre
                     /* (otherwise, assert in Startup task - cannot find property 0x2) */
                     eos_trigger_int(s, interruptId[parm], count / 10000);
                     
-                    /* quiet */
-                    return 0;
+                    if (!qemu_loglevel_mask(EOS_LOG_VERBOSE)) {
+                        /* quiet (fixme: -d dma) */
+                        return 0;
+                    }
                 }
             }
             else
@@ -3901,7 +3913,7 @@ unsigned int eos_handle_sio ( unsigned int parm, EOSState *s, unsigned int addre
 unsigned int eos_handle_digic_timer ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
     unsigned int ret = 0;
-    const char * msg = 0;
+    const char * msg = "DIGIC clock";
 
     if(type & MODE_WRITE)
     {
@@ -3909,8 +3921,10 @@ unsigned int eos_handle_digic_timer ( unsigned int parm, EOSState *s, unsigned i
     else
     {
         ret = s->digic_timer;
-        msg = "DIGIC clock";
-        return ret; /* be quiet */
+
+        if (!qemu_loglevel_mask(CPU_LOG_INT)) {
+            return ret; /* be quiet */
+        }
     }
 
     io_log("TIMER", s, address, type, value, ret, msg, 0, 0);
@@ -4554,23 +4568,23 @@ unsigned int eos_handle_cfata ( unsigned int parm, EOSState *s, unsigned int add
             }
             break;
 
-        case 0x21F0:    /* quiet */
-        case 0x2000:    /* still testing */
+        case 0x21F0:
+        case 0x2000:
             msg = "ATA data port";
             
             if(type & MODE_WRITE)
             {
                 ide_data_writew(&s->cf.bus, 0, value);
-                if ((address & 0xFFFF) == 0x21F0)
-                {
+
+                if (!qemu_loglevel_mask(EOS_LOG_SDCF)) {
                     return 0;
                 }
             }
             else
             {
                 ret = ide_data_readw(&s->cf.bus, 0);
-                if ((address & 0xFFFF) == 0x21F0)
-                {
+
+                if (!qemu_loglevel_mask(EOS_LOG_SDCF)) {
                     return ret;
                 }
             }
