@@ -3004,6 +3004,7 @@ read_headers:
                         }
 
                         frame_size = new_size;
+                        frame_buffer_size = new_size;
                         current_depth = new_depth;
 
                         frame_buffer = realloc(frame_buffer, frame_size);
