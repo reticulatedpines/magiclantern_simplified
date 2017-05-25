@@ -3739,11 +3739,11 @@ unsigned int eos_handle_uart ( unsigned int parm, EOSState *s, unsigned int addr
                 {
 
                     fprintf(stderr, KRED"%c"KRESET, value);
+                }
 
-                    if (enable_tio_interrupt)
-                    {
-                        eos_trigger_int(s, 0x3A + parm, 0);
-                    }
+                if (enable_tio_interrupt)
+                {
+                    eos_trigger_int(s, 0x3A + parm, 0);
                 }
             }
             else
