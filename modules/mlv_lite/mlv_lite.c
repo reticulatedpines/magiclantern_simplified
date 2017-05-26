@@ -1621,7 +1621,8 @@ static int write_mlv_chunk_headers(FILE* f)
     if (FIO_WriteFile(f, &lens_hdr, lens_hdr.blockSize) != (int)lens_hdr.blockSize) return 0;
     if (FIO_WriteFile(f, &rtci_hdr, rtci_hdr.blockSize) != (int)rtci_hdr.blockSize) return 0;
     if (FIO_WriteFile(f, &wbal_hdr, wbal_hdr.blockSize) != (int)wbal_hdr.blockSize) return 0;
-    int hdr_size = sizeof(file_hdr) + sizeof(rawi_hdr) + sizeof(idnt_hdr) + sizeof(expo_hdr) + sizeof(lens_hdr) + sizeof(rtci_hdr) + sizeof(wbal_hdr);
+	
+    int hdr_size = FIO_SeekSkipFile(f, 0, SEEK_CUR);
     
     /* insert a null block so the header size is multiple of 512 bytes */
     mlv_hdr_t nul_hdr;
