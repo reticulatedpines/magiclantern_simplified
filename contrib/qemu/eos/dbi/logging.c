@@ -814,10 +814,10 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                     if (call_stacks[id][k].is_interrupt)
                     {
                         interrupt_level--;
-                        uint32_t lrs = call_stacks[id][k].lr;
-                        if (pc == lrs || pc == lrs + 4)
+                        uint32_t stack_lr = call_stacks[id][k].lr;
+                        if (pc == stack_lr || pc == stack_lr + 4)
                         {
-                            old_pc = lrs;
+                            old_pc = stack_lr;
                             call_stack_num[id] = k;
                             break;
                         }
