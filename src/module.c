@@ -982,8 +982,6 @@ static MENU_SELECT_FUNC(module_menu_update_select)
     config_flag_file_setting_save(enable_file, module_list[mod_number].enabled);
 }
 
-static const char* module_get_string(int mod_number, const char* name);
-
 static int startswith(const char* str, const char* prefix)
 {
     const char* s = str;
@@ -1181,8 +1179,13 @@ static MENU_SELECT_FUNC(module_info_toggle)
     }
 }
 
-static const char* module_get_string(int mod_number, const char* name)
+const char* module_get_string(int mod_number, const char* name)
 {
+    if(mod_number < 0 || mod_number >= MODULE_COUNT_MAX)
+    {
+        return NULL;
+    }
+    
     module_strpair_t *strings = module_list[mod_number].strings;
 
     if (strings)
@@ -1195,7 +1198,44 @@ static const char* module_get_string(int mod_number, const char* name)
             }
         }
     }
-    return 0;
+    
+    return NULL;
+}
+
+const char* module_get_name(int mod_number)
+{
+    if(mod_number < 0 || mod_number >= MODULE_COUNT_MAX)
+    {
+        return NULL;
+    }
+    
+    return module_list[mod_number].name;
+}
+
+/*  returns the next loaded module id, or -1 when the end was reached.
+    if passing -1 as the mod_number, it will return the first loaded module number.
+*/
+int module_get_next_loaded(int mod_number)
+{
+    if(mod_number < 0)
+    {
+        mod_number = -1;
+    }
+    
+    while(1)
+    {
+        mod_number++;
+        
+        if(mod_number >= MODULE_COUNT_MAX)
+        {
+            return -1;
+        }
+        
+        if(module_list[mod_number].valid && module_list[mod_number].enabled)
+        {
+            return mod_number;
+        }
+    }
 }
 
 static int module_is_special_string(const char* name)
