@@ -124,7 +124,7 @@ int get_follow_focus_dir_h() { return follow_focus_reverse_h ? -1 : 1; }
  * See:
  *      http://www.largeformatphotography.info/articles/DoFinDepth.pdf
  * 
- * Assumes a ‘generic’ FF or Crop sensor, ie pixel density
+ * Assumes a ï¿½genericï¿½ FF or Crop sensor, ie pixel density
  *
  * Makes the reasonable assumption that pupillary ratio can be ignored, ie use symmetric lens equations,
  * as this only introduces a very small correction for non-macro imaging (hence what follows does
@@ -139,7 +139,7 @@ void focus_calc_dof()
 {
     // Total (defocus + diffraction) blur dia in microns
     uint64_t        coc = dof_info_coc*10; // from ML setting, converted to tenths here, as the base unit for blurs, to increase 'division accuracy'
-    uint64_t        coc_hfd = 0; // variable used to calculate HFD
+    uint64_t        coc_hfd = coc; // variable used to calculate HFD
 
     const uint64_t  fd = lens_info.focus_dist * 10; // into mm
     const uint64_t  fl = lens_info.focal_len; // already in mm
