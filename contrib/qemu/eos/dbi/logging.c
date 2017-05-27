@@ -576,6 +576,18 @@ static void eos_callstack_log_mem(EOSState *s, hwaddr _addr, uint64_t _value, ui
     }
 }
 
+static void print_task_switch(EOSState *s, uint32_t pc, uint32_t prev_pc, uint32_t prev_lr)
+{
+    int len = eos_callstack_indent(s);
+    len += fprintf(stderr,
+        KCYN"Task switch"KRESET" to %s:%x %s",
+        eos_get_current_task_name(s), pc, lookup_symbol(pc)
+    );
+    len -= strlen(KCYN KRESET);
+    len += indent(len, CALLSTACK_RIGHT_ALIGN);
+    print_call_location(s, prev_pc, prev_lr);
+}
+
 static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock *tb)
 {
     ARMCPU *arm_cpu = ARM_CPU(cpu);
@@ -767,6 +779,21 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
     {
         uint32_t insn;
         cpu_physical_memory_read(prev_pc0, &insn, sizeof(insn));
+
+        if (qemu_loglevel_mask(EOS_LOG_CALLS | EOS_LOG_VERBOSE) &&
+            s->model->current_task_addr)
+        {
+            /* fixme: this method catches all task switches,
+             * but requires reading current_task_ptr from guest memory at every PC jump */
+            uint32_t current_task_ptr;
+            static uint32_t previous_task_ptr;
+            cpu_physical_memory_read(s->model->current_task_addr, &current_task_ptr, 4);
+            if (current_task_ptr != previous_task_ptr)
+            {
+                previous_task_ptr = current_task_ptr;
+                print_task_switch(s, pc, prev_pc, prev_lr);
+            }
+        }
 
         if (prev_pc & 1)
         {

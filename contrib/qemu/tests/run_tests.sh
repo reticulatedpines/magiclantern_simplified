@@ -168,8 +168,9 @@ for CAM in ${EOS_SECONDARY_CORES[*]} ${EOS_CAMS[*]}; do
         > tests/$CAM/calls-fint-trim.log
 
     # extract call/return lines (before any interrupts)
+    # note: task switches before interrupts only happen on VxWorks models
     ansi2txt < tests/$CAM/calls-fint-trim.log \
-        | grep -E "call |return " \
+        | grep -E "call |return |Task switch " \
         > tests/$CAM/calls-fint.log
 
     if grep -qE "([KR].* (READY|AECU)|Dry|Boot)" tests/$CAM/calls-fint-uart.log; then
@@ -184,6 +185,8 @@ for CAM in ${EOS_SECONDARY_CORES[*]} ${EOS_CAMS[*]}; do
     reti=`ansi2txt < tests/$CAM/calls-fint-raw.log | grep "return from interrupt" | wc -l`
     nints=`ansi2txt < tests/$CAM/calls-fint-raw.log | grep -E " interrupt *at " | grep -v "return" | wc -l`
     nreti=`ansi2txt < tests/$CAM/calls-fint-raw.log | grep " return from interrupt" | wc -l`
+    tsksw=`ansi2txt < tests/$CAM/calls-fint-raw.log | grep "Task switch to " | wc -l`
+    tasks=`ansi2txt < tests/$CAM/calls-fint-raw.log | grep -oP "(?<=Task switch to )[^:]*" | sort | uniq | head -3 |  tr '\n' ' '`
     if (( ints == 0 )); then
       echo -en "\e[33mno interrupts\e[0m "
     else
@@ -193,14 +196,19 @@ for CAM in ${EOS_SECONDARY_CORES[*]} ${EOS_CAMS[*]}; do
         continue
       fi
       if (( nints != 0 )); then echo -n " ($nints nested)"; fi
-      echo -n ", $reti reti "
-      if (( nreti != 0 )); then echo -n "($nreti nested) "; fi
+      echo -n ", $reti reti"
+      if (( nreti != 0 )); then echo -n " ($nreti nested)"; fi
       if (( ints - nints > reti + 1 )); then
-          echo -en "\e[33mtoo few reti\e[0m "
+          echo -en " \e[33mtoo few reti\e[0m "
       fi
       if (( reti > ints )); then
-          echo -e "\e[31mtoo many reti\e[0m"
+          echo -e " \e[31mtoo many reti\e[0m"
           continue
+      fi
+      if (( tsksw > 0 )); then
+         echo -n ", $tsksw task switches ( $tasks) "
+      else
+         echo -en ", \e[33mno task switches\e[0m "
       fi
     fi
 
