@@ -120,6 +120,7 @@ struct eos_model_desc eos_model_list[] = {
         .card_led_address       = 0xC02200BC,
         .cf_driver_interrupt    = 0x82,
         .cf_dma_interrupt       = 0xE3,
+        .current_task_addr      = 0x1A70,
     },
     {
         .name                   = "60D",
@@ -143,6 +144,7 @@ struct eos_model_desc eos_model_list[] = {
         .card_led_address       = 0xC02200BC,
         .cf_driver_interrupt    = 0x82,
         .cf_dma_interrupt       = 0xE3,
+        .current_task_addr      = 0x1A24,
     },
     {
         .name                   = "5D3",
@@ -170,10 +172,12 @@ struct eos_model_desc eos_model_list[] = {
         .btcm_size              = 0x00004000,   /* dump from D0280000 identical to 0xD0288000 after 0x4000 */
         .dryos_timer_id         = 11,           /* see eos_handle_timers for mapping */
         .dryos_timer_interrupt  = 0xFE,
+        .current_task_addr      = 0x40000148,
     },
     {
         .name                   = "650D",
         .digic_version          = 5,
+        .current_task_addr      = 0x233D8,
     },
     {
         .name                   = "100D",
@@ -187,6 +191,7 @@ struct eos_model_desc eos_model_list[] = {
         .name                   = "7D",
         .digic_version          = 4,
         .card_led_address       = 0xC022D06C,
+        .current_task_addr      = 0x1A1C,
     },
     {
         .name                   = "550D",
@@ -197,6 +202,7 @@ struct eos_model_desc eos_model_list[] = {
         .name                   = "6D",
         .digic_version          = 5,
         .card_led_address       = 0xC022C184,
+        .current_task_addr      = 0x74C28,
     },
     {
         .name                   = "70D",
@@ -296,16 +302,19 @@ struct eos_model_desc eos_model_list[] = {
         .digic_version          = 6,
         .ram_size               = 0x40000000,
         .ram_manufacturer_id    = 0x18000103,   /* RAM manufacturer: Micron */
+        .current_task_addr      = 0x44F4,
     },
     {
         .name                   = "750D",
         .digic_version          = 6,
         .ram_manufacturer_id    = 0x14000203,
+        .current_task_addr      = 0x44F4,
     },
     {
         .name                   = "760D",
         .digic_version          = 6,
         .ram_manufacturer_id    = 0x14000203,
+        .current_task_addr      = 0x44F4,
     },
     {
         .name                   = "5D4",
@@ -313,12 +322,14 @@ struct eos_model_desc eos_model_list[] = {
         .ram_size               = 0x40000000,
         .ram_manufacturer_id    = 0x18000401,
         .card_led_address       = 0xD20B0224,
+        .current_task_addr      = 0x45A4,
     },
     {
         .name                   = "5D4AE",
         .digic_version          = 6,
         .ram_manufacturer_id    = 0x18000401,
         .card_led_address       = 0xD20B0224,
+        .current_task_addr      = 0x44F4,
     },
     {
         .name                   = "1000D",
@@ -359,6 +370,7 @@ struct eos_model_desc eos_model_list[] = {
         .btcm_addr              = 0x80000000,
         .io_mem_size            = 0x01000000,
         .card_led_address       = 0xC02200CC,
+        .current_task_addr      = 0x195C,
     },
     {
         .name = NULL,
