@@ -157,14 +157,14 @@ for CAM in ${EOS_SECONDARY_CORES[*]} ${EOS_CAMS[*]}; do
         > tests/$CAM/calls-fint-uart.log \
         2> tests/$CAM/calls-fint-raw.log &
     sleep 0.2
-    (timeout 10 tail -f -n100000 tests/$CAM/calls-fint-raw.log & ) | grep -q "Enabled interrupt"
+    (timeout 10 tail -f -n100000 tests/$CAM/calls-fint-raw.log & ) | grep -q "Enabled interrupt "
     sleep 1
     kill_qemu
 
     # trim the log file until the first interrupt
     # (in other words, extract the deterministic part)
     cat tests/$CAM/calls-fint-raw.log \
-        | grep --binary-files=text -m1 -B 1000 "Enabled interrupt" \
+        | grep --binary-files=text -m1 -B 100000 "Enabled interrupt " \
         > tests/$CAM/calls-fint-trim.log
 
     # extract call/return lines (before any interrupts)
