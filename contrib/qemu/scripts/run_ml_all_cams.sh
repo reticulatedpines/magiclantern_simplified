@@ -74,7 +74,7 @@ for CAM_DIR in [[:upper:]]*/ [[:digit:]]*/; do
         fi
 
         # export any ML symbols we might want to use in QEMU
-        . ./export_ml_syms.sh $CAM_FW
+        . ./export_ml_syms.sh $BuildDir
     fi
 
     # setup QEMU command line
