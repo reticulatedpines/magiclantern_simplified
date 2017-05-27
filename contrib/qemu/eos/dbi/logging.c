@@ -770,29 +770,65 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
 
         if (prev_pc & 1)
         {
-            if (insn == 0xc000e9bd && interrupt_level > 0)
+            /* previous instruction was Thumb */
+            switch (prev_size)
             {
-                /* fixme: triggers before the first interrupt */
-                /* fixme: only a few (lucky) cases are working fine */
-                goto reti;
-            }
+                case 4:
+                {
+                    /* 32-bit Thumb instruction */
+                    if (insn == 0xc000e9bd)
+                    {
+                        /* RFEIA SP!
+                         * called both when exiting from interrupt and outside interrupts */
+                        goto maybe_task_switch;
+                    }
+                    break;
+                }
 
-            if ((insn & 0xF000) == 0xD000)
-            {
-                /* branch - ignore (guess) */
-                goto end;
+                case 2:
+                {
+                    /* 16-bit Thumb instruction */
+                    insn &= 0xFFFF;
+                    if ((insn & 0xF000) == 0xD000)
+                    {
+                        /* branch - ignore (guess) */
+                        goto end;
+                    }
+                    break;
+                }
+
+                default:
+                {
+                    assert(0);
+                }
             }
         }
-        else /* ARM */
+        else /* ARM (32-bit instructions) */
         {
             if ((insn & 0x0F000000) == 0x0A000000)
             {
                 /* branch - ignore */
                 goto end;
             }
-
-            if ((insn == 0xe8fd901f || insn == 0xe8fddfff) && prev_pc < 0x1000)
+            
+            if (insn == 0xe8fddfff || insn == 0xe8d4ffff)
             {
+                /* DryOS:   LDMFD SP!, {R0-R12,LR,PC}^
+                 * VxWorks: LDMIA R4, {R0-PC}^
+                 * They can be called from interrupts or from regular code. */
+            maybe_task_switch:
+                 if (interrupt_level == 0) {
+                     goto end;
+                 } else {
+                     goto reti;
+                 }
+            }
+
+            if (insn == 0xe8fd901f || insn == 0xe8fd800f)
+            {
+                /* DryOS:   LDMFD SP!, {R0-R4,R12,PC}^
+                 * VxWorks: LDMFD SP!, {R0-R3,PC}^  */
+
             reti:
                 /* this must be return from interrupt */
                 /* note: internal returns inside an interrupt were handled as normal returns */
