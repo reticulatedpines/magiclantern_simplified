@@ -181,17 +181,21 @@ for CAM in ${EOS_SECONDARY_CORES[*]} ${EOS_CAMS[*]}; do
     echo -n ' '
 
     ints=`ansi2txt < tests/$CAM/calls-fint-raw.log | grep -E "interrupt *at " | grep -v "return" | wc -l`
-    reti=`ansi2txt < tests/$CAM/calls-fint-raw.log | grep "return from interrupt" | wc -l | tr -d '\n'`
+    reti=`ansi2txt < tests/$CAM/calls-fint-raw.log | grep "return from interrupt" | wc -l`
+    nints=`ansi2txt < tests/$CAM/calls-fint-raw.log | grep -E " interrupt *at " | grep -v "return" | wc -l`
+    nreti=`ansi2txt < tests/$CAM/calls-fint-raw.log | grep " return from interrupt" | wc -l`
     if (( ints == 0 )); then
       echo -en "\e[33mno interrupts\e[0m "
     else
-      echo -n "$ints ints, "
+      echo -n "$ints ints"
       if (( reti == 0 )); then
-        echo -e "\e[31mno reti\e[0m"
+        echo -e ", \e[31mno reti\e[0m"
         continue
       fi
-      echo -n "$reti reti "
-      if (( ints > reti + 1 )); then
+      if (( nints != 0 )); then echo -n " ($nints nested)"; fi
+      echo -n ", $reti reti "
+      if (( nreti != 0 )); then echo -n "($nreti nested) "; fi
+      if (( ints - nints > reti + 1 )); then
           echo -en "\e[33mtoo few reti\e[0m "
       fi
       if (( reti > ints )); then
