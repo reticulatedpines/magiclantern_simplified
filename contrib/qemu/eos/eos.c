@@ -5511,8 +5511,14 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
             else
             {
                 msg = "I2C status?";
-                ret = (last & 0x8000) ? 0x2100100 : 0x20000;
-                ret = rand();
+                if (strcmp(s->model->name, "EOSM10") == 0)
+                {
+                    ret = rand();
+                }
+                else
+                {
+                    ret = (last & 0x8000) ? 0x2100100 : 0x20000;
+                }
             }
             break;
         }
