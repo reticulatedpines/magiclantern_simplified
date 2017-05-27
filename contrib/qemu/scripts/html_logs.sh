@@ -12,5 +12,5 @@ for f in $*; do
   echo "$f -> $html"
   mkdir -p $html_dir
   python ansi_cleanup.py $f | ansi2html > $html
-  perl -i -pe 'BEGIN{undef $/;} s/<style.*style>/<link href="'"$css"'" rel="stylesheet" type="text\/css"\/>/smg' $html
+  perl -i -pe 'BEGIN{undef $/;} s#<style.*style>#<link href="'"$css"'" rel="stylesheet" type="text/css"/>#smg' $html
 done
