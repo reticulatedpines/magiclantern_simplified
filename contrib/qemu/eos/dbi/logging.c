@@ -1112,11 +1112,11 @@ static void eos_romcpy_log_mem(EOSState *s, MemoryRegion *mr, hwaddr _addr, uint
                     romcpy_new_block(last_write_addr, last_read_addr, item_size, pc);
                 }
             }
-            else /* some other value written to memory */
-            {
-                qemu_log_mask(EOS_LOG_VERBOSE, "reset block (previous %x-%x)\n", block_start, block_size);
-                romcpy_log_n_reset_block();
-            }
+        }
+        else /* some other value written to memory */
+        {
+            qemu_log_mask(EOS_LOG_VERBOSE, "reset block (previous %x-%x)\n", block_start, block_size);
+            romcpy_log_n_reset_block();
         }
     }
 }
