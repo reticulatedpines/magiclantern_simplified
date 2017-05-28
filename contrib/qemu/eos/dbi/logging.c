@@ -989,8 +989,11 @@ static uint32_t block_size;
 static uint32_t block_offset;       /* start + offset = source address */
 static uint32_t block_pc;           /* address of code that copies this block */
 static uint32_t last_read_addr;
-static uint32_t last_read_value;
+static uint32_t last_read_size;
+static __uint128_t last_read_value;
 static uint32_t last_write_addr;
+static uint32_t last_write_size;
+static __uint128_t last_write_value;
 
 static void romcpy_log_n_reset_block(void)
 {
@@ -1009,67 +1012,111 @@ static void romcpy_log_n_reset_block(void)
     block_pc = 0;
 }
 
-static void romcpy_new_block(uint32_t pc)
+static void romcpy_new_block(uint32_t write_addr, uint32_t read_addr, uint32_t size, uint32_t pc)
 {
-    block_start = last_write_addr;
-    block_size = 4;
-    block_offset = last_read_addr - last_write_addr;
+    block_start  = write_addr;
+    block_size   = size;
+    block_offset = read_addr - write_addr;
     block_pc = pc;
 }
 
 static void eos_romcpy_log_mem(EOSState *s, MemoryRegion *mr, hwaddr _addr, uint64_t _value, uint32_t size, int flags)
 {
+    if (flags & NOCHK_LOG)
+    {
+        /* this is from our DMA; we don't want these to be logged :) */
+        return;
+    }
+
     uint32_t addr = _addr;
     uint32_t value = _value;
     int is_write = flags & 1;
     int is_read = !is_write;
-
-    if (size != 4)
-    {
-        /* fixme: only 32-bit access handled */
-        return;
-    }
+    static int prev_read = 0;
+    int was_read = prev_read;
+    prev_read = is_read;
 
     if (is_read)
     {
         if (mr->rom_device)
         {
-            last_read_addr = addr;
-            last_read_value = value;
+            if (was_read && addr == last_read_addr + last_read_size)
+            {
+                last_read_value |= ((__int128_t)value << (last_read_size * 8));
+                last_read_size += size;
+                qemu_log_mask(EOS_LOG_VERBOSE, "%d-bit read from %x (accumulated)\n", last_read_size * 8, last_read_addr);
+            }
+            else
+            {
+                last_read_addr = addr;
+                last_read_value = value;
+                last_read_size = size;
+                qemu_log_mask(EOS_LOG_VERBOSE, "%d-bit read from %x\n", last_read_size * 8, last_read_addr);
+            }
         }
     }
     else /* write */
     {
-        if (mr->ram && value == last_read_value)
+        if (mr->ram)
         {
-            last_write_addr = addr;
-            uint32_t offset = last_read_addr - last_write_addr;
-
-            if (offset == block_offset)
+            if (size < last_read_size && addr == last_write_addr + last_write_size)
             {
-                if (addr == block_start + block_size)
-                {
-                    /* growing current block to right */
-                    block_size += 4;
-                    return;
-                }
-                if (addr == block_start - 4)
-                {
-                    /* growing current block to left */
-                    block_start -= 4;
-                    block_size += 4;
-                    return;
-                }
+                last_write_value |= ((__int128_t)value << (last_write_size * 8));
+                last_write_size += size;
+                qemu_log_mask(EOS_LOG_VERBOSE, "%d-bit write to %x (accumulated)\n", last_write_size * 8, last_write_addr);
+            }
+            else
+            {
+                last_write_addr = addr;
+                last_write_value = value;
+                last_write_size = size;
+                qemu_log_mask(EOS_LOG_VERBOSE, "%d-bit write to %x\n", last_write_size * 8, last_write_addr);
             }
 
-            /* not growing current block; assume a new one might have been started */
-            uint32_t pc = CURRENT_CPU->env.regs[15];
-            romcpy_log_n_reset_block();
-            romcpy_new_block(pc);
-        }
-        else /* some other value written to memory */
-        {
-            romcpy_log_n_reset_block();
+            if (last_write_size == last_read_size)
+            {
+                /* reset accumulation */
+                uint32_t item_size = last_write_size;
+                last_write_size = last_read_size = 0;
+                qemu_log_mask(EOS_LOG_VERBOSE, "%d-bit R/W\n", item_size * 8);
+
+                if (last_write_value == last_read_value)
+                {
+                    uint32_t offset = last_read_addr - last_write_addr;
+                    qemu_log_mask(EOS_LOG_VERBOSE, "%d-bit copy from %x to %x (offset %x)\n", item_size * 8, last_read_addr, last_write_addr, offset);
+                    qemu_log_mask(EOS_LOG_VERBOSE, "current block: %x-%x (offset %x)\n", block_start, block_start + block_size, block_offset);
+
+                    if (offset == block_offset)
+                    {
+                        if (last_write_addr == block_start + block_size)
+                        {
+                            /* growing current block to right */
+                            block_size += item_size;
+                            qemu_log_mask(EOS_LOG_VERBOSE, "grow block to right: %x-%x\n", block_start, block_start + block_size);
+                            return;
+                        }
+                        if (last_write_addr == block_start - item_size)
+                        {
+                            /* growing current block to left */
+                            block_start -= item_size;
+                            block_size += item_size;
+                            qemu_log_mask(EOS_LOG_VERBOSE, "grow block to left: %x-%x\n", block_start, block_start + block_size);
+                            return;
+                        }
+                    }
+
+                    /* not growing current block; assume a new one might have been started */
+                    qemu_log_mask(EOS_LOG_VERBOSE, "new block (previous %x-%x)\n", block_start, block_start + block_size);
+                    uint32_t pc = CURRENT_CPU->env.regs[15];
+                    romcpy_log_n_reset_block();
+                    romcpy_new_block(last_write_addr, last_read_addr, item_size, pc);
+                }
+            }
+            else /* some other value written to memory */
+            {
+                qemu_log_mask(EOS_LOG_VERBOSE, "reset block (previous %x-%x)\n", block_start, block_size);
+                romcpy_log_n_reset_block();
+            }
         }
     }
 }
