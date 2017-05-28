@@ -1480,8 +1480,9 @@ char * eos_get_current_task_name(EOSState *s)
     uint32_t current_task[0x50/4];
     static char task_name[100];
     cpu_physical_memory_read(s->model->current_task_addr, &current_task_ptr, 4);
-    if (current_task_ptr && current_task_ptr < 0x1000000)
+    if (current_task_ptr && (current_task_ptr & ~s->model->caching_bit) < 0x1000000)
     {
+        assert(s->model->current_task_name_offs);
         int off = s->model->current_task_name_offs;
         cpu_physical_memory_read(current_task_ptr, current_task, sizeof(current_task));
         cpu_physical_memory_read(current_task[off], task_name, sizeof(task_name));
@@ -3737,7 +3738,6 @@ unsigned int eos_handle_uart ( unsigned int parm, EOSState *s, unsigned int addr
                 if (strcmp(s->uart.chr->filename, "stdio") != 0 &&
                     strcmp(s->uart.chr->filename, "mux") != 0)
                 {
-
                     fprintf(stderr, KRED"%c"KRESET, value);
                 }
 

@@ -173,6 +173,7 @@ struct eos_model_desc eos_model_list[] = {
         .dryos_timer_id         = 11,           /* see eos_handle_timers for mapping */
         .dryos_timer_interrupt  = 0xFE,
         .current_task_addr      = 0x40000148,
+        .current_task_name_offs = 0x09,
     },
     {
         .name                   = "650D",
