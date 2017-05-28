@@ -102,6 +102,7 @@ static void eos_log_selftest(EOSState *s, hwaddr addr, uint64_t value, uint32_t 
 }
 
 static void eos_callstack_log_mem(EOSState *s, hwaddr _addr, uint64_t _value, uint32_t size, int flags);
+static void eos_romcpy_log_mem(EOSState *s, MemoryRegion *mr, hwaddr _addr, uint64_t _value, uint32_t size, int flags);
 
 void eos_log_mem(void * opaque, hwaddr addr, uint64_t value, uint32_t size, int flags)
 {
@@ -142,6 +143,12 @@ void eos_log_mem(void * opaque, hwaddr addr, uint64_t value, uint32_t size, int 
     if (qemu_loglevel_mask(EOS_LOG_CALLS))
     {
         /* note: calls implies callstack */
+        some_tool_executed = true;
+    }
+
+    if (qemu_loglevel_mask(EOS_LOG_ROMCPY))
+    {
+        eos_romcpy_log_mem(s, mr, addr, value, size, flags);
         some_tool_executed = true;
     }
 
@@ -975,6 +982,96 @@ end:
     prev_lr = lr;
     prev_sp = sp;
     prev_size = tb->size;
+}
+
+static uint32_t block_start;        /* destination address */
+static uint32_t block_size;
+static uint32_t block_offset;       /* start + offset = source address */
+static uint32_t block_pc;           /* address of code that copies this block */
+static uint32_t last_read_addr;
+static uint32_t last_read_value;
+static uint32_t last_write_addr;
+
+static void romcpy_log_n_reset_block(void)
+{
+    if (block_size >= 64)
+    {
+        /* block large enough to report? */
+        fprintf(stderr, "[ROMCPY] 0x%-8X -> 0x%-8X size 0x%-8X at 0x%-8X\n",
+            block_start + block_offset, block_start, block_size, block_pc
+        );
+    }
+
+    /* reset block */
+    block_start = 0;
+    block_size = 0;
+    block_offset = 0;
+    block_pc = 0;
+}
+
+static void romcpy_new_block(uint32_t pc)
+{
+    block_start = last_write_addr;
+    block_size = 4;
+    block_offset = last_read_addr - last_write_addr;
+    block_pc = pc;
+}
+
+static void eos_romcpy_log_mem(EOSState *s, MemoryRegion *mr, hwaddr _addr, uint64_t _value, uint32_t size, int flags)
+{
+    uint32_t addr = _addr;
+    uint32_t value = _value;
+    int is_write = flags & 1;
+    int is_read = !is_write;
+
+    if (size != 4)
+    {
+        /* fixme: only 32-bit access handled */
+        return;
+    }
+
+    if (is_read)
+    {
+        if (mr->rom_device)
+        {
+            last_read_addr = addr;
+            last_read_value = value;
+        }
+    }
+    else /* write */
+    {
+        if (mr->ram && value == last_read_value)
+        {
+            last_write_addr = addr;
+            uint32_t offset = last_read_addr - last_write_addr;
+
+            if (offset == block_offset)
+            {
+                if (addr == block_start + block_size)
+                {
+                    /* growing current block to right */
+                    block_size += 4;
+                    return;
+                }
+                if (addr == block_start - 4)
+                {
+                    /* growing current block to left */
+                    block_start -= 4;
+                    block_size += 4;
+                    return;
+                }
+            }
+
+            /* not growing current block; assume a new one might have been started */
+            uint32_t pc = CURRENT_CPU->env.regs[15];
+            romcpy_log_n_reset_block();
+            romcpy_new_block(pc);
+        }
+        else /* some other value written to memory */
+        {
+            romcpy_log_n_reset_block();
+        }
+    }
 }
 
 static void tb_exec_cb(void *opaque, CPUState *cpu, TranslationBlock *tb)

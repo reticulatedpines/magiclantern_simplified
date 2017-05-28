@@ -143,7 +143,7 @@ index 0010c44..6b5fd81 100644
      }
  
 diff --git a/include/qemu/log.h b/include/qemu/log.h
-index 362cbc4..5fe6194 100644
+index 362cbc4..574b887 100644
 --- a/include/qemu/log.h
 +++ b/include/qemu/log.h
 @@ -12,7 +12,7 @@
@@ -155,7 +155,7 @@ index 362cbc4..5fe6194 100644
  
  /* 
   * The new API:
-@@ -42,9 +42,41 @@ static inline bool qemu_log_enabled(void)
+@@ -42,9 +42,42 @@ static inline bool qemu_log_enabled(void)
  #define CPU_LOG_MMU        (1 << 12)
  #define CPU_LOG_TB_NOCHAIN (1 << 13)
  
@@ -190,6 +190,7 @@ index 362cbc4..5fe6194 100644
 +#define EOS_LOG_RAM_MEMCHK (1LL << 53)    /* like valgrind memcheck */
 +#define EOS_LOG_RAM_TSKMEM (1LL << 54)    /* check task memory ownership assumptions */
 +#define EOS_LOG_RAM_SEMCHK (1LL << 55)    /* check semaphore usage (like helgrind) */
++#define EOS_LOG_ROMCPY     (1LL << 56)    /* find memory blocks copied from ROM to RAM */
 +
  /* Returns true if a bit is set in the current loglevel mask
   */
@@ -198,7 +199,7 @@ index 362cbc4..5fe6194 100644
  {
      return (qemu_loglevel & mask) != 0;
  }
-@@ -67,7 +99,7 @@ qemu_log_vprintf(const char *fmt, va_list va)
+@@ -67,7 +100,7 @@ qemu_log_vprintf(const char *fmt, va_list va)
  
  /* log only if a bit is set on the current loglevel mask
   */
@@ -207,7 +208,7 @@ index 362cbc4..5fe6194 100644
  
  
  /* Special cases: */
-@@ -95,7 +127,7 @@ static inline void log_cpu_state(CPUState *cpu, int flags)
+@@ -95,7 +128,7 @@ static inline void log_cpu_state(CPUState *cpu, int flags)
   *
   * Logs the output of cpu_dump_state() if loglevel includes @mask.
   */
@@ -216,7 +217,7 @@ index 362cbc4..5fe6194 100644
  {
      if (qemu_loglevel & mask) {
          log_cpu_state(cpu, flags);
-@@ -152,7 +184,7 @@ static inline void qemu_log_set_file(FILE *f)
+@@ -152,7 +185,7 @@ static inline void qemu_log_set_file(FILE *f)
  
  /* define log items */
  typedef struct QEMULogItem {
@@ -225,7 +226,7 @@ index 362cbc4..5fe6194 100644
      const char *name;
      const char *help;
  } QEMULogItem;
-@@ -163,9 +195,9 @@ extern const QEMULogItem qemu_log_items[];
+@@ -163,9 +196,9 @@ extern const QEMULogItem qemu_log_items[];
   * changing the log level; it should only be accessed via
   * the qemu_set_log() wrapper.
   */
@@ -237,7 +238,7 @@ index 362cbc4..5fe6194 100644
  {
  #ifdef CONFIG_USER_ONLY
      do_qemu_set_log(log_flags, true);
-@@ -175,7 +207,7 @@ static inline void qemu_set_log(int log_flags)
+@@ -175,7 +208,7 @@ static inline void qemu_set_log(int log_flags)
  }
  
  void qemu_set_log_filename(const char *filename);
@@ -270,7 +271,7 @@ index e193658..9de7251 100644
      subregion->priority = 0;
      memory_region_add_subregion_common(mr, offset, subregion);
 diff --git a/qemu-log.c b/qemu-log.c
-index 7cb01a8..e683128 100644
+index 7cb01a8..71617ab 100644
 --- a/qemu-log.c
 +++ b/qemu-log.c
 @@ -22,7 +22,7 @@
@@ -300,7 +301,7 @@ index 7cb01a8..e683128 100644
  {
      qemu_loglevel = log_flags;
      if (qemu_loglevel && !qemu_logfile) {
-@@ -120,6 +120,47 @@ const QEMULogItem qemu_log_items[] = {
+@@ -120,6 +120,49 @@ const QEMULogItem qemu_log_items[] = {
      { CPU_LOG_TB_NOCHAIN, "nochain",
        "do not chain compiled TBs so that \"exec\" and \"cpu\" show\n"
        "complete traces" },
@@ -337,6 +338,8 @@ index 7cb01a8..e683128 100644
 +      "EOS: log function calls (implies callstack,ramr,nochain,singlestep)" },
 +    { EOS_LOG_IDC | EOS_LOG_CALLSTACK | CPU_LOG_TB_NOCHAIN, "idc",
 +      "EOS: export called functions to IDA (implies callstack,nochain,singlestep)" },
++    { EOS_LOG_ROMCPY | EOS_LOG_ROM_R | EOS_LOG_RAM_W, "romcpy",
++      "EOS: find memory blocks copied from ROM to RAM" },
 +
 +    { EOS_LOG_RAM_MEMCHK | EOS_LOG_RAM, "memchk",
 +      "EOS: check memory usage (malloc/free, uninitialized values)" },
@@ -348,7 +351,7 @@ index 7cb01a8..e683128 100644
      { 0, NULL, NULL },
  };
  
-@@ -132,10 +173,10 @@ static int cmp1(const char *s1, int n, const char *s2)
+@@ -132,10 +175,10 @@ static int cmp1(const char *s1, int n, const char *s2)
  }
  
  /* takes a comma separated list of log masks. Return 0 if error. */
