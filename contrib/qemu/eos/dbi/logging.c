@@ -16,14 +16,22 @@
 
 #define CALLSTACK_RIGHT_ALIGN 80
 
-static inline int should_log_memory_region(MemoryRegion * mr)
+static inline int should_log_memory_region(MemoryRegion * mr, int is_write)
 {
+    int is_read = !is_write;
+
     if (mr->ram && qemu_loglevel_mask(EOS_LOG_RAM)) {
-        return 1;
+        if ((is_read  && qemu_loglevel_mask(EOS_LOG_RAM_R)) ||
+            (is_write && qemu_loglevel_mask(EOS_LOG_RAM_W))) {
+            return 1;
+        }
     }
 
     if (mr->rom_device && qemu_loglevel_mask(EOS_LOG_ROM)) {
-        return 1;
+        if ((is_read  && qemu_loglevel_mask(EOS_LOG_ROM_R)) ||
+            (is_write && qemu_loglevel_mask(EOS_LOG_ROM_W))) {
+            return 1;
+        }
     }
 
     return 0;
@@ -109,7 +117,7 @@ void eos_log_mem(void * opaque, hwaddr addr, uint64_t value, uint32_t size, int 
     hwaddr addr1;
     MemoryRegion * mr = address_space_translate(&address_space_memory, addr, &addr1, &l, is_write);
 
-    if (!should_log_memory_region(mr))
+    if (!should_log_memory_region(mr, is_write))
     {
         return;
     }
