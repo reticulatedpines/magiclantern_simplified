@@ -795,7 +795,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
         uint32_t insn;
         cpu_physical_memory_read(prev_pc0, &insn, sizeof(insn));
 
-        if (qemu_loglevel_mask(EOS_LOG_CALLS | EOS_LOG_VERBOSE) &&
+        if (qemu_loglevel_mask(EOS_LOG_TASKS) &&
             s->model->current_task_addr)
         {
             /* fixme: this method catches all task switches,

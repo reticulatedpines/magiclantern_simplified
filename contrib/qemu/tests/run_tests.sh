@@ -153,7 +153,7 @@ for CAM in ${EOS_SECONDARY_CORES[*]} ${EOS_CAMS[*]}; do
 
     # log all function calls/returns and interrupts
     ./run_canon_fw.sh $CAM,firmware="boot=0" \
-        -display none -d calls,io,int -serial stdio \
+        -display none -d calls,tasks,io,int -serial stdio \
         > tests/$CAM/calls-fint-uart.log \
         2> tests/$CAM/calls-fint-raw.log &
     sleep 0.2
