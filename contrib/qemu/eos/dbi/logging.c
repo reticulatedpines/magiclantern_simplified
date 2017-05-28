@@ -798,16 +798,23 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
         if (prev_pc & 1)
         {
             /* previous instruction was Thumb */
+            /* http://read.pudn.com/downloads159/doc/709030/Thumb-2SupplementReferenceManual.pdf */
             switch (prev_size)
             {
                 case 4:
                 {
                     /* 32-bit Thumb instruction */
+                    /* see Thumb-2SupplementReferenceManual p.52 for encoding */
                     if (insn == 0xc000e9bd)
                     {
                         /* RFEIA SP!
                          * called both when exiting from interrupt and outside interrupts */
                         goto maybe_task_switch;
+                    }
+                    else if ((insn & 0xC000F800) == 0x8000F000)
+                    {
+                        /* branch (p.71) - ignore */
+                        goto end;
                     }
                     break;
                 }
@@ -815,12 +822,34 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                 case 2:
                 {
                     /* 16-bit Thumb instruction */
+                    /* see Thumb-2SupplementReferenceManual p.43 for encoding */
                     insn &= 0xFFFF;
-                    if ((insn & 0xF000) == 0xD000)
+
+                    if (insn == 0x4760)
                     {
-                        /* branch - ignore (guess) */
+                        /* BX IP */
+                        /* frequently used in interrupt handler - ignore */
                         goto end;
                     }
+
+                    if ((insn & 0xF800) == 0xE000)
+                    {
+                        /* unconditional branch - ignore */
+                        goto end;
+                    }
+
+                    if ((insn & 0xF000) == 0xD000)
+                    {
+                        /* conditional branch - ignore */
+                        goto end;
+                    }
+
+                    if ((insn & 0xFD00) == 0xB900)
+                    {
+                        /* CBNZ - ignore */
+                        goto end;
+                    }
+
                     break;
                 }
 
@@ -837,7 +866,14 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                 /* branch - ignore */
                 goto end;
             }
-            
+
+            if (insn == 0xe51ff004)
+            {
+                /* LDR PC, [PC, #-4] */
+                /* long jump - ignore */
+                goto end;
+            }
+
             if (insn == 0xe8fddfff || insn == 0xe8d4ffff)
             {
                 /* DryOS:   LDMFD SP!, {R0-R12,LR,PC}^
