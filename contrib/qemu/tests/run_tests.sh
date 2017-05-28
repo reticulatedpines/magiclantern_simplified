@@ -706,7 +706,7 @@ for CAM in ${POWERSHOT_CAMS[*]}; do
     mkdir -p tests/$CAM/
     rm -f tests/$CAM/boot.log
     (./run_canon_fw.sh $CAM -display none -s -S -d romcpy & \
-     arm-none-eabi-gdb -x EOSM3/debugmsg.gdb &) &> tests/$CAM/boot.log
+     arm-none-eabi-gdb -x $CAM/debugmsg.gdb &) &> tests/$CAM/boot.log
     sleep 0.5
     ( timeout 10 tail -f -n100000 tests/$CAM/boot.log & ) | grep --binary-files=text -qP "\x1B\x5B31ma\x1B\x5B0m\x1B\x5B31my\x1B\x5B0m"
     kill_qemu
