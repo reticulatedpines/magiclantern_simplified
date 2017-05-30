@@ -1275,8 +1275,20 @@ static void eos_romcpy_log_mem(EOSState *s, MemoryRegion *mr, hwaddr _addr, uint
     }
 }
 
+static uint64_t saved_loglevel = 0;
+
 static void tb_exec_cb(void *opaque, CPUState *cpu, TranslationBlock *tb)
 {
+    if (qemu_loglevel_mask(EOS_LOG_AUTOEXEC) && saved_loglevel != qemu_loglevel)
+    {
+        if ((tb->pc & ~0x40000000) == 0x800000)
+        {
+            fprintf(stderr, "[EOS] enabling verbose logging for autoexec.bin...\n");
+            qemu_loglevel = saved_loglevel;
+            saved_loglevel = 0;
+        }
+    }
+
     if (qemu_loglevel_mask(EOS_LOG_CALLSTACK))
     {
         /* - callstack only exposes this functionality
@@ -1305,7 +1317,14 @@ static void load_symbols(const char * elf_filename)
 
 void eos_logging_init(EOSState *s)
 {
-    cpu_set_tb_exec_cb(tb_exec_cb, s);
+    if (qemu_loglevel_mask(EOS_LOG_CALLSTACK    |
+                           EOS_LOG_RAM_MEMCHK   |
+                           EOS_LOG_AUTOEXEC     |
+                           0))
+    {
+        fprintf(stderr, "[EOS] enabling code execution logging.\n");
+        cpu_set_tb_exec_cb(tb_exec_cb, s);
+    }
 
     if (qemu_loglevel_mask(EOS_LOG_MEM))
     {
@@ -1335,5 +1354,27 @@ void eos_logging_init(EOSState *s)
         load_symbols(sym);
         snprintf(sym, sizeof(sym), "%s/magiclantern", ml_path);
         load_symbols(sym);
+    }
+
+    if (qemu_loglevel_mask(EOS_LOG_AUTOEXEC) && qemu_loglevel)
+    {
+        saved_loglevel = qemu_loglevel;
+        qemu_loglevel &= ~(
+            EOS_LOG_VERBOSE |
+            EOS_LOG_CALLS   |
+            EOS_LOG_IO      |
+            EOS_LOG_ROM     |
+        0);
+        if (!qemu_loglevel_mask(EOS_LOG_RAM_MEMCHK))
+        {
+            /* note: memchk must be enabled from the beginning,
+             * otherwise you'll get lots of warnings about uninitialized memory */
+            qemu_loglevel &= ~(EOS_LOG_RAM);
+        }
+
+        if (saved_loglevel != qemu_loglevel)
+        {
+            fprintf(stderr, "[EOS] disabling verbose logging until autoexec.bin starts...\n");
+        }
     }
 }
