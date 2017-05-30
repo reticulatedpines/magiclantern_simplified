@@ -214,6 +214,16 @@ define task_create_log
   end
 end
 
+# log task switches (use with watch *CURRENT_TASK)
+define task_switch_log
+  commands
+    silent
+    print_current_location
+    printf "Task switch\n"
+    c
+  end
+end
+
 # log msleep calls
 define msleep_log
   commands
