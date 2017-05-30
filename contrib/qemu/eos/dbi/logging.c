@@ -496,6 +496,162 @@ static int print_call_location(EOSState *s, uint32_t pc, uint32_t lr)
     return eos_print_location(s, pc, lr, " at ", "\n");
 }
 
+/* check whether a guest memory address range can be safely dereferenced */
+static int check_address_range(uint32_t ptr, uint32_t len)
+{
+    hwaddr l = len;
+    hwaddr addr1;
+    MemoryRegion * mr = address_space_translate(&address_space_memory, ptr, &addr1, &l, 0);
+
+    if (!mr)
+    {
+        return 0;
+    }
+
+    if (l != len)
+    {
+        return 0;
+    }
+
+    return mr->ram || mr->rom_device;
+}
+
+/* from dm-spy-experiments */
+static int is_sane_ptr(uint32_t ptr, uint32_t len)
+{
+    if (ptr < 0x1000)
+    {
+        return 0;
+    }
+
+    if ((ptr & 0xF0000000) != ((ptr + len) & 0xF0000000))
+    {
+        return 0;
+    }
+
+    switch (ptr & 0xF0000000)
+    {
+        case 0x00000000:
+        case 0x10000000:
+        case 0x40000000:
+        case 0x50000000:
+        case 0xE0000000:
+        case 0xF0000000:
+            /* looks fine at first sight; now perform a thorough check */
+            return check_address_range(ptr, len);
+    }
+
+    return 0;
+}
+
+static const char * looks_like_string(uint32_t addr)
+{
+    if (!is_sane_ptr(addr, 64))
+    {
+        return 0;
+    }
+
+    static char buf[64];
+    const int min_len = 4;
+    const int max_len = sizeof(buf);
+    cpu_physical_memory_read(addr, buf, sizeof(buf));
+    buf[sizeof(buf)-1] = 0;
+
+    for (char * p = buf; p < buf + max_len; p++)
+    {
+        unsigned char c = *p;
+        if (c == 0 && p > buf + min_len)
+        {
+            if (p + 1 == buf + max_len)
+            {
+                *(p-1) = *(p-2) = *(p-3) = '.';
+            }
+            return buf;
+        }
+        if ((c < 32 || c > 127) && c != 7 && c != 10 && c != 13)
+        {
+            return 0;
+        }
+    }
+    return 0;
+}
+
+static const char * string_escape(const char * str)
+{
+    static char buf[128];
+    char * out = buf;
+    for (const char * c = str; *c && out + 2 < buf + sizeof(buf); c++)
+    {
+        switch ((unsigned char)(*c))
+        {
+            case 10:
+                *out = '\\'; out++;
+                *out = 'n'; out++;
+                break;
+            case 13:
+                *out = '\\'; out++;
+                *out = 'r'; out++;
+                break;
+            case 7:
+                *out = '\\'; out++;
+                *out = 'a'; out++;
+                break;
+            case 32 ... 127:
+                *out = *c; out++;
+                break;
+            default:
+                *out = '?'; out++;
+        }
+    }
+    *out = 0;
+    return buf;
+}
+
+static int print_arg(uint32_t arg)
+{
+    int len = fprintf(stderr, "%x", arg);
+
+    const char * name = lookup_symbol(arg);
+    if (name && name[0])
+    {
+        return len + fprintf(stderr, " %s", name);
+    }
+
+    const char * str = 0;
+    if ((str = looks_like_string(arg)))
+    {
+        return len + fprintf(stderr, " \"%s\"", string_escape(str));
+    }
+
+    if (is_sane_ptr(arg, 4))
+    {
+        uint32_t mem_arg;
+        cpu_physical_memory_read(arg, &mem_arg, sizeof(mem_arg));
+        if ((str = looks_like_string(mem_arg)))
+        {
+            return len + fprintf(stderr, " &\"%s\"", string_escape(str));
+        }
+    }
+
+    return len;
+}
+
+static int print_args(uint32_t * regs)
+{
+    /* fixme: guess the number of arguments */
+    int len = 0;
+    len += fprintf(stderr, "(");
+    len += print_arg(regs[0]);
+    len += fprintf(stderr, ", ");
+    len += print_arg(regs[1]);
+    len += fprintf(stderr, ", ");
+    len += print_arg(regs[2]);
+    len += fprintf(stderr, ", ");
+    len += print_arg(regs[3]);
+    len += fprintf(stderr, ")");
+    return len;
+}
+
 static void eos_callstack_log_mem(EOSState *s, hwaddr _addr, uint64_t _value, uint32_t size, int flags)
 {
     uint32_t addr = _addr;
@@ -549,7 +705,8 @@ static void eos_callstack_log_mem(EOSState *s, hwaddr _addr, uint64_t _value, ui
                         uint32_t pc = CURRENT_CPU->env.regs[15];
                         uint32_t lr = CURRENT_CPU->env.regs[14];
                         int len = eos_callstack_indent(s);
-                        len += fprintf(stderr, "arg%d = %x", arg_num, value);
+                        len += fprintf(stderr, "arg%d = ", arg_num);
+                        len += print_arg(value);
                         len += indent(len, CALLSTACK_RIGHT_ALIGN);
                         print_call_location(s, pc, lr);
                         if (arg_num > 10)
@@ -764,10 +921,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
             if (name && name[0]) {
                 len += fprintf(stderr, " %s", name);
             }
-            /* fixme: guess the number of arguments */
-            len += fprintf(stderr, "(%x, %x, %x, %x)",
-                env->regs[0], env->regs[1], env->regs[2], env->regs[3]
-            );
+            len += print_args(env->regs);
             len += indent(len, CALLSTACK_RIGHT_ALIGN);
 
             /* print LR from the call stack, so it will always show the caller */
