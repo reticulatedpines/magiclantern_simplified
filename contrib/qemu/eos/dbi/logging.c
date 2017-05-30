@@ -846,8 +846,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
      * other heuristic: a return must either set PC=LR (BX LR) or change SP
      */
 
-    if (pc != prev_pc + 4 &&
-        pc != prev_pc + 2 &&
+    if (pc != prev_pc + prev_size &&
         (pc == lr || sp != prev_sp))
     {
         uint8_t id = get_stackid(s);
@@ -880,10 +879,6 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                 /* (normally it should be optimized out...) */
                 if (0 && !(pc == lr || sp != prev_sp))
                 {
-                    eos_callstack_indent(s);
-                    eos_callstack_print(s, "cstack:", " ", "\n");
-                    target_disas(stderr, CPU(arm_env_get_cpu(env)), prev_pc0, prev_size, 0);
-                    target_disas(stderr, CPU(arm_env_get_cpu(env)), pc0, prev_size, 0);
                     assert(0);
                 }
 
@@ -1105,8 +1100,6 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
             int t0 = env->thumb; env->thumb = prev_pc & 1;
             target_disas(stderr, CPU(arm_env_get_cpu(env)), prev_pc0, prev_size, 0);
             env->thumb = t0;
-            //call_stack_indent(id, 0, 0);
-            //eos_callstack_print(s, "Call stack: ", " ", "\n");
         }
     }
 
