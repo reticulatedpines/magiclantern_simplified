@@ -748,6 +748,35 @@ static void eos_callstack_log_mem(EOSState *s, hwaddr _addr, uint64_t _value, ui
     }
 }
 
+static void check_abi_register_usage(EOSState *s, CPUARMState *env, int id, int k, uint32_t prev_pc)
+{
+    /* check whether the scratch registers were preserved as specified in the ABI */
+    for (int i = 4; i <= 11; i++)
+    {
+        if (env->regs[i] != call_stacks[id][k].regs[i])
+        {
+            int len = eos_callstack_indent(s);
+            len += fprintf(stderr, KCYN"Warning: R%d not restored"KRESET" (0x%x -> 0x%x)", i, call_stacks[id][k].regs[i], env->regs[i]);
+            len -= strlen(KCYN KRESET);
+            len += indent(len, CALLSTACK_RIGHT_ALIGN);
+            uint32_t stack_lr = call_stacks[id][k].lr;
+            print_call_location(s, prev_pc, stack_lr);
+        }
+    }
+
+    uint32_t sp = env->regs[13];
+    if (sp != call_stacks[id][k].sp)
+    {
+        /* fixme: this is OK when ML patches the startup process, but not OK otherwise */
+        int len = eos_callstack_indent(s);
+        len += fprintf(stderr, KCYN"Warning: SP not restored"KRESET" (0x%x -> 0x%x)", call_stacks[id][k].sp, sp);
+        len -= strlen(KCYN KRESET);
+        len += indent(len, CALLSTACK_RIGHT_ALIGN);
+        uint32_t stack_lr = call_stacks[id][k].lr;
+        print_call_location(s, prev_pc, stack_lr);
+    }
+}
+
 static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock *tb)
 {
     ARMCPU *arm_cpu = ARM_CPU(cpu);
@@ -845,30 +874,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                     print_call_location(s, prev_pc, stack_lr);
                 }
 
-                /* check whether the scratch registers were preserved as specified in the ABI */
-                for (int i = 4; i <= 11; i++)
-                {
-                    if (env->regs[i] != call_stacks[id][k].regs[i])
-                    {
-                        int len = eos_callstack_indent(s);
-                        len += fprintf(stderr, KCYN"Warning: R%d not restored"KRESET" (0x%x -> 0x%x)", i, call_stacks[id][k].regs[i], env->regs[i]);
-                        len -= strlen(KCYN KRESET);
-                        len += indent(len, CALLSTACK_RIGHT_ALIGN);
-                        uint32_t stack_lr = call_stacks[id][k].lr;
-                        print_call_location(s, prev_pc, stack_lr);
-                    }
-                }
-
-                if (sp != call_stacks[id][k].sp)
-                {
-                    /* fixme: this is OK when ML patches the startup process, but not OK otherwise */
-                    int len = eos_callstack_indent(s);
-                    len += fprintf(stderr, KCYN"Warning: SP not restored"KRESET" (0x%x -> 0x%x)", call_stacks[id][k].sp, sp);
-                    len -= strlen(KCYN KRESET);
-                    len += indent(len, CALLSTACK_RIGHT_ALIGN);
-                    uint32_t stack_lr = call_stacks[id][k].lr;
-                    print_call_location(s, prev_pc, stack_lr);
-                }
+                check_abi_register_usage(s, env, id, k, prev_pc);
 
                 /* to check whether this heuristic affects the results */
                 /* (normally it should be optimized out...) */
