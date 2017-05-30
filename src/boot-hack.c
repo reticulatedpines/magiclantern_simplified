@@ -39,7 +39,6 @@
 
 #include "boot-hack.h"
 #include "reloc.h"
-#include "qemu-util.h"
 #include "ml-cbr.h"
 
 #if defined(FEATURE_GPS_TWEAKS)
