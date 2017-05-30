@@ -98,6 +98,9 @@ void hijack_6d_guitask()
 }
 #endif
 
+/* Cannot use qprintf here for debugging (no snprintf). */
+/* You may use qprint/qprintn instead. */
+#define qprintf qprintf_not_available
 
 /** Copy firmware to RAM, patch it and restart it */
 void
@@ -115,7 +118,7 @@ copy_and_restart( )
     cache_lock();
 
     /* patch init code to start our init task instead of canons default */
-    qprint("[BOOT] patching init_task from "); qprintn(MEM(HIJACK_CACHE_HACK_INITTASK_ADDR)); qprintf("\n");
+    qprint("[BOOT] patching init_task from "); qprintn(MEM(HIJACK_CACHE_HACK_INITTASK_ADDR)); qprint("\n");
     cache_fake(HIJACK_CACHE_HACK_INITTASK_ADDR, (uint32_t) my_init_task, TYPE_DCACHE);
 
     /* now start main firmware */
@@ -151,7 +154,7 @@ copy_and_restart( )
     // Exception: DIGIC 6 uses start address + size.
     // Cannot use qprintf here (no snprintf).
     qprint("[BOOT] changing user_mem_start from "); qprintn(INSTR(HIJACK_INSTR_BSS_END));
-    qprint("to "); qprintn((uintptr_t)_bss_end); qprintf("\n");
+    qprint("to "); qprintn((uintptr_t)_bss_end); qprint("\n");
     INSTR( HIJACK_INSTR_BSS_END ) = (uintptr_t) _bss_end;
     ml_reserved_mem = (uintptr_t)_bss_end - RESTARTSTART;
     #endif
@@ -162,7 +165,7 @@ copy_and_restart( )
 
     // Set our init task to run instead of the firmware one
     qprint("[BOOT] changing init_task from "); qprintn(INSTR( HIJACK_INSTR_MY_ITASK ));
-    qprint("to "); qprintn((uint32_t) my_init_task); qprintf("\n");
+    qprint("to "); qprintn((uint32_t) my_init_task); qprint("\n");
     INSTR( HIJACK_INSTR_MY_ITASK ) = (uint32_t) my_init_task;
     
     // Make sure that our self-modifying code clears the cache
@@ -193,7 +196,7 @@ copy_and_restart( )
 #ifndef CONFIG_6D
 #if !defined(CONFIG_EARLY_PORT) && !defined(CONFIG_HELLO_WORLD) && !defined(CONFIG_DUMPER_BOOTFLAG)
     // Install our task creation hooks
-    qprint("[BOOT] installing task dispatch hook at "); qprintn((int)&task_dispatch_hook); qprintf("\n");
+    qprint("[BOOT] installing task dispatch hook at "); qprintn((int)&task_dispatch_hook); qprint("\n");
     task_dispatch_hook = my_task_dispatch_hook;
     #ifdef CONFIG_TSKMON
     tskmon_init();
@@ -215,6 +218,8 @@ copy_and_restart( )
 #endif
 }
 
+/* qprintf should be fine from now on */
+#undef qprintf
 
 static int _hold_your_horses = 1; // 0 after config is read
 int ml_started = 0; // 1 after ML is fully loaded
