@@ -193,17 +193,11 @@ $(LIBTCC_OBJ) tcc.o : %.o : %.c $(LIBTCC_INC)
 libtcc.a: $(LIBTCC_OBJ)
 	$(AR) rcs $@ $^
 
-# I'm sure there's a cleanest solution, but... I just don't know how
+# I'm sure there's a cleaner solution, but... I just don't know how
 localsyms: libtcctmp.o
-	@$(READELF) $< -Ws | $(AWK) "{print \$$8}" | sort | uniq \
-		| grep -v "^tcc_new$$" \
-		| grep -v "^tcc_delete$$" \
-		| grep -v "^tcc_add_file$$" \
-		| grep -v "^tcc_relocate$$" \
-		| grep -v "^tcc_get_symbol$$" \
-		| grep -v "^tcc_add_symbol$$" \
-		| grep -v "^tcc_set_options$$" \
-		| grep -v "^tcc_load_offline_section$$" \
+	@$(READELF) $< -Ws | tr -d '\r' |$(AWK) "{print \$$8}" | sort | uniq \
+		| grep -Ev \
+		'^tcc_(new|delete|add_file|relocate|get_symbol|add_symbol|set_options|load_offline_section)$$' \
 		> $@
 
 #~ libtcc.a: libtcctmp.a localsyms
@@ -344,7 +338,7 @@ export LIBTCC1
 	$(MAKE) -C tests $@
 
 clean:
-	rm -vf $(PROGS) tcc_p$(EXESUF) tcc.pod *~ *.o *.a *.so* *.out *.exe libtcc_test$(EXESUF)
+	rm -vf $(PROGS) tcc_p$(EXESUF) tcc.pod *~ *.o *.a *.so* *.out *.exe libtcc_test localsyms$(EXESUF)
 	$(MAKE) -C tests $@
 ifneq ($(LIBTCC1),)
 	$(MAKE) -C lib $@
