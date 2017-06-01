@@ -585,7 +585,8 @@ static struct {
     { 0x0010,   BGMT_Q,                 "Q",            "guess",                        },
     { 0x0026,   BGMT_LV,                "L",            "LiveView",                     },
     { 0x0011,   BGMT_PICSTYLE,          "W",            "Pic.Style",                    },
-
+    { 0x002A,   BGMT_PRESS_HALFSHUTTER,     "Shift",    "Half-shutter"                  },
+    { 0x00AA,   BGMT_UNPRESS_HALFSHUTTER,                                               },
     { 0x0030,   GMT_GUICMD_OPEN_BATT_COVER, "B",        "Open battery cover",           },
 };
 
@@ -610,7 +611,19 @@ static int translate_scancode_2(int scancode, int first_code)
     {
         if (key_map[i].scancode == code)
         {
-            return button_codes[key_map[i].gui_code];
+            switch (key_map[i].gui_code)
+            {
+                case BGMT_PRESS_HALFSHUTTER:
+                case BGMT_UNPRESS_HALFSHUTTER:
+                case BGMT_PRESS_FULLSHUTTER:
+                case BGMT_UNPRESS_FULLSHUTTER:
+                    /* special: return the raw gui code */
+                    return 0x0E0E0000 | key_map[i].gui_code;
+
+                default:
+                    /* return model-specific button code (bindReceiveSwitch) */
+                    return button_codes[key_map[i].gui_code];
+            }
         }
     }
     
@@ -680,7 +693,11 @@ void mpu_send_keypress(EOSState *s, int keycode)
 {
     /* good news: most MPU button codes appear to be the same across all cameras :) */
     int key = translate_scancode(keycode);
-    if (key <= 0) return;
+    if (key <= 0)
+    {
+        MPU_DPRINTF0("Key not recognized: %x\n", keycode);
+        return;
+    }
     
     if (key == 0x00F1F1F1)
     {
@@ -688,14 +705,50 @@ void mpu_send_keypress(EOSState *s, int keycode)
         return;
     }
 
+    if ((key & 0xFFFF0000) == 0x0E0E0000)
+    {
+        MPU_EPRINTF0("Key event: %x -> %08x\n", keycode, key);
+        switch (key & 0xFFFF)
+        {
+            case BGMT_PRESS_HALFSHUTTER:
+            {
+                /* fixme: if in some other GUI mode, switch back to 0 first */
+                /* it will no longer be a simple sequence, but one with confirmation */
+                unsigned char mpu_halfshutter_spells[2][6] = {
+                    { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },
+                    { 0x06, 0x04, 0x05, 0x00, 0x00, 0x00 },
+                };
+                for (int i = 0; i < COUNT(mpu_halfshutter_spells); i++)
+                {
+                    mpu_enqueue_spell_generic(s, mpu_halfshutter_spells[i]);
+                }
+                mpu_start_sending(s);
+                break;
+            }
+
+            case BGMT_UNPRESS_HALFSHUTTER:
+            {
+                unsigned char mpu_halfshutter_spells[1][6] = {
+                    { 0x06, 0x04, 0x05, 0x0B, 0x00, 0x00 },
+                };
+                mpu_enqueue_spell_generic(s, mpu_halfshutter_spells[0]);
+                mpu_start_sending(s);
+                break;
+            }
+
+            default:
+            {
+                assert(0);
+            }
+        }
+        return;
+    }
+
     MPU_EPRINTF0("Key event: %x -> %04x\n", keycode, key);
-    
-    static unsigned char mpu_keypress_spell[6] = {
-        0x06, 0x05, 0x06, 0x00, 0x00, 0x00
+
+    unsigned char mpu_keypress_spell[6] = {
+        0x06, 0x05, 0x06, key >> 8, key & 0xFF, 0x00
     };
-    
-    mpu_keypress_spell[3] = key >> 8;
-    mpu_keypress_spell[4] = key & 0xFF;
     
     /* todo: check whether a race condition is still possible */
     /* (is this function called from the same thread as I/O handlers or not?) */
