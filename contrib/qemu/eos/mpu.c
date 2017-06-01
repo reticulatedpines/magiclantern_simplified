@@ -198,7 +198,12 @@ static void mpu_interpret_command(EOSState *s)
     {
         if (match_spell(s->mpu.recv_buffer+1, mpu_init_spells[spell_set].in_spell+1))
         {
-            MPU_EPRINTF0(" (recognized spell #%d)\n", spell_set+1);
+            MPU_EPRINTF0(
+                " (%s%sspell #%d)\n",
+                mpu_init_spells[spell_set].description ? mpu_init_spells[spell_set].description : "",
+                mpu_init_spells[spell_set].description ? " - " : "",
+                spell_set+1
+            );
             
             int out_spell;
             for (out_spell = 0; mpu_init_spells[spell_set].out_spells[out_spell][0]; out_spell++)
