@@ -3,6 +3,11 @@
 
 #include "eos.h"
 
+#define ARG0 0x0100
+#define ARG1 0x0101
+#define ARG2 0x0102
+#define ARG3 0x0103
+
 void mpu_spells_init(EOSState *s);
 void mpu_handle_sio3_interrupt(EOSState *s);
 void mpu_handle_mreq_interrupt(EOSState *s);

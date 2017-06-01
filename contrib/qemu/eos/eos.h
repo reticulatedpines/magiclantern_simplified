@@ -155,8 +155,8 @@ struct HPTimer
 
 struct mpu_init_spell
 {
-  unsigned char in_spell[128];
-  unsigned char out_spells[128][128];  
+  uint16_t in_spell[128];
+  uint16_t out_spells[128][128];  
 };
 
 typedef struct
@@ -165,15 +165,15 @@ typedef struct
     int sending;
     int receiving;
     
-    unsigned char recv_buffer[128];
+    uint16_t recv_buffer[128];
     int recv_index;
     
     /* used for replaying MPU messages */
-    unsigned char * out_spell;
+    uint16_t * out_spell;
     int out_char;
 
     /* contains pointers to MPU out spells (see mpu_init_spell) */
-    unsigned char * send_queue[0x100];
+    uint16_t * send_queue[0x100];
     int sq_head;                /* for extracting items */
     int sq_tail;                /* for inserting (queueing) items */
 
