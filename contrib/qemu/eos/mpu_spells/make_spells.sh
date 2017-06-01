@@ -9,7 +9,7 @@ for log in \
         60D-mpu-large.log \
         550D-startup2.LOG \
         70D-startup-nf.log \
-        5D3-startup2.log \
+        5D3-123-sd-startup-menu-q-1.LOG \
         600D-startup.log \
         5D2-startup-ilia.log \
         450D-dm-mpu.log \
