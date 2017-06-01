@@ -17,6 +17,8 @@ int eos_callstack_get_indent(EOSState *s);
 /* print the current call stack to stderr */
 int eos_callstack_print(EOSState *s, const char * prefix, const char * sep, const char * suffix);
 
+void eos_callstack_print_verbose(EOSState *s);
+
 /* get one parameter (register, function argument etc) from any caller on the stack */
 enum param_type {
     CALLER_PC = -1, CALLER_LR = -2, CALLER_SP = -3,

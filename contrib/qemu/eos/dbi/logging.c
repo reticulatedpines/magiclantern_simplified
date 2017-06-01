@@ -469,6 +469,59 @@ int eos_callstack_print(EOSState *s, const char * prefix, const char * sep, cons
     return len;
 }
 
+static int print_args(uint32_t * regs);
+
+void eos_callstack_print_verbose(EOSState *s)
+{
+    uint8_t id = get_stackid(s);
+
+    if (!call_stack_num[id])
+    {
+        /* empty? */
+        return;
+    }
+
+    uint32_t pc = CURRENT_CPU->env.regs[15];
+    uint32_t lr = CURRENT_CPU->env.regs[14];
+    uint32_t sp = CURRENT_CPU->env.regs[13];
+
+    uint32_t stack_top, stack_bot;
+    if (eos_get_current_task_stack(s, &stack_top, &stack_bot))
+    {
+        int len = fprintf(stderr, "Current stack: [%x-%x] sp=%x", stack_top, stack_bot, sp);
+        len += indent(len, CALLSTACK_RIGHT_ALIGN);
+        len += eos_print_location(s, pc, lr, " at ", "\n");
+    }
+
+    for (int k = 0; k < call_stack_num[id]; k++)
+    {
+        uint32_t pc = call_stacks[id][k].pc;
+        uint32_t lr = call_stacks[id][k].lr;
+        uint32_t sp = call_stacks[id][k].sp;
+
+        int len = indent(0, k);
+        
+        if (call_stacks[id][k].is_interrupt)
+        {
+            len += fprintf(stderr, "interrupt");
+            len += indent(len, CALLSTACK_RIGHT_ALIGN);
+            eos_print_location(s, lr, sp, " at ", "\n");
+            assert(pc == 0x18);
+        }
+        else
+        {
+            const char * name = lookup_symbol(pc);
+            len += fprintf(stderr, "0x%X", pc);
+            if (name && name[0]) {
+                len += fprintf(stderr, " %s", name);
+            }
+            len += print_args(call_stacks[id][k].regs);
+            len += indent(len, CALLSTACK_RIGHT_ALIGN);
+            eos_print_location(s, lr-4, sp, " at ", " (lr:sp)\n");
+        }
+    }
+}
+
 int eos_print_location(EOSState *s, uint32_t pc, uint32_t lr, const char * prefix, const char * suffix)
 {
     char name_suffix[512];
@@ -1351,6 +1404,11 @@ static void tb_exec_cb(void *opaque, CPUState *cpu, TranslationBlock *tb)
         static uint32_t prev_pc = 0;
         if (tb->pc == DebugMsg_addr && tb->pc != prev_pc)
         {
+            if (qemu_loglevel_mask(EOS_LOG_DEBUGMSG) &&
+                qemu_loglevel_mask(EOS_LOG_VERBOSE))
+            {
+                eos_callstack_print_verbose(opaque);
+            }
             DebugMsg_log(opaque);
         }
         prev_pc = tb->pc;
