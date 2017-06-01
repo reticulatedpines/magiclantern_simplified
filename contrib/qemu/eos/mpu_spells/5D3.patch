@@ -8,8 +8,8 @@
      { { 0x06, 0x04, 0x02, 0x00, 0x00 }, .description = "Init", .out_spells = { /* spell #1 */
          { 0x06, 0x05, 0x01, 0x00, 0x03, 0x00 },                 /* reply #1.1, PROP_SHOOTING_MODE(03) */
 @@ -488,4 +491,8 @@
-         { 0x06, 0x05, 0x03, 0x17, 0x9b, 0x00 },                 /* reply #124.5 */
-         { 0x06, 0x05, 0x03, 0x38, 0x9a, 0x00 },                 /* reply #124.6 */
+      // { 0x06, 0x05, 0x03, 0x17, 0x9b, 0x00 },                 /* reply #124.5, delayed by 991 ms, likely external input */
+      // { 0x06, 0x05, 0x03, 0x38, 0x9a, 0x00 },                 /* reply #124.6, delayed by 995 ms, likely external input */
          { 0 } } },
 +  //#include "NotifyGUIEvent.h"
 +    #include "UILock.h"

@@ -84,9 +84,22 @@ for l in lines:
             print("GUI_Control without bindReceiveSwitch", file=sys.stderr)
             print(l, file=sys.stderr)
 
+prev_hwcount = 0
+overflows = 0
+timestamp = 0
+last_mpu_timestamp = 0
+
 for l in lines:
+    if len(l) > 5 and l[5] == ">":
+        hwcount = int(l[:5], 16)
+        if hwcount < prev_hwcount:
+            overflows += 1
+        prev_hwcount = hwcount
+        timestamp = overflows * 0x100000 + hwcount
+
     m = re.match(".* mpu_send\(([^()]*)\)", l)
     if m:
+        last_mpu_timestamp = timestamp
         spell = m.groups()[0].strip()
 
         if first_send or not first_mpu_send_only:
@@ -127,6 +140,12 @@ for l in lines:
         num2 += 1
 
         cmt = "  "
+        warning = ""
+        dt = timestamp - last_mpu_timestamp
+        if dt > 100000:
+            warning = "delayed by %d ms, likely external input" % (dt/1000)
+            cmt = "//"
+        last_mpu_timestamp = timestamp
 
         # comment out entire block?
         if commented_block:
@@ -140,6 +159,7 @@ for l in lines:
                 btn_code = bind_switches[args][0]
                 if btn_code in switch_names:
                     cmt = "//"
+                    warning = ""
 
         print("     %s %-56s/* reply #%d.%d" % (cmt, format_spell(reply) + ",", num, num2), end="")
 
@@ -182,6 +202,9 @@ for l in lines:
 
         if description:
             print(", %s" % description, end="")
+
+        if warning:
+            print(", %s" % warning, end="")
 
         print(" */")
         continue

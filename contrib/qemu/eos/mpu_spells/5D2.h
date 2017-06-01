@@ -178,7 +178,7 @@ static struct mpu_init_spell mpu_init_spells_5D2[] = {
         { 0x06, 0x05, 0x03, 0x17, 0x92, 0x00 },                 /* reply #43.3 */
         { 0 } } },
     { { 0x06, 0x05, 0x03, 0x19, 0x00, 0x00 }, {                 /* spell #44 */
-        { 0x06, 0x05, 0x03, 0x17, 0x92, 0x00 },                 /* reply #44.1 */
+     // { 0x06, 0x05, 0x03, 0x17, 0x92, 0x00 },                 /* reply #44.1, delayed by 798 ms, likely external input */
         { 0 } } },
 
     #include "NotifyGUIEvent.h"
