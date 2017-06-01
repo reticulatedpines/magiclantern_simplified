@@ -72,9 +72,9 @@ $(LZMA_LIB_MINGW): $(LZMA_OBJS_MINGW)
 #
 # mlv_dump rules
 #
-mlv_dump: $(MLV_DUMP_OBJS) module_strings.h
+mlv_dump: module_strings.h $(MLV_DUMP_OBJS)
 	$(call build,HOST_CC,$(HOST_CC) $(HOST_LFLAGS) $(MLV_LFLAGS) $(MLV_DUMP_OBJS) -o $@ $(HOST_LIBS) $(MLV_LIBS) )
 
-mlv_dump.exe: $(MLV_DUMP_OBJS_MINGW) module_strings.h
+mlv_dump.exe: module_strings.h $(MLV_DUMP_OBJS_MINGW)
 	$(call build,MINGW_GCC,$(MINGW_GCC) $(MINGW_LFLAGS) $(MLV_LFLAGS) $(MLV_DUMP_OBJS_MINGW) -o $@ $(MINGW_LIBS) $(MLV_LIBS_MINGW) )
 
