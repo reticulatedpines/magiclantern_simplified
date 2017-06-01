@@ -244,6 +244,8 @@ struct eos_model_desc eos_model_list[] = {
         .mpu_request_register   = 0xC022D0C4,
         .mpu_status_register    = 0xC022F484,
         .current_task_addr      = 0x31170,
+        .sd_driver_interrupt    = 0x4B,
+        .sd_dma_interrupt       = 0x32,
     },
     {
         .name                   = "EOSM",

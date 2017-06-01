@@ -2320,8 +2320,9 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             if(strcmp(s->model->name, "1300D") == 0)
             {
                 /* 1300D: return 0 here to bypass "System & Display Check & Adjustment program" */
+                /* 0x4000000 = HDMI disconnected */
                 msg = "System check";
-                ret = 0;    
+                ret = 0x4000000;    
             }  
             else 
             {        

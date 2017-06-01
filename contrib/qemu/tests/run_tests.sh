@@ -719,9 +719,9 @@ echo
 echo "Testing file I/O (DCIM directory)..."
 # Most EOS cameras should be able to create the DCIM directory if missing.
 # Currently works only on models that can boot Canon GUI,
-# and also on EOSM and 450D.
+# and also on EOSM, 1300D and 450D.
 #for CAM in ${EOS_CAMS[*]}; do
-for CAM in ${GUI_CAMS[*]} EOSM 450D; do
+for CAM in ${GUI_CAMS[*]} EOSM 1300D 450D; do
     printf "%5s: " $CAM
     
     mkdir -p tests/$CAM/
