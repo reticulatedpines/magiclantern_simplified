@@ -491,6 +491,26 @@ int eos_print_location(EOSState *s, uint32_t pc, uint32_t lr, const char * prefi
     }
 }
 
+int eos_print_location_gdb(EOSState *s)
+{
+    uint32_t ret = CURRENT_CPU->env.regs[14] - 4;
+
+    if (qemu_loglevel_mask(EOS_LOG_CALLSTACK)) {
+        uint8_t id = get_stackid(s);
+        int level = call_stack_num[id] - 1;
+        uint32_t stack_lr = level >= 0 ? call_stacks[id][level].lr : 0;
+        ret = stack_lr - 4;
+    }
+
+    if (interrupt_level) {
+        return fprintf(stderr, "[%s     INT-%02Xh:%08x %s] ", KCYN, s->irq_id, ret, KRESET);
+    } else {
+        const char * task_name = eos_get_current_task_name(s);
+        if (!task_name) task_name = "";
+        return fprintf(stderr, "[%s%12s:%08x %s] ", KCYN, task_name, ret, KRESET);
+    }
+}
+
 static int print_call_location(EOSState *s, uint32_t pc, uint32_t lr)
 {
     return eos_print_location(s, pc, lr, " at ", "\n");
@@ -1291,6 +1311,8 @@ static void eos_romcpy_log_mem(EOSState *s, MemoryRegion *mr, hwaddr _addr, uint
 
 static uint64_t saved_loglevel = 0;
 
+static uint32_t DebugMsg_addr = 0;
+
 static void tb_exec_cb(void *opaque, CPUState *cpu, TranslationBlock *tb)
 {
     if (qemu_loglevel_mask(EOS_LOG_AUTOEXEC) && saved_loglevel != qemu_loglevel)
@@ -1323,6 +1345,16 @@ static void tb_exec_cb(void *opaque, CPUState *cpu, TranslationBlock *tb)
         CPUARMState *env = &arm_cpu->env;
         eos_memcheck_log_exec(opaque, tb->pc, env);
     }
+
+    if (qemu_loglevel_mask(EOS_LOG_DEBUGMSG) && DebugMsg_addr)
+    {
+        static uint32_t prev_pc = 0;
+        if (tb->pc == DebugMsg_addr && tb->pc != prev_pc)
+        {
+            DebugMsg_log(opaque);
+        }
+        prev_pc = tb->pc;
+    }
 }
 
 static void load_symbols(const char * elf_filename)
@@ -1334,13 +1366,30 @@ static void load_symbols(const char * elf_filename)
     assert(size > 0);
 }
 
+void eos_getenv_hex(const char * env_name, uint32_t * var, uint32_t default_value)
+{
+    char * env = getenv(env_name);
+
+    if (env)
+    {
+        *var = strtoul(env, NULL, 16);
+    }
+    else
+    {
+        *var = default_value;
+    }
+}
+
 void eos_logging_init(EOSState *s)
 {
+    eos_getenv_hex("QEMU_EOS_DEBUGMSG", &DebugMsg_addr, 0);
+
     if (qemu_loglevel_mask(EOS_LOG_CALLSTACK    |
                            EOS_LOG_RAM_MEMCHK   |
                            EOS_LOG_TASKS        |
                            EOS_LOG_AUTOEXEC     |
-                           0))
+                           0) ||
+        DebugMsg_addr)
     {
         fprintf(stderr, "[EOS] enabling code execution logging.\n");
         cpu_set_tb_exec_cb(tb_exec_cb, s);
