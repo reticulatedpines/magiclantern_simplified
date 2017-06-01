@@ -819,6 +819,60 @@ void mpu_send_keypress(EOSState *s, int keycode)
     mpu_start_sending(s);
 }
 
+static void mpu_check_duplicate_spells(EOSState *s)
+{
+    for (int i = 0; i < mpu_init_spell_count; i++)
+    {
+        if (mpu_init_spells[i].out_spells[0][0])
+        {
+            /* non-empty spell */
+            /* let's check for duplicates, as they may indicate some spells that depend on camera state */
+            /* in current implementation, they may produce undefined behavior (depending on which spell is matched first) */
+            int found = 0;
+            int already_handled = 0;
+
+            for (int j = 0; j < i; j++)
+            {
+                if (mpu_init_spells[j].out_spells[0][0] &&
+                    (match_spell(mpu_init_spells[i].in_spell, mpu_init_spells[j].in_spell) ||
+                     match_spell(mpu_init_spells[j].in_spell, mpu_init_spells[i].in_spell)))
+                {
+                    already_handled = 1;
+                    break;
+                }
+            }
+            if (already_handled)
+            {
+                continue;
+            }
+            for (int j = 0; j < mpu_init_spell_count; j++)
+            {
+                if (i != j &&
+                    (match_spell(mpu_init_spells[i].in_spell, mpu_init_spells[j].in_spell) ||
+                     match_spell(mpu_init_spells[j].in_spell, mpu_init_spells[i].in_spell)))
+                {
+                    if (!found)
+                    {
+                        MPU_EPRINTF("warning: non-empty spell #%d", i+1);
+                        if (mpu_init_spells[i].description) {
+                            MPU_EPRINTF0(" (%s)", mpu_init_spells[i].description);
+                        } else {
+                            MPU_EPRINTF0(" (%02x %02x %02x %02x)",
+                                mpu_init_spells[i].in_spell[0], mpu_init_spells[i].in_spell[1],
+                                mpu_init_spells[i].in_spell[2], mpu_init_spells[i].in_spell[3]
+                            );
+                        }
+                        MPU_EPRINTF0(" has duplicate(s): ");
+                        found = 1;
+                    }
+                    MPU_EPRINTF0("#%d ", j+1);
+                }
+            }
+            if (found) MPU_EPRINTF0("\n");
+        }
+    }
+}
+
 void mpu_spells_init(EOSState *s)
 {
 #define MPU_SPELL_SET(cam) \
@@ -857,6 +911,10 @@ void mpu_spells_init(EOSState *s)
     {
         MPU_EPRINTF("FIXME: no MPU spells for %s.\n", s->model->name);
         /* how to get them: http://magiclantern.fm/forum/index.php?topic=2864.msg166938#msg166938 */
+    }
+    else
+    {
+        mpu_check_duplicate_spells(s);
     }
 
 #define MPU_BUTTON_CODES(cam) \
