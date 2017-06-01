@@ -2477,8 +2477,11 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             break;
         }
 
-        case 0x0168:
-            msg = "70D write protect";
+        case 0x00A0:    /* DIGIC 4 (most models) */
+        case 0x004C:    /* 700D, 100D */
+        case 0x0168:    /* 70D */
+        case 0x01FC:    /* 5D3 */
+            msg = "WriteProtect";
             ret = 0;
             break;
         
