@@ -190,7 +190,7 @@ void focus_calc_dof()
     lens_info.hyperfocal = H;
   
     // Calculate near and far dofs
-    const uint64_t  temp = lens_info.aperture*coc*(fd-fl) // note aperture and coc in tenths of their units, hence the 100000 factor below
+    const uint64_t  temp = lens_info.aperture*coc*(fd-fl); // note aperture and coc in tenths of their units, hence the 100000 factor below
     lens_info.dof_near = (fd*fl2*100000)/(100000*fl2 + temp); // in mm
     if( fd >= H )
     {
