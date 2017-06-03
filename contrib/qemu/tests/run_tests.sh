@@ -188,9 +188,9 @@ for CAM in ${EOS_SECONDARY_CORES[*]} ${EOS_CAMS[*]}; do
     fi
     echo -n ' '
 
-    ints=`ansi2txt < tests/$CAM/calls-fint-raw.log | grep -E "interrupt *at " | grep -v "return" | wc -l`
+    ints=`ansi2txt < tests/$CAM/calls-fint-raw.log | grep -E "interrupt .*at " | grep -v "return" | wc -l`
     reti=`ansi2txt < tests/$CAM/calls-fint-raw.log | grep "return from interrupt" | wc -l`
-    nints=`ansi2txt < tests/$CAM/calls-fint-raw.log | grep -E " interrupt *at " | grep -v "return" | wc -l`
+    nints=`ansi2txt < tests/$CAM/calls-fint-raw.log | grep -E " interrupt .*at " | grep -v "return" | wc -l`
     nreti=`ansi2txt < tests/$CAM/calls-fint-raw.log | grep " return from interrupt" | wc -l`
     tsksw=`ansi2txt < tests/$CAM/calls-fint-raw.log | grep "Task switch to " | wc -l`
     tasks=`ansi2txt < tests/$CAM/calls-fint-raw.log | grep -oP "(?<=Task switch to )[^:]*" | sort | uniq | head -3 |  tr '\n' ' '`
