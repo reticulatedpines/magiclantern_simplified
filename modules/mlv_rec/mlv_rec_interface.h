@@ -21,6 +21,7 @@
 #ifndef __MLV_REC_INTERFACE_H__
 #define __MLV_REC_INTERFACE_H__
 
+
 /* interface to register callbacks for various stuff */
 typedef void (*event_cbr_t) (uint32_t event, void *ctx, mlv_hdr_t *hdr);
 
@@ -34,7 +35,7 @@ typedef void (*event_cbr_t) (uint32_t event, void *ctx, mlv_hdr_t *hdr);
 #define MLV_REC_EVENT_VIDF        (1U<<6) /* gets called for every VIDF being queued for write. called from EDMAC CBR, so avoid using too much CPU time. */
 
 
-#if !defined(__MLV_REC_C__)
+#if !defined(__MLV_REC_C__) && !defined(__MLV_LITE_C__)
 
 /* register function as callback routine for all events ORed into 'event' and call that CBR with given 'ctx' */
 extern WEAK_FUNC(ret_0) uint32_t mlv_rec_register_cbr(uint32_t event, event_cbr_t cbr, void *ctx);
@@ -44,6 +45,16 @@ extern WEAK_FUNC(ret_0) uint32_t mlv_rec_unregister_cbr(event_cbr_t cbr);
 
 /* queue a MLV block for writing. timestamp will get set automatically as it requires knowledge of the absolute record starting time */
 extern WEAK_FUNC(ret_0) uint32_t mlv_rec_queue_block(mlv_hdr_t *hdr);
+
+#else
+    
+/* structure entry for registered CBR routines */
+typedef struct
+{
+    uint32_t event;
+    void *ctx;
+    event_cbr_t cbr;
+} cbr_entry_t;
 
 #endif
 
