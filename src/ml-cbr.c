@@ -19,9 +19,9 @@
 #endif
 
 #define SEMAPHORE struct semaphore
-#define SEMAPHORE_INIT(sem) do { sem = create_named_semaphore(#sem"_sem", 0); } while(0)
-#define LOCK(x) do { ASSERT(initialized); take_semaphore((x), 0); } while(0)
-#define UNLOCK give_semaphore
+#define SEMAPHORE_INIT(sem) do { sem = create_named_semaphore(#sem"_sem", 1); } while(0)
+#define LOCK(x)   do { ASSERT(initialized); take_semaphore((x), 0); } while(0)
+#define UNLOCK(x) do { give_semaphore((x)); } while(0)
 
 #if ML_CBR_DEBUG
 #define dbg_printf(fmt,...) do { printf(fmt, ## __VA_ARGS__); } while(0)
@@ -194,7 +194,6 @@ int ml_register_cbr(const char * event, cbr_func cbr, unsigned int prio) {
     ASSERT(event != NULL && cbr != NULL);
     int retval = -1;
     LOCK(ml_cbr_lock);
-    ml_unregister_cbr(event, cbr);
     struct cbr_record * record = find_record(event, 1);
     if (record == NULL) {
         struct cbr_record_arena * new_arena = expand_cbr_record_pool();
@@ -251,18 +250,18 @@ void ml_notify_cbr(const char * event, void * data) {
     ASSERT(event != NULL);
     LOCK(ml_cbr_lock);
     struct cbr_record * record = find_record(event, 0);
-    if (record == NULL) {
-        return;
-    }
-    struct cbr_node * call = record->first;
-    while (call != NULL) {
-        if (call->cbr != NULL) {
-            if (call->cbr(event, data) == ML_CBR_STOP) {
-                break;
+    if (record) {
+        struct cbr_node * call = record->first;
+        while (call != NULL) {
+            if (call->cbr != NULL) {
+                if (call->cbr(event, data) == ML_CBR_STOP) {
+                    break;
+                }
             }
+            call = call->next;
         }
-        call = call->next;
     }
+
     UNLOCK(ml_cbr_lock);
 }
 
