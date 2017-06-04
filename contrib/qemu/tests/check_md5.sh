@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 cd $1
 
 if [ ! -e $2.md5 ]; then

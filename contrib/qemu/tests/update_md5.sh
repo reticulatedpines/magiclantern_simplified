@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 echo "This will mark *all* test results as good."
 echo "Will open all screenshots in gthumb so you can review them."
