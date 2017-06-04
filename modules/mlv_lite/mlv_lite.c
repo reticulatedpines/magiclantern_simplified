@@ -185,7 +185,14 @@ struct frame_slot
 {
     void* ptr;          /* image data, size=frame_size */
     int frame_number;   /* from 0 to n */
-    enum {SLOT_FREE, SLOT_FULL, SLOT_WRITING} status;
+    enum {
+        SLOT_FREE,          /* available for image capture */
+        SLOT_RESERVED,      /* it may become available when resizing the previous slots */
+        SLOT_CAPTURING,     /* in progress */
+        SLOT_LOCKED,        /* locked by some other module */
+        SLOT_FULL,          /* contains fully captured image data */
+        SLOT_WRITING        /* it's being saved to card */
+    } status;
 };
 
 static struct memSuite * shoot_mem_suite = 0;     /* memory suite for our buffers */
@@ -252,16 +259,20 @@ void mlv_rec_get_slot_info(int32_t slot, uint32_t *size, void **address)
 /* this can be called from anywhere to get a free memory slot. must be submitted using mlv_rec_release_slot() */
 int32_t mlv_rec_get_free_slot()
 {
-    for (int i = 0; i < total_slot_count; i++)
+    int32_t ret = -1;
+    
+    for (int i = 0; (i < total_slot_count) && (ret == -1); i++)
     {
+        uint32_t old_int = cli();
         if (slots[i].status == SLOT_FREE)
         {
-            slots[i].status = SLOT_RESERVED;
-            return i;
+            slots[i].status = SLOT_LOCKED;
+            ret = i;
         }
+        sei(old_int);
     }
     
-    return -1;
+    return ret;
 }
 
 /* mark a previously with mlv_rec_get_free_slot() allocated slot for being reused or written into the file */
@@ -274,7 +285,11 @@ void mlv_rec_release_slot(int32_t slot, uint32_t write)
 
     if(write)
     {
+        uint32_t old_int = cli();
         slots[slot].status = SLOT_FULL;
+        writing_queue[writing_queue_tail] = slot;
+        INC_MOD(writing_queue_tail, COUNT(writing_queue));
+        sei(old_int);
     }
     else
     {
@@ -911,8 +926,34 @@ static void show_buffer_status()
                                                       COLOR_RED ;
         for (int k = 0; k < scale; k++)
         {
-            draw_line(x, y+5, x, y+17, color);
-            x++;
+            if (i > 0 && slots[i].ptr != slots[i-1].ptr + slots[i-1].size)
+            {
+                /* new chunk */
+                chunk_start = (uint32_t) slots[i].ptr;
+                y += 10;
+                if (y > 400) return;
+            }
+
+            int color = slots[i].status == SLOT_FREE      ? COLOR_GRAY(10) :
+                        slots[i].status == SLOT_WRITING   ? COLOR_GREEN1 :
+                        slots[i].status == SLOT_FULL      ? COLOR_LIGHT_BLUE :
+                        slots[i].status == SLOT_RESERVED  ? COLOR_GRAY(50) :
+                        slots[i].status == SLOT_LOCKED    ? COLOR_YELLOW :
+                                                            COLOR_RED ;
+
+            uint32_t x1 = (uint32_t) slots[i].ptr - chunk_start;
+            uint32_t x2 = x1 + slots[i].size;
+            x1 = 650 * (x1/1024) / (32*1024) + BUFFER_DISPLAY_X;
+            x2 = 650 * (x2/1024) / (32*1024) + BUFFER_DISPLAY_X;
+            x1 = COERCE(x1, 0, 720);
+            x2 = COERCE(x2, 0, 720);
+
+            for (uint32_t x = x1; x < x2; x++)
+            {
+                draw_line(x, y, x, y+7, color);
+            }
+            draw_line(x1, y, x1, y+7, COLOR_BLACK);
+            draw_line(x2, y, x2, y+7, COLOR_BLACK);
         }
         
         if (scale > 3)
