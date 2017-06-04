@@ -241,6 +241,97 @@ static int raw_rec_should_preview(void);
 
 /* old mlv_rec interface stuff here */
 struct msg_queue *mlv_block_queue = NULL;
+/* registry of all other modules CBRs */
+static cbr_entry_t registered_cbrs[32];
+
+/* register a callback function that is called when one of the events specified happens.
+   event can be a OR'ed list of the events specified in mlv_rec_interface.h
+ */
+uint32_t mlv_rec_register_cbr(uint32_t event, event_cbr_t cbr, void *ctx)
+{
+    if(RAW_IS_RECORDING)
+    {
+        return 0;
+    }
+    
+    uint32_t ret = 0;
+    uint32_t old_int = cli();
+    for(int pos = 0; pos < COUNT(registered_cbrs); pos++)
+    {
+        if(registered_cbrs[pos].cbr == NULL)
+        {
+            registered_cbrs[pos].event = event;
+            registered_cbrs[pos].cbr = cbr;
+            registered_cbrs[pos].ctx = ctx;
+            ret = 1;
+            break;
+        }
+    }
+    sei(old_int);
+    
+    return ret;
+}
+
+/* unregister the specified CBR from all registered events */
+uint32_t mlv_rec_unregister_cbr(event_cbr_t cbr)
+{
+    if(RAW_IS_RECORDING)
+    {
+        return 0;
+    }
+    
+    uint32_t ret = 0;
+    uint32_t old_int = cli();
+    for(int pos = 0; (registered_cbrs[pos].cbr != NULL) && (pos < COUNT(registered_cbrs)); pos++)
+    {
+        /* is this the callback routine to be unregistered? */
+        if(registered_cbrs[pos].cbr == cbr)
+        {
+            /* if so, just shift all entries below one entry up. this keeps a void-less list with all CBRs to improve performance */
+            int32_t remaining = COUNT(registered_cbrs) - pos - 1;
+            
+            registered_cbrs[pos].cbr = NULL;
+            
+            if(remaining > 0)
+            {
+                memcpy(&registered_cbrs[pos], &registered_cbrs[pos + 1], remaining * sizeof(cbr_entry_t));
+                registered_cbrs[COUNT(registered_cbrs)-1].ctx = NULL;
+                ret = 1;
+                break;
+            }
+        }
+    }
+    sei(old_int);
+    
+    return ret;
+}
+
+/* call registered callbacks for the events specified */
+static void mlv_rec_call_cbr(uint32_t event, mlv_hdr_t *hdr)
+{
+    for(int pos = 0; (registered_cbrs[pos].cbr != NULL) && (pos < COUNT(registered_cbrs)); pos++)
+    {
+        /* there is still a possible race condition - if a module unregisters it's CBR during this function being called.
+           while this is unlikely to ever happen (all current modules register their CBRs upon init and not within a CBR,
+           this is still something that should be hardened. locks might be a bit too expensive.
+           copying every entry to stack also a bit costly, but will cause other side effects.
+        */
+        if(registered_cbrs[pos].event & event)
+        {
+            registered_cbrs[pos].cbr(event, registered_cbrs[pos].ctx, hdr);
+        }
+    }
+}
+
+/* helper to write a MLV block into a FILE* and return if successful */
+static int32_t mlv_write_hdr(FILE* f, mlv_hdr_t *hdr)
+{
+    mlv_rec_call_cbr(MLV_REC_EVENT_BLOCK, hdr);
+
+    uint32_t written = FIO_WriteFile(f, hdr, hdr->blockSize);
+
+    return written == hdr->blockSize;
+}
 
 /* return details about allocated slot */
 void mlv_rec_get_slot_info(int32_t slot, uint32_t *size, void **address)
