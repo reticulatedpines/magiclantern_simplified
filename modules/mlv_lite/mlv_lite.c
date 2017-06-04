@@ -235,6 +235,53 @@ static int raw_rec_should_preview(void);
 /* old mlv_rec interface stuff here */
 struct msg_queue *mlv_block_queue = NULL;
 
+/* return details about allocated slot */
+void mlv_rec_get_slot_info(int32_t slot, uint32_t *size, void **address)
+{
+    if(slot < 0 || slot >= total_slot_count)
+    {
+        *address = NULL;
+        *size = 0;
+        return;
+    }
+    
+    *address = slots[slot].ptr;
+    *size = slots[slot].size;
+}
+
+/* this can be called from anywhere to get a free memory slot. must be submitted using mlv_rec_release_slot() */
+int32_t mlv_rec_get_free_slot()
+{
+    for (int i = 0; i < total_slot_count; i++)
+    {
+        if (slots[i].status == SLOT_FREE)
+        {
+            slots[i].status = SLOT_RESERVED;
+            return i;
+        }
+    }
+    
+    return -1;
+}
+
+/* mark a previously with mlv_rec_get_free_slot() allocated slot for being reused or written into the file */
+void mlv_rec_release_slot(int32_t slot, uint32_t write)
+{
+    if(slot < 0 || slot >= total_slot_count)
+    {
+        return;
+    }
+
+    if(write)
+    {
+        slots[slot].status = SLOT_FULL;
+    }
+    else
+    {
+        slots[slot].status = SLOT_FREE;
+    }
+}
+
 /* queuing of blocks from other modules */
 uint32_t mlv_rec_queue_block(mlv_hdr_t *hdr)
 {
