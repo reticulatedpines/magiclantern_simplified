@@ -404,7 +404,12 @@ uint32_t eos_callstack_get_caller_param(EOSState *s, int call_depth, enum param_
 static int indent(int initial_len, int target_indent)
 {
     char buf[128];
-    int len = MAX(0, target_indent - initial_len);
+    int len = target_indent - initial_len;
+    if (len < 0)
+    {
+        fprintf(stderr, "\n");
+        len = target_indent;
+    }
     assert(len < sizeof(buf));
     memset(buf, ' ', len);
     buf[len] = 0;
