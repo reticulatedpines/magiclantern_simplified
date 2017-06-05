@@ -257,6 +257,7 @@ struct eos_model_desc eos_model_list[] = {
     {
         .name                   = "EOSM2",
         .digic_version          = 5,
+        .current_task_addr      = 0x8FBCC,
         .serial_flash_size      = 0x1000000,
     },
     {
