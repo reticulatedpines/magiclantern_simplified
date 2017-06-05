@@ -1082,9 +1082,10 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                         goto end;
                     }
 
-                    if ((insn & 0xFD00) == 0xB900)
+                    if (((insn & 0xFD00) == 0xB100) ||
+                        ((insn & 0xFD00) == 0xB900))
                     {
-                        /* CBNZ - ignore */
+                        /* CBZ/CBNZ - ignore */
                         goto end;
                     }
 
