@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e
 
@@ -78,7 +78,7 @@ echo "1) Compile QEMU"
 echo
 echo "   cd `pwd`/${QEMU_NAME}"
 echo "   ../configure_eos.sh"
-echo "   make -j`grep -c processor /proc/cpuinfo || sysctl -n hw.ncpu || echo 1`"
+echo "   make -j`grep -c processor /proc/cpuinfo 2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || echo 1`"
 echo
 echo "2) Grab a copy of the Canon firmware from your own camera"
 echo "   (don't request one and don't share it online - it's copyrighted)"
