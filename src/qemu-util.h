@@ -25,6 +25,7 @@ void qemu_hptimer_test();
 #define REG_IMG_VRAM   0xCF123018
 #define REG_RAW_BUFF   0xCF12301C
 #define REG_DISP_TYPE  0xCF123020
+#define REG_CALLSTACK  0xCF123030
 
 /* print a 32-bit number (also works very early in the boot process) */
 /* number formatting done in QEMU */

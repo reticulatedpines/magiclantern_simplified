@@ -33,6 +33,11 @@ target remote localhost:1234
 # NUM_CORES:
 #   Defaults to 1; only needed on multi-core machines.
 #
+# PRINT_CALLSTACK:
+#   Set to 1 if you want to print call stack for every single debug message:
+#   macro define PRINT_CALLSTACK 1
+#   It will be displayed before each message, in print_current_location.
+#
 ################################################################################
 
 # dummy definitions
@@ -40,6 +45,7 @@ macro define CURRENT_TASK   ((int)0xFFFFFFFF)
 macro define CURRENT_ISR    ((int)0xFFFFFFFF)
 macro define RTC_VALID_FLAG ((int)0xFFFFFFFF)
 macro define NUM_CORES      1
+macro define PRINT_CALLSTACK 0
 
 # misc preferences
 set pagination off
@@ -80,6 +86,12 @@ end
 # task name for DryOS (only if CURRENT_TASK is a valid pointer; otherwise, empty string)
 macro define CURRENT_TASK_NAME (((int*)CURRENT_TASK)[0] ? ((char***)CURRENT_TASK)[0][9] : CURRENT_TASK)
 
+# requires -d callstack, for example:
+# ./run_canon_fw 1300D,firmware="boot=0" -d callstack -s -S & arm-none-eabi-gdb -x 1300D/debugmsg.gdb
+define print_callstack
+  set $_ = *0xCF123030
+end
+
 # print current task name and return address
 define print_current_location
   KRESET
@@ -88,6 +100,10 @@ define print_current_location
   end
   if CURRENT_TASK == 0xFFFFFFFF
     printf "Please define CURRENT_TASK.\n"
+  end
+
+  if PRINT_CALLSTACK == 1
+    print_callstack
   end
 
   if NUM_CORES > 1
@@ -109,6 +125,14 @@ define print_current_location
   KRESET
   printf "] "
 end
+
+define print_current_location_with_callstack
+  if PRINT_CALLSTACK != 1
+    print_callstack
+  end
+  print_current_location
+end
+
 
 define print_formatted_string
   # count how many % characters we have
@@ -214,6 +238,16 @@ define task_create_log
   end
 end
 
+# log task switches (use with watch *CURRENT_TASK)
+define task_switch_log
+  commands
+    silent
+    print_current_location
+    printf "Task switch\n"
+    c
+  end
+end
+
 # log msleep calls
 define msleep_log
   commands
@@ -228,7 +262,7 @@ end
 define assert_log
   commands
     silent
-    print_current_location
+    print_current_location_with_callstack
     printf "["
     KRED
     printf "ASSERT"
@@ -242,7 +276,7 @@ end
 define assert0_log
   commands
     silent
-    print_current_location
+    print_current_location_with_callstack
     printf "["
     KRED
     printf "ASSERT"

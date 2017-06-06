@@ -114,22 +114,24 @@ index 0f07159..40c3940 100644
  
  #endif
 diff --git a/include/hw/elf_ops.h b/include/hw/elf_ops.h
-index 0010c44..6b5fd81 100644
+index 0010c44..c963d05 100644
 --- a/include/hw/elf_ops.h
 +++ b/include/hw/elf_ops.h
-@@ -140,8 +140,9 @@ static int glue(load_symbols, SZ)(struct elfhdr *ehdr, int fd, int must_swab,
+@@ -140,8 +140,11 @@ static int glue(load_symbols, SZ)(struct elfhdr *ehdr, int fd, int must_swab,
          /* We are only interested in function symbols.
             Throw everything else away.  */
          if (syms[i].st_shndx == SHN_UNDEF ||
 -                syms[i].st_shndx >= SHN_LORESERVE ||
 -                ELF_ST_TYPE(syms[i].st_info) != STT_FUNC) {
-+           (syms[i].st_shndx != SHN_ABS &&         /* allow ABS symbols (ML stubs) */
++           (!(syms[i].st_shndx == SHN_ABS &&         /* allow ABS symbols (ML stubs) */
++              ELF_ST_TYPE(syms[i].st_info) == STT_NOTYPE &&
++              syms[i].st_size == 0) &&
 +              (syms[i].st_shndx >= SHN_LORESERVE ||
 +               ELF_ST_TYPE(syms[i].st_info) != STT_FUNC))) {
              nsyms--;
              if (i < nsyms) {
                  syms[i] = syms[nsyms];
-@@ -159,7 +160,11 @@ static int glue(load_symbols, SZ)(struct elfhdr *ehdr, int fd, int must_swab,
+@@ -159,7 +162,11 @@ static int glue(load_symbols, SZ)(struct elfhdr *ehdr, int fd, int must_swab,
      qsort(syms, nsyms, sizeof(*syms), glue(symcmp, SZ));
      for (i = 0; i < nsyms - 1; i++) {
          if (syms[i].st_size == 0) {
@@ -143,7 +145,7 @@ index 0010c44..6b5fd81 100644
      }
  
 diff --git a/include/qemu/log.h b/include/qemu/log.h
-index 362cbc4..a13316e 100644
+index 362cbc4..0096c03 100644
 --- a/include/qemu/log.h
 +++ b/include/qemu/log.h
 @@ -12,7 +12,7 @@
@@ -155,13 +157,12 @@ index 362cbc4..a13316e 100644
  
  /* 
   * The new API:
-@@ -42,9 +42,43 @@ static inline bool qemu_log_enabled(void)
+@@ -42,9 +42,45 @@ static inline bool qemu_log_enabled(void)
  #define CPU_LOG_MMU        (1 << 12)
  #define CPU_LOG_TB_NOCHAIN (1 << 13)
  
 +/* various EOS options */
 +/* some of them are just defined for future use */
-+#define EOS_LOG_VERBOSE    (1LL << 20)
 +#define EOS_LOG_IO         (1LL << 21)
 +#define EOS_LOG_UART       (1LL << 22)
 +#define EOS_LOG_MPU        (1LL << 23)
@@ -170,6 +171,9 @@ index 362cbc4..a13316e 100644
 +#define EOS_LOG_PFLASH     (1LL << 26)
 +#define EOS_LOG_DMA        (1LL << 27)
 +#define EOS_LOG_EDMAC      (1LL << 28)
++
++#define EOS_LOG_VERBOSE    (1LL << 32)
++#define EOS_LOG_AUTOEXEC   (1LL << 33)
 +
 +/* guest memory tracing (logging) */
 +#define EOS_LOG_RAM_R      (1LL << 40)
@@ -200,7 +204,7 @@ index 362cbc4..a13316e 100644
  {
      return (qemu_loglevel & mask) != 0;
  }
-@@ -67,7 +101,7 @@ qemu_log_vprintf(const char *fmt, va_list va)
+@@ -67,7 +103,7 @@ qemu_log_vprintf(const char *fmt, va_list va)
  
  /* log only if a bit is set on the current loglevel mask
   */
@@ -209,7 +213,7 @@ index 362cbc4..a13316e 100644
  
  
  /* Special cases: */
-@@ -95,7 +129,7 @@ static inline void log_cpu_state(CPUState *cpu, int flags)
+@@ -95,7 +131,7 @@ static inline void log_cpu_state(CPUState *cpu, int flags)
   *
   * Logs the output of cpu_dump_state() if loglevel includes @mask.
   */
@@ -218,7 +222,7 @@ index 362cbc4..a13316e 100644
  {
      if (qemu_loglevel & mask) {
          log_cpu_state(cpu, flags);
-@@ -152,7 +186,7 @@ static inline void qemu_log_set_file(FILE *f)
+@@ -152,7 +188,7 @@ static inline void qemu_log_set_file(FILE *f)
  
  /* define log items */
  typedef struct QEMULogItem {
@@ -227,7 +231,7 @@ index 362cbc4..a13316e 100644
      const char *name;
      const char *help;
  } QEMULogItem;
-@@ -163,9 +197,9 @@ extern const QEMULogItem qemu_log_items[];
+@@ -163,9 +199,9 @@ extern const QEMULogItem qemu_log_items[];
   * changing the log level; it should only be accessed via
   * the qemu_set_log() wrapper.
   */
@@ -239,7 +243,7 @@ index 362cbc4..a13316e 100644
  {
  #ifdef CONFIG_USER_ONLY
      do_qemu_set_log(log_flags, true);
-@@ -175,7 +209,7 @@ static inline void qemu_set_log(int log_flags)
+@@ -175,7 +211,7 @@ static inline void qemu_set_log(int log_flags)
  }
  
  void qemu_set_log_filename(const char *filename);
@@ -272,7 +276,7 @@ index e193658..9de7251 100644
      subregion->priority = 0;
      memory_region_add_subregion_common(mr, offset, subregion);
 diff --git a/qemu-log.c b/qemu-log.c
-index 7cb01a8..4b81ee0 100644
+index 7cb01a8..a321552 100644
 --- a/qemu-log.c
 +++ b/qemu-log.c
 @@ -22,7 +22,7 @@
@@ -302,7 +306,7 @@ index 7cb01a8..4b81ee0 100644
  {
      qemu_loglevel = log_flags;
      if (qemu_loglevel && !qemu_logfile) {
-@@ -120,6 +120,51 @@ const QEMULogItem qemu_log_items[] = {
+@@ -120,6 +120,54 @@ const QEMULogItem qemu_log_items[] = {
      { CPU_LOG_TB_NOCHAIN, "nochain",
        "do not chain compiled TBs so that \"exec\" and \"cpu\" show\n"
        "complete traces" },
@@ -339,13 +343,16 @@ index 7cb01a8..4b81ee0 100644
 +      "EOS: log function calls (implies callstack,ramr,nochain,singlestep)" },
 +    { EOS_LOG_IDC | EOS_LOG_CALLSTACK | CPU_LOG_TB_NOCHAIN, "idc",
 +      "EOS: export called functions to IDA (implies callstack,nochain,singlestep)" },
-+    { EOS_LOG_TASKS | EOS_LOG_CALLSTACK | CPU_LOG_TB_NOCHAIN, "tasks",
-+      "EOS: log task switches (implies callstack,nochain,singlestep)" },
++    { EOS_LOG_TASKS, "tasks",
++      "EOS: log task switches" },
 +    { EOS_LOG_ROMCPY | EOS_LOG_ROM_R | EOS_LOG_RAM_W, "romcpy",
 +      "EOS: find memory blocks copied from ROM to RAM" },
 +
 +    { EOS_LOG_RAM_MEMCHK | EOS_LOG_RAM, "memchk",
 +      "EOS: check memory usage (malloc/free, uninitialized values)" },
++
++    { EOS_LOG_AUTOEXEC, "autoexec",
++      "EOS: start verbose logging when autoexec.bin is loaded (quiet logging for bootloader)" },
 +
 +    { EOS_LOG_VERBOSE, "v", "" },
 +    { EOS_LOG_VERBOSE, "verbose",
@@ -354,7 +361,7 @@ index 7cb01a8..4b81ee0 100644
      { 0, NULL, NULL },
  };
  
-@@ -132,10 +177,10 @@ static int cmp1(const char *s1, int n, const char *s2)
+@@ -132,10 +180,10 @@ static int cmp1(const char *s1, int n, const char *s2)
  }
  
  /* takes a comma separated list of log masks. Return 0 if error. */

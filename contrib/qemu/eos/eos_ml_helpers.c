@@ -8,6 +8,7 @@
 #include "sysemu/sysemu.h"
 #include "eos.h"
 #include "eos_ml_helpers.h"
+#include "dbi/logging.h"
 
 static void print_char(char value)
 {
@@ -106,8 +107,15 @@ unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *s, unsigned in
             case REG_DISP_TYPE:
                 return s->disp.type;
         }
-        return 0;
     }
+
+    switch (address)
+    {
+        case REG_CALLSTACK:
+            eos_callstack_print(s, "Call stack: ", " ", "\n");
+            return 0;
+    }
+
     return 0;
 }
 
