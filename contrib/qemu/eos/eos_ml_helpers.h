@@ -17,6 +17,7 @@ unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *s, unsigned in
 #define REG_IMG_VRAM   0xCF123018
 #define REG_RAW_BUFF   0xCF12301C
 #define REG_DISP_TYPE  0xCF123020
+#define REG_CALLSTACK  0xCF123030
 
 #endif
 

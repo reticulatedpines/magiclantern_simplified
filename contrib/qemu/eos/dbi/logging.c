@@ -496,6 +496,162 @@ static int print_call_location(EOSState *s, uint32_t pc, uint32_t lr)
     return eos_print_location(s, pc, lr, " at ", "\n");
 }
 
+/* check whether a guest memory address range can be safely dereferenced */
+static int check_address_range(uint32_t ptr, uint32_t len)
+{
+    hwaddr l = len;
+    hwaddr addr1;
+    MemoryRegion * mr = address_space_translate(&address_space_memory, ptr, &addr1, &l, 0);
+
+    if (!mr)
+    {
+        return 0;
+    }
+
+    if (l != len)
+    {
+        return 0;
+    }
+
+    return mr->ram || mr->rom_device;
+}
+
+/* from dm-spy-experiments */
+static int is_sane_ptr(uint32_t ptr, uint32_t len)
+{
+    if (ptr < 0x1000)
+    {
+        return 0;
+    }
+
+    if ((ptr & 0xF0000000) != ((ptr + len) & 0xF0000000))
+    {
+        return 0;
+    }
+
+    switch (ptr & 0xF0000000)
+    {
+        case 0x00000000:
+        case 0x10000000:
+        case 0x40000000:
+        case 0x50000000:
+        case 0xE0000000:
+        case 0xF0000000:
+            /* looks fine at first sight; now perform a thorough check */
+            return check_address_range(ptr, len);
+    }
+
+    return 0;
+}
+
+static const char * looks_like_string(uint32_t addr)
+{
+    if (!is_sane_ptr(addr, 64))
+    {
+        return 0;
+    }
+
+    static char buf[64];
+    const int min_len = 4;
+    const int max_len = sizeof(buf);
+    cpu_physical_memory_read(addr, buf, sizeof(buf));
+    buf[sizeof(buf)-1] = 0;
+
+    for (char * p = buf; p < buf + max_len; p++)
+    {
+        unsigned char c = *p;
+        if (c == 0 && p > buf + min_len)
+        {
+            if (p + 1 == buf + max_len)
+            {
+                *(p-1) = *(p-2) = *(p-3) = '.';
+            }
+            return buf;
+        }
+        if ((c < 32 || c > 127) && c != 7 && c != 10 && c != 13)
+        {
+            return 0;
+        }
+    }
+    return 0;
+}
+
+static const char * string_escape(const char * str)
+{
+    static char buf[128];
+    char * out = buf;
+    for (const char * c = str; *c && out + 2 < buf + sizeof(buf); c++)
+    {
+        switch ((unsigned char)(*c))
+        {
+            case 10:
+                *out = '\\'; out++;
+                *out = 'n'; out++;
+                break;
+            case 13:
+                *out = '\\'; out++;
+                *out = 'r'; out++;
+                break;
+            case 7:
+                *out = '\\'; out++;
+                *out = 'a'; out++;
+                break;
+            case 32 ... 127:
+                *out = *c; out++;
+                break;
+            default:
+                *out = '?'; out++;
+        }
+    }
+    *out = 0;
+    return buf;
+}
+
+static int print_arg(uint32_t arg)
+{
+    int len = fprintf(stderr, "%x", arg);
+
+    const char * name = lookup_symbol(arg);
+    if (name && name[0])
+    {
+        return len + fprintf(stderr, " %s", name);
+    }
+
+    const char * str = 0;
+    if ((str = looks_like_string(arg)))
+    {
+        return len + fprintf(stderr, " \"%s\"", string_escape(str));
+    }
+
+    if (is_sane_ptr(arg, 4))
+    {
+        uint32_t mem_arg;
+        cpu_physical_memory_read(arg, &mem_arg, sizeof(mem_arg));
+        if ((str = looks_like_string(mem_arg)))
+        {
+            return len + fprintf(stderr, " &\"%s\"", string_escape(str));
+        }
+    }
+
+    return len;
+}
+
+static int print_args(uint32_t * regs)
+{
+    /* fixme: guess the number of arguments */
+    int len = 0;
+    len += fprintf(stderr, "(");
+    len += print_arg(regs[0]);
+    len += fprintf(stderr, ", ");
+    len += print_arg(regs[1]);
+    len += fprintf(stderr, ", ");
+    len += print_arg(regs[2]);
+    len += fprintf(stderr, ", ");
+    len += print_arg(regs[3]);
+    len += fprintf(stderr, ")");
+    return len;
+}
+
 static void eos_callstack_log_mem(EOSState *s, hwaddr _addr, uint64_t _value, uint32_t size, int flags)
 {
     uint32_t addr = _addr;
@@ -549,7 +705,8 @@ static void eos_callstack_log_mem(EOSState *s, hwaddr _addr, uint64_t _value, ui
                         uint32_t pc = CURRENT_CPU->env.regs[15];
                         uint32_t lr = CURRENT_CPU->env.regs[14];
                         int len = eos_callstack_indent(s);
-                        len += fprintf(stderr, "arg%d = %x", arg_num, value);
+                        len += fprintf(stderr, "arg%d = ", arg_num);
+                        len += print_arg(value);
                         len += indent(len, CALLSTACK_RIGHT_ALIGN);
                         print_call_location(s, pc, lr);
                         if (arg_num > 10)
@@ -591,16 +748,33 @@ static void eos_callstack_log_mem(EOSState *s, hwaddr _addr, uint64_t _value, ui
     }
 }
 
-static void print_task_switch(EOSState *s, uint32_t pc, uint32_t prev_pc, uint32_t prev_lr)
+static void check_abi_register_usage(EOSState *s, CPUARMState *env, int id, int k, uint32_t prev_pc)
 {
-    int len = eos_callstack_indent(s);
-    len += fprintf(stderr,
-        KCYN"Task switch"KRESET" to %s:%x %s",
-        eos_get_current_task_name(s), pc, lookup_symbol(pc)
-    );
-    len -= strlen(KCYN KRESET);
-    len += indent(len, CALLSTACK_RIGHT_ALIGN);
-    print_call_location(s, prev_pc, prev_lr);
+    /* check whether the scratch registers were preserved as specified in the ABI */
+    for (int i = 4; i <= 11; i++)
+    {
+        if (env->regs[i] != call_stacks[id][k].regs[i])
+        {
+            int len = eos_callstack_indent(s);
+            len += fprintf(stderr, KCYN"Warning: R%d not restored"KRESET" (0x%x -> 0x%x)", i, call_stacks[id][k].regs[i], env->regs[i]);
+            len -= strlen(KCYN KRESET);
+            len += indent(len, CALLSTACK_RIGHT_ALIGN);
+            uint32_t stack_lr = call_stacks[id][k].lr;
+            print_call_location(s, prev_pc, stack_lr);
+        }
+    }
+
+    uint32_t sp = env->regs[13];
+    if (sp != call_stacks[id][k].sp)
+    {
+        /* fixme: this is OK when ML patches the startup process, but not OK otherwise */
+        int len = eos_callstack_indent(s);
+        len += fprintf(stderr, KCYN"Warning: SP not restored"KRESET" (0x%x -> 0x%x)", call_stacks[id][k].sp, sp);
+        len -= strlen(KCYN KRESET);
+        len += indent(len, CALLSTACK_RIGHT_ALIGN);
+        uint32_t stack_lr = call_stacks[id][k].lr;
+        print_call_location(s, prev_pc, stack_lr);
+    }
 }
 
 static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock *tb)
@@ -672,8 +846,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
      * other heuristic: a return must either set PC=LR (BX LR) or change SP
      */
 
-    if (pc != prev_pc + 4 &&
-        pc != prev_pc + 2 &&
+    if (pc != prev_pc + prev_size &&
         (pc == lr || sp != prev_sp))
     {
         uint8_t id = get_stackid(s);
@@ -700,39 +873,12 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                     print_call_location(s, prev_pc, stack_lr);
                 }
 
-                /* check whether the scratch registers were preserved as specified in the ABI */
-                for (int i = 4; i <= 11; i++)
-                {
-                    if (env->regs[i] != call_stacks[id][k].regs[i])
-                    {
-                        int len = eos_callstack_indent(s);
-                        len += fprintf(stderr, KCYN"Warning: R%d not restored"KRESET" (0x%x -> 0x%x)", i, call_stacks[id][k].regs[i], env->regs[i]);
-                        len -= strlen(KCYN KRESET);
-                        len += indent(len, CALLSTACK_RIGHT_ALIGN);
-                        uint32_t stack_lr = call_stacks[id][k].lr;
-                        print_call_location(s, prev_pc, stack_lr);
-                    }
-                }
-
-                if (sp != call_stacks[id][k].sp)
-                {
-                    /* fixme: this is OK when ML patches the startup process, but not OK otherwise */
-                    int len = eos_callstack_indent(s);
-                    len += fprintf(stderr, KCYN"Warning: SP not restored"KRESET" (0x%x -> 0x%x)", call_stacks[id][k].sp, sp);
-                    len -= strlen(KCYN KRESET);
-                    len += indent(len, CALLSTACK_RIGHT_ALIGN);
-                    uint32_t stack_lr = call_stacks[id][k].lr;
-                    print_call_location(s, prev_pc, stack_lr);
-                }
+                check_abi_register_usage(s, env, id, k, prev_pc);
 
                 /* to check whether this heuristic affects the results */
                 /* (normally it should be optimized out...) */
                 if (0 && !(pc == lr || sp != prev_sp))
                 {
-                    eos_callstack_indent(s);
-                    eos_callstack_print(s, "cstack:", " ", "\n");
-                    target_disas(stderr, CPU(arm_env_get_cpu(env)), prev_pc0, prev_size, 0);
-                    target_disas(stderr, CPU(arm_env_get_cpu(env)), pc0, prev_size, 0);
                     assert(0);
                 }
 
@@ -764,10 +910,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
             if (name && name[0]) {
                 len += fprintf(stderr, " %s", name);
             }
-            /* fixme: guess the number of arguments */
-            len += fprintf(stderr, "(%x, %x, %x, %x)",
-                env->regs[0], env->regs[1], env->regs[2], env->regs[3]
-            );
+            len += print_args(env->regs);
             len += indent(len, CALLSTACK_RIGHT_ALIGN);
 
             /* print LR from the call stack, so it will always show the caller */
@@ -794,21 +937,6 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
     {
         uint32_t insn;
         cpu_physical_memory_read(prev_pc0, &insn, sizeof(insn));
-
-        if (qemu_loglevel_mask(EOS_LOG_TASKS) &&
-            s->model->current_task_addr)
-        {
-            /* fixme: this method catches all task switches,
-             * but requires reading current_task_ptr from guest memory at every PC jump */
-            uint32_t current_task_ptr;
-            static uint32_t previous_task_ptr;
-            cpu_physical_memory_read(s->model->current_task_addr, &current_task_ptr, 4);
-            if (current_task_ptr != previous_task_ptr)
-            {
-                previous_task_ptr = current_task_ptr;
-                print_task_switch(s, pc, prev_pc, prev_lr);
-            }
-        }
 
         if (prev_pc & 1)
         {
@@ -972,8 +1100,6 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
             int t0 = env->thumb; env->thumb = prev_pc & 1;
             target_disas(stderr, CPU(arm_env_get_cpu(env)), prev_pc0, prev_size, 0);
             env->thumb = t0;
-            //call_stack_indent(id, 0, 0);
-            //eos_callstack_print(s, "Call stack: ", " ", "\n");
         }
     }
 
@@ -982,6 +1108,48 @@ end:
     prev_lr = lr;
     prev_sp = sp;
     prev_size = tb->size;
+}
+
+static void print_task_switch(EOSState *s, uint32_t pc, uint32_t prev_pc, uint32_t prev_lr)
+{
+    int len = eos_callstack_indent(s);
+    len += fprintf(stderr,
+        KCYN"Task switch"KRESET" to %s:%x %s",
+        eos_get_current_task_name(s), pc, lookup_symbol(pc)
+    );
+    len -= strlen(KCYN KRESET);
+    len += indent(len, CALLSTACK_RIGHT_ALIGN);
+    print_call_location(s, prev_pc, prev_lr);
+}
+
+static void eos_tasks_log_exec(EOSState *s, CPUState *cpu, TranslationBlock *tb)
+{
+    ARMCPU *arm_cpu = ARM_CPU(cpu);
+    CPUARMState *env = &arm_cpu->env;
+    
+    static uint32_t prev_pc = 0xFFFFFFFF;
+    static uint32_t prev_lr = 0;
+    uint32_t pc = env->regs[15] | env->thumb;
+    uint32_t lr = env->regs[14];
+
+    /* for task switch, only check large PC jumps */
+    if (abs((int)pc - (int)prev_pc) > 16 &&
+        s->model->current_task_addr)
+    {
+        /* fixme: this method catches all task switches,
+         * but requires reading current_task_ptr from guest memory at every PC jump */
+        uint32_t current_task_ptr;
+        static uint32_t previous_task_ptr;
+        cpu_physical_memory_read(s->model->current_task_addr, &current_task_ptr, 4);
+        if (current_task_ptr != previous_task_ptr)
+        {
+            previous_task_ptr = current_task_ptr;
+            print_task_switch(s, pc, prev_pc, prev_lr);
+        }
+    }
+
+    prev_pc = pc;
+    prev_lr = lr;
 }
 
 static uint32_t block_start;        /* destination address */
@@ -1121,8 +1289,20 @@ static void eos_romcpy_log_mem(EOSState *s, MemoryRegion *mr, hwaddr _addr, uint
     }
 }
 
+static uint64_t saved_loglevel = 0;
+
 static void tb_exec_cb(void *opaque, CPUState *cpu, TranslationBlock *tb)
 {
+    if (qemu_loglevel_mask(EOS_LOG_AUTOEXEC) && saved_loglevel != qemu_loglevel)
+    {
+        if ((tb->pc & ~0x40000000) == 0x800000)
+        {
+            fprintf(stderr, "[EOS] enabling verbose logging for autoexec.bin...\n");
+            qemu_loglevel = saved_loglevel;
+            saved_loglevel = 0;
+        }
+    }
+
     if (qemu_loglevel_mask(EOS_LOG_CALLSTACK))
     {
         /* - callstack only exposes this functionality
@@ -1130,6 +1310,11 @@ static void tb_exec_cb(void *opaque, CPUState *cpu, TranslationBlock *tb)
          * - calls is verbose and implies callstack
          */
         eos_callstack_log_exec(opaque, cpu, tb);
+    }
+
+    if (qemu_loglevel_mask(EOS_LOG_TASKS))
+    {
+        eos_tasks_log_exec(opaque, cpu, tb);
     }
 
     if (qemu_loglevel_mask(EOS_LOG_RAM_MEMCHK))
@@ -1151,7 +1336,15 @@ static void load_symbols(const char * elf_filename)
 
 void eos_logging_init(EOSState *s)
 {
-    cpu_set_tb_exec_cb(tb_exec_cb, s);
+    if (qemu_loglevel_mask(EOS_LOG_CALLSTACK    |
+                           EOS_LOG_RAM_MEMCHK   |
+                           EOS_LOG_TASKS        |
+                           EOS_LOG_AUTOEXEC     |
+                           0))
+    {
+        fprintf(stderr, "[EOS] enabling code execution logging.\n");
+        cpu_set_tb_exec_cb(tb_exec_cb, s);
+    }
 
     if (qemu_loglevel_mask(EOS_LOG_MEM))
     {
@@ -1181,5 +1374,27 @@ void eos_logging_init(EOSState *s)
         load_symbols(sym);
         snprintf(sym, sizeof(sym), "%s/magiclantern", ml_path);
         load_symbols(sym);
+    }
+
+    if (qemu_loglevel_mask(EOS_LOG_AUTOEXEC) && qemu_loglevel)
+    {
+        saved_loglevel = qemu_loglevel;
+        qemu_loglevel &= ~(
+            EOS_LOG_VERBOSE |
+            EOS_LOG_CALLS   |
+            EOS_LOG_IO      |
+            EOS_LOG_ROM     |
+        0);
+        if (!qemu_loglevel_mask(EOS_LOG_RAM_MEMCHK))
+        {
+            /* note: memchk must be enabled from the beginning,
+             * otherwise you'll get lots of warnings about uninitialized memory */
+            qemu_loglevel &= ~(EOS_LOG_RAM);
+        }
+
+        if (saved_loglevel != qemu_loglevel)
+        {
+            fprintf(stderr, "[EOS] disabling verbose logging until autoexec.bin starts...\n");
+        }
     }
 }
