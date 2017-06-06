@@ -303,6 +303,7 @@ struct call_stack_entry
         };
         uint32_t regs[16];
     };
+    uint32_t last_pc;
     uint32_t num_args;
     uint32_t interrupt_id;  /* 0 = regular code, nonzero = interrupt */
 } __attribute__((packed));
@@ -310,14 +311,17 @@ struct call_stack_entry
 static struct call_stack_entry call_stacks[256][128];
 static int call_stack_num[256] = {0};
 
-static inline void call_stack_push(uint8_t id, uint32_t * regs, uint32_t lr, uint32_t interrupt_id)
+static inline void call_stack_push(uint8_t id, uint32_t * regs,
+    uint32_t pc, uint32_t last_pc, uint32_t lr, uint32_t interrupt_id)
 {
     assert(call_stack_num[id] < COUNT(call_stacks[0]));
 
     struct call_stack_entry * entry = &call_stacks[id][call_stack_num[id]];
     memcpy(entry->regs, regs, sizeof(entry->regs));
-    entry->num_args = 4;    /* fixme */
-    entry->lr = lr;         /* allow overriding LR */
+    entry->num_args = 4;        /* fixme */
+    entry->lr = lr;             /* allow overriding LR (fixme: redundant) */
+    entry->pc = pc;             /* override pc (actually, use the one that includes the Thumb flag) */
+    entry->last_pc = last_pc;   /* on Thumb, LR is not enough to find this because of variable instruction size */
     entry->interrupt_id = interrupt_id;
     call_stack_num[id]++;
 }
@@ -501,8 +505,8 @@ void eos_callstack_print_verbose(EOSState *s)
     for (int k = 0; k < call_stack_num[id]; k++)
     {
         uint32_t pc = call_stacks[id][k].pc;
-        uint32_t lr = call_stacks[id][k].lr;
         uint32_t sp = call_stacks[id][k].sp;
+        uint32_t ret = call_stacks[id][k].last_pc;
 
         int len = indent(0, k);
         
@@ -510,7 +514,7 @@ void eos_callstack_print_verbose(EOSState *s)
         {
             len += fprintf(stderr, "interrupt %02Xh", call_stacks[id][k].interrupt_id);
             len += indent(len, CALLSTACK_RIGHT_ALIGN);
-            eos_print_location(s, lr, sp, " at ", "\n");
+            eos_print_location(s, ret, sp, " at ", "\n");
             assert(pc == 0x18);
         }
         else
@@ -522,7 +526,7 @@ void eos_callstack_print_verbose(EOSState *s)
             }
             len += print_args(call_stacks[id][k].regs);
             len += indent(len, CALLSTACK_RIGHT_ALIGN);
-            eos_print_location(s, lr-4, sp, " at ", " (lr:sp)\n");
+            eos_print_location(s, ret, sp, " at ", " (pc:sp)\n");
         }
     }
 }
@@ -904,7 +908,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
         }
         if (interrupt_level == 1) assert(call_stack_num[id] == 0);
         assert(s->irq_id);
-        call_stack_push(id, env->regs, prev_pc, s->irq_id);
+        call_stack_push(id, env->regs, pc, prev_pc, prev_pc, s->irq_id);
         goto end;
     }
 
@@ -1003,7 +1007,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
             eos_idc_log_call(s, cpu, env, tb, prev_pc, prev_lr, prev_size);
         }
 
-        call_stack_push(id, env->regs, lr, 0);
+        call_stack_push(id, env->regs, pc, prev_pc, lr, 0);
 
         /* todo: callback here? */
 
