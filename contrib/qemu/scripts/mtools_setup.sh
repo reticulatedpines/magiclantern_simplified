@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Set up environment variables for accessing SD/CF card images via mtools.
 # To be executed in the same shell as the caller, e.g.

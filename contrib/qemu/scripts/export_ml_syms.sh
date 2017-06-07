@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Export various stubs from ML, for QEMU's internal use.
 

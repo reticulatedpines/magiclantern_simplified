@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 QEMU_PATH=${QEMU_PATH:=qemu-2.5.0}
 OUT_DIR=`realpath coverage`

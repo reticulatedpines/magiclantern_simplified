@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # script options (environment variables)
 # example: TIMEOUT=10 AUTOEXEC_ONLY=1 ./run_ml_all_cams.sh
