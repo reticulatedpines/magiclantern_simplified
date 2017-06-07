@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Convert a set of QEMU logs to HTML format.
 # Usage: ./html_logs.sh *.html

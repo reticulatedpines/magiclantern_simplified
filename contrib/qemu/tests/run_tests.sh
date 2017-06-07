@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Emulator tests
 # This also shows the emulation state on various cameras
