@@ -141,6 +141,50 @@ function kill_qemu {
 }
 
 echo
+echo "Testing callstack consistency with call/return trace for DebugMsg calls..."
+
+# At each point, the verbose call stack should match the call/return trace
+# This feature is also exercised in the context of interrupts and DryOS task switches
+
+for CAM in ${EOS_CAMS[*]}; do
+    printf "%7s: " $CAM
+
+    mkdir -p tests/$CAM/
+    rm -f tests/$CAM/calls-cstack*.log
+
+    # skip VxWorks models for now
+    if grep -q VxWorks $CAM/ROM1.BIN; then
+        echo "skipping"
+        continue
+    fi
+
+    # extract the address of DebugMsg from the GDB script
+    DEBUGMSG=`cat $CAM/debugmsg.gdb | grep DebugMsg_log -B 1 | grep -Pom1 "(?<=b \*)0x.*"`
+    [ "$DEBUGMSG" == "" ] && continue
+
+    # log all function calls/returns, interrupts
+    # and DebugMsg calls with call stack for each message
+    if [ -f $CAM/patches.gdb ]; then
+          (env QEMU_EOS_DEBUGMSG="$DEBUGMSG" \
+             ./run_canon_fw.sh $CAM,firmware="boot=0" -serial file:tests/$CAM/calls-cstack-uart.log \
+             -display none -d calls,tasks,debugmsg,v -s -S & \
+           arm-none-eabi-gdb -x $CAM/patches.gdb &) &> tests/$CAM/calls-cstack-raw.log
+    else
+        env QEMU_EOS_DEBUGMSG="$DEBUGMSG" \
+          ./run_canon_fw.sh $CAM,firmware="boot=0" \
+            -display none -d calls,tasks,debugmsg,v -serial stdio \
+            > tests/$CAM/calls-cstack-uart.log \
+            2> tests/$CAM/calls-cstack-raw.log &
+    fi
+    sleep 10
+    kill_qemu
+
+    ansi2txt < tests/$CAM/calls-cstack-raw.log | python tests/test_callstack.py &> tests/$CAM/calls-cstack-test.log \
+        && (tail -n 1 tests/$CAM/calls-cstack-test.log | tr -d '\n'; echo " OK" ) \
+        || (tail -n 1 tests/$CAM/calls-cstack-test.log | tr -d '\n'; echo -e " \e[31mFAILED!\e[0m" )
+done
+
+echo
 echo "Testing call/return trace until the first interrupt"
 echo "and some basic consistency checks 1 second after..."
 
@@ -264,6 +308,7 @@ for CAM in 5D3eeko ${EOS_CAMS[*]}; do
         else
             echo -n "+"
             changed=$((changed+1))
+            unchanged=0
         fi
     done
 
