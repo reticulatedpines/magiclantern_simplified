@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # run this if you make changes to qemu and want to commit them back into ML tree
 

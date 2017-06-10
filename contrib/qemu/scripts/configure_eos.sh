@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 SYSTEM=`uname`
 echo "Setting up QEMU on $SYSTEM..."
