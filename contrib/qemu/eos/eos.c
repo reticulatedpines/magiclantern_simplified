@@ -3739,7 +3739,8 @@ unsigned int eos_handle_uart ( unsigned int parm, EOSState *s, unsigned int addr
                 
                 /* fixme: better way to check whether the serial is printing to console? */
                 if (strcmp(s->uart.chr->filename, "stdio") != 0 &&
-                    strcmp(s->uart.chr->filename, "mux") != 0)
+                    strcmp(s->uart.chr->filename, "mux") != 0 &&
+                    strcmp(s->uart.chr->filename, "file") != 0)
                 {
                     fprintf(stderr, KRED"%c"KRESET, value);
                 }
