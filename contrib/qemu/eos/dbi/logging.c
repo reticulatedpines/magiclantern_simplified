@@ -893,6 +893,12 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
         );
     }
 
+    /* only check cases where PC is "jumping" */
+    if (pc == prev_pc + prev_size)
+    {
+        goto end;
+    }
+
     if (pc0 == 0x18)
     {
         /* handle interrupt jumps first */
@@ -929,8 +935,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
      * other heuristic: a return must either set PC=LR (BX LR) or change SP
      */
 
-    if (pc != prev_pc + prev_size &&
-        (pc == lr || sp != prev_sp))
+    if (pc == lr || sp != prev_sp)
     {
         uint8_t id = get_stackid(s);
 
@@ -979,8 +984,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
      * - SP is unchanged (it may be decremented inside the function, but not when executing the call)
      * - note: the first two also happen when handling an interrupt, so we check this case earlier
      */
-    if (lr0 == prev_pc0 + prev_size &&
-        pc != prev_pc + prev_size)
+    if (lr0 == prev_pc0 + prev_size)
     {
         assert(sp == prev_sp);
 
@@ -1014,9 +1018,9 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
         goto end;
     }
 
-    /* check all other large PC jumps */
-    if (abs((int)pc - (int)prev_pc) > 16 &&
-        prev_pc != 0xFFFFFFFF)
+    /* check all other PC jumps */
+    /* skip first instruction (we need valid prev_pc) */
+    if (prev_pc != 0xFFFFFFFF)
     {
         uint32_t insn;
         cpu_physical_memory_read(prev_pc0, &insn, sizeof(insn));
