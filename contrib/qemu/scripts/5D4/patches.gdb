@@ -1,18 +1,9 @@
-# ./run_canon_fw.sh 5D4 -s -S & arm-none-eabi-gdb -x 5D4/debugmsg.gdb
+# ./run_canon_fw.sh 5D4 -s -S & arm-none-eabi-gdb -x 5D4/patches.gdb
 
 source -v debug-logging.gdb
 
 macro define CURRENT_TASK 0x45A4
 macro define CURRENT_ISR  (*(int*)0x4580 ? (*(int*)0x4584) : 0)
-
-b *0xFE426B8C
-DebugMsg_log
-
-b *0x6D8
-task_create_log
-
-b *0x38
-register_interrupt_log
 
 # infinite loop (memory regions related?)
 set *(int*)0xFE28AAF0 = 0x4770
