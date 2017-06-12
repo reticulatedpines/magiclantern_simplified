@@ -938,12 +938,14 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
     if (pc == lr || sp != prev_sp)
     {
         uint8_t id = get_stackid(s);
+        int interrupts_found = 0;
 
         for (int k = call_stack_num[id]-1; k >= 0; k--)
         {
             if (call_stacks[id][k].interrupt_id)
             {
                 /* handled later */
+                interrupts_found++;
                 continue;
             }
 
@@ -959,6 +961,12 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                     int level = call_stack_num[id] - 1;
                     uint32_t stack_lr = level >= 0 ? call_stacks[id][level].lr : 0;
                     print_call_location(s, prev_pc, stack_lr);
+                }
+
+                if (interrupts_found) {
+                    call_stack_indent(id, 0, 0);
+                    fprintf(stderr, KBLU"FIXME: missed reti"KRESET"\n");
+                    interrupt_level -= interrupts_found;
                 }
 
                 check_abi_register_usage(s, env, id, k, prev_pc);
