@@ -621,21 +621,6 @@ static void diagnose_addr(uint32_t addr)
     }
 }
 
-
-static void getenv_hex(const char * env_name, uint32_t * var, uint32_t default_value)
-{
-    char * env = getenv(env_name);
-
-    if (env)
-    {
-        *var = strtoul(env, NULL, 16);
-    }
-    else
-    {
-        *var = default_value;
-    }
-}
-
 void eos_memcheck_init(EOSState *s)
 {
     fprintf(stderr, "Marking all memory as uninitialized...\n");
@@ -643,8 +628,8 @@ void eos_memcheck_init(EOSState *s)
     /* fixme: also check both TCMs */
 
     uint32_t ml_memccpy;
-    getenv_hex("QEMU_EOS_ML_MEMCPY", &ml_memcpy, 0);
-    getenv_hex("QEMU_EOS_ML_MEMCCPY", &ml_memccpy, 0);
+    eos_getenv_hex("QEMU_EOS_ML_MEMCPY", &ml_memcpy, 0);
+    eos_getenv_hex("QEMU_EOS_ML_MEMCCPY", &ml_memccpy, 0);
     ml_memcpy_size = ml_memccpy - ml_memcpy - 4;
 
     if (ml_memcpy)

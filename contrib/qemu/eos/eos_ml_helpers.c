@@ -112,7 +112,7 @@ unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *s, unsigned in
     switch (address)
     {
         case REG_CALLSTACK:
-            eos_callstack_print(s, "Call stack: ", " ", "\n");
+            eos_callstack_print_verbose(s);
             return 0;
     }
 

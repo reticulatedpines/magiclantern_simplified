@@ -17,7 +17,7 @@
 
 // Forward declare static functions
 static void mpu_send_next_spell(EOSState *s);
-static void mpu_enqueue_spell(EOSState *s, int spell_set, int out_spell);
+static void mpu_enqueue_spell(EOSState *s, int spell_set, int out_spell, uint16_t * copied_spell);
 static void mpu_interpret_command(EOSState *s);
 
 static struct mpu_init_spell * mpu_init_spells = 0;
@@ -75,22 +75,39 @@ static void mpu_send_next_spell(EOSState *s)
     }
 }
 
-static unsigned char * copy_spell(unsigned char * spell)
+static uint16_t * copy_n_subst_spell(uint16_t * spell, uint16_t * template, uint16_t * received)
 {
-    int len = spell[0];
-    void * copy = malloc(len);
+    int len = spell[0] * sizeof(spell[0]);
+    uint16_t * copy = malloc(len);
     assert(copy);
     memcpy(copy, spell, len);
+    for (int i = 0; i < spell[0]; i++)
+    {
+        if ((copy[i] >> 8) == 1)
+        {
+            /* some argument taken from received spell */
+            assert(template);
+            assert(received);
+            assert(template[0] == received[0]);
+            for (int j = 0; j < template[0]; j++)
+            {
+                if (copy[i] == template[j])
+                {
+                    copy[i] = received[j];
+                }
+            }
+        }
+    }
     return copy;
 }
 
-static void mpu_enqueue_spell(EOSState *s, int spell_set, int out_spell)
+static void mpu_enqueue_spell(EOSState *s, int spell_set, int out_spell, uint16_t * copied_spell)
 {
     int next_tail = (s->mpu.sq_tail+1) & (COUNT(s->mpu.send_queue)-1);
     if (next_tail != s->mpu.sq_head)
     {
         MPU_DPRINTF("Queueing spell #%d.%d\n", spell_set+1, out_spell+1);
-        s->mpu.send_queue[s->mpu.sq_tail] = copy_spell(mpu_init_spells[spell_set].out_spells[out_spell]);
+        s->mpu.send_queue[s->mpu.sq_tail] = copied_spell;
         s->mpu.sq_tail = next_tail;
     }
     else
@@ -99,7 +116,7 @@ static void mpu_enqueue_spell(EOSState *s, int spell_set, int out_spell)
     }
 }
 
-static void mpu_enqueue_spell_generic(EOSState *s, unsigned char * spell)
+static void mpu_enqueue_spell_generic(EOSState *s, uint16_t * spell)
 {
     int next_tail = (s->mpu.sq_tail+1) & (COUNT(s->mpu.send_queue)-1);
     if (next_tail != s->mpu.sq_head)
@@ -110,7 +127,7 @@ static void mpu_enqueue_spell_generic(EOSState *s, unsigned char * spell)
             MPU_DPRINTF0("%02x ", spell[i]);
         }
         MPU_DPRINTF0("\n");
-        s->mpu.send_queue[s->mpu.sq_tail] = copy_spell(spell);
+        s->mpu.send_queue[s->mpu.sq_tail] = copy_n_subst_spell(spell, 0, 0);
         s->mpu.sq_tail = next_tail;
     }
     else
@@ -130,6 +147,41 @@ static void mpu_start_sending(EOSState *s)
     }
 }
 
+static int match_spell(uint16_t * received, uint16_t * in_spell)
+{
+    int n = in_spell[0];
+    for (int i = 0; i < n; i++)
+    {
+        uint8_t in_lo = in_spell[i] & 0xFF;
+        uint8_t in_hi = in_spell[i] >> 8;
+        switch (in_hi)
+        {
+            case 0:
+            {
+                if (in_lo != received[i])
+                {
+                    return 0;
+                }
+                break;
+            }
+
+            case 1:
+            {
+                /* arguments - they match any value */
+                break;
+            }
+
+            default:
+            {
+                assert(0);
+            }
+        }
+    }
+
+    /* no mismatch */
+    return 1;
+}
+
 static void mpu_interpret_command(EOSState *s)
 {
     MPU_EPRINTF("Received: ");
@@ -144,14 +196,25 @@ static void mpu_interpret_command(EOSState *s)
     static int spell_set = 0;
     for (int k = 0; k < mpu_init_spell_count; k++, spell_set = (spell_set+1) % mpu_init_spell_count)
     {
-        if (memcmp(s->mpu.recv_buffer+1, mpu_init_spells[spell_set].in_spell+1, mpu_init_spells[spell_set].in_spell[1]) == 0)
+        if (match_spell(s->mpu.recv_buffer+1, mpu_init_spells[spell_set].in_spell+1))
         {
-            MPU_EPRINTF0(" (recognized spell #%d)\n", spell_set+1);
+            MPU_EPRINTF0(
+                " (%s%sspell #%d)\n",
+                mpu_init_spells[spell_set].description ? mpu_init_spells[spell_set].description : "",
+                mpu_init_spells[spell_set].description ? " - " : "",
+                spell_set+1
+            );
             
             int out_spell;
             for (out_spell = 0; mpu_init_spells[spell_set].out_spells[out_spell][0]; out_spell++)
             {
-                mpu_enqueue_spell(s, spell_set, out_spell);
+                /* copy and replace (substitute) any arguments */
+                uint16_t * reply = copy_n_subst_spell(
+                    mpu_init_spells[spell_set].out_spells[out_spell],
+                    mpu_init_spells[spell_set].in_spell,
+                    s->mpu.recv_buffer
+                );
+                mpu_enqueue_spell(s, spell_set, out_spell, reply);
             }
             mpu_start_sending(s);
             return;
@@ -585,7 +648,8 @@ static struct {
     { 0x0010,   BGMT_Q,                 "Q",            "guess",                        },
     { 0x0026,   BGMT_LV,                "L",            "LiveView",                     },
     { 0x0011,   BGMT_PICSTYLE,          "W",            "Pic.Style",                    },
-
+    { 0x002A,   BGMT_PRESS_HALFSHUTTER,     "Shift",    "Half-shutter"                  },
+    { 0x00AA,   BGMT_UNPRESS_HALFSHUTTER,                                               },
     { 0x0030,   GMT_GUICMD_OPEN_BATT_COVER, "B",        "Open battery cover",           },
 };
 
@@ -610,7 +674,19 @@ static int translate_scancode_2(int scancode, int first_code)
     {
         if (key_map[i].scancode == code)
         {
-            return button_codes[key_map[i].gui_code];
+            switch (key_map[i].gui_code)
+            {
+                case BGMT_PRESS_HALFSHUTTER:
+                case BGMT_UNPRESS_HALFSHUTTER:
+                case BGMT_PRESS_FULLSHUTTER:
+                case BGMT_UNPRESS_FULLSHUTTER:
+                    /* special: return the raw gui code */
+                    return 0x0E0E0000 | key_map[i].gui_code;
+
+                default:
+                    /* return model-specific button code (bindReceiveSwitch) */
+                    return button_codes[key_map[i].gui_code];
+            }
         }
     }
     
@@ -680,7 +756,11 @@ void mpu_send_keypress(EOSState *s, int keycode)
 {
     /* good news: most MPU button codes appear to be the same across all cameras :) */
     int key = translate_scancode(keycode);
-    if (key <= 0) return;
+    if (key <= 0)
+    {
+        MPU_DPRINTF0("Key not recognized: %x\n", keycode);
+        return;
+    }
     
     if (key == 0x00F1F1F1)
     {
@@ -688,19 +768,109 @@ void mpu_send_keypress(EOSState *s, int keycode)
         return;
     }
 
+    if ((key & 0xFFFF0000) == 0x0E0E0000)
+    {
+        MPU_EPRINTF0("Key event: %x -> %08x\n", keycode, key);
+        switch (key & 0xFFFF)
+        {
+            case BGMT_PRESS_HALFSHUTTER:
+            {
+                /* fixme: if in some other GUI mode, switch back to 0 first */
+                /* it will no longer be a simple sequence, but one with confirmation */
+                uint16_t mpu_halfshutter_spells[2][6] = {
+                    { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },
+                    { 0x06, 0x04, 0x05, 0x00, 0x00, 0x00 },
+                };
+                for (int i = 0; i < COUNT(mpu_halfshutter_spells); i++)
+                {
+                    mpu_enqueue_spell_generic(s, mpu_halfshutter_spells[i]);
+                }
+                mpu_start_sending(s);
+                break;
+            }
+
+            case BGMT_UNPRESS_HALFSHUTTER:
+            {
+                uint16_t mpu_halfshutter_spells[1][6] = {
+                    { 0x06, 0x04, 0x05, 0x0B, 0x00, 0x00 },
+                };
+                mpu_enqueue_spell_generic(s, mpu_halfshutter_spells[0]);
+                mpu_start_sending(s);
+                break;
+            }
+
+            default:
+            {
+                assert(0);
+            }
+        }
+        return;
+    }
+
     MPU_EPRINTF0("Key event: %x -> %04x\n", keycode, key);
-    
-    static unsigned char mpu_keypress_spell[6] = {
-        0x06, 0x05, 0x06, 0x00, 0x00, 0x00
+
+    uint16_t mpu_keypress_spell[6] = {
+        0x06, 0x05, 0x06, key >> 8, key & 0xFF, 0x00
     };
-    
-    mpu_keypress_spell[3] = key >> 8;
-    mpu_keypress_spell[4] = key & 0xFF;
     
     /* todo: check whether a race condition is still possible */
     /* (is this function called from the same thread as I/O handlers or not?) */
     mpu_enqueue_spell_generic(s, mpu_keypress_spell);
     mpu_start_sending(s);
+}
+
+static void mpu_check_duplicate_spells(EOSState *s)
+{
+    for (int i = 0; i < mpu_init_spell_count; i++)
+    {
+        if (mpu_init_spells[i].out_spells[0][0])
+        {
+            /* non-empty spell */
+            /* let's check for duplicates, as they may indicate some spells that depend on camera state */
+            /* in current implementation, they may produce undefined behavior (depending on which spell is matched first) */
+            int found = 0;
+            int already_handled = 0;
+
+            for (int j = 0; j < i; j++)
+            {
+                if (mpu_init_spells[j].out_spells[0][0] &&
+                    (match_spell(mpu_init_spells[i].in_spell, mpu_init_spells[j].in_spell) ||
+                     match_spell(mpu_init_spells[j].in_spell, mpu_init_spells[i].in_spell)))
+                {
+                    already_handled = 1;
+                    break;
+                }
+            }
+            if (already_handled)
+            {
+                continue;
+            }
+            for (int j = 0; j < mpu_init_spell_count; j++)
+            {
+                if (i != j &&
+                    (match_spell(mpu_init_spells[i].in_spell, mpu_init_spells[j].in_spell) ||
+                     match_spell(mpu_init_spells[j].in_spell, mpu_init_spells[i].in_spell)))
+                {
+                    if (!found)
+                    {
+                        MPU_EPRINTF("warning: non-empty spell #%d", i+1);
+                        if (mpu_init_spells[i].description) {
+                            MPU_EPRINTF0(" (%s)", mpu_init_spells[i].description);
+                        } else {
+                            MPU_EPRINTF0(" (%02x %02x %02x %02x)",
+                                mpu_init_spells[i].in_spell[0], mpu_init_spells[i].in_spell[1],
+                                mpu_init_spells[i].in_spell[2], mpu_init_spells[i].in_spell[3]
+                            );
+                        }
+                        MPU_EPRINTF0(" has duplicate(s): ");
+                        found = 1;
+                    }
+                    MPU_EPRINTF0("#%d ", j+1);
+                }
+            }
+            if (found) MPU_EPRINTF0("\n");
+        }
+    }
 }
 
 void mpu_spells_init(EOSState *s)
@@ -741,6 +911,10 @@ void mpu_spells_init(EOSState *s)
     {
         MPU_EPRINTF("FIXME: no MPU spells for %s.\n", s->model->name);
         /* how to get them: http://magiclantern.fm/forum/index.php?topic=2864.msg166938#msg166938 */
+    }
+    else
+    {
+        mpu_check_duplicate_spells(s);
     }
 
 #define MPU_BUTTON_CODES(cam) \
