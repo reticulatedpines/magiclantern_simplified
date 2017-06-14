@@ -5,5 +5,5 @@
 + * 450D (captured one picture and enabled LiveView)
 + */
  static struct mpu_init_spell mpu_init_spells_450D[] = {
-     { { 0x06, 0x04, 0x02, 0x00, 0x00 }, {                       /* spell #1 */
+     { { 0x06, 0x04, 0x02, 0x00, 0x00 }, .description = "Init", .out_spells = { /* spell #1 */
          { 0x06, 0x05, 0x01, 0x37, 0x00, 0x00 },                 /* reply #1.1 */
