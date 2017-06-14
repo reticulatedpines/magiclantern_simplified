@@ -303,22 +303,26 @@ struct call_stack_entry
         };
         uint32_t regs[16];
     };
+    uint32_t last_pc;
     uint32_t num_args;
-    uint32_t is_interrupt;
+    uint32_t interrupt_id;  /* 0 = regular code, nonzero = interrupt */
 } __attribute__((packed));
 
 static struct call_stack_entry call_stacks[256][128];
 static int call_stack_num[256] = {0};
 
-static inline void call_stack_push(uint8_t id, uint32_t * regs, uint32_t lr, uint32_t is_interrupt)
+static inline void call_stack_push(uint8_t id, uint32_t * regs,
+    uint32_t pc, uint32_t last_pc, uint32_t lr, uint32_t interrupt_id)
 {
     assert(call_stack_num[id] < COUNT(call_stacks[0]));
 
     struct call_stack_entry * entry = &call_stacks[id][call_stack_num[id]];
     memcpy(entry->regs, regs, sizeof(entry->regs));
-    entry->num_args = 4;    /* fixme */
-    entry->lr = lr;         /* allow overriding LR */
-    entry->is_interrupt = is_interrupt;
+    entry->num_args = 4;        /* fixme */
+    entry->lr = lr;             /* allow overriding LR (fixme: redundant) */
+    entry->pc = pc;             /* override pc (actually, use the one that includes the Thumb flag) */
+    entry->last_pc = last_pc;   /* on Thumb, LR is not enough to find this because of variable instruction size */
+    entry->interrupt_id = interrupt_id;
     call_stack_num[id]++;
 }
 
@@ -404,7 +408,12 @@ uint32_t eos_callstack_get_caller_param(EOSState *s, int call_depth, enum param_
 static int indent(int initial_len, int target_indent)
 {
     char buf[128];
-    int len = MAX(0, target_indent - initial_len);
+    int len = target_indent - initial_len;
+    if (len < 0)
+    {
+        fprintf(stderr, "\n");
+        len = target_indent;
+    }
     assert(len < sizeof(buf));
     memset(buf, ' ', len);
     buf[len] = 0;
@@ -462,11 +471,64 @@ int eos_callstack_print(EOSState *s, const char * prefix, const char * sep, cons
     {
         uint32_t lr = call_stacks[id][k].lr;
         uint32_t sp = call_stacks[id][k].sp;
-        uint32_t ii = call_stacks[id][k].is_interrupt;
+        uint32_t ii = call_stacks[id][k].interrupt_id;
         len += fprintf(stderr, "%s%x:%x%s", ii ? "i:" : "", lr, sp, sep);
     }
     len += fprintf(stderr, "%s", suffix);
     return len;
+}
+
+static int print_args(uint32_t * regs);
+
+void eos_callstack_print_verbose(EOSState *s)
+{
+    uint8_t id = get_stackid(s);
+
+    if (!call_stack_num[id])
+    {
+        /* empty? */
+        return;
+    }
+
+    uint32_t pc = CURRENT_CPU->env.regs[15];
+    uint32_t lr = CURRENT_CPU->env.regs[14];
+    uint32_t sp = CURRENT_CPU->env.regs[13];
+
+    uint32_t stack_top, stack_bot;
+    if (eos_get_current_task_stack(s, &stack_top, &stack_bot))
+    {
+        int len = fprintf(stderr, "Current stack: [%x-%x] sp=%x", stack_top, stack_bot, sp);
+        len += indent(len, CALLSTACK_RIGHT_ALIGN);
+        len += eos_print_location(s, pc, lr, " at ", "\n");
+    }
+
+    for (int k = 0; k < call_stack_num[id]; k++)
+    {
+        uint32_t pc = call_stacks[id][k].pc;
+        uint32_t sp = call_stacks[id][k].sp;
+        uint32_t ret = call_stacks[id][k].last_pc;
+
+        int len = indent(0, k);
+        
+        if (call_stacks[id][k].interrupt_id)
+        {
+            len += fprintf(stderr, "interrupt %02Xh", call_stacks[id][k].interrupt_id);
+            len += indent(len, CALLSTACK_RIGHT_ALIGN);
+            eos_print_location(s, ret, sp, " at ", "\n");
+            assert(pc == 0x18);
+        }
+        else
+        {
+            const char * name = lookup_symbol(pc);
+            len += fprintf(stderr, "0x%X", pc);
+            if (name && name[0]) {
+                len += fprintf(stderr, " %s", name);
+            }
+            len += print_args(call_stacks[id][k].regs);
+            len += indent(len, CALLSTACK_RIGHT_ALIGN);
+            eos_print_location(s, ret, sp, " at ", " (pc:sp)\n");
+        }
+    }
 }
 
 int eos_print_location(EOSState *s, uint32_t pc, uint32_t lr, const char * prefix, const char * suffix)
@@ -488,6 +550,26 @@ int eos_print_location(EOSState *s, uint32_t pc, uint32_t lr, const char * prefi
         } else {
             return fprintf(stderr, "%s[%x:%x]%s", prefix, pc, lr, suffix);
         }
+    }
+}
+
+int eos_print_location_gdb(EOSState *s)
+{
+    uint32_t ret = CURRENT_CPU->env.regs[14] - 4;
+
+    if (qemu_loglevel_mask(EOS_LOG_CALLSTACK)) {
+        uint8_t id = get_stackid(s);
+        int level = call_stack_num[id] - 1;
+        uint32_t stack_lr = level >= 0 ? call_stacks[id][level].lr : 0;
+        ret = stack_lr - 4;
+    }
+
+    if (interrupt_level) {
+        return fprintf(stderr, "[%s     INT-%02Xh:%08x %s] ", KCYN, s->irq_id, ret, KRESET);
+    } else {
+        const char * task_name = eos_get_current_task_name(s);
+        if (!task_name) task_name = "";
+        return fprintf(stderr, "[%s%12s:%08x %s] ", KCYN, task_name, ret, KRESET);
     }
 }
 
@@ -811,6 +893,12 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
         );
     }
 
+    /* only check cases where PC is "jumping" */
+    if (pc == prev_pc + prev_size)
+    {
+        goto end;
+    }
+
     if (pc0 == 0x18)
     {
         /* handle interrupt jumps first */
@@ -819,13 +907,14 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
         assert(id == 0xFE);
         if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
             int len = call_stack_indent(id, 0, 0);
-            len += fprintf(stderr, KCYN"interrupt"KRESET);
+            len += fprintf(stderr, KCYN"interrupt %02Xh"KRESET, s->irq_id);
             len -= strlen(KCYN KRESET);
             len += indent(len, CALLSTACK_RIGHT_ALIGN);
             print_call_location(s, prev_pc, prev_lr);
         }
         if (interrupt_level == 1) assert(call_stack_num[id] == 0);
-        call_stack_push(id, env->regs, prev_pc, 1);
+        assert(s->irq_id);
+        call_stack_push(id, env->regs, pc, prev_pc, prev_pc, s->irq_id);
         goto end;
     }
 
@@ -846,14 +935,13 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
      * other heuristic: a return must either set PC=LR (BX LR) or change SP
      */
 
-    if (pc != prev_pc + prev_size &&
-        (pc == lr || sp != prev_sp))
+    if (pc == lr || sp != prev_sp)
     {
         uint8_t id = get_stackid(s);
 
         for (int k = call_stack_num[id]-1; k >= 0; k--)
         {
-            if (call_stacks[id][k].is_interrupt)
+            if (call_stacks[id][k].interrupt_id)
             {
                 /* handled later */
                 continue;
@@ -896,8 +984,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
      * - SP is unchanged (it may be decremented inside the function, but not when executing the call)
      * - note: the first two also happen when handling an interrupt, so we check this case earlier
      */
-    if (lr0 == prev_pc0 + prev_size &&
-        pc != prev_pc + prev_size)
+    if (lr0 == prev_pc0 + prev_size)
     {
         assert(sp == prev_sp);
 
@@ -924,16 +1011,16 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
             eos_idc_log_call(s, cpu, env, tb, prev_pc, prev_lr, prev_size);
         }
 
-        call_stack_push(id, env->regs, lr, 0);
+        call_stack_push(id, env->regs, pc, prev_pc, lr, 0);
 
         /* todo: callback here? */
 
         goto end;
     }
 
-    /* check all other large PC jumps */
-    if (abs((int)pc - (int)prev_pc) > 16 &&
-        prev_pc != 0xFFFFFFFF)
+    /* check all other PC jumps */
+    /* skip first instruction (we need valid prev_pc) */
+    if (prev_pc != 0xFFFFFFFF)
     {
         uint32_t insn;
         cpu_physical_memory_read(prev_pc0, &insn, sizeof(insn));
@@ -1045,7 +1132,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                 int interrupt_entries = 0;
                 for (int k = call_stack_num[id]-1; k >= 0; k--)
                 {
-                    interrupt_entries += call_stacks[id][k].is_interrupt;
+                    interrupt_entries += (call_stacks[id][k].interrupt_id ? 1 : 0);
                 }
                 assert(interrupt_level == interrupt_entries);
 
@@ -1053,7 +1140,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                 uint32_t old_pc = 0;
                 for (int k = call_stack_num[id]-1; k >= 0; k--)
                 {
-                    if (call_stacks[id][k].is_interrupt)
+                    if (call_stacks[id][k].interrupt_id)
                     {
                         interrupt_level--;
                         call_stack_num[id] = k;
@@ -1291,6 +1378,8 @@ static void eos_romcpy_log_mem(EOSState *s, MemoryRegion *mr, hwaddr _addr, uint
 
 static uint64_t saved_loglevel = 0;
 
+static uint32_t DebugMsg_addr = 0;
+
 static void tb_exec_cb(void *opaque, CPUState *cpu, TranslationBlock *tb)
 {
     if (qemu_loglevel_mask(EOS_LOG_AUTOEXEC) && saved_loglevel != qemu_loglevel)
@@ -1323,6 +1412,21 @@ static void tb_exec_cb(void *opaque, CPUState *cpu, TranslationBlock *tb)
         CPUARMState *env = &arm_cpu->env;
         eos_memcheck_log_exec(opaque, tb->pc, env);
     }
+
+    if (qemu_loglevel_mask(EOS_LOG_DEBUGMSG) && DebugMsg_addr)
+    {
+        static uint32_t prev_pc = 0;
+        if (tb->pc == DebugMsg_addr && tb->pc != prev_pc)
+        {
+            if (qemu_loglevel_mask(EOS_LOG_DEBUGMSG) &&
+                qemu_loglevel_mask(EOS_LOG_VERBOSE))
+            {
+                eos_callstack_print_verbose(opaque);
+            }
+            DebugMsg_log(opaque);
+        }
+        prev_pc = tb->pc;
+    }
 }
 
 static void load_symbols(const char * elf_filename)
@@ -1334,13 +1438,30 @@ static void load_symbols(const char * elf_filename)
     assert(size > 0);
 }
 
+void eos_getenv_hex(const char * env_name, uint32_t * var, uint32_t default_value)
+{
+    char * env = getenv(env_name);
+
+    if (env)
+    {
+        *var = strtoul(env, NULL, 16);
+    }
+    else
+    {
+        *var = default_value;
+    }
+}
+
 void eos_logging_init(EOSState *s)
 {
+    eos_getenv_hex("QEMU_EOS_DEBUGMSG", &DebugMsg_addr, 0);
+
     if (qemu_loglevel_mask(EOS_LOG_CALLSTACK    |
                            EOS_LOG_RAM_MEMCHK   |
                            EOS_LOG_TASKS        |
                            EOS_LOG_AUTOEXEC     |
-                           0))
+                           0) ||
+        DebugMsg_addr)
     {
         fprintf(stderr, "[EOS] enabling code execution logging.\n");
         cpu_set_tb_exec_cb(tb_exec_cb, s);

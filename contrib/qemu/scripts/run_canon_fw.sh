@@ -39,4 +39,18 @@ tput reset
 $QEMU_PATH/arm-softmmu/qemu-system-arm \
     -drive if=sd,format=raw,file=sd.img \
     -drive if=ide,format=raw,file=cf.img \
+    -chardev socket,server,nowait,path=qemu.monitor,id=monsock \
+    -mon chardev=monsock,mode=readline \
     -M $*
+
+# note: QEMU monitor is redirected to Unix socket qemu.monitor
+# so you can interact with the emulator with e.g. netcat:
+#
+#    echo "log io" | nc -U qemu.monitor
+#
+# or, for interactive monitor console:
+#
+#    socat - UNIX-CONNECT:qemu.monitor
+#
+# you can, of course, redirect it with -monitor stdio or -monitor vl
+# more info: http://nairobi-embedded.org/qemu_monitor_console.html
