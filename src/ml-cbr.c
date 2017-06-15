@@ -57,11 +57,9 @@ static struct cbr_record_arena * cbr_record_pool = NULL;
 
 static SEMAPHORE * ml_cbr_lock = NULL;
 
-static inline int fast_compare(const char * fst, const char * snd) {
-    dbg_printf("Checking %s <-> %s\n", fst, snd);
-    return ((*(int64_t*) fst) == (*(int64_t*) snd))
-            &&
-            ((*(int64_t*) fst + 8) == (*(int64_t*) snd + 8));
+static inline int fast_compare(const char * fst, const char * snd)
+{
+    return strcmp(fst, snd) == 0;
 }
 
 static inline struct cbr_node_arena * create_node_arena()
