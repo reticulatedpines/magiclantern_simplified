@@ -28,6 +28,7 @@
 #define MODULE_LONG_STATUS_LENGTH     63
 
 /* some callbacks that may be needed by modules. more to come. ideas? needs? */
+#define CBR_NAMED                     0x8000 /* named CBR using ml-cbr */
 #define CBR_PRE_SHOOT                 1 /* called before image is taken */
 #define CBR_POST_SHOOT                2 /* called after image is taken */
 #define CBR_SHOOT_TASK                3 /* called periodically from shoot task */
@@ -207,7 +208,8 @@ typedef struct
 #define MODULE_CBRS_START()                                     MODULE_CBRS_START_(MODULE_CBR_PREFIX,MODULE_NAME)
 #define MODULE_CBRS_START_(prefix,modname)                      MODULE_CBRS_START__(prefix,modname)
 #define MODULE_CBRS_START__(prefix,modname)                     module_cbr_t prefix##modname[] = {
-#define MODULE_CBR(cb_type,cbr,context)                         { .name = #cb_type, .symbol = #cbr, .type = cb_type, .handler = cbr, .ctx = context },
+#define MODULE_CBR(cb_type,cbr,context)                         { .name = #cb_type, .symbol = #cbr, .type = cb_type,   .handler = cbr, .ctx = context },
+#define MODULE_NAMED_CBR(cb_name,cbr)                           { .name = cb_name,  .symbol = #cbr, .type = CBR_NAMED, .handler = (void*)cbr, .ctx = 0       },
 #define MODULE_CBRS_END()                                           { (void *)0, (void *)0, 0, (void *)0, 0 }\
                                                                 };
                                                             

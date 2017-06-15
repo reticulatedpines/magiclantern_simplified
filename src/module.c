@@ -9,6 +9,7 @@
 #include "property.h"
 #include "beep.h"
 #include "bmp.h"
+#include "ml-cbr.h"
 
 #ifndef CONFIG_MODULES_MODEL_SYM
 #error Not defined file name with symbols
@@ -484,16 +485,34 @@ static void _module_load_all(uint32_t list_only)
                 }
             }
             
-            /* register property handlers */
-            if(module_list[mod].prop_handlers && !module_list[mod].error)
+            if(!module_list[mod].error)
             {
                 module_prophandler_t **props = module_list[mod].prop_handlers;
-                while(*props != NULL)
+                module_cbr_t *cbr = module_list[mod].cbr;
+                
+                /* register property handlers */
+                while(props && *props)
                 {
                     update_properties = 1;
                     printf("  [i] prop %s\n", (*props)->name);
                     prop_add_handler((*props)->property, (*props)->handler);
                     props++;
+                }
+                
+                /* register ml-cbr callback handlers */
+                while(cbr && cbr->name)
+                {
+                    /* register "named" callbacks through ml-cbr */
+                    if(cbr->type == CBR_NAMED)
+                    {
+                        printf("  [i] ml-cbr '%s' 0%08X (%s)\n", cbr->name, cbr->handler, cbr->symbol);
+                        ml_register_cbr(cbr->name, (cbr_func)cbr->handler, 0);
+                    }
+                    else
+                    {
+                        printf("  [i] cbr '%s' -> 0%08X\n", cbr->name, cbr->handler);
+                    }
+                    cbr++;
                 }
             }
             
@@ -539,6 +558,19 @@ static void _module_unload_all(void)
             {
                 module_list[mod].info->deinit();
                 module_list[mod].valid = 0;
+            }
+            
+            module_cbr_t *cbr = module_list[mod].cbr;
+        
+            /* register ml-cbr callback handlers */
+            while(cbr && cbr->name)
+            {
+                /* unregister "named" callbacks through ml-cbr */
+                if(cbr->type == CBR_NAMED)
+                {
+                    ml_unregister_cbr(cbr->name, (cbr_func)cbr->handler);
+                }
+                cbr++;
             }
         }
     }
