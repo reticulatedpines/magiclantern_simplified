@@ -186,14 +186,18 @@ struct frame_slot
     void* ptr;          /* image data, size=frame_size */
     int frame_number;   /* from 0 to n */
     enum {
-        SLOT_FREE,          /* available for image capture */
-        SLOT_RESERVED,      /* it may become available when resizing the previous slots */
-        SLOT_CAPTURING,     /* in progress */
-        SLOT_LOCKED,        /* locked by some other module */
-        SLOT_FULL,          /* contains fully captured image data */
-        SLOT_WRITING        /* it's being saved to card */
+        SLOT_FREE = 0x00,          /* available for image capture */
+        SLOT_RESERVED = 0x01,      /* it may become available when resizing the previous slots */
+        SLOT_CAPTURING = 0x02,     /* in progress */
+        SLOT_LOCKED = 0x03,        /* locked by some other module */
+        SLOT_FULL = 0x04,          /* contains fully captured image data */
+        SLOT_WRITING = 0x05,       /* it's being saved to card */
+        SLOT_FULL_META = 0x14,     /* contains fully captured meta data */
     } status;
 };
+
+/* introduced to detect both SLOT_FULL/SLOT_FULL_META */
+#define SLOT_MASK(x) ((x) & 0x0F)
 
 static struct memSuite * shoot_mem_suite = 0;     /* memory suite for our buffers */
 static struct memSuite * srm_mem_suite = 0;
@@ -377,7 +381,7 @@ void mlv_rec_release_slot(int32_t slot, uint32_t write)
     if(write)
     {
         uint32_t old_int = cli();
-        slots[slot].status = SLOT_FULL;
+        slots[slot].status = SLOT_FULL_META;
         writing_queue[writing_queue_tail] = slot;
         INC_MOD(writing_queue_tail, COUNT(writing_queue));
         sei(old_int);
@@ -1028,6 +1032,7 @@ static void show_buffer_status()
             int color = slots[i].status == SLOT_FREE      ? COLOR_GRAY(10) :
                         slots[i].status == SLOT_WRITING   ? COLOR_GREEN1 :
                         slots[i].status == SLOT_FULL      ? COLOR_LIGHT_BLUE :
+                        slots[i].status == SLOT_FULL_META ? COLOR_BLUE :
                         slots[i].status == SLOT_RESERVED  ? COLOR_GRAY(50) :
                         slots[i].status == SLOT_LOCKED    ? COLOR_YELLOW :
                                                             COLOR_RED ;
@@ -1526,42 +1531,170 @@ static int FAST choose_next_capture_slot()
     return best_index;
 }
 
-static void pre_record_vsync_step()
+static void FAST pre_record_vsync_step()
 {
+    if (raw_recording_state == RAW_RECORDING)
+    {
+        if (!pre_record_triggered)
+        {
+            /* return to pre-recording state */
+            pre_record_first_frame = frame_count;
+            raw_recording_state = RAW_PRE_RECORDING;
+            mlv_rec_call_cbr(MLV_REC_EVENT_STARTED, NULL);
+            printf("Pre-rec: back to pre-recording (frame %d).\n", pre_record_first_frame);
+            /* fall through the next block */
+        }
+    }
+
     if (raw_recording_state == RAW_PRE_RECORDING)
     {
+        ASSERT(pre_record_num_frames);
+
+        if (!pre_record_first_frame)
+        {
+            /* start pre-recording (first attempt) */
+            pre_record_first_frame = frame_count;
+            printf("Pre-rec: starting from frame %d.\n", pre_record_first_frame);
+        }
+
         if (pre_record_triggered)
         {
-            /* queue all captured frames for writing */
-            /* (they are numbered from 1 to frame_count-1; frame 0 is skipped) */
-            /* they are not ordered, which complicates things a bit */
-            int i = 0;
-            for (int current_frame = 1; current_frame < frame_count; current_frame++)
+            /* make sure we have a free slot, no matter what */
+            pre_record_discard_frame_if_no_free_slots();
+
+            pre_record_queue_frames();
+    
+            if (rec_trigger != REC_TRIGGER_HALFSHUTTER_PRE_ONLY)
             {
-                /* consecutive frames tend to be grouped, 
-                 * so this loop will not run every time */
-                while (slots[i].status != SLOT_FULL || slots[i].frame_number != current_frame)
-                {
-                    i = MOD(i+1, slot_count);
-                }
-                
-                writing_queue[writing_queue_tail] = i;
-                writing_queue_tail = MOD(writing_queue_tail + 1, COUNT(writing_queue));
-                i = MOD(i+1, slot_count);
+                /* done, from now on we can just record normally */
+                raw_recording_state = RAW_RECORDING;
+                mlv_rec_call_cbr(MLV_REC_EVENT_STARTED, NULL);
             }
-            
-            /* done, from now on we can just record normally */
-            raw_recording_state = RAW_RECORDING;
-        }
-        else if (frame_count >= pre_record_num_frames)
-        {
-            /* discard old frames */
-            /* also adjust frame_count so all frames start from 1,
-             * just like the rest of the code assumes */
-            frame_count--;
-            
-            for (int i = 0; i < slot_count; i++)
+            else
             {
+                /* do not resume recording; just start a new pre-recording "session" */
+                /* trick to allow reusing all frames for pre-recording */
+                pre_record_triggered = 0;
+                pre_record_first_frame = frame_count;
+            }
+        }
+        else if (pre_recording_buffer_full())
+        {
+            pre_record_discard_frame();
+        }
+    }
+}
+
+static void FAST pre_record_discard_frame()
+{
+    /* discard old frames */
+    /* also adjust frame_count so all frames start from 1,
+     * just like the rest of the code assumes */
+
+    for (int i = 0; i < total_slot_count; i++)
+    {
+        /* at the moment of this call, there should be no slots in progress */
+        ASSERT(slots[i].status != SLOT_CAPTURING);
+
+        /* first frame is "pre_record_first_frame" */
+        if (slots[i].status == SLOT_FULL)
+        {
+            if (slots[i].frame_number == pre_record_first_frame)
+            {
+                free_slot(i);
+                frame_count--;
+            }
+            else if (slots[i].frame_number > pre_record_first_frame)
+            {
+                slots[i].frame_number--;
+                ((mlv_vidf_hdr_t*)slots[i].ptr)->frameNumber
+                    = slots[i].frame_number - 1;
+            }
+        }
+    }
+}
+
+static void FAST pre_record_queue_frames()
+{
+    /* queue all captured frames for writing */
+    /* (they are numbered from 1 to frame_count-1; frame 0 is skipped) */
+    /* they are not ordered, which complicates things a bit */
+    printf("Pre-rec: queueing frames %d to %d.\n", pre_record_first_frame, frame_count-1);
+
+    int i = 0;
+    for (int current_frame = pre_record_first_frame; current_frame < frame_count; current_frame++)
+    {
+        /* consecutive frames tend to be grouped, 
+         * so this loop will not run every time */
+        while (slots[i].status != SLOT_FULL || slots[i].frame_number != current_frame)
+        {
+            INC_MOD(i, total_slot_count);
+        }
+        
+        writing_queue[writing_queue_tail] = i;
+        INC_MOD(writing_queue_tail, COUNT(writing_queue));
+        INC_MOD(i, total_slot_count);
+    }
+}
+
+static void pre_record_discard_frame_if_no_free_slots()
+{
+    for (int i = 0; i < total_slot_count; i++)
+    {
+        if (slots[i].status == SLOT_FREE)
+        {
+            return;
+        }
+    }
+
+    pre_record_discard_frame();
+}
+
+static void FAST pre_record_vsync_step()
+{
+    if (raw_recording_state == RAW_RECORDING)
+    {
+        if (!pre_record_triggered)
+        {
+            /* return to pre-recording state */
+            pre_record_first_frame = frame_count;
+            raw_recording_state = RAW_PRE_RECORDING;
+            mlv_rec_call_cbr(MLV_REC_EVENT_STARTED, NULL);
+            printf("Pre-rec: back to pre-recording (frame %d).\n", pre_record_first_frame);
+            /* fall through the next block */
+        }
+    }
+
+    if (raw_recording_state == RAW_PRE_RECORDING)
+    {
+        ASSERT(pre_record_num_frames);
+
+        if (!pre_record_first_frame)
+        {
+            /* start pre-recording (first attempt) */
+            pre_record_first_frame = frame_count;
+            printf("Pre-rec: starting from frame %d.\n", pre_record_first_frame);
+        }
+
+        if (pre_record_triggered)
+        {
+            /* make sure we have a free slot, no matter what */
+            pre_record_discard_frame_if_no_free_slots();
+
+            pre_record_queue_frames();
+    
+            if (rec_trigger != REC_TRIGGER_HALFSHUTTER_PRE_ONLY)
+            {
+                /* done, from now on we can just record normally */
+                raw_recording_state = RAW_RECORDING;
+                mlv_rec_call_cbr(MLV_REC_EVENT_STARTED, NULL);
+            }
+            else
+            {
+                /* do not resume recording; just start a new pre-recording "session" */
+                /* trick to allow reusing all frames for pre-recording */
+                pre_record_triggered = 0;
+                pre_record_first_frame = frame_count;
                 /* first frame is 1 */
                 if (slots[i].status == SLOT_FULL)
                 {
@@ -1578,6 +1711,100 @@ static void pre_record_vsync_step()
                             = slots[i].frame_number - 1;
                     }
                 }
+                free_slot(i);
+                frame_count--;
+            }
+            else if (slots[i].frame_number > pre_record_first_frame)
+            {
+                slots[i].frame_number--;
+                ((mlv_vidf_hdr_t*)slots[i].ptr)->frameNumber
+                    = slots[i].frame_number - 1;
+            }
+        }
+    }
+}
+
+static void FAST pre_record_queue_frames()
+{
+    /* queue all captured frames for writing */
+    /* (they are numbered from 1 to frame_count-1; frame 0 is skipped) */
+    /* they are not ordered, which complicates things a bit */
+    printf("Pre-rec: queueing frames %d to %d.\n", pre_record_first_frame, frame_count-1);
+
+    int i = 0;
+    for (int current_frame = pre_record_first_frame; current_frame < frame_count; current_frame++)
+    {
+        /* consecutive frames tend to be grouped, 
+         * so this loop will not run every time */
+        while (SLOT_MASK(slots[i].status) != SLOT_FULL || slots[i].frame_number != current_frame)
+        {
+            INC_MOD(i, total_slot_count);
+        }
+        
+        writing_queue[writing_queue_tail] = i;
+        INC_MOD(writing_queue_tail, COUNT(writing_queue));
+        INC_MOD(i, total_slot_count);
+    }
+}
+
+static void pre_record_discard_frame_if_no_free_slots()
+{
+    for (int i = 0; i < total_slot_count; i++)
+    {
+        if (slots[i].status == SLOT_FREE)
+        {
+            return;
+        }
+    }
+
+    pre_record_discard_frame();
+}
+
+static void FAST pre_record_vsync_step()
+{
+    if (raw_recording_state == RAW_RECORDING)
+    {
+        if (!pre_record_triggered)
+        {
+            /* return to pre-recording state */
+            pre_record_first_frame = frame_count;
+            raw_recording_state = RAW_PRE_RECORDING;
+            mlv_rec_call_cbr(MLV_REC_EVENT_STARTED, NULL);
+            printf("Pre-rec: back to pre-recording (frame %d).\n", pre_record_first_frame);
+            /* fall through the next block */
+        }
+    }
+
+    if (raw_recording_state == RAW_PRE_RECORDING)
+    {
+        ASSERT(pre_record_num_frames);
+
+        if (!pre_record_first_frame)
+        {
+            /* start pre-recording (first attempt) */
+            pre_record_first_frame = frame_count;
+            printf("Pre-rec: starting from frame %d.\n", pre_record_first_frame);
+        }
+
+        if (pre_record_triggered)
+        {
+            /* make sure we have a free slot, no matter what */
+            pre_record_discard_frame_if_no_free_slots();
+
+            pre_record_queue_frames();
+    
+            if (rec_trigger != REC_TRIGGER_HALFSHUTTER_PRE_ONLY)
+            {
+                /* done, from now on we can just record normally */
+                raw_recording_state = RAW_RECORDING;
+                mlv_rec_call_cbr(MLV_REC_EVENT_STARTED, NULL);
+            }
+            else
+            {
+                /* do not resume recording; just start a new pre-recording "session" */
+                /* trick to allow reusing all frames for pre-recording */
+                pre_record_triggered = 0;
+                pre_record_first_frame = frame_count;
             }
         }
     }
@@ -1765,6 +1992,14 @@ static char* get_next_chunk_file_name(char* base_name, int chunk)
     
     return filename;
 }
+
+/* a bit of a hack: this tells the audio backend that we are going to record sound */
+/* => it will show audio meters and disable beeps */
+int mlv_snd_is_enabled()
+{
+    return use_h264_proxy() && sound_recording_enabled_canon();
+}
+
 
 static char* get_wav_file_name(char* raw_movie_filename)
 {
@@ -2085,9 +2320,9 @@ static void raw_video_rec_task()
         int first_slot = writing_queue[w_head];
 
         /* check whether the first frame was filled by EDMAC (it may be sent in advance) */
-        /* probably not needed */
-        int check = frame_check_saved(first_slot);
-        if (check == 0)
+        /* we need at least one valid frame */
+        
+        if (SLOT_MASK(slots[first_slot].status) != SLOT_FULL)
         {
             msleep(20);
             continue;
@@ -2099,7 +2334,25 @@ static void raw_video_rec_task()
         for (int i = w_head; i != w_tail; i = MOD(i+1, COUNT(writing_queue)))
         {
             int slot_index = writing_queue[i];
-            int group_pos = MOD(i - w_head, COUNT(writing_queue));
+
+            if (SLOT_MASK(slots[slot_index].status) != SLOT_FULL)
+            {
+                /* frame not yet ready - stop here */
+                ASSERT(i != w_head);
+                break;
+            }
+
+            /* consistency checks for VIDF slots */
+            if (slots[slot_index].status != SLOT_FULL_META)
+            {
+                ASSERT(((mlv_vidf_hdr_t*)slots[slot_index].ptr)->blockSize == (uint32_t) slots[slot_index].size);
+                ASSERT(((mlv_vidf_hdr_t*)slots[slot_index].ptr)->frameNumber == (uint32_t) slots[slot_index].frame_number - 1);
+                
+                if (OUTPUT_COMPRESSION)
+                {
+                    ASSERT(slots[slot_index].size < max_frame_size);
+                }
+            }
 
             /* TBH, I don't care if these are part of the same group or not,
              * as long as pointers are ordered correctly */
@@ -2145,8 +2398,9 @@ static void raw_video_rec_task()
         for (int i = w_head; i != after_last_grouped; i = MOD(i+1, COUNT(writing_queue)))
         {
             int slot_index = writing_queue[i];
-            if (slots[slot_index].status != SLOT_FULL)
+            if (SLOT_MASK(slots[slot_index].status) != SLOT_FULL)
             {
+                printf("Slot check error");
                 bmp_printf(FONT_LARGE, 30, 70, "Slot check error");
                 beep();
             }
@@ -2188,31 +2442,30 @@ static void raw_video_rec_task()
         {
             if (i == writing_queue_tail)
             {
-                bmp_printf( FONT_MED, 30, 110, 
-                    "Queue overflow"
-                );
+                printf("Queue overflow");
+                bmp_printf(FONT_MED, 30, 110, "Queue overflow");
                 beep();
             }
             
             int slot_index = writing_queue[i];
 
-            if (frame_check_saved(slot_index) != 1)
+            if (slots[slot_index].status != SLOT_FULL_META)
             {
-                bmp_printf( FONT_MED, 30, 110, 
-                    "Data corruption at slot %d, frame %d ", slot_index, slots[slot_index].frame_number
-                );
-                beep();
+                if (frame_check_saved(slot_index) != 1)
+                {
+                    printf("Data corruption at slot %d, frame %d ", slot_index, slots[slot_index].frame_number);
+                    bmp_printf(FONT_MED, 30, 110, "Data corruption at slot %d, frame %d ", slot_index, slots[slot_index].frame_number);
+                    beep();
+                }
+                
+                if (slots[slot_index].frame_number != last_processed_frame + 1)
+                {
+                    printf("Frame order error: slot %d, frame %d, expected %d ", slot_index, slots[slot_index].frame_number, last_processed_frame + 1);
+                    bmp_printf(FONT_MED, 30, 110, "Frame order error: slot %d, frame %d, expected %d ", slot_index, slots[slot_index].frame_number, last_processed_frame + 1);
+                    beep();
+                }
+                last_processed_frame++;
             }
-            
-            if (slots[slot_index].frame_number != last_processed_frame + 1)
-            {
-                bmp_printf( FONT_MED, 30, 110, 
-                    "Frame order error: slot %d, frame %d, expected %d ", slot_index, slots[slot_index].frame_number, last_processed_frame + 1
-                );
-                beep();
-            }
-            last_processed_frame++;
-
             slots[slot_index].status = SLOT_FREE;
         }
         
@@ -2229,16 +2482,14 @@ abort_and_check_early_stop:
 
             if (last_block_size > 2)
             {
-                bmp_printf( FONT_MED, 30, 90, 
-                    "Early stop (%d). Didn't make it to estimated record time!.", last_block_size
-                );
+                printf("Early stop (%d). Should have recorded a few more frames.", last_block_size);
+                bmp_printf(FONT_MED, 30, 90, "Early stop (%d). Should have recorded a few more frames.", last_block_size);
                 beep_times(last_block_size);
             }
             else
             {
-                bmp_printf( FONT_MED, 30, 90, 
-                    "Movie recording stopped automagically         "
-                );
+                printf("Movie recording stopped automagically         ");
+                bmp_printf(FONT_MED, 30, 90, "Movie recording stopped automagically         ");
                 /* this is error beep, not audio sync beep */
                 beep_times(2);
             }
@@ -2271,32 +2522,40 @@ abort_and_check_early_stop:
     {
         int slot_index = writing_queue[writing_queue_head];
 
-        if (slots[slot_index].status != SLOT_FULL)
+        if (SLOT_MASK(slots[slot_index].status) != SLOT_FULL)
         {
-            bmp_printf( FONT_MED, 30, 110, 
-                "Slot %d: frame %d not saved ", slot_index, slots[slot_index].frame_number
-            );
+            printf("Slot %d: frame %d not saved ", slot_index, slots[slot_index].frame_number);
+            bmp_printf(FONT_MED, 30, 110, "Slot %d: frame %d not saved ", slot_index, slots[slot_index].frame_number);
             beep();
         }
 
-        if (frame_check_saved(slot_index) != 1)
+        /* video frame consistency checks only for VIDF */
+        if(slots[slot_index].status != SLOT_FULL_META)
         {
-            bmp_printf( FONT_MED, 30, 110, 
-                "Data corruption at slot %d, frame %d ", slot_index, slots[slot_index].frame_number
-            );
-            beep();
-        }
+            if (frame_check_saved(slot_index) != 1)
+            {
+                printf("Data corruption at slot %d, frame %d ", slot_index, slots[slot_index].frame_number);
+                bmp_printf( FONT_MED, 30, 110, "Data corruption at slot %d, frame %d ", slot_index, slots[slot_index].frame_number);
+                beep();
+            }
 
-        if (slots[slot_index].frame_number != last_processed_frame + 1)
-        {
-            bmp_printf( FONT_MED, 30, 110, 
-                "Frame order error: slot %d, frame %d, expected %d ", slot_index, slots[slot_index].frame_number, last_processed_frame + 1
-            );
-            beep();
+            if (slots[slot_index].frame_number != last_processed_frame + 1)
+            {
+                printf("Frame order error: slot %d, frame %d, expected %d ", slot_index, slots[slot_index].frame_number, last_processed_frame + 1);
+                bmp_printf(FONT_MED, 30, 110, "Frame order error: slot %d, frame %d, expected %d ", slot_index, slots[slot_index].frame_number, last_processed_frame + 1);
+                beep();
+            }
+            last_processed_frame++;
+            
+            /* if it's a VIDF, then it should be smaller than the max frame size when compression is enabled */
+            if (OUTPUT_COMPRESSION)
+            {
+                ASSERT(slots[slot_index].size < max_frame_size);
+            }
         }
-        last_processed_frame++;
-
+        
         slots[slot_index].status = SLOT_WRITING;
+        
         if (indicator_display == INDICATOR_RAW_BUFFER) show_buffer_status();
         if (!write_frames(&f, slots[slot_index].ptr, frame_size, 1))
         {
