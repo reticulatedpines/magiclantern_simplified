@@ -1902,7 +1902,7 @@ int main (int argc, char *argv[])
     /* this block will load an image from a MLV file, so use its reported frame size for future use */
     if(subtract_mode)
     {
-        printf("Loading subtract (dark) frame '%s'\n", flatfield_filename);
+        print_msg(MSG_INFO, "Loading subtract (dark) frame '%s'\n", subtract_filename);
         int ret = load_frame(subtract_filename, &frame_sub_buffer, &subtract_frame_buffer_size);
 
         if(ret)
@@ -1916,7 +1916,7 @@ int main (int argc, char *argv[])
 
     if(flatfield_mode)
     {
-        printf("Loading flat-field frame '%s'\n", flatfield_filename);
+        print_msg(MSG_INFO, "Loading flat-field frame '%s'\n", flatfield_filename);
         int ret = load_frame(flatfield_filename, &frame_flat_buffer, &flatfield_frame_buffer_size);
 
         if(ret)
@@ -2749,7 +2749,7 @@ read_headers:
                             adj_num = (pr5[0][1] + pr5[1][0]) / 2;
                             adj_den = (med[0][1] + med[1][0]) / 2;
 
-                            printf("Flat-field median: [%d %d; %d %d], adjusted by %d/%d\n", 
+                            print_msg(MSG_INFO, "Flat-field median: [%d %d; %d %d], adjusted by %d/%d\n", 
                                 med[0][0], med[0][1],
                                 med[1][0], med[1][1],
                                 adj_num, adj_den
