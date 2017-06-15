@@ -970,48 +970,67 @@ void show_usage(char *executable)
 {
     print_msg(MSG_INFO, "Usage: %s [-o output_file] [-rscd] [-l compression_level(0-9)] <inputfile>\n", executable);
     print_msg(MSG_INFO, "Parameters:\n");
-    print_msg(MSG_INFO, " -o output_file      set the filename to write into\n");
-    print_msg(MSG_INFO, " -v                  verbose output\n");
-    print_msg(MSG_INFO, " --batch             output message suitable for batch processing\n");
+    print_msg(MSG_INFO, "  -o output_file      write video data into a MLV file\n");
+    print_msg(MSG_INFO, "  -v                  verbose output\n");
+    print_msg(MSG_INFO, "  --version           print version information\n");
+    print_msg(MSG_INFO, "  --batch             format output message suitable for batch processing\n");
+    print_msg(MSG_INFO, "  --relaxed           do not exit on every error, skip blocks that are erroneous\n");
     
     print_msg(MSG_INFO, "\n");
     print_msg(MSG_INFO, "-- DNG output --\n");
-    print_msg(MSG_INFO, " --dng               output frames into separate .dng files. set prefix with -o\n");
-    print_msg(MSG_INFO, " --no-cs             no chroma smoothing (default)\n");
-    print_msg(MSG_INFO, " --cs2x2             2x2 chroma smoothing\n");
-    print_msg(MSG_INFO, " --cs3x3             3x3 chroma smoothing\n");
-    print_msg(MSG_INFO, " --cs5x5             5x5 chroma smoothing\n");
-    print_msg(MSG_INFO, " --no-fixcp          do not fix cold pixels\n");
-    print_msg(MSG_INFO, " --fixcp2            fix non-static (moving) cold pixels (slow)\n");
-    print_msg(MSG_INFO, " --no-stripes        do not fix vertical stripes in highlights\n");
+    print_msg(MSG_INFO, "  --dng               output frames into separate .dng files. set prefix with -o\n");
+    print_msg(MSG_INFO, "  --no-cs             no chroma smoothing (default)\n");
+    print_msg(MSG_INFO, "  --cs2x2             2x2 chroma smoothing\n");
+    print_msg(MSG_INFO, "  --cs3x3             3x3 chroma smoothing\n");
+    print_msg(MSG_INFO, "  --cs5x5             5x5 chroma smoothing\n");
+    print_msg(MSG_INFO, "  --no-fixcp          do not fix cold pixels\n");
+    print_msg(MSG_INFO, "  --fixcp2            fix non-static (moving) cold pixels (slow)\n");
+    print_msg(MSG_INFO, "  --no-stripes        do not fix vertical stripes in highlights\n");
 
     print_msg(MSG_INFO, "\n");
     print_msg(MSG_INFO, "-- RAW output --\n");
-    print_msg(MSG_INFO, " -r                  output into a legacy raw file for e.g. raw2dng\n");
+    print_msg(MSG_INFO, "  -r                  output into a legacy raw file for e.g. raw2dng\n");
 
     print_msg(MSG_INFO, "\n");
     print_msg(MSG_INFO, "-- MLV output --\n");
-    print_msg(MSG_INFO, " -b bits             convert image data to given bit depth per channel (1-16)\n");
-    print_msg(MSG_INFO, " -z bits             zero the lowest bits, so we have only specified number of bits containing data (1-16) (improves compression rate)\n");
-    print_msg(MSG_INFO, " -f frames           frames to save. e.g. '12' saves frames 0 to 12, '12-40' saves frames 12 to 40.\n");
-    print_msg(MSG_INFO, " -A fpsx1000         Alter the video file's FPS metadata\n");
-    print_msg(MSG_INFO, " -x                  build xref file (indexing)\n");
-    print_msg(MSG_INFO, " -m                  write only metadata, no audio or video frames\n");
-    print_msg(MSG_INFO, " -n                  write no metadata, only audio and video frames\n");
+    print_msg(MSG_INFO, "  -b bits             convert image data to given bit depth per channel (1-16)\n");
+    print_msg(MSG_INFO, "  -z bits             zero the lowest bits, so we have only specified number of bits containing data (1-16) (improves compression rate)\n");
+    print_msg(MSG_INFO, "  -f frames           frames to save. e.g. '12' saves frames 0 to 12, '12-40' saves frames 12 to 40.\n");
+    print_msg(MSG_INFO, "  -A fpsx1000         Alter the video file's FPS metadata\n");
+    print_msg(MSG_INFO, "  -x                  build xref file (indexing)\n");
 
     print_msg(MSG_INFO, "\n");
+    print_msg(MSG_INFO, "-- MLV autopsy --\n");
+    print_msg(MSG_INFO, "  --skip-block <block#>        skip given block number, as if it wasn't present\n");
+    print_msg(MSG_INFO, "  --skip-type <type>           skip given block type (e.g. VIDF, AUDF, etc), as if they weren't present\n");
+    print_msg(MSG_INFO, "  --extract <block#>           extract the block at given position into autopsy file\n");
+    print_msg(MSG_INFO, "  --extract-type <type>        extract the block type (e.g. VERS, LENS, etc) into autopsy file\n");
+    print_msg(MSG_INFO, "  --replace <block#>           replace block with data from given autopsy file; requires --autopsy-file\n");
+    print_msg(MSG_INFO, "  --payload-only               extract/replace affect not the whole block, but only payload\n");
+    print_msg(MSG_INFO, "  --header-only                extract/replace affect not the whole block, but only header\n");
+    print_msg(MSG_INFO, "  --autopsy-file <file>        extract/replace from this file\n");
+    print_msg(MSG_INFO, "  --hex                        extract prints the selected data as hexdump on screen\n");
+    print_msg(MSG_INFO, "  --ascii                      extract prints the selected data as ASCII on screen (only suitable for VERS and DEBG)\n");
+    print_msg(MSG_INFO, "  --visualize                  visualize block types, most likely you want to use --skip-xref along with it\n");
+    print_msg(MSG_INFO, "\n");
+    print_msg(MSG_INFO, "-- MLV manipulation --\n");
+    print_msg(MSG_INFO, "  --skip-xref                  skip loading .IDX (XREF) file, read block in the MLV file's order instead of presorted\n");
+    print_msg(MSG_INFO, "  -m                           write only metadata, no audio or video frames\n");
+    print_msg(MSG_INFO, "  -n                           write no metadata, only audio and video frames\n");
+    print_msg(MSG_INFO, "  -I <mlv_file>                inject data from given MLV file right after MLVI header\n");
+    print_msg(MSG_INFO, "  -X type                      extract only block type int output file\n");
+    
+    print_msg(MSG_INFO, "\n");
     print_msg(MSG_INFO, "-- Image manipulation --\n");
-    print_msg(MSG_INFO, " -a                  average all frames in <inputfile> and output a single-frame MLV from it\n");
-    print_msg(MSG_INFO, " --avg-vertical      [DARKFRAME ONLY] average the resulting frame in vertical direction, so we will extract vertical banding\n");
-    print_msg(MSG_INFO, " --avg-horizontal    [DARKFRAME ONLY] average the resulting frame in horizontal direction, so we will extract horizontal banding\n");
-    print_msg(MSG_INFO, " -s mlv_file         subtract the reference frame in given file from every single frame during processing\n");
-    print_msg(MSG_INFO, " -t mlv_file         use the reference frame in given file as flat field (gain correction)\n");
+    print_msg(MSG_INFO, "  -a                  average all frames in <inputfile> and output a single-frame MLV from it\n");
+    print_msg(MSG_INFO, "  --avg-vertical      [DARKFRAME ONLY] average the resulting frame in vertical direction, so we will extract vertical banding\n");
+    print_msg(MSG_INFO, "  --avg-horizontal    [DARKFRAME ONLY] average the resulting frame in horizontal direction, so we will extract horizontal banding\n");
+    print_msg(MSG_INFO, "  -s mlv_file         subtract the reference frame in given file from every single frame during processing\n");
+    print_msg(MSG_INFO, "  -t mlv_file         use the reference frame in given file as flat field (gain correction)\n");
 
     print_msg(MSG_INFO, "\n");
     print_msg(MSG_INFO, "-- Processing --\n");
-    print_msg(MSG_INFO, " -e                  delta-encode frames to improve compression, but lose random access capabilities\n");
-    print_msg(MSG_INFO, " -X type             extract only block type\n");
-    print_msg(MSG_INFO, " -I mlv_file         inject data from given MLV file right after MLVI header\n");
+    print_msg(MSG_INFO, "  -e                  delta-encode frames to improve compression, but lose random access capabilities\n");
 
     /* yet unclear which format to choose, so keep that as reminder */
     //print_msg(MSG_INFO, " -u lut_file         look-up table with 4 * xRes * yRes 16-bit words that is applied before bit depth conversion\n");
@@ -1093,6 +1112,116 @@ void print_capture_info(mlv_rawc_hdr_t * rawc)
     }
 }
 
+int get_header_size(void *type)
+{
+#define HEADER_SIZE(h,s) do {if(!memcmp(type, h, 4)) { return sizeof(s); } } while(0)
+
+    HEADER_SIZE("MLVI", mlv_file_hdr_t);
+    HEADER_SIZE("VIDF", mlv_vidf_hdr_t);
+    HEADER_SIZE("AUDF", mlv_vidf_hdr_t);
+    HEADER_SIZE("RAWI", mlv_rawi_hdr_t);
+    HEADER_SIZE("RAWC", mlv_rawc_hdr_t);
+    HEADER_SIZE("WAVI", mlv_wavi_hdr_t);
+    HEADER_SIZE("EXPO", mlv_expo_hdr_t);
+    HEADER_SIZE("LENS", mlv_lens_hdr_t);
+    HEADER_SIZE("RTCI", mlv_rtci_hdr_t);
+    HEADER_SIZE("IDNT", mlv_idnt_hdr_t);
+    HEADER_SIZE("XREF", mlv_xref_hdr_t);
+    HEADER_SIZE("INFO", mlv_info_hdr_t);
+    HEADER_SIZE("DISO", mlv_diso_hdr_t);
+    HEADER_SIZE("MARK", mlv_mark_hdr_t);
+    HEADER_SIZE("STYL", mlv_styl_hdr_t);
+    HEADER_SIZE("ELVL", mlv_elvl_hdr_t);
+    HEADER_SIZE("WBAL", mlv_wbal_hdr_t);
+    HEADER_SIZE("DEBG", mlv_debg_hdr_t);
+    HEADER_SIZE("VERS", mlv_vers_hdr_t);
+    
+    return 0;
+
+#undef HEADER_SIZE
+}
+
+
+/* from ptpcam */
+static void print_safe(char *buf, int size)
+{
+  int i;
+  for (i=0; i<size; i++)
+  {
+    if ( buf[i] < ' ' || buf[i] > '~' )
+    {
+      print_msg(MSG_INFO, ".");
+    } else {
+      print_msg(MSG_INFO, "%c",buf[i]);
+    }
+  }
+}
+
+static void hexdump(char *buf, unsigned int size, unsigned int offset)
+{
+  unsigned int start_offset = offset;
+  unsigned int i;
+  char s[16];
+
+  if ( offset % 16 != 0 )
+  {
+      print_msg(MSG_INFO, "0x%08X (+0x%04X)  ",offset, offset-start_offset);
+      for (i=0; i<(offset%16); i++)
+      {
+        print_msg(MSG_INFO, "   ");
+      }
+      if ( offset % 16 > 8 )
+      {
+        print_msg(MSG_INFO, " ");
+      }
+      memset(s,' ',offset%16);
+  }
+  for (i=0; ; i++, offset++)
+  {
+    if ( offset % 16 == 0 )
+    {
+      if ( i > 0 )
+      {
+        print_msg(MSG_INFO, " |");
+        print_safe(s,16);
+        print_msg(MSG_INFO, "|\n");
+      }
+      print_msg(MSG_INFO, "0x%08X (+0x%04X)",offset, offset-start_offset);
+      if (i < size)
+      {
+        print_msg(MSG_INFO, " ");
+      }
+    }
+    if ( offset % 8 == 0 )
+    {
+      print_msg(MSG_INFO, " ");
+    }
+    if ( i == size )
+    {
+      break;
+    }
+    print_msg(MSG_INFO, "%02x ",(unsigned char) buf[i]);
+    s[offset%16] = buf[i];
+  }
+  if ( offset % 16 != 0 )
+  {
+      for (i=0; i<16-(offset%16); i++)
+      {
+        print_msg(MSG_INFO, "   ");
+      }
+      if ( offset % 16 < 8 )
+      {
+        print_msg(MSG_INFO, " ");
+      }
+      memset(s+(offset%16),' ',16-(offset%16));
+      print_msg(MSG_INFO, " |");
+      print_safe(s,16);
+      print_msg(MSG_INFO, "|");
+  }
+  print_msg(MSG_INFO, "\n");
+}
+
+
 int main (int argc, char *argv[])
 {
     char *input_filename = NULL;
@@ -1159,6 +1288,37 @@ int main (int argc, char *argv[])
     int fix_cold_pixels = 1;
     int fix_vert_stripes = 1;
     
+    /* MLV autopsy */
+    enum autopsy_content_type
+    {
+        AUTOPSY_BLOCK = 0,
+        AUTOPSY_HEADER = 1,
+        AUTOPSY_PAYLOAD = 2
+    };
+    enum autopsy_mode_type
+    {
+        AUTOPSY_OFF = 0,
+        AUTOPSY_EXTRACT = 1,
+        AUTOPSY_EXTRACT_TYPE = 2,
+        AUTOPSY_REPLACE = 3,
+        AUTOPSY_SKIP_BLOCK = 4,
+        AUTOPSY_SKIP_TYPE = 5
+    };
+    enum autopsy_dump_type
+    {
+        AUTOPSY_DUMP_FILE = 0,
+        AUTOPSY_DUMP_HEX = 1,
+        AUTOPSY_DUMP_ASCII = 2
+    };
+    
+    int autopsy_mode = AUTOPSY_OFF;
+    int autopsy_content = AUTOPSY_BLOCK;
+    int autopsy_block = 0;
+    int autopsy_dump = AUTOPSY_DUMP_FILE;
+    char *autopsy_block_type = "    ";
+    char *autopsy_file = "autopsy.bin";
+    
+    
     const char * unique_camname = "(unknown)";
 
     struct option long_options[] = {
@@ -1177,6 +1337,22 @@ int main (int argc, char *argv[])
         {"no-stripes",  no_argument, &fix_vert_stripes,  0 },
         {"avg-vertical",  no_argument, &average_vert,  1 },
         {"avg-horizontal",  no_argument, &average_hor,  1 },
+        
+        /* MLV autopsy */
+        {"relaxed",       no_argument, &relaxed,  1 },
+        {"visualize",     no_argument, &visualize,  1 },
+        {"skip-xref",     no_argument, &skip_xref,  1 },
+        {"hex",           no_argument, &autopsy_dump,  AUTOPSY_DUMP_HEX },
+        {"ascii",         no_argument, &autopsy_dump,  AUTOPSY_DUMP_ASCII },
+        {"skip-type",     required_argument, NULL,  'T' },
+        {"skip-block",    required_argument, NULL,  'U' },
+        {"extract-type",  required_argument, NULL,  'S' },
+        {"extract",       required_argument, NULL,  'Y' },
+        {"replace",       required_argument, NULL,  'Z' },
+        {"autopsy-file",  required_argument, NULL,  'V' },
+        {"header-only",   no_argument, &autopsy_content,  (int)AUTOPSY_HEADER },
+        {"payload-only",  no_argument, &autopsy_content,  (int)AUTOPSY_PAYLOAD },
+        
         {0,         0,                 0,  0 }
     };
 
@@ -1191,10 +1367,51 @@ int main (int argc, char *argv[])
     }
 
     int index = 0;
-    while ((opt = getopt_long(argc, argv, "A:F:B:L:t:xz:emnas:X:I:uvrcdo:l:b:f:", long_options, &index)) != -1)
+    while ((opt = getopt_long(argc, argv, "A:F:B:W:L:S:T:V:X:Y:Z:I:t:xz:emnas:uvrcdo:l:b:f:", long_options, &index)) != -1)
     {
         switch (opt)
         {
+            case 'Y':
+                autopsy_mode = AUTOPSY_EXTRACT;
+                autopsy_block = atoi(optarg);
+                break;
+                
+            case 'Z':
+                autopsy_mode = AUTOPSY_REPLACE;
+                autopsy_block = atoi(optarg);
+                break;
+                
+            case 'U':
+                autopsy_mode = AUTOPSY_SKIP_BLOCK;
+                autopsy_block = atoi(optarg);
+                break;
+                
+            case 'S':
+                autopsy_mode = AUTOPSY_EXTRACT_TYPE;
+                autopsy_block_type = strdup(optarg);
+                
+                if(strlen(autopsy_block_type) != 4)
+                {
+                    print_msg(MSG_ERROR, "Error: Block types must be 4 characters\n");
+                    return ERR_PARAM;
+                }
+                break;
+                
+            case 'T':
+                autopsy_mode = AUTOPSY_SKIP_TYPE;
+                autopsy_block_type = strdup(optarg);
+                
+                if(strlen(autopsy_block_type) != 4)
+                {
+                    print_msg(MSG_ERROR, "Error: Block types must be 4 characters\n");
+                    return ERR_PARAM;
+                }
+                break;
+                
+            case 'V':
+                autopsy_file = strdup(optarg);
+                break;
+              
             case 'F':
                 if(!optarg)
                 {
@@ -1816,6 +2033,172 @@ read_headers:
                 goto abort;
             }
         }
+        
+        if(autopsy_mode)
+        {
+            if((blocks_processed == autopsy_block) || (autopsy_mode == AUTOPSY_SKIP_TYPE) || (autopsy_mode == AUTOPSY_EXTRACT_TYPE))
+            {
+                switch(autopsy_mode)
+                {
+                    case AUTOPSY_SKIP_BLOCK:
+                    {
+                        goto skip_block;
+                    }
+
+                    case AUTOPSY_SKIP_TYPE:
+                    {
+                        if(!memcmp(autopsy_block_type, buf.blockType, 4))
+                        {
+                            goto skip_block;
+                        }
+                    }
+
+                    case AUTOPSY_EXTRACT_TYPE:
+                    case AUTOPSY_EXTRACT:
+                    {
+                        /* by default, dump all of the block's data */
+                        uint32_t start = 0;
+                        uint32_t length = buf.blockSize;
+                        
+                        /* for extracting specific types, we have to check the type as we are called for every block */
+                        if(autopsy_mode == AUTOPSY_EXTRACT_TYPE)
+                        {
+                            /* not the block we want to extract? go on */
+                            if(memcmp(autopsy_block_type, buf.blockType, 4))
+                            {
+                                break;
+                            }
+                        }
+                    
+                        FILE *autopsy_handle = NULL;
+                        
+                        /* only operate on file, if not dumping hex */
+                        if(!autopsy_dump)
+                        {
+                            autopsy_handle = fopen(autopsy_file, "wb+");
+                            
+                            if(!autopsy_handle)
+                            {
+                                print_msg(MSG_ERROR, "Failed opening autopsy file\n");
+                                goto abort;
+                            }
+                        }
+                        
+                        /* allocate a null-terminatable buffer */
+                        uint8_t *autopsy_buf = malloc(length + 1);
+                        if(!autopsy_buf)
+                        {
+                            print_msg(MSG_ERROR, "Failed to allocate buffer for data to extract\n");
+                            goto abort;
+                        }
+                        autopsy_buf[length] = 0;
+                        
+                        if(fread(autopsy_buf, length, 1, in_file) != 1)
+                        {
+                            print_msg(MSG_ERROR, "Failed to read data from input file\n");
+                            goto abort;
+                        }
+                        
+                        /* rewind to block start, as if noone played with it */
+                        file_set_pos(in_file, position, SEEK_SET);
+                        
+                        switch(autopsy_content)
+                        {
+                            case AUTOPSY_HEADER:
+                            {
+                                /* header only, so jsut reduce length */
+                                length = get_header_size(autopsy_buf);
+                                
+                                if(!length)
+                                {
+                                    print_msg(MSG_ERROR, "Error: Unknown block type '%c%c%c%c', cannot determine its header size.\n", autopsy_buf[0], autopsy_buf[1], autopsy_buf[2], autopsy_buf[3]);
+                                    goto abort;
+                                }
+                                break;
+                            }
+                            
+                            case AUTOPSY_PAYLOAD:
+                            {
+                                /* payload only, so skip header */
+                                int header_length = get_header_size(autopsy_buf);
+                                
+                                if(!header_length)
+                                {
+                                    print_msg(MSG_ERROR, "Error: Unknown block type '%c%c%c%c', cannot determine its header size.\n", autopsy_buf[0], autopsy_buf[1], autopsy_buf[2], autopsy_buf[3]);
+                                    goto abort;
+                                }
+                                
+                                length -= header_length;
+                                start = header_length;
+                                
+                                if(!length)
+                                {
+                                    print_msg(MSG_ERROR, "Error: No payload available for this block type '%c%c%c%c'.\n", autopsy_buf[0], autopsy_buf[1], autopsy_buf[2], autopsy_buf[3]);
+                                    goto abort;
+                                }
+                                break;
+                            }
+                        }
+                        
+                        /* make sure not to read beyond source buffer */
+                        if(start + length > buf.blockSize)
+                        {
+                            print_msg(MSG_ERROR, "Error: Block type '%c%c%c%c' has invalid size.\n", autopsy_buf[0], autopsy_buf[1], autopsy_buf[2], autopsy_buf[3]);
+                            goto abort;
+                        }
+                        
+                        switch(autopsy_dump)
+                        {
+                            case AUTOPSY_DUMP_FILE:
+                            {
+                                /* write data int autopsy file */
+                                if(fwrite(&autopsy_buf[start], length, 1, autopsy_handle) != 1)
+                                {
+                                    print_msg(MSG_ERROR, "Failed writing into autopsy file\n");
+                                    goto abort;
+                                }
+                                
+                                fclose(autopsy_handle);
+                                break;
+                            }
+                            
+                            case AUTOPSY_DUMP_HEX:
+                            {
+                                print_msg(MSG_INFO, "--- Hex display ---\n");
+                                print_msg(MSG_INFO, "   Block: %c%c%c%c\n", buf.blockType[0], buf.blockType[1], buf.blockType[2], buf.blockType[3]);
+                                print_msg(MSG_INFO, "  Offset: 0x%08" PRIx64 "\n", position);
+                                print_msg(MSG_INFO, "  Number: %d\n", blocks_processed);
+                                print_msg(MSG_INFO, "    Size: %d\n", buf.blockSize);
+
+                                hexdump((char *)&autopsy_buf[start], length, start);
+                                print_msg(MSG_INFO, "--------------------\n");
+                                print_msg(MSG_INFO, "\n");
+                                break;
+                            }
+                            
+                            case AUTOPSY_DUMP_ASCII:
+                            {
+                                print_msg(MSG_INFO, "--- ASCII display ---\n");
+                                print_msg(MSG_INFO, "   Block: %c%c%c%c\n", buf.blockType[0], buf.blockType[1], buf.blockType[2], buf.blockType[3]);
+                                print_msg(MSG_INFO, "  Offset: 0x%08" PRIx64 "\n", position);
+                                print_msg(MSG_INFO, "  Number: %d\n", blocks_processed);
+                                print_msg(MSG_INFO, "    Size: %d\n", buf.blockSize);
+                                print_msg(MSG_INFO, " Content: \"%s\"\n", &autopsy_buf[start]);
+                                print_msg(MSG_INFO, "---------------------\n");
+                                print_msg(MSG_INFO, "\n");
+                                break;
+                            }
+                        }
+                        
+                        free(autopsy_buf);
+                        
+                        /* when extracting block types, keep rolling, there might be more */
+                        if(autopsy_mode != AUTOPSY_EXTRACT_TYPE)
+                        {
+                            goto abort;
+                        }
+                        break;
+                    }
 
         /* file header */
         if(!memcmp(buf.blockType, "MLVI", 4))
