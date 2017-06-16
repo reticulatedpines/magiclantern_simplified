@@ -1897,7 +1897,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
                 break;
             }
             
-            int32_t read_size = vidf_block.blockSize - (sizeof(mlv_vidf_hdr_t) + vidf_block.frameSpace);
+            int32_t read_size = MIN(frame_size, vidf_block.blockSize - (sizeof(mlv_vidf_hdr_t) + vidf_block.frameSpace));
             void *read_buffer = buffer->frameBufferAligned;
             
             /* when we have LJ92 compressed video, read into a different buffer, decompressor will store it in the other one */
@@ -1933,7 +1933,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             /* safety check to make sure the format matches, but allow the saved block to be larger (some dummy data at the end of frame is allowed) */
             if((uint32_t)read_size > buffer->frameSize)
             {
-                bmp_printf(FONT_MED, 30, 400, "frame and block size mismatch: 0x%X 0x%X 0x%X", buffer->frameSize, vidf_block.frameSpace, vidf_block.blockSize);
+                bmp_printf(FONT_MED, 30, 400, "ERROR 0x%X 0x%X 0x%X 0x%X 0x%X", read_size, frame_size, buffer->frameSize, vidf_block.frameSpace, vidf_block.blockSize);
                 beep();
                 msleep(10000);
                 break;
@@ -2837,7 +2837,6 @@ static unsigned int mlv_play_init()
     {
         mlv_play_decomp_sem = create_named_semaphore("mlv_play_decomp_sem", 0);
     }
-    
     
     return 0;
 }
