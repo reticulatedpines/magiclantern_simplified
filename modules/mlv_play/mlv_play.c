@@ -1818,37 +1818,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
         }
         else if(!memcmp(buf.blockType, "VIDF", 4))
         {
-            frame_buf_t *buffer = NULL;
             mlv_vidf_hdr_t vidf_block;
-            
-            /* now get a buffer from the queue */
-            while (msg_queue_receive(mlv_play_queue_empty, &buffer, 100) && !mlv_play_should_stop());
-
-            if (mlv_play_should_stop())
-            {
-                break;
-            }
-            
-            /* check if the queued buffer has the correct size */
-            if(buffer->frameSize != frame_size)
-            {
-                /* the first few queued don't have anything allocated, so don't free */
-                if(buffer->frameBuffer)
-                {
-                    fio_free(buffer->frameBuffer);
-                }
-                
-                buffer->frameSize = frame_size;
-                buffer->frameBuffer = fio_malloc(buffer->frameSize);
-            }
-
-            if(!buffer->frameBuffer)
-            {
-                bmp_printf(FONT_MED, 30, 400, "allocation failed");
-                beep();
-                msleep(1000);
-                break;
-            }
             
             if(FIO_ReadFile(in_file, &vidf_block, sizeof(mlv_vidf_hdr_t)) != sizeof(mlv_vidf_hdr_t))
             {
@@ -1858,99 +1828,143 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
                 break;
             }
             
-            /* safety check to make sure the format matches, but allow the saved block to be larger (some dummy data at the end of frame is allowed) */
-            if(sizeof(mlv_vidf_hdr_t) + vidf_block.frameSpace + buffer->frameSize > vidf_block.blockSize)
+            if(main_header.videoClass != MLV_VIDEO_CLASS_RAW)
             {
-                bmp_printf(FONT_MED, 30, 400, "frame and block size mismatch: 0x%X 0x%X 0x%X", buffer->frameSize, vidf_block.frameSpace, vidf_block.blockSize);
-                beep();
-                msleep(10000);
-                break;
-            }
-            
-            /* skip frame space */
-            FIO_SeekSkipFile(in_file, position + sizeof(mlv_vidf_hdr_t) + vidf_block.frameSpace, SEEK_SET);
-
-            /* finally read the raw data */
-            if(FIO_ReadFile(in_file, buffer->frameBuffer, buffer->frameSize) != (int32_t)buffer->frameSize)
-            {
-                bmp_printf(FONT_MED, 30, 190, "File ends prematurely during VIDF raw data");
-                beep();
-                msleep(1000);
-                break;
-            }
-            
-            /* fill strings to display */
-            snprintf(buffer->messages.topLeft, SCREEN_MSG_LEN, "");
-            snprintf(buffer->messages.topRight, SCREEN_MSG_LEN, "");
-
-            if(lens_block.timestamp)
-            {
-                char *focusMode;
-                
-                if((lens_block.autofocusMode & 0x0F) != AF_MODE_MANUAL_FOCUS)
+                if(main_header.videoClass & (MLV_VIDEO_CLASS_FLAG_LZMA | MLV_VIDEO_CLASS_FLAG_LJ92))
                 {
-                    focusMode = "AF";
+                    bmp_printf(FONT_MED, 20, 300, "(compression not supported)");
                 }
                 else
                 {
-                    focusMode = "MF";
+                    bmp_printf(FONT_MED, 20, 300, "(format not supported)");
                 }
-                
-                snprintf(buffer->messages.topRight, SCREEN_MSG_LEN, "%s, %dmm, %s, %s", lens_block.lensName, lens_block.focalLength, lens_block.stabilizerMode?"IS":"no IS", focusMode);
             }
-                
-            if(rtci_block.timestamp)
+            else
             {
-                snprintf(buffer->messages.topLeft, SCREEN_MSG_LEN, "%02d.%02d.%04d %02d:%02d:%02d", rtci_block.tm_mday, rtci_block.tm_mon + 1, 1900 + rtci_block.tm_year, rtci_block.tm_hour, rtci_block.tm_min, rtci_block.tm_sec);
-            }
-            
-            snprintf(buffer->messages.botLeft, SCREEN_MSG_LEN, "%s: %dx%d", filename, rawi_block.xRes, rawi_block.yRes);
-            snprintf(buffer->messages.botRight, SCREEN_MSG_LEN, "%d/%d", vidf_block.frameNumber + 1, frame_count);
-            
-            /* update dimensions */
-            buffer->xRes = rawi_block.xRes;
-            buffer->yRes = rawi_block.yRes;
-            buffer->bitDepth = rawi_block.raw_info.bits_per_pixel;
-            buffer->blackLevel = rawi_block.raw_info.black_level;
+                frame_buf_t *buffer = NULL;
+                
+                /* now get a buffer from the queue */
+                while (msg_queue_receive(mlv_play_queue_empty, &buffer, 100) && !mlv_play_should_stop());
 
-            raw_info.black_level = rawi_block.raw_info.black_level;
-            raw_info.white_level = rawi_block.raw_info.white_level;
-            
-            if (mlv_play_exact_fps)
-            {
-                if (!fps_timer_started)
-                {
-                    mlv_play_start_fps_timer(main_header.sourceFpsNom, main_header.sourceFpsDenom);
-                    fps_timer_started = 1;
-                }
-                
-                if (fps_timer_started)
-                {
-                    /* wait till it is time to render */
-                    uint32_t temp = 0;
-                    while(msg_queue_receive(mlv_play_queue_fps, &temp, 50))
-                    {
-                        if(mlv_play_should_stop())
-                        {
-                            break;
-                        }
-                    }
-                }
-            }
-            
-            /* queue frame buffer for rendering, retry if queue is full (happens in pause or for slow rendering) */
-            while(!mlv_play_should_stop())
-            {
-                if(msg_queue_post(mlv_play_queue_render, (uint32_t) buffer))
-                {
-                    msleep(10);
-                }
-                else
+                if (mlv_play_should_stop())
                 {
                     break;
                 }
+                
+                /* check if the queued buffer has the correct size */
+                if(buffer->frameSize != frame_size)
+                {
+                    /* the first few queued don't have anything allocated, so don't free */
+                    if(buffer->frameBuffer)
+                    {
+                        fio_free(buffer->frameBuffer);
+                    }
+                    
+                    buffer->frameSize = frame_size;
+                    buffer->frameBuffer = fio_malloc(buffer->frameSize);
+                }
+
+                if(!buffer->frameBuffer)
+                {
+                    bmp_printf(FONT_MED, 30, 400, "allocation failed");
+                    beep();
+                    msleep(1000);
+                    break;
+                }
+                
+                /* safety check to make sure the format matches, but allow the saved block to be larger (some dummy data at the end of frame is allowed) */
+                if(sizeof(mlv_vidf_hdr_t) + vidf_block.frameSpace + buffer->frameSize > vidf_block.blockSize)
+                {
+                    bmp_printf(FONT_MED, 30, 400, "frame and block size mismatch: 0x%X 0x%X 0x%X", buffer->frameSize, vidf_block.frameSpace, vidf_block.blockSize);
+                    beep();
+                    msleep(10000);
+                    break;
+                }
+                
+                /* skip frame space */
+                FIO_SeekSkipFile(in_file, position + sizeof(mlv_vidf_hdr_t) + vidf_block.frameSpace, SEEK_SET);
+
+                /* finally read the raw data */
+                if(FIO_ReadFile(in_file, buffer->frameBuffer, buffer->frameSize) != (int32_t)buffer->frameSize)
+                {
+                    bmp_printf(FONT_MED, 30, 190, "File ends prematurely during VIDF raw data");
+                    beep();
+                    msleep(1000);
+                    break;
+                }
+                
+                /* fill strings to display */
+                snprintf(buffer->messages.topLeft, SCREEN_MSG_LEN, "");
+                snprintf(buffer->messages.topRight, SCREEN_MSG_LEN, "");
+
+                if(lens_block.timestamp)
+                {
+                    char *focusMode;
+                    
+                    if((lens_block.autofocusMode & 0x0F) != AF_MODE_MANUAL_FOCUS)
+                    {
+                        focusMode = "AF";
+                    }
+                    else
+                    {
+                        focusMode = "MF";
+                    }
+                    
+                    snprintf(buffer->messages.topRight, SCREEN_MSG_LEN, "%s, %dmm, %s, %s", lens_block.lensName, lens_block.focalLength, lens_block.stabilizerMode?"IS":"no IS", focusMode);
+                }
+                    
+                if(rtci_block.timestamp)
+                {
+                    snprintf(buffer->messages.topLeft, SCREEN_MSG_LEN, "%02d.%02d.%04d %02d:%02d:%02d", rtci_block.tm_mday, rtci_block.tm_mon + 1, 1900 + rtci_block.tm_year, rtci_block.tm_hour, rtci_block.tm_min, rtci_block.tm_sec);
+                }
+                
+                snprintf(buffer->messages.botLeft, SCREEN_MSG_LEN, "%s: %dx%d", filename, rawi_block.xRes, rawi_block.yRes);
+                snprintf(buffer->messages.botRight, SCREEN_MSG_LEN, "%d/%d", vidf_block.frameNumber + 1, frame_count);
+                
+                /* update dimensions */
+                buffer->xRes = rawi_block.xRes;
+                buffer->yRes = rawi_block.yRes;
+                buffer->bitDepth = rawi_block.raw_info.bits_per_pixel;
+                buffer->blackLevel = rawi_block.raw_info.black_level;
+
+                raw_info.black_level = rawi_block.raw_info.black_level;
+                raw_info.white_level = rawi_block.raw_info.white_level;
+                
+                if (mlv_play_exact_fps)
+                {
+                    if (!fps_timer_started)
+                    {
+                        mlv_play_start_fps_timer(main_header.sourceFpsNom, main_header.sourceFpsDenom);
+                        fps_timer_started = 1;
+                    }
+                    
+                    if (fps_timer_started)
+                    {
+                        /* wait till it is time to render */
+                        uint32_t temp = 0;
+                        while(msg_queue_receive(mlv_play_queue_fps, &temp, 50))
+                        {
+                            if(mlv_play_should_stop())
+                            {
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                /* queue frame buffer for rendering, retry if queue is full (happens in pause or for slow rendering) */
+                while(!mlv_play_should_stop())
+                {
+                    if(msg_queue_post(mlv_play_queue_render, (uint32_t) buffer))
+                    {
+                        msleep(10);
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
             }
-            
         }
         block_xref_pos++;
     }
