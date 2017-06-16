@@ -11,8 +11,6 @@ int sound_recording_enabled_canon()
     return (sound_recording_mode != 1);
 }
 
-static int (*mlv_snd_is_enabled)() = MODULE_FUNCTION(mlv_snd_is_enabled);
-
 /* TODO: may need check for conditions like raw modules loaded and so on */
 int sound_recording_enabled()
 {
