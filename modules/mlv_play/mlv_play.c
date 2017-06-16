@@ -140,6 +140,7 @@ typedef struct
 {
     uint32_t frameSize;
     void *frameBuffer;
+    void *frameBufferAligned;
     screen_msg_t messages;
     uint16_t xRes;
     uint16_t yRes;
@@ -170,6 +171,41 @@ static uint32_t mlv_play_should_stop();
 /* microsecond durations for one frame */
 static uint32_t mlv_play_frame_div_pos = 0;
 static uint32_t mlv_play_frame_dividers[3];
+
+/* decompression stuff wizardry goes here */
+struct struc_DecodeLosslessSetup
+{
+    void *address;
+    int depth_type;
+    int is_not_16bpp;
+    int x_2;
+    int x_1;
+    int x_mul;
+    int y_2;
+    int ysize_raw;
+    int y_mul;
+};
+
+void (*Setup_DecodeLosslessRawPath) (struct struc_DecodeLosslessSetup *args, void (*read_cbr)(int *), void (*done_cbr)(int *), int *cbr_ctx, int *a5) = NULL;
+void (*Start_DecodeLosslessPath) (struct memSuite *a1) = NULL;
+void (*Cleanup_DecodeLosslessPath) (void) = NULL;
+void *mlv_play_decomp_buf = NULL;
+static struct semaphore *mlv_play_decomp_sem = NULL;
+struct memSuite *mlv_play_decomp_suite = NULL;
+
+/* this one is called when decompression is done */
+void mlv_play_decomp_DoneCBR(int *done)
+{
+    give_semaphore(mlv_play_decomp_sem);
+}
+
+/* the read cbr is not used */
+void mlv_play_decomp_ReadCBR(int *done)
+{
+}
+
+
+
 
 static void mlv_play_flush_queue(struct msg_queue *queue)
 {
@@ -1374,7 +1410,7 @@ static void mlv_play_close_chunks(FILE **chunk_files, uint32_t chunk_count)
 
 static void mlv_play_render_frame(frame_buf_t *buffer)
 {
-    raw_info.buffer = buffer->frameBuffer;
+    raw_info.buffer = buffer->frameBufferAligned;
     raw_info.bits_per_pixel = buffer->bitDepth;
     raw_info.black_level = buffer->blackLevel;
     raw_set_geometry(buffer->xRes, buffer->yRes, 0, 0, 0, 0);
@@ -1384,7 +1420,7 @@ static void mlv_play_render_frame(frame_buf_t *buffer)
     
     if(raw_twk_available())
     {
-        raw_twk_render(buffer->frameBuffer, buffer->xRes, buffer->yRes, buffer->bitDepth, mlv_play_quality);
+        raw_twk_render(buffer->frameBufferAligned, buffer->xRes, buffer->yRes, buffer->bitDepth, mlv_play_quality);
     }
     else
     {
@@ -1614,6 +1650,7 @@ static void mlv_play_start_fps_timer(uint32_t fps_nom, uint32_t fps_denom)
     SetHPTimerAfterNow(1, &mlv_play_fps_tick, &mlv_play_fps_tick, NULL);
 }
 
+
 static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_count)
 {
     uint32_t fps_timer_started = 0;
@@ -1827,72 +1864,133 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
                 msleep(1000);
                 break;
             }
+        
+            frame_buf_t *buffer = NULL;
             
-            if(main_header.videoClass != MLV_VIDEO_CLASS_RAW)
+            /* now get a buffer from the queue */
+            while (msg_queue_receive(mlv_play_queue_empty, &buffer, 100) && !mlv_play_should_stop());
+
+            if (mlv_play_should_stop())
             {
-                if(main_header.videoClass & (MLV_VIDEO_CLASS_FLAG_LZMA | MLV_VIDEO_CLASS_FLAG_LJ92))
+                break;
+            }
+            
+            /* check if the queued buffer has the correct size */
+            if(buffer->frameSize != frame_size)
+            {
+                /* the first few queued don't have anything allocated, so don't free */
+                if(buffer->frameBuffer)
                 {
-                    bmp_printf(FONT_MED, 20, 300, "(compression not supported)");
+                    fio_free(buffer->frameBuffer);
+                }
+                
+                buffer->frameSize = frame_size;
+                buffer->frameBuffer = fio_malloc(buffer->frameSize + 0x1000);
+                buffer->frameBufferAligned = (void *) (((uint32_t)buffer->frameBuffer + 0x1000) & ~0xFFF);
+            }
+
+            if(!buffer->frameBuffer)
+            {
+                bmp_printf(FONT_MED, 30, 400, "allocation failed");
+                beep();
+                msleep(1000);
+                break;
+            }
+            
+            int32_t read_size = vidf_block.blockSize - (sizeof(mlv_vidf_hdr_t) + vidf_block.frameSpace);
+            void *read_buffer = buffer->frameBufferAligned;
+            
+            /* when we have LJ92 compressed video, read into a different buffer, decompressor will store it in the other one */
+            if(main_header.videoClass & MLV_VIDEO_CLASS_FLAG_LJ92)
+            {
+                /* none allocated yet? do so */
+                if(!mlv_play_decomp_buf)
+                {
+                    int mem_size = (buffer->frameSize + 0x1000) & ~0xFFF;
+                    
+                    /* keep in mind the address must be aligned, alloc a few k more */
+                    mlv_play_decomp_buf = malloc(mem_size + 0x1000);
+                    if(!mlv_play_decomp_buf)
+                    {
+                        bmp_printf(FONT_MED, 20, 100, "failed to alloc mlv_play_decomp_buf");
+                        msleep(10000);
+                        return;
+                    }
+                    
+                    mlv_play_decomp_suite = CreateMemorySuite(mlv_play_decomp_buf, mem_size, 0);
+                    if(!mlv_play_decomp_suite)
+                    {
+                        bmp_printf(FONT_MED, 20, 100, "(failed inSuite)");
+                        msleep(10000);
+                        return;
+                    }
+                }
+                
+                /* reading into this one */
+                read_buffer = mlv_play_decomp_buf;
+            }
+            
+            /* safety check to make sure the format matches, but allow the saved block to be larger (some dummy data at the end of frame is allowed) */
+            if((uint32_t)read_size > buffer->frameSize)
+            {
+                bmp_printf(FONT_MED, 30, 400, "frame and block size mismatch: 0x%X 0x%X 0x%X", buffer->frameSize, vidf_block.frameSpace, vidf_block.blockSize);
+                beep();
+                msleep(10000);
+                break;
+            } 
+            
+            /* skip frame space */
+            FIO_SeekSkipFile(in_file, position + sizeof(mlv_vidf_hdr_t) + vidf_block.frameSpace, SEEK_SET);
+
+            /* finally read the raw data */
+            if(FIO_ReadFile(in_file, read_buffer, read_size) != (int32_t)read_size)
+            {
+                bmp_printf(FONT_MED, 30, 190, "File ends prematurely during VIDF raw data");
+                beep();
+                msleep(1000);
+                break;
+            }
+            
+            if(main_header.videoClass & MLV_VIDEO_CLASS_FLAG_LJ92)
+            {
+                if(!mlv_play_decomp_sem)
+                {
+                    bmp_printf(FONT_MED, 20, 300, "(no decompression on this model)");
                 }
                 else
                 {
-                    bmp_printf(FONT_MED, 20, 300, "(format not supported)");
+                    
+                    struct struc_DecodeLosslessSetup decode_opts;
+                    
+                    decode_opts.address = buffer->frameBufferAligned;
+                    decode_opts.depth_type = 4;
+                    decode_opts.is_not_16bpp = 1;
+                    decode_opts.x_1 = rawi_block.xRes;
+                    decode_opts.x_2 = 0;
+                    decode_opts.x_mul = 0;
+                    decode_opts.ysize_raw = rawi_block.yRes;
+                    decode_opts.y_2 = 0;
+                    decode_opts.y_mul = 0;
+                    
+                    /* we dont use that one */
+                    int done = 0;
+                    Setup_DecodeLosslessRawPath(&decode_opts, mlv_play_decomp_ReadCBR, mlv_play_decomp_DoneCBR, &done, &done);
+                    Start_DecodeLosslessPath(mlv_play_decomp_suite);
+                    
+                    /* wait for decompression to finish */
+                    take_semaphore(mlv_play_decomp_sem, 0);
+                    
+                    /* clean up */
+                    Cleanup_DecodeLosslessPath();
                 }
+            }
+            
+            if((main_header.videoClass & 0x0F) != MLV_VIDEO_CLASS_RAW)
+            {
+                bmp_printf(FONT_MED, 20, 300, "(format not supported)");
             }
             else
             {
-                frame_buf_t *buffer = NULL;
-                
-                /* now get a buffer from the queue */
-                while (msg_queue_receive(mlv_play_queue_empty, &buffer, 100) && !mlv_play_should_stop());
-
-                if (mlv_play_should_stop())
-                {
-                    break;
-                }
-                
-                /* check if the queued buffer has the correct size */
-                if(buffer->frameSize != frame_size)
-                {
-                    /* the first few queued don't have anything allocated, so don't free */
-                    if(buffer->frameBuffer)
-                    {
-                        fio_free(buffer->frameBuffer);
-                    }
-                    
-                    buffer->frameSize = frame_size;
-                    buffer->frameBuffer = fio_malloc(buffer->frameSize);
-                }
-
-                if(!buffer->frameBuffer)
-                {
-                    bmp_printf(FONT_MED, 30, 400, "allocation failed");
-                    beep();
-                    msleep(1000);
-                    break;
-                }
-                
-                /* safety check to make sure the format matches, but allow the saved block to be larger (some dummy data at the end of frame is allowed) */
-                if(sizeof(mlv_vidf_hdr_t) + vidf_block.frameSpace + buffer->frameSize > vidf_block.blockSize)
-                {
-                    bmp_printf(FONT_MED, 30, 400, "frame and block size mismatch: 0x%X 0x%X 0x%X", buffer->frameSize, vidf_block.frameSpace, vidf_block.blockSize);
-                    beep();
-                    msleep(10000);
-                    break;
-                }
-                
-                /* skip frame space */
-                FIO_SeekSkipFile(in_file, position + sizeof(mlv_vidf_hdr_t) + vidf_block.frameSpace, SEEK_SET);
-
-                /* finally read the raw data */
-                if(FIO_ReadFile(in_file, buffer->frameBuffer, buffer->frameSize) != (int32_t)buffer->frameSize)
-                {
-                    bmp_printf(FONT_MED, 30, 190, "File ends prematurely during VIDF raw data");
-                    beep();
-                    msleep(1000);
-                    break;
-                }
-                
                 /* fill strings to display */
                 snprintf(buffer->messages.topLeft, SCREEN_MSG_LEN, "");
                 snprintf(buffer->messages.topRight, SCREEN_MSG_LEN, "");
@@ -1974,6 +2072,19 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
         mlv_play_stop_fps_timer();
     }
     free(block_xref);
+    
+    /* free decompression stuff if needed */
+    if(mlv_play_decomp_buf)
+    {
+        free(mlv_play_decomp_buf);
+        mlv_play_decomp_buf = NULL;
+    }
+    
+    if(mlv_play_decomp_suite)
+    {
+        DeleteMemorySuite(mlv_play_decomp_suite);
+        mlv_play_decomp_suite = NULL;
+    }
 }
 
 static void mlv_play_raw(char *filename, FILE **chunk_files, uint32_t chunk_count)
@@ -2712,6 +2823,21 @@ static unsigned int mlv_play_init()
     fileman_register_type("MLV", "MLV Video", mlv_play_filehandler);
     
     mlv_play_sem = create_named_semaphore("mlv_play_running", 1);
+    
+    /* now check for the needed decompression functions */
+    if (is_camera("5D3", "1.1.3"))
+    {
+        Setup_DecodeLosslessRawPath = (void*)0xFF3CB010;
+        Start_DecodeLosslessPath = (void*)0xFF3CB0D8;
+        Cleanup_DecodeLosslessPath = (void*)0xFF3CB23C;
+    }
+    
+    /* all functions known? having the semaphore is an indicator we can decompress */
+    if(Setup_DecodeLosslessRawPath && Start_DecodeLosslessPath && Cleanup_DecodeLosslessPath)
+    {
+        mlv_play_decomp_sem = create_named_semaphore("mlv_play_decomp_sem", 0);
+    }
+    
     
     return 0;
 }
