@@ -1390,7 +1390,9 @@ static uint32_t DebugMsg_addr = 0;
 
 static void tb_exec_cb(void *opaque, CPUState *cpu, TranslationBlock *tb)
 {
-    if (qemu_loglevel_mask(EOS_LOG_AUTOEXEC) && saved_loglevel != qemu_loglevel)
+    if (qemu_loglevel_mask(EOS_LOG_AUTOEXEC) &&
+        saved_loglevel != 0 &&
+        saved_loglevel != qemu_loglevel)
     {
         if ((tb->pc & ~0x40000000) == 0x800000)
         {
@@ -1468,8 +1470,8 @@ void eos_logging_init(EOSState *s)
                            EOS_LOG_RAM_MEMCHK   |
                            EOS_LOG_TASKS        |
                            EOS_LOG_AUTOEXEC     |
-                           0) ||
-        DebugMsg_addr)
+                           EOS_LOG_DEBUGMSG     |
+                           0))
     {
         fprintf(stderr, "[EOS] enabling code execution logging.\n");
         cpu_set_tb_exec_cb(tb_exec_cb, s);
@@ -1513,6 +1515,7 @@ void eos_logging_init(EOSState *s)
             EOS_LOG_CALLS   |
             EOS_LOG_IO      |
             EOS_LOG_ROM     |
+            CPU_LOG_EXEC    |
         0);
         if (!qemu_loglevel_mask(EOS_LOG_RAM_MEMCHK))
         {
