@@ -466,6 +466,7 @@ static void FAST cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
                         (video_mode_fps == 50)                  ? PACK12(4,14) :
                         (video_mode_fps == 60)                  ? PACK12(6,14) :
                                                                  (uint32_t) -1 ;
+                    cmos_new[6] = 0x370;    /* pink highlights without this */
                 }
                 break;
 
