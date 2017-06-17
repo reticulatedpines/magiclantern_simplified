@@ -2981,8 +2981,6 @@ static struct lvinfo_item info_items[] = {
     }
 };
 
-static ml_cbr_action sound_used_cbr (const char *, void *);
-
 static unsigned int raw_rec_init()
 {
     cam_eos_m = is_camera("EOSM", "2.0.2");
