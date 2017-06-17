@@ -1872,6 +1872,11 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
 
             if (mlv_play_should_stop())
             {
+                /* if we also got a buffer, play nicely and give it back */
+                if(buffer)
+                {
+                    msg_queue_post(mlv_play_queue_empty, (uint32_t) buffer);
+                }
                 break;
             }
             
@@ -2050,11 +2055,19 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
                 }
                 
                 /* queue frame buffer for rendering, retry if queue is full (happens in pause or for slow rendering) */
-                while(!mlv_play_should_stop())
+                while(1)
                 {
                     if(msg_queue_post(mlv_play_queue_render, (uint32_t) buffer))
                     {
-                        msleep(10);
+                        /* in case we could not pass the buffer and stop is requested, gibe back buffer here also */
+                        if(mlv_play_should_stop())
+                        {
+                            msg_queue_post(mlv_play_queue_empty, (uint32_t) buffer);
+                        }
+                        else
+                        {
+                            msleep(10);
+                        }
                     }
                     else
                     {
