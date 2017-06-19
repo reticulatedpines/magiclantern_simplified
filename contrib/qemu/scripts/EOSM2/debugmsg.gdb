@@ -10,3 +10,11 @@ DebugMsg_log
 
 b *0x7360
 task_create_log
+
+# break infinite loop at Wait LeoLens Complete
+b *0xFF0C5148
+commands
+  printf "Patching LeoLens (infinite loop)\n"
+  set *(int*)($r4 + 0x28) = 1
+  c
+end
