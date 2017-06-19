@@ -121,7 +121,14 @@ enum bug_id
     /* 
         dont know yet where this bug comes from. was reported in http://www.magiclantern.fm/forum/index.php?topic=14703
     */
-    BUG_ID_FRAMEDATA_MISALIGN = 2
+    BUG_ID_FRAMEDATA_MISALIGN = 2,
+    /* 
+        the code currently assumes that writing from cached memory, especially cache, would work.
+        seems that works most time, but not always.
+        no matter where it comes from, we need a workaround.
+        https://www.magiclantern.fm/forum/index.php?topic=19761
+    */
+    BUG_ID_NULL_SIZE_ZERO = 3
 };
 
 int batch_mode = 0;
@@ -1297,6 +1304,8 @@ int main (int argc, char *argv[])
     int fix_cold_pixels = 1;
     int fix_vert_stripes = 1;
     
+    enum bug_id fix_bug = BUG_ID_NONE;
+    
     /* MLV autopsy */
     enum autopsy_content_type
     {
@@ -1424,8 +1433,18 @@ int main (int argc, char *argv[])
                 break;
               
             case 'F':
-                print_msg(MSG_ERROR, "Error: No bug fix options supported in this version\n");
-                return ERR_PARAM;
+                if(!optarg)
+                {
+                    print_msg(MSG_ERROR, "Error: Missing bug ID. possible ones:\n");
+                    print_msg(MSG_ERROR, "    #3 - fix invalid NULL block size\n");
+                    return ERR_PARAM;
+                }
+                else
+                {
+                    fix_bug = MIN(16384, MAX(1, atoi(optarg)));
+                    print_msg(MSG_INFO, "FIX BUG #%d [active]\n", fix_bug);
+                }
+                break;
               
             case 'W':
                 if(!optarg)
@@ -2074,8 +2093,16 @@ read_headers:
         /* unexpected block header size? */
         if(buf.blockSize < sizeof(mlv_hdr_t) || buf.blockSize > 50 * 1024 * 1024)
         {
-            print_msg(MSG_ERROR, "Invalid block size at position 0x%08" PRIx64 "\n", position);
-            goto abort;
+            if(fix_bug == BUG_ID_NULL_SIZE_ZERO && !memcmp(buf.blockType, "NULL", 4))
+            {
+                int padded_size = (position + sizeof(mlv_hdr_t) + 511) & ~511;
+                buf.blockSize = padded_size - position;
+            }
+            else
+            {
+                print_msg(MSG_ERROR, "Invalid block size at position 0x%08" PRIx64 "\n", position);
+                goto abort;
+            }
         }
         
         /* show all block types in a more convenient style, but needs little housekeeping code */
