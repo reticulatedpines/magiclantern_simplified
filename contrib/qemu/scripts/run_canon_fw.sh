@@ -16,16 +16,24 @@ function is_mounted
     return 1
 }
 
-if is_mounted sd.img; then
-    echo
-    echo "Error: please unmount the SD image."
-    exit 1
-fi
+if [ $(uname) == "Darwin" ]; then
+    if [[ -n $(ls /Volumes | grep EOS_DIGITAL*) ]]; then
+        echo
+        echo "Error: please unmount EOS_DIGITAL."
+        exit 1
+    fi
+else
+    if is_mounted sd.img; then
+        echo
+        echo "Error: please unmount the SD image."
+        exit 1
+    fi
 
-if is_mounted cf.img; then
-    echo
-    echo "Error: please unmount the CF image."
-    exit 1
+    if is_mounted cf.img; then
+        echo
+        echo "Error: please unmount the CF image."
+        exit 1
+    fi
 fi
 
 # recompile QEMU
