@@ -55,7 +55,7 @@ NSTUB(0xFF1C7934,  FIO_FindClose)                           // called with ret_F
 NSTUB(0xFF1C7854,  FIO_FindNextEx)
 NSTUB(0xFF1C679C,  FIO_ReadFile)
 NSTUB(0xFF1C684C,  FIO_SeekSkipFile)
-NSTUB(0xFF1C693C,  FIO_WriteFile)
+NSTUB(0xFF1C693C, _FIO_WriteFile)
 NSTUB(0xFF1C71A0, _FIO_CreateDirectory)
 NSTUB(0xFF1C6648, _FIO_CreateFile)
 NSTUB(0xFF1C7760, _FIO_FindFirstEx)

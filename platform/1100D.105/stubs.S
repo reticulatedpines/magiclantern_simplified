@@ -46,7 +46,7 @@ NSTUB(0xFF1DA5F0,  FIO_FindClose)                           // might be good (du
 NSTUB(0xFF1DA510,  FIO_FindNextEx)                          // might be good (dumps=1, score=50)
 NSTUB(0xFF1D93D0,  FIO_ReadFile)                            // might be good (dumps=1, score=87)
 NSTUB(0xFF1D9480,  FIO_SeekSkipFile)                        /* present on 5D3.113, EOSM.202 */
-NSTUB(0xFF1D9570,  FIO_WriteFile)                           // might be good (dumps=1, score=65)
+NSTUB(0xFF1D9570, _FIO_WriteFile)                           // might be good (dumps=1, score=65)
 NSTUB(0xFF1D9E5C, _FIO_CreateDirectory)                     // might be good (dumps=1, score=13)
 NSTUB(0xFF1D927C, _FIO_CreateFile)                          // might be good (dumps=1, score=50)
 NSTUB(0xFF1DA41C, _FIO_FindFirstEx)                         // might be good (dumps=1, score=50)

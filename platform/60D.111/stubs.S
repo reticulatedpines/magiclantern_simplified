@@ -53,7 +53,7 @@ NSTUB(0xFF1CB3CC,  FIO_FindClose)                           // called with ret_F
 NSTUB(0xFF1CB2EC,  FIO_FindNextEx)
 NSTUB(0xFF1CA1AC,  FIO_ReadFile)
 NSTUB(0xFF1CA25C,  FIO_SeekSkipFile)                        /* present on 5D3.113, EOSM.202 */
-NSTUB(0xFF1CA34C,  FIO_WriteFile)
+NSTUB(0xFF1CA34C, _FIO_WriteFile)
 NSTUB(0xFF1CAC38, _FIO_CreateDirectory)
 NSTUB(0xFF1CA058, _FIO_CreateFile)
 NSTUB(0xFF1CB1F8, _FIO_FindFirstEx)

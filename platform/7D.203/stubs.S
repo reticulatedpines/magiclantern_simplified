@@ -47,7 +47,7 @@ NSTUB(0xFF1FD554,  FIO_FindClose)                           // AJ__switch_0x1A50
 NSTUB(0xFF1FD42C,  FIO_FindNextEx)
 NSTUB(0xFF1FC434,  FIO_ReadFile)
 NSTUB(0xFF1FC4E4,  FIO_SeekSkipFile)
-NSTUB(0xFF1FC5D4,  FIO_WriteFile)
+NSTUB(0xFF1FC5D4, _FIO_WriteFile)
 NSTUB(0xFF1FCCF4, _FIO_CreateDirectory)                     // not sure. g3gg0: confirmed by caller 'ctgDirCreate'
 NSTUB(0xFF1FC2E0, _FIO_CreateFile)
 NSTUB(0xFF1FD2B8, _FIO_FindFirstEx)

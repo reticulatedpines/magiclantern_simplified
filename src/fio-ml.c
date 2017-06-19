@@ -497,11 +497,32 @@ static FILE* _FIO_CreateFileEx(const char* name)
     /* return 0 on error, just like in plain C */
     return 0;
 }
+
 FILE* FIO_CreateFile(const char* name)
 {
     char new_name[FIO_MAX_PATH_LENGTH];
     fixup_filename(new_name, name, sizeof(new_name));
     return _FIO_CreateFileEx(new_name);
+}
+
+/* Canon stub */
+extern int _FIO_WriteFile( FILE* stream, const void* ptr, size_t count );
+
+int FIO_WriteFile( FILE* stream, const void* ptr, size_t count )
+{
+    /* we often assumed that the FIO routines will somehow care for buffers being still in cache.
+       proven by the fact that even canon calls FIO_WriteFile with cached memory as source.
+       that was simply incorrect. force cache flush if the buffer is a cachable one.
+    */
+    if (ptr == CACHEABLE(ptr))
+    {
+        /* write back all data to RAM */
+        /* todo: check performance penalty
+         * is it worth cleaning only the current buffer? */
+        clean_d_cache();
+    }
+
+    return _FIO_WriteFile(stream, ptr, count);
 }
 
 FILE* FIO_CreateFileOrAppend(const char* name)
