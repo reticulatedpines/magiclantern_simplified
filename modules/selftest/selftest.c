@@ -106,7 +106,7 @@ static void next_tick_cbr(int arg1, void* arg2)
     SetHPTimerNextTick(arg1, 100000, timer_cbr, overrun_cbr, 0);
 }
 
-#define TEST_MSG(fmt, ...) { if (!stub_silence || !stub_ok) stub_log_len += snprintf(stub_log_buf + stub_log_len, stub_max_log_len - stub_log_len, fmt, ## __VA_ARGS__); printf(fmt, ## __VA_ARGS__); }
+#define TEST_MSG(fmt, ...) { if (!stub_silence || !stub_ok) { stub_log_len += snprintf(stub_log_buf + stub_log_len, stub_max_log_len - stub_log_len, fmt, ## __VA_ARGS__); printf(fmt, ## __VA_ARGS__); } }
 #define TEST_VOID(x) { x; stub_ok = 1; TEST_MSG("       %s\n", #x); }
 #define TEST_FUNC(x) { int ans = (int)(x); stub_ok = 1; TEST_MSG("       %s => 0x%x\n", #x, ans); }
 #define TEST_FUNC_CHECK(x, condition) { int ans = (int)(x); stub_ok = ans condition; TEST_MSG("[%s] %s => 0x%x\n", stub_ok ? "Pass" : "FAIL", #x, ans); if (stub_ok) stub_passed_tests++; else stub_failed_tests++; }
@@ -119,6 +119,79 @@ static int stub_silence = 0;
 static int stub_ok = 1;
 static int stub_passed_tests = 0;
 static int stub_failed_tests = 0;
+
+/* this checks whether clean_d_cache actually writes the data to physical memory
+ * so other devices (such as DMA controllers) will see the same memory contents as the CPU */
+static void stub_test_cache()
+{
+    void * bmp;
+    TEST_FUNC_CHECK(bmp = bmp_load("ML/CROPMKS/CINESCO2.BMP", 1), != 0);
+    if (!bmp) return;
+
+    uint8_t * const bvram_mirror = get_bvram_mirror();
+    if (!bvram_mirror) return;
+
+    /* perform the test twice:
+     * one without cache cleaning, expected to fail,
+     * and one with cache cleaning, expected to succeed */
+    for (int k = 0; k < 2; k++)
+    {
+        /* perform this test with interrupts disabled */
+        uint32_t old = cli();
+
+        /* draw a cropmark */
+        clrscr();
+        bmp_draw_scaled_ex(bmp, os.x0, os.y0, os.x_ex, os.y_ex, bvram_mirror);
+
+        if (k == 1)
+        {
+            /* make sure the data is written to physical memory */
+            clean_d_cache();
+        }
+
+        /* copy the image to idle buffer using EDMAC */
+        uint8_t * src = bmp_vram_real();
+        uint8_t * dst = bmp_vram_idle();
+        edmac_copy_rectangle_adv_start(dst, src, 960, 0, 0, 960, 0, 0, 720, 480);
+
+        /* wait for EDMAC transfer to finish */
+        /* we have interrupts disabled, so waiting at semaphore won't work */
+        for (int i = 0; i < 50000000; i++)
+        {
+            asm volatile ("nop");
+        }
+
+        /* assume EDMAC transfer finished - cleanup */
+        edmac_copy_rectangle_finish();
+
+        /* compare the image buffers */
+        int differences = 0;
+        for (int y = 0; y < 480; y++)
+        {
+            for (int x = 0; x < 720; x++)
+            {
+                int i = x + y * 960;
+                if (src[i] != dst[i])
+                {
+                    differences++;
+                }
+            }
+        }
+
+        if (k)
+        {
+            /* expect to succeed */
+            TEST_FUNC_CHECK(differences, == 0);
+        }
+        else
+        {
+            /* expect to fail */
+            TEST_FUNC_CHECK(differences, > 100);
+        }
+
+        sei(old);
+    }
+}
 
 static void stub_test_file_io()
 {
@@ -638,6 +711,7 @@ static void stub_test_task(void* arg)
 
     for (int i=0; i < n; i++)
     {
+        stub_test_cache();
         stub_test_file_io();
         stub_test_gui_timers();
         stub_test_other_timers();
