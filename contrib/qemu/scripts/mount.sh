@@ -2,7 +2,7 @@
 
 echo "This will mount sd.img and cf.img as a loopback device."
 
-if [ $(uname -s) == "Darwin" ]; then
+if [ $(uname) == "Darwin" ]; then
     hdiutil attach sd.img
     hdiutil attach cf.img
     echo "Done."
