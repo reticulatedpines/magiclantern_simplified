@@ -10,6 +10,8 @@
 #include <timer.h>
 #include <asm.h>
 
+extern WEAK_FUNC(ret_0) char * asm_guess_func_name_from_string(uint32_t func_addr);
+
 static int edmac_selection;
 
 static void edmac_display_page(int i0, int x0, int y0)
@@ -114,6 +116,20 @@ static void edmac_display_detailed(int channel)
 
     /* http://magiclantern.wikia.com/wiki/Register_Map#EDMAC */
 
+    uint32_t dir     = edmac_get_dir(channel);
+    char* dir_s      = 
+        dir == EDMAC_DIR_READ  ? "read"  :
+        dir == EDMAC_DIR_WRITE ? "write" :
+                                 "unused";
+
+    if (dir == EDMAC_DIR_UNUSED)
+    {
+        /* attempting to get info from unused channels may crash on old models */
+        /* if it doesn't crash, the additional info doesn't make any sense */
+        bmp_printf(FONT_MONO_20, 50, y + font_large.height, "Unused");
+        return;
+    }
+
     uint32_t state = edmac_get_state(channel);
     uint32_t flags = edmac_get_flags(channel);
     uint32_t addr  = edmac_get_address(channel);
@@ -134,12 +150,6 @@ static void edmac_display_detailed(int channel)
     uint32_t off2a = shamem_read(base + 0x24);
     uint32_t off3  = shamem_read(base + 0x28);
     uint32_t off40 = shamem_read(base + 0x40);
-
-    uint32_t dir     = edmac_get_dir(channel);
-    char* dir_s      = 
-        dir == EDMAC_DIR_READ  ? "read"  :
-        dir == EDMAC_DIR_WRITE ? "write" :
-                                 "unused?";
     
     uint32_t conn_w  = edmac_get_connection(channel, EDMAC_DIR_WRITE);
     uint32_t conn_r  = edmac_get_connection(channel, EDMAC_DIR_READ);
@@ -165,18 +175,19 @@ static void edmac_display_detailed(int channel)
     y += fh;
     bmp_printf(FONT_MONO_20, 50, y += fh, "Connection : write=0x%x read=0x%x dir=%s", conn_w, conn_r, dir_s);
 
-    #if defined(CONFIG_5D3)
-    /**
-     * ConnectReadEDmac(channel, conn)
-     * RAM:edmac_register_interrupt(channel, cbr_handler, ...)
-     * => *(8 + 32*arg0 + *0x12400) = arg1
-     * and also: *(12 + 32*arg0 + *0x12400) = arg1
-     */
-    uint32_t cbr1 = MEM(8 + 32*(channel) + MEM(0x12400));
-    uint32_t cbr2 = MEM(12 + 32*(channel) + MEM(0x12400));
-    bmp_printf(FONT_MONO_20, 50, y += fh, "CBR handler: %8x %s", cbr1, asm_guess_func_name_from_string(cbr1));
-    bmp_printf(FONT_MONO_20, 50, y += fh, "CBR abort  : %8x %s", cbr2, asm_guess_func_name_from_string(cbr2));
-    #endif
+    if (is_camera("5D3", "*"))
+    {
+        /**
+         * ConnectReadEDmac(channel, conn)
+         * RAM:edmac_register_interrupt(channel, cbr_handler, ...)
+         * => *(8 + 32*arg0 + *0x12400) = arg1
+         * and also: *(12 + 32*arg0 + *0x12400) = arg1
+         */
+        uint32_t cbr1 = MEM(8 + 32*(channel) + MEM(0x12400));
+        uint32_t cbr2 = MEM(12 + 32*(channel) + MEM(0x12400));
+        bmp_printf(FONT_MONO_20, 50, y += fh, "CBR handler: %8x %s", cbr1, asm_guess_func_name_from_string(cbr1));
+        bmp_printf(FONT_MONO_20, 50, y += fh, "CBR abort  : %8x %s", cbr2, asm_guess_func_name_from_string(cbr2));
+    }
 }
 
 static MENU_UPDATE_FUNC(edmac_display)
@@ -195,12 +206,12 @@ static MENU_UPDATE_FUNC(edmac_display)
         else
         {
             edmac_display_page(16, 0, 30);
-            #ifdef CONFIG_DIGIC_V
-            edmac_display_page(32, 360, 30);
-            #endif
+            if (edmac_get_dir(32) != EDMAC_DIR_UNUSED)
+            {
+                edmac_display_page(32, 360, 30);
+            }
         }
 
-        //~ int x = 20;
         bmp_printf(
             FONT_MONO_20,
             20, 450, "EDMAC state: "
