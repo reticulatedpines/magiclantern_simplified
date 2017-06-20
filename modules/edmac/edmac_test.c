@@ -40,7 +40,7 @@ static void edmac_test_copy(
     struct edmac_info * dst_info,
     uint32_t src_flags, uint32_t dst_flags,
     uint32_t src_start_flags, uint32_t dst_start_flags,
-    int show_elapsed
+    int show_elapsed, int check_copy
 )
 {
     volatile uint32_t write_done = 0;
@@ -124,6 +124,95 @@ static void edmac_test_copy(
             dst_end_addr > expected_dst_end_addr ? "over" : "under",
             dst_end_addr - expected_dst_end_addr
         );
+    }
+
+    if (check_copy)
+    {
+        int total_size_src = edmac_get_total_size(src_info, 0);
+        int total_size_dst = edmac_get_total_size(dst_info, 0);
+        
+        if (total_size_src != total_size_dst)
+        {
+            Log("Warning: src/dst sizes do not match (%d, %d)\n", total_size_src, total_size_dst);
+        }
+
+        if (memcmp(src, dst, total_size_dst) == 0)
+        {
+            Log("Copied %d bytes.\n", total_size_dst);
+        }
+        else
+        {
+            /* Try to figure out what it did.
+             * Assume it copies the entire input (no offsets in src_info);
+             * it may add some gaps in the output (positive offsets in dst_info).
+             */
+            int prev_copied = -1;
+            int prev_skipped = -1;
+            int repeats = 0;
+
+            int copied_acc = 0;
+            int skipped_acc = 0;
+            
+            const int maxiter = 5000;
+            for (int k = 0; k < maxiter; k++)
+            {
+                int copied = 0;
+                while (*(uint8_t*)(dst + copied_acc + skipped_acc + copied) == *(uint8_t*)(src + copied_acc + copied))
+                {
+                    copied++;
+                }
+                
+                copied_acc += copied;
+                
+                int skipped = 0;
+                while (*(uint8_t*)(dst + copied_acc + skipped_acc + skipped) == 0xEE)
+                {
+                    skipped++;
+                }
+                
+                skipped_acc += skipped;
+                
+                if (copied == prev_copied && skipped == prev_skipped)
+                {
+                    repeats++;
+                }
+                else
+                {
+                    if (repeats)
+                    {
+                        Log("Repeated %d times (%d runs).\n", repeats, repeats + 1);
+                    }
+                    Log("Copied %d, skipped %d.\n", copied,  skipped);
+                    repeats = 0;
+                }
+                
+                prev_copied = copied;
+                prev_skipped = skipped;
+                
+                if (copied_acc >= total_size_dst)
+                {
+                    break;
+                }
+            }
+
+            if (repeats)
+            {
+                Log("Repeated %d times (%d runs).\n", repeats, repeats + 1);
+            }
+            
+            if (copied_acc == total_size_dst)
+            {
+                Log("Source copied correctly.\n");
+            }
+            else if (copied_acc < total_size_dst)
+            {
+                Log("Only copied %d of %d.\n", copied_acc, total_size_dst);
+            }
+            else
+            {
+                Log("Copied too much: %d, expected %d.\n", copied_acc, total_size_dst);
+            }
+        }
     }
 
     UnregisterEDmacCompleteCBR(edmac_read_chan);
@@ -248,11 +337,21 @@ void edmac_test()
             
             Log("src: "); Log_edmac_info(&src_info);
 
+            /* if the offsets are non-negative, we can print a summary
+             * of what was copied in the output buffer */
+            int nneg_offsets = 
+                (int32_t) dst_infos[k].off1a >= 0 &&
+                (int32_t) dst_infos[k].off1b >= 0 &&
+                (int32_t) dst_infos[k].off2a >= 0 &&
+                (int32_t) dst_infos[k].off2b >= 0 &&
+                (int32_t) dst_infos[k].off3  >= 0 ;
+
             edmac_test_copy(
                 src, dst,
                 &src_info, &dst_infos[k],
                 0x40010000, 0x40010000,
-                2, 0, 1
+                2, 0,
+                1, nneg_offsets ? 1 : 0
             );
             
             Log("src: "); Log_md5(src, src_size);
@@ -313,7 +412,8 @@ void edmac_test()
                 src, dst,
                 &edmac_infos[k][0], &edmac_infos[k][1],
                 0x20000000, 0x20000000,
-                2, 0, 1
+                2, 0,
+                1, 0
             );
             
             Log("src: "); Log_md5(src, src_size);
