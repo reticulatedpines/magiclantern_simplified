@@ -13,6 +13,7 @@
 #include <edmac-memcpy.h>
 #include <screenshot.h>
 #include <powersave.h>
+#include <alloca.h>
 
 /* optional routines */
 extern WEAK_FUNC(ret_0) uint32_t ml_rpc_send(uint32_t command, uint32_t parm1, uint32_t parm2, uint32_t parm3, uint32_t wait);
@@ -130,8 +131,10 @@ static void busy_wait_ms(int ms)
 
 /* this checks whether clean_d_cache actually writes the data to physical memory
  * so other devices (such as DMA controllers) will see the same memory contents as the CPU */
-static void stub_test_cache()
+static void stub_test_cache_bmp()
 {
+    TEST_MSG("Cache test A (EDMAC on BMP buffer)...\n");
+
     void * bmp;
     TEST_FUNC_CHECK(bmp = bmp_load("ML/CROPMKS/CINESCO2.BMP", 1), != 0);
     if (!bmp) return;
@@ -210,6 +213,89 @@ static void stub_test_cache()
     }
 }
 
+static void stub_test_cache_fio()
+{
+    TEST_MSG("Cache test B (FIO on 8K buffer)...\n");
+
+    /* prefer CF card if present */
+    char * test_file = is_dir("A:/") ? "A:/test.dat" : "test.dat";
+
+    FILE* f;
+    TEST_FUNC_CHECK(f = FIO_CreateFile(test_file), != 0);
+
+    /* cacheable buffer that will fit the entire cache */
+    /* placed at some random stack offset */
+    /* note: we have 32K stack */
+    const int size = 8192;
+    uint8_t * pad = alloca(MOD(rand(), size));
+    uint8_t * buf = alloca(size);
+
+    /* make sure pad gets allocated above buf
+     * therefore moving "buf" on the stack at some random offset */
+    ASSERT(buf + 8192 <= pad);
+
+    /* fill the buffer (this should bring it into cache) */
+    for (int i = 0; i < size; i++)
+    {
+        buf[i] = i;
+    }
+
+    /* fill the buffer again; hoping some values won't reach the physical memory */
+    for (int i = 0; i < size; i++)
+    {
+        buf[i] = i + 1;
+    }
+
+    /* save it to card */
+    /* note: if you comment out clean_d_cache() in the FIO_WriteFile, this test will fail */
+    TEST_FUNC_CHECK(FIO_WriteFile(f, buf, size), == size);
+    TEST_VOID(FIO_CloseFile(f));
+
+    /* reopen the file for reading */
+    TEST_FUNC_CHECK(f = FIO_OpenFile(test_file, O_RDONLY | O_SYNC), != 0);
+
+    /* read the file into uncacheable memory */
+    uint8_t * ubuf = fio_malloc(size);
+    TEST_FUNC_CHECK(ubuf, != 0);
+    if (!ubuf) goto cleanup;
+
+    TEST_FUNC_CHECK(FIO_ReadFile(f, ubuf, size), == size);
+
+    /* check the results */
+    int a = 0, b = 0, c = 0;
+    for (int i = 0; i < size; i++)
+    {
+        a += (ubuf[i] == (uint8_t)(i));
+        b += (ubuf[i] == (uint8_t)(i + 1));
+        c += (ubuf[i] == (uint8_t)(i + 2));
+    }
+
+    free(ubuf);
+
+    /* report results */
+    TEST_FUNC_CHECK(a, == 0);
+    TEST_FUNC_CHECK(b, == size);
+    TEST_FUNC_CHECK(c, == 0);
+    TEST_FUNC_CHECK(a + b + c, == size);
+
+cleanup:
+    /* cleanup */
+    TEST_VOID(FIO_CloseFile(f));
+    TEST_FUNC_CHECK(FIO_RemoveFile(test_file), == 0);
+}
+
+static void stub_test_cache()
+{
+    stub_test_cache_bmp();
+
+    for (int i = 0; i < 100; i++)
+    {
+        stub_test_cache_fio();
+    }
+
+    TEST_MSG("Cache tests finished.\n\n");
+}
+
 static void stub_test_file_io()
 {
     /* File I/O */
@@ -283,7 +369,9 @@ static void stub_test_file_io()
         fio_free(buf);
     }
 
+    TEST_FUNC_CHECK(is_file("test.dat"), != 0);
     TEST_FUNC_CHECK(FIO_RemoveFile("test.dat"), == 0);
+    TEST_FUNC_CHECK(is_file("test.dat"), == 0);
 }
 
 static void stub_test_gui_timers()
