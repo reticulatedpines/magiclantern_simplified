@@ -492,6 +492,9 @@ static void log_edmac_usage()
     NotifyBox(2000, "Finished!");
 }
 
+/* edmac_test.c */
+extern void edmac_test();
+
 static struct menu_entry edmac_menu[] =
 {
     {
@@ -524,6 +527,13 @@ static struct menu_entry edmac_menu[] =
                 .select = run_in_separate_task,
                 .priv   = log_edmac_usage,
                 .help   = "Log EDMAC status changes every 0.1ms.",
+            },
+            {
+                .name   = "EDMAC model test",
+                .select = run_in_separate_task,
+                .priv   = edmac_test,
+                .help   = "Tests to confirm our hypothesis on how EDMAC works.",
+                .help2  = "Should be executed on both camera and QEMU."
             },
             MENU_EOL
         }
