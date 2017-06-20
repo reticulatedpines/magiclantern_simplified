@@ -708,15 +708,27 @@ static void stub_test_dryos()
     TEST_FUNC_CHECK(ReleaseRecursiveLock(rlock), != 0);
 }
 
+static void stub_test_save_log()
+{
+    FILE* log = FIO_CreateFile( "stubtest.log" );
+    if (log)
+    {
+        FIO_WriteFile(log, stub_log_buf, stub_log_len);
+        FIO_CloseFile(log);
+    }
+}
+
 static void stub_test_task(void* arg)
 {
     if (stub_log_buf) return;
     stub_log_buf = fio_malloc(stub_max_log_len);
     if (!stub_log_buf) return;
-    
+
     msleep(1000);
-    
     console_show();
+
+    stub_passed_tests = 0;
+    stub_failed_tests = 0;
     
     enter_play_mode();
     TEST_FUNC_CHECK(is_play_mode(), != 0);
@@ -726,31 +738,27 @@ static void stub_test_task(void* arg)
     msleep(1000);
     info_led_on();
 
+    /* save log after each sub-test */
     for (int i=0; i < n; i++)
     {
-        stub_test_cache();
-        stub_test_file_io();
-        stub_test_gui_timers();
-        stub_test_other_timers();
-        stub_test_malloc_n_allocmem();
-        stub_test_exmem();
-        stub_test_strings();
-        stub_test_engio();
-        stub_test_display();
-        stub_test_dryos();
-        stub_test_gui();
+        stub_test_cache();                  stub_test_save_log();
+        stub_test_file_io();                stub_test_save_log();
+        stub_test_gui_timers();             stub_test_save_log();
+        stub_test_other_timers();           stub_test_save_log();
+        stub_test_malloc_n_allocmem();      stub_test_save_log();
+        stub_test_exmem();                  stub_test_save_log();
+        stub_test_strings();                stub_test_save_log();
+        stub_test_engio();                  stub_test_save_log();
+        stub_test_display();                stub_test_save_log();
+        stub_test_dryos();                  stub_test_save_log();
+        stub_test_gui();                    stub_test_save_log();
 
         beep();
     }
 
     enter_play_mode();
 
-    FILE* log = FIO_CreateFile( "stubtest.log" );
-    if (log)
-    {
-        FIO_WriteFile(log, stub_log_buf, stub_log_len);
-        FIO_CloseFile(log);
-    }
+    stub_test_save_log();
     fio_free(stub_log_buf);
     stub_log_buf = 0;
 
