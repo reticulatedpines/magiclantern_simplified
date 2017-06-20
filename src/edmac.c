@@ -289,7 +289,7 @@ int edmac_fix_off2(int32_t off)
     const int off2_bits = 28; /* checked on DIGIC 3 and 4 */
 #endif
 
-    return off << (32-off1_bits) >> (32-off1_bits);
+    return off << (32-off2_bits) >> (32-off2_bits);
 }
 
 struct edmac_info edmac_get_info(uint32_t channel)
