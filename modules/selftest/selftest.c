@@ -120,6 +120,14 @@ static int stub_ok = 1;
 static int stub_passed_tests = 0;
 static int stub_failed_tests = 0;
 
+/* delay with interrupts disabled */
+static void busy_wait_ms(int ms)
+{
+    int t0 = get_ms_clock_value();
+    while (get_ms_clock_value() - t0 < ms)
+        ;
+}
+
 /* this checks whether clean_d_cache actually writes the data to physical memory
  * so other devices (such as DMA controllers) will see the same memory contents as the CPU */
 static void stub_test_cache()
@@ -137,7 +145,9 @@ static void stub_test_cache()
     for (int k = 0; k < 2; k++)
     {
         /* perform this test with interrupts disabled */
-        uint32_t old = cli();
+        int old = cli();
+        int dis = cli();
+        TEST_FUNC_CHECK(old, != dis);
 
         /* draw a cropmark */
         clrscr();
@@ -155,16 +165,14 @@ static void stub_test_cache()
         edmac_copy_rectangle_adv_start(dst, src, 960, 0, 0, 960, 0, 0, 720, 480);
 
         /* wait for EDMAC transfer to finish */
-        /* we have interrupts disabled, so waiting at semaphore won't work */
-        for (int i = 0; i < 50000000; i++)
-        {
-            asm volatile ("nop");
-        }
+        /* probably not needed, as take_semaphore will re-enable interrupts */
+        busy_wait_ms(1000);
 
-        /* assume EDMAC transfer finished - cleanup */
+        /* cleanup EDMAC transfer */
         edmac_copy_rectangle_finish();
 
-        /* compare the image buffers */
+        /* interrupts are disabled again - from DryOS context switch */
+        /* now compare the image buffers */
         int differences = 0;
         for (int y = 0; y < 480; y++)
         {
@@ -178,6 +186,14 @@ static void stub_test_cache()
             }
         }
 
+        info_led_on();
+        busy_wait_ms(1000);
+        info_led_off();
+
+        /* do we still have interrupts disabled? */
+        int irq = cli();
+        TEST_FUNC_CHECK(irq, == dis);
+
         if (k)
         {
             /* expect to succeed */
@@ -189,6 +205,7 @@ static void stub_test_cache()
             TEST_FUNC_CHECK(differences, > 100);
         }
 
+        /* interrupts no longer needed */
         sei(old);
     }
 }
