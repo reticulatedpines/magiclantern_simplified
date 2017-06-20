@@ -45,7 +45,7 @@ NSTUB(   0x16FB8,  additional_version)
 NSTUB(0xFF1FC684,  FIO_CloseFile)
 NSTUB(0xFF1FD554,  FIO_FindClose)                           // AJ__switch_0x1A50_n_calls_fstOpenDir
 NSTUB(0xFF1FD42C,  FIO_FindNextEx)
-NSTUB(0xFF1FC434,  FIO_ReadFile)
+NSTUB(0xFF1FC434, _FIO_ReadFile)
 NSTUB(0xFF1FC4E4,  FIO_SeekSkipFile)
 NSTUB(0xFF1FC5D4, _FIO_WriteFile)
 NSTUB(0xFF1FCCF4, _FIO_CreateDirectory)                     // not sure. g3gg0: confirmed by caller 'ctgDirCreate'

@@ -62,7 +62,7 @@ NSTUB(    0x82E0,  additional_version)
 NSTUB(0xFF1E66B4,  FIO_CloseFile)
 NSTUB(0xFF1E7684,  FIO_FindClose)                           // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
 NSTUB(0xFF1E75A4,  FIO_FindNextEx)
-NSTUB(0xFF1E6464,  FIO_ReadFile)
+NSTUB(0xFF1E6464, _FIO_ReadFile)
 NSTUB(0xFF1E6514,  FIO_SeekSkipFile)
 NSTUB(0xFF1E6604, _FIO_WriteFile)
 NSTUB(0xFF1E6EF0, _FIO_CreateDirectory)

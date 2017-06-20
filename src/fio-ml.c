@@ -505,8 +505,21 @@ FILE* FIO_CreateFile(const char* name)
     return _FIO_CreateFileEx(new_name);
 }
 
-/* Canon stub */
+/* Canon stubs */
+extern int _FIO_ReadFile( FILE* stream, void* ptr, size_t count );
 extern int _FIO_WriteFile( FILE* stream, const void* ptr, size_t count );
+
+int FIO_ReadFile( FILE* stream, void* ptr, size_t count )
+{
+    if (ptr == CACHEABLE(ptr))
+    {
+        /* this appears to work most of the time, but not always */
+        /* proper solution: use fio_malloc */
+        ASSERT(0);
+    }
+
+    return _FIO_ReadFile(stream, ptr, count);
+}
 
 int FIO_WriteFile( FILE* stream, const void* ptr, size_t count )
 {
