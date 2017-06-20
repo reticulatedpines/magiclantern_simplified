@@ -1125,7 +1125,7 @@ menu_update_placeholder(struct menu * menu, struct menu_entry * new_entry)
     
     for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
     {
-        if (entry != new_entry && MENU_IS_PLACEHOLDER(entry) && streq(entry->name, new_entry->name))
+        if (entry != new_entry && MENU_IS_PLACEHOLDER(entry) && entry->name && streq(entry->name, new_entry->name))
         { /* found, let's try to swap the entries */
             
             placeholder_copy(entry, new_entry);
@@ -2527,7 +2527,7 @@ skip_name:
                 help2_buf[0] = 0;
                 for (int i = entry->min; i <= entry->max; i++)
                 {
-                    int len = bmp_string_width(FONT_MED, help2);
+                    int len = bmp_string_width(FONT_MED, help2_buf);
                     if (len > 700) break;
                     STR_APPEND(help2_buf, "%s%s", pickbox_string(entry, i), i < entry->max ? " / " : ".");
                 }
@@ -4721,7 +4721,7 @@ menu_init( void )
     m = menu_find_by_name( "Prefs",     ICON_ML_PREFS   );
     m = menu_find_by_name( "Scripts",   ICON_ML_SCRIPT  );
     m = menu_find_by_name( "Games",     ICON_ML_GAMES  );
-    m = menu_find_by_name( "Modules",   ICON_ML_MODULES ); if (m) m->split_pos = 12;
+    m = menu_find_by_name( "Modules",   ICON_ML_MODULES ); if (m) m->split_pos = 11;
     m = menu_find_by_name( "Debug",     ICON_ML_DEBUG   );
     m = menu_find_by_name( "Help",      ICON_ML_INFO    );
 }
@@ -5063,6 +5063,7 @@ int is_menu_entry_selected(char* menu_name, char* entry_name)
     {
         struct menu_entry * entry = get_selected_entry(menu);
         if (!entry) return 0;
+        if (!entry->name) return 0;
         return streq(entry->name, entry_name);
     }
     return 0;
@@ -5119,7 +5120,7 @@ void select_menu_by_name(char* name, const char* entry_name)
             int i;
             for(i = 0 ; entry ; entry = entry->next, i++ )
             {
-                entry->selected = streq(entry->name, entry_name) && !entry_was_selected;
+                entry->selected = entry->name && streq(entry->name, entry_name) && !entry_was_selected;
                 if (entry->selected) entry_was_selected = 1;
             }
         }
@@ -5154,7 +5155,7 @@ static struct menu_entry * entry_find_by_name(const char* name, const char* entr
             int i;
             for(i = 0 ; entry ; entry = entry->next, i++ )
             {
-                if (streq(entry->name, entry_name))
+                if (entry->name && streq(entry->name, entry_name))
                 {
                     return entry;
                 }

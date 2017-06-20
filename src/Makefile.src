@@ -2,7 +2,7 @@
 # Magic Lantern Core source files and rules
 #
 
-all:: autoexec.bin
+all:: autoexec.bin print_build_info
 
 clean::
 	$(call rm_files, *.o *.d autoexec autoexec.bin magiclantern magiclantern.bin)
@@ -223,7 +223,6 @@ autoexec: $(ML_SRC_REBOOT_OBJ)
 		--cref \
 		-Map=autoexec.map \
 	); \
-	$(READELF) -l magiclantern | $(GREP) -C 2 MemSiz
 
 autoexec-fir: $(ML_SRC_REBOOT_OBJ)
 	$(call build,LD,$(LD) \
@@ -305,6 +304,9 @@ $(PLATFORM_DIR)/version.c: FORCE
 	@echo 'const char build_date[] ="'`$(DATE) "+%Y-%m-%d %H:%M:%S %Z"`'";' >> $@
 	@echo 'const char build_user[] = "'`whoami`@`hostname`'";'  >> $@
 
+# include ML version, camera, firmware, hg changeset, build date,
+# diffs from src and platform/cam directories,
+# and some lines from Makefile.user (CONFIG entries, gcc version)
 $(PLATFORM_DIR)/version.bin: FORCE
 	$(call build,"VERSION",echo '') > $@
 	@echo '' >> $@
@@ -313,7 +315,20 @@ $(PLATFORM_DIR)/version.bin: FORCE
 	@echo 'Firmware : $(FW_VERSION)' >> $@
 	@echo 'Changeset: '`hg id` >> $@
 	@echo 'Built on : '`date -u "+%Y-%m-%d %H:%M:%S"`' by '`whoami`@`hostname` >> $@
-	@echo -e '\n\n\n\n\n' >> $@
+	@echo '' >> $@
+	@hg diff $(SRC_DIR)/ >> $@
+	@hg diff $(PLATFORM_DIR)/ >> $@
+	@echo '' >> $@
+	@echo '' >> $@
+	@(cat $(TOP_DIR)/Makefile.user 2>/dev/null) | grep -E "^ *(CONFIG_|[A-Z0-9_]*VERSION)" >> $@ || true
+	@echo '' >> $@
+	@echo '' >> $@
+
+print_build_info: FORCE
+	@$(READELF) -l magiclantern | $(GREP) -C 2 MemSiz
+	@echo
+	@(cat $(TOP_DIR)/Makefile.user 2>/dev/null) | grep -E "^ *(CONFIG_|[A-Z0-9_]*VERSION)" || true
+	@echo
 
 $(SRC_DIR)/menuindexentries.h:
 	$(call build,"MENU IDX", if [ -f $(DOC_DIR)/menuindex.txt ]; then \

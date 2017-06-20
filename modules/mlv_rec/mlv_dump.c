@@ -95,6 +95,7 @@ char *strdup(const char *s);
 #include "../lv_rec/lv_rec.h"
 #include "../../src/raw.h"
 #include "mlv.h"
+#include "camera_id.h"
 
 enum bug_id
 {
@@ -992,7 +993,7 @@ void show_usage(char *executable)
     print_msg(MSG_INFO, "-- MLV output --\n");
     print_msg(MSG_INFO, " -b bits             convert image data to given bit depth per channel (1-16)\n");
     print_msg(MSG_INFO, " -z bits             zero the lowest bits, so we have only specified number of bits containing data (1-16) (improves compression rate)\n");
-    print_msg(MSG_INFO, " -f frames           frames to save. e.g. '12' saves the first 12 frames, '12-40' saves frames 12 to 40.\n");
+    print_msg(MSG_INFO, " -f frames           frames to save. e.g. '12' saves frames 0 to 12, '12-40' saves frames 12 to 40.\n");
     print_msg(MSG_INFO, " -A fpsx1000         Alter the video file's FPS metadata\n");
     print_msg(MSG_INFO, " -x                  build xref file (indexing)\n");
     print_msg(MSG_INFO, " -m                  write only metadata, no audio or video frames\n");
@@ -1094,6 +1095,8 @@ int main (int argc, char *argv[])
     int dump_xrefs = 0;
     int fix_cold_pixels = 1;
     int fix_vert_stripes = 1;
+    
+    const char * unique_camname = "(unknown)";
 
     struct option long_options[] = {
         {"lua",    required_argument, NULL,  'L' },
@@ -2593,7 +2596,7 @@ read_headers:
                             dng_set_framerate_rational(main_header.sourceFpsNom, main_header.sourceFpsDenom);
                             dng_set_shutter(1, (int)(1000000.0f/(float)expo_info.shutterValue));
                             dng_set_aperture(lens_info.aperture, 100);
-                            dng_set_camname((char*)idnt_info.cameraName);
+                            dng_set_camname((char*)unique_camname);
                             dng_set_description((char*)info_string);
                             dng_set_lensmodel((char*)lens_info.lensName);
                             dng_set_focal(lens_info.focalLength, 1);
@@ -2901,6 +2904,61 @@ read_headers:
                     free(buf);
                 }
             }
+            else if(!memcmp(buf.blockType, "VERS", 4))
+            {
+                mlv_vers_hdr_t block_hdr;
+                int32_t hdr_size = MIN(sizeof(mlv_vers_hdr_t), buf.blockSize);
+
+                if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
+                {
+                    print_msg(MSG_ERROR, "File ends in the middle of a block\n");
+                    goto abort;
+                }
+
+                lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
+
+                /* get the string length and malloc a buffer for that string */
+                int str_length = block_hdr.blockSize - hdr_size;
+
+                if(str_length)
+                {
+                    char *buf = malloc(str_length + 1);
+
+                    if(fread(buf, str_length, 1, in_file) != 1)
+                    {
+                        free(buf);
+                        print_msg(MSG_ERROR, "File ends in the middle of a block\n");
+                        goto abort;
+                    }
+
+                    if(verbose)
+                    {
+                        buf[block_hdr.length] = '\000';
+                        print_msg(MSG_INFO, "  String: '%s'\n", buf);
+                    }
+                    
+                    /* only output this block if there is any data */
+                    if(mlv_output && !no_metadata_mode)
+                    {
+                        /* correct header size if needed */
+                        block_hdr.blockSize = sizeof(mlv_vers_hdr_t) + str_length;
+                        if(fwrite(&block_hdr, sizeof(mlv_vers_hdr_t), 1, out_file) != 1)
+                        {
+                            free(buf);
+                            print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
+                            goto abort;
+                        }
+                        if(fwrite(buf, str_length, 1, out_file) != 1)
+                        {
+                            free(buf);
+                            print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
+                            goto abort;
+                        }
+                    }
+
+                    free(buf);
+                }
+            }
             else if(!memcmp(buf.blockType, "ELVL", 4))
             {
                 mlv_elvl_hdr_t block_hdr;
@@ -3038,6 +3096,12 @@ read_headers:
                         print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
                         goto abort;
                     }
+                }
+
+                unique_camname = get_camera_name_by_id(idnt_info.cameraModel, UNIQ);
+                if(!unique_camname)
+                {
+                    unique_camname = (const char*) idnt_info.cameraName;
                 }
             }
             else if(!memcmp(buf.blockType, "RTCI", 4))

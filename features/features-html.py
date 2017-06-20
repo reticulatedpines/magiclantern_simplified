@@ -3,6 +3,7 @@
 import os, sys, string, re
 import commands
 from mako.template import Template
+from collections import defaultdict
 
 class Bunch(dict):
     def __init__(self, d):
@@ -70,10 +71,18 @@ def cam_longname(cam):
 #            print "     ",
 #    print ""
 
+# print only camera name, unless we have the same camera with two or more firmware versions
 shortnames = {}
+shortnames_count = defaultdict(int)
 for c in cams:
-    shortnames[c]=cam_shortname(c)
+    shortnames[c] = cam_shortname(c)
+    shortnames_count[shortnames[c]] += 1;
 
+for name, count in shortnames_count.iteritems():
+    if count > 1:
+        for c in cams:
+            if cam_shortname(c) == name:
+                shortnames[c] = c
 
 # let's see in which menu we have these features
 menus = []

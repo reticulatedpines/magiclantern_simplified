@@ -38,6 +38,7 @@ force_unused = [
     "PackMem_RegisterEDmacPopCBRForMemorySuite",
     "PackMem_SetEDmacForMemorySuite",
     "PackMem_StartEDmac",
+    "CreateDialogBox",
     "FIO_SeekFile",
 ]
 

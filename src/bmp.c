@@ -952,7 +952,10 @@ static uint8_t* bfnt_find_char(int code)
     int* codes = (int*) BFNT_CHAR_CODES;
     int* off = (int*) BFNT_BITMAP_OFFSET;
 
-    if (code <= 'z') return (uint8_t*) (BFNT_BITMAP_DATA + off[code - 0x20]);
+    if (code >= 0x20 && code <= 'z')
+    {
+        return (uint8_t*) (BFNT_BITMAP_DATA + off[code - 0x20]);
+    }
 
     int i;
     for (i = 0; i < n; i++)
@@ -1085,11 +1088,11 @@ void bmp_flip(uint8_t* dst, uint8_t* src, int voffset)
     if (!dst) return;
     int i,j;
 
-    int H_LO = hdmi_code == 5 ? BMP_H_MINUS : 0;
-    int H_HI = hdmi_code == 5 ? BMP_H_PLUS : 480;
+    int H_LO = hdmi_code >= 5 ? BMP_H_MINUS : 0;
+    int H_HI = hdmi_code >= 5 ? BMP_H_PLUS : 480;
 
-    int W_LO = hdmi_code == 5 ? BMP_W_MINUS : 0;
-    int W_HI = hdmi_code == 5 ? BMP_W_PLUS : 720;
+    int W_LO = hdmi_code >= 5 ? BMP_W_MINUS : 0;
+    int W_HI = hdmi_code >= 5 ? BMP_W_PLUS : 720;
 
     for (i = H_LO; i < H_HI; i++) // -30 ... 510
     {
@@ -1112,11 +1115,11 @@ void bmp_flip_ex(uint8_t* dst, uint8_t* src, uint8_t* mirror, int voffset)
     if (!dst) return;
     int i,j;
 
-    int H_LO = hdmi_code == 5 ? BMP_H_MINUS : 0;
-    int H_HI = hdmi_code == 5 ? BMP_H_PLUS : 480;
+    int H_LO = hdmi_code >= 5 ? BMP_H_MINUS : 0;
+    int H_HI = hdmi_code >= 5 ? BMP_H_PLUS : 480;
 
-    int W_LO = hdmi_code == 5 ? BMP_W_MINUS : 0;
-    int W_HI = hdmi_code == 5 ? BMP_W_PLUS : 720;
+    int W_LO = hdmi_code >= 5 ? BMP_W_MINUS : 0;
+    int W_HI = hdmi_code >= 5 ? BMP_W_PLUS : 720;
 
     for (i = H_LO; i < H_HI; i++) // -30 ... 510
     {

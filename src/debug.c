@@ -285,47 +285,6 @@ void guimode_test()
 }
 #endif
 
-//~ uncompressed video testing
-#ifdef CONFIG_6D
-FILE * movfile;
-int record_uncomp = 0;
-#endif
-
-void bsod()
-{
-    do {
-        gui_stop_menu();
-        SetGUIRequestMode(1);
-        msleep(1000);
-    } while (CURRENT_GUI_MODE != 1);
-    NotifyBoxHide();
-    canon_gui_disable_front_buffer();
-    gui_uilock(UILOCK_EVERYTHING);
-    bmp_fill(COLOR_BLUE, 0, 0, 720, 480);
-    int fnt = SHADOW_FONT(FONT_MONO_20);
-    int h = 20;
-    int y = 20;
-    bmp_printf(fnt, 0, y+=h, "   A problem has been detected and Magic Lantern has been"   );
-    bmp_printf(fnt, 0, y+=h, "   shut down to prevent damage to your camera."              );
-    y += h;
-    bmp_printf(fnt, 0, y+=h, "   If this is the first time you've seen this STOP error"    );
-    bmp_printf(fnt, 0, y+=h, "   screen, restart your camera. If this screen appears"      );
-    bmp_printf(fnt, 0, y+=h, "   again, follow these steps:"                               );
-    y += h;
-    bmp_printf(fnt, 0, y+=h, "   - Go to LiveView and enable DIGIC peaking.  "             );
-    bmp_printf(fnt, 0, y+=h, "   - Take a photo of a calendar, focusing on today's date. " );
-    bmp_printf(fnt, 0, y+=h, "   - Try pressing the magic button quickly enough. "         );
-    y += h;
-    bmp_printf(fnt, 0, y+=h, "   Technical information:");
-    bmp_printf(fnt, 0, y+=h, "   *** STOP 0x000000aa (0x1000af22, 0xdeadbeef, 0xffff)"     );
-    y += h;
-    bmp_printf(fnt, 0, y+=h, "   Beginning dump of physical memory"                        );
-    bmp_printf(fnt, 0, y+=h, "   Physical memory dump complete. Your camera is bricked."   );
-    y += h;
-    bmp_printf(fnt, 0, y+=h, "   Contact the Magic Lantern guys at www.magiclantern.fm"    );
-    bmp_printf(fnt, 0, y+=h, "   for further assistance and information."                  );
-}
-
 static void run_test()
 {
 }
@@ -352,6 +311,7 @@ static void unmount_sd_card()
     
     while (!get_halfshutter_pressed())
     {
+        info_led_on();
         msleep(10);
     }
 

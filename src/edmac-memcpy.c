@@ -2,6 +2,7 @@
 #include "dryos.h"
 #include "edmac.h"
 #include "bmp.h"
+#include "platform/state-object.h"
 
 #ifdef CONFIG_EDMAC_MEMCPY
 
@@ -311,20 +312,11 @@ void edmac_memcpy_finish()
 /** this method bypasses Canon's lv_save_raw and slurps the raw data directly from connection #0 */
 #ifdef CONFIG_EDMAC_RAW_SLURP
 
-/* for other cameras, find a free channel with find_free_edmac_channels  */ 
-#ifdef CONFIG_5D3
-uint32_t raw_write_chan = 4;
+#if defined(CONFIG_5D3)
+uint32_t raw_write_chan = 0x4;  /* 0x12 gives corrupted frames on 1.2.3, http://www.magiclantern.fm/forum/index.php?topic=10443 */
+#elif defined(EVF_STATE)
+uint32_t raw_write_chan = 0x12; /* 60D and newer, including all DIGIC V */
 #endif
-
-#ifdef CONFIG_60D
-uint32_t raw_write_chan = 1;
-#endif
-
-#ifdef CONFIG_600D 
-// write-index 1, 4, 6, 8, 10, 11, 13
-uint32_t raw_write_chan = 4;
-#endif
-
 
 static void edmac_slurp_complete_cbr (void* ctx)
 {
@@ -338,7 +330,13 @@ static void edmac_slurp_complete_cbr (void* ctx)
 void edmac_raw_slurp(void* dst, int w, int h)
 {
     /* see wiki, register map, EDMAC what the flags mean. they are for setting up copy block size */
+#if defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_EOSM)
+    uint32_t dmaFlags = 0x20000000;
+#elif defined(CONFIG_6D)
+    uint32_t dmaFlags = 0x40000000;
+#else
     uint32_t dmaFlags = 0x20001000;
+#endif
     
     /* @g3gg0: this callback does get called */
     RegisterEDmacCompleteCBR(raw_write_chan, &edmac_slurp_complete_cbr, 0);

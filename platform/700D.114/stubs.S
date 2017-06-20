@@ -215,10 +215,10 @@ NSTUB(0xFF2C1790,  mvrSetDefQScale)
 // NSTUB(    ???,  mvrSetGopOptSizeFULLHD)                  /* present on 600D.102, 550D.109, 1100D.105 */
 
 /** Interrupts **/
+NSTUB(0x232D0,     post_isr_hook)
+NSTUB(0x232CC,     pre_isr_hook)
 // NSTUB(    ???,  isr_table_handler)                       /* present on 7D_MASTER.203 */
 // NSTUB(    ???,  isr_table_param)                         /* present on 7D_MASTER.203 */
-// NSTUB(    ???,  post_isr_hook)                           /* present on 7D.203, 6D.113, 5D3.113, EOSM.202 */
-// NSTUB(    ???,  pre_isr_hook)                            /* present on 7D.203, 6D.113, 5D3.113, 7D_MASTER.203, EOSM.202 */
 
 /** LCD Sensor **/
 NSTUB(0xFF146038,  DispSensorStart)
@@ -282,9 +282,9 @@ NSTUB(0xFFA63288 - RAM_OFFSET,  take_semaphore)
 
 /** Task info **/
 NSTUB(   0x247B0,  task_max)
-NSTUB(0xFFA5F4DC - RAM_OFFSET,  get_current_task)
-NSTUB(0xFFA6B63C - RAM_OFFSET,  get_obj_attr)
 NSTUB(0xFFA768DC - RAM_OFFSET,  is_taskid_valid)
+NSTUB(   0x233DC,  current_task)
+NSTUB(     0x674,  current_interrupt)                       // in interrupt handler (0x18), where MEM(C0201004) is stored
 
 /** Task sleep **/
 NSTUB(0xFFA63764 - RAM_OFFSET,  msleep)

@@ -71,7 +71,7 @@ int get_free_space_32k(const struct card_info* card)
 
 
 static CONFIG_INT("card.test", card_test_enabled, 1);
-static CONFIG_INT("card.force_type", card_force_type, 0);
+static CONFIG_INT("card.force_type", card_force_type, 1);
 
 #ifndef CONFIG_INSTALLER
 #ifdef CONFIG_5D3
@@ -245,8 +245,12 @@ void _find_ml_card()
 PROP_HANDLER(PROP_CARD_SELECT)
 {
     int card_select = buf[0] - 1;
-    ASSERT(card_select >= 0 && card_select < 3)
-    SHOOTING_CARD = &available_cards[buf[0]-1];
+    if (card_select >= 0 && card_select < COUNT(available_cards))
+    {
+        SHOOTING_CARD = &available_cards[card_select];
+        return;
+    }
+    ASSERT(0);
 }
 
 PROP_HANDLER(PROP_CLUSTER_SIZE_A)
