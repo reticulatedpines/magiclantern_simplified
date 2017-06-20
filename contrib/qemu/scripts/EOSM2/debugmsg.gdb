@@ -15,14 +15,14 @@ task_create_log
 set *(int*)0xFF156348 = 0xe3a00015
 
 # patch localI2C_Write to always return 1 (success)
-set *(int*)0xFF356DE0 = 0xe3a00001
-set *(int*)0xFF356DE8 = 0xe12fff1e
+set *(int*)0xFF356E24 = 0xe3a00001
+set *(int*)0xFF356E28 = 0xe12fff1e
 
 # skip SerialFlash version check
-set *(int*)0xFF0C427C = 0xe3a00000
+set *(int*)0xFF0C4278 = 0xe3a00000
 
 # break infinite loop at Wait LeoLens Complete
-b *0xFF0C5148
+b *0xFF0C5144
 commands
   printf "Patching LeoLens (infinite loop)\n"
   set *(int*)($r4 + 0x28) = 1
