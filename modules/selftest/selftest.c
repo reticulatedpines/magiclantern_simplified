@@ -10,6 +10,7 @@
 #include <timer.h>
 #include <console.h>
 #include <ml_rpc.h>
+#include <edmac.h>
 #include <edmac-memcpy.h>
 #include <screenshot.h>
 #include <powersave.h>
@@ -145,6 +146,50 @@ static void stub_test_edmac()
         TEST_FUNC_CHECK(memcmp(dst, src, size), != 0);
         TEST_FUNC_CHECK(edmac_memcpy(dst, src, size), == (int) dst);
         TEST_FUNC_CHECK(memcmp(dst, src, size), == 0);
+
+        /* fill source data again */
+        for (int i = 0; i < size/4; i++)
+        {
+            src[i] = rand();
+        }
+
+        /* abort in the middle of copying */
+        TEST_FUNC_CHECK(memcmp(dst, src, size), != 0);
+        TEST_FUNC_CHECK(edmac_memcpy_start(dst, src, size), == (int) dst);
+
+        /* fixme: global */
+        extern uint32_t edmac_write_chan;
+
+        /* wait until the middle of the buffer */
+        /* caveat: busy waiting; do not use in practice */
+        /* here, waiting for ~10ms may be too much, as EDMAC is very fast */
+        uint32_t mid = (uint32_t)CACHEABLE(dst) + size / 2;
+        uint64_t t0 = get_us_clock_value();
+        while (edmac_get_pointer(edmac_write_chan) < mid)
+            ;
+        uint64_t t1 = get_us_clock_value();
+
+        /* stop here */
+        AbortEDmac(edmac_write_chan);
+
+        /* report how long we had to wait */
+        int dt = t1 - t0;
+        TEST_FUNC(dt);
+
+        /* how much did it copy? */
+        int copied = edmac_get_pointer(edmac_write_chan) - (uint32_t)CACHEABLE(dst);
+        TEST_FUNC_CHECK(copied, >= size/2);
+        TEST_FUNC_CHECK(copied, < size*3/2);
+
+        /* did it actually stop? */
+        msleep(100);
+        int copied2 = edmac_get_pointer(edmac_write_chan) - (uint32_t)CACHEABLE(dst);
+        TEST_FUNC_CHECK(copied, == copied2);
+
+        /* did it copy as much as it reported? */
+        TEST_FUNC_CHECK(memcmp(dst, src, copied), == 0);
+        TEST_FUNC_CHECK(memcmp(dst, src, copied + 16), != 0);
+        TEST_VOID(edmac_memcpy_finish());
     }
 
     TEST_VOID(free(src));
