@@ -2,6 +2,7 @@
 #include "dryos.h"
 #include "edmac.h"
 #include "bmp.h"
+#include "math.h"
 #include "platform/state-object.h"
 
 #ifdef CONFIG_EDMAC_MEMCPY
@@ -263,21 +264,28 @@ void* edmac_memset(void* dst, int value, size_t length)
 
 uint32_t edmac_find_divider(size_t length)
 {
-    int blocksize = 4096;
-    
-    /* find a fitting 2^x divider */
-    while((blocksize > 0) && (length % blocksize))
+    uint32_t max_width = (uint32_t) sqrtf(length);
+
+    /* find a fitting divider for length = width * height */
+    /* note: (width * height) % 16 must be 0 */
+
+    if (length % 16)
     {
-        blocksize >>= 1;
-    }
-    
-    /* could not find a fitting divider */
-    if(!blocksize)
-    {
+        /* this will crash when using the fastest flags */
+        /* fixme: it will work fine with slower flags */
         return 0;
     }
-    
-    return blocksize;
+
+    for (uint32_t width = max_width; width > 0; width--)
+    {
+        if (length % width == 0)
+        {
+            return width;
+        }
+    }
+
+    /* should be unreachable */
+    return 0;
 }
 
 void* edmac_memcpy_start(void* dst, void* src, size_t length)

@@ -2,6 +2,7 @@
 #include <console.h>
 #include <bmp.h>
 #include <edmac.h>
+#include <edmac-memcpy.h>
 #include "md5.h"
 
 static FILE * logfile = 0;
@@ -248,25 +249,6 @@ static void Log_edmac_info(struct edmac_info * info)
     Log("\b\b (");
     Log("size %s", format_memory_size(edmac_get_total_size(info, 0)));
     Log(", with offsets %s)\n", format_memory_size(edmac_get_total_size(info, 1)));
-}
-
-static uint32_t edmac_find_divider(size_t length)
-{
-    int blocksize = 4096;
-    
-    /* find a fitting divider multiple of 16 */
-    while((blocksize > 0) && (length % blocksize))
-    {
-        blocksize -= 16;
-    }
-    
-    /* could not find a fitting divider */
-    if(!blocksize)
-    {
-        return 0;
-    }
-    
-    return blocksize;
 }
 
 void edmac_test()
