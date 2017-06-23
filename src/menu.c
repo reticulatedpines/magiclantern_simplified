@@ -126,6 +126,10 @@ static int caret_position = 0;
 #define SUBMENU_OR_EDIT (submenu_level || edit_mode)
 #define EDIT_OR_TRANSPARENT (edit_mode || menu_lv_transparent_mode)
 
+/* fixme: better solution? */
+static struct menu_entry * entry_being_updated = 0;
+static int entry_removed_itself = 0;
+
 static CONFIG_INT("menu.junkie", junkie_mode, 0);
 //~ static CONFIG_INT("menu.set", set_action, 2);
 //~ static CONFIG_INT("menu.start.my", start_in_my_menu, 0);
@@ -1270,6 +1274,10 @@ menu_add(
 
 static void menu_remove_entry(struct menu * menu, struct menu_entry * entry)
 {
+    if (entry == entry_being_updated)
+    {
+        entry_removed_itself = 1;
+    }
     if (menu->children == entry)
     {
         menu->children = entry->next;
@@ -4093,7 +4101,7 @@ menu_entry_select(
         submenu_level = MAX(submenu_level - 1, 0);
         return;
     }
-    
+
     // don't perform actions on empty items (can happen on empty submenus)
     if (!is_visible(entry))
     {
@@ -4102,6 +4110,13 @@ menu_entry_select(
         menu_lv_transparent_mode = 0;
         return;
     }
+
+    /* note: entry->select() can delete itself (see e.g. file_man) */
+    /* we must be careful to prevent using entry if this happened */
+    /* fixme: better solution? */
+    ASSERT(entry_being_updated == 0);
+    entry_being_updated = entry;
+    entry_removed_itself = 0;
 
     /* usage counters are only updated for actual toggles */
     /* they are not updated during submenu navigation */
@@ -4181,8 +4196,8 @@ menu_entry_select(
             else if (SHOULD_USE_EDIT_MODE(entry)) edit_mode = !edit_mode;
             else if (entry->select)
             {
-                entry->select( entry->priv, 1);
                 entry_used = (entry->select != menu_open_submenu);
+                entry->select( entry->priv, 1);
             }
             else if IS_ML_PTR(entry->priv)
             {
@@ -4207,12 +4222,20 @@ menu_entry_select(
 
         entry_used = 1;
     }
-    
-    if(entry->unit == UNIT_TIME && edit_mode && caret_position == 0) caret_position = 1;
 
-    if (entry_used)
+    entry_being_updated = 0;
+
+    if (!entry_removed_itself)
     {
-        menu_update_usage_counters(entry);
+        if (entry->unit == UNIT_TIME && edit_mode && caret_position == 0)
+        {
+            caret_position = 1;
+        }
+
+        if (entry_used)
+        {
+            menu_update_usage_counters(entry);
+        }
     }
 
     config_dirty = 1;
@@ -6116,6 +6139,7 @@ int menu_set_str_value_from_script(const char* name, const char* entry_name, cha
         {
             /* custom menu selection logic */
             entry->select( entry->priv, 1);
+            /* fixme: will crash in file_man */
 
             /* the custom logic might rely on other tasks to update */
             msleep(50);
