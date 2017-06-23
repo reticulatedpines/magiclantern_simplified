@@ -26,13 +26,10 @@ my_fprintf(
     const int maxlen = 512;
     char buf[maxlen];
 
-    if (buf)
-    {
-        va_start( ap, fmt );
-        len = vsnprintf( buf, maxlen-1, fmt, ap );
-        va_end( ap );
-        FIO_WriteFile( file, buf, len );
-    }
+    va_start( ap, fmt );
+    len = vsnprintf( buf, maxlen-1, fmt, ap );
+    va_end( ap );
+    FIO_WriteFile( file, buf, len );
     
     return len;
 }
