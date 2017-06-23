@@ -251,6 +251,105 @@ static void Log_edmac_info(struct edmac_info * info)
     Log(", with offsets %s)\n", format_memory_size(edmac_get_total_size(info, 1)));
 }
 
+static void edmac_print_buffer_contents(char * buf, int size)
+{
+    for (int i = 0; i < size; i++)
+    {
+        if(buf[i] != 0xEE)
+        {
+            if (buf[i] >= 'A' && buf[i] <= 'Z')
+            {
+                int ch = buf[i];
+                Log("%s", (char*) &ch);
+            }
+            else if (buf[i] == 0)
+            {
+                Log(".");
+            }
+            else
+            {
+                Log("?");
+            }
+        }
+        else
+        {
+            Log("-");
+        }
+    }
+    Log("\n");
+}
+
+/* note: this may read more than "size" bytes" */
+static void edmac_sim_transfer_size(char * src, char * dst, uint32_t size, uint32_t read_bytes, uint32_t write_bytes)
+{
+    uint8_t buf[16] = {0};
+
+    ASSERT(read_bytes <= COUNT(buf));
+    ASSERT(write_bytes <= COUNT(buf));
+
+    uint32_t rd = 0;
+    uint32_t wr = 0;
+    while (wr < size)
+    {
+        for (uint32_t k = 0; k < read_bytes; k++)
+        {
+            buf[k] = src[rd++];
+        }
+
+        for (uint32_t k = 0; k < write_bytes && wr < size; k++)
+        {
+            dst[wr++] = buf[k];
+        }
+    }
+}
+
+static void edmac_guess_transfer_size(char * src, char * dst, int size, int * read_size, int * write_size)
+{
+    /* simulate a little more */
+    char * tmp = malloc(size + 16);
+    if (!tmp) return;
+
+    /* report the closest match */
+    int best_r = 0;
+    int best_w = 0;
+    int best_e = INT_MAX;
+
+    for (int r = 1; r <= 16; r *= 2)
+    {
+        for (int w = 1; w <= 16; w *= 2)
+        {
+            /* simulate what would happen if we'd read "r" bytes and write "w" bytes at a time */
+            edmac_sim_transfer_size(src, tmp, size + 16, r, w);
+
+            /* does it match what the EDMAC did? */
+            if (memcmp(dst, tmp, size) == 0)
+            {
+                int e = ABS((*read_size) - r) + ABS((*write_size) - w);
+                if (e < best_e)
+                {
+                    /* match closer to the expected size? */
+                    best_r = r;
+                    best_w = w;
+                    best_e = e;
+                }
+            }
+        }
+    }
+
+    if (!best_r || !best_w)
+    {
+        /* no match found: why? */
+        edmac_sim_transfer_size(src, tmp, size + 16, *read_size, *write_size);
+        edmac_print_buffer_contents(tmp, size);
+        edmac_print_buffer_contents(dst, size);
+    }
+
+    *read_size = best_r;
+    *write_size = best_w;
+
+    free(tmp);
+}
+
 void edmac_test()
 {
     console_show();
@@ -278,6 +377,64 @@ void edmac_test()
             : (2*i) | 1;                /* random data to test larger transfers (nonzero and != 0xEE) */
     }
     msleep(500);
+
+    {
+        Log("Transfer size tests...\n");
+
+        uint32_t flags[] = {
+            0x00000000,
+            0x00001000,
+            0x20000000,
+            0x40000000,
+            0x20001000,
+            0x40001000,
+            0x60000000,
+            0x60001000,
+        };
+
+        for (int read_flag = 0; read_flag < COUNT(flags); read_flag++)
+        {
+            for (int write_flag = 0; write_flag < COUNT(flags); write_flag++)
+            {
+                Log("Trying flags R:0x%08X, W:0x%08X...\n", flags[read_flag], flags[write_flag]);
+
+                struct edmac_info info = {
+                    .xb = 1024,
+                    .yb = 1,
+                };
+
+                edmac_test_copy(
+                    src, dst,
+                    &info, &info,
+                    flags[read_flag], flags[write_flag],
+                    2, 0,
+                    1, 0
+                );
+
+                edmac_print_buffer_contents(dst, 32);
+
+                int expected_rd = edmac_bytes_per_transfer(flags[read_flag]);
+                int expected_wr = edmac_bytes_per_transfer(flags[write_flag]);
+
+                int actual_rd = expected_rd, actual_wr = expected_wr;
+                edmac_guess_transfer_size(src, dst, 64, &actual_rd, &actual_wr);
+
+                if (expected_rd == actual_rd && expected_wr == actual_wr)
+                {
+                    Log("R:%d W:%d bytes per transfer.\n",
+                        expected_rd, expected_wr
+                    );
+                }
+                else
+                {
+                    Log("Expected R:%d W:%d, got R:%d W:%d bytes per transfer.\n",
+                        expected_rd, expected_wr, actual_rd, actual_wr
+                    );
+                }
+            }
+        }
+        Log("\n");
+    }
 
     {
         Log("Copy tests with output offsets...\n");
