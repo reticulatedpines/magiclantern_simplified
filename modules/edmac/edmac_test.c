@@ -262,8 +262,8 @@ void edmac_test()
     Log("Allocating memory...\n"); msleep(200);
     int src_size = 8 * 1024 * 1024;
     int dst_size = src_size;
-    char* src = UNCACHEABLE(malloc(src_size));
-    char* dst = UNCACHEABLE(malloc(dst_size));
+    char * src = fio_malloc(src_size);
+    char * dst = fio_malloc(dst_size);
     if (!src || !dst)
     {
         Log("malloc error\n");
@@ -408,4 +408,6 @@ void edmac_test()
 
     FIO_CloseFile(logfile);
     logfile = 0;
+    free(src);
+    free(dst);
 }
