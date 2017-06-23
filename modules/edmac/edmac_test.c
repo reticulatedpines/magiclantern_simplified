@@ -304,7 +304,7 @@ void edmac_test()
             memset(dst, 0xEE, dst_size);
 
             int dst_length = edmac_get_total_size(&dst_infos[k], 0);
-            int dst_width = edmac_find_divider(dst_length);
+            int dst_width = edmac_find_divider(dst_length, 16);
             int dst_height = dst_length / dst_width;
             ASSERT(dst_length <= dst_size);
             ASSERT(dst_length == dst_width * dst_height);
@@ -331,7 +331,7 @@ void edmac_test()
             edmac_test_copy(
                 src, dst,
                 &src_info, &dst_infos[k],
-                0x40010000, 0x40010000,
+                EDMAC_16_BYTES_PER_TRANSFER, EDMAC_16_BYTES_PER_TRANSFER,
                 2, 0,
                 1, nneg_offsets ? 1 : 0
             );
@@ -393,7 +393,7 @@ void edmac_test()
             edmac_test_copy(
                 src, dst,
                 &edmac_infos[k][0], &edmac_infos[k][1],
-                0x20000000, 0x20000000,
+                EDMAC_2_BYTES_PER_TRANSFER, EDMAC_2_BYTES_PER_TRANSFER,
                 2, 0,
                 1, 0
             );

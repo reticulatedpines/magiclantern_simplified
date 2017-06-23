@@ -336,3 +336,29 @@ uint32_t edmac_get_total_size(struct edmac_info * info, int include_offsets)
         ? transfer_data_skip_size
         : transfer_data_size;
 }
+
+#ifdef CONFIG_DIGIC_V
+#define EDMAC_BYTES_PER_TRANSFER_MASK EDMAC_BYTES_PER_TRANSFER_MASK_D5
+#else
+#define EDMAC_BYTES_PER_TRANSFER_MASK EDMAC_BYTES_PER_TRANSFER_MASK_D4
+#endif
+
+uint32_t edmac_bytes_per_transfer(uint32_t flags)
+{
+    switch (flags & EDMAC_BYTES_PER_TRANSFER_MASK)
+    {
+        case EDMAC_16_BYTES_PER_TRANSFER:
+        case EDMAC_16_BYTES_PER_TRANSFER | EDMAC_8_BYTES_PER_TRANSFER:
+            return 16;
+        case EDMAC_8_BYTES_PER_TRANSFER:
+        case EDMAC_8_BYTES_PER_TRANSFER & EDMAC_16_BYTES_PER_TRANSFER:
+            return 8;
+        case EDMAC_4_BYTES_PER_TRANSFER:
+        case EDMAC_4_BYTES_PER_TRANSFER | EDMAC_2_BYTES_PER_TRANSFER:
+            return 4;
+        case EDMAC_2_BYTES_PER_TRANSFER:
+        case EDMAC_2_BYTES_PER_TRANSFER & EDMAC_4_BYTES_PER_TRANSFER:
+            return 2;
+    }
+    return 0;
+}

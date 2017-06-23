@@ -40,6 +40,13 @@
 #define EDMAC_DIR_WRITE   1
 #define EDMAC_DIR_UNUSED  2
 
+#define EDMAC_BYTES_PER_TRANSFER_MASK_D4    0x60000000  /* digic 4: up to 4 bytes per transfer */
+#define EDMAC_BYTES_PER_TRANSFER_MASK_D5    0x60001000  /* digic 5: up to 16 bytes per transfer */
+#define EDMAC_16_BYTES_PER_TRANSFER         0x40001000
+#define EDMAC_8_BYTES_PER_TRANSFER          0x20001000
+#define EDMAC_4_BYTES_PER_TRANSFER          0x40000000
+#define EDMAC_2_BYTES_PER_TRANSFER          0x20000000
+
 struct edmac_info
 {
     unsigned int off1a;
@@ -84,6 +91,8 @@ int edmac_fix_off2(int32_t off);
 
 struct edmac_info edmac_get_info(uint32_t channel);
 uint32_t edmac_get_total_size(struct edmac_info * info, int include_offsets);
+
+uint32_t edmac_bytes_per_transfer(uint32_t flags);
 
 /* provided by edmac.mo */
 #if defined(MODULE)
