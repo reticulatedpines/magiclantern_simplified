@@ -481,11 +481,11 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
                     if ( s >= BUF_SIZE )
                     {
                         recv_ptp_data(context,buf,BUF_SIZE);
-                        FIO_WriteFile(f, UNCACHEABLE(buf), BUF_SIZE);
+                        FIO_WriteFile(f, buf, BUF_SIZE);
                         s -= BUF_SIZE;
                     } else {
                         recv_ptp_data(context,buf,s);
-                        FIO_WriteFile(f, UNCACHEABLE(buf), s);
+                        FIO_WriteFile(f, buf, s);
                         s = 0;
                     }
                 }
@@ -550,7 +550,7 @@ PTP_HANDLER( PTP_OC_CHDK, 0 )
                 }
                 tmp = s;
                 t = s;
-                while ( (r = FIO_ReadFile(f, UNCACHEABLE(buf), (t<BUF_SIZE) ? t : BUF_SIZE)) > 0 )
+                while ( (r = FIO_ReadFile(f, buf, (t<BUF_SIZE) ? t : BUF_SIZE)) > 0 )
                 {
                     t -= r;
                     // cannot use send_ptp_data here
