@@ -120,6 +120,37 @@ static int stub_ok = 1;
 static int stub_passed_tests = 0;
 static int stub_failed_tests = 0;
 
+static void stub_test_edmac()
+{
+    int size = 8*1024*1024;
+    uint32_t *src, *dst;
+    TEST_FUNC_CHECK(src = fio_malloc(size), != 0);
+    TEST_FUNC_CHECK(dst = fio_malloc(size), != 0);
+
+    if (src && dst)
+    {
+        /* fill source data */
+        for (int i = 0; i < size/4; i++)
+        {
+            src[i] = rand();
+        }
+
+        /* force a fallback to memcpy */
+        TEST_FUNC_CHECK(memcmp(dst, src, 4097), != 0);
+        TEST_FUNC_CHECK(edmac_memcpy(dst, src, 4097), == (int) dst);
+        TEST_FUNC_CHECK(memcmp(dst, src, 4097), == 0);
+        TEST_FUNC_CHECK(edmac_memcpy(dst, src, 4097), == (int) dst);
+
+        /* use fast EDMAC copying */
+        TEST_FUNC_CHECK(memcmp(dst, src, size), != 0);
+        TEST_FUNC_CHECK(edmac_memcpy(dst, src, size), == (int) dst);
+        TEST_FUNC_CHECK(memcmp(dst, src, size), == 0);
+    }
+
+    TEST_VOID(free(src));
+    TEST_VOID(free(dst));
+}
+
 static void stub_test_file_io()
 {
     /* File I/O */
@@ -638,6 +669,7 @@ static void stub_test_task(void* arg)
 
     for (int i=0; i < n; i++)
     {
+        stub_test_edmac();
         stub_test_file_io();
         stub_test_gui_timers();
         stub_test_other_timers();
