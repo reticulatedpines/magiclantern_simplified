@@ -213,15 +213,15 @@ static void stub_test_cache_bmp()
     }
 }
 
-static void stub_test_cache_fio()
+static int stub_test_cache_fio_do(int handle_cache)
 {
-    TEST_MSG("Cache test B (FIO on 8K buffer)...\n");
-
     /* prefer CF card if present */
     char * test_file = is_dir("A:/") ? "A:/test.dat" : "test.dat";
-
-    FILE* f;
+    FILE * f;
     TEST_FUNC_CHECK(f = FIO_CreateFile(test_file), != 0);
+
+    /* result */
+    int fail = -1;
 
     /* cacheable buffer that will fit the entire cache */
     /* placed at some random stack offset */
@@ -247,8 +247,22 @@ static void stub_test_cache_fio()
     }
 
     /* save it to card */
-    /* note: if you comment out clean_d_cache() in the FIO_WriteFile, this test will fail */
-    TEST_FUNC_CHECK(FIO_WriteFile(f, buf, size), == size);
+    if (handle_cache)
+    {
+        /* let the wrapper handle the cacheable buffer */
+        TEST_FUNC_CHECK(FIO_WriteFile(f, buf, size), == size);
+    }
+    else
+    {
+        /* Trick the wrapper into calling Canon stub directly,
+         * so it will no longer clean the cache before writing.
+         * This should fail - do not use it in practice.
+         * The uncacheable flag has no effect on DMA.
+         * You should either use fio_malloc (which returns uncacheable buffers)
+         * or pass regular (cacheable) pointers and let the wrapper handle them. */
+        TEST_FUNC_CHECK(FIO_WriteFile(f, UNCACHEABLE(buf), size), == size);
+    }
+
     TEST_VOID(FIO_CloseFile(f));
 
     /* reopen the file for reading */
@@ -272,26 +286,68 @@ static void stub_test_cache_fio()
 
     free(ubuf);
 
-    /* report results */
-    TEST_FUNC_CHECK(a, == 0);
-    TEST_FUNC_CHECK(b, == size);
-    TEST_FUNC_CHECK(c, == 0);
-    TEST_FUNC_CHECK(a + b + c, == size);
+    /* don't report success/failure yet, as this test is not deterministic
+     * just log the values and return the status */
+    TEST_FUNC(a);
+    TEST_FUNC(b);
+    TEST_FUNC(c);
+    TEST_FUNC(a + b + c);
+    fail = (a != 0) || (b != size) || (c != 0);
 
 cleanup:
     /* cleanup */
     TEST_VOID(FIO_CloseFile(f));
     TEST_FUNC_CHECK(FIO_RemoveFile(test_file), == 0);
+    return fail;
+}
+
+static void stub_test_cache_fio()
+{
+    TEST_MSG("Cache test B (FIO on 8K buffer)...\n");
+
+    /* non-deterministic test - run many times */
+    stub_silence = 1;
+
+    int tries[2] = {0};
+    int fails[2] = {0};
+
+    for (int i = 0; i < 1000; i++)
+    {
+        /* select whether the FIO_WriteFile wrapper should handle caching issues */
+        int handle_cache = rand() & 1;
+
+        /* run one iteration */
+        int fail = stub_test_cache_fio_do(handle_cache);
+        ASSERT(fail >= 0);
+
+        /* count the stats */
+        tries[handle_cache]++;
+        if (fail) fails[handle_cache]++;
+
+        /* progress indicator */
+        if (i % 100 == 0)
+        {
+            printf(".");
+        }
+    }
+    stub_silence = 0;
+    printf("\n");
+
+    /* report how many tests were performed in each case */
+    TEST_FUNC_CHECK(tries[0], > 250);
+    TEST_FUNC_CHECK(tries[1], > 250);
+
+    /* the test should succeed only if the FIO_WriteFile wrapper
+     * is allowed to handle caching for regular buffers;
+     * it should fail otherwise, at least a few times */
+    TEST_FUNC_CHECK(fails[0], > 10);
+    TEST_FUNC_CHECK(fails[1], == 0);
 }
 
 static void stub_test_cache()
 {
     stub_test_cache_bmp();
-
-    for (int i = 0; i < 100; i++)
-    {
-        stub_test_cache_fio();
-    }
+    stub_test_cache_fio();
 
     TEST_MSG("Cache tests finished.\n\n");
 }
