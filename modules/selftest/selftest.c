@@ -156,15 +156,26 @@ static void stub_test_cache_bmp()
         clrscr();
         bmp_draw_scaled_ex(bmp, os.x0, os.y0, os.x_ex, os.y_ex, bvram_mirror);
 
-        if (k == 1)
-        {
-            /* make sure the data is written to physical memory */
-            clean_d_cache();
-        }
-
         /* copy the image to idle buffer using EDMAC */
         uint8_t * src = bmp_vram_real();
         uint8_t * dst = bmp_vram_idle();
+
+        ASSERT(src == CACHEABLE(src));
+        ASSERT(dst == CACHEABLE(dst));
+
+        if (k == 0)
+        {
+            /* trick the copying routine so it doesn't handle caching issues.
+             * these pointers are actually cacheable (for speed reasons);
+             * flagging them as uncacheable has no effect on DMA behavior.
+             * this test should fail. */
+            src = UNCACHEABLE(src);
+        }
+
+        /* mark destination as uncacheable (the EDMAC routine expects it this way) */
+        /* this is generally incorrect; you should use fio_malloc instead. */
+        dst = UNCACHEABLE(dst);
+
         edmac_copy_rectangle_adv_start(dst, src, 960, 0, 0, 960, 0, 0, 720, 480);
 
         /* wait for EDMAC transfer to finish */
