@@ -146,6 +146,7 @@ NSTUB(0xFF2C5D1C,  ShootOlcApp_handler)
 // NSTUB(    ???,  ReverseDisplay)                          /* present on 60D.111, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
 
 /** EDMAC **/
+NSTUB(0xFF18FCC0,  AbortEDmac)
 NSTUB(0xFF18FB90,  ConnectReadEDmac)
 NSTUB(0xFF18FB68,  ConnectWriteEDmac)
 NSTUB(0xFF18FD88,  RegisterEDmacAbortCBR)
@@ -156,7 +157,6 @@ NSTUB(0xFF18FBF0,  StartEDmac)
 NSTUB(0xFF18FE30,  UnregisterEDmacAbortCBR)
 NSTUB(0xFF18FD74,  UnregisterEDmacCompleteCBR)
 NSTUB(0xFF18FE74,  UnregisterEDmacPopCBR)
-///NSTUB([idk], AbortEDmac)
 
 /** Electronic Level **/
 // NSTUB(    ???,  GUI_SetRollingPitchingLevelStatus)       /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 600D.102, 650D.104, 550D.109, 700D.113 */

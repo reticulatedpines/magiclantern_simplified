@@ -151,6 +151,7 @@ NSTUB(0xFF2CFAB4,  NormalDisplay)
 NSTUB(0xFF2CFA84,  ReverseDisplay)
 
 /** EDMAC **/
+NSTUB(0xFF1C0378,  AbortEDmac)
 NSTUB(0xFF1C00C0,  ConnectReadEDmac)
 NSTUB(0xFF1BFFFC,  ConnectWriteEDmac)
 NSTUB(0xFF1C0440,  RegisterEDmacAbortCBR)
@@ -161,7 +162,6 @@ NSTUB(0xFF1C024C,  StartEDmac)
 NSTUB(0xFF1C0454,  UnregisterEDmacAbortCBR)
 NSTUB(0xFF1C042C,  UnregisterEDmacCompleteCBR)
 NSTUB(0xFF1C047C,  UnregisterEDmacPopCBR)
-///NSTUB([idk], AbortEDmac)
 
 /** Electronic Level **/
 NSTUB(0xFF2045E0,  GUI_SetRollingPitchingLevelStatus)

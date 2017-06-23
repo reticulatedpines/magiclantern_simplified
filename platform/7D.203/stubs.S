@@ -142,6 +142,7 @@ NSTUB(0xFF41DDE0,  StopPlayProtectGuideApp)
 // NSTUB(    ???,  ReverseDisplay)                          /* present on 60D.111, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
 
 /** EDMAC **/
+NSTUB(0xFF8D48CC,  AbortEDmac)
 NSTUB(0xFF1F54DC,  ConnectReadEDmac)
 NSTUB(0xFF1F5418,  ConnectWriteEDmac)
 NSTUB(0xFF1F5878,  RegisterEDmacAbortCBR)
@@ -152,7 +153,6 @@ NSTUB(0xFF1F5660,  StartEDmac)
 NSTUB(0xFF1F58B8,  UnregisterEDmacAbortCBR)
 NSTUB(0xFF1F5864,  UnregisterEDmacCompleteCBR)
 NSTUB(0xFF1F5994,  UnregisterEDmacPopCBR)
-///NSTUB([idk], AbortEDmac)
 
 /** Electronic Level **/
 NSTUB(0xFF236E9C,  GUI_SetRollingPitchingLevelStatus)
