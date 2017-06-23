@@ -1310,9 +1310,6 @@ menu_remove(
     
     menu_flags_load_dirty = 1;
 
-    /* going to modify the menu structure */
-    take_semaphore(menu_sem, 0);
-
     int removed = 0;
 
     struct menu_entry * entry = menu->children;
@@ -1324,8 +1321,6 @@ menu_remove(
         }
         entry = entry->next;
     }
-
-    give_semaphore(menu_sem);
 }
 
 
