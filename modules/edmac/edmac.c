@@ -134,7 +134,14 @@ static void edmac_display_detailed(int channel)
     uint32_t flags = edmac_get_flags(channel);
     uint32_t addr  = edmac_get_address(channel);
 
-    uint32_t bpt = edmac_bytes_per_transfer(flags);
+    char flags_desc[32] = "";
+    if (flags)
+    {
+        snprintf(flags_desc, sizeof(flags_desc),
+            "(%d bytes per transfer)",
+            edmac_bytes_per_transfer(flags)
+        );
+    }
 
     union edmac_size_t
     {
@@ -162,7 +169,7 @@ static void edmac_display_detailed(int channel)
 
     bmp_printf(FONT_MONO_20, 50, y += fh, "Address    : %8x ", addr);
     bmp_printf(FONT_MONO_20, 50, y += fh, "State      : %8x ", state);
-    bmp_printf(FONT_MONO_20, 50, y += fh, "Flags      : %8x (%d byte%s per transfer)", flags, bpt > 1 ? "s" : "", bpt);
+    bmp_printf(FONT_MONO_20, 50, y += fh, "Flags      : %8x %s", flags, flags_desc);
     bmp_printf(FONT_MONO_20, 50, y += fh, "Size       : %s ", edmac_format_size(&info));
     y += fh;
     bmp_printf(FONT_MONO_20, 50, y += fh, "Size A     : %8x (%d x %d) ", size_a.raw, size_a.size.x, size_a.size.y);
