@@ -234,7 +234,7 @@ NSTUB(0xFF0C8364, _malloc)
 
 /** Message queues **/
 NSTUB(0xFFA88414 - RAM_OFFSET,  msg_queue_count)            // 0x1EE84 Above "!!!!!!! QUE Overflo"
-NSTUB(0xFFA73C84 - RAM_OFFSET,  msg_queue_create)
+NSTUB(0xFFA880D8 - RAM_OFFSET,  msg_queue_create)
 NSTUB(0xFFA883D4 - RAM_OFFSET,  msg_queue_post)             // 1EE44
 NSTUB(0xFFA881E8 - RAM_OFFSET,  msg_queue_receive)          // 1EC58
 
