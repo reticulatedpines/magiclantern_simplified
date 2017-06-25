@@ -18,7 +18,7 @@ static void print_char(char value)
     static int len = 0;
     buf[len++] = value;
     buf[len] = 0;
-    if (value == '\n' || len == COUNT(buf))
+    if (value == '\n' || value == '\0' || len == COUNT(buf))
     {
         fprintf(stderr, KBLU"%s"KRESET, buf);
         len = 0;
@@ -43,6 +43,7 @@ unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *s, unsigned in
                 for (char * ch = num; *ch; ch++) {
                     print_char(*ch);
                 }
+                print_char('\0');
                 return 0;
             }
 
