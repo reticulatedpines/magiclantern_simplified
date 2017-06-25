@@ -120,6 +120,12 @@ for line in lines:
         assert level < len(current_stack)
         current_stack = callstacks[stackid] = current_stack[:level]
 
+    elif " -> " in line:
+        m = re.match(" *-> ([^ ]*) +at ", line)
+        if m:
+            jump_target = m.groups()[0]
+            current_stack[-1] = current_stack[-1].replace("(", " -> %s(" % jump_target, 1)
+
     # for all lines:
     debug("<stack '%s', %d items>", stackid, len(current_stack))
 

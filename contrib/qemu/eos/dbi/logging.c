@@ -305,7 +305,8 @@ struct call_stack_entry
     };
     uint32_t last_pc;
     uint32_t num_args;
-    uint32_t interrupt_id;  /* 0 = regular code, nonzero = interrupt */
+    uint32_t interrupt_id;      /* 0 = regular code, nonzero = interrupt */
+    uint32_t direct_jumps[4];   /* DIGIC 6 code uses many of those */
 } __attribute__((packed));
 
 static struct call_stack_entry call_stacks[256][128];
@@ -323,6 +324,7 @@ static inline void call_stack_push(uint8_t id, uint32_t * regs,
     entry->pc = pc;             /* override pc (actually, use the one that includes the Thumb flag) */
     entry->last_pc = last_pc;   /* on Thumb, LR is not enough to find this because of variable instruction size */
     entry->interrupt_id = interrupt_id;
+    memset(entry->direct_jumps, 0, sizeof(entry->direct_jumps));
     call_stack_num[id]++;
 }
 
@@ -504,27 +506,40 @@ void eos_callstack_print_verbose(EOSState *s)
 
     for (int k = 0; k < call_stack_num[id]; k++)
     {
-        uint32_t pc = call_stacks[id][k].pc;
-        uint32_t sp = call_stacks[id][k].sp;
-        uint32_t ret = call_stacks[id][k].last_pc;
+        struct call_stack_entry * entry = &call_stacks[id][k];
+        uint32_t pc = entry->pc;
+        uint32_t sp = entry->sp;
+        uint32_t ret = entry->last_pc;
 
         int len = indent(0, k);
         
-        if (call_stacks[id][k].interrupt_id)
+        if (entry->interrupt_id)
         {
-            len += fprintf(stderr, "interrupt %02Xh", call_stacks[id][k].interrupt_id);
+            len += fprintf(stderr, "interrupt %02Xh", entry->interrupt_id);
             len += indent(len, CALLSTACK_RIGHT_ALIGN);
             eos_print_location(s, ret, sp, " at ", "\n");
             assert(pc == 0x18);
         }
         else
         {
+            /* print direct jumps, if any */
+            /* use any of their names for the entire group */
             const char * name = lookup_symbol(pc);
+            for (int i = COUNT(entry->direct_jumps)-1; i >= 0; i--) {
+                if (entry->direct_jumps[i]) {
+                    const char * jump_name = lookup_symbol(entry->direct_jumps[i]);
+                    if (jump_name && jump_name[0]) {
+                        name = jump_name;
+                    }
+                    len += fprintf(stderr, "0x%X -> ", entry->direct_jumps[i]);
+                }
+            }
             len += fprintf(stderr, "0x%X", pc);
+
             if (name && name[0]) {
                 len += fprintf(stderr, " %s", name);
             }
-            len += print_args(call_stacks[id][k].regs);
+            len += print_args(entry->regs);
             len += indent(len, CALLSTACK_RIGHT_ALIGN);
             eos_print_location(s, ret, sp, " at ", " (pc:sp)\n");
         }
@@ -1049,9 +1064,19 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                          * called both when exiting from interrupt and outside interrupts */
                         goto maybe_task_switch;
                     }
-                    else if ((insn & 0xC000F800) == 0x8000F000)
+                    else if ((insn & 0xD000F800) == 0x8000F000)
                     {
-                        /* branch (p.71) - ignore */
+                        /* conditional branch (p.71) - ignore */
+                        goto end;
+                    }
+                    else if ((insn & 0xD000F800) == 0x9000F000)
+                    {
+                        /* unconditional branch (p.71) */
+                        goto jump_instr;
+                    }
+                    else if ((insn & 0xFFF0FFFF) == 0xF000E8DF)
+                    {
+                        /* TBB [PC, Rn] (p.473) */
                         goto end;
                     }
                     break;
@@ -1066,14 +1091,29 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                     if (insn == 0x4760)
                     {
                         /* BX IP */
-                        /* frequently used in interrupt handler - ignore */
-                        goto end;
+                        /* frequently used in interrupt handler */
+                        /* workaround for the direct jump test */
+                        uint8_t id = get_stackid(s);
+                        int level = call_stack_num[id] - 1;
+                        uint32_t stack_pc = (level >= 0) ? call_stacks[id][level].pc : 0;
+                        if (prev_pc - 8 == stack_pc)
+                        {
+                            prev_pc -= 8;
+                        }
+                        goto jump_instr;
+                    }
+
+                    if (insn == 0x4718)
+                    {
+                        /* BX R3 */
+                        /* used for indirect tail calls in a few places */
+                        goto jump_instr;
                     }
 
                     if ((insn & 0xF800) == 0xE000)
                     {
-                        /* unconditional branch - ignore */
-                        goto end;
+                        /* unconditional branch */
+                        goto jump_instr;
                     }
 
                     if ((insn & 0xF000) == 0xD000)
@@ -1100,17 +1140,67 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
         }
         else /* ARM (32-bit instructions) */
         {
+            if ((insn & 0xFF000000) == 0xEA000000)
+            {
+                /* unconditional branch */
+                goto jump_instr;
+            }
+
             if ((insn & 0x0F000000) == 0x0A000000)
             {
-                /* branch - ignore */
+                /* conditional branch - ignore */
                 goto end;
             }
 
-            if (insn == 0xe51ff004)
+            if ((insn & 0xFF7FF000) == 0xe51ff000)
             {
-                /* LDR PC, [PC, #-4] */
-                /* long jump - ignore */
-                goto end;
+                /* LDR PC, [PC, #off] */
+                /* long jump */
+
+            jump_instr:;
+                uint8_t id = get_stackid(s);
+                int level = call_stack_num[id] - 1;
+                struct call_stack_entry * entry = &call_stacks[id][level];
+                uint32_t stack_pc = (level >= 0) ? entry->pc : 0;
+                
+                if (prev_pc == stack_pc)
+                {
+                    /* many DIGIC 6 functions have wrappers that simply jump to another function */
+                    /* don't be too verbose on these, but also make sure it's really just a simple jump */
+                    if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
+                        int len = call_stack_indent(id, 0, 0);
+                        len += fprintf(stderr, "-> 0x%X", pc | env->thumb);
+                        const char * name = lookup_symbol(pc);
+                        if (name && name[0]) {
+                            len += fprintf(stderr, " %s", name);
+                        }
+                        len += indent(len, CALLSTACK_RIGHT_ALIGN);
+
+                        /* print LR from the call stack, so it will always show the caller */
+                        int level = call_stack_num[id] - 1;
+                        uint32_t stack_lr = level >= 0 ? entry->lr : 0;
+                        print_call_location(s, prev_pc, stack_lr);
+                    }
+                    for (int i = 0; i < 14; i++) {
+                        if (i == 12) continue;
+                        if (env->regs[i] != entry->regs[i]) {
+                            fprintf(stderr, "R%d changed\n", i);
+                            assert(0);
+                        }
+                    }
+
+                    /* update PC of the last call on the stack, to allow chaining more direct jumps */
+                    /* (consider it is the same function call) */
+                    assert(level >= 0);
+                    assert(entry->direct_jumps[3] == 0);
+                    entry->direct_jumps[3] = entry->direct_jumps[2];
+                    entry->direct_jumps[2] = entry->direct_jumps[1];
+                    entry->direct_jumps[1] = entry->direct_jumps[0];
+                    entry->direct_jumps[0] = entry->pc;
+                    entry->pc = pc;
+                    goto end;
+                }
+
             }
 
             if (insn == 0xe8fddfff || insn == 0xe8d4ffff)
@@ -1187,7 +1277,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
         if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
             uint8_t id = get_stackid(s);
             int len = call_stack_indent(id, 0, 0);
-            len += fprintf(stderr, KCYN"PC jump? 0x%X lr=%x"KRESET, pc | env->thumb, lr);
+            len += fprintf(stderr, KCYN"jump to 0x%X"KRESET" lr=%x", pc | env->thumb, lr);
             len -= strlen(KCYN KRESET);
             len += indent(len, CALLSTACK_RIGHT_ALIGN);
             print_call_location(s, prev_pc, prev_lr);
