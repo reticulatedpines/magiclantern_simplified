@@ -13,9 +13,11 @@ GDB_SCRIPT=${GDB_SCRIPT:=patches.gdb}       # GDB script (skipped if not found)
 BOOT=${BOOT:=1}                             # whether to load autoexec.bin (default: load)
 INCREMENTAL=${INCREMENTAL:=}                # skip make clean (default: full rebuild)
 AUTOEXEC_ONLY=${AUTOEXEC_ONLY:=}            # copy only autoexec.bin (default: make zip and full install)
-ML_OPTIONS=${ML_OPTIONS:=}                  # ML compile options (e.g. "CONFIG_QEMU=y")
 BUILD_DIR=${BUILD_DIR:=platform/\$CAM_DIR}  # optionally build a different target; usually requires AUTOEXEC_ONLY=1
                                             # e.g. "minimal/\$CAM_DIR", "minimal/qemu-frsp" (with ML_OPTIONS="MODEL=\$CAM"), "installer/\$CAM_DIR"
+ML_PLATFORMS=${ML_PLATFORMS:=}              # specify ML platforms to run, e.g. "5D3.123/ 700D.114/"
+ML_CHANGESET=${ML_CHANGESET:=}              # specify which HG changeset to compile and run (hg up -C)
+ML_OPTIONS=${ML_OPTIONS:=}                  # ML compile options (e.g. "CONFIG_QEMU=y")
 
 [ "$SCREENSHOT" ] && QEMU_SCRIPT="$QEMU_SCRIPT; echo screendump \$CAM_FW.ppm"
 QEMU_SCRIPT="$QEMU_SCRIPT; echo quit"
@@ -23,12 +25,21 @@ QEMU_SCRIPT="$QEMU_SCRIPT; echo quit"
 . ./mtools_setup.sh
 
 cd ../magic-lantern/platform
-for CAM_DIR in [[:upper:]]*/ [[:digit:]]*/; do 
+
+# by default, run all ML platforms
+[ "$ML_PLATFORMS" = "" ] && ML_PLATFORMS=[[:upper:]]*/ [[:digit:]]*/
+
+for CAM_DIR in $ML_PLATFORMS; do 
     # CAM_DIR is e.g. 50D.111/ (includes a slash)
     # get cam name (e.g. 50D) and cam name with firmware version (e.g. 50D.111)
     CAM=${CAM_DIR//.*/}
     CAM_FW=${CAM_DIR////}
     FW=${CAM_FW//*./}
+
+    echo
+    echo "Emulating $CAM $FW..."
+    echo "====================="
+    echo 
 
     # only specify firmware version to QEMU for 5D3
     [ "$CAM" = "5D3" ] && QFW="$FW;" || QFW=
@@ -45,6 +56,14 @@ for CAM_DIR in [[:upper:]]*/ [[:digit:]]*/; do
 
     # only compile ML if BOOT=1
     if [ "$BOOT" == "1" ]; then
+
+        # use a specific changeset (optional)
+        if [ "$ML_CHANGESET" ]; then
+            cd ../$BuildDir
+            echo hg update $ML_CHANGESET --clean
+            hg update $ML_CHANGESET --clean
+            cd -
+        fi
 
         # make clean (optional)
         if [ ! "$INCREMENTAL" ]; then
