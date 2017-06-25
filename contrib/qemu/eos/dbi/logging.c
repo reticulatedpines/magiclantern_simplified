@@ -1403,6 +1403,11 @@ static void tb_exec_cb(void *opaque, CPUState *cpu, TranslationBlock *tb)
         }
     }
 
+    if (qemu_loglevel_mask(EOS_LOG_TASKS))
+    {
+        eos_tasks_log_exec(opaque, cpu, tb);
+    }
+
     if (qemu_loglevel_mask(EOS_LOG_CALLSTACK))
     {
         /* - callstack only exposes this functionality
@@ -1410,11 +1415,6 @@ static void tb_exec_cb(void *opaque, CPUState *cpu, TranslationBlock *tb)
          * - calls is verbose and implies callstack
          */
         eos_callstack_log_exec(opaque, cpu, tb);
-    }
-
-    if (qemu_loglevel_mask(EOS_LOG_TASKS))
-    {
-        eos_tasks_log_exec(opaque, cpu, tb);
     }
 
     if (qemu_loglevel_mask(EOS_LOG_RAM_MEMCHK))
