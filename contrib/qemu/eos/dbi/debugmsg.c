@@ -64,7 +64,7 @@ void DebugMsg_log(EOSState * s)
             {
                 c = eos_get_mem_b(s, address++);
                 format_string[n++] = c;
-            } while (n < COUNT(format_string) && c != '\0' && !strchr("diuoxXsSp%", c));
+            } while (n < COUNT(format_string) && c != '\0' && !strchr("diuoxXsSpc%", c));
 
             if (c == '\0' || c == 'S')
             {
