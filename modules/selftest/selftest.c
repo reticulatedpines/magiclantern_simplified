@@ -320,6 +320,7 @@ static void stub_test_cache_fio()
     stub_silence = 1;
 
     int tries[2] = {0};
+    int times[2] = {0};
     int fails[2] = {0};
 
     for (int i = 0; i < 1000; i++)
@@ -327,12 +328,15 @@ static void stub_test_cache_fio()
         /* select whether the FIO_WriteFile wrapper should handle caching issues */
         int handle_cache = rand() & 1;
 
-        /* run one iteration */
+        /* run one iteration and time it */
+        int t0 = get_ms_clock_value();
         int fail = stub_test_cache_fio_do(handle_cache);
+        int t1 = get_ms_clock_value();
         ASSERT(fail >= 0);
 
         /* count the stats */
         tries[handle_cache]++;
+        times[handle_cache] += (t1 - t0);
         if (fail) fails[handle_cache]++;
 
         /* progress indicator */
@@ -353,6 +357,10 @@ static void stub_test_cache_fio()
      * it should fail otherwise, at least a few times */
     TEST_FUNC_CHECK(fails[0], > 10);
     TEST_FUNC_CHECK(fails[1], == 0);
+
+    /* check whether cache cleaning causes any slowdown */
+    TEST_FUNC(times[0] / tries[0]);
+    TEST_FUNC(times[1] / tries[1]);
 }
 
 static void stub_test_cache()
