@@ -99,7 +99,6 @@ char *strdup(const char *s);
 #include "../lv_rec/lv_rec.h"
 #include "../../src/raw.h"
 #include "mlv.h"
-#include "camera_id.h"
 #include "dng/dng.h"
 
 enum bug_id
