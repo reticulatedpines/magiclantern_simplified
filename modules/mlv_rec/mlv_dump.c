@@ -1252,9 +1252,6 @@ int main (int argc, char *argv[])
     char *autopsy_block_type = "    ";
     char *autopsy_file = "autopsy.bin";
     
-    
-    const char * unique_camname = "(unknown)";
-
     struct option long_options[] = {
         {"version",  no_argument, &version,  1 },
         {"lua",    required_argument, NULL,  'L' },
@@ -3911,12 +3908,6 @@ read_headers:
                         print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
                         goto abort;
                     }
-                }
-
-                unique_camname = get_camera_name_by_id(idnt_info.cameraModel, UNIQ);
-                if(!unique_camname)
-                {
-                    unique_camname = (const char*) idnt_info.cameraName;
                 }
             }
             else if(!memcmp(buf.blockType, "RTCI", 4))
