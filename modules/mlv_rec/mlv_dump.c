@@ -1679,25 +1679,34 @@ int main (int argc, char *argv[])
         print_msg(MSG_INFO, "   - Altering FPS metadata for %d/1000 fps\n", alter_fps);
     }
     
-    /* force 14bpp output for DNG code */
     if(dng_output)
     {
-        if(compress_output == 1)
+        /* correct handling of bit depth converion for DNG output */
+        if(compress_output) 
         {
             print_msg(MSG_INFO, "   - Compress frames written into DNG (slow)\n");
-            print_msg(MSG_INFO, "   - Enforcing 14bpp for DNG output\n");
-            bit_depth = 14;
+            if(bit_depth)
+            {
+                /* ignore "-b" switch */
+                print_msg(MSG_INFO, "   - WARNING: Ignoring bit depth conversion\n");
+                bit_depth = 0;
+            }
         }
-        else if(compress_output > 1)
+        else if(pass_through)
         {
-            print_msg(MSG_INFO, "   - Writing original compressed lossless payload into DNG\n");
-            print_msg(MSG_INFO, "   - WARNING: These compressed DNGs will not undergo any preprocessing like stripe fix etc\n");
+            print_msg(MSG_INFO, "   - Writing original (compressed/uncompressed) payload into DNG\n");
+            print_msg(MSG_INFO, "   - WARNING: These DNGs will not undergo any preprocessing like stripe fix etc\n");
+            if(bit_depth)
+            {
+                /* ignore "-b" switch */
+                print_msg(MSG_INFO, "   - WARNING: Ignoring bit depth conversion\n");
+                bit_depth = 0;
+            }
         }
         else
         {
-            print_msg(MSG_INFO, "   - Decompressing before writing DNG\n");
-            print_msg(MSG_INFO, "   - Enforcing 14bpp for DNG output\n");
-            bit_depth = 14;
+            /* decompress input before processing in case it's compressed.
+               if "-b" switch used do bit depth convertion, no depth forcing/ignoring is done */
             decompress_input = 1;
         }
         
