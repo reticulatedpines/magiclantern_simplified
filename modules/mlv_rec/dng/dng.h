@@ -45,19 +45,19 @@ struct frame_info
 {
     char * mlv_filename;
     char * dng_filename;
-    int fps_override;
+    int fps_override;     // switch "-A fpsx1000"
 
     /* flags */
-    int deflicker_target;
-    int vertical_stripes;
-    int bad_pixels;
-    int save_bpm;
-    int dual_iso;
-    int chroma_smooth;
-    int pattern_noise;
-    int show_progress;
-    int raw_state;
-    int pack_bits;
+    int deflicker_target; // "--deflicker=value"
+    int vertical_stripes; // 0 - "--no-stripes", 1 - no switch (default), 2 - "--force-stripes"
+    int bad_pixels;       // 0 - "--no-fixcp", 1 - no switch (default), 2 - "--fixcp2" (makes algorithm aggresive to reveal more bad pixels)
+    int save_bpm;         // "--save-bpm" (saves bad pixel map to file)
+    int dual_iso;         // "--is-dualiso" (means RAW data is dual iso process bad/focus pixels correctly, can be removed if DISO block parsing implemented)
+    int chroma_smooth;    // 2 - "--cs2x2", 3 "--cs3x3", 5 - "--cs5x5"
+    int pattern_noise;    // "--fixpn" (fixes pattern noise)
+    int show_progress;    // "--show-progress" (verbose mode for 'dng.c')
+    int raw_state;        // see 'enum raw_state' above
+    int pack_bits;        // 0 - "--no-bitpack" (saves 16bit dngs), 1 - bit packing wil be done (default)
 
     /* block headers */
     mlv_vidf_hdr_t vidf_hdr;
@@ -73,25 +73,28 @@ struct frame_info
 /* buffers of DNG header and image data */
 struct dng_data
 {
-    size_t header_size;
-    size_t image_size;
-    size_t image_size_bitpacked;
-    size_t image_size_bak;
+    size_t header_size;             // dng header size
+    size_t image_size;              // raw image buffer size
+    size_t image_size_bitpacked;    // bit packed raw image buffer size
+    size_t image_size_bak;          // image size backup (needed to restore original size)
 
-    uint8_t * header_buf;
-    uint16_t * image_buf;
-    uint16_t * image_buf_bitpacked;
-    uint16_t * image_buf_bak;
+    uint8_t * header_buf;           // pointer to header buffer
+    uint16_t * image_buf;           // pointer to image buffer
+    uint16_t * image_buf_bitpacked; // pointer to bit packed image buffer
+    uint16_t * image_buf_bak;       // backup of pointer to image buffer (needed to restore pointer to original buffer)
 };
 
+/* routines to initialize, process and free raw image buffers of dng_struct */
 void dng_init_header(struct frame_info * frame_info, struct dng_data * dng_data);
 void dng_init_data(struct frame_info * frame_info, struct dng_data * dng_data);
 void dng_process_data(struct frame_info * frame_info, struct dng_data * dng_data);
 void dng_free_data(struct dng_data * dng_data);
 
+/* routines unpack and pack bits */
 void dng_unpack_image_bits(uint16_t * input_buffer, uint16_t * output_buffer, size_t max_size, uint32_t bpp);
 void dng_pack_image_bits(uint16_t * input_buffer, uint16_t * output_buffer, size_t max_size, uint32_t bpp);
 
+/* routine to save cdng file */
 int dng_save(struct frame_info * frame_info, struct dng_data * dng_data);
 
 #endif

@@ -922,9 +922,17 @@ void show_usage(char *executable)
     print_msg(MSG_INFO, "  --cs2x2             2x2 chroma smoothing\n");
     print_msg(MSG_INFO, "  --cs3x3             3x3 chroma smoothing\n");
     print_msg(MSG_INFO, "  --cs5x5             5x5 chroma smoothing\n");
-    print_msg(MSG_INFO, "  --no-fixcp          do not fix cold pixels\n");
-    print_msg(MSG_INFO, "  --fixcp2            fix non-static (moving) cold pixels (slow)\n");
+    print_msg(MSG_INFO, "  --no-fixcp          do not fix bad pixels\n");
+    print_msg(MSG_INFO, "  --fixcp2            use aggressive method for revealing more bad pixels\n");
     print_msg(MSG_INFO, "  --no-stripes        do not fix vertical stripes in highlights\n");
+    print_msg(MSG_INFO, "  --force-stripes     compute stripe correction for every frame\n");
+    print_msg(MSG_INFO, "  --is-dualiso        use dual iso compatible horizontal interpolation of focus and bad pixels\n");
+    print_msg(MSG_INFO, "  --save-bpm          save bad pixels to .BPM file\n");
+    print_msg(MSG_INFO, "  --fixpn             fix pattern noise\n");
+    print_msg(MSG_INFO, "  --deflicker=value   per-frame exposure compensation. value is target median in raw units ex: 3072 (default)\n");
+    print_msg(MSG_INFO, "  --no-bitpack        write DNG files with unpacked to 16 bit raw data\n");
+    print_msg(MSG_INFO, "  --show-progress     show DNG file creation progress. ignored when -v or --batch is specified\n");
+    print_msg(MSG_INFO, "                      also works when compressing MLV to MLV and shows compression ratio for each frame\n");
 
     print_msg(MSG_INFO, "\n");
     print_msg(MSG_INFO, "-- RAW output --\n");
@@ -1219,6 +1227,16 @@ int main (int argc, char *argv[])
     int dump_xrefs = 0;
     int fix_cold_pixels = 1;
     int fix_vert_stripes = 1;
+    int is_dual_iso = 0;
+    int save_bpm_file = 0;
+    int fix_pattern_noise = 0;
+    int deflicker_target = 0;
+    int show_progress = 0;
+    int pack_dng_bits = 1;
+    
+    /* helper structs for DNG exporting */
+    struct frame_info frame_info;
+    struct dng_data dng_data = { 0, 0, 0, 0, NULL, NULL, NULL, NULL };
     
     enum bug_id fix_bug = BUG_ID_NONE;
     
@@ -1270,6 +1288,13 @@ int main (int argc, char *argv[])
         {"no-stripes",  no_argument, &fix_vert_stripes,  0 },
         {"avg-vertical",  no_argument, &average_vert,  1 },
         {"avg-horizontal",  no_argument, &average_hor,  1 },
+        {"is-dualiso",    no_argument, &is_dual_iso,  1 },
+        {"save-bpm",    no_argument, &save_bpm_file,  1 },
+        {"force-stripes",  no_argument, &fix_vert_stripes,  2 },
+        {"fixpn",  no_argument, &fix_pattern_noise,  1 },
+        {"deflicker",  optional_argument, NULL,  'D' },
+        {"show-progress",  no_argument, &show_progress,  1 },
+        {"no-bitpack",  no_argument, &pack_dng_bits,  0 },
         
         /* MLV autopsy */
         {"relaxed",       no_argument, &relaxed,  1 },
@@ -1300,7 +1325,7 @@ int main (int argc, char *argv[])
     }
 
     int index = 0;
-    while ((opt = getopt_long(argc, argv, "A:F:B:W:L:S:T:V:X:Y:Z:I:t:xz:emnas:uvrcdo:l:b:f:", long_options, &index)) != -1)
+    while ((opt = getopt_long(argc, argv, "A:F:B:W:L:S:T:V:X:Y:Z:I:D:t:xz:emnas:uvrcdpo:l:b:f:", long_options, &index)) != -1)
     {
         switch (opt)
         {
@@ -1381,6 +1406,17 @@ int main (int argc, char *argv[])
                 }
                 break;
                 
+            case 'D':
+                if(!optarg)
+                {
+                    deflicker_target = 3072;
+                }
+                else
+                {
+                    deflicker_target = MIN(16384, MAX(1, atoi(optarg)));
+                }
+                break;
+            
             case 'A':
                 if(!optarg)
                 {
