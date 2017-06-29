@@ -1650,6 +1650,13 @@ int main (int argc, char *argv[])
     if(verbose)
     {
         print_msg(MSG_INFO, "   - Verbose messages\n");
+        show_progress = 0; // ignore "--show-progress", incompatible with verbose mode
+    }
+
+    if(batch_mode)
+    {
+        print_msg(MSG_INFO, "   - Batch processing suitable output\n");
+        show_progress = 0; // ignore "--show-progress", incompatible with batch mode
     }
     
     if(black_fix)
