@@ -52,12 +52,12 @@ struct frame_info
     int vertical_stripes; // 0 - "--no-stripes", 1 - no switch (default), 2 - "--force-stripes"
     int bad_pixels;       // 0 - "--no-fixcp", 1 - no switch (default), 2 - "--fixcp2" (makes algorithm aggresive to reveal more bad pixels)
     int save_bpm;         // "--save-bpm" (saves bad pixel map to file)
-    int dual_iso;         // "--is-dualiso" (means RAW data is dual iso process bad/focus pixels correctly, can be removed if DISO block parsing implemented)
+    int dual_iso;         // "--is-dualiso" (means RAW data is dual iso process bad/focus pixels correctly (can be removed if DISO block parsing implemented)
     int chroma_smooth;    // 2 - "--cs2x2", 3 "--cs3x3", 5 - "--cs5x5"
     int pattern_noise;    // "--fixpn" (fixes pattern noise)
     int show_progress;    // "--show-progress" (verbose mode for 'dng.c')
     int raw_state;        // see 'enum raw_state' above
-    int pack_bits;        // 0 - "--no-bitpack" (saves 16bit dngs), 1 - bit packing wil be done (default)
+    int pack_bits;        // 0 - "--no-bitpack" (saves 16bit dngs), 1 - bit packing will be done (default)
 
     /* block headers */
     mlv_vidf_hdr_t vidf_hdr;
@@ -90,7 +90,7 @@ void dng_init_data(struct frame_info * frame_info, struct dng_data * dng_data);
 void dng_process_data(struct frame_info * frame_info, struct dng_data * dng_data);
 void dng_free_data(struct dng_data * dng_data);
 
-/* routines unpack and pack bits */
+/* routines to unpack and pack bits */
 void dng_unpack_image_bits(uint16_t * input_buffer, uint16_t * output_buffer, size_t max_size, uint32_t bpp);
 void dng_pack_image_bits(uint16_t * input_buffer, uint16_t * output_buffer, size_t max_size, uint32_t bpp);
 
