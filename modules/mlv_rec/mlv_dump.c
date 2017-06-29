@@ -35,12 +35,6 @@
 #include "../module_strings_wrapper.h"
 #include "module_strings.h"
 MODULE_STRINGS()
-
-/* dng related headers */
-#include <chdk-dng.h>
-#include "../dual_iso/wirth.h"  /* fast median, generic implementation (also kth_smallest) */
-#include "../dual_iso/optmed.h" /* fast median for small common array sizes (3, 7, 9...) */
-
 #ifdef __WIN32
 #define FMT_SIZE "%u"
 #else
@@ -106,6 +100,7 @@ char *strdup(const char *s);
 #include "../../src/raw.h"
 #include "mlv.h"
 #include "camera_id.h"
+#include "dng/dng.h"
 
 enum bug_id
 {
