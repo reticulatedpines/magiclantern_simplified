@@ -983,18 +983,18 @@ void show_usage(char *executable)
     //print_msg(MSG_INFO, " -u lut_file         look-up table with 4 * xRes * yRes 16-bit words that is applied before bit depth conversion\n");
 
 #if defined(MLV_USE_LZMA) || defined(MLV_USE_LJ92)
-    print_msg(MSG_INFO, " -c                  compress video and audio frames using LJ92. if already compressed, then decompress and recompress again.\n");
-    print_msg(MSG_INFO, "                     specify twice to pass through unmodified compressed (lossless) data to DNG which speeds up writing, but skips preprocessing\n");
-    print_msg(MSG_INFO, " -d                  decompress compressed video and audio frames using LZMA or LJ92\n");
+    print_msg(MSG_INFO, "  -c                  compress video frames using LJ92. if input is lossless, then decompress and recompress again.\n");
+    print_msg(MSG_INFO, "  -d                  decompress compressed video and audio frames using LZMA or LJ92\n");
 #else
-    print_msg(MSG_INFO, " -c, -d              NOT AVAILABLE: compression support was not compiled into this release\n");
+    print_msg(MSG_INFO, "  -c, -d              NOT AVAILABLE: compression support was not compiled into this release\n");
 #endif
+    print_msg(MSG_INFO, "  -p                  pass through original raw data without processing, it works for lossless or uncompressed raw\n");
     print_msg(MSG_INFO, "\n");
 
     print_msg(MSG_INFO, "-- bugfixes --\n");
-    print_msg(MSG_INFO, " --black-fix=value   set black level to <value> (fix green/magenta cast). if no value given, it will be set to 2048.\n");
-    print_msg(MSG_INFO, " --white-fix=value   set white level to <value>. if no value given, it will be set to 15000.\n");
-    print_msg(MSG_INFO, " --fix-bug=id        fix some special bugs. *only* to be used if given instruction by developers.\n");
+    print_msg(MSG_INFO, "  --black-fix=value   set black level to <value> (fix green/magenta cast). if no value given, it will be set to 2048.\n");
+    print_msg(MSG_INFO, "  --white-fix=value   set white level to <value>. if no value given, it will be set to 15000.\n");
+    print_msg(MSG_INFO, "  --fix-bug=id        fix some special bugs. *only* to be used if given instruction by developers.\n");
     print_msg(MSG_INFO, "\n");
 }
 
@@ -1212,6 +1212,7 @@ int main (int argc, char *argv[])
     int decompress_input = 0;
     int verbose = 0;
     int alter_fps = 0;
+    int pass_through = 0;
     char opt = ' ';
 
     int video_xRes = 0;
@@ -1542,7 +1543,7 @@ int main (int argc, char *argv[])
 
             case 'c':
 #if defined(MLV_USE_LJ92)
-                compress_output++;
+                compress_output = (!pass_through) ? 1 : 0;
 #else
                 print_msg(MSG_ERROR, "Error: Compression support was not compiled into this release\n");
                 return ERR_PARAM;
@@ -1556,6 +1557,10 @@ int main (int argc, char *argv[])
                 print_msg(MSG_ERROR, "Error: Compression support was not compiled into this release\n");
                 return ERR_PARAM;
 #endif
+                break;
+
+            case 'p':
+                pass_through = (!compress_output) ? 1 : 0;
                 break;
 
             case 'o':
@@ -1671,7 +1676,7 @@ int main (int argc, char *argv[])
 
     if(alter_fps)
     {
-        print_msg(MSG_INFO, "   - altering FPS metadata for %d/1000 fps\n", alter_fps);
+        print_msg(MSG_INFO, "   - Altering FPS metadata for %d/1000 fps\n", alter_fps);
     }
     
     /* force 14bpp output for DNG code */
