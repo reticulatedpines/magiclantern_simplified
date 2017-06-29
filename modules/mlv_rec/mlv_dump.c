@@ -1681,7 +1681,7 @@ int main (int argc, char *argv[])
     
     if(dng_output)
     {
-        /* correct handling of bit depth converion for DNG output */
+        /* correct handling of bit depth conversion for DNG output */
         if(compress_output) 
         {
             print_msg(MSG_INFO, "   - Compress frames written into DNG (slow)\n");
@@ -2710,23 +2710,17 @@ read_headers:
                     int write_block = mlv_output && !only_metadata_mode && !average_mode && (!extract_block || !strncasecmp(extract_block, (char*)block_hdr.blockType, 4));             
 
                     /*
-                      compress_output can be set to 0, 1 or 2. run if set to other than zero.
+                      compress_output can be 0 or 1. run compressor if not zero.
                     */
                     int run_compressor = compress_output != 0;
                     
                     /*
                       special case:
-                        when specified "-c -c" on commandline, pass through unmodified lossless data into DNG files.
+                        when specified "-p" on commandline, pass through unmodified (compressed/uncompressed) data into DNG files.
                         this will be a lot faster, but requires the user to fix striping and stuff on its own.
                     */
-                    if(dng_output && compress_output > 1)
+                    if(dng_output && pass_through)
                     {
-                        if(!compressed)
-                        {
-                            print_msg(MSG_ERROR, "    DNG: pass-through original lossless data not possible, source is uncompressed!\n");
-                            goto abort;
-                        }
-                        print_msg(MSG_INFO, "    DNG: pass-through original lossless data\n");
                         run_decompressor = 0;
                         run_compressor = 0;
                         fix_vert_stripes = 0;
