@@ -703,7 +703,7 @@ static void entry_guess_icon_type(struct menu_entry * entry)
         }
         else if(entry->choices)
         {
-            const char* first_choice = entry->choices[entry->min];
+            const char* first_choice = entry->choices[0];
             if (streq(first_choice, "OFF") || streq(first_choice, "Hide"))
                 entry->icon_type = entry->max == 1 ? IT_BOOL : IT_DICE_OFF;
             else if (streq(first_choice, "ON"))
