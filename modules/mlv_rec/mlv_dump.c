@@ -3309,7 +3309,7 @@ read_headers:
                             int new_depth = bit_depth;
                             
                             /* patch raw info if bit depth changed */
-                            if(new_depth)
+                            if(new_depth || (black_fix || white_fix))
                             {
                                 raw_info.bits_per_pixel = new_depth;
                                 int delta = old_depth - new_depth;
@@ -4150,7 +4150,7 @@ read_headers:
                     int new_depth = bit_depth;
 
                     /* scale down black level */
-                    if(new_depth)
+                    if(new_depth || (black_fix || white_fix))
                     {
                         block_hdr.raw_info.bits_per_pixel = new_depth;
                         int delta = old_depth - new_depth;
