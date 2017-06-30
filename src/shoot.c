@@ -2276,7 +2276,7 @@ picstyle_rec_sub_toggle( void * priv, int delta )
 
 static void rec_picstyle_change(int rec)
 {
-    static int prev = -1;
+    static int prev = 0;
 
     if (picstyle_rec)
     {

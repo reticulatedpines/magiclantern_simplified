@@ -15,8 +15,14 @@
 void* get_current_dialog_handler()
 {
     struct gui_task * current = gui_task_list.current;
-    struct dialog * dialog = current->priv;
-    return dialog->handler;
+    if (current)
+    {
+        struct dialog * dialog = current->priv;
+        if (dialog)
+        {
+            return dialog->handler;
+        }
+    }
 }
 
 static void print_dialog_handler_stack()

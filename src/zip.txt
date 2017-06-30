@@ -7,7 +7,4 @@
 *                                                 *
 ***************************************************
 
-Information:     http://www.magiclantern.fm/documentation
-Donate:          http://goo.gl/79JgB
-
 .
