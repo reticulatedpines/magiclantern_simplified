@@ -3432,21 +3432,32 @@ read_headers:
                             uint8_t *compressed = NULL;
                             int compressed_size = 0;
                             
-                            /* split the single channels into image tiles */
-                            int compress_buffer_size = video_xRes * video_yRes * sizeof(uint16_t);
-                            uint16_t *compress_buffer = malloc(compress_buffer_size);
+                            int compress_buffer_size = 0;
+                            uint16_t *compress_buffer = NULL;
 
-                            /* repack the 16 bit words containing values with max 14 bit */
-                            int orig_pitch = video_xRes * lv_rec_footer.raw_info.bits_per_pixel / 8;
-
-                            for(int y = 0; y < video_yRes; y++)
+                            /* if DNG output then point compressed buffer directly to dng_data.image_buf and correct its size*/
+                            if(dng_output)
                             {
-                                void *src_line = &frame_buffer[y * orig_pitch];
-                                uint16_t *dst_line = &compress_buffer[y * video_xRes];
+                                compress_buffer_size = dng_data.image_size;
+                                compress_buffer = dng_data.image_buf;
+                            }
+                            else // other case(s), MLV output, etc
+                            {
+                                compress_buffer_size = video_xRes * video_yRes * sizeof(uint16_t);
+                                compress_buffer = malloc(compress_buffer_size);
+                                
+                                /* repack the 16 bit words containing values with max 14 bit */
+                                int orig_pitch = video_xRes * lv_rec_footer.raw_info.bits_per_pixel / 8;
 
-                                for(int x = 0; x < video_xRes; x++)
+                                for(int y = 0; y < video_yRes; y++)
                                 {
-                                    dst_line[x] = bitextract(src_line, x, lv_rec_footer.raw_info.bits_per_pixel);
+                                    void *src_line = &frame_buffer[y * orig_pitch];
+                                    uint16_t *dst_line = &compress_buffer[y * video_xRes];
+
+                                    for(int x = 0; x < video_xRes; x++)
+                                    {
+                                        dst_line[x] = bitextract(src_line, x, lv_rec_footer.raw_info.bits_per_pixel);
+                                    }
                                 }
                             }
                             
@@ -3486,7 +3497,6 @@ read_headers:
                             }
                             
                             int ret = lj92_encode(compress_buffer, lj92_width, lj92_height, lj92_bitdepth, 2, lj92_width * lj92_height, 0, NULL, 0, &compressed, &compressed_size);
-                            free(compress_buffer);
 
                             if(ret == LJ92_ERROR_NONE)
                             {
@@ -3500,6 +3510,17 @@ read_headers:
                                 assert(frame_buffer);
                                 memcpy(frame_buffer, compressed, compressed_size);
                                 frame_buffer_size = compressed_size;
+
+                                /* if DNG output then point dng_data.image_buf to already compressed buffer and correct its size*/
+                                if(dng_output)
+                                {
+                                    dng_data.image_buf = (uint16_t *)frame_buffer;
+                                    dng_data.image_size = frame_buffer_size;
+                                }
+                                else // other case(s), MLV output, etc
+                                {
+                                    free(compress_buffer);
+                                }
                             }
                             else
                             {
@@ -3516,14 +3537,19 @@ read_headers:
                             }
                             goto abort;
 #endif
+                            if(frame_buffer_size != (uint32_t)frame_size && !verbose && show_progress)
+                            {
+                                static int first_time = 1;
+                                if(first_time)
+                                {
+                                    print_msg(MSG_INFO, "\nWriting LJ92 compressed frames...\n");
+                                    first_time = 0;
+                                }
+                                print_msg(MSG_INFO, "  saving: "FMT_SIZE" -> "FMT_SIZE"  (%2.2f%% ratio)\n", frame_size, frame_buffer_size, ((float)frame_buffer_size * 100.0f) / (float)frame_size);
+                            }
                         }
 
-                        if(frame_buffer_size != (uint32_t)frame_size && !verbose)
-                        {
-                            print_msg(MSG_INFO, "  saving: "FMT_SIZE" -> "FMT_SIZE"  (%2.2f%% ratio)\n", frame_size, frame_buffer_size, ((float)frame_buffer_size * 100.0f) / (float)frame_size);
-                        }
-
-                        /* now finally write the DNG file */
+                        /* save DNG frame */
                         if(dng_output)
                         {
                             int frame_filename_len = strlen(output_filename) + 32;
@@ -4524,6 +4550,11 @@ abort:
         fclose(out_file_wav);
     }
 
+    if(dng_output)
+    {
+        dng_free_data(&dng_data);
+    }
+    
     /* passing NULL to free is absolutely legal, so no check required */
     free(lut_filename);
     free(subtract_filename);
