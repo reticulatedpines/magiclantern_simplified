@@ -100,6 +100,7 @@ char *strdup(const char *s);
 #include "../../src/raw.h"
 #include "mlv.h"
 #include "dng/dng.h"
+#include "wav.h"
 
 enum bug_id
 {
@@ -1876,7 +1877,7 @@ int main (int argc, char *argv[])
     int in_file_count = 0;
     int in_file_num = 0;
 
-    uint32_t wav_file_size = 0; /* WAV format supports only 32-bit size */
+    uint32_t wav_data_size = 0; /* WAV format supports only 32-bit size */
     uint32_t wav_header_size = 0;
 
     /* this is for our generated XREF table */
@@ -2632,7 +2633,7 @@ read_headers:
                             goto abort;
                         }
                         
-                        wav_file_size += frame_size;
+                        wav_data_size += frame_size;
                     }
                     free(buf);
                 }
@@ -4261,57 +4262,71 @@ read_headers:
                 {
                     size_t name_len = strlen(output_filename) + 5;  // + .wav\0
                     char* wav_file_name = malloc(name_len);
-                    /* NOTE, assumes little endian system, fix for big endian */
-                    uint32_t tmp_uint32;
-                    uint16_t tmp_uint16;
-
                     strncpy(wav_file_name, output_filename, name_len);
-                    strncat(wav_file_name, ".wav", name_len);
+                    char *uline = strrchr(wav_file_name, '_');
+                    if(uline)
+                    {
+                        *uline = '\000';
+                    }
+                    strcat(wav_file_name, ".wav");
                     out_file_wav = fopen(wav_file_name, "wb");
                     free(wav_file_name);
+                    
                     if(!out_file_wav)
                     {
                         print_msg(MSG_ERROR, "Failed writing into audio output file\n");
                         goto abort;
                     }
 
-                    int error = 1;
+                    /************************* Initialize wav_header struct *************************/
+                    struct wav_header wav_hdr =
+                    {
+                        .RIFF = "RIFF",
+                        .file_size = 0x504D4554, // for now it's "TEMP", should be (uint32_t)(wav_data_size + wav_header_size - 8), gonna be patched later
+                        .WAVE = "WAVE",
+                        .bext_id = "bext",
+                        .bext_size = sizeof(struct wav_bext),
+                        .bext.time_reference = 0, // (uint64_t)(rtci_info->tm_hour * 3600 + rtci_info->tm_min * 60 + rtci_info->tm_sec) * (uint64_t)wavi_info->samplingRate,
+                        .iXML_id = "iXML",
+                        .iXML_size = 1024,
+                        .fmt = "fmt\x20",
+                        .subchunk1_size = 16,
+                        .audio_format = 1,
+                        .num_channels = wavi_info.channels,
+                        .sample_rate = wavi_info.samplingRate,
+                        .byte_rate = wavi_info.bytesPerSecond,
+                        .block_align = 4,
+                        .bits_per_sample = wavi_info.bitsPerSample,
+                        .data = "data",
+                        .subchunk2_size = 0x504D4554, // for now it's "TEMP", should be (uint32_t)(wav_data_size), gonna be patched later
+                    };
+
+                    char temp[33];
+                    snprintf(temp, sizeof(temp), "%s", idnt_info.cameraName);
+                    memcpy(wav_hdr.bext.originator, temp, 32);
+                    snprintf(temp, sizeof(temp), "JPCAN%04d%.8s%02d%02d%02d%09d", idnt_info.cameraModel, idnt_info.cameraSerial , rtci_info.tm_hour, rtci_info.tm_min, rtci_info.tm_sec, rand());
+                    memcpy(wav_hdr.bext.originator_reference, temp, 32);
+                    snprintf(temp, sizeof(temp), "%04d:%02d:%02d", 1900 + rtci_info.tm_year, rtci_info.tm_mon, rtci_info.tm_mday);
+                    memcpy(wav_hdr.bext.origination_date, temp, 10);
+                    snprintf(temp, sizeof(temp), "%02d:%02d:%02d", rtci_info.tm_hour, rtci_info.tm_min, rtci_info.tm_sec);
+                    memcpy(wav_hdr.bext.origination_time, temp, 8);
                     
-                    /* Write header */
-                    error &= fwrite("RIFF", 4, 1, out_file_wav);
-                    tmp_uint32 = 36; // Two headers combined size, will be patched later
-                    error &= fwrite(&tmp_uint32, 4, 1, out_file_wav);
-                    error &= fwrite("WAVE", 4, 1, out_file_wav);
+                    char * project = "Magic Lantern";
+                    char * notes = "";
+                    char * keywords = "";
+                    int tape = 1, scene = 1, shot = 1, take = 1;
+                    int fps_denom = main_header.sourceFpsDenom;
+                    int fps_nom = main_header.sourceFpsNom;
+                    snprintf(wav_hdr.iXML, wav_hdr.iXML_size, iXML, project, notes, keywords, tape, scene, shot, take, fps_nom, fps_denom, fps_nom, fps_denom, fps_nom, fps_denom);
+                    /********************************************************************************/
 
-                    error &= fwrite("fmt ", 4, 1, out_file_wav);
-                    tmp_uint32 = 16; // Header size
-                    error &= fwrite(&tmp_uint32, 4, 1, out_file_wav);
-                    tmp_uint16 = wavi_info.format; // PCM
-                    error &= fwrite(&tmp_uint16, 2, 1, out_file_wav);
-                    tmp_uint16 = wavi_info.channels; // Stereo
-                    error &= fwrite(&tmp_uint16, 2, 1, out_file_wav);
-                    tmp_uint32 = wavi_info.samplingRate; // Sample rate
-                    error &= fwrite(&tmp_uint32, 4, 1, out_file_wav);
-                    tmp_uint32 = wavi_info.bytesPerSecond; // Byte rate (16-bit data, stereo)
-                    error &= fwrite(&tmp_uint32, 4, 1, out_file_wav);
-                    tmp_uint16 = wavi_info.blockAlign; // Block align
-                    error &= fwrite(&tmp_uint16, 2, 1, out_file_wav);
-                    tmp_uint16 = wavi_info.bitsPerSample; // Bits per sample
-                    error &= fwrite(&tmp_uint16, 2, 1, out_file_wav);
-
-                    error &= fwrite("data", 4, 1, out_file_wav);
-                    tmp_uint32 = 0; // Audio data length, will be patched later
-                    error &= fwrite(&tmp_uint32, 4, 1, out_file_wav);
-
-                    wav_file_size = 0;
-                    wav_header_size = file_get_pos(out_file_wav);
-                    
-                    if(error != 1)
+                    /* write WAV header */
+                    if((fwrite(&wav_hdr, sizeof(struct wav_header), 1, out_file_wav)) != 1)
                     {
                         print_msg(MSG_ERROR, "Failed writing into .WAV file\n");
                         goto abort;
                     }
-                    
+
                     /* init WAV data size, will be grow later block by block (AUDF) */
                     wav_data_size = 0;
                     wav_header_size = file_get_pos(out_file_wav); /* same as sizeof(struct wav_header) */
@@ -4534,15 +4549,15 @@ abort:
     if(out_file_wav)
     {
         /* Patch the WAV size fields */
-        uint32_t tmp_uint32 = wav_file_size + 36; /* + header size */
+        uint32_t tmp_uint32 = wav_data_size + wav_header_size - 8; /* minus 8 = RIFF + (file size field 4 bytes) */
         file_set_pos(out_file_wav, 4, SEEK_SET);
         if(fwrite(&tmp_uint32, 4, 1, out_file_wav) != 1)
         {
             print_msg(MSG_ERROR, "Failed writing into .WAV file\n");
         }
 
-        tmp_uint32 = wav_file_size; /* data size */
-        file_set_pos(out_file_wav, 40, SEEK_SET);
+        tmp_uint32 = wav_data_size; /* data size */
+        file_set_pos(out_file_wav, 1686, SEEK_SET);
         if(fwrite(&tmp_uint32, 4, 1, out_file_wav) != 1)
         {
             print_msg(MSG_ERROR, "Failed writing into .WAV file\n");
