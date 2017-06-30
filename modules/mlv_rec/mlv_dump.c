@@ -3297,9 +3297,7 @@ read_headers:
                         /* before compressing do stuff necessary for DNG output */
                         if(dng_output)
                         {
-                            void fix_vertical_stripes();
-                            void find_and_fix_cold_pixels(int force_analysis);
-                            extern struct raw_info raw_info;
+                            struct raw_info raw_info;
 
                             raw_info = lv_rec_footer.raw_info;
                             raw_info.frame_size = frame_buffer_size;
@@ -3374,41 +3372,59 @@ read_headers:
                                     }
                                 }
                             }
-                            
-                            /* override the resolution from raw_info with the one from lv_rec_footer, if they don't match */
-                            if(lv_rec_footer.xRes != raw_info.width)
-                            {
-                                raw_info.width = lv_rec_footer.xRes;
-                                raw_info.pitch = raw_info.width * raw_info.bits_per_pixel / 8;
-                                raw_info.active_area.x1 = 0;
-                                raw_info.active_area.x2 = raw_info.width;
-                                raw_info.jpeg.x = 0;
-                                raw_info.jpeg.width = raw_info.width;
-                            }
 
-                            if(lv_rec_footer.yRes != raw_info.height)
-                            {
-                                raw_info.height = lv_rec_footer.yRes;
-                                raw_info.active_area.y1 = 0;
-                                raw_info.active_area.y2 = raw_info.height;
-                                raw_info.jpeg.y = 0;
-                                raw_info.jpeg.height = raw_info.height;
-                            }
+                            /* raw state: 
+                               0 - uncompressed/decompressed
+                               1 - compressed/recompressed by "-c"
+                               2 - original uncompressed
+                               3 - original lossless
+                            */
+                            enum raw_state raw_state = (pass_through << 1) | (compressed & pass_through) | compress_output;
 
-                            /* call raw2dng code */
-                            if(fix_vert_stripes)
-                            {
-                                fix_vertical_stripes();
-                            }
-                            
-                            if(fix_cold_pixels)
-                            {
-                                find_and_fix_cold_pixels(fix_cold_pixels == 2);
-                            }
+                            /************ Initialize frame_info struct ************/
+                            frame_info.mlv_filename         = input_filename;
+                            frame_info.fps_override         = alter_fps;
+                            frame_info.deflicker_target     = deflicker_target;
+                            frame_info.vertical_stripes     = fix_vert_stripes;
+                            frame_info.bad_pixels           = fix_cold_pixels;
+                            frame_info.dual_iso             = is_dual_iso;
+                            frame_info.save_bpm             = save_bpm_file;
+                            frame_info.chroma_smooth        = chroma_smooth_method;
+                            frame_info.pattern_noise        = fix_pattern_noise;
+                            frame_info.show_progress        = show_progress;
+                            frame_info.raw_state            = raw_state;
+                            frame_info.pack_bits            = pack_dng_bits;
 
-                            /* this is internal again */
-                            chroma_smooth(chroma_smooth_method, &raw_info);
-                        }                        
+                            frame_info.file_hdr             = main_header;
+                            frame_info.vidf_hdr             = last_vidf;
+                            frame_info.rtci_hdr             = rtci_info;
+                            frame_info.idnt_hdr             = idnt_info;
+                            frame_info.expo_hdr             = expo_info;
+                            frame_info.lens_hdr             = lens_info;
+                            frame_info.wbal_hdr             = wbal_info;
+                            frame_info.rawi_hdr.xRes        = lv_rec_footer.xRes;
+                            frame_info.rawi_hdr.yRes        = lv_rec_footer.yRes;
+                            frame_info.rawi_hdr.raw_info    = raw_info;
+                            /******************************************************/
+
+                            /* init and process 'dng_data' raw buffers or use original compressed/uncompressed ones */
+                            switch(raw_state)
+                            {
+                                /* if raw input lossless or uncompressed should stay 
+                                   uncompressed or is going to be compressed/recompressed */
+                                case UNCOMPRESSED_RAW:
+                                case COMPRESSED_RAW:
+                                    dng_init_data(&frame_info, &dng_data);
+                                    dng_process_data(&frame_info, &dng_data);
+                                    break;
+                                /* if passing through original uncompressed of lossless raw */
+                                case UNCOMPRESSED_ORIG:
+                                case COMPRESSED_ORIG:
+                                    dng_data.image_buf = (uint16_t *)frame_buffer;
+                                    dng_data.image_size = frame_buffer_size;
+                                    break;
+                            }
+                        }
 
                         if(run_compressor)
                         {
@@ -3510,80 +3526,16 @@ read_headers:
                         /* now finally write the DNG file */
                         if(dng_output)
                         {
-                            extern struct raw_info raw_info;
-
-                            raw_info.frame_size = frame_buffer_size;
-                            raw_info.buffer = frame_buffer;
-                            
                             int frame_filename_len = strlen(output_filename) + 32;
                             char *frame_filename = malloc(frame_filename_len);
                             snprintf(frame_filename, frame_filename_len, "%s%06d.dng", output_filename, block_hdr.frameNumber);
+                            frame_info.dng_filename = frame_filename;
 
-                            lua_handle_hdr_data(lua_state, buf.blockType, "_data_write_dng", &block_hdr, sizeof(block_hdr), frame_buffer, frame_buffer_size);
-
-                            /* set MLV metadata into DNG tags */
-                            dng_set_framerate_rational(main_header.sourceFpsNom, main_header.sourceFpsDenom);
-                            dng_set_shutter(expo_info.shutterValue, 1000000);
-                            dng_set_aperture(lens_info.aperture, 100);
-                            dng_set_camname((char*)unique_camname);
-                            dng_set_description((char*)info_string);
-                            dng_set_lensmodel((char*)lens_info.lensName);
-                            dng_set_focal(lens_info.focalLength, 1);
-                            dng_set_iso(expo_info.isoValue);
-
-                            //dng_set_wbgain(1024, wbal_info.wbgain_r, 1024, wbal_info.wbgain_g, 1024, wbal_info.wbgain_b);
-
-                            /* calculate the time this frame was taken at, i.e., the start time + the current timestamp. this can be off by a second but it's better than nothing */
-                            int ms = 0.5 + buf.timestamp / 1000.0;
-                            int sec = ms / 1000;
-                            ms %= 1000;
-                            // FIXME: the struct tm doesn't have tm_gmtoff on Linux so the result might be wrong?
-                            struct tm tm;
-                            tm.tm_sec = rtci_info.tm_sec + sec;
-                            tm.tm_min = rtci_info.tm_min;
-                            tm.tm_hour = rtci_info.tm_hour;
-                            tm.tm_mday = rtci_info.tm_mday;
-                            tm.tm_mon = rtci_info.tm_mon;
-                            tm.tm_year = rtci_info.tm_year;
-                            tm.tm_wday = rtci_info.tm_wday;
-                            tm.tm_yday = rtci_info.tm_yday;
-                            tm.tm_isdst = rtci_info.tm_isdst;
-
-                            if(mktime(&tm) != -1)
+                            dng_init_header(&frame_info, &dng_data);
+                            
+                            if(!dng_save(&frame_info, &dng_data))
                             {
-                                char datetime_str[32];
-                                char subsec_str[8];
-                                strftime(datetime_str, 20, "%Y:%m:%d %H:%M:%S", &tm);
-                                snprintf(subsec_str, sizeof(subsec_str), "%03d", ms);
-                                dng_set_datetime(datetime_str, subsec_str);
-                            }
-                            else
-                            {
-                                // soemthing went wrong. let's proceed anyway
-                                print_msg(MSG_ERROR, "VIDF: [W] Failed calculating the DateTime from the timestamp\n");
-                                dng_set_datetime("", "");
-                            }
-
-
-                            uint64_t serial = 0;
-                            char *end;
-                            serial = strtoull((char *)idnt_info.cameraSerial, &end, 16);
-                            if (serial && !*end)
-                            {
-                                char serial_str[64];
-
-                                sprintf(serial_str, "%"PRIu64, serial);
-                                dng_set_camserial((char*)serial_str);
-                            }
-
-                            /* finally save the DNG */
-                            if(!save_dng(frame_filename, &raw_info))
-                            {
-                                print_msg(MSG_ERROR, "VIDF: Failed writing into .DNG file\n");
-                                if(relaxed)
-                                {
-                                    goto skip_block;
-                                }
+                                print_msg(MSG_ERROR, "Failed writing into .DNG file\n");
                                 goto abort;
                             }
 
