@@ -3435,7 +3435,7 @@ read_headers:
                             int compress_buffer_size = 0;
                             uint16_t *compress_buffer = NULL;
 
-                            /* if DNG output then point compressed buffer directly to dng_data.image_buf and correct its size*/
+                            /* if DNG output then point ready to compress buffer pointer to dng_data.image_buf and set correct size */
                             if(dng_output)
                             {
                                 compress_buffer_size = dng_data.image_size;
@@ -3511,7 +3511,7 @@ read_headers:
                                 memcpy(frame_buffer, compressed, compressed_size);
                                 frame_buffer_size = compressed_size;
 
-                                /* if DNG output then point dng_data.image_buf to already compressed buffer and correct its size*/
+                                /* if DNG output then point dng_data.image_buf to already compressed buffer and set correct size */
                                 if(dng_output)
                                 {
                                     dng_data.image_buf = (uint16_t *)frame_buffer;
