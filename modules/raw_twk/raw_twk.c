@@ -522,6 +522,9 @@ static uint32_t upconvert_bpp(frame_buf_t *frame, void* buf_out)
         0xFFFFFFFF,     0xFFFFFFFF
     });
 
+    /* aborting EDMACs is required so they don't stay waiting, which would block some other routines using them */
+    AbortEDmac(edmac_read_chan);
+    AbortEDmac(edmac_write_chan);
     UnregisterEDmacCompleteCBR(edmac_read_chan);
     UnregisterEDmacCompleteCBR(edmac_write_chan);
     UnLockEngineResources(resLock);
