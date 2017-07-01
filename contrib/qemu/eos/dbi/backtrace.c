@@ -7,6 +7,31 @@
  * The same file can be compiled to run on the camera (binary less than 1K).
  */
 
+#ifdef CONFIG_MAGICLANTERN
+#include "dryos.h"
+#include "tasks.h"
+#include "backtrace.h"
+
+#define qemu_log_mask(...)
+#define qemu_loglevel_mask(x) 0
+#define EOSState void
+
+static char * eos_get_current_task_name(EOSState *s)
+{
+    return current_task->name;
+}
+
+static int eos_get_current_task_stack(EOSState *s, uint32_t * top, uint32_t * bottom)
+{
+    *bottom = current_task->stackStartAddr;
+    *top = *bottom + current_task->stackSize;
+    return 1;
+}
+
+#define fprintf(stream, ...) printf(__VA_ARGS__)
+
+#else /* without CONFIG_MAGICLANTERN (in QEMU) */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -26,6 +51,7 @@ static uint32_t MEM(uint32_t addr)
     cpu_physical_memory_read(addr, &buf, sizeof(buf));
     return buf;
 }
+#endif
 
 #ifdef BKT_TRACK_STATS
 /* some stats */
@@ -128,7 +154,11 @@ static const char * called_func(uint32_t pc)
     uint32_t insn = MEM(pc);
     if ((insn & 0x0E000000) == 0x0A000000)
     {
+#ifdef CONFIG_MAGICLANTERN
+        snprintf(buf, sizeof(buf), "0x%08X", branch_destination(insn, pc));
+#else
         snprintf(buf, sizeof(buf), "0x%-8X", branch_destination(insn, pc));
+#endif
     }
     return buf;
 }
@@ -224,11 +254,13 @@ static int sim_instr(EOSState *s,
     }
 #endif
 
+#ifndef CONFIG_MAGICLANTERN
     if (qemu_loglevel_mask(BKT_LOG_DISAS))
     {
         CPUARMState *env = &(CURRENT_CPU->env);
         target_disas(stderr, CPU(arm_env_get_cpu(env)), pc, 4, 0);
     }
+#endif
 
 #ifdef BKT_RANDOM_BRANCHES
     if (is_compare(insn))
@@ -562,9 +594,15 @@ static uint32_t find_caller(EOSState *s, uint32_t pc, uint32_t *psp)
 
 void eos_backtrace_rebuild(EOSState *s, char * buf, int size)
 {
+#ifdef CONFIG_MAGICLANTERN
+    //uint32_t pc = (uint32_t) &eos_backtrace_rebuild;
+    uint32_t lr = read_lr();
+    uint32_t sp = (uint32_t) s; /* hack: use "s" to transmit the sp before calling this */
+#else
     uint32_t pc = CURRENT_CPU->env.regs[15] | CURRENT_CPU->env.thumb;
     uint32_t lr = CURRENT_CPU->env.regs[14];
     uint32_t sp = CURRENT_CPU->env.regs[13];
+#endif
 
     uint32_t stack_top, stack_bot;
     if (!eos_get_current_task_stack(s, &stack_top, &stack_bot))
@@ -660,6 +698,7 @@ void eos_backtrace_rebuild(EOSState *s, char * buf, int size)
     }
 #endif
 
+#ifndef CONFIG_MAGICLANTERN
 #ifdef BKT_CROSSCHECK_CALLSTACK
     if (0)  /* disable output during self tests */
 #endif
@@ -678,7 +717,24 @@ void eos_backtrace_rebuild(EOSState *s, char * buf, int size)
             len += eos_print_location(s, lrs[i] - 4, sps[i], "  @ ", " (pc:sp)\n");
         }
     }
+#endif
 
+    if (buf)
+    {
+        int len = snprintf(buf, size,
+            "%s stack: %x [%x-%x]\n",
+            eos_get_current_task_name(s),
+            sps[0], stack_top, stack_bot
+        );
+        while (--i >= 0)
+        {
+            len += snprintf(
+                buf + len, size - len,
+                "%s @ %x:%x\n",
+                called_func(lrs[i] - 4), lrs[i] - 4, sps[i]
+            );
+        }
+    }
 #ifdef BKT_TRACK_STATS
     if (rand() % 1000 == 4)
     {
@@ -686,6 +742,8 @@ void eos_backtrace_rebuild(EOSState *s, char * buf, int size)
     }
 #endif
 }
+
+#ifndef CONFIG_MAGICLANTERN
 
 /* this serves as unit test, to check whether instructions
  * are emulated correctly in sim_instr (regarding SP, LR and PC)
@@ -757,3 +815,20 @@ end:
     prev_lr = lr;
     prev_sp = sp;
 }
+#endif
+
+#ifdef CONFIG_MAGICLANTERN
+void backtrace_print()
+{
+    char buf[512];
+    void * sp = (void *) read_sp();
+    eos_backtrace_rebuild(sp, buf, sizeof(buf));
+    puts(buf);
+}
+
+void __attribute__((naked)) backtrace_getstr(char * buf, int size)
+{
+    void * sp = (void *) read_sp();
+    eos_backtrace_rebuild(sp, buf, size);
+}
+#endif
