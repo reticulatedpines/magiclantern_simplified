@@ -48,9 +48,9 @@ NSTUB(0xFF0C5430,  init_task)
 NSTUB(0xFF34290C,  FIO_CloseFile)                           // from Indy
 NSTUB(0xFF343904,  FIO_FindClose)                           // proper name: FindClose
 NSTUB(0xFF343824,  FIO_FindNextEx)
-NSTUB(0xFF3426BC,  FIO_ReadFile)
+NSTUB(0xFF3426BC, _FIO_ReadFile)
 NSTUB(0xFF34276C,  FIO_SeekSkipFile)                        /* took relative offset of 700D entry points and compared them to 650Ds. Tests are OK. */
-NSTUB(0xFF34285C,  FIO_WriteFile)                           // from Indy
+NSTUB(0xFF34285C, _FIO_WriteFile)                           // from Indy
 NSTUB(0xFF343168, _FIO_CreateDirectory)
 NSTUB(0xFF342568, _FIO_CreateFile)                          // from Indy
 NSTUB(0xFF343730, _FIO_FindFirstEx)

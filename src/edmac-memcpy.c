@@ -111,6 +111,16 @@ void* edmac_copy_rectangle_cbr_start(void* dst, void* src, int src_width, int sr
     if (dst_width % 8)
         return 0;
 
+    /* make sure we are writing to uncacheable memory */
+    ASSERT(dst == UNCACHEABLE(dst));
+
+    /* clean the cache before reading from regular (cacheable) memory */
+    /* see FIO_WriteFile for more info */
+    if (src == CACHEABLE(src))
+    {
+        clean_d_cache();
+    }
+
     take_semaphore(edmac_memcpy_sem, 0);
     
     /* see wiki, register map, EDMAC what the flags mean. they are for setting up copy block size */
