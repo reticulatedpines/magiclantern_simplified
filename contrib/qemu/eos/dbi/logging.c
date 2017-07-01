@@ -13,6 +13,7 @@
 #include "../model_list.h"
 #include "logging.h"
 #include "memcheck.h"
+#include "backtrace.h"
 
 #define CALLSTACK_RIGHT_ALIGN 80
 
@@ -490,6 +491,13 @@ static int print_args(uint32_t * regs);
 void eos_callstack_print_verbose(EOSState *s)
 {
     uint8_t id = get_stackid(s);
+
+    if (!qemu_loglevel_mask(EOS_LOG_CALLSTACK)) {
+        /* no callstack instrumentation enabled
+         * try to figure it out from the stack */
+        eos_backtrace_rebuild(s, 0, 0);
+        return;
+    }
 
     if (!call_stack_num[id])
     {
@@ -1041,7 +1049,6 @@ recheck:
         }
     }
 
-
     /* when a function call is made:
      * - LR contains the return address (but that doesn't mean it's always modified, e.g. calls in a loop)
      * - PC jumps (it does not execute the next instruction after the call)
@@ -1076,6 +1083,13 @@ recheck:
         }
 
         call_stack_push(id, env->regs, pc, prev_pc, 0);
+
+#ifdef BKT_CROSSCHECK_CALLSTACK
+        if (!interrupt_level) {
+            /* testing mode */
+            eos_backtrace_rebuild(s, 0, 0);
+        }
+#endif
 
         /* todo: callback here? */
 
@@ -1596,6 +1610,10 @@ static void tb_exec_cb(void *opaque, CPUState *cpu, TranslationBlock *tb)
         CPUARMState *env = &arm_cpu->env;
         eos_memcheck_log_exec(opaque, tb->pc, env);
     }
+
+#ifdef BKT_CROSSCHECK_EXEC
+    eos_bkt_log_exec(opaque);
+#endif
 
     if (qemu_loglevel_mask(EOS_LOG_DEBUGMSG) && DebugMsg_addr)
     {
