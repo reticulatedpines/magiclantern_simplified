@@ -1420,7 +1420,7 @@ static void mlv_play_render_frame(frame_buf_t *buffer)
     
     if(raw_twk_available())
     {
-        raw_twk_render(buffer->frameBufferAligned, buffer->xRes, buffer->yRes, buffer->bitDepth, mlv_play_quality);
+        raw_twk_render_ex(buffer->frameBufferAligned, buffer->xRes, buffer->yRes, buffer->bitDepth, mlv_play_quality, buffer->blackLevel);
     }
     else
     {
@@ -1890,7 +1890,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
                 }
                 
                 buffer->frameSize = frame_size;
-                buffer->frameBuffer = fio_malloc(buffer->frameSize + 0x1000);
+                buffer->frameBuffer = fio_malloc(buffer->frameSize * 16 / 14 + 0x1000);
                 buffer->frameBufferAligned = (void *) (((uint32_t)buffer->frameBuffer + 0x1000) & ~0xFFF);
             }
 
@@ -1955,7 +1955,13 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
                 msleep(1000);
                 break;
             }
-            
+        
+            /* update dimensions */
+            buffer->xRes = rawi_block.xRes;
+            buffer->yRes = rawi_block.yRes;
+            buffer->bitDepth = rawi_block.raw_info.bits_per_pixel;
+            buffer->blackLevel = rawi_block.raw_info.black_level;
+
             if(main_header.videoClass & MLV_VIDEO_CLASS_FLAG_LJ92)
             {
                 if(!mlv_play_decomp_sem)
@@ -1968,7 +1974,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
                     
                     decode_opts.address = buffer->frameBufferAligned;
                     decode_opts.depth_type = 4;
-                    decode_opts.is_not_16bpp = 1;
+                    decode_opts.is_not_16bpp = raw_twk_available() ? 0 : 1;
                     decode_opts.x_1 = rawi_block.xRes;
                     decode_opts.x_2 = 0;
                     decode_opts.x_mul = 0;
@@ -1986,6 +1992,14 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
                     
                     /* clean up */
                     Cleanup_DecodeLosslessPath();
+                    
+                    /* when we have lossless data, we decompressed it already to 16 bpp for raw_twk */
+                    if(!decode_opts.is_not_16bpp)
+                    {
+                        /* also raise black level */
+                        buffer->blackLevel = rawi_block.raw_info.black_level << (16 - rawi_block.raw_info.bits_per_pixel);
+                        buffer->bitDepth = 16;
+                    }
                 }
             }
             
@@ -2023,14 +2037,6 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
                 snprintf(buffer->messages.botLeft, SCREEN_MSG_LEN, "%s: %dx%d %dbpp%s", filename, rawi_block.xRes, rawi_block.yRes, rawi_block.raw_info.bits_per_pixel, (main_header.videoClass & MLV_VIDEO_CLASS_FLAG_LJ92)?" LJ92":"");
                 snprintf(buffer->messages.botRight, SCREEN_MSG_LEN, "%d/%d", vidf_block.frameNumber + 1, frame_count);
                 
-                /* update dimensions */
-                buffer->xRes = rawi_block.xRes;
-                buffer->yRes = rawi_block.yRes;
-                buffer->bitDepth = rawi_block.raw_info.bits_per_pixel;
-                buffer->blackLevel = rawi_block.raw_info.black_level;
-
-                raw_info.black_level = rawi_block.raw_info.black_level;
-                raw_info.white_level = rawi_block.raw_info.white_level;
                 
                 if (mlv_play_exact_fps)
                 {
