@@ -530,8 +530,7 @@ int FIO_WriteFile( FILE* stream, const void* ptr, size_t count )
     if (ptr == CACHEABLE(ptr))
     {
         /* write back all data to RAM */
-        /* todo: check performance penalty
-         * is it worth cleaning only the current buffer? */
+        /* overhead is minimal (see selfcheck.mo for benchmark) */
         clean_d_cache();
     }
 
