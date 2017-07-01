@@ -259,7 +259,7 @@ static int stub_test_cache_fio_do(int handle_cache)
     }
 
     /* save it to card */
-    if (handle_cache)
+    if (handle_cache & 1)
     {
         /* let the wrapper handle the cacheable buffer */
         TEST_FUNC_CHECK(FIO_WriteFile(f, buf, size), == size);
@@ -280,20 +280,41 @@ static int stub_test_cache_fio_do(int handle_cache)
     /* reopen the file for reading */
     TEST_FUNC_CHECK(f = FIO_OpenFile(test_file, O_RDONLY | O_SYNC), != 0);
 
-    /* read the file into uncacheable memory */
+    /* read the file into uncacheable memory (this one will be read correctly) */
     uint8_t * ubuf = fio_malloc(size);
     TEST_FUNC_CHECK(ubuf, != 0);
     if (!ubuf) goto cleanup;
 
     TEST_FUNC_CHECK(FIO_ReadFile(f, ubuf, size), == size);
+    FIO_SeekSkipFile(f, 0, SEEK_SET);
+
+    /* alter the buffer contents; hoping some values will be only in cache */
+    for (int i = 0; i < size; i++)
+    {
+        buf[i] = i + 2;
+    }
+
+    /* read the file into regular (cacheable) memory */
+    if (handle_cache & 2)
+    {
+        /* let the wrapper handle the cacheable buffer */
+        TEST_FUNC_CHECK(FIO_ReadFile(f, buf, size), == size);
+    }
+    else
+    {
+        /* Trick the wrapper into calling Canon stub directly.
+         * This should fail (same as with FIO_WriteFile). */
+        TEST_FUNC_CHECK(FIO_ReadFile(f, UNCACHEABLE(buf), size), == size);
+    }
 
     /* check the results */
-    int a = 0, b = 0, c = 0;
+    int a = 0, b = 0, c = 0, r = 0;
     for (int i = 0; i < size; i++)
     {
         a += (ubuf[i] == (uint8_t)(i));
         b += (ubuf[i] == (uint8_t)(i + 1));
         c += (ubuf[i] == (uint8_t)(i + 2));
+        r += (ubuf[i] == buf[i]);
     }
 
     free(ubuf);
@@ -304,7 +325,12 @@ static int stub_test_cache_fio_do(int handle_cache)
     TEST_FUNC(b);
     TEST_FUNC(c);
     TEST_FUNC(a + b + c);
-    fail = (a != 0) || (b != size) || (c != 0);
+    TEST_FUNC(r);
+
+    /* which part of the test failed? read or write? */
+    int fail_r = (r != size);
+    int fail_w = (a != 0) || (b != size) || (c != 0);
+    fail = (fail_r << 1) | fail_w;
 
 cleanup:
     /* cleanup */
@@ -320,21 +346,28 @@ static void stub_test_cache_fio()
     /* non-deterministic test - run many times */
     stub_silence = 1;
 
-    int tries[2] = {0};
-    int fails[2] = {0};
+    int tries[4] = {0};
+    int times[4] = {0};
+    int failr[4] = {0};
+    int failw[4] = {0};
 
     for (int i = 0; i < 1000; i++)
     {
-        /* select whether the FIO_WriteFile wrapper should handle caching issues */
-        int handle_cache = rand() & 1;
+        /* select whether the FIO_WriteFile wrapper (1) and/or
+         * FIO_ReadFile (2) wrapper should handle caching issues */
+        int handle_cache = rand() & 3;
 
-        /* run one iteration */
+        /* run one iteration and time it */
+        int t0 = get_ms_clock_value();
         int fail = stub_test_cache_fio_do(handle_cache);
-        ASSERT(fail >= 0);
+        int t1 = get_ms_clock_value();
+        ASSERT(fail == (fail & 3));
 
         /* count the stats */
         tries[handle_cache]++;
-        if (fail) fails[handle_cache]++;
+        times[handle_cache] += (t1 - t0);
+        if (fail & 1) failw[handle_cache]++;
+        if (fail & 2) failr[handle_cache]++;
 
         /* progress indicator */
         if (i % 100 == 0)
@@ -346,14 +379,32 @@ static void stub_test_cache_fio()
     printf("\n");
 
     /* report how many tests were performed in each case */
-    TEST_FUNC_CHECK(tries[0], > 250);
-    TEST_FUNC_CHECK(tries[1], > 250);
+    TEST_FUNC_CHECK(tries[0], > 100);
+    TEST_FUNC_CHECK(tries[1], > 100);
+    TEST_FUNC_CHECK(tries[2], > 100);
+    TEST_FUNC_CHECK(tries[3], > 100);
 
-    /* the test should succeed only if the FIO_WriteFile wrapper
-     * is allowed to handle caching for regular buffers;
-     * it should fail otherwise, at least a few times */
-    TEST_FUNC_CHECK(fails[0], > 10);
-    TEST_FUNC_CHECK(fails[1], == 0);
+    /* each test (read or write) should succeed only
+     * if the corresponding wrapper (FIO_WriteFile
+     * and FIO_ReadFile) is allowed to handle caching
+     * for regular buffers; it should fail otherwise,
+     * at least a few times. This also implies both tests
+     * (R and W) should succeed if and only if both routines
+     * are allowed to handle caching. */
+    TEST_FUNC_CHECK(failr[0], > 10);
+    TEST_FUNC_CHECK(failw[0], > 10);
+    TEST_FUNC_CHECK(failr[1], > 10);
+    TEST_FUNC_CHECK(failw[1], == 0);
+    TEST_FUNC_CHECK(failr[2], == 0);
+    TEST_FUNC_CHECK(failw[2], > 10);
+    TEST_FUNC_CHECK(failr[3], == 0);
+    TEST_FUNC_CHECK(failw[3], == 0);
+
+    /* check whether cache cleaning causes any slowdown */
+    TEST_FUNC(times[0] / tries[0]);
+    TEST_FUNC(times[1] / tries[1]);
+    TEST_FUNC(times[2] / tries[2]);
+    TEST_FUNC(times[3] / tries[3]);
 }
 
 static void stub_test_cache()

@@ -206,8 +206,8 @@ NSTUB(0xFF2C043C,  mvrSetDefQScale)
 // NSTUB(    ???,  mvrSetGopOptSizeFULLHD)                  /* present on 600D.102, 550D.109, 1100D.105 */
 
 /** Interrupts **/
-NSTUB(0xFFAA775C - RAM_OFFSET,  post_isr_hook)
-NSTUB(0xFFAA7758 - RAM_OFFSET,  pre_isr_hook)
+NSTUB(0x3DD6C,     post_isr_hook)
+NSTUB(0x3DD68,     pre_isr_hook)
 // NSTUB(    ???,  isr_table_handler)                       /* present on 7D_MASTER.203 */
 // NSTUB(    ???,  isr_table_param)                         /* present on 7D_MASTER.203 */
 
@@ -234,7 +234,7 @@ NSTUB(0xFF0C8364, _malloc)
 
 /** Message queues **/
 NSTUB(0xFFA88414 - RAM_OFFSET,  msg_queue_count)            // 0x1EE84 Above "!!!!!!! QUE Overflo"
-NSTUB(0xFFA73C84 - RAM_OFFSET,  msg_queue_create)
+NSTUB(0xFFA880D8 - RAM_OFFSET,  msg_queue_create)
 NSTUB(0xFFA883D4 - RAM_OFFSET,  msg_queue_post)             // 1EE44
 NSTUB(0xFFA881E8 - RAM_OFFSET,  msg_queue_receive)          // 1EC58
 
