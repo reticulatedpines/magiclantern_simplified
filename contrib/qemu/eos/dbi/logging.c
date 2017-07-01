@@ -412,9 +412,9 @@ uint32_t eos_callstack_get_caller_param(EOSState *s, int call_depth, enum param_
     }
 }
 
-static int indent(int initial_len, int target_indent)
+int eos_indent(int initial_len, int target_indent)
 {
-    char buf[128];
+    char buf[256];
     int len = target_indent - initial_len;
     if (len < 0)
     {
@@ -431,7 +431,7 @@ static int indent(int initial_len, int target_indent)
 static int call_stack_indent(uint8_t id, int initial_len, int max_initial_len)
 {
     int len = initial_len;
-    len += indent(initial_len, max_initial_len + call_stack_num[id]);
+    len += eos_indent(initial_len, max_initial_len + call_stack_num[id]);
     return len;
 }
 
@@ -505,7 +505,7 @@ void eos_callstack_print_verbose(EOSState *s)
     if (eos_get_current_task_stack(s, &stack_top, &stack_bot))
     {
         int len = fprintf(stderr, "Current stack: [%x-%x] sp=%x", stack_top, stack_bot, sp);
-        len += indent(len, CALLSTACK_RIGHT_ALIGN);
+        len += eos_indent(len, CALLSTACK_RIGHT_ALIGN);
         len += eos_print_location(s, pc, lr, " at ", "\n");
     }
 
@@ -516,12 +516,12 @@ void eos_callstack_print_verbose(EOSState *s)
         uint32_t sp = entry->sp;
         uint32_t ret = entry->last_pc;
 
-        int len = indent(0, k);
+        int len = eos_indent(0, k);
         
         if (entry->interrupt_id)
         {
             len += fprintf(stderr, "interrupt %02Xh", entry->interrupt_id);
-            len += indent(len, CALLSTACK_RIGHT_ALIGN);
+            len += eos_indent(len, CALLSTACK_RIGHT_ALIGN);
             eos_print_location(s, ret, sp, " at ", "\n");
             assert(pc == 0x18);
         }
@@ -545,7 +545,7 @@ void eos_callstack_print_verbose(EOSState *s)
                 len += fprintf(stderr, " %s", name);
             }
             len += print_args(entry->regs);
-            len += indent(len, CALLSTACK_RIGHT_ALIGN);
+            len += eos_indent(len, CALLSTACK_RIGHT_ALIGN);
             eos_print_location(s, ret, sp, " at ", " (pc:sp)\n");
         }
     }
@@ -809,7 +809,7 @@ static void eos_callstack_log_mem(EOSState *s, hwaddr _addr, uint64_t _value, ui
                         int len = eos_callstack_indent(s);
                         len += fprintf(stderr, "arg%d = ", arg_num);
                         len += print_arg(value);
-                        len += indent(len, CALLSTACK_RIGHT_ALIGN);
+                        len += eos_indent(len, CALLSTACK_RIGHT_ALIGN);
                         print_call_location(s, pc, lr);
                         if (arg_num > 10)
                         {
@@ -840,9 +840,9 @@ static void eos_callstack_log_mem(EOSState *s, hwaddr _addr, uint64_t _value, ui
                     uint32_t lr = CURRENT_CPU->env.regs[14];
                     int len = eos_callstack_indent(s);
                     len += fprintf(stderr, "*%x = %x", addr, value);
-                    len += indent(len, CALLSTACK_RIGHT_ALIGN - 4);
+                    len += eos_indent(len, CALLSTACK_RIGHT_ALIGN - 4);
                     len += fprintf(stderr, "arg%d", i + 1);
-                    len += indent(len, CALLSTACK_RIGHT_ALIGN);
+                    len += eos_indent(len, CALLSTACK_RIGHT_ALIGN);
                     print_call_location(s, pc, lr);
                 }
             }
@@ -860,7 +860,7 @@ static void check_abi_register_usage(EOSState *s, CPUARMState *env, int id, int 
             int len = eos_callstack_indent(s);
             len += fprintf(stderr, KCYN"Warning: R%d not restored"KRESET" (0x%x -> 0x%x)", i, call_stacks[id][k].regs[i], env->regs[i]);
             len -= strlen(KCYN KRESET);
-            len += indent(len, CALLSTACK_RIGHT_ALIGN);
+            len += eos_indent(len, CALLSTACK_RIGHT_ALIGN);
             uint32_t stack_lr = call_stacks[id][k].lr;
             print_call_location(s, prev_pc, stack_lr);
         }
@@ -873,7 +873,7 @@ static void check_abi_register_usage(EOSState *s, CPUARMState *env, int id, int 
         int len = eos_callstack_indent(s);
         len += fprintf(stderr, KCYN"Warning: SP not restored"KRESET" (0x%x -> 0x%x)", call_stacks[id][k].sp, sp);
         len -= strlen(KCYN KRESET);
-        len += indent(len, CALLSTACK_RIGHT_ALIGN);
+        len += eos_indent(len, CALLSTACK_RIGHT_ALIGN);
         uint32_t stack_lr = call_stacks[id][k].lr;
         print_call_location(s, prev_pc, stack_lr);
     }
@@ -929,7 +929,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
             int len = call_stack_indent(id, 0, 0);
             len += fprintf(stderr, KCYN"interrupt %02Xh"KRESET, s->irq_id);
             len -= strlen(KCYN KRESET);
-            len += indent(len, CALLSTACK_RIGHT_ALIGN);
+            len += eos_indent(len, CALLSTACK_RIGHT_ALIGN);
             print_call_location(s, prev_pc, prev_lr);
         }
         if (interrupt_level == 1) assert(call_stack_num[id] == 0);
@@ -976,7 +976,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                 if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
                     int len = call_stack_indent(id, 0, 0);
                     len += fprintf(stderr, "return %x to 0x%X", env->regs[0], pc | env->thumb);
-                    len += indent(len, CALLSTACK_RIGHT_ALIGN);
+                    len += eos_indent(len, CALLSTACK_RIGHT_ALIGN);
 
                     /* print LR from the call stack, so it will always show the caller */
                     int level = call_stack_num[id] - 1;
@@ -1027,7 +1027,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                 len += fprintf(stderr, " %s", name);
             }
             len += print_args(env->regs);
-            len += indent(len, CALLSTACK_RIGHT_ALIGN);
+            len += eos_indent(len, CALLSTACK_RIGHT_ALIGN);
 
             /* print LR from the call stack, so it will always show the caller */
             int level = call_stack_num[id] - 1;
@@ -1180,7 +1180,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                         if (name && name[0]) {
                             len += fprintf(stderr, " %s", name);
                         }
-                        len += indent(len, CALLSTACK_RIGHT_ALIGN);
+                        len += eos_indent(len, CALLSTACK_RIGHT_ALIGN);
 
                         /* print LR from the call stack, so it will always show the caller */
                         int level = call_stack_num[id] - 1;
@@ -1271,7 +1271,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                     len += fprintf(stderr, KCYN"return from interrupt"KRESET" to %x", pc);
                     if (pc != old_pc && pc != old_pc + 4) len += fprintf(stderr, " (old=%x)", old_pc);
                     len -= strlen(KCYN KRESET);
-                    len += indent(len, CALLSTACK_RIGHT_ALIGN);
+                    len += eos_indent(len, CALLSTACK_RIGHT_ALIGN);
                     print_call_location(s, prev_pc, prev_lr);
                 }
 
@@ -1289,7 +1289,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                 int len = call_stack_indent(id, 0, 0);
                 len += fprintf(stderr, KCYN"jump to 0x%X"KRESET" lr=%x", pc | env->thumb, lr);
                 len -= strlen(KCYN KRESET);
-                len += indent(len, CALLSTACK_RIGHT_ALIGN);
+                len += eos_indent(len, CALLSTACK_RIGHT_ALIGN);
                 print_call_location(s, prev_pc, prev_lr);
                 call_stack_indent(id, 0, 0);
                 /* hm, target_disas used to look at flags for ARM or Thumb... */
@@ -1315,7 +1315,7 @@ static void print_task_switch(EOSState *s, uint32_t pc, uint32_t prev_pc, uint32
         eos_get_current_task_name(s), pc, lookup_symbol(pc)
     );
     len -= strlen(KCYN KRESET);
-    len += indent(len, CALLSTACK_RIGHT_ALIGN);
+    len += eos_indent(len, CALLSTACK_RIGHT_ALIGN);
     print_call_location(s, prev_pc, prev_lr);
 }
 
