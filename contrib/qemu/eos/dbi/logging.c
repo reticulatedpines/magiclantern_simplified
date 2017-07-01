@@ -358,6 +358,12 @@ static uint32_t callstack_frame_size(uint8_t id, unsigned level)
 uint32_t eos_callstack_get_caller_param(EOSState *s, int call_depth, enum param_type param_type)
 {
     uint8_t id = get_stackid(s);
+
+    if (param_type == CALL_DEPTH)
+    {
+        return call_stack_num[id];
+    }
+
     int level = call_stack_num[id] - call_depth - 1;
     assert(level >= 0);
 
@@ -369,6 +375,9 @@ uint32_t eos_callstack_get_caller_param(EOSState *s, int call_depth, enum param_
         case CALLER_PC:
             return call_stacks[id][level].pc;
 
+        case CALL_LOCATION:
+            return call_stacks[id][level].last_pc;
+
         case CALLER_LR:
             return call_stacks[id][level].lr;
 
@@ -377,9 +386,6 @@ uint32_t eos_callstack_get_caller_param(EOSState *s, int call_depth, enum param_
 
         case CALLER_NUM_ARGS:
             return call_stacks[id][level].num_args;
-
-        case CALL_DEPTH:
-            return call_stack_num[id];
 
         default:
             break;

@@ -23,7 +23,7 @@ void eos_callstack_print_verbose(EOSState *s);
 enum param_type {
     CALLER_PC = -1, CALLER_LR = -2, CALLER_SP = -3,
     CALLER_STACKFRAME_SIZE = -4, CALL_DEPTH = -5,
-    CALLER_NUM_ARGS = -6,
+    CALLER_NUM_ARGS = -6, CALL_LOCATION = -7,
     CALLER_ARG = 0, /* any positive number = function argument */
 };
 uint32_t eos_callstack_get_caller_param(EOSState *s, int call_depth, enum param_type param_type);
