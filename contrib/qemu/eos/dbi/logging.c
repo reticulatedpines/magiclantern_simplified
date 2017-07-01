@@ -879,15 +879,30 @@ static void check_abi_register_usage(EOSState *s, CPUARMState *env, int id, int 
     }
 }
 
+/* store the exec log state for each task
+ * (to avoid disruption from interrupts) */
+struct call_stack_exec_state
+{
+    uint32_t pc;
+    uint32_t lr;
+    uint32_t sp;
+    uint32_t size;
+};
+
+static struct call_stack_exec_state cs_exec_states[COUNT(call_stacks)];
+
 static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock *tb)
 {
     ARMCPU *arm_cpu = ARM_CPU(cpu);
     CPUARMState *env = &arm_cpu->env;
-    
+
+    /* use local state for speed */
     static uint32_t prev_pc = 0xFFFFFFFF;
     static uint32_t prev_lr = 0;
     static uint32_t prev_sp = 0;
     static uint32_t prev_size = 0;
+
+    /* pc, lr, sp */
     uint32_t pc = env->regs[15] | env->thumb;
     uint32_t lr = env->regs[14];
     uint32_t sp = env->regs[13];
@@ -922,6 +937,22 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
     if (pc0 == 0x18)
     {
         /* handle interrupt jumps first */
+
+        if (interrupt_level == 0)
+        {
+            /* interrupted a regular DryOS task
+             * save the previous state (we'll need to restore it when returning from interrupt) */
+            uint8_t id = get_stackid(s);
+            assert(id != 0xFE);
+            //fprintf(stderr, "Saving state: pc %x, lr %x, sp %x, size %x\n", prev_pc, prev_lr, prev_sp, prev_size);
+            cs_exec_states[id] = (struct call_stack_exec_state) {
+                .pc = prev_pc,
+                .lr = prev_lr,
+                .sp = prev_sp,
+                .size = prev_size
+            };
+        }
+
         interrupt_level++;
         uint8_t id = get_stackid(s);
         assert(id == 0xFE);
@@ -943,6 +974,9 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
         /* jump from the interrupt vector - ignore */
         goto end;
     }
+
+/* when returning from interrupt */
+recheck:
 
     /* when returning from a function call,
      * it may decrement the call stack by 1 or more levels
@@ -1275,7 +1309,44 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                     print_call_location(s, prev_pc, prev_lr);
                 }
 
-                goto end;
+                if (call_stack_num[id] == 0)
+                {
+                    /* return to a DryOS task
+                     * what if the interrupt interrupted one task right in the "middle"
+                     * of a function call or return?
+                     * note: we detect these by looking at prev_pc -> pc etc (using state variables).
+                     * imagine this:
+                     *   1234: BL 5678
+                     *   <interrupt triggered here>
+                     *   1238: next instruction
+                     *   5678: STMFD ...
+                     * we detect the call by checking whether PC jumped
+                     * (here, from prev_pc = 1234 to somewhere else - the destination
+                     *  would be the called function) and LR was set to next instruction
+                     * (here, prev_pc + 4 = 1238).
+                     * When the interrupt breaks this logic, we need to re-create
+                     * the "normal" conditions (as if the interrupt wasn't there)
+                     * and do the usual call/return checks. 
+                     */
+                    assert(old_pc == call_stacks[id][0].last_pc);
+
+                    /* get the new stack ID (a regular DryOS stack) 
+                     * and restore our state from there */
+                    uint8_t id = get_stackid(s);
+                    assert(id != 0xFE);
+                    prev_pc   = cs_exec_states[id].pc; prev_pc0 = prev_pc & ~1;
+                    prev_lr   = cs_exec_states[id].lr;
+                    prev_sp   = cs_exec_states[id].sp;
+                    prev_size = cs_exec_states[id].size;
+                    //fprintf(stderr, "Restoring state: pc %x->%x lr %x->%x sp %x->%x size %x->%x\n", prev_pc, pc, prev_lr, lr, prev_sp, sp, prev_size, tb->size);
+
+                    if (pc != prev_pc && pc != prev_pc + 4)
+                    {
+                        /* PC jump when returning from interrupt?
+                         * may be a call or a return - check it */
+                        goto recheck;
+                    }
+                }
             }
         }
 
