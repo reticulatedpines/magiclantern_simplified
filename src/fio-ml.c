@@ -513,9 +513,24 @@ int FIO_ReadFile( FILE* stream, void* ptr, size_t count )
 {
     if (ptr == CACHEABLE(ptr))
     {
-        /* this appears to work most of the time, but not always */
-        /* proper solution: use fio_malloc */
-        ASSERT(0);
+        /* there's a lot of existing code (e.g. mlv_play) that's hard to refactor */
+        /* workaround: allocate DMA memory here (for small buffers only)
+         * code that operates on large buffers should be already correct */
+        if (!streq(current_task->name, "run_test"))
+        {
+            printf("fixme: please use fio_malloc (in %s)\n", current_task->name);
+        }
+        ASSERT(count <= 8192);
+        void * ubuf = fio_malloc(count);
+        if (!ubuf)
+        {
+            ASSERT(0);
+            return 0;
+        }
+        int ans = _FIO_ReadFile(stream, ubuf, count);
+        memcpy(ptr, ubuf, count);
+        free(ubuf);
+        return ans;
     }
 
     return _FIO_ReadFile(stream, ptr, count);
