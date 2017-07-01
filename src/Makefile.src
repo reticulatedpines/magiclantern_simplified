@@ -171,6 +171,7 @@ ML_SRC_OBJS = \
 	raw.o \
 	chdk-dng.o \
 	edmac-memcpy.o \
+	backtrace.o \
 
 
 ML_OBJS-y += $(ML_SRC_OBJS)
@@ -247,6 +248,21 @@ clean::
 
 $(TOP_DIR)/tcc/libtccx.o: FORCE
 	+$(MAKE) -C $(TOP_DIR)/tcc
+
+QEMU_DBI_DIR=$(TOP_DIR)/contrib/qemu/eos/dbi
+QEMU_INSTALLED_DBI_DIR=$(TOP_DIR)/../qemu/qemu-2.5.0/hw/eos/dbi
+
+# backtrace.[ch] are shared with QEMU - make symlinks
+# will this work on Windows?
+
+$(SRC_DIR)/backtrace.c:: $(SRC_DIR)/backtrace.h
+
+$(SRC_DIR)/backtrace.c $(SRC_DIR)/backtrace.h:: $(SRC_DIR)/backtrace.%: $(QEMU_DBI_DIR)/backtrace.%
+	$(call build,LN,ln -sfr $^ $@)
+
+# copy from QEMU (outside ML dir) if they were edited there
+$(QEMU_DBI_DIR)/backtrace.c $(QEMU_DBI_DIR)/backtrace.h: $(QEMU_DBI_DIR)/backtrace.%: $(QEMU_INSTALLED_DBI_DIR)/backtrace.%
+	$(call build,CP,$(CP) $^ $@)
 
 # Extract the stdio files that we need
 DIET_OBJ = \
