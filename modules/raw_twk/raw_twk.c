@@ -52,6 +52,8 @@ typedef struct
     uint16_t yRes;
     uint16_t quality;
     uint16_t bpp;
+    uint16_t blackLevel;
+    uint8_t  freeFrameBuffer;
 } frame_buf_t;
 
 struct s_DefcData
@@ -215,7 +217,7 @@ static void bpp16_to_yuv_task()
         static int last_zoom_x = 0;
         static int last_zoom_y = 0;
 
-        if(last_zoom != raw_twk_zoom || last_zoom_x != raw_twk_zoom_x_pct || last_zoom_y != raw_twk_zoom_y_pct || last_black_level != raw_info.black_level || last_x1 != x1 || last_x2 != x2)
+        if(last_zoom != raw_twk_zoom || last_zoom_x != raw_twk_zoom_x_pct || last_zoom_y != raw_twk_zoom_y_pct || last_black_level != in_buf->blackLevel || last_x1 != x1 || last_x2 != x2)
         {
             if(lv2rx)
             {
@@ -233,12 +235,13 @@ static void bpp16_to_yuv_task()
         {
             last_x1 = x1;
             last_x2 = x2;
-            last_black_level = raw_info.black_level;
+            last_black_level = in_buf->blackLevel;
             last_zoom = raw_twk_zoom;
             last_zoom_x = raw_twk_zoom_x_pct;
             last_zoom_y = raw_twk_zoom_y_pct;
             
-            int black = (raw_info.black_level << (14 - in_buf->bpp) >> 4);
+            /* as we only work with 10 upper bits and input data is 16bpp, throw away 6 bits */
+            int black = (in_buf->blackLevel >> 6);
             
             for (int i = 0; i < 1024; i++)
             {
@@ -353,7 +356,10 @@ static void bpp16_to_yuv_task()
             }
         }
         
-        free(in_buf->frameBuffer);
+        if(in_buf->freeFrameBuffer)
+        {
+            free(in_buf->frameBuffer);
+        }
         free(in_buf);
     }
 }
@@ -573,14 +579,16 @@ static void raw_to_bpp16_task()
         }
         
         /* reuse the message buffer */
+        in_buf->blackLevel = in_buf->blackLevel << (16 - in_buf->bpp);
         in_buf->frameBuffer = out_frameBuffer;
+        in_buf->freeFrameBuffer = 1;
         
         /* and post it to display task, meanwhile this engine can process another frame */
         msg_queue_post(mlv_play_queue_bpp16_to_yuv, (uint32_t)in_buf);
     }
 }
 
-uint32_t raw_twk_render(void *raw_buffer, uint32_t xRes, uint32_t yRes, uint32_t bpp, uint32_t quality)
+uint32_t raw_twk_render_ex(void *raw_buffer, uint32_t xRes, uint32_t yRes, uint32_t bpp, uint32_t quality, uint32_t blackLevel)
 {
     frame_buf_t *msg = malloc(sizeof(frame_buf_t));
     
@@ -589,8 +597,23 @@ uint32_t raw_twk_render(void *raw_buffer, uint32_t xRes, uint32_t yRes, uint32_t
     msg->yRes = yRes;
     msg->bpp = bpp;
     msg->quality = quality;
-    
-    return msg_queue_post(mlv_play_queue_raw_to_bpp16, (uint32_t)msg);
+    msg->freeFrameBuffer = 0;
+    msg->blackLevel = blackLevel;
+
+    /* caller might be so kind and give us an already 16 bit aligned buffer. we wouldnt have to do much */
+    if(msg->bpp != 16)
+    {
+        return msg_queue_post(mlv_play_queue_raw_to_bpp16, (uint32_t)msg);
+    }
+    else
+    {
+        return msg_queue_post(mlv_play_queue_bpp16_to_yuv, (uint32_t)msg);
+    }
+}
+
+uint32_t raw_twk_render(void *raw_buffer, uint32_t xRes, uint32_t yRes, uint32_t bpp, uint32_t quality)
+{
+    return raw_twk_render_ex(raw_buffer, xRes, yRes, bpp, quality, raw_info.black_level);
 }
 
 static unsigned int raw_twk_init()
