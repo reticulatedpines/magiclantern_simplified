@@ -80,8 +80,8 @@
     #define MOV_OPT_STEP 5
     #define MOV_GOP_OPT_STEP 5
 
-    #define AE_STATE (*(int8_t*)(0x366B8 + 0x1C))
-    #define AE_VALUE (*(int8_t*)(0x366B8 + 0x1D))
+    #define AE_STATE (*(int8_t*)(0x367B4 + 0x1C))
+    #define AE_VALUE (*(int8_t*)(0x367B4 + 0x1D))
 
     #define GUIMODE_PLAY 1
     #define GUIMODE_MENU 2
