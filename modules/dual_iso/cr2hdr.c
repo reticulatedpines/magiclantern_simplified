@@ -541,7 +541,7 @@ static void reverse_bytes_order(void* buf, int count)
     }
 }
 
-const char* module_get_string(int module, const char* name)
+static const char* module_get_string(const char* name)
 {
     module_strpair_t *strings = &__module_strings_MODULE_NAME[0];
     
@@ -587,7 +587,7 @@ static int is_file(const char* filename)
 int main(int argc, char** argv)
 {
     printf("cr2hdr: a post processing tool for Dual ISO images\n\n");
-    printf("Last update: %s\n", module_get_string(0, "Last update"));
+    printf("Last update: %s\n", module_get_string("Last update"));
 
     fast_randn_init();
 
