@@ -635,7 +635,7 @@ static void dng_fill_header(struct frame_info * frame_info, struct dng_data * dn
     }
 }
 
-/* unpacks bits to 16 bit little endian
+/* unpack bits to 16 bit little endian
    input_buffer - a buffer containing the packed imaged data
    output_buffer - the buffer where the result will be written
    max_size - the size in bytes to write into the output_buffer (unpacked 16bit)
@@ -666,7 +666,7 @@ void dng_unpack_image_bits(uint16_t * input_buffer, uint16_t * output_buffer, si
     }
 }
 
-/* packs bits to 16 bit little endian and convert to big endian (raw payload DNG spec)
+/* pack bits to 16 bit little endian and convert to big endian (raw payload DNG spec)
    input_buffer - a buffer containing the unpacked imaged data
    output_buffer - the buffer where the result will be written
    max_size - the size in bytes to get from the input_buffer (unpacked 16bit)
