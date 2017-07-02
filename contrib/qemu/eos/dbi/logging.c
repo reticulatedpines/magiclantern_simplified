@@ -1275,17 +1275,22 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
 
         /* unknown jump case, to be diagnosed manually */
         if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
-            uint8_t id = get_stackid(s);
-            int len = call_stack_indent(id, 0, 0);
-            len += fprintf(stderr, KCYN"jump to 0x%X"KRESET" lr=%x", pc | env->thumb, lr);
-            len -= strlen(KCYN KRESET);
-            len += indent(len, CALLSTACK_RIGHT_ALIGN);
-            print_call_location(s, prev_pc, prev_lr);
-            call_stack_indent(id, 0, 0);
-            /* hm, target_disas used to look at flags for ARM or Thumb... */
-            int t0 = env->thumb; env->thumb = prev_pc & 1;
-            target_disas(stderr, CPU(arm_env_get_cpu(env)), prev_pc0, prev_size, 0);
-            env->thumb = t0;
+            static uint32_t prev_jump = 0;
+            if (pc != prev_jump)
+            {
+                prev_jump = pc;
+                uint8_t id = get_stackid(s);
+                int len = call_stack_indent(id, 0, 0);
+                len += fprintf(stderr, KCYN"jump to 0x%X"KRESET" lr=%x", pc | env->thumb, lr);
+                len -= strlen(KCYN KRESET);
+                len += indent(len, CALLSTACK_RIGHT_ALIGN);
+                print_call_location(s, prev_pc, prev_lr);
+                call_stack_indent(id, 0, 0);
+                /* hm, target_disas used to look at flags for ARM or Thumb... */
+                int t0 = env->thumb; env->thumb = prev_pc & 1;
+                target_disas(stderr, CPU(arm_env_get_cpu(env)), prev_pc0, prev_size, 0);
+                env->thumb = t0;
+            }
         }
     }
 
