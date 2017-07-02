@@ -2639,6 +2639,16 @@ static void raw_prepare_chunk(FILE *f, mlv_file_hdr_t *hdr)
         mlv_write_hdr(f, (mlv_hdr_t *)&styl_hdr);
         write_mlv_vers_blocks(f);
     }
+    
+    /* insert a null block so the header size is multiple of 512 bytes */
+    int hdr_size = FIO_SeekSkipFile(f, 0, SEEK_CUR);
+    
+    mlv_hdr_t nul_hdr;
+    memset(&nul_hdr, 0x00, sizeof(nul_hdr));
+    mlv_set_type(&nul_hdr, "NULL");
+    int padded_size = (hdr_size + sizeof(nul_hdr) + 511) & ~511;
+    nul_hdr.blockSize = padded_size - hdr_size;
+    FIO_WriteFile(f, &nul_hdr, nul_hdr.blockSize);
 }
 
 static void raw_writer_task(uint32_t writer)
@@ -3051,8 +3061,8 @@ static uint32_t mlv_rec_precreate_del_empty(char *filename)
         return 0;
     }
     
-    /* if only the size of a file header, remove again */
-    if(size <= sizeof(mlv_file_hdr_t))
+    /* if only the size of a file header plus padding, remove again */
+    if(size <= 0x200)
     {
         trace_write(raw_rec_trace_ctx, "mlv_rec_precreate_del_empty: '%s' empty, deleting", filename);
         FIO_RemoveFile(filename);
