@@ -638,7 +638,7 @@ static void dng_fill_header(struct frame_info * frame_info, struct dng_data * dn
 /* unpacks bits to 16 bit little endian
    input_buffer - a buffer containing the packed imaged data
    output_buffer - the buffer where the result will be written
-   max_size - the size in bytes to write into the output_buffer
+   max_size - the size in bytes to write into the output_buffer (unpacked 16bit)
    bpp - raw data bits per pixel
 */
 void dng_unpack_image_bits(uint16_t * input_buffer, uint16_t * output_buffer, size_t max_size, uint32_t bpp)
@@ -669,7 +669,7 @@ void dng_unpack_image_bits(uint16_t * input_buffer, uint16_t * output_buffer, si
 /* packs bits to 16 bit little endian and convert to big endian (raw payload DNG spec)
    input_buffer - a buffer containing the packed imaged data
    output_buffer - the buffer where the result will be written
-   max_size - the size in bytes to write into the output_buffer
+   max_size - the size in bytes to get from the input_buffer (unpacked 16bit)
    bpp - raw data bits per pixel 
 */
 void dng_pack_image_bits(uint16_t * input_buffer, uint16_t * output_buffer, size_t max_size, uint32_t bpp)
@@ -717,6 +717,7 @@ static void dng_reverse_byte_order(uint16_t * input_buffer, size_t max_size)
     }
 }
 
+/* fill DNG header buffer */
 void dng_init_header(struct frame_info * frame_info, struct dng_data * dng_data)
 {
     static int first_time = 1;
@@ -731,6 +732,7 @@ void dng_init_header(struct frame_info * frame_info, struct dng_data * dng_data)
     dng_fill_header(frame_info, dng_data);
 }
 
+/* fill DNG image data buffer */
 void dng_init_data(struct frame_info * frame_info, struct dng_data * dng_data)
 {
     static int first_time = 1;
@@ -765,6 +767,7 @@ void dng_init_data(struct frame_info * frame_info, struct dng_data * dng_data)
     }
 }
 
+/* all raw processing takes place here */
 void dng_process_data(struct frame_info * frame_info, struct dng_data * dng_data)
 {
     static int first_time = 1;
@@ -833,6 +836,7 @@ void dng_process_data(struct frame_info * frame_info, struct dng_data * dng_data
     first_time = 0;
 }
 
+/* save DNG file */
 int dng_save(struct frame_info * frame_info, struct dng_data * dng_data)
 {
     static uint32_t frame_count = 0;
@@ -908,6 +912,7 @@ int dng_save(struct frame_info * frame_info, struct dng_data * dng_data)
     return 1;
 }
 
+/* free all buffers used for DNG creation and RAW processing */
 void dng_free_data(struct dng_data * dng_data)
 {
     if(dng_data->header_buf) free(dng_data->header_buf);

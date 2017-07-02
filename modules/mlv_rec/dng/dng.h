@@ -84,7 +84,7 @@ struct dng_data
     uint16_t * image_buf_bak;       // backup of pointer to image buffer (needed to restore pointer to original buffer)
 };
 
-/* routines to initialize, process and free raw image buffers of dng_struct */
+/* routines to initialize, process and free raw image buffers of 'dng_data' struct */
 void dng_init_header(struct frame_info * frame_info, struct dng_data * dng_data);
 void dng_init_data(struct frame_info * frame_info, struct dng_data * dng_data);
 void dng_process_data(struct frame_info * frame_info, struct dng_data * dng_data);
