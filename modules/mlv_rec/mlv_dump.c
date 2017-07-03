@@ -1945,8 +1945,6 @@ int main (int argc, char *argv[])
             print_msg(MSG_ERROR, "Failed to load subtract frame (%d)\n", ret);
             return ERR_FILE;
         }
-        
-        frame_buffer_size = subtract_frame_buffer_size;
     }
 
     if(flatfield_mode)
@@ -1959,32 +1957,9 @@ int main (int argc, char *argv[])
             print_msg(MSG_ERROR, "Failed to load flat-field frame (%d)\n", ret);
             return ERR_FILE;
         }
-        
-        frame_buffer_size = flatfield_frame_buffer_size;
     }
 
-    if(average_mode)
-    {
-        frame_arith_buffer = malloc(frame_buffer_size * sizeof(uint32_t));
-        if(!frame_arith_buffer)
-        {
-            print_msg(MSG_ERROR, "Failed to alloc mem\n");
-            return ERR_MALLOC;
-        }
-        memset(frame_arith_buffer, 0x00, frame_buffer_size * sizeof(uint32_t));
-    }
-
-    /* always allocate, delta decoding also needs this buffer */
-    {
-        prev_frame_buffer = malloc(frame_buffer_size);
-        if(!prev_frame_buffer)
-        {
-            print_msg(MSG_ERROR, "Failed to alloc mem\n");
-            return ERR_MALLOC;
-        }
-        memset(prev_frame_buffer, 0x00, frame_buffer_size);
-    }
-
+    
     if(output_filename || lua_state)
     {
         frame_buffer = malloc(frame_buffer_size);
@@ -2767,39 +2742,6 @@ read_headers:
                         {
                             print_msg(MSG_ERROR, "VIDF: Failed to allocate %d byte\n", frame_buffer_size);
                             goto abort;
-                        }
-                        
-                        if(frame_arith_buffer)
-                        {
-                            frame_arith_buffer = realloc(frame_arith_buffer, frame_buffer_size * sizeof(uint32_t));
-                            if(!frame_arith_buffer)
-                            {
-                                print_msg(MSG_ERROR, "VIDF: Failed to allocate %d byte\n", frame_buffer_size);
-                                goto abort;
-                            }
-                            memset(frame_arith_buffer, 0x00, frame_buffer_size * sizeof(uint32_t));
-                        }
-                        
-                        if(frame_sub_buffer)
-                        {
-                            frame_sub_buffer = realloc(frame_sub_buffer, frame_buffer_size);
-                            if(!frame_sub_buffer)
-                            {
-                                print_msg(MSG_ERROR, "VIDF: Failed to allocate %d byte\n", frame_buffer_size);
-                                goto abort;
-                            }
-                            memset(frame_sub_buffer, 0x00, frame_buffer_size);
-                        }
-                        
-                        if(prev_frame_buffer)
-                        {
-                            prev_frame_buffer = realloc(prev_frame_buffer, frame_buffer_size);
-                            if(!prev_frame_buffer)
-                            {
-                                print_msg(MSG_ERROR, "VIDF: Failed to allocate %d byte\n", frame_buffer_size);
-                                goto abort;
-                            }
-                            memset(prev_frame_buffer, 0x00, frame_buffer_size);
                         }
                     }
 
@@ -4079,6 +4021,38 @@ read_headers:
                 lv_rec_footer.xRes = block_hdr.xRes;
                 lv_rec_footer.yRes = block_hdr.yRes;
                 lv_rec_footer.raw_info = block_hdr.raw_info;
+
+                int frame_size = MAX(bit_depth, block_hdr.raw_info.bits_per_pixel) * block_hdr.raw_info.height * block_hdr.raw_info.width / 8;
+                
+                /* resolution change, old data will be thrown away */
+                if(frame_arith_buffer)
+                {
+                    print_msg(MSG_INFO, "Got a new RAWI, throwing away average buffers etc.\n");
+                    free(frame_arith_buffer);
+                }
+                
+                if(prev_frame_buffer)
+                {
+                    print_msg(MSG_INFO, "Got a new RAWI, throwing away previous frame buffers etc.\n");
+                    free(prev_frame_buffer);
+                }
+                
+                frame_arith_buffer = realloc(frame_arith_buffer, frame_size * sizeof(uint32_t));
+                if(!frame_arith_buffer)
+                {
+                    print_msg(MSG_ERROR, "Failed to allocate %d byte for frame_arith_buffer\n", frame_size * sizeof(uint32_t));
+                    goto abort;
+                }
+                
+                prev_frame_buffer = realloc(prev_frame_buffer, frame_size);
+                if(!prev_frame_buffer)
+                {
+                    print_msg(MSG_ERROR, "Failed to allocate %d byte for prev_frame_buffer\n", frame_size);
+                    goto abort;
+                }
+                
+                memset(frame_arith_buffer, 0x00, frame_size * sizeof(uint32_t));
+                memset(prev_frame_buffer, 0x00, frame_size);
 
                 /* always output RAWI blocks, its not just metadata, but important frame format data */
                 if(mlv_output && (!extract_block || !strncasecmp(extract_block, (char*)&block_hdr.blockType, 4)))
