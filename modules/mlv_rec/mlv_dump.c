@@ -2753,11 +2753,11 @@ read_headers:
                         read_size = block_hdr.blockSize - sizeof(mlv_vidf_hdr_t) - block_hdr.frameSpace;
                     }
                     
-                    /* check if there is enough memory for that frame */
-                    if(read_size != (int)frame_buffer_size)
+                    /* check if there is enough memory for that frame, compressed or uncompressed */
+                    if(frame_buffer_size < (uint32_t)MAX(frame_size, read_size))
                     {
                         /* no, set new size */
-                        frame_buffer_size = read_size;
+                        frame_buffer_size = (uint32_t)MAX(frame_buffer_size, read_size);
                         
                         /* realloc buffers */
                         frame_buffer = realloc(frame_buffer, frame_buffer_size);
