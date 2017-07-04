@@ -60,6 +60,18 @@ On the 5D there are the following fonts added to the stubs.S file:
 Alex, 16Mar2011
 https://bitbucket.org/hudson/magic-lantern/changeset/cfba492ea84d
 
+Daniel Fort, 03Jul2017
+http://www.magiclantern.fm/forum/index.php?topic=15895.msg186775#msg186775
+
+Changed "base" to 0xf0000000
+
+boot-hack.c:
+static void backup_rom_task()
+{
+    backup_region("ML/LOGS/ROM1.BIN", 0xF8000000, 0x01000000);
+    backup_region("ML/LOGS/ROM0.BIN", 0xF0000000, 0x01000000);
+}
+
 
 """
 
@@ -112,10 +124,11 @@ f.close()
 if (len(sys.argv)>2):
   base = int(sys.argv[2], 16)
 else:
-  base = 0xff010000
+  base = 0xf0000000
 
 print 'Find bitmap fonts in Canon DSLR firmwares'
-print 'Arm.Indy. based on work by Pel, Trammel Hudson and A1ex\n'
+print 'Arm.Indy. based on work by Pel, Trammel Hudson and A1ex'
+print 'Assume ROM file was dumped from 0x%08x \n' % base
 
 off = 0
 while off < len(m) and off <> -1: 
