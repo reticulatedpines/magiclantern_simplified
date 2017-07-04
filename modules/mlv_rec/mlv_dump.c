@@ -3357,14 +3357,14 @@ read_headers:
                             /* init and process 'dng_data' raw buffers or use original compressed/uncompressed ones */
                             switch(raw_state)
                             {
-                                /* if raw input lossless or uncompressed should stay 
+                                /* if raw input lossless/uncompressed should stay 
                                    uncompressed or is going to be compressed/recompressed */
                                 case UNCOMPRESSED_RAW:
                                 case COMPRESSED_RAW:
                                     dng_init_data(&frame_info, &dng_data);
                                     dng_process_data(&frame_info, &dng_data);
                                     break;
-                                /* if passing through original uncompressed of lossless raw */
+                                /* if passing through original uncompressed/lossless raw */
                                 case UNCOMPRESSED_ORIG:
                                 case COMPRESSED_ORIG:
                                     dng_data.image_buf = (uint16_t *)frame_buffer;
