@@ -67,4 +67,7 @@
 //~ not implemented yet
 #define GMT_LOCAL_DIALOG_REFRESH_LV 0x36 // event type = 2, gui code = 0x100000C6 in EOS-M
 
+#define BTN_ZEBRAS_FOR_PLAYBACK BGMT_MENU // what button to use for zebras in Play mode
+#define BTN_ZEBRAS_FOR_PLAYBACK_NAME "Menu"
+
 #endif
