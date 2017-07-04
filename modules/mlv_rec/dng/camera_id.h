@@ -37,6 +37,35 @@ typedef struct {
     int32_t focal_unit;
 } camera_id_t;
 
+/* 
+    NOTE: steps for obtaining Matrix and FocalPlain numbers for new camera and adding them to the array:
+
+    1) take raw image (CR2)
+    2) convert this CR2 to DNG with Adobe DNG Converter
+    3) for FocaPlain numbers run:
+
+       $ exiftool -v RAW_IMAGE.CR2 | grep FocalP
+       
+       output:
+       | | 26) FocalPlaneXResolution = 3942.505133 (5760000/1461)
+       | | 27) FocalPlaneYResolution = 3950.617284 (3840000/972)
+       | | 28) FocalPlaneResolutionUnit = 2
+
+       get the X and Y PlaneResolution numbers from parentheses
+       get ResolutionUnit (meaning: 1 = No absolute unit of measurement, 2 = Inch, 3 = Centimeter)
+
+    4) for Color/Forward Matrix numbers run:
+
+       $ exiftool RAW_IMAGE.DNG | grep Matrix
+
+       output:
+       Color Matrix 1 : 0.7234 -0.1413 -0.06 -0.3631 1.115 0.285 -0.0382 0.1335 0.6437
+       Color Matrix 2 : 0.6722 -0.0635 -0.0963 -0.4287 1.246 0.2028 -0.0908 0.2162 0.5668
+       Forward Matrix 1 : 0.7868 0.0092 0.1683 0.2291 0.8615 -0.0906 0.0027 -0.4752 1.2976
+       Forward Matrix 2 : 0.7637 0.0805 0.1201 0.2649 0.9179 -0.1828 0.0137 -0.2456 1.057
+
+       get each number by multiplying to 10000
+*/
 static camera_id_t camera_id[] = {
 	{
 		0x80000218,
