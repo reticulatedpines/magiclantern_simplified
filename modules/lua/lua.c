@@ -1284,6 +1284,8 @@ static void lua_do_autoload()
 
 static void lua_load_task(int unused)
 {
+    int console_was_visible = console_visible;
+
     /* wait until other modules (hopefully) finish loading */
     msleep(500);
     
@@ -1322,14 +1324,20 @@ static void lua_load_task(int unused)
     }
     printf("[Lua] all scripts loaded.\n");
 
-    /* wait for key pressed or for 5-second timeout, whichever comes first */
-    last_keypress = 0;
-    for (int i = 0; i < 50 && !last_keypress; i++)
+    if (console_visible && !console_was_visible)
     {
-        msleep(100);
+        /* did we pop the console?
+         * wait for key pressed or for 5-second timeout,
+         * whichever comes first, then hide it. */
+        last_keypress = 0;
+        waiting_for_keypress = 0;
+        for (int i = 0; i < 50 && !last_keypress; i++)
+        {
+            msleep(100);
+        }
+        waiting_for_keypress = -1;
+        console_hide();
     }
-
-    console_hide();
 }
 
 static unsigned int lua_init()
