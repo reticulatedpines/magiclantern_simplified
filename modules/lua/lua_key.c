@@ -13,6 +13,7 @@
 #include "lua_common.h"
 
 extern int last_keypress;
+extern int waiting_for_keypress;
 int module_send_keypress(int module_key);
 
 /***
@@ -43,13 +44,16 @@ static int luaCB_key_wait(lua_State * L)
     LUA_PARAM_INT_OPTIONAL(key, 1, 0);
     LUA_PARAM_INT_OPTIONAL(timeout, 1, 0);
     timeout *= 10;
-    last_keypress = 0;
     int time = 0;
 
     if (lua_get_cant_yield(L))
     {
         return luaL_error(L, "FIXME: cannot use task.yield() or key.wait() from two tasks");
     }
+
+    /* clear "keypress buffer" and block the key(s) we are waiting for */
+    last_keypress = 0;
+    waiting_for_keypress = key;
 
     lua_give_semaphore(L, NULL);
 
@@ -61,11 +65,13 @@ static int luaCB_key_wait(lua_State * L)
         {
             lua_take_semaphore(L, 0, NULL);
             lua_pushinteger(L, 0);
+            waiting_for_keypress = -1;
             return 1;
         }
     }
     lua_take_semaphore(L, 0, NULL);
     lua_pushinteger(L, last_keypress);
+    waiting_for_keypress = -1;
     return 1;
 }
 

@@ -53,6 +53,7 @@ struct script_semaphore
 
 static int lua_loaded = 0;
 int last_keypress = 0;
+int waiting_for_keypress = -1;  /* 0 = all, -1 = none, other = wait for a specific key */
 
 static struct script_semaphore * script_semaphores = NULL;
 
@@ -223,10 +224,21 @@ static unsigned int lua_keypress_cbr(unsigned int ctx)
 {
     /* ignore unknown button codes */
     if (!ctx) return 1;
-    
+
     last_keypress = ctx;
     //keypress cbr interprets things backwards from other CBRs
-    return lua_do_cbr(ctx, keypress_cbr_scripts, "keypress", 500, CBR_RET_KEYPRESS_NOTHANDLED, CBR_RET_KEYPRESS_HANDLED);
+    int result = lua_do_cbr(ctx, keypress_cbr_scripts, "keypress", 500, CBR_RET_KEYPRESS_NOTHANDLED, CBR_RET_KEYPRESS_HANDLED);
+
+    if (result == CBR_RET_KEYPRESS_NOTHANDLED)
+    {
+        /* waiting for this/all keypress/es? block the event */
+        if (waiting_for_keypress == last_keypress || waiting_for_keypress == 0)
+        {
+            return CBR_RET_KEYPRESS_HANDLED;
+        }
+    }
+
+    return result;
 }
 
 #define SCRIPT_CBR_SET(event) \
