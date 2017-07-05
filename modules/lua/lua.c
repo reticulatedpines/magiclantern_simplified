@@ -936,10 +936,6 @@ static MENU_UPDATE_FUNC(lua_script_menu_update)
         {
             script_print_state(entry, info);
         }
-
-        /* if a script takes a long time in the LOADING state,
-         * it's probably a simple script that is running for a long time */
-        int script_uptime = script->load_time ? get_seconds_clock() - script->load_time : 0;
         
         const char * script_status = 
             script->autorun
