@@ -1171,6 +1171,61 @@ static void hexdump(char *buf, unsigned int size, unsigned int offset)
   print_msg(MSG_INFO, "\n");
 }
 
+/* rescale black and white levels if bit depth is changed (-b) and/or fix levels if --black/white-fix specified */
+static void fix_black_white_level(int32_t * black_level, int32_t * white_level, int32_t * bitdepth, int32_t new_bitdepth, int black_fix, int white_fix, int verbose)
+{
+    int32_t old_black = *black_level;
+    int32_t old_white = *white_level;
+
+    if(new_bitdepth)
+    {
+        int delta = *bitdepth - new_bitdepth;
+        
+        /* scale down black and white level */
+        if(delta)
+        {
+            *bitdepth = new_bitdepth;
+        
+            if(delta > 0)
+            {
+                *black_level >>= delta;
+                *white_level >>= delta;
+            }
+            else
+            {
+                *black_level <<= ABS(delta);
+                *white_level <<= ABS(delta);
+            }
+
+            if(verbose)
+            {
+                if(!black_fix)
+                    print_msg(MSG_INFO, "   black: %d -> %d\n", old_black, *black_level);
+                if(!white_fix)
+                    print_msg(MSG_INFO, "   white: %d -> %d\n", old_white, *white_level);
+            }
+        }
+    }
+    
+    if(black_fix)
+    {
+        *black_level = black_fix;
+        if(verbose)
+        {
+            print_msg(MSG_INFO, "   black: %d -> %d (forced)\n", old_black, *black_level);
+        }
+    }
+    
+    if(white_fix)
+    {
+        *white_level = white_fix;
+        if(verbose)
+        {
+            print_msg(MSG_INFO, "   white: %d -> %d (forced)\n", old_white, *white_level);
+        }
+    }
+}
+
 
 int main (int argc, char *argv[])
 {
@@ -3250,76 +3305,9 @@ read_headers:
                             raw_info.frame_size = frame_buffer_size;
                             raw_info.buffer = frame_buffer;
                             
-                            int old_depth = lv_rec_footer.raw_info.bits_per_pixel;
-                            int new_depth = bit_depth;
+                            /* patch raw info if black and/or white fix specified or bit depth changed */
+                            fix_black_white_level(&raw_info.black_level, &raw_info.white_level, &raw_info.bits_per_pixel, bit_depth, black_fix, white_fix, verbose);
                             
-                            /* patch raw info if bit depth changed */
-                            if(new_depth || (black_fix || white_fix))
-                            {
-                                raw_info.bits_per_pixel = new_depth;
-                                int delta = old_depth - new_depth;
-                                int old_black = raw_info.black_level;
-                                int old_white = raw_info.white_level;
-                                
-                                /* scale down black level */
-                                if(!black_fix)
-                                {
-                                    if(delta)
-                                    {
-                                        if(delta > 0)
-                                        {
-                                            raw_info.black_level >>= delta;
-                                        }
-                                        else
-                                        {
-                                            raw_info.black_level <<= ABS(delta);
-                                        }
-
-                                        if(verbose)
-                                        {
-                                            print_msg(MSG_INFO, "   black: %d -> %d\n", old_black, raw_info.black_level);
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    raw_info.black_level = black_fix;
-                                    if(verbose)
-                                    {
-                                        print_msg(MSG_INFO, "   black: %d -> %d (forced)\n", old_black, raw_info.black_level);
-                                    }
-                                }
-                                
-                                /* scale down white level */
-                                if(!white_fix)
-                                {
-                                    if(delta)
-                                    {
-                                        if(delta > 0)
-                                        {
-                                            raw_info.white_level >>= delta;
-                                        }
-                                        else
-                                        {
-                                            raw_info.white_level <<= ABS(delta);
-                                        }
-
-                                        if(verbose)
-                                        {
-                                            print_msg(MSG_INFO, "   white: %d -> %d\n", old_white, raw_info.white_level);
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    raw_info.white_level = white_fix;
-                                    if(verbose)
-                                    {
-                                        print_msg(MSG_INFO, "   white: %d -> %d (forced)\n", old_white, raw_info.white_level);
-                                    }
-                                }
-                            }
-
                             /* raw state: 
                                0 - uncompressed/decompressed
                                1 - compressed/recompressed by "-c"
@@ -4059,77 +4047,10 @@ read_headers:
                 {
                     /* correct header size if needed */
                     block_hdr.blockSize = sizeof(mlv_rawi_hdr_t);
+                    block_hdr.raw_info.bits_per_pixel = lv_rec_footer.raw_info.bits_per_pixel;
 
-                    int old_depth = lv_rec_footer.raw_info.bits_per_pixel;
-                    int new_depth = bit_depth;
-
-                    /* scale down black level */
-                    if(new_depth || (black_fix || white_fix))
-                    {
-                        block_hdr.raw_info.bits_per_pixel = new_depth;
-                        int delta = old_depth - new_depth;
-                        int old_black = block_hdr.raw_info.black_level;
-                        int old_white = block_hdr.raw_info.white_level;
-                        
-                        /* scale down black level */
-                        if(!black_fix)
-                        {
-                            if(delta)
-                            {
-                                
-                                if(delta > 0)
-                                {
-                                    block_hdr.raw_info.black_level >>= delta;
-                                }
-                                else
-                                {
-                                    block_hdr.raw_info.black_level <<= ABS(delta);
-                                }
-
-                                if(verbose)
-                                {
-                                    print_msg(MSG_INFO, "   black: %d -> %d\n", old_black, block_hdr.raw_info.black_level);
-                                }
-                            }
-                        }
-                        else
-                        {
-                            block_hdr.raw_info.black_level = black_fix;
-                            if(verbose)
-                            {
-                                print_msg(MSG_INFO, "   black: %d -> %d (forced)\n", old_black, block_hdr.raw_info.black_level);
-                            }
-                        }
-                        
-                        /* scale down white level */
-                        if(!white_fix)
-                        {
-                            if(delta)
-                            {
-                                if(delta > 0)
-                                {
-                                    block_hdr.raw_info.white_level >>= delta;
-                                }
-                                else
-                                {
-                                    block_hdr.raw_info.white_level <<= ABS(delta);
-                                }
-
-                                if(verbose)
-                                {
-                                    print_msg(MSG_INFO, "   white: %d -> %d\n", old_white, block_hdr.raw_info.white_level);
-                                }
-                            }
-                        }
-                        else
-                        {
-                            block_hdr.raw_info.white_level = white_fix;
-                            if(verbose)
-                            {
-                                print_msg(MSG_INFO, "   white: %d -> %d (forced)\n", old_white, block_hdr.raw_info.white_level);
-                            }
-                        }
-                    }
+                    /* patch raw info if black and/or white fix specified or bit depth changed */
+                    fix_black_white_level(&block_hdr.raw_info.black_level, &block_hdr.raw_info.white_level, &block_hdr.raw_info.bits_per_pixel, bit_depth, black_fix, white_fix, verbose);
 
                     if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
                     {
