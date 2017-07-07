@@ -2909,13 +2909,16 @@ read_headers:
                                 (unsigned char *)&frame_buffer[4 + LZMA_PROPS_SIZE], &lzma_in_size,
                                 (unsigned char *)&frame_buffer[4], lzma_props_size
                                 );
-
+                                
+                            if(lzma_out_size != frame_size)
+                            {
+                                print_msg(MSG_ERROR, "    LZMA: decompressed image size (%d) does not match size retrieved from RAWI (%d)\n", lzma_out_size, frame_size);
+                                goto abort;
+                            }
+                            
                             if(ret == SZ_OK)
                             {
-                                frame_buffer = realloc(frame_buffer, lzma_out_size);
-                                frame_buffer_size = lzma_out_size;
-                                assert(frame_buffer);
-                                memcpy(frame_buffer, lzma_out, frame_buffer_size);
+                                memcpy(frame_buffer, lzma_out, lzma_out_size);
                                 
                                 if(verbose)
                                 {
