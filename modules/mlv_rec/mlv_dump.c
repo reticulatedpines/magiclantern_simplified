@@ -2876,10 +2876,6 @@ read_headers:
                                 print_msg(MSG_INFO, "    LJ92: "FMT_SIZE" -> "FMT_SIZE"  (%2.2f%% ratio)\n", frame_buffer_size, frame_size, ((float)frame_buffer_size * 100.0f) / (float)frame_size);
                             }
                             
-                            frame_buffer = realloc(frame_buffer, frame_size);
-                            frame_buffer_size = frame_size;
-                            assert(frame_buffer);
-                            
                             /* repack the 16 bit words containing values with max 14 bit */
                             int orig_pitch = video_xRes * lv_rec_footer.raw_info.bits_per_pixel / 8;
 
