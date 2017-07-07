@@ -4026,14 +4026,14 @@ read_headers:
                     free(prev_frame_buffer);
                 }
                 
-                frame_arith_buffer = realloc(frame_arith_buffer, frame_size * sizeof(uint32_t));
+                frame_arith_buffer = malloc(frame_size * sizeof(uint32_t));
                 if(!frame_arith_buffer)
                 {
                     print_msg(MSG_ERROR, "Failed to allocate %d byte for frame_arith_buffer\n", frame_size * sizeof(uint32_t));
                     goto abort;
                 }
                 
-                prev_frame_buffer = realloc(prev_frame_buffer, frame_size);
+                prev_frame_buffer = malloc(frame_size);
                 if(!prev_frame_buffer)
                 {
                     print_msg(MSG_ERROR, "Failed to allocate %d byte for prev_frame_buffer\n", frame_size);
