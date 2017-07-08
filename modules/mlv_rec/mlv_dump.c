@@ -2798,8 +2798,6 @@ read_headers:
                             print_msg(MSG_ERROR, "VIDF: Failed to allocate %d byte\n", frame_buffer_size);
                             goto abort;
                         }
-                        
-                        memset(frame_buffer, 0x00, frame_buffer_size);
                     }
 
                     /* so skip frameSpace and read payload */
