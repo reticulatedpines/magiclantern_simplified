@@ -3495,7 +3495,11 @@ read_headers:
                             
                             if(!dng_save(&frame_info, &dng_data))
                             {
-                                print_msg(MSG_ERROR, "Failed writing into .DNG file\n");
+                                print_msg(MSG_ERROR, "VIDF: Failed writing into .DNG file\n");
+                                if(relaxed)
+                                {
+                                    goto skip_block;
+                                }
                                 goto abort;
                             }
 

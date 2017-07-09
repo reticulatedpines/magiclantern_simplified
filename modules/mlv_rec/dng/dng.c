@@ -850,6 +850,7 @@ int dng_save(struct frame_info * frame_info, struct dng_data * dng_data)
     /* write DNG header */
     if (fwrite(dng_data->header_buf, dng_data->header_size, 1, dngf) != 1)
     {
+        fclose(dngf);
         return 0;
     }
     
@@ -862,6 +863,7 @@ int dng_save(struct frame_info * frame_info, struct dng_data * dng_data)
 
         if (fwrite(dng_data->image_buf_bitpacked, dng_data->image_size_bitpacked, 1, dngf) != 1)
         {
+            fclose(dngf);
             return 0;
         }
     }
@@ -874,6 +876,7 @@ int dng_save(struct frame_info * frame_info, struct dng_data * dng_data)
 
         if (fwrite(dng_data->image_buf, dng_data->image_size, 1, dngf) != 1)
         {
+            fclose(dngf);
             return 0;
         }
     }
