@@ -1323,9 +1323,11 @@ PROP_HANDLER( PROP_SHUTTER )
     }
     #ifdef FEATURE_EXPO_OVERRIDE
     else if (buf[0]  // sync expo override to Canon values
+            #if !defined(CONFIG_100D) // any other cameras which need this ?
+                                      // symptoms: http://www.magiclantern.fm/forum/index.php?topic=16040.msg187050#msg187050
             && (ABS(buf[0] - lens_info.raw_shutter) > 3) // some cameras may attempt to round shutter value to 1/2 or 1/3 stops
                                                        // especially when pressing half-shutter
-
+            #endif
         #ifdef CONFIG_MOVIE_EXPO_OVERRIDE_DISABLE_SYNC_WITH_PROPS
         && !is_movie_mode()
         #endif
