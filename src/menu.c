@@ -5555,7 +5555,7 @@ static void menu_set_flags(char* menu_name, char* entry_name, int flags)
 
 static void menu_save_flags(char* filename)
 {
-    char* cfg = fio_malloc(CFG_SIZE);
+    char* cfg = malloc(CFG_SIZE);
     cfg[0] = '\0';
     int cfglen = 0;
     int lastlen = 0;
@@ -5591,7 +5591,7 @@ static void menu_save_flags(char* filename)
     FIO_CloseFile( file );
 
 end:
-    fio_free(cfg);
+    free(cfg);
 }
 
 static void menu_load_flags(char* filename)
@@ -5645,7 +5645,7 @@ void config_menu_save_flags()
 
 /*void menu_save_all_items_dbg()
 {
-    char* cfg = fio_malloc(CFG_SIZE);
+    char* cfg = malloc(CFG_SIZE);
     cfg[0] = '\0';
 
     int unnamed = 0;
@@ -5672,7 +5672,7 @@ void config_menu_save_flags()
     
     NotifyBox(5000, "Menu items: %d unnamed.", unnamed);
 end:
-    fio_free(cfg);
+    free(cfg);
 }*/
 
 int menu_get_value_from_script(const char* name, const char* entry_name)

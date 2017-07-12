@@ -13,7 +13,7 @@
 #define MODULE_CONFIG_PREFIX          __module_config_
 #define MODULE_PROPHANDLER_PREFIX     __module_prophandler_
 
-#define MODULE_STRINGS_SECTION        __attribute__ ((section(".module_strings")))
+#define MODULE_STRINGS_SECTION        __attribute__ ((section(".module_strings"),unused))
 #define MODULE_HGDIFF_SECTION         __attribute__ ((section(".module_hgdiff")))
 #define MODULE_HGINFO_SECTION         __attribute__ ((section(".module_hginfo")))
 
@@ -197,8 +197,12 @@ typedef struct
 #define MODULE_INIT(func)                                           .init = &func,
 #define MODULE_DEINIT(func)                                         .deinit = &func,
 #define MODULE_LONGNAME(name)                                       .long_name = name,
-#define MODULE_INFO_END()                                       };
-                                                                
+#define MODULE_INFO_END()                                       }; \
+    MODULE_STRINGS();
+/* ^^^ module strings are auto-included after the info block
+ * => they end up only in the file that defines module info.
+ */
+                              
 #define MODULE_STRINGS_START()                                  MODULE_STRINGS_START_(MODULE_STRINGS_PREFIX,MODULE_NAME)
 #define MODULE_STRINGS_START_(prefix,modname)                   MODULE_STRINGS_START__(prefix,modname)
 #define MODULE_STRINGS_START__(prefix,modname)                  module_strpair_t prefix##modname[] MODULE_STRINGS_SECTION = {
