@@ -438,14 +438,29 @@ for CAM in ${EOS_CAMS[*]} ${EOS_SECONDARY_CORES[*]}; do
     mkdir -p tests/$CAM/
     rm -f tests/$CAM/boot.log
     # sorry, couldn't get the monitor working together with log redirection...
-    # going to wait for red DY (from READY), with 2-second timeout, then kill qemu
-    (./run_canon_fw.sh $CAM,firmware="boot=0" -display none -d romcpy &> tests/$CAM/boot.log) &
+    (./run_canon_fw.sh $CAM,firmware="boot=0" \
+        -display none \
+        -serial file:tests/$CAM/boot-uart.log \
+        -d romcpy,int \
+        &> tests/$CAM/boot.log \
+    ) &
     sleep 0.2
-    ( timeout 2 tail -f -n100000 tests/$CAM/boot.log & ) | grep --binary-files=text -qP "\x1B\x5B31mD\x1B\x5B0m\x1B\x5B31mY\x1B\x5B0m"
+
+    # wait until some READY-like message is printed on the UART
+    ( timeout 2 tail -f -n100000 tests/$CAM/boot-uart.log & ) \
+        | grep -qE "([KR].* (READY|AECU).*|Intercom.*|Dry>)"
     kill_qemu
-    
-    tests/check_grep.sh tests/$CAM/boot.log -oE "([KR].* (READY|AECU).*|Intercom.*|Dry>)"
-    ansi2txt < tests/$CAM/boot.log | grep -oE "\[ROMCPY\].*" | sed -e "s/\[ROMCPY\]/      /"
+
+    # fixme: duplicate regex
+    tests/check_grep.sh tests/$CAM/boot-uart.log \
+        -oE "([KR].* (READY|AECU).*|Intercom.*|Dry>)"
+
+    # print ROMCPY messages before the first interrupt
+    ansi2txt < tests/$CAM/boot.log \
+        | grep -m1 -B 100000 -E "Taking exception|terminating on signal" \
+        | grep -oE "\[ROMCPY\].*" \
+        | sed -e "s/\[ROMCPY\]/      /"
+
 done
 
 # All EOS cameras should load autoexec.bin, run HPTimer functions
@@ -752,14 +767,13 @@ for CAM in ${EOS_CAMS[*]}; do
     tests/check_md5.sh tests/$CAM/ disp
 done
 
-# EOS M3 is different (PowerShot firmware); let's test it too
 echo
 echo "Testing PowerShot models..."
 for CAM in ${POWERSHOT_CAMS[*]}; do
     echo "$CAM:"
     mkdir -p tests/$CAM/
     rm -f tests/$CAM/boot.log
-    (./run_canon_fw.sh $CAM -display none -s -S -d romcpy & \
+    (./run_canon_fw.sh $CAM -display none -s -S -d romcpy,int & \
      arm-none-eabi-gdb -x $CAM/debugmsg.gdb &) &> tests/$CAM/boot.log
     sleep 0.5
     ( timeout 10 tail -f -n100000 tests/$CAM/boot.log & ) | grep --binary-files=text -qP "\x1B\x5B31ma\x1B\x5B0m\x1B\x5B31my\x1B\x5B0m"
@@ -768,7 +782,14 @@ for CAM in ${POWERSHOT_CAMS[*]}; do
     printf "  SD boot: "; tests/check_grep.sh tests/$CAM/boot.log -om1 "StartDiskboot"
     printf "  Display: "; tests/check_grep.sh tests/$CAM/boot.log -om1 "TurnOnDisplay"
     printf "  ROMcopy: "; tests/check_grep.sh tests/$CAM/boot.log -oPm1 "(?<=ROMCPY\]) "
-    ansi2txt < tests/$CAM/boot.log | grep -oE "\[ROMCPY\].*" | sed -e "s/\[ROMCPY\]/   /"
+
+    # print ROMCPY messages before the first interrupt
+    # exception: EOS M5 copies interesting stuff after the first interrupt
+    ansi2txt < tests/$CAM/boot.log \
+        | ( [ $CAM == "EOSM5" ] && cat || grep -m1 -B 100000 -E "Taking exception|terminating on signal") \
+        | grep -oE "\[ROMCPY\].*" \
+        | sed -e "s/\[ROMCPY\]/   /"
+
 done
 
 echo
