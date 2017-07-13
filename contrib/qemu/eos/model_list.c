@@ -179,6 +179,9 @@ struct eos_model_desc eos_model_list[] = {
         .name                   = "650D",
         .digic_version          = 5,
         .current_task_addr      = 0x233D8,
+        .mpu_request_register   = 0xC022006C,
+        .mpu_status_register    = 0xC022006C,
+        .serial_flash_size      = 0x800000,
     },
     {
         .name                   = "100D",
