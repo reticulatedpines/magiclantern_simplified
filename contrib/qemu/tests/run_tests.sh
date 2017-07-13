@@ -12,8 +12,8 @@ POWERSHOT_CAMS=( EOSM3 EOSM10 EOSM5 A1100 )
 
 EOS_SECONDARY_CORES=( 5D3eeko 5D4AE 7D2S )
 
-GUI_CAMS=( 5D2 5D3 50D 60D 70D 500D 550D 600D 700D 100D 1100D 1200D )
-MENU_CAMS=( 5D2 5D3 50D 60D 500D 550D 600D 700D 100D 1100D 1200D )
+GUI_CAMS=( 5D2 5D3 50D 60D 70D 500D 550D 600D 700D 100D 1100D 1200D EOSM2 )
+MENU_CAMS=( 5D2 5D3 50D 60D 70D 500D 550D 600D 700D 100D 1100D 1200D )
 SD_CAMS=( 5D3 5D4 6D 60D 70D 80D 450D 500D 550D 600D 650D 700D 750D 760D
            100D 1000D 1100D 1200D 1300D EOSM EOSM2 )
 CF_CAMS=( 5D 5D2 5D3 5D4 7D 7D2M 40D 50D 400D )
@@ -34,6 +34,7 @@ MENU_SEQUENCE[5D2]="f1 left space i i i m up up up space m m w w p p"
 MENU_SEQUENCE[5D3]="f1 i i i f1 i m left down down down space m m p p q space m right right space m down right space pgdn m q"
 MENU_SEQUENCE[50D]="f1 left space i i i m up space space m w w p p"
 MENU_SEQUENCE[60D]="f1 i i i i m left left up space m m p p"
+MENU_SEQUENCE[70D]="m space space down down down down down space" # fixme: locks up quickly
 MENU_SEQUENCE[500D]="f1 m i i right right up m p p"
 MENU_SEQUENCE[550D]="m i i right right down down down space space p p" # info screen not working
 MENU_SEQUENCE[600D]="i i m right right p p" # starts with sensor cleaning animation; no info screen?
