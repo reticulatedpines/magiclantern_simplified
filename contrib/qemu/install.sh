@@ -108,7 +108,7 @@ echo
 echo "   This will recompile QEMU, but not ML."
 echo
 echo "   Note: Canon GUI emulation (menu navigation, no LiveView) only works on"
-echo -n "   "; grep --color=never -oP "(?<=MENU_CAMS=\( ).*(?=\))" tests/run_tests.sh;
+echo -n "   "; grep --color=never -oP "(?<=GUI_CAMS=\( ).*(?=\))" tests/run_tests.sh;
 echo
 echo "5) Tips & tricks:"
 echo "   - to enable or disable the boot flag in ROM, use something like:"

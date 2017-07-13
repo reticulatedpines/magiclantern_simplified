@@ -13,7 +13,6 @@ POWERSHOT_CAMS=( EOSM3 EOSM10 EOSM5 A1100 )
 EOS_SECONDARY_CORES=( 5D3eeko 5D4AE 7D2S )
 
 GUI_CAMS=( 5D2 5D3 50D 60D 70D 500D 550D 600D 700D 100D 1100D 1200D EOSM2 )
-MENU_CAMS=( 5D2 5D3 50D 60D 70D 500D 550D 600D 700D 100D 1100D 1200D )
 SD_CAMS=( 5D3 5D4 6D 60D 70D 80D 450D 500D 550D 600D 650D 700D 750D 760D
            100D 1000D 1100D 1200D 1300D EOSM EOSM2 )
 CF_CAMS=( 5D 5D2 5D3 5D4 7D 7D2M 40D 50D 400D )
@@ -23,7 +22,6 @@ if false ; then
     EOS_CAMS=(EOSM2)
     POWERSHOT_CAMS=()
     GUI_CAMS=(EOSM2)
-    MENU_CAMS=(EOSM2)
     SD_CAMS=(EOSM2)
     CF_CAMS=()
     EOS_SECONDARY_CORES=()
@@ -395,7 +393,7 @@ done
 # logging the entire call/return trace is possible, but very slow and not repeatable
 echo
 echo "Testing Canon menu with callstack enabled..."
-for CAM in ${MENU_CAMS[*]}; do
+for CAM in ${GUI_CAMS[*]}; do
     printf "%5s: " $CAM
     mkdir -p tests/$CAM/
     rm -f tests/$CAM/menu*[0-9].png
@@ -507,7 +505,7 @@ done
 # These cameras should be able to navigate Canon menu:
 echo
 echo "Testing Canon menu..."
-for CAM in ${MENU_CAMS[*]}; do
+for CAM in ${GUI_CAMS[*]}; do
     printf "%5s: " $CAM
     mkdir -p tests/$CAM/
     rm -f tests/$CAM/menu*[0-9].png
@@ -539,7 +537,7 @@ done
 # These cameras should be able to format the virtual card:
 echo
 echo "Testing card formatting..."
-for CAM in ${MENU_CAMS[*]}; do
+for CAM in ${GUI_CAMS[*]}; do
     printf "%5s: " $CAM
     mkdir -p tests/$CAM/
     rm -f tests/$CAM/format*[0-9].png
