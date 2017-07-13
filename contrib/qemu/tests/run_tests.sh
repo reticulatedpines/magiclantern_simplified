@@ -20,11 +20,11 @@ CF_CAMS=( 5D 5D2 5D3 5D4 7D 7D2M 40D 50D 400D )
 
 if false ; then
     # to test only specific models
-    EOS_CAMS=(5D3)
+    EOS_CAMS=(EOSM2)
     POWERSHOT_CAMS=()
-    GUI_CAMS=(5D3)
-    MENU_CAMS=(5D3 5D2)
-    SD_CAMS=(5D3)
+    GUI_CAMS=(EOSM2)
+    MENU_CAMS=(EOSM2)
+    SD_CAMS=(EOSM2)
     CF_CAMS=()
     EOS_SECONDARY_CORES=()
 fi
@@ -41,6 +41,7 @@ MENU_SEQUENCE[700D]="f1 m right right p p" # starts in movie mode, no lens
 MENU_SEQUENCE[100D]="f1 left space i i i m right up up space up space p p" # starts with date/time screen
 MENU_SEQUENCE[1100D]="f1 left space i i m i i left m p p down right space right right space up right space" # starts with date/time screen; drive mode not working
 MENU_SEQUENCE[1200D]="f1 left space i i m i i space m m p p down right space right right space up right space" # starts with date/time screen; drive mode not working
+MENU_SEQUENCE[EOSM2]="f1 m space space space up up space m up space m up space m up space m right space space m m" # starts with date/time screen; only menu works
 
 FMT_SEQ="space right space wait f1 space"
 FMT_SEQ_5D3="space space right space wait f1 space space"
@@ -58,6 +59,7 @@ FORMAT_SEQUENCE[700D]="m right right right right $FMT_SEQ"  # fixme: free space 
 FORMAT_SEQUENCE[100D]="m $FMT_SEQ"                          # fixme: free space wrong before format
 FORMAT_SEQUENCE[1100D]="m right right down $FMT_SEQ"
 FORMAT_SEQUENCE[1200D]="m left left $FMT_SEQ"
+FORMAT_SEQUENCE[EOSM2]="m left left left up $FMT_SEQ"
 
 function set_gui_timeout {
     if [ $CAM == "100D" ]; then
