@@ -11,8 +11,12 @@ include $(TOP_DIR)/Makefile.top
 
 include $(PLATFORM_PATH)/Makefile.platform.map
 
+# check for multiple firmware versions 
 ifndef FW_VERSION
 FW_VERSION=$(call platform_version,$(MODEL))
+ifeq ($(FW_VERSION),)
+$(error FW_VERSION is not defined)
+endif
 endif
 
 #not used?
