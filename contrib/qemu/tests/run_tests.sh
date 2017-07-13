@@ -12,17 +12,17 @@ POWERSHOT_CAMS=( EOSM3 EOSM10 EOSM5 A1100 )
 
 EOS_SECONDARY_CORES=( 5D3eeko 5D4AE 7D2S )
 
-GUI_CAMS=( 5D2 5D3 50D 60D 70D 500D 550D 600D 700D 100D 1100D 1200D EOSM2 )
+GUI_CAMS=( 5D2 5D3 50D 60D 70D 500D 550D 600D 650D 700D 100D 1100D 1200D EOSM2 )
 SD_CAMS=( 5D3 5D4 6D 60D 70D 80D 450D 500D 550D 600D 650D 700D 750D 760D
            100D 1000D 1100D 1200D 1300D EOSM EOSM2 )
 CF_CAMS=( 5D 5D2 5D3 5D4 7D 7D2M 40D 50D 400D )
 
 if false ; then
     # to test only specific models
-    EOS_CAMS=(EOSM2)
+    EOS_CAMS=(650D)
     POWERSHOT_CAMS=()
-    GUI_CAMS=(EOSM2)
-    SD_CAMS=(EOSM2)
+    GUI_CAMS=(650D)
+    SD_CAMS=(650D)
     CF_CAMS=()
     EOS_SECONDARY_CORES=()
 fi
@@ -36,6 +36,7 @@ MENU_SEQUENCE[70D]="m space space down down down down down space" # fixme: locks
 MENU_SEQUENCE[500D]="f1 m i i right right up m p p"
 MENU_SEQUENCE[550D]="m i i right right down down down space space p p" # info screen not working
 MENU_SEQUENCE[600D]="i i m right right p p" # starts with sensor cleaning animation; no info screen?
+MENU_SEQUENCE[650D]="f1 m right right p p" # starts in movie mode, no lens
 MENU_SEQUENCE[700D]="f1 m right right p p" # starts in movie mode, no lens
 MENU_SEQUENCE[100D]="f1 left space i i i m right up up space up space p p" # starts with date/time screen
 MENU_SEQUENCE[1100D]="f1 left space i i m i i left m p p down right space right right space up right space" # starts with date/time screen; drive mode not working
@@ -54,6 +55,7 @@ FORMAT_SEQUENCE[60D]="m left left left left $FMT_SEQ"
 FORMAT_SEQUENCE[500D]="m $FMT_SEQ"
 FORMAT_SEQUENCE[550D]="m $FMT_SEQ"
 FORMAT_SEQUENCE[600D]="m right right right $FMT_SEQ"
+FORMAT_SEQUENCE[650D]="m $FMT_SEQ"                          # fixme: free space wrong before format
 FORMAT_SEQUENCE[700D]="m right right right right $FMT_SEQ"  # fixme: free space wrong before format
 FORMAT_SEQUENCE[100D]="m $FMT_SEQ"                          # fixme: free space wrong before format
 FORMAT_SEQUENCE[1100D]="m right right down $FMT_SEQ"
