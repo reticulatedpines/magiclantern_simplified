@@ -255,6 +255,14 @@ struct eos_model_desc eos_model_list[] = {
         .serial_flash_size      = 0x800000,
     },
     {
+        .name                   = "EOSM2",
+        .digic_version          = 5,
+        .current_task_addr      = 0x8FBCC,
+        .mpu_request_register   = 0xC022006C,
+        .mpu_status_register    = 0xC022006C,
+        .serial_flash_size      = 0x1000000,
+    },
+    {
         .name                   = "EOSM3",
         .digic_version          = 6,
         .firmware_start         = 0xFC000000,

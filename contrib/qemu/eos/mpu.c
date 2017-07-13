@@ -44,6 +44,7 @@ static int mpu_init_spell_count = 0;
 #include "mpu_spells/700D.h"
 #include "mpu_spells/100D.h"
 #include "mpu_spells/EOSM.h"
+#include "mpu_spells/EOSM2.h"
 
 static void mpu_send_next_spell(EOSState *s)
 {
@@ -899,6 +900,7 @@ void mpu_spells_init(EOSState *s)
     MPU_SPELL_SET(700D)
     MPU_SPELL_SET(100D)
     MPU_SPELL_SET(EOSM)
+    MPU_SPELL_SET(EOSM2)
 
     /* 1200D works with 60D MPU spells... and BOOTS THE GUI!!! */
     MPU_SPELL_SET_OTHER_CAM(1200D, 60D)
@@ -944,6 +946,7 @@ void mpu_spells_init(EOSState *s)
     MPU_BUTTON_CODES(70D)
     MPU_BUTTON_CODES(7D)
     MPU_BUTTON_CODES(EOSM)
+    MPU_BUTTON_CODES(EOSM2)
 
     if (!button_codes)
     {
