@@ -51,6 +51,28 @@ index c88d0ff..0c0b3ef 100644
                  }
                  /* see if we can patch the calling TB. When the TB
                     spans two pages, we cannot safely do a direct
+diff --git a/exec.c b/exec.c
+index 0bf0a6e..5eb69de 100644
+--- a/exec.c
++++ b/exec.c
+@@ -2564,7 +2564,7 @@ MemTxResult address_space_rw(AddressSpace *as, hwaddr addr, MemTxAttrs attrs,
+             } else {
+                 addr1 += memory_region_get_ram_addr(mr);
+                 /* RAM case */
+-                ptr = qemu_get_ram_ptr(addr1);
++                ptr = qemu_ram_ptr_length(addr1, &l);
+                 memcpy(ptr, buf, l);
+                 invalidate_and_set_dirty(mr, addr1, l);
+             }
+@@ -2603,7 +2603,7 @@ MemTxResult address_space_rw(AddressSpace *as, hwaddr addr, MemTxAttrs attrs,
+                 }
+             } else {
+                 /* RAM case */
+-                ptr = qemu_get_ram_ptr(mr->ram_addr + addr1);
++                ptr = qemu_ram_ptr_length(mr->ram_addr + addr1, &l);
+                 memcpy(buf, ptr, l);
+             }
+         }
 diff --git a/hw/arm/Makefile.objs b/hw/arm/Makefile.objs
 index 2195b60..e3e2c14 100644
 --- a/hw/arm/Makefile.objs
