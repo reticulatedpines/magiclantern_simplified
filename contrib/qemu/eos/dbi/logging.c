@@ -313,14 +313,13 @@ static struct call_stack_entry call_stacks[256][128];
 static int call_stack_num[256] = {0};
 
 static inline void call_stack_push(uint8_t id, uint32_t * regs,
-    uint32_t pc, uint32_t last_pc, uint32_t lr, uint32_t interrupt_id)
+    uint32_t pc, uint32_t last_pc, uint32_t interrupt_id)
 {
     assert(call_stack_num[id] < COUNT(call_stacks[0]));
 
     struct call_stack_entry * entry = &call_stacks[id][call_stack_num[id]];
     memcpy(entry->regs, regs, sizeof(entry->regs));
     entry->num_args = 4;        /* fixme */
-    entry->lr = lr;             /* allow overriding LR (fixme: redundant) */
     entry->pc = pc;             /* override pc (actually, use the one that includes the Thumb flag) */
     entry->last_pc = last_pc;   /* on Thumb, LR is not enough to find this because of variable instruction size */
     entry->interrupt_id = interrupt_id;
@@ -929,7 +928,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
         }
         if (interrupt_level == 1) assert(call_stack_num[id] == 0);
         assert(s->irq_id);
-        call_stack_push(id, env->regs, pc, prev_pc, prev_pc, s->irq_id);
+        call_stack_push(id, env->regs, pc, prev_pc, s->irq_id);
         goto end;
     }
 
@@ -967,6 +966,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
             if (pc == call_stacks[id][k].lr)
             {
                 call_stack_num[id] = k;
+
                 if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
                     int len = call_stack_indent(id, 0, 0);
                     len += fprintf(stderr, "return %x to 0x%X", env->regs[0], pc | env->thumb);
@@ -1034,7 +1034,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
             eos_idc_log_call(s, cpu, env, tb, prev_pc, prev_lr, prev_size);
         }
 
-        call_stack_push(id, env->regs, pc, prev_pc, lr, 0);
+        call_stack_push(id, env->regs, pc, prev_pc, 0);
 
         /* todo: callback here? */
 
@@ -1243,10 +1243,10 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                     {
                         interrupt_level--;
                         call_stack_num[id] = k;
-                        uint32_t stack_lr = call_stacks[id][k].lr;
-                        if (pc == stack_lr || pc == stack_lr + 4)
+                        uint32_t stack_ppc = call_stacks[id][k].last_pc;
+                        if (pc == stack_ppc || pc == stack_ppc + 4)
                         {
-                            old_pc = stack_lr;
+                            old_pc = stack_ppc;
                             break;
                         }
                     }
@@ -1255,7 +1255,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
                 if (!old_pc)
                 {
                     /* context switch? */
-                    old_pc = call_stacks[id][0].lr;
+                    old_pc = call_stacks[id][0].last_pc;
                     assert(call_stack_num[id] == 0);
                     assert(interrupt_level == 0);
                 }
