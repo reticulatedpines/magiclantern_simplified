@@ -20,8 +20,11 @@ ML_PLATFORMS=${ML_PLATFORMS:=\
 ML_CHANGESET=${ML_CHANGESET:=}              # specify which HG changeset to compile and run (hg up -C)
 ML_OPTIONS=${ML_OPTIONS:=}                  # ML compile options (e.g. "CONFIG_QEMU=y")
 
-[ "$SCREENSHOT" ] && QEMU_SCRIPT="$QEMU_SCRIPT; echo screendump \$CAM_FW.ppm"
-QEMU_SCRIPT="$QEMU_SCRIPT; echo quit"
+[ "$SCREENSHOT" ] && QEMU_SCRIPT="$QEMU_SCRIPT
+echo screendump \$CAM_FW.ppm"
+
+QEMU_SCRIPT="$QEMU_SCRIPT
+echo quit"
 
 . ./mtools_setup.sh
 
@@ -47,10 +50,10 @@ for CAM_DIR in $ML_PLATFORMS; do
     export FW
     export CAM_FW
     export CAM_DIR
-    BuildDir=`echo $BUILD_DIR | envsubst`
-    QemuArgs=`echo $QEMU_ARGS | envsubst`
-    QemuScript=`echo $QEMU_SCRIPT | envsubst`
-    MLOptions=`echo $ML_OPTIONS | envsubst`
+    BuildDir=`echo "$BUILD_DIR" | envsubst`
+    QemuArgs=`echo "$QEMU_ARGS" | envsubst`
+    QemuScript=`echo "$QEMU_SCRIPT" | envsubst`
+    MLOptions=`echo "$ML_OPTIONS" | envsubst`
 
     # only compile ML if BOOT=1
     if [ "$BOOT" == "1" ]; then
@@ -102,27 +105,28 @@ for CAM_DIR in $ML_PLATFORMS; do
 
     # setup QEMU command line
     LogName=$LOG_PREFIX$CAM_FW$LOG_SUFFIX.log
-    QemuInvoke="./run_canon_fw.sh $CAM,firmware='${QFW}boot=$BOOT' -display none -monitor stdio $QemuArgs"
+    QemuInvoke="./run_canon_fw.sh $CAM,firmware='${QFW}boot=$BOOT' \\
+    -display none -monitor stdio $QemuArgs"
 
     if [ "$GDB_SCRIPT" ] && [ -f "$CAM/$GDB_SCRIPT" ]; then
         # GDB runs unattended (from script)
         # while QEMU listens to monitor commands from stdin
-        QemuInvoke="( 
-      arm-none-eabi-gdb -x $CAM/$GDB_SCRIPT & 
-      $QemuInvoke -s -S
-    )
-    "
+        QemuInvoke="arm-none-eabi-gdb -x $CAM/$GDB_SCRIPT & 
+$QemuInvoke -s -S"
     fi
 
     # print QEMU command line
     echo
-    echo "( $QemuScript )\\"
-    echo "  | $QemuInvoke &> $LogName"
+    echo "( "
+    echo "$QemuScript" | sed 's/^/  /'
+    echo ") | ("
+    echo "$QemuInvoke" | sed 's/^/  /'
+    echo ") &> $LogName"
     echo
 
     # invoke QEMU
-    (eval $QemuScript) \
-        | eval $QemuInvoke &> $LogName
+    ( eval "$QemuScript" ) \
+        | ( eval "$QemuInvoke" ) &> $LogName
 
     cd ../magic-lantern/platform/
 done
