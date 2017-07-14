@@ -7,8 +7,10 @@ TIMEOUT=${TIMEOUT:=20}                      # timeout for default QEMU monitor s
 SCREENSHOT=${SCREENSHOT:=}                  # optional screenshot ($CAM_FW.ppm)
 QEMU_ARGS=${QEMU_ARGS:=}                    # command-line arguments for QEMU
 QEMU_SCRIPT=${QEMU_SCRIPT:=sleep $TIMEOUT}  # QEMU monitor script (echo quit is always appended, optionally screenshot too)
-LOG_PREFIX=${LOG_PREFIX:=}                  # prefix for log files
-LOG_SUFFIX=${LOG_SUFFIX:=}                  # suffix for log files
+LOG_PREFIX=${LOG_PREFIX:=}                  # prefix for log files (e.g. foo-5D3.123.log)
+LOG_SUFFIX=${LOG_SUFFIX:=}                  # suffix for log files (e.g. 5D3.123-bar.log)
+LOG_NAME=${LOG_NAME:=\
+    "\$LOG_PREFIX\$CAM_FW\$LOG_SUFFIX.log"} # custom log file name (e.g. "\$CAM/baz.log")
 GDB_SCRIPT=${GDB_SCRIPT:=patches.gdb}       # GDB script (skipped if not found)
 BOOT=${BOOT:=1}                             # whether to load autoexec.bin (default: load)
 INCREMENTAL=${INCREMENTAL:=}                # skip make clean (default: full rebuild)
@@ -54,6 +56,7 @@ for CAM_DIR in $ML_PLATFORMS; do
     QemuArgs=`echo "$QEMU_ARGS" | envsubst`
     QemuScript=`echo "$QEMU_SCRIPT" | envsubst`
     MLOptions=`echo "$ML_OPTIONS" | envsubst`
+    LogName=`echo "$LOG_NAME" | envsubst`
 
     # only compile ML if BOOT=1
     if [ "$BOOT" == "1" ]; then
@@ -104,7 +107,6 @@ for CAM_DIR in $ML_PLATFORMS; do
     fi
 
     # setup QEMU command line
-    LogName=$LOG_PREFIX$CAM_FW$LOG_SUFFIX.log
     QemuInvoke="./run_canon_fw.sh $CAM,firmware='${QFW}boot=$BOOT' \\
     -display none -monitor stdio $QemuArgs"
 
