@@ -86,10 +86,8 @@ for CAM_DIR in $ML_PLATFORMS; do
             mkdir qemu-tmp
             unzip -q $CAM_DIR/magiclantern-qemu.zip -d qemu-tmp
             cd ../../qemu/
-            mcopy -o -i $MSD ../magic-lantern/platform/$CAM_DIR/* ::
-            mcopy -o -i $MCF ../magic-lantern/platform/$CAM_DIR/* ::
-            mcopy -o -s -i $MSD ../magic-lantern/platform/qemu-tmp/ML/ ::
-            mcopy -o -s -i $MCF ../magic-lantern/platform/qemu-tmp/ML/ ::
+            mcopy -o -s -i $MSD ../magic-lantern/platform/qemu-tmp/ ::
+            mcopy -o -s -i $MCF ../magic-lantern/platform/qemu-tmp/ ::
             rm -rf qemu-tmp/
         fi
 
