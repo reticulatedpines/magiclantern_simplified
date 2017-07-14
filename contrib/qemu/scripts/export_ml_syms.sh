@@ -14,6 +14,8 @@ if [ -d ../magic-lantern/platform/$1 ]; then
     export QEMU_ML_PATH=../magic-lantern/platform/$1
 elif [ -d ../magic-lantern/$1 ]; then
     export QEMU_ML_PATH=../magic-lantern/$1
+elif [ "$1" == "clear" ]; then
+    return
 else
     echo "invalid ML path"
     return

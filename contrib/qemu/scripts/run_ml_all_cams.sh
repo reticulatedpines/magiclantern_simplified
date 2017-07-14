@@ -92,6 +92,12 @@ for CAM_DIR in $ML_PLATFORMS; do
 
         # export any ML symbols we might want to use in QEMU
         . ./export_ml_syms.sh $BuildDir
+    else
+        # back to QEMU directory without compiling
+        cd ../../qemu/
+
+        # clear previously-exported symbols, if any
+        . ./export_ml_syms.sh clear
     fi
 
     # setup QEMU command line
