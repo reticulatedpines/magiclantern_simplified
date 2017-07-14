@@ -24,7 +24,7 @@
     /* stack walker configuration */
     #define BKT_ASSUME_TAIL_CALL_AFTER_POP_LR
     //#define BKT_HANDLE_UNLIKELY_CASES
-    //#define RANDOM_BRANCHES             /* slow, minor improvement */
+    //#define BKT_RANDOM_BRANCHES             /* slow, minor improvement */
 
     /* self-tests */
     //#define BKT_CROSSCHECK_EXEC

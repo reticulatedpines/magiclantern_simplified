@@ -91,8 +91,7 @@ static uint32_t branch_destination(uint32_t insn, uint32_t pc)
     return dest;
 }
 
-#ifndef BKT_ASSUME_TAIL_CALL_AFTER_POP_LR
-static int is_mov(uint32_t insn)
+static inline int is_mov(uint32_t insn)
 {
     if ((insn & 0xFDFF0000) == 0xE1A00000)
     {
@@ -106,7 +105,7 @@ static int is_mov(uint32_t insn)
     return 0;
 }
 
-static int is_compare(uint32_t insn)
+static inline int is_compare(uint32_t insn)
 {
     if ((insn & 0xFDF0F000) == 0xE1500000 ||
         (insn & 0xFDF0F000) == 0xE1700000 ||
@@ -124,7 +123,7 @@ static int is_compare(uint32_t insn)
     return 0;
 }
 
-static int possibly_func_start(uint32_t dest)
+static inline int possibly_func_start(uint32_t dest)
 {
     uint32_t insn = MEM(dest);
     if (is_mov(insn) || is_compare(insn)) {
@@ -145,7 +144,6 @@ static int possibly_func_start(uint32_t dest)
     }
     return 0;
 }
-#endif
 
 static const char * called_func(uint32_t pc)
 {
@@ -526,7 +524,7 @@ static uint32_t find_caller(EOSState *s, uint32_t pc, uint32_t *psp)
     uint32_t pc0 = pc;
     uint32_t lr = 0;
     uint32_t sp = *psp;
-    int iter;
+    int iter = 0;
 
     /* we need to find one code path that returns from the function */
     /* first we try the deterministic path (no conditional branches taken) */
