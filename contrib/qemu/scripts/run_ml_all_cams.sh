@@ -15,7 +15,7 @@ GDB_SCRIPT=${GDB_SCRIPT:=patches.gdb}       # GDB script (skipped if not found)
 BOOT=${BOOT:=1}                             # whether to load autoexec.bin (default: load)
 INCREMENTAL=${INCREMENTAL:=}                # skip make clean (default: full rebuild)
 AUTOEXEC_ONLY=${AUTOEXEC_ONLY:=}            # copy only autoexec.bin (default: make zip and full install)
-BUILD_DIR=${BUILD_DIR:=platform/$CAM_DIR}   # optionally build a different target; usually requires AUTOEXEC_ONLY=1
+BUILD_DIR=${BUILD_DIR:='platform/$CAM_DIR'} # optionally build a different target; usually requires AUTOEXEC_ONLY=1
                                             # e.g. 'minimal/$CAM_DIR', "minimal/qemu-frsp" (with ML_OPTIONS='MODEL=$CAM'), 'installer/$CAM_DIR'
 ML_PLATFORMS=${ML_PLATFORMS:=\
     "[[:upper:]]*.*/ [[:digit:]]*.*/"}      # specify ML platforms to run, e.g. "5D3.123/ 700D.114/"
