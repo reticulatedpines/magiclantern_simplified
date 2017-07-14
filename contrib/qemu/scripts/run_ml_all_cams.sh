@@ -15,7 +15,8 @@ INCREMENTAL=${INCREMENTAL:=}                # skip make clean (default: full reb
 AUTOEXEC_ONLY=${AUTOEXEC_ONLY:=}            # copy only autoexec.bin (default: make zip and full install)
 BUILD_DIR=${BUILD_DIR:=platform/\$CAM_DIR}  # optionally build a different target; usually requires AUTOEXEC_ONLY=1
                                             # e.g. "minimal/\$CAM_DIR", "minimal/qemu-frsp" (with ML_OPTIONS="MODEL=\$CAM"), "installer/\$CAM_DIR"
-ML_PLATFORMS=${ML_PLATFORMS:=}              # specify ML platforms to run, e.g. "5D3.123/ 700D.114/"
+ML_PLATFORMS=${ML_PLATFORMS:=\
+    "[[:upper:]]*.*/ [[:digit:]]*.*/"}      # specify ML platforms to run, e.g. "5D3.123/ 700D.114/"
 ML_CHANGESET=${ML_CHANGESET:=}              # specify which HG changeset to compile and run (hg up -C)
 ML_OPTIONS=${ML_OPTIONS:=}                  # ML compile options (e.g. "CONFIG_QEMU=y")
 
@@ -25,9 +26,6 @@ QEMU_SCRIPT="$QEMU_SCRIPT; echo quit"
 . ./mtools_setup.sh
 
 cd ../magic-lantern/platform
-
-# by default, run all ML platforms
-[ "$ML_PLATFORMS" = "" ] && ML_PLATFORMS=[[:upper:]]*/ [[:digit:]]*/
 
 for CAM_DIR in $ML_PLATFORMS; do 
     # CAM_DIR is e.g. 50D.111/ (includes a slash)
@@ -42,7 +40,7 @@ for CAM_DIR in $ML_PLATFORMS; do
     echo 
 
     # only specify firmware version to QEMU for 5D3
-    [ "$CAM" = "5D3" ] && QFW="$FW;" || QFW=
+    [ "$CAM" == "5D3" ] && QFW="$FW;" || QFW=
 
     # replace camera-specific variables in script arguments 
     export CAM
