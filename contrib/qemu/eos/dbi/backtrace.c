@@ -288,15 +288,6 @@ static int sim_instr(EOSState *s,
     }
 #endif
 
-    if (insn == 0xe12fff1e ||                   /* BX LR */
-        insn == 0xe1a0f00e)                     /* MOV PC, LR */
-    {
-        qemu_log_mask(BKT_LOG_VERBOSE, "%08x: RET to %x\n", pc, lr);
-        assert_retry(lr);
-        next_pc = lr;
-        goto ret_caller_found;
-    }
-
     if ((insn & 0xFF000000) == 0xEA000000)      /* B dest */
     {
         /* unconditional branch */
@@ -401,6 +392,16 @@ static int sim_instr(EOSState *s,
  * for every single function called until booting the GUI.
  */
 #ifdef BKT_HANDLE_UNLIKELY_CASES
+
+    if (insn == 0xe12fff1e ||                   /* BX LR */
+        insn == 0xe1a0f00e)                     /* MOV PC, LR */
+    {
+        /* never encountered with BKT_ASSUME_TAIL_CALL_AFTER_POP_LR */
+        qemu_log_mask(BKT_LOG_VERBOSE, "%08x: RET to %x\n", pc, lr);
+        assert_retry(lr);
+        next_pc = lr;
+        goto ret_caller_found;
+    }
 
     if ((insn & 0xFF7F0000) == 0xe52d0000)      /* STR Rn, [SP, #off]! */
     {
