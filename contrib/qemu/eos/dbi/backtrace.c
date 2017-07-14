@@ -62,6 +62,7 @@ static int callers_found = 0;           /* number of callers found (total over a
 static int gaveups_loop = 0;            /* num. of callers missed because the simulation got stuck in a loop */
 static int gaveups_insn = 0;            /* num. of callers missed because the simulation found some unhandled instruction */
 static int random_helped = 0;           /* num. of callers where taking random branches helped (when the deterministic method got stuck in a loop) */
+static int brute_force_helped = 0;      /* num. of callers found by brute force scanning of the stack */
 #endif
 
 static uint32_t ror(uint32_t word, uint32_t count)
@@ -91,8 +92,7 @@ static uint32_t branch_destination(uint32_t insn, uint32_t pc)
     return dest;
 }
 
-#ifndef BKT_ASSUME_TAIL_CALL_AFTER_POP_LR
-static int is_mov(uint32_t insn)
+static inline int is_mov(uint32_t insn)
 {
     if ((insn & 0xFDFF0000) == 0xE1A00000)
     {
@@ -106,7 +106,7 @@ static int is_mov(uint32_t insn)
     return 0;
 }
 
-static int is_compare(uint32_t insn)
+static inline int is_compare(uint32_t insn)
 {
     if ((insn & 0xFDF0F000) == 0xE1500000 ||
         (insn & 0xFDF0F000) == 0xE1700000 ||
@@ -124,7 +124,7 @@ static int is_compare(uint32_t insn)
     return 0;
 }
 
-static int possibly_func_start(uint32_t dest)
+static inline int possibly_func_start(uint32_t dest)
 {
     uint32_t insn = MEM(dest);
     if (is_mov(insn) || is_compare(insn)) {
@@ -145,7 +145,6 @@ static int possibly_func_start(uint32_t dest)
     }
     return 0;
 }
-#endif
 
 static const char * called_func(uint32_t pc)
 {
@@ -288,15 +287,6 @@ static int sim_instr(EOSState *s,
     }
 #endif
 
-    if (insn == 0xe12fff1e ||                   /* BX LR */
-        insn == 0xe1a0f00e)                     /* MOV PC, LR */
-    {
-        qemu_log_mask(BKT_LOG_VERBOSE, "%08x: RET to %x\n", pc, lr);
-        assert_retry(lr);
-        next_pc = lr;
-        goto ret_caller_found;
-    }
-
     if ((insn & 0xFF000000) == 0xEA000000)      /* B dest */
     {
         /* unconditional branch */
@@ -401,6 +391,16 @@ static int sim_instr(EOSState *s,
  * for every single function called until booting the GUI.
  */
 #ifdef BKT_HANDLE_UNLIKELY_CASES
+
+    if (insn == 0xe12fff1e ||                   /* BX LR */
+        insn == 0xe1a0f00e)                     /* MOV PC, LR */
+    {
+        /* never encountered with BKT_ASSUME_TAIL_CALL_AFTER_POP_LR */
+        qemu_log_mask(BKT_LOG_VERBOSE, "%08x: RET to %x\n", pc, lr);
+        assert_retry(lr);
+        next_pc = lr;
+        goto ret_caller_found;
+    }
 
     if ((insn & 0xFF7F0000) == 0xe52d0000)      /* STR Rn, [SP, #off]! */
     {
@@ -525,7 +525,7 @@ static uint32_t find_caller(EOSState *s, uint32_t pc, uint32_t *psp)
     uint32_t pc0 = pc;
     uint32_t lr = 0;
     uint32_t sp = *psp;
-    int iter;
+    int iter = 0;
 
     /* we need to find one code path that returns from the function */
     /* first we try the deterministic path (no conditional branches taken) */
@@ -572,6 +572,49 @@ static uint32_t find_caller(EOSState *s, uint32_t pc, uint32_t *psp)
         }
         qemu_log_mask(BKT_LOG_VERBOSE, "[BKT] retrying (%d)...\n", iter);
     }
+
+#ifdef BKT_BRUTE_FORCE_STACK
+    /* idea from g3gg0, gdb.c */
+    pc = pc0;
+    sp = *psp;
+    qemu_log_mask(BKT_LOG_VERBOSE, "[BKT] trying brute force (pc=%x, sp=%x)\n", pc, sp);
+
+    pc = pc0;
+    sp = *psp;
+    for (int pos = 0; pos < 64; pos++)
+    {
+        uint32_t lr = MEM(sp);
+        sp += 4;
+
+        if (lr == pc)
+        {
+            continue;
+        }
+
+        /* address in ROM? -> might be a LR */
+        /* same for RAM */
+        if ((lr & 0xF8000000) == 0xF8000000 ||
+            (lr > 0x100 && lr < 0x20000000))
+        {
+            uint32_t pre_lr = MEM(lr - 4);
+            if ((pre_lr & 0xFF000000) == 0xEB000000)      /* BL dest */
+            {
+                *psp = sp;
+                uint32_t dest = branch_destination(pre_lr, lr - 4);
+                if (dest < pc && dest > pc - 1024)
+                {
+                    /* likely BL to this function? */
+                    qemu_log_mask(BKT_LOG_VERBOSE, "found BL %x (pc=%x)\n", dest, pc);
+#ifdef BKT_TRACK_STATS
+                    callers_found++;
+                    brute_force_helped++;
+#endif
+                    return lr;
+                }
+            }
+        }
+    }
+#endif
 
 #ifdef BKT_TRACK_STATS
     if (iter == 1000)
@@ -627,7 +670,7 @@ void eos_backtrace_rebuild(EOSState *s, char * buf, int size)
 #endif
 
     /* rebuild the call stack trace by walking the stack */
-    while (1)
+    while (i < COUNT(lrs))
     {
         lr = find_caller(s, lr, &sp);
 
@@ -738,7 +781,11 @@ void eos_backtrace_rebuild(EOSState *s, char * buf, int size)
 #ifdef BKT_TRACK_STATS
     if (rand() % 1000 == 4)
     {
-        fprintf(stderr, "stacks ok:%d incomplete:%d gaveup:%d; callers ok:%d gaveup: %d (loop) %d (insn) randomhelped:%d\n", stacks_completed, stacks_incomplete, stacks_gaveup, callers_found, gaveups_loop, gaveups_insn, random_helped);
+        fprintf(stderr, "stacks ok:%d incomplete:%d gaveup:%d; callers ok:%d gaveup: %d (loop) %d (insn) helped rand:%d bfs:%d\n",
+            stacks_completed, stacks_incomplete, stacks_gaveup,
+            callers_found, gaveups_loop, gaveups_insn,
+            random_helped, brute_force_helped
+        );
     }
 #endif
 }
