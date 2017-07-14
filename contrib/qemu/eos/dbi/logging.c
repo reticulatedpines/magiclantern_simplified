@@ -523,7 +523,8 @@ void eos_callstack_print_verbose(EOSState *s)
             len += fprintf(stderr, "interrupt %02Xh", entry->interrupt_id);
             len += eos_indent(len, CALLSTACK_RIGHT_ALIGN);
             eos_print_location(s, ret, sp, " at ", "\n");
-            assert(pc == 0x18);
+            uint32_t pc0 = pc & ~1;
+            assert(pc0 == 0x18);
         }
         else
         {
