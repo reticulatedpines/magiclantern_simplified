@@ -15,7 +15,8 @@ include $(PLATFORM_PATH)/Makefile.platform.map
 ifndef FW_VERSION
 FW_VERSION=$(call platform_version,$(MODEL))
 ifeq ($(FW_VERSION),)
-$(error FW_VERSION is not defined)
+# fixme: this triggers when running make clean from platform dir; how to avoid? 
+$(warning FW_VERSION is not defined)
 endif
 endif
 
