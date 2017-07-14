@@ -627,7 +627,7 @@ void eos_backtrace_rebuild(EOSState *s, char * buf, int size)
 #endif
 
     /* rebuild the call stack trace by walking the stack */
-    while (1)
+    while (i < COUNT(lrs))
     {
         lr = find_caller(s, lr, &sp);
 
