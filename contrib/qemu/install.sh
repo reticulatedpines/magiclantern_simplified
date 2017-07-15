@@ -50,7 +50,8 @@ chmod +x tests/*.sh
 # apply our patch
 cd ${QEMU_NAME}
 mkdir -p hw/eos
-cp -vr ../../$ML/contrib/qemu/eos/* hw/eos
+cp -vr ../../$ML/contrib/qemu/eos/* hw/eos/
+cp -vr ../../$ML/src/backtrace.[ch] hw/eos/dbi/
 patch -N -p1 < ../../$ML/contrib/qemu/$QEMU_NAME.patch
 cd ..
 
