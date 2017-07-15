@@ -256,16 +256,20 @@ $(TOP_DIR)/tcc/libtccx.o: FORCE
 # where QEMU is installed (for emulating ML)
 QEMU_INSTALLED_DBI_DIR=$(TOP_DIR)/../qemu/qemu-2.5.0/hw/eos/dbi
 
-# copy from QEMU (outside ML dir) if they were edited there
+ifneq ("$(wildcard $(QEMU_INSTALLED_DBI_DIR)/backtrace.c)","")
+
+# copy backtrace.[ch] from QEMU (outside ML dir) if they were edited there
 # optional dependency, only if QEMU is installed "near" ML dir (the install script does that)
 # https://stackoverflow.com/questions/5553352/how-do-i-check-if-file-exists-in-makefile
-ifneq ("$(wildcard $(QEMU_INSTALLED_DBI_DIR)/backtrace.c)","")
 $(SRC_DIR)/backtrace.c $(SRC_DIR)/backtrace.h:: $(SRC_DIR)/backtrace.%: $(QEMU_INSTALLED_DBI_DIR)/backtrace.%
 	$(call build,CP,$(CP) $^ $@)
-endif
 
-# make sure we have the header when building backtrace.c for the first time
+# make sure we have the latest header when compiling after "make clean"
+# normally, *.h are added as dependencies of *.o in the *.d (make)files
+# but after "make clean" we don't have them
 $(SRC_DIR)/backtrace.c:: $(SRC_DIR)/backtrace.h
+
+endif
 
 # Extract the stdio files that we need
 DIET_OBJ = \
