@@ -105,6 +105,7 @@ ML_OBJS-y += \
 	version.o
 
 ML_SRC_OBJS = \
+	backtrace.o \
 	$(ML_BOOT_HACK_OBJ) \
 	fio-ml.o \
 	mem.o \
@@ -171,7 +172,6 @@ ML_SRC_OBJS = \
 	raw.o \
 	chdk-dng.o \
 	edmac-memcpy.o \
-	backtrace.o \
 
 
 ML_OBJS-y += $(ML_SRC_OBJS)
@@ -262,6 +262,10 @@ $(SRC_DIR)/backtrace.c $(SRC_DIR)/backtrace.h:: $(SRC_DIR)/backtrace.%: $(QEMU_D
 # copy from QEMU (outside ML dir) if they were edited there
 $(QEMU_DBI_DIR)/backtrace.c $(QEMU_DBI_DIR)/backtrace.h: $(QEMU_DBI_DIR)/backtrace.%: $(QEMU_INSTALLED_DBI_DIR)/backtrace.%
 	$(call build,CP,$(CP) $^ $@)
+
+# remove the symlinks on make clean
+clean::
+	$(call rm_files, $(SRC_DIR)/backtrace.c $(SRC_DIR)/backtrace.h)
 
 # Extract the stdio files that we need
 DIET_OBJ = \
