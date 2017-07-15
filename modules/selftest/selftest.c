@@ -1893,8 +1893,12 @@ static void alloc_1M_task()
     console_show();
     msleep(2000);
 
+    /* after a few calls, this will fail with ERR70 */
     void * ptr = _AllocateMemory(1024 * 1024);
+
+    /* do something with "ptr" to prevent a tail call (to test the stack trace) */
     printf("Alloc 1MB from sys mem => %x\n", ptr);
+
     /* do not free it */
 }
 
@@ -1998,19 +2002,19 @@ static struct menu_entry selftest_menu[] =
                 .select     = run_in_separate_task,
                 .priv       = frozen_task,
                 .help       = "Creates a task which will become stuck in an infinite loop.",
-                .help2      = "DryOS tasks with priority <= 0x1A will no longer be able to run.",
+                .help2      = "Low priority tasks (prio >= 0x1A) will no longer be able to run.",
             },
             {
-                .name       = "Freeze GUI task",
+                .name       = "Freeze the GUI task",
                 .select     = freeze_gui_task,
                 .help       = "Freezes main GUI task. Camera will stop reacting to buttons.",
             },
             {
-                .name       = "Lock-up ARM CPU",
+                .name       = "Lock-up the ARM CPU",
                 .select     = run_in_separate_task,
                 .priv       = lockup_task,
                 .help       = "Creates a task which will clear the interrupts and execute while(1).",
-                .help2      = "Anything still running after that would be either secondary CPUs or hardware.",
+                .help2      = "Anything still running after that would be secondary CPUs or hardware.",
             },
             {
                 .name       = "Division by zero",
@@ -2019,7 +2023,7 @@ static struct menu_entry selftest_menu[] =
                 .help       = "Performs some math operations which will divide by zero.",
             },
             {
-                .name       = "Allocate 1MB of RAM",
+                .name       = "Allocate 1MB of system RAM",
                 .select     = run_in_separate_task,
                 .priv       = alloc_1M_task,
                 .help       = "Allocates 1MB RAM from system memory, without freeing it.",
