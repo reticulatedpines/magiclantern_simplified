@@ -53,10 +53,10 @@ static int is_bright[4];
 #include "timing.h"
 #include "kelvin.h"
 
-#include "../../src/module.h"
-#undef MODULE_STRINGS_SECTION
-#define MODULE_STRINGS_SECTION
+#define MODULE_STRINGS_PREFIX dual_iso_strings
+#include "../module_strings_wrapper.h"
 #include "module_strings.h"
+MODULE_STRINGS()
 
 /** Command-line interface */
 
@@ -541,23 +541,6 @@ static void reverse_bytes_order(void* buf, int count)
     }
 }
 
-static const char* module_get_string(const char* name)
-{
-    module_strpair_t *strings = &__module_strings_MODULE_NAME[0];
-    
-    if (strings)
-    {
-        for ( ; strings->name != NULL; strings++)
-        {
-            if (!strcmp(strings->name, name))
-            {
-                return strings->value;
-            }
-        }
-    }
-    return 0;
-}
-
 static void save_debug_dng(char* filename)
 {
     int black20 = raw_info.black_level;
@@ -587,7 +570,7 @@ static int is_file(const char* filename)
 int main(int argc, char** argv)
 {
     printf("cr2hdr: a post processing tool for Dual ISO images\n\n");
-    printf("Last update: %s\n", module_get_string("Last update"));
+    printf("Last update: %s\n", module_get_string(dual_iso_strings, "Last update"));
 
     fast_randn_init();
 

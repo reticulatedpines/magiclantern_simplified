@@ -13,7 +13,7 @@
 #define MODULE_CONFIG_PREFIX          __module_config_
 #define MODULE_PROPHANDLER_PREFIX     __module_prophandler_
 
-#define MODULE_STRINGS_SECTION        __attribute__ ((section(".module_strings")))
+#define MODULE_STRINGS_SECTION        __attribute__ ((section(".module_strings"),unused))
 #define MODULE_HGDIFF_SECTION         __attribute__ ((section(".module_hgdiff")))
 #define MODULE_HGINFO_SECTION         __attribute__ ((section(".module_hginfo")))
 
@@ -28,6 +28,7 @@
 #define MODULE_LONG_STATUS_LENGTH     63
 
 /* some callbacks that may be needed by modules. more to come. ideas? needs? */
+#define CBR_NAMED                     0x8000 /* named CBR using ml-cbr */
 #define CBR_PRE_SHOOT                 1 /* called before image is taken */
 #define CBR_POST_SHOOT                2 /* called after image is taken */
 #define CBR_SHOOT_TASK                3 /* called periodically from shoot task */
@@ -196,11 +197,12 @@ typedef struct
 #define MODULE_INIT(func)                                           .init = &func,
 #define MODULE_DEINIT(func)                                         .deinit = &func,
 #define MODULE_LONGNAME(name)                                       .long_name = name,
-#define MODULE_CB_SHOOT_TASK(func)                                  .cb_shoot_task = &func,
-#define MODULE_CB_PRE_SHOOT(func)                                   .cb_pre_shoot = &func,
-#define MODULE_CB_POST_SHOOT(func)                                  .cb_post_shoot = &func,
-#define MODULE_INFO_END()                                       };
-                                                                
+#define MODULE_INFO_END()                                       }; \
+    MODULE_STRINGS();
+/* ^^^ module strings are auto-included after the info block
+ * => they end up only in the file that defines module info.
+ */
+                              
 #define MODULE_STRINGS_START()                                  MODULE_STRINGS_START_(MODULE_STRINGS_PREFIX,MODULE_NAME)
 #define MODULE_STRINGS_START_(prefix,modname)                   MODULE_STRINGS_START__(prefix,modname)
 #define MODULE_STRINGS_START__(prefix,modname)                  module_strpair_t prefix##modname[] MODULE_STRINGS_SECTION = {
@@ -210,7 +212,8 @@ typedef struct
 #define MODULE_CBRS_START()                                     MODULE_CBRS_START_(MODULE_CBR_PREFIX,MODULE_NAME)
 #define MODULE_CBRS_START_(prefix,modname)                      MODULE_CBRS_START__(prefix,modname)
 #define MODULE_CBRS_START__(prefix,modname)                     module_cbr_t prefix##modname[] = {
-#define MODULE_CBR(cb_type,cbr,context)                         { .name = #cb_type, .symbol = #cbr, .type = cb_type, .handler = cbr, .ctx = context },
+#define MODULE_CBR(cb_type,cbr,context)                         { .name = #cb_type, .symbol = #cbr, .type = cb_type,   .handler = cbr, .ctx = context },
+#define MODULE_NAMED_CBR(cb_name,cbr)                           { .name = cb_name,  .symbol = #cbr, .type = CBR_NAMED, .handler = (void*)cbr, .ctx = 0       },
 #define MODULE_CBRS_END()                                           { (void *)0, (void *)0, 0, (void *)0, 0 }\
                                                                 };
                                                             
@@ -265,6 +268,11 @@ void *module_load(char *filename);
 int module_exec(void *module, char *symbol, int count, ...);
 int module_unload(void *module);
 unsigned int module_get_symbol(void *module, char *symbol);
+
+/* those are used by e.g. mlv_lite to surf the loaded modules and their versions */
+int module_get_next_loaded(int mod_number);
+const char* module_get_string(int mod_number, const char* name);
+const char* module_get_name(int mod_number);
 
 /* execute all callback routines of given type. maybe it will get extended to support varargs */
 int module_exec_cbr(unsigned int type);

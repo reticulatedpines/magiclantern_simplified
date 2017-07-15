@@ -155,6 +155,23 @@ void mlv_fill_idnt(mlv_idnt_hdr_t *hdr, uint64_t start_timestamp)
     trace_write(raw_rec_trace_ctx, "[IDNT] cameraName: '%s' cameraModel: 0x%08X cameraSerial: '%s'", hdr->cameraName, hdr->cameraModel, hdr->cameraSerial);
 }
 
+void mlv_build_vers(mlv_vers_hdr_t **hdr, uint64_t start_timestamp, const char *version_string)
+{
+    int block_length = (strlen(version_string) + sizeof(mlv_vers_hdr_t) + 3) & ~3;
+    mlv_vers_hdr_t *header = malloc(block_length);
+    
+    /* prepare header */
+    mlv_set_type((mlv_hdr_t *)header, "VERS");
+    mlv_set_timestamp((mlv_hdr_t *)header, start_timestamp);
+    header->blockSize = block_length;
+    header->length = strlen(version_string);
+    
+    char *vers_hdr_payload = (char *)&header[1];
+    strcpy(vers_hdr_payload, version_string);
+    
+    *hdr = header;
+}
+
 uint64_t mlv_prng_lfsr(uint64_t value)
 {
     uint64_t lfsr = value;

@@ -2527,6 +2527,73 @@ static uint32_t raw_get_next_filenum()
     return fileNum;
 }
 
+static int write_mlv_vers_blocks(FILE *f)
+{
+    int mod = -1;
+    int error = 0;
+    
+    do
+    {
+        /* get next loaded module id */
+        mod = module_get_next_loaded(mod);
+        
+        /* make sure thats a valid one */
+        if(mod >= 0)
+        {
+            /* fetch information from module loader */
+            const char *mod_name = module_get_name(mod);
+            const char *mod_build_date = module_get_string(mod, "Build date");
+            const char *mod_last_update = module_get_string(mod, "Last update");
+            
+            if(mod_name != NULL)
+            {
+                /* just in case that ever happens */
+                if(mod_build_date == NULL)
+                {
+                    mod_build_date = "(no build date)";
+                }
+                if(mod_last_update == NULL)
+                {
+                    mod_last_update = "(no version)";
+                }
+                
+                /* separating the format string allows us to measure its length for malloc */
+                const char *fmt_string = "%s built %s; commit %s";
+                int buf_length = strlen(fmt_string) + strlen(mod_name) + strlen(mod_build_date) + strlen(mod_last_update) + 1;
+                char *version_string = malloc(buf_length);
+                
+                /* now build the string */
+                snprintf(version_string, buf_length, fmt_string, mod_name, mod_build_date, mod_last_update);
+                
+                /* and finally remove any newlines, they are annoying */
+                for(unsigned int pos = 0; pos < strlen(version_string); pos++)
+                {
+                    if(version_string[pos] == '\n')
+                    {
+                        version_string[pos] = ' ';
+                    }
+                }
+                
+                /* let the mlv helpers build the block for us */
+                mlv_vers_hdr_t *hdr = NULL;
+                mlv_build_vers(&hdr, mlv_start_timestamp, version_string);
+                
+                /* try to write to output file */
+                if(FIO_WriteFile(f, hdr, hdr->blockSize) != (int)hdr->blockSize)
+                {
+                    error = 1;
+                }
+                
+                /* free both temporary string and allocated mlv block */
+                free(version_string);
+                free(hdr);
+            }
+        }
+    } while(mod >= 0 && !error);
+    
+    return error;
+}
+
 static void raw_prepare_chunk(FILE *f, mlv_file_hdr_t *hdr)
 {
     if(f == NULL)
@@ -2570,7 +2637,18 @@ static void raw_prepare_chunk(FILE *f, mlv_file_hdr_t *hdr)
         mlv_write_hdr(f, (mlv_hdr_t *)&idnt_hdr);
         mlv_write_hdr(f, (mlv_hdr_t *)&wbal_hdr);
         mlv_write_hdr(f, (mlv_hdr_t *)&styl_hdr);
+        write_mlv_vers_blocks(f);
     }
+    
+    /* insert a null block so the header size is multiple of 512 bytes */
+    int hdr_size = FIO_SeekSkipFile(f, 0, SEEK_CUR);
+    
+    mlv_hdr_t nul_hdr;
+    memset(&nul_hdr, 0x00, sizeof(nul_hdr));
+    mlv_set_type(&nul_hdr, "NULL");
+    int padded_size = (hdr_size + sizeof(nul_hdr) + 511) & ~511;
+    nul_hdr.blockSize = padded_size - hdr_size;
+    FIO_WriteFile(f, &nul_hdr, nul_hdr.blockSize);
 }
 
 static void raw_writer_task(uint32_t writer)
@@ -2983,8 +3061,8 @@ static uint32_t mlv_rec_precreate_del_empty(char *filename)
         return 0;
     }
     
-    /* if only the size of a file header, remove again */
-    if(size <= sizeof(mlv_file_hdr_t))
+    /* if only the size of a file header plus padding, remove again */
+    if(size <= 0x200)
     {
         trace_write(raw_rec_trace_ctx, "mlv_rec_precreate_del_empty: '%s' empty, deleting", filename);
         FIO_RemoveFile(filename);

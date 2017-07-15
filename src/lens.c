@@ -1122,14 +1122,49 @@ PROP_HANDLER( PROP_LENS_NAME )
 PROP_HANDLER(PROP_LENS)
 {
     uint8_t* info = (uint8_t *) buf;
+    
     #ifdef CONFIG_5DC
+    lens_info.lens_exists = 0;
     lens_info.raw_aperture_min = info[2];
     lens_info.raw_aperture_max = info[3];
     lens_info.lens_id = 0;
+    lens_info.lens_focal_min = 0;
+    lens_info.lens_focal_max = 0;
+    lens_info.lens_extender = 0;
+    lens_info.lens_version = 0;
+    lens_info.lens_capabilities = 0;
     #else
+    lens_info.lens_exists = info[0];
     lens_info.raw_aperture_min = info[1];
     lens_info.raw_aperture_max = info[2];
-    lens_info.lens_id = info[4] | (info[5] << 8);
+    lens_info.lens_id = (info[3] << 8) | info[4];
+    lens_info.lens_focal_min = (info[5] << 8) | info[6];
+    lens_info.lens_focal_max = (info[7] << 8) | info[8];
+    lens_info.lens_extender = info[0xE];
+    
+    /* not all models support this feature */
+    if(len >= 0x1C)
+    {
+        lens_info.lens_version = (info[0x19] << 16) | (info[0x1A] << 8) | info[0x1B];
+        lens_info.lens_capabilities = info[0x1C];
+        
+        /* not sure how big the lens serial is; exiftool shows 5 bytes in htmlDump */
+        uint32_t lens_serial_lo = 
+             info[0x18]        |
+            (info[0x17] << 8)  |
+            (info[0x16] << 16) |
+            (info[0x15] << 24) ;
+        uint32_t lens_serial_hi = 
+             info[0x14]        ;
+        lens_info.lens_serial = 
+             (uint64_t) lens_serial_lo | 
+            ((uint64_t) lens_serial_hi << 32);
+    }
+    else
+    {
+        lens_info.lens_version = 0;
+        lens_info.lens_capabilities = 0;
+    }
     #endif
     
     if (lens_info.raw_aperture < lens_info.raw_aperture_min || lens_info.raw_aperture > lens_info.raw_aperture_max)
@@ -1666,6 +1701,119 @@ static struct menu_entry lens_menus[] = {
     #endif
 };
 
+static MENU_UPDATE_FUNC(lens_name_display)
+{
+    if(!lens_info.lens_exists)
+    {
+        MENU_SET_VALUE("(no lens)");
+        return;
+    }
+    MENU_SET_VALUE("%s", lens_info.name );
+}
+
+static MENU_UPDATE_FUNC(lens_id_display)
+{
+    if(!lens_info.lens_exists)
+    {
+        MENU_SET_VALUE("(no lens)");
+        return;
+    }
+
+    /* exiftool displays this as decimal */
+    MENU_SET_VALUE("0x%04X (%d)", lens_info.lens_id, lens_info.lens_id);
+}
+
+static MENU_UPDATE_FUNC(lens_serial_display)
+{
+    if(!lens_info.lens_exists)
+    {
+        MENU_SET_VALUE("(no lens)");
+        return;
+    }
+
+    if(lens_info.lens_serial)
+    {
+        MENU_SET_VALUE(
+            "%02x%08X", /* to match exiftool display */ 
+            (uint32_t)(lens_info.lens_serial >> 32),
+            (uint32_t)lens_info.lens_serial
+        );
+    }
+    else
+    {
+        MENU_SET_VALUE("(none)");
+    }
+}
+
+static MENU_UPDATE_FUNC(lens_extender_display)
+{
+    if(!lens_info.lens_exists)
+    {
+        MENU_SET_VALUE("(no lens)");
+        return;
+    }
+    MENU_SET_VALUE("0x%02X", lens_info.lens_extender );
+}
+
+static MENU_UPDATE_FUNC(lens_version_display)
+{
+    uint8_t v2 = lens_info.lens_version >> 16;
+    uint8_t v1 = lens_info.lens_version >> 8;
+    uint8_t v0 = lens_info.lens_version;
+    
+    if(!lens_info.lens_exists)
+    {
+        MENU_SET_VALUE("(no lens)");
+        return;
+    }
+    
+    if(lens_info.lens_version)
+    {
+        MENU_SET_VALUE("v%d.%d.%d", v2, v1, v0);
+    }
+    else
+    {
+        MENU_SET_VALUE("(none)");
+    }
+}
+
+static MENU_UPDATE_FUNC(lens_capabilities_display)
+{
+    if(!lens_info.lens_exists)
+    {
+        MENU_SET_VALUE("(no lens)");
+        return;
+    }
+    MENU_SET_VALUE("0x%02X", lens_info.lens_capabilities);
+}
+
+static MENU_UPDATE_FUNC(lens_focal_display)
+{
+    char *unit = "mm";
+    float factor = 1.0f;
+    
+    if(!lens_info.lens_exists)
+    {
+        MENU_SET_VALUE("(no lens)");
+        return;
+    }
+    
+    if(focus_units == 1)
+    {
+        unit = "in";
+        factor = 1/2.54;
+    }
+    
+    if(lens_info.lens_focal_min == lens_info.lens_focal_max)
+    {
+        MENU_SET_VALUE("%d %s", (int)(lens_info.lens_focal_min * factor), unit);
+    }
+    else
+    {
+        MENU_SET_VALUE("%d-%d %s", (int)(lens_info.lens_focal_min * factor), (int)(lens_info.lens_focal_max * factor), unit);
+    }
+}
+
 static struct menu_entry tweak_menus[] = {
    {
         .name = "Lens Info Prefs",
@@ -1689,6 +1837,60 @@ static struct menu_entry tweak_menus[] = {
                 .help  = "Can select between Metric and Imperial focus distance units",
             },
             MENU_EOL
+        }
+    }
+};
+
+/* better place for this menu? */
+static struct menu_entry lens_info_menus[] = {
+   {
+        .name = "Lens info",
+        .select   = menu_open_submenu,
+        .submenu_width = 700,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Name",
+                .update = &lens_name_display,
+                .help  = "Show current lens name (as reported by your lens or adapter).",
+                .help2 = "Read-only.",
+            },
+            {
+                .name = "Focal len",
+                .update = &lens_focal_display,
+                .help  = "Show current lens focal length.",
+                .help2 = "Read-only. Zoom lenses are only updated in LiveView.",
+            },
+            {
+                .name = "Lens ID",
+                .update = &lens_id_display,
+                .help  = "Show current lens ID. Should match exiftool TEST.CR2 -LensType -b.",
+                .help2 = "Read-only. Lenses from different manufacturers may have the same ID.",
+            },
+            {
+                .name = "Serial num",
+                .update = &lens_serial_display,
+                .help  = "Show current lens serial number. Not all cameras report this.",
+                .help2 = "Read-only. Should match exiftool TEST.CR2 -LensSerialNumber .",
+            },
+            {
+                .name = "Version",
+                .update = &lens_version_display,
+                .help  = "Show current lens version string.",
+                .help2 = "Read-only.",
+            },
+            {
+                .name = "Capability",
+                .update = &lens_capabilities_display,
+                .help  = "Show current lens capability bits.",
+                .help2 = "Read-only.",
+            },
+            {
+                .name = "Extender",
+                .update = &lens_extender_display,
+                .help  = "Show current lens extender information byte.",
+                .help2 = "Read-only.",
+            },
+            MENU_EOL
         },
     }
 };
@@ -1698,6 +1900,12 @@ void
 crop_factor_menu_init()
 {
     menu_add("Prefs", tweak_menus, COUNT(tweak_menus));
+    menu_add("Debug", lens_info_menus, COUNT(lens_info_menus));
+
+    /* hack: lens name is usually long */
+    /* force all submenu values to the left to maintain a nice layout */
+    /* todo: better backend support? */
+    lens_info_menus[0].children[0].parent_menu->split_pos = -10;
 }
 
 static void

@@ -336,7 +336,7 @@ tskmon_task_dispatch()
     tskmon_update_timers();
     null_pointer_check();
 
-    if(next_task->taskId != tskmon_last_task->taskId)
+    if (!tskmon_last_task || next_task->taskId != tskmon_last_task->taskId)
     {
 #ifdef CONFIG_TSKMON_TRACE
         if(tskmon_trace_active && tskmon_trace_writepos < tskmon_trace_size - 1)
