@@ -258,11 +258,11 @@ QEMU_INSTALLED_DBI_DIR=$(TOP_DIR)/../qemu/qemu-2.5.0/hw/eos/dbi
 
 # copy from QEMU (outside ML dir) if they were edited there
 # optional dependency, only if QEMU is installed "near" ML dir (the install script does that)
-# https://stackoverflow.com/questions/8175653/marking-a-makefile-dependency-as-optional-or-otherwise-unimportant
-# https://stackoverflow.com/questions/34105205/how-can-i-make-a-pattern-rule-dependency-optional-in-a-makefile
-.SECONDEXPANSION:
-$(SRC_DIR)/backtrace.c $(SRC_DIR)/backtrace.h:: $(SRC_DIR)/backtrace.%: $$(wildcard $(QEMU_INSTALLED_DBI_DIR)/backtrace.%)
+# https://stackoverflow.com/questions/5553352/how-do-i-check-if-file-exists-in-makefile
+ifneq ("$(wildcard $(QEMU_INSTALLED_DBI_DIR)/backtrace.c)","")
+$(SRC_DIR)/backtrace.c $(SRC_DIR)/backtrace.h:: $(SRC_DIR)/backtrace.%: $(QEMU_INSTALLED_DBI_DIR)/backtrace.%
 	$(call build,CP,$(CP) $^ $@)
+endif
 
 # make sure we have the header when building backtrace.c for the first time
 $(SRC_DIR)/backtrace.c:: $(SRC_DIR)/backtrace.h
