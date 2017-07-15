@@ -1,4 +1,4 @@
-# ./run_canon_fw.sh EOSM3 -s -S & arm-none-eabi-gdb -x EOSM3/debugmsg.gdb
+# ./run_canon_fw.sh A1100 -s -S & arm-none-eabi-gdb -x A1100/debugmsg.gdb
 
 source -v debug-logging.gdb
 

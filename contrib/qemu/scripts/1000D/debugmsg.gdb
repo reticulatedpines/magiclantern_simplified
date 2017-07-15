@@ -1,4 +1,5 @@
-# ./run_canon_fw.sh 1000D -s -S & arm-none-eabi-gdb -x 1000D/debugmsg.gdb
+# ./run_canon_fw.sh 1000D -d debugmsg
+# ./run_canon_fw.sh 1000D -d debugmsg -s -S & arm-none-eabi-gdb -x 1000D/debugmsg.gdb
 
 source -v debug-logging.gdb
 
@@ -6,8 +7,10 @@ macro define CURRENT_TASK 0x352C0
 macro define CURRENT_TASK_NAME (((int*)CURRENT_TASK)[0] ? ((char***)CURRENT_TASK)[0][13] : CURRENT_TASK)
 macro define CURRENT_ISR  0
 
-b *0xFFD0D5F4
-DebugMsg_log
+# GDB hook is very slow; -d debugmsg is much faster
+# ./run_canon_fw.sh will use this address, don't delete it
+# b *0xFFD0D5F4
+# DebugMsg_log
 
 b *0xFFD1B828
 assert_log
