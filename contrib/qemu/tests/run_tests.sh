@@ -88,7 +88,7 @@ export MTOOLS_NO_VFAT=1
 cd ..
 
 echo "Compiling..."
-./run_canon_fw.sh help > build.log
+./run_canon_fw.sh help &> build.log
 
 # don't recompile each time (for speed)
 export MAKE="echo skipping make"
@@ -161,20 +161,14 @@ for CAM in ${EOS_CAMS[*]}; do
         continue
     fi
 
-    # extract the address of DebugMsg from the GDB script
-    DEBUGMSG=`cat $CAM/debugmsg.gdb | grep DebugMsg_log -B 1 | grep -Pom1 "(?<=b \*)0x.*"`
-    [ "$DEBUGMSG" == "" ] && continue
-
     # log all function calls/returns, interrupts
     # and DebugMsg calls with call stack for each message
     if [ -f $CAM/patches.gdb ]; then
-          (env QEMU_EOS_DEBUGMSG="$DEBUGMSG" \
-             ./run_canon_fw.sh $CAM,firmware="boot=0" -serial file:tests/$CAM/calls-cstack-uart.log \
+        (./run_canon_fw.sh $CAM,firmware="boot=0" -serial file:tests/$CAM/calls-cstack-uart.log \
              -display none -d calls,tasks,debugmsg,v -s -S & \
            arm-none-eabi-gdb -x $CAM/patches.gdb &) &> tests/$CAM/calls-cstack-raw.log
     else
-        env QEMU_EOS_DEBUGMSG="$DEBUGMSG" \
-          ./run_canon_fw.sh $CAM,firmware="boot=0" \
+        ./run_canon_fw.sh $CAM,firmware="boot=0" \
             -display none -d calls,tasks,debugmsg,v -serial stdio \
             > tests/$CAM/calls-cstack-uart.log \
             2> tests/$CAM/calls-cstack-raw.log &

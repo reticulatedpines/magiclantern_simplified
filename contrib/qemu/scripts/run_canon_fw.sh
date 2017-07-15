@@ -43,8 +43,19 @@ $MAKE -C $QEMU_PATH || exit
 # (since the logs are very large, being able to scroll at the beginning is helpful)
 tput reset
 
+echo $0 $*
+
+CAM=${1//,*/}
+if [ "$CAM" ] && [ ! "$QEMU_EOS_DEBUGMSG" ]; then
+    QEMU_EOS_DEBUGMSG=`cat $CAM/debugmsg.gdb | grep DebugMsg_log -B 1 | grep -Pom1 "(?<=b \*)0x.*"`
+    echo "DebugMsg=$QEMU_EOS_DEBUGMSG (from GDB script)"
+else
+    echo "DebugMsg=$QEMU_EOS_DEBUGMSG (overriden)"
+fi
+
 # run the emulation
-$QEMU_PATH/arm-softmmu/qemu-system-arm \
+env QEMU_EOS_DEBUGMSG="$QEMU_EOS_DEBUGMSG" \
+  $QEMU_PATH/arm-softmmu/qemu-system-arm \
     -drive if=sd,format=raw,file=sd.img \
     -drive if=ide,format=raw,file=cf.img \
     -chardev socket,server,nowait,path=qemu.monitor,id=monsock \
