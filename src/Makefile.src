@@ -260,7 +260,11 @@ $(SRC_DIR)/backtrace.c $(SRC_DIR)/backtrace.h:: $(SRC_DIR)/backtrace.%: $(QEMU_D
 	$(call build,LN,ln -sfr $^ $@)
 
 # copy from QEMU (outside ML dir) if they were edited there
-$(QEMU_DBI_DIR)/backtrace.c $(QEMU_DBI_DIR)/backtrace.h: $(QEMU_DBI_DIR)/backtrace.%: $(QEMU_INSTALLED_DBI_DIR)/backtrace.%
+# optional dependency, only if QEMU is installed "near" ML dir (the install script does that)
+# https://stackoverflow.com/questions/8175653/marking-a-makefile-dependency-as-optional-or-otherwise-unimportant
+# https://stackoverflow.com/questions/34105205/how-can-i-make-a-pattern-rule-dependency-optional-in-a-makefile
+.SECONDEXPANSION:
+$(QEMU_DBI_DIR)/backtrace.c $(QEMU_DBI_DIR)/backtrace.h: $(QEMU_DBI_DIR)/backtrace.%: $$(wildcard $(QEMU_INSTALLED_DBI_DIR)/backtrace.%)
 	$(call build,CP,$(CP) $^ $@)
 
 # remove the symlinks on make clean
