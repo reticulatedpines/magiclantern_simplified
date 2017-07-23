@@ -625,7 +625,7 @@ void ml_crash_message(char* msg)
 
 init_task_func init_task_patched(int a, int b, int c, int d)
 {
-    // We shrink the AllocateMemory (system memory) pool in order to make space for ML binary
+    // We shrink the AllocateMemory pool in order to make space for ML binary
     // Example for the 1100D firmware
     // ff0197d8: init_task:
     // ff01984c: b CreateTaskMain
@@ -666,7 +666,7 @@ init_task_func init_task_patched(int a, int b, int c, int d)
     uint32_t* addr_AllocMem_end     = (void*)(CreateTaskMain_reloc_buf + ROM_ALLOCMEM_END + CreateTaskMain_offset);
     uint32_t* addr_BL_AllocMem_init = (void*)(CreateTaskMain_reloc_buf + ROM_ALLOCMEM_INIT + CreateTaskMain_offset);
 
-    qprint("[BOOT] changing sys_mem_end:\n");
+    qprint("[BOOT] changing AllocMem_end:\n");
     qdisas((uint32_t)addr_AllocMem_end);
 
     #if defined(CONFIG_550D)
