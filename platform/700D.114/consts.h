@@ -55,12 +55,11 @@
 #define GMT_NFUNCS 7
 #define GMT_FUNCTABLE 0xFF7FA7F8 //dec gui_main_task
 
-#define CURRENT_DIALOG_MAYBE (*(int*)0x2658C) // in SetGUIRequestMode
-#define LV_BOTTOM_BAR_DISPLAYED UNAVI_FEEDBACK_TIMER_ACTIVE
+#define CURRENT_GUI_MODE (*(int*)0x2658C) // in SetGUIRequestMode
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)(0x31254)) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
 
-    // from a screenshot
-    #define COLOR_FG_NONLV 1
+// from a Canon screenshot: call("dispcheck")
+#define COLOR_FG_NONLV 80
 
 #define MVR_516_STRUCT (*(void**)0x23734) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
 
@@ -73,7 +72,7 @@
     #define MVR_BUFFER_USAGE MAX(MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND)
 
     #define MVR_FRAME_NUMBER  (*(int*)(0x1F4 + MVR_516_STRUCT)) // in mvrExpStarted
-    #define MVR_BYTES_WRITTEN (*(int*)(0xb0 + MVR_516_STRUCT))
+    #define MVR_BYTES_WRITTEN MEM((0xb0 + MVR_516_STRUCT))
 
     #define MOV_RES_AND_FPS_COMBINATIONS 9
     #define MOV_OPT_NUM_PARAMS 2
@@ -81,21 +80,21 @@
     #define MOV_OPT_STEP 5
     #define MOV_GOP_OPT_STEP 5
 
-    #define AE_STATE (*(int8_t*)(0x366B8 + 0x1C))
-    #define AE_VALUE (*(int8_t*)(0x366B8 + 0x1D))
+    #define AE_STATE (*(int8_t*)(0x367B4 + 0x1C))
+    #define AE_VALUE (*(int8_t*)(0x367B4 + 0x1D))
 
-    #define DLG_PLAY 1
-    #define DLG_MENU 2
+    #define GUIMODE_PLAY 1
+    #define GUIMODE_MENU 2
 
-    #define DLG_FOCUS_MODE 0x123456
+    #define GUIMODE_FOCUS_MODE 0x123456
 
     /* these don't exist in the M */
-    #define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_DIALOG_MAYBE == 0x24)
-    #define DLG_MOVIE_PRESS_LV_TO_RESUME 0
+    #define GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_GUI_MODE == 0x24)
+    #define GUIMODE_MOVIE_PRESS_LV_TO_RESUME 0
     /*--------------*/
 
-    #define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
-    #define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
+    #define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_PLAY)
+    #define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_MENU)
 
     #define AUDIO_MONITORING_HEADPHONES_CONNECTED 0
     #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0
@@ -176,7 +175,6 @@
 #define BFNT_BITMAP_OFFSET 0xFFCF972C
 #define BFNT_BITMAP_DATA   0xFFCFC674
 
-#define DLG_SIGNATURE 0x414944 
 
     // from CFn
     #define AF_BTN_HALFSHUTTER 0
@@ -235,7 +233,12 @@
 #define UNAVI_BASE (0x41948)
 #define UNAVI (MEM(UNAVI_BASE + 0x24)) // dec CancelUnaviFeedBackTimer, then look around that memory area for a location that changes when you keep HS pressed
 #define UNAVI_AV (MEM(UNAVI_BASE + 0x58)) //Same as above, but this location is linked to the exp comp button
-#define UNAVI_FEEDBACK_TIMER_ACTIVE ((UNAVI == 2) || (UNAVI_AV != 0))
+#define LV_BOTTOM_BAR_DISPLAYED ((UNAVI == 2) || (UNAVI_AV != 0))
+
+#define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0x41958) != 0x17) // CancelUnaviFeedBackTimer
+
+// look for "JudgeBottomInfoDispTimerState(%d)"
+#define JUDGE_BOTTOM_INFO_DISP_TIMER_STATE 0x419A0
 
 #define DISPLAY_ORIENTATION MEM(0x23C20+0xB8) // read-only; string: UpdateReverseTFT.
 
@@ -273,4 +276,4 @@
     
 // temperature convertion from raw-temperature to celsius
 // http://www.magiclantern.fm/forum/index.php?topic=9673.0
-#define EFIC_CELSIUS ((int)efic_temp - 128)
+#define EFIC_CELSIUS ((int)efic_temp * 120 /100 - 160)

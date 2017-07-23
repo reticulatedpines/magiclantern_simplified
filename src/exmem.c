@@ -369,22 +369,21 @@ static void srm_malloc_cbr(void** dst_ptr, void* raw_buffer, uint32_t raw_buffer
 }
 
 /* after allocating this buffer, you can no longer take pictures (ERR70); will lock the shutter to prevent it */
-PROP_INT(PROP_ICU_UILOCK, uilock);
 static uint32_t old_uilock_shutter;
 
 static void srm_shutter_lock()
 {
     /* block the shutter button to avoid ERR70 */
     /* (only touch the shutter-related bits, just in case) */
-    old_uilock_shutter = uilock & UILOCK_SHUTTER;
-    gui_uilock(uilock | UILOCK_SHUTTER);
+    old_uilock_shutter = icu_uilock & UILOCK_SHUTTER;
+    gui_uilock(icu_uilock | UILOCK_SHUTTER);
 }
 
 static void srm_shutter_unlock()
 {
     /* unlock the shutter button */
     /* (only touch the shutter-related bits, just in case) */
-    int unlocked_shutter = (uilock & ~UILOCK_SHUTTER) | old_uilock_shutter;
+    int unlocked_shutter = (icu_uilock & ~UILOCK_SHUTTER) | old_uilock_shutter;
     gui_uilock(unlocked_shutter);
 }
 
@@ -405,6 +404,7 @@ struct memSuite * _srm_malloc_suite(int num_requested_buffers)
     }
     
     srm_shutter_lock();
+    msleep(50);
 
     if (lens_info.job_state)
     {
@@ -414,9 +414,9 @@ struct memSuite * _srm_malloc_suite(int num_requested_buffers)
         return 0;
     }
 
-    void* buffers[10];
+    void* buffers[16];
     
-    if (num_requested_buffers <= 0)
+    if (num_requested_buffers <= 0 || num_requested_buffers > COUNT(buffers))
     {
         /* if you request 0, this means allocate as much as you can */
         num_requested_buffers = COUNT(buffers);
@@ -425,7 +425,7 @@ struct memSuite * _srm_malloc_suite(int num_requested_buffers)
     int num_buffers = 0;
     
     /* try to allocate the number of requested buffers (or less, if not possible) */
-    for (num_buffers = 0; num_buffers < MIN(num_requested_buffers, COUNT(buffers)); num_buffers++)
+    for (num_buffers = 0; num_buffers < num_requested_buffers; num_buffers++)
     {
         /* allocate a large contiguous buffer, normally used for RAW photo capture */
         buffers[num_buffers] = 0;

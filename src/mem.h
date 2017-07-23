@@ -24,7 +24,7 @@ extern void __mem_free( void * buf);
 
 /* this may be reused by other code */
 /* warning: not thread safe (but it's OK to use it in menu) */
-const char * format_memory_size( unsigned size); /* e.g. 2.0GB, 32MB, 2.4kB... */
+const char * format_memory_size(uint64_t size); /* e.g. 2.0GB, 32MB, 2.4kB... */
 
 #ifndef NO_MALLOC_REDIRECT
 
@@ -47,7 +47,7 @@ const char * format_memory_size( unsigned size); /* e.g. 2.0GB, 32MB, 2.4kB... *
 #define tmp_malloc(len)       __mem_malloc(len, MEM_TEMPORARY, __FILE__, __LINE__)
 #define tmp_free            free
 
-/* allocate temporary memory for reading files */
+/* allocate temporary memory for reading files or for DMA operations */
 /* (very large buffers will prefer SRM, smaller ones will use shoot_malloc / alloc_dma_memory) */
 #define fio_malloc(len)     __mem_malloc(len, (len > 20*1024*1024 ? MEM_SRM : MEM_TEMPORARY) | MEM_DMA, __FILE__, __LINE__)
 #define fio_free            free
@@ -89,6 +89,15 @@ extern uint32_t shamem_read(uint32_t addr);
         *(volatile uint32_t *)(x) \
 )
 
+/* Cacheable/uncacheable RAM pointers */
+#ifdef CONFIG_VXWORKS
+#define UNCACHEABLE(x) ((void*)(((uint32_t)(x)) |  0x10000000))
+#define CACHEABLE(x)   ((void*)(((uint32_t)(x)) & ~0x10000000))
+#else
+#define UNCACHEABLE(x) ((void*)(((uint32_t)(x)) |  0x40000000))
+#define CACHEABLE(x)   ((void*)(((uint32_t)(x)) & ~0x40000000))
+#endif
+
 /* align a pointer at 16, 32 or 64 bits, with floor-like rounding */
 #define ALIGN16(x) ((__typeof__(x))(((uint32_t)(x)) & ~1))
 #define ALIGN32(x) ((__typeof__(x))(((uint32_t)(x)) & ~3))
@@ -111,6 +120,6 @@ extern void* edmac_memcpy(void* dest, void* srce, size_t n);
 
 /* free memory info */
 int GetFreeMemForAllocateMemory();
-static int GetFreeMemForMalloc();
+int GetFreeMemForMalloc();
 
 #endif

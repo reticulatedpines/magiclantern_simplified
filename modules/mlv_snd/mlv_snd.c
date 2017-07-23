@@ -30,6 +30,7 @@
 #include <beep.h>
 #include <propvalues.h>
 #include <raw.h>
+#include "ml-cbr.h"
 
 #include "../trace/trace.h"
 #include "../mlv_rec/mlv.h"
@@ -40,11 +41,9 @@ static uint32_t trace_ctx = TRACE_ERROR;
 
 static CONFIG_INT("mlv.snd.enabled", mlv_snd_enabled, 0);
 static CONFIG_INT("mlv.snd.mlv_snd_enable_tracing", mlv_snd_enable_tracing, 0);
-
-int mlv_snd_is_enabled()
-{
-    return mlv_snd_enabled;
-}
+static CONFIG_INT("mlv.snd.bit.depth", mlv_snd_in_bits_per_sample, 16);
+static CONFIG_INT("mlv.snd.sample.rate", mlv_snd_in_sample_rate, 48000);
+static CONFIG_INT("mlv.snd.sample.rate.selection", mlv_snd_rate_sel, 0);
 
 extern int StartASIFDMAADC(void *, uint32_t, void *, uint32_t, void (*)(), uint32_t);
 extern int SetNextASIFADCBuffer(void *, uint32_t);
@@ -72,10 +71,7 @@ static volatile uint32_t mlv_snd_in_buffer_size = 0;
 static uint32_t mlv_snd_rates[] = { 48000, 44100, 22050, 11025, 8000 };
 #define MLV_SND_RATE_TEXT "48kHz", "44.1kHz", "22kHz", "11kHz", "8kHz"
 
-static uint32_t mlv_snd_rate_sel = 0;
-static uint32_t mlv_snd_in_sample_rate = 0;
 static uint32_t mlv_snd_in_channels = 2;
-static uint32_t mlv_snd_in_bits_per_sample = 16;
 
 typedef struct
 {
@@ -103,6 +99,20 @@ audio_data_t *mlv_snd_next_buffer = NULL;
 #define MLV_SND_STATE_SOUND_STOPPED          7  /* all threads and stuff is stopped, finish cleanup, set by task */
 
 static uint32_t mlv_snd_state = MLV_SND_STATE_IDLE;
+
+/* this tells the audio backend that we are going to record sound */
+static ml_cbr_action mlv_snd_snd_rec_cbr (const char *event, void *data)
+{
+    uint32_t *status = (uint32_t*)data;
+    
+    if(mlv_snd_enabled)
+    {
+        *status = 1;
+        return ML_CBR_STOP;
+    }
+    
+    return ML_CBR_CONTINUE;
+}
 
 static void mlv_snd_asif_in_cbr()
 {
@@ -633,9 +643,13 @@ MODULE_INFO_END()
 
 MODULE_CBRS_START()
     MODULE_CBR(CBR_VSYNC, mlv_snd_vsync, 0)
+    MODULE_NAMED_CBR("snd_rec_enabled", mlv_snd_snd_rec_cbr)
 MODULE_CBRS_END()
 
 MODULE_CONFIGS_START()
     MODULE_CONFIG(mlv_snd_enabled)
     MODULE_CONFIG(mlv_snd_enable_tracing)
+    MODULE_CONFIG(mlv_snd_in_bits_per_sample)
+    MODULE_CONFIG(mlv_snd_rate_sel)
+    MODULE_CONFIG(mlv_snd_in_sample_rate)
 MODULE_CONFIGS_END()

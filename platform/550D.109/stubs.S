@@ -53,9 +53,9 @@ NSTUB(   0x15094,  additional_version)
 NSTUB(0xFF1C69EC,  FIO_CloseFile)
 NSTUB(0xFF1C7934,  FIO_FindClose)                           // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
 NSTUB(0xFF1C7854,  FIO_FindNextEx)
-NSTUB(0xFF1C679C,  FIO_ReadFile)
+NSTUB(0xFF1C679C, _FIO_ReadFile)
 NSTUB(0xFF1C684C,  FIO_SeekSkipFile)
-NSTUB(0xFF1C693C,  FIO_WriteFile)
+NSTUB(0xFF1C693C, _FIO_WriteFile)
 NSTUB(0xFF1C71A0, _FIO_CreateDirectory)
 NSTUB(0xFF1C6648, _FIO_CreateFile)
 NSTUB(0xFF1C7760, _FIO_FindFirstEx)
@@ -101,6 +101,7 @@ NSTUB(0xFF063BF4, _audio_ic_write)
 NSTUB(0xFF4C466C,  audio_thresholds)                        // after ptr to "ALVFactorySemSignature"
 NSTUB(0xFF0537D4,  sounddev_active_in)
 NSTUB(0xFF05346C,  sounddev_task)
+// NSTUB(    ???, _audio_ic_write_bulk)                     /* present on 6D.116 */
 
 /** Bitmap **/
 NSTUB(   0x2CDB0,  LCD_Palette)                             // in InitializeBitmapDisplayDevice, right after 0xc0f14800
@@ -205,11 +206,11 @@ NSTUB(0xFF095728,  gui_other_post)
 // NSTUB(    ???,  gui_timer_something)                     /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
 
 /** GUI timers **/
+NSTUB(0xFF3050A4,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 NSTUB(0xFF070C60,  CancelTimer)                             /* present on 650D.104 */
 NSTUB(0xFF068BB8,  SetHPTimerAfterNow)
 NSTUB(0xFF068C38,  SetHPTimerNextTick)
 NSTUB(0xFF070A60,  SetTimerAfter)
-NSTUB(0xFF3050A4,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 
 /** H264 Encoder **/
 NSTUB(    0x67BC,  mvr_config)
@@ -232,6 +233,7 @@ NSTUB(0xFF07C6A0,  DispSensorStart)
 NSTUB(   0x26258,  cf_device)                               // in cfReadBlk
 NSTUB(   0x26284,  sd_device)                               // in sdReadBlk
 NSTUB(0xFF386714,  fsuDecodePartitionTable)
+// NSTUB(    ???,  cf_device_ptr)                           /* present on 5D3.113 */
 
 /** Memory allocation **/
 NSTUB(0xFF06B014,  GetMemoryInformation)                    // called from AllocateMemory
@@ -255,7 +257,6 @@ NSTUB(0xFF250BF0,  ptp_register_handler)
 // NSTUB(    ???,  ptpPropSetUILock)                        /* present on 650D.104, 700D.113 */
 
 /** Properties **/
-NSTUB(0xFF058284,  PROPAD_GetPropertyData)
 NSTUB(0xFF0575C0, _prop_cleanup)
 NSTUB(0xFF056E38, _prop_request_change)
 NSTUB(0xFF057418,  prop_deliver)
@@ -286,9 +287,9 @@ NSTUB(0xFF069E70,  take_semaphore)
 
 /** Task info **/
 NSTUB(    0x3080,  task_max)
-NSTUB(0xFF016B8C,  get_current_task)                        // called from AJ_armlib_setup_related3
-NSTUB(0xFF079CE4,  get_obj_attr)                            // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xFF2E9AB0,  is_taskid_valid)                         // AJ_task_trampoline_related_p10
+NSTUB(    0x1A20,  current_task)
+NSTUB(     0x674,  current_interrupt)                       // in interrupt handler (0x18), where MEM(C0201004) is stored
 
 /** Task sleep **/
 NSTUB(0xFF06A344,  msleep)                                  // called from EV_GETDONE_CACHE param 0x64
@@ -307,6 +308,7 @@ NSTUB(0xFF1D6638,  vsnprintf)
 //NSTUB(0xFF2FEA48, ChangeHDMIOutputSizeToFULLHD)
 //NSTUB(0xFF2FECB0, ChangeHDMIOutputSizeToVGA)
 // NSTUB(    ???,  EnableImagePhysicalScreenParameter)      /* present on 7D.203, 50D.109, 5D2.212 */
+// NSTUB(    ???,  FSUunMountDevice)                        /* present on 5D3.113 */
 // NSTUB(    ???,  PtpDps_remote_release_SW1_SW2_worker)    /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
 
@@ -333,6 +335,7 @@ NSTUB(0xFF1D6638,  vsnprintf)
 ///NSTUB(0xFF1C9860,  MuteOn_0)
 ///NSTUB(0xFF03B8EC, PD_GetBatteryPower) not safe to call
 ///NSTUB(0xFF03B3D8,  PD_RemoteRelease)
+///NSTUB(0xFF058284,  PROPAD_GetPropertyData)
 ///NSTUB(0xFF057654,  PROP_GetMulticastProperty)
 ///NSTUB(0xFF064EB8,  PlayWaveData)                            // args: sampling rate, bit, channel, size maybe; wav data ptr is at 0x26F8
 ///NSTUB(0xFF1C042C,  PopEDmac)

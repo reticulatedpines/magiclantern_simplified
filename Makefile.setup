@@ -24,12 +24,12 @@ build = \
 	$2
 
 define rm_files
-	@printf "[ RM ] %s\n" "$1";
+	@printf "[ RM       ]  %s\n" "$1";
 	@$(RM) -f $1
 endef
 
 define rm_dir
-	@printf "[ RM dir ] %s\n" "$1";
+	@printf "[ RM dir   ]  %s\n" "$1";
 	@-$(RM) -rf $1
 endef
 
@@ -47,7 +47,7 @@ TARGET_COMPILER ?= arm-gcc
 CFLAGS =
 
 ifeq ($(TARGET_COMPILER), arm-gcc)
-	CFLAGS += -Os -mthumb-interwork -march=armv5te \
+	CFLAGS += -Os -march=armv5te \
 				-D__ARM__
 endif
 
@@ -63,14 +63,21 @@ CFLAGS +=\
 	-Wdouble-promotion \
 	-ffast-math \
 	-fsingle-precision-constant \
-	-fshort-double \
 	-fno-builtin-printf \
 	-std=gnu99 \
 	-Winline \
 	-I$(PLATFORM_INC) \
 	-I$(PLATFORM_INC)/include \
 	-I$(SRC_DIR) \
-	-I$(PICOC_PATH) \
+
+# The short-double flag is removed in GCC 6+
+GCC_DUMPVERSION := $(shell ${CC} -dumpversion)
+ifneq (,$(findstring GCC-4,GCC-$(GCC_DUMPVERSION)))
+CFLAGS += -fshort-double
+endif
+ifneq (,$(findstring GCC-5,GCC-$(GCC_DUMPVERSION)))
+CFLAGS += -fshort-double
+endif
 
 
 NOT_USED_FLAGS=\
@@ -118,3 +125,27 @@ ML_SETUP_CONFIGS_WITH_DIR = $(_CONFIGS-with-dir-file)
 CFLAGS += $(CFLAG_USER)
 FLAGS += $(LFLAG_USER)
 AFLAGS += $(AFLAG_USER)
+
+# install preparing targets are called from both platform and modules
+# however, placing these rules at the top will select "install_prepare"
+# as the default target, which is not what we want
+# fixme: better solution?
+.DEFAULT_GOAL := all
+
+install_prepare:
+	$(INSTALL_PREPARE)
+
+install_finish:
+	$(INSTALL_FINISH)
+
+.PHONY: install_prepare install_finish
+
+prepare_install_dir: install_prepare
+	@echo "[ MKDIR    ]   ML directory structure..."
+	@$(MKDIR) -p $(INSTALL_ML_DIR)
+	@$(MKDIR) -p $(INSTALL_MODULES_DIR)
+	@$(MKDIR) -p $(INSTALL_FONTS_DIR)
+	@$(MKDIR) -p $(INSTALL_DATA_DIR)
+	@$(MKDIR) -p $(INSTALL_CROPMARKS_DIR)
+	@$(MKDIR) -p $(INSTALL_SCRIPTS_DIR)
+	@$(MKDIR) -p $(INSTALL_DOC_DIR)

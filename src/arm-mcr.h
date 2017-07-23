@@ -105,7 +105,7 @@ select_normal_vectors( void )
 */
 
 /* do you really want to call that? */
-static inline void flush_caches()
+static inline void _flush_caches()
 {
     uint32_t reg = 0;
     asm(
@@ -121,10 +121,12 @@ static inline void flush_caches()
 /* write back all data into RAM and mark as invalid in data cache */
 static inline void clean_d_cache()
 {
+    /* assume 8KB data cache */
+    /* http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0092b/ch04s03s04.html */
     uint32_t segment = 0;
     do {
         uint32_t line = 0;
-        for( ; line != 0x400 ; line += 0x20 )
+        for( ; line != 0x800 ; line += 0x20 )
         {
             asm(
                 "mcr p15, 0, %0, c7, c14, 2"

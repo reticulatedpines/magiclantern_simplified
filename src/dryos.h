@@ -127,7 +127,6 @@ LoadCalendarFromRTC(
 );
 
 extern void DryosDebugMsg(int,int,const char *,...);
-//~ #define DebugMsg(a,b,fmt,...) { console_printf(fmt "\n", ## __VA_ARGS__); DryosDebugMsg(a,b,fmt, ## __VA_ARGS__); }
 
 /** custom functions */
 // group starts from 0, number starts from 1
@@ -165,6 +164,7 @@ extern int call( const char* name, ... );
 // stdio
 extern int vsnprintf( char* str, size_t n, const char* fmt, va_list ap ); // non-standard; don't export it
 extern int printf(const char* fmt, ... );
+extern int puts(const char* s);
 
 extern size_t strlen( const char* str );
 extern int snprintf( char* str, size_t n, const char* fmt, ... );
@@ -253,6 +253,10 @@ void wait_till_next_second();
 void _EngDrvOut(uint32_t reg, uint32_t value);    /* Canon stub */
 void EngDrvOut(uint32_t reg, uint32_t value);     /* ML wrapper */
 void EngDrvOutLV(uint32_t reg, uint32_t value);   /* ML wrapper for LiveView-only calls */
+
+/* set multiple ENGIO registers in a single call */
+void _engio_write(uint32_t* reg_list);    /* Canon stub */
+void engio_write(uint32_t* reg_list);     /* ML wrapper */
 
 #ifdef CONFIG_550D
 /** 550D hack for DISPLAY_IS_ON */

@@ -62,9 +62,9 @@ NSTUB(    0x82E0,  additional_version)
 NSTUB(0xFF1E66B4,  FIO_CloseFile)
 NSTUB(0xFF1E7684,  FIO_FindClose)                           // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
 NSTUB(0xFF1E75A4,  FIO_FindNextEx)
-NSTUB(0xFF1E6464,  FIO_ReadFile)
+NSTUB(0xFF1E6464, _FIO_ReadFile)
 NSTUB(0xFF1E6514,  FIO_SeekSkipFile)
-NSTUB(0xFF1E6604,  FIO_WriteFile)
+NSTUB(0xFF1E6604, _FIO_WriteFile)
 NSTUB(0xFF1E6EF0, _FIO_CreateDirectory)
 NSTUB(0xFF1E6310, _FIO_CreateFile)
 NSTUB(0xFF1E74B0, _FIO_FindFirstEx)
@@ -110,6 +110,7 @@ NSTUB(0xFF06A144, _audio_ic_write)
 NSTUB(0xFF5DF9A0,  audio_thresholds)                        // find "ALV_Initialize", then pointer to "AudioLevel", thresholds are following array of 41 values
 NSTUB(0xFF057BE0,  sounddev_active_in)                      // "SoundDevActiveIn"
 NSTUB(0xFF057774,  sounddev_task)                           // "[SND] _SoundDeviceTask"
+// NSTUB(    ???, _audio_ic_write_bulk)                     /* present on 6D.116 */
 
 /** Bitmap **/
 NSTUB(   0x1C36C,  LCD_Palette)                             // in InitializeBitmapDisplayDevice, right after 0xc0f14800
@@ -214,11 +215,11 @@ NSTUB(0xFF0AAB3C,  gui_other_post)
 // NSTUB(    ???,  gui_timer_something)                     /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
 
 /** GUI timers **/
+NSTUB(0xFF373930,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 NSTUB(0xFF077EF4,  CancelTimer)
 NSTUB(0xFF06FCE4,  SetHPTimerAfterNow)
 NSTUB(0xFF06FDD8,  SetHPTimerNextTick)
 NSTUB(0xFF077CF4,  SetTimerAfter)
-NSTUB(0xFF373930,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 
 /** H264 Encoder **/
 NSTUB(    0x6290,  mvr_config)
@@ -241,6 +242,7 @@ NSTUB(0xFF08397C,  DispSensorStart)
 NSTUB(   0x1574C,  sd_device)                               // in sdReadBlk
 NSTUB(0xFF4319A4,  fsuDecodePartitionTable)
 //NSTUB( 0x15728, cf_device )                // in cfReadBlk
+// NSTUB(    ???,  cf_device_ptr)                           /* present on 5D3.113 */
 
 /** Memory allocation **/
 NSTUB(0xFF072194,  GetMemoryInformation)                    // called from AllocateMemory
@@ -264,7 +266,6 @@ NSTUB(0xFF2A49A0,  ptp_register_handler)
 // NSTUB(    ???,  ptpPropSetUILock)                        /* present on 650D.104, 700D.113 */
 
 /** Properties **/
-NSTUB(0xFF05CB28,  PROPAD_GetPropertyData)
 NSTUB(0xFF05BE6C, _prop_cleanup)
 NSTUB(0xFF05B6E4, _prop_request_change)
 NSTUB(0xFF05BCC4,  prop_deliver)
@@ -295,9 +296,9 @@ NSTUB(0xFF070FF0,  take_semaphore)
 
 /** Task info **/
 NSTUB(    0x3328,  task_max)
-NSTUB(0xFF017618,  get_current_task)                        // called from AJ_armlib_setup_related3
-NSTUB(0xFF080ECC,  get_obj_attr)                            // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xFF3557F0,  is_taskid_valid)                         // AJ_task_trampoline_related_p10
+NSTUB(    0x1A2C,  current_task)
+NSTUB(     0x674,  current_interrupt)                       // in interrupt handler (0x18), where MEM(C0201004) is stored
 
 /** Task sleep **/
 NSTUB(0xFF0714C4,  msleep)                                  // called from EV_GETDONE_CACHE param 0x64
@@ -316,6 +317,7 @@ NSTUB(0xFF1F94BC,  vsnprintf)
 //NSTUB( 0xff37aee4, ChangeHDMIOutputSizeToFULLHD)
 //NSTUB( 0xff37b174, ChangeHDMIOutputSizeToVGA)
 // NSTUB(    ???,  EnableImagePhysicalScreenParameter)      /* present on 7D.203, 50D.109, 5D2.212 */
+// NSTUB(    ???,  FSUunMountDevice)                        /* present on 5D3.113 */
 // NSTUB(    ???,  PtpDps_remote_release_SW1_SW2_worker)    /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
 
@@ -343,6 +345,7 @@ NSTUB(0xFF1F94BC,  vsnprintf)
 ///NSTUB(0xFF1E95F4,  MuteOn_0)
 ///NSTUB(0xFF039D4C,  PD_GetBatteryPower)
 ///NSTUB(0xFF0396E4,  PD_RemoteRelease)
+///NSTUB(0xFF05CB28,  PROPAD_GetPropertyData)
 ///NSTUB(0xFF05BF04,  PROP_GetMulticastProperty)
 ///NSTUB(0xFF1E09F8,  PopEDmac)
 ///NSTUB( 0xFF1A16D0, ReadyLiveViewDevice )

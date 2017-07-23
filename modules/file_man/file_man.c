@@ -159,7 +159,7 @@ static void clear_file_menu()
     {
         struct file_entry * next = file_entries->next;
         menu_remove("File Manager", file_entries->menu_entry, 1);
-        //console_printf("%s\n", file_entries->name);
+        //printf("%s\n", file_entries->name);
         free(file_entries);
         file_entries = next;
     }
@@ -377,8 +377,8 @@ static void ScanDir(char *path)
         while (p > srcpath && *p != '/') p--;
         *(p+1) = 0;
 
-        console_printf("src: %s\n",srcpath);
-        console_printf("dst: %s\n",path);
+        printf("src: %s\n",srcpath);
+        printf("dst: %s\n",path);
 
         if(strcmp(path,srcpath) != 0)
         {

@@ -71,6 +71,7 @@
 #include <cache_hacks.h>
 #include <string.h>
 #include <shoot.h>
+#include <powersave.h>
 
 #include "../lv_rec/lv_rec.h"
 #include "../file_man/file_man.h"
@@ -81,7 +82,8 @@
 #include "mlv_rec.h"
 
 /* an alternative tracing method that embeds the logs into the MLV file itself */
-#define EMBEDDED_LOGGING
+/* looks like it might cause pink frames - http://www.magiclantern.fm/forum/index.php?topic=5473.msg165356#msg165356 */
+#undef EMBEDDED_LOGGING
 
 #if defined(EMBEDDED_LOGGING) && !defined(TRACE_DISABLED)
 #define trace_write                                 mlv_debg_printf
@@ -98,7 +100,6 @@
 static uint32_t cam_eos_m = 0;
 static uint32_t cam_5d2 = 0;
 static uint32_t cam_50d = 0;
-static uint32_t cam_5d3 = 0;
 static uint32_t cam_500d = 0;
 static uint32_t cam_550d = 0;
 static uint32_t cam_6d = 0;
@@ -107,6 +108,10 @@ static uint32_t cam_650d = 0;
 static uint32_t cam_7d = 0;
 static uint32_t cam_700d = 0;
 static uint32_t cam_60d = 0;
+
+static uint32_t cam_5d3 = 0;
+static uint32_t cam_5d3_113 = 0;
+static uint32_t cam_5d3_123 = 0;
 
 static uint32_t raw_rec_edmac_align = 0x01000;
 static uint32_t raw_rec_write_align = 0x01000;
@@ -141,7 +146,6 @@ static CONFIG_INT("mlv.fast_card_buffers", fast_card_buffers, 1);
 static CONFIG_INT("mlv.tracing", enable_tracing, 0);
 static CONFIG_INT("mlv.display_rec_info", display_rec_info, 1);
 static CONFIG_INT("mlv.show_graph", show_graph, 0);
-static CONFIG_INT("mlv.black_fix", black_fix, 0);
 static CONFIG_INT("mlv.res.x", resolution_index_x, 4);
 static CONFIG_INT("mlv.res.x.fine", res_x_fine, 0);
 static CONFIG_INT("mlv.aspect_ratio", aspect_ratio_index, 10);
@@ -524,6 +528,13 @@ static void update_cropping_offsets()
     skip_y = sy;
 
     refresh_cropmarks();
+
+    /* mv640crop needs this to center the recorded image */
+    if (is_movie_mode() && video_mode_resolution == 2 && video_mode_crop)
+    {
+        skip_x = skip_x + 51;
+        skip_y = skip_y - 6;
+    }
 }
 
 static void update_resolution_params()
@@ -568,6 +579,26 @@ static void update_resolution_params()
     ASSERT(frame_size % 4 == 0);
 
     update_cropping_offsets();
+}
+
+static int mlv_rec_update_raw()
+{
+    /* we will fail if that is just a LV mode, but no movie mode */
+    if(!lv || !is_movie_mode())
+    {
+        return 0;
+    }
+    
+    /* this call will retry internally, and if it fails, we can assume it was indeed something bad */
+    if (!raw_update_params())
+    {
+        return 0;
+    }
+    
+    /* update interal parameters res_x, res_y, frame_size, squeeze_factor and crop offsets  */
+    update_resolution_params();
+    
+    return 1;
 }
 
 static char* guess_aspect_ratio(int32_t res_x, int32_t res_y)
@@ -708,10 +739,7 @@ static void refresh_raw_settings(int32_t force)
         static int aux = INT_MIN;
         if (force || should_run_polling_action(250, &aux))
         {
-            if (raw_update_params())
-            {
-                update_resolution_params();
-            }
+            mlv_rec_update_raw();
         }
     }
 }
@@ -1698,7 +1726,7 @@ static void hack_liveview(int32_t unhack)
         call("lv_ae",           unhack ? 1 : 0);  /* for old cameras */
         call("lv_wb",           unhack ? 1 : 0);
 
-        if (cam_50d && !(hdmi_code == 5) && !unhack)
+        if (cam_50d && !(hdmi_code >= 5) && !unhack)
         {
             /* not sure how to unhack this one, and on 5D2 it crashes */
             call("lv_af_fase_addr", 0); //Turn off face detection
@@ -1708,7 +1736,8 @@ static void hack_liveview(int32_t unhack)
         uint32_t dialog_refresh_timer_addr = /* in StartDialogRefreshTimer */
             cam_50d ? 0xffa84e00 :
             cam_5d2 ? 0xffaac640 :
-            cam_5d3 ? 0xff4acda4 :
+            cam_5d3_113 ? 0xff4acda4 :
+            cam_5d3_123 ? 0xFF4B7648 :
             cam_550d ? 0xFF2FE5E4 :
             cam_600d ? 0xFF37AA18 :
             cam_650d ? 0xFF527E38 :
@@ -2154,7 +2183,7 @@ static int32_t FAST process_frame()
     /* frame number in file is off by one. nobody needs to know we skipped the first frame */
     hdr->frameNumber = frame_count - 1;
     hdr->cropPosX = (skip_x + 7) & ~7;
-    hdr->cropPosY = (skip_y + 7) & ~7;
+    hdr->cropPosY = skip_y & ~1;
     hdr->panPosX = skip_x;
     hdr->panPosY = skip_y;
     
@@ -2397,19 +2426,6 @@ static int32_t mlv_write_rawi(FILE* f, struct raw_info raw_info)
     rawi.xRes = res_x;
     rawi.yRes = res_y;
     rawi.raw_info = raw_info;
-    
-    /* sometimes black level is a bit off. fix that if enabled. ToDo: do all models have 2048? */
-    if(black_fix)
-    {
-        if(cam_50d || cam_5d2)
-        {
-            rawi.raw_info.black_level = 1024;
-        }
-        else
-        {
-            rawi.raw_info.black_level = 2048;
-        }
-    }
 
     return mlv_write_hdr(f, (mlv_hdr_t *)&rawi);
 }
@@ -2511,6 +2527,73 @@ static uint32_t raw_get_next_filenum()
     return fileNum;
 }
 
+static int write_mlv_vers_blocks(FILE *f)
+{
+    int mod = -1;
+    int error = 0;
+    
+    do
+    {
+        /* get next loaded module id */
+        mod = module_get_next_loaded(mod);
+        
+        /* make sure thats a valid one */
+        if(mod >= 0)
+        {
+            /* fetch information from module loader */
+            const char *mod_name = module_get_name(mod);
+            const char *mod_build_date = module_get_string(mod, "Build date");
+            const char *mod_last_update = module_get_string(mod, "Last update");
+            
+            if(mod_name != NULL)
+            {
+                /* just in case that ever happens */
+                if(mod_build_date == NULL)
+                {
+                    mod_build_date = "(no build date)";
+                }
+                if(mod_last_update == NULL)
+                {
+                    mod_last_update = "(no version)";
+                }
+                
+                /* separating the format string allows us to measure its length for malloc */
+                const char *fmt_string = "%s built %s; commit %s";
+                int buf_length = strlen(fmt_string) + strlen(mod_name) + strlen(mod_build_date) + strlen(mod_last_update) + 1;
+                char *version_string = malloc(buf_length);
+                
+                /* now build the string */
+                snprintf(version_string, buf_length, fmt_string, mod_name, mod_build_date, mod_last_update);
+                
+                /* and finally remove any newlines, they are annoying */
+                for(unsigned int pos = 0; pos < strlen(version_string); pos++)
+                {
+                    if(version_string[pos] == '\n')
+                    {
+                        version_string[pos] = ' ';
+                    }
+                }
+                
+                /* let the mlv helpers build the block for us */
+                mlv_vers_hdr_t *hdr = NULL;
+                mlv_build_vers(&hdr, mlv_start_timestamp, version_string);
+                
+                /* try to write to output file */
+                if(FIO_WriteFile(f, hdr, hdr->blockSize) != (int)hdr->blockSize)
+                {
+                    error = 1;
+                }
+                
+                /* free both temporary string and allocated mlv block */
+                free(version_string);
+                free(hdr);
+            }
+        }
+    } while(mod >= 0 && !error);
+    
+    return error;
+}
+
 static void raw_prepare_chunk(FILE *f, mlv_file_hdr_t *hdr)
 {
     if(f == NULL)
@@ -2554,7 +2637,18 @@ static void raw_prepare_chunk(FILE *f, mlv_file_hdr_t *hdr)
         mlv_write_hdr(f, (mlv_hdr_t *)&idnt_hdr);
         mlv_write_hdr(f, (mlv_hdr_t *)&wbal_hdr);
         mlv_write_hdr(f, (mlv_hdr_t *)&styl_hdr);
+        write_mlv_vers_blocks(f);
     }
+    
+    /* insert a null block so the header size is multiple of 512 bytes */
+    int hdr_size = FIO_SeekSkipFile(f, 0, SEEK_CUR);
+    
+    mlv_hdr_t nul_hdr;
+    memset(&nul_hdr, 0x00, sizeof(nul_hdr));
+    mlv_set_type(&nul_hdr, "NULL");
+    int padded_size = (hdr_size + sizeof(nul_hdr) + 511) & ~511;
+    nul_hdr.blockSize = padded_size - hdr_size;
+    FIO_WriteFile(f, &nul_hdr, nul_hdr.blockSize);
 }
 
 static void raw_writer_task(uint32_t writer)
@@ -2967,8 +3061,8 @@ static uint32_t mlv_rec_precreate_del_empty(char *filename)
         return 0;
     }
     
-    /* if only the size of a file header, remove again */
-    if(size <= sizeof(mlv_file_hdr_t))
+    /* if only the size of a file header plus padding, remove again */
+    if(size <= 0x200)
     {
         trace_write(raw_rec_trace_ctx, "mlv_rec_precreate_del_empty: '%s' empty, deleting", filename);
         FIO_RemoveFile(filename);
@@ -3136,19 +3230,16 @@ static void raw_video_rec_task()
 
     /* detect raw parameters (geometry, black level etc) */
     raw_set_dirty();
-    if (!raw_update_params())
+    if (!mlv_rec_update_raw())
     {
-        bmp_printf( FONT_MED, 30, 50, "Raw detect error");
+        NotifyBox(5000, "Raw detect error");
         goto cleanup;
     }
 
-    update_resolution_params();
-
     trace_write(raw_rec_trace_ctx, "Resolution: %dx%d @ %d.%03d FPS", res_x, res_y, fps_get_current_x1000()/1000, fps_get_current_x1000()%1000);
     
-    /* disable powersave timer */
-    const int powersave_prohibit = 2;
-    prop_request_change(PROP_ICU_AUTO_POWEROFF, &powersave_prohibit, 4);
+    /* disable Canon's powersaving (30 min in LiveView) */
+    powersave_prohibit();
 
     /* signal that we are starting, call this before any memory allocation to give CBR the chance to allocate memory */
     raw_rec_cbr_starting();
@@ -3593,9 +3684,8 @@ cleanup:
     hack_liveview(1);
     redraw();
 
-    /* re-enable powersave timer */
-    const int powersave_permit = 1;
-    prop_request_change(PROP_ICU_AUTO_POWEROFF, &powersave_permit, 4);
+    /* re-enable powersaving  */
+    powersave_permit();
 
     raw_recording_state = RAW_IDLE;
 }
@@ -3909,13 +3999,6 @@ static struct menu_entry raw_video_menu[] =
                 .help2 = "May help with performance.",
             },
             {
-                .name = "Fix Black Level",
-                .priv = &black_fix,
-                .max = 1,
-                .help  = "Forces the black level to 2048 (5D3), 1024 (50D/5D2).",
-                .help2  = "Try this to fix green/magenta casts.",
-            },
-            {
                 .name = "Debug Trace",
                 .priv = &enable_tracing,
                 .max = 1,
@@ -3992,6 +4075,10 @@ static unsigned int raw_rec_keypress_cbr(unsigned int key)
     /* if you somehow managed to start recording H.264, let it stop */
     if (RECORDING_H264)
         return 1;
+
+    /* block the zoom key while recording */
+    if (!RAW_IS_IDLE && key == MODULE_KEY_PRESS_ZOOMIN)
+        return 0;
 
     /* start/stop recording with the LiveView key */
     int32_t rec_key_pressed = (key == MODULE_KEY_LV || key == MODULE_KEY_REC);
@@ -4166,7 +4253,6 @@ static unsigned int raw_rec_init()
     cam_eos_m = is_camera("EOSM", "2.0.2");
     cam_5d2   = is_camera("5D2",  "2.1.2");
     cam_50d   = is_camera("50D",  "1.0.9");
-    cam_5d3   = is_camera("5D3",  "1.1.3");
     cam_550d  = is_camera("550D", "1.0.9");
     cam_6d    = is_camera("6D",   "1.1.6");
     cam_600d  = is_camera("600D", "1.0.2");
@@ -4175,6 +4261,10 @@ static unsigned int raw_rec_init()
     cam_700d  = is_camera("700D", "1.1.4");
     cam_60d   = is_camera("60D",  "1.1.1");
     cam_500d  = is_camera("500D", "1.1.1");
+
+    cam_5d3_113 = is_camera("5D3",  "1.1.3");
+    cam_5d3_123 = is_camera("5D3",  "1.2.3");
+    cam_5d3 = (cam_5d3_113 || cam_5d3_123);
     
     /* not all models support exFAT filesystem */
     uint32_t exFAT = 1;
@@ -4299,6 +4389,5 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(show_graph)
     MODULE_CONFIG(large_file_support)
     MODULE_CONFIG(create_dummy)
-    MODULE_CONFIG(black_fix)
     MODULE_CONFIG(create_dirs)
 MODULE_CONFIGS_END()

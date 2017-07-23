@@ -231,9 +231,20 @@ typedef struct {
     uint32_t    blockSize;
     uint64_t    timestamp;
     uint32_t    type;       /* debug data type, for now 0 - text log */
-    uint32_t    length;     /* data can be of arbitrary length and blocks are padded to 32 bits, so store real length */
+    uint32_t    length;     /* to allow that data can be of arbitrary length and blocks are padded to 32 bits, so store real length */
  /* uint8_t     stringData[variable]; */
 }  mlv_debg_hdr_t;
+
+typedef struct {
+    uint8_t     blockType[4];    /* VERS - Version information block, appears once per module */
+    uint32_t    blockSize;
+    uint64_t    timestamp;
+    uint32_t    length;     /* to allow that data can be of arbitrary length and blocks are padded to 32 bits, so store real length */
+ /* uint8_t     stringData[variable];  // Version string, e.g. "ml-core 20130912", "mlv_rec v2.1" or "mlv_lite 0d3fbdaf crop_rec_8k"
+                                       // general format "<module_name> <version_information>"
+                                       // where <module_name> must not contain spaces whereas <version_information> may be of any characters in UTF-8 format
+*/
+}  mlv_vers_hdr_t;
 
 #pragma pack(pop)
 
@@ -244,6 +255,7 @@ void mlv_fill_lens(mlv_lens_hdr_t *hdr, uint64_t start_timestamp);
 void mlv_fill_idnt(mlv_idnt_hdr_t *hdr, uint64_t start_timestamp);
 void mlv_fill_wbal(mlv_wbal_hdr_t *hdr, uint64_t start_timestamp);
 void mlv_fill_styl(mlv_styl_hdr_t *hdr, uint64_t start_timestamp);
+void mlv_build_vers(mlv_vers_hdr_t **hdr, uint64_t start_timestamp, const char *version_string);
 
 /* randomize the 64 bits passed in parameter using LFSR */
 uint64_t mlv_prng_lfsr(uint64_t value);

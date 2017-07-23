@@ -53,9 +53,9 @@ NSTUB(    0xFF3C,  additional_version)                      // d
 NSTUB(0xFF982590,  FIO_CloseFile)                           // d
 NSTUB(0xFF9836A0,  FIO_FindClose)                           // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
 NSTUB(0xFF9835A0,  FIO_FindNextEx)                          // d
-NSTUB(0xFF982820,  FIO_ReadFile)                            // d
+NSTUB(0xFF982820, _FIO_ReadFile)                            // d
 NSTUB(0xFF9828D0,  FIO_SeekSkipFile)
-NSTUB(0xFF9829D0,  FIO_WriteFile)                           // d
+NSTUB(0xFF9829D0, _FIO_WriteFile)                           // d
 NSTUB(0xFF982DF4, _FIO_CreateDirectory)
 NSTUB(0xFF9824E8, _FIO_CreateFile)                          // d
 NSTUB(0xFF983474, _FIO_FindFirstEx)                         // d
@@ -100,6 +100,7 @@ NSTUB(0xFF852A80,  StopASIFDMADAC)
 //NSTUB( 0x2348	 , sounddev )                    // in sounddev_task								//d
 //NSTUB( 0xff855b68, sounddev_active_in )
 //NSTUB( 0xff855778, sounddev_task )
+// NSTUB(    ???, _audio_ic_write_bulk)                     /* present on 6D.116 */
 // NSTUB(    ???,  audio_thresholds)                        /* present on 7D.203, 60D.111, 6D.113, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 
 /** Bitmap **/
@@ -205,11 +206,11 @@ NSTUB(0xFF889DCC,  gui_post_10000085)                       // should be called 
 NSTUB(0xFF98A990,  gui_timer_something)                     // d
 
 /** GUI timers **/
+NSTUB(0xFFA96A50,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 NSTUB(0xFF86D6A0,  CancelTimer)
 NSTUB(0xFF8652CC,  SetHPTimerAfterNow)
 NSTUB(0xFF86534C,  SetHPTimerNextTick)
 NSTUB(0xFF86D4A0,  SetTimerAfter)
-NSTUB(0xFFA96A50,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
 
 /** H264 Encoder **/
 NSTUB(    0x7674,  mvr_config)                              // d
@@ -232,6 +233,7 @@ NSTUB(0xFF9ADD28,  DispSensorStart)                         // d
 NSTUB(   0x1D6FC,  cf_device)                               // in cfReadBlk
 NSTUB(   0x1D744,  sd_device)                               // in sdReadBlk
 NSTUB(0xFFB0A9B4,  fsuDecodePartitionTable)
+// NSTUB(    ???,  cf_device_ptr)                           /* present on 5D3.113 */
 
 /** Memory allocation **/
 NSTUB(0xFF8680C8,  GetMemoryInformation)
@@ -255,7 +257,6 @@ NSTUB(0xFF9ED888,  ptp_register_handler)                    // d
 // NSTUB(    ???,  ptpPropSetUILock)                        /* present on 650D.104, 700D.113 */
 
 /** Properties **/
-NSTUB(0xFF85A3D8,  PROPAD_GetPropertyData)                  // str:SearchFromProperty
 NSTUB(0xFF859860, _prop_cleanup)
 NSTUB(0xFF8598C4, _prop_request_change)                     // d
 NSTUB(0xFF859704,  prop_deliver)                            // d
@@ -286,9 +287,9 @@ NSTUB(0xFF866934,  take_semaphore)
 
 /** Task info **/
 NSTUB(    0x30F8,  task_max)
-NSTUB(0xFF8166B4,  get_current_task)
-NSTUB(0xFF817F04,  get_obj_attr)                            // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xFF8180BC,  is_taskid_valid)                         // AJ_task_trampoline_related_p10
+NSTUB(    0x1A70,  current_task)
+NSTUB(     0x668,  current_interrupt)                       // in interrupt handler (0x18), where MEM(C0201004) is stored
 
 /** Task sleep **/
 NSTUB(0xFF866E08,  msleep)                                  // called from EV_GETDONE_CACHE param 0x64								// d
@@ -306,6 +307,7 @@ NSTUB(0xFF86334C,  LoadCalendarFromRTC)
 NSTUB(0xFF98E1E4,  vsnprintf)                               // d
 //NSTUB( 0xffa86684, ChangeHDMIOutputSizeToFULLHD)														//d
 //NSTUB( 0xffa855f4, ChangeHDMIOutputSizeToVGA)														//d
+// NSTUB(    ???,  FSUunMountDevice)                        /* present on 5D3.113 */
 // NSTUB(    ???,  PtpDps_remote_release_SW1_SW2_worker)    /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  lv_path_struct)                          /* present on 60D.111, 600D.102, 550D.109, 1100D.105 */
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
@@ -325,6 +327,7 @@ NSTUB(0xFF98E1E4,  vsnprintf)                               // d
 ///NSTUB(0xFF834B04,  LVCAF_LensDriveStart)                    // d
 ///NSTUB(0xFF85DDDC,  MuteOff_0)                               // not quite the same as in other cameras, but should work
 ///NSTUB(0xFF85DD98,  MuteOn_0)                                // idem
+///NSTUB(0xFF85A3D8,  PROPAD_GetPropertyData)                  // str:SearchFromProperty
 ///NSTUB(0xFF8599E0,  PROP_GetMulticastProperty)
 ///NSTUB(0xFF97CA98,  PopEDmac)
 ///NSTUB(0xFFA5F738,  RedrawDisplay)                           // d

@@ -3,6 +3,7 @@
 import os, sys, string, re
 import commands
 from mako.template import Template
+from collections import defaultdict
 
 class Bunch(dict):
     def __init__(self, d):
@@ -70,10 +71,18 @@ def cam_longname(cam):
 #            print "     ",
 #    print ""
 
+# print only camera name, unless we have the same camera with two or more firmware versions
 shortnames = {}
+shortnames_count = defaultdict(int)
 for c in cams:
-    shortnames[c]=cam_shortname(c)
+    shortnames[c] = cam_shortname(c)
+    shortnames_count[shortnames[c]] += 1;
 
+for name, count in shortnames_count.iteritems():
+    if count > 1:
+        for c in cams:
+            if cam_shortname(c) == name:
+                shortnames[c] = c
 
 # let's see in which menu we have these features
 menus = []
@@ -232,13 +241,13 @@ modules = [m for m in modules if os.path.isdir(os.path.join("../modules/", m))]
 modules.sort()
 
 # only show modules from Makefile.modules.default, at least for now
-default_modules = ""
+default_modules = set()
 default_modules_lines = open("../modules/Makefile.modules.default").readlines()
 for l in default_modules_lines:
-    m = re.match("ML_MODULES_.*=([a-zA-Z0-9_ ]+)", l)
-    if m:
-        default_modules += m.groups()[0]
-default_modules = [m for m in default_modules.split(" ") if len(m) > 0]
+    # just grab all the words from the makefile...
+    default_modules = set.union(default_modules, l.split())
+
+# ... and cross-check them with actual pathnames
 modules = [m for m in modules if m in default_modules]
 
 # lookup the address in README.rst for each module
@@ -295,6 +304,7 @@ def module_check_cams(m):
             cameras += cams
     return cameras
 
+print >> sys.stderr, modules
 
 for m in modules:
     f = "MODULE__" + m

@@ -32,12 +32,6 @@
 #define HISTORY_ENTRIES 256
 #define TASK_NAME_SIZE 12
 
-#ifdef CONFIG_600D
-/* todo: remove this after moving some more stuff to modules */
-#define MEMCHECK_ENTRIES 128
-#define HISTORY_ENTRIES 128
-#endif
-
 #define JUST_FREED 0xF12EEEED   /* FREEED */
 #define UNTRACKED 0xFFFFFFFF
 
@@ -52,12 +46,29 @@ typedef int (*mem_get_max_region_func)();
 
 /* use underscore for allocator functions to prevent other code from calling them directly */
 extern void* _malloc(size_t size);
-extern void _free(void* ptr);
+extern void  _free(void* ptr);
 extern void* _AllocateMemory(size_t size);
-extern void _FreeMemory(void* ptr);
+extern void  _FreeMemory(void* ptr);
 extern void* _alloc_dma_memory(size_t size);
-extern void _free_dma_memory(void* ptr);
-extern int _shoot_get_free_space();
+extern void  _free_dma_memory(void* ptr);
+extern int   _shoot_get_free_space();
+extern struct memSuite *_shoot_malloc_suite(size_t size);
+extern void  _shoot_free_suite(struct memSuite * hSuite);
+extern struct memSuite * _shoot_malloc_suite_contig(size_t size);
+extern void* _shoot_malloc( size_t len );
+extern void  _shoot_free( void * buf );
+
+/* wrappers for the selftest module, not to be used in other code */
+#ifndef CONFIG_INSTALLER
+void* __priv_malloc(size_t size)           { return _malloc(size);           }
+void  __priv_free(void* ptr)               { _free(ptr);                     }
+void* __priv_AllocateMemory(size_t size)   { return _AllocateMemory(size);   }
+void  __priv_FreeMemory(void* ptr)         { _FreeMemory(ptr);               }
+void* __priv_alloc_dma_memory(size_t size) { return _alloc_dma_memory(size); }
+void  __priv_free_dma_memory(void* ptr)    { _free_dma_memory(ptr);          }
+void* __priv_shoot_malloc(size_t size)     { return _shoot_malloc(size);     }
+void  __priv_shoot_free(void* ptr)         { _shoot_free(ptr);               }
+#endif
 
 static struct semaphore * mem_sem = 0;
 
@@ -105,7 +116,7 @@ static int GetMaxRegionForAllocateMemory()
     return a;
 }
 
-static int GetFreeMemForMalloc()
+int GetFreeMemForMalloc()
 {
     return MALLOC_FREE_MEMORY;
 }
@@ -228,10 +239,10 @@ static int history_index = 0;
 
 struct memcheck_hdr
 {
-    unsigned int id;
-    unsigned int length;
-    uint16_t allocator;
+    uint16_t allocator;     /* this is overwritten after calling free */
     uint16_t flags;
+    unsigned int length;    /* maybe this too, depending on allocator */
+    unsigned int id;        /* on double free attempts, we will read this one after free */
 };
 
 struct memcheck_entry
@@ -259,38 +270,47 @@ static char* file_name_without_path(const char* file)
 }
 
 /* warning: can't call this twice in the same printf */
-const char * format_memory_size( unsigned size)
+const char * format_memory_size(uint64_t size)
 {
     static char str[16];
     
-    if ( size >= 1024*1024*1024 )
+    const uint32_t kB = 1024;
+    const uint32_t MB = 1024*1024;
+    const uint64_t GB = 1024*1024*1024;
+    
+    if (size >= 10*GB)
     {
-        int size_gb = (size/1024 * 10 + 5)  / 1024 / 1024;
-        snprintf( str, sizeof(str), "%d.%dGB", size_gb/10, size_gb%10);
+        int size_gb = (size + GB/2) / GB;
+        snprintf( str, sizeof(str), "%dGB", size_gb);
     }
-    else if ( size >= 10*1024*1024 )
+    else if ( size >= GB)
     {
-        int size_mb = size / 1024 / 1024;
+        int size_gb10 = (size * 10 + GB/2) / GB;
+        snprintf( str, sizeof(str), "%d.%dGB", size_gb10/10, size_gb10%10);
+    }
+    else if ( size >= 10*MB )
+    {
+        int size_mb = ((int) size + MB/2) / MB;
         snprintf( str, sizeof(str), "%dMB", size_mb);
     }
-    else if ( size >= 1024*1024 )
+    else if ( size >= MB )
     {
-        int size_mb = (size * 10 + 5) / 1024 / 1024;
-        snprintf( str, sizeof(str), "%d.%dMB", size_mb/10, size_mb%10);
+        int size_mb10 = ((int) size * 10 + MB/2) / MB;
+        snprintf( str, sizeof(str), "%d.%dMB", size_mb10/10, size_mb10%10);
     }
-    else if ( size >= 10*1024 )
+    else if ( size >= 10*kB )
     {
-        int size_kb = (size * 10 + 5) / 1024;
-        snprintf( str, sizeof(str), "%dkB", size_kb/10);
+        int size_kb = ((int) size + kB/2) / kB;
+        snprintf( str, sizeof(str), "%dkB", size_kb);
     }
-    else if ( size >= 1024 )
+    else if ( size >= kB )
     {
-        int size_kb = (size * 10 + 5) / 1024;
-        snprintf( str, sizeof(str), "%d.%dkB", size_kb/10, size_kb%10);
+        int size_kb10 = ((int) size * 10 + kB/2) / kB;
+        snprintf( str, sizeof(str), "%d.%dkB", size_kb10/10, size_kb10%10);
     }
     else if (size > 0)
     {
-        snprintf( str, sizeof(str), "%d B", size);
+        snprintf( str, sizeof(str), "%d B", (int) size);
     }
     else
     {
@@ -381,7 +401,7 @@ static unsigned int memcheck_check(unsigned int ptr, unsigned int entry)
         }
         else
         {
-            task_name = get_task_name_from_id((int)get_current_task());
+            task_name = get_current_task_name();
         }
         
         if (allocator >= 0 && allocator < COUNT(allocators))
@@ -456,7 +476,7 @@ static void memcheck_add(unsigned int ptr, const char *file, unsigned int line)
     memcheck_mallocbuf[memcheck_bufpos].failed = 0;
     memcheck_mallocbuf[memcheck_bufpos].file = file_name_without_path(file);
     memcheck_mallocbuf[memcheck_bufpos].line = line;
-    snprintf((char*)memcheck_mallocbuf[memcheck_bufpos].task_name, TASK_NAME_SIZE, "%s", get_task_name_from_id((int)get_current_task()));
+    snprintf((char*)memcheck_mallocbuf[memcheck_bufpos].task_name, TASK_NAME_SIZE, "%s", get_current_task_name());
     
     ((struct memcheck_hdr *)ptr)->id = memcheck_bufpos;
     
@@ -582,6 +602,10 @@ static void memcheck_free( void * buf, int allocator_index, unsigned int flags)
     {
         allocators[allocator_index].free((void*)ptr);
     }
+
+    /* make sure we can still detect double-free bugs */
+    /* (the deallocator may overwrite it) */
+    //ASSERT(((struct memcheck_hdr *)ptr)->id == JUST_FREED);
 }
 
 static int search_for_allocator(int size, int require_preferred_size, int require_preferred_free_space, int require_tmp, int require_dma)
@@ -734,7 +758,7 @@ void* __mem_malloc(size_t size, unsigned int flags, const char* file, unsigned i
 {
     take_semaphore(mem_sem, 0);
 
-    dbg_printf("alloc(%s) from %s:%d task %s\n", format_memory_size_and_flags(size, flags), file, line, get_task_name_from_id((int)get_current_task()));
+    dbg_printf("alloc(%s) from %s:%d task %s\n", format_memory_size_and_flags(size, flags), file, line, get_current_task_name());
     
     /* show files without full path in error messages (they are too big) */
     file = file_name_without_path(file);
@@ -763,7 +787,7 @@ void* __mem_malloc(size_t size, unsigned int flags, const char* file, unsigned i
         {
             /* didn't work? */
             snprintf(last_error_msg_short, sizeof(last_error_msg_short), "%s(%s,%x)", allocators[allocator_index].name, format_memory_size_and_flags(size, flags));
-            snprintf(last_error_msg, sizeof(last_error_msg), "%s(%s) failed at %s:%d, %s.", allocators[allocator_index].name, format_memory_size_and_flags(size, flags), file, line, get_task_name_from_id((int)get_current_task()));
+            snprintf(last_error_msg, sizeof(last_error_msg), "%s(%s) failed at %s:%d, %s.", allocators[allocator_index].name, format_memory_size_and_flags(size, flags), file, line, get_current_task_name());
             dbg_printf("alloc fail, took %s%d.%03d s\n", FMT_FIXEDPOINT3(t1-t0));
         }
         else
@@ -781,7 +805,7 @@ void* __mem_malloc(size_t size, unsigned int flags, const char* file, unsigned i
     
     /* could not find an allocator (maybe out of memory?) */
     snprintf(last_error_msg_short, sizeof(last_error_msg_short), "alloc(%s)", format_memory_size_and_flags(size, flags));
-    snprintf(last_error_msg, sizeof(last_error_msg), "No allocator for %s at %s:%d, %s.", format_memory_size_and_flags(size, flags), file, line, get_task_name_from_id((int)get_current_task()));
+    snprintf(last_error_msg, sizeof(last_error_msg), "No allocator for %s at %s:%d, %s.", format_memory_size_and_flags(size, flags), file, line, get_current_task_name());
     dbg_printf("alloc not found\n");
     give_semaphore(mem_sem);
     return 0;
@@ -799,7 +823,7 @@ void __mem_free(void* buf)
     /* make sure the caching flag is the same as returned by the allocator */
     buf = (flags & UNCACHEABLE_FLAG) ? UNCACHEABLE(buf) : CACHEABLE(buf);
 
-    dbg_printf("free(%s) from task %s\n", format_memory_size_and_flags(((struct memcheck_hdr *)ptr)->length, flags), get_task_name_from_id((int)get_current_task()));
+    dbg_printf("free(%s) from task %s\n", format_memory_size_and_flags(((struct memcheck_hdr *)ptr)->length, flags), get_current_task_name());
     
     if (allocator_index >= 0 && allocator_index < COUNT(allocators))
     {

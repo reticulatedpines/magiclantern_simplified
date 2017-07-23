@@ -45,9 +45,9 @@ NSTUB(   0x16FB8,  additional_version)
 NSTUB(0xFF1FC684,  FIO_CloseFile)
 NSTUB(0xFF1FD554,  FIO_FindClose)                           // AJ__switch_0x1A50_n_calls_fstOpenDir
 NSTUB(0xFF1FD42C,  FIO_FindNextEx)
-NSTUB(0xFF1FC434,  FIO_ReadFile)
+NSTUB(0xFF1FC434, _FIO_ReadFile)
 NSTUB(0xFF1FC4E4,  FIO_SeekSkipFile)
-NSTUB(0xFF1FC5D4,  FIO_WriteFile)
+NSTUB(0xFF1FC5D4, _FIO_WriteFile)
 NSTUB(0xFF1FCCF4, _FIO_CreateDirectory)                     // not sure. g3gg0: confirmed by caller 'ctgDirCreate'
 NSTUB(0xFF1FC2E0, _FIO_CreateFile)
 NSTUB(0xFF1FD2B8, _FIO_FindFirstEx)
@@ -92,6 +92,7 @@ NSTUB(0xFF0730C8, _audio_ic_write)
 NSTUB(0xFF57B014,  audio_thresholds)
 NSTUB(0xFF0640EC,  sounddev_active_in)
 NSTUB(0xFF063C70,  sounddev_task)
+// NSTUB(    ???, _audio_ic_write_bulk)                     /* present on 6D.116 */
 
 /** Bitmap **/
 NSTUB(   0x29A9C,  LCD_Palette)                             // in InitializeBitmapDisplayDevice, right after 0xc0f14800
@@ -223,6 +224,7 @@ NSTUB(0xFF202814,  LightMeasure_n_Callback_r0)
 NSTUB(   0x22938,  cf_device)
 NSTUB(0xFF3D7798,  fsuDecodePartitionTable)                 // AJ_fsuGetPart_related
     //NSTUB(   0x208D8, sd_device)
+// NSTUB(    ???,  cf_device_ptr)                           /* present on 5D3.113 */
 
 /** Memory allocation **/
 NSTUB(0xFF07CAC8,  GetMemoryInformation)
@@ -246,7 +248,6 @@ NSTUB(0xFF15FC84,  ptpPropSetUILock)
 NSTUB(0xFF2885CC,  ptp_register_handler)
 
 /** Properties **/
-NSTUB(0xFF06934C,  PROPAD_GetPropertyData)
 NSTUB(0xFF068734, _prop_cleanup)
 NSTUB(0xFF067FAC, _prop_request_change)
 NSTUB(0xFF06858C,  prop_deliver)
@@ -277,9 +278,9 @@ NSTUB(0xFF07B924,  take_semaphore)
 
 /** Task info **/
 NSTUB(    0x2B24,  task_max)
-NSTUB(0xFF014C10,  get_current_task)
-NSTUB(0xFF08779C,  get_obj_attr)                            // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xFF087940,  is_taskid_valid)                         // AJ_task_trampoline_related_p10
+NSTUB(    0x1A1C,  current_task)
+NSTUB(     0x674,  current_interrupt)                       // in interrupt handler (0x18), where MEM(C0201004) is stored
 
 /** Task sleep **/
 NSTUB(0xFF07BDF8,  msleep)
@@ -297,6 +298,7 @@ NSTUB(0xFF075210,  LoadCalendarFromRTC)
 NSTUB(0xFF16004C,  PtpDps_remote_release_SW1_SW2_worker)    // called from: ptpRemoteRelease Occupy
 NSTUB(0xFF5517B0,  lv_path_struct)
 NSTUB(0xFF209670,  vsnprintf)
+// NSTUB(    ???,  FSUunMountDevice)                        /* present on 5D3.113 */
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
 
 /** Unused stubs or porting notes **/
@@ -317,6 +319,7 @@ NSTUB(0xFF209670,  vsnprintf)
 ///NSTUB(0xFF06D6A8,  MuteOn_0)
 ///NSTUB(0xFF35AC90,  OlcAFFrameApp_handler)
 ///NSTUB(0xFF03F4A8,  PD_RemoteRelease)
+///NSTUB(0xFF06934C,  PROPAD_GetPropertyData)
 ///NSTUB(0xFF0687C8,  PROP_GetMulticastProperty)
 ///NSTUB(0xFF3D2644,  PackMem_PopEDmacForMemorySuite)
 ///NSTUB(0xFF3D27CC,  PackMem_RegisterEDmacAbortCBRForMemorySuite)

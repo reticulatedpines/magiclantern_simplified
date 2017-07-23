@@ -8,6 +8,7 @@ top_dir = "../"
 # override the autodetection
 force_used = [
     "SetASIFMode",
+    "_audio_ic_write_bulk",
 ]
 force_unused = [
     "vram_get_number",      # old way of accessing VRAM (5D2 only)
@@ -36,6 +37,7 @@ force_unused = [
     "PackMem_RegisterEDmacPopCBRForMemorySuite",
     "PackMem_SetEDmacForMemorySuite",
     "PackMem_StartEDmac",
+    "CreateDialogBox",
     "FIO_SeekFile",
 ]
 

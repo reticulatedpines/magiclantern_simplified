@@ -13,6 +13,7 @@ char __camera_model_short[8] = CAMERA_MODEL;
 char camera_model[32];
 uint32_t camera_model_id = 0;
 char firmware_version[32];
+char camera_serial[32];
 
 /* is_camera("5D3", "1.2.3") - will check for a specific camera / firmware version */
 /* is_camera("5D3", "*") - will accept all firmware versions */
@@ -27,6 +28,23 @@ PROP_HANDLER(PROP_CAM_MODEL)
 {
     memcpy((char *)&camera_model_id, (void*)buf + 32, 4);
     snprintf(camera_model, sizeof(camera_model), (const char *)buf);
+}
+
+PROP_HANDLER(PROP_BODY_ID)
+{
+    /* different camera serial lengths */
+    if(len == 8)
+    {
+        snprintf(camera_serial, sizeof(camera_serial), "%X%08X", (uint32_t)(*((uint64_t*)buf) & 0xFFFFFFFF), (uint32_t) (*((uint64_t*)buf) >> 32));
+    }
+    else if(len == 4)
+    {
+        snprintf(camera_serial, sizeof(camera_serial), "%08X", *((uint32_t*)buf));
+    }
+    else
+    {
+        snprintf(camera_serial, sizeof(camera_serial), "(unknown len %d)", len);
+    }
 }
 
 PROP_HANDLER(PROP_FIRMWARE_VER)
@@ -57,6 +75,7 @@ volatile PROP_INT(PROP_DATE_FORMAT, date_format);
 volatile PROP_INT(PROP_AUTO_POWEROFF_TIME, auto_power_off_time)
 volatile PROP_INT(PROP_VIDEO_SYSTEM, video_system_pal);
 volatile PROP_INT(PROP_LV_FOCUS_STATUS, lv_focus_status);
+volatile PROP_INT(PROP_ICU_UILOCK, icu_uilock);
 
 #ifdef CONFIG_NO_DEDICATED_MOVIE_MODE
 int ae_mode_movie = 1;
@@ -141,9 +160,45 @@ PROP_HANDLER( PROP_LV_ACTION )
 }
 #endif
 
-volatile PROP_INT(PROP_HDMI_CHANGE_CODE, hdmi_code);
-volatile PROP_INT(PROP_HDMI_CHANGE, ext_monitor_hdmi);
+/* special case for dual monitor support */
+/* external display with mirroring enabled, from ML's standpoint, is identical to built-in LCD */
+/* therefore, if hdmi_mirroring is true, the rest of ML code will believe there's no external monitor connected */
+
+static int ext_monitor_hdmi_raw;
+static int hdmi_code_raw;
+static int hdmi_mirroring;
+
+volatile int ext_monitor_hdmi;
+volatile int hdmi_code;
+
 volatile PROP_INT(PROP_USBRCA_MONITOR, _ext_monitor_rca);
+
+static void hdmi_vars_update()
+{
+    if (!hdmi_mirroring)
+    {
+        /* regular external monitor */
+        ext_monitor_hdmi = ext_monitor_hdmi_raw;
+        hdmi_code = hdmi_code_raw;
+    }
+    else
+    {
+        /* external monitor with mirroring, overlays are on built-in LCD */
+        ext_monitor_hdmi = hdmi_code = 0;
+    }
+}
+
+PROP_HANDLER(PROP_HDMI_CHANGE)
+{
+    ext_monitor_hdmi_raw = buf[0];
+    hdmi_vars_update();
+}
+
+PROP_HANDLER(PROP_HDMI_CHANGE_CODE)
+{
+    hdmi_code_raw = buf[0];
+    hdmi_vars_update();
+}
 
 #ifdef CONFIG_50D
 int __recording = 0;
@@ -175,7 +230,14 @@ int lv_disp_mode;
 #ifndef CONFIG_EOSM //~ we update lv_disp_mode from 
 PROP_HANDLER(PROP_HOUTPUT_TYPE)
 {
-    #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_50D) || defined(CONFIG_DIGIC_V)
+    #if defined(CONFIG_5D3)
+    /* 1 when Canon overlays are present on the built-in LCD, 0 when they are not present (so we can display our overlays) */
+    /* 2 on external monitor with mirroring enabled; however, you can't tell when Canon overlays are present (FIXME) */
+    /* todo: check whether this snippet is portable */
+    lv_disp_mode = (uint8_t)buf[1] & 1;
+    hdmi_mirroring = buf[1] & 2;
+    hdmi_vars_update();
+    #elif defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_1100D) || defined(CONFIG_50D) || defined(CONFIG_DIGIC_V)
     lv_disp_mode = (uint8_t)buf[1];
     #else
     lv_disp_mode = (uint8_t)buf[0];

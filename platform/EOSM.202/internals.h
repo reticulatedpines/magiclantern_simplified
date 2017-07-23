@@ -69,11 +69,11 @@
 
 /** We can redirect the display buffer to some arbitrary address, just by changing YUV422_LV_BUFFER_DISPLAY_ADDR **/
 /** Well, I hope so **/
-//~ #define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
-// ~#define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER
+#define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER_EASILY
+#define CONFIG_CAN_REDIRECT_DISPLAY_BUFFER
 
 /** Therefore, we can implement display filters (features that alter the LiveView image in real-time) **/
-//~ #define CONFIG_DISPLAY_FILTERS
+#define CONFIG_DISPLAY_FILTERS
 
 /** We can override ISO on a per-frame basis, by changing FRAME_ISO (e.g. for HDR video or gradual exposure) **/
 #define CONFIG_FRAME_ISO_OVERRIDE
@@ -137,5 +137,11 @@
 /** We can control audio settings from ML **/
 //~ #define CONFIG_AUDIO_CONTROLS
 
-/** Hide Canon bottom bar by temporarily disabling their front BMP buffer */
-#define CONFIG_LVAPP_HACK_FBUFF
+/** Hide Canon bottom bar from DebugMsg hook */
+#define CONFIG_LVAPP_HACK_DEBUGMSG
+
+/** Workaround for menu timeout in LiveView */
+#define CONFIG_MENU_TIMEOUT_FIX
+
+/** this method bypasses Canon's lv_save_raw and slurps the raw data directly from connection #0 */
+#define CONFIG_EDMAC_RAW_SLURP

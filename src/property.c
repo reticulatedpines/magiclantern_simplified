@@ -346,7 +346,7 @@ void prop_request_change(unsigned property, const void* addr, size_t len)
 
 ok:
     (void)0;
-    //~ console_printf("prop:%x data:%x len:%x\n", property, MEM(addr), len);
+    //~ printf("prop:%x data:%x len:%x\n", property, MEM(addr), len);
 
     /* call Canon stub */
     extern void _prop_request_change(unsigned property, const void* addr, size_t len);
@@ -359,7 +359,7 @@ int prop_request_change_wait(unsigned property, const void* addr, size_t len, in
     prop_reset_ack(property);
     prop_request_change(property, addr, len);
     
-    if (streq(get_task_name_from_id(get_current_task()), "PropMgr"))
+    if (streq(get_current_task_name(), "PropMgr"))
     {
         /* never wait when called from a property handler (it would lock-up) */
         return 0;
@@ -389,3 +389,4 @@ REGISTER_PROP_HANDLER(PROP_REMOTE_AFSTART_BUTTON, NULL);
 REGISTER_PROP_HANDLER(PROP_WB_MODE_PH, NULL);
 REGISTER_PROP_HANDLER(PROP_WB_KELVIN_PH, NULL);
 REGISTER_PROP_HANDLER(PROP_ICU_AUTO_POWEROFF, NULL);
+REGISTER_PROP_HANDLER(PROP_REBOOT, NULL);

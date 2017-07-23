@@ -9,6 +9,7 @@
 #include "property.h"
 #include "beep.h"
 #include "bmp.h"
+#include "ml-cbr.h"
 
 #ifndef CONFIG_MODULES_MODEL_SYM
 #error Not defined file name with symbols
@@ -54,34 +55,37 @@ static int module_load_symbols(TCCState *s, char *filename)
 
     if( FIO_GetFileSize( filename, &size ) != 0 )
     {
-        console_printf("Error loading '%s': File does not exist\n", filename);
+        printf("Error loading '%s': File does not exist\n", filename);
         return -1;
     }
     buf = fio_malloc(size);
     if(!buf)
     {
-        console_printf("Error loading '%s': File too large\n", filename);
+        printf("Error loading '%s': File too large\n", filename);
         return -1;
     }
 
     file = FIO_OpenFile(filename, O_RDONLY | O_SYNC);
     if (!file)
     {
-        console_printf("Error loading '%s': File does not exist\n", filename);
+        printf("Error loading '%s': File does not exist\n", filename);
         fio_free(buf);
         return -1;
     }
     FIO_ReadFile(file, buf, size);
     FIO_CloseFile(file);
 
-    while(buf[pos])
+    while(pos < size && buf[pos])
     {
         char address_buf[16];
         char symbol_buf[128];
         uint32_t length = 0;
         uint32_t address = 0;
 
-        while(buf[pos + length] && buf[pos + length] != ' ' && length < sizeof(address_buf))
+        while (pos + length < size &&
+               buf[pos + length] &&
+               buf[pos + length] != ' ' &&
+               length < sizeof(address_buf))
         {
             address_buf[length] = buf[pos + length];
             length++;
@@ -91,7 +95,11 @@ static int module_load_symbols(TCCState *s, char *filename)
         pos += length + 1;
         length = 0;
 
-        while(buf[pos + length] && buf[pos + length] != '\r' && buf[pos + length] != '\n' && length < sizeof(symbol_buf))
+        while (pos + length < size &&
+               buf[pos + length] &&
+               buf[pos + length] != '\r' &&
+               buf[pos + length] != '\n' &&
+               length < sizeof(symbol_buf))
         {
             symbol_buf[length] = buf[pos + length];
             length++;
@@ -101,7 +109,10 @@ static int module_load_symbols(TCCState *s, char *filename)
         pos += length + 1;
         length = 0;
 
-        while(buf[pos + length] && (buf[pos + length] == '\r' || buf[pos + length] == '\n'))
+        while (pos + length < size &&
+               buf[pos + length] &&
+              (buf[pos + length] == '\r' ||
+               buf[pos + length] == '\n'))
         {
             pos++;
         }
@@ -137,7 +148,7 @@ static int module_valid_filename(char* filename)
 /* must be called before unloading TCC */
 static void module_update_core_symbols(TCCState* state)
 {
-    console_printf("Updating symbols...\n");
+    printf("Updating symbols...\n");
 
     extern struct module_symbol_entry _module_symbols_start[];
     extern struct module_symbol_entry _module_symbols_end[];
@@ -152,19 +163,19 @@ static void module_update_core_symbols(TCCState* state)
             if (new_address != module_symbol_entry->address)
             {
                 *(module_symbol_entry->address) = new_address;
-                console_printf("  [i] upd: %s %x => %x\n", module_symbol_entry->name, old_address, new_address);
+                printf("  [i] upd: %s %x => %x\n", module_symbol_entry->name, old_address, new_address);
             }
             else
             {
                 /* you have declared a non-static MODULE_SYMBOL (or MODULE_FUNCTION), which got exported into the SYM file */
                 /* this will not work; fix it by declaring it as static */
                 console_show();
-                console_printf("  [E] wtf: %s (should be static)\n", module_symbol_entry->name);
+                printf("  [E] wtf: %s (should be static)\n", module_symbol_entry->name);
             }
         }
         else
         {
-            console_printf("  [i] 404: %s %x\n", module_symbol_entry->name, old_address);
+            printf("  [i] 404: %s %x\n", module_symbol_entry->name, old_address);
         }
     }
 }
@@ -191,7 +202,7 @@ static void _module_load_all(uint32_t list_only)
     if (module_state)
 #endif
     {
-        console_printf("Modules already loaded.\n");
+        printf("Modules already loaded.\n");
         beep();
         return;
     }
@@ -206,7 +217,7 @@ static void _module_load_all(uint32_t list_only)
         return;
     }
 
-    console_printf("Scanning modules...\n");
+    printf("Scanning modules...\n");
     struct fio_dirent * dirent = FIO_FindFirstEx( MODULE_PATH, &file );
     if( IS_ERROR(dirent) )
     {
@@ -223,7 +234,7 @@ static void _module_load_all(uint32_t list_only)
             char module_name[MODULE_FILENAME_LENGTH];
 
             /* get filename, remove extension and append _init to get the init symbol */
-            //console_printf("  [i] found: %s\n", file.name);
+            //printf("  [i] found: %s\n", file.name);
             
             /* ensure the buffer is null terminated */
             memset(module_name, 0x00, sizeof(module_name));
@@ -259,7 +270,7 @@ static void _module_load_all(uint32_t list_only)
                 module_list[module_cnt].enabled = 0;
                 snprintf(module_list[module_cnt].status, sizeof(module_list[module_cnt].status), "OFF");
                 snprintf(module_list[module_cnt].long_status, sizeof(module_list[module_cnt].long_status), "Module disabled");
-                //console_printf("  [i] %s\n", module_list[module_cnt].long_status);
+                //printf("  [i] %s\n", module_list[module_cnt].long_status);
             }
             else
             {
@@ -314,12 +325,12 @@ static void _module_load_all(uint32_t list_only)
     }
     
     /* load modules */
-    console_printf("Load modules...\n");
+    printf("Load modules...\n");
     for (uint32_t mod = 0; mod < module_cnt; mod++)
     {
         if(module_list[mod].enabled)
         {
-            console_printf("  [i] load: %s\n", module_list[mod].filename);
+            printf("  [i] load: %s\n", module_list[mod].filename);
             int32_t ret = tcc_add_file(state, module_list[mod].long_filename);
             module_list[mod].valid = 1;
 
@@ -329,12 +340,12 @@ static void _module_load_all(uint32_t list_only)
                 module_list[mod].error = 1;
                 snprintf(module_list[mod].status, sizeof(module_list[mod].status), "FileErr");
                 snprintf(module_list[mod].long_status, sizeof(module_list[mod].long_status), "Load failed: %s, ret 0x%02X");
-                console_printf("  [E] %s\n", module_list[mod].long_status);
+                printf("  [E] %s\n", module_list[mod].long_status);
             }
         }
     }
 
-    console_printf("Linking..\n");
+    printf("Linking..\n");
 #ifdef CONFIG_TCC_UNLOAD
     int32_t size = tcc_relocate(state, NULL);
     int32_t reloc_status = -1;
@@ -352,7 +363,7 @@ static void _module_load_all(uint32_t list_only)
     if(ret < 0)
 #endif
     {
-        console_printf("  [E] failed to link modules\n");
+        printf("  [E] failed to link modules\n");
         for (uint32_t mod = 0; mod < module_cnt; mod++)
         {
             if(module_list[mod].enabled)
@@ -367,7 +378,7 @@ static void _module_load_all(uint32_t list_only)
     }
     
     /* load modules symbols */
-    console_printf("Register modules...\n");
+    printf("Register modules...\n");
     for (uint32_t mod = 0; mod < module_cnt; mod++)
     {
         if(module_list[mod].valid && module_list[mod].enabled && !module_list[mod].error)
@@ -400,7 +411,7 @@ static void _module_load_all(uint32_t list_only)
                         module_list[mod].error = 1;
                         snprintf(module_list[mod].status, sizeof(module_list[mod].status), "OldAPI");
                         snprintf(module_list[mod].long_status, sizeof(module_list[mod].long_status), "Wrong version (v%d.%d, expected v%d.%d)\n", module_list[mod].info->api_major, module_list[mod].info->api_minor, MODULE_MAJOR, MODULE_MINOR);
-                        console_printf("  [E] %s\n", module_list[mod].long_status);
+                        printf("  [E] %s\n", module_list[mod].long_status);
                         
                         /* disable active stuff, since the results are unpredictable */
                         module_list[mod].cbr = 0;
@@ -412,7 +423,7 @@ static void _module_load_all(uint32_t list_only)
                     module_list[mod].error = 1;
                     snprintf(module_list[mod].status, sizeof(module_list[mod].status), "Magic");
                     snprintf(module_list[mod].long_status, sizeof(module_list[mod].long_status), "Invalid Magic (0x%X)\n", module_list[mod].info->api_magic);
-                    console_printf("  [E] %s\n", module_list[mod].long_status);
+                    printf("  [E] %s\n", module_list[mod].long_status);
                 }
             }
             else
@@ -420,12 +431,12 @@ static void _module_load_all(uint32_t list_only)
                 module_list[mod].error = 1;
                 snprintf(module_list[mod].status, sizeof(module_list[mod].status), "noInfo");
                 snprintf(module_list[mod].long_status, sizeof(module_list[mod].long_status), "No info structure found (addr 0x%X)\n", (uint32_t)module_list[mod].info);
-                console_printf("  [E] %s\n", module_list[mod].long_status);
+                printf("  [E] %s\n", module_list[mod].long_status);
             }
         }
     }
     
-    console_printf("Load configs...\n");
+    printf("Load configs...\n");
     for (uint32_t mod = 0; mod < module_cnt; mod++)
     {
         if(module_list[mod].enabled && module_list[mod].valid && !module_list[mod].error)
@@ -440,20 +451,20 @@ static void _module_load_all(uint32_t list_only)
     sync_caches();
     
     /* go through all modules and initialize them */
-    console_printf("Init modules...\n");
+    printf("Init modules...\n");
     for (uint32_t mod = 0; mod < module_cnt; mod++)
     {
         if(module_list[mod].valid && module_list[mod].enabled && !module_list[mod].error)
         {
-            console_printf("  [i] Init: '%s'\n", module_list[mod].name);
+            printf("  [i] Init: '%s'\n", module_list[mod].name);
             if(0)
             {
-                console_printf("  [i] info    at: 0x%08X\n", (uint32_t)module_list[mod].info);
-                console_printf("  [i] strings at: 0x%08X\n", (uint32_t)module_list[mod].strings);
-                console_printf("  [i] props   at: 0x%08X\n", (uint32_t)module_list[mod].prop_handlers);
-                console_printf("  [i] cbr     at: 0x%08X\n", (uint32_t)module_list[mod].cbr);
-                console_printf("  [i] config  at: 0x%08X\n", (uint32_t)module_list[mod].config);
-                console_printf("-----------------------------\n");
+                printf("  [i] info    at: 0x%08X\n", (uint32_t)module_list[mod].info);
+                printf("  [i] strings at: 0x%08X\n", (uint32_t)module_list[mod].strings);
+                printf("  [i] props   at: 0x%08X\n", (uint32_t)module_list[mod].prop_handlers);
+                printf("  [i] cbr     at: 0x%08X\n", (uint32_t)module_list[mod].cbr);
+                printf("  [i] config  at: 0x%08X\n", (uint32_t)module_list[mod].config);
+                printf("-----------------------------\n");
             }
             
             /* initialize module */
@@ -474,22 +485,40 @@ static void _module_load_all(uint32_t list_only)
                 }
             }
             
-            /* register property handlers */
-            if(module_list[mod].prop_handlers && !module_list[mod].error)
+            if(!module_list[mod].error)
             {
                 module_prophandler_t **props = module_list[mod].prop_handlers;
-                while(*props != NULL)
+                module_cbr_t *cbr = module_list[mod].cbr;
+                
+                /* register property handlers */
+                while(props && *props)
                 {
                     update_properties = 1;
-                    console_printf("  [i] prop %s\n", (*props)->name);
+                    printf("  [i] prop %s\n", (*props)->name);
                     prop_add_handler((*props)->property, (*props)->handler);
                     props++;
+                }
+                
+                /* register ml-cbr callback handlers */
+                while(cbr && cbr->name)
+                {
+                    /* register "named" callbacks through ml-cbr */
+                    if(cbr->type == CBR_NAMED)
+                    {
+                        printf("  [i] ml-cbr '%s' 0%08X (%s)\n", cbr->name, cbr->handler, cbr->symbol);
+                        ml_register_cbr(cbr->name, (cbr_func)cbr->handler, 0);
+                    }
+                    else
+                    {
+                        printf("  [i] cbr '%s' -> 0%08X\n", cbr->name, cbr->handler);
+                    }
+                    cbr++;
                 }
             }
             
             if(0)
             {
-                console_printf("-----------------------------\n");
+                printf("-----------------------------\n");
             }
             if (!module_list[mod].error)
             {
@@ -513,7 +542,7 @@ static void _module_load_all(uint32_t list_only)
     module_state = state;
     #endif
     
-    console_printf("Modules loaded\n");
+    printf("Modules loaded\n");
 }
 
 static void _module_unload_all(void)
@@ -529,6 +558,19 @@ static void _module_unload_all(void)
             {
                 module_list[mod].info->deinit();
                 module_list[mod].valid = 0;
+            }
+            
+            module_cbr_t *cbr = module_list[mod].cbr;
+        
+            /* register ml-cbr callback handlers */
+            while(cbr && cbr->name)
+            {
+                /* unregister "named" callbacks through ml-cbr */
+                if(cbr->type == CBR_NAMED)
+                {
+                    ml_unregister_cbr(cbr->name, (cbr_func)cbr->handler);
+                }
+                cbr++;
             }
         }
     }
@@ -731,8 +773,8 @@ int FAST module_exec_cbr(unsigned int type)
 #if !defined(BGMT_REC)
 #define BGMT_REC -1
 #endif
-#if !defined(BGMT_PRESS_ZOOMIN_MAYBE)
-#define BGMT_PRESS_ZOOMIN_MAYBE -1
+#if !defined(BGMT_PRESS_ZOOM_IN)
+#define BGMT_PRESS_ZOOM_IN -1
 #endif
 #if !defined(BGMT_LV)
 #define BGMT_LV -1
@@ -819,7 +861,7 @@ int module_translate_key(int key, int dest)
     MODULE_TRANSLATE_KEY(BGMT_UNPRESS_DP           , MODULE_KEY_UNPRESS_DP           , dest);
     MODULE_TRANSLATE_KEY(BGMT_RATE                 , MODULE_KEY_RATE                 , dest);
     MODULE_TRANSLATE_KEY(BGMT_REC                  , MODULE_KEY_REC                  , dest);
-    MODULE_TRANSLATE_KEY(BGMT_PRESS_ZOOMIN_MAYBE   , MODULE_KEY_PRESS_ZOOMIN         , dest);
+    MODULE_TRANSLATE_KEY(BGMT_PRESS_ZOOM_IN   , MODULE_KEY_PRESS_ZOOMIN         , dest);
     MODULE_TRANSLATE_KEY(BGMT_LV                   , MODULE_KEY_LV                   , dest);
     MODULE_TRANSLATE_KEY(BGMT_PICSTYLE             , MODULE_KEY_PICSTYLE             , dest);
     MODULE_TRANSLATE_KEY(BGMT_JOY_CENTER           , MODULE_KEY_JOY_CENTER           , dest);
@@ -858,30 +900,43 @@ int module_send_keypress(int module_key)
 
 int handle_module_keys(struct event * event)
 {
-    for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
+    int count = 1;
+    
+    if (event->param == BGMT_WHEEL_UP || event->param == BGMT_WHEEL_DOWN || event->param == BGMT_WHEEL_LEFT ||  event->param == BGMT_WHEEL_RIGHT)
     {
-        module_cbr_t *cbr = module_list[mod].cbr;
-        if(module_list[mod].valid && cbr)
+        /* on newer cameras, scrollwheel events may come up grouped in a single event */
+        /* since we only pass single key events to modules, we have to ungroup these events */
+        /* (that is, call the handler as many times as needed) */
+        count = MAX(count, event->arg);
+    }
+    
+    while (count--)
+    {
+        for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
         {
-            while(cbr->name)
+            module_cbr_t *cbr = module_list[mod].cbr;
+            if(module_list[mod].valid && cbr)
             {
-                if(cbr->type == CBR_KEYPRESS)
+                while(cbr->name)
                 {
-                    /* key got handled? */
-                    if(!cbr->handler(module_translate_key(event->param, MODULE_KEY_PORTABLE)))
+                    if(cbr->type == CBR_KEYPRESS)
                     {
-                        return 0;
+                        /* key got handled? */
+                        if(!cbr->handler(module_translate_key(event->param, MODULE_KEY_PORTABLE)))
+                        {
+                            return 0;
+                        }
                     }
-                }
-                if(cbr->type == CBR_KEYPRESS_RAW)
-                {
-                    /* key got handled? */
-                    if(!cbr->handler((int)event))
+                    if(cbr->type == CBR_KEYPRESS_RAW)
                     {
-                        return 0;
+                        /* key got handled? */
+                        if(!cbr->handler((int)event))
+                        {
+                            return 0;
+                        }
                     }
+                    cbr++;
                 }
-                cbr++;
             }
         }
     }
@@ -958,8 +1013,6 @@ static MENU_SELECT_FUNC(module_menu_update_select)
     snprintf(enable_file, sizeof(enable_file), "%s%s.en", get_config_dir(), module_list[mod_number].name);
     config_flag_file_setting_save(enable_file, module_list[mod_number].enabled);
 }
-
-static const char* module_get_string(int mod_number, const char* name);
 
 static int startswith(const char* str, const char* prefix)
 {
@@ -1099,7 +1152,7 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
                 int fg = COLOR_GRAY(40);
                 int bg = COLOR_BLACK;
                 int fnt = SHADOW_FONT(FONT(FONT_MED_LARGE, fg, bg));
-                bmp_printf(fnt | FONT_ALIGN_RIGHT | FONT_TEXT_WIDTH(320), 680, info->y+2, "%s", name);
+                bmp_printf(fnt | FONT_ALIGN_RIGHT | FONT_TEXT_WIDTH(340), 680, info->y+2, "%s", name);
             }
         }
     }
@@ -1158,8 +1211,13 @@ static MENU_SELECT_FUNC(module_info_toggle)
     }
 }
 
-static const char* module_get_string(int mod_number, const char* name)
+const char* module_get_string(int mod_number, const char* name)
 {
+    if(mod_number < 0 || mod_number >= MODULE_COUNT_MAX)
+    {
+        return NULL;
+    }
+    
     module_strpair_t *strings = module_list[mod_number].strings;
 
     if (strings)
@@ -1172,7 +1230,44 @@ static const char* module_get_string(int mod_number, const char* name)
             }
         }
     }
-    return 0;
+    
+    return NULL;
+}
+
+const char* module_get_name(int mod_number)
+{
+    if(mod_number < 0 || mod_number >= MODULE_COUNT_MAX)
+    {
+        return NULL;
+    }
+    
+    return module_list[mod_number].name;
+}
+
+/*  returns the next loaded module id, or -1 when the end was reached.
+    if passing -1 as the mod_number, it will return the first loaded module number.
+*/
+int module_get_next_loaded(int mod_number)
+{
+    if(mod_number < 0)
+    {
+        mod_number = -1;
+    }
+    
+    while(1)
+    {
+        mod_number++;
+        
+        if(mod_number >= MODULE_COUNT_MAX)
+        {
+            return -1;
+        }
+        
+        if(module_list[mod_number].valid && module_list[mod_number].enabled)
+        {
+            return mod_number;
+        }
+    }
 }
 
 static int module_is_special_string(const char* name)
@@ -1624,7 +1719,7 @@ static void module_load_task(void* unused)
             }
             
             default:
-                console_printf("invalid msg: %d\n", msg);
+                printf("invalid msg: %d\n", msg);
         }
     }
 }
@@ -1632,7 +1727,7 @@ static void module_load_task(void* unused)
 void module_save_configs()
 {
     /* save configuration */
-    console_printf("Save configs...\n");
+    printf("Save configs...\n");
     for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
     {
         if(module_list[mod].valid && module_list[mod].enabled && !module_list[mod].error && module_list[mod].config)
@@ -1644,7 +1739,7 @@ void module_save_configs()
             uint32_t ret = module_config_save(filename, &module_list[mod]);
             if(ret)
             {
-                console_printf("  [E] Error: %d\n", ret);
+                printf("  [E] Error: %d\n", ret);
             }
         }
     }
