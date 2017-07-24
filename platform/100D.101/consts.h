@@ -13,29 +13,23 @@
 #define ARROW_MODE_TOGGLE_KEY "LCD sensor"
 #define FORMAT_STR_LOC 11
 
-//~ max volume supported for beeps
+// max volume supported for beeps
 #define ASIF_MAX_VOL 10
 
-#define HIJACK_CACHE_HACK
-#define HIJACK_CACHE_HACK_INITTASK_ADDR 0xFF0C1C88
-#define HIJACK_CACHE_HACK_GUITASK_ADDR 0xFF0D60B0
-#define HIJACK_CACHE_HACK_BSS_END_ADDR 0xFF0C34A8
-#define HIJACK_CACHE_HACK_BSS_END_INSTR 0xB1C000
-#define ML_RESERVED_MEM (640*1024)
-// fixup start address of AllocateMemory pool 0x7F0000
-#define HIJACK_CACHE_HACK_ALLOCMEM_SIZE_ADDR 0xFF0C334C
-// 0x6D0000
-#define HIJACK_CACHE_HACK_ALLOCMEM_SIZE_INSTR 0xE241086D
-
-#ifdef CONFIG_INSTALLER
 #define HIJACK_INSTR_BL_CSTART 0xFF0C0DB8
 #define HIJACK_INSTR_BSS_END 0xFF0C1C7C
 #define HIJACK_FIXBR_BZERO32 0xFF0C1BE0
 #define HIJACK_FIXBR_CREATE_ITASK 0xFF0C1C6C
 #define HIJACK_INSTR_MY_ITASK 0xFF0C1C88
-#define HIJACK_TASK_ADDR 0x652AC
-#endif
-#define HIJACK_TASK_ADDR 0x652AC
+
+// Used in boot-hack.c with CONFIG_ALLOCATE_MEMORY_POOL
+#define ROM_ITASK_START             0xFF0C56BC      /* init_task start */
+#define ROM_ITASK_END               0xFF0C5894      /* init_task end (need to include /_term and a few others) */
+#define ROM_CREATETASK_MAIN_START   0xFF0C32E4      /* CreateTaskMain start */
+#define ROM_CREATETASK_MAIN_END     0xFF0C34D4      /* only relocate until AllocateMemory initialization; need to include FF0C2AEC "K346" and FF0C34A8 0xC3C000 */
+#define ROM_ALLOCMEM_END            0xFF0C3348      /* where the end limit of AllocateMemory pool is set */
+#define ROM_ALLOCMEM_INIT           (ROM_ALLOCMEM_END + 8)  /* where it calls AllocateMemory_init_pool */
+#define ROM_B_CREATETASK_MAIN       0xFF0C5730      /* jump from init_task to CreateTaskMain */
 
 // no idea if it's overflowing, need to check experimentally 
 #define ARMLIB_OVERFLOWING_BUFFER 0x8776C                       // in AJ_armlib_setup_related3

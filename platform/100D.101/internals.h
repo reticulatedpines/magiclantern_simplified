@@ -14,6 +14,9 @@
 /** This camera has a DIGIC V chip */
 #define CONFIG_DIGIC_V
 
+/** This camera loads ML into the AllocateMemory pool **/
+#define CONFIG_ALLOCATE_MEMORY_POOL
+
 /** This camera has LiveView and can record video **/
 #define CONFIG_LIVEVIEW
 #define CONFIG_MOVIE
