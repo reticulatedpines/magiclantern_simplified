@@ -595,8 +595,9 @@ init_task_func init_task_patched(int a, int b, int c, int d)
     uint32_t* addr_BL_AllocMem_init = (void*)(CreateTaskMain_reloc_buf + ROM_ALLOCMEM_INIT + CreateTaskMain_offset);
     uint32_t* addr_B_CreateTaskMain = (void*)(init_task_reloc_buf + ROM_B_CREATETASK_MAIN + init_task_offset);
 
-    qprint("[BOOT] changing AllocMem_end:\n");
+    qprint("[BOOT] changing AllocMem limits:\n");
     qdisas((uint32_t)addr_AllocMem_end);
+    qdisas((uint32_t)addr_AllocMem_end + 4);
 
     /* check if the patched addresses are, indeed, a BL and a B instruction */
     if ((((*addr_BL_AllocMem_init) >> 24) != (BL_INSTR(0,0) >> 24)) ||
@@ -607,25 +608,22 @@ init_task_func init_task_patched(int a, int b, int c, int d)
     }
 
     #if defined(CONFIG_6D)
-    /* R0: 0x44C000             (start address, unchanged, but we have to patch it, because it's derived from R1) */
-    /* R1: 0xD3C000 -> 0xCA0000 (end address, reserve 624K for ML) */
-    addr_AllocMem_end[1] = MOV_R1_0xCA0000_INSTR;           /* R1 is easy to patch */
-    uint32_t offset = (addr_AllocMem_end[0] & 0xFFF) + 8;   /* PC-relative address to patch for R0 */
-    if (addr_AllocMem_end[offset/4] != 0xD3C000) while(1);  /* do not boot if offset is wrong */
-    addr_AllocMem_end[0] &= 0xFFFF0FFF;                     /* change LDR R1 into LDR R0 */
-    addr_AllocMem_end[offset/4] = 0x44C000;                 /* LDR R0, =0x44C000 */
-    ml_reserved_mem = 0xD3C000 - 0xCA0000;
+    /* R0: 0x44C000 (start address, easier to patch, change to 0x4E0000 => reserve 592K for ML) */
+    /* R1: 0xD3C000 (end address, unchanged) */
+    addr_AllocMem_end[1] = MOV_R0_0x4E0000_INSTR;
+    ml_reserved_mem = 0x4E0000 - RESTARTSTART;
     #elif defined(CONFIG_550D)
     // change end limit from 0xd00000 to 0xc60000 => reserve 640K for ML
     *addr_AllocMem_end = MOV_R1_0xC60000_INSTR;
-    ml_reserved_mem = 0xD00000 - 0xC60000;
+    ml_reserved_mem = 0xD00000 - RESTARTSTART;
     #else
     // change end limit from 0xd00000 to 0xc80000 => reserve 512K for ML
     *addr_AllocMem_end = MOV_R1_0xC80000_INSTR;
-    ml_reserved_mem = 0xD00000 - 0xC80000;
+    ml_reserved_mem = 0xD00000 - RESTARTSTART;
     #endif
 
     qdisas((uint32_t)addr_AllocMem_end);
+    qdisas((uint32_t)addr_AllocMem_end + 4);
 
     // relocating CreateTaskMain does some nasty things, so, right after patching,
     // we jump back to ROM version; at least, what's before patching seems to be relocated properly
