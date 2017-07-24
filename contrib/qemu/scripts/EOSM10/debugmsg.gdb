@@ -1,0 +1,17 @@
+# ./run_canon_fw.sh EOSM10 -s -S & arm-none-eabi-gdb -x EOSM10/debugmsg.gdb
+
+source -v debug-logging.gdb
+
+macro define CURRENT_TASK 0x803C
+macro define CURRENT_ISR  (*(int*)0x8160 ? (*(int*)0x8164) : 0)
+
+b *0xBFE14A40
+task_create_log
+
+b *0xBFE1496C
+msleep_log
+
+b *0x10E1009
+assert_log
+
+continue

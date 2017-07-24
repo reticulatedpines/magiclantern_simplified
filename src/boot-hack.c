@@ -39,15 +39,11 @@
 
 #include "boot-hack.h"
 #include "reloc.h"
-
 #include "ml-cbr.h"
+#include "backtrace.h"
 
 #if defined(FEATURE_GPS_TWEAKS)
 #include "gps.h"
-#endif
-
-#ifdef CONFIG_QEMU
-#include "qemu-util.h"
 #endif
 
 #if defined(CONFIG_HELLO_WORLD)
@@ -94,6 +90,10 @@ zero_bss( void )
         *(bss++) = 0;
 }
 
+/* Cannot use qprintf here for debugging (no snprintf). */
+/* You may use qprint/qprintn instead. */
+#define qprintf qprintf_not_available
+
 /** Copy firmware to RAM, patch it and restart it */
 void
 copy_and_restart( )
@@ -110,6 +110,7 @@ copy_and_restart( )
     cache_lock();
 
     /* patch init code to start our init task instead of canons default */
+    qprint("[BOOT] patching init_task from "); qprintn(MEM(HIJACK_CACHE_HACK_INITTASK_ADDR)); qprint("\n");
     cache_fake(HIJACK_CACHE_HACK_INITTASK_ADDR, (uint32_t) my_init_task, TYPE_DCACHE);
 
     /* now start main firmware */
@@ -136,8 +137,16 @@ copy_and_restart( )
      * calls bzero(), then loads bs_end and calls
      * create_init_task
      */
-    // Reserve memory after the BSS for our application
     #if !defined(CONFIG_ALLOCATE_MEMORY_POOL) // Some cameras load ML into the AllocateMemory pool (like 5500D/1100D)
+    // Reserve memory after the BSS for our application
+    // This is done by resizing the malloc memory pool (user_mem_start in DryOS memory map),
+    // We are going to change its start address, to begin right after our BSS,
+    // (which is the last segment in our binary - see magiclantern.lds.S). */
+    // Malloc memory is usually specified by its start and end address.
+    // Exception: DIGIC 6 uses start address + size.
+    // Cannot use qprintf here (no snprintf).
+    qprint("[BOOT] changing user_mem_start from "); qprintn(INSTR(HIJACK_INSTR_BSS_END));
+    qprint("to "); qprintn((uintptr_t)_bss_end); qprint("\n");
     INSTR( HIJACK_INSTR_BSS_END ) = (uintptr_t) _bss_end;
     ml_reserved_mem = (uintptr_t)_bss_end - RESTARTSTART;
     #endif
@@ -147,6 +156,8 @@ copy_and_restart( )
     FIXUP_BRANCH( HIJACK_FIXBR_CREATE_ITASK, create_init_task );
 
     // Set our init task to run instead of the firmware one
+    qprint("[BOOT] changing init_task from "); qprintn(INSTR( HIJACK_INSTR_MY_ITASK ));
+    qprint("to "); qprintn((uint32_t) my_init_task); qprint("\n");
     INSTR( HIJACK_INSTR_MY_ITASK ) = (uint32_t) my_init_task;
     
     // Make sure that our self-modifying code clears the cache
@@ -175,6 +186,7 @@ copy_and_restart( )
 
 #if !defined(CONFIG_EARLY_PORT) && !defined(CONFIG_HELLO_WORLD) && !defined(CONFIG_DUMPER_BOOTFLAG)
     // Install our task creation hooks
+    qprint("[BOOT] installing task dispatch hook at "); qprintn((int)&task_dispatch_hook); qprint("\n");
     task_dispatch_hook = my_task_dispatch_hook;
     #ifdef CONFIG_TSKMON
     tskmon_init();
@@ -195,6 +207,8 @@ copy_and_restart( )
 #endif
 }
 
+/* qprintf should be fine from now on */
+#undef qprintf
 static int _hold_your_horses = 1; // 0 after config is read
 int ml_started = 0; // 1 after ML is fully loaded
 int ml_gui_initialized = 0; // 1 after gui_main_task is started 
@@ -212,9 +226,7 @@ my_task_dispatch_hook(
         struct task * next_task             /* only present on new DryOS; old versions use HIJACK_TASK_ADDR */
 )
 {
-#ifdef CONFIG_QEMU
-    qprintf("task_hook(%x) %x(%s) -> %x(%s), from %x\n", context_unused, prev_task_unused, prev_task_unused->name, next_task, next_task->name, read_lr());
-#endif
+    qprintf("[****] task_hook(%x) %x(%s) -> %x(%s), from %x\n", context_unused, prev_task_unused, prev_task_unused->name, next_task, next_task->name, read_lr());
 
 #ifdef HIJACK_TASK_ADDR                     /* old DryOS only; undefine this for new DryOS */
     next_task = *(struct task **)(HIJACK_TASK_ADDR);
@@ -245,14 +257,12 @@ my_task_dispatch_hook(
 
     thunk entry = (thunk) next_task->entry;
 
+    qprintf("[****] Starting task %x(%x) %s\n", next_task->entry, next_task->arg, next_task->name);
+
     // Search the task_mappings array for a matching entry point
     extern struct task_mapping _task_overrides_start[];
     extern struct task_mapping _task_overrides_end[];
     struct task_mapping * mapping = _task_overrides_start;
-
-#ifdef CONFIG_QEMU
-    qprintf("[*****] Starting task %x(%x) %s\n", next_task->entry, next_task->arg, next_task->name);
-#endif
 
     for( ; mapping < _task_overrides_end ; mapping++ )
     {
@@ -264,12 +274,10 @@ my_task_dispatch_hook(
             continue;
 
 /* -- can't call debugmsg from this context */
-#ifdef CONFIG_QEMU
-        qprintf("[*****] Replacing task %x with %x\n",
+        qprintf("[****] Replacing task %x with %x\n",
             original_entry,
             mapping->replacement
         );
-#endif
 
         next_task->entry = mapping->replacement;
         break;
@@ -497,7 +505,7 @@ void hold_your_horses()
  * Custom assert handler - intercept ERR70 and try to save a crash log.
  * Crash log should contain Canon error message.
  */
-static char assert_msg[256] = "";
+static char assert_msg[512] = "";
 static int (*old_assert_handler)(char*,char*,int,int) = 0;
 const char* get_assert_msg() { return assert_msg; }
 
@@ -505,28 +513,30 @@ static int my_assert_handler(char* msg, char* file, int line, int arg4)
 {
     uint32_t lr = read_lr();
 
-    snprintf(assert_msg, sizeof(assert_msg), 
+    int len = snprintf(assert_msg, sizeof(assert_msg), 
         "ASSERT: %s\n"
         "at %s:%d, %s:%x\n"
-        "lv:%d mode:%d\n", 
+        "lv:%d mode:%d\n\n", 
         msg, 
         file, line, get_current_task_name(), lr,
         lv, shooting_mode
     );
+    backtrace_getstr(assert_msg + len, sizeof(assert_msg) - len);
     request_crash_log(1);
     return old_assert_handler(msg, file, line, arg4);
 }
 
 void ml_assert_handler(char* msg, char* file, int line, const char* func)
 {
-    snprintf(assert_msg, sizeof(assert_msg), 
+    int len = snprintf(assert_msg, sizeof(assert_msg), 
         "ML ASSERT:\n%s\n"
         "at %s:%d (%s), task %s\n"
-        "lv:%d mode:%d\n", 
+        "lv:%d mode:%d\n\n", 
         msg, 
         file, line, func, get_current_task_name(), 
         lv, shooting_mode
     );
+    backtrace_getstr(assert_msg + len, sizeof(assert_msg) - len);
     request_crash_log(2);
 }
 
@@ -543,7 +553,7 @@ void ml_crash_message(char* msg)
 
 init_task_func init_task_patched(int a, int b, int c, int d)
 {
-    // We shrink the AllocateMemory (system memory) pool in order to make space for ML binary
+    // We shrink the AllocateMemory pool in order to make space for ML binary
     // Example for the 1100D firmware
     // ff0197d8: init_task:
     // ff01984c: b CreateTaskMain
@@ -585,13 +595,14 @@ init_task_func init_task_patched(int a, int b, int c, int d)
     uint32_t* addr_BL_AllocMem_init = (void*)(CreateTaskMain_reloc_buf + ROM_ALLOCMEM_INIT + CreateTaskMain_offset);
     uint32_t* addr_B_CreateTaskMain = (void*)(init_task_reloc_buf + ROM_B_CREATETASK_MAIN + init_task_offset);
 
+    qprint("[BOOT] changing AllocMem_end:\n");
+    qdisas((uint32_t)addr_AllocMem_end);
+
     /* check if the patched addresses are, indeed, a BL and a B instruction */
     if ((((*addr_BL_AllocMem_init) >> 24) != (BL_INSTR(0,0) >> 24)) ||
         (((*addr_B_CreateTaskMain) >> 24) != (B_INSTR(0,0)  >> 24)))
     {
-        #ifdef CONFIG_QEMU
         qprintf("Please check ROM_ALLOCMEM_INIT and ROM_B_CREATETASK_MAIN.\n");
-        #endif
         while(1);                                       /* refuse to boot */
     }
 
@@ -613,6 +624,8 @@ init_task_func init_task_patched(int a, int b, int c, int d)
     *addr_AllocMem_end = MOV_R1_0xC80000_INSTR;
     ml_reserved_mem = 0xD00000 - 0xC80000;
     #endif
+
+    qdisas((uint32_t)addr_AllocMem_end);
 
     // relocating CreateTaskMain does some nasty things, so, right after patching,
     // we jump back to ROM version; at least, what's before patching seems to be relocated properly
@@ -655,6 +668,7 @@ my_init_task(int a, int b, int c, int d)
 
     // this is generic
     ml_used_mem = (uint32_t)&_bss_end - (uint32_t)&_text_start;
+    qprintf("[BOOT] autoexec.bin loaded at %X - %X.\n", &_text_start, &_bss_end);
 
 #ifdef HIJACK_CACHE_HACK
     /* as we do not return in the middle of te init task as in the hijack-through-copy method, we have to install the hook here */
@@ -734,11 +748,8 @@ my_init_task(int a, int b, int c, int d)
     /* ensure binary is not too large */
     if (ml_used_mem > ml_reserved_mem)
     {
-        #ifdef CONFIG_QEMU
-        qprintf("Out of memory: ml_used_mem=%d ml_reserved_mem=%d\n", ml_used_mem, ml_reserved_mem);
-        call("shutdown");
-        #endif
-        
+        qprintf("[BOOT] out of memory: ml_used_mem=%d ml_reserved_mem=%d\n", ml_used_mem, ml_reserved_mem);
+
         while(1)
         {
             info_led_blink(3, 500, 500);
@@ -802,10 +813,6 @@ my_init_task(int a, int b, int c, int d)
 
 #ifndef CONFIG_EARLY_PORT
 
-#ifdef CONFIG_QEMU
-    qemu_cam_init();
-#endif
-
     // wait for firmware to initialize
     while (!bmp_vram_raw()) msleep(100);
     
@@ -843,11 +850,6 @@ my_init_task(int a, int b, int c, int d)
     }
 
     task_create("ml_init", 0x1e, 0x4000, my_big_init_task, 0 );
-
-#ifdef CONFIG_QEMU  /* fixme: Canon GUI task is not started */
-    extern void ml_gui_main_task();
-    task_create("GuiMainTask", 0x17, 0x2000, ml_gui_main_task, 0);
-#endif
 
     return ans;
 #endif // !CONFIG_EARLY_PORT

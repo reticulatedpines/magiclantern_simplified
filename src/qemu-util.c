@@ -4,16 +4,17 @@
 #include "property.h"
 #include "raw.h"
 #include "lens.h"
+#include "timer.h"
+#include "qemu-util.h"
 
-/** Some small engio API **/
-#define REG_PRINT_CHAR 0xCF123000
-#define REG_SHUTDOWN 0xCF123004
-#define REG_DUMP_VRAM 0xCF123008
-#define REG_GET_KEY    0xCF123010
-#define REG_BMP_VRAM   0xCF123014
-#define REG_IMG_VRAM   0xCF123018
-#define REG_RAW_BUFF   0xCF12301C
-#define REG_DISP_TYPE  0xCF123020
+int qprint(const char * msg)
+{
+    for (const char* c = msg; *c; c++)
+    {
+        *(volatile uint32_t*)REG_PRINT_CHAR = *c;
+    }
+    return 0;
+}
 
 int qprintf(const char * fmt, ...) // prints in the QEMU console
 {
@@ -22,10 +23,7 @@ int qprintf(const char * fmt, ...) // prints in the QEMU console
     va_start( ap, fmt );
     vsnprintf( buf, sizeof(buf)-1, fmt, ap );
     va_end( ap );
-    
-    for (char* c = buf; *c; c++)
-        *(volatile uint32_t*)REG_PRINT_CHAR = *c;
-    
+    qprint(buf);
     return 0;
 }
 
@@ -45,95 +43,6 @@ void qemu_hello()
     call("shutdown");
     
     while(1); // that's all, folks!
-}
-
-/* http://www.marjorie.de/ps2/scancode-set1.htm */
-static int translate_scancode(int scancode)
-{
-    switch (scancode)
-    {
-        #ifdef BGMT_Q
-        case 0x10: return BGMT_Q;                       /* Q */
-        #endif
-        case 0x1C: return BGMT_PRESS_FULLSHUTTER;       /* ENTER */
-        case 0x9C: return BGMT_UNPRESS_FULLSHUTTER;
-        case 0x36: return BGMT_PRESS_HALFSHUTTER;       /* right shift */
-        case 0xB6: return BGMT_UNPRESS_HALFSHUTTER;
-        case 0x32: return BGMT_MENU;                    /* M */
-        case 0x39: return BGMT_PRESS_SET;               /* space */
-        case 0xB9: return BGMT_UNPRESS_SET;
-        #ifdef BGMT_JOY_CENTER
-        case 0x2D: return BGMT_JOY_CENTER;              /* X */
-        case 0xAD: return BGMT_UNPRESS_UDLR;
-        #endif
-        case 0x1A: return BGMT_WHEEL_LEFT;              /* [ and ] */
-        case 0x1B: return BGMT_WHEEL_RIGHT;
-        case 0x19: return BGMT_PLAY;                    /* P */
-        case 0x17: return BGMT_INFO;                    /* I */
-        #ifdef BGMT_RATE
-        case 0x13: return BGMT_RATE;                    /* R */
-        #endif
-        case 0x0D: return BGMT_PRESS_ZOOM_IN;      /* + */
-        //~ case 0x8D: return BGMT_UNPRESS_ZOOM_IN;
-        //~ case 0x0C: return BGMT_PRESS_ZOOM_OUT;      /* - */
-        //~ case 0x8C: return BGMT_UNPRESS_ZOOM_OUT;
-        
-        case 0xE0:
-        {
-            int second_code = 0;
-            while (!second_code)
-            {
-                second_code = MEM(REG_GET_KEY);
-            }
-            
-            switch (second_code)
-            {
-                case 0x48: return BGMT_PRESS_UP;        /* arrows */
-                case 0x4B: return BGMT_PRESS_LEFT;
-                case 0x50: return BGMT_PRESS_DOWN;
-                case 0x4D: return BGMT_PRESS_RIGHT;
-                case 0xC8:
-                case 0xCB:
-                case 0xD0:
-                #ifdef BGMT_UNPRESS_UDLR
-                case 0xCD: return BGMT_UNPRESS_UDLR;
-                #else
-                case 0xCD: return BGMT_UNPRESS_LEFT;    /* fixme: not correct, but enough for ML menu */
-                #endif
-                case 0x49: return BGMT_WHEEL_UP;        /* page up */
-                case 0x51: return BGMT_WHEEL_DOWN;
-                case 0x53: return BGMT_TRASH;           /* delete */
-            }
-        }
-    }
-    
-    return -1;
-}
-
-static void qemu_print_help()
-{
-    bmp_printf(FONT_LARGE, 50, 30, "Magic Lantern in QEMU");
-
-    big_bmp_printf(FONT_MONO_20 | FONT_ALIGN_FILL, 50, 80,
-        "DELETE       open ML menu\n"
-        "SPACE        SET\n"
-        "SHIFT        half-shutter\n"
-        "ENTER        full-shutter\n"
-        "Q            you know :)\n"
-        "M            MENU\n"
-        "P            PLAY\n"
-        "I            INFO\n"
-        "R            RATE\n"
-        "X            joystick center\n"
-        "Arrows       guess :)\n"
-        "PageUp/Dn    rear scrollwheel\n"
-        "[ and ]      top scrollwheel\n"
-        "+/-          zoom in/out\n"
-        "H            LCD/HDMI/SD monitor\n"
-        "L            LiveView\n"
-    );
-
-    bmp_printf(FONT_LARGE, 50, 420, "Have fun!");
 }
 
 static void toggle_display_type()
@@ -159,7 +68,7 @@ static void toggle_display_type()
     /* one of those is for PAL, the other is for NTSC; see BMP_VRAM_START in bmp.c */
     uintptr_t bmp_sd1 = bmp_hdmi + BMP_HDMI_OFFSET + 8;
     uintptr_t bmp_sd2 = bmp_hdmi + BMP_HDMI_OFFSET + 0x3c8;
-    uintptr_t bmp_sd3 = bmp_hdmi + BMP_HDMI_OFFSET + 0x3c0; /* 700D and maybe other newer cameras? */
+    //uintptr_t bmp_sd3 = bmp_hdmi + BMP_HDMI_OFFSET + 0x3c0; /* 700D and maybe other newer cameras? */
     
     int display_type = MEM(REG_DISP_TYPE);
     char* display_modes[] = {   "LCD",  "HDMI-1080",    "HDMI-480", "SD-PAL",   "SD-NTSC"   };
@@ -167,9 +76,10 @@ static void toggle_display_type()
     int hdmi_codes[]      = {   0,       5,              2,          0,          0          };
     int ext_hdmi_codes[]  = {   0,       1,              1,          0,          0          };
     int ext_rca_codes[]   = {   0,       0,              0,          1,          1          };
-    int pal_codes[]       = {   0,       0,              0,          1,          0          };
+    //int pal_codes[]     = {   0,       0,              0,          1,          0          };
     
-    bmp_vram_info[1].vram2 = MEM(REG_BMP_VRAM) = buffers[display_type];
+    MEM(REG_BMP_VRAM) = buffers[display_type];
+    bmp_vram_info[1].vram2 = (void*)buffers[display_type];
     hdmi_code = hdmi_codes[display_type];
     ext_monitor_hdmi = ext_hdmi_codes[display_type];
     _ext_monitor_rca = ext_rca_codes[display_type];
@@ -242,7 +152,7 @@ static void toggle_liveview()
             gui_task_list.current = current = malloc(sizeof(struct gui_task));
             current->priv = malloc(sizeof(struct dialog));
             struct dialog * dialog = current->priv;
-            dialog->handler = &LiveViewApp_handler;
+            dialog->handler = (void*)&LiveViewApp_handler;
         }
 
     }
@@ -256,60 +166,4 @@ static void toggle_liveview()
     clrscr();
     redraw();
     vram_params_set_dirty();
-}
-
-static void qemu_key_poll()
-{
-    TASK_LOOP
-    {
-        int keycode = MEM(REG_GET_KEY);
-        if (keycode == 0x23) // H
-        {
-            toggle_display_type();
-        }
-        else if (keycode == 0x26) // L
-        {
-            toggle_liveview();
-        }
-        else if (keycode)
-        {
-            int event_code = translate_scancode(keycode);
-            if (event_code >= 0)
-            {
-                GUI_Control(event_code, 0, 0, 0);
-            }
-            else
-            {
-                qprintf("Key %x\n", keycode);
-            }
-        }
-        else
-        {
-            msleep(50);
-        }
-        
-        if (!gui_menu_shown() && !lv)
-        {
-            qemu_print_help();
-        }
-    }
-}
-
-TASK_CREATE( "qemu_key_poll", qemu_key_poll, 0, 0x1a, 0x2000 );
-
-void qemu_cam_init()
-{
-    toggle_display_type();
-
-    // fake display on
-    #if defined(CONFIG_550D)
-    extern int display_is_on_550D;
-    display_is_on_550D = 1;
-    #elif defined(DISPLAY_STATEOBJ)
-    DISPLAY_STATEOBJ->current_state = 1;
-    #else
-    DISPLAY_IS_ON = 1;
-    #endif
-    
-    pic_quality = PICQ_RAW;
 }

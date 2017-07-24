@@ -4,8 +4,13 @@ ifeq ($(FW_VERSION),116)
 CANON_NAME_FIR=6D000116.FIR
 ROMBASEADDR		= 0xFF0C0000
 
+ifeq ($(ML_SRC_PROFILE),generic)
 # load ML in AllocateMemory pool
 RESTARTSTART	= 0xCA0000
+else
+# BSS_END: ff0c1c64:	000d7868
+RESTARTSTART	= 0x000D7900
+endif
 
 #End of FW_VERSION == 116
 endif
