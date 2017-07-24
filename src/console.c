@@ -9,10 +9,7 @@
 #include "zebra.h"
 #include "shoot.h"
 #include "alloca.h"
-
-#ifdef CONFIG_QEMU
 #include "qemu-util.h"
-#endif
 
 #ifndef CONFIG_CONSOLE
 #error Something went wrong CONFIg_CONSOLE should be defined
@@ -95,10 +92,9 @@ static void console_init()
 void console_puts(const char* str) // don't DebugMsg from here!
 {
     #define NEW_CHAR(c) CONSOLE_BUFFER(console_buffer_index++) = (c)
-    
-    #ifdef CONFIG_QEMU
+
+    /* this only runs when compiling with CONFIG_QEMU */
     qprintf("%s", str);
-    #endif
 
     #ifdef CONSOLE_DEBUG
     bmp_printf(FONT_MED, 0, 0, "%s ", str);

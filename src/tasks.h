@@ -116,9 +116,7 @@ task_trampoline(
 
 
 /** Hook to override task dispatch */
-extern void (*task_dispatch_hook)(
-        struct context **       context
-);
+extern void (*task_dispatch_hook)();
 
 
 /** Override a DryOS task */

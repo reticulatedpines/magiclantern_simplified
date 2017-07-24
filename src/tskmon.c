@@ -312,10 +312,8 @@ null_pointer_check()
 /* if we don't, gcc inserts a UDF instruction at the end of tskmon_task_dispatch */
 /* could it be a gcc bug? */
 void __attribute__((optimize("-fno-delete-null-pointer-checks")))
-tskmon_task_dispatch()
+tskmon_task_dispatch(struct task * next_task)
 {
-#ifdef HIJACK_TASK_ADDR
-
     if (RECORDING_RAW)
     {
         /* we need full speed; these checks might cause a small performance hit */
@@ -329,8 +327,6 @@ tskmon_task_dispatch()
         /* 5D2 locks up, even with loop of of asm("nop"); maybe others too? */
         return;
     }
-
-    struct task *next_task = *(struct task **)(HIJACK_TASK_ADDR);
 
     tskmon_stack_checker(next_task);
     tskmon_update_timers();
@@ -366,7 +362,6 @@ tskmon_task_dispatch()
         tskmon_active_time = 0;
         tskmon_last_task = next_task;
     }
-#endif
 }
 
 #ifdef CONFIG_ISR_HOOKS

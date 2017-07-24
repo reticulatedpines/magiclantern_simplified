@@ -55,10 +55,17 @@ static inline uint32_t
 read_lr( void )
 {
     uint32_t lr;
-    asm( "mov %0, lr" : "=r"(lr) );
+    asm __volatile__ ( "mov %0, %%lr" : "=&r"(lr) );
     return lr;
 }
 
+static inline uint32_t
+read_sp( void )
+{
+    uint32_t sp;
+    asm __volatile__ ( "mov %0, %%sp" : "=&r"(sp) );
+    return sp;
+}
 
 static inline void
 select_normal_vectors( void )
@@ -243,8 +250,10 @@ sei( uint32_t old_irq )
 #define LOOP_INSTR    0xeafffffe    // 1: b 1b
 #define NOP_INSTR    0xe1a00000    // mov r0, r0
 #define MOV_R0_0_INSTR 0xe3a00000
-#define MOV_R1_0xC80000_INSTR 0xe3a01732 // mov r1, 0xc80000 
-#define MOV_R1_0xC60000_INSTR 0xE3A018C6 // mov r1, 0xc60000 
+#define MOV_R0_0x450000_INSTR 0xE3A00845
+#define MOV_R1_0xC80000_INSTR 0xE3A01732
+#define MOV_R1_0xC60000_INSTR 0xE3A018C6
+#define MOV_R0_0x4E0000_INSTR 0xE3A0084E
 
 #define MOV_RD_IMM_INSTR(rd,imm)\
     ( 0xE3A00000 \

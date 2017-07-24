@@ -1857,6 +1857,61 @@ static void edmac_test_task()
     edmac_memcpy_res_unlock();
 }
 
+static void frozen_task()
+{
+    NotifyBox(2000, "while(1);");
+    msleep(3000);
+    while(1);
+}
+
+static void lockup_task()
+{
+    NotifyBox(2000, "cli(); while(1);");
+    msleep(3000);
+    cli();
+    while(1);
+}
+
+static void freeze_gui_task()
+{
+    NotifyBox(2000, "GUI task locked up.");
+    while(1) msleep(1000);
+}
+
+static void divzero_task()
+{
+    for (int i = -10; i < 10; i++)
+    {
+        console_show();
+        printf("1000/%d = %d = %d\n", i, 1000/i, (int)(1000.0 / (float)i));
+        msleep(500);
+    }
+}
+
+static void alloc_1M_task()
+{
+    console_show();
+    msleep(2000);
+
+    /* after a few calls, this will fail with ERR70 */
+    void * ptr = _AllocateMemory(1024 * 1024);
+
+    /* do something with "ptr" to prevent a tail call (to test the stack trace) */
+    printf("Alloc 1MB from sys mem => %x\n", ptr);
+
+    /* do not free it */
+}
+
+static void alloc_10M_task()
+{
+    console_show();
+    msleep(2000);
+
+    void * ptr = malloc(10 * 1024 * 1024);
+    printf("Alloc 10MB => %x\n", ptr);
+    /* do not free it */
+}
+
 static struct menu_entry selftest_menu[] =
 {
     {
@@ -1936,39 +1991,54 @@ static struct menu_entry selftest_menu[] =
             MENU_EOL,
         }
     },
-    #if 0
     {
-        .name       = "Fault emulation...",
+        .name       = "Fault emulation",
         .select     = menu_open_submenu,
         .help       = "Causes intentionally wrong behavior to see DryOS reaction.",
+        .help2      = "You'll have to take the battery out after running most of these.",
         .children   = (struct menu_entry[]) {
             {
                 .name       = "Create a stuck task",
                 .select     = run_in_separate_task,
                 .priv       = frozen_task,
-                .help       = "Creates a task which will become stuck in an infinite loop."
+                .help       = "Creates a task which will become stuck in an infinite loop.",
+                .help2      = "Low priority tasks (prio >= 0x1A) will no longer be able to run.",
             },
             {
-                .name       = "Freeze GUI task",
+                .name       = "Freeze the GUI task",
                 .select     = freeze_gui_task,
-                .help       = "Freezes main GUI task. Camera will stop reacting to buttons."
+                .help       = "Freezes main GUI task. Camera will stop reacting to buttons.",
+            },
+            {
+                .name       = "Lock-up the ARM CPU",
+                .select     = run_in_separate_task,
+                .priv       = lockup_task,
+                .help       = "Creates a task which will clear the interrupts and execute while(1).",
+                .help2      = "Anything still running after that would be secondary CPUs or hardware.",
             },
             {
                 .name       = "Division by zero",
                 .select     = run_in_separate_task,
                 .priv       = divzero_task,
-                .help       = "Performs some math operations which will divide by zero."
+                .help       = "Performs some math operations which will divide by zero.",
             },
             {
-                .name       = "Allocate 1MB of RAM",
+                .name       = "Allocate 1MB of system RAM",
                 .select     = run_in_separate_task,
                 .priv       = alloc_1M_task,
-                .help       = "Allocates 1MB RAM from system memory, without freeing it."
+                .help       = "Allocates 1MB RAM from system memory, without freeing it.",
+                .help2      = "After running this a few times, you'll get ERR70.",
+            },
+            {
+                .name       = "Allocate 10MB of RAM",
+                .select     = run_in_separate_task,
+                .priv       = alloc_10M_task,
+                .help       = "Allocates 1MB RAM from any source, without freeing it.",
+                .help2      = "After running this a few times, you'll run out of memory.",
             },
             MENU_EOL,
         }
     },
-    #endif
 };
 
 static struct menu_entry * selftest_menu_entry(const char* entry_name)
