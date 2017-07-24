@@ -12,7 +12,5 @@
 #define FEATURE_AUDIO_REMOTE_SHOT
 #define FEATURE_CROP_MODE_HACK
 
-#undef CONFIG_TSKMON
-
 /* Not working */
 #undef FEATURE_TRAP_FOCUS
