@@ -731,6 +731,14 @@ my_init_task(int a, int b, int c, int d)
     ml_used_mem = (uint32_t)&_bss_end - (uint32_t)&_text_start;
     qprintf("[BOOT] autoexec.bin loaded at %X - %X.\n", &_text_start, &_bss_end);
 
+    /* relative jumps in ARM mode are +/- 32 MB */
+    /* make sure we can reach anything in the ROM (some code, e.g. patchmgr, depend on this) */
+    uint32_t jump_limit = (uint32_t) &_bss_end - 32 * 1024 * 1024;
+    if (jump_limit > 0xFF000000 || jump_limit < 0xFC000000)
+    {
+        qprintf("[BOOT] warning: cannot use relative jumps to anywhere in the ROM (limit=%x)\n", jump_limit);
+    }
+
 #ifdef HIJACK_CACHE_HACK
     /* as we do not return in the middle of te init task as in the hijack-through-copy method, we have to install the hook here */
     task_dispatch_hook = my_task_dispatch_hook;
