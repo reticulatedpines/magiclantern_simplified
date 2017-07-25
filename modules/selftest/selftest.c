@@ -1897,7 +1897,7 @@ static void alloc_1M_task()
     void * ptr = _AllocateMemory(1024 * 1024);
 
     /* do something with "ptr" to prevent a tail call (to test the stack trace) */
-    printf("Alloc 1MB from sys mem => %x\n", ptr);
+    printf("AllocateMemory 1MB => %x\n", ptr);
 
     /* do not free it */
 }
@@ -2023,10 +2023,10 @@ static struct menu_entry selftest_menu[] =
                 .help       = "Performs some math operations which will divide by zero.",
             },
             {
-                .name       = "Allocate 1MB of system RAM",
+                .name       = "AllocateMemory 1MB",
                 .select     = run_in_separate_task,
                 .priv       = alloc_1M_task,
-                .help       = "Allocates 1MB RAM from system memory, without freeing it.",
+                .help       = "Allocates 1MB RAM using AllocateMemory, without freeing it.",
                 .help2      = "After running this a few times, you'll get ERR70.",
             },
             {
