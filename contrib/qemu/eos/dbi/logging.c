@@ -17,6 +17,26 @@
 
 #define CALLSTACK_RIGHT_ALIGN 80
 
+static const char * eos_lookup_symbol(uint32_t pc)
+{
+    if (pc < 0x100)
+    {
+        /* very low address? don't bother */
+        return "";
+    }
+
+    /* looks like most (all?) symbols are loaded with Thumb bit cleared */
+    const char * name = lookup_symbol(pc & ~1);
+
+    if (!(name && name[0]))
+    {
+        /* not found? try to look it up with Thumb bit set */
+        name = lookup_symbol(pc | 1);
+    }
+
+    return name;
+}
+
 static inline int should_log_memory_region(MemoryRegion * mr, int is_write)
 {
     int is_read = !is_write;
@@ -538,10 +558,10 @@ void eos_callstack_print_verbose(EOSState *s)
         {
             /* print direct jumps, if any */
             /* use any of their names for the entire group */
-            const char * name = lookup_symbol(pc);
+            const char * name = eos_lookup_symbol(pc);
             for (int i = COUNT(entry->direct_jumps)-1; i >= 0; i--) {
                 if (entry->direct_jumps[i]) {
-                    const char * jump_name = lookup_symbol(entry->direct_jumps[i]);
+                    const char * jump_name = eos_lookup_symbol(entry->direct_jumps[i]);
                     if (jump_name && jump_name[0]) {
                         name = jump_name;
                     }
@@ -564,7 +584,7 @@ int eos_print_location(EOSState *s, uint32_t pc, uint32_t lr, const char * prefi
 {
     char name_suffix[512];
 
-    const char * name = lookup_symbol(pc);
+    const char * name = eos_lookup_symbol(pc);
     if (name && name[0]) {
         snprintf(name_suffix, sizeof(name_suffix), " (%s)%s", name, suffix);
         suffix = name_suffix;
@@ -722,7 +742,7 @@ static int print_arg(uint32_t arg)
 {
     int len = fprintf(stderr, "%x", arg);
 
-    const char * name = lookup_symbol(arg);
+    const char * name = eos_lookup_symbol(arg);
     if (name && name[0])
     {
         return len + fprintf(stderr, " %s", name);
@@ -1062,7 +1082,7 @@ recheck:
         uint8_t id = get_stackid(s);
 
         if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
-            const char * name = lookup_symbol(pc);
+            const char * name = eos_lookup_symbol(pc);
             int len = call_stack_indent(id, 0, 0);
             len += fprintf(stderr, "call 0x%X", pc | env->thumb);
             if (name && name[0]) {
@@ -1225,7 +1245,7 @@ recheck:
                     if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
                         int len = call_stack_indent(id, 0, 0);
                         len += fprintf(stderr, "-> 0x%X", pc | env->thumb);
-                        const char * name = lookup_symbol(pc);
+                        const char * name = eos_lookup_symbol(pc);
                         if (name && name[0]) {
                             len += fprintf(stderr, " %s", name);
                         }
@@ -1398,7 +1418,7 @@ static void print_task_switch(EOSState *s, uint32_t pc, uint32_t prev_pc, uint32
     int len = eos_callstack_indent(s);
     len += fprintf(stderr,
         KCYN"Task switch"KRESET" to %s:%x %s",
-        eos_get_current_task_name(s), pc, lookup_symbol(pc)
+        eos_get_current_task_name(s), pc, eos_lookup_symbol(pc)
     );
     len -= strlen(KCYN KRESET);
     len += eos_indent(len, CALLSTACK_RIGHT_ALIGN);
