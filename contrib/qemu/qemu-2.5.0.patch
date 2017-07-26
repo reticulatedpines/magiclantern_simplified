@@ -136,7 +136,7 @@ index 0f07159..40c3940 100644
  
  #endif
 diff --git a/include/hw/elf_ops.h b/include/hw/elf_ops.h
-index 0010c44..c963d05 100644
+index 0010c44..d85cc6b 100644
 --- a/include/hw/elf_ops.h
 +++ b/include/hw/elf_ops.h
 @@ -140,8 +140,11 @@ static int glue(load_symbols, SZ)(struct elfhdr *ehdr, int fd, int must_swab,
@@ -153,15 +153,18 @@ index 0010c44..c963d05 100644
              nsyms--;
              if (i < nsyms) {
                  syms[i] = syms[nsyms];
-@@ -159,7 +162,11 @@ static int glue(load_symbols, SZ)(struct elfhdr *ehdr, int fd, int must_swab,
+@@ -157,9 +160,13 @@ static int glue(load_symbols, SZ)(struct elfhdr *ehdr, int fd, int must_swab,
+     syms = g_realloc(syms, nsyms * sizeof(*syms));
+ 
      qsort(syms, nsyms, sizeof(*syms), glue(symcmp, SZ));
-     for (i = 0; i < nsyms - 1; i++) {
+-    for (i = 0; i < nsyms - 1; i++) {
++    for (i = 0; i < nsyms; i++) {
          if (syms[i].st_size == 0) {
 -            syms[i].st_size = syms[i + 1].st_value - syms[i].st_value;
-+            if (syms[i].st_shndx != SHN_ABS) {
-+                syms[i].st_size = syms[i + 1].st_value - syms[i].st_value;
-+            } else {
++            if (syms[i].st_shndx == SHN_ABS) {
 +                syms[i].st_size = 4;
++            } else if (i + 1 < nsyms) {
++                syms[i].st_size = syms[i + 1].st_value - syms[i].st_value;
 +            }
          }
      }
