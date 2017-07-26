@@ -17,12 +17,20 @@
 
 #define CALLSTACK_RIGHT_ALIGN 80
 
+static uint32_t DebugMsg_addr = 0;
+
 static const char * eos_lookup_symbol(uint32_t pc)
 {
     if (pc < 0x100)
     {
         /* very low address? don't bother */
         return "";
+    }
+
+    /* known function(s)? */
+    if ((pc & ~1) == (DebugMsg_addr & ~1))
+    {
+        return "DebugMsg";
     }
 
     /* looks like most (all?) symbols are loaded with Thumb bit cleared */
@@ -1593,8 +1601,6 @@ static void eos_romcpy_log_mem(EOSState *s, MemoryRegion *mr, hwaddr _addr, uint
 }
 
 static uint64_t saved_loglevel = 0;
-
-static uint32_t DebugMsg_addr = 0;
 
 static void tb_exec_cb(void *opaque, CPUState *cpu, TranslationBlock *tb)
 {
