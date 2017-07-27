@@ -55,10 +55,17 @@ static inline uint32_t
 read_lr( void )
 {
     uint32_t lr;
-    asm( "mov %0, lr" : "=r"(lr) );
+    asm __volatile__ ( "mov %0, %%lr" : "=&r"(lr) );
     return lr;
 }
 
+static inline uint32_t
+read_sp( void )
+{
+    uint32_t sp;
+    asm __volatile__ ( "mov %0, %%sp" : "=&r"(sp) );
+    return sp;
+}
 
 static inline void
 select_normal_vectors( void )
