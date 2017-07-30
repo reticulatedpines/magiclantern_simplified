@@ -209,10 +209,21 @@ for CAM in ${EOS_SECONDARY_CORES[*]} ${EOS_CAMS[*]}; do
         -serial file:tests/$CAM/calls-main-uart.log \
         &> tests/$CAM/calls-main-raw.log &
 
-    sleep 0.5
+    sleep 2
+
+    # check for boot message
+    if grep -qE "([KR].* (READY|AECU)|Dry|Boot)" tests/$CAM/calls-main-uart.log; then
+      msg=`grep --text -oEm1 "([KR].* (READY|AECU)|Dry|Boot)[a-zA-Z >]*" tests/$CAM/calls-main-uart.log`
+      printf "%-16s" "$msg"
+    else
+      echo -en "\e[33mBad output\e[0m      "
+    fi
+    echo -n ' '
 
     # wait until it the IDC no longer grows, up to 5 minutes
-    ./wait_log.sh $CAM.idc 300 5 -q "^}" 2>/dev/null
+    ./wait_log.sh $CAM.idc 300 20 -q "^}" 
+    echo
+    echo -n "                          "
 
     sleep 1
     kill_qemu
@@ -234,15 +245,6 @@ for CAM in ${EOS_SECONDARY_CORES[*]} ${EOS_CAMS[*]}; do
         | head -n $input_lines \
         | grep -E "call |return |Task switch " \
         > tests/$CAM/calls-main.log
-
-    # check for boot message
-    if grep -qE "([KR].* (READY|AECU)|Dry|Boot)" tests/$CAM/calls-main-uart.log; then
-      msg=`grep --text -oEm1 "([KR].* (READY|AECU)|Dry|Boot)[a-zA-Z >]*" tests/$CAM/calls-main-uart.log`
-      printf "%-16s" "$msg"
-    else
-      echo -en "\e[33mBad output\e[0m      "
-    fi
-    echo -n ' '
 
     # extract only the basic info (call address indented, return address)
     # useful for checking when the log format changes
