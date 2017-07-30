@@ -141,7 +141,7 @@ NSTUB(0xFF274D88,  GUI_SetRollingPitchingLevelStatus)
 
 /** Engio **/
 NSTUB(0xFF2B2148, _EngDrvOut)                               // AJ_EngDrvOut_1xVar_to_ShadowStruct
-NSTUB(0xFF2AB5F0, _engio_write)
+NSTUB(0xFF2B2460, _engio_write)
 NSTUB(0xFF2B21E4,  shamem_read)                             // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr
 
 /** Eventprocs (call by name) **/
