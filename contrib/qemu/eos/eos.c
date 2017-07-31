@@ -459,7 +459,10 @@ static void eos_interrupt_timer_body(EOSState *s)
                     /* timer interrupt will re-fire periodically */
                     if(pos == TIMER_INTERRUPT)
                     {
-                        if (qemu_loglevel_mask(CPU_LOG_INT)) {
+                        if (qemu_loglevel_mask(CPU_LOG_INT) &&
+                            qemu_loglevel_mask(EOS_LOG_VERBOSE))
+                        {
+                            /* timer interrupt, quiet */
                             fprintf(stderr, "[EOS] trigger int 0x%02X (delayed)\n", pos);    /* quiet */
                         }
                         s->irq_schedule[pos] = s->timer_reload_value[DRYOS_TIMER_ID] >> 8;
@@ -1813,7 +1816,9 @@ unsigned int eos_handle_intengine ( unsigned int parm, EOSState *s, unsigned int
                 s->irq_id = 0;
                 cpu_reset_interrupt(CPU(CURRENT_CPU), CPU_INTERRUPT_HARD);
 
-                if (msg_arg2 == TIMER_INTERRUPT && !qemu_loglevel_mask(CPU_LOG_INT))
+                if (msg_arg2 == TIMER_INTERRUPT && 
+                    !(qemu_loglevel_mask(CPU_LOG_INT) &&
+                      qemu_loglevel_mask(EOS_LOG_VERBOSE)))
                 {
                     /* timer interrupt, quiet */
                     return ret;
@@ -1833,7 +1838,9 @@ unsigned int eos_handle_intengine ( unsigned int parm, EOSState *s, unsigned int
                 /* we shouldn't reset s->irq_id here (we already reset it on read) */
                 /* if we reset it here also, it will trigger interrupt 0 incorrectly (on race conditions) */
 
-                if (value == TIMER_INTERRUPT && !qemu_loglevel_mask(CPU_LOG_INT))
+                if (value == TIMER_INTERRUPT &&
+                    !(qemu_loglevel_mask(CPU_LOG_INT) &&
+                      qemu_loglevel_mask(EOS_LOG_VERBOSE)))
                 {
                     /* timer interrupt, quiet */
                     return 0;
@@ -3939,7 +3946,9 @@ unsigned int eos_handle_digic_timer ( unsigned int parm, EOSState *s, unsigned i
     {
         ret = s->digic_timer;
 
-        if (!qemu_loglevel_mask(CPU_LOG_INT)) {
+        if (!(qemu_loglevel_mask(CPU_LOG_INT) &&
+              qemu_loglevel_mask(EOS_LOG_VERBOSE)))
+        {
             return ret; /* be quiet */
         }
     }
