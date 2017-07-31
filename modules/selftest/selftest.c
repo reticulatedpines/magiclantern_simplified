@@ -14,6 +14,7 @@
 #include <edmac-memcpy.h>
 #include <screenshot.h>
 #include <powersave.h>
+#include <alloca.h>
 
 /* optional routines */
 extern WEAK_FUNC(ret_0) uint32_t ml_rpc_send(uint32_t command, uint32_t parm1, uint32_t parm2, uint32_t parm3, uint32_t wait);
@@ -107,7 +108,7 @@ static void next_tick_cbr(int arg1, void* arg2)
     SetHPTimerNextTick(arg1, 100000, timer_cbr, overrun_cbr, 0);
 }
 
-#define TEST_MSG(fmt, ...) { if (!stub_silence || !stub_ok) stub_log_len += snprintf(stub_log_buf + stub_log_len, stub_max_log_len - stub_log_len, fmt, ## __VA_ARGS__); printf(fmt, ## __VA_ARGS__); }
+#define TEST_MSG(fmt, ...) { if (!stub_silence || !stub_ok) { stub_log_len += snprintf(stub_log_buf + stub_log_len, stub_max_log_len - stub_log_len, fmt, ## __VA_ARGS__); printf(fmt, ## __VA_ARGS__); } }
 #define TEST_VOID(x) { x; stub_ok = 1; TEST_MSG("       %s\n", #x); }
 #define TEST_FUNC(x) { int ans = (int)(x); stub_ok = 1; TEST_MSG("       %s => 0x%x\n", #x, ans); }
 #define TEST_FUNC_CHECK(x, condition) { int ans = (int)(x); stub_ok = ans condition; TEST_MSG("[%s] %s => 0x%x\n", stub_ok ? "Pass" : "FAIL", #x, ans); if (stub_ok) stub_passed_tests++; else stub_failed_tests++; }
@@ -196,6 +197,299 @@ static void stub_test_edmac()
     TEST_VOID(free(dst));
 }
 
+/* delay with interrupts disabled */
+static void busy_wait_ms(int ms)
+{
+    int t0 = get_ms_clock_value();
+    while (get_ms_clock_value() - t0 < ms)
+        ;
+}
+
+/* this checks whether clean_d_cache actually writes the data to physical memory
+ * so other devices (such as DMA controllers) will see the same memory contents as the CPU */
+static void stub_test_cache_bmp()
+{
+    TEST_MSG("Cache test A (EDMAC on BMP buffer)...\n");
+
+    void * bmp;
+    TEST_FUNC_CHECK(bmp = bmp_load("ML/CROPMKS/CINESCO2.BMP", 1), != 0);
+    if (!bmp) return;
+
+    uint8_t * const bvram_mirror = get_bvram_mirror();
+    if (!bvram_mirror) return;
+
+    /* perform the test twice:
+     * one without cache cleaning, expected to fail,
+     * and one with cache cleaning, expected to succeed */
+    for (int k = 0; k < 2; k++)
+    {
+        /* perform this test with interrupts disabled */
+        int old = cli();
+        int dis = cli();
+        TEST_FUNC_CHECK(old, != dis);
+
+        /* draw a cropmark */
+        clrscr();
+        bmp_draw_scaled_ex(bmp, os.x0, os.y0, os.x_ex, os.y_ex, bvram_mirror);
+
+        /* copy the image to idle buffer using EDMAC */
+        uint8_t * src = bmp_vram_real();
+        uint8_t * dst = bmp_vram_idle();
+
+        ASSERT(src == CACHEABLE(src));
+        ASSERT(dst == CACHEABLE(dst));
+
+        if (k == 0)
+        {
+            /* trick the copying routine so it doesn't handle caching issues.
+             * these pointers are actually cacheable (for speed reasons);
+             * flagging them as uncacheable has no effect on DMA behavior.
+             * this test should fail. */
+            src = UNCACHEABLE(src);
+        }
+
+        /* mark destination as uncacheable (the EDMAC routine expects it this way) */
+        /* this is generally incorrect; you should use fio_malloc instead. */
+        dst = UNCACHEABLE(dst);
+
+        edmac_copy_rectangle_adv_start(dst, src, 960, 0, 0, 960, 0, 0, 720, 480);
+
+        /* wait for EDMAC transfer to finish */
+        /* probably not needed, as take_semaphore will re-enable interrupts */
+        busy_wait_ms(1000);
+
+        /* cleanup EDMAC transfer */
+        edmac_copy_rectangle_finish();
+
+        /* interrupts are disabled again - from DryOS context switch */
+        /* now compare the image buffers */
+        int differences = 0;
+        for (int y = 0; y < 480; y++)
+        {
+            for (int x = 0; x < 720; x++)
+            {
+                int i = x + y * 960;
+                if (src[i] != dst[i])
+                {
+                    differences++;
+                }
+            }
+        }
+
+        info_led_on();
+        busy_wait_ms(1000);
+        info_led_off();
+
+        /* do we still have interrupts disabled? */
+        int irq = cli();
+        TEST_FUNC_CHECK(irq, == dis);
+
+        if (k)
+        {
+            /* expect to succeed */
+            TEST_FUNC_CHECK(differences, == 0);
+        }
+        else
+        {
+            /* expect to fail */
+            TEST_FUNC_CHECK(differences, > 100);
+        }
+
+        /* interrupts no longer needed */
+        sei(old);
+    }
+}
+
+static int stub_test_cache_fio_do(int handle_cache)
+{
+    /* prefer CF card if present */
+    char * test_file = is_dir("A:/") ? "A:/test.dat" : "test.dat";
+    FILE * f;
+    TEST_FUNC_CHECK(f = FIO_CreateFile(test_file), != 0);
+
+    /* result */
+    int fail = -1;
+
+    /* cacheable buffer that will fit the entire cache */
+    /* placed at some random stack offset */
+    /* note: we have 32K stack */
+    const int size = 8192;
+    uint8_t * pad = alloca(MOD(rand(), size));
+    uint8_t * buf = alloca(size);
+
+    /* make sure pad gets allocated above buf
+     * therefore moving "buf" on the stack at some random offset */
+    ASSERT(buf + 8192 <= pad);
+
+    /* fill the buffer (this should bring it into cache) */
+    for (int i = 0; i < size; i++)
+    {
+        buf[i] = i;
+    }
+
+    /* fill the buffer again; hoping some values won't reach the physical memory */
+    for (int i = 0; i < size; i++)
+    {
+        buf[i] = i + 1;
+    }
+
+    /* save it to card */
+    if (handle_cache & 1)
+    {
+        /* let the wrapper handle the cacheable buffer */
+        TEST_FUNC_CHECK(FIO_WriteFile(f, buf, size), == size);
+    }
+    else
+    {
+        /* Trick the wrapper into calling Canon stub directly,
+         * so it will no longer clean the cache before writing.
+         * This should fail - do not use it in practice.
+         * The uncacheable flag has no effect on DMA.
+         * You should either use fio_malloc (which returns uncacheable buffers)
+         * or pass regular (cacheable) pointers and let the wrapper handle them. */
+        TEST_FUNC_CHECK(FIO_WriteFile(f, UNCACHEABLE(buf), size), == size);
+    }
+
+    TEST_VOID(FIO_CloseFile(f));
+
+    /* reopen the file for reading */
+    TEST_FUNC_CHECK(f = FIO_OpenFile(test_file, O_RDONLY | O_SYNC), != 0);
+
+    /* read the file into uncacheable memory (this one will be read correctly) */
+    uint8_t * ubuf = fio_malloc(size);
+    TEST_FUNC_CHECK(ubuf, != 0);
+    if (!ubuf) goto cleanup;
+
+    TEST_FUNC_CHECK(FIO_ReadFile(f, ubuf, size), == size);
+    FIO_SeekSkipFile(f, 0, SEEK_SET);
+
+    /* alter the buffer contents; hoping some values will be only in cache */
+    for (int i = 0; i < size; i++)
+    {
+        buf[i] = i + 2;
+    }
+
+    /* read the file into regular (cacheable) memory */
+    if (handle_cache & 2)
+    {
+        /* let the wrapper handle the cacheable buffer */
+        TEST_FUNC_CHECK(FIO_ReadFile(f, buf, size), == size);
+    }
+    else
+    {
+        /* Trick the wrapper into calling Canon stub directly.
+         * This should fail (same as with FIO_WriteFile). */
+        TEST_FUNC_CHECK(FIO_ReadFile(f, UNCACHEABLE(buf), size), == size);
+    }
+
+    /* check the results */
+    int a = 0, b = 0, c = 0, r = 0;
+    for (int i = 0; i < size; i++)
+    {
+        a += (ubuf[i] == (uint8_t)(i));
+        b += (ubuf[i] == (uint8_t)(i + 1));
+        c += (ubuf[i] == (uint8_t)(i + 2));
+        r += (ubuf[i] == buf[i]);
+    }
+
+    free(ubuf);
+
+    /* don't report success/failure yet, as this test is not deterministic
+     * just log the values and return the status */
+    TEST_FUNC(a);
+    TEST_FUNC(b);
+    TEST_FUNC(c);
+    TEST_FUNC(a + b + c);
+    TEST_FUNC(r);
+
+    /* which part of the test failed? read or write? */
+    int fail_r = (r != size);
+    int fail_w = (a != 0) || (b != size) || (c != 0);
+    fail = (fail_r << 1) | fail_w;
+
+cleanup:
+    /* cleanup */
+    TEST_VOID(FIO_CloseFile(f));
+    TEST_FUNC_CHECK(FIO_RemoveFile(test_file), == 0);
+    return fail;
+}
+
+static void stub_test_cache_fio()
+{
+    TEST_MSG("Cache test B (FIO on 8K buffer)...\n");
+
+    /* non-deterministic test - run many times */
+    stub_silence = 1;
+
+    int tries[4] = {0};
+    int times[4] = {0};
+    int failr[4] = {0};
+    int failw[4] = {0};
+
+    for (int i = 0; i < 1000; i++)
+    {
+        /* select whether the FIO_WriteFile wrapper (1) and/or
+         * FIO_ReadFile (2) wrapper should handle caching issues */
+        int handle_cache = rand() & 3;
+
+        /* run one iteration and time it */
+        int t0 = get_ms_clock_value();
+        int fail = stub_test_cache_fio_do(handle_cache);
+        int t1 = get_ms_clock_value();
+        ASSERT(fail == (fail & 3));
+
+        /* count the stats */
+        tries[handle_cache]++;
+        times[handle_cache] += (t1 - t0);
+        if (fail & 1) failw[handle_cache]++;
+        if (fail & 2) failr[handle_cache]++;
+
+        /* progress indicator */
+        if (i % 100 == 0)
+        {
+            printf(".");
+        }
+    }
+    stub_silence = 0;
+    printf("\n");
+
+    /* report how many tests were performed in each case */
+    TEST_FUNC_CHECK(tries[0], > 100);
+    TEST_FUNC_CHECK(tries[1], > 100);
+    TEST_FUNC_CHECK(tries[2], > 100);
+    TEST_FUNC_CHECK(tries[3], > 100);
+
+    /* each test (read or write) should succeed only
+     * if the corresponding wrapper (FIO_WriteFile
+     * and FIO_ReadFile) is allowed to handle caching
+     * for regular buffers; it should fail otherwise,
+     * at least a few times. This also implies both tests
+     * (R and W) should succeed if and only if both routines
+     * are allowed to handle caching. */
+    TEST_FUNC_CHECK(failr[0], > 10);
+    TEST_FUNC_CHECK(failw[0], > 10);
+    TEST_FUNC_CHECK(failr[1], > 10);
+    TEST_FUNC_CHECK(failw[1], == 0);
+    TEST_FUNC_CHECK(failr[2], == 0);
+    TEST_FUNC_CHECK(failw[2], > 10);
+    TEST_FUNC_CHECK(failr[3], == 0);
+    TEST_FUNC_CHECK(failw[3], == 0);
+
+    /* check whether cache cleaning causes any slowdown */
+    TEST_FUNC(times[0] / tries[0]);
+    TEST_FUNC(times[1] / tries[1]);
+    TEST_FUNC(times[2] / tries[2]);
+    TEST_FUNC(times[3] / tries[3]);
+}
+
+static void stub_test_cache()
+{
+    stub_test_cache_bmp();
+    stub_test_cache_fio();
+
+    TEST_MSG("Cache tests finished.\n\n");
+}
+
 static void stub_test_file_io()
 {
     /* File I/O */
@@ -269,7 +563,9 @@ static void stub_test_file_io()
         fio_free(buf);
     }
 
+    TEST_FUNC_CHECK(is_file("test.dat"), != 0);
     TEST_FUNC_CHECK(FIO_RemoveFile("test.dat"), == 0);
+    TEST_FUNC_CHECK(is_file("test.dat"), == 0);
 }
 
 static void stub_test_gui_timers()
@@ -694,15 +990,27 @@ static void stub_test_dryos()
     TEST_FUNC_CHECK(ReleaseRecursiveLock(rlock), != 0);
 }
 
+static void stub_test_save_log()
+{
+    FILE* log = FIO_CreateFile( "stubtest.log" );
+    if (log)
+    {
+        FIO_WriteFile(log, stub_log_buf, stub_log_len);
+        FIO_CloseFile(log);
+    }
+}
+
 static void stub_test_task(void* arg)
 {
     if (stub_log_buf) return;
     stub_log_buf = fio_malloc(stub_max_log_len);
     if (!stub_log_buf) return;
-    
+
     msleep(1000);
-    
     console_show();
+
+    stub_passed_tests = 0;
+    stub_failed_tests = 0;
     
     enter_play_mode();
     TEST_FUNC_CHECK(is_play_mode(), != 0);
@@ -712,31 +1020,28 @@ static void stub_test_task(void* arg)
     msleep(1000);
     info_led_on();
 
+    /* save log after each sub-test */
     for (int i=0; i < n; i++)
     {
-        stub_test_edmac();
-        stub_test_file_io();
-        stub_test_gui_timers();
-        stub_test_other_timers();
-        stub_test_malloc_n_allocmem();
-        stub_test_exmem();
-        stub_test_strings();
-        stub_test_engio();
-        stub_test_display();
-        stub_test_dryos();
-        stub_test_gui();
+        stub_test_edmac();                  stub_test_save_log();
+        stub_test_cache();                  stub_test_save_log();
+        stub_test_file_io();                stub_test_save_log();
+        stub_test_gui_timers();             stub_test_save_log();
+        stub_test_other_timers();           stub_test_save_log();
+        stub_test_malloc_n_allocmem();      stub_test_save_log();
+        stub_test_exmem();                  stub_test_save_log();
+        stub_test_strings();                stub_test_save_log();
+        stub_test_engio();                  stub_test_save_log();
+        stub_test_display();                stub_test_save_log();
+        stub_test_dryos();                  stub_test_save_log();
+        stub_test_gui();                    stub_test_save_log();
 
         beep();
     }
 
     enter_play_mode();
 
-    FILE* log = FIO_CreateFile( "stubtest.log" );
-    if (log)
-    {
-        FIO_WriteFile(log, stub_log_buf, stub_log_len);
-        FIO_CloseFile(log);
-    }
+    stub_test_save_log();
     fio_free(stub_log_buf);
     stub_log_buf = 0;
 

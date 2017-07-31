@@ -4509,7 +4509,7 @@ static void make_overlay()
     FILE* f = FIO_CreateFile("ML/DATA/overlay.dat");
     if (f)
     {
-        FIO_WriteFile( f, (const void *) UNCACHEABLE(bvram_mirror), BVRAM_MIRROR_SIZE);
+        FIO_WriteFile( f, (const void *) bvram_mirror, BVRAM_MIRROR_SIZE);
         FIO_CloseFile(f);
         bmp_printf(FONT_MED, 0, 0, "Overlay saved.  ");
     }
@@ -4532,10 +4532,14 @@ static void show_overlay()
     
     clrscr();
 
-    FILE* f = FIO_OpenFile("ML/DATA/overlay.dat", O_RDONLY | O_SYNC);
-    if (!f) return;
-    FIO_ReadFile(f, bvram_mirror, 960*480 );
-    FIO_CloseFile(f);
+    int size = 0;
+    void * tmp = read_entire_file("ML/DATA/overlay.dat", &size);
+    if (tmp)
+    {
+        ASSERT(size == BVRAM_MIRROR_SIZE);
+        memcpy(bvram_mirror, tmp, BVRAM_MIRROR_SIZE);
+        free(tmp); tmp = NULL;
+    }
 
     for (int y = os.y0; y < os.y_max; y++)
     {

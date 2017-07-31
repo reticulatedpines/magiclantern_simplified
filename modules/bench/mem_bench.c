@@ -141,9 +141,11 @@ static void mem_test_bmp_fill(int arg0, int arg1, int arg2, int arg3)
 
 static void mem_test_edmac_copy_rectangle(int arg0, int arg1, int arg2, int arg3)
 {
-    uint8_t* real = bmp_vram_real();
-    uint8_t* idle = bmp_vram_idle();
-    edmac_copy_rectangle_adv(BMP_VRAM_START(idle), BMP_VRAM_START(real), 960, 0, 0, 960, 0, 0, 720, 480);
+    uint8_t* real = BMP_VRAM_START(bmp_vram_real());
+    uint8_t* idle = BMP_VRAM_START(bmp_vram_idle());
+
+    /* careful - do not mix cacheable and uncacheable pointers unless you know what you are doing */
+    edmac_copy_rectangle_adv(UNCACHEABLE(idle), UNCACHEABLE(real), 960, 0, 0, 960, 0, 0, 720, 480);
 }
 
 static uint64_t FAST DUMP_ASM mem_test_read64(uint64_t* buf, uint32_t n)
@@ -197,8 +199,8 @@ static void mem_benchmark_task()
 
     void* buf1 = 0;
     void* buf2 = 0;
-    buf1 = tmp_malloc(bufsize);
-    buf2 = tmp_malloc(bufsize);
+    buf1 = fio_malloc(bufsize);
+    buf2 = fio_malloc(bufsize);
     if (!buf1 || !buf2)
     {
         bmp_printf(FONT_LARGE, 0, 0, "malloc error :(");
@@ -228,7 +230,7 @@ static void mem_benchmark_task()
     
     if (HAS_EDMAC_MEMCPY)
     {
-        mem_benchmark_run("edmac_memcpy        ", &y, bufsize, (mem_bench_fun)edmac_memcpy, (intptr_t)buf1,   (intptr_t)buf2,   bufsize, 0, 1);
+        mem_benchmark_run("edmac_memcpy        ", &y, bufsize, (mem_bench_fun)edmac_memcpy, (intptr_t)UNCACHEABLE(buf1),   (intptr_t)UNCACHEABLE(buf2),   bufsize, 0, 1);
         mem_benchmark_run("edmac_copy_rectangle", &y, 720*480, (mem_bench_fun)mem_test_edmac_copy_rectangle, 0, 0, 0, 0, 0);
     }
     
@@ -250,6 +252,6 @@ static void mem_benchmark_task()
     canon_gui_enable_front_buffer(0);
 
 cleanup:
-    if (buf1) tmp_free(buf1);
-    if (buf2) tmp_free(buf2);
+    if (buf1) free(buf1);
+    if (buf2) free(buf2);
 }
