@@ -2,6 +2,7 @@
 #define _edmac_memcpy_h_
 
 #include "sys/types.h"
+#include "stdint.h"
 
 void* edmac_memcpy(void* dst, void* src, size_t length);
 void* edmac_memset(void* dst, int value, size_t length);
