@@ -208,6 +208,7 @@ EOSRegionHandler eos_handlers[] =
     { "CARTRIDGE",    0xC0F24000, 0xC0F24FFF, eos_handle_cartridge, 0 },
     { "ASIF",         0xC0920000, 0xC0920FFF, eos_handle_asif, 4 },
     { "Display",      0xC0F14000, 0xC0F14FFF, eos_handle_display, 0 },
+    { "Display",      0xC0F31000, 0xC0F31FFF, eos_handle_display, 1 },
     { "Power",        0xC0F01000, 0xC0F010FF, eos_handle_power_control, 1 },
     { "ADC",          0xD9800000, 0xD9800068, eos_handle_adc, 0 },
     { "JP51",         0xC0E00000, 0xC0E0FFFF, eos_handle_jpcore, 0 },
@@ -4831,16 +4832,33 @@ unsigned int eos_handle_display ( unsigned int parm, EOSState *s, unsigned int a
     unsigned int ret = 0;
     const char * msg = 0;
 
+    if (parm == 1)
+    {
+        /* 5D3 1.2.3 - only handle palette registers
+         * other registers are not the same as before */
+        switch (address & 0xFFF)
+        {
+            case 0x400 ... 0x7FC:
+            case 0x800 ... 0xBFC:
+                break;
+
+            default:
+                goto end;
+        }
+    }
+
     switch (address & 0xFFF)
     {
         case 0x01C:
+        case 0x31C:
         {
             /* not sure this is the register that actually triggers the interrupt */
             msg = "interrupt enable?";
             if (value == 0) {
                 /* nothing to do */
-            } else if (value == 4) {
+            } else if (value == 4 || value == 0x14) {
                 /* 60D: EnableBitmapVBufferForPlayBackAndWait */
+                /* 5D3 1.2.3 writes 0x14 to 0xC0F1431C */
                 eos_trigger_int(s, 0x68, 10);
             } else {
                 assert(0);
@@ -4848,8 +4866,10 @@ unsigned int eos_handle_display ( unsigned int parm, EOSState *s, unsigned int a
             break;
         }   
 
-        case 0x0D0:
-        case 0x0D4:
+        case 0x0D0: /* most models */
+        case 0x0D4: /* double-buffered? */
+        case 0x350: /* 5D3 1.2.3 */
+        case 0x354:
             msg = "BMP VRAM";
             MMIO_VAR(s->disp.bmp_vram);
             break;
@@ -4884,6 +4904,7 @@ unsigned int eos_handle_display ( unsigned int parm, EOSState *s, unsigned int a
             break;
     }
 
+end:
     io_log("Display", s, address, type, value, ret, msg, 0, 0);
     return ret;
 }
