@@ -54,7 +54,11 @@ ifeq ($(WIFI_SD),y)
       done; \
       nmcli conn up $(WIFI_CARD_NETWORK); \
     fi; \
-    if (ping -c 3 -l 3 $(WIFI_CARD_IP) > /dev/null) ; then \
+    for i in `seq 1 20`; do \
+        if ping -c 3 -l 3 -W 1 $(WIFI_CARD_IP) > /dev/null; then break; fi; \
+        echo -n "."; \
+    done; \
+    if (ping -c 3 -l 3 -W 1 $(WIFI_CARD_IP) > /dev/null) ; then \
       if !(gvfs-mount -l | grep "dav://$(WIFI_CARD_IP)/"); then \
         gvfs-mount dav://$(WIFI_CARD_IP)/ ; \
       fi; \
