@@ -553,6 +553,18 @@ void eos_memcheck_log_exec(EOSState *s, uint32_t pc, CPUARMState *env)
     /* our uninitialized stubs are 0 - don't log this address */
     if (!pc) return;
 
+    /* enable this to look for uninitialized memory accesses
+     * exploitable before jumping to main firmware */
+    if (0 && pc == s->model->firmware_start)    /* aka ROMBASEADDR */
+    {
+        fprintf(stderr, "Marking all memory as uninitialized...\n");
+        mem_set_status(0, s->model->ram_size, MS_NOINIT);
+        mem_set_status(atcm_start, atcm_end, MS_NOINIT);
+        mem_set_status(btcm_start, btcm_end, MS_NOINIT);
+        uint32_t hack = 0x4157554B;
+        cpu_physical_memory_write(0x3cc000, &hack, 4);
+    }
+
     exec_log_malloc(s, pc, env);
     exec_log_memcpy(s, pc, env);
 
