@@ -58,71 +58,75 @@ static struct memcheck_stubs stubs;
 
 static bool interrupt_handling;
 
+/* cache these values so we don't have to look them up every time */
+static uint32_t atcm_start, atcm_end, btcm_start, btcm_end;
+
+static inline int is_tcm(uint64_t addr)
+{
+    /* atcm_start is 0 (assert on init) */
+    return (addr < atcm_end) || (addr >= btcm_start && addr < btcm_end);
+}
+
 /* 2 bits for each address */
 /* ull because it's shifted and used against a 64-bit value */
 #define MS_NOINIT 1ull     /* not initialized */
 #define MS_FREED  2ull     /* freed */
 #define MS_MASK   3ull     /* mask for all of the above */
-static uint64_t mem_status[1024*1024*1024/64];
+static uint64_t mem_status[0xC0000000ull * 2 / 64];
 
-static inline bool is_uninitialized(uint32_t addr)
+static inline uint64_t fixup_addr(uint64_t addr)
 {
-    addr &= ~0x40000000;
-    assert(addr < 0x20000000);
-    uint32_t i = 2 * addr;
+    if (!is_tcm(addr))
+    {
+        addr &= ~0x40000000;
+    }
+    assert(addr < 0xC0000000);
+    return addr;
+}
+
+static inline bool is_uninitialized(uint64_t addr)
+{
+    uint64_t i = 2 * fixup_addr(addr);
     return mem_status[i/64] & (MS_NOINIT << (i & 63));
 }
 
-static inline bool is_freed(uint32_t addr)
+static inline bool is_freed(uint64_t addr)
 {
-    addr &= ~0x40000000;
-    assert(addr < 0x20000000);
-    uint32_t i = 2 * addr;
+    uint64_t i = 2 * fixup_addr(addr);
     return mem_status[i/64] & (MS_FREED << (i & 63));
 }
 
-static inline void set_initialized(uint32_t addr)
+static inline void set_initialized(uint64_t addr)
 {
-    addr &= ~0x40000000;
-    assert(addr < 0x20000000);
-    uint32_t i = 2 * addr;
+    uint64_t i = 2 * fixup_addr(addr);
     mem_status[i/64] &= ~(MS_NOINIT << (i & 63));
 }
 
-static inline void set_uninitialized(uint32_t addr)
+static inline void set_uninitialized(uint64_t addr)
 {
-    addr &= ~0x40000000;
-    assert(addr < 0x20000000);
-    uint32_t i = 2 * addr;
+    uint64_t i = 2 * fixup_addr(addr);
     mem_status[i/64] |= (MS_NOINIT << (i & 63));
 }
 
-static inline void set_freed(uint32_t addr)
+static inline void set_freed(uint64_t addr)
 {
-    addr &= ~0x40000000;
-    assert(addr < 0x20000000);
-    uint32_t i = 2 * addr;
+    uint64_t i = 2 * fixup_addr(addr);
     mem_status[i/64] |= (MS_FREED << (i & 63));
 }
 
-static inline void clr_freed(uint32_t addr)
+static inline void clr_freed(uint64_t addr)
 {
-    addr &= ~0x40000000;
-    assert(addr < 0x20000000);
-    uint32_t i = 2 * addr;
+    uint64_t i = 2 * fixup_addr(addr);
     mem_status[i/64] &= ~(MS_FREED << (i & 63));
 }
 
-static void mem_set_status(uint32_t start, uint32_t end, uint64_t status)
+static void mem_set_status(uint64_t start, uint64_t end, uint64_t status)
 {
-    start &= ~0x40000000;
-    end   &= ~0x40000000;
-    assert(end <= 0x20000000);
 
     /* can be optimized; keep it simple for now */
-    for (uint32_t addr = start; addr < end; addr++)
+    for (uint64_t addr = start; addr < end; addr++)
     {
-        uint32_t i = 2 * addr;
+        uint64_t i = 2 * fixup_addr(addr);
         mem_status[i/64] &= ~(MS_MASK << (i & 63));
         mem_status[i/64] |= (status << (i & 63));
     }
@@ -130,8 +134,7 @@ static void mem_set_status(uint32_t start, uint32_t end, uint64_t status)
 
 static void copy_mem_status(uint32_t src, uint32_t dst, uint32_t size)
 {
-    dst &= ~0x40000000;
-    assert(dst + size <= 0x20000000);
+    dst = fixup_addr(dst);
 
     if (src >= 0xF0000000)
     {
@@ -144,8 +147,7 @@ static void copy_mem_status(uint32_t src, uint32_t dst, uint32_t size)
         return;
     }
 
-    src &= ~0x40000000;
-    assert(src + size <= 0x20000000);
+    src = fixup_addr(src);
 
     /* can be optimized; keep it simple for now */
     for (uint32_t i = 0; i < size; i++)
@@ -160,21 +162,20 @@ static void copy_mem_status(uint32_t src, uint32_t dst, uint32_t size)
 }
 
 /* weak checksum on memory status flags, for internal use only */
-static uint64_t mem_status_checksum(uint32_t src, uint32_t size)
+static uint64_t mem_status_checksum(uint64_t src, uint64_t size)
 {
     if (src >= 0xF0000000)
     {
         return -1;
     }
 
-    src &= ~0x40000000;
-    assert(src + size <= 0x20000000);
+    src = fixup_addr(src);
 
     uint64_t check = 0;
 
-    for (uint32_t addr = src; addr < src + size; addr++)
+    for (uint64_t addr = src; addr < src + size; addr++)
     {
-        uint32_t i = 2 * addr;
+        uint64_t i = 2 * addr;
         uint64_t flags = mem_status[i/64] & (MS_MASK << (i & 63));
         check += flags;
         check += (flags) ? 0 : (addr - src);
@@ -253,7 +254,7 @@ void eos_memcheck_log_mem(EOSState *s, hwaddr addr, uint64_t value, uint32_t siz
 
     /* only interrupts and other TCM code are allowed to use the TCM */
     /* with few exceptions */
-    if (addr < 0x1000 &&
+    if (is_tcm(addr) &&
         pc >= 0x1000 &&
         !(addr == stubs.interrupt_active && is_read) && /* allow reading this flag from anywhere */
         !interrupt_handling)
@@ -623,9 +624,16 @@ static void diagnose_addr(uint32_t addr)
 
 void eos_memcheck_init(EOSState *s)
 {
+    atcm_start  = ATCM_ADDR;
+    atcm_end    = ATCM_ADDR + ATCM_SIZE;
+    btcm_start  = BTCM_ADDR;
+    btcm_end    = BTCM_ADDR + BTCM_SIZE;
+    assert(atcm_start == 0);
+
     fprintf(stderr, "Marking all memory as uninitialized...\n");
     mem_set_status(0, s->model->ram_size, MS_NOINIT);
-    /* fixme: also check both TCMs */
+    mem_set_status(atcm_start, atcm_end, MS_NOINIT);
+    mem_set_status(btcm_start, btcm_end, MS_NOINIT);
 
     uint32_t ml_memccpy;
     eos_getenv_hex("QEMU_EOS_ML_MEMCPY", &ml_memcpy, 0);
