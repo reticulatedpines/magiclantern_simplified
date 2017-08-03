@@ -639,6 +639,7 @@ void eos_memcheck_init(EOSState *s)
     else
     {
         fprintf(stderr, "FIXME: ML memcpy stub unknown (set QEMU_EOS_ML_MEMCC?PY).\n");
+        ml_memcpy_size = 0;
     }
 
     /* todo: identify stubs in a way that does not require hardcoding? */
