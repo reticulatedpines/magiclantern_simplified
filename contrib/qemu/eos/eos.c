@@ -1486,6 +1486,17 @@ char * eos_get_current_task_name(EOSState *s)
         int off = s->model->current_task_name_offs;
         cpu_physical_memory_read(current_task_ptr, current_task, sizeof(current_task));
         cpu_physical_memory_read(current_task[off], task_name, sizeof(task_name));
+
+        /* task name must be printable */
+        for (char * p = task_name; *p; p++)
+        {
+            unsigned char c = *p;
+            if (c < 32 || c > 127)
+            {
+                return 0;
+            }
+        }
+
         return task_name;
     }
     

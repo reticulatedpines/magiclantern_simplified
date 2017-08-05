@@ -235,8 +235,7 @@ for CAM in ${EOS_SECONDARY_CORES[*]} ${EOS_CAMS[*]}; do
     # in the main firmware, things are not always repeating with a simple pattern.
     # however, since we stopped when IDC no longer grows, we can just look up
     # the last function and trim the main log there.
-    # fixme: "binary" task names in VxWorks IDC
-    last_call=`cat $CAM.idc | grep --text -o "MakeFunction(.*)" | tail -1 | grep -om1 "0x[^,]*"`
+    last_call=`cat $CAM.idc | grep -o "MakeFunction(.*)" | tail -1 | grep -om1 "0x[^,]*"`
     last_call_thumb=`printf "0x%X\n" $((last_call+1))`
     input_lines=`grep --text -n -E "call ($last_call|$last_call_thumb)[( ]" tests/$CAM/calls-main-raw.log | head -n 1 | cut -d: -f1`
 
