@@ -240,13 +240,13 @@ for CAM in ${EOS_SECONDARY_CORES[*]} ${EOS_CAMS[*]}; do
     cat $CAM.idc | grep -o "MakeFunction(.*)" \
         > tests/$CAM/calls-main-basic.idc
 
+    # delete the last line from calls-main-basic.idc until it matches its reference MD5
     cd tests/$CAM/
     while [ $(cat calls-main-basic.idc | wc -l) != 0 ]; do
         if cat calls-main.md5 | grep calls-main-basic.idc | md5sum -c --status; then
             break
         fi
-        head -n -1 calls-main-basic.idc > aux.idc
-        mv aux.idc calls-main-basic.idc
+        sed -i '$ d' calls-main-basic.idc
     done
     cd $OLDPWD
 
@@ -268,7 +268,10 @@ for CAM in ${EOS_SECONDARY_CORES[*]} ${EOS_CAMS[*]}; do
 
     # also copy the IDC file for checking its MD5
     # this works on CF models too, even if some nondeterminism is present
-    cp $CAM.idc tests/$CAM/calls-main.idc
+    # the IDC needs trimming, too, as it doesn't always stop at the same line
+    input_lines=`grep -n "MakeFunction($last_call" $CAM.idc | head -n 1 | cut -d: -f1`
+    cat $CAM.idc | head -n $input_lines > tests/$CAM/calls-main.idc
+    cat $CAM.idc | tail -n 2 >> tests/$CAM/calls-main.idc
 
     # extract only the call address from IDC
     # useful for checking when some additional info changes (e.g. comments)
