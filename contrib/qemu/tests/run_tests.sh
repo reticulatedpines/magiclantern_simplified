@@ -233,9 +233,24 @@ for CAM in ${EOS_SECONDARY_CORES[*]} ${EOS_CAMS[*]}; do
     # in FROMUTILITY it was easy - after some point, the log contents
     # was repeating over and over, so remove_end_loop.py was doing a fine job.
     # in the main firmware, things are not always repeating with a simple pattern.
-    # however, since we stopped when IDC no longer grows, we can just look up
-    # the last function and trim the main log there.
-    last_call=`cat $CAM.idc | grep -o "MakeFunction(.*)" | tail -1 | grep -om1 "0x[^,]*"`
+    # stopping when IDC no longer grows is not reliable either - it depends a lot on the PC speed
+    # let's trim until matching the MD5 of calls-main-basic.idc
+    # this assumes the needles (expected test results) were created on a slower PC and/or using a smaller timeout
+
+    cat $CAM.idc | grep -o "MakeFunction(.*)" \
+        > tests/$CAM/calls-main-basic.idc
+
+    cd tests/$CAM/
+    while [ $(cat calls-main-basic.idc | wc -l) != 0 ]; do
+        if cat calls-main.md5 | grep calls-main-basic.idc | md5sum -c --status; then
+            break
+        fi
+        head -n -1 calls-main-basic.idc > aux.idc
+        mv aux.idc calls-main-basic.idc
+    done
+    cd $OLDPWD
+
+    last_call=`tail -1 tests/$CAM/calls-main-basic.idc | grep -om1 "0x[^,]*"`
     last_call_thumb=`printf "0x%X\n" $((last_call+1))`
     input_lines=`grep --text -n -E "call ($last_call|$last_call_thumb)[( ]" tests/$CAM/calls-main-raw.log | head -n 1 | cut -d: -f1`
 
