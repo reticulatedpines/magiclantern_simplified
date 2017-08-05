@@ -221,7 +221,7 @@ for CAM in ${EOS_SECONDARY_CORES[*]} ${EOS_CAMS[*]}; do
     echo -n ' '
 
     # wait until it the IDC no longer grows, up to 5 minutes
-    ./wait_log.sh $CAM.idc 300 20 -q "^}" 
+    ./wait_log.sh $CAM.idc 300 5 -q "^}" 
     echo
     echo -n "                          "
 
