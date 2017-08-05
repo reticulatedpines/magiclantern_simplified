@@ -216,16 +216,16 @@ for CAM in ${EOS_SECONDARY_CORES[*]} ${EOS_CAMS[*]}; do
     done
     cd $OLDPWD
 
-    # trim the log file 1000 lines after the last function call identified in the IDC
+
+    # trim the log file after the last function call identified in the IDC
     last_call=`tail -1 tests/$CAM/calls-main-basic.idc | grep -om1 "0x[^,]*"`
     last_call_thumb=`printf "0x%X\n" $((last_call+1))`
-    input_lines=`grep -n -E "call ($last_call|$last_call_thumb)[( ]" tests/$CAM/calls-main-raw.log | head -n 1 | cut -d: -f1`
-    (( input_lines += 1000 ))
 
     # extract call/return lines, task switches and interrupts
+    # keep 1000 useful lines after the last call from IDC
     cat tests/$CAM/calls-main-raw.log \
-        | head -n $input_lines \
         | grep -E "call |return |Task switch |interrupt " \
+        | grep -E -m1 -A1000 "call ($last_call|$last_call_thumb)[( ]" \
         > tests/$CAM/calls-main.log
 
     # extract only the basic info (call address indented, return address)
@@ -237,8 +237,7 @@ for CAM in ${EOS_SECONDARY_CORES[*]} ${EOS_CAMS[*]}; do
     # also copy the IDC file for checking its MD5
     # this works on CF models too, even if some nondeterminism is present
     # the IDC needs trimming, too, as it doesn't always stop at the same line
-    input_lines=`grep -n "MakeFunction($last_call" $CAM.idc | head -n 1 | cut -d: -f1`
-    cat $CAM.idc | head -n $input_lines > tests/$CAM/calls-main.idc
+    cat $CAM.idc | grep -B 1000000 "MakeFunction($last_call" > tests/$CAM/calls-main.idc
     cat $CAM.idc | tail -n 2 >> tests/$CAM/calls-main.idc
 
     # extract only the call address from IDC
