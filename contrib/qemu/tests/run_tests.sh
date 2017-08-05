@@ -243,22 +243,27 @@ for CAM in ${EOS_SECONDARY_CORES[*]} ${EOS_CAMS[*]}; do
 
     # delete the last line from calls-main-basic.idc until it matches its reference MD5
     cd tests/$CAM/
-    while [ $(cat calls-main-basic.idc | wc -l) != 0 ]; do
-        if cat calls-main.md5 | grep calls-main-basic.idc | md5sum -c --status; then
+    while !(cat calls-main.md5 | grep calls-main-basic.idc | md5sum -c --status); do
+        if [ $(cat calls-main-basic.idc | wc -l) == 0 ]; then
+            # no luck; restore the full IDC, without trimming
+            cat $CAM.idc | grep -o "MakeFunction(.*)" \
+                > tests/$CAM/calls-main-basic.idc
             break
         fi
         sed -i '$ d' calls-main-basic.idc
     done
     cd $OLDPWD
 
+    # trim the log file 1000 lines after the last function call identified in the IDC
     last_call=`tail -1 tests/$CAM/calls-main-basic.idc | grep -om1 "0x[^,]*"`
     last_call_thumb=`printf "0x%X\n" $((last_call+1))`
     input_lines=`grep -n -E "call ($last_call|$last_call_thumb)[( ]" tests/$CAM/calls-main-raw.log | head -n 1 | cut -d: -f1`
+    (( input_lines += 1000 ))
 
-    # extract call/return lines and task switches
+    # extract call/return lines, task switches and interrupts
     cat tests/$CAM/calls-main-raw.log \
         | head -n $input_lines \
-        | grep -E "call |return |Task switch " \
+        | grep -E "call |return |Task switch |interrupt " \
         > tests/$CAM/calls-main.log
 
     # extract only the basic info (call address indented, return address)
@@ -282,12 +287,12 @@ for CAM in ${EOS_SECONDARY_CORES[*]} ${EOS_CAMS[*]}; do
     # count some stats
     calls=`cat tests/$CAM/calls-main.log | grep -c "call "`
     retns=`cat tests/$CAM/calls-main.log | grep "return " | grep -vc "interrupt"`
-    ints=`cat tests/$CAM/calls-main-raw.log | grep -E "interrupt .*at " | grep -vc "return"`
-    reti=`cat tests/$CAM/calls-main-raw.log | grep -c "return from interrupt"`
-    nints=`cat tests/$CAM/calls-main-raw.log | grep -E " interrupt .*at " | grep -vc "return"`
-    nreti=`cat tests/$CAM/calls-main-raw.log | grep -c " return from interrupt"`
-    tsksw=`cat tests/$CAM/calls-main-raw.log | grep -c "Task switch to "`
-    tasks=`cat tests/$CAM/calls-main-raw.log | grep -oP "(?<=Task switch to )[^:]*" | sort | uniq | head -3 |  tr '\n' ' '`
+    ints=`cat tests/$CAM/calls-main.log | grep -E "interrupt .*at " | grep -vc "return"`
+    reti=`cat tests/$CAM/calls-main.log | grep -c "return from interrupt"`
+    nints=`cat tests/$CAM/calls-main.log | grep -E " interrupt .*at " | grep -vc "return"`
+    nreti=`cat tests/$CAM/calls-main.log | grep -c " return from interrupt"`
+    tsksw=`cat tests/$CAM/calls-main.log | grep -c "Task switch to "`
+    tasks=`cat tests/$CAM/calls-main.log | grep -oP "(?<=Task switch to )[^:]*" | sort | uniq | head -3 |  tr '\n' ' '`
     if (( ints == 0 )); then
       echo -en "\e[33mno interrupts\e[0m "
     else
