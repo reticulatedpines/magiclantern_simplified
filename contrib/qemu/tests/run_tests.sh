@@ -204,10 +204,11 @@ for CAM in ${EOS_SECONDARY_CORES[*]} ${EOS_CAMS[*]}; do
     # log task switches as well
     # use -icount to get a deterministic execution
     # fixme: execution under gdb is not deterministic, even with -icount
+    # ansi2txt used here (only once) because it's very slow
     ./run_canon_fw.sh $CAM,firmware="boot=0" -icount 5 \
         -display none -d calls,idc,tasks \
         -serial file:tests/$CAM/calls-main-uart.log \
-        &> tests/$CAM/calls-main-raw.log &
+        |& ansi2txt > tests/$CAM/calls-main-raw.log &
 
     sleep 2
 
@@ -252,10 +253,10 @@ for CAM in ${EOS_SECONDARY_CORES[*]} ${EOS_CAMS[*]}; do
 
     last_call=`tail -1 tests/$CAM/calls-main-basic.idc | grep -om1 "0x[^,]*"`
     last_call_thumb=`printf "0x%X\n" $((last_call+1))`
-    input_lines=`grep --text -n -E "call ($last_call|$last_call_thumb)[( ]" tests/$CAM/calls-main-raw.log | head -n 1 | cut -d: -f1`
+    input_lines=`grep -n -E "call ($last_call|$last_call_thumb)[( ]" tests/$CAM/calls-main-raw.log | head -n 1 | cut -d: -f1`
 
     # extract call/return lines and task switches
-    ansi2txt < tests/$CAM/calls-main-raw.log \
+    cat tests/$CAM/calls-main-raw.log \
         | head -n $input_lines \
         | grep -E "call |return |Task switch " \
         > tests/$CAM/calls-main.log
@@ -281,12 +282,12 @@ for CAM in ${EOS_SECONDARY_CORES[*]} ${EOS_CAMS[*]}; do
     # count some stats
     calls=`cat tests/$CAM/calls-main.log | grep -c "call "`
     retns=`cat tests/$CAM/calls-main.log | grep "return " | grep -vc "interrupt"`
-    ints=`ansi2txt < tests/$CAM/calls-main-raw.log | grep -E "interrupt .*at " | grep -vc "return"`
-    reti=`ansi2txt < tests/$CAM/calls-main-raw.log | grep -c "return from interrupt"`
-    nints=`ansi2txt < tests/$CAM/calls-main-raw.log | grep -E " interrupt .*at " | grep -vc "return"`
-    nreti=`ansi2txt < tests/$CAM/calls-main-raw.log | grep -c " return from interrupt"`
-    tsksw=`ansi2txt < tests/$CAM/calls-main-raw.log | grep -c "Task switch to "`
-    tasks=`ansi2txt < tests/$CAM/calls-main-raw.log | grep -oP "(?<=Task switch to )[^:]*" | sort | uniq | head -3 |  tr '\n' ' '`
+    ints=`cat tests/$CAM/calls-main-raw.log | grep -E "interrupt .*at " | grep -vc "return"`
+    reti=`cat tests/$CAM/calls-main-raw.log | grep -c "return from interrupt"`
+    nints=`cat tests/$CAM/calls-main-raw.log | grep -E " interrupt .*at " | grep -vc "return"`
+    nreti=`cat tests/$CAM/calls-main-raw.log | grep -c " return from interrupt"`
+    tsksw=`cat tests/$CAM/calls-main-raw.log | grep -c "Task switch to "`
+    tasks=`cat tests/$CAM/calls-main-raw.log | grep -oP "(?<=Task switch to )[^:]*" | sort | uniq | head -3 |  tr '\n' ' '`
     if (( ints == 0 )); then
       echo -en "\e[33mno interrupts\e[0m "
     else
