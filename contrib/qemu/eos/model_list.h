@@ -49,11 +49,13 @@ struct eos_model_desc {
             uint32_t cf_dma_interrupt;
             uint32_t card_led_address;
             uint32_t ram_manufacturer_id;
+            uint32_t uart_rx_interrupt;
+            uint32_t uart_tx_interrupt;
         };
         
         /* this must match the number of items in the above struct */
         /* note: you get a compile-time error if params[] is smaller than the struct */
-        uint32_t params[33];
+        uint32_t params[35];
     };
 } __attribute__((packed));
 

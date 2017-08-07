@@ -1030,13 +1030,12 @@ static void eos_uart_rx(void *opaque, const uint8_t *buf, int size)
 
     s->reg_st |= ST_RX_RDY;
     s->reg_rx = *buf;
-    
+
     EOSState *es = (EOSState *)(opaque - offsetof(EOSState, uart));
-    if (strcmp(es->model->name, "5D3eeko") == 0)
-    {
-        /* fixme: hardcoded for Eeko */
-        eos_trigger_int(es, 0x39, 0);
-    }
+    assert(es->model->uart_rx_interrupt);
+
+    /* fixme: why it locks up without a delay? */
+    eos_trigger_int(es, es->model->uart_rx_interrupt, 10);
 }
 
 static void eos_uart_event(void *opaque, int event)
@@ -3086,7 +3085,7 @@ static int edmac_do_transfer(EOSState *s, int channel)
 
     /* assume 200 MB/s transfer speed */
     int delay = transfer_data_size * 1e6 / (200*1024*1024) / 0x100;
-    printf("[EDMAC#%d] transfer delay %d x 256 us.\n", channel, delay);
+    fprintf(stderr, "[EDMAC#%d] transfer delay %d x 256 us.\n", channel, delay);
 
     edmac_trigger_interrupt(s, channel, delay);
     return 1;
@@ -3771,12 +3770,17 @@ unsigned int eos_handle_uart ( unsigned int parm, EOSState *s, unsigned int addr
     const char * msg = 0;
     int msg_arg1 = 0;
     static int enable_tio_interrupt = 0;
+    static int flags = 0;
 
-    if (address == 0xC0270000)
+    if (address == 0xC0270000 && value == 0x80000000)
     {
-        /* TIO enable flag on EOS M3? */
-        static int mem = 0;
-        MMIO_VAR(mem);
+        msg = "TIO enable flag on EOS M3?";
+        goto end;
+    }
+
+    if (address == 0xC0270000 && value != (value & 0xFF))
+    {
+        /* unknown, probably not TIO */
         goto end;
     }
 
@@ -3785,6 +3789,7 @@ unsigned int eos_handle_uart ( unsigned int parm, EOSState *s, unsigned int addr
         case 0x00:
             if(type & MODE_WRITE)
             {
+                msg = "Write char";
                 assert(value == (value & 0xFF));
                 
                 if (s->uart.chr) {
@@ -3799,9 +3804,10 @@ unsigned int eos_handle_uart ( unsigned int parm, EOSState *s, unsigned int addr
                     fprintf(stderr, KRED"%c"KRESET, value);
                 }
 
+                /* 0 written during initialization */
                 if (enable_tio_interrupt)
                 {
-                    eos_trigger_int(s, 0x3A + parm, 0);
+                    eos_trigger_int(s, s->model->uart_tx_interrupt, 1);
                 }
             }
             else
@@ -3811,11 +3817,18 @@ unsigned int eos_handle_uart ( unsigned int parm, EOSState *s, unsigned int addr
             break;
 
         case 0x04:
-            msg = "Read byte: 0x%02X";
+            msg = "Read char";
             s->uart.reg_st &= ~(ST_RX_RDY);
             ret = s->uart.reg_rx;
-            msg_arg1 = ret;
             break;
+
+        case 0x08:
+        {
+            msg = "Flags?";
+            MMIO_VAR(flags);
+            flags &= ~0x800;
+            break;
+        }
 
         case 0x14:
             if(type & MODE_WRITE)
@@ -3827,7 +3840,7 @@ unsigned int eos_handle_uart ( unsigned int parm, EOSState *s, unsigned int addr
                 }
                 else
                 {
-                    ret = s->uart.reg_st;
+                    s->uart.reg_st = value;
                 }
             }
             else
@@ -3838,12 +3851,27 @@ unsigned int eos_handle_uart ( unsigned int parm, EOSState *s, unsigned int addr
             break;
 
         case 0x18:
-            /* 1000D expects interrupt 0x3A to be triggered after writing each char */
-            /* most other cameras are upset by this interrupt */
-            enable_tio_interrupt = (value == 0xFFFFFFC4);
-            msg = (value == 0xFFFFFFC4) ? "enable interrupt?" : "interrupt related?";
-            ret = 0;
+        {
+            msg = "interrupt flags?";
+            static int status = 0;
+            MMIO_VAR(status);
+
+            if(type & MODE_WRITE)
+            {
+                /* 1000D expects interrupt 0x3A to be triggered after writing each char */
+                /* most other cameras are upset by this interrupt */
+                if (value == 0xFFFFFFC4)
+                {
+                    msg = "enable interrupt?";
+                    enable_tio_interrupt = 1;
+                }
+                else
+                {
+                    enable_tio_interrupt = value & 1;
+                }
+            }
             break;
+        }
     }
 
 end:
@@ -4541,8 +4569,69 @@ static void cfdma_trigger_interrupt(EOSState *s)
     }
 }
 
+static unsigned int eos_handle_uart_dma ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+{
+    unsigned int ret = 0;
+    const char * msg = 0;
+
+    static uint32_t addr;
+    static uint32_t count;
+    static uint32_t status;
+
+    switch(address & 0x1F)
+    {
+        case 0x00:
+        case 0x08:
+            msg = "Transfer memory address";
+            MMIO_VAR(addr);
+            break;
+
+        case 0x04:
+        case 0x0C:
+            msg = "Transfer byte count";
+            MMIO_VAR(count);
+            break;
+
+        case 0x10:
+            msg = "Transfer command / status?";
+            if (value == 0x10023)
+            {
+                /* read char? */
+                count = 0;
+                cpu_physical_memory_write(addr, &s->uart.reg_rx, 1);
+                status = 0x10;
+
+                /* guess: initialization? */
+                static int first_time = 1;
+                if (first_time)
+                {
+                    eos_trigger_int(s, s->model->uart_rx_interrupt, 0);
+                    first_time = 0;
+                }
+            }
+            ret = 0x20;
+            break;
+
+        case 0x14:
+            msg = "DMA status?";
+            if (s->uart.reg_st & ST_RX_RDY) {
+                status |= 0x4;
+            }
+            MMIO_VAR(status);
+            break;
+    }
+
+    io_log("UartDMA", s, address, type, value, ret, msg, 0, 0);
+    return ret;
+}
+
 unsigned int eos_handle_cfdma ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
+    if (parm == 0 && s->model->digic_version >= 4)
+    {
+        return eos_handle_uart_dma(parm, s, address, type, value);
+    }
+
     unsigned int ret = 0;
     const char * msg = 0;
 

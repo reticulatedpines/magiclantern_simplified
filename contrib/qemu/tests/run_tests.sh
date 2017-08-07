@@ -19,10 +19,10 @@ CF_CAMS=( 5D 5D2 5D3 5D4 7D 7D2M 40D 50D 400D )
 
 if false ; then
     # to test only specific models
-    EOS_CAMS=(650D)
-    POWERSHOT_CAMS=()
-    GUI_CAMS=(650D)
-    SD_CAMS=(650D)
+    EOS_CAMS=(1300D)
+    POWERSHOT_CAMS=(EOSM3)
+    GUI_CAMS=(1300D)
+    SD_CAMS=(1300D)
     CF_CAMS=()
     EOS_SECONDARY_CORES=()
 fi
@@ -204,15 +204,18 @@ for CAM in ${EOS_SECONDARY_CORES[*]} ${EOS_CAMS[*]}; do
         > tests/$CAM/calls-main-basic.idc
 
     # delete the last line from calls-main-basic.idc until it matches its reference MD5
+    # fixme: very slow when the test fails
     cd tests/$CAM/
     while !(cat calls-main.md5 | grep calls-main-basic.idc | md5sum -c --status); do
         if [ $(cat calls-main-basic.idc | wc -l) == 0 ]; then
             # no luck; restore the full IDC, without trimming
-            cat $CAM.idc | grep -o "MakeFunction(.*)" \
-                > tests/$CAM/calls-main-basic.idc
+            cat ../../$CAM.idc | grep -o "MakeFunction(.*)" \
+                > calls-main-basic.idc
             break
         fi
-        sed -i '$ d' calls-main-basic.idc
+        # a lot faster than sed -i "$ d"
+        head -n -1 calls-main-basic.idc > aux.idc
+        mv aux.idc calls-main-basic.idc
     done
     cd $OLDPWD
 
@@ -792,13 +795,17 @@ for CAM in ${POWERSHOT_CAMS[*]}; do
     echo "$CAM:"
     mkdir -p tests/$CAM/
     rm -f tests/$CAM/boot.log
-    (./run_canon_fw.sh $CAM -display none -s -S -d romcpy,int & \
+
+    (./run_canon_fw.sh $CAM \
+       -display none -d romcpy,int -s -S \
+       -serial file:tests/$CAM/boot-uart.log & \
      arm-none-eabi-gdb -x $CAM/debugmsg.gdb &) &> tests/$CAM/boot.log
+
     sleep 0.5
-    ( timeout 10 tail -f -n100000 tests/$CAM/boot.log & ) | grep --binary-files=text -qP "\x1B\x5B31ma\x1B\x5B0m\x1B\x5B31my\x1B\x5B0m"
+    ( timeout 10 tail -f -n100000 tests/$CAM/boot.log & ) | grep -q "TurnOnDisplay"
     kill_qemu
 
-    printf "  SD boot: "; tests/check_grep.sh tests/$CAM/boot.log -om1 "StartDiskboot"
+    printf "  SD boot: "; tests/check_grep.sh tests/$CAM/boot-uart.log -om1 "StartDiskboot"
     printf "  Display: "; tests/check_grep.sh tests/$CAM/boot.log -om1 "TurnOnDisplay"
     printf "  ROMcopy: "; tests/check_grep.sh tests/$CAM/boot.log -oPm1 "(?<=ROMCPY\]) "
 

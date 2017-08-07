@@ -25,6 +25,8 @@ struct eos_model_desc eos_model_list[] = {
         .mpu_status_register    = 0xC0220098,
         .mpu_control_register   = 0xC0203034,
         .mpu_request_interrupt  = 0x52,
+        .uart_rx_interrupt      = 0x2E,
+        .uart_tx_interrupt      = 0x3A,
     },
     {
         /* defaults for DIGIC 4 cameras */
@@ -54,6 +56,8 @@ struct eos_model_desc eos_model_list[] = {
         .mpu_status_register    = 0xC022009C,
         .mpu_control_register   = 0xC020302C,
         .mpu_request_interrupt  = 0x50,
+        .uart_rx_interrupt      = 0x2E,
+        .uart_tx_interrupt      = 0x3A,
     },
     {
         /* defaults for DIGIC 5 cameras */
@@ -80,6 +84,8 @@ struct eos_model_desc eos_model_list[] = {
         .card_led_address       = 0xC022C188,   /* SD */
         .mpu_control_register   = 0xC020302C,
         .mpu_request_interrupt  = 0x50,
+        .uart_rx_interrupt      = 0x2E,
+        .uart_tx_interrupt      = 0x3A,
     },
     {
         /* defaults for DIGIC 6 cameras */
@@ -105,6 +111,8 @@ struct eos_model_desc eos_model_list[] = {
         .sd_driver_interrupt    = 0xEE,
         .sd_dma_interrupt       = 0xBE,
         .card_led_address       = 0xD20B0A24,
+        .uart_rx_interrupt      = 0x15D,
+        .uart_tx_interrupt      = 0x16D,
     },
     {
         /* defaults for DIGIC 7 cameras */
@@ -174,6 +182,7 @@ struct eos_model_desc eos_model_list[] = {
         .dryos_timer_interrupt  = 0xFE,
         .current_task_addr      = 0x40000148,
         .current_task_name_offs = 0x09,
+        .uart_rx_interrupt      = 0x39,
     },
     {
         .name                   = "650D",
@@ -249,6 +258,7 @@ struct eos_model_desc eos_model_list[] = {
         .current_task_addr      = 0x31170,
         .sd_driver_interrupt    = 0x4B,
         .sd_dma_interrupt       = 0x32,
+        .uart_rx_interrupt      = 0x38,
     },
     {
         .name                   = "EOSM",
