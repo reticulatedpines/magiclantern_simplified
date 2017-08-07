@@ -1603,6 +1603,22 @@ void io_log(const char * module_name, EOSState *s, unsigned int address, unsigne
         strlen(msg) ? ": " : "",
         desc
     );
+
+    /* print MMIO reads as dm-spy entries (dm-spy-experiments branch)
+     * so you can cross-check the values with the ones from actual hardware
+     * this requires -d io,nochain -singlestep (or -d io,callstack)
+     * does it really need a dedicated option? */
+    if (!(type & MODE_WRITE) && singlestep && qemu_loglevel_mask(CPU_LOG_TB_NOCHAIN))
+    {
+        uint32_t insn;
+        cpu_physical_memory_read(pc, &insn, sizeof(insn));
+        uint32_t reg = (insn >> 12) & 0xF;
+        fprintf(stderr, "    { 0x%-8X, \"0x%X\", R(%d), mmio_log }, "
+                        "    /* %s %s at %s:%X (0x%x)*/\n",
+            pc + 4, address, reg,
+            mod_name, desc, task_name, pc, out_value
+        );
+    }
 }
 
 
