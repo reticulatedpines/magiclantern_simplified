@@ -141,7 +141,65 @@ function vncexpect {
 function kill_qemu {
     # fixme: only kill the QEMU processes started by us (how?)
     killall -TERM -w qemu-system-arm
+    killall -TERM -w arm-none-eabi-gdb 2>/dev/null
 }
+
+# All EOS cameras should run the Dry-shell console over UART
+# fixme: only works on D4 and D5 models
+echo
+echo "Testing Dry-shell over UART..."
+for CAM in 5D3eeko ${EOS_CAMS[*]}; do
+    printf "%5s: " $CAM
+
+    # skip VxWorks models for now
+    if grep -q VxWorks $CAM/ROM1.BIN; then
+        echo -e "\e[33mskipping\e[0m"
+        continue
+    fi
+
+    # same for DIGIC 6
+    if grep -q ZicoAssert $CAM/ROM1.BIN; then
+        echo -e "\e[33mskipping\e[0m"
+        continue
+    fi
+
+    mkdir -p tests/$CAM/
+    rm -f tests/$CAM/drysh.log
+
+    # most models require "akashimorino" to enable the Dry-shell
+    # a few don't (500D, 5D3eeko), but sending it anyway shouldn't hurt
+
+    (
+        sleep 5; echo "akashimorino";
+        sleep 0.5; echo "drysh";
+        sleep 0.5; echo "vers";
+        sleep 0.5; echo "?";
+        sleep 0.5; echo "task";
+        sleep 0.5; echo "quit" | nc -U qemu.monitor
+    ) | (
+        if [ -f $CAM/patches.gdb ]; then
+            ( arm-none-eabi-gdb -x $CAM/patches.gdb 1>&2 &
+              ./run_canon_fw.sh $CAM,firmware="boot=0" \
+                -display none -serial stdio -s -S ) \
+                    > tests/$CAM/drysh.log \
+                    2> tests/$CAM/drysh-emu.log
+        else
+            ./run_canon_fw.sh $CAM,firmware="boot=0" \
+                -display none -serial stdio \
+                > tests/$CAM/drysh.log \
+                2> tests/$CAM/drysh-emu.log
+        fi
+    )
+
+    kill_qemu 2>/dev/null
+
+    tests/check_grep.sh tests/$CAM/drysh.log \
+        -oEm1 "Dry-shell .*\..*| xd .*" || continue
+
+    tests/check_grep.sh tests/$CAM/drysh.log \
+        -q "akashimorino"
+
+done
 
 echo
 echo "Testing call/return trace on main firmware..."
