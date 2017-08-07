@@ -32,9 +32,12 @@
 
 /** ANSI colors **/
 #define KRED   "\x1B[31m"
-#define KBLU   "\x1B[34m"
 #define KGRN   "\x1B[32m"
+#define KBLU   "\x1B[34m"
 #define KLRED  "\x1B[1;31m"
+#define KLGRN  "\x1B[1;32m"
+#define KLBLU  "\x1B[1;34m"
+#define KYLW   "\x1B[1;33m"
 #define KCYN   "\x1B[1;36m"
 #define KWHT   "\x1B[1;37m"
 #define KRESET "\x1B[0m"

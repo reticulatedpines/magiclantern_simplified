@@ -1547,6 +1547,22 @@ int eos_get_current_task_stack(EOSState *s, uint32_t * top, uint32_t * bottom)
     return 0;
 }
 
+/* return 1 if you want this address or group to be highlighted */
+static int io_highlight(unsigned int address, unsigned char type, const char * module_name, const char * task_name)
+{
+    /* example: highlight UART messages (requires -d io,uart) */
+    return
+        strcmp(module_name, "UART") == 0 ||
+        strcmp(module_name, "UartDMA") == 0 ;
+
+    /* example: highlight JPCORE/JP51/JPwhatever and EDMAC */
+    return
+        strncmp(module_name, "JP", 2) == 0 ||
+        strncmp(module_name, "EDMAC", 5) == 0 ;
+
+    return 1;
+}
+
 void io_log(const char * module_name, EOSState *s, unsigned int address, unsigned char type, unsigned int in_value, unsigned int out_value, const char * msg, intptr_t msg_arg1, intptr_t msg_arg2)
 {
     /* log I/O when "-d io" is specified on the command line */
@@ -1594,9 +1610,11 @@ void io_log(const char * module_name, EOSState *s, unsigned int address, unsigne
     char desc[200];
     snprintf(desc, sizeof(desc), msg, msg_arg1, msg_arg2);
     
-    fprintf(stderr, "%s%-28s [0x%08X] %s 0x%-8X%s%s\n",
+    fprintf(stderr, "%s%-28s %s[0x%08X] %s 0x%-8X"KRESET"%s%s\n",
         cpu_name,
         mod_name_and_pc,
+        io_highlight(address, type, module_name, task_name)
+            ? (type & MODE_WRITE ? KYLW : KLGRN) : "",
         address,
         type & MODE_WRITE ? "<-" : "->",
         type & MODE_WRITE ? in_value : out_value,
