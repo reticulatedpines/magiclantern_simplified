@@ -74,6 +74,8 @@ static void (*TTL_Start)(void * TTL_Args);
 static void (*TTL_Stop)(void * TTL_Args);
 static void (*TTL_Finish)(void * ResLock, void * TTL_Args, uint32_t * output_size);
 
+static void decompress_init();
+
 int lossless_init()
 {
     if (is_camera("5D3", "1.1.3"))
@@ -102,7 +104,6 @@ int lossless_init()
         TTL_Finish      = (void *) 0xFF3DD654;  /* called next; calls UnlockEngineResources and returns output size from JpCoreCompleteCBR */
     }
 
-
     lossless_sem = create_named_semaphore(0, 0);
 
     uint32_t resources[] = {
@@ -123,6 +124,9 @@ int lossless_init()
     };
 
     TTL_ResLock = CreateResLockEntry(resources, COUNT(resources));
+
+    /* optionally initialize the decompression routines */
+    decompress_init();
 
     /* return 1 if everything looks alright */
     return TTL_Start && lossless_sem && TTL_ResLock;
@@ -269,3 +273,87 @@ int lossless_compress_raw(struct raw_info * raw_info, struct memSuite * output_m
     );
 }
 
+
+/* decompression stuff wizardry goes here */
+struct DecodeLossless_args
+{
+    void *address;
+    int depth_type;
+    int is_not_16bpp;
+    int x_2;
+    int x_1;
+    int x_mul;
+    int y_2;
+    int ysize_raw;
+    int y_mul;
+};
+
+static void (*Setup_DecodeLosslessRawPath) (struct DecodeLossless_args *args, void (*read_cbr)(int *), void (*done_cbr)(int *), int *cbr_ctx, int *a5) = NULL;
+static void (*Start_DecodeLosslessPath) (struct memSuite *a1) = NULL;
+static void (*Cleanup_DecodeLosslessPath) (void) = NULL;
+static struct semaphore *decompress_sem = NULL;
+
+static void decompress_init()
+{
+    /* now check for the needed decompression functions */
+    if (is_camera("5D3", "1.1.3"))
+    {
+        Setup_DecodeLosslessRawPath = (void*)0xFF3CB010;
+        Start_DecodeLosslessPath = (void*)0xFF3CB0D8;
+        Cleanup_DecodeLosslessPath = (void*)0xFF3CB23C;
+    }
+    
+    /* all functions known? having the semaphore is an indicator we can decompress */
+    if (Setup_DecodeLosslessRawPath && Start_DecodeLosslessPath && Cleanup_DecodeLosslessPath)
+    {
+        decompress_sem = create_named_semaphore("decompress_sem", 0);
+    }
+}
+
+/* this one is called when decompression is done */
+static void DecodeLossless_DoneCBR(int *done)
+{
+    give_semaphore(decompress_sem);
+}
+
+/* the read cbr is not used */
+static void DecodeLossless_ReadCBR(int *done)
+{
+}
+
+int lossless_decompress_raw(
+    struct memSuite * src, void * dst,
+    int width, int height,
+    int output_bpp
+)
+{
+    if (!decompress_sem)
+    {
+        return -1;
+    }
+
+    struct DecodeLossless_args decode_opts;
+
+    decode_opts.address = dst;
+    decode_opts.depth_type = 4;
+    decode_opts.is_not_16bpp = (output_bpp == 16) ? 0 : 1;
+    decode_opts.x_1 = width;
+    decode_opts.x_2 = 0;
+    decode_opts.x_mul = 0;
+    decode_opts.ysize_raw = height;
+    decode_opts.y_2 = 0;
+    decode_opts.y_mul = 0;
+    
+    /* we dont use that one */
+    int done = 0;
+    Setup_DecodeLosslessRawPath(&decode_opts, DecodeLossless_ReadCBR, DecodeLossless_DoneCBR, &done, &done);
+    Start_DecodeLosslessPath(src);
+    
+    /* wait for decompression to finish */
+    take_semaphore(decompress_sem, 0);
+    
+    /* clean up */
+    Cleanup_DecodeLosslessPath();
+
+    return 0;
+}

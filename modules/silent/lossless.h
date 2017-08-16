@@ -17,4 +17,11 @@ int lossless_compress_raw_rectangle(
     int width, int height
 );
 
+int lossless_decompress_raw(
+    struct memSuite * src, void * dst,
+    int width, int height,
+    int output_bpp
+);
+
+
 #endif

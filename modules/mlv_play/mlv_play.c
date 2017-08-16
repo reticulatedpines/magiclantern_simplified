@@ -45,6 +45,7 @@
 #include "../file_man/file_man.h"
 #include "../lv_rec/lv_rec.h"
 #include "../raw_twk/raw_twk.h"
+#include "../silent/lossless.h"
 
 /* uncomment for live debug messages */
 //~ #define trace_write(trace, fmt, ...) { printf(fmt, ## __VA_ARGS__); printf("\n"); msleep(500); }
@@ -171,40 +172,6 @@ static uint32_t mlv_play_should_stop();
 /* microsecond durations for one frame */
 static uint32_t mlv_play_frame_div_pos = 0;
 static uint32_t mlv_play_frame_dividers[3];
-
-/* decompression stuff wizardry goes here */
-struct struc_DecodeLosslessSetup
-{
-    void *address;
-    int depth_type;
-    int is_not_16bpp;
-    int x_2;
-    int x_1;
-    int x_mul;
-    int y_2;
-    int ysize_raw;
-    int y_mul;
-};
-
-void (*Setup_DecodeLosslessRawPath) (struct struc_DecodeLosslessSetup *args, void (*read_cbr)(int *), void (*done_cbr)(int *), int *cbr_ctx, int *a5) = NULL;
-void (*Start_DecodeLosslessPath) (struct memSuite *a1) = NULL;
-void (*Cleanup_DecodeLosslessPath) (void) = NULL;
-void *mlv_play_decomp_buf = NULL;
-static struct semaphore *mlv_play_decomp_sem = NULL;
-struct memSuite *mlv_play_decomp_suite = NULL;
-
-/* this one is called when decompression is done */
-void mlv_play_decomp_DoneCBR(int *done)
-{
-    give_semaphore(mlv_play_decomp_sem);
-}
-
-/* the read cbr is not used */
-void mlv_play_decomp_ReadCBR(int *done)
-{
-}
-
-
 
 
 static void mlv_play_flush_queue(struct msg_queue *queue)
@@ -1662,7 +1629,10 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
     mlv_rtci_hdr_t wavi_block;
     mlv_rtci_hdr_t rtci_block;
     mlv_file_hdr_t main_header;
-    
+
+    void *mlv_play_decomp_buf = NULL;
+    struct memSuite *mlv_play_decomp_suite = NULL;
+
     /* make sure there is no crap in stack variables */
     memset(&lens_block, 0x00, sizeof(mlv_lens_hdr_t));
     memset(&rawi_block, 0x00, sizeof(mlv_rawi_hdr_t));
@@ -1964,42 +1934,24 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
 
             if(main_header.videoClass & MLV_VIDEO_CLASS_FLAG_LJ92)
             {
-                if(!mlv_play_decomp_sem)
+                int output_bpp = raw_twk_available() ? 16 : 14;
+                int r = lossless_decompress_raw(
+                    mlv_play_decomp_suite, buffer->frameBufferAligned,
+                    rawi_block.xRes, rawi_block.yRes, 
+                    output_bpp
+                );
+
+                if (r == -1)
                 {
                     bmp_printf(FONT_MED, 20, 300, "(no decompression on this model)");
                 }
-                else
+
+                /* when we have lossless data, we decompressed it already to 16 bpp for raw_twk */
+                if (output_bpp == 16)
                 {
-                    struct struc_DecodeLosslessSetup decode_opts;
-                    
-                    decode_opts.address = buffer->frameBufferAligned;
-                    decode_opts.depth_type = 4;
-                    decode_opts.is_not_16bpp = raw_twk_available() ? 0 : 1;
-                    decode_opts.x_1 = rawi_block.xRes;
-                    decode_opts.x_2 = 0;
-                    decode_opts.x_mul = 0;
-                    decode_opts.ysize_raw = rawi_block.yRes;
-                    decode_opts.y_2 = 0;
-                    decode_opts.y_mul = 0;
-                    
-                    /* we dont use that one */
-                    int done = 0;
-                    Setup_DecodeLosslessRawPath(&decode_opts, mlv_play_decomp_ReadCBR, mlv_play_decomp_DoneCBR, &done, &done);
-                    Start_DecodeLosslessPath(mlv_play_decomp_suite);
-                    
-                    /* wait for decompression to finish */
-                    take_semaphore(mlv_play_decomp_sem, 0);
-                    
-                    /* clean up */
-                    Cleanup_DecodeLosslessPath();
-                    
-                    /* when we have lossless data, we decompressed it already to 16 bpp for raw_twk */
-                    if(!decode_opts.is_not_16bpp)
-                    {
-                        /* also raise black level */
-                        buffer->blackLevel = rawi_block.raw_info.black_level << (16 - rawi_block.raw_info.bits_per_pixel);
-                        buffer->bitDepth = 16;
-                    }
+                    /* also raise black level */
+                    buffer->blackLevel = rawi_block.raw_info.black_level << (16 - rawi_block.raw_info.bits_per_pixel);
+                    buffer->bitDepth = 16;
                 }
             }
             
@@ -2841,21 +2793,7 @@ static unsigned int mlv_play_init()
     fileman_register_type("MLV", "MLV Video", mlv_play_filehandler);
     
     mlv_play_sem = create_named_semaphore("mlv_play_running", 1);
-    
-    /* now check for the needed decompression functions */
-    if (is_camera("5D3", "1.1.3"))
-    {
-        Setup_DecodeLosslessRawPath = (void*)0xFF3CB010;
-        Start_DecodeLosslessPath = (void*)0xFF3CB0D8;
-        Cleanup_DecodeLosslessPath = (void*)0xFF3CB23C;
-    }
-    
-    /* all functions known? having the semaphore is an indicator we can decompress */
-    if(Setup_DecodeLosslessRawPath && Start_DecodeLosslessPath && Cleanup_DecodeLosslessPath)
-    {
-        mlv_play_decomp_sem = create_named_semaphore("mlv_play_decomp_sem", 0);
-    }
-    
+
     return 0;
 }
 
