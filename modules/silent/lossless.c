@@ -298,9 +298,16 @@ static void decompress_init()
     /* now check for the needed decompression functions */
     if (is_camera("5D3", "1.1.3"))
     {
-        Setup_DecodeLosslessRawPath = (void*)0xFF3CB010;
-        Start_DecodeLosslessPath = (void*)0xFF3CB0D8;
-        Cleanup_DecodeLosslessPath = (void*)0xFF3CB23C;
+        Setup_DecodeLosslessRawPath = (void *) 0xFF3CB010;
+        Start_DecodeLosslessPath    = (void *) 0xFF3CB0D8;
+        Cleanup_DecodeLosslessPath  = (void *) 0xFF3CB23C;
+    }
+
+    if (is_camera("5D3", "1.2.3"))
+    {
+        Setup_DecodeLosslessRawPath = (void *) 0xff3d3f04;
+        Start_DecodeLosslessPath    = (void *) 0xff3d3fcc;
+        Cleanup_DecodeLosslessPath  = (void *) 0xff3d4130;
     }
     
     /* all functions known? having the semaphore is an indicator we can decompress */
