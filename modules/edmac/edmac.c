@@ -12,6 +12,19 @@
 
 extern WEAK_FUNC(ret_0) char * asm_guess_func_name_from_string(uint32_t func_addr);
 
+static const char * edmac_format_size_short(struct edmac_info * info, uint32_t maxlen)
+{
+    const char * sz = edmac_format_size(info);
+
+    if (strlen(sz) > maxlen)
+    {
+        /* description too complex? just print the total transfer size */
+        return format_memory_size(edmac_get_total_size(info, 0));
+    }
+
+    return sz;
+}
+
 static int edmac_selection;
 
 static void edmac_display_page(int i0, int x0, int y0)
@@ -34,15 +47,8 @@ static void edmac_display_page(int i0, int x0, int y0)
         int state = edmac_get_state(ch);
 
         struct edmac_info info = edmac_get_info(ch);
-        char * sz = edmac_format_size(&info);
-        if (strlen(sz) <= 10)
-        {
-            snprintf(msg, sizeof(msg), "[%2d] %8x: %s", ch, addr, sz);
-        }
-        else
-        {
-            snprintf(msg, sizeof(msg), "[%2d] %8x: %d", ch, addr, edmac_get_total_size(&info, 0));
-        }
+        const char * sz = edmac_format_size_short(&info, 10);
+        snprintf(msg, sizeof(msg), "[%2d] %8x: %s", ch, addr, sz);
 
         if (state != 0 && state != 1)
         {
@@ -99,6 +105,166 @@ static void edmac_display_page(int i0, int x0, int y0)
     }
 }
 
+static void edmac_display_conn(int page)
+{
+    uint32_t conn0 = page * 16;
+
+    bmp_printf(
+        FONT_LARGE,
+        50, 20,
+        "EDMAC connections %d - %d", conn0, conn0 + 15
+    );
+
+    int y = 50;
+    int font_height = fontspec_font(FONT_MONO_20)->height;
+    int line_height = font_height + 4;
+
+    /* memory map */
+    for (int i = 0; i < 400; i++)
+    {
+        int y = i + 50;
+        draw_line(10, y, 20, y, COLOR_GRAY(50));
+        draw_line(700, y, 710, y, COLOR_GRAY(50));
+    }
+
+    bmp_printf(FONT_MONO_20 | FONT_ALIGN_CENTER, 15, 460, "RD");
+    bmp_printf(FONT_MONO_20 | FONT_ALIGN_CENTER, 720-15, 460, "WR");
+
+    bmp_printf(FONT_SMALL | FONT_ALIGN_LEFT, 30, 45, "0");
+    bmp_printf(FONT_SMALL | FONT_ALIGN_RIGHT, 720-30, 45, "0");
+
+    bmp_printf(FONT_SMALL | FONT_ALIGN_LEFT, 30, 445, "512MB");
+    bmp_printf(FONT_SMALL | FONT_ALIGN_RIGHT, 720-30, 445, "512MB");
+
+    const char * labels[64] = {
+        [0]  = "RAW",    /* most models, photo + LV; also used for TTL */
+        [1]  = "DEF",    /* DEF input? */
+        [2]  = "WB",     /* OBWB related */
+        [3]  = "YUV",    /* RSZ: reads YUV from <3>, writes YUV to <3> */
+        [5]  = "JPG",    /* JPG DEC: reads JPG from <5>, writes YUV to <3> */
+        [8]  = "DEF",    /* DEF input? */
+        [15] = "HIV",    /* input only (row/column offsets for pattern noise correction) */
+        [16] = "DEF",    /* DEF output? */
+        [35] = "RAW",    /* 5D3 photo */
+    };
+
+    for (uint32_t conn = conn0; conn < conn0 + 16; conn++)
+    {
+        y += line_height;
+
+        bmp_printf(FONT_MONO_20 | FONT_ALIGN_CENTER, 360, y, ">%02d      %02d>", conn, conn);
+
+        if (labels[conn])
+        {
+            /* fixme: how to show the endpoints are *not* connected? */
+            bmp_printf(FONT_MONO_20 | FONT_ALIGN_CENTER, 360, y, "(%s)", labels[conn]);
+        }
+
+        if (conn == 6 || conn == 7)
+        {
+            /* passthru */
+            draw_line(360-30, y + font_height / 2, 360+30, y + font_height / 2, COLOR_WHITE);
+        }
+
+        uint32_t ch_r = 0xFFFFFFFF;
+        uint32_t ch_w = 0xFFFFFFFF;
+
+        for (uint32_t chan = 0; chan < 48; chan++)
+        {
+            uint32_t dir = edmac_get_dir(chan);
+            uint32_t c   = edmac_get_connection(chan, dir);
+
+            if (dir == EDMAC_DIR_READ)
+            {
+                if (c == conn)
+                {
+                    if (conn != 0 || edmac_get_pointer(chan))
+                    {
+                        /* connection #0: finding the associated channel is not reliable
+                         * heuristic: pick the channel with configured address */
+                        ch_r = chan;
+                    }
+                }
+            }
+            else if (dir == EDMAC_DIR_WRITE)
+            {
+                if (c == conn)
+                {
+                    if (conn != 0 || edmac_get_pointer(chan))
+                    {
+                        /* connection #0: finding the associated channel is not reliable
+                         * heuristic: pick the channel with configured address */
+                        ch_w = chan;
+                    }
+                }
+            }
+        }
+
+        /* fixme: handle conflicts (multiple channels on the same connection) */
+
+        uint32_t chs[] = { ch_r, ch_w };
+        for (int i = 0; i < COUNT(chs); i++)
+        {
+            uint32_t ch = chs[i];
+            if (ch != 0xFFFFFFFF)
+            {
+                /* show the channels on the memory map */
+                struct edmac_info info = edmac_get_info(ch);
+                uint32_t dir  = edmac_get_dir(ch);
+                uint64_t addr = (uint32_t)CACHEABLE(edmac_get_address(ch));
+                uint64_t ptr  = (uint32_t)CACHEABLE(edmac_get_pointer(ch));
+                uint64_t last = addr + edmac_get_total_size(&info, 1);
+
+                int ya = 50 + addr * 400 / 0x20000000;
+                int yp = 50 + ptr  * 400 / 0x20000000;
+                int yl = 50 + last * 400 / 0x20000000;
+                int xm = (dir == EDMAC_DIR_READ) ? 10 : 710;
+                int xr = (dir == EDMAC_DIR_READ) ? 20 : 700;
+                int xc = (dir == EDMAC_DIR_READ) ? 100 : 720-100;
+                int xf = (dir == EDMAC_DIR_READ) ? 250 : 720-250;
+                int yc = y + font_height / 2;
+
+                /* not all channels have known start address
+                 * maybe they are managed by a secondary CPU? */
+                if (addr)
+                {
+                    /* highlight the memory read or written by the current channel */
+                    for (int yi = ya; yi <= yl; yi++)
+                    {
+                        draw_line(xm, yi, xr, yi, COLOR_BLUE);
+                        draw_line(xr, yi, xc, yc, COLOR_BLUE);
+                    }
+                }
+                /* draw the current EDMAC pointer (read from hardware) */
+                draw_line(xm, yp, xr, yp, COLOR_RED);
+                draw_line(xr, yp, xc, yc, COLOR_RED);
+                draw_line(xc, yc, xf, yc, COLOR_RED);
+
+                /* show size for each channel */
+                const char * sz = edmac_format_size_short(&info, 10);
+                int state = edmac_get_state(ch);
+
+                int color =
+                    dir == EDMAC_DIR_UNUSED ? COLOR_GRAY(20) :   /* unused? */
+                    state == 0              ? COLOR_GRAY(50) :   /* inactive? */
+                    state == 1              ? COLOR_GREEN1   :   /* active? */
+                                              COLOR_RED      ;   /* no idea */
+
+                int fnt = FONT(FONT_MONO_20, color, COLOR_BLACK);
+
+                if (dir == EDMAC_DIR_READ)
+                {
+                    bmp_printf(fnt | FONT_ALIGN_RIGHT, 270, y, "%s #%02d", sz, ch);
+                }
+                else
+                {
+                    bmp_printf(fnt | FONT_ALIGN_LEFT, 720-270, y, "#%02d %s", ch, sz);
+                }
+            }
+        }
+    }
+}
+
 static void edmac_display_detailed(int channel)
 {
     uint32_t base = edmac_get_base(channel);
@@ -107,8 +273,8 @@ static void edmac_display_detailed(int channel)
     int y = 50;
     bmp_printf(
         FONT_LARGE,
-        x, y,
-        "EDMAC #%d - %x\n",
+        x, y-30,
+        "EDMAC channel #%d - %x\n",
         channel,
         base
     );
@@ -241,9 +407,13 @@ static MENU_UPDATE_FUNC(edmac_display)
             720 - fontspec_font(FONT_MONO_20)->width * 13, 450, "[Scrollwheel]"
         );
     }
+    else if (edmac_selection >= 2 && edmac_selection <= 5)  /* connections */
+    {
+        edmac_display_conn(edmac_selection - 2);
+    }
     else // detailed view
     {
-        edmac_display_detailed(edmac_selection - 2);
+        edmac_display_detailed(edmac_selection - 5);
     }
 }
 
