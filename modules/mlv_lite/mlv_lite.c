@@ -3506,7 +3506,7 @@ static struct menu_entry raw_video_menu[] =
                          "Plain old LiveView (color and real-time). Framing is not always correct.\n"
                          "Slow (not real-time) and low-resolution, but has correct framing.\n"
                          "Freeze LiveView for more speed; uses 'Framing' preview if Global Draw ON.\n",
-                .advanced = 1,
+                .depends_on = DEP_GLOBAL_DRAW,
             },
             {
                 .name    = "Pre-record",
