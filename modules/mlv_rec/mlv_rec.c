@@ -170,7 +170,6 @@ static int32_t res_x = 0;
 static int32_t res_y = 0;
 static int32_t max_res_x = 0;
 static int32_t max_res_y = 0;
-static int32_t sensor_res_x = 0;
 static float squeeze_factor = 0;
 static int32_t frame_size = 0;
 static int32_t skip_x = 0;
@@ -747,17 +746,11 @@ static void refresh_raw_settings(int32_t force)
 static int32_t calc_crop_factor()
 {
 
-    int32_t camera_crop = 162;
-    int32_t sampling_x = 3;
-    
-    if (cam_5d2 || cam_5d3 || cam_6d) camera_crop = 100;
-    
-    if (video_mode_crop || (lv_dispsize > 1)) sampling_x = 1;
-    
-    get_afframe_sensor_res(&sensor_res_x, NULL);
-    if (!sensor_res_x) return 0;
-    if (!res_x) return 0;
-    
+    int sensor_res_x = raw_capture_info.sensor_res_x;
+    int camera_crop  = raw_capture_info.sensor_crop;
+    int sampling_x   = raw_capture_info.binning_x + raw_capture_info.skipping_x;
+
+    if (res_x == 0) return 0;
     return camera_crop * (sensor_res_x / sampling_x) / res_x;
 }
 
@@ -2430,6 +2423,29 @@ static int32_t mlv_write_rawi(FILE* f, struct raw_info raw_info)
     return mlv_write_hdr(f, (mlv_hdr_t *)&rawi);
 }
 
+static int32_t mlv_write_rawc(FILE* f)
+{
+    mlv_rawc_hdr_t rawc;
+
+    mlv_set_type((mlv_hdr_t *)&rawc, "RAWC");
+    mlv_set_timestamp((mlv_hdr_t *)&rawc, mlv_start_timestamp);
+    rawc.blockSize = sizeof(mlv_rawc_hdr_t);
+
+    /* copy all fields from raw_capture_info */
+    rawc.sensor_res_x = raw_capture_info.sensor_res_x;
+    rawc.sensor_res_y = raw_capture_info.sensor_res_y;
+    rawc.sensor_crop  = raw_capture_info.sensor_crop;
+    rawc.reserved     = raw_capture_info.reserved;
+    rawc.binning_x    = raw_capture_info.binning_x;
+    rawc.skipping_x   = raw_capture_info.skipping_x;
+    rawc.binning_y    = raw_capture_info.binning_y;
+    rawc.skipping_y   = raw_capture_info.skipping_y;
+    rawc.offset_x     = raw_capture_info.offset_x;
+    rawc.offset_y     = raw_capture_info.offset_y;
+
+    return mlv_write_hdr(f, (mlv_hdr_t *)&rawc);
+}
+
 static uint32_t find_largest_buffer(uint32_t start_group, write_job_t *write_job, uint32_t max_size)
 {
     write_job_t job;
@@ -2607,6 +2623,7 @@ static void raw_prepare_chunk(FILE *f, mlv_file_hdr_t *hdr)
     if(hdr->fileNum == 0)
     {
         mlv_write_rawi(f, raw_info);
+        mlv_write_rawc(f);
         mlv_write_info(f);
 
         mlv_rtci_hdr_t rtci_hdr;

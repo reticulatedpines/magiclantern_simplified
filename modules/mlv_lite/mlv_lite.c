@@ -148,7 +148,6 @@ static int res_x = 0;
 static int res_y = 0;
 static int max_res_x = 0;
 static int max_res_y = 0;
-static int sensor_res_x = 0;
 static float squeeze_factor = 0;
 static int frame_size = 0;
 static int frame_size_real = 0;
@@ -214,6 +213,7 @@ static uint32_t edmac_active = 0;
 
 static mlv_file_hdr_t file_hdr;
 static mlv_rawi_hdr_t rawi_hdr;
+static mlv_rawc_hdr_t rawc_hdr;
 static mlv_idnt_hdr_t idnt_hdr;
 static mlv_expo_hdr_t expo_hdr;
 static mlv_lens_hdr_t lens_hdr;
@@ -484,32 +484,13 @@ static void refresh_raw_settings(int force)
     }
 }
 
-PROP_HANDLER( PROP_LV_AFFRAME ) {
-    ASSERT(len <= 128);
-    if(!lv) return;
-    
-    sensor_res_x = ((int32_t*)buf)[0];
-}
-
-
-static int32_t calc_crop_factor()
+static int calc_crop_factor()
 {
+    int sensor_res_x = raw_capture_info.sensor_res_x;
+    int camera_crop  = raw_capture_info.sensor_crop;
+    int sampling_x   = raw_capture_info.binning_x + raw_capture_info.skipping_x;
 
-    int32_t camera_crop = 162;
-    int32_t sampling_x = 3;
-    
-    if (cam_5d2 || cam_5d3 || cam_6d) camera_crop = 100;
-    
-    //if (cam_500d || cam_50d) sensor_res_x = 4752;
-    //if (cam_eos_m || cam_550d || cam_600d || cam_650d || cam_700d || cam_60d || cam_7d) sensor_res_x = 5184;
-    //if (cam_6d) sensor_res_x = 5472;
-    //if (cam_5d2) sensor_res_x = 5616;
-    //if (cam_5d3) sensor_res_x = 5760;
-    
-    if (video_mode_crop || (lv_dispsize > 1)) sampling_x = 1;
-    
-    if (!sensor_res_x) return 0;
-    
+    if (res_x == 0) return 0;
     return camera_crop * (sensor_res_x / sampling_x) / res_x;
 }
 
@@ -530,7 +511,7 @@ static MENU_UPDATE_FUNC(raw_main_update)
     else
     {
         MENU_SET_VALUE("ON, %dx%d", res_x, res_y);
-        int32_t crop_factor = calc_crop_factor();
+        int crop_factor = calc_crop_factor();
         if (crop_factor) MENU_SET_RINFO("%s%d.%02dx", FMT_FIXEDPOINT2( crop_factor ));
     }
 
@@ -1604,7 +1585,24 @@ static void init_mlv_chunk_headers(struct raw_info * raw_info)
     rawi_hdr.xRes = res_x;
     rawi_hdr.yRes = res_y;
     rawi_hdr.raw_info = *raw_info;
-    
+
+    memset(&rawc_hdr, 0, sizeof(mlv_rawc_hdr_t));
+    mlv_set_type((mlv_hdr_t *)&rawc_hdr, "RAWC");
+    mlv_set_timestamp((mlv_hdr_t *)&rawc_hdr, mlv_start_timestamp);
+    rawc_hdr.blockSize = sizeof(mlv_rawc_hdr_t);
+
+    /* copy all fields from raw_capture_info */
+    rawc_hdr.sensor_res_x = raw_capture_info.sensor_res_x;
+    rawc_hdr.sensor_res_y = raw_capture_info.sensor_res_y;
+    rawc_hdr.sensor_crop  = raw_capture_info.sensor_crop;
+    rawc_hdr.reserved     = raw_capture_info.reserved;
+    rawc_hdr.binning_x    = raw_capture_info.binning_x;
+    rawc_hdr.skipping_x   = raw_capture_info.skipping_x;
+    rawc_hdr.binning_y    = raw_capture_info.binning_y;
+    rawc_hdr.skipping_y   = raw_capture_info.skipping_y;
+    rawc_hdr.offset_x     = raw_capture_info.offset_x;
+    rawc_hdr.offset_y     = raw_capture_info.offset_y;
+
     mlv_fill_idnt(&idnt_hdr, mlv_start_timestamp);
     mlv_fill_expo(&expo_hdr, mlv_start_timestamp);
     mlv_fill_lens(&lens_hdr, mlv_start_timestamp);
@@ -1683,6 +1681,7 @@ static int write_mlv_chunk_headers(FILE* f)
 {
     if (FIO_WriteFile(f, &file_hdr, file_hdr.blockSize) != (int)file_hdr.blockSize) return 0;
     if (FIO_WriteFile(f, &rawi_hdr, rawi_hdr.blockSize) != (int)rawi_hdr.blockSize) return 0;
+    if (FIO_WriteFile(f, &rawc_hdr, rawc_hdr.blockSize) != (int)rawc_hdr.blockSize) return 0;
     if (FIO_WriteFile(f, &idnt_hdr, idnt_hdr.blockSize) != (int)idnt_hdr.blockSize) return 0;
     if (FIO_WriteFile(f, &expo_hdr, expo_hdr.blockSize) != (int)expo_hdr.blockSize) return 0;
     if (FIO_WriteFile(f, &lens_hdr, lens_hdr.blockSize) != (int)lens_hdr.blockSize) return 0;
