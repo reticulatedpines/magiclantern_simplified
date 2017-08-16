@@ -1051,44 +1051,44 @@ void print_capture_info(mlv_rawc_hdr_t * rawc)
     );
     print_msg(
         MSG_INFO, "      sensor res      %dx%d\n",
-        rawc->raw_capture_info.sensor_res_x,
-        rawc->raw_capture_info.sensor_res_y
+        rawc->sensor_res_x,
+        rawc->sensor_res_y
     );
     print_msg(
         MSG_INFO, "      sensor crop     %d.%02d (%s)\n",
-        rawc->raw_capture_info.sensor_crop / 100,
-        rawc->raw_capture_info.sensor_crop % 100,
-        rawc->raw_capture_info.sensor_crop == 100 ? "Full frame" : 
-        rawc->raw_capture_info.sensor_crop == 162 ? "APS-C" : "35mm equiv"
+        rawc->sensor_crop / 100,
+        rawc->sensor_crop % 100,
+        rawc->sensor_crop == 100 ? "Full frame" : 
+        rawc->sensor_crop == 162 ? "APS-C" : "35mm equiv"
     );
     
-    int sampling_x = rawc->raw_capture_info.binning_x + rawc->raw_capture_info.skipping_x;
-    int sampling_y = rawc->raw_capture_info.binning_y + rawc->raw_capture_info.skipping_y;
+    int sampling_x = rawc->binning_x + rawc->skipping_x;
+    int sampling_y = rawc->binning_y + rawc->skipping_y;
     
     print_msg(
         MSG_INFO, "      sampling        %dx%d (",
         sampling_y, sampling_x
     );
     print_sampling_info(
-        rawc->raw_capture_info.binning_y,
-        rawc->raw_capture_info.skipping_y,
+        rawc->binning_y,
+        rawc->skipping_y,
         "line"
     );
     print_msg(MSG_INFO, ", ");
     print_sampling_info(
-        rawc->raw_capture_info.binning_x,
-        rawc->raw_capture_info.skipping_x,
+        rawc->binning_x,
+        rawc->skipping_x,
         "column"
     );
     print_msg(MSG_INFO, ")\n");
 
-    if (rawc->raw_capture_info.offset_x != -32768 &&
-        rawc->raw_capture_info.offset_y != -32768)
+    if (rawc->offset_x != -32768 &&
+        rawc->offset_y != -32768)
     {
         print_msg(
             MSG_INFO, "      offset          %d,%d\n",
-            rawc->raw_capture_info.offset_x,
-            rawc->raw_capture_info.offset_y
+            rawc->offset_x,
+            rawc->offset_y
         );
     }
 }
