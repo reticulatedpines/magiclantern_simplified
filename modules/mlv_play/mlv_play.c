@@ -1914,7 +1914,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
                     int mem_size = (buffer->frameSize + 0x1000) & ~0xFFF;
                     
                     /* keep in mind the address must be aligned, alloc a few k more */
-                    mlv_play_decomp_buf = malloc(mem_size + 0x1000);
+                    mlv_play_decomp_buf = fio_malloc(mem_size + 0x1000);
                     if(!mlv_play_decomp_buf)
                     {
                         bmp_printf(FONT_MED, 20, 100, "failed to alloc mlv_play_decomp_buf");
