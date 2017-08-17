@@ -75,6 +75,13 @@ static void (*TTL_Stop)(void * TTL_Args);
 static void (*TTL_Finish)(void * ResLock, void * TTL_Args, uint32_t * output_size);
 
 static void decompress_init();
+static void set_flags_700D()
+{
+    EngDrvOut(0xC0F37010, (shamem_read(0xC0F37010) & 0xFFE3FFFF) | 0xC0000);
+    EngDrvOut(0xC0F3704C, (shamem_read(0xC0F3704C) & 0xFFFFFFC0) | 0x20);
+    EngDrvOut(0xC0F37074, (shamem_read(0xC0F37074) & 0xFFC0FFFF) | 0x180000);
+    EngDrvOut(0xC0F37078, (shamem_read(0xC0F37078) & 0xFFC0FFFF) | 0x180000);
+}
 
 int lossless_init()
 {
@@ -104,27 +111,65 @@ int lossless_init()
         TTL_Finish      = (void *) 0xFF3DD654;  /* called next; calls UnlockEngineResources and returns output size from JpCoreCompleteCBR */
     }
 
+    if (is_camera("700D", "1.1.4"))
+    {
+        /* ProcessTwoInTwoOutJpegath, 700D 1.1.4 */
+        TTL_SetArgs     = (void *) 0xFF35F510;      /* fills TTJ_Args struct; PictureSize(Mem1ToRaw) */
+        TTL_Prepare     = (void *) 0xFF424BA4;      /* called right after ProcessTwoInTwoOutJpegath(R) Start(%d); */
+                                                    /* calls [TTJ] GetPathResources and sets up the encoder for RAW */
+        TTL_RegisterCBR = (void *) 0xFF423B88;      /* RegisterTwoInTwoOutJpegPathCompleteCBR */
+        TTL_SetFlags    = (void *) set_flags_700D;  /* this function is inline on 700D */
+        TTL_Start       = (void *) 0xFF424C4C;      /* called next; starts the EDmac transfers */
+        TTL_Stop        = (void *) 0xFF423DD4;      /* called right after sssStopMem1ToRawPath */
+        TTL_Finish      = (void *) 0xFF424CBC;      /* called next; calls UnlockEngineResources and returns output size from JpCoreCompleteCBR */
+
+//        TTL_ResLock     = (void *) MEM(0x25A60);    /* this should work outside LiveView (e.g. full-res silent pics) */
+    }
     lossless_sem = create_named_semaphore(0, 0);
+    
+    if (is_camera("700D", "*")) {
+        uint32_t resources[] = {
+            0x10002,                        /* read channel 0x8 */
+            edmac_channel_to_index(0x20),   /* write channel 0x20 */
+            0x20005,
+            0x20016,
+            0x30002,
+            0x50034,
+            0x5002d,
+            0x50010,
+            0x90001,
+            0x90000,
+            0xa0000,
+            0x160000,
+            0x260000,
+            0x260001,
+            0x260002,
+            0x260003,
+        };
 
-    uint32_t resources[] = {
-        0x10000,                        /* read channel 0x8 */
-        edmac_channel_to_index(0x11),   /* write channel 0x11 */
-        0x2002d,
-        0x20016,
-        0x50034,
-        0x5002d,
-        0x50010,
-        0x90001,
-        0x230000,
-        0x160000,
-        0x260000,
-        0x260001,
-        0x260002,
-        0x260003,
-    };
-
-    TTL_ResLock = CreateResLockEntry(resources, COUNT(resources));
-
+        TTL_ResLock = CreateResLockEntry(resources, COUNT(resources));
+    } else 
+    if (is_camera("5D3", "*")) {
+        uint32_t resources[] = {
+            0x10000,                        /* read channel 0x8 */
+            edmac_channel_to_index(0x11),   /* write channel 0x11 */
+            0x2002d,
+            0x20016,
+            0x50034,
+            0x5002d,
+            0x50010,
+            0x90001,
+            0x230000,
+            0x160000,
+            0x260000,
+            0x260001,
+            0x260002,
+            0x260003,
+        };
+        
+        TTL_ResLock = CreateResLockEntry(resources, COUNT(resources));
+    }
+    
     /* optionally initialize the decompression routines */
     decompress_init();
 
@@ -160,8 +205,14 @@ int lossless_compress_raw_rectangle(
 
     /* Output channel 22 appears used in LiveView; use 17 instead */
     /* fixme: 5D3/6D only */
-    TTL_Args.WR1_Channel = 0x11;
-
+    if (is_camera("5D3", "1.1.3") || is_camera("5D3", "1.2.3"))
+    {
+        TTL_Args.WR1_Channel = 0x11;
+    }
+    if (is_camera("700D", "1.1.4"))
+    {
+        TTL_Args.WR1_Channel = 0x20;
+    }
     /* cleanup write channel from previous usage */
     SetEDmac(TTL_Args.WR1_Channel, 0, 0, 0);
     UnregisterEDmacCompleteCBR(TTL_Args.WR1_Channel);
@@ -181,13 +232,16 @@ int lossless_compress_raw_rectangle(
     /* configure the processing modules */
     TTL_Prepare(TTL_ResLock, &TTL_Args);
 
-    /* resolution is hardcoded in some places; patch them */
-    EngDrvOut(0xC0F375B4, PACK32(width    - 1,  height/2  - 1));  /* 0xF6D0B8F */
-    EngDrvOut(0xC0F13068, PACK32(width*2  - 1,  height/2  - 1));  /* 0xF6D171F */
-    EngDrvOut(0xC0F12010,        width    - 1                 );  /* 0xB8F     */
-    EngDrvOut(0xC0F12014, PACK32(width    - 1,  height/2  - 1));  /* 0xF6D0B8F */
-    EngDrvOut(0xC0F1201C,        width/10 - 1                 );  /* 0x127     */
-    EngDrvOut(0xC0F12020, PACK32(width/10 - 1,  height/20 - 1));  /* 0x18A0127 */
+    if (is_camera("5D3", "1.1.3") || is_camera("5D3", "1.2.3"))
+    {
+        /* resolution is hardcoded in some places; patch them */
+        EngDrvOut(0xC0F375B4, PACK32(width    - 1,  height/2  - 1));  /* 0xF6D0B8F */
+        EngDrvOut(0xC0F13068, PACK32(width*2  - 1,  height/2  - 1));  /* 0xF6D171F */
+        EngDrvOut(0xC0F12010,        width    - 1                 );  /* 0xB8F     */
+        EngDrvOut(0xC0F12014, PACK32(width    - 1,  height/2  - 1));  /* 0xF6D0B8F */
+        EngDrvOut(0xC0F1201C,        width/10 - 1                 );  /* 0x127     */
+        EngDrvOut(0xC0F12020, PACK32(width/10 - 1,  height/20 - 1));  /* 0x18A0127 */
+    }
 
     /* need to read the image data in 2 slices
      * default configuration is 2 vertical slices;
