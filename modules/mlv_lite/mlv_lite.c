@@ -63,6 +63,7 @@
 #include "beep.h"
 #include "raw.h"
 #include "zebra.h"
+#include "focus.h"
 #include "fps.h"
 #include "../mlv_rec/mlv.h"
 #include "../trace/trace.h"
@@ -121,9 +122,9 @@ static CONFIG_INT("raw.dolly", dolly_mode, 0);
 #define FRAMING_PANNING (dolly_mode == 1)
 
 static CONFIG_INT("raw.preview", preview_mode, 0);
-#define PREVIEW_AUTO (preview_mode == 0)
-#define PREVIEW_CANON (preview_mode == 1)
-#define PREVIEW_ML (preview_mode == 2)
+#define PREVIEW_AUTO   (preview_mode == 0)
+#define PREVIEW_CANON  (preview_mode == 1)
+#define PREVIEW_ML     (preview_mode == 2)
 #define PREVIEW_HACKED (preview_mode == 3)
 
 static CONFIG_INT("raw.warm.up", warm_up, 0);
@@ -245,18 +246,24 @@ static void refresh_cropmarks()
     }
 }
 
-static int calc_res_y(int res_x, int num, int den, float squeeze)
+static int calc_res_y(int res_x, int max_res_y, int num, int den, float squeeze)
 {
+    int res_y;
+    
     if (squeeze != 1.0f)
     {
         /* image should be enlarged vertically in post by a factor equal to "squeeze" */
-        return (int)(roundf(res_x * den / num / squeeze) + 1) & ~1;
+        res_y = (int)(roundf(res_x * den / num / squeeze) + 1);
     }
     else
     {
         /* assume square pixels */
-        return (res_x * den / num + 1) & ~1;
+        res_y = (res_x * den / num + 1);
     }
+    
+    res_y = MIN(res_y, max_res_y);
+    
+    return res_y & ~1;
 }
 
 static void update_cropping_offsets()
@@ -325,7 +332,7 @@ static void update_resolution_params()
     /* res Y */
     int num = aspect_ratio_presets_num[aspect_ratio_index];
     int den = aspect_ratio_presets_den[aspect_ratio_index];
-    res_y = MIN(calc_res_y(res_x, num, den, squeeze_factor), max_res_y);
+    res_y = calc_res_y(res_x, max_res_y, num, den, squeeze_factor);
 
     /* frame size */
     /* should be multiple of 512, so there's no write speed penalty (see http://chdk.setepontos.com/index.php?topic=9970 ; confirmed by benchmarks) */
@@ -352,8 +359,8 @@ static char* guess_aspect_ratio(int res_x, int res_y)
     float ratio = (float)res_x / res_y;
     float minerr = 100;
     /* common ratios that are expressed as integer numbers, e.g. 3:2, 16:9, but not 2.35:1 */
-    static int common_ratios_x[] = {1, 2, 3, 3, 4, 16, 5, 5};
-    static int common_ratios_y[] = {1, 1, 1, 2, 3, 9,  4, 3};
+    static int common_ratios_x[] = {1, 2, 3, 4, 5, 3, 4, 16, 5, 5};
+    static int common_ratios_y[] = {1, 1, 1, 1, 1, 2, 3, 9,  4, 3};
     for (int i = 0; i < COUNT(common_ratios_x); i++)
     {
         int num = common_ratios_x[i];
@@ -369,7 +376,7 @@ static char* guess_aspect_ratio(int res_x, int res_y)
     
     if (minerr < 0.05)
     {
-        int h = calc_res_y(res_x, best_num, best_den, squeeze_factor);
+        int h = calc_res_y(res_x, max_res_y, best_num, best_den, squeeze_factor);
         /* if the difference is 1 pixel, consider it exact */
         char* qualifier = ABS(h - res_y) > 1 ? "almost " : "";
         snprintf(msg, sizeof(msg), "%s%d:%d", qualifier, best_num, best_den);
@@ -378,14 +385,14 @@ static char* guess_aspect_ratio(int res_x, int res_y)
     {
         int r = (int)roundf(ratio * 100);
         /* is it 2.35:1 or 2.353:1? */
-        int h = calc_res_y(res_x, r, 100, squeeze_factor);
+        int h = calc_res_y(res_x, max_res_y, r, 100, squeeze_factor);
         char* qualifier = ABS(h - res_y) > 1 ? "almost " : "";
         if (r%100) snprintf(msg, sizeof(msg), "%s%d.%02d:1", qualifier, r/100, r%100);
     }
     else
     {
         int r = (int)roundf((1/ratio) * 100);
-        int h = calc_res_y(res_x, 100, r, squeeze_factor);
+        int h = calc_res_y(res_x, max_res_y, 100, r, squeeze_factor);
         char* qualifier = ABS(h - res_y) > 1 ? "almost " : "";
         if (r%100) snprintf(msg, sizeof(msg), "%s1:%d.%02d", qualifier, r/100, r%100);
     }
@@ -524,13 +531,19 @@ static MENU_UPDATE_FUNC(aspect_ratio_update_info)
     {
         char* ratio = guess_aspect_ratio(res_x, res_y);
         MENU_SET_HELP("%dx%d (%s).", res_x, res_y, ratio);
+
+        if (!streq(ratio, info->value))
+        {
+            /* aspect ratio different from requested value? */
+            MENU_SET_RINFO("%s", ratio);
+        }
     }
     else
     {
         int num = aspect_ratio_presets_num[aspect_ratio_index];
         int den = aspect_ratio_presets_den[aspect_ratio_index];
         int sq100 = (int)roundf(squeeze_factor*100);
-        int res_y_corrected = calc_res_y(res_x, num, den, 1.0f);
+        int res_y_corrected = calc_res_y(res_x, max_res_y*squeeze_factor, num, den, 1.0f);
         MENU_SET_HELP("%dx%d. Stretch by %s%d.%02dx to get %dx%d (%s) in post.", res_x, res_y, FMT_FIXEDPOINT2(sq100), res_x, res_y_corrected, aspect_ratio_choices[aspect_ratio_index]);
     }
 }
@@ -623,7 +636,7 @@ static MENU_UPDATE_FUNC(aspect_ratio_update)
 
     int num = aspect_ratio_presets_num[aspect_ratio_index];
     int den = aspect_ratio_presets_den[aspect_ratio_index];
-    int selected_y = calc_res_y(res_x, num, den, squeeze_factor);
+    int selected_y = calc_res_y(res_x, max_res_y, num, den, squeeze_factor);
     
     if (selected_y > max_res_y + 2)
     {
@@ -1093,7 +1106,7 @@ static void cache_require(int lock)
 
 static void unhack_liveview_vsync(int unused);
 
-static void hack_liveview_vsync()
+static void FAST hack_liveview_vsync()
 {
     if (cam_5d2 || cam_50d)
     {
@@ -1151,7 +1164,6 @@ static void hack_liveview_vsync()
     
     if (should_hack)
     {
-        int y = 100;
         for (int channel = 0; channel < 32; channel++)
         {
             /* silence out the EDMACs used for HD and LV buffers */
@@ -1159,7 +1171,7 @@ static void hack_liveview_vsync()
             if (pitch == vram_lv.pitch || pitch == vram_hd.pitch)
             {
                 uint32_t reg = edmac_get_base(channel);
-                bmp_printf(FONT_SMALL, 30, y += font_small.height, "Hack %x %dx%d ", reg, shamem_read(reg + 0x10) & 0xFFFF, shamem_read(reg + 0x10) >> 16);
+                //printf("Hack %d %x %dx%d\n", channel, reg, shamem_read(reg + 0x10) & 0xFFFF, shamem_read(reg + 0x10) >> 16);
                 *(volatile uint32_t *)(reg + 0x10) = shamem_read(reg + 0x10) & 0xFFFF;
             }
         }
@@ -1176,6 +1188,9 @@ static void unhack_liveview_vsync(int unused)
     while (!RAW_IS_IDLE) msleep(100);
     PauseLiveView();
     ResumeLiveView();
+
+    /* fixme: in exmem.c, but how? */
+    gui_uilock(UILOCK_NONE);
 }
 
 static void hack_liveview(int unhack)
@@ -2168,11 +2183,12 @@ static struct menu_entry raw_video_menu[] =
                 .name = "Preview",
                 .priv = &preview_mode,
                 .max = 3,
-                .choices = CHOICES("Auto", "Canon", "ML Grayscale", "HaCKeD"),
+                .choices = CHOICES("Auto", "Real-time", "Framing", "Frozen LV"),
+                .help  = "Raw video preview (long half-shutter press to override):",
                 .help2 = "Auto: ML chooses what's best for each video mode\n"
-                         "Canon: plain old LiveView. Framing is not always correct.\n"
-                         "ML Grayscale: looks ugly, but at least framing is correct.\n"
-                         "HaCKeD: try to squeeze a little speed by killing LiveView.\n",
+                         "Plain old LiveView (color and real-time). Framing is not always correct.\n"
+                         "Slow (not real-time) and low-resolution, but has correct framing.\n"
+                         "Freeze LiveView for more speed; uses 'Framing' preview if Global Draw ON.\n",
                 .advanced = 1,
             },
             {
@@ -2337,19 +2353,74 @@ static int raw_rec_should_preview(void)
 
     /* keep x10 mode unaltered, for focusing */
     if (lv_dispsize == 10) return 0;
-    
-    if (PREVIEW_AUTO)
-        /* enable preview in x5 mode, since framing doesn't match */
-        return lv_dispsize == 5;
 
-    else if (PREVIEW_CANON)
+    /* framing is incorrect in modes with high resolutions
+     * (e.g. x5 zoom, crop_rec) */
+    int raw_active_width = raw_info.active_area.x2 - raw_info.active_area.x1;
+    int raw_active_height = raw_info.active_area.y2 - raw_info.active_area.y1;
+    int framing_incorrect =
+        raw_active_width > 2000 ||
+        raw_active_height > (video_mode_fps <= 30 ? 1300 : 720);
+
+    /* some modes have Canon preview totally broken */
+    int preview_broken = (lv_dispsize == 1 && raw_active_width > 2000);
+
+    int prefer_framing_preview = 
+        (res_x < max_res_x * 80/100) ? 1 :  /* prefer correct framing instead of large black bars */
+        (res_x*9 < res_y*16)         ? 1 :  /* tall aspect ratio -> prevent image hiding under info bars*/
+        (framing_incorrect)          ? 1 :  /* use correct framing in modes where Canon preview is incorrect */
+                                       0 ;  /* otherwise, use plain LiveView */
+
+    /* only override on long half-shutter press, when not autofocusing */
+    /* todo: move these in core, with a proper API */
+    static int long_halfshutter_press = 0;
+    static int last_hs_unpress = 0;
+    static int autofocusing = 0;
+
+    if (!get_halfshutter_pressed())
+    {
+        autofocusing = 0;
+        long_halfshutter_press = 0;
+        last_hs_unpress = get_ms_clock_value();
+    }
+    else
+    {
+        if (lv_focus_status == 3)
+        {
+            autofocusing = 1;
+        }
+        if (get_ms_clock_value() - last_hs_unpress > 500)
+        {
+            long_halfshutter_press = 1;
+        }
+    }
+
+    if (autofocusing)
+    {
+        /* disable our preview during autofocus */
         return 0;
-    
+    }
+
+    if (PREVIEW_AUTO)
+    {
+        /* half-shutter overrides default choice */
+        if (preview_broken) return 1;
+        return prefer_framing_preview ^ long_halfshutter_press;
+    }
+    else if (PREVIEW_CANON)
+    {
+        return long_halfshutter_press;
+    }
     else if (PREVIEW_ML)
-        return 1;
-    
+    {
+        return !long_halfshutter_press;
+    }
     else if (PREVIEW_HACKED)
-        return RAW_IS_RECORDING || get_halfshutter_pressed() || lv_dispsize == 5;
+    {
+        if (preview_broken) return 1;
+        return (RAW_IS_RECORDING || prefer_framing_preview)
+            ^ long_halfshutter_press;
+    }
     
     return 0;
 }
@@ -2368,27 +2439,40 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
         }
         return enabled;
     }
-    
+
+    /* only consider speed when the recorder is actually busy */
+    int queued_frames = MOD(writing_queue_tail - writing_queue_head, COUNT(writing_queue));
+    int need_for_speed = (RAW_IS_RECORDING) && (
+        (PREVIEW_HACKED && queued_frames > slot_count / 8) ||
+        (queued_frames > slot_count / 4)
+    );
+
     struct display_filter_buffers * buffers = (struct display_filter_buffers *) ctx;
 
     raw_previewing = 1;
-    raw_set_preview_rect(skip_x, skip_y, res_x, res_y);
+    raw_set_preview_rect(skip_x, skip_y, res_x, res_y, 1);
     raw_force_aspect_ratio_1to1();
+
+    /* when recording, preview both full-size buffers,
+     * to make sure it's not recording every other frame */
+    static int fi = 0; fi = !fi;
     raw_preview_fast_ex(
-        (void*)-1,
-        PREVIEW_HACKED && RAW_RECORDING ? (void*)-1 : buffers->dst_buf,
+        RAW_IS_RECORDING ? fullsize_buffers[fi] : (void*)-1,
+        PREVIEW_HACKED && RAW_IS_RECORDING ? (void*)-1 : buffers->dst_buf,
         -1,
         -1,
-        get_halfshutter_pressed() ? RAW_PREVIEW_COLOR_HALFRES : RAW_PREVIEW_GRAY_ULTRA_FAST
+        (need_for_speed && !get_halfshutter_pressed())
+            ? RAW_PREVIEW_GRAY_ULTRA_FAST
+            : RAW_PREVIEW_COLOR_HALFRES
     );
     raw_previewing = 0;
 
-    if (!RAW_IS_IDLE)
-    {
-        /* be gentle with the CPU, save it for recording (especially if the buffer is almost full) */
-        //~ msleep(free_buffers <= 2 ? 2000 : used_buffers > 1 ? 1000 : 100);
-        msleep(1000);
-    }
+    /* be gentle with the CPU, save it for recording (especially if the buffer is almost full) */
+    msleep(
+        (need_for_speed)
+            ? ((queued_frames > slot_count / 2) ? 1000 : 500)
+            : 50
+    );
 
     preview_dirty = 1;
     return 1;

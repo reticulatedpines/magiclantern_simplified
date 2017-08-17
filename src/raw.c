@@ -436,7 +436,12 @@ static int raw_lv_get_resolution(int* width, int* height)
 
     /* height may be a little different; 5D3 needs to subtract 1,
      * EOS M needs to add 1, 100D usually gives exact value
-     * is it really important to have exact height? */
+     * is it really important to have exact height?
+     * for some raw types, yes! */
+
+#ifdef CONFIG_5D3
+    (*height)--;
+#endif
 
 #ifdef CONFIG_EOSM
     /* EOS M exception */
@@ -981,7 +986,7 @@ static int preview_rect_y;
 static int preview_rect_w;
 static int preview_rect_h;
 
-void raw_set_preview_rect(int x, int y, int w, int h)
+void raw_set_preview_rect(int x, int y, int w, int h, int obey_info_bars)
 {
     preview_rect_x = x;
     preview_rect_y = y;
@@ -994,13 +999,17 @@ void raw_set_preview_rect(int x, int y, int w, int h)
     /* not exactly a good idea when we have already acquired raw_sem */
     //~ get_yuv422_vram(); // update vram parameters
     
+    /* fixme: handle different screen layouts */
+    int top_margin      = (obey_info_bars) ? 38 : 0;
+    int bottom_margin   = (obey_info_bars) ? 38 : 0;
+
     /* scaling factor: raw width should match os.x_ex, same for raw height and os.y_ex */
     lv2raw.sx = 1024 * w / BM2LV_DX(os.x_ex);
-    lv2raw.sy = 1024 * h / BM2LV_DY(os.y_ex);
+    lv2raw.sy = 1024 * h / BM2LV_DY(os.y_ex - top_margin - bottom_margin);
 
     /* translation: raw top-left corner (x,y) should match (os.x0,os.y0) */
     int x0_lv = BM2LV_X(os.x0);
-    int y0_lv = BM2LV_Y(os.y0);
+    int y0_lv = BM2LV_Y(os.y0 + top_margin);
     lv2raw.tx = x - LV2RAW_DX(x0_lv);
     lv2raw.ty = y - LV2RAW_DY(y0_lv);
 }
@@ -1073,7 +1082,7 @@ void raw_set_geometry(int width, int height, int skip_left, int skip_right, int 
     }
 #endif
 
-    raw_set_preview_rect(preview_skip_left, preview_skip_top, preview_width, preview_height);
+    raw_set_preview_rect(preview_skip_left, preview_skip_top, preview_width, preview_height, 0);
 
     dbg_printf("lv2raw sx:%d sy:%d tx:%d ty:%d\n", lv2raw.sx, lv2raw.sy, lv2raw.tx, lv2raw.ty);
     dbg_printf("raw2lv test: (%d,%d) - (%d,%d)\n", RAW2LV_X(raw_info.active_area.x1), RAW2LV_Y(raw_info.active_area.y1), RAW2LV_X(raw_info.active_area.x2), RAW2LV_Y(raw_info.active_area.y2));
