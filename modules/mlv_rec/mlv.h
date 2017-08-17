@@ -307,4 +307,7 @@ void mlv_set_type(mlv_hdr_t *hdr, char *type);
    returns current time since start. */
 uint64_t mlv_set_timestamp(mlv_hdr_t *hdr, uint64_t start);
 
+/* write versions of all modules currently loaded */
+int mlv_write_vers_blocks(FILE *f, uint64_t mlv_start_timestamp);
+
 #endif
