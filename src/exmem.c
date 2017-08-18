@@ -21,8 +21,6 @@ typedef struct
 static struct semaphore * alloc_sem = 0;
 static struct semaphore * free_sem = 0;
 
-static volatile void* entire_memory_allocated = 0;
-
 int GetNumberOfChunks(struct memSuite * suite)
 {
     CHECK_SUITE_SIGNATURE(suite);
@@ -54,7 +52,6 @@ void _shoot_free_suite(struct memSuite * hSuite)
 {
     FreeMemoryResource(hSuite, freeCBR, 0);
     take_semaphore(free_sem, 0);
-    if (hSuite == entire_memory_allocated) entire_memory_allocated = 0;
 }
 
 static void allocCBR(unsigned int priv, struct memSuite * hSuite)
@@ -156,12 +153,6 @@ static struct memSuite *shoot_malloc_suite_int(size_t size, int relaxed)
 
 struct memSuite *_shoot_malloc_suite(size_t size)
 {
-    if(entire_memory_allocated)
-    {
-        /* you may need to solder some more RAM chips */
-        return 0;
-    }
-
     if(size)
     {
         /* allocate exact memory size */
@@ -192,7 +183,6 @@ struct memSuite *_shoot_malloc_suite(size_t size)
         
         /* allocating max_size + backup_size was reported to fail sometimes */
         struct memSuite * hSuite = shoot_malloc_suite_int(max_size + backup_size - 1024 * 1024, 1);
-        entire_memory_allocated = hSuite;   /* we need to know which memory suite ate all the RAM; when this is freed, we can shoot_malloc again */
         
         return hSuite;
     }
@@ -200,12 +190,6 @@ struct memSuite *_shoot_malloc_suite(size_t size)
 
 struct memSuite * _shoot_malloc_suite_contig(size_t size)
 {
-    if (entire_memory_allocated)
-    {
-        /* you may need to solder some more RAM chips */
-        return 0;
-    }
-
     if(size > 0)
     {
         alloc_msg_t *suite_info = _malloc(sizeof(alloc_msg_t));
@@ -232,8 +216,6 @@ struct memSuite * _shoot_malloc_suite_contig(size_t size)
     }
     else
     {
-        //~ entire_memory_allocated = (void*) -1;   /* temporary, just mark as busy */
-
         /* find the largest chunk and try to allocate it */
         struct memSuite * hSuite = _shoot_malloc_suite(0);
         if (!hSuite) return 0;
@@ -250,7 +232,6 @@ struct memSuite * _shoot_malloc_suite_contig(size_t size)
         _shoot_free_suite(hSuite);
         
         hSuite = _shoot_malloc_suite_contig(max_size);
-        entire_memory_allocated = hSuite;   /* we need to know which memory suite ate all the RAM; when this is freed, we can shoot_malloc again */
         return hSuite;
     }
 }
@@ -276,7 +257,6 @@ void _shoot_free(void* ptr)
     //~ printf("shoot_free(%x) hSuite=%x\n", ptr, hSuite);
     FreeMemoryResource(hSuite, freeCBR, 0);
     take_semaphore(free_sem, 0);
-    if (hSuite == entire_memory_allocated) entire_memory_allocated = 0;
 }
 
 /* just a dummy heuristic for now */
@@ -286,15 +266,10 @@ int _shoot_get_free_space()
     {
         return 0;
     }
-    
-    if (entire_memory_allocated)
-    {
-        return 0;
-    }
-    else
-    {
-        return (int)(31.5*1024*1024);
-    }
+
+    /* fixme: should fail quickly when shoot memory is full */
+    /* performing test allocations is usually very slow */
+    return (int)(31.5*1024*1024);
 }
 
 #if 0
