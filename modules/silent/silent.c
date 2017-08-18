@@ -1125,7 +1125,7 @@ silent_pic_take_lv(int interactive)
     }
 
     /* save the image(s) to card */
-    if (sp_num_frames > 1 || silent_pic_mode == SILENT_PIC_MODE_SLITSCAN)
+    if (1)
     {
         /* this will take a while; pause the liveview and block the buttons to make sure the user won't do something stupid */
         PauseLiveView();
@@ -1147,7 +1147,7 @@ silent_pic_take_lv(int interactive)
                 silent_pic_raw_show_focus(i);
 
             local_raw_info.buffer = sp_frames[i % sp_buffer_count];
-            raw_set_preview_rect(raw_info.active_area.x1, raw_info.active_area.y1, raw_info.active_area.x2 - raw_info.active_area.x1, raw_info.active_area.y2 - raw_info.active_area.y1, 1);
+            raw_set_preview_rect(raw_info.active_area.x1, raw_info.active_area.y1, raw_info.active_area.x2 - raw_info.active_area.x1, raw_info.active_area.y2 - raw_info.active_area.y1, 0);
             raw_force_aspect_ratio(0, 0);
             raw_preview_fast_ex(local_raw_info.buffer, (void*)-1, -1, -1, -1);
             
