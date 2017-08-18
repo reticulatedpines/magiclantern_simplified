@@ -460,27 +460,32 @@ static int save_lossless_dng(char * filename, struct raw_info * raw_info, struct
 
     ASSERT(out_raw_info.bits_per_pixel == 14);
 
-    /* compress the image in-place */
+    /* fixme: not all models are able to allocate such a large contiguous chunk */
+    int max_compressed_size = ((uint64_t) raw_info->frame_size * 80 / 100) & ~0xFFF;
+    struct memSuite * out_suite = shoot_malloc_suite_contig(max_compressed_size);
 
-    /* skip the top bar (that way, we'll be able to avoid race conditions) */
-    int dy = out_raw_info.active_area.y1;
-    int dm = dy * out_raw_info.pitch;
-    void * output_buffer = out_raw_info.buffer;     /* output buffer = real buffer */
-    out_raw_info.buffer += dm;                      /* input buffer = real buffer + top bar size */
-    out_raw_info.frame_size -= dm;
-    out_raw_info.height -= dy;
-    out_raw_info.active_area.y1 -= dy;
-    out_raw_info.active_area.y2 -= dy;
+    if (!out_suite)
+    {
+        bmp_printf( FONT_MED, 0, 83, "Out of memory");
+        return 0;
+    }
 
-    struct memSuite * out_suite = CreateMemorySuite(output_buffer, raw_info->frame_size & ~0xFFF, 0);
+    ASSERT(out_suite->size == max_compressed_size);
+
     out_raw_info.frame_size = lossless_compress_raw(&out_raw_info, out_suite);
-    ASSERT(out_raw_info.frame_size < raw_info->frame_size);
-    out_raw_info.buffer = output_buffer;
-    DeleteMemorySuite(out_suite);
+
+    if (out_raw_info.frame_size > out_suite->size)
+    {
+        bmp_printf( FONT_MED, 0, 83, "Warning: output truncated (%s)", format_memory_size(out_suite->size));
+        out_raw_info.frame_size = out_suite->size;
+    }
+
+    out_raw_info.buffer = GetMemoryAddressOfMemoryChunk(GetFirstChunkFromSuite(out_suite));
 
     int ok = save_dng(filename, &out_raw_info);
     if (!ok) bmp_printf( FONT_MED, 0, 83, "DNG save error (card full?)");
 
+    shoot_free_suite(out_suite);
     return ok;
 }
 
@@ -965,16 +970,32 @@ silent_pic_take_lv(int interactive)
         case SILENT_PIC_MODE_BURST_END_TRIGGER:
         case SILENT_PIC_MODE_BEST_FOCUS:
         {
+            /* when using lossless DNG, we need temporary storage for compression */
+            /* since we will allocate the entire shoot/SRM memory, we need to reserve it somehow */
+            /* fixme: ugly, hackish, duplicate code... */
+            struct memSuite * tmp_suite = 0;
+            int max_compressed_size = ((uint64_t) raw_info.frame_size * 80 / 100) & ~0xFFF;
             if (silent_pic_file_format == SILENT_PIC_FILE_FORMAT_LOSSLESS_DNG)
             {
-                /* need temporary storage for compression */
-                hSuiteX = shoot_malloc_suite_contig(raw_info.frame_size);
+                tmp_suite = shoot_malloc_suite_contig(max_compressed_size);
             }
 
             hSuite1 = srm_malloc_suite(0);
             /* fixme: allocating shoot memory during picture taking causes lockup */
-            if (lens_info.job_state) break;
-            hSuite2 = shoot_malloc_suite(0);
+            if (!lens_info.job_state)
+            {
+                hSuite2 = shoot_malloc_suite(0);
+            }
+
+            if (silent_pic_file_format == SILENT_PIC_FILE_FORMAT_LOSSLESS_DNG)
+            {
+                shoot_free_suite(tmp_suite);
+
+                /* make sure we can allocate it back */
+                tmp_suite = shoot_malloc_suite_contig(max_compressed_size);
+                ASSERT(tmp_suite);
+                if (tmp_suite) shoot_free_suite(tmp_suite);
+            }
             break;
         }
         
