@@ -52,6 +52,7 @@ static CONFIG_INT( "silent.pic.file_format", silent_pic_file_format, 0 );
 #define SILENT_PIC_MODE_BEST_FOCUS 3
 #define SILENT_PIC_MODE_SLITSCAN 4
 #define SILENT_PIC_MODE_FULLRES 5
+#define SILENT_PIC_MODE_FULLRES_LV 6
 
 #define SILENT_PIC_FILE_FORMAT_DNG 0
 #define SILENT_PIC_FILE_FORMAT_MLV 1
@@ -137,6 +138,10 @@ static MENU_UPDATE_FUNC(silent_pic_display)
         case SILENT_PIC_MODE_FULLRES:
             MENU_SET_VALUE("Full-res");
             break;
+
+        case SILENT_PIC_MODE_FULLRES_LV:
+            MENU_SET_VALUE("Full-res LV");
+            break;
     }
 
     switch (silent_pic_file_format)
@@ -161,7 +166,12 @@ static MENU_UPDATE_FUNC(silent_pic_display)
     {
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Full-res pictures only work in Manual (M) photo mode.");
     }
-    
+
+    if (silent_pic_mode == SILENT_PIC_MODE_FULLRES_LV && menu_get_value_from_script("Movie", "Crop mode") == INT_MIN)
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Full-res LV requires the crop_rec module loaded.");
+    }
+
     silent_pic_check_mlv(entry, info);
 }
 
@@ -941,6 +951,14 @@ silent_pic_take_lv(int interactive)
     bmp_printf(FONT_MED, 0, 37, "Preparing...");
     int ok = 1;
 
+    if (silent_pic_mode == SILENT_PIC_MODE_FULLRES_LV)
+    {
+        /* turn on Full-res LiveView from crop_rec and refresh the display */
+        PauseLiveView();
+        menu_set_str_value_from_script("Movie", "Crop mode", "Full-res LiveView", INT_MIN);
+        ResumeLiveView();
+    }
+
     struct memSuite * hSuite1 = 0;
     struct memSuite * hSuite2 = 0;
 
@@ -1002,6 +1020,7 @@ silent_pic_take_lv(int interactive)
         /* allocate only one frame in simple and slitscan modes */
         case SILENT_PIC_MODE_SIMPLE:
         case SILENT_PIC_MODE_SLITSCAN:
+        case SILENT_PIC_MODE_FULLRES_LV:
             hSuite1 = srm_malloc_suite(2);
             break;
     }
@@ -1063,6 +1082,7 @@ silent_pic_take_lv(int interactive)
     {
         case SILENT_PIC_MODE_SIMPLE:
         case SILENT_PIC_MODE_SLITSCAN:
+        case SILENT_PIC_MODE_FULLRES_LV:
             sp_max_frames = 1;
             break;
 
@@ -1174,7 +1194,8 @@ silent_pic_take_lv(int interactive)
                 msleep(20);
         }
         
-        if (LV_PAUSED) ResumeLiveView();
+        if (silent_pic_mode == SILENT_PIC_MODE_FULLRES_LV) { }
+        else if (LV_PAUSED) ResumeLiveView();
         else redraw();
         
         if (sp_num_frames > 1)
@@ -1201,6 +1222,15 @@ cleanup:
     if (hSuite2) shoot_free_suite(hSuite2);
     if (hSuite1) srm_free_suite(hSuite1);
     if (raw_flag) raw_lv_release();
+
+    if (silent_pic_mode == SILENT_PIC_MODE_FULLRES_LV)
+    {
+        /* turn off Full-res LiveView from crop_rec */
+        PauseLiveView();
+        menu_set_value_from_script("Movie", "Crop mode", 0);
+        ResumeLiveView();
+    }
+
     return ok;
 }
 #endif
@@ -1698,7 +1728,7 @@ static struct menu_entry silent_menu[] = {
                 .name = "Silent Mode",
                 .priv = &silent_pic_mode,
                 .update = silent_pic_mode_update,
-                .max = 5,
+                .max = 6,
                 .choices = CHOICES(
                     "Simple",
                     "Burst",
@@ -1706,6 +1736,7 @@ static struct menu_entry silent_menu[] = {
                     "Best Focus",
                     "Slit-Scan",
                     "Full-res",
+                    "Full-res LV",
                 ),
                 .help = "Choose the silent picture mode:",
                 .help2 = 
@@ -1714,7 +1745,8 @@ static struct menu_entry silent_menu[] = {
                     "Take pictures continuously, save the last few pics to card.\n"
                     "Take pictures continuously, save the images with best focus.\n"
                     "Distorted pictures for funky effects.\n"
-                    "Experimental full-resolution pictures.\n",
+                    "Full-resolution pictures (limited to long exposures).\n"
+                    "Full-resolution pictures (LiveView snapshots, with crop_rec).\n",
             },
             {
                 .name = "Slit-Scan Mode",
