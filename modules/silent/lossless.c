@@ -75,14 +75,6 @@ static void (*TTL_Stop)(void * TTL_Args);
 static void (*TTL_Finish)(void * ResLock, void * TTL_Args, uint32_t * output_size);
 
 static void decompress_init();
-static void set_flags_700D()
-{
-    EngDrvOut(0xC0F37010, (shamem_read(0xC0F37010) & 0xFFE3FFFF) | 0xC0000);
-    EngDrvOut(0xC0F3704C, (shamem_read(0xC0F3704C) & 0xFFFFFFC0) | 0x20);
-    EngDrvOut(0xC0F37074, (shamem_read(0xC0F37074) & 0xFFC0FFFF) | 0x180000);
-    EngDrvOut(0xC0F37078, (shamem_read(0xC0F37078) & 0xFFC0FFFF) | 0x180000);
-}
-
 int lossless_init()
 {
     if (is_camera("5D3", "1.1.3"))
@@ -118,18 +110,15 @@ int lossless_init()
         TTL_Prepare     = (void *) 0xFF424BA4;      /* called right after ProcessTwoInTwoOutJpegath(R) Start(%d); */
                                                     /* calls [TTJ] GetPathResources and sets up the encoder for RAW */
         TTL_RegisterCBR = (void *) 0xFF423B88;      /* RegisterTwoInTwoOutJpegPathCompleteCBR */
-        TTL_SetFlags    = (void *) set_flags_700D;  /* this function is inline on 700D */
-//      TTL_SetFlags    = (void *) 0xFF36B2D8;      /* alternate StartTwoInTwoOutJpegPath http://www.magiclantern.fm/forum/index.php?topic=18443.msg188721#msg188721 */
+        TTL_SetFlags    = (void *) 0xFF36B2D8;      /* alternate StartTwoInTwoOutJpegPath http://www.magiclantern.fm/forum/index.php?topic=18443.msg188721#msg188721 */
         TTL_Start       = (void *) 0xFF424C4C;      /* called next; starts the EDmac transfers */
         TTL_Stop        = (void *) 0xFF423DD4;      /* called right after sssStopMem1ToRawPath */
         TTL_Finish      = (void *) 0xFF424CBC;      /* called next; calls UnlockEngineResources and returns output size from JpCoreCompleteCBR */
-
-//      TTL_ResLock     = (void *) MEM(0x25A60);    /* this should work outside LiveView (e.g. full-res silent pics) */
     }
 
     if (is_camera("EOSM", "2.0.2"))
     {
-        /* ProcessTwoInTwoOutJpegath, 700D 1.1.4 */
+        /* ProcessTwoInTwoOutJpegath, EOSM 2.0.2 */
         TTL_SetArgs     = (void *) 0xFF361498;      /* fills TTJ_Args struct; PictureSize(Mem1ToRaw) */
         TTL_Prepare     = (void *) 0xFF429210;      /* called right after ProcessTwoInTwoOutJpegath(R) Start(%d); */
                                                     /* calls [TTJ] GetPathResources and sets up the encoder for RAW */
@@ -141,7 +130,8 @@ int lossless_init()
     }
     lossless_sem = create_named_semaphore(0, 0);
     
-    if (is_camera("700D", "*") || is_camera("EOSM", "*")) {
+    if (is_camera("700D", "*") || is_camera("EOSM", "*"))
+    {
         uint32_t resources[] = {
             0x10002,                        /* read channel 0x8 */
             edmac_channel_to_index(0x20),   /* write channel 0x20 */
@@ -162,8 +152,9 @@ int lossless_init()
         };
 
         TTL_ResLock = CreateResLockEntry(resources, COUNT(resources));
-    } else 
-    if (is_camera("5D3", "*")) {
+    }
+    else if (is_camera("5D3", "*"))
+    {
         uint32_t resources[] = {
             0x10000,                        /* read channel 0x8 */
             edmac_channel_to_index(0x11),   /* write channel 0x11 */
@@ -218,15 +209,15 @@ int lossless_compress_raw_rectangle(
     TTL_Args.yRes = height;
 
     /* Output channel 22 appears used in LiveView; use 17 instead */
-    /* fixme: 5D3/6D only */
     if (is_camera("5D3", "*"))
     {
         TTL_Args.WR1_Channel = 0x11;
     }
-    if (is_camera("700D", "*") || is_camera("EOSM", "*"))
+    else if (is_camera("700D", "*") || is_camera("EOSM", "*"))
     {
         TTL_Args.WR1_Channel = 0x20;
     }
+
     /* cleanup write channel from previous usage */
     SetEDmac(TTL_Args.WR1_Channel, 0, 0, 0);
     UnregisterEDmacCompleteCBR(TTL_Args.WR1_Channel);
