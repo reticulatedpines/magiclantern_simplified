@@ -659,7 +659,7 @@ void* _srm_malloc(size_t size)
             
             /* the raw backend may exploit a SRM use after free, intentionally */
             /* consider it allocated */
-            if (raw_info.buffer == buffer + 0x100)
+            if (raw_info.buffer != buffer + 0x100)
             {
                 srm_malloc_buffers[i].buffer = buffer;
                 srm_malloc_buffers[i].used = 0;
