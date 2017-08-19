@@ -131,7 +131,6 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #ifdef CONFIG_700D
 #define DEFAULT_RAW_BUFFER MEM(0x25B0C + 0x3C)
 #define DEFAULT_RAW_BUFFER_SIZE (0x4ee00000 - 0x4d600100)
-#define RAW_LV_BUFFER_ALLOC_SIZE ((0x527 + 2612) * (0x2FE - 0x18)*8 * 14/8)
 #endif
 
 
@@ -147,7 +146,6 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #ifdef CONFIG_EOSM
 #define DEFAULT_RAW_BUFFER MEM(0x404E4 + 0x44)
 #define DEFAULT_RAW_BUFFER_SIZE (0x4ee00000 - 0x4d600100)
-#define RAW_LV_BUFFER_ALLOC_SIZE ((0x527 + 2612) * (0x2FE - 0x18)*8 * 14/8)
 #endif
 
 #ifdef CONFIG_100D
@@ -842,6 +840,7 @@ static void raw_lv_free_buffer()
     raw_lv_buffer_size = 0;
 }
 
+#ifdef CONFIG_ALLOCATE_RAW_LV_BUFFER
 /* requires raw_sem */
 static void raw_lv_realloc_buffer()
 {
@@ -962,10 +961,9 @@ static int raw_update_params_work()
         }
         #endif
 
-        #ifdef CONFIG_EDMAC_RAW_SLURP
+#ifdef CONFIG_ALLOCATE_RAW_LV_BUFFER
         raw_lv_realloc_buffer();
-        #endif
-
+#endif
         raw_info.buffer = raw_get_default_lv_buffer();
 
         if (!raw_info.buffer)
