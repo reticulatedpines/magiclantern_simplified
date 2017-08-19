@@ -2769,6 +2769,13 @@ static unsigned int mlv_play_keypress_cbr(unsigned int key)
         }
         
     }
+
+    if (is_camera("EOSM", "2.0.2"))
+    {
+        Setup_DecodeLosslessRawPath = (void *) 0xFF42DBD0;
+        Start_DecodeLosslessPath    = (void *) 0xFF42DC98;
+        Cleanup_DecodeLosslessPath  = (void *) 0xFF42DDFC;
+    }
     
     return 1;
 }

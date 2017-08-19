@@ -119,15 +119,29 @@ int lossless_init()
                                                     /* calls [TTJ] GetPathResources and sets up the encoder for RAW */
         TTL_RegisterCBR = (void *) 0xFF423B88;      /* RegisterTwoInTwoOutJpegPathCompleteCBR */
         TTL_SetFlags    = (void *) set_flags_700D;  /* this function is inline on 700D */
+//      TTL_SetFlags    = (void *) 0xFF36B2D8;      /* alternate StartTwoInTwoOutJpegPath http://www.magiclantern.fm/forum/index.php?topic=18443.msg188721#msg188721 */
         TTL_Start       = (void *) 0xFF424C4C;      /* called next; starts the EDmac transfers */
         TTL_Stop        = (void *) 0xFF423DD4;      /* called right after sssStopMem1ToRawPath */
         TTL_Finish      = (void *) 0xFF424CBC;      /* called next; calls UnlockEngineResources and returns output size from JpCoreCompleteCBR */
 
-//        TTL_ResLock     = (void *) MEM(0x25A60);    /* this should work outside LiveView (e.g. full-res silent pics) */
+//      TTL_ResLock     = (void *) MEM(0x25A60);    /* this should work outside LiveView (e.g. full-res silent pics) */
+    }
+
+    if (is_camera("EOSM", "2.0.2"))
+    {
+        /* ProcessTwoInTwoOutJpegath, 700D 1.1.4 */
+        TTL_SetArgs     = (void *) 0xFF361498;      /* fills TTJ_Args struct; PictureSize(Mem1ToRaw) */
+        TTL_Prepare     = (void *) 0xFF429210;      /* called right after ProcessTwoInTwoOutJpegath(R) Start(%d); */
+                                                    /* calls [TTJ] GetPathResources and sets up the encoder for RAW */
+        TTL_RegisterCBR = (void *) 0xFF4281F4;      /* RegisterTwoInTwoOutJpegPathCompleteCBR */
+        TTL_SetFlags    = (void *) 0xFF36D124;      /* called next, with PictureType as arguments */
+        TTL_Start       = (void *) 0xFF4292B8;      /* called next; starts the EDmac transfers */
+        TTL_Stop        = (void *) 0xFF428440;      /* called right after sssStopMem1ToRawPath */
+        TTL_Finish      = (void *) 0xFF429328;      /* called next; calls UnlockEngineResources and returns output size from JpCoreCompleteCBR */
     }
     lossless_sem = create_named_semaphore(0, 0);
     
-    if (is_camera("700D", "*")) {
+    if (is_camera("700D", "*") || is_camera("EOSM", "*")) {
         uint32_t resources[] = {
             0x10002,                        /* read channel 0x8 */
             edmac_channel_to_index(0x20),   /* write channel 0x20 */
@@ -200,16 +214,16 @@ int lossless_compress_raw_rectangle(
     /* we'll have two slices on top of each other; this will give
      * valid lossless DNG as well, if we prepend a header :)
      */
-    TTL_Args.xRes = width * 2;
-    TTL_Args.yRes = height / 2;
+    TTL_Args.xRes = width;
+    TTL_Args.yRes = height;
 
     /* Output channel 22 appears used in LiveView; use 17 instead */
     /* fixme: 5D3/6D only */
-    if (is_camera("5D3", "1.1.3") || is_camera("5D3", "1.2.3"))
+    if (is_camera("5D3", "*"))
     {
         TTL_Args.WR1_Channel = 0x11;
     }
-    if (is_camera("700D", "1.1.4"))
+    if (is_camera("700D", "*") || is_camera("EOSM", "*"))
     {
         TTL_Args.WR1_Channel = 0x20;
     }
@@ -232,7 +246,7 @@ int lossless_compress_raw_rectangle(
     /* configure the processing modules */
     TTL_Prepare(TTL_ResLock, &TTL_Args);
 
-    if (is_camera("5D3", "1.1.3") || is_camera("5D3", "1.2.3"))
+    if (is_camera("5D3", "*"))
     {
         /* resolution is hardcoded in some places; patch them */
         EngDrvOut(0xC0F375B4, PACK32(width    - 1,  height/2  - 1));  /* 0xF6D0B8F */
@@ -364,6 +378,20 @@ static void decompress_init()
         Cleanup_DecodeLosslessPath  = (void *) 0xff3d4130;
     }
     
+    if (is_camera("700D", "1.1.4"))
+    {
+        Setup_DecodeLosslessRawPath = (void *) 0xFF4294DC;
+        Start_DecodeLosslessPath    = (void *) 0xFF4295A4;
+        Cleanup_DecodeLosslessPath  = (void *) 0xFF429708;
+    }
+
+    if (is_camera("EOSM", "2.0.2"))
+    {
+        Setup_DecodeLosslessRawPath = (void *) 0xFF42DBD0;
+        Start_DecodeLosslessPath    = (void *) 0xFF42DC98;
+        Cleanup_DecodeLosslessPath  = (void *) 0xFF42DDFC;
+    }
+
     /* all functions known? having the semaphore is an indicator we can decompress */
     if (Setup_DecodeLosslessRawPath && Start_DecodeLosslessPath && Cleanup_DecodeLosslessPath)
     {
