@@ -5,8 +5,9 @@
 #include <dryos.h>
 #include <bmp.h>
 #include <menu.h>
-#include "../file_man/file_man.h"
 #include "raw.h"
+#include "../file_man/file_man.h"
+#include "../silent/lossless.h"
 #include "imgconv.h"
 
 #define T_BYTE      1
@@ -22,7 +23,7 @@
 #define T_FLOAT     11
 #define T_DOUBLE    12
 
-static int tif_parse_ifd(int id, char* buf, int off, int* strip_offset)
+static int tif_parse_ifd(int id, char* buf, int off, int* strip_offset, int* strip_byte_count, int* compression)
 {
     int entries = *(short*)(buf+off); off += 2;
     //~ printf("ifd %d: (%d)\n", id, entries);
@@ -43,7 +44,7 @@ static int tif_parse_ifd(int id, char* buf, int off, int* strip_offset)
             
             case 0x14A: /* SubIFD */
                 //~ printf("subifd: %x\n", data);
-                tif_parse_ifd(id+10, buf, data, strip_offset);
+                tif_parse_ifd(id+10, buf, data, strip_offset, strip_byte_count, compression);
                 break;
         }
         
@@ -59,9 +60,15 @@ static int tif_parse_ifd(int id, char* buf, int off, int* strip_offset)
                     //~ printf("height: %d\n", data);
                     raw_info.height = data;
                     break;
+                case 0x103: /* Compression */
+                    *compression = data;
+                    break;
                 case 0x111: /* StripOffset */
                     //~ printf("buffer offset: %d\n", data);
                     *strip_offset = data;
+                    break;
+                case 0x117: /* StripByteCounts */
+                    *strip_byte_count = data;
                     break;
                 case 0xC61A: /* BlackLevel */
                     //~ printf("black: %d\n", data);
@@ -123,10 +130,14 @@ static int dng_show(char* filename)
     raw_info.height = 0;
     
     int strip_offset = 0;
+    int strip_byte_count = 0;
+    int compression = 0;
 
     int off = 8;
     for (int ifd = 0; off; ifd++)
-        off = tif_parse_ifd(ifd, (void*)header, off, &strip_offset);
+    {
+        off = tif_parse_ifd(ifd, (void*)header, off, &strip_offset, &strip_byte_count, &compression);
+    }
 
     fio_free(header); header = 0;
 
@@ -137,32 +148,51 @@ static int dng_show(char* filename)
     int raw_size = raw_info.width * raw_info.height * 14/8;
     buf = fio_malloc(raw_size);
     if (!buf) goto err;
-    
+
     FIO_SeekSkipFile(f, strip_offset, SEEK_SET);
-    rc = FIO_ReadFile(f, buf, raw_size);
-    if (rc != raw_size) goto err;
+
+    if (compression == 7)
+    {
+        struct memSuite * src_suite = shoot_malloc_suite_contig(strip_byte_count);
+        if (!src_suite) goto err;
+
+        void * src = GetMemoryAddressOfMemoryChunk(GetFirstChunkFromSuite(src_suite));
+        rc = FIO_ReadFile(f, src, raw_size);
+        if (rc != strip_byte_count) goto err;
+
+        int r = lossless_decompress_raw(src_suite, buf, raw_info.width, raw_info.height, 14);
+        if (r) goto err;
+
+        shoot_free_suite(src_suite);
+    }
+    else
+    {
+        rc = FIO_ReadFile(f, buf, raw_size);
+        if (rc != raw_size) goto err;
+
+        info_led_on();
+        /* fixme: this step is really slow */
+        reverse_bytes_order(buf, raw_size);
+        info_led_off();
+    }
+
     FIO_CloseFile(f); f = 0;
 
-    info_led_on();
-    /* fixme: this step is really slow */
-    reverse_bytes_order(buf, raw_size);
-    info_led_off();
     raw_info.buffer = buf;
-
     raw_set_geometry(raw_info.width, raw_info.height, raw_info.active_area.x1, raw_info.width - raw_info.active_area.x2, raw_info.active_area.y1, raw_info.height - raw_info.active_area.y2);
     raw_force_aspect_ratio(1, 1);
 
     vram_clear_lv();
     raw_preview_fast_ex((void*)-1, (void*)-1, -1, -1, RAW_PREVIEW_COLOR_HALFRES);
-    fio_free(buf); buf = 0;
+    free(buf); buf = 0;
     raw_set_dirty();
     
     bmp_printf(FONT_MED, 600, 460, " %dx%d ", raw_info.jpeg.width, raw_info.jpeg.height);
     return 1;
 err:
     if (f) FIO_CloseFile(f);
-    if (header) fio_free(header);
-    if (buf) fio_free(buf);
+    if (header) free(header);
+    if (buf) free(buf);
     raw_set_dirty();
     return 0;
 }
