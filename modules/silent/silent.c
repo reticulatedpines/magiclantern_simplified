@@ -954,6 +954,8 @@ silent_pic_take_lv(int interactive)
     if (silent_pic_mode == SILENT_PIC_MODE_FULLRES_LV)
     {
         /* turn on Full-res LiveView from crop_rec and refresh the display */
+        /* also prevent zoom (x5/x10) from being restored by ResumeLiveView */
+        lv_dispsize = 1;
         PauseLiveView();
         menu_set_str_value_from_script("Movie", "Crop mode", "Full-res LiveView", INT_MIN);
         ResumeLiveView();
