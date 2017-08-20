@@ -840,7 +840,6 @@ static void raw_lv_free_buffer()
     raw_lv_buffer_size = 0;
 }
 
-#ifdef CONFIG_ALLOCATE_RAW_LV_BUFFER
 /* requires raw_sem */
 static void raw_lv_realloc_buffer()
 {
@@ -961,9 +960,7 @@ static int raw_update_params_work()
         }
         #endif
 
-#ifdef CONFIG_ALLOCATE_RAW_LV_BUFFER
         raw_lv_realloc_buffer();
-#endif
         raw_info.buffer = raw_get_default_lv_buffer();
 
         if (!raw_info.buffer)
@@ -2417,54 +2414,8 @@ static void raw_lv_enable()
 #endif
 #endif
 
-#ifdef CONFIG_ALLOCATE_RAW_LV_BUFFER
-    uint32_t old = cli();
-    if(!raw_allocated_lv_buffer) {
-        #ifdef CONFIG_ALLOCATE_RAW_LV_BUFFER_SRM_DUMMY
-        /* dummy allocation, exploiting use after free */
-        /* this assumes nobody will touch the SRM memory while in LiveView */
-        /* or if they do, they are aware of our trick */
-        struct memSuite * suite = srm_malloc_suite(1);
-        if (suite)
-        {
-            /* the SRM memory backend may also be managed by our malloc wrappers */
-            /* leave some unused space - if it ever gets allocated by other task
-             * and overwritten by us, let the backend free it */
-            void * srm_buf = GetMemoryAddressOfMemoryChunk(GetFirstChunkFromSuite(suite));
-            raw_allocated_lv_buffer = srm_buf + 0x100;
-            srm_free_suite(suite);
-        }
-        #else
-        raw_allocated_lv_buffer = fio_malloc(RAW_LV_BUFFER_ALLOC_SIZE);
-        #endif
-    }
 
-#ifdef DEFAULT_RAW_BUFFER
-#ifdef CONFIG_MARK_UNUSED_MEMORY_AT_STARTUP
-    /* is it really unused? check on first use */
-    static int first_time = 1;
-    if (first_time)
-    {
-        first_time = 0;
-        info_led_on();
-        uint32_t start = DEFAULT_RAW_BUFFER;
-        uint32_t end = start + 64*1024*1024;
-        printf("Raw buffer guess: %X-", start, end);
-        for (uint32_t a = start; a < end; a += 4)
-        {
-            if (MEM(a) != 0x124B1DE0)
-            {
-                end = a - 4;
-                printf("%X (%s, ", end, format_memory_size(end - start));
-                printf("using %s %s)\n", format_memory_size(DEFAULT_RAW_BUFFER_SIZE),
-                       (end > start + DEFAULT_RAW_BUFFER_SIZE) ? "OK" : "FIXME");
-                break;
-            }
-        }
-        info_led_off();
-    }
-#endif
-#endif
+    raw_lv_realloc_buffer();
 }
 
 static void raw_lv_disable()
