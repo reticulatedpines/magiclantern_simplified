@@ -15,6 +15,8 @@
 #include <string.h>
 #include <battery.h>
 #include <powersave.h>
+#include <fps.h>
+#include <chdk-dng.h>
 #include "../lv_rec/lv_rec.h"
 #include "../mlv_rec/mlv.h"
 #include "lossless.h"
@@ -213,6 +215,52 @@ static char* silent_pic_get_name()
     return image_file_name;
 }
 
+/* metadata */
+static struct
+{
+    int iso;        /* human-readable */
+    int tvr;        /* reciprocal x1000, e.g. 1/50 -> 1/50000, 32" -> 31 */
+    int aperture;   /* human-readable x10 */
+    int fps;        /* x1000 */
+    int focal_len;  /* mm */
+} metadata;
+
+static void silent_capture_lv_metadata()
+{
+    /* prefer low-level exposure settings from LiveView, if available */
+    int iso = get_frame_iso();
+    if (!iso) iso = lens_info.raw_iso;
+    metadata.iso = raw2iso(iso);
+
+    metadata.tvr = get_current_shutter_reciprocal_x1000();
+
+    int av = get_frame_aperture();
+    if (!av) av = lens_info.raw_aperture;
+    metadata.aperture = RAW2VALUE(aperture, av);
+
+    metadata.fps = fps_get_current_x1000();
+    metadata.focal_len = lens_info.focal_len;
+    /* todo: focus distance etc */
+}
+
+static void silent_capture_fullres_metadata(int prop_iso, int capture_time_ms)
+{
+    /* only override values that were changed from LiveView */
+    metadata.iso = raw2iso(prop_iso);
+    metadata.tvr = 1000000 / capture_time_ms;
+
+    metadata.fps = 1000;    /* dummy */
+}
+
+static void silent_set_dng_metadata()
+{
+    dng_set_iso(metadata.iso);
+    dng_set_shutter(1000, metadata.tvr);
+    dng_set_aperture(metadata.aperture, 10);
+    dng_set_framerate(metadata.fps);
+    dng_set_focal(metadata.focal_len, 1);
+}
+
 static int silent_write_mlv_chunk_headers(FILE* save_file, struct raw_info * raw_info, uint16_t file_num)
 {
     //MLVI file header
@@ -307,7 +355,7 @@ static FILE *open_mlv_file(char *base_filename, uint32_t max_filesize)
 
 /* save using the MLV file format  */
 /* returns 1 on success, 0 on error */
-static int save_mlv(struct raw_info * raw_info, int capture_time_ms)
+static int save_mlv(struct raw_info * raw_info)
 {
     if (!silent_pic_mlv_available)
     {
@@ -430,11 +478,10 @@ static int save_mlv(struct raw_info * raw_info, int capture_time_ms)
     mlv_fill_rtci(&rtci_hdr, mlv_start_timestamp);
     mlv_fill_expo(&expo_hdr, mlv_start_timestamp);
     mlv_fill_lens(&lens_hdr, mlv_start_timestamp);
-    
-    if(capture_time_ms > 0)
-    {
-        expo_hdr.shutterValue = 1000 * capture_time_ms;
-    }
+
+    expo_hdr.isoValue = metadata.iso;
+    expo_hdr.shutterValue = 1000000000 / metadata.tvr;
+    lens_hdr.aperture = metadata.aperture * 10;
     
     if (FIO_WriteFile(save_file, &rtci_hdr, rtci_hdr.blockSize) != (int)rtci_hdr.blockSize) goto write_error;
     if (FIO_WriteFile(save_file, &expo_hdr, expo_hdr.blockSize) != (int)expo_hdr.blockSize) goto write_error;
@@ -526,17 +573,18 @@ static int save_lossless_dng(char * filename, struct raw_info * raw_info, struct
     return ok;
 }
 
-static int silent_pic_save_file(struct raw_info * raw_info, int capture_time_ms, void * optional_aux_memsuite)
+static int silent_pic_save_file(struct raw_info * raw_info)
 {
     switch (silent_pic_file_format)
     {
         case SILENT_PIC_FILE_FORMAT_MLV:
         {
-            return save_mlv(raw_info, capture_time_ms);
+            return save_mlv(raw_info);
         }
 
         case SILENT_PIC_FILE_FORMAT_DNG:
         {
+            silent_set_dng_metadata();
             char* filename = silent_pic_get_name();
             int ok = save_dng(filename, raw_info);
             if (!ok) bmp_printf( FONT_MED, 0, 83, "DNG save error (card full?)");
@@ -545,8 +593,9 @@ static int silent_pic_save_file(struct raw_info * raw_info, int capture_time_ms,
 
         case SILENT_PIC_FILE_FORMAT_LOSSLESS_DNG:
         {
+            silent_set_dng_metadata();
             char* filename = silent_pic_get_name();
-            return save_lossless_dng(filename, raw_info, optional_aux_memsuite);
+            return save_lossless_dng(filename, raw_info);
         }
     }
 
@@ -571,7 +620,7 @@ silent_pic_take_lv(int interactive)
 
     /* save it to card */
     bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", raw_info.jpeg.width, raw_info.jpeg.height);
-    int ok = silent_pic_save_file(&raw_info, 0, 0);
+    int ok = silent_pic_save_file(&raw_info);
     redraw();
     
     return ok;
@@ -1146,6 +1195,9 @@ silent_pic_take_lv(int interactive)
         }
     }
 
+    /* get metadata (same for all pictures in this set) */
+    silent_capture_lv_metadata();
+
     /* save the image(s) to card */
     if (1)
     {
@@ -1163,7 +1215,17 @@ silent_pic_take_lv(int interactive)
         
         for (int i = i0; i < sp_num_frames; i++)
         {
-            bmp_printf(FONT_MED, 0, 60, "Saving image %d of %d (%dx%d)...", i+1, sp_num_frames, raw_info.jpeg.width, raw_info.jpeg.height);
+            bmp_printf(FONT_MED | FONT_ALIGN_RIGHT, 720, 37,
+                SYM_ISO"%d %s "SYM_F_SLASH"%d.%d",
+                metadata.iso,
+                lens_format_shutter_reciprocal(metadata.tvr, 2),
+                metadata.aperture / 10, metadata.aperture % 10
+            );
+            bmp_printf(FONT_MED, 0, 60,
+                "Saving image %d of %d (%dx%d)...",
+                i+1, sp_num_frames,
+                raw_info.jpeg.width, raw_info.jpeg.height
+            );
 
             if (silent_pic_mode == SILENT_PIC_MODE_BEST_FOCUS)
                 silent_pic_raw_show_focus(i);
@@ -1173,7 +1235,7 @@ silent_pic_take_lv(int interactive)
             raw_force_aspect_ratio(0, 0);
             raw_preview_fast_ex(local_raw_info.buffer, (void*)-1, -1, -1, -1);
             
-            ok = silent_pic_save_file(&local_raw_info, 0, hSuiteX);
+            ok = silent_pic_save_file(&local_raw_info);
             if (!ok) break;
             
             if ((get_halfshutter_pressed() || !LV_PAUSED) && i > i0)
@@ -1307,6 +1369,9 @@ silent_pic_take_fullres(int interactive)
 {
     int ok = 1;
 
+    /* capture metadata from LiveView; will override invalid values later */
+    silent_capture_lv_metadata();
+
     /* get out of LiveView, but leave the shutter open */
     PauseLiveView();
 
@@ -1419,6 +1484,8 @@ silent_pic_take_fullres(int interactive)
     info_led_off();
     lens_info.job_state = 0;
 
+    silent_capture_fullres_metadata(prop_iso, capture_time);
+
     if (image_review_time)
     {
         /* only preview if Image Review is enabled in Canon menu */
@@ -1500,6 +1567,14 @@ silent_pic_take_fullres(int interactive)
     int save_time;
     
     {
+        /* fixme: duplicate code */
+        bmp_printf(FONT_MED | FONT_ALIGN_RIGHT, 720, 37,
+            SYM_ISO"%d %s "SYM_F_SLASH"%d.%d",
+            metadata.iso,
+            lens_format_shutter_reciprocal(metadata.tvr, 2),
+            metadata.aperture / 10, metadata.aperture % 10
+        );
+
         bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", local_raw_info.jpeg.width, local_raw_info.jpeg.height);
         bmp_printf(FONT_MED, 0, 83, "Captured in %d ms.", capture_time);
         
@@ -1511,7 +1586,7 @@ silent_pic_take_fullres(int interactive)
             memcpy(local_raw_info.buffer, raw_info.buffer, local_raw_info.frame_size);
         }
 
-        ok = silent_pic_save_file(&local_raw_info, capture_time, 0);
+        ok = silent_pic_save_file(&local_raw_info);
         int t1 = get_ms_clock();
         save_time = t1 - t0;
      
