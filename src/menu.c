@@ -3054,7 +3054,8 @@ static void junkie_menu_rebuild(int min_items, int * count_max, int * count_my, 
             {
                 if (mru_menu_select_func(entry))
                 {
-                    entry->jhidden = 1;
+                    /* move items from main menu, but not from submenus */
+                    entry->jhidden = !IS_SUBMENU(menu);
                     entry->jstarred = 1;
                     (*count_my)++;
                 }
