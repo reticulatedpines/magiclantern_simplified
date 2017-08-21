@@ -2168,3 +2168,11 @@ int can_set_frame_shutter_timer()
     return 0;
     #endif
 }
+int get_frame_aperture()
+{
+    #ifdef FRAME_APERTURE
+    return FRAME_APERTURE & 0xFF;
+    #else
+    return 0;
+    #endif
+}
