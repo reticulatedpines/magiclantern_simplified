@@ -5518,9 +5518,9 @@ void select_menu_by_name(char* name, const char* entry_name)
     give_semaphore(menu_sem);
 }
 
-static struct menu_entry * entry_find_by_name(const char* name, const char* entry_name)
+static struct menu_entry * entry_find_by_name(const char* menu_name, const char* entry_name)
 {
-    if (!name || !entry_name)
+    if (!menu_name || !entry_name)
     {
         return 0;
     }
@@ -5534,7 +5534,7 @@ static struct menu_entry * entry_find_by_name(const char* name, const char* entr
         if (menu->no_name_lookup)
             continue;
 
-        if (streq(menu->name, name))
+        if (streq(menu->name, menu_name))
         {
             for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
             {
@@ -5554,7 +5554,7 @@ static struct menu_entry * entry_find_by_name(const char* name, const char* entr
     if (count > 1)
     {
         console_show();
-        printf("Duplicate menu: %s (%d)\n", entry_name, count);
+        printf("Duplicate menu: %s -> %s (%d)\n", menu_name, entry_name, count);
         return 0;
     }
 
