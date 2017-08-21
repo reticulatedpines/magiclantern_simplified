@@ -142,4 +142,7 @@ size_t read_file( const char * filename, void * buf, size_t size);
 
 uint8_t* read_entire_file(const char * filename, int* buf_size);
 
+const char* get_dcim_dir();
+const char* get_dcim_dir_suffix();
+
 #endif

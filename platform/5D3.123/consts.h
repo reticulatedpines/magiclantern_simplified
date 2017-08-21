@@ -6,7 +6,7 @@
 #define LEDON 0x138800
 #define LEDOFF 0x838C00
 
-#define CARD_A_MAKER 0x68D24
+#define CARD_A_MAKER 0x68D23
 #define CARD_A_MODEL 0x68D57
 //~ #define CARD_A_LABEL 0x26E000 not good
 //need to find

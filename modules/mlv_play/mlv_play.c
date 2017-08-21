@@ -965,7 +965,7 @@ static mlv_xref_hdr_t *mlv_play_load_index(char *base_filename)
         /* we should check the MLVI header for matching UID value to make sure its the right index... */
         if(!memcmp(buf.blockType, "XREF", 4))
         {
-            block_hdr = malloc(buf.blockSize);
+            block_hdr = fio_malloc(buf.blockSize);
 
             if(FIO_ReadFile(in_file, block_hdr, buf.blockSize) != (int32_t)buf.blockSize)
             {

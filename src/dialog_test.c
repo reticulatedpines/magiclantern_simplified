@@ -23,6 +23,7 @@ void* get_current_dialog_handler()
             return dialog->handler;
         }
     }
+    return 0;
 }
 
 static void print_dialog_handler_stack()
