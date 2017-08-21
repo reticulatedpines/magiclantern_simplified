@@ -922,6 +922,7 @@ static struct menu_entry patch_menu[] =
 static void patch_simple_init()
 {
     menu_add("Debug", patch_menu, COUNT(patch_menu));
+    patch_menu->parent_menu->no_name_lookup = 1;
 }
 
 INIT_FUNC("patch", patch_simple_init);
