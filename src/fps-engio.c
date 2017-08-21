@@ -486,7 +486,11 @@ int get_current_shutter_reciprocal_x1000()
     #else
     int blanking = nrzi_decode(FRAME_SHUTTER_BLANKING_READ);
     #endif
-    int max = fps_timer_b;
+
+    /* read the FPS timer B directly from ENGIO shadow memory to have the latest value */
+    int timerB = (FPS_REGISTER_B_VALUE & 0xFFFF) + 1;
+    int max = timerB;
+
     float frame_duration = 1000.0 / fps_get_current_x1000();
     float shutter = frame_duration * (max - blanking) / max;
     return (int)(1.0 / shutter * 1000);
@@ -536,8 +540,12 @@ int get_current_shutter_reciprocal_x1000()
     //
     // This function returns 1/EA and does all calculations on integer numbers, so actual computations differ slightly.
 
+    #warning FIXME: consider defining FRAME_SHUTTER_BLANKING_READ
+    /* this might use old FPS timer values updated by fps_task */
+    /* it's not thread-safe to re-read them here again */
     return get_shutter_reciprocal_x1000(shutter_r_x1000, fps_timer_a, fps_timer_a_orig, fps_timer_b, fps_timer_b_orig);
 #else
+    #warning FIXME: consider defining FRAME_SHUTTER_BLANKING_READ
     // fallback to APEX units
     if (!lens_info.raw_shutter) return 0;
     return (int) roundf(powf(2.0f, (lens_info.raw_shutter - 136) / 8.0f) * 1000.0f * 1000.0f);
@@ -1575,10 +1583,8 @@ static void fps_read_current_timer_values()
 {
     if (!lv) { fps_timer_a = fps_timer_b = 0; return; }
 
-    int VA = FPS_REGISTER_A_VALUE;
-    int VB = FPS_REGISTER_B_VALUE;
-    fps_timer_a = (VA & 0xFFFF) + 1;
-    fps_timer_b = (VB & 0xFFFF) + 1;
+    fps_timer_a = (FPS_REGISTER_A_VALUE & 0xFFFF) + 1;
+    fps_timer_b = (FPS_REGISTER_B_VALUE & 0xFFFF) + 1;
 }
 
 /*static int fps_check_if_current_timer_values_changed()
