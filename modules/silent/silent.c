@@ -1195,11 +1195,7 @@ silent_pic_take_lv(int interactive)
             while (!get_halfshutter_pressed())
                 msleep(20);
         }
-        
-        if (silent_pic_mode == SILENT_PIC_MODE_FULLRES_LV) { }
-        else if (LV_PAUSED) ResumeLiveView();
-        else redraw();
-        
+
         if (sp_num_frames > 1)
         {
             /* was it a burst sequence? reset the MLV frame counter to start a new file */
@@ -1225,13 +1221,27 @@ cleanup:
     if (hSuite1) srm_free_suite(hSuite1);
     if (raw_flag) raw_lv_release();
 
+    if (image_review_time)
+    {
+        /* image review setting from Canon menu */
+        /* fixme: use the same code as "classic" full-res pics */
+        int preview_delay = image_review_time * 1000;
+        int t0 = get_ms_clock_value();
+        while (get_ms_clock_value() - t0 < preview_delay &&
+               !get_halfshutter_pressed())
+        {
+            msleep(10);
+        }
+    }
+
     if (silent_pic_mode == SILENT_PIC_MODE_FULLRES_LV)
     {
         /* turn off Full-res LiveView from crop_rec */
         PauseLiveView();
         menu_set_value_from_script("Movie", "Crop mode", 0);
-        ResumeLiveView();
     }
+
+    ResumeLiveView();
 
     return ok;
 }
