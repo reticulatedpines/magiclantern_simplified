@@ -1748,15 +1748,17 @@ static int update_status(char * buffer, int buffer_size)
             int pf = p - (ps * fps + 999) / 1000;
 
             /* show decimals? */
-            int rd = rf && pre_recording_buffer_full();
+            /* recorded time: only for very short times (otherwise it's visual clutter) */
+            /* pre-recorded: only when buffer is limited by available memory */
+            int rd = rf && R < 5;
             int pd = pf && pre_recording_buffer_full();
 
             /* build the string */
             len = 0;
             if (1)  len += snprintf(buffer + len, buffer_size - len, "%02d:%02d", rm, rs);
-            if (rd) len += snprintf(buffer + len, buffer_size - len, ".%d", rf);
+            if (rd) len += snprintf(buffer + len, buffer_size - len, ".%df", rf);
             if (1)  len += snprintf(buffer + len, buffer_size - len, " + %02d", ps);
-            if (pd) len += snprintf(buffer + len, buffer_size - len, ".%d", pf);
+            if (pd) len += snprintf(buffer + len, buffer_size - len, ".%df", pf);
 
             /* display in blue */
             return COLOR_BLUE;
@@ -1802,7 +1804,7 @@ static LVINFO_UPDATE_FUNC(recording_status)
         return;
     }
 
-    LVINFO_BUFFER(16);
+    LVINFO_BUFFER(24);
     
     if ((indicator_display != INDICATOR_IN_LVINFO) || RAW_IS_IDLE) return;
     if (!measured_write_speed) return;
