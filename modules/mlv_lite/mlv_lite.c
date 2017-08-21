@@ -547,7 +547,7 @@ static inline int pre_recording_buffer_full()
 
 static inline int pre_recorded_frames()
 {
-    return (pre_record_first_frame)
+    return (raw_recording_state == RAW_PRE_RECORDING)
         ? frame_count - pre_record_first_frame
         : 0;
 }
