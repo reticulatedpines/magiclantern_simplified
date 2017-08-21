@@ -608,7 +608,8 @@ static MENU_UPDATE_FUNC(update_dir)
 static const char * format_date_size( unsigned size, unsigned timestamp )
 {
     static char str[32];
-    static char datestr [11];
+    char sizestr[16];
+    char datestr[11];
     int year=1970;                   // Unix Epoc begins 1970-01-01
     int month=11;                    // This will be the returned MONTH NUMBER.
     int day;                         // This will be the returned day number. 
@@ -647,35 +648,20 @@ static const char * format_date_size( unsigned size, unsigned timestamp )
     else  
         snprintf( datestr, sizeof(datestr), "%02d/%02d/%d ", day, month, year);
 
-    if ( size >= 1000*1024*1024-512*1024/10 ) // transition from "999.9MB" to " 0.98GB"
+    snprintf( sizestr, sizeof(sizestr), "%s", format_memory_size(size));
+
+    while (bmp_string_width(MENU_FONT, sizestr) < 100)
     {
-        int size_gb = (size/1024/1024 * 100 + 512)  / 1024;
-        snprintf( str, sizeof(str), "%s %s%2d.%02dGB", datestr, FMT_FIXEDPOINT2(size_gb));
+        void* memmove(void*, void*, int);
+        memmove(sizestr + 1, sizestr, sizeof(sizestr) - 1);
+        sizestr[0] = ' ';
+        sizestr[sizeof(sizestr)-1] = '\0';
     }
-    else if ( size >= 10*1024*1024-512*1024/100 ) // transition from " 9.99MB" to " 10.0MB"
-    {
-        int size_mb = (size/1024 * 10 + 512) / 1024;
-        snprintf( str, sizeof(str), "%s %s%3d.%01dMB", datestr, FMT_FIXEDPOINT1(size_mb));
-    }
-    else if ( size >= 1000*1024-512/10 ) // transition from "999.9kB" to " 0.98MB"
-    {
-        int size_mb = (size/1024 * 100 + 512) / 1024;
-        snprintf( str, sizeof(str), "%s %s%2d.%02dMB", datestr, FMT_FIXEDPOINT2(size_mb));
-    }
-    else if ( size >= 10*1024-512/100 ) // transition from " 9.99kB" to " 10.0kB"
-    {
-        int size_kb = (size * 10 + 512) / 1024;
-        snprintf( str, sizeof(str), "%s %s%3d.%01dkB", datestr, FMT_FIXEDPOINT1(size_kb));
-    }
-    else if ( size >= 1000 ) // transition from "  999 B" to " 0.98kB"
-    {
-        int size_kb = (size * 100 + 512) / 1024;
-        snprintf( str, sizeof(str), "%s %s%2d.%02dkB", datestr, FMT_FIXEDPOINT2(size_kb));
-    }
-    else
-    {
-        snprintf( str, sizeof(str), "%s   %3d B", datestr, size);
-    }
+
+    int minute = (timestamp / 60) % 60;
+    int hour = (timestamp / 60 / 60) % 24;
+
+    snprintf( str, sizeof(str), "%s %02d:%02d %s", datestr, hour, minute, sizestr);
 
     return str;
 }
