@@ -1365,8 +1365,10 @@ static float usage_counter_delta_long = 1.0;
 static float usage_counter_delta_short = 1.0;
 
 /* threshold for displaying the most used menu items */
+/* submenu items will all end up in the * column, so we'll adjust the threshold to avoid clutter */
 /* max value is used only for showing debug info */
 static float usage_counter_thr = 0;
+static float usage_counter_thr_sub = 0;
 static float usage_counter_max = 0;
 
 /* normalize the usage counters so the next increment is 1.0 */
@@ -1444,7 +1446,7 @@ end:
     give_semaphore(menu_sem);
 }
 
-static void menu_usage_counters_update_threshold(int num)
+static void menu_usage_counters_update_threshold(int num, int only_submenu_entries, int only_nonsubmenu_entries)
 {
     take_semaphore(menu_sem, 0);
 
@@ -1454,6 +1456,12 @@ static void menu_usage_counters_update_threshold(int num)
     for (struct menu * menu = menus; menu; menu = menu->next)
     {
         if (menu->no_name_lookup)
+            continue;
+
+        if (only_submenu_entries && !IS_SUBMENU(menu))
+            continue;
+
+        if (only_nonsubmenu_entries && IS_SUBMENU(menu))
             continue;
 
         for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
@@ -1471,6 +1479,12 @@ static void menu_usage_counters_update_threshold(int num)
     for (struct menu * menu = menus; menu; menu = menu->next)
     {
         if (menu->no_name_lookup)
+            continue;
+
+        if (only_submenu_entries && !IS_SUBMENU(menu))
+            continue;
+
+        if (only_nonsubmenu_entries && IS_SUBMENU(menu))
             continue;
 
         for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
@@ -1497,7 +1511,17 @@ static void menu_usage_counters_update_threshold(int num)
     }
 
     /* pick a threshold that selects the best "num" entries */
-    usage_counter_thr = MAX(counters[num-1], 0.01);
+    float thr = (num > 0) ? MAX(counters[num-1], 0.01) : 1e5;
+
+    if (!only_submenu_entries)
+    {
+        usage_counter_thr = thr;
+    }
+
+    if (!only_nonsubmenu_entries)
+    {
+        usage_counter_thr_sub = thr;
+    }
 
     free(counters);
 
@@ -2923,9 +2947,13 @@ static int mod_menu_select_func(struct menu_entry * entry)
 
 static int mru_menu_select_func(struct menu_entry * entry)
 {
+    float thr = IS_SUBMENU(entry->parent_menu)
+        ? usage_counter_thr_sub
+        : usage_counter_thr;
+
     return
-        entry->usage_counter_long_term  >= usage_counter_thr ||
-        entry->usage_counter_short_term >= usage_counter_thr ;
+        entry->usage_counter_long_term  >= thr ||
+        entry->usage_counter_short_term >= thr ;
 }
 
 static int mru_junkie_my_menu_select_func(struct menu_entry * entry)
@@ -3090,10 +3118,11 @@ my_menu_rebuild()
              * Threshold is increased until My Menu becomes
              * not much bigger than the longest menu.
              */
-            menu_usage_counters_update_threshold(junkie_mode * 10);
+            menu_usage_counters_update_threshold(junkie_mode * 10, 0, 0);
 
+            int count_max, count_my, count_my_next, count_my_0;
+            junkie_menu_rebuild(1, &count_max, &count_my_0, &count_my_next);
             int min = 2;
-            int count_max, count_my, count_my_next;
             do
             {
                 junkie_menu_rebuild(min, &count_max, &count_my, &count_my_next);
@@ -3101,11 +3130,14 @@ my_menu_rebuild()
             }
             while (min < 5 && count_my_next <= count_max + 2);
 
-            if (count_my > 0 && count_my < count_max - 2)
+            if (count_my > 0 && ABS(count_my - count_max) > 2)
             {
-                /* for some reason, My Menu ended up with few items */
-                /* let's add some more */
-                menu_usage_counters_update_threshold(junkie_mode * 10 + count_max - count_my - 2);
+                /* My Menu ended up with too few or too many items
+                 * it may look a bit unbalanced - let's "equalize" it */
+                int moved = count_my - count_my_0;
+                int sub_target = MAX(MAX(count_max, junkie_mode*4) - moved, 2);
+                menu_usage_counters_update_threshold(junkie_mode * 10 - sub_target, 0, 1);
+                menu_usage_counters_update_threshold(sub_target, 1, 0);
                 junkie_menu_rebuild(min-1, &count_max, &count_my, &count_my_next);
             }
 
@@ -3113,7 +3145,7 @@ my_menu_rebuild()
         }
         else
         {
-            menu_usage_counters_update_threshold(10);
+            menu_usage_counters_update_threshold(10, 0, 0);
             return dyn_menu_rebuild(my_menu, mru_menu_select_func, my_menu_placeholders, COUNT(my_menu_placeholders), DYN_MENU_EXPAND_ALL_SUBMENUS);
         }
     }
