@@ -8,6 +8,7 @@
 #include <menu.h>
 #include <beep.h>
 #include <console.h>
+#include <powersave.h>
 #include "file_man.h"
 
 
@@ -484,6 +485,9 @@ static void BrowseUp()
 static void FileCopyOrMove(int op)
 {
 MFILE_SEM (
+    /* this may take a long time - prevent powersaving from interrupting us */
+    powersave_prohibit();
+
     char fname[MAX_PATH_LEN];
     char tmpdst[MAX_PATH_LEN];
     char dstfile[MAX_PATH_LEN];
@@ -537,6 +541,8 @@ MFILE_SEM (
     {
         ScanDir(gPath);
     }
+
+    powersave_permit();
 )
 }
 
