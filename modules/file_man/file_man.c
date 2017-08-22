@@ -7,6 +7,7 @@
 #include <bmp.h>
 #include <menu.h>
 #include <beep.h>
+#include <console.h>
 #include "file_man.h"
 
 
@@ -96,6 +97,7 @@ static MENU_SELECT_FUNC(FileOpCancel);
 static unsigned int mfile_add_tail(char* path);
 static unsigned int mfile_clean_all();
 static int mfile_is_regged(char *fname);
+static int mfile_get_count();
 struct filetype_handler fileman_filetypes[MAX_FILETYPE_HANDLERS];
 
 /**********************************
@@ -479,8 +481,7 @@ static void BrowseUp()
     }
 }
 
-static void
-FileCopy(void *unused)
+static void FileCopyOrMove(int op)
 {
 MFILE_SEM (
     char fname[MAX_PATH_LEN];
@@ -490,7 +491,14 @@ MFILE_SEM (
     FILES_LIST *mf = mfile_root;
     strcpy(tmpdst,gPath);
 
-    while(mf->next){
+    int copy = (op == FILE_OP_COPY);
+    int move = (op == FILE_OP_MOVE);
+    ASSERT(copy || move);
+
+    int N = mfile_get_count();
+
+    for (int k = 0; mf->next; k++)
+    {
         mf = mf->next;
         dstfile[0] = 0;
         fname[0] = 0;
@@ -499,62 +507,43 @@ MFILE_SEM (
         while (p > mf->name && *p != '/') p--;
         strcpy(fname,p+1);
         
-        snprintf(dstfile,MAX_PATH_LEN,"%s%s",tmpdst,fname);
-        if(streq(mf->name,dstfile)) continue; // src and dst are idential.skip this transaction.
+        snprintf(dstfile, MAX_PATH_LEN, "%s%s", tmpdst, fname);
+
+        if(streq(mf->name,dstfile))
+        {
+            // src and dst are identical. skip this transaction.
+            continue;
+        }
         
-        snprintf(gStatusMsg, sizeof(gStatusMsg), "Copying %s to %s...", mf->name, tmpdst);
-        int err = FIO_CopyFile(mf->name,dstfile);
-        if (err) snprintf(gStatusMsg, sizeof(gStatusMsg), "Copy error (%d)", err);
-        else gStatusMsg[0] = 0;
+        snprintf(gStatusMsg, sizeof(gStatusMsg),
+            "[%d/%d] %s %s to %s...", k, N,
+            move ? "Moving" : "Copying", mf->name, tmpdst
+        );
+
+        int err = (move ? FIO_MoveFile : FIO_CopyFile)(mf->name, dstfile);
+        if (err)
+        {
+            console_show();
+            printf("%s -> %s: %s error (%d)", mf->name, dstfile, move ? "move" : "copy", err);
+        }
+
+        gStatusMsg[0] = 0;
     }
 
     mfile_clean_all();
 
     /* are we still in the same dir? rescan */
-    if(!strcmp(gPath,tmpdst)) ScanDir(gPath);
-)
-}
-
-static void
-FileMove(void *unused)
-{
-MFILE_SEM (
-    
-    char fname[MAX_PATH_LEN];
-    char tmpdst[MAX_PATH_LEN];
-    char dstfile[MAX_PATH_LEN];
-    size_t totallen = 0;
-    FILES_LIST *mf = mfile_root;
-    strcpy(tmpdst,gPath);
-
-    while(mf->next){
-        mf = mf->next;
-        dstfile[0] = 0;
-        fname[0] = 0;
-        totallen = strlen(mf->name);
-        char *p = mf->name + totallen;
-        while (p > mf->name && *p != '/') p--;
-        strcpy(fname,p+1);
-        
-        snprintf(dstfile,MAX_PATH_LEN,"%s%s",tmpdst,fname);
-        if(streq(mf->name,dstfile)) continue; // src and dst are idential.skip this transaction.
-        
-        snprintf(gStatusMsg, sizeof(gStatusMsg), "Moving %s to %s...", mf->name, tmpdst);
-        int err = FIO_MoveFile(mf->name,dstfile);
-        if (err) snprintf(gStatusMsg, sizeof(gStatusMsg), "Move error (%d)", err);
-        else gStatusMsg[0] = 0;
+    if(!strcmp(gPath,tmpdst))
+    {
+        ScanDir(gPath);
     }
-
-    mfile_clean_all();
-    ScanDir(gPath);
 )
 }
-
 
 static MENU_SELECT_FUNC(FileCopyStart)
 {
 MFILE_SEM (
-    task_create("filecopy_task", 0x1b, 0x4000, FileCopy, 0);
+    task_create("filecopy_task", 0x1b, 0x4000, FileCopyOrMove, (void *) FILE_OP_COPY);
     op_mode = FILE_OP_NONE;
 )
     ScanDir(gPath);
@@ -563,7 +552,7 @@ MFILE_SEM (
 static MENU_SELECT_FUNC(FileMoveStart)
 {
 MFILE_SEM (
-    task_create("filemove_task", 0x1b, 0x4000, FileMove, 0);
+    task_create("filemove_task", 0x1b, 0x4000, FileCopyOrMove, (void *) FILE_OP_MOVE);
     op_mode = FILE_OP_NONE;
 )
     ScanDir(gPath);
