@@ -233,10 +233,17 @@ int lossless_compress_raw_rectangle(
     TTL_Args.WR1_MemSuite = dst_suite;
     TTL_Args.WR2_Address  = 0;
     TTL_Args.RD1_Address  = (void *) src_adjusted;
-    void * WR1_Address = GetMemoryAddressOfMemoryChunk(GetFirstChunkFromSuite(TTL_Args.WR1_MemSuite));
 
     /* to check whether the compression was successful */
-    MEM(WR1_Address) = 0;
+    /* note: in dummy mode, dst_suite is NULL - don't check this case */
+    void * WR1_Address = (TTL_Args.WR1_MemSuite)
+        ? GetMemoryAddressOfMemoryChunk(GetFirstChunkFromSuite(TTL_Args.WR1_MemSuite))
+        : 0;
+
+    if (WR1_Address)
+    {
+        MEM(WR1_Address) = 0;
+    }
 
     /* configure the processing modules */
     TTL_Prepare(TTL_ResLock, &TTL_Args);
@@ -324,7 +331,7 @@ int lossless_compress_raw_rectangle(
     }
 
     /* do we have valid JPEG data in the output buffer? */
-    if (MEM(WR1_Address) != 0xC4FFD8FF)
+    if (WR1_Address && MEM(WR1_Address) != 0xC4FFD8FF)
     {
         ASSERT(0);
         return -3;
