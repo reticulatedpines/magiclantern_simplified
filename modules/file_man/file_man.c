@@ -138,6 +138,14 @@ static MENU_UPDATE_FUNC(main_update)
         /* close the viewer if we are at top level (e.g. if we exit the viewer via half-shutter) */
         view_file = 0;
     }
+
+    update_status(entry, info);
+
+    if (gStatusMsg[0])
+    {
+        /* show a BUSY icon */
+        MENU_SET_ICON(MNI_RECORD, 0);
+    }
 }
 
 static struct menu_entry fileman_menu[] =
