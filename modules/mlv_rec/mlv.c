@@ -158,7 +158,7 @@ void mlv_fill_idnt(mlv_idnt_hdr_t *hdr, uint64_t start_timestamp)
 
 void mlv_build_vers(mlv_vers_hdr_t **hdr, uint64_t start_timestamp, const char *version_string)
 {
-    int block_length = (strlen(version_string) + sizeof(mlv_vers_hdr_t) + 3) & ~3;
+    int block_length = (strlen(version_string) + sizeof(mlv_vers_hdr_t) + 1 + 3) & ~3;
     mlv_vers_hdr_t *header = malloc(block_length);
     
     /* prepare header */
