@@ -3429,7 +3429,7 @@ static char* junkie_get_shorttext(struct menu_display_info * info, int fnt, int 
         if (maxlen - len >= char_width * 4) // still plenty of space? try to print part of name too
         {
             static char nv[30];
-            char* sname = junkie_get_shortname(info, fnt, maxlen - len - 1);
+            char* sname = junkie_get_shortname(info, fnt, maxlen - len - bmp_string_width(fnt, " "));
             if (bmp_string_width(fnt, sname) >= char_width * 2)
             {
                 snprintf(nv, sizeof(nv), "%s %s", sname, svalue);
