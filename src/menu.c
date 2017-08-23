@@ -1008,13 +1008,11 @@ static int get_menu_selected_pos(struct menu * menu)
 static int
 menu_has_visible_items(struct menu * menu)
 {
-    if (junkie_mode) // hide Debug and Help
+    if (junkie_mode) // hide Modules, Help and Modified
     {
         if (
-            streq(menu->name, "Debug") ||
-            streq(menu->name, "Help") ||
-            //~ streq(menu->name, "Scripts") ||
             streq(menu->name, "Modules") ||
+            streq(menu->name, "Help") ||
             streq(menu->name, MOD_MENU_NAME) ||
            0)
             return 0;
