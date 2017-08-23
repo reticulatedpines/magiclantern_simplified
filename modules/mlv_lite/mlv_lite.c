@@ -1568,7 +1568,7 @@ void free_buffers()
 
     /* this buffer is allocated from one of the suites -> nothing to do */
     fullsize_buffers[0] = 0;
-    ASSERT(fullsize_buffers[1] == UNCACHEABLE(raw_info.buffer));
+    if (raw_info.buffer) ASSERT(fullsize_buffers[1] == UNCACHEABLE(raw_info.buffer));
     fullsize_buffers[1] = 0;
 }
 
@@ -1963,23 +1963,7 @@ static void FAST hack_liveview_vsync()
     
     if (!PREVIEW_HACKED) return;
     
-    int rec = RAW_IS_RECORDING;
-    static int prev_rec = 0;
-    int should_hack = 0;
-    int should_unhack = 0;
-
-    if (rec)
-    {
-        if (frame_count == 0)
-            should_hack = 1;
-    }
-    else if (prev_rec)
-    {
-        should_unhack = 1;
-    }
-    prev_rec = rec;
-    
-    if (should_hack)
+    if (RAW_IS_RECORDING && frame_count == 0)
     {
         for (int channel = 0; channel < 32; channel++)
         {
@@ -1993,21 +1977,9 @@ static void FAST hack_liveview_vsync()
             }
         }
     }
-    else if (should_unhack)
-    {
-        task_create("lv_unhack", 0x1e, 0x1000, unhack_liveview_vsync, (void*)0);
-    }
-}
 
-/* this is a separate task */
-static void unhack_liveview_vsync(int unused)
-{
-    while (!RAW_IS_IDLE) msleep(100);
-    PauseLiveView();
-    ResumeLiveView();
-
-    /* fixme: in exmem.c, but how? */
-    gui_uilock(UILOCK_NONE);
+    /* note: we are pausing and resuming LiveView at the end anyway
+     * so undoing this hack is no longer needed */
 }
 
 static void hack_liveview(int unhack)
@@ -3239,6 +3211,10 @@ abort:
             last_block_size = 0; /* ignore early stop check */
 
 abort_and_check_early_stop:
+
+            /* faster writing speed that way */
+            PauseLiveView();
+
             if (last_block_size > 3)
             {
                 bmp_printf( FONT_MED, 30, 90, 
@@ -3308,9 +3284,16 @@ abort_and_check_early_stop:
         }
     }
 
+    /* faster writing speed that way */
+    PauseLiveView();
+
     /* write remaining frames */
-    for (; writing_queue_head != writing_queue_tail; writing_queue_head = MOD(writing_queue_head + 1, COUNT(writing_queue)))
+    for (; writing_queue_head != writing_queue_tail; INC_MOD(writing_queue_head, COUNT(writing_queue)))
     {
+        bmp_printf( FONT_MED, 30, 110, 
+            "Flushing buffers... %d frames left  ", MOD(writing_queue_tail - writing_queue_head, COUNT(writing_queue))
+        );
+
         int slot_index = writing_queue[writing_queue_head];
 
         if (slots[slot_index].status != SLOT_FULL)
@@ -3401,6 +3384,7 @@ cleanup:
         movie_end();
     }
 
+    ResumeLiveView();
     redraw();
     raw_recording_state = RAW_IDLE;
 }
