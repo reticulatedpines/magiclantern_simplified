@@ -1111,6 +1111,7 @@ static void placeholder_copy(struct menu_entry * dst, struct menu_entry * src)
     int starred = dst->starred;
     int hidden = dst->hidden;
     int jhidden = dst->jhidden;
+    uint64_t usage_counters = dst->usage_counters;
     
     /* also keep the name pointer, which will help when removing the menu and restoring the placeholder */
     char* name = (char*) dst->name;
@@ -1124,6 +1125,7 @@ static void placeholder_copy(struct menu_entry * dst, struct menu_entry * src)
     dst->starred = starred;
     dst->hidden = hidden;
     dst->jhidden = jhidden;
+    dst->usage_counters = usage_counters;
 }
 
 /* if we find a placeholder entry, use it for changing the menu order */
@@ -5896,6 +5898,8 @@ static void menu_save_flags(char* filename)
         {
             if (!entry->name) continue;
             if (!entry->name[0]) continue;
+            if (MENU_IS_PLACEHOLDER(entry)) continue;
+            /* fixme: customization for menus that are temporarily not loaded will be lost */
 
             uint32_t flags = menu_pack_flags(entry);
 
