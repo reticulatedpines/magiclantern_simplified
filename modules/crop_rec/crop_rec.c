@@ -75,7 +75,7 @@ static const char * crop_choices_5d3[] = {
     "1920 1:1",
     "1920 1:1 tall",
     "1920 50/60 3x3",
-    "1080p45/48 3x3",
+    "1080p45/1020p48 3x3",
     "3K 1:1",
     "UHD 1:1",
     "4K 1:1 half-fps",
@@ -94,7 +94,7 @@ static const char crop_choices_help2_5d3[] =
     "1:1 sensor readout (square raw pixels, 3x crop, good preview in 1080p)\n"
     "1:1 crop, higher vertical resolution (1920x1920 @ 24p, cropped preview)\n"
     "1920x960 @ 50p, 1920x800 @ 60p (3x3 binning, cropped preview)\n"
-    "1920x1080 @ 45/48p, 3x3 binning (50/60 FPS in Canon menu)\n"
+    "1920x1080 @ 45p, 1920x1020 @ 48p, 3x3 binning (50/60 FPS in Canon menu)\n"
     "1:1 3K crop (3072x1920 @ 24p, square raw pixels, preview broken)\n"
     "1:1 4K UHD crop (3840x1600 @ 24p, square raw pixels, preview broken)\n"
     "1:1 4K crop (4096x3072 @ 12.5 fps, half frame rate, preview broken)\n"
@@ -280,7 +280,7 @@ static int max_resolutions[NUM_CROP_PRESETS][5] = {
                                 /*   24p   25p   30p   50p   60p */
     [CROP_PRESET_3X_TALL]       = { 1920, 1728, 1536,  960,  800 },
     [CROP_PRESET_3x3_1X]        = { 1290, 1290, 1290,  960,  800 },
-    [CROP_PRESET_3x3_1X_48p]    = { 1290, 1290, 1290, 1080, 1080 }, /* 1080p45/48 */
+    [CROP_PRESET_3x3_1X_48p]    = { 1290, 1290, 1290, 1080, 1020 }, /* 1080p45/48 */
     [CROP_PRESET_3K]            = { 1920, 1728, 1504,  760,  680 },
     [CROP_PRESET_UHD]           = { 1536, 1472, 1120,  640,  540 },
     [CROP_PRESET_4K_HFPS]       = { 3072, 3072, 2500, 1440, 1200 },
@@ -1076,12 +1076,6 @@ static inline uint32_t reg_override_3x3_48p(uint32_t reg, uint32_t old_val)
         if (a) return a;
     }
 
-    /* fine-tuning head timers appears to help
-     * pushing the resolution a tiny bit further */
-    int head_adj3 =
-        (video_mode_fps == 60) ? -20 :
-                                   0 ;
-
     switch (reg)
     {
         /* for some reason, top bar disappears with the common overrides */
@@ -1096,7 +1090,7 @@ static inline uint32_t reg_override_3x3_48p(uint32_t reg, uint32_t old_val)
         /* HEAD3 timer */
         /* 2E6 in 50p, 2B4 in 60p */
         case 0xC0F0713C:
-            return 0x2B4 + YRES_DELTA + delta_head3 + head_adj3;
+            return 0x2B4 + YRES_DELTA + delta_head3;
 
         /* HEAD4 timer */
         /* 2B4 in 50p, 26D in 60p */
@@ -1377,6 +1371,11 @@ static MENU_UPDATE_FUNC(crop_update)
     }
 }
 
+static MENU_UPDATE_FUNC(target_yres_update)
+{
+    MENU_SET_RINFO("from %d", max_resolutions[crop_preset][get_video_mode_index()]);
+}
+
 static struct menu_entry crop_rec_menu[] =
 {
     {
@@ -1384,6 +1383,75 @@ static struct menu_entry crop_rec_menu[] =
         .priv       = &crop_preset_index,
         .update     = crop_update,
         .depends_on = DEP_LIVEVIEW,
+        .children =  (struct menu_entry[]) {
+            {
+                .name   = "Target YRES",
+                .priv   = &target_yres,
+                .update = target_yres_update,
+                .max    = 3870,
+                .unit   = UNIT_DEC,
+                .help   = "Desired vertical resolution (only for presets with higher resolution).",
+                .help2  = "Decrease if you get corrupted frames (dial the desired resolution here).",
+            },
+            {
+                .name   = "Delta ADTG 0",
+                .priv   = &delta_adtg0,
+                .min    = -500,
+                .max    = 500,
+                .unit   = UNIT_DEC,
+                .help   = "ADTG 0x8178, 0x8196, 0x82F8",
+                .help2  = "May help pushing the resolution a little. Start with small increments.",
+            },
+            {
+                .name   = "Delta ADTG 1",
+                .priv   = &delta_adtg1,
+                .min    = -500,
+                .max    = 500,
+                .unit   = UNIT_DEC,
+                .help   = "ADTG 0x8179, 0x8197, 0x82F9",
+                .help2  = "May help pushing the resolution a little. Start with small increments.",
+            },
+            {
+                .name   = "Delta HEAD3",
+                .priv   = &delta_head3,
+                .min    = -500,
+                .max    = 500,
+                .unit   = UNIT_DEC,
+                .help2  = "May help pushing the resolution a little. Start with small increments.",
+            },
+            {
+                .name   = "Delta HEAD4",
+                .priv   = &delta_head4,
+                .min    = -500,
+                .max    = 500,
+                .unit   = UNIT_DEC,
+                .help2  = "May help pushing the resolution a little. Start with small increments.",
+            },
+            {
+                .name   = "CMOS[1] lo",
+                .priv   = &cmos1_lo,
+                .max    = 63,
+                .unit   = UNIT_DEC,
+                .help   = "Start scanline (very rough). Use for vertical positioning.",
+            },
+            {
+                .name   = "CMOS[1] hi",
+                .priv   = &cmos1_hi,
+                .max    = 63,
+                .unit   = UNIT_DEC,
+                .help   = "End scanline (very rough). Increase if white bar at bottom.",
+                .help2  = "Decrease if you get strange colors as you move the camera.",
+            },
+            {
+                .name   = "CMOS[2]",
+                .priv   = &cmos2,
+                .max    = 0xFFF,
+                .unit   = UNIT_HEX,
+                .help   = "Horizontal position / binning.",
+                .help2  = "Use for horizontal centering.",
+            },
+            MENU_EOL,
+        },
     },
 };
 
