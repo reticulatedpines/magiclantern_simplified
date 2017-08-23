@@ -1203,6 +1203,8 @@ static void module_menu_update()
         /* only update those which display module information */
         if(entry->update == module_menu_update_entry)
         {
+            ASSERT(mod_number == (int) entry->priv);
+
             if(module_list[mod_number].valid)
             {
                 MENU_SET_SHIDDEN(0);
@@ -1219,6 +1221,9 @@ static void module_menu_update()
         }
         entry = entry->next;
     }
+
+    /* make sure we have as many menu entries as modules */
+    ASSERT(mod_number == MODULE_COUNT_MAX);
 }
 
 /* check which modules are loaded and hide others */
@@ -1564,6 +1569,38 @@ static struct menu_entry module_menu[] = {
     MODULE_ENTRY(29)
     MODULE_ENTRY(30)
     MODULE_ENTRY(31)
+    MODULE_ENTRY(32)
+    MODULE_ENTRY(33)
+    MODULE_ENTRY(34)
+    MODULE_ENTRY(35)
+    MODULE_ENTRY(36)
+    MODULE_ENTRY(37)
+    MODULE_ENTRY(38)
+    MODULE_ENTRY(39)
+    MODULE_ENTRY(40)
+    MODULE_ENTRY(41)
+    MODULE_ENTRY(42)
+    MODULE_ENTRY(43)
+    MODULE_ENTRY(44)
+    MODULE_ENTRY(45)
+    MODULE_ENTRY(46)
+    MODULE_ENTRY(47)
+    MODULE_ENTRY(48)
+    MODULE_ENTRY(49)
+    MODULE_ENTRY(50)
+    MODULE_ENTRY(51)
+    MODULE_ENTRY(52)
+    MODULE_ENTRY(53)
+    MODULE_ENTRY(54)
+    MODULE_ENTRY(55)
+    MODULE_ENTRY(56)
+    MODULE_ENTRY(57)
+    MODULE_ENTRY(58)
+    MODULE_ENTRY(59)
+    MODULE_ENTRY(60)
+    MODULE_ENTRY(61)
+    MODULE_ENTRY(62)
+    MODULE_ENTRY(63)
 };
 
 static struct menu_entry module_debug_menu[] = {
