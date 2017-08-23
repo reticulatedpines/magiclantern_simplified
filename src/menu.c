@@ -215,7 +215,7 @@ static void menu_show_version(void);
 static struct menu * get_current_submenu();
 static struct menu * get_selected_menu();
 static void menu_make_sure_selection_is_valid();
-static void config_menu_load_flags();
+static void config_menu_reload_flags();
 static int guess_submenu_enabled(struct menu_entry * entry);
 static void menu_draw_icon(int x, int y, int type, intptr_t arg, int warn); // private
 static struct menu_entry * entry_find_by_name(const char* name, const char* entry_name);
@@ -1331,8 +1331,6 @@ menu_remove(
     struct menu * menu = menu_find_by_name( name, 0);
     if( !menu )
         return;
-    
-    menu_flags_load_dirty = 1;
 
     int removed = 0;
 
@@ -5363,10 +5361,10 @@ menu_task( void* unused )
             }
 
             /* executed once at startup,
-             * and whenever new menus appear/disappear */
+             * and whenever new menus appear (after menu_add) */
             if (menu_flags_load_dirty)
             {
-                config_menu_load_flags();
+                config_menu_reload_flags();
                 menu_flags_load_dirty = 0;
             }
             
@@ -5928,7 +5926,7 @@ end:
     free(cfg);
 }
 
-static void menu_load_flags(char* filename)
+static void menu_reload_flags(char* filename)
 {
     int size = 0;
     char* buf = (char*)read_entire_file(filename , &size);
@@ -5941,7 +5939,6 @@ static void menu_load_flags(char* filename)
         if (buf[i] == '\\') sep = i;
         else if (buf[i] == '\n')
         {
-            //~ NotifyBox(2000, "%d %d %d ", prev, sep, i);
             if (prev < sep-2 && sep < i-2)
             {
                 buf[i] = 0;
@@ -5951,15 +5948,15 @@ static void menu_load_flags(char* filename)
                 uint32_t flags = buf[prev+1] - '0';
                 uint32_t usage_counter_l = strtol(&buf[prev+3], 0, 16);
                 uint32_t usage_counter_s = strtol(&buf[prev+12], 0, 16);
-                //~ NotifyBox(2000, "%s -> %s", menu_name, entry_name); msleep(2000);
                 
                 /* fixme: entries with same name may give trouble */
                 struct menu_entry * entry = entry_find_by_name(menu_name, entry_name);
-                if (entry)
+                if (entry && !entry->cust_loaded)
                 {
                     menu_unpack_flags(entry, flags);
                     entry->usage_counter_long_term_raw = usage_counter_l;
                     entry->usage_counter_short_term_raw = usage_counter_s;
+                    entry->cust_loaded = 1;
                 }
             }
             prev = i;
@@ -5969,11 +5966,11 @@ static void menu_load_flags(char* filename)
 }
 
 
-static void config_menu_load_flags()
+static void config_menu_reload_flags()
 {
     char menu_config_file[0x80];
     snprintf(menu_config_file, sizeof(menu_config_file), "%sMENUS.CFG", get_config_dir());
-    menu_load_flags(menu_config_file);
+    menu_reload_flags(menu_config_file);
     my_menu_dirty = 1;
 }
 

@@ -163,6 +163,7 @@ struct menu_entry
         unsigned jstarred   : 1;    /* [internal] in junkie menu, auto-placed in My Menu */
         unsigned shidden    : 1;    /* [opt] special hide, not toggleable from GUI, but can be set by user code */
         unsigned placeholder: 1;    /* [internal] place reserved for a future menu (see MENU_PLACEHOLDER) */
+        unsigned cust_loaded: 1;    /* [internal] whether customization data was loaded (hidden/starred/jhidden/jstarred, usage counters) */
         
         unsigned advanced   : 1;    /* [opt] advanced setting in submenus; add a MENU_ADVANCED_TOGGLE if you use it */
 
