@@ -4227,8 +4227,8 @@ menu_entry_select(
             else if (SHOULD_USE_EDIT_MODE(entry)) edit_mode = !edit_mode;
             else if (entry->select)
             {
-                entry_used = (entry->select != menu_open_submenu);
                 entry->select( entry->priv, 1);
+                entry_used = 1;
             }
             else if IS_ML_PTR(entry->priv)
             {
