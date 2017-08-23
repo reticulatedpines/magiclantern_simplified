@@ -5875,8 +5875,110 @@ static void menu_unpack_flags(struct menu_entry * entry, uint32_t flags)
         entry->jhidden = 1;
 }
 
-#define CFG_APPEND(fmt, ...) ({ lastlen = snprintf(cfg + cfglen, CFG_SIZE - cfglen, fmt, ## __VA_ARGS__); cfglen += lastlen; })
-#define CFG_SIZE 32768
+static int menu_parse_flags_line(
+    char * buf, int i, int size, int *prev,
+    char ** menu_name,
+    char ** entry_name,
+    uint32_t * flags,
+    uint32_t * usage_counter_l,
+    uint32_t * usage_counter_s
+)
+{
+    int sep = 0;
+    int start = i;
+
+    for ( ; i < size; i++)
+    {
+        if (buf[i] == '\\')
+        {
+            sep = i;
+        }
+        else if (buf[i] == '\n')
+        {
+            if (start+20 < sep && sep+1 < i)
+            {
+                buf[i] = 0;
+                buf[sep] = 0;
+                *menu_name = &buf[start+20];
+                *entry_name = &buf[sep+1];
+                *flags = buf[start] - '0';
+                *usage_counter_l = strtol(&buf[start+2], 0, 16);
+                *usage_counter_s = strtol(&buf[start+11], 0, 16);
+                return i + 1;
+            }
+
+            /* invalid line? */
+            start = i + 1;
+        }
+    }
+
+    /* finished */
+    return -1;
+}
+
+static void menu_reload_flags(char* filename)
+{
+    int size = 0;
+    char* buf = (char*)read_entire_file(filename , &size);
+    if (!buf) return;
+    int prev = -1;
+    int i = 0;
+
+    char *menu_name, *entry_name;
+    uint32_t flags, usage_counter_l, usage_counter_s;
+
+    while ((i = menu_parse_flags_line(
+                    buf, i, size, &prev, 
+                    &menu_name, &entry_name,
+                    &flags, &usage_counter_l, &usage_counter_s)) >= 0)
+    {
+        /* fixme: entries with same name may give trouble */
+        struct menu_entry * entry = entry_find_by_name(menu_name, entry_name);
+        if (entry && !entry->cust_loaded)
+        {
+            menu_unpack_flags(entry, flags);
+            entry->usage_counter_long_term_raw = usage_counter_l;
+            entry->usage_counter_short_term_raw = usage_counter_s;
+            entry->cust_loaded = 1;
+        }
+    }
+
+    free(buf);
+}
+
+#define CFG_APPEND(fmt, ...) ({ cfglen += snprintf(cfg + cfglen, CFG_SIZE - cfglen, fmt, ## __VA_ARGS__); })
+#define CFG_SIZE (256*1024)
+
+static int menu_save_unloaded_flags(char* filename, char * cfg, int cfglen)
+{
+    int size = 0;
+    char* buf = (char*)read_entire_file(filename , &size);
+    if (!buf) return cfglen;
+    int prev = -1;
+    int i = 0;
+
+    char *menu_name, *entry_name;
+    uint32_t flags, usage_counter_l, usage_counter_s;
+
+    while ((i = menu_parse_flags_line(
+                    buf, i, size, &prev, 
+                    &menu_name, &entry_name,
+                    &flags, &usage_counter_l, &usage_counter_s)) >= 0)
+    {
+        /* fixme: entries with same name may give trouble */
+        struct menu_entry * entry = entry_find_by_name(menu_name, entry_name);
+        if (!entry)
+        {
+            CFG_APPEND("%d %08X %08X %s\\%s\n",
+                flags, usage_counter_l, usage_counter_s,
+                menu_name, entry_name
+            );
+        }
+    }
+
+    free(buf);
+    return cfglen;
+}
 
 static void menu_save_flags(char* filename)
 {
@@ -5885,7 +5987,8 @@ static void menu_save_flags(char* filename)
     char* cfg = malloc(CFG_SIZE);
     cfg[0] = '\0';
     int cfglen = 0;
-    int lastlen = 0;
+
+    cfglen = menu_save_unloaded_flags(filename, cfg, cfglen);
 
     for (struct menu * menu = menus; menu; menu = menu->next)
     {
@@ -5897,7 +6000,6 @@ static void menu_save_flags(char* filename)
             if (!entry->name) continue;
             if (!entry->name[0]) continue;
             if (MENU_IS_PLACEHOLDER(entry)) continue;
-            /* fixme: customization for menus that are temporarily not loaded will be lost */
 
             uint32_t flags = menu_pack_flags(entry);
 
@@ -5925,46 +6027,6 @@ static void menu_save_flags(char* filename)
 end:
     free(cfg);
 }
-
-static void menu_reload_flags(char* filename)
-{
-    int size = 0;
-    char* buf = (char*)read_entire_file(filename , &size);
-    if (!size) return;
-    if (!buf) return;
-    int prev = -1;
-    int sep = 0;
-    for (int i = 0; i < size; i++)
-    {
-        if (buf[i] == '\\') sep = i;
-        else if (buf[i] == '\n')
-        {
-            if (prev < sep-2 && sep < i-2)
-            {
-                buf[i] = 0;
-                buf[sep] = 0;
-                char* menu_name = &buf[prev+21];
-                char* entry_name = &buf[sep+1];
-                uint32_t flags = buf[prev+1] - '0';
-                uint32_t usage_counter_l = strtol(&buf[prev+3], 0, 16);
-                uint32_t usage_counter_s = strtol(&buf[prev+12], 0, 16);
-                
-                /* fixme: entries with same name may give trouble */
-                struct menu_entry * entry = entry_find_by_name(menu_name, entry_name);
-                if (entry && !entry->cust_loaded)
-                {
-                    menu_unpack_flags(entry, flags);
-                    entry->usage_counter_long_term_raw = usage_counter_l;
-                    entry->usage_counter_short_term_raw = usage_counter_s;
-                    entry->cust_loaded = 1;
-                }
-            }
-            prev = i;
-        }
-    }
-    fio_free(buf);
-}
-
 
 static void config_menu_reload_flags()
 {
