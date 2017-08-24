@@ -185,7 +185,6 @@ int lossless_init()
 static uint32_t start_time = 0;
 
 /* returns output size if successful, negative on error */
-/* dummy operation also allowed (dst_suite = 0) */
 int lossless_compress_raw_rectangle(
     struct memSuite * dst_suite, void * src,
     int src_width, int src_x, int src_y,
@@ -217,10 +216,6 @@ int lossless_compress_raw_rectangle(
     {
         TTL_Args.WR1_Channel = 0x20;
     }
-
-    /* cleanup write channel from previous usage */
-    SetEDmac(TTL_Args.WR1_Channel, 0, 0, 0);
-    UnregisterEDmacCompleteCBR(TTL_Args.WR1_Channel);
 
     /* set starting point (top-left corner) */
     /* we need to skip a multiple of 8 pixels horizontally for raw_pixblock alignment
@@ -276,22 +271,16 @@ int lossless_compress_raw_rectangle(
 
     if (verbose >= 2)
     {
+        const char * WR1_SizeFmt = format_memory_size(GetSizeOfMemoryChunk(GetFirstChunkFromSuite(dst_suite)));
         printf("[TTL] %dx%d %dbpp\n", TTL_Args.xRes, TTL_Args.yRes, TTL_Args.SamplePrecision);
-
-        if (TTL_Args.WR1_MemSuite)
-        {
-            const char * WR1_SizeFmt = format_memory_size(GetSizeOfMemoryChunk(GetFirstChunkFromSuite(dst_suite)));
-            printf(" WR1: %x EDMAC#%d<%d> (%x %s)\n",  WR1_Address,  TTL_Args.WR1_Channel, TTL_Args.WR1_Connection, TTL_Args.WR1_MemSuite, WR1_SizeFmt);
-        }
-
+        printf(" WR1: %x EDMAC#%d<%d> (%x %s)\n",  WR1_Address,  TTL_Args.WR1_Channel, TTL_Args.WR1_Connection, TTL_Args.WR1_MemSuite, WR1_SizeFmt);
         printf(" WR2: %x EDMAC#%d<%d>\n", TTL_Args.WR2_Address,  TTL_Args.WR2_Channel, TTL_Args.WR2_Connection);
         printf(" RD1: %x EDMAC#%d<%d>\n", TTL_Args.RD1_Address,  TTL_Args.RD1_Channel, TTL_Args.RD1_Connection);
         printf(" RD2: %x EDMAC#%d<%d>\n", TTL_Args.RD2_Address,  TTL_Args.RD1_Channel, TTL_Args.RD2_Connection);
     }
 
     /* register our CBR, to be called when finished */
-    /* 0=RD1, 1=RD2, 4=WR1 (Pop), 5 = WR2 */
-    TTL_RegisterCBR(0, LosslessCompleteCBR, 0);
+    TTL_RegisterCBR(4, LosslessCompleteCBR, 0);
     
     /* this changes a few registers that appear to be bit fields */
     TTL_SetFlags(0x10000);
