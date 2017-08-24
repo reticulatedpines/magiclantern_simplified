@@ -105,6 +105,7 @@ ML_OBJS-y += \
 	version.o
 
 ML_SRC_OBJS = \
+	backtrace.o \
 	$(ML_BOOT_HACK_OBJ) \
 	fio-ml.o \
 	mem.o \
@@ -247,6 +248,29 @@ clean::
 $(TOP_DIR)/tcc/libtccx.o: FORCE
 	+$(MAKE) -C $(TOP_DIR)/tcc
 
+# backtrace.[ch] are shared with QEMU
+# the install script will copy them from src/
+# but I'd still like to edit them from one place and have the changes both in QEMU and ML
+# symlinks caused issues on Windows and apparently also on Mac (?!) so let's avoid them for now
+
+# where QEMU is installed (for emulating ML)
+QEMU_INSTALLED_DBI_DIR=$(TOP_DIR)/../qemu/qemu-2.5.0/hw/eos/dbi
+
+ifneq ("$(wildcard $(QEMU_INSTALLED_DBI_DIR)/backtrace.c)","")
+
+# copy backtrace.[ch] from QEMU (outside ML dir) if they were edited there
+# optional dependency, only if QEMU is installed "near" ML dir (the install script does that)
+# https://stackoverflow.com/questions/5553352/how-do-i-check-if-file-exists-in-makefile
+$(SRC_DIR)/backtrace.c $(SRC_DIR)/backtrace.h:: $(SRC_DIR)/backtrace.%: $(QEMU_INSTALLED_DBI_DIR)/backtrace.%
+	$(call build,CP,$(CP) $^ $@)
+
+# make sure we have the latest header when compiling after "make clean"
+# normally, *.h are added as dependencies of *.o in the *.d (make)files
+# but after "make clean" we don't have them
+$(SRC_DIR)/backtrace.c:: $(SRC_DIR)/backtrace.h
+
+endif
+
 # Extract the stdio files that we need
 DIET_OBJ = \
 	strrchr.o \
@@ -262,6 +286,7 @@ DIET_OBJ = \
 	strtol.o \
 	strtoul.o \
 	strchr.o \
+	strstr.o \
 	memcmp.o \
 	memmove.o \
 	atoi.o \
@@ -324,7 +349,7 @@ $(PLATFORM_DIR)/version.bin: FORCE
 	@echo '' >> $@
 	@echo '' >> $@
 
-print_build_info: FORCE
+print_build_info: FORCE magiclantern
 	@$(READELF) -l magiclantern | $(GREP) -C 2 MemSiz
 	@echo
 	@(cat $(TOP_DIR)/Makefile.user 2>/dev/null) | grep -E "^ *(CONFIG_|[A-Z0-9_]*VERSION)" || true

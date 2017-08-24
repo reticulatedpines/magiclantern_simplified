@@ -146,6 +146,7 @@ NSTUB(0xFF2C5D1C,  ShootOlcApp_handler)
 // NSTUB(    ???,  ReverseDisplay)                          /* present on 60D.111, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
 
 /** EDMAC **/
+NSTUB(0xFF18FCC0,  AbortEDmac)
 NSTUB(0xFF18FB90,  ConnectReadEDmac)
 NSTUB(0xFF18FB68,  ConnectWriteEDmac)
 NSTUB(0xFF18FD88,  RegisterEDmacAbortCBR)
@@ -307,7 +308,6 @@ NSTUB(    0x49B4,  pfAfComplete_counter)
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
 
 /** Unused stubs or porting notes **/
-///NSTUB([idk], AbortEDmac)
 ///NSTUB(0xFF2C92BC,  ChangeColorPalette)
 ///NSTUB(0xFF26896C,  CreateDialogBox)
 ///NSTUB(0xFF2683F4,  DeleteDialogBox)

@@ -142,6 +142,7 @@ NSTUB(0xFF41DDE0,  StopPlayProtectGuideApp)
 // NSTUB(    ???,  ReverseDisplay)                          /* present on 60D.111, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
 
 /** EDMAC **/
+NSTUB(0xFF8D48CC,  AbortEDmac)
 NSTUB(0xFF1F54DC,  ConnectReadEDmac)
 NSTUB(0xFF1F5418,  ConnectWriteEDmac)
 NSTUB(0xFF1F5878,  RegisterEDmacAbortCBR)
@@ -303,7 +304,6 @@ NSTUB(    0x6098,  pfAfComplete_counter)
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
 
 /** Unused stubs or porting notes **/
-///NSTUB([idk], AbortEDmac)
 ///NSTUB(0xFF06EDD0,  AsyncEnableImagePhysicalScreenParameter)
 ///NSTUB(0xFF2FFD3C,  CreateDialogBox)
 ///NSTUB(0xFF2FF7C4,  DeleteDialogBox)
