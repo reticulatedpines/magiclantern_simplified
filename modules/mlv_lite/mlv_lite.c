@@ -2116,6 +2116,179 @@ int choose_next_capture_slot()
     return best_index;
 }
 
+static void shrink_slot(int slot_index, int new_frame_size)
+{
+    uint32_t old_int = cli();
+
+    int i = slot_index;
+
+    /* round to 512 multiples for file write speed - see frame_size_padded */
+    int new_size = (VIDF_HDR_SIZE + new_frame_size + 4 + 511) & ~511;
+    int old_size = slots[i].size;
+    int dif_size = old_size - new_size;
+    ASSERT(dif_size >= 0);
+
+    //printf("Shrink slot %d from %d to %d.\n", i, old_size, new_size);
+    
+    if (dif_size ==  0)
+    {
+        /* nothing to do */
+        return;
+    }
+
+    slots[i].size = new_size;
+    slots[i].payload_size = new_frame_size;
+    ((mlv_vidf_hdr_t*)slots[i].ptr)->blockSize
+        = slots[i].size;
+
+    int linked =
+        (i+1 < total_slot_count) &&
+        (slots[i+1].status == SLOT_FREE || slots[i+1].status == SLOT_RESERVED) &&
+        (slots[i+1].ptr == slots[i].ptr + old_size);
+
+    if (linked)
+    {
+        /* adjust the next slot from the same chunk (increase its size) */
+        slots[i+1].ptr  -= dif_size;
+        slots[i+1].size += dif_size;
+        
+        /* if it's big enough, mark it as available */
+        if (slots[i+1].size >= max_frame_size)
+        {
+            if (slots[i+1].status == SLOT_RESERVED)
+            {
+                //printf("Slot %d becomes available (%d >= %d).\n", i, slots[i+1].size, max_frame_size);
+                slots[i+1].status = SLOT_FREE;
+                valid_slot_count++;
+            }
+            else
+            {
+                /* existing free slots will get shifted, without changing their size */
+                ASSERT(slots[i+1].size - dif_size == max_frame_size);
+                ASSERT(slots[i+1].status == SLOT_FREE);
+            }
+            shrink_slot(i+1, max_frame_size - VIDF_HDR_SIZE - 4);
+            ASSERT(slots[i+1].size == max_frame_size);
+        }
+    }
+
+    sei(old_int);
+}
+
+static void free_slot(int slot_index)
+{
+    int i = slot_index;
+
+    slots[i].status = SLOT_RESERVED;
+    valid_slot_count--;
+
+    if (slots[i].size == max_frame_size)
+    {
+        slots[i].status = SLOT_FREE;
+        valid_slot_count++;
+        return;
+    }
+
+    ASSERT(slots[i].size < max_frame_size);
+
+    /* re-allocate all reserved slots from this chunk to full frames */
+    /* the remaining reserved slots will be moved at the end */
+
+    /* this is called from both vsync and raw_rec_task */
+    uint32_t old_int = cli();
+
+    /* find first slot from this chunk */
+    while ((i-1 >= 0) &&
+           (slots[i-1].status == SLOT_FREE || slots[i-1].status == SLOT_RESERVED) &&
+           (slots[i].ptr == slots[i-1].ptr + slots[i-1].size))
+    {
+        i--;
+    }
+    int start = i;
+
+    /* find last slot from this chunk */
+    i = slot_index;
+    while ((i+1 < total_slot_count) &&
+           (slots[i+1].status == SLOT_FREE || slots[i+1].status == SLOT_RESERVED) &&
+           (slots[i+1].ptr == slots[i].ptr + slots[i].size))
+    {
+        i++;
+    }
+    int end = i;
+
+    //printf("Reallocating slots %d...%d.\n", start, end);
+    void * start_ptr = slots[start].ptr;
+    void * end_ptr = slots[end].ptr + slots[end].size;
+    void * ptr = start_ptr;
+    for (i = start; i <= end; i++)
+    {
+        slots[i].ptr = ptr;
+        
+        if (slots[i].status == SLOT_FREE)
+        {
+            valid_slot_count--;
+        }
+
+        if (ptr + max_frame_size <= end_ptr)
+        {
+            slots[i].status = SLOT_FREE;
+            slots[i].size = max_frame_size;
+            valid_slot_count++;
+        }
+        else
+        {
+            /* first reserved slot will have non-zero size */
+            /* all others 0 */
+            slots[i].status = SLOT_RESERVED;
+            slots[i].size = end_ptr - ptr;
+            ASSERT(slots[i].size < max_frame_size);
+        }
+        ptr += slots[i].size;
+    }
+
+    sei(old_int);
+}
+
+static REQUIRES(LiveViewTask)
+void FAST pre_record_discard_frame()
+static REQUIRES(LiveViewTask)
+void FAST pre_record_queue_frames()
+{
+    /* queue all captured frames for writing */
+    /* (they are numbered from 1 to frame_count-1; frame 0 is skipped) */
+    /* they are not ordered, which complicates things a bit */
+    printf("Pre-rec: queueing frames %d to %d.\n", pre_record_first_frame, frame_count-1);
+
+    int i = 0;
+    for (int current_frame = pre_record_first_frame; current_frame < frame_count; current_frame++)
+    {
+        /* consecutive frames tend to be grouped, 
+         * so this loop will not run every time */
+        while (slots[i].status != SLOT_FULL || slots[i].frame_number != current_frame)
+        {
+            INC_MOD(i, total_slot_count);
+        }
+        
+        writing_queue[writing_queue_tail] = i;
+        INC_MOD(writing_queue_tail, COUNT(writing_queue));
+        INC_MOD(i, total_slot_count);
+    }
+}
+
+static REQUIRES(LiveViewTask)
+void pre_record_discard_frame_if_no_free_slots()
+{
+    for (int i = 0; i < total_slot_count; i++)
+    {
+        if (slots[i].status == SLOT_FREE)
+        {
+            return;
+        }
+    }
+
+    pre_record_discard_frame();
+}
+
 static REQUIRES(LiveViewTask)
 void pre_record_vsync_step()
 {
@@ -2848,31 +3021,25 @@ void init_vsync_vars()
     fullsize_buffer_pos = 0;
     buffer_full = 0;
     edmac_active = 0;
+    skipped_frames = 0;
 }
 
 static REQUIRES(RawRecTask)
-static void raw_video_rec_task()
+void raw_video_rec_task()
 {
     //~ console_show();
     /* init stuff */
 
     /* make sure preview or raw updates are not running */
     /* (they won't start in RAW_PREPARING, but we might catch them running) */
-    take_semaphore(settings_sem, 0);
+    take_semaphore(ra_preview_lock, 0);
     raw_recording_state = RAW_PREPARING;
-    give_semaphore(settings_sem);
+    give_semaphore(raw_preview_lock);
 
-    mlv_rec_call_cbr(MLV_REC_EVENT_PREPARING, NULL);
-    /* locals */
-    FILE* f = 0;
-    int last_block_size = 0; /* for detecting early stops */
-    int liveview_hacked = 0;
-    int last_write_timestamp = 0;    /* last FIO_WriteFile call */
-
-    /* globals - updated by vsync hook */
     NO_THREAD_SAFETY_CALL(init_vsync_vars)();
 
-    /* globals - updated by RawRecTask or shared */
+    total_slot_count = 0;
+    valid_slot_count = 0;
     chunk_frame_count = 0;
     written_total = 0; /* in bytes */
     writing_time = 0;
