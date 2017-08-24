@@ -909,7 +909,10 @@ static void setup_bit_depth_digital_gain()
     }
 }
 
-static void measure_compression_ratio()
+/* this will not run while raw_rec_task is active
+ * so we'll take its role to silence out some warnings */
+static REQUIRES(RawRecTask)
+void measure_compression_ratio()
 {
     ASSERT(RAW_IS_IDLE);
 
@@ -974,7 +977,7 @@ static void refresh_raw_settings(int force)
             /* update compression ratio once every 2 seconds */
             if (OUTPUT_COMPRESSION && compress_mq && should_run_polling_action(2000, &aux2))
             {
-                measure_compression_ratio();
+                NO_THREAD_SAFETY_CALL(measure_compression_ratio)();
             }
         }
     }
