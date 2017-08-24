@@ -2883,9 +2883,8 @@ static int write_mlv_chunk_headers(FILE* f)
     return padded_size;
 }
 
-static int file_size_limit = 0;         /* have we run into the 4GB limit? */
-static int last_write_timestamp = 0;    /* last FIO_WriteFile call */
-static int mlv_chunk = 0;               /* MLV chunk index from header */
+static GUARDED_BY(RawRecTask) int file_size_limit = 0;         /* have we run into the 4GB limit? */
+static GUARDED_BY(RawRecTask) int mlv_chunk = 0;               /* MLV chunk index from header */
 
 /* update the frame count and close the chunk */
 static REQUIRES(RawRecTask)
@@ -3038,8 +3037,16 @@ void raw_video_rec_task()
     raw_recording_state = RAW_PREPARING;
     give_semaphore(raw_preview_lock);
 
+    /* locals */
+    FILE* f = 0;
+    int last_block_size = 0; /* for detecting early stops */
+    int liveview_hacked = 0;
+    int last_write_timestamp = 0;    /* last FIO_WriteFile call */
+
+    /* globals - updated by vsync hook */
     NO_THREAD_SAFETY_CALL(init_vsync_vars)();
 
+    /* globals - updated by RawRecTask or shared */
     total_slot_count = 0;
     valid_slot_count = 0;
     chunk_frame_count = 0;
