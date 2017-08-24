@@ -314,6 +314,9 @@ $(SRC_DIR)/backtrace.c $(SRC_DIR)/backtrace.h:: $(SRC_DIR)/backtrace.%: $(QEMU_I
 # but after "make clean" we don't have them
 $(SRC_DIR)/backtrace.c:: $(SRC_DIR)/backtrace.h
 
+# fixme: why?
+backtrace.t: backtrace.i
+
 endif
 
 # Extract the stdio files that we need
