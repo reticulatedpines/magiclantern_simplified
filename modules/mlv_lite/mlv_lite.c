@@ -341,7 +341,7 @@ static struct msg_queue * compress_mq = 0;
 static GUARDED_BY(LiveViewTask) int frame_count = 0;                /* how many frames we have processed */
 static GUARDED_BY(LiveViewTask) int skipped_frames = 0;             /* how many frames we had to drop (only done during pre-recording) */
 static GUARDED_BY(RawRecTask)   int chunk_frame_count = 0;          /* how many frames in the current file chunk */
-static GUARDED_BY(LiveViewTask) int buffer_full = 0;                /* true when the memory becomes full */
+static volatile                 int buffer_full = 0;                /* true when the memory becomes full */
        GUARDED_BY(RawRecTask)   char * raw_movie_filename = 0;      /* file name for current (or last) movie */
 static GUARDED_BY(RawRecTask)   char * chunk_filename = 0;          /* file name for current movie chunk */
 static GUARDED_BY(RawRecTask)   int64_t written_total = 0;          /* how many bytes we have written in this movie */
@@ -3022,7 +3022,6 @@ void init_vsync_vars()
     frame_count = 0;
     capture_slot = -1;
     fullsize_buffer_pos = 0;
-    buffer_full = 0;
     edmac_active = 0;
     skipped_frames = 0;
 }
@@ -3048,6 +3047,7 @@ void raw_video_rec_task()
     writing_time = 0;
     idle_time = 0;
     mlv_chunk = 0;
+    buffer_full = 0;
 
     if (lv_dispsize == 10)
     {
