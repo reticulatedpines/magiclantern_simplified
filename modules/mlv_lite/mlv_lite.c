@@ -1673,7 +1673,8 @@ static void panning_update()
     update_cropping_offsets();
 }
 
-static void raw_video_enable()
+static REQUIRES(ShootTask)
+void raw_video_enable()
 {
     /* toggle the lv_save_raw flag from raw.c */
     raw_lv_request();
@@ -1681,12 +1682,14 @@ static void raw_video_enable()
     msleep(50);
 }
 
-static void raw_video_disable()
+static REQUIRES(ShootTask)
+void raw_video_disable()
 {
     raw_lv_release();
 }
 
-static void raw_lv_request_update()
+static REQUIRES(ShootTask)
+void raw_lv_request_update()
 {
     static int raw_lv_requested = 0;
 
@@ -1814,7 +1817,8 @@ static LVINFO_UPDATE_FUNC(recording_status)
 }
 
 /* Display the 'Recording...' icon and status */
-static void show_recording_status()
+static REQUIRES(ShootTask)
+void show_recording_status()
 {
     static int auxrec = INT_MIN;
     int redraw_interval = (show_graph == 2) ? 50 : 1000;
@@ -1898,7 +1902,8 @@ static void show_recording_status()
     }
 }
 
-static unsigned int raw_rec_polling_cbr(unsigned int unused)
+static REQUIRES(ShootTask)
+unsigned int raw_rec_polling_cbr(unsigned int unused)
 {
     if (!compress_mq) return 0;
 
@@ -1924,7 +1929,8 @@ static unsigned int raw_rec_polling_cbr(unsigned int unused)
 
 static void unhack_liveview_vsync(int unused);
 
-static void FAST hack_liveview_vsync()
+static REQUIRES(LiveViewTask)
+void FAST hack_liveview_vsync()
 {
     if (cam_5d2 || cam_50d)
     {
@@ -1983,7 +1989,8 @@ static void FAST hack_liveview_vsync()
      * so undoing this hack is no longer needed */
 }
 
-static void hack_liveview(int unhack)
+static REQUIRES(RawRecTask)
+void hack_liveview(int unhack)
 {
     if (small_hacks)
     {
@@ -2853,7 +2860,8 @@ void init_mlv_chunk_headers(struct raw_info * raw_info)
     vidf_hdr.frameSpace = VIDF_HDR_SIZE - sizeof(mlv_vidf_hdr_t);
 }
 
-static int write_mlv_chunk_headers(FILE* f)
+static REQUIRES(RawRecTask)
+int write_mlv_chunk_headers(FILE* f)
 {
     if (!mlv_write_hdr(f, (mlv_hdr_t *)&file_hdr)) return 0;
     if (!mlv_write_hdr(f, (mlv_hdr_t *)&rawi_hdr)) return 0;
@@ -3566,7 +3574,8 @@ cleanup:
     raw_recording_state = RAW_IDLE;
 }
 
-static void raw_start_stop()
+static REQUIRES(GuiMainTask)
+void raw_start_stop()
 {
     if (!RAW_IS_IDLE)
     {
@@ -3769,7 +3778,8 @@ static struct menu_entry raw_video_menu[] =
 };
 
 
-static unsigned int raw_rec_keypress_cbr(unsigned int key)
+static REQUIRES(GuiMainTask)
+unsigned int raw_rec_keypress_cbr(unsigned int key)
 {
     if (!raw_video_enabled)
         return 1;
