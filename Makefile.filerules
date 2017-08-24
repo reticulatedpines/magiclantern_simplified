@@ -42,13 +42,19 @@ endif
 %.o: $(SRC_DIR)/%.S
 	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
 
+ifeq ($(STRICT),y)
+CLANG_FILTER=cat
+else
+CLANG_FILTER=grep -v "reading variable"
+endif
+
 # fake target: check thread safety with clang
 # ignore read warnings for now (assume one writer and multiple readers are fine)
 %.t: %.i
 	$(call build,CLANG,clang -fsyntax-only -Wno-everything -Wthread-safety \
 	-target armv5-none-eabi -mcpu=arm946e-s \
 	-fno-caret-diagnostics \
-	 $< 2>&1 >/dev/null | grep -v "reading variable" || true)
+	 $< 2>&1 | $(CLANG_FILTER) || true)
 
 %.s: %.c
 	$(call build,CC -S,$(CC) $(CFLAGS) -S -o $@ $<)
