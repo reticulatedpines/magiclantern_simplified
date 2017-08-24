@@ -28,11 +28,11 @@ ifeq ($(PREPRO),y)
 else
 # classic compilation (.c -> .o)
 %.o: %.c
-	$(call build,CC,$(CC) $(DEPFLAGS_C) $(CFLAGS) -c -o $@ $<)
+	$(call build,CC,$(CC) $(DEPFLAGS_O) $(CFLAGS) -c -o $@ $<)
 %.o: $(PLATFORM_DIR)/%.c
-	$(call build,CC,$(CC) $(DEPFLAGS_C) $(CFLAGS) -c -o $@ $<)
+	$(call build,CC,$(CC) $(DEPFLAGS_O) $(CFLAGS) -c -o $@ $<)
 %.o: $(SRC_DIR)/%.c
-	$(call build,CC,$(CC) $(DEPFLAGS_C) $(CFLAGS) -c -o $@ $<)
+	$(call build,CC,$(CC) $(DEPFLAGS_O) $(CFLAGS) -c -o $@ $<)
 endif
 
 %.o: %.S

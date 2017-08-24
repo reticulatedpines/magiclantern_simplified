@@ -34,15 +34,13 @@ define rm_dir
 	@-$(RM) -rf $1
 endef
 
-DEPFLAGS_C=\
-	-Wp,-MMD,$(patsubst %.c,%.d,$(dir $@)$(notdir $@)) \
-	-Wp,-MT,$@ \
-	-Wp,-MP
+DEPFLAGS_O=\
+	-Wp,-MMD,$(patsubst %.o,%.d,$(dir $@)$(notdir $@)) \
+	-Wp,-MT,$@
 
 DEPFLAGS_I=\
 	-Wp,-MMD,$(patsubst %.i,%.d,$(dir $@)$(notdir $@)) \
-	-Wp,-MT,$@ \
-	-Wp,-MP
+	-Wp,-MT,$@
 
 FLAGS=\
 	-nostdlib \
