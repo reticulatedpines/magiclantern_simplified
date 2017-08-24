@@ -2553,6 +2553,12 @@ static void compress_task()
                 res_x, res_y
             );
 
+            if (compressed_size < 0)
+            {
+                printf("Compression error %d at frame %d\n", compressed_size, frame_count-1);
+                ASSERT(0);
+            }
+
             DeleteMemorySuite(outSuite);
 
             if (slots[slot_index].ptr)
