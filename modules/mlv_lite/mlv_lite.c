@@ -3043,6 +3043,7 @@ void raw_video_rec_task()
     /* (they won't start in RAW_PREPARING, but we might catch them running) */
     take_semaphore(ra_preview_lock, 0);
     raw_recording_state = RAW_PREPARING;
+    NO_THREAD_SAFETY_CALL(init_vsync_vars)();
     give_semaphore(raw_preview_lock);
 
     /* locals */
