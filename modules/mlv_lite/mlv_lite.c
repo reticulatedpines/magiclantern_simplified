@@ -324,8 +324,9 @@ static GUARDED_BY(RawRecTask)   void * fullsize_buffers[2];         /* original 
 static GUARDED_BY(LiveViewTask) int fullsize_buffer_pos = 0;        /* which of the full size buffers (double buffering) is currently in use */
 static GUARDED_BY(RawRecTask)   int chunk_list[32];                 /* list of free memory chunk sizes, used for frame estimations */
 
-static volatile                 struct frame_slot slots[1023];       /* frame slots */
-static GUARDED_BY(RawRecTask)   int slot_count = 0;                 /* how many frame slots we have */
+static volatile                 struct frame_slot slots[1023];      /* frame slots */
+static GUARDED_BY(RawRecTask)   int total_slot_count = 0;           /* how many frame slots we have (including the reserved ones) */
+static GUARDED_BY(IRQ_mutex)    int valid_slot_count = 0;           /* total minus reserved */
 static GUARDED_BY(LiveViewTask) int capture_slot = -1;              /* in what slot are we capturing now (index) */
 static volatile                 int force_new_buffer = 0;           /* if some other task decides it's better to search for a new buffer */
 
@@ -2178,6 +2179,9 @@ static void shrink_slot(int slot_index, int new_frame_size)
 
 static void free_slot(int slot_index)
 {
+    /* this is called from both vsync and raw_rec_task */
+    uint32_t old_int = cli();
+
     int i = slot_index;
 
     slots[i].status = SLOT_RESERVED;
@@ -2187,6 +2191,7 @@ static void free_slot(int slot_index)
     {
         slots[i].status = SLOT_FREE;
         valid_slot_count++;
+        sei(old_int);
         return;
     }
 
@@ -2194,9 +2199,6 @@ static void free_slot(int slot_index)
 
     /* re-allocate all reserved slots from this chunk to full frames */
     /* the remaining reserved slots will be moved at the end */
-
-    /* this is called from both vsync and raw_rec_task */
-    uint32_t old_int = cli();
 
     /* find first slot from this chunk */
     while ((i-1 >= 0) &&
