@@ -75,6 +75,9 @@
 #define NO_THREAD_SAFETY_ANALYSIS \
   THREAD_ANNOTATION_ATTRIBUTE__(no_thread_safety_analysis)
 
+#define NO_THREAD_SAFETY_CALL(func) \
+    ((void NO_THREAD_SAFETY_ANALYSIS (*)())func)
+
 typedef int CAPABILITY("role") ThreadRole;
 #define THREAD_ROLE(role) static __attribute__((unused)) ThreadRole role
 
