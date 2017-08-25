@@ -76,6 +76,7 @@ static int show_edmac = 0;
 #include "timer.h"
 #include "ml-cbr.h"
 #include "../silent/lossless.h"
+#include "ml-cbr.h"
 
 THREAD_ROLE(RawRecTask);            /* our raw recording task */
 THREAD_ROLE(ShootTask);             /* polling CBR */
@@ -2786,11 +2787,18 @@ static char* get_next_chunk_file_name(char* base_name, int chunk)
     return filename;
 }
 
-/* a bit of a hack: this tells the audio backend that we are going to record sound */
-/* => it will show audio meters and disable beeps */
-int mlv_snd_is_enabled()
+/* this tells the audio backend that we are going to record sound */
+static ml_cbr_action h264_proxy_snd_rec_cbr (const char *event, void *data)
 {
-    return use_h264_proxy() && sound_recording_enabled_canon();
+    uint32_t *status = (uint32_t*)data;
+    
+    if (use_h264_proxy() && sound_recording_enabled_canon())
+    {
+        *status = 1;
+        return ML_CBR_STOP;
+    }
+    
+    return ML_CBR_CONTINUE;
 }
 
 static char* get_wav_file_name(char* raw_movie_filename)
@@ -4183,7 +4191,7 @@ MODULE_CBRS_START()
     MODULE_CBR(CBR_KEYPRESS_RAW, raw_rec_keypress_cbr_raw, 0)
     MODULE_CBR(CBR_SHOOT_TASK, raw_rec_polling_cbr, 0)
     MODULE_CBR(CBR_DISPLAY_FILTER, raw_rec_update_preview, 0)
-    MODULE_NAMED_CBR("snd_rec_enabled", raw_rec_snd_rec_cbr)
+    MODULE_NAMED_CBR("snd_rec_enabled", h264_proxy_snd_rec_cbr)
 MODULE_CBRS_END()
 
 MODULE_CONFIGS_START()
