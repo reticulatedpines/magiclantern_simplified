@@ -1152,7 +1152,7 @@ static void auto_ettr_on_request_task_fast()
         float ev = raw_to_ev(raw);
         int x = 360 + delta * 3;
         int y = 100 - ev * 24; /* multiplier must be 8 x the one from delta */
-        dot(x-16, y-16, COLOR_BLUE, 3);
+        draw_circle(x, y, 2, COLOR_BLUE);
         draw_angled_line(360, y0, 300, 1800-450, COLOR_RED);
         draw_angled_line(360, y0, 300, -450, COLOR_RED);
         draw_angled_line(0, 100, 720, 0, COLOR_RED);
