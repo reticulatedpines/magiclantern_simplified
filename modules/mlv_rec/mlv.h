@@ -89,7 +89,7 @@ typedef struct {
     uint64_t    timestamp;    /* hardware counter timestamp for this frame (relative to recording start) */
     uint16_t    xRes;    /* Configured video resolution, may differ from payload resolution */
     uint16_t    yRes;    /* Configured video resolution, may differ from payload resolution */
-    struct raw_info    raw_info;    /* the raw_info structure delivered by raw.c of ML Core */
+    raw_info_t  raw_info;    /* the raw_info structure delivered by raw.c of ML Core */
 }  mlv_rawi_hdr_t;
 
 typedef struct {

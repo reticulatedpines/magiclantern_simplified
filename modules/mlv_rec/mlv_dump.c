@@ -3300,8 +3300,31 @@ read_headers:
                         {
                             struct raw_info raw_info;
 
-                            raw_info = lv_rec_footer.raw_info;
-                            raw_info.frame_size = frame_buffer_size;
+                            int frame_filename_len = strlen(output_filename) + 32;
+                            char *frame_filename = malloc(frame_filename_len);
+                            snprintf(frame_filename, frame_filename_len, "%s%06d.dng", output_filename, block_hdr.frameNumber);
+
+                            lua_handle_hdr_data(lua_state, buf.blockType, "_data_write_dng", &block_hdr, sizeof(block_hdr), frame_buffer, frame_size);
+
+                            raw_info.api_version = lv_rec_footer.raw_info.api_version;
+                            raw_info.height = lv_rec_footer.raw_info.height;
+                            raw_info.width = lv_rec_footer.raw_info.width;
+                            raw_info.pitch = lv_rec_footer.raw_info.pitch;
+                            raw_info.bits_per_pixel = lv_rec_footer.raw_info.bits_per_pixel;
+                            raw_info.black_level = lv_rec_footer.raw_info.black_level;
+                            raw_info.white_level = lv_rec_footer.raw_info.white_level;
+                            raw_info.jpeg.x = lv_rec_footer.raw_info.jpeg.x;
+                            raw_info.jpeg.y = lv_rec_footer.raw_info.jpeg.y;
+                            raw_info.jpeg.width = lv_rec_footer.raw_info.jpeg.width;
+                            raw_info.jpeg.height = lv_rec_footer.raw_info.jpeg.height;
+                            raw_info.exposure_bias[0] = lv_rec_footer.raw_info.exposure_bias[0];
+                            raw_info.exposure_bias[1] = lv_rec_footer.raw_info.exposure_bias[1];
+                            raw_info.cfa_pattern = lv_rec_footer.raw_info.cfa_pattern;
+                            raw_info.calibration_illuminant1 = lv_rec_footer.raw_info.calibration_illuminant1;
+                            memcpy(raw_info.color_matrix1, lv_rec_footer.raw_info.color_matrix1, sizeof(raw_info.color_matrix1));
+                            memcpy(raw_info.dng_active_area, lv_rec_footer.raw_info.dng_active_area, sizeof(raw_info.dng_active_area));
+                            raw_info.dynamic_range = lv_rec_footer.raw_info.dynamic_range;
+                            raw_info.frame_size = frame_size;
                             raw_info.buffer = frame_buffer;
                             
                             /* patch raw info if black and/or white fix specified or bit depth changed */
