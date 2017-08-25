@@ -688,6 +688,8 @@ void gui_uilock(int what)
     prop_request_change_wait(PROP_ICU_UILOCK, &what, 4, 2000);
 
     printf("UILock: %08x -> %08x => %08x %s\n", old, what, icu_uilock, (icu_uilock & 0xFFFF) != (what & 0xFFFF) ? "(!!!)" : "");
+
+    printf("UILock: %08x -> %08x => %08x %s\n", old, what, icu_uilock, (icu_uilock & 0xFFFF) != (what & 0xFFFF) ? "(!!!)" : "");
 }
 
 void fake_simple_button(int bgmt_code)
