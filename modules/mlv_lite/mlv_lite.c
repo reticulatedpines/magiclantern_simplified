@@ -275,6 +275,8 @@ static GUARDED_BY(settings_sem) int max_res_y = 0;
 static GUARDED_BY(settings_sem) float squeeze_factor = 0;
 static GUARDED_BY(settings_sem) int max_frame_size = 0;
 static GUARDED_BY(settings_sem) int frame_size_uncompressed = 0;
+static GUARDED_BY(settings_sem) int configured_max_frame_size = 0;
+static GUARDED_BY(settings_sem) int configured_fullres_buf_size = 0;
 
 static GUARDED_BY(LiveViewTask) int skip_x = 0;
 static GUARDED_BY(LiveViewTask) int skip_y = 0;
@@ -319,16 +321,15 @@ struct frame_slot
     } status;
 };
 
-static GUARDED_BY(RawRecTask)   struct memSuite * shoot_mem_suite = 0;  /* memory suite for our buffers */
-static GUARDED_BY(RawRecTask)   struct memSuite * srm_mem_suite = 0;
+static GUARDED_BY(settings_sem) struct memSuite * shoot_mem_suite = 0;  /* memory suite for our buffers */
+static GUARDED_BY(settings_sem) struct memSuite * srm_mem_suite = 0;
 
-static GUARDED_BY(RawRecTask)   void * fullsize_buffers[2];         /* original image, before cropping, double-buffered */
+static GUARDED_BY(settings_sem) void * fullsize_buffers[2];         /* original image, before cropping, double-buffered */
 static GUARDED_BY(LiveViewTask) int fullsize_buffer_pos = 0;        /* which of the full size buffers (double buffering) is currently in use */
-static GUARDED_BY(RawRecTask)   int chunk_list[32];                 /* list of free memory chunk sizes, used for frame estimations */
 
 static volatile                 struct frame_slot slots[1023];      /* frame slots */
-static GUARDED_BY(RawRecTask)   int total_slot_count = 0;           /* how many frame slots we have (including the reserved ones) */
-static GUARDED_BY(IRQ_mutex)    int valid_slot_count = 0;           /* total minus reserved */
+static GUARDED_BY(settings_sem) int total_slot_count = 0;           /* how many frame slots we have (including the reserved ones) */
+static GUARDED_BY(settings_sem) int valid_slot_count = 0;           /* total minus reserved */
 static GUARDED_BY(LiveViewTask) int capture_slot = -1;              /* in what slot are we capturing now (index) */
 static volatile                 int force_new_buffer = 0;           /* if some other task decides it's better to search for a new buffer */
 
@@ -644,7 +645,6 @@ void update_cropping_offsets()
     }
 }
 
-/* fixme: must be thread-safe */
 static REQUIRES(settings_sem)
 void update_resolution_params()
 {
@@ -751,14 +751,6 @@ static char* guess_aspect_ratio(int res_x, int res_y)
     return msg;
 }
 
-static int estimate_available_slots()
-{
-    int available_slots = 0;
-    for (int i = 0; i < COUNT(chunk_list); i++)
-        available_slots += chunk_list[i] / frame_size;
-    return available_slots;
-}
-
 static int count_free_slots()
 {
     int free_slots = 0;
@@ -821,18 +813,14 @@ static int predict_frames(int write_speed, int available_slots)
 static char* guess_how_many_frames()
 {
     if (!measured_write_speed) return "";
-    if (!chunk_list[0]) return "";
 
     /* assume some variation around the measured value */
     int write_speed    = measured_write_speed * 1024 / 100 * 1024;
     int write_speed_lo = measured_write_speed * 1024 / 100 * 1024 / 100 * 95;
     int write_speed_hi = measured_write_speed * 1024 / 100 * 1024 / 100 * 105;
 
-    /* we have some overhead, not sure how to model it */
-    int avail_slots = MAX(estimate_available_slots() - 3, 2);
-
-    int f_lo = predict_frames(write_speed_lo / 100 * 97, avail_slots);
-    int f_hi = predict_frames(write_speed_hi / 100 * 97, avail_slots);
+    int f_lo = predict_frames(write_speed_lo / 100 * 97, valid_slot_count);
+    int f_hi = predict_frames(write_speed_hi / 100 * 97, valid_slot_count);
     
     static char msg[50];
     if (f_lo < 5000)
@@ -872,8 +860,10 @@ static MENU_UPDATE_FUNC(write_speed_update)
             get_estimated_compression_ratio(), 0
         );
         MENU_SET_WARNING(ok ? MENU_WARN_INFO : MENU_WARN_ADVICE, 
-            "%d.%d MB/s at %d.%03dp%s. %s",
-            speed/10, speed%10, fps/1000, fps%1000,
+            "%d.%d MB/s, %dx%s, %d.%03dp%s. %s",
+            speed/10, speed%10,
+            valid_slot_count, format_memory_size(max_frame_size),
+            fps/1000, fps%1000,
             compress, guess_how_many_frames()
         );
     }
@@ -914,21 +904,23 @@ static void setup_bit_depth_digital_gain()
     }
 }
 
-/* this will not run while raw_rec_task is active
- * so we'll take its role to silence out some warnings */
-static REQUIRES(RawRecTask)
-void measure_compression_ratio()
+static void measure_compression_ratio()
 {
     ASSERT(RAW_IS_IDLE);
 
     /* compress the current frame to estimate the ratio */
-    /* set up a dummy slot configuration */
-    slots[0].ptr = 0;   /* do not save output */
-    slots[0].size = max_frame_size;
+    /* assume we have at least one valid slot */
+    /* note: we have the shooting memory pre-allocated while idle */
+    if (valid_slot_count == 0)
+    {
+        /* no valid buffers yet? */
+        return;
+    }
+    
+    ASSERT(slots[0].ptr);
+    ASSERT(fullsize_buffers[0]);
+
     slots[0].status = SLOT_CAPTURING;
-    total_slot_count = 1;
-    ASSERT(fullsize_buffers[1] == 0);
-    fullsize_buffers[1] = raw_info.buffer;
 
     msg_queue_post(compress_mq, INT_MAX);
     msg_queue_post(compress_mq, 1 << 16);
@@ -941,11 +933,9 @@ void measure_compression_ratio()
     }
 
     ASSERT(measured_compression_ratio);
-    fullsize_buffers[1] = 0;
 }
 
 static int setup_buffers();
-static void free_buffers();
 
 static EXCLUDES(settings_sem)
 void refresh_raw_settings(int force)
@@ -969,21 +959,13 @@ void refresh_raw_settings(int force)
         if (raw_update_params())
         {
             update_resolution_params();
-
+            setup_buffers();
             setup_bit_depth_digital_gain();
-
-            if (chunk_list[0] == 0)
-            {
-                /* do a dummy allocation at startup, to see what memory we have available */
-                setup_buffers();
-                ASSERT(chunk_list[0]);
-                free_buffers();
-            }
 
             /* update compression ratio once every 2 seconds */
             if (OUTPUT_COMPRESSION && compress_mq && should_run_polling_action(2000, &aux2))
             {
-                NO_THREAD_SAFETY_CALL(measure_compression_ratio)();
+                measure_compression_ratio();
             }
         }
     }
@@ -1221,7 +1203,7 @@ static MENU_UPDATE_FUNC(pre_recording_update)
         pre_record, pre_record == 1 ? "" : "s"
     );
 
-    int slot_count = estimate_available_slots();
+    int slot_count = valid_slot_count;
     if (slot_count)
     {
         int max_frames = pre_record_calc_max_frames(slot_count);
@@ -1366,8 +1348,8 @@ static void add_reserved_slots(void * ptr, int n)
     }
 }
 
-static REQUIRES(RawRecTask)
-static int add_mem_suite(struct memSuite * mem_suite, int chunk_index, int fullres_buf_size)
+static REQUIRES(settings_sem)
+int add_mem_suite(struct memSuite * mem_suite, int chunk_index, int max_frame_size, int fullres_buf_size)
 {
     if(mem_suite)
     {
@@ -1391,19 +1373,6 @@ static int add_mem_suite(struct memSuite * mem_suite, int chunk_index, int fullr
                 ptr += fullres_buf_size;
                 size -= fullres_buf_size;
                 printf("%x: %s after full-res buffer.\n", ptr, format_memory_size(size));
-            }
-
-            /* write it down for future frame predictions */
-            if (chunk_index < COUNT(chunk_list) && size > 64)
-            {
-                chunk_list[chunk_index] = size - 64;
-                /*
-                printf("chunk #%d: size=%x (%x)\n",
-                    chunk_index+1, chunk_list[chunk_index],
-                    format_memory_size(chunk_list[chunk_index])
-                );
-                */
-                chunk_index++;
             }
 
             /* align pointer at 64 bytes */
@@ -1457,11 +1426,60 @@ static int add_mem_suite(struct memSuite * mem_suite, int chunk_index, int fullr
     return chunk_index;
 }
 
-static REQUIRES(RawRecTask)
+static REQUIRES(settings_sem)
+void free_buffers()
+{
+    /* invalidate current buffers */
+    configured_max_frame_size = 0;
+    configured_fullres_buf_size = 0;
+    total_slot_count = 0;
+    valid_slot_count = 0;
+
+    /* this buffer is allocated from one of the suites -> nothing to do */
+    fullsize_buffers[0] = 0;
+
+    if (fullsize_buffers[1] && raw_info.buffer)
+    {
+        ASSERT(fullsize_buffers[1] == UNCACHEABLE(raw_info.buffer));
+    }
+    fullsize_buffers[1] = 0;
+
+    if (shoot_mem_suite)
+    {
+        shoot_free_suite(shoot_mem_suite);
+        shoot_mem_suite = 0;
+    }
+    if (srm_mem_suite)
+    {
+        srm_free_suite(srm_mem_suite);
+        srm_mem_suite = 0;
+    }
+}
+
+static REQUIRES(settings_sem)
+void realloc_buffers()
+{
+    /* reallocate all memory from Canon */
+    info_led_on();
+    free_buffers();
+
+    /* allocate the entire memory, but only use large chunks */
+    /* yes, this may be a bit wasteful, but at least it works */
+    /* note: full memory allocation is very slow (1-2 seconds) */
+    shoot_mem_suite = shoot_malloc_suite(0);
+    srm_mem_suite = use_srm_memory ? srm_malloc_suite(0) : 0;
+    info_led_off();
+
+    printf("Shoot memory: %s\n", shoot_mem_suite ? format_memory_size(shoot_mem_suite->size) : "N/A");
+    printf("SRM memory: %s\n", srm_mem_suite ? format_memory_size(srm_mem_suite->size) : "N/A");
+}
+
+/* internal memory management - allocate frame slots and fullsize raw buffers
+ * from memory suites already allocated from Canon with realloc_buffers
+ * this routine is fast and will get called every time we refresh the raw parameters */
+static REQUIRES(settings_sem)
 int setup_buffers()
 {
-    ASSERT(fullsize_buffers[0] == 0);
-
     /* allocate memory for double buffering */
     /* (we need a single large contiguous chunk) */
 
@@ -1471,34 +1489,30 @@ int setup_buffers()
      */
     int fullres_buf_size = raw_info.width * (raw_info.height + 2) * BPP/8;
 
+    if (configured_max_frame_size == max_frame_size &&
+        configured_fullres_buf_size == fullres_buf_size)
+    {
+        /* current configuration still valid, nothing to do */
+        return 2;
+    }
+
+    if (!shoot_mem_suite && !srm_mem_suite)
+    {
+        printf("No memory suites.\n");
+        return 0;
+    }
+
+    printf("Setting up buffers (frame size %s, ", format_memory_size(max_frame_size));
+    printf("fullres size %s)\n", format_memory_size(fullres_buf_size));
+
+    /* discard old full-size buffers */
+    fullsize_buffers[0] = fullsize_buffers[1] = 0;
+
     if (fullres_buf_size > 20 * 1024 * 1024 - 1024 && !OUTPUT_COMPRESSION)
     {
         /* large buffers? assume single-buffering is safe for uncompressed output */
         printf("Using single buffering (check with Show EDMAC).\n");
         fullsize_buffers[0] = UNCACHEABLE(raw_info.buffer);
-    }
-
-#if 0
-    else
-    {
-        /* fixme: using fio_malloc with large buffers
-         * prevents the use of srm_malloc_suite */
-        printf("Using double buffering (%s).\n", format_memory_size(fullres_buf_size));
-        fullsize_buffers[0] = fio_malloc(fullres_buf_size);
-    }
-#endif
-
-    /* allocate the entire memory, but only use large chunks */
-    /* yes, this may be a bit wasteful, but at least it works */
-    
-    memset(chunk_list, 0, sizeof(chunk_list));
-    
-    shoot_mem_suite = shoot_malloc_suite(0);
-    srm_mem_suite = use_srm_memory ? srm_malloc_suite(0) : 0;
-    
-    if (!shoot_mem_suite && !srm_mem_suite)
-    {
-        return 0;
     }
 
     /* allocate a full-size buffer, if we haven't one already */
@@ -1530,12 +1544,16 @@ int setup_buffers()
         return 0;
     }
 
-    int chunk_index = 0;
-    chunk_index = add_mem_suite(shoot_mem_suite, chunk_index, fullres_buf_size);
-    printf("%d slots from shoot_malloc.\n", valid_slot_count);
-    chunk_index = add_mem_suite(srm_mem_suite, chunk_index, fullres_buf_size);
+    /* allocate frame slots from the two memory suites */
+    total_slot_count = 0;
+    valid_slot_count = 0;
 
-    if (srm_mem_suite)
+    int chunk_index = 0;
+    chunk_index = add_mem_suite(shoot_mem_suite, chunk_index, max_frame_size, fullres_buf_size);
+    printf("%d slots from shoot_malloc.\n", valid_slot_count);
+    chunk_index = add_mem_suite(srm_mem_suite, chunk_index, max_frame_size, fullres_buf_size);
+
+    if (0)
     {
         /* keeping SRM allocated will block the half-shutter
          * and may show BUSY on the screen. */
@@ -1564,22 +1582,10 @@ int setup_buffers()
         pre_record_num_frames = pre_record_calc_num_frames(valid_slot_count, max_frames);
         printf("Pre-rec: %d frames (max %d)\n", pre_record_num_frames, max_frames);
     }
-    
+
+    configured_max_frame_size = max_frame_size;
+    configured_fullres_buf_size = fullres_buf_size;
     return 1;
-}
-
-static REQUIRES(RawRecTask)
-void free_buffers()
-{
-    if (shoot_mem_suite) shoot_free_suite(shoot_mem_suite);
-    shoot_mem_suite = 0;
-    if (srm_mem_suite) srm_free_suite(srm_mem_suite);
-    srm_mem_suite = 0;
-
-    /* this buffer is allocated from one of the suites -> nothing to do */
-    fullsize_buffers[0] = 0;
-    if (raw_info.buffer) ASSERT(fullsize_buffers[1] == UNCACHEABLE(raw_info.buffer));
-    fullsize_buffers[1] = 0;
 }
 
 #define BUFFER_DISPLAY_X 30
@@ -1912,18 +1918,52 @@ void show_recording_status()
     }
 }
 
-static REQUIRES(ShootTask)
+static REQUIRES(ShootTask) EXCLUDES(settings_sem)
 unsigned int raw_rec_polling_cbr(unsigned int unused)
 {
     if (!compress_mq) return 0;
 
     raw_lv_request_update();
-    
-    if (!raw_video_enabled)
+
+    /* auto-disable raw video in photo mode or outside LiveView */
+    int raw_video_active = raw_video_enabled && lv && is_movie_mode();
+
+    /* when Canon state changes, their memory layout may change too
+     * reallocate the memory when this happens */
+    static int prev_state = -1;
+    static int realloc = 0;
+    int current_state =
+        (raw_video_active   ? 1 : 0) |      /* force realloc when re-enabling */
+        (RECORDING_H264     ? 2 : 0) |      /* this one can be tricky */
+      //(lv_dispsize == 1   ? 4 : 0) |      /* needed? */
+        (pic_quality << 8)           ;
+
+    if (current_state != prev_state)
+    {
+        realloc = 1;
+    }
+    prev_state = current_state;
+
+    if (!raw_video_active)
+    {
+        /* raw video turned off? free any resources we might have got */
+        if (shoot_mem_suite || srm_mem_suite)
+        {
+            take_semaphore(settings_sem, 0);
+            free_buffers();
+            give_semaphore(settings_sem);
+        }
         return 0;
-    
-    if (!lv || !is_movie_mode())
-        return 0;
+    }
+
+    /* reallocate buffers if needed (only if not recording) */
+    if (RAW_IS_IDLE && realloc)
+    {
+        take_semaphore(settings_sem, 0);
+        realloc_buffers();
+        realloc = 0;
+        give_semaphore(settings_sem);
+    }
 
     /* update settings when changing video modes (outside menu) */
     if (RAW_IS_IDLE && !gui_menu_shown())
@@ -2134,7 +2174,8 @@ int choose_next_capture_slot()
     return best_index;
 }
 
-static void shrink_slot(int slot_index, int new_frame_size)
+static NO_THREAD_SAFETY_ANALYSIS    /* fixme */
+void shrink_slot(int slot_index, int new_frame_size)
 {
     uint32_t old_int = cli();
 
@@ -2194,7 +2235,8 @@ static void shrink_slot(int slot_index, int new_frame_size)
     sei(old_int);
 }
 
-static void free_slot(int slot_index)
+static NO_THREAD_SAFETY_ANALYSIS    /* fixme */
+void free_slot(int slot_index)
 {
     /* this is called from both vsync and raw_rec_task */
     uint32_t old_int = cli();
@@ -2538,8 +2580,9 @@ static void compress_task()
         int slot_index = msg & 0xFFFF;
         int fullsize_index = msg >> 16;
 
-        /* we must receive a slot marked as "capturing in progress */
+        /* we must receive a slot marked as "capturing in progress" */
         ASSERT(slots[slot_index].status == SLOT_CAPTURING);
+        ASSERT(slots[slot_index].ptr);
 
         void* out_ptr = slots[slot_index].ptr + VIDF_HDR_SIZE;
         void* fullSizeBuffer = fullsize_buffers[fullsize_index];
@@ -2555,7 +2598,7 @@ static void compress_task()
             ASSERT(outSuite);
 
             int compressed_size = lossless_compress_raw_rectangle(
-                slots[slot_index].ptr ? outSuite : NULL, fullSizeBuffer,
+                outSuite, fullSizeBuffer,
                 raw_info.width, skip_x, skip_y,
                 res_x, res_y
             );
@@ -2568,7 +2611,7 @@ static void compress_task()
 
             DeleteMemorySuite(outSuite);
 
-            if (slots[slot_index].ptr)
+            if (1)
             {
                 if (compressed_size >= frame_size_uncompressed)
                 {
@@ -2586,7 +2629,10 @@ static void compress_task()
                 }
 
                 /* resize frame slots on the fly, to compressed size */
-                shrink_slot(slot_index, MIN(compressed_size, max_frame_size - VIDF_HDR_SIZE - 4));
+                if (!RAW_IS_IDLE)
+                {
+                    shrink_slot(slot_index, MIN(compressed_size, max_frame_size - VIDF_HDR_SIZE - 4));
+                }
                 
                 /* our old EDMAC check assumes frame sizes known in advance - not the case here */
                 frame_fake_edmac_check(slot_index);
@@ -3078,8 +3124,6 @@ void raw_video_rec_task()
     NO_THREAD_SAFETY_CALL(init_vsync_vars)();
 
     /* globals - updated by RawRecTask or shared */
-    total_slot_count = 0;
-    valid_slot_count = 0;
     chunk_frame_count = 0;
     written_total = 0; /* in bytes */
     writing_time = 0;
@@ -3133,6 +3177,7 @@ void raw_video_rec_task()
 
     take_semaphore(settings_sem, 0);   /* not really needed; just to silence warnings */
     update_resolution_params();
+    setup_buffers();
     setup_bit_depth();
     give_semaphore(settings_sem);
 
