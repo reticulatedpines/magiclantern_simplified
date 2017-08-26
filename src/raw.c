@@ -2499,12 +2499,15 @@ void raw_lv_request()
     /* (get_yuv422_vram will only call BMP_LOCK if it has to refresh something, that is, once in a blue moon) */
     BMP_LOCK( get_yuv422_vram(); )
 
-    /* this one should be called only in LiveView */
-    ASSERT(lv);
+    /* this one should be called only in LiveView
+     * but race conditions are not our friends...
+     * in this case, the caller is expected to call raw_lv_release,
+     * which should clean up stuff, if any */
+    //ASSERT(lv);
 
     take_semaphore(raw_sem, 0);
     raw_lv_request_count++;
-    raw_lv_update();
+    if (lv) raw_lv_update();
     give_semaphore(raw_sem);
 }
 
