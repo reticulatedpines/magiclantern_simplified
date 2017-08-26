@@ -75,7 +75,7 @@ static const char * crop_choices_5d3[] = {
     "1920 1:1",
     "1920 1:1 tall",
     "1920 50/60 3x3",
-    "1080p45/1020p48 3x3",
+    "1080p45/1040p48 3x3",
     "3K 1:1",
     "UHD 1:1",
     "4K 1:1 half-fps",
@@ -94,7 +94,7 @@ static const char crop_choices_help2_5d3[] =
     "1:1 sensor readout (square raw pixels, 3x crop, good preview in 1080p)\n"
     "1:1 crop, higher vertical resolution (1920x1920 @ 24p, cropped preview)\n"
     "1920x960 @ 50p, 1920x800 @ 60p (3x3 binning, cropped preview)\n"
-    "1920x1080 @ 45p, 1920x1020 @ 48p, 3x3 binning (50/60 FPS in Canon menu)\n"
+    "1920x1080 @ 45p, 1920x1040 @ 48p, 3x3 binning (50/60 FPS in Canon menu)\n"
     "1:1 3K crop (3072x1920 @ 24p, square raw pixels, preview broken)\n"
     "1:1 4K UHD crop (3840x1600 @ 24p, square raw pixels, preview broken)\n"
     "1:1 4K crop (4096x3072 @ 12.5 fps, half frame rate, preview broken)\n"
@@ -280,7 +280,7 @@ static int max_resolutions[NUM_CROP_PRESETS][5] = {
                                 /*   24p   25p   30p   50p   60p */
     [CROP_PRESET_3X_TALL]       = { 1920, 1728, 1536,  960,  800 },
     [CROP_PRESET_3x3_1X]        = { 1290, 1290, 1290,  960,  800 },
-    [CROP_PRESET_3x3_1X_48p]    = { 1290, 1290, 1290, 1080, 1020 }, /* 1080p45/48 */
+    [CROP_PRESET_3x3_1X_48p]    = { 1290, 1290, 1290, 1080, 1040 }, /* 1080p45/48 */
     [CROP_PRESET_3K]            = { 1920, 1728, 1504,  760,  680 },
     [CROP_PRESET_UHD]           = { 1536, 1472, 1120,  640,  540 },
     [CROP_PRESET_4K_HFPS]       = { 3072, 3072, 2500, 1440, 1200 },
