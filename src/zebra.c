@@ -421,7 +421,7 @@ int get_global_draw() // menu setting, or off if
     
     #ifdef CONFIG_CONSOLE
     extern int console_visible;
-    if (console_visible) return 0;
+    if (console_visible && !lv) return 0;
     #endif
     
     if (lv && ZEBRAS_IN_LIVEVIEW)
@@ -3729,6 +3729,7 @@ void draw_histogram_and_waveform(int allow_play)
 #ifdef FEATURE_HISTOGRAM
     if( hist_draw && !WAVEFORM_FULLSCREEN)
     {
+        extern int console_visible;
         #ifdef CONFIG_4_3_SCREEN
         if (PLAY_OR_QR_MODE)
             BMP_LOCK( hist_draw_image( os.x0 + 500,  1); )
@@ -3736,6 +3737,8 @@ void draw_histogram_and_waveform(int allow_play)
         #endif
         if (should_draw_bottom_graphs())
             BMP_LOCK( hist_draw_image( os.x0 + 50,  480 - hist_height - 1); )
+        else if (console_visible)
+            BMP_LOCK( hist_draw_image( os.x_max - HIST_WIDTH - 5, os.y0 + 70); )
         else if (screen_layout == SCREENLAYOUT_3_2)
             BMP_LOCK( hist_draw_image( os.x_max - HIST_WIDTH - 2,  os.y_max - (lv ? os.off_169 + 10 : 0) - hist_height - 1); )
         else
