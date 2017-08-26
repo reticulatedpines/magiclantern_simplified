@@ -491,6 +491,15 @@ int get_current_shutter_reciprocal_x1000()
     int timerB = (FPS_REGISTER_B_VALUE & 0xFFFF) + 1;
     int max = timerB;
 
+    if (blanking == max - 1)
+    {
+        /* fixme: when blanking is max - 1, exposure time is 0
+         * however, if we adjust either of these two terms by 1,
+         * neither 1/33.333 nor 1/50.000 will give exact values
+         * which is right? (todo: compare some test images to find out) */
+        blanking = max;
+    }
+
     float frame_duration = 1000.0 / fps_get_current_x1000();
     float shutter = frame_duration * (max - blanking) / max;
     return (int)(1.0 / shutter * 1000);
@@ -2150,9 +2159,9 @@ void set_frame_shutter_timer(int timer)
 {
     #ifdef CONFIG_FRAME_SHUTTER_OVERRIDE
         #ifdef CONFIG_DIGIC_V
-        FRAME_SHUTTER_TIMER = MAX(timer, 2);
-        #else
         FRAME_SHUTTER_TIMER = MAX(timer, 1);
+        #else
+        FRAME_SHUTTER_TIMER = MAX(timer, 0);
         #endif
     #endif
 }

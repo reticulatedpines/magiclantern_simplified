@@ -444,9 +444,13 @@ static int round_nicely(int x, int digits)
 const char * lens_format_shutter_reciprocal(int shutter_reciprocal_x1000, int digits)
 {
     static char shutter[32];
-    if (shutter_reciprocal_x1000 == 0)
+    if (shutter_reciprocal_x1000 <= 0)
     {
         snprintf(shutter, sizeof(shutter), "N/A");
+    }
+    else if (shutter_reciprocal_x1000 == INT_MAX)
+    {
+        snprintf(shutter, sizeof(shutter), "0.0");
     }
     else if (shutter_reciprocal_x1000 >= 10000000)
     {
