@@ -2662,10 +2662,10 @@ static void compress_task()
 }
 
 static REQUIRES(LiveViewTask) FAST
-void FAST process_frame()
+void process_frame(int next_fullsize_buffer_pos)
 {
-    /* skip the first frame, it will be gibberish */
-    if (frame_count == 0)
+    /* skip the first frame(s) */
+    if (frame_count <= 0)
     {
         frame_count++;
         return;
@@ -2739,16 +2739,13 @@ void FAST process_frame()
     vidf_hdr.panPosY = skip_y;
     *(mlv_vidf_hdr_t*)(slots[capture_slot].ptr) = vidf_hdr;
 
-    /* advance to next buffer for the upcoming capture */
-    fullsize_buffer_pos = (fullsize_buffer_pos + 1) % 2;
-
     //~ printf("saving frame %d: slot %d ptr %x\n", frame_count, capture_slot, ptr);
 
     /* copy current frame to our buffer and crop it to its final size */
     /* for some reason, compression cannot be started from vsync */
     /* let's delegate it to another task */
     ASSERT(compress_mq);
-    msg_queue_post(compress_mq, capture_slot | (fullsize_buffer_pos << 16));
+    msg_queue_post(compress_mq, capture_slot | (next_fullsize_buffer_pos << 16));
 
     /* advance to next frame */
     frame_count++;
@@ -2782,9 +2779,31 @@ unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
     /* double-buffering */
     raw_lv_redirect_edmac(fullsize_buffers[fullsize_buffer_pos % 2]);
 
-    process_frame();
+    /* advance to next buffer for the upcoming capture */
+    int next_fullsize_buffer_pos = (fullsize_buffer_pos + 1) % 2;
+
+    process_frame(next_fullsize_buffer_pos);
+
+    fullsize_buffer_pos = next_fullsize_buffer_pos;
 
     return 0;
+}
+
+static REQUIRES(LiveViewTask)
+unsigned int FAST raw_rec_vsync_setparam_cbr(unsigned int unused)
+{
+    if (use_h264_proxy() && (RAW_IS_PREPARING || RAW_IS_FINISHING))
+    {
+        /* blacken the H.264 frames that won't end up in the RAW clip */
+        /* H.264 might contain a few more frames; important? */
+        /* note: the new setting applies to next LiveView frame
+         * so the first RAW frame would also end up black;
+         * to skip it, we initialize frame_count with -1 */
+        set_frame_shutter_timer(0);
+        return CBR_RET_STOP;
+    }
+
+    return CBR_RET_CONTINUE;
 }
 
 static const char* get_cf_dcim_dir()
@@ -3099,7 +3118,7 @@ int write_frames(FILE** pf, void* ptr, int group_size, int num_frames)
 static REQUIRES(LiveViewTask)
 void init_vsync_vars()
 {
-    frame_count = 0;
+    frame_count = use_h264_proxy() ? -1 : 0;    /* see setparam_cbr */
     capture_slot = -1;
     fullsize_buffer_pos = 0;
     edmac_active = 0;
@@ -3562,6 +3581,8 @@ abort_and_check_early_stop:
     }
 
     /* write remaining frames */
+    /* H.264: we will be recording black frames during this time,
+     * so there shouldn't be any starving issues - at least in theory */
     for (; writing_queue_head != writing_queue_tail; INC_MOD(writing_queue_head, COUNT(writing_queue)))
     {
         bmp_printf( FONT_MED, 30, 110, 
@@ -4262,6 +4283,7 @@ MODULE_INFO_END()
 
 MODULE_CBRS_START()
     MODULE_CBR(CBR_VSYNC, raw_rec_vsync_cbr, 0)
+    MODULE_CBR(CBR_VSYNC_SETPARAM, raw_rec_vsync_setparam_cbr, 0)
     MODULE_CBR(CBR_KEYPRESS_RAW, raw_rec_keypress_cbr_raw, 0)
     MODULE_CBR(CBR_SHOOT_TASK, raw_rec_polling_cbr, 0)
     MODULE_CBR(CBR_DISPLAY_FILTER, raw_rec_update_preview, 0)
