@@ -1949,20 +1949,24 @@ unsigned int raw_rec_polling_cbr(unsigned int unused)
         /* raw video turned off? free any resources we might have got */
         if (shoot_mem_suite || srm_mem_suite)
         {
+            gui_uilock(UILOCK_EVERYTHING);
             take_semaphore(settings_sem, 0);
             free_buffers();
             give_semaphore(settings_sem);
+            gui_uilock(UILOCK_NONE);
         }
         return 0;
     }
 
     /* reallocate buffers if needed (only if not recording) */
-    if (RAW_IS_IDLE && realloc)
+    if (realloc && (RAW_IS_IDLE || RAW_IS_PREPARING))
     {
+        gui_uilock(UILOCK_EVERYTHING);
         take_semaphore(settings_sem, 0);
         realloc_buffers();
         realloc = 0;
         give_semaphore(settings_sem);
+        gui_uilock(UILOCK_NONE);
     }
 
     /* update settings when changing video modes (outside menu) */
@@ -3144,9 +3148,19 @@ void raw_video_rec_task()
 
     if (use_h264_proxy())
     {
+        /* Canon's memory layout WILL change - free our buffers now */
+        free_buffers();
+
         /* start H.264 recording */
+        printf("Starting H.264...\n");
         ASSERT(!RECORDING_H264);
         movie_start();
+
+        /* wait until our buffers are reallocated */
+        while (shoot_mem_suite == 0 && srm_mem_suite == 0)
+        {
+            msleep(100);
+        }
     }
 
     /* disable Canon's powersaving (30 min in LiveView) */
@@ -3175,7 +3189,7 @@ void raw_video_rec_task()
         goto cleanup;
     }
 
-    take_semaphore(settings_sem, 0);   /* not really needed; just to silence warnings */
+    take_semaphore(settings_sem, 0);
     update_resolution_params();
     setup_buffers();
     setup_bit_depth();
@@ -3466,8 +3480,11 @@ abort:
 
 abort_and_check_early_stop:
 
-            /* faster writing speed that way */
-            PauseLiveView();
+            if (!RECORDING_H264)
+            {
+                /* faster writing speed that way */
+                PauseLiveView();
+            }
 
             if (last_block_size > 3)
             {
@@ -3487,7 +3504,7 @@ abort_and_check_early_stop:
             break;
         }
     }
-    
+
     /* make sure the user doesn't rush to turn off the camera or something */
     gui_uilock(UILOCK_EVERYTHING);
     
@@ -3503,6 +3520,7 @@ abort_and_check_early_stop:
         edmac_memcpy_res_unlock();
     }
     
+
     set_recording_custom(CUSTOM_RECORDING_NOT_RECORDING);
 
     if (!RECORDING_H264)
@@ -3523,7 +3541,6 @@ abort_and_check_early_stop:
     for(uint32_t msg = 0; msg < msg_count; msg++)
     {
         mlv_hdr_t *block = NULL;
-
         /* there is a block in the queue, try to get that block */
         if(!msg_queue_receive(mlv_block_queue, &block, 0))
         {
@@ -3538,8 +3555,11 @@ abort_and_check_early_stop:
         }
     }
 
-    /* faster writing speed that way */
-    PauseLiveView();
+    if (!RECORDING_H264)
+    {
+        /* faster writing speed that way */
+        PauseLiveView();
+    }
 
     /* write remaining frames */
     for (; writing_queue_head != writing_queue_tail; INC_MOD(writing_queue_head, COUNT(writing_queue)))
@@ -3614,15 +3634,13 @@ cleanup:
         raw_movie_filename = 0;
     }
 
-    /* everything saved, we can unlock the buttons.
-     * note: freeing SRM memory will also touch uilocks,
-     * so it's best to call this before free_buffers */
-    gui_uilock(UILOCK_NONE);
-
-    take_semaphore(settings_sem, 0);   /* not really needed; just to silence warnings */
+    take_semaphore(settings_sem, 0);
     free_buffers();
     restore_bit_depth();
     give_semaphore(settings_sem);
+
+    /* everything saved, we can unlock the buttons */
+    gui_uilock(UILOCK_NONE);
 
     if (liveview_hacked)
     {
@@ -3636,7 +3654,10 @@ cleanup:
         get_current_dialog_handler() != &ErrCardForLVApp_handler)
     {
         /* stop H.264 recording */
+        printf("Stopping H.264...\n");
         movie_end();
+        while (RECORDING_H264) msleep(100);
+        printf("H.264 stopped.\n");
     }
 
     ResumeLiveView();
@@ -3649,11 +3670,13 @@ void raw_start_stop()
 {
     if (!RAW_IS_IDLE)
     {
+        printf("Stopping raw recording...\n");
         raw_recording_state = RAW_FINISHING;
         beep();
     }
     else
     {
+        printf("Starting raw recording...\n");
         /* raw_rec_task will change state to RAW_PREPARING */
         gui_stop_menu();
         task_create("raw_rec_task", 0x19, 0x1000, raw_video_rec_task, (void*)0);
@@ -3877,6 +3900,8 @@ unsigned int raw_rec_keypress_cbr(unsigned int key)
     
     if (rec_key_pressed)
     {
+        printf("REC key pressed.\n");
+
         if (!compress_mq)
         {
             /* not initialized; block the event */
@@ -3995,15 +4020,12 @@ static unsigned int raw_rec_keypress_cbr_raw(unsigned int raw_event)
 
     if (use_h264_proxy())
     {
-        if (IS_FAKE(event))
+        if (RAW_IS_PREPARING || RAW_IS_FINISHING)
         {
-            if (raw_recording_state == RAW_PREPARING ||
-                raw_recording_state == RAW_FINISHING)
-            {
-                /* fake events (generated from ML) are not processed */
-                /* they are probably for starting/stopping H.264 */
-                return 1;
-            }
+            /* some of these events are for starting/stopping H.264 */
+            /* fixme: which ones exactly? */
+            printf("Pass event %d %s\n", event->param, IS_FAKE(event) ? "(fake)" : "");
+            return 1;
         }
     }
 
