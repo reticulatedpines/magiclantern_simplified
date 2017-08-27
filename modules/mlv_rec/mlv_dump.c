@@ -4271,7 +4271,11 @@ abort:
     /* in average mode, finalize average calculation and output the resulting average */
     if(average_mode)
     {
-        if(!average_samples)
+        if(!out_file)
+        {
+            print_msg(MSG_ERROR, "Averaged image, but no out file specified\n");
+        }
+        else if(!average_samples)
         {
             print_msg(MSG_ERROR, "Number of averaged frames is zero. Cannot continue.\n");
         }
