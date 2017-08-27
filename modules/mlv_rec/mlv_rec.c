@@ -3612,7 +3612,7 @@ static void raw_video_rec_task()
                     /* hack working for one writer only */
                     current_write_speed[returned_job->writer] = rate*100/1024;
 
-                    trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: write took: %8d µs (%6d KiB/s), %9d bytes, %3d blocks, slot %3d, mgmt %6d µs, offset 0x%08X",
+                    trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: write took: %8d �s (%6d KiB/s), %9d bytes, %3d blocks, slot %3d, mgmt %6d �s, offset 0x%08X",
                         returned_job->writer, write_time, rate, returned_job->block_size, returned_job->block_len, returned_job->block_start, mgmt_time, returned_job->file_offset);
 
                     /* update statistics */
@@ -4357,7 +4357,7 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
 
     raw_previewing = 1;
     raw_set_preview_rect(skip_x, skip_y, res_x, res_y, 1);
-    raw_force_aspect_ratio_1to1();
+    raw_force_aspect_ratio(1,1);
     raw_preview_fast_ex(
         (void*)-1,
         (PREVIEW_HACKED && RAW_RECORDING) ? (void*)-1 : buffers->dst_buf,
