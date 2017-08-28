@@ -972,7 +972,7 @@ void show_usage(char *executable)
     print_msg(MSG_INFO, "-- Image manipulation --\n");
     print_msg(MSG_INFO, "  -a                  average all frames in <inputfile> and output a single-frame MLV from it\n");
     print_msg(MSG_INFO, "  --avg-vertical      [DARKFRAME ONLY] average the resulting frame in vertical direction, so we will extract vertical banding\n");
-    print_msg(MSG_INFO, "  --avg-horizontal    [DARKFRAME ONLY] average the resulting frame in horizontal direction, so we will extract horizontal banding\n");
+    print_msg(MSG_INFO, "   --avg-horizontal   [DARKFRAME ONLY] average the resulting frame in horizontal direction, so we will extract horizontal banding\n");
     print_msg(MSG_INFO, "  -s mlv_file         subtract the reference frame in given file from every single frame during processing\n");
     print_msg(MSG_INFO, "  -t mlv_file         use the reference frame in given file as flat field (gain correction)\n");
 
