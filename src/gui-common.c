@@ -660,11 +660,6 @@ void gui_uilock(int what)
     prop_request_change_wait(PROP_ICU_UILOCK, &what, 4, 2000);
 }
 
-void ui_lock(int what)
-{
-    gui_uilock(what);
-}
-
 void fake_simple_button(int bgmt_code)
 {
     if ((icu_uilock & 0xFFFF) && (bgmt_code >= 0))
