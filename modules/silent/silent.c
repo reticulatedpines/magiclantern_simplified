@@ -960,12 +960,6 @@ static int silent_pic_raw_prepare_buffers(struct memSuite * mem_suite, int initi
             int size = GetSizeOfMemoryChunk(chunk);
             intptr_t ptr = (intptr_t) GetMemoryAddressOfMemoryChunk(chunk);
 
-            /* use-after-free from raw backend? skip this chunk */
-            if ((void*)ptr + 0x100 == raw_info.buffer)
-            {
-                goto next;
-            }
-            
             /* align pointer at 64 bytes */
             intptr_t ptr_raw = ptr;
             ptr   = (ptr + 63) & ~63;
@@ -979,8 +973,7 @@ static int silent_pic_raw_prepare_buffers(struct memSuite * mem_suite, int initi
                 size -= max_frame_size;
                 count++;
             }
-        
-        next:
+
             /* next chunk */
             chunk = GetNextMemoryChunk(mem_suite, chunk);
         }

@@ -117,7 +117,6 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 
 /* for higher resolutions we'll allocate a new buffer, as needed */
 #define CONFIG_ALLOCATE_RAW_LV_BUFFER
-#define CONFIG_ALLOCATE_RAW_LV_BUFFER_SRM_DUMMY
 /* buffer size for a full-res LiveView image */
 #define RAW_LV_BUFFER_ALLOC_SIZE ((0x527 + 2612) * (0x2FE - 0x18)*8 * 14/8)
 #endif
@@ -830,9 +829,7 @@ static void raw_lv_free_buffer()
 {
     printf("Freeing LV raw buffer %x.\n", raw_lv_buffer);
     if(raw_allocated_lv_buffer) {
-        #ifndef CONFIG_ALLOCATE_RAW_LV_BUFFER_SRM_DUMMY
         free(raw_allocated_lv_buffer);
-        #endif
         raw_allocated_lv_buffer = 0;
     }
     raw_lv_buffer = 0;
