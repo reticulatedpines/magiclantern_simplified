@@ -442,11 +442,10 @@ void exmem_test()
 /* To keep things simple, let's allocate the entire SRM memory on first call (all or nothing) */
 static GUARDED_BY(mem_sem) int srm_allocated = 0;
 
-/* There are a few fixed-size buffers; the exact size is camera-specific (RAW buffer size, 30-40 MB) */
-/* and will be detected upon first allocation */
-static uint32_t srm_buffer_size = 0;
-
-/* Available SRM buffers */
+/* There are a few fixed-size buffers; the exact size is a camera-specific constant
+ * SRM_BUFFER_SIZE = RAW buffer size, usually around 30-40 MB
+ * it's hardcoded in consts.h for speed, since autodetection is slow
+ */
 static GUARDED_BY(mem_sem) struct
 {
     void *buffer;
@@ -479,16 +478,9 @@ void srm_malloc_cbr(void** dst_ptr, void* raw_buffer, uint32_t raw_buffer_size)
 {
     //printf("srm_malloc_cbr(%x, %x, %x)\n", dst_ptr, raw_buffer, raw_buffer_size);
 
-    if (!srm_buffer_size)
-    {
-        /* we can't tell how much to allocate; the allocator tells us */
-        srm_buffer_size = raw_buffer_size;
-    }
-    else
-    {
-        /* it should tell us the same thing every time */
-        ASSERT(srm_buffer_size == raw_buffer_size);
-    }
+    /* we can't tell how much to allocate; the allocator tells us */
+    /* the value is hardcoded in consts.h, for speed (probing is very slow) */
+    ASSERT(SRM_BUFFER_SIZE == raw_buffer_size);
     
     /* return the newly allocated buffer in the output variable */
     *dst_ptr = raw_buffer;
@@ -615,12 +607,12 @@ struct memSuite * _srm_malloc_suite(int num_requested_buffers)
             if (!suite)
             {
                 /* first buffer */
-                suite = CreateMemorySuite(srm_buffers[i].buffer, srm_buffer_size, 0);
+                suite = CreateMemorySuite(srm_buffers[i].buffer, SRM_BUFFER_SIZE, 0);
             }
             else
             {
                 /* subsequent buffers */
-                struct memChunk *chunk = CreateMemoryChunk(srm_buffers[i].buffer, srm_buffer_size, 0);
+                struct memChunk *chunk = CreateMemoryChunk(srm_buffers[i].buffer, SRM_BUFFER_SIZE, 0);
                 ASSERT(chunk);
                 AddMemoryChunk(suite, chunk);
             }
@@ -657,7 +649,7 @@ void _srm_free_suite(struct memSuite *suite)
     {
         /* make sure we have a suite returned by srm_malloc_suite */
         uint32_t size = GetSizeOfMemoryChunk(chunk);
-        ASSERT(size == srm_buffer_size);
+        ASSERT(size == SRM_BUFFER_SIZE);
 
         /* mark each chunk as free in our internal SRM buffer list */
         void* buf = GetMemoryAddressOfMemoryChunk(chunk);
@@ -704,7 +696,7 @@ void* _srm_malloc(size_t size)
     
     /* here we can't request a certain size; we can just check whether we got enough, or not */
     /* note: size checking is done after allocating, in order to simplify the deallocation code */
-    if (srm_buffer_size < size + 4)
+    if (SRM_BUFFER_SIZE < size + 4)
     {
         /* not enough */
         _srm_free(buffer);
@@ -736,19 +728,11 @@ void _srm_free(void* ptr)
 REQUIRES(mem_sem)
 int _srm_get_max_region()
 {
-    if (!srm_buffer_size)
-    {
-        /* do a quick test malloc just to check the size */
-        void *test_suite = _srm_malloc_suite(1);
-        if (test_suite)
-            _srm_free_suite(test_suite);
-    }
-
     for (int i = 0; i < COUNT(srm_buffers); i++)
     {
         if (srm_buffers[i].buffer && !srm_buffers[i].used)
         {
-            return srm_buffer_size;
+            return SRM_BUFFER_SIZE;
         }
     }
 
@@ -758,21 +742,13 @@ int _srm_get_max_region()
 REQUIRES(mem_sem)
 int _srm_get_free_space()
 {
-    if (!srm_buffer_size)
-    {
-        /* do a quick test malloc just to check the size */
-        void *test_suite = _srm_malloc_suite(1);
-        if (test_suite)
-            _srm_free_suite(test_suite);
-    }
-
     int free_space = 0;
 
     for (int i = 0; i < COUNT(srm_buffers); i++)
     {
         if (srm_buffers[i].buffer && !srm_buffers[i].used)
         {
-            free_space += srm_buffer_size;
+            free_space += SRM_BUFFER_SIZE;
         }
     }
 
