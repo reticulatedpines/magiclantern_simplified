@@ -1605,6 +1605,13 @@ static struct menu_entry module_menu[] = {
 
 static struct menu_entry module_debug_menu[] = {
     {
+        .name = "Show console",
+        .priv = &module_console_enabled,
+        .select = console_toggle,
+        .max = 1,
+        .help = "Keep console shown after modules were loaded",
+    },
+    {
         .name = "Modules debug",
         .select = menu_open_submenu,
         .submenu_width = 710,
@@ -1621,13 +1628,6 @@ static struct menu_entry module_debug_menu[] = {
                 .priv = &module_ignore_crashes,
                 .max = 1,
                 .help = "Load modules even after camera crashed and you took battery out.",
-            },
-            {
-                .name = "Show console",
-                .priv = &module_console_enabled,
-                .select = console_toggle,
-                .max = 1,
-                .help = "Keep console shown after modules were loaded",
             },
             MENU_EOL,
         },
