@@ -71,7 +71,7 @@ int get_free_space_32k(const struct card_info* card)
 
 
 static CONFIG_INT("card.test", card_test_enabled, 1);
-static CONFIG_INT("card.force_type", card_force_type, 1);
+static CONFIG_INT("card.force_type", card_force_type, 0);
 
 #ifndef CONFIG_INSTALLER
 #ifdef CONFIG_5D3
@@ -806,7 +806,8 @@ struct menu_entry card_menus[] = {
                 .min = 0,
                 .max = 2,
                 .choices = CHOICES("OFF", "CF", "SD"),
-                .help = "Make sure your preferred card is selected at startup."
+                .help  = "Make sure your preferred card is selected at startup.",
+                .help2 = "This changes Canon card selection at startup - nothing else."
             },
             MENU_EOL,
         }
