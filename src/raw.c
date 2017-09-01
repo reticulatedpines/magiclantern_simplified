@@ -742,9 +742,9 @@ static int raw_lv_buffer_size = 0;
 static void* raw_get_default_lv_buffer()
 {
 #if !defined(CONFIG_EDMAC_RAW_SLURP)
-    return (void*) shamem_read(RAW_LV_EDMAC);
+    return CACHEABLE(shamem_read(RAW_LV_EDMAC));
 #else
-    return raw_lv_buffer;
+    return CACHEABLE(raw_lv_buffer);
 #endif
 }
 /* returns 1 on success */
