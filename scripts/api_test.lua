@@ -294,8 +294,7 @@ function test_menu()
     msleep(1000)
 
     -- enter the submenu
-    -- fixme: return value
-    assert(menu.select("Intervalometer", "Take a pic every") == false)
+    assert(menu.select("Intervalometer", "Take a pic every"))
     msleep(1000)
 
     -- note: setting menu by string works by brute force
@@ -331,17 +330,16 @@ function test_menu()
     msleep(1000)
 
     -- let's try some more submenus
-    -- fixme: return value
     -- todo: more multi-level submenus
-    assert(menu.select("Advanced Bracket", "Frames") == false); msleep(1000)
-    assert(menu.select("Advanced Bracket", "Sequence") == false); msleep(1000)
-    assert(menu.select("Advanced Bracket", "ISO shifting") == false); msleep(1000)
-    assert(menu.select("Bulb Timer", "Exposure duration") == false); msleep(1000)
-    assert(menu.select("Shoot Preferences", "Snap Simulation") == false); msleep(1000)
-    assert(menu.select("Misc key settings", "Sticky HalfShutter") == false); msleep(1000)
-    assert(menu.select("Play mode actions", "Trigger key(s)") == false); msleep(1000)
-    assert(menu.select("LiveView zoom tweaks", "Zoom on HalfShutter") == false); msleep(1000)
-    assert(menu.select("Lens info", "Lens ID") == false); msleep(1000)
+    assert(menu.select("Advanced Bracket", "Frames")); msleep(1000)
+    assert(menu.select("Advanced Bracket", "Sequence")); msleep(1000)
+    assert(menu.select("Advanced Bracket", "ISO shifting")); msleep(1000)
+    assert(menu.select("Bulb Timer", "Exposure duration")); msleep(1000)
+    assert(menu.select("Shoot Preferences", "Snap Simulation")); msleep(1000)
+    assert(menu.select("Misc key settings", "Sticky HalfShutter")); msleep(1000)
+    assert(menu.select("Play mode actions", "Trigger key(s)")); msleep(1000)
+    assert(menu.select("LiveView zoom tweaks", "Zoom on HalfShutter")); msleep(1000)
+    assert(menu.select("Lens info", "Lens ID")); msleep(1000)
     assert(menu.select("Shoot", "Intervalometer")); msleep(1000)
 
     -- non-existent menus; should fail

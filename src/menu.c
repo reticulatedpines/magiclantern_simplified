@@ -5510,10 +5510,7 @@ TASK_CREATE( "menu_task", menu_task, 0, 0x1a, 0x2000 );
 
 int is_menu_entry_selected(char* menu_name, char* entry_name)
 {
-    struct menu * menu = menus;
-    for( ; menu ; menu = menu->next )
-        if( menu->selected )
-            break;
+    struct menu * menu = get_current_menu_or_submenu();
     if (streq(menu->name, menu_name))
     {
         struct menu_entry * entry = get_selected_menu_entry(menu);
