@@ -918,18 +918,15 @@ menu_find_by_id(
 }
 */
 
-
 static struct menu *
-menu_find_by_name(
+menu_find_by_name_internal(
     const char *        name,
     int icon
 )
 {
     ASSERT(name);
 
-    take_semaphore( menu_sem, 0 );
-
-    struct menu *       menu = menus;
+    struct menu * menu = menus;
 
     for( ; menu ; menu = menu->next )
     {
@@ -937,7 +934,6 @@ menu_find_by_name(
         if( streq( menu->name, name ) )
         {
             if (icon && !menu->icon) menu->icon = icon;
-            give_semaphore( menu_sem );
             return menu;
         }
 
@@ -950,7 +946,6 @@ menu_find_by_name(
     struct menu * new_menu = malloc( sizeof(*new_menu) );
     if( !new_menu )
     {
-        give_semaphore( menu_sem );
         return NULL;
     }
 
@@ -973,8 +968,21 @@ menu_find_by_name(
         new_menu->selected  = 1;
     }
 
-    give_semaphore( menu_sem );
     return new_menu;
+}
+
+static struct menu * 
+menu_find_by_name(
+    const char *        name,
+    int icon
+)
+{
+    take_semaphore( menu_sem, 0 );
+
+    struct menu * menu = menu_find_by_name_internal(name, icon);
+
+    give_semaphore( menu_sem );
+    return menu;
 }
 
 static int get_menu_visible_count(struct menu * menu)
@@ -1165,8 +1173,9 @@ menu_update_placeholder(struct menu * menu, struct menu_entry * new_entry)
     }
 }
 
-void
-menu_add(
+
+static void
+menu_add_internal(
     const char *        name,
     struct menu_entry * new_entry,
     int                 count
@@ -1181,7 +1190,7 @@ menu_add(
         return;
 
     // Walk the menu list to find a menu
-    struct menu *       menu = menu_find_by_name( name, 0);
+    struct menu * menu = menu_find_by_name_internal( name, 0);
     if( !menu )
         return;
     
@@ -1189,8 +1198,6 @@ menu_add(
     duplicate_check_dirty = 1;
     
     int count0 = count; // for submenus
-
-    take_semaphore( menu_sem, 0 );
 
     struct menu_entry * head = menu->children;
     if( !head )
@@ -1233,9 +1240,6 @@ menu_add(
         menu_update_placeholder(menu, new_entry);
         new_entry++;
     }
-    
-    give_semaphore( menu_sem );
-
 
     // create submenus
 
@@ -1252,19 +1256,41 @@ menu_add(
                 child->works_best_in |= entry->works_best_in;
                 count++; 
             }
-            struct menu * submenu = menu_find_by_name( entry->name, ICON_ML_SUBMENU);
-            if (submenu->children != entry->children) // submenu is reused, do not add it twice
-                menu_add(entry->name, entry->children, count);
+            struct menu * submenu = menu_find_by_name_internal( entry->name, ICON_ML_SUBMENU);
             submenu->submenu_width = entry->submenu_width;
             submenu->submenu_height = entry->submenu_height;
+
+            if (submenu->children != entry->children)
+            {
+                /* sometimes the submenus are reused (e.g. Module menu)
+                 * only add them once */
+                menu_add_internal(entry->name, entry->children, count);
+            }
             
             /* ensure the "children" field always points to the very first item in the submenu */
             /* (important when merging 2 submenus) */
-            while (entry->children->prev) entry->children = entry->children->prev;
+            while (entry->children->prev)
+            {
+                entry->children = entry->children->prev;
+            }
         }
         entry = entry->prev;
         if (!entry) break;
     }
+}
+
+void 
+menu_add(
+    const char *        name,
+    struct menu_entry * new_entry,
+    int                 count
+)
+{
+    take_semaphore( menu_sem, 0 );
+
+    menu_add_internal(name, new_entry, count);
+
+    give_semaphore( menu_sem );
 }
 
 static void menu_remove_entry(struct menu * menu, struct menu_entry * entry)
