@@ -268,6 +268,8 @@ struct menu
     struct menu *       prev;
     const char *        name;               /* [init] always valid (specified when creating) */
     struct menu_entry * children;           /* [auto-set] menu entries (set on menu_add) */
+    struct menu_entry * parent_entry;       /* [readonly] submenus: menu entry with the same name */
+    struct menu       * parent_menu;        /* [readonly] submenus: up one level */
     int                 selected;           /* [readonly] only one menu has this property */
     int                 icon;               /* [init,opt] displayed icon; IT_SUBMENU identifies submenus (in the same "namespace", just hidden) */
     int16_t             submenu_width;      /* [auto-set,opt] width of the displayed submenu (copied from menu_entry; todo: autodetect?) */

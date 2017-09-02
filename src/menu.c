@@ -1179,8 +1179,7 @@ static void
 menu_add_internal(
     const char *        name,
     struct menu_entry * new_entry,
-    int                 count,
-    struct menu_entry * parent
+    int                 count
 )
 {
 #if defined(POSITION_INDEPENDENT)
@@ -1196,15 +1195,19 @@ menu_add_internal(
     if( !menu )
         return;
 
+    struct menu_entry * parent = NULL;
+
     if (IS_SUBMENU(menu))
     {
-        /* we should have a parent menu entry */
-        if (!parent)
-        {
-            /* adding to existing submenus? take the parent from other entries */
-            ASSERT(menu->children);
-            parent = menu->children->parent;
-        }
+        /* all submenus should have some valid parent */
+        /* note: some submenus might be used by more than one menu entry;
+         * in this case, any of them is valid; all of them will have the same name */
+        ASSERT(menu->parent_menu);
+        ASSERT(menu->parent_entry);
+        ASSERT(streq(name, menu->parent_entry->name));
+
+        /* all entries from the submenu should be linked to the parent menu entry */
+        parent = menu->parent_entry;
         ASSERT(streq(parent->name, name));
     }
 
@@ -1225,6 +1228,8 @@ menu_add_internal(
         ASSERT((parent == NULL) ^ IS_SUBMENU(menu));
         ASSERT(new_entry->parent_menu == NULL);
         new_entry->parent = parent;
+        new_entry->depends_on    |= (parent ? parent->depends_on : 0); // inherit dependencies
+        new_entry->works_best_in |= (parent ? parent->works_best_in : 0);
         new_entry->parent_menu = menu;
         new_entry->selected = 1;
         menu_update_split_pos(menu, new_entry);
@@ -1246,6 +1251,8 @@ menu_add_internal(
         ASSERT((parent == NULL) ^ IS_SUBMENU(menu));
         ASSERT(new_entry->parent_menu == NULL);
         new_entry->parent = parent;
+        new_entry->depends_on    |= (parent ? parent->depends_on : 0); // inherit dependencies
+        new_entry->works_best_in |= (parent ? parent->works_best_in : 0);
         new_entry->parent_menu = menu;
         new_entry->selected = 0;
         new_entry->prev = head;
@@ -1266,13 +1273,13 @@ menu_add_internal(
         {
             int count = 0;
             for (struct menu_entry * child = entry->children; !MENU_IS_EOL(child); child++)
-            { 
-                child->parent = entry;
-                child->depends_on |= entry->depends_on; // inherit dependencies
-                child->works_best_in |= entry->works_best_in;
-                count++; 
+            {
+                count++;
             }
+
             struct menu * submenu = menu_find_by_name_internal( entry->name, ICON_ML_SUBMENU);
+            submenu->parent_menu = menu;
+            submenu->parent_entry = entry;
             submenu->submenu_width = entry->submenu_width;
             submenu->submenu_height = entry->submenu_height;
 
@@ -1280,16 +1287,19 @@ menu_add_internal(
             {
                 /* sometimes the submenus are reused (e.g. Module menu)
                  * only add them once */
-                menu_add_internal(entry->name, entry->children, count, entry);
+                menu_add_internal(entry->name, entry->children, count);
             }
-            
+
             /* the menu might have been created before as a regular menu (not as submenu) */
             /* ensure the "children" field always points to the very first item in the submenu */
-            /* also make sure the parent entries are correct */
+            /* also make sure the parent entries and dependency flags are correct */
             while (entry->children->prev)
             {
                 entry->children = entry->children->prev;
                 entry->children->parent = entry;
+                entry->children->depends_on |= entry->depends_on;
+                entry->children->works_best_in |= entry->works_best_in;
+                printf("updating %s -> %s\n", entry->name, entry->children->name);
             }
         }
         entry = entry->prev;
@@ -1306,7 +1316,7 @@ menu_add(
 {
     take_semaphore( menu_sem, 0 );
 
-    menu_add_internal(name, new_entry, count, 0);
+    menu_add_internal(name, new_entry, count);
 
     give_semaphore( menu_sem );
 }
@@ -3833,7 +3843,7 @@ menus_display(
 
         if (!submenu)
         {
-            // no submenu, fall back to edit mode
+            printf("no submenu, fall back to edit mode\n");
             submenu_level--;
             edit_mode = 1;
         }
