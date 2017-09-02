@@ -2603,7 +2603,13 @@ skip_name:
         w -= (end - wmax);
     
     int xval = x + w;
-    
+
+    // value overlaps name? show value only (overwrite the name)
+    if (xval < x + bmp_string_width(fnt, info->name))
+    {
+        xval = x;
+    }
+
     if (entry->selected && 
         editing_with_caret(entry) && 
         caret_position >= (int)strlen(info->value))
@@ -2674,8 +2680,12 @@ skip_name:
     // selection bar params
     int xl = x - 5 + x_font_offset;
     int xc = x - 5 + x_font_offset;
+
     if ((in_submenu || edit_mode) && info->value[0])
-        xc = x + w - 15;
+    {
+        /* highlight value field */
+        xc = MAX(xl, xval - 15);
+    }
 
     // selection bar
     if (entry->selected)
