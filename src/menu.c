@@ -213,13 +213,14 @@ static void menu_help_go_to_selected_entry(struct menu * menu);
 //~ static void menu_init( void );
 static void menu_show_version(void);
 static struct menu * get_current_submenu();
-static struct menu * get_selected_menu();
+static struct menu * get_current_menu_or_submenu();
+static struct menu * get_selected_toplevel_menu();
 static void menu_make_sure_selection_is_valid();
 static void config_menu_reload_flags();
 static int guess_submenu_enabled(struct menu_entry * entry);
 static void menu_draw_icon(int x, int y, int type, intptr_t arg, int warn); // private
 static struct menu_entry * entry_find_by_name(const char* name, const char* entry_name);
-static struct menu_entry * get_selected_entry(struct menu * menu);
+static struct menu_entry * get_selected_menu_entry(struct menu * menu);
 static void submenu_display(struct menu * submenu);
 static void start_redraw_flood();
 static struct menu * menu_find_by_name(const char * name,  int icon);
@@ -312,7 +313,7 @@ static struct menu_entry customize_menu[] = {
 
 static int is_customize_selected(struct menu * menu) // argument is optional, just for speedup
 {
-    struct menu_entry * selected_entry = get_selected_entry(menu);
+    struct menu_entry * selected_entry = get_selected_menu_entry(menu);
     if (selected_entry == &customize_menu[0])
         return 1;
     return 0;
@@ -3210,7 +3211,7 @@ static int mod_menu_rebuild()
 
     mod_menu_dirty = 0;
     
-    mod_menu_selected_entry = get_selected_entry(mod_menu);
+    mod_menu_selected_entry = get_selected_menu_entry(mod_menu);
 
     /* mod_menu_selected_entry must be from the regular menu (not the dynamic one) */
     if (mod_menu_selected_entry && mod_menu_selected_entry->name)
@@ -3818,7 +3819,7 @@ menus_display(
     if (mod_menu_dirty)
         mod_menu_rebuild();
 
-    if (get_selected_menu()->icon != menu_first_by_icon)
+    if (get_selected_toplevel_menu()->icon != menu_first_by_icon)
     {
         select_menu_by_icon(menu_first_by_icon);
     }
@@ -3846,7 +3847,7 @@ menus_display(
     struct menu * junkie_sub = 0;
     if (junkie_mode == 2)
     {
-        struct menu_entry * entry = get_selected_entry(0);
+        struct menu_entry * entry = get_selected_menu_entry(0);
         if (entry && entry->children)
             junkie_sub = menu_find_by_name(entry->name, 0);
     }
@@ -3993,7 +3994,7 @@ menus_display(
 static void
 implicit_submenu_display()
 {
-    struct menu * menu = get_selected_menu();
+    struct menu * menu = get_selected_toplevel_menu();
     menu_display(
         menu,
         MENU_OFFSET,
@@ -4122,7 +4123,7 @@ menu_entry_customize_toggle(
         return;
     }
 
-    struct menu_entry * entry = get_selected_entry(menu);
+    struct menu_entry * entry = get_selected_menu_entry(menu);
     if (!entry) return;
 
     /* make sure the customized menu entry can be looked up by name */
@@ -4181,7 +4182,7 @@ menu_entry_select(
     if( !menu )
         return;
 
-    struct menu_entry * entry = get_selected_entry(menu);
+    struct menu_entry * entry = get_selected_menu_entry(menu);
     if( !entry )
     {
         /* empty submenu? go back */
@@ -4465,24 +4466,18 @@ menu_entry_move(
 // If the menu or the selection is empty, move back and forth to restore a valid selection
 static void menu_make_sure_selection_is_valid()
 {
-    struct menu * menu = get_selected_menu();
-    if (submenu_level)
-    {
-        struct menu * main_menu = menu;
-        menu = get_current_submenu();
-        if (!menu) menu = main_menu; // no submenu, operate on same item
-    }
+    struct menu * menu = get_current_menu_or_submenu();
  
     // current menu has any valid items in current mode?
     if (!menu_has_visible_items(menu))
     {
         if (submenu_level) return; // empty submenu
-        menu_move(menu, -1); menu = get_selected_menu();
-        menu_move(menu, 1); menu = get_selected_menu();
+        menu_move(menu, -1); menu = get_selected_toplevel_menu();
+        menu_move(menu, 1); menu = get_selected_toplevel_menu();
     }
 
     // currently selected menu entry is visible?
-    struct menu_entry * entry = get_selected_entry(menu);
+    struct menu_entry * entry = get_selected_menu_entry(menu);
     if (!entry) return;
 
     if (entry->selected && !is_visible(entry))
@@ -4744,7 +4739,7 @@ menu_redraw_full()
 }
 
 
-static struct menu * get_selected_menu()
+static struct menu * get_selected_toplevel_menu()
 {
     struct menu * menu = menus;
     for( ; menu ; menu = menu->next )
@@ -4753,10 +4748,12 @@ static struct menu * get_selected_menu()
     return menu;
 }
 
-static struct menu_entry * get_selected_entry(struct menu * menu)  // argument is optional, just for speedup
+// argument is optional; 0 = top-level menus; otherwise, any menu can be used
+static struct menu_entry * get_selected_menu_entry(struct menu * menu)
 {
     if (!menu)
     {
+        /* find the currently selected top-level menu */
         menu = menus;
         for( ; menu ; menu = menu->next )
             if( menu->selected )
@@ -4772,7 +4769,7 @@ static struct menu_entry * get_selected_entry(struct menu * menu)  // argument i
 
 static struct menu * get_current_submenu()
 {
-    struct menu_entry * entry = get_selected_entry(0);
+    struct menu_entry * entry = get_selected_menu_entry(0);
     if (!entry) return 0;
     
     for(int level = submenu_level; level > 1; level--)
@@ -4791,6 +4788,27 @@ static struct menu * get_current_submenu()
     }
 
     return 0;
+}
+
+static struct menu * get_current_menu_or_submenu()
+{
+    // Find the selected menu (should be cached?)
+    struct menu * menu = get_selected_toplevel_menu();
+
+    struct menu * main_menu = menu;
+    if (submenu_level)
+    {
+        main_menu = menu;
+        menu = get_current_submenu();
+
+        if (!menu)
+        {
+            // no submenu, operate on same item
+            menu = main_menu;
+        }
+    }
+
+    return menu;
 }
 
 static int keyrepeat = 0;
@@ -4901,16 +4919,8 @@ handle_ml_menu_keys(struct event * event)
             return 0;
     }
     
-    // Find the selected menu (should be cached?)
-    struct menu * menu = get_selected_menu();
-
-    struct menu * main_menu = menu;
-    if (submenu_level)
-    {
-        main_menu = menu;
-        menu = get_current_submenu();
-        if (!menu) menu = main_menu; // no submenu, operate on same item
-    }
+    // Find the selected menu or submenu (should be cached?)
+    struct menu * menu = get_current_menu_or_submenu();
     
     int button_code = event->param;
 #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_7D) // Q not working while recording, use INFO instead
@@ -4969,7 +4979,7 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_PRESS_UP:
         if (edit_mode && !menu_lv_transparent_mode)
         {
-            struct menu_entry * entry = get_selected_entry(menu);
+            struct menu_entry * entry = get_selected_menu_entry(menu);
             if(entry && uses_caret_editing(entry))
             {
                 menu_entry_select( menu, 0 );
@@ -4992,7 +5002,7 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_PRESS_DOWN:
         if (edit_mode && !menu_lv_transparent_mode)
         {
-            struct menu_entry * entry = get_selected_entry(menu);
+            struct menu_entry * entry = get_selected_menu_entry(menu);
             if(entry && uses_caret_editing(entry))
             {
                 menu_entry_select( menu, 1 );
@@ -5015,7 +5025,7 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_PRESS_RIGHT:
         if(EDIT_OR_TRANSPARENT)
         {
-            struct menu_entry * entry = get_selected_entry(menu);
+            struct menu_entry * entry = get_selected_menu_entry(menu);
             if(entry && uses_caret_editing(entry))
             {
                 caret_move(entry, -1);
@@ -5034,7 +5044,7 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_PRESS_LEFT:
         if(EDIT_OR_TRANSPARENT)
         {
-            struct menu_entry * entry = get_selected_entry(menu);
+            struct menu_entry * entry = get_selected_menu_entry(menu);
             if(entry && uses_caret_editing(entry))
             {
                 caret_move(entry, 1);
@@ -5078,7 +5088,11 @@ handle_ml_menu_keys(struct event * event)
     case BGMT_INFO:
         menu_help_active = !menu_help_active;
         menu_lv_transparent_mode = 0;
-        if (menu_help_active) menu_help_go_to_selected_entry(main_menu);
+        if (menu_help_active)
+        {
+            /* fixme: go up one level until the help page is found */
+            menu_help_go_to_selected_entry(get_selected_toplevel_menu());
+        }
         menu_needs_full_redraw = 1;
         //~ menu_damage = 1;
         //~ menu_hidden_should_display_help = 0;
@@ -5502,7 +5516,7 @@ int is_menu_entry_selected(char* menu_name, char* entry_name)
             break;
     if (streq(menu->name, menu_name))
     {
-        struct menu_entry * entry = get_selected_entry(menu);
+        struct menu_entry * entry = get_selected_menu_entry(menu);
         if (!entry) return 0;
         if (!entry->name) return 0;
         return streq(entry->name, entry_name);
@@ -5692,7 +5706,7 @@ menu_help_go_to_selected_entry(
     if( !menu )
         return;
 
-    struct menu_entry * entry = get_selected_entry(menu);
+    struct menu_entry * entry = get_selected_menu_entry(menu);
     if (!entry) return;
     menu_help_go_to_label((char*) entry->name, 0);
     give_semaphore(menu_sem);
@@ -6418,21 +6432,13 @@ int menu_request_image_backend()
     return 0;
 }
 
-
 MENU_SELECT_FUNC(menu_advanced_toggle)
 {
-    struct menu * menu = get_selected_menu();
-    struct menu * main_menu = menu;
-    if (submenu_level)
-    {
-        main_menu = menu;
-        menu = get_current_submenu();
-        if (!menu) menu = main_menu; // no submenu, operate on same item
-    }
-    
+    struct menu * menu = get_current_menu_or_submenu();
     advanced_mode = menu->advanced = !menu->advanced;
     menu->scroll_pos = 0;
 }
+
 MENU_UPDATE_FUNC(menu_advanced_update)
 {
     MENU_SET_NAME(advanced_mode ? "Simple..." : "Advanced...");
@@ -6461,7 +6467,7 @@ void qemu_menu_screenshots()
         call("dispcheck");
         
         /* cycle through menus, until the first menu gets selected again */
-        menu_move(get_selected_menu(), 1);
+        menu_move(get_selected_toplevel_menu(), 1);
         if (menus->selected)
             break;
     }
