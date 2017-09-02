@@ -1178,7 +1178,8 @@ static void
 menu_add_internal(
     const char *        name,
     struct menu_entry * new_entry,
-    int                 count
+    int                 count,
+    struct menu_entry * parent
 )
 {
 #if defined(POSITION_INDEPENDENT)
@@ -1193,7 +1194,19 @@ menu_add_internal(
     struct menu * menu = menu_find_by_name_internal( name, 0);
     if( !menu )
         return;
-    
+
+    if (IS_SUBMENU(menu))
+    {
+        /* we should have a parent menu entry */
+        if (!parent)
+        {
+            /* adding to existing submenus? take the parent from other entries */
+            ASSERT(menu->children);
+            parent = menu->children->parent;
+        }
+        ASSERT(streq(parent->name, name));
+    }
+
     menu_flags_load_dirty = 1;
     duplicate_check_dirty = 1;
     
@@ -1208,8 +1221,9 @@ menu_add_internal(
         ASSERT(new_entry->name);
         ASSERT(new_entry->next == NULL);
         ASSERT(new_entry->prev == NULL);
-        ASSERT((new_entry->parent == NULL) ^ IS_SUBMENU(menu));
+        ASSERT((parent == NULL) ^ IS_SUBMENU(menu));
         ASSERT(new_entry->parent_menu == NULL);
+        new_entry->parent = parent;
         new_entry->parent_menu = menu;
         new_entry->selected = 1;
         menu_update_split_pos(menu, new_entry);
@@ -1228,8 +1242,9 @@ menu_add_internal(
         ASSERT(new_entry->name);
         ASSERT(new_entry->next == NULL);
         ASSERT(new_entry->prev == NULL);
-        ASSERT((new_entry->parent == NULL) ^ IS_SUBMENU(menu));
+        ASSERT((parent == NULL) ^ IS_SUBMENU(menu));
         ASSERT(new_entry->parent_menu == NULL);
+        new_entry->parent = parent;
         new_entry->parent_menu = menu;
         new_entry->selected = 0;
         new_entry->prev = head;
@@ -1264,14 +1279,16 @@ menu_add_internal(
             {
                 /* sometimes the submenus are reused (e.g. Module menu)
                  * only add them once */
-                menu_add_internal(entry->name, entry->children, count);
+                menu_add_internal(entry->name, entry->children, count, entry);
             }
             
+            /* the menu might have been created before as a regular menu (not as submenu) */
             /* ensure the "children" field always points to the very first item in the submenu */
-            /* (important when merging 2 submenus) */
+            /* also make sure the parent entries are correct */
             while (entry->children->prev)
             {
                 entry->children = entry->children->prev;
+                entry->children->parent = entry;
             }
         }
         entry = entry->prev;
@@ -1288,7 +1305,7 @@ menu_add(
 {
     take_semaphore( menu_sem, 0 );
 
-    menu_add_internal(name, new_entry, count);
+    menu_add_internal(name, new_entry, count, 0);
 
     give_semaphore( menu_sem );
 }
