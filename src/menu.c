@@ -4794,7 +4794,9 @@ static struct menu * get_current_submenu()
 
     if (entry && entry->children)
     {
-        return entry->children->parent_menu;
+        /* fixme */
+        return menu_find_by_name(entry->name, 0);
+        //return entry->children->parent_menu;
     }
 
     return 0;
