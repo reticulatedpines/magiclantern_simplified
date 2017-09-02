@@ -3827,7 +3827,16 @@ menus_display(
 
     struct menu * submenu = 0;
     if (submenu_level)
+    {
         submenu = get_current_submenu();
+
+        if (!submenu)
+        {
+            // no submenu, fall back to edit mode
+            submenu_level--;
+            edit_mode = 1;
+        }
+    }
     
     advanced_mode = submenu ? submenu->advanced : 1;
 
@@ -4777,11 +4786,10 @@ static struct menu * get_current_submenu()
     }
 
     if (entry && entry->children)
-        return menu_find_by_name(entry->name, 0);
+    {
+        return entry->children->parent_menu;
+    }
 
-    // no submenu, fall back to edit mode
-    submenu_level--;
-    edit_mode = 1;
     return 0;
 }
 
