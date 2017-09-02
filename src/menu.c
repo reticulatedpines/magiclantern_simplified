@@ -6453,9 +6453,18 @@ static void check_duplicate_entries()
 
             /* make sure each item can be looked up by name */
             /* entry_find_by_name will print a warning if there are duplicates */
+            /* and it should either find the right thing, or fail */
             ASSERT(entry->name);
             struct menu_entry * e = entry_find_by_name(menu->name, entry->name);
-            ASSERT(e == 0 || e == entry);
+            ASSERT(e == entry || e == 0);
+
+            if (IS_SUBMENU(menu))
+            {
+                /* this entry must be linked to its parent */
+                ASSERT(entry->parent);
+                ASSERT(entry->parent_menu == menu);
+                ASSERT(streq(entry->parent->name, menu->name));
+            }
         }
     }
 
