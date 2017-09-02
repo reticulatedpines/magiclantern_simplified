@@ -5536,6 +5536,60 @@ void select_menu(char* name, int entry_index)
     //~ menu_damage = 1;
 }
 
+static void select_menu_recursive(struct menu * selected_menu, const char * entry_name)
+{
+    printf("select_menu %s -> %s\n", selected_menu->name, entry_name);
+
+    /* update selection flag for all entries from this menu */
+    for (struct menu * menu = menus; menu; menu = menu->next)
+    {
+        int menu_selected = (menu == selected_menu);
+
+        if (!IS_SUBMENU(selected_menu))
+        {
+            /* only select the menu if it's at the top level */
+            menu->selected = menu_selected;
+
+            if (menu_selected)
+            {
+                /* update last selected menu (only at the top level); see menu_move */
+                menu_first_by_icon = selected_menu->icon;
+            }
+        }
+
+        if ((menu == selected_menu) && entry_name) 
+        {
+            /* select the requested menu entry from this menu */
+            struct menu_entry * selected_entry = 0;
+            for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
+            {
+                if (streq(entry->name, entry_name))
+                {
+                    selected_entry = entry;
+                    break;
+                }
+            }
+            
+            if (selected_entry)
+            {
+                /* update selection flag for all entries from this menu */
+                for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
+                {
+                    entry->selected = (entry == selected_entry);
+                }
+
+                /* select parent menu entry, if any */
+                if (selected_entry->parent)
+                {
+                    selected_entry = selected_entry->parent;
+                    select_menu_recursive(selected_entry->parent_menu, selected_entry->name);
+                    submenu_level++;
+                }
+            }
+        }
+    }
+}
+
 void select_menu_by_name(char* name, const char* entry_name)
 {
     take_semaphore(menu_sem, 0);
@@ -5554,44 +5608,9 @@ void select_menu_by_name(char* name, const char* entry_name)
 
     if (selected_menu)
     {
-        if (IS_SUBMENU(selected_menu))
-        {
-            /* submenus are hard; you need to select all parents along the way */
-            give_semaphore(menu_sem);
-            return;
-        }
-
-        /* update selection flag for all entries from this menu */
-        for (struct menu * menu = menus; menu; menu = menu->next)
-        {
-            menu->selected = (menu == selected_menu);
-
-            if (menu->selected && entry_name) 
-            {
-                /* process menu entries from the selected menu in a similar way */
-                struct menu_entry * selected_entry = 0;
-                for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
-                {
-                    if (streq(entry->name, entry_name))
-                    {
-                        selected_entry = entry;
-                        break;
-                    }
-                }
-                
-                if (selected_entry)
-                {
-                    /* update selection flag for all entries from this menu */
-                    for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
-                    {
-                        entry->selected = (entry == selected_entry);
-                    }
-                }
-            }
-        }
-
-        /* update other internal state (see menu_move) */
-        menu_first_by_icon = selected_menu->icon;
+        submenu_level = 0;
+        select_menu_recursive(selected_menu, entry_name);
+        beta_set_warned();
     }
 
     give_semaphore(menu_sem);

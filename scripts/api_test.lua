@@ -294,9 +294,8 @@ function test_menu()
     msleep(1000)
 
     -- enter the submenu
-    -- TODO: menu.select should handle submenus as well
+    -- fixme: return value
     assert(menu.select("Intervalometer", "Take a pic every") == false)
-    key.press(KEY.Q)
     msleep(1000)
 
     -- note: setting menu by string works by brute force
@@ -328,8 +327,22 @@ function test_menu()
     msleep(1000)
 
     -- exit submenu
-    key.press(KEY.Q)
+    assert(menu.select("Shoot", "Intervalometer"))
     msleep(1000)
+
+    -- let's try some more submenus
+    -- fixme: return value
+    -- todo: more multi-level submenus
+    assert(menu.select("Advanced Bracket", "Frames") == false); msleep(1000)
+    assert(menu.select("Advanced Bracket", "Sequence") == false); msleep(1000)
+    assert(menu.select("Advanced Bracket", "ISO shifting") == false); msleep(1000)
+    assert(menu.select("Bulb Timer", "Exposure duration") == false); msleep(1000)
+    assert(menu.select("Shoot Preferences", "Snap Simulation") == false); msleep(1000)
+    assert(menu.select("Misc key settings", "Sticky HalfShutter") == false); msleep(1000)
+    assert(menu.select("Play mode actions", "Trigger key(s)") == false); msleep(1000)
+    assert(menu.select("LiveView zoom tweaks", "Zoom on HalfShutter") == false); msleep(1000)
+    assert(menu.select("Lens info", "Lens ID") == false); msleep(1000)
+    assert(menu.select("Shoot", "Intervalometer")); msleep(1000)
 
     -- non-existent menus; should fail
     assert(menu.select("Dinosaur") == false)
@@ -1119,8 +1132,8 @@ function api_tests()
     
     printf("Module tests...\n")
     test_io()
-    test_camera_take_pics()
     test_menu()
+    test_camera_take_pics()
     msleep(1000)
     test_multitasking()
     test_keys()
