@@ -326,13 +326,6 @@ static int is_customize_selected(struct menu * menu) // argument is optional, ju
             .jhidden = 1, \
         },
 
-static MENU_UPDATE_FUNC(menu_placeholder_unused_update)
-{
-    info->custom_drawing = CUSTOM_DRAW_THIS_ENTRY; // do not draw it at all
-    if (entry->selected && !junkie_mode)
-        bmp_printf(FONT(FONT_LARGE, 45, COLOR_BLACK), 250, info->y, "(empty)");
-}
-
 static struct menu_entry my_menu_placeholders[] = {
     MY_MENU_ENTRY
     MY_MENU_ENTRY
@@ -3085,11 +3078,11 @@ dyn_menu_rebuild(struct menu * dyn_menu, int (*select_func)(struct menu_entry * 
         dyn_entry->shidden = 1;
         dyn_entry->hidden = 1;
         dyn_entry->jhidden = 1;
-        dyn_entry->name = 0;
+        dyn_entry->name = "(empty)";
         dyn_entry->priv = 0;
         dyn_entry->select = 0;
         dyn_entry->select_Q = 0;
-        dyn_entry->update = menu_placeholder_unused_update;
+        dyn_entry->update = 0;
     }
     
     return 1; // success
@@ -3753,7 +3746,8 @@ show_hidden_items(struct menu * menu, int force_clear)
 
         for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
         {
-            if (HAS_HIDDEN_FLAG(entry) && entry->name)
+            /* fixme: check without streq */
+            if (HAS_HIDDEN_FLAG(entry) && !streq(entry->name, "(empty)"))
             {
                 if (hidden_count) { STR_APPEND(hidden_msg, ", "); }
                 int len = strlen(hidden_msg);
