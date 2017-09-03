@@ -43,6 +43,9 @@ typedef struct
 static struct semaphore *alloc_sem = 0;
 static struct semaphore *free_sem = 0;
 
+/* for SRM - to know whether somebody called shoot_malloc_suite(0) or not */
+static GUARDED_BY(mem_sem) struct memSuite *shoot_full_suite = 0;
+
 int GetNumberOfChunks(struct memSuite *suite)
 {
     CHECK_SUITE_SIGNATURE(suite);
@@ -73,6 +76,11 @@ static void freeCBR_nowait(unsigned int a)
 REQUIRES(mem_sem)
 void _shoot_free_suite(struct memSuite *hSuite)
 {
+    if (hSuite == shoot_full_suite)
+    {
+        shoot_full_suite = 0;
+    }
+
     if (hSuite != NULL)
     {
         // FreeMemoryResource is not null pointer safe on D678, crashes
@@ -302,7 +310,8 @@ struct memSuite *_shoot_malloc_suite(size_t size)
         
         /* allocating max_size + backup_size was reported to fail sometimes */
         struct memSuite * hSuite = shoot_malloc_suite_int(max_size + backup_size - 1024 * 1024, 1);
-        
+
+        shoot_full_suite = hSuite;
         return hSuite;
     }
 }
@@ -449,7 +458,8 @@ static GUARDED_BY(mem_sem) int srm_allocated = 0;
 static GUARDED_BY(mem_sem) struct
 {
     void *buffer;
-    int used;
+    int used: 1;
+    int use_after_free: 1;
 } srm_buffers[16] = {{0}};
 
 /* used to know when allocation was done */
@@ -544,6 +554,26 @@ void srm_alloc_internal()
             /* (we still need the lock active while allocating, to pass the race condition test) */
             srm_shutter_unlock();
 
+            /* free the first buffer to avoid the BUSY screen and its side effects */
+            /* fixme: how to allocate the entire SRM memory without this issue? */
+            SRM_FreeMemoryResourceFor1stJob(srm_buffers[0].buffer, 0, 0);
+
+            if (shoot_full_suite)
+            {
+                /* using this buffer appears to be safe as long as the Shoot memory is fully allocated
+                 * that way, Canon code will not be able to start H.264 recording, take pictures
+                 * or - hopefully - perform other actions that would require changing the memory layout
+                 * or allocating large amounts of memory (to be checked) */
+                printf("[SRM] use-after-free %x\n", srm_buffers[0].buffer);
+                srm_buffers[0].use_after_free = 1;
+            }
+            else
+            {
+                /* discard this buffer - possibly unsafe */
+                printf("[SRM] not using %x\n", srm_buffers[0].buffer);
+                srm_buffers[0].buffer = 0;
+            }
+
             break;
         }
 
@@ -568,13 +598,20 @@ void srm_free_internal()
     printf("[SRM] free all buffers\n");
 
     /* free all SRM buffers */
+    /* note: first buffer is use-after-free */
     for (int i = 0; i < COUNT(srm_buffers); i++)
     {
         if (srm_buffers[i].buffer)
         {
             ASSERT(!srm_buffers[i].used);
-            SRM_FreeMemoryResourceFor1stJob(srm_buffers[i].buffer, 0, 0);
+
+            if (!srm_buffers[i].use_after_free)
+            {
+                SRM_FreeMemoryResourceFor1stJob(srm_buffers[i].buffer, 0, 0);
+            }
+
             srm_buffers[i].buffer = 0;
+            srm_buffers[i].use_after_free = 0;
         }
     }
 
@@ -600,7 +637,8 @@ struct memSuite * _srm_malloc_suite(int num_requested_buffers)
     /* pack the buffers into a memory suite, so they can be used in the same way as with shoot_malloc_suite */
     struct memSuite *suite = 0;
 
-    for (int i = 0; i < COUNT(srm_buffers) && num_requested_buffers; i++)
+    /* note: buffer 0 is use-after-free; try the others first */
+    for (int i = COUNT(srm_buffers) - 1; i >= 0 && num_requested_buffers; i--)
     {
         if (srm_buffers[i].buffer && !srm_buffers[i].used)
         {
@@ -654,7 +692,7 @@ void _srm_free_suite(struct memSuite *suite)
         /* mark each chunk as free in our internal SRM buffer list */
         void* buf = GetMemoryAddressOfMemoryChunk(chunk);
 
-        for (int i = 0; i < COUNT(srm_buffers); i++)
+        for (int i = COUNT(srm_buffers) - 1; i >= 0; i--)
         {
             if (srm_buffers[i].buffer == buf)
             {
@@ -683,8 +721,9 @@ void* _srm_malloc(size_t size)
     srm_alloc_internal();
 
     /* find the first unused buffer */
+    /* note: buffer 0 is use-after-free; try the others first */
     void *buffer = 0;
-    for (int i = 0; i < COUNT(srm_buffers); i++)
+    for (int i = COUNT(srm_buffers) - 1; i >= 0; i--)
     {
         if (srm_buffers[i].buffer && !srm_buffers[i].used)
         {
@@ -713,7 +752,7 @@ void _srm_free(void* ptr)
         return;
 
     /* identify the buffer from its pointer, and mark it as unused */
-    for (int i = 0; i < COUNT(srm_buffers); i++)
+    for (int i = COUNT(srm_buffers) - 1; i >= 0; i--)
     {
         if (srm_buffers[i].used && srm_buffers[i].buffer == ptr)
         {
@@ -728,7 +767,7 @@ void _srm_free(void* ptr)
 REQUIRES(mem_sem)
 int _srm_get_max_region()
 {
-    for (int i = 0; i < COUNT(srm_buffers); i++)
+    for (int i = COUNT(srm_buffers) - 1; i >= 0; i--)
     {
         if (srm_buffers[i].buffer && !srm_buffers[i].used)
         {
@@ -744,7 +783,7 @@ int _srm_get_free_space()
 {
     int free_space = 0;
 
-    for (int i = 0; i < COUNT(srm_buffers); i++)
+    for (int i = COUNT(srm_buffers) - 1; i >= 0; i--)
     {
         if (srm_buffers[i].buffer && !srm_buffers[i].used)
         {
