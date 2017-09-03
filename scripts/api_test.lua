@@ -342,6 +342,32 @@ function test_menu()
     assert(menu.select("Lens info", "Lens ID")); msleep(1000)
     assert(menu.select("Shoot", "Intervalometer")); msleep(1000)
 
+    -- selection in the Modified menu
+    -- note: we have already modified "Take a pic every"
+    -- so at least this setting should appear there
+    assert(menu.set("Shoot", "Intervalometer", "ON")); msleep(1000)
+    assert(menu.select("Modified", "Intervalometer")); msleep(1000)             -- we should find Intervalometer in the Modified menu
+    assert(menu.select("Modified", "Take a pic every")); msleep(1000)           -- same for "Take pic every" (smaller font)
+    assert(menu.select("Modified", "Intervalometer")); msleep(1000)             -- scroll back to intervalometer
+    assert(menu.set("Shoot", "Intervalometer", "OFF")); msleep(1000)            -- turn it off
+    assert(menu.select("Modified", "Take a pic every") == false); msleep(1000)  -- now "Take a pic every" should disappear (submenus are only expanded when the main entry is on)
+    assert(menu.set("Shoot", "Intervalometer", "ON")); msleep(1000)             -- re-enable intervalometer
+    assert(menu.select("Modified", "Take a pic every")); msleep(1000)           -- now "Take a pic every" should re-appear
+    assert(menu.set("Intervalometer", "Take a pic every", 10)); msleep(1000)    -- set "Take a pic every" back to default
+    assert(menu.select("Modified", "Intervalometer")); msleep(1000)             -- scroll back to intervalometer
+    assert(menu.set("Shoot", "Intervalometer", "OFF")); msleep(1000)            -- turn it off
+    assert(menu.select("Modified", "Take a pic every") == false); msleep(1000)  -- now "Take a pic every" should disappear
+    assert(menu.select("Shoot", "Intervalometer")); msleep(1000)                -- move back to Shoot -> Intervalometer
+    assert(menu.select("Intervalometer", "Take a pic every")); msleep(1000)     -- set other intervalometer settings to default (just in case)
+    assert(menu.select("Intervalometer", "Start trigger")); msleep(1000)        -- the menu.select calls are just for visual effect
+    assert(menu.set("Intervalometer", "Start trigger", "Leave Menu")); msleep(500);
+    assert(menu.select("Intervalometer", "Start after")); msleep(500)
+    assert(menu.set("Intervalometer", "Start after", "3s")); msleep(500);
+    assert(menu.select("Intervalometer", "Stop after")); msleep(500)
+    assert(menu.set("Intervalometer", "Stop after", "Disabled")); msleep(500);
+    assert(menu.select("Shoot", "Intervalometer")); msleep(1000)
+    assert(menu.select("Modified", "Intervalometer") == false); msleep(1000)    -- now Modified -> Intervalometer should disappear
+
     -- non-existent menus; should fail
     assert(menu.select("Dinosaur") == false)
     assert(menu.select("Shoot", "Crocodile") == false)

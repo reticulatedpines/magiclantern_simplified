@@ -5610,7 +5610,8 @@ static void select_menu_recursive(struct menu * selected_menu, const char * entr
                 }
 
                 /* select parent menu entry, if any */
-                if (selected_entry->parent)
+                /* (don't do this in dynamic menus) */
+                if (selected_entry->parent && menu != mod_menu && menu != my_menu)
                 {
                     selected_entry = selected_entry->parent;
                     select_menu_recursive(selected_entry->parent_menu, selected_entry->name);
@@ -5641,7 +5642,12 @@ void select_menu_by_name(char* name, const char* entry_name)
     {
         submenu_level = 0;
         select_menu_recursive(selected_menu, entry_name);
+
+        /* make sure it won't display the startup screen */
         beta_set_warned();
+
+        /* rebuild the modified settings menu */
+        mod_menu_dirty = 1;
     }
 
     give_semaphore(menu_sem);
