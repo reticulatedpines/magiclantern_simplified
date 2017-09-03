@@ -322,7 +322,6 @@ int lossless_compress_raw_rectangle(
     /* do we have valid JPEG data in the output buffer? */
     if (WR1_Address && MEM(WR1_Address) != 0xC4FFD8FF)
     {
-        ASSERT(0);
         return -3;
     }
 

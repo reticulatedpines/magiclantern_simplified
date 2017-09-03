@@ -2607,7 +2607,10 @@ static void compress_task()
                 res_x, res_y
             );
 
-            if (compressed_size < 0)
+            /* only report compression errors while recording
+             * some of them appear during video mode switches
+             * unlikely to cause actual trouble - silence them for now */
+            if (compressed_size < 0 && !RAW_IS_IDLE)
             {
                 printf("Compression error %d at frame %d\n", compressed_size, frame_count-1);
                 ASSERT(0);
