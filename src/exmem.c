@@ -803,3 +803,60 @@ static void exmem_init()
 }
 
 INIT_FUNC("exmem", exmem_init);
+
+
+//#define CONFIG_RSCMGR_UNUSED_SPACE_TEST
+
+#ifdef CONFIG_RSCMGR_UNUSED_SPACE_TEST
+    #ifndef CONFIG_MARK_UNUSED_MEMORY_AT_STARTUP
+    #error This requires CONFIG_MARK_UNUSED_MEMORY_AT_STARTUP
+    #endif
+
+#include "console.h"
+
+static void test_unused_buffer(uint32_t start, uint32_t end)
+{
+    printf("Testing %08X - %08X ...\n", start, end);
+    for (uint32_t a = start; a < end; a += 4)
+    {
+        if (MEM(a) != 0x124B1DE0)
+        {
+            /* find the memory range that appears used */
+            /* ignore unused gaps < 1K */
+            int count = 1024;
+            uint32_t b = a;
+            uint32_t c = a;
+            while (count-- && b < end)
+            {
+                b += 4;
+                if (MEM(b) != 0x124B1DE0)
+                {
+                    count = 1024;
+                    c = b;
+                }
+            }
+            console_show();
+            printf("%x ... %x: used\n", a, c);
+            a = c + 4;
+        }
+    }
+}
+
+static void rscmgr_test_unused_space()
+{
+    while(1)
+    {
+        if (srm_buffers[0].buffer)
+        {
+            ASSERT(srm_buffers[0].use_after_free);
+            uint32_t start = (uint32_t) srm_buffers[0].buffer;
+            uint32_t end = start + SRM_BUFFER_SIZE;
+            test_unused_buffer(start, end);
+        }
+
+        msleep(1000);
+    }
+}
+
+TASK_CREATE("rscmgr_test", rscmgr_test_unused_space, 0, 0x1f, 0);
+#endif
