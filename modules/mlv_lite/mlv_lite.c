@@ -277,6 +277,7 @@ static GUARDED_BY(settings_sem) int max_frame_size = 0;
 static GUARDED_BY(settings_sem) int frame_size_uncompressed = 0;
 static GUARDED_BY(settings_sem) int configured_max_frame_size = 0;
 static GUARDED_BY(settings_sem) int configured_fullres_buf_size = 0;
+static GUARDED_BY(settings_sem) int configured_pre_recording_settings = 0;
 
 static GUARDED_BY(LiveViewTask) int skip_x = 0;
 static GUARDED_BY(LiveViewTask) int skip_y = 0;
@@ -1417,6 +1418,7 @@ void free_buffers()
     /* invalidate current buffers */
     configured_max_frame_size = 0;
     configured_fullres_buf_size = 0;
+    configured_pre_recording_settings = 0;
     total_slot_count = 0;
     valid_slot_count = 0;
 
@@ -1474,8 +1476,11 @@ int setup_buffers()
      */
     int fullres_buf_size = raw_info.width * (raw_info.height + 2) * BPP/8;
 
+    int pre_recording_settings = pre_record | (rec_trigger << 8);
+
     if (configured_max_frame_size == max_frame_size &&
-        configured_fullres_buf_size == fullres_buf_size)
+        configured_fullres_buf_size == fullres_buf_size &&
+        configured_pre_recording_settings == pre_recording_settings)
     {
         /* current configuration still valid, nothing to do */
         return 2;
@@ -1570,6 +1575,7 @@ int setup_buffers()
 
     configured_max_frame_size = max_frame_size;
     configured_fullres_buf_size = fullres_buf_size;
+    configured_pre_recording_settings = pre_recording_settings;
     return 1;
 }
 
