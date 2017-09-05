@@ -402,8 +402,12 @@ int _shoot_get_free_space()
         return 0;
     }
 
-    /* fixme: should fail quickly when shoot memory is full */
-    /* performing test allocations is usually very slow */
+    if (shoot_full_suite)
+    {
+        return 0;
+    }
+
+    /* fixme: report actual size (how?) */
     return (int)(31.5 * 1024 * 1024);
 }
 
@@ -767,6 +771,12 @@ void _srm_free(void* ptr)
 REQUIRES(mem_sem)
 int _srm_get_max_region()
 {
+    if (!srm_allocated)
+    {
+        /* assume we have at least one buffer */
+        return SRM_BUFFER_SIZE;
+    }
+
     for (int i = COUNT(srm_buffers) - 1; i >= 0; i--)
     {
         if (srm_buffers[i].buffer && !srm_buffers[i].used)
@@ -781,6 +791,12 @@ int _srm_get_max_region()
 REQUIRES(mem_sem)
 int _srm_get_free_space()
 {
+    if (!srm_allocated)
+    {
+        /* assume we have at least one buffer */
+        return SRM_BUFFER_SIZE;
+    }
+
     int free_space = 0;
 
     for (int i = COUNT(srm_buffers) - 1; i >= 0; i--)
@@ -791,7 +807,6 @@ int _srm_get_free_space()
         }
     }
 
-    /* assume we have at least one buffer */
     return free_space;
 }
 
