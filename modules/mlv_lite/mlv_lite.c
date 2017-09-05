@@ -3398,6 +3398,9 @@ void raw_video_rec_task()
         void* ptr = slots[first_slot].ptr;
 
         /* mark these frames as "writing" */
+        /* also recompute group_size, as the group might be smaller than initially selected */
+        group_size = 0;
+    
         for (int i = w_head; i != after_last_grouped; INC_MOD(i, COUNT(writing_queue)))
         {
             int slot_index = writing_queue[i];
@@ -3411,7 +3414,9 @@ void raw_video_rec_task()
                 bmp_printf(FONT_LARGE, 30, 70, "Slot check error");
                 beep();
             }
+
             slots[slot_index].status = SLOT_WRITING;
+            group_size += slots[slot_index].size;
         }
 
         int t0 = get_ms_clock();
