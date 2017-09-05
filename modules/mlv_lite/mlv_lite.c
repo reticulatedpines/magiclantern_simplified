@@ -1925,9 +1925,16 @@ unsigned int raw_rec_polling_cbr(unsigned int unused)
     static int realloc = 0;
     int current_state =
         (raw_video_active   ? 1 : 0) |      /* force realloc when re-enabling */
-        (RECORDING_H264     ? 2 : 0) |      /* this one can be tricky */
-      //(lv_dispsize == 1   ? 4 : 0) |      /* needed? */
-        (pic_quality << 8)           ;
+        (RECORDING_H264     ? 2 : 0) ;      /* this one can be tricky */
+      //(lv_dispsize == 1   ? 4 : 0) ;      /* needed? */
+
+    /* changing video mode or picture quality
+     * may also require reallocation
+     * squeeze everything here (a bit hackish) */
+    current_state ^= (pic_quality << 4);
+    current_state ^= (video_mode_resolution << 8);
+    current_state ^= (video_mode_fps << 16);
+    current_state ^= (video_mode_crop << 24);
 
     if (current_state != prev_state)
     {
@@ -1950,7 +1957,7 @@ unsigned int raw_rec_polling_cbr(unsigned int unused)
     }
 
     /* reallocate buffers if needed (only if not recording) */
-    if (realloc && (RAW_IS_IDLE || RAW_IS_PREPARING))
+    if (realloc && (RAW_IS_IDLE || RAW_IS_PREPARING) && gui_state == GUISTATE_IDLE)
     {
         gui_uilock(UILOCK_EVERYTHING);
         take_semaphore(settings_sem, 0);
