@@ -46,6 +46,7 @@
 #include "../lv_rec/lv_rec.h"
 #include "../raw_twk/raw_twk.h"
 #include "../silent/lossless.h"
+#include "console.h"
 
 /* uncomment for live debug messages */
 //~ #define trace_write(trace, fmt, ...) { printf(fmt, ## __VA_ARGS__); printf("\n"); msleep(500); }
@@ -1375,6 +1376,56 @@ static void mlv_play_close_chunks(FILE **chunk_files, uint32_t chunk_count)
     }
 }
 
+/* just don't run it on overexposed footage :) */
+static void check_dup_frame(frame_buf_t *buffer)
+{
+    /* extremely unlikely to get identical values
+     * in subsequent frames, because of the noise
+     * exception: overexposed areas
+     * checking a small number of pixels should be
+     * enough for non-overexposed footage, and very fast */
+
+    struct sample
+    {
+        int pixels[5][5];
+    } __attribute__((packed));
+
+    /* store a small sample from current frame and also last 3 frames */
+    static struct sample prev_samples[4] = {
+        { { { -1 } } },
+        { { { -2 } } },
+        { { { -3 } } },
+        { { { -4 } } },
+    };
+
+    prev_samples[3] = prev_samples[2];
+    prev_samples[2] = prev_samples[1];
+    prev_samples[1] = prev_samples[0];
+
+    /* sample the current frame (all channels) */
+    for (int i = -2; i <= 2; i++)
+    {
+        for (int j = -2; j <= 2; j++)
+        {
+            prev_samples[0].pixels[i+2][j+2] = 
+                raw_get_pixel_ex(
+                    buffer->frameBufferAligned,
+                    buffer->xRes / 2 + j * 49,
+                    buffer->yRes / 2 + i * 49
+                );
+        }
+    }
+
+    /* compare current frame with past samples */
+    for (int i = 1; i <= 3; i++)
+    {
+        if (memcmp(&prev_samples[0], &prev_samples[i], sizeof(prev_samples[0])) == 0)
+        {
+            printf("Duplicate frame (%d)\n", i);
+        }
+    }
+}
+
 static void mlv_play_render_frame(frame_buf_t *buffer)
 {
     raw_info.buffer = buffer->frameBufferAligned;
@@ -1392,6 +1443,11 @@ static void mlv_play_render_frame(frame_buf_t *buffer)
     else
     {
         raw_preview_fast_ex((void*)-1,(void*)-1,-1,-1,mlv_play_quality);
+
+        if (!mlv_play_paused)
+        {
+            check_dup_frame(buffer);
+        }
     }
 }
 
