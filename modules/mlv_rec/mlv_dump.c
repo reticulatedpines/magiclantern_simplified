@@ -4043,12 +4043,14 @@ read_headers:
                 {
                     print_msg(MSG_INFO, "Got a new RAWI, throwing away average buffers etc.\n");
                     free(frame_arith_buffer);
+                    frame_arith_buffer = NULL;
                 }
                 
                 if(prev_frame_buffer)
                 {
                     print_msg(MSG_INFO, "Got a new RAWI, throwing away previous frame buffers etc.\n");
                     free(prev_frame_buffer);
+                    prev_frame_buffer = NULL;
                 }
                 
                 frame_arith_buffer = malloc(frame_size * sizeof(uint32_t));
