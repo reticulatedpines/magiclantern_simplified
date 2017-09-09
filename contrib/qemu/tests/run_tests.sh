@@ -2,6 +2,10 @@
 
 # Emulator tests
 # This also shows the emulation state on various cameras
+# usage: 
+#   ./run_test.sh                   # test all models
+#   ./run_test.sh 5D3 EOSM EOSM3    # test only specific models
+
 
 EOS_CAMS=( 5D 5D2 5D3 5D4 6D 7D 7D2M
            40D 50D 60D 70D 80D
@@ -17,14 +21,17 @@ SD_CAMS=( 5D3 5D4 6D 60D 70D 80D 450D 500D 550D 600D 650D 700D 750D 760D
            100D 1000D 1100D 1200D 1300D EOSM EOSM2 )
 CF_CAMS=( 5D 5D2 5D3 5D4 7D 7D2M 40D 50D 400D )
 
-if false ; then
-    # to test only specific models
-    EOS_CAMS=(1300D)
-    POWERSHOT_CAMS=(EOSM3)
-    GUI_CAMS=(1300D)
-    SD_CAMS=(1300D)
-    CF_CAMS=()
-    EOS_SECONDARY_CORES=()
+
+if (( $# > 0 )); then
+    # arguments present? test only these models
+    # fixme: nicer way to do the same? (intersection between arguments and the lists of supported models)
+    REQ_CAMS=( $* )
+    EOS_CAMS=($(join <(printf %s\\n "${REQ_CAMS[@]}" | sort -u) <(printf %s\\n "${EOS_CAMS[@]}" | sort -u) | sort -n))
+    POWERSHOT_CAMS=($(join <(printf %s\\n "${REQ_CAMS[@]}" | sort -u) <(printf %s\\n "${POWERSHOT_CAMS[@]}" | sort -u) | sort -n))
+    GUI_CAMS=($(join <(printf %s\\n "${REQ_CAMS[@]}" | sort -u) <(printf %s\\n "${GUI_CAMS[@]}" | sort -u) | sort -n))
+    SD_CAMS=($(join <(printf %s\\n "${REQ_CAMS[@]}" | sort -u) <(printf %s\\n "${SD_CAMS[@]}" | sort -u) | sort -n))
+    CF_CAMS=($(join <(printf %s\\n "${REQ_CAMS[@]}" | sort -u) <(printf %s\\n "${CF_CAMS[@]}" | sort -u) | sort -n))
+    EOS_SECONDARY_CORES=($(join <(printf %s\\n "${REQ_CAMS[@]}" | sort -u) <(printf %s\\n "${EOS_SECONDARY_CORES[@]}" | sort -u) | sort -n))
 fi
 
 declare -A MENU_SEQUENCE
