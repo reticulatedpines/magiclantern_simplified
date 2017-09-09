@@ -1,5 +1,5 @@
 diff --git a/cpu-exec.c b/cpu-exec.c
-index c88d0ff..0c0b3ef 100644
+index c88d0ff..4395bb3 100644
 --- a/cpu-exec.c
 +++ b/cpu-exec.c
 @@ -31,6 +31,7 @@
@@ -27,7 +27,7 @@ index c88d0ff..0c0b3ef 100644
  /* main execution loop */
  
  int cpu_exec(CPUState *cpu)
-@@ -500,8 +511,23 @@ int cpu_exec(CPUState *cpu)
+@@ -500,8 +511,28 @@ int cpu_exec(CPUState *cpu)
                      tcg_ctx.tb_ctx.tb_invalidated_flag = 0;
                  }
                  if (qemu_loglevel_mask(CPU_LOG_EXEC)) {
@@ -37,10 +37,15 @@ index c88d0ff..0c0b3ef 100644
 +                        /* separate translation blocks by newlines */
 +                        qemu_log("\n");
 +                    }
-+                    if (CPU_NEXT(first_cpu)) {
-+                        qemu_log("[CPU%d] ", current_cpu->cpu_index);
++                    /* some instructions are printed more than once, not sure why */
++                    static int prev_pc = -1;
++                    if (tb->pc != prev_pc) {
++                        prev_pc = tb->pc;
++                        if (CPU_NEXT(first_cpu)) {
++                            qemu_log("[CPU%d] ", current_cpu->cpu_index);
++                        }
++                        log_target_disas(cpu, tb->pc, tb->size, 0);
 +                    }
-+                    log_target_disas(cpu, tb->pc, tb->size, 0);
 +#else
                      qemu_log("Trace %p [" TARGET_FMT_lx "] %s\n",
                               tb->tc_ptr, tb->pc, lookup_symbol(tb->pc));
