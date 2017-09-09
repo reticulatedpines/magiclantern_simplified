@@ -32,17 +32,17 @@ load_default_date_time_log
 macro define RTC_VALID_FLAG (*(int*)0x3E9F8)
 
 if 0
-    b *0x6ab8
-    take_semaphore_log
+  b *0x6958
+  create_semaphore_log
 
-    b *0x6ba4
-    give_semaphore_log
+  b *0x69b4
+  create_semaphore_log
 
-    b *0x6958
-    create_semaphore_log
+  b *0x6ab8
+  take_semaphore_log
 
-    b *0x69b4
-    create_semaphore_log
+  b *0x6ba4
+  give_semaphore_log
 end
 
 continue

@@ -21,23 +21,28 @@ task_create_log
 b *0x83B8
 register_interrupt_log
 
-b *0x8420
-create_semaphore_log
-
-b *0x847C
-create_semaphore_log
-
-b *0x84C8
-delete_semaphore_log
-
-b *0x8580
-take_semaphore_log
-
-b *0x866C
-give_semaphore_log
-
 # 1.2.3
-b *0xFF13B674
-register_func_log
+if *(int*)0xFF136C94 == 0xE92D403E
+  b *0xFF13B674
+  register_func_log
+end
+
+# semaphores
+if 0
+  b *0x8420
+  create_semaphore_log
+
+  b *0x847C
+  create_semaphore_log
+
+  b *0x84C8
+  delete_semaphore_log
+
+  b *0x8580
+  take_semaphore_log
+
+  b *0x866C
+  give_semaphore_log
+end
 
 cont

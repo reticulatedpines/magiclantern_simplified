@@ -17,11 +17,14 @@ macro define CURRENT_ISR  (*(int*)0x664 ? (*(int*)0x668) >> 2 : 0)
 b *0xFF069E2C
 task_create_log
 
-b *0xFF18A884
-mpu_send_log
+# MPU communication
+if 0
+  b *0xFF18A884
+  mpu_send_log
 
-b *0xFF05C1F0
-mpu_recv_log
+  b *0xFF05C1F0
+  mpu_recv_log
+end
 
 b *0xFF064520
 load_default_date_time_log
