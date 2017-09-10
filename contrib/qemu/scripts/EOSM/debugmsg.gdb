@@ -21,6 +21,9 @@ assert_log
 b *0x7048
 task_create_log
 
+b *0x68F0
+register_interrupt_log
+
 if 0
   b *0x6958
   create_semaphore_log

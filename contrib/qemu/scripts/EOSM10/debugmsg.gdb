@@ -14,4 +14,7 @@ msleep_log
 b *0x10E1009
 assert_log
 
+b *0xBFE14F04
+register_interrupt_log
+
 continue

@@ -21,4 +21,7 @@ assert_log
 b *0x7360
 task_create_log
 
+b *0x6C08
+register_interrupt_log
+
 continue

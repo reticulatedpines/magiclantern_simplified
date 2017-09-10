@@ -17,6 +17,9 @@ macro define CURRENT_ISR  (*(int*)0x670 ? (*(int*)0x674) >> 2 : 0)
 b *0xFF06FAF4
 task_create_log
 
+b *0xFF1E8630
+register_interrupt_log
+
 b *0xFF1D34CC
 SetEDmac_log
 

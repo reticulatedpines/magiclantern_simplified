@@ -21,4 +21,7 @@ assert_log
 b *0x6868
 task_create_log
 
+b *0x13344
+register_interrupt_log
+
 cont

@@ -18,6 +18,9 @@ macro define CURRENT_ISR  (*(int*)0x670 ? (*(int*)0x674) >> 2 : 0)
 b *0xFF06EABC
 task_create_log
 
+b *0xFF1D68C0
+register_interrupt_log
+
 # MPU communication
 if 0
   b *0xFF1BF26C

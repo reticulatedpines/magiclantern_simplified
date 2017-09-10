@@ -21,4 +21,7 @@ task_create_log
 b *0x3CBC
 assert_log
 
+b *0x2E50
+register_interrupt_log
+
 cont

@@ -756,11 +756,13 @@ for CAM in ${EOS_CAMS[*]} ${EOS_SECONDARY_CORES[*]} ${POWERSHOT_CAMS[*]}; do
      arm-none-eabi-gdb -x $CAM/debugmsg.gdb &) &> tests/$CAM/gdb.log
     sleep 0.5
     ( timeout 2 tail -f -n100000 tests/$CAM/gdb.log & ) | grep --binary-files=text -qP "task_create\("
-    sleep 1
+    sleep 2
     kill_qemu
 
     tac tests/$CAM/gdb.log > tmp
     tests/check_grep.sh tmp -Em1 "task_create\("
+    echo -n "       "
+    tests/check_grep.sh tmp -Em1 "register_interrupt\([^n]"
 done
 
 # re-create the card images, just in case

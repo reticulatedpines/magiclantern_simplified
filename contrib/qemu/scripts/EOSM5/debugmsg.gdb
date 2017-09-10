@@ -9,6 +9,9 @@ macro define NUM_CORES 2
 b *0xDFFC93A2
 task_create_log
 
+b *0xDFFCCAFC
+register_interrupt_log
+
 # infinite loop, not sure what it does
 b *0xE0008266
 commands
