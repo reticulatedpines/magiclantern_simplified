@@ -2,6 +2,7 @@
 # ./run_canon_fw.sh 650D -d debugmsg -s -S & arm-none-eabi-gdb -x 650D/debugmsg.gdb
 
 source -v debug-logging.gdb
+source -v 650D/patches.gdb
 
 # To get debugging symbols from Magic Lantern, uncomment this:
 #symbol-file ../magic-lantern/platform/650D.104/magiclantern
@@ -19,9 +20,5 @@ assert_log
 
 b *0x6868
 task_create_log
-
-# patch I2C_Write to always return 1 (success)
-set *(int*)0xFF341F94 = 0xe3a00001
-set *(int*)0xFF341F98 = 0xe12fff1e
 
 cont

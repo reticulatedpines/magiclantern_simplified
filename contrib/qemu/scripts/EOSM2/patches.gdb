@@ -1,11 +1,7 @@
 # ./run_canon_fw.sh EOSM2 -s -S & arm-none-eabi-gdb -x EOSM2/patches.gdb
 # Only patches required for emulation
-# fixme: duplicate code
 
-source -v debug-logging.gdb
-
-macro define CURRENT_TASK 0x8FBCC
-macro define CURRENT_ISR  (*(int*)0x648 ? (*(int*)0x64C) >> 2 : 0)
+source patch-header.gdb
 
 # patch DL to avoid DL ERROR messages
 set *(int*)0xFF156348 = 0xe3a00015
@@ -31,4 +27,4 @@ commands
   c
 end
 
-continue
+source patch-footer.gdb

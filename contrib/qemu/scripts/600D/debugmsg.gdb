@@ -2,6 +2,7 @@
 # ./run_canon_fw.sh 600D -d debugmsg -s -S & arm-none-eabi-gdb -x 600D/debugmsg.gdb
 
 source -v debug-logging.gdb
+source -v 600D/patches.gdb
 
 # To get debugging symbols from Magic Lantern, uncomment this:
 #symbol-file ../magic-lantern/platform/600D.102/magiclantern
@@ -43,9 +44,5 @@ if 0
   b *0xFF1F5B0C
   receive_msg_queue_log
 end
-
-b *0xFF069E6C
-load_default_date_time_log
-macro define RTC_VALID_FLAG (*(int*)0x2744)
 
 cont

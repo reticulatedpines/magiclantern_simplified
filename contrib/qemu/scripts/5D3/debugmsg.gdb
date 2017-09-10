@@ -3,6 +3,7 @@
 # unless otherwise specified, these are valid for both 1.1.3 and 1.2.3
 
 source -v debug-logging.gdb
+source -v 5D3/patches.gdb
 
 # To get debugging symbols from Magic Lantern, uncomment this:
 #symbol-file ../magic-lantern/platform/5D3.113/magiclantern

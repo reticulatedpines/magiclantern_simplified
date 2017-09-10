@@ -2,6 +2,7 @@
 # ./run_canon_fw.sh 80D -d debugmsg -s -S & arm-none-eabi-gdb -x 80D/debugmsg.gdb
 
 source -v debug-logging.gdb
+source -v 80D/patches.gdb
 
 # To get debugging symbols from Magic Lantern, uncomment this:
 #symbol-file ../magic-lantern/platform/80D.102/magiclantern
@@ -27,8 +28,5 @@ commands
   printf "Memory region: start=%08X end=%08X flags=%08X\n", $r0, $r1, $r2
   c
 end
-
-# infinite loop (memory regions related?)
-set *(int*)0xFE237EB0 = 0x4770
 
 cont

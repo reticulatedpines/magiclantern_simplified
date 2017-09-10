@@ -2,6 +2,7 @@
 # ./run_canon_fw.sh 60D -d debugmsg -s -S & arm-none-eabi-gdb -x 60D/debugmsg.gdb
 
 source -v debug-logging.gdb
+source -v 60D/patches.gdb
 
 # To get debugging symbols from Magic Lantern, uncomment this:
 #symbol-file ../magic-lantern/platform/60D.111/magiclantern

@@ -2,6 +2,7 @@
 # ./run_canon_fw.sh 500D -d debugmsg -s -S & arm-none-eabi-gdb -x 500D/debugmsg.gdb
 
 source -v debug-logging.gdb
+source -v 500D/patches.gdb
 
 # To get debugging symbols from Magic Lantern, uncomment this:
 #symbol-file ../magic-lantern/platform/500D.111/magiclantern
@@ -25,10 +26,5 @@ if 0
   b *0xFF05C1F0
   mpu_recv_log
 end
-
-b *0xFF064520
-load_default_date_time_log
-macro define RTC_VALID_FLAG (*(int*)0x2BC4)
-
 
 cont
