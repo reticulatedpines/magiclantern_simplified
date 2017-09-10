@@ -395,6 +395,7 @@ unsigned int eos_trigger_int(EOSState *s, unsigned int id, unsigned int delay);
 unsigned int flash_get_blocksize(unsigned int rom, unsigned int size, unsigned int word_offset);
 
 void eos_load_image(EOSState *s, const char* file, int offset, int max_size, uint32_t addr, int swap_endian);
+const char * eos_get_cam_path(EOSState *s, const char * file_rel);
 
 void io_log(const char * module_name, EOSState *s, unsigned int address, unsigned char type, unsigned int in_value, unsigned int out_value, const char * msg, intptr_t msg_arg1, intptr_t msg_arg2);
 
