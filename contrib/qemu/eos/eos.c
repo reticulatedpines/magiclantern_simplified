@@ -339,22 +339,29 @@ void eos_mem_write(EOSState *s, hwaddr addr, void * buf, int size)
     cpu_physical_memory_write(addr, buf, size);
 }
 
-void eos_load_image(EOSState *s, const char * file_rel, int offset, int max_size, uint32_t addr, int swap_endian)
+static const char * eos_get_cam_path(EOSState *s, const char * file_rel)
 {
     /* all files are loaded from $QEMU_EOS_WORKDIR/CAM/ */
     /* or $QEMU_EOS_WORKDIR/CAM/FIRM_VER/ if specified */
-    char file[1024];
+    static char file[1024];
 
     if (s->model->firmware_version)
     {
-        /* load from the firmware version directory */
+        /* load from the firmware version directory, if specified */
         snprintf(file, sizeof(file), "%s/%s/%d/%s", s->workdir, s->model->name, s->model->firmware_version, file_rel);
     }
     else
     {
-        /* second try, from the camera directory (some files may be common) */
+        /* or from the camera directory, if no firmware version is specified */
         snprintf(file, sizeof(file), "%s/%s/%s", s->workdir, s->model->name, file_rel);
     }
+
+    return file;
+}
+
+void eos_load_image(EOSState *s, const char * file_rel, int offset, int max_size, uint32_t addr, int swap_endian)
+{
+    const char * file = eos_get_cam_path(s, file_rel);
 
     int size = get_image_size(file);
     if (size < 0)
@@ -1331,8 +1338,7 @@ static void eos_init_common(MachineState *machine)
     /* nkls: init SF */
     if (s->model->serial_flash_size)
     {
-        char sf_filename[1024];
-        snprintf(sf_filename, sizeof(sf_filename), "%s/%s/SFDATA.BIN", s->workdir, s->model->name);
+        const char * sf_filename = eos_get_cam_path(s, "SFDATA.BIN");
         s->sf = serial_flash_init(sf_filename, s->model->serial_flash_size);
     }
     
@@ -3000,8 +3006,7 @@ static int edmac_do_transfer(EOSState *s, int channel)
             s->edmac.conn_data[conn].data_size = transfer_data_size;
 
             /* todo: autodetect all DNG files and cycle between them */
-            char filename[1024];
-            snprintf(filename, sizeof(filename), "%s/%s/VRAM/PH-QR/RAW-000.DNG", s->workdir, s->model->name);
+            const char * filename = eos_get_cam_path(s, "VRAM/PH-QR/RAW-000.DNG");
             FILE* f = fopen(filename, "rb");
             if (f)
             {
