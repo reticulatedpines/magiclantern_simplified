@@ -34,7 +34,7 @@
 #define MAX_WRITER_THREADS 2
 
 /* pre-create that number of files befroe recording starts so that file catalog doesnt have to get updated while recording */
-#define MAX_PRECREATE_FILES 10
+#define MAX_PRECREATE_FILES 8
 
 #define FRAMING_CENTER (dolly_mode == 0)
 #define FRAMING_PANNING (dolly_mode == 1)

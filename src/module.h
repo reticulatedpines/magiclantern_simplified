@@ -13,7 +13,7 @@
 #define MODULE_CONFIG_PREFIX          __module_config_
 #define MODULE_PROPHANDLER_PREFIX     __module_prophandler_
 
-#define MODULE_STRINGS_SECTION        __attribute__ ((section(".module_strings")))
+#define MODULE_STRINGS_SECTION        __attribute__ ((section(".module_strings"),unused))
 #define MODULE_HGDIFF_SECTION         __attribute__ ((section(".module_hgdiff")))
 #define MODULE_HGINFO_SECTION         __attribute__ ((section(".module_hginfo")))
 
@@ -55,6 +55,8 @@
 #define CBR_CUSTOM_PICTURE_TAKING    11 /* special types of picture taking (e.g. silent pics); so intervalometer and other photo taking routines should use that instead of regular pics */
 #define CBR_INTERVALOMETER           12 /* called after a picture is taken with the intervalometer */
 #define CBR_CONFIG_SAVE              13 /* called when ML configs are being saved */
+
+#define CBR_RAW_INFO_UPDATE          14 /* called after raw_info is updated successfully */
 
 /* return values from CBRs */
 #define CBR_RET_CONTINUE              0             /* keep calling other CBRs of the same type */
@@ -197,8 +199,12 @@ typedef struct
 #define MODULE_INIT(func)                                           .init = &func,
 #define MODULE_DEINIT(func)                                         .deinit = &func,
 #define MODULE_LONGNAME(name)                                       .long_name = name,
-#define MODULE_INFO_END()                                       };
-                                                                
+#define MODULE_INFO_END()                                       }; \
+    MODULE_STRINGS();
+/* ^^^ module strings are auto-included after the info block
+ * => they end up only in the file that defines module info.
+ */
+                              
 #define MODULE_STRINGS_START()                                  MODULE_STRINGS_START_(MODULE_STRINGS_PREFIX,MODULE_NAME)
 #define MODULE_STRINGS_START_(prefix,modname)                   MODULE_STRINGS_START__(prefix,modname)
 #define MODULE_STRINGS_START__(prefix,modname)                  module_strpair_t prefix##modname[] MODULE_STRINGS_SECTION = {

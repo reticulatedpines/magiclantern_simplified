@@ -11,8 +11,13 @@ include $(TOP_DIR)/Makefile.top
 
 include $(PLATFORM_PATH)/Makefile.platform.map
 
+# check for multiple firmware versions 
 ifndef FW_VERSION
 FW_VERSION=$(call platform_version,$(MODEL))
+ifeq ($(FW_VERSION),)
+# fixme: this triggers when running make clean from platform dir; how to avoid? 
+$(warning FW_VERSION is not defined)
+endif
 endif
 
 #not used?

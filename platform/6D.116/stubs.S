@@ -145,6 +145,7 @@ NSTUB(0xFF53A39C,  ShootOlcApp_handler)                     // AJ_DIALOG.HANDLER
 // NSTUB(    ???,  ReverseDisplay)                          /* present on 60D.111, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
 
 /** EDMAC **/
+NSTUB(0xFFCF7BBC - RAM_OFFSET,  AbortEDmac)
 NSTUB(0xFFD05D64 - RAM_OFFSET,  ConnectReadEDmac)
 NSTUB(0xFFD05CA0 - RAM_OFFSET,  ConnectWriteEDmac)
 NSTUB(0xFFD06344 - RAM_OFFSET,  RegisterEDmacAbortCBR)
@@ -305,7 +306,6 @@ NSTUB(0xFFD09CDC - RAM_OFFSET,  vsnprintf)
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
 
 /** Unused stubs or porting notes **/
-///NSTUB(0xFFCF7BBC - RAM_OFFSET,  AbortEDmac)
 ///NSTUB(0xFF0F2EC4,  AllocateMemoryResourceForSingleChunk)
 ///NSTUB(0xFF4B4BB8,  CreateDialogBox)
 ///NSTUB(0xFF71666C,  DeadViewLevelApp_handler)                // 
