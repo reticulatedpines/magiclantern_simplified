@@ -36,6 +36,10 @@ struct memcheck_stubs
     uint32_t init_heap;
     uint32_t checked_heaps[4];
 
+    /* malloc initialization follows a different pattern */
+    uint32_t init_malloc;
+    uint32_t malloc_struct;
+
     /* routine for allocating from a heap */
     uint32_t heap_alloc;
     uint32_t heap_free;
@@ -449,6 +453,17 @@ static void exec_log_malloc(EOSState *s, uint32_t pc, CPUARMState *env)
             mem_set_status(start, start+size, MS_FREED | MS_NOINIT);
         }
     }
+
+    if (pc == stubs.init_malloc)
+    {
+        uint32_t start, end;
+        cpu_physical_memory_read(stubs.malloc_struct, &start, 4);
+        cpu_physical_memory_read(stubs.malloc_struct + 4, &end, 4);
+
+        fprintf(stderr, "init_malloc %x %x\n", start, end);
+        fprintf(stderr, "Checking this heap.\n");
+        mem_set_status(start, end, MS_FREED | MS_NOINIT);
+    }
 }
 
 static uint32_t memcpy_lr[4]  = {0};
@@ -672,6 +687,8 @@ void eos_memcheck_init(EOSState *s)
             .memcpy_end     = { 0xFF3EBC2C },
             .init_heap      =   0xFF06A4CC,
             .checked_heaps  = { 0x300000 },
+            .init_malloc    =   0xFF018C04,   /* after the call */
+            .malloc_struct  =   0x24D48,
             .heap_routines  = {
                                 { 0xff06a4f4, 0xFF06B5CC }, /* AllocateMemory */
                                 { 0xFF018F70, 0xFF019110 }, /* malloc */
