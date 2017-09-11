@@ -40,7 +40,7 @@
 #ifdef RAW_DEBUG
 #define dbg_printf(fmt,...) { printf(fmt, ## __VA_ARGS__); }
 #else
-#define dbg_printf(fmt,...) {}
+#define dbg_printf(fmt,...) { qprintf(fmt, ## __VA_ARGS__); }
 #endif
 
 static struct semaphore * raw_sem = 0;
