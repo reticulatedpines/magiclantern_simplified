@@ -232,3 +232,13 @@ void __mem_free( void * buf)
     return _FreeMemory(buf);
 }
 
+char* get_current_task_name()
+{
+    return current_task->name;
+}
+
+int raw2iso(int raw_iso)
+{
+    int iso = (int) roundf(100.0f * powf(2.0f, (raw_iso - 72.0f)/8.0f));
+    return iso;
+}
