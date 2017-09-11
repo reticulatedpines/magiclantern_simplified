@@ -217,6 +217,8 @@ int should_run_polling_action(int ms, int* last) { return 1; }
 int fps_get_current_x1000() { return 30000; }
 int wait_lv_frames(int n) { return 0; } 
 void EngDrvOut(uint32_t reg, uint32_t val) { MEM(reg) = val; }
+void EngDrvOutLV(uint32_t reg, uint32_t val) { };
+int get_expsim() { return 0; }
 
 extern void* _AllocateMemory(size_t size);
 extern void  _FreeMemory(void* ptr);
