@@ -309,6 +309,26 @@ struct raw_info raw_info = {
     .dynamic_range = 1100,              // not correct; use numbers from DxO instead
 };
 
+struct raw_capture_info raw_capture_info = {
+    #ifdef CONFIG_FULLFRAME
+    .sensor_crop = 100,         /* 1.0 */
+    #else
+    .sensor_crop = 162,         /* 1.62x (APS-C) */
+    #endif
+    .binning_x   = 1,
+    .binning_y   = 1,
+    .skipping_x  = 0,
+    .skipping_y  = 0,
+    .offset_x    = SHRT_MIN,
+    .offset_y    = SHRT_MIN,
+};
+
+PROP_HANDLER(PROP_LV_AFFRAME)
+{
+    raw_capture_info.sensor_res_x = buf[0];
+    raw_capture_info.sensor_res_y = buf[1];
+}
+
  /**
  * Dynamic range, from DxO
  * e.g. http://www.dxomark.com/index.php/Cameras/Camera-Sensor-Database/Canon/EOS-5D-Mark-III
@@ -416,7 +436,12 @@ static int raw_lv_get_resolution(int* width, int* height)
 
     /* height may be a little different; 5D3 needs to subtract 1,
      * EOS M needs to add 1, 100D usually gives exact value
-     * is it really important to have exact height? */
+     * is it really important to have exact height?
+     * for some raw types, yes! */
+
+#ifdef CONFIG_5D3
+    (*height)--;
+#endif
 
 #ifdef CONFIG_EOSM
     /* EOS M exception */
@@ -626,7 +651,7 @@ static int raw_update_params_work()
             dbg_printf("Photo raw size error\n");
             return 0;
         }
-        
+
         /**
          * The RAW file has unused areas, called "optical black" (OB); we need to skip them.
          * 
@@ -715,6 +740,35 @@ static int raw_update_params_work()
         printf("Resolution changed: %dx%d -> %dx%d\n", raw_info.width, raw_info.height, width, height);
         dirty = 1;
     }
+
+    /* photo mode and crop/zoom modes use 1:1 readout */
+    /* LiveView uses 3x3 column binning / line skipping on most models */
+    /* and 3x5 in 720p */
+    if (!lv || zoom || video_mode_crop)
+    {
+        raw_capture_info.binning_x  = raw_capture_info.binning_y  = 1;
+        raw_capture_info.skipping_x = raw_capture_info.skipping_y = 0;
+        raw_capture_info.offset_x   = raw_capture_info.offset_y   = lv ? SHRT_MIN : 0;
+    }
+    else
+    {
+        raw_capture_info.binning_x  = 3; raw_capture_info.skipping_x = 0;
+#ifdef CONFIG_5D3
+        raw_capture_info.skipping_y = 0; raw_capture_info.binning_y  = mv720 ? 5 : 3;
+#elif CONFIG_EOSM
+        raw_capture_info.binning_y  = 1; raw_capture_info.skipping_y = (mv720 || !RECORDING_H264) ? 4 : 2;
+#else
+        raw_capture_info.binning_y  = 1; raw_capture_info.skipping_y = mv720 ? 4 : 2;
+#endif
+        raw_capture_info.offset_x   =    raw_capture_info.offset_y   = SHRT_MIN;
+    }
+    dbg_printf(
+        "Subsampling mode: %dB%dSx%dB%dS (%dx%d %d.%02d)\n",
+        raw_capture_info.binning_x, raw_capture_info.skipping_x,
+        raw_capture_info.binning_y, raw_capture_info.skipping_y,
+        raw_capture_info.sensor_res_x, raw_capture_info.sensor_res_y,
+        raw_capture_info.sensor_crop / 100, raw_capture_info.sensor_crop % 100
+    );
 
 #ifdef CONFIG_RAW_LIVEVIEW 
 
@@ -897,6 +951,7 @@ static int raw_update_params_once()
     int ans = 0;
     take_semaphore(raw_sem, 0);
     ans = raw_update_params_work();
+    if (ans) module_exec_cbr(CBR_RAW_INFO_UPDATE);
     give_semaphore(raw_sem);
     return ans;
 }
@@ -931,7 +986,7 @@ static int preview_rect_y;
 static int preview_rect_w;
 static int preview_rect_h;
 
-void raw_set_preview_rect(int x, int y, int w, int h)
+void raw_set_preview_rect(int x, int y, int w, int h, int obey_info_bars)
 {
     preview_rect_x = x;
     preview_rect_y = y;
@@ -944,13 +999,17 @@ void raw_set_preview_rect(int x, int y, int w, int h)
     /* not exactly a good idea when we have already acquired raw_sem */
     //~ get_yuv422_vram(); // update vram parameters
     
+    /* fixme: handle different screen layouts */
+    int top_margin      = (obey_info_bars) ? 38 : 0;
+    int bottom_margin   = (obey_info_bars) ? 38 : 0;
+
     /* scaling factor: raw width should match os.x_ex, same for raw height and os.y_ex */
     lv2raw.sx = 1024 * w / BM2LV_DX(os.x_ex);
-    lv2raw.sy = 1024 * h / BM2LV_DY(os.y_ex);
+    lv2raw.sy = 1024 * h / BM2LV_DY(os.y_ex - top_margin - bottom_margin);
 
     /* translation: raw top-left corner (x,y) should match (os.x0,os.y0) */
     int x0_lv = BM2LV_X(os.x0);
-    int y0_lv = BM2LV_Y(os.y0);
+    int y0_lv = BM2LV_Y(os.y0 + top_margin);
     lv2raw.tx = x - LV2RAW_DX(x0_lv);
     lv2raw.ty = y - LV2RAW_DY(y0_lv);
 }
@@ -1023,7 +1082,7 @@ void raw_set_geometry(int width, int height, int skip_left, int skip_right, int 
     }
 #endif
 
-    raw_set_preview_rect(preview_skip_left, preview_skip_top, preview_width, preview_height);
+    raw_set_preview_rect(preview_skip_left, preview_skip_top, preview_width, preview_height, 0);
 
     dbg_printf("lv2raw sx:%d sy:%d tx:%d ty:%d\n", lv2raw.sx, lv2raw.sy, lv2raw.tx, lv2raw.ty);
     dbg_printf("raw2lv test: (%d,%d) - (%d,%d)\n", RAW2LV_X(raw_info.active_area.x1), RAW2LV_Y(raw_info.active_area.y1), RAW2LV_X(raw_info.active_area.x2), RAW2LV_Y(raw_info.active_area.y2));
@@ -1808,7 +1867,10 @@ static void raw_lv_update()
         for (int i = 0; i < 5; i++)
         {
             if (raw_update_params_work())
+            {
+                module_exec_cbr(CBR_RAW_INFO_UPDATE);
                 break;
+            }
             wait_lv_frames(1);
         }
     }

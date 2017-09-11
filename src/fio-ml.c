@@ -318,6 +318,11 @@ PROP_HANDLER(PROP_DCIM_DIR_SUFFIX)
     snprintf(dcim_dir_suffix, sizeof(dcim_dir_suffix), (const char *)buf);
 }
 
+const char * get_dcim_dir_suffix()
+{
+    return dcim_dir_suffix;
+}
+
 const char* get_dcim_dir()
 {
     snprintf(dcim_dir, sizeof(dcim_dir), "%s:/DCIM/%03d%s", SHOOTING_CARD->drive_letter, SHOOTING_CARD->folder_number, dcim_dir_suffix);

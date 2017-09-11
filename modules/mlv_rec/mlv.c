@@ -19,6 +19,7 @@
  */
 
 #include <dryos.h>
+#include <module.h>
 #include <stdint.h>
 #include <lens.h>
 #include <property.h>
@@ -229,4 +230,71 @@ uint64_t mlv_set_timestamp(mlv_hdr_t *hdr, uint64_t start)
         hdr->timestamp = timestamp - start;
     }
     return timestamp;
+}
+
+int mlv_write_vers_blocks(FILE *f, uint64_t mlv_start_timestamp)
+{
+    int mod = -1;
+    int error = 0;
+    
+    do
+    {
+        /* get next loaded module id */
+        mod = module_get_next_loaded(mod);
+        
+        /* make sure thats a valid one */
+        if(mod >= 0)
+        {
+            /* fetch information from module loader */
+            const char *mod_name = module_get_name(mod);
+            const char *mod_build_date = module_get_string(mod, "Build date");
+            const char *mod_last_update = module_get_string(mod, "Last update");
+            
+            if(mod_name != NULL)
+            {
+                /* just in case that ever happens */
+                if(mod_build_date == NULL)
+                {
+                    mod_build_date = "(no build date)";
+                }
+                if(mod_last_update == NULL)
+                {
+                    mod_last_update = "(no version)";
+                }
+                
+                /* separating the format string allows us to measure its length for malloc */
+                const char *fmt_string = "%s built %s; commit %s";
+                int buf_length = strlen(fmt_string) + strlen(mod_name) + strlen(mod_build_date) + strlen(mod_last_update) + 1;
+                char *version_string = malloc(buf_length);
+                
+                /* now build the string */
+                snprintf(version_string, buf_length, fmt_string, mod_name, mod_build_date, mod_last_update);
+                
+                /* and finally remove any newlines, they are annoying */
+                for(unsigned int pos = 0; pos < strlen(version_string); pos++)
+                {
+                    if(version_string[pos] == '\n')
+                    {
+                        version_string[pos] = ' ';
+                    }
+                }
+                
+                /* let the mlv helpers build the block for us */
+                mlv_vers_hdr_t *hdr = NULL;
+                mlv_build_vers(&hdr, mlv_start_timestamp, version_string);
+                
+                /* try to write to output file */
+                if(FIO_WriteFile(f, hdr, hdr->blockSize) != (int)hdr->blockSize)
+                {
+                    error = 1;
+                }
+                
+                /* free both temporary string and allocated mlv block */
+                free(version_string);
+                free(hdr);
+            }
+        }
+    } while(mod >= 0 && !error);
+    
+    return error;
 }

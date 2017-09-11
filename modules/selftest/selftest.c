@@ -10,6 +10,7 @@
 #include <timer.h>
 #include <console.h>
 #include <ml_rpc.h>
+#include <edmac.h>
 #include <edmac-memcpy.h>
 #include <screenshot.h>
 #include <powersave.h>
@@ -120,6 +121,81 @@ static int stub_silence = 0;
 static int stub_ok = 1;
 static int stub_passed_tests = 0;
 static int stub_failed_tests = 0;
+
+static void stub_test_edmac()
+{
+    int size = 8*1024*1024;
+    uint32_t *src, *dst;
+    TEST_FUNC_CHECK(src = fio_malloc(size), != 0);
+    TEST_FUNC_CHECK(dst = fio_malloc(size), != 0);
+
+    if (src && dst)
+    {
+        /* fill source data */
+        for (int i = 0; i < size/4; i++)
+        {
+            src[i] = rand();
+        }
+
+        /* force a fallback to memcpy */
+        TEST_FUNC_CHECK(memcmp(dst, src, 4097), != 0);
+        TEST_FUNC_CHECK(edmac_memcpy(dst, src, 4097), == (int) dst);
+        TEST_FUNC_CHECK(memcmp(dst, src, 4097), == 0);
+        TEST_FUNC_CHECK(edmac_memcpy(dst, src, 4097), == (int) dst);
+
+        /* use fast EDMAC copying */
+        TEST_FUNC_CHECK(memcmp(dst, src, size), != 0);
+        TEST_FUNC_CHECK(edmac_memcpy(dst, src, size), == (int) dst);
+        TEST_FUNC_CHECK(memcmp(dst, src, size), == 0);
+
+        /* fill source data again */
+        for (int i = 0; i < size/4; i++)
+        {
+            src[i] = rand();
+        }
+
+        /* abort in the middle of copying */
+        TEST_FUNC_CHECK(memcmp(dst, src, size), != 0);
+        TEST_FUNC_CHECK(edmac_memcpy_start(dst, src, size), == (int) dst);
+
+        /* fixme: global */
+        extern uint32_t edmac_write_chan;
+
+        /* wait until the middle of the buffer */
+        /* caveat: busy waiting; do not use in practice */
+        /* here, waiting for ~10ms may be too much, as EDMAC is very fast */
+        uint32_t mid = (uint32_t)CACHEABLE(dst) + size / 2;
+        uint64_t t0 = get_us_clock_value();
+        while (edmac_get_pointer(edmac_write_chan) < mid)
+            ;
+        uint64_t t1 = get_us_clock_value();
+
+        /* stop here */
+        AbortEDmac(edmac_write_chan);
+
+        /* report how long we had to wait */
+        int dt = t1 - t0;
+        TEST_FUNC(dt);
+
+        /* how much did it copy? */
+        int copied = edmac_get_pointer(edmac_write_chan) - (uint32_t)CACHEABLE(dst);
+        TEST_FUNC_CHECK(copied, >= size/2);
+        TEST_FUNC_CHECK(copied, < size*3/2);
+
+        /* did it actually stop? */
+        msleep(100);
+        int copied2 = edmac_get_pointer(edmac_write_chan) - (uint32_t)CACHEABLE(dst);
+        TEST_FUNC_CHECK(copied, == copied2);
+
+        /* did it copy as much as it reported? */
+        TEST_FUNC_CHECK(memcmp(dst, src, copied), == 0);
+        TEST_FUNC_CHECK(memcmp(dst, src, copied + 16), != 0);
+        TEST_VOID(edmac_memcpy_finish());
+    }
+
+    TEST_VOID(free(src));
+    TEST_VOID(free(dst));
+}
 
 /* delay with interrupts disabled */
 static void busy_wait_ms(int ms)
@@ -947,6 +1023,7 @@ static void stub_test_task(void* arg)
     /* save log after each sub-test */
     for (int i=0; i < n; i++)
     {
+        stub_test_edmac();                  stub_test_save_log();
         stub_test_cache();                  stub_test_save_log();
         stub_test_file_io();                stub_test_save_log();
         stub_test_gui_timers();             stub_test_save_log();
@@ -1897,7 +1974,7 @@ static void alloc_1M_task()
     void * ptr = _AllocateMemory(1024 * 1024);
 
     /* do something with "ptr" to prevent a tail call (to test the stack trace) */
-    printf("Alloc 1MB from sys mem => %x\n", ptr);
+    printf("AllocateMemory 1MB => %x\n", ptr);
 
     /* do not free it */
 }
@@ -2023,10 +2100,10 @@ static struct menu_entry selftest_menu[] =
                 .help       = "Performs some math operations which will divide by zero.",
             },
             {
-                .name       = "Allocate 1MB of system RAM",
+                .name       = "AllocateMemory 1MB",
                 .select     = run_in_separate_task,
                 .priv       = alloc_1M_task,
-                .help       = "Allocates 1MB RAM from system memory, without freeing it.",
+                .help       = "Allocates 1MB RAM using AllocateMemory, without freeing it.",
                 .help2      = "After running this a few times, you'll get ERR70.",
             },
             {
