@@ -219,6 +219,7 @@ int wait_lv_frames(int n) { return 0; }
 void EngDrvOut(uint32_t reg, uint32_t val) { MEM(reg) = val; }
 void EngDrvOutLV(uint32_t reg, uint32_t val) { };
 int get_expsim() { return 0; }
+int module_exec_cbr(unsigned int type) { return 0; }
 
 extern void* _AllocateMemory(size_t size);
 extern void  _FreeMemory(void* ptr);
