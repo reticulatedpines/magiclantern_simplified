@@ -778,8 +778,7 @@ for CAM in 5D3 500D 550D 50D 60D 1100D 1200D; do
 
     mkdir -p tests/$CAM/
     rm -f tests/$CAM/frsp.ppm
-    rm -f tests/$CAM/frsp.log
-    rm -f tests/$CAM/frsp-build.log
+    rm -f tests/$CAM/frsp*.log
 
     # compile it from ML dir, for each camera
     FRSP_PATH=../magic-lantern/minimal/qemu-frsp
@@ -799,10 +798,33 @@ for CAM in 5D3 500D 550D 50D 60D 1100D 1200D; do
     mcopy -o -i $MCF $FRSP_PATH/autoexec.bin ::
 
     # run the photo capture test
-    (sleep 10; echo screendump tests/$CAM/frsp.ppm; echo quit) \
-      | ./run_canon_fw.sh $CAM,firmware="boot=1" -display none -monitor stdio &> tests/$CAM/frsp.log
-    
-    tests/check_md5.sh tests/$CAM/ frsp
+    # wait for FA_CaptureTestImage Fin
+    (
+      ./wait_log.sh tests/$CAM/frsp-uart.log 20 5 -q --text "FA_CaptureTestImage Fin" 2>/dev/null
+      sleep 1
+      echo screendump tests/$CAM/frsp.ppm
+      echo quit
+    ) | (
+      ./run_canon_fw.sh $CAM,firmware="boot=1" \
+        -display none -monitor stdio \
+        -d debugmsg \
+        -serial file:tests/$CAM/frsp-uart.log \
+    ) &> tests/$CAM/frsp.log
+
+    tests/check_grep.sh tests/$CAM/frsp-uart.log \
+        -qm1 "FA_CreateTestImage Fin"  || continue
+
+    tests/check_grep.sh tests/$CAM/frsp-uart.log \
+        -qm1 "FA_CaptureTestImage Fin" || continue
+
+    tests/check_grep.sh tests/$CAM/frsp-uart.log \
+        -qm1 "FA_DeleteTestImage Fin"  || continue
+
+    if [ -f tests/$CAM/frsp.md5 ]; then
+        tests/check_md5.sh tests/$CAM/ frsp
+    else
+        echo "OK (no display)"
+    fi
 done
 
 echo
