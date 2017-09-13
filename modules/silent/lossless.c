@@ -103,9 +103,9 @@ int lossless_init()
         TTL_Finish      = (void *) 0xFF3DD654;  /* called next; calls UnlockEngineResources and returns output size from JpCoreCompleteCBR */
     }
 
-    if (is_camera("700D", "1.1.4"))
+    if (is_camera("700D", "1.1.5"))
     {
-        /* ProcessTwoInTwoOutJpegath, 700D 1.1.4 */
+        /* ProcessTwoInTwoOutJpegath, 700D 1.1.5 */
         TTL_SetArgs     = (void *) 0xFF35F510;      /* fills TTJ_Args struct; PictureSize(Mem1ToRaw) */
         TTL_Prepare     = (void *) 0xFF424BA4;      /* called right after ProcessTwoInTwoOutJpegath(R) Start(%d); */
                                                     /* calls [TTJ] GetPathResources and sets up the encoder for RAW */
@@ -374,7 +374,7 @@ static void decompress_init()
         Cleanup_DecodeLosslessPath  = (void *) 0xff3d4130;
     }
     
-    if (is_camera("700D", "1.1.4"))
+    if (is_camera("700D", "1.1.5"))
     {
         Setup_DecodeLosslessRawPath = (void *) 0xFF4294DC;
         Start_DecodeLosslessPath    = (void *) 0xFF4295A4;
