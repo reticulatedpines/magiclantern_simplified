@@ -3,6 +3,8 @@
 
 #ifdef CONFIG_QEMU
 
+#include <stdarg.h>
+
 /** Some small engio API **/
 #define REG_PRINT_CHAR 0xCF123000
 #define REG_SHUTDOWN   0xCF123004
