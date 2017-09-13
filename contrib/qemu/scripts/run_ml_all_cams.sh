@@ -84,16 +84,8 @@ for CAM_DIR in $ML_PLATFORMS; do
             mcopy -o -i $MSD ../magic-lantern/$BuildDir/autoexec.bin ::
             mcopy -o -i $MCF ../magic-lantern/$BuildDir/autoexec.bin ::
         else
-            make -C $CAM_DIR zip VERSION=qemu $MLOptions
-            rm -rf qemu-tmp/
-            mkdir qemu-tmp
-            unzip -q $CAM_DIR/magiclantern-qemu.zip -d qemu-tmp
+            make -C ../$BuildDir install_qemu $MLOptions
             cd ../../qemu/
-            mcopy -o -i $MSD ../magic-lantern/platform/qemu-tmp/* ::
-            mcopy -o -i $MCF ../magic-lantern/platform/qemu-tmp/* ::
-            mcopy -o -s -i $MSD ../magic-lantern/platform/qemu-tmp/ML/ ::
-            mcopy -o -s -i $MCF ../magic-lantern/platform/qemu-tmp/ML/ ::
-            rm -rf qemu-tmp/
         fi
 
         # export any ML symbols we might want to use in QEMU
