@@ -1759,7 +1759,7 @@ static unsigned int crop_rec_init()
         crop_rec_menu[0].help       = crop_choices_help_eosm;
         crop_rec_menu[0].help2      = crop_choices_help2_eosm;
     }
-    else if (is_camera("700D", "1.1.4"))
+    else if (is_camera("700D", "1.1.5"))
     {
         CMOS_WRITE = 0x17A1C;
         MEM_CMOS_WRITE = 0xE92D41F0;
