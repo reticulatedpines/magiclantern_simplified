@@ -99,3 +99,17 @@ hgstamp: FORCE
 	@[ -f $@ ] || touch $@
 	@echo $(HGVERSION) | cmp -s $@ - || ( echo $(HGVERSION) > $@ ; echo "Updated HGVERSION" )
 FORCE: ;
+
+# Allow using qprintf and friends for debugging,
+# to print at the QEMU console.
+#
+# If you want to use them, compile your module with:
+#
+#    make clean; make CONFIG_QEMU=y
+#
+# There's no need to enable CONFIG_QEMU in ML core
+# (the QEMU debugging API is header-only).
+
+ifeq ($(CONFIG_QEMU),y)
+CFLAGS += -DCONFIG_QEMU
+endif # CONFIG_QEMU
