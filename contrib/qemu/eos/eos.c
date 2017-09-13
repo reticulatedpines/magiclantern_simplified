@@ -303,6 +303,10 @@ end:;
     char name[16];
     snprintf(name, sizeof(name), "ROM%d:%d", rom_id, size);
     io_log(name, s, address, MODE_WRITE, value, 0, msg, 0, 0);
+
+    /* make sure we execute the latest code */
+    /* fixme: shouldn't this be handled internally by QEMU?! */
+    tb_invalidate_phys_addr(&address_space_memory, address);
 }
 
 static const MemoryRegionOps rom_ops = {
