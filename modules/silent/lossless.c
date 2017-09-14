@@ -162,8 +162,9 @@ int lossless_init()
         uint32_t resources[] = {
             0x00000 | edmac_channel_to_index(edmac_write_chan),
             0x10000 | edmac_channel_to_index(edmac_read_chan),
-            0x2002d,
-            0x20016,
+            0x30001,    /* Read connection 1 (uncompressed input) */
+            0x2002d,    /* Write connection 45 (compressed output) */
+          //0x20016,    /* Write connection 22 (for WR2 - not used) */
             0x50034,
             0x5002d,
             0x50010,
