@@ -74,6 +74,10 @@ static void (*TTL_Start)(void * TTL_Args);
 static void (*TTL_Stop)(void * TTL_Args);
 static void (*TTL_Finish)(void * ResLock, void * TTL_Args, uint32_t * output_size);
 
+/* edmac-memcpy.c */
+extern uint32_t edmac_write_chan;
+extern uint32_t edmac_read_chan;
+
 static void decompress_init();
 int lossless_init()
 {
@@ -133,8 +137,8 @@ int lossless_init()
     if (is_camera("700D", "*") || is_camera("EOSM", "*"))
     {
         uint32_t resources[] = {
-            0x10002,                        /* read channel 0x8 */
-            edmac_channel_to_index(0x20),   /* write channel 0x20 */
+            0x00000 | edmac_channel_to_index(edmac_write_chan),
+            0x10000 | edmac_channel_to_index(edmac_read_chan),
             0x20005,
             0x20016,
             0x30002,
@@ -156,8 +160,8 @@ int lossless_init()
     else if (is_camera("5D3", "*"))
     {
         uint32_t resources[] = {
-            0x10000,                        /* read channel 0x8 */
-            edmac_channel_to_index(0x11),   /* write channel 0x11 */
+            0x00000 | edmac_channel_to_index(edmac_write_chan),
+            0x10000 | edmac_channel_to_index(edmac_read_chan),
             0x2002d,
             0x20016,
             0x50034,
@@ -207,15 +211,10 @@ int lossless_compress_raw_rectangle(
     TTL_Args.xRes = width;
     TTL_Args.yRes = height;
 
-    /* Output channel 22 appears used in LiveView; use 17 instead */
-    if (is_camera("5D3", "*"))
-    {
-        TTL_Args.WR1_Channel = 0x11;
-    }
-    else if (is_camera("700D", "*") || is_camera("EOSM", "*"))
-    {
-        TTL_Args.WR1_Channel = 0x20;
-    }
+    /* Default EDMAC channels may be used in LiveView;
+     * use the ones from edmac_memcpy instead */
+    TTL_Args.RD1_Channel = edmac_read_chan;
+    TTL_Args.WR1_Channel = edmac_write_chan;
 
     /* set starting point (top-left corner) */
     /* we need to skip a multiple of 8 pixels horizontally for raw_pixblock alignment
