@@ -119,7 +119,7 @@ without additional gymnastics (you will **not** have to merge ``qemu`` into your
   
   /path/to/magic-lantern$  hg update your-working-branch -C
   /path/to/magic-lantern$  cd platform/60D.111
-  /path/to/magic-lantern/platform/60D.111$ make clean; make CONFIG_QEMU=y
+  /path/to/magic-lantern/platform/60D.111$ make clean; make
   /path/to/magic-lantern/platform/60D.111$ make install_qemu
   
   # back to QEMU
@@ -138,24 +138,25 @@ the `boot flag <http://magiclantern.wikia.com/wiki/Bootflags>`_ is disabled:
 
 .. code:: shell
 
-  /path/to/qemu$  ./run_canon_fw.sh 60D,firmware="boot=0"
+  # from the qemu directory
+  ./run_canon_fw.sh 60D,firmware="boot=0"
 
 Some models may need additional patches to run - these are stored under ``CAM/patches.gdb``.
 To emulate these models, you will also need arm-none-eabi-gdb:
 
 .. code:: shell
 
-  /path/to/qemu$  ./run_canon_fw.sh 700D,firmware="boot=0" -s -S & arm-none-eabi-gdb 700D/patches.gdb
+  ./run_canon_fw.sh 700D,firmware="boot=0" -s -S & arm-none-eabi-gdb 700D/patches.gdb
 
 You'll probably want to see a few internals as well. To get started, try these:
 
 .. code:: shell
 
-  /path/to/qemu$  ./run_canon_fw.sh 60D,firmware="boot=0" -d debugmsg
-  /path/to/qemu$  ./run_canon_fw.sh 60D,firmware="boot=0" -d io
-  /path/to/qemu$  ./run_canon_fw.sh 60D,firmware="boot=0" -d io,int
-  /path/to/qemu$  ./run_canon_fw.sh 60D,firmware="boot=0" -d io,debugmsg
-  /path/to/qemu$  ./run_canon_fw.sh 60D,firmware="boot=0" -d help
+  ./run_canon_fw.sh 60D,firmware="boot=0" -d debugmsg
+  ./run_canon_fw.sh 60D,firmware="boot=0" -d debugmsg,tasks
+  ./run_canon_fw.sh 60D,firmware="boot=0" -d debugmsg,io
+  ./run_canon_fw.sh 60D,firmware="boot=0" -d io,int
+  ./run_canon_fw.sh 60D,firmware="boot=0" -d help
 
 Running Magic Lantern
 ---------------------
@@ -209,16 +210,16 @@ Incorrect firmware version?
 ```````````````````````````
 
 If your camera model requires ``patches.gdb``, you may be in trouble:
-many of these scripts will perform temporary changes the ROM. However,
+many of these scripts will perform temporary changes to the ROM. However,
 at startup, ML computes a simple signature of the firmware,
 to make sure it is started on the correct camera model and firmware version
 (and print an error message otherwise, with portable display routines).
 These patches will change the firmware signature - so you'll get an error message
 telling you the firmware version is incorrect (even though it is the right one).
 
-To work around this issue, you may edit src/fw-signature.h
+To work around this issue, you may edit ``src/fw-signature.h``
 and comment out the signature for your camera to disable this check.
-Then, run ML as you already know:
+Recompile and run ML as you already know:
 
 .. code:: shell
 
@@ -249,7 +250,7 @@ Running ML Lua scripts
   .. code:: shell
 
     ./run_canon_fw.sh 60D,firmware="boot=1"
-   
+
 - enable Debug -> Load modules after crash (workaround for incomplete shutdown emulation)
 - close ML menu and reboot the virtual camera
 - enable the Lua module
@@ -427,7 +428,170 @@ More examples:
 Debugging
 ---------
 
-TODO `(see EOS M2 example) <http://www.magiclantern.fm/forum/index.php?topic=15895.msg186173#msg186173>`_
+From the QEMU monitor
+`````````````````````
+
+.. code:: shell
+
+  echo "help" | ./run_canon_fw.sh 60D -monitor stdio |& grep dump
+  ...
+  pmemsave addr size file -- save to disk physical memory dump starting at 'addr' of size 'size'
+  xp /fmt addr -- physical memory dump starting at 'addr'
+
+Using ``qprintf`` and friends
+`````````````````````````````
+
+The QEMU debugging API
+(`qemu-util.h <https://bitbucket.org/hudson/magic-lantern/src/qemu/src/qemu-util.h>`_, included by default by ``dryos.h``)
+exposes the following functions to be used in Magic Lantern code:
+
+:qprintf: heavyweight, similar to printf; requires vsnprintf from Canon code
+:qprint: lightweight, inline, similar to puts, without newline
+:qprintn: lightweight, prints a 32-bit integer
+:qdisas: lightweight, tells QEMU to disassemble one ARM or Thumb instruction at the given address
+
+These functions will print to QEMU console whenever ML (or a subset of it)
+is compiled with ``CONFIG_QEMU=y``. They won't get compiled in regular builds
+(``CONFIG_QEMU=n`` is the default), therefore they won't increase the executable size.
+For this reason, feel free to use them *anywhere*.
+
+You may use the debugging API for either the entire ML, or just for a subset of it
+- e.g. the source file(s) you are currently editing, or only some modules.
+The lightweight functions can also be used in very early boot code,
+where you can't call vsnprintf or you may not even have a stack properly set up.
+
+CONFIG_QEMU
+```````````
+
+:``CONFIG_QEMU=n``: (default):
+
+- regular build
+- the executable works in QEMU (within the limitations of the emulation)
+- no guest debugging code (no additional debugging facilities)
+
+:``CONFIG_QEMU=y``: (optional, on the command line or in ``Makefile.user``):
+
+- debug build for QEMU only
+- does **not** run on the camera (!)
+- enables ``qprintf`` and friends to print to the QEMU console
+- enables unlimited number of ROM patches - useful for 
+  `dm-spy-experiments <https://www.magiclantern.fm/forum/index.php?topic=2388.0>`_
+  (in QEMU you can simply write to ROM as if it were RAM)
+- may enable workarounds for models or features that are not emulated very well
+
+Example:
+
+.. code:: shell
+
+    cd platform/550D.109
+    make clean; make                            # regular build
+    make clean; make CONFIG_QEMU=y              # debug build for QEMU
+    make clean; make install_qemu               # build and install a regular build to the QEMU SD/CF image
+    make clean; make install_qemu CONFIG_QEMU=y # build and install a QEMU build to the QEMU SD/CF image
+
+It works for modules as well:
+
+.. code:: shell
+
+    cd modules/lua
+    # add some qprintf call in lua_init for testing
+    make clean; make                  # regular build
+    make clean; make CONFIG_QEMU=y    # debug build for QEMU
+    # todo: make install_qemu doesn't work here yet
+
+Tracing guest events (execution, I/O, debug messages, RAM, function calls...)
+`````````````````````````````````````````````````````````````````````````````
+
+Execution trace:
+
+.. code:: shell
+
+  ./run_canon_fw.sh 60D,firmware="boot=0" -d exec,nochain -singlestep
+
+I/O trace (quick):
+
+.. code:: shell
+
+  ./run_canon_fw.sh 60D,firmware="boot=0" -d io
+
+I/O trace (precise):
+
+.. code:: shell
+
+  ./run_canon_fw.sh 60D,firmware="boot=0" -d io,nochain -singlestep
+
+I/O trace with interrupts (precise):
+
+.. code:: shell
+
+  ./run_canon_fw.sh 60D,firmware="boot=0" -d io,int,nochain -singlestep
+
+I/O trace with Canon debug messages (quick):
+
+.. code:: shell
+
+  ./run_canon_fw.sh 60D,firmware="boot=0" -d debugmsg,io
+
+Canon debug messages and task switches:
+
+.. code:: shell
+
+  ./run_canon_fw.sh 60D,firmware="boot=0" -d debugmsg,tasks
+
+Memory access trace (ROM reads, RAM writes) - very verbose:
+
+.. code:: shell
+
+  ./run_canon_fw.sh 60D,firmware="boot=0" -d romr,ramw
+
+Call/return trace:
+
+.. code:: shell
+
+  ./run_canon_fw.sh 60D,firmware="boot=0" -d calls
+
+Also with tail calls, redirected to a log file:
+
+.. code:: shell
+
+  ./run_canon_fw.sh 60D,firmware="boot=0" -d calls,tail &> calls.log
+
+Tip: set your editor to highlight the log file as if it were Python code.
+You'll get collapse markers for free :)
+
+Also with debug messages, I/O events and interrupts, redirected to file
+
+.. code:: shell
+
+  ./run_canon_fw.sh 60D,firmware="boot=0" -d debugmsg,calls,tail,io,int &> full.log
+
+Filter the logs with grep:
+
+.. code:: shell
+
+  ./run_canon_fw.sh 60D,firmware="boot=0" -d debugmsg,io |& grep -C 5 "\[Display\]"
+
+Only log autoexec.bin activity (skip logging the bootloader):
+
+.. code:: shell
+
+  ./run_canon_fw.sh 60D,firmware="boot=0" -d exec,io,int,autoexec
+
+
+Execution trace incomplete? PC values from MMIO logs not correct?
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+That's because QEMU compiles multiple guest instructions into a single TranslationBlock,
+for faster execution. In this mode, `-d exec` will print guest instructions as they are compiled
+(for example, if you have a tight loop, only the first pass will be printed). To log every single
+guest instruction, as executed, you need to use `-d nochain -singlestep` 
+(e.g. `-d exec,nochain -singlestep` or `-d io,int,nochain -singlestep` and so on)
+- `source <http://qemu-discuss.nongnu.narkive.com/f8A4tqdT/singlestepping-target-assembly-instructions>`_.
+
+Debugging with GDB
+``````````````````
+
+See `the EOS M2 example <http://www.magiclantern.fm/forum/index.php?topic=15895.msg186173#msg186173>`_
 
 Instrumentation
 ---------------
@@ -457,6 +621,79 @@ Useful: eos_get_current_task_name/id/stack, eos_mem_read/write.
 
 Adding support for a new camera model
 `````````````````````````````````````
+
+TLDR? Jump to step 3.
+
+Initial firmware analysis
+'''''''''''''''''''''''''
+
+1) Find the ROM load address and the code start address.
+   If unknown, use an initial guess to disassemble (even 0),
+   then look for code jumping to or referencing some absolute address
+   and make an educated guess from there.
+
+   DIGIC 5 and earlier models will start the bootloader at ``0xFFFF0000`` (HIVECS)
+   and will jump to main firmware at ``0xFF810000``, ``0xFF010000`` or ``0xFF0C0000``.
+   There is one main ROM (ROM1) at 0xF8000000, 4/8/16/32 MiB mirrored until 0xF8000000,
+   and there may be a second ROM (ROM0) at 0xF0000000, mirrored until 0xF8000000.
+
+   DIGIC 6 will start at ``*(uint32_t*)0xFC000000``,
+   bootloader is at 0xFE020000 and main firmware starts at 0xFE0A0000. There is
+   a 32 MiB ROM mirrored at 0xFC000000 and 0xFE000000 (there may be others).
+
+   The ROM load address is the one you have used when dumping it (usually one of the mirrors).
+   The memory map is printed when starting QEMU - you'll see where each ROM is loaded
+   and where are the mirrored copies, if any.
+
+   The MPU/MMU configuration (printed in QEMU as soon as the guest code
+   changes the relevant registers) is very useful for finding the memory map
+   on new models (see the ARM ARM documentation for the CPU you are interested in --
+   DIGIC 2..5: ARM946E-S, D6: Cortex R4, D7: Cortex A9).
+
+2) (Re)load the code in the disassembler at the correct address:
+
+   - `Loading into IDA <https://www.magiclantern.fm/forum/index.php?topic=6785.0>`_
+   - `Tutorial: finding stubs (with disassemble.pl) <https://www.magiclantern.fm/forum/index.php?topic=12177.msg117735#msg117735>`_
+   - `Loading into ARMu <https://www.magiclantern.fm/forum/index.php?topic=9827.0>`_
+   - Other disassemblers will also work (the list is open).
+
+3) Add a very simple definition for your camera and get an `initial test run`_.
+   Try to guess some missing bits from the error messages, if possible.
+
+4) (optional) Export the functions called during your test run:
+
+   .. code:: shell
+
+     ./run_canon_fw.sh EOSM2,firmware="boot=0" -d idc
+     ...
+     EOSM2.idc saved.
+
+   Load the IDC script into IDA, or convert it if you are using a different disassembler.
+
+4) Code blocks copied from ROM to RAM
+
+   .. code:: shell
+  
+     ./run_canon_fw.sh EOSM2,firmware="boot=0" -d romcpy |& grep ROMCPY
+    [ROMCPY] 0xFFFF0000 -> 0x0        size 0x40       at 0xFFFF0980
+    [ROMCPY] 0xFFFE0000 -> 0x100000   size 0xFF2C     at 0xFFFF0FCC
+    [ROMCPY] 0xFFD1F02C -> 0x1900     size 0xB70A0    at 0xFF0C000C
+    [ROMCPY] 0xFF0C0E04 -> 0x4B0      size 0x1E8      at 0xFF0C0D70
+
+   You may extract these blobs with:
+
+   .. code:: shell
+
+     dd if=ROM1.BIN of=EOSM2.0x1900.BIN bs=1 skip=$((0xD1F0E4)) count=$((0xB70A0))
+
+   If you are analyzing the main firmware, load EOSM2.0x1900.BIN as additional binary file
+   (in IDA, choose segment 0, offset 0x1900). Do the same for the blob copied at 0x4B0.
+
+   If you are analyzing the bootloader, extract and load the first two blobs in the same way.
+   Other models may have slightly different configurations, so YMMV.
+
+Initial test run
+''''''''''''''''
 
 Start by editing ``hw/eos/model_list.c``, where you'll need to add an entry
 for your camera model. The simplest one would be:
@@ -521,7 +758,15 @@ Let's go for the last one (probably the easiest). If you look at the code,
 you may notice the "5" corresponds to the least significant byte in this RAM ID.
 If you didn't, don't worry - you can just try something like 0x12345678:
 
-and the error message will tell you the answer right away:
+.. code:: C
+
+    {
+        .name                   = "5DS",
+        .digic_version          = 6,
+        .ram_manufacturer_id    = 0x12345678,
+    },
+
+and the new error message will tell you the answer right away:
 
 .. code::
 
@@ -533,7 +778,23 @@ A more complete example: the `EOS M2 walkthrough <http://www.magiclantern.fm/for
 shows how to add support for this camera from scratch, until getting Canon GUI to boot (and more!)
 
 Although this model is already supported in the repository,
-you can always roll back to an older changeset and follow the tutorial.
+you can always roll back to an older changeset (``3124887``) and follow the tutorial.
+
+
+Adding support for a new Canon firmware
+```````````````````````````````````````
+
+You will have to update:
+
+- GDB scripts (easy - copy/paste from ML stubs or look them up)
+- expected test results (time-consuming, see the `Test suite`_)
+- any hardcoded stubs that might be around (e.g. in ``dbi/memcheck.c``)
+
+Most other emulation bits usually do not depend on the firmware version
+(5D3 1.2.3 was an exception).
+
+`Updating Magic Lantern to a new Canon firmware <https://www.magiclantern.fm/forum/index.php?topic=19417.0>`_
+is a bit more time-consuming, but it's not difficult.
 
 Any good docs on QEMU internals?
 ````````````````````````````````
@@ -543,10 +804,43 @@ Any good docs on QEMU internals?
 - QEMU mailing list (huge!)
 - Xilinx QEMU
 
-MPU spells
-``````````
+DryOS internals?
+````````````````
 
-`TODO <http://www.magiclantern.fm/forum/index.php?topic=2864.msg166938#msg166938>`_
+This is the perfect tool for studying them. Start at:
+
+- DryOS shell (View -> Serial in menu, then type ``akashimorino``)
+- task_create (from GDB scripts)
+- semaphores (some GDB scripts have them)
+- message queues (some GDB scripts have them)
+- heartbeat timer (dryos_timer_id/interrupt in `model_list.c <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/eos/model_list.c>`_)
+- interrupt handler (follow the code at 0x18)
+- to debug: ``-d io,int`` is very helpful (although a bit too verbose)
+
+Cross-checking the emulation with actual hardware
+`````````````````````````````````````````````````
+
+- dm-spy-experiments branch
+- CONFIG_DEBUG_INTERCEPT_STARTUP=y
+- run the same build on both camera and QEMU
+- compare the logs (sorry, no good tool for this)
+- add extra hooks as desired (dm-spy-extra.c)
+- caveat: the order of execution is not deterministic.
+
+Checking MMIO values from actual hardware
+'''''''''''''''''''''''''''''''''''''''''
+
+See `this commit <https://bitbucket.org/hudson/magic-lantern/commits/726806f3bc352c41bbd72bf40fdbab3c7245039d>`_.
+
+Checking interrupts from actual hardware
+''''''''''''''''''''''''''''''''''''''''
+
+LOG_INTERRUPTS in dm-spy-experiments.
+
+MPU spells
+''''''''''
+
+`mpu_send/recv <http://www.magiclantern.fm/forum/index.php?topic=2864.msg166938#msg166938>`_ in dm-spy-experiments.
 
 Committing your changes
 ```````````````````````
@@ -556,14 +850,14 @@ first make sure you are on the ``qemu`` branch:
 
 .. code:: shell
 
-  # from magic-lantern directory
+  # from the magic-lantern directory
   hg up qemu -C
 
 Then copy your changes back into ML tree:
 
 .. code:: shell
 
-  # from qemu directory
+  # from the qemu directory
   ./copy_back_to_contrib.sh
 
 Then commit as usual, from the ``contrib/qemu`` directory.
@@ -597,10 +891,10 @@ you may try a script along these lines:
 Test suite
 ``````````
 
-Most Canon cameras are very similar - which is why one is able to run the same codebase
+Most Canon cameras are very similar inside - which is why one is able to run the same codebase
 from DIGIC 2 (original 5D) all the way to DIGIC 5 (and soon 6) - yet, every camera model has its own quirks
 (not only on the firmware, but also on the hardware side). Therefore, it's hard to predict whether a tiny change in the emulation, to fix a quirk for camera model X,
-will have a negative impact on camera model Y. The test suite tries to answer this,
+will have a positive or negative or neutral impact on camera model Y. The test suite tries to answer this,
 and covers the following:
 
 - Bootloader code (to make sure AUTOEXEC.BIN is loaded from the card)
@@ -614,6 +908,7 @@ and covers the following:
 - File I/O (whether the firmware creates a DCIM directory on startup)
 - FA_CaptureTestImage (basic image capture process, without compression or CR2 output)
 - HPTimer (difficult to get right)
+- DryOS task information (current_task, current_interrupt)
 - GDB scripts (just a few basics)
 - DryOS shell (UART)
 - PowerShot models (limited tests)
@@ -627,7 +922,9 @@ Limitations:
   Workarounds:
   
   - run the test suite for your camera model(s) only, e.g. ``./run_tests.sh 5D3 60D 70D``
-  - inspect the test results (e.g. screenshots) manually, and compare them to our results from Jenkins to decide whether they are correct or not
+  - inspect the test results (e.g. screenshots) manually, and compare them to
+    `our results from Jenkins <https://builds.magiclantern.fm/jenkins/view/QEMU/job/QEMU-tests/>`_
+    to decide whether they are correct or not
   - if you have made changes to the emulation, just ask us to test them.
 
   Saving the ROM right after clearing camera settings may or may not give repeatable results (not tested).
