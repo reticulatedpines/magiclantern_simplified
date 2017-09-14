@@ -18,3 +18,4 @@ ML_MODULES_DYNAMIC ?= \
 	bench \
 	selftest \
 	adv_int \
+	edmac \
