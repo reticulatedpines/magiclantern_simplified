@@ -4,7 +4,7 @@
 source patch-header.gdb
 
 # patch DL to avoid DL ERROR messages
-set *(int*)0xFF64254C = 0xe3a00015
+set *(int*)0xFF642550 = 0xe3a00015
 
 # patch I2C_Write to always return 1 (success)
 set *(int*)0xFF344AE4 = 0xe3a00001

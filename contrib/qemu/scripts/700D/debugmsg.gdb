@@ -5,7 +5,7 @@ source -v debug-logging.gdb
 source -v 700D/patches.gdb
 
 # To get debugging symbols from Magic Lantern, uncomment this:
-#symbol-file ../magic-lantern/platform/700D.114/magiclantern
+#symbol-file ../magic-lantern/platform/700D.115/magiclantern
 
 macro define CURRENT_TASK 0x233DC
 macro define CURRENT_ISR  (*(int*)0x670 ? (*(int*)0x674) >> 2 : 0)
