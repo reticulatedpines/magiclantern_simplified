@@ -648,6 +648,7 @@ static struct {
     { 0x0017,   BGMT_INFO,              "I",            "INFO/DISP",                    },
     { 0x0010,   BGMT_Q,                 "Q",            "guess",                        },
     { 0x0026,   BGMT_LV,                "L",            "LiveView",                     },
+    { 0x0021,   BGMT_FUNC,              "F",            "FUNC",                         },
     { 0x0011,   BGMT_PICSTYLE,          "W",            "Pic.Style",                    },
     { 0x002A,   BGMT_PRESS_HALFSHUTTER,     "Shift",    "Half-shutter"                  },
     { 0x00AA,   BGMT_UNPRESS_HALFSHUTTER,                                               },
