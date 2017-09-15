@@ -651,7 +651,9 @@ static struct {
     { 0x0021,   BGMT_FUNC,              "F",            "FUNC",                         },
     { 0x0011,   BGMT_PICSTYLE,          "W",            "Pic.Style",                    },
     { 0x002A,   BGMT_PRESS_HALFSHUTTER,     "Shift",    "Half-shutter"                  },
+    { 0x0036,   BGMT_PRESS_HALFSHUTTER,                                                 },
     { 0x00AA,   BGMT_UNPRESS_HALFSHUTTER,                                               },
+    { 0x00B6,   BGMT_UNPRESS_HALFSHUTTER,                                               },
     { 0x0030,   GMT_GUICMD_OPEN_BATT_COVER, "B",        "Open battery cover",           },
 };
 
