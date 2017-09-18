@@ -673,6 +673,9 @@ static int translate_scancode_2(int scancode, int first_code)
         return 0x00F1F1F1;
     }
 
+    int ret = -2;                   /* not found */
+    int allow_auto_repeat = 0;      /* don't allow auto-repeat for most keys (exception: scrollwheels) */
+
     /* lookup MPU key code */
     for (int i = 0; i < COUNT(key_map); i++)
     {
@@ -684,18 +687,42 @@ static int translate_scancode_2(int scancode, int first_code)
                 case BGMT_UNPRESS_HALFSHUTTER:
                 case BGMT_PRESS_FULLSHUTTER:
                 case BGMT_UNPRESS_FULLSHUTTER:
+                {
                     /* special: return the raw gui code */
-                    return 0x0E0E0000 | key_map[i].gui_code;
+                    ret = 0x0E0E0000 | key_map[i].gui_code;
+                    break;
+                }
+
+                case BGMT_WHEEL_UP:
+                case BGMT_WHEEL_DOWN:
+                case BGMT_WHEEL_LEFT:
+                case BGMT_WHEEL_RIGHT:
+                {
+                    /* enable auto-repeat for these keys */
+                    allow_auto_repeat = 1;
+                    /* fall-through */
+                }
 
                 default:
+                {
                     /* return model-specific button code (bindReceiveSwitch) */
-                    return button_codes[key_map[i].gui_code];
+                    /* don't allow auto-repeat */
+                    ret = button_codes[key_map[i].gui_code];
+                    break;
+                }
             }
         }
     }
-    
-    /* not found */
-    return -2;
+
+    static int last_code = 0;
+    if (code == last_code && !allow_auto_repeat)
+    {
+        /* don't auto-repeat */
+        return -3;
+    }
+    last_code = code;
+
+    return ret;
 }
 
 static int translate_scancode(int scancode)
