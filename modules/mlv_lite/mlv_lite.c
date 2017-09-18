@@ -1204,6 +1204,13 @@ static MENU_UPDATE_FUNC(pre_recording_update)
         pre_record, pre_record == 1 ? "" : "s"
     );
 
+    if (rec_trigger == REC_TRIGGER_HALFSHUTTER_PRE_ONLY && !pre_record)
+    {
+        MENU_SET_VALUE("1 frame");
+        MENU_SET_ENABLED(1);
+        MENU_SET_WARNING(MENU_WARN_INFO, "Half-shutter trigger uses pre-recording internally.");
+    }
+
     int slot_count = valid_slot_count;
     if (slot_count)
     {
@@ -1222,14 +1229,6 @@ static MENU_UPDATE_FUNC(pre_recording_update)
                 total_sec/10, total_sec%10, slot_count
             );
         }
-    }
-}
-
-static MENU_UPDATE_FUNC(rec_trigger_update)
-{
-    if (rec_trigger == REC_TRIGGER_HALFSHUTTER_PRE_ONLY)
-    {
-        MENU_SET_VALUE("Half-shut: %s", pre_record ? "pre only" : "1-frame");
     }
 }
 
@@ -3812,8 +3811,7 @@ static struct menu_entry raw_video_menu[] =
                 .name    = "Rec trigger",
                 .priv    = &rec_trigger,
                 .max     = 3,
-                .update  = rec_trigger_update,
-                .choices = CHOICES("OFF", "Half-shut: start/pause", "Half-shut: hold", "Half-shut: 1-frame / pre only"),
+                .choices = CHOICES("OFF", "Half-shutter: start/pause", "Half-shutter: hold", "Half-shutter: pre only"),
                 .help    = "Use external trigger to start/pause recording within a video clip.",
                 .help2   = "Disabled (press REC as usual).\n"
                            "Press half-shutter to start/pause recording within the current clip.\n"
