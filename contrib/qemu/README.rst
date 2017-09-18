@@ -76,11 +76,6 @@ What does not work (yet):
 
 Common issues and workarounds:
 
-- ML menu cannot be opened on some models
-
-  - issue: these models do not have a dedicated DELETE button, or it's handled in a different way;
-  - workaround: edit ML source code to assign a different button (sorry for that...)
-
 - dm-spy-experiments: saving the log and anything executed afterwards may not work
 
   - issue: cache hacks are not emulated very well
@@ -360,7 +355,7 @@ From QEMU monitor:
 
   ( 
     sleep 10
-    sendkey m
+    echo sendkey m
     sleep 1
     echo screendump menu.ppm
     echo quit
