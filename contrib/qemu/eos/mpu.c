@@ -650,6 +650,8 @@ static struct {
     { 0x0026,   BGMT_LV,                "L",            "LiveView",                     },
     { 0x0021,   BGMT_FUNC,              "F",            "FUNC",                         },
     { 0x0011,   BGMT_PICSTYLE,          "W",            "Pic.Style",                    },
+    { 0x001E,   BGMT_PRESS_AV,          "A",            "Av",                           },
+    { 0x009E,   BGMT_UNPRESS_AV,                                                        },
     { 0x002A,   BGMT_PRESS_HALFSHUTTER,     "Shift",    "Half-shutter"                  },
     { 0x0036,   BGMT_PRESS_HALFSHUTTER,                                                 },
     { 0x00AA,   BGMT_UNPRESS_HALFSHUTTER,                                               },
@@ -690,6 +692,17 @@ static int translate_scancode_2(int scancode, int first_code)
                 {
                     /* special: return the raw gui code */
                     ret = 0x0E0E0000 | key_map[i].gui_code;
+                    break;
+                }
+
+                case BGMT_PRESS_AV:
+                case BGMT_UNPRESS_AV:
+                {
+                    /* special: return the raw gui code, with checking whether this button is supported */
+                    if (button_codes[key_map[i].gui_code])
+                    {
+                        ret = 0x0E0E0000 | key_map[i].gui_code;
+                    }
                     break;
                 }
 
@@ -802,31 +815,54 @@ void mpu_send_keypress(EOSState *s, int keycode)
     if ((key & 0xFFFF0000) == 0x0E0E0000)
     {
         MPU_EPRINTF0("Key event: %x -> %08x\n", keycode, key);
+
+        #define MPU_SEND_SPELLS(spells) \
+            for (int i = 0; i < COUNT(spells); i++) { \
+                mpu_enqueue_spell_generic(s, spells[i]); \
+            } \
+            mpu_start_sending(s); \
+
         switch (key & 0xFFFF)
         {
             case BGMT_PRESS_HALFSHUTTER:
             {
                 /* fixme: if in some other GUI mode, switch back to 0 first */
                 /* it will no longer be a simple sequence, but one with confirmation */
-                uint16_t mpu_halfshutter_spells[2][6] = {
+                uint16_t mpu_halfshutter_spells[][6] = {
                     { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },
                     { 0x06, 0x04, 0x05, 0x00, 0x00, 0x00 },
                 };
-                for (int i = 0; i < COUNT(mpu_halfshutter_spells); i++)
-                {
-                    mpu_enqueue_spell_generic(s, mpu_halfshutter_spells[i]);
-                }
-                mpu_start_sending(s);
+                MPU_SEND_SPELLS(mpu_halfshutter_spells);
                 break;
             }
 
             case BGMT_UNPRESS_HALFSHUTTER:
             {
-                uint16_t mpu_halfshutter_spells[1][6] = {
+                uint16_t mpu_halfshutter_spells[][6] = {
                     { 0x06, 0x04, 0x05, 0x0B, 0x00, 0x00 },
                 };
-                mpu_enqueue_spell_generic(s, mpu_halfshutter_spells[0]);
-                mpu_start_sending(s);
+                MPU_SEND_SPELLS(mpu_halfshutter_spells);
+                break;
+            }
+
+            case BGMT_PRESS_AV:
+            {
+                /* fixme: M mode only, changes shutter info, maybe other side effects */
+                uint16_t mpu_av_spells[][0x12] = {
+                    { 0x06, 0x05, 0x06, 0x1C, 0x01, 0x00 },
+                    { 0x12, 0x11, 0x0a, 0x08, 0x06, 0x00, 0x01, 0x01, 0x98, 0x10, 0x00, 0x68, 0x01, 0x03, 0x00, 0x00, 0x00, 0x00 },
+                };
+                MPU_SEND_SPELLS(mpu_av_spells);
+                break;
+            }
+
+            case BGMT_UNPRESS_AV:
+            {
+                uint16_t mpu_av_spells[][0x12] = {
+                    { 0x06, 0x05, 0x06, 0x1C, 0x00, 0x00 },
+                    { 0x12, 0x11, 0x0a, 0x08, 0x06, 0x00, 0x01, 0x03, 0x98, 0x10, 0x00, 0x68, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00 },
+                };
+                MPU_SEND_SPELLS(mpu_av_spells);
                 break;
             }
 
