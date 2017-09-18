@@ -33,6 +33,7 @@
 #include <focus.h>
 #include <config.h>
 #include <bmp.h>
+#include <powersave.h>
 #include "lua_common.h"
 #include "umm_malloc/umm_malloc.h"
 
@@ -791,7 +792,10 @@ static void load_script(struct lua_script * script)
         fprintf(stderr, "[%s] script is already running.\n", script->filename);
         return;
     }
-    
+
+    /* disable powersave during the initial load, or while a simple script is running */
+    powersave_prohibit();
+
     script->load_time = get_seconds_clock();
     script->state = SCRIPT_STATE_LOADING_OR_RUNNING;
     lua_State* L = script->L = load_lua_state(script->argc, script->argv);
@@ -867,6 +871,9 @@ static void load_script(struct lua_script * script)
     {
         fprintf(stderr, "[Lua] load script failed: could not create semaphore\n");
     }
+
+    /* script finished or loaded in background; allow auto power off */
+    powersave_permit();
 }
 
 static MENU_UPDATE_FUNC(script_print_state)
