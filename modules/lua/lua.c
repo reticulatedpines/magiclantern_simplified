@@ -66,6 +66,22 @@ struct lua_script
 
 static struct lua_script * lua_scripts = NULL;
 
+/* result always valid (1:1 mapping between lua_State's and lua_script's) */
+static struct lua_script * lua_script(lua_State * L)
+{
+    for (struct lua_script * script = lua_scripts; script; script = script->next)
+    {
+        if (script->L == L)
+        {
+            return script;
+        }
+    }
+
+    /* should be unreachable */
+    ASSERT(0);
+    while(1);
+}
+
 struct script_event_entry
 {
     struct script_event_entry * next;
@@ -80,43 +96,25 @@ int waiting_for_keypress = -1;  /* 0 = all, -1 = none, other = wait for a specif
 
 int lua_take_semaphore(lua_State * L, int timeout, struct semaphore ** assoc_semaphore)
 {
-    for (struct lua_script * script = lua_scripts; script; script = script->next)
-    {
-        if (script->L == L)
-        {
-            if (assoc_semaphore) *assoc_semaphore = script->sem;
-            return take_semaphore(script->sem, timeout);
-        }
-    }
-    fprintf(stderr, "[%s] error: could not find semaphore for lua state\n", lua_get_script_filename(L));
-    return -1;
+    struct lua_script * script = lua_script(L);
+
+    if (assoc_semaphore) *assoc_semaphore = script->sem;
+    return take_semaphore(script->sem, timeout);
 }
 
 int lua_give_semaphore(lua_State * L, struct semaphore ** assoc_semaphore)
 {
-    for (struct lua_script * script = lua_scripts; script; script = script->next)
-    {
-        if (script->L == L)
-        {
-            if (assoc_semaphore) *assoc_semaphore = script->sem;
-            return give_semaphore(script->sem);
-        }
-    }
-    fprintf(stderr, "[%s] error: could not find semaphore for lua state\n", lua_get_script_filename(L));
-    return -1;
+    struct lua_script * script = lua_script(L);
+
+    if (assoc_semaphore) *assoc_semaphore = script->sem;
+    return give_semaphore(script->sem);
 }
 
 int lua_msg_queue_receive(lua_State * L, uint32_t * msg, int timeout)
 {
-    for (struct lua_script * script = lua_scripts; script; script = script->next)
-    {
-        if (script->L == L)
-        {
-            return msg_queue_receive(script->key_mq, msg, timeout);
-        }
-    }
-    fprintf(stderr, "[%s] error: could not find semaphore for lua state\n", lua_get_script_filename(L));
-    return -1;
+    struct lua_script * script = lua_script(L);
+
+    return msg_queue_receive(script->key_mq, msg, timeout);
 }
 
 /*
@@ -644,36 +642,29 @@ static lua_State * load_lua_state(int argc, char** argv)
  */
 void lua_set_cant_unload(lua_State * L, int cant_unload, int mask)
 {
-    struct lua_script * current;
-    for (current = lua_scripts; current; current = current->next)
-    {
-        if(current->L == L)
-        {
-            if (mask & LUA_TASK_UNLOAD_MASK)
-            {
-                /* the script started or stopped one task */
-                current->tasks_started += (cant_unload ? 1 : -1);
-                
-                if (!cant_unload && current->tasks_started)
-                {
-                    /* if there are still tasks running,
-                     * we cannot allow unloading yet */
-                    mask &= ~LUA_TASK_UNLOAD_MASK;
-                }
-            }
+    struct lua_script * script = lua_script(L);
 
-            if(cant_unload)
-            {
-                current->cant_unload |= (1 << mask);
-            }
-            else
-            {
-                current->cant_unload &= ~(1 << mask);
-            }
-            return;
+    if (mask & LUA_TASK_UNLOAD_MASK)
+    {
+        /* the script started or stopped one task */
+        script->tasks_started += (cant_unload ? 1 : -1);
+        
+        if (!cant_unload && script->tasks_started)
+        {
+            /* if there are still tasks running,
+             * we cannot allow unloading yet */
+            mask &= ~LUA_TASK_UNLOAD_MASK;
         }
     }
-    fprintf(stderr, "[Lua] lua_set_cant_unload: script not found\n");
+
+    if(cant_unload)
+    {
+        script->cant_unload |= (1 << mask);
+    }
+    else
+    {
+        script->cant_unload &= ~(1 << mask);
+    }
 }
 
 static void lua_clear_last_error(struct lua_script * script)
@@ -687,14 +678,10 @@ static void lua_clear_last_error(struct lua_script * script)
 
 void lua_save_last_error(lua_State * L)
 {
-    for (struct lua_script * script = lua_scripts; script; script = script->next)
-    {
-        if(script->L == L)
-        {
-            lua_clear_last_error(script);
-            script->last_error = copy_string(lua_tostring(L, -1));
-        }
-    }
+    struct lua_script * script = lua_script(L);
+
+    lua_clear_last_error(script);
+    script->last_error = copy_string(lua_tostring(L, -1));
 }
 
 /* called when a script registers a menu,
@@ -702,52 +689,34 @@ void lua_save_last_error(lua_State * L)
  */
 void lua_set_last_menu(lua_State * L, const char * parent_menu, const char * menu_entry)
 {
-    for (struct lua_script * script = lua_scripts; script; script = script->next)
-    {
-        if(script->L == L)
-        {
-            printf("[%s] menu: %s - %s\n", lua_get_script_filename(L), parent_menu, menu_entry);
-            script->last_menu_parent = parent_menu;
-            script->last_menu_entry = menu_entry;
-        }
-    }
+    struct lua_script * script = lua_script(L);
+
+    printf("[%s] menu: %s - %s\n", lua_get_script_filename(L), parent_menu, menu_entry);
+    script->last_menu_parent = parent_menu;
+    script->last_menu_entry = menu_entry;
 }
 
 /* hack to prevent some unsafe yield calls */
 /* fixme: proper thread safety */
 void lua_set_cant_yield(lua_State * L, int cant_yield)
 {
-    for (struct lua_script * script = lua_scripts; script; script = script->next)
-    {
-        if(script->L == L)
-        {
-            script->cant_yield = cant_yield;
-        }
-    }
+    struct lua_script * script = lua_script(L);
+
+    script->cant_yield = cant_yield;
 }
 
 int lua_get_cant_yield(lua_State * L)
 {
-    for (struct lua_script * script = lua_scripts; script; script = script->next)
-    {
-        if(script->L == L)
-        {
-            return script->cant_yield;
-        }
-    }
-    return -1;
+    struct lua_script * script = lua_script(L);
+
+    return script->cant_yield;
 }
 
 const char * lua_get_script_filename(lua_State * L)
 {
-    for (struct lua_script * script = lua_scripts; script; script = script->next)
-    {
-        if(script->L == L)
-        {
-            return script->filename;
-        }
-    }
-    return "?";
+    struct lua_script * script = lua_script(L);
+
+    return script->filename;
 }
 
 static int lua_get_config_flag_path(struct lua_script * script, char * full_path, const char * flag)
@@ -1258,10 +1227,9 @@ err:
 
 static void lua_do_autoload()
 {
-    struct lua_script * current;
-    for (current = lua_scripts; current; current = current->next)
+    for (struct lua_script * script = lua_scripts; script; script = script->next)
     {
-        if(lua_get_flag(current, SCRIPT_FLAG_AUTORUN_ENABLED))
+        if(lua_get_flag(script, SCRIPT_FLAG_AUTORUN_ENABLED))
         {
             if (!console_visible)
             {
@@ -1269,8 +1237,8 @@ static void lua_do_autoload()
                 console_clear();
                 console_show();
             }
-            current->autorun = 1;
-            load_script(current);
+            script->autorun = 1;
+            load_script(script);
             msleep(100);
         }
     }
