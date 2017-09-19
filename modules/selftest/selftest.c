@@ -1140,15 +1140,15 @@ static void stub_test_task(void* arg)
 
     enter_play_mode();
 
-    stub_test_save_log();
-    fio_free(stub_log_buf);
-    stub_log_buf = 0;
-
-    printf(
+    TEST_MSG(
         "=========================================================\n"
         "Test complete, %d passed, %d failed.\n.",
         stub_passed_tests, stub_failed_tests
     );
+
+    stub_test_save_log();
+    fio_free(stub_log_buf);
+    stub_log_buf = 0;
 }
 
 static void rpc_test_task(void* unused)
