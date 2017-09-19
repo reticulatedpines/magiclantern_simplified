@@ -365,17 +365,24 @@ function check_solution()
 end
 
 function main()
-    
+
+    -- will draw over ML menu, reusing its backend
     menu.block(true);
+
     local status,error = xpcall(function()
         for i = 1,6,1 do
+            printf("Playing level %d\n", i)
+
+            -- setup the maze
             setup(i)
             split_target();
+
+            -- request keys
             keys:start()
-            draw_maze();
+
             while true do
-                if menu.visible == false then return end
-                -- print_maze();
+
+                -- handle keys
                 local key = keys:getkey();
                 if key == KEY.LEFT or key == KEY.WHEEL_LEFT then
                     move(0, -1);
@@ -385,29 +392,37 @@ function main()
                     move(-1, 0);
                 elseif key == KEY.DOWN or key == KEY.WHEEL_DOWN then
                     move(1, 0);
-                elseif key == KEY.SET or key == KEY.UNPRESS_SET then
-                elseif key == KEY.Q or key == KEY.TRASH or key == KEY.MENU then
+                elseif key == KEY.Q or key == KEY.TRASH or key == KEY.MENU or not menu.visible then
                     printf("Exiting...\n");
-                    menu.block(false);
-                    keys:stop()
+                    -- will continue after the xpcall (after the line with end,debug.traceback)
                     return;
                 end
     
+                -- display the (updated) maze
+                -- print_maze();
                 display.draw(draw_maze)
-                if check_solution() ~= 0 then break end
     
+                -- solution?
+                if check_solution() ~= 0 then
+                    printf("You win!\n");
+                    
+                    beep();
+                    task.yield(2000)
+                    victory();
+                    task.yield(5000)
+
+                    -- break the while loop and go to next level
+                    break
+                end
+
+                -- allow event handlers to run
                 task.yield(100)
-            end
-            
-            beep();
-            task.yield(2000)
-        end
-        
-        printf("You win!\n");
-        victory();
-        
-        task.yield(5000)
+
+            end -- while (main loop)
+        end -- for (level i)
     end,debug.traceback)
+
+    -- prepare to exit
     if status == false then
         print(error)
     end
