@@ -783,7 +783,6 @@ static void load_script(struct lua_script * script)
         ASSERT(script->key_mq);
     }
     
-    int error = 0;
     char full_path[MAX_PATH_LEN];
     snprintf(full_path, MAX_PATH_LEN, SCRIPTS_DIR "/%s", script->filename);
     printf("[%s] script starting.\n", script->filename);
@@ -798,16 +797,10 @@ static void load_script(struct lua_script * script)
     {
         /* error loading script */
         fprintf(stderr, "%s\n", lua_tostring(L, -1));
-        error = 1;
+        lua_save_last_error(L);
     }
 
     give_semaphore(script->sem);
-
-    if (error)
-    {
-        /* save the last error string for this script */
-        lua_save_last_error(L);
-    }
 
     if (script->cant_unload)
     {
