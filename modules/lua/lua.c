@@ -59,6 +59,7 @@ struct lua_script
     int tasks_started;
     lua_State * L;
     struct semaphore * sem;
+    struct msg_queue * key_mq;
     struct menu_entry * menu_entry;
     struct lua_script * next;
 };
@@ -99,6 +100,19 @@ int lua_give_semaphore(lua_State * L, struct semaphore ** assoc_semaphore)
         {
             if (assoc_semaphore) *assoc_semaphore = script->sem;
             return give_semaphore(script->sem);
+        }
+    }
+    fprintf(stderr, "[%s] error: could not find semaphore for lua state\n", lua_get_script_filename(L));
+    return -1;
+}
+
+int lua_msg_queue_receive(lua_State * L, uint32_t * msg, int timeout)
+{
+    for (struct lua_script * script = lua_scripts; script; script = script->next)
+    {
+        if (script->L == L)
+        {
+            return msg_queue_receive(script->key_mq, msg, timeout);
         }
     }
     fprintf(stderr, "[%s] error: could not find semaphore for lua state\n", lua_get_script_filename(L));
@@ -230,9 +244,21 @@ static unsigned int lua_keypress_cbr(unsigned int ctx)
 
     if (result == CBR_RET_KEYPRESS_NOTHANDLED)
     {
-        /* waiting for this/all keypress/es? block the event */
+        /* waiting for this/all keypress/es?
+         * send it to the script(s) waiting for a key
+         * then block this event */
         if (waiting_for_keypress == last_keypress || waiting_for_keypress == 0)
         {
+            for (struct lua_script * script = lua_scripts; script; script = script->next)
+            {
+                /* note: key.wait() will clear the buffer before starting to wait
+                 * also msg_queue_post is not blocking, therefore, sending this
+                 * to scripts not waiting for a key press should be harmless. */
+                msg_queue_post(script->key_mq, last_keypress);
+            }
+
+            /* done waiting */
+            waiting_for_keypress = -1;
             return CBR_RET_KEYPRESS_HANDLED;
         }
     }
@@ -779,6 +805,13 @@ static void load_script(struct lua_script * script)
         /* create semaphore on first run */
         script->sem = create_named_semaphore(script->filename, 0);
         ASSERT(script->sem);
+    }
+
+    if (!script->key_mq)
+    {
+        /* create key message queue on first run */
+        script->key_mq = (struct msg_queue *) msg_queue_create(script->filename, 1);
+        ASSERT(script->key_mq);
     }
     
     int error = 0;
