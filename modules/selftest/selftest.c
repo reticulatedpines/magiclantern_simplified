@@ -1090,7 +1090,7 @@ static void stub_test_dryos()
 
 static void stub_test_save_log()
 {
-    FILE* log = FIO_CreateFile( "stubtest.log" );
+    FILE* log = FIO_CreateFile("ML/LOGS/stubtest.log");
     if (log)
     {
         FIO_WriteFile(log, stub_log_buf, stub_log_len);
