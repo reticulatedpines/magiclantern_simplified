@@ -24,6 +24,10 @@ as long as they are cleaned up before the main task exits
 (that is, the top-level code from your script).
 See @{unload.lua} and @{api_test.lua} for examples.
 
+Simple scripts are allowed to use the config_save event without unregistering it.
+In this case, the event will be called after the main script body exits,
+right before unloading the script.
+
 Menus
 -----
 All script will appear in the 'Scripts' menu. Scripts can be run from here and autorun

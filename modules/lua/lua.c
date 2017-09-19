@@ -391,6 +391,10 @@ static int luaCB_event_newindex(lua_State * L)
     // @function intervalometer
     SCRIPT_CBR_SET(intervalometer);
     /// Called when configs are being saved; save any config data for your script here.
+    /// 
+    /// This event can be used in simple scripts; in this case, the CBR will be called
+    /// after the main script body exits, right before unloading the script.
+    /// 
     // @param arg unused
     // @treturn bool whether or not to continue executing CBRs for this event.
     //
@@ -802,6 +806,26 @@ static void load_script(struct lua_script * script)
 
     give_semaphore(script->sem);
 
+    /* allow simple scripts to use config_save events */
+    if (config_save_cbr_scripts && (script->cant_unload & (1 << config_save_cbr_scripts->mask)))
+    {
+        printf("[%s] saving config...\n", script->filename);
+
+        /* any config_save hook? call it now */
+        /* fixme: this will call the config_save event for all other running scripts; important? */
+        unsigned int save_result = lua_do_cbr(0, config_save_cbr_scripts, "config_save", 5000, 0, 0);
+
+        if (save_result == CBR_RET_ERROR)
+        {
+            /* error calling the config_save event */
+            fprintf(stderr, "%s\n", lua_tostring(L, -1));
+            lua_save_last_error(L);
+        }
+
+        /* allow unloading the script even if it has a config_save event - we have already handled it */
+        lua_set_cant_unload(script->L, 0, config_save_cbr_scripts->mask);
+    }
+
     if (script->cant_unload)
     {
         /* "complex" script that keeps running after load
@@ -817,6 +841,10 @@ static void load_script(struct lua_script * script)
         /* "simple" script didn't create a menu, start a task,
          * or register any event handlers, so we can safely unload it
          */
+
+        /* unregister the config_save event, if any */
+        set_event_script_entry(&config_save_cbr_scripts, L, LUA_NOREF);
+
         lua_close(L);
         script->L = NULL;
         script->menu_entry->icon_type = IT_ACTION;
