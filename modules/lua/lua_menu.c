@@ -52,8 +52,9 @@ static MENU_SELECT_FUNC(script_menu_select)
     {
         lua_State * L = script_entry->L;
         struct semaphore * sem = NULL;
-        if(!lua_take_semaphore(L, 500, &sem) && sem)
+        if (lua_take_semaphore(L, 500, &sem) == 0)
         {
+            ASSERT(sem);
             if(lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->select_ref) == LUA_TFUNCTION)
             {
                 lua_rawgeti(L, LUA_REGISTRYINDEX, script_entry->self_ref);
@@ -85,8 +86,9 @@ static MENU_UPDATE_FUNC(script_menu_update)
     {
         lua_State * L = script_entry->L;
         struct semaphore * sem = NULL;
-        if(!lua_take_semaphore(L, 100, &sem) && sem)
+        if (lua_take_semaphore(L, 100, &sem) == 0)
         {
+            ASSERT(sem);
             if (script_entry->menu_entry->children ||
                 script_entry->menu_entry->icon_type == IT_ACTION)
             {

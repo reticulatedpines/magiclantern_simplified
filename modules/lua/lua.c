@@ -163,8 +163,9 @@ static unsigned int lua_do_cbr(unsigned int ctx, struct script_event_entry * eve
         if(current->function_ref != LUA_NOREF)
         {
             struct semaphore * sem = NULL;
-            if(!lua_take_semaphore(L, timeout, &sem) && sem)
+            if (lua_take_semaphore(L, timeout, &sem) == 0)
             {
+                ASSERT(sem);
                 if(lua_rawgeti(L, LUA_REGISTRYINDEX, current->function_ref) == LUA_TFUNCTION)
                 {
                     lua_pushinteger(L, ctx);

@@ -68,8 +68,9 @@ static void lua_prop_task(int unused)
         {
             lua_State * L = lua_prop->L;
             struct semaphore * sem = NULL;
-            if(!lua_take_semaphore(L, 1000, &sem) && sem)
+            if (lua_take_semaphore(L, 1000, &sem) == 0)
             {
+                ASSERT(sem);
                 if(lua_rawgeti(L, LUA_REGISTRYINDEX, lua_prop->prop_handler_ref) == LUA_TFUNCTION)
                 {
                     lua_rawgeti(L, LUA_REGISTRYINDEX, lua_prop->self_ref);

@@ -28,8 +28,9 @@ static void lua_run_task(struct lua_task_func * lua_task_func)
     {
         lua_State * L = lua_task_func->L;
         struct semaphore * sem = NULL;
-        if(!lua_take_semaphore(L, 0, &sem) && sem)
+        if (lua_take_semaphore(L, 0, &sem) == 0)
         {
+            ASSERT(sem);
             if (lua_get_cant_yield(L) == -1)
             {
                 /* main task was unloaded? continuing would be use after free */

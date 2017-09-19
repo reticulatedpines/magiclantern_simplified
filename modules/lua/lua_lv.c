@@ -150,8 +150,9 @@ static LVINFO_UPDATE_FUNC(lua_lvinfo_update)
     }
     lua_State * L = entry->L;
     struct semaphore * sem = NULL;
-    if(!lua_take_semaphore(L, 50, &sem) && sem)
+    if (lua_take_semaphore(L, 50, &sem) == 0)
     {
+        ASSERT(sem);
         if(entry->function_ref != LUA_NOREF)
         {
             if(lua_rawgeti(L, LUA_REGISTRYINDEX, entry->function_ref) == LUA_TFUNCTION)
