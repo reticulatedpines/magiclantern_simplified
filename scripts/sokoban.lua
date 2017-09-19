@@ -8,11 +8,13 @@
  - Basic key processing
  - Simple graphics
  - Lua programming basics
+ - Lua config library (for persistent settings)
  
  Enjoy! 
 ]]
 
 require("keys")
+require("config")
 
 --printf
 function printf(...)
@@ -366,12 +368,25 @@ end
 
 function main()
 
+    -- this will be saved along with other ML settings
+    local cfg = config.create({})
+
+    local level = 1
+    local num_levels = 6
+
+    if cfg.data ~= nil and cfg.data.level ~= nil then
+        level = cfg.data.level
+    end
+
     -- will draw over ML menu, reusing its backend
     menu.block(true);
 
     local status,error = xpcall(function()
-        for i = 1,6,1 do
+        for i = level, num_levels, 1 do
             printf("Playing level %d\n", i)
+
+            -- next time, start the game from this level
+            cfg.data = { level = i }
 
             -- setup the maze
             setup(i)
