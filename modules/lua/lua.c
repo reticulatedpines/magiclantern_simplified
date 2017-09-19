@@ -957,6 +957,7 @@ static MENU_SELECT_FUNC(lua_script_menu_select)
     {
         if (lua_loaded)
         {
+            console_clear();
             script->state = SCRIPT_STATE_LOADING_OR_RUNNING;
             task_create("lua_user_load_task", 0x1c, 0x10000, lua_user_load_task, script);
             return;
