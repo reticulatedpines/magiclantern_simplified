@@ -906,6 +906,17 @@ void mpu_send_keypress(EOSState *s, int keycode)
     mpu_start_sending(s);
 }
 
+static void mpu_send_powerdown(Notifier * notifier, void * null)
+{
+    EOSState *s = (EOSState *)((void *)notifier
+        - offsetof(MPUState, powerdown_notifier)
+        - offsetof(EOSState, mpu));
+
+    /* same as F10 */
+    mpu_send_keypress(s, 0x0044);
+    mpu_send_keypress(s, 0x00C4);
+}
+
 static void mpu_check_duplicate_spells(EOSState *s)
 {
     for (int i = 0; i < mpu_init_spell_count; i++)
@@ -1055,4 +1066,7 @@ void mpu_spells_init(EOSState *s)
     }
 
     show_keyboard_help();
+
+    s->mpu.powerdown_notifier.notify = mpu_send_powerdown;
+    qemu_register_powerdown_notifier(&s->mpu.powerdown_notifier);
 }

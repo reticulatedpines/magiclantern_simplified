@@ -181,6 +181,7 @@ typedef struct
     int sq_head;                /* for extracting items */
     int sq_tail;                /* for inserting (queueing) items */
 
+    Notifier powerdown_notifier;
 } MPUState;
 
 typedef struct
