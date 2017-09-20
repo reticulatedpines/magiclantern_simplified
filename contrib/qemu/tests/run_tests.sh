@@ -159,7 +159,15 @@ function kill_qemu {
     fi
 
     killall -TERM -w qemu-system-arm 2>/dev/null
-    killall -TERM -w arm-none-eabi-gdb 2>/dev/null
+
+    sleep 1
+
+    if pidof arm-none-eabi-gdb > /dev/null; then
+        echo -e "\e[31mGDB still running\e[0m"
+    fi
+    # for some reason, -TERM may hang up here
+    # but should be unreachable normally
+    killall -9 -w arm-none-eabi-gdb 2>/dev/null
 }
 
 # just to be sure
@@ -199,7 +207,7 @@ for CAM in 5D3eeko ${EOS_CAMS[*]}; do
         sleep 0.5; echo "quit" | nc -U qemu.monitor
     ) | (
         if [ -f $CAM/patches.gdb ]; then
-            ( arm-none-eabi-gdb -x $CAM/patches.gdb 1>&2 &
+            ( arm-none-eabi-gdb -x $CAM/patches.gdb -ex quit 1>&2 &
               ./run_canon_fw.sh $CAM,firmware="boot=0" \
                 -display none -serial stdio -s -S ) \
                     > tests/$CAM/drysh.log \
@@ -475,7 +483,7 @@ for CAM in ${EOS_CAMS[*]}; do
     if [ -f $CAM/patches.gdb ]; then
         (./run_canon_fw.sh $CAM,firmware="boot=0" -serial file:tests/$CAM/calls-cstack-uart.log \
              -display none -d calls,tasks,debugmsg,v -s -S & \
-           arm-none-eabi-gdb -x $CAM/patches.gdb &) &> tests/$CAM/calls-cstack-raw.log
+           arm-none-eabi-gdb -x $CAM/patches.gdb -ex quit &) &> tests/$CAM/calls-cstack-raw.log
     else
         ./run_canon_fw.sh $CAM,firmware="boot=0" \
             -display none -d calls,tasks,debugmsg,v -serial stdio \
@@ -503,7 +511,7 @@ for CAM in ${GUI_CAMS[*]}; do
 
     if [ -f $CAM/patches.gdb ]; then
         (./run_canon_fw.sh $CAM,firmware="boot=0" -vnc :12345 -d callstack -s -S & \
-            arm-none-eabi-gdb -x $CAM/patches.gdb &) &> tests/$CAM/menu.log
+            arm-none-eabi-gdb -x $CAM/patches.gdb -ex quit &) &> tests/$CAM/menu.log
     else
         (./run_canon_fw.sh $CAM,firmware="boot=0" -vnc :12345 -d callstack &) \
             &> tests/$CAM/menu.log
@@ -663,7 +671,7 @@ for CAM in ${GUI_CAMS[*]}; do
 
     if [ -f $CAM/patches.gdb ]; then
         (./run_canon_fw.sh $CAM,firmware="boot=0" -vnc :12345 -s -S & \
-            arm-none-eabi-gdb -x $CAM/patches.gdb &) &> tests/$CAM/format.log
+            arm-none-eabi-gdb -x $CAM/patches.gdb -ex quit &) &> tests/$CAM/format.log
     else
         (./run_canon_fw.sh $CAM,firmware="boot=0" -vnc :12345 &) \
             &> tests/$CAM/format.log
@@ -779,7 +787,7 @@ for CAM in ${EOS_CAMS[*]} ${EOS_SECONDARY_CORES[*]} ${POWERSHOT_CAMS[*]}; do
     mkdir -p tests/$CAM/
     rm -f tests/$CAM/gdb.log
     (./run_canon_fw.sh $CAM,firmware="boot=0" -display none -s -S & \
-     arm-none-eabi-gdb -x $CAM/debugmsg.gdb &) &> tests/$CAM/gdb.log
+     arm-none-eabi-gdb -x $CAM/debugmsg.gdb -ex quit &) &> tests/$CAM/gdb.log
     sleep 0.5
     ( timeout 2 tail -f -n100000 tests/$CAM/gdb.log & ) | grep --binary-files=text -qP "task_create\("
     sleep 2
@@ -871,7 +879,7 @@ for CAM in ${GUI_CAMS[*]} EOSM 1300D 450D; do
 
     if [ -f $CAM/patches.gdb ]; then
         (./run_canon_fw.sh $CAM,firmware="boot=0" -display none -s -S & \
-         arm-none-eabi-gdb -x $CAM/patches.gdb &) &> tests/$CAM/dcim.log
+         arm-none-eabi-gdb -x $CAM/patches.gdb -ex quit &) &> tests/$CAM/dcim.log
         sleep 5
         kill_qemu expect_running
     else
@@ -914,7 +922,7 @@ for CAM in ${POWERSHOT_CAMS[*]}; do
     (./run_canon_fw.sh $CAM \
        -display none -d romcpy,int -s -S \
        -serial file:tests/$CAM/boot-uart.log & \
-     arm-none-eabi-gdb -x $CAM/debugmsg.gdb &) &> tests/$CAM/boot.log
+     arm-none-eabi-gdb -x $CAM/debugmsg.gdb -ex quit &) &> tests/$CAM/boot.log
 
     sleep 0.5
     ( timeout 10 tail -f -n100000 tests/$CAM/boot.log & ) | grep -q "TurnOnDisplay"
