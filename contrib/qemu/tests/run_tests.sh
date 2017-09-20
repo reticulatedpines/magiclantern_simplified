@@ -6,6 +6,8 @@
 #   ./run_test.sh                   # test all models
 #   ./run_test.sh 5D3 EOSM EOSM3    # test only specific models
 
+# Caveat: this assumes no other qemu-system-arm or
+# arm-none-eabi-gdb processes are running during the tests
 
 EOS_CAMS=( 5D 5D2 5D3 5D4 6D 7D 7D2M
            40D 50D 60D 70D 80D
@@ -147,9 +149,21 @@ function vncexpect {
 
 function kill_qemu {
     # fixme: only kill the QEMU processes started by us (how?)
-    killall -TERM -w qemu-system-arm
+
+    if [ "$1" == "expect_running" ] && ! pidof qemu-system-arm > /dev/null; then
+        echo -e "\e[31mQEMU not running\e[0m"
+    fi
+
+    if [ "$1" == "expect_not_running" ] && pidof qemu-system-arm > /dev/null; then
+        echo -e "\e[31mshutdown error\e[0m (QEMU still running)"
+    fi
+
+    killall -TERM -w qemu-system-arm 2>/dev/null
     killall -TERM -w arm-none-eabi-gdb 2>/dev/null
 }
+
+# just to be sure
+kill_qemu expect_not_running
 
 # All EOS cameras should run the Dry-shell console over UART
 # fixme: only works on D4 and D5 models
@@ -198,7 +212,7 @@ for CAM in 5D3eeko ${EOS_CAMS[*]}; do
         fi
     )
 
-    kill_qemu 2>/dev/null
+    kill_qemu
 
     tests/check_grep.sh tests/$CAM/drysh.log \
         -oEm1 "Dry-shell .*\..*| xd .*" || continue
@@ -254,7 +268,7 @@ for CAM in ${EOS_SECONDARY_CORES[*]} ${EOS_CAMS[*]}; do
     echo -n "                          "
 
     sleep 1
-    kill_qemu
+    kill_qemu expect_running
 
     # as the emulation is not stopped exactly at the same time,
     # we have to trim it somewhere in order to get repeatable results.
@@ -393,7 +407,7 @@ for CAM in ${EOS_CAMS[*]}; do
         | grep -q "FROMUTIL"
     sleep 0.5
 
-    kill_qemu
+    kill_qemu expect_running
 
     # extract call/return lines
     # remove infinite loop at the end, if any
@@ -469,7 +483,7 @@ for CAM in ${EOS_CAMS[*]}; do
             2> tests/$CAM/calls-cstack-raw.log &
     fi
     sleep 10
-    kill_qemu
+    kill_qemu expect_running
 
     ansi2txt < tests/$CAM/calls-cstack-raw.log | python tests/test_callstack.py &> tests/$CAM/calls-cstack-test.log \
         && (tail -n 1 tests/$CAM/calls-cstack-test.log | tr -d '\n'; echo " OK" ) \
@@ -507,7 +521,7 @@ for CAM in ${GUI_CAMS[*]}; do
         echo -n .
     done
 
-    kill_qemu
+    kill_qemu expect_running
 
     tests/check_md5.sh tests/$CAM/ menu || cat tests/$CAM/menu.md5.log
 done
@@ -536,7 +550,8 @@ for CAM in ${EOS_CAMS[*]} ${EOS_SECONDARY_CORES[*]}; do
     # wait until some READY-like message is printed on the UART
     ( timeout 2 tail -f -n100000 tests/$CAM/boot-uart.log & ) \
         | grep -qE "([KR].* (READY|AECU).*|Intercom.*|Dry>)"
-    kill_qemu
+
+    kill_qemu expect_running
 
     # fixme: duplicate regex
     tests/check_grep.sh tests/$CAM/boot-uart.log \
@@ -581,7 +596,7 @@ for CAM in ${EOS_CAMS[*]}; do
     sleep 0.2
     ( timeout 1 tail -f -n100000 tests/$CAM/hptimer.log & ) | grep --binary-files=text -qP "\x1B\x5B34mH\x1B\x5B0m\x1B\x5B34me\x1B\x5B0m"
     sleep 1
-    kill_qemu
+    kill_qemu expect_running
     
     tests/check_grep.sh tests/$CAM/hptimer.log -m1 "Hello from task run_test"
     printf "       "
@@ -600,16 +615,18 @@ for CAM in ${GUI_CAMS[*]}; do
     rm -f tests/$CAM/menu.log
 
     if [ -f $CAM/patches.gdb ]; then
-        (./run_canon_fw.sh $CAM,firmware="boot=0" -vnc :12345 -s -S & \
-            arm-none-eabi-gdb -x $CAM/patches.gdb &) &> tests/$CAM/menu.log
+        (./run_canon_fw.sh $CAM,firmware="boot=0" -vnc :12345 -d debugmsg -s -S & \
+            arm-none-eabi-gdb -x $CAM/patches.gdb -ex quit &) &> tests/$CAM/menu.log
     else
-        (./run_canon_fw.sh $CAM,firmware="boot=0" -vnc :12345 &) \
+        (./run_canon_fw.sh $CAM,firmware="boot=0" -vnc :12345 -d debugmsg &) \
             &> tests/$CAM/menu.log
     fi
 
     set_gui_timeout
     sleep $GUI_TIMEOUT
 
+    # note: these should also work via qemu.monitor
+    # (slightly different keycodes and only PPM screenshots available)
     count=0;
     for key in ${MENU_SEQUENCE[$CAM]}; do
         vncdotool -s :12345 key $key; sleep 0.5
@@ -617,7 +634,17 @@ for CAM in ${GUI_CAMS[*]}; do
         echo -n .
     done
 
-    kill_qemu
+    # shutdown event
+    echo "system_powerdown" | nc -U qemu.monitor > /dev/null
+    sleep 5
+
+    # QEMU or GDB still running?
+    kill_qemu expect_not_running
+
+    tests/check_grep.sh tests/$CAM/menu.log -q "GUICMD_LOCK_OFF" || continue
+    tests/check_grep.sh tests/$CAM/menu.log -q "SHUTDOWN_REQUEST" || continue
+    tests/check_grep.sh tests/$CAM/menu.log -q "\[MPU\] Shutdown requested." || continue
+    tests/check_grep.sh tests/$CAM/menu.log -q "Terminate : Success" || continue
 
     tests/check_md5.sh tests/$CAM/ menu || cat tests/$CAM/menu.md5.log
 done
@@ -653,7 +680,7 @@ for CAM in ${GUI_CAMS[*]}; do
         echo -n .
     done
 
-    kill_qemu
+    kill_qemu expect_running
 
     tests/check_md5.sh tests/$CAM/ format || cat tests/$CAM/format.md5.log
 done
@@ -687,10 +714,10 @@ for CAM in 500D; do
         mdel -i $MSD ::/ML/MODULES/LOADING.LCK 2>/dev/null
 
         if [ -f $CAM/patches.gdb ]; then
-            (./run_canon_fw.sh $CAM,firmware="boot=1" -vnc :12345 -s -S & \
-                arm-none-eabi-gdb -x $CAM/patches.gdb &) &>> tests/$CAM/$TST.log
+            (./run_canon_fw.sh $CAM,firmware="boot=1" -vnc :12345 -d debugmsg -s -S & \
+                arm-none-eabi-gdb -x $CAM/patches.gdb -ex quit &) &>> tests/$CAM/$TST.log
         else
-            (./run_canon_fw.sh $CAM,firmware="boot=1" -vnc :12345 &) \
+            (./run_canon_fw.sh $CAM,firmware="boot=1" -vnc :12345 -d debugmsg &) \
                 &>> tests/$CAM/$TST.log
         fi
 
@@ -699,15 +726,9 @@ for CAM in 500D; do
         # fixme: how to align these nicely?
         MAIN_SCREEN=d2ab306b1db2ffb1229a6e86542e24ac
         MENU_FORMAT=cae4d8a555d5aa3cc004bd234d3edd74
-        if [ $t -eq 1 ]; then
-            FMT_KEEP_ML=077adcdd48ce3c275d94e467f0114045
-            FMT_RMOV_ML=a418b9f5d2565f0989910156cbe47c60
-            FMT_KEEP_OK=7cdf0d8dd2dde291bca0276cf68694b0
-        else
-            FMT_KEEP_ML=303015f7866ef679ec4f6bfed576db54
-            FMT_RMOV_ML=511b286bfb698b5ad1543429e26c9ebe
-            FMT_KEEP_OK=3cd45fb4f2d79b75c919d07d68c1bc4d
-        fi
+        FMT_KEEP_ML=077adcdd48ce3c275d94e467f0114045
+        FMT_RMOV_ML=a418b9f5d2565f0989910156cbe47c60
+        FMT_KEEP_OK=7cdf0d8dd2dde291bca0276cf68694b0
         ML_RESTORED=1a287dd9c3fc75ee82bdb5ba1b30a339
         RESTARTING_=3044730d98d5da3e5e5f27642adf878a
 
@@ -725,7 +746,12 @@ for CAM in 500D; do
         vncexpect space $ML_RESTORED 20 $T$((count++)).png || break # SET, wait for "Magic Lantern restored"
         vncexpect f1    $RESTARTING_ 10 $T$((count++)).png || break # wait for "Restarting camera..."
 
-        kill_qemu
+        # PROP_REBOOT will shutdown the emulator
+        # (restarting is not implemented)
+        sleep 5
+
+        # QEMU or GDB still running?
+        kill_qemu expect_not_running
 
         if [ $t -eq 3 ]; then
             echo " OK"   # one complete test run, stop here
@@ -757,7 +783,7 @@ for CAM in ${EOS_CAMS[*]} ${EOS_SECONDARY_CORES[*]} ${POWERSHOT_CAMS[*]}; do
     sleep 0.5
     ( timeout 2 tail -f -n100000 tests/$CAM/gdb.log & ) | grep --binary-files=text -qP "task_create\("
     sleep 2
-    kill_qemu
+    kill_qemu expect_running
 
     tac tests/$CAM/gdb.log > tmp
     tests/check_grep.sh tmp -Em1 "task_create\("
@@ -847,7 +873,7 @@ for CAM in ${GUI_CAMS[*]} EOSM 1300D 450D; do
         (./run_canon_fw.sh $CAM,firmware="boot=0" -display none -s -S & \
          arm-none-eabi-gdb -x $CAM/patches.gdb &) &> tests/$CAM/dcim.log
         sleep 5
-        kill_qemu
+        kill_qemu expect_running
     else
         (sleep 5; echo quit) \
             | ./run_canon_fw.sh $CAM,firmware="boot=0" -display none -monitor stdio &> tests/$CAM/dcim.log
@@ -892,7 +918,7 @@ for CAM in ${POWERSHOT_CAMS[*]}; do
 
     sleep 0.5
     ( timeout 10 tail -f -n100000 tests/$CAM/boot.log & ) | grep -q "TurnOnDisplay"
-    kill_qemu
+    kill_qemu expect_running
 
     printf "  SD boot: "; tests/check_grep.sh tests/$CAM/boot-uart.log -om1 "StartDiskboot"
     printf "  Display: "; tests/check_grep.sh tests/$CAM/boot.log -om1 "TurnOnDisplay"
