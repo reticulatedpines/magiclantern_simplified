@@ -662,7 +662,11 @@ static struct {
     { 0x0036,   BGMT_PRESS_HALFSHUTTER,                                                 },
     { 0x00AA,   BGMT_UNPRESS_HALFSHUTTER,                                               },
     { 0x00B6,   BGMT_UNPRESS_HALFSHUTTER,                                               },
+
+    /* the following unpress events are just tricks for sending two events
+     * with a small - apparently non-critical - delay between them */
     { 0x0030,   GMT_GUICMD_OPEN_BATT_COVER, "B",        "Open battery door",            },
+    { 0x00B0,   MPU_SEND_ABORT_REQUEST,     /* sent shortly after opening batt. door */ },
     { 0x002E,   GMT_GUICMD_OPEN_SLOT_COVER, "C",        "Open card door",               },
     { 0x00AE,   MPU_SEND_SHUTDOWN_REQUEST,  /* sent shortly after opening card door */  },
     { 0x0044,   GMT_GUICMD_START_AS_CHECK,  "F10",      "Power down switch",            },
@@ -700,6 +704,7 @@ static int translate_scancode_2(int scancode, int first_code)
                 case BGMT_PRESS_FULLSHUTTER:
                 case BGMT_UNPRESS_FULLSHUTTER:
                 case MPU_SEND_SHUTDOWN_REQUEST:
+                case MPU_SEND_ABORT_REQUEST:
                 {
                     /* special: return the raw gui code */
                     ret = 0x0E0E0000 | key_map[i].gui_code;
@@ -883,6 +888,15 @@ void mpu_send_keypress(EOSState *s, int keycode)
                     { 0x06, 0x05, 0x02, 0x0b, 0x00, 0x00 },
                 };
                 MPU_SEND_SPELLS(shutdown_request);
+                break;
+            }
+
+            case MPU_SEND_ABORT_REQUEST:
+            {
+                uint16_t abort_request[][6] = {
+                    { 0x06, 0x04, 0x02, 0x0c, 0x00, 0x00 },
+                };
+                MPU_SEND_SPELLS(abort_request);
                 break;
             }
 

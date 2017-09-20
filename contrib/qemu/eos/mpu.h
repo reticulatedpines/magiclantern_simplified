@@ -44,6 +44,7 @@ enum button_codes
 
     /* other events (MPU messages triggered on key presses) */
     MPU_SEND_SHUTDOWN_REQUEST,
+    MPU_SEND_ABORT_REQUEST,
 
     /* finished */
     BGMT_END_OF_LIST
