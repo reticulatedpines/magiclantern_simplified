@@ -8,5 +8,5 @@ endif
 
 CFLAG_USER += -DCONFIG_QEMU
 
-ML_SRC_EXTRA_OBJS=raw.o vram.o propvalues.o stdio.o imgconv.o dialog_test.o qemu-util.o
+ML_SRC_EXTRA_OBJS=raw.o vram.o propvalues.o stdio.o imgconv.o dialog_test.o
 include ../Makefile.minimal

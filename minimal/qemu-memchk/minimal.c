@@ -6,7 +6,6 @@
 #include "vram.h"
 #include "lens.h"
 #include "timer.h"
-#include "qemu-util.h"
 
 /** These are called when new tasks are created */
 static int my_init_task(int a, int b, int c, int d);

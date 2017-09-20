@@ -8,5 +8,4 @@ endif
 
 CFLAG_USER += -DCONFIG_QEMU
 
-ML_SRC_EXTRA_OBJS=qemu-util.o
 include ../Makefile.minimal
