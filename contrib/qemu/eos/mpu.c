@@ -218,6 +218,12 @@ static void mpu_interpret_command(EOSState *s)
                 mpu_enqueue_spell(s, spell_set, out_spell, reply);
             }
             mpu_start_sending(s);
+
+            if (mpu_init_spells[spell_set].out_spells[out_spell][1] == MPU_SHUTDOWN)
+            {
+                MPU_EPRINTF("Shutdown requested.\n");
+                qemu_system_shutdown_request();
+            }
             return;
         }
     }
@@ -656,7 +662,11 @@ static struct {
     { 0x0036,   BGMT_PRESS_HALFSHUTTER,                                                 },
     { 0x00AA,   BGMT_UNPRESS_HALFSHUTTER,                                               },
     { 0x00B6,   BGMT_UNPRESS_HALFSHUTTER,                                               },
-    { 0x0030,   GMT_GUICMD_OPEN_BATT_COVER, "B",        "Open battery cover",           },
+    { 0x0030,   GMT_GUICMD_OPEN_BATT_COVER, "B",        "Open battery door",            },
+    { 0x002E,   GMT_GUICMD_OPEN_SLOT_COVER, "C",        "Open card door",               },
+    { 0x00AE,   MPU_SEND_SHUTDOWN_REQUEST,  /* sent shortly after opening card door */  },
+    { 0x0044,   GMT_GUICMD_START_AS_CHECK,  "F10",      "Power down switch",            },
+    { 0x00C4,   MPU_SEND_SHUTDOWN_REQUEST,  /* sent shortly after START_AS_CHECK */     },
 };
 
 /* returns MPU button codes (lo, hi) */
@@ -689,6 +699,7 @@ static int translate_scancode_2(int scancode, int first_code)
                 case BGMT_UNPRESS_HALFSHUTTER:
                 case BGMT_PRESS_FULLSHUTTER:
                 case BGMT_UNPRESS_FULLSHUTTER:
+                case MPU_SEND_SHUTDOWN_REQUEST:
                 {
                     /* special: return the raw gui code */
                     ret = 0x0E0E0000 | key_map[i].gui_code;
@@ -866,6 +877,15 @@ void mpu_send_keypress(EOSState *s, int keycode)
                 break;
             }
 
+            case MPU_SEND_SHUTDOWN_REQUEST:
+            {
+                uint16_t shutdown_request[][6] = {
+                    { 0x06, 0x05, 0x02, 0x0b, 0x00, 0x00 },
+                };
+                MPU_SEND_SPELLS(shutdown_request);
+                break;
+            }
+
             default:
             {
                 assert(0);
@@ -1033,6 +1053,6 @@ void mpu_spells_init(EOSState *s)
         button_codes[BGMT_UNPRESS_LEFT]  = 
         button_codes[BGMT_UNPRESS_RIGHT] = button_codes[BGMT_UNPRESS_UDLR];
     }
-    
+
     show_keyboard_help();
 }

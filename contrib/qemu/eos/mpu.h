@@ -7,6 +7,7 @@
 #define ARG1 0x0101
 #define ARG2 0x0102
 #define ARG3 0x0103
+#define MPU_SHUTDOWN 0xFFFF
 
 void mpu_spells_init(EOSState *s);
 void mpu_handle_sio3_interrupt(EOSState *s);
@@ -40,6 +41,11 @@ enum button_codes
     GMT_GUICMD_OPEN_BATT_COVER,
     GMT_GUICMD_PRESS_BUTTON_SOMETHING,
     GMT_LOCAL_DIALOG_REFRESH_LV,
+
+    /* other events (MPU messages triggered on key presses) */
+    MPU_SEND_SHUTDOWN_REQUEST,
+
+    /* finished */
     BGMT_END_OF_LIST
 };
 
