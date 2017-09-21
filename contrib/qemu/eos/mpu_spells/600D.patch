@@ -94,5 +94,5 @@
 +    #include "NotifyGUIEvent.h"
 +    #include "UILock.h"
 +    #include "CardFormat.h"
-+//~ #include "Shutdown.h"
++    #include "Shutdown.h"
  };

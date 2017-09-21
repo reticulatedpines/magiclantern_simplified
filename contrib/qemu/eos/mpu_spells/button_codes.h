@@ -26,6 +26,7 @@ static int button_codes_100D[] = {
     [BGMT_WHEEL_RIGHT]                  = 0x0D01,
     [GMT_GUICMD_OPEN_BATT_COVER]        = 0x1301,
     [GMT_GUICMD_OPEN_SLOT_COVER]        = 0x1201,
+    [GMT_GUICMD_START_AS_CHECK]         = 0x1100,
     [GMT_GUICMD_PRESS_BUTTON_SOMETHING] = 0x2601,
     [BGMT_END_OF_LIST]                  = 0x0000
 };
@@ -445,6 +446,7 @@ static int button_codes_70D[] = {
     [BGMT_WHEEL_UP]                     = 0x0EFF,
     [GMT_GUICMD_OPEN_BATT_COVER]        = 0x1301,
     [GMT_GUICMD_OPEN_SLOT_COVER]        = 0x1201,
+    [GMT_GUICMD_START_AS_CHECK]         = 0x1100,
     [GMT_GUICMD_PRESS_BUTTON_SOMETHING] = 0x2601,
     [BGMT_END_OF_LIST]                  = 0x0000
 };
@@ -536,6 +538,7 @@ static int button_codes_EOSM2[] = {
     [BGMT_WHEEL_RIGHT]                  = 0x0D01,
     [GMT_GUICMD_OPEN_BATT_COVER]        = 0x1301,
     [GMT_GUICMD_OPEN_SLOT_COVER]        = 0x1201,
+    [GMT_GUICMD_START_AS_CHECK]         = 0x1100,
     [GMT_GUICMD_PRESS_BUTTON_SOMETHING] = 0x2601,
     [BGMT_END_OF_LIST]                  = 0x0000
 };

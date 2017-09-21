@@ -27,7 +27,7 @@
      { { 0x08, 0x06, 0x01, 0x23, 0x00, 0x01, 0x00 }, .description = "PROP_CARD1_STATUS", .out_spells = { /* spell #19 */
          { 0x08, 0x06, 0x01, 0x23, 0x00, 0x01, 0x00 },           /* reply #19.1, PROP_CARD1_STATUS(1) */
          { 0 } } },
-@@ -149,92 +152,34 @@
+@@ -149,92 +152,27 @@
          { 0x06, 0x05, 0x04, 0x0d, 0x01, 0x00 },                 /* reply #38.1 */
       // { 0x08, 0x06, 0x05, 0x0d, 0x11, 0xa4, 0x00 },           /* reply #38.2, delayed by 106 ms, likely external input */
          { 0 } } },
@@ -118,14 +118,11 @@
 -        { 0x06, 0x05, 0x04, 0x01, 0x00, 0x00 },                 /* reply #67.1, PROP_ICU_UILOCK(00) */
 -        { 0x06, 0x05, 0x02, 0x0b, 0x00, 0x00 },                 /* reply #67.2 */
 -        { 0 } } },
-+
-+    /* shutdown related? triggered after PROP_REBOOT */
-     { { 0x06, 0x05, 0x03, 0x19, 0x01, 0x00 }, {                 /* spell #68 */
-         { 0 } } },
-     { { 0x06, 0x05, 0x02, 0x0b, 0x02, 0x00 }, {                 /* spell #69 */
+-    { { 0x06, 0x05, 0x03, 0x19, 0x01, 0x00 }, {                 /* spell #68 */
+-        { 0 } } },
+-    { { 0x06, 0x05, 0x02, 0x0b, 0x02, 0x00 }, {                 /* spell #69 */
 -     // { 0x06, 0x05, 0x03, 0x17, 0x9d, 0x00 },                 /* reply #69.1, delayed by 1869 ms, likely external input */
-+        { 0x06, 0x05, 0x03, 0x17, 0x9d, 0x00 },                 /* reply #69.1, delayed by 1869 ms, likely external input */
-         { 0 } } },
+-        { 0 } } },
 +
 +    #include "NotifyGUIEvent.h"
 +    #include "UILock.h"

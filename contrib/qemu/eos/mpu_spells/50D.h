@@ -171,13 +171,6 @@ static struct mpu_init_spell mpu_init_spells_50D[] = {
         { 0x06, 0x05, 0x03, 0x0c, 0x00, 0x00 },                 /* reply #62.1 */
         { 0 } } },
 
-    /* shutdown related? triggered after PROP_REBOOT */
-    { { 0x06, 0x05, 0x03, 0x19, 0x01, 0x00 }, {                 /* spell #68 */
-        { 0 } } },
-    { { 0x06, 0x05, 0x02, 0x0b, 0x02, 0x00 }, {                 /* spell #69 */
-        { 0x06, 0x05, 0x03, 0x17, 0x9d, 0x00 },                 /* reply #69.1, delayed by 1869 ms, likely external input */
-        { 0 } } },
-
     #include "NotifyGUIEvent.h"
     #include "UILock.h"
     #include "CardFormat.h"
