@@ -1,5 +1,5 @@
 /**
- * 70D version
+ * 70D - MENU pressed during startup
  */
 static struct mpu_init_spell mpu_init_spells_70D[] = {
     { { 0x06, 0x04, 0x02, 0x00, 0x00 }, .description = "Init", .out_spells = { /* spell #1 */
@@ -44,9 +44,8 @@ static struct mpu_init_spell mpu_init_spells_70D[] = {
         { 0x0c, 0x0b, 0x03, 0x42, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },/* reply #1.39 */
         { 0x06, 0x05, 0x03, 0x6f, 0x00, 0x00 },                 /* reply #1.40 */
         { 0x06, 0x05, 0x03, 0x6f, 0x00, 0x00 },                 /* reply #1.41 */
-/* fixme: 0x80000001 does not complete */
-//      { 0 } } }, {
-//  { { 0x08, 0x06, 0x00, 0x00, 0x02, 0x0e, 0x00 }, .description = "Complete WaitID = 0x80000001", .out_spells = { /* spell #2 */
+        { 0 } } },
+    { { 0x08, 0x06, 0x00, 0x00, 0x02, 0x0e, 0x00 }, .description = "Complete WaitID = 0x80000001", .out_spells = { /* spell #2 */
         { 0x06, 0x05, 0x03, 0x6f, 0x00, 0x00 },                 /* reply #2.1 */
         { 0x06, 0x05, 0x03, 0x6f, 0x00, 0x00 },                 /* reply #2.2 */
         { 0x06, 0x05, 0x01, 0x48, 0x01, 0x00 },                 /* reply #2.3 */
@@ -277,8 +276,8 @@ static struct mpu_init_spell mpu_init_spells_70D[] = {
      // { 0x06, 0x05, 0x06, 0x0b, 0x00, 0x00 },                 /* reply #68.3, BGMT_UNPRESS_UDLR, GUI_Control:54, bindReceiveSwitch(11, 0) */
         { 0 } } },
 
-//~ #include "NotifyGUIEvent.h"
+    #include "NotifyGUIEvent.h"
     #include "UILock.h"
-//~ #include "CardFormat.h"
+    #include "CardFormat.h"
     #include "Shutdown.h"
 };
