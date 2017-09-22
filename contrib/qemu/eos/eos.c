@@ -2544,6 +2544,7 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
         case 0x004C:    /* 700D, 100D */
         case 0x0168:    /* 70D */
         case 0x01FC:    /* 5D3 */
+        case 0x0120:    /* 450D */
             msg = "WriteProtect";
             ret = 0;
             break;

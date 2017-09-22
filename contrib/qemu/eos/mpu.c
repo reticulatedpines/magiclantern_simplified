@@ -814,11 +814,18 @@ static void show_keyboard_help(void)
                 MPU_EPRINTF0("- %-12s : %s %s\n", key_map[i].pc_key_name, key_map[i].cam_key_name, press_only);
             }
         }
-        else if (last_status && !key_avail(key_map[i].scancode))
+        else if (last_status)
         {
             /* for grouped keys, make sure all codes are available */
-            MPU_EPRINTF("key code missing: %x %x\n", key_map[i].scancode, key_map[i].gui_code);
-            exit(1);
+            if (key_map[i].gui_code == BGMT_UNPRESS_SET)
+            {
+                /* exception: UNPRESS_SET on VxWorks models */
+            }
+            else if (!key_avail(key_map[i].scancode))
+            {
+                MPU_EPRINTF("key code missing: %x %x\n", key_map[i].scancode, key_map[i].gui_code);
+                exit(1);
+            }
         }
     }
     

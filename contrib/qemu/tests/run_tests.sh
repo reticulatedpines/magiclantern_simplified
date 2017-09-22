@@ -18,7 +18,7 @@ POWERSHOT_CAMS=( EOSM3 EOSM10 EOSM5 A1100 )
 
 EOS_SECONDARY_CORES=( 5D3eeko 5D4AE 7D2S )
 
-GUI_CAMS=( 5D2 5D3 50D 60D 70D 500D 550D 600D 650D 700D 100D 1100D 1200D EOSM2 )
+GUI_CAMS=( 5D2 5D3 50D 60D 70D 450D 500D 550D 600D 650D 700D 100D 1100D 1200D EOSM2 )
 SD_CAMS=( 5D3 5D4 6D 60D 70D 80D 450D 500D 550D 600D 650D 700D 750D 760D
            100D 1000D 1100D 1200D 1300D EOSM EOSM2 )
 CF_CAMS=( 5D 5D2 5D3 5D4 7D 7D2M 40D 50D 400D )
@@ -42,6 +42,7 @@ MENU_SEQUENCE[5D3]="f1 i i i f1 i m left down down down space m m p p q space m 
 MENU_SEQUENCE[50D]="f1 left space i i i m up space space m w w p p"
 MENU_SEQUENCE[60D]="f1 i i i i m left left up space m m p p"
 MENU_SEQUENCE[70D]="m up up up up space m up up" # fixme: locks up quickly
+MENU_SEQUENCE[450D]="f1 m up up space m left left i p p w down down space " # LiveView overlays also working, but the tests would crash at shutdown
 MENU_SEQUENCE[500D]="f1 m i i right right up m p p"
 MENU_SEQUENCE[550D]="m i i right right down down down space space p p" # info screen not working
 MENU_SEQUENCE[600D]="i i m right right p p" # starts with sensor cleaning animation; no info screen?
@@ -61,6 +62,7 @@ FORMAT_SEQUENCE[5D2]="m right right right right $FMT_SEQ"
 FORMAT_SEQUENCE[5D3]="m left left left left $FMT_SEQ_5D3"
 FORMAT_SEQUENCE[50D]="m down down $FMT_SEQ"
 FORMAT_SEQUENCE[60D]="m left left left left $FMT_SEQ"
+FORMAT_SEQUENCE[450D]="m left left $FMT_SEQ"
 FORMAT_SEQUENCE[500D]="m $FMT_SEQ"
 FORMAT_SEQUENCE[550D]="m $FMT_SEQ"
 FORMAT_SEQUENCE[600D]="m right right right $FMT_SEQ"
@@ -650,7 +652,7 @@ for CAM in ${GUI_CAMS[*]}; do
     kill_qemu expect_not_running
 
     tests/check_grep.sh tests/$CAM/menu.log -q "GUICMD_LOCK_OFF" || continue
-    tests/check_grep.sh tests/$CAM/menu.log -q "SHUTDOWN_REQUEST" || continue
+    tests/check_grep.sh tests/$CAM/menu.log -q "SHUTDOWN" || continue
     tests/check_grep.sh tests/$CAM/menu.log -q "\[MPU\] Shutdown requested." || continue
     tests/check_grep.sh tests/$CAM/menu.log -q "Terminate : Success" || continue
 
@@ -865,9 +867,9 @@ echo
 echo "Testing file I/O (DCIM directory)..."
 # Most EOS cameras should be able to create the DCIM directory if missing.
 # Currently works only on models that can boot Canon GUI,
-# and also on EOSM, 1300D and 450D.
+# and also on EOSM and 1300D.
 #for CAM in ${EOS_CAMS[*]}; do
-for CAM in ${GUI_CAMS[*]} EOSM 1300D 450D; do
+for CAM in ${GUI_CAMS[*]} EOSM 1300D; do
     printf "%5s: " $CAM
     
     mkdir -p tests/$CAM/

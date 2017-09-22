@@ -63,6 +63,9 @@ for l in lines:
     # match bindReceiveSwitch with GUI_Control, both from MainCtrl task
     # note: GUI_Control messages can be sent from other tasks
     m = re.match(".* MainCtrl:.*bindReceiveSwitch *\(([^()]*)\)", l)
+    if not m:
+        # VxWorks (450D)
+        m = re.match(".* tMainCtrl:.*\[BIND\] Switch *\(([^()]*)\)", l)
     if m:
         args = m.groups()[0].split(",")
         args = tuple([int(a) for a in args])
@@ -71,10 +74,12 @@ for l in lines:
             last_bind_switch = args
         continue
     m = re.match(".* MainCtrl:.*GUI_Control:([0-9]+) +0x([0-9])+", l)
+    if not m:
+        m = re.match(".* tMainCtrl:.*\[BIND\] bindReceiveSwitch \(([0-9]+)\)", l)
     if m:
         if last_bind_switch is not None:
             arg1 = int(m.groups()[0])
-            arg2 = int(m.groups()[1],16)
+            arg2 = int(m.groups()[1],16) if len(m.groups()) == 2 else 0
             if last_bind_switch in bind_switches:
                 assert(bind_switches[last_bind_switch] == (arg1,arg2))
             else:
