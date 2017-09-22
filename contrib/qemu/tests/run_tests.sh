@@ -18,7 +18,7 @@ POWERSHOT_CAMS=( EOSM3 EOSM10 EOSM5 A1100 )
 
 EOS_SECONDARY_CORES=( 5D3eeko 5D4AE 7D2S )
 
-GUI_CAMS=( 5D2 5D3 50D 60D 70D 450D 500D 550D 600D 650D 700D 100D 1100D 1200D EOSM2 )
+GUI_CAMS=( 5D2 5D3 50D 60D 70D 450D 500D 550D 600D 650D 700D 100D 1000D 1100D 1200D EOSM2 )
 SD_CAMS=( 5D3 5D4 6D 60D 70D 80D 450D 500D 550D 600D 650D 700D 750D 760D
            100D 1000D 1100D 1200D 1300D EOSM EOSM2 )
 CF_CAMS=( 5D 5D2 5D3 5D4 7D 7D2M 40D 50D 400D )
@@ -49,6 +49,7 @@ MENU_SEQUENCE[600D]="i i m right right p p" # starts with sensor cleaning animat
 MENU_SEQUENCE[650D]="f1 m right right p p" # starts in movie mode, no lens
 MENU_SEQUENCE[700D]="f1 m right down space right space p p" # starts in movie mode, no lens
 MENU_SEQUENCE[100D]="f1 left space i i i m right up up space up space p p" # starts with date/time screen
+MENU_SEQUENCE[1000D]="f1 left space i w w i p p m space space up up space m left i"
 MENU_SEQUENCE[1100D]="f1 left space i i m i i left m p p down right space right right space up right space" # starts with date/time screen; drive mode not working
 MENU_SEQUENCE[1200D]="f1 left space i i m i i space m m p p down right space right right space up right space" # starts with date/time screen; drive mode not working
 MENU_SEQUENCE[EOSM2]="f1 m space space space up up space m up space m up space m up space m right space space m m" # starts with date/time screen; only menu works
@@ -62,13 +63,14 @@ FORMAT_SEQUENCE[5D2]="m right right right right $FMT_SEQ"
 FORMAT_SEQUENCE[5D3]="m left left left left $FMT_SEQ_5D3"
 FORMAT_SEQUENCE[50D]="m down down $FMT_SEQ"
 FORMAT_SEQUENCE[60D]="m left left left left $FMT_SEQ"
-FORMAT_SEQUENCE[450D]="m left left $FMT_SEQ"
+FORMAT_SEQUENCE[450D]="m left left $FMT_SEQ"                # fixme: locks up
 FORMAT_SEQUENCE[500D]="m $FMT_SEQ"
 FORMAT_SEQUENCE[550D]="m $FMT_SEQ"
 FORMAT_SEQUENCE[600D]="m right right right $FMT_SEQ"
 FORMAT_SEQUENCE[650D]="m $FMT_SEQ"                          # fixme: free space wrong before format
 FORMAT_SEQUENCE[700D]="m left left left $FMT_SEQ"           # fixme: free space wrong before format
 FORMAT_SEQUENCE[100D]="m $FMT_SEQ"                          # fixme: free space wrong before format
+FORMAT_SEQUENCE[1000D]="m left left $FMT_SEQ"               # fixme: locks up
 FORMAT_SEQUENCE[1100D]="m right right down $FMT_SEQ"
 FORMAT_SEQUENCE[1200D]="m left left $FMT_SEQ"
 FORMAT_SEQUENCE[EOSM2]="m left left left up $FMT_SEQ"
