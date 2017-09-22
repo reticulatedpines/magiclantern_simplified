@@ -674,7 +674,8 @@ static struct {
 };
 
 /* returns MPU button codes (lo, hi) */
-static int translate_scancode_2(int scancode, int first_code)
+/* don't allow auto-repeat for most keys (exception: scrollwheels) */
+static int translate_scancode_2(int scancode, int first_code, int allow_auto_repeat)
 {
     if (!button_codes)
     {
@@ -690,7 +691,6 @@ static int translate_scancode_2(int scancode, int first_code)
     }
 
     int ret = -2;                   /* not found */
-    int allow_auto_repeat = 0;      /* don't allow auto-repeat for most keys (exception: scrollwheels) */
 
     /* lookup MPU key code */
     for (int i = 0; i < COUNT(key_map); i++)
@@ -761,7 +761,7 @@ static int translate_scancode(int scancode)
     if (first_code)
     {
         /* special keys (arrows etc) */
-        int key = translate_scancode_2(scancode, first_code);
+        int key = translate_scancode_2(scancode, first_code, 0);
         first_code = 0;
         return key;
     }
@@ -774,13 +774,14 @@ static int translate_scancode(int scancode)
     }
     
     /* regular keys */
-    return translate_scancode_2(scancode, 0);
+    return translate_scancode_2(scancode, 0, 0);
 }
 
 static int key_avail(int scancode)
 {
     /* check whether a given key is available on current camera model */
-    return translate_scancode_2(scancode & 0xFF, scancode >> 8) > 0;
+    /* disable autorepeat checking */
+    return translate_scancode_2(scancode & 0xFF, scancode >> 8, 1) > 0;
 }
 
 static void show_keyboard_help(void)
@@ -797,7 +798,20 @@ static void show_keyboard_help(void)
             last_status = key_avail(key_map[i].scancode);
             if (last_status)
             {
-                MPU_EPRINTF0("- %-12s : %s\n", key_map[i].pc_key_name, key_map[i].cam_key_name);
+                int unpress_available = 0;
+                for (int j = i+1; j < COUNT(key_map); j++)
+                {
+                    if ((key_map[i].scancode & 0x80) == 0 &&
+                        (key_map[i].scancode | 0x80) == key_map[j].scancode &&
+                        (key_avail(key_map[j].scancode)))
+                    {
+                        unpress_available = 1;
+                    }
+                }
+                const char * press_only = 
+                    (unpress_available || strstr(key_map[i].cam_key_name, "wheel"))
+                        ? "" : "(press only)";
+                MPU_EPRINTF0("- %-12s : %s %s\n", key_map[i].pc_key_name, key_map[i].cam_key_name, press_only);
             }
         }
         else if (last_status && !key_avail(key_map[i].scancode))
