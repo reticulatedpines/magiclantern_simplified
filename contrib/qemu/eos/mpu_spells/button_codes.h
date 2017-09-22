@@ -74,6 +74,7 @@ static int button_codes_450D[] = {
     [BGMT_PICSTYLE]                     = 0x1701,
     [BGMT_PLAY]                         = 0x0301,
     [BGMT_PRESS_DIRECT_PRINT]           = 0x0501,
+    [BGMT_UNPRESS_DIRECT_PRINT]         = 0x0500,
     [BGMT_PRESS_DOWN]                   = 0x1901,
     [BGMT_PRESS_LEFT]                   = 0x1B01,
     [BGMT_PRESS_RIGHT]                  = 0x1A01,
