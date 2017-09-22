@@ -686,6 +686,7 @@ static void draw_line4_32(void *opaque,
 {
     uint8_t v, r, g, b;
     EOSState* ws = (EOSState*) opaque;
+    void * d0 = d;
     
     do {
         v = ldub_p((void *) s);
@@ -699,6 +700,12 @@ static void draw_line4_32(void *opaque,
         if ((uintptr_t)d/4 % 2) s ++;
         d += 4;
     } while (-- width != 0);
+
+    if (ws->model->digic_version < 4)
+    {
+        /* double each line */
+        memcpy(d, d0, (void *) d - d0);
+    }
 }
 
 static void draw_line8_32_bmp_yuv(void *opaque,
@@ -887,23 +894,28 @@ static void eos_update_display(void *parm)
     int height      = heights    [s->disp.type];
     int yuv_width   = yuv_widths [s->disp.type];
     int yuv_height  = yuv_heights[s->disp.type];
-    
+
+    int height_multiplier = 1;
+    int out_height = height;
+
+    /* VxWorks models have 720x240 screens stretched vertically */
     if (s->model->digic_version < 4)
     {
-        /* for VxWorks bootloader */
-        height /= 2;
+        height_multiplier = 2;
+        height /= height_multiplier;
+        assert(out_height == height * height_multiplier);
     }
-    
+
     if (s->disp.width && s->disp.height)
     {
         /* did we manage to get them from registers? override the above stuff */
         width = s->disp.width;
-        height = s->disp.height;
+        out_height = height = s->disp.height;
     }
 
-    if (width != surface_width(surface) || height != surface_height(surface))
+    if (width != surface_width(surface) || out_height != surface_height(surface))
     {
-        qemu_console_resize(s->disp.con, width, height);
+        qemu_console_resize(s->disp.con, width, out_height);
         surface = qemu_console_surface(s->disp.con);
         s->disp.invalidate = 1;
     }
@@ -917,12 +929,12 @@ static void eos_update_display(void *parm)
     int first, last;
     
     first = 0;
-    int linesize = surface_stride(surface);
-    
+    int linesize = surface_stride(surface) * height_multiplier;
+
     if (s->disp.is_4bit)
     {
         /* bootloader config, 4 bpp */
-        uint64_t size = height * linesize;
+        uint64_t size = height * width / 2;
         MemoryRegionSection section = memory_region_find(
             s->system_mem,
             s->disp.bmp_vram ? s->disp.bmp_vram : 0x08000000,
@@ -952,7 +964,7 @@ static void eos_update_display(void *parm)
     }
     else
     {
-        uint64_t size = height * linesize;
+        uint64_t size = height * width;
         MemoryRegionSection section = memory_region_find(
             s->system_mem,
             s->disp.bmp_vram ? s->disp.bmp_vram : 0x08000000,
@@ -972,7 +984,7 @@ static void eos_update_display(void *parm)
     {
         /* draw the LED at the bottom-right corner of the screen */
         int x_led = width - 8;
-        int y_led = height - 8;
+        int y_led = out_height - 8;
         uint8_t * dest = surface_data(surface);
         for (int dy = -5; dy <= 5; dy++)
         {
@@ -989,6 +1001,9 @@ static void eos_update_display(void *parm)
             }
         }
     }
+
+    first *= height_multiplier;
+    last *= height_multiplier;
 
     if (first >= 0) {
         dpy_gfx_update(s->disp.con, 0, first, width, last - first + 1);
