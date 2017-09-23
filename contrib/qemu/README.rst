@@ -81,6 +81,13 @@ Common issues and workarounds:
   - closing QEMU window does not perform a clean shutdown
   - ``Machine -> Power Down`` - see `Shutdown and reboot`_ for more info
 
+- Camera starts with a date/time dialog
+
+  - QEMU's CMOS battery is discharged :)
+  - nah, actually we don't emulate the RTC (yet)
+  - to bypass this dialog, just select OK or Cancel, or press M (MENU)
+  - a few camera models have workarounds for this in patches.gdb
+
 - dm-spy-experiments: saving the log and anything executed afterwards may not work
 
   - issue: cache hacks are not emulated very well
@@ -270,6 +277,19 @@ you may:
 Internally, Canon code refers to this kind of shutdown as ``SHUTDOWN_REQUEST``
 (watch their debug messages with ``-d debugmsg``).
 
+Caveat: the ``system_powerdown`` event does not guarantee a shutdown will actually occur
+(either because the firmware handles this event in a different way, or if the execution
+gets stuck for any reason). As a workaround, you could issue the ``quit`` command
+after some timeout, if QEMU is still running:
+
+.. code:: shell
+
+  echo "system_powerdown" | nc -U qemu.monitor
+  sleep 2
+  if nc -U qemu.monitor < /dev/null > /dev/null 2>&1; then
+    echo "quit" | nc -U qemu.monitor
+  fi
+
 Opening the card door
 '''''''''''''''''''''
 
@@ -394,19 +414,27 @@ QEMU monitor
 ````````````
 
 By default, the QEMU monitor console is available by default as a UNIX socket.
-That means, during emulation you can interact with it:
+That means, during emulation you can interact with it using netcat:
 
-- with netcat (for quick commands or from a script):
+- interactive console
+
+  .. code:: shell
+
+    nc -U qemu.monitor
+
+- one-liner commands, usable from scripts:
 
   .. code:: shell
 
     echo "log io" | nc -U qemu.monitor
 
-- with socat (for interactive console):
+- check whether QEMU monitor is active:
 
   .. code:: shell
 
-    socat - UNIX-CONNECT:qemu.monitor
+    if nc -U qemu.monitor < /dev/null > /dev/null 2>&1; then
+      ...
+    fi
 
 You can redirect the monitor console to stdio with... ``-monitor stdio``.
 
@@ -490,7 +518,7 @@ From VNC:
   vncdotool -s :1234 key m
   sleep 1
   vncdotool -s :1234 capture snap.png
-  echo "quit" | nc -U qemu.monitor
+  echo "system_powerdown" | nc -U qemu.monitor
 
 Running multiple ML builds from a single command
 ````````````````````````````````````````````````
