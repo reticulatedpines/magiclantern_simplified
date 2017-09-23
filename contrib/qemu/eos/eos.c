@@ -681,6 +681,59 @@ static void draw_line8_32(void *opaque,
     } while (-- width != 0);
 }
 
+static uint8_t clip_yuv(int v) {
+    if (v<0) return 0;
+    if (v>255) return 255;
+    return v;
+}
+
+static uint8_t yuv_to_r(uint8_t y, int8_t v) {
+    return clip_yuv(((y<<12) +          v*5743 + 2048)>>12);
+}
+
+static uint8_t yuv_to_g(uint8_t y, int8_t u, int8_t v) {
+    return clip_yuv(((y<<12) - u*1411 - v*2925 + 2048)>>12);
+}
+
+static uint8_t yuv_to_b(uint8_t y, int8_t u) {
+    return clip_yuv(((y<<12) + u*7258          + 2048)>>12);
+}
+
+static void draw_line_YUV8B_32(void *opaque,
+                uint8_t *d, const uint8_t *s, int width, int deststep)
+{
+    uint8_t v, r, g, b;
+    width = width / 2;
+    do {
+        v = ldub_p((void *) s);
+        if (v)
+        {
+            uint8_t p2 = s[2] - 0x80;
+            uint8_t p0 = s[0] - 0x80;
+            r = yuv_to_r(s[1],p2);
+            g = yuv_to_g(s[1],p0,p2);
+            b = yuv_to_b(s[1],p0);
+            ((uint32_t *) d)[0] = rgb_to_pixel32(r, g, b);
+                        
+            d += 4;
+            r = yuv_to_r(s[3],p2);
+            g = yuv_to_g(s[3],p0,p2);
+            b = yuv_to_b(s[3],p0);
+            ((uint32_t *) d)[0] = rgb_to_pixel32(r, g, b);
+            d += 4;
+        }
+        else
+        {
+            r = g = b = 128;
+            ((uint32_t *) d)[0] = rgb_to_pixel32(r, g, b);
+            d += 4;
+            ((uint32_t *) d)[0] = rgb_to_pixel32(r, g, b);
+            d += 4;
+        }
+        s +=4;
+    } while (-- width != 0);
+}
+
 static void draw_line4_32(void *opaque,
                 uint8_t *d, const uint8_t *s, int width, int deststep)
 {
@@ -959,6 +1012,23 @@ static void eos_update_display(void *parm)
             width, height, yuv_height,
             s->disp.bmp_pitch, yuv_width*2, linesize, 0, s->disp.invalidate,
             draw_line8_32_bmp_yuv, s,
+            &first, &last
+        );
+    }
+    else if (strcmp(s->model->name, "EOSM3") == 0)
+    {
+        uint64_t size = height * s->disp.bmp_pitch;
+        MemoryRegionSection section = memory_region_find(
+            s->system_mem,
+            s->disp.bmp_vram ? s->disp.bmp_vram : 0x08000000,
+            size
+        );
+        framebuffer_update_display(
+            surface,
+            &section,
+            width , height,
+            s->disp.bmp_pitch, linesize, 0, 1,
+            draw_line_YUV8B_32, s,
             &first, &last
         );
     }
@@ -1277,6 +1347,19 @@ static void patch_EOSM3(EOSState *s)
 
     fprintf(stderr, "Patching 0xFC1847E4 (MechaCPUFirmTransfer, assert)\n");
     MEM_WRITE_ROM(0xFC1847E4, (uint8_t*) &bx_lr, 2);
+
+    fprintf(stderr, "Patching 0xFC3F1110 (MZRM send and wait)\n");
+    uint32_t pldrstr = 0x62A06920;
+    uint32_t pmovs_r0_1 = 0x2001;
+    MEM_WRITE_ROM(0xFC3F1110, (uint8_t*) &pldrstr, 4);
+    MEM_WRITE_ROM(0xFC3F1114, (uint8_t*) &pmovs_r0_1, 2);
+    
+    fprintf(stderr, "Patching 0xFC3F1178 (MZRM wait)\n");
+    uint32_t pdword0x0 = 0x00000000;
+    MEM_WRITE_ROM(0xFC3F1178, (uint8_t*) &pdword0x0, 4);
+    
+    fprintf(stderr, "Patching 0xFC10A312 (BmpDDev.c:554 assert)\n");
+    MEM_WRITE_ROM(0xFC10A312, (uint8_t*) &pdword0x0, 4);    
 }
 
 static void patch_EOSM10(EOSState *s)
@@ -3890,7 +3973,7 @@ unsigned int eos_handle_uart ( unsigned int parm, EOSState *s, unsigned int addr
                     msg = "enable interrupt?";
                     enable_tio_interrupt = 1;
                 }
-                else
+                else if (strcmp(s->model->name, "EOSM3") != 0)
                 {
                     enable_tio_interrupt = value & 1;
                 }
@@ -5582,14 +5665,24 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
         case 0xD201381C:    /* D6 */
         case 0xD2018200:    /* 5D4 */
         case 0xD2018230:    /* 5D4 */
+        case 0xD20138BC:    /* M3 */
             msg = "Display resolution";
             MMIO_VAR_2x16(s->disp.width, s->disp.height);
             break;
         
         case 0xD2030108:    /* D6 */
-            s->disp.bmp_vram = value << 8;
-            s->disp.bmp_pitch = s->disp.width;
-            msg = "BMP VRAM";
+            if (strcmp(s->model->name, "EOSM3") == 0)
+            {
+                if ((value != 0x17410) && (value != 0x18010)) s->disp.bmp_vram = value << 8;
+                s->disp.bmp_pitch = (s->disp.width + 16) * 2;
+                msg = "BMP VRAM EOS M3";
+            }
+            else
+            {
+                s->disp.bmp_vram = value << 8;
+                s->disp.bmp_pitch = s->disp.width;
+                msg = "BMP VRAM";
+            }   
             break;
 
         case 0xD2018228:    /* 5D4 */
