@@ -5,6 +5,14 @@ This guide shows you how to emulate Magic Lantern (or plain Canon firmware) in Q
 
 Eager to get started? Scroll down to `Installation`_.
 
+.. class:: align-center
+
+|pic1| |pic2|
+
+.. |pic1| image:: doc/img/qemu-60D.png
+    :width: 30 %
+.. |pic2| image:: doc/img/qemu-M2-hello.jpg
+    :width: 32.3 %
 
 Current state
 -------------
@@ -724,6 +732,10 @@ Debugging with GDB
 
 See `the EOS M2 example <http://www.magiclantern.fm/forum/index.php?topic=15895.msg186173#msg186173>`_
 
+.. image:: doc/img/ddd.png
+   :scale: 50 %
+   :align: center
+
 Instrumentation
 ---------------
 
@@ -950,6 +962,10 @@ This is the perfect tool for studying them. Start at:
 - heartbeat timer (dryos_timer_id/interrupt in `model_list.c <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/eos/model_list.c>`_)
 - interrupt handler (follow the code at 0x18)
 - to debug: ``-d io,int`` is very helpful (although a bit too verbose)
+
+.. image:: doc/img/drysh.png
+   :scale: 50 %
+   :align: center
 
 Cross-checking the emulation with actual hardware
 `````````````````````````````````````````````````
