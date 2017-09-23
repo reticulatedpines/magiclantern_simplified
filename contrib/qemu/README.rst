@@ -11,7 +11,7 @@ Current state
 
 What works:
 
-- Canon GUI with menu navigation - most DIGIC 4 and 5 models
+- Canon GUI with menu navigation - most DIGIC 4 and 5 models, some DIGIC 3 models
 - Limited support for DIGIC 2, 3, 6 and 7 models
 - Limited support for some PowerShot models
 - Limited support for secondary DryOS cores (such as Eeko or 5D4 AE processor)
@@ -21,7 +21,7 @@ What works:
 - Unmodified autoexec.bin works on many single-core camera models
   (and, with major limitations, on dual-core models)
 - ML modules and Lua scripts (within the limitations of the emulation)
-- DryOS timer (heartbeat) and task switching (all supported models)
+- DryOS/VxWorks timer (heartbeat) and task switching (all supported models)
 - UART emulation (DryOS shell aka Dry-shell or DrySh on DIGIC 4 and 5 models)
 - Deterministic execution with the ``-icount`` option (SD models only)
 - Cache hacks are emulated to some extent (but "uninstalling" them does not work)
@@ -44,20 +44,17 @@ What works:
 - Log various actions of the guest operating system (Canon firmware, ML):
 
   - execution trace: ``-d exec,nochain -singlestep``
-  - I/O trace: ``-d io``
-  - log various components: ``-d mpu/sflash/sdcf/uart/int``
-  - list all available items: ``-d help`` 
-
-- Built-in instrumentation (eos/dbi):
-
+  - I/O trace: ``-d io``, ``-d io,int``
+  - log hardware devices: ``-d mpu/sflash/sdcf/uart/int``
   - log all debug messages from Canon: ``-d debugmsg``
   - log all memory accesses: ``-d rom/ram/romr/ramw/etc``
   - log all function calls: ``-d calls``, ``-d calls,tail``
-  - log all DryOS/VxWorks context switches
+  - log all DryOS/VxWorks task switches: ``-d tasks``
   - track all function calls to provide a stack trace: ``-d callstack``
   - export all called functions to IDC script: ``-d idc``
   - identify memory blocks copied from ROM to RAM: ``-d romcpy``
   - check for memory errors (a la valgrind): ``-d memchk``
+  - list all available items: ``-d help`` 
 
 What does not work (yet):
 
@@ -65,7 +62,6 @@ What does not work (yet):
 - Still photo capture (WIP - the capture process itself works);
 - Image review (WIP);
 - Dual core emulation aka IPC (WIP);
-- Shutdown is not clean (TODO);
 - Touch screen (TODO);
 - Flash reprogramming (TODO, low priority);
 - Most hardware devices (audio chip, RTC, I2C, ADTG, FPGAs, JPCORE, image processing engine...);
@@ -76,11 +72,19 @@ What does not work (yet):
 
 Common issues and workarounds:
 
+- Firmware version mismatch when trying to load ML
+
+  - see `Incorrect firmware version?`_
+
+- Camera was not shut down cleanly - Skipping module loading
+
+  - closing QEMU window does not perform a clean shutdown
+  - ``Machine -> Power Down`` - see `Shutdown and reboot`_ for more info
+
 - dm-spy-experiments: saving the log and anything executed afterwards may not work
 
   - issue: cache hacks are not emulated very well
-  - workaround: compile with CONFIG_QEMU=y
-
+  - workaround: compile with ``CONFIG_QEMU=y``
 
 Installation
 ------------
@@ -124,6 +128,9 @@ For reference, you may also look at `our test suite <https://builds.magiclantern
 where QEMU is installed from scratch every time the tests are run.
 These logs can be very useful for troubleshooting.
 
+While we don't provide a native Windows build yet,
+it is possible to install QEMU and ML development tools
+`under Windows 10 Linux Subsystem (WSL) <http://www.magiclantern.fm/forum/index.php?topic=20214.0>`_.
 
 Running Canon firmware
 ----------------------
@@ -225,10 +232,73 @@ does not automatically mean you'll get the above issue. Some patches are optiona
 (to fix minor annoyances such as the date/time dialog at startup - 500D, 550D, 600D, 60D),
 or they may modify Canon code in a way that does not change the firmware signature (700D).
 
+Navigating menus
+````````````````
 
+Press ``F1`` to show the available keys (they are model-specific), or just read them
+from the emulation log. Some keys will only send "press" events, while others
+will send "press and release" events (this is also model-specific
+and printed on the console).
+
+Scrollwheels, if turned very quickly, may send a single event that includes
+more than one click. This complicates scrollwheel handling code on ML side
+and often leads to subtle issues. Currently, this behavior is not emulated.
+
+Shutdown and reboot
+```````````````````
+
+By default, closing QEMU window is equivalent to unplugging the power cord
+(if your camera is on external power source). This appears to be the default
+with other operating systems as well, so we did not change it.
+
+Please note: closing QEMU window is **not** equivalent to taking the battery out
+- see `Opening the battery door`_ for details.
+
+Shutting down
+'''''''''''''
+
+To perform a clean shutdown (similar to powering down the camera from the main switch),
+you may:
+
+- select ``Machine -> Power Down`` from the menu (QEMU window)
+- send the ``system_powerdown`` command to QEMU monitor:
+
+.. code:: shell
+
+  echo "system_powerdown" | nc -U qemu.monitor
+
+Internally, Canon code refers to this kind of shutdown as ``SHUTDOWN_REQUEST``
+(watch their debug messages with ``-d debugmsg``).
+
+Opening the card door
+'''''''''''''''''''''
+
+Opening the SD/CF card door is a clean (non-rushed) way to shut down Canon firmware (``SHUTDOWN_REQUEST``).
+To emulate this kind of shutdown, press ``C`` to simulate opening the card door,
+then wait for a few seconds for QEMU to shutdown.
+
+Opening the card door and closing it back quickly enough may result
+in shutdown being canceled. Closing the card door is not implemented,
+therefore this behavior is not emulated yet.
+
+Opening the battery door
+''''''''''''''''''''''''
+
+Opening the battery door is interpreted by Canon firmware as an emergency shutdown (``PROP_ABORT``),
+but it's still a clean(ish) shutdown. To emulate this kind of shutdown, press ``B``,
+then close the QEMU window manually (or send the ``quit`` command to QEMU monitor).
+Currently we do not know how to trigger or recognize a hardware shutdown event.
+
+Rebooting
+'''''''''
+
+The camera can be rebooted from software by triggering ``PROP_REBOOT``.
+Canon firmware handles it as a regular shutdown (``SHUTDOWN_REQUEST``),
+followed by a regular boot. In QEMU, triggering ``PROP_REBOOT`` from software
+will perform a clean shutdown (rebooting is not implemented).
 
 Running ML Lua scripts
-----------------------
+``````````````````````
 
 - Install ML on the virtual SD card
 
@@ -246,16 +316,14 @@ Running ML Lua scripts
 
     ./run_canon_fw.sh 60D,firmware="boot=1"
 
-- enable Debug -> Load modules after crash (workaround for incomplete shutdown emulation)
-- close ML menu and reboot the virtual camera
 - enable the Lua module
-- close ML menu and reboot
+- reboot the virtual camera cleanly (menu: Machine -> Power Down, then start it again)
 - run the Hello World script
 
 TODO: make api_test.lua run, fix bugs, polish the guide.
 
 Using multiple firmware versions
---------------------------------
+````````````````````````````````
 
 In most cases, Magic Lantern only supports one firmware version, to keep things simple.
 However, there may be good reasons to support two firmware versions
@@ -289,6 +357,35 @@ Compare to a camera model where only one firmware version is supported:
 
   /path/to/qemu/60D/ROM0.BIN
   /path/to/qemu/60D/ROM1.BIN
+
+Running from the physical SD/CF card
+````````````````````````````````````
+
+You may also start QEMU from the same card you use in the physical camera - 
+this might be useful for troubleshooting issues with Magic Lantern.
+
+The safest way (but requires some disk space) would be to create an image
+of your SD (or CF) card (`tutorial for Windows and Mac <https://thepihut.com/blogs/raspberry-pi-tutorials/17789160-backing-up-and-restoring-your-raspberry-pis-sd-card>`_):
+
+.. code:: shell
+
+  dd if=/dev/your-sd-card of=sd.img bs=1M
+
+and run QEMU from the resulting ``sd.img`` (or ``cf.img``).
+
+To run the emulation directly from a physical SD/CF card:
+
+- See `QEMU docs (Using host drives) <https://qemu.weilnetz.de/doc/qemu-doc.html#Using-host-drives>`_
+  and `these warnings <https://wiki.archlinux.org/index.php/QEMU#Using_any_real_partition_as_the_single_primary_partition_of_a_hard_disk_image>`_
+- Replace ``file=sd.img`` (or ``file=cf.img``) with ``file=/dev/your-sd-card`` in ``run_canon_fw.sh``
+- Configure the appropriate permissions and run the emulation as usual.
+
+**Warning: Canon firmware WILL write to the SD/CF card during startup, 
+and might even attempt to format it if the filesystem is not recognized,
+or because of emulation bugs. 
+Be very careful not to give it write access to your physical hard-disk!!!**
+
+Note: the ROM files will not be loaded from the SD/CF card.
 
 Automation
 ----------
@@ -325,7 +422,7 @@ and take a screenshot after 10 seconds.
   ( 
     sleep 10
     echo screendump snap.ppm
-    echo quit
+    echo system_powerdown
   ) | (
     ./run_canon_fw.sh 60D,firmware='boot=0' \
         -monitor stdio
@@ -339,7 +436,7 @@ Another option is to use the VNC interface:
         -vnc :1234 &
   sleep 10
   vncdotool -s :1234 capture snap.png
-  echo "quit" | nc -U qemu.monitor
+  echo "system_powerdown" | nc -U qemu.monitor
 
 Sending keystrokes
 ``````````````````
@@ -358,11 +455,23 @@ From QEMU monitor:
     echo sendkey m
     sleep 1
     echo screendump menu.ppm
-    echo quit
+    echo system_powerdown
   ) | (
     ./run_canon_fw.sh 60D,firmware='boot=0' \
         -monitor stdio
   )
+
+Or, if QEMU runs as a background process:
+
+.. code:: shell
+
+  ./run_canon_fw.sh 60D,firmware='boot=0' &
+  
+  sleep 10
+  echo "sendkey m" | nc -U qemu.monitor
+  sleep 1
+  echo "screendump menu.ppm" | nc -U qemu.monitor
+  echo "system_powerdown" | nc -U qemu.monitor
 
 From VNC:
 
@@ -382,7 +491,6 @@ From VNC:
   sleep 1
   vncdotool -s :1234 capture snap.png
   echo "quit" | nc -U qemu.monitor
-
 
 Running multiple ML builds from a single command
 ````````````````````````````````````````````````
@@ -404,7 +512,7 @@ Internally, this is how the emulator is invoked:
   ( 
     sleep 10
     echo screendump 60D.111.ppm
-    echo quit
+    echo system_powerdown
   ) | (
     arm-none-eabi-gdb -x 60D/patches.gdb & 
     ./run_canon_fw.sh 60D,firmware='boot=1' \
@@ -613,6 +721,9 @@ How is this code organazized?
 MMIO handlers: eos_handle_whatever (with io_log for debug messages).
 
 Useful: eos_get_current_task_name/id/stack, eos_mem_read/write.
+
+To customize keys or add support for new buttons or GUI events,
+edit ``mpu.c``, ``button_codes.h`` and ``extract_buton_codes.py``. 
 
 Adding support for a new camera model
 `````````````````````````````````````
@@ -971,6 +1082,7 @@ History
 :2017:  Working on `Mac (dfort) <http://www.magiclantern.fm/forum/index.php?topic=2864.msg184981#msg184981>`_ 
         and `Windows 10 / Linux subsystem (g3gg0) <http://www.magiclantern.fm/forum/index.php?topic=20214.0>`_
 :2017: `EOS M2 porting walkthrough <http://www.magiclantern.fm/forum/index.php?topic=15895.msg185103#msg185103>`_
+:2017: `Automated tests for ML builds in QEMU <http://www.magiclantern.fm/forum/index.php?topic=20560>`_
 
 
 
