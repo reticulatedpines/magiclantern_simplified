@@ -917,6 +917,43 @@ for CAM in ${EOS_CAMS[*]}; do
 done
 
 echo
+echo "Testing CHDK display..."
+
+# M3 uses a special CHDK build from Ant123
+# using it for the other PowerShot models
+# just to test whether they are booting from the card
+for CAM in ${POWERSHOT_CAMS[*]}; do
+    printf "%5s: \n" $CAM
+    mkdir -p tests/$CAM/
+    rm -f tests/$CAM/disp.ppm
+    rm -f tests/$CAM/disp.log
+
+    M3_DISKBOOT_BIN=tests/test-progs/M3/DISKBOOT.BIN
+    if [ ! -f $M3_DISKBOOT_BIN ]; then
+        mkdir -p `dirname $M3_DISKBOOT_BIN`
+        wget -q -O $M3_DISKBOOT_BIN http://a1ex.magiclantern.fm/bleeding-edge/M3/qemu/DISKBOOT.BIN
+    fi
+
+    # Our SD image appears to be already bootable for CHDK (?!)
+    mcopy -o -i $MSD $M3_DISKBOOT_BIN ::
+
+    # run the emulation
+    (
+      sleep 10
+      echo screendump tests/$CAM/disp.ppm
+      echo quit
+    ) | (
+      ./run_canon_fw.sh $CAM \
+            -display none -monitor stdio \
+            -serial file:tests/$CAM/disp-uart.log \
+    ) &> tests/$CAM/disp.log
+
+    printf "  SD boot: "; tests/check_grep.sh tests/$CAM/disp-uart.log -om1 "StartDiskboot"
+    printf "  RAMboot: "; tests/check_grep.sh tests/$CAM/disp-uart.log -om1 "Start Program on RAM"
+    printf "  Display: "; tests/check_md5.sh tests/$CAM/ disp
+done
+
+echo
 echo "Testing PowerShot models..."
 for CAM in ${POWERSHOT_CAMS[*]}; do
     echo "$CAM:"
