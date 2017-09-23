@@ -1,5 +1,5 @@
-How to run Magic Lantern in QEMU?
-=================================
+How can I run Magic Lantern in QEMU?
+====================================
 
 This guide shows you how to emulate Magic Lantern (or plain Canon firmware) in QEMU.
 
@@ -130,7 +130,7 @@ These logs can be very useful for troubleshooting.
 
 While we don't provide a native Windows build yet,
 it is possible to install QEMU and ML development tools
-`under Windows 10 Linux Subsystem (WSL) <http://www.magiclantern.fm/forum/index.php?topic=20214.0>`_.
+`under the Windows 10 Linux Subsystem (WSL) <http://www.magiclantern.fm/forum/index.php?topic=20214.0>`_.
 
 Running Canon firmware
 ----------------------
@@ -247,7 +247,7 @@ and often leads to subtle issues. Currently, this behavior is not emulated.
 Shutdown and reboot
 ```````````````````
 
-By default, closing QEMU window is equivalent to unplugging the power cord
+By default, closing the QEMU window is equivalent to unplugging the power cord
 (if your camera is on external power source). This appears to be the default
 with other operating systems as well, so we did not change it.
 
@@ -351,7 +351,7 @@ And the directory layout should be like this:
   /path/to/qemu/5D3/debugmsg.gdb  # common to both versions
   /path/to/qemu/5D3/patches.gdb   # common to both versions
 
-Compare to a camera model where only one firmware version is supported:
+Compare this to a camera model where only one firmware version is supported:
 
 .. code::
 
@@ -792,7 +792,7 @@ Initial firmware analysis
 
      dd if=ROM1.BIN of=EOSM2.0x1900.BIN bs=1 skip=$((0xD1F0E4)) count=$((0xB70A0))
 
-   If you are analyzing the main firmware, load EOSM2.0x1900.BIN as additional binary file
+   If you are analyzing the main firmware, load EOSM2.0x1900.BIN as an additional binary file
    (in IDA, choose segment 0, offset 0x1900). Do the same for the blob copied at 0x4B0.
 
    If you are analyzing the bootloader, extract and load the first two blobs in the same way.
@@ -839,7 +839,7 @@ OK, so the message appears to be related to these I/O registers.
 Look up the code that's handling them (search for "RAM manufacturer ID").
 You'll find it in eos.c:eos_handle_digic6, at the register 0xD203040C
 (as expected), and you'll find it uses a model-specific constant:
-``s->model->ram_manufacturer_id``. Let's look it around to see what's up with it:
+``s->model->ram_manufacturer_id``. Let's look around to see what's up with it:
 
 .. code:: C
 
@@ -856,7 +856,7 @@ Good - it's now clear you'll have to find this constant. You have many choices h
 
 - disassemble the ROM near the affected address,
   and try to understand what value Canon code expects from this register
-- use pattern matching and find it from nearby model
+- use pattern matching and find it based on a similar camera model
 - try the values from another camera model, hoping for the best
 - trial and error
 
@@ -881,14 +881,14 @@ and the new error message will tell you the answer right away:
 You now have at most 4 test runs to find this code :)
 
 A more complete example: the `EOS M2 walkthrough <http://www.magiclantern.fm/forum/index.php?topic=15895.msg185103#msg185103>`_
-shows how to add support for this camera from scratch, until getting Canon GUI to boot (and more!)
+shows how to add support for this camera from scratch, right through to getting the Canon GUI to boot (and more!)
 
 Although this model is already supported in the repository,
 you can always roll back to an older changeset (``3124887``) and follow the tutorial.
 
 
-Adding support for a new Canon firmware
-```````````````````````````````````````
+Adding support for a new Canon firmware version
+```````````````````````````````````````````````
 
 You will have to update:
 
@@ -899,11 +899,11 @@ You will have to update:
 Most other emulation bits usually do not depend on the firmware version
 (5D3 1.2.3 was an exception).
 
-`Updating Magic Lantern to a new Canon firmware <https://www.magiclantern.fm/forum/index.php?topic=19417.0>`_
+`Updating Magic Lantern to run on a new Canon firmware version <https://www.magiclantern.fm/forum/index.php?topic=19417.0>`_
 is a bit more time-consuming, but it's not difficult.
 
-Any good docs on QEMU internals?
-````````````````````````````````
+Are there any good docs on QEMU internals?
+``````````````````````````````````````````
 
 - http://nairobi-embedded.org/category/qemu.html
 - http://blog.vmsplice.net
@@ -959,7 +959,7 @@ first make sure you are on the ``qemu`` branch:
   # from the magic-lantern directory
   hg up qemu -C
 
-Then copy your changes back into ML tree:
+Then copy your changes back into the ML tree:
 
 .. code:: shell
 
@@ -971,13 +971,13 @@ Then commit as usual, from the ``contrib/qemu`` directory.
 Reverting your changes
 ``````````````````````
 
-If you want to go back to an older changeset, or just undo your edits
-done outside the magic-lantern directory, you may run the install script
+If you want to go back to an older changeset, or just undo any changes you
+made outside the magic-lantern directory, you may run the install script
 again. It will not re-download QEMU, but unfortunately you will have to
 recompile QEMU from scratch (which is very slow).
 
 If you have changed only the ``eos`` files, to avoid a full recompilation
-you may try a script along these lines:
+you may try a script similar to the following:
 
 .. code:: shell
 
@@ -1009,7 +1009,7 @@ and covers the following:
 - Menu navigation (on supported models) - depends on user settings from the ROM
 - Card formatting (and restoring ML)
 - Call/return trace until booting the GUI (a rigid test that may have to be updated frequently)
-- Call/return trace on bootloader (likely independent on firmware version and user settings)
+- Call/return trace on bootloader (likely independent of firmware version and user settings)
 - Callstack consistency with call/return trace (at every DebugMsg call)
 - File I/O (whether the firmware creates a DCIM directory on startup)
 - FA_CaptureTestImage (basic image capture process, without compression or CR2 output)
@@ -1043,7 +1043,7 @@ Limitations:
   - run only the test(s) you are interested in (add ``if false; then`` ... ``fi`` in the source)
   - leave the tests running overnight.
 
-  If you have ideas to improve it, we are listening.
+  If you have any ideas on how to improve the tests, we are listening.
 
 To avoid committing (large) reference screenshots or log files,
 a lot of expected test results are stored as MD5 sums. That's a bit rigid,
