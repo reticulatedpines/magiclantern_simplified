@@ -4005,6 +4005,10 @@ read_headers:
                     goto abort;
                 }
                 
+                /* well, it appears to happen that MLVs with odd sizes were written, restrict that */
+                block_hdr.raw_info.height &= ~1;
+                block_hdr.yRes &= ~1;
+                
                 lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
 
                 video_xRes = block_hdr.xRes;
