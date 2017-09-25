@@ -1371,7 +1371,7 @@ int raw_update_params_work()
             raw_info.white_level += raw_info.black_level;
         }
 
-        raw_info.white_level = autodetect_white_level(raw_info.white_level);
+        raw_info.white_level = autodetect_white_level(raw_info.white_level - 3000);
         raw_info.dynamic_range = compute_dynamic_range(black_mean, black_stdev_x100, raw_info.white_level);
     }
 #ifdef CONFIG_RAW_LIVEVIEW
@@ -1974,14 +1974,15 @@ static int autodetect_black_level(int* black_mean, int* black_stdev_x100)
 
 static int autodetect_white_level(int initial_guess)
 {
-    int white = initial_guess - 3000;
-    int max = white + 500;
+    qprintf("[WL] initial guess: %d\n", initial_guess);
+    int white = initial_guess;
+    int max = initial_guess;
     int confirms = 0;
-
-    //~ bmp_printf(FONT_MED, 50, 50, "White...");
+    int above_white = 0;
+    const int margin = 100; /* how much to go below max confirmed pixel value */
 
     int raw_height = raw_info.active_area.y2 - raw_info.active_area.y1;
-    for (int y = raw_info.active_area.y1 + raw_height/10; y < raw_info.active_area.y2 - raw_height/10; y += 5)
+    for (int y = raw_info.active_area.y1 + raw_height/10; y < raw_info.active_area.y2 - raw_height/10; y += 3)
     {
         int pitch = raw_info.width/8*14;
         int row = (intptr_t) raw_info.buffer + y * pitch;
@@ -1989,8 +1990,12 @@ static int autodetect_white_level(int initial_guess)
         int row_crop_start = row + raw_info.active_area.x1/8*14 + skip_5p;
         int row_crop_end = row + raw_info.active_area.x2/8*14 - skip_5p;
 
-        for (struct raw_pixblock * p = (void*)row_crop_start; (void*)p < (void*)row_crop_end; p += 5)
+        for (struct raw_pixblock * p = (void*)row_crop_start; (void*)p < (void*)row_crop_end; p += 3)
         {
+            if (p->a > white + margin)
+            {
+                above_white++;
+            }
             if (p->a > max)
             {
                 max = p->a;
@@ -1999,15 +2004,26 @@ static int autodetect_white_level(int initial_guess)
             else if (p->a == max)
             {
                 confirms++;
-                if (confirms > 5)
+                if (confirms > 5 && white < max - margin)
                 {
-                    white = max - 500;
+                    white = max - margin;
+                    above_white = 0;
+                    qprintf("[WL] new white %d\n", white);
                 }
             }
         }
     }
 
-    //~ bmp_printf(FONT_MED, 50, 50, "White: %d ", white);
+    if (above_white > 50)
+    {
+        /* many pixels above the peak - image not overexposed? */
+        qprintf("[WL] peak invalidated (%d, max=%d).\n", above_white, white);
+        white = MIN(max + margin, 16383);
+    }
+    else
+    {
+        qprintf("[WL] %d hot pixels.\n", above_white);
+    }
 
     return white;
 }
@@ -2028,7 +2044,7 @@ static int compute_dynamic_range(int black_mean, int black_stdev_x100, int white
     int mean = black_mean * 100;
     int stdev = black_stdev_x100;
     bmp_printf(FONT_MED, 50, 100, "mean=%d.%02d stdev=%d.%02d white=%d", mean/100, mean%100, stdev/100, stdev%100, white_level);
-    white_level = autodetect_white_level(15000);
+    white_level = autodetect_white_level(12000);
 #endif
 
     int dr = (int)roundf((log2f(white_level - black_mean) - log2f(black_stdev_x100 / 100.0)) * 100);
