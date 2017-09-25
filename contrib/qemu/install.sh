@@ -35,7 +35,13 @@ tar jxf $QEMU_NAME.tar.bz2
 
 # initialize a git repo, to make it easy to track changes to QEMU source
 cd $QEMU_NAME
-cd .git && cd .. || (git init && git add . && git commit -q -m "$QEMU_NAME vanilla")
+if [ ! -d .git ]; then
+  git init
+  # git requires a valid email; if not setup, add one for this directory only
+  git config user.email || git config user.email qemu@magiclantern.fm
+  git add .
+  git commit -q -m "$QEMU_NAME vanilla"
+fi
 cd ..
 
 # copy our helper scripts
