@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+GREP=${GREP:=grep}
 QEMU_PATH=${QEMU_PATH:=qemu-2.5.0}
 MAKE=${MAKE:=make}
 
@@ -7,9 +8,9 @@ function is_mounted
 {
     # better way to check whether a disk image is mounted?
     # or, how to tell QEMU to use exclusive access for the disk images?
-    SD_DEV=`losetup -j $1 | grep -Po "(?<=/dev/)[^ ]*(?=:)"`
+    SD_DEV=`losetup -j $1 | $GREP -Po "(?<=/dev/)[^ ]*(?=:)"`
     if [ $? == 0 ]; then
-        if cat /proc/mounts | grep /dev/mapper/$SD_DEV; then
+        if cat /proc/mounts | $GREP /dev/mapper/$SD_DEV; then
             return 0
         fi
     fi
@@ -17,9 +18,18 @@ function is_mounted
 }
 
 if [ $(uname) == "Darwin" ]; then
-    if [[ -n $(ls /Volumes | grep EOS_DIGITAL*) ]]; then
+    if [[ -n $(ls /Volumes | $GREP EOS_DIGITAL*) ]]; then
         echo
         echo "Error: please unmount EOS_DIGITAL."
+        exit 1
+    fi
+    
+    if [[ -n $(which ggrep) ]]; then
+        GREP=ggrep
+    else
+        echo
+        echo "Error: you need GNU grep to run this script"
+        echo "brew install grep"
         exit 1
     fi
 else
@@ -47,7 +57,7 @@ echo $0 $*
 
 CAM=${1//,*/}
 if [ "$CAM" ] && [ ! "$QEMU_EOS_DEBUGMSG" ]; then
-    QEMU_EOS_DEBUGMSG=`cat $CAM/debugmsg.gdb | grep DebugMsg_log -B 1 | grep -Pom1 "(?<=b \*)0x.*"`
+    QEMU_EOS_DEBUGMSG=`cat $CAM/debugmsg.gdb | $GREP DebugMsg_log -B 1 | $GREP -Pom1 "(?<=b \*)0x.*"`
     echo "DebugMsg=$QEMU_EOS_DEBUGMSG (from GDB script)"
 else
     echo "DebugMsg=$QEMU_EOS_DEBUGMSG (overriden)"
