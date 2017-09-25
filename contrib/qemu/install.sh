@@ -4,14 +4,21 @@ set -e
 
 QEMU_NAME=${QEMU_NAME:=qemu-2.5.0}
 ML=${ML:=magic-lantern}
+GREP=${GREP:=grep}
 
 echo
 echo "This will setup QEMU for emulating Magic Lantern."
 echo "Thou shalt not be afraid of compiling stuff on Linux ;)"
 echo -n "Continue? [y/n] "
 read answer
-if test "$answer" != "Y" -a "$answer" != "y";
-then exit 0;
+if test "$answer" != "Y" -a "$answer" != "y"; then exit 0; fi
+echo
+
+if [ $(uname) == "Darwin" ]; then
+    echo "*** Installing dependencies for Mac..."
+    echo
+    brew install xz grep pkg-config glib automake libtool pixman mtools
+    GREP=ggrep
 fi
 
 function die { echo "${1:-"Unknown Error"}" 1>&2 ; exit 1; }
@@ -20,7 +27,7 @@ pwd | grep $ML/contrib/qemu > /dev/null || die "error: we should be in $ML/contr
 
 # go to the parent of magic-lantern folder
 cd ../../..
-ls | grep $ML > /dev/null || die "error: expecting to find $ML here"
+ls | $GREP $ML > /dev/null || die "error: expecting to find $ML here"
 
 mkdir -p qemu
 cd qemu
@@ -85,7 +92,7 @@ echo "1) Compile QEMU"
 echo
 echo "   cd `pwd`/${QEMU_NAME}"
 echo "   ../configure_eos.sh"
-echo "   make -j`grep -c processor /proc/cpuinfo 2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || echo 1`"
+echo "   make -j`$GREP -c processor /proc/cpuinfo 2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || echo 1`"
 echo
 echo "2) Grab a copy of the Canon firmware from your own camera"
 echo "   (don't request one and don't share it online - it's copyrighted)"
@@ -115,7 +122,7 @@ echo
 echo "   This will recompile QEMU, but not ML."
 echo
 echo "   Note: Canon GUI emulation (menu navigation, no LiveView) only works on"
-echo -n "   "; grep --color=never -oP "(?<=GUI_CAMS=\( ).*(?=\))" tests/run_tests.sh;
+echo -n "   "; $GREP --color=never -oP "(?<=GUI_CAMS=\( ).*(?=\))" tests/run_tests.sh;
 echo
 echo "5) Tips & tricks:"
 echo "   - to enable or disable the boot flag in ROM, use something like:"
