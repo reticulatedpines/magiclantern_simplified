@@ -21,6 +21,27 @@ if [ $(uname) == "Darwin" ]; then
     GREP=ggrep
 fi
 
+if apt-get -v &> /dev/null; then
+    # apt-based system?
+    # install these packages, if not already
+    # only request sudo if any of them is missing
+    # instead of GTK (libgtk2.0-dev), you may prefer SDL (libsdl1.2-dev)
+    packages="
+        build-essential mercurial pkg-config libtool
+        git libglib2.0-dev libfdt-dev libpixman-1-dev zlib1g-dev
+        libgtk2.0-dev xz-utils mtools netcat-openbsd
+        python python-pip"
+
+    echo "*** Checking dependencies for Ubuntu..."
+    echo
+    if ! dpkg -l $packages > /dev/null; then
+        echo "*** Installing dependencies for Ubuntu..."
+        echo
+        sudo apt-get update
+        sudo apt-get install $packages
+    fi
+fi
+
 function die { echo "${1:-"Unknown Error"}" 1>&2 ; exit 1; }
 
 pwd | grep $ML/contrib/qemu > /dev/null || die "error: we should be in $ML/contrib/qemu"
