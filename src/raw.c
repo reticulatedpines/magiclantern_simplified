@@ -1348,31 +1348,14 @@ int raw_update_params_work()
 
     if (!lv)
     {
-        /* at ISO 160, 320 etc, the white level is decreased by -1/3 EV */
-        /* in LiveView, it doesn't change */
-        int iso = 0;
-        if (!iso) iso = lens_info.raw_iso;
-        if (!iso) iso = lens_info.raw_iso_auto;
-        static int last_iso = 0;
-        if (!iso) iso = last_iso;
-        last_iso = iso;
-        if (!iso)
-        {
-            dbg_printf("ISO error\n");
-            return 0;
-        }
-        int iso_rounded = COERCE((iso + 3) / 8 * 8, 72, 200);
-        float iso_digital = (iso - iso_rounded) / 8.0f;
-
-        if (iso_digital <= 0)
-        {
-            raw_info.white_level -= raw_info.black_level;
-            raw_info.white_level *= powf(2, iso_digital);
-            raw_info.white_level += raw_info.black_level;
-        }
-
-        raw_info.white_level = autodetect_white_level(raw_info.white_level - 3000);
+        /* start at Canon's white level, and autodetect from there
+         * Canon's guess may be up to 0.38 EV below the true value - or maybe more?
+         * http://www.magiclantern.fm/forum/index.php?topic=20579.msg190437#msg190437
+         */
+        int canon_white = shamem_read(0xC0F12054) >> 16;
+        raw_info.white_level = autodetect_white_level(canon_white);
         raw_info.dynamic_range = compute_dynamic_range(black_mean, black_stdev_x100, raw_info.white_level);
+        printf("White level: %d -> %d\n", canon_white, raw_info.white_level);
     }
 #ifdef CONFIG_RAW_LIVEVIEW
     else if (!is_movie_mode())
