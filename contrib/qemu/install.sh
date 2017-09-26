@@ -79,14 +79,19 @@ if apt-get -v &> /dev/null; then
     # Ubuntu's arm-none-eabi-gdb does not work - make sure we don't have it
     # this will only appear if user already has gcc-arm-none-eabi or related packages
     # from Ubuntu repository - they won't work and will conflict with gcc-arm-embedded.
-    if dpkg -l binutils-arm-none-eabi > /dev/null; then
+    if ! valid_gdb; then
         echo "*** WARNING: Ubuntu's arm-none-eabi-gdb is known not to work."
         echo "*** You have two options:"
         echo
-        echo "1 - Remove Ubuntu version and install the one from gcc-arm-embedded PPA (recommended)"
-        echo "    This will:"
-        echo "    - sudo apt-get remove gcc-arm-none-eabi gdb-arm-none-eabi \\"
-        echo "           binutils-arm-none-eabi libnewlib-arm-none-eabi"
+        if dpkg -l binutils-arm-none-eabi &> /dev/null; then
+            echo "1 - Remove Ubuntu version and install the one from gcc-arm-embedded PPA (recommended)"
+            echo "    This will:"
+            echo "    - sudo apt-get remove gcc-arm-none-eabi gdb-arm-none-eabi \\"
+            echo "           binutils-arm-none-eabi libnewlib-arm-none-eabi"
+        else
+            echo "1 - Install the toolchain from gcc-arm-embedded PPA (recommended)"
+            echo "    This will:"
+        fi
         echo "    - sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa"
         echo "    - install the gcc-arm-embedded package."
         echo
@@ -101,15 +106,15 @@ if apt-get -v &> /dev/null; then
         read answer
         case $answer in
             1)
-                echo
-                echo "*** Please double-check - the following might remove additional packages!"
-                echo
-                sudo apt-get remove gcc-arm-none-eabi gdb-arm-none-eabi \
-                     binutils-arm-none-eabi libnewlib-arm-none-eabi
-                if dpkg -l binutils-arm-none-eabi > /dev/null; then
-                    echo "*** ERROR: binutils-arm-none-eabi could not be uninstalled."
-                    exit 1
+                if dpkg -l binutils-arm-none-eabi &> /dev/null; then
+                    echo
+                    echo "*** Please double-check - the following might remove additional packages!"
+                    echo
+                    sudo apt-get remove gcc-arm-none-eabi gdb-arm-none-eabi \
+                         binutils-arm-none-eabi libnewlib-arm-none-eabi
                 fi
+                packages="$packages gcc-arm-embedded"
+                sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa
                 ;;
             2)
                 # gdb will be installed after these packages
@@ -119,15 +124,6 @@ if apt-get -v &> /dev/null; then
                 exit 1
                 ;;
         esac
-    fi
-
-    if ! valid_gdb; then
-        # can we install gcc-arm-embedded without conflicts?
-        if ! dpkg -l binutils-arm-none-eabi > /dev/null; then
-            sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa
-            echo "*** Using gcc-arm-embedded PPA."
-            packages="$packages gcc-arm-embedded"
-        fi
     fi
 
     echo "*** Checking dependencies for Ubuntu..."
@@ -142,7 +138,8 @@ if apt-get -v &> /dev/null; then
     fi
 fi
 
-# all systems (including Mac)
+# all systems (including Mac, or Ubuntu if the installation from PPA failed)
+# this one works on old systems as well, but it won't work under WSL
 if ! valid_gdb; then
     echo
     echo "*** WARNING: arm-none-eabi-gdb is not installed."
