@@ -30,6 +30,22 @@ function install_gdb {
     echo
 }
 
+function valid_gdb {
+    if ! arm-none-eabi-gdb -v &> /dev/null; then
+        # not installed, or not able to run for any reason
+        return 1
+    fi
+
+    if arm-none-eabi-gdb -v | grep -q ubuntu; then
+        # Ubuntu version - doesn't work
+        return 1
+    fi
+
+    # assume it's OK
+    # todo: check version number
+    return 0
+}
+
 if [ $(uname) == "Darwin" ]; then
     echo "*** Installing dependencies for Mac..."
     echo
@@ -69,13 +85,17 @@ if apt-get -v &> /dev/null; then
         echo
         echo "1 - Remove Ubuntu version and install the one from gcc-arm-embedded PPA (recommended)"
         echo "    This will:"
-        echo "    - sudo apt-get remove gcc-arm-none-eabi gdb-arm-none-eabi binutils-arm-none-eabi"
+        echo "    - sudo apt-get remove gcc-arm-none-eabi gdb-arm-none-eabi \\"
+        echo "           binutils-arm-none-eabi libnewlib-arm-none-eabi"
         echo "    - sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa"
         echo "    - install the gcc-arm-embedded package."
         echo
         echo "2 - Download the gcc-arm-embedded toolchain and install it without the package manager."
         echo "    Will be installed in your home directory; to move it, you must edit the Makefiles."
         echo "    This will install 32-bit binaries - will not work under Windows Subsystem for Linux."
+        echo
+        echo "3 - Manually install gdb-arm-none-eabi from https://launchpad.net/gcc-arm-embedded,"
+        echo "    then run this script again."
         echo
         echo -n "Your choice? "
         read answer
@@ -84,7 +104,12 @@ if apt-get -v &> /dev/null; then
                 echo
                 echo "*** Please double-check - the following might remove additional packages!"
                 echo
-                sudo apt-get remove gcc-arm-none-eabi gdb-arm-none-eabi binutils-arm-none-eabi
+                sudo apt-get remove gcc-arm-none-eabi gdb-arm-none-eabi \
+                     binutils-arm-none-eabi libnewlib-arm-none-eabi
+                if dpkg -l binutils-arm-none-eabi > /dev/null; then
+                    echo "*** ERROR: binutils-arm-none-eabi could not be uninstalled."
+                    exit 1
+                fi
                 ;;
             2)
                 # gdb will be installed after these packages
@@ -96,11 +121,13 @@ if apt-get -v &> /dev/null; then
         esac
     fi
 
-    # can we install gcc-arm-embedded without conflicts?
-    if ! dpkg -l binutils-arm-none-eabi > /dev/null; then
-        sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa
-        echo "*** Using gcc-arm-embedded PPA."
-        packages="$packages gcc-arm-embedded"
+    if ! valid_gdb; then
+        # can we install gcc-arm-embedded without conflicts?
+        if ! dpkg -l binutils-arm-none-eabi > /dev/null; then
+            sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa
+            echo "*** Using gcc-arm-embedded PPA."
+            packages="$packages gcc-arm-embedded"
+        fi
     fi
 
     echo "*** Checking dependencies for Ubuntu..."
@@ -113,35 +140,20 @@ if apt-get -v &> /dev/null; then
         sudo apt-get install $packages
         echo
     fi
+fi
 
-    # Ubuntu's arm-none-eabi-gdb does not work
-
-    if ! arm-none-eabi-gdb -v &> /dev/null; then
-        echo "*** WARNING: arm-none-eabi-gdb is not installed."
-        echo "*** The version from Ubuntu repository is known not to work."
-        install_gdb
-    fi
-
-    if arm-none-eabi-gdb -v | grep ubuntu; then
-        echo "*** WARNING: Ubuntu's arm-none-eabi-gdb is known not to work."
-        install_gdb
-    fi
-
-else # systems other than Ubuntu, including Mac
-
-    if ! arm-none-eabi-gdb -v &> /dev/null; then
-        echo "*** WARNING: arm-none-eabi-gdb is not installed."
-        install_gdb
-    fi
+# all systems (including Mac)
+if ! valid_gdb; then
+    echo
+    echo "*** WARNING: arm-none-eabi-gdb is not installed."
+    echo "*** Downloading gcc-arm-embedded toolchain and installing it without the package manager."
+    echo "*** Will be installed in your home directory; to move it, you will have to edit the Makefiles."
+    echo
+    install_gdb
 fi
 
 # make sure we have a valid arm-none-eabi-gdb (regardless of operating system)
-if ! arm-none-eabi-gdb -v &> /dev/null; then
-    echo "*** Please set up arm-none-eabi-gdb before continuing."
-    exit 1
-fi
-
-if arm-none-eabi-gdb -v | grep ubuntu; then
+if ! valid_gdb; then
     echo "*** Please set up arm-none-eabi-gdb before continuing."
     exit 1
 fi
