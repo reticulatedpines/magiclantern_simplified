@@ -33,6 +33,12 @@ function install_gdb {
 if [ $(uname) == "Darwin" ]; then
     echo "*** Installing dependencies for Mac..."
     echo
+    # fixme: don't these require sudo?
+    # can we check whether they are already installed, as on Ubuntu?
+    xcode-select --install
+    ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+    brew install python wget mercurial
+    pip2 install docutils
     brew install xz grep pkg-config glib automake libtool pixman mtools
     GREP=ggrep
 fi
