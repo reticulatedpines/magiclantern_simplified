@@ -93,15 +93,43 @@ SUPPORTED_UNIFIED_MODELS:=50D 60D 550D 600D 500D 5D2 1100D
 # GCC-related stuff
 # for yagarto or the official ARM toolchain use ARM_ABI=none-eabi otherwise use ARM_ABI=elf
 ARM_ABI=none-eabi
-GCC_VERSION=-5.4.1
+GCC_VERSION=
+PREFERRED_ARM_PATH=~/gcc-arm-none-eabi-5_4-2016q3
+
 DIETLIB_VERSION=0.33
-
-NEWLIB_OPT_LEVEL=O3
 DIETLIBC_OPT_LEVEL=Os
+NEWLIB_OPT_LEVEL=O3
 
-ARM_PATH=~/gcc-arm-none-eabi-5_4-2016q3
-ARM_BINPATH=$(ARM_PATH)/bin
-ARM_LIBGCC_PATH=$(ARM_PATH)/lib/gcc/arm-$(ARM_ABI)/$(subst -,,$(GCC_VERSION))
+ifneq ("$(wildcard $(PREFERRED_ARM_PATH)/bin/arm-none-eabi-gcc)","")
+    # use this one if installed
+    ARM_BINPATH=$(PREFERRED_ARM_PATH)/bin
+    CROSS_COMPILE=$(ARM_BINPATH)/arm-$(ARM_ABI)-
+    CC=$(CROSS_COMPILE)gcc$(GCC_VERSION)
+    $(info Using $(CC) (preferred).)
+else
+    # otherwise, try whatever is installed on the system
+    CC=$(shell which arm-$(ARM_ABI)-gcc)
+    CROSS_COMPILE=$(shell basename '$(CC)' gcc)
+    $(info Using $(CC) (from PATH).)
+endif
+
+
+ifneq ("$(CC)","")
+    ARM_LIBGCC_PATH=$(shell $(CC) --print-search-dirs \
+        | grep "libraries: =" | tr '=' '\n' | tr ':' '\n' \
+        | grep "lib/gcc/arm-none-eabi/" | head -n1 | tee foo)
+    $(info ARM_LIBGCC_PATH: $(ARM_LIBGCC_PATH))
+else
+    $(info )
+    $(info Please configure a valid ARM cross-compiler.)
+    $(info If arm-$(ARM_ABI)-gcc is in your executable path, it will be used.)
+    $(info )
+    $(info Preferred: gcc 5_4-2016q3 from https://launchpad.net/gcc-arm-embedded)
+    $(info Ubuntu package: gcc-arm-embedded from ppa:team-gcc-arm-embedded/ppa)
+    $(info )
+    $(error )
+endif
+
 NEWLIB_PATH=$(SRC_DIR)/libs/arm-$(ARM_ABI)-$(NEWLIB_OPT_LEVEL)
 DIETLIBC_PATH=$(SRC_DIR)/libs/dietlib-$(DIETLIB_VERSION)-$(ARM_ABI)-$(DIETLIBC_OPT_LEVEL)
 
@@ -112,14 +140,6 @@ NEWLIB_LIBC_A=$(NEWLIB_PATH)/libc.a
 DIETLIBC_A=$(DIETLIBC_PATH)/dietlibc.a
 
 ML_LIBC = dietlibc.a newlib-libc.a newlib-libm.a gcc-libgcc.a
-
-CROSS_COMPILE=$(ARM_BINPATH)/arm-$(ARM_ABI)-
-
-ifeq ($(OS),Windows_NT)
-CC=$(CROSS_COMPILE)gcc$(GCC_VERSION).exe
-else
-CC=$(CROSS_COMPILE)gcc$(GCC_VERSION)
-endif
 
 OBJCOPY=$(CROSS_COMPILE)objcopy
 OBJDUMP=$(CROSS_COMPILE)objdump
