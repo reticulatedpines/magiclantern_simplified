@@ -76,7 +76,7 @@ if apt-get -v &> /dev/null; then
         git libglib2.0-dev libfdt-dev libpixman-1-dev zlib1g-dev
         libgtk2.0-dev xz-utils mtools netcat-openbsd
         python python-pip python-docutils
-        gdb-arm-one-eabi:i386"
+        gdb-arm-none-eabi:i386"
     
     echo "*** Checking dependencies for Ubuntu..."
     echo
