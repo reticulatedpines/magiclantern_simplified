@@ -63,7 +63,7 @@ if apt-get -v &> /dev/null; then
     # Ubuntu's arm-none-eabi-gdb does not work - make sure we don't have it
     # this will only appear if user already has gcc-arm-none-eabi or related packages
     # from Ubuntu repository - they won't work and will conflict with gcc-arm-embedded.
-    if arm-none-eabi-gdb -v | grep ubuntu &> /dev/null; then
+    if dpkg -l binutils-arm-none-eabi > /dev/null; then
         echo "*** WARNING: Ubuntu's arm-none-eabi-gdb is known not to work."
         echo "*** You have two options:"
         echo
@@ -81,7 +81,9 @@ if apt-get -v &> /dev/null; then
         read answer
         case $answer in
             1)
+                echo
                 echo "*** Please double-check - the following might remove additional packages!"
+                echo
                 sudo apt-get remove gcc-arm-none-eabi gdb-arm-none-eabi binutils-arm-none-eabi
                 ;;
             2)
@@ -95,12 +97,10 @@ if apt-get -v &> /dev/null; then
     fi
 
     # can we install gcc-arm-embedded without conflicts?
-    if ! arm-none-eabi-gdb -v | grep ubuntu &> /dev/null; then
-        if ! dpkg -l binutils-arm-none-eabi > /dev/null; then
-            sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa
-            echo "*** Using gcc-arm-embedded PPA."
-            packages="$packages gcc-arm-embedded"
-        fi
+    if ! dpkg -l binutils-arm-none-eabi > /dev/null; then
+        sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa
+        echo "*** Using gcc-arm-embedded PPA."
+        packages="$packages gcc-arm-embedded"
     fi
 
     echo "*** Checking dependencies for Ubuntu..."
