@@ -126,6 +126,8 @@ without additional gymnastics (you will **not** have to merge ``qemu`` into your
      /path/to/magic-lantern$  cd contrib/qemu
      /path/to/magic-lantern/contrib/qemu$  ./install.sh
 
+   |
+
 3. Follow the instructions; you will have to supply your ROM files and compile QEMU:
 
    .. code:: shell
@@ -137,6 +139,8 @@ without additional gymnastics (you will **not** have to merge ``qemu`` into your
      /path/to/qemu/qemu-2.5.0$  make -j2
      /path/to/qemu/qemu-2.5.0$  cd ..
 
+   |
+
 4. Test your installation.
 
    The pre-installed SD/CF images come with a small autoexec.bin
@@ -146,6 +150,8 @@ without additional gymnastics (you will **not** have to merge ``qemu`` into your
  
      # all EOS models should run this without any trickery
      /path/to/qemu$  ./run_canon_fw.sh 60D,firmware="boot=1"
+
+   |
 
 5. Compile and run Magic Lantern
 
@@ -165,6 +171,8 @@ without additional gymnastics (you will **not** have to merge ``qemu`` into your
 
      # some models require running under GDB (they won't boot the GUI otherwise)
      /path/to/qemu$  ./run_canon_fw.sh 700D,firmware="boot=1" -s -S & arm-none-eabi-gdb -x 700D/patches.gdb
+
+   |
 
 For reference, you may also look at `our test suite <https://builds.magiclantern.fm/jenkins/view/QEMU/job/QEMU-tests/lastSuccessfulBuild/console>`_,
 where QEMU is installed from scratch every time the tests are run.
@@ -225,6 +233,8 @@ To install Magic Lantern to the virtual card, you may:
     make install
     # make sure your virtual card is no longer mounted
 
+  |
+
 - use ``make install_qemu`` from your platform directory
   (requires mtools, but you do not have to mount your card images)
 
@@ -234,6 +244,8 @@ To install Magic Lantern to the virtual card, you may:
     cd platform/60D.111
     make clean; make
     make install_qemu
+
+  |
 
 The included card images are already bootable for EOS firmwares (but not for PowerShots).
 
@@ -365,11 +377,15 @@ Running ML Lua scripts
     ./mtools_copy_ml.sh ml-tmp
     rm -rf ml-tmp/
 
+  |
+
 - Run QEMU
 
   .. code:: shell
 
     ./run_canon_fw.sh 60D,firmware="boot=1"
+
+  |
 
 - enable the Lua module
 - reboot the virtual camera cleanly (menu: Machine -> Power Down, then start it again)
@@ -457,11 +473,15 @@ That means, during emulation you can interact with it using netcat:
 
     nc -U qemu.monitor
 
+  |
+
 - one-liner commands, usable from scripts:
 
   .. code:: shell
 
     echo "log io" | nc -U qemu.monitor
+
+  |
 
 - check whether QEMU monitor is active:
 
@@ -470,6 +490,8 @@ That means, during emulation you can interact with it using netcat:
     if nc -U qemu.monitor < /dev/null > /dev/null 2>&1; then
       ...
     fi
+
+  |
 
 You can redirect the monitor console to stdio with... ``-monitor stdio``.
 
