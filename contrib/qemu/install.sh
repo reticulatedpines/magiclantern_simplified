@@ -14,6 +14,22 @@ read answer
 if test "$answer" != "Y" -a "$answer" != "y"; then exit 0; fi
 echo
 
+function install_gdb {
+    [ $(uname) == "Darwin" ] && OS=mac || OS=linux
+
+    echo "*** Will download the recommended 5.4-$OS from gcc-arm-embedded."
+    echo
+
+    cd ~ && \
+        [ ! -f gcc-arm-none-eabi-5_4-2016q3/bin/arm-none-eabi-gdb ] &&
+        wget -c https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q3-update/+download/gcc-arm-none-eabi-5_4-2016q3-20160926-$OS.tar.bz2 && \
+        tar -jxf gcc-arm-none-eabi-5_4-2016q3-20160926-$OS.tar.bz2 && \
+        rm gcc-arm-none-eabi-5_4-2016q3-20160926-$OS.tar.bz2
+    echo "*** Please add gcc binaries to your executable PATH:"
+    echo '    PATH=~/gcc-arm-none-eabi-5_4-2016q3/bin:$PATH'
+    echo
+}
+
 if [ $(uname) == "Darwin" ]; then
     echo "*** Installing dependencies for Mac..."
     echo
@@ -40,7 +56,42 @@ if apt-get -v &> /dev/null; then
         sudo apt-get update
         sudo apt-get install $packages
     fi
+
+    # Ubuntu's arm-none-eabi-gdb does not work
+
+    if ! command -v arm-none-eabi-gdb &> /dev/null; then
+        echo "*** WARNING: arm-none-eabi-gdb is not installed."
+        echo "*** The version from Ubuntu repository is known not to work."
+        install_gdb
+    fi
+
+    if arm-none-eabi-gdb -v | grep ubuntu; then
+        echo "*** WARNING: Ubuntu's arm-none-eabi-gdb is known not to work."
+        install_gdb
+    fi
+
+else # systems other than Ubuntu, including Mac
+
+    if ! command -v arm-none-eabi-gdb &> /dev/null; then
+        echo "*** WARNING: arm-none-eabi-gdb is not installed."
+        install_gdb
+    fi
 fi
+
+# make sure we have a valid arm-none-eabi-gdb (regardless of operating system)
+if ! command -v arm-none-eabi-gdb &> /dev/null; then
+    echo "*** Please set up arm-none-eabi-gdb before continuing."
+    exit 1
+fi
+
+if arm-none-eabi-gdb -v | grep ubuntu; then
+    echo "*** Please set up arm-none-eabi-gdb before continuing."
+    exit 1
+fi
+
+echo -n "*** Using GDB: "
+command -v arm-none-eabi-gdb
+arm-none-eabi-gdb -v | head -n1
 
 function die { echo "${1:-"Unknown Error"}" 1>&2 ; exit 1; }
 
