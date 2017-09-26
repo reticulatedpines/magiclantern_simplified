@@ -61,19 +61,21 @@ if apt-get -v &> /dev/null; then
         python python-pip python-docutils"
 
     # Ubuntu's arm-none-eabi-gdb does not work - make sure we don't have it
-    if ! arm-none-eabi-gdb -v | grep ubuntu; then
+    # this will only appear if user already has gcc-arm-none-eabi or related packages
+    # from Ubuntu repository - they won't work and will conflict with gcc-arm-embedded.
+    if arm-none-eabi-gdb -v | grep ubuntu &> /dev/null; then
         echo "*** WARNING: Ubuntu's arm-none-eabi-gdb is known not to work."
         echo "*** You have two options:"
         echo
         echo "1 - Remove Ubuntu version and install the one from gcc-arm-embedded PPA (recommended)"
         echo "    This will:"
-        echo "      - sudo apt-get remove gcc-arm-none-eabi gdb-arm-none-eabi binutils-arm-none-eabi"
-        echo "      - sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa"
-        echo "      - install the gcc-arm-embedded package."
+        echo "    - sudo apt-get remove gcc-arm-none-eabi gdb-arm-none-eabi binutils-arm-none-eabi"
+        echo "    - sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa"
+        echo "    - install the gcc-arm-embedded package."
         echo
         echo "2 - Download the gcc-arm-embedded toolchain and install it without the package manager."
-        echo "    This will be installed in your home directory; to move it, you must edit the Makefiles."
-        echo "    This will install 32-bit binaries, so it will not work under Windows Subsystem for Linux."
+        echo "    Will be installed in your home directory; to move it, you must edit the Makefiles."
+        echo "    This will install 32-bit binaries - will not work under Windows Subsystem for Linux."
         echo
         echo -n "Your choice? "
         read answer
@@ -81,8 +83,6 @@ if apt-get -v &> /dev/null; then
             1)
                 echo "*** Please double-check - the following might remove additional packages!"
                 sudo apt-get remove gcc-arm-none-eabi gdb-arm-none-eabi binutils-arm-none-eabi
-                sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa
-                packages="$packages gcc-arm-embedded"
                 ;;
             2)
                 # gdb will be installed after these packages
@@ -92,6 +92,15 @@ if apt-get -v &> /dev/null; then
                 exit 1
                 ;;
         esac
+    fi
+
+    # can we install gcc-arm-embedded without conflicts?
+    if ! arm-none-eabi-gdb -v | grep ubuntu &> /dev/null; then
+        if ! dpkg -l binutils-arm-none-eabi > /dev/null; then
+            sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa
+            echo "*** Using gcc-arm-embedded PPA."
+            packages="$packages gcc-arm-embedded"
+        fi
     fi
 
     echo "*** Checking dependencies for Ubuntu..."
