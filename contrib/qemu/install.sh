@@ -36,8 +36,8 @@ function valid_gdb {
         return 1
     fi
 
-    if arm-none-eabi-gdb -v | grep -q ubuntu; then
-        # Ubuntu version - doesn't work
+    if arm-none-eabi-gdb -v | grep -q "host=x86_64"; then
+        # 64-bit version - doesn't work
         return 1
     fi
 
@@ -70,62 +70,14 @@ if apt-get -v &> /dev/null; then
     # install these packages, if not already
     # only request sudo if any of them is missing
     # instead of GTK (libgtk2.0-dev), you may prefer SDL (libsdl1.2-dev)
+    # 64-bit arm-none-eabi-gdb does not work - GDB bug?
     packages="
         build-essential mercurial pkg-config libtool
         git libglib2.0-dev libfdt-dev libpixman-1-dev zlib1g-dev
         libgtk2.0-dev xz-utils mtools netcat-openbsd
-        python python-pip python-docutils"
-
-    # Ubuntu's arm-none-eabi-gdb does not work - make sure we don't have it
-    # this will only appear if user already has gcc-arm-none-eabi or related packages
-    # from Ubuntu repository - they won't work and will conflict with gcc-arm-embedded.
-    if ! valid_gdb; then
-        echo "*** WARNING: Ubuntu's arm-none-eabi-gdb is known not to work."
-        echo "*** You have two options:"
-        echo
-        if dpkg -l binutils-arm-none-eabi &> /dev/null; then
-            echo "1 - Remove Ubuntu version and install the one from gcc-arm-embedded PPA (recommended)"
-            echo "    This will:"
-            echo "    - sudo apt-get remove gcc-arm-none-eabi gdb-arm-none-eabi \\"
-            echo "           binutils-arm-none-eabi libnewlib-arm-none-eabi"
-        else
-            echo "1 - Install the toolchain from gcc-arm-embedded PPA (recommended)"
-            echo "    This will:"
-        fi
-        echo "    - sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa"
-        echo "    - install the gcc-arm-embedded package."
-        echo
-        echo "2 - Download the gcc-arm-embedded toolchain and install it without the package manager."
-        echo "    Will be installed in your home directory; to move it, you must edit the Makefiles."
-        echo "    This will install 32-bit binaries - will not work under Windows Subsystem for Linux."
-        echo
-        echo "3 - Manually install gdb-arm-none-eabi from https://launchpad.net/gcc-arm-embedded,"
-        echo "    then run this script again."
-        echo
-        echo -n "Your choice? "
-        read answer
-        case $answer in
-            1)
-                if dpkg -l binutils-arm-none-eabi &> /dev/null; then
-                    echo
-                    echo "*** Please double-check - the following might remove additional packages!"
-                    echo
-                    sudo apt-get remove gcc-arm-none-eabi gdb-arm-none-eabi \
-                         binutils-arm-none-eabi libnewlib-arm-none-eabi
-                fi
-                packages="$packages gcc-arm-embedded"
-                sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa
-                ;;
-            2)
-                # gdb will be installed after these packages
-                packages="$packages libc6:i386 libncurses5:i386"
-                ;;
-            *)
-                exit 1
-                ;;
-        esac
-    fi
-
+        python python-pip python-docutils
+        gdb-arm-one-eabi:i386"
+    
     echo "*** Checking dependencies for Ubuntu..."
     echo
     if ! dpkg -l $packages > /dev/null; then
@@ -144,7 +96,7 @@ if ! valid_gdb; then
     echo
     echo "*** WARNING: arm-none-eabi-gdb is not installed."
     echo "*** Downloading gcc-arm-embedded toolchain and installing it without the package manager."
-    echo "*** Will be installed in your home directory; to move it, you will have to edit the Makefiles."
+    echo "*** Will be installed in your home directory (Makefile.user.default expects it there)."
     echo
     install_gdb
 fi
@@ -182,7 +134,9 @@ echo
 
 # get qemu
 wget -q --show-progress --progress=dot:giga -c http://wiki.qemu-project.org/download/$QEMU_NAME.tar.bz2
+echo
 tar jxf $QEMU_NAME.tar.bz2
+echo
 
 # initialize a git repo, to make it easy to track changes to QEMU source
 cd $QEMU_NAME
