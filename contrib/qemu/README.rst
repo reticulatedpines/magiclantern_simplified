@@ -116,53 +116,55 @@ without additional gymnastics (you will **not** have to merge ``qemu`` into your
      hg clone https://bitbucket.org/hudson/magic-lantern
      cd magic-lantern
 
+   |
+
 2. Run ``install.sh`` from the ``qemu`` branch:
 
-  .. code:: shell
+   .. code:: shell
 
-    /path/to/magic-lantern$  hg update qemu -C
-    /path/to/magic-lantern$  cd contrib/qemu
-    /path/to/magic-lantern/contrib/qemu$  ./install.sh
+     /path/to/magic-lantern$  hg update qemu -C
+     /path/to/magic-lantern$  cd contrib/qemu
+     /path/to/magic-lantern/contrib/qemu$  ./install.sh
 
 3. Follow the instructions; you will have to supply your ROM files and compile QEMU:
 
-  .. code:: shell
+   .. code:: shell
 
-    # replace camera model (60D) with yours
-    /path/to/qemu$  cp /path/to/sdcard/ML/LOGS/ROM*.BIN 60D/
-    /path/to/qemu$  cd qemu-2.5.0
-    /path/to/qemu/qemu-2.5.0$  ../configure_eos.sh
-    /path/to/qemu/qemu-2.5.0$  make -j2
-    /path/to/qemu/qemu-2.5.0$  cd ..
+     # replace camera model (60D) with yours
+     /path/to/qemu$  cp /path/to/sdcard/ML/LOGS/ROM*.BIN 60D/
+     /path/to/qemu$  cd qemu-2.5.0
+     /path/to/qemu/qemu-2.5.0$  ../configure_eos.sh
+     /path/to/qemu/qemu-2.5.0$  make -j2
+     /path/to/qemu/qemu-2.5.0$  cd ..
 
 4. Test your installation.
 
-  The pre-installed SD/CF images come with a small autoexec.bin
-  (the "portable display test") that works on most supported models.
+   The pre-installed SD/CF images come with a small autoexec.bin
+   (the "portable display test") that works on most supported models.
 
-  .. code:: shell
+   .. code:: shell
  
-    # all EOS models should run this without any trickery
-    /path/to/qemu$  ./run_canon_fw.sh 60D,firmware="boot=1"
+     # all EOS models should run this without any trickery
+     /path/to/qemu$  ./run_canon_fw.sh 60D,firmware="boot=1"
 
 5. Compile and run Magic Lantern
 
-  .. code:: shell
+   .. code:: shell
 
-    # from your magic-lantern directory
-    /path/to/magic-lantern$  hg update your-working-branch -C # e.g. "hg update unified -C"
-    /path/to/magic-lantern$  cd platform/60D.111
-    /path/to/magic-lantern/platform/60D.111$ make clean; make
-    /path/to/magic-lantern/platform/60D.111$ make install_qemu
+     # from your magic-lantern directory
+     /path/to/magic-lantern$  hg update your-working-branch -C # e.g. "hg update unified -C"
+     /path/to/magic-lantern$  cd platform/60D.111
+     /path/to/magic-lantern/platform/60D.111$ make clean; make
+     /path/to/magic-lantern/platform/60D.111$ make install_qemu
 
-  .. code:: shell
+   .. code:: shell
 
-    # from the QEMU directory
-    # some models will work only with this:
-    /path/to/qemu$  ./run_canon_fw.sh 60D,firmware="boot=1"
+     # from the QEMU directory
+     # some models will work only with this:
+     /path/to/qemu$  ./run_canon_fw.sh 60D,firmware="boot=1"
 
-    # some models require running under GDB (they won't boot the GUI otherwise)
-    /path/to/qemu$  ./run_canon_fw.sh 700D,firmware="boot=1" -s -S & arm-none-eabi-gdb -x 700D/patches.gdb
+     # some models require running under GDB (they won't boot the GUI otherwise)
+     /path/to/qemu$  ./run_canon_fw.sh 700D,firmware="boot=1" -s -S & arm-none-eabi-gdb -x 700D/patches.gdb
 
 For reference, you may also look at `our test suite <https://builds.magiclantern.fm/jenkins/view/QEMU/job/QEMU-tests/lastSuccessfulBuild/console>`_,
 where QEMU is installed from scratch every time the tests are run.
