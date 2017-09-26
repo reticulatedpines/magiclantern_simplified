@@ -58,8 +58,41 @@ if apt-get -v &> /dev/null; then
         build-essential mercurial pkg-config libtool
         git libglib2.0-dev libfdt-dev libpixman-1-dev zlib1g-dev
         libgtk2.0-dev xz-utils mtools netcat-openbsd
-        python python-pip python-docutils
-        libc6:i386 libncurses5:i386"
+        python python-pip python-docutils"
+
+    # Ubuntu's arm-none-eabi-gdb does not work - make sure we don't have it
+    if ! arm-none-eabi-gdb -v | grep ubuntu; then
+        echo "*** WARNING: Ubuntu's arm-none-eabi-gdb is known not to work."
+        echo "*** You have two options:"
+        echo
+        echo "1 - Remove Ubuntu version and install the one from gcc-arm-embedded PPA (recommended)"
+        echo "    This will:"
+        echo "      - sudo apt-get remove gcc-arm-none-eabi gdb-arm-none-eabi binutils-arm-none-eabi"
+        echo "      - sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa"
+        echo "      - install the gcc-arm-embedded package."
+        echo
+        echo "2 - Download the gcc-arm-embedded toolchain and install it without the package manager."
+        echo "    This will be installed in your home directory; to move it, you must edit the Makefiles."
+        echo "    This will install 32-bit binaries, so it will not work under Windows Subsystem for Linux."
+        echo
+        echo -n "Your choice? "
+        read answer
+        case $answer in
+            1)
+                echo "*** Please double-check - the following might remove additional packages!"
+                sudo apt-get remove gcc-arm-none-eabi gdb-arm-none-eabi binutils-arm-none-eabi
+                sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa
+                packages="$packages gcc-arm-embedded"
+                ;;
+            2)
+                # gdb will be installed after these packages
+                packages="$packages libc6:i386 libncurses5:i386"
+                ;;
+            *)
+                exit 1
+                ;;
+        esac
+    fi
 
     echo "*** Checking dependencies for Ubuntu..."
     echo
