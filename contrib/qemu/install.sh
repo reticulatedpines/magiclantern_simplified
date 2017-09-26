@@ -46,7 +46,8 @@ if apt-get -v &> /dev/null; then
         build-essential mercurial pkg-config libtool
         git libglib2.0-dev libfdt-dev libpixman-1-dev zlib1g-dev
         libgtk2.0-dev xz-utils mtools netcat-openbsd
-        python python-pip"
+        python python-pip
+        libc6:i386 libncurses5:i386"
 
     echo "*** Checking dependencies for Ubuntu..."
     echo
@@ -59,7 +60,7 @@ if apt-get -v &> /dev/null; then
 
     # Ubuntu's arm-none-eabi-gdb does not work
 
-    if ! command -v arm-none-eabi-gdb &> /dev/null; then
+    if ! arm-none-eabi-gdb -v &> /dev/null; then
         echo "*** WARNING: arm-none-eabi-gdb is not installed."
         echo "*** The version from Ubuntu repository is known not to work."
         install_gdb
@@ -72,14 +73,14 @@ if apt-get -v &> /dev/null; then
 
 else # systems other than Ubuntu, including Mac
 
-    if ! command -v arm-none-eabi-gdb &> /dev/null; then
+    if ! arm-none-eabi-gdb -v &> /dev/null; then
         echo "*** WARNING: arm-none-eabi-gdb is not installed."
         install_gdb
     fi
 fi
 
 # make sure we have a valid arm-none-eabi-gdb (regardless of operating system)
-if ! command -v arm-none-eabi-gdb &> /dev/null; then
+if ! arm-none-eabi-gdb -v &> /dev/null; then
     echo "*** Please set up arm-none-eabi-gdb before continuing."
     exit 1
 fi
