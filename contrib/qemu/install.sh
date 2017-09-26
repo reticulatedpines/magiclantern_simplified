@@ -52,10 +52,12 @@ if apt-get -v &> /dev/null; then
     echo "*** Checking dependencies for Ubuntu..."
     echo
     if ! dpkg -l $packages > /dev/null; then
+        echo
         echo "*** Installing dependencies for Ubuntu..."
         echo
         sudo apt-get update
         sudo apt-get install $packages
+        echo
     fi
 
     # Ubuntu's arm-none-eabi-gdb does not work
@@ -110,7 +112,7 @@ echo "*** Setting up QEMU in `pwd`..."
 echo
 
 # get qemu
-wget --progress=dot:giga -c http://wiki.qemu-project.org/download/$QEMU_NAME.tar.bz2
+wget -q --show-progress --progress=dot:giga -c http://wiki.qemu-project.org/download/$QEMU_NAME.tar.bz2
 tar jxf $QEMU_NAME.tar.bz2
 
 # initialize a git repo, to make it easy to track changes to QEMU source
@@ -124,20 +126,22 @@ if [ ! -d .git ]; then
 fi
 cd ..
 
+echo "Copying files..."
+
 # copy our helper scripts
-cp -vr ../$ML/contrib/qemu/scripts/* .
+cp -r ../$ML/contrib/qemu/scripts/* .
 chmod +x *.sh
 
 # copy our testing scripts
 mkdir -p tests
-cp -vr ../$ML/contrib/qemu/tests/* tests/
+cp -r ../$ML/contrib/qemu/tests/* tests/
 chmod +x tests/*.sh
 
 # apply our patch
 cd ${QEMU_NAME}
 mkdir -p hw/eos
-cp -vr ../../$ML/contrib/qemu/eos/* hw/eos/
-cp -vr ../../$ML/src/backtrace.[ch] hw/eos/dbi/
+cp -r ../../$ML/contrib/qemu/eos/* hw/eos/
+cp -r ../../$ML/src/backtrace.[ch] hw/eos/dbi/
 patch -N -p1 < ../../$ML/contrib/qemu/$QEMU_NAME.patch
 cd ..
 
