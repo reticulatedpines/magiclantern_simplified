@@ -65,7 +65,6 @@ if [ $(uname) == "Darwin" ]; then
         brew list $pkg &> /dev/null || brew install $pkg
     done
     
-    pip2 install docutils
     GREP=ggrep
 fi
 
