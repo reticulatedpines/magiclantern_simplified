@@ -35,8 +35,14 @@ if [ $(uname) == "Darwin" ]; then
     echo
     # fixme: don't these require sudo?
     # can we check whether they are already installed, as on Ubuntu?
-    xcode-select --install
-    ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+    if ! xcode-select -p &> /dev/null; then
+        xcode-select --install
+    fi
+    # brew is "The missing package manager for macOS"
+    # https://brew.sh
+    if ! brew -v &> /dev/null; then
+        ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+    fi
     brew install python wget mercurial
     pip2 install docutils
     brew install xz grep pkg-config glib automake libtool pixman mtools
