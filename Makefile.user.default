@@ -93,14 +93,20 @@ SUPPORTED_UNIFIED_MODELS:=50D 60D 550D 600D 500D 5D2 1100D
 # GCC-related stuff
 # for yagarto or the official ARM toolchain use ARM_ABI=none-eabi otherwise use ARM_ABI=elf
 ARM_ABI=none-eabi
+
+# example: GCC_VERSION=-5.4.1
+# use default if unspecified
 GCC_VERSION=
+
+# use this one if installed on the system
+# otherwise, use the one from executable PATH
 PREFERRED_ARM_PATH=~/gcc-arm-none-eabi-5_4-2016q3
 
 DIETLIB_VERSION=0.33
 DIETLIBC_OPT_LEVEL=Os
 NEWLIB_OPT_LEVEL=O3
 
-ifneq ("$(wildcard $(PREFERRED_ARM_PATH)/bin/arm-none-eabi-gcc)","")
+ifneq ("$(wildcard $(PREFERRED_ARM_PATH)/bin/arm-$(ARM_ABI)-gcc$(GCC_VERSION))","")
     # use this one if installed
     ARM_BINPATH=$(PREFERRED_ARM_PATH)/bin
     CROSS_COMPILE=$(ARM_BINPATH)/arm-$(ARM_ABI)-
@@ -124,8 +130,8 @@ else
     $(info Please configure a valid ARM cross-compiler.)
     $(info If arm-$(ARM_ABI)-gcc is in your executable path, it will be used.)
     $(info )
-    $(info Preferred: gcc 5_4-2016q3 from https://launchpad.net/gcc-arm-embedded)
-    $(info Ubuntu package: gcc-arm-embedded from ppa:team-gcc-arm-embedded/ppa)
+    $(info Preferred: gcc 5_4-2016q3 32-bit from https://launchpad.net/gcc-arm-embedded)
+    $(info On Ubuntu, gcc-arm-embedded:i386 is also fine (64-bit gdb doesn't work well))
     $(info )
     $(error )
 endif
