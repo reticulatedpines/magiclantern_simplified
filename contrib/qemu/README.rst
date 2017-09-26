@@ -144,7 +144,9 @@ without additional gymnastics (you will **not** have to merge ``qemu`` into your
 4. Test your installation.
 
    The pre-installed SD/CF images come with a small autoexec.bin
-   (the "portable display test") that works on most supported models.
+   (the `portable display test <http://www.magiclantern.fm/forum/index.php?topic=14732.0>`_)
+   that works on all supported EOS models. It does not work on PowerShot models
+   (including recent EOS M models based on PowerShot firmware).
 
    .. code:: shell
  
@@ -852,6 +854,8 @@ Initial firmware analysis
    - `Loading into ARMu <https://www.magiclantern.fm/forum/index.php?topic=9827.0>`_
    - Other disassemblers will also work (the list is open).
 
+   |
+
 3) Add a very simple definition for your camera and get an `initial test run`_.
    Try to guess some missing bits from the error messages, if possible.
 
@@ -1011,6 +1015,8 @@ This is the perfect tool for studying them. Start at:
 - heartbeat timer (dryos_timer_id/interrupt in `model_list.c <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/eos/model_list.c>`_)
 - interrupt handler (follow the code at 0x18)
 - to debug: ``-d io,int`` is very helpful (although a bit too verbose)
+
+|
 
 .. image:: doc/img/drysh.png
    :scale: 50 %
