@@ -71,25 +71,21 @@ if apt-get -v &> /dev/null; then
     # only request sudo if any of them is missing
     # instead of GTK (libgtk2.0-dev), you may prefer SDL (libsdl1.2-dev)
     # 64-bit arm-none-eabi-gdb does not work - GDB bug?
-    packages1="
+    # gcc-arm-none-eabi:i386 does not include libnewlib - Ubuntu bug?
+    packages="
         build-essential mercurial pkg-config libtool
         git libglib2.0-dev libfdt-dev libpixman-1-dev zlib1g-dev
         libgtk2.0-dev xz-utils mtools netcat-openbsd
         python python-pip python-docutils
-        gdb-arm-none-eabi:i386"
-
-    # gcc-arm-none-eabi must be installed *after* gdb-arm-none-eabi
-    # gcc-arm-none-eabi:i386 does not include libnewlib - Ubuntu bug?
-    # installing both gdb-arm-none-eabi:i386 and gcc-arm-none-eabi
-    # in the same command will give only gcc-arm-none-eabi:i386
-    packages2="gcc-arm-none-eabi libnewlib-arm-none-eabi"
+        gdb-arm-none-eabi:i386
+        gcc-arm-none-eabi libnewlib-arm-none-eabi"
     
     echo "*** Checking dependencies for Ubuntu..."
     echo
     # https://wiki.debian.org/ListInstalledPackages
     # dpkg -l also returns packages that are not installed
     deps_installed=yes
-    for package in $packages1 $packages2; do
+    for package in $packages; do
         if ! dpkg -l $package 2>/dev/null | grep -q '^.i'; then
             echo Not installed: $package
             deps_installed=no
@@ -101,9 +97,23 @@ if apt-get -v &> /dev/null; then
         echo "*** Installing dependencies for Ubuntu..."
         echo
         sudo apt-get update
-        sudo apt-get install $packages1
-        sudo apt-get install $packages2
+        sudo apt-get install $packages
         echo
+    fi
+
+    deps_installed=yes
+    for package in $packages; do
+        if ! dpkg -l $package 2>/dev/null | grep -q '^.i'; then
+            echo Not installed: $package
+            deps_installed=no
+        fi
+    done
+
+    if [ "$deps_installed" == "no" ]; then
+        echo
+        echo "*** Error: Ubuntu dependencies could not be installed."
+        echo
+        exit 1
     fi
 fi
 
