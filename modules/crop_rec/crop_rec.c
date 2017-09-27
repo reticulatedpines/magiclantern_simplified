@@ -22,6 +22,7 @@
 static int is_5D3 = 0;
 static int is_EOSM = 0;
 static int is_700D = 0;
+static int is_100D = 0;
 
 static CONFIG_INT("crop.preset", crop_preset_index, 0);
 
@@ -364,7 +365,7 @@ static int FAST check_cmos_vidmode(uint16_t* data_buf)
             }
         }
         
-        if (is_EOSM || is_700D)
+        if (is_EOSM || is_700D || is_100D)
         {
             if (reg == 7)
             {
@@ -535,7 +536,7 @@ static void FAST cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
         }
     }
 
-    if (is_EOSM || is_700D)
+    if (is_EOSM || is_700D || is_100D)
     {
         switch (crop_preset)
         {
@@ -846,7 +847,7 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
 
     }
 
-    if (is_EOSM)
+    if (is_EOSM || is_700D || is_100D)
     {
         switch (crop_preset)
         {
@@ -1774,7 +1775,21 @@ static unsigned int crop_rec_init()
         crop_rec_menu[0].help       = crop_choices_help_700d;
         crop_rec_menu[0].help2      = crop_choices_help2_700d;
     }
+    else if (is_camera("100D", "1.0.1"))
+    {
+        CMOS_WRITE = 0x475B8;
+        MEM_CMOS_WRITE = 0xE92D41F0;
         
+        ADTG_WRITE = 0x47144;
+        MEM_ADTG_WRITE = 0xE92D43F8;
+        
+        is_100D = 1;
+        crop_presets                = crop_presets_700d;
+        crop_rec_menu[0].choices    = crop_choices_700d;
+        crop_rec_menu[0].max        = COUNT(crop_choices_700d) - 1;
+        crop_rec_menu[0].help       = crop_choices_help_700d;
+        crop_rec_menu[0].help2      = crop_choices_help2_700d;
+    }       
     menu_add("Movie", crop_rec_menu, COUNT(crop_rec_menu));
     lvinfo_add_items (info_items, COUNT(info_items));
 
