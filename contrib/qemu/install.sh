@@ -86,16 +86,25 @@ if apt-get -v &> /dev/null; then
     
     echo "*** Checking dependencies for Ubuntu..."
     echo
-    for packages in "$packages1" "$packages2"; do
-        if ! dpkg -l $packages > /dev/null; then
-            echo
-            echo "*** Installing dependencies for Ubuntu..."
-            echo
-            sudo apt-get update
-            sudo apt-get install $packages
-            echo
+    # https://wiki.debian.org/ListInstalledPackages
+    # dpkg -l also returns packages that are not installed
+    deps_installed=yes
+    for package in $packages1 $packages2; do
+        if ! dpkg -l $package 2>/dev/null | grep -q '^.i'; then
+            echo Not installed: $package
+            deps_installed=no
         fi
     done
+
+    if [ "$deps_installed" == "no" ]; then
+        echo
+        echo "*** Installing dependencies for Ubuntu..."
+        echo
+        sudo apt-get update
+        sudo apt-get install $packages1
+        sudo apt-get install $packages2
+        echo
+    fi
 fi
 
 # all systems (including Mac, or Ubuntu if the installation from PPA failed)
