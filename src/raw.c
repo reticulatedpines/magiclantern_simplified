@@ -1959,10 +1959,16 @@ static int autodetect_white_level(int initial_guess)
 {
     qprintf("[WL] initial guess: %d\n", initial_guess);
     int white = initial_guess;
-    int max = initial_guess;
-    int confirms = 0;
-    int above_white = 0;
-    const int margin = 100; /* how much to go below max confirmed pixel value */
+
+    /* build a temporary histogram */
+    int * hist = malloc(16384 * sizeof(hist[0]));
+    if (!hist)
+    {
+        /* oops */
+        ASSERT(0);
+        return initial_guess;
+    }
+    memset(hist, 0, 16384 * sizeof(hist[0]));
 
     int raw_height = raw_info.active_area.y2 - raw_info.active_area.y1;
     for (int y = raw_info.active_area.y1 + raw_height/10; y < raw_info.active_area.y2 - raw_height/10; y += 3)
@@ -1975,39 +1981,49 @@ static int autodetect_white_level(int initial_guess)
 
         for (struct raw_pixblock * p = (void*)row_crop_start; (void*)p < (void*)row_crop_end; p += 3)
         {
-            if (p->a > white + margin)
-            {
-                above_white++;
-            }
-            if (p->a > max)
-            {
-                max = p->a;
-                confirms = 1;
-            }
-            else if (p->a == max)
-            {
-                confirms++;
-                if (confirms > 5 && white < max - margin)
-                {
-                    white = max - margin;
-                    above_white = 0;
-                    qprintf("[WL] new white %d\n", white);
-                }
-            }
+            /* a is red or green, b is green or blue */
+            int a = p->a;
+            int b = p->h;
+            hist[a]++;
+            hist[b]++;
         }
     }
 
-    if (above_white > 50)
+    int total = 0;
+    for (int i = 0; i < 16384; i++)
     {
-        /* many pixels above the peak - image not overexposed? */
-        qprintf("[WL] peak invalidated (%d, max=%d).\n", above_white, white);
-        white = MIN(max + margin, 16383);
-    }
-    else
-    {
-        qprintf("[WL] %d hot pixels.\n", above_white);
+        total += hist[i];
     }
 
+    int acc = 0;
+    for (int i = 16383; i >= MAX(initial_guess, 10); i--)
+    {
+        qprintf("[WL] %d: %d\n", i, hist[i]);
+        /* the peak should be much bigger than what's after it,
+         * and at least 10 overexposed pixels */
+        if (hist[i] + hist[i-1] > 10 + acc * 100)
+        {
+            qprintf("[WL] peak at %d:%d (count=%d+%d above=%d left=%d,%d,%d)\n", i, i+1, hist[i-1], hist[i], acc, hist[i-2], hist[i-3], hist[i-4]);
+            /* the peak should also be much bigger than what's before it */
+            if (hist[i-2] + hist[i-3] + hist[i-4] < (hist[i] + hist[i-1]) / 10)
+            {
+                qprintf("[WL] peak confirmed.\n");
+                white = i - 2;
+                break;
+            }
+        }
+
+        if (acc == 0 && hist[i] != 0)
+        {
+            /* if we are not going to find a peak,
+             * assume the image is not overexposed */
+            white = i;
+        }
+
+        acc += hist[i];
+    }
+
+    free(hist);
     return white;
 }
 
