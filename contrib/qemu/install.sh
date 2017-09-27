@@ -71,12 +71,13 @@ if apt-get -v &> /dev/null; then
     # only request sudo if any of them is missing
     # instead of GTK (libgtk2.0-dev), you may prefer SDL (libsdl1.2-dev)
     # 64-bit arm-none-eabi-gdb does not work - GDB bug?
+    # gcc-arm-none-eabi:i386 does not include libnewlib - Ubuntu bug?
     packages="
         build-essential mercurial pkg-config libtool
         git libglib2.0-dev libfdt-dev libpixman-1-dev zlib1g-dev
         libgtk2.0-dev xz-utils mtools netcat-openbsd
         python python-pip python-docutils
-        gdb-arm-none-eabi:i386"
+        gdb-arm-none-eabi:i386 gcc-arm-none-eabi libnewlib-arm-none-eabi"
     
     echo "*** Checking dependencies for Ubuntu..."
     echo
