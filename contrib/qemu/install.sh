@@ -115,7 +115,7 @@ arm-none-eabi-gdb -v | head -n1
 # install docutils (for compiling ML modules) and vncdotool (for test suite)
 # only request sudo if any of them is missing
 for package in docutils vncdotool; do
-    pip2 list | grep $package || sudo pip2 install $package
+    pip2 list | grep $package || sudo -H pip2 install $package
 done
 
 function die { echo "${1:-"Unknown Error"}" 1>&2 ; exit 1; }
