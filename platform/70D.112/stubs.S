@@ -77,7 +77,7 @@ NSTUB(0xFF1176B4,  StartASIFDMADAC)
 NSTUB(0xFF117934,  StopASIFDMADAC)
 NSTUB(0xFF11758C,  StopASIFDMAADC)
 NSTUB(0xFF11936C,  SoundDevActiveIn)
-NSTUB(0xFF11758C,  SoundDevShutDownIn)
+NSTUB(0xFF1195C4,  SoundDevShutDownIn)
 // NSTUB(    ???,  SetASIFMode)                             /* present on 700D.113 */
 
 /** Audio **/

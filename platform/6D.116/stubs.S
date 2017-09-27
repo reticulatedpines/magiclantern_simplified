@@ -82,7 +82,7 @@ NSTUB(0xFF11D0E4,  SetNextASIFADCBuffer)
 NSTUB(0xFF11D2CC,  SetNextASIFDACBuffer)                    // From Event Generating Functions
 NSTUB(0xFF142DDC,  SetSamplingRate)                         // AudioIC.c_SetRate_hHPTimer Identical
 NSTUB(0xFF11E64C,  SoundDevActiveIn)
-NSTUB(0xFF11C874,  SoundDevShutDownIn)
+NSTUB(0xFF11E8A4,  SoundDevShutDownIn)
 NSTUB(0xFF11C5C8,  StartASIFDMAADC)
 NSTUB(0xFF11C99C,  StartASIFDMADAC)
 NSTUB(0xFF11C874,  StopASIFDMAADC)
