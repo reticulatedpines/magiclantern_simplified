@@ -6,11 +6,24 @@ MODULE_OBJS=mlv_rec.o mlv.o
 # include modules environment
 include ../Makefile.modules
 
-MLV_CFLAGS = -I$(SRC_DIR) -D MLV_USE_LZMA -D MLV_USE_LJ92 -m32 -Wpadded -mno-ms-bitfields -D _7ZIP_ST -D MLV2DNG
-MLV_LFLAGS = -m32
+MLV_CFLAGS = -I$(SRC_DIR) -D MLV_USE_LZMA -D MLV_USE_LJ92 -Wpadded -mno-ms-bitfields -D _7ZIP_ST -D MLV2DNG
+MLV_LFLAGS = 
 MLV_LIBS = -lm
 MLV_LIBS_MINGW = -lm
 
+# detect kernel version, if it contains Microsoft, it is WSL
+ifneq (,$(findstring Microsoft,$(shell uname -r)))
+    # and if that runs on a x64 machine, then enforce a 64 bit build
+    ifneq (,$(findstring x86_64,$(shell uname -p)))
+        USE_X64 = yes
+    endif
+endif
+
+# to allow x64 binaries. doesn't work on OSX, seems to SIGSEGV for some reason.
+ifndef USE_X64
+    MLV_CFLAGS += -m32
+    MLV_LFLAGS += -m32
+endif
 
 # just comment out to disable LUA
 #LUA_VER=5.2
@@ -79,7 +92,9 @@ $(LZMA_LIB_MINGW): $(LZMA_OBJS_MINGW)
 #
 # mlv_dump rules
 #
-mlv_dump: module_strings.h $(MLV_DUMP_OBJS)
+mlv_dump.c: module_strings.h
+
+mlv_dump: $(MLV_DUMP_OBJS)
 	$(call build,HOST_CC,$(HOST_CC) $(HOST_LFLAGS) $(MLV_LFLAGS) $(MLV_DUMP_OBJS) -o $@ $(HOST_LIBS) $(MLV_LIBS) )
 
 mlv_dump.exe: module_strings.h $(MLV_DUMP_OBJS_MINGW)
