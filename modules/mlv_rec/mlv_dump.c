@@ -79,6 +79,16 @@ typedef void lua_State;
 #define COERCE(val,min,max) MIN(MAX((val),(min)),(max))
 #define COUNT(x)        ((int)(sizeof(x)/sizeof((x)[0])))
 
+/* helper macro to get a pointer into a data block's payload based on integer offset */
+#define BYTE_OFFSET(var,offset) ((void *)((uintmax_t)(var) + (uintmax_t)(offset)))
+
+/* helper to mark function parameters as unused */
+#ifdef __GNUC__
+#  define UNUSED(x) UNUSED_ ## x __attribute__((__unused__))
+#else
+#  define UNUSED(x) UNUSED_ ## x
+#endif
+
 #define MSG_INFO     0
 #define MSG_ERROR    1
 #define MSG_PROGRESS 2
@@ -1320,6 +1330,15 @@ int main (int argc, char *argv[])
         AUTOPSY_DUMP_ASCII = 2
     };
     
+    /* return/status codes for block handler functions */
+    typedef enum 
+    {
+        PROCESS_MISSING,
+        PROCESS_OK,
+        PROCESS_SKIP,
+        PROCESS_ERROR
+    } process_result_e;
+    
     int autopsy_mode = AUTOPSY_OFF;
     int autopsy_content = AUTOPSY_BLOCK;
     int autopsy_block = 0;
@@ -2037,10 +2056,12 @@ int main (int argc, char *argv[])
     }
 
     print_msg(MSG_INFO, "Processing...\n");
+    uint32_t mlv_block_size = 8192*1024;
+    mlv_hdr_t *mlv_block = malloc(mlv_block_size);
     
     do
     {
-        mlv_hdr_t buf;
+        int handled_write = 0;
         uint64_t position = 0;
 
 read_headers:
@@ -2060,7 +2081,7 @@ read_headers:
 
         position = file_get_pos(in_file);
 
-        if(fread(&buf, sizeof(mlv_hdr_t), 1, in_file) != 1)
+        if(fread(mlv_block, sizeof(mlv_hdr_t), 1, in_file) != 1)
         {
             print_msg(MSG_INFO, "\n");
             
@@ -2086,18 +2107,13 @@ read_headers:
             goto read_headers;
         }
 
-        /* jump back to the beginning of the block just read */
-        file_set_pos(in_file, position, SEEK_SET);
-
-        position = file_get_pos(in_file);
-
         /* unexpected block header size? */
-        if(buf.blockSize < sizeof(mlv_hdr_t) || buf.blockSize > 50 * 1024 * 1024)
+        if(mlv_block->blockSize < sizeof(mlv_hdr_t) || mlv_block->blockSize > 50 * 1024 * 1024)
         {
-            if(fix_bug == BUG_ID_NULL_SIZE_ZERO && !memcmp(buf.blockType, "NULL", 4))
+            if(fix_bug == BUG_ID_NULL_SIZE_ZERO && !memcmp(mlv_block->blockType, "NULL", 4))
             {
                 int padded_size = (position + sizeof(mlv_hdr_t) + 511) & ~511;
-                buf.blockSize = padded_size - position;
+                mlv_block->blockSize = padded_size - position;
             }
             else
             {
@@ -2106,24 +2122,48 @@ read_headers:
             }
         }
         
+        /* will the buffer fit its size? */
+        if(mlv_block->blockSize > mlv_block_size)
+        {
+            mlv_block_size = mlv_block->blockSize;
+            mlv_block = realloc(mlv_block, mlv_block_size);
+            
+            if(!mlv_block)
+            {
+                print_msg(MSG_ERROR, "Invalid block size of 0x%08X at position 0x%08" PRIx64 "\n", mlv_block_size, position);
+                goto abort;
+            }
+        }
+
+        /* jump back to the beginning of the block just read and read it all */
+        file_set_pos(in_file, position, SEEK_SET);
+        
+        if(fread(mlv_block, mlv_block->blockSize, 1, in_file) != 1)
+        {
+            print_msg(MSG_ERROR, "Invalid block size of 0x%08X at position 0x%08" PRIx64 ", file ended prematurely\n", mlv_block->blockSize, position);
+            goto abort;
+        }
+        
+        lua_handle_hdr(lua_state, mlv_block->blockType, &mlv_block, mlv_block->blockSize);
+        
         /* show all block types in a more convenient style, but needs little housekeeping code */
         if(visualize)
         {
             static uint8_t last_type[4];
             
             /* housekeeping here */
-            if(!memcmp(buf.blockType, "VIDF", 4))
+            if(!memcmp(mlv_block->blockType, "VIDF", 4))
             {
                 vidf_frames_processed++;
             }
-            if(!memcmp(buf.blockType, "AUDF", 4))
+            if(!memcmp(mlv_block->blockType, "AUDF", 4))
             {
                 audf_frames_processed++;
             }
-            if(!memcmp(buf.blockType, "MLVI", 4))
+            if(!memcmp(mlv_block->blockType, "MLVI", 4))
             {
                 mlv_file_hdr_t file_hdr;
-                uint32_t hdr_size = MIN(sizeof(mlv_file_hdr_t), buf.blockSize);
+                uint32_t hdr_size = MIN(sizeof(mlv_file_hdr_t), mlv_block->blockSize);
 
                 /* read the whole header block, but limit size to either our local type size or the written block size */
                 if(fread(&file_hdr, hdr_size, 1, in_file) != 1)
@@ -2143,28 +2183,28 @@ read_headers:
             }
             
             /* repetetive frames are printed with a plus */
-            if(!memcmp(buf.blockType, last_type, 4))
+            if(!memcmp(mlv_block->blockType, last_type, 4))
             {
                 print_msg(MSG_INFO, "+");
             }
             else
             {
                 /* one line per video frame, if not repeated */
-                if(!memcmp(buf.blockType, "VIDF", 4))
+                if(!memcmp(mlv_block->blockType, "VIDF", 4))
                 {
                     print_msg(MSG_INFO, "\n");
                 }
                 
-                print_msg(MSG_INFO, "[%c%c%c%c]", buf.blockType[0], buf.blockType[1], buf.blockType[2], buf.blockType[3]);
+                print_msg(MSG_INFO, "[%c%c%c%c]", mlv_block->blockType[0], mlv_block->blockType[1], mlv_block->blockType[2], mlv_block->blockType[3]);
                 
                 /* also a new line after header */
-                if(!memcmp(buf.blockType, "MLVI", 4))
+                if(!memcmp(mlv_block->blockType, "MLVI", 4))
                 {
                     print_msg(MSG_INFO, "\n");
                 }
                 
                 /* remember last type */
-                memcpy(last_type, buf.blockType, 4);
+                memcpy(last_type, mlv_block->blockType, 4);
             }
             
             goto skip_block;
@@ -2183,7 +2223,7 @@ read_headers:
 
                     case AUTOPSY_SKIP_TYPE:
                     {
-                        if(!memcmp(autopsy_block_type, buf.blockType, 4))
+                        if(!memcmp(autopsy_block_type, mlv_block->blockType, 4))
                         {
                             goto skip_block;
                         }
@@ -2194,13 +2234,13 @@ read_headers:
                     {
                         /* by default, dump all of the block's data */
                         uint32_t start = 0;
-                        uint32_t length = buf.blockSize;
+                        uint32_t length = mlv_block->blockSize;
                         
                         /* for extracting specific types, we have to check the type as we are called for every block */
                         if(autopsy_mode == AUTOPSY_EXTRACT_TYPE)
                         {
                             /* not the block we want to extract? go on */
-                            if(memcmp(autopsy_block_type, buf.blockType, 4))
+                            if(memcmp(autopsy_block_type, mlv_block->blockType, 4))
                             {
                                 break;
                             }
@@ -2277,7 +2317,7 @@ read_headers:
                         }
                         
                         /* make sure not to read beyond source buffer */
-                        if(start + length > buf.blockSize)
+                        if(start + length > mlv_block->blockSize)
                         {
                             print_msg(MSG_ERROR, "Error: Block type '%c%c%c%c' has invalid size.\n", autopsy_buf[0], autopsy_buf[1], autopsy_buf[2], autopsy_buf[3]);
                             goto abort;
@@ -2301,10 +2341,10 @@ read_headers:
                             case AUTOPSY_DUMP_HEX:
                             {
                                 print_msg(MSG_INFO, "--- Hex display ---\n");
-                                print_msg(MSG_INFO, "   Block: %c%c%c%c\n", buf.blockType[0], buf.blockType[1], buf.blockType[2], buf.blockType[3]);
+                                print_msg(MSG_INFO, "   Block: %c%c%c%c\n", mlv_block->blockType[0], mlv_block->blockType[1], mlv_block->blockType[2], mlv_block->blockType[3]);
                                 print_msg(MSG_INFO, "  Offset: 0x%08" PRIx64 "\n", position);
                                 print_msg(MSG_INFO, "  Number: %d\n", blocks_processed);
-                                print_msg(MSG_INFO, "    Size: %d\n", buf.blockSize);
+                                print_msg(MSG_INFO, "    Size: %d\n", mlv_block->blockSize);
 
                                 hexdump((char *)&autopsy_buf[start], length, start);
                                 print_msg(MSG_INFO, "--------------------\n");
@@ -2315,10 +2355,10 @@ read_headers:
                             case AUTOPSY_DUMP_ASCII:
                             {
                                 print_msg(MSG_INFO, "--- ASCII display ---\n");
-                                print_msg(MSG_INFO, "   Block: %c%c%c%c\n", buf.blockType[0], buf.blockType[1], buf.blockType[2], buf.blockType[3]);
+                                print_msg(MSG_INFO, "   Block: %c%c%c%c\n", mlv_block->blockType[0], mlv_block->blockType[1], mlv_block->blockType[2], mlv_block->blockType[3]);
                                 print_msg(MSG_INFO, "  Offset: 0x%08" PRIx64 "\n", position);
                                 print_msg(MSG_INFO, "  Number: %d\n", blocks_processed);
-                                print_msg(MSG_INFO, "    Size: %d\n", buf.blockSize);
+                                print_msg(MSG_INFO, "    Size: %d\n", mlv_block->blockSize);
                                 print_msg(MSG_INFO, " Content: \"%s\"\n", &autopsy_buf[start]);
                                 print_msg(MSG_INFO, "---------------------\n");
                                 print_msg(MSG_INFO, "\n");
@@ -2334,18 +2374,145 @@ read_headers:
                             goto abort;
                         }
                         break;
+                    }
+
+                    case AUTOPSY_REPLACE:
+                    {
+                        if(!output_filename)
+                        {
+                            print_msg(MSG_ERROR, "Need some output file, else manipulation would make no sense\n");
+                            goto abort;
+                        }
+                        
+                        FILE *autopsy_handle = fopen(autopsy_file, "rb");
+                        
+                        if(!autopsy_handle)
+                        {
+                            print_msg(MSG_ERROR, "Failed opening autopsy file\n");
+                            goto abort;
+                        }
+                        
+                        /* first get content length of autopsy file */
+                        file_set_pos(autopsy_handle, 0, SEEK_END);
+                        uint32_t autopsy_size = file_get_pos(autopsy_handle);
+                        file_set_pos(autopsy_handle, 0, SEEK_SET);
+                        
+                        switch(autopsy_content)
+                        {
+                            case AUTOPSY_HEADER:
                             {
-                                /* write data int autopsy file */
-                                if(fwrite(&autopsy_buf[start], length, 1, autopsy_handle) != 1)
+                                /* to replace header, read original block and replace data */
+                                mlv_hdr_t *autopsy_block = malloc(mlv_block->blockSize);
+                                mlv_hdr_t *autopsy_header = malloc(autopsy_size);
+                                
+                                if(!autopsy_block || !autopsy_header)
                                 {
-                                    print_msg(MSG_ERROR, "Failed writing into autopsy file\n");
+                                    print_msg(MSG_ERROR, "Failed to allocate buffer for data to extract\n");
                                     goto abort;
                                 }
                                 
-                                fclose(autopsy_handle);
+                                /* read original block from input file */
+                                if(fread(autopsy_block, mlv_block->blockSize, 1, in_file) != 1)
+                                {
+                                    print_msg(MSG_ERROR, "Failed to read data from input file\n");
+                                    goto abort;
+                                }
+                        
+                                /* read new header from autopsy file */
+                                if(fread(autopsy_header, autopsy_size, 1, autopsy_handle) != 1)
+                                {
+                                    print_msg(MSG_ERROR, "Failed to read data from autopsy file\n");
+                                    goto abort;
+                                }
+                                
+                                /* patch autopsy header to match block size */
+                                int old_header_size = get_header_size(autopsy_block);
+                                
+                                if(!old_header_size)
+                                {
+                                    print_msg(MSG_ERROR, "Error: Unknown block type '%c%c%c%c', cannot determine its header size.\n", autopsy_block->blockType[0], autopsy_block->blockType[1], autopsy_block->blockType[2], autopsy_block->blockType[3]);
+                                    goto abort;
+                                }
+                                
+                                /* calculate new block size from payload length */
+                                int payload_size = autopsy_block->blockSize - old_header_size;
+                                autopsy_header->blockSize = autopsy_size + payload_size;
+                                
+                                /* write new patched header */
+                                if(fwrite(autopsy_header, autopsy_size, 1, out_file) != 1)
+                                {
+                                    print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
+                                    goto abort;
+                                }
+                                
+                                /* write original payload */
+                                if(fwrite(&((uint8_t*)autopsy_block)[old_header_size], payload_size, 1, out_file) != 1)
+                                {
+                                    print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
+                                    goto abort;
+                                }
+                                
+                                free(autopsy_block);
+                                free(autopsy_header);
                                 break;
                             }
-                            
+                                
+                            case AUTOPSY_PAYLOAD:
+                            {
+                                /* read original header and use payload from autopsy file */
+                                int header_size = get_header_size(mlv_block);
+                                
+                                if(!header_size)
+                                {
+                                    print_msg(MSG_ERROR, "Error: Unknown block type '%c%c%c%c', cannot determine its header size.\n", mlv_block->blockType[0], mlv_block->blockType[1], mlv_block->blockType[2], mlv_block->blockType[3]);
+                                    goto abort;
+                                }
+                                
+                                mlv_hdr_t *autopsy_header = malloc(header_size);
+                                mlv_hdr_t *autopsy_payload = malloc(autopsy_size);
+                                
+                                if(!autopsy_header || !autopsy_payload)
+                                {
+                                    print_msg(MSG_ERROR, "Failed to allocate buffer for data to extract\n");
+                                    goto abort;
+                                }
+                                
+                                /* read original header from input file */
+                                if(fread(autopsy_header, header_size, 1, in_file) != 1)
+                                {
+                                    print_msg(MSG_ERROR, "Failed to read data from input file\n");
+                                    goto abort;
+                                }
+                        
+                                /* calculate new block size from payload length */
+                                autopsy_header->blockSize = header_size + autopsy_size;
+                                
+                                /* write new patched header */
+                                if(fwrite(autopsy_header, header_size, 1, out_file) != 1)
+                                {
+                                    print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
+                                    goto abort;
+                                }
+                                
+                                /* read new payload from autopsy file */
+                                if(fread(autopsy_payload, autopsy_size, 1, autopsy_handle) != 1)
+                                {
+                                    print_msg(MSG_ERROR, "Failed to read data from autopsy file\n");
+                                    goto abort;
+                                }
+                                
+                                /* write replaced payload */
+                                if(fwrite(autopsy_payload, autopsy_size, 1, out_file) != 1)
+                                {
+                                    print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
+                                    goto abort;
+                                }
+                                
+                                free(autopsy_header);
+                                free(autopsy_payload);
+                                break;
+                            }
+
                             case AUTOPSY_DUMP_HEX:
                             {
                                 print_msg(MSG_INFO, "--- Hex display ---\n");
@@ -2358,8 +2525,8 @@ read_headers:
                                 print_msg(MSG_INFO, "--------------------\n");
                                 print_msg(MSG_INFO, "\n");
                                 break;
-                            }
-                            
+                            }                            
+
                             case AUTOPSY_DUMP_ASCII:
                             {
                                 print_msg(MSG_INFO, "--- ASCII display ---\n");
@@ -2385,19 +2552,9 @@ read_headers:
                     }
 
         /* file header */
-        if(!memcmp(buf.blockType, "MLVI", 4))
+        if(!memcmp(mlv_block->blockType, "MLVI", 4))
         {
-            mlv_file_hdr_t file_hdr;
-            uint32_t hdr_size = MIN(sizeof(mlv_file_hdr_t), buf.blockSize);
-
-            /* read the whole header block, but limit size to either our local type size or the written block size */
-            if(fread(&file_hdr, hdr_size, 1, in_file) != 1)
-            {
-                print_msg(MSG_ERROR, "File ends in the middle of a block\n");
-                goto abort;
-            }
-
-            lua_handle_hdr(lua_state, buf.blockType, &file_hdr, sizeof(file_hdr));
+            mlv_file_hdr_t file_hdr = *(mlv_file_hdr_t *)mlv_block;
 
             if(verbose)
             {
@@ -2544,17 +2701,17 @@ read_headers:
         else
         {
             /* in xref mode, use every block and get its timestamp etc */
-            if(xref_mode && memcmp(buf.blockType, "NULL", 4) && memcmp(buf.blockType, "BKUP", 4))
+            if(xref_mode && memcmp(mlv_block->blockType, "NULL", 4) && memcmp(mlv_block->blockType, "BKUP", 4))
             {
                 xref_resize(&frame_xref_table, frame_xref_entries + 1, &frame_xref_allocated);
 
                 /* add xref data */
-                frame_xref_table[frame_xref_entries].frameTime = buf.timestamp;
+                frame_xref_table[frame_xref_entries].frameTime = mlv_block->timestamp;
                 frame_xref_table[frame_xref_entries].frameOffset = position;
                 frame_xref_table[frame_xref_entries].fileNumber = in_file_num;
                 frame_xref_table[frame_xref_entries].frameType =
-                    !memcmp(buf.blockType, "VIDF", 4) ? MLV_FRAME_VIDF :
-                    !memcmp(buf.blockType, "AUDF", 4) ? MLV_FRAME_AUDF :
+                    !memcmp(mlv_block->blockType, "VIDF", 4) ? MLV_FRAME_VIDF :
+                    !memcmp(mlv_block->blockType, "AUDF", 4) ? MLV_FRAME_AUDF :
                     MLV_FRAME_UNSPECIFIED;
 
                 frame_xref_entries++;
@@ -2568,122 +2725,69 @@ read_headers:
 
             if(verbose)
             {
-                print_msg(MSG_INFO, "Block: %c%c%c%c\n", buf.blockType[0], buf.blockType[1], buf.blockType[2], buf.blockType[3]);
+                print_msg(MSG_INFO, "Block: %c%c%c%c\n", mlv_block->blockType[0], mlv_block->blockType[1], mlv_block->blockType[2], mlv_block->blockType[3]);
                 print_msg(MSG_INFO, "  Offset: 0x%08" PRIx64 "\n", position);
                 print_msg(MSG_INFO, "  Number: %d\n", blocks_processed);
-                print_msg(MSG_INFO, "    Size: %d\n", buf.blockSize);
+                print_msg(MSG_INFO, "    Size: %d\n", mlv_block->blockSize);
 
                 /* NULL blocks don't have timestamps */
-                if(memcmp(buf.blockType, "NULL", 4)|| memcmp(buf.blockType, "BKUP", 4))
+                if(memcmp(mlv_block->blockType, "NULL", 4)|| memcmp(mlv_block->blockType, "BKUP", 4))
                 {
-                    print_msg(MSG_INFO, "    Time: %f ms\n", (double)buf.timestamp / 1000.0f);
+                    print_msg(MSG_INFO, "    Time: %f ms\n", (double)mlv_block->timestamp / 1000.0f);
                 }
             }
 
-            if(!memcmp(buf.blockType, "AUDF", 4))
+            if(!memcmp(mlv_block->blockType, "AUDF", 4))
             {
-                mlv_audf_hdr_t block_hdr;
-                uint32_t hdr_size = MIN(sizeof(mlv_audf_hdr_t), buf.blockSize);
+                mlv_audf_hdr_t block_hdr = *(mlv_audf_hdr_t *)mlv_block;
 
-                if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
-                {
-                    print_msg(MSG_ERROR, "AUDF: File ends in the middle of a block\n");
-                    goto abort;
-                }
-
-                lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
+                lua_handle_hdr(lua_state, mlv_block->blockType, &block_hdr, sizeof(block_hdr));
                 if(verbose)
                 {
                     print_msg(MSG_INFO, "   Frame: #%04d\n", block_hdr.frameNumber);
                     print_msg(MSG_INFO, "   Space: %d\n", block_hdr.frameSpace);
                 }
-
-                uint32_t skip_block = 0;
                 
                 if(block_hdr.frameSpace > block_hdr.blockSize - sizeof(mlv_vidf_hdr_t))
                 {
                     print_msg(MSG_ERROR, "AUDF: Frame space is larger than block size. Skipping\n");
-                    skip_block = 1;
+                    return PROCESS_SKIP;
                 }
 
-                if(!skip_block)
+                int frame_size = block_hdr.blockSize - sizeof(mlv_audf_hdr_t) - block_hdr.frameSpace;
+                void *payload = BYTE_OFFSET(mlv_block, sizeof(mlv_audf_hdr_t) + block_hdr.frameSpace);
+                
+                /* only write WAV if the WAVI header created a file */
+                if(out_file_wav)
                 {
-                    /* skip frame space */
-                    file_set_pos(in_file, block_hdr.frameSpace, SEEK_CUR);
-
-                    int frame_size = block_hdr.blockSize - sizeof(mlv_audf_hdr_t) - block_hdr.frameSpace;
-                    void *buf = malloc(frame_size);
-
-                    if(!buf)
+                    if(!wavi_info.timestamp)
                     {
-                        print_msg(MSG_ERROR, "AUDF: Failed to allocate buffer\n");
-                        goto abort;
+                        print_msg(MSG_ERROR, "AUDF: Received AUDF without WAVI, the .wav file might be corrupt\n");
                     }
                     
-                    if(fread(buf, frame_size, 1, in_file) != 1)
+                    /* assume block size is uniform, this allows random access */
+                    file_set_pos(out_file_wav, wav_header_size + frame_size * block_hdr.frameNumber, SEEK_SET);
+                    
+                    if(fwrite(payload, frame_size, 1, out_file_wav) != 1)
                     {
-                        free(buf);
-                        print_msg(MSG_ERROR, "AUDF: File ends in the middle of a block\n");
-                        goto abort;
+                        print_msg(MSG_ERROR, "AUDF: Failed writing into .WAV file\n");
+                        return PROCESS_ERROR;
                     }
-
-
-                    if(mlv_output && !only_metadata_mode && (!extract_block || !strncasecmp(extract_block, (char*)block_hdr.blockType, 4)))
-                    {
-                        /* correct header size */
-                        block_hdr.blockSize = sizeof(mlv_audf_hdr_t) + frame_size;
-                        
-                        if(fwrite(&block_hdr, sizeof(mlv_audf_hdr_t), 1, out_file) != 1)
-                        {
-                            print_msg(MSG_ERROR, "AUDF: Failed writing into .MLV file\n");
-                            print_msg(MSG_ERROR, "ptr: 0x%08X type: %s\n", &block_hdr, block_hdr.blockType);
-                            goto abort;
-                        }
-                        if(fwrite(buf, frame_size, 1, out_file) != 1)
-                        {
-                            print_msg(MSG_ERROR, "AUDF: Failed writing into .MLV file\n");
-                            goto abort;
-                        }
-                    }
-                
-                    /* only write WAV if the WAVI header created a file */
-                    if(out_file_wav)
-                    {
-                        if(!wavi_info.timestamp)
-                        {
-                            print_msg(MSG_ERROR, "AUDF: Received AUDF without WAVI, the .wav file might be corrupt\n");
-                        }
-                        
-                        /* assume block size is uniform, this allows random access */
-                        file_set_pos(out_file_wav, wav_header_size + frame_size * block_hdr.frameNumber, SEEK_SET);
-                        
-                        if(fwrite(buf, frame_size, 1, out_file_wav) != 1)
-                        {
-                            print_msg(MSG_ERROR, "AUDF: Failed writing into .WAV file\n");
-                            goto abort;
-                        }
-                        
-                        wav_data_size += frame_size;
-                    }
-                    free(buf);
+                    
+                    wav_file_size += frame_size;
                 }
+                
                 audf_frames_processed++;
             }
-            else if(!memcmp(buf.blockType, "VIDF", 4))
+            else if(!memcmp(mlv_block->blockType, "VIDF", 4))
             {
-                mlv_vidf_hdr_t block_hdr;
-                uint32_t hdr_size = MIN(sizeof(mlv_vidf_hdr_t), buf.blockSize);
-
-                if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
-                {
-                    print_msg(MSG_ERROR, "VIDF: File ends in the middle of a block\n");
-                    goto abort;
-                }
+                mlv_vidf_hdr_t block_hdr = *(mlv_vidf_hdr_t *)mlv_block;
+                
+                /* this code handles writing on its own */
+                handled_write = 1;
 
                 /* store last VIDF for reference */
                 last_vidf = block_hdr;
-
-                lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
 
                 if(verbose)
                 {
@@ -2799,17 +2903,12 @@ read_headers:
                             goto abort;
                         }
                     }
-
-                    /* so skip frameSpace and read payload */
-                    file_set_pos(in_file, block_hdr.frameSpace, SEEK_CUR);
                     
-                    if(fread(frame_buffer, read_size, 1, in_file) != 1)
-                    {
-                        print_msg(MSG_ERROR, "VIDF: File ends in the middle of a block\n");
-                        goto abort;
-                    }
+                    /* copy data from read block */
+                    void *payload = BYTE_OFFSET(mlv_block, sizeof(mlv_vidf_hdr_t) + block_hdr.frameSpace);
+                    memcpy(frame_buffer, payload, read_size);
 
-                    lua_handle_hdr_data(lua_state, buf.blockType, "_data_read", &block_hdr, sizeof(block_hdr), frame_buffer, frame_buffer_size);
+                    lua_handle_hdr_data(lua_state, mlv_block->blockType, "_data_read", &block_hdr, sizeof(block_hdr), frame_buffer, frame_buffer_size);
 
                     if(run_decompressor)
                     {
@@ -2822,7 +2921,7 @@ read_headers:
                             int lj92_bitdepth = 0;
                             int lj92_components = 0;
 
-                            int ret = lj92_open(&handle, (uint8_t *)frame_buffer, frame_buffer_size, &lj92_width, &lj92_height, &lj92_bitdepth, &lj92_components);
+                            int ret = lj92_open(&handle, (uint8_t *)frame_buffer, read_size, &lj92_width, &lj92_height, &lj92_bitdepth, &lj92_components);
 
                             /* this is the raw data size with 16 bit words. it's just temporary */
                             size_t out_size = lj92_width * lj92_height * sizeof(uint16_t) * lj92_components;
@@ -2837,7 +2936,7 @@ read_headers:
                             }
                             else
                             {
-                                print_msg(MSG_ERROR, "    LJ92: Failed (%d)\n", ret);
+                                print_msg(MSG_ERROR, "    LJ92: Open failed (%d)\n", ret);
                                 if(relaxed)
                                 {
                                     goto skip_block;
@@ -2861,7 +2960,7 @@ read_headers:
 
                             if(ret != LJ92_ERROR_NONE)
                             {
-                                print_msg(MSG_ERROR, "    LJ92: Failed (%d)\n", ret);
+                                print_msg(MSG_ERROR, "    LJ92: Decompress failed (%d)\n", ret);
                                 if(relaxed)
                                 {
                                     goto skip_block;
@@ -3276,7 +3375,7 @@ read_headers:
 
                     if(frame_selected)
                     {
-                        lua_handle_hdr_data(lua_state, buf.blockType, "_data_write", &block_hdr, sizeof(block_hdr), frame_buffer, frame_buffer_size);
+                        lua_handle_hdr_data(lua_state, mlv_block->blockType, "_data_write", &block_hdr, sizeof(block_hdr), frame_buffer, frame_buffer_size);
 
                         if(raw_output)
                         {
@@ -3285,7 +3384,7 @@ read_headers:
                                 lv_rec_footer.frameSize = frame_size;
                             }
 
-                            lua_handle_hdr_data(lua_state, buf.blockType, "_data_write_raw", &block_hdr, sizeof(block_hdr), frame_buffer, frame_size);
+                            lua_handle_hdr_data(lua_state, mlv_block->blockType, "_data_write_raw", &block_hdr, sizeof(block_hdr), frame_buffer, frame_size);
 
                             file_set_pos(out_file, (uint64_t)block_hdr.frameNumber * (uint64_t)frame_size, SEEK_SET);
                             if(fwrite(frame_buffer, frame_size, 1, out_file) != 1)
@@ -3304,7 +3403,7 @@ read_headers:
                             char *frame_filename = malloc(frame_filename_len);
                             snprintf(frame_filename, frame_filename_len, "%s%06d.dng", output_filename, block_hdr.frameNumber);
 
-                            lua_handle_hdr_data(lua_state, buf.blockType, "_data_write_dng", &block_hdr, sizeof(block_hdr), frame_buffer, frame_size);
+                            lua_handle_hdr_data(lua_state, mlv_block->blockType, "_data_write_dng", &block_hdr, sizeof(block_hdr), frame_buffer, frame_size);
 
                             raw_info.api_version = lv_rec_footer.raw_info.api_version;
                             raw_info.height = lv_rec_footer.raw_info.height;
@@ -3514,9 +3613,37 @@ read_headers:
                             snprintf(frame_filename, frame_filename_len, "%s%06d.dng", output_filename, block_hdr.frameNumber);
                             frame_info.dng_filename = frame_filename;
 
-                            dng_init_header(&frame_info, &dng_data);
-                            
-                            if(!dng_save(&frame_info, &dng_data))
+                            lua_handle_hdr_data(lua_state, mlv_block->blockType, "_data_write_dng", &block_hdr, sizeof(block_hdr), frame_buffer, frame_buffer_size);
+
+                            /* set MLV metadata into DNG tags */
+                            dng_set_framerate_rational(main_header.sourceFpsNom, main_header.sourceFpsDenom);
+                            dng_set_shutter(expo_info.shutterValue, 1000000);
+                            dng_set_aperture(lens_info.aperture, 100);
+                            dng_set_camname((char*)unique_camname);
+                            dng_set_description((char*)info_string);
+                            dng_set_lensmodel((char*)lens_info.lensName);
+                            dng_set_focal(lens_info.focalLength, 1);
+                            dng_set_iso(expo_info.isoValue);
+
+                            //dng_set_wbgain(1024, wbal_info.wbgain_r, 1024, wbal_info.wbgain_g, 1024, wbal_info.wbgain_b);
+
+                            /* calculate the time this frame was taken at, i.e., the start time + the current timestamp. this can be off by a second but it's better than nothing */
+                            int ms = 0.5 + mlv_block->timestamp / 1000.0;
+                            int sec = ms / 1000;
+                            ms %= 1000;
+                            // FIXME: the struct tm doesn't have tm_gmtoff on Linux so the result might be wrong?
+                            struct tm tm;
+                            tm.tm_sec = rtci_info.tm_sec + sec;
+                            tm.tm_min = rtci_info.tm_min;
+                            tm.tm_hour = rtci_info.tm_hour;
+                            tm.tm_mday = rtci_info.tm_mday;
+                            tm.tm_mon = rtci_info.tm_mon;
+                            tm.tm_year = rtci_info.tm_year;
+                            tm.tm_wday = rtci_info.tm_wday;
+                            tm.tm_yday = rtci_info.tm_yday;
+                            tm.tm_isdst = rtci_info.tm_isdst;
+
+                            if(mktime(&tm) != -1)
                             {
                                 print_msg(MSG_ERROR, "VIDF: Failed writing into .DNG file\n");
                                 if(relaxed)
@@ -3534,7 +3661,7 @@ read_headers:
 
                         if(write_block)
                         {
-                            lua_handle_hdr_data(lua_state, buf.blockType, "_data_write_mlv", &block_hdr, sizeof(block_hdr), frame_buffer, frame_buffer_size);
+                            lua_handle_hdr_data(lua_state, mlv_block->blockType, "_data_write_mlv", &block_hdr, sizeof(block_hdr), frame_buffer, frame_buffer_size);
 
                             /* delete free space and correct header size if needed */
                             block_hdr.blockSize = sizeof(mlv_vidf_hdr_t) + frame_buffer_size;
@@ -3555,24 +3682,13 @@ read_headers:
                     }
                 }
                 
-                /* no matter what the block handlers above did, skip that block */
-                file_set_pos(in_file, position + block_hdr.blockSize, SEEK_SET);
-
                 vidf_max_number = MAX(vidf_max_number, block_hdr.frameNumber);
 
                 vidf_frames_processed++;
             }
-            else if(!memcmp(buf.blockType, "LENS", 4))
+            else if(!memcmp(mlv_block->blockType, "LENS", 4))
             {
-                uint32_t hdr_size = MIN(sizeof(mlv_lens_hdr_t), buf.blockSize);
-
-                if(fread(&lens_info, hdr_size, 1, in_file) != 1)
-                {
-                    print_msg(MSG_ERROR, "File ends in the middle of a block\n");
-                    goto abort;
-                }
-
-                lua_handle_hdr(lua_state, buf.blockType, &lens_info, sizeof(lens_info));
+                lens_info = *(mlv_lens_hdr_t *)mlv_block;
 
                 if(verbose)
                 {
@@ -3586,102 +3702,40 @@ read_headers:
                     print_msg(MSG_INFO, "     Lens ID:     0x%08X\n", lens_info.lensID);
                     print_msg(MSG_INFO, "     Flags:       0x%08X\n", lens_info.flags);
                 }
-
-                if(mlv_output && !no_metadata_mode && (!extract_block || !strncasecmp(extract_block, (char*)lens_info.blockType, 4)))
-                {
-                    /* correct header size if needed */
-                    lens_info.blockSize = sizeof(mlv_lens_hdr_t);
-                    if(fwrite(&lens_info, lens_info.blockSize, 1, out_file) != 1)
-                    {
-                        print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
-                        goto abort;
-                    }
-                }
             }
-            else if(!memcmp(buf.blockType, "INFO", 4))
+            else if(!memcmp(mlv_block->blockType, "INFO", 4))
             {
-                mlv_info_hdr_t block_hdr;
-                int32_t hdr_size = MIN(sizeof(mlv_info_hdr_t), buf.blockSize);
-
-                if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
-                {
-                    print_msg(MSG_ERROR, "File ends in the middle of a block\n");
-                    goto abort;
-                }
-
-                lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
+                mlv_info_hdr_t block_hdr = *(mlv_info_hdr_t *)mlv_block;
 
                 /* get the string length and malloc a buffer for that string */
-                int str_length = block_hdr.blockSize - hdr_size;
+                int str_length = block_hdr.blockSize - sizeof(block_hdr);
 
                 if(str_length)
                 {
-                    char *buf = malloc(str_length + 1);
+                    void *payload = BYTE_OFFSET(mlv_block, sizeof(mlv_info_hdr_t));
 
-                    if(fread(buf, str_length, 1, in_file) != 1)
-                    {
-                        free(buf);
-                        print_msg(MSG_ERROR, "File ends in the middle of a block\n");
-                        goto abort;
-                    }
-
-                    strncpy(info_string, buf, sizeof(info_string));
+                    strncpy(info_string, payload, MIN((size_t)str_length, sizeof(info_string)));
 
                     if(verbose)
                     {
-                        buf[str_length] = '\000';
-                        print_msg(MSG_INFO, "     String:   '%s'\n", buf);
+                        print_msg(MSG_INFO, "     String:   '%s'\n", info_string);
                     }
-
-                    /* only output this block if there is any data */
-                    if(mlv_output && !no_metadata_mode && (!extract_block || !strncasecmp(extract_block, (char*)block_hdr.blockType, 4)))
-                    {
-                        /* correct header size if needed */
-                        block_hdr.blockSize = sizeof(mlv_info_hdr_t) + str_length;
-                        if(fwrite(&block_hdr, sizeof(mlv_info_hdr_t), 1, out_file) != 1)
-                        {
-                            free(buf);
-                            print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
-                            goto abort;
-                        }
-                        if(fwrite(buf, str_length, 1, out_file) != 1)
-                        {
-                            free(buf);
-                            print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
-                            goto abort;
-                        }
-                    }
-
-                    free(buf);
                 }
             }
-            else if(!memcmp(buf.blockType, "DEBG", 4))
+            else if(!memcmp(mlv_block->blockType, "DEBG", 4))
             {
-                mlv_debg_hdr_t block_hdr;
-                int32_t hdr_size = MIN(sizeof(mlv_debg_hdr_t), buf.blockSize);
-
-                if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
-                {
-                    print_msg(MSG_ERROR, "File ends in the middle of a block\n");
-                    goto abort;
-                }
-
-                lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
+                mlv_debg_hdr_t block_hdr = *(mlv_debg_hdr_t *)mlv_block;
 
                 /* get the string length and malloc a buffer for that string */
-                int str_length = block_hdr.blockSize - hdr_size;
+                int str_length = block_hdr.blockSize - sizeof(block_hdr);
 
                 if(str_length)
                 {
+                    void *payload = BYTE_OFFSET(mlv_block, sizeof(mlv_debg_hdr_t));
                     char *buf = malloc(str_length + 1);
-
-                    if(fread(buf, str_length, 1, in_file) != 1)
-                    {
-                        free(buf);
-                        print_msg(MSG_ERROR, "File ends in the middle of a block\n");
-                        goto abort;
-                    }
-
+            
+                    strncpy(buf, payload, str_length);
+            
                     if(verbose)
                     {
                         buf[block_hdr.length] = '\000';
@@ -3695,126 +3749,45 @@ read_headers:
                     fwrite(buf, block_hdr.length, 1, log_file);
                     fclose(log_file);
                     free(log_filename);
-
-                    /* only output this block if there is any data */
-                    if(mlv_output && !no_metadata_mode)
-                    {
-                        /* correct header size if needed */
-                        block_hdr.blockSize = sizeof(mlv_debg_hdr_t) + str_length;
-                        if(fwrite(&block_hdr, sizeof(mlv_debg_hdr_t), 1, out_file) != 1)
-                        {
-                            free(buf);
-                            print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
-                            goto abort;
-                        }
-                        if(fwrite(buf, str_length, 1, out_file) != 1)
-                        {
-                            free(buf);
-                            print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
-                            goto abort;
-                        }
-                    }
-
+            
                     free(buf);
                 }
             }
-            else if(!memcmp(buf.blockType, "VERS", 4))
+            else if(!memcmp(mlv_block->blockType, "VERS", 4))
             {
-                mlv_vers_hdr_t block_hdr;
-                int32_t hdr_size = MIN(sizeof(mlv_vers_hdr_t), buf.blockSize);
-
-                if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
-                {
-                    print_msg(MSG_ERROR, "File ends in the middle of a block\n");
-                    goto abort;
-                }
-
-                lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
+                mlv_vers_hdr_t block_hdr = *(mlv_vers_hdr_t *)mlv_block;
 
                 /* get the string length and malloc a buffer for that string */
-                int str_length = block_hdr.blockSize - hdr_size;
+                int str_length = block_hdr.blockSize - sizeof(block_hdr);
 
                 if(str_length)
                 {
+                    void *payload = BYTE_OFFSET(mlv_block, sizeof(mlv_vers_hdr_t));
                     char *buf = malloc(str_length + 1);
-
-                    if(fread(buf, str_length, 1, in_file) != 1)
-                    {
-                        free(buf);
-                        print_msg(MSG_ERROR, "File ends in the middle of a block\n");
-                        goto abort;
-                    }
-
+            
+                    strncpy(buf, payload, str_length);
+                    
                     if(verbose)
                     {
                         buf[block_hdr.length] = '\000';
                         print_msg(MSG_INFO, "  String: '%s'\n", buf);
                     }
-                    
-                    /* only output this block if there is any data */
-                    if(mlv_output && !no_metadata_mode)
-                    {
-                        /* correct header size if needed */
-                        block_hdr.blockSize = sizeof(mlv_vers_hdr_t) + str_length;
-                        if(fwrite(&block_hdr, sizeof(mlv_vers_hdr_t), 1, out_file) != 1)
-                        {
-                            free(buf);
-                            print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
-                            goto abort;
-                        }
-                        if(fwrite(buf, str_length, 1, out_file) != 1)
-                        {
-                            free(buf);
-                            print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
-                            goto abort;
-                        }
-                    }
-
                     free(buf);
                 }
             }
-            else if(!memcmp(buf.blockType, "ELVL", 4))
+            else if(!memcmp(mlv_block->blockType, "ELVL", 4))
             {
-                mlv_elvl_hdr_t block_hdr;
-                uint32_t hdr_size = MIN(sizeof(mlv_elvl_hdr_t), buf.blockSize);
-
-                if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
-                {
-                    print_msg(MSG_ERROR, "File ends in the middle of a block\n");
-                    goto abort;
-                }
-
-                lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
+                mlv_elvl_hdr_t block_hdr = *(mlv_elvl_hdr_t *)mlv_block;
 
                 if(verbose)
                 {
                     print_msg(MSG_INFO, "     Roll:    %2.2f\n", (double)block_hdr.roll / 100.0f);
                     print_msg(MSG_INFO, "     Pitch:   %2.2f\n", (double)block_hdr.pitch / 100.0f);
                 }
-
-                if(mlv_output && !no_metadata_mode && (!extract_block || !strncasecmp(extract_block, (char*)block_hdr.blockType, 4)))
-                {
-                    /* correct header size if needed */
-                    block_hdr.blockSize = sizeof(mlv_elvl_hdr_t);
-                    if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
-                    {
-                        print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
-                        goto abort;
-                    }
-                }
             }
-            else if(!memcmp(buf.blockType, "STYL", 4))
+            else if(!memcmp(mlv_block->blockType, "STYL", 4))
             {
-                mlv_styl_hdr_t block_hdr;
-                uint32_t hdr_size = MIN(sizeof(mlv_styl_hdr_t), buf.blockSize);
-
-                if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
-                {
-                    print_msg(MSG_ERROR, "File ends in the middle of a block\n");
-                    goto abort;
-                }
-
-                lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
+                mlv_styl_hdr_t block_hdr = *(mlv_styl_hdr_t *)mlv_block;
 
                 if(verbose)
                 {
@@ -3824,29 +3797,10 @@ read_headers:
                     print_msg(MSG_INFO, "     saturation: %d\n", block_hdr.saturation);
                     print_msg(MSG_INFO, "     colortone:  %d\n", block_hdr.colortone);
                 }
-
-                if(mlv_output && !no_metadata_mode && (!extract_block || !strncasecmp(extract_block, (char*)block_hdr.blockType, 4)))
-                {
-                    /* correct header size if needed */
-                    block_hdr.blockSize = sizeof(mlv_styl_hdr_t);
-                    if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
-                    {
-                        print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
-                        goto abort;
-                    }
-                }
             }
-            else if(!memcmp(buf.blockType, "WBAL", 4))
+            else if(!memcmp(mlv_block->blockType, "WBAL", 4))
             {
-                uint32_t hdr_size = MIN(sizeof(mlv_wbal_hdr_t), buf.blockSize);
-
-                if(fread(&wbal_info, hdr_size, 1, in_file) != 1)
-                {
-                    print_msg(MSG_ERROR, "File ends in the middle of a block\n");
-                    goto abort;
-                }
-
-                lua_handle_hdr(lua_state, buf.blockType, &wbal_info, sizeof(wbal_info));
+                wbal_info = *(mlv_wbal_hdr_t *)mlv_block;
 
                 if(verbose)
                 {
@@ -3858,29 +3812,10 @@ read_headers:
                     print_msg(MSG_INFO, "     Shift GM:   %d\n", wbal_info.wbs_gm);
                     print_msg(MSG_INFO, "     Shift BA:   %d\n", wbal_info.wbs_ba);
                 }
-
-                if(mlv_output && !no_metadata_mode && (!extract_block || !strncasecmp(extract_block, (char*)wbal_info.blockType, 4)))
-                {
-                    /* correct header size if needed */
-                    wbal_info.blockSize = sizeof(mlv_wbal_hdr_t);
-                    if(fwrite(&wbal_info, wbal_info.blockSize, 1, out_file) != 1)
-                    {
-                        print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
-                        goto abort;
-                    }
-                }
             }
-            else if(!memcmp(buf.blockType, "IDNT", 4))
+            else if(!memcmp(mlv_block->blockType, "IDNT", 4))
             {
-                uint32_t hdr_size = MIN(sizeof(mlv_idnt_hdr_t), buf.blockSize);
-
-                if(fread(&idnt_info, hdr_size, 1, in_file) != 1)
-                {
-                    print_msg(MSG_ERROR, "File ends in the middle of a block\n");
-                    goto abort;
-                }
-
-                lua_handle_hdr(lua_state, buf.blockType, &idnt_info, sizeof(idnt_info));
+                idnt_info = *(mlv_idnt_hdr_t *)mlv_block;
 
                 if(verbose)
                 {
@@ -3889,28 +3824,10 @@ read_headers:
                     print_msg(MSG_INFO, "     Camera Model:  0x%08X\n", idnt_info.cameraModel);
                 }
 
-                if(mlv_output && !no_metadata_mode && (!extract_block || !strncasecmp(extract_block, (char*)idnt_info.blockType, 4)))
-                {
-                    /* correct header size if needed */
-                    idnt_info.blockSize = sizeof(mlv_idnt_hdr_t);
-                    if(fwrite(&idnt_info, idnt_info.blockSize, 1, out_file) != 1)
-                    {
-                        print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
-                        goto abort;
-                    }
-                }
             }
-            else if(!memcmp(buf.blockType, "RTCI", 4))
+            else if(!memcmp(mlv_block->blockType, "RTCI", 4))
             {
-                uint32_t hdr_size = MIN(sizeof(mlv_rtci_hdr_t), buf.blockSize);
-
-                if(fread(&rtci_info, hdr_size, 1, in_file) != 1)
-                {
-                    print_msg(MSG_ERROR, "File ends in the middle of a block\n");
-                    goto abort;
-                }
-
-                lua_handle_hdr(lua_state, buf.blockType, &rtci_info, sizeof(rtci_info));
+                rtci_info = *(mlv_rtci_hdr_t *)mlv_block;
 
                 if(verbose)
                 {
@@ -3921,58 +3838,19 @@ read_headers:
                     print_msg(MSG_INFO, "     Day of year: %d\n", rtci_info.tm_yday);
                     print_msg(MSG_INFO, "     Daylight s.: %d\n", rtci_info.tm_isdst);
                 }
-
-                if(mlv_output && !no_metadata_mode && (!extract_block || !strncasecmp(extract_block, (char*)rtci_info.blockType, 4)))
-                {
-                    /* correct header size if needed */
-                    rtci_info.blockSize = sizeof(mlv_rtci_hdr_t);
-                    if(fwrite(&rtci_info, rtci_info.blockSize, 1, out_file) != 1)
-                    {
-                        print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
-                        goto abort;
-                    }
-                }
             }
-            else if(!memcmp(buf.blockType, "MARK", 4))
+            else if(!memcmp(mlv_block->blockType, "MARK", 4))
             {
-                mlv_mark_hdr_t block_hdr;
-                uint32_t hdr_size = MIN(sizeof(mlv_mark_hdr_t), buf.blockSize);
-
-                if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
-                {
-                    print_msg(MSG_ERROR, "File ends in the middle of a block\n");
-                    goto abort;
-                }
-
-                lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
+                mlv_mark_hdr_t block_hdr = *(mlv_mark_hdr_t *)mlv_block;
 
                 if(verbose)
                 {
                     print_msg(MSG_INFO, "  Button: 0x%02X\n", block_hdr.type);
                 }
-
-                if(mlv_output && !no_metadata_mode && (!extract_block || !strncasecmp(extract_block, (char*)block_hdr.blockType, 4)))
-                {
-                    /* correct header size if needed */
-                    block_hdr.blockSize = sizeof(mlv_mark_hdr_t);
-                    if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
-                    {
-                        print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
-                        goto abort;
-                    }
-                }
             }
-            else if(!memcmp(buf.blockType, "EXPO", 4))
+            else if(!memcmp(mlv_block->blockType, "EXPO", 4))
             {
-                uint32_t hdr_size = MIN(sizeof(mlv_expo_hdr_t), buf.blockSize);
-
-                if(fread(&expo_info, hdr_size, 1, in_file) != 1)
-                {
-                    print_msg(MSG_ERROR, "File ends in the middle of a block\n");
-                    goto abort;
-                }
-
-                lua_handle_hdr(lua_state, buf.blockType, &expo_info, sizeof(expo_info));
+                expo_info = *(mlv_expo_hdr_t *)mlv_block;
 
                 if(verbose)
                 {
@@ -3982,34 +3860,16 @@ read_headers:
                     print_msg(MSG_INFO, "     ISO DGain:  %d/1024 EV\n", expo_info.digitalGain);
                     print_msg(MSG_INFO, "     Shutter:    %" PRIu64 " microseconds (1/%.2f)\n", expo_info.shutterValue, 1000000.0f/(float)expo_info.shutterValue);
                 }
-
-                if(mlv_output && !no_metadata_mode && (!extract_block || !strncasecmp(extract_block, (char*)expo_info.blockType, 4)))
-                {
-                    /* correct header size if needed */
-                    expo_info.blockSize = sizeof(mlv_expo_hdr_t);
-                    if(fwrite(&expo_info, expo_info.blockSize, 1, out_file) != 1)
-                    {
-                        print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
-                        goto abort;
-                    }
-                }
             }
-            else if(!memcmp(buf.blockType, "RAWI", 4))
+            else if(!memcmp(mlv_block->blockType, "RAWI", 4))
             {
-                mlv_rawi_hdr_t block_hdr;
-                uint32_t hdr_size = MIN(sizeof(mlv_rawi_hdr_t), buf.blockSize);
-
-                if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
-                {
-                    print_msg(MSG_ERROR, "File ends in the middle of a block\n");
-                    goto abort;
-                }
+                mlv_rawi_hdr_t block_hdr = *(mlv_rawi_hdr_t *)mlv_block;
                 
                 /* well, it appears to happen that MLVs with odd sizes were written, restrict that */
                 block_hdr.raw_info.height &= ~1;
                 block_hdr.yRes &= ~1;
                 
-                lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
+                handled_write = 1;
 
                 video_xRes = block_hdr.xRes;
                 video_yRes = block_hdr.yRes;
@@ -4091,36 +3951,18 @@ read_headers:
                     }
                 }
             }
-            else if(!memcmp(buf.blockType, "RAWC", 4))
+            else if(!memcmp(mlv_block->blockType, "RAWC", 4))
             {
-                mlv_rawc_hdr_t block_hdr;
-                uint32_t hdr_size = MIN(sizeof(mlv_rawc_hdr_t), buf.blockSize);
-
-                if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
-                {
-                    print_msg(MSG_ERROR, "File ends in the middle of a block\n");
-                    goto abort;
-                }
-                
-                lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
+                mlv_rawc_hdr_t block_hdr = *(mlv_rawc_hdr_t *)mlv_block;
 
                 if(verbose)
                 {
                     print_capture_info(&block_hdr);
                 }
             }            
-            else if(!memcmp(buf.blockType, "WAVI", 4))
+            else if(!memcmp(mlv_block->blockType, "WAVI", 4))
             {
-                mlv_wavi_hdr_t block_hdr;
-                uint32_t hdr_size = MIN(sizeof(mlv_wavi_hdr_t), buf.blockSize);
-
-                if(fread(&block_hdr, hdr_size, 1, in_file) != 1)
-                {
-                    print_msg(MSG_ERROR, "File ends in the middle of a block\n");
-                    goto abort;
-                }
-
-                lua_handle_hdr(lua_state, buf.blockType, &block_hdr, sizeof(block_hdr));
+                mlv_wavi_hdr_t block_hdr = *(mlv_wavi_hdr_t *)mlv_block;
 
                 if(verbose)
                 {
@@ -4135,17 +3977,6 @@ read_headers:
 
                 memcpy(&wavi_info, &block_hdr, sizeof(mlv_wavi_hdr_t));
 
-                if(mlv_output && !no_metadata_mode && (!extract_block || !strncasecmp(extract_block, (char*)block_hdr.blockType, 4)))
-                {
-                    /* correct header size if needed */
-                    block_hdr.blockSize = sizeof(mlv_wavi_hdr_t);
-                    if(fwrite(&block_hdr, block_hdr.blockSize, 1, out_file) != 1)
-                    {
-                        print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
-                        goto abort;
-                    }
-                }
-                
                 if(output_filename && out_file_wav == NULL && !extract_block)
                 {
                     size_t name_len = strlen(output_filename) + 5;  // + .wav\0
@@ -4230,24 +4061,39 @@ read_headers:
                     print_msg(MSG_INFO, "     ISO Value:   %d\n", diso_info.isoValue);
                 }
             }
-            else if(!memcmp(buf.blockType, "NULL", 4))
+            else if(!memcmp(mlv_block->blockType, "NULL", 4))
             {
                 /* those are just placeholders. ignore them. */
             }
-            else if(!memcmp(buf.blockType, "BKUP", 4))
+            else if(!memcmp(mlv_block->blockType, "BKUP", 4))
             {
                 /* once they were used to backup headers during frame processing in mlv_rec and could have appeared in a file. no need anymore. */
             }
             else
             {
-                print_msg(MSG_INFO, "Unknown Block: %c%c%c%c, skipping\n", buf.blockType[0], buf.blockType[1], buf.blockType[2], buf.blockType[3]);
+                print_msg(MSG_INFO, "Unknown Block: %c%c%c%c, skipping\n", mlv_block->blockType[0], mlv_block->blockType[1], mlv_block->blockType[2], mlv_block->blockType[3]);
 
-                lua_handle_hdr(lua_state, buf.blockType, "", 0);
+                lua_handle_hdr(lua_state, mlv_block->blockType, "", 0);
+            }
+        }
+
+       
+        /* write to output file if requested */
+        if(
+            mlv_output &&              /* only write blocks in mlv output mode */
+            !handled_write &&
+            (!extract_block || !strncasecmp(extract_block, (char *)mlv_block->blockType, 4)) /* when block extraction was requested, only write those */
+            )
+        {
+            if(fwrite(mlv_block, mlv_block->blockSize, 1, out_file) != 1)
+            { 
+                print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
+                goto abort;
             }
         }
 
 skip_block:
-        file_set_pos(in_file, position + buf.blockSize, SEEK_SET);
+        file_set_pos(in_file, position + mlv_block->blockSize, SEEK_SET);
             
         /* count any read block, no matter if header or video frame */
         blocks_processed++;
@@ -4267,6 +4113,13 @@ skip_block:
     while(!feof(in_file));
 
 abort:
+
+    /* free block buffer */
+    if(mlv_block)
+    {
+        free(mlv_block);
+        mlv_block = NULL;
+    }
 
     {
         float fps = main_header.sourceFpsNom / (float)main_header.sourceFpsDenom;
@@ -4475,3 +4328,4 @@ abort:
 
     return ERR_OK;
 }
+
