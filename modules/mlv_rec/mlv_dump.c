@@ -973,8 +973,6 @@ void show_usage(char *executable)
     print_msg(MSG_INFO, "\n");
     print_msg(MSG_INFO, "-- MLV manipulation --\n");
     print_msg(MSG_INFO, "  --skip-xref                  skip loading .IDX (XREF) file, read block in the MLV file's order instead of presorted\n");
-    print_msg(MSG_INFO, "  -m                           write only metadata, no audio or video frames\n");
-    print_msg(MSG_INFO, "  -n                           write no metadata, only audio and video frames\n");
     print_msg(MSG_INFO, "  -I <mlv_file>                inject data from given MLV file right after MLVI header\n");
     print_msg(MSG_INFO, "  -X type                      extract only block type int output file\n");
     
@@ -1263,8 +1261,6 @@ int main (int argc, char *argv[])
     int average_hor = 0;
     int subtract_mode = 0;
     int flatfield_mode = 0;
-    int no_metadata_mode = 0;
-    int only_metadata_mode = 0;
     int average_samples = 0;
     int relaxed = 0;
     int visualize = 0;
@@ -1540,14 +1536,6 @@ int main (int argc, char *argv[])
                 xref_mode = 1;
                 break;
 
-            case 'm':
-                only_metadata_mode = 1;
-                break;
-
-            case 'n':
-                no_metadata_mode = 1;
-                break;
-
             case 'e':
                 delta_encode_mode = 1;
                 break;
@@ -1555,7 +1543,6 @@ int main (int argc, char *argv[])
             case 'a':
                 average_mode = 1;
                 decompress_input = 1;
-                //no_metadata_mode = 1;
                 break;
 
             case 's':
@@ -2844,7 +2831,7 @@ read_headers:
                         c) this is not average mode (where video data will accumulate and be written as last)
                         d) this block should get extracted in case of extraction mode
                     */
-                    int write_block = mlv_output && !only_metadata_mode && !average_mode && (!extract_block || !strncasecmp(extract_block, (char*)block_hdr.blockType, 4));             
+                    int write_block = mlv_output && !average_mode && (!extract_block || !strncasecmp(extract_block, (char*)block_hdr.blockType, 4));             
 
                     /*
                       compress_output can be 0 or 1. run compressor if not zero.
