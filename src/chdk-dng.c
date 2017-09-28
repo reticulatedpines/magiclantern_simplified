@@ -76,7 +76,7 @@ static int get_tick_count() { return get_ms_clock(); }
 #define raw_size frame_size
 #define write FIO_WriteFile
 
-void FAST reverse_bytes_order(char* buf, int count)
+void FAST reverse_bytes_order(char* buf, int32_t count)
 {
 #ifdef __ARM__
     /* optimized swap from g3gg0 */
@@ -149,11 +149,11 @@ void FAST reverse_bytes_order(char* buf, int count)
         _wswap_end:\
         " : : "r"(buf), "r"(count) : "r2", "r3", "r4", "r5", "r6", "r7");
 #else
-    short* buf16 = (short*) buf;
-    int i;
+    int16_t* buf16 = (int16_t*) buf;
+    int32_t i;
     for (i = 0; i < count/2; i++)
     {
-        short x = buf16[i];
+        int16_t x = buf16[i];
         buf[2*i+1] = x;
         buf[2*i] = x >> 8;
     }
@@ -161,18 +161,18 @@ void FAST reverse_bytes_order(char* buf, int count)
 }
 
 //thumbnail
-static int dng_th_width = 128;
-static int dng_th_height = 84;
+static int32_t dng_th_width = 128;
+static int32_t dng_th_height = 84;
 // higly recommended that dng_th_width*dng_th_height would be divisible by 512
 
 /* warning: not thread safe */
-void dng_set_thumbnail_size(int width, int height)
+void dng_set_thumbnail_size(int32_t width, int32_t height)
 {
     dng_th_width = width;
     dng_th_height = height;
 }
 
-struct dir_entry{unsigned short tag; unsigned short type; unsigned int count; unsigned int offset;};
+struct dir_entry{uint16_t tag; uint16_t type; uint32_t count; unsigned int offset;};
 
 #define T_BYTE      1
 #define T_ASCII     2
@@ -186,42 +186,42 @@ struct dir_entry{unsigned short tag; unsigned short type; unsigned int count; un
 #define T_SRATIONAL 10
 #define T_FLOAT     11
 #define T_DOUBLE    12
-#define T_PTR       0x100   // Stored as long/short etc in DNG header, referenced by pointer in IFD (must be pointer to int variable)
+#define T_PTR       0x100   // Stored as long/int16_t etc in DNG header, referenced by pointer in IFD (must be pointer to int32_t variable)
 #define T_SKIP      0x200   // Tag value to be skipped (for marking GPS entries if camera does not have GPS)
 
-static const int cam_BaselineNoise[]           = {1,1};
-static const int cam_BaselineSharpness[]       = {4,3};
-static const int cam_LinearResponseLimit[]     = {1,1};
-static const int cam_AnalogBalance[]           = {1,1,1,1,1,1};
+static const int32_t cam_BaselineNoise[]           = {1,1};
+static const int32_t cam_BaselineSharpness[]       = {4,3};
+static const int32_t cam_LinearResponseLimit[]     = {1,1};
+static const int32_t cam_AnalogBalance[]           = {1,1,1,1,1,1};
 static char dng_lens_model[64]              = "";
 static char dng_image_desc[64]              = "";
 static char cam_name[32]                    = "Canikon";
 static char cam_serial[64]                  = "";
 static char dng_artist_name[64]             = "";
 static char dng_copyright[64]               = "";
-static const short cam_PreviewBitsPerSample[]  = {8,8,8};
-static const int cam_Resolution[]              = {180,1};
-static int cam_AsShotNeutral[6]         = {473635,1000000,1000000,1000000,624000,1000000}; // wbgain default: daylight
+static const int16_t cam_PreviewBitsPerSample[]  = {8,8,8};
+static const int32_t cam_Resolution[]              = {180,1};
+static int32_t cam_AsShotNeutral[6]         = {473635,1000000,1000000,1000000,624000,1000000}; // wbgain default: daylight
 static char cam_datetime[20]            = "";                   // DateTimeOriginal
 static char cam_subsectime[4]           = "";                   // DateTimeOriginal (milliseconds component)
-static int cam_shutter[2]               = { 0, 1000000 };       // Shutter speed
-static int cam_aperture[2]              = { 0, 10 };            // Aperture
-static int cam_apex_shutter[2]          = { 0, 96 };            // Shutter speed in APEX units
-static int cam_apex_aperture[2]         = { 0, 96 };            // Aperture in APEX units
-static int cam_exp_bias[2]              = { 0, 96 };
-static int cam_max_av[2]                = { 0, 96 };
-static int cam_focal_length[2]          = { 0, 1000 };
+static int32_t cam_shutter[2]               = { 0, 1000000 };       // Shutter speed
+static int32_t cam_aperture[2]              = { 0, 10 };            // Aperture
+static int32_t cam_apex_shutter[2]          = { 0, 96 };            // Shutter speed in APEX units
+static int32_t cam_apex_aperture[2]         = { 0, 96 };            // Aperture in APEX units
+static int32_t cam_exp_bias[2]              = { 0, 96 };
+static int32_t cam_max_av[2]                = { 0, 96 };
+static int32_t cam_focal_length[2]          = { 0, 1000 };
 static char* software_ver = "Magic Lantern";
-static int cam_FrameRate[]          = {25000,1000};
+static int32_t cam_FrameRate[]          = {25000,1000};
 
 struct t_data_for_exif{
-    short iso;
-    int exp_program;
-    int effective_focal_length;
-    short orientation;
-    short flash_mode;
-    short flash_fired;
-    short metering_mode;
+    int16_t iso;
+    int32_t exp_program;
+    int32_t effective_focal_length;
+    int16_t orientation;
+    int16_t flash_mode;
+    int16_t flash_fired;
+    int16_t metering_mode;
 };
 
 
@@ -229,7 +229,7 @@ struct t_data_for_exif{
 
 #define BADPIX_CFA_INDEX    6   // Index of CFAPattern value in badpixel_opcodes array
 
-static unsigned int badpixel_opcode[] =
+static uint32_t badpixel_opcode[] =
 {
     // *** all values must be in big endian order
 
@@ -251,9 +251,9 @@ static struct t_data_for_exif exif_data;
 // warning: according to TIFF format specification, elements must be sorted by tag value in ascending order!
 
 // Index of specific entries in ifd0 below.
-static int find_tag_index(struct dir_entry * ifd, int num, unsigned short tag)
+static int32_t find_tag_index(struct dir_entry * ifd, int32_t num, uint16_t tag)
 {
-    int i;
+    int32_t i;
     for (i = 0; i < num; i++)
         if (ifd[i].tag == tag)
             return i;
@@ -294,7 +294,7 @@ static int find_tag_index(struct dir_entry * ifd, int num, unsigned short tag)
 #define SSTIME_INDEX                find_tag_index(exif_ifd, DIR_SIZE(exif_ifd), 0x9290)
 #define SSTIME_ORIG_INDEX           find_tag_index(exif_ifd, DIR_SIZE(exif_ifd), 0x9291)
 
-static int get_type_size(int type)
+static int32_t get_type_size(int32_t type)
 {
     switch(type & 0xFF)
     {
@@ -319,17 +319,17 @@ static int get_type_size(int type)
 #define TIFF_HDR_SIZE (8)
 
 static char* dng_header_buf;
-static int dng_header_buf_size;
-static int dng_header_buf_offset;
+static int32_t dng_header_buf_size;
+static int32_t dng_header_buf_offset;
 static char *thumbnail_buf;
 
-static void add_to_buf(void* var, int size)
+static void add_to_buf(void* var, int32_t size)
 {
     memcpy(dng_header_buf+dng_header_buf_offset,var,size);
     dng_header_buf_offset += size;
 }
 
-static void add_val_to_buf(int val, int size)
+static void add_val_to_buf(int32_t val, int32_t size)
 {
     add_to_buf(&val,size);
 }
@@ -355,42 +355,42 @@ void dng_set_lensmodel(char *str)
     strncpy(dng_lens_model, str, sizeof(dng_lens_model));
 }
 
-void dng_set_focal(int nom, int denom)
+void dng_set_focal(int32_t nom, int32_t denom)
 {
     cam_focal_length[0] = nom;
     cam_focal_length[1] = denom;
 }
 
-void dng_set_aperture(int nom, int denom)
+void dng_set_aperture(int32_t nom, int32_t denom)
 {
     cam_aperture[0] = nom;
     cam_aperture[1] = denom;
 }
 
-void dng_set_shutter(int nom, int denom)
+void dng_set_shutter(int32_t nom, int32_t denom)
 {
     cam_shutter[0] = nom;
     cam_shutter[1] = denom;
 }
 
-void dng_set_framerate(int fpsx1000)
+void dng_set_framerate(int32_t fpsx1000)
 {
     cam_FrameRate[0] = fpsx1000;
     cam_FrameRate[1] = 1000;
 }
 
-void dng_set_framerate_rational(int nom, int denom)
+void dng_set_framerate_rational(int32_t nom, int32_t denom)
 {
     cam_FrameRate[0] = nom;
     cam_FrameRate[1] = denom;
 }
 
-void dng_set_iso(int value)
+void dng_set_iso(int32_t value)
 {
     exif_data.iso = value;
 }
 
-void dng_set_wbgain(int gain_r_n, int gain_r_d, int gain_g_n, int gain_g_d, int gain_b_n, int gain_b_d)
+void dng_set_wbgain(int32_t gain_r_n, int32_t gain_r_d, int32_t gain_g_n, int32_t gain_g_d, int32_t gain_b_n, int32_t gain_b_d)
 {
     cam_AsShotNeutral[0] = gain_r_n;
     cam_AsShotNeutral[1] = gain_r_d;
@@ -406,18 +406,18 @@ void dng_set_datetime(char *datetime, char *subsectime)
     strncpy(cam_subsectime, subsectime, sizeof(cam_subsectime));
 }
 
-static int is_lossless_jpeg(struct raw_info * raw_info)
+static int32_t is_lossless_jpeg(struct raw_info * raw_info)
 {
     return *(uint32_t*)(raw_info->buffer) == 0xC4FFD8FF;
 }
 
 
 static void create_dng_header(struct raw_info * raw_info){
-    int i,j;
-    int extra_offset;
-    int raw_offset;
+    int32_t i,j;
+    int32_t extra_offset;
+    int32_t raw_offset;
 
-    static int dng_compression = 1;
+    static int32_t dng_compression = 1;
 
     if (is_lossless_jpeg(raw_info))
     {
@@ -428,91 +428,91 @@ static void create_dng_header(struct raw_info * raw_info){
         {0xFE,   T_LONG,       1,  1},                                 // NewSubFileType: Preview Image
         {0x100,  T_LONG,       1,  dng_th_width},                      // ImageWidth
         {0x101,  T_LONG,       1,  dng_th_height},                     // ImageLength
-        {0x102,  T_SHORT,      3,  (int)cam_PreviewBitsPerSample},     // BitsPerSample: 8,8,8
+        {0x102,  T_SHORT,      3,  (intptr_t)cam_PreviewBitsPerSample},     // BitsPerSample: 8,8,8
         {0x103,  T_SHORT,      1,  1},                                 // Compression: Uncompressed
         {0x106,  T_SHORT,      1,  2},                                 // PhotometricInterpretation: RGB
-        {0x10E,  T_ASCII,      sizeof(dng_image_desc), (int)dng_image_desc},               // ImageDescription
-        {0x10F,  T_ASCII,      sizeof(CAM_MAKE), (int)CAM_MAKE},       // Make
-        {0x110,  T_ASCII,      32, (int)cam_name},                     // Model: Filled at header generation.
+        {0x10E,  T_ASCII|T_PTR,      sizeof(dng_image_desc), (intptr_t)dng_image_desc},               // ImageDescription
+        {0x10F,  T_ASCII|T_PTR,      sizeof(CAM_MAKE), (intptr_t)CAM_MAKE},       // Make
+        {0x110,  T_ASCII|T_PTR,      32, (intptr_t)cam_name},                     // Model: Filled at header generation.
         {0x111,  T_LONG,       1,  0},                                 // StripOffsets: Offset
         {0x112,  T_SHORT,      1,  1},                                 // Orientation: 1 - 0th row is top, 0th column is left
         {0x115,  T_SHORT,      1,  3},                                 // SamplesPerPixel: 3
         {0x116,  T_SHORT,      1,  dng_th_height},                     // RowsPerStrip
         {0x117,  T_LONG,       1,  dng_th_width*dng_th_height*3},      // StripByteCounts = preview size
         {0x11C,  T_SHORT,      1,  1},                                 // PlanarConfiguration: 1
-        {0x131,  T_ASCII|T_PTR,32, 0},                                 // Software
-        {0x132,  T_ASCII,      20, (int)cam_datetime},                 // DateTime
-        {0x13B,  T_ASCII|T_PTR,64, (int)dng_artist_name},              // Artist: Filled at header generation.
+        {0x131,  T_ASCII|T_PTR,32, (intptr_t)0},                                 // Software
+        {0x132,  T_ASCII|T_PTR,      20, (intptr_t)cam_datetime},                 // DateTime
+        {0x13B,  T_ASCII|T_PTR,64, (intptr_t)dng_artist_name},              // Artist: Filled at header generation.
         {0x14A,  T_LONG,       1,  0},                                 // SubIFDs offset
-        {0x8298, T_ASCII|T_PTR,64, (int)dng_copyright},                // Copyright
+        {0x8298, T_ASCII|T_PTR,64, (intptr_t)dng_copyright},                // Copyright
         {0x8769, T_LONG,       1,  0},                                 // EXIF_IFD offset
         {0x9216, T_BYTE,       4,  0x00000001},                        // TIFF/EPStandardID: 1.0.0.0
-        {0xA431, T_ASCII,      sizeof(cam_serial), (int)cam_serial},         // Exif.Photo.BodySerialNumber
-        {0xA434, T_ASCII,      sizeof(dng_lens_model), (int)dng_lens_model}, // Exif.Photo.LensModel
+        {0xA431, T_ASCII|T_PTR,      sizeof(cam_serial), (intptr_t)cam_serial},         // Exif.Photo.BodySerialNumber
+        {0xA434, T_ASCII|T_PTR,      sizeof(dng_lens_model), (intptr_t)dng_lens_model}, // Exif.Photo.LensModel
         {0xC612, T_BYTE,       4,  0x00000301},                        // DNGVersion: 1.3.0.0
         {0xC613, T_BYTE,       4,  0x00000301},                        // DNGBackwardVersion: 1.1.0.0
-        {0xC614, T_ASCII,      32, (int)cam_name},                     // UniqueCameraModel. Filled at header generation.
-        {0xC621, T_SRATIONAL,  9,  (int)&camera_sensor.color_matrix1},
-        {0xC627, T_RATIONAL,   3,  (int)cam_AnalogBalance},
-        {0xC628, T_RATIONAL,   3,  (int)cam_AsShotNeutral},
-        {0xC62A, T_SRATIONAL,  1,  (int)&camera_sensor.exposure_bias},
-        {0xC62B, T_RATIONAL,   1,  (int)cam_BaselineNoise},
-        {0xC62C, T_RATIONAL,   1,  (int)cam_BaselineSharpness},
-        {0xC62E, T_RATIONAL,   1,  (int)cam_LinearResponseLimit},
+        {0xC614, T_ASCII|T_PTR,      32, (intptr_t)cam_name},                     // UniqueCameraModel. Filled at header generation.
+        {0xC621, T_SRATIONAL,  9,  (intptr_t)&camera_sensor.color_matrix1},
+        {0xC627, T_RATIONAL,   3,  (intptr_t)cam_AnalogBalance},
+        {0xC628, T_RATIONAL,   3,  (intptr_t)cam_AsShotNeutral},
+        {0xC62A, T_SRATIONAL,  1,  (intptr_t)&camera_sensor.exposure_bias},
+        {0xC62B, T_RATIONAL,   1,  (intptr_t)cam_BaselineNoise},
+        {0xC62C, T_RATIONAL,   1,  (intptr_t)cam_BaselineSharpness},
+        {0xC62E, T_RATIONAL,   1,  (intptr_t)cam_LinearResponseLimit},
         {0xC65A, T_SHORT,      1, 21},                                 // CalibrationIlluminant1 D65
         // {0xC65B, T_SHORT,      1, 21},                                 // CalibrationIlluminant2 D65 (change this if ColorMatrix2 is added); see issue #2343
-        {0xC764, T_SRATIONAL,  1,  (int)cam_FrameRate},
+        {0xC764, T_SRATIONAL,  1,  (intptr_t)cam_FrameRate},
     };
 
     struct dir_entry ifd1[]={
         {0xFE,   T_LONG,       1,  0},                                 // NewSubFileType: Main Image
-        {0x100,  T_LONG|T_PTR, 1,  (int)&camera_sensor.raw_rowpix},    // ImageWidth
-        {0x101,  T_LONG|T_PTR, 1,  (int)&camera_sensor.raw_rows},      // ImageLength
-        {0x102,  T_SHORT|T_PTR,1,  (int)&camera_sensor.bits_per_pixel},// BitsPerSample
+        {0x100,  T_LONG|T_PTR, 1,  (intptr_t)&camera_sensor.raw_rowpix},    // ImageWidth
+        {0x101,  T_LONG|T_PTR, 1,  (intptr_t)&camera_sensor.raw_rows},      // ImageLength
+        {0x102,  T_SHORT|T_PTR,1,  (intptr_t)&camera_sensor.bits_per_pixel},// BitsPerSample
         {0x103,  T_SHORT,      1,  dng_compression},                   // Compression: Uncompressed or JPEG
         {0x106,  T_SHORT,      1,  0x8023},                            // PhotometricInterpretation: CFA
         {0x111,  T_LONG,       1,  0},                                 // StripOffsets: Offset
         {0x115,  T_SHORT,      1,  1},                                 // SamplesPerPixel: 1
-        {0x116,  T_SHORT|T_PTR,1,  (int)&camera_sensor.raw_rows},      // RowsPerStrip
-        {0x117,  T_LONG|T_PTR, 1,  (int)&camera_sensor.raw_size},      // StripByteCounts = CHDK RAW size
-        {0x11A,  T_RATIONAL,   1,  (int)cam_Resolution},               // XResolution
-        {0x11B,  T_RATIONAL,   1,  (int)cam_Resolution},               // YResolution
+        {0x116,  T_SHORT|T_PTR,1,  (intptr_t)&camera_sensor.raw_rows},      // RowsPerStrip
+        {0x117,  T_LONG|T_PTR, 1,  (intptr_t)&camera_sensor.raw_size},      // StripByteCounts = CHDK RAW size
+        {0x11A,  T_RATIONAL,   1,  (intptr_t)cam_Resolution},               // XResolution
+        {0x11B,  T_RATIONAL,   1,  (intptr_t)cam_Resolution},               // YResolution
         {0x11C,  T_SHORT,      1,  1},                                 // PlanarConfiguration: 1
         {0x128,  T_SHORT,      1,  2},                                 // ResolutionUnit: inch
         {0x828D, T_SHORT,      2,  0x00020002},                        // CFARepeatPatternDim: Rows = 2, Cols = 2
-        {0x828E, T_BYTE|T_PTR, 4,  (int)&camera_sensor.cfa_pattern},
-        {0xC61A, T_LONG|T_PTR, 1,  (int)&camera_sensor.black_level},   // BlackLevel
-        {0xC61D, T_LONG|T_PTR, 1,  (int)&camera_sensor.white_level},   // WhiteLevel
-        {0xC61F, T_LONG,       2,  (int)&camera_sensor.crop.origin},
-        {0xC620, T_LONG,       2,  (int)&camera_sensor.crop.size},
-        {0xC68D, T_LONG,       4,  (int)&camera_sensor.dng_active_area},
-        {0xC740, T_UNDEFINED|T_PTR, sizeof(badpixel_opcode),  (int)&badpixel_opcode},
+        {0x828E, T_BYTE|T_PTR, 4,  (intptr_t)&camera_sensor.cfa_pattern},
+        {0xC61A, T_LONG|T_PTR, 1,  (intptr_t)&camera_sensor.black_level},   // BlackLevel
+        {0xC61D, T_LONG|T_PTR, 1,  (intptr_t)&camera_sensor.white_level},   // WhiteLevel
+        {0xC61F, T_LONG,       2,  (intptr_t)&camera_sensor.crop.origin},
+        {0xC620, T_LONG,       2,  (intptr_t)&camera_sensor.crop.size},
+        {0xC68D, T_LONG,       4,  (intptr_t)&camera_sensor.dng_active_area},
+        {0xC740, T_UNDEFINED|T_PTR, sizeof(badpixel_opcode),  (intptr_t)&badpixel_opcode},
     };
 
     struct dir_entry exif_ifd[]={
-        {0x829A, T_RATIONAL,   1,  (int)cam_shutter},          // Shutter speed
-        {0x829D, T_RATIONAL,   1,  (int)cam_aperture},         // Aperture
+        {0x829A, T_RATIONAL,   1,  (intptr_t)cam_shutter},          // Shutter speed
+        {0x829D, T_RATIONAL,   1,  (intptr_t)cam_aperture},         // Aperture
         {0x8822, T_SHORT,      1,  0},                         // ExposureProgram
-        {0x8827, T_SHORT|T_PTR,1,  (int)&exif_data.iso},       // ISOSpeedRatings
+        {0x8827, T_SHORT|T_PTR,1,  (intptr_t)&exif_data.iso},       // ISOSpeedRatings
         {0x9000, T_UNDEFINED,  4,  0x31323230},                // ExifVersion: 2.21
-        {0x9003, T_ASCII,      20, (int)cam_datetime},         // DateTimeOriginal
-        //{0x9201, T_SRATIONAL,  1,  (int)cam_apex_shutter},     // ShutterSpeedValue (APEX units)
-        //{0x9202, T_RATIONAL,   1,  (int)cam_apex_aperture},    // ApertureValue (APEX units)
-        {0x9204, T_SRATIONAL,  1,  (int)cam_exp_bias},         // ExposureBias
-        {0x9205, T_RATIONAL,   1,  (int)cam_max_av},           // MaxApertureValue
+        {0x9003, T_ASCII|T_PTR,      20, (intptr_t)cam_datetime},         // DateTimeOriginal
+        //{0x9201, T_SRATIONAL,  1,  (intptr_t)cam_apex_shutter},     // ShutterSpeedValue (APEX units)
+        //{0x9202, T_RATIONAL,   1,  (intptr_t)cam_apex_aperture},    // ApertureValue (APEX units)
+        {0x9204, T_SRATIONAL,  1,  (intptr_t)cam_exp_bias},         // ExposureBias
+        {0x9205, T_RATIONAL,   1,  (intptr_t)cam_max_av},           // MaxApertureValue
         {0x9207, T_SHORT,      1,  0},                         // Metering mode
         {0x9209, T_SHORT,      1,  0},                         // Flash mode
-        {0x920A, T_RATIONAL,   1,  (int)cam_focal_length},     // FocalLength
-        {0x9290, T_ASCII|T_PTR,4,  (int)cam_subsectime},       // DateTime milliseconds
-        {0x9291, T_ASCII|T_PTR,4,  (int)cam_subsectime},       // DateTimeOriginal milliseconds
-        {0xA405, T_SHORT|T_PTR,1,  (int)&exif_data.effective_focal_length},    // FocalLengthIn35mmFilm
+        {0x920A, T_RATIONAL,   1,  (intptr_t)cam_focal_length},     // FocalLength
+        {0x9290, T_ASCII|T_PTR,4,  (intptr_t)cam_subsectime},       // DateTime milliseconds
+        {0x9291, T_ASCII|T_PTR,4,  (intptr_t)cam_subsectime},       // DateTimeOriginal milliseconds
+        {0xA405, T_SHORT|T_PTR,1,  (intptr_t)&exif_data.effective_focal_length},    // FocalLengthIn35mmFilm
     };
 
     struct
     {
         struct dir_entry* entry;
-        int count;                  // Number of entries to be saved
-        int entry_count;            // Total number of entries
+        int32_t count;                  // Number of entries to be saved
+        int32_t entry_count;            // Total number of entries
     } ifd_list[] = 
     {
         {ifd0,      DIR_SIZE(ifd0),     DIR_SIZE(ifd0)}, 
@@ -541,11 +541,11 @@ static void create_dng_header(struct raw_info * raw_info){
         }
 
     // filling EXIF fields
-    int ifd_count = DIR_SIZE(ifd_list);
+    int32_t ifd_count = DIR_SIZE(ifd_list);
 
     // Fix the counts and offsets where needed
     ifd0[CAMERA_NAME_INDEX].count = ifd0[UNIQUE_CAMERA_MODEL_INDEX].count = strlen(cam_name) + 1;
-    ifd0[CHDK_VER_INDEX].offset = (int)software_ver;
+    ifd0[CHDK_VER_INDEX].offset = (intptr_t)software_ver;
     ifd0[CHDK_VER_INDEX].count = strlen(software_ver) + 1;
     ifd0[ARTIST_NAME_INDEX].count = strlen(dng_artist_name) + 1;
     ifd0[COPYRIGHT_INDEX].count = strlen(dng_copyright) + 1;
@@ -567,7 +567,7 @@ static void create_dng_header(struct raw_info * raw_info){
             if ((ifd_list[j].entry[i].type & T_SKIP) == 0)  // Exclude skipped entries (e.g. GPS info if camera doesn't have GPS)
             {
                 raw_offset+=12; // IFD directory entry size
-                int size_ext=get_type_size(ifd_list[j].entry[i].type)*ifd_list[j].entry[i].count;
+                int32_t size_ext=get_type_size(ifd_list[j].entry[i].type)*ifd_list[j].entry[i].count;
                 if (size_ext>4) raw_offset+=size_ext+(size_ext&1);
             }
         }
@@ -605,50 +605,50 @@ static void create_dng_header(struct raw_info * raw_info){
 
     // TIFF file header
 
-    add_val_to_buf(0x4949, sizeof(short));      // little endian
-    add_val_to_buf(42, sizeof(short));          // An arbitrary but carefully chosen number that further identifies the file as a TIFF file.
-    add_val_to_buf(TIFF_HDR_SIZE, sizeof(int)); // offset of first IFD
+    add_val_to_buf(0x4949, sizeof(int16_t));      // little endian
+    add_val_to_buf(42, sizeof(int16_t));          // An arbitrary but carefully chosen number that further identifies the file as a TIFF file.
+    add_val_to_buf(TIFF_HDR_SIZE, sizeof(int32_t)); // offset of first IFD
 
     // writing IFDs
 
     for (j=0;j<ifd_count;j++)
     {
-        int size_ext;
-        add_val_to_buf(ifd_list[j].count, sizeof(short));
+        int32_t size_ext;
+        add_val_to_buf(ifd_list[j].count, sizeof(int16_t));
         for(i=0; i<ifd_list[j].entry_count; i++)
         {
             if ((ifd_list[j].entry[i].type & T_SKIP) == 0)
             {
-                add_val_to_buf(ifd_list[j].entry[i].tag, sizeof(short));
-                add_val_to_buf(ifd_list[j].entry[i].type & 0xFF, sizeof(short));
-                add_val_to_buf(ifd_list[j].entry[i].count, sizeof(int));
+                add_val_to_buf(ifd_list[j].entry[i].tag, sizeof(int16_t));
+                add_val_to_buf(ifd_list[j].entry[i].type & 0xFF, sizeof(int16_t));
+                add_val_to_buf(ifd_list[j].entry[i].count, sizeof(int32_t));
                 size_ext=get_type_size(ifd_list[j].entry[i].type)*ifd_list[j].entry[i].count;
                 if (size_ext<=4) 
                 {
                     if (ifd_list[j].entry[i].type & T_PTR)
                     {
-                        add_to_buf((void*)ifd_list[j].entry[i].offset, sizeof(int));
+                        add_to_buf((void*)ifd_list[j].entry[i].offset, sizeof(int32_t));
                     }
                     else
                     {
-                        add_val_to_buf(ifd_list[j].entry[i].offset, sizeof(int));
+                        add_val_to_buf(ifd_list[j].entry[i].offset, sizeof(int32_t));
                     }
                 }
                 else
                 {
-                    add_val_to_buf(extra_offset, sizeof(int));
+                    add_val_to_buf(extra_offset, sizeof(int32_t));
                     extra_offset += size_ext+(size_ext&1);    
                 }
             }
         }
-        add_val_to_buf(0, sizeof(int));
+        add_val_to_buf(0, sizeof(int32_t));
     }
 
     // writing extra data
 
     for (j=0;j<ifd_count;j++)
     {
-        int size_ext;
+        int32_t size_ext;
         for(i=0; i<ifd_list[j].entry_count; i++)
         {
             if ((ifd_list[j].entry[i].type & T_SKIP) == 0)
@@ -684,23 +684,23 @@ static void free_dng_header(void)
 //-------------------------------------------------------------------
 // Functions for creating DNG thumbnail image
 
-static inline int raw_to_8bit(int raw, int wb, struct raw_info * raw_info)
+static inline int32_t raw_to_8bit(int32_t raw, int32_t wb, struct raw_info * raw_info)
 {
     if (raw_info->bits_per_pixel == 16) /* big endian */
     {
         raw = ((raw & 0xFF00) >> 8) | ((raw & 0xFF) << 8);
     }
-    int black = raw_info->black_level;
-    int white = raw_info->white_level;
+    int32_t black = raw_info->black_level;
+    int32_t white = raw_info->white_level;
     float ev = log2f(MAX(1, raw - black)) + wb - 5;
     float max = log2f(white - black) - 5;
-    int out = ev * 255 / max;
+    int32_t out = ev * 255 / max;
     return COERCE(out, 0, 255);
 }
 
 static void create_thumbnail(struct raw_info * raw_info)
 {
-    register int i, j, x, y, yadj, xadj;
+    register int32_t i, j, x, y, yadj, xadj;
     register char *buf = thumbnail_buf;
     
     if (is_lossless_jpeg(raw_info))
@@ -734,7 +734,7 @@ static void create_thumbnail(struct raw_info * raw_info)
 //-------------------------------------------------------------------
 // Write DNG header, thumbnail and data to file
 
-static int write_dng(FILE* fd, struct raw_info * raw_info) 
+static int32_t write_dng(FILE* fd, struct raw_info * raw_info) 
 {
     create_dng_header(raw_info);
     char* rawadr = (void*)raw_info->buffer;
@@ -779,7 +779,7 @@ int save_dng(char* filename, struct raw_info * raw_info)
     
     FILE* f = FIO_CreateFile(filename);
     if (!f) return 0;
-    int ok = write_dng(f, raw_info);
+    int32_t ok = write_dng(f, raw_info);
     FIO_CloseFile(f);
     if (!ok)
     {
