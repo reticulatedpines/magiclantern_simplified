@@ -5,6 +5,7 @@ set -e
 QEMU_NAME=${QEMU_NAME:=qemu-2.5.0}
 ML=${ML:=magic-lantern}
 GREP=${GREP:=grep}
+ALLOW_64BIT_GDB=n
 
 echo
 echo "This will setup QEMU for emulating Magic Lantern."
@@ -54,11 +55,13 @@ function valid_arm_gdb {
         return 1
     fi
 
-    if arm-none-eabi-gdb -v | grep -q "host=x86_64"; then
-        # 64-bit version - doesn't work
-        # fixme: this may get printed more than once
-        echo "*** WARNING: 64-bit GDB is known not to work."
-        return 1
+    if [ "$ALLOW_64BIT_GDB" != "y" ]; then
+        if arm-none-eabi-gdb -v | grep -q "host=x86_64"; then
+            # 64-bit version - doesn't work
+            # fixme: this may get printed more than once
+            echo "*** WARNING: 64-bit GDB is known not to work."
+            return 1
+        fi
     fi
 
     # assume it's OK
@@ -131,7 +134,7 @@ if apt-get -v &> /dev/null; then
         echo "    Will be installed in your home directory; to move it, you must edit the Makefiles."
         echo "    This will install 32-bit binaries - will not work under Windows Subsystem for Linux."
         echo
-        echo "3 - Install gdb-arm-none-eabi from Ubuntu repository (64-bit)"
+        echo "3 - Install gdb-arm-none-eabi and gcc-arm-none-eabi from Ubuntu repository (64-bit)"
         echo "    WARNING: this will not be able to run all our GDB scripts."
         echo 
         if dpkg -l binutils-arm-none-eabi 2>/dev/null | grep -q '^.i'; then
@@ -178,6 +181,7 @@ if apt-get -v &> /dev/null; then
                 # it's unable to run 5D3 1.1.3 GUI and maybe others
                 packages="$packages gdb-arm-none-eabi:amd64"
                 packages="$packages gcc-arm-none-eabi:amd64 libnewlib-arm-none-eabi"
+                ALLOW_64BIT_GDB=y
                 ;;
             4)
                 # gcc-arm-embedded conflicts with gcc-arm-none-eabi
@@ -196,6 +200,7 @@ if apt-get -v &> /dev/null; then
                 echo "    sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa"
                 echo
                 sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa
+                ALLOW_64BIT_GDB=y
                 ;;
             5)
                 # user will install arm-none-eabi-gdb and run the script again
@@ -203,6 +208,7 @@ if apt-get -v &> /dev/null; then
                 ;;
             6)
                 # use the installed version, even though it's known not to work
+                ALLOW_64BIT_GDB=y
                 ;;
             *)
                 # invalid choice
