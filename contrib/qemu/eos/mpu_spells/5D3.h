@@ -491,6 +491,11 @@ static struct mpu_init_spell mpu_init_spells_5D3[] = {
      // { 0x06, 0x05, 0x03, 0x17, 0x9b, 0x00 },                 /* reply #124.5, delayed by 991 ms, likely external input */
      // { 0x06, 0x05, 0x03, 0x38, 0x9a, 0x00 },                 /* reply #124.6, delayed by 995 ms, likely external input */
         { 0 } } },
+
+    { { 0x06, 0x04, 0x03, 0x54, 0x00, 0x00 }, .description = "PROP_MPU_GPS", .out_spells = {
+        { 0x06, 0x04, 0x03, 0x54, 0x00, 0x00 },
+        { 0 } } },
+
   //#include "NotifyGUIEvent.h"
     #include "UILock.h"
     #include "CardFormat.h"
