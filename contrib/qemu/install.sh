@@ -147,8 +147,16 @@ if apt-get -v &> /dev/null; then
         echo "    - install the gcc-arm-embedded package."
         echo "    WARNING: this will not be able to run all our GDB scripts."
         echo
-        echo "5 - Manually install gdb-arm-none-eabi from https://launchpad.net/gcc-arm-embedded"
+        echo "5 - Manually install arm-none-eabi-gdb from https://launchpad.net/gcc-arm-embedded"
         echo "    or other source, make sure it is in PATH, then run this script again."
+
+        if ! arm-none-eabi-gdb -v &> /dev/null; then
+            echo
+        else
+            echo
+            echo "6 - Just use the current 64-bit toolchain."
+            echo "    WARNING: this will not be able to run all our GDB scripts."
+        fi
 
         echo
         echo -n "Your choice? "
@@ -189,11 +197,15 @@ if apt-get -v &> /dev/null; then
                 echo
                 sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa
                 ;;
-            3)
+            5)
+                # user will install arm-none-eabi-gdb and run the script again
                 exit 0
                 ;;
+            6)
+                # use the installed version, even though it's known not to work
+                ;;
             *)
-                # nothing to do here
+                # invalid choice
                 exit 1
                 ;;
         esac
