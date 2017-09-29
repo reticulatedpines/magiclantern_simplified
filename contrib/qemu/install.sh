@@ -15,22 +15,40 @@ if test "$answer" != "Y" -a "$answer" != "y"; then exit 0; fi
 echo
 
 function install_gdb {
-    [ $(uname) == "Darwin" ] && OS=mac || OS=linux
+    if [ $(uname) == "Darwin" ]; then
+        echo "*** Will download macx_i386_gcc_arm_none_eabi_4.8.2 from:"
+        echo "    https://acroname.com/software/arm-eabi-gcc-toolchain-mac-osx-macos-x-32bit"
+        echo
+        TOOLCHAIN=cortex/4.8.2
+        TARBALL=macx_i386_gcc_arm_none_eabi_4.8.2.tgz
+        DOWNLOAD=https://acroname.com/system/files/software/
+        UNTAR="tar -zxf"
+    else
+        echo "*** Will download gcc-arm-none-eabi-5_4-2016q3 from:"
+        echo "    https://developer.arm.com/open-source/gnu-toolchain/gnu-rm"
+        echo
+        TOOLCHAIN=gcc-arm-none-eabi-5_4-2016q3
+        TARBALL=gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2
+        DOWNLOAD=https://developer.arm.com/-/media/Files/downloads/gnu-rm/5_4-2016q3/
+        UNTAR="tar -jxf"
+    fi
 
-    echo "*** Will download the recommended 5.4-$OS from gcc-arm-embedded."
-    echo
+    if [ ! -f ~/$TOOLCHAIN/bin/arm-none-eabi-gdb ]; then
+        cd ~
+        wget -c $DOWNLOAD$TARBALL && $UNTAR $TARBALL && rm $TARBALL
+        cd -
+    else
+        echo "*** Toolchain already installed in:"
+        echo "    ~/$TOOLCHAIN"
+        echo
+    fi
 
-    cd ~ && \
-        [ ! -f gcc-arm-none-eabi-5_4-2016q3/bin/arm-none-eabi-gdb ] &&
-        wget -c https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q3-update/+download/gcc-arm-none-eabi-5_4-2016q3-20160926-$OS.tar.bz2 && \
-        tar -jxf gcc-arm-none-eabi-5_4-2016q3-20160926-$OS.tar.bz2 && \
-        rm gcc-arm-none-eabi-5_4-2016q3-20160926-$OS.tar.bz2
     echo "*** Please add gcc binaries to your executable PATH:"
     echo '    PATH=~/gcc-arm-none-eabi-5_4-2016q3/bin:$PATH'
     echo
 }
 
-function valid_gdb {
+function valid_arm_gdb {
     if ! arm-none-eabi-gdb -v &> /dev/null; then
         # not installed, or not able to run for any reason
         return 1
@@ -38,11 +56,30 @@ function valid_gdb {
 
     if arm-none-eabi-gdb -v | grep -q "host=x86_64"; then
         # 64-bit version - doesn't work
+        # fixme: this may get printed more than once
+        echo "*** WARNING: 64-bit GDB is known not to work."
         return 1
     fi
 
     # assume it's OK
     # todo: check version number
+    return 0
+}
+
+function valid_arm_gcc {
+    if ! arm-none-eabi-gcc -v &> /dev/null; then
+        # not installed, or not able to run for any reason
+        return 1
+    fi
+
+    echo "#include <stdlib.h>" > arm-gcc-test.c
+    if ! arm-none-eabi-gcc -c arm-gcc-test.c; then
+        echo "*** WARNING: your arm-none-eabi-gcc is unable to compile a simple program."
+        rm arm-gcc-test.c
+        return 1
+    fi
+
+    rm arm-gcc-test.c
     return 0
 }
 
@@ -73,16 +110,97 @@ if apt-get -v &> /dev/null; then
     # install these packages, if not already
     # only request sudo if any of them is missing
     # instead of GTK (libgtk2.0-dev), you may prefer SDL (libsdl1.2-dev)
-    # 64-bit arm-none-eabi-gdb does not work - GDB bug?
-    # gcc-arm-none-eabi:i386 does not include libnewlib - Ubuntu bug?
     packages="
         build-essential mercurial pkg-config libtool
-        git libglib2.0-dev libfdt-dev libpixman-1-dev zlib1g-dev
+        git libglib2.0-dev libpixman-1-dev zlib1g-dev
         libgtk2.0-dev xz-utils mtools netcat-openbsd
-        python python-pip python-docutils
-        gdb-arm-none-eabi:i386
-        gcc-arm-none-eabi libnewlib-arm-none-eabi"
-    
+        python python-pip python-docutils"
+
+    # if a valid arm-none-eabi-gcc/gdb is already in PATH, try to use that
+    # otherwise, we'll try to install something
+    if ! valid_arm_gdb || ! valid_arm_gcc; then
+        echo "*** You do not seem to have an usable arm-none-eabi-gcc and/or gdb installed."
+        echo "*** 64-bit GDB is known not to work, so you'll have to install a 32-bit one for now."
+        echo
+        echo "*** You have a few options:"
+        echo
+        echo "1 - Install gdb-arm-none-eabi:i386 and gcc-arm-none-eabi from Ubuntu repo (recommended)"
+        echo "    This will install 32-bit binaries - will not work under Windows Subsystem for Linux."
+        echo 
+        echo "2 - Download a 32-bit gcc-arm-embedded and install it without the package manager."
+        echo "    Will be installed in your home directory; to move it, you must edit the Makefiles."
+        echo "    This will install 32-bit binaries - will not work under Windows Subsystem for Linux."
+        echo
+        echo "3 - Install gdb-arm-none-eabi from Ubuntu repository (64-bit)"
+        echo "    WARNING: this will not be able to run all our GDB scripts."
+        echo 
+        if dpkg -l binutils-arm-none-eabi &> /dev/null; then
+            echo "4 - Remove Ubuntu toolchain and install the one from gcc-arm-embedded PPA (gcc 6.x)"
+            echo "    This will:"
+            echo "    - sudo apt-get remove gcc-arm-none-eabi gdb-arm-none-eabi \\"
+            echo "           binutils-arm-none-eabi libnewlib-arm-none-eabi"
+        else
+            echo "4 - Install the toolchain from gcc-arm-embedded PPA (gcc 6.x)"
+            echo "    This will:"
+        fi
+        echo "    - sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa"
+        echo "    - install the gcc-arm-embedded package."
+        echo "    WARNING: this will not be able to run all our GDB scripts."
+        echo
+        echo "5 - Manually install gdb-arm-none-eabi from https://launchpad.net/gcc-arm-embedded"
+        echo "    or other source, make sure it is in PATH, then run this script again."
+
+        echo
+        echo -n "Your choice? "
+        read answer
+        echo
+        case $answer in
+            1)
+                # Ubuntu's 32-bit arm-none-eabi-gdb works fine
+                # gcc-arm-none-eabi:i386 does not include libnewlib - Ubuntu bug?
+                packages="$packages gdb-arm-none-eabi:i386 "
+                packages="$packages gcc-arm-none-eabi libnewlib-arm-none-eabi"
+                ;;
+            2)
+                # 32-bit gdb will be downloaded after installing these packages
+                packages="$packages libc6:i386 libncurses5:i386"
+                ;;
+            3)
+                # Ubuntu's 64-bit arm-none-eabi-gdb works... sort of
+                # it's unable to run 5D3 1.1.3 GUI and maybe others
+                packages="$packages gdb-arm-none-eabi:amd64"
+                packages="$packages gcc-arm-none-eabi:amd64 libnewlib-arm-none-eabi:amd64"
+                ;;
+            4)
+                # gcc-arm-embedded conflicts with gcc-arm-none-eabi
+                # but the dependencies are not configured properly
+                # so we have to fix the conflict manually...
+                if dpkg -l binutils-arm-none-eabi 2>/dev/null | grep -q '^.i'; then
+                    echo
+                    echo "*** Please double-check - the following might remove additional packages!"
+                    echo
+                    sudo apt-get remove gcc-arm-none-eabi gdb-arm-none-eabi \
+                         binutils-arm-none-eabi libnewlib-arm-none-eabi
+                fi
+                packages="$packages gcc-arm-embedded"
+                echo
+                echo "*** Adding the team-gcc-arm-embedded PPA repository..."
+                echo "    sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa"
+                echo
+                sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa
+                ;;
+            3)
+                exit 0
+                ;;
+            *)
+                # nothing to do here
+                exit 1
+                ;;
+        esac
+    else
+        echo "*** You have a valid ARM GCC/GDB already installed - using that one."
+    fi
+
     echo "*** Checking dependencies for Ubuntu..."
     echo
     # https://wiki.debian.org/ListInstalledPackages
@@ -120,32 +238,51 @@ if apt-get -v &> /dev/null; then
     fi
 fi
 
-# all systems (including Mac, or Ubuntu if the installation from PPA failed)
+# all systems (including Mac, or Ubuntu if the installation from repositories failed)
 # this one works on old systems as well, but it won't work under WSL
-if ! valid_gdb; then
+if ! valid_arm_gdb; then
     echo
-    echo "*** WARNING: arm-none-eabi-gdb is not installed."
-    echo "*** Downloading gcc-arm-embedded toolchain and installing it without the package manager."
+    echo "*** WARNING: a valid arm-none-eabi-gdb could not be found."
+    echo "*** Downloading a toolchain and installing it without the package manager."
     echo "*** Will be installed in your home directory (Makefile.user.default expects it there)."
     echo
     install_gdb
 fi
 
 # make sure we have a valid arm-none-eabi-gdb (regardless of operating system)
-if ! valid_gdb; then
-    echo "*** Please set up arm-none-eabi-gdb before continuing."
+if ! valid_arm_gdb; then
+    if ! arm-none-eabi-gdb -v &> /dev/null; then
+        echo "*** Please set up a valid arm-none-eabi-gdb before continuing."
+        exit 1
+    else
+        # valid_arm_gdb will print why the current one is not good
+        echo -n "Continue anyway? [y/N] "
+        read answer
+        if test "$answer" != "Y" -a "$answer" != "y"; then exit 1; fi
+        echo
+    fi
+fi
+
+# same for arm-none-eabi-gcc
+if ! valid_arm_gcc; then
+    echo "*** Please set up a valid arm-none-eabi-gcc before continuing."
     exit 1
 fi
 
+echo
 echo -n "*** Using GDB: "
 command -v arm-none-eabi-gdb
 arm-none-eabi-gdb -v | head -n1
+echo
+echo -n "*** Using GCC: "
+command -v arm-none-eabi-gcc
+arm-none-eabi-gcc -v |& grep "gcc version"
+echo
 
 # install docutils (for compiling ML modules) and vncdotool (for test suite)
-# only request sudo if any of them is missing
-for package in docutils vncdotool; do
-    pip2 list | grep $package || pip2 install $package
-done
+# only install if any of them is missing
+pip2 list | grep docutils  || rst2html -h  > /dev/null || pip2 install docutils
+pip2 list | grep vncdotool || vncdotool -h > /dev/null || pip2 install vncdotool
 
 function die { echo "${1:-"Unknown Error"}" 1>&2 ; exit 1; }
 
