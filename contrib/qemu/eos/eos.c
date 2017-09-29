@@ -181,6 +181,7 @@ EOSRegionHandler eos_handlers[] =
     { "UART",         0xC0800000, 0xC08000FF, eos_handle_uart, 0 },
     { "UART",         0xC0810000, 0xC08100FF, eos_handle_uart, 1 },
     { "UART",         0xC0270000, 0xC0270000, eos_handle_uart, 2 },
+    { "I2C",          0xC0090000, 0xC00900FF, eos_handle_i2c, 0 },
     { "SIO0",         0xC0820000, 0xC08200FF, eos_handle_sio, 0 },
     { "SIO1",         0xC0820100, 0xC08201FF, eos_handle_sio, 1 },
     { "SIO2",         0xC0820200, 0xC08202FF, eos_handle_sio, 2 },
@@ -3987,6 +3988,185 @@ end:
     {
         io_log("UART", s, address, type, value, ret, msg, msg_arg1, 0);
     }
+    return ret;
+}
+
+unsigned int eos_handle_i2c ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+{
+    unsigned int ret = 0;
+    char msg[1024] = "";
+    char mod[10];
+    
+    snprintf(mod, sizeof(mod), "I2C%i", parm);
+
+    static unsigned int last_i2c_status = 0;
+    
+    static unsigned int last_i2c_rxpos = 0;
+    static unsigned char last_i2c_rxdata[1024];
+    
+    static unsigned int last_i2c_txpos = 0;
+    static unsigned char last_i2c_txdata[1024];
+    
+    static unsigned int last_i2c_addr = 0;
+    static unsigned int last_i2c_length = 0;
+    static unsigned int last_i2c_config = 0;
+    unsigned int pc = CURRENT_CPU->env.regs[15];
+
+    
+    switch(address & 0xFF)
+    {
+        case 0x08: /* status register */
+            if(type & MODE_WRITE)
+            {
+            }
+            else
+            {
+                /* 0x1000 busy */
+                /* 0x0010 transmit data ready */
+                /* 0x0020 stop condition */
+                ret = last_i2c_status;
+            }
+            break;
+        
+        case 0x14: /* length */
+            snprintf(msg, sizeof(msg), "length");
+            MMIO_VAR(last_i2c_length);
+            break;
+        
+        case 0x18: /* rx data */
+            if(type & MODE_WRITE)
+            {
+            }
+            else
+            {
+                if(last_i2c_txpos < COUNT(last_i2c_txdata))
+                {
+                    ret = last_i2c_rxdata[last_i2c_rxpos++];
+                }
+                else
+                {
+                    ret = 0;
+                }
+            }
+            break;
+        
+        case 0x1C: /* slave address */
+            snprintf(msg, sizeof(msg), "slave address");
+            MMIO_VAR(last_i2c_addr);
+            break;
+        
+        case 0x20: /* tx data */
+            if(type & MODE_WRITE)
+            {
+                //printf("TX(%d) at PC: 0x%08X 0x%02X\n",last_i2c_txpos,  pc, value );
+                /* buffer data */
+                if(last_i2c_txpos < COUNT(last_i2c_txdata))
+                {
+                    last_i2c_txdata[last_i2c_txpos] = value;
+                }
+                
+                last_i2c_txpos++;
+                if(last_i2c_txpos >= last_i2c_length)
+                {
+                    last_i2c_status |= 0x20;
+                    last_i2c_status |= 0x08; /* receive data ready */
+                }
+                last_i2c_status |= 0x10;
+            }
+            else
+            {
+                ret = last_i2c_txdata[last_i2c_txpos];
+            }
+            break;
+        
+        case 0x24: /* some config? write:0x2E20 read:0xAC20,0x2420,0x8C20 */
+            if(type & MODE_WRITE)
+            {
+                //printf("cfg at PC: 0x%08X 0x%02X\n",  pc, value );
+                last_i2c_config = value;
+                
+                /* set module inactive? */
+                if(!(value & 0x20))
+                {
+                    snprintf(msg, sizeof(msg), "Transmit at PC 0x%08X, addr: %02X, sent:", pc, last_i2c_addr );
+
+                    for(int pos = 0; pos < last_i2c_txpos; pos++)
+                    {
+                        char tmp[10];
+                        sprintf(tmp, " %02X", last_i2c_txdata[pos]);
+                        strcat(msg, tmp);
+                    }
+                    
+                    if(last_i2c_rxpos)
+                    {
+                        strcat(msg, ", recv:");
+                        for(int pos = 0; pos < last_i2c_rxpos; pos++)
+                        {
+                            char tmp[10];
+                            sprintf(tmp, " %02X", last_i2c_rxdata[pos]);
+                            strcat(msg, tmp);
+                        }
+                    }
+                    strcat(msg, "\n");
+                    last_i2c_status = 0;
+                    last_i2c_txpos = 0;
+                    last_i2c_rxpos = 0;
+                    
+                    printf(msg, "");
+                }
+                /* set receive mode */
+                else if(!(value & 0x200))
+                {
+                    switch(last_i2c_addr)
+                    {
+                        case 0x3D:
+                            switch(last_i2c_txdata[0])
+                            {
+                                case 0x62:
+                                    last_i2c_rxdata[0] = 0x00;
+                                    last_i2c_rxdata[1] = 0x00;
+                                    break;
+                                    
+                            }
+                            break;
+                            
+                        case 0x38:
+                            switch(last_i2c_txdata[0])
+                            {
+                                case 0x02:
+                                    last_i2c_rxdata[0] = 0x00;
+                                    last_i2c_rxdata[1] = 0x00;
+                                    break;
+                                    
+                                case 0x04:
+                                    last_i2c_rxdata[0] = 0x00;
+                                    break;
+                                    
+                                case 0x1F:
+                                    last_i2c_rxdata[0] = 0x01;
+                                    break;
+                                    
+                                case 0x90:
+                                    last_i2c_rxdata[0] = 0x01;
+                                    break;
+                                    
+                                case 0x97:
+                                    last_i2c_rxdata[0] = 0x10;
+                                    break;
+                                    
+                            }
+                            break;
+                    }
+                }
+            }
+            else
+            {
+                ret = last_i2c_config;
+            }
+            break;
+    }
+
+    io_log(mod, s, address, type, value, ret, msg, 0, 0);
     return ret;
 }
 
