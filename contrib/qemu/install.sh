@@ -21,7 +21,8 @@ function install_gdb {
     echo
 
     TOOLCHAIN=gcc-arm-none-eabi-5_4-2016q3
-    DOWNLOAD=https://developer.arm.com/-/media/Files/downloads/gnu-rm/5_4-2016q3/
+    DOWNLOAD=https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q3-update/+download/
+    MIRROR=https://developer.arm.com/-/media/Files/downloads/gnu-rm/5_4-2016q3/
     UNTAR="tar -jxf"
 
     if [ $(uname) == "Darwin" ]; then
@@ -32,7 +33,8 @@ function install_gdb {
 
     if [ ! -f ~/$TOOLCHAIN/bin/arm-none-eabi-gdb ]; then
         cd ~
-        wget -c $DOWNLOAD$TARBALL && $UNTAR $TARBALL && rm $TARBALL
+        wget -c $DOWNLOAD$TARBALL || wget -c $MIRROR$TARBALL \
+            && $UNTAR $TARBALL && rm $TARBALL
         cd -
     else
         echo "*** Toolchain already installed in:"
