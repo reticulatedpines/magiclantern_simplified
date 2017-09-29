@@ -44,7 +44,7 @@ function install_gdb {
     fi
 
     echo "*** Please add gcc binaries to your executable PATH:"
-    echo '    PATH=~/gcc-arm-none-eabi-5_4-2016q3/bin:$PATH'
+    echo '    PATH=~/$TOOLCHAIN/bin:$PATH'
     echo
 }
 
@@ -134,7 +134,7 @@ if apt-get -v &> /dev/null; then
         echo "3 - Install gdb-arm-none-eabi from Ubuntu repository (64-bit)"
         echo "    WARNING: this will not be able to run all our GDB scripts."
         echo 
-        if dpkg -l binutils-arm-none-eabi &> /dev/null; then
+        if dpkg -l binutils-arm-none-eabi 2>/dev/null | grep -q '^.i'; then
             echo "4 - Remove Ubuntu toolchain and install the one from gcc-arm-embedded PPA (gcc 6.x)"
             echo "    This will:"
             echo "    - sudo apt-get remove gcc-arm-none-eabi gdb-arm-none-eabi \\"
@@ -148,7 +148,7 @@ if apt-get -v &> /dev/null; then
         echo "    WARNING: this will not be able to run all our GDB scripts."
         echo
         echo "5 - Manually install arm-none-eabi-gdb from https://launchpad.net/gcc-arm-embedded"
-        echo "    or other source, make sure it is in PATH, then run this script again."
+        echo "    or any other source, make sure it is in PATH, then run this script again."
 
         if ! arm-none-eabi-gdb -v &> /dev/null; then
             echo
