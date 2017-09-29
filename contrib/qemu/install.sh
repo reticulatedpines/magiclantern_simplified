@@ -40,8 +40,9 @@ function install_gdb {
         echo
     fi
 
-    echo "*** Please add gcc binaries to your executable PATH:"
-    echo "    PATH=~/$TOOLCHAIN/bin:\$PATH"
+    echo "*** Please add gcc binaries to your executable PATH."
+    echo "*** Run this command, or paste it into your .profile and reopen the terminal:"
+    echo "    export PATH=~/$TOOLCHAIN/bin:\$PATH"
     echo
 }
 
