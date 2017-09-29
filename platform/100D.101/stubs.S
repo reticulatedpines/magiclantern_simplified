@@ -125,6 +125,7 @@ NSTUB(0xFF4E6B30,  NormalDisplay)
 NSTUB(0xFF4E6B00,  ReverseDisplay)
 
 /** EDMAC **/
+NSTUB(   0x3506C,  AbortEDmac)
 NSTUB(   0x34BC0,  ConnectReadEDmac)
 NSTUB(   0x34AFC,  ConnectWriteEDmac)
 NSTUB(   0x351A0,  RegisterEDmacAbortCBR)
