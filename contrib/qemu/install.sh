@@ -177,7 +177,7 @@ if apt-get -v &> /dev/null; then
                 # Ubuntu's 64-bit arm-none-eabi-gdb works... sort of
                 # it's unable to run 5D3 1.1.3 GUI and maybe others
                 packages="$packages gdb-arm-none-eabi:amd64"
-                packages="$packages gcc-arm-none-eabi:amd64 libnewlib-arm-none-eabi:amd64"
+                packages="$packages gcc-arm-none-eabi:amd64 libnewlib-arm-none-eabi"
                 ;;
             4)
                 # gcc-arm-embedded conflicts with gcc-arm-none-eabi
