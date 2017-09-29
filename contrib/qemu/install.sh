@@ -15,22 +15,19 @@ if test "$answer" != "Y" -a "$answer" != "y"; then exit 0; fi
 echo
 
 function install_gdb {
+    echo
+    echo "*** Will download gcc-arm-none-eabi-5_4-2016q3 from:"
+    echo "    https://developer.arm.com/open-source/gnu-toolchain/gnu-rm"
+    echo
+
+    TOOLCHAIN=gcc-arm-none-eabi-5_4-2016q3
+    DOWNLOAD=https://developer.arm.com/-/media/Files/downloads/gnu-rm/5_4-2016q3/
+    UNTAR="tar -jxf"
+
     if [ $(uname) == "Darwin" ]; then
-        echo "*** Will download macx_i386_gcc_arm_none_eabi_4.8.2 from:"
-        echo "    https://acroname.com/software/arm-eabi-gcc-toolchain-mac-osx-macos-x-32bit"
-        echo
-        TOOLCHAIN=cortex/4.8.2
-        TARBALL=macx_i386_gcc_arm_none_eabi_4.8.2.tgz
-        DOWNLOAD=https://acroname.com/system/files/software/
-        UNTAR="tar -zxf"
+        TARBALL=gcc-arm-none-eabi-5_4-2016q3-20160926-mac.tar.bz2
     else
-        echo "*** Will download gcc-arm-none-eabi-5_4-2016q3 from:"
-        echo "    https://developer.arm.com/open-source/gnu-toolchain/gnu-rm"
-        echo
-        TOOLCHAIN=gcc-arm-none-eabi-5_4-2016q3
         TARBALL=gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2
-        DOWNLOAD=https://developer.arm.com/-/media/Files/downloads/gnu-rm/5_4-2016q3/
-        UNTAR="tar -jxf"
     fi
 
     if [ ! -f ~/$TOOLCHAIN/bin/arm-none-eabi-gdb ]; then
@@ -288,7 +285,7 @@ arm-none-eabi-gdb -v | head -n1
 echo
 echo -n "*** Using GCC: "
 command -v arm-none-eabi-gcc
-arm-none-eabi-gcc -v |& grep "gcc version"
+arm-none-eabi-gcc -v 2>&1 | grep "gcc version"
 echo
 
 # install docutils (for compiling ML modules) and vncdotool (for test suite)
