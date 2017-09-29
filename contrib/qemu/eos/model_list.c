@@ -134,6 +134,7 @@ struct eos_model_desc eos_model_list[] = {
         .name                   = "60D",
         .digic_version          = 4,
         .current_task_addr      = 0x1A2C,
+        .rtc_time_correct       = 0x8D,
     },
     {
         .name                   = "600D",
@@ -163,6 +164,7 @@ struct eos_model_desc eos_model_list[] = {
         .card_led_address       = 0xC022C06C,
         .cf_driver_interrupt    = 0x82,
         .cf_dma_interrupt       = 0xE3,
+        .rtc_time_correct       = 0x9F,
     },
     {
         /* started on request on photo taking, raw develop and others;

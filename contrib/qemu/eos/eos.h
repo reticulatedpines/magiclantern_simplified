@@ -154,6 +154,16 @@ struct HPTimer
     int triggered;
 };
 
+typedef enum 
+{
+    RTC_WRITE_BURST  = 0x00,
+    RTC_WRITE_SINGLE = 0x08,
+    RTC_READ_BURST   = 0x04,
+    RTC_READ_SINGLE  = 0x0C,
+    RTC_INACTIVE     = 0xFE,
+    RTC_READY        = 0xFF
+} rtc_command_state;
+
 #define HPTIMER_INTERRUPT s->model->hptimer_interrupt
 
 struct mpu_init_spell

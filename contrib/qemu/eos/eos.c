@@ -1271,7 +1271,18 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
 
     vmstate_register_ram_global(&s->ram);
 
-    s->rtc.transfer_format = 0xFF;
+    /* initialize RTC registers, compatible to Ricoh R2062 etc */
+    s->rtc.transfer_format = RTC_INACTIVE;
+    s->rtc.regs[0x00] = 0x00;
+    s->rtc.regs[0x01] = 0x00;
+    s->rtc.regs[0x02] = 0x12;
+    s->rtc.regs[0x03] = 0x01;
+    s->rtc.regs[0x04] = 0x30;
+    s->rtc.regs[0x05] = 0x09;
+    s->rtc.regs[0x06] = 0x17;
+    s->rtc.regs[0x07] = s->model->rtc_time_correct;
+    s->rtc.regs[0x0E] = 0x20;
+    s->rtc.regs[0x0F] = 0x00;
 
     int64_t now = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
     s->interrupt_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, eos_interrupt_timer_cb, s);
@@ -2597,11 +2608,12 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
                 if((value & 0x0100000) == 0x100000)
                 {
                     msg = "[RTC] CS set";
-                    s->rtc.transfer_format = 0xFF;
+                    s->rtc.transfer_format = RTC_READY;
                 }
                 else
                 {
                     msg = "[RTC] CS reset";
+                    s->rtc.transfer_format = RTC_INACTIVE;
                 }
             }
             ret = 0;
@@ -2613,18 +2625,19 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
 //          ret = 0;
 //          break;
 
-        case 0x0128:
-            /* CS for RTC on 600D */
+        case 0x0128:    /* CS for RTC on 600D */
+        case 0x01F8:    /* 5D3 RTC */
             if(type & MODE_WRITE)
             {
                 if((value & 0x06) == 0x06)
                 {
                     msg = "[RTC] CS set";
-                    s->rtc.transfer_format = 0xFF;
+                    s->rtc.transfer_format = RTC_READY;
                 }
                 else
                 {
                     msg = "[RTC] CS reset";
+                    s->rtc.transfer_format = RTC_INACTIVE;
                 }
             }
             ret = 0;
@@ -2647,6 +2660,7 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             msg = "WriteProtect";
             ret = 0;
             break;
+        
         
         case 0x301C:    /* 40D, 5D2 */
         case 0x3020:    /* 5D3 */
@@ -4178,7 +4192,8 @@ unsigned int eos_handle_sio ( unsigned int parm, EOSState *s, unsigned int addre
     
     snprintf(mod, sizeof(mod), "SIO%i", parm);
 
-    static unsigned int last_sio_data = 0;
+    static unsigned int last_sio_txdata = 0;
+    static unsigned int last_sio_rxdata = 0;
     static unsigned int last_sio_setup1 = 0;
     static unsigned int last_sio_setup2 = 0;
     static unsigned int last_sio_setup3 = 0;
@@ -4189,61 +4204,78 @@ unsigned int eos_handle_sio ( unsigned int parm, EOSState *s, unsigned int addre
         case 0x04:
             if((type & MODE_WRITE) && (value & 1))
             {
-                snprintf(msg, sizeof(msg), "Transmit: 0x%08X, setup 0x%08X 0x%08X 0x%08X PC: 0x%08X", last_sio_data, last_sio_setup1, last_sio_setup2, last_sio_setup3, pc );
+                snprintf(msg, sizeof(msg), "Transmit: 0x%08X, setup 0x%08X 0x%08X 0x%08X PC: 0x%08X", last_sio_txdata, last_sio_setup1, last_sio_setup2, last_sio_setup3, pc );
 
                 switch(s->rtc.transfer_format)
                 {
-                    /* no special mode */
-                    case 0xFF:
+                    /* CS inactive, do nothing */
+                    case RTC_INACTIVE:
                     {
-                        uint8_t cmd = value & 0x0F;
-                        uint8_t reg = (value>>4) & 0x0F;
+                        break;
+                    }
+                    
+                    /* waiting for a command byte */
+                    case RTC_READY:
+                    {
+                        uint8_t cmd = last_sio_txdata & 0x0F;
+                        uint8_t reg = (last_sio_txdata>>4) & 0x0F;
                         s->rtc.transfer_format = cmd;
                         s->rtc.current_reg = reg;
 
                         switch(cmd)
                         {
-                            /* burst writing */
-                            case 0x00:
-                            /* burst reading */
-                            case 0x04:
-                            /* 1 byte writing */
-                            case 0x08:
-                            /* 1 byte reading */
-                            case 0x0C:
+                            case RTC_WRITE_BURST:
+                                //printf("[RTC] Initiate WB (%02X)\n", last_sio_txdata);
+                                break;
+                                
+                            case RTC_READ_BURST:
+                                //printf("[RTC] Initiate RB (%02X)\n", last_sio_txdata);
+                                break;
+                                
+                            case RTC_WRITE_SINGLE:
+                                //printf("[RTC] Initiate WS (%02X)\n", last_sio_txdata);
+                                break;
+                                
+                            case RTC_READ_SINGLE:
+                                //printf("[RTC] Initiate RS (%02X)\n", last_sio_txdata);
                                 break;
 
                             default:
                                 snprintf(mod, sizeof(mod), "RTC");
-                                snprintf(msg, sizeof(msg), "Requested invalid transfer mode 0x%02X", value);
+                                snprintf(msg, sizeof(msg), "Requested invalid transfer mode 0x%02X", last_sio_txdata);
                                 break;
                         }
+                        break;
                     }
 
                     /* burst writing */
-                    case 0x00:
-                        s->rtc.regs[s->rtc.current_reg] = value;
+                    case RTC_WRITE_BURST:
+                        s->rtc.regs[s->rtc.current_reg] = last_sio_txdata;
+                        //printf("[RTC] WB %02X <- %02X\n", s->rtc.current_reg, last_sio_txdata & 0xFF);
                         s->rtc.current_reg++;
                         s->rtc.current_reg %= 0x10;
                         break;
 
                     /* burst reading */
-                    case 0x04:
-                        last_sio_data = s->rtc.regs[s->rtc.current_reg];
+                    case RTC_READ_BURST:
+                        last_sio_rxdata = s->rtc.regs[s->rtc.current_reg];
+                        //printf("[RTC] RB %02X -> %02X\n", s->rtc.current_reg, last_sio_rxdata);
                         s->rtc.current_reg++;
                         s->rtc.current_reg %= 0x10;
                         break;
 
                     /* 1 byte writing */
-                    case 0x08:
-                        s->rtc.regs[s->rtc.current_reg] = value;
-                        s->rtc.transfer_format = 0xFF;
+                    case RTC_WRITE_SINGLE:
+                        s->rtc.regs[s->rtc.current_reg] = last_sio_txdata;
+                        //printf("[RTC] WS %02X <- %02X\n", s->rtc.current_reg, last_sio_txdata & 0xFF);
+                        s->rtc.transfer_format = RTC_READY;
                         break;
 
                     /* 1 byte reading */
-                    case 0x0C:
-                        last_sio_data = s->rtc.regs[s->rtc.current_reg];
-                        s->rtc.transfer_format = 0xFF;
+                    case RTC_READ_SINGLE:
+                        last_sio_rxdata = s->rtc.regs[s->rtc.current_reg];
+                        //printf("[RTC] RS %02X -> %02X\n", s->rtc.current_reg, last_sio_rxdata);
+                        s->rtc.transfer_format = RTC_READY;
                         break;
 
                     default:
@@ -4270,13 +4302,12 @@ unsigned int eos_handle_sio ( unsigned int parm, EOSState *s, unsigned int addre
 
         case 0x18:
             snprintf(msg, sizeof(msg), "TX register");
-            MMIO_VAR(last_sio_data);
+            MMIO_VAR(last_sio_txdata);
             break;
 
         case 0x1C:
             snprintf(msg, sizeof(msg), "RX register");
-            /* fixme */
-            MMIO_VAR(last_sio_data);
+            MMIO_VAR(last_sio_rxdata);
             break;
     }
 
