@@ -1670,8 +1670,9 @@ int eos_get_current_task_stack(EOSState *s, uint32_t * top, uint32_t * bottom)
 /* return 1 if you want this address or group to be highlighted */
 static int io_highlight(unsigned int address, unsigned char type, const char * module_name, const char * task_name)
 {
-    /* example: highlight UART messages (requires -d io,uart) */
+    /* example: highlight RTC and UART messages (requires -d io,uart) */
     return
+        strcmp(module_name, "RTC") == 0 ||
         strcmp(module_name, "UART") == 0 ||
         strcmp(module_name, "UartDMA") == 0 ;
 
@@ -4186,8 +4187,166 @@ unsigned int eos_handle_i2c ( unsigned int parm, EOSState *s, unsigned int addre
     return ret;
 }
 
+static unsigned int eos_handle_rtc ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+{
+    unsigned int ret = 0;
+    const char * msg = 0;
+    int msg_arg1 = 0;
+    int msg_arg2 = 0;
+
+    static unsigned int last_sio_txdata = 0;
+    static unsigned int last_sio_rxdata = 0;
+    static unsigned int last_sio_setup1 = 0;
+    static unsigned int last_sio_setup2 = 0;
+    static unsigned int last_sio_setup3 = 0;
+
+    switch(address & 0xFF)
+    {
+        case 0x04:
+            if((type & MODE_WRITE) && (value & 1))
+            {
+                static char default_msg[100];
+                snprintf(default_msg, sizeof(default_msg),
+                    "Transmit: 0x%08X, setup 0x%08X 0x%08X 0x%08X",
+                    last_sio_txdata, last_sio_setup1, last_sio_setup2, last_sio_setup3
+                );
+                msg = default_msg;
+
+                switch(s->rtc.transfer_format)
+                {
+                    /* CS inactive, do nothing */
+                    case RTC_INACTIVE:
+                    {
+                        assert(0);
+                        break;
+                    }
+                    
+                    /* waiting for a command byte */
+                    case RTC_READY:
+                    {
+                        uint8_t cmd = last_sio_txdata & 0x0F;
+                        uint8_t reg = (last_sio_txdata>>4) & 0x0F;
+                        s->rtc.transfer_format = cmd;
+                        s->rtc.current_reg = reg;
+
+                        switch(cmd)
+                        {
+                            case RTC_WRITE_BURST:
+                                msg = "Initiate WB (%02X)";
+                                msg_arg1 = last_sio_txdata;
+                                break;
+                                
+                            case RTC_READ_BURST:
+                                msg = "Initiate RB (%02X)";
+                                msg_arg1 = last_sio_txdata;
+                                break;
+                                
+                            case RTC_WRITE_SINGLE:
+                                msg = "Initiate WS (%02X)";
+                                msg_arg1 = last_sio_txdata;
+                                break;
+                                
+                            case RTC_READ_SINGLE:
+                                msg = "Initiate RS (%02X)";
+                                msg_arg1 = last_sio_txdata;
+                                break;
+
+                            default:
+                                msg = "Requested invalid transfer mode 0x%02X";
+                                msg_arg1 = last_sio_txdata;
+                                break;
+                        }
+                        break;
+                    }
+
+                    /* burst writing */
+                    case RTC_WRITE_BURST:
+                        s->rtc.regs[s->rtc.current_reg] = last_sio_txdata;
+                        msg = "WB %02X <- %02X";
+                        msg_arg1 = s->rtc.current_reg;
+                        msg_arg2 = last_sio_txdata & 0xFF;
+                        s->rtc.current_reg++;
+                        s->rtc.current_reg %= 0x10;
+                        break;
+
+                    /* burst reading */
+                    case RTC_READ_BURST:
+                        last_sio_rxdata = s->rtc.regs[s->rtc.current_reg];
+                        msg = "RB %02X -> %02X";
+                        msg_arg1 = s->rtc.current_reg;
+                        msg_arg2 = last_sio_rxdata;
+                        s->rtc.current_reg++;
+                        s->rtc.current_reg %= 0x10;
+                        break;
+
+                    /* 1 byte writing */
+                    case RTC_WRITE_SINGLE:
+                        s->rtc.regs[s->rtc.current_reg] = last_sio_txdata;
+                        msg = "WS %02X <- %02X";
+                        msg_arg1 = s->rtc.current_reg;
+                        msg_arg2 = last_sio_txdata & 0xFF;
+                        s->rtc.transfer_format = RTC_READY;
+                        break;
+
+                    /* 1 byte reading */
+                    case RTC_READ_SINGLE:
+                        last_sio_rxdata = s->rtc.regs[s->rtc.current_reg];
+                        msg = "RS %02X -> %02X";
+                        msg_arg1 = s->rtc.current_reg;
+                        msg_arg2 = last_sio_rxdata;
+                        s->rtc.transfer_format = RTC_READY;
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+            else
+            {
+                ret = 0;
+            }
+            break;
+
+        case 0x0C:
+            msg = "setup 1";
+            MMIO_VAR(last_sio_setup1);
+            break;
+
+        case 0x10:
+            msg = "setup 2";
+            MMIO_VAR(last_sio_setup2);
+            break;
+
+        case 0x14:
+            msg = "setup 3";
+            MMIO_VAR(last_sio_setup3);
+            break;
+
+        case 0x18:
+            msg = "TX register";
+            MMIO_VAR(last_sio_txdata);
+            break;
+
+        case 0x1C:
+            msg = "RX register";
+            MMIO_VAR(last_sio_rxdata);
+            break;
+    }
+
+    io_log("RTC", s, address, type, value, ret, msg, msg_arg1, msg_arg2);
+    return ret;
+}
+
 unsigned int eos_handle_sio ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
+    if (s->rtc.transfer_format != RTC_INACTIVE)
+    {
+        /* RTC CS active? */
+        return eos_handle_rtc(parm, s, address, type, value);
+    }
+
+    /* unknown SIO device? generic handler */
+
     unsigned int ret = 0;
     char msg[100] = "";
     char mod[10];
@@ -4207,82 +4366,6 @@ unsigned int eos_handle_sio ( unsigned int parm, EOSState *s, unsigned int addre
             if((type & MODE_WRITE) && (value & 1))
             {
                 snprintf(msg, sizeof(msg), "Transmit: 0x%08X, setup 0x%08X 0x%08X 0x%08X PC: 0x%08X", last_sio_txdata, last_sio_setup1, last_sio_setup2, last_sio_setup3, pc );
-
-                switch(s->rtc.transfer_format)
-                {
-                    /* CS inactive, do nothing */
-                    case RTC_INACTIVE:
-                    {
-                        break;
-                    }
-                    
-                    /* waiting for a command byte */
-                    case RTC_READY:
-                    {
-                        uint8_t cmd = last_sio_txdata & 0x0F;
-                        uint8_t reg = (last_sio_txdata>>4) & 0x0F;
-                        s->rtc.transfer_format = cmd;
-                        s->rtc.current_reg = reg;
-
-                        switch(cmd)
-                        {
-                            case RTC_WRITE_BURST:
-                                //printf("[RTC] Initiate WB (%02X)\n", last_sio_txdata);
-                                break;
-                                
-                            case RTC_READ_BURST:
-                                //printf("[RTC] Initiate RB (%02X)\n", last_sio_txdata);
-                                break;
-                                
-                            case RTC_WRITE_SINGLE:
-                                //printf("[RTC] Initiate WS (%02X)\n", last_sio_txdata);
-                                break;
-                                
-                            case RTC_READ_SINGLE:
-                                //printf("[RTC] Initiate RS (%02X)\n", last_sio_txdata);
-                                break;
-
-                            default:
-                                snprintf(mod, sizeof(mod), "RTC");
-                                snprintf(msg, sizeof(msg), "Requested invalid transfer mode 0x%02X", last_sio_txdata);
-                                break;
-                        }
-                        break;
-                    }
-
-                    /* burst writing */
-                    case RTC_WRITE_BURST:
-                        s->rtc.regs[s->rtc.current_reg] = last_sio_txdata;
-                        //printf("[RTC] WB %02X <- %02X\n", s->rtc.current_reg, last_sio_txdata & 0xFF);
-                        s->rtc.current_reg++;
-                        s->rtc.current_reg %= 0x10;
-                        break;
-
-                    /* burst reading */
-                    case RTC_READ_BURST:
-                        last_sio_rxdata = s->rtc.regs[s->rtc.current_reg];
-                        //printf("[RTC] RB %02X -> %02X\n", s->rtc.current_reg, last_sio_rxdata);
-                        s->rtc.current_reg++;
-                        s->rtc.current_reg %= 0x10;
-                        break;
-
-                    /* 1 byte writing */
-                    case RTC_WRITE_SINGLE:
-                        s->rtc.regs[s->rtc.current_reg] = last_sio_txdata;
-                        //printf("[RTC] WS %02X <- %02X\n", s->rtc.current_reg, last_sio_txdata & 0xFF);
-                        s->rtc.transfer_format = RTC_READY;
-                        break;
-
-                    /* 1 byte reading */
-                    case RTC_READ_SINGLE:
-                        last_sio_rxdata = s->rtc.regs[s->rtc.current_reg];
-                        //printf("[RTC] RS %02X -> %02X\n", s->rtc.current_reg, last_sio_rxdata);
-                        s->rtc.transfer_format = RTC_READY;
-                        break;
-
-                    default:
-                        break;
-                }
             }
             else
             {
