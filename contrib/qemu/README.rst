@@ -72,7 +72,7 @@ What does not work (yet):
 - Dual core emulation aka IPC (WIP);
 - Touch screen (TODO);
 - Flash reprogramming (TODO, low priority);
-- Most hardware devices (audio chip, RTC, I2C, ADTG, FPGAs, JPCORE, image processing engine...);
+- Most hardware devices (audio chip, ADTG, FPGAs, JPCORE, image processing engine...);
 - Properties that require MPU communication (very hard; may require emulating the MPU code);
 - Lens communication (done via MPU); initial lens info is replayed on startup on some models, but that's pretty much it;
 - Cache behavior is not emulated (very hard; feel free to point us to code that can be reused);
@@ -89,17 +89,15 @@ Common issues and workarounds:
   - closing QEMU window does not perform a clean shutdown
   - ``Machine -> Power Down`` - see `Shutdown and reboot`_ for more info
 
-- Camera starts with a date/time dialog
-
-  - QEMU's CMOS battery is discharged :)
-  - nah, actually we don't emulate the RTC (yet)
-  - to bypass this dialog, just select OK or Cancel, or press M (MENU)
-  - a few camera models have workarounds for this in patches.gdb
-
 - dm-spy-experiments: saving the log and anything executed afterwards may not work
 
   - issue: cache hacks are not emulated very well
   - workaround: compile with ``CONFIG_QEMU=y``
+
+- Program counter not exact in MMIO logs?
+
+  - short answer: ``-d io,nochain -singlestep``
+  - see `Execution trace incomplete? PC values from MMIO logs not correct?`_
 
 Installation
 ------------
@@ -172,7 +170,7 @@ without additional gymnastics (you will **not** have to merge ``qemu`` into your
      /path/to/qemu$  ./run_canon_fw.sh 60D,firmware="boot=1"
 
      # some models require running under GDB (they won't boot the GUI otherwise)
-     /path/to/qemu$  ./run_canon_fw.sh 700D,firmware="boot=1" -s -S & arm-none-eabi-gdb -x 700D/patches.gdb
+     /path/to/qemu$  ./run_canon_fw.sh EOSM,firmware="boot=1" -s -S & arm-none-eabi-gdb -x EOSM/patches.gdb
 
    |
 
@@ -200,7 +198,7 @@ To emulate these models, you will also need arm-none-eabi-gdb:
 
 .. code:: shell
 
-  ./run_canon_fw.sh 700D,firmware="boot=0" -s -S & arm-none-eabi-gdb 700D/patches.gdb
+  ./run_canon_fw.sh EOSM,firmware="boot=0" -s -S & arm-none-eabi-gdb EOSM/patches.gdb
 
 You'll probably want to see a few internals as well. To get started, try these:
 
@@ -261,7 +259,7 @@ to avoid changing the directory between ML and QEMU.
   ./run_canon_fw.sh 60D,firmware="boot=1"
   
   # or, if your camera requires patches.gdb:
-  ./run_canon_fw.sh 700D,firmware="boot=1" -s -S & arm-none-eabi-gdb 700D/patches.gdb
+  ./run_canon_fw.sh EOSM,firmware="boot=1" -s -S & arm-none-eabi-gdb EOSM/patches.gdb
 
 
 Incorrect firmware version?
@@ -284,9 +282,8 @@ Recompile and run ML as you already know:
   ./run_canon_fw.sh EOSM2,firmware="boot=1" -s -S & arm-none-eabi-gdb EOSM2/patches.gdb
 
 The mere presence of a ``patches.gdb`` script in your camera subdirectory
-does not automatically mean you'll get the above issue. Some patches are optional
-(to fix minor annoyances such as the date/time dialog at startup - 500D, 550D, 600D, 60D),
-or they may modify Canon code in a way that does not change the firmware signature (700D).
+does not automatically mean you'll get the above issue. Some patches modify Canon code
+in a way that does not change the firmware signature (EOSM).
 
 Navigating menus
 ````````````````
@@ -601,7 +598,6 @@ Internally, this is how the emulator is invoked:
     echo screendump 60D.111.ppm
     echo system_powerdown
   ) | (
-    arm-none-eabi-gdb -x 60D/patches.gdb & 
     ./run_canon_fw.sh 60D,firmware='boot=1' \
         -display none -monitor stdio  -s -S
   ) &> 60D.111.log
@@ -773,19 +769,26 @@ Execution trace incomplete? PC values from MMIO logs not correct?
 
 That's because QEMU compiles multiple guest instructions into a single TranslationBlock,
 for faster execution. In this mode, `-d exec` will print guest instructions as they are compiled
-(for example, if you have a tight loop, only the first pass will be printed). To log every single
-guest instruction, as executed, you need to use `-d nochain -singlestep` 
-(e.g. `-d exec,nochain -singlestep` or `-d io,int,nochain -singlestep` and so on)
+(for example, if you have a tight loop, only the first pass will be printed).
+
+To log every single guest instruction, as executed, and get exact PC values
+in execution traces and MMIO logs, you need to use `-d nochain -singlestep` 
+(for example: `-d exec,nochain -singlestep` or `-d io,int,nochain -singlestep`)
 - `source <http://qemu-discuss.nongnu.narkive.com/f8A4tqdT/singlestepping-target-assembly-instructions>`_.
 
 Debugging with GDB
 ``````````````````
 
-See `the EOS M2 example <http://www.magiclantern.fm/forum/index.php?topic=15895.msg186173#msg186173>`_
+See `the EOS M2 example <http://www.magiclantern.fm/forum/index.php?topic=15895.msg186173#msg186173>`_:
+
+.. code:: shell
+
+    ./run_canon_fw.sh EOSM2,firmware="boot=1" -s -S & arm-none-eabi-gdb -x EOSM2/debugmsg.gdb
 
 .. image:: doc/img/ddd.png
    :scale: 50 %
    :align: center
+
 
 Instrumentation
 ---------------
