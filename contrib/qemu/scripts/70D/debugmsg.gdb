@@ -3,7 +3,6 @@
 # tested on 70D 111A
 
 source -v debug-logging.gdb
-source -v 70D/patches.gdb
 
 # To get debugging symbols from Magic Lantern, uncomment this:
 #symbol-file ../magic-lantern/platform/70D.112/magiclantern

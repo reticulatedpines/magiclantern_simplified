@@ -2,7 +2,6 @@
 # ./run_canon_fw.sh 550D -d debugmsg -s -S & arm-none-eabi-gdb -x 550D/debugmsg.gdb
 
 source -v debug-logging.gdb
-source -v 550D/patches.gdb
 
 # To get debugging symbols from Magic Lantern, uncomment this:
 #symbol-file ../magic-lantern/platform/550D.109/magiclantern
@@ -23,6 +22,15 @@ register_interrupt_log
 
 b *0xFF06809C
 register_func_log
+
+# RTC communication
+if 0
+  b *0xFF0639B4
+  rtc_read_log
+
+  b *0xFF06398C
+  rtc_write_log
+end
 
 # MPU communication
 if 0

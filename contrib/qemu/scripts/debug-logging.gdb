@@ -826,6 +826,7 @@ define set_date_time
     set ((int*)$arg0)[0] = $arg6
 end
 
+# no longer needed - we have RTC emulation
 define load_default_date_time_log
   commands
     silent
@@ -856,6 +857,27 @@ define load_default_date_time_log
   end
 end
 
+define rtc_read_log
+  commands
+    silent
+    print_current_location
+    printf "RTC read register %x\n", $r1
+    log_result
+    c
+  end
+end
+
+define rtc_write_log
+  commands
+    silent
+    print_current_location
+    printf "RTC write register %x %x\n", $r0, $r1
+    c
+  end
+end
+
+# log return value of current function
+# (temporary breakpoint on LR)
 define log_result
   tbreak *($lr & ~1)
   commands

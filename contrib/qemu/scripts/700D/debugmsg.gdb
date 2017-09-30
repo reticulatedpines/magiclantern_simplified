@@ -2,7 +2,6 @@
 # ./run_canon_fw.sh 700D -d debugmsg -s -S & arm-none-eabi-gdb -x 700D/debugmsg.gdb
 
 source -v debug-logging.gdb
-source -v 700D/patches.gdb
 
 # To get debugging symbols from Magic Lantern, uncomment this:
 #symbol-file ../magic-lantern/platform/700D.115/magiclantern
@@ -23,5 +22,10 @@ task_create_log
 
 b *0x13344
 register_interrupt_log
+
+if 0
+  b *0xFF132368
+  rtc_read_log
+end
 
 cont
