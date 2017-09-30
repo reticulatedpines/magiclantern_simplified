@@ -41,18 +41,19 @@ MENU_SEQUENCE[5D2]="f1 left space i i i m up up up space m m w w p p"
 MENU_SEQUENCE[5D3]="f1 i i i f1 i m left down down down space m m p p q space m right right space m down right space pgdn m q"
 MENU_SEQUENCE[50D]="f1 left space i i i m up space space m w w p p"
 MENU_SEQUENCE[60D]="f1 i i i i m left left up space m m p p"
-MENU_SEQUENCE[70D]="m up up up up space m up up" # fixme: locks up quickly
+#MENU_SEQUENCE[70D]="m up up up up space m up up" # fixme: locks up quickly
+MENU_SEQUENCE[70D]="f1" # fixme: doesn't go into menu
 MENU_SEQUENCE[450D]="f1 m up up space m left left i p p w down down space " # LiveView overlays also working, but the tests would crash at shutdown
 MENU_SEQUENCE[500D]="f1 m i i right right up m p p"
 MENU_SEQUENCE[550D]="m i i right right down down down space space p p" # info screen not working
 MENU_SEQUENCE[600D]="i i m right right p p" # starts with sensor cleaning animation; no info screen?
 MENU_SEQUENCE[650D]="f1 m right right p p" # starts in movie mode, no lens
 MENU_SEQUENCE[700D]="f1 m right down space right space p p" # starts in movie mode, no lens
-MENU_SEQUENCE[100D]="f1 left space i i i m right up up space up space p p" # starts with date/time screen
-MENU_SEQUENCE[1000D]="f1 left space i w w i p p m space space up up space m left i"
-MENU_SEQUENCE[1100D]="f1 left space i i m i i left m p p down right space right right space up right space" # starts with date/time screen; drive mode not working
-MENU_SEQUENCE[1200D]="f1 left space i i m i i space m m p p down right space right right space up right space" # starts with date/time screen; drive mode not working
-MENU_SEQUENCE[EOSM2]="f1 m space space space up up space m up space m up space m up space m right space space m m" # starts with date/time screen; only menu works
+MENU_SEQUENCE[100D]="f1 i i i m right up up space up space p p"
+MENU_SEQUENCE[1000D]="f1 i w w i p p m space space up up space m left i"
+MENU_SEQUENCE[1100D]="f1 i i m i i left m p p down right space right right space up right space" # drive mode not working
+MENU_SEQUENCE[1200D]="f1 i i m i i space m m p p down right space right right space up right space" # drive mode not working
+MENU_SEQUENCE[EOSM2]="f1 m space space space up up space m up space m up space m up space m right space space m m" # only menu works
 
 FMT_SEQ="space right space wait f1 space"
 FMT_SEQ_5D3="space space right space wait f1 space space"
@@ -736,7 +737,7 @@ for CAM in 500D; do
         sleep 5
 
         # fixme: how to align these nicely?
-        MAIN_SCREEN=d2ab306b1db2ffb1229a6e86542e24ac
+        MAIN_SCREEN=2f2febde0863e435fabaed2915661528
         MENU_FORMAT=cae4d8a555d5aa3cc004bd234d3edd74
         FMT_KEEP_ML=077adcdd48ce3c275d94e467f0114045
         FMT_RMOV_ML=a418b9f5d2565f0989910156cbe47c60
