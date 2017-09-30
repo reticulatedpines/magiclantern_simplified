@@ -606,6 +606,7 @@ void _shoot_free_suite(struct memSuite * suite) {}
 struct memSuite * _srm_malloc_suite(int num) { return 0; }
 void _srm_free_suite(struct memSuite * suite) {}
 char* get_current_task_name() { return "?"; }
+int printf(const char * format, ...) { return 0; }
 
 int y_times_BMPPITCH_cache[BMP_H_PLUS - BMP_H_MINUS];
 

@@ -1,5 +1,5 @@
 /*
- *  700D 1.1.4 consts
+ *  700D 1.1.5 consts
  */
 
 #define CANON_SHUTTER_RATING 100000
@@ -53,7 +53,7 @@
 
 // for gui_main_task
 #define GMT_NFUNCS 7
-#define GMT_FUNCTABLE 0xFF7FA7F8 //dec gui_main_task
+#define GMT_FUNCTABLE 0xFF7FA7fC //dec gui_main_task
 
 #define CURRENT_GUI_MODE (*(int*)0x2658C) // in SetGUIRequestMode
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)(0x31254)) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
@@ -171,9 +171,9 @@
     #define BULB_MIN_EXPOSURE 1000
 
 // http://magiclantern.wikia.com/wiki/Fonts
-#define BFNT_CHAR_CODES    0xFFCF67E4
-#define BFNT_BITMAP_OFFSET 0xFFCF972C
-#define BFNT_BITMAP_DATA   0xFFCFC674
+#define BFNT_CHAR_CODES    0xFFCF8174
+#define BFNT_BITMAP_OFFSET 0xFFCFB0BC
+#define BFNT_BITMAP_DATA   0xFFCFE004
 
 
     // from CFn
