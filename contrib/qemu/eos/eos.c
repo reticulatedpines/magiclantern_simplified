@@ -188,6 +188,7 @@ EOSRegionHandler eos_handlers[] =
     { "SIO3",         0xC0820300, 0xC08203FF, eos_handle_sio3, 3 },
     { "SIO4",         0xC0820400, 0xC08204FF, eos_handle_sio_serialflash, 4 },
     { "SIO7",         0xC0820700, 0xC08207FF, eos_handle_sio_serialflash, 7 },
+    { "SIO8",         0xC0820800, 0xC08208FF, eos_handle_sio, 8 },
     { "MREQ",         0xC0203000, 0xC02030FF, eos_handle_mreq, 0 },
     { "DMA1",         0xC0A10000, 0xC0A100FF, eos_handle_dma, 1 },
     { "DMA2",         0xC0A20000, 0xC0A200FF, eos_handle_dma, 2 },
@@ -1273,16 +1274,16 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
 
     /* initialize RTC registers, compatible to Ricoh R2062 etc */
     s->rtc.transfer_format = RTC_INACTIVE;
-    s->rtc.regs[0x00] = 0x00;
-    s->rtc.regs[0x01] = 0x00;
-    s->rtc.regs[0x02] = 0x12;
-    s->rtc.regs[0x03] = 0x01;
-    s->rtc.regs[0x04] = 0x30;
-    s->rtc.regs[0x05] = 0x09;
-    s->rtc.regs[0x06] = 0x17;
-    s->rtc.regs[0x07] = s->model->rtc_time_correct;
-    s->rtc.regs[0x0E] = 0x20;
-    s->rtc.regs[0x0F] = 0x00;
+    s->rtc.regs[0x00] = 0x00;   /* second (BCD) */
+    s->rtc.regs[0x01] = 0x15;   /* minute (BCD) */
+    s->rtc.regs[0x02] = 0x12;   /* hour (BCD) */
+    s->rtc.regs[0x03] = 0x01;   /* day of week */
+    s->rtc.regs[0x04] = 0x30;   /* day (BCD) */
+    s->rtc.regs[0x05] = 0x09;   /* month (BCD), century bit (2000) */
+    s->rtc.regs[0x06] = 0x17;   /* year (BCD since 2000) */
+    s->rtc.regs[0x07] = s->model->rtc_time_correct;     /* Oscillation Adjustment Register */
+    s->rtc.regs[0x0E] = 0x20;                           /* Control Register 1: 24-hour mode, no alarms */
+    s->rtc.regs[0x0F] = s->model->rtc_control_reg_2;    /* Control Register 2: XST (model-specific), PON... */
 
     int64_t now = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
     s->interrupt_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, eos_interrupt_timer_cb, s);
@@ -2601,8 +2602,8 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             ret = 0;
             break;
 
-        case 0xC020: 
-            /* CS for RTC on 100D */
+        case 0xC020:    /* CS for RTC on 100D */ 
+        case 0xC0C4:    /* CS for RTC on 700D */
             if(type & MODE_WRITE)
             {
                 if((value & 0x0100000) == 0x100000)
@@ -2627,6 +2628,7 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
 
         case 0x0128:    /* CS for RTC on 600D */
         case 0x01F8:    /* 5D3 RTC */
+        case 0x005C:    /* 450D RTC */
             if(type & MODE_WRITE)
             {
                 if((value & 0x06) == 0x06)
