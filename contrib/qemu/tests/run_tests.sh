@@ -18,9 +18,14 @@ POWERSHOT_CAMS=( EOSM3 EOSM10 EOSM5 A1100 )
 
 EOS_SECONDARY_CORES=( 5D3eeko 5D4AE 7D2S )
 
-GUI_CAMS=( 5D2 5D3 50D 60D 70D 450D 500D 550D 600D 650D 700D 100D 1000D 1100D 1200D EOSM2 )
-SD_CAMS=( 5D3 5D4 6D 60D 70D 80D 450D 500D 550D 600D 650D 700D 750D 760D
-           100D 1000D 1100D 1200D 1300D EOSM EOSM2 )
+GUI_CAMS=( 5D2 5D3 50D 60D 70D
+           450D 500D 550D 600D 650D 700D
+           100D 1000D 1100D 1200D EOSM EOSM2 )
+
+SD_CAMS=( 5D3 5D4 6D 60D 70D 80D
+          450D 500D 550D 600D 650D 700D 750D 760D
+          100D 1000D 1100D 1200D 1300D EOSM EOSM2 )
+
 CF_CAMS=( 5D 5D2 5D3 5D4 7D 7D2M 40D 50D 400D )
 
 
@@ -53,6 +58,7 @@ MENU_SEQUENCE[100D]="f1 i i i m right up up space up space p p"
 MENU_SEQUENCE[1000D]="f1 i w w i p p m space space up up space m left i"
 MENU_SEQUENCE[1100D]="f1 i i m i i left m p p down right space right right space up right space" # drive mode not working
 MENU_SEQUENCE[1200D]="f1 i i m i i space m m p p down right space right right space up right space" # drive mode not working
+MENU_SEQUENCE[EOSM]="f1 m up up up space m up space m up space m left down down down space space p p " # only menu works
 MENU_SEQUENCE[EOSM2]="f1 m space space space up up space m up space m up space m up space m right space space m m" # only menu works
 
 FMT_SEQ="space right space wait f1 space"
@@ -74,6 +80,7 @@ FORMAT_SEQUENCE[100D]="m $FMT_SEQ"                          # fixme: free space 
 FORMAT_SEQUENCE[1000D]="m left left $FMT_SEQ"               # fixme: locks up
 FORMAT_SEQUENCE[1100D]="m right right down $FMT_SEQ"
 FORMAT_SEQUENCE[1200D]="m left left $FMT_SEQ"
+FORMAT_SEQUENCE[EOSM]="m left left left $FMT_SEQ"
 FORMAT_SEQUENCE[EOSM2]="m left left left up $FMT_SEQ"
 
 function set_gui_timeout {
@@ -870,9 +877,9 @@ echo
 echo "Testing file I/O (DCIM directory)..."
 # Most EOS cameras should be able to create the DCIM directory if missing.
 # Currently works only on models that can boot Canon GUI,
-# and also on EOSM and 1300D.
+# and also on 1300D.
 #for CAM in ${EOS_CAMS[*]}; do
-for CAM in ${GUI_CAMS[*]} EOSM 1300D; do
+for CAM in ${GUI_CAMS[*]} 1300D; do
     printf "%5s: " $CAM
     
     mkdir -p tests/$CAM/

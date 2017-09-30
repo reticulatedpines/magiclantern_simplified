@@ -282,6 +282,7 @@ struct eos_model_desc eos_model_list[] = {
         .mpu_status_register    = 0xC022006C,
         .card_led_address       = 0xC022C188,
         .serial_flash_size      = 0x800000,
+      //.rtc_time_correct       = 0x98,     /* the date/time dialog prevents the camera from going into LiveView */
     },
     {
         .name                   = "EOSM2",
