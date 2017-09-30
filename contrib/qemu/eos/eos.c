@@ -1705,7 +1705,10 @@ void io_log(const char * module_name, EOSState *s, unsigned int address, unsigne
     if (!msg) msg = "???";
     
     char * task_name = eos_get_current_task_name(s);
-    
+
+    const char * color = io_highlight(address, type, module_name, task_name)
+        ? (type & MODE_WRITE ? KYLW : KLGRN) : "";
+
     char mod_name[50];
     char mod_name_and_pc[50];
     int indent = eos_callstack_get_indent(s);
@@ -1720,7 +1723,7 @@ void io_log(const char * module_name, EOSState *s, unsigned int address, unsigne
         task_name[MAX(5, 15 - (int)strlen(mod_name))] = 0;
         char spaces[] = "           ";
         spaces[MAX(0, 15 - (int)strlen(mod_name) - (int)strlen(task_name))] = 0;
-        snprintf(mod_name_and_pc, sizeof(mod_name_and_pc), "%s%s at %s:%08X:%08X", mod_name, spaces, task_name, pc, lr);
+        snprintf(mod_name_and_pc, sizeof(mod_name_and_pc), "%s%s%s%s at %s:%08X:%08X", color, mod_name, KRESET, spaces, task_name, pc, lr);
     }
     else
     {
@@ -1730,12 +1733,11 @@ void io_log(const char * module_name, EOSState *s, unsigned int address, unsigne
     /* description may have two optional integer arguments */
     char desc[200];
     snprintf(desc, sizeof(desc), msg, msg_arg1, msg_arg2);
-    
+
     fprintf(stderr, "%s%-28s %s[0x%08X] %s 0x%-8X"KRESET"%s%s\n",
         cpu_name,
         mod_name_and_pc,
-        io_highlight(address, type, module_name, task_name)
-            ? (type & MODE_WRITE ? KYLW : KLGRN) : "",
+        color,
         address,
         type & MODE_WRITE ? "<-" : "->",
         type & MODE_WRITE ? in_value : out_value,
