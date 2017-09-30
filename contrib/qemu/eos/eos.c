@@ -4013,10 +4013,9 @@ end:
 unsigned int eos_handle_i2c ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
     unsigned int ret = 0;
-    char msg[1024] = "";
-    char mod[10];
-    
-    snprintf(mod, sizeof(mod), "I2C%i", parm);
+    const char * msg = 0;
+    intptr_t msg_arg1 = 0;
+    intptr_t msg_arg2 = 0;
 
     static unsigned int last_i2c_status = 0;
     
@@ -4029,8 +4028,6 @@ unsigned int eos_handle_i2c ( unsigned int parm, EOSState *s, unsigned int addre
     static unsigned int last_i2c_addr = 0;
     static unsigned int last_i2c_length = 0;
     static unsigned int last_i2c_config = 0;
-    unsigned int pc = CURRENT_CPU->env.regs[15];
-
     
     switch(address & 0xFF)
     {
@@ -4043,12 +4040,13 @@ unsigned int eos_handle_i2c ( unsigned int parm, EOSState *s, unsigned int addre
                 /* 0x1000 busy */
                 /* 0x0010 transmit data ready */
                 /* 0x0020 stop condition */
+                msg = "status";
                 ret = last_i2c_status;
             }
             break;
         
         case 0x14: /* length */
-            snprintf(msg, sizeof(msg), "length");
+            msg = "length";
             MMIO_VAR(last_i2c_length);
             break;
         
@@ -4058,6 +4056,7 @@ unsigned int eos_handle_i2c ( unsigned int parm, EOSState *s, unsigned int addre
             }
             else
             {
+                msg = "RX data";
                 if(last_i2c_txpos < COUNT(last_i2c_txdata))
                 {
                     ret = last_i2c_rxdata[last_i2c_rxpos++];
@@ -4070,14 +4069,16 @@ unsigned int eos_handle_i2c ( unsigned int parm, EOSState *s, unsigned int addre
             break;
         
         case 0x1C: /* slave address */
-            snprintf(msg, sizeof(msg), "slave address");
+            msg = "slave address";
             MMIO_VAR(last_i2c_addr);
             break;
         
         case 0x20: /* tx data */
+            msg = "TX data (%d)";
+            msg_arg1 = last_i2c_txpos;
+
             if(type & MODE_WRITE)
             {
-                //printf("TX(%d) at PC: 0x%08X 0x%02X\n",last_i2c_txpos,  pc, value );
                 /* buffer data */
                 if(last_i2c_txpos < COUNT(last_i2c_txdata))
                 {
@@ -4099,39 +4100,41 @@ unsigned int eos_handle_i2c ( unsigned int parm, EOSState *s, unsigned int addre
             break;
         
         case 0x24: /* some config? write:0x2E20 read:0xAC20,0x2420,0x8C20 */
+            msg = "config? addr: %02X %s";
+            msg_arg1 = last_i2c_addr;
+            msg_arg2 = (intptr_t) "";
+
             if(type & MODE_WRITE)
             {
-                //printf("cfg at PC: 0x%08X 0x%02X\n",  pc, value );
                 last_i2c_config = value;
                 
                 /* set module inactive? */
                 if(!(value & 0x20))
                 {
-                    snprintf(msg, sizeof(msg), "Transmit at PC 0x%08X, addr: %02X, sent:", pc, last_i2c_addr );
+                    char data[1024] = "";
 
-                    for(int pos = 0; pos < last_i2c_txpos; pos++)
+                    if (last_i2c_txpos)
                     {
-                        char tmp[10];
-                        sprintf(tmp, " %02X", last_i2c_txdata[pos]);
-                        strcat(msg, tmp);
-                    }
-                    
-                    if(last_i2c_rxpos)
-                    {
-                        strcat(msg, ", recv:");
-                        for(int pos = 0; pos < last_i2c_rxpos; pos++)
+                        STR_APPEND(data, "\n[I2C] sent:");
+                        for (int pos = 0; pos < last_i2c_txpos; pos++)
                         {
-                            char tmp[10];
-                            sprintf(tmp, " %02X", last_i2c_rxdata[pos]);
-                            strcat(msg, tmp);
+                            STR_APPEND(data, " %02X", last_i2c_txdata[pos]);
                         }
                     }
-                    strcat(msg, "\n");
+
+                    if (last_i2c_rxpos)
+                    {
+                        STR_APPEND(data, "\n[I2C] recv:");
+                        for (int pos = 0; pos < last_i2c_rxpos; pos++)
+                        {
+                            STR_APPEND(data, " %02X", last_i2c_rxdata[pos]);
+                        }
+                    }
+
                     last_i2c_status = 0;
                     last_i2c_txpos = 0;
                     last_i2c_rxpos = 0;
-                    
-                    printf(msg, "");
+                    msg_arg2 = (intptr_t) data;
                 }
                 /* set receive mode */
                 else if(!(value & 0x200))
@@ -4185,7 +4188,7 @@ unsigned int eos_handle_i2c ( unsigned int parm, EOSState *s, unsigned int addre
             break;
     }
 
-    io_log(mod, s, address, type, value, ret, msg, 0, 0);
+    io_log("I2C", s, address, type, value, ret, msg, msg_arg1, msg_arg2);
     return ret;
 }
 
