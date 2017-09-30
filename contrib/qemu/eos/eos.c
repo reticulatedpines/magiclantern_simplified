@@ -2522,6 +2522,23 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
         case 0x00B0:
             msg = "FUNC SW OFF on 7D";
             ret = 0;
+            if(!strcmp(s->model->name, "50D") || !strcmp(s->model->name, "5D2"))
+            {
+                /* CS for RTC */
+                if(type & MODE_WRITE)
+                {
+                    if((value & 0x06) == 0x06)
+                    {
+                        msg = "[RTC] CS set";
+                        s->rtc.transfer_format = RTC_READY;
+                    }
+                    else
+                    {
+                        msg = "[RTC] CS reset";
+                        s->rtc.transfer_format = RTC_INACTIVE;
+                    }
+                }
+            }
             break;
             
         case 0x0024:
@@ -4231,17 +4248,24 @@ static unsigned int eos_handle_rtc ( unsigned int parm, EOSState *s, unsigned in
                     {
                         uint8_t cmd = last_sio_txdata & 0x0F;
                         uint8_t reg = (last_sio_txdata>>4) & 0x0F;
+                        if (!strcmp(s->model->name, "5D2") || !strcmp(s->model->name, "50D"))
+                        {
+                            reg = last_sio_txdata & 0x0F;
+                            cmd = (last_sio_txdata>>4) & 0x0F;
+                        }
                         s->rtc.transfer_format = cmd;
                         s->rtc.current_reg = reg;
 
                         switch(cmd)
                         {
                             case RTC_WRITE_BURST:
+                            case RTC_WRITE_BURST2:
                                 msg = "Initiate WB (%02X)";
                                 msg_arg1 = last_sio_txdata;
                                 break;
                                 
                             case RTC_READ_BURST:
+                            case RTC_READ_BURST2:
                                 msg = "Initiate RB (%02X)";
                                 msg_arg1 = last_sio_txdata;
                                 break;
@@ -4266,6 +4290,7 @@ static unsigned int eos_handle_rtc ( unsigned int parm, EOSState *s, unsigned in
 
                     /* burst writing */
                     case RTC_WRITE_BURST:
+                    case RTC_WRITE_BURST2:
                         s->rtc.regs[s->rtc.current_reg] = last_sio_txdata;
                         msg = "WB %02X <- %02X";
                         msg_arg1 = s->rtc.current_reg;
@@ -4276,6 +4301,7 @@ static unsigned int eos_handle_rtc ( unsigned int parm, EOSState *s, unsigned in
 
                     /* burst reading */
                     case RTC_READ_BURST:
+                    case RTC_READ_BURST2:
                         last_sio_rxdata = s->rtc.regs[s->rtc.current_reg];
                         msg = "RB %02X -> %02X";
                         msg_arg1 = s->rtc.current_reg;
