@@ -194,5 +194,6 @@ static struct mpu_init_spell mpu_init_spells_100D[] = {
     #include "NotifyGUIEvent.h"
     #include "UILock.h"
     #include "CardFormat.h"
+    #include "GPS.h"
     #include "Shutdown.h"
 };
