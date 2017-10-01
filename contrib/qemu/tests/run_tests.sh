@@ -18,16 +18,21 @@ POWERSHOT_CAMS=( EOSM3 EOSM10 EOSM5 A1100 )
 
 EOS_SECONDARY_CORES=( 5D3eeko 5D4AE 7D2S )
 
+# cameras able to run Canon GUI (menu tests)
 GUI_CAMS=( 5D2 5D3 50D 60D 70D
            450D 500D 550D 600D 650D 700D
            100D 1000D 1100D 1200D EOSM EOSM2 )
 
+# cameras with a SD card
 SD_CAMS=( 5D3 5D4 6D 60D 70D 80D
           450D 500D 550D 600D 650D 700D 750D 760D
           100D 1000D 1100D 1200D 1300D EOSM EOSM2 )
 
+# cameras with a CF card
 CF_CAMS=( 5D 5D2 5D3 5D4 7D 7D2M 40D 50D 400D )
 
+# cameras able to run the FA_CaptureTestImage test (full-res silent picture backend)
+FRSP_CAMS=( 5D3 500D 550D 50D 60D 1100D 1200D )
 
 if (( $# > 0 )); then
     # arguments present? test only these models
@@ -38,6 +43,7 @@ if (( $# > 0 )); then
     GUI_CAMS=($(join <(printf %s\\n "${REQ_CAMS[@]}" | sort -u) <(printf %s\\n "${GUI_CAMS[@]}" | sort -u) | sort -n))
     SD_CAMS=($(join <(printf %s\\n "${REQ_CAMS[@]}" | sort -u) <(printf %s\\n "${SD_CAMS[@]}" | sort -u) | sort -n))
     CF_CAMS=($(join <(printf %s\\n "${REQ_CAMS[@]}" | sort -u) <(printf %s\\n "${CF_CAMS[@]}" | sort -u) | sort -n))
+    FRSP_CAMS=($(join <(printf %s\\n "${FRSP_CAMS[@]}" | sort -u) <(printf %s\\n "${FRSP_CAMS[@]}" | sort -u) | sort -n))
     EOS_SECONDARY_CORES=($(join <(printf %s\\n "${REQ_CAMS[@]}" | sort -u) <(printf %s\\n "${EOS_SECONDARY_CORES[@]}" | sort -u) | sort -n))
 fi
 
@@ -819,7 +825,7 @@ echo "Testing FA_CaptureTestImage..."
 # Models able to display some Canon GUI should capture a still picture as well.
 # This requires a full-res silent picture at qemu/<camera>/VRAM/PH-QR/RAW-000.DNG.
 # Currently working on 500D, 550D, 50D, 60D, 1200D, and to a lesser extent, on 5D3 and 1100D.
-for CAM in 5D3 500D 550D 50D 60D 1100D 1200D; do
+for CAM in ${FRSP_CAMS[*]}; do
     printf "%5s: " $CAM
 
     mkdir -p tests/$CAM/
