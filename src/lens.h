@@ -358,6 +358,8 @@ void kelvin_toggle( void* priv, int sign );
 // max iso with expo override
 #if defined(CONFIG_6D)
 #define MAX_ISO_BV 136 // see ControlIso <= LVGAIN_MAX_ISO
+#elif defined(CONFIG_100D)
+#define MAX_ISO_BV 120 // 128 will freeze if iso expansion not set
 #elif defined(CONFIG_DIGIC_V) //All DigicV except 6D apparently
 #define MAX_ISO_BV 199
 #elif defined(CONFIG_500D)
