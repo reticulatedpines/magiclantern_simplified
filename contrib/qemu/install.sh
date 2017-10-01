@@ -406,8 +406,8 @@ echo "   ./run_canon_fw.sh 60D"
 echo
 echo "   This will recompile QEMU, but not ML."
 echo
-echo "   Note: Canon GUI emulation (menu navigation, no LiveView) only works on"
-echo -n "   "; $GREP --color=never -oP "(?<=GUI_CAMS=\( ).*(?=\))" tests/run_tests.sh;
+echo "   Note: Canon GUI emulation (menu navigation, no LiveView) only works on:"
+echo -n "   "; echo $($GREP --color=never -oPz "(?<=GUI_CAMS=\( )[^()]*(?=\))" tests/run_tests.sh);
 echo
 echo "5) Tips & tricks:"
 echo "   - to enable or disable the boot flag in ROM, use something like:"
