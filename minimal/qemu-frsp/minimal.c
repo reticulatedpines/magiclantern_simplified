@@ -108,9 +108,7 @@ copy_and_restart( int offset )
 
 static void run_test()
 {
-    /* QEMU doesn't emulate GUI mode switches, so we just clear the screen
-     * and draw the preview on the current GUI mode (usually the info screen) */
-    canon_gui_disable_front_buffer();
+    /* clear the screen - hopefully nobody will overwrite us */
     clrscr();
 
     /* capture a full-res silent picture */
@@ -153,7 +151,17 @@ my_init_task(int a, int b, int c, int d)
 
     msleep(1000);
 
-#if 0
+#ifdef CONFIG_QEMU
+    /* for running in QEMU: go to PLAY mode and take the test picture from there
+     * ideally, we should run from LiveView, but we don't have it emulated.
+     * 
+     * The emulation usually starts with the main Canon screen,
+     * however, some models have it off by default (e.g. 550D),
+     * others have sensor cleaning animations (5D2, 50D, 600D),
+     * and generally it's hard to draw over this screen without trickery. */
+    SetGUIRequestMode(GUIMODE_PLAY);
+    msleep(1000);
+#else
     /* for running on real camera: wait for user to enter LiveView,
      * then switch to PLAY mode (otherwise you'll capture a dark frame) */
     for (int i = 0; i < 5; i++)
