@@ -53,7 +53,24 @@ $MAKE -C $QEMU_PATH || exit
 # (since the logs are very large, being able to scroll at the beginning is helpful)
 tput reset
 
-echo $0 $*
+# print the invocation
+# https://unix.stackexchange.com/a/118468
+case $(ps -o stat= -p $$) in
+  *+*) echo $0 "$@" ;;      # Running in foreground
+  *) echo $0 "$@" "&" ;;    # Running in background
+esac
+
+# also print the command-line of arm-none-eabi-gdb, if any
+gdb_pid=$(pidof -s arm-none-eabi-gdb)
+if [ "$gdb_pid" != "" ]; then
+  gdb_cmd=$(ps -p $gdb_pid -o args --no-headers)
+  case $(ps -o stat= -p $gdb_pid) in
+    *+*) echo "$gdb_cmd" ;;      # Running in foreground
+    *) echo "$gdb_cmd" "&" ;;    # Running in background
+  esac
+fi
+
+echo
 
 CAM=${1//,*/}
 if [ "$CAM" ] && [ ! "$QEMU_EOS_DEBUGMSG" ]; then
