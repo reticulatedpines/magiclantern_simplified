@@ -837,7 +837,7 @@ static unsigned int isoless_init()
         CMOS_FLAG_BITS = 2;
         CMOS_EXPECTED_FLAG = 0;
     }
-	else if (is_camera("100D", "1.0.1"))
+    else if (is_camera("100D", "1.0.1"))
     {
         is_100d = 1;    
 
