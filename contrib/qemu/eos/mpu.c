@@ -183,6 +183,28 @@ static int match_spell(uint16_t * received, uint16_t * in_spell)
     return 1;
 }
 
+
+static int clean_shutdown = 0;
+
+static void clean_shutdown_check(void)
+{
+    if (!clean_shutdown)
+    {
+        MPU_EPRINTF(
+            KLRED"WARNING: forced shutdown."KRESET"\n\n"
+            "For clean shutdown, please use 'Machine -> Power Down'\n"
+            "(or 'system_powerdown' in QEMU monitor.)\n"
+        );
+    }
+}
+
+static void request_shutdown(void)
+{
+    MPU_EPRINTF("Shutdown requested.\n");
+    clean_shutdown = 1;
+    qemu_system_shutdown_request();
+}
+
 static void mpu_interpret_command(EOSState *s)
 {
     MPU_EPRINTF("Received: ");
@@ -221,8 +243,7 @@ static void mpu_interpret_command(EOSState *s)
 
             if (mpu_init_spells[spell_set].out_spells[out_spell][1] == MPU_SHUTDOWN)
             {
-                MPU_EPRINTF("Shutdown requested.\n");
-                qemu_system_shutdown_request();
+                request_shutdown();
             }
             return;
         }
@@ -1109,4 +1130,6 @@ void mpu_spells_init(EOSState *s)
 
     s->mpu.powerdown_notifier.notify = mpu_send_powerdown;
     qemu_register_powerdown_notifier(&s->mpu.powerdown_notifier);
+
+    atexit(clean_shutdown_check);
 }
