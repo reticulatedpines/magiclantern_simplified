@@ -48,9 +48,9 @@ if (( $# > 0 )); then
 fi
 
 declare -A MENU_SEQUENCE
-MENU_SEQUENCE[5D2]="i i i m up up up space m m w w p p" # sensor cleaning animation
+MENU_SEQUENCE[5D2]="f1 i i i m up up up space m m w w p p" # sensor cleaning animation
 MENU_SEQUENCE[5D3]="f1 i i i f1 i m left down down down space m m p p q space m right right space m down right space pgdn m q"
-MENU_SEQUENCE[50D]="i i i m up space space m w w p p" # sensor cleaning animation
+MENU_SEQUENCE[50D]="f1 i i i m up space space m w w p p" # sensor cleaning animation
 MENU_SEQUENCE[60D]="f1 i i i i m left left up space m m p p"
 #MENU_SEQUENCE[70D]="m up up up up space m up up" # fixme: locks up quickly
 MENU_SEQUENCE[70D]="f1" # fixme: doesn't go into menu
