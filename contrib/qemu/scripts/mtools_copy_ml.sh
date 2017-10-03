@@ -9,6 +9,13 @@ if [ "$1" == "" ] || [ ! -d "$1" ]; then
   exit
 fi
 
+# Check whether sd.img or cf.img is mounted
+MAKE=false ./run_canon_fw.sh
+if [ $? -eq 1 ]; then
+    # run_canon_fw.sh will print an error
+    exit;
+fi
+
 echo "Copying ML from $1 ..."
 echo -n "... to $(realpath sd.img) and cf.img"
 

@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# exit codes:
+# 0 = emulation ran
+# 1 = SD or CF image mounted
+# 2 = compiling QEMU failed
+
 GREP=${GREP:=grep}
 QEMU_PATH=${QEMU_PATH:=qemu-2.5.0}
 MAKE=${MAKE:=make}
@@ -47,7 +52,7 @@ else
 fi
 
 # recompile QEMU
-$MAKE -C $QEMU_PATH || exit
+$MAKE -C $QEMU_PATH || exit 2
 
 # clear the terminal
 # (since the logs are very large, being able to scroll at the beginning is helpful)
