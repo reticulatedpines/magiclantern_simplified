@@ -4083,7 +4083,6 @@ static int raw_rec_should_preview(void)
         (res_x < max_res_x * 80/100) ? 1 :  /* prefer correct framing instead of large black bars */
         (res_x*9 < res_y*16)         ? 1 :  /* tall aspect ratio -> prevent image hiding under info bars*/
         (framing_incorrect)          ? 1 :  /* use correct framing in modes where Canon preview is incorrect */
-        (BPP_D != 14)                ? 1 :  /* digital gain used? Canon preview will be dark, use ours */
                                        0 ;  /* otherwise, use plain LiveView */
 
     /* only override on long half-shutter press, when not autofocusing */
