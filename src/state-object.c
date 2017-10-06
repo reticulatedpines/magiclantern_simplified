@@ -72,6 +72,9 @@ int wait_lv_frames(int num_frames)
     return 1;
 }
 #endif
+
+extern void digic_iso_step();
+
 static void FAST vsync_func() // called once per frame.. in theory :)
 {
     vsync_counter++;
@@ -100,8 +103,9 @@ static void FAST vsync_func() // called once per frame.. in theory :)
     #endif
     #endif
 
-    extern void digic_iso_step();
+    #if !defined(CONFIG_DIGIC_V)
     digic_iso_step();
+    #endif
     
     extern void image_effects_step();
     image_effects_step();
@@ -231,6 +235,7 @@ static int FAST stateobj_lv_spy(struct state_object * self, int x, int input, in
         #endif
         
         #ifdef CONFIG_DIGIC_V
+        digic_iso_step();
         vignetting_correction_apply_regs();
         #endif
     }

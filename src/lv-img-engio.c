@@ -24,7 +24,8 @@
 
 #define SHAD_GAIN      0xc0f08030       // controls clipping point (digital ISO)
 #define SHAD_PRESETUP  0xc0f08034       // controls black point? as in "dcraw -k"
-#define ISO_PUSH_REGISTER 0xc0f0e0f8    // like display gain, 0x100 = 1 stop, 0x700 = max of 7 stops
+#define ISO_PUSH_REGISTER_D4 0xc0f0e0f8 // like display gain, 0x100 = 1 stop, 0x700 = max of 7 stops
+#define ISO_PUSH_REGISTER_D5 0xC0F42744 // similar, but per RGGB channel (all bytes must be set; range 0...7)
 
 #define SHADOW_LIFT_REGISTER_1 0xc0f0e094 // raises shadows, but after they are crushed by Canon curves; default at 0x80?
 #define SHADOW_LIFT_REGISTER_2 0xc0f0e0f0 // raises shadows, seems to bring back some shadow detail
@@ -159,12 +160,8 @@ void digic_iso_or_gain_toggle(int* priv, int delta)
     
     do {
         i = MOD(i + delta, COUNT(digic_iso_presets));
-    } while ((!mv && digic_iso_presets[i] < 1024)
-    #ifdef CONFIG_DIGIC_V
-    || (mv && digic_iso_presets[i] > 2048) // high display gains not working
-    #endif
-    || (!mv && digic_iso_presets[i] > 65536)
-    );
+    } while ((!mv && digic_iso_presets[i] < 1024) ||
+             (!mv && digic_iso_presets[i] > 65536));
     
     *priv = digic_iso_presets[i];
     if (*priv == 1024) *priv = 0;
@@ -222,9 +219,7 @@ static int get_new_white_level(int movie_gain, int* boost_stops)
     while (1)
     {
         result = default_white_level * COERCE(movie_gain, 0, 65536) / 1024;
-        #ifdef CONFIG_DIGIC_V
-        break;
-        #endif
+
         if (result > 8192 && *boost_stops < 7) 
         { 
             movie_gain /= 2; 
@@ -815,6 +810,20 @@ void image_effects_step()
 #endif
 }
 
+static void digic_iso_boost(int32_t stops)
+{
+    /* both D4 and D5 may use up to 7 stops of ISO boost */
+    stops = COERCE(stops, 0, 7);
+
+#ifdef CONFIG_DIGIC_V
+    stops |= (stops << 8);
+    stops |= (stops << 16);
+    EngDrvOutLV(ISO_PUSH_REGISTER_D5, stops);
+#else
+    EngDrvOutLV(ISO_PUSH_REGISTER_D4, stops << 8);
+#endif
+}
+
 void digic_iso_step()
 {
 #if defined(FEATURE_EXPO_ISO_DIGIC) || defined(FEATURE_LV_DISPLAY_GAIN) || defined(FEATURE_SHUTTER_FINE_TUNING)
@@ -836,9 +845,7 @@ void digic_iso_step()
             int new_gain = get_new_white_level(total_movie_gain, &boost_stops);
             EngDrvOutLV(SHAD_GAIN, new_gain);
             shad_gain_last_written = new_gain;
-            #ifndef CONFIG_DIGIC_V
-            EngDrvOutLV(ISO_PUSH_REGISTER, boost_stops << 8);
-            #endif
+            digic_iso_boost(boost_stops);
         }
 
         if (digic_black_level)
@@ -847,11 +854,6 @@ void digic_iso_step()
             presetup = ((presetup + 100) & 0xFF00) + ((int)digic_black_level);
             EngDrvOutLV(SHAD_PRESETUP, presetup);
         }
-
-        #ifdef CONFIG_DIGIC_V
-        if (LVAE_DISP_GAIN) call("lvae_setdispgain", 0); // reset display gain
-        #endif
-
     }
 #endif
 #ifdef FEATURE_LV_DISPLAY_GAIN
@@ -859,32 +861,17 @@ void digic_iso_step()
     {
         if (digic_iso_gain_photo_for_bv == 0) digic_iso_gain_photo_for_bv = 1024;
         int total_photo_gain = DIGIC_ISO_GAIN_PHOTO * digic_iso_gain_photo_for_bv / 1024;
-        
-        #ifdef FEATURE_RAW_BLINKIES
-        if (raw_blinkies_enabled())
-        {
-            autodetect_default_white_level();
-            int boost_stops = 0;
-            int new_gain = get_new_white_level(256, &boost_stops);
-            EngDrvOutLV(SHAD_GAIN, new_gain);
-            shad_gain_last_written = new_gain;
-        }
-        #endif
 
-        if (total_photo_gain == 0) total_photo_gain = 1024;
-    #ifdef CONFIG_DIGIC_V
-        int g = total_photo_gain == 1024 ? 0 : COERCE(total_photo_gain, 0, 65534);
-        if (LVAE_DISP_GAIN != g) 
+        if (total_photo_gain == 0)
         {
-            call("lvae_setdispgain", g);
+            total_photo_gain = 1024;
         }
-    #else
+
         if (total_photo_gain > 1024 && !LVAE_DISP_GAIN)
         {
-            int boost_stops = COERCE((int)log2f(total_photo_gain / 1024), 0, 7);
-            EngDrvOutLV(ISO_PUSH_REGISTER, boost_stops << 8);
+            int boost_stops = COERCE(log2i(total_photo_gain / 1024), 0, 7);
+            digic_iso_boost(boost_stops);
         }
-    #endif
     }
 #endif
 }
