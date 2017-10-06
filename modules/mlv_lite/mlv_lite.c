@@ -870,22 +870,11 @@ static MENU_UPDATE_FUNC(write_speed_update)
     }
 }
 
-/* called when starting to record (for uncompressed 10/12 bpp) */
-static void setup_bit_depth()
-{
-    raw_lv_request_bpp(BPP);
-}
-
-/* called when recording ends */
-static void restore_bit_depth()
-{
-    raw_lv_request_bpp(14);
-}
-
-/* called in standby, when changing lossless compression preset
+/* for lossless compression: on recording start/stop, in standby
  * we configure this in standby to estimate compression ratio
  * when BPP_D is 14, it will restore default settings */
-static void setup_bit_depth_digital_gain()
+static REQUIRES(settings_sem)
+void setup_bit_depth_digital_gain(int force_off)
 {
     static int prev_bpp_d = 0;
     int bpp_d = BPP_D;
@@ -896,6 +885,11 @@ static void setup_bit_depth_digital_gain()
         bpp_d = 14;
     }
 
+    if (force_off)
+    {
+        bpp_d = 14;
+    }
+
     if (bpp_d != prev_bpp_d)
     {
         int div = 1 << (14 - bpp_d);
@@ -903,6 +897,22 @@ static void setup_bit_depth_digital_gain()
         wait_lv_frames(2);
         prev_bpp_d = bpp_d;
     }
+}
+
+/* called when starting to record */
+static REQUIRES(settings_sem)
+void setup_bit_depth()
+{
+    raw_lv_request_bpp(BPP);
+    setup_bit_depth_digital_gain(0);
+}
+
+/* called when recording ends, or when raw video is turned off */
+static REQUIRES(settings_sem)
+void restore_bit_depth()
+{
+    raw_lv_request_bpp(14);
+    setup_bit_depth_digital_gain(1);
 }
 
 static void measure_compression_ratio()
@@ -961,7 +971,7 @@ void refresh_raw_settings(int force)
         {
             update_resolution_params();
             setup_buffers();
-            setup_bit_depth_digital_gain();
+            setup_bit_depth_digital_gain(0);
 
             /* update compression ratio once every 2 seconds */
             if (OUTPUT_COMPRESSION && compress_mq && should_run_polling_action(2000, &aux2))
@@ -1135,6 +1145,8 @@ static MENU_UPDATE_FUNC(aspect_ratio_update)
 
 static MENU_UPDATE_FUNC(output_format_update)
 {
+    refresh_raw_settings(0);
+
     switch (output_format)
     {
         case OUTPUT_14BIT_NATIVE:
@@ -1679,19 +1691,26 @@ void panning_update()
     update_cropping_offsets();
 }
 
-static REQUIRES(ShootTask)
+static REQUIRES(ShootTask) EXCLUDES(settings_sem)
 void raw_video_enable()
 {
+    take_semaphore(settings_sem, 0);
+
     /* toggle the lv_save_raw flag from raw.c */
     raw_lv_request();
     
     msleep(50);
+
+    give_semaphore(settings_sem);
 }
 
-static REQUIRES(ShootTask)
+static REQUIRES(ShootTask) EXCLUDES(settings_sem)
 void raw_video_disable()
 {
+    take_semaphore(settings_sem, 0);
+    restore_bit_depth();
     raw_lv_release();
+    give_semaphore(settings_sem);
 }
 
 static REQUIRES(ShootTask)
@@ -1707,7 +1726,7 @@ void raw_lv_request_update()
             raw_lv_requested = 1;
         }
     }
-    else
+    else if (RAW_IS_IDLE)
     {
         if (raw_lv_requested)
         {
