@@ -294,7 +294,15 @@ static int get_default_white_level()
 {
     if (lv_raw_gain)
     {
-        return (WHITE_LEVEL - 2048) * lv_raw_gain / 4096 + 2048;
+        int default_white = WHITE_LEVEL;
+
+        #ifdef CONFIG_100D
+        /* http://www.magiclantern.fm/forum/index.php?topic=16040.msg191131#msg191131 */
+        default_white = (lens_info.raw_iso == ISO_100) ? 13500 : 15300;
+        #endif
+
+        /* fixme: hardcoded black level */
+        return (default_white - 2048) * lv_raw_gain / 4096 + 2048;
     }
     
     return WHITE_LEVEL;
