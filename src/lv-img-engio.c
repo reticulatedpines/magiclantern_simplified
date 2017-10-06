@@ -13,6 +13,7 @@
 #include "fps.h"
 #include "focus.h"
 #include "beep.h"
+#include "raw.h"
 
 #if defined(CONFIG_7D)
 #include "ml_rpc.h"
@@ -212,7 +213,7 @@ static void autodetect_default_white_level()
 // get digic ISO level for movie mode
 // use SHAD_GAIN as much as possible (range: 0-8191)
 // if out of range, return a number of integer stops for boosting the ISO via ISO_PUSH_REGISTER and use SHAD_GAIN for the remainder
-static int get_new_white_level(int movie_gain, int* boost_stops)
+static int calc_movie_gain(int movie_gain, int* boost_stops)
 {
     int result = default_white_level;
     *boost_stops = 0;
@@ -838,21 +839,37 @@ void digic_iso_step()
     {
         if (digic_iso_gain_movie_for_gradual_expo == 0) digic_iso_gain_movie_for_gradual_expo = 1024;
         int total_movie_gain = DIGIC_ISO_GAIN_MOVIE * digic_iso_gain_movie_for_gradual_expo / 1024;
-        if (total_movie_gain != 1024)
-        {
-            autodetect_default_white_level();
-            int boost_stops = 0;
-            int new_gain = get_new_white_level(total_movie_gain, &boost_stops);
-            EngDrvOutLV(SHAD_GAIN, new_gain);
-            shad_gain_last_written = new_gain;
-            digic_iso_boost(boost_stops);
-        }
 
-        if (digic_black_level)
+        if (raw_lv_is_enabled())
         {
-            int presetup = MEMX(SHAD_PRESETUP);
-            presetup = ((presetup + 100) & 0xFF00) + ((int)digic_black_level);
-            EngDrvOutLV(SHAD_PRESETUP, presetup);
+            /* don't touch settings that may alter the raw buffer */
+            /* just set the ISO boost register */
+            total_movie_gain *= _raw_lv_get_iso_post_gain();
+
+            if (total_movie_gain != 1024)
+            {
+                int boost_stops = log2i(total_movie_gain / 1024);
+                digic_iso_boost(boost_stops);
+            }
+        }
+        else /* H.264 */
+        {
+            if (total_movie_gain != 1024)
+            {
+                autodetect_default_white_level();
+                int boost_stops = 0;
+                int new_gain = calc_movie_gain(total_movie_gain, &boost_stops);
+                EngDrvOutLV(SHAD_GAIN, new_gain);
+                shad_gain_last_written = new_gain;
+                digic_iso_boost(boost_stops);
+            }
+
+            if (digic_black_level)
+            {
+                int presetup = MEMX(SHAD_PRESETUP);
+                presetup = ((presetup + 100) & 0xFF00) + ((int)digic_black_level);
+                EngDrvOutLV(SHAD_PRESETUP, presetup);
+            }
         }
     }
 #endif

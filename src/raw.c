@@ -2121,6 +2121,18 @@ void FAST raw_lv_vsync()
     redirected_raw_buffer = 0;
 }
 
+/* integer gain used to fix the image darkening caused by lv_raw_gain */
+/* this gain must not (!) change the raw data */
+int _raw_lv_get_iso_post_gain()
+{
+    if (lv_raw_gain)
+    {
+        return 4096 / lv_raw_gain;
+    }
+
+    return 1;
+}
+
 #endif
 
 int raw_lv_settings_still_valid()
@@ -2443,6 +2455,7 @@ static void raw_lv_enable()
 
 static void raw_lv_disable()
 {
+    ASSERT(!lv_raw_gain);
     lv_raw_enabled = 0;
     raw_info.buffer = 0;
 
@@ -2578,6 +2591,8 @@ void raw_lv_request_bpp(int bpp)
 void raw_lv_request_digital_gain(int gain)
 {
     take_semaphore(raw_sem, 0);
+
+    ASSERT(lv_raw_enabled);
 
     if (gain)
     {

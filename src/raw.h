@@ -155,7 +155,10 @@ void raw_set_dirty(void);
 int focus_box_get_raw_crop_offset(int* delta_x, int* delta_y); /* this is in shoot.c */
 
 /* called from state-object.c */
-void raw_lv_vsync_cbr();
+void raw_lv_vsync();
+
+/* called from lv-img-engio.c */
+int _raw_lv_get_iso_post_gain();
 
 /* units: EV x100 */
 int get_dxo_dynamic_range(int raw_iso);
