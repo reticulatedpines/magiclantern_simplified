@@ -234,7 +234,7 @@ static void edmac_test_format_size(void)
 static int edmac_do_transfer(EOSState *s, int channel)
 {
     /* not fully implemented */
-    fprintf(stderr, "[EDMAC#%d] Starting transfer %s 0x%X %s conn", channel,
+    fprintf(stderr, "[EDMAC#%d] Starting transfer %s 0x%X %s ", channel,
         (channel & 8) ? "from" : "to",
         s->edmac.ch[channel].addr,
         (channel & 8) ? "to" : "from"
@@ -261,7 +261,7 @@ static int edmac_do_transfer(EOSState *s, int channel)
         conn = s->edmac.write_conn[channel];
     }
     
-    fprintf(stderr, " #%d, ", conn);
+    fprintf(stderr, "<%d>, ", conn);
 
     /* Hypothesis
      * ==========
@@ -317,7 +317,7 @@ static int edmac_do_transfer(EOSState *s, int channel)
         uint32_t new_size = old_size + transfer_data_size;
         if (s->edmac.conn_data[conn].buf)
         {
-            fprintf(stderr, "[EDMAC] conn #%d: data size %d -> %d.\n",
+            fprintf(stderr, "[EDMAC] <%d>: data size %d -> %d.\n",
                 conn, old_size, new_size
             );
         }
@@ -422,7 +422,7 @@ static int edmac_do_transfer(EOSState *s, int channel)
             memmove(s->edmac.conn_data[conn].buf, s->edmac.conn_data[conn].buf + transfer_data_size, new_size);
             s->edmac.conn_data[conn].buf = realloc(s->edmac.conn_data[conn].buf, new_size);
             s->edmac.conn_data[conn].data_size = new_size;
-            fprintf(stderr, "[EDMAC] conn #%d: data size %d -> %d.\n",
+            fprintf(stderr, "[EDMAC] <%d>: data size %d -> %d.\n",
                 conn, old_size, new_size
             );
         }
@@ -501,7 +501,7 @@ static void prepro_execute(EOSState *s)
             int transfer_size = s->edmac.conn_data[1].data_size;
             int old_size = s->edmac.conn_data[16].data_size;
             int new_size = old_size + transfer_size;
-            fprintf(stderr, "[DEF] Dummy operation (copy %d bytes from conn #1 to #16).\n", transfer_size);
+            fprintf(stderr, "[DEF] Dummy operation (copy %d bytes from <1> to <16>).\n", transfer_size);
             if (old_size) fprintf(stderr, "[DEF] Data size %d -> %d.\n", old_size, new_size);
             s->edmac.conn_data[16].buf = realloc(s->edmac.conn_data[16].buf, new_size);
             s->edmac.conn_data[16].data_size = new_size;
@@ -702,12 +702,12 @@ unsigned int eos_handle_edmac_chsw ( unsigned int parm, EOSState *s, unsigned in
             {
                 if (c != conn && s->edmac.read_conn[c] == ch)
                 {
-                    fprintf(stderr, "[CHSW] Warning: disabling RD#%d -> conn #%d.\n", ch, c);
+                    fprintf(stderr, "[CHSW] Warning: disabling RD#%d -> <%d>.\n", ch, c);
                     s->edmac.read_conn[c] = 0;
                 }
             }
             
-            msg = "RAM -> RD#%d -> connection #%d";
+            msg = "RAM -> RD#%d -> <%d>";
             msg_arg1 = ch;
             msg_arg2 = conn;
             break;
@@ -721,7 +721,7 @@ unsigned int eos_handle_edmac_chsw ( unsigned int parm, EOSState *s, unsigned in
             assert(conn < COUNT(s->edmac.conn_data));
             assert(ch < COUNT(s->edmac.ch));
             s->edmac.write_conn[ch] = conn;
-            msg = "connection #%d -> WR#%d -> RAM";
+            msg = "<%d> -> WR#%d -> RAM";
             msg_arg1 = conn;
             msg_arg2 = ch;
             break;
@@ -739,7 +739,7 @@ unsigned int eos_handle_edmac_chsw ( unsigned int parm, EOSState *s, unsigned in
             assert(conn < COUNT(s->edmac.conn_data));
             assert(ch < COUNT(s->edmac.ch));
             s->edmac.write_conn[ch] = conn;
-            msg = "connection #%d -> WR#%d -> RAM";
+            msg = "<%d> -> WR#%d -> RAM";
             msg_arg1 = conn;
             msg_arg2 = ch;
             break;
