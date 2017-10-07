@@ -673,6 +673,7 @@ static struct {
     { 0x0032,   BGMT_MENU,              "M",            "MENU",                         },
     { 0x0019,   BGMT_PLAY,              "P",            "PLAY",                         },
     { 0x0017,   BGMT_INFO,              "I",            "INFO/DISP",                    },
+    { 0x0097,   BGMT_UNPRESS_INFO,                                                      },
     { 0x0010,   BGMT_Q,                 "Q",            "guess",                        },
     { 0x0026,   BGMT_LV,                "L",            "LiveView",                     },
     { 0x0021,   BGMT_FUNC,              "F",            "FUNC",                         },
@@ -841,9 +842,11 @@ static void show_keyboard_help(void)
         else if (last_status)
         {
             /* for grouped keys, make sure all codes are available */
-            if (key_map[i].gui_code == BGMT_UNPRESS_SET)
+            if (key_map[i].gui_code == BGMT_UNPRESS_SET ||
+                key_map[i].gui_code == BGMT_UNPRESS_INFO)
             {
                 /* exception: UNPRESS_SET on VxWorks models */
+                /* 5D3 has UNPRESS_INFO - others? */
             }
             else if (!key_avail(key_map[i].scancode))
             {

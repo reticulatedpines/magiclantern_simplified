@@ -252,6 +252,7 @@ static int button_codes_5D3[] = {
     [BGMT_PRESS_ZOOM_IN]                = 0x0801,
     [BGMT_Q]                            = 0x2001,
     [BGMT_TRASH]                        = 0x0401,
+    [BGMT_UNPRESS_INFO]                 = 0x0100,
     [BGMT_UNPRESS_SET]                  = 0x0C00,
     [BGMT_UNPRESS_UDLR]                 = 0x0B00,
     [BGMT_WHEEL_DOWN]                   = 0x0E01,
