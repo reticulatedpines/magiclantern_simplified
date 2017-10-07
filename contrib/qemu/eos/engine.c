@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <math.h>
 #include "eos.h"
 #include "engine.h"
 #include "model_list.h"
@@ -13,6 +14,25 @@
 
 #define COERCE(x,lo,hi) MAX(MIN((x),(hi)),(lo))
 
+/* http://www.developpez.net/forums/d544518/c-cpp/c/equivalent-randn-matlab-c/#post3241904 */
+
+#define TWOPI (6.2831853071795864769252867665590057683943387987502) /* 2 * pi */
+ 
+/* 
+   RAND is a macro which returns a pseudo-random numbers from a uniform
+   distribution on the interval [0 1]
+*/
+#define RAND (rand())/((double) RAND_MAX)
+ 
+/* 
+   RANDN is a macro which returns a pseudo-random numbers from a normal
+   distribution with mean zero and standard deviation one. This macro uses Box
+   Muller's algorithm
+*/
+#define RANDN (sqrt(-2.0*log(RAND))*cos(TWOPI*RAND))
+
+
+/* adapted from cr2hdr */
 static void * load_pgm(const char * filename, int * p_width, int * p_height)
 {
     /* try to open using dcraw */
@@ -107,6 +127,24 @@ static void raw_pack14(uint16_t* buf16, struct raw_pixblock * buf14, int N)
     }
 }
 
+static void gen_dark_frame(EOSState *s, void * buf, int requested_width, int requested_height)
+{
+    fprintf(stderr, "[CAPTURE] Generating a %dx%d dark frame...\n", requested_width, requested_height);
+
+    uint16_t * buf16 = malloc(requested_width * requested_height * 2);
+    assert(buf16);
+
+    for (int i = 0; i < requested_width * requested_height; i++)
+    {
+        /* todo: use model-specific white level,
+         * simulate ISO noise, pattern noise, hot pixels... */
+        buf16[i] = 2048 + RANDN * 8;
+    }
+
+    raw_pack14(buf16, buf, requested_width * requested_height);
+    free(buf16);
+}
+
 /* inp: malloc'd buffer (will be freed)
  * w, h: input size
  * W, H: output size
@@ -161,11 +199,8 @@ static void load_fullres_14bit_raw(EOSState *s, void * buf, int requested_width,
     }
     else
     {
-        fprintf(stderr, "[CAPTURE] %s load error; generating random noise\n", filename);
-        for (int i = 0; i < requested_width * requested_height; i++)
-        {
-            ((uint8_t*)buf)[i] = rand();
-        }
+        fprintf(stderr, "[CAPTURE] %s load error\n", filename);
+        gen_dark_frame(s, buf, requested_width, requested_height);
     }
 }
 
