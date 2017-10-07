@@ -11,6 +11,164 @@
 #include "model_list.h"
 #include "eos_utils.h"
 
+#define COERCE(x,lo,hi) MAX(MIN((x),(hi)),(lo))
+
+static void * load_pgm(const char * filename, int * p_width, int * p_height)
+{
+    /* try to open using dcraw */
+    char dcraw_cmd[1000];
+    snprintf(dcraw_cmd, sizeof(dcraw_cmd), "dcraw -4 -E -c -t 0 \"%s\"", filename);
+
+    FILE* fp = popen(dcraw_cmd, "r");
+    assert(fp);
+
+    /* PGM read code from dcraw */
+      int dim[3]={0,0,0}, comment=0, number=0, error=0, nd=0, c;
+
+      if (fgetc(fp) != 'P' || fgetc(fp) != '5') error = 1;
+      while (!error && nd < 3 && (c = fgetc(fp)) != EOF) {
+        if (c == '#')  comment = 1;
+        if (c == '\n') comment = 0;
+        if (comment) continue;
+        if (isdigit(c)) number = 1;
+        if (number) {
+          if (isdigit(c)) dim[nd] = dim[nd]*10 + c -'0';
+          else if (isspace(c)) {
+            number = 0;  nd++;
+          } else error = 1;
+        }
+      }
+
+    if (error || nd < 3)
+    {
+        pclose(fp);
+        printf("dcraw output is not a valid PGM file\n");
+        return 0;
+    }
+
+    int width = *p_width = dim[0];
+    int height = *p_height = dim[1];
+
+    void * buf = malloc(width * height * 2);
+    assert(buf);
+    int size = fread(buf, 1, width * height * 2, fp);
+    assert(size == width * height * 2);
+    pclose(fp);
+
+    /* PGM is big endian, need to reverse it */
+    reverse_bytes_order(buf, width * height * 2);
+
+    return buf;
+}
+
+/* Canon's 14-bit raw format (from ML raw.h) */
+struct raw_pixblock
+{
+    unsigned int b_hi: 2;
+    unsigned int a: 14;     // even lines: red; odd lines: green
+    unsigned int c_hi: 4;
+    unsigned int b_lo: 12;
+    unsigned int d_hi: 6;
+    unsigned int c_lo: 10;
+    unsigned int e_hi: 8;
+    unsigned int d_lo: 8;
+    unsigned int f_hi: 10;
+    unsigned int e_lo: 6;
+    unsigned int g_hi: 12;
+    unsigned int f_lo: 4;
+    unsigned int h: 14;     // even lines: green; odd lines: blue
+    unsigned int g_lo: 2;
+} __attribute__((packed,aligned(2)));
+
+#define SET_PA(x) { int v = (x); p->a = v; }
+#define SET_PB(x) { int v = (x); p->b_lo = v; p->b_hi = v >> 12; }
+#define SET_PC(x) { int v = (x); p->c_lo = v; p->c_hi = v >> 10; }
+#define SET_PD(x) { int v = (x); p->d_lo = v; p->d_hi = v >> 8; }
+#define SET_PE(x) { int v = (x); p->e_lo = v; p->e_hi = v >> 6; }
+#define SET_PF(x) { int v = (x); p->f_lo = v; p->f_hi = v >> 4; }
+#define SET_PG(x) { int v = (x); p->g_lo = v; p->g_hi = v >> 2; }
+#define SET_PH(x) { int v = (x); p->h = v; }
+
+static void raw_pack14(uint16_t* buf16, struct raw_pixblock * buf14, int N)
+{
+    fprintf(stderr, "[CAPTURE] Packing %d pixels to 14-bit...\n", N);
+
+    for (int i = 0; i < N; i += 8)
+    {
+        struct raw_pixblock * p = buf14 + i/8;
+        SET_PA(buf16[i]);
+        SET_PB(buf16[i+1]);
+        SET_PC(buf16[i+2]);
+        SET_PD(buf16[i+3]);
+        SET_PE(buf16[i+4]);
+        SET_PF(buf16[i+5]);
+        SET_PG(buf16[i+6]);
+        SET_PH(buf16[i+7]);
+    }
+}
+
+/* inp: malloc'd buffer (will be freed)
+ * w, h: input size
+ * W, H: output size
+ * returns: output buffer (malloc'd)
+ */
+static uint16_t * pad_pgm(uint16_t * inp, int w, int h, int W, int H)
+{
+    fprintf(stderr, "[CAPTURE] Padding from %dx%d to %dx%d...\n", w, h, W, H);
+    uint16_t * out = malloc(W * H * 2);
+    assert(out);
+ 
+    for (int yo = 0; yo < H; yo++)
+    {
+        for (int xo = 0; xo < W; xo++)
+        {
+            /* assume the right and bottom offsets are 0 (5D3) */
+            int xi = COERCE(xo - (W - w), 0, w);
+            int yi = COERCE(yo - (H - h), 0, h);
+            uint16_t p = inp[xi + yi * w];
+            out[xo + yo * W] = p;
+        }
+    }
+    free(inp);
+    return out;
+}
+
+static void load_fullres_14bit_raw(EOSState *s, void * buf, int requested_width, int requested_height)
+{
+    /* todo: autodetect all DNG files and cycle between them */
+    const char * user_filename = getenv("QEMU_EOS_VRAM_PH_QR_RAW");
+
+    const char * filename = (user_filename && user_filename[0])
+        ? user_filename
+        : eos_get_cam_path(s, "VRAM/PH-QR/RAW-000.DNG");
+
+    fprintf(stderr, "[CAPTURE] Loading photo raw data from %s (expecting %dx%d)...\n",
+        filename, requested_width, requested_height
+    );
+    int width, height;
+    uint16_t * pgm = load_pgm(filename, &width, &height);
+    if (pgm)
+    {
+        if (width != requested_width ||
+            height != requested_height)
+        {
+            /* pgm will be reallocated here */
+            pgm = pad_pgm(pgm, width, height, requested_width, requested_height);
+        }
+    
+        raw_pack14(pgm, buf, requested_width * requested_height);
+        free(pgm); pgm = 0;
+    }
+    else
+    {
+        fprintf(stderr, "[CAPTURE] %s load error; generating random noise\n", filename);
+        for (int i = 0; i < requested_width * requested_height; i++)
+        {
+            ((uint8_t*)buf)[i] = rand();
+        }
+    }
+}
+
 unsigned int eos_handle_cartridge ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
     io_log("Cartridge", s, address, type, value, 0, 0, 0, 0);
@@ -354,27 +512,22 @@ static int edmac_do_transfer(EOSState *s, int channel)
         {
             /* sensor data? */
             s->edmac.conn_data[conn].buf = malloc(transfer_data_size);
+            assert(s->edmac.conn_data[conn].buf);
             s->edmac.conn_data[conn].data_size = transfer_data_size;
 
-            /* todo: autodetect all DNG files and cycle between them */
-            const char * filename = eos_get_cam_path(s, "VRAM/PH-QR/RAW-000.DNG");
-            FILE* f = fopen(filename, "rb");
-            if (f)
+            if (xb == 0x20)
             {
-                fprintf(stderr, "Loading photo raw data from %s...\n", filename);
-                /* fixme: hardcoded DNG offset */
-                fseek(f, 33792, SEEK_SET);
-                assert(fread(s->edmac.conn_data[conn].buf, 1, transfer_data_size, f) == transfer_data_size);
-                fclose(f);
-                reverse_bytes_order(s->edmac.conn_data[conn].buf, transfer_data_size);
+                /* not sure what's up with that - just zero it out */
+                fprintf(stderr, "[CAPTURE] FIXME: what should we do here?\n");
+                memset(s->edmac.conn_data[conn].buf, 0, transfer_data_size);
             }
             else
             {
-                fprintf(stderr, "%s not found; generating random noise\n", filename);
-                for (int i = 0; i < transfer_data_size; i++)
-                {
-                    ((uint8_t*)s->edmac.conn_data[conn].buf)[i] = rand();
-                }
+                /* assume either "Simplest WxH" or "xa, xb, xn" - http://www.magiclantern.fm/forum/index.php?topic=18315.0 */
+                int raw_width = xb * 8/14;
+                int raw_height = yb ? yb + 1 : xn + 1;
+                assert(raw_width * raw_height * 14/8 == transfer_data_size);
+                load_fullres_14bit_raw(s, s->edmac.conn_data[conn].buf, raw_width, raw_height);
             }
         }
         

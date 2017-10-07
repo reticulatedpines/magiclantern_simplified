@@ -819,6 +819,18 @@ Useful: eos_get_current_task_name/id/stack, eos_mem_read/write.
 To customize keys or add support for new buttons or GUI events,
 edit ``mpu.c``, ``button_codes.h`` and ``extract_buton_codes.py``. 
 
+Image capture emulation
+```````````````````````
+
+WIP, still pretty rough.
+
+To capture a full-res image (aka FRSP) using a CR2 as reference data for the virtual sensor:
+
+.. code:: shell
+
+    make -C ../magic-lantern/minimal/qemu-frsp MODEL=5D3 CONFIG_QEMU=y clean install_qemu
+    env QEMU_EOS_VRAM_PH_QR_RAW='/path/to/IMG_1234.CR2' ./run_canon_fw.sh 5D3,firmware="boot=1"
+
 Adding support for a new camera model
 `````````````````````````````````````
 
