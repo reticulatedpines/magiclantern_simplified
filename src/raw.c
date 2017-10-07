@@ -1968,15 +1968,19 @@ static int autodetect_white_level(int initial_guess)
     qprintf("[WL] initial guess: %d\n", initial_guess);
     int white = initial_guess;
 
-    /* build a temporary histogram */
-    int * hist = malloc(16384 * sizeof(hist[0]));
+    /* build a temporary 9-bit histogram, binning every 2^5 = 32 levels */
+    /* the clipping may not be harsh (especially at long exposures)
+     * if we reduce the bit depth, the clipping point will span
+     * only one or two levels - easier to detect */
+    const int bin = 5;
+    int * hist = malloc((16384 >> bin) * sizeof(hist[0]));
     if (!hist)
     {
         /* oops */
         ASSERT(0);
         return initial_guess;
     }
-    memset(hist, 0, 16384 * sizeof(hist[0]));
+    memset(hist, 0, (16384 >> bin) * sizeof(hist[0]));
 
     int raw_height = raw_info.active_area.y2 - raw_info.active_area.y1;
     for (int y = raw_info.active_area.y1 + raw_height/10; y < raw_info.active_area.y2 - raw_height/10; y += 3)
@@ -1992,31 +1996,25 @@ static int autodetect_white_level(int initial_guess)
             /* a is red or green, b is green or blue */
             int a = p->a;
             int b = p->h;
-            hist[a]++;
-            hist[b]++;
+            hist[a >> bin]++;
+            hist[b >> bin]++;
         }
     }
 
-    int total = 0;
-    for (int i = 0; i < 16384; i++)
-    {
-        total += hist[i];
-    }
-
     int acc = 0;
-    for (int i = 16383; i >= MAX(initial_guess, 10); i--)
+    for (int i = (16384 >> bin) - 1; i >= MAX(initial_guess >> bin, 5); i--)
     {
-        qprintf("[WL] %d: %d\n", i, hist[i]);
+        qprintf("[WL] %d: %d\n", i << bin, hist[i]);
         /* the peak should be much bigger than what's after it,
          * and at least 10 overexposed pixels */
         if (hist[i] + hist[i-1] > 10 + acc * 100)
         {
-            qprintf("[WL] peak at %d:%d (count=%d+%d above=%d left=%d,%d,%d)\n", i, i+1, hist[i-1], hist[i], acc, hist[i-2], hist[i-3], hist[i-4]);
+            qprintf("[WL] peak at %d:%d (count=%d+%d above=%d left=%d,%d,%d)\n", i << bin, (i+1) << bin, hist[i-1], hist[i], acc, hist[i-2], hist[i-3], hist[i-4]);
             /* the peak should also be much bigger than what's before it */
             if (hist[i-2] + hist[i-3] + hist[i-4] < (hist[i] + hist[i-1]) / 10)
             {
                 qprintf("[WL] peak confirmed.\n");
-                white = i - 2;
+                white = (i - 3) << bin;
                 break;
             }
         }
@@ -2025,7 +2023,7 @@ static int autodetect_white_level(int initial_guess)
         {
             /* if we are not going to find a peak,
              * assume the image is not overexposed */
-            white = i;
+            white = (i + 1) << bin;
         }
 
         acc += hist[i];
