@@ -46,6 +46,30 @@ static int mpu_init_spell_count = 0;
 #include "mpu_spells/EOSM.h"
 #include "mpu_spells/EOSM2.h"
 
+#include "mpu_spells/known_spells.h"
+
+static const char * mpu_spell_generic_description(uint16_t * spell)
+{
+    for (int i = 0; i < COUNT(known_spells); i++)
+    {
+        if (spell[0] && spell[1])
+        {
+            if (spell[2] == 6)
+            {
+                return "GUI_SWITCH";
+            }
+
+            if (spell[2] == known_spells[i].class &&
+                spell[3] == known_spells[i].id)
+            {
+                return known_spells[i].description;
+            }
+        }
+    }
+
+    return 0;
+}
+
 static void mpu_send_next_spell(EOSState *s)
 {
     if (s->mpu.sq_head != s->mpu.sq_tail)
@@ -62,7 +86,9 @@ static void mpu_send_next_spell(EOSState *s)
         {
             MPU_EPRINTF0("%02x ", s->mpu.out_spell[i]);
         }
-        MPU_EPRINTF0("\n");
+
+        const char * desc = mpu_spell_generic_description(s->mpu.out_spell);
+        MPU_EPRINTF0(" (%s)\n", desc ? desc : KLRED"unnamed"KRESET);
 
         s->mpu.out_char = -2;
 
@@ -221,12 +247,11 @@ static void mpu_interpret_command(EOSState *s)
     {
         if (match_spell(s->mpu.recv_buffer+1, mpu_init_spells[spell_set].in_spell+1))
         {
-            MPU_EPRINTF0(
-                " (%s%sspell #%d)\n",
-                mpu_init_spells[spell_set].description ? mpu_init_spells[spell_set].description : "",
-                mpu_init_spells[spell_set].description ? " - " : "",
-                spell_set+1
-            );
+            const char * desc = (mpu_init_spells[spell_set].description)
+                ? mpu_init_spells[spell_set].description
+                : mpu_spell_generic_description(mpu_init_spells[spell_set].in_spell);
+
+            MPU_EPRINTF0(" (%s - spell #%d)\n", desc ? desc : KLRED"unnamed"KRESET, spell_set+1);
             
             int out_spell;
             for (out_spell = 0; mpu_init_spells[spell_set].out_spells[out_spell][0]; out_spell++)
@@ -248,8 +273,10 @@ static void mpu_interpret_command(EOSState *s)
             return;
         }
     }
-    
-    MPU_EPRINTF0(" (unknown spell)\n");
+
+    const char * desc = mpu_spell_generic_description(s->mpu.recv_buffer);
+
+    MPU_EPRINTF0(" ("KLRED"unknown - %s"KRESET")\n", desc ? desc : "unnamed");
 }
 
 void mpu_handle_sio3_interrupt(EOSState *s)
