@@ -113,7 +113,7 @@ static struct mpu_init_spell mpu_init_spells_70D[] = {
         { 0 } } },
     { { 0x0a, 0x08, 0x03, 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00 }, .description = "PROP 80030007", .out_spells = { /* spell #12 */
         { 0 } } },
-    { { 0x08, 0x07, 0x01, 0x2a, 0x16, 0xf3, 0x00, 0x00 }, .description = "PROP_CARD2_FILE_NUMBER", .out_spells = { /* spell #13 */
+    { { 0x08, 0x07, 0x01, 0x2a, ARG0, ARG1, 0x00, ARG2 }, .description = "PROP_CARD2_FILE_NUMBER", .out_spells = { /* spell #13 */
         { 0 } } },
     { { 0x06, 0x05, 0x03, 0x07, 0x0e, 0x00 }, .description = "PROP_BURST_COUNT", .out_spells = { /* spell #14 */
         { 0 } } },
@@ -212,9 +212,9 @@ static struct mpu_init_spell mpu_init_spells_70D[] = {
         { 0 } } },
     { { 0x06, 0x05, 0x03, 0x69, 0x00, 0x00 }, {                 /* spell #52 */
         { 0 } } },
-    { { 0x08, 0x07, 0x01, 0x2a, 0x16, 0xf3, 0x00, 0x00 }, .description = "PROP_CARD2_FILE_NUMBER", .out_spells = { /* spell #53 */
+    { { 0x08, 0x07, 0x01, 0x2a, ARG0, ARG1, 0x00, ARG2 }, .description = "PROP_CARD2_FILE_NUMBER", .out_spells = { /* spell #53 */
         { 0 } } },
-    { { 0x08, 0x07, 0x01, 0x2a, 0x16, 0xf3, 0x00, 0x00 }, .description = "PROP_CARD2_FILE_NUMBER", .out_spells = { /* spell #54 */
+    { { 0x08, 0x07, 0x01, 0x2a, ARG0, ARG1, 0x00, ARG2 }, .description = "PROP_CARD2_FILE_NUMBER", .out_spells = { /* spell #54 */
         { 0 } } },
     { { 0x06, 0x05, 0x03, 0x19, 0x01, 0x00 }, .description = "PROP_TFT_STATUS", .out_spells = { /* spell #55 */
         { 0 } } },

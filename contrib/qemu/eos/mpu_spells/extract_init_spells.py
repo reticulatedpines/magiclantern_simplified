@@ -84,7 +84,7 @@ known_spells = {
     "03 06"  :   ("PROP_AVAIL_SHOT",),
     "03 04"  :   ("PROP_POWER_KIND",),
     "03 05"  :   ("PROP_POWER_LEVEL",),
-    "03 07"  :   ("PROP_BURST_COUNT",            (4, "ARG0")),
+    "03 07"  :   ("PROP_BURST_COUNT",),
     "03 0b"  :   ("PROP 80030007",),
     "03 0c"  :   ("PROP_CARD1_RECORD",),
     "03 0d"  :   ("PROP_CARD2_RECORD",),
@@ -228,6 +228,7 @@ for l in lines:
     if m:
         last_mpu_timestamp = timestamp
         spell = m.groups()[0].strip()
+        parm_spell = spell
 
         if first_send or not first_mpu_send_only:
             first_send = False
@@ -246,14 +247,15 @@ for l in lines:
                 print("        { 0 } } },")
 
             description = ""
-            
+
             if spell[6:11] in known_spells:
                 metadata = known_spells[spell[6:11]]
                 description = metadata[0]
-                # fixme
-                #if len(metadata) > 1:
-                #    for pos,newarg in metadata[1:]:
-                #        spell = replace_spell_arg(spell, pos, newarg)
+
+                # parameterized spell?
+                if len(metadata) > 1:
+                    for pos,newarg in metadata[1:]:
+                        parm_spell = replace_spell_arg(parm_spell, pos, newarg)
 
             if spell.startswith("08 06 00 00 "):
                 description = "Complete WaitID ="
@@ -282,14 +284,14 @@ for l in lines:
             if commented_block:
                 # commented blocks are not numbered, to match the numbers used at runtime
                 if description:
-                    print(" // { %-58s" % (format_spell(spell) + ", .description = \"" + description + "\", .out_spells = { "))
+                    print(" // { %-58s" % (format_spell(parm_spell) + ", .description = \"" + description + "\", .out_spells = { "))
                 else:
-                    print(" // { %-58s" % (format_spell(spell) + ", {"))
+                    print(" // { %-58s" % (format_spell(parm_spell) + ", {"))
             else:
                 if description:
-                    print("    { %-58s/* spell #%d */" % (format_spell(spell) + ", .description = \"" + description + "\", .out_spells = { ", num))
+                    print("    { %-58s/* spell #%d */" % (format_spell(parm_spell) + ", .description = \"" + description + "\", .out_spells = { ", num))
                 else:
-                    print("    { %-58s/* spell #%d */" % (format_spell(spell) + ", {", num))
+                    print("    { %-58s/* spell #%d */" % (format_spell(parm_spell) + ", {", num))
 
             processed_spells[spell] = True
 
@@ -335,15 +337,25 @@ for l in lines:
             description += ", bindReceiveSwitch(%d, %d)" % (args[0], args[1])
             description = description[2:]
 
-        elif reply[6:11] in known_spells:
+        if reply[6:11] in known_spells:
             metadata = known_spells[reply[6:11]]
-            description = metadata[0]
-            args = []
-            if len(metadata) > 1:
+
+            # generic description from name and arguments
+            if not description:
+                description = metadata[0]
+                args = []
                 for pos,newarg in metadata[1:]:
                     args.append(reply.split(" ")[pos])
-            if args:
-                description += "(%s)" % ", ".join(args)
+                if args:
+                    description += "(%s)" % ", ".join(args)
+
+            # replace parameters with ARG0, ARG1 etc where the choice is obvious
+            for pos,newarg in metadata[1:]:
+                if reply[6:11] == spell[6:11] and \
+                   len(reply.split(" ")) == len(spell.split(" ")):          # same length?
+                      assert newarg == parm_spell.split(" ")[pos]           # same arg in this position?
+                      assert reply.split(" ")[pos] == spell.split(" ")[pos] # same numeric argument?
+                      reply = replace_spell_arg(reply, pos, newarg)
 
         # disable sensor cleaning
         if description == "PROP_ACTIVE_SWEEP_STATUS":

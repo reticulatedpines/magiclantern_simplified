@@ -64,17 +64,17 @@ static struct mpu_init_spell mpu_init_spells_500D[] = {
         { 0 } } },
     { { 0x06, 0x05, 0x04, 0x0e, 0x01, 0x00 }, {                 /* spell #8 */
         { 0 } } },
-    { { 0x08, 0x06, 0x01, 0x24, 0x00, 0x01, 0x00 }, .description = "PROP_CARD2_STATUS", .out_spells = { /* spell #9 */
-        { 0x08, 0x06, 0x01, 0x24, 0x00, 0x01, 0x00 },           /* reply #9.1, PROP_CARD2_STATUS(01) */
+    { { 0x08, 0x06, 0x01, 0x24, 0x00, ARG0, 0x00 }, .description = "PROP_CARD2_STATUS", .out_spells = { /* spell #9 */
+        { 0x08, 0x06, 0x01, 0x24, 0x00, ARG0, 0x00 },           /* reply #9.1, PROP_CARD2_STATUS(01) */
         { 0 } } },
-    { { 0x08, 0x06, 0x01, 0x27, 0x00, 0x65, 0x00 }, .description = "PROP_CARD2_FOLDER_NUMBER", .out_spells = { /* spell #10 */
+    { { 0x08, 0x06, 0x01, 0x27, 0x00, ARG0, 0x00 }, .description = "PROP_CARD2_FOLDER_NUMBER", .out_spells = { /* spell #10 */
         { 0 } } },
     { { 0x06, 0x05, 0x03, 0x07, 0x09, 0x00 }, .description = "PROP_BURST_COUNT", .out_spells = { /* spell #11 */
         { 0x06, 0x05, 0x06, 0x13, 0x00, 0x00 },                 /* reply #11.1, bindReceiveSwitch(19, 0) */
         { 0 } } },
     { { 0x0a, 0x08, 0x03, 0x06, 0x00, 0x00, 0x00, 0x15, 0x00 }, .description = "PROP_AVAIL_SHOT", .out_spells = { /* spell #12 */
         { 0 } } },
-    { { 0x08, 0x07, 0x01, 0x2a, 0x22, 0x79, 0x00, 0x00 }, .description = "PROP_CARD2_FILE_NUMBER", .out_spells = { /* spell #13 */
+    { { 0x08, 0x07, 0x01, 0x2a, ARG0, ARG1, 0x00, ARG2 }, .description = "PROP_CARD2_FILE_NUMBER", .out_spells = { /* spell #13 */
         { 0 } } },
     { { 0x06, 0x05, 0x03, 0x11, 0x01, 0x00 }, {                 /* spell #14 */
         { 0 } } },
