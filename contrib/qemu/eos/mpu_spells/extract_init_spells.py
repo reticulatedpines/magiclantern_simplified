@@ -7,24 +7,120 @@ from __future__ import print_function
 import os, sys, re
 from outils import *
 
+# first two chars are message size, next two chars identify the property
+# the following spells are indexed by spell[6:11], e.g. "06 05 04 00 ..." => "04 00"
 known_spells = {
-    "06 04 02 00 "  :   ("Init",                                   ),
-    "06 05 01 00 "  :   ("PROP_SHOOTING_MODE",          (4, "ARG0")),
-    "06 05 03 07 "  :   ("PROP_BURST_COUNT",            (4, "ARG0")),
-    "06 05 04 00 "  :   ("NotifyGUIEvent",),
-    "06 05 04 01 "  :   ("PROP_ICU_UILOCK",             (4, "ARG0")),
-    "08 06 01 23 "  :   ("PROP_CARD1_STATUS",           (4, "ARG0"), (5, "ARG1")),
-    "08 06 01 24 "  :   ("PROP_CARD2_STATUS",           (4, "ARG0"), (5, "ARG1")),
-    "08 06 01 27 "  :   ("PROP_CARD1_FOLDER_NUMBER",    (4, "ARG0"), (5, "ARG1")),
-    "08 06 01 28 "  :   ("PROP_CARD2_FOLDER_NUMBER",    (4, "ARG0"), (5, "ARG1")),
-    "08 06 01 29 "  :   ("PROP_CARD1_FILE_NUMBER",      (4, "ARG0"), (5, "ARG1")),
-    "08 06 01 2a "  :   ("PROP_CARD2_FILE_NUMBER",      (4, "ARG0"), (5, "ARG1")),
-    "08 07 01 29 "  :   ("PROP_CARD1_FILE_NUMBER",      (4, "ARG0"), (5, "ARG1"), (7, "ARG2")),
-    "08 07 01 2a "  :   ("PROP_CARD2_FILE_NUMBER",      (4, "ARG0"), (5, "ARG1"), (7, "ARG2")),
-    "0a 08 03 06 "  :   ("PROP_AVAIL_SHOT",),
-    "0a 08 03 0b "  :   ("PROP 80030007",),
-    "06 04 03 10 "  :   ("PROP 80030008",),
+    "00 00"  :   ("Complete WaitID",),
+    "01 00"  :   ("PROP_SHOOTING_MODE",          (4, "ARG0")),
+    "01 02"  :   ("PROP_METERING_MODE",),
+    "01 03"  :   ("PROP_DRIVE_MODE",),
+    "01 04"  :   ("PROP_AF_MODE",),
+    "01 05"  :   ("PROP_SHUTTER",),
+    "01 06"  :   ("PROP_APERTURE",),
+    "01 07"  :   ("PROP_ISO",),
+    "01 08"  :   ("PROP_AE",),
+    "01 09"  :   ("PROP_FEC",),
+    "01 0b"  :   ("PROP_AEB",),
+    "01 0d"  :   ("PROP_WB_MODE_PH",),
+    "01 0e"  :   ("PROP_WB_KELVIN_PH",),
+    "01 10"  :   ("PROP_WBS_GM",),
+    "01 11"  :   ("PROP_WBS_BA",),
+    "01 12"  :   ("PROP_WBB_GM",),
+    "01 13"  :   ("PROP_WBB_BA",),
+    "01 1d"  :   ("PROP_PICTURE_STYLE",),
+    "01 1f"  :   ("PROP_AUTO_POWER_OFF",),
+    "01 21"  :   ("PROP_CARD1_EXISTS",),
+    "01 20"  :   ("PROP_CARD2_EXISTS",),
+    "01 22"  :   ("PROP_CARD3_EXISTS",),
+    "01 23"  :   ("PROP_CARD1_STATUS",           (5, "ARG0")),
+    "01 24"  :   ("PROP_CARD2_STATUS",           (5, "ARG0")),
+    "01 25"  :   ("PROP_CARD3_STATUS",           (5, "ARG0")),
+    "01 26"  :   ("PROP_CARD1_FOLDER_NUMBER",    (5, "ARG0")),
+    "01 27"  :   ("PROP_CARD2_FOLDER_NUMBER",    (5, "ARG0")),
+    "01 28"  :   ("PROP_CARD3_FOLDER_NUMBER",    (5, "ARG0")),
+    "01 29"  :   ("PROP_CARD1_FILE_NUMBER",      (4, "ARG0"), (5, "ARG1"), (7, "ARG2")),
+    "01 2a"  :   ("PROP_CARD2_FILE_NUMBER",      (4, "ARG0"), (5, "ARG1"), (7, "ARG2")),
+    "01 2b"  :   ("PROP_CARD3_FILE_NUMBER",      (4, "ARG0"), (5, "ARG1"), (7, "ARG2")),
+    "01 2c"  :   ("PROP_CURRENT_MEDIA",),
+    "01 30"  :   ("PROP_BEEP",),
+    "01 31"  :   ("PROP_RELEASE_WITHOUT_CARD",),
+    "01 32"  :   ("PROP_RED_EYE",),
+    "01 34"  :   ("PROP_PIC_QUALITY1",),
+    "01 35"  :   ("PROP_PIC_QUALITY2",),
+    "01 36"  :   ("PROP_PIC_QUALITY3",),
+    "01 37"  :   ("PROP_CARD_SELECT",),
+    "01 39"  :   ("PROP_EXTERNAL_FLASH_SETTINGS",),
+    "01 3e"  :   ("PROP_SILENT_SHOOTING",),
+    "01 3f"  :   ("PROP_FLASH_ENABLE",),
+    "01 42"  :   ("PROP_STUDIO_MODE",),
+    "01 45"  :   ("PROP_METERING_TIMER",),
+    "01 47"  :   ("PROP_SELFTIMER_CONTINUOUS_NUM",),
+    "01 48"  :   ("PROP_LIVE_VIEW_ENABLE",),
+    "01 49"  :   ("PROP_LIVE_VIEW_AF_MODE",),
+    "01 4b"  :   ("PROP_LIVE_VIEW_MOVIE_SELECT",),
+    "01 4d"  :   ("PROP_VIEWFINDER_GRID",),
+    "01 4e"  :   ("PROP_VIDEO_MODE",),
+    "01 51"  :   ("PROP_AUTO_ISO_RANGE",),
+    "01 52"  :   ("PROP_ALO",),
+    "01 53"  :   ("PROP_AF_DURING_RECORD",),
+    "01 55"  :   ("PROP_MULTIPLE_EXPOSURE",),
+    "01 58"  :   ("PROP_VIDEO_SNAPSHOT",),
+    "01 59"  :   ("PROP_MOVIE_SERVO_AF",),
+    "01 69"  :   ("PROP_VIEWFINDER_ILLUMINATION",),
+    "01 6e"  :   ("PROP_ISO_RANGE",),
+    "01 70"  :   ("PROP_HDR_MODE",),
+    "01 72"  :   ("PROP_MLU",),
+    "01 73"  :   ("PROP_LONGEXPO_NOISE_REDUCTION",),
+    "01 74"  :   ("PROP_HIGHISO_NOISE_REDUCTION",),
+    "01 75"  :   ("PROP_HTP",),
+    "01 79"  :   ("PROP_AF_PRESET",),
+    "02 00"  :   ("Init",),
+    "02 04"  :   ("PROP_CFN",),
+    "02 05"  :   ("PROP_CFN_1",),
+    "02 06"  :   ("PROP_CFN_2",),
+    "02 07"  :   ("PROP_CFN_3",),
+    "02 08"  :   ("PROP_CFN_4",),
+    "02 0f"  :   ("PROP_VIDEO_MODE",),
+    "03 06"  :   ("PROP_AVAIL_SHOT",),
+    "03 04"  :   ("PROP_POWER_KIND",),
+    "03 05"  :   ("PROP_POWER_LEVEL",),
+    "03 07"  :   ("PROP_BURST_COUNT",            (4, "ARG0")),
+    "03 0b"  :   ("PROP 80030007",),
+    "03 0c"  :   ("PROP_CARD1_RECORD",),
+    "03 0d"  :   ("PROP_CARD2_RECORD",),
+    "03 0e"  :   ("PROP_CARD3_RECORD",),
+    "03 10"  :   ("PROP 80030008",),
+    "03 16"  :   ("PROP_BATTERY_CHECK",),
+    "03 19"  :   ("PROP_TFT_STATUS",),
+    "03 1d"  :   ("PROP_BATTERY_REPORT",),
+    "03 34"  :   ("Current Q position",),
+    "03 3a"  :   ("PROP_ROLLING_PITCHING_LEVEL",),
+    "03 3d"  :   ("PROP_VIDEO_SYSTEM",),
+    "03 54"  :   ("PROP_MPU_GPS",),
+    "04 00"  :   ("NotifyGUIEvent",),
+    "04 01"  :   ("PROP_ICU_UILOCK",             (4, "ARG0")),
+    "04 0d"  :   ("PROP_ACTIVE_SWEEP_STATUS",),
+    "04 1a"  :   ("PROP_RAISE_BUILTIN_FLASH",),
+    "05 00"  :   ("EVENTID_METERING_START",),
+    "05 01"  :   ("SHUTTER_RELEASE_START",),
+    "05 03"  :   ("PROP_ORIENTATION",),
+    "05 04"  :   ("SHUTTER_RELEASE_END",),
+    "05 06"  :   ("SHUTTER_RELEASE_CANCEL",),
+    "05 07"  :   ("EVENTID_METERING_STOP",),
+    "05 0b"  :   ("EVENTID_METERING_TIMER_START",),
+    "05 0e"  :   ("SHUTTER_RELEASE related",),
+    "05 0f"  :   ("SHUTTER_RELEASE related",),
+    "09 00"  :   ("PROP_LV_LENS",),
+    "09 01"  :   ("PROP_LV_LENS_DRIVE_REMOTE",),
+    "09 05"  :   ("PROP_LV_EMD_DRIVE_RESULT",),
+    "09 0b"  :   ("PROP_LV_AF_RESULT",),
+    "09 13"  :   ("PROP_LV_AF related",),
+    "0a 08"  :   ("PD_NotifyOlcInfoChanged",),
 }
+
+# our MPU messages from logs are printed in lower case
+for a in known_spells.keys():
+    assert a == a.lower()
 
 first_mpu_send_only = False
 
@@ -119,18 +215,19 @@ for l in lines:
             else: print("        { 0 } } },")
 
             description = ""
-            if waitid_prop:
-                assert spell.startswith("08 06 00 00 ")
-                description = "Complete WaitID = %s" % waitid_prop
-                waitid_prop = None
             
-            if spell[:12] in known_spells:
-                metadata = known_spells[spell[:12]]
+            if spell[6:11] in known_spells:
+                metadata = known_spells[spell[6:11]]
                 description = metadata[0]
                 # fixme
                 #if len(metadata) > 1:
                 #    for pos,newarg in metadata[1:]:
                 #        spell = replace_spell_arg(spell, pos, newarg)
+
+            if waitid_prop:
+                assert spell.startswith("08 06 00 00 ")
+                description = "Complete WaitID = %s" % waitid_prop
+                waitid_prop = None
 
             if description:
                 print("    { %-58s/* spell #%d */" % (format_spell(spell) + ", .description = \"" + description + "\", .out_spells = { ", num))
@@ -146,6 +243,8 @@ for l in lines:
 
         cmt = "  "
         warning = ""
+        description = ""
+
         dt = timestamp - last_mpu_timestamp
         if dt > 100000:
             warning = "delayed by %d ms, likely external input" % (dt/1000)
@@ -168,7 +267,6 @@ for l in lines:
 
         print("     %s %-56s/* reply #%d.%d" % (cmt, format_spell(reply) + ",", num, num2), end="")
 
-        description = ""
         if reply.startswith("06 05 06 "):
             args = reply.split(" ")[3:5]
             args = tuple([int(a,16) for a in args])
@@ -180,23 +278,8 @@ for l in lines:
             description += ", bindReceiveSwitch(%d, %d)" % (args[0], args[1])
             description = description[2:]
 
-        if reply.startswith("06 05 04 00 "):
-            arg = int(reply.split(" ")[4], 16)
-            description = "PROP_GUI_STATE(%d)" % arg
-
-        elif reply[5:].startswith(" 0a 08 "):
-            description = "PD_NotifyOlcInfoChanged"
-
-        elif reply.startswith("08 06 01 23 00 "):
-            arg = int(reply.split(" ")[5], 16)
-            description = "PROP_CARD1_STATUS(%d)" % arg
-
-        elif reply.startswith("08 06 01 24 00 "):
-            arg = int(reply.split(" ")[5], 16)
-            description = "PROP_CARD2_STATUS(%d)" % arg
-
-        elif reply[:12] in known_spells:
-            metadata = known_spells[reply[:12]]
+        elif reply[6:11] in known_spells:
+            metadata = known_spells[reply[6:11]]
             description = metadata[0]
             args = []
             if len(metadata) > 1:
