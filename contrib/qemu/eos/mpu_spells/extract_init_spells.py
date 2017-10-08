@@ -253,10 +253,12 @@ for l in lines:
                 #    for pos,newarg in metadata[1:]:
                 #        spell = replace_spell_arg(spell, pos, newarg)
 
-            if waitid_prop:
-                assert spell.startswith("08 06 00 00 ")
-                description = "Complete WaitID = %s" % waitid_prop
-                waitid_prop = None
+            if spell.startswith("08 06 00 00 "):
+                description = "Complete WaitID ="
+                if waitid_prop:
+                    description += " " + waitid_prop
+                if spell[12:17] in known_spells:
+                    description += " " + known_spells[spell[12:17]][0]
 
             # comment out NotifyGuiEvent / PROP_GUI_STATE and its associated Complete WaitID
             if description == "NotifyGUIEvent" or description == "Complete WaitID = 0x80020000":

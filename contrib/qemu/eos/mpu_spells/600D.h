@@ -36,7 +36,7 @@ static struct mpu_init_spell mpu_init_spells_600D[] = {
         { 0x06, 0x05, 0x01, 0x3f, 0x00, 0x00 },                 /* reply #1.31, PROP_FLASH_ENABLE */
         { 0x08, 0x06, 0x01, 0x57, 0x00, 0x01, 0x00 },           /* reply #1.32 */
         { 0 } } },
-    { { 0x08, 0x06, 0x00, 0x00, 0x02, 0x00, 0x00 }, .description = "Complete WaitID = 0x80000001", .out_spells = { /* spell #2 */
+    { { 0x08, 0x06, 0x00, 0x00, 0x02, 0x00, 0x00 }, .description = "Complete WaitID = 0x80000001 Init", .out_spells = { /* spell #2 */
         { 0x1a, 0x18, 0x01, 0x4e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1e, 0x00, 0x00, 0x00, 0x0f, 0x00, 0x00, 0x00, 0x00, 0x00 },/* reply #2.1, PROP_VIDEO_MODE */
         { 0x06, 0x05, 0x01, 0x48, 0x01, 0x00 },                 /* reply #2.2, PROP_LIVE_VIEW_ENABLE */
         { 0x06, 0x05, 0x01, 0x53, 0x00, 0x00 },                 /* reply #2.3, PROP_AF_DURING_RECORD */
@@ -56,7 +56,7 @@ static struct mpu_init_spell mpu_init_spells_600D[] = {
         { 0x08, 0x07, 0x01, 0x55, 0x00, 0x02, 0x01, 0x01 },     /* reply #2.17, PROP_MULTIPLE_EXPOSURE */
         { 0x08, 0x07, 0x01, 0x55, 0x00, 0x02, 0x01, 0x01 },     /* reply #2.18, PROP_MULTIPLE_EXPOSURE */
         { 0 } } },
-    { { 0x08, 0x06, 0x00, 0x00, 0x01, 0x55, 0x00 }, .description = "Complete WaitID = 0x8000003F", .out_spells = { /* spell #3 */
+    { { 0x08, 0x06, 0x00, 0x00, 0x01, 0x55, 0x00 }, .description = "Complete WaitID = 0x8000003F PROP_MULTIPLE_EXPOSURE", .out_spells = { /* spell #3 */
         { 0 } } },
     { { 0x0a, 0x08, 0x03, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00 }, .description = "PROP_AVAIL_SHOT", .out_spells = { /* spell #4 */
         { 0 } } },
@@ -189,70 +189,70 @@ static struct mpu_init_spell mpu_init_spells_600D[] = {
      // { 0x06, 0x05, 0x04, 0x00, 0x01, 0x01 },                 /* reply #45.3, NotifyGUIEvent */
      // { 0x0e, 0x0c, 0x0a, 0x08, 0x11, 0x00, 0x15, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00 },/* reply #45.4, PD_NotifyOlcInfoChanged */
      // { 0 } } },
- // { { 0x08, 0x06, 0x00, 0x00, 0x04, 0x00, 0x00 }, .description = "Complete WaitID = 0x80020000", .out_spells = { 
-     // { 0 } } },
-    { { 0x06, 0x05, 0x03, 0x34, 0x00, 0x00 }, .description = "Current Q position", .out_spells = { /* spell #45 */
+    { { 0x08, 0x06, 0x00, 0x00, 0x04, 0x00, 0x00 }, .description = "Complete WaitID = 0x80020000 NotifyGUIEvent", .out_spells = { /* spell #45 */
         { 0 } } },
-    { { 0x06, 0x05, 0x03, 0x19, 0x00, 0x00 }, .description = "PROP_TFT_STATUS", .out_spells = { /* spell #46 */
-        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #46.1, GUI_Control:76, bindReceiveSwitch(38, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #46.2, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #46.3, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
-        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #46.4, GUI_Control:76, bindReceiveSwitch(38, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #46.5, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #46.6, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
-        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #46.7, GUI_Control:76, bindReceiveSwitch(38, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #46.8, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #46.9, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
-        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #46.10, GUI_Control:76, bindReceiveSwitch(38, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #46.11, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #46.12, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
-        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #46.13, GUI_Control:76, bindReceiveSwitch(38, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #46.14, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #46.15, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
-        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #46.16, GUI_Control:76, bindReceiveSwitch(38, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #46.17, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #46.18, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
-        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #46.19, GUI_Control:76, bindReceiveSwitch(38, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #46.20, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #46.21, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
-        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #46.22, GUI_Control:76, bindReceiveSwitch(38, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #46.23, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #46.24, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
-        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #46.25, GUI_Control:76, bindReceiveSwitch(38, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #46.26, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #46.27, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
-        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #46.28, GUI_Control:76, bindReceiveSwitch(38, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #46.29, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #46.30, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
-        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #46.31, GUI_Control:76, bindReceiveSwitch(38, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #46.32, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #46.33, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
-        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #46.34, GUI_Control:76, bindReceiveSwitch(38, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #46.35, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #46.36, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
-        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #46.37, GUI_Control:76, bindReceiveSwitch(38, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #46.38, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #46.39, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
-        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #46.40, GUI_Control:76, bindReceiveSwitch(38, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #46.41, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #46.42, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
-        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #46.43, GUI_Control:76, bindReceiveSwitch(38, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #46.44, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #46.45, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
-        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #46.46, GUI_Control:76, bindReceiveSwitch(38, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #46.47, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #46.48, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
-        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #46.49, GUI_Control:76, bindReceiveSwitch(38, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #46.50, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #46.51, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
-        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #46.52, GUI_Control:76, bindReceiveSwitch(38, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #46.53, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #46.54, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
-        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #46.55, GUI_Control:76, bindReceiveSwitch(38, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #46.56, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #46.57, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
-        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #46.58, GUI_Control:76, bindReceiveSwitch(38, 1) */
-     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #46.59, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
+    { { 0x06, 0x05, 0x03, 0x34, 0x00, 0x00 }, .description = "Current Q position", .out_spells = { /* spell #46 */
+        { 0 } } },
+    { { 0x06, 0x05, 0x03, 0x19, 0x00, 0x00 }, .description = "PROP_TFT_STATUS", .out_spells = { /* spell #47 */
+        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #47.1, GUI_Control:76, bindReceiveSwitch(38, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #47.2, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #47.3, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
+        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #47.4, GUI_Control:76, bindReceiveSwitch(38, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #47.5, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #47.6, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
+        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #47.7, GUI_Control:76, bindReceiveSwitch(38, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #47.8, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #47.9, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
+        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #47.10, GUI_Control:76, bindReceiveSwitch(38, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #47.11, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #47.12, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
+        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #47.13, GUI_Control:76, bindReceiveSwitch(38, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #47.14, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #47.15, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
+        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #47.16, GUI_Control:76, bindReceiveSwitch(38, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #47.17, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #47.18, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
+        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #47.19, GUI_Control:76, bindReceiveSwitch(38, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #47.20, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #47.21, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
+        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #47.22, GUI_Control:76, bindReceiveSwitch(38, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #47.23, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #47.24, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
+        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #47.25, GUI_Control:76, bindReceiveSwitch(38, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #47.26, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #47.27, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
+        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #47.28, GUI_Control:76, bindReceiveSwitch(38, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #47.29, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #47.30, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
+        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #47.31, GUI_Control:76, bindReceiveSwitch(38, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #47.32, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #47.33, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
+        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #47.34, GUI_Control:76, bindReceiveSwitch(38, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #47.35, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #47.36, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
+        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #47.37, GUI_Control:76, bindReceiveSwitch(38, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #47.38, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #47.39, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
+        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #47.40, GUI_Control:76, bindReceiveSwitch(38, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #47.41, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #47.42, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
+        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #47.43, GUI_Control:76, bindReceiveSwitch(38, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #47.44, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #47.45, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
+        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #47.46, GUI_Control:76, bindReceiveSwitch(38, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #47.47, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #47.48, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
+        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #47.49, GUI_Control:76, bindReceiveSwitch(38, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #47.50, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #47.51, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
+        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #47.52, GUI_Control:76, bindReceiveSwitch(38, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #47.53, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #47.54, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
+        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #47.55, GUI_Control:76, bindReceiveSwitch(38, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #47.56, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x00, 0x00 },                 /* reply #47.57, BGMT_UNPRESS_RIGHT, GUI_Control:36, bindReceiveSwitch(26, 0) */
+        { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #47.58, GUI_Control:76, bindReceiveSwitch(38, 1) */
+     // { 0x06, 0x05, 0x06, 0x1a, 0x01, 0x00 },                 /* reply #47.59, BGMT_PRESS_RIGHT, GUI_Control:35, bindReceiveSwitch(26, 1) */
         { 0 } } },
 
     #include "NotifyGUIEvent.h"
