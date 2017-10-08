@@ -298,7 +298,8 @@ static int get_default_white_level()
 
         #ifdef CONFIG_100D
         /* http://www.magiclantern.fm/forum/index.php?topic=16040.msg191131#msg191131 */
-        default_white = (lens_info.raw_iso == ISO_100) ? 13500 : 15300;
+        /* 100 units below measured value = about 0.01 EV */
+        default_white = (lens_info.raw_iso == ISO_100) ? 13400 : 15200;
         #endif
 
         /* fixme: hardcoded black level */
