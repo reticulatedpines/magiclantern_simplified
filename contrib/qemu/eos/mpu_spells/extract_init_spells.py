@@ -90,9 +90,11 @@ known_spells = {
     "03 0d"  :   ("PROP_CARD2_RECORD",),
     "03 0e"  :   ("PROP_CARD3_RECORD",),
     "03 10"  :   ("PROP 80030008",),
+    "03 15"  :   ("PROP_LENS",),
     "03 16"  :   ("PROP_BATTERY_CHECK",),
     "03 19"  :   ("PROP_TFT_STATUS",),
     "03 1d"  :   ("PROP_BATTERY_REPORT",),
+    "03 24"  :   ("PROP_LENS_NAME",),
     "03 34"  :   ("Current Q position",),
     "03 3a"  :   ("PROP_ROLLING_PITCHING_LEVEL",),
     "03 3d"  :   ("PROP_VIDEO_SYSTEM",),
@@ -347,6 +349,13 @@ for l in lines:
         if description == "PROP_ACTIVE_SWEEP_STATUS":
             reply = replace_spell_arg(reply, 4, "00")
             warning = ("disabled, " + warning).strip(" ,")
+
+        if description == "PROP_LENS_NAME":
+            description += ": "
+            for ch in reply.split(" ")[4:]:
+                ch = int(ch, 16)
+                if ch:
+                    description += chr(ch)
 
         print("     %s %-56s/* reply #%d.%d" % (cmt, format_spell(reply) + ",", num, num2), end="")
 
