@@ -144,6 +144,8 @@ const struct known_spell known_spells[] = {""")
     raise SystemExit
 
 
+processed_spells = {}
+
 first_mpu_send_only = False
 
 def replace_spell_arg(spell, pos, newarg):
@@ -232,9 +234,14 @@ for l in lines:
             num += 1
             num2 = 0
             
-            if first_block: first_block = False
-            elif commented_block: print("     // { 0 } } },"); commented_block = False
-            else: print("        { 0 } } },")
+            if first_block:
+                first_block = False
+            elif commented_block:
+                print("     // { 0 } } },");
+                commented_block = False
+                num -= 1
+            else:
+                print("        { 0 } } },")
 
             description = ""
             
@@ -251,10 +258,36 @@ for l in lines:
                 description = "Complete WaitID = %s" % waitid_prop
                 waitid_prop = None
 
-            if description:
-                print("    { %-58s/* spell #%d */" % (format_spell(spell) + ", .description = \"" + description + "\", .out_spells = { ", num))
+            # comment out NotifyGuiEvent / PROP_GUI_STATE and its associated Complete WaitID
+            if description == "NotifyGUIEvent" or description == "Complete WaitID = 0x80020000":
+                commented_block = True
+
+            # comment out PROP_ICU_UILOCK - we have it in UILock.h
+            if description == "PROP_ICU_UILOCK":
+                commented_block = True
+
+            # comment out PROP_BATTERY_CHECK
+            if description == "PROP_BATTERY_CHECK":
+                commented_block = True
+
+            # include PROP_BATTERY_REPORT only once
+            if description == "PROP_BATTERY_REPORT":
+                if spell in processed_spells:
+                    commented_block = True
+
+            if commented_block:
+                # commented blocks are not numbered, to match the numbers used at runtime
+                if description:
+                    print(" // { %-58s" % (format_spell(spell) + ", .description = \"" + description + "\", .out_spells = { "))
+                else:
+                    print(" // { %-58s" % (format_spell(spell) + ", {"))
             else:
-                print("    { %-58s/* spell #%d */" % (format_spell(spell) + ", {", num))
+                if description:
+                    print("    { %-58s/* spell #%d */" % (format_spell(spell) + ", .description = \"" + description + "\", .out_spells = { ", num))
+                else:
+                    print("    { %-58s/* spell #%d */" % (format_spell(spell) + ", {", num))
+
+            processed_spells[spell] = True
 
             continue
 
@@ -287,8 +320,6 @@ for l in lines:
                     cmt = "//"
                     warning = ""
 
-        print("     %s %-56s/* reply #%d.%d" % (cmt, format_spell(reply) + ",", num, num2), end="")
-
         if reply.startswith("06 05 06 "):
             args = reply.split(" ")[3:5]
             args = tuple([int(a,16) for a in args])
@@ -309,6 +340,13 @@ for l in lines:
                     args.append(reply.split(" ")[pos])
             if args:
                 description += "(%s)" % ", ".join(args)
+
+        # disable sensor cleaning
+        if description == "PROP_ACTIVE_SWEEP_STATUS":
+            reply = replace_spell_arg(reply, 4, "00")
+            warning = ("disabled, " + warning).strip(" ,")
+
+        print("     %s %-56s/* reply #%d.%d" % (cmt, format_spell(reply) + ",", num, num2), end="")
 
         if description:
             print(", %s" % description, end="")
@@ -331,5 +369,11 @@ for l in lines:
     if m:
         waitid_prop = m.groups()[0]
 
-print("        { 0 } } },")
+print("     // { 0 } } }," if commented_block else "        { 0 } } },")
+print("")
+print('    #include "NotifyGUIEvent.h"')
+print('    #include "UILock.h"')
+print('    #include "CardFormat.h"')
+print('    #include "GPS.h"')
+print('    #include "Shutdown.h"')
 print("};")
