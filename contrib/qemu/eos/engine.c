@@ -161,8 +161,8 @@ static uint16_t * pad_pgm(uint16_t * inp, int w, int h, int W, int H)
         for (int xo = 0; xo < W; xo++)
         {
             /* assume the right and bottom offsets are 0 (5D3) */
-            int xi = COERCE(xo - (W - w), 0, w);
-            int yi = COERCE(yo - (H - h), 0, h);
+            int xi = COERCE(xo - (W - w), 0, w - 1);
+            int yi = COERCE(yo - (H - h), 0, h - 1);
             uint16_t p = inp[xi + yi * w];
             out[xo + yo * W] = p;
         }
