@@ -81,8 +81,8 @@ NSTUB(0xFF0640EC,  SoundDevActiveIn)
 NSTUB(0xFF064304,  SoundDevShutDownIn)
 NSTUB(0xFF061A88,  StartASIFDMAADC)
 NSTUB(0xFF061C44,  StartASIFDMADAC)
-NSTUB(0xFF061C08,  StopASIFDMAADC)                          // Called by SoundDevStopIn
 NSTUB(0xFF061D20,  StopASIFDMADAC)
+// NSTUB(0xFF061C08,  StopASIFDMAADC)                       // Called by SoundDevStopIn - breaks the audio meters
 // NSTUB(    ???,  SetASIFMode)                             /* present on 700D.113 */
 
 /** Audio **/

@@ -91,13 +91,13 @@ NSTUB(0xFF10EE1C,  SetNextASIFDACBuffer)
 NSTUB(0xFF137A68,  SetSamplingRate)
 NSTUB(0xFF10E634,  StartASIFDMAADC)
 NSTUB(0xFF10E7EC,  StartASIFDMADAC)
-NSTUB(0xFF10E7B0,  StopASIFDMAADC)
 NSTUB(0xFF10E8C4,  StopASIFDMADAC)
 // NSTUB(    ???,  PowerMicAmp)                             /* present on 650D.104, EOSM.202, 700D.113 */
 // NSTUB(    ???,  SetASIFMode)                             /* present on 6D.116, 700D.114 */
 // NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
 // NSTUB(    ???,  SoundDevActiveIn)                        /* present on 7D.203, 6D.113, 700D.111, 650D.104, EOSM.202 */
 // NSTUB(    ???,  SoundDevShutDownIn)                      /* present on 7D.203, 6D.113, 700D.111, 650D.104, EOSM.202 */
+// NSTUB(0xFF10E7B0,  StopASIFDMAADC)                       /* causes mlv_snd to crash */
 
 /** Audio **/
 NSTUB(0xFF137020, _audio_ic_read)
