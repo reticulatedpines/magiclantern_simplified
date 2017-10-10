@@ -108,8 +108,8 @@ if [ $(uname) == "Darwin" ]; then
     GREP=ggrep
 fi
 
-if apt-get -v &> /dev/null; then
-    # apt-based system?
+if [  -n "$(uname -a | grep Ubuntu)" ]; then
+    # Ubuntu-based system? (including WSL)
     # install these packages, if not already
     # only request sudo if any of them is missing
     # instead of GTK (libgtk2.0-dev), you may prefer SDL (libsdl1.2-dev)
@@ -235,6 +235,9 @@ if apt-get -v &> /dev/null; then
         echo
         echo "*** Installing dependencies for Ubuntu..."
         echo
+        if [[ "$packages" == *i386* ]]; then
+            sudo dpkg --add-architecture i386
+        fi 
         sudo apt-get update
         sudo apt-get install $packages
         echo
