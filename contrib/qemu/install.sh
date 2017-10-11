@@ -354,6 +354,7 @@ mkdir -p hw/eos
 cp -r ../../$ML/contrib/qemu/eos/* hw/eos/
 cp -r ../../$ML/src/backtrace.[ch] hw/eos/dbi/
 patch -N -p1 < ../../$ML/contrib/qemu/$QEMU_NAME.patch
+patch -N -p1 < ../../$ML/contrib/qemu/$QEMU_NAME-gcc7.patch
 cd ..
 
 # setup the card image
