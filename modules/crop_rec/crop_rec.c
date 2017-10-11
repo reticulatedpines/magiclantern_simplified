@@ -21,6 +21,7 @@
 
 static int is_5D3 = 0;
 static int is_EOSM = 0;
+static int is_650D = 0;
 static int is_700D = 0;
 static int is_100D = 0;
 
@@ -137,6 +138,23 @@ static const char crop_choices_help_700d[] =
     "Change 1080p and 720p movie modes into crop modes (one choice)";
 
 static const char crop_choices_help2_700d[] =
+    "3x3 binning in 720p (square pixels in RAW, vertical crop, up to 1736x688)";
+
+/* menu choices for 650D */
+static enum crop_preset crop_presets_650d[] = {
+    CROP_PRESET_OFF,
+    CROP_PRESET_3x3_1X,
+};
+
+static const char * crop_choices_650d[] = {
+    "OFF",
+    "3x3 720p",
+};
+
+static const char crop_choices_help_650d[] =
+    "Change 1080p and 720p movie modes into crop modes (one choice)";
+
+static const char crop_choices_help2_650d[] =
     "3x3 binning in 720p (square pixels in RAW, vertical crop, up to 1736x688)";
 
 /* camera-specific parameters */
@@ -365,7 +383,7 @@ static int FAST check_cmos_vidmode(uint16_t* data_buf)
             }
         }
         
-        if (is_EOSM || is_700D || is_100D)
+        if (is_EOSM || is_700D || is_650D || is_100D)
         {
             if (reg == 7)
             {
@@ -536,7 +554,7 @@ static void FAST cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
         }
     }
 
-    if (is_EOSM || is_700D || is_100D)
+    if (is_EOSM || is_700D || is_650D || is_100D)
     {
         switch (crop_preset)
         {
@@ -847,7 +865,7 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
 
     }
 
-    if (is_EOSM || is_700D || is_100D)
+    if (is_EOSM || is_700D || is_650D || is_100D)
     {
         switch (crop_preset)
         {
@@ -1774,6 +1792,21 @@ static unsigned int crop_rec_init()
         crop_rec_menu[0].max        = COUNT(crop_choices_700d) - 1;
         crop_rec_menu[0].help       = crop_choices_help_700d;
         crop_rec_menu[0].help2      = crop_choices_help2_700d;
+    }
+    else if (is_camera("650D", "1.0.4"))
+    {
+        CMOS_WRITE = 0x17A1C;
+        MEM_CMOS_WRITE = 0xE92D41F0;
+        
+        ADTG_WRITE = 0x178FC;
+        MEM_ADTG_WRITE = 0xE92D43F8;
+        
+        is_650D = 1;
+        crop_presets                = crop_presets_650d;
+        crop_rec_menu[0].choices    = crop_choices_650d;
+        crop_rec_menu[0].max        = COUNT(crop_choices_650d) - 1;
+        crop_rec_menu[0].help       = crop_choices_help_650d;
+        crop_rec_menu[0].help2      = crop_choices_help2_650d;
     }
     else if (is_camera("100D", "1.0.1"))
     {

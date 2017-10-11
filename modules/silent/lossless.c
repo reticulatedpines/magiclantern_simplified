@@ -120,6 +120,19 @@ int lossless_init()
         TTL_Finish      = (void *) 0xFF424CBC;      /* called next; calls UnlockEngineResources and returns output size from JpCoreCompleteCBR */
     }
 
+    if (is_camera("650D", "1.0.4"))
+    {
+        /* ProcessTwoInTwoOutJpegath, 650D 1.0.4 */
+        TTL_SetArgs     = (void *) 0xFF35C9C0;      /* fills TTJ_Args struct; PictureSize(Mem1ToRaw) */
+        TTL_Prepare     = (void *) 0xFF4210BC;      /* called right after ProcessTwoInTwoOutJpegath(R) Start(%d); */
+                                                    /* calls [TTJ] GetPathResources and sets up the encoder for RAW */
+        TTL_RegisterCBR = (void *) 0xFF4200A0;      /* RegisterTwoInTwoOutJpegPathCompleteCBR */
+        TTL_SetFlags    = (void *) 0xFF368788;      /* alternate StartTwoInTwoOutJpegPath http://www.magiclantern.fm/forum/index.php?topic=18443.msg188721#msg188721 */
+        TTL_Start       = (void *) 0xFF421164;      /* called next; starts the EDmac transfers */
+        TTL_Stop        = (void *) 0xFF4202EC;      /* called right after sssStopMem1ToRawPath */
+        TTL_Finish      = (void *) 0xFF4211D4;      /* called next; calls UnlockEngineResources and returns output size from JpCoreCompleteCBR */
+    }
+
     if (is_camera("EOSM", "2.0.2"))
     {
         /* ProcessTwoInTwoOutJpegath, EOSM 2.0.2 */
@@ -148,7 +161,7 @@ int lossless_init()
 
     lossless_sem = create_named_semaphore(0, 0);
     
-    if (is_camera("700D", "*") || is_camera("EOSM", "*") || is_camera("100D", "*"))
+    if (is_camera("700D", "*") || is_camera("650D", "*") || is_camera("EOSM", "*") || is_camera("100D", "*"))
     {
         uint32_t resources[] = {
             0x00000 | edmac_channel_to_index(edmac_write_chan),
@@ -393,6 +406,13 @@ static void decompress_init()
         Setup_DecodeLosslessRawPath = (void *) 0xFF4294DC;
         Start_DecodeLosslessPath    = (void *) 0xFF4295A4;
         Cleanup_DecodeLosslessPath  = (void *) 0xFF429708;
+    }
+
+    if (is_camera("650D", "1.0.4"))
+    {
+        Setup_DecodeLosslessRawPath = (void *) 0xFF4259F4;
+        Start_DecodeLosslessPath    = (void *) 0xFF425ABC;
+        Cleanup_DecodeLosslessPath  = (void *) 0xFF425C20;
     }
 
     if (is_camera("EOSM", "2.0.2"))

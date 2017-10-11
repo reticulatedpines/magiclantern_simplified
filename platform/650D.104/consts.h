@@ -232,6 +232,7 @@
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x4b428
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+#define SRM_BUFFER_SIZE 0x1F24000   /* print it from srm_malloc_cbr */
 
 #define UNAVI (MEM(0x4188c)) // dec CancelUnaviFeedBackTimer, then look around that memory area for a location that changes when you keep HS pressed
 #define UNAVI_AV (MEM(0x418C0)) //Same as above, but this location is linked to the exp comp button
