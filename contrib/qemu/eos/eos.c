@@ -4414,6 +4414,13 @@ unsigned int eos_handle_display ( unsigned int parm, EOSState *s, unsigned int a
 
     switch (address & 0xFFF)
     {
+        case 0x014:
+        {
+            /* 5D3 1.2.3: expects 0x10 for built-in LCD and 0x4 for HDMI? */
+            ret = 0x10;
+            break;
+        }
+
         case 0x01C:
         case 0x31C:
         {
