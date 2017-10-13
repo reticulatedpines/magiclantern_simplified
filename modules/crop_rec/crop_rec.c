@@ -600,15 +600,18 @@ static int FAST adtg_lookup(uint32_t* data_buf, int reg_needle)
 
 static void * get_engio_reg_override_func();
 
+/* from SENSOR_TIMING_TABLE (fps-engio.c) */
+/* hardcoded for 5D3 */
+const int default_timerA[] = { 0x1B8, 0x1E0, 0x1B8, 0x1E0, 0x1B8 };
+const int default_timerB[] = { 0x8E3, 0x7D0, 0x71C, 0x3E8, 0x38E };
+const int default_fps_1k[] = { 23976, 25000, 29970, 50000, 59940 };
+
 /* adapted from fps_override_shutter_blanking in fps-engio.c */
 static int adjust_shutter_blanking(int old)
 {
     /* sensor duty cycle: range 0 ... timer B */
     int current_blanking = nrzi_decode(old);
 
-    /* from SENSOR_TIMING_TABLE (fps-engio.c) */
-    const int default_timerB[] = { 0x8E3, 0x7D0, 0x71C, 0x3E8, 0x38E };
-    const int default_fps_1k[] = { 23976, 25000, 29970, 50000, 59940 };
     int video_mode = get_video_mode_index();
 
     int fps_timer_b_orig = default_timerB[video_mode];
@@ -651,7 +654,7 @@ static int adjust_shutter_blanking(int old)
 
     /* what value we are going to use for overriding timer B? */
     int fps_timer_b = (reg_override_func)
-        ? (int) reg_override_func(0xC0F06014, fps_timer_b_orig)
+        ? (int) reg_override_func(0xC0F06014, fps_timer_b_orig - 1)
         : fps_timer_b_orig;
 
     /* will we actually override it? */
@@ -916,11 +919,17 @@ static inline uint32_t reg_override_common(uint32_t reg, uint32_t old_val)
     return 0;
 }
 
-static inline uint32_t reg_override_fps(uint32_t reg, uint32_t timerA, uint32_t timerB)
+static inline uint32_t reg_override_fps(uint32_t reg, uint32_t timerA, uint32_t timerB, uint32_t old_val)
 {
     /* hardware register requires timer-1 */
     timerA--;
     timerB--;
+
+    /* only override FPS registers if the old value is what we expect
+     * otherwise we may be in some different video mode for a short time
+     * this race condition is enough to lock up LiveView in some cases
+     * e.g. 5D3 3x3 50/60p when going from photo mode to video mode
+     */
 
     switch (reg)
     {
@@ -929,14 +938,36 @@ static inline uint32_t reg_override_fps(uint32_t reg, uint32_t timerA, uint32_t 
         case 0xC0F0682C:
         case 0xC0F06830:
         case 0xC0F06010:
-            return timerA;
+        {
+            uint32_t expected = default_timerA[get_video_mode_index()] - 1;
+
+            if (old_val == expected)
+            {
+                return timerA;
+            }
+        }
         
         case 0xC0F06008:
         case 0xC0F0600C:
-            return timerA | (timerA << 16);
+        {
+            uint32_t expected = default_timerA[get_video_mode_index()] - 1;
+            expected |= (expected << 16);
+
+            if (old_val == expected)
+            {
+                return timerA | (timerA << 16);
+            }
+        }
 
         case 0xC0F06014:
-            return timerB;
+        {
+            uint32_t expected = default_timerB[get_video_mode_index()] - 1;
+
+            if (old_val == expected)
+            {
+                return timerB;
+            }
+        }
     }
 
     return 0;
@@ -954,7 +985,7 @@ static inline uint32_t reg_override_3X_tall(uint32_t reg, uint32_t old_val)
             (video_mode_fps == 60) ? 1001 :
                                        -1 ;
 
-        int a = reg_override_fps(reg, timerA, timerB);
+        int a = reg_override_fps(reg, timerA, timerB, old_val);
         if (a) return a;
     }
 
@@ -1001,7 +1032,7 @@ static inline uint32_t reg_override_3x3_tall(uint32_t reg, uint32_t old_val)
             (video_mode_fps == 60) ? 1001 :
                                        -1 ;
 
-        int a = reg_override_fps(reg, timerA, timerB);
+        int a = reg_override_fps(reg, timerA, timerB, old_val);
         if (a) return a;
     }
 
@@ -1055,7 +1086,7 @@ static inline uint32_t reg_override_3x3_48p(uint32_t reg, uint32_t old_val)
             (video_mode_fps == 60) ? 1250 : /* 48p */
                                        -1 ;
 
-        int a = reg_override_fps(reg, timerA, timerB);
+        int a = reg_override_fps(reg, timerA, timerB, old_val);
         if (a) return a;
     }
 
@@ -1098,7 +1129,7 @@ static inline uint32_t reg_override_3K(uint32_t reg, uint32_t old_val)
             (video_mode_fps == 60) ?  880 :
                                        -1 ;
 
-        int a = reg_override_fps(reg, timerA, timerB);
+        int a = reg_override_fps(reg, timerA, timerB, old_val);
         if (a) return a;
     }
 
@@ -1132,7 +1163,7 @@ static inline uint32_t reg_override_4K_hfps(uint32_t reg, uint32_t old_val)
         (video_mode_fps == 60) ? 1383 :
                                    -1 ;
 
-    int a = reg_override_fps(reg, timerA, timerB);
+    int a = reg_override_fps(reg, timerA, timerB, old_val);
     if (a) return a;
 
     switch (reg)
@@ -1162,7 +1193,7 @@ static inline uint32_t reg_override_UHD(uint32_t reg, uint32_t old_val)
         (video_mode_fps == 60) ?  728 :
                                    -1 ;
 
-    int a = reg_override_fps(reg, timerA, timerB);
+    int a = reg_override_fps(reg, timerA, timerB, old_val);
     if (a) return a;
 
     switch (reg)
