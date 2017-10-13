@@ -1701,10 +1701,13 @@ static unsigned int raw_info_update_cbr(unsigned int unused)
             }
         }
 
-        /* update skip offsets */
-        int skip_left, skip_right, skip_top, skip_bottom;
-        calc_skip_offsets(&skip_left, &skip_right, &skip_top, &skip_bottom);
-        raw_set_geometry(raw_info.width, raw_info.height, skip_left, skip_right, skip_top, skip_bottom);
+        if (is_5D3)
+        {
+            /* update skip offsets */
+            int skip_left, skip_right, skip_top, skip_bottom;
+            calc_skip_offsets(&skip_left, &skip_right, &skip_top, &skip_bottom);
+            raw_set_geometry(raw_info.width, raw_info.height, skip_left, skip_right, skip_top, skip_bottom);
+        }
     }
     return 0;
 }
