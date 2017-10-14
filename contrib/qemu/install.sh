@@ -134,22 +134,22 @@ if [  -n "$(uname -a | grep Ubuntu)" ]; then
         echo "    Will be installed in your home directory; to move it, you must edit the Makefiles."
         echo "    This will install 32-bit binaries - will not work under Windows Subsystem for Linux."
         echo
-        echo "3 - Install gdb-arm-none-eabi and gcc-arm-none-eabi from Ubuntu repository (64-bit)"
-        echo "    WARNING: this will not be able to run all our GDB scripts."
-        echo 
         if dpkg -l binutils-arm-none-eabi 2>/dev/null | grep -q '^.i'; then
-            echo "4 - Remove Ubuntu toolchain and install the one from gcc-arm-embedded PPA (gcc 6.x)"
+            echo "3 - Remove Ubuntu toolchain and install the one from gcc-arm-embedded PPA (gcc 6.x)"
             echo "    This will:"
             echo "    - sudo apt-get remove gcc-arm-none-eabi gdb-arm-none-eabi \\"
             echo "           binutils-arm-none-eabi libnewlib-arm-none-eabi"
         else
-            echo "4 - Install the toolchain from gcc-arm-embedded PPA (gcc 6.x)"
+            echo "3 - Install the toolchain from gcc-arm-embedded PPA (gcc 6.x)"
             echo "    This will:"
         fi
         echo "    - sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa"
-        echo "    - install the gcc-arm-embedded package."
-        echo "    WARNING: this will not be able to run all our GDB scripts."
+        echo "    - install the gcc-arm-embedded:i386 package."
+        echo "    This will install 32-bit binaries - will not work under Windows Subsystem for Linux."
         echo
+        echo "4 - Install gdb-arm-none-eabi and gcc-arm-none-eabi from Ubuntu repository (64-bit)"
+        echo "    WARNING: this will not be able to run all our GDB scripts."
+        echo 
         echo "5 - Manually install arm-none-eabi-gdb from https://launchpad.net/gcc-arm-embedded"
         echo "    or any other source, make sure it is in PATH, then run this script again."
 
@@ -177,13 +177,6 @@ if [  -n "$(uname -a | grep Ubuntu)" ]; then
                 packages="$packages libc6:i386 libncurses5:i386"
                 ;;
             3)
-                # Ubuntu's 64-bit arm-none-eabi-gdb works... sort of
-                # it's unable to run 5D3 1.1.3 GUI and maybe others
-                packages="$packages gdb-arm-none-eabi:amd64"
-                packages="$packages gcc-arm-none-eabi:amd64 libnewlib-arm-none-eabi"
-                ALLOW_64BIT_GDB=y
-                ;;
-            4)
                 # gcc-arm-embedded conflicts with gcc-arm-none-eabi
                 # but the dependencies are not configured properly
                 # so we have to fix the conflict manually...
@@ -194,12 +187,17 @@ if [  -n "$(uname -a | grep Ubuntu)" ]; then
                     sudo apt-get remove gcc-arm-none-eabi gdb-arm-none-eabi \
                          binutils-arm-none-eabi libnewlib-arm-none-eabi
                 fi
-                packages="$packages gcc-arm-embedded"
+                packages="$packages gcc-arm-embedded:i386"
                 echo
                 echo "*** Adding the team-gcc-arm-embedded PPA repository..."
                 echo "    sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa"
                 echo
                 sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa
+                ;;
+            4)
+                # Ubuntu's 64-bit arm-none-eabi-gdb is... well... better than nothing
+                packages="$packages gdb-arm-none-eabi:amd64"
+                packages="$packages gcc-arm-none-eabi:amd64 libnewlib-arm-none-eabi"
                 ALLOW_64BIT_GDB=y
                 ;;
             5)
