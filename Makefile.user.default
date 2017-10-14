@@ -11,6 +11,8 @@ ifeq ($(UNAME), Darwin)
 else
 	# Default settings for remaining operating systems
 	UMOUNT=umount
+	# some distros may require:
+	# UMOUNT=sudo umount
 	# CF_CARD=/media/EOS_DIGITAL
 	CF_CARD:=$(shell mount | grep -oE "[^ ]+/EOS_DIGITAL[^ ]*")
 	STAT_CMD=stat -c "%n: %s bytes"
@@ -92,6 +94,7 @@ SUPPORTED_UNIFIED_MODELS:=50D 60D 550D 600D 500D 5D2 1100D
 
 # GCC-related stuff
 # for yagarto or the official ARM toolchain use ARM_ABI=none-eabi otherwise use ARM_ABI=elf
+# for linaro bare-metal toolchain, use ARM_ABI=eabi
 ARM_ABI=none-eabi
 
 # example: GCC_VERSION=-5.4.1
@@ -101,6 +104,7 @@ GCC_VERSION=
 # use this one if installed on the system
 # otherwise, use the one from executable PATH
 PREFERRED_ARM_PATH=~/gcc-arm-none-eabi-5_4-2016q3
+#PREFERRED_ARM_PATH=~/gcc-linaro-7.1.1-2017.08-x86_64_arm-eabi
 
 DIETLIB_VERSION=0.33
 DIETLIBC_OPT_LEVEL=Os
@@ -123,7 +127,7 @@ endif
 ifneq ("$(CC)","")
     ARM_LIBGCC_PATH=$(shell $(CC) --print-search-dirs \
         | grep "libraries: =" | tr '=' '\n' | tr ':' '\n' \
-        | grep "lib/gcc/arm-none-eabi/" | head -n1 | tee foo)
+        | grep "lib/gcc/arm-$(ARM_ABI)/" | head -n1 | tee foo)
     $(info ARM_LIBGCC_PATH: $(ARM_LIBGCC_PATH))
 else
     $(info )
@@ -131,13 +135,24 @@ else
     $(info If arm-$(ARM_ABI)-gcc is in your executable path, it will be used.)
     $(info )
     $(info Preferred: gcc 5_4-2016q3 32-bit from https://launchpad.net/gcc-arm-embedded)
-    $(info On Ubuntu, gcc-arm-embedded:i386 is also fine (64-bit gdb doesn't work well))
+    $(info Also fine: gcc-arm-embedded 6.x, Linaro arm-eabi 7.x, gcc-arm-none-eabi from Ubuntu,)
+    $(info gcc-arm-embedded from team-gcc-arm-embedded PPA on Ubuntu, others may work as well.)
+    $(info )
+    $(info For GDB+QEMU, you *must* use a 32-bit version, e.g. gdb-arm-none-eabi:i386,)
+    $(info gcc-arm-embedded:i386 from PPA, 32-bit arm-none-eabi-gdb from gcc-arm-embedded.)
+    $(info Unfortunately, Linaro's arm-eabi-gdb does not work, whether 32 or 64 bit.)
     $(info )
     $(error )
 endif
 
-NEWLIB_PATH=$(SRC_DIR)/libs/arm-$(ARM_ABI)-$(NEWLIB_OPT_LEVEL)
-DIETLIBC_PATH=$(SRC_DIR)/libs/dietlib-$(DIETLIB_VERSION)-$(ARM_ABI)-$(DIETLIBC_OPT_LEVEL)
+ARM_ABI_LIB=$(ARM_ABI)
+ifeq ($(ARM_ABI),eabi)
+  # Linaro's "eabi" appears to be compatible with none-eabi; is it the same thing?
+  ARM_ABI_LIB=none-eabi
+endif
+
+NEWLIB_PATH=$(SRC_DIR)/libs/arm-$(ARM_ABI_LIB)-$(NEWLIB_OPT_LEVEL)
+DIETLIBC_PATH=$(SRC_DIR)/libs/dietlib-$(DIETLIB_VERSION)-$(ARM_ABI_LIB)-$(DIETLIBC_OPT_LEVEL)
 
 # Static libraries used
 ARM_LIBGCC_A=$(ARM_LIBGCC_PATH)/libgcc.a
