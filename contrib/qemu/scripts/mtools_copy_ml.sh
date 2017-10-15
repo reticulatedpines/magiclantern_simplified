@@ -17,7 +17,7 @@ if [ $? -eq 1 ]; then
 fi
 
 echo "Copying ML from $1 ..."
-echo -n "... to $(realpath sd.img) and cf.img"
+echo -n "... to $(pwd)/sd.img and cf.img"
 
 . ./mtools_setup.sh
 mcopy -o -i $MSD $1/* ::; \
