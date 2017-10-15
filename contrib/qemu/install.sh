@@ -330,8 +330,7 @@ if [ ! -d .git ]; then
   git init
   # git requires a valid email; if not setup, add one for this directory only
   git config user.email || git config user.email qemu@magiclantern.fm
-  git add .
-  git commit -q -m "$QEMU_NAME vanilla"
+  git add . && git commit -q -m "$QEMU_NAME vanilla"
 fi
 cd ..
 
@@ -351,8 +350,14 @@ cd ${QEMU_NAME}
 mkdir -p hw/eos
 cp -r ../../$ML/contrib/qemu/eos/* hw/eos/
 cp -r ../../$ML/src/backtrace.[ch] hw/eos/dbi/
+if gcc -v 2>&1 | grep -q "gcc version 7"; then
+  patch -N -p1 < ../../$ML/contrib/qemu/$QEMU_NAME-gcc7.patch
+  git add -u . && git commit -q -m "$QEMU_NAME patched for gcc 7.x"
+fi
+
 patch -N -p1 < ../../$ML/contrib/qemu/$QEMU_NAME.patch
-patch -N -p1 < ../../$ML/contrib/qemu/$QEMU_NAME-gcc7.patch
+# don't commit this one - we'll use "git diff" to update the above patch
+
 cd ..
 
 # setup the card image
