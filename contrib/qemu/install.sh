@@ -89,18 +89,13 @@ function valid_arm_gcc {
 if [ $(uname) == "Darwin" ]; then
     echo "*** Installing dependencies for Mac..."
     echo
-    # fixme: don't these require sudo?
-    # can we check whether they are already installed, as on Ubuntu?
-    if ! xcode-select -p &> /dev/null; then
-        xcode-select --install
-    fi
     # brew is "The missing package manager for macOS"
     # https://brew.sh
     if ! brew -v &> /dev/null; then
         ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
     fi
     
-    packages="python wget mercurial xz grep pkg-config glib automake libtool pixman mtools"
+    packages="python docutils wget mercurial xz grep pkg-config glib automake libtool pixman mtools"
     for pkg in $packages; do
         brew list $pkg &> /dev/null || brew install $pkg
     done
