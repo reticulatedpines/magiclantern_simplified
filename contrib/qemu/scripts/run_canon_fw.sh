@@ -56,7 +56,8 @@ $MAKE -C $QEMU_PATH || exit 2
 
 # clear the terminal
 # (since the logs are very large, being able to scroll at the beginning is helpful)
-tput reset
+# note: "tput reset" may crash when running as a background job, figure out why
+echo -e \\033c
 
 # print the invocation
 # https://unix.stackexchange.com/a/118468
