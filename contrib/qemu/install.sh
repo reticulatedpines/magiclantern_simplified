@@ -95,7 +95,7 @@ if [ $(uname) == "Darwin" ]; then
         ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
     fi
     
-    packages="python docutils wget mercurial xz grep pkg-config glib automake libtool pixman mtools"
+    packages="python wget mercurial xz grep pkg-config glib automake libtool pixman mtools"
     for pkg in $packages; do
         brew list $pkg &> /dev/null || brew install $pkg
     done
