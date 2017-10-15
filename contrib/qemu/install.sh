@@ -315,8 +315,14 @@ mkdir -p qemu
 cd qemu
 
 echo
-echo "*** Setting up QEMU in `pwd`..."
+echo "*** Setting up QEMU in $(pwd)..."
 echo
+
+if [ -d $QEMU_NAME ]; then
+  echo "*** Directory $(pwd)/$QEMU_NAME already exists."
+  echo "*** To reinstall, please rename or delete it, then run this script again."
+  exit 1
+fi
 
 # get qemu
 wget -q --show-progress --progress=dot:giga -c http://wiki.qemu-project.org/download/$QEMU_NAME.tar.bz2
