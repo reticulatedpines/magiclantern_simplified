@@ -308,22 +308,26 @@ for CAM in ${EOS_SECONDARY_CORES[*]} ${EOS_CAMS[*]}; do
     cat $CAM.idc | grep -o "MakeFunction(.*)" \
         > tests/$CAM/calls-main-basic.idc
 
-    # delete the last line from calls-main-basic.idc until it matches its reference MD5
-    # fixme: very slow when the test fails
+    # compute the MD5 of calls-main-basic.idc, line by line, until it matches its reference MD5
+    # man, this python3 is quite painful with all these unicode errors...
     cd tests/$CAM/
-    while !(cat calls-main.md5 | grep calls-main-basic.idc | md5sum -c --status); do
-        if [ $(cat calls-main-basic.idc | wc -l) == 0 ]; then
-            # no luck; restore the full IDC, without trimming
-            cat ../../$CAM.idc | grep -o "MakeFunction(.*)" \
-                > calls-main-basic.idc
-            break
-        fi
-        # a lot faster than sed -i "$ d"
-        head -n -1 calls-main-basic.idc > aux.idc
-        mv aux.idc calls-main-basic.idc
-    done
+    cat calls-main.md5 | grep calls-main-basic.idc | python3 -c 'if True:
+        import os, sys
+        from hashlib import md5
+        ref_md5, filename = sys.stdin.readline().split()
+        m = md5()
+        trimmed = b""
+        with open(filename, "rb") as input:
+            for l in input.readlines():
+                trimmed += l
+                m.update(l)
+                if m.hexdigest() == ref_md5:
+                    break
+        if trimmed:
+            with open(filename, "wb") as output:
+                output.write(trimmed)
+    '
     cd $OLDPWD
-
 
     # trim the log file after the last function call identified in the IDC
     last_call=`tail -1 tests/$CAM/calls-main-basic.idc | grep -om1 "0x[^,]*"`
