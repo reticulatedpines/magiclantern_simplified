@@ -1584,72 +1584,78 @@ static LVINFO_UPDATE_FUNC(crop_info)
     
     if (patch_active)
     {
-        /* default behavior for unsupported modes */
-        snprintf(buffer, sizeof(buffer), SYM_WARNING);
-
-        if (lv_dispsize == 5)
+        if (lv_dispsize > 1)
         {
-            /* special: x5 zoom */
             switch (crop_preset)
             {
                 case CROP_PRESET_CENTER_Z:
-                    snprintf(buffer, sizeof(buffer), "1:1");
+                    snprintf(buffer, sizeof(buffer), "3.5K");
                     break;
             }
-            goto warn;
         }
-
-        switch (crop_preset)
+        else
         {
-            case CROP_PRESET_3X:
-                /* In movie mode, we are interested in recording sensor pixels
-                 * without any binning (that is, with 1:1 mapping);
-                 * the actual crop factor varies with raw video resolution.
-                 * So, printing 3x is not very accurate, but 1:1 is.
-                 * 
-                 * In photo mode (mild zoom), what changes is the magnification
-                 * of the preview screen; the raw image is not affected.
-                 * We aren't actually previewing at 1:1 at pixel level,
-                 * so printing 1:1 is a little incorrect.
-                 */
-                snprintf(buffer, sizeof(buffer), 
-                    is_movie_mode() ? "1:1"
-                                    : "3x"
-                );
-                break;
+            switch (crop_preset)
+            {
+                case CROP_PRESET_3X:
+                    /* In movie mode, we are interested in recording sensor pixels
+                     * without any binning (that is, with 1:1 mapping);
+                     * the actual crop factor varies with raw video resolution.
+                     * So, printing 3x is not very accurate, but 1:1 is.
+                     * 
+                     * In photo mode (mild zoom), what changes is the magnification
+                     * of the preview screen; the raw image is not affected.
+                     * We aren't actually previewing at 1:1 at pixel level,
+                     * so printing 1:1 is a little incorrect.
+                     */
+                    if (!is_movie_mode())
+                    {
+                        snprintf(buffer, sizeof(buffer), "3x");
+                        goto warn;
+                    }
+                    break;
 
-            case CROP_PRESET_3X_TALL:
-                snprintf(buffer, sizeof(buffer), "1:1T");
-                break;
+                case CROP_PRESET_3X_TALL:
+                    snprintf(buffer, sizeof(buffer), "T");
+                    break;
 
-            case CROP_PRESET_3K:
-                snprintf(buffer, sizeof(buffer), "3K");
-                break;
+                case CROP_PRESET_3K:
+                    snprintf(buffer, sizeof(buffer), "3K");
+                    break;
 
-            case CROP_PRESET_4K_HFPS:
-                snprintf(buffer, sizeof(buffer), "4K");
-                break;
+                case CROP_PRESET_4K_HFPS:
+                    snprintf(buffer, sizeof(buffer), "4K");
+                    break;
 
-            case CROP_PRESET_UHD:
-                snprintf(buffer, sizeof(buffer), "UHD");
-                break;
+                case CROP_PRESET_UHD:
+                    snprintf(buffer, sizeof(buffer), "UHD");
+                    break;
 
-            case CROP_PRESET_FULLRES_LV:
-                snprintf(buffer, sizeof(buffer), "FLV");
-                break;
+                case CROP_PRESET_FULLRES_LV:
+                    snprintf(buffer, sizeof(buffer), "FLV");
+                    break;
+            }
+        }
+    }
 
-            case CROP_PRESET_3x3_1X:
-            case CROP_PRESET_3x3_1X_48p:
-                snprintf(buffer, sizeof(buffer), "3x3");
-                break;
+    /* append info about current binning mode */
 
-            case CROP_PRESET_1x3:
-                snprintf(buffer, sizeof(buffer), "1x3");
-                break;
+    if (raw_lv_is_enabled())
+    {
+        /* fixme: raw_capture_info is only updated when LV RAW is active */
 
-            case CROP_PRESET_3x1:
-                snprintf(buffer, sizeof(buffer), "3x1");
-                break;
+        if (raw_capture_info.binning_x + raw_capture_info.skipping_x == 1 &&
+            raw_capture_info.binning_y + raw_capture_info.skipping_y == 1)
+        {
+            STR_APPEND(buffer, "%s1:1", buffer[0] ? " " : "");
+        }
+        else
+        {
+            STR_APPEND(buffer, "%s%dx%d",
+                buffer[0] ? " " : "",
+                raw_capture_info.binning_x + raw_capture_info.skipping_x,
+                raw_capture_info.binning_y + raw_capture_info.skipping_y
+            );
         }
     }
 
