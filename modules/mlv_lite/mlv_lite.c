@@ -235,8 +235,10 @@ static int raw_digital_gain_ok()
     if (output_format > OUTPUT_14BIT_LOSSLESS)
     {
         /* fixme: not working in modes with higher resolution */
+        /* the numbers here are an upper bound that should cover all models */
+        /* our hi-res crop_rec modes will go higher than these limits, so this heuristic should be OK */
         int default_width  = (lv_dispsize > 1) ? 3744 : 2080;
-        int default_height = (lv_dispsize > 1) ? 1380 : video_mode_fps <= 30 ? 2080 : 692;
+        int default_height = (lv_dispsize > 1) ? 1380 : video_mode_fps <= 30 ? 2080 : 728;
 
         if (raw_info.width > default_width || raw_info.height > default_height)
         {
