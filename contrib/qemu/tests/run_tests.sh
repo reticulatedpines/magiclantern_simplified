@@ -336,7 +336,7 @@ for CAM in ${EOS_SECONDARY_CORES[*]} ${EOS_CAMS[*]}; do
     # extract call/return lines, task switches and interrupts
     cat tests/$CAM/calls-main-raw.log \
         | grep -E "call |return |Task switch |interrupt " \
-        | grep -E -m1 -B10000000 "call ($last_call|$last_call_thumb)[( ]" \
+        | sed -n "1,/call $last_call\|call $last_call_thumb/ p" \
         > tests/$CAM/calls-main.log
 
     # extract only the basic info (call address indented, return address)
@@ -348,7 +348,7 @@ for CAM in ${EOS_SECONDARY_CORES[*]} ${EOS_CAMS[*]}; do
     # also copy the IDC file for checking its MD5
     # this works on CF models too, even if some nondeterminism is present
     # the IDC needs trimming, too, as it doesn't always stop at the same line
-    cat $CAM.idc | grep -B10000000 "MakeFunction($last_call" > tests/$CAM/calls-main.idc
+    cat $CAM.idc | sed -n "1,/MakeFunction($last_call/ p" > tests/$CAM/calls-main.idc
     cat $CAM.idc | tail -n 2 >> tests/$CAM/calls-main.idc
 
     # extract only the call address from IDC
