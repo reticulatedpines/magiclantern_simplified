@@ -334,10 +334,9 @@ for CAM in ${EOS_SECONDARY_CORES[*]} ${EOS_CAMS[*]}; do
     last_call_thumb=`printf "0x%X\n" $((last_call+1))`
 
     # extract call/return lines, task switches and interrupts
-    # keep 1000 useful lines after the last call from IDC
     cat tests/$CAM/calls-main-raw.log \
         | grep -E "call |return |Task switch |interrupt " \
-        | grep -E -m1 -B10000000 -A1000 "call ($last_call|$last_call_thumb)[( ]" \
+        | grep -E -m1 -B10000000 "call ($last_call|$last_call_thumb)[( ]" \
         > tests/$CAM/calls-main.log
 
     # extract only the basic info (call address indented, return address)
