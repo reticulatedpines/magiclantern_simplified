@@ -148,6 +148,7 @@ typedef struct
     uint16_t yRes;
     uint16_t bitDepth;
     uint16_t blackLevel;
+    uint16_t whiteLevel;
 } frame_buf_t;
 
 /* set up two queues - one with empty buffers and one with buffers to render */
@@ -1431,6 +1432,7 @@ static void mlv_play_render_frame(frame_buf_t *buffer)
     raw_info.buffer = buffer->frameBufferAligned;
     raw_info.bits_per_pixel = buffer->bitDepth;
     raw_info.black_level = buffer->blackLevel;
+    raw_info.white_level = buffer->whiteLevel;
     raw_set_geometry(buffer->xRes, buffer->yRes, 0, 0, 0, 0);
 
     /* fixme: read aspect ratio from metadata */
@@ -1987,6 +1989,7 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             buffer->yRes = rawi_block.yRes;
             buffer->bitDepth = rawi_block.raw_info.bits_per_pixel;
             buffer->blackLevel = rawi_block.raw_info.black_level;
+            buffer->whiteLevel = rawi_block.raw_info.white_level;
 
             if(main_header.videoClass & MLV_VIDEO_CLASS_FLAG_LJ92)
             {
@@ -2005,8 +2008,9 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
                 /* when we have lossless data, we decompressed it already to 16 bpp for raw_twk */
                 if (output_bpp == 16)
                 {
-                    /* also raise black level */
+                    /* also raise black and white levels */
                     buffer->blackLevel = rawi_block.raw_info.black_level << (16 - rawi_block.raw_info.bits_per_pixel);
+                    buffer->whiteLevel = rawi_block.raw_info.white_level << (16 - rawi_block.raw_info.bits_per_pixel);
                     buffer->bitDepth = 16;
                 }
             }
@@ -2286,6 +2290,7 @@ static void mlv_play_raw(char *filename, FILE **chunk_files, uint32_t chunk_coun
         buffer->yRes = res_y;
         buffer->bitDepth = 14;
         buffer->blackLevel = raw_info.black_level;
+        buffer->whiteLevel = raw_info.white_level;
         
         if (mlv_play_exact_fps)
         {
@@ -2571,6 +2576,7 @@ static void mlv_play_task(void *priv)
 {
     /* we will later restore that value */
     int old_black_level = raw_info.black_level;
+    int old_white_level = raw_info.white_level;
     int old_bits_per_pixel = raw_info.bits_per_pixel;
     
     if (take_semaphore(mlv_play_sem, 100))
@@ -2690,8 +2696,9 @@ cleanup:
     mlv_play_osd_delete_selected = 0;
     give_semaphore(mlv_play_sem);
     
-    /* undo black level change */
+    /* undo black and white level change */
     raw_info.black_level = old_black_level;
+    raw_info.white_level = old_white_level;
     raw_info.bits_per_pixel = old_bits_per_pixel;
 }
 
