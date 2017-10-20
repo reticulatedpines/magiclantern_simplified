@@ -99,6 +99,14 @@ static unsigned int sf_dump_init()
         SF_flash_size       = 0x800000;
     }
 
+    if (is_camera("6D", "1.1.6"))
+    {
+        SF_CreateSerial     = (void*) 0xFF1471CC;
+        SF_readSerialFlash  = (void*) 0xFF147174;
+        SF_Destroy          = (void*) 0xFF149BB8;
+        SF_flash_size       = 0x800000;
+    }
+
     if (!SF_CreateSerial || !SF_readSerialFlash || !SF_Destroy)
     {
         console_show();
