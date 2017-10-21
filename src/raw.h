@@ -144,7 +144,7 @@ int raw_lv_settings_still_valid();
 
 void raw_set_geometry(int width, int height, int skip_left, int skip_right, int skip_top, int skip_bottom);
 void raw_force_aspect_ratio_1to1();
-void raw_set_preview_rect(int x, int y, int w, int h);
+void raw_set_preview_rect(int x, int y, int w, int h, int obey_info_bars);
 
 /* call this after you have altered the preview settings, and you want to restore the original ones */
 void raw_set_dirty(void);
@@ -203,6 +203,37 @@ struct raw_info {
 };
 
 extern struct raw_info raw_info;
+
+/* image capture parameters */
+struct raw_capture_info {
+    /* sensor attributes: resolution, crop factor */
+    uint16_t sensor_res_x;  /* sensor resolution */
+    uint16_t sensor_res_y;  /* 2-3 GPixel cameras anytime soon? (to overflow this) */
+    uint16_t sensor_crop;   /* sensor crop factor x100 */
+    uint16_t reserved;      /* reserved for future use */
+
+    /* video mode attributes */
+    /* (how the sensor is configured for image capture) */
+    /* subsampling factor: (binning_x+skipping_x) x (binning_y+skipping_y) */
+    uint8_t  binning_x;     /* 3 (1080p and 720p); 1 (crop, zoom) */
+    uint8_t  skipping_x;    /* so far, 0 everywhere */
+    uint8_t  binning_y;     /* 1 (most cameras in 1080/720p; also all crop modes); 3 (5D3 1080p); 5 (5D3 720p) */
+    uint8_t  skipping_y;    /* 2 (most cameras in 1080p); 4 (most cameras in 720p); 0 (5D3) */
+    int16_t  offset_x;      /* crop offset (top-left active pixel) - optional (SHRT_MIN if unknown) */
+    int16_t  offset_y;      /* relative to top-left active pixel from a full-res image (FRSP or CR2) */
+   
+    /* The captured *active* area (raw_info.active_area) will be mapped
+     * on a full-res image (which does not use subsampling) as follows:
+     *   active_width  = raw_info.active_area.x2 - raw_info.active_area.x1
+     *   active_height = raw_info.active_area.y2 - raw_info.active_area.y1
+     *   .x1 (left)  : offset_x + full_res.active_area.x1
+     *   .y1 (top)   : offset_y + full_res.active_area.y1
+     *   .x2 (right) : offset_x + active_width  * (binning_x+skipping_x) + full_res.active_area.x1
+     *   .y2 (bottom): offset_y + active_height * (binning_y+skipping_y) + full_res.active_area.y1
+     */
+};
+
+extern struct raw_capture_info raw_capture_info;
 
 /* save a DNG file; all parameters are taken from raw_info */
 int save_dng(char* filename, struct raw_info * raw_info);

@@ -83,7 +83,7 @@ static unsigned int sf_dump_init()
         SF_flash_size       = 0x1000000;
     }
 
-    if (is_camera("700D", "1.1.4"))
+    if (is_camera("700D", "1.1.5"))
     {
         SF_CreateSerial     = (void*) 0xFF139578;
         SF_readSerialFlash  = (void*) 0xFF139520;
