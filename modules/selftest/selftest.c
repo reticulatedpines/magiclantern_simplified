@@ -1934,6 +1934,77 @@ static void edmac_test_task()
     edmac_memcpy_res_unlock();
 }
 
+static void __attribute__((optimize("-fno-delete-null-pointer-checks")))
+null_pointer_task()
+{
+    msleep(1000);
+    console_clear();
+    printf("Testing null pointer checker...\n");
+    console_show();
+    msleep(1000);
+
+    /* find the last crash log number - will trigger a new one */
+    char log_filename[100];
+    int log_number;
+    for (log_number = 99; log_number >= 0; log_number--)
+    {
+        snprintf(log_filename, sizeof(log_filename), "CRASH%02d.LOG", log_number);
+        if (is_file(log_filename))
+        {
+            ASSERT(log_number < 99);
+            break;
+        }
+    }
+
+    /* this should trigger a crash log */
+    /* the error will be noticed when DryOS switches to the next task */
+    uint32_t old = cli();
+    *(volatile uint32_t *) 0x0 = 0xBAADBAAD;
+    printf("MEM(0) = %X %s\n", MEM(0), MEM(0) == 0xBAADBAAD ? "OK" : "ERR");
+    sei(old);
+
+    msleep(1000);
+
+    /* this should be restored to the old value */
+    printf("MEM(0) = %X %s\n", MEM(0), MEM(0) == 0xBAADBAAD ? "ERR" : "OK");
+
+    /* does the new crash log look sane? */
+    snprintf(log_filename, sizeof(log_filename), "CRASH%02d.LOG", log_number + 1);
+    if (!is_file(log_filename))
+    {
+        printf("%s not saved - please report.\n", log_filename);
+    }
+    else
+    {
+        /* crash log was saved */
+        int size;
+        char * log = (char *) read_entire_file(log_filename, &size);
+        if (strstr(log, "baadbaad") && strstr(log, "run_test: NULL PTR"))
+        {
+            printf("%s looks OK.\n", log_filename);
+        }
+        else
+        {
+            printf("%s not good - please report.\n", log_filename);
+        }
+        free(log);
+    }
+
+    /* hide the crash log prompt(s) */
+    printf("Please wait; ignore any flashing prompts    ");
+    for (int i = 0; i <= 100; i++)
+    {
+        NotifyBoxHide();
+        msleep(50);
+        printf("\b\b\b(%d)", 5 - i / 20);
+    }
+
+    /* finished */
+    printf("\nNull pointer test completed.\n");
+    msleep(2000);
+    console_hide();
+}
+
 static void frozen_task()
 {
     NotifyBox(2000, "while(1);");
@@ -2064,6 +2135,13 @@ static struct menu_entry selftest_menu[] =
                 .priv       = edmac_test_task,
                 .help       = "Shift the entire display left and right with EDMAC routines.",
                 .help2      = "Fixme: this will lock up if you change the video mode during the test.",
+            },
+            {
+                .name       = "Null pointer test (quick)",
+                .select     = run_in_separate_task,
+                .priv       = null_pointer_task,
+                .help       = "Writes 0xBAADBAAD to address 0 (simulating a null pointer error).",
+                .help2      = "ML should save a crash log about 0xBAADBAAD and should not crash.",
             },
             MENU_EOL,
         }
