@@ -6,19 +6,21 @@ ifneq ("$(wildcard $(PREFERRED_ARM_PATH)/bin/arm-$(ARM_ABI)-gcc$(GCC_VERSION))",
     CROSS_COMPILE=$(ARM_BINPATH)/arm-$(ARM_ABI)-
     CC=$(CROSS_COMPILE)gcc$(GCC_VERSION)
     $(info Using $(CC) (preferred).)
-else
+else ifneq ("$(shell which arm-$(ARM_ABI)-gcc 2>/dev/null)","")
     # otherwise, try whatever is installed on the system
     CC=$(shell which arm-$(ARM_ABI)-gcc)
     CROSS_COMPILE=$(shell basename '$(CC)' gcc)
     $(info Using $(CC) (from PATH).)
-endif
-
-ifneq ("$(CC)","")
-    ARM_LIBGCC_PATH=$(shell $(CC) --print-search-dirs \
-        | grep "libraries: =" | tr '=' '\n' | tr ':' '\n' \
-        | grep "lib/gcc/arm-$(ARM_ABI)/" | head -n1 | tee foo)
-    $(info ARM_LIBGCC_PATH: $(ARM_LIBGCC_PATH))
+else ifneq ("$(wildcard ~/gcc*arm*eabi*/bin/arm-$(ARM_ABI)-gcc$(GCC_VERSION))","")
+    # nothing found? look for any gcc*arm*eabi* in the home directory,
+    # matching ARM_ABI and GCC_VERSION from Makefile.user if specified 
+    # if more than one match is found, pick the one with highest version number
+    ARM_BINPATH=$(shell dirname `ls -v ~/gcc*arm*eabi*/bin/arm-$(ARM_ABI)-gcc$(GCC_VERSION) | tail -1`)
+    CROSS_COMPILE=$(ARM_BINPATH)/arm-$(ARM_ABI)-
+    CC=$(CROSS_COMPILE)gcc$(GCC_VERSION)
+    $(info Using $(CC) (found in home directory).)
 else
+    # still nothing?
     $(info )
     $(info Please configure a valid ARM cross-compiler.)
     $(info If arm-$(ARM_ABI)-gcc is in your executable path, it will be used.)
@@ -33,6 +35,11 @@ else
     $(info )
     $(error )
 endif
+
+ARM_LIBGCC_PATH=$(shell $(CC) --print-search-dirs \
+    | grep "libraries: =" | tr '=' '\n' | tr ':' '\n' \
+    | grep "lib/gcc/arm-$(ARM_ABI)/" | head -n1 | tee foo)
+$(info ARM_LIBGCC_PATH: $(ARM_LIBGCC_PATH))
 
 # used for NEWLIB_PATH and DIETLIBC_PATH in Makefile.user.default
 ARM_ABI_LIB=$(ARM_ABI)
