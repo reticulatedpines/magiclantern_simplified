@@ -663,8 +663,8 @@ static struct {
     { 0xE050,   BGMT_PRESS_DOWN,                                                        },
     { 0xE04D,   BGMT_PRESS_RIGHT,                                                       },
     { 0xE0C8,   BGMT_UNPRESS_UP,                                                        },
-    { 0xE0D0,   BGMT_UNPRESS_LEFT,                                                      },
-    { 0xE0CB,   BGMT_UNPRESS_DOWN,                                                      },
+    { 0xE0CB,   BGMT_UNPRESS_LEFT,                                                      },
+    { 0xE0D0,   BGMT_UNPRESS_DOWN,                                                      },
     { 0xE0CD,   BGMT_UNPRESS_RIGHT,                                                     },
     
     { 0x004F,   BGMT_PRESS_DOWN_LEFT,   "Numpad keys",  "Joystick (8 directions)",      },
