@@ -1075,7 +1075,7 @@ silent_pic_take_lv(int interactive)
         case SILENT_PIC_MODE_SIMPLE:
         case SILENT_PIC_MODE_SLITSCAN:
         case SILENT_PIC_MODE_FULLRES_LV:
-            hSuite1 = srm_malloc_suite(2);
+            hSuite1 = srm_malloc_suite(1);
             break;
     }
 
