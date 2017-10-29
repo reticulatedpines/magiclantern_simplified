@@ -354,6 +354,16 @@ print_build_info: FORCE magiclantern
 	@echo
 	@(cat $(TOP_DIR)/Makefile.user 2>/dev/null) | grep -E "^ *(CONFIG_|[A-Z0-9_]*VERSION)" || true
 	@echo
+	@NUM_CPUS=$$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null | echo 2); \
+		if [ $$NUM_CPUS -gt 1 ]; then \
+			case "$(MAKEFLAGS)" in \
+				(*-j*) ;; \
+				(*) echo "Tip: to compile faster, try one of these:"; \
+					echo "    make -j$$NUM_CPUS"; \
+					echo "    export MAKEFLAGS='-j$$NUM_CPUS'"; \
+					echo ;; \
+			esac; \
+		fi
 
 $(SRC_DIR)/menuindexentries.h:
 	$(call build,"MENU IDX", if [ -f $(DOC_DIR)/menuindex.txt ]; then \
