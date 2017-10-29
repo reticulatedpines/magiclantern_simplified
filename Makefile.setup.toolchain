@@ -36,11 +36,6 @@ else
     $(error )
 endif
 
-ARM_LIBGCC_PATH=$(shell $(CC) --print-search-dirs \
-    | grep "libraries: =" | tr '=' '\n' | tr ':' '\n' \
-    | grep "lib/gcc/arm-$(ARM_ABI)/" | head -n1 | tee foo)
-$(info ARM_LIBGCC_PATH: $(ARM_LIBGCC_PATH))
-
 # used for NEWLIB_PATH and DIETLIBC_PATH in Makefile.user.default
 ARM_ABI_LIB=$(ARM_ABI)
 ifeq ($(ARM_ABI),eabi)
