@@ -84,7 +84,7 @@ magiclantern-$(VERSION).zip: install installdoc install_fir
 	$(call rm_dir, $(INSTALL_DIR)/)
 
 zip:: | prepare_zip
-zip:: magiclantern-$(VERSION).zip
+zip:: magiclantern-$(VERSION).zip print_build_info
 
 clean::
 	$(call rm_dir, zip)

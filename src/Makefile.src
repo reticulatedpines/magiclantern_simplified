@@ -350,7 +350,7 @@ $(PLATFORM_DIR)/version.bin: FORCE
 	@echo '' >> $@
 
 print_build_info: FORCE magiclantern
-	@$(READELF) -l magiclantern | $(GREP) -C 2 MemSiz
+	@$(READELF) -l magiclantern | $(GREP) -C 2 MemSiz | $(GREP) -v EXIDX
 	@echo
 	@(cat $(TOP_DIR)/Makefile.user 2>/dev/null) | grep -E "^ *(CONFIG_|[A-Z0-9_]*VERSION)" || true
 	@echo
