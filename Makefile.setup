@@ -12,7 +12,7 @@ include $(TOP_DIR)/Makefile.top
 
 ifeq ($(CONFIG_CCACHE), y)
     CC := $(CCACHE) $(CC)
-    HOST_CC := $(CCACHE) $(CC)
+    HOST_CC := $(CCACHE) $(HOST_CC)
 endif	
 
 # Quiet the build process
