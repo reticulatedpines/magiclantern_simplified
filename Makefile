@@ -113,9 +113,6 @@ doxygen:
 doxygen_clean:
 	$(call rm_dir, doxygen-doc)
 
-dropbox: all
-	cp $(PLATFORM_PATH)/all/autoexec.bin ~/Dropbox/Public/bleeding-edge/
-
 features.html: FORCE
 	cd features; python features-html.py > ../features.html
  
