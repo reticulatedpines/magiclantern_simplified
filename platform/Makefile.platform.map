@@ -1,4 +1,6 @@
 PLATFORM_MAP = \
+	5D3.113 \
+	5D3.123 \
 	5D2.212 \
 	7D.203 \
 	7D_MASTER.203 \
@@ -13,28 +15,59 @@ PLATFORM_MAP = \
 	1100D.105 \
 	6D.116
 
-PLATFORM_MAP_CONFUSES_THE_MAKEFILES = \
-	5D3.113 \
-	5D3.123 \
-
-
 PLATFORM_MAP_UNMAINTAINED = \
 	40D.111 \
 	5DC.111 \
 	100D.100 \
 
-platform_map = $(filter $(1).%, $(PLATFORM_MAP))
 
-make_platform_dirs = $(foreach elem,$(1),$(call platform_map,$(elem)))
+ALL_SUPPORTED_MODELS=$(PLATFORM_MAP)
 
-ALL_SUPPORTED_MODELS=$(basename $(PLATFORM_MAP))
+# call this with 1 parameter, e.g. 5D2 (without firmware version) to get the firmware version from PLATFORM_MAP
+# used by Makefile.platform.base if a platform Makefile only defined MODEL but not FIRMWARE_VER
+platform_version = $(word 2, $(subst ., ,$(filter $(1).%, $(PLATFORM_MAP))))
 
-platform_version = $(patsubst $(strip $(1)).%,%,$(call platform_map, $(1)))
 
-PLATFORM_CLEAN_ALL_TARGETS = $(call targets_rules, $(ALL_SUPPORTED_MODELS), clean)
+# this helper is used to build 'short' and the clean/install targets for every model, e.g. 5D3 for 5D3.113 plus 5D3.123
+# parameters:
+#   $1 short model name (5D3, 7D)
+#   $2 model name with version (5D3.113)
+#   $3 directory prefix with trailing slash (e.g. 'platform/')
+define makerule =
+.PHONY: $1
+.PHONY: $1_clean
+.PHONY: $1_install
+.PHONY: $2
+.PHONY: $2_clean
+.PHONY: $2_install
 
-PLATFORM_INSTALL_ALL_TARGETS = $(call targets_rules, $(ALL_SUPPORTED_MODELS), install)
+# append to global clean and install targets
+clean: $1_clean
+install: $1_install
 
-PLATFORM_INSTALL_SUPPORTED_TARGETS = $(call targets_rules, $(SUPPORTED_MODELS), install)
+# build the firmware-agnostic make rule, e.g. 5D3 or 5D2 and link to the firmware-specific rule
+$1: $2
+$1_clean: $2_clean
+$1_install: $2_install
 
-call_make_platform = $(call call_make_rule_ex, platform_map, $(PLATFORM_PATH))
+$2:
+	+$(MAKE) -C $3$2
+
+$2_clean:
+	+$(MAKE) -C $3$2 clean
+
+$2_install:
+	+$(MAKE) -C $3$2 install
+
+endef
+
+# specific firmware versions/tweaks go here
+
+7D: 7D_MASTER
+	$(MAKE) -C $(PLATFORM_PATH)/7D.203
+
+7DFIR: 7D_MASTER 7D
+	dd if=$(PLATFORM_PATH)/7D.203/autoexec.bin of=$(PLATFORM_PATH)/7D.203/autoexec.fir bs=288 skip=1 >/dev/null 2>&1
+	dd if=$(PLATFORM_PATH)/7D_MASTER.203/autoexec.bin of=$(PLATFORM_PATH)/7D_MASTER.203/autoexec.fir bs=288 skip=1 >/dev/null 2>&1
+	python ../dumper/build_fir7.py -r -s $(PLATFORM_PATH)/7D.203/autoexec.fir -m $(PLATFORM_PATH)/7D_MASTER.203/autoexec.fir $(PLATFORM_PATH)/7D.203/7D000203.FIR $(PLATFORM_PATH)/7D.203/MAGIC.FIR >/dev/null
+
