@@ -41,7 +41,8 @@ define makerule =
 .PHONY: $2_clean
 .PHONY: $2_install
 
-# append to global clean and install targets
+# append to global all, clean and install targets
+all: $2
 clean: $1_clean
 install: $1_install
 
