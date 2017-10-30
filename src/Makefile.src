@@ -353,6 +353,7 @@ print_build_info: FORCE magiclantern
 	@$(READELF) -l magiclantern | $(GREP) -C 2 MemSiz | $(GREP) -v EXIDX
 	@echo
 	@(cat $(TOP_DIR)/Makefile.user 2>/dev/null) | grep -E "^ *(CONFIG_|[A-Z0-9_]*VERSION)" || true
+	@printf "%s\n" $(foreach v, $(filter CONFIG_%,$(MAKEOVERRIDES)), $(v))
 	@echo
 	@NUM_CPUS=$$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null | echo 2); \
 		if [ $$NUM_CPUS -gt 1 ]; then \
