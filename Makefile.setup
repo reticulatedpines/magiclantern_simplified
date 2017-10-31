@@ -12,7 +12,7 @@ include $(TOP_DIR)/Makefile.top
 
 ifeq ($(CONFIG_CCACHE), y)
     CC := $(CCACHE) $(CC)
-    HOST_CC := $(CCACHE) $(CC)
+    HOST_CC := $(CCACHE) $(HOST_CC)
 endif	
 
 # Quiet the build process
@@ -94,6 +94,10 @@ AFLAGS=\
 ifdef CONFIG_SMALL_FONTS
 $(error CONFIG_SMALL_FONTS must be renamed to ML_SRC_SMALL_FONTS)
 endif
+
+# some recent Linux distros have this defined
+# we don't use it, but the checks below will get upset and print a warning
+undefine CONFIG_SITE
 
 ensureCorrectValue = $(if $(filter $($(1)),y n 1 0), ,$(1)=n $(warning BAD VALUE FOR $(1)=$($(1)) DEFAULTING TO n))
 _defined_configs = $(filter CONFIG_%, $(.VARIABLES))

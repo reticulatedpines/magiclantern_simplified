@@ -1,4 +1,3 @@
-MAKE=make
 RM=rm
 MV=mv
 MKDIR=mkdir

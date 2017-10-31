@@ -20,8 +20,8 @@ endif
 
 # change this if you have to mount the card every time you run "make install"
 # examples:
-# MOUNT_CARD=gvfs-mount -d /dev/mmcblk0p1
-# MOUNT_CARD=gvfs-mount dav://192.168.0.1/
+# MOUNT_CARD=gio mount -d /dev/mmcblk0p1
+# MOUNT_CARD=gio mount dav://192.168.0.1/
 MOUNT_CARD=
 
 # Experimental setup for Wi-Fi SD cards
@@ -56,9 +56,13 @@ ifeq ($(WIFI_SD),y)
       done; \
       nmcli conn up $(WIFI_CARD_NETWORK); \
     fi; \
-    if (ping -c 3 -l 3 $(WIFI_CARD_IP) > /dev/null) ; then \
-      if !(gvfs-mount -l | grep "dav://$(WIFI_CARD_IP)/"); then \
-        gvfs-mount dav://$(WIFI_CARD_IP)/ ; \
+    for i in `seq 1 20`; do \
+        if ping -c 3 -l 3 -W 1 $(WIFI_CARD_IP) > /dev/null; then break; fi; \
+        echo -n "."; \
+    done; \
+    if (ping -c 3 -l 3 -W 1 $(WIFI_CARD_IP) > /dev/null) ; then \
+      if !(gio mount -l | grep "dav://$(WIFI_CARD_IP)/"); then \
+        gio mount dav://$(WIFI_CARD_IP)/ ; \
       fi; \
     else \
       echo "$(WIFI_CARD_IP) appears to be offline." ; \
@@ -76,7 +80,7 @@ ifeq ($(WIFI_SD),y)
       nmcli conn up $(WIFI_MAIN_NETWORK); \
     fi; )
   
-  UMOUNT_CARD=$(call build,UNMOUNT,while !(gvfs-mount -u dav://$(WIFI_CARD_IP)/); do sleep 2; done)
+  UMOUNT_CARD=$(call build,UNMOUNT,while !(gio mount -u dav://$(WIFI_CARD_IP)/); do sleep 2; done)
   
   # executed after installation
   define INSTALL_FINISH =
@@ -114,7 +118,7 @@ NEWLIB_PATH=$(SRC_DIR)/libs/arm-$(ARM_ABI_LIB)-$(NEWLIB_OPT_LEVEL)
 DIETLIBC_PATH=$(SRC_DIR)/libs/dietlib-$(DIETLIB_VERSION)-$(ARM_ABI_LIB)-$(DIETLIBC_OPT_LEVEL)
 
 # Static libraries used
-ARM_LIBGCC_A=$(ARM_LIBGCC_PATH)/libgcc.a
+ARM_LIBGCC_A=$(shell $(CC) -print-libgcc-file-name)
 NEWLIB_LIBM_A=$(NEWLIB_PATH)/libm.a
 NEWLIB_LIBC_A=$(NEWLIB_PATH)/libc.a
 DIETLIBC_A=$(DIETLIBC_PATH)/dietlibc.a
