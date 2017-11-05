@@ -299,8 +299,9 @@ int get_zoom_out_pressed();
 
 int display_is_on();
 
-/* go to Canon's PLAY mode and wait until the mode change is completed */
+/* go to Canon's PLAY or MENU mode and wait until the mode change is completed */
 void enter_play_mode();
+void enter_menu_mode();
 
 /* go back to LiveView or plain photo mode */
 void exit_play_qr_mode();

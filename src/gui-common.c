@@ -722,6 +722,30 @@ void enter_play_mode()
     msleep(500);
 }
 
+/* fixme: duplicate code (similar to enter_play_mode) */
+void enter_menu_mode()
+{
+    if (MENU_MODE) return;
+    
+    /* request new mode */
+    SetGUIRequestMode(GUIMODE_MENU);
+
+    /* wait up to 2 seconds to enter the MENU mode */
+    for (int i = 0; i < 20 && !MENU_MODE; i++)
+    {
+        msleep(100);
+    }
+
+    /* also wait for display to come up, up to 1 second */
+    for (int i = 0; i < 10 && !DISPLAY_IS_ON; i++)
+    {
+        msleep(100);
+    }
+    
+    /* wait a little extra for the new mode to settle */
+    msleep(500);
+}
+
 /* exit from PLAY or QR modes (to LiveView or plain photo mode) */
 void exit_play_qr_mode()
 {
