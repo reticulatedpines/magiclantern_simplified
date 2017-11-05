@@ -101,8 +101,8 @@ static int luaCB_led_off(lua_State * L)
 static int luaCB_led_blink(lua_State * L)
 {
     LUA_PARAM_INT_OPTIONAL(times, 1, 1);
-    LUA_PARAM_INT_OPTIONAL(delay_on, 1, 50);
-    LUA_PARAM_INT_OPTIONAL(delay_off, 1, 50);
+    LUA_PARAM_INT_OPTIONAL(delay_on, 2, 50);
+    LUA_PARAM_INT_OPTIONAL(delay_off, 3, 50);
     info_led_blink(times, delay_on, delay_off);
     return 0;
 }
