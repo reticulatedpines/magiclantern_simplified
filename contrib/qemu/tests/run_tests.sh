@@ -297,12 +297,12 @@ function test_drysh {
     ) | (
         if [ -f $CAM/patches.gdb ]; then
             ( arm-none-eabi-gdb -x $CAM/patches.gdb -ex quit 1>&2 &
-              ./run_canon_fw.sh $CAM,firmware="boot=0" \
+              ./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot \
                 -display none -serial stdio -s -S ) \
                     > tests/$CAM/$TEST.log \
                     2> tests/$CAM/$TEST-emu.log
         else
-            ./run_canon_fw.sh $CAM,firmware="boot=0" \
+            ./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot \
                 -display none -serial stdio \
                 > tests/$CAM/$TEST.log \
                 2> tests/$CAM/$TEST-emu.log
@@ -342,7 +342,7 @@ function test_calls_main {
     # use -icount to get a deterministic execution
     # fixme: execution under gdb is not deterministic, even with -icount
     # ansi2txt used here (only once) because it's very slow
-    ./run_canon_fw.sh $CAM,firmware="boot=0" -icount 5 \
+    ./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot -icount 5 \
         -display none -d calls,idc,tasks \
         -serial file:tests/$CAM/$TEST-uart.log \
         |& ansi2txt > tests/$CAM/$TEST-raw.log &
@@ -489,7 +489,7 @@ done; cleanup
 function test_calls_from {
 
     # log all function calls/returns and export to IDC
-    ./run_canon_fw.sh $CAM,firmware="boot=1" \
+    ./run_canon_fw.sh $CAM,firmware="boot=1" -snapshot \
         -display none -d calls,idc \
         -serial file:tests/$CAM/$TEST-uart.log \
         &> tests/$CAM/$TEST-raw.log &
@@ -573,14 +573,15 @@ function test_calls_cstack {
     # log all function calls/returns, interrupts
     # and DebugMsg calls with call stack for each message
     if [ -f $CAM/patches.gdb ]; then
-        (./run_canon_fw.sh $CAM,firmware="boot=0" -serial file:tests/$CAM/$TEST-uart.log \
-             -display none -d calls,tasks,debugmsg,v -s -S & \
+        (./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot \
+             -display none -d calls,tasks,debugmsg,v -s -S \
+             -serial file:tests/$CAM/$TEST-uart.log & \
            arm-none-eabi-gdb -x $CAM/patches.gdb -ex quit &) &> tests/$CAM/$TEST-raw.log
     else
-        ./run_canon_fw.sh $CAM,firmware="boot=0" \
+        ./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot \
             -display none -d calls,tasks,debugmsg,v -serial stdio \
-            > tests/$CAM/$TEST-uart.log \
-            2> tests/$CAM/$TEST-raw.log &
+            -serial file:tests/$CAM/calls-cstack-uart.log \
+            &> tests/$CAM/$TEST-raw.log &
     fi
     sleep 10
     kill_qemu expect_running
@@ -603,10 +604,10 @@ done; cleanup
 function test_menu_callstack {
 
     if [ -f $CAM/patches.gdb ]; then
-        (./run_canon_fw.sh $CAM,firmware="boot=0" -vnc :12345 -d callstack -s -S & \
+        (./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot -vnc :12345 -d callstack -s -S & \
             arm-none-eabi-gdb -x $CAM/patches.gdb -ex quit &) &> tests/$CAM/$TEST.log
     else
-        (./run_canon_fw.sh $CAM,firmware="boot=0" -vnc :12345 -d callstack &) \
+        (./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot -vnc :12345 -d callstack &) \
             &> tests/$CAM/$TEST.log
     fi
 
@@ -640,7 +641,7 @@ done; cleanup
 function test_boot {
 
     # sorry, couldn't get the monitor working together with log redirection...
-    (./run_canon_fw.sh $CAM,firmware="boot=0" \
+    (./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot \
         -display none \
         -serial file:tests/$CAM/$TEST-uart.log \
         -d romcpy,int \
@@ -692,7 +693,7 @@ function test_hptimer {
     mcopy -o -i $MCF $HPTIMER_PATH/autoexec.bin ::
 
     # run the HPTimer test
-    (./run_canon_fw.sh $CAM,firmware="boot=1" -display none &> tests/$CAM/$TEST.log) &
+    (./run_canon_fw.sh $CAM,firmware="boot=1" -snapshot -display none &> tests/$CAM/$TEST.log) &
     sleep 0.2
     ( timeout 1 tail -f -n100000 tests/$CAM/$TEST.log & ) | grep --binary-files=text -qP "\x1B\x5B34mH\x1B\x5B0m\x1B\x5B34me\x1B\x5B0m"
     sleep 1
@@ -716,10 +717,10 @@ done; cleanup
 function test_menu {
 
     if [ -f $CAM/patches.gdb ]; then
-        (./run_canon_fw.sh $CAM,firmware="boot=0" -vnc :12345 -d debugmsg -s -S & \
+        (./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot -vnc :12345 -d debugmsg -s -S & \
             arm-none-eabi-gdb -x $CAM/patches.gdb -ex quit &) &> tests/$CAM/$TEST.log
     else
-        (./run_canon_fw.sh $CAM,firmware="boot=0" -vnc :12345 -d debugmsg &) \
+        (./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot -vnc :12345 -d debugmsg &) \
             &> tests/$CAM/$TEST.log
     fi
 
@@ -760,14 +761,11 @@ done; cleanup
 # All GUI cameras should be able to format the virtual card:
 function test_format {
 
-    # re-create the card images before each test
-    rm sd.img; unxz -k sd.img.xz; cp sd.img cf.img
-
     if [ -f $CAM/patches.gdb ]; then
-        (./run_canon_fw.sh $CAM,firmware="boot=0" -vnc :12345 -s -S & \
+        (./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot -vnc :12345 -s -S & \
             arm-none-eabi-gdb -x $CAM/patches.gdb -ex quit &) &> tests/$CAM/$TEST.log
     else
-        (./run_canon_fw.sh $CAM,firmware="boot=0" -vnc :12345 &) \
+        (./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot -vnc :12345 &) \
             &> tests/$CAM/$TEST.log
     fi
 
@@ -813,10 +811,10 @@ function test_fmtrestore {
         mdel -i $MSD ::/ML/MODULES/LOADING.LCK 2>/dev/null
 
         if [ -f $CAM/patches.gdb ]; then
-            (./run_canon_fw.sh $CAM,firmware="boot=1" -vnc :12345 -d debugmsg -s -S & \
+            (./run_canon_fw.sh $CAM,firmware="boot=1" -snapshot -vnc :12345 -d debugmsg -s -S & \
                 arm-none-eabi-gdb -x $CAM/patches.gdb -ex quit &) &>> tests/$CAM/$TEST.log
         else
-            (./run_canon_fw.sh $CAM,firmware="boot=1" -vnc :12345 -d debugmsg &) \
+            (./run_canon_fw.sh $CAM,firmware="boot=1" -snapshot -vnc :12345 -d debugmsg &) \
                 &>> tests/$CAM/$TEST.log
         fi
 
@@ -880,7 +878,7 @@ function test_gdb {
         return
     fi
 
-    (./run_canon_fw.sh $CAM,firmware="boot=0" -display none -s -S & \
+    (./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot -display none -s -S & \
      arm-none-eabi-gdb -x $CAM/debugmsg.gdb -ex quit &) &> tests/$CAM/$TEST.log
     sleep 0.5
     ( timeout 2 tail -f -n100000 tests/$CAM/$TEST.log & ) | grep --binary-files=text -qP "task_create\("
@@ -930,7 +928,7 @@ function test_frsp {
       echo screendump tests/$CAM/$TEST.ppm
       echo quit
     ) | (
-      ./run_canon_fw.sh $CAM,firmware="boot=1" \
+      ./run_canon_fw.sh $CAM,firmware="boot=1" -snapshot \
         -display none -monitor stdio \
         -d debugmsg \
         -serial file:tests/$CAM/$TEST-uart.log \
@@ -995,7 +993,7 @@ done; cleanup
 # All EOS cameras should run the portable display test:
 function test_disp {
     (sleep 5; echo screendump tests/$CAM/$TEST.ppm; echo quit) \
-      | ./run_canon_fw.sh $CAM,firmware="boot=1" -display none -monitor stdio &> tests/$CAM/$TEST.log
+      | ./run_canon_fw.sh $CAM,firmware="boot=1" -snapshot -display none -monitor stdio &> tests/$CAM/$TEST.log
     
     tests/check_md5.sh tests/$CAM/ $TEST
 }
@@ -1027,7 +1025,7 @@ function test_disp_chdk {
       echo screendump tests/$CAM/$TEST.ppm
       echo quit
     ) | (
-      ./run_canon_fw.sh $CAM \
+      ./run_canon_fw.sh $CAM -snapshot \
             -display none -monitor stdio \
             -serial file:tests/$CAM/$TEST-uart.log \
     ) &> tests/$CAM/$TEST.log
@@ -1046,7 +1044,7 @@ done; cleanup
 # some basic tests for PowerShot models
 function test_boot_powershot {
 
-    (./run_canon_fw.sh $CAM \
+    (./run_canon_fw.sh $CAM -snapshot \
        -display none -d romcpy,int -s -S \
        -serial file:tests/$CAM/$TEST-uart.log & \
      arm-none-eabi-gdb -x $CAM/debugmsg.gdb -ex quit &) &> tests/$CAM/$TEST.log
