@@ -185,6 +185,29 @@ cp -v ../magic-lantern/contrib/qemu/sd.img.xz .
 unxz -k sd.img.xz
 cp sd.img cf.img
 
+# checksum of reference SD/CF images
+sd_checksum=`md5sum sd.img`
+cf_checksum=`md5sum cf.img`
+
+# optional argument: -q = quiet
+function sd_cf_restore_if_modified {
+    # compute the checksums of SD and CF images in parallel
+    local checksums="$( md5sum sd.img & md5sum cf.img & )"
+    sd_new_checksum=$(echo "$checksums" | grep sd.img)
+    cf_new_checksum=$(echo "$checksums" | grep cf.img)
+
+    if [ "$sd_new_checksum" != "$sd_checksum" ]; then
+        [ "$1" == "-q" ] || echo -n " SD modified "
+        rm sd.img
+        unxz -k sd.img.xz
+    fi
+    if [ "$cf_new_checksum" != "$cf_checksum" ]; then
+        [ "$1" == "-q" ] || echo -n " CF modified "
+        rm cf.img
+        cp sd.img cf.img
+    fi
+}
+
 # send a keypress and wait for the screen to match a checksum
 # save the screenshot, regardless of match result
 # vncexpect key md5 timeout capture
@@ -216,16 +239,17 @@ function kill_qemu {
         echo -e "\e[31mshutdown error\e[0m (QEMU still running)"
     fi
 
-    killall -TERM -w qemu-system-arm 2>/dev/null
-
-    sleep 1
+    if killall -TERM -w qemu-system-arm 2>/dev/null; then
+        sleep 1
+    fi
 
     if pidof arm-none-eabi-gdb > /dev/null; then
         echo -e "\e[31mGDB still running\e[0m"
+
+        # for some reason, -TERM may hang up here
+        # but should be unreachable normally
+        killall -9 -w arm-none-eabi-gdb 2>/dev/null
     fi
-    # for some reason, -TERM may hang up here
-    # but should be unreachable normally
-    killall -9 -w arm-none-eabi-gdb 2>/dev/null
 }
 
 # just to be sure
@@ -263,9 +287,7 @@ function run_test {
 # called after running each set of tests
 function cleanup {
     kill_qemu expect_not_running
-
-    # re-create the card images
-    rm sd.img; unxz -k sd.img.xz; cp sd.img cf.img
+    sd_cf_restore_if_modified -q
 }
 
 # All EOS cameras should run the Dry-shell console over UART
