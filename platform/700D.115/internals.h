@@ -1,5 +1,5 @@
 /**
- * Camera internals for 700D 1.1.4
+ * Camera internals for 700D 1.1.5
  */
 
 /** Properties are persistent (saved in NVRAM) => a mistake can cause permanent damage. Undefine this for new ports. */
