@@ -634,8 +634,8 @@ init_task_func init_task_patched(int a, int b, int c, int d)
     /* R1: 0xD3C000 (end address, unchanged) */
     addr_AllocMem_end[1] = MOV_R0_0x4E0000_INSTR;
     ml_reserved_mem = 0x4E0000 - RESTARTSTART;
-    #elif defined(CONFIG_550D)
-    // change end limit from 0xd00000 to 0xc60000 => reserve 640K for ML
+    #elif defined(CONFIG_550D) || defined(CONFIG_600D)
+    // change end limit from 0xd00000 to 0xc70000 => reserve 576K for ML
     *addr_AllocMem_end = MOV_R1_0xC60000_INSTR;
     ml_reserved_mem = 0xD00000 - RESTARTSTART;
     #else
