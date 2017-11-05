@@ -305,6 +305,7 @@ void enter_menu_mode();
 
 /* go back to LiveView or plain photo mode */
 void exit_play_qr_mode();
+void exit_menu_mode();
 
 /* status helpers for PLAY and MENU modes */
 int is_pure_play_movie_mode();

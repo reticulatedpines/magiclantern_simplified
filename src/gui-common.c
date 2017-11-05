@@ -754,23 +754,53 @@ void exit_play_qr_mode()
 
     /* request new mode */
     SetGUIRequestMode(0);
-    
+
     /* wait up to 2 seconds */
-    for (int i = 0; i < 20 && PLAY_MODE; i++)
+    for (int i = 0; i < 20 && PLAY_OR_QR_MODE; i++)
     {
         msleep(100);
     }
-    
-    /* wait a little extra for the new mode to settle */
-    msleep(200);
-    
+
     /* if in LiveView, wait for the first frame */
     if (lv)
     {
         wait_lv_frames(1);
     }
+
+    /* also wait for display to come up, up to 1 second */
+    for (int i = 0; i < 10 && !DISPLAY_IS_ON; i++)
+    {
+        msleep(100);
+    }
 }
 
+/* same as above, but from MENU mode */
+void exit_menu_mode()
+{
+    /* not there? */
+    if (!MENU_MODE) return;
+
+    /* request new mode */
+    SetGUIRequestMode(0);
+
+    /* wait up to 2 seconds */
+    for (int i = 0; i < 20 && MENU_MODE; i++)
+    {
+        msleep(100);
+    }
+
+    /* if in LiveView, wait for the first frame */
+    if (lv)
+    {
+        wait_lv_frames(1);
+    }
+
+    /* also wait for display to come up, up to 1 second */
+    for (int i = 0; i < 10 && !DISPLAY_IS_ON; i++)
+    {
+        msleep(100);
+    }
+}
 
 int is_pure_play_photo_mode() // no other dialogs active (such as delete)
 {
