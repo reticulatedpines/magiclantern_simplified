@@ -9,6 +9,10 @@ test_log = nil
 
 function printf(s,...)
     test_log:writef(s,...)
+
+    if not console.visible then
+        display.notify_box(s:format(...), 5000)
+    end
 end
 
 function request_mode(mode, mode_str)
@@ -961,7 +965,42 @@ function test_lv()
     assert(not lens.autofocusing)
 
     msleep(2000)
-    
+
+    -- lv.overlays status
+    local function print_overlays_status()
+        -- 1 = Canon overlays, 2 = ML overlays (when global draw is on), false = no overlays enabled
+        -- using false instead of 0 to allow using in a conditional expression: if lv.overlays then ...
+        printf("Overlays: %s\n", lv.overlays == 1 and "Canon" or lv.overlays == 2 and "ML" or "disabled");
+    end
+
+    console.hide(); assert(not console.visible)
+    local old_gdr = menu.get("Overlay", "Global Draw")
+    for i=1,10 do
+        key.press(KEY.INFO)
+        msleep(200); print_overlays_status()
+        msleep(1000)
+        if lv.overlays ~= 1 then
+            -- Canon overlays disabled?
+            -- Enable ML overlays
+            assert(menu.set("Overlay", "Global Draw", "ON"))
+            msleep(200); print_overlays_status()
+            assert(lv.overlays == 2)
+            msleep(1000)
+            -- Disable ML overlays
+            assert(menu.set("Overlay", "Global Draw", "OFF"))
+            msleep(200); print_overlays_status()
+            assert(lv.overlays == false)
+            msleep(1000)
+        end
+    end
+    -- restore original Global Draw setting
+    assert(menu.set("Overlay", "Global Draw", old_gdr))
+    assert(menu.get("Overlay", "Global Draw") == old_gdr)
+    msleep(200); print_overlays_status()
+    console.show(); assert(console.visible)
+
+    msleep(2000)
+
     for i,z in pairs{1, 5, 10, 5, 1, 10, 1} do
         printf("Setting zoom to x%d...\n", z)
         lv.zoom = z

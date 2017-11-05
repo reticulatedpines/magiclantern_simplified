@@ -42,6 +42,14 @@ static int luaCB_lv_index(lua_State * L)
     /// Get/set LiveView zoom factor (1, 5, 10).
     // @tfield bool zoom
     else if(!strcmp(key, "zoom")) lua_pushinteger(L, lv_dispsize);
+    /// Get the status of LiveView overlays (false = disabled, 1 = Canon, 2 = ML)
+    // @tfield int overlays
+    else if(!strcmp(key, "overlays"))
+    {
+        if (zebra_should_run()) lua_pushinteger(L, 2);
+        else if (lv && lv_disp_mode) lua_pushinteger(L, 1);
+        else lua_pushboolean(L, 0);
+    }
     else lua_rawget(L, 1);
     return 1;
 }
@@ -381,6 +389,7 @@ static const char * lua_lv_fields[] =
     "paused",
     "running",
     "zoom",
+    "overlays",
     NULL
 };
 
