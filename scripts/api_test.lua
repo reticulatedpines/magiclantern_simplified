@@ -15,7 +15,7 @@ function request_mode(mode, mode_str)
     while camera.mode ~= mode do
         printf("Please switch to %s mode.\n", mode_str, mode)
         while camera.mode ~= mode do
-            console.show()
+            console.show(); assert(console.visible)
             msleep(1000)
         end
     end
@@ -1013,7 +1013,7 @@ function test_lens_focus()
         printf("Please enable autofocus.\n")
         printf("(or, remove the lens from the camera to skip this test)\n")
         while not lens.af and lens.name ~= "" do
-            console.show()
+            console.show(); assert(console.visible)
             msleep(1000)
         end
         msleep(1000)
@@ -1161,13 +1161,13 @@ function test_movie()
 
     -- now it should work
     -- hide the console for a nicer look
-    console.hide()
+    console.hide(); assert(not console.visible)
     movie.start()
     assert(movie.recording)
     msleep(1000)
     movie.stop()
     assert(not movie.recording)
-    console.show()
+    console.show(); assert(console.visible)
 
     printf("Movie recording tests completed.\n")
     printf("\n")

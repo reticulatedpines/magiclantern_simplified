@@ -53,7 +53,19 @@ static int luaCB_console_write(lua_State * L)
     return 0;
 }
 
-static int luaCB_console_index(lua_State * L) { lua_rawget(L, 1); return 1; }
+static int luaCB_console_index(lua_State * L)
+{
+    LUA_PARAM_STRING_OPTIONAL(key, 2, "");
+    /// Whether or not the console is displayed.
+    // @tfield bool visible
+    if(!strcmp(key, "visible"))
+    {
+        extern int console_visible;
+        lua_pushboolean(L, console_visible);
+    }
+    else lua_rawget(L, 1);
+    return 1;
+}
 static int luaCB_console_newindex(lua_State * L) { lua_rawset(L, 1); return 0; }
 
 
