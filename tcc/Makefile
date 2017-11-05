@@ -8,6 +8,8 @@ include $(TOP)/../Makefile.user.default
 
 -include $(TOP)/../Makefile.user
 
+-include $(TOP)/../Makefile.setup.toolchain
+
 include $(TOP)/config.mak
 
 VPATH = $(top_srcdir)
