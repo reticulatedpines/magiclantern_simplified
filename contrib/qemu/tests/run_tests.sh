@@ -4,7 +4,8 @@
 # This also shows the emulation state on various cameras
 # usage: 
 #   ./run_test.sh                   # test all models
-#   ./run_test.sh 5D3 EOSM EOSM3    # test only specific models
+#   ./run_test.sh 5D3 EOSM EOSM3    # test only specific models (uppercase arguments = camera models)
+#   ./run_test.sh 5D3 drysh menu    # run only the selected tests/models (lowercase arguments = test names)
 
 # Caveat: this assumes no other qemu-system-arm or
 # arm-none-eabi-gdb processes are running during the tests
@@ -34,8 +35,26 @@ CF_CAMS=( 5D 5D2 5D3 5D4 7D 7D2M 40D 50D 400D )
 # cameras able to run the FA_CaptureTestImage test (full-res silent picture backend)
 FRSP_CAMS=( 5D3 500D 550D 50D 60D 1100D 1200D )
 
-if (( $# > 0 )); then
-    # arguments present? test only these models
+function has_upper_args {
+    for arg in "$@"; do
+        if [ "$arg" == "${arg^^}" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+function has_lower_args {
+    for arg in "$@"; do
+        if [ "$arg" == "${arg,,}" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+if (( $# > 0 )) && has_upper_args "$@"; then
+    # uppercase arguments present? test only these models
     # fixme: nicer way to do the same? (intersection between arguments and the lists of supported models)
     REQ_CAMS=( $* )
     EOS_CAMS=($(join <(printf %s\\n "${REQ_CAMS[@]}" | sort -u) <(printf %s\\n "${EOS_CAMS[@]}" | sort -u) | sort -n))
@@ -46,6 +65,27 @@ if (( $# > 0 )); then
     FRSP_CAMS=($(join <(printf %s\\n "${FRSP_CAMS[@]}" | sort -u) <(printf %s\\n "${FRSP_CAMS[@]}" | sort -u) | sort -n))
     EOS_SECONDARY_CORES=($(join <(printf %s\\n "${REQ_CAMS[@]}" | sort -u) <(printf %s\\n "${EOS_SECONDARY_CORES[@]}" | sort -u) | sort -n))
 fi
+
+# lowercase args are test names
+function test_selected {
+    local test=$1
+    shift
+    if has_lower_args ${BASH_ARGV[@]}; then
+        # lowercase args present?
+        for arg in ${BASH_ARGV[@]}; do
+            if [ "$arg" == "$test" ]; then
+                # current test selected
+                return 0
+            fi
+        done
+
+        # this test is not among the lowercase args? skip it
+        return 1
+    fi
+
+    # no lowercase args? run all tests
+    return 0
+}
 
 declare -A MENU_SEQUENCE
 MENU_SEQUENCE[5D2]="f1 i i i m up up up space m m w w p p" # sensor cleaning animation
@@ -197,11 +237,17 @@ kill_qemu expect_not_running
 # - CAM (camera name)
 # - test name override (optional; derived from test function name by default)
 function run_test {
-    printf "%7s: " $CAM
 
     # global variables used in tests
     TEST=${3:-${1//_/-}}
     CAM=$2
+
+    if ! test_selected $TEST; then
+        # can we skip this test?
+        return
+    fi
+
+    printf "%7s: " $CAM
 
     # make sure the test subdirectory is present
     # and remove any previous logs or screenshots from this test
