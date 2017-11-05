@@ -267,14 +267,14 @@ static struct mpu_init_spell mpu_init_spells_70D[] = {
      // { 0x06, 0x05, 0x03, 0x6f, 0x00, 0x00 },                 /* reply #65.5 */
      // { 0x08, 0x06, 0x01, 0x0b, 0x00, 0x00, 0x00 },           /* reply #65.6, PROP_AEB */
      // { 0 } } },
-    { { 0x08, 0x06, 0x00, 0x00, 0x04, 0x00, 0x00 }, .description = "Complete WaitID = 0x80020000 NotifyGUIEvent", .out_spells = { /* spell #65 */
+ // { { 0x08, 0x06, 0x00, 0x00, 0x04, 0x00, 0x00 }, .description = "Complete WaitID = 0x80020000 NotifyGUIEvent", .out_spells = { 
+     // { 0 } } },
+    { { 0x06, 0x05, 0x03, 0x34, 0x00, 0x00 }, .description = "Current Q position", .out_spells = { /* spell #65 */
         { 0 } } },
-    { { 0x06, 0x05, 0x03, 0x34, 0x00, 0x00 }, .description = "Current Q position", .out_spells = { /* spell #66 */
-        { 0 } } },
-    { { 0x06, 0x05, 0x03, 0x19, 0x00, 0x00 }, .description = "PROP_TFT_STATUS", .out_spells = { /* spell #67 */
-     // { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #67.1, GMT_GUICMD_PRESS_BUTTON_SOMETHING, GUI_Control:84, bindReceiveSwitch(38, 1) */
-     // { 0x06, 0x05, 0x06, 0x0b, 0x06, 0x00 },                 /* reply #67.2, BGMT_PRESS_LEFT, GUI_Control:52, bindReceiveSwitch(11, 6) */
-     // { 0x06, 0x05, 0x06, 0x0b, 0x00, 0x00 },                 /* reply #67.3, BGMT_UNPRESS_UDLR, GUI_Control:54, bindReceiveSwitch(11, 0) */
+    { { 0x06, 0x05, 0x03, 0x19, 0x00, 0x00 }, .description = "PROP_TFT_STATUS", .out_spells = { /* spell #66 */
+     // { 0x06, 0x05, 0x06, 0x26, 0x01, 0x00 },                 /* reply #66.1, GMT_GUICMD_PRESS_BUTTON_SOMETHING, GUI_Control:84, bindReceiveSwitch(38, 1) */
+     // { 0x06, 0x05, 0x06, 0x0b, 0x06, 0x00 },                 /* reply #66.2, BGMT_PRESS_LEFT, GUI_Control:52, bindReceiveSwitch(11, 6) */
+     // { 0x06, 0x05, 0x06, 0x0b, 0x00, 0x00 },                 /* reply #66.3, BGMT_UNPRESS_UDLR, GUI_Control:54, bindReceiveSwitch(11, 0) */
         { 0 } } },
 
     #include "NotifyGUIEvent.h"

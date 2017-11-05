@@ -265,7 +265,7 @@ for l in lines:
                     description += " " + known_spells[spell[12:17]][0]
 
             # comment out NotifyGuiEvent / PROP_GUI_STATE and its associated Complete WaitID
-            if description == "NotifyGUIEvent" or description == "Complete WaitID = 0x80020000":
+            if description == "NotifyGUIEvent" or description == "Complete WaitID = 0x80020000 NotifyGUIEvent":
                 commented_block = True
 
             # comment out PROP_ICU_UILOCK - we have it in UILock.h
