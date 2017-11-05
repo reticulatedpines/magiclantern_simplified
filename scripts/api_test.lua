@@ -958,6 +958,7 @@ function test_lv()
     printf("Starting LiveView...\n")
     lv.start()
     assert(lv.enabled, "LiveView did not start")
+    assert(not lens.autofocusing)
 
     msleep(2000)
     
@@ -972,6 +973,7 @@ function test_lv()
     lv.pause()
     assert(lv.enabled, "LiveView stopped")
     assert(lv.paused, "LiveView could not be paused")
+    assert(not lens.autofocusing)
 
     msleep(2000)
 
@@ -979,6 +981,7 @@ function test_lv()
     lv.resume()
     assert(lv.enabled, "LiveView stopped")
     assert(not lv.paused, "LiveView could not be resumed")
+    assert(not lens.autofocusing)
 
     msleep(2000)
 
@@ -988,6 +991,7 @@ function test_lv()
     assert(not lv.enabled, "LiveView did not stop")
     assert(not lv.paused,  "LiveView is disabled, can't be paused")
     assert(not lv.running, "LiveView is disabled, can't be running")
+    assert(not lens.autofocusing)
 
     msleep(1000)
 
@@ -1032,8 +1036,33 @@ function test_lens_focus()
         printf("Focus distance: %s\n",  lens.focus_distance)
 
         printf("Autofocus in LiveView...\n")
+        assert(not lens.autofocusing)
         assert(lens.autofocus())
+        assert(not lens.autofocusing)
 
+        printf("Please trigger autofocus (half-shutter / AF-ON / * ).\n")
+        for i = 1,2000 do
+            msleep(10)
+            if lens.autofocusing then
+                printf("Autofocus triggered.\n")
+                while lens.autofocusing do
+                    msleep(10)
+                end
+                printf("Autofocus completed.\n")
+                break
+            end
+            if i % 100 == 0 then
+                printf("\b\b\b\b\b%d...", 20 - i // 100)
+                io.flush()
+            end
+            if i // 100 == 20 then
+                printf("\b\b\b\b\b")
+                io.flush()
+                assert(false, "Autofocus not triggered.\n")
+            end
+        end
+
+        msleep(1000)
         printf("Focus distance: %s\n",  lens.focus_distance)
 
         -- note: focus direction is not consistent

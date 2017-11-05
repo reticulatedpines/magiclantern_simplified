@@ -54,6 +54,17 @@ static int luaCB_lens_index(lua_State * L)
     /// Get the current auto focus mode (may be model-specific, see PROP\_AF\_MODE in property.h).
     // @tfield int af_mode readonly
     else if(!strcmp(key, "af_mode")) lua_pushinteger(L, af_mode);
+    /// Get whether the lens is currently autofocusing.
+    ///
+    /// This does not include manual lens movements from lens.focus or ML follow focus - 
+    /// only movements from Canon autofocus triggered by half-shutter / AF-ON / * button.
+    /// It is updated several ms (sometimes hundreds of ms) after the half-shutter event.
+    ///
+    /// On cameras with continuous autofocus, the return value is unknown - please report.
+    ///
+    /// Known not to work on EOS M.
+    // @tfield bool autofocusing readonly
+    else if(!strcmp(key, "autofocusing")) lua_pushboolean(L, lv_focus_status == 3);
     else lua_rawget(L, 1);
     return 1;
 }
