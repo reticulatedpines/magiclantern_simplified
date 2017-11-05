@@ -50,6 +50,14 @@ static int luaCB_lv_index(lua_State * L)
         else if (lv && lv_disp_mode) lua_pushinteger(L, 1);
         else lua_pushboolean(L, 0);
     }
+    /// Get the name of current LiveView video mode.
+    ///
+    /// Examples: MV-1080, MV-720, MVC-1080, REC-1080, ZOOM-X5, PH-LV, PH-QR, PLAY-PH, PLAY-MV...
+    //@tfield string vidmode
+    else if(!strcmp(key, "vidmode"))
+    {
+        lua_pushstring(L, get_video_mode_name(0));
+    }
     else lua_rawget(L, 1);
     return 1;
 }

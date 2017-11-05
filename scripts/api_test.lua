@@ -951,6 +951,8 @@ function test_camera_take_pics()
 end
 
 function test_lv()
+    request_mode(MODE.M, "M")
+
     printf("Testing module 'lv'...\n")
     if lv.enabled then
         printf("LiveView is running; stopping...\n")
@@ -959,10 +961,14 @@ function test_lv()
         msleep(2000)
     end
 
+    assert(not lv.enabled)
+    assert(lv.vidmode == "PH-NOLV")
+
     printf("Starting LiveView...\n")
     lv.start()
     assert(lv.enabled, "LiveView did not start")
     assert(not lens.autofocusing)
+    assert(lv.vidmode == "PH-LV")
 
     msleep(2000)
 
@@ -1005,6 +1011,13 @@ function test_lv()
         printf("Setting zoom to x%d...\n", z)
         lv.zoom = z
         assert(lv.zoom == z, "Could not set zoom in LiveView ")
+        if z == 5 then
+            assert(lv.vidmode == "ZOOM-X5");
+        elseif z == 10 then
+            assert(lv.vidmode == "ZOOM-X10");
+        else
+            assert(lv.vidmode == "PH-LV")
+        end
         lv.wait(5)
     end
 
@@ -1013,6 +1026,7 @@ function test_lv()
     assert(lv.enabled, "LiveView stopped")
     assert(lv.paused, "LiveView could not be paused")
     assert(not lens.autofocusing)
+    assert(lv.vidmode == "PAUSED-LV");
 
     msleep(2000)
 
@@ -1021,6 +1035,7 @@ function test_lv()
     assert(lv.enabled, "LiveView stopped")
     assert(not lv.paused, "LiveView could not be resumed")
     assert(not lens.autofocusing)
+    assert(lv.vidmode == "PH-LV");
 
     msleep(2000)
 
@@ -1031,6 +1046,7 @@ function test_lv()
     assert(not lv.paused,  "LiveView is disabled, can't be paused")
     assert(not lv.running, "LiveView is disabled, can't be running")
     assert(not lens.autofocusing)
+    assert(lv.vidmode == "PH-NOLV")
 
     msleep(1000)
 
