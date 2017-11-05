@@ -43,7 +43,7 @@ static int luaCB_key_wait(lua_State * L)
 {
     LUA_PARAM_INT_OPTIONAL(key, 1, 0);
     LUA_PARAM_INT_OPTIONAL(timeout, 2, 0);
-    int pressed_key = 0;
+    uint32_t pressed_key = 0;
 
     if (lua_get_cant_yield(L))
     {
@@ -58,7 +58,7 @@ static int luaCB_key_wait(lua_State * L)
     lua_give_semaphore(L, NULL);
 
     /* wait for key to be pressed, or for timeout */
-    int err = lua_msg_queue_receive(L, (uint32_t) &pressed_key, timeout);
+    int err = lua_msg_queue_receive(L, &pressed_key, timeout);
 
     /* other script tasks no longer allowed */
     lua_take_semaphore(L, 0, NULL);
