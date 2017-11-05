@@ -8,6 +8,7 @@
 #define _DONT_INCLUDE_PROPVALUES_
 #include "property.h"
 #include "shoot.h"
+#include "zebra.h"
 
 char __camera_model_short[8] = CAMERA_MODEL;
 char camera_model[32];
@@ -280,8 +281,10 @@ char* get_video_mode_name(int include_fps)
         is_pure_play_movie_mode()                   ? "PLAY-MV"  :      /* Playback, reviewing a video */
         is_play_mode()                              ? "PLAY-UNK" :
         lv && lv_dispsize!=1                        ? zoom_msg   :      /* Some zoom in LiveView */
+        LV_PAUSED                                   ? "PAUSED-LV":      /* Paused LiveView (similar to playback, used by ML for powersaving, FRSP, various experiments...) */
         lv && lv_dispsize==1 && !is_movie_mode()    ? "PH-LV"    :      /* Photo LiveView */
         !is_movie_mode() && QR_MODE                 ? "PH-QR"    :      /* Photo QuickReview (right after taking a picture) */
+        !is_movie_mode() && display_idle()          ? "PH-NOLV"  :      /* Regular photo mode outside LV (ready to take a picture) */
         !is_movie_mode()                            ? "PH-UNK"   :
         video_mode_resolution == 0 && !video_mode_crop && !RECORDING_H264 ? "MV-1080"  :    /* Movie 1080p, standby */
         video_mode_resolution == 1 && !video_mode_crop && !RECORDING_H264 ? "MV-720"   :    /* Movie 720p, standby */
