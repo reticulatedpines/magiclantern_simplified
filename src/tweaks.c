@@ -407,45 +407,6 @@ static void playback_set_wheel_action(int dir)
 }
 #endif
 
-int is_pure_play_photo_mode() // no other dialogs active (such as delete)
-{
-    if (!PLAY_MODE) return 0;
-#ifdef CONFIG_5DC
-    return 1;
-#else
-    extern thunk PlayMain_handler;
-    return (intptr_t)get_current_dialog_handler() == (intptr_t)&PlayMain_handler;
-#endif
-}
-
-int is_pure_play_movie_mode() // no other dialogs active (such as delete)
-{
-    if (!PLAY_MODE) return 0;
-#ifdef CONFIG_VXWORKS
-    return 0;
-#else
-    extern thunk PlayMovieGuideApp_handler;
-    return (intptr_t)get_current_dialog_handler() == (intptr_t)&PlayMovieGuideApp_handler;
-#endif
-}
-
-int is_pure_play_photo_or_movie_mode() { return is_pure_play_photo_mode() || is_pure_play_movie_mode(); }
-
-int is_play_or_qr_mode()
-{
-    return PLAY_OR_QR_MODE;
-}
-
-int is_play_mode()
-{
-    return PLAY_MODE;
-}
-
-int is_menu_mode()
-{
-    return MENU_MODE;
-}
-
 #ifdef FEATURE_SET_MAINDIAL
 
 static void print_set_maindial_hint(int set)

@@ -299,6 +299,20 @@ int get_zoom_out_pressed();
 
 int display_is_on();
 
+/* go to Canon's PLAY mode and wait until the mode change is completed */
+void enter_play_mode();
+
+/* go back to LiveView or plain photo mode */
+void exit_play_qr_mode();
+
+/* status helpers for PLAY and MENU modes */
+int is_pure_play_movie_mode();
+int is_pure_play_photo_mode();
+int is_pure_play_photo_or_movie_mode();
+int is_play_mode();
+int is_play_or_qr_mode();
+int is_menu_mode();
+
 /* wrapper for GUI timers */
 void delayed_call(int delay_ms, void(*function)(), void* arg);
 
