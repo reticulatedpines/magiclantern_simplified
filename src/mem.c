@@ -176,7 +176,6 @@ static struct mem_allocator allocators[] = {
     },
 #endif
 
-#if !defined(CONFIG_QEMU)
     /* must be completely free when navigating Canon menus, so only use it as a last resort */
     {
         .name = "shoot_malloc",
@@ -197,7 +196,6 @@ static struct mem_allocator allocators[] = {
         .preferred_max_alloc_size = 20 * 1024 * 1024,
         .minimum_alloc_size = 5 * 1024,
     },
-#endif
 
 #if 1
     /* large buffers (30-40 MB), but you can't even take a picture with one of those allocated */

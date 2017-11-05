@@ -39,7 +39,6 @@
 
 #include "boot-hack.h"
 #include "reloc.h"
-
 #include "ml-cbr.h"
 #include "backtrace.h"
 
@@ -47,16 +46,12 @@
 #include "gps.h"
 #endif
 
-#ifdef CONFIG_QEMU
-#include "qemu-util.h"
-#endif
-
 #if defined(CONFIG_HELLO_WORLD)
 #include "fw-signature.h"
 #endif
 
 /** These are called when new tasks are created */
-static void my_task_dispatch_hook( struct context ** );
+static void my_task_dispatch_hook(struct context **, struct task *, struct task *);
 static int my_init_task(int a, int b, int c, int d);
 static void my_bzero( uint8_t * base, uint32_t size );
 
@@ -95,14 +90,9 @@ zero_bss( void )
         *(bss++) = 0;
 }
 
-#if defined(CONFIG_6D)
-void hijack_6d_guitask()
-{
-    extern void ml_gui_main_task();
-    task_create("GuiMainTask", 0x17, 0x2000, ml_gui_main_task, 0);
-}
-#endif
-
+/* Cannot use qprintf here for debugging (no snprintf). */
+/* You may use qprint/qprintn instead. */
+#define qprintf qprintf_not_available
 
 /** Copy firmware to RAM, patch it and restart it */
 void
@@ -120,6 +110,7 @@ copy_and_restart( )
     cache_lock();
 
     /* patch init code to start our init task instead of canons default */
+    qprint("[BOOT] patching init_task from "); qprintn(MEM(HIJACK_CACHE_HACK_INITTASK_ADDR)); qprint("\n");
     cache_fake(HIJACK_CACHE_HACK_INITTASK_ADDR, (uint32_t) my_init_task, TYPE_DCACHE);
 
     /* now start main firmware */
@@ -146,8 +137,16 @@ copy_and_restart( )
      * calls bzero(), then loads bs_end and calls
      * create_init_task
      */
-    // Reserve memory after the BSS for our application
     #if !defined(CONFIG_ALLOCATE_MEMORY_POOL) // Some cameras load ML into the AllocateMemory pool (like 5500D/1100D)
+    // Reserve memory after the BSS for our application
+    // This is done by resizing the malloc memory pool (user_mem_start in DryOS memory map),
+    // We are going to change its start address, to begin right after our BSS,
+    // (which is the last segment in our binary - see magiclantern.lds.S). */
+    // Malloc memory is usually specified by its start and end address.
+    // Exception: DIGIC 6 uses start address + size.
+    // Cannot use qprintf here (no snprintf).
+    qprint("[BOOT] changing user_mem_start from "); qprintn(INSTR(HIJACK_INSTR_BSS_END));
+    qprint("to "); qprintn((uintptr_t)_bss_end); qprint("\n");
     INSTR( HIJACK_INSTR_BSS_END ) = (uintptr_t) _bss_end;
     ml_reserved_mem = (uintptr_t)_bss_end - RESTARTSTART;
     #endif
@@ -157,6 +156,8 @@ copy_and_restart( )
     FIXUP_BRANCH( HIJACK_FIXBR_CREATE_ITASK, create_init_task );
 
     // Set our init task to run instead of the firmware one
+    qprint("[BOOT] changing init_task from "); qprintn(INSTR( HIJACK_INSTR_MY_ITASK ));
+    qprint("to "); qprintn((uint32_t) my_init_task); qprint("\n");
     INSTR( HIJACK_INSTR_MY_ITASK ) = (uint32_t) my_init_task;
     
     // Make sure that our self-modifying code clears the cache
@@ -183,15 +184,13 @@ copy_and_restart( )
     * install our own handlers.
     */
 
-    //~ Canon changed their task starting method in the 6D so our old hook method doesn't work.
-#ifndef CONFIG_6D
 #if !defined(CONFIG_EARLY_PORT) && !defined(CONFIG_HELLO_WORLD) && !defined(CONFIG_DUMPER_BOOTFLAG)
     // Install our task creation hooks
+    qprint("[BOOT] installing task dispatch hook at "); qprintn((int)&task_dispatch_hook); qprint("\n");
     task_dispatch_hook = my_task_dispatch_hook;
     #ifdef CONFIG_TSKMON
     tskmon_init();
     #endif
-#endif
 #endif
 
     // This will jump into the RAM version of the firmware,
@@ -208,21 +207,13 @@ copy_and_restart( )
 #endif
 }
 
-
+/* qprintf should be fine from now on */
+#undef qprintf
 static int _hold_your_horses = 1; // 0 after config is read
 int ml_started = 0; // 1 after ML is fully loaded
 int ml_gui_initialized = 0; // 1 after gui_main_task is started 
 
 #ifndef CONFIG_EARLY_PORT
-
-/** This task does nothing */
-static void
-null_task( void )
-{
-    DebugMsg( DM_SYS, 3, "%s created (and exiting)", __func__ );
-    return;
-}
-
 
 /**
  * Called by DryOS when it is dispatching (or creating?)
@@ -230,15 +221,51 @@ null_task( void )
  */
 static void
 my_task_dispatch_hook(
-    struct context **   context
+        struct context ** context_old,      /* on new DryOS (6D+), this argument is different (small number, unknown meaning) */
+        struct task * prev_task_unused,     /* only present on new DryOS */
+        struct task * next_task             /* only present on new DryOS; old versions use HIJACK_TASK_ADDR */
 )
 {
-    if( !context )
+#ifdef HIJACK_TASK_ADDR
+    /* old DryOS only; undefine this for new DryOS */
+    next_task = *(struct task **)(HIJACK_TASK_ADDR);
+    qprintf("[****] task_hook(%x) -> %x(%s), from %x\n",
+        context_old,
+        next_task, next_task ? next_task->name : "??",
+        read_lr()
+    );
+#else
+    /* new DryOS */
+    qprintf("[****] task_hook(%x) %x(%s) -> %x(%s), from %x\n",
+        context_old,
+        prev_task_unused, prev_task_unused ? prev_task_unused->name : "??",
+        next_task, next_task ? next_task->name : "??",
+        read_lr()
+    );
+#endif
+
+    if (!next_task)
+        return;
+
+#ifdef HIJACK_TASK_ADDR
+    /* on old DryOS, context is passed as argument
+     * on some models (not all!), it can be found in the task structure as well */
+    if (!context_old)
+        return;
+
+    struct context * context = (*context_old);
+#else
+    /* on new DryOS, first argument is not context; get it from the task structure */
+    /* this also works for some models with old-style DryOS, but not all */
+    struct context * context = next_task->context;
+#endif
+
+    if (!context)
         return;
     
-    #ifdef CONFIG_TSKMON
-    tskmon_task_dispatch();
-    #endif
+#ifdef CONFIG_TSKMON
+    tskmon_task_dispatch(next_task);
+#endif
     
     if (ml_started)
     {
@@ -247,41 +274,17 @@ my_task_dispatch_hook(
     }
 
     // Do nothing unless a new task is starting via the trampoile
-    if( (*context)->pc != (uint32_t) task_trampoline )
+    if( context->pc != (uint32_t) task_trampoline )
         return;
-    
-    // Determine the task address
-    struct task * const task = *(struct task**) HIJACK_TASK_ADDR;
 
-    thunk entry = (thunk) task->entry;
+    thunk entry = (thunk) next_task->entry;
+
+    qprintf("[****] Starting task %x(%x) %s\n", next_task->entry, next_task->arg, next_task->name);
 
     // Search the task_mappings array for a matching entry point
     extern struct task_mapping _task_overrides_start[];
     extern struct task_mapping _task_overrides_end[];
     struct task_mapping * mapping = _task_overrides_start;
-
-#ifdef CONFIG_QEMU
-    char* task_name = get_current_task_name();
-    
-    if ((((intptr_t)task->entry & 0xF0000000) == 0xF0000000 || task->entry < RESTARTSTART) &&
-        (   /* only start some whitelisted Canon tasks */
-            #ifndef CONFIG_550D
-            !streq(task_name, "Startup") &&
-            #endif
-            !streq(task_name, "TaskMain") &&
-            !streq(task_name, "PowerMgr") &&
-            !streq(task_name, "EventMgr") &&
-            //~ !streq(task_name, "PropMgr") &&
-        1))
-    {
-        qprintf("[*****] Not starting task %x(%x) %s\n", task->entry, task->arg, task_name);
-        task->entry = &ret_0;
-    }
-    else
-    {
-        qprintf("[*****] Starting task %x(%x) %s\n", task->entry, task->arg, task_name);
-    }
-#endif
 
     for( ; mapping < _task_overrides_end ; mapping++ )
     {
@@ -293,40 +296,15 @@ my_task_dispatch_hook(
             continue;
 
 /* -- can't call debugmsg from this context */
-#if 0
-        DebugMsg( DM_SYS, 3, "***** Replacing task %x with %x",
+        qprintf("[****] Replacing task %x with %x\n",
             original_entry,
             mapping->replacement
         );
-#endif
 
-        task->entry = mapping->replacement;
+        next_task->entry = mapping->replacement;
         break;
     }
 }
-
-
-/** 
- * First task after a fresh rebuild.
- *
- * Try to dump the debug log after ten seconds.
- * This requires the create_task(), dmstart(), msleep() and dumpf()
- * routines to have been found.
- */
-static void
-my_dump_task( void )
-{
-    call("dmstart");
-
-    msleep( 10000 );
-    call("dispcheck");
-
-    call("dumpf");
-    call("dmstop");
-}
-
-static volatile int init_funcs_done;
-
 
 /** Call all of the init functions  */
 static void
@@ -455,7 +433,7 @@ static void dumper_bootflag()
     bmp_printf(FONT_LARGE, 50, 150, "ROM Backup...");
     backup_rom_task();
 
-    // do try to enable bootflag in LiveView, or during sensor cleaning (it will fail while writing to ROM)
+    // do not try to enable bootflag in LiveView, or during sensor cleaning (it will fail while writing to ROM)
     // no check is done here, other than a large delay and doing this while in Canon menu
     // todo: check whether the issue is still present with interrupts disabled
     bmp_printf(FONT_LARGE, 50, 200, "EnableBootDisk...");
@@ -523,49 +501,14 @@ static void my_big_init_task()
         task->entry = PIC_RESOLVE(task->entry);
         task->arg = PIC_RESOLVE(task->arg);
 #endif
-        // for debugging: uncomment this to start only some specific tasks
-        // tip: use something like grep -nr TASK_CREATE ./ to find all task names
-        #if 0
-        if (
-                //~ streq(task->name, "audio_meter_task") ||
-                //~ streq(task->name, "audio_level_task") ||
-                //~ streq(task->name, "bitrate_task") ||
-                //~ streq(task->name, "cartridge_task") ||
-                //~ streq(task->name, "cls_task") ||
-                //~ streq(task->name, "console_task") ||
-                streq(task->name, "debug_task") ||
-                //~ streq(task->name, "dmspy_task") ||
-                //~ streq(task->name, "focus_task") ||
-                //~ streq(task->name, "focus_misc_task") ||
-                //~ streq(task->name, "fps_task") ||
-                //~ streq(task->name, "iso_adj_task") ||
-                //~ streq(task->name, "joypress_task") ||
-                //~ streq(task->name, "light_sensor_task") ||
-                //~ streq(task->name, "livev_hiprio_task") ||
-                //~ streq(task->name, "livev_loprio_task") ||
-                streq(task->name, "menu_task") ||
-                streq(task->name, "menu_redraw_task") ||
-                //~ streq(task->name, "morse_task") ||
-                //~ streq(task->name, "movtweak_task") ||
-                //~ streq(task->name, "ms100_clock_task") ||
-                //~ streq(task->name, "notifybox_task") ||
-                //~ streq(task->name, "seconds_clock_task") ||
-                //~ streq(task->name, "shoot_task") ||
-                //~ streq(task->name, "tweak_task") ||
-                //~ streq(task->name, "beep_task") ||
-                //~ streq(task->name, "crash_log_task") ||
-            0 )
-        #endif
-        {
-            task_create(
-                task->name,
-                task->priority,
-                task->stack_size,
-                task->entry,
-                task->arg
-            );
-            ml_tasks++;
-        }
+        task_create(
+            task->name,
+            task->priority,
+            task->stack_size,
+            task->entry,
+            task->arg
+        );
+        ml_tasks++;
     }
     
     msleep(500);
@@ -591,12 +534,14 @@ const char* get_assert_msg() { return assert_msg; }
 
 static int my_assert_handler(char* msg, char* file, int line, int arg4)
 {
+    uint32_t lr = read_lr();
+
     int len = snprintf(assert_msg, sizeof(assert_msg), 
         "ASSERT: %s\n"
-        "at %s:%d, task %s\n"
+        "at %s:%d, %s:%x\n"
         "lv:%d mode:%d\n\n", 
         msg, 
-        file, line, get_current_task_name(), 
+        file, line, get_current_task_name(), lr,
         lv, shooting_mode
     );
     backtrace_getstr(assert_msg + len, sizeof(assert_msg) - len);
@@ -626,18 +571,12 @@ void ml_crash_message(char* msg)
 
 #ifdef CONFIG_ALLOCATE_MEMORY_POOL
 
-#ifndef ITASK_LEN
 #define ITASK_LEN   (ROM_ITASK_END - ROM_ITASK_START)
-#endif
-
-#ifndef CREATETASK_MAIN_LEN
 #define CREATETASK_MAIN_LEN (ROM_CREATETASK_MAIN_END - ROM_CREATETASK_MAIN_START)
-#endif
-
 
 init_task_func init_task_patched(int a, int b, int c, int d)
 {
-    // We shrink the AllocateMemory (system memory) pool in order to make space for ML binary
+    // We shrink the AllocateMemory pool in order to make space for ML binary
     // Example for the 1100D firmware
     // ff0197d8: init_task:
     // ff01984c: b CreateTaskMain
@@ -677,31 +616,47 @@ init_task_func init_task_patched(int a, int b, int c, int d)
 
     uint32_t* addr_AllocMem_end     = (void*)(CreateTaskMain_reloc_buf + ROM_ALLOCMEM_END + CreateTaskMain_offset);
     uint32_t* addr_BL_AllocMem_init = (void*)(CreateTaskMain_reloc_buf + ROM_ALLOCMEM_INIT + CreateTaskMain_offset);
+    uint32_t* addr_B_CreateTaskMain = (void*)(init_task_reloc_buf + ROM_B_CREATETASK_MAIN + init_task_offset);
 
-    #if defined(CONFIG_550D)
-    // change end limit to 0xc60000 => reserve 640K for ML
+    qprint("[BOOT] changing AllocMem limits:\n");
+    qdisas((uint32_t)addr_AllocMem_end);
+    qdisas((uint32_t)addr_AllocMem_end + 4);
+
+    /* check if the patched addresses are, indeed, a BL and a B instruction */
+    if ((((*addr_BL_AllocMem_init) >> 24) != (BL_INSTR(0,0) >> 24)) ||
+        (((*addr_B_CreateTaskMain) >> 24) != (B_INSTR(0,0)  >> 24)))
+    {
+        qprintf("Please check ROM_ALLOCMEM_INIT and ROM_B_CREATETASK_MAIN.\n");
+        while(1);                                       /* refuse to boot */
+    }
+
+    #if defined(CONFIG_6D)
+    /* R0: 0x44C000 (start address, easier to patch, change to 0x4E0000 => reserve 592K for ML) */
+    /* R1: 0xD3C000 (end address, unchanged) */
+    addr_AllocMem_end[1] = MOV_R0_0x4E0000_INSTR;
+    ml_reserved_mem = 0x4E0000 - RESTARTSTART;
+    #elif defined(CONFIG_550D) || defined(CONFIG_600D)
+    // change end limit from 0xd00000 to 0xc70000 => reserve 576K for ML
     *addr_AllocMem_end = MOV_R1_0xC60000_INSTR;
-    ml_reserved_mem = 640 * 1024;
+    ml_reserved_mem = 0xD00000 - RESTARTSTART;
     #else
-    // change end limit to 0xc80000 => reserve 512K for ML
+    // change end limit from 0xd00000 to 0xc80000 => reserve 512K for ML
     *addr_AllocMem_end = MOV_R1_0xC80000_INSTR;
-    ml_reserved_mem = 512 * 1024;
+    ml_reserved_mem = 0xD00000 - RESTARTSTART;
     #endif
+
+    qdisas((uint32_t)addr_AllocMem_end);
+    qdisas((uint32_t)addr_AllocMem_end + 4);
 
     // relocating CreateTaskMain does some nasty things, so, right after patching,
     // we jump back to ROM version; at least, what's before patching seems to be relocated properly
     *addr_BL_AllocMem_init = B_INSTR(addr_BL_AllocMem_init, ROM_ALLOCMEM_INIT);
     
-    uint32_t* addr_B_CreateTaskMain = (void*)init_task_reloc_buf + ROM_B_CREATETASK_MAIN + init_task_offset;
+    // replace call to CreateMainTask (last sub in init_task)
     *addr_B_CreateTaskMain = B_INSTR(addr_B_CreateTaskMain, new_CreateTaskMain);
     
-    
-    /* FIO_RemoveFile("B:/dump.hex");
-    FILE* f = FIO_CreateFile("B:/dump.hex");
-    FIO_WriteFile(f, UNCACHEABLE(new_CreateTaskMain), CreateTaskMain_len);
-    FIO_CloseFile(f);
-    
-    NotifyBox(10000, "%x ", new_CreateTaskMain); */
+    /* before we execute code, make sure a) data caches are drained and b) instruction caches are clean */
+    sync_caches();
     
     // Well... let's cross the fingers and call the relocated stuff
     return new_init_task;
@@ -734,6 +689,7 @@ my_init_task(int a, int b, int c, int d)
 
     // this is generic
     ml_used_mem = (uint32_t)&_bss_end - (uint32_t)&_text_start;
+    qprintf("[BOOT] autoexec.bin loaded at %X - %X.\n", &_text_start, &_bss_end);
 
 #ifdef HIJACK_CACHE_HACK
     /* as we do not return in the middle of te init task as in the hijack-through-copy method, we have to install the hook here */
@@ -793,18 +749,8 @@ my_init_task(int a, int b, int c, int d)
         /* we are not sure if this is a instruction, so patch data cache also */
         cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, new_instr, TYPE_ICACHE);
         cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, new_instr, TYPE_DCACHE);
-    
-    //~ fix start of AllocateMemory pool so it actually shrinks in size.
-    #ifdef CONFIG_6D
-        cache_fake(HIJACK_CACHE_HACK_ALLOCMEM_SIZE_ADDR, HIJACK_CACHE_HACK_ALLOCMEM_SIZE_INSTR, TYPE_ICACHE);
-    #endif
     }
 #endif
-
-    #ifdef CONFIG_6D
-    //Hijack GUI Task Here - Now we're booting with cache hacks and have menu.
-    cache_fake(HIJACK_CACHE_HACK_GUITASK_6D_ADDR, BL_INSTR(HIJACK_CACHE_HACK_GUITASK_6D_ADDR, (uint32_t)hijack_6d_guitask), TYPE_ICACHE);
-    #endif
 #endif // HIJACK_CACHE_HOOK
 
     // Prepare to call Canon's init_task
@@ -823,11 +769,8 @@ my_init_task(int a, int b, int c, int d)
     /* ensure binary is not too large */
     if (ml_used_mem > ml_reserved_mem)
     {
-        #ifdef CONFIG_QEMU
-        qprintf("Out of memory: ml_used_mem=%d ml_reserved_mem=%d\n", ml_used_mem, ml_reserved_mem);
-        call("shutdown");
-        #endif
-        
+        qprintf("[BOOT] out of memory: ml_used_mem=%d ml_reserved_mem=%d\n", ml_used_mem, ml_reserved_mem);
+
         while(1)
         {
             info_led_blink(3, 500, 500);
@@ -856,7 +799,6 @@ my_init_task(int a, int b, int c, int d)
 #ifndef CONFIG_EARLY_PORT
     // Overwrite the PTPCOM message
     dm_names[ DM_MAGIC ] = "[MAGIC] ";
-    //~ dmstart(); // already called by firmware?
 
     DebugMsg( DM_MAGIC, 3, "Magic Lantern %s (%s)",
         build_version,
@@ -891,10 +833,6 @@ my_init_task(int a, int b, int c, int d)
 #endif
 
 #ifndef CONFIG_EARLY_PORT
-
-#ifdef CONFIG_QEMU
-    qemu_cam_init();
-#endif
 
     // wait for firmware to initialize
     while (!bmp_vram_raw()) msleep(100);
@@ -933,11 +871,6 @@ my_init_task(int a, int b, int c, int d)
     }
 
     task_create("ml_init", 0x1e, 0x4000, my_big_init_task, 0 );
-
-#ifdef CONFIG_QEMU  /* fixme: Canon GUI task is not started */
-    extern void ml_gui_main_task();
-    task_create("GuiMainTask", 0x17, 0x2000, ml_gui_main_task, 0);
-#endif
 
     return ans;
 #endif // !CONFIG_EARLY_PORT

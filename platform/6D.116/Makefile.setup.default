@@ -6,4 +6,5 @@ ML_SOUND_CODEC_OBJ = ak4646.o
 
 ML_SRC_EXTRA_OBJS = \
 	afma.o \
+	reloc.o \
 	gps.o

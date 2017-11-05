@@ -48,6 +48,7 @@
 #include "fio-ml.h"
 #include "imath.h"
 #include "notify_box.h"
+#include "qemu-util.h"
 
 extern float roundf(float x);
 extern float powf(float x, float y);

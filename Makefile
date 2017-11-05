@@ -97,7 +97,6 @@ clean:
 		doc/UserGuide.tex \
 		doc/UserGuide.toc \
 		*.pdf \
-		platform/*/qemu-helper.bin \
 		)
 	$(call rm_dir, doc/cam)
 	$(call rm_dir, $(BINARIES_PATH))

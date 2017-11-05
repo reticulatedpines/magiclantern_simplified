@@ -290,7 +290,7 @@ NSTUB(     0x64C,  current_interrupt)                       // in interrupt hand
 NSTUB(0xFFCDB170 - RAM_OFFSET,  msleep)
 
 /** Tasks **/
-NSTUB(   0x74B1C,  task_dispatch_hook)
+NSTUB(   0x74C3C,  task_dispatch_hook)                      /* from task_trampoline -> last sub -> if (arg0 == CURRENT_TASK) call_new_task_dispatch_hook() */
 NSTUB(0xFFCDB224 - RAM_OFFSET,  task_create)
 NSTUB(0xFFCE0548 - RAM_OFFSET,  task_trampoline)
 // NSTUB(    ???,  current_task_ctx)                        /* present on 7D.203 */
