@@ -55,7 +55,7 @@ $2_clean:
 $2_install:
 	+$(MAKE) -C $3$2 install
 $2_check:
-	@echo $2: $(shell $(READELF) -l $3$2/magiclantern 2>/dev/null | $(GREP) -C 2 MemSiz | $(GREP) -v EXIDX | $(GREP) LOAD )
+	@echo $2: $$(shell $$(READELF) -l $3$2/magiclantern 2>/dev/null | $$(GREP) -C 2 MemSiz | $$(GREP) -v EXIDX | $$(GREP) LOAD )
 
 endef
 
