@@ -347,7 +347,9 @@ function test_calls_main {
         -serial file:tests/$CAM/$TEST-uart.log \
         |& ansi2txt > tests/$CAM/$TEST-raw.log &
 
-    sleep 2
+    # wait for uart log to appear
+    while [ ! -f tests/$CAM/$TEST-uart.log ]; do sleep 1; done
+    sleep 1
 
     # check for boot message
     if grep -qE "([KR].* (READY|AECU)|Dry|Boot)" tests/$CAM/$TEST-uart.log; then
@@ -497,6 +499,7 @@ function test_calls_from {
     sleep 0.5
 
     # wait until the FROMUTILITY menu appears
+    touch tests/$CAM/$TEST-uart.log
     (timeout 20 tail -f -n100000 tests/$CAM/$TEST-uart.log & ) \
         | grep -q "FROMUTIL"
     sleep 0.5
