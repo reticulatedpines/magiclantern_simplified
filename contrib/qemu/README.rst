@@ -269,7 +269,10 @@ To install Magic Lantern to the virtual card, you may:
     make clean; make
     make install_qemu
 
-  |
+  Note: ``make install_qemu`` is a recent addition and may not be available in all branches.
+  In this case, you may either use the first method, or sync with the "unified" branch (``hg merge unified``),
+  or manually import changeset `27f4105 <https://bitbucket.org/hudson/magic-lantern/commits/27f4105cfa83>`_.
+  Unfortunately, these rules won't work from ``Makefile.user``.
 
 The included card images are already bootable for EOS firmwares (but not for PowerShots).
 
