@@ -35,6 +35,12 @@ CF_CAMS=( 5D 5D2 5D3 5D4 7D 7D2M 40D 50D 400D )
 # cameras able to run the FA_CaptureTestImage test (full-res silent picture backend)
 FRSP_CAMS=( 5D3 500D 550D 50D 60D 1100D 1200D )
 
+# newer openbsd netcat requires -N (since 1.111)
+# older openbsd netcat does not have -N (prints error if we attempt to use it)
+# try to autodetect which one should be used, and let the user override it
+NC=${NC:=$(nc -h |& grep -q -- -N && echo "nc -N" || echo "nc")}
+echo "Using netcat: $NC"
+
 function has_upper_args {
     for arg in "$@"; do
         if [ "$arg" == "${arg^^}" ]; then
@@ -315,7 +321,7 @@ function test_drysh {
         sleep 0.5; echo "vers";
         sleep 0.5; echo "?";
         sleep 0.5; echo "task";
-        sleep 0.5; echo "quit" | nc -U qemu.monitor;
+        sleep 0.5; echo "quit" | $NC -U qemu.monitor;
         sleep 0.5;
     ) | (
         if [ -f $CAM/patches.gdb ]; then
@@ -765,7 +771,7 @@ function test_menu {
     done
 
     # shutdown event
-    echo "system_powerdown" | nc -U qemu.monitor > /dev/null
+    echo "system_powerdown" | $NC -U qemu.monitor > /dev/null
     sleep 5
 
     # QEMU or GDB still running?

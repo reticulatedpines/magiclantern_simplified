@@ -78,7 +78,8 @@ What does not work (yet):
 - Cache behavior is not emulated (very hard; feel free to point us to code that can be reused);
 - Native Windows build (QEMU can be compiled on Windows => contribution welcome).
 
-Common issues and workarounds:
+Common issues and workarounds
+`````````````````````````````
 
 - Firmware version mismatch when trying to load ML
 
@@ -98,6 +99,18 @@ Common issues and workarounds:
 
   - short answer: ``-d io,nochain -singlestep``
   - see `Execution trace incomplete? PC values from MMIO logs not correct?`_
+
+- Netcat issues when interacting with ``qemu.monitor``
+
+  There are many versions of netcat around.
+  Newer variants of openbsd netcat
+  (`since 1.111, Mar 2013 <https://cvsweb.openbsd.org/cgi-bin/cvsweb/src/usr.bin/nc/netcat.c.diff?r1=1.110&r2=1.111&f=h>`_)
+  require ``-N``, but older versions do not have ``-N`` and will print an error if you attempt to use it. GNU netcat or other variants were not tested.
+  
+  TLDR: try openbsd netcat. If you get an error after copy/pasting some ``nc`` command from this guide, simply remove the ``-N``.
+  
+  Look in ``run_tests.sh`` for a slightly more portable workaround.
+  
 
 Installation
 ------------
@@ -318,7 +331,7 @@ you may:
 
 .. code:: shell
 
-  echo "system_powerdown" | nc -U qemu.monitor
+  echo "system_powerdown" | nc -N -U qemu.monitor
 
 Internally, Canon code refers to this kind of shutdown as ``SHUTDOWN_REQUEST``
 (watch their debug messages with ``-d debugmsg``).
@@ -330,10 +343,10 @@ after some timeout, if QEMU is still running:
 
 .. code:: shell
 
-  echo "system_powerdown" | nc -U qemu.monitor
+  echo "system_powerdown" | nc -N -U qemu.monitor
   sleep 2
-  if nc -U qemu.monitor < /dev/null > /dev/null 2>&1; then
-    echo "quit" | nc -U qemu.monitor
+  if nc -N -U qemu.monitor < /dev/null > /dev/null 2>&1; then
+    echo "quit" | nc -N -U qemu.monitor
   fi
 
 Opening the card door
@@ -470,7 +483,7 @@ That means, during emulation you can interact with it using netcat:
 
   .. code:: shell
 
-    nc -U qemu.monitor
+    nc -N -U qemu.monitor
 
   |
 
@@ -478,7 +491,7 @@ That means, during emulation you can interact with it using netcat:
 
   .. code:: shell
 
-    echo "log io" | nc -U qemu.monitor
+    echo "log io" | nc -N -U qemu.monitor
 
   |
 
@@ -486,7 +499,7 @@ That means, during emulation you can interact with it using netcat:
 
   .. code:: shell
 
-    if nc -U qemu.monitor < /dev/null > /dev/null 2>&1; then
+    if nc -N -U qemu.monitor < /dev/null > /dev/null 2>&1; then
       ...
     fi
 
@@ -520,7 +533,7 @@ Another option is to use the VNC interface:
         -vnc :1234 &
   sleep 10
   vncdotool -s :1234 capture snap.png
-  echo "system_powerdown" | nc -U qemu.monitor
+  echo "system_powerdown" | nc -N -U qemu.monitor
 
 Sending keystrokes
 ``````````````````
@@ -552,10 +565,10 @@ Or, if QEMU runs as a background process:
   ./run_canon_fw.sh 60D,firmware='boot=0' &
   
   sleep 10
-  echo "sendkey m" | nc -U qemu.monitor
+  echo "sendkey m" | nc -N -U qemu.monitor
   sleep 1
-  echo "screendump menu.ppm" | nc -U qemu.monitor
-  echo "system_powerdown" | nc -U qemu.monitor
+  echo "screendump menu.ppm" | nc -N -U qemu.monitor
+  echo "system_powerdown" | nc -N -U qemu.monitor
 
 From VNC:
 
@@ -574,7 +587,7 @@ From VNC:
   vncdotool -s :1234 key m
   sleep 1
   vncdotool -s :1234 capture snap.png
-  echo "system_powerdown" | nc -U qemu.monitor
+  echo "system_powerdown" | nc -N -U qemu.monitor
 
 Running multiple ML builds from a single command
 ````````````````````````````````````````````````
