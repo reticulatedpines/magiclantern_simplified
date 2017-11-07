@@ -579,7 +579,7 @@ function test_calls_cstack {
            arm-none-eabi-gdb -x $CAM/patches.gdb -ex quit &) &> tests/$CAM/$TEST-raw.log
     else
         ./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot \
-            -display none -d calls,tasks,debugmsg,v -serial stdio \
+            -display none -d calls,tasks,debugmsg,v \
             -serial file:tests/$CAM/calls-cstack-uart.log \
             &> tests/$CAM/$TEST-raw.log &
     fi
@@ -663,7 +663,7 @@ function test_boot {
     ansi2txt < tests/$CAM/$TEST.log \
         | grep -m1 -B 100000 -E "Taking exception|terminating on signal" \
         | grep -oE "\[ROMCPY\].*" \
-        | sed -e "s/\[ROMCPY\]/      /"
+        | sed -e "s/\[ROMCPY\]/        /"
 }
 
 echo
@@ -887,7 +887,7 @@ function test_gdb {
 
     tac tests/$CAM/$TEST.log > tmp
     tests/check_grep.sh tmp -Em1 "task_create\("
-    echo -n "       "
+    echo -n "         "
     tests/check_grep.sh tmp -Em1 "register_interrupt\([^n]"
 }
 
@@ -1009,6 +1009,7 @@ done; cleanup
 # using it for the other PowerShot models
 # just to test whether they are booting from the card
 function test_disp_chdk {
+    echo ""
 
     M3_DISKBOOT_BIN=tests/test-progs/M3/DISKBOOT.BIN
     if [ ! -f $M3_DISKBOOT_BIN ]; then
@@ -1030,9 +1031,9 @@ function test_disp_chdk {
             -serial file:tests/$CAM/$TEST-uart.log \
     ) &> tests/$CAM/$TEST.log
 
-    printf "  SD boot: "; tests/check_grep.sh tests/$CAM/$TEST-uart.log -om1 "StartDiskboot"
-    printf "  RAMboot: "; tests/check_grep.sh tests/$CAM/$TEST-uart.log -om1 "Start Program on RAM"
-    printf "  Display: "; tests/check_md5.sh tests/$CAM/ $TEST
+    printf "    SD boot: "; tests/check_grep.sh tests/$CAM/$TEST-uart.log -om1 "StartDiskboot"
+    printf "    RAMboot: "; tests/check_grep.sh tests/$CAM/$TEST-uart.log -om1 "Start Program on RAM"
+    printf "    Display: "; tests/check_md5.sh tests/$CAM/ $TEST
 }
 
 echo
@@ -1043,6 +1044,7 @@ done; cleanup
 
 # some basic tests for PowerShot models
 function test_boot_powershot {
+    echo ""
 
     (./run_canon_fw.sh $CAM -snapshot \
        -display none -d romcpy,int -s -S \
@@ -1053,16 +1055,16 @@ function test_boot_powershot {
     ( timeout 10 tail -f -n100000 tests/$CAM/$TEST.log & ) | grep -q "TurnOnDisplay"
     kill_qemu expect_running
 
-    printf "  SD boot: "; tests/check_grep.sh tests/$CAM/$TEST-uart.log -om1 "StartDiskboot"
-    printf "  Display: "; tests/check_grep.sh tests/$CAM/$TEST.log -om1 "TurnOnDisplay"
-    printf "  ROMcopy: "; tests/check_grep.sh tests/$CAM/$TEST.log -oPm1 "(?<=ROMCPY\]) "
+    printf "    SD boot: "; tests/check_grep.sh tests/$CAM/$TEST-uart.log -om1 "StartDiskboot"
+    printf "    Display: "; tests/check_grep.sh tests/$CAM/$TEST.log -om1 "TurnOnDisplay"
+    printf "    ROMcopy: "; tests/check_grep.sh tests/$CAM/$TEST.log -oPm1 "(?<=ROMCPY\]) "
 
     # print ROMCPY messages before the first interrupt
     # exception: EOS M5 copies interesting stuff after the first interrupt
     ansi2txt < tests/$CAM/$TEST.log \
         | ( [ $CAM == "EOSM5" ] && cat || grep -m1 -B 100000 -E "Taking exception|terminating on signal") \
         | grep -oE "\[ROMCPY\].*" \
-        | sed -e "s/\[ROMCPY\]/   /"
+        | sed -e "s/\[ROMCPY\]/     /"
 }
 
 echo
