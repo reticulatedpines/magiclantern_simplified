@@ -150,7 +150,18 @@ without additional gymnastics (you will **not** have to merge ``qemu`` into your
      /path/to/qemu/qemu-2.5.0$  make -j2
      /path/to/qemu/qemu-2.5.0$  cd ..
 
-   |
+   Some recent camera models also use a serial flash. To list them, run this command:
+
+   .. code:: shell
+   
+     cat qemu-2.5.0/hw/eos/model_list.c | grep -B 10 serial_flash_size | grep -E "\.(serial_flash_size|name) "
+
+   or just watch out for an error about missing ``SFDATA.BIN`` when trying next step.
+
+   If your camera requires a serial flash, compile the 
+   `sf_dump module <https://bitbucket.org/hudson/magic-lantern/src/unified/modules/sf_dump>`_
+   and run it on your camera to get this file.
+   
 
 4. Test your installation.
 
