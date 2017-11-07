@@ -496,8 +496,6 @@ function test_calls_from {
         -serial file:tests/$CAM/$TEST-uart.log \
         &> tests/$CAM/$TEST-raw.log &
 
-    sleep 0.5
-
     # wait until the FROMUTILITY menu appears
     touch tests/$CAM/$TEST-uart.log
     (timeout 20 tail -f -n100000 tests/$CAM/$TEST-uart.log & ) \
@@ -650,9 +648,9 @@ function test_boot {
         -d romcpy,int \
         &> tests/$CAM/$TEST.log \
     ) &
-    sleep 0.2
 
     # wait until some READY-like message is printed on the UART
+    touch tests/$CAM/$TEST-uart.log
     ( timeout 2 tail -f -n100000 tests/$CAM/$TEST-uart.log & ) \
         | grep -qE "([KR].* (READY|AECU).*|Intercom.*|Dry>)"
 
@@ -696,9 +694,13 @@ function test_hptimer {
     mcopy -o -i $MCF $HPTIMER_PATH/autoexec.bin ::
 
     # run the HPTimer test
-    (./run_canon_fw.sh $CAM,firmware="boot=1" -snapshot -display none &> tests/$CAM/$TEST.log) &
-    sleep 0.2
+    ./run_canon_fw.sh $CAM,firmware="boot=1" -snapshot -display none &> tests/$CAM/$TEST.log &
+
+    # wait for He (Hello) from qprintf (blue, each char colored) 
+    touch tests/$CAM/$TEST.log
     ( timeout 1 tail -f -n100000 tests/$CAM/$TEST.log & ) | grep --binary-files=text -qP "\x1B\x5B34mH\x1B\x5B0m\x1B\x5B34me\x1B\x5B0m"
+
+    # let it run for 1 second
     sleep 1
     kill_qemu expect_running
     
@@ -883,9 +885,13 @@ function test_gdb {
 
     (./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot -display none -s -S & \
      arm-none-eabi-gdb -x $CAM/debugmsg.gdb -ex quit &) &> tests/$CAM/$TEST.log
-    sleep 0.5
+
+    # wait for some tasks to start
+    touch tests/$CAM/$TEST.log
     ( timeout 2 tail -f -n100000 tests/$CAM/$TEST.log & ) | grep --binary-files=text -qP "task_create\("
-    sleep 2
+
+    # let it run for 1 second
+    sleep 1
     kill_qemu expect_running
 
     tac tests/$CAM/$TEST.log > tmp
@@ -1054,7 +1060,8 @@ function test_boot_powershot {
        -serial file:tests/$CAM/$TEST-uart.log & \
      arm-none-eabi-gdb -x $CAM/debugmsg.gdb -ex quit &) &> tests/$CAM/$TEST.log
 
-    sleep 0.5
+    # wait for TurnOnDisplay, up to 10 seconds
+    touch tests/$CAM/$TEST.log
     ( timeout 10 tail -f -n100000 tests/$CAM/$TEST.log & ) | grep -q "TurnOnDisplay"
     kill_qemu expect_running
 
