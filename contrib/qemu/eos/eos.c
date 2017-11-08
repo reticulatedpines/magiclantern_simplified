@@ -2646,6 +2646,9 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
 //          ret = 0;
 //          break;
 
+        case 0x01D4:    /* 6D RTC */
+            if (strcmp(s->model->name, "6D"))
+                break;
         case 0x0128:    /* CS for RTC on 600D */
         case 0x01F8:    /* 5D3 RTC */
         case 0x005C:    /* 450D RTC */
@@ -2676,6 +2679,7 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
 
         case 0x00A0:    /* DIGIC 4 (most models) */
         case 0x004C:    /* 700D, 100D */
+        case 0x00D0:    /* 6D */
         case 0x0168:    /* 70D */
         case 0x01FC:    /* 5D3 */
         case 0x0120:    /* 450D */
@@ -2736,6 +2740,7 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
         case 0x003C:    /* 5D2, 50D */
         case 0x0124:    /* 100D? */
         case 0x0150:    /* 5D3 */
+        case 0x0158:    /* 6D */
             msg = "HDMI CONNECT";
             ret = 0;
 #ifdef IGNORE_CONNECT_POLL

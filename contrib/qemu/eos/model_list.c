@@ -224,7 +224,11 @@ struct eos_model_desc eos_model_list[] = {
         .name                   = "6D",
         .digic_version          = 5,
         .card_led_address       = 0xC022C184,
+        .mpu_request_register   = 0xC02200BC,
+        .mpu_status_register    = 0xC02200BC,
+        .serial_flash_size      = 0x800000,
         .current_task_addr      = 0x74C28,
+        .rtc_time_correct       = 0x9F,
     },
     {
         .name                   = "70D",

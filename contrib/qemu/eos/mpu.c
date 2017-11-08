@@ -34,6 +34,7 @@ static int mpu_init_spell_count = 0;
 
 #include "mpu_spells/5D2.h"
 #include "mpu_spells/5D3.h"
+#include "mpu_spells/6D.h"
 #include "mpu_spells/50D.h"
 #include "mpu_spells/60D.h"
 #include "mpu_spells/70D.h"
@@ -1076,6 +1077,7 @@ void mpu_spells_init(EOSState *s)
 
     MPU_SPELL_SET(5D2)
     MPU_SPELL_SET(5D3)
+    MPU_SPELL_SET(6D)
     MPU_SPELL_SET(50D)
     MPU_SPELL_SET(60D)
     MPU_SPELL_SET(70D)
