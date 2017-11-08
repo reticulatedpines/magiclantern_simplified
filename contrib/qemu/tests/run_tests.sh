@@ -315,7 +315,8 @@ function test_drysh {
         sleep 0.5; echo "vers";
         sleep 0.5; echo "?";
         sleep 0.5; echo "task";
-        sleep 0.5; echo "quit" | nc -U qemu.monitor
+        sleep 0.5; echo "quit" | nc -U qemu.monitor;
+        sleep 0.5;
     ) | (
         if [ -f $CAM/patches.gdb ]; then
             ( arm-none-eabi-gdb -x $CAM/patches.gdb -ex quit 1>&2 &
