@@ -234,15 +234,36 @@ function vncexpect {
     return $ret
 }
 
+# just stop QEMU (current instance only) without shutting down DryOS
+# to be used when emulation is not expected to run the GUI
+function stop_qemu_expect_running {
+    echo "quit" | $NC -U $QEMU_MONITOR &> /dev/null \
+        && sleep 0.5 \
+        || echo -e "\e[31mQEMU not running\e[0m"
+}
+
+function stop_qemu_expect_not_running {
+    echo "quit" | $NC -U $QEMU_MONITOR &> /dev/null \
+        && echo -e "\e[31mQEMU still running\e[0m" \
+        && sleep 0.5
+}
+
+# shutdown DryOS cleanly and stop qemu (current instance only)
+# if shutdown was not clean, print a warning
+# to be used when emulation goes as far as booting the GUI
+function shutdown_qemu {
+    echo "system_powerdown" | $NC -U $QEMU_MONITOR &> /dev/null \
+        || echo -en "\e[31mQEMU not running\e[0m " \
+        && sleep 1 && stop_qemu_expect_not_running
+}
+
+# kill all instances of qemu-system-arm / arm-none-eabi-gdb
+# only used if graceful shutdown didn't work (see above)
+# fixme: only kill the QEMU processes started by us (how?)
 function kill_qemu {
-    # fixme: only kill the QEMU processes started by us (how?)
 
-    if [ "$1" == "expect_running" ] && ! pidof qemu-system-arm > /dev/null; then
-        echo -e "\e[31mQEMU not running\e[0m"
-    fi
-
-    if [ "$1" == "expect_not_running" ] && pidof qemu-system-arm > /dev/null; then
-        echo -e "\e[31mshutdown error\e[0m (QEMU still running)"
+    if pidof qemu-system-arm > /dev/null; then
+        echo -e "\e[31mQEMU still running"
     fi
 
     if killall -TERM -w qemu-system-arm 2>/dev/null; then
@@ -332,8 +353,7 @@ function test_drysh {
         sleep 0.5; echo "vers";
         sleep 0.5; echo "?";
         sleep 0.5; echo "task";
-        sleep 0.5; echo "quit" | $NC -U $QEMU_MONITOR;
-        sleep 0.5;
+        sleep 0.5; stop_qemu_expect_running;
     ) | (
         if [ -f $CAM/patches.gdb ]; then
             (
@@ -349,8 +369,6 @@ function test_drysh {
                 2> tests/$CAM/$TEST-emu.log
         fi
     )
-
-    kill_qemu
 
     tests/check_grep.sh tests/$CAM/$TEST.log \
         -oEm1 "Dry-shell .*\..*| xd .*" || return
@@ -408,7 +426,7 @@ function test_calls_main {
     echo -n "                          "
 
     sleep 1
-    kill_qemu expect_running
+    stop_qemu_expect_running
 
     # as the emulation is not stopped exactly at the same time,
     # we have to trim it somewhere in order to get repeatable results.
@@ -545,7 +563,7 @@ function test_calls_from {
         | grep -q "FROMUTIL"
     sleep 0.5
 
-    kill_qemu expect_running
+    stop_qemu_expect_running
 
     # extract call/return lines
     # remove infinite loop at the end, if any
@@ -631,7 +649,7 @@ function test_calls_cstack {
             &> tests/$CAM/$TEST-raw.log &
     fi
     sleep 10
-    kill_qemu expect_running
+    stop_qemu_expect_running
 
     ansi2txt < tests/$CAM/$TEST-raw.log | python tests/test_callstack.py &> tests/$CAM/$TEST-test.log \
         && (tail -n 1 tests/$CAM/$TEST-test.log | tr -d '\n'; echo " OK" ) \
@@ -674,7 +692,7 @@ function test_menu_callstack {
         echo -n .
     done
 
-    kill_qemu expect_running
+    shutdown_qemu
 
     tests/check_md5.sh tests/$CAM/ $TEST || cat tests/$CAM/$TEST.md5.log
 }
@@ -705,7 +723,7 @@ function test_boot {
     ( timeout 2 tail -f -n100000 tests/$CAM/$TEST-uart.log & ) \
         | grep -qE "([KR].* (READY|AECU).*|Intercom.*|Dry>)"
 
-    kill_qemu expect_running
+    stop_qemu_expect_running
 
     # fixme: duplicate regex
     tests/check_grep.sh tests/$CAM/$TEST-uart.log \
@@ -713,7 +731,7 @@ function test_boot {
 
     # print ROMCPY messages before the first interrupt
     ansi2txt < tests/$CAM/$TEST.log \
-        | grep -m1 -B 100000 -E "Taking exception|terminating on signal" \
+        | grep -m1 -B 100000 -E "Taking exception|forced shutdown" \
         | grep -oE "\[ROMCPY\].*" \
         | sed -e "s/\[ROMCPY\]/        /"
 }
@@ -754,8 +772,8 @@ function test_hptimer {
 
     # let it run for 1 second
     sleep 1
-    kill_qemu expect_running
-    
+    stop_qemu_expect_running
+
     tests/check_grep.sh tests/$CAM/$TEST.log -m1 "Hello from task run_test"
     printf "       "
     tests/check_grep.sh tests/$CAM/$TEST.log -m1 "Hello from HPTimer" && return
@@ -797,12 +815,7 @@ function test_menu {
         echo -n .
     done
 
-    # shutdown event
-    echo "system_powerdown" | $NC -U $QEMU_MONITOR > /dev/null
-    sleep 5
-
-    # QEMU or GDB still running?
-    kill_qemu expect_not_running
+    shutdown_qemu
 
     tests/check_grep.sh tests/$CAM/$TEST.log -q "GUICMD_LOCK_OFF" || return
     tests/check_grep.sh tests/$CAM/$TEST.log -q "SHUTDOWN" || return
@@ -845,7 +858,7 @@ function test_format {
         echo -n .
     done
 
-    kill_qemu expect_running
+    shutdown_qemu
 
     tests/check_md5.sh tests/$CAM/ $TEST || cat tests/$CAM/$TEST.md5.log
 }
@@ -917,7 +930,7 @@ function test_fmtrestore {
         sleep 5
 
         # QEMU or GDB still running?
-        kill_qemu expect_not_running
+        stop_qemu_expect_not_running
 
         if [ $t -eq 3 ]; then
             echo " OK"   # one complete test run, stop here
@@ -927,7 +940,7 @@ function test_fmtrestore {
         fi
     done
 
-    kill_qemu
+    stop_qemu_expect_running
     echo -e "\e[31mFAILED!\e[0m"
 }
 
@@ -959,7 +972,7 @@ function test_gdb {
 
     # let it run for 1 second
     sleep 1
-    kill_qemu expect_running
+    stop_qemu_expect_running
 
     tac tests/$CAM/$TEST.log > tmp
     tests/check_grep.sh tmp -Em1 "task_create\("
@@ -1048,7 +1061,7 @@ function test_dcim {
             arm-none-eabi-gdb -ex "set \$TCP_PORT=$GDB_PORT" -x $CAM/patches.gdb -ex quit &
         ) &> tests/$CAM/$TEST.log
         sleep 5
-        kill_qemu expect_running
+        stop_qemu_expect_running
     else
         (sleep 5; echo quit) \
             | ./run_canon_fw.sh $CAM,firmware="boot=0" -display none -monitor stdio &> tests/$CAM/$TEST.log
@@ -1139,7 +1152,7 @@ function test_boot_powershot {
     # wait for TurnOnDisplay, up to 10 seconds
     touch tests/$CAM/$TEST.log
     ( timeout 10 tail -f -n100000 tests/$CAM/$TEST.log & ) | grep -q "TurnOnDisplay"
-    kill_qemu expect_running
+    stop_qemu_expect_running
 
     printf "    SD boot: "; tests/check_grep.sh tests/$CAM/$TEST-uart.log -om1 "StartDiskboot"
     printf "    Display: "; tests/check_grep.sh tests/$CAM/$TEST.log -om1 "TurnOnDisplay"
