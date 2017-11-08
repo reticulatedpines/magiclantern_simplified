@@ -261,18 +261,26 @@ function kill_qemu {
 # just to be sure
 kill_qemu expect_not_running
 
+export QEMU_JOB_ID=0
+
 # generic helper for running tests
 # arguments: 
 # - test function name (without the test_ prefix)
 # - CAM (camera name)
 # - test name override (optional; derived from test function name by default)
+# QEMU_JOB_ID must be a small positive integer, unique for each job that might run in parallel
 function run_test {
+    if [ "$QEMU_JOB_ID" == "0" ]; then
+        echo "You forgot to increment QEMU_JOB_ID ;)"
+        exit 1
+    fi
 
     # global variables used in tests
     TEST=${3:-${1//_/-}}
     CAM=$2
-    GDB_PORT=1234
-    VNC_DISP=:12345
+    GDB_PORT=$((1234+$QEMU_JOB_ID))
+    VNC_DISP=":$((12345+QEMU_JOB_ID))"
+    QEMU_MONITOR=qemu.monitor$QEMU_JOB_ID
 
     if ! test_selected $TEST; then
         # can we skip this test?
@@ -294,6 +302,7 @@ function run_test {
 
 # called after running each set of tests
 function cleanup {
+    QEMU_JOB_ID=0
     kill_qemu expect_not_running
     sd_cf_restore_if_modified -q
 }
@@ -323,7 +332,7 @@ function test_drysh {
         sleep 0.5; echo "vers";
         sleep 0.5; echo "?";
         sleep 0.5; echo "task";
-        sleep 0.5; echo "quit" | $NC -U qemu.monitor;
+        sleep 0.5; echo "quit" | $NC -U $QEMU_MONITOR;
         sleep 0.5;
     ) | (
         if [ -f $CAM/patches.gdb ]; then
@@ -353,6 +362,7 @@ function test_drysh {
 echo
 echo "Testing Dry-shell over UART..."
 for CAM in 5D3eeko ${EOS_CAMS[*]}; do
+    ((QEMU_JOB_ID++))
     run_test drysh $CAM
 done; cleanup
 
@@ -507,6 +517,7 @@ function test_calls_main {
 echo
 echo "Testing call/return trace on main firmware..."
 for CAM in ${EOS_SECONDARY_CORES[*]} ${EOS_CAMS[*]}; do
+    ((QEMU_JOB_ID++))
     run_test calls_main $CAM
 done; cleanup
 
@@ -588,6 +599,7 @@ mdel -i $MCF ::/autoexec.bin
 
 # run the tests
 for CAM in ${EOS_CAMS[*]}; do
+    ((QEMU_JOB_ID++))
     run_test calls_from $CAM
 done; cleanup
 
@@ -629,6 +641,7 @@ function test_calls_cstack {
 echo
 echo "Testing callstack consistency with call/return trace for DebugMsg calls..."
 for CAM in ${EOS_CAMS[*]}; do
+    ((QEMU_JOB_ID++))
     run_test calls_cstack $CAM
 done; cleanup
 
@@ -669,6 +682,7 @@ function test_menu_callstack {
 echo
 echo "Testing Canon menu with callstack enabled..."
 for CAM in ${GUI_CAMS[*]}; do
+    ((QEMU_JOB_ID++))
     run_test menu_callstack $CAM menu
 done; cleanup
 
@@ -707,6 +721,7 @@ function test_boot {
 echo
 echo "Testing bootloaders..."
 for CAM in ${EOS_CAMS[*]} ${EOS_SECONDARY_CORES[*]}; do
+    ((QEMU_JOB_ID++))
     run_test boot $CAM
 done; cleanup
 
@@ -751,6 +766,7 @@ function test_hptimer {
 echo
 echo "Testing HPTimer and task name..."
 for CAM in ${EOS_CAMS[*]}; do
+    ((QEMU_JOB_ID++))
     run_test hptimer $CAM
 done; cleanup
 
@@ -782,7 +798,7 @@ function test_menu {
     done
 
     # shutdown event
-    echo "system_powerdown" | $NC -U qemu.monitor > /dev/null
+    echo "system_powerdown" | $NC -U $QEMU_MONITOR > /dev/null
     sleep 5
 
     # QEMU or GDB still running?
@@ -799,6 +815,7 @@ function test_menu {
 echo
 echo "Testing Canon menu..."
 for CAM in ${GUI_CAMS[*]}; do
+    ((QEMU_JOB_ID++))
     run_test menu $CAM
 done; cleanup
 
@@ -836,6 +853,7 @@ function test_format {
 echo
 echo "Testing card formatting..."
 for CAM in ${GUI_CAMS[*]}; do
+    ((QEMU_JOB_ID++))
     run_test format $CAM
 done; cleanup
 
@@ -917,6 +935,7 @@ echo
 echo "Testing ML restore after format..."
 # fixme: testing hardcoded for 500D
 for CAM in 500D; do
+    ((QEMU_JOB_ID++))
     run_test fmtrestore $CAM
 done; cleanup
 
@@ -951,6 +970,7 @@ function test_gdb {
 echo
 echo "Testing GDB scripts..."
 for CAM in ${EOS_CAMS[*]} ${EOS_SECONDARY_CORES[*]} ${POWERSHOT_CAMS[*]}; do
+    ((QEMU_JOB_ID++))
     run_test gdb $CAM
 done; cleanup
 
@@ -1010,6 +1030,7 @@ function test_frsp {
 echo
 echo "Testing FA_CaptureTestImage..."
 for CAM in ${FRSP_CAMS[*]}; do
+    ((QEMU_JOB_ID++))
     run_test frsp $CAM
 done; cleanup
 
@@ -1045,6 +1066,7 @@ echo "Testing file I/O (DCIM directory)..."
 # Currently works only on models that can boot Canon GUI,
 # and also on 1300D.
 for CAM in ${GUI_CAMS[*]} 1300D; do
+    ((QEMU_JOB_ID++))
     run_test dcim $CAM
 done; cleanup
 
@@ -1060,6 +1082,7 @@ function test_disp {
 echo
 echo "Testing display from bootloader..."
 for CAM in ${EOS_CAMS[*]}; do
+    ((QEMU_JOB_ID++))
     run_test disp $CAM
 done; cleanup
 
@@ -1098,6 +1121,7 @@ function test_disp_chdk {
 echo
 echo "Testing CHDK display..."
 for CAM in ${POWERSHOT_CAMS[*]}; do
+    ((QEMU_JOB_ID++))
     run_test disp_chdk $CAM disp
 done; cleanup
 
@@ -1132,6 +1156,7 @@ function test_boot_powershot {
 echo
 echo "Testing PowerShot models..."
 for CAM in ${POWERSHOT_CAMS[*]}; do
+    ((QEMU_JOB_ID++))
     run_test boot_powershot $CAM boot
 done; cleanup
 
@@ -1239,6 +1264,7 @@ function test_romdump {
 
 echo "Testing portable ROM dumper..."
 for CAM in ${EOS_CAMS[*]}; do
+    ((QEMU_JOB_ID++))
     run_test romdump $CAM
 done; cleanup
 
