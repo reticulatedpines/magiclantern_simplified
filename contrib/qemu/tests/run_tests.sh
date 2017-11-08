@@ -218,14 +218,14 @@ function sd_cf_restore_if_modified {
 # save the screenshot, regardless of match result
 # vncexpect key md5 timeout capture
 function vncexpect {
-    vncdo -s :12345 key $1
+    vncdo -s $VNC_DISP key $1
     rm -f $4
-    if vncdo -s :12345 -v -v -t $3 expect-md5 $2 &> tests/vncdo.log; then
+    if vncdo -s $VNC_DISP -v -v -t $3 expect-md5 $2 &> tests/vncdo.log; then
         echo -n "."
-        vncdo -s :12345 capture $4
+        vncdo -s $VNC_DISP capture $4
         return 0
     else
-        vncdo -s :12345 capture $4
+        vncdo -s $VNC_DISP capture $4
         echo ""
         echo "$2  expected"
         md5sum $4
@@ -271,6 +271,8 @@ function run_test {
     # global variables used in tests
     TEST=${3:-${1//_/-}}
     CAM=$2
+    GDB_PORT=1234
+    VNC_DISP=:12345
 
     if ! test_selected $TEST; then
         # can we skip this test?
@@ -325,15 +327,16 @@ function test_drysh {
         sleep 0.5;
     ) | (
         if [ -f $CAM/patches.gdb ]; then
-            ( arm-none-eabi-gdb -x $CAM/patches.gdb -ex quit 1>&2 &
-              ./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot \
-                -display none -serial stdio -s -S ) \
-                    > tests/$CAM/$TEST.log \
-                    2> tests/$CAM/$TEST-emu.log
+            (
+                arm-none-eabi-gdb -ex "set \$TCP_PORT=$GDB_PORT" -x $CAM/patches.gdb -ex quit 1>&2 &
+                ./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot \
+                    -display none -serial stdio -S -gdb tcp::$GDB_PORT
+            )  > tests/$CAM/$TEST.log \
+              2> tests/$CAM/$TEST-emu.log
         else
             ./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot \
                 -display none -serial stdio \
-                > tests/$CAM/$TEST.log \
+                 > tests/$CAM/$TEST.log \
                 2> tests/$CAM/$TEST-emu.log
         fi
     )
@@ -603,10 +606,12 @@ function test_calls_cstack {
     # log all function calls/returns, interrupts
     # and DebugMsg calls with call stack for each message
     if [ -f $CAM/patches.gdb ]; then
-        (./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot \
-             -display none -d calls,tasks,debugmsg,v -s -S \
-             -serial file:tests/$CAM/$TEST-uart.log & \
-           arm-none-eabi-gdb -x $CAM/patches.gdb -ex quit &) &> tests/$CAM/$TEST-raw.log
+        (
+            ./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot \
+                -display none -d calls,tasks,debugmsg,v -S -gdb tcp::$GDB_PORT \
+                -serial file:tests/$CAM/$TEST-uart.log &
+            arm-none-eabi-gdb -ex "set \$TCP_PORT=$GDB_PORT" -x $CAM/patches.gdb -ex quit &
+        ) &> tests/$CAM/$TEST-raw.log
     else
         ./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot \
             -display none -d calls,tasks,debugmsg,v \
@@ -634,11 +639,14 @@ done; cleanup
 function test_menu_callstack {
 
     if [ -f $CAM/patches.gdb ]; then
-        (./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot -vnc :12345 -d callstack -s -S & \
-            arm-none-eabi-gdb -x $CAM/patches.gdb -ex quit &) &> tests/$CAM/$TEST.log
+        (
+            ./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot -vnc $VNC_DISP -d callstack -S -gdb tcp::$GDB_PORT &
+            arm-none-eabi-gdb -ex "set \$TCP_PORT=$GDB_PORT" -x $CAM/patches.gdb -ex quit &
+        ) &> tests/$CAM/$TEST.log
     else
-        (./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot -vnc :12345 -d callstack &) \
-            &> tests/$CAM/$TEST.log
+        (
+            ./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot -vnc $VNC_DISP -d callstack &
+        ) &> tests/$CAM/$TEST.log
     fi
 
     set_gui_timeout
@@ -648,8 +656,8 @@ function test_menu_callstack {
     for key in ${MENU_SEQUENCE[$CAM]}; do
         # some GUI operations are very slow under -d callstack (many small functions called)
         # for most of them, 1 second is enough, but the logic would be more complex
-        vncdotool -s :12345 key $key; sleep 3
-        vncdotool -s :12345 capture tests/$CAM/$TEST$((count++)).png
+        vncdotool -s $VNC_DISP key $key; sleep 3
+        vncdotool -s $VNC_DISP capture tests/$CAM/$TEST$((count++)).png
         echo -n .
     done
 
@@ -751,11 +759,14 @@ done; cleanup
 function test_menu {
 
     if [ -f $CAM/patches.gdb ]; then
-        (./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot -vnc :12345 -d debugmsg -s -S & \
-            arm-none-eabi-gdb -x $CAM/patches.gdb -ex quit &) &> tests/$CAM/$TEST.log
+        (
+            ./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot -vnc $VNC_DISP -d debugmsg -S -gdb tcp::$GDB_PORT &
+            arm-none-eabi-gdb -ex "set \$TCP_PORT=$GDB_PORT" -x $CAM/patches.gdb -ex quit &
+        ) &> tests/$CAM/$TEST.log
     else
-        (./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot -vnc :12345 -d debugmsg &) \
-            &> tests/$CAM/$TEST.log
+        (
+            ./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot -vnc $VNC_DISP -d debugmsg &
+        ) &> tests/$CAM/$TEST.log
     fi
 
     set_gui_timeout
@@ -765,8 +776,8 @@ function test_menu {
     # (slightly different keycodes and only PPM screenshots available)
     count=0;
     for key in ${MENU_SEQUENCE[$CAM]}; do
-        vncdotool -s :12345 key $key; sleep 0.5
-        vncdotool -s :12345 capture tests/$CAM/$TEST$((count++)).png
+        vncdotool -s $VNC_DISP key $key; sleep 0.5
+        vncdotool -s $VNC_DISP capture tests/$CAM/$TEST$((count++)).png
         echo -n .
     done
 
@@ -796,11 +807,14 @@ done; cleanup
 function test_format {
 
     if [ -f $CAM/patches.gdb ]; then
-        (./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot -vnc :12345 -s -S & \
-            arm-none-eabi-gdb -x $CAM/patches.gdb -ex quit &) &> tests/$CAM/$TEST.log
+        (
+            ./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot -vnc $VNC_DISP -S -gdb tcp::$GDB_PORT &
+            arm-none-eabi-gdb -ex "set \$TCP_PORT=$GDB_PORT" -x $CAM/patches.gdb -ex quit &
+        ) &> tests/$CAM/$TEST.log
     else
-        (./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot -vnc :12345 &) \
-            &> tests/$CAM/$TEST.log
+        (
+            ./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot -vnc $VNC_DISP &
+        ) &> tests/$CAM/$TEST.log
     fi
 
     set_gui_timeout
@@ -809,8 +823,8 @@ function test_format {
     count=0;
     for key in ${FORMAT_SEQUENCE[$CAM]}; do
         if [ $key = wait ]; then sleep 1; continue; fi
-        vncdotool -s :12345 key $key; sleep 0.5
-        vncdotool -s :12345 capture tests/$CAM/$TEST$((count++)).png
+        vncdotool -s $VNC_DISP key $key; sleep 0.5
+        vncdotool -s $VNC_DISP capture tests/$CAM/$TEST$((count++)).png
         echo -n .
     done
 
@@ -845,11 +859,14 @@ function test_fmtrestore {
         mdel -i $MSD ::/ML/MODULES/LOADING.LCK 2>/dev/null
 
         if [ -f $CAM/patches.gdb ]; then
-            (./run_canon_fw.sh $CAM,firmware="boot=1" -snapshot -vnc :12345 -d debugmsg -s -S & \
-                arm-none-eabi-gdb -x $CAM/patches.gdb -ex quit &) &>> tests/$CAM/$TEST.log
+            (
+                ./run_canon_fw.sh $CAM,firmware="boot=1" -snapshot -vnc $VNC_DISP -d debugmsg -S -gdb tcp::$GDB_PORT &
+                arm-none-eabi-gdb -ex "set \$TCP_PORT=$GDB_PORT" -x $CAM/patches.gdb -ex quit &
+            ) &>> tests/$CAM/$TEST.log
         else
-            (./run_canon_fw.sh $CAM,firmware="boot=1" -snapshot -vnc :12345 -d debugmsg &) \
-                &>> tests/$CAM/$TEST.log
+            (
+                ./run_canon_fw.sh $CAM,firmware="boot=1" -snapshot -vnc $VNC_DISP -d debugmsg &
+            ) &>> tests/$CAM/$TEST.log
         fi
 
         sleep 5
@@ -912,8 +929,10 @@ function test_gdb {
         return
     fi
 
-    (./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot -display none -s -S & \
-     arm-none-eabi-gdb -x $CAM/debugmsg.gdb -ex quit &) &> tests/$CAM/$TEST.log
+    (
+        ./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot -display none -S -gdb tcp::$GDB_PORT &
+        arm-none-eabi-gdb -ex "set \$TCP_PORT=$GDB_PORT" -x $CAM/debugmsg.gdb -ex quit &
+    ) &> tests/$CAM/$TEST.log
 
     # wait for some tasks to start
     touch tests/$CAM/$TEST.log
@@ -1003,8 +1022,10 @@ function test_dcim {
     mdeltree -i $MCF ::/DCIM &> /dev/null
 
     if [ -f $CAM/patches.gdb ]; then
-        (./run_canon_fw.sh $CAM,firmware="boot=0" -display none -s -S & \
-         arm-none-eabi-gdb -x $CAM/patches.gdb -ex quit &) &> tests/$CAM/$TEST.log
+        (
+            ./run_canon_fw.sh $CAM,firmware="boot=0" -display none -S -gdb tcp::$GDB_PORT &
+            arm-none-eabi-gdb -ex "set \$TCP_PORT=$GDB_PORT" -x $CAM/patches.gdb -ex quit &
+        ) &> tests/$CAM/$TEST.log
         sleep 5
         kill_qemu expect_running
     else
@@ -1084,10 +1105,12 @@ done; cleanup
 function test_boot_powershot {
     echo ""
 
-    (./run_canon_fw.sh $CAM -snapshot \
-       -display none -d romcpy,int -s -S \
-       -serial file:tests/$CAM/$TEST-uart.log & \
-     arm-none-eabi-gdb -x $CAM/debugmsg.gdb -ex quit &) &> tests/$CAM/$TEST.log
+    (
+        ./run_canon_fw.sh $CAM -snapshot \
+            -display none -d romcpy,int -S -gdb tcp::$GDB_PORT \
+            -serial file:tests/$CAM/$TEST-uart.log &
+        arm-none-eabi-gdb -ex "set \$TCP_PORT=$GDB_PORT" -x $CAM/debugmsg.gdb -ex quit &
+    ) &> tests/$CAM/$TEST.log
 
     # wait for TurnOnDisplay, up to 10 seconds
     touch tests/$CAM/$TEST.log
