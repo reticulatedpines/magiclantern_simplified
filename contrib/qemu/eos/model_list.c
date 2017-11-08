@@ -27,6 +27,7 @@ struct eos_model_desc eos_model_list[] = {
         .mpu_request_interrupt  = 0x52,
         .uart_rx_interrupt      = 0x2E,
         .uart_tx_interrupt      = 0x3A,
+        .rtc_cs_register        = 0xC022005C,
     },
     {
         /* defaults for DIGIC 4 cameras */
@@ -58,6 +59,7 @@ struct eos_model_desc eos_model_list[] = {
         .mpu_request_interrupt  = 0x50,
         .uart_rx_interrupt      = 0x2E,
         .uart_tx_interrupt      = 0x3A,
+        .rtc_cs_register        = 0xC0220128,
     },
     {
         /* defaults for DIGIC 5 cameras */
@@ -86,6 +88,7 @@ struct eos_model_desc eos_model_list[] = {
         .mpu_request_interrupt  = 0x50,
         .uart_rx_interrupt      = 0x2E,
         .uart_tx_interrupt      = 0x3A,
+        .rtc_cs_register        = 0xC02201F8,
     },
     {
         /* defaults for DIGIC 6 cameras */
@@ -129,6 +132,7 @@ struct eos_model_desc eos_model_list[] = {
         .cf_driver_interrupt    = 0x82,
         .cf_dma_interrupt       = 0xE3,
         .current_task_addr      = 0x1A70,
+        .rtc_cs_register        = 0xC02200B0,
     },
     {
         .name                   = "60D",
@@ -157,6 +161,7 @@ struct eos_model_desc eos_model_list[] = {
         .cf_driver_interrupt    = 0x82,
         .cf_dma_interrupt       = 0xE3,
         .current_task_addr      = 0x1A24,
+        .rtc_cs_register        = 0xC02200B0,
     },
     {
         .name                   = "5D3",
@@ -196,6 +201,7 @@ struct eos_model_desc eos_model_list[] = {
         .mpu_request_register   = 0xC022006C,
         .mpu_status_register    = 0xC022006C,
         .serial_flash_size      = 0x800000,
+        .rtc_cs_register        = 0xC022C0C4,
         .rtc_time_correct       = 0x98,
     },
     {
@@ -205,6 +211,7 @@ struct eos_model_desc eos_model_list[] = {
         .mpu_status_register    = 0xC022006C,
         .serial_flash_size      = 0x1000000,
         .current_task_addr      = 0x652AC,
+        .rtc_cs_register        = 0xC022C020,
         .rtc_time_correct       = 0x98,
     },
     {
@@ -228,6 +235,7 @@ struct eos_model_desc eos_model_list[] = {
         .mpu_status_register    = 0xC02200BC,
         .serial_flash_size      = 0x800000,
         .current_task_addr      = 0x74C28,
+        .rtc_cs_register        = 0xC02201D4,
         .rtc_time_correct       = 0x9F,
     },
     {
@@ -238,6 +246,7 @@ struct eos_model_desc eos_model_list[] = {
         .mpu_status_register    = 0xC02200BC,
         .card_led_address       = 0xC022C06C,
         .serial_flash_size      = 0x800000,
+        .rtc_cs_register        = 0xC02201D4,
         .rtc_time_correct       = 0xA0,
     },
     {
@@ -248,6 +257,7 @@ struct eos_model_desc eos_model_list[] = {
         .mpu_status_register    = 0xC022006C,
         .card_led_address       = 0xC022C188,
         .serial_flash_size      = 0x800000,
+        .rtc_cs_register        = 0xC022C0C4,
         .rtc_time_correct       = 0x98,
     },
     {
@@ -286,6 +296,7 @@ struct eos_model_desc eos_model_list[] = {
         .mpu_status_register    = 0xC022006C,
         .card_led_address       = 0xC022C188,
         .serial_flash_size      = 0x800000,
+        .rtc_cs_register        = 0xC022C0C4,
       //.rtc_time_correct       = 0x98,     /* the date/time dialog prevents the camera from going into LiveView */
     },
     {
@@ -295,6 +306,7 @@ struct eos_model_desc eos_model_list[] = {
         .mpu_request_register   = 0xC022006C,
         .mpu_status_register    = 0xC022006C,
         .serial_flash_size      = 0x1000000,
+        .rtc_cs_register        = 0xC022C0C4,
         .rtc_time_correct       = 0x9A,
         .rtc_control_reg_2      = 0x10,     /* the date/time dialog prevents the camera from going into LiveView */
     },

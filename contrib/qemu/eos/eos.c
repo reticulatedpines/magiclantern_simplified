@@ -2404,6 +2404,30 @@ static int eos_handle_card_led( unsigned int parm, EOSState *s, unsigned int add
     return ret;
 }
 
+static int eos_handle_rtc_cs( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+{
+    const char * msg = "[RTC] CS";
+    unsigned int ret = 0;
+
+    if (type & MODE_WRITE)
+    {
+        if ((value & 0x06) == 0x06 ||
+            (value & 0x0100000) == 0x100000)
+        {
+            msg = "[RTC] CS set";
+            s->rtc.transfer_format = RTC_READY;
+        }
+        else
+        {
+            msg = "[RTC] CS reset";
+            s->rtc.transfer_format = RTC_INACTIVE;
+        }
+    }
+
+    io_log("GPIO", s, address, type, value, ret, msg, 0, 0);
+    return ret;
+}
+
 unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
     unsigned int ret = 1;
@@ -2422,6 +2446,12 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
     if (address == s->model->card_led_address)
     {
         return eos_handle_card_led(parm, s, address, type, value);
+    }
+
+    /* 0xC02200B0/005C/0128/01D4/01F8/C020/C0C4 */
+    if (address == s->model->rtc_cs_register)
+    {
+        return eos_handle_rtc_cs(parm, s, address, type, value);
     }
 
     switch (address & 0xFFFF)
@@ -2523,23 +2553,6 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
         case 0x00B0:
             msg = "FUNC SW OFF on 7D";
             ret = 0;
-            if(!strcmp(s->model->name, "50D") || !strcmp(s->model->name, "5D2"))
-            {
-                /* CS for RTC */
-                if(type & MODE_WRITE)
-                {
-                    if((value & 0x06) == 0x06)
-                    {
-                        msg = "[RTC] CS set";
-                        s->rtc.transfer_format = RTC_READY;
-                    }
-                    else
-                    {
-                        msg = "[RTC] CS reset";
-                        s->rtc.transfer_format = RTC_INACTIVE;
-                    }
-                }
-            }
             break;
             
         case 0x0024:
@@ -2619,53 +2632,6 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             {
                 if (value == 0x46 || value == 0x44)
                     return 0; // Quiet
-            }
-            ret = 0;
-            break;
-
-        case 0xC020:    /* CS for RTC on 100D */ 
-        case 0xC0C4:    /* CS for RTC on 700D */
-            if(type & MODE_WRITE)
-            {
-                if((value & 0x0100000) == 0x100000)
-                {
-                    msg = "[RTC] CS set";
-                    s->rtc.transfer_format = RTC_READY;
-                }
-                else
-                {
-                    msg = "[RTC] CS reset";
-                    s->rtc.transfer_format = RTC_INACTIVE;
-                }
-            }
-            ret = 0;
-            break;
-//          eos_spi_rtc_handle(2,  (value & 0x100000) ? 1 : 0);
-//          msg = (value & 0x100000) ? "[RTC] CS set" : "[RTC] CS reset";
-//            if (value == 0x83DC00 || value == 0x93D800)
-//                return 0; // Quiet
-//          ret = 0;
-//          break;
-
-        case 0x01D4:    /* 6D/70D RTC */
-            if (strcmp(s->model->name, "6D") &&
-                strcmp(s->model->name, "70D"))
-                break;
-        case 0x0128:    /* CS for RTC on 600D */
-        case 0x01F8:    /* 5D3 RTC */
-        case 0x005C:    /* 450D RTC */
-            if(type & MODE_WRITE)
-            {
-                if((value & 0x06) == 0x06)
-                {
-                    msg = "[RTC] CS set";
-                    s->rtc.transfer_format = RTC_READY;
-                }
-                else
-                {
-                    msg = "[RTC] CS reset";
-                    s->rtc.transfer_format = RTC_INACTIVE;
-                }
             }
             ret = 0;
             break;
