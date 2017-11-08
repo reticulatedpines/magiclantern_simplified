@@ -91,7 +91,7 @@ env QEMU_EOS_DEBUGMSG="$QEMU_EOS_DEBUGMSG" \
   $QEMU_PATH/arm-softmmu/qemu-system-arm \
     -drive if=sd,format=raw,file=sd.img \
     -drive if=ide,format=raw,file=cf.img \
-    -chardev socket,server,nowait,path=qemu.monitor,id=monsock \
+    -chardev socket,server,nowait,path=qemu.monitor$QEMU_JOB_ID,id=monsock \
     -mon chardev=monsock,mode=readline \
     -M $*
 
@@ -106,3 +106,10 @@ env QEMU_EOS_DEBUGMSG="$QEMU_EOS_DEBUGMSG" \
 #
 # you can, of course, redirect it with -monitor stdio or -monitor vl
 # more info: http://nairobi-embedded.org/qemu_monitor_console.html
+
+# QEMU_JOB_ID should not generally be defined (just leave it blank)
+# exception: if you want to launch multiple instances of the emulator,
+# each instance will get its own qemu.monitor socket.
+#
+# If you start multiple instances, also use -snapshot to prevent changes
+# to the SD and CF card images (so they can be shared between all processes)

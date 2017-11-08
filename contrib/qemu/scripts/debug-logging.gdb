@@ -6,7 +6,12 @@
 #    ./run_canon_fw.sh 60D -s -S & arm-none-eabi-gdb -x 60D/debugmsg.gdb
 
 set tcp connect-timeout 300
-target remote localhost:1234
+
+if $_isvoid($TCP_PORT)
+    target remote localhost:1234
+else
+    eval "target remote localhost:%d", $TCP_PORT
+end
 
 ################################################################################
 #

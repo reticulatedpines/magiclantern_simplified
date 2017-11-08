@@ -624,6 +624,75 @@ More examples:
 - running ML from the dm-spy-experiments branch in the emulator (`QEMU-dm-spy <https://builds.magiclantern.fm/jenkins/view/QEMU/job/QEMU-dm-spy/65/consoleFull>`_)
 - running the FA_CaptureTestImage test based on the minimal ML target (`QEMU-FA_CaptureTestImage <https://builds.magiclantern.fm/jenkins/view/QEMU/job/QEMU-FA_CaptureTestImage>`_)
 
+Parallel execution
+``````````````````
+
+On modern machines, you will get significant speed gains by running multiple instances of QEMU in parallel.
+This is tricky and not automated. You need to be careful with the following global resources:
+
+- SD and CF images (``sd.img`` and ``cf.img``):
+
+  If all your parallel instances require the same initial SD/CF card contents,
+  and you do not need to inspect the changes to SD/CF after the experiment,
+  you may use these files as read-only shared resources with the help of QEMU's
+  `temporary snapshot <https://wiki.qemu.org/Documentation/CreateSnapshot#Temporary_snapshots>`_ feature
+  (simply add ``-snapshot`` to your command line). This will discard any changes to ``sd.img`` and ``cf.img``.
+  `Implementation details <https://lists.gnu.org/archive/html/qemu-devel/2008-09/msg00712.html>`_.
+
+  Otherwise, you could allocate different SD/CF images for each instance, but it's up to you to modify the scripts to handle that.
+
+- QEMU monitor socket (``qemu.monitor``):
+
+  Set the ``QEMU_JOB_ID`` environment variable; it will be used as suffix for ``qemu.monitor``.
+  
+  Example: ``QEMU_JOB_ID=1 ./run_canon_fw.sh 5D3`` will use ``qemu.monitor1`` for monitor commands.
+
+- GDB port (with ``-s -S``, this port is 1234):
+
+  Set QEMU_JOB_ID to a small positive integer; then you'll be able to do this:
+
+  .. code:: shell
+
+    QEMU_MON=qemu.monitor$QEMU_JOB_ID
+    GDB_PORT=$((1234+$QEMU_JOB_ID))
+    ./run_canon_fw.sh EOSM2 -S -gdb tcp::$GDB_PORT &
+    arm-none-eabi-gdb -ex "set \$TCP_PORT=$GDB_PORT" -x EOSM2/patches.gdb -ex quit &
+    
+    # interact with monitor commands
+    sleep 5
+    echo "sendkey m" | nc -N -U $QEMU_MON
+    sleep 1
+
+    # quit when finished
+    echo "quit" | nc -N -U $QEMU_MON
+
+- VNC display
+
+  Same as above:
+
+  .. code:: shell
+
+    QEMU_MON=qemu.monitor$QEMU_JOB_ID
+    VNC_DISP=":$((12345+QEMU_JOB_ID))"
+    ./run_canon_fw.sh 5D3 -vnc $VNC_DISP &
+    
+    # interact with vncdotool
+    sleep 5
+    vncdotool -$VNC_DISP key m
+    sleep 1
+    
+    # quit when finished
+    echo "quit" | nc -N -U $QEMU_MON
+
+- any temporary files you may want to use
+
+  Use something like ``mktemp`` rather than hardcoding a filename.
+  Or, try achieving the same thing without a temporary file (pipes, process substitution).
+
+- any other global resources (you'll have to figure them out on your own).
+
+TODO: can this be automated somehow with containers?
+
 Debugging
 ---------
 
