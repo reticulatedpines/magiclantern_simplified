@@ -186,6 +186,7 @@ EOSRegionHandler eos_handlers[] =
     { "SIO2",         0xC0820200, 0xC08202FF, eos_handle_sio, 2 },
     { "SIO3",         0xC0820300, 0xC08203FF, eos_handle_sio3, 3 },
     { "SIO4",         0xC0820400, 0xC08204FF, eos_handle_sio_serialflash, 4 },
+    { "SIO6",         0xC0820600, 0xC08206FF, eos_handle_sio, 6 },
     { "SIO7",         0xC0820700, 0xC08207FF, eos_handle_sio_serialflash, 7 },
     { "SIO8",         0xC0820800, 0xC08208FF, eos_handle_sio, 8 },
     { "MREQ",         0xC0203000, 0xC02030FF, eos_handle_mreq, 0 },
@@ -2646,8 +2647,9 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
 //          ret = 0;
 //          break;
 
-        case 0x01D4:    /* 6D RTC */
-            if (strcmp(s->model->name, "6D"))
+        case 0x01D4:    /* 6D/70D RTC */
+            if (strcmp(s->model->name, "6D") &&
+                strcmp(s->model->name, "70D"))
                 break;
         case 0x0128:    /* CS for RTC on 600D */
         case 0x01F8:    /* 5D3 RTC */
