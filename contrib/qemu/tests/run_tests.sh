@@ -284,6 +284,44 @@ kill_qemu expect_not_running
 
 export QEMU_JOB_ID=0
 
+# tried GNU parallel (kinda works, trouble with functions using arrays)
+# tried Rust parallel (unable to call bash functions)
+# this one is in plain bash, so bash functions just work :)
+# https://stackoverflow.com/a/12436838
+# https://stackoverflow.com/a/33048123
+function job_limit {
+    local max_number=$((0 + ${1:-0}))
+    while true; do
+        local current_number=$(jobs -pr | wc -l)
+        if [[ $current_number -lt $max_number ]]; then
+            break
+        fi
+        sleep 0.5
+    done
+}
+
+# experiment - keep the "load" close to number of CPUs
+# will throttle if other jobs are running on the same machine
+# and use the full power if the machine is idle
+function job_limit_auto {
+    if [[ $(jobs -pr | wc -l) -gt 1 ]]; then
+        # delay checking if we started more than one background job
+        # trick to avoid undetected overloads and also to avoid slowdowns when there's nothing to do
+        sleep 0.2
+    fi
+    local max_number=$(nproc)
+    while true; do
+        # check how many processes are running on the system before deciding to start a new job
+        local procs_running=$(cat /proc/stat | grep procs_running | cut -d ' ' -f 2)
+        local procs_blocked=$(cat /proc/stat | grep procs_blocked | cut -d ' ' -f 2)
+        local current_number=$((procs_running + procs_blocked))
+        if [[ $current_number -lt $max_number ]]; then
+            break
+        fi
+        sleep 0.5
+    done
+}
+
 # generic helper for running tests
 # arguments: 
 # - test function name (without the test_ prefix)
@@ -308,8 +346,6 @@ function run_test {
         return
     fi
 
-    printf "%7s: " $CAM
-
     # make sure the test subdirectory is present
     # and remove any previous logs or screenshots from this test
     mkdir -p tests/$CAM/
@@ -317,15 +353,20 @@ function run_test {
     rm -f tests/$CAM/$TEST*.png
     rm -f tests/$CAM/$TEST*.ppm
 
-    # run the test function
-    test_$1
+    # run the test function and buffer its output
+    ( printf "%7s: " $CAM && test_$1 ) 2>&1 | sponge
+
+    # local cleanup
+    rm -f $QEMU_MONITOR
 }
 
 # called after running each set of tests
 function cleanup {
     QEMU_JOB_ID=0
+    wait
     kill_qemu expect_not_running
     sd_cf_restore_if_modified -q
+    rm -f qemu.monitor[0-9]*
 }
 
 # All EOS cameras should run the Dry-shell console over UART
@@ -381,9 +422,9 @@ echo
 echo "Testing Dry-shell over UART..."
 for CAM in 5D3eeko ${EOS_CAMS[*]}; do
     ((QEMU_JOB_ID++))
-    run_test drysh $CAM
+    run_test drysh $CAM &
+    job_limit $((4 * $(nproc)))
 done; cleanup
-
 
 # Interrupts are generally non-deterministic; however, we can use
 # the -icount option in QEMU to get a deterministic execution trace.
@@ -536,7 +577,8 @@ echo
 echo "Testing call/return trace on main firmware..."
 for CAM in ${EOS_SECONDARY_CORES[*]} ${EOS_CAMS[*]}; do
     ((QEMU_JOB_ID++))
-    run_test calls_main $CAM
+    run_test calls_main $CAM &
+    job_limit_auto
 done; cleanup
 
 
@@ -618,7 +660,8 @@ mdel -i $MCF ::/autoexec.bin
 # run the tests
 for CAM in ${EOS_CAMS[*]}; do
     ((QEMU_JOB_ID++))
-    run_test calls_from $CAM
+    run_test calls_from $CAM &
+    job_limit_auto
 done; cleanup
 
 
@@ -660,7 +703,8 @@ echo
 echo "Testing callstack consistency with call/return trace for DebugMsg calls..."
 for CAM in ${EOS_CAMS[*]}; do
     ((QEMU_JOB_ID++))
-    run_test calls_cstack $CAM
+    run_test calls_cstack $CAM &
+    job_limit_auto
 done; cleanup
 
 
@@ -701,7 +745,8 @@ echo
 echo "Testing Canon menu with callstack enabled..."
 for CAM in ${GUI_CAMS[*]}; do
     ((QEMU_JOB_ID++))
-    run_test menu_callstack $CAM menu
+    run_test menu_callstack $CAM menu &
+    job_limit_auto
 done; cleanup
 
 
@@ -740,7 +785,8 @@ echo
 echo "Testing bootloaders..."
 for CAM in ${EOS_CAMS[*]} ${EOS_SECONDARY_CORES[*]}; do
     ((QEMU_JOB_ID++))
-    run_test boot $CAM
+    run_test boot $CAM &
+    job_limit_auto
 done; cleanup
 
 
@@ -783,6 +829,7 @@ function test_hptimer {
 
 echo
 echo "Testing HPTimer and task name..."
+# this requires a custom build; cannot run in parallel
 for CAM in ${EOS_CAMS[*]}; do
     ((QEMU_JOB_ID++))
     run_test hptimer $CAM
@@ -829,7 +876,8 @@ echo
 echo "Testing Canon menu..."
 for CAM in ${GUI_CAMS[*]}; do
     ((QEMU_JOB_ID++))
-    run_test menu $CAM
+    run_test menu $CAM &
+    job_limit_auto
 done; cleanup
 
 
@@ -867,7 +915,8 @@ echo
 echo "Testing card formatting..."
 for CAM in ${GUI_CAMS[*]}; do
     ((QEMU_JOB_ID++))
-    run_test format $CAM
+    run_test format $CAM &
+    job_limit_auto
 done; cleanup
 
 
@@ -984,7 +1033,8 @@ echo
 echo "Testing GDB scripts..."
 for CAM in ${EOS_CAMS[*]} ${EOS_SECONDARY_CORES[*]} ${POWERSHOT_CAMS[*]}; do
     ((QEMU_JOB_ID++))
-    run_test gdb $CAM
+    run_test gdb $CAM &
+    job_limit_auto
 done; cleanup
 
 
@@ -1042,6 +1092,7 @@ function test_frsp {
 
 echo
 echo "Testing FA_CaptureTestImage..."
+# this requires a custom build; cannot run in parallel
 for CAM in ${FRSP_CAMS[*]}; do
     ((QEMU_JOB_ID++))
     run_test frsp $CAM
@@ -1078,6 +1129,7 @@ echo
 echo "Testing file I/O (DCIM directory)..."
 # Currently works only on models that can boot Canon GUI,
 # and also on 1300D.
+# we need to check the card contents; cannot run in parallel
 for CAM in ${GUI_CAMS[*]} 1300D; do
     ((QEMU_JOB_ID++))
     run_test dcim $CAM
@@ -1096,7 +1148,8 @@ echo
 echo "Testing display from bootloader..."
 for CAM in ${EOS_CAMS[*]}; do
     ((QEMU_JOB_ID++))
-    run_test disp $CAM
+    run_test disp $CAM &
+    job_limit_auto
 done; cleanup
 
 
@@ -1133,6 +1186,7 @@ function test_disp_chdk {
 
 echo
 echo "Testing CHDK display..."
+# this will require custom builds; let's not run it in parallel yet
 for CAM in ${POWERSHOT_CAMS[*]}; do
     ((QEMU_JOB_ID++))
     run_test disp_chdk $CAM disp
@@ -1170,7 +1224,8 @@ echo
 echo "Testing PowerShot models..."
 for CAM in ${POWERSHOT_CAMS[*]}; do
     ((QEMU_JOB_ID++))
-    run_test boot_powershot $CAM boot
+    run_test boot_powershot $CAM boot &
+    job_limit_auto
 done; cleanup
 
 
@@ -1276,6 +1331,7 @@ function test_romdump {
 }
 
 echo "Testing portable ROM dumper..."
+# we need to check the card contents; cannot run in parallel
 for CAM in ${EOS_CAMS[*]}; do
     ((QEMU_JOB_ID++))
     run_test romdump $CAM
