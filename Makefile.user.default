@@ -86,7 +86,7 @@ ifeq ($(WIFI_SD),y)
   define INSTALL_FINISH =
 	$(UMOUNT_CARD)
 	$(WIFI_RESTORE)
-	@echo "\nFinished.\nMake sure the camera will not write anything to the card until restart."
+	@printf "\nFinished.\nMake sure the camera will not write anything to the card until restart."
   endef
 endif
 
