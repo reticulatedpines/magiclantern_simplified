@@ -57,7 +57,7 @@ $MAKE -C $QEMU_PATH || exit 2
 # clear the terminal
 # (since the logs are very large, being able to scroll at the beginning is helpful)
 # note: "tput reset" may crash when running as a background job, figure out why
-echo -e \\033c
+printf '\ec\e[3J'
 
 # print the invocation
 # https://unix.stackexchange.com/a/118468
@@ -67,9 +67,9 @@ case $(ps -o stat= -p $$) in
 esac
 
 # also print the command-line of arm-none-eabi-gdb, if any
-gdb_pid=$(pidof -s arm-none-eabi-gdb)
+gdb_pid=$(pgrep -nx arm-none-eabi-gdb)
 if [ "$gdb_pid" != "" ]; then
-  gdb_cmd=$(ps -p $gdb_pid -o args --no-headers)
+  gdb_cmd=$(ps -p $gdb_pid -o args | tail -n1)
   case $(ps -o stat= -p $gdb_pid) in
     *+*) echo "$gdb_cmd" ;;      # Running in foreground
     *) echo "$gdb_cmd" "&" ;;    # Running in background
