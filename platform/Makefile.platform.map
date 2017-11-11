@@ -1,24 +1,24 @@
 PLATFORM_MAP = \
-	5D3.113 \
-	5D3.123 \
-	5D2.212 \
-	7D.203 \
-	7D_MASTER.203 \
-	50D.109 \
-	60D.111 \
-	500D.111 \
-	550D.109 \
-	600D.102 \
-	650D.104 \
-	700D.115 \
-	EOSM.202 \
-	1100D.105 \
-	6D.116
+    5D3.113 \
+    5D3.123 \
+    5D2.212 \
+    7D.203 \
+    7D_MASTER.203 \
+    50D.109 \
+    60D.111 \
+    500D.111 \
+    550D.109 \
+    600D.102 \
+    650D.104 \
+    700D.115 \
+    EOSM.202 \
+    1100D.105 \
+    6D.116
 
 PLATFORM_MAP_UNMAINTAINED = \
-	40D.111 \
-	5DC.111 \
-	100D.100 \
+    40D.111 \
+    5DC.111 \
+    100D.100 \
 
 
 # call this with 1 parameter, e.g. 5D2 (without firmware version) to get the firmware version from PLATFORM_MAP
@@ -55,7 +55,7 @@ $2_clean:
 $2_install:
 	+$(MAKE) -C $3$2 install
 $2_check:
-	@echo $2: $(shell $(READELF) -l $3$2/magiclantern 2>/dev/null | $(GREP) -C 2 MemSiz | $(GREP) -v EXIDX | $(GREP) LOAD )
+	@echo $2: $$(shell $$(READELF) -l $3$2/magiclantern 2>/dev/null | $$(GREP) -C 2 MemSiz | $$(GREP) -v EXIDX | $$(GREP) LOAD )
 
 endef
 
