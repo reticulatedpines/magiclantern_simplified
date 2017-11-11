@@ -649,22 +649,32 @@ This is tricky and not automated. You need to be careful with the following glob
 
 - GDB port (with ``-s -S``, this port is 1234):
 
-  Set QEMU_JOB_ID to a small positive integer; then you'll be able to do this:
+  Set QEMU_JOB_ID to a small positive integer, for example:
 
   .. code:: shell
 
-    QEMU_MON=qemu.monitor$QEMU_JOB_ID
+    export QEMU_JOB_ID=1
+  
+  |
+  
+  Then you'll be able to do this:
+
+  .. code:: shell
+
+    QEMU_MONITOR=qemu.monitor$QEMU_JOB_ID
     GDB_PORT=$((1234+$QEMU_JOB_ID))
     ./run_canon_fw.sh EOSM2 -S -gdb tcp::$GDB_PORT &
     arm-none-eabi-gdb -ex "set \$TCP_PORT=$GDB_PORT" -x EOSM2/patches.gdb -ex quit &
     
     # interact with monitor commands
     sleep 5
-    echo "sendkey m" | nc -N -U $QEMU_MON
+    echo "sendkey m" | nc -N -U $QEMU_MONITOR
     sleep 1
 
     # quit when finished
-    echo "quit" | nc -N -U $QEMU_MON
+    echo "quit" | nc -N -U $QEMU_MONITOR
+
+  |
 
 - VNC display
 
@@ -672,17 +682,19 @@ This is tricky and not automated. You need to be careful with the following glob
 
   .. code:: shell
 
-    QEMU_MON=qemu.monitor$QEMU_JOB_ID
+    QEMU_MONITOR=qemu.monitor$QEMU_JOB_ID
     VNC_DISP=":$((12345+QEMU_JOB_ID))"
     ./run_canon_fw.sh 5D3 -vnc $VNC_DISP &
     
     # interact with vncdotool
     sleep 5
-    vncdotool -$VNC_DISP key m
+    vncdotool -s $VNC_DISP key m
     sleep 1
     
     # quit when finished
-    echo "quit" | nc -N -U $QEMU_MON
+    echo "quit" | nc -N -U $QEMU_MONITOR
+
+  |
 
 - any temporary files you may want to use
 
