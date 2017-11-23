@@ -56,6 +56,8 @@ $2_install:
 	+$(MAKE) -C $3$2 install
 $2_check:
 	@echo $2: $$(shell $$(READELF) -l $3$2/magiclantern 2>/dev/null | $$(GREP) -C 2 MemSiz | $$(GREP) -v EXIDX | $$(GREP) LOAD )
+$2_autoexec_fir:
+	+$(MAKE) -C $3$2 autoexec-fir.bin
 
 endef
 
@@ -64,8 +66,6 @@ endef
 7D: 7D_MASTER
 	$(MAKE) -C $(PLATFORM_PATH)/7D.203
 
-7DFIR: 7D_MASTER 7D
-	dd if=$(PLATFORM_PATH)/7D.203/autoexec.bin of=$(PLATFORM_PATH)/7D.203/autoexec.fir bs=288 skip=1 >/dev/null 2>&1
-	dd if=$(PLATFORM_PATH)/7D_MASTER.203/autoexec.bin of=$(PLATFORM_PATH)/7D_MASTER.203/autoexec.fir bs=288 skip=1 >/dev/null 2>&1
-	python ../dumper/build_fir7.py -r -s $(PLATFORM_PATH)/7D.203/autoexec.fir -m $(PLATFORM_PATH)/7D_MASTER.203/autoexec.fir $(PLATFORM_PATH)/7D.203/7D000203.FIR $(PLATFORM_PATH)/7D.203/MAGIC.FIR >/dev/null
+7DFIR: 7D_MASTER.203_autoexec_fir 7D.203_autoexec_fir
+	python $(TOP_DIR)/../dumper/build_fir7.py -r -s $(PLATFORM_PATH)/7D.203/autoexec-fir.bin -m $(PLATFORM_PATH)/7D_MASTER.203/autoexec-fir.bin $(PLATFORM_PATH)/7D.203/7D000203.FIR $(PLATFORM_PATH)/7D.203/MAGIC.FIR
 
