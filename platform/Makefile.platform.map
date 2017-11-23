@@ -31,7 +31,7 @@ platform_version = $(word 2, $(subst ., ,$(filter $(1).%, $(PLATFORM_MAP))))
 #   $1 short model name (5D3, 7D)
 #   $2 model name with version (5D3.113)
 #   $3 directory prefix with trailing slash (e.g. 'platform/')
-define makerule =
+define makerule
 .PHONY: $1
 .PHONY: $1_clean
 .PHONY: $2
