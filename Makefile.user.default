@@ -86,7 +86,7 @@ ifeq ($(WIFI_SD),y)
   define INSTALL_FINISH =
 	$(UMOUNT_CARD)
 	$(WIFI_RESTORE)
-	@echo "\nFinished.\nMake sure the camera will not write anything to the card until restart."
+	@printf "\nFinished.\nMake sure the camera will not write anything to the card until restart."
   endef
 endif
 
@@ -191,16 +191,18 @@ BUILDVER=$(shell whoami).$(shell hg id -i -r .)
 VERSION:=Nightly.$(shell LC_TIME=EN date +'%Y%b%d').$(MODEL)$(FW_VERSION)
 
 # Build configuration - untested and debug stuff handy for devs
+# these can be specified either in Makefile.user, or in the command line:
+# 
+#   make clean; make CONFIG_QEMU=y
+
+# FIXME: you will need to use "make clean" before recompiling with different options.
+
 CONFIG_PTP          = n
 CONFIG_PTP_CHDK     = n
 CONFIG_PTP_ML       = n
-ifndef CONFIG_GDB
 CONFIG_GDB          = n
-endif
 CONFIG_GDBSTUB      = n
-ifndef CONFIG_CONSOLE
 CONFIG_CONSOLE      = y
-endif
 CONFIG_DEBUGMSG     = 0
 CONFIG_CCACHE       = n
 CONFIG_TCC          = y
