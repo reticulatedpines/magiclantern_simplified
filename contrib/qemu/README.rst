@@ -477,13 +477,11 @@ Compare this to a camera model where only one firmware version is supported:
   /path/to/qemu/60D/ROM0.BIN
   /path/to/qemu/60D/ROM1.BIN
 
-Running from the physical SD/CF card
-````````````````````````````````````
+Creating custom SD/CF card images
+`````````````````````````````````
 
-You may also start QEMU from the same card you use in the physical camera - 
-this might be useful for troubleshooting issues with Magic Lantern.
-
-The safest way (but requires some disk space) would be to create an image
+You may want to run the emulation using the same card contents as on the physical camera
+(for example, for troubleshooting). The recommended way is to create an image
 of your SD (or CF) card (`tutorial for Windows and Mac <https://thepihut.com/blogs/raspberry-pi-tutorials/17789160-backing-up-and-restoring-your-raspberry-pis-sd-card>`_):
 
 .. code:: shell
@@ -492,10 +490,25 @@ of your SD (or CF) card (`tutorial for Windows and Mac <https://thepihut.com/blo
 
 and run QEMU from the resulting ``sd.img`` (or ``cf.img``).
 
-To run the emulation directly from a physical SD/CF card:
+Note: you need to copy the raw contents of the entire card, not just one partition. For example:
+
+.. code:: shell
+
+  dd if=/dev/mmcblk0 of=sd.img    # not mmcblk0p1
+
+Running from the physical SD/CF card
+````````````````````````````````````
+You may also start QEMU from the same card you use in the physical camera - 
+this might be useful for troubleshooting issues with Magic Lantern, 
+hopefully including certain card compatibility issues.
+
+It is **strongly** recommended to avoid this procedure, unless absolutely needed.
+Please consider creating an image of your SD (or CF) card instead, as described above.
+
+If you still wish to run the emulation directly from a physical SD/CF card:
 
 - See `QEMU docs (Using host drives) <https://qemu.weilnetz.de/doc/qemu-doc.html#Using-host-drives>`_
-  and `these warnings <https://wiki.archlinux.org/index.php/QEMU#Using_any_real_partition_as_the_single_primary_partition_of_a_hard_disk_image>`_
+  and make sure you understand `these warnings <https://wiki.archlinux.org/index.php/QEMU#Using_any_real_partition_as_the_single_primary_partition_of_a_hard_disk_image>`_
 - Replace ``file=sd.img`` (or ``file=cf.img``) with ``file=/dev/your-sd-card`` in ``run_canon_fw.sh``
 - Configure the appropriate permissions and run the emulation as usual.
 
