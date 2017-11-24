@@ -397,15 +397,12 @@ echo
 echo "   For models that use a serial flash, you may have to dump its contents"
 echo "   using the sf_dump module, then copy SFDATA.BIN as well."
 echo
-echo "3) Mount the included SD (or CF) image (you may use mount.sh)"
-echo "   and install ML on it, as usual. The card image must be bootable as well."
+echo "3) Install Magic Lantern on your SD/CF card image:"
+echo
+echo "   make -C ../magic-lantern 60D_install_qemu "
 echo
 echo "   The included card image is bootable and contains a small autoexec.bin"
-echo "   that runs on all DIGIC 4/5 cameras and prints some basic info."
-echo
-echo "   To create your own SD/CF image, you need to copy the raw contents"
-echo "   of the entire card, not just one partition. For example:"
-echo "   dd if=/dev/mmcblk0 of=sd.img"
+echo "   that runs on all supported EOS cameras and prints some basic info."
 echo
 echo "4) Start emulation with:"
 echo
@@ -427,17 +424,12 @@ echo "     ./run_canon_fw.sh 60D -d io,int"
 echo "   - to show the executed ASM code, step by step, use:"
 echo "     ./run_canon_fw.sh 60D -d exec,int -singlestep"
 echo "   - to trace debug messages and various functions in the firmware, use:"
-echo "     ./run_canon_fw.sh 60D -s -S & arm-none-eabi-gdb -x 60D/debugmsg.gdb"
-echo "   - if the above is too slow, compile the dm-spy-experiments branch "
-echo "     with CONFIG_QEMU=y and CONFIG_DEBUG_INTERCEPT_STARTUP=y and try:"
-echo "     ./run_canon_fw.sh 60D,firmware=\"boot=1\" -d io,int"
+echo "     ./run_canon_fw.sh 60D -d debugmsg -s -S & arm-none-eabi-gdb -x 60D/debugmsg.gdb"
 echo "   - some camera models require GDB patches to bypass tricky code sequences:"
 echo "     ./run_canon_fw.sh 700D -s -S & arm-none-eabi-gdb -x 700D/patches.gdb"
-echo "   - to trace all function calls and export them to IDA:"
-echo "     ./run_canon_fw.sh 60D -d calls -singlestep"
-echo "   - you may enable additional debug code (such as printing to QEMU console)"
-echo "     by compiling ML with CONFIG_QEMU=y in your Makefile.user (also run make clean)."
-echo "   - caveat: you cannot run autoexec.bin compiled with CONFIG_QEMU on the camera." 
-
+echo
+echo "Online documentation: "
+echo
+echo "   https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/" 
 echo
 echo "Enjoy!"
