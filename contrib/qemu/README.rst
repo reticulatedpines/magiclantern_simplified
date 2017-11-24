@@ -259,8 +259,8 @@ To install Magic Lantern to the virtual card, you may:
 
   |
 
-- use ``make install_qemu`` from your platform directory
-  (requires mtools, but you do not have to mount your card images)
+- use ``make install_qemu`` from your platform directory, or ``make CAM_install_qemu``
+  from your ML root directory (requires mtools, but you do not have to mount your card images):
 
   .. code:: shell
 
@@ -268,6 +268,28 @@ To install Magic Lantern to the virtual card, you may:
     cd platform/60D.111
     make clean; make
     make install_qemu
+
+  .. code:: shell
+
+    # from the magic-lantern directory
+    make 60D_clean
+    make 60D_install_qemu
+
+  They also work from the qemu directory:
+
+  .. code:: shell
+
+    # from the qemu directory
+    make -C ../magic-lantern/platform.60D.111 clean
+    make -C ../magic-lantern/platform.60D.111 install_qemu
+
+  .. code:: shell
+
+    # from the qemu directory
+    make -C ../magic-lantern 5D3.113_clean
+    make -C ../magic-lantern 5D3.113_install_qemu
+
+  |
 
   Note: ``make install_qemu`` is a recent addition and may not be available in all branches.
   In this case, you may either use the first method, or sync with the "unified" branch (``hg merge unified``),
