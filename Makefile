@@ -5,7 +5,7 @@
 #http://www.gnu.org/software/make/manual/make.html#Automatic-Variables
 #http://www.gnu.org/software/make/manual/make.html#Variables_002fRecursion
 
-TOP_DIR=$(PWD)
+TOP_DIR=.
 include Makefile.setup
 
 ############################################################################################################
