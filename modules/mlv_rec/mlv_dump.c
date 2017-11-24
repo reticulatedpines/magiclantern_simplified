@@ -4188,7 +4188,8 @@ abort:
                 {
                     uint32_t value = frame_arith_buffer[y * video_xRes + x];
 
-                    value /= average_samples;
+                    /* complete the averaging, minimizing the roundoff error */
+                    value = (value + average_samples/2) / average_samples;
                     bitinsert(dst_line, x, lv_rec_footer.raw_info.bits_per_pixel, value);
                 }
             }
