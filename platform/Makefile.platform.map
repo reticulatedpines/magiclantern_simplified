@@ -47,6 +47,8 @@ check: $2_check
 # build the firmware-agnostic make rule, e.g. 5D3 or 5D2 and link to the firmware-specific rule
 $1: $2
 $1_clean: $2_clean
+$1_install: $2_install
+$1_install_qemu: $2_install_qemu
 
 $2:
 	+$(MAKE) -C $3$2
@@ -54,6 +56,8 @@ $2_clean:
 	+$(MAKE) -C $3$2 clean
 $2_install:
 	+$(MAKE) -C $3$2 install
+$2_install_qemu:
+	+$(MAKE) -C $3$2 install_qemu
 $2_check:
 	@echo $2: $$(shell $$(READELF) -l $3$2/magiclantern 2>/dev/null | $$(GREP) -C 2 MemSiz | $$(GREP) -v EXIDX | $$(GREP) LOAD )
 $2_autoexec_fir:
