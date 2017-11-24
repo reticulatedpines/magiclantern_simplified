@@ -125,7 +125,7 @@ define print_current_location
     else
       KYLW
     end
-    printf "%10s:%08x ", CURRENT_TASK_NAME, $r14-4
+    printf "%12s:%08x ", CURRENT_TASK_NAME, $r14-4
   end
   KRESET
   printf "] "
