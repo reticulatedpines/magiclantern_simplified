@@ -25,7 +25,7 @@ $(foreach _,$(PLATFORM_MAP),$(eval $(call makerule,$(word 1, $(subst ., ,$_)),$_
 ############################################################################################################
 
 
-all: modules_all platform_all
+all:: modules_all platform_all
 
 install: platform_install
 
@@ -106,9 +106,9 @@ clean:
 # during 'make all'. We can't write 'zip: all docs' because
 # of possible problem in case of parallel build.
 # (see make's '-j' option documentation)
-zip: docs
-	$(MAKE) all
-	cd $(PLATFORM_PATH)/all; $(MAKE) zip
+#zip: docs
+#	$(MAKE) all
+#	cd $(PLATFORM_PATH)/all; $(MAKE) zip
 
 docs:
 	cd $(PLATFORM_PATH)/all; $(MAKE) docs
