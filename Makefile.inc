@@ -72,7 +72,9 @@ prepare_zip: FORCE
 	$(eval export INSTALL_FINISH)
 	$(eval export WIFI_SD)
 	$(call rm_dir, $(INSTALL_DIR)/)
-	$(warning remove $(INSTALL_DIR))
+	$(warning removing $(INSTALL_DIR))
+	$(call rm_files, $(PLATFORM_PATH)/*/magiclantern.sym) # only check module dependencies on current camera model
+	$(warning removing $(PLATFORM_PATH)/*/magiclantern.sym)
 	mkdir -p $(INSTALL_DIR)
 
 # zip.txt must be the first item on the list!
