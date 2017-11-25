@@ -14,7 +14,7 @@ else
 	# some distros may require:
 	# UMOUNT=sudo umount
 	# CF_CARD=/media/EOS_DIGITAL
-	CF_CARD:=$(shell mount | grep -oE "[^ ]+/EOS_DIGITAL[^ ]*")
+	CF_CARD = $(call eval_once,CF_CARD,$(shell mount | grep -oE "[^ ]+/EOS_DIGITAL[^ ]*"))
 	STAT_CMD=stat -c "%n: %s bytes"
 endif
 
@@ -188,7 +188,7 @@ RST2LATEX=rst2latex.py
 # magiclantern-0.2.0.rc1.550d.fw109.zip
 #~ VERSION=0.2.0.rc1.550d.fw109
 BUILDVER=$(shell whoami).$(shell hg id -i -r .)
-VERSION:=Nightly.$(shell LC_TIME=EN date +'%Y%b%d').$(MODEL)$(FW_VERSION)
+VERSION = $(call eval_once,VERSION,Nightly.$(shell LC_TIME=EN date +'%Y%b%d').$(MODEL)$(FW_VERSION))
 
 # Build configuration - untested and debug stuff handy for devs
 # these can be specified either in Makefile.user, or in the command line:

@@ -9,7 +9,7 @@ DATE=date -u
 
 BINARIES_PATH=binaries
 LUA_PATH=$(TOP_DIR)/lua
-PWD=$(shell pwd)
+PWD_DIR=$(shell pwd)
 SRC_DIR=$(TOP_DIR)/src
 PLATFORM_PATH=$(TOP_DIR)/platform
 BUILDER_DIR=$(TOP_DIR)/../dumper
@@ -68,4 +68,12 @@ endef
 # Returns list of targets (combination of target name and rule name)
 define targets_rules
 $(foreach model, $1, $(model)_rule_$(strip $(2)))
+endef
+
+
+# evaluate once and only when used
+# https://stackoverflow.com/a/28542922
+# example: FOO = $(call eval_once,FOO,$(shell command))
+define eval_once
+$(eval $1 := $2)$(value $1)
 endef

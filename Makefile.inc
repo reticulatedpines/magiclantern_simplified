@@ -62,7 +62,7 @@ installdoc:
 	-$(CP) $(SRC_DIR)/logo.bmp $(INSTALL_ML_DIR)/docs || echo "warning Unable to copy logo.bmp"
 
 prepare_zip: FORCE
-	$(eval INSTALL_DIR = $(PWD)/zip)
+	$(eval INSTALL_DIR = $(PWD_DIR)/zip)
 	$(eval INSTALL_PREPARE = )
 	$(eval INSTALL_FINISH = )
 	$(eval WIFI_SD = )
