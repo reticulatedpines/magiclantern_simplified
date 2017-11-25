@@ -16,8 +16,14 @@ MODULES_INSTALL_ALL_TARGETS = $(call targets_rules, $(ML_MODULES), install)
 
 MODULES_ALL_TARGETS_DELETE_IF_FAILED = $(call targets_rules, $(ML_MODULES), delete_if_failed)
 
+# fixme: modules cannot be safely built in parallel, as dependency checks may fail
+# e.g. mlv_snd depends on mlv_rec, but the former usually gets compiled quicker 
 all:
-	@make --silent all_silent
+	@for module in $(ML_MODULES); do \
+		$(MAKE) --silent $${module}_rule_delete_if_failed; \
+	done
+	
+#	@+$(MAKE) --silent all_silent
 
 all_silent: $(MODULES_ALL_TARGETS_DELETE_IF_FAILED)
 

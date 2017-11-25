@@ -23,13 +23,13 @@ nodep:: $(MODULE_OUTPUT) $(MODULE_SYM)
 delete_if_failed:
 	@echo ""
 	@echo "Building module $(MODULE_NAME)..."
-	@make all --no-print-directory || { \
+	@$(MAKE) all --no-print-directory || { \
 		echo ""; \
 		echo "********************************************************"; \
 		echo "WARNING: module $(MODULE_NAME) failed to build, deleting"; \
 		echo "********************************************************"; \
 		echo ""; \
-		make clean; \
+		$(MAKE) clean; \
 	 }
 
 -include $(MODULE_DEPS)
