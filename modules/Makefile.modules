@@ -43,7 +43,9 @@ module_strings.h: README.rst hgstamp
 README.rst:
 	$(call build,README,echo -e "$(MODULE_NAME)\n========\n\nPlease write a one-page description for your module here.\n\nYou may also add some metadata:\n\n:Author: <your name here>\n:License: <your license here>\n:Website: <your website here>\n\n" > $@)
 
-$(MODULE_OUTPUT): $(MODULE_STRINGS) $(MODULE_OBJS) $(HGDIFF_OBJS)
+$(MODULE_OBJS): $(MODULE_STRINGS)
+
+$(MODULE_OUTPUT): $(MODULE_OBJS) $(HGDIFF_OBJS)
 	$(call build,MODULE,$(LD) -r -o $@ $(MODULE_OBJS))
 	$(call build,STRIP,$(STRIP) --strip-debug --strip-unneeded --discard-all --discard-locals $@)
 	$(call build,OBJCOPY,$(OBJCOPY) --add-section .module_hgdiff=hgdiff.tmp $@)
