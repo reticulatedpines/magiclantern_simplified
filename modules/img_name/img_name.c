@@ -9,6 +9,7 @@
 
 #include "../ime_base/ime_base.h"
 
+static char default_prefix[8];
 static char prefix[8];
 static int key = -1;
 
@@ -28,10 +29,14 @@ static IME_DONE_FUNC(file_prefix_enter_done)
         if (key != -1 && key != 0)
         {
             file_prefix_reset(key);
+            key = -1;
         }
 
-        /* set the new prefix */
-        key = file_prefix_set(prefix);
+        /* set the new prefix, if different from default */
+        if (!streq(prefix, default_prefix))
+        {
+            key = file_prefix_set(prefix);
+        }
     }
     return IME_OK;
 }
@@ -59,15 +64,21 @@ static MENU_SELECT_FUNC(file_prefix_enter)
 
 static MENU_UPDATE_FUNC(file_prefix_upd)
 {
-    MENU_SET_VALUE("%s", get_file_prefix());
-    
-    if (key == 0)
+    switch (key)
     {
-        MENU_SET_RINFO("FAILED");
-    }
-    else if (key != -1)
-    {
-        MENU_SET_ENABLED(1);
+        case -1:
+            MENU_SET_VALUE("OFF");
+            MENU_SET_RINFO(default_prefix);
+            break;
+        case 0:
+            MENU_SET_VALUE("FAILED");
+            MENU_SET_RINFO(get_file_prefix());
+            break;
+        default:
+            MENU_SET_ENABLED(1);
+            MENU_SET_VALUE("%s", get_file_prefix());
+            MENU_SET_RINFO("");
+            break;
     }
 
     if ((void *) &ime_base_start == (void *) &ret_0)
@@ -90,6 +101,7 @@ static struct menu_entry img_name_menu[] =
 
 static unsigned int img_name_init()
 {
+    snprintf(default_prefix, sizeof(default_prefix), "%s", get_file_prefix());
     menu_add("Shoot", img_name_menu, COUNT(img_name_menu));
     return 0;
 }
