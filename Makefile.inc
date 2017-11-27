@@ -26,7 +26,12 @@ CONFIG_%$(_CONFIGS_clean_name):
 CONFIG_%$(_CONFIGS_install_name): CONFIG_%$(_CONFIGS_compile_name)
 	+$(MAKE) -C $($*_DIR) install
 
-install:: prepare_install_dir install_extra_data $(_CONFIGS_install)
+# some installation media may fail when copying files in parallel
+# broken drivers or controller? forcing sequential installation solves the issue...
+# fixme: $(_CONFIGS_install) (currently just CONFIG_MODULES_install) does not run $(INSTALL_FINISH)
+# it must be executed only once at the end (to unmount the installation media)
+install:: prepare_install_dir install_extra_data
+	for target in $(_CONFIGS_install); do $(MAKE) $$target; done
 	$(INSTALL_FINISH)
 
 install_extra_data: prepare_install_dir
