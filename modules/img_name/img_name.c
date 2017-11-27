@@ -76,20 +76,25 @@ static MENU_SELECT_FUNC(file_prefix_enter)
 
 static MENU_UPDATE_FUNC(file_prefix_upd)
 {
+    /* fixme: update menu backend so it doesn't require so many workarounds */
     switch (key)
     {
         case -1:
             MENU_SET_VALUE("OFF");
             MENU_SET_RINFO(default_prefix);
+            MENU_SET_ENABLED(0);
+            MENU_SET_ICON(MNI_DICE_OFF, 0);
             break;
         case 0:
             MENU_SET_VALUE("FAILED");
             MENU_SET_RINFO(get_file_prefix());
+            MENU_SET_ICON(MNI_RECORD, 0);
             break;
         default:
             MENU_SET_ENABLED(1);
             MENU_SET_VALUE("%s", get_file_prefix());
             MENU_SET_RINFO("");
+            MENU_SET_ICON(MNI_DICE_OFF, 1);
             break;
     }
 
@@ -116,11 +121,27 @@ static MENU_UPDATE_FUNC(file_number_upd)
     file_num = get_shooting_card()->file_number;
     MENU_SET_VALUE("%04d", file_num);
 
-    if (!file_num_dirty)
+    if (file_num_dirty)
     {
-        MENU_SET_RINFO("%s%04d", get_file_prefix(), file_num);
+        MENU_SET_RINFO("Restart");
     }
-    else
+}
+
+static MENU_UPDATE_FUNC(file_name_upd)
+{
+    /* also print extension(s) based on picture quality setting */
+    int raw = pic_quality & 0x60000;
+    int jpg = pic_quality & 0x10000;
+
+    MENU_SET_RINFO("%s%04d.%s%s%s",
+        get_file_prefix(),
+        get_shooting_card()->file_number,
+        raw ? "CR2" : "",
+        raw && jpg ? "/" : "",
+        jpg ? "JPG" : ""
+    );
+
+    if (file_num_dirty)
     {
         MENU_SET_RINFO("Restart");
     }
@@ -129,22 +150,33 @@ static MENU_UPDATE_FUNC(file_number_upd)
 static struct menu_entry img_name_menu[] =
 {
     {
-        .name       = "Image file prefix",
-        .select     = file_prefix_enter,
-        .update     = file_prefix_upd,
-        .icon_type  = IT_SUBMENU,
-        .help       = "Custom image file prefix (e.g. IMG_1234.JPG -> ABCD1234.JPG).",
-        .help2      = "Might conflict with Dual ISO prefixes (to be tested).",
-    },
-    {
-        .name       = "Image file number",
-        .priv       = &file_num,
-        .min        = 0,
-        .max        = 9999,
-        .unit       = UNIT_DEC,
-        .update     = file_number_upd,
-        .help       = "Custom file number (e.g. IMG_1234.JPG -> IMG_5678.JPG).",
-        .help2      = "You will need to restart the camera for the changes to take effect.",
+        .name           = "Image file naming",
+        .select         = menu_open_submenu,
+        .update         = file_name_upd,
+        .help           = "Customize image file naming for still pictures. Experimental.", 
+        .help2          = "Examples: IMG_1234.JPG -> ABCD1234.JPG, IMG_1234.JPG -> IMG_0001.JPG.",
+        .submenu_width  = 720,
+        .children       = (struct menu_entry[]) {
+            {
+                .name       = "Image file prefix",
+                .select     = file_prefix_enter,
+                .update     = file_prefix_upd,
+                .icon_type  = IT_ACTION,
+                .help       = "Custom image file prefix (e.g. IMG_1234.JPG -> ABCD1234.JPG).",
+                .help2      = "Might conflict with Dual ISO prefixes (to be tested).",
+            },
+            {
+                .name       = "Image file number",
+                .priv       = &file_num,
+                .min        = 0,
+                .max        = 9999,
+                .unit       = UNIT_DEC,
+                .update     = file_number_upd,
+                .help       = "Custom image file number (e.g. IMG_1234.JPG -> IMG_5678.JPG).",
+                .help2      = "You will need to restart the camera for the changes to take effect.",
+            },
+            MENU_EOL,
+        },
     },
 };
 
