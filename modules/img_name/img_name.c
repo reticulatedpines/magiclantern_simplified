@@ -99,6 +99,33 @@ static MENU_UPDATE_FUNC(file_prefix_upd)
     }
 }
 
+static int file_num = -1;
+static int file_num_dirty = 0;
+
+static MENU_UPDATE_FUNC(file_number_upd)
+{
+    if (file_num != -1 && file_num != get_shooting_card()->file_number)
+    {
+        int file_number_prop = get_shooting_card()->drive_letter[0] == 'A' ? PROP_FILE_NUMBER_A : PROP_FILE_NUMBER_B;
+        prop_request_change_wait(PROP_NUMBER_OF_CONTINUOUS_MODE, &file_num, 4, 1000);
+        prop_request_change_wait(file_number_prop, &file_num, 4, 1000);
+        file_num_dirty = 1;
+        beep();
+    }
+
+    file_num = get_shooting_card()->file_number;
+    MENU_SET_VALUE("%04d", file_num);
+
+    if (!file_num_dirty)
+    {
+        MENU_SET_RINFO("%s%04d", get_file_prefix(), file_num);
+    }
+    else
+    {
+        MENU_SET_RINFO("Restart");
+    }
+}
+
 static struct menu_entry img_name_menu[] =
 {
     {
@@ -108,7 +135,17 @@ static struct menu_entry img_name_menu[] =
         .icon_type  = IT_SUBMENU,
         .help       = "Custom image file prefix (e.g. IMG_1234.JPG -> ABCD1234.JPG).",
         .help2      = "Might conflict with Dual ISO prefixes (to be tested).",
-    }
+    },
+    {
+        .name       = "Image file number",
+        .priv       = &file_num,
+        .min        = 0,
+        .max        = 9999,
+        .unit       = UNIT_DEC,
+        .update     = file_number_upd,
+        .help       = "Custom file number (e.g. IMG_1234.JPG -> IMG_5678.JPG).",
+        .help2      = "You will need to restart the camera for the changes to take effect.",
+    },
 };
 
 static unsigned int img_name_init()
