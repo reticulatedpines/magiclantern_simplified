@@ -46,8 +46,8 @@ ifeq ($(WIFI_SD),y)
   # connect to WIFI_CARD_NETWORK if not already,
   # and mount card directory via WebDAV
   INSTALL_PREPARE=$(call build,WIFI_SET,\
-    if !(nmcli conn show --active | grep $(WIFI_CARD_NETWORK) > /dev/null); then \
-      while !(nmcli device wifi list | grep $(WIFI_CARD_NETWORK)); do \
+    if ! nmcli conn show --active | grep $(WIFI_CARD_NETWORK) > /dev/null; then \
+      while ! nmcli device wifi list | grep $(WIFI_CARD_NETWORK); do \
         if [ `nmcli radio wifi` = disabled ]; \
           then nmcli radio wifi on; sleep 5; \
           else nmcli dev wifi rescan 2>/dev/null || true; sleep 2; \
@@ -60,14 +60,15 @@ ifeq ($(WIFI_SD),y)
         if ping -c 3 -l 3 -W 1 $(WIFI_CARD_IP) > /dev/null; then break; fi; \
         echo -n "."; \
     done; \
-    if (ping -c 3 -l 3 -W 1 $(WIFI_CARD_IP) > /dev/null) ; then \
-      if !(gio mount -l | grep "dav://$(WIFI_CARD_IP)/"); then \
+    if ping -c 3 -l 3 -W 1 $(WIFI_CARD_IP) > /dev/null; then \
+      if ! gio mount -l | grep "dav://$(WIFI_CARD_IP)/"; then \
         gio mount dav://$(WIFI_CARD_IP)/ ; \
       fi; \
     else \
       echo "$(WIFI_CARD_IP) appears to be offline." ; \
       exit 1; \
-    fi; )
+    fi; \
+  )
   
   # restore connection to your main wifi network
   # or just turn it off if you are using a wired network
@@ -75,18 +76,22 @@ ifeq ($(WIFI_SD),y)
     if [ "$(WIFI_MAIN_NETWORK)" = "" ]; then \
       echo "Turning off Wi-Fi..."; \
       nmcli radio wifi off; \
-    elif !(nmcli conn show --active | grep $(WIFI_MAIN_NETWORK) > /dev/null); then \
+    elif ! nmcli conn show --active | grep $(WIFI_MAIN_NETWORK) > /dev/null; then \
       echo "Connecting to $(WIFI_MAIN_NETWORK)..."; \
       nmcli conn up $(WIFI_MAIN_NETWORK); \
     fi; )
   
-  UMOUNT_CARD=$(call build,UNMOUNT,while !(gio mount -u dav://$(WIFI_CARD_IP)/); do sleep 2; done)
+  UMOUNT_CARD=$(call build,UNMOUNT,\
+    while ! gio mount -u dav://$(WIFI_CARD_IP)/; do \
+      sleep 2; \
+    done \
+  )
   
   # executed after installation
   define INSTALL_FINISH =
 	$(UMOUNT_CARD)
 	$(WIFI_RESTORE)
-	@printf "\nFinished.\nMake sure the camera will not write anything to the card until restart."
+	@printf "\nFinished.\nMake sure the camera will not write anything to the card until restart.\n"
   endef
 endif
 
