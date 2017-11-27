@@ -106,10 +106,20 @@ static MENU_UPDATE_FUNC(file_prefix_upd)
 
 static int file_num = -1;
 static int file_num_dirty = 0;
+static int file_num_canon = -1;
 
 static MENU_UPDATE_FUNC(file_number_upd)
 {
-    if (file_num != -1 && file_num != get_shooting_card()->file_number)
+    int file_num_canon_latest = get_shooting_card()->file_number;
+    if (file_num_canon != file_num_canon_latest)
+    {
+        /* Canon code updated their file number (likely an image was taken) */
+        file_num = file_num_canon = file_num_canon_latest;
+    }
+
+    ASSERT(file_num != -1);
+
+    if (file_num != file_num_canon_latest)
     {
         int file_number_prop = get_shooting_card()->drive_letter[0] == 'A' ? PROP_FILE_NUMBER_A : PROP_FILE_NUMBER_B;
         prop_request_change_wait(PROP_NUMBER_OF_CONTINUOUS_MODE, &file_num, 4, 1000);
@@ -118,6 +128,7 @@ static MENU_UPDATE_FUNC(file_number_upd)
         beep();
     }
 
+    /* display the updated file number from Canon (read it again) */
     file_num = get_shooting_card()->file_number;
     MENU_SET_VALUE("%04d", file_num);
 
@@ -171,6 +182,7 @@ static struct menu_entry img_name_menu[] =
                 .min        = 0,
                 .max        = 9999,
                 .unit       = UNIT_DEC,
+                .icon_type  = IT_DICE,
                 .update     = file_number_upd,
                 .help       = "Custom image file number (e.g. IMG_1234.JPG -> IMG_5678.JPG).",
                 .help2      = "You will need to restart the camera for the changes to take effect.",
