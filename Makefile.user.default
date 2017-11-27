@@ -45,6 +45,7 @@ ifeq ($(WIFI_SD),y)
   # executed before installation
   # connect to WIFI_CARD_NETWORK if not already,
   # and mount card directory via WebDAV
+  # also monitor the connection in background while the card is mounted (signal tends to be weak)
   INSTALL_PREPARE=$(call build,WIFI_SET,\
     if ! nmcli conn show --active | grep $(WIFI_CARD_NETWORK) > /dev/null; then \
       while ! nmcli device wifi list | grep $(WIFI_CARD_NETWORK); do \
@@ -68,6 +69,13 @@ ifeq ($(WIFI_SD),y)
       echo "$(WIFI_CARD_IP) appears to be offline." ; \
       exit 1; \
     fi; \
+    ( while gio mount -l | grep -q "dav://$(WIFI_CARD_IP)/"; do \
+        if ! ping -c 3 -l 3 -W 1 $(WIFI_CARD_IP) > /dev/null; then \
+           echo -n "!"; \
+        fi; \
+        sleep 1; \
+     done \
+     ) & \
   )
   
   # restore connection to your main wifi network
