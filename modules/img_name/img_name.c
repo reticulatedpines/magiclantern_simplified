@@ -52,26 +52,26 @@ static MENU_UPDATE_FUNC(file_prefix_upd)
 static struct menu_entry ime_base_menu[] =
 {
     {
-        .name = "File prefix",
+        .name = "Image file prefix",
         .select = file_prefix_enter,
         .update = file_prefix_upd,
-        .help = "Custom file prefix (e.g. IMG_1234.JPG -> ABCD1234.JPG).",
+        .help = "Custom image file prefix (e.g. IMG_1234.JPG -> ABCD1234.JPG).",
         .help2 = "There can be some conflict with Dual ISO prefixes.",
     }
 };
 
-unsigned int filepref_init()
+unsigned int img_name_init()
 {
     menu_add("Prefs", ime_base_menu, COUNT(ime_base_menu));
     return 0;
 }
 
-unsigned int filepref_deinit()
+unsigned int img_name_deinit()
 {
     return 0;
 }
     
 MODULE_INFO_START()
-    MODULE_INIT(filepref_init)
-    MODULE_DEINIT(filepref_deinit)
+    MODULE_INIT(img_name_init)
+    MODULE_DEINIT(img_name_deinit)
 MODULE_INFO_END()
