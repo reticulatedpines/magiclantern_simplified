@@ -105,12 +105,16 @@ static MENU_UPDATE_FUNC(file_prefix_upd)
 }
 
 static int file_num = -1;
-static int file_num_dirty = 0;
 static int file_num_canon = -1;
+static int file_num_dirty = 0;
 
-static MENU_UPDATE_FUNC(file_number_upd)
+static int folder_num = -1;
+static int folder_num_canon = -1;
+
+static void file_folder_number_refresh()
 {
     int file_num_canon_latest = get_shooting_card()->file_number;
+    int folder_num_canon_latest = get_shooting_card()->folder_number;
     if (file_num_canon != file_num_canon_latest)
     {
         /* Canon code updated their file number (likely an image was taken) */
@@ -119,17 +123,41 @@ static MENU_UPDATE_FUNC(file_number_upd)
 
     ASSERT(file_num != -1);
 
+    if (folder_num_canon != folder_num_canon_latest)
+    {
+        /* Canon code updated their folder number (e.g. file_num reached 9999) */
+        folder_num = folder_num_canon = folder_num_canon_latest;
+    }
+
+    ASSERT(folder_num != -1);
+
+    char shooting_drive_letter = get_shooting_card()->drive_letter[0];
+
+    if (folder_num != folder_num_canon_latest)
+    {
+        printf("Changing folder number from %d to %d...\n", folder_num_canon_latest, folder_num);
+        int folder_number_prop = shooting_drive_letter == 'A' ? PROP_FOLDER_NUMBER_A : PROP_FOLDER_NUMBER_B;
+        prop_request_change_wait(folder_number_prop, &folder_num, 4, 1000);
+    }
+
     if (file_num != file_num_canon_latest)
     {
-        int file_number_prop = get_shooting_card()->drive_letter[0] == 'A' ? PROP_FILE_NUMBER_A : PROP_FILE_NUMBER_B;
+        printf("Changing file number from %d to %d...\n", file_num_canon_latest, file_num);
+        int file_number_prop = shooting_drive_letter == 'A' ? PROP_FILE_NUMBER_A : PROP_FILE_NUMBER_B;
         prop_request_change_wait(PROP_NUMBER_OF_CONTINUOUS_MODE, &file_num, 4, 1000);
         prop_request_change_wait(file_number_prop, &file_num, 4, 1000);
         file_num_dirty = 1;
-        beep();
     }
 
-    /* display the updated file number from Canon (read it again) */
+    /* re-read the (possibly updated) file and folder number from Canon */
     file_num = get_shooting_card()->file_number;
+    folder_num = get_shooting_card()->folder_number;
+}
+
+static MENU_UPDATE_FUNC(file_number_upd)
+{
+    file_folder_number_refresh();
+
     MENU_SET_VALUE("%04d", file_num);
 
     if (file_num_dirty)
@@ -138,19 +166,42 @@ static MENU_UPDATE_FUNC(file_number_upd)
     }
 }
 
-static MENU_UPDATE_FUNC(file_name_upd)
+static const char * next_image_filename(int newline)
 {
+    static char buf[32];
+
     /* also print extension(s) based on picture quality setting */
     int raw = pic_quality & 0x60000;
     int jpg = pic_quality & 0x10000;
 
-    MENU_SET_RINFO("%s%04d.%s%s%s",
+    snprintf(buf, sizeof(buf), 
+        "%03d%s/%s%s%04d.%s%s%s",
+        get_shooting_card()->folder_number + (get_shooting_card()->file_number == 9999 ? 1 : 0),
+        get_dcim_dir_suffix(),
+        newline ? "\n" : "",
         get_file_prefix(),
-        get_shooting_card()->file_number,
+        get_shooting_card()->file_number < 9999 ? get_shooting_card()->file_number + 1 : 1,
         raw ? "CR2" : "",
         raw && jpg ? "/" : "",
         jpg ? "JPG" : ""
     );
+
+    return buf;
+}
+
+static MENU_UPDATE_FUNC(folder_number_upd)
+{
+    file_folder_number_refresh();
+
+    /* fixme: hackish */
+    bmp_printf(FONT(FONT_LARGE, COLOR_GRAY(50), 0), 50, 350, "Next image: %s", next_image_filename(0));
+}
+
+static MENU_UPDATE_FUNC(file_name_upd)
+{
+    file_folder_number_refresh();
+
+    MENU_SET_RINFO(next_image_filename(1));
 
     if (file_num_dirty)
     {
@@ -186,6 +237,16 @@ static struct menu_entry img_name_menu[] =
                 .update     = file_number_upd,
                 .help       = "Custom image file number (e.g. IMG_1234.JPG -> IMG_5678.JPG).",
                 .help2      = "You will need to restart the camera for the changes to take effect.",
+            },
+            {
+                .name       = "Image folder number",
+                .priv       = &folder_num,
+                .update     = folder_number_upd,
+                .min        = 100,
+                .max        = 999,
+                .unit       = UNIT_DEC,
+                .help       = "Custom image folder number. You must take an image to save this setting.",
+                .help2      = "DCIM/100CANON/IMG_1234.JPG -> DCIM/123CANON/IMG_1234.JPG",
             },
             MENU_EOL,
         },
