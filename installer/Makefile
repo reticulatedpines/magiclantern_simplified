@@ -25,3 +25,8 @@ $(INSTALLER_INSTALL_TARGETS) $(INSTALLER_INSTALLER_TARGETS) $(INSTALLER_CLEAN_AL
 	$(call call_make_rule, $(TOP_DIR)/installer)
 
 .PHONY: $(INSTALLER_INSTALLER_TARGETS) $(INSTALLER_INSTALL_TARGETS) $(INSTALLER_CLEAN_ALL_TARGETS) $(SUPPORTED_INSTALLERS)
+
+# we want ML installers to be built sequentially, to avoid conflicts
+# => use .NOTPARALLEL in the upper-level Makefiles only
+# parallel build is still used within each platform
+.NOTPARALLEL:
