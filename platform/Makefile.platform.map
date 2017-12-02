@@ -37,14 +37,9 @@ define makerule
 .PHONY: $2 $2_clean $2_zip $2_install $2_install_qemu $2_check $2_autoexec_fir
 
 # append to global all, clean and zip targets
-# double-colon rules are not executed in parallel; undocumented feature?!
-# clean and check can run in parallel; no trouble expected
-# zip: cannot run in parallel with other models, as the modules are cross-checked against each camera model
-# all: got some very hard to reproduce errors while compiling everything in parallel
-#      however, compiling each build with -j8 and running them sequentially works fine
-all:: $2
+all: $2
 clean: $2_clean
-zip:: $2_zip
+zip: $2_zip
 check: $2_check
 
 # build the firmware-agnostic make rule, e.g. 5D3 or 5D2 and link to the firmware-specific rule
@@ -74,7 +69,6 @@ endef
 # specific firmware versions/tweaks go here
 
 7D: 7D_MASTER
-	$(MAKE) -C $(PLATFORM_PATH)/7D.203
 
 7DFIR: 7D_MASTER.203_autoexec_fir 7D.203_autoexec_fir
 	python $(TOP_DIR)/../dumper/build_fir7.py -r -s $(PLATFORM_PATH)/7D.203/autoexec-fir.bin -m $(PLATFORM_PATH)/7D_MASTER.203/autoexec-fir.bin $(PLATFORM_PATH)/7D.203/7D000203.FIR $(PLATFORM_PATH)/7D.203/MAGIC.FIR

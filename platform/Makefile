@@ -14,6 +14,12 @@ TOP_DIR=..
 #
 include Makefile.platform.map
 $(foreach _,$(PLATFORM_MAP),$(eval $(call makerule,$(word 1, $(subst ., ,$_)),$_,./)))
+#
+# we want ML platforms to be built sequentially, to avoid conflicts
+# => use .NOTPARALLEL in the upper-level Makefiles only
+# parallel build is still used within each platform
+.NOTPARALLEL:
+#
 ############################################################################################################
 
 

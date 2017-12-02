@@ -25,7 +25,7 @@ $(foreach _,$(PLATFORM_MAP),$(eval $(call makerule,$(word 1, $(subst ., ,$_)),$_
 ############################################################################################################
 
 
-all:: modules_all platform_all
+all: modules_all platform_all
 
 install: platform_install
 
@@ -127,3 +127,4 @@ features.html: FORCE
  
 FORCE:
 
+.NOTPARALLEL:
