@@ -188,15 +188,24 @@ static int get_index_for_choices(struct menu_entry * menu_entry, const char * va
 /// Get the value of some existing ML menu entry.
 // @tparam string menu name of the parent menu ('Audio', 'Expo', 'Overlay', 'Shoot', 'Movie', etc)
 // @tparam string entry name of the menu entry
-// @tparam[opt] string as_string pass empty string "" to get the result as string (default is int)
+// @tparam[opt] ?int|string ret_type desired return type (optional, default string)
+// 
+// By default, this function returns a string (the current menu text).
+//
+// Pass any integer to get the result as int, i.e. the internal integer value for this menu entry.
+// Usually, 0 = OFF and 1 = ON, numeric values "just work", pickbox indices are from 0,
+// but each menu entry may define its own meaning - YMMV).
+//
+// You may also pass a string (for compatibility reasons); this will not change the default behavior.
 // @treturn ?int|string|nil the current value of the requested menu entry (nil if menu entry not found)
 // @function get
 static int luaCB_menu_get(lua_State * L)
 {
     LUA_PARAM_STRING(menu, 1);
     LUA_PARAM_STRING(entry, 2);
-    LUA_PARAM_STRING_OPTIONAL(as_string, 3, NULL);
-    
+
+    int as_string = lua_gettop(L) < 3 || lua_type(L, 3) == LUA_TSTRING;
+
     if (as_string)
     {
         struct menu_display_info info;

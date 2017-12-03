@@ -328,16 +328,16 @@ function test_menu()
     -- picture styles should be set-able as string
     -- numeric works too, as it sets the internal index
     assert(menu.set("Expo", "Picture Style", "Portrait"))
-    assert(menu.get("Expo", "Picture Style", "") == "Portrait")
+    assert(menu.get("Expo", "Picture Style") == "Portrait")
     msleep(1000)
     assert(menu.set("Expo", "Picture Style", 5)) -- OK, selects Neutral
     -- skip string test, as other camera models may use different indices
     msleep(1000)
     assert(menu.set("Expo", "Picture Style", "Landscape"))
-    assert(menu.get("Expo", "Picture Style", "") == "Landscape")
+    assert(menu.get("Expo", "Picture Style") == "Landscape")
     msleep(1000)
     assert(menu.set("Expo", "Picture Style", 1234) == false) -- should fail, out of range
-    assert(menu.get("Expo", "Picture Style", "") == "Landscape") -- old selection should not change
+    assert(menu.get("Expo", "Picture Style") == "Landscape") -- old selection should not change
     msleep(1000)
 
     assert(menu.select("Overlay"))
@@ -348,24 +348,24 @@ function test_menu()
 
     -- boolean items should be set-able as int (0 or 1)
     assert(menu.set("Shoot", "Advanced Bracket", 1))
-    assert(menu.get("Shoot", "Advanced Bracket") == 1)
+    assert(menu.get("Shoot", "Advanced Bracket", 0) == 1)
     msleep(1000)
 
     -- or as string (if the user interface displays "ON" or "OFF")
     -- here, actual string will be "ON, 10s" or similar (also accepted)
     assert(menu.set("Shoot", "Intervalometer", "ON"))
-    assert(menu.get("Shoot", "Intervalometer") == 1)
+    assert(menu.get("Shoot", "Intervalometer", 0) == 1)
     msleep(1000)
 
     -- turning off should be straightforward
     assert(menu.set("Shoot", "Advanced Bracket", "OFF"))
-    assert(menu.get("Shoot", "Advanced Bracket") == 0)
-    assert(menu.get("Shoot", "Advanced Bracket", "") == "OFF")
+    assert(menu.get("Shoot", "Advanced Bracket", 0) == 0)
+    assert(menu.get("Shoot", "Advanced Bracket") == "OFF")
     msleep(1000)
 
     assert(menu.set("Shoot", "Intervalometer", 0))
-    assert(menu.get("Shoot", "Intervalometer") == 0)
-    assert(menu.get("Shoot", "Intervalometer", "") == "OFF")
+    assert(menu.get("Shoot", "Intervalometer", 0) == 0)
+    assert(menu.get("Shoot", "Intervalometer") == "OFF")
     msleep(1000)
 
     -- move to Intervalometer menu
@@ -382,26 +382,26 @@ function test_menu()
     -- for speed reasons (so entering 1m10s will fail)
     -- smaller ranges are OK for trying every single value
     assert(menu.set("Intervalometer", "Take a pic every", "1m30s"))
-    assert(menu.get("Intervalometer", "Take a pic every") == 90)
-    assert(menu.get("Intervalometer", "Take a pic every", "") == "1m30s")
+    assert(menu.get("Intervalometer", "Take a pic every", 0) == 90)
+    assert(menu.get("Intervalometer", "Take a pic every") == "1m30s")
     msleep(1000)
 
     -- actual string will be 10s
     assert(menu.set("Intervalometer", "Take a pic every", "10"))
-    assert(menu.get("Intervalometer", "Take a pic every") == 10)
-    assert(menu.get("Intervalometer", "Take a pic every", "") == "10s")
+    assert(menu.get("Intervalometer", "Take a pic every", 0) == 10)
+    assert(menu.get("Intervalometer", "Take a pic every") == "10s")
     msleep(1000)
 
     -- integer should work as well - e.g. 1m10s should work now
     assert(menu.set("Intervalometer", "Take a pic every", 70))
-    assert(menu.get("Intervalometer", "Take a pic every") == 70)
-    assert(menu.get("Intervalometer", "Take a pic every", "") == "1m10s")
+    assert(menu.get("Intervalometer", "Take a pic every", 0) == 70)
+    assert(menu.get("Intervalometer", "Take a pic every") == "1m10s")
     msleep(1000)
 
     -- out of range, should fail
     assert(menu.set("Intervalometer", "Take a pic every", 7000000) == false)
-    assert(menu.get("Intervalometer", "Take a pic every") == 70)
-    assert(menu.get("Intervalometer", "Take a pic every", "") == "1m10s")
+    assert(menu.get("Intervalometer", "Take a pic every", 0) == 70)
+    assert(menu.get("Intervalometer", "Take a pic every") == "1m10s")
     msleep(1000)
 
     -- exit submenu
@@ -452,8 +452,8 @@ function test_menu()
     assert(menu.select("Shoot", "Crocodile") == false)
 
     -- menu.get/set return nil if the menu was not found
-    assert(menu.get("Shoot", "Introvolometer") == nil)
-    assert(menu.get("Shoot", "Brack", "") == nil)
+    assert(menu.get("Shoot", "Introvolometer", 0) == nil)
+    assert(menu.get("Shoot", "Brack") == nil)
     assert(menu.set("Shoot", "Introvolometer", 1) == nil)
     assert(menu.set("Shoot", "Introvolometer", "OFF") == nil)
 
