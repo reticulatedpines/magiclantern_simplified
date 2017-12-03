@@ -1272,10 +1272,13 @@ static void lua_load_task(int unused)
 
     /* wait until other modules (hopefully) finish loading */
     msleep(500);
-    
+
+    char script_names[64][16];
+    int num_scripts = 0;
+
     struct fio_file file;
     struct fio_dirent * dirent = 0;
-    
+
     dirent = FIO_FindFirstEx(SCRIPTS_DIR, &file);
     if(!IS_ERROR(dirent))
     {
@@ -1287,11 +1290,45 @@ static void lua_load_task(int unused)
                  file.name[0] != '.' && file.name[0] != '_'
             )
             {
-                add_script(file.name);
+                if (num_scripts < COUNT(script_names))
+                {
+                    if (strlen(file.name) < sizeof(script_names[0]))
+                    {
+                        strcpy(script_names[num_scripts++], file.name);
+                    }
+                    else
+                    {
+                        fprintf(stderr, "[Lua] skipping %s (file name too long).\n", file.name);
+                    }
+                }
+                else
+                {
+                    fprintf(stderr, "[Lua] skipping %s (too many scripts).\n", file.name);
+                }
             }
         }
         while(FIO_FindNextEx(dirent, &file) == 0);
         FIO_FindClose(dirent);
+    }
+
+    char aux[sizeof(script_names[0])];
+    
+    for (int i = 0; i < num_scripts; i++)
+    {
+        for (int j = i + 1; j < num_scripts; j++)
+        {
+            if (strcmp(script_names[i], script_names[j]) > 0)
+            {
+                strcpy(aux, script_names[i]);
+                strcpy(script_names[i], script_names[j]);
+                strcpy(script_names[j], aux);
+            }
+        }
+    }
+
+    for (int i = 0; i < num_scripts; i++)
+    {
+        add_script(script_names[i]);
     }
 
     menu_add("Scripts", script_console_menu, COUNT(script_console_menu));
