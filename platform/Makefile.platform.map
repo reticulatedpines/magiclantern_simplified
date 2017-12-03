@@ -65,15 +65,3 @@ $2_autoexec_fir:
 	+$(MAKE) -C $3$2 autoexec-fir.bin
 
 endef
-
-# specific firmware versions/tweaks go here
-
-7D: 7D_MASTER
-
-7DFIR: 7D_MASTER.203_autoexec_fir 7D.203_autoexec_fir
-	python $(TOP_DIR)/../dumper/build_fir7.py -r \
-	-s $(PLATFORM_PATH)/7D.203/autoexec-fir.bin \
-	-m $(PLATFORM_PATH)/7D_MASTER.203/autoexec-fir.bin \
-	$(TOP_DIR)/../dumper/7D000203.FIR \
-	$(PLATFORM_PATH)/7D.203/$(UPDATE_NAME_FIR)
-
