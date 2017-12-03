@@ -105,9 +105,9 @@ clean:
 # during 'make all'. We can't write 'zip: all docs' because
 # of possible problem in case of parallel build.
 # (see make's '-j' option documentation)
-zip: docs
-	$(MAKE) all
-	cd $(PLATFORM_PATH)/all; $(MAKE) zip
+#zip: docs
+#	$(MAKE) all
+#	cd $(PLATFORM_PATH)/all; $(MAKE) zip
 
 docs:
 	cd $(PLATFORM_PATH)/all; $(MAKE) docs
@@ -126,3 +126,7 @@ features.html: FORCE
  
 FORCE:
 
+# we want ML platforms to be built sequentially, to avoid conflicts
+# => use .NOTPARALLEL in the upper-level Makefiles only
+# parallel build is still used within each platform
+.NOTPARALLEL:
