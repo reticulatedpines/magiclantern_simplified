@@ -19,6 +19,7 @@ CROP_DIR=$(TOP_DIR)/data/cropmks
 VRAM_DIR=$(TOP_DIR)/data/vram
 SCRIPT_DIR=$(TOP_DIR)/scripts
 MODULES_DIR=$(TOP_DIR)/modules
+INSTALLER_DIR=$(TOP_DIR)/installer
 BIN_FILES=magiclantern magiclantern.bin autoexec.bin autoexec
 CF_CARD_ML_DIR = $(CF_CARD)/ML
 
