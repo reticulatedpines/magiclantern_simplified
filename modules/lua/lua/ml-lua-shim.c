@@ -123,7 +123,7 @@ ssize_t __libc_read(int fd, void* buf, size_t count)
 
 ssize_t __libc_write(int fd, const void* buf, size_t count)
 {
-    dbg_printf("__libc_write(%d,%s)\n", fd, format_memory_size(count));
+    dbg_printf("__libc_write(%d,%s,%s)\n", fd, buf, format_memory_size(count));
     
     switch (fd)
     {
@@ -140,18 +140,26 @@ ssize_t __libc_write(int fd, const void* buf, size_t count)
                 /* pop the console on error */
                 console_show();
             }
-            
+
             /* the buffer is not null-terminated */
-            char* msg = (char*) buf;
-            int last_char = msg[count-1];
-            msg[count-1] = 0;
-            console_puts(msg);
-            console_puts((char*) &last_char);
-            
+            if (count > 0)
+            {
+                int old = cli();
+                char* msg = (char*) buf;
+                int last_char = msg[count-1];
+                msg[count-1] = 0;
+                console_puts(msg);
+                console_puts((char*) &last_char);
+                msg[count-1] = last_char;
+                sei(old);
+            }
+
             return count;
         }
         default:
+        {
             return FIO_WriteFile((void*) fd, buf, count);
+        }
     }
 }
 
