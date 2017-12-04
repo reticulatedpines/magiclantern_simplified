@@ -198,7 +198,7 @@ static int luaCB_camera_index(lua_State * L)
     /// Get the current camera mode, possible values defined in @{constants.MODE}.
     ///
     /// Note: for cameras without a dedicated video mode, it will return MODE.MOVIE
-    /// whenever your camera is configured to record videos.
+    /// whenever your camera is configured to record videos (usually from Canon menu).
     // @tfield int mode
     else if(!strcmp(key, "mode"))
     {
@@ -726,27 +726,37 @@ static int luaCB_fec_newindex(lua_State * L)
 static int luaCB_gui_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
-    /// Get/Set whether Canon menu is active or not
+    /// Get/Set whether Canon menu is active or not.
+    ///
+    /// Can also be used to enter Canon menu: camera.gui.menu = true;
     // @tfield bool menu
     if(!strcmp(key,"menu")) lua_pushboolean(L, is_menu_mode());
-    /// Get/Set whether the camera is in PLAY mode (image or video review)
+    /// Get/Set whether the camera is in PLAY mode (image or video review).
+    ///
+    /// Can also be used to enter PLAY mode: camera.gui.menu = true;
     // @tfield bool play
     else if(!strcmp(key,"play")) lua_pushboolean(L, is_play_mode());
-    /// Get whether the camera is in PLAY mode with a still photo selected
+    /// Get whether the camera is in PLAY mode with a still photo selected.
     // @tfield bool play_photo
     else if(!strcmp(key,"play_photo")) lua_pushboolean(L, is_pure_play_photo_mode());
-    /// Get whether the camera is in PLAY mode with a H.264 movie selected
+    /// Get whether the camera is in PLAY mode with a H.264 movie selected.
     // @tfield bool play_movie
     else if(!strcmp(key,"play_movie")) lua_pushboolean(L, is_pure_play_movie_mode());
-    /// Get whether the camera is in QR mode (QuickReview, the image review mode used right after taking a picture)
+    /// Get whether the camera is in QR (QuickReview) mode.
+    ///
+    /// QuickReview is the image review mode used right after taking a picture.
+    ///
+    /// It is not the same as the regular PLAY mode, even though they are similar at first sight (both are used for reviewing an image).
+    /// Important difference: in QR mode, ML has access to raw image data from the last captured picture; this data is not available in PLAY mode.
+    ///
     // @tfield bool qr
     else if(!strcmp(key,"qr")) lua_pushboolean(L, !is_play_mode() && is_play_or_qr_mode());
-    /// Get whether the camera is "idle" (i.e. in standby, with no other dialogs active)
+    /// Get whether the camera is "idle" (in standby, with no other dialogs active)
     // @tfield bool idle
     else if(!strcmp(key,"idle")) lua_pushboolean(L, display_idle());
     /// Get/Set current GUI mode from Canon (model-dependent).
     /// 
-    /// On DIGIC 4/5: 0 is "idle", 1 is PLAY, 2 is MENU, others are model-dependent.
+    /// On most models, 0 is "idle" (not exactly identical to what ML considers idle), 1 is PLAY, 2 is MENU.
     // @tfield int mode
     else if(!strcmp(key,"mode")) lua_pushinteger(L, get_gui_mode());
     else lua_rawget(L, 1);
