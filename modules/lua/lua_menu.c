@@ -254,6 +254,7 @@ static int luaCB_menu_set(lua_State * L)
 }
 
 /// Open ML menu.
+// @function open
 static int luaCB_menu_open(lua_State * L)
 {
     gui_open_menu();
