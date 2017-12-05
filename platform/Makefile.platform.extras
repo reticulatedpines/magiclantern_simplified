@@ -36,6 +36,9 @@ clean_fir::
 
 clean_install_fir: install_fir | clean_fir
 
+# do we have a valid installer directory?
+ifneq ("$(wildcard $(INSTALLER_DIR)/$(ML_MODEL_DIR)/Makefile)","")
+
 # build ML-SETUP.FIR from the installer directory
 # note: a precompiled ML-SETUP.FIR is supplied by default; this will not rebuild it
 # to force rebuilding, run "make ML-SETUP.FIR -B"
@@ -51,3 +54,13 @@ installer_check:
 # install ML-SETUP.FIR built from the installer directory
 install:: $(INSTALLER_NAME_FIR)
 	$(CP) $(INSTALLER_NAME_FIR) $(INSTALL_DIR)/
+
+else
+
+# dummy target
+installer_check:
+	$(info )
+	$(info $@: no installer for $(ML_MODEL_DIR).)
+	$(info )
+
+endif
