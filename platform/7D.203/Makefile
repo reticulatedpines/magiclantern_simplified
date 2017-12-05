@@ -27,6 +27,7 @@ all::
 
 # special build_fir target
 build_fir: all
+	$(MAKE) -C $(PLATFORM_PATH)/7D_MASTER.203 autoexec-fir.bin
 	python $(TOP_DIR)/../dumper/build_fir7.py -r \
 		-s $(PLATFORM_PATH)/7D.203/autoexec-fir.bin \
 		-m $(PLATFORM_PATH)/7D_MASTER.203/autoexec-fir.bin \
