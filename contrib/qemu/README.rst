@@ -85,20 +85,28 @@ Common issues and workarounds
 
   - see `Incorrect firmware version?`_
 
+  |
+
 - Camera was not shut down cleanly - Skipping module loading
 
   - closing QEMU window does not perform a clean shutdown
   - ``Machine -> Power Down`` - see `Shutdown and reboot`_ for more info
+
+  |
 
 - dm-spy-experiments: saving the log and anything executed afterwards may not work
 
   - issue: cache hacks are not emulated very well
   - workaround: compile with ``CONFIG_QEMU=y``
 
+  |
+
 - Program counter not exact in MMIO logs?
 
   - short answer: ``-d io,nochain -singlestep``
   - see `Execution trace incomplete? PC values from MMIO logs not correct?`_
+
+  |
 
 - Netcat issues when interacting with ``qemu.monitor``
 
@@ -156,7 +164,7 @@ without additional gymnastics (you will **not** have to merge ``qemu`` into your
    
      cat qemu-2.5.0/hw/eos/model_list.c | grep -B 10 serial_flash_size | grep -E "\.(serial_flash_size|name) "
 
-   or just watch out for an error about missing ``SFDATA.BIN`` when trying next step.
+   or just watch out for an error about missing ``SFDATA.BIN`` when trying the next step.
 
    If your camera requires a serial flash, compile the 
    `sf_dump module <https://bitbucket.org/hudson/magic-lantern/src/unified/modules/sf_dump>`_
@@ -332,7 +340,7 @@ Recompile and run ML as you already know:
 
 The mere presence of a ``patches.gdb`` script in your camera subdirectory
 does not automatically mean you'll get the above issue. Some patches modify Canon code
-in a way that does not change the firmware signature (EOSM).
+in a way that does not change the firmware signature (for example, on EOSM).
 
 Navigating menus
 ````````````````
@@ -703,8 +711,6 @@ This is tricky and not automated. You need to be careful with the following glob
   .. code:: shell
 
     export QEMU_JOB_ID=1
-  
-  |
   
   Then you'll be able to do this:
 
