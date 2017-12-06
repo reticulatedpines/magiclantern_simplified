@@ -54,10 +54,12 @@ fi
 # recompile QEMU
 $MAKE -C $QEMU_PATH || exit 2
 
-# clear the terminal
-# (since the logs are very large, being able to scroll at the beginning is helpful)
-# note: "tput reset" may crash when running as a background job, figure out why
-printf '\ec\e[3J'
+if [ -t 1 ] ; then
+    # clear the terminal (only if running in interactive mode, not when redirected to logs)
+    # (since the logs are very large, being able to scroll at the beginning is helpful)
+    # note: "tput reset" may crash when running as a background job, figure out why
+    printf '\ec\e[3J'
+fi
 
 # print the invocation
 # https://unix.stackexchange.com/a/118468
