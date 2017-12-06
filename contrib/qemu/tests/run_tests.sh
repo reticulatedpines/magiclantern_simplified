@@ -147,20 +147,11 @@ function set_gui_timeout {
     fi
 }
 
-
-# We will use mtools to alter and check the SD/CF image contents.
-# fixme: hardcoded partition offset
-MSD=sd.img@@50688
-MCF=cf.img@@50688
-
-# mtools doesn't like our SD image, for some reason
-export MTOOLS_SKIP_CHECK=1
-export MTOOLS_NO_VFAT=1
-
-
-
 # this script runs from qemu/tests/ so we have to go up one level
 cd ..
+
+# We will use mtools to alter and check the SD/CF image contents.
+. ./mtools_setup.sh
 
 echo "Compiling..."
 ./run_canon_fw.sh help &> build.log
