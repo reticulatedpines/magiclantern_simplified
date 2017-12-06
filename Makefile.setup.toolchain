@@ -1,0 +1,50 @@
+# toolchain setup, based on preferences from Makefile.user.default and Makefile.user
+
+ifneq ("$(wildcard $(PREFERRED_ARM_PATH)/bin/arm-$(ARM_ABI)-gcc$(GCC_VERSION))","")
+    # use this one if installed
+    ARM_BINPATH=$(PREFERRED_ARM_PATH)/bin
+    CROSS_COMPILE=$(ARM_BINPATH)/arm-$(ARM_ABI)-
+    CC=$(CROSS_COMPILE)gcc$(GCC_VERSION)
+    ifeq ("$(MAKELEVEL)","0")
+      $(info Using $(CC) (preferred).)
+    endif
+else ifneq ("$(shell which arm-$(ARM_ABI)-gcc 2>/dev/null)","")
+    # otherwise, try whatever is installed on the system
+    CC=$(shell which arm-$(ARM_ABI)-gcc)
+    CROSS_COMPILE=$(shell basename '$(CC)' gcc)
+    ifeq ("$(MAKELEVEL)","0")
+      $(info Using $(CC) (from PATH).)
+    endif
+else ifneq ("$(wildcard ~/gcc*arm*eabi*/bin/arm-$(ARM_ABI)-gcc$(GCC_VERSION))","")
+    # nothing found? look for any gcc*arm*eabi* in the home directory,
+    # matching ARM_ABI and GCC_VERSION from Makefile.user if specified 
+    # if more than one match is found, pick the one with highest version number
+    ARM_BINPATH=$(shell dirname `ls -v ~/gcc*arm*eabi*/bin/arm-$(ARM_ABI)-gcc$(GCC_VERSION) | tail -1`)
+    CROSS_COMPILE=$(ARM_BINPATH)/arm-$(ARM_ABI)-
+    CC=$(CROSS_COMPILE)gcc$(GCC_VERSION)
+    ifeq ("$(MAKELEVEL)","0")
+      $(info Using $(CC) (found in home directory).)
+    endif
+else
+    # still nothing?
+    $(info )
+    $(info Please configure a valid ARM cross-compiler.)
+    $(info If arm-$(ARM_ABI)-gcc is in your executable path, it will be used.)
+    $(info )
+    $(info Preferred: gcc 5_4-2016q3 32-bit from https://launchpad.net/gcc-arm-embedded)
+    $(info Also fine: gcc-arm-embedded 6.x, Linaro arm-eabi 7.x, gcc-arm-none-eabi from Ubuntu,)
+    $(info gcc-arm-embedded from team-gcc-arm-embedded PPA on Ubuntu, others may work as well.)
+    $(info )
+    $(info For GDB+QEMU, you *must* use a 32-bit version, e.g. gdb-arm-none-eabi:i386,)
+    $(info gcc-arm-embedded:i386 from PPA, 32-bit arm-none-eabi-gdb from gcc-arm-embedded.)
+    $(info Unfortunately, Linaro's arm-eabi-gdb does not work, whether 32 or 64 bit.)
+    $(info )
+    $(error )
+endif
+
+# used for NEWLIB_PATH and DIETLIBC_PATH in Makefile.user.default
+ARM_ABI_LIB=$(ARM_ABI)
+ifeq ($(ARM_ABI),eabi)
+  # Linaro's "eabi" appears to be compatible with none-eabi; is it the same thing?
+  ARM_ABI_LIB=none-eabi
+endif
