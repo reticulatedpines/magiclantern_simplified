@@ -412,7 +412,7 @@ index 7cb01a8..57e3420 100644
  
      p = str;
 diff --git a/target-arm/cpu.c b/target-arm/cpu.c
-index 30739fc..9574387 100644
+index 30739fc..1a7bcef 100644
 --- a/target-arm/cpu.c
 +++ b/target-arm/cpu.c
 @@ -501,8 +501,9 @@ static void arm_cpu_initfn(Object *obj)
@@ -527,15 +527,16 @@ index 30739fc..9574387 100644
  static void arm946_initfn(Object *obj)
  {
      ARMCPU *cpu = ARM_CPU(obj);
-@@ -914,9 +1009,15 @@ static void arm_v7m_class_init(ObjectClass *oc, void *data)
+@@ -914,9 +1009,16 @@ static void arm_v7m_class_init(ObjectClass *oc, void *data)
  
  static const ARMCPRegInfo cortexr5_cp_reginfo[] = {
      /* Dummy the TCM region regs for the moment */
 -    { .name = "ATCM", .cp = 15, .opc1 = 0, .crn = 9, .crm = 1, .opc2 = 0,
++    /* fixme: resetvalue hardcoded for DIGIC 6 */
 +    { .name = "ATCM",       .cp = 15, .opc1 = 0, .crn = 9,  .crm = 1, .opc2 = 0,
-+      .access = PL1_RW, .type = ARM_CP_CONST },
++      .access = PL1_RW,     .fieldoffset = offsetof(CPUARMState, cp15.c15_atcm), .resetvalue = 0x00000015 },
 +    { .name = "BTCM",       .cp = 15, .opc1 = 0, .crn = 9,  .crm = 1, .opc2 = 1,
-+      .access = PL1_RW, .type = ARM_CP_CONST },
++      .access = PL1_RW,     .fieldoffset = offsetof(CPUARMState, cp15.c15_btcm), .resetvalue = 0x8000001D },
 +    { .name = "INV_DCACHE", .cp = 15, .opc1 = 0, .crn = 15, .crm = 5, .opc2 = 0,
 +      .access = PL1_RW, .type = ARM_CP_CONST },
 +    { .name = "BUILDOPTS",  .cp = 15, .opc1 = 0, .crn = 15, .crm = 2, .opc2 = CP_ANY,
@@ -545,7 +546,7 @@ index 30739fc..9574387 100644
        .access = PL1_RW, .type = ARM_CP_CONST },
      REGINFO_SENTINEL
  };
-@@ -1328,6 +1429,8 @@ typedef struct ARMCPUInfo {
+@@ -1328,6 +1430,8 @@ typedef struct ARMCPUInfo {
  static const ARMCPUInfo arm_cpus[] = {
  #if !defined(CONFIG_USER_ONLY) || !defined(TARGET_AARCH64)
      { .name = "arm926",      .initfn = arm926_initfn },
@@ -554,6 +555,20 @@ index 30739fc..9574387 100644
      { .name = "arm946",      .initfn = arm946_initfn },
      { .name = "arm1026",     .initfn = arm1026_initfn },
      /* What QEMU calls "arm1136-r2" is actually the 1136 r0p2, i.e. an
+diff --git a/target-arm/cpu.h b/target-arm/cpu.h
+index 815fef8..3904787 100644
+--- a/target-arm/cpu.h
++++ b/target-arm/cpu.h
+@@ -389,6 +389,9 @@ typedef struct CPUARMState {
+         uint64_t pmccfiltr_el0; /* Performance Monitor Filter Register */
+         uint64_t vpidr_el2; /* Virtualization Processor ID Register */
+         uint64_t vmpidr_el2; /* Virtualization Multiprocessor ID Register */
++
++        uint32_t c15_atcm;
++        uint32_t c15_btcm;
+     } cp15;
+ 
+     struct {
 diff --git a/target-arm/helper.c b/target-arm/helper.c
 index afc4163..46cd503 100644
 --- a/target-arm/helper.c

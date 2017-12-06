@@ -3,9 +3,6 @@
 
 source patch-header.gdb
 
-# infinite loop (memory regions related?)
-set *(int*)0xFE28AAF0 = 0x4770
-
 # infinite loop (not sure why)
 set *(int*)0xFE28AA6C = 0x4770
 
