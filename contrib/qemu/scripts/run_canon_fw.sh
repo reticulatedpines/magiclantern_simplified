@@ -88,6 +88,12 @@ else
     echo "DebugMsg=$QEMU_EOS_DEBUGMSG (overriden)"
 fi
 
+# Mac: bring QEMU window to foreground
+# fixme: easier way?
+if [ -t 1 ] && [ $(uname) == "Darwin" ]; then
+    ( sleep 0.5; osascript -e 'tell application "System Events" to tell process qemu-system-arm to set frontmost to true' ) &
+fi
+
 # run the emulation
 env QEMU_EOS_DEBUGMSG="$QEMU_EOS_DEBUGMSG" \
   $QEMU_PATH/arm-softmmu/qemu-system-arm \
