@@ -5,7 +5,8 @@
 #define CANON_SHUTTER_RATING 150000
 
 #define CARD_LED_ADDRESS 0xC022D06C // http://magiclantern.wikia.com/wiki/Led_addresses
-/* turning the LED on/off requires writing two values to the register */
+#define LEDON 0x138000
+#define LEDOFF 0x38400
 
 #define CARD_A_MAKER 0x8748F
 #define CARD_A_MODEL 0x874c3

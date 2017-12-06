@@ -5,12 +5,16 @@ ifneq ("$(wildcard $(PREFERRED_ARM_PATH)/bin/arm-$(ARM_ABI)-gcc$(GCC_VERSION))",
     ARM_BINPATH=$(PREFERRED_ARM_PATH)/bin
     CROSS_COMPILE=$(ARM_BINPATH)/arm-$(ARM_ABI)-
     CC=$(CROSS_COMPILE)gcc$(GCC_VERSION)
-    $(info Using $(CC) (preferred).)
+    ifeq ("$(MAKELEVEL)","0")
+      $(info Using $(CC) (preferred).)
+    endif
 else ifneq ("$(shell which arm-$(ARM_ABI)-gcc 2>/dev/null)","")
     # otherwise, try whatever is installed on the system
     CC=$(shell which arm-$(ARM_ABI)-gcc)
     CROSS_COMPILE=$(shell basename '$(CC)' gcc)
-    $(info Using $(CC) (from PATH).)
+    ifeq ("$(MAKELEVEL)","0")
+      $(info Using $(CC) (from PATH).)
+    endif
 else ifneq ("$(wildcard ~/gcc*arm*eabi*/bin/arm-$(ARM_ABI)-gcc$(GCC_VERSION))","")
     # nothing found? look for any gcc*arm*eabi* in the home directory,
     # matching ARM_ABI and GCC_VERSION from Makefile.user if specified 
@@ -18,7 +22,9 @@ else ifneq ("$(wildcard ~/gcc*arm*eabi*/bin/arm-$(ARM_ABI)-gcc$(GCC_VERSION))","
     ARM_BINPATH=$(shell dirname `ls -v ~/gcc*arm*eabi*/bin/arm-$(ARM_ABI)-gcc$(GCC_VERSION) | tail -1`)
     CROSS_COMPILE=$(ARM_BINPATH)/arm-$(ARM_ABI)-
     CC=$(CROSS_COMPILE)gcc$(GCC_VERSION)
-    $(info Using $(CC) (found in home directory).)
+    ifeq ("$(MAKELEVEL)","0")
+      $(info Using $(CC) (found in home directory).)
+    endif
 else
     # still nothing?
     $(info )

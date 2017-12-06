@@ -14,18 +14,16 @@ TOP_DIR=..
 #
 include Makefile.platform.map
 $(foreach _,$(PLATFORM_MAP),$(eval $(call makerule,$(word 1, $(subst ., ,$_)),$_,./)))
+#
+# we want ML platforms to be built sequentially, to avoid conflicts
+# => use .NOTPARALLEL in the upper-level Makefiles only
+# parallel build is still used within each platform
+.NOTPARALLEL:
+#
 ############################################################################################################
 
 
 include $(TOP_DIR)/Makefile.setup
-
-
-.PHONY: clean
-clean:
-
-.PHONY: install
-install:
-
 
 beautify-stubs:
 	for f in */stubs.S ; do python ../contrib/stub-format/stub-format.py $$f $$f; done

@@ -494,7 +494,7 @@ static void audio_common_task(void * unused)
     audio_levels[0].avg = audio_levels[1].avg = 0;
 
     /* some models require the audio to be enabled using audio_configure() */
-    #if defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_EOSM)
+    #if defined(CONFIG_600D) || defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_EOSM)
     int reconfig_audio = 0; // Needed to turn on Audio IC at boot, maybe neeed for 100D
     #else
     int reconfig_audio = 1;
