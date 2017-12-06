@@ -566,7 +566,11 @@ end
 
 define mpu_decode
   set $buf = $arg0
-  set $size = ((char*)$buf)[0]
+  if $argc == 2
+    set $size = $arg1
+  else
+    set $size = ((char*)$buf)[0]
+  end
   set $i = 0
   while $i < $size
     printf "%02x ", ((char*)$buf)[$i]
@@ -596,6 +600,62 @@ define mpu_recv_log
     mpu_decode $r0
     printf ")\n"
     KRESET
+    c
+  end
+end
+
+define mpu_analyze_recv_data_log
+  commands
+    silent
+    #print_current_location
+    #printf "AnalyzeMpuReceiveData %x %x %x %x\n", $r0, $r1, $r2, $r3
+    print_current_location
+    printf "MPU property: %02x %02x ", *(int*)$r1, *(int*)($r1+4)
+    mpu_decode *(int*)($r1+8) *(int*)($r1+12)
+    printf "\n"
+    c
+  end
+end
+
+# called many times; string: NOT PROPERTYLIST ID
+define prop_lookup_maybe_log
+  commands
+    silent
+    print_current_location
+    printf "prop_lookup_maybe %x %x %x %x\n", $r0, $r1, $r2, $r3
+    c
+  end
+end
+
+define prop_print_data
+  set $buf = $arg0
+  set $size = $arg1 / 4
+  set $i = 0
+  while $i < $size
+    printf "%08x ", ((unsigned int *)$buf)[$i]
+    set $i = $i + 1
+  end
+  if $arg1 % 4 == 3
+    printf "%06x ", ((unsigned int *)$buf)[$i] & 0xFFFFFF
+  end
+  if $arg1 % 4 == 2
+    printf "%04x ", ((unsigned int *)$buf)[$i] & 0xFFFF
+  end
+  if $arg1 % 4 == 1
+    printf "%02x ", ((unsigned int *)$buf)[$i] & 0xFF
+  end
+end
+
+define prop_request_change_log
+  commands
+    silent
+    print_current_location
+    KRED
+    printf "prop_request_change"
+    KRESET
+    printf " %08X { ", $r0
+    prop_print_data $r1 $r2
+    printf "}\n"
     c
   end
 end

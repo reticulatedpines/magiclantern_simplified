@@ -41,6 +41,18 @@ if 0
   mpu_recv_log
 end
 
+# properties
+if 0
+  b *0xFF056E38
+  prop_request_change_log
+
+  b *0xFF1B712C
+  mpu_analyze_recv_data_log
+
+  b *0xFF1B6358
+  prop_lookup_maybe_log
+end
+
 # semaphores
 if 0
   b *0xFF069D10

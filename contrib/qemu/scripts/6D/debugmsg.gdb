@@ -20,4 +20,16 @@ task_create_log
 b *0x8FE4
 register_interrupt_log
 
+# properties
+if 0
+  b *0xFF12FD6C
+  prop_request_change_log
+
+  b *0xFF30FB5C
+  mpu_analyze_recv_data_log
+
+  b *0xFF30D268
+  prop_lookup_maybe_log
+end
+
 cont

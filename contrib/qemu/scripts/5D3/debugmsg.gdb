@@ -45,4 +45,38 @@ if 0
   give_semaphore_log
 end
 
+# MPU communication - 1.1.3
+if 0
+  b *0xFF2E42E4
+  mpu_send_log
+
+  b *0xFF122B5C
+  mpu_recv_log
+end
+
+# properties - 1.1.3
+if 0
+  b *0xFF123600
+  prop_request_change_log
+
+  b *0xFF2E6B6C
+  mpu_analyze_recv_data_log
+
+  b *0xFF2E4598
+  prop_lookup_maybe_log
+end
+
+# properties - 1.2.3 (some are different!)
+if 0
+  b *0xFF123210
+  prop_request_change_log
+
+  b *0xFF2EAED0
+  mpu_analyze_recv_data_log
+
+  b *0xFF2E8C78
+  prop_lookup_maybe_log
+end
+
+
 cont
