@@ -95,6 +95,7 @@ env QEMU_EOS_DEBUGMSG="$QEMU_EOS_DEBUGMSG" \
     -drive if=ide,format=raw,file=cf.img \
     -chardev socket,server,nowait,path=qemu.monitor$QEMU_JOB_ID,id=monsock \
     -mon chardev=monsock,mode=readline \
+    -name $CAM \
     -M $*
 
 # note: QEMU monitor is redirected to Unix socket qemu.monitor
