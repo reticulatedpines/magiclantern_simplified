@@ -179,7 +179,7 @@ EOSRegionHandler eos_handlers[] =
     { "CFATA2",       0xC0620000, 0xC062FFFF, eos_handle_cfata, 2 },
     { "UART",         0xC0800000, 0xC08000FF, eos_handle_uart, 0 },
     { "UART",         0xC0810000, 0xC08100FF, eos_handle_uart, 1 },
-    { "UART",         0xC0270000, 0xC0270000, eos_handle_uart, 2 },
+    { "UART",         0xC0270000, 0xC027000F, eos_handle_uart, 2 },
     { "I2C",          0xC0090000, 0xC00900FF, eos_handle_i2c, 0 },
     { "SIO0",         0xC0820000, 0xC08200FF, eos_handle_sio, 0 },
     { "SIO1",         0xC0820100, 0xC08201FF, eos_handle_sio, 1 },
@@ -2915,15 +2915,11 @@ unsigned int eos_handle_uart ( unsigned int parm, EOSState *s, unsigned int addr
     static int enable_tio_interrupt = 0;
     static int flags = 0;
 
-    if (address == 0xC0270000 && value == 0x80000000)
+    if ((address & ~0xF) == 0xC0270000)
     {
-        msg = "TIO enable flag on EOS M3?";
-        goto end;
-    }
-
-    if (address == 0xC0270000 && value != (value & 0xFF))
-    {
-        /* unknown, probably not TIO */
+        /* this looks like a 16-char ring buffer (?!) */
+        static uint32_t uart_buf[16];
+        MMIO_VAR(uart_buf[address & 0xF]);
         goto end;
     }
 

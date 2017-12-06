@@ -927,12 +927,6 @@ function test_drysh {
         return
     fi
 
-    # same for DIGIC 6
-    if grep -q ZicoAssert $CAM/ROM1.BIN; then
-        echo -e "\e[33mskipping\e[0m"
-        return
-    fi
-
     # most models require "akashimorino" to enable the Dry-shell
     # a few don't (500D, 5D3eeko), but sending it anyway shouldn't hurt
 
@@ -971,7 +965,7 @@ echo "Testing Dry-shell over UART..."
 for CAM in 5D3eeko ${EOS_CAMS[*]}; do
     ((QEMU_JOB_ID++))
     run_test drysh $CAM &
-    job_limit $((4 * $(nproc)))
+    job_limit_auto
 done; cleanup
 
 
