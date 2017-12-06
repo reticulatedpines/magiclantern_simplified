@@ -63,6 +63,14 @@ static inline int should_log_memory_region(MemoryRegion * mr, int is_write)
         }
     }
 
+    if (mr->name == NULL)
+    {
+        /* unmapped? */
+        assert(!mr->ram);
+        assert(!mr->rom_device);
+        return 1;
+    }
+
     return 0;
 }
 
@@ -188,8 +196,10 @@ void eos_log_mem(void * opaque, hwaddr addr, uint64_t value, uint32_t size, int 
         some_tool_executed = true;
     }
 
-    if (some_tool_executed && !(qemu_loglevel_mask(EOS_LOG_VERBOSE) &&
-                                qemu_loglevel_mask(EOS_LOG_IO)))
+    if (some_tool_executed &&
+        mr->name &&
+        !(qemu_loglevel_mask(EOS_LOG_VERBOSE) &&
+          qemu_loglevel_mask(EOS_LOG_IO)))
     {
         /* when executing some memory checking tool,
          * do not log messages unless -d io,verbose is specified
@@ -228,8 +238,9 @@ void eos_log_mem(void * opaque, hwaddr addr, uint64_t value, uint32_t size, int 
     }
 
     /* all our memory region names start with eos. */
-    assert(strncmp(mr->name, "eos.", 4) == 0);
-    io_log(mr->name + 4, s, addr, mode, value, value, msg, msg_arg1, msg_arg2);
+    assert(!mr->name || strncmp(mr->name, "eos.", 4) == 0);
+    const char * name = (mr->name) ? mr->name + 4 : KLRED"UNMAPPED"KRESET;
+    io_log(name, s, addr, mode, value, value, msg, msg_arg1, msg_arg2);
 }
 
 
