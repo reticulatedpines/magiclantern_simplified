@@ -4,6 +4,7 @@ ifndef TOP_DIR
 # if this is used as a standalone makefile, we need to include some additional stuff
 TOP_DIR=..
 include $(TOP_DIR)/Makefile.setup
+XOR_CHK:=$(notdir $(XOR_CHK))
 endif
 
 $(XOR_CHK): $(XOR_CHK).c

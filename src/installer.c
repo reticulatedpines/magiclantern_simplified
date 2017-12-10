@@ -101,16 +101,15 @@ call_init_funcs()
     }
 }
 
-#if defined(CONFIG_7D)
-void _card_led_on()  { *(volatile uint32_t*) (CARD_LED_ADDRESS) = (LEDON); }
-void _card_led_off() { *(volatile uint32_t*) (CARD_LED_ADDRESS) = 0x38400; } //TODO: Check if this is correct, because reboot.c said 0x838C00
-#elif defined(CARD_LED_ADDRESS) && defined(LEDON) && defined(LEDOFF)
-void _card_led_on()  { *(volatile uint32_t*) (CARD_LED_ADDRESS) = (LEDON); }
-void _card_led_off() { *(volatile uint32_t*) (CARD_LED_ADDRESS) = (LEDOFF); }
-#else
-void _card_led_on()  { return; }
-void _card_led_off() { return; }
-#endif
+void _card_led_on()
+{
+    *(volatile uint32_t*) (CARD_LED_ADDRESS) = (LEDON);
+}
+
+void _card_led_off()
+{
+    *(volatile uint32_t*) (CARD_LED_ADDRESS) = (LEDOFF);
+}
 
 void info_led_on()
 {
@@ -122,6 +121,7 @@ void info_led_on()
     _card_led_on();
 #endif
 }
+
 void info_led_off()
 {
 #ifdef CONFIG_VXWORKS
@@ -132,6 +132,7 @@ void info_led_off()
     _card_led_off();
 #endif
 }
+
 void info_led_blink(int times, int delay_on, int delay_off)
 {
     for (int i = 0; i < times; i++)
@@ -606,6 +607,7 @@ void _shoot_free_suite(struct memSuite * suite) {}
 struct memSuite * _srm_malloc_suite(int num) { return 0; }
 void _srm_free_suite(struct memSuite * suite) {}
 char* get_current_task_name() { return "?"; }
+int printf(const char * format, ...) { return 0; }
 
 int y_times_BMPPITCH_cache[BMP_H_PLUS - BMP_H_MINUS];
 

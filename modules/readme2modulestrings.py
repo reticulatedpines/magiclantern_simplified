@@ -62,6 +62,11 @@ def get_command_of(commands):
     for command in commands: 
         if is_command_available(command) == True:
             return command
+    print >> sys.stderr, "\nCould not find " + "/".join(commands) + "."
+    if "rst2html" in commands:
+        print >> sys.stderr, "Please install python-docutils (pip install docutils)."
+    print >> sys.stderr, ""
+    exit(1)
 
 inp = open("README.rst").read().replace("\r\n", "\n")
 lines = inp.strip("\n").split("\n")

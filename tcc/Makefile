@@ -8,6 +8,8 @@ include $(TOP)/../Makefile.user.default
 
 -include $(TOP)/../Makefile.user
 
+-include $(TOP)/../Makefile.setup.toolchain
+
 include $(TOP)/config.mak
 
 VPATH = $(top_srcdir)
@@ -338,7 +340,7 @@ export LIBTCC1
 	$(MAKE) -C tests $@
 
 clean:
-	rm -vf $(PROGS) tcc_p$(EXESUF) tcc.pod *~ *.o *.a *.so* *.out *.exe libtcc_test localsyms$(EXESUF)
+	rm -vf $(PROGS) tcc_p$(EXESUF) tcc.pod *~ *.o *.a *.so* *.out *.exe libtcc_test$(EXESUF) localsyms
 	$(MAKE) -C tests $@
 ifneq ($(LIBTCC1),)
 	$(MAKE) -C lib $@
