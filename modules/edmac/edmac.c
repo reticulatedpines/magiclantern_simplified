@@ -599,22 +599,19 @@ static void FAST edmac_spy_poll(int last_expiry, void* unused)
              * (this is slow, so we don't record it continuously)
              */
 
-            if (edmac_extra_index >= COUNT(edmac_extra_infos))
+            if (edmac_extra_index < COUNT(edmac_extra_infos))
             {
-                /* buffer full */
-                return;
+                uint32_t ch = edmac_get_channel(edmac_regs[i]);
+                edmac_extra_infos[edmac_extra_index] = (struct edmac_extra_info) {
+                    .ch     = ch,
+                    .addr   = edmac_get_address(ch),
+                    .conn   = edmac_get_connection(ch, edmac_get_dir(ch)),
+                    .info   = edmac_get_info(ch),
+                    .cbr    = is_5d3 ? MEM(8 + 32*(ch) + MEM(0x12400)) : 0,  /* hardcoded for 5D3 */
+                };
+
+                edmac_extra_index++;
             }
-
-            uint32_t ch = edmac_get_channel(edmac_regs[i]);
-            edmac_extra_infos[edmac_extra_index] = (struct edmac_extra_info) {
-                .ch     = ch,
-                .addr   = edmac_get_address(ch),
-                .conn   = edmac_get_connection(ch, edmac_get_dir(ch)),
-                .info   = edmac_get_info(ch),
-                .cbr    = is_5d3 ? MEM(8 + 32*(ch) + MEM(0x12400)) : 0,  /* hardcoded for 5D3 */
-            };
-
-            edmac_extra_index++;
         }
     }
 
