@@ -675,7 +675,10 @@ static void edmac_spy_dump()
 
     NotifyBox(2000, "Saved %d events, %d extra infos.", edmac_index, edmac_extra_index);
 
-    dump_seg(out, len, "edmacspy.log");
+
+    char log_filename[100];
+    get_numbered_file_name("edmac%03d.log", 999, log_filename, sizeof(log_filename));
+    dump_seg(out, len, log_filename);
     free(out);
 
     edmac_index = 0;
