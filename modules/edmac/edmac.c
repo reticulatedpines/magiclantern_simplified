@@ -514,6 +514,31 @@ static const int edmac_regs[] = {
     0xC0F30800, 0xC0F30900, 0xC0F30A00, 0xC0F30B00,
 };
 
+/* some models have fewer channels; trying to use the extra ones may result in lockup
+ * initialize with max number; check capabilities at startup and update if needed
+ * caveat: this is not const, as the same module is meant to run on all camera models
+ */
+static uint32_t num_edmac_regs = COUNT(edmac_regs);
+
+/* this should be called at startup */
+static void edmac_regs_init()
+{
+    /* which EDMAC registers are valid on this model? */
+    /* fixme: expose via API */
+    for (uint32_t i = 0; i < num_edmac_regs; i++)
+    {
+        int ch = edmac_get_channel(edmac_regs[i]);
+        if (edmac_get_dir(ch) == EDMAC_DIR_UNUSED)
+        {
+            /* register not valid? stop here */
+            num_edmac_regs = i;
+            break;
+        }
+    }
+
+    ASSERT(num_edmac_regs <= COUNT(edmac_regs));
+}
+
 static uint32_t edmac_states[2048][COUNT(edmac_regs) + 4] = {{1}};
 static uint32_t edmac_index = 0;
 
@@ -556,7 +581,7 @@ static void FAST edmac_spy_poll(int last_expiry, void* unused)
     /* log events starting with the first meaningful change */
     static int started = 0;
 
-    for (uint32_t i = 0; i < COUNT(edmac_regs); i++)
+    for (uint32_t i = 0; i < num_edmac_regs; i++)
     {
         /* edmac_get_state/pointer(channel), just faster */
         uint32_t state = MEM(edmac_regs[i]);
@@ -646,7 +671,7 @@ static void edmac_spy_dump()
         );
         len += 16;
 
-        for (int j = 0; j < COUNT(edmac_regs); j++)
+        for (uint32_t j = 0; j < num_edmac_regs; j++)
         {
             int ch = edmac_get_channel(edmac_regs[j]);
             len += snprintf(out+len, maxlen-len, " %d:%08X", ch, edmac_states[i][j]);
@@ -732,6 +757,7 @@ static struct menu_entry edmac_menu[] =
 
 static unsigned int edmac_init()
 {
+    edmac_regs_init();
     menu_add("Debug", edmac_menu, COUNT(edmac_menu));
     return 0;
 }
