@@ -662,12 +662,22 @@ static void edmac_spy_dump()
         for (; extra_index < edmac_states[i][XTR_IDX]; extra_index++)
         {
             struct edmac_extra_info info = edmac_extra_infos[extra_index];
+            char * buf = out+len;
             len += snprintf(out+len, maxlen-len,
                 "EDMAC#%d: addr=0x%x conn=%d cbr=%x name='''%s''' size='''%s'''\n",
                 info.ch, info.addr, info.conn, info.cbr,
                 asm_guess_func_name_from_string(info.cbr),
                 edmac_format_size(&info.info)
             );
+
+            /* remove any newlines (output easier to parse) */
+            for (char * c = buf; c < out+len-1; c++)
+            {
+                if (*c == '\n')
+                {
+                    *c = ' ';
+                }
+            }
         }
 
         snprintf(out+len, maxlen-len, "%08X %s          ",
