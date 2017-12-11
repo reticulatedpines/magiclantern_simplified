@@ -3,6 +3,7 @@
 #include <property.h>
 #include <bmp.h>
 #include <menu.h>
+#include <config.h>
 #include <console.h>
 #include <shoot.h>
 #include <beep.h>
@@ -503,7 +504,19 @@ static void find_free_edmac_channels()
 }
 
 /* log EDMAC state every X microseconds */
-static const int LOG_INTERVAL = 100;
+static CONFIG_INT("log.interval", log_interval, 500);
+
+/* fixme: provide R10 toggle option in the menu backend */
+/* also microsecond units */
+static int log_interval_index = 3;
+static const int    log_interval_values[]  = { 50, 100, 200, 500, 1000, 2000, 5000, 10000 };
+static const char * log_interval_choices[] = { "50 "SYM_MICRO"s", "100 "SYM_MICRO"s", "200 "SYM_MICRO"s", "500 "SYM_MICRO"s", "1 ms", "2 ms", "5 ms", "10 ms" };
+
+static MENU_SELECT_FUNC(log_interval_select)
+{
+    log_interval_index = MOD(log_interval_index + delta, COUNT(log_interval_values));
+    log_interval = log_interval_values[log_interval_index];
+}
 
 /* a little faster when hardcoded */
 /* should match edmac_chanlist from src/edmac.c */
@@ -572,7 +585,7 @@ static void FAST edmac_spy_poll(int last_expiry, void* unused)
     }
     
     /* schedule next call */
-    SetHPTimerNextTick(last_expiry, LOG_INTERVAL, edmac_spy_poll, edmac_spy_poll, 0);
+    SetHPTimerNextTick(last_expiry, log_interval, edmac_spy_poll, edmac_spy_poll, 0);
 
     /* this routine requires LCLK enabled */
     if (!(MEM(0xC0400008) & 0x2))
@@ -693,8 +706,9 @@ static void log_edmac_usage()
         msleep(10);
     }
 
+    NotifyBox(1000000, "Logging EDMAC usage...");
+
     SetHPTimerAfterNow(1000, edmac_spy_poll, edmac_spy_poll, 0);
-    NotifyBox(10000, "Logging EDMAC usage...");
     
     /* wait until buffer full */
     while (edmac_index < COUNT(edmac_states))
@@ -706,6 +720,16 @@ static void log_edmac_usage()
 
     NotifyBox(2000, "Saving log...");
     edmac_spy_dump();
+}
+
+static MENU_UPDATE_FUNC(log_interval_update)
+{
+    int log_duration = (int)roundf((float) log_interval * COUNT(edmac_states) / 1e6 * 100.0);
+
+    MENU_SET_WARNING(MENU_WARN_INFO,
+        "Will log %d samples = %s%d.%02d seconds.",
+        COUNT(edmac_states), FMT_FIXEDPOINT2(log_duration)
+    );
 }
 
 /* edmac_test.c */
@@ -739,10 +763,30 @@ static struct menu_entry edmac_menu[] =
                 .help   = "Useful to find which channels can be used in LiveView.\n",
             },
             {
-                .name   = "Log EDMAC usage",
-                .select = run_in_separate_task,
-                .priv   = log_edmac_usage,
-                .help   = "Log EDMAC status changes every 0.1ms.",
+                .name   = "Log EDMAC activity",
+                .select = menu_open_submenu,
+                .help   = "Sample EDMAC activity on all channels and save a log file.",
+                .help2  = "Useful for figuring out how image capture/processing works.",
+                .children =  (struct menu_entry[]) {
+                    {
+                        .name   = "Start logging",
+                        .select = run_in_separate_task,
+                        .priv   = log_edmac_usage,
+                        .help   = "Start logging EDMAC activity.",
+                        .help2  = "Press shutter halfway to choose the exact moment.",
+                    },
+                    {
+                        .name   = "Log every",
+                        .priv   = &log_interval_index,
+                        .max    = COUNT(log_interval_values) - 1,
+                        .select = log_interval_select,
+                        .choices= log_interval_choices,
+                        .update = log_interval_update,
+                        .help   = "Sampling interval (how often EDMAC channels are polled).",
+                        .help2  = "The logging buffer size is fixed at 2048 samples.",
+                    },
+                    MENU_EOL
+                },
             },
             {
                 .name   = "EDMAC model test",
@@ -760,6 +804,7 @@ static unsigned int edmac_init()
 {
     is_5d3 = is_camera("5D3", "*");
     edmac_regs_init();
+    log_interval_select(0, 0);
     menu_add("Debug", edmac_menu, COUNT(edmac_menu));
     return 0;
 }
@@ -774,3 +819,7 @@ MODULE_INFO_START()
     MODULE_INIT(edmac_init)
     MODULE_DEINIT(edmac_deinit)
 MODULE_INFO_END()
+
+MODULE_CONFIGS_START()
+    MODULE_CONFIG(log_interval)
+MODULE_CONFIGS_END()
