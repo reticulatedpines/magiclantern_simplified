@@ -580,9 +580,6 @@ static void FAST edmac_spy_poll(int last_expiry, void* unused)
         return;
     }
 
-    /* log events starting with the first meaningful change */
-    static int started = 0;
-
     for (uint32_t i = 0; i < num_edmac_regs; i++)
     {
         /* edmac_get_state/pointer(channel), just faster */
@@ -595,11 +592,6 @@ static void FAST edmac_spy_poll(int last_expiry, void* unused)
             ? (edmac_states[edmac_index-1][i] & 0x80000000)
             : 0;
         
-        if (state || ptr)
-        {
-            started = 1;
-        }
-
         if (state && !prev_state)
         {
             /* when a channel is starting, record some extra info,
@@ -638,11 +630,7 @@ static void FAST edmac_spy_poll(int last_expiry, void* unused)
     edmac_states[edmac_index][TSK_IDX] = (uint32_t) current_task->name;
     edmac_states[edmac_index][OVH_IDX] = MEM(0xC0242014) - start_clock;
     edmac_states[edmac_index][XTR_IDX] = edmac_extra_index;
-
-    if (started)
-    {
-        edmac_index++;
-    }
+    edmac_index++;
 }
 
 static void edmac_spy_dump()
@@ -650,7 +638,11 @@ static void edmac_spy_dump()
     int len = 0;
     int maxlen = 8*1024*1024;
     char* out = fio_malloc(maxlen);
-    if (!out) return;
+    if (!out)
+    {
+        NotifyBox(2000, "Out of memory");
+        return;
+    }
     memset(out, ' ', maxlen);
     
     uint32_t extra_index = 0;
@@ -684,15 +676,23 @@ static void edmac_spy_dump()
 
     len += snprintf(out+len, maxlen-len, "\nSaved %d events, %d extra infos.\n", edmac_index, edmac_extra_index);
 
+    NotifyBox(2000, "Saved %d events, %d extra infos.", edmac_index, edmac_extra_index);
+
     dump_seg(out, len, "edmacspy.log");
     free(out);
-    
+
     edmac_index = 0;
     edmac_extra_index = 0;
 }
 
 static void log_edmac_usage()
 {
+    NotifyBox(100000, "Press shutter halfway to start.");
+    while (!get_halfshutter_pressed())
+    {
+        msleep(10);
+    }
+
     SetHPTimerAfterNow(1000, edmac_spy_poll, edmac_spy_poll, 0);
     NotifyBox(10000, "Logging EDMAC usage...");
     
@@ -706,7 +706,6 @@ static void log_edmac_usage()
 
     NotifyBox(2000, "Saving log...");
     edmac_spy_dump();
-    NotifyBox(2000, "Finished!");
 }
 
 /* edmac_test.c */
