@@ -10,6 +10,8 @@
 #include <timer.h>
 #include <asm.h>
 
+static int is_5d3 = 0;
+
 extern WEAK_FUNC(ret_0) char * asm_guess_func_name_from_string(uint32_t func_addr);
 
 static const char * edmac_format_size_short(struct edmac_info * info, uint32_t maxlen)
@@ -350,7 +352,7 @@ static void edmac_display_detailed(int channel)
     y += fh;
     bmp_printf(FONT_MONO_20, 50, y += fh, "Connection : write=0x%x read=0x%x dir=%s", conn_w, conn_r, dir_s);
 
-    if (is_camera("5D3", "*"))
+    if (is_5d3)
     {
         /**
          * ConnectReadEDmac(channel, conn)
@@ -617,7 +619,7 @@ static void FAST edmac_spy_poll(int last_expiry, void* unused)
                 .addr   = edmac_get_address(ch),
                 .conn   = edmac_get_connection(ch, edmac_get_dir(ch)),
                 .info   = edmac_get_info(ch),
-                .cbr    = MEM(8 + 32*(ch) + MEM(0x12400)),  /* 5D3 only */
+                .cbr    = is_5d3 ? MEM(8 + 32*(ch) + MEM(0x12400)) : 0,  /* hardcoded for 5D3 */
             };
 
             edmac_extra_index++;
@@ -757,6 +759,7 @@ static struct menu_entry edmac_menu[] =
 
 static unsigned int edmac_init()
 {
+    is_5d3 = is_camera("5D3", "*");
     edmac_regs_init();
     menu_add("Debug", edmac_menu, COUNT(edmac_menu));
     return 0;
