@@ -304,6 +304,7 @@ void enter_play_mode();
 void enter_menu_mode();
 
 /* go back to LiveView or plain photo mode */
+void exit_play_qr_menu_mode();
 void exit_play_qr_mode();
 void exit_menu_mode();
 
