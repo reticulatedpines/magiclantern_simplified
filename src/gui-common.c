@@ -764,6 +764,12 @@ void exit_play_qr_menu_mode()
         wait_lv_frames(1);
     }
 
+    /* wait for any remaining GUI stuff to settle */
+    for (int i = 0; i < 10 && !display_idle(); i++)
+    {
+        msleep(100);
+    }
+
     /* also wait for display to come up, up to 1 second */
     for (int i = 0; i < 10 && !DISPLAY_IS_ON; i++)
     {
