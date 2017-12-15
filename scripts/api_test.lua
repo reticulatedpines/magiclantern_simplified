@@ -235,11 +235,13 @@ function test_camera_gui()
 
     camera.gui.play = true
     assert(camera.gui.play == true)
+    assert(camera.gui.mode == 1)
 
     -- half-shutter should exit playback mode
     key.press(KEY.HALFSHUTTER)
     msleep(1000)
     assert(camera.gui.play == false)
+    assert(camera.gui.mode == 0)
     key.press(KEY.UNPRESS_HALFSHUTTER)
 
     -- randomly switch between PLAY, MENU and IDLE (with or without LiveView)
@@ -253,12 +255,14 @@ function test_camera_gui()
                 assert(camera.gui.play == true)
                 assert(camera.gui.menu == false)
                 assert(camera.gui.idle == false)
+                assert(camera.gui.mode == 1)
             elseif camera.gui.play then
                 printf("Exit PLAY mode...\n");
                 camera.gui.play = false
                 assert(camera.gui.play == false)
                 assert(camera.gui.menu == false)
                 assert(camera.gui.idle == true)
+                assert(camera.gui.mode == 0)
             end
         else
             if math.random(1,2) == 1 then
@@ -267,12 +271,14 @@ function test_camera_gui()
                 assert(camera.gui.menu == true)
                 assert(camera.gui.play == false)
                 assert(camera.gui.idle == false)
+                assert(camera.gui.mode == 2)
             elseif camera.gui.menu then
                 printf("Exit MENU mode...\n");
                 camera.gui.menu = false
                 assert(camera.gui.menu == false)
                 assert(camera.gui.play == false)
                 assert(camera.gui.idle == true)
+                assert(camera.gui.mode == 0)
             end
         end
 

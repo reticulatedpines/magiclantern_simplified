@@ -744,6 +744,11 @@ static int luaCB_gui_index(lua_State * L)
     /// Get whether the camera is "idle" (i.e. in standby, with no other dialogs active)
     // @tfield bool idle
     else if(!strcmp(key,"idle")) lua_pushboolean(L, display_idle());
+    /// Get/Set current GUI mode from Canon (model-dependent).
+    /// 
+    /// On DIGIC 4/5: 0 is "idle", 1 is PLAY, 2 is MENU, others are model-dependent.
+    // @tfield int mode
+    else if(!strcmp(key,"mode")) lua_pushinteger(L, get_gui_mode());
     else lua_rawget(L, 1);
     return 1;
 }
