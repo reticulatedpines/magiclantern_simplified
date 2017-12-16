@@ -221,7 +221,8 @@ EOSRegionHandler eos_handlers[] =
 
     /* generic catch-all for everything unhandled from this range */
     { "ENGIO",        0xC0F00000, 0xC0FFFFFF, eos_handle_engio, 0 },
-    
+
+    { "ROM-DMA",      0xD6030000, 0xD60300FF, eos_handle_romread_dma, 0 },
     { "DIGIC6",       0xD0000000, 0xDFFFFFFF, eos_handle_digic6, 0 },
     { "DIGIC6",       0xC8100000, 0xC8100FFF, eos_handle_digic6, 1 },
     
@@ -2855,7 +2856,7 @@ unsigned int eos_handle_dma ( unsigned int parm, EOSState *s, unsigned int addre
             {
                 if(value & 1)
                 {
-                    /* Start DMA */
+                    msg = "Start DMA";
                     fprintf(stderr, "[DMA%i] Copy [0x%08X] -> [0x%08X], length [0x%08X], flags [0x%08X]\r\n", parm, srcAddr, dstAddr, count, value);
 
                     uint32_t blocksize = 8192;
@@ -2890,10 +2891,6 @@ unsigned int eos_handle_dma ( unsigned int parm, EOSState *s, unsigned int addre
                     }
                 }
             }
-            else
-            {
-                ret = 0;
-            }
             break;
 
         case 0x18:
@@ -2916,9 +2913,84 @@ unsigned int eos_handle_dma ( unsigned int parm, EOSState *s, unsigned int addre
     snprintf(dma_name, sizeof(dma_name), "DMA%i", parm);
     io_log(dma_name, s, address, type, value, ret, msg, 0, 0);
 
-    return 0;
+    return ret;
 }
 
+unsigned int eos_handle_romread_dma ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+{
+    const char * msg = 0;
+    unsigned int ret = 0;
+    static unsigned int srcAddr = 0;
+    static unsigned int dstAddr = 0;
+    static unsigned int count = 0;
+    unsigned int interruptId[] = { 0x13E, 0x14E };
+
+    switch(address & 0xFF)
+    {
+        case 0x00:
+        {
+            static int last = 0;
+            MMIO_VAR(last);
+            break;
+        }
+
+        case 0x28:
+            if(type & MODE_WRITE)
+            {
+                if(value & 1)
+                {
+                    msg = "Start DMA";
+                    fprintf(stderr, "[ROM-DMA%i] Copy [0x%08X] -> [0x%08X], length [0x%08X], flags [0x%08X]\r\n", parm, srcAddr, dstAddr, count, value);
+
+                    uint32_t blocksize = 8192;
+                    uint8_t *buf = malloc(blocksize);
+                    uint32_t remain = count;
+                    
+                    uint32_t src = srcAddr;
+                    uint32_t dst = dstAddr;
+
+                    while(remain)
+                    {
+                        uint32_t transfer = (remain > blocksize) ? blocksize : remain;
+
+                        eos_mem_read(s, src, buf, transfer);
+                        eos_mem_write(s, dst, buf, transfer);
+
+                        remain -= transfer;
+                        src += transfer;
+                        dst += transfer;
+                    }
+                    free(buf);
+
+                    fprintf(stderr, "[ROM-DMA%i] OK\n", parm);
+
+                    eos_trigger_int(s, interruptId[parm], count / 10000);
+                }
+            }
+            break;
+
+        case 0x14:
+            msg = "srcAddr";
+            MMIO_VAR(srcAddr);
+            break;
+
+        case 0x18:
+            msg = "dstAddr";
+            MMIO_VAR(dstAddr);
+            break;
+
+        case 0x10:
+            msg = "count";
+            MMIO_VAR(count);
+            break;
+    }
+
+    char dma_name[16];
+    snprintf(dma_name, sizeof(dma_name), "ROM-DMA%i", parm);
+    io_log(dma_name, s, address, type, value, ret, msg, 0, 0);
+
+    return ret;
+}
 
 unsigned int eos_handle_uart ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
