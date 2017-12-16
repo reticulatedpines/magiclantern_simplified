@@ -221,24 +221,46 @@ int ml_gui_initialized = 0; // 1 after gui_main_task is started
  */
 static void
 my_task_dispatch_hook(
-        struct context ** context_unused,   /* on new DryOS (6D+), this argument is different (small number, unknown meaning) */
+        struct context ** context_old,      /* on new DryOS (6D+), this argument is different (small number, unknown meaning) */
         struct task * prev_task_unused,     /* only present on new DryOS */
         struct task * next_task             /* only present on new DryOS; old versions use HIJACK_TASK_ADDR */
 )
 {
-    qprintf("[****] task_hook(%x) %x(%s) -> %x(%s), from %x\n", context_unused, prev_task_unused, prev_task_unused->name, next_task, next_task->name, read_lr());
-
-#ifdef HIJACK_TASK_ADDR                     /* old DryOS only; undefine this for new DryOS */
+#ifdef HIJACK_TASK_ADDR
+    /* old DryOS only; undefine this for new DryOS */
     next_task = *(struct task **)(HIJACK_TASK_ADDR);
+    qprintf("[****] task_hook(%x) -> %x(%s), from %x\n",
+        context_old,
+        next_task, next_task ? next_task->name : "??",
+        read_lr()
+    );
+#else
+    /* new DryOS */
+    qprintf("[****] task_hook(%x) %x(%s) -> %x(%s), from %x\n",
+        context_old,
+        prev_task_unused, prev_task_unused ? prev_task_unused->name : "??",
+        next_task, next_task ? next_task->name : "??",
+        read_lr()
+    );
 #endif
 
     if (!next_task)
         return;
 
-    /* on old DryOS, context is passed as argument, but can be found in the task structure as well */
-    struct context * context = next_task->context;
+#ifdef HIJACK_TASK_ADDR
+    /* on old DryOS, context is passed as argument
+     * on some models (not all!), it can be found in the task structure as well */
+    if (!context_old)
+        return;
 
-    if (!context )
+    struct context * context = (*context_old);
+#else
+    /* on new DryOS, first argument is not context; get it from the task structure */
+    /* this also works for some models with old-style DryOS, but not all */
+    struct context * context = next_task->context;
+#endif
+
+    if (!context)
         return;
     
 #ifdef CONFIG_TSKMON
@@ -612,8 +634,8 @@ init_task_func init_task_patched(int a, int b, int c, int d)
     /* R1: 0xD3C000 [6D] / 0xC3C000 [100D] (end address, unchanged) */
     addr_AllocMem_end[1] = MOV_R0_0x4E0000_INSTR;
     ml_reserved_mem = 0x4E0000 - RESTARTSTART;
-    #elif defined(CONFIG_550D)
-    // change end limit from 0xd00000 to 0xc60000 => reserve 640K for ML
+    #elif defined(CONFIG_550D) || defined(CONFIG_600D)
+    // change end limit from 0xd00000 to 0xc70000 => reserve 576K for ML
     *addr_AllocMem_end = MOV_R1_0xC60000_INSTR;
     ml_reserved_mem = 0xD00000 - RESTARTSTART;
     #else

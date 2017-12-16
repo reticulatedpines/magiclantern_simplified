@@ -82,11 +82,11 @@ NSTUB(0xFF1096F0,  SetNextASIFADCBuffer)
 NSTUB(0xFF1097A4,  SetNextASIFDACBuffer)
 NSTUB(0xFF1338C4,  SetSamplingRate)
 NSTUB(0xFF10B714,  SoundDevActiveIn)
-NSTUB(0xFF10B930,  SoundDevShutDownIn)
 NSTUB(0xFF108FBC,  StartASIFDMAADC)
 NSTUB(0xFF109174,  StartASIFDMADAC)
-NSTUB(0xFF109138,  StopASIFDMAADC)                          /* present on 7D.203, 6D.113, EOSM.202 */
 NSTUB(0xFF10924C,  StopASIFDMADAC)
+// NSTUB(0xFF109138,  StopASIFDMAADC)                       /* breaks the audio meters */
+// NSTUB(0xFF10B930,  SoundDevShutDownIn)                   /* breaks the audio meters */
 
 /** Audio **/
 NSTUB(   0x239F4,  sounddev)
