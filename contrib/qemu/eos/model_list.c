@@ -28,6 +28,8 @@ struct eos_model_desc eos_model_list[] = {
         .uart_rx_interrupt      = 0x2E,
         .uart_tx_interrupt      = 0x3A,
         .rtc_cs_register        = 0xC022005C,
+        .serial_flash_sio_ch    = 4,    /* fixme */
+        .serial_flash_sfio_ch   = 4,
     },
     {
         /* defaults for DIGIC 4 cameras */
@@ -89,6 +91,8 @@ struct eos_model_desc eos_model_list[] = {
         .uart_rx_interrupt      = 0x2E,
         .uart_tx_interrupt      = 0x3A,
         .rtc_cs_register        = 0xC02201F8,
+        .serial_flash_sio_ch    = 4,
+        .serial_flash_sfio_ch   = 4,
         .serial_flash_interrupt = 0x17B,
     },
     {
@@ -117,6 +121,8 @@ struct eos_model_desc eos_model_list[] = {
         .card_led_address       = 0xD20B0A24,
         .uart_rx_interrupt      = 0x15D,
         .uart_tx_interrupt      = 0x16D,
+        .serial_flash_sio_ch    = 2,
+        .serial_flash_sfio_ch   = 7,
         .serial_flash_interrupt = 0xFE,
     },
     {
@@ -212,6 +218,7 @@ struct eos_model_desc eos_model_list[] = {
         .mpu_request_register   = 0xC022006C,
         .mpu_status_register    = 0xC022006C,
         .serial_flash_size      = 0x1000000,
+        .serial_flash_sio_ch    = 7,
         .current_task_addr      = 0x652AC,
         .rtc_cs_register        = 0xC022C020,
         .rtc_time_correct       = 0x98,
@@ -289,6 +296,8 @@ struct eos_model_desc eos_model_list[] = {
         .sd_dma_interrupt       = 0x32,
         .uart_rx_interrupt      = 0x38,
         .rtc_time_correct       = 0xFD,
+        .serial_flash_sio_ch    = 4,    /* fixme */
+        .serial_flash_sfio_ch   = 4,
     },
     {
         .name                   = "EOSM",
@@ -308,6 +317,7 @@ struct eos_model_desc eos_model_list[] = {
         .mpu_request_register   = 0xC022006C,
         .mpu_status_register    = 0xC022006C,
         .serial_flash_size      = 0x1000000,
+        .serial_flash_sio_ch    = 7,
         .rtc_cs_register        = 0xC022C0C4,
         .rtc_time_correct       = 0x9A,
         .rtc_control_reg_2      = 0x10,     /* the date/time dialog prevents the camera from going into LiveView */

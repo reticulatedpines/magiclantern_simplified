@@ -43,6 +43,8 @@ struct eos_model_desc {
             uint32_t mpu_status_register;
             uint32_t mpu_control_register;
             uint32_t serial_flash_size;
+            uint32_t serial_flash_sio_ch;
+            uint32_t serial_flash_sfio_ch;
             uint32_t serial_flash_interrupt;
             uint32_t sd_driver_interrupt;
             uint32_t sd_dma_interrupt;
@@ -59,7 +61,7 @@ struct eos_model_desc {
         
         /* this must match the number of items in the above struct */
         /* note: you get a compile-time error if params[] is smaller than the struct */
-        uint32_t params[39];
+        uint32_t params[41];
     };
 } __attribute__((packed));
 

@@ -169,9 +169,9 @@ EOSRegionHandler eos_handlers[] =
     { "SDIO0",        0xC0C00000, 0xC0C00FFF, eos_handle_sdio, 0 },
     { "SDIO1",        0xC0C10000, 0xC0C10FFF, eos_handle_sdio, 1 },
     { "SDIO2",        0xC0C20000, 0xC0C20FFF, eos_handle_sdio, 2 },
-    { "SFIO4",        0xC0C40000, 0xC0C40FFF, eos_handle_sfio, 4 },
+    { "SFIO4",        0xC0C40000, 0xC0C40FFF, eos_handle_sdio, 4 },
     { "SDIO6",        0xC8060000, 0xC8060FFF, eos_handle_sdio, 6 },
-    { "SFIO7",        0xC8070000, 0xC8070FFF, eos_handle_sfio, 7 },
+    { "SFIO7",        0xC8070000, 0xC8070FFF, eos_handle_sdio, 7 },
     { "CFDMA0",       0xC0500000, 0xC0500FFF, eos_handle_cfdma, 0 },
     { "SDDMA1",       0xC0510000, 0xC05100FF, eos_handle_sddma, 1 },
     { "SDDMA3",       0xC0530000, 0xC0530FFF, eos_handle_sddma, 3 },
@@ -186,9 +186,9 @@ EOSRegionHandler eos_handlers[] =
     { "SIO1",         0xC0820100, 0xC08201FF, eos_handle_sio, 1 },
     { "SIO2",         0xC0820200, 0xC08202FF, eos_handle_sio, 2 },
     { "SIO3",         0xC0820300, 0xC08203FF, eos_handle_sio3, 3 },
-    { "SIO4",         0xC0820400, 0xC08204FF, eos_handle_sio_serialflash, 4 },
+    { "SIO4",         0xC0820400, 0xC08204FF, eos_handle_sio, 4 },
     { "SIO6",         0xC0820600, 0xC08206FF, eos_handle_sio, 6 },
-    { "SIO7",         0xC0820700, 0xC08207FF, eos_handle_sio_serialflash, 7 },
+    { "SIO7",         0xC0820700, 0xC08207FF, eos_handle_sio, 7 },
     { "SIO8",         0xC0820800, 0xC08208FF, eos_handle_sio, 8 },
     { "MREQ",         0xC0203000, 0xC02030FF, eos_handle_mreq, 0 },
     { "DMA1",         0xC0A10000, 0xC0A100FF, eos_handle_dma, 1 },
@@ -3451,9 +3451,9 @@ static unsigned int eos_handle_rtc ( unsigned int parm, EOSState *s, unsigned in
 
 unsigned int eos_handle_sio ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
-    if (parm == 2 && strcmp(s->model->name, "80D") == 0)
+    if (parm == s->model->serial_flash_sio_ch)
     {
-        /* fixme: nicer way to handle model-specific handlers */
+        /* serial flash (SFIO) */
         return eos_handle_sio_serialflash(parm, s, address, type, value);
     }
 
@@ -3724,6 +3724,12 @@ static void sdio_trigger_interrupt(EOSState *s)
 
 unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
+    if (parm == s->model->serial_flash_sfio_ch)
+    {
+        /* serial flash DMA */
+        return eos_handle_sfio(parm, s, address, type, value);
+    }
+
     unsigned int ret = 0;
     const char * msg = 0;
     intptr_t msg_arg1 = 0;
