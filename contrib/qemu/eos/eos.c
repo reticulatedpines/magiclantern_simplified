@@ -171,6 +171,7 @@ EOSRegionHandler eos_handlers[] =
     { "SDIO2",        0xC0C20000, 0xC0C20FFF, eos_handle_sdio, 2 },
     { "SFIO4",        0xC0C40000, 0xC0C40FFF, eos_handle_sfio, 4 },
     { "SDIO6",        0xC8060000, 0xC8060FFF, eos_handle_sdio, 6 },
+    { "SFIO7",        0xC8070000, 0xC8070FFF, eos_handle_sfio, 7 },
     { "CFDMA0",       0xC0500000, 0xC0500FFF, eos_handle_cfdma, 0 },
     { "SDDMA1",       0xC0510000, 0xC05100FF, eos_handle_sddma, 1 },
     { "SDDMA3",       0xC0530000, 0xC0530FFF, eos_handle_sddma, 3 },
@@ -3450,6 +3451,12 @@ static unsigned int eos_handle_rtc ( unsigned int parm, EOSState *s, unsigned in
 
 unsigned int eos_handle_sio ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
+    if (parm == 2 && strcmp(s->model->name, "80D") == 0)
+    {
+        /* fixme: nicer way to handle model-specific handlers */
+        return eos_handle_sio_serialflash(parm, s, address, type, value);
+    }
+
     if (s->rtc.transfer_format != RTC_INACTIVE)
     {
         /* RTC CS active? */
@@ -5074,6 +5081,21 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
         case 0xD20B210C:
             msg = "CF detect";          /* 5D4: same as above */
             ret = 0x10000;
+            break;
+
+        case 0xD20B0D8C:
+            /* Serial flash on 80D */
+            msg = "SPI";
+            if (s->sf)
+            {
+                serial_flash_set_CS(s->sf, (value & 1) ? 0 : 1);
+            }
+            if (!qemu_loglevel_mask(EOS_LOG_SFLASH))
+            {
+                if (value == 0xD0002 || value == 0xC0003)
+                    return 0; // Quiet
+            }
+            ret = 0;
             break;
 
         case 0xD6040000:                /* M3: appears to expect 0x3008000 or 0x3108000 */

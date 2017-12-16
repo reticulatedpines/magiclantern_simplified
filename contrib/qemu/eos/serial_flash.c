@@ -7,6 +7,7 @@
 #include "hw/sd/sd.h"
 #include "hw/eos/serial_flash.h"
 #include "hw/eos/eos_utils.h"
+#include "model_list.h"
 
 #include "serial_flash.h"
 
@@ -14,6 +15,7 @@
 #define SF_EPRINTF(fmt, ...) EPRINTF("[SFIO] ",   EOS_LOG_SFLASH, fmt, ## __VA_ARGS__)
 #define EE_DPRINTF(fmt, ...) DPRINTF("[EEPROM] ", EOS_LOG_SFLASH, fmt, ## __VA_ARGS__)
 #define EE_EPRINTF(fmt, ...) EPRINTF("[EEPROM] ", EOS_LOG_SFLASH, fmt, ## __VA_ARGS__)
+#define EE_VPRINTF(fmt, ...) VPRINTF("[EEPROM] ", EOS_LOG_SFLASH, fmt, ## __VA_ARGS__)
 
 static const char * spi_opname(int code)
 {
@@ -142,7 +144,7 @@ uint8_t serial_flash_spi_read(SerialFlashState * sf)
             sf->read_value = 0;
             break;
     }
-    EE_DPRINTF("READ >> 0x%X\n", ret);
+    EE_VPRINTF("READ >> 0x%X\n", ret);
     return ret;
 }
 
@@ -310,7 +312,7 @@ unsigned int sfio_trigger_int_DMA ( EOSState *s )
 {
     SF_DPRINTF("sfio_trigger_int_DMA\n");
     sfio_do_transfer(s);
-    eos_trigger_int(s, 0x17B, 0);
+    eos_trigger_int(s, s->model->serial_flash_interrupt, 0);
     return 0;
 }
 
@@ -329,7 +331,7 @@ static inline void sfio_trigger_interrupt(EOSState *s, SDIOState *sd)
     
 //    if ((sd->status & 3) == 1 && sd->irq_flags)
 //    {
-        eos_trigger_int(s, 0x17B, 0);
+        eos_trigger_int(s, s->model->serial_flash_interrupt, 0);
         //eos_trigger_int(s, 0xB1, 0);
 //    }
     SF_DPRINTF("sfio_trigger_interrupt OUT\n");

@@ -89,6 +89,7 @@ struct eos_model_desc eos_model_list[] = {
         .uart_rx_interrupt      = 0x2E,
         .uart_tx_interrupt      = 0x3A,
         .rtc_cs_register        = 0xC02201F8,
+        .serial_flash_interrupt = 0x17B,
     },
     {
         /* defaults for DIGIC 6 cameras */
@@ -116,6 +117,7 @@ struct eos_model_desc eos_model_list[] = {
         .card_led_address       = 0xD20B0A24,
         .uart_rx_interrupt      = 0x15D,
         .uart_tx_interrupt      = 0x16D,
+        .serial_flash_interrupt = 0xFE,
     },
     {
         /* defaults for DIGIC 7 cameras */
@@ -360,6 +362,7 @@ struct eos_model_desc eos_model_list[] = {
         .ram_size               = 0x40000000,
         .ram_manufacturer_id    = 0x18000103,   /* RAM manufacturer: Micron */
         .current_task_addr      = 0x44F4,
+        .serial_flash_size      = 0x800000,
     },
     {
         .name                   = "750D",
