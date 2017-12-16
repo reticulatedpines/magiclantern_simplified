@@ -286,6 +286,7 @@ typedef struct
     SDIOState sd;
     CFState cf;
     DigicUartState uart;
+    int uart_just_received;
     MPUState mpu;
     EDMACState edmac;
     PreproState prepro;

@@ -1116,6 +1116,16 @@ enum {
 static int eos_uart_can_rx(void *opaque)
 {
     DigicUartState *s = opaque;
+    EOSState *es = (EOSState *)(opaque - offsetof(EOSState, uart));
+
+    /* fixme: make it work without this workaround */
+    if (es->uart_just_received)
+    {
+        /* extra wait states to work around buffer issues; test code follows */
+        /* ( sleep 5; echo "akashimorino" ) | ./run_canon_fw.sh 750D -serial stdio */
+        es->uart_just_received--;
+        return 0;
+    }
 
     return !(s->reg_st & ST_RX_RDY);
 }
@@ -1124,10 +1134,13 @@ static void eos_uart_rx(void *opaque, const uint8_t *buf, int size)
 {
     DigicUartState *s = opaque;
 
+    assert(size == 1);
     assert(eos_uart_can_rx(opaque));
 
     s->reg_st |= ST_RX_RDY;
     s->reg_rx = *buf;
+
+    assert(!eos_uart_can_rx(opaque));
 
     EOSState *es = (EOSState *)(opaque - offsetof(EOSState, uart));
     assert(es->model->uart_rx_interrupt);
@@ -2976,6 +2989,7 @@ unsigned int eos_handle_uart ( unsigned int parm, EOSState *s, unsigned int addr
                 {
                     msg = "Reset RX indicator";
                     s->uart.reg_st &= ~(ST_RX_RDY);
+                    s->uart_just_received = 100;
                 }
                 else
                 {
