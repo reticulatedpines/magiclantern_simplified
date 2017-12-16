@@ -479,7 +479,9 @@ unsigned int eos_handle_sfio ( unsigned int parm, EOSState *s, unsigned int addr
             break;
     }
 
-    io_log("SFIO", s, address, type, value, ret, msg, msg_arg1, msg_arg2);
+    if (qemu_loglevel_mask(EOS_LOG_SFLASH)) {
+        io_log("SFIO", s, address, type, value, ret, msg, msg_arg1, msg_arg2);
+    }
     return ret;
 }
 
@@ -648,70 +650,53 @@ static inline unsigned int eos_handle_sfio_old ( unsigned int parm, EOSState *s,
 
 unsigned int eos_handle_sio_serialflash ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
-    //unsigned int pc = s->cpu->env.regs[15];
-    if (s->sf == NULL) return 0;
+    unsigned int ret = 0;
+    const char * msg = 0;
 
-    if ((type & MODE_READ))
+    if (s->sf == NULL)
     {
-        switch(address & 0xFF)
-        {
-            case 0x04:
-                value = serial_flash_write_poll(s->sf);
-                //fprintf(stderr, "[SPI:%i:%02X] ", parm, address & 0xff);
-                //fprintf(stderr, "[BUSY] >> %d (pc: 0x%08X)\r\n", value, pc);
-                return value;
-            case 0x10:
-                //fprintf(stderr, "[SPI:%i:%02X] ", parm, address & 0xff);
-                //fprintf(stderr, "[WMODE?] >> 0 (write mode?) (pc: 0x%08X)\r\n", pc);
-                return 0; // Unk, set to zero before write
-            case 0x1C:
-                value = serial_flash_spi_read(s->sf);
-                //fprintf(stderr, "[SPI:%i:%02X] ", parm, address & 0xff);
-                //fprintf(stderr, "[TX] >> 0x%02X (pc: 0x%08X)...\r\n", value, pc);
-                // last_was_tx = 1;
-                return value;
-                //return 0;
-            case 0x38:
-                value = s->sf->mode;
-                //fprintf(stderr, "[SPI:%i:%02X] ", parm, address & 0xff);
-                //fprintf(stderr, "[MODE] >> 0x%X (pc: 0x%08X)\r\n", value, pc);
-                return value;
-            default:
-                //fprintf(stderr, "[SPI:%i:%02X] ", parm, address & 0xff);
-                //fprintf(stderr, "[???] >> 0 (pc: 0x%08X)\r\n", pc);
-                return 0;
-        }
+        goto end;
     }
-    if ((type & MODE_WRITE))
+
+    switch(address & 0xFF)
     {
-        switch(address & 0xFF)
-        {
-            case 0x04:
-                //fprintf(stderr, "[BUSY] << %d (set wait flag) (pc: 0x%08X)\r\n", value, pc);
-                //fprintf(stderr, "[SPI:%i:%02X] ", parm, address & 0xff);
-                return 0;
-            case 0x10:
-                //fprintf(stderr, "[SPI:%i:%02X] ", parm, address & 0xff);
-                //fprintf(stderr, "[WMODE?] << 0 (write mode?) (pc: 0x%08X)\r\n", pc);
-                return 0; // Unk, set to zero before write
-            case 0x18:
-                //fprintf(stderr, "[SPI:%i:%02X] ", parm, address & 0xff);
-                //fprintf(stderr, "[RX] << 0x%X (pc: 0x%08X)\r\n", value, pc);
+        case 0x04:
+            if (type & MODE_READ) {
+                msg = "busy (write poll)";
+                ret = serial_flash_write_poll(s->sf);
+            }
+            break;
+        case 0x10:
+            msg = "write mode?";
+            break;
+        case 0x18:
+            msg = "write";
+            if (type & MODE_WRITE) {
                 serial_flash_spi_write(s->sf,value);
-                return 0;
-            case 0x38:
-                //fprintf(stderr, "[SPI:%i:%02X] ", parm, address & 0xff);
-                // Set to (([SF_data,#20] != 1) ? 0x80800408 : 0x80A00408) before write (mode)
-                //fprintf(stderr, "[MODE] << 0x%X (pc: 0x%08X)\r\n", value, pc);
-                s->sf->mode = value;
-                return 0;
-            default:
-                //fprintf(stderr, "[SPI:%i:%02X] ", parm, address & 0xff);
-                //fprintf(stderr, "[???] << 0x%X (pc: 0x%08X)\r\n", value, pc);
-                return 0;
-        }
+            }
+            break;
+        case 0x1C:
+            msg = "read";
+            if (type & MODE_READ) {
+                ret = serial_flash_spi_read(s->sf);
+            }
+            // last_was_tx = 1;
+            break;
+        case 0x38:
+            msg = "mode";
+            MMIO_VAR(s->sf->mode);
+            break;
     }
-    return 0;
+
+end:
+    if (qemu_loglevel_mask(EOS_LOG_SFLASH) &&
+        qemu_loglevel_mask(EOS_LOG_VERBOSE))
+    {
+        char sio_name[16];
+        snprintf(sio_name, sizeof(sio_name), "SIO%d-SF", parm);
+        io_log(sio_name, s, address, type, value, ret, msg, 0, 0);
+    }
+    return ret;
 }
 
 #if 0
