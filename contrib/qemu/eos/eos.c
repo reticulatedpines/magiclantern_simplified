@@ -224,6 +224,7 @@ EOSRegionHandler eos_handlers[] =
     { "ENGIO",        0xC0F00000, 0xC0FFFFFF, eos_handle_engio, 0 },
 
     { "ROM-DMA",      0xD6030000, 0xD60300FF, eos_handle_romread_dma, 0 },
+    { "MEMDIV",       0xD9001600, 0xD9003FFF, eos_handle_memdiv, 0 },
     { "DIGIC6",       0xD0000000, 0xDFFFFFFF, eos_handle_digic6, 0 },
     { "DIGIC6",       0xC8100000, 0xC8100FFF, eos_handle_digic6, 1 },
     
@@ -4943,6 +4944,32 @@ unsigned int eos_handle_eeko_comm( unsigned int parm, EOSState *s, unsigned int 
     }
 
     io_log("EEKO", s, address, type, value, ret, msg, msg_arg1, 0);
+    return ret;
+}
+
+unsigned int eos_handle_memdiv( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+{
+    const char * msg = 0;
+    unsigned int ret = 0;
+
+    switch (address & 0xFFFF)
+    {
+        case 0x1604:
+        {
+            msg = "MEMDIV_SETUP";
+            ret = 0x5A;
+            break;
+        }
+        default:
+        {
+            /* 0x1600 ... 0x3FFF */
+            /* firmware expects to read back what it has written earlier? */
+            static uint32_t shm[0x4000];
+            MMIO_VAR(shm[address & (COUNT(shm)-1)]);
+        }
+    }
+
+    io_log("MEMDIV", s, address, type, value, ret, msg, 0, 0);
     return ret;
 }
 
