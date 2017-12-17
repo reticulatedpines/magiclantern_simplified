@@ -446,12 +446,18 @@ unsigned int eos_handle_mpu(unsigned int parm, EOSState *s, unsigned int address
             s->mpu.sending = 0;
         }
         
-        ret = (s->mpu.sending && !s->mpu.receiving) ? 0x40003 :  /* I have data to send */
-              (!s->mpu.sending && s->mpu.receiving) ? 0x00000 :  /* I'm ready to receive data */
-              (s->mpu.sending && s->mpu.receiving)  ? 0x00001 :  /* I'm ready to send and receive data */
-                                                      0x40002 ;  /* I believe this is some error code */
-        ret |= (s->mpu.status & 0xFFFBFFFC);                     /* The other bits are unknown;
-                                                                    they are set to 0x44 by writing to the register */
+        /* actual return value doesn't seem to matter much
+         * Canon code only tests a flag that appears to signal some sort of error
+         * returning anything other than that flag has no effect
+         * the following is just a guess that hopefully matches the D4/5 hardware
+         */
+
+        ret = (s->mpu.sending) ? 1 : 0;
+
+        if (s->model->mpu_request_register == s->model->mpu_status_register)
+        {
+            ret |= s->mpu.status & ~1;
+        }
 
         msg = "status (sending=%d, receiving=%d)";
         msg_arg1 = s->mpu.sending;
