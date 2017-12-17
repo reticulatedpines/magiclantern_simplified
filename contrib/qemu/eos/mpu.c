@@ -46,6 +46,7 @@ static int mpu_init_spell_count = 0;
 #include "mpu_spells/100D.h"
 #include "mpu_spells/EOSM.h"
 #include "mpu_spells/EOSM2.h"
+#include "mpu_spells/generic.h"
 
 #include "mpu_spells/known_spells.h"
 
@@ -1107,13 +1108,13 @@ void mpu_spells_init(EOSState *s)
 
     if (!mpu_init_spell_count)
     {
-        MPU_EPRINTF("FIXME: no MPU spells for %s.\n", s->model->name);
+        MPU_EPRINTF("FIXME: using generic MPU spells for %s.\n", s->model->name);
+        mpu_init_spells = mpu_init_spells_generic;
+        mpu_init_spell_count = COUNT(mpu_init_spells_generic);
         /* how to get them: http://magiclantern.fm/forum/index.php?topic=2864.msg166938#msg166938 */
     }
-    else
-    {
-        mpu_check_duplicate_spells(s);
-    }
+
+    mpu_check_duplicate_spells(s);
 
 #define MPU_BUTTON_CODES(cam) \
     if (strcmp(s->model->name, #cam) == 0) { \
