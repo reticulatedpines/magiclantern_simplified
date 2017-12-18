@@ -154,7 +154,7 @@ cd ..
 . ./mtools_setup.sh
 
 echo "Compiling..."
-./run_canon_fw.sh help &> build.log
+./run_canon_fw.sh help &> build.log || { cat build.log; exit 1; }
 
 # don't recompile each time (for speed)
 export MAKE="echo skipping make"
