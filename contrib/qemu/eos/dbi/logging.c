@@ -1008,7 +1008,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
              * save the previous state (we'll need to restore it when returning from interrupt) */
             uint8_t id = get_stackid(s);
             assert(id != 0xFE);
-            //fprintf(stderr, "Saving state: pc %x, lr %x, sp %x, size %x\n", prev_pc, prev_lr, prev_sp, prev_size);
+            //fprintf(stderr, "Saving state [%x]: pc %x, lr %x, sp %x, size %x\n", id, prev_pc, prev_lr, prev_sp, prev_size);
             cs_exec_states[id] = (struct call_stack_exec_state) {
                 .pc = prev_pc,
                 .lr = prev_lr,
@@ -1287,11 +1287,24 @@ recheck:
                  * VxWorks: LDMIA R4, {R0-PC}^
                  * They can be called from interrupts or from regular code. */
             maybe_task_switch:
-                 if (interrupt_level == 0) {
-                     goto end;
-                 } else {
-                     goto reti;
-                 }
+                if (interrupt_level == 0) {
+                    /* DryOS task switch outside interrupts? save the previous state
+                     * we'll need to restore it when returning from interrupt back to this task
+                     * fixme: duplicate code */
+                    uint8_t id = get_stackid(s);
+                    assert(id != 0xFE);
+                    //fprintf(stderr, "Saving state [%x]: pc %x, lr %x, sp %x, size %x\n", id, prev_pc, prev_lr, prev_sp, prev_size);
+                    cs_exec_states[id] = (struct call_stack_exec_state) {
+                        .pc = prev_pc,
+                        .lr = prev_lr,
+                        .sp = prev_sp,
+                        .size = prev_size
+                    };
+                    goto end;
+                } else {
+                    /* return from interrupt to a DryOS task */
+                    goto reti;
+                }
             }
 
             if (insn == 0xe8fd901f || insn == 0xe8fd800f)
@@ -1376,7 +1389,7 @@ recheck:
                     prev_lr   = cs_exec_states[id].lr;
                     prev_sp   = cs_exec_states[id].sp;
                     prev_size = cs_exec_states[id].size;
-                    //fprintf(stderr, "Restoring state: pc %x->%x lr %x->%x sp %x->%x size %x->%x\n", prev_pc, pc, prev_lr, lr, prev_sp, sp, prev_size, tb->size);
+                    //fprintf(stderr, "Restoring state [%x]: pc %x->%x lr %x->%x sp %x->%x size %x->%x\n", id, prev_pc, pc, prev_lr, lr, prev_sp, sp, prev_size, tb->size);
 
                     if (pc != prev_pc && pc != prev_pc + 4)
                     {
@@ -1516,6 +1529,7 @@ recheck:
                 call_stack_indent(id, 0, 0);
                 /* hm, target_disas used to look at flags for ARM or Thumb... */
                 int t0 = env->thumb; env->thumb = prev_pc & 1;
+                assert(prev_size);
                 target_disas(stderr, CPU(arm_env_get_cpu(env)), prev_pc0, prev_size, 0);
                 env->thumb = t0;
             }
