@@ -4986,6 +4986,18 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
         return eos_handle_card_led(parm, s, address, type, value);
     }
 
+    /* 0xD20B0884/084 so far */
+    if (address == s->model->mpu_request_register ||
+        address == s->model->mpu_status_register)
+    {
+        return eos_handle_mpu(parm, s, address, type, value);
+    }
+
+    if (address == s->model->mpu_control_register)
+    {
+        return eos_handle_mreq(parm, s, address, type, value);
+    }
+
     switch (address)
     {
         case 0xD203046C:

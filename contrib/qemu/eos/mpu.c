@@ -95,7 +95,7 @@ static void mpu_send_next_spell(EOSState *s)
         s->mpu.out_char = -2;
 
         /* request a SIO3 interrupt */
-        eos_trigger_int(s, 0x36, 0);
+        eos_trigger_int(s, s->model->mpu_sio3_interrupt, 0);
     }
     else
     {
@@ -172,7 +172,7 @@ static void mpu_start_sending(EOSState *s)
         s->mpu.sending = 1;
         
         /* request a MREQ interrupt */
-        eos_trigger_int(s, s->model->mpu_request_interrupt, 0);
+        eos_trigger_int(s, s->model->mpu_mreq_interrupt, 0);
     }
 }
 
@@ -301,7 +301,7 @@ void mpu_handle_sio3_interrupt(EOSState *s)
                 
                 if (s->mpu.out_char + 2 < num_chars)
                 {
-                    eos_trigger_int(s, 0x36, 0);   /* SIO3 */
+                    eos_trigger_int(s, s->model->mpu_sio3_interrupt, 0);   /* SIO3 */
                 }
                 else
                 {
@@ -310,7 +310,7 @@ void mpu_handle_sio3_interrupt(EOSState *s)
                     if (s->mpu.sq_head != s->mpu.sq_tail)
                     {
                         MPU_DPRINTF("Requesting next spell\n");
-                        eos_trigger_int(s, s->model->mpu_request_interrupt, 1);   /* MREQ */
+                        eos_trigger_int(s, s->model->mpu_mreq_interrupt, 1);   /* MREQ */
                     }
                     else
                     {
@@ -331,7 +331,7 @@ void mpu_handle_sio3_interrupt(EOSState *s)
         {
             /* more data to receive */
             MPU_DPRINTF("Request more data\n");
-            eos_trigger_int(s, 0x36, 0);   /* SIO3 */
+            eos_trigger_int(s, s->model->mpu_sio3_interrupt, 0);   /* SIO3 */
         }
     }
 }
@@ -355,7 +355,7 @@ void mpu_handle_mreq_interrupt(EOSState *s)
             /* it appears to be harmless,  but I'm not sure what happens with more than 1 message queued */
             MPU_DPRINTF("next message was started in SIO3\n");
         }
-        eos_trigger_int(s, 0x36, 0);   /* SIO3 */
+        eos_trigger_int(s, s->model->mpu_sio3_interrupt, 0);   /* SIO3 */
     }
 }
 
@@ -369,7 +369,9 @@ unsigned int eos_handle_mpu(unsigned int parm, EOSState *s, unsigned int address
      * - should return 0x44 when sending data to MPU
      * - and 0x47 when receiving data from MPU
      * - 1300D uses 0x83DC00 = reqest to send, 0x93D800 idle
-     * - 1300D: status reg is 0xC022F484, tested for 0x40000 instead of 2 
+     * - 1300D: status reg is 0xC022F484, tested for 0x40000 instead of 2
+     * - 80D: request 0xD20B0884: 0xC0003 = request to send, 0x4D00B2 idle
+     * - 80D: status 0xD20B0084, tested for 0x10000
      */
     
     int ret = 0;
@@ -385,7 +387,7 @@ unsigned int eos_handle_mpu(unsigned int parm, EOSState *s, unsigned int address
         int prev_value = s->mpu.status;
         s->mpu.status = value;
         
-        if (value & 0x100002)
+        if (value & s->model->mpu_request_bitmask)
         {
             if (s->mpu.receiving)
             {
@@ -412,7 +414,7 @@ unsigned int eos_handle_mpu(unsigned int parm, EOSState *s, unsigned int address
                 }
             }
         }
-        else if (prev_value & 0x100002)
+        else if (prev_value & s->model->mpu_request_bitmask)
         {
             /* receive request: transition of bit (1<<1) from high to low */
             msg = "Receive request %s";
@@ -432,7 +434,7 @@ unsigned int eos_handle_mpu(unsigned int parm, EOSState *s, unsigned int address
             {
                 s->mpu.receiving = 1;
                 s->mpu.recv_index = 0;
-                eos_trigger_int(s, s->model->mpu_request_interrupt, 0);   /* MREQ */
+                eos_trigger_int(s, s->model->mpu_mreq_interrupt, 0);   /* MREQ */
                 /* next steps in eos_handle_mreq -> mpu_handle_mreq_interrupt */
             }
         }
@@ -446,7 +448,7 @@ unsigned int eos_handle_mpu(unsigned int parm, EOSState *s, unsigned int address
             /* last two chars sent, finished */
             s->mpu.sending = 0;
         }
-        
+
         /* actual return value doesn't seem to matter much
          * Canon code only tests a flag that appears to signal some sort of error
          * returning anything other than that flag has no effect

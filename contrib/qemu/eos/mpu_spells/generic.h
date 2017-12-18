@@ -6,6 +6,7 @@
  * 450D 500D 550D 600D 650D 700D
  * 100D 1000D 1100D 1200D EOSM2
  * Not working: EOSM
+ * Does something: 80D, 750D, 760D
  */
 
 static struct mpu_init_spell mpu_init_spells_generic[] = {

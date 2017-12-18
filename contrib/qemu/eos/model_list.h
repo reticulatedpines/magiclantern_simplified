@@ -39,9 +39,11 @@ struct eos_model_desc {
             uint32_t current_task_addr;
             uint32_t current_task_name_offs;
             uint32_t mpu_request_register;
-            uint32_t mpu_request_interrupt;
+            uint32_t mpu_request_bitmask;
             uint32_t mpu_status_register;
             uint32_t mpu_control_register;
+            uint32_t mpu_mreq_interrupt;
+            uint32_t mpu_sio3_interrupt;
             uint32_t serial_flash_size;
             uint32_t serial_flash_sio_ch;
             uint32_t serial_flash_sfio_ch;
@@ -61,7 +63,7 @@ struct eos_model_desc {
         
         /* this must match the number of items in the above struct */
         /* note: you get a compile-time error if params[] is smaller than the struct */
-        uint32_t params[41];
+        uint32_t params[44];
     };
 } __attribute__((packed));
 
