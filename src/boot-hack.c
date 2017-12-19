@@ -229,6 +229,12 @@ my_task_dispatch_hook(
 #ifdef HIJACK_TASK_ADDR
     /* old DryOS only; undefine this for new DryOS */
     next_task = *(struct task **)(HIJACK_TASK_ADDR);
+#endif
+
+/* very verbose; disabled by default */
+#undef DEBUG_TASK_HOOK
+#ifdef DEBUG_TASK_HOOK
+#ifdef HIJACK_TASK_ADDR
     qprintf("[****] task_hook(%x) -> %x(%s), from %x\n",
         context_old,
         next_task, next_task ? next_task->name : "??",
@@ -242,6 +248,7 @@ my_task_dispatch_hook(
         next_task, next_task ? next_task->name : "??",
         read_lr()
     );
+#endif
 #endif
 
     if (!next_task)
