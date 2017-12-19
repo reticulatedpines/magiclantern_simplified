@@ -223,7 +223,10 @@ EOSRegionHandler eos_handlers[] =
     /* generic catch-all for everything unhandled from this range */
     { "ENGIO",        0xC0F00000, 0xC0FFFFFF, eos_handle_engio, 0 },
 
-    { "ROM-DMA",      0xD6030000, 0xD60300FF, eos_handle_romread_dma, 0 },
+    { "XDMAC",        0xD6030000, 0xD603002F, eos_handle_xdmac, 0 },
+    { "XDMAC",        0xD6030030, 0xD603005F, eos_handle_xdmac, 1 },
+    { "XDMAC",        0xD6030060, 0xD603008F, eos_handle_xdmac, 2 },
+    { "XDMAC",        0xD6030090, 0xD60300BF, eos_handle_xdmac, 3 },
     { "MEMDIV",       0xD9001600, 0xD9003FFF, eos_handle_memdiv, 0 },
     { "DIGIC6",       0xD0000000, 0xDFFFFFFF, eos_handle_digic6, 0 },
     { "DIGIC6",       0xC8100000, 0xC8100FFF, eos_handle_digic6, 1 },
@@ -2918,16 +2921,16 @@ unsigned int eos_handle_dma ( unsigned int parm, EOSState *s, unsigned int addre
     return ret;
 }
 
-unsigned int eos_handle_romread_dma ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+unsigned int eos_handle_xdmac ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
     const char * msg = 0;
     unsigned int ret = 0;
     static unsigned int srcAddr = 0;
     static unsigned int dstAddr = 0;
     static unsigned int count = 0;
-    unsigned int interruptId[] = { 0x13E, 0x14E };
+    unsigned int interruptId[] = { 0x13E, 0x14E, 0x15E, 0x16E };
 
-    switch(address & 0xFF)
+    switch ((address & 0xFF) % 0x30)
     {
         case 0x00:
         {
@@ -2964,7 +2967,7 @@ unsigned int eos_handle_romread_dma ( unsigned int parm, EOSState *s, unsigned i
                     }
                     free(buf);
 
-                    fprintf(stderr, "[ROM-DMA%i] OK\n", parm);
+                    fprintf(stderr, "[XDMAC%i] OK\n", parm);
 
                     eos_trigger_int(s, interruptId[parm], count / 10000);
                 }
@@ -2988,7 +2991,7 @@ unsigned int eos_handle_romread_dma ( unsigned int parm, EOSState *s, unsigned i
     }
 
     char dma_name[16];
-    snprintf(dma_name, sizeof(dma_name), "ROM-DMA%i", parm);
+    snprintf(dma_name, sizeof(dma_name), "XDMAC%i", parm);
     io_log(dma_name, s, address, type, value, ret, msg, 0, 0);
 
     return ret;
