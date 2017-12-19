@@ -229,6 +229,12 @@ my_task_dispatch_hook(
 #ifdef HIJACK_TASK_ADDR
     /* old DryOS only; undefine this for new DryOS */
     next_task = *(struct task **)(HIJACK_TASK_ADDR);
+#endif
+
+/* very verbose; disabled by default */
+#undef DEBUG_TASK_HOOK
+#ifdef DEBUG_TASK_HOOK
+#ifdef HIJACK_TASK_ADDR
     qprintf("[****] task_hook(%x) -> %x(%s), from %x\n",
         context_old,
         next_task, next_task ? next_task->name : "??",
@@ -242,6 +248,7 @@ my_task_dispatch_hook(
         next_task, next_task ? next_task->name : "??",
         read_lr()
     );
+#endif
 #endif
 
     if (!next_task)
@@ -637,7 +644,7 @@ init_task_func init_task_patched(int a, int b, int c, int d)
     ml_reserved_mem = 0x4E0000 - RESTARTSTART;
     #elif defined(CONFIG_550D) || defined(CONFIG_600D)
     // change end limit from 0xd00000 to 0xc70000 => reserve 576K for ML
-    *addr_AllocMem_end = MOV_R1_0xC60000_INSTR;
+    *addr_AllocMem_end = MOV_R1_0xC70000_INSTR;
     ml_reserved_mem = 0xD00000 - RESTARTSTART;
     #else
     // change end limit from 0xd00000 to 0xc80000 => reserve 512K for ML
