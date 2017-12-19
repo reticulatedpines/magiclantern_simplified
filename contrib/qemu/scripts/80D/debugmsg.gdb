@@ -18,7 +18,7 @@ macro define CURRENT_ISR  (*(int*)0x44D0 ? (*(int*)0x44D4) : 0)
 b *0xFF0
 task_create_log
 
-b *0xFE547BF8
+b *0xFE547CD4
 assert_log
 
 b *0xB60
@@ -39,6 +39,42 @@ commands
   print_current_location
   printf "Memory region: start=%08X end=%08X flags=%08X\n", $r0, $r1, $r2
   c
+end
+
+# semaphores
+if 0
+  b *0x23E0
+  create_semaphore_log
+
+  b *0x242C
+  create_semaphore_log
+
+  b *0x24D6
+  take_semaphore_log
+
+  b *0x254E
+  give_semaphore_log
+
+  b *0x2464
+  delete_semaphore_log
+end
+
+# message queues
+if 0
+  b *0x2120
+  create_msg_queue_log
+
+  b *0x2334
+  post_msg_queue_log
+
+  b *0x21E0
+  try_receive_msg_queue_log
+
+  b *0x226C
+  receive_msg_queue_log
+
+  b *0x14E6
+  try_post_event_log
 end
 
 cont
