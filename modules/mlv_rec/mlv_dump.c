@@ -3694,8 +3694,19 @@ read_headers:
 
                 if(verbose)
                 {
+                    uint64_t serial = 0;
+                    char serial_str[64];
+                    char *end;
+                    
+                    strcpy(serial_str, "no valid S/N");
+                    serial = strtoull((char *)lens_info.lensSerial, &end, 16);
+                    if (serial && !*end)
+                    {
+                        sprintf(serial_str, "%"PRIu64, serial);
+                    }
+                    
                     print_msg(MSG_INFO, "     Name:        '%s'\n", lens_info.lensName);
-                    print_msg(MSG_INFO, "     Serial:      '%s'\n", lens_info.lensSerial);
+                    print_msg(MSG_INFO, "     Serial:      '%s' (%s)\n", lens_info.lensSerial, serial_str);
                     print_msg(MSG_INFO, "     Focal Len:   %d mm\n", lens_info.focalLength);
                     print_msg(MSG_INFO, "     Focus Dist:  %d mm\n", lens_info.focalDist);
                     print_msg(MSG_INFO, "     Aperture:    f/%.2f\n", (double)lens_info.aperture / 100.0f);
@@ -3819,10 +3830,21 @@ read_headers:
             {
                 idnt_info = *(mlv_idnt_hdr_t *)mlv_block;
 
+                uint64_t serial = 0;
+                char serial_str[64];
+                char *end;
+                
+                strcpy(serial_str, "no valid S/N");
+                serial = strtoull((char *)idnt_info.cameraSerial, &end, 16);
+                if (serial && !*end)
+                {
+                    sprintf(serial_str, "%"PRIu64, serial);
+                }
+                
                 if(verbose)
                 {
                     print_msg(MSG_INFO, "     Camera Name:   '%s'\n", idnt_info.cameraName);
-                    print_msg(MSG_INFO, "     Camera Serial: '%s'\n", idnt_info.cameraSerial);
+                    print_msg(MSG_INFO, "     Camera Serial: '%s' (%s)\n", idnt_info.cameraSerial, serial_str);
                     print_msg(MSG_INFO, "     Camera Model:  0x%08X\n", idnt_info.cameraModel);
                 }
 
