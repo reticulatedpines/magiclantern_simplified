@@ -118,7 +118,7 @@ define print_current_location
   printf "["
   if CURRENT_ISR > 0
     KRED
-    printf "   INT-%02Xh:%08x ", CURRENT_ISR, $r14-4
+    printf "    INT-%02Xh:%08x ", CURRENT_ISR, $r14-4
   else
     if $_thread == 1
       KCYN
@@ -877,6 +877,29 @@ define rtc_write_log
     silent
     print_current_location
     printf "RTC write register %x %x\n", $r0, $r1
+    c
+  end
+end
+
+# state objects
+# see state_transition_log in dm-spy-extra.c (dm-spy-experiments)
+define state_transition_log
+  commands
+    silent
+    print_current_location
+    set $stateobj = $r0
+    set $input    = $r2
+    # see state-object.h; how to define structs in gdb?
+    set $state_name   = ((char**)$stateobj)[1]
+    set $state_matrix = ((int**) $stateobj)[4]
+    set $max_states   = ((int*)  $stateobj)[6]
+    set $old_state    = ((int*)  $stateobj)[7]
+    set $next_state   = $state_matrix[($old_state + $max_states * $input) * 2]
+    set $next_func    = $state_matrix[($old_state + $max_states * $input) * 2 + 1]
+    KYLW
+    printf "%s: (%d) --%d--> (%d)", $state_name, $old_state, $input, $next_state
+    KRESET
+    printf "      %x (x=%x z=%x t=%x)\n", $next_func, $r1, $r3, *(int*)$sp
     c
   end
 end

@@ -33,6 +33,12 @@ if 0
   mpu_recv_log
 end
 
+# state objects
+if 1
+  b *0x1224
+  state_transition_log
+end
+
 b *0xFE237C9E
 commands
   silent

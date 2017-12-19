@@ -56,6 +56,12 @@ if 0
   give_semaphore_log
 end
 
+# state objects
+if 1
+  b *0xff1d84f4
+  state_transition_log
+end
+
 # image processing engine
 if 0
   b *0xFF1C4074
