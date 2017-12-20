@@ -2827,9 +2827,8 @@ read_headers:
                     /*
                       write this block when following conditions are true
                         a) we are writing a MLV file
-                        b) this is NOT "only-metadata" mode
-                        c) this is not average mode (where video data will accumulate and be written as last)
-                        d) this block should get extracted in case of extraction mode
+                        b) this is not average mode (where video data will accumulate and be written as last)
+                        c) this block should get extracted in case of extraction mode
                     */
                     int write_block = mlv_output && !average_mode && (!extract_block || !strncasecmp(extract_block, (char*)block_hdr.blockType, 4));             
 
