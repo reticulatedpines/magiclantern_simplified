@@ -4150,7 +4150,11 @@ abort:
         }
         else
         {
-            int new_pitch = video_xRes * lv_rec_footer.raw_info.bits_per_pixel / 8;
+            int old_depth = lv_rec_footer.raw_info.bits_per_pixel;
+            int new_depth = bit_depth ? bit_depth : old_depth;
+            int new_pitch = video_xRes * new_depth / 8;
+            
+            print_msg(MSG_INFO, "Writing averaged frame with %dbpp\n", new_depth);
             
             /* average the pixels in vertical direction, so we will extract vertical banding noise */
             if(average_vert)
@@ -4195,15 +4199,24 @@ abort:
                 for(int x = 0; x < video_xRes; x++)
                 {
                     uint32_t value = frame_arith_buffer[y * video_xRes + x];
-
+                    
                     /* complete the averaging, minimizing the roundoff error */
                     value = (value + average_samples/2) / average_samples;
-                    bitinsert(dst_line, x, lv_rec_footer.raw_info.bits_per_pixel, value);
+                    
+                    /* scale value when bit depth changed according to depth conversion in VIDF block */
+                    if(old_depth != new_depth)
+                    {
+                        value <<= (16-old_depth);
+                        value += (1 << (15-old_depth));
+                        value >>= (16-new_depth);
+                    }
+
+                    bitinsert(dst_line, x, new_depth, value);
                 }
             }
             
 
-            int frame_size = ((video_xRes * video_yRes * lv_rec_footer.raw_info.bits_per_pixel + 7) / 8);
+            int frame_size = ((video_xRes * video_yRes * new_depth + 7) / 8);
 
             mlv_vidf_hdr_t hdr;
 
