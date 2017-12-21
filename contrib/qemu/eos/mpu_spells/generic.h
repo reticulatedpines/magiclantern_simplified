@@ -11,7 +11,7 @@
  * Even if it crashes, the SD card is initialized and the firmware can save files to the virtual card.
  * Working (menu navigation, card format): 60D 500D 550D 600D 650D 700D 1100D 1200D.
  * Working (menu navigation, card recognized): 450D 1000D.
- * Assert at EstimatedSize, dumpf works: 5D3 6D 70D 100D EOSM2.
+ * Assert at EstimatedSize, dumpf works: 5D3 6D 70D 80D 100D EOSM2.
  * Not working EOSM.
  * 
  * With CF card support (use PROP_CARD1_EXISTS, 0x21 -> 0x20):

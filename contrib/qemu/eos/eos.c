@@ -3571,7 +3571,7 @@ static void sdio_send_command(SDIOState *sd)
     if (rlen < 0)
         goto error;
 
-    if (sd->cmd_flags != 0x11 && sd->cmd_flags != 0x1) {
+    if (sd->cmd_flags != 0x11) {
 #define RWORD(n) (((uint32_t)response[n] << 24) | (response[n + 1] << 16) \
                   | (response[n + 2] << 8) | response[n + 3])
         if (rlen == 0)
@@ -3695,7 +3695,7 @@ static void sdio_trigger_interrupt(EOSState *s)
     SDIOState *sd = &s->sd;
 
     /* after a successful operation, trigger interrupt if requested */
-    if ((sd->cmd_flags == 0x13 || sd->cmd_flags == 0x14 || sd->cmd_flags == 0x04)
+    if ((sd->cmd_flags == 0x13 || sd->cmd_flags == 0x14)
         && !(sd->status & SDIO_STATUS_DATA_AVAILABLE))
     {
         /* if the current command does a data transfer, don't trigger until complete */
@@ -3781,7 +3781,7 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
                 }
                 else
                 {
-                    if (value == 0x13)  /* also 0x03? */
+                    if (value == 0x13)
                     {
                         /* write transfer */
                         s->sd.pio_transferred_bytes = 0;
@@ -3791,6 +3791,10 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
                     /* non-data or write transfer */
                     sdio_trigger_interrupt(s);
                 }
+            }
+            else
+            {
+                ret = 0x10;
             }
             break;
 
@@ -3817,10 +3821,9 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
             MMIO_VAR(s->sd.irq_flags);
 
             /* sometimes, a write command ends with this register
-             * other times, it ends with SDDMA register 0x78/0x38
+             * other times, it ends with SDDMA register 0x10 (mask 0x1F)
              */
-            
-            if (s->sd.cmd_flags == 0x13 && s->sd.dma_enabled && value)
+            if (s->sd.cmd_flags == 0x13 && value)
             {
                 sdio_write_data(s);
             }
@@ -3992,10 +3995,17 @@ unsigned int eos_handle_sddma ( unsigned int parm, EOSState *s, unsigned int add
             }
             break;
         case 0x10:
-            msg = "Flags/Status";
+            msg = "Command/Status?";
             if (type & MODE_WRITE)
             {
                 s->sd.dma_enabled = value & 1;
+
+                /* DMA transfer? */
+                if (s->sd.cmd_flags == 0x13 && s->sd.dma_enabled)
+                {
+                    sdio_write_data(s);
+                    sdio_trigger_interrupt(s);
+                }
             }
             break;
         case 0x14:
@@ -4003,15 +4013,6 @@ unsigned int eos_handle_sddma ( unsigned int parm, EOSState *s, unsigned int add
             ret = (s->sd.dma_enabled) ? 0x81 : 0;
             break;
         case 0x18:
-            msg = "Transfer start?";
-
-            /* DMA transfer? */
-            if (s->sd.cmd_flags == 0x13)
-            {
-                sdio_write_data(s);
-                sdio_trigger_interrupt(s);
-            }
-
             break;
     }
 

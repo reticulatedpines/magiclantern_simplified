@@ -17,6 +17,16 @@ if 1
 
   # startupPrepareDevelop
   set *(int*)0xFE0D52C2 = 0x4770
+
+  # EstimatedSize
+  b *0xFE19B06A
+  commands
+    silent
+    print_current_location
+    printf "EstimatedSize %d\n", $r0
+    set $r0 = 0x7D0
+    c
+  end
 end
 
 source patch-footer.gdb
