@@ -998,9 +998,9 @@ function test_dcim {
 echo
 echo "Testing file I/O (DCIM directory)..."
 # Currently works only on models that can boot Canon GUI,
-# and also on 1300D.
+# and also on 1300D and 80D.
 # we need to check the card contents; cannot run in parallel
-for CAM in ${GUI_CAMS[*]} 1300D; do
+for CAM in ${GUI_CAMS[*]} 1300D 80D; do
     ((QEMU_JOB_ID++))
     run_test dcim $CAM
 done; cleanup
