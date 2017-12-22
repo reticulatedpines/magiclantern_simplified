@@ -3455,7 +3455,7 @@ static unsigned int eos_handle_rtc ( unsigned int parm, EOSState *s, unsigned in
 
 unsigned int eos_handle_sio ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
-    if (parm == s->model->serial_flash_sio_ch)
+    if (s->sf && parm == s->model->serial_flash_sio_ch)
     {
         /* serial flash (SFIO) */
         return eos_handle_sio_serialflash(parm, s, address, type, value);
@@ -3728,7 +3728,7 @@ static void sdio_trigger_interrupt(EOSState *s)
 
 unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
-    if (parm == s->model->serial_flash_sfio_ch)
+    if (s->sf && parm == s->model->serial_flash_sfio_ch)
     {
         /* serial flash DMA */
         return eos_handle_sfio(parm, s, address, type, value);

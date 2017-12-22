@@ -30,8 +30,6 @@ struct eos_model_desc eos_model_list[] = {
         .uart_rx_interrupt      = 0x2E,
         .uart_tx_interrupt      = 0x3A,
         .rtc_cs_register        = 0xC022005C,
-        .serial_flash_sio_ch    = 4,    /* fixme */
-        .serial_flash_sfio_ch   = 4,
     },
     {
         /* defaults for DIGIC 4 cameras */
@@ -305,8 +303,6 @@ struct eos_model_desc eos_model_list[] = {
         .sd_dma_interrupt       = 0x32,
         .uart_rx_interrupt      = 0x38,
         .rtc_time_correct       = 0xFD,
-        .serial_flash_sio_ch    = 4,    /* fixme */
-        .serial_flash_sfio_ch   = 4,
     },
     {
         .name                   = "EOSM",
