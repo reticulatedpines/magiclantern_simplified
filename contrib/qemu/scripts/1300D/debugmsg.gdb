@@ -2,7 +2,6 @@
 # ./run_canon_fw.sh 1300D -d debugmsg -s -S & arm-none-eabi-gdb -x 1300D/debugmsg.gdb
 
 source -v debug-logging.gdb
-source -v 1300D/patches.gdb
 
 # To get debugging symbols from Magic Lantern, uncomment this:
 #symbol-file ../magic-lantern/platform/1300D.110/magiclantern

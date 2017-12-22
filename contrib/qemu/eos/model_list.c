@@ -295,6 +295,8 @@ struct eos_model_desc eos_model_list[] = {
         .rom0_size              = 0x02000000,
         .rom1_size              = 0x02000000,
         .firmware_start         = 0xFF0C0000,
+        .dryos_timer_id         = 1,            /* set to 10ms; run with -d io,int,v to find it */
+        .dryos_timer_interrupt  = 0x09,         /* enabled right before setting the timer value */
         .mpu_request_register   = 0xC022D0C4,   /* written in mpu_send (run with -d io) */
         .mpu_request_bitmask    = 0x00100000,   /* 0x83DC00 request, 0x93D800 idle */
         .mpu_status_register    = 0xC022F484,   /* read in SIO3_ISR and MREQ_ISR (tst 0x40000) */
@@ -302,7 +304,8 @@ struct eos_model_desc eos_model_list[] = {
         .sd_driver_interrupt    = 0x4B,
         .sd_dma_interrupt       = 0x32,
         .uart_rx_interrupt      = 0x38,
-        .rtc_time_correct       = 0xFD,
+        .rtc_time_correct       = 0xFD,         /* RTC_TIME_CORRECT_CHANGE */
+        .rtc_cs_register        = 0xC022D0B8,   /* GPIO set/cleared in rtc_read */
     },
     {
         .name                   = "EOSM",

@@ -1172,13 +1172,19 @@ unsigned int eos_handle_jpcore( unsigned int parm, EOSState *s, unsigned int add
                 if (value & 1)
                 {
                     msg = "Start JPCORE";
-                    eos_trigger_int(s, 0x64, 100);
+                    eos_trigger_int(s, 0x64, 10);
                 }
             }
             else
             {
                 /* EOSM: this value starts JPCORE, but fails the DCIM test */
                 //ret = 0x1010000;
+
+                if (strcmp(s->model->name, "1300D") == 0)
+                {
+                    /* 1300D requires it */
+                    ret = 0x1010000;
+                }
             }
             break;
 
@@ -1210,6 +1216,11 @@ unsigned int eos_handle_jpcore( unsigned int parm, EOSState *s, unsigned int add
         case 0x0044:
             msg = "interrupt status? (70D loop)";
             ret = rand();
+
+            if (strcmp(s->model->name, "1300D") == 0)
+            {
+                ret = 0x400;
+            }
             break;
 
         case 0x0080:

@@ -4385,6 +4385,14 @@ unsigned int eos_handle_basic ( unsigned int parm, EOSState *s, unsigned int add
             /* 5D classic: expects 1 at 0xFFFF01A4 */
             ret = 1;
         }
+
+        if ((address & 0xFFF) == 0x110)
+        {
+            /* 1300D: expects 0x80000000 at 0xFE0C038C */
+            /* GUI locks up without it after entering PowerSave */
+            msg = "Powersave related?";
+            ret = 0x80000000;
+        }
         io_log("BASIC", s, address, type, value, ret, msg, 0, 0);
         return ret;
     }
