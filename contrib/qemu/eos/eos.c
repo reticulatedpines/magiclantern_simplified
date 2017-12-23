@@ -1305,6 +1305,12 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
     s->rtc.regs[0x0E] = 0x20;                           /* Control Register 1: 24-hour mode, no alarms */
     s->rtc.regs[0x0F] = s->model->rtc_control_reg_2;    /* Control Register 2: XST (model-specific), PON... */
 
+    if (strcmp(s->model->name, "400D") == 0)
+    {
+        /* fixme: RTC protocol unknown, but returning 0xC everywhere brings the GUI */
+        s->rtc.regs[0x00] = 0xC;
+    }
+
     int64_t now = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
     s->interrupt_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, eos_interrupt_timer_cb, s);
     timer_mod_anticipate_ns(s->interrupt_timer, now + DIGIC_TIMER_STEP * 1000);
