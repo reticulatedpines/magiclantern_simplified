@@ -2717,6 +2717,7 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
         case 0x015C:
         case 0x017C:    /* 5D3 */
         case 0x0130:    /* EOSM */
+        case 0x0100:    /* 450D, 1000D */
             msg = "USB CONNECT";
             ret = 0;
 #ifdef IGNORE_CONNECT_POLL
