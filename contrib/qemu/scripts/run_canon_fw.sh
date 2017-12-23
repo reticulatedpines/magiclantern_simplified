@@ -9,16 +9,62 @@ GREP=${GREP:=grep}
 QEMU_PATH=${QEMU_PATH:=qemu-2.5.0}
 MAKE=${MAKE:=make}
 
+# better way to check whether a disk image is mounted?
+# or, how to tell QEMU to use exclusive access for the disk images?
 function is_mounted
 {
-    # better way to check whether a disk image is mounted?
-    # or, how to tell QEMU to use exclusive access for the disk images?
-    SD_DEV=`losetup -j $1 | $GREP -Po "(?<=/dev/)[^ ]*(?=:)"`
-    if [ $? == 0 ]; then
-        if cat /proc/mounts | $GREP /dev/mapper/$SD_DEV; then
+    # try lsof first
+    # check whether QEMU is started with or without -snapshot
+    # accept -snapshot and --snapshot, but not ---snapshot or -snapshots or -other-snapshot
+    if [[ " ${BASH_ARGV[*]} " =~ .*\ --?snapshot\ .* ]]; then
+        # started with -snapshot
+        # run if other processes have the SD/CF image file opened as read-only
+        # fail if other processes have the SD/CF image file opened with write access
+        # http://unix.stackexchange.com/a/115722
+        if lsof +c 0 "$1" 2>/dev/null | awk '$4~/[0-9]+[uw -]/' | $GREP -F "$1"; then
+            return 0
+        fi
+    else
+        # started without -snapshot
+        # fail if other processes have the SD/CF image file opened, no matter what kind of access
+        if lsof +c 0 "$1" 2>/dev/null | $GREP -F "$1"; then
             return 0
         fi
     fi
+
+    # now find out whether the image file is mounted
+    # lsof doesn't seem to cover this case, why?
+
+    # use losetup if available
+    if command -v losetup; then
+        # this finds out whether the image file is mounted and where
+        SD_DEV=`losetup -j "$1" | $GREP -Po "(?<=/dev/)[^ ]*(?=:)"`
+        if [ $? == 0 ]; then
+            # this may return multiple matches; try them all
+            for sd_dev in $SD_DEV; do
+                if cat /proc/mounts | $GREP /dev/$sd_dev; then
+                    return 0
+                fi
+                if cat /proc/mounts | $GREP /dev/mapper/$sd_dev; then
+                    return 0
+                fi
+            done
+        fi
+    else
+        # try to guess from mount output (approximate)
+        if mount | $GREP -F "$(realpath $1)"; then
+            # this matches images mounted manually with:
+            # mount -o loop,offset=... sd.img /mount/point
+            return 0
+        fi
+        if mount | $GREP -o /dev/mapper/loop.*EOS_DIGITAL; then
+            # this matches kpartx mounts, but can't tell whether SD or CF
+            # or maybe some other EOS_DIGITAL image is mounted
+            echo "Might be a different image, please check."
+            return 0
+        fi
+    fi
+
     return 1
 }
 
