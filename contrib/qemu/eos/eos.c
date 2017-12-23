@@ -178,6 +178,7 @@ EOSRegionHandler eos_handlers[] =
     { "SDDMA6",       0xC8020000, 0xC80200FF, eos_handle_sddma, 6 },
     { "CFATA0",       0xC0600000, 0xC060FFFF, eos_handle_cfata, 0 },
     { "CFATA2",       0xC0620000, 0xC062FFFF, eos_handle_cfata, 2 },
+    { "CFATA16",      0xC0700000, 0xC070FFFF, eos_handle_cfata, 0x10 },
     { "UART",         0xC0800000, 0xC08000FF, eos_handle_uart, 0 },
     { "UART",         0xC0810000, 0xC08100FF, eos_handle_uart, 1 },
     { "UART",         0xC0270000, 0xC027000F, eos_handle_uart, 2 },
@@ -2693,6 +2694,14 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
 
             break;
 
+        case 0x011C:    /* 40D, 450D */
+            msg = "VIDEO CONNECT";
+            ret = (strcmp(s->model->name, "40D") == 0) ? 0 : 1;
+#ifdef IGNORE_CONNECT_POLL
+            return ret;
+#endif
+            break;
+
         case 0x0070:    /* 600D, 60D */
         case 0x0164:
         case 0x0174:    /* 5D3 */
@@ -2716,10 +2725,18 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
         
         case 0x015C:
         case 0x017C:    /* 5D3 */
-        case 0x0130:    /* EOSM */
-        case 0x0100:    /* 450D, 1000D */
+        case 0x0130:    /* EOSM; 40D erase switch */
+        case 0x0100:    /* 40D, 450D, 1000D */
             msg = "USB CONNECT";
             ret = 0;
+#ifdef IGNORE_CONNECT_POLL
+            return ret;
+#endif
+            break;
+
+        case 0x0128:    /* 40D TOE (Ceres) */
+            msg = "TOE CONNECT";
+            ret = 1;
 #ifdef IGNORE_CONNECT_POLL
             return ret;
 #endif
@@ -3334,7 +3351,9 @@ static unsigned int eos_handle_rtc ( unsigned int parm, EOSState *s, unsigned in
                     {
                         uint8_t cmd = last_sio_txdata & 0x0F;
                         uint8_t reg = (last_sio_txdata>>4) & 0x0F;
-                        if (!strcmp(s->model->name, "5D2") || !strcmp(s->model->name, "50D"))
+                        if (!strcmp(s->model->name, "5D2") ||
+                            !strcmp(s->model->name, "50D") ||
+                            !strcmp(s->model->name, "40D"))
                         {
                             reg = last_sio_txdata & 0x0F;
                             cmd = (last_sio_txdata>>4) & 0x0F;
@@ -3963,7 +3982,8 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
 unsigned int eos_handle_sddma ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
     if (strcmp(s->model->name, "5D2") == 0 ||
-        strcmp(s->model->name, "50D") == 0)
+        strcmp(s->model->name, "50D") == 0 ||
+        strcmp(s->model->name, "40D") == 0)
     {
         /* other models use SDDMA on the same address */
         /* todo: make it generic? */
@@ -4191,13 +4211,13 @@ unsigned int eos_handle_cfdma ( unsigned int parm, EOSState *s, unsigned int add
             
             if(type & MODE_WRITE)
             {
-                if (value == 0x3D)
+                if (value == 0x3D || value == 0x2D)
                 {
                     msg = "DMA write start";
                     s->cf.dma_written = 0;
                     s->cf.dma_write_request = 1;
                 }
-                else if (value == 0x39 || value == 0x21)
+                else if (value == 0x39 || value == 0x29 || value == 0x21)
                 {
                     msg = "DMA read start";
                     s->cf.dma_read = 0;
@@ -4316,7 +4336,8 @@ unsigned int eos_handle_cfata ( unsigned int parm, EOSState *s, unsigned int add
                 if (offset == 7)
                 {
                     /* reading the status register clears peding interrupt */
-                    s->cf.pending_interrupt = 0;
+                    /* unsure actually - 40D doesn't like this */
+                    //s->cf.pending_interrupt = 0;
                 }
             }
             break;
@@ -4381,18 +4402,32 @@ unsigned int eos_handle_basic ( unsigned int parm, EOSState *s, unsigned int add
     /* from C0100000 */
     if (parm == 0)
     {
-        if ((address & 0xFFF) == 0x1C)
+        switch(address & 0xFFF)
         {
-            /* 5D classic: expects 1 at 0xFFFF01A4 */
-            ret = 1;
-        }
+            case 0x00C:
+            {
+                /* 40D: expects 2 at 0xFF819AA0 */
+                /* GUI locks up without it after entering PowerSave */
+                msg = "Powersave related?";
+                ret = 2;
+                break;
+            }
 
-        if ((address & 0xFFF) == 0x110)
-        {
-            /* 1300D: expects 0x80000000 at 0xFE0C038C */
-            /* GUI locks up without it after entering PowerSave */
-            msg = "Powersave related?";
-            ret = 0x80000000;
+            case 0x01C:
+            {
+                /* 5D classic: expects 1 at 0xFFFF01A4 */
+                ret = 1;
+                break;
+            }
+
+            case 0x110:
+            {
+                /* 1300D: expects 0x80000000 at 0xFE0C038C */
+                /* GUI locks up without it after entering PowerSave */
+                msg = "Powersave related?";
+                ret = 0x80000000;
+                break;
+            }
         }
         io_log("BASIC", s, address, type, value, ret, msg, 0, 0);
         return ret;

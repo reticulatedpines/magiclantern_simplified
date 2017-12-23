@@ -20,7 +20,7 @@ POWERSHOT_CAMS=( EOSM3 EOSM10 EOSM5 A1100 )
 EOS_SECONDARY_CORES=( 5D3eeko 5D4AE 7D2S )
 
 # cameras able to run Canon GUI (menu tests)
-GUI_CAMS=( 5D2 5D3 6D 50D 60D 70D
+GUI_CAMS=( 5D2 5D3 6D 40D 50D 60D 70D
            450D 500D 550D 600D 650D 700D
            100D 1000D 1100D 1200D 1300D EOSM EOSM2 )
 
@@ -97,6 +97,7 @@ declare -A MENU_SEQUENCE
 MENU_SEQUENCE[5D2]="f1 i i i m up up up space m m w w p p" # sensor cleaning animation
 MENU_SEQUENCE[5D3]="f1 i i i f1 i m left down down down space m m p p q space m right right space m down right space pgdn m q"
 MENU_SEQUENCE[6D]="m left left up space space down space m right down space down space up up space down space m i i i q right space right space space space m m q p p"
+MENU_SEQUENCE[40D]="m left down down down space up space up space m left space space m i i p p w w"
 MENU_SEQUENCE[50D]="f1 i i i m up space space m w w p p" # sensor cleaning animation
 MENU_SEQUENCE[60D]="f1 i i i i m left left up space m m p p"
 MENU_SEQUENCE[70D]="m left up space down space m p p i i i i i q"
@@ -122,6 +123,7 @@ declare -A FORMAT_SEQUENCE
 FORMAT_SEQUENCE[5D2]="m right right right right $FMT_SEQ"
 FORMAT_SEQUENCE[5D3]="m left left left left $FMT_SEQ_5D3"
 FORMAT_SEQUENCE[6D]="m left left left $FMT_SEQ"
+FORMAT_SEQUENCE[40D]="m left left left left $FMT_SEQ"
 FORMAT_SEQUENCE[50D]="m down down $FMT_SEQ"
 FORMAT_SEQUENCE[60D]="m left left left left $FMT_SEQ"
 FORMAT_SEQUENCE[70D]="m left left left $FMT_SEQ"

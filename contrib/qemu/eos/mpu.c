@@ -582,6 +582,7 @@ unsigned int eos_handle_sio3( unsigned int parm, EOSState *s, unsigned int addre
             break;
 
         case 0x1C:  /* C082031C - data coming from MPU */
+        case 0x1D:  /* 40D uses 8-bit reads */
         
             if(type & MODE_WRITE)
             {
@@ -593,7 +594,8 @@ unsigned int eos_handle_sio3( unsigned int parm, EOSState *s, unsigned int addre
                 {
                     int hi = 0, lo = 0;
                     if (mpu_handle_get_data(s, &hi, &lo)) {
-                        ret = (hi << 8) | lo;
+                        /* 40D uses 8-bit reads (fixme: cleaner way to handle this) */
+                        ret = ((hi << 8) | lo) >> ((address & 1) ? 8 : 0);
                         msg = "Data from MPU";
                     } else {
                         msg = "From MPU -> out of range (char %d of %d)";
@@ -1105,6 +1107,7 @@ void mpu_spells_init(EOSState *s)
     MPU_SPELL_SET_OTHER_CAM(1100D, 60D)
     MPU_SPELL_SET_OTHER_CAM(1200D, 60D)
     MPU_SPELL_SET_OTHER_CAM(1300D, 60D)
+    MPU_SPELL_SET_OTHER_CAM(40D, 50D)
 
     MPU_SPELL_SET_OTHER_CAM(650D, 700D)
 
@@ -1134,6 +1137,7 @@ void mpu_spells_init(EOSState *s)
     MPU_BUTTON_CODES_OTHER_CAM(1300D, 1100D)
     MPU_BUTTON_CODES(450D)
     MPU_BUTTON_CODES_OTHER_CAM(1000D, 450D)
+    MPU_BUTTON_CODES(40D)
     MPU_BUTTON_CODES(500D)
     MPU_BUTTON_CODES(550D)
     MPU_BUTTON_CODES(50D)

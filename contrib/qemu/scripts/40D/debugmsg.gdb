@@ -27,4 +27,13 @@ msleep_log
 b *0xFFD427B0
 register_interrupt_log
 
+# MPU communication
+if 0
+  b *0xFFC8E2D0
+  mpu_send_log
+
+  b *0xFFC8D660
+  mpu_recv_log
+end
+
 cont
