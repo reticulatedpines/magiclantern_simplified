@@ -103,7 +103,7 @@ if [ $(uname) == "Darwin" ]; then
     GREP=ggrep
 fi
 
-if [  -n "$(uname -a | grep Ubuntu)" ]; then
+if [  -n "$(lsb_release -i | grep Ubuntu)" ]; then
     # Ubuntu-based system? (including WSL)
     # install these packages, if not already
     # only request sudo if any of them is missing
@@ -122,26 +122,30 @@ if [  -n "$(uname -a | grep Ubuntu)" ]; then
         echo
         echo "*** You have a few options:"
         echo
-        echo "1 - Install gdb-arm-none-eabi:i386 and gcc-arm-none-eabi from Ubuntu repo (recommended)"
-        echo "    This will install 32-bit binaries - will not work under Windows Subsystem for Linux."
-        echo 
-        echo "2 - Download a 32-bit gcc-arm-embedded and install it without the package manager."
-        echo "    Will be installed in your home directory; to move it, you must edit the Makefiles."
-        echo "    This will install 32-bit binaries - will not work under Windows Subsystem for Linux."
-        echo
-        if dpkg -l binutils-arm-none-eabi 2>/dev/null | grep -q '^.i'; then
-            echo "3 - Remove Ubuntu toolchain and install the one from gcc-arm-embedded PPA (gcc 6.x)"
-            echo "    This will:"
-            echo "    - sudo apt-get remove gcc-arm-none-eabi gdb-arm-none-eabi \\"
-            echo "           binutils-arm-none-eabi libnewlib-arm-none-eabi"
-        else
-            echo "3 - Install the toolchain from gcc-arm-embedded PPA (gcc 6.x)"
-            echo "    This will:"
+
+        # fixme: hidden options can still be selected
+        if [  -z "$(uname -a | grep Microsoft)" ]; then
+            echo "1 - Install gdb-arm-none-eabi:i386 and gcc-arm-none-eabi from Ubuntu repo (recommended)"
+            echo "    This will install 32-bit binaries - will not work under Windows Subsystem for Linux."
+            echo 
+            echo "2 - Download a 32-bit gcc-arm-embedded and install it without the package manager."
+            echo "    Will be installed in your home directory; to move it, you must edit the Makefiles."
+            echo "    This will install 32-bit binaries - will not work under Windows Subsystem for Linux."
+            echo
+            if dpkg -l binutils-arm-none-eabi 2>/dev/null | grep -q '^.i'; then
+                echo "3 - Remove Ubuntu toolchain and install the one from gcc-arm-embedded PPA (gcc 6.x)"
+                echo "    This will:"
+                echo "    - sudo apt-get remove gcc-arm-none-eabi gdb-arm-none-eabi \\"
+                echo "           binutils-arm-none-eabi libnewlib-arm-none-eabi"
+            else
+                echo "3 - Install the toolchain from gcc-arm-embedded PPA (gcc 6.x)"
+                echo "    This will:"
+            fi
+            echo "    - sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa"
+            echo "    - install the gcc-arm-embedded:i386 package."
+            echo "    This will install 32-bit binaries - will not work under Windows Subsystem for Linux."
+            echo
         fi
-        echo "    - sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa"
-        echo "    - install the gcc-arm-embedded:i386 package."
-        echo "    This will install 32-bit binaries - will not work under Windows Subsystem for Linux."
-        echo
         echo "4 - Install gdb-arm-none-eabi and gcc-arm-none-eabi from Ubuntu repository (64-bit)"
         echo "    WARNING: this will not be able to run all our GDB scripts."
         echo 
