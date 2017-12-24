@@ -9,6 +9,17 @@ GREP=${GREP:=grep}
 QEMU_PATH=${QEMU_PATH:=qemu-2.5.0}
 MAKE=${MAKE:=make}
 
+if [ $(uname) == "Darwin" ]; then
+    if [[ -n $(which ggrep) ]]; then
+        GREP=ggrep
+    else
+        echo
+        echo "Error: you need GNU grep to run this script"
+        echo "brew install grep"
+        exit 1
+    fi
+fi
+
 # better way to check whether a disk image is mounted?
 # or, how to tell QEMU to use exclusive access for the disk images?
 function is_mounted
@@ -30,6 +41,12 @@ function is_mounted
         if lsof +c 0 "$1" 2>/dev/null | $GREP -F "$1"; then
             return 0
         fi
+    fi
+
+    if [ $(uname) == "Darwin" ]; then
+        # on Mac, lsof is enough
+        # further checks are Linux-only anyway
+        return 1
     fi
 
     # now find out whether the image file is mounted
@@ -68,33 +85,16 @@ function is_mounted
     return 1
 }
 
-if [ $(uname) == "Darwin" ]; then
-    if [[ -n $(ls /Volumes | $GREP EOS_DIGITAL*) ]]; then
-        echo
-        echo "Error: please unmount EOS_DIGITAL."
-        exit 1
-    fi
-    
-    if [[ -n $(which ggrep) ]]; then
-        GREP=ggrep
-    else
-        echo
-        echo "Error: you need GNU grep to run this script"
-        echo "brew install grep"
-        exit 1
-    fi
-else
-    if is_mounted sd.img; then
-        echo
-        echo "Error: please unmount the SD image."
-        exit 1
-    fi
+if is_mounted sd.img; then
+    echo
+    echo "Error: please unmount the SD image."
+    exit 1
+fi
 
-    if is_mounted cf.img; then
-        echo
-        echo "Error: please unmount the CF image."
-        exit 1
-    fi
+if is_mounted cf.img; then
+    echo
+    echo "Error: please unmount the CF image."
+    exit 1
 fi
 
 # recompile QEMU
@@ -136,8 +136,9 @@ fi
 
 # Mac: bring QEMU window to foreground
 # fixme: easier way?
+# fixme: doesn't work with multiple instances
 if [ -t 1 ] && [ $(uname) == "Darwin" ]; then
-    ( sleep 0.5; osascript -e 'tell application "System Events" to tell process qemu-system-arm to set frontmost to true' ) &
+    ( sleep 0.5; osascript -e 'tell application "System Events" to tell process "qemu-system-arm" to set frontmost to true' ) &
 fi
 
 # run the emulation
