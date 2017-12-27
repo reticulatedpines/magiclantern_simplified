@@ -38,6 +38,12 @@ static inline int qprint(const char * msg)
     return 0;
 }
 
+/* from dryos.h
+ * required to compile qprintf in bootloader context,
+ * although you won't be able to use it (vsnprintf is in main firmware)
+ * ... unless you can supply another vsnprintf, e.g. from dietlibc */
+extern int vsnprintf( char* str, size_t n, const char* fmt, va_list ap );
+
 /* print messages to the QEMU console */
 static int qprintf(const char * fmt, ...)
 {
