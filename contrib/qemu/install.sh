@@ -318,9 +318,24 @@ echo "*** Setting up QEMU in $(pwd)..."
 echo
 
 if [ -d $QEMU_NAME ]; then
+  DATE=`date '+%Y-%m-%d-%H-%M-%S'`
   echo "*** Directory $(pwd)/$QEMU_NAME already exists."
   echo "*** To reinstall, please rename or delete it, then run this script again."
-  exit 1
+  echo "*** You can enter \"D\" (uppercase!) now to delete the directory automatically"
+  echo "*** or \"R\"|\"r\" to rename it to $(pwd)/$QEMU_NAME-$DATE."
+  echo "*** Everything else will cancel the operation."
+  read answer
+  case "$answer" in
+      D)
+        rm -Rf $QEMU_NAME
+        ;;
+      R|r)
+        mv $QEMU_NAME $QEMU_NAME-$DATE
+        ;;
+      *)
+        exit 1
+        ;;
+  esac
 fi
 
 # get qemu
@@ -328,7 +343,6 @@ wget -q --show-progress --progress=dot:giga -c http://wiki.qemu-project.org/down
 echo
 tar jxf $QEMU_NAME.tar.bz2
 echo
-
 # initialize a git repo, to make it easy to track changes to QEMU source
 cd $QEMU_NAME
 if [ ! -d .git ]; then
