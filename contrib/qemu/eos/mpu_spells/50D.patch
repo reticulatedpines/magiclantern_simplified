@@ -6,7 +6,7 @@
 + */
  static struct mpu_init_spell mpu_init_spells_50D[] = {
      { { 0x06, 0x04, 0x02, 0x00, 0x00 }, .description = "Init", .out_spells = { /* spell #1 */
-         { 0x06, 0x05, 0x01, 0x37, 0x00, 0x00 },                 /* reply #1.1, PROP_CARD_SELECT */
+         { 0x06, 0x05, 0x01, 0x37, 0x00, 0x00 },                 /* reply #1.1, PROP_CARD_EXTENSION */
 @@ -90,13 +93,13 @@
          { 0 } } },
      { { 0x08, 0x06, 0x01, 0x25, 0x00, ARG0, 0x00 }, .description = "PROP_CARD3_STATUS", .out_spells = { /* spell #16 */
@@ -44,7 +44,7 @@
 +      //{ 0x08, 0x06, 0x05, 0x0d, 0x11, 0xa4, 0x00 },           /* reply #40.1 */
          { 0 } } },
      { { 0x06, 0x05, 0x03, 0x19, 0x01, 0x00 }, .description = "PROP_TFT_STATUS", .out_spells = { /* spell #42 */
-         { 0x06, 0x05, 0x03, 0x17, 0x9b, 0x00 },                 /* reply #42.1 */
+         { 0x06, 0x05, 0x03, 0x17, 0x9b, 0x00 },                 /* reply #42.1, PROP_EFIC_TEMP */
 -     // { 0x06, 0x05, 0x06, 0x00, 0x01, 0x00 },                 /* reply #42.2, BGMT_MENU, GUI_Control:5, bindReceiveSwitch(0, 1) */
 -        { 0 } } },
 - // { { 0x06, 0x05, 0x04, 0x00, 0x01, 0x00 }, .description = "NotifyGUIEvent", .out_spells = { 
@@ -65,7 +65,7 @@
 -     // { 0x06, 0x05, 0x06, 0x0e, 0x01, 0x00 },                 /* reply #44.3, BGMT_WHEEL_DOWN, GUI_Control:1, bindReceiveSwitch(14, 1) */
 -     // { 0x06, 0x05, 0x06, 0x0c, 0x01, 0x00 },                 /* reply #44.4, BGMT_PRESS_SET, GUI_Control:4, bindReceiveSwitch(12, 1) */
 -     // { 0 } } },
--    { { 0x06, 0x05, 0x03, 0x11, 0x02, 0x00 }, {                 /* spell #44 */
+-    { { 0x06, 0x05, 0x03, 0x11, 0x02, 0x00 }, .description = "PROP_ICU_AUTO_POWEROFF", .out_spells = { /* spell #44 */
 -        { 0 } } },
 - // { { 0x06, 0x05, 0x03, 0x16, 0x01, 0x00 }, .description = "PROP_BATTERY_CHECK", .out_spells = { 
 -     // { 0x06, 0x05, 0x03, 0x16, 0x00, 0x00 },                 /* reply #45.1, PROP_BATTERY_CHECK */
@@ -103,22 +103,22 @@
 - // { { 0x06, 0x05, 0x04, 0x01, ARG0, 0x00 }, .description = "PROP_ICU_UILOCK", .out_spells = { 
 -     // { 0x06, 0x05, 0x04, 0x01, ARG0, 0x00 },                 /* reply #56.1, PROP_ICU_UILOCK(00) */
 -     // { 0 } } },
--    { { 0x06, 0x05, 0x03, 0x11, 0x01, 0x00 }, {                 /* spell #56 */
+-    { { 0x06, 0x05, 0x03, 0x11, 0x01, 0x00 }, .description = "PROP_ICU_AUTO_POWEROFF", .out_spells = { /* spell #56 */
 -        { 0 } } },
 - // { { 0x06, 0x05, 0x04, 0x01, ARG0, 0x00 }, .description = "PROP_ICU_UILOCK", .out_spells = { 
 -     // { 0x06, 0x05, 0x04, 0x01, ARG0, 0x00 },                 /* reply #57.1, PROP_ICU_UILOCK(7f) */
 -     // { 0 } } },
 -    { { 0x06, 0x04, 0x04, 0x07, 0x00 }, {                       /* spell #57 */
--        { 0x06, 0x05, 0x03, 0x17, 0x9b, 0x00 },                 /* reply #57.1 */
+-        { 0x06, 0x05, 0x03, 0x17, 0x9b, 0x00 },                 /* reply #57.1, PROP_EFIC_TEMP */
 -        { 0 } } },
 - // { { 0x06, 0x05, 0x04, 0x01, ARG0, 0x00 }, .description = "PROP_ICU_UILOCK", .out_spells = { 
 -     // { 0x06, 0x05, 0x04, 0x01, ARG0, 0x00 },                 /* reply #58.1, PROP_ICU_UILOCK(00) */
--     // { 0x06, 0x05, 0x02, 0x0b, 0x00, 0x00 },                 /* reply #58.2 */
+-     // { 0x06, 0x05, 0x02, 0x0b, 0x00, 0x00 },                 /* reply #58.2, PROP_TERMINATE_SHUT_REQ */
 -     // { 0 } } },
 -    { { 0x06, 0x05, 0x03, 0x19, 0x01, 0x00 }, .description = "PROP_TFT_STATUS", .out_spells = { /* spell #58 */
 -        { 0 } } },
--    { { 0x06, 0x05, 0x02, 0x0b, 0x02, 0x00 }, {                 /* spell #59 */
--     // { 0x06, 0x05, 0x03, 0x17, 0x9d, 0x00 },                 /* reply #59.1, delayed by 1869 ms, likely external input */
+-    { { 0x06, 0x05, 0x02, 0x0b, 0x02, 0x00 }, .description = "PROP_TERMINATE_SHUT_REQ", .out_spells = { /* spell #59 */
+-     // { 0x06, 0x05, 0x03, 0x17, 0x9d, 0x00 },                 /* reply #59.1, PROP_EFIC_TEMP, delayed by 1869 ms, likely external input */
 +
 +    /* MENU->Format selected here */
 +
