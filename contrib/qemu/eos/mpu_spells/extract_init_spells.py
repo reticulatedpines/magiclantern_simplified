@@ -21,23 +21,23 @@ known_spells = {
     "01 06"  :   (0x80000006, "PROP_APERTURE"),
     "01 07"  :   (0x80000007, "PROP_ISO"),
     "01 08"  :   (0x80000008, "PROP_AE"),
-    "01 09"  :   (0x80000009, "PROP_FEC"),                  # PROP_STROBO_AECOMP
+    "01 09"  :   (0x80000009, "PROP_FEC"),                              # PROP_STROBO_AECOMP
     "01 0a"  :   (0x8000000A, "PROP_AFPOINT"),
     "01 0b"  :   (0x8000000B, "PROP_AEB"),
     "01 0c"  :   (0x8000000C, "PROP 8000000C"),
-    "01 0d"  :   (0x8000000D, "PROP_WB_MODE_PH"),           # PROP_WB_MODE
-    "01 0e"  :   (0x8000000E, "PROP_WB_KELVIN_PH"),         # PROP_COLOR_TEMP
+    "01 0d"  :   (0x8000000D, "PROP_WB_MODE_PH"),                       # PROP_WB_MODE
+    "01 0e"  :   (0x8000000E, "PROP_WB_KELVIN_PH"),                     # PROP_COLOR_TEMP
     "01 0f"  :   (0x8000000F, "PROP 8000000F"),
     "01 10"  :   (0x80000010, "PROP_WBS_GM"),
     "01 11"  :   (0x80000011, "PROP_WBS_BA"),
     "01 12"  :   (0x80000012, "PROP_WBB_GM"),
     "01 13"  :   (0x80000013, "PROP_WBB_BA"),
-    "01 1d"  :   (0x80000028, "PROP_PICTURE_STYLE"),        # PROP_FLAVOR_MODE
+    "01 1d"  :   (0x80000028, "PROP_PICTURE_STYLE"),                    # PROP_FLAVOR_MODE
     "01 1e"  :   (0x80000026, "PROP 80000026"),
     "01 1f"  :   (0x80000024, "PROP_AUTO_POWEROFF_TIME"),
-    "01 20"  :   (0x8000001D, "PROP_CARD1_EXISTS"),         # PROP_CARD1_EXIST
-    "01 21"  :   (0x8000001E, "PROP_CARD2_EXISTS"),         # PROP_CARD2_EXIST
-    "01 22"  :   (0x8000001F, "PROP_CARD3_EXISTS"),         # PROP_CARD3_EXIST
+    "01 20"  :   (0x8000001D, "PROP_CARD1_EXISTS"),                     # PROP_CARD1_EXIST
+    "01 21"  :   (0x8000001E, "PROP_CARD2_EXISTS"),                     # PROP_CARD2_EXIST
+    "01 22"  :   (0x8000001F, "PROP_CARD3_EXISTS"),                     # PROP_CARD3_EXIST
     "01 23"  :   (0x80000020, "PROP_CARD1_STATUS",          (5, "ARG0")),
     "01 24"  :   (0x80000021, "PROP_CARD2_STATUS",          (5, "ARG0")),
     "01 25"  :   (0x80000022, "PROP_CARD3_STATUS",          (5, "ARG0")),
@@ -47,22 +47,22 @@ known_spells = {
     "01 29"  :   (0x02010003, "PROP_CARD1_FILE_NUMBER",     (4, "ARG0"), (5, "ARG1"), (7, "ARG2")), # PROP_FILE_NUMBER_A
     "01 2a"  :   (0x02010004, "PROP_CARD2_FILE_NUMBER",     (4, "ARG0"), (5, "ARG1"), (7, "ARG2")), # PROP_FILE_NUMBER_B
     "01 2b"  :   (0x02010005, "PROP_CARD3_FILE_NUMBER",     (4, "ARG0"), (5, "ARG1"), (7, "ARG2")), # PROP_FILE_NUMBER_C
-    "01 2c"  :   (0x80040002, "PROP_CURRENT_MEDIA"),        # PROP_CARD_SELECT
+    "01 2c"  :   (0x80040002, "PROP_CURRENT_MEDIA"),                    # PROP_CARD_SELECT
     "01 2d"  :   (0x80040003, "PROP 80040003"),
     "01 2e"  :   (0x8000002A, "PROP_SAVE_MODE"),
     "01 30"  :   (0x80000023, "PROP_BEEP"),
-    "01 31"  :   (0x80000027, "PROP_NO_CARD_RELEASE"),      # PROP_RELEASE_WITHOUT_CARD
-    "01 32"  :   (0x80000025, "PROP_RED_EYE_REDUCTION"),    # PROP_STROBO_REDEYE
+    "01 31"  :   (0x80000027, "PROP_NO_CARD_RELEASE"),                  # PROP_RELEASE_WITHOUT_CARD
+    "01 32"  :   (0x80000025, "PROP_RED_EYE_REDUCTION"),                # PROP_STROBO_REDEYE
     "01 33"  :   (0x80000029, "PROP_AE_MODE_CUSTOM"),
-    "01 34"  :   (0x8000002F, "PROP_CARD1_IMAGE_QUALITY"),         # PROP_PIC_QUALITY
-    "01 35"  :   (0x80000030, "PROP_CARD2_IMAGE_QUALITY"),
-    "01 36"  :   (0x80000031, "PROP_CARD3_IMAGE_QUALITY"),
-    "01 37"  :   (0x80040001, "PROP_CARD_EXTENSION"),       # 5D3 card options
+    "01 34"  :   (0x8000002F, "PROP_CARD1_IMAGE_QUALITY"),              # PROP_PIC_QUALITY
+    "01 35"  :   (0x80000030, "PROP_CARD2_IMAGE_QUALITY"),              # PROP_PIC_QUALITY2
+    "01 36"  :   (0x80000031, "PROP_CARD3_IMAGE_QUALITY"),              # PROP_PIC_QUALITY3
+    "01 37"  :   (0x80040001, "PROP_CARD_EXTENSION"),                   # 5D3 card options
     "01 38"  :   (0x80040005, "PROP 80040005"),
     "01 39"  :   (0x80040006, "PROP 80040006"),
     "01 3d"  :   (0x8004000F, "PROP_TEMP_STATUS"),
-    "01 3e"  :   (0x80040011, "PROP_ELECTRIC_SHUTTER_MODE"),        # PROP_ELECTRIC_SHUTTER, silent shooting
-    "01 3f"  :   (0x80040013, "PROP_FLASH_ENABLE"),                 # PROP_STROBO_FIRING
+    "01 3e"  :   (0x80040011, "PROP_ELECTRIC_SHUTTER_MODE"),            # PROP_ELECTRIC_SHUTTER - silent shooting
+    "01 3f"  :   (0x80040013, "PROP_FLASH_ENABLE"),                     # PROP_STROBO_FIRING
     "01 40"  :   (0x80040014, "PROP_STROBO_ETTLMETER"),
     "01 41"  :   (0x80040015, "PROP_STROBO_CURTAIN"),
     "01 42"  :   (0x80040016, "PROP_PHOTO_STUDIO_MODE"),
@@ -71,38 +71,38 @@ known_spells = {
     "01 45"  :   (0x8004001A, "PROP_METERING_TIMER_FOR_LV"),
     "01 46"  :   (0x8004001B, "PROP_PHOTO_STUDIO_ENABLE_ISOCOMP"),
     "01 47"  :   (0x80000032, "PROP_SELFTIMER_CONTINUOUS_NUM"),
-    "01 48"  :   (0x8004001C, "PROP_LIVE_VIEW_MOVIE_SELECT"),       # also enable/disable LV; PROP_LV_MOVIE_SELECT
-    "01 49"  :   (0x8004001D, "PROP_LIVE_VIEW_AF_SYSTEM"),          # PROP_LVAF_MODE
+    "01 48"  :   (0x8004001C, "PROP_LIVE_VIEW_MOVIE_SELECT"),           # also enable/disable LV; PROP_LV_MOVIE_SELECT
+    "01 49"  :   (0x8004001D, "PROP_LIVE_VIEW_AF_SYSTEM"),              # PROP_LVAF_MODE
     "01 4a"  :   (0x80000033, "PROP_PROGRAM_SHIFT"),
-    "01 4b"  :   (0x80000034, "PROP_LIVE_VIEW_VIEWTYPE_SELECT"),    # ExpSim; PROP_LIVE_VIEW_VIEWTYPE
-    "01 4c"  :   (0x80000037, "PROP_ONESHOT_RAW"),                  # 7D
-    "01 4d"  :   (0x80000038, "PROP_VIEWFINDER_GRID") ,             # 70D, 5D3; PROP_FINDER_GRID_SELECT
-    "01 4e"  :   (0x80000039, "PROP_VIDEO_MODE"),                   # PROP_MOVIE_PARAM
+    "01 4b"  :   (0x80000034, "PROP_LIVE_VIEW_VIEWTYPE_SELECT"),        # ExpSim; PROP_LIVE_VIEW_VIEWTYPE
+    "01 4c"  :   (0x80000037, "PROP_ONESHOT_RAW"),                      # 7D
+    "01 4d"  :   (0x80000038, "PROP_VIEWFINDER_GRID") ,                 # 70D, 5D3; PROP_FINDER_GRID_SELECT
+    "01 4e"  :   (0x80000039, "PROP_VIDEO_MODE"),                       # PROP_MOVIE_PARAM
     "01 4f"  :   (0x80030037, "PROP_FIXED_MOVIE"),
     "01 50"  :   (0x8000003A, "PROP_AE_MODE_MOVIE"),
     "01 51"  :   (0x8000003B, "PROP_AUTO_ISO_RANGE"),
-    "01 52"  :   (0x8000003D, "PROP_ALO"),                          # PROP_AUTO_LIGHTING_OPTIMIZER_MODE
-    "01 53"  :   (0x8000003C, "PROP_AF_DURING_RECORD"),             # PROP_MOVIE_REC_AF
+    "01 52"  :   (0x8000003D, "PROP_ALO"),                              # PROP_AUTO_LIGHTING_OPTIMIZER_MODE
+    "01 53"  :   (0x8000003C, "PROP_AF_DURING_RECORD"),                 # PROP_MOVIE_REC_AF
     "01 54"  :   (0x8000003E, "PROP_SUBDIAL_LOCK_MODE"),
     "01 55"  :   (0x8000003F, "PROP_MULTIPLE_EXPOSURE_SETTING"),
     "01 57"  :   (0x80040021, "PROP_BUILTIN_STROBO_MODE"),
     "01 58"  :   (0x80000041, "PROP_VIDEOSNAP_MODE"),
-    "01 59"  :   (0x80000042, "PROP_MOVIE_SERVO_AF"),               # PROP_CONTINUOUS_AF_MODE
+    "01 59"  :   (0x80000042, "PROP_MOVIE_SERVO_AF"),                   # PROP_CONTINUOUS_AF_MODE
     "01 69"  :   (0x8004002E, "PROP_AF_VF_DISPLAY_ILLUMINATION"),
     "01 6e"  :   (0x80040033, "PROP_ISO_RANGE"),
-    "01 6f"  :   (0x80040034, "PROP_LIMITED_TV_VALUE_AT_AUTOISO"),  # 6D, 70D
+    "01 6f"  :   (0x80040034, "PROP_LIMITED_TV_VALUE_AT_AUTOISO"),      # 6D, 70D
     "01 70"  :   (0x80000045, "PROP_HDR_SETTING"),
     "01 71"  :   (0x80000046, "PROP_AF_METHOD_SELECT_FOCUS_AREA"),
-    "01 72"  :   (0x80000047, "PROP_MLU"),                          # PROP_MIRRORUP_SETTING
-    "01 73"  :   (0x80000048, "PROP_LONGEXPO_NOISE_REDUCTION"),     # PROP_LONG_EXPOSURE_NOISE_REDUCTION
-    "01 74"  :   (0x80000049, "PROP_HIGHISO_NOISE_REDUCTION"),      # PROP_HI_ISO_SETTING_NOISE_REDUCTION
-    "01 75"  :   (0x8000004A, "PROP_HTP"),                          # PROP_HILIGHT_TONE_PRIORITY
+    "01 72"  :   (0x80000047, "PROP_MLU"),                              # PROP_MIRRORUP_SETTING
+    "01 73"  :   (0x80000048, "PROP_LONGEXPO_NOISE_REDUCTION"),         # PROP_LONG_EXPOSURE_NOISE_REDUCTION
+    "01 74"  :   (0x80000049, "PROP_HIGHISO_NOISE_REDUCTION"),          # PROP_HI_ISO_SETTING_NOISE_REDUCTION
+    "01 75"  :   (0x8000004A, "PROP_HTP"),                              # PROP_HILIGHT_TONE_PRIORITY
     "01 76"  :   (0x8000004B, "PROP_SILENT_CONTROL_SETTING"),
     "01 77"  :   (0x8003004C, "PROP 8003004C"),
     "01 78"  :   (0x8003004D, "PROP 8003004D"),
     "01 79"  :   (0x80040035, "PROP_AF_CURRENT_AISERVO_STYLE"),
     "01 7a"  :   (0x80030057, "PROP_GPS_SATELITE_STATUS"),
-    "01 7b"  :   (0x80040040, "PROP_CONTINUOUS_AF"),           # 70D
+    "01 7b"  :   (0x80040040, "PROP_CONTINUOUS_AF"),                    # 70D
     "01 7c"  :   (0x80040041, "PROP_GPS_AUTO_TIME_SETTING"),
     "01 7d"  :   (0x80040042, "PROP_GPS_PINPOINTING_INTERVAL_SETTING"),
     "01 7e"  :   (0x80040043, "PROP_GPS_COMPAS_SELECT"),
@@ -140,27 +140,27 @@ known_spells = {
     "02 0f"  :   (0xFFFFFFFF, "PROP_MOVIE_SETTINGS_GROUP?"),
     "03 00"  :   (0x80030000, "PROP 80030000"),
     "03 04"  :   (0x80030003, "PROP_POWER_KIND"),
-    "03 05"  :   (0x80030004, "PROP_POWER_LEVEL"),      # PROP_BATTERY_POWER
-    "03 06"  :   (0x80030005, "PROP_AVAIL_SHOT"),       # to MPU only?
-    "03 07"  :   (0x80030006, "PROP_BURST_COUNT"),      # to MPU only?
-    "03 0b"  :   (0x80030007, "PROP 80030007"),         # to MPU only?
-    "03 0c"  :   (0x8003000B, "PROP_CARD1_RECORD"),     # PROP_CARD_RECORD_A
-    "03 0d"  :   (0x8003000C, "PROP_CARD2_RECORD"),     # PROP_CARD_RECORD_B
-    "03 0e"  :   (0x8003000D, "PROP_CARD3_RECORD"),     # PROP_CARD_RECORD_C
-    "03 10"  :   (0x80030008, "PROP 80030008"),         # to MPU only?
-    "03 11"  :   (0x80030009, "PROP_ICU_AUTO_POWEROFF"), # also 80030024?!
+    "03 05"  :   (0x80030004, "PROP_POWER_LEVEL"),                      # PROP_BATTERY_POWER
+    "03 06"  :   (0x80030005, "PROP_AVAIL_SHOT"),                       # to MPU only?
+    "03 07"  :   (0x80030006, "PROP_BURST_COUNT"),                      # to MPU only?
+    "03 0b"  :   (0x80030007, "PROP 80030007"),                         # to MPU only?
+    "03 0c"  :   (0x8003000B, "PROP_CARD1_RECORD"),                     # PROP_CARD_RECORD_A
+    "03 0d"  :   (0x8003000C, "PROP_CARD2_RECORD"),                     # PROP_CARD_RECORD_B
+    "03 0e"  :   (0x8003000D, "PROP_CARD3_RECORD"),                     # PROP_CARD_RECORD_C
+    "03 10"  :   (0x80030008, "PROP 80030008"),                         # to MPU only?
+    "03 11"  :   (0x80030009, "PROP_ICU_AUTO_POWEROFF"),                # also 80030024?!
     "03 14"  :   (0x80030010, "PROP 80030010"),
     "03 15"  :   (0x80030011, "PROP_LENS"),
     "03 16"  :   (0x80030013, "PROP_BATTERY_CHECK"),
     "03 17"  :   (0x80030014, "PROP_EFIC_TEMP"),
-    "03 19"  :   (0x80030015, "PROP_TFT_STATUS"),       # to MPU only?
-    "03 1d"  :   (0x8003001D, "PROP_BATTERY_REPORT"),   # PROP_BAT_INFO
+    "03 19"  :   (0x80030015, "PROP_TFT_STATUS"),                       # to MPU only?
+    "03 1d"  :   (0x8003001D, "PROP_BATTERY_REPORT"),                   # PROP_BAT_INFO
     "03 20"  :   (0x8003001E, "PROP_STARTUP_CONDITION"),
-    "03 24"  :   (0x80030021, "PROP_LENS_NAME"),        # PROP_CURRENT_LENS_NAME
+    "03 24"  :   (0x80030021, "PROP_LENS_NAME"),                        # PROP_CURRENT_LENS_NAME
     "03 2e"  :   (0x80030029, "PROP_SHUTTER_COUNTER"),
     "03 2f"  :   (0x80030028, "PROP_SPECIAL_OPTION"),
     "03 30"  :   (0x8003002A, "PROP 8003002A"),
-    "03 34"  :   (0x0205000D, "PROP_Q_POSITION"),    # to MPU only?
+    "03 34"  :   (0x0205000D, "PROP_Q_POSITION"),                       # to MPU only?
     "03 35"  :   (0xFFFFFFFF, "PROP_BATTERY_REPORT_COUNTER"),
     "03 36"  :   (0xFFFFFFFF, "PROP_BATTERY_REPORT_FINISHED"),
     "03 37"  :   (0x80030034, "PROP_MIRROR_DOWN_IN_MOVIE_MODE"),
@@ -174,7 +174,7 @@ known_spells = {
     "03 54"  :   (0x80030059, "PROP_MPU_GPS"),
     "03 65"  :   (0x80030066, "PROP_GPSLOG_RESULT"),
     "04 00"  :   (0x80020000, "NotifyGUIEvent"),                        # PROP_GUI_STATE
-    "04 01"  :   (0x80020009, "PROP_ICU_UILOCK",             (4, "ARG0")),
+    "04 01"  :   (0x80020009, "PROP_ICU_UILOCK",            (4, "ARG0")),
     "04 0d"  :   (0x8002000C, "PROP_ACTIVE_SWEEP_STATUS"),
     "04 0e"  :   (0x8002000D, "PROP 8002000D"),
     "04 15"  :   (0x80020013, "PROP_DL_ACTION"),
@@ -196,13 +196,13 @@ known_spells = {
     "05 13"  :   (0xFFFFFFFF, "EVENTID_ImageParamData"),
     "08 06"  :   (0xFFFFFFFF, "COM_FA_CHECK_FROM"),
     "09 00"  :   (0x80050000, "PROP_LV_LENS"),
-    "09 01"  :   (0x80050013, "PROP_LV_LENS_DRIVE_REMOTE"), # to MPU only?
+    "09 01"  :   (0x80050013, "PROP_LV_LENS_DRIVE_REMOTE"),             # to MPU only?
     "09 02"  :   (0x80050002, "PROP_LV_FOCUS_DONE"),
     "09 05"  :   (0x80050005, "PROP_LV_LENS_STABILIZE"),
     "09 0a"  :   (0x80050008, "PROP_LV_BV"),
-    "09 0b"  :   (0x80050029, "PROP_LV_AF_RESULT"),         # PROP_LV_FOCUS_BAD
-    "09 0c"  :   (0x8005000A, "PROP_LV_HALF_SHUTTER"),      # PROP_HALF_SHUTTER
-    "09 0d"  :   (0x8005000B, "PROP_LV_DOF_PREVIEW"),       # PROP_DOF_PREVIEW_MAYBE
+    "09 0b"  :   (0x80050029, "PROP_LV_AF_RESULT"),                     # PROP_LV_FOCUS_BAD
+    "09 0c"  :   (0x8005000A, "PROP_LV_HALF_SHUTTER"),                  # PROP_HALF_SHUTTER
+    "09 0d"  :   (0x8005000B, "PROP_LV_DOF_PREVIEW"),                   # PROP_DOF_PREVIEW_MAYBE
     "09 0e"  :   (0x8005000C, "PROP_STROBO_CHARGE_INFO_MAYBE"),
     "09 0f"  :   (0x8005000D, "PROP_ORIENTATION"),
     "09 10"  :   (0x80050010, "PROP_BV"),
@@ -234,7 +234,7 @@ const struct known_spell known_spells[] = {""")
         prop = data[0]
         desc = data[1]
         spell = ", ".join(["0x%s" % x for x in spell.split(" ")])
-        print('    { %s, 0x%X, "%s" },' % (spell, prop, desc))
+        print('    { %s, 0x%08X, "%s" },' % (spell, prop, desc))
     print("};")
     print("Done.", file=sys.stderr)
     raise SystemExit
