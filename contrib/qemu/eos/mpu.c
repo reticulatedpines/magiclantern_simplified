@@ -47,6 +47,7 @@ static int mpu_init_spell_count = 0;
 #include "mpu_spells/EOSM.h"
 #include "mpu_spells/EOSM2.h"
 #include "mpu_spells/generic.h"
+#include "mpu_spells/bruteforce.h"
 
 #include "mpu_spells/known_spells.h"
 
@@ -95,6 +96,7 @@ static void mpu_send_next_spell(EOSState *s)
         s->mpu.out_char = -2;
 
         /* request a SIO3 interrupt */
+        /* use 100 here if brute-forcing MPU spells, to avoid overflowing Canon buffers */
         eos_trigger_int(s, s->model->mpu_sio3_interrupt, 0);
     }
     else
@@ -1117,6 +1119,13 @@ void mpu_spells_init(EOSState *s)
         mpu_init_spells = mpu_init_spells_generic;
         mpu_init_spell_count = COUNT(mpu_init_spells_generic);
         /* how to get them: http://magiclantern.fm/forum/index.php?topic=2864.msg166938#msg166938 */
+    }
+
+    if (0)
+    {
+        MPU_EPRINTF("WARNING: using bruteforce MPU spells for %s.\n", s->model->name);
+        mpu_init_spells = mpu_init_spells_bruteforce;
+        mpu_init_spell_count = COUNT(mpu_init_spells_bruteforce);
     }
 
     mpu_check_duplicate_spells(s);

@@ -171,7 +171,7 @@ typedef enum
 struct mpu_init_spell
 {
   uint16_t in_spell[128];
-  uint16_t out_spells[128][128];
+  uint16_t out_spells[256][128];
   const char * description;
 };
 
