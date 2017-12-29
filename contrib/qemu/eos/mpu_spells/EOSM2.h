@@ -194,6 +194,7 @@ static struct mpu_init_spell mpu_init_spells_EOSM2[] = {
     #include "NotifyGUIEvent.h"
     #include "UILock.h"
     #include "CardFormat.h"
+    #include "MpuProperties.h"
     #include "GPS.h"
     #include "Shutdown.h"
 };
