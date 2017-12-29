@@ -556,6 +556,13 @@ for l in lines:
             reply = replace_spell_arg(reply, 4, "00")
             warning = ("disabled, " + warning).strip(" ,")
 
+        # comment out mode switches
+        if reply[6:11] in [ "02 00", "02 0e" ] and num > 1:
+            cmt = "//"
+            warning = "mode switch?"
+
+
+        # show lens name as comment
         if description == "PROP_LENS_NAME":
             description += ": "
             for ch in reply.split(" ")[4:]:
