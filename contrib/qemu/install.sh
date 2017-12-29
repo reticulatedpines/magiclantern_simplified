@@ -94,12 +94,12 @@ if [ $(uname) == "Darwin" ]; then
     if ! brew -v &> /dev/null; then
         ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
     fi
-    
+
     packages="python wget mercurial xz grep pkg-config glib automake libtool pixman mtools"
     for pkg in $packages; do
         brew list $pkg &> /dev/null || brew install $pkg
     done
-    
+
     GREP=ggrep
 fi
 
@@ -128,7 +128,7 @@ if [  -n "$(lsb_release -i | grep Ubuntu)" ]; then
         if [  -z "$(uname -a | grep Microsoft)" ]; then
             echo "1 - Install gdb-arm-none-eabi:i386 and gcc-arm-none-eabi from Ubuntu repo (recommended)"
             echo "    This will install 32-bit binaries."
-            echo 
+            echo
             echo "2 - Download a 32-bit gcc-arm-embedded and install it without the package manager."
             echo "    Will be installed in your home directory; to move it, you must edit the Makefiles."
             echo "    This will install 32-bit binaries."
@@ -152,10 +152,10 @@ if [  -n "$(lsb_release -i | grep Ubuntu)" ]; then
 
         echo "4 - Install gdb-arm-none-eabi and gcc-arm-none-eabi from Ubuntu repository (64-bit)"
         echo "    WARNING: this will not be able to run all our GDB scripts."
-        echo 
+        echo
         echo "5 - Manually install arm-none-eabi-gdb from https://launchpad.net/gcc-arm-embedded"
         echo "    or any other source, make sure it is in PATH, then run this script again."
-        echo 
+        echo
 
         if arm-none-eabi-gdb -v &> /dev/null; then
             echo "6 - Just use the current 64-bit toolchain."
@@ -236,7 +236,7 @@ if [  -n "$(lsb_release -i | grep Ubuntu)" ]; then
         echo
         if [[ "$packages" == *i386* ]]; then
             sudo dpkg --add-architecture i386
-        fi 
+        fi
         sudo apt-get update
         sudo apt-get install $packages
         echo
@@ -452,8 +452,19 @@ echo "     ./run_canon_fw.sh 60D -d debugmsg -s -S & arm-none-eabi-gdb -x 60D/de
 echo "   - some camera models require GDB patches to bypass tricky code sequences:"
 echo "     ./run_canon_fw.sh 700D -s -S & arm-none-eabi-gdb -x 700D/patches.gdb"
 echo
+echo " Shall this script do the compilation under 1) now? [y/N]"
+read answer
+if test "$answer" == "Y" -o "$answer" == "y"
+ then
+    cd `pwd`/${QEMU_NAME}
+    ../configure_eos.sh
+    make -j`$GREP -c processor /proc/cpuinfo 2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || echo 1`
+    echo "Done compiling."
+fi
+
+echo
 echo "Online documentation: "
 echo
-echo "   https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/" 
+echo "   https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/"
 echo
 echo "Enjoy!"
