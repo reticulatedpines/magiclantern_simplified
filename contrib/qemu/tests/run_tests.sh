@@ -94,26 +94,26 @@ function test_selected {
 }
 
 declare -A MENU_SEQUENCE
-MENU_SEQUENCE[5D2]="f1 i i i m up up up space m m w w p p" # sensor cleaning animation
-MENU_SEQUENCE[5D3]="f1 i i i f1 i m left down down down space m m p p q space m right right space m down right space pgdn m q"
-MENU_SEQUENCE[6D]="m left left up space space down space m right down space down space up up space down space m i i i q right space right space space space m m q p p"
-MENU_SEQUENCE[40D]="m left down down down space up space up space m left space space m i i p p w w"
-MENU_SEQUENCE[50D]="f1 i i i m up space space m w w p p" # sensor cleaning animation
-MENU_SEQUENCE[60D]="f1 i i i i m left left up space m m p p"
-MENU_SEQUENCE[70D]="m left up space down space m p p i i i i i q"
-MENU_SEQUENCE[450D]="f1 m up up space m left left i p p w down down space " # LiveView overlays also working, but the tests would crash at shutdown
-MENU_SEQUENCE[500D]="f1 m i i right right up m p p"
-MENU_SEQUENCE[550D]="m i i right right down down down space space p p" # info screen not working
-MENU_SEQUENCE[600D]="i i m right right right right up space down down space m p p q q" # starts with sensor cleaning animation; no info screen unless we enable it
-MENU_SEQUENCE[650D]="f1 m right right p p" # starts in movie mode, no lens
-MENU_SEQUENCE[700D]="f1 m right down space right space p p" # starts in movie mode, no lens
-MENU_SEQUENCE[100D]="f1 i i i m left left left up up left left left left left left left up up space up space p p"
-MENU_SEQUENCE[1000D]="f1 i w w i p p m space space up up space m left i"
-MENU_SEQUENCE[1100D]="f1 i i m i i left m p p down right space right right space up right space" # drive mode not working
-MENU_SEQUENCE[1200D]="f1 i i m i i space m m p p down right space right right space up right space" # drive mode not working
-MENU_SEQUENCE[1300D]="f1 i i m i i up up up space m up up space right space down space i m space space m left up space down space m q right space i q down p p"
-MENU_SEQUENCE[EOSM]="f1 m up up up space m up space m up space m left down down down space space p p " # only menu works
-MENU_SEQUENCE[EOSM2]="f1 m space space space up up space m up space m up space m up space m right space space m m" # only menu works
+MENU_SEQUENCE[5D2]="f1 i i i m up up up space m m w w 9 9 9 0 0 0 0 0 p p"
+MENU_SEQUENCE[5D3]="f1 i i i f1 i m left down down down space m m p p q space m right right space m down right space pgdn m 9 9 9 0 0 0 0 0 0 0 0 0 q"
+MENU_SEQUENCE[6D]="m left left up space space down space m right down space down space up up space down space m i i i q right space right space space space m m q 9 9 9 p p"
+MENU_SEQUENCE[40D]="m left down down down space up space up space m left space space m i i p p w w" # mode switch not working
+MENU_SEQUENCE[50D]="f1 i i i m up space space m w w 0 0 0 0 0 p p"
+MENU_SEQUENCE[60D]="f1 i i i i m left left up space m m i i 0 0 0 0 0 0 0 0 0 0 0 0 p p"
+MENU_SEQUENCE[70D]="m left up space down space m p p i i i i i q q 9 q q 9 q q 9 q q"
+MENU_SEQUENCE[450D]="f1 m up up space m left left i p p w down down space m down space down space m 9 m j" # LiveView overlays also working, but the tests would crash at shutdown; mode switch has issues
+MENU_SEQUENCE[500D]="f1 m i i right right up m 0 0 0 0 0 0 0 0 0 0 0 0 p p"
+MENU_SEQUENCE[550D]="m i i right right down down down space space p p" # info screen not working, could not test mode switch
+MENU_SEQUENCE[600D]="i i m right right right right up space down down space m p p 9 q q 9 q q 9 q q" # starts with sensor cleaning animation; no info screen unless we enable it
+MENU_SEQUENCE[650D]="f1 m right right p p" # starts in movie mode, no lens; mode switch not working
+MENU_SEQUENCE[700D]="f1 m right down space right space p p" # starts in movie mode, no lens; mode switch not working
+MENU_SEQUENCE[100D]="f1 i i i m left left left up up left left left left left left left up up space up space p p 9 q 9 q 9"
+MENU_SEQUENCE[1000D]="f1 i w w i p p m space space up up space m left i m m 9 9 0 0 0 m j"
+MENU_SEQUENCE[1100D]="f1 i i m i i left m p p down right space right right space up right space 9 q 9 q 9" # drive mode not working
+MENU_SEQUENCE[1200D]="f1 i i m i i space m m p p down right space right right space up right space 9 q 9 q 9" # drive mode not working
+MENU_SEQUENCE[1300D]="f1 i i m i i up up up space m up up space right space down space i m space space m left up space down space m q right space i q down p p 9 q 9 q 9"
+MENU_SEQUENCE[EOSM]="f1 m up up up space m up space m up space m left down down down space space p p 0 9 9 9 m m " # only menu works
+MENU_SEQUENCE[EOSM2]="f1 m space space space up up space m up space m up space m up space m right space space m m" # only menu works; no mode switch
 
 FMT_SEQ="space right space wait f1 space"
 FMT_SEQ_5D3="space space right space wait f1 space space"

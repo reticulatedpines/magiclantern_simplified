@@ -45,6 +45,8 @@ enum button_codes
     /* other events (MPU messages triggered on key presses) */
     MPU_SEND_SHUTDOWN_REQUEST,
     MPU_SEND_ABORT_REQUEST,
+    MPU_NEXT_SHOOTING_MODE,
+    MPU_PREV_SHOOTING_MODE,
 
     /* finished */
     BGMT_END_OF_LIST

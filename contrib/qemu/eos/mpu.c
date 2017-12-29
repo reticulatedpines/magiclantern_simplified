@@ -724,10 +724,13 @@ static struct {
     { 0x0011,   BGMT_PICSTYLE,          "W",            "Pic.Style",                    },
     { 0x001E,   BGMT_PRESS_AV,          "A",            "Av",                           },
     { 0x009E,   BGMT_UNPRESS_AV,                                                        },
-    { 0x002A,   BGMT_PRESS_HALFSHUTTER,     "Shift",    "Half-shutter"                  },
+    { 0x002A,   BGMT_PRESS_HALFSHUTTER, "Shift",        "Half-shutter"                  },
     { 0x0036,   BGMT_PRESS_HALFSHUTTER,                                                 },
     { 0x00AA,   BGMT_UNPRESS_HALFSHUTTER,                                               },
     { 0x00B6,   BGMT_UNPRESS_HALFSHUTTER,                                               },
+
+    { 0x000B,   MPU_NEXT_SHOOTING_MODE, "0/9",          "Mode dial"                     },
+    { 0x000A,   MPU_PREV_SHOOTING_MODE,                                                 },
 
     /* the following unpress events are just tricks for sending two events
      * with a small - apparently non-critical - delay between them */
@@ -771,6 +774,8 @@ static int translate_scancode_2(int scancode, int first_code, int allow_auto_rep
                 case BGMT_UNPRESS_FULLSHUTTER:
                 case MPU_SEND_SHUTDOWN_REQUEST:
                 case MPU_SEND_ABORT_REQUEST:
+                case MPU_NEXT_SHOOTING_MODE:
+                case MPU_PREV_SHOOTING_MODE:
                 {
                     /* special: return the raw gui code */
                     ret = 0x0E0E0000 | key_map[i].gui_code;
@@ -986,6 +991,37 @@ void mpu_send_keypress(EOSState *s, int keycode)
                     { 0x06, 0x04, 0x02, 0x0c, 0x00, 0x00 },
                 };
                 MPU_SEND_SPELLS(abort_request);
+                break;
+            }
+
+            case MPU_NEXT_SHOOTING_MODE:
+            case MPU_PREV_SHOOTING_MODE:
+            {
+                int delta = (key & 0xFFFF) == MPU_NEXT_SHOOTING_MODE ? 1 : -1;
+                /* this request covers many other properties, some model-specific, some require storing state variables */
+                /* look up the mode change request for this model and patch it */
+
+                for (int k = 0; k < mpu_init_spell_count && mpu_init_spells[0].out_spells[k][0]; k++)
+                {
+                    uint16_t * spell = mpu_init_spells[0].out_spells[k];
+
+                    if (spell[2] == 0x02 && (spell[3] == 0x00 || spell[3] == 0x0e))
+                    {
+                        int old_mode = spell[4];
+
+                        /* any valid mode beyond 31? */
+                        int new_mode = (old_mode + delta) & 0x1F;
+
+                        MPU_EPRINTF("using reply #1.%d for mode switch (%d -> %d).\n", k+1, old_mode, new_mode);
+
+                        /* not 100% sure it's right */
+                        spell[4] = spell[5] = new_mode;
+                        mpu_enqueue_spell_generic(s, spell);
+                        mpu_start_sending(s);
+
+                        break;
+                    }
+                }
                 break;
             }
 
