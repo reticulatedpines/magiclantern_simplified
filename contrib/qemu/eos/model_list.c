@@ -385,12 +385,14 @@ struct eos_model_desc eos_model_list[] = {
         .digic_version          = 6,
         .ram_manufacturer_id    = 0x14000203,
         .current_task_addr      = 0x44F4,
+        .serial_flash_size      = 0x800000,
     },
     {
         .name                   = "760D",
         .digic_version          = 6,
         .ram_manufacturer_id    = 0x14000203,
         .current_task_addr      = 0x44F4,
+        .serial_flash_size      = 0x800000,
     },
     {
         .name                   = "5D4",
