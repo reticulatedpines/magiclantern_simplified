@@ -296,7 +296,7 @@ static int get_default_white_level()
     {
         int default_white = WHITE_LEVEL;
 
-        #ifdef CONFIG_100D
+        #if defined(CONFIG_100D) || defined(CONFIG_700D) /* other models? */
         /* http://www.magiclantern.fm/forum/index.php?topic=16040.msg191131#msg191131 */
         /* 100 units below measured value = about 0.01 EV */
         default_white = (lens_info.raw_iso == ISO_100) ? 13400 : 15200;
