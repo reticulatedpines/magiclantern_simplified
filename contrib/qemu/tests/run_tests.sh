@@ -115,8 +115,8 @@ MENU_SEQUENCE[1300D]="f1 i i m i i up up up space m up up space right space down
 MENU_SEQUENCE[EOSM]="f1 m up up up space m up space m up space m left down down down space space p p 0 9 9 9 m m " # only menu works
 MENU_SEQUENCE[EOSM2]="f1 m space space space up up space m up space m up space m up space m right space space m m" # only menu works; no mode switch
 
-FMT_SEQ="space right space wait f1 space"
-FMT_SEQ_5D3="space space right space wait f1 space space"
+FMT_SEQ="space right space f1 space"
+FMT_SEQ_5D3="space space right space f1 space space"
 # these are customized for my ROM dumps (keys required to select the Format menu)
 # TODO: some generic way to navigate to Format menu?
 declare -A FORMAT_SEQUENCE
@@ -215,20 +215,59 @@ function sd_cf_restore_if_modified {
 # save the screenshot, regardless of match result
 # vncexpect key md5 timeout capture
 function vncexpect {
-    vncdo -s $VNC_DISP key $1
+
+    # remove output file, just in case
     rm -f $4
-    if vncdo -s $VNC_DISP -v -v -t $3 expect-md5 $2 &> tests/vncdo.log; then
-        echo -n "."
-        vncdo -s $VNC_DISP capture $4
-        return 0
+
+    # do everything in one command, for speed
+    local vnc_log=$(vncdotool -s $VNC_DISP -v -v -t $3 key $1 pause 0.5 expect-md5 $2 capture $4 2>&1)
+    if [ $? == 0 ] && [ -f $4 ]; then
+
+        # looks OK?
+        if [ "$2" == "$(md5sum $4 | cut -d ' ' -f 1)" ]; then
+            echo -n "."
+            return 0
+        else
+            # doesn't always work - race condition?
+            echo -ne "\e[31m¿\e[0m"
+            return 1
+        fi
+
     else
-        vncdo -s $VNC_DISP capture $4
-        echo ""
-        echo "$2  expected"
-        md5sum $4
+
+        # something went wrong
+
+        # if the above timed out, it may have skipped the "capture" part - retry it now
+        if [ ! -f $4 ]; then
+            vncdotool -s $VNC_DISP capture $4 &> /dev/null
+
+            if [ ! -f $4 ]; then
+                # screenshot not taken - QEMU crashed?
+                echo -n "X"
+                return 2
+            fi
+
+            # it might have even worked!
+            # why does it always happen on the first screenshot from 1000D?!
+            if [ "$2" == "$(md5sum $4 | cut -d ' ' -f 1)" ]; then
+                echo -n ","
+                #echo "$vnc_log"
+                return 0
+            fi
+        fi
+
+        echo -ne "\e[31m!\e[0m"
+
+        # print some debugging info
+        if false; then
+            echo "$2  expected"
+            md5sum $4
+            echo "$vnc_log"
+        fi
+
         return 1
+
     fi
-    return $ret
 }
 
 # just stop QEMU (current instance only) without shutting down DryOS
@@ -368,6 +407,24 @@ function cleanup {
 
 
 # All cameras booting the GUI should be able to navigate Canon menu:
+
+# arguments: delay after each key, timeout waiting for a given screen, key sequence (a single argument)
+function send_menu_sequence {
+    # note: these should also work via qemu.monitor
+    # (slightly different keycodes and only PPM screenshots available)
+    local count=0;
+    for key in $3; do
+        # send the key and wait until the expected screen comes up
+        local PNG=$TEST$((count++)).png
+        local MD5=$(cat tests/$CAM/$TEST.md5 2>/dev/null | grep $PNG | cut -d ' ' -f 1)
+        if [ -z "$MD5" ]; then
+            vncdotool -s $VNC_DISP key $key pause $1 capture tests/$CAM/$PNG; echo -n '?'
+        else
+            vncexpect $key $MD5 $2 tests/$CAM/$PNG
+        fi
+    done
+}
+
 function test_menu {
 
     if [ -f $CAM/patches.gdb ]; then
@@ -384,14 +441,7 @@ function test_menu {
     set_gui_timeout
     sleep $GUI_TIMEOUT
 
-    # note: these should also work via qemu.monitor
-    # (slightly different keycodes and only PPM screenshots available)
-    count=0;
-    for key in ${MENU_SEQUENCE[$CAM]}; do
-        vncdotool -s $VNC_DISP key $key; sleep 0.5
-        vncdotool -s $VNC_DISP capture tests/$CAM/$TEST$((count++)).png
-        echo -n .
-    done
+    send_menu_sequence 0.5 2 "${MENU_SEQUENCE[$CAM]}"
 
     shutdown_qemu
 
@@ -400,7 +450,8 @@ function test_menu {
     tests/check_grep.sh tests/$CAM/$TEST.log -q "\[MPU\] Shutdown requested." || return
     tests/check_grep.sh tests/$CAM/$TEST.log -q "Terminate : Success" || return
 
-    tests/check_md5.sh tests/$CAM/ $TEST || cat tests/$CAM/$TEST.md5.log
+    echo -n ' '
+    tests/check_md5.sh tests/$CAM/ $TEST
 }
 
 echo
@@ -429,17 +480,12 @@ function test_format {
     set_gui_timeout
     sleep $GUI_TIMEOUT
 
-    count=0;
-    for key in ${FORMAT_SEQUENCE[$CAM]}; do
-        if [ $key = wait ]; then sleep 1; continue; fi
-        vncdotool -s $VNC_DISP key $key; sleep 0.5
-        vncdotool -s $VNC_DISP capture tests/$CAM/$TEST$((count++)).png
-        echo -n .
-    done
+    send_menu_sequence 0.5 2 "${FORMAT_SEQUENCE[$CAM]}"
 
     shutdown_qemu
 
-    tests/check_md5.sh tests/$CAM/ $TEST || cat tests/$CAM/$TEST.md5.log
+    echo -n ' '
+    tests/check_md5.sh tests/$CAM/ $TEST
 }
 
 echo
@@ -1024,7 +1070,7 @@ function test_fmtrestore {
     # screenshots are slightly different on the first run,
     # runs 2 and 3 must be identical, as the free space
     # no longer depends on the initial card contents.
-    count=0;
+    local count=0;
     for t in 1 2 3; do
         mdel -i $MSD ::/ML/MODULES/LOADING.LCK 2>/dev/null
 
@@ -1157,18 +1203,12 @@ function test_menu_callstack {
     set_gui_timeout
     sleep $(( 2*GUI_TIMEOUT ))
 
-    count=0;
-    for key in ${MENU_SEQUENCE[$CAM]}; do
-        # some GUI operations are very slow under -d callstack (many small functions called)
-        # for most of them, 1 second is enough, but the logic would be more complex
-        vncdotool -s $VNC_DISP key $key; sleep 3
-        vncdotool -s $VNC_DISP capture tests/$CAM/$TEST$((count++)).png
-        echo -n .
-    done
+    send_menu_sequence 0.5 8 "${MENU_SEQUENCE[$CAM]}"
 
     shutdown_qemu
 
-    tests/check_md5.sh tests/$CAM/ $TEST || cat tests/$CAM/$TEST.md5.log
+    echo -n ' '
+    tests/check_md5.sh tests/$CAM/ $TEST
 }
 
 echo
