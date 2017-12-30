@@ -321,6 +321,8 @@ int ftoa(char *s, float n) {
         int neg = (n < 0);
         if (neg)
             n = -n;
+        // round to our precision
+        n += PRECISION / 2;
         // calculate magnitude
         m = log10f(n);
         int useExp = (m >= 14 || (neg && m >= 9) || m <= -9);
