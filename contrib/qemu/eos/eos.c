@@ -5043,7 +5043,7 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
         return eos_handle_mreq(parm, s, address, type, value);
     }
 
-    /* 0xD20B0D8C */
+    /* 0xD20B0D8C, 0xD20B037C */
     if (s->sf && address == s->model->serial_flash_cs_register)
     {
         return eos_handle_serial_flash_cs(parm, s, address, type, value);

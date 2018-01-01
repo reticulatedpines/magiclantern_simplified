@@ -131,7 +131,6 @@ struct eos_model_desc eos_model_list[] = {
         .card_led_address       = 0xD20B0A24,
         .uart_rx_interrupt      = 0x15D,
         .uart_tx_interrupt      = 0x16D,
-        .serial_flash_sio_ch    = 2,
         .serial_flash_sfio_ch   = 7,
         .serial_flash_interrupt = 0xFE,
         .serial_flash_cs_register = 0xD20B0D8C,
@@ -387,18 +386,21 @@ struct eos_model_desc eos_model_list[] = {
         .ram_manufacturer_id    = 0x18000103,   /* RAM manufacturer: Micron */
         .current_task_addr      = 0x44F4,
         .serial_flash_size      = 0x800000,
+        .serial_flash_sio_ch    = 2,
     },
     {
         .name                   = "750D",
         .digic_version          = 6,
         .ram_manufacturer_id    = 0x14000203,
         .current_task_addr      = 0x44F4,
+        .serial_flash_sio_ch    = 2,
     },
     {
         .name                   = "760D",
         .digic_version          = 6,
         .ram_manufacturer_id    = 0x14000203,
         .current_task_addr      = 0x44F4,
+        .serial_flash_sio_ch    = 2,
     },
     {
         .name                   = "5D4",
@@ -411,6 +413,9 @@ struct eos_model_desc eos_model_list[] = {
         .mpu_status_register    = 0xD20B22A4,   /* read in SIO3_ISR and MREQ_ISR (tst 0x10000) */
         .mpu_control_register   = 0xD4013048,   /* 0x1C written in MREQ_ISR */
         .mpu_mreq_interrupt     = 0x12A,        /* MREQ_ISR in InitializeIntercom */
+        .serial_flash_size      = 0x1000000,
+        .serial_flash_sio_ch    = 0,
+        .serial_flash_cs_register = 0xD20B037C,
     },
     {
         .name                   = "5D4AE",
