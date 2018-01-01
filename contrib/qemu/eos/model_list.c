@@ -158,6 +158,8 @@ struct eos_model_desc eos_model_list[] = {
         .cf_dma_interrupt       = 0xE3,
         .current_task_addr      = 0x1A70,
         .rtc_cs_register        = 0xC02200B0,
+        .ram_extra_addr         = 0xE8000000,       /* FPGA config 0xF8760000 using DMA */
+        .ram_extra_size         = 0x53000,
     },
     {
         .name                   = "60D",
@@ -187,6 +189,8 @@ struct eos_model_desc eos_model_list[] = {
         .cf_dma_interrupt       = 0xE3,
         .current_task_addr      = 0x1A24,
         .rtc_cs_register        = 0xC02200B0,
+        .ram_extra_addr         = 0xE8000000,       /* FPGA config 0xF8760000 using DMA */
+        .ram_extra_size         = 0x53000,
     },
     {
         .name                   = "5D3",
