@@ -171,6 +171,8 @@ echo "Setting up temporary SD/CF card images..."
 function sd_restore {
   trap '' SIGINT
   echo
+  echo "Cleaning up..."
+  cleanup
   echo "Restoring your SD/CF card images..."
   mv sd-user.img sd.img
   mv cf-user.img cf.img
