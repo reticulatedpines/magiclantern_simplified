@@ -99,9 +99,11 @@ struct eos_model_desc eos_model_list[] = {
         .uart_rx_interrupt      = 0x2E,
         .uart_tx_interrupt      = 0x3A,
         .rtc_cs_register        = 0xC02201F8,
-        .serial_flash_sio_ch    = 4,
-        .serial_flash_sfio_ch   = 4,
+        .serial_flash_sio_ch    = 4,            /* SF params are only valid on models */
+        .serial_flash_sfio_ch   = 4,            /* where .serial_flash_size is set */
         .serial_flash_interrupt = 0x17B,
+        .serial_flash_cs_register = 0xC022C0D4,
+        .serial_flash_cs_bitmask  = 0x00100000, /* 0x83DC00 / 0x93D800 */
     },
     {
         /* defaults for DIGIC 6 cameras */
@@ -132,6 +134,8 @@ struct eos_model_desc eos_model_list[] = {
         .serial_flash_sio_ch    = 2,
         .serial_flash_sfio_ch   = 7,
         .serial_flash_interrupt = 0xFE,
+        .serial_flash_cs_register = 0xD20B0D8C,
+        .serial_flash_cs_bitmask  = 0x00010000, /* 0xC0003 / 0xD0002 */
         .mpu_request_register   = 0xD20B0884,   /* written in mpu_send (run with -d io) */
         .mpu_request_bitmask    = 0x00010000,   /* 0xC0003 request, 0xD0002 idle, 0x4D00B2 init */
         .mpu_status_register    = 0xD20B0084,   /* read in SIO3_ISR and MREQ_ISR (tst 0x10000) */
@@ -227,9 +231,9 @@ struct eos_model_desc eos_model_list[] = {
     {
         .name                   = "100D",
         .digic_version          = 5,
+        .current_task_addr      = 0x652AC,
         .serial_flash_size      = 0x1000000,
         .serial_flash_sio_ch    = 7,
-        .current_task_addr      = 0x652AC,
         .rtc_cs_register        = 0xC022C020,
         .rtc_time_correct       = 0x98,
     },
@@ -253,6 +257,8 @@ struct eos_model_desc eos_model_list[] = {
         .mpu_request_register   = 0xC02200BC,   /* written in mpu_send (run with -d io) */
         .mpu_status_register    = 0xC02200BC,   /* read in SIO3_ISR and MREQ_ISR (tst 0x2) */
         .serial_flash_size      = 0x800000,
+        .serial_flash_cs_register = 0xC022002C,
+        .serial_flash_cs_bitmask  = 0x00000002, /* 0x44 / 0x46 */
         .current_task_addr      = 0x74C28,
         .rtc_cs_register        = 0xC02201D4,
         .rtc_time_correct       = 0x9F,
@@ -265,6 +271,8 @@ struct eos_model_desc eos_model_list[] = {
         .mpu_status_register    = 0xC02200BC,   /* read in SIO3_ISR and MREQ_ISR (tst 0x2) */
         .card_led_address       = 0xC022C06C,
         .serial_flash_size      = 0x800000,
+        .serial_flash_cs_register = 0xC022002C,
+        .serial_flash_cs_bitmask  = 0x00000002, /* 0x44 / 0x46 */
         .rtc_cs_register        = 0xC02201D4,
         .rtc_time_correct       = 0xA0,
     },
@@ -316,7 +324,7 @@ struct eos_model_desc eos_model_list[] = {
         .card_led_address       = 0xC022C188,
         .serial_flash_size      = 0x800000,
         .rtc_cs_register        = 0xC022C0C4,
-      //.rtc_time_correct       = 0x98,     /* the date/time dialog prevents the camera from going into LiveView */
+      //.rtc_time_correct       = 0x98,         /* the date/time dialog prevents the camera from going into LiveView */
     },
     {
         .name                   = "EOSM2",
@@ -326,7 +334,7 @@ struct eos_model_desc eos_model_list[] = {
         .serial_flash_sio_ch    = 7,
         .rtc_cs_register        = 0xC022C0C4,
         .rtc_time_correct       = 0x9A,
-        .rtc_control_reg_2      = 0x10,     /* the date/time dialog prevents the camera from going into LiveView */
+        .rtc_control_reg_2      = 0x10,         /* the date/time dialog prevents the camera from going into LiveView */
     },
     {
         .name                   = "EOSM3",

@@ -2454,6 +2454,20 @@ static int eos_handle_rtc_cs( unsigned int parm, EOSState *s, unsigned int addre
     return ret;
 }
 
+static int eos_handle_serial_flash_cs( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+{
+    const char * msg = "Serial flash CS";
+    unsigned int ret = 0;
+
+    if (type & MODE_WRITE)
+    {
+        serial_flash_set_CS(s->sf, (value & s->model->serial_flash_cs_bitmask) ? 1 : 0);
+    }
+
+    io_log("GPIO", s, address, type, value, ret, msg, 0, 0);
+    return ret;
+}
+
 unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
     unsigned int ret = 1;
@@ -2478,6 +2492,12 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
     if (address == s->model->rtc_cs_register)
     {
         return eos_handle_rtc_cs(parm, s, address, type, value);
+    }
+
+    /* 0xC022002C, 0xC022C0D4 */
+    if (s->sf && address == s->model->serial_flash_cs_register)
+    {
+        return eos_handle_serial_flash_cs(parm, s, address, type, value);
     }
 
     switch (address & 0xFFFF)
@@ -2629,36 +2649,6 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
         case 0x014:
             /* /VSW_ON on 600D */
             msg = "/VSW_ON";
-            ret = 0;
-            break;
-
-        case 0xC0D4:
-            /* Serial flash on 100D */
-            msg = "SPI";
-            if (s->sf)
-            {
-                serial_flash_set_CS(s->sf, (value & 0x100000) ? 1 : 0);
-            }
-            if (!qemu_loglevel_mask(EOS_LOG_SFLASH))
-            {
-                if (value == 0x83DC00 || value == 0x93D800)
-                    return 0; // Quiet
-            }
-            ret = 0;
-            break;
-        
-        case 0x002C:
-            /* Serial flash on 70D */
-            msg = "SPI";
-            if (s->sf)
-            {
-                serial_flash_set_CS(s->sf, (value & 0x2) ? 1 : 0);
-            }
-            if (!qemu_loglevel_mask(EOS_LOG_SFLASH))
-            {
-                if (value == 0x46 || value == 0x44)
-                    return 0; // Quiet
-            }
             ret = 0;
             break;
 
@@ -5040,16 +5030,23 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
         return eos_handle_card_led(parm, s, address, type, value);
     }
 
-    /* 0xD20B0884/084 so far */
+    /* 0xD20B0884/084, 0xD20B02A4/22A4 */
     if (address == s->model->mpu_request_register ||
         address == s->model->mpu_status_register)
     {
         return eos_handle_mpu(parm, s, address, type, value);
     }
 
+    /* 0xD4013008, 0xD4013048 */
     if (address == s->model->mpu_control_register)
     {
         return eos_handle_mreq(parm, s, address, type, value);
+    }
+
+    /* 0xD20B0D8C */
+    if (s->sf && address == s->model->serial_flash_cs_register)
+    {
+        return eos_handle_serial_flash_cs(parm, s, address, type, value);
     }
 
     switch (address)
@@ -5180,21 +5177,6 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
         case 0xD20B210C:
             msg = "CF detect";          /* 5D4: same as above */
             ret = 0x10000;
-            break;
-
-        case 0xD20B0D8C:
-            /* Serial flash on 80D */
-            msg = "SPI";
-            if (s->sf)
-            {
-                serial_flash_set_CS(s->sf, (value & 1) ? 0 : 1);
-            }
-            if (!qemu_loglevel_mask(EOS_LOG_SFLASH))
-            {
-                if (value == 0xD0002 || value == 0xC0003)
-                    return 0; // Quiet
-            }
-            ret = 0;
             break;
 
         case 0xD6040000:                /* M3: appears to expect 0x3008000 or 0x3108000 */
