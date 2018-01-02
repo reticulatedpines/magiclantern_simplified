@@ -100,13 +100,6 @@ Common issues and workarounds
 
   |
 
-- Program counter not exact in MMIO logs?
-
-  - short answer: ``-d io,nochain -singlestep``
-  - see `Execution trace incomplete? PC values from MMIO logs not correct?`_
-
-  |
-
 .. _netcat-issue:
 
 - Netcat issues when interacting with ``qemu.monitor``
@@ -822,25 +815,25 @@ Execution trace:
 
   ./run_canon_fw.sh 60D,firmware="boot=0" -d exec,nochain -singlestep
 
-I/O trace (quick):
+I/O trace (precise):
 
 .. code:: shell
 
   ./run_canon_fw.sh 60D,firmware="boot=0" -d io
 
-I/O trace (precise):
+I/O trace (quick):
 
 .. code:: shell
 
-  ./run_canon_fw.sh 60D,firmware="boot=0" -d io,nochain -singlestep
+  ./run_canon_fw.sh 60D,firmware="boot=0" -d io_quick
 
 I/O trace with interrupts (precise):
 
 .. code:: shell
 
-  ./run_canon_fw.sh 60D,firmware="boot=0" -d io,int,nochain -singlestep
+  ./run_canon_fw.sh 60D,firmware="boot=0" -d io,int
 
-I/O trace with Canon debug messages (quick):
+I/O trace with Canon debug messages (precise):
 
 .. code:: shell
 
@@ -900,9 +893,14 @@ for faster execution. In this mode, `-d exec` will print guest instructions as t
 (for example, if you have a tight loop, only the first pass will be printed).
 
 To log every single guest instruction, as executed, and get exact PC values
-in execution traces and MMIO logs, you need to use `-d nochain -singlestep` 
-(for example: `-d exec,nochain -singlestep` or `-d io,int,nochain -singlestep`)
+in execution traces and other logs, you need to use `-d nochain -singlestep` 
+(for example: `-d exec,nochain -singlestep`)
 - `source <http://qemu-discuss.nongnu.narkive.com/f8A4tqdT/singlestepping-target-assembly-instructions>`_.
+
+Please note: `-d io` implies `-d nochain -singlestep` by default. Should you want to disable this,
+to get faster emulation at the expense of incorrect PC values, use `-d io_quick`.
+
+Additionally, `-d nochain` implies `-singlestep`, unlike in vanilla QEMU.
 
 Debugging with GDB
 ``````````````````
@@ -1083,9 +1081,9 @@ with I/O activity (usually that's where most emulation issues come from):
 
   ./run_canon_fw.sh 5DS -d io
   ...
-  [DIGIC6]   at 0xFE020CC8:FE020B5C [0xD203040C] <- 0x500     : MR (RAM manufacturer ID)
-  [DIGIC6]   at 0xFE020CC8:FE020B5C [0xD203040C] <- 0x20500   : MR (RAM manufacturer ID)
-  [DIGIC6]   at 0xFE020CC8:FE020B5C [0xD203040C] -> 0x0       : MR (RAM manufacturer ID)
+  [DIGIC6]   at 0xFE020CD0:FE020B5C [0xD203040C] <- 0x500     : MR (RAM manufacturer ID)
+  [DIGIC6]   at 0xFE020CDC:FE020B5C [0xD203040C] <- 0x20500   : MR (RAM manufacturer ID)
+  [DIGIC6]   at 0xFE020CE4:FE020B5C [0xD203040C] -> 0x0       : MR (RAM manufacturer ID)
   MEMIF NG MR05=00000000 FROM=00000001
   BTCM Start Master
 
@@ -1229,11 +1227,11 @@ After adding the basic definition, the bootloader shows a factory menu, rather t
 It does not get stuck anywhere, the factory menu works (you can navigate it on the serial console), so what's going on?
 
 Run the emulation with ``-d io``, look at all MMIO register reads (any of these might steer the program on a different path)
-and analyze the disassembly where these registers are read. To get exact program counters in the logs, run with ``-d io,nochain -singlestep``:
+and analyze the disassembly where these registers are read.
 
 .. code:: shell
 
-  ./run_canon_fw.sh 1300D -d io,nochain -singlestep
+  ./run_canon_fw.sh 1300D -d io
   ...
   [*unk*]    at 0xFFFF066C:FFFF00C4 [0xC0300000] -> 0x0       : ???
   [*unk*]    at 0xFFFF0680:FFFF00C4 [0xC0300000] <- 0x1550    : ???
@@ -1772,7 +1770,12 @@ Cross-checking the emulation with actual hardware
 Checking MMIO values from actual hardware
 '''''''''''''''''''''''''''''''''''''''''
 
-See `this commit <https://bitbucket.org/hudson/magic-lantern/commits/726806f3bc352c41bbd72bf40fdbab3c7245039d>`_.
+See `this commit <https://bitbucket.org/hudson/magic-lantern/commits/726806f3bc352c41bbd72bf40fdbab3c7245039d>`_:
+
+- ``./run_canon_fw.sh 5D3 [...] -d io_log``
+- copy/paste some entries into ``dm-spy-extra.c`` (grep for ``mmio_log`` to find them)
+- get logs from both camera and QEMU (dm-spy-experiments branch, ``CONFIG_DEBUG_INTERCEPT_STARTUP=y``, maybe also `CONFIG_QEMU=y`)
+- adjust the emulation until the logs match.
 
 Checking interrupts from actual hardware
 ''''''''''''''''''''''''''''''''''''''''

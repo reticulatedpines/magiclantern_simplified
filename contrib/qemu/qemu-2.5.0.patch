@@ -175,7 +175,7 @@ index 0010c44..d85cc6b 100644
      }
  
 diff --git a/include/qemu/log.h b/include/qemu/log.h
-index 362cbc4..283ee21 100644
+index 362cbc4..076d6c4 100644
 --- a/include/qemu/log.h
 +++ b/include/qemu/log.h
 @@ -12,7 +12,7 @@
@@ -187,20 +187,21 @@ index 362cbc4..283ee21 100644
  
  /* 
   * The new API:
-@@ -42,9 +42,47 @@ static inline bool qemu_log_enabled(void)
+@@ -42,9 +42,48 @@ static inline bool qemu_log_enabled(void)
  #define CPU_LOG_MMU        (1 << 12)
  #define CPU_LOG_TB_NOCHAIN (1 << 13)
  
 +/* various EOS options */
 +/* some of them are just defined for future use */
 +#define EOS_LOG_IO         (1LL << 21)
-+#define EOS_LOG_UART       (1LL << 22)
-+#define EOS_LOG_MPU        (1LL << 23)
-+#define EOS_LOG_SDCF       (1LL << 24)
-+#define EOS_LOG_SFLASH     (1LL << 25)
-+#define EOS_LOG_PFLASH     (1LL << 26)
-+#define EOS_LOG_DMA        (1LL << 27)
-+#define EOS_LOG_EDMAC      (1LL << 28)
++#define EOS_LOG_IO_LOG     (1LL << 22)
++#define EOS_LOG_UART       (1LL << 23)
++#define EOS_LOG_MPU        (1LL << 24)
++#define EOS_LOG_SDCF       (1LL << 25)
++#define EOS_LOG_SFLASH     (1LL << 26)
++#define EOS_LOG_PFLASH     (1LL << 27)
++#define EOS_LOG_DMA        (1LL << 28)
++#define EOS_LOG_EDMAC      (1LL << 29)
 +
 +#define EOS_LOG_VERBOSE    (1LL << 32)
 +#define EOS_LOG_AUTOEXEC   (1LL << 33)
@@ -236,7 +237,7 @@ index 362cbc4..283ee21 100644
  {
      return (qemu_loglevel & mask) != 0;
  }
-@@ -67,7 +105,7 @@ qemu_log_vprintf(const char *fmt, va_list va)
+@@ -67,7 +106,7 @@ qemu_log_vprintf(const char *fmt, va_list va)
  
  /* log only if a bit is set on the current loglevel mask
   */
@@ -245,7 +246,7 @@ index 362cbc4..283ee21 100644
  
  
  /* Special cases: */
-@@ -95,7 +133,7 @@ static inline void log_cpu_state(CPUState *cpu, int flags)
+@@ -95,7 +134,7 @@ static inline void log_cpu_state(CPUState *cpu, int flags)
   *
   * Logs the output of cpu_dump_state() if loglevel includes @mask.
   */
@@ -254,7 +255,7 @@ index 362cbc4..283ee21 100644
  {
      if (qemu_loglevel & mask) {
          log_cpu_state(cpu, flags);
-@@ -152,7 +190,7 @@ static inline void qemu_log_set_file(FILE *f)
+@@ -152,7 +191,7 @@ static inline void qemu_log_set_file(FILE *f)
  
  /* define log items */
  typedef struct QEMULogItem {
@@ -263,7 +264,7 @@ index 362cbc4..283ee21 100644
      const char *name;
      const char *help;
  } QEMULogItem;
-@@ -163,9 +201,9 @@ extern const QEMULogItem qemu_log_items[];
+@@ -163,9 +202,9 @@ extern const QEMULogItem qemu_log_items[];
   * changing the log level; it should only be accessed via
   * the qemu_set_log() wrapper.
   */
@@ -275,7 +276,7 @@ index 362cbc4..283ee21 100644
  {
  #ifdef CONFIG_USER_ONLY
      do_qemu_set_log(log_flags, true);
-@@ -175,7 +213,7 @@ static inline void qemu_set_log(int log_flags)
+@@ -175,7 +214,7 @@ static inline void qemu_set_log(int log_flags)
  }
  
  void qemu_set_log_filename(const char *filename);
@@ -308,7 +309,7 @@ index e193658..9de7251 100644
      subregion->priority = 0;
      memory_region_add_subregion_common(mr, offset, subregion);
 diff --git a/qemu-log.c b/qemu-log.c
-index 7cb01a8..57e3420 100644
+index 7cb01a8..c201d22 100644
 --- a/qemu-log.c
 +++ b/qemu-log.c
 @@ -22,7 +22,7 @@
@@ -338,13 +339,33 @@ index 7cb01a8..57e3420 100644
  {
      qemu_loglevel = log_flags;
      if (qemu_loglevel && !qemu_logfile) {
-@@ -120,6 +120,59 @@ const QEMULogItem qemu_log_items[] = {
+@@ -99,7 +99,7 @@ const QEMULogItem qemu_log_items[] = {
+       "show micro ops for each compiled TB" },
+     { CPU_LOG_TB_OP_OPT, "op_opt",
+       "show micro ops (x86 only: before eflags optimization) and\n"
+-      "after liveness analysis" },
++      "           after liveness analysis" },
+     { CPU_LOG_INT, "int",
+       "show interrupts/exceptions in short format" },
+     { CPU_LOG_EXEC, "exec",
+@@ -116,10 +116,67 @@ const QEMULogItem qemu_log_items[] = {
+       "log unimplemented functionality" },
+     { LOG_GUEST_ERROR, "guest_errors",
+       "log when the guest OS does something invalid (eg accessing a\n"
+-      "non-existent register)" },
++      "           non-existent register)" },
      { CPU_LOG_TB_NOCHAIN, "nochain",
        "do not chain compiled TBs so that \"exec\" and \"cpu\" show\n"
-       "complete traces" },
+-      "complete traces" },
++      "           complete traces; implies -singlestep" },
 +      
-+    { EOS_LOG_IO, "io",
-+      "EOS: log low-level I/O activity" },
++    { EOS_LOG_IO | CPU_LOG_TB_NOCHAIN, "io",
++      "EOS: log low-level I/O activity (implies nochain,singlestep)" },
++    { EOS_LOG_IO, "io_quick",
++      "EOS: log low-level I/O activity (without nochain,singlestep; PC not exact)" },
++    { EOS_LOG_IO_LOG | EOS_LOG_IO | CPU_LOG_TB_NOCHAIN, "io_log",
++      "EOS: for every I/O read, export a mmio_log entry to use in dm-spy-extra.c\n"
++      "                (dm-spy-experiments branch) to see the values from physical hardware." },
 +    { EOS_LOG_MPU, "mpu",
 +      "EOS: log low-level MPU activity" },
 +    { EOS_LOG_SFLASH, "sflash",
@@ -379,7 +400,6 @@ index 7cb01a8..57e3420 100644
 +      "EOS: export called functions to IDA (implies callstack,nochain,singlestep)" },
 +    { EOS_LOG_TASKS, "tasks",
 +      "EOS: log task switches (.current_task_addr must be defined)" },
-+    { EOS_LOG_DEBUGMSG, "dm", "" },
 +    { EOS_LOG_DEBUGMSG, "debugmsg",
 +      "EOS: log DebugMsg calls (QEMU_EOS_DEBUGMSG must be defined)" },
 +    { EOS_LOG_ROMCPY | EOS_LOG_ROM_R | EOS_LOG_RAM_W, "romcpy",
@@ -398,7 +418,7 @@ index 7cb01a8..57e3420 100644
      { 0, NULL, NULL },
  };
  
-@@ -132,10 +185,10 @@ static int cmp1(const char *s1, int n, const char *s2)
+@@ -132,10 +189,10 @@ static int cmp1(const char *s1, int n, const char *s2)
  }
  
  /* takes a comma separated list of log masks. Return 0 if error. */

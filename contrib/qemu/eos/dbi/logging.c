@@ -1831,7 +1831,7 @@ void eos_logging_init(EOSState *s)
         eos_memcheck_init(s);
     }
 
-    if (qemu_loglevel_mask(EOS_LOG_CALLSTACK))
+    if (qemu_loglevel_mask(CPU_LOG_TB_NOCHAIN))
     {
         fprintf(stderr, "[EOS] enabling singlestep.\n");
         singlestep = 1;
