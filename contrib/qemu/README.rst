@@ -85,12 +85,6 @@ What does not work (yet):
 Common issues and workarounds
 `````````````````````````````
 
-- Firmware version mismatch when trying to load ML
-
-  - see `Incorrect firmware version?`_
-
-  |
-
 - Camera was not shut down cleanly - Skipping module loading
 
   - closing QEMU window does not perform a clean shutdown
@@ -320,29 +314,6 @@ to avoid changing the directory between ML and QEMU.
   # or, if your camera requires patches.gdb:
   ./run_canon_fw.sh EOSM,firmware="boot=1" -s -S & arm-none-eabi-gdb EOSM/patches.gdb
 
-
-Incorrect firmware version?
-```````````````````````````
-
-If your camera model requires ``patches.gdb``, you may be in trouble:
-many of these scripts will perform temporary changes to the ROM. However,
-at startup, ML computes a simple signature of the firmware,
-to make sure it is started on the correct camera model and firmware version
-(and print an error message otherwise, with portable display routines).
-These patches will change the firmware signature - so you'll get an error message
-telling you the firmware version is incorrect (even though it is the right one).
-
-To work around this issue, you may edit ``src/fw-signature.h``
-and comment out the signature for your camera to disable this check.
-Recompile and run ML as you already know:
-
-.. code:: shell
-
-  ./run_canon_fw.sh EOSM2,firmware="boot=1" -s -S & arm-none-eabi-gdb EOSM2/patches.gdb
-
-The mere presence of a ``patches.gdb`` script in your camera subdirectory
-does not automatically mean you'll get the above issue. Some patches modify Canon code
-in a way that does not change the firmware signature (for example, on EOSM).
 
 Navigating menus
 ````````````````
@@ -1511,6 +1482,29 @@ Patching things may very well break other stuff down the road - use with care.
 **Be very careful patching the assertions when running on a physical camera.
 If an assert was reached, that usually means something already went terribly wrong -
 hiding the error message from the user is *not* the way to solve it!**
+
+Incorrect firmware version?
+'''''''''''''''''''''''''''
+
+If you have to use ``patches.gdb`` for your camera, you need to be careful:
+these patching scripts may perform temporary changes to the ROM. However,
+at startup, ML computes a simple signature of the firmware,
+to make sure it is started on the correct camera model and firmware version
+(and print an error message otherwise, with portable display routines).
+These patches will change the firmware signature - so you'll get an error message
+telling you the firmware version is incorrect (even though it is the right one).
+
+To avoid this issue, please consider one of the following:
+
+- fix the emulation to avoid unnecessary patches (preferred)
+
+- implement the patches as GDB breakpoints, rather than changing ROM contents
+  (that way, the patches will not interfere with ML's firmware signature checking.)
+
+Note: at the time of writing, firmware signature only covers the first 0x40000 bytes
+from main firmware start address; ROM patches after this offset should be fine.
+If in doubt, just make sure the same ML binary loads on both the patched and unpatched ROMs.
+
 
 MPU communication
 '''''''''''''''''
