@@ -19,9 +19,9 @@ Current state
 
 What works:
 
-- Canon GUI with menu navigation - most DIGIC 4 and 5 models, some DIGIC 3 models
-- Limited support for DIGIC 2, 3, 6 and 7 models
-- Limited support for some PowerShot models
+- Canon GUI with menu navigation - most DIGIC 3, 4 and 5 models,
+- Limited support for DIGIC 2, 6 and 7 models
+- Limited support for some PowerShot models (including recent EOS M models)
 - Limited support for secondary DryOS cores (such as Eeko or 5D4 AE processor)
 - File I/O works on most models (both SD and CF); might be unreliable
 - Bootloader emulation works on all supported models (from DIGIC 2 to DIGIC 7)
@@ -30,7 +30,7 @@ What works:
   (and, with major limitations, on dual-core models)
 - ML modules and Lua scripts (within the limitations of the emulation)
 - DryOS/VxWorks timer (heartbeat) and task switching (all supported models)
-- UART emulation (DryOS shell aka Dry-shell or DrySh on DIGIC 4 and 5 models)
+- UART emulation (DryOS shell aka Dry-shell or DrySh on DIGIC 4, 5 and 6 models)
 - Deterministic execution with the ``-icount`` option (SD models only)
 - Cache hacks are emulated to some extent (but "uninstalling" them does not work)
 - EDMAC memcpy, including geometry parameters (matches the hardware closely, but not perfectly)
@@ -42,12 +42,16 @@ What works:
   - predefined GDB scripts (log calls to DebugMsg, task_create, register_interrupt and a few others)
   - front-ends tested: cgdb (``splitgdb.sh``), DDD, gdbgui
 
+  |
+
 - Debug messages at QEMU console:
 
   - Use qprintf / qprint / qprintn / qdisas for printing to QEMU console
   - Compile Magic Lantern with ``CONFIG_QEMU=y``
   - By default (``CONFIG_QEMU=n``), the debug messages are not compiled
     (therefore not increasing the size of the executable that runs on the camera)
+
+  |
 
 - Log various actions of the guest operating system (Canon firmware, ML):
 
@@ -73,7 +77,7 @@ What does not work (yet):
 - Touch screen (TODO);
 - Flash reprogramming (TODO, low priority);
 - Most hardware devices (audio chip, ADTG, FPGAs, JPCORE, image processing engine...);
-- Properties that require MPU communication (very hard; may require emulating the MPU code);
+- MPU properties are working to some extent, but have major limitations and bugs;
 - Lens communication (done via MPU); initial lens info is replayed on startup on some models, but that's pretty much it;
 - Cache behavior is not emulated (very hard; feel free to point us to code that can be reused);
 - Native Windows build (QEMU can be compiled on Windows => contribution welcome).
@@ -91,6 +95,7 @@ Common issues and workarounds
 
   - closing QEMU window does not perform a clean shutdown
   - ``Machine -> Power Down`` - see `Shutdown and reboot`_ for more info
+  - quicker: press ``C`` to "open" the card door => also clean shutdown.
 
   |
 
@@ -107,6 +112,8 @@ Common issues and workarounds
   - see `Execution trace incomplete? PC values from MMIO logs not correct?`_
 
   |
+
+.. _netcat-issue:
 
 - Netcat issues when interacting with ``qemu.monitor``
 
@@ -170,6 +177,7 @@ without additional gymnastics (you will **not** have to merge ``qemu`` into your
    `sf_dump module <https://bitbucket.org/hudson/magic-lantern/src/unified/modules/sf_dump>`_
    and run it on your camera to get this file.
    
+   |
 
 4. Test your installation.
 
@@ -189,15 +197,9 @@ without additional gymnastics (you will **not** have to merge ``qemu`` into your
 
    .. code:: shell
 
-     # from your magic-lantern directory
-     /path/to/magic-lantern$  hg update your-working-branch -C # e.g. "hg update unified -C"
-     /path/to/magic-lantern$  cd platform/60D.111
-     /path/to/magic-lantern/platform/60D.111$ make clean; make
-     /path/to/magic-lantern/platform/60D.111$ make install_qemu
-
-   .. code:: shell
-
      # from the QEMU directory
+     /path/to/qemu$  make -C ../magic-lantern 60D_install_qemu
+     
      # some models will work only with this:
      /path/to/qemu$  ./run_canon_fw.sh 60D,firmware="boot=1"
 
@@ -206,7 +208,7 @@ without additional gymnastics (you will **not** have to merge ``qemu`` into your
 
    |
 
-For reference, you may also look at `our test suite <https://builds.magiclantern.fm/jenkins/view/QEMU/job/QEMU-tests/lastSuccessfulBuild/console>`_,
+For reference, you may also look at `our test suite <http://builds.magiclantern.fm/jenkins/view/QEMU/job/QEMU-tests/lastSuccessfulBuild/console>`_,
 where QEMU is installed from scratch every time the tests are run.
 These logs can be very useful for troubleshooting.
 
@@ -423,19 +425,19 @@ will perform a clean shutdown (rebooting is not implemented).
 Running ML Lua scripts
 ``````````````````````
 
-- Install ML on the virtual SD card
+- Install ML on the virtual SD card:
 
   .. code:: shell
 
     # from the qemu directory
-    wget https://builds.magiclantern.fm/jenkins/job/lua_fix/415/artifact/platform/60D.111/magiclantern-lua_fix.2017Sep11.60D111.zip
-    unzip magiclantern-lua_fix.2017Sep11.60D111.zip -d ml-tmp
+    wget http://builds.magiclantern.fm/jenkins/job/lua_fix/431/artifact/platform/60D.111/magiclantern-lua_fix.2017Dec23.60D111.zip
+    unzip magiclantern-lua_fix.2017Dec23.60D111.zip -d ml-tmp
     ./mtools_copy_ml.sh ml-tmp
     rm -rf ml-tmp/
 
   |
 
-- Run QEMU
+- Run QEMU:
 
   .. code:: shell
 
@@ -446,6 +448,8 @@ Running ML Lua scripts
 - enable the Lua module
 - reboot the virtual camera cleanly (menu: Machine -> Power Down, then start it again)
 - run the Hello World script
+
+Note: api_test.lua does not run completely, but `can be patched <http://www.magiclantern.fm/forum/index.php?topic=2864.msg195347#msg195347>`_.
 
 TODO: make api_test.lua run, fix bugs, polish the guide.
 
@@ -458,7 +462,7 @@ However, there may be good reasons to support two firmware versions
 both `1.1.3 <http://www.magiclantern.fm/forum/index.php?topic=14704.0>`_
 and `1.2.3 <http://www.magiclantern.fm/forum/index.php?topic=11017.0>`_)
 or you may want to test both versions when porting Magic Lantern
-`to a newer Canon firmware <https://www.magiclantern.fm/forum/index.php?topic=19417.0>`_.
+`to a newer Canon firmware <http://www.magiclantern.fm/forum/index.php?topic=19417.0>`_.
 
 The invocation looks like this (notice the ``113``):
 
@@ -466,9 +470,7 @@ The invocation looks like this (notice the ``113``):
 
   ./run_canon_fw.sh 5D3,firmware="113;boot=0" -s -S & arm-none-eabi-gdb -x 5D3/debugmsg.gdb
 
-And the directory layout should be like this:
-
-.. code::
+And the directory layout should be like this::
 
   /path/to/qemu/5D3/113/ROM0.BIN
   /path/to/qemu/5D3/113/ROM1.BIN
@@ -478,12 +480,13 @@ And the directory layout should be like this:
   /path/to/qemu/5D3/debugmsg.gdb  # common to both versions
   /path/to/qemu/5D3/patches.gdb   # common to both versions
 
-Compare this to a camera model where only one firmware version is supported:
-
-.. code::
+Compare this to a camera model where only one firmware version is supported::
 
   /path/to/qemu/60D/ROM0.BIN
   /path/to/qemu/60D/ROM1.BIN
+  /path/to/qemu/5D3/patches.gdb
+
+Note: you may also store ``debugmsg.gdb`` and ``patches.gdb`` under the firmware version subdirectory if you prefer, but other QEMU-related scripts won't pick them up.
 
 Creating custom SD/CF card images
 `````````````````````````````````
@@ -564,6 +567,8 @@ That means, during emulation you can interact with it using netcat:
 
 You can redirect the monitor console to stdio with... ``-monitor stdio``.
 
+If you have trouble with these ``nc`` commands, don't forget to check this common `netcat-issue`_.
+
 Taking screenshots
 ``````````````````
 
@@ -595,9 +600,7 @@ Another option is to use the VNC interface:
 Sending keystrokes
 ``````````````````
 
-From QEMU monitor:
-
-.. code::
+From QEMU monitor::
 
   (qemu) help
   sendkey keys [hold_ms] -- send keys to the VM (e.g. 'sendkey ctrl-alt-f1', default hold time=100 ms)
@@ -632,9 +635,9 @@ From VNC:
 .. code:: shell
 
   vncdotool -h | grep key
-  key KEY		send KEY to server, alphanumeric or keysym: ctrl-c, del
-  keyup KEY		send KEY released
-  keydown KEY		send KEY pressed
+  key KEY               send KEY to server, alphanumeric or keysym: ctrl-c, del
+  keyup KEY             send KEY released
+  keydown KEY           send KEY pressed
 
 .. code:: shell
 
@@ -643,7 +646,7 @@ From VNC:
   sleep 10
   vncdotool -s :1234 key m
   sleep 1
-  vncdotool -s :1234 capture snap.png
+  vncdotool -s :1234 capture menu.png
   echo "system_powerdown" | nc -N -U qemu.monitor
 
 Running multiple ML builds from a single command
@@ -669,7 +672,7 @@ Internally, this is how the emulator is invoked:
     echo system_powerdown
   ) | (
     ./run_canon_fw.sh 60D,firmware='boot=1' \
-        -display none -monitor stdio  -s -S
+        -display none -monitor stdio
   ) &> 60D.111.log
 
 
@@ -677,9 +680,9 @@ This script is very customizable (see the source code for available options).
 
 More examples:
 
-- `EOSM2 hello world <https://builds.magiclantern.fm/jenkins/view/QEMU/job/QEMU-EOSM2/18/console>`_
-- running ML from the dm-spy-experiments branch in the emulator (`QEMU-dm-spy <https://builds.magiclantern.fm/jenkins/view/QEMU/job/QEMU-dm-spy/65/consoleFull>`_)
-- running the FA_CaptureTestImage test based on the minimal ML target (`QEMU-FA_CaptureTestImage <https://builds.magiclantern.fm/jenkins/view/QEMU/job/QEMU-FA_CaptureTestImage>`_)
+- `EOSM2 hello world <http://builds.magiclantern.fm/jenkins/view/QEMU/job/QEMU-EOSM2/18/console>`_
+- running ML from the dm-spy-experiments branch in the emulator (`QEMU-dm-spy <http://builds.magiclantern.fm/jenkins/view/QEMU/job/QEMU-dm-spy/65/consoleFull>`_)
+- running the FA_CaptureTestImage test based on the minimal ML target (`QEMU-FA_CaptureTestImage <http://builds.magiclantern.fm/jenkins/view/QEMU/job/QEMU-FA_CaptureTestImage>`_)
 
 Parallel execution
 ``````````````````
@@ -718,7 +721,7 @@ This is tricky and not automated. You need to be careful with the following glob
 
     QEMU_MONITOR=qemu.monitor$QEMU_JOB_ID
     GDB_PORT=$((1234+$QEMU_JOB_ID))
-    ./run_canon_fw.sh EOSM2 -S -gdb tcp::$GDB_PORT &
+    ./run_canon_fw.sh EOSM2,firmware="boot=0" -S -gdb tcp::$GDB_PORT &
     arm-none-eabi-gdb -ex "set \$TCP_PORT=$GDB_PORT" -x EOSM2/patches.gdb -ex quit &
     
     # interact with monitor commands
@@ -739,7 +742,7 @@ This is tricky and not automated. You need to be careful with the following glob
 
     QEMU_MONITOR=qemu.monitor$QEMU_JOB_ID
     VNC_DISP=":$((12345+QEMU_JOB_ID))"
-    ./run_canon_fw.sh 5D3 -vnc $VNC_DISP &
+    ./run_canon_fw.sh 5D3,firmware="boot=0" -vnc $VNC_DISP &
     
     # interact with vncdotool
     sleep 5
@@ -754,7 +757,7 @@ This is tricky and not automated. You need to be careful with the following glob
 - any temporary files you may want to use
 
   Use something like ``mktemp`` rather than hardcoding a filename.
-  Or, try achieving the same thing without a temporary file (pipes, process substitution).
+  Or, try to achieve the same thing without a temporary file (pipes, process substitution).
 
 - any other global resources (you'll have to figure them out on your own).
 
@@ -810,7 +813,7 @@ CONFIG_QEMU
 - does **not** run on the camera (!)
 - enables ``qprintf`` and friends to print to the QEMU console
 - enables unlimited number of ROM patches - useful for 
-  `dm-spy-experiments <https://www.magiclantern.fm/forum/index.php?topic=2388.0>`_
+  `dm-spy-experiments <http://www.magiclantern.fm/forum/index.php?topic=2388.0>`_
   (in QEMU you can simply write to ROM as if it were RAM)
 - may enable workarounds for models or features that are not emulated very well
 
@@ -879,7 +882,7 @@ Memory access trace (ROM reads, RAM writes) - very verbose:
 
   ./run_canon_fw.sh 60D,firmware="boot=0" -d romr,ramw
 
-Call/return trace:
+Call/return trace (not including tail function calls):
 
 .. code:: shell
 
@@ -904,13 +907,13 @@ Filter the logs with grep:
 
 .. code:: shell
 
-  ./run_canon_fw.sh 60D,firmware="boot=0" -d debugmsg,io |& grep -C 5 "\[Display\]"
+  ./run_canon_fw.sh 60D,firmware="boot=0" -d debugmsg,io |& grep --text -C 5 "\[Display\]"
 
 Only log autoexec.bin activity (skip logging the bootloader):
 
 .. code:: shell
 
-  ./run_canon_fw.sh 60D,firmware="boot=0" -d exec,io,int,autoexec
+  ./run_canon_fw.sh 60D,firmware="boot=1" -d exec,io,int,autoexec
 
 
 Execution trace incomplete? PC values from MMIO logs not correct?
@@ -928,11 +931,14 @@ in execution traces and MMIO logs, you need to use `-d nochain -singlestep`
 Debugging with GDB
 ``````````````````
 
-See `the EOS M2 example <http://www.magiclantern.fm/forum/index.php?topic=15895.msg186173#msg186173>`_:
-
 .. code:: shell
 
     ./run_canon_fw.sh EOSM2,firmware="boot=1" -s -S & arm-none-eabi-gdb -x EOSM2/debugmsg.gdb
+
+Examples:
+
+- `750D serial flash dumper <http://www.magiclantern.fm/forum/index.php?topic=17627.msg195357#msg195357>`_ (figuring out the parameters of an unknown function)
+- `EOS M2 <http://www.magiclantern.fm/forum/index.php?topic=15895.msg186173#msg186173>`_ (examples with various GDB GUI front-ends):
 
 .. image:: doc/img/ddd.png
    :scale: 50 %
@@ -954,19 +960,30 @@ How is this code organazized?
 `````````````````````````````
 .. code:: shell
 
-  magic-lantern/contrib/qemu/eos -> qemu/qemu-2.5.0/hw/eos/  (emulation sources)
-  magic-lantern/contrib/qemu/eos/dbi -> qemu/qemu-2.5.0/hw/eos/dbi (instrumentation)
+  magic-lantern/contrib/qemu/eos/ -> qemu/qemu-2.5.0/hw/eos/  (emulation sources)
+  magic-lantern/contrib/qemu/eos/mpu_spells/ -> qemu/qemu-2.5.0/hw/eos/mpu_spells/  (MPU messages, button codes)
+  magic-lantern/contrib/qemu/eos/dbi/ -> qemu/qemu-2.5.0/hw/eos/dbi/ (instrumentation)
   magic-lantern/src/backtrace.[ch] -> qemu/qemu-2.5.0/hw/eos/dbi/backtrace.[ch] (shared with ML)
-  magic-lantern/contrib/qemu/scripts -> qemu/ (helper scripts, such as run_canon_fw.sh)
-  magic-lantern/contrib/qemu/scripts/*/*.gdb -> qemu/*/*.gdb (GDB scripts)
+  magic-lantern/contrib/qemu/scripts/ -> qemu/ (helper scripts, such as run_canon_fw.sh)
+  magic-lantern/contrib/qemu/scripts/*/debugmsg.gdb -> qemu/*/debugmsg.gdb (GDB scripts for reverse engineering)
+  magic-lantern/contrib/qemu/scripts/*/patches.gdb -> qemu/*/patches.gdb (patches required for emulation - only on some models)
   magic-lantern/contrib/qemu/tests -> qemu/tests (guess)
+
+Model-specific parameters: eos/model_list.c (todo: move all hardcoded stuff there).
 
 MMIO handlers: eos_handle_whatever (with io_log for debug messages).
 
 Useful: eos_get_current_task_name/id/stack, eos_mem_read/write.
 
 To customize keys or add support for new buttons or GUI events,
-edit ``mpu.c``, ``button_codes.h`` and ``extract_buton_codes.py``. 
+edit `mpu.c <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/eos/mpu.c>`_,
+`button_codes.h <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/eos/mpu_spells/button_codes.h>`_
+and `extract_button_codes.py <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/eos/mpu_spells/extract_button_codes.py>`_.
+
+To extract MPU messages from a `startup log <http://builds.magiclantern.fm/jenkins/view/Experiments/job/startup-log/>`_,
+use `extract_init_spells.py <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/eos/mpu_spells/extract_init_spells.py>`_.
+
+Known MPU messages and properties are exported to `known_spells.h <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/eos/mpu_spells/known_spells.h>`_.
 
 Image capture emulation
 ```````````````````````
@@ -983,8 +1000,6 @@ To capture a full-res image (aka FRSP) using a CR2 as reference data for the vir
 Adding support for a new camera model
 `````````````````````````````````````
 
-TLDR? Jump to step 3.
-
 Initial firmware analysis
 '''''''''''''''''''''''''
 
@@ -995,8 +1010,8 @@ Initial firmware analysis
 
    DIGIC 5 and earlier models will start the bootloader at ``0xFFFF0000`` (HIVECS)
    and will jump to main firmware at ``0xFF810000``, ``0xFF010000`` or ``0xFF0C0000``.
-   There is one main ROM (ROM1) at 0xF8000000, 4/8/16/32 MiB mirrored until 0xF8000000,
-   and there may be a second ROM (ROM0) at 0xF0000000, mirrored until 0xF8000000.
+   There is one main ROM (ROM1) at ``0xF8000000``, 4/8/16/32 MiB mirrored until ``0xFFFFFFFF``,
+   and there may be a second ROM (ROM0) at 0xF0000000, mirrored until ``0xF8000000 - 1 = 0xF7FFFFFF``.
 
    DIGIC 6 will start at ``*(uint32_t*)0xFC000000``,
    bootloader is at 0xFE020000 and main firmware starts at 0xFE0A0000. There is
@@ -1008,14 +1023,18 @@ Initial firmware analysis
 
    The MPU/MMU configuration (printed in QEMU as soon as the guest code
    changes the relevant registers) is very useful for finding the memory map
-   on new models (see the ARM ARM documentation for the CPU you are interested in --
-   DIGIC 2..5: ARM946E-S, D6: Cortex R4, D7: Cortex A9).
+   on new models -- see the ARM Architecture Reference Manual (aka ARM ARM)
+   for the CPU you are interested in:
+
+   - DIGIC 2..5: ARM946E-S `[1] <http://chdk.setepontos.com/index.php?topic=9801.msg99865#msg99865>`_ -- `arm_arm.pdf <http://www.scss.tcd.ie/~waldroj/3d1/arm_arm.pdf>`_;
+   - DIGIC 6: Cortex R4 `[2] <http://chdk.setepontos.com/index.php?topic=11316.msg124273#msg124273>`_ -- `ARM ARM v7 A&R <https://www.cs.utexas.edu/~simon/378/resources/ARMv7-AR_TRM.pdf>`_ and `Cortex R4 TRM <http://infocenter.arm.com/help/topic/com.arm.doc.ddi0363g/DDI0363G_cortex_r4_r1p4_trm.pdf>`_;
+   - DIGIC 7: Cortex A9 `[3] <http://chdk.setepontos.com/index.php?topic=13014.msg131110#msg131110>`_ -- `ARM ARM v7 A&R <https://www.cs.utexas.edu/~simon/378/resources/ARMv7-AR_TRM.pdf>`_ and `Cortex A9 TRM <http://infocenter.arm.com/help/topic/com.arm.doc.ddi0388f/DDI0388F_cortex_a9_r2p2_trm.pdf>`_.
 
 2) (Re)load the code in the disassembler at the correct address:
 
-   - `Loading into IDA <https://www.magiclantern.fm/forum/index.php?topic=6785.0>`_
-   - `Tutorial: finding stubs (with disassemble.pl) <https://www.magiclantern.fm/forum/index.php?topic=12177.msg117735#msg117735>`_
-   - `Loading into ARMu <https://www.magiclantern.fm/forum/index.php?topic=9827.0>`_
+   - `Loading into IDA <http://www.magiclantern.fm/forum/index.php?topic=6785.0>`_
+   - `Tutorial: finding stubs (with disassemble.pl) <http://www.magiclantern.fm/forum/index.php?topic=12177.0>`_
+   - `Loading into ARMu <http://www.magiclantern.fm/forum/index.php?topic=9827.0>`_
    - Other disassemblers will also work (the list is open).
 
    |
@@ -1033,27 +1052,29 @@ Initial firmware analysis
 
    Load the IDC script into IDA, or convert it if you are using a different disassembler.
 
-4) Code blocks copied from ROM to RAM
+5) Code blocks copied from ROM to RAM
 
    .. code:: shell
   
      ./run_canon_fw.sh EOSM2,firmware="boot=0" -d romcpy |& grep ROMCPY
     [ROMCPY] 0xFFFF0000 -> 0x0        size 0x40       at 0xFFFF0980
     [ROMCPY] 0xFFFE0000 -> 0x100000   size 0xFF2C     at 0xFFFF0FCC
-    [ROMCPY] 0xFFD1F02C -> 0x1900     size 0xB70A0    at 0xFF0C000C
+    [ROMCPY] 0xFFD1F0E4 -> 0x1900     size 0xB70A0    at 0xFF0C000C
     [ROMCPY] 0xFF0C0E04 -> 0x4B0      size 0x1E8      at 0xFF0C0D70
 
-   You may extract these blobs with:
+   You may extract these blobs with e.g.:
 
    .. code:: shell
 
      dd if=ROM1.BIN of=EOSM2.0x1900.BIN bs=1 skip=$((0xD1F0E4)) count=$((0xB70A0))
 
-   If you are analyzing the main firmware, load EOSM2.0x1900.BIN as an additional binary file
+   If you are analyzing the main firmware, load ``EOSM2.0x1900.BIN`` as an additional binary file
    (in IDA, choose segment 0, offset 0x1900). Do the same for the blob copied at 0x4B0.
 
    If you are analyzing the bootloader, extract and load the first two blobs in the same way.
    Other models may have slightly different configurations, so YMMV.
+
+   |
 
 Initial test run
 ''''''''''''''''
@@ -1129,9 +1150,7 @@ If you didn't, don't worry - you can just try something like 0x12345678:
         .ram_manufacturer_id    = 0x12345678,
     },
 
-and the new error message will tell you the answer right away:
-
-.. code::
+and the new error message will tell you the answer right away::
 
   MEMIF NG MR05=00000078 FROM=00000001
 
@@ -1149,14 +1168,14 @@ Adding support for a new Canon firmware version
 
 You will have to update:
 
-- GDB scripts (easy - copy/paste from ML stubs or look them up)
+- GDB scripts (easy - copy/paste from ML stubs or `look them up <http://www.magiclantern.fm/forum/index.php?topic=12177.0>`_)
 - expected test results (time-consuming, see the `Test suite`_)
 - any hardcoded stubs that might be around (e.g. in ``dbi/memcheck.c``)
 
 Most other emulation bits usually do not depend on the firmware version
 (5D3 1.2.3 was an exception).
 
-`Updating Magic Lantern to run on a new Canon firmware version <https://www.magiclantern.fm/forum/index.php?topic=19417.0>`_
+`Updating Magic Lantern to run on a new Canon firmware version <http://www.magiclantern.fm/forum/index.php?topic=19417.0>`_
 is a bit more time-consuming, but it's not difficult.
 
 Are there any good docs on QEMU internals?
@@ -1209,7 +1228,8 @@ LOG_INTERRUPTS in dm-spy-experiments.
 MPU spells
 ''''''''''
 
-`mpu_send/recv <http://www.magiclantern.fm/forum/index.php?topic=2864.msg166938#msg166938>`_ in dm-spy-experiments.
+`mpu_send/recv <http://www.magiclantern.fm/forum/index.php?topic=2864.msg166938#msg166938>`_ in dm-spy-experiments
+(`startup-log <http://builds.magiclantern.fm/jenkins/view/Experiments/job/startup-log/>`_ builds.)
 
 Committing your changes
 ```````````````````````
@@ -1261,7 +1281,7 @@ Test suite
 ``````````
 
 Most Canon cameras are very similar inside - which is why one is able to run the same codebase
-from DIGIC 2 (original 5D) all the way to DIGIC 5 (and soon 6) - yet, every camera model has its own quirks
+from DIGIC 2 (original 5D) all the way to DIGIC 5 (and soon 6). Yet, every camera model has its own quirks
 (not only on the firmware, but also on the hardware side). Therefore, it's hard to predict whether a tiny change in the emulation, to fix a quirk for camera model X,
 will have a positive or negative or neutral impact on camera model Y. The test suite tries to answer this,
 and covers the following:
@@ -1292,7 +1312,7 @@ Limitations:
   
   - run the test suite for your camera model(s) only, e.g. ``./run_tests.sh 5D3 60D 70D``
   - inspect the test results (e.g. screenshots) manually, and compare them to
-    `our results from Jenkins <https://builds.magiclantern.fm/jenkins/view/QEMU/job/QEMU-tests/>`_
+    `our results from Jenkins <http://builds.magiclantern.fm/jenkins/view/QEMU/job/QEMU-tests/>`_
     to decide whether they are correct or not
   - if you have made changes to the emulation, just ask us to test them.
 
@@ -1303,8 +1323,7 @@ Limitations:
   Workarounds:
 
   - run the test suite for a small number of camera model(s): ``./run_tests.sh 5D3 60D 70D``
-  - run only the test(s) you are interested in (add ``if false; then`` ... ``fi`` in the source)
-  - leave the tests running overnight.
+  - run only the test(s) you are interested in: ``./run_tests.sh 5D3 80D menu calls-main drysh``
 
   If you have any ideas on how to improve the tests, we are listening.
 
@@ -1313,13 +1332,13 @@ a lot of expected test results are stored as MD5 sums. That's a bit rigid,
 but it does the job for now. Where appropriate, we also have grep-based
 tests or custom logic on log files.
 
-The expected test results ("needles") are updated manually
+The expected test results ("`needles <http://open.qa/docs/#_needles>`_") are updated manually
 (e.g. ``md5sum disp.ppm > disp.md5``). Suggestions welcome.
 
 Code coverage?
 ``````````````
 
-`Yes <https://builds.magiclantern.fm/jenkins/view/QEMU/job/QEMU-coverage/>`_.
+`Yes <http://builds.magiclantern.fm/jenkins/view/QEMU/job/QEMU-coverage/>`_.
 
 History
 -------
