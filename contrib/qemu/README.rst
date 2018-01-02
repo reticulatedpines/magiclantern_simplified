@@ -19,7 +19,7 @@ Current state
 
 What works:
 
-- Canon GUI with menu navigation - most DIGIC 3, 4 and 5 models,
+- Canon GUI with menu navigation — most DIGIC 3, 4 and 5 models,
 - Limited support for DIGIC 2, 6 and 7 models
 - Limited support for some PowerShot models (including recent EOS M models)
 - Limited support for secondary DryOS cores (such as Eeko or 5D4 AE processor)
@@ -71,7 +71,7 @@ What works:
 What does not work (yet):
 
 - LiveView (WIP, very hard);
-- Still photo capture (WIP - the capture process itself works);
+- Still photo capture (WIP — the capture process itself works);
 - Image review (WIP);
 - Dual core emulation aka IPC (WIP);
 - Touch screen (TODO);
@@ -85,10 +85,10 @@ What does not work (yet):
 Common issues and workarounds
 `````````````````````````````
 
-- Camera was not shut down cleanly - Skipping module loading
+- Camera was not shut down cleanly — Skipping module loading
 
   - closing QEMU window does not perform a clean shutdown
-  - ``Machine -> Power Down`` - see `Shutdown and reboot`_ for more info
+  - ``Machine -> Power Down`` — see `Shutdown and reboot`_ for more info
   - quicker: press ``C`` to "open" the card door => also clean shutdown.
 
   |
@@ -214,7 +214,7 @@ the `boot flag <http://magiclantern.wikia.com/wiki/Bootflags>`_ is disabled:
   # from the qemu directory
   ./run_canon_fw.sh 60D,firmware="boot=0"
 
-Some models may need additional patches to run - these are stored under ``CAM/patches.gdb``.
+Some models may need additional patches to run — these are stored under ``CAM/patches.gdb``.
 To emulate these models, you will also need arm-none-eabi-gdb:
 
 .. code:: shell
@@ -327,8 +327,8 @@ By default, closing the QEMU window is equivalent to unplugging the power cord
 (if your camera is on external power source). This appears to be the default
 with other operating systems as well, so we did not change it.
 
-Please note: closing QEMU window is **not** equivalent to taking the battery out
-- see `Opening the battery door`_ for details.
+Please note: closing QEMU window is **not** equivalent to taking the battery out —
+see `Opening the battery door`_ for details.
 
 Shutting down
 '''''''''''''
@@ -473,7 +473,7 @@ Note: you need to copy the raw contents of the entire card, not just one partiti
 
 Running from the physical SD/CF card
 ````````````````````````````````````
-You may also start QEMU from the same card you use in the physical camera - 
+You may also start QEMU from the same card you use in the physical camera — 
 this might be useful for troubleshooting issues with Magic Lantern, 
 hopefully including certain card compatibility issues.
 
@@ -762,8 +762,8 @@ is compiled with ``CONFIG_QEMU=y``. They won't get compiled in regular builds
 (``CONFIG_QEMU=n`` is the default), therefore they won't increase the executable size.
 For this reason, feel free to use them *anywhere*.
 
-You may use the debugging API for either the entire ML, or just for a subset of it
-- e.g. the source file(s) you are currently editing, or only some modules.
+You may use the debugging API for either the entire ML, or just for a subset of it —
+e.g. the source file(s) you are currently editing, or only some modules.
 The lightweight functions can also be used in very early boot code,
 where you can't call vsnprintf or you may not even have a stack properly set up.
 
@@ -781,7 +781,7 @@ CONFIG_QEMU
 - debug build for QEMU only
 - does **not** run on the camera (!)
 - enables ``qprintf`` and friends to print to the QEMU console
-- enables unlimited number of ROM patches - useful for 
+- enables unlimited number of ROM patches — useful for 
   `dm-spy-experiments <http://www.magiclantern.fm/forum/index.php?topic=2388.0>`_
   (in QEMU you can simply write to ROM as if it were RAM)
 - may enable workarounds for models or features that are not emulated very well
@@ -845,7 +845,7 @@ Canon debug messages and task switches:
 
   ./run_canon_fw.sh 60D,firmware="boot=0" -d debugmsg,tasks
 
-Memory access trace (ROM reads, RAM writes) - very verbose:
+Memory access trace (ROM reads, RAM writes) — very verbose:
 
 .. code:: shell
 
@@ -894,8 +894,8 @@ for faster execution. In this mode, `-d exec` will print guest instructions as t
 
 To log every single guest instruction, as executed, and get exact PC values
 in execution traces and other logs, you need to use `-d nochain -singlestep` 
-(for example: `-d exec,nochain -singlestep`)
-- `source <http://qemu-discuss.nongnu.narkive.com/f8A4tqdT/singlestepping-target-assembly-instructions>`_.
+(for example: `-d exec,nochain -singlestep`) —
+`source <http://qemu-discuss.nongnu.narkive.com/f8A4tqdT/singlestepping-target-assembly-instructions>`_.
 
 Please note: `-d io` implies `-d nochain -singlestep` by default. Should you want to disable this,
 to get faster emulation at the expense of incorrect PC values, use `-d io_quick`.
@@ -940,7 +940,7 @@ How is this code organazized?
   magic-lantern/src/backtrace.[ch] -> qemu/qemu-2.5.0/hw/eos/dbi/backtrace.[ch] (shared with ML)
   magic-lantern/contrib/qemu/scripts/ -> qemu/ (helper scripts, such as run_canon_fw.sh)
   magic-lantern/contrib/qemu/scripts/*/debugmsg.gdb -> qemu/*/debugmsg.gdb (GDB scripts for reverse engineering)
-  magic-lantern/contrib/qemu/scripts/*/patches.gdb -> qemu/*/patches.gdb (patches required for emulation - only on some models)
+  magic-lantern/contrib/qemu/scripts/*/patches.gdb -> qemu/*/patches.gdb (patches required for emulation — only on some models)
   magic-lantern/contrib/qemu/tests -> qemu/tests (guess)
 
 Model-specific parameters: eos/model_list.c (todo: move all hardcoded stuff there).
@@ -992,7 +992,7 @@ Initial firmware analysis
    a 32 MiB ROM mirrored at 0xFC000000 and 0xFE000000 (there may be others).
 
    The ROM load address is the one you have used when dumping it (usually one of the mirrors).
-   The memory map is printed when starting QEMU - you'll see where each ROM is loaded
+   The memory map is printed when starting QEMU — you'll see where each ROM is loaded
    and where are the mirrored copies, if any.
 
    The MPU/MMU configuration (printed in QEMU as soon as the guest code
@@ -1073,7 +1073,7 @@ Then, run it and follow the errors:
   BTCM Start Master
 
 What's that? Looks like some sort of error message, and indeed, it is.
-In Canon parlance, NG means "not good" - see for example ``NG AllocateMemory``
+In Canon parlance, NG means "not good" — see for example ``NG AllocateMemory``
 on the "out of memory" code path. Let's check whether this error message has to do
 with I/O activity (usually that's where most emulation issues come from):
 
@@ -1104,7 +1104,7 @@ You'll find it in eos.c:eos_handle_digic6, at the register 0xD203040C
   .name                   = "5D4",
   .ram_manufacturer_id    = 0x18000401,
 
-Good - it's now clear you'll have to find this constant. You have many choices here:
+Good — it's now clear you'll have to find this constant. You have many choices here:
 
 - disassemble the ROM near the affected address,
   and try to understand what value Canon code expects from this register
@@ -1114,7 +1114,7 @@ Good - it's now clear you'll have to find this constant. You have many choices h
 
 Let's go for the last one (probably the easiest). If you look at the code,
 you may notice the "5" corresponds to the least significant byte in this RAM ID.
-If you didn't, don't worry - you can just try something like 0x12345678:
+If you didn't, don't worry — you can just try something like 0x12345678:
 
 .. code:: C
 
@@ -1254,13 +1254,13 @@ In this particular case, it's easy to guess
 (exercise: give it a try, pretending you haven't already seen the solution).
 
 In a few cases, the bootloader may use interrupts as well
-(for example, 7D uses interrupts for IPC - communication between the two DIGIC cores).
+(for example, 7D uses interrupts for IPC — communication between the two DIGIC cores).
 To analyze them, place a breakpoint at 0x18 and see what happens from there.
 
-The second goal -- loading ``AUTOEXEC.BIN`` from the card -- requires emulation of the SD or CF card.
+The second goal — loading ``AUTOEXEC.BIN`` from the card — requires emulation of the SD or CF card.
 If it doesn't already work, look at MMIO activity (``-d io``) and try to make sense of the SD or CF
 initialization sequences (both protocols are documented online). The emulation has to be able
-to read arbitrary sectors from the virtual card - once you provide the low-level block transfer
+to read arbitrary sectors from the virtual card — once you provide the low-level block transfer
 functionality, Canon firmware whould be able to handle the rest (filesystem drivers etc).
 In other words, you shouldn't have to adjust anything in order to emulate EXFAT, for example.
 
@@ -1272,7 +1272,7 @@ Step by step:
 - get debug messages
 
   - identify DebugMsg (lots of calls, format string is third argument), add the stub to CAM/debugmsg.gdb, run with ``-d debugmsg``
-  - identify other functions used to print errors (uart_printf, variants of DebugMsg with format string at second argument etc - look for strings)
+  - identify other functions used to print errors (uart_printf, variants of DebugMsg with format string at second argument etc — look for strings)
   - identify any other strings that might be helpful (tip: run with ``-d calls`` and look for something that makes even a tiny bit of sense)
   
   |
@@ -1293,20 +1293,20 @@ Step by step:
     [TIMER]    at 0xFE0C3F5C:FE0C0C68 [0xC0210100] <- 0x1       : Timer #1: starting
     ...
 
-  Caveat: the emulation may go **surprisingly far *without* DryOS timer** - as far as running the GUI
+  Caveat: the emulation may go **surprisingly far *without* DryOS timer** — as far as running the GUI
   with bugs that are almost impossible to explain (such as menu selection bar being behind the logical selection by exactly 1 position).
   To see it with your own eyes, set ``dryos_timer_interrupt = 0x09`` (correct is ``0x0A``) on 60D (maybe also on other models).
 
-  Therefore, please do not assume this works, even if you think it does - double-check!
+  Therefore, please do not assume this works, even if you think it does — double-check!
 
   |
 
 - get some tasks running
 
-  - identify task_create (in debugmsg.gdb - same as in ML ``stubs.S``) and run the firmware under GDB
+  - identify task_create (in debugmsg.gdb — same as in ML ``stubs.S``) and run the firmware under GDB
   - identify the pointer to current DryOS task
 
-    This is called current_task_addr in model_list.c, CURRENT_TASK in debugmsg.gdb or current_task in ML stubs -
+    This is called current_task_addr in model_list.c, CURRENT_TASK in debugmsg.gdb or current_task in ML stubs —
     see `debug-logging.gdb <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/scripts/debug-logging.gdb#debug-logging.gdb-20>`_
     for further hints.
 
@@ -1314,7 +1314,7 @@ Step by step:
 
   - identify where the current interrupt is stored
   
-    Look in the interrupt handler - breakpoint at 0x18 to find it - and find CURRENT_ISR in
+    Look in the interrupt handler — breakpoint at 0x18 to find it — and find CURRENT_ISR in
     `debug-logging.gdb <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/scripts/debug-logging.gdb#debug-logging.gdb-20>`_,
     or current_interrupt in ML stubs.
     If you can't find it, you may set it to 0, but if you do, please take task names with a grain of salt if they are printed from some interrupt handler.
@@ -1367,9 +1367,9 @@ the startup sequence advances to the next stage.
 
 **What if it gets stuck?**
 
-You need to figure it out: Difficulty: anywhere within [0 - infinity); a great dose of luck will help.
+You need to figure it out: Difficulty: anywhere within [0 — infinity); a great dose of luck will help.
 
-Let's look at an example - 1300D::
+Let's look at an example — 1300D::
 
    ./run_canon_fw.sh 1300D,firmware="boot=0" -d debugmsg |& grep --text -E Notify.*Cur
    [        init:fe0d4054 ] (00:03) [SEQ] NotifyComplete (Cur = 0, 0x10000, Flag = 0x10000)
@@ -1384,7 +1384,7 @@ Let's look at an example - 1300D::
 It got stuck because somebody has yet to call NotifyComplete with Flag = 0x20000.
 
 Who's supposed to call that? Either look in the disassembly to find who calls NotifyComplete with the right argument,
-or - if not obvious - look in the startup logs of other camera models from the same generation, where the flag is likely the same.
+or — if not obvious — look in the startup logs of other camera models from the same generation, where the flag is likely the same.
 
 Why it didn't get called? Most of the time:
   
@@ -1420,7 +1420,7 @@ TODO (see CHDK). Startup code is generally simpler and single-threaded, but less
 Assertions
 ''''''''''
 
-These are triggered by Canon code when something goes wrong. On the UI, these will show ERR70 -
+These are triggered by Canon code when something goes wrong. On the UI, these will show ERR70 —
 if the rest of the system is able to change the GUI mode and show things of the screen.
 
 When running Magic Lantern, it will attempt to save a crash log for each ERR70.
@@ -1453,7 +1453,7 @@ For example, an unhandled microsecond timer (USleep in DIGIC 6 models) will caus
 when the firmware only wants to wait for a few microseconds.
 
 When you don't know how to solve it, you may get away with patching the troublesome routine.
-This shouldn't be regarded as a fix - it's just a workaround that will hopefully help advancing the emulation.
+This shouldn't be regarded as a fix — it's just a workaround that will hopefully help advancing the emulation.
 
 That's why we prefer to patch the firmware from GDB scripts. These can be edited easily to experiment with,
 and there is some additional burden for running a patched firmware (longer commands to type),
@@ -1475,10 +1475,10 @@ See arm-mcr.h for a few useful instructions encodings, use an assembler or read 
 (in particular, `ARM Architecture Reference Manual <http://www.scss.tcd.ie/~waldroj/3d1/arm_arm.pdf>`_ 
 and `Thumb-2 Supplement Reference Manual <http://read.pudn.com/downloads159/doc/709030/Thumb-2SupplementReferenceManual.pdf>`_).
 
-Patching things may very well break other stuff down the road - use with care.
+Patching things may very well break other stuff down the road — use with care.
 
 **Be very careful patching the assertions when running on a physical camera.
-If an assert was reached, that usually means something already went terribly wrong -
+If an assert was reached, that usually means something already went terribly wrong —
 hiding the error message from the user is *not* the way to solve it!**
 
 Incorrect firmware version?
@@ -1489,7 +1489,7 @@ these patching scripts may perform temporary changes to the ROM. However,
 at startup, ML computes a simple signature of the firmware,
 to make sure it is started on the correct camera model and firmware version
 (and print an error message otherwise, with portable display routines).
-These patches will change the firmware signature - so you'll get an error message
+These patches will change the firmware signature — so you'll get an error message
 telling you the firmware version is incorrect (even though it is the right one).
 
 To avoid this issue, please consider one of the following:
@@ -1508,7 +1508,7 @@ MPU communication
 '''''''''''''''''
 
 On EOS firmware, buttons, some properties (camera settings) and a few others are handled on a different CPU,
-called MPU in Canon code (not sure what it stands for). On PowerShot firmware you don't need to worry about it - buttons are handled on the main CPU (PhySw).
+called MPU in Canon code (not sure what it stands for). On PowerShot firmware you don't need to worry about it — buttons are handled on the main CPU (PhySw).
 
 Communication is done on a serial interface with some GPIO handshaking (look up SIO3 and MREQ in the firmware).
 It can be initiated from the main CPU (mpu_send, which toggles a GPIO to get MPU's attention) or from the MPU (by triggering a MREQ interrupt); 
@@ -1606,14 +1606,14 @@ define `.serial_flash_size` in model_list.c and a few other parameters:
 
 - chip select signal (CS): some GPIO register toggled before and after serial flash access
 - SIO channel (used for SPI transfers)
-- SFIO channel (for DMA transfers - Canon reused the same kind of DMA used for SD card).
+- SFIO channel (for DMA transfers — Canon reused the same kind of DMA used for SD card).
 
 Dumper: `sf_dump module <https://bitbucket.org/hudson/magic-lantern/src/unified/modules/sf_dump>`_.
 
 For early ports, you might (or might not) get away with serial flash contents from another model.
 
 `Patching <https://bitbucket.org/hudson/magic-lantern/commits/652133663c39>`_ might help.
-When editing SFDATA.BIN files manually, watch out - some data blocks are shifted by 4 bits for some reason.
+When editing SFDATA.BIN files manually, watch out — some data blocks are shifted by 4 bits for some reason.
 
 WriteProtect switch
 '''''''''''''''''''
@@ -1640,7 +1640,7 @@ HotPlug events
 There is a task polling for hardware events, such as plugging a microphone, an external monitor,
 an USB cable and maybe a few others. Generally, you want to emulate without these things,
 so you'll need to look in the disassembly of HotPlug and see what it expects for each peripheral;
-most of the time, it checks some GPIO registers - you may have to adjust them (usually in ``eos_handle_gpio``).
+most of the time, it checks some GPIO registers — you may have to adjust them (usually in ``eos_handle_gpio``).
 
 Since all of these registers are checked in a loop, you may want to silence them (``IGNORE_CONNECT_POLL``).
 
@@ -1649,7 +1649,7 @@ Adding support for a new Canon firmware version
 
 You will have to update:
 
-- GDB scripts (easy - copy/paste from ML stubs or `look them up <http://www.magiclantern.fm/forum/index.php?topic=12177.0>`_)
+- GDB scripts (easy — copy/paste from ML stubs or `look them up <http://www.magiclantern.fm/forum/index.php?topic=12177.0>`_)
 - expected test results (time-consuming, see the `Test suite`_)
 - any hardcoded stubs that might be around (e.g. in ``dbi/memcheck.c``)
 
@@ -1742,7 +1742,7 @@ EOS menus
 PowerShot menus
 '''''''''''''''
 
-The PowerShot firmware expects some sort of `loopback <http://chdk.setepontos.com/index.php?topic=13278.0>`_ - 
+The PowerShot firmware expects some sort of `loopback <http://chdk.setepontos.com/index.php?topic=13278.0>`_ —
 it prints a ``#`` and expects it to be echoed back, then waits for this switch to be turned off.
 
 On EOS M3/M10, you can enter this menu by adding this to eos_handle_uart, under `Write char`:
@@ -1837,7 +1837,7 @@ you may try a script similar to the following:
 Test suite
 ``````````
 
-Most Canon cameras are very similar inside - which is why one is able to run the same codebase
+Most Canon cameras are very similar inside — which is why one is able to run the same codebase
 from DIGIC 2 (original 5D) all the way to DIGIC 5 (and soon 6). Yet, every camera model has its own quirks
 (not only on the firmware, but also on the hardware side). Therefore, it's hard to predict whether a tiny change in the emulation, to fix a quirk for camera model X,
 will have a positive or negative or neutral impact on camera model Y. The test suite tries to answer this,
@@ -1846,7 +1846,7 @@ and covers the following:
 - Bootloader code (to make sure AUTOEXEC.BIN is loaded from the card)
 - Portable display test (all EOS models)
 - Portable ROM dumper (EOS models with bootloader file write routines)
-- Menu navigation (on supported models) - depends on user settings from the ROM
+- Menu navigation (on supported models) — depends on user settings from the ROM
 - Card formatting (and restoring ML)
 - Call/return trace until booting the GUI (a rigid test that may have to be updated frequently)
 - Call/return trace on bootloader (likely independent of firmware version and user settings)
@@ -1907,7 +1907,7 @@ History
 :2013: `g3gg0 ports TriX changes to QEMU <http://www.magiclantern.fm/forum/index.php?topic=2864.msg29748#msg29748>`_
 :2013: `Antony Pavlov submits initial DIGIC support to QEMU mainline <https://lists.gnu.org/archive/html/qemu-devel/2013-08/msg04509.html>`_
 :2013: `Nikon Hacker is light years ahead us <http://www.magiclantern.fm/forum/index.php?topic=8823.0>`_ (we are not competing; it was just a fun notice that motivated us)
-:2014: `DryOS task scheduler running! <http://www.magiclantern.fm/forum/index.php?topic=2864.msg117430#msg117430>`_ (also ML menu and modules, but with massive hacks - emulating only a very small part of Canon firmware)
+:2014: `DryOS task scheduler running! <http://www.magiclantern.fm/forum/index.php?topic=2864.msg117430#msg117430>`_ (also ML menu and modules, but with massive hacks — emulating only a very small part of Canon firmware)
 :2015: `Portable display test and Linux PoC working! <http://www.magiclantern.fm/forum/index.php?topic=2864.msg144760#msg144760>`_
 :2015: `Canon GUI boots on 60D! <http://www.magiclantern.fm/forum/index.php?topic=2864.msg148240#msg148240>`_ (no menus yet, but most Canon tasks are working!)
 :2015: `100D emulation, serial flash and GDB scripts from nkls <http://www.magiclantern.fm/forum/index.php?topic=2864.msg153064#msg153064>`_
