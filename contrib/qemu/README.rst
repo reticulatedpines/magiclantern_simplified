@@ -909,7 +909,83 @@ Debugging with GDB
 
     ./run_canon_fw.sh EOSM2,firmware="boot=1" -s -S & arm-none-eabi-gdb -x EOSM2/debugmsg.gdb
 
-Examples:
+Probably the most powerful feature of GDB is its scripting engine —
+in many cases it's a lot faster than manually stepping over assembly code.
+We may use it for tracing various function calls in the firmware, to understand what they do,
+how to call them and so on. At any code address from the disassembly, we may set a breakpoint
+and print some more info (such as function name, arguments, register values,
+call location, DryOS task name and so on).
+
+Predefined logging hook example (this goes into CAM/debugmsg.gdb)::
+
+  b *0x8580
+  take_semaphore_log
+
+Custom logging hook (with colors)::
+
+  b *0xE0008DA6
+  commands
+    silent
+    print_current_location
+    KRED
+    printf "dryos_panic(%x, %x)\n", $r0, $r1
+    KRESET
+    c
+  end
+
+Look in `debug-logging.gdb <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/scripts/debug-logging.gdb#debug-logging.gdb>`_
+for common firmware functions you may want to log, and in `*/debugmsg.gdb` for usage examples.
+
+The call stack feature can be very useful to find where a function was called from.
+This works even when gdb's ``backtrace`` command cannot figure it out from the stack contents,
+but you need to run the emulation with instrumentation enabled: ``-d callstack`` or ``-d callstack,tail``:
+
+Then, in GDB, use ``print_current_location_with_callstack`` to see the call stack for the current DryOS task.
+
+**Example for 80D**:
+
+The following goes into ``80D/debugmsg.gdb`` (modify the existing entry):
+
+.. code::
+
+  b *0xFE237C9E
+  commands
+    silent
+    print_current_location_with_callstack
+    printf "Memory region: start=%08X end=%08X flags=%08X\n", $r0, $r1, $r2
+    c
+  end
+
+Start the emulation with:
+
+.. code:: shell
+
+  ./run_canon_fw.sh 80D,firmware="boot=0" -d callstack -s -S & arm-none-eabi-gdb -x 80D/debugmsg.gdb
+
+Output:
+
+.. code::
+
+  ...
+  Current stack: [2e9118-2e8118] sp=2e90c0                                         at [init:fe237c9e:fe238001]
+  0xFE0D3385(0, fe0d3385, 19980218, 19980218)                                      at [init:8000173d:2e9108] (pc:sp)
+   0xFE237E2D(0, feff65ab "Initialize SerialIO", 2e0f04, 44f4)                     at [init:fe0d403d:2e90f0] (pc:sp)
+    0xFE237F93(18, 203a0, 0, 44f4)                                                 at [init:fe237e55:2e90d8] (pc:sp)
+     0xFE237C9F(fe000000, ffffffff, 8, 5)                                          at [init:fe237ffd:2e90c0] (pc:sp)
+  [        init:fe237ffd ] Memory region: start=FE000000 end=FFFFFFFF flags=00000008
+  ...
+
+The above shows the callers for the function being analyzed,
+with 4 arguments (no attempts are made to guess the actual number of arguments)
+and the locations for each call. You may examine these addresses in your disassembler.
+
+GDB scripting docs:
+
+- `Sequences <https://sourceware.org/gdb/onlinedocs/gdb/Sequences.html>`_ (command files, define, if, while, printf)
+- `Convenience variables <https://sourceware.org/gdb/current/onlinedocs/gdb/Convenience-Vars.html>`_
+- `GDB user manual <https://sourceware.org/gdb/current/onlinedocs/gdb/index.html>`_.
+
+**More examples**:
 
 - `750D serial flash dumper <http://www.magiclantern.fm/forum/index.php?topic=17627.msg195357#msg195357>`_ (figuring out the parameters of an unknown function)
 - `EOS M2 <http://www.magiclantern.fm/forum/index.php?topic=15895.msg186173#msg186173>`_ (examples with various GDB GUI front-ends):
@@ -1307,7 +1383,7 @@ Step by step:
   - identify the pointer to current DryOS task
 
     This is called current_task_addr in model_list.c, CURRENT_TASK in debugmsg.gdb or current_task in ML stubs —
-    see `debug-logging.gdb <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/scripts/debug-logging.gdb#debug-logging.gdb-20>`_
+    see `debug-logging.gdb <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/scripts/debug-logging.gdb#debug-logging.gdb>`_
     for further hints.
 
     |
@@ -1315,7 +1391,7 @@ Step by step:
   - identify where the current interrupt is stored
   
     Look in the interrupt handler — breakpoint at 0x18 to find it — and find CURRENT_ISR in
-    `debug-logging.gdb <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/scripts/debug-logging.gdb#debug-logging.gdb-20>`_,
+    `debug-logging.gdb <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/scripts/debug-logging.gdb#debug-logging.gdb>`_,
     or current_interrupt in ML stubs.
     If you can't find it, you may set it to 0, but if you do, please take task names with a grain of salt if they are printed from some interrupt handler.
   
