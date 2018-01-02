@@ -11,7 +11,7 @@ task_create_log
 b *0xBFE1496C
 msleep_log
 
-b *0x10E1009
+b *0x10E1008
 assert_log
 
 b *0xBFE14F04

@@ -273,7 +273,11 @@ define assert_log
     printf "ASSERT"
     KRESET
     printf "] "
-    printf "%s at %s:%d, %x\n", $r0, $r1, $r2, $r14
+    if $r0
+      printf "%s at %s:%d, %x\n", $r0, $r1, $r2, $r14
+    else
+      printf "at %s:%d, %x\n", $r1, $r2, $r14
+    end
     c
   end
 end
