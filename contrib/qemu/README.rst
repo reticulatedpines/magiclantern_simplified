@@ -889,18 +889,18 @@ Execution trace incomplete? PC values from MMIO logs not correct?
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 That's because QEMU compiles multiple guest instructions into a single TranslationBlock,
-for faster execution. In this mode, `-d exec` will print guest instructions as they are compiled
+for faster execution. In this mode, ``-d exec`` will print guest instructions as they are compiled
 (for example, if you have a tight loop, only the first pass will be printed).
 
 To log every single guest instruction, as executed, and get exact PC values
-in execution traces and other logs, you need to use `-d nochain -singlestep` 
-(for example: `-d exec,nochain -singlestep`) —
+in execution traces and other logs, you need to use ``-d nochain -singlestep`` 
+(for example: ``-d exec,nochain -singlestep``) —
 `source <http://qemu-discuss.nongnu.narkive.com/f8A4tqdT/singlestepping-target-assembly-instructions>`_.
 
-Please note: `-d io` implies `-d nochain -singlestep` by default. Should you want to disable this,
-to get faster emulation at the expense of incorrect PC values, use `-d io_quick`.
+Please note: ``-d io`` implies ``-d nochain -singlestep`` by default. Should you want to disable this,
+to get faster emulation at the expense of incorrect PC values, use ``-d io_quick``.
 
-Additionally, `-d nochain` implies `-singlestep`, unlike in vanilla QEMU.
+Additionally, ``-d nochain`` implies ``-singlestep``, unlike in vanilla QEMU.
 
 Debugging with GDB
 ``````````````````
@@ -934,7 +934,7 @@ Custom logging hook (with colors)::
   end
 
 Look in `debug-logging.gdb <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/scripts/debug-logging.gdb#debug-logging.gdb>`_
-for common firmware functions you may want to log, and in `*/debugmsg.gdb` for usage examples.
+for common firmware functions you may want to log, and in ``*/debugmsg.gdb`` for usage examples.
 
 The call stack feature can be very useful to find where a function was called from.
 This works even when gdb's ``backtrace`` command cannot figure it out from the stack contents,
@@ -989,6 +989,8 @@ GDB scripting docs:
 
 - `750D serial flash dumper <http://www.magiclantern.fm/forum/index.php?topic=17627.msg195357#msg195357>`_ (figuring out the parameters of an unknown function)
 - `EOS M2 <http://www.magiclantern.fm/forum/index.php?topic=15895.msg186173#msg186173>`_ (examples with various GDB GUI front-ends):
+
+|
 
 .. image:: doc/img/ddd.png
    :scale: 50 %
@@ -1473,7 +1475,7 @@ How to solve? There's no fixed recipe; generally, try to steer the code towards 
 You'll need to figure out where it gets stuck and how to fix it. Some things to try:
 
 - check whether the task supposed to call the troublesome NotifyComplete is waiting
-  (not advancing past a take_semaphore / msg_queue_receive / wait_for_event_flag; extask in Dry-shell may help)
+  (not advancing past a take_semaphore / msg_queue_receive / wait_for_event_flag; ``extask`` in Dry-shell may help)
 
 - check who calls the corresponding give_semaphore / msg_queue_send etc and why it doesn't run
   (it may be some callback, it may be expected to run from an interrupt, it may wait for some peripheral and so on)
@@ -1481,7 +1483,7 @@ You'll need to figure out where it gets stuck and how to fix it. Some things to 
 In our case, after cross-checking the same sequence on a 60D (another DIGIC 4 camera) and figuring out a hackish way to patch it
 (enough to bring the GUI, but unreliable, with some mysterious bugs), noticed that... we were looking in the wrong place!
 
-The DryOS timer interrupt (heartbeat) was different from `all other` DIGIC 4 and 5 models, and we've never expected
+The DryOS timer interrupt (heartbeat) was different from *all other* DIGIC 4 and 5 models, and we've never expected
 the emulation to go **that** far without a valid heartbeat (that way, we've lost many hours of debugging).
 Now scroll up and read that section again ;)
 
@@ -1812,7 +1814,7 @@ EOS menus
   - interesting items:
 
     - ``extask`` to display DryOS tasks and their status, memory usage etc
-    - ``meminfo`` and ``memmap`` to display DryOS memory map (ML is loaded in the `malloc` memory pool on many models)
+    - ``meminfo`` and ``memmap`` to display DryOS memory map (ML is loaded in the *malloc* memory pool on many models)
     - network functions on recent models
 
 PowerShot menus
@@ -1821,7 +1823,7 @@ PowerShot menus
 The PowerShot firmware expects some sort of `loopback <http://chdk.setepontos.com/index.php?topic=13278.0>`_ —
 it prints a ``#`` and expects it to be echoed back, then waits for this switch to be turned off.
 
-On EOS M3/M10, you can enter this menu by adding this to eos_handle_uart, under `Write char`:
+On EOS M3/M10, you can enter this menu by adding this to eos_handle_uart, under ``Write char``:
 
 .. code:: C
 
