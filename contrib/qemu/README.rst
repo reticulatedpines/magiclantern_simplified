@@ -572,7 +572,12 @@ If you have trouble with these ``nc`` commands, don't forget to check this commo
 Taking screenshots
 ``````````````````
 
-The easiest way is to use the ``screendump`` command from QEMU monitor.
+The easiest way is to use the ``screendump`` command from QEMU monitor:
+
+.. code:: shell
+
+  echo "screendump snap.ppm" | nc -N -U qemu.monitor
+
 In the following example, we'll redirect the monitor to stdio
 and take a screenshot after 10 seconds.
 
@@ -1162,6 +1167,490 @@ shows how to add support for this camera from scratch, right through to getting 
 Although this model is already supported in the repository,
 you can always roll back to an older changeset (``3124887``) and follow the tutorial.
 
+Working out all the way to Canon GUI
+````````````````````````````````````
+
+This might be a short journey (such as finding a typo or tweaking some MMIO register), or a long one (lots of things to adjust).
+It's hard to tell in advance how much work it's going to be (each camera model has its own quirks),
+but here's a short overview of Canon EOS boot process.
+
+Overview of Canon EOS boot process
+''''''''''''''''''''''''''''''''''
+
+There are at least two (different) code blobs in Canon firmware:
+the bootloader (what runs at power on) and the main firmware.
+Generally, you cannot call bootloader functions from main firmware, or viceversa
+(except maybe for trivial functions that do not use any global variables).
+
+The start addresses for bootloader and main firmware can be found at
+`Initial firmware analysis`_.
+
+The bootloader has the following functionality:
+
+- initialize the RAM configuration (memory protection regions, cache setup etc)
+- jump to main firmware if everything is alright
+- load AUTOEXEC.BIN or firmware updates, if the boot flags are configured for this
+- fallback to factory menus if the hardware or the main firmware are somehow out of order
+- handshaking with other CPU cores, if any.
+
+Note: the EOS M5 has `two bootloaders <http://chdk.setepontos.com/index.php?topic=13014.msg131205#msg131205>`_, one of them running DryOS!
+
+Getting the bootloader to run
+'''''''''''''''''''''''''''''
+
+There are two major goals here:
+
+- launch the main firmware
+- initialize the SD or CF card to load ``AUTOEXEC.BIN``.
+
+The first goal is a lot easier, so let's start with that. What can go wrong?
+
+- bootloader gets stuck in a loop somewhere
+- bootloader executes some factory tool
+
+Both of these are likely affected by some MMIO register. Run the emulation with ``-d io``
+and try to figure out what registers might change the code paths taken by the bootloader.
+
+Easiest case: code gets stuck reading some MMIO register. Solutions:
+
+- look in the disassembly at the code where the register is read, and figure out what value it expects
+- try random values (it may even work for simple handshakes)
+
+Example for 5D3: comment out register ``0xC0400204`` (``case 0x204`` under ``C0400000``,
+introduced in `b79cd7a <https://bitbucket.org/hudson/magic-lantern/commits/b79cd7a>`_)
+and run with ``-d io``::
+
+  [BASIC]    at 0xFFFF066C:00000000 [0xC0400204] -> 0x0       : ???
+  (infinite loop repeating the same message over and over)
+
+Just for kicks, let's see what happens if we return random values::
+
+  ./run_canon_fw.sh 5D3,firmware="boot=0" -d io |& grep 0xC0400204
+  [BASIC]    at 0xFFFF0554:00000000 [0xC0400204] -> 0x9474BA98: ???
+  [BASIC]    at 0xFFFF066C:00000000 [0xC0400204] -> 0xCD84DC39: ???
+  [BASIC]    at 0xFFFF066C:00000000 [0xC0400204] -> 0x9BC36796: ???
+
+As soon as the random value matches what the firmware expects, emulation continues. In our case, the test was::
+
+  FFFF066C   LDR R1, [R0]
+  FFFF0670   AND R1, R1, #2
+  FFFF0674   CMP R1, #2
+
+Easy, right?
+
+Harder case: the value of some MMIO register steers the code on a path you don't want.
+
+Example for 1300D, before changeset `cbf042b <https://bitbucket.org/hudson/magic-lantern/commits/cbf042b>`_
+(to try this, manually undo the linked change):
+
+After adding the basic definition, the bootloader shows a factory menu, rather than jumping to main firmware.
+
+.. code:: C
+
+    {
+        .name                   = "1300D",
+        .digic_version          = 4,
+        .rom0_size              = 0x02000000,
+        .rom1_size              = 0x02000000,
+        .firmware_start         = 0xFF0C0000,
+    },
+
+It does not get stuck anywhere, the factory menu works (you can navigate it on the serial console), so what's going on?
+
+Run the emulation with ``-d io``, look at all MMIO register reads (any of these might steer the program on a different path)
+and analyze the disassembly where these registers are read. To get exact program counters in the logs, run with ``-d io,nochain -singlestep``:
+
+.. code:: shell
+
+  ./run_canon_fw.sh 1300D -d io,nochain -singlestep
+  ...
+  [*unk*]    at 0xFFFF066C:FFFF00C4 [0xC0300000] -> 0x0       : ???
+  [*unk*]    at 0xFFFF0680:FFFF00C4 [0xC0300000] <- 0x1550    : ???
+  [*unk*]    at 0xFFFF068C:FFFF00C4 [0xC0300208] <- 0x1       : ???
+  [GPIO]     at 0xFFFF0694:FFFF00C4 [0xC022F48C] -> 0x10C     : 70D/6D SD detect?
+  [FlashIF]  at 0x00000108:FFFF00C4 [0xC00000D0] -> 0x0       : ???
+  [FlashIF]  at 0x00000114:FFFF00C4 [0xC00000D0] <- 0xE0000   : ???
+  [FlashIF]  at 0x0000011C:FFFF00C4 [0xC00000D8] <- 0x0       : ???
+  [GPIO]     at 0x00000128:FFFF00C4 [0xC022F4D0] <- 0x3000    : ???
+  [FlashIF]  at 0x0000012C:FFFF00C4 [0xC00000D0] -> 0x0       : ???
+  [FlashIF]  at 0x00000130:FFFF00C4 [0xC00000D0] -> 0x0       : ???
+  [FlashIF]  at 0x00000134:FFFF00C4 [0xC00000D0] -> 0x0       : ???
+  System & Display Check & Adjustment program has started.
+
+If the number of registers is small, consider trial and error, or some sort of brute-forcing.
+For more complex cases, look into advanced RE tools that use SMT solvers or similar black magic,
+or try to understand what the code does (and how to get it back on track).
+
+In this particular case, it's easy to guess
+(exercise: give it a try, pretending you haven't already seen the solution).
+
+In a few cases, the bootloader may use interrupts as well
+(for example, 7D uses interrupts for IPC - communication between the two DIGIC cores).
+To analyze them, place a breakpoint at 0x18 and see what happens from there.
+
+The second goal -- loading ``AUTOEXEC.BIN`` from the card -- requires emulation of the SD or CF card.
+If it doesn't already work, look at MMIO activity (``-d io``) and try to make sense of the SD or CF
+initialization sequences (both protocols are documented online). The emulation has to be able
+to read arbitrary sectors from the virtual card - once you provide the low-level block transfer
+functionality, Canon firmware whould be able to handle the rest (filesystem drivers etc).
+In other words, you shouldn't have to adjust anything in order to emulate EXFAT, for example.
+
+Getting the main firmware to run
+''''''''''''''''''''''''''''''''
+
+Step by step:
+
+- get debug messages
+
+  - identify DebugMsg (lots of calls, format string is third argument), add the stub to CAM/debugmsg.gdb, run with ``-d debugmsg``
+  - identify other functions used to print errors (uart_printf, variants of DebugMsg with format string at second argument etc - look for strings)
+  - identify any other strings that might be helpful (tip: run with ``-d calls`` and look for something that makes even a tiny bit of sense)
+  
+  |
+
+- make sure DryOS timer (heartbeat) runs (**important!**):
+
+  - look for MMIO activity that might set up a timer at 10ms or nearby
+  - figure out what interrupt is expects (run with ``-d io,int,v`` and look for "Enabled interrupt XXh", usually right before the timer configuration)
+  - make sure you get periodical interrupts when running with ``-d io,int``, even when all DryOS tasks are idle
+
+  Example: 1300D (comment out ``dryos_timer_id`` and ``dryos_timer_interrupt`` from the 1300D section
+  in model_list.c to get the state before `7f1a436 <https://bitbucket.org/hudson/magic-lantern/commits/7f1a436>`_)::
+
+    [INT]      at 0xFE0C3E10:FE0C0C18 [0xC0201010] <- 0x9       : Enabled interrupt 09h
+    ...
+    [TIMER]    at 0xFE0C0C54:FE0C0C54 [0xC0210108] <- 0x270F    : Timer #1: will trigger after 10 ms
+    [TIMER]    at 0xFE0C3F5C:FE0C0C68 [0xC0210110] <- 0x1       : Timer #1: interrupt enable?
+    [TIMER]    at 0xFE0C3F5C:FE0C0C68 [0xC0210100] <- 0x1       : Timer #1: starting
+    ...
+
+  Caveat: the emulation may go **surprisingly far *without* DryOS timer** - as far as running the GUI
+  with bugs that are almost impossible to explain (such as menu selection bar being behind the logical selection by exactly 1 position).
+  To see it with your own eyes, set ``dryos_timer_interrupt = 0x09`` (correct is ``0x0A``) on 60D (maybe also on other models).
+
+  Therefore, please do not assume this works, even if you think it does - double-check!
+
+  |
+
+- get some tasks running
+
+  - identify task_create (in debugmsg.gdb - same as in ML ``stubs.S``) and run the firmware under GDB
+  - identify the pointer to current DryOS task
+
+    This is called current_task_addr in model_list.c, CURRENT_TASK in debugmsg.gdb or current_task in ML stubs -
+    see `debug-logging.gdb <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/scripts/debug-logging.gdb#debug-logging.gdb-20>`_
+    for further hints.
+
+    |
+
+  - identify where the current interrupt is stored
+  
+    Look in the interrupt handler - breakpoint at 0x18 to find it - and find CURRENT_ISR in
+    `debug-logging.gdb <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/scripts/debug-logging.gdb#debug-logging.gdb-20>`_,
+    or current_interrupt in ML stubs.
+    If you can't find it, you may set it to 0, but if you do, please take task names with a grain of salt if they are printed from some interrupt handler.
+  
+    |
+
+  - run with ``-d tasks`` and watch the DryOS task switches.
+
+  |
+
+- optional, sometimes helpful: enable the serial console and the DryOS shell (debug with ``-d io,int,uart``)
+- make the startup sequence run (see `EOS firmware startup sequence`_)
+- these may need tweaking: WriteProtect switch, HotPlug events (usually GPIOs)
+- make sure the GUI tasks are starting (in particular, GuiMainTask)
+- identify button codes (`extract_button_codes.py <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/eos/mpu_spells/extract_button_codes.py>`_)
+- make sure the display is initialized, identify the image buffers etc.
+
+EOS firmware startup sequence
+'''''''''''''''''''''''''''''
+
+Please note: this section does not apply to recent EOS models (M3 and newer); these models use PowerShot firmware.
+
+If you've looked at enough `startup logs <http://www.magiclantern.fm/forum/index.php?topic=2388>`_,
+you've probably noticed they are **not deterministic** (they don't always execute in the same order,
+even on two runs performed under identical conditions). The EOS firmware starts many things in parallel;
+there is a Sequencer object (SEQ) with a notification system that uses some binary flags
+to know where things are finished. Let's look at its debug messages::
+
+   ./run_canon_fw.sh 60D,firmware="boot=0" -d debugmsg |& grep -E --text Notify.*Cur
+   [        init:ff02b9f8 ] (00:03) [SEQ] NotifyComplete (Cur = 0, 0x10000, Flag = 0x10000)
+   [    PowerMgr:ff02b9f8 ] (00:03) [SEQ] NotifyComplete (Cur = 1, 0x20000002, Flag = 0x2)
+   [     Startup:ff02b9f8 ] (00:03) [SEQ] NotifyComplete (Cur = 1, 0x20000000, Flag = 0x20000000)
+   [     FileMgr:ff02b9f8 ] (00:03) [SEQ] NotifyComplete (Cur = 2, 0x10, Flag = 0x10)
+   [     Startup:ff02b9f8 ] (00:03) [SEQ] NotifyComplete (Cur = 3, 0xe0110, Flag = 0x40000)
+   [     Startup:ff02b9f8 ] (00:03) [SEQ] NotifyComplete (Cur = 3, 0xa0110, Flag = 0x80000)
+   [     Startup:ff02b9f8 ] (00:03) [SEQ] NotifyComplete (Cur = 3, 0x20110, Flag = 0x100)
+   [      RscMgr:ff02b9f8 ] (00:03) [SEQ] NotifyComplete (Cur = 3, 0x20010, Flag = 0x20000)
+   [     FileMgr:ff02b9f8 ] (00:03) [SEQ] NotifyComplete (Cur = 3, 0x10, Flag = 0x10)
+   [     Startup:ff02b9f8 ] (00:03) [SEQ] NotifyComplete (Cur = 4, 0x110, Flag = 0x100)
+   [     FileMgr:ff02b9f8 ] (00:03) [SEQ] NotifyComplete (Cur = 4, 0x10, Flag = 0x10)
+   [     Startup:ff02b9f8 ] (00:03) [SEQ] NotifyComplete (Cur = 5, 0x80200200, Flag = 0x80000000)
+   [ GuiMainTask:ff02b9f8 ] (00:03) [SEQ] NotifyComplete (Cur = 5, 0x200200, Flag = 0x200000)
+   [       DpMgr:ff02b9f8 ] (00:03) [SEQ] NotifyComplete (Cur = 5, 0x200, Flag = 0x200)
+   ...
+
+Notice the pattern? Every time a component is initialized, it calls NotifyComplete with some binary flag.
+The bits from this flag are cleared from the middle number, so this number must indicate what processes
+still have to do their initialization. Once this number reaches 0 (not printed),
+the startup sequence advances to the next stage.
+
+**What if it gets stuck?**
+
+You need to figure it out: Difficulty: anywhere within [0 - infinity); a great dose of luck will help.
+
+Let's look at an example - 1300D::
+
+   ./run_canon_fw.sh 1300D,firmware="boot=0" -d debugmsg |& grep --text -E Notify.*Cur
+   [        init:fe0d4054 ] (00:03) [SEQ] NotifyComplete (Cur = 0, 0x10000, Flag = 0x10000)
+   [     Startup:fe0d4054 ] (00:03) [SEQ] NotifyComplete (Cur = 1, 0x20000002, Flag = 0x20000000)
+   [    PowerMgr:fe0d4054 ] (00:03) [SEQ] NotifyComplete (Cur = 1, 0x2, Flag = 0x2)
+   [     FileMgr:fe0d4054 ] (00:03) [SEQ] NotifyComplete (Cur = 2, 0x10, Flag = 0x10)
+   [     Startup:fe0d4054 ] (00:03) [SEQ] NotifyComplete (Cur = 3, 0xe0110, Flag = 0x40000)
+   [     Startup:fe0d4054 ] (00:03) [SEQ] NotifyComplete (Cur = 3, 0xa0110, Flag = 0x80000)
+   [     Startup:fe0d4054 ] (00:03) [SEQ] NotifyComplete (Cur = 3, 0x20110, Flag = 0x100)
+   [     FileMgr:fe0d4054 ] (00:03) [SEQ] NotifyComplete (Cur = 3, 0x20010, Flag = 0x10)
+
+It got stuck because somebody has yet to call NotifyComplete with Flag = 0x20000.
+
+Who's supposed to call that? Either look in the disassembly to find who calls NotifyComplete with the right argument,
+or - if not obvious - look in the startup logs of other camera models from the same generation, where the flag is likely the same.
+
+Why it didn't get called? Most of the time:
+  
+- some task is waiting at some semaphore / message queue / event flag
+- it may expect some interrupt to be triggered (to complete the initialization of some peripheral)
+- it may expect some message from the MPU
+- other (some task stuck in a loop, some prerequisite code did not run etc)
+
+How to solve? There's no fixed recipe; generally, try to steer the code towards calling NotifyComplete with the missing flag.
+You'll need to figure out where it gets stuck and how to fix it. Some things to try:
+
+- check whether the task supposed to call the troublesome NotifyComplete is waiting
+  (not advancing past a take_semaphore / msg_queue_receive / wait_for_event_flag; extask in Dry-shell may help)
+
+- check who calls the corresponding give_semaphore / msg_queue_send etc and why it doesn't run
+  (it may be some callback, it may be expected to run from an interrupt, it may wait for some peripheral and so on)
+
+In our case, after cross-checking the same sequence on a 60D (another DIGIC 4 camera) and figuring out a hackish way to patch it
+(enough to bring the GUI, but unreliable, with some mysterious bugs), noticed that... we were looking in the wrong place!
+
+The DryOS timer interrupt (heartbeat) was different from `all other` DIGIC 4 and 5 models, and we've never expected
+the emulation to go **that** far without a valid heartbeat (that way, we've lost many hours of debugging).
+Now scroll up and read that section again ;)
+
+Fixing that and a few other things (commit `7f1a436 <https://bitbucket.org/hudson/magic-lantern/commits/7f1a436>`_)
+were enough to bring the GUI on 1300D.
+
+PowerShot firmware startup sequence
+'''''''''''''''''''''''''''''''''''
+
+TODO (see CHDK). Startup code is generally simpler and single-threaded, but less verbose.
+
+Assertions
+''''''''''
+
+These are triggered by Canon code when something goes wrong. On the UI, these will show ERR70 -
+if the rest of the system is able to change the GUI mode and show things of the screen.
+
+When running Magic Lantern, it will attempt to save a crash log for each ERR70.
+
+There are usually over 1000 different conditions that can trigger an assertion (ERR70).
+**The only way to tell** which one it was is to read the assert message and locate it in the disassembly.
+The `ERR70 description from Canon <http://cpn.canon-europe.com/content/education/infobank/camera_settings/eos_error_codes_and_messages.do>`_
+("A malfunction with the images has been detected.") is overly simplistic.
+
+**Do not attempt to fix a camera with ERR70 yourself!** Please contact us instead,
+providing any relevant details (crash logs, what you did before the error and so on).
+This section is for fixing assertions **in the emulation** (on a virtual machine), not on real cameras!
+
+What we can do about them?
+
+- figure out why they happen and fix the emulation
+- as a workaround, patch the affected function (see `Patching code`_)
+
+Tip: find the assert stub, add assert_log to your debugmsg.gdb
+and run the firmware under GDB with ``-d callstack``.
+You'll get a stack trace to see what code called that assertion
+(so you'll know where to look in the disassembly).
+
+Patching code
+'''''''''''''
+
+Emulation is not perfect, and neither our skills. If we can figure out how to emulate cleanly
+all the code, that's great. If not, there will be some code bits that will not be emulated well.
+For example, an unhandled microsecond timer (USleep in DIGIC 6 models) will cause the emulation to halt
+when the firmware only wants to wait for a few microseconds.
+
+When you don't know how to solve it, you may get away with patching the troublesome routine.
+This shouldn't be regarded as a fix - it's just a workaround that will hopefully help advancing the emulation.
+
+That's why we prefer to patch the firmware from GDB scripts. These can be edited easily to experiment with,
+and there is some additional burden for running a patched firmware (longer commands to type),
+as a reminder that a proper fix is still wanted.
+
+For example, patching the USleep waiting routine on 80D could look like this (``80D/patches.gdb``, commit `7ea57e7 <https://bitbucket.org/hudson/magic-lantern/commits/7ea57e73c09>`_):
+
+.. code::
+
+ source patch-header.gdb
+ 
+ # UTimer (fixme)
+ set *(int*)0xFE5998C6 = 0x4770
+ 
+ source patch-footer.gdb
+
+Note: ``0x4770`` is ``BX LR`` on Thumb code; on ARM, that would be ``0xe12fff1e``.
+See arm-mcr.h for a few useful instructions encodings, use an assembler or read the ARM docs
+(in particular, `ARM Architecture Reference Manual <http://www.scss.tcd.ie/~waldroj/3d1/arm_arm.pdf>`_ 
+and `Thumb-2 Supplement Reference Manual <http://read.pudn.com/downloads159/doc/709030/Thumb-2SupplementReferenceManual.pdf>`_).
+
+Patching things may very well break other stuff down the road - use with care.
+
+**Be very careful patching the assertions when running on a physical camera.
+If an assert was reached, that usually means something already went terribly wrong -
+hiding the error message from the user is *not* the way to solve it!**
+
+MPU communication
+'''''''''''''''''
+
+On EOS firmware, buttons, some properties (camera settings) and a few others are handled on a different CPU,
+called MPU in Canon code (not sure what it stands for). On PowerShot firmware you don't need to worry about it - buttons are handled on the main CPU (PhySw).
+
+Communication is done on a serial interface with some GPIO handshaking (look up SIO3 and MREQ in the firmware).
+It can be initiated from the main CPU (mpu_send, which toggles a GPIO to get MPU's attention) or from the MPU (by triggering a MREQ interrupt); 
+the transfer is then continued in SIO3 interrupts. Each interrupt transfers two bytes of data.
+
+Message format is: ``[message_size] [payload_size] <payload>`` (where ``[x]`` is 1 byte and ``<x>`` is variable-sized).
+
+Payload format is: ``[class] [id] <data> [ack_requested]``.
+
+The first two bytes can be used to identify the message
+(and for messages that refer to a property, to identify the property).
+Property events are in `known_spells.h <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/eos/mpu_spells/known_spells.h>`_;
+GUI events (button codes) have ``class = 06``.
+
+To log the MPU communication:
+
+- dm-spy-experiments branch, CONFIG_DEBUG_INTERCEPT_STARTUP=y (mpu_send and mpu_recv stubs are enabled by default)
+- in QEMU, enable mpu_send and mpu_recv in debugmsg.gdb and run the firmware under GDB
+- low-level: ``-d io,mpu``.
+
+The first message is sent from the main CPU; upon receiving it, the MPU replies back:
+
+.. code::
+
+  ./run_canon_fw.sh 60D -s -S & arm-none-eabi-gdb -x 60D/debugmsg.gdb
+  ...
+  [     Startup:ff1bf228 ] register_interrupt(MREQ_ISR, 0x50, 0xff1bf06c, 0x0)
+  [     Startup:ff1bf23c ] register_interrupt(SIO3_ISR, 0x36, 0xff1bf0fc, 0x0)
+  [     Startup:ff1dcc18 ] task_create(PropMgr, prio=14, stack=0, entry=ff1dcb24, arg=807b1c)
+  [     Startup:ff05e1b8 ] mpu_send( 06 04 02 00 00 )
+  [MPU] Received: 06 04 02 00 00 00  (Init - spell #1)
+  [MPU] Sending : 08 07 01 33 09 00 00 00  (unnamed)
+  [     INT-36h:ff1bf420 ] mpu_recv( 08 07 01 33 09 00 00 00 )
+  [MPU] Sending : 06 05 01 20 00 00  (PROP_CARD1_EXISTS)
+  [     INT-36h:ff1bf420 ] mpu_recv( 06 05 01 20 00 00 )
+  [MPU] Sending : 06 05 01 21 01 00  (PROP_CARD2_EXISTS)
+  [     INT-36h:ff1bf420 ] mpu_recv( 06 05 01 21 01 00 )
+  ...
+
+The message sent by the main CPU is::
+
+  06 04 02 00 00 00
+
+- ``06`` is message size (always even)
+- ``04`` is payload size (always ``message_size - 1`` or ``message_size - 2``)
+- ``02 00 00 00`` is the payload:
+
+  - ``02 00`` identifies the message (look it up in `known_spells.h <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/eos/mpu_spells/known_spells.h>`_)
+  - the last ``00`` means no special confirmation was requested (``Complete WaitID`` string)
+  - the remaining ``00`` may contain property data or other information (nothing interesting here)
+
+The first message sent back by the MPU is::
+
+  08 07 01 33 09 00 00 00
+
+- ``08 07``: message size and payload size
+- ``01 33`` identifies the message (maps to property 0x80000029, unknown meaning)
+- ``09 00 00`` is the property data (note: its size is 3 on the MPU, but 4 on the main CPU)
+- ``00`` means no special confirmation was requested
+  (``01`` would print ``Complete WaitID = 0x80000029``)
+
+The second and third messages are easier to grasp::
+
+  06 05 01 20 00 00
+  06 05 01 21 01 00
+
+- ``06 05``: message size and payload size
+- ``01 20`` and ``01 21`` identify the messages (``0x8000001D/1E PROP_CARD1/CARD2_EXISTS``)
+- ``00`` and ``01``: property data, meaning CF absent and SD present (size 1 on MPU, 4 on main CPU)
+- ``00`` (last one) means no special confirmation was requested.
+
+
+How do you get these messages?
+
+From a `startup log <http://builds.magiclantern.fm/jenkins/view/Experiments/job/startup-log/>`_ (`dm-spy-experiments <http://www.magiclantern.fm/forum/index.php?topic=2388.0>`_), use 
+`extract_init_spells.py <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/eos/mpu_spells/extract_init_spells.py>`_
+to parse the MPU communication into C code (see `make_spells.sh <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/eos/mpu_spells/make_spells.sh>`_).
+
+There are also generic spells in `generic.h <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/eos/mpu_spells/generic.h>`_
+that are recognized by most EOS models and are good enough to enable navigation on Canon menus.
+
+Things to check:
+
+- mpu_send: the message format should make sense (consistent sizes etc)
+- our emulated MPU should receive the message correctly: ``[MPU] Received:`` should match the previous mpu_send line
+- it should reply back with something: ``[MPU] Sending :``
+- mpu_recv should be called, with the same message as argument
+- to see what the firmware does with these messages, look in mpu_send and track the messages from there.
+
+Serial flash
+''''''''''''
+
+To enable serial flash emulation (if your camera needs it, you'll see some relevant startup messages),
+define `.serial_flash_size` in model_list.c and a few other parameters:
+
+- chip select signal (CS): some GPIO register toggled before and after serial flash access
+- SIO channel (used for SPI transfers)
+- SFIO channel (for DMA transfers - Canon reused the same kind of DMA used for SD card).
+
+Dumper: `sf_dump module <https://bitbucket.org/hudson/magic-lantern/src/unified/modules/sf_dump>`_.
+
+For early ports, you might (or might not) get away with serial flash contents from another model.
+
+`Patching <https://bitbucket.org/hudson/magic-lantern/commits/652133663c39>`_ might help.
+When editing SFDATA.BIN files manually, watch out - some data blocks are shifted by 4 bits for some reason.
+
+WriteProtect switch
+'''''''''''''''''''
+
+This is easy: run with ``-d debugmsg,io`` and look for a GPIO read right before this message::
+
+  [STARTUP] WriteProtect (%#x)
+
+Example::
+
+  ./run_canon_fw.sh 6D,firmware="boot=0" -d debugmsg,io |& ansi2txt | grep WriteProtect -C 5
+  ...
+  [GPIO]   at Startup:FF14A330:FF0C4490 [0xC02200D0] -> 0x1       : GPIO_52
+  [     Startup:ff0c44a8 ] (00:05) [STARTUP] WriteProtect (0x1)
+  ...
+
+That means, register 0xC02200D0 shows the WriteProtect switch state; you may want to change it to emulate a SD card without write protection.
+
+If you don't see the WriteProtect message, this register is probably OK. To test the above, comment out the WriteProtect register handling code for your camera (usually in eos_handle_gpio).
+
+HotPlug events
+''''''''''''''
+
+There is a task polling for hardware events, such as plugging a microphone, an external monitor,
+an USB cable and maybe a few others. Generally, you want to emulate without these things,
+so you'll need to look in the disassembly of HotPlug and see what it expects for each peripheral;
+most of the time, it checks some GPIO registers - you may have to adjust them (usually in ``eos_handle_gpio``).
+
+Since all of these registers are checked in a loop, you may want to silence them (``IGNORE_CONNECT_POLL``).
 
 Adding support for a new Canon firmware version
 ```````````````````````````````````````````````
@@ -1191,7 +1680,8 @@ DryOS internals?
 
 This is the perfect tool for studying them. Start at:
 
-- DryOS shell (View -> Serial in menu, then type ``akashimorino``)
+- `Working out all the way to Canon GUI`_ for an overview
+- DryOS shell (View -> Serial in menu, then type ``akashimorino``, then ``drysh``)
 - task_create (from GDB scripts)
 - semaphores (some GDB scripts have them)
 - message queues (some GDB scripts have them)
@@ -1201,9 +1691,79 @@ This is the perfect tool for studying them. Start at:
 
 |
 
+Serial console
+``````````````
+
 .. image:: doc/img/drysh.png
    :scale: 50 %
    :align: center
+
+QEMU menu: ``View -> Serial``.
+
+Hardware connections: possibly in the `battery grip pins <http://www.magiclantern.fm/forum/index.php?topic=7531>`_; 
+see also `JTAG on PowerShot <https://nada-labs.net/2014/finding-jtag-on-a-canon-elph100hs-ixus115/>`_ 
+and `UART pins on EOS M3 <http://chdk.setepontos.com/index.php?topic=12542.msg129346#msg129346>`_.
+
+Some of these functions **can damage your camera!**
+
+EOS menus
+'''''''''
+
+- FROMUTILITY menu
+
+  - delete ``AUTOEXEC.BIN`` from the virtual card, but leave it bootable (and start with ``firmware="boot=1"``).
+  - this is what happens when your camera locks up (see the warnings in `ML install guide <http://wiki.magiclantern.fm/install>`_).
+  - interesting items:
+
+    - boot flags
+    - SROM menu on models with serial flash
+    - Bufcon (GPIO names, `hidden menu <https://bitbucket.org/hudson/magic-lantern/commits/5d1f223994c4b437bfaae51b22e0fb216e73a4b7#chg-contrib/qemu/eos/eos_bufcon_100D.h>`_)
+
+- FACTADJ menu
+
+  - exit from FROMUTILITY menu to find it.
+
+- Event shell
+
+  - start main firmware (e.g. ``firmware="boot=0"``)
+  - type ``akashimorino``
+  - type ``?`` to see functions registered by name (aka `eventprocs <http://chdk.wikia.com/wiki/Event_Procedure>`_)
+  - interesting items:
+
+    - ``drysh`` to open the DryOS shell console
+    - ``smemShowFix`` for the `RscMgr memory map <http://www.magiclantern.fm/forum/index.php?topic=5071.0>`_
+    - ``dumpf`` to save a debug log (not all messages are saved; use `dm-spy-experiments <http://www.magiclantern.fm/forum/index.php?topic=2388.0>`_ to capture all of them)
+    - ``dispcheck`` to save a screenshot of the BMP overlay
+    - there are more functions than you can count, feel free to experiment and report back ;)
+    - some of these functions **can damage your camera!** (but you can safely try them in QEMU)
+
+- Dry-shell console (DryOS shell, DrySh)
+
+  - type ``drysh`` at the event shell
+  - type ``help`` for the available functions
+  - interesting items:
+
+    - ``extask`` to display DryOS tasks and their status, memory usage etc
+    - ``meminfo`` and ``memmap`` to display DryOS memory map (ML is loaded in the `malloc` memory pool on many models)
+    - network functions on recent models
+
+PowerShot menus
+'''''''''''''''
+
+The PowerShot firmware expects some sort of `loopback <http://chdk.setepontos.com/index.php?topic=13278.0>`_ - 
+it prints a ``#`` and expects it to be echoed back, then waits for this switch to be turned off.
+
+On EOS M3/M10, you can enter this menu by adding this to eos_handle_uart, under `Write char`:
+
+.. code:: C
+
+    if (value == '#')
+    {
+        s->uart.reg_rx = value;
+        s->uart.reg_st |= ST_RX_RDY;
+    }
+
+This will enable a debug shell; type ``?`` for the available commands.
 
 Cross-checking the emulation with actual hardware
 `````````````````````````````````````````````````
@@ -1225,11 +1785,11 @@ Checking interrupts from actual hardware
 
 LOG_INTERRUPTS in dm-spy-experiments.
 
-MPU spells
-''''''''''
+MPU messages
+''''''''''''
 
 `mpu_send/recv <http://www.magiclantern.fm/forum/index.php?topic=2864.msg166938#msg166938>`_ in dm-spy-experiments
-(`startup-log <http://builds.magiclantern.fm/jenkins/view/Experiments/job/startup-log/>`_ builds.)
+(`startup-log <http://builds.magiclantern.fm/jenkins/view/Experiments/job/startup-log/>`_ builds.). See `MPU Communication`_.
 
 Committing your changes
 ```````````````````````
