@@ -1,0 +1,12 @@
+# ./run_canon_fw.sh EOSM -s -S & arm-none-eabi-gdb -x EOSM/patches.gdb
+# Only patches required for emulation
+
+source patch-header.gdb
+
+# enable TIO (required to print DryOS version)
+set *(int*)0xFEC4DCBC = 1
+
+# PROPAD_CreateFROMPropertyHandle
+set *(int*)0xFE102B5A = 0x4770
+
+source patch-footer.gdb

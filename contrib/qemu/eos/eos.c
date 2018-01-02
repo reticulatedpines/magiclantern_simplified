@@ -1329,31 +1329,6 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
     return s;
 }
 
-static void patch_7D2(EOSState *s)
-{
-    int is_7d2m = (eos_get_mem_w(s, 0xFE106062) == 0x0F31EE19);
-
-    if (is_7d2m)
-    {
-        uint32_t nop = 0x8000F3AF;
-        uint32_t ret = 0x00004770;
-        uint32_t one = 1;
-
-        fprintf(stderr, "Patching 0x%X (enabling TIO on 7D2M)\n", 0xFEC4DCBC);
-        MEM_WRITE_ROM(0xFEC4DCBC, (uint8_t*) &one, 4);
-        
-        MEM_WRITE_ROM(0xFE0A3024, (uint8_t*) &nop, 4);
-        fprintf(stderr, "Patching 0x%X (idk, it fails)\n", 0xFE0A3024);
-        
-        MEM_WRITE_ROM(0xFE102B5A, (uint8_t*) &ret, 4);
-        fprintf(stderr, "Patching 0x%X (PROPAD_CreateFROMPropertyHandle)\n", 0xFE102B5A);
-    }
-    else
-    {
-        fprintf(stderr, "This ROM doesn't look like a 7D2M\n");
-    }
-}
-
 static void patch_EOSM3(EOSState *s)
 {
     fprintf(stderr, "Patching 0xFCC637A8 (enabling TIO)\n");
@@ -1503,13 +1478,6 @@ static void eos_init_common(MachineState *machine)
         fprintf(stderr, "Disabling IPC (boot flag 0x24)\n");
         uint32_t flag = 0;
         MEM_WRITE_ROM(s->model->bootflags_addr + 0x24, (uint8_t*) &flag, 4);
-    }
-
-    if ((strcmp(s->model->name, "7D2M") == 0) ||
-        (strcmp(s->model->name, "7D2S") == 0))
-    {
-        /* 7D2 experiments */
-        patch_7D2(s);
     }
     
     if (strcmp(s->model->name, "EOSM3") == 0)

@@ -118,7 +118,7 @@ define print_current_location
   printf "["
   if CURRENT_ISR > 0
     KRED
-    printf "    INT-%02Xh:%08x ", CURRENT_ISR, $r14-4
+    printf "     INT-%02Xh:%08x ", CURRENT_ISR, $r14-4
   else
     if $_thread == 1
       KCYN
