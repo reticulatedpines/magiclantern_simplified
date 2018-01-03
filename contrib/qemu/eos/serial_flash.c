@@ -271,18 +271,22 @@ void serial_flash_spi_write(SerialFlashState * sf, uint8_t value)
 static void sfio_do_transfer( EOSState *s)
 {
     SF_DPRINTF("eos_handle_sfio (copying now)\n");
+
+    // FIXME: bad bad
+    SDIOState * sd = &s->sf->sd;
+
     // FIXME sanitize addresses, this can seriously break stuff
     void * source = &s->sf->data[s->sf->data_pointer];
     fprintf(stderr, "[EEPROM-DMA]! [0x%X] -> [0x%X] (0x%X bytes)\n", 
-           s->sf->data_pointer, s->sd.dma_addr, s->sd.dma_count);
+           s->sf->data_pointer, sd->dma_addr, sd->dma_count);
 
     /* the data appears screwed up a bit - offset by half-byte?! */
-    int num_blocks = (s->sd.dma_count + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    int num_blocks = (sd->dma_count + BLOCK_SIZE - 1) / BLOCK_SIZE;
     // TODO assert that num_blocks is equal to num blocks sent to controller
     // TODO assert that BLOCK_SIZE is equal to block size sent to controller
     for (int i = 0; i < num_blocks; i++) {
         uint8_t * block_src = (uint8_t*)(source + i*BLOCK_OFFSET);
-        uint32_t  block_dst = (uint32_t)(s->sd.dma_addr + i*BLOCK_SIZE);
+        uint32_t  block_dst = (uint32_t)(sd->dma_addr + i*BLOCK_SIZE);
         uint8_t block[BLOCK_SIZE];
         for (int j = 0; j < BLOCK_SIZE; j++) {
             uint8_t this = *(uint8_t*)(block_src + j);
@@ -301,14 +305,14 @@ static void sfio_do_transfer( EOSState *s)
         }
         eos_mem_write(s, block_dst, block, BLOCK_SIZE);
     }
-    s->sd.dma_count = 0;
-            //sdio_write_data(&s->sd);
+    sd->dma_count = 0;
+            //sdio_write_data(sd);
             //sfio_trigger_interrupt(s);
 
-// if (false)                    sfio_trigger_interrupt(s,s->sd);
+// if (false)                    sfio_trigger_interrupt(s,sd);
 }
 
-unsigned int sfio_trigger_int_DMA ( EOSState *s )
+static unsigned int sfio_trigger_int_DMA ( EOSState *s )
 {
     SF_DPRINTF("sfio_trigger_int_DMA\n");
     sfio_do_transfer(s);
@@ -343,8 +347,9 @@ unsigned int eos_handle_sfio ( unsigned int parm, EOSState *s, unsigned int addr
     const char * msg = 0;
     intptr_t msg_arg1 = 0;
     intptr_t msg_arg2 = 0;
-    static SDIOState _sd; // FIXME: bad bad bad
-    SDIOState * sd = &_sd;
+
+    // FIXME: bad bad
+    SDIOState * sd = &s->sf->sd;
 
     switch(address & 0xFFF)
     {
@@ -369,7 +374,8 @@ unsigned int eos_handle_sfio ( unsigned int parm, EOSState *s, unsigned int addr
                 
                 if (value == 0x14)
                 {
-                    // sfio_do_transfer(s);
+                    sd->status &= ~1;
+                    sfio_do_transfer(s);
                 }
             }
             break;
@@ -472,8 +478,6 @@ unsigned int eos_handle_sfio ( unsigned int parm, EOSState *s, unsigned int addr
             msg = "SDBUFCTR: Set to 0x03 before reading";
             if (type & MODE_WRITE && value == 0x20) {
                 msg = "Set to 0x20 after address set (SFBUFCTR?)";
-                sd->dma_addr  = s->sd.dma_addr;
-                sd->dma_count = s->sd.dma_count;
                 sfio_trigger_int_DMA(s);
             }
             break;
@@ -482,6 +486,45 @@ unsigned int eos_handle_sfio ( unsigned int parm, EOSState *s, unsigned int addr
     if (qemu_loglevel_mask(EOS_LOG_SFLASH)) {
         io_log("SFIO", s, address, type, value, ret, msg, msg_arg1, msg_arg2);
     }
+    return ret;
+}
+
+unsigned int eos_handle_sfdma ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+{
+    unsigned int ret = 0;
+    const char * msg = 0;
+
+    // FIXME: bad bad
+    SDIOState * sd = &s->sf->sd;
+
+    switch(address & 0x1F)
+    {
+        case 0x00:
+            msg = "Transfer memory address";
+            MMIO_VAR(sd->dma_addr);
+            break;
+        case 0x04:
+            msg = "Transfer byte count";
+            if (type & MODE_WRITE)
+            {
+                sd->dma_count = value;
+            }
+            break;
+        case 0x10:
+            msg = "Command/Status?";
+            if (type & MODE_WRITE)
+            {
+                sd->dma_enabled = value & 1;
+            }
+            break;
+        case 0x14:
+            msg = "Status?";
+            break;
+        case 0x18:
+            break;
+    }
+
+    io_log("SFDMA", s, address, type, value, ret, msg, 0, 0);
     return ret;
 }
 

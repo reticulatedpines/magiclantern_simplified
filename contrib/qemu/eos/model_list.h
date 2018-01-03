@@ -49,6 +49,7 @@ struct eos_model_desc {
             uint32_t serial_flash_cs_bitmask;
             uint32_t serial_flash_sio_ch;
             uint32_t serial_flash_sfio_ch;
+            uint32_t serial_flash_sfdma_ch;
             uint32_t serial_flash_interrupt;
             uint32_t sd_driver_interrupt;
             uint32_t sd_dma_interrupt;

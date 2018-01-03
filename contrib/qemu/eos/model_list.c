@@ -101,6 +101,7 @@ struct eos_model_desc eos_model_list[] = {
         .rtc_cs_register        = 0xC02201F8,
         .serial_flash_sio_ch    = 4,            /* SF params are only valid on models */
         .serial_flash_sfio_ch   = 4,            /* where .serial_flash_size is set */
+        .serial_flash_sfdma_ch  = 0x33,
         .serial_flash_interrupt = 0x17B,
         .serial_flash_cs_register = 0xC022C0D4,
         .serial_flash_cs_bitmask  = 0x00100000, /* 0x83DC00 / 0x93D800 */
@@ -131,7 +132,8 @@ struct eos_model_desc eos_model_list[] = {
         .card_led_address       = 0xD20B0A24,
         .uart_rx_interrupt      = 0x15D,
         .uart_tx_interrupt      = 0x16D,
-        .serial_flash_sfio_ch   = 7,
+        .serial_flash_sfio_ch   = 0x87,
+        .serial_flash_sfdma_ch  = 0x83F,
         .serial_flash_interrupt = 0xFE,
         .serial_flash_cs_register = 0xD20B0D8C,
         .serial_flash_cs_bitmask  = 0x00010000, /* 0xC0003 / 0xD0002 */
@@ -420,6 +422,8 @@ struct eos_model_desc eos_model_list[] = {
         .mpu_mreq_interrupt     = 0x12A,        /* MREQ_ISR in InitializeIntercom */
         .serial_flash_size      = 0x1000000,
         .serial_flash_sio_ch    = 0,
+        .serial_flash_sfio_ch   = 0x88,
+        .serial_flash_sfdma_ch  = 0x84F,
         .serial_flash_cs_register = 0xD20B037C,
     },
     {
