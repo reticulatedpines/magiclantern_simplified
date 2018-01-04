@@ -1,7 +1,9 @@
 EOS firmware in QEMU - development and reverse engineering guide
 ================================================================
 
-For "user" documentation, please see the main `README.rst <README.rst>`_.
+For "user" documentation and installation guide, please see the main `README.rst <README.rst>`_.
+
+-----------
 
 This is bleeding-edge development used primarily for reverse engineering.
 You will want to modify the sources, sooner or later.
@@ -972,3 +974,12 @@ Code coverage?
 ``````````````
 
 `Yes <http://builds.magiclantern.fm/jenkins/view/QEMU/job/QEMU-coverage/>`_.
+
+
+----------
+
+..
+
+----------
+
+`Back to README.rst <README.rst#rst-header-hacking>`_
