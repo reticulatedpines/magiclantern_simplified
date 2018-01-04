@@ -1,4 +1,4 @@
-# ./run_canon_fw.sh EOSM2 -s -S & arm-none-eabi-gdb -x EOSM2/patches.gdb
+# ./run_canon_fw.sh EOSM2 -s -S & arm-none-eabi-gdb -x EOSM2/patches.gdb -ex quit
 # Only patches required for emulation
 
 source patch-header.gdb

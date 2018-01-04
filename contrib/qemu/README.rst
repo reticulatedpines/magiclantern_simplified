@@ -191,7 +191,7 @@ without additional gymnastics (you will **not** have to merge ``qemu`` into your
      /path/to/qemu$  ./run_canon_fw.sh 60D,firmware="boot=1"
 
      # some models require running under GDB (they won't boot the GUI otherwise)
-     /path/to/qemu$  ./run_canon_fw.sh EOSM,firmware="boot=1" -s -S & arm-none-eabi-gdb -x EOSM/patches.gdb
+     /path/to/qemu$  ./run_canon_fw.sh EOSM,firmware="boot=1" -s -S & arm-none-eabi-gdb -x EOSM/patches.gdb -ex quit
 
    |
 
@@ -219,7 +219,7 @@ To emulate these models, you will also need arm-none-eabi-gdb:
 
 .. code:: shell
 
-  ./run_canon_fw.sh EOSM,firmware="boot=0" -s -S & arm-none-eabi-gdb -x EOSM/patches.gdb
+  ./run_canon_fw.sh EOSM,firmware="boot=0" -s -S & arm-none-eabi-gdb -x EOSM/patches.gdb -ex quit
 
 You'll probably want to `see a few internals`__ as well. To get started, try these:
 
@@ -314,7 +314,7 @@ After you have copied Magic Lantern to the card, you may run it from the ``qemu`
   ./run_canon_fw.sh 60D,firmware="boot=1"
   
   # or, if your camera requires patches.gdb:
-  ./run_canon_fw.sh EOSM,firmware="boot=1" -s -S & arm-none-eabi-gdb -x EOSM/patches.gdb
+  ./run_canon_fw.sh EOSM,firmware="boot=1" -s -S & arm-none-eabi-gdb -x EOSM/patches.gdb -ex quit
 
 Navigating menus
 ````````````````

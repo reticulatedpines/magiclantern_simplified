@@ -1,4 +1,4 @@
-# ./run_canon_fw.sh 80D -s -S & arm-none-eabi-gdb -x 80D/patches.gdb
+# ./run_canon_fw.sh 80D -s -S & arm-none-eabi-gdb -x 80D/patches.gdb -ex quit
 # Only patches required for emulation
 
 source patch-header.gdb

@@ -1,4 +1,4 @@
-# ./run_canon_fw.sh 5D4 -s -S & arm-none-eabi-gdb -x 5D4/patches.gdb
+# ./run_canon_fw.sh 5D4 -s -S & arm-none-eabi-gdb -x 5D4/patches.gdb -ex quit
 # Only patches required for emulation
 
 source patch-header.gdb
