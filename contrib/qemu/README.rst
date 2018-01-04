@@ -219,9 +219,11 @@ To emulate these models, you will also need arm-none-eabi-gdb:
 
 .. code:: shell
 
-  ./run_canon_fw.sh EOSM,firmware="boot=0" -s -S & arm-none-eabi-gdb EOSM/patches.gdb
+  ./run_canon_fw.sh EOSM,firmware="boot=0" -s -S & arm-none-eabi-gdb -x EOSM/patches.gdb
 
-You'll probably want to see a few internals as well. To get started, try these:
+You'll probably want to `see a few internals`__ as well. To get started, try these:
+
+__ `Tracing guest events (execution, I/O, debug messages, RAM, function calls...)`_
 
 .. code:: shell
 
@@ -230,6 +232,14 @@ You'll probably want to see a few internals as well. To get started, try these:
   ./run_canon_fw.sh 60D,firmware="boot=0" -d debugmsg,io
   ./run_canon_fw.sh 60D,firmware="boot=0" -d io,int
   ./run_canon_fw.sh 60D,firmware="boot=0" -d help
+
+Or you may want to `run the firmware under GDB`__ and log additional functions:
+
+__ `Debugging with GDB`_
+
+.. code:: shell
+
+  ./run_canon_fw.sh 60D,firmware="boot=0" -s -S & arm-none-eabi-gdb -x 60D/debugmsg.gdb
 
 Running Magic Lantern
 ---------------------
@@ -256,8 +266,10 @@ To install Magic Lantern to the virtual card, you may:
 
   |
 
-- use ``make install_qemu`` from your platform directory, or ``make CAM_install_qemu``
-  from your ML root directory (requires mtools, but you do not have to mount your card images):
+- use ``make install_qemu`` from your platform directory, or ``make CAM_install_qemu`` 
+  or ``make CAM.FW_install_qemu`` from your ML root directory
+  (requires mtools, but you do not have to mount your card images;
+  works since `27f4105 <https://bitbucket.org/hudson/magic-lantern/commits/27f4105cfa83>`_):
 
   .. code:: shell
 
@@ -277,8 +289,8 @@ To install Magic Lantern to the virtual card, you may:
   .. code:: shell
 
     # from the qemu directory
-    make -C ../magic-lantern/platform.60D.111 clean
-    make -C ../magic-lantern/platform.60D.111 install_qemu
+    make -C ../magic-lantern/platform/60D.111 clean
+    make -C ../magic-lantern/platform/60D.111 install_qemu
 
   .. code:: shell
 
@@ -286,9 +298,7 @@ To install Magic Lantern to the virtual card, you may:
     make -C ../magic-lantern 5D3.113_clean
     make -C ../magic-lantern 5D3.113_install_qemu
 
-  |
-
-  Note: ``make install_qemu`` is a recent addition and may not be available in all branches.
+  Please note: ``make install_qemu`` is a recent addition and may not be available in all branches.
   In this case, you may either use the first method, or sync with the "unified" branch (``hg merge unified``),
   or manually import changeset `27f4105 <https://bitbucket.org/hudson/magic-lantern/commits/27f4105cfa83>`_.
   Unfortunately, these rules won't work from ``Makefile.user``.
@@ -296,8 +306,7 @@ To install Magic Lantern to the virtual card, you may:
 The included card images are already bootable for EOS firmwares (but not for PowerShots).
 
 After you have copied Magic Lantern to the card, you may run it from the ``qemu`` directory
-(near the ``magic-lantern`` one, at the same level). It's probably best to use a second terminal,
-to avoid changing the directory between ML and QEMU.
+(near the ``magic-lantern`` one, at the same level):
 
 .. code:: shell
 
@@ -305,8 +314,7 @@ to avoid changing the directory between ML and QEMU.
   ./run_canon_fw.sh 60D,firmware="boot=1"
   
   # or, if your camera requires patches.gdb:
-  ./run_canon_fw.sh EOSM,firmware="boot=1" -s -S & arm-none-eabi-gdb EOSM/patches.gdb
-
+  ./run_canon_fw.sh EOSM,firmware="boot=1" -s -S & arm-none-eabi-gdb -x EOSM/patches.gdb
 
 Navigating menus
 ````````````````
@@ -935,6 +943,13 @@ Custom logging hook (with colors)::
 
 Look in `debug-logging.gdb <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/scripts/debug-logging.gdb#debug-logging.gdb>`_
 for common firmware functions you may want to log, and in ``*/debugmsg.gdb`` for usage examples.
+
+You may also use `dprintf <https://sourceware.org/gdb/onlinedocs/gdb/Dynamic-Printf.html>`_ if you prefer::
+
+  dprintf *0x8b10, "[ %s:%08X ] task_create(%s, prio=%x, stack=%x, entry=%x, arg=%x)\n", CURRENT_TASK_NAME, $lr-4, $r0, $r1, $r2, $r3, *(int*)$sp
+
+Printing call stack from GDB
+''''''''''''''''''''''''''''
 
 The call stack feature can be very useful to find where a function was called from.
 This works even when gdb's ``backtrace`` command cannot figure it out from the stack contents,
