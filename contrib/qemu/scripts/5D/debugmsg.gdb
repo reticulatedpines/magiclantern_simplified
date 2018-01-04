@@ -7,8 +7,10 @@
 
 source -v debug-logging.gdb
 
-# To get debugging symbols from Magic Lantern, uncomment this:
+# To get debugging symbols from Magic Lantern, uncomment one of these:
 #symbol-file ../magic-lantern/platform/5D.111/magiclantern
+#symbol-file ../magic-lantern/platform/5D.111/autoexec
+#symbol-file ../magic-lantern/platform/5D.111/stubs.o
 
 macro define CURRENT_TASK (*(int*)0x2D2C4 ? *(int*)0x2D2C4 : 0x2D2C4)
 macro define CURRENT_TASK_NAME (((int*)CURRENT_TASK)[0] ? ((char***)CURRENT_TASK)[0][13] : CURRENT_TASK)

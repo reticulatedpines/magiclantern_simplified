@@ -917,6 +917,9 @@ Debugging with GDB
 
     ./run_canon_fw.sh EOSM2,firmware="boot=1" -s -S & arm-none-eabi-gdb -x EOSM2/debugmsg.gdb
 
+Logging hooks
+'''''''''''''
+
 Probably the most powerful feature of GDB is its scripting engine —
 in many cases it's a lot faster than manually stepping over assembly code.
 We may use it for tracing various function calls in the firmware, to understand what they do,
@@ -947,6 +950,24 @@ for common firmware functions you may want to log, and in ``*/debugmsg.gdb`` for
 You may also use `dprintf <https://sourceware.org/gdb/onlinedocs/gdb/Dynamic-Printf.html>`_ if you prefer::
 
   dprintf *0x8b10, "[ %s:%08X ] task_create(%s, prio=%x, stack=%x, entry=%x, arg=%x)\n", CURRENT_TASK_NAME, $lr-4, $r0, $r1, $r2, $r3, *(int*)$sp
+
+Debugging symbols
+'''''''''''''''''
+
+There are no debugging symbols in Canon firmware, but you can import
+some of them from Magic Lantern. Typically, you want to use one of these
+`elf <https://jvns.ca/blog/2014/09/06/how-to-read-an-executable/>`_ files
+from the platform directory:
+
+- ``magiclantern`` if debugging regular Magic Lantern code (without modules)
+- ``autoexec`` if debugging ML bootloader code — the `reboot shim <http://magiclantern.wikia.com/wiki/Autoboot>`_ (``reboot.c`` and related)
+- ``stubs.o`` if debugging Canon firmware (add your symbols to ``stubs.S`` and recompile.)
+
+For some reason, ML stubs are not recognized as functions in GDB;
+to set breakpoints on function names, you need this trick::
+
+  b *&task_create
+  task_create_log
 
 Printing call stack from GDB
 ''''''''''''''''''''''''''''

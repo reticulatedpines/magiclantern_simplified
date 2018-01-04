@@ -4,8 +4,10 @@
 source -v debug-logging.gdb
 source -v EOSM2/patches.gdb
 
-# To get debugging symbols from Magic Lantern, uncomment this:
+# To get debugging symbols from Magic Lantern, uncomment one of these:
 #symbol-file ../magic-lantern/platform/EOSM2.102/magiclantern
+#symbol-file ../magic-lantern/platform/EOSM2.103/autoexec
+#symbol-file ../magic-lantern/platform/EOSM2.103/stubs.o
 
 macro define CURRENT_TASK 0x8FBCC
 macro define CURRENT_ISR  (*(int*)0x648 ? (*(int*)0x64C) >> 2 : 0)

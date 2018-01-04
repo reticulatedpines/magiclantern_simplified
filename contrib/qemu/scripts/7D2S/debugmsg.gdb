@@ -3,6 +3,11 @@
 
 source -v debug-logging.gdb
 
+# To get debugging symbols from Magic Lantern, uncomment one of these:
+#symbol-file ../magic-lantern/platform/7D2.104/magiclantern
+#symbol-file ../magic-lantern/platform/7D2.104/autoexec
+#symbol-file ../magic-lantern/platform/7D2.104/stubs.o
+
 macro define CURRENT_TASK 0x44EC
 macro define CURRENT_ISR  (*(int*)0x44C8 ? (*(int*)0x44CC) : 0)
 

@@ -3,8 +3,10 @@
 
 source -v debug-logging.gdb
 
-# To get debugging symbols from Magic Lantern, uncomment this:
+# To get debugging symbols from Magic Lantern, uncomment one of these:
 #symbol-file ../magic-lantern/platform/1200D.101/magiclantern
+#symbol-file ../magic-lantern/platform/1200D.101/autoexec
+#symbol-file ../magic-lantern/platform/1200D.101/stubs.o
 
 # identical to 60D (!)
 macro define CURRENT_TASK 0x1a2c
