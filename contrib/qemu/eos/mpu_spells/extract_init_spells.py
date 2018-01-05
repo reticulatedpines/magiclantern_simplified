@@ -42,11 +42,11 @@ known_spells = {
     "01 24"  :   (0x80000021, "PROP_CARD2_STATUS",          (5, "ARG0")),
     "01 25"  :   (0x80000022, "PROP_CARD3_STATUS",          (5, "ARG0")),
     "01 26"  :   (0x02010000, "PROP_CARD1_FOLDER_NUMBER",   (5, "ARG0")),   # PROP_FOLDER_NUMBER_A (to MPU only?)
-    "01 27"  :   (0x02010001, "PROP_CARD2_FOLDER_NUMBER",   (5, "ARG0")),   # PROP_FOLDER_NUMBER_B
-    "01 28"  :   (0x02010002, "PROP_CARD3_FOLDER_NUMBER",   (5, "ARG0")),   # PROP_FOLDER_NUMBER_C
-    "01 29"  :   (0x02010003, "PROP_CARD1_FILE_NUMBER",     (4, "ARG0"), (5, "ARG1"), (7, "ARG2")), # PROP_FILE_NUMBER_A
-    "01 2a"  :   (0x02010004, "PROP_CARD2_FILE_NUMBER",     (4, "ARG0"), (5, "ARG1"), (7, "ARG2")), # PROP_FILE_NUMBER_B
-    "01 2b"  :   (0x02010005, "PROP_CARD3_FILE_NUMBER",     (4, "ARG0"), (5, "ARG1"), (7, "ARG2")), # PROP_FILE_NUMBER_C
+    "01 27"  :   (0x02010001, "PROP_CARD2_FOLDER_NUMBER",   (5, "ARG0")),   # PROP_FOLDER_NUMBER_B (to MPU only?)
+    "01 28"  :   (0x02010002, "PROP_CARD3_FOLDER_NUMBER",   (5, "ARG0")),   # PROP_FOLDER_NUMBER_C (to MPU only?)
+    "01 29"  :   (0x02010003, "PROP_CARD1_FILE_NUMBER",     (4, "ARG0"), (5, "ARG1"), (7, "ARG2")), # PROP_FILE_NUMBER_A (to MPU only?)
+    "01 2a"  :   (0x02010004, "PROP_CARD2_FILE_NUMBER",     (4, "ARG0"), (5, "ARG1"), (7, "ARG2")), # PROP_FILE_NUMBER_B (to MPU only?)
+    "01 2b"  :   (0x02010005, "PROP_CARD3_FILE_NUMBER",     (4, "ARG0"), (5, "ARG1"), (7, "ARG2")), # PROP_FILE_NUMBER_C (to MPU only?)
     "01 2c"  :   (0x80040002, "PROP_CURRENT_MEDIA"),                    # PROP_CARD_SELECT
     "01 2d"  :   (0x80040003, "PROP 80040003"),
     "01 2e"  :   (0x8000002A, "PROP_SAVE_MODE"),
@@ -61,7 +61,7 @@ known_spells = {
     "01 38"  :   (0x80040005, "PROP 80040005"),
     "01 39"  :   (0x80040006, "PROP 80040006"),
     "01 3a"  :   (0x80040007, "PROP 80040007"),
-    "01 3b"  :   (0x8004000A, "PROP_USBDEVICE_CONNECT"),
+    "01 3b"  :   (0x8004000A, "PROP_USBDEVICE_CONNECT"),                # to MPU only?
     "01 3c"  :   (0x8000002B, "PROP 8000002B"),
     "01 3d"  :   (0x8004000F, "PROP_TEMP_STATUS"),
     "01 3e"  :   (0x80040011, "PROP_ELECTRIC_SHUTTER_MODE"),            # PROP_ELECTRIC_SHUTTER - silent shooting
@@ -91,7 +91,7 @@ known_spells = {
     "01 57"  :   (0x80040021, "PROP_BUILTIN_STROBO_MODE"),
     "01 58"  :   (0x80000041, "PROP_VIDEOSNAP_MODE"),
     "01 59"  :   (0x80000042, "PROP_MOVIE_SERVO_AF"),                   # PROP_CONTINUOUS_AF_MODE
-    "01 5a"  :   (0x80000043, "PROP_CONTINUOUS_AF_VALID"),
+    "01 5a"  :   (0x80000043, "PROP_CONTINUOUS_AF_VALID"),              # to MPU only?
     "01 5b"  :   (0x80000044, "PROP_REGISTRATION_DATA_UPDATE_FUNC"),
     "01 5c"  :   (0x80040022, "PROP_AF_USM_LENS_ELECTRONIC_MF"),
     "01 5d"  :   (0x80040023, "PROP_AF_AISERVO_1FRAME_ACT_PRIORITY"),
@@ -119,8 +119,8 @@ known_spells = {
     "01 74"  :   (0x80000049, "PROP_HIGHISO_NOISE_REDUCTION"),          # PROP_HI_ISO_SETTING_NOISE_REDUCTION
     "01 75"  :   (0x8000004A, "PROP_HTP"),                              # PROP_HILIGHT_TONE_PRIORITY
     "01 76"  :   (0x8000004B, "PROP_SILENT_CONTROL_SETTING"),
-    "01 77"  :   (0x8003004C, "PROP 8003004C"),
-    "01 78"  :   (0x8003004D, "PROP 8003004D"),
+    "01 77"  :   (0x8000004C, "PROP 8000004C"),
+    "01 78"  :   (0x8000004D, "PROP 8000004D"),
     "01 79"  :   (0x80040035, "PROP_AF_CURRENT_AISERVO_STYLE"),
     "01 7a"  :   (0x80030057, "PROP_GPS_SATELITE_STATUS"),
     "01 7b"  :   (0x80040040, "PROP_CONTINUOUS_AF"),                    # 70D
@@ -151,7 +151,7 @@ known_spells = {
     "01 94"  :   (0x80040057, "PROP_TIMECODE_HDMI_REC_COMMAND"),        # 5D3 1.2.3
     "01 95"  :   (0x8004005C, "PROP 8004005C"),
     "01 96"  :   (0x8004005A, "PROP 8004005A"),
-    "01 97"  :   (0x8004006F, "PROP 8004006F"),
+    "01 97"  :   (0x8003006F, "PROP 8003006F"),
     "01 98"  :   (0x80040056, "PROP 80040056"),
     "01 99"  :   (0x80040057, "PROP 80040057"),
     "01 9a"  :   (0x80040058, "PROP 80040058"),
@@ -168,7 +168,7 @@ known_spells = {
     "02 06"  :   (0x80010005, "PROP_CFN_2"),
     "02 07"  :   (0x80010006, "PROP_CFN_3"),
     "02 08"  :   (0x80010007, "PROP_CFN_4"),
-    "02 0a"  :   (0x80010000, "PROP_PERMIT_ICU_EVENT"),
+    "02 0a"  :   (0x80010000, "PROP_PERMIT_ICU_EVENT"),                 # to MPU only?
     "02 0b"  :   (0x80010001, "PROP_TERMINATE_SHUT_REQ"),
     "02 0c"  :   (0x80010002, "PROP 80010002"),
     "02 0d"  :   (0x80000029, "PROP 80000029"),
@@ -190,18 +190,18 @@ known_spells = {
     "03 0e"  :   (0x8003000D, "PROP_CARD3_RECORD"),                     # PROP_CARD_RECORD_C
     "03 10"  :   (0x80030008, "PROP 80030008"),                         # to MPU only?
     "03 11"  :   (0x80030009, "PROP_ICU_AUTO_POWEROFF"),                # also 80030024?!
-    "03 13"  :   (0x8003000E, "PROP_LOGICAL_CONNECT"),
+    "03 13"  :   (0x8003000E, "PROP_LOGICAL_CONNECT"),                  # to MPU only?
     "03 14"  :   (0x80030010, "PROP 80030010"),
     "03 15"  :   (0x80030011, "PROP_LENS"),
     "03 16"  :   (0x80030013, "PROP_BATTERY_CHECK"),
     "03 17"  :   (0x80030014, "PROP_EFIC_TEMP"),
-    "03 18"  :   (0x8003000F, "PROP 8003000F"),
+    "03 18"  :   (0x8003000F, "PROP 8003000F"),                         # to MPU only?
     "03 19"  :   (0x80030015, "PROP_TFT_STATUS"),                       # to MPU only?
     "03 1b"  :   (0x8003001C, "PROP 8003001C"),                         # swapped
     "03 1c"  :   (0x8003001B, "PROP 8003001B"),
     "03 1d"  :   (0x8003001D, "PROP_BATTERY_REPORT"),                   # PROP_BAT_INFO
-    "03 1e"  :   (0x8003001A, "PROP 8003001A"),
-    "03 1f"  :   (0x80030019, "PROP 80030019"),
+    "03 1e"  :   (0x8003001A, "PROP 8003001A"),                         # to MPU only?
+    "03 1f"  :   (0x80030019, "PROP 80030019"),                         # to MPU only?
     "03 20"  :   (0x8003001E, "PROP_STARTUP_CONDITION"),
     "03 21"  :   (0x8003001F, "PROP 8003001F"),
     "03 24"  :   (0x80030021, "PROP_LENS_NAME"),                        # PROP_CURRENT_LENS_NAME
@@ -227,10 +227,10 @@ known_spells = {
     "03 3d"  :   (0x8003003D, "PROP_AFSHIFT_LVASSIST_STATUS"),
     "03 3e"  :   (0x8003003E, "PROP_AFSHIFT_LVASSIST_SHIFT_RESULT"),
     "03 3f"  :   (0x8003003F, "PROP 8003003F"),
-    "03 40"  :   (0x80030040, "PROP 80030040"),
+    "03 40"  :   (0x80030040, "PROP 80030040"),                         # to MPU only?
     "03 41"  :   (0x80030041, "PROP 80030041"),
     "03 42"  :   (0x80030042, "PROP_LED_LIGHT"),
-    "03 43"  :   (0x80030044, "PROP_STROBO_SETTING_EXP_COMPOSITION"),   # to MPU only?
+    "03 43"  :   (0x80030044, "PROP_STROBO_SETTING_EXP_COMPOSITION"),
     "03 44"  :   (0x80030045, "PROP 80030045"),
     "03 45"  :   (0x80030046, "PROP 80030046"),
     "03 46"  :   (0x80030047, "PROP 80030047"),
@@ -299,16 +299,16 @@ known_spells = {
     "09 0e"  :   (0x8005000C, "PROP_STROBO_CHARGE_INFO_MAYBE"),
     "09 0f"  :   (0x8005000D, "PROP_ORIENTATION"),
     "09 10"  :   (0x80050010, "PROP_BV"),
-    "09 11"  :   (0x80050015, "PROP_LV_DISPSIZE"),
+    "09 11"  :   (0x80050015, "PROP_LV_DISPSIZE"),                      # to MPU only?
     "09 12"  :   (0x8005001B, "PROP_LVCAF_STATE"),
     "09 14"  :   (0x8005001E, "PROP 8005001E"),
-    "09 15"  :   (0x80050020, "PROP 80050020"),
-    "09 17"  :   (0x80050026, "PROP_LV_FOCUS_DATA"),
+    "09 15"  :   (0x80050020, "PROP 80050020"),                         # to MPU only?
+    "09 17"  :   (0x80050026, "PROP_LV_FOCUS_DATA"),                    # to MPU only?
     "09 18"  :   (0x80050027, "PROP_LV_FOCUS_CMD"),
     "09 19"  :   (0x80050028, "PROP 80050028"),
-    "09 1a"  :   (0x8005002A, "PROP 8005002A"),
+    "09 1a"  :   (0x8005002A, "PROP 8005002A"),                         # to MPU only?
     "09 1b"  :   (0x8005002B, "PROP 8005002B"),
-    "09 1f"  :   (0x80050034, "PROP 80050034"),
+    "09 1f"  :   (0x80050034, "PROP 80050034"),                         # to MPU only?
     "0a 08"  :   (0xFFFFFFFF, "PD_NotifyOlcInfoChanged"),
 }
 
