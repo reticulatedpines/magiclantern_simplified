@@ -175,7 +175,7 @@ EOSRegionHandler eos_handlers[] =
     { "SDIO88",       0xC8080000, 0xC8080FFF, eos_handle_sdio, 0x88 },
     { "CFDMA00",      0xC0500000, 0xC05000FF, eos_handle_cfdma, 0x00 },
     { "SDDMA10",      0xC0510000, 0xC05100FF, eos_handle_sddma, 0x10 },
-  //{ "SDDMA30",      0xC0530000, 0xC053001F, eos_handle_sddma, 0x30 },
+    { "SDDMA30",      0xC0530000, 0xC053001F, eos_handle_sddma, 0x30 },
   //{ "SDDMA31",      0xC0530020, 0xC053003F, eos_handle_sddma, 0x31 },
   //{ "SDDMA32",      0xC0530040, 0xC053005F, eos_handle_sddma, 0x32 },
     { "SDDMA33",      0xC0530060, 0xC053007F, eos_handle_sddma, 0x33 },
@@ -2645,10 +2645,15 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             break;
         
         
-        case 0x301C:    /* 40D, 5D2 */
+        case 0x301C:    /* D3, D4, older D5, 5D3 CF */
+            /* set low => CF/SD present */
+            msg = "CF/SD detect";
+            ret = 0;
+            break;
+
         case 0x3020:    /* 5D3 */
-            /* set low => CF present */
-            msg = "CF detect";
+            /* set low => SD present */
+            msg = "SD detect";
             ret = 0;
             break;
 
@@ -3959,6 +3964,11 @@ unsigned int eos_handle_sddma ( unsigned int parm, EOSState *s, unsigned int add
         return eos_handle_cfdma(parm, s, address, type, value);
     }
 
+    if (strcmp(s->model->name, "5D3") == 0 && parm == 0x30)
+    {
+        return eos_handle_cfdma(parm, s, address, type, value);
+    }
+
     if (s->sf && parm == s->model->serial_flash_sfdma_ch)
     {
         /* serial flash DMA */
@@ -4246,7 +4256,7 @@ unsigned int eos_handle_cfata ( unsigned int parm, EOSState *s, unsigned int add
             msg = "Interrupt enable?";
             MMIO_VAR(s->cf.interrupt_enabled);
             break;
-            
+        
         case 0x8044:
             msg = "Interrupt related?";
             if(type & MODE_WRITE)
@@ -4256,6 +4266,18 @@ unsigned int eos_handle_cfata ( unsigned int parm, EOSState *s, unsigned int add
             {
                 /* should return what was written to 0x8040?! */
                 ret = s->cf.interrupt_enabled;
+            }
+            break;
+
+        case 0x8048:
+            msg = "DMA interrupt enable?";
+            if(type & MODE_WRITE)
+            {
+                if (value & 1) {
+                    s->cf.interrupt_enabled |= 0x10000;
+                } else {
+                    s->cf.interrupt_enabled &= ~0x10000;
+                }
             }
             break;
 
