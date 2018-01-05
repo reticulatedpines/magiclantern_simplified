@@ -1050,9 +1050,9 @@ function test_dcim {
 echo
 echo "Testing file I/O (DCIM directory)..."
 # Currently works only on models that can boot Canon GUI,
-# and also on 80D.
+# and also on single-core DIGIC 6 models.
 # we need to check the card contents; cannot run in parallel
-for CAM in ${GUI_CAMS[*]} 80D; do
+for CAM in ${GUI_CAMS[*]} 80D 750D 760D; do
     ((QEMU_JOB_ID++))
     run_test dcim $CAM
 done; cleanup
