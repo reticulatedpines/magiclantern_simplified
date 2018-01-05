@@ -89,9 +89,9 @@ Common issues and workarounds
 
   - closing QEMU window does not perform a clean shutdown
   - ``Machine -> Power Down`` — see `Shutdown and reboot`_ for more info
-  - quicker: press ``C`` to "open" the card door => also clean shutdown.
+  - quicker: press ``C`` to `"open" the card door`__ => also clean shutdown.
 
-  |
+__ `Opening the card door`_
 
 - dm-spy-experiments: saving the log and anything executed afterwards may not work
 
@@ -163,7 +163,7 @@ without additional gymnastics (you will **not** have to merge ``qemu`` into your
    If your camera requires a serial flash, compile the 
    `sf_dump module <https://bitbucket.org/hudson/magic-lantern/src/unified/modules/sf_dump>`_
    and run it on your camera to get this file.
-   
+
    |
 
 4. Test your installation.
@@ -245,14 +245,14 @@ Running Magic Lantern
 ---------------------
 
 As you already know, Magic Lantern runs from the SD or CF card. For emulation,
-we provide two card images (sd.img and cf.img) which you can mount on your operating system
+we provide two card images (``sd.img`` and ``cf.img``) which you can mount on your operating system
 and copy files on them. If these images use a FAT filesystem (they do, by default), we prefer 
 `mtools <https://www.gnu.org/software/mtools/>`_ for automated tasks
 (such as copying files to/from the card images without mounting them).
 
 To install Magic Lantern to the virtual card, you may:
 
-- mount the card image (sd.img or cf.img) as /whatever/EOS_DIGITAL,
+- mount the card image (``sd.img`` or ``cf.img``) as ``/whatever/EOS_DIGITAL``,
   then run ``make install`` from your platform directory:
 
   .. code:: shell
@@ -458,7 +458,7 @@ Compare this to a camera model where only one firmware version is supported::
   /path/to/qemu/60D/ROM1.BIN
   /path/to/qemu/5D3/patches.gdb
 
-Note: you may also store ``debugmsg.gdb`` and ``patches.gdb`` under the firmware version subdirectory if you prefer, but other QEMU-related scripts won't pick them up.
+You may also store ``debugmsg.gdb`` and ``patches.gdb`` under the firmware version subdirectory if you prefer, but other QEMU-related scripts won't pick them up.
 
 Creating custom SD/CF card images
 `````````````````````````````````
@@ -502,6 +502,19 @@ Be very careful not to give it write access to your physical hard-disk!!!**
 
 Note: the ROM files will not be loaded from the SD/CF card.
 
+Image capture emulation
+```````````````````````
+
+WIP, still pretty rough.
+
+To capture a full-res image (aka FRSP) using a CR2 as reference data for the virtual sensor:
+
+.. code:: shell
+
+    make -C ../magic-lantern/minimal/qemu-frsp MODEL=5D3 CONFIG_QEMU=y clean install_qemu
+    env QEMU_EOS_VRAM_PH_QR_RAW='/path/to/IMG_1234.CR2' ./run_canon_fw.sh 5D3,firmware="boot=1"
+
+
 Automation
 ----------
 
@@ -539,7 +552,9 @@ That means, during emulation you can interact with it using netcat:
 
 You can redirect the monitor console to stdio with... ``-monitor stdio``.
 
-If you have trouble with these ``nc`` commands, don't forget to check this common `netcat-issue`_.
+If you have trouble running the above ``nc`` commands, don't forget to check this `common netcat issue`__.
+
+__ `netcat-issue`_
 
 Taking screenshots
 ``````````````````
@@ -551,7 +566,7 @@ The easiest way is to use the ``screendump`` command from QEMU monitor:
   echo "screendump snap.ppm" | nc -N -U qemu.monitor
 
 In the following example, we'll redirect the monitor to stdio
-and take a screenshot after 10 seconds.
+and take a screenshot after 10 seconds:
 
 .. code:: shell
 
@@ -655,7 +670,7 @@ Internally, this is how the emulator is invoked:
 
 This script is very customizable (see the source code for available options).
 
-More examples:
+**More examples:**
 
 - `EOSM2 hello world <http://builds.magiclantern.fm/jenkins/view/QEMU/job/QEMU-EOSM2/18/console>`_
 - running ML from the dm-spy-experiments branch in the emulator (`QEMU-dm-spy <http://builds.magiclantern.fm/jenkins/view/QEMU/job/QEMU-dm-spy/65/consoleFull>`_)
@@ -733,8 +748,8 @@ This is tricky and not automated. You need to be careful with the following glob
 
 - any temporary files you may want to use
 
-  Use something like ``mktemp`` rather than hardcoding a filename.
-  Or, try to achieve the same thing without a temporary file (pipes, process substitution).
+  Try to achieve the same thing without a temporary file (pipes, process substitution, command-line options).
+  If that doesn't work, consider using ``mktemp`` rather than hardcoding a filename.
 
 - any other global resources (you'll have to figure them out on your own).
 
@@ -905,7 +920,7 @@ in execution traces and other logs, you need to use ``-d nochain -singlestep``
 (for example: ``-d exec,nochain -singlestep``) —
 `source <http://qemu-discuss.nongnu.narkive.com/f8A4tqdT/singlestepping-target-assembly-instructions>`_.
 
-Please note: ``-d io`` implies ``-d nochain -singlestep`` by default. Should you want to disable this,
+Please note: ``-d io`` implies ``-d nochain -singlestep`` by default, to avoid this issue. Should you want to disable this,
 to get faster emulation at the expense of incorrect PC values, use ``-d io_quick``.
 
 Additionally, ``-d nochain`` implies ``-singlestep``, unlike in vanilla QEMU.
@@ -927,7 +942,7 @@ how to call them and so on. At any code address from the disassembly, we may set
 and print some more info (such as function name, arguments, register values,
 call location, DryOS task name and so on).
 
-Predefined logging hook example (this goes into CAM/debugmsg.gdb)::
+Predefined logging hook example (this goes into ``CAM/debugmsg.gdb``)::
 
   b *0x8580
   take_semaphore_log
@@ -951,11 +966,13 @@ You may also use `dprintf <https://sourceware.org/gdb/onlinedocs/gdb/Dynamic-Pri
 
   dprintf *0x8b10, "[ %s:%08X ] task_create(%s, prio=%x, stack=%x, entry=%x, arg=%x)\n", CURRENT_TASK_NAME, $lr-4, $r0, $r1, $r2, $r3, *(int*)$sp
 
+but the output won't be as pretty.
+
 Debugging symbols
 '''''''''''''''''
 
 There are no debugging symbols in Canon firmware, but you can import
-some of them from Magic Lantern. Typically, you want to use one of these
+some of them from Magic Lantern (see comments in ``debugmsg.gdb``). Typically, you want to use one of these
 `elf <https://jvns.ca/blog/2014/09/06/how-to-read-an-executable/>`_ files
 from the platform directory:
 
@@ -972,13 +989,15 @@ to set breakpoints on function names, you need this trick::
 Printing call stack from GDB
 ''''''''''''''''''''''''''''
 
-The call stack feature can be very useful to find where a function was called from.
-This works even when gdb's ``backtrace`` command cannot figure it out from the stack contents,
-but you need to run the emulation with instrumentation enabled: ``-d callstack`` or ``-d callstack,tail``:
+The ``callstack`` option from QEMU (``eos/dbi/logging.c``) can be very useful to find where a function was called from.
+This works even when gdb's ``backtrace`` command cannot figure it out from the stack contents, does not require any debugging symbols,
+but you need to run the emulation with instrumentation enabled: ``-d callstack`` or ``-d callstack,tail``.
 
 Then, in GDB, use ``print_current_location_with_callstack`` to see the call stack for the current DryOS task.
 
-**Example for 80D**:
+Tip: the callstack feature is enabled by default in ``assert_log``.
+
+**Example for 80D:**
 
 The following goes into ``80D/debugmsg.gdb`` (modify the existing entry):
 
@@ -1015,13 +1034,15 @@ The above shows the callers for the function being analyzed,
 with 4 arguments (no attempts are made to guess the actual number of arguments)
 and the locations for each call. You may examine these addresses in your disassembler.
 
-GDB scripting docs:
+GDB scripting docs
+''''''''''''''''''
 
 - `Sequences <https://sourceware.org/gdb/onlinedocs/gdb/Sequences.html>`_ (command files, define, if, while, printf)
 - `Convenience variables <https://sourceware.org/gdb/current/onlinedocs/gdb/Convenience-Vars.html>`_
 - `GDB user manual <https://sourceware.org/gdb/current/onlinedocs/gdb/index.html>`_.
 
-**More examples**:
+More examples
+'''''''''''''
 
 - `750D serial flash dumper <http://www.magiclantern.fm/forum/index.php?topic=17627.msg195357#msg195357>`_ (figuring out the parameters of an unknown function)
 - `EOS M2 <http://www.magiclantern.fm/forum/index.php?topic=15895.msg186173#msg186173>`_ (examples with various GDB GUI front-ends):
@@ -1038,6 +1059,7 @@ Instrumentation
 
 `TODO (see QEMU forum thread) <http://www.magiclantern.fm/forum/index.php?topic=2864.msg184125#msg184125>`_
 
+
 Hacking
 -------
 
@@ -1051,7 +1073,7 @@ History
 -------
 
 :2008: `SD1100 boot (CHDK) <http://chdk.wikia.com/wiki/GPL_Qemu>`_
-:2009: `5D2/7D boot (Trammell) <http://magiclantern.wikia.com/wiki/Emulation>`_
+:2009: `5D2/7D boot (Trammell Hudson) <http://magiclantern.wikia.com/wiki/Emulation>`_
 :2012: `TriX_EOS (g3gg0) <http://www.magiclantern.fm/forum/index.php?topic=2882.0>`_
 :2013: `Initial Hello World <http://www.magiclantern.fm/forum/index.php?topic=2864.msg26022#msg26022>`_
 :2013: `g3gg0 ports TriX changes to QEMU <http://www.magiclantern.fm/forum/index.php?topic=2864.msg29748#msg29748>`_

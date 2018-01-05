@@ -27,27 +27,15 @@ MMIO handlers: eos_handle_whatever (with io_log for debug messages).
 
 Useful: eos_get_current_task_name/id/stack, eos_mem_read/write.
 
+To extract MPU messages from a `startup log <http://builds.magiclantern.fm/jenkins/view/Experiments/job/startup-log/>`_,
+use `extract_init_spells.py <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/eos/mpu_spells/extract_init_spells.py>`_ (see `MPU communication`_).
+
 To customize keys or add support for new buttons or GUI events,
 edit `mpu.c <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/eos/mpu.c>`_,
 `button_codes.h <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/eos/mpu_spells/button_codes.h>`_
 and `extract_button_codes.py <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/eos/mpu_spells/extract_button_codes.py>`_.
 
-To extract MPU messages from a `startup log <http://builds.magiclantern.fm/jenkins/view/Experiments/job/startup-log/>`_,
-use `extract_init_spells.py <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/eos/mpu_spells/extract_init_spells.py>`_.
-
 Known MPU messages and properties are exported to `known_spells.h <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/eos/mpu_spells/known_spells.h>`_.
-
-Image capture emulation
-```````````````````````
-
-WIP, still pretty rough.
-
-To capture a full-res image (aka FRSP) using a CR2 as reference data for the virtual sensor:
-
-.. code:: shell
-
-    make -C ../magic-lantern/minimal/qemu-frsp MODEL=5D3 CONFIG_QEMU=y clean install_qemu
-    env QEMU_EOS_VRAM_PH_QR_RAW='/path/to/IMG_1234.CR2' ./run_canon_fw.sh 5D3,firmware="boot=1"
 
 Adding support for a new camera model
 `````````````````````````````````````
@@ -508,9 +496,13 @@ There are usually over 1000 different conditions that can trigger an assertion (
 The `ERR70 description from Canon <http://cpn.canon-europe.com/content/education/infobank/camera_settings/eos_error_codes_and_messages.do>`_
 ("A malfunction with the images has been detected.") is overly simplistic.
 
+-------------
+
 **Do not attempt to fix a camera with ERR70 yourself!** Please contact us instead,
 providing any relevant details (crash logs, what you did before the error and so on).
 This section is for fixing assertions **in the emulation** (on a virtual machine), not on real cameras!
+
+-------------
 
 What we can do about them?
 
@@ -519,8 +511,7 @@ What we can do about them?
 
 Tip: find the assert stub, add assert_log to your debugmsg.gdb
 and run the firmware under GDB with ``-d callstack``.
-You'll get a stack trace to see what code called that assertion
-(so you'll know where to look in the disassembly).
+You'll get a stack trace to see what code called that assertion - example below.
 
 Patching code
 '''''''''''''
@@ -537,7 +528,19 @@ That's why we prefer to patch the firmware from GDB scripts. These can be edited
 and there is some additional burden for running a patched firmware (longer commands to type),
 as a reminder that a proper fix is still wanted.
 
-For example, patching the USleep waiting routine on 80D could look like this (``80D/patches.gdb``, commit `7ea57e7 <https://bitbucket.org/hudson/magic-lantern/commits/7ea57e73c09>`_):
+Patching things may very well break other stuff down the road — use with care.
+
+-------------
+
+**Be very careful patching the assertions when running on a physical camera.
+If an assert was reached, that usually means something already went terribly wrong —
+hiding the error message from the user is *not* the way to solve it!**
+
+-------------
+
+Examples:
+
+**Patching the UTimer waiting routine on 80D** (``80D/patches.gdb``, commit `7ea57e7 <https://bitbucket.org/hudson/magic-lantern/commits/7ea57e73c09#chg-contrib/qemu/scripts/80D/patches.gdb>`_):
 
 .. code::
 
@@ -553,11 +556,33 @@ See arm-mcr.h for a few useful instructions encodings, use an assembler or read 
 (in particular, `ARM Architecture Reference Manual <http://www.scss.tcd.ie/~waldroj/3d1/arm_arm.pdf>`_ 
 and `Thumb-2 Supplement Reference Manual <http://read.pudn.com/downloads159/doc/709030/Thumb-2SupplementReferenceManual.pdf>`_).
 
-Patching things may very well break other stuff down the road — use with care.
+**Patching the EstimatedSize assertion on 80D** (``80D/patches.gdb``, commit `b6c5710 <https://bitbucket.org/hudson/magic-lantern/commits/b6c5710afebbffbb194f9102fbfa9798b99fde1b?at=qemu#chg-contrib/qemu/scripts/80D/patches.gdb>`_)
 
-**Be very careful patching the assertions when running on a physical camera.
-If an assert was reached, that usually means something already went terribly wrong —
-hiding the error message from the user is *not* the way to solve it!**
+After enabling the above UTimer patch, with the generic MPU messages you may get this error::
+
+  ASSERT : Resource/./EstimatedSize.c, Task = RscMgr, Line 1484
+
+To find where it was triggered from, make sure you have the assert stub enabled in ``80D/debugmsg.gdb``::
+
+  b *0xFE547CD4
+  assert_log
+
+then run the firmware under GDB, with ``-d callstack``:
+
+.. code:: shell
+
+  (./run_canon_fw.sh 80D,firmware="boot=0" -d debugmsg,callstack -s -S & arm-none-eabi-gdb -x 80D/debugmsg.gdb) |& grep --text -C 5 ASSERT
+  ...
+          0xFE19B1A9(0, 1, 51, 8000003b)                                           at [RscMgr:fe19b287:2f4330] (pc:sp)
+           0xFE19B03B(2f4320, 1, 51, 8000003b)                                     at [RscMgr:fe19b1af:2f4310] (pc:sp)
+            0xFE547CD5(fe19b104 "FALSE", fe19b0d0 "Resource/./EstimatedSize.c", 5cc, 8000003b)
+                                                                                   at [RscMgr:fe19b14b:2f42f0] (pc:sp)
+  [      RscMgr:fe19b14b ] [ASSERT] FALSE at Resource/./EstimatedSize.c:1484, fe19b14f
+  ...
+
+The function you are looking for is ``0xFE19B03B`` (could have been any of the callers) and the assertion was triggered at ``0xfe19b14b``.
+`Our patch <https://bitbucket.org/hudson/magic-lantern/commits/b6c5710afebbffbb194f9102fbfa9798b99fde1b?at=qemu#chg-contrib/qemu/scripts/80D/patches.gdb>`_
+is at ``0xFE19B06A``, in the function identified with this method.
 
 Incorrect firmware version?
 '''''''''''''''''''''''''''
@@ -603,8 +628,9 @@ GUI events (button codes) have ``class = 06``.
 
 To log the MPU communication:
 
-- dm-spy-experiments branch, CONFIG_DEBUG_INTERCEPT_STARTUP=y (mpu_send and mpu_recv stubs are enabled by default)
-- in QEMU, enable mpu_send and mpu_recv in debugmsg.gdb and run the firmware under GDB
+- `dm-spy-experiments <http://www.magiclantern.fm/forum/index.php?topic=2388.0>`_ branch, ``CONFIG_DEBUG_INTERCEPT_STARTUP=y`` (``mpu_send`` and ``mpu_recv`` stubs are enabled by default)
+- `startup log <http://builds.magiclantern.fm/jenkins/view/Experiments/job/startup-log/>`_ builds (compiled with the above configuration)
+- in QEMU, enable ``mpu_send`` and ``mpu_recv`` in ``debugmsg.gdb`` and run the firmware under GDB
 - low-level: ``-d io,mpu``.
 
 The first message is sent from the main CPU; upon receiving it, the MPU replies back:
@@ -684,7 +710,7 @@ define `.serial_flash_size` in model_list.c and a few other parameters:
 
 - chip select signal (CS): some GPIO register toggled before and after serial flash access
 - SIO channel (used for SPI transfers)
-- SFIO channel (for DMA transfers — Canon reused the same kind of DMA used for SD card).
+- SFIO and SFDMA channels (for DMA transfers — Canon reused the same kind of DMA used for SD card).
 
 Dumper: `sf_dump module <https://bitbucket.org/hudson/magic-lantern/src/unified/modules/sf_dump>`_.
 
