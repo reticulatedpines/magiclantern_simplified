@@ -979,3 +979,28 @@ define log_result
     c
   end
 end
+
+# print first 4 arguments of any given function
+define generic_log
+  commands
+    silent
+    print_current_location
+    KYLW
+    printf "call 0x%X(%x, %x, %x, %x)\n", $pc, $r0, $r1, $r2, $r3
+    KRESET
+    c
+  end
+end
+
+# print first 4 arguments of any given function, and also the return value
+define generic_log_with_result
+  commands
+    silent
+    print_current_location
+    KYLW
+    printf "call 0x%X(%x, %x, %x, %x)\n", $pc, $r0, $r1, $r2, $r3
+    KRESET
+    log_result
+    c
+  end
+end

@@ -968,6 +968,10 @@ You may also use `dprintf <https://sourceware.org/gdb/onlinedocs/gdb/Dynamic-Pri
 
 but the output won't be as pretty.
 
+To log the return value of any function, use ``log_result`` in the definition of a logging hook.
+
+For quick experiments, you may find ``generic_log`` and ``generic_log_with_result`` handy.
+
 Debugging symbols
 '''''''''''''''''
 
