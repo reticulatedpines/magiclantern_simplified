@@ -53,7 +53,7 @@ known_spells = {
     "01 30"  :   (0x80000023, "PROP_BEEP"),
     "01 31"  :   (0x80000027, "PROP_NO_CARD_RELEASE"),                  # PROP_RELEASE_WITHOUT_CARD
     "01 32"  :   (0x80000025, "PROP_RED_EYE_REDUCTION"),                # PROP_STROBO_REDEYE
-    "01 33"  :   (0x80000029, "PROP_AE_MODE_CUSTOM"),
+    "01 33"  :   (0x80000029, "PROP 80000029"),                         # card related
     "01 34"  :   (0x8000002F, "PROP_CARD1_IMAGE_QUALITY"),              # PROP_PIC_QUALITY
     "01 35"  :   (0x80000030, "PROP_CARD2_IMAGE_QUALITY"),              # PROP_PIC_QUALITY2
     "01 36"  :   (0x80000031, "PROP_CARD3_IMAGE_QUALITY"),              # PROP_PIC_QUALITY3
@@ -162,7 +162,7 @@ known_spells = {
     "01 9f"  :   (0x8004005F, "PROP 8004005F"),
     "01 a0"  :   (0x80040060, "PROP 80040060"),
     "01 a1"  :   (0x80040061, "PROP 80040061"),
-    "02 00"  :   (0xFFFFFFFF, "Init"),
+    "02 00"  :   (0xCCCCCCCC, "Init group"),    # 80000000,80000001,80000002,80000003,80000004,80000008,80000007,80000026,8000000b,8000000d,8000000e,80000012,80000013,80000010,80000011,80000028,8000002f,80000030,80000031,80000027,80000023,80000025,80000024,80000009,80000005,80000006
     "02 04"  :   (0x80010004, "PROP_CFN"),
     "02 05"  :   (0x80010004, "PROP_CFN_1"),
     "02 06"  :   (0x80010005, "PROP_CFN_2"),
@@ -171,12 +171,12 @@ known_spells = {
     "02 0a"  :   (0x80010000, "PROP_PERMIT_ICU_EVENT"),                 # to MPU only?
     "02 0b"  :   (0x80010001, "PROP_TERMINATE_SHUT_REQ"),
     "02 0c"  :   (0x80010002, "PROP 80010002"),
-    "02 0d"  :   (0x80000029, "PROP 80000029"),
-    "02 0e"  :   (0x80000000, "PROP_SHOOTING_MODE_CHANGE?"),
-    "02 0f"  :   (0xFFFFFFFF, "PROP_MOVIE_SETTINGS_GROUP?"),
-    "02 10"  :   (0x80040022, "PROP 80040022"),
-    "02 11"  :   (0x8000000A, "PROP_AFPOINT"),
-    "02 12"  :   (0x80030011, "PROP_LENS"),
+    "02 0d"  :   (0xCCCCCCCC, "Card group"),    # 80000029,8000001D,8000001E,8000001F,80000020,80000021,80000022,80040001,8000002A,80040002,8004000F,80040016,80040017,8004001B,80040018,8003000B,8003000C,8003000D,8003001E,80030042
+    "02 0e"  :   (0xCCCCCCCC, "Mode group"),    # 80000000,80000001,80000002,80000003,80000004,80000008,80000007,80000026,8000000B,8000000D,8000000E,80000012,80000013,80000010,80000011,80000028,8000002F,80000030,80000031,80000027,80000023,80000025,80000024
+    "02 0f"  :   (0xCCCCCCCC, "Movie group"),   # 8004001D,80040011,8004001A,8004001C,80000034,80000039,80000041,8000004D,8000003A,8000003C,80000042
+    "02 10"  :   (0xCCCCCCCC, "AF group"),      # 80040022,80040023,80040024,80040025,80040026,80040028,80040029,8004002A,8004002B,8004002C,80040027,80040035,80040036,8004002D,8004002E,8004002F,80040030,80040031
+    "02 11"  :   (0xCCCCCCCC, "AF2 group"),     # 8000000A,8003004F,80000004,80000006,80040027,80030034
+    "02 12"  :   (0xCCCCCCCC, "Lens group"),    # 80030011,8003003C,80030028,8003002A,80030029,80030004
     "02 24"  :   (0x80030021, "PROP_LENS_NAME"),
     "03 00"  :   (0x80030000, "PROP 80030000"),
     "03 02"  :   (0x80030001, "PROP 80030001"),
@@ -451,11 +451,16 @@ for l in lines:
                     for pos,newarg in metadata[2:]:
                         parm_spell = replace_spell_arg(parm_spell, pos, newarg)
 
+            if spell.startswith("06 04 02 00 "):
+                description = "Init"
+
             if spell.startswith("08 06 00 00 "):
                 description = "Complete WaitID ="
                 if waitid_prop:
                     description += " " + waitid_prop
-                if spell[12:17] in known_spells:
+                if spell[12:17] == "02 00":
+                    description += " " + "Init"
+                elif spell[12:17] in known_spells:
                     description += " " + known_spells[spell[12:17]][1]
 
             # comment out NotifyGuiEvent / PROP_GUI_STATE and its associated Complete WaitID

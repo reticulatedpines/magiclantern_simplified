@@ -32,6 +32,9 @@ if 0
 
   b *0xFF30D268
   prop_lookup_maybe_log
+
+  b *0xFF315E00
+  mpu_prop_lookup_log
 end
 
 cont

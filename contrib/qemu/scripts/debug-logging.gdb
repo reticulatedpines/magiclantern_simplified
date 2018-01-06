@@ -631,6 +631,29 @@ define prop_lookup_maybe_log
   end
 end
 
+# called right after DivideCameraInitData and in many other places
+# in a loop, right after a memcpy from a ROM table with MPU IDs
+define mpu_prop_lookup_log
+  commands
+    silent
+    print_current_location
+    #printf "mpu_prop_lookup (%02x %02x) %x, %x, %x, %x %x %x %x\n", $r3, *(int*)$sp, $r0, $r1, $r2, $r3, *(int*)$sp, *(int*)($sp+4), *(int*)($sp+8)
+    set $mpl_r0 = $r0
+    set $mpl_id1 = $r3
+    set $mpl_id2 = *(int*)$sp
+    tbreak *($lr & ~1)
+    commands
+      silent
+      print_current_location
+      KYLW
+      printf "mpu_prop_lookup (%02x %02x) => %x\n", $mpl_id1, $mpl_id2, **(int**)$mpl_r0
+      KRESET
+      c
+    end
+    c
+  end
+end
+
 define prop_print_data
   set $buf = $arg0
   set $size = $arg1 / 4

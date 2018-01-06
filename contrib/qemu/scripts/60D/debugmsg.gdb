@@ -31,6 +31,21 @@ if 0
   mpu_recv_log
 end
 
+# properties
+if 0
+  b *0xFF05A9F0
+  prop_request_change_log
+
+  b *0xFF1BAEB0
+  mpu_analyze_recv_data_log
+
+  b *0xFF1BA444
+  prop_lookup_maybe_log
+
+  b *0xFF1BED04
+  mpu_prop_lookup_log
+end
+
 # image processing engine
 if 0
   b *0xFF1C8658

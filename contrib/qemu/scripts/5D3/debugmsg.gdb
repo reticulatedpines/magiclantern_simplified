@@ -64,8 +64,11 @@ if 0
   b *0xFF2E6B6C
   mpu_analyze_recv_data_log
 
-  b *0xFF2E4598
+  b *0xFF2E4914
   prop_lookup_maybe_log
+
+  b *0xFF2EC5CC
+  mpu_prop_lookup_log
 end
 
 # properties - 1.2.3 (some are different!)

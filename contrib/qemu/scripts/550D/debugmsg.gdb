@@ -51,8 +51,11 @@ if 0
   b *0xFF1B712C
   mpu_analyze_recv_data_log
 
-  b *0xFF1B6358
+  b *0xFF1B66D4
   prop_lookup_maybe_log
+
+  b *0xFF1BAAC0
+  mpu_prop_lookup_log
 end
 
 # semaphores

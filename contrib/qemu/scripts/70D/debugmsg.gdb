@@ -46,6 +46,9 @@ if 0
 
   b *0xFF31B408
   prop_lookup_maybe_log
+
+  b *0xFF3247B8
+  mpu_prop_lookup_log
 end
 
 # message queues (incomplete)
