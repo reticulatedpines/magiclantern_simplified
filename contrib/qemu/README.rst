@@ -31,7 +31,7 @@ What works:
 - ML modules and Lua scripts (within the limitations of the emulation)
 - DryOS/VxWorks timer (heartbeat) and task switching (all supported models)
 - UART emulation (DryOS shell aka Dry-shell or DrySh on DIGIC 4, 5 and 6 models)
-- Deterministic execution with the ``-icount`` option (SD models only)
+- Deterministic execution with the ``-icount`` option (except CF PIO)
 - Cache hacks are emulated to some extent (but "uninstalling" them does not work)
 - EDMAC memcpy, including geometry parameters (matches the hardware closely, but not perfectly)
 - Debugging with GDB:

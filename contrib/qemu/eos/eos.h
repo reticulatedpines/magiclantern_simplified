@@ -120,6 +120,7 @@ typedef struct
     uint32_t dma_count;
     uint32_t dma_read;
     uint32_t dma_written;
+    int dma_wait;
 } CFState;
 
 struct palette_entry

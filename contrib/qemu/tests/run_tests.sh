@@ -628,7 +628,6 @@ function test_calls_main {
         > tests/$CAM/$TEST-basic.log
 
     # also copy the IDC file for checking its MD5
-    # this works on CF models too, even if some nondeterminism is present
     # the IDC needs trimming, too, as it doesn't always stop at the same line
     cat $CAM.idc | sed -n "1,/MakeFunction($last_call/ p" > tests/$CAM/$TEST.idc
     cat $CAM.idc | tail -n 2 >> tests/$CAM/$TEST.idc
@@ -695,8 +694,8 @@ done; cleanup
 # which loads FROMUTILITY if autoexec.bin is not present on a bootable card.
 # There are no timed interrupts here, so the process should be deterministic.
 # On SD models, this process is deterministic without any trickery.
-# For some reason, the CF emulation is not deterministic even with -icount,
-# so we'll only check the IDC for these models (todo: figure out why).
+# On CF models, emulation is not deterministic even with -icount (fixme),
+# so we'll only check the IDC for these models.
 # The results are assumed to be correct, but they were not thoroughly checked.
 # Feel free to report bugs, corner cases and so on.
 

@@ -4028,7 +4028,7 @@ unsigned int eos_handle_sddma ( unsigned int parm, EOSState *s, unsigned int add
 static int cfdma_read_data(EOSState *s, CFState *cf)
 {
     CFD_DPRINTF("Reading %d of %d bytes to %x\n", cf->dma_count - cf->dma_read, cf->dma_count, cf->dma_addr + cf->dma_read);
-    
+
     assert(cf->dma_count % 4 == 0);
     
     /* for some reason, reading many values in a loop sometimes fails */
@@ -4044,13 +4044,16 @@ static int cfdma_read_data(EOSState *s, CFState *cf)
         cf->dma_read += 4;
     }
 
-    if (cf->dma_read == cf->dma_count)
+    cf->dma_wait--;
+
+    if (cf->dma_read == cf->dma_count && cf->dma_wait <= 0)
     {
         /* finished? */
+        assert(cf->dma_wait == 0 || !use_icount);
         cfdma_trigger_interrupt(s);
         return 0;
     }
-    
+
     return 1;
 }
 
@@ -4071,9 +4074,12 @@ static int cfdma_write_data(EOSState *s, CFState *cf)
         cf->dma_written += 4;
     }
 
-    if (cf->dma_written == cf->dma_count)
+    cf->dma_wait--;
+
+    if (cf->dma_written == cf->dma_count && cf->dma_wait <= 0)
     {
         /* finished? */
+        assert(cf->dma_wait == 0 || !use_icount);
         cfdma_trigger_interrupt(s);
         return 0;
     }
@@ -4175,6 +4181,13 @@ unsigned int eos_handle_cfdma ( unsigned int parm, EOSState *s, unsigned int add
             if(type & MODE_WRITE)
             {
                 s->cf.dma_count = value;
+
+                /* each iteration of cfdma_read_data / cfdma_write_data usually processes 1 block (512 bytes)
+                 * however, a few iterations will just wait, nondeterministically, for unclear reasons
+                 * to get deterministic execution with -icount, required for tests, we'll slow down the execution
+                 * by forcing some more iterations than actually needed, so total times would be deterministic
+                 * note: under heavy I/O load (e.g. parallel tests) we need to slow down a lot more! */
+                s->cf.dma_wait = (use_icount) ? value / 512 * 2 + 10 : 0;
             }
             else
             {
