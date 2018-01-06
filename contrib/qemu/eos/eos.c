@@ -173,9 +173,11 @@ EOSRegionHandler eos_handlers[] =
     { "SDIO86",       0xC8060000, 0xC8060FFF, eos_handle_sdio, 0x86 },
     { "SDIO87",       0xC8070000, 0xC8070FFF, eos_handle_sdio, 0x87 },
     { "SDIO88",       0xC8080000, 0xC8080FFF, eos_handle_sdio, 0x88 },
-    { "CFDMA00",      0xC0500000, 0xC05000FF, eos_handle_cfdma, 0x00 },
-    { "SDDMA10",      0xC0510000, 0xC05100FF, eos_handle_sddma, 0x10 },
-    { "SDDMA30",      0xC0530000, 0xC053001F, eos_handle_sddma, 0x30 },
+    { "UartDMA",      0xC05000C0, 0xC05000DF, eos_handle_uart_dma, 0 },
+    { "CFDMA0*",      0xC0500000, 0xC05000FF, eos_handle_cfdma, 0x0F },
+    { "CFDMA10",      0xC0510000, 0xC051001F, eos_handle_cfdma, 0x10 },
+    { "SDDMA1*",      0xC0510000, 0xC05100FF, eos_handle_sddma, 0x1F },
+    { "CFDMA30",      0xC0530000, 0xC053001F, eos_handle_cfdma, 0x30 },
   //{ "SDDMA31",      0xC0530020, 0xC053003F, eos_handle_sddma, 0x31 },
   //{ "SDDMA32",      0xC0530040, 0xC053005F, eos_handle_sddma, 0x32 },
     { "SDDMA33",      0xC0530060, 0xC053007F, eos_handle_sddma, 0x33 },
@@ -3955,20 +3957,6 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
 
 unsigned int eos_handle_sddma ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
-    if (strcmp(s->model->name, "5D2") == 0 ||
-        strcmp(s->model->name, "50D") == 0 ||
-        strcmp(s->model->name, "40D") == 0)
-    {
-        /* other models use SDDMA on the same address */
-        /* todo: make it generic? */
-        return eos_handle_cfdma(parm, s, address, type, value);
-    }
-
-    if (strcmp(s->model->name, "5D3") == 0 && parm == 0x30)
-    {
-        return eos_handle_cfdma(parm, s, address, type, value);
-    }
-
     if (s->sf && parm == s->model->serial_flash_sfdma_ch)
     {
         /* serial flash DMA */
@@ -4114,7 +4102,7 @@ static void cfdma_trigger_interrupt(EOSState *s)
     }
 }
 
-static unsigned int eos_handle_uart_dma ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+unsigned int eos_handle_uart_dma ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
     unsigned int ret = 0;
     const char * msg = 0;
@@ -4172,11 +4160,6 @@ static unsigned int eos_handle_uart_dma ( unsigned int parm, EOSState *s, unsign
 
 unsigned int eos_handle_cfdma ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
-    if (parm == 0 && s->model->digic_version >= 4)
-    {
-        return eos_handle_uart_dma(parm, s, address, type, value);
-    }
-
     unsigned int ret = 0;
     const char * msg = 0;
 

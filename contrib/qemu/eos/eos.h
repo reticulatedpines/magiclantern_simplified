@@ -356,6 +356,7 @@ unsigned int eos_handle_sio ( unsigned int parm, EOSState *s, unsigned int addre
 unsigned int eos_handle_i2c ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_cartridge ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_uart ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
+unsigned int eos_handle_uart_dma ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_timers ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_timers_ ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_digic_timer ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
