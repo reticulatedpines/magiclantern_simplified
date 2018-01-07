@@ -69,17 +69,19 @@ function valid_arm_gdb {
     if [ "$ALLOW_64BIT_GDB" != "y" ]; then
         if arm-none-eabi-gdb -v | grep -q "host=x86_64"; then
             # 64-bit version - doesn't work well
-            # fixme: this may get printed more than once
-            echo "*** WARNING: 64-bit GDB is known to have issues."
+
             if [ $(uname) == "Darwin" ] || [  -n "$(uname -a | grep Microsoft)" ]; then
                 # we don't have a 64-bit option on these systems
-                # just warn, about it, but consider it valid
-                return 0
-            else
-                # systems assumed to be able to run a 32-bit GDB
-                # consider the 64-bit one invalid
-                return 1
+                # just warn about it (--strict is used for that), but consider it valid
+                if [ "$1" != "--strict" ]; then
+                    return 0
+                fi
             fi
+
+            # systems assumed to be able to run a 32-bit GDB
+            # consider the 64-bit one invalid
+            echo "*** WARNING: 64-bit GDB is known to have issues."
+            return 1
         fi
     fi
 
@@ -302,7 +304,7 @@ if ! valid_arm_gdb; then
 fi
 
 # make sure we have a valid arm-none-eabi-gdb (regardless of operating system)
-if ! valid_arm_gdb; then
+if ! valid_arm_gdb --strict; then
     if ! arm-none-eabi-gdb -v &> /dev/null; then
         echo "*** Please set up a valid arm-none-eabi-gdb before continuing."
         exit 1
