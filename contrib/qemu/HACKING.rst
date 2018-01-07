@@ -706,11 +706,11 @@ Serial flash
 ''''''''''''
 
 To enable serial flash emulation (if your camera needs it, you'll see some relevant startup messages),
-define `.serial_flash_size` in model_list.c and a few other parameters:
+define ``.serial_flash_size`` in model_list.c and a few other parameters:
 
 - chip select signal (CS): some GPIO register toggled before and after serial flash access
 - SIO channel (used for SPI transfers)
-- SFIO and SFDMA channels (for DMA transfers — Canon reused the same kind of DMA used for SD card).
+- check SFIO and SFDMA in ``eos_handlers`` (for DMA transfers — Canon reused the same kind of DMA used for SD card).
 
 Dumper: `sf_dump module <https://bitbucket.org/hudson/magic-lantern/src/unified/modules/sf_dump>`_.
 

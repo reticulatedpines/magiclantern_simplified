@@ -169,10 +169,10 @@ EOSRegionHandler eos_handlers[] =
     { "SDIO0",        0xC0C00000, 0xC0C00FFF, eos_handle_sdio, 0 },
     { "SDIO1",        0xC0C10000, 0xC0C10FFF, eos_handle_sdio, 1 },
     { "SDIO2",        0xC0C20000, 0xC0C20FFF, eos_handle_sdio, 2 },
-    { "SDIO4",        0xC0C40000, 0xC0C40FFF, eos_handle_sdio, 4 },
+    { "SFIO4",        0xC0C40000, 0xC0C40FFF, eos_handle_sfio, 4 },
     { "SDIO86",       0xC8060000, 0xC8060FFF, eos_handle_sdio, 0x86 },
-    { "SDIO87",       0xC8070000, 0xC8070FFF, eos_handle_sdio, 0x87 },
-    { "SDIO88",       0xC8080000, 0xC8080FFF, eos_handle_sdio, 0x88 },
+    { "SFIO87",       0xC8070000, 0xC8070FFF, eos_handle_sfio, 0x87 },
+    { "SFIO88",       0xC8080000, 0xC8080FFF, eos_handle_sfio, 0x88 },
     { "UartDMA",      0xC05000C0, 0xC05000DF, eos_handle_uart_dma, 0 },
     { "CFDMA0*",      0xC0500000, 0xC05000FF, eos_handle_cfdma, 0x0F },
     { "CFDMA10",      0xC0510000, 0xC051001F, eos_handle_cfdma, 0x10 },
@@ -180,11 +180,11 @@ EOSRegionHandler eos_handlers[] =
     { "CFDMA30",      0xC0530000, 0xC053001F, eos_handle_cfdma, 0x30 },
   //{ "SDDMA31",      0xC0530020, 0xC053003F, eos_handle_sddma, 0x31 },
   //{ "SDDMA32",      0xC0530040, 0xC053005F, eos_handle_sddma, 0x32 },
-    { "SDDMA33",      0xC0530060, 0xC053007F, eos_handle_sddma, 0x33 },
+    { "SFDMA33",      0xC0530060, 0xC053007F, eos_handle_sfdma, 0x33 },
     { "SDDMA3*",      0xC0530000, 0xC05300FF, eos_handle_sddma, 0x3F },
     { "SDDMA82*",     0xC8020000, 0xC80200FF, eos_handle_sddma, 0x82F },
-    { "SDDMA83*",     0xC8030000, 0xC80300FF, eos_handle_sddma, 0x83F },
-    { "SDDMA84*",     0xC8040000, 0xC80400FF, eos_handle_sddma, 0x84F },
+    { "SFDMA83*",     0xC8030000, 0xC80300FF, eos_handle_sfdma, 0x83F },
+    { "SFDMA84*",     0xC8040000, 0xC80400FF, eos_handle_sfdma, 0x84F },
     { "CFATA0",       0xC0600000, 0xC060FFFF, eos_handle_cfata, 0 },
     { "CFATA2",       0xC0620000, 0xC062FFFF, eos_handle_cfata, 2 },
     { "CFATA16",      0xC0700000, 0xC070FFFF, eos_handle_cfata, 0x10 },
@@ -3728,12 +3728,6 @@ static void sdio_trigger_interrupt(EOSState *s)
 
 unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
-    if (s->sf && parm == s->model->serial_flash_sfio_ch)
-    {
-        /* serial flash DMA */
-        return eos_handle_sfio(parm, s, address, type, value);
-    }
-
     unsigned int ret = 0;
     const char * msg = 0;
     intptr_t msg_arg1 = 0;
@@ -3961,12 +3955,6 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
 
 unsigned int eos_handle_sddma ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
-    if (s->sf && parm == s->model->serial_flash_sfdma_ch)
-    {
-        /* serial flash DMA */
-        return eos_handle_sfdma(parm, s, address, type, value);
-    }
-
     unsigned int ret = 0;
     const char * msg = 0;
 
