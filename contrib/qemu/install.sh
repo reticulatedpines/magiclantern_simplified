@@ -71,7 +71,15 @@ function valid_arm_gdb {
             # 64-bit version - doesn't work well
             # fixme: this may get printed more than once
             echo "*** WARNING: 64-bit GDB is known to have issues."
-            return 1
+            if [ $(uname) == "Darwin" ] || [  -n "$(uname -a | grep Microsoft)" ]; then
+                # we don't have a 64-bit option on these systems
+                # just warn, about it, but consider it valid
+                return 0
+            else
+                # systems assumed to be able to run a 32-bit GDB
+                # consider the 64-bit one invalid
+                return 1
+            fi
         fi
     fi
 
@@ -112,7 +120,6 @@ if [ $(uname) == "Darwin" ]; then
     done
 
     GREP=ggrep
-    ALLOW_64BIT_GDB=y
 fi
 
 if [  -n "$(lsb_release -i 2>/dev/null | grep Ubuntu)" ]; then
