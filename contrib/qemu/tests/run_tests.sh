@@ -630,6 +630,7 @@ function test_calls_main {
         > tests/$CAM/$TEST-basic.log
 
     # also copy the IDC file for checking its MD5
+    # this works on old CF models too (40D), even if some nondeterminism is present
     # the IDC needs trimming, too, as it doesn't always stop at the same line
     cat $CAM.idc | sed -n "1,/MakeFunction($last_call/ p" > tests/$CAM/$TEST.idc
     cat $CAM.idc | tail -n 2 >> tests/$CAM/$TEST.idc
