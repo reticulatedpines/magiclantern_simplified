@@ -21,15 +21,26 @@ function install_gdb {
     echo "    https://developer.arm.com/open-source/gnu-toolchain/gnu-rm"
     echo
 
-    TOOLCHAIN=gcc-arm-none-eabi-5_4-2016q3
-    DOWNLOAD=https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q3-update/+download/
-    MIRROR=https://developer.arm.com/-/media/Files/downloads/gnu-rm/5_4-2016q3/
     UNTAR="tar -jxf"
 
     if [ $(uname) == "Darwin" ]; then
-        TARBALL=gcc-arm-none-eabi-5_4-2016q3-20160926-mac.tar.bz2
+        # 64-bit (fixme: compile a 32-bit GDB)
+        TOOLCHAIN=gcc-arm-none-eabi-7-2017-q4-major
+        DOWNLOAD=https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/7-2017q4/
+        MIRROR="$DOWNLOAD"
+        TARBALL=$TOOLCHAIN-mac.tar.bz2
+    elif [  -n "$(uname -a | grep Microsoft)" ]; then
+        # WSL
+        TOOLCHAIN=gcc-arm-none-eabi-7-2017-q4-major
+        DOWNLOAD=https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/7-2017q4/
+        MIRROR="$DOWNLOAD"
+        TARBALL=$TOOLCHAIN-linux.tar.bz2
     else
-        TARBALL=gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2
+        # Linux (other than WSL) - use a 32-bit build (preferred, even though it's older)
+        TOOLCHAIN=gcc-arm-none-eabi-5_4-2016q3
+        DOWNLOAD=https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q3-update/+download/
+        MIRROR=https://developer.arm.com/-/media/Files/downloads/gnu-rm/5_4-2016q3/
+        TARBALL=$TOOLCHAIN-20160926-linux.tar.bz2
     fi
 
     if [ ! -f ~/$TOOLCHAIN/bin/arm-none-eabi-gdb ]; then
@@ -57,9 +68,9 @@ function valid_arm_gdb {
 
     if [ "$ALLOW_64BIT_GDB" != "y" ]; then
         if arm-none-eabi-gdb -v | grep -q "host=x86_64"; then
-            # 64-bit version - doesn't work
+            # 64-bit version - doesn't work well
             # fixme: this may get printed more than once
-            echo "*** WARNING: 64-bit GDB is known not to work."
+            echo "*** WARNING: 64-bit GDB is known to have issues."
             return 1
         fi
     fi
@@ -118,7 +129,7 @@ if [  -n "$(lsb_release -i | grep Ubuntu)" ]; then
     # otherwise, we'll try to install something
     if ! valid_arm_gdb || ! valid_arm_gcc; then
         echo "*** You do not seem to have an usable arm-none-eabi-gcc and/or gdb installed."
-        echo "*** 64-bit GDB is known not to work, so you'll have to install a 32-bit one for now."
+        echo "*** 64-bit GDB is known to have issues, so you may want to install a 32-bit version."
         echo
         echo "*** You have a few options:"
         echo
@@ -146,16 +157,29 @@ if [  -n "$(lsb_release -i | grep Ubuntu)" ]; then
             echo "    - install the gcc-arm-embedded:i386 package."
             echo "    This will install 32-bit binaries."
             echo
+            echo "4 - Install gdb-arm-none-eabi and gcc-arm-none-eabi from Ubuntu repository (64-bit)"
+            echo "    WARNING: this may not be able to run all our GDB scripts."
+            echo
+            echo "5 - Manually install arm-none-eabi-gdb from https://launchpad.net/gcc-arm-embedded"
+            echo "    or any other source, make sure it is in PATH, then run this script again."
+            echo
         else
-            echo "1-3: options not available on Windows 10 WSL (32-bit binaries)."
+            # WSL
+            echo "1-3: options not available on Windows 10 WSL (32-bit Linux binaries not supported)."
+            echo
+            echo "4 - Install gdb-arm-none-eabi and gcc-arm-none-eabi from Ubuntu repository (64-bit)"
+            echo "    WARNING: this may not be able to run all our GDB scripts."
+            echo "    Sorry, we don't have a better option yet -> this is the recommended choice."
+            echo
+            echo "5 - Manually install arm-none-eabi-gdb from https://launchpad.net/gcc-arm-embedded"
+            echo "    or any other source (choose 64-bit Linux binaries),"
+            echo "    make sure it is in PATH, then run this script again."
+            echo "    WARNING: this may not be able to run all our GDB scripts."
+            echo
+            echo "    You may also try the Win32 GDB build from gcc-arm-embedded,"
+            echo "    but getting it to work is not straightforward (contribution welcome)."
+            echo
         fi
-
-        echo "4 - Install gdb-arm-none-eabi and gcc-arm-none-eabi from Ubuntu repository (64-bit)"
-        echo "    WARNING: this will not be able to run all our GDB scripts."
-        echo
-        echo "5 - Manually install arm-none-eabi-gdb from https://launchpad.net/gcc-arm-embedded"
-        echo "    or any other source, make sure it is in PATH, then run this script again."
-        echo
 
         if arm-none-eabi-gdb -v &> /dev/null; then
             echo "6 - Just use the current 64-bit toolchain."
@@ -206,7 +230,7 @@ if [  -n "$(lsb_release -i | grep Ubuntu)" ]; then
                 exit 0
                 ;;
             6)
-                # use the installed version, even though it's known not to work
+                # use the installed version, even though it's known not to work well
                 ALLOW_64BIT_GDB=y
                 ;;
             *)
