@@ -138,7 +138,7 @@ fi
 # fixme: easier way?
 # fixme: doesn't work with multiple instances
 if [ -t 1 ] && [ $(uname) == "Darwin" ]; then
-    ( sleep 0.5; osascript -e 'tell application "System Events" to tell process "qemu-system-arm" to set frontmost to true' ) &
+    ( sleep 0.5; osascript -e 'tell application "System Events" to tell process "qemu-system-arm" to set frontmost to true' &>/dev/null ) &
 fi
 
 # run the emulation
