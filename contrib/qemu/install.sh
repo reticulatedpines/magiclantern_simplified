@@ -435,6 +435,30 @@ echo "   cd `pwd`/${QEMU_NAME}"
 echo "   ../configure_eos.sh"
 echo "   make -j`$GREP -c processor /proc/cpuinfo 2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || echo 1`"
 echo
+echo "Shall this script attempt to compile QEMU now? [y/N]"
+read answer
+if test "$answer" == "Y" -o "$answer" == "y"
+ then
+    cd `pwd`/${QEMU_NAME}
+    ../configure_eos.sh
+    if make -j`$GREP -c processor /proc/cpuinfo 2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || echo 1`; then
+        echo
+        echo "*** Done compiling."
+        echo
+        echo
+        echo "Next steps:"
+        echo "==========="
+        echo
+        echo "1) Go to QEMU directory"
+        echo
+        echo "   cd `pwd`/"
+    else
+        echo
+        echo "*** Compilation failed."
+        echo "*** Please check what went wrong, try to fix it and report back."
+    fi
+fi
+echo
 echo "2) Grab a copy of the Canon firmware from your own camera"
 echo "   (don't request one and don't share it online - it's copyrighted)"
 echo
@@ -476,16 +500,6 @@ echo "     ./run_canon_fw.sh 60D -d debugmsg -s -S & arm-none-eabi-gdb -x 60D/de
 echo "   - some camera models require GDB patches to bypass tricky code sequences:"
 echo "     ./run_canon_fw.sh 700D -s -S & arm-none-eabi-gdb -x 700D/patches.gdb"
 echo
-echo " Shall this script do the compilation under 1) now? [y/N]"
-read answer
-if test "$answer" == "Y" -o "$answer" == "y"
- then
-    cd `pwd`/${QEMU_NAME}
-    ../configure_eos.sh
-    make -j`$GREP -c processor /proc/cpuinfo 2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || echo 1`
-    echo "Done compiling."
-fi
-
 echo
 echo "Online documentation: "
 echo
