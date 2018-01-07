@@ -115,7 +115,7 @@ if [ $(uname) == "Darwin" ]; then
     ALLOW_64BIT_GDB=y
 fi
 
-if [  -n "$(lsb_release -i | grep Ubuntu)" ]; then
+if [  -n "$(lsb_release -i 2>/dev/null | grep Ubuntu)" ]; then
     # Ubuntu-based system? (including WSL)
     # install these packages, if not already
     # only request sudo if any of them is missing
