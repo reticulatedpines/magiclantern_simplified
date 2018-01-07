@@ -443,6 +443,7 @@ if test "$answer" == "Y" -o "$answer" == "y"
     cd `pwd`/${QEMU_NAME}
     ../configure_eos.sh
     if make -j`$GREP -c processor /proc/cpuinfo 2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || echo 1`; then
+        cd ..
         echo
         echo "*** Done compiling."
         echo
@@ -454,6 +455,7 @@ if test "$answer" == "Y" -o "$answer" == "y"
         echo
         echo "   cd `pwd`/"
     else
+        cd ..
         echo
         echo "*** Compilation failed."
         echo "*** Please check what went wrong, try to fix it and report back."
