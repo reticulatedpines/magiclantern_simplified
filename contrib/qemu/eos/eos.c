@@ -2537,6 +2537,8 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
                 {
                     ret = 0x40000 | 0x80000;
                     msg = "VSW_STATUS";
+                    /* 70D: SD detect (0x10)
+                     * 100D: SD detect (0x8) */
                 }
             }
 #ifdef IGNORE_CONNECT_POLL
@@ -2555,7 +2557,9 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             else 
             {        
                 /* 6D: return -1 here to launch "System & Display Check & Adjustment program" */
-                msg = "70D/6D SD detect?";
+                /* 6D SD detect (0x2) */
+                /* 70D IFE init (0x108) */
+                msg = "System check, SD detect, IFE init";
                 ret = 0x10C;
             }
             break;
