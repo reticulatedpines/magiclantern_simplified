@@ -112,6 +112,7 @@ if [ $(uname) == "Darwin" ]; then
     done
 
     GREP=ggrep
+    ALLOW_64BIT_GDB=y
 fi
 
 if [  -n "$(lsb_release -i | grep Ubuntu)" ]; then
