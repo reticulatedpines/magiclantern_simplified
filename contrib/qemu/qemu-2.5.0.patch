@@ -175,7 +175,7 @@ index 0010c44..d85cc6b 100644
      }
  
 diff --git a/include/qemu/log.h b/include/qemu/log.h
-index 362cbc4..076d6c4 100644
+index 362cbc4..fa5748d 100644
 --- a/include/qemu/log.h
 +++ b/include/qemu/log.h
 @@ -12,7 +12,7 @@
@@ -187,7 +187,7 @@ index 362cbc4..076d6c4 100644
  
  /* 
   * The new API:
-@@ -42,9 +42,48 @@ static inline bool qemu_log_enabled(void)
+@@ -42,9 +42,50 @@ static inline bool qemu_log_enabled(void)
  #define CPU_LOG_MMU        (1 << 12)
  #define CPU_LOG_TB_NOCHAIN (1 << 13)
  
@@ -207,28 +207,30 @@ index 362cbc4..076d6c4 100644
 +#define EOS_LOG_AUTOEXEC   (1LL << 33)
 +
 +/* guest memory tracing (logging) */
-+#define EOS_LOG_RAM_R      (1LL << 40)
-+#define EOS_LOG_RAM_W      (1LL << 41)
-+#define EOS_LOG_ROM_R      (1LL << 42)
-+#define EOS_LOG_ROM_W      (1LL << 43)
++#define EOS_LOG_RAM_R      (1LL << 40)      /* memory logging backends */
++#define EOS_LOG_RAM_W      (1LL << 41)      /* used by other analysis tools, but not printed directly */
++#define EOS_LOG_ROM_R      (1LL << 42)      /* these backends have additional overhead on generated code */
++#define EOS_LOG_ROM_W      (1LL << 43)      /* so they are only enabled when actually used */
 +#define EOS_LOG_RAM        (EOS_LOG_RAM_R | EOS_LOG_RAM_W)
 +#define EOS_LOG_ROM        (EOS_LOG_ROM_R | EOS_LOG_ROM_W)
 +#define EOS_LOG_MEM_R      (EOS_LOG_RAM_R | EOS_LOG_ROM_R)
 +#define EOS_LOG_MEM_W      (EOS_LOG_RAM_W | EOS_LOG_ROM_W)
 +#define EOS_LOG_MEM        (EOS_LOG_RAM   | EOS_LOG_ROM)
-+#define EOS_LOG_RAM_DBG    (1LL << 44)    /* self-test */
-+#define EOS_LOG_TASKS      (1LL << 45)    /* task switches */
-+#define EOS_LOG_DEBUGMSG   (1LL << 46)    /* DebugMsg calls */
++#define EOS_PR(mem_flag)  ((mem_flag) << 4) /* memory logging printed in logs (duplicate the above flags) */
++                                            /* this will take 4 bits: 40-43 => 44-47 */
++#define EOS_LOG_RAM_DBG    (1LL << 48)      /* self-test */
++#define EOS_LOG_TASKS      (1LL << 49)      /* task switches */
++#define EOS_LOG_DEBUGMSG   (1LL << 50)      /* DebugMsg calls */
 +
 +/* analysis tools */
-+#define EOS_LOG_CALLSTACK  (1LL << 50)    /* backend: provide call stack to other tools */
-+#define EOS_LOG_CALLS      (1LL << 51)    /* log all calls and returns to console */
-+#define EOS_LOG_IDC        (1LL << 52)    /* export unique calls to IDA */
-+#define EOS_LOG_RAM_MEMCHK (1LL << 53)    /* like valgrind memcheck */
-+#define EOS_LOG_RAM_TSKMEM (1LL << 54)    /* check task memory ownership assumptions */
-+#define EOS_LOG_RAM_SEMCHK (1LL << 55)    /* check semaphore usage (like helgrind) */
-+#define EOS_LOG_ROMCPY     (1LL << 56)    /* find memory blocks copied from ROM to RAM */
-+#define EOS_LOG_TAIL_CALLS (1LL << 57)    /* attempt to identify tail calls */
++#define EOS_LOG_CALLSTACK  (1LL << 51)      /* backend: provide call stack to other tools */
++#define EOS_LOG_CALLS      (1LL << 52)      /* log all calls and returns to console */
++#define EOS_LOG_IDC        (1LL << 53)      /* export unique calls to IDA */
++#define EOS_LOG_RAM_MEMCHK (1LL << 54)      /* like valgrind memcheck */
++#define EOS_LOG_RAM_TSKMEM (1LL << 55)      /* check task memory ownership assumptions */
++#define EOS_LOG_RAM_SEMCHK (1LL << 56)      /* check semaphore usage (like helgrind) */
++#define EOS_LOG_ROMCPY     (1LL << 57)      /* find memory blocks copied from ROM to RAM */
++#define EOS_LOG_TAIL_CALLS (1LL << 58)      /* attempt to identify tail calls */
 +
  /* Returns true if a bit is set in the current loglevel mask
   */
@@ -237,7 +239,7 @@ index 362cbc4..076d6c4 100644
  {
      return (qemu_loglevel & mask) != 0;
  }
-@@ -67,7 +106,7 @@ qemu_log_vprintf(const char *fmt, va_list va)
+@@ -67,7 +108,7 @@ qemu_log_vprintf(const char *fmt, va_list va)
  
  /* log only if a bit is set on the current loglevel mask
   */
@@ -246,7 +248,7 @@ index 362cbc4..076d6c4 100644
  
  
  /* Special cases: */
-@@ -95,7 +134,7 @@ static inline void log_cpu_state(CPUState *cpu, int flags)
+@@ -95,7 +136,7 @@ static inline void log_cpu_state(CPUState *cpu, int flags)
   *
   * Logs the output of cpu_dump_state() if loglevel includes @mask.
   */
@@ -255,7 +257,7 @@ index 362cbc4..076d6c4 100644
  {
      if (qemu_loglevel & mask) {
          log_cpu_state(cpu, flags);
-@@ -152,7 +191,7 @@ static inline void qemu_log_set_file(FILE *f)
+@@ -152,7 +193,7 @@ static inline void qemu_log_set_file(FILE *f)
  
  /* define log items */
  typedef struct QEMULogItem {
@@ -264,7 +266,7 @@ index 362cbc4..076d6c4 100644
      const char *name;
      const char *help;
  } QEMULogItem;
-@@ -163,9 +202,9 @@ extern const QEMULogItem qemu_log_items[];
+@@ -163,9 +204,9 @@ extern const QEMULogItem qemu_log_items[];
   * changing the log level; it should only be accessed via
   * the qemu_set_log() wrapper.
   */
@@ -276,7 +278,7 @@ index 362cbc4..076d6c4 100644
  {
  #ifdef CONFIG_USER_ONLY
      do_qemu_set_log(log_flags, true);
-@@ -175,7 +214,7 @@ static inline void qemu_set_log(int log_flags)
+@@ -175,7 +216,7 @@ static inline void qemu_set_log(int log_flags)
  }
  
  void qemu_set_log_filename(const char *filename);
@@ -309,7 +311,7 @@ index e193658..9de7251 100644
      subregion->priority = 0;
      memory_region_add_subregion_common(mr, offset, subregion);
 diff --git a/qemu-log.c b/qemu-log.c
-index 7cb01a8..c201d22 100644
+index 7cb01a8..61583ba 100644
 --- a/qemu-log.c
 +++ b/qemu-log.c
 @@ -22,7 +22,7 @@
@@ -375,25 +377,25 @@ index 7cb01a8..c201d22 100644
 +    { EOS_LOG_UART, "uart",
 +      "EOS: log low-level UART activity" },
 +
-+    { EOS_LOG_RAM, "ram",
++    { EOS_PR(EOS_LOG_RAM) | EOS_LOG_RAM, "ram",
 +      "EOS: log all RAM reads and writes" },
-+    { EOS_LOG_ROM, "rom",
++    { EOS_PR(EOS_LOG_ROM) | EOS_LOG_ROM, "rom",
 +      "EOS: log all ROM reads and writes" },
-+    { EOS_LOG_RAM_R, "ramr",
++    { EOS_PR(EOS_LOG_RAM_R) | EOS_LOG_RAM_R, "ramr",
 +      "EOS: log all RAM reads" },
-+    { EOS_LOG_ROM_R, "romr",
++    { EOS_PR(EOS_LOG_ROM_R) | EOS_LOG_ROM_R, "romr",
 +      "EOS: log all ROM reads" },
-+    { EOS_LOG_RAM_W, "ramw",
++    { EOS_PR(EOS_LOG_RAM_W) | EOS_LOG_RAM_W, "ramw",
 +      "EOS: log all RAM writes" },
-+    { EOS_LOG_ROM_W, "romw",
++    { EOS_PR(EOS_LOG_ROM_W) | EOS_LOG_ROM_W, "romw",
 +      "EOS: log all ROM writes" },
 +    { EOS_LOG_RAM_DBG | EOS_LOG_RAM, "ram_dbg",
 +      "EOS: self-test for the RAM logging routines" },
 +
 +    { EOS_LOG_CALLSTACK | CPU_LOG_TB_NOCHAIN, "callstack",
 +      "EOS: reconstruct call stack (implies nochain,singlestep)" },
-+    { EOS_LOG_CALLS | EOS_LOG_RAM_R | EOS_LOG_CALLSTACK | CPU_LOG_TB_NOCHAIN, "calls",
-+      "EOS: log function calls (implies callstack,ramr,nochain,singlestep)" },
++    { EOS_LOG_CALLS | EOS_LOG_CALLSTACK | CPU_LOG_TB_NOCHAIN | EOS_LOG_RAM_R, "calls",
++      "EOS: log function calls (implies callstack,nochain,singlestep; monitors RAM reads)" },
 +    { EOS_LOG_TAIL_CALLS, "tail",
 +      "EOS: identify tail calls (heuristic; to be used with calls or callstack)" },
 +    { EOS_LOG_IDC | EOS_LOG_CALLSTACK | CPU_LOG_TB_NOCHAIN, "idc",
