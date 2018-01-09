@@ -10,6 +10,60 @@ You will want to modify the sources, sooner or later.
 
 How is this code organazized?
 `````````````````````````````
+
+By default, the install script sets up QEMU by creating a ``qemu`` subdirectory
+"near" the magic-lantern directory (so both directories will end up at the same level).
+The default directory structure looks like this::
+
+  .
+  ├── magic-lantern/            # Magic Lantern working directory
+  │   │
+  │   ├── src/                      # main ML source files
+  │   │
+  │   ├── platform/                 # camera-specific (platform) directories
+  │   │   ├── 5D3.113                   # camera model . firmware version
+  │   │   ├── EOSM.202                  # here you would run "make", "make install_qemu" etc
+  │   │   └── ...
+  │   │
+  │   ├── minimal/                  # minimal targets, for experiments
+  │   │   ├── 5D3.113                   # these will use other files from the platform directory
+  │   │   ├── EOSM                      # if only one firmware version is supported, it can be omitted
+  │   │   └── ...
+  │   │
+  │   ├── installer/                # for building ML-SETUP.FIR (which enables/disables the boot flag)
+  │   └── ...
+  │
+  └── qemu/                     # QEMU working directory
+      │
+      ├── qemu-2.5.0/               # QEMU sources and binaries
+      │
+      ├── 60D/                      # camera-specific subdirectories
+      │   ├── ROM*.BIN                  # ROM files (user-supplied)
+      │   └── debugmsg.gdb              # GDB script
+      ├── EOSM2/
+      │   ├── ROM*.BIN                  # ROM files (user-supplied)
+      │   ├── SFDATA.BIN                # serial flash contents (recent models use one)
+      │   ├── patches.gdb               # patches required for emulation (for tricky models)
+      │   └── debugmsg.gdb              # GDB script
+      ├── 5D3/
+      │   ├── 113/                      # firmware-specific files
+      │   │   └── ROM*.BIN              # ROM files (user-supplied)
+      │   ├── 123/
+      │   │   └── ROM*.BIN              # ROM files (user-supplied)
+      │   └── debugmsg.gdb              # GDB script (common)
+      │
+      ├── ...
+      ├── tests/                    # our test suite
+      │   ├── 60D/                      # model-specific test files
+      │   └── ...                       # (expected and actual results)
+      │
+      ├── run_canon_fw.sh           # main script for running the emulation
+      └── ...                       # other scripts / utilities
+
+The sources are stored in the Magic Lantern tree, under ``contrib/qemu``. Our modifications to QEMU sources
+are stored as a patch file (``qemu-2.5.0.patch``), while the new files are stored directly. The install script
+copies the following files:
+
 .. code:: shell
 
   magic-lantern/contrib/qemu/eos/ -> qemu/qemu-2.5.0/hw/eos/  (emulation sources)
