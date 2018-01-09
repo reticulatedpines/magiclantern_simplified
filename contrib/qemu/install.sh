@@ -2,8 +2,11 @@
 
 set -e
 
+# paths relative to the "qemu" directory (where it will be installed)
 QEMU_NAME=${QEMU_NAME:=qemu-2.5.0}
-ML=${ML:=magic-lantern}
+ML_PATH=${ML_PATH:=../magic-lantern}
+
+ML_NAME=${ML_PATH##*/}
 GREP=${GREP:=grep}
 ALLOW_64BIT_GDB=n
 
@@ -340,11 +343,11 @@ pip2 list | grep vncdotool || vncdotool -h > /dev/null || pip2 install vncdotool
 
 function die { echo "${1:-"Unknown Error"}" 1>&2 ; exit 1; }
 
-pwd | grep $ML/contrib/qemu > /dev/null || die "error: we should be in $ML/contrib/qemu"
+pwd | grep $ML_NAME/contrib/qemu > /dev/null || die "error: we should be in $ML_NAME/contrib/qemu"
 
 # go to the parent of magic-lantern folder
 cd ../../..
-ls | $GREP $ML > /dev/null || die "error: expecting to find $ML here"
+ls | $GREP $ML_NAME > /dev/null || die "error: expecting to find $ML_NAME here"
 
 mkdir -p qemu
 cd qemu
@@ -353,7 +356,7 @@ echo
 echo "*** Setting up QEMU in $(pwd)..."
 echo
 
-if [ -d $QEMU_NAME ]; then
+if [ -d $QEMU_PATH ]; then
   DATE=`date '+%Y-%m-%d_%H-%M-%S'`
   echo "*** Directory $(pwd)/$QEMU_NAME already exists."
   echo "*** To reinstall, please rename or delete it first."
@@ -396,25 +399,25 @@ cd ..
 echo "Copying files..."
 
 # copy our helper scripts
-cp -r ../$ML/contrib/qemu/scripts/* .
+cp -r $ML_PATH/contrib/qemu/scripts/* .
 chmod +x *.sh
 
 # copy our testing scripts
 mkdir -p tests
-cp -r ../$ML/contrib/qemu/tests/* tests/
+cp -r $ML_PATH/contrib/qemu/tests/* tests/
 chmod +x tests/*.sh
 
 # apply our patch
 cd ${QEMU_NAME}
 mkdir -p hw/eos
-cp -r ../../$ML/contrib/qemu/eos/* hw/eos/
-cp -r ../../$ML/src/backtrace.[ch] hw/eos/dbi/
+cp -r ../$ML_PATH/contrib/qemu/eos/* hw/eos/
+cp -r ../$ML_PATH/src/backtrace.[ch] hw/eos/dbi/
 if gcc -v 2>&1 | grep -q "gcc version 7"; then
-  patch -N -p1 < ../../$ML/contrib/qemu/$QEMU_NAME-gcc7.patch
+  patch -N -p1 < ../$ML_PATH/contrib/qemu/$QEMU_NAME-gcc7.patch
   git add -u . && git commit -q -m "$QEMU_NAME patched for gcc 7.x"
 fi
 
-patch -N -p1 < ../../$ML/contrib/qemu/$QEMU_NAME.patch
+patch -N -p1 < ../$ML_PATH/contrib/qemu/$QEMU_NAME.patch
 # don't commit this one - we'll use "git diff" to update the above patch
 
 cd ..
@@ -422,7 +425,7 @@ cd ..
 # setup the card image
 if [ ! -f "sd.img" ]; then
     echo "Setting up SD card image..."
-    cp -v ../$ML/contrib/qemu/sd.img.xz .
+    cp -v $ML_PATH/contrib/qemu/sd.img.xz .
     unxz -v sd.img.xz
 else
     echo "SD image already exists, skipping."

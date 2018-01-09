@@ -75,6 +75,23 @@ copies the following files:
   magic-lantern/contrib/qemu/scripts/*/patches.gdb -> qemu/*/patches.gdb (patches required for emulation — only on some models)
   magic-lantern/contrib/qemu/tests -> qemu/tests (guess)
 
+Customizing directories
+```````````````````````
+
+Once QEMU is compiled into some subdirectory (such as ``/path/to/qemu/qemu-2.5.0/``),
+it will no longer work elsewhere (you will not be able to rename/move this directory
+without a full reconfiguration and recompilation).
+
+Should you want to customize these paths, you may set the following environment variables:
+
+- ``QEMU_NAME``: defaults to ``qemu-2.5.0`` (a subdirectory under your ``qemu/`` directory)
+- ``ML_PATH``: defaults to ``../magic-lantern``, relative to your ``qemu`` directory
+
+Tip: after installation, you may change ``ML_PATH`` to emulate ML from other directories, located anywhere in the filesystem.
+
+Misc notes
+``````````
+
 Model-specific parameters: eos/model_list.c (todo: move all hardcoded stuff there).
 
 MMIO handlers: eos_handle_whatever (with io_log for debug messages).
@@ -982,14 +999,14 @@ you may try a script similar to the following:
     #!/bin/bash
     
     QEMU_PATH=${QEMU_PATH:=qemu-2.5.0}
-    ML=${ML:=magic-lantern}
-    
-    cp -v ../$ML/contrib/qemu/eos/* $QEMU_PATH/hw/eos/
-    cp -v ../$ML/contrib/qemu/eos/mpu_spells/* $QEMU_PATH/hw/eos/mpu_spells/
-    cp -v ../$ML/contrib/qemu/eos/dbi/* $QEMU_PATH/hw/eos/dbi/
-    cp -v ../$ML/src/backtrace.[ch] $QEMU_PATH/hw/eos/dbi/
-    cp -vr ../$ML/contrib/qemu/tests/* tests/
-    cp -vr ../magic-lantern/contrib/qemu/scripts/* .
+    ML_PATH=${ML_PATH:=../magic-lantern}
+
+    cp -v $ML_PATH/contrib/qemu/eos/* $QEMU_PATH/hw/eos/
+    cp -v $ML_PATH/contrib/qemu/eos/mpu_spells/* $QEMU_PATH/hw/eos/mpu_spells/
+    cp -v $ML_PATH/contrib/qemu/eos/dbi/* $QEMU_PATH/hw/eos/dbi/
+    cp -v $ML_PATH/src/backtrace.[ch] $QEMU_PATH/hw/eos/dbi/
+    cp -vr $ML_PATH/contrib/qemu/tests/* tests/
+    cp -vr $ML_PATH/contrib/qemu/scripts/* .
 
 
 Test suite

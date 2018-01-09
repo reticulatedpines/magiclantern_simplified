@@ -35,6 +35,8 @@ CF_CAMS=( 5D 5D2 5D3 5D4 7D 7D2M 40D 50D 400D )
 # cameras able to run the FA_CaptureTestImage test (full-res silent picture backend)
 FRSP_CAMS=( 5D3 500D 550D 50D 60D 1100D 1200D )
 
+ML_PATH=${ML_PATH:=../magic-lantern}
+
 # newer openbsd netcat requires -N (since 1.111)
 # older openbsd netcat does not have -N (prints error if we attempt to use it)
 # try to autodetect which one should be used, and let the user override it
@@ -186,7 +188,7 @@ mv cf.img cf-user.img
 trap sd_restore EXIT
 trap - SIGINT
 
-cp -v ../magic-lantern/contrib/qemu/sd.img.xz .
+cp -v $ML_PATH/contrib/qemu/sd.img.xz .
 unxz -k sd.img.xz
 cp sd.img cf.img
 
@@ -782,7 +784,7 @@ done; cleanup
 function test_frsp {
 
     # compile it from ML dir, for each camera
-    FRSP_PATH=../magic-lantern/minimal/qemu-frsp
+    FRSP_PATH=$ML_PATH/minimal/qemu-frsp
     rm -f $FRSP_PATH/autoexec.bin
     [ $CAM == "1200D" ] && (cd $FRSP_PATH; hg up qemu -C; hg merge 1200D; cd $OLDPWD) &>> tests/$CAM/$TEST-build.log
     make MODEL=$CAM -C $FRSP_PATH clean &>> tests/$CAM/$TEST-build.log
@@ -1147,7 +1149,7 @@ done; cleanup
 function test_hptimer {
 
     # compile it from ML dir, for each camera
-    HPTIMER_PATH=../magic-lantern/minimal/qemu-hptimer
+    HPTIMER_PATH=$ML_PATH/minimal/qemu-hptimer
     rm -f $HPTIMER_PATH/autoexec.bin
     make MODEL=$CAM -C $HPTIMER_PATH clean &>> tests/$CAM/$TEST-build.log
     make MODEL=$CAM -C $HPTIMER_PATH       &>> tests/$CAM/$TEST-build.log
