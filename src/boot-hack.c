@@ -209,6 +209,7 @@ copy_and_restart( )
 
 /* qprintf should be fine from now on */
 #undef qprintf
+
 static int _hold_your_horses = 1; // 0 after config is read
 int ml_started = 0; // 1 after ML is fully loaded
 int ml_gui_initialized = 0; // 1 after gui_main_task is started 
@@ -719,6 +720,8 @@ my_init_task(int a, int b, int c, int d)
     
     /* RAM for ML is the difference minus BVRAM that is placed right behind ML */
     ml_reserved_mem = orig_length - new_length - BMP_VRAM_SIZE - 0x200;
+
+    qprintf("[BOOT] reserving memory from RscMgr: %X -> %X.\n", orig_length, new_length);
     
 #else  
     uint32_t orig_instr = MEM(HIJACK_CACHE_HACK_BSS_END_ADDR);
@@ -749,13 +752,19 @@ my_init_task(int a, int b, int c, int d)
         uint32_t new_end = ROR(new_immed_8, 2 * new_rotate_imm);
         
         ml_reserved_mem = orig_end - new_end;
+        qprintf("[BOOT] changing AllocMem end address: %X -> %X.\n", orig_end, new_end);
 
         /* now patch init task and continue execution */
+        qdisas(HIJACK_CACHE_HACK_BSS_END_ADDR);
+        qdisas(HIJACK_CACHE_HACK_BSS_END_ADDR + 4);
         cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, new_instr, TYPE_ICACHE);
+        qdisas(HIJACK_CACHE_HACK_BSS_END_ADDR);
+        qdisas(HIJACK_CACHE_HACK_BSS_END_ADDR + 4);
     }
     else
     {
         /* we are not sure if this is a instruction, so patch data cache also */
+        qprintf("[BOOT] reserving memory: %X -> %X.\n", MEM(HIJACK_CACHE_HACK_BSS_END_ADDR), new_instr);
         cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, new_instr, TYPE_ICACHE);
         cache_fake(HIJACK_CACHE_HACK_BSS_END_ADDR, new_instr, TYPE_DCACHE);
     }
@@ -773,12 +782,15 @@ my_init_task(int a, int b, int c, int d)
 
     #ifdef ML_RESERVED_MEM // define this if we can't autodetect the reserved memory size
     ml_reserved_mem = ML_RESERVED_MEM;
+    qprintf("[BOOT] using ML_RESERVED_MEM.\n");
     #endif
+
+    qprintf("[BOOT] reserved %d bytes for ML (used %d)\n", ml_reserved_mem, ml_used_mem);
 
     /* ensure binary is not too large */
     if (ml_used_mem > ml_reserved_mem)
     {
-        qprintf("[BOOT] out of memory: ml_used_mem=%d ml_reserved_mem=%d\n", ml_used_mem, ml_reserved_mem);
+        qprintf("[BOOT] out of memory.");
 
         while(1)
         {
