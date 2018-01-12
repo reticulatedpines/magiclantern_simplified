@@ -698,13 +698,15 @@ my_init_task(int a, int b, int c, int d)
     qprintf("[BOOT] autoexec.bin loaded at %X - %X.\n", &_text_start, &_bss_end);
 
 #ifdef HIJACK_CACHE_HACK
+
+#if !defined(CONFIG_EARLY_PORT) && !defined(CONFIG_HELLO_WORLD) && !defined(CONFIG_DUMPER_BOOTFLAG)
     /* as we do not return in the middle of te init task as in the hijack-through-copy method, we have to install the hook here */
     qprint("[BOOT] installing task dispatch hook at "); qprintn((int)&task_dispatch_hook); qprint("\n");
     task_dispatch_hook = my_task_dispatch_hook;
     #ifdef CONFIG_TSKMON
     tskmon_init();
     #endif
-    
+#endif
 
 #if defined(RSCMGR_MEMORY_PATCH_END)
     /* another new method for memory allocation, hopefully the last one :) */
