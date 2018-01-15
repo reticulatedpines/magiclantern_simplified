@@ -98,6 +98,7 @@ define print_callstack
 end
 
 # print current task name and return address
+# optional argument: custom return address
 define print_current_location
   KRESET
   if CURRENT_ISR == 0xFFFFFFFF
@@ -115,17 +116,23 @@ define print_current_location
     printf "[CPU%d] ", ($_thread-1)
   end
 
+  if $argc == 1
+    set $i = $arg0
+  else
+    set $i = $lr - 4
+  end
+
   printf "["
   if CURRENT_ISR > 0
     KRED
-    printf "     INT-%02Xh:%08x ", CURRENT_ISR, $r14-4
+    printf "     INT-%02Xh:%08x ", CURRENT_ISR, $i
   else
     if $_thread == 1
       KCYN
     else
       KYLW
     end
-    printf "%12s:%08x ", CURRENT_TASK_NAME, $r14-4
+    printf "%12s:%08x ", CURRENT_TASK_NAME, $i
   end
   KRESET
   printf "] "
@@ -274,9 +281,9 @@ define assert_log
     KRESET
     printf "] "
     if $r0
-      printf "%s at %s:%d, %x\n", $r0, $r1, $r2, $r14
+      printf "%s at %s:%d, %x\n", $r0, $r1, $r2, $lr
     else
-      printf "at %s:%d, %x\n", $r1, $r2, $r14
+      printf "at %s:%d, %x\n", $r1, $r2, $lr
     end
     c
   end
@@ -997,7 +1004,7 @@ define log_result
   tbreak *($lr & ~1)
   commands
     silent
-    print_current_location
+    print_current_location $pc
     printf " => 0x%x\n", $r0
     c
   end
