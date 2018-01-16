@@ -803,6 +803,11 @@ my_init_task(int a, int b, int c, int d)
     // memory check OK, call Canon's init_task
     int ans = init_task_func(a,b,c,d);
 
+#ifdef HIJACK_CACHE_HACK
+    /* uninstall cache hacks */
+    cache_unlock();
+#endif
+
 #ifdef ARMLIB_OVERFLOWING_BUFFER
     // Restore the overwritten value, if any
     if(backup_address != 0)
