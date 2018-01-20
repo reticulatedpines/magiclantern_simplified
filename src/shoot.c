@@ -2819,8 +2819,12 @@ bulb_take_pic(int duration)
     if (ml_taking_pic) return 1;
     ml_taking_pic = 1;
 
+    printf("[BULB] taking picture @ %s %d.%d\" %s\n",
+        lens_format_iso(lens_info.raw_iso),
+        duration / 1000, (duration / 100) % 10,
+        lens_format_aperture(lens_info.raw_aperture)
+    );
 
-    //~ NotifyBox(2000,  "Bulb: %d ", duration); msleep(2000);
     duration = MAX(duration, BULB_MIN_EXPOSURE) + BULB_EXPOSURE_CORRECTION;
     int s0r = lens_info.raw_shutter; // save settings (for restoring them back)
     int m0r = shooting_mode;
@@ -4797,27 +4801,35 @@ static void hdr_check_for_under_or_over_exposure(int* under, int* over)
 
     int under_numpix, over_numpix;
     int total_numpix = get_under_and_over_exposure(20, 235, &under_numpix, &over_numpix);
-    int po = over_numpix * 10000 / total_numpix;
-    int pu = under_numpix * 10000 / total_numpix;
+    int po = (uint64_t) over_numpix * 100000ull / total_numpix;
+    int pu = (uint64_t) under_numpix * 100000ull / total_numpix;
     if (over_numpix  > 0) po = MAX(po, 1);
     if (under_numpix > 0) pu = MAX(pu, 1);
-    *over  = po >  15; // 0.15 % highlight ignore
-    *under = pu > 250; // 2.50 % shadow ignore
+    *over  = po >  150; // 0.15 % highlight ignore
+    *under = pu > 2500; // 2.50 % shadow ignore
+
+    printf("[ABRK] over:%3d.%02d%% %s 0.15%% under:%3d.%02d%% %s 2.50%%\n",
+        po/1000, (po/10)%100, 0, *over ? ">" : "<", 0,
+        pu/1000, (pu/10)%100, 0, *under ? ">" : "<", 0
+    );
+
     bmp_printf(
         FONT_LARGE, 50, 50, 
-        "Under:%3d.%02d%%\n"
-        "Over :%3d.%02d%%", 
-        pu/100, pu%100, 0, 
-        po/100, po%100, 0
+        "Over :%3d.%02d%%\n"
+        "Under:%3d.%02d%%",
+        po/1000, (po/10)%100, 0,
+        pu/1000, (pu/10)%100, 0 
     ); 
+
     msleep(500);
 }
 
 static int hdr_shutter_release_then_check_for_under_or_over_exposure(int ev_x8, int* under, int* over)
 {
-    int ans = hdr_shutter_release(ev_x8);
+    int ok = hdr_shutter_release(ev_x8);
     hdr_check_for_under_or_over_exposure(under, over);
-    return ans;
+    if (!ok) printf("[ABRK] exposure limits reached.\n");
+    return ok;
 }
 
 static void hdr_auto_take_pics(int step_size, int skip0)

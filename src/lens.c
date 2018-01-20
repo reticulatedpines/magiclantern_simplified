@@ -868,7 +868,8 @@ void restore_af_button_assignment_at_shutdown()
     }
 }
 
-int ml_taking_pic = 0;
+/* also used in bulb_take_pic */
+volatile int ml_taking_pic = 0;
 
 int lens_setup_af(int should_af)
 {
@@ -901,6 +902,13 @@ lens_take_picture(
     }
 
     ml_taking_pic = 1;
+
+    printf("[LENS] taking picture @ %s %s %s %s\n",
+        lens_format_iso(lens_info.raw_iso),
+        lens_format_shutter(lens_info.raw_shutter),
+        lens_format_aperture(lens_info.raw_aperture),
+        should_af == AF_ENABLE ? "AF" : should_af == AF_DISABLE ? "no AF" : ""
+    );
 
     int file_number_before = get_shooting_card()->file_number;
 
