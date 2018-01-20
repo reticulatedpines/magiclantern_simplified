@@ -1157,7 +1157,7 @@ static int
 silent_pic_take_fullres(int interactive)
 {
     int ok = 1;
-    
+
     /* get out of LiveView, but leave the shutter open */
     PauseLiveView();
     
@@ -1496,7 +1496,18 @@ static unsigned int silent_pic_polling_cbr(unsigned int ctx)
                 }
             }
         }
-        
+
+        if (lv && lens_info.IS)
+        {
+            /* if enabled on the lens, wait until the half-shutter activates it (500ms timeout) */
+            /* fixme: with a short half-shutter press, IS may not be activated */
+            for (int i = 0; i < 50 && get_halfshutter_pressed() && lens_info.IS != 0xE; i++)
+            {
+                bmp_printf(FONT_MED, 0, 37, "Waiting for IS...");
+                msleep(10);
+            }
+        }
+
         silent_pic_take(1);
     }
     
