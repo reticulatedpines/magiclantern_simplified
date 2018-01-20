@@ -463,8 +463,7 @@ static int luaCB_menu_instance_index(lua_State * L)
     else if(!strcmp(key, "depends_on")) lua_pushinteger(L, script_entry->menu_entry->depends_on);
     /// Editing mode for the menu item.
     ///
-    /// Set to 2 to show the LiveView image while changing values in this menu.
-    /// TODO: rename and switch to bool?
+    /// Set to 1 to show the LiveView image while changing values in this menu.
     // @tfield int edit_mode
     else if(!strcmp(key, "edit_mode")) lua_pushinteger(L, script_entry->menu_entry->edit_mode);
     /// The type of icon to use for this menu item (override only if the default choice is not good).

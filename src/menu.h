@@ -205,14 +205,8 @@ struct menu_entry
 #define NUM_CHOICES(entry) ((entry)->max - (entry)->min + 1)
 #define CHOICES(...) (const char *[]) { __VA_ARGS__ }
 
-#define EM_FEW_VALUES 0
-#define EM_MANY_VALUES 1
-#define EM_MANY_VALUES_LV 2
-
-/*#define EM_FEW_VALUES 0
-#define EM_MANY_VALUES 0
-#define EM_MANY_VALUES_LV 0*/
-
+#define EM_AUTO 0
+#define EM_SHOW_LIVEVIEW 1
 
 #define IT_AUTO 0
 #define IT_BOOL 1

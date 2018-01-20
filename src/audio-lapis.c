@@ -593,7 +593,6 @@ static struct menu_entry audio_menus[] = {
                 .icon_type      = IT_PERCENT,
                 .select         = audio_recdgain_toggle,
                 .help = "Record Digital Volume. ",
-                .edit_mode = EM_MANY_VALUES,
             },
             {
                 .name = "Left Digital Gain ",
@@ -603,7 +602,6 @@ static struct menu_entry audio_menus[] = {
                 .select         = audio_dgain_toggle,
                 .update         = audio_dgain_display,
                 .help = "Digital gain (LEFT). Any nonzero value reduces quality.",
-                .edit_mode = EM_MANY_VALUES,
             },
             {
                 .name = "Right Digital Gain",
@@ -613,7 +611,6 @@ static struct menu_entry audio_menus[] = {
                 .select         = audio_dgain_toggle,
                 .update         = audio_dgain_display,
                 .help = "Digital gain (RIGHT). Any nonzero value reduces quality.",
-                .edit_mode = EM_MANY_VALUES,
             },
             {
                 .name = "AGC",

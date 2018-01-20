@@ -349,7 +349,7 @@ static MENU_SELECT_FUNC(reg_clear_override)
             .select = reg_toggle, \
             .select_Q = reg_clear_override, \
             .update = reg_update, \
-            .edit_mode = EM_MANY_VALUES_LV, \
+            .edit_mode = EM_SHOW_LIVEVIEW, \
             .shidden = 1, \
         }
 

@@ -609,7 +609,6 @@ static struct menu_entry powersave_menus[] = {
             .max            = 900,
             .icon_type      = IT_PERCENT_LOG_OFF,
             .help = "Turn off GlobalDraw when idle, to save some CPU cycles.",
-            //~ .edit_mode = EM_MANY_VALUES,
         },
         MENU_EOL
     },

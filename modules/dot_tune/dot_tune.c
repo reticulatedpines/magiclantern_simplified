@@ -696,14 +696,12 @@ static struct menu_entry afma_menu[] = {
                 .update = afma_scan_passes_display,
                 .select = afma_scan_passes_toggle,
                 .help  = "Number of time to check for focus confirmation.",
-                .edit_mode = EM_MANY_VALUES,
             },
             {
                 .name = "AF microadjust",
                 .update = afma_display,
                 .select = afma_toggle,
                 .help  = "Adjust AFMA value manually. Range: -100...+100.",
-                .edit_mode = EM_MANY_VALUES,
             },
             MENU_EOL
         },

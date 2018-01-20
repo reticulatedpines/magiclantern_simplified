@@ -472,7 +472,6 @@ static struct menu_entry audio_menus[] = {
         #endif
         .help = "Gain applied to both inputs in analog domain (preferred).",
         .depends_on = DEP_SOUND_RECORDING,
-        .edit_mode = EM_MANY_VALUES,
     },
     #endif
     #ifdef FEATURE_DIGITAL_GAIN

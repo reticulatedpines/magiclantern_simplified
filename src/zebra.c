@@ -2687,7 +2687,6 @@ struct menu_entry zebra_menus[] = {
         .select_Q   = toggle_disp_mode_menu,
         .update    = global_draw_display,
         .icon_type = IT_DICE_OFF,
-        .edit_mode = EM_MANY_VALUES,
         .choices = (const char *[]) {"OFF", "LiveView", "QuickReview", "ON, all modes"},
         .help = "Enable/disable ML overlay graphics (zebra, cropmarks...)",
         //.essential = FOR_LIVEVIEW,
