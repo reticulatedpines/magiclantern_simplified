@@ -519,19 +519,19 @@ static int luaCB_max_aperture_index(lua_State * L)
 //@function __tostring
 static int luaCB_aperture_tostring(lua_State * L)
 {
-    lua_pushfstring(L, lens_format_aperture(lens_info.raw_aperture));
+    lua_pushstring(L, lens_format_aperture(lens_info.raw_aperture));
     return 1;
 }
 
 static int luaCB_min_aperture_tostring(lua_State * L)
 {
-    lua_pushfstring(L, lens_format_aperture(lens_info.raw_aperture_min));
+    lua_pushstring(L, lens_format_aperture(lens_info.raw_aperture_min));
     return 1;
 }
 
 static int luaCB_max_aperture_tostring(lua_State * L)
 {
-    lua_pushfstring(L, lens_format_aperture(lens_info.raw_aperture_max));
+    lua_pushstring(L, lens_format_aperture(lens_info.raw_aperture_max));
     return 1;
 }
 
@@ -593,14 +593,7 @@ static int luaCB_iso_index(lua_State * L)
 //@function __tostring
 static int luaCB_iso_tostring(lua_State * L)
 {
-    if(lens_info.raw_iso)
-    {
-        lua_pushfstring(L, "%d", raw2iso(lens_info.raw_iso));
-    }
-    else
-    {
-        lua_pushstring(L, "AutoISO");
-    }
+    lua_pushstring(L, lens_format_iso(lens_info.raw_iso));
     return 1;
 }
 

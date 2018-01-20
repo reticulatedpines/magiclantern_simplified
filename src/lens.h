@@ -259,13 +259,16 @@ lens_format_dist(
 );
 
 /** Pretty prints the shutter speed given the raw shutter value as input */
-char* lens_format_shutter(int tv);
+char* lens_format_shutter(int raw_shutter);
 
 /** Pretty prints the shutter speed given the shutter reciprocal (times 1000) as input */
 char* lens_format_shutter_reciprocal(int shutter_reciprocal_x1000, int digits);
 
 /** Pretty prints the aperture given the raw value as input */
-char* lens_format_aperture(int av);
+char* lens_format_aperture(int raw_aperture);
+
+/** Pretty prints the ISO given the raw value as input */
+char* lens_format_iso(int raw_iso);
 
 #define KELVIN_MIN 1500
 #define KELVIN_MAX 15000
