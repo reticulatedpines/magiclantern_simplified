@@ -1109,26 +1109,13 @@ static void show_battery_status()
 static PROP_INT(PROP_ISO, prop_iso);
 static PROP_INT(PROP_SHUTTER, prop_shutter);
 
-/* this will check (poll) if we are still in QR (or paused LV) mode, every 100ms,
+/* used to check (in polling_cbr) whether we are still in QR (or paused LV) mode,
  * until preview_time expires or until you get out of QR, whichever happens first
- * if we didn't leave QR mode, it will turn off the display
+ * if we didn't leave QR mode, it will return to LiveView or turn off the display
+ * depending on powersave settings.
  */
-static void display_off_if_qr_mode(int unused, int preview_time)
-{
-    if (is_play_or_qr_mode() || LV_PAUSED)
-    {
-        if (preview_time > 0)
-        {
-            /* OK for now, re-check after 100ms */
-            delayed_call(100, display_off_if_qr_mode, (void*)(preview_time - 100));
-        }
-        else
-        {
-            /* preview_time expired */
-            display_off();
-        }
-    }
-}
+static int image_review_duration = 0;   /* ms */
+static int image_review_start_time = 0; /* ms_clock_value */
 
 static uint32_t SLOWEST_SHUTTER = SHUTTER_15s;
 
@@ -1307,6 +1294,9 @@ silent_pic_take_fullres(int interactive)
         }
     }
 
+    /* image review timeout starts here */
+    image_review_start_time = get_ms_clock_value();
+
     /* prepare to save the file */
     struct raw_info local_raw_info = raw_info;
     
@@ -1358,16 +1348,14 @@ silent_pic_take_fullres(int interactive)
         /* (will set a timer - if we are still in QR mode, turn off the display) */
         int intervalometer_delay = get_interval_time() * 1000;
         int intervalometer_remaining = intervalometer_delay - capture_time - save_time - 2000;
-        int preview_delay = 
-            image_review_time ? COERCE(intervalometer_remaining, 0, image_review_time * 1000 - save_time) 
+        image_review_duration = 
+            image_review_time ? COERCE(intervalometer_remaining, 0, image_review_time * 1000) 
                               : 0;
-        delayed_call(100, display_off_if_qr_mode, (void*)preview_delay);
     }
     else
     {
         bmp_printf(FONT_MED, 0, 106, "Long half-shutter will take another picture.");
-        int preview_delay = MAX(1000, image_review_time * 1000 - save_time);
-        delayed_call(100, display_off_if_qr_mode, (void*)preview_delay);
+        image_review_duration = MAX(1000, image_review_time * 1000);
     }
 
 cleanup:
@@ -1448,6 +1436,7 @@ static unsigned int silent_pic_polling_cbr(unsigned int ctx)
     if (silent_pic_mode == SILENT_PIC_MODE_FULLRES && (shooting_mode != SHOOTMODE_M || is_movie_mode()))
         return 0;
 
+    /* don't trigger a silent picture when pressing half-shutter to exit some menu */
     static int silent_pic_countdown;
     if (!display_idle())
     {
@@ -1457,6 +1446,25 @@ static unsigned int silent_pic_polling_cbr(unsigned int ctx)
     {
         if (silent_pic_countdown)
             silent_pic_countdown--;
+    }
+
+    /* after the image review time, return to LiveView or turn off the display */
+    if (image_review_duration && get_ms_clock_value() - image_review_start_time > image_review_duration)
+    {
+        /* do this only once */
+        image_review_duration = 0;
+
+        extern int idle_display_turn_off_after;
+        if (is_intervalometer_running() || idle_display_turn_off_after)
+        {
+            /* prefer turning off the display to save power */
+            display_off();
+        }
+        else
+        {
+            /* prefer going back to LiveView (more user-friendly) */
+            force_liveview();
+        }
     }
 
     if (lv && get_halfshutter_pressed())
