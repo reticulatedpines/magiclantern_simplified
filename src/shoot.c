@@ -4800,15 +4800,15 @@ static void hdr_check_for_under_or_over_exposure(int* under, int* over)
     ensure_play_or_qr_mode_after_shot();
 
     int under_numpix, over_numpix;
-    int total_numpix = get_under_and_over_exposure(20, 235, &under_numpix, &over_numpix);
+    int total_numpix = get_under_and_over_exposure(50, 235, &under_numpix, &over_numpix);
     int po = (uint64_t) over_numpix * 100000ull / total_numpix;
     int pu = (uint64_t) under_numpix * 100000ull / total_numpix;
     if (over_numpix  > 0) po = MAX(po, 1);
     if (under_numpix > 0) pu = MAX(pu, 1);
-    *over  = po >  150; // 0.15 % highlight ignore
-    *under = pu > 2500; // 2.50 % shadow ignore
+    *over  = po >    20; // 0.02% highlight ignore
+    *under = pu > 10000; // 10% shadow ignore
 
-    printf("[ABRK] over:%3d.%02d%% %s 0.15%% under:%3d.%02d%% %s 2.50%%\n",
+    printf("[ABRK] over:%3d.%02d%% %s 0.02%% under:%3d.%02d%% %s 10%%\n",
         po/1000, (po/10)%100, 0, *over ? ">" : "<", 0,
         pu/1000, (pu/10)%100, 0, *under ? ">" : "<", 0
     );
