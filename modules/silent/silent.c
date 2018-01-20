@@ -43,6 +43,7 @@ extern WEAK_FUNC(ret_0) int GetBatteryDrainRate();
 static CONFIG_INT( "silent.pic", silent_pic_enabled, 0 );
 static CONFIG_INT( "silent.pic.mode", silent_pic_mode, 0 );
 static CONFIG_INT( "silent.pic.slitscan.mode", silent_pic_slitscan_mode, 0 );
+static CONFIG_INT( "silent.pic.fullres.trigger", silent_pic_fullres_trigger_mode, 0 );
 static CONFIG_INT( "silent.pic.file_format", silent_pic_file_format, 0 );
 #define SILENT_PIC_MODE_SIMPLE 0
 #define SILENT_PIC_MODE_BURST 1
@@ -78,6 +79,9 @@ static MENU_UPDATE_FUNC(silent_pic_mode_update)
     /* reveal options for the current shooting mode, if any */
     silent_menu[0].children[1].shidden =
         (silent_pic_mode != SILENT_PIC_MODE_SLITSCAN);
+
+    silent_menu[0].children[2].shidden =
+        (silent_pic_mode != SILENT_PIC_MODE_FULLRES);
 }
 
 static MENU_UPDATE_FUNC(silent_pic_check_mlv)
@@ -1147,6 +1151,27 @@ silent_pic_take_fullres(int interactive)
 
     /* get out of LiveView, but leave the shutter open */
     PauseLiveView();
+
+    if (interactive && silent_pic_fullres_trigger_mode)
+    {
+        /* trigger on shutter release? */
+        while (get_halfshutter_pressed())
+        {
+            bmp_printf(FONT_MED, 0, 0, "Half-shutter...");
+            msleep(10);
+        }
+
+        /* wait after shutter release? */
+        if (silent_pic_fullres_trigger_mode == 2)
+        {
+            /* also trigger half-shutter to activate IS */
+            info_led_on();
+            SW1(1, 0);
+            msleep(2000);
+            SW1(0, 0);
+            info_led_off();
+        }
+    }
     
     /* block all keys until finished, to avoid errors */
     gui_uilock(UILOCK_EVERYTHING);
@@ -1551,7 +1576,7 @@ static struct menu_entry silent_menu[] = {
         .depends_on = DEP_LIVEVIEW | DEP_CFN_AF_BACK_BUTTON,
         .help  = "Take pics in LiveView without moving the shutter mechanism.",
         #ifdef FEATURE_SILENT_PIC_RAW_BURST
-        .submenu_width = 650,
+        .submenu_width = 700,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Silent Mode",
@@ -1594,6 +1619,22 @@ static struct menu_entry silent_menu[] = {
                     "Scan from right to left.\n"
                     "Keep scan line in middle of frame, horizontally.\n",
                 .shidden = 1,   /* enabled only when choosing slit-scan */
+            },
+            {
+                .name = "Trigger Mode",
+                .priv = &silent_pic_fullres_trigger_mode,
+                .max = 2,
+                .choices = CHOICES(
+                    "Half-shutter press",
+                    "Half-shutter release",
+                    "Delayed",
+                ),
+                .help = "Choose when to capture the image:",
+                .help2 =
+                    "Start image capture on half-shutter press (quick).\n"
+                    "Start image capture on half-shutter release (end trigger).\n"
+                    "Start image capture 2 seconds after half-shutter release.\n",
+                .shidden = 1,   /* enabled only when choosing full-res */
             },
             {
                 .name = "File Format",
@@ -1652,6 +1693,7 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(silent_pic_enabled)
     MODULE_CONFIG(silent_pic_mode)
     MODULE_CONFIG(silent_pic_slitscan_mode)
+    MODULE_CONFIG(silent_pic_fullres_trigger_mode)
     MODULE_CONFIG(silent_pic_file_format)
 MODULE_CONFIGS_END()
 
