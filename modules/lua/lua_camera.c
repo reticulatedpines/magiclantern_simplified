@@ -391,7 +391,9 @@ static int luaCB_shutter_index(lua_State * L)
 //@function __tostring
 static int luaCB_shutter_tostring(lua_State * L)
 {
+    int old = cli();
     lua_pushstring(L, lens_format_shutter(lens_info.raw_shutter));
+    sei(old);
     return 1;
 }
 
@@ -519,19 +521,25 @@ static int luaCB_max_aperture_index(lua_State * L)
 //@function __tostring
 static int luaCB_aperture_tostring(lua_State * L)
 {
+    int old = cli();
     lua_pushstring(L, lens_format_aperture(lens_info.raw_aperture));
+    sei(old);
     return 1;
 }
 
 static int luaCB_min_aperture_tostring(lua_State * L)
 {
+    int old = cli();
     lua_pushstring(L, lens_format_aperture(lens_info.raw_aperture_min));
+    sei(old);
     return 1;
 }
 
 static int luaCB_max_aperture_tostring(lua_State * L)
 {
+    int old = cli();
     lua_pushstring(L, lens_format_aperture(lens_info.raw_aperture_max));
+    sei(old);
     return 1;
 }
 
@@ -593,7 +601,9 @@ static int luaCB_iso_index(lua_State * L)
 //@function __tostring
 static int luaCB_iso_tostring(lua_State * L)
 {
+    int old = cli();
     lua_pushstring(L, lens_format_iso(lens_info.raw_iso));
+    sei(old);
     return 1;
 }
 

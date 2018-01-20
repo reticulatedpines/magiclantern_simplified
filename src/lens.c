@@ -439,7 +439,7 @@ static int round_nicely(int x, int digits)
 
 // Pretty prints the shutter speed given the shutter reciprocal (times 1000) as input
 // To be used in movie mode; it doesn't try too hard to be consistent with Canon values
-char* lens_format_shutter_reciprocal(int shutter_reciprocal_x1000, int digits)
+const char * lens_format_shutter_reciprocal(int shutter_reciprocal_x1000, int digits)
 {
     static char shutter[32];
     if (shutter_reciprocal_x1000 == 0)
@@ -482,7 +482,7 @@ char* lens_format_shutter_reciprocal(int shutter_reciprocal_x1000, int digits)
 
 // Pretty prints the shutter speed given the raw shutter value as input
 // To be used in photo mode; it will try to be somewhat consistent with Canon values
-char* lens_format_shutter(int raw_shutter)
+const char * lens_format_shutter(int raw_shutter)
 {
     static char shutter[16];
     if(raw_shutter >= 70 && raw_shutter - 15 < COUNT(values_shutter))
@@ -513,7 +513,7 @@ char* lens_format_shutter(int raw_shutter)
     return shutter;
 }
 
-char* lens_format_aperture(int raw_aperture)
+const char * lens_format_aperture(int raw_aperture)
 {
     int f = RAW2VALUE(aperture, raw_aperture);
     
@@ -529,7 +529,7 @@ char* lens_format_aperture(int raw_aperture)
     return aperture;
 }
 
-char * lens_format_iso(int raw_iso)
+const char * lens_format_iso(int raw_iso)
 {
     static char iso[16];
 
