@@ -587,30 +587,46 @@ static void menu_numeric_toggle_long_range(int* val, int delta, int min, int max
 }
 
 /* for editing with caret */
-static int get_delta(struct menu_entry * entry, int sign)
+static int get_caret_delta(struct menu_entry * entry, int sign)
 {
     if(!EDIT_OR_TRANSPARENT)
-        return sign;
-    else if(entry->unit == UNIT_DEC)
-        return sign * powi(10, caret_position);
-    else if(entry->unit == UNIT_HEX)
-        return sign * powi(16, caret_position);
-    else if(entry->unit == UNIT_TIME)
     {
-        if(caret_position == 2) return sign * 10;
-        else if(caret_position == 4) return sign * 60;
-        else if(caret_position == 5) return sign * 600;
-        else if(caret_position == 7) return sign * 3600;
-        else if(caret_position == 8) return sign * 36000;
+        return sign;
     }
-    return sign;
+
+    switch (entry->unit)
+    {
+        case UNIT_DEC:
+        case UNIT_TIME_MS:
+        case UNIT_TIME_US:
+        {
+            return sign * powi(10, caret_position);
+        }
+
+        case UNIT_HEX:
+        {
+            return sign * powi(16, caret_position);
+        }
+
+        case UNIT_TIME:
+        {
+            const int increments[] = { 0, 1, 10, 0, 60, 600, 0, 3600, 36000 };
+            return sign * increments[caret_position];
+        }
+
+        default:
+        {
+            return sign;
+        }
+    }
 }
 
 static int uses_caret_editing(struct menu_entry * entry)
 {
     return 
         entry->select == 0 &&   /* caret editing requires its own toggle logic */
-        (entry->unit == UNIT_DEC || entry->unit == UNIT_HEX  || entry->unit == UNIT_TIME);  /* only these caret edit modes are supported */
+        (entry->unit == UNIT_DEC || entry->unit == UNIT_HEX  || entry->unit == UNIT_TIME ||
+         entry->unit == UNIT_TIME_MS || entry->unit == UNIT_TIME_US);  /* only these caret edit modes are supported */
 }
 
 static int editing_with_caret(struct menu_entry * entry)
@@ -620,9 +636,9 @@ static int editing_with_caret(struct menu_entry * entry)
 
 static void caret_move(struct menu_entry * entry, int delta)
 {
-    int max = (entry->unit == UNIT_HEX)  ? log2i(MAX(ABS(entry->max),ABS(entry->min)))/4 :
-              (entry->unit == UNIT_DEC)  ? log10i(MAX(ABS(entry->max),ABS(entry->min))/2)  :
-              (entry->unit == UNIT_TIME) ? 7 : 0;
+    int max = (entry->unit == UNIT_TIME) ? 7 :
+              (entry->unit == UNIT_HEX)  ? log2i(MAX(ABS(entry->max),ABS(entry->min)))/4
+                                         : log10i(MAX(ABS(entry->max),ABS(entry->min))/2) ;
 
     menu_numeric_toggle(&caret_position, delta, 0, max);
 
@@ -2460,8 +2476,25 @@ entry_default_display_info(
                     {
                         STR_APPEND(value,"%ds", MEM(entry->priv));
                     }
+                    break;                    
+                }
+                case UNIT_TIME_MS:
+                case UNIT_TIME_US:
+                {
+                    if(edit_mode)
+                    {
+                        char* zero_pad = "00000000";
+                        STR_APPEND(value, "%s%d", (zero_pad + COERCE(8-(caret_position - log10i(MEM(entry->priv))),0,8)), MEM(entry->priv));
+                    }
+                    else
+                    {
+                        if (entry->unit == UNIT_TIME_MS) {
+                            STR_APPEND(value, "%d ms", MEM(entry->priv));
+                        } else {
+                            STR_APPEND(value, "%d " SYM_MICRO "s", MEM(entry->priv));
+                        }
+                    }
                     break;
-                    
                 }
                 default:
                 {
@@ -4227,7 +4260,7 @@ menu_entry_select(
             /* .priv is a variable? in edit mode, increment according to caret_position, otherwise use exponential R20 toggle */
             /* exception: hex fields are never fast-toggled */
             if (editing_with_caret(entry) || (entry->unit == UNIT_HEX))
-                menu_numeric_toggle(entry->priv, get_delta(entry,-1), entry->min, entry->max);
+                menu_numeric_toggle(entry->priv, get_caret_delta(entry,-1), entry->min, entry->max);
             else
                 menu_numeric_toggle_fast(entry->priv, -1, entry->min, entry->max, entry->unit == UNIT_TIME, 0);
         }
@@ -4308,7 +4341,7 @@ menu_entry_select(
         else if (IS_ML_PTR(entry->priv))
         {
             if (editing_with_caret(entry) || (entry->unit == UNIT_HEX))
-                menu_numeric_toggle(entry->priv, get_delta(entry,1), entry->min, entry->max);
+                menu_numeric_toggle(entry->priv, get_caret_delta(entry,1), entry->min, entry->max);
             else
                 menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max, entry->unit == UNIT_TIME, 0);
         }

@@ -239,7 +239,9 @@ struct menu_entry
 #define UNIT_ISO 5
 #define UNIT_HEX 6
 #define UNIT_DEC 7
-#define UNIT_TIME 8
+#define UNIT_TIME 8     /* seconds */
+#define UNIT_TIME_MS 9  /* milliseconds */
+#define UNIT_TIME_US 10 /* microseconds */
 
 #define DEPENDS_ON(foo) (entry->depends_on & (foo))
 #define WORKS_BEST_IN(foo) (entry->works_best_in & (foo))
