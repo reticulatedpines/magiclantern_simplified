@@ -22,6 +22,7 @@
  */
 
 #include "dryos.h"
+#include "math.h"
 #include "version.h"
 #include "bmp.h"
 #include "gui.h"
@@ -445,8 +446,36 @@ struct menu * menu_get_root() {
   return menus;
 }
 
+// 1-2-5 series - https://en.wikipedia.org/wiki/Preferred_number#1-2-5_series
+static int round_to_125(int val)
+{
+    if (val < 0)
+    {
+        return -round_to_125(-val);
+    }
+    
+    int mag = 1;
+    while (val >= 30)
+    {
+        val /= 10;
+        mag *= 10;
+    }
+    
+    if (val <= 2)
+        {}
+    else if (val <= 3)
+        val = 2;
+    else if (val <= 7)
+        val = 5;
+    else if (val <= 14)
+        val = 10;
+    else
+        val = 20;
+    
+    return val * mag;
+}
+
 // ISO 3 R10": 10, 12, 15, 20, 25, 30, 40, 50, 60, 80, 100
-/*
 static int round_to_R10(int val)
 {
     if (val < 0)
@@ -477,7 +506,7 @@ static int round_to_R10(int val)
         val = 30;
     
     return val * mag;
-}*/
+}
 
 // ISO 3 R20": 10, 11, 12, 14, 15, 18, 20, 22, 25, 28, 30, 35, 40, 45, 50, 55, 60, 70, 80, 90, 100
 static int round_to_R20(int val)
@@ -526,7 +555,13 @@ static int round_to_R20(int val)
     return val * mag;
 }
 
-static void menu_numeric_toggle_R20(int* val, int delta, int min, int max)
+static int round_to_pow2(int val)
+{
+    int stops = (int)roundf(log2f(val));
+    return (int)roundf(powf(2, stops));
+}
+
+static void menu_numeric_toggle_rounded(int* val, int delta, int min, int max, int (*round_func)(int))
 {
     ASSERT(IS_ML_PTR(val));
 
@@ -538,19 +573,39 @@ static void menu_numeric_toggle_R20(int* val, int delta, int min, int max)
         v = max;
     else
     {
-        int v0 = round_to_R20(v);
+        int v0 = round_func(v);
         if (v0 != v && SGN(v0 - v) == SGN(delta)) // did we round in the correct direction? if so, stop here
         {
             *val = v0;
             return;
         }
         // slow, but works (fast enough for numbers like 5000)
-        while (v0 == round_to_R20(v))
+        while (v0 == round_func(v))
             v += delta;
-        v = COERCE(round_to_R20(v), min, max);
+        v = COERCE(round_func(v), min, max);
     }
     
     set_config_var_ptr(val, v);
+}
+
+static void menu_numeric_toggle_R10(int* val, int delta, int min, int max)
+{
+    return menu_numeric_toggle_rounded(val, delta, min, max, round_to_R10);
+}
+
+static void menu_numeric_toggle_R20(int* val, int delta, int min, int max)
+{
+    return menu_numeric_toggle_rounded(val, delta, min, max, round_to_R20);
+}
+
+static void menu_numeric_toggle_125(int* val, int delta, int min, int max)
+{
+    return menu_numeric_toggle_rounded(val, delta, min, max, round_to_125);
+}
+
+static void menu_numeric_toggle_pow2(int* val, int delta, int min, int max)
+{
+    return menu_numeric_toggle_rounded(val, delta, min, max, round_to_pow2);
 }
 
 static void menu_numeric_toggle_long_range(int* val, int delta, int min, int max)
@@ -671,24 +726,44 @@ void menu_numeric_toggle_time(int * val, int delta, int min, int max)
     set_config_var_ptr(val, new_val);
 }
 
-static void menu_numeric_toggle_fast(int* val, int delta, int min, int max, int is_time, int ignore_timing)
+static void menu_numeric_toggle_fast(int* val, int delta, int min, int max, int unit, int edit_mode, int ignore_timing)
 {
     ASSERT(IS_ML_PTR(val));
     
     static int prev_t = 0;
     static int prev_delta = 1000;
     int t = get_ms_clock_value();
-    
-    if(is_time)
+
+    if (unit == UNIT_TIME)
     {
         menu_numeric_toggle_time(val, delta, min, max);
+    }
+    else if (edit_mode & EM_ROUND_ISO_R10)
+    {
+        menu_numeric_toggle_R10(val, delta, min, max);
+    }
+    else if (edit_mode & EM_ROUND_ISO_R20)
+    {
+        menu_numeric_toggle_R20(val, delta, min, max);
+    }
+    else if (edit_mode & EM_ROUND_1_2_5_10)
+    {
+        menu_numeric_toggle_125(val, delta, min, max);
+    }
+    else if (edit_mode & EM_ROUND_POWER_OF_2)
+    {
+        menu_numeric_toggle_pow2(val, delta, min, max);
     }
     else if (max - min > 20)
     {
         if (t - prev_t < 200 && prev_delta < 200 && !ignore_timing)
+        {
             menu_numeric_toggle_R20(val, delta, min, max);
+        }
         else
+        {
             menu_numeric_toggle_long_range(val, delta, min, max);
+        }
     }
     else
     {
@@ -4262,7 +4337,7 @@ menu_entry_select(
             if (editing_with_caret(entry) || (entry->unit == UNIT_HEX))
                 menu_numeric_toggle(entry->priv, get_caret_delta(entry,-1), entry->min, entry->max);
             else
-                menu_numeric_toggle_fast(entry->priv, -1, entry->min, entry->max, entry->unit == UNIT_TIME, 0);
+                menu_numeric_toggle_fast(entry->priv, -1, entry->min, entry->max, entry->unit, entry->edit_mode, 0);
         }
         entry_used = 1;
     }
@@ -4338,7 +4413,7 @@ menu_entry_select(
             }
             else if IS_ML_PTR(entry->priv)
             {
-                menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max, entry->unit == UNIT_TIME, 0);
+                menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max, entry->unit, entry->edit_mode, 0);
                 entry_used = 1;
             }
         }
@@ -4354,7 +4429,7 @@ menu_entry_select(
             if (editing_with_caret(entry) || (entry->unit == UNIT_HEX))
                 menu_numeric_toggle(entry->priv, get_caret_delta(entry,1), entry->min, entry->max);
             else
-                menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max, entry->unit == UNIT_TIME, 0);
+                menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max, entry->unit, entry->edit_mode, 0);
         }
 
         entry_used = 1;
@@ -6385,7 +6460,7 @@ int menu_set_str_value_from_script(const char* name, const char* entry_name, cha
             if (entry->max - entry->min > 1000)
             {
                 /* for very long min-max ranges, don't try every single value */
-                menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max, entry->unit == UNIT_TIME, 1);
+                menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max, entry->unit, entry->edit_mode, 1);
             }
             else
             {
