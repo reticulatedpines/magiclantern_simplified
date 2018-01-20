@@ -854,6 +854,7 @@ static MENU_UPDATE_FUNC(raw_zebra_update)
 }
 #endif
 
+/* used for auto bracketing */
 int get_under_and_over_exposure(int thr_lo, int thr_hi, int* under, int* over)
 {
     *under = -1;
@@ -865,16 +866,16 @@ int get_under_and_over_exposure(int thr_lo, int thr_hi, int* under, int* over)
     *over = 0;
     int total = 0;
     void* vram = lv->vram;
-    int x,y;
-    for( y = os.y0 ; y < os.y_max; y ++ )
+
+    bmp_draw_rect(COLOR_GRAY(50), os.x0 + 20, os.y0 + 20, os.x_ex - 40, os.y_ex - 40);
+    for (int y = os.y0 + 20 ; y < os.y_max - 20; y++)
     {
         uint32_t * const v_row = (uint32_t*)( vram + BM2LV_R(y) );
-        for( x = os.x0 ; x < os.x_max ; x += 2 )
+        for (int x = os.x0 + 20 ; x < os.x_max - 20; x += 2)
         {
             uint32_t pixel = v_row[x >> 1];
             
             int Y, R, G, B;
-            //~ uyvy2yrgb(pixel, &Y, &R, &G, &B);
             COMPUTE_UYVY2YRGB(pixel, Y, R, G, B);
             
             int M = MAX(R,G);
