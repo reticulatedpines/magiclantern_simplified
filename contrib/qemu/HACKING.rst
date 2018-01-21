@@ -1,3 +1,5 @@
+.. If you see this (unformatted) text on Bitbucket, please try reloading the page.
+
 EOS firmware in QEMU - development and reverse engineering guide
 ================================================================
 

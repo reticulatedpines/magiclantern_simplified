@@ -1,3 +1,5 @@
+.. If you see this (unformatted) text on Bitbucket, please try reloading the page.
+
 How can I run Magic Lantern in QEMU?
 ====================================
 
