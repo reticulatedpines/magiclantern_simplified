@@ -101,18 +101,20 @@ Memory-mapped I/O, peripherals and registers
 
 Adapted from https://jsandler18.github.io/extra/peripheral.html
 
-**Memory-mapped I/O** or **MMIO** is the process of interacting with hardware devices
+**Memory-mapped I/O** or **MMIO** is a way of interacting with hardware devices
 by reading from and writing to predefined memory addresses.
-All interactions with the DIGIC hardware happen with MMIO.
+All interactions with the DIGIC hardware happen using MMIO.
 
 .. _peripheral:
 
-A **Peripheral** is a hardware device with specific address(es) in memory that it writes data to
-and/or reads data from. Each peripheral has a (hardcoded) range of addresses
-in a memory region configured for I/O; on Canon hardware, this region is generally located
-at ``0xC0000000 - 0xDFFFFFFF`` (with variations: ``C0000000 - CFFFFFFF``, ``C0000000 - C0FFFFFF`` and so on).
+A **Peripheral** is a hardware device, the firmware can use to fulfil interactions with external devices.
+There are e.g. peripherals to send and receive data with the lens chip or with the Real Time Clock (RTC)
+This interaction is intiated through specific MMIO address(es) in memory space.
 
-A **Register** is a 4-byte piece of memory through that a peripheral can read from or write to.
+Each peripheral has a (hardcoded) range of addresses. On Canon hardware, this region is generally located
+somewhere within ``0xC0000000 - 0xDFFFFFFF`` (with variations: ``C0000000 - CFFFFFFF``, ``C0000000 - C0FFFFFF`` and so on).
+
+A **Register** is a 32 bit wide (4 byte) location in that peripheral memory range, used to control the peripheral.
 These registers are at predefined offsets from the peripheral’s base address.
 For example, it is quite common for at least one register to be a control register,
 where each bit in the register corresponds to a certain behavior that the hardware should have.
