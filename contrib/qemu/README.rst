@@ -479,6 +479,20 @@ Note: you need to copy the raw contents of the entire card, not just one partiti
 
   dd if=/dev/mmcblk0 of=sd.img    # not mmcblk0p1
 
+Tip: to save disk space, format the SD card first, copy the desired files,
+then create the image as `qcow2 <https://rwmj.wordpress.com/2010/05/18/tip-compress-raw-disk-images-using-qcow2/>`_:
+
+.. code:: shell
+
+  qemu-img convert -f raw -O qcow2 /dev/mmcblk0 sd.qcow2
+
+then update ``run_canon_fw.sh`` to use the new image::
+
+  -drive if=sd,format=qcow2,file=sd.qcow2
+
+That way, a 64GB card with Magic Lantern installed, after formatting in camera
+with the option to keep ML on the card, will only take up about 15MB as a ``qcow2`` image.
+
 Running from the physical SD/CF card
 ````````````````````````````````````
 You may also start QEMU from the same card you use in the physical camera — 
@@ -712,7 +726,7 @@ This is tricky and not automated. You need to be careful with the following glob
   .. code:: shell
 
     QEMU_MONITOR=qemu.monitor$QEMU_JOB_ID
-    GDB_PORT=$((1234+$QEMU_JOB_ID))
+    GDB_PORT=$((1234+QEMU_JOB_ID))
     ./run_canon_fw.sh EOSM2,firmware="boot=0" -S -gdb tcp::$GDB_PORT &
     arm-none-eabi-gdb -ex "set \$TCP_PORT=$GDB_PORT" -x EOSM2/patches.gdb -ex quit &
     
@@ -1063,6 +1077,20 @@ Instrumentation
 
 `TODO (see QEMU forum thread) <http://www.magiclantern.fm/forum/index.php?topic=2864.msg184125#msg184125>`_
 
+The instrumentation framework provides the following features:
+
+  - log all debug messages from Canon: ``-d debugmsg``
+  - log all memory accesses: ``-d rom/ram/romr/ramw/etc``
+  - log all function calls: ``-d calls``, ``-d calls,tail``
+  - log all DryOS/VxWorks task switches: ``-d tasks``
+  - track all function calls to provide a stack trace: ``-d callstack``
+  - export all called functions to IDC script: ``-d idc``
+  - identify memory blocks copied from ROM to RAM: ``-d romcpy``
+  - check for memory errors (a la valgrind): ``-d memchk``
+
+Debugging symbols from ML can be made available to instrumentation routines from environment variables (see ``export_ml_syms.sh``).
+
+The address of DebugMsg is exported by ``run_canon_fw.sh`` (extracted from the GDB script, where it's commented out for speed reasons).
 
 Hacking
 -------
@@ -1089,15 +1117,18 @@ History
 :2015: `100D emulation, serial flash and GDB scripts from nkls <http://www.magiclantern.fm/forum/index.php?topic=2864.msg153064#msg153064>`_
 :2016: `More EOS models boot Canon GUI (no menus yet) <http://www.magiclantern.fm/forum/index.php?topic=2864.msg168603#msg168603>`_
 :2016: `Low-level button codes and GUI modes understood <http://www.magiclantern.fm/forum/index.php?topic=2864.msg169517#msg169517>`_
-:2016: `Users start wondering why the heck are we spending most of our time on this <http://www.magiclantern.fm/forum/index.php?topic=2864.msg169970#msg169970>`_
+:2016: `Users start wondering why the heck are we wasting our time on this <http://www.magiclantern.fm/forum/index.php?topic=2864.msg169970#msg169970>`_
 :2016: `Leegong from Nikon Hacker starts documenting MPU messages <http://www.magiclantern.fm/forum/index.php?topic=17596.msg171304#msg171304>`_
 :2017: `500D menu navigation! (Greg) <http://www.magiclantern.fm/forum/index.php?topic=2864.msg179867#msg179867>`_
 :2017: `nkls solves an important issue that was very hard to track down! <http://www.magiclantern.fm/forum/index.php?topic=2864.msg183311#msg183311>`_
-:2017: `Menu navigation works on most D4 and 5 models <http://www.magiclantern.fm/forum/index.php?topic=2864.msg181786#msg181786>`_
+:2017: `Menu navigation works on most DIGIC 4 and 5 models <http://www.magiclantern.fm/forum/index.php?topic=2864.msg181786#msg181786>`_
 :2017:  Working on `Mac (dfort) <http://www.magiclantern.fm/forum/index.php?topic=2864.msg184981#msg184981>`_ 
         and `Windows 10 / Linux subsystem (g3gg0) <http://www.magiclantern.fm/forum/index.php?topic=20214.0>`_
 :2017: `EOS M2 porting walkthrough <http://www.magiclantern.fm/forum/index.php?topic=15895.msg185103#msg185103>`_
 :2017: `Automated tests for ML builds in QEMU <http://www.magiclantern.fm/forum/index.php?topic=20560>`_
+:2017: `RTC emulation, many patches no longer needed <http://www.magiclantern.fm/forum/index.php?topic=2864.msg190823#msg190823>`_ (g3gg0)
+:2017: `Major progress with DIGIC 6 emulation <http://www.magiclantern.fm/forum/index.php?topic=17360.msg194898#msg194898>`_
+:2017: `Menu navigation works on 20 EOS models! (DIGIC 3-5) <http://www.magiclantern.fm/forum/index.php?topic=2864.msg195117#msg195117>`_
 
 
 

@@ -92,11 +92,11 @@ Tip: after installation, you may change ``ML_PATH`` to emulate ML from other dir
 Misc notes
 ``````````
 
-Model-specific parameters: eos/model_list.c (todo: move all hardcoded stuff there).
+Model-specific parameters: ``eos/model_list.c`` (todo: move all hardcoded stuff there).
 
-MMIO handlers: eos_handle_whatever (with io_log for debug messages).
+MMIO handlers: ``eos_handlers`` -> ``eos_handle_whatever`` (with ``io_log`` for debug messages).
 
-Useful: eos_get_current_task_name/id/stack, eos_mem_read/write.
+Useful: ``eos_get_current_task_name/id/stack``, ``eos_mem_read/write``.
 
 To extract MPU messages from a `startup log <http://builds.magiclantern.fm/jenkins/view/Experiments/job/startup-log/>`_,
 use `extract_init_spells.py <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/eos/mpu_spells/extract_init_spells.py>`_ (see `MPU communication`_).
