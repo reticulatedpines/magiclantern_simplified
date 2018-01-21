@@ -89,24 +89,168 @@ Should you want to customize these paths, you may set the following environment 
 
 Tip: after installation, you may change ``ML_PATH`` to emulate ML from other directories, located anywhere in the filesystem.
 
-Misc notes
-``````````
+Basic concepts
+``````````````
 
-Model-specific parameters: ``eos/model_list.c`` (todo: move all hardcoded stuff there).
+Some parts were adapted from `Jake Sandler's excellent operating system tutorial for Raspberry Pi <https://jsandler18.github.io>`_.
 
-MMIO handlers: ``eos_handlers`` -> ``eos_handle_whatever`` (with ``io_log`` for debug messages).
+Memory-mapped I/O, peripherals and registers
+''''''''''''''''''''''''''''''''''''''''''''
 
-Useful: ``eos_get_current_task_name/id/stack``, ``eos_mem_read/write``.
+Adapted from https://jsandler18.github.io/extra/peripheral.html
 
-To extract MPU messages from a `startup log <http://builds.magiclantern.fm/jenkins/view/Experiments/job/startup-log/>`_,
-use `extract_init_spells.py <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/eos/mpu_spells/extract_init_spells.py>`_ (see `MPU communication`_).
+**Memory-mapped I/O** or **MMIO** is the process of interacting with hardware devices
+by reading from and writing to predefined memory addresses.
+All interactions with the DIGIC hardware happen with MMIO.
 
-To customize keys or add support for new buttons or GUI events,
-edit `mpu.c <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/eos/mpu.c>`_,
-`button_codes.h <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/eos/mpu_spells/button_codes.h>`_
-and `extract_button_codes.py <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/eos/mpu_spells/extract_button_codes.py>`_.
+.. _peripheral:
 
-Known MPU messages and properties are exported to `known_spells.h <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/eos/mpu_spells/known_spells.h>`_.
+A **Peripheral** is a hardware device with specific address(es) in memory that it writes data to
+and/or reads data from. Each peripheral has a (hardcoded) range of addresses
+in a memory region configured for I/O; on Canon hardware, this region is generally located
+at ``0xC0000000 - 0xDFFFFFFF`` (with variations: ``C0000000 - CFFFFFFF``, ``C0000000 - C0FFFFFF`` and so on).
+
+A **Register** is a 4-byte piece of memory through that a peripheral can read from or write to.
+These registers are at predefined offsets from the peripheral’s base address.
+For example, it is quite common for at least one register to be a control register,
+where each bit in the register corresponds to a certain behavior that the hardware should have.
+Another common register is a write register, where anything written in it gets sent off to the hardware.
+Some peripherals also have a status register (which may be either read-only or shared with a control register).
+
+For example, there are 8 DMA channels placed at ``0xC0A10000-0xC0A100FF``,
+``0xC0A20000-0xC0A200FF``, ..., ``0xC0A80000-0xC0A800FF``. All these DMA channels
+share the same behavior, and are controlled by registers located in the above ranges.
+For example, at offset ``0x08`` you will find the control register (``0xC0A10008``, ``0xC0A20008``, ..., ``0xC0A80008``),
+offset ``0x18`` is the source address, ``0x1C`` is the destination address
+and offset ``0x20`` is the transfer size (see ``eos_handle_dma`` in ``eos.c``).
+
+Figuring out where all the peripherals are, what registers they have
+and how to use them, is difficult — there's no documentation on DIGIC hardware.
+One may start analyzing Canon code that uses these peripherals (what values are written to them,
+what values are expected to be read, what the hardware is supposed to do with them)
+and by `cross-checking the register values with those obtained on physical hardware`__ (by logging what Canon code does).
+Generally, the behavior of these peripherals is common across many camera models; very often,
+compatibility is maintained across many generations of the hardware. For example, a 24-bit microsecond timer
+("DryOS timer") can be read from register ``0xC0242014`` on all EOS and PowerShot models from DIGIC 2 to DIGIC 5.
+
+__ `Cross-checking the emulation with actual hardware`_
+
+See `Working out all the way to Canon GUI`_ for some examples of figuring out what certain peripherals are supposed to do.
+
+Hardware interfaces are generally compatible between EOS and PowerShot models. For example,
+EDMAC (image processing DMA) works the same at hardware level on both EOS and PowerShot
+(therefore, the same emulation code can be reused for both platforms);
+however, the front-end functions used in the firmware are different
+(that makes porting CHDK on EOS models or Magic Lantern on PowerShot models a non-trivial task).
+
+Documentation for certain off-the-shelf peripherals (such as RTC, audio chip, serial flash)
+is available (`Datasheets <http://magiclantern.wikia.com/wiki/Datasheets>`_,
+`Circuit boards <http://magiclantern.wikia.com/wiki/Circuit_boards>`_ and `photo-parts.ua <https://photo-parts.com.ua/parts/?part=550D>`_).
+For this purpose, high-resolution pictures of (your) camera mainboards are always welcome.
+
+MMIO register activity can be logged by running the emulation with ``-d io``.
+
+What we know about these registers can be found in emulator sources, starting at the ``eos_handlers`` table,
+and on the `Register Map <http://magiclantern.wikia.com/wiki/Register_Map>`_ wiki page.
+
+Interrupts and exceptions
+'''''''''''''''''''''''''
+
+Adapted from https://jsandler18.github.io/extra/interrupts.html
+
+An **Exception** is an event that is triggered when something exceptional occurs
+during normal program execution. Examples of such exceptional occurrences include hardware devices
+presenting new data to the CPU, user code asking to perform a privileged action, and a bad instruction
+was encountered.
+
+On ARM processors, when an exception occurs, a specific address is loaded into the program counter register,
+branching execution to this point. At this location, the firmware contains branch instructions
+to routines that handle the exceptions. This set of addresses, also known as the Vector Table,
+usually starts at address 0 (in RAM) or 0xFFFF0000 (configuration known as `HIVECS <https://developer.arm.com/docs/ddi0363/e/programmers-model/exceptions/exception-vectors>`_), but on recent models
+it can be located anywhere in the system memory.
+
+Below is a table that describes the exceptions interesting to us:
+
+========  ============================  ===========================================================
+Offset    Exception name                What happened
+========  ============================  ===========================================================
+0x00      Reset                         Execution starts here at power on (see `Initial firmware analysis`_)
+0x04      Undefined instruction         Attempted to execute an invalid instruction
+0x0C      Prefetch Abort                Attempted to read an instruction from non-executable memory
+0x10      Data Abort                    Attempted to read data from a privileged memory region
+**0x18**  **Interrupt Request (IRQ)**   Hardware wants to make the CPU aware of something
+0x1C      Fast Interrupt Request (FIQ)  One select hardware can do the above faster than all others
+========  ============================  ===========================================================
+
+
+An **Interrupt Request** or **IRQ** is a notification to the processor
+that something happened to some hardware that the processor should know about.
+This can take many forms, for example, a character was received on the serial line
+or a file I/O transfer was completed. The operating system (DryOS, VxWorks) uses a periodic timer interrupt
+(`heartbeat <https://sites.google.com/site/rtosmifmim/home/timer-functions>`_),
+usually configured to fire every 10ms; many other peripherals use interrupts to signal various events.
+
+In order to determine which hardware devices are allowed to trigger interrupts,
+and determine which device triggered an interrupt, we need to look at the interrupt controller
+(``eos_handle_intengine``, which comes in many sizes and shapes, depending on camera generation).
+
+For emulation purposes, we need to know when the firmware expects an interrupt for each peripheral
+(for example, after a SD transfer command) and how to react to MMIO activity from the interrupt handling routine
+(for example, the firmware may check the status of the peripheral to figure out why the interrupt was triggered, or what to do next).
+
+Interrupt activity can be logged by running the emulation with ``-d int``.
+When troubleshooting interrupt issues, you will also want to log MMIO activity,
+as well as some additional messages that are hidden by default: ``-d io,int,v``.
+
+The interrupt IDs are mostly common across EOS models, but there are exceptions.
+Model-specific interrupts can be found in ``model_list.c``, while generic ones
+are hardcoded throughout the source.
+
+A good janitor project would be to `document all the registers, interrupts and other model-specific constants
+<http://www.magiclantern.fm/forum/index.php?topic=14656.0>`_,
+in a way that's easy to read, reuse and doesn't go out of sync with the source code.
+
+Serial communication
+''''''''''''''''''''
+
+Some peripherals use the well-known
+`I2C and SPI <https://www.byteparadigm.com/applications/introduction-to-i2c-and-spi-protocols/>`_ interfaces.
+While their low-level communication uses MMIO registers and (sometimes) interrupts, one has to understand
+the high-level protocol in order to emulate — or interact with — these peripherals.
+
+Examples:
+
+- `RTC chip <http://www.magiclantern.fm/forum/index.php?topic=2864.msg190823#msg190823>`_ (real-time clock)
+- `ADTG and CMOS registers <http://magiclantern.wikia.com/wiki/ADTG>`_ (image capture hardware)
+- `TFT SIO registers <http://www.magiclantern.fm/forum/index.php?topic=21108>`_ (built-in LCD controller)
+- `HDMI CEC <http://www.magiclantern.fm/forum/index.php?topic=12022.msg136689#msg136689>`_ (Ctrl over HDMI)
+- `Touch screen controller <http://www.magiclantern.fm/forum/index.php?topic=15895.msg187011#msg187011>`_
+- `MPU communication`_ (see below).
+
+Secondary processors
+''''''''''''''''''''
+
+Canon cameras are generally multi-processor systems. Since our understanding of all these processors
+is quite limited, we attempt to emulate only one of them at a time (at least for the time being)
+and model the secondary processors as regular `peripherals`__.
+
+__ `peripheral`_
+
+Common secondary processors:
+
+- the `MPU`__ (I/O microcontroller on EOS models, `TX19A <http://magiclantern.wikia.com/wiki/Tx19a>`_ on DIGIC 4)
+- the `Eeko <http://www.magiclantern.fm/forum/index.php?topic=13408.msg175656#msg175656>`_ (on DIGIC 5, emulated as ``5D3eeko``)
+  and `Omar <http://www.magiclantern.fm/forum/index.php?topic=13408.msg194424#msg194424>`_ (on DIGIC 6)
+  cores likely used for image processing
+- the `JPCORE <http://www.magiclantern.fm/forum/index.php?topic=18443.msg177082#msg177082>`_ (JPEG/LJ92 and H.264 encoders, likely CPU-based)
+- the AE processor on 5D Mark IV (``K349AE``, emulated as ``5D4AE``)
+- the secondary ARM core on 7D (``K250M``, emulated as ``7DM``), 7D Mark II (``K289S``, emulated as ``7D2S``) and other Dual DIGIC models
+- the `ZICO <http://chdk.setepontos.com/index.php?topic=11316.msg129104#msg129104>`_ 
+  `GPU <http://chdk.setepontos.com/index.php?topic=12788.0>`_ on DIGIC 6 and 7 models (Xtensa)
+- the `lens MCU <http://www.magiclantern.fm/forum/index.php?topic=20969>`_ (firmware upgradeable on recent models).
+
+__ `MPU communication`_
+
 
 Adding support for a new camera model
 `````````````````````````````````````
@@ -957,11 +1101,24 @@ Checking interrupts from actual hardware
 
 LOG_INTERRUPTS in dm-spy-experiments.
 
-MPU messages
-''''''''''''
+Misc notes
+``````````
 
-`mpu_send/recv <http://www.magiclantern.fm/forum/index.php?topic=2864.msg166938#msg166938>`_ in dm-spy-experiments
-(`startup-log <http://builds.magiclantern.fm/jenkins/view/Experiments/job/startup-log/>`_ builds.). See `MPU Communication`_.
+Model-specific parameters: ``eos/model_list.c`` (todo: move all hardcoded stuff there).
+
+MMIO handlers: ``eos_handlers`` -> ``eos_handle_whatever`` (with ``io_log`` for debug messages).
+
+Useful: ``eos_get_current_task_name/id/stack``, ``eos_mem_read/write``.
+
+To extract MPU messages from a `startup log <http://builds.magiclantern.fm/jenkins/view/Experiments/job/startup-log/>`_,
+use `extract_init_spells.py <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/eos/mpu_spells/extract_init_spells.py>`_ (see `MPU communication`_).
+
+To customize keys or add support for new buttons or GUI events,
+edit `mpu.c <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/eos/mpu.c>`_,
+`button_codes.h <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/eos/mpu_spells/button_codes.h>`_
+and `extract_button_codes.py <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/eos/mpu_spells/extract_button_codes.py>`_.
+
+Known MPU messages and properties are exported to `known_spells.h <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/eos/mpu_spells/known_spells.h>`_.
 
 Committing your changes
 ```````````````````````
