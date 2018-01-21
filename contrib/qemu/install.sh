@@ -356,7 +356,7 @@ echo
 echo "*** Setting up QEMU in $(pwd)..."
 echo
 
-if [ -d $QEMU_PATH ]; then
+if [ -d $QEMU_NAME ]; then
   DATE=`date '+%Y-%m-%d_%H-%M-%S'`
   echo "*** Directory $(pwd)/$QEMU_NAME already exists."
   echo "*** To reinstall, please rename or delete it first."
@@ -514,7 +514,7 @@ echo "     ./run_canon_fw.sh 60D -d exec,int -singlestep"
 echo "   - to trace debug messages and various functions in the firmware, use:"
 echo "     ./run_canon_fw.sh 60D -d debugmsg -s -S & arm-none-eabi-gdb -x 60D/debugmsg.gdb"
 echo "   - some camera models require GDB patches to bypass tricky code sequences:"
-echo "     ./run_canon_fw.sh 700D -s -S & arm-none-eabi-gdb -x 700D/patches.gdb"
+echo "     ./run_canon_fw.sh EOSM -s -S & arm-none-eabi-gdb -x EOSM/patches.gdb"
 echo
 echo
 echo "Online documentation: "
