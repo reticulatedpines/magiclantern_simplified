@@ -8,4 +8,7 @@ end
 
 if $STANDALONE
   source -v debug-logging.gdb
+  # some address that always has a null value
+  macro define CURRENT_TASK 0xC0000000
+  macro define CURRENT_ISR 0
 end
