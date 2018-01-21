@@ -1081,14 +1081,14 @@ Instrumentation
 
 The instrumentation framework provides the following features:
 
-  - log all debug messages from Canon: ``-d debugmsg``
-  - log all memory accesses: ``-d rom/ram/romr/ramw/etc``
-  - log all function calls: ``-d calls``, ``-d calls,tail``
-  - log all DryOS/VxWorks task switches: ``-d tasks``
-  - track all function calls to provide a stack trace: ``-d callstack``
-  - export all called functions to IDC script: ``-d idc``
-  - identify memory blocks copied from ROM to RAM: ``-d romcpy``
-  - check for memory errors (a la valgrind): ``-d memchk``
+- log all debug messages from Canon: ``-d debugmsg``
+- log all memory accesses: ``-d rom/ram/romr/ramw/etc``
+- log all function calls: ``-d calls``, ``-d calls,tail``
+- log all DryOS/VxWorks task switches: ``-d tasks``
+- track all function calls to provide a stack trace: ``-d callstack``
+- export all called functions to IDC script: ``-d idc``
+- identify memory blocks copied from ROM to RAM: ``-d romcpy``
+- check for memory errors (a la valgrind): ``-d memchk``
 
 Debugging symbols from ML can be made available to instrumentation routines from environment variables (see ``export_ml_syms.sh``).
 

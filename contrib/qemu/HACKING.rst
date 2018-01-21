@@ -132,7 +132,7 @@ One may start analyzing Canon code that uses these peripherals (what values are 
 what values are expected to be read, what the hardware is supposed to do with them)
 and by `cross-checking the register values with those obtained on physical hardware`__ (by logging what Canon code does).
 Generally, the behavior of these peripherals is common across many camera models; very often,
-compatibility is maintained across many generations of the hardware. For example, a 24-bit microsecond timer
+compatibility is maintained across many generations of the hardware. For example, a 20-bit microsecond timer
 ("DryOS timer") can be read from register ``0xC0242014`` on all EOS and PowerShot models from DIGIC 2 to DIGIC 5.
 
 __ `Cross-checking the emulation with actual hardware`_
@@ -177,7 +177,7 @@ Below is a table that describes the exceptions interesting to us:
 Offset    Exception name                What happened
 ========  ============================  ===========================================================
 0x00      Reset                         Execution starts here at power on (see `Initial firmware analysis`_)
-0x04      Undefined instruction         Attempted to execute an invalid instruction
+0x04      Undefined Instruction         Attempted to execute an invalid instruction
 0x0C      Prefetch Abort                Attempted to read an instruction from non-executable memory
 0x10      Data Abort                    Attempted to read data from a privileged memory region
 **0x18**  **Interrupt Request (IRQ)**   Hardware wants to make the CPU aware of something
@@ -193,7 +193,7 @@ or a file I/O transfer was completed. The operating system (DryOS, VxWorks) uses
 usually configured to fire every 10ms; many other peripherals use interrupts to signal various events.
 
 In order to determine which hardware devices are allowed to trigger interrupts,
-and determine which device triggered an interrupt, we need to look at the interrupt controller
+and which device triggered an interrupt, we need to look at the interrupt controller
 (``eos_handle_intengine``, which comes in many sizes and shapes, depending on camera generation).
 
 For emulation purposes, we need to know when the firmware expects an interrupt for each peripheral
@@ -232,7 +232,7 @@ Examples:
 Secondary processors
 ''''''''''''''''''''
 
-Canon cameras are generally multi-processor systems. Since our understanding of all these processors
+Canon cameras are generally multiprocessor systems. Since our understanding of all these processors
 is quite limited, we attempt to emulate only one of them at a time (at least for the time being)
 and model the secondary processors as regular `peripherals`__.
 
@@ -247,7 +247,7 @@ Common secondary processors:
 - the `JPCORE <http://www.magiclantern.fm/forum/index.php?topic=18443.msg177082#msg177082>`_ (JPEG/LJ92 and H.264 encoders, likely CPU-based)
 - the AE processor on 5D Mark IV (``K349AE``, emulated as ``5D4AE``)
 - the secondary ARM core on 7D (``K250M``, emulated as ``7DM``), 7D Mark II (``K289S``, emulated as ``7D2S``) and other Dual DIGIC models
-- the `ZICO <http://chdk.setepontos.com/index.php?topic=11316.msg129104#msg129104>`_ 
+- the `Zico <http://chdk.setepontos.com/index.php?topic=11316.msg129104#msg129104>`_ 
   `GPU <http://chdk.setepontos.com/index.php?topic=12788.0>`_ on DIGIC 6 and 7 models (Xtensa)
 - the `lens MCU <http://www.magiclantern.fm/forum/index.php?topic=20969>`_ (firmware upgradeable on recent models).
 
@@ -286,6 +286,8 @@ Initial firmware analysis
    - DIGIC 2..5: ARM946E-S `[1] <http://chdk.setepontos.com/index.php?topic=9801.msg99865#msg99865>`_ -- `arm_arm.pdf <http://www.scss.tcd.ie/~waldroj/3d1/arm_arm.pdf>`_;
    - DIGIC 6: Cortex R4 `[2] <http://chdk.setepontos.com/index.php?topic=11316.msg124273#msg124273>`_ -- `ARM ARM v7 A&R <https://www.cs.utexas.edu/~simon/378/resources/ARMv7-AR_TRM.pdf>`_ and `Cortex R4 TRM <http://infocenter.arm.com/help/topic/com.arm.doc.ddi0363g/DDI0363G_cortex_r4_r1p4_trm.pdf>`_;
    - DIGIC 7: Cortex A9 `[3] <http://chdk.setepontos.com/index.php?topic=13014.msg131110#msg131110>`_ -- `ARM ARM v7 A&R <https://www.cs.utexas.edu/~simon/378/resources/ARMv7-AR_TRM.pdf>`_ and `Cortex A9 TRM <http://infocenter.arm.com/help/topic/com.arm.doc.ddi0388f/DDI0388F_cortex_a9_r2p2_trm.pdf>`_.
+
+   |
 
 2) (Re)load the code in the disassembler at the correct address:
 
@@ -541,10 +543,10 @@ In a few cases, the bootloader may use interrupts as well
 To analyze them, place a breakpoint at 0x18 and see what happens from there.
 
 The second goal — loading ``AUTOEXEC.BIN`` from the card — requires emulation of the SD or CF card.
-If it doesn't already work, look at MMIO activity (``-d io``) and try to make sense of the SD or CF
+If it doesn't already work, look at MMIO activity (``-d io,sdcf``) and try to make sense of the SD or CF
 initialization sequences (both protocols are documented online). The emulation has to be able
 to read arbitrary sectors from the virtual card — once you provide the low-level block transfer
-functionality, Canon firmware whould be able to handle the rest (filesystem drivers etc).
+functionality, Canon firmware would be able to handle the rest (filesystem drivers etc).
 In other words, you shouldn't have to adjust anything in order to emulate EXFAT, for example.
 
 Getting the main firmware to run
@@ -554,7 +556,7 @@ Step by step:
 
 - get debug messages
 
-  - identify DebugMsg (lots of calls, format string is third argument), add the stub to CAM/debugmsg.gdb, run with ``-d debugmsg``
+  - identify DebugMsg (lots of calls, format string is third argument), add the stub to ``CAM/debugmsg.gdb``, run with ``-d debugmsg``
   - identify other functions used to print errors (uart_printf, variants of DebugMsg with format string at second argument etc — look for strings)
   - identify any other strings that might be helpful (tip: run with ``-d calls`` and look for something that makes even a tiny bit of sense)
   
@@ -567,7 +569,7 @@ Step by step:
   - make sure you get periodical interrupts when running with ``-d io,int``, even when all DryOS tasks are idle
 
   Example: 1300D (comment out ``dryos_timer_id`` and ``dryos_timer_interrupt`` from the 1300D section
-  in model_list.c to get the state before `7f1a436 <https://bitbucket.org/hudson/magic-lantern/commits/7f1a436>`_)::
+  in model_list.c to get the state before `7f1a436 <https://bitbucket.org/hudson/magic-lantern/commits/7f1a436#chg-contrib/qemu/eos/model_list.c>`_)::
 
     [INT]      at 0xFE0C3E10:FE0C0C18 [0xC0201010] <- 0x9       : Enabled interrupt 09h
     ...
@@ -582,18 +584,14 @@ Step by step:
 
   Therefore, please do not assume this works, even if you think it does — double-check!
 
-  |
-
 - get some tasks running
 
-  - identify task_create (in debugmsg.gdb — same as in ML ``stubs.S``) and run the firmware under GDB
+  - identify ``task_create`` (in ``debugmsg.gdb`` — same as in ML ``stubs.S``) and run the firmware under GDB
   - identify the pointer to current DryOS task
 
-    This is called current_task_addr in model_list.c, CURRENT_TASK in debugmsg.gdb or current_task in ML stubs —
+    This is called ``current_task_addr`` in ``model_list.c``, ``CURRENT_TASK`` in ``debugmsg.gdb`` or ``current_task`` in ML stubs —
     see `debug-logging.gdb <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/scripts/debug-logging.gdb#debug-logging.gdb>`_
     for further hints.
-
-    |
 
   - identify where the current interrupt is stored
   
@@ -650,7 +648,7 @@ the startup sequence advances to the next stage.
 
 **What if it gets stuck?**
 
-You need to figure it out: Difficulty: anywhere within [0 — infinity); a great dose of luck will help.
+You will need to figure it out. Difficulty: anywhere within [0 — infinity); a great dose of luck will help.
 
 Let's look at an example — 1300D::
 
@@ -664,9 +662,9 @@ Let's look at an example — 1300D::
    [     Startup:fe0d4054 ] (00:03) [SEQ] NotifyComplete (Cur = 3, 0x20110, Flag = 0x100)
    [     FileMgr:fe0d4054 ] (00:03) [SEQ] NotifyComplete (Cur = 3, 0x20010, Flag = 0x10)
 
-It got stuck because somebody has yet to call NotifyComplete with Flag = 0x20000.
+It got stuck because somebody has yet to call ``NotifyComplete`` with ``Flag = 0x20000``.
 
-Who's supposed to call that? Either look in the disassembly to find who calls NotifyComplete with the right argument,
+Who's supposed to call that? Either look in the disassembly to find who calls ``NotifyComplete`` with the right argument,
 or — if not obvious — look in the startup logs of other camera models from the same generation, where the flag is likely the same.
 
 Why it didn't get called? Most of the time:
@@ -676,11 +674,14 @@ Why it didn't get called? Most of the time:
 - it may expect some message from the MPU
 - other (some task stuck in a loop, some prerequisite code did not run etc)
 
-How to solve? There's no fixed recipe; generally, try to steer the code towards calling NotifyComplete with the missing flag.
+How to solve? There's no fixed recipe; generally, try to steer the code towards calling ``NotifyComplete`` with the missing flag.
 You'll need to figure out where it gets stuck and how to fix it. Some things to try:
 
-- check whether the task supposed to call the troublesome NotifyComplete is waiting
-  (not advancing past a take_semaphore / msg_queue_receive / wait_for_event_flag; ``extask`` in Dry-shell may help)
+- check whether the task supposed to call the troublesome ``NotifyComplete`` is waiting
+  (not advancing past a ``take_semaphore`` / ``msg_queue_receive`` / ``wait_for_event_flag``; 
+  the ``extask`` command in `Dry-shell`__ may help)
+
+__ `Serial console`_
 
 - check who calls the corresponding give_semaphore / msg_queue_send etc and why it doesn't run
   (it may be some callback, it may be expected to run from an interrupt, it may wait for some peripheral and so on)
@@ -692,7 +693,7 @@ The DryOS timer interrupt (heartbeat) was different from *all other* DIGIC 4 and
 the emulation to go **that** far without a valid heartbeat (that way, we've lost many hours of debugging).
 Now scroll up and read that section again ;)
 
-Fixing that and a few other things (commit `7f1a436 <https://bitbucket.org/hudson/magic-lantern/commits/7f1a436>`_)
+Fixing that and a few other things (`commit 7f1a436 <https://bitbucket.org/hudson/magic-lantern/commits/7f1a436>`_)
 were enough to bring the GUI on 1300D.
 
 PowerShot firmware startup sequence
