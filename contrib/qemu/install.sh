@@ -449,7 +449,7 @@ echo "   cd `pwd`/${QEMU_NAME}"
 echo "   ../configure_eos.sh"
 echo "   make -j`$GREP -c processor /proc/cpuinfo 2> /dev/null || sysctl -n hw.ncpu 2> /dev/null || echo 1`"
 echo
-echo "Shall this script attempt to compile QEMU now? [y/N]"
+echo -n "Shall this script attempt to compile QEMU now? [y/n] "
 read answer
 if test "$answer" == "Y" -o "$answer" == "y"
  then
