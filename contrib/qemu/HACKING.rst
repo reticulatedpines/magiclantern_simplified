@@ -78,7 +78,7 @@ copies the following files:
   magic-lantern/contrib/qemu/tests -> qemu/tests (guess)
 
 Customizing directories
-```````````````````````
+'''''''''''''''''''''''
 
 Once QEMU is compiled into some subdirectory (such as ``/path/to/qemu/qemu-2.5.0/``),
 it will no longer work elsewhere (you will not be able to rename/move this directory
@@ -107,14 +107,15 @@ All interactions with the DIGIC hardware happen using MMIO.
 
 .. _peripheral:
 
-A **Peripheral** is a hardware device, the firmware can use to fulfil interactions with external devices.
-There are e.g. peripherals to send and receive data with the lens chip or with the Real Time Clock (RTC)
-This interaction is intiated through specific MMIO address(es) in memory space.
+A **Peripheral** is a `hardware device <https://barrgroup.com/Embedded-Systems/Books/Programming-Embedded-Systems/Peripherals-Device-Drivers>`_
+used in embedded systems, in addition to processor and memory. Some peripherals, such as timers or interrupt controller,
+are often included in the same chip as the processor; others, such as the real-time clock or LCD controller, are usually external.
+The firmware interacts with peripherals through specific MMIO address(es) in the memory space.
 
-Each peripheral has a (hardcoded) range of addresses. On Canon hardware, this region is generally located
+Each peripheral has a (hardcoded) range of memory addresses. On Canon hardware, this region is generally located
 somewhere within ``0xC0000000 - 0xDFFFFFFF`` (with variations: ``C0000000 - CFFFFFFF``, ``C0000000 - C0FFFFFF`` and so on).
 
-A **Register** is a 32 bit wide (4 byte) location in that peripheral memory range, used to control the peripheral.
+A **Register** is a 32-bit wide (4-byte) location in some peripheral's address range, used to control that peripheral.
 These registers are at predefined offsets from the peripheral’s base address.
 For example, it is quite common for at least one register to be a control register,
 where each bit in the register corresponds to a certain behavior that the hardware should have.
@@ -191,16 +192,19 @@ An **Interrupt Request** or **IRQ** is a notification to the processor
 that something happened to some hardware that the processor should know about.
 This can take many forms, for example, a character was received on the serial line
 or a file I/O transfer was completed. The operating system (DryOS, VxWorks) uses a periodic timer interrupt
-(`heartbeat <https://sites.google.com/site/rtosmifmim/home/timer-functions>`_),
-usually configured to fire every 10ms; many other peripherals use interrupts to signal various events.
+(`heartbeat <https://sites.google.com/site/rtosmifmim/home/timer-functions>`_) that usually fires every 10ms;
+many other peripherals use interrupts to signal various events.
 
-In order to determine which hardware devices are allowed to trigger interrupts,
+In order to find out which hardware devices are allowed to trigger interrupts,
 and which device triggered an interrupt, we need to look at the interrupt controller
-(``eos_handle_intengine``, which comes in many sizes and shapes, depending on camera generation).
+(``eos_handle_intengine``, which comes in many shapes and sizes, depending on camera generation).
 
 For emulation purposes, we need to know when the firmware expects an interrupt for each peripheral
-(for example, after a SD transfer command) and how to react to MMIO activity from the interrupt handling routine
+(for example, after completing a DMA transfer, or when a timer overflows, or when a `secondary CPU`__ wants to talk, and so on)
+and how to react to MMIO activity from the interrupt handling routine
 (for example, the firmware may check the status of the peripheral to figure out why the interrupt was triggered, or what to do next).
+
+__ `Secondary processors`_
 
 Interrupt activity can be logged by running the emulation with ``-d int``.
 When troubleshooting interrupt issues, you will also want to log MMIO activity,
@@ -213,6 +217,29 @@ are hardcoded throughout the source.
 A good janitor project would be to `document all the registers, interrupts and other model-specific constants
 <http://www.magiclantern.fm/forum/index.php?topic=14656.0>`_,
 in a way that's easy to read, reuse and doesn't go out of sync with the source code.
+
+GPIO ports
+''''''''''
+
+These work much like the I/O ports on a Raspberry Pi or Arduino —
+switches that you can turn on and off from software (outputs)
+or whose state (on or off) can be read by the processor (inputs).
+
+__ `WriteProtect switch`_
+
+Example: the SD card LED is driven by a GPIO output (by writing to a GPIO register).
+The `write-protect switch`__ state is read from a GPIO input (by reading another register).
+Events from `hot-pluggable devices`__ (USB, external monitors, microphone etc) are usually detected
+by reading some GPIO registers in a loop (but they may as well expect interrupts, e.g. ``MICDetectISR``).
+
+__ `HotPlug events`_
+
+GPIO ports are also used as `chip select <https://en.wikipedia.org/wiki/Chip_select>`_ signals
+for various hardware devices that use the SPI protocol (examples below),
+or hardwired to `secondary processors`_ for communication purposes.
+
+Usual register values for driving GPIO ports: ``0x46/0x44``, ``0x138800/0x838C00``, ``0xD0002/0xC0003``.
+More details `on the wiki <http://magiclantern.wikia.com/wiki/Register_Map#GPIO_Ports>`_.
 
 Serial communication
 ''''''''''''''''''''
@@ -571,7 +598,7 @@ Step by step:
   - make sure you get periodical interrupts when running with ``-d io,int``, even when all DryOS tasks are idle
 
   Example: 1300D (comment out ``dryos_timer_id`` and ``dryos_timer_interrupt`` from the 1300D section
-  in model_list.c to get the state before `7f1a436 <https://bitbucket.org/hudson/magic-lantern/commits/7f1a436#chg-contrib/qemu/eos/model_list.c>`_)::
+  in ``model_list.c`` to get the state before `7f1a436 <https://bitbucket.org/hudson/magic-lantern/commits/7f1a436#chg-contrib/qemu/eos/model_list.c>`_)::
 
     [INT]      at 0xFE0C3E10:FE0C0C18 [0xC0201010] <- 0x9       : Enabled interrupt 09h
     ...
@@ -597,12 +624,10 @@ Step by step:
 
   - identify where the current interrupt is stored
   
-    Look in the interrupt handler — breakpoint at 0x18 to find it — and find CURRENT_ISR in
+    Look in the interrupt handler — breakpoint at 0x18 to find it — and find ``CURRENT_ISR`` in
     `debug-logging.gdb <https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/scripts/debug-logging.gdb#debug-logging.gdb>`_,
     or current_interrupt in ML stubs.
     If you can't find it, you may set it to 0, but if you do, please take task names with a grain of salt if they are printed from some interrupt handler.
-  
-    |
 
   - run with ``-d tasks`` and watch the DryOS task switches.
 
@@ -643,7 +668,7 @@ to know where things are finished. Let's look at its debug messages::
    [       DpMgr:ff02b9f8 ] (00:03) [SEQ] NotifyComplete (Cur = 5, 0x200, Flag = 0x200)
    ...
 
-Notice the pattern? Every time a component is initialized, it calls NotifyComplete with some binary flag.
+Notice the pattern? Every time a component is initialized, it calls ``NotifyComplete`` with some binary flag.
 The bits from this flag are cleared from the middle number, so this number must indicate what processes
 still have to do their initialization. Once this number reaches 0 (not printed),
 the startup sequence advances to the next stage.
@@ -926,7 +951,7 @@ Serial flash
 ''''''''''''
 
 To enable serial flash emulation (if your camera needs it, you'll see some relevant startup messages),
-define ``.serial_flash_size`` in model_list.c and a few other parameters:
+define ``.serial_flash_size`` in ``model_list.c`` and a few other parameters:
 
 - chip select signal (CS): some GPIO register toggled before and after serial flash access
 - SIO channel (used for SPI transfers)
