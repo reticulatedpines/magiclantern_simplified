@@ -5,7 +5,7 @@ UNAME:=$(shell uname)
 
 ifeq ($(UNAME), Darwin)
 	# Variable declaration for Mac OS X
-	UMOUNT=hdiutil unmount
+	UMOUNT=hdiutil eject
 	CF_CARD="/Volumes/EOS_DIGITAL"
 	STAT_CMD=stat -f "%N: %z bytes"
 else
