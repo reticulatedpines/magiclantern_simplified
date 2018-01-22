@@ -5,8 +5,6 @@ How can I run Magic Lantern in QEMU?
 
 This guide shows you how to emulate Magic Lantern (or plain Canon firmware) in QEMU.
 
-Eager to get started? Scroll down to `Installation`_.
-
 .. class:: align-center
 
 |pic1| |pic2|
@@ -15,6 +13,8 @@ Eager to get started? Scroll down to `Installation`_.
     :width: 30 %
 .. |pic2| image:: doc/img/qemu-M2-hello.jpg
     :width: 32.3 %
+
+.. contents::
 
 Current state
 -------------
@@ -1094,8 +1094,8 @@ Debugging symbols from ML can be made available to instrumentation routines from
 
 The address of DebugMsg is exported by ``run_canon_fw.sh`` (extracted from the GDB script, where it's commented out for speed reasons).
 
-Hacking
--------
+Development and reverse engineering guide
+-----------------------------------------
 
 For the following topics, please see `HACKING.rst <HACKING.rst>`_:
 

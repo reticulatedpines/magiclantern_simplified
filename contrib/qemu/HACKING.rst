@@ -10,6 +10,8 @@ For "user" documentation and installation guide, please see the main `README.rst
 This is bleeding-edge development used primarily for reverse engineering.
 You will want to modify the sources, sooner or later.
 
+.. contents::
+
 How is this code organazized?
 `````````````````````````````
 
@@ -117,14 +119,14 @@ somewhere within ``0xC0000000 - 0xDFFFFFFF`` (with variations: ``C0000000 - CFFF
 
 A **Register** is a 32-bit wide (4-byte) location in some peripheral's address range, used to control that peripheral.
 These registers are at predefined offsets from the peripheral’s base address.
-For example, it is quite common for at least one register to be a control register,
+It is quite common for at least one register to be a control register,
 where each bit in the register corresponds to a certain behavior that the hardware should have.
 Another common register is a write register, where anything written in it gets sent off to the hardware.
 Some peripherals also have a status register (which may be either read-only or shared with a control register).
 
 For example, there are 8 DMA channels placed at ``0xC0A10000-0xC0A100FF``,
 ``0xC0A20000-0xC0A200FF``, ..., ``0xC0A80000-0xC0A800FF``. All these DMA channels
-share the same behavior, and are controlled by registers located in the above ranges.
+share the same behavior; moreover, they are controlled by registers located in the above ranges.
 For example, at offset ``0x08`` you will find the control register (``0xC0A10008``, ``0xC0A20008``, ..., ``0xC0A80008``),
 offset ``0x18`` is the source address, ``0x1C`` is the destination address
 and offset ``0x20`` is the transfer size (see ``eos_handle_dma`` in ``eos.c``).
@@ -136,7 +138,7 @@ what values are expected to be read, what the hardware is supposed to do with th
 and by `cross-checking the register values with those obtained on physical hardware`__ (by logging what Canon code does).
 Generally, the behavior of these peripherals is common across many camera models; very often,
 compatibility is maintained across many generations of the hardware. For example, a 20-bit microsecond timer
-("DryOS timer") can be read from register ``0xC0242014`` on all EOS and PowerShot models from DIGIC 2 to DIGIC 5.
+("DIGIC timer") can be read from register ``0xC0242014`` on all EOS and PowerShot models from DIGIC 2 to DIGIC 5.
 
 __ `Cross-checking the emulation with actual hardware`_
 
