@@ -1059,7 +1059,8 @@ static void stub_test_dryos()
     msleep(100);
     TEST_FUNC_CHECK(test_task_created, == 1);
     TEST_FUNC_CHECK_STR(get_current_task_name(), "run_test");
-    
+    TEST_FUNC_CHECK_STR(get_task_name_from_id(current_task->taskId), "run_test");
+
     extern int task_max;
     TEST_FUNC_CHECK(task_max, >= 104);    /* so far, task_max is 104 on most cameras */
     TEST_FUNC_CHECK(task_max, <= 512);    /* I guess it's not higher than that */
