@@ -222,50 +222,50 @@ int ml_gui_initialized = 0; // 1 after gui_main_task is started
  */
 static void
 my_task_dispatch_hook(
-        struct context ** context_old,      /* on new DryOS (6D+), this argument is different (small number, unknown meaning) */
+        struct context ** p_context_old,    /* on new DryOS (6D+), this argument is different (small number, unknown meaning) */
         struct task * prev_task_unused,     /* only present on new DryOS */
-        struct task * next_task             /* only present on new DryOS; old versions use HIJACK_TASK_ADDR */
+        struct task * next_task_new         /* only present on new DryOS; old versions use HIJACK_TASK_ADDR */
 )
 {
-#ifdef HIJACK_TASK_ADDR
-    /* old DryOS only; undefine this for new DryOS */
-    next_task = *(struct task **)(HIJACK_TASK_ADDR);
-#endif
+    struct task * next_task = 
+        #ifdef CONFIG_NEW_DRYOS_TASK_HOOKS
+        next_task_new;
+        #else
+        *(struct task **)(HIJACK_TASK_ADDR);
+        #endif
 
 /* very verbose; disabled by default */
 #undef DEBUG_TASK_HOOK
 #ifdef DEBUG_TASK_HOOK
-#ifdef HIJACK_TASK_ADDR
-    qprintf("[****] task_hook(%x) -> %x(%s), from %x\n",
-        context_old,
-        next_task, next_task ? next_task->name : "??",
-        read_lr()
-    );
-#else
+#ifdef CONFIG_NEW_DRYOS_TASK_HOOKS
     /* new DryOS */
     qprintf("[****] task_hook(%x) %x(%s) -> %x(%s), from %x\n",
-        context_old,
+        p_context_old,
         prev_task_unused, prev_task_unused ? prev_task_unused->name : "??",
         next_task, next_task ? next_task->name : "??",
         read_lr()
     );
-#endif
-#endif
+#else
+    /* old DryOS */
+    qprintf("[****] task_hook(%x) -> %x(%s), from %x\n",
+        p_context_old,
+        next_task, next_task ? next_task->name : "??",
+        read_lr()
+    );
+#endif  /* CONFIG_NEW_DRYOS_TASK_HOOKS */
+#endif  /* DEBUG_TASK_HOOK */
 
     if (!next_task)
         return;
 
-#ifdef HIJACK_TASK_ADDR
-    /* on old DryOS, context is passed as argument
-     * on some models (not all!), it can be found in the task structure as well */
-    if (!context_old)
-        return;
-
-    struct context * context = (*context_old);
-#else
+#ifdef CONFIG_NEW_DRYOS_TASK_HOOKS
     /* on new DryOS, first argument is not context; get it from the task structure */
     /* this also works for some models with old-style DryOS, but not all */
     struct context * context = next_task->context;
+#else
+    /* on old DryOS, context is passed as argument
+     * on some models (not all!), it can be found in the task structure as well */
+    struct context * context = p_context_old ? (*p_context_old) : 0;
 #endif
 
     if (!context)
