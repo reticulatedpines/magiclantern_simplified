@@ -252,7 +252,7 @@ NSTUB(    0x7934,  msleep)
 
 /** Tasks **/
 NSTUB(    0x79E8,  task_create)
-NSTUB(   0x652C0,  task_dispatch_hook)
+NSTUB(   0x652C0,  task_dispatch_hook)                      // task_trampoline -> last call -> last non-empty BL -> one indirect call here
 NSTUB(    0xD070,  task_trampoline)
 
 /** Misc **/

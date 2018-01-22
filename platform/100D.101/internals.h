@@ -17,6 +17,9 @@
 /** This camera loads ML into the AllocateMemory pool **/
 #define CONFIG_ALLOCATE_MEMORY_POOL
 
+/** This camera uses new-style DryOS task hooks */
+#define CONFIG_NEW_DRYOS_TASK_HOOKS
+
 /** This camera has LiveView and can record video **/
 #define CONFIG_LIVEVIEW
 #define CONFIG_MOVIE
