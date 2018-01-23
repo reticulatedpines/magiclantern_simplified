@@ -222,13 +222,13 @@ GPIO ports
 ''''''''''
 
 These work much like the I/O ports on a Raspberry Pi or Arduino —
-switches that you can turn on and off from software (outputs)
-or whose state (on or off) can be read by the processor (inputs).
+signal lines that you can switch high or low from software (outputs)
+or whose input state (high or low) can be read by the processor (inputs).
 
 __ `WriteProtect switch`_
 
-Example: the SD card LED is driven by a GPIO output (by writing to a GPIO register).
-The `write-protect switch`__ state is read from a GPIO input (by reading another register).
+Example: the SD card LED is driven by a GPIO output (by setting specific bits within the GPIO's register).
+The `write-protect switch`__ state is read from a GPIO input (by reading back other bits).
 Events from `hot-pluggable devices`__ (USB, external monitors, microphone etc) are usually detected
 by reading some GPIO registers in a loop (but they may as well expect interrupts, e.g. ``MICDetectISR``).
 
@@ -236,7 +236,7 @@ __ `HotPlug events`_
 
 GPIO ports are also used as `chip select <https://en.wikipedia.org/wiki/Chip_select>`_ signals
 for various hardware devices that use the SPI protocol (examples below),
-or hardwired to `secondary processors`_ for communication purposes.
+or as signalling lines to `secondary processors`_ for communication purposes.
 
 Usual register values for driving GPIO ports: ``0x46/0x44``, ``0x138800/0x838C00``, ``0xD0002/0xC0003``.
 More details `on the wiki <http://magiclantern.wikia.com/wiki/Register_Map#GPIO_Ports>`_.
