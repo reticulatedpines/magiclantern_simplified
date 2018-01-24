@@ -549,4 +549,7 @@ void set_htp(int value);
 int job_state_ready_to_take_pic();
 void lens_wait_readytotakepic();
 
+/* force an update of PROP_LV_LENS outside LiveView */
+void _prop_lv_lens_request_update();
+
 #endif /* _lens_h_ */

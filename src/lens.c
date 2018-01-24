@@ -1673,8 +1673,15 @@ static void focus_ring_powersave_fix()
     }
 }
 
+/* only used for requesting a refresh of PROP_LV_LENS;
+ * raw data is model-dependent, do not use directly */
+static struct prop_lv_lens lv_lens_raw;
+
 PROP_HANDLER( PROP_LV_LENS )
 {
+    ASSERT(len <= sizeof(lv_lens_raw));
+    memcpy(&lv_lens_raw, buf, sizeof(lv_lens_raw));
+
     const struct prop_lv_lens * const lv_lens = (void*) buf;
     lens_info.focal_len     = bswap16( lv_lens->focal_len );
     lens_info.focus_dist    = bswap16( lv_lens->focus_dist );
@@ -1713,6 +1720,20 @@ PROP_HANDLER( PROP_LV_LENS )
     old_focus_pos = lens_info.focus_pos;
     old_focal_len = lens_info.focal_len;
     update_stuff();
+}
+
+/* called once per second */
+void _prop_lv_lens_request_update()
+{
+    /* this property is normally active only in LiveView
+     * however, the MPU can be tricked into sending its value outside LiveView as well
+     * (Canon code also updates these values outside LiveView, when taking a picture)
+     * the input data should not be used, but... better safe than sorry
+     * this should send MPU message 06 04 09 00 00 
+     * and the MPU is expected to reply with the complete property (much larger)
+     * size is model-specific, but should not be larger than sizeof(lv_lens_raw)
+     */
+    prop_request_change(PROP_LV_LENS, &lv_lens_raw, 0);
 }
 
 /**

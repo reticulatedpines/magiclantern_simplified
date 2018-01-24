@@ -350,6 +350,12 @@ static void do_this_every_second() // called every second
         lens_display_set_dirty();
     }
     #endif
+
+    /* update lens info outside LiveView */
+    if (!lv && lens_info.lens_exists)
+    {
+        _prop_lv_lens_request_update();
+    }
 }
 
 #ifndef TIMER_GET_VALUE

@@ -278,16 +278,7 @@ display_lens_hyperfocal()
         lens_info.aperture / 10,
         lens_info.aperture % 10
     );
-    
-    if (!lv)
-    {
-        y += height;
-        bmp_printf( font, x, y,
-            "Focus distance info is only available in LiveView."
-        );
-        return;
-    }
-    
+
     if (!lens_info.focus_dist)
     {
         y += height;
