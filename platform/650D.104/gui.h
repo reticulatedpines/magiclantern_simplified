@@ -28,7 +28,6 @@
 #define BGMT_REC 0x1E
 #define BGMT_LV 0x1E
 #define BGMT_Q 0x1D
-    //~ #define BGMT_Q_ALT 0x67
 
     //~ #define BGMT_FUNC 0x12
     //~ #define BGMT_PICSTYLE 0x13

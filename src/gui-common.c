@@ -258,11 +258,11 @@ static int handle_Q_button_equiv(struct event * event)
 
     switch (event->param)
     {
+#ifdef BGMT_Q_ALT
+    #error please use BGMT_Q
+#endif
 #ifdef BGMT_RATE
     case BGMT_RATE:
-#endif
-#ifdef BGMT_Q_ALT
-    case BGMT_Q_ALT:
 #endif
 #if defined(CONFIG_5D2) || defined(CONFIG_7D)
     case BGMT_PICSTYLE:

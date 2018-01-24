@@ -37,12 +37,8 @@
 #define BGMT_UNPRESS_ZOOM_OUT 0xD
 
 #define BGMT_LV 0xE
-//~ #define BGMT_Q 0xE
-//#define BGMT_Q_ALT 0xE
 
-//~ #define BGMT_FUNC 0x12
 #define BGMT_PICSTYLE 0x13
-//~ #define BGMT_JOY_CENTER (lv ? 0x1e : 0x3b)
 #define BGMT_JOY_CENTER 0x1e
 
 #define BGMT_PRESS_UP 0x16
