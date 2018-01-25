@@ -792,10 +792,11 @@ static int raw_lv_get_resolution(int* width, int* height)
 
     /* height may be a little different; 5D3 needs to subtract 1,
      * EOSM/700D/650D needs to add 1, 100D usually gives exact value
+     * but tests show better results if we subtract 1.
      * is it really important to have exact height?
      * for some raw types, yes! */
 
-#ifdef CONFIG_5D3
+#if defined(CONFIG_5D3) || defined(CONFIG_100D)
     (*height)--;
 #endif
 
