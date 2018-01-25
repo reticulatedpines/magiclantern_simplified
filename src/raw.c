@@ -791,12 +791,16 @@ static int raw_lv_get_resolution(int* width, int* height)
     *height = (bot_right >> 16)     - (top_left >> 16);
 
     /* height may be a little different; 5D3 needs to subtract 1,
-     * EOS M needs to add 1, 100D usually gives exact value
+     * EOSM/700D/650D needs to add 1, 100D usually gives exact value
      * is it really important to have exact height?
      * for some raw types, yes! */
 
 #ifdef CONFIG_5D3
     (*height)--;
+#endif
+
+#if defined(CONFIG_700D) || defined(CONFIG_650D)
+    (*height)++;
 #endif
 
 #ifdef CONFIG_EOSM
@@ -806,6 +810,7 @@ static int raw_lv_get_resolution(int* width, int* height)
     {
         *height = 727;
     }
+    else (*height)++;
 #endif
 
 
@@ -1048,10 +1053,10 @@ int raw_update_params_work()
         #endif
 
         #if defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_650D) || defined(CONFIG_100D)
-        skip_top    = 28;
+        skip_top    = zoom ? 26 : 28;
         skip_left   = 72;
         skip_right  = 0;
-        skip_bottom = zoom ? 0 : mv1080crop ? 0 : 4;
+        skip_bottom = zoom ? 0 : mv1080crop ? 2 : 4;
         #endif
 
         #ifdef CONFIG_7D
