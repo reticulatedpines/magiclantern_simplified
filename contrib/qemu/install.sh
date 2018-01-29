@@ -364,8 +364,8 @@ if [ -d $QEMU_NAME ]; then
   echo "  - R or r        : rename to $(pwd)/${QEMU_NAME}_$DATE/"
   echo "  - uppercase D   : delete $(pwd)/$QEMU_NAME/ without confirmation (!)"
   echo "  - any other key : cancel the operation (exit the script)"
-  echo "                    you'll have to rename/delete this directory"
-  echo "                    and run the script again."
+  echo ""
+  echo -n "Your choice? "
   read answer
   case "$answer" in
       D)
