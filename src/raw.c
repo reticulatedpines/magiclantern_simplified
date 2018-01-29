@@ -580,6 +580,11 @@ static int raw_update_params_work()
         skip_right  = zoom ? 0 : 2;
         #endif
 
+        #ifdef CONFIG_1100D
+        skip_top = 16;
+        skip_left = zoom ? 72 : 68;
+        #endif
+
         #ifdef CONFIG_60D
         skip_top    = 26;
         skip_left   = zoom ? 0 : mv640crop ? 150 : 152;
