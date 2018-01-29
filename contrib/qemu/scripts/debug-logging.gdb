@@ -976,6 +976,31 @@ define rtc_write_log
 end
 
 # state objects
+
+# to find state objects:
+# ( ./run_canon_fw.sh 60D,firmware="boot=0" -d ramw -s -S & arm-none-eabi-gdb -x 60D/debugmsg.gdb ) |& grep --text CreateStateObject -A 1 | grep 'CreateStateObject\|ram'
+
+# to find CreateStateObject:
+# ./run_canon_fw.sh 60D,firmware="boot=0" -d calls |& grep -a PropState
+
+define CreateStateObject_log
+  commands
+    silent
+    print_current_location
+    printf "CreateStateObject(%s, 0x%x, inputs=%d, states=%d)\n", $r0, $r2, $r3, *(int*)$sp
+    # note: I could have used log_result instead of this block, but wanted to get something easier to grep
+    tbreak *($lr & ~1)
+    commands
+      silent
+      print_current_location $pc
+      printf "CreateStateObject => %x at %x\n", $r0, $pc
+      c
+    end
+    c
+  end
+end
+
+# function placed by CreateStateObject in the state object structure
 # see state_transition_log in dm-spy-extra.c (dm-spy-experiments)
 define state_transition_log
   commands
@@ -997,6 +1022,7 @@ define state_transition_log
     c
   end
 end
+
 
 # log return value of current function
 # (temporary breakpoint on LR)

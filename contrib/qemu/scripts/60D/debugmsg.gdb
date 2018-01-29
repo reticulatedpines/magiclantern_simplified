@@ -64,4 +64,15 @@ if 0
   SetEDmac_log
 end
 
+if 0
+  b *0xFF1DC6CC
+  CreateStateObject_log
+
+  b *0xFF1DC614
+  state_transition_log
+
+  b *0xFF05B454
+  try_post_event_log
+end
+
 cont
