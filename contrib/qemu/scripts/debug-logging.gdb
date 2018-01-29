@@ -694,6 +694,20 @@ define prop_request_change_log
   end
 end
 
+define prop_deliver_log
+  commands
+    silent
+    print_current_location
+    KRED
+    printf "prop_deliver"
+    KRESET
+    printf " %08X { ", *(int*)$r0
+    prop_print_data $r1 $r2
+    printf "}\n"
+    c
+  end
+end
+
 define try_expand_ram_struct
     if $arg0 > 0x1000 && $arg0 < 0x1000000
         printf "                       "

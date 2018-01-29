@@ -36,6 +36,9 @@ if 0
   b *0xFF05A9F0
   prop_request_change_log
 
+  b *0xFF05AFD0
+  prop_deliver_log
+
   b *0xFF1BAEB0
   mpu_analyze_recv_data_log
 
