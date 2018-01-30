@@ -114,9 +114,10 @@ $(MODULE_ZIP): install
 zip:: | prepare_zip
 zip:: $(MODULE_ZIP)
 
+# fixme: duplicate code
 install_qemu:: | prepare_zip
 install_qemu:: install
-	$(call build,MTOOLS,cd $(TOP_DIR)/../qemu/; ./mtools_copy_ml.sh $(INSTALL_DIR))
+	$(call build,MTOOLS,cd $(QEMU_PATH)/; ./mtools_copy_ml.sh $(INSTALL_DIR))
 
 FORCE:
 
