@@ -103,13 +103,12 @@ prepare_zip: FORCE
 	$(eval export INSTALL_FINISH)
 	$(eval export WIFI_SD)
 	$(call rm_dir, $(INSTALL_DIR)/)
-	$(warning removing $(INSTALL_DIR))
 	mkdir -p $(INSTALL_DIR)
 
 $(MODULE_ZIP): install
 	-$(call rm_files, $@)
 	cd $(INSTALL_DIR); zip -z ../$@ < \
-		../$(SRC_DIR)/zip.txt -r .\
+		../$(SRC_DIR)/zip.txt -r .
 	$(call rm_dir, $(INSTALL_DIR)/)
 
 zip:: | prepare_zip
