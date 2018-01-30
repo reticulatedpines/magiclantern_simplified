@@ -15,8 +15,8 @@ You will want to modify the sources, sooner or later.
 How is this code organazized?
 `````````````````````````````
 
-By default, the install script sets up QEMU by creating a ``qemu`` subdirectory
-"near" the magic-lantern directory (so both directories will end up at the same level).
+By default, the install script sets up QEMU by creating a ``qemu-eos`` subdirectory
+"near" the ``magic-lantern`` directory (so both directories will end up at the same level).
 The default directory structure looks like this::
 
   .
@@ -37,7 +37,7 @@ The default directory structure looks like this::
   │   ├── installer/                # for building ML-SETUP.FIR (which enables/disables the boot flag)
   │   └── ...
   │
-  └── qemu/                     # QEMU working directory
+  └── qemu-eos/                 # QEMU working directory
       │
       ├── qemu-2.5.0/               # QEMU sources and binaries
       │
@@ -70,28 +70,31 @@ copies the following files:
 
 .. code:: shell
 
-  magic-lantern/contrib/qemu/eos/ -> qemu/qemu-2.5.0/hw/eos/  (emulation sources)
-  magic-lantern/contrib/qemu/eos/mpu_spells/ -> qemu/qemu-2.5.0/hw/eos/mpu_spells/  (MPU messages, button codes)
-  magic-lantern/contrib/qemu/eos/dbi/ -> qemu/qemu-2.5.0/hw/eos/dbi/ (instrumentation)
-  magic-lantern/src/backtrace.[ch] -> qemu/qemu-2.5.0/hw/eos/dbi/backtrace.[ch] (shared with ML)
-  magic-lantern/contrib/qemu/scripts/ -> qemu/ (helper scripts, such as run_canon_fw.sh)
-  magic-lantern/contrib/qemu/scripts/*/debugmsg.gdb -> qemu/*/debugmsg.gdb (GDB scripts for reverse engineering)
-  magic-lantern/contrib/qemu/scripts/*/patches.gdb -> qemu/*/patches.gdb (patches required for emulation — only on some models)
-  magic-lantern/contrib/qemu/tests -> qemu/tests (guess)
+  magic-lantern/contrib/qemu/eos/ -> qemu-eos/qemu-2.5.0/hw/eos/  (emulation sources)
+  magic-lantern/contrib/qemu/eos/mpu_spells/ -> qemu-eos/qemu-2.5.0/hw/eos/mpu_spells/  (MPU messages, button codes)
+  magic-lantern/contrib/qemu/eos/dbi/ -> qemu-eos/qemu-2.5.0/hw/eos/dbi/ (instrumentation)
+  magic-lantern/src/backtrace.[ch] -> qemu-eos/qemu-2.5.0/hw/eos/dbi/backtrace.[ch] (shared with ML)
+  magic-lantern/contrib/qemu/scripts/ -> qemu-eos/ (helper scripts, such as run_canon_fw.sh)
+  magic-lantern/contrib/qemu/scripts/*/debugmsg.gdb -> qemu-eos/*/debugmsg.gdb (GDB scripts for reverse engineering)
+  magic-lantern/contrib/qemu/scripts/*/patches.gdb -> qemu-eos/*/patches.gdb (patches required for emulation — only on some models)
+  magic-lantern/contrib/qemu/tests -> qemu-eos/tests (guess)
 
 Customizing directories
 '''''''''''''''''''''''
 
-Once QEMU is compiled into some subdirectory (such as ``/path/to/qemu/qemu-2.5.0/``),
+Once QEMU is compiled into some subdirectory (such as ``/path/to/qemu-eos/qemu-2.5.0/``),
 it will no longer work elsewhere (you will not be able to rename/move this directory
 without a full reconfiguration and recompilation).
 
 Should you want to customize these paths, you may set the following environment variables:
 
-- ``QEMU_NAME``: defaults to ``qemu-2.5.0`` (a subdirectory under your ``qemu/`` directory)
-- ``ML_PATH``: defaults to ``../magic-lantern``, relative to your ``qemu`` directory
+- ``QEMU_DIR``: defaults to ``qemu-eos`` (QEMU working directory, created near ``magic-lantern``)
+- ``QEMU_NAME``: defaults to ``qemu-2.5.0`` (a subdirectory under your ``qemu-eos`` directory)
+- ``ML_PATH``: defaults to ``../magic-lantern``, relative to your ``qemu`` directory.
 
 Tip: after installation, you may change ``ML_PATH`` to emulate ML from other directories, located anywhere in the filesystem.
+
+When using ``make install_qemu``, the Makefiles will also find the QEMU working directory from ``QEMU_DIR``.
 
 Basic concepts
 ``````````````

@@ -141,6 +141,11 @@ without additional gymnastics (you will **not** have to merge ``qemu`` into your
      /path/to/magic-lantern$  cd contrib/qemu
      /path/to/magic-lantern/contrib/qemu$  ./install.sh
 
+   By default, QEMU will be installed in the ``qemu-eos`` directory,
+   near the ``magic-lantern`` one, at the same level - e.g. ``/path/to/qemu-eos``.
+   Please refer to `HACKING.rst <HACKING.rst#rst-header-how-is-this-code-organazized>`__
+   for details on the directory structure and how to change the installation directory.
+
    |
 
 3. Follow the instructions; you will have to supply your ROM files and compile QEMU:
@@ -148,11 +153,11 @@ without additional gymnastics (you will **not** have to merge ``qemu`` into your
    .. code:: shell
 
      # replace camera model (60D) with yours
-     /path/to/qemu$  cp /path/to/sdcard/ML/LOGS/ROM*.BIN 60D/
-     /path/to/qemu$  cd qemu-2.5.0
-     /path/to/qemu/qemu-2.5.0$  ../configure_eos.sh
-     /path/to/qemu/qemu-2.5.0$  make -j2
-     /path/to/qemu/qemu-2.5.0$  cd ..
+     /path/to/qemu-eos$  cp /path/to/sdcard/ML/LOGS/ROM*.BIN 60D/
+     /path/to/qemu-eos$  cd qemu-2.5.0
+     /path/to/qemu-eos/qemu-2.5.0$  ../configure_eos.sh
+     /path/to/qemu-eos/qemu-2.5.0$  make -j2
+     /path/to/qemu-eos/qemu-2.5.0$  cd ..
 
    Some recent camera models also use a serial flash. To list them, run this command:
 
@@ -178,7 +183,7 @@ without additional gymnastics (you will **not** have to merge ``qemu`` into your
    .. code:: shell
  
      # all EOS models should run this without any trickery
-     /path/to/qemu$  ./run_canon_fw.sh 60D,firmware="boot=1"
+     /path/to/qemu-eos$  ./run_canon_fw.sh 60D,firmware="boot=1"
 
    |
 
@@ -187,13 +192,13 @@ without additional gymnastics (you will **not** have to merge ``qemu`` into your
    .. code:: shell
 
      # from the QEMU directory
-     /path/to/qemu$  make -C ../magic-lantern 60D_install_qemu
+     /path/to/qemu-eos$  make -C ../magic-lantern 60D_install_qemu
      
      # some models will work only with this:
-     /path/to/qemu$  ./run_canon_fw.sh 60D,firmware="boot=1"
+     /path/to/qemu-eos$  ./run_canon_fw.sh 60D,firmware="boot=1"
 
      # some models require running under GDB (they won't boot the GUI otherwise)
-     /path/to/qemu$  ./run_canon_fw.sh EOSM,firmware="boot=1" -s -S & arm-none-eabi-gdb -x EOSM/patches.gdb -ex quit
+     /path/to/qemu-eos$  ./run_canon_fw.sh EOSM,firmware="boot=1" -s -S & arm-none-eabi-gdb -x EOSM/patches.gdb -ex quit
 
    |
 
@@ -208,12 +213,12 @@ it is possible to install QEMU and ML development tools
 Running Canon firmware
 ----------------------
 
-From the QEMU directory, use the ``run_canon_fw.sh`` script and make sure
+From the ``qemu-eos`` directory, use the ``run_canon_fw.sh`` script and make sure
 the `boot flag <http://magiclantern.wikia.com/wiki/Bootflags>`_ is disabled:
 
 .. code:: shell
 
-  # from the qemu directory
+  # from the qemu-eos directory
   ./run_canon_fw.sh 60D,firmware="boot=0"
 
 Some models may need additional patches to run — these are stored under ``CAM/patches.gdb``.
@@ -286,33 +291,33 @@ To install Magic Lantern to the virtual card, you may:
     make 60D_clean
     make 60D_install_qemu
 
-  They also work from the qemu directory:
+  They also work from the ``qemu-eos`` directory:
 
   .. code:: shell
 
-    # from the qemu directory
+    # from the qemu-eos directory
     make -C ../magic-lantern/platform/60D.111 clean
     make -C ../magic-lantern/platform/60D.111 install_qemu
 
   .. code:: shell
 
-    # from the qemu directory
+    # from the qemu-eos directory
     make -C ../magic-lantern 5D3.113_clean
     make -C ../magic-lantern 5D3.113_install_qemu
 
   Please note: ``make install_qemu`` is a recent addition and may not be available in all branches.
   In this case, you may either use the first method, or sync with the "unified" branch (``hg merge unified``),
-  or manually import changeset `27f4105 <https://bitbucket.org/hudson/magic-lantern/commits/27f4105cfa83>`_.
+  or manually import changeset `d5ad86f <https://bitbucket.org/hudson/magic-lantern/commits/d5ad86f0d284>`_.
   Unfortunately, these rules won't work from ``Makefile.user``.
 
 The included card images are already bootable for EOS firmwares (but not for PowerShots).
 
-After you have copied Magic Lantern to the card, you may run it from the ``qemu`` directory
+After you have copied Magic Lantern to the card, you may run it from the ``qemu-eos`` directory
 (near the ``magic-lantern`` one, at the same level):
 
 .. code:: shell
 
-  # from the qemu directory
+  # from the qemu-eos directory
   ./run_canon_fw.sh 60D,firmware="boot=1"
   
   # or, if your camera requires patches.gdb:
@@ -403,7 +408,7 @@ Running ML Lua scripts
 
   .. code:: shell
 
-    # from the qemu directory
+    # from the qemu-eos directory
     wget http://builds.magiclantern.fm/jenkins/job/lua_fix/431/artifact/platform/60D.111/magiclantern-lua_fix.2017Dec23.60D111.zip
     unzip magiclantern-lua_fix.2017Dec23.60D111.zip -d ml-tmp
     ./mtools_copy_ml.sh ml-tmp
@@ -446,19 +451,19 @@ The invocation looks like this (notice the ``113``):
 
 And the directory layout should be like this::
 
-  /path/to/qemu/5D3/113/ROM0.BIN
-  /path/to/qemu/5D3/113/ROM1.BIN
-  /path/to/qemu/5D3/123/ROM0.BIN
-  /path/to/qemu/5D3/123/ROM1.BIN
-  /path/to/qemu/5D3/113/ROM0.BIN
-  /path/to/qemu/5D3/debugmsg.gdb  # common to both versions
-  /path/to/qemu/5D3/patches.gdb   # common to both versions
+  /path/to/qemu-eos/5D3/113/ROM0.BIN
+  /path/to/qemu-eos/5D3/113/ROM1.BIN
+  /path/to/qemu-eos/5D3/123/ROM0.BIN
+  /path/to/qemu-eos/5D3/123/ROM1.BIN
+  /path/to/qemu-eos/5D3/113/ROM0.BIN
+  /path/to/qemu-eos/5D3/debugmsg.gdb  # common to both versions
+  /path/to/qemu-eos/5D3/patches.gdb   # common to both versions
 
 Compare this to a camera model where only one firmware version is supported::
 
-  /path/to/qemu/60D/ROM0.BIN
-  /path/to/qemu/60D/ROM1.BIN
-  /path/to/qemu/5D3/patches.gdb
+  /path/to/qemu-eos/60D/ROM0.BIN
+  /path/to/qemu-eos/60D/ROM1.BIN
+  /path/to/qemu-eos/5D3/patches.gdb
 
 You may also store ``debugmsg.gdb`` and ``patches.gdb`` under the firmware version subdirectory if you prefer, but other QEMU-related scripts won't pick them up.
 

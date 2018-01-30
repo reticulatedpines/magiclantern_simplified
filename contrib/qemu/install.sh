@@ -2,7 +2,9 @@
 
 set -e
 
-# paths relative to the "qemu" directory (where it will be installed)
+QEMU_DIR=${QEMU_DIR:=qemu-eos}
+
+# paths relative to QEMU_DIR (where it will be installed)
 QEMU_NAME=${QEMU_NAME:=qemu-2.5.0}
 ML_PATH=${ML_PATH:=../magic-lantern}
 
@@ -349,8 +351,8 @@ pwd | grep $ML_NAME/contrib/qemu > /dev/null || die "error: we should be in $ML_
 cd ../../..
 ls | $GREP $ML_NAME > /dev/null || die "error: expecting to find $ML_NAME here"
 
-mkdir -p qemu
-cd qemu
+mkdir -p $QEMU_DIR
+cd $QEMU_DIR
 
 echo
 echo "*** Setting up QEMU in $(pwd)..."
