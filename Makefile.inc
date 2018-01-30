@@ -86,6 +86,10 @@ magiclantern-$(VERSION).zip: install installdoc install_fir
 zip:: | prepare_zip
 zip:: magiclantern-$(VERSION).zip
 
+install_qemu:: | prepare_zip
+install_qemu:: install
+	$(call build,MTOOLS,cd $(QEMU_PATH)/; ./mtools_copy_ml.sh $(INSTALL_DIR))
+
 clean::
 	$(call rm_dir, zip)
 	$(call rm_files, *.zip)
