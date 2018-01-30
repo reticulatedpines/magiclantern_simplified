@@ -71,7 +71,7 @@ int get_free_space_32k(const struct card_info* card)
 
 
 static CONFIG_INT("card.test", card_test_enabled, 1);
-static CONFIG_INT("card.force_type", card_force_type, 0);
+static CONFIG_INT("card.force_type", card_force_type, 1);
 
 #ifndef CONFIG_INSTALLER
 #ifdef CONFIG_5D3
@@ -245,8 +245,12 @@ void _find_ml_card()
 PROP_HANDLER(PROP_CARD_SELECT)
 {
     int card_select = buf[0] - 1;
-    ASSERT(card_select >= 0 && card_select < 3)
-    SHOOTING_CARD = &available_cards[buf[0]-1];
+    if (card_select >= 0 && card_select < COUNT(available_cards))
+    {
+        SHOOTING_CARD = &available_cards[card_select];
+        return;
+    }
+    ASSERT(0);
 }
 
 PROP_HANDLER(PROP_CLUSTER_SIZE_A)
@@ -312,6 +316,11 @@ PROP_HANDLER(PROP_FOLDER_NUMBER_C)
 PROP_HANDLER(PROP_DCIM_DIR_SUFFIX)
 {
     snprintf(dcim_dir_suffix, sizeof(dcim_dir_suffix), (const char *)buf);
+}
+
+const char * get_dcim_dir_suffix()
+{
+    return dcim_dir_suffix;
 }
 
 const char* get_dcim_dir()
@@ -493,11 +502,59 @@ static FILE* _FIO_CreateFileEx(const char* name)
     /* return 0 on error, just like in plain C */
     return 0;
 }
+
 FILE* FIO_CreateFile(const char* name)
 {
     char new_name[FIO_MAX_PATH_LENGTH];
     fixup_filename(new_name, name, sizeof(new_name));
     return _FIO_CreateFileEx(new_name);
+}
+
+/* Canon stubs */
+extern int _FIO_ReadFile( FILE* stream, void* ptr, size_t count );
+extern int _FIO_WriteFile( FILE* stream, const void* ptr, size_t count );
+
+int FIO_ReadFile( FILE* stream, void* ptr, size_t count )
+{
+    if (ptr == CACHEABLE(ptr))
+    {
+        /* there's a lot of existing code (e.g. mlv_play) that's hard to refactor */
+        /* workaround: allocate DMA memory here (for small buffers only)
+         * code that operates on large buffers should be already correct */
+        if (!streq(current_task->name, "run_test"))
+        {
+            printf("fixme: please use fio_malloc (in %s)\n", current_task->name);
+        }
+        ASSERT(count <= 8192);
+        void * ubuf = fio_malloc(count);
+        if (!ubuf)
+        {
+            ASSERT(0);
+            return 0;
+        }
+        int ans = _FIO_ReadFile(stream, ubuf, count);
+        memcpy(ptr, ubuf, count);
+        free(ubuf);
+        return ans;
+    }
+
+    return _FIO_ReadFile(stream, ptr, count);
+}
+
+int FIO_WriteFile( FILE* stream, const void* ptr, size_t count )
+{
+    /* we often assumed that the FIO routines will somehow care for buffers being still in cache.
+       proven by the fact that even canon calls FIO_WriteFile with cached memory as source.
+       that was simply incorrect. force cache flush if the buffer is a cachable one.
+    */
+    if (ptr == CACHEABLE(ptr))
+    {
+        /* write back all data to RAM */
+        /* overhead is minimal (see selfcheck.mo for benchmark) */
+        clean_d_cache();
+    }
+
+    return _FIO_WriteFile(stream, ptr, count);
 }
 
 FILE* FIO_CreateFileOrAppend(const char* name)

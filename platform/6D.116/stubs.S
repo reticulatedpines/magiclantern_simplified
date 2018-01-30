@@ -48,9 +48,9 @@ NSTUB(0xFF0C5438,  init_task)
 NSTUB(0xFF33297C,  FIO_CloseFile)
 NSTUB(0xFF333974,  FIO_FindClose)                           // proper name: FindClose
 NSTUB(0xFF333894,  FIO_FindNextEx)
-NSTUB(0xFF33272C,  FIO_ReadFile)
+NSTUB(0xFF33272C, _FIO_ReadFile)
 NSTUB(0xFF3327DC,  FIO_SeekSkipFile)
-NSTUB(0xFF3328CC,  FIO_WriteFile)
+NSTUB(0xFF3328CC, _FIO_WriteFile)
 NSTUB(0xFF3331D8, _FIO_CreateDirectory)
 NSTUB(0xFF3325D8, _FIO_CreateFile)
 NSTUB(0xFF3337A0, _FIO_FindFirstEx)
@@ -145,6 +145,7 @@ NSTUB(0xFF53A39C,  ShootOlcApp_handler)                     // AJ_DIALOG.HANDLER
 // NSTUB(    ???,  ReverseDisplay)                          /* present on 60D.111, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
 
 /** EDMAC **/
+NSTUB(0xFFD06210 - RAM_OFFSET,  AbortEDmac)
 NSTUB(0xFFD05D64 - RAM_OFFSET,  ConnectReadEDmac)
 NSTUB(0xFFD05CA0 - RAM_OFFSET,  ConnectWriteEDmac)
 NSTUB(0xFFD06344 - RAM_OFFSET,  RegisterEDmacAbortCBR)
@@ -281,9 +282,9 @@ NSTUB(0xFFCDAC94 - RAM_OFFSET,  take_semaphore)
 
 /** Task info **/
 NSTUB(   0x75F58,  task_max)
-NSTUB(0xFFCD4084 - RAM_OFFSET,  get_current_task)
-NSTUB(0xFFCE33DC - RAM_OFFSET,  get_obj_attr)               // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xFFD1D5F4 - RAM_OFFSET,  is_taskid_valid)            // AJ_task_trampoline_related_p10
+NSTUB(   0x74C28,  current_task)
+NSTUB(     0x64C,  current_interrupt)                       // in interrupt handler (0x18), where MEM(C0201004) is stored
 
 /** Task sleep **/
 NSTUB(0xFFCDB170 - RAM_OFFSET,  msleep)
@@ -299,12 +300,12 @@ NSTUB(0xFFCE0548 - RAM_OFFSET,  task_trampoline)
 NSTUB(0xFF140BF8,  LoadCalendarFromRTC)
 NSTUB(0xFFD09CDC - RAM_OFFSET,  vsnprintf)
 // NSTUB(    ???,  EnableImagePhysicalScreenParameter)      /* present on 7D.203, 50D.109, 5D2.212 */
+// NSTUB(    ???,  FSUunMountDevice)                        /* present on 5D3.113 */
 // NSTUB(    ???,  PtpDps_remote_release_SW1_SW2_worker)    /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  lv_path_struct)                          /* present on 60D.111, 600D.102, 550D.109, 1100D.105 */
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
 
 /** Unused stubs or porting notes **/
-///NSTUB(0xFFCF7BBC - RAM_OFFSET,  AbortEDmac)
 ///NSTUB(0xFF0F2EC4,  AllocateMemoryResourceForSingleChunk)
 ///NSTUB(0xFF4B4BB8,  CreateDialogBox)
 ///NSTUB(0xFF71666C,  DeadViewLevelApp_handler)                // 
@@ -316,7 +317,6 @@ NSTUB(0xFFD09CDC - RAM_OFFSET,  vsnprintf)
 ///NSTUB(0xFFCCEC58 - RAM_OFFSET, GetRemainOfMemoryChunk)
 ///NSTUB(0xFFCCEC88 - RAM_OFFSET, GetSizeOfMemoryChunk)
 ///NSTUB(0xFFCCEFC0 - RAM_OFFSET, GetSizeOfMemorySuite)
-///NSTUB(0xFFCCCDF0,  GetTaskName)
 ///NSTUB(0xFF19AB58,  GuiSetAutoBrightness)
 ///NSTUB(0xFF1F2550,  IvaParamMode)
 ///NSTUB(0xFFCF8BE4 - RAM_OFFSET,  MREQ_ISR)

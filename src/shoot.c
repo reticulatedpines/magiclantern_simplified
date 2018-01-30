@@ -229,7 +229,7 @@ void set_interval_time(int seconds)
 }
 #endif
 
-static const char* format_time_hours_minutes_seconds(int seconds)
+const char* format_time_hours_minutes_seconds(int seconds)
 {
     static char msg[50];
     
@@ -2276,7 +2276,7 @@ picstyle_rec_sub_toggle( void * priv, int delta )
 
 static void rec_picstyle_change(int rec)
 {
-    static int prev = -1;
+    static int prev = 0;
 
     if (picstyle_rec)
     {
@@ -6272,7 +6272,11 @@ shoot_task( void* unused )
             if(canceled)
                 intervalometer_stop();
             
-            intervalometer_next_shot_time = MAX(intervalometer_next_shot_time, seconds_clock);
+            int overrun = seconds_clock - intervalometer_next_shot_time;
+            if (overrun > 0)
+            {
+                NotifyBox(5000, "Interval time too short (%ds)", overrun);
+            }
             intervalometer_pictures_taken++;
             
             #ifdef CONFIG_MODULES

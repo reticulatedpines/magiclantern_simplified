@@ -44,9 +44,9 @@ NSTUB(0xFF0C5484,  init_task)
 NSTUB(0xFF3468F4,  FIO_CloseFile)
 NSTUB(0xFF3478EC,  FIO_FindClose)                           // proper name: FindClose
 NSTUB(0xFF34780C,  FIO_FindNextEx)
-NSTUB(0xFF3466A4,  FIO_ReadFile)
+NSTUB(0xFF3466A4, _FIO_ReadFile)
 NSTUB(0xFF346754,  FIO_SeekSkipFile)
-NSTUB(0xFF346844,  FIO_WriteFile)
+NSTUB(0xFF346844, _FIO_WriteFile)
 NSTUB(0xFF347150, _FIO_CreateDirectory)
 NSTUB(0xFF346550, _FIO_CreateFile)
 NSTUB(0xFF347718, _FIO_FindFirstEx)
@@ -79,7 +79,6 @@ NSTUB(0xFF10A674,  StartASIFDMAADC)                         // To Regular
 NSTUB(0xFF10AA48,  StartASIFDMADAC)                         // Needs Patches Or
 NSTUB(0xFF10A920,  StopASIFDMAADC)                          // Regular -- Stop ASIF ADC - needed for future changes to mlv_snd.c
 NSTUB(0xFF10ACC8,  StopASIFDMADAC)                          // NormalStopAsif
-///NSTUB(0xFF10D3A0,  SoundDevShutDownIn_)                   // This is the real address
 // NSTUB(    ???,  SetASIFMode)                             /* present on 700D.113 */
 // NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
 
@@ -138,6 +137,7 @@ NSTUB(0xFF541BD4,  ShootOlcApp_handler)                     // AJ_DIALOG.HANDLER
 // NSTUB(    ???,  ReverseDisplay)                          /* present on 60D.111, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
 
 /** EDMAC **/
+NSTUB(0xFFA85FF0 - RAM_OFFSET,  AbortEDmac)
 NSTUB(0xFFA85CFC - RAM_OFFSET,  ConnectReadEDmac)
 NSTUB(0xFFA85C38 - RAM_OFFSET,  ConnectWriteEDmac)
 NSTUB(0xFFA86178 - RAM_OFFSET,  RegisterEDmacAbortCBR)
@@ -207,8 +207,8 @@ NSTUB(0xFF2C043C,  mvrSetDefQScale)
 // NSTUB(    ???,  mvrSetGopOptSizeFULLHD)                  /* present on 600D.102, 550D.109, 1100D.105 */
 
 /** Interrupts **/
-NSTUB(0xFFAA775C - RAM_OFFSET,  post_isr_hook)
-NSTUB(0xFFAA7758 - RAM_OFFSET,  pre_isr_hook)
+NSTUB(0x3DD6C,     post_isr_hook)
+NSTUB(0x3DD68,     pre_isr_hook)
 // NSTUB(    ???,  isr_table_handler)                       /* present on 7D_MASTER.203 */
 // NSTUB(    ???,  isr_table_param)                         /* present on 7D_MASTER.203 */
 
@@ -235,7 +235,7 @@ NSTUB(0xFF0C8364, _malloc)
 
 /** Message queues **/
 NSTUB(0xFFA88414 - RAM_OFFSET,  msg_queue_count)            // 0x1EE84 Above "!!!!!!! QUE Overflo"
-NSTUB(0xFFA73C84 - RAM_OFFSET,  msg_queue_create)
+NSTUB(0xFFA880D8 - RAM_OFFSET,  msg_queue_create)
 NSTUB(0xFFA883D4 - RAM_OFFSET,  msg_queue_post)             // 1EE44
 NSTUB(0xFFA881E8 - RAM_OFFSET,  msg_queue_receive)          // 1EC58
 
@@ -273,9 +273,9 @@ NSTUB(0xFFA70048 - RAM_OFFSET,  take_semaphore)
 
 /** Task info **/
 NSTUB(   0x3F14C,  task_max)
-NSTUB(0xFFA6BABC - RAM_OFFSET,  get_current_task)
-NSTUB(0xFFA783FC - RAM_OFFSET,  get_obj_attr)               // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xFFA96530 - RAM_OFFSET,  is_taskid_valid)            // AJ_task_trampoline_related_p10
+NSTUB(   0x3DE78,  current_task)
+NSTUB(     0x674,  current_interrupt)                       // in interrupt handler (0x18), where MEM(C0201004) is stored
 
 /** Task sleep **/
 NSTUB(0xFFA70524 - RAM_OFFSET,  msleep)                     // 6F94
@@ -291,12 +291,12 @@ NSTUB(0xFFA758F0 - RAM_OFFSET,  task_trampoline)
 NSTUB(0xFF132118,  LoadCalendarFromRTC)
 NSTUB(0xFFA89B5C - RAM_OFFSET,  vsnprintf)                  // 205CC
 // NSTUB(    ???,  EnableImagePhysicalScreenParameter)      /* present on 7D.203, 50D.109, 5D2.212 */
+// NSTUB(    ???,  FSUunMountDevice)                        /* present on 5D3.113 */
 // NSTUB(    ???,  PtpDps_remote_release_SW1_SW2_worker)    /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  lv_path_struct)                          /* present on 60D.111, 600D.102, 550D.109, 1100D.105 */
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
 
 /** Unused stubs or porting notes **/
-///NSTUB(0xFFA85FF0 - RAM_OFFSET,  AbortEDmac)
 ///NSTUB(0xFF4C3BC0,  CreateDialogBox)
 ///NSTUB(0xFF4C2B88,  DeleteDialogBox)
 ///NSTUB(0xFF19991C,  ENCODE_StartEncodeJpeg)
@@ -307,7 +307,6 @@ NSTUB(0xFFA89B5C - RAM_OFFSET,  vsnprintf)                  // 205CC
 ///NSTUB(0xFFA71D5C - RAM_OFFSET, GetRemainOfMemoryChunk)
 ///NSTUB(0xFFA71D8C - RAM_OFFSET, GetSizeOfMemoryChunk)
 ///NSTUB(0xFFA720C4 - RAM_OFFSET, GetSizeOfMemorySuite)
-///NSTUB(0xFFA707A8,  GetTaskName)
 ///NSTUB(0xFF1B4F70,  Gui_SetSoundRecord)                    // Look for GUI_setsoundrec - Just changes prop
 ///NSTUB(0xff658aa8,  LiveViewLevelApp_handler)
 ///NSTUB(0xFF623240,  LiveViewWbApp_handler)
@@ -334,6 +333,7 @@ NSTUB(0xFFA89B5C - RAM_OFFSET,  vsnprintf)                  // 205CC
 ///NSTUB(0xFFA6EB5C - RAM_OFFSET,  SetHPTimerAfterTimeout)
 ///NSTUB(0xFF2BFAEC,  SetNextASIFDACBuffer_1)               // Int16 Direct Control
 ///NSTUB(0xFF10D174,  SoundDevActiveOut)
+///NSTUB(0xFF10D3A0,  SoundDevShutDownIn_)                   // This is the real address
 ///NSTUB(0xFF2BF578,  StartASIFDMADAC_1)                    // Direct
 ///NSTUB(0xFF111D74,  StartASIFDMADAC_2)                    // SePlayStart
 ///NSTUB(0xFF10AC98,  StopASIFDMADAC_1)                     // NormalStopAsif

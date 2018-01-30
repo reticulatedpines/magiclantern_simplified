@@ -48,9 +48,9 @@ NSTUB(0xFF0C5430,  init_task)
 NSTUB(0xFF34290C,  FIO_CloseFile)                           // from Indy
 NSTUB(0xFF343904,  FIO_FindClose)                           // proper name: FindClose
 NSTUB(0xFF343824,  FIO_FindNextEx)
-NSTUB(0xFF3426BC,  FIO_ReadFile)
+NSTUB(0xFF3426BC, _FIO_ReadFile)
 NSTUB(0xFF34276C,  FIO_SeekSkipFile)                        /* took relative offset of 700D entry points and compared them to 650Ds. Tests are OK. */
-NSTUB(0xFF34285C,  FIO_WriteFile)                           // from Indy
+NSTUB(0xFF34285C, _FIO_WriteFile)                           // from Indy
 NSTUB(0xFF343168, _FIO_CreateDirectory)
 NSTUB(0xFF342568, _FIO_CreateFile)                          // from Indy
 NSTUB(0xFF343730, _FIO_FindFirstEx)
@@ -82,12 +82,12 @@ NSTUB(0xFF108E98,  SetNextASIFADCBuffer)
 NSTUB(0xFF108F4C,  SetNextASIFDACBuffer)
 NSTUB(0xFF132D30,  SetSamplingRate)
 NSTUB(0xFF10AEBC,  SoundDevActiveIn)
-NSTUB(0xFF10B0D8,  SoundDevShutDownIn)
 NSTUB(0xFF108764,  StartASIFDMAADC)
 NSTUB(0xFF10891C,  StartASIFDMADAC)
 NSTUB(0xFF1089F4,  StopASIFDMADAC)
+// NSTUB(0xFF1088E0,  StopASIFDMAADC)                       /* breaks the audio meters */
+// NSTUB(0xFF10B0D8,  SoundDevShutDownIn)                   /* breaks the audio meters */
 // NSTUB(    ???,  SetASIFMode)                             /* present on 700D.113 */
-// NSTUB(    ???,  StopASIFDMAADC)                          /* present on 7D.203, 6D.113, EOSM.202 */
 
 /** Audio **/
 NSTUB(   0x239E4,  sounddev)
@@ -146,6 +146,7 @@ NSTUB(0xFF4D56E8,  NormalDisplay)                           // xref: Normal star
 NSTUB(0xFF4D56B8,  ReverseDisplay)                          // xref: Reverse start
 
 /** EDMAC **/
+NSTUB(0xFFA5EBC4 - RAM_OFFSET,  AbortEDmac)
 NSTUB(0xFFA5E8D0 - RAM_OFFSET,  ConnectReadEDmac)
 NSTUB(0xFFA5E80C - RAM_OFFSET,  ConnectWriteEDmac)
 NSTUB(0xFFA5ED4C - RAM_OFFSET,  RegisterEDmacAbortCBR)
@@ -282,9 +283,9 @@ NSTUB(0xFFA535B8 - RAM_OFFSET,  take_semaphore)
 
 /** Task info **/
 NSTUB(   0x247A4,  task_max)                                // Not so sure....
-NSTUB(0xFFA4F80C - RAM_OFFSET,  get_current_task)
-NSTUB(0xFFA5B96C - RAM_OFFSET,  get_obj_attr)               // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xFFA66C0C - RAM_OFFSET,  is_taskid_valid)            // AJ_task_trampoline_related_p10
+NSTUB(   0x233D8,  current_task)
+NSTUB(     0x674,  current_interrupt)                       // in interrupt handler (0x18), where MEM(C0201004) is stored
 
 /** Task sleep **/
 NSTUB(0xFFA53A94 - RAM_OFFSET,  msleep)
@@ -300,12 +301,12 @@ NSTUB(0xFFA58E60 - RAM_OFFSET,  task_trampoline)
 NSTUB(0xFF130A44,  LoadCalendarFromRTC)                     // xref: called by exceptionhandlercbr
 NSTUB(0xFFA621C4 - RAM_OFFSET,  vsnprintf)                  // not sure it gets called from RAM
 // NSTUB(    ???,  EnableImagePhysicalScreenParameter)      /* present on 7D.203, 50D.109, 5D2.212 */
+// NSTUB(    ???,  FSUunMountDevice)                        /* present on 5D3.113 */
 // NSTUB(    ???,  PtpDps_remote_release_SW1_SW2_worker)    /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  lv_path_struct)                          /* present on 60D.111, 600D.102, 550D.109, 1100D.105 */
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
 
 /** Unused stubs or porting notes **/
-///NSTUB(   0x118E4,  AbortEDmac)
 ///NSTUB(0xFF4B341C,  CreateDialogBox)
 ///NSTUB(0xFF4B23E4,  DeleteDialogBox)
 ///NSTUB(0xFF511E88, ErrCardApp_handler) // Unused

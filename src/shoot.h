@@ -22,6 +22,9 @@ int get_bulb_shutter_raw_equiv();
 /* true if you are in bulb mode (some cameras have a dedicated mode, others have a BULB position for shutter speed in M mode) */
 int is_bulb_mode();
 
+/* switch to BULB mode */
+void ensure_bulb_mode();
+
 /* start/stop recording */
 void movie_start();
 void movie_end();
@@ -129,6 +132,8 @@ void expo_lock_update_value();
 void iso_refresh_display();
 void display_trap_focus_info();
 void free_space_show_photomode();
+
+const char* format_time_hours_minutes_seconds(int seconds);
 
 #endif // __SHOOT_H_
 

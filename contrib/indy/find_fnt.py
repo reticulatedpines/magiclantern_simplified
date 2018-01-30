@@ -56,9 +56,11 @@ On the 5D there are the following fonts added to the stubs.S file:
 0xf00d1110: HCanonGothic 36 px, ascii only (0xFFE2)
 0xf00d585c: CanonMonoSpace 40 px, ascii only (0xFFD8)
 
-
 Alex, 16Mar2011
 https://bitbucket.org/hudson/magic-lantern/changeset/cfba492ea84d
+
+Daniel Fort, 05Jul2017
+https://bitbucket.org/hudson/magic-lantern/pull-requests/844/find_fntpy-update/diff
 
 
 """
@@ -105,6 +107,17 @@ def parseBitmap(m, off, base):
     nb_byte = nb_byte + 1
   print '    bitmap size = 0x%x' % ( nb_byte*height )
 
+def guess_load_addr(rom, name):
+    if rom[4:12] == "gaonisoy":
+        return 0xFF010000  # assume old DIGIC 4 ROM dumped from 0xFF010000
+    if "ROM0" in name:
+        return 0xF0000000  # ROM0 from ML/LOGS/
+    if "ROM1" in name:
+        return 0xF8000000  # ROM1 from ML/LOGS/
+
+    # unknown, just report the offset inside the ROM.
+    return 0
+
 f = open(sys.argv[1], 'rb')
 m = f.read()
 f.close()
@@ -112,10 +125,11 @@ f.close()
 if (len(sys.argv)>2):
   base = int(sys.argv[2], 16)
 else:
-  base = 0xff010000
+  base = guess_load_addr(m, sys.argv[1])
 
 print 'Find bitmap fonts in Canon DSLR firmwares'
-print 'Arm.Indy. based on work by Pel, Trammel Hudson and A1ex\n'
+print 'Arm.Indy. based on work by Pel, Trammel Hudson and A1ex'
+print 'Assume ROM file was dumped from 0x%08x \n' % base
 
 off = 0
 while off < len(m) and off <> -1: 

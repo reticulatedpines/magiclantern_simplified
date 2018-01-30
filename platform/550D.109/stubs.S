@@ -53,9 +53,9 @@ NSTUB(   0x15094,  additional_version)
 NSTUB(0xFF1C69EC,  FIO_CloseFile)
 NSTUB(0xFF1C7934,  FIO_FindClose)                           // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
 NSTUB(0xFF1C7854,  FIO_FindNextEx)
-NSTUB(0xFF1C679C,  FIO_ReadFile)
+NSTUB(0xFF1C679C, _FIO_ReadFile)
 NSTUB(0xFF1C684C,  FIO_SeekSkipFile)
-NSTUB(0xFF1C693C,  FIO_WriteFile)
+NSTUB(0xFF1C693C, _FIO_WriteFile)
 NSTUB(0xFF1C71A0, _FIO_CreateDirectory)
 NSTUB(0xFF1C6648, _FIO_CreateFile)
 NSTUB(0xFF1C7760, _FIO_FindFirstEx)
@@ -151,6 +151,7 @@ NSTUB(0xFF2CFAB4,  NormalDisplay)
 NSTUB(0xFF2CFA84,  ReverseDisplay)
 
 /** EDMAC **/
+NSTUB(0xFF1C0378,  AbortEDmac)
 NSTUB(0xFF1C00C0,  ConnectReadEDmac)
 NSTUB(0xFF1BFFFC,  ConnectWriteEDmac)
 NSTUB(0xFF1C0440,  RegisterEDmacAbortCBR)
@@ -287,9 +288,9 @@ NSTUB(0xFF069E70,  take_semaphore)
 
 /** Task info **/
 NSTUB(    0x3080,  task_max)
-NSTUB(0xFF016B8C,  get_current_task)                        // called from AJ_armlib_setup_related3
-NSTUB(0xFF079CE4,  get_obj_attr)                            // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xFF2E9AB0,  is_taskid_valid)                         // AJ_task_trampoline_related_p10
+NSTUB(    0x1A20,  current_task)
+NSTUB(     0x674,  current_interrupt)                       // in interrupt handler (0x18), where MEM(C0201004) is stored
 
 /** Task sleep **/
 NSTUB(0xFF06A344,  msleep)                                  // called from EV_GETDONE_CACHE param 0x64
@@ -308,6 +309,7 @@ NSTUB(0xFF1D6638,  vsnprintf)
 //NSTUB(0xFF2FEA48, ChangeHDMIOutputSizeToFULLHD)
 //NSTUB(0xFF2FECB0, ChangeHDMIOutputSizeToVGA)
 // NSTUB(    ???,  EnableImagePhysicalScreenParameter)      /* present on 7D.203, 50D.109, 5D2.212 */
+// NSTUB(    ???,  FSUunMountDevice)                        /* present on 5D3.113 */
 // NSTUB(    ???,  PtpDps_remote_release_SW1_SW2_worker)    /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
 
@@ -316,7 +318,6 @@ NSTUB(0xFF1D6638,  vsnprintf)
 ///NSTUB(0xFF1D8A3C,  AJ_UserLevel_task)
 ///NSTUB( 0xFF2DF554, AJ_guess_LED_OFF )
 ///NSTUB( 0xFF2DF524, AJ_guess_LED_ON )
-///NSTUB([idk], AbortEDmac)
 ///NSTUB(0xFF3026F8,  CancelBottomInfoDispTimer)
 ///NSTUB(0xFF31CFCC,  ChangeColorPalette)
 ///NSTUB(0xFF2B5EEC,  CreateDialogBox)

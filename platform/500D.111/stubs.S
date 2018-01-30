@@ -48,9 +48,9 @@ NSTUB(   0x150FC,  additional_version)                      /** Find the additio
 NSTUB(0xFF196494,  FIO_CloseFile)
 NSTUB(0xFF1975A4,  FIO_FindClose)                           // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
 NSTUB(0xFF1974A4,  FIO_FindNextEx)
-NSTUB(0xFF196724,  FIO_ReadFile)
+NSTUB(0xFF196724, _FIO_ReadFile)
 NSTUB(0xFF1967D4,  FIO_SeekSkipFile)
-NSTUB(0xFF1968D4,  FIO_WriteFile)
+NSTUB(0xFF1968D4, _FIO_WriteFile)
 NSTUB(0xFF196CF8, _FIO_CreateDirectory)
 NSTUB(0xFF1963EC, _FIO_CreateFile)
 NSTUB(0xFF197378, _FIO_FindFirstEx)
@@ -128,7 +128,7 @@ NSTUB(0xFF371068,  ErrCardForLVApp_handler)
 NSTUB(0xFF2A0D94,  ErrForCamera_handler)                    // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
 NSTUB(0xFF2AE79C,  LiveViewApp_handler)
 NSTUB(0xFF2BE2F4,  PlayMain_handler)
-NSTUB(0xFF3C0638,  PlayMovieGuideApp_handler)
+NSTUB(0xFF36F6E8,  PlayMovieGuideApp_handler)
 NSTUB(0xFF2C5D1C,  ShootOlcApp_handler)
 // NSTUB(    ???,  HideUnaviFeedBack_maybe)                 /* present on 60D.111, 6D.113, 5D3.113, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???,  LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)/* present on 60D.111, 6D.113, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
@@ -146,6 +146,7 @@ NSTUB(0xFF2C5D1C,  ShootOlcApp_handler)
 // NSTUB(    ???,  ReverseDisplay)                          /* present on 60D.111, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
 
 /** EDMAC **/
+NSTUB(0xFF18FCC0,  AbortEDmac)
 NSTUB(0xFF18FB90,  ConnectReadEDmac)
 NSTUB(0xFF18FB68,  ConnectWriteEDmac)
 NSTUB(0xFF18FD88,  RegisterEDmacAbortCBR)
@@ -282,9 +283,9 @@ NSTUB(0xFF0698D0,  take_semaphore)
 
 /** Task info **/
 NSTUB(    0x31DC,  task_max)
-NSTUB(0xFF016930,  get_current_task)
-NSTUB(0xFF018180,  get_obj_attr)                            // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xFF018338,  is_taskid_valid)                         // AJ_task_trampoline_related_p10
+NSTUB(    0x1A74,  current_task)
+NSTUB(     0x668,  current_interrupt)                       // in interrupt handler (0x18), where MEM(C0201004) is stored
 
 /** Task sleep **/
 NSTUB(0xFF069D74,  msleep)                                  // called from EV_GETDONE_CACHE param 0x64
@@ -300,12 +301,12 @@ NSTUB(0xFF072B30,  task_trampoline)
 NSTUB(0xFF0642D0,  LoadCalendarFromRTC)
 NSTUB(0xFF1A442C,  vsnprintf)                               /** Look in DebugMsg, near the bottom.  It calls vsnprintf() -- with a buffer size of 0x4C. */
 // NSTUB(    ???,  EnableImagePhysicalScreenParameter)      /* present on 7D.203, 50D.109, 5D2.212 */
+// NSTUB(    ???,  FSUunMountDevice)                        /* present on 5D3.113 */
 // NSTUB(    ???,  PtpDps_remote_release_SW1_SW2_worker)    /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  lv_path_struct)                          /* present on 60D.111, 600D.102, 550D.109, 1100D.105 */
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
 
 /** Unused stubs or porting notes **/
-///NSTUB([idk], AbortEDmac)
 ///NSTUB(0xFF2C92BC,  ChangeColorPalette)
 ///NSTUB(0xFF26896C,  CreateDialogBox)
 ///NSTUB(0xFF2683F4,  DeleteDialogBox)

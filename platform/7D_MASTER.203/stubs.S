@@ -42,9 +42,9 @@ NSTUB(0xFF812B4C,  init_task)
 // NSTUB(    ???,  FIO_CloseFile)                           /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???,  FIO_FindClose)                           /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???,  FIO_FindNextEx)                          /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
-// NSTUB(    ???,  FIO_ReadFile)                            /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
+// NSTUB(    ???, _FIO_ReadFile)                            /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???,  FIO_SeekSkipFile)                        /* present on 5D3.113, EOSM.202 */
-// NSTUB(    ???,  FIO_WriteFile)                           /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
+// NSTUB(    ???, _FIO_WriteFile)                           /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???, _FIO_CreateDirectory)                     /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???, _FIO_CreateFile)                          /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???, _FIO_FindFirstEx)                         /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
@@ -140,6 +140,7 @@ NSTUB(0xFF812B4C,  init_task)
 // NSTUB(    ???,  ReverseDisplay)                          /* present on 60D.111, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
 
 /** EDMAC **/
+// NSTUB(    ???,  AbortEDmac)                              /* present on EOSM.202, 6D.116, 600D.102, 1100D.105, 5D3.113, 650D.104, 700D.114 */
 // NSTUB(    ???,  ConnectReadEDmac)                        /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???,  ConnectWriteEDmac)                       /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???,  RegisterEDmacAbortCBR)                   /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
@@ -246,7 +247,6 @@ NSTUB(0xFF841DE0,  free_dma_memory)
 // NSTUB(    ???,  ptp_register_handler)                    /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 
 /** Properties **/
-// NSTUB(    ???,  PROPAD_GetPropertyData)                  /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 550D.109 */
 // NSTUB(    ???, _prop_cleanup)                            /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???, _prop_request_change)                     /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???,  prop_deliver)                            /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
@@ -276,8 +276,6 @@ NSTUB(0xFF838F50,  RequestRPC)
 // NSTUB(    ???,  take_semaphore)                          /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 
 /** Task info **/
-// NSTUB(    ???,  get_current_task)                        /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
-// NSTUB(    ???,  get_obj_attr)                            /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???,  is_taskid_valid)                         /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???,  task_max)                                /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 
@@ -294,6 +292,7 @@ NSTUB(0xFF839820,  task_create)
 /** Misc **/
 NSTUB(0xFF969A2C,  memcpy)
 // NSTUB(    ???,  EnableImagePhysicalScreenParameter)      /* present on 7D.203, 50D.109, 5D2.212 */
+// NSTUB(    ???,  FSUunMountDevice)                        /* present on 5D3.113 */
 // NSTUB(    ???,  LoadCalendarFromRTC)                     /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???,  PtpDps_remote_release_SW1_SW2_worker)    /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  lv_path_struct)                          /* present on 60D.111, 600D.102, 550D.109, 1100D.105 */

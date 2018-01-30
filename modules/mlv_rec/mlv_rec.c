@@ -100,7 +100,6 @@
 static uint32_t cam_eos_m = 0;
 static uint32_t cam_5d2 = 0;
 static uint32_t cam_50d = 0;
-static uint32_t cam_5d3 = 0;
 static uint32_t cam_500d = 0;
 static uint32_t cam_550d = 0;
 static uint32_t cam_6d = 0;
@@ -109,6 +108,10 @@ static uint32_t cam_650d = 0;
 static uint32_t cam_7d = 0;
 static uint32_t cam_700d = 0;
 static uint32_t cam_60d = 0;
+
+static uint32_t cam_5d3 = 0;
+static uint32_t cam_5d3_113 = 0;
+static uint32_t cam_5d3_123 = 0;
 
 static uint32_t raw_rec_edmac_align = 0x01000;
 static uint32_t raw_rec_write_align = 0x01000;
@@ -167,7 +170,6 @@ static int32_t res_x = 0;
 static int32_t res_y = 0;
 static int32_t max_res_x = 0;
 static int32_t max_res_y = 0;
-static int32_t sensor_res_x = 0;
 static float squeeze_factor = 0;
 static int32_t frame_size = 0;
 static int32_t skip_x = 0;
@@ -744,17 +746,11 @@ static void refresh_raw_settings(int32_t force)
 static int32_t calc_crop_factor()
 {
 
-    int32_t camera_crop = 162;
-    int32_t sampling_x = 3;
-    
-    if (cam_5d2 || cam_5d3 || cam_6d) camera_crop = 100;
-    
-    if (video_mode_crop || (lv_dispsize > 1)) sampling_x = 1;
-    
-    get_afframe_sensor_res(&sensor_res_x, NULL);
-    if (!sensor_res_x) return 0;
-    if (!res_x) return 0;
-    
+    int sensor_res_x = raw_capture_info.sensor_res_x;
+    int camera_crop  = raw_capture_info.sensor_crop;
+    int sampling_x   = raw_capture_info.binning_x + raw_capture_info.skipping_x;
+
+    if (res_x == 0) return 0;
     return camera_crop * (sensor_res_x / sampling_x) / res_x;
 }
 
@@ -1723,7 +1719,7 @@ static void hack_liveview(int32_t unhack)
         call("lv_ae",           unhack ? 1 : 0);  /* for old cameras */
         call("lv_wb",           unhack ? 1 : 0);
 
-        if (cam_50d && !(hdmi_code == 5) && !unhack)
+        if (cam_50d && !(hdmi_code >= 5) && !unhack)
         {
             /* not sure how to unhack this one, and on 5D2 it crashes */
             call("lv_af_fase_addr", 0); //Turn off face detection
@@ -1733,7 +1729,8 @@ static void hack_liveview(int32_t unhack)
         uint32_t dialog_refresh_timer_addr = /* in StartDialogRefreshTimer */
             cam_50d ? 0xffa84e00 :
             cam_5d2 ? 0xffaac640 :
-            cam_5d3 ? 0xff4acda4 :
+            cam_5d3_113 ? 0xff4acda4 :
+            cam_5d3_123 ? 0xFF4B7648 :
             cam_550d ? 0xFF2FE5E4 :
             cam_600d ? 0xFF37AA18 :
             cam_650d ? 0xFF527E38 :
@@ -2426,6 +2423,29 @@ static int32_t mlv_write_rawi(FILE* f, struct raw_info raw_info)
     return mlv_write_hdr(f, (mlv_hdr_t *)&rawi);
 }
 
+static int32_t mlv_write_rawc(FILE* f)
+{
+    mlv_rawc_hdr_t rawc;
+
+    mlv_set_type((mlv_hdr_t *)&rawc, "RAWC");
+    mlv_set_timestamp((mlv_hdr_t *)&rawc, mlv_start_timestamp);
+    rawc.blockSize = sizeof(mlv_rawc_hdr_t);
+
+    /* copy all fields from raw_capture_info */
+    rawc.sensor_res_x = raw_capture_info.sensor_res_x;
+    rawc.sensor_res_y = raw_capture_info.sensor_res_y;
+    rawc.sensor_crop  = raw_capture_info.sensor_crop;
+    rawc.reserved     = raw_capture_info.reserved;
+    rawc.binning_x    = raw_capture_info.binning_x;
+    rawc.skipping_x   = raw_capture_info.skipping_x;
+    rawc.binning_y    = raw_capture_info.binning_y;
+    rawc.skipping_y   = raw_capture_info.skipping_y;
+    rawc.offset_x     = raw_capture_info.offset_x;
+    rawc.offset_y     = raw_capture_info.offset_y;
+
+    return mlv_write_hdr(f, (mlv_hdr_t *)&rawc);
+}
+
 static uint32_t find_largest_buffer(uint32_t start_group, write_job_t *write_job, uint32_t max_size)
 {
     write_job_t job;
@@ -2536,6 +2556,7 @@ static void raw_prepare_chunk(FILE *f, mlv_file_hdr_t *hdr)
     if(hdr->fileNum == 0)
     {
         mlv_write_rawi(f, raw_info);
+        mlv_write_rawc(f);
         mlv_write_info(f);
 
         mlv_rtci_hdr_t rtci_hdr;
@@ -2566,7 +2587,18 @@ static void raw_prepare_chunk(FILE *f, mlv_file_hdr_t *hdr)
         mlv_write_hdr(f, (mlv_hdr_t *)&idnt_hdr);
         mlv_write_hdr(f, (mlv_hdr_t *)&wbal_hdr);
         mlv_write_hdr(f, (mlv_hdr_t *)&styl_hdr);
+        mlv_write_vers_blocks(f, mlv_start_timestamp);
     }
+    
+    /* insert a null block so the header size is multiple of 512 bytes */
+    int hdr_size = FIO_SeekSkipFile(f, 0, SEEK_CUR);
+    
+    mlv_hdr_t nul_hdr;
+    memset(&nul_hdr, 0x00, sizeof(nul_hdr));
+    mlv_set_type(&nul_hdr, "NULL");
+    int padded_size = (hdr_size + sizeof(nul_hdr) + 511) & ~511;
+    nul_hdr.blockSize = padded_size - hdr_size;
+    FIO_WriteFile(f, &nul_hdr, nul_hdr.blockSize);
 }
 
 static void raw_writer_task(uint32_t writer)
@@ -2979,8 +3011,8 @@ static uint32_t mlv_rec_precreate_del_empty(char *filename)
         return 0;
     }
     
-    /* if only the size of a file header, remove again */
-    if(size <= sizeof(mlv_file_hdr_t))
+    /* if only the size of a file header plus padding, remove again */
+    if(size <= 0x200)
     {
         trace_write(raw_rec_trace_ctx, "mlv_rec_precreate_del_empty: '%s' empty, deleting", filename);
         FIO_RemoveFile(filename);
@@ -4125,7 +4157,7 @@ static unsigned int raw_rec_update_preview(unsigned int ctx)
     struct display_filter_buffers * buffers = (struct display_filter_buffers *) ctx;
 
     raw_previewing = 1;
-    raw_set_preview_rect(skip_x, skip_y, res_x, res_y);
+    raw_set_preview_rect(skip_x, skip_y, res_x, res_y, 1);
     raw_force_aspect_ratio_1to1();
     raw_preview_fast_ex(
         (void*)-1,
@@ -4171,15 +4203,18 @@ static unsigned int raw_rec_init()
     cam_eos_m = is_camera("EOSM", "2.0.2");
     cam_5d2   = is_camera("5D2",  "2.1.2");
     cam_50d   = is_camera("50D",  "1.0.9");
-    cam_5d3   = is_camera("5D3",  "1.1.3");
     cam_550d  = is_camera("550D", "1.0.9");
     cam_6d    = is_camera("6D",   "1.1.6");
     cam_600d  = is_camera("600D", "1.0.2");
     cam_650d  = is_camera("650D", "1.0.4");
     cam_7d    = is_camera("7D",   "2.0.3");
-    cam_700d  = is_camera("700D", "1.1.4");
+    cam_700d  = is_camera("700D", "1.1.5");
     cam_60d   = is_camera("60D",  "1.1.1");
     cam_500d  = is_camera("500D", "1.1.1");
+
+    cam_5d3_113 = is_camera("5D3",  "1.1.3");
+    cam_5d3_123 = is_camera("5D3",  "1.2.3");
+    cam_5d3 = (cam_5d3_113 || cam_5d3_123);
     
     /* not all models support exFAT filesystem */
     uint32_t exFAT = 1;

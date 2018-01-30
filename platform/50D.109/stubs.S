@@ -53,9 +53,9 @@ NSTUB(    0xFF3C,  additional_version)                      // d
 NSTUB(0xFF982590,  FIO_CloseFile)                           // d
 NSTUB(0xFF9836A0,  FIO_FindClose)                           // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
 NSTUB(0xFF9835A0,  FIO_FindNextEx)                          // d
-NSTUB(0xFF982820,  FIO_ReadFile)                            // d
+NSTUB(0xFF982820, _FIO_ReadFile)                            // d
 NSTUB(0xFF9828D0,  FIO_SeekSkipFile)
-NSTUB(0xFF9829D0,  FIO_WriteFile)                           // d
+NSTUB(0xFF9829D0, _FIO_WriteFile)                           // d
 NSTUB(0xFF982DF4, _FIO_CreateDirectory)
 NSTUB(0xFF9824E8, _FIO_CreateFile)                          // d
 NSTUB(0xFF983474, _FIO_FindFirstEx)                         // d
@@ -151,6 +151,7 @@ NSTUB(0xFFAA7C9C,  ShootOlcApp_handler)
 // NSTUB(    ???,  ReverseDisplay)                          /* present on 60D.111, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
 
 /** EDMAC **/
+NSTUB(0xFF97C9E4,  AbortEDmac)
 NSTUB(0xFF97C918,  ConnectReadEDmac)
 NSTUB(0xFF97C8F0,  ConnectWriteEDmac)
 NSTUB(0xFF97CAAC,  RegisterEDmacAbortCBR)
@@ -287,9 +288,9 @@ NSTUB(0xFF866934,  take_semaphore)
 
 /** Task info **/
 NSTUB(    0x30F8,  task_max)
-NSTUB(0xFF8166B4,  get_current_task)
-NSTUB(0xFF817F04,  get_obj_attr)                            // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xFF8180BC,  is_taskid_valid)                         // AJ_task_trampoline_related_p10
+NSTUB(    0x1A70,  current_task)
+NSTUB(     0x668,  current_interrupt)                       // in interrupt handler (0x18), where MEM(C0201004) is stored
 
 /** Task sleep **/
 NSTUB(0xFF866E08,  msleep)                                  // called from EV_GETDONE_CACHE param 0x64								// d
@@ -307,12 +308,12 @@ NSTUB(0xFF86334C,  LoadCalendarFromRTC)
 NSTUB(0xFF98E1E4,  vsnprintf)                               // d
 //NSTUB( 0xffa86684, ChangeHDMIOutputSizeToFULLHD)														//d
 //NSTUB( 0xffa855f4, ChangeHDMIOutputSizeToVGA)														//d
+// NSTUB(    ???,  FSUunMountDevice)                        /* present on 5D3.113 */
 // NSTUB(    ???,  PtpDps_remote_release_SW1_SW2_worker)    /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  lv_path_struct)                          /* present on 60D.111, 600D.102, 550D.109, 1100D.105 */
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
 
 /** Unused stubs or porting notes **/
-///NSTUB([idk], AbortEDmac)
 ///NSTUB(0xFFA854D0,  BeginMovieRecSequence)
 ///NSTUB(0xFFA4717C,  CreateDialogBox)
 ///NSTUB(0xFFA46C14,  DeleteDialogBox)

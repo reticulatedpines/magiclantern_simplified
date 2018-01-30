@@ -41,6 +41,7 @@
 #include "reloc.h"
 
 #include "ml-cbr.h"
+#include "backtrace.h"
 
 #if defined(FEATURE_GPS_TWEAKS)
 #include "gps.h"
@@ -260,7 +261,7 @@ my_task_dispatch_hook(
     struct task_mapping * mapping = _task_overrides_start;
 
 #ifdef CONFIG_QEMU
-    char* task_name = get_task_name_from_id(get_current_task());
+    char* task_name = get_current_task_name();
     
     if ((((intptr_t)task->entry & 0xF0000000) == 0xF0000000 || task->entry < RESTARTSTART) &&
         (   /* only start some whitelisted Canon tasks */
@@ -583,34 +584,36 @@ void hold_your_horses()
  * Custom assert handler - intercept ERR70 and try to save a crash log.
  * Crash log should contain Canon error message.
  */
-static char assert_msg[256] = "";
+static char assert_msg[512] = "";
 static int (*old_assert_handler)(char*,char*,int,int) = 0;
 const char* get_assert_msg() { return assert_msg; }
 
 static int my_assert_handler(char* msg, char* file, int line, int arg4)
 {
-    snprintf(assert_msg, sizeof(assert_msg), 
+    int len = snprintf(assert_msg, sizeof(assert_msg), 
         "ASSERT: %s\n"
         "at %s:%d, task %s\n"
-        "lv:%d mode:%d\n", 
+        "lv:%d mode:%d\n\n", 
         msg, 
-        file, line, get_task_name_from_id(get_current_task()), 
+        file, line, get_current_task_name(), 
         lv, shooting_mode
     );
+    backtrace_getstr(assert_msg + len, sizeof(assert_msg) - len);
     request_crash_log(1);
     return old_assert_handler(msg, file, line, arg4);
 }
 
 void ml_assert_handler(char* msg, char* file, int line, const char* func)
 {
-    snprintf(assert_msg, sizeof(assert_msg), 
+    int len = snprintf(assert_msg, sizeof(assert_msg), 
         "ML ASSERT:\n%s\n"
         "at %s:%d (%s), task %s\n"
-        "lv:%d mode:%d\n", 
+        "lv:%d mode:%d\n\n", 
         msg, 
-        file, line, func, get_task_name_from_id(get_current_task()), 
+        file, line, func, get_current_task_name(), 
         lv, shooting_mode
     );
+    backtrace_getstr(assert_msg + len, sizeof(assert_msg) - len);
     request_crash_log(2);
 }
 
@@ -718,7 +721,7 @@ my_init_task(int a, int b, int c, int d)
     // An overflow in Canon code may write a zero right in the middle of ML code
     unsigned int *backup_address = 0;
     unsigned int backup_data = 0;
-    unsigned int task_id = get_current_task();
+    unsigned int task_id = current_task->taskId;
 
     if(task_id > 0x68 && task_id < 0xFFFFFFFF)
     {

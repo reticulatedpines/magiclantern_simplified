@@ -78,13 +78,22 @@ struct lens_info
         int                     dof_diffraction_blur;   /* fixme: move those near other DOF fields on next API update */
         //~ float                   lens_rotation;
         //~ float                   lens_step;
+        
+        /* those were retrieved from PROP_LENS property */
+        uint8_t                 lens_exists;
+        uint16_t                lens_focal_min;
+        uint16_t                lens_focal_max;
+        uint8_t                 lens_extender;
+        uint8_t                 lens_capabilities;
+        uint32_t                lens_version;
+        uint64_t                lens_serial;
 };
 
 extern struct lens_info lens_info;
 
 #define DOF_DIFFRACTION_LIMIT_REACHED 1
 
-#if defined(CONFIG_6D)
+#if defined(CONFIG_6D) || defined(CONFIG_5D3_123)
 struct prop_lv_lens
 {  
         uint32_t                lens_rotation; // Identical Doesn't Change

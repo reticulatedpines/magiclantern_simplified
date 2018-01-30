@@ -62,9 +62,9 @@ NSTUB(    0x82E0,  additional_version)
 NSTUB(0xFF1E66B4,  FIO_CloseFile)
 NSTUB(0xFF1E7684,  FIO_FindClose)                           // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
 NSTUB(0xFF1E75A4,  FIO_FindNextEx)
-NSTUB(0xFF1E6464,  FIO_ReadFile)
+NSTUB(0xFF1E6464, _FIO_ReadFile)
 NSTUB(0xFF1E6514,  FIO_SeekSkipFile)
-NSTUB(0xFF1E6604,  FIO_WriteFile)
+NSTUB(0xFF1E6604, _FIO_WriteFile)
 NSTUB(0xFF1E6EF0, _FIO_CreateDirectory)
 NSTUB(0xFF1E6310, _FIO_CreateFile)
 NSTUB(0xFF1E74B0, _FIO_FindFirstEx)
@@ -160,6 +160,7 @@ NSTUB(0xFF33BFDC,  NormalDisplay)
 NSTUB(0xFF33BFAC,  ReverseDisplay)
 
 /** EDMAC **/
+NSTUB(0xFF1E09B0,  AbortEDmac)
 NSTUB(0xFF1E06DC,  ConnectReadEDmac)
 NSTUB(0xFF1E0618,  ConnectWriteEDmac)
 NSTUB(0xFF1E0A78,  RegisterEDmacAbortCBR)
@@ -296,9 +297,9 @@ NSTUB(0xFF070FF0,  take_semaphore)
 
 /** Task info **/
 NSTUB(    0x3328,  task_max)
-NSTUB(0xFF017618,  get_current_task)                        // called from AJ_armlib_setup_related3
-NSTUB(0xFF080ECC,  get_obj_attr)                            // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xFF3557F0,  is_taskid_valid)                         // AJ_task_trampoline_related_p10
+NSTUB(    0x1A2C,  current_task)
+NSTUB(     0x674,  current_interrupt)                       // in interrupt handler (0x18), where MEM(C0201004) is stored
 
 /** Task sleep **/
 NSTUB(0xFF0714C4,  msleep)                                  // called from EV_GETDONE_CACHE param 0x64
@@ -317,13 +318,13 @@ NSTUB(0xFF1F94BC,  vsnprintf)
 //NSTUB( 0xff37aee4, ChangeHDMIOutputSizeToFULLHD)
 //NSTUB( 0xff37b174, ChangeHDMIOutputSizeToVGA)
 // NSTUB(    ???,  EnableImagePhysicalScreenParameter)      /* present on 7D.203, 50D.109, 5D2.212 */
+// NSTUB(    ???,  FSUunMountDevice)                        /* present on 5D3.113 */
 // NSTUB(    ???,  PtpDps_remote_release_SW1_SW2_worker)    /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
 
 /** Unused stubs or porting notes **/
 ///NSTUB( 0xFF34B724, AJ_guess_LED_OFF )
 ///NSTUB( 0xFF34B6F4, AJ_guess_LED_ON )   // led for SD/CF read and write ops
-///NSTUB(0xFF1E09B0,  AbortEDmac)
 ///NSTUB(0xFF29E25C,  AfCtrl_SetLensParameterRemote)
 ///NSTUB(0xFF37FAF4,  CancelBottomInfoDispTimer)
 ///NSTUB(0xFF234FCC,  ChangeColorPalette)

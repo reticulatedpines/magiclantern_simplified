@@ -45,7 +45,7 @@ int take_screenshot( char* filename, uint32_t mode )
 
     /* setup output buffer */
     /* todo: support HDMI resolutions? */
-    rgb = fio_malloc(720 * 480 * 3);
+    rgb = malloc(720 * 480 * 3);
     if (!rgb) goto err;
     
     /* fill it with data */

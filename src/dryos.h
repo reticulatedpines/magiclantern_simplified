@@ -145,7 +145,11 @@ void ml_assert_handler(char* msg, char* file, int line, const char* func);
 
 int rand (void);
 
+#if !defined(CONFIG_7D_MASTER)
 #define ASSERT(x) { if (!(x)) { ml_assert_handler(#x, __FILE__, __LINE__, __func__); }}
+#else
+#define ASSERT(x) do{}while(0)
+#endif
 //~ #define ASSERT(x) {}
 
 #define STR_APPEND(orig,fmt,...) ({ int _len = strlen(orig); snprintf(orig + _len, sizeof(orig) - _len, fmt, ## __VA_ARGS__); });
@@ -205,8 +209,6 @@ extern struct msg_queue *msg_queue_create(char *name, uint32_t backlog);
 
 uint32_t RegisterRPCHandler (uint32_t rpc_id, uint32_t (*handler) (uint8_t *, uint32_t));
 uint32_t RequestRPC (uint32_t id, void* data, uint32_t length, uint32_t cb, uint32_t cb_parm);
-
-const char* get_dcim_dir();
 
 // for optimization
 #define unlikely(exp) __builtin_expect(exp,0)

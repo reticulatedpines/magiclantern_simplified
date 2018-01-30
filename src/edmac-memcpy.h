@@ -2,9 +2,11 @@
 #define _edmac_memcpy_h_
 
 #include "sys/types.h"
+#include "stdint.h"
 
 void* edmac_memcpy(void* dst, void* src, size_t length);
 void* edmac_memset(void* dst, int value, size_t length);
+uint32_t edmac_find_divider(size_t length, size_t transfer_size);
 
 /* crop a rectangle from an image buffer; all sizes in bytes */
 void* edmac_copy_rectangle(void* dst, void* src, int src_width, int x, int y, int w, int h);

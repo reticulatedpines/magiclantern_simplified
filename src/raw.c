@@ -91,9 +91,12 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #define DEFAULT_RAW_BUFFER MEM(MEM(0x51FC))
 #endif
 
-#ifdef CONFIG_5D3
-#define DEFAULT_RAW_BUFFER MEM(0x2600C + 0x2c)  /* 113 */
-//~ #define DEFAULT_RAW_BUFFER MEM(0x25f1c + 0x34)  /* 123 */
+#ifdef CONFIG_5D3_113
+#define DEFAULT_RAW_BUFFER MEM(0x2600C + 0x2c)
+#endif
+
+#ifdef CONFIG_5D3_123
+#define DEFAULT_RAW_BUFFER MEM(0x25f1c + 0x34)
 #endif
 
 #ifdef CONFIG_650D
@@ -182,21 +185,15 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 
 /** 
  * White level
- * one size fits all: should work on most cameras and can't be wrong by more than 0.15 EV
- * that is, log2((16382-2048) / (15000-2048))
+ * 
+ * With PREFERRED_RAW_TYPE set to CCD, most cameras appear to clip above 16300
+ * (most of them actually use the full range, until 16382)
+ * 
+ * one size fits all: 16200 may sacrifice up to 0.02 EV of highlights
+ * that is, log2((16382-2048) / (16000-2048))
  */
-#define WHITE_LEVEL 15000
+#define WHITE_LEVEL 16200
 
-/** there may be exceptions */
-#ifdef CONFIG_6D
-#undef WHITE_LEVEL
-#define WHITE_LEVEL 13000
-#endif
-
-#ifdef CONFIG_5D3
-#undef WHITE_LEVEL
-#define WHITE_LEVEL 16300
-#endif
 
 /**
  * Color matrix should be copied from DCRAW.
@@ -313,6 +310,26 @@ struct raw_info raw_info = {
     .color_matrix1 = {CAM_COLORMATRIX1},// camera-specific, from dcraw.c
     .dynamic_range = 1100,              // not correct; use numbers from DxO instead
 };
+
+struct raw_capture_info raw_capture_info = {
+    #ifdef CONFIG_FULLFRAME
+    .sensor_crop = 100,         /* 1.0 */
+    #else
+    .sensor_crop = 162,         /* 1.62x (APS-C) */
+    #endif
+    .binning_x   = 1,
+    .binning_y   = 1,
+    .skipping_x  = 0,
+    .skipping_y  = 0,
+    .offset_x    = SHRT_MIN,
+    .offset_y    = SHRT_MIN,
+};
+
+PROP_HANDLER(PROP_LV_AFFRAME)
+{
+    raw_capture_info.sensor_res_x = buf[0];
+    raw_capture_info.sensor_res_y = buf[1];
+}
 
  /**
  * Dynamic range, from DxO
@@ -438,12 +455,17 @@ static int raw_lv_get_resolution(int* width, int* height)
 
     /* height may be a little different; 5D3 needs to subtract 1,
      * EOS M needs to add 1, 100D usually gives exact value
-     * is it really important to have exact height? */
+     * is it really important to have exact height?
+     * for some raw types, yes! */
+
+#ifdef CONFIG_5D3
+    (*height)--;
+#endif
 
 #ifdef CONFIG_EOSM
     /* EOS M exception */
     /* http://www.magiclantern.fm/forum/index.php?topic=16608.msg176023#msg176023 */
-    if (lv_dispsize == 1 && !video_mode_crop && !RECORDING_H264 && *height == 1188)
+    if (lv_dispsize == 1 && !video_mode_crop && !RECORDING_H264)
     {
         *height = 727;
     }
@@ -473,7 +495,7 @@ static int raw_update_params_work()
     console_show();
     #endif
 
-    dbg_printf("raw update from %s\n", get_task_name_from_id(get_current_task()));
+    dbg_printf("raw update from %s\n", get_current_task_name());
 
     int width = 0;
     int height = 0;
@@ -653,7 +675,7 @@ static int raw_update_params_work()
             dbg_printf("Photo raw size error\n");
             return 0;
         }
-        
+
         /**
          * The RAW file has unused areas, called "optical black" (OB); we need to skip them.
          * 
@@ -742,6 +764,35 @@ static int raw_update_params_work()
         printf("Resolution changed: %dx%d -> %dx%d\n", raw_info.width, raw_info.height, width, height);
         dirty = 1;
     }
+
+    /* photo mode and crop/zoom modes use 1:1 readout */
+    /* LiveView uses 3x3 column binning / line skipping on most models */
+    /* and 3x5 in 720p */
+    if (!lv || zoom || video_mode_crop)
+    {
+        raw_capture_info.binning_x  = raw_capture_info.binning_y  = 1;
+        raw_capture_info.skipping_x = raw_capture_info.skipping_y = 0;
+        raw_capture_info.offset_x   = raw_capture_info.offset_y   = lv ? SHRT_MIN : 0;
+    }
+    else
+    {
+        raw_capture_info.binning_x  = 3; raw_capture_info.skipping_x = 0;
+#ifdef CONFIG_5D3
+        raw_capture_info.skipping_y = 0; raw_capture_info.binning_y  = mv720 ? 5 : 3;
+#elif CONFIG_EOSM
+        raw_capture_info.binning_y  = 1; raw_capture_info.skipping_y = (mv720 || !RECORDING_H264) ? 4 : 2;
+#else
+        raw_capture_info.binning_y  = 1; raw_capture_info.skipping_y = mv720 ? 4 : 2;
+#endif
+        raw_capture_info.offset_x   =    raw_capture_info.offset_y   = SHRT_MIN;
+    }
+    dbg_printf(
+        "Subsampling mode: %dB%dSx%dB%dS (%dx%d %d.%02d)\n",
+        raw_capture_info.binning_x, raw_capture_info.skipping_x,
+        raw_capture_info.binning_y, raw_capture_info.skipping_y,
+        raw_capture_info.sensor_res_x, raw_capture_info.sensor_res_y,
+        raw_capture_info.sensor_crop / 100, raw_capture_info.sensor_crop % 100
+    );
 
 #ifdef CONFIG_RAW_LIVEVIEW 
 
@@ -924,6 +975,7 @@ static int raw_update_params_once()
     int ans = 0;
     take_semaphore(raw_sem, 0);
     ans = raw_update_params_work();
+    if (ans) module_exec_cbr(CBR_RAW_INFO_UPDATE);
     give_semaphore(raw_sem);
     return ans;
 }
@@ -958,7 +1010,7 @@ static int preview_rect_y;
 static int preview_rect_w;
 static int preview_rect_h;
 
-void raw_set_preview_rect(int x, int y, int w, int h)
+void raw_set_preview_rect(int x, int y, int w, int h, int obey_info_bars)
 {
     preview_rect_x = x;
     preview_rect_y = y;
@@ -971,13 +1023,17 @@ void raw_set_preview_rect(int x, int y, int w, int h)
     /* not exactly a good idea when we have already acquired raw_sem */
     //~ get_yuv422_vram(); // update vram parameters
     
+    /* fixme: handle different screen layouts */
+    int top_margin      = (obey_info_bars) ? 38 : 0;
+    int bottom_margin   = (obey_info_bars) ? 38 : 0;
+
     /* scaling factor: raw width should match os.x_ex, same for raw height and os.y_ex */
     lv2raw.sx = 1024 * w / BM2LV_DX(os.x_ex);
-    lv2raw.sy = 1024 * h / BM2LV_DY(os.y_ex);
+    lv2raw.sy = 1024 * h / BM2LV_DY(os.y_ex - top_margin - bottom_margin);
 
     /* translation: raw top-left corner (x,y) should match (os.x0,os.y0) */
     int x0_lv = BM2LV_X(os.x0);
-    int y0_lv = BM2LV_Y(os.y0);
+    int y0_lv = BM2LV_Y(os.y0 + top_margin);
     lv2raw.tx = x - LV2RAW_DX(x0_lv);
     lv2raw.ty = y - LV2RAW_DY(y0_lv);
 }
@@ -1050,7 +1106,7 @@ void raw_set_geometry(int width, int height, int skip_left, int skip_right, int 
     }
 #endif
 
-    raw_set_preview_rect(preview_skip_left, preview_skip_top, preview_width, preview_height);
+    raw_set_preview_rect(preview_skip_left, preview_skip_top, preview_width, preview_height, 0);
 
     dbg_printf("lv2raw sx:%d sy:%d tx:%d ty:%d\n", lv2raw.sx, lv2raw.sy, lv2raw.tx, lv2raw.ty);
     dbg_printf("raw2lv test: (%d,%d) - (%d,%d)\n", RAW2LV_X(raw_info.active_area.x1), RAW2LV_Y(raw_info.active_area.y1), RAW2LV_X(raw_info.active_area.x2), RAW2LV_Y(raw_info.active_area.y2));
@@ -1638,9 +1694,13 @@ static void FAST raw_preview_color_work(void* raw_buffer, void* lv_buffer, int y
         if (yr <= preview_rect_y || yr >= preview_rect_y + preview_rect_h)
         {
             /* out of range, just fill with black */
-            memset(&lv32[LV(0,y)/4], 0, x2-x1);
+            memset(&lv32[LV(0,y)/4], 0, vram_lv.pitch);
             continue;
         }
+
+        /* fill left/right borders with black */
+        memset(&lv32[LV(0,y)/4],  0, LV(x1,y) - LV(0,y)/4*4);
+        memset(&lv32[LV(x2,y)/4], 0, LV(0,1) - LV(x2,0)/4*4);
 
         struct raw_pixblock * row = (void*)raw + yr * raw_info.pitch;
         
@@ -1726,14 +1786,18 @@ static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1
         if (yr <= preview_rect_y || yr >= preview_rect_y + preview_rect_h)
         {
             /* out of range, just fill with black */
-            memset(&lv64[LV(0,y)/8], 0, x2-x1);
+            memset(&lv64[LV(0,y)/8], 0, vram_lv.pitch);
             continue;
         }
+
+        /* fill left/right borders with black */
+        memset(&lv64[LV(0,y)/8],  0, LV(x1,y) - LV(0,y)/8*8);
+        memset(&lv64[LV(x2,y)/8], 0, LV(0,1) - LV(x2,0)/8*8);
 
         struct raw_pixblock * row = (void*)raw + yr * raw_info.pitch;
         
         if (y%2) continue;
-        
+
         for (int x = x1; x < x2; x += 4)
         {
             int xr = lv2rx[x];
@@ -1844,7 +1908,10 @@ static void raw_lv_update()
         for (int i = 0; i < 5; i++)
         {
             if (raw_update_params_work())
+            {
+                module_exec_cbr(CBR_RAW_INFO_UPDATE);
                 break;
+            }
             wait_lv_frames(1);
         }
     }

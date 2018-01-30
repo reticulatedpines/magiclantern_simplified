@@ -13,11 +13,11 @@ typedef enum {
 /**
  * @brief CBR signature
  */
-typedef ml_cbr_action (* cbr_func) (const char *, void *);
+typedef ml_cbr_action (* cbr_func) (const char *event, void *data);
 
 /**
  * @brief Register a new CBRs to an event
- * @param event Event to register the CBR to. 
+ * @param event Event to register the CBR to. (16 char max) 
  * @param cbr Callback function to be invoked when the event happens
  * @param prio CBR priority. Higer priorities CBRs will be called before lower
  * priority ones.
@@ -27,7 +27,7 @@ int ml_register_cbr(const char * event, cbr_func cbr, unsigned int prio);
 
 /**
  * @brief Unregisters a CBR to an event
- * @param event Event to which the CBR was associated
+ * @param event Event to which the CBR was associated (16 char max) 
  * @param cbr The CBR to un-register
  * @return 0 if unregistration successful
  */
@@ -39,7 +39,7 @@ int ml_unregister_cbr(const char * event, cbr_func cbr);
  * <br>
  * CBRs are walked in priority order, from highest to lower. Higher priority
  * CBRs can block the flow by returning ML_CBR_STOP
- * @param event Triggering event (must not be NULL)
+ * @param event Triggering event (must not be NULL, 16 char max) 
  * @param data  Data to be shared with the CBRs (can be NULL)
  */
 void ml_notify_cbr(const char* event, void* data);

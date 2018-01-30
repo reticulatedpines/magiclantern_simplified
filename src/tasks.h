@@ -82,9 +82,11 @@ struct task_attr_str {
   unsigned int id;
 }; // size = 0x28
 
-/** Return the head of the running task list */
-extern int
-get_current_task(void);
+/** The head of the running task list */
+extern struct task * current_task;
+
+/** Current interrupt ( << 2 on D4/5, exact value on D2/3/6) */
+extern uint32_t current_interrupt;
 
 /** Official initial task.
  * \note Overridden by reboot shim.
@@ -170,6 +172,8 @@ extern int ml_shutdown_requested;
 
 
 char * get_task_name_from_id(int id);
+
+char * get_current_task_name();
 
 /* to refactor with CBR */
 void task_update_loads(); // called every second from clock_task

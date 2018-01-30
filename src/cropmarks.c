@@ -366,7 +366,7 @@ cropmark_draw()
         cropmark_cache_update_signature();
         bvram_mirror_clear();
 
-        if (hdmi_code == 5 && is_pure_play_movie_mode())
+        if (hdmi_code >= 5 && is_pure_play_movie_mode())
         {   // exception: cropmarks will have some parts of them outside the screen
             bmp_draw_scaled_ex(cropmarks, BMP_W_MINUS+1, BMP_H_MINUS - 50, 960, 640, bvram_mirror);
         }
@@ -415,7 +415,7 @@ static void cropmark_cache_update_signature()
 static int cropmark_cache_is_valid()
 {
     if (cropmark_cache_dirty) return 0; // some other ML task asked for redraw
-    if (hdmi_code == 5 && PLAY_MODE) return 0; // unusual geometry - better force full redraw every time
+    if (hdmi_code >= 5 && PLAY_MODE) return 0; // unusual geometry - better force full redraw every time
     
     int sig = cropmark_cache_get_signature(); // video mode changed => needs redraw
     if (cropmark_cache_sig != sig) return 0;
@@ -507,13 +507,13 @@ static void FAST default_movie_cropmarks()
     {
         if(video_mode_resolution > 1) // 4:3
         {
-            crop_x = (os.off_43 << 16) | (os.x_max - os.off_43);
-            crop_y = (os.y0 << 16) | (os.y_max - os.y0);
+            crop_x = ((os.x0 + os.off_43) << 16) | (os.x_max - os.off_43);
+            crop_y = (os.y0 << 16) | os.y_max;
         }
         else
         {
-            crop_x = (os.x0 << 16) | (os.x_max - os.x0);
-            crop_y = (os.off_169 << 16) | (os.y_max - os.off_169);
+            crop_x = (os.x0 << 16) | os.x_max;
+            crop_y = ((os.y0 + os.off_169) << 16) | (os.y_max - os.off_169);
         }
     }
     
