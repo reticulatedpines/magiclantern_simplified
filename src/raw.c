@@ -126,12 +126,10 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 
 #ifdef CONFIG_700D
 #define DEFAULT_RAW_BUFFER MEM(0x25B0C + 0x3C)
-#define DEFAULT_RAW_BUFFER_SIZE (0x4ee00000 - 0x4d600100)
 #endif
 
 #ifdef CONFIG_EOSM
 #define DEFAULT_RAW_BUFFER MEM(0x404E4 + 0x44)
-#define DEFAULT_RAW_BUFFER_SIZE (0x4ee00000 - 0x4d600100)
 #endif
 
 #ifdef CONFIG_6D
@@ -142,8 +140,14 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #define RAW_LV_BUFFER_ALLOC_SIZE (3906*968)
 #endif
 
+#ifndef DEFAULT_RAW_BUFFER_SIZE
+/* todo: figure out how much Canon code allocates for their LV RAW buffer - how? */
+#warning FIXME: using dummy DEFAULT_RAW_BUFFER_SIZE
+#define DEFAULT_RAW_BUFFER_SIZE (9*1024*1024)
+#endif
 
-#else // "Traditional" RAW LV buffer detection
+
+#else // "Traditional" RAW LV buffer detection (no CONFIG_EDMAC_RAW_SLURP)
 
 /**
  * LiveView raw buffer address
@@ -163,7 +167,7 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #define RAW_LV_EDMAC 0xC0F26208
 #endif
 
-#endif
+#endif  /* no CONFIG_EDMAC_RAW_SLURP */
 
 /**
  * Photo-mode raw buffer address
