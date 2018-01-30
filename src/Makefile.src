@@ -324,6 +324,8 @@ gcc-libgcc.a: $(ARM_LIBGCC_A)
 clean::
 	$(call rm_files, $(ML_LIBC))
 
+version.o: $(PLATFORM_DIR)/version.c
+
 $(PLATFORM_DIR)/version.c: FORCE
 	$(call build,"VERSION",echo "const char build_version[] = \"$(VERSION)\";") > $@
 	@echo 'const char build_id[] = "'`hg id`'";' >> $@
