@@ -846,10 +846,11 @@ It works for modules as well:
 
     cd modules/lua
     # add some qprintf call in lua_init for testing
-    make clean; make                  # regular build
-    make clean; make CONFIG_QEMU=y    # debug build for QEMU
-    # todo: make install_qemu doesn't work here yet
-
+    make clean; make                            # regular build
+    make clean; make CONFIG_QEMU=y              # debug build for QEMU
+    make clean; make install_qemu               # build and install a regular build to the QEMU SD/CF image
+    make clean; make install_qemu CONFIG_QEMU=y # build and install a QEMU build to the QEMU SD/CF image
+ 
 Tracing guest events (execution, I/O, debug messages, RAM, function calls...)
 `````````````````````````````````````````````````````````````````````````````
 

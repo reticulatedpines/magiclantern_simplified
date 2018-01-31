@@ -48,8 +48,10 @@ $(INSTALLER_NAME_FIR):
 
 # just to make sure the installer can be compiled from source
 # do not actually build the FIR - just the plain binary
-installer_check:
+# also clean the installer directory afterwards; we are not going to use the results, just make sure it builds
+installer_check: | autoexec.bin
 	$(MAKE) -C $(INSTALLER_DIR)/$(ML_MODEL_DIR) autoexec-fir.bin
+	$(MAKE) -C $(INSTALLER_DIR)/$(ML_MODEL_DIR) clean
 
 # install ML-SETUP.FIR built from the installer directory
 install:: $(INSTALLER_NAME_FIR)
