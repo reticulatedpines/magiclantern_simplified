@@ -20,6 +20,7 @@
 #include "menu.h"
 #include "edmac.h"
 #include "util.h"
+#include "raw.h"
 
 #ifdef MEM_DEBUG
 #define dbg_printf(fmt,...) { printf(fmt, ## __VA_ARGS__); }
@@ -1072,15 +1073,6 @@ static void guess_free_mem()
 
 static MENU_UPDATE_FUNC(mem_error_display);
 
-static struct { uint32_t addr; char* name; } common_addresses[] = {
-    { RESTARTSTART,         "RST"},
-    { YUV422_HD_BUFFER_1,   "HD1"},
-    { YUV422_HD_BUFFER_1,   "HD2"},
-    { YUV422_LV_BUFFER_1,   "LV1"},
-    { YUV422_LV_BUFFER_2,   "LV2"},
-    { YUV422_LV_BUFFER_3,   "LV3"},
-};
-
 static MENU_UPDATE_FUNC(meminfo_display)
 {
     int M = GetFreeMemForAllocateMemory();
@@ -1141,6 +1133,16 @@ static MENU_UPDATE_FUNC(meminfo_display)
                     draw_line(i, 400, i, 410, memory_map[i]);
             
             /* show some common addresses on the memory map */
+            struct { uint32_t addr; char* name; } common_addresses[] = {
+                { RESTARTSTART,                         "ML"  },    /* where ML is loaded */
+                { (uint32_t) raw_info.buffer,           "RAW" },    /* raw buffer */
+                { (uint32_t) bmp_vram_idle(),           "BMI" },    /* "idle" BMP buffer (back buffer) */
+                { (uint32_t) bmp_vram_real(),           "BMP" },    /* current BMP buffer (displayed on the screen) */
+                { YUV422_LV_BUFFER_DISPLAY_ADDR,        "LVD" },    /* current LV YUV buffer (displayed) */
+                { shamem_read(REG_EDMAC_WRITE_LV_ADDR), "LVW" },    /* LV YUV buffer being written by EDMAC */
+                { shamem_read(REG_EDMAC_WRITE_HD_ADDR), "HDW" },    /* HD YUV buffer being written by EDMAC */
+            };
+
             for (int i = 0; i < COUNT(common_addresses); i++)
             {
                 int c = MEMORY_MAP_ADDRESS_TO_INDEX(common_addresses[i].addr);
