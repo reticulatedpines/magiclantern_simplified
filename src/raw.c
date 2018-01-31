@@ -138,6 +138,8 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 
 #ifdef CONFIG_1100D
 #define CONFIG_ALLOCATE_RAW_LV_BUFFER
+#define DEFAULT_RAW_BUFFER MEM(MEM(0x4C64))     /* how much do we have allocated? */
+#define DEFAULT_RAW_BUFFER_SIZE 0               /* is this really overwritten by other code? needs some investigation */
 #define RAW_LV_BUFFER_ALLOC_SIZE (3906*968)
 #endif
 
