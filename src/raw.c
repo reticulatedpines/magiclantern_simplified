@@ -92,27 +92,22 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #endif
 
 #ifdef CONFIG_5D3_113
-//~ #define DEFAULT_RAW_BUFFER MEM(0x2600C + 0x2c)
-//~ #define DEFAULT_RAW_BUFFER_SIZE (9*1024*1024)
+/* MEM(0x2600C + 0x2c) = 0x4B152000; appears free until 0x4CE00000 */
+#define DEFAULT_RAW_BUFFER MEM(0x2600C + 0x2c)
+#define DEFAULT_RAW_BUFFER_SIZE (0x4CDF0000 - 0x4B152000)
 #endif
 
 #ifdef CONFIG_5D3_123
-//~ #define DEFAULT_RAW_BUFFER MEM(0x25f1c + 0x34)
-//~ #define DEFAULT_RAW_BUFFER_SIZE (9*1024*1024)   /* incorrect? */
+/* MEM(0x25f1c + 0x34) (0x4d31a000) is used near 0x4d600000 in photo mode
+ * that's probably just because the memory layout changes
+ * next buffer is at 0x4ee00000; can we assume it can be safely reused by us?
+ * (Free Memory dialog, memory map with CONFIG_MARK_UNUSED_MEMORY_AT_STARTUP)
+ */
+#define DEFAULT_RAW_BUFFER MEM(0x25f1c + 0x34)
+#define DEFAULT_RAW_BUFFER_SIZE (0x4e000000 - 0x4d31a000)
 #endif
 
 #ifdef CONFIG_5D3
-/* MEM(0x25f1c + 0x34) (0x4d31a000) is used near 0x4d600000 in photo mode
- * that means, after 2.9MB (in the middle of our raw buffer)
- * the data structure appears to be re-initialized as soon as leaving LiveView
- * let's use from 0x4d600100; next buffer is at 0x4ee00000
- * to check: our raw buffer shouldn't be overwritten when pausing LiveView
- * or when recording H.264 or when doing anything else in LiveView
- * (it will be overwritten when taking a sequence of burst pictures) 
- */
-#define DEFAULT_RAW_BUFFER  0x4d600100
-#define DEFAULT_RAW_BUFFER_SIZE (0x4ee00000 - 0x4d600100)
-
 /* for higher resolutions we'll allocate a new buffer, as needed */
 #define CONFIG_ALLOCATE_RAW_LV_BUFFER
 /* buffer size for a full-res LiveView image */
