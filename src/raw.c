@@ -430,10 +430,12 @@ extern void reverse_bytes_order(char* buf, int count);
 
 #ifdef CONFIG_RAW_LIVEVIEW
 
+#ifdef CONFIG_EDMAC_RAW_SLURP
 /* can be either allocated by us or Canon's default */
 static void * raw_allocated_lv_buffer = 0;
 static void * raw_lv_buffer = 0;
 static int raw_lv_buffer_size = 0;
+#endif
 
 /* our default LiveView buffer (which can be DEFAULT_RAW_BUFFER or allocated) */
 static void* raw_get_default_lv_buffer()
@@ -514,6 +516,15 @@ static int raw_lv_get_resolution(int* width, int* height)
 #endif
 }
 
+/* We can only do custom buffer allocations with CONFIG_EDMAC_RAW_SLURP,
+ * where the process of transferring the raw image to RAM is under our control.
+ * 
+ * Even without CONFIG_ALLOCATE_RAW_LV_BUFFER, we'll use these routines to check Canon buffer size
+ * on models where it's known, and throw an assertion if they are not large enough.
+ * This will be especially useful for implementing 3K, 4K and full-res LiveView.
+ */
+#ifdef CONFIG_EDMAC_RAW_SLURP
+
 /* requires raw_sem */
 static void raw_lv_free_buffer()
 {
@@ -591,6 +602,8 @@ static void raw_lv_realloc_buffer()
      * or find some other way to reserve memory for the RAW LV buffer */
     ASSERT(0);
 }
+
+#endif  /* CONFIG_EDMAC_RAW_SLURP */
 #endif /* CONFIG_RAW_LIVEVIEW */
 
 static int raw_update_params_work()
@@ -644,7 +657,10 @@ static int raw_update_params_work()
         }
         #endif
 
+        #ifdef CONFIG_EDMAC_RAW_SLURP
         raw_lv_realloc_buffer();
+        #endif
+
         raw_info.buffer = raw_get_default_lv_buffer();
         
         if (!raw_info.buffer)
@@ -1997,7 +2013,9 @@ static void raw_lv_enable()
 #endif
 #endif
 
+#ifdef CONFIG_EDMAC_RAW_SLURP
     raw_lv_realloc_buffer();
+#endif
 }
 
 static void raw_lv_disable()
