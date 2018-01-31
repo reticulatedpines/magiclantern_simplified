@@ -1996,16 +1996,17 @@ static void raw_lv_enable()
         first_time = 0;
         info_led_on();
         uint32_t start = DEFAULT_RAW_BUFFER;
-        uint32_t end = start + DEFAULT_RAW_BUFFER_SIZE;
-        printf("Checking %x-%x...\n", start, end);
+        uint32_t end = start + 64*1024*1024;
+        printf("Raw buffer guess: %X-", start, end);
         for (uint32_t a = start; a < end; a += 4)
         {
             if (MEM(a) != 0x124B1DE0)
             {
-                ASSERT(0);
-                printf("%x: %x\n", a, MEM(a));
-                first_time = 1; /* check again */
-                return;
+                end = a - 4;
+                printf("%X (%s, ", end, format_memory_size(end - start));
+                printf("using %s %s)\n", format_memory_size(DEFAULT_RAW_BUFFER_SIZE),
+                       (end > start + DEFAULT_RAW_BUFFER_SIZE) ? "OK" : "FIXME");
+                break;
             }
         }
         info_led_off();
