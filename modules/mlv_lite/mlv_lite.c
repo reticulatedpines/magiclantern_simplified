@@ -1963,7 +1963,9 @@ unsigned int raw_rec_polling_cbr(unsigned int unused)
     }
     prev_state = current_state;
 
-    if (!raw_video_active)
+    /* caveat: we may get out of LiveView before recording fully stops
+     * don't free the resources if the raw video task is still active */
+    if (!raw_video_active && RAW_IS_IDLE)
     {
         /* raw video turned off? free any resources we might have got */
         if (shoot_mem_suite || srm_mem_suite)
