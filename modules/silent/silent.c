@@ -537,10 +537,20 @@ static int save_lossless_dng(char * filename, struct raw_info * raw_info, struct
         out_raw_info.frame_size = out_suite->size;
     }
 
-    out_raw_info.buffer = GetMemoryAddressOfMemoryChunk(GetFirstChunkFromSuite(out_suite));
+    if (out_raw_info.frame_size > 0)
+    {
+        out_raw_info.buffer = GetMemoryAddressOfMemoryChunk(GetFirstChunkFromSuite(out_suite));
 
-    int ok = save_dng(filename, &out_raw_info);
-    if (!ok) bmp_printf( FONT_MED, 0, 83, "DNG save error (card full?)");
+        if (!save_dng(filename, &out_raw_info))
+        {
+            bmp_printf( FONT_MED, 0, 83, "DNG save error (card full?)");
+            return 0;
+        }
+    }
+    else
+    {
+        bmp_printf( FONT_MED, 0, 83, "Lossless compression error: %d", out_raw_info.frame_size);
+    }
 
     shoot_free_suite(out_suite);
     return ok;
@@ -570,7 +580,7 @@ static int save_lossless_dng(char * filename, struct raw_info * raw_info, struct
     if (!optional_aux_memsuite)
         shoot_free_suite(out_suite);
 
-    return ok;
+    return 1;
 }
 
 static int silent_pic_save_file(struct raw_info * raw_info)
