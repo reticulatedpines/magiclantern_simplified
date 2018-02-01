@@ -108,6 +108,7 @@ static uint32_t cam_650d = 0;
 static uint32_t cam_7d = 0;
 static uint32_t cam_700d = 0;
 static uint32_t cam_60d = 0;
+static uint32_t cam_1100d = 0;
 
 static uint32_t cam_5d3 = 0;
 static uint32_t cam_5d3_113 = 0;
@@ -1740,6 +1741,7 @@ static void hack_liveview(int32_t unhack)
             cam_7d  ? 0xFF345788 :
             cam_60d ? 0xff36fa3c :
             cam_500d ? 0xFF2ABEF8 :
+            cam_1100d ? 0xFF373384 :
             /* ... */
             0;
         uint32_t dialog_refresh_timer_orig_instr = 0xe3a00032; /* mov r0, #50 */
@@ -4211,6 +4213,7 @@ static unsigned int raw_rec_init()
     cam_700d  = is_camera("700D", "1.1.5");
     cam_60d   = is_camera("60D",  "1.1.1");
     cam_500d  = is_camera("500D", "1.1.1");
+    cam_1100d = is_camera("1100D", "1.0.5");
 
     cam_5d3_113 = is_camera("5D3",  "1.1.3");
     cam_5d3_123 = is_camera("5D3",  "1.2.3");

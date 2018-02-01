@@ -805,24 +805,24 @@ static void stub_test_malloc_n_allocmem()
         TEST_FUNC_CHECK(ABS(m0-m2), < 2048);
 
         TEST_FUNC(m0 = GetFreeMemForAllocateMemory());
-        TEST_FUNC_CHECK(p = (void*)_AllocateMemory(256*1024), != 0);
+        TEST_FUNC_CHECK(p = (void*)_AllocateMemory(128*1024), != 0);
         TEST_FUNC_CHECK(CACHEABLE(p), == (int)p);
         TEST_FUNC(m1 = GetFreeMemForAllocateMemory());
         TEST_VOID(_FreeMemory(p));
         TEST_FUNC(m2 = GetFreeMemForAllocateMemory());
-        TEST_FUNC_CHECK(ABS((m0-m1) - 256*1024), < 2048);
+        TEST_FUNC_CHECK(ABS((m0-m1) - 128*1024), < 2048);
         TEST_FUNC_CHECK(ABS(m0-m2), < 2048);
 
         // these buffers may be from different memory pools, just check for leaks in main pools
         int m01, m02, m11, m12;
         TEST_FUNC(m01 = MALLOC_FREE_MEMORY);
         TEST_FUNC(m02 = GetFreeMemForAllocateMemory());
-        TEST_FUNC_CHECK(p = (void*)_alloc_dma_memory(256*1024), != 0);
+        TEST_FUNC_CHECK(p = (void*)_alloc_dma_memory(128*1024), != 0);
         TEST_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
         TEST_FUNC_CHECK(CACHEABLE(p), != (int)p);
         TEST_FUNC_CHECK(UNCACHEABLE(CACHEABLE(p)), == (int)p);
         TEST_VOID(_free_dma_memory(p));
-        TEST_FUNC_CHECK(p = (void*)_shoot_malloc(24*1024*1024), != 0);
+        TEST_FUNC_CHECK(p = (void*)_shoot_malloc(16*1024*1024), != 0);
         TEST_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
         TEST_VOID(_shoot_free(p));
         TEST_FUNC(m11 = MALLOC_FREE_MEMORY);
@@ -846,34 +846,38 @@ static void stub_test_exmem()
         int total = 0;
 
         // contiguous allocation
-        TEST_FUNC_CHECK(suite = shoot_malloc_suite_contig(24*1024*1024), != 0);
+        // assume we can allocate at least 16MB continuously
+        TEST_FUNC_CHECK(suite = shoot_malloc_suite_contig(16*1024*1024), != 0);
         TEST_FUNC_CHECK_STR(suite->signature, "MemSuite");
         TEST_FUNC_CHECK(suite->num_chunks, == 1);
-        TEST_FUNC_CHECK(suite->size, == 24*1024*1024);
+        TEST_FUNC_CHECK(suite->size, == 16*1024*1024);
         TEST_FUNC_CHECK(chunk = GetFirstChunkFromSuite(suite), != 0);
         TEST_FUNC_CHECK_STR(chunk->signature, "MemChunk");
-        TEST_FUNC_CHECK(chunk->size, == 24*1024*1024);
+        TEST_FUNC_CHECK(chunk->size, == 16*1024*1024);
         TEST_FUNC_CHECK(p = GetMemoryAddressOfMemoryChunk(chunk), != 0);
         TEST_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
         TEST_VOID(shoot_free_suite(suite); suite = 0; chunk = 0;);
 
         // contiguous allocation, largest block
+        int largest_shoot_block = 0;
         TEST_FUNC_CHECK(suite = shoot_malloc_suite_contig(0), != 0);
         TEST_FUNC_CHECK_STR(suite->signature, "MemSuite");
         TEST_FUNC_CHECK(suite->num_chunks, == 1);
-        TEST_FUNC_CHECK(suite->size, > 24*1024*1024);
+        TEST_FUNC_CHECK(suite->size, > 16*1024*1024);
         TEST_FUNC_CHECK(chunk = GetFirstChunkFromSuite(suite), != 0);
         TEST_FUNC_CHECK_STR(chunk->signature, "MemChunk");
         TEST_FUNC_CHECK(chunk->size, == suite->size);
         TEST_FUNC_CHECK(p = GetMemoryAddressOfMemoryChunk(chunk), != 0);
         TEST_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
+        TEST_FUNC(largest_shoot_block = suite->size);
+        TEST_MSG("[INFO] largest_shoot_block: %s\n", format_memory_size(largest_shoot_block));
         TEST_VOID(shoot_free_suite(suite); suite = 0; chunk = 0;);
 
         // fragmented allocation
-        TEST_FUNC_CHECK(suite = shoot_malloc_suite(64*1024*1024), != 0);
+        TEST_FUNC_CHECK(suite = shoot_malloc_suite(largest_shoot_block + 1024*1024), != 0);
         TEST_FUNC_CHECK_STR(suite->signature, "MemSuite");
         TEST_FUNC_CHECK(suite->num_chunks, > 1);
-        TEST_FUNC_CHECK(suite->size, == 64*1024*1024);
+        TEST_FUNC_CHECK(suite->size, == largest_shoot_block + 1024*1024);
 
         // iterating through chunks
         total = 0;
@@ -881,19 +885,19 @@ static void stub_test_exmem()
         while(chunk)
         {
             TEST_FUNC_CHECK_STR(chunk->signature, "MemChunk");
-            TEST_FUNC_CHECK(total += chunk->size, <= 64*1024*1024);
+            TEST_FUNC_CHECK(total += chunk->size, <= largest_shoot_block + 1024*1024);
             TEST_FUNC_CHECK(p = GetMemoryAddressOfMemoryChunk(chunk), != 0);
             TEST_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
             TEST_FUNC(chunk = GetNextMemoryChunk(suite, chunk));
         }
-        TEST_FUNC_CHECK(total, == 64*1024*1024);
+        TEST_FUNC_CHECK(total, == largest_shoot_block + 1024*1024);
         TEST_VOID(shoot_free_suite(suite); suite = 0; chunk = 0; );
 
         // fragmented allocation, max size
         TEST_FUNC_CHECK(suite = shoot_malloc_suite(0), != 0);
         TEST_FUNC_CHECK_STR(suite->signature, "MemSuite");
         TEST_FUNC_CHECK(suite->num_chunks, > 1);
-        TEST_FUNC_CHECK(suite->size, > 64*1024*1024);
+        TEST_FUNC_CHECK(suite->size, >= largest_shoot_block + 1024*1024);
 
         // iterating through chunks
         total = 0;
