@@ -85,6 +85,7 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 
 #ifdef CONFIG_60D
 #define DEFAULT_RAW_BUFFER MEM(MEM(0x5028))
+#define DEFAULT_RAW_BUFFER_SIZE (0x49F00000 - 0x48332200)   /* ~28MB, really? */
 #endif
 
 #ifdef CONFIG_600D
