@@ -307,7 +307,7 @@ static void mlv_snd_queue_slot()
         entry->mlv_slot_end = 0;
         
         /* check if this was the last frame and set end flag if so */
-        if((used + block_size + sizeof(mlv_hdr_t) >= size) || (queued >= 128))
+        if((used + block_size + sizeof(mlv_hdr_t) >= size) || (queued >= 127))
         {
             /* this tells the writer task that the buffer is filled with that entry being done and can be committed */
             entry->mlv_slot_end = 1;
