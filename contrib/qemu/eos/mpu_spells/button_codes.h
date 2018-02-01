@@ -541,6 +541,7 @@ static int button_codes_EOSM[] = {
     [BGMT_LV]                           = 0x2701,
     [BGMT_MENU]                         = 0x0001,
     [BGMT_PLAY]                         = 0x0301,
+    [BGMT_TRASH]                        = 0x0401,
     [BGMT_PRESS_DOWN]                   = 0x1901,
     [BGMT_PRESS_LEFT]                   = 0x1B01,
     [BGMT_PRESS_RIGHT]                  = 0x1A01,
