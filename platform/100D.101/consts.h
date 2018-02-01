@@ -9,7 +9,7 @@
 #define LEDOFF 0x838C00
 
 #define FORMAT_BTN_NAME "[Av]"
-#define FORMAT_BTN BGMT_Q_ALT
+#define FORMAT_BTN BGMT_PRESS_AV
 #define ARROW_MODE_TOGGLE_KEY "LCD sensor"
 #define FORMAT_STR_LOC 11
 
