@@ -100,14 +100,6 @@ extern void firmware_entry(void);
 extern void reloc_entry(void);
 extern void __attribute__((noreturn)) cstart(void);
 
-extern int __attribute__((format(printf,2,3)))
-my_fprintf(
-        FILE *                  file,
-        const char *            fmt,
-        ...
-);
-
-
 struct tm {
         int     tm_sec;         /* seconds after the minute [0-60] */
         int     tm_min;         /* minutes after the hour [0-59] */

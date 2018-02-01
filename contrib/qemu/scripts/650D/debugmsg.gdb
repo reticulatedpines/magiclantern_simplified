@@ -3,6 +3,11 @@
 
 source -v debug-logging.gdb
 
+# To get debugging symbols from Magic Lantern, uncomment one of these:
+#symbol-file ../magic-lantern/platform/650D.104/magiclantern
+#symbol-file ../magic-lantern/platform/650D.104/autoexec
+#symbol-file ../magic-lantern/platform/650D.104/stubs.o
+
 macro define CURRENT_TASK 0x233D8
 macro define CURRENT_ISR  (*(int*)0x670 ? (*(int*)0x674) >> 2 : 0)
 
@@ -17,8 +22,7 @@ assert_log
 b *0x6868
 task_create_log
 
-# patch I2C_Write to always return 1 (success)
-set *(int*)0xFF341F94 = 0xe3a00001
-set *(int*)0xFF341F98 = 0xe12fff1e
+b *0x13344
+register_interrupt_log
 
 cont

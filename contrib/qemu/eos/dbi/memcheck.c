@@ -36,6 +36,10 @@ struct memcheck_stubs
     uint32_t init_heap;
     uint32_t checked_heaps[4];
 
+    /* malloc initialization follows a different pattern */
+    uint32_t init_malloc;
+    uint32_t malloc_struct;
+
     /* routine for allocating from a heap */
     uint32_t heap_alloc;
     uint32_t heap_free;
@@ -58,71 +62,75 @@ static struct memcheck_stubs stubs;
 
 static bool interrupt_handling;
 
+/* cache these values so we don't have to look them up every time */
+static uint32_t atcm_start, atcm_end, btcm_start, btcm_end;
+
+static inline int is_tcm(uint64_t addr)
+{
+    /* atcm_start is 0 (assert on init) */
+    return (addr < atcm_end) || (addr >= btcm_start && addr < btcm_end);
+}
+
 /* 2 bits for each address */
 /* ull because it's shifted and used against a 64-bit value */
 #define MS_NOINIT 1ull     /* not initialized */
 #define MS_FREED  2ull     /* freed */
 #define MS_MASK   3ull     /* mask for all of the above */
-static uint64_t mem_status[1024*1024*1024/64];
+static uint64_t mem_status[0xC0000000ull * 2 / 64];
 
-static inline bool is_uninitialized(uint32_t addr)
+static inline uint64_t fixup_addr(uint64_t addr)
 {
-    addr &= ~0x40000000;
-    assert(addr < 0x20000000);
-    uint32_t i = 2 * addr;
+    if (!is_tcm(addr))
+    {
+        addr &= ~0x40000000;
+    }
+    assert(addr < 0xC0000000);
+    return addr;
+}
+
+static inline bool is_uninitialized(uint64_t addr)
+{
+    uint64_t i = 2 * fixup_addr(addr);
     return mem_status[i/64] & (MS_NOINIT << (i & 63));
 }
 
-static inline bool is_freed(uint32_t addr)
+static inline bool is_freed(uint64_t addr)
 {
-    addr &= ~0x40000000;
-    assert(addr < 0x20000000);
-    uint32_t i = 2 * addr;
+    uint64_t i = 2 * fixup_addr(addr);
     return mem_status[i/64] & (MS_FREED << (i & 63));
 }
 
-static inline void set_initialized(uint32_t addr)
+static inline void set_initialized(uint64_t addr)
 {
-    addr &= ~0x40000000;
-    assert(addr < 0x20000000);
-    uint32_t i = 2 * addr;
+    uint64_t i = 2 * fixup_addr(addr);
     mem_status[i/64] &= ~(MS_NOINIT << (i & 63));
 }
 
-static inline void set_uninitialized(uint32_t addr)
+static inline void set_uninitialized(uint64_t addr)
 {
-    addr &= ~0x40000000;
-    assert(addr < 0x20000000);
-    uint32_t i = 2 * addr;
+    uint64_t i = 2 * fixup_addr(addr);
     mem_status[i/64] |= (MS_NOINIT << (i & 63));
 }
 
-static inline void set_freed(uint32_t addr)
+static inline void set_freed(uint64_t addr)
 {
-    addr &= ~0x40000000;
-    assert(addr < 0x20000000);
-    uint32_t i = 2 * addr;
+    uint64_t i = 2 * fixup_addr(addr);
     mem_status[i/64] |= (MS_FREED << (i & 63));
 }
 
-static inline void clr_freed(uint32_t addr)
+static inline void clr_freed(uint64_t addr)
 {
-    addr &= ~0x40000000;
-    assert(addr < 0x20000000);
-    uint32_t i = 2 * addr;
+    uint64_t i = 2 * fixup_addr(addr);
     mem_status[i/64] &= ~(MS_FREED << (i & 63));
 }
 
-static void mem_set_status(uint32_t start, uint32_t end, uint64_t status)
+static void mem_set_status(uint64_t start, uint64_t end, uint64_t status)
 {
-    start &= ~0x40000000;
-    end   &= ~0x40000000;
-    assert(end <= 0x20000000);
 
     /* can be optimized; keep it simple for now */
-    for (uint32_t addr = start; addr < end; addr++)
+    for (uint64_t addr = start; addr < end; addr++)
     {
-        uint32_t i = 2 * addr;
+        uint64_t i = 2 * fixup_addr(addr);
         mem_status[i/64] &= ~(MS_MASK << (i & 63));
         mem_status[i/64] |= (status << (i & 63));
     }
@@ -130,8 +138,7 @@ static void mem_set_status(uint32_t start, uint32_t end, uint64_t status)
 
 static void copy_mem_status(uint32_t src, uint32_t dst, uint32_t size)
 {
-    dst &= ~0x40000000;
-    assert(dst + size <= 0x20000000);
+    dst = fixup_addr(dst);
 
     if (src >= 0xF0000000)
     {
@@ -144,8 +151,7 @@ static void copy_mem_status(uint32_t src, uint32_t dst, uint32_t size)
         return;
     }
 
-    src &= ~0x40000000;
-    assert(src + size <= 0x20000000);
+    src = fixup_addr(src);
 
     /* can be optimized; keep it simple for now */
     for (uint32_t i = 0; i < size; i++)
@@ -160,21 +166,20 @@ static void copy_mem_status(uint32_t src, uint32_t dst, uint32_t size)
 }
 
 /* weak checksum on memory status flags, for internal use only */
-static uint64_t mem_status_checksum(uint32_t src, uint32_t size)
+static uint64_t mem_status_checksum(uint64_t src, uint64_t size)
 {
     if (src >= 0xF0000000)
     {
         return -1;
     }
 
-    src &= ~0x40000000;
-    assert(src + size <= 0x20000000);
+    src = fixup_addr(src);
 
     uint64_t check = 0;
 
-    for (uint32_t addr = src; addr < src + size; addr++)
+    for (uint64_t addr = src; addr < src + size; addr++)
     {
-        uint32_t i = 2 * addr;
+        uint64_t i = 2 * addr;
         uint64_t flags = mem_status[i/64] & (MS_MASK << (i & 63));
         check += flags;
         check += (flags) ? 0 : (addr - src);
@@ -253,7 +258,7 @@ void eos_memcheck_log_mem(EOSState *s, hwaddr addr, uint64_t value, uint32_t siz
 
     /* only interrupts and other TCM code are allowed to use the TCM */
     /* with few exceptions */
-    if (addr < 0x1000 &&
+    if (is_tcm(addr) &&
         pc >= 0x1000 &&
         !(addr == stubs.interrupt_active && is_read) && /* allow reading this flag from anywhere */
         !interrupt_handling)
@@ -448,6 +453,17 @@ static void exec_log_malloc(EOSState *s, uint32_t pc, CPUARMState *env)
             mem_set_status(start, start+size, MS_FREED | MS_NOINIT);
         }
     }
+
+    if (pc == stubs.init_malloc)
+    {
+        uint32_t start, end;
+        cpu_physical_memory_read(stubs.malloc_struct, &start, 4);
+        cpu_physical_memory_read(stubs.malloc_struct + 4, &end, 4);
+
+        fprintf(stderr, "init_malloc %x %x\n", start, end);
+        fprintf(stderr, "Checking this heap.\n");
+        mem_set_status(start, end, MS_FREED | MS_NOINIT);
+    }
 }
 
 static uint32_t memcpy_lr[4]  = {0};
@@ -552,6 +568,18 @@ void eos_memcheck_log_exec(EOSState *s, uint32_t pc, CPUARMState *env)
     /* our uninitialized stubs are 0 - don't log this address */
     if (!pc) return;
 
+    /* enable this to look for uninitialized memory accesses
+     * exploitable before jumping to main firmware */
+    if (0 && pc == s->model->firmware_start)    /* aka ROMBASEADDR */
+    {
+        fprintf(stderr, "Marking all memory as uninitialized...\n");
+        mem_set_status(0, s->model->ram_size, MS_NOINIT);
+        mem_set_status(atcm_start, atcm_end, MS_NOINIT);
+        mem_set_status(btcm_start, btcm_end, MS_NOINIT);
+        uint32_t hack = 0x4157554B;
+        cpu_physical_memory_write(0x3cc000, &hack, 4);
+    }
+
     exec_log_malloc(s, pc, env);
     exec_log_memcpy(s, pc, env);
 
@@ -623,9 +651,16 @@ static void diagnose_addr(uint32_t addr)
 
 void eos_memcheck_init(EOSState *s)
 {
+    atcm_start  = ATCM_ADDR;
+    atcm_end    = ATCM_ADDR + ATCM_SIZE;
+    btcm_start  = BTCM_ADDR;
+    btcm_end    = BTCM_ADDR + BTCM_SIZE;
+    assert(atcm_start == 0);
+
     fprintf(stderr, "Marking all memory as uninitialized...\n");
     mem_set_status(0, s->model->ram_size, MS_NOINIT);
-    /* fixme: also check both TCMs */
+    mem_set_status(atcm_start, atcm_end, MS_NOINIT);
+    mem_set_status(btcm_start, btcm_end, MS_NOINIT);
 
     uint32_t ml_memccpy;
     eos_getenv_hex("QEMU_EOS_ML_MEMCPY", &ml_memcpy, 0);
@@ -639,6 +674,7 @@ void eos_memcheck_init(EOSState *s)
     else
     {
         fprintf(stderr, "FIXME: ML memcpy stub unknown (set QEMU_EOS_ML_MEMCC?PY).\n");
+        ml_memcpy_size = 0;
     }
 
     /* todo: identify stubs in a way that does not require hardcoding? */
@@ -651,6 +687,8 @@ void eos_memcheck_init(EOSState *s)
             .memcpy_end     = { 0xFF3EBC2C },
             .init_heap      =   0xFF06A4CC,
             .checked_heaps  = { 0x300000 },
+            .init_malloc    =   0xFF018C04,   /* after the call */
+            .malloc_struct  =   0x24D48,
             .heap_routines  = {
                                 { 0xff06a4f4, 0xFF06B5CC }, /* AllocateMemory */
                                 { 0xFF018F70, 0xFF019110 }, /* malloc */

@@ -1,7 +1,8 @@
 # parses Canon SRec records (stored with tag #0x200) of Canon DSLR updates
-#  version 0.6 (17Sep2011)
+#  version 0.7 (22Jan2018)
 #  by Arm.Indy, based on initial work by JollyRoger who identified the format
 #  See http://en.wikipedia.org/wiki/SREC_%28file_format%29
+#  Updated to decode lens firmware updates (*.lfu)
 """
 record format is: type(1byte), len(1byte), address(depending on type), data (0 to 16 bytes), checksum(1 byte)
 length is including fields [len, address if present, data]
@@ -9,8 +10,10 @@ checksum is computed on same fields as length
 record types are:
  00, len, 0000, filename, checksum
  01, len, address(2bytes), data, checksum
+ 02, len, address(3bytes), data, checksum
  03, len, address(4bytes), data, checksum
  07, len, data, checksum
+ 08, len, data, checksum
  09, len, data, checksum
 """
 
@@ -71,6 +74,7 @@ while currentAddress < size:
      i+=1 
    fileName = m[ currentAddress: i ]
    print '%s' % fileName,
+   print '%d.%d.%d' % (ord(m[0x26]), ord(m[0x27]), ord(m[0x28]))
 
    fileLen = 0
    
@@ -98,11 +102,15 @@ while currentAddress < size:
        addrLen = 4
        addr = getLongBE(m, currentAddress)
        dataLen = rlen-addrLen-1
+     elif rtype == 2: #like S2
+       addrLen = 3
+       addr = getLongBE(m, currentAddress) >> 8
+       dataLen = rlen-addrLen-1
      elif rtype == 1: #like S1
        addrLen = 2
        addr = getShortBE(m, currentAddress)
        dataLen = rlen-addrLen-1
-     elif rtype == 7 or rtype == 9: #like S7 and S9
+     elif rtype == 7 or rtype == 8 or rtype == 9: #like S7 and S8 and S9
        addrLen = 0
        dataLen = rlen-1
        endBlockFound = True
@@ -124,15 +132,8 @@ while currentAddress < size:
        fc.write('S'+'{0:1}'.format(rtype)+hexlify(m[offset+1:offset+rlen+2])+'\n')
 
      currentAddress += addrLen
-     if addrLen == 4:
-       if options.verbose:
-         print "0x%06x: %02x %02x %08x" % ( offset, rtype, rlen, addr ),
-     elif addrLen == 2:
-       if options.verbose:
-         print "0x%06x: %02x %02x %04x" % ( offset, rtype, rlen, addr ),
-     else:
-       if options.verbose:
-         print "0x%06x: %02x %02x %s" % ( offset, rtype, rlen, addrLen*"  " ),
+     if options.verbose:
+       print ("0x%06x: %02x %02x %8x") % ( offset, rtype, rlen, addr),
      data = m[currentAddress: currentAddress+dataLen]
      dataAscii = ''
      for c in data:

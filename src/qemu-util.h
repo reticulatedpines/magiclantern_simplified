@@ -3,17 +3,7 @@
 
 #ifdef CONFIG_QEMU
 
-/* print messages to the QEMU console */
-int qprintf(const char * fmt, ...);
-
-/* print non-formatted messages */
-/* (useful for large strings without risking stack overflow) */
-int qprint(const char * msg);
-
-void qemu_cam_init();
-void qemu_hello();
-void qemu_menu_screenshots();
-void qemu_hptimer_test();
+#include <stdarg.h>
 
 /** Some small engio API **/
 #define REG_PRINT_CHAR 0xCF123000
@@ -26,6 +16,45 @@ void qemu_hptimer_test();
 #define REG_RAW_BUFF   0xCF12301C
 #define REG_DISP_TYPE  0xCF123020
 #define REG_CALLSTACK  0xCF123030
+
+/**
+ * The following functions will print to QEMU console only when compiling
+ * with CONFIG_QEMU=y. By default, they will not be compiled, therefore
+ * not increasing the executable size; however, they will be type-checked.
+ * 
+ * You may need to use "make clean" before recompiling with CONFIG_QEMU=y.
+ * 
+ * The builds compiled with CONFIG_QEMU=y will *not* run on the camera!
+ */
+
+/* print non-formatted messages */
+/* (useful for large strings without risking stack overflow) */
+static inline int qprint(const char * msg)
+{
+    for (const char* c = msg; *c; c++)
+    {
+        *(volatile uint32_t*)REG_PRINT_CHAR = *c;
+    }
+    return 0;
+}
+
+/* from dryos.h
+ * required to compile qprintf in bootloader context,
+ * although you won't be able to use it (vsnprintf is in main firmware)
+ * ... unless you can supply another vsnprintf, e.g. from dietlibc */
+extern int vsnprintf( char* str, size_t n, const char* fmt, va_list ap );
+
+/* print messages to the QEMU console */
+static int qprintf(const char * fmt, ...)
+{
+    va_list ap;
+    char buf[128];
+    va_start( ap, fmt );
+    vsnprintf( buf, sizeof(buf)-1, fmt, ap );
+    va_end( ap );
+    qprint(buf);
+    return 0;
+}
 
 /* print a 32-bit number (also works very early in the boot process) */
 /* number formatting done in QEMU */

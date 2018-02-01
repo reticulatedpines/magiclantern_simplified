@@ -9,8 +9,7 @@ import os, sys, re
 try:
     fin = open(sys.argv[1])
 except IndexError:
-    print "usage: %s in.log" % sys.argv[0]
-    raise SystemExit
+    fin = sys.stdin
 
 def ansi_parse(data):
     esc_mode = False

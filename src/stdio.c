@@ -11,29 +11,6 @@
 #include "dryos.h"
 //#include <errno.h>
 
-// sometimes gcc likes very much the default fprintf and uses that one
-// => renamed to my_fprintf to force it to use this one
-int
-my_fprintf(
-    FILE *          file,
-    const char *        fmt,
-    ...
-)
-{
-    va_list         ap;
-    int len = 0;
-    
-    const int maxlen = 512;
-    char buf[maxlen];
-
-    va_start( ap, fmt );
-    len = vsnprintf( buf, maxlen-1, fmt, ap );
-    va_end( ap );
-    FIO_WriteFile( file, buf, len );
-    
-    return len;
-}
-
 // Don't use strcmp since we don't have it
 int
 streq( const char * a, const char * b )

@@ -3,6 +3,8 @@
 # script options (environment variables)
 # example: TIMEOUT=10 AUTOEXEC_ONLY=1 ./run_ml_all_cams.sh
 
+ML_PATH=${ML_PATH:=../magic-lantern}
+QEMU_PATH=${QEMU_PATH:=../qemu-eos}
 TIMEOUT=${TIMEOUT:=20}                      # timeout for default QEMU monitor script
 SCREENSHOT=${SCREENSHOT:=}                  # optional screenshot ($CAM_FW.ppm)
 QEMU_ARGS=${QEMU_ARGS:=}                    # command-line arguments for QEMU
@@ -30,7 +32,7 @@ echo quit"
 
 . ./mtools_setup.sh
 
-cd ../magic-lantern/platform
+cd $ML_PATH/platform
 
 for CAM_DIR in $ML_PLATFORMS; do 
     # CAM_DIR is e.g. 50D.111/ (includes a slash)
@@ -80,27 +82,19 @@ for CAM_DIR in $ML_PLATFORMS; do
 
         # go to QEMU dir and copy ML to the card images
         if [ "$AUTOEXEC_ONLY" ]; then
-            cd ../../qemu/
-            mcopy -o -i $MSD ../magic-lantern/$BuildDir/autoexec.bin ::
-            mcopy -o -i $MCF ../magic-lantern/$BuildDir/autoexec.bin ::
+            cd ../$QEMU_DIR
+            mcopy -o -i $MSD $ML_PATH/$BuildDir/autoexec.bin ::
+            mcopy -o -i $MCF $ML_PATH/$BuildDir/autoexec.bin ::
         else
-            make -C $CAM_DIR zip VERSION=qemu $MLOptions
-            rm -rf qemu-tmp/
-            mkdir qemu-tmp
-            unzip -q $CAM_DIR/magiclantern-qemu.zip -d qemu-tmp
-            cd ../../qemu/
-            mcopy -o -i $MSD ../magic-lantern/platform/qemu-tmp/* ::
-            mcopy -o -i $MCF ../magic-lantern/platform/qemu-tmp/* ::
-            mcopy -o -s -i $MSD ../magic-lantern/platform/qemu-tmp/ML/ ::
-            mcopy -o -s -i $MCF ../magic-lantern/platform/qemu-tmp/ML/ ::
-            rm -rf qemu-tmp/
+            make -C ../$BuildDir install_qemu $MLOptions
+            cd ../$QEMU_DIR
         fi
 
         # export any ML symbols we might want to use in QEMU
         . ./export_ml_syms.sh $BuildDir
     else
         # back to QEMU directory without compiling
-        cd ../../qemu/
+        cd ../$QEMU_DIR
 
         # clear previously-exported symbols, if any
         . ./export_ml_syms.sh clear
@@ -130,5 +124,5 @@ $QemuInvoke -s -S"
     ( eval "$QemuScript" ) \
         | ( eval "$QemuInvoke" ) &> $LogName
 
-    cd ../magic-lantern/platform/
+    cd $ML_PATH/platform/
 done
