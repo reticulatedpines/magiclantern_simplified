@@ -26,7 +26,7 @@
 
 // http://magiclantern.wikia.com/wiki/VRAM_ADDR_from_code
 // stateobj_disp[1]
-#define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(0x3E650+0x11c))
+#define YUV422_LV_BUFFER_DISPLAY_ADDR (*(uint32_t*)(0x3E650+0x118))
 
 #define REG_EDMAC_WRITE_LV_ADDR 0xc0f04208 // SDRAM address of LV buffer (aka VRAM)
 #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04108 // SDRAM address of HD buffer (aka YUV)
@@ -50,7 +50,7 @@
 
 
 
-#define CURRENT_DIALOG_MAYBE (*(int*)0x40FBC)
+#define CURRENT_GUI_MODE (*(int*)0x40FBC)
 
 //~ #define ISO_ADJUSTMENT_ACTIVE 0 // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
 
@@ -69,7 +69,7 @@
 #define MVR_BUFFER_USAGE MAX(MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND)
 
 #define MVR_FRAME_NUMBER  (*(int*)(0x1F4 + MVR_516_STRUCT)) // in mvrExpStarted
-#define MVR_BYTES_WRITTEN (*(int*)(0xb0 + MVR_516_STRUCT))
+#define MVR_BYTES_WRITTEN MEM((0xb0 + MVR_516_STRUCT))
 
 #define MOV_RES_AND_FPS_COMBINATIONS 9
 #define MOV_OPT_NUM_PARAMS 2
@@ -83,18 +83,18 @@
 #define AE_VALUE (*(int8_t*)(0x517A0 + 0x1D))
 
 
-#define DLG_PLAY 1
-#define DLG_MENU 2
-#define DLG_INFO 0x15
-#define DLG_FOCUS_MODE 0x123456
+#define GUIMODE_PLAY 1
+#define GUIMODE_MENU 2
+#define GUIMODE_INFO 0x15
+#define GUIMODE_FOCUS_MODE 0x123456
 
 /* these don't exist in the M */
-#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED 0
-#define DLG_MOVIE_PRESS_LV_TO_RESUME 0
+#define GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED 0
+#define GUIMODE_MOVIE_PRESS_LV_TO_RESUME 0
 /*--------------*/
 
-#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
-#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
+#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_PLAY)
+#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_MENU)
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xC0220138) & 1)) //EnableVideoOut
 #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x3DED8 
@@ -132,7 +132,6 @@
 	#define BFNT_BITMAP_OFFSET 0xffcbcb88
 	#define BFNT_BITMAP_DATA   0xffcbfb0c
 
-	#define DLG_SIGNATURE 0x6e6144
 
 // from CFn
 #define AF_BTN_HALFSHUTTER 0
@@ -230,3 +229,7 @@
 
 // look for "JudgeBottomInfoDispTimerState(%d)"
 #define JUDGE_BOTTOM_INFO_DISP_TIMER_STATE	0x5D43C
+
+// temperature convertion from raw-temperature to celsius
+// http://www.magiclantern.fm/forum/index.php?topic=9673.msg171969#msg171969
+#define EFIC_CELSIUS (MOD(efic_temp - 95, 256) * 40 / 100 - 22)

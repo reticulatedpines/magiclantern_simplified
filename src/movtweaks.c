@@ -226,6 +226,13 @@ void force_liveview()
 void close_liveview()
 {
     if (lv)
+#ifdef CONFIG_EOSM
+    {
+        /* To shut off LiveView switch to the info screen */
+        SetGUIRequestMode(21);
+        msleep(1000);
+    }
+#else
     {
         /* in photo mode, just exit LiveView by "pressing" the LiveView button */
         /* in movie mode, pressing LiveView would start recording,
@@ -233,6 +240,7 @@ void close_liveview()
         fake_simple_button(is_movie_mode() ? BGMT_PLAY : BGMT_LV);
         msleep(1000);
     }
+#endif
 }
 
 static CONFIG_INT("shutter.lock", shutter_lock, 0);
@@ -303,7 +311,7 @@ movtweak_task_init()
 {
 #ifdef FEATURE_FORCE_LIVEVIEW
     if (!lv && enable_liveview && is_movie_mode()
-        && (DLG_MOVIE_PRESS_LV_TO_RESUME || DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
+        && (GUIMODE_MOVIE_PRESS_LV_TO_RESUME || GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
     {
         force_liveview();
     }
@@ -372,13 +380,13 @@ void movtweak_step()
         }
 
         #ifdef FEATURE_FORCE_LIVEVIEW
-        if ((enable_liveview && DLG_MOVIE_PRESS_LV_TO_RESUME) ||
-            (enable_liveview == 2 && DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
+        if ((enable_liveview && GUIMODE_MOVIE_PRESS_LV_TO_RESUME) ||
+            (enable_liveview == 2 && GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
         {
             msleep(200);
             // double-check
-            if ((enable_liveview && DLG_MOVIE_PRESS_LV_TO_RESUME) ||
-                (enable_liveview == 2 && DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
+            if ((enable_liveview && GUIMODE_MOVIE_PRESS_LV_TO_RESUME) ||
+                (enable_liveview == 2 && GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED))
                 force_liveview();
         }
         #endif
@@ -388,7 +396,7 @@ void movtweak_step()
         #ifdef FEATURE_FORCE_HDMI_VGA
         if (hdmi_force_vga && is_movie_mode() && (lv || PLAY_MODE) && !gui_menu_shown())
         {
-            if (hdmi_code == 5)
+            if (hdmi_code >= 5)
             {
                 msleep(1000);
                 gui_uilock(UILOCK_EVERYTHING);
@@ -466,11 +474,6 @@ void lv_movie_size_toggle(void* priv, int delta)
 CONFIG_INT("rec.notify", rec_notify, 3);
 #else
 CONFIG_INT("rec.notify", rec_notify, 0);
-#endif
-
-#ifdef CONFIG_5D3
-CONFIG_INT("rec.led.off", rec_led_off, 0);
-// implemented in the modified DebugMsg (for now in gui-common.c)
 #endif
 
 #ifdef FEATURE_REC_NOTIFY
@@ -964,15 +967,6 @@ static struct menu_entry movie_tweaks_menus[] = {
                         },
                     .icon_type = IT_DICE_OFF,
                     .help = "Custom REC/STANDBY notifications, visual or audible",
-                    .depends_on = DEP_MOVIE_MODE,
-                },
-                #endif
-                #ifdef CONFIG_5D3
-                {
-                    .name = "Dim REC LED",
-                    .priv = &rec_led_off,
-                    .max = 1,
-                    .help = "Make the red LED light less distracting while recording.",
                     .depends_on = DEP_MOVIE_MODE,
                 },
                 #endif

@@ -13,8 +13,6 @@
 #undef FEATURE_FLASH_TWEAKS // No built-in flash
 #undef FEATURE_FLASH_NOFLASH
 
-
-#define FEATURE_KEN_ROCKWELL_ZOOM_5D3
 #define FEATURE_ZOOM_TRICK_5D3 // Not reliable
 //~ #define FEATURE_REMEMBER_LAST_ZOOM_POS_5D3 // Too many conflicts with other features
 #undef FEATURE_IMAGE_POSITION
@@ -25,3 +23,5 @@
 #undef FEATURE_VOICE_TAGS // No sound recorded
 
 #define FEATURE_LV_FOCUS_BOX_SNAP_TO_X5_RAW
+
+#define FEATURE_UNMOUNT_SD_CARD

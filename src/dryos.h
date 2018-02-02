@@ -145,7 +145,11 @@ void ml_assert_handler(char* msg, char* file, int line, const char* func);
 
 int rand (void);
 
+#if !defined(CONFIG_7D_MASTER)
 #define ASSERT(x) { if (!(x)) { ml_assert_handler(#x, __FILE__, __LINE__, __func__); }}
+#else
+#define ASSERT(x) do{}while(0)
+#endif
 //~ #define ASSERT(x) {}
 
 #define STR_APPEND(orig,fmt,...) ({ int _len = strlen(orig); snprintf(orig + _len, sizeof(orig) - _len, fmt, ## __VA_ARGS__); });
@@ -206,8 +210,6 @@ extern struct msg_queue *msg_queue_create(char *name, uint32_t backlog);
 uint32_t RegisterRPCHandler (uint32_t rpc_id, uint32_t (*handler) (uint8_t *, uint32_t));
 uint32_t RequestRPC (uint32_t id, void* data, uint32_t length, uint32_t cb, uint32_t cb_parm);
 
-const char* get_dcim_dir();
-
 // for optimization
 #define unlikely(exp) __builtin_expect(exp,0)
 #define likely(exp) __builtin_expect(exp,1)
@@ -253,6 +255,10 @@ void wait_till_next_second();
 void _EngDrvOut(uint32_t reg, uint32_t value);    /* Canon stub */
 void EngDrvOut(uint32_t reg, uint32_t value);     /* ML wrapper */
 void EngDrvOutLV(uint32_t reg, uint32_t value);   /* ML wrapper for LiveView-only calls */
+
+/* set multiple ENGIO registers in a single call */
+void _engio_write(uint32_t* reg_list);    /* Canon stub */
+void engio_write(uint32_t* reg_list);     /* ML wrapper */
 
 #ifdef CONFIG_550D
 /** 550D hack for DISPLAY_IS_ON */

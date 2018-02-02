@@ -3,6 +3,7 @@
 #include "module.h"
 #include "raw.h"
 #include "zebra.h"
+#include "ml-cbr.h"
 
 int sound_recording_enabled_canon()
 {
@@ -10,20 +11,22 @@ int sound_recording_enabled_canon()
     return (sound_recording_mode != 1);
 }
 
-static int (*mlv_snd_is_enabled)() = MODULE_FUNCTION(mlv_snd_is_enabled);
-
 /* TODO: may need check for conditions like raw modules loaded and so on */
 int sound_recording_enabled()
 {
-    if (fps_should_record_wav())
+    uint32_t status = 0;
+    
+    /* ask using ml-cbr */
+    ml_notify_cbr("snd_rec_enabled", &status);
+    
+    if(status)
     {
-        /* this is supposed to work with sound turned off from Canon menu */
         return 1;
     }
     
-    if (mlv_snd_is_enabled())
+    if (fps_should_record_wav())
     {
-        /* check for mlv_snd (it may or may not depend on Canon menu setting - g3gg0? ) */
+        /* this is supposed to work with sound turned off from Canon menu */
         return 1;
     }
     
@@ -491,7 +494,7 @@ static void audio_common_task(void * unused)
     audio_levels[0].avg = audio_levels[1].avg = 0;
 
     /* some models require the audio to be enabled using audio_configure() */
-    #if defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_EOSM)
+    #if defined(CONFIG_600D) || defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_EOSM)
     int reconfig_audio = 0; // Needed to turn on Audio IC at boot, maybe neeed for 100D
     #else
     int reconfig_audio = 1;

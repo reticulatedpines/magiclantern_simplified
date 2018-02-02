@@ -44,9 +44,9 @@ NSTUB(    0x833C,  additional_version)
 NSTUB(0xFF1D9620,  FIO_CloseFile)                           // might be good (dumps=1, score=1e+02)
 NSTUB(0xFF1DA5F0,  FIO_FindClose)                           // might be good (dumps=1, score=69)
 NSTUB(0xFF1DA510,  FIO_FindNextEx)                          // might be good (dumps=1, score=50)
-NSTUB(0xFF1D93D0,  FIO_ReadFile)                            // might be good (dumps=1, score=87)
+NSTUB(0xFF1D93D0, _FIO_ReadFile)                            // might be good (dumps=1, score=87)
 NSTUB(0xFF1D9480,  FIO_SeekSkipFile)                        /* present on 5D3.113, EOSM.202 */
-NSTUB(0xFF1D9570,  FIO_WriteFile)                           // might be good (dumps=1, score=65)
+NSTUB(0xFF1D9570, _FIO_WriteFile)                           // might be good (dumps=1, score=65)
 NSTUB(0xFF1D9E5C, _FIO_CreateDirectory)                     // might be good (dumps=1, score=13)
 NSTUB(0xFF1D927C, _FIO_CreateFile)                          // might be good (dumps=1, score=50)
 NSTUB(0xFF1DA41C, _FIO_FindFirstEx)                         // might be good (dumps=1, score=50)
@@ -142,6 +142,7 @@ NSTUB(0xFF337C8C,  NormalDisplay)                           // might be good (du
 NSTUB(0xFF337C5C,  ReverseDisplay)                          // might be good (dumps=1, score=3.4)
 
 /** EDMAC **/
+NSTUB(0xFF1D391C,  AbortEDmac)
 NSTUB(0xFF1D3648,  ConnectReadEDmac)
 NSTUB(0xFF1D3584,  ConnectWriteEDmac)
 NSTUB(0xFF1D39E4,  RegisterEDmacAbortCBR)
@@ -278,8 +279,6 @@ NSTUB(0xFF06F56C,  take_semaphore)                          // might be good (du
 
 /** Task info **/
 NSTUB(    0x2E00,  task_max)
-NSTUB(0xFF0175F4,  get_current_task)                        // might be good (dumps=1, score=11)
-NSTUB(0xFF07F448,  get_obj_attr)                            // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xFF34E544,  is_taskid_valid)                         // AJ_task_trampoline_related_p10
 
 /** Task sleep **/
@@ -289,20 +288,21 @@ NSTUB(0xFF06FA40,  msleep)                                  // might be good (du
 NSTUB(    0x193C,  task_dispatch_hook)
 NSTUB(0xFF06FAF4,  task_create)                             // might be good (dumps=1, score=23)
 NSTUB(0xFF07C970,  task_trampoline)                         // might be good (dumps=1, score=0.5)
-// NSTUB(    ???,  current_task_ctx)                        /* present on 7D.203 */
-// NSTUB(    ???,  next_task_ctx)                           /* present on 7D.203 */
+NSTUB(    0x1A2C,  current_task)
+NSTUB(     0x674,  current_interrupt)                       // in interrupt handler (0x18), where MEM(C0201004) is stored
 
 /** Misc **/
 NSTUB(   0x736B4,  lv_path_struct)                          // first arg of SelectPathDriveMode
 NSTUB(0xFF0694E4,  LoadCalendarFromRTC)                     // might be good (dumps=1, score=30)
 NSTUB(0xFF1EBFE0,  vsnprintf)                               // might be good (dumps=1, score=9.5)
-///NSTUB(0xff0707fc, AllocateMemory_do) // malloc struct at 0x2B48
 // NSTUB(    ???,  EnableImagePhysicalScreenParameter)      /* present on 7D.203, 50D.109, 5D2.212 */
+// NSTUB(    ???,  FSUunMountDevice)                        /* present on 5D3.113 */
 // NSTUB(    ???,  PtpDps_remote_release_SW1_SW2_worker)    /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
 
 /** Unused stubs or porting notes **/
-///NSTUB(0xFF1D391C,  AbortEDmac)
+///NSTUB(0xff0707fc, AllocateMemory_do) // malloc struct at 0x2B48
+///NSTUB(0xff0707fc, AllocateMemory_do) // malloc struct at 0x2B48
 ///NSTUB(0xFF2279C0,  ChangeColorPalette)
 ///NSTUB(0xFF31CAD8,  CreateDialogBox)                         // might be good (dumps=1, score=74)
 ///NSTUB(0xFF06C914,  DebugMsg)                                // might be good (dumps=1, score=1.1e+03)

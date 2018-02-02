@@ -39,6 +39,15 @@ int main (int argc, char *argv[])
 
     /* modify checksum */
     data ^= checksum;
+
+    /* check footer before overwriting */
+    uint64_t footer_magic = 0;
+    fseek(f, -8, SEEK_END);
+    if ((fread(&footer_magic, 8, 1, f) != 1) || (footer_magic != 0xCCCCCCCCE12FFF13))
+    {
+        printf("Footer magic error (expected 0x%lX, got 0x%lX)\n", 0xCCCCCCCCE12FFF13, footer_magic);
+        return -1;
+    }
     
     fseek(f, -4, SEEK_END);
    

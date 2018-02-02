@@ -2,14 +2,15 @@
 # Magic Lantern Core source files and rules
 #
 
-all:: autoexec.bin
+all:: autoexec.bin print_build_info
 
 clean::
 	$(call rm_files, *.o *.d autoexec autoexec.bin magiclantern magiclantern.bin)
 
 CFLAGS += \
 	-DCONFIG_MAGICLANTERN=1 \
-	-DCONFIG_$(subst .,_,$(MODEL))=1 \
+	-DCONFIG_$(MODEL)=1 \
+	-DCONFIG_$(MODEL)_$(FW_VERSION)=1 \
 	-DRESTARTSTART=$(RESTARTSTART) \
 	-DROMBASEADDR=$(ROMBASEADDR) \
 	-DVERSION=\"$(VERSION)\" \
@@ -72,6 +73,7 @@ ML_OBJS-y = \
 	magiclantern.lds \
 	$(ML_ENTRY_OBJ) \
 	minimal.o \
+	font_direct.o \
 	$(PLATFORM_DIR)/stubs.o
 
 else ifeq ($(ML_SRC_PROFILE),installer)
@@ -104,6 +106,7 @@ ML_OBJS-y += \
 	version.o
 
 ML_SRC_OBJS = \
+	backtrace.o \
 	$(ML_BOOT_HACK_OBJ) \
 	fio-ml.o \
 	mem.o \
@@ -180,9 +183,7 @@ else ifndef ML_OBJS-y
 $(error ML_OBJS-y is not defined)
 endif
 
-ifneq ($(ML_SRC_PROFILE),minimal)
 ML_OBJS-y += $(ML_SRC_EXTRA_OBJS)
-endif
 
 ifdef ML_SRC_EXCLUDE_OBJS
 ML_OBJS-y := $(filter-out $(ML_SRC_EXCLUDE_OBJS), $(ML_OBJS-y))
@@ -218,17 +219,18 @@ autoexec: $(ML_SRC_REBOOT_OBJ)
 	$(call build,LD,$(LD) \
 		-o $@ \
 		-e _start \
+		-N \
 		-Ttext $(AUTOEXEC_BASE) \
 		$^ \
 		--cref \
 		-Map=autoexec.map \
 	); \
-	$(READELF) -l magiclantern | $(GREP) -C 2 MemSiz
 
 autoexec-fir: $(ML_SRC_REBOOT_OBJ)
 	$(call build,LD,$(LD) \
 		-o $@ \
 		-e _start \
+		-N \
 		-Ttext $(FIR_BASE) \
 		$^ \
 		--cref \
@@ -247,6 +249,29 @@ clean::
 $(TOP_DIR)/tcc/libtccx.o: FORCE
 	+$(MAKE) -C $(TOP_DIR)/tcc
 
+# backtrace.[ch] are shared with QEMU
+# the install script will copy them from src/
+# but I'd still like to edit them from one place and have the changes both in QEMU and ML
+# symlinks caused issues on Windows and apparently also on Mac (?!) so let's avoid them for now
+
+# where QEMU is installed (for emulating ML)
+QEMU_INSTALLED_DBI_DIR=$(TOP_DIR)/../qemu/qemu-2.5.0/hw/eos/dbi
+
+ifneq ("$(wildcard $(QEMU_INSTALLED_DBI_DIR)/backtrace.c)","")
+
+# copy backtrace.[ch] from QEMU (outside ML dir) if they were edited there
+# optional dependency, only if QEMU is installed "near" ML dir (the install script does that)
+# https://stackoverflow.com/questions/5553352/how-do-i-check-if-file-exists-in-makefile
+$(SRC_DIR)/backtrace.c $(SRC_DIR)/backtrace.h:: $(SRC_DIR)/backtrace.%: $(QEMU_INSTALLED_DBI_DIR)/backtrace.%
+	$(call build,CP,$(CP) $^ $@)
+
+# make sure we have the latest header when compiling after "make clean"
+# normally, *.h are added as dependencies of *.o in the *.d (make)files
+# but after "make clean" we don't have them
+$(SRC_DIR)/backtrace.c:: $(SRC_DIR)/backtrace.h
+
+endif
+
 # Extract the stdio files that we need
 DIET_OBJ = \
 	strrchr.o \
@@ -262,6 +287,7 @@ DIET_OBJ = \
 	strtol.o \
 	strtoul.o \
 	strchr.o \
+	strstr.o \
 	memcmp.o \
 	memmove.o \
 	atoi.o \
@@ -304,6 +330,9 @@ $(PLATFORM_DIR)/version.c: FORCE
 	@echo 'const char build_date[] ="'`$(DATE) "+%Y-%m-%d %H:%M:%S %Z"`'";' >> $@
 	@echo 'const char build_user[] = "'`whoami`@`hostname`'";'  >> $@
 
+# include ML version, camera, firmware, hg changeset, build date,
+# diffs from src and platform/cam directories,
+# and some lines from Makefile.user (CONFIG entries, gcc version)
 $(PLATFORM_DIR)/version.bin: FORCE
 	$(call build,"VERSION",echo '') > $@
 	@echo '' >> $@
@@ -312,7 +341,31 @@ $(PLATFORM_DIR)/version.bin: FORCE
 	@echo 'Firmware : $(FW_VERSION)' >> $@
 	@echo 'Changeset: '`hg id` >> $@
 	@echo 'Built on : '`date -u "+%Y-%m-%d %H:%M:%S"`' by '`whoami`@`hostname` >> $@
-	@echo -e '\n\n\n\n\n' >> $@
+	@echo '' >> $@
+	@hg diff $(SRC_DIR)/ >> $@
+	@hg diff $(PLATFORM_DIR)/ >> $@
+	@echo '' >> $@
+	@echo '' >> $@
+	@(cat $(TOP_DIR)/Makefile.user 2>/dev/null) | grep -E "^ *(CONFIG_|[A-Z0-9_]*VERSION)" >> $@ || true
+	@echo '' >> $@
+	@echo '' >> $@
+
+print_build_info: FORCE magiclantern
+	@$(READELF) -l magiclantern | $(GREP) -C 2 MemSiz | $(GREP) -v EXIDX
+	@echo
+	@(cat $(TOP_DIR)/Makefile.user 2>/dev/null) | grep -E "^ *(CONFIG_|[A-Z0-9_]*VERSION)" || true
+	@printf "%s\n" $(foreach v, $(filter CONFIG_%,$(MAKEOVERRIDES)), $(v))
+	@echo
+	@NUM_CPUS=$$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 2); \
+		if [ $$NUM_CPUS -gt 1 ]; then \
+			case "$(MAKEFLAGS)" in \
+				(*-j*) ;; \
+				(*) echo "Tip: to compile faster, try one of these:"; \
+					echo "    make -j$$NUM_CPUS"; \
+					echo "    export MAKEFLAGS='-j$$NUM_CPUS'"; \
+					echo ;; \
+			esac; \
+		fi
 
 $(SRC_DIR)/menuindexentries.h:
 	$(call build,"MENU IDX", if [ -f $(DOC_DIR)/menuindex.txt ]; then \

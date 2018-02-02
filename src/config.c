@@ -189,7 +189,7 @@ int config_save_file(const char *filename)
     DebugMsg( DM_MAGIC, 3, "%s: saving to %s", __func__, filename );
     
     #define MAX_SIZE 10240
-    char* msg = fio_malloc(MAX_SIZE);
+    char* msg = malloc(MAX_SIZE);
     msg[0] = '\0';
   
     snprintf( msg, MAX_SIZE,
@@ -231,7 +231,7 @@ int config_save_file(const char *filename)
     FILE * file = FIO_CreateFile( filename );
     if(!file)
     {
-        fio_free(msg);
+        free(msg);
         return -1;
     }
     
@@ -239,7 +239,7 @@ int config_save_file(const char *filename)
 
     FIO_CloseFile( file );
     
-    fio_free(msg);
+    free(msg);
     
     return count;
 }
@@ -316,7 +316,7 @@ int config_parse_file(const char *filename)
     config_file_buf = (void*)read_entire_file(filename, &config_file_size);
     config_file_pos = 0;
     config_parse();
-    fio_free(config_file_buf);
+    free(config_file_buf);
     config_file_buf = 0;
     return 1;
 }
@@ -467,7 +467,7 @@ unsigned int module_config_load(char *filename, module_entry_t *module)
         return -1;
     config_file_pos = 0;
     module_config_parse(module);
-    fio_free(config_file_buf);
+    free(config_file_buf);
     config_file_buf = 0;
     return 0;
 }
@@ -477,7 +477,7 @@ unsigned int module_config_save(char *filename, module_entry_t *module)
     if (!module->config)
         return -1;
 
-    char* msg = fio_malloc(MAX_SIZE);
+    char* msg = malloc(MAX_SIZE);
     msg[0] = '\0';
 
     snprintf( msg, MAX_SIZE,
@@ -510,7 +510,7 @@ unsigned int module_config_save(char *filename, module_entry_t *module)
     FILE * file = FIO_CreateFile( filename );
     if (!file)
     {
-        fio_free(msg);
+        free(msg);
         return -1;
     }
     
@@ -518,7 +518,7 @@ unsigned int module_config_save(char *filename, module_entry_t *module)
 
     FIO_CloseFile( file );
 finish:
-    fio_free(msg);
+    free(msg);
     return 0;
 }
 
@@ -926,8 +926,10 @@ void config_save()
     snprintf(config_file, sizeof(config_file), "%smagic.cfg", get_config_dir());
     config_save_file(config_file);
     config_menu_save_flags();
+    #ifdef CONFIG_MODULES
     module_save_configs();
     module_exec_cbr(CBR_CONFIG_SAVE);
+    #endif
     if (config_deleted) config_autosave = 1; /* this can be improved, because it's not doing a proper "undo" */
     config_deleted = 0;
     give_semaphore(config_save_sem);

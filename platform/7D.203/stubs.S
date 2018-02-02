@@ -45,9 +45,9 @@ NSTUB(   0x16FB8,  additional_version)
 NSTUB(0xFF1FC684,  FIO_CloseFile)
 NSTUB(0xFF1FD554,  FIO_FindClose)                           // AJ__switch_0x1A50_n_calls_fstOpenDir
 NSTUB(0xFF1FD42C,  FIO_FindNextEx)
-NSTUB(0xFF1FC434,  FIO_ReadFile)
+NSTUB(0xFF1FC434, _FIO_ReadFile)
 NSTUB(0xFF1FC4E4,  FIO_SeekSkipFile)
-NSTUB(0xFF1FC5D4,  FIO_WriteFile)
+NSTUB(0xFF1FC5D4, _FIO_WriteFile)
 NSTUB(0xFF1FCCF4, _FIO_CreateDirectory)                     // not sure. g3gg0: confirmed by caller 'ctgDirCreate'
 NSTUB(0xFF1FC2E0, _FIO_CreateFile)
 NSTUB(0xFF1FD2B8, _FIO_FindFirstEx)
@@ -142,6 +142,7 @@ NSTUB(0xFF41DDE0,  StopPlayProtectGuideApp)
 // NSTUB(    ???,  ReverseDisplay)                          /* present on 60D.111, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
 
 /** EDMAC **/
+NSTUB(0xFF1F57B0,  AbortEDmac)
 NSTUB(0xFF1F54DC,  ConnectReadEDmac)
 NSTUB(0xFF1F5418,  ConnectWriteEDmac)
 NSTUB(0xFF1F5878,  RegisterEDmacAbortCBR)
@@ -278,9 +279,9 @@ NSTUB(0xFF07B924,  take_semaphore)
 
 /** Task info **/
 NSTUB(    0x2B24,  task_max)
-NSTUB(0xFF014C10,  get_current_task)
-NSTUB(0xFF08779C,  get_obj_attr)                            // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xFF087940,  is_taskid_valid)                         // AJ_task_trampoline_related_p10
+NSTUB(    0x1A1C,  current_task)
+NSTUB(     0x674,  current_interrupt)                       // in interrupt handler (0x18), where MEM(C0201004) is stored
 
 /** Task sleep **/
 NSTUB(0xFF07BDF8,  msleep)
@@ -298,10 +299,10 @@ NSTUB(0xFF075210,  LoadCalendarFromRTC)
 NSTUB(0xFF16004C,  PtpDps_remote_release_SW1_SW2_worker)    // called from: ptpRemoteRelease Occupy
 NSTUB(0xFF5517B0,  lv_path_struct)
 NSTUB(0xFF209670,  vsnprintf)
+// NSTUB(    ???,  FSUunMountDevice)                        /* present on 5D3.113 */
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
 
 /** Unused stubs or porting notes **/
-///NSTUB([idk], AbortEDmac)
 ///NSTUB(0xFF06EDD0,  AsyncEnableImagePhysicalScreenParameter)
 ///NSTUB(0xFF2FFD3C,  CreateDialogBox)
 ///NSTUB(0xFF2FF7C4,  DeleteDialogBox)

@@ -7,6 +7,3 @@ ML_SRC_EXTRA_OBJS = \
 	video_hacks.o \
 	afma.o \
 	asm.o
-
-
-CFLAG_USER += -DCONFIG_5D3_MINIMAL=1 -DCONFIG_NO_SNAP_SIM=1

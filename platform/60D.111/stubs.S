@@ -51,15 +51,15 @@ NSTUB(   0x250D4,  additional_version)
 NSTUB(0xFF1CA3FC,  FIO_CloseFile)
 NSTUB(0xFF1CB3CC,  FIO_FindClose)                           // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
 NSTUB(0xFF1CB2EC,  FIO_FindNextEx)
-NSTUB(0xFF1CA1AC,  FIO_ReadFile)
+NSTUB(0xFF1CA1AC, _FIO_ReadFile)
 NSTUB(0xFF1CA25C,  FIO_SeekSkipFile)                        /* present on 5D3.113, EOSM.202 */
-NSTUB(0xFF1CA34C,  FIO_WriteFile)
+NSTUB(0xFF1CA34C, _FIO_WriteFile)
 NSTUB(0xFF1CAC38, _FIO_CreateDirectory)
 NSTUB(0xFF1CA058, _FIO_CreateFile)
 NSTUB(0xFF1CB1F8, _FIO_FindFirstEx)
 NSTUB(0xFF1CA578, _FIO_GetFileSize)
 NSTUB(0xFF1C9F9C, _FIO_OpenFile)
-NSTUB(0xFF1CA104, _FIO_RemoveFile)                          // after _FIO_CreateFile, before FIO_ReadFile
+NSTUB(0xFF1CA104, _FIO_RemoveFile)                          // after _FIO_CreateFile, before_FIO_ReadFile
 NSTUB(0xFF1CAA70, _FIO_RenameFile)
 
 /** GUI **/
@@ -149,6 +149,7 @@ NSTUB(0xFF325764,  NormalDisplay)
 NSTUB(0xFF325734,  ReverseDisplay)
 
 /** EDMAC **/
+NSTUB(0xFF1C46F8,  AbortEDmac)
 NSTUB(0xFF1C4424,  ConnectReadEDmac)
 NSTUB(0xFF1C4360,  ConnectWriteEDmac)
 NSTUB(0xFF1C47C0,  RegisterEDmacAbortCBR)
@@ -285,9 +286,9 @@ NSTUB(0xFF06E534,  take_semaphore)
 
 /** Task info **/
 NSTUB(    0x3234,  task_max)
-NSTUB(0xFF0171DC,  get_current_task)
-NSTUB(0xFF07E384,  get_obj_attr)                            // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xFF33EF30,  is_taskid_valid)                         // AJ_task_trampoline_related_p10
+NSTUB(    0x1A2C,  current_task)
+NSTUB(     0x674,  current_interrupt)                       // in interrupt handler (0x18), where MEM(C0201004) is stored
 
 /** Task sleep **/
 NSTUB(0xFF06EA08,  msleep)                                  // called from EV_GETDONE_CACHE param 0x64
@@ -303,14 +304,15 @@ NSTUB(0xFF07B8AC,  task_trampoline)
 NSTUB(   0x52940,  lv_path_struct)                          // first arg of SelectPathDriveMode
 NSTUB(0xFF067B68,  LoadCalendarFromRTC)
 NSTUB(0xFF1DA530,  vsnprintf)
-///NSTUB( 0xff06f7c4, AllocateMemory_do ) // this one won't throw ERR70 on failure
 // NSTUB(    ???,  EnableImagePhysicalScreenParameter)      /* present on 7D.203, 50D.109, 5D2.212 */
+// NSTUB(    ???,  FSUunMountDevice)                        /* present on 5D3.113 */
 // NSTUB(    ???,  PtpDps_remote_release_SW1_SW2_worker)    /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
 
 /** Unused stubs or porting notes **/
 ///NSTUB( 0xFF538000, AJ_memset_R0_addr_R1_Len_R2_byteVal ) // bzero32+4
-///NSTUB([idk], AbortEDmac)
+///NSTUB( 0xff06f7c4, AllocateMemory_do ) // this one won't throw ERR70 on failure
+///NSTUB( 0xff06f7c4, AllocateMemory_do ) // this one won't throw ERR70 on failure
 ///NSTUB(0xFF37479C,  CancelBottomInfoDispTimer)
 ///NSTUB(0xFF0728C0,  CreateBinarySemaphore)                   // called CreateBinarySemaphore
 ///NSTUB(0xFF3076F8, CreateDialogBox)

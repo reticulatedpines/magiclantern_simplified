@@ -274,7 +274,7 @@ static void fps_read_current_timer_values();
 #elif defined(CONFIG_1100D)
     #define NEW_FPS_METHOD 1
     #undef TG_FREQ_BASE
-    // #define TG_FREQ_BASE 32070000 - incorrect, see http://www.magiclantern.fm/forum/index.php?topic=1009.msg146321#msg146321
+    #define TG_FREQ_BASE 32000000
     #undef FPS_TIMER_A_MIN
     #define FPS_TIMER_A_MIN (ZOOM ? 940 : 872)
     #undef FPS_TIMER_B_MIN
@@ -283,7 +283,11 @@ static void fps_read_current_timer_values();
     #define VIDEO_PARAMETERS_SRC_3 0x70C0C
 #elif defined(CONFIG_5D3)
     #define NEW_FPS_METHOD 1
+    #ifdef CONFIG_5D3_123
+    #define SENSOR_TIMING_TABLE MEM(0x32530)
+    #else
     #define SENSOR_TIMING_TABLE MEM(0x325ac)
+    #endif
     //~ #define VIDEO_PARAMETERS_SRC_3 MEM(MEM(0x25FF0))
 
     #undef FPS_TIMER_A_MIN
@@ -753,18 +757,28 @@ int fps_get_current_x1000()
     return fps_x1000;
 }
 
+static void calc_rolling_shutter(int * line_ns, int * frame_us, int * frame_percent, int * xres, int * yres);
+
 static MENU_UPDATE_FUNC(fps_print)
 {
     static int last_inactive = 0;
     int t = get_ms_clock_value_fast();
-    
+
+    int frame_readout_time_percent;
+    calc_rolling_shutter(0, 0, &frame_readout_time_percent, 0, 0);
+
     if (fps_override)
     {
         int current_fps = fps_get_current_x1000();
         MENU_SET_VALUE("%d.%03d", 
             current_fps/1000, current_fps%1000
         );
-        
+
+        if (frame_readout_time_percent)
+        {
+            MENU_SET_RINFO("Roll.sh.%d%%", frame_readout_time_percent);
+        }
+
         /* FPS override will disable sound recording automatically, but not right away (only at next update step) */
         /* if it can't be disabled automatically (timeout 1 second), show a warning so the user can disable it himself */
         if (sound_recording_enabled_canon() && is_movie_mode() && fps_should_disable_sound() && t > last_inactive + 1000)
@@ -778,8 +792,18 @@ static MENU_UPDATE_FUNC(fps_print)
     else
     {
         last_inactive = t;
-    }
     
+        int current_fps = fps_get_current_x1000();
+        MENU_SET_RINFO("%d.%03d", 
+            current_fps/1000, current_fps%1000
+        );
+
+        if (frame_readout_time_percent)
+        {
+            MENU_APPEND_RINFO(", Rs.%d%%", frame_readout_time_percent);
+        }
+    }
+
 #ifdef CONFIG_7D
     if (is_movie_mode() && !raw_lv_is_enabled())
     {
@@ -818,7 +842,7 @@ static MENU_UPDATE_FUNC(desired_fps_print)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "FPS value is computed from photo shutter speed.");
 }
 
-static MENU_UPDATE_FUNC(rolling_shutter_print)
+static void calc_rolling_shutter(int * line_ns, int * frame_us, int * frame_percent, int * xres, int * yres)
 {
     /* Timer A tells us how fast the rows are read out */
     /* Timer A / main clock = time for reading one line */
@@ -826,12 +850,8 @@ static MENU_UPDATE_FUNC(rolling_shutter_print)
 
     int main_clock_div_timer_A = get_current_tg_freq();
     float line_readout_time_us = 1.0e9f / main_clock_div_timer_A;
-    
-    int line_readout_time_us_x10 = (int)roundf(line_readout_time_us * 10.0f);
+    if (line_ns) *line_ns = (int)roundf(line_readout_time_us * 1000.0f);
 
-    /* since we don't know exactly the recording resolution, that's the only reliable value that we can display */
-    MENU_SET_VALUE("%s%d.%d "SYM_MICRO"s / line", FMT_FIXEDPOINT1(line_readout_time_us_x10));
-    
     int vertical_res = 0;
     int horizontal_res = 0;
     
@@ -855,6 +875,30 @@ static MENU_UPDATE_FUNC(rolling_shutter_print)
             vertical_res = MIN(vertical_res, vertical_res_16_9);
         }
     }
+
+    if (xres) *xres = horizontal_res;
+    if (yres) *yres = vertical_res;
+    if (frame_us) *frame_us = 0;
+    if (frame_percent) *frame_percent = 0;
+    
+    if (vertical_res)
+    {
+        int frame_duration_us = (int)roundf(1e9 / fps_get_current_x1000());
+
+        if (frame_us) *frame_us = line_readout_time_us * vertical_res;
+        if (frame_percent) *frame_percent = (int)roundf(line_readout_time_us * vertical_res * 100 / frame_duration_us);
+    }
+}
+
+static MENU_UPDATE_FUNC(rolling_shutter_print)
+{
+    int line_readout_time_ns, frame_readout_time_us, frame_readout_time_percent, horizontal_res, vertical_res;
+    calc_rolling_shutter(&line_readout_time_ns, &frame_readout_time_us, &frame_readout_time_percent, &horizontal_res, &vertical_res);
+   
+    int line_readout_time_us_x10 = line_readout_time_ns / 100;
+
+    /* since we don't know exactly the recording resolution, that's the only reliable value that we can display */
+    MENU_SET_VALUE("%s%d.%d "SYM_MICRO"s / line", FMT_FIXEDPOINT1(line_readout_time_us_x10));
     
     /* trick to display status messages even with FPS override turned off */
     int old_warn = info->warning_level;
@@ -862,9 +906,13 @@ static MENU_UPDATE_FUNC(rolling_shutter_print)
     
     if (vertical_res)
     {
-        int rolling_shutter_ms_x10 = (int)roundf(line_readout_time_us * vertical_res / 100.0f);
+        int rolling_shutter_ms_x10 = frame_readout_time_us / 100;
         
-        MENU_SET_WARNING(MAX(MENU_WARN_INFO, old_warn), "Rolling shutter: %s%d.%d ms at %dx%d.", FMT_FIXEDPOINT1(rolling_shutter_ms_x10), horizontal_res, vertical_res);
+        MENU_SET_WARNING(MAX(MENU_WARN_INFO, old_warn), "Rolling shutter: %s%d.%d ms (%d%%) at %dx%d.",
+            FMT_FIXEDPOINT1(rolling_shutter_ms_x10),
+            frame_readout_time_percent, 0,
+            horizontal_res, vertical_res
+        );
     }
     else
     {
@@ -1647,19 +1695,23 @@ static void fps_task()
             continue;
         }
 
+        int default_fps = calc_fps_x1000(fps_timer_a_orig, fps_timer_b_orig);
         int f = fps_values_x1000[fps_override_index];
         
         if (fps_sync_shutter && !is_movie_mode())
         {
-            int default_fps = calc_fps_x1000(fps_timer_a_orig, fps_timer_b_orig);
             f = MIN(1000000 / raw2shutter_ms(lens_info.raw_shutter), default_fps);
+        }
+        
+        if (lv_dispsize == 10 && get_halfshutter_pressed())
+        {
+            /* x10 zoom - disable FPS override to check focus */
+            f = default_fps;
         }
         
         #ifdef FEATURE_FPS_RAMPING
         if (FPS_RAMP) // artistic effect - http://www.magiclantern.fm/forum/index.php?topic=2963.0
         {
-            int default_fps = calc_fps_x1000(fps_timer_a_orig, fps_timer_b_orig);
-
             f = MIN(f, default_fps); // no overcranking possible with FPS ramping
             
             int total_duration = fps_ramp_timings[fps_ramp_duration];

@@ -34,6 +34,7 @@
 #undef RAW_DEBUG        /* define it to help with porting */
 #undef RAW_DEBUG_DUMP   /* if you want to save the raw image buffer and the DNG from here */
 #undef RAW_DEBUG_BLACK  /* for checking black level calibration */
+#undef RAW_DEBUG_TYPE   /* this lets you select the raw type (for PREFERRED_RAW_TYPE) from menu */
 /* see also RAW_ZEBRA_TEST and RAW_SPOTMETER_TEST in zebra.c */
 
 #ifdef RAW_DEBUG
@@ -108,9 +109,28 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #define DEFAULT_RAW_BUFFER MEM(MEM(0x51FC))
 #endif
 
-#ifdef CONFIG_5D3
-#define DEFAULT_RAW_BUFFER MEM(0x2600C + 0x2c)  /* 113 */
-//~ #define DEFAULT_RAW_BUFFER MEM(0x25f1c + 0x34)  /* 123 */
+#ifdef CONFIG_5D3_113
+#define DEFAULT_RAW_BUFFER MEM(0x2600C + 0x2c)
+#endif
+
+#ifdef CONFIG_5D3_123
+#define DEFAULT_RAW_BUFFER MEM(0x25f1c + 0x34)
+#endif
+
+#ifdef CONFIG_650D
+#define DEFAULT_RAW_BUFFER MEM(0x25B00 + 0x3C)
+#endif
+
+#ifdef CONFIG_700D
+#define DEFAULT_RAW_BUFFER MEM(0x25B0C + 0x3C)
+#endif
+
+#ifdef CONFIG_EOSM
+#define DEFAULT_RAW_BUFFER MEM(0x404E4 + 0x44)
+#endif
+
+#ifdef CONFIG_6D
+#define DEFAULT_RAW_BUFFER MEM(0x76d6c + 0x2C)
 #endif
 
 #else
@@ -150,48 +170,28 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
  * => (5D3) lv_set_raw_type(arg0 ? 4 : 7)
  * => MEM(0x2D168) = a bunch of values, default 34, 18 with lv_af on, 14 with lv_af off.
  * see also http://www.magiclantern.fm/forum/index.php?topic=5614.msg39696#msg39696
+ * and http://www.magiclantern.fm/forum/index.php?topic=18393
  */
 
-#ifdef CONFIG_5D3
-/**
- * Renato [http://www.magiclantern.fm/forum/index.php?topic=5614.msg41070#msg41070]:
- * "Best images in: 17, 35, 37, 39, 81, 83, 99"
- * note: values are off by 1
- */
-#define PREFERRED_RAW_TYPE 16
-#define RAW_TYPE_ADDRESS 0x2D168
+#ifdef CONFIG_DIGIC_V
+#define RAW_TYPE_REGISTER 0xC0F37014
+#define PREFERRED_RAW_TYPE 0x10         /* CCD; also valid for DIGIC 6 */
+#else
+#define RAW_TYPE_REGISTER 0xC0F08114    /* PACK32_ISEL */
+#define PREFERRED_RAW_TYPE 0x5          /* DIGIC 4: CCD */
 #endif
-
-/**
- * RAW_TYPE 78 (and others) have a frame-wide green pattern on them
- * ACR can clear them but also kills some details and does not do
- * a good job in general. TL;DR Use pink dot remover.
- * http://www.magiclantern.fm/forum/index.php?topic=6658.0
- */
-
-/*
-#ifdef CONFIG_700D
-#define PREFERRED_RAW_TYPE 78
-#define RAW_TYPE_ADDRESS 0x351B8
-#endif
-
-#ifdef CONFIG_650D
-#define PREFERRED_RAW_TYPE 78
-#define RAW_TYPE_ADDRESS 0x350B4
-#endif
-*/
 
 /** 
  * White level
- * one size fits all: should work on most cameras and can't be wrong by more than 0.1 EV
+ * 
+ * With PREFERRED_RAW_TYPE set to CCD, most cameras appear to clip above 16300
+ * (most of them actually use the full range, until 16382)
+ * 
+ * one size fits all: 16200 may sacrifice up to 0.02 EV of highlights
+ * that is, log2((16382-2048) / (16000-2048))
  */
-#define WHITE_LEVEL 15000
+#define WHITE_LEVEL 16200
 
-/** there may be exceptions */
-#ifdef CONFIG_6D
-#undef WHITE_LEVEL
-#define WHITE_LEVEL 13000
-#endif
 
 /**
  * Color matrix should be copied from DCRAW.
@@ -309,6 +309,26 @@ struct raw_info raw_info = {
     .dynamic_range = 1100,              // not correct; use numbers from DxO instead
 };
 
+struct raw_capture_info raw_capture_info = {
+    #ifdef CONFIG_FULLFRAME
+    .sensor_crop = 100,         /* 1.0 */
+    #else
+    .sensor_crop = 162,         /* 1.62x (APS-C) */
+    #endif
+    .binning_x   = 1,
+    .binning_y   = 1,
+    .skipping_x  = 0,
+    .skipping_y  = 0,
+    .offset_x    = SHRT_MIN,
+    .offset_y    = SHRT_MIN,
+};
+
+PROP_HANDLER(PROP_LV_AFFRAME)
+{
+    raw_capture_info.sensor_res_x = buf[0];
+    raw_capture_info.sensor_res_y = buf[1];
+}
+
  /**
  * Dynamic range, from DxO
  * e.g. http://www.dxomark.com/index.php/Cameras/Camera-Sensor-Database/Canon/EOS-5D-Mark-III
@@ -383,42 +403,56 @@ extern void reverse_bytes_order(char* buf, int count);
 static int raw_lv_get_resolution(int* width, int* height)
 {
 #ifdef CONFIG_EDMAC_RAW_SLURP
+    /*
+     * from adtg_gui.c:
+     * {0xC0F0,   0x6800, 0, "RAW first line|column. Column is / 8 on 5D3 (parallel readout?)"},
+     * {0xC0F0,   0x6804, 0, "RAW last line|column. 5D3: f6e|2fe, first 1|18 => 5936x3950"},
+     * 
+     * models with EvfState: these registers are set from SDRV_StartupDevice
+     * (first call, then first call other than engio_write)
+     */
+  #ifdef CONFIG_DIGIC_V
+    uint32_t top_left  = shamem_read(0xC0F06800);
+    uint32_t bot_right = shamem_read(0xC0F06804);
+  #else
+    uint32_t top_left  = shamem_read(0xC0F06084);
+    uint32_t bot_right = shamem_read(0xC0F06088);
+  #endif
 
-    /* params useful for hardcoding buffer sizes, according to video mode */
-    int mv = is_movie_mode();
-    int mv720 = mv && video_mode_resolution == 1;
-    int mv1080 = mv && video_mode_resolution == 0;
-    int mv640 = mv && video_mode_resolution == 2;
-    int mv1080crop = mv && video_mode_resolution == 0 && video_mode_crop;
-    int mv640crop = mv && video_mode_resolution == 2 && video_mode_crop;
-    
-    /* note: 6D reports 129 = 0x81 for zoom x1, and it behaves just like plain (unzoomed) LiveView) */
-    int zoom = (lv_dispsize & 0xF) > 1;
+    /* this factor probably refers to parallel readout of sensor columns (just a guess) */
+    /* can be found in ROM dumps by looking for 0xC0F06088 or 0xC0F06804 and doing the math */
+  #if defined(CONFIG_5D3) || defined(CONFIG_70D)
+    const int column_factor = 8;
+  #elif defined(CONFIG_500D)
+    const int column_factor = 1;
+  #elif defined(CONFIG_DIGIC_V) /* checked 6D, 650D, 700D, M, 100D */
+    const int column_factor = 4;
+  #else /* most DIGIC 4; checked 60D, 600D, 550D, 5D2, 50D, 7D, 1100D, 1200D, 1300D */
+    const int column_factor = 2;
+  #endif
 
-    /* silence warnings; not all cameras have all these modes */
-    (void)mv640; (void)mv720; (void)mv1080; (void)mv640; (void)mv1080crop; (void)mv640crop; (void)zoom;
+    *width  = ((bot_right & 0xFFFF) - (top_left & 0xFFFF)) * column_factor;
+    *height = (bot_right >> 16)     - (top_left >> 16);
 
-    #ifdef CONFIG_5D3
-    /* don't know how to get the resolution without relying on Canon's lv_save_raw */
-    *width  = zoom ? 3744 : mv720 ? 2080 : 2080;
-    *height = zoom ? 1380 : mv720 ?  692 : 1318;    /* height must be exact! copy it from Debug->EDMAC */
+    /* height may be a little different; 5D3 needs to subtract 1,
+     * EOS M needs to add 1, 100D usually gives exact value
+     * is it really important to have exact height?
+     * for some raw types, yes! */
+
+#ifdef CONFIG_5D3
+    (*height)--;
+#endif
+
+#ifdef CONFIG_EOSM
+    /* EOS M exception */
+    /* http://www.magiclantern.fm/forum/index.php?topic=16608.msg176023#msg176023 */
+    if (lv_dispsize == 1 && !video_mode_crop && !RECORDING_H264)
+    {
+        *height = 727;
+    }
+#endif
+
     return 1;
-    #endif
-
-    #ifdef CONFIG_60D
-    *width  = zoom ? 2520 : mv640crop ? 920 : mv720 || mv640 ? 1888 : 1888;
-    *height = zoom ? 1106 : mv640crop ? 624 : mv720 || mv640 ?  720 : 1182;
-    return 1;
-    #endif
-
-    #ifdef CONFIG_600D
-    *width  = zoom ? 2520 : mv1080crop ? 1952 : mv720  ? 1888 : 1888;
-    *height = zoom ? 1106 : mv1080crop ? 1048 : mv720  ?  720 : 1182;
-    return 1;
-    #endif
-
-    /* unknown camera? */
-    return 0;
 
 #else
     /* autodetect raw size from EDMAC */
@@ -442,7 +476,7 @@ static int raw_update_params_work()
     console_show();
     #endif
 
-    dbg_printf("raw update from %s\n", get_task_name_from_id(get_current_task()));
+    dbg_printf("raw update from %s\n", get_current_task_name());
 
     int width = 0;
     int height = 0;
@@ -550,10 +584,9 @@ static int raw_update_params_work()
         #endif
 
         #ifdef CONFIG_60D
-        #warning FIXME: are these values correct for 720p and crop modes?
         skip_top    = 26;
-        skip_left   = zoom ? 0 : 152;
-        skip_right  = zoom ? 0 : 2;
+        skip_left   = zoom ? 0 : mv640crop ? 150 : 152;
+        skip_right  = zoom ? 0 : mv640crop ? 0 : 2;
         #endif
 
         #ifdef CONFIG_50D
@@ -618,7 +651,7 @@ static int raw_update_params_work()
             dbg_printf("Photo raw size error\n");
             return 0;
         }
-        
+
         /**
          * The RAW file has unused areas, called "optical black" (OB); we need to skip them.
          * 
@@ -695,12 +728,47 @@ static int raw_update_params_work()
 
 /*********************** Portable code ****************************************/
 
+    /* skip offsets must be even */
+    skip_left   &= ~1;
+    skip_right  &= ~1;
+    skip_top    &= ~1;
+    skip_bottom &= ~1;
+
     if (width != raw_info.width || height != raw_info.height)
     {
         /* raw dimensions changed? force a full update, including preview window */
         printf("Resolution changed: %dx%d -> %dx%d\n", raw_info.width, raw_info.height, width, height);
         dirty = 1;
     }
+
+    /* photo mode and crop/zoom modes use 1:1 readout */
+    /* LiveView uses 3x3 column binning / line skipping on most models */
+    /* and 3x5 in 720p */
+    if (!lv || zoom || video_mode_crop)
+    {
+        raw_capture_info.binning_x  = raw_capture_info.binning_y  = 1;
+        raw_capture_info.skipping_x = raw_capture_info.skipping_y = 0;
+        raw_capture_info.offset_x   = raw_capture_info.offset_y   = lv ? SHRT_MIN : 0;
+    }
+    else
+    {
+        raw_capture_info.binning_x  = 3; raw_capture_info.skipping_x = 0;
+#ifdef CONFIG_5D3
+        raw_capture_info.skipping_y = 0; raw_capture_info.binning_y  = mv720 ? 5 : 3;
+#elif CONFIG_EOSM
+        raw_capture_info.binning_y  = 1; raw_capture_info.skipping_y = (mv720 || !RECORDING_H264) ? 4 : 2;
+#else
+        raw_capture_info.binning_y  = 1; raw_capture_info.skipping_y = mv720 ? 4 : 2;
+#endif
+        raw_capture_info.offset_x   =    raw_capture_info.offset_y   = SHRT_MIN;
+    }
+    dbg_printf(
+        "Subsampling mode: %dB%dSx%dB%dS (%dx%d %d.%02d)\n",
+        raw_capture_info.binning_x, raw_capture_info.skipping_x,
+        raw_capture_info.binning_y, raw_capture_info.skipping_y,
+        raw_capture_info.sensor_res_x, raw_capture_info.sensor_res_y,
+        raw_capture_info.sensor_crop / 100, raw_capture_info.sensor_crop % 100
+    );
 
 #ifdef CONFIG_RAW_LIVEVIEW 
 
@@ -883,6 +951,7 @@ static int raw_update_params_once()
     int ans = 0;
     take_semaphore(raw_sem, 0);
     ans = raw_update_params_work();
+    if (ans) module_exec_cbr(CBR_RAW_INFO_UPDATE);
     give_semaphore(raw_sem);
     return ans;
 }
@@ -917,7 +986,7 @@ static int preview_rect_y;
 static int preview_rect_w;
 static int preview_rect_h;
 
-void raw_set_preview_rect(int x, int y, int w, int h)
+void raw_set_preview_rect(int x, int y, int w, int h, int obey_info_bars)
 {
     preview_rect_x = x;
     preview_rect_y = y;
@@ -930,13 +999,17 @@ void raw_set_preview_rect(int x, int y, int w, int h)
     /* not exactly a good idea when we have already acquired raw_sem */
     //~ get_yuv422_vram(); // update vram parameters
     
+    /* fixme: handle different screen layouts */
+    int top_margin      = (obey_info_bars) ? 38 : 0;
+    int bottom_margin   = (obey_info_bars) ? 38 : 0;
+
     /* scaling factor: raw width should match os.x_ex, same for raw height and os.y_ex */
     lv2raw.sx = 1024 * w / BM2LV_DX(os.x_ex);
-    lv2raw.sy = 1024 * h / BM2LV_DY(os.y_ex);
+    lv2raw.sy = 1024 * h / BM2LV_DY(os.y_ex - top_margin - bottom_margin);
 
     /* translation: raw top-left corner (x,y) should match (os.x0,os.y0) */
     int x0_lv = BM2LV_X(os.x0);
-    int y0_lv = BM2LV_Y(os.y0);
+    int y0_lv = BM2LV_Y(os.y0 + top_margin);
     lv2raw.tx = x - LV2RAW_DX(x0_lv);
     lv2raw.ty = y - LV2RAW_DY(y0_lv);
 }
@@ -1009,7 +1082,7 @@ void raw_set_geometry(int width, int height, int skip_left, int skip_right, int 
     }
 #endif
 
-    raw_set_preview_rect(preview_skip_left, preview_skip_top, preview_width, preview_height);
+    raw_set_preview_rect(preview_skip_left, preview_skip_top, preview_width, preview_height, 0);
 
     dbg_printf("lv2raw sx:%d sy:%d tx:%d ty:%d\n", lv2raw.sx, lv2raw.sy, lv2raw.tx, lv2raw.ty);
     dbg_printf("raw2lv test: (%d,%d) - (%d,%d)\n", RAW2LV_X(raw_info.active_area.x1), RAW2LV_Y(raw_info.active_area.y1), RAW2LV_X(raw_info.active_area.x2), RAW2LV_Y(raw_info.active_area.y2));
@@ -1493,6 +1566,9 @@ void FAST raw_lv_redirect_edmac(void* ptr)
 }
 
 #ifdef CONFIG_EDMAC_RAW_SLURP
+
+static int lv_raw_type = PREFERRED_RAW_TYPE;
+
 void FAST raw_lv_vsync()
 {
     /* where should we save the raw data? */
@@ -1500,7 +1576,9 @@ void FAST raw_lv_vsync()
     
     if (buf && lv_raw_enabled)
     {
-        //~ bmp_printf(FONT_MED, 50, 50, "%x %dx%d  ", buf,  raw_info.pitch, raw_info.height);
+        /* this needs to be set for every single frame */
+        EngDrvOut(RAW_TYPE_REGISTER, lv_raw_type);
+
         /* pull the raw data into "buf" */
         int width, height;
         int ok = raw_lv_get_resolution(&width, &height);
@@ -1510,19 +1588,11 @@ void FAST raw_lv_vsync()
             edmac_raw_slurp(CACHEABLE(buf), pitch, height);
         }
     }
-    else
-    {
-        //~ bmp_printf(FONT_MED, 50, 50, "%x %d...  ", buf,  lv_raw_enabled);
-    }
     
     /* overriding the buffer is only valid for one frame */
     redirected_raw_buffer = 0;
-    
-    #ifdef PREFERRED_RAW_TYPE
-    /* this needs to be set for every single frame */
-    EngDrvOutLV(MEM(RAW_TYPE_ADDRESS-4), PREFERRED_RAW_TYPE);
-    #endif
 }
+
 #endif
 
 int raw_lv_settings_still_valid()
@@ -1580,10 +1650,8 @@ static void FAST raw_preview_color_work(void* raw_buffer, void* lv_buffer, int y
         gamma_g[i]  = COERCE(g_g  * g_g  / 255, 0, 255); /* (it's like a nonlinear curve applied on top of log) */
     }
     
-    int x1 = BM2LV_X(os.x0);
-    int x2 = BM2LV_X(os.x_max);
-    x1 = MAX(x1, RAW2LV_X(MAX(raw_info.active_area.x1, preview_rect_x)));
-    x2 = MIN(x2, RAW2LV_X(MIN(raw_info.active_area.x2, preview_rect_x + preview_rect_w)));
+    int x1 = COERCE(RAW2LV_X(preview_rect_x), 0, vram_lv.width);
+    int x2 = COERCE(RAW2LV_X(preview_rect_x + preview_rect_w), 0, vram_lv.width);
     if (x2 < x1) return;
 
     /* cache the LV to RAW transformation for the inner loop to make it faster */
@@ -1599,13 +1667,16 @@ static void FAST raw_preview_color_work(void* raw_buffer, void* lv_buffer, int y
     {
         int yr = LV2RAW_Y(y) & ~1;
 
-        /* on HDMI screens, BM2LV_DX() may get negative */
-        if((yr <= preview_rect_y || yr >= preview_rect_y + preview_rect_h) && BM2LV_DX(x2-x1) > 0)
+        if (yr <= preview_rect_y || yr >= preview_rect_y + preview_rect_h)
         {
             /* out of range, just fill with black */
-            memset(&lv32[LV(0,y)/4], 0, BM2LV_DX(x2-x1)*2);
+            memset(&lv32[LV(0,y)/4], 0, vram_lv.pitch);
             continue;
         }
+
+        /* fill left/right borders with black */
+        memset(&lv32[LV(0,y)/4],  0, LV(x1,y) - LV(0,y)/4*4);
+        memset(&lv32[LV(x2,y)/4], 0, LV(0,1) - LV(x2,0)/4*4);
 
         struct raw_pixblock * row = (void*)raw + yr * raw_info.pitch;
         
@@ -1672,10 +1743,8 @@ static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1
         gamma[i] = g * g / 255; /* idk, looks better this way */
     }
     
-    int x1 = BM2LV_X(os.x0);
-    int x2 = BM2LV_X(os.x_max);
-    x1 = MAX(x1, RAW2LV_X(MAX(raw_info.active_area.x1, preview_rect_x)));
-    x2 = MIN(x2, RAW2LV_X(MIN(raw_info.active_area.x2, preview_rect_x + preview_rect_w)));
+    int x1 = COERCE(RAW2LV_X(preview_rect_x), 0, vram_lv.width);
+    int x2 = COERCE(RAW2LV_X(preview_rect_x + preview_rect_w), 0, vram_lv.width);
     if (x2 < x1) return;
 
     /* cache the LV to RAW transformation for the inner loop to make it faster */
@@ -1690,18 +1759,21 @@ static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1
     {
         int yr = LV2RAW_Y(y) | 1;
 
-        /* on HDMI screens, BM2LV_DX() may get negative */
-        if((yr <= preview_rect_y || yr >= preview_rect_y + preview_rect_h) && BM2LV_DX(x2-x1) > 0)
+        if (yr <= preview_rect_y || yr >= preview_rect_y + preview_rect_h)
         {
             /* out of range, just fill with black */
-            memset(&lv64[LV(0,y)/8], 0, BM2LV_DX(x2-x1)*2);
+            memset(&lv64[LV(0,y)/8], 0, vram_lv.pitch);
             continue;
         }
+
+        /* fill left/right borders with black */
+        memset(&lv64[LV(0,y)/8],  0, LV(x1,y) - LV(0,y)/8*8);
+        memset(&lv64[LV(x2,y)/8], 0, LV(0,1) - LV(x2,0)/8*8);
 
         struct raw_pixblock * row = (void*)raw + yr * raw_info.pitch;
         
         if (y%2) continue;
-        
+
         for (int x = x1; x < x2; x += 4)
         {
             int xr = lv2rx[x];
@@ -1756,12 +1828,6 @@ void FAST raw_preview_fast()
 
 #ifdef CONFIG_RAW_LIVEVIEW
 
-#ifndef CONFIG_EDMAC_RAW_SLURP
-    #ifdef PREFERRED_RAW_TYPE
-    static int old_raw_type = -1;
-    #endif
-#endif
-
 static void raw_lv_enable()
 {
     /* make sure LiveView is fully started before enabling the raw flag */
@@ -1772,12 +1838,6 @@ static void raw_lv_enable()
 
 #ifndef CONFIG_EDMAC_RAW_SLURP
     call("lv_save_raw", 1);
-    
-    #ifdef PREFERRED_RAW_TYPE
-    /* set new raw type; Canon's lv_save_raw will apply it */
-    old_raw_type = MEM(RAW_TYPE_ADDRESS);
-    MEM(RAW_TYPE_ADDRESS) = PREFERRED_RAW_TYPE;
-    #endif
 #endif
 }
 
@@ -1787,15 +1847,6 @@ static void raw_lv_disable()
     
 #ifndef CONFIG_EDMAC_RAW_SLURP
     call("lv_save_raw", 0);
-    
-    #ifdef PREFERRED_RAW_TYPE
-    /* restore old raw type */
-    if (old_raw_type != -1)
-    {
-        MEM(RAW_TYPE_ADDRESS) = old_raw_type;
-        old_raw_type = -1;
-    }
-    #endif
 #endif
 }
 
@@ -1816,7 +1867,10 @@ static void raw_lv_update()
         for (int i = 0; i < 5; i++)
         {
             if (raw_update_params_work())
+            {
+                module_exec_cbr(CBR_RAW_INFO_UPDATE);
                 break;
+            }
             wait_lv_frames(1);
         }
     }
@@ -2034,9 +2088,28 @@ PROP_HANDLER(PROP_LV_DISPSIZE)
     #endif
 }
 
+#ifdef RAW_DEBUG_TYPE
+#ifndef CONFIG_EDMAC_RAW_SLURP
+    #error Only implemented for CONFIG_EDMAC_RAW_SLURP.
+#endif
+static struct menu_entry debug_menus[] = {
+    {
+        .name = "LV raw type",
+        .priv = &lv_raw_type,
+        .max = 64,
+        .help = "Choose what type of raw stream we should use in LiveView.",
+        .help2 = "See lv_af_raw, lv_rshd_raw, lv_set_raw, KindOfCraw...",
+    },
+};
+#endif
+
 static void raw_init()
 {
     raw_sem = create_named_semaphore("raw_sem", 1);
+    
+    #ifdef RAW_DEBUG_TYPE
+    menu_add("Debug", debug_menus, COUNT(debug_menus));
+    #endif
 }
 
 INIT_FUNC("raw", raw_init);

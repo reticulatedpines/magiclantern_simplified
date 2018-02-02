@@ -1126,7 +1126,7 @@ menu_update_placeholder(struct menu * menu, struct menu_entry * new_entry)
     
     for (struct menu_entry * entry = menu->children; entry; entry = entry->next)
     {
-        if (entry != new_entry && MENU_IS_PLACEHOLDER(entry) && streq(entry->name, new_entry->name))
+        if (entry != new_entry && MENU_IS_PLACEHOLDER(entry) && entry->name && streq(entry->name, new_entry->name))
         { /* found, let's try to swap the entries */
             
             placeholder_copy(entry, new_entry);
@@ -2528,7 +2528,7 @@ skip_name:
                 help2_buf[0] = 0;
                 for (int i = entry->min; i <= entry->max; i++)
                 {
-                    int len = bmp_string_width(FONT_MED, help2);
+                    int len = bmp_string_width(FONT_MED, help2_buf);
                     if (len > 700) break;
                     STR_APPEND(help2_buf, "%s%s", pickbox_string(entry, i), i < entry->max ? " / " : ".");
                 }
@@ -2595,7 +2595,7 @@ menu_post_display()
         );
     }
 
-    if (!CURRENT_DIALOG_MAYBE)
+    if (!CURRENT_GUI_MODE)
     {
         // we can't use the scrollwheel
         // and you need to be careful because you will change shooting settings while recording!
@@ -4203,20 +4203,15 @@ void menu_benchmark()
 static int menu_ensure_canon_dialog()
 {
 #ifndef CONFIG_VXWORKS
-    if (CURRENT_DIALOG_MAYBE != GUIMODE_ML_MENU && CURRENT_DIALOG_MAYBE != DLG_PLAY)
+    if (CURRENT_GUI_MODE != GUIMODE_ML_MENU && CURRENT_GUI_MODE != GUIMODE_PLAY)
     {
         if (redraw_flood_stop)
         {
             // Canon dialog timed out?
 #if defined(CONFIG_MENU_TIMEOUT_FIX)
             // force dialog change when canon dialog times out (EOSM, 6D etc)
-            // don't try more often than once per second
-            static int aux = 0;
-            if (should_run_polling_action(1000, &aux))
-            {
-                start_redraw_flood();
-                SetGUIRequestMode(GUIMODE_ML_MENU);
-            }
+            start_redraw_flood();
+            SetGUIRequestMode(GUIMODE_ML_MENU);
 #else
             return 0;
 #endif
@@ -4506,7 +4501,7 @@ handle_ml_menu_keys(struct event * event)
         if (!lv) return 1;
         // else fallthru
     #endif
-    case BGMT_PRESS_ZOOMIN_MAYBE:
+    case BGMT_PRESS_ZOOM_IN:
         if (lv) menu_lv_transparent_mode = !menu_lv_transparent_mode;
         else edit_mode = !edit_mode;
         menu_damage = 1;
@@ -4727,7 +4722,7 @@ menu_init( void )
     m = menu_find_by_name( "Prefs",     ICON_ML_PREFS   );
     m = menu_find_by_name( "Scripts",   ICON_ML_SCRIPT  );
     m = menu_find_by_name( "Games",     ICON_ML_GAMES  );
-    m = menu_find_by_name( "Modules",   ICON_ML_MODULES ); if (m) m->split_pos = 12;
+    m = menu_find_by_name( "Modules",   ICON_ML_MODULES ); if (m) m->split_pos = 11;
     m = menu_find_by_name( "Debug",     ICON_ML_DEBUG   );
     m = menu_find_by_name( "Help",      ICON_ML_INFO    );
 }
@@ -4821,7 +4816,7 @@ static void piggyback_canon_menu()
     if (sensor_cleaning) return;
     if (gui_state == GUISTATE_MENUDISP) return;
     NotifyBoxHide();
-    if (new_gui_mode != (int)CURRENT_DIALOG_MAYBE) 
+    if (new_gui_mode != (int)CURRENT_GUI_MODE) 
     { 
         start_redraw_flood();
         if (lv) bmp_off(); // mask out the underlying Canon menu :)
@@ -4834,7 +4829,7 @@ static void piggyback_canon_menu()
 static void close_canon_menu()
 {
 #ifdef GUIMODE_ML_MENU
-    if (CURRENT_DIALOG_MAYBE == 0) return;
+    if (CURRENT_GUI_MODE == 0) return;
     if (sensor_cleaning) return;
     if (gui_state == GUISTATE_MENUDISP) return;
     if (lv) bmp_off(); // mask out the underlying Canon menu :)
@@ -4995,7 +4990,7 @@ menu_task( void* unused )
                 if (sensor_cleaning ||
                     initial_mode != shooting_mode ||
                     gui_state == GUISTATE_MENUDISP ||
-                    (!DISPLAY_IS_ON && CURRENT_DIALOG_MAYBE != DLG_PLAY))
+                    (!DISPLAY_IS_ON && CURRENT_GUI_MODE != GUIMODE_PLAY))
                 {
                     /* close ML menu */
                     gui_stop_menu();
@@ -5069,6 +5064,7 @@ int is_menu_entry_selected(char* menu_name, char* entry_name)
     {
         struct menu_entry * entry = get_selected_entry(menu);
         if (!entry) return 0;
+        if (!entry->name) return 0;
         return streq(entry->name, entry_name);
     }
     return 0;
@@ -5125,7 +5121,7 @@ void select_menu_by_name(char* name, const char* entry_name)
             int i;
             for(i = 0 ; entry ; entry = entry->next, i++ )
             {
-                entry->selected = streq(entry->name, entry_name) && !entry_was_selected;
+                entry->selected = entry->name && streq(entry->name, entry_name) && !entry_was_selected;
                 if (entry->selected) entry_was_selected = 1;
             }
         }
@@ -5160,7 +5156,7 @@ static struct menu_entry * entry_find_by_name(const char* name, const char* entr
             int i;
             for(i = 0 ; entry ; entry = entry->next, i++ )
             {
-                if (streq(entry->name, entry_name))
+                if (entry->name && streq(entry->name, entry_name))
                 {
                     return entry;
                 }
@@ -5516,10 +5512,10 @@ int handle_quick_access_menu_items(struct event * event)
             give_semaphore( gui_sem ); 
             return 0;
         }
-        #ifdef CURRENT_DIALOG_MAYBE_2
-        else if (CURRENT_DIALOG_MAYBE_2 == DLG2_FOCUS_MODE)
+        #ifdef CURRENT_GUI_MODE_2
+        else if (CURRENT_GUI_MODE_2 == DLG2_FOCUS_MODE)
         #else
-        else if (CURRENT_DIALOG_MAYBE == DLG_FOCUS_MODE)
+        else if (CURRENT_GUI_MODE == GUIMODE_FOCUS_MODE)
         #endif
         {
             select_menu("Focus", 0);
@@ -5551,7 +5547,7 @@ static void menu_set_flags(char* menu_name, char* entry_name, int flags)
 
 static void menu_save_flags(char* filename)
 {
-    char* cfg = fio_malloc(CFG_SIZE);
+    char* cfg = malloc(CFG_SIZE);
     cfg[0] = '\0';
     int cfglen = 0;
     int lastlen = 0;
@@ -5587,7 +5583,7 @@ static void menu_save_flags(char* filename)
     FIO_CloseFile( file );
 
 end:
-    fio_free(cfg);
+    free(cfg);
 }
 
 static void menu_load_flags(char* filename)
@@ -5641,7 +5637,7 @@ void config_menu_save_flags()
 
 /*void menu_save_all_items_dbg()
 {
-    char* cfg = fio_malloc(CFG_SIZE);
+    char* cfg = malloc(CFG_SIZE);
     cfg[0] = '\0';
 
     int unnamed = 0;
@@ -5668,7 +5664,7 @@ void config_menu_save_flags()
     
     NotifyBox(5000, "Menu items: %d unnamed.", unnamed);
 end:
-    fio_free(cfg);
+    free(cfg);
 }*/
 
 int menu_get_value_from_script(const char* name, const char* entry_name)
@@ -5777,11 +5773,11 @@ int menu_request_image_backend()
     static int last_guimode_request = 0;
     int t = get_ms_clock_value();
     
-    if (CURRENT_DIALOG_MAYBE != DLG_PLAY)
+    if (CURRENT_GUI_MODE != GUIMODE_PLAY)
     {
         if (t > last_guimode_request + 1000)
         {
-            SetGUIRequestMode(DLG_PLAY);
+            SetGUIRequestMode(GUIMODE_PLAY);
             last_guimode_request = t;
         }
         
@@ -5834,7 +5830,7 @@ MENU_UPDATE_FUNC(menu_advanced_update)
 void qemu_menu_screenshots()
 {
     /* hack to bypass ML checks */
-    CURRENT_DIALOG_MAYBE = 1;
+    CURRENT_GUI_MODE = 1;
     
     /* hack to avoid picture style warning */
     lens_info.picstyle = 1;

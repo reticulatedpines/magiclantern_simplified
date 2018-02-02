@@ -3,6 +3,7 @@
 import os, sys, string, re
 import commands
 from mako.template import Template
+from collections import defaultdict
 
 class Bunch(dict):
     def __init__(self, d):
@@ -70,10 +71,18 @@ def cam_longname(cam):
 #            print "     ",
 #    print ""
 
+# print only camera name, unless we have the same camera with two or more firmware versions
 shortnames = {}
+shortnames_count = defaultdict(int)
 for c in cams:
-    shortnames[c]=cam_shortname(c)
+    shortnames[c] = cam_shortname(c)
+    shortnames_count[shortnames[c]] += 1;
 
+for name, count in shortnames_count.iteritems():
+    if count > 1:
+        for c in cams:
+            if cam_shortname(c) == name:
+                shortnames[c] = c
 
 # let's see in which menu we have these features
 menus = []
@@ -105,23 +114,35 @@ menus.append("Other")
 menus.append("Internals")
 
 porting_threads = {
+    '5D'        :  'http://www.magiclantern.fm/forum/index.php?topic=1010.0',
     '5DC'       :  'http://www.magiclantern.fm/forum/index.php?topic=1010.0',
     '5D2'       :  'http://www.magiclantern.fm/forum/index.php?topic=11205.0',
-    '5D3'       :  'http://www.magiclantern.fm/forum/index.php?topic=11017.0',
-    '6D'        :  'http://www.magiclantern.fm/forum/index.php?topic=3904.0',
+    '5D3.123'   :  'http://www.magiclantern.fm/forum/index.php?topic=11017.0',
+    '5D3.113'   :  'http://www.magiclantern.fm/forum/index.php?topic=14704.0',
+    '5D4'       :  'http://www.magiclantern.fm/forum/index.php?topic=17695.0',
+    '6D'        :  'http://www.magiclantern.fm/forum/index.php?topic=15088.0',
     '7D'        :  'http://www.magiclantern.fm/forum/index.php?topic=9848.0',
+    '7D2'       :  'http://www.magiclantern.fm/forum/index.php?topic=13746.0',
     '40D'       :  'http://www.magiclantern.fm/forum/index.php?topic=1452.0',
     '50D'       :  'http://www.magiclantern.fm/forum/index.php?topic=9852.0',
-    '60D'       :  'http://www.magiclantern.fm/forum/index.php?topic=5653.0',
-    '70D'       :  'http://www.magiclantern.fm/forum/index.php?topic=8419.0',
+    '60D'       :  'http://www.magiclantern.fm/forum/index.php?topic=14739.0',
+    '70D'       :  'http://www.magiclantern.fm/forum/index.php?topic=14309.0',
+    '80D'       :  'http://www.magiclantern.fm/forum/index.php?topic=17360.0',
+    '450D'      :  'http://www.magiclantern.fm/forum/index.php?topic=8119.0',
     '500D'      :  'http://www.magiclantern.fm/forum/index.php?topic=11864.0',
-    '550D'      :  'http://www.magiclantern.fm/forum/index.php?topic=5582.0',
-    '600D'      :  'http://www.magiclantern.fm/forum/index.php?topic=12010.0',
+    '550D'      :  'http://www.magiclantern.fm/forum/index.php?topic=13111.0',
+    '600D'      :  'http://www.magiclantern.fm/forum/index.php?topic=15360.0',
     '650D'      :  'http://www.magiclantern.fm/forum/index.php?topic=7473.0',
     '700D'      :  'http://www.magiclantern.fm/forum/index.php?topic=5951.0',
-    '100D'      :  'http://www.magiclantern.fm/forum/index.php?topic=5529.0',
+    '750D'      :  'http://www.magiclantern.fm/forum/index.php?topic=17627.0',
+    '760D'      :  'http://www.magiclantern.fm/forum/index.php?topic=16052.0',
+    '100D'      :  'http://www.magiclantern.fm/forum/index.php?topic=16040.0',
     'EOSM'      :  'http://www.magiclantern.fm/forum/index.php?topic=9741.0',
+    'EOSM2'     :  'http://www.magiclantern.fm/forum/index.php?topic=15895.0',
+    '1000D'     :  'http://www.magiclantern.fm/forum/index.php?topic=2054.0',
     '1100D'     :  'http://www.magiclantern.fm/forum/index.php?topic=1009.0',
+    '1200D'     :  'http://www.magiclantern.fm/forum/index.php?topic=12627.0',
+    '1300D'     :  'http://www.magiclantern.fm/forum/index.php?topic=17969.0',
 }
 
 friendly_names = {}

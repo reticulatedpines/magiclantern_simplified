@@ -9,6 +9,7 @@ top_dir = "../"
 force_used = [
     "SetASIFMode",
     "_audio_ic_write_bulk",
+    "AbortEDmac",
 ]
 force_unused = [
     "vram_get_number",      # old way of accessing VRAM (5D2 only)
@@ -37,6 +38,7 @@ force_unused = [
     "PackMem_RegisterEDmacPopCBRForMemorySuite",
     "PackMem_SetEDmacForMemorySuite",
     "PackMem_StartEDmac",
+    "CreateDialogBox",
     "FIO_SeekFile",
 ]
 
@@ -70,6 +72,7 @@ def cleanup_stub(inp_file, out_file):
     lines = open(inp_file).readlines()
     
     if out_file: out_file = open(out_file, "w")
+    else: out_file = sys.stdout
 
     # for each line
     for l in lines:
@@ -84,17 +87,25 @@ def cleanup_stub(inp_file, out_file):
             if not check_used(name):
                 print "%s: unused" % name
                 if "???," not in l:
-                    if out_file:
-                        print >> out_file, comment_out(l)
+                    print >> out_file, comment_out(l)
                 continue
+            elif name in force_used and l.strip().startswith("///"):
+                # commented out? uncomment and the address looks valid
+                addr = m.groups()[1]
+                addr = addr.replace("RAM_OFFSET", "");
+                addr = addr.strip(" -");
+                try:
+                    addr = int(addr, 16)
+                    l = l.lstrip('/ ')
+                except:
+                    print "%s: invalid address %s" % (name, addr)
         
-        if out_file:
-            print >> out_file, l
+        print >> out_file, l
 
-    if out_file:
+    if out_file != sys.stdout:
         out_file.close()
 
-check_used("FIO_ReadFile")
+#check_used("CreateDialogBox")
 
 inputs = sys.argv[1:]
 

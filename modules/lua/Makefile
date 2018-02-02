@@ -76,13 +76,15 @@ dietlibc.a: $(DIET_OBJ)
 	$(call build,AR,$(AR) cr $@ $^)
 
 # also copy the scripts when running "make install" from the module directory
-install::
+install_user_data::
 	$(INSTALL_ALL_SCRIPTS)
 
-# run "make install_extra" to copy scripts from the extra dir
+# run "make install extra=1" to copy scripts from the extra dir
 # into the main scripts dir on the card, so they autostart
-install_extra: install
+ifeq ($(extra),1)
+install_user_data::
 	$(CP) $(SCRIPT_DIR)/extra/*.lua $(INSTALL_SCRIPTS_DIR)
+endif
 
 # run a syntax check after compiling
 all:: syntax_check.log

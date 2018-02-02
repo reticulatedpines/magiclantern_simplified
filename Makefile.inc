@@ -26,18 +26,13 @@ CONFIG_%$(_CONFIGS_clean_name):
 CONFIG_%$(_CONFIGS_install_name): CONFIG_%$(_CONFIGS_compile_name)
 	+$(MAKE) -C $($*_DIR) install
 
-install:: prepare_install_dir install_extra_data $(_CONFIGS_install)
+# some installation media may fail when copying files in parallel
+# broken drivers or controller? forcing sequential installation solves the issue...
+# fixme: $(_CONFIGS_install) (currently just CONFIG_MODULES_install) does not run $(INSTALL_FINISH)
+# it must be executed only once at the end (to unmount the installation media)
+install:: prepare_install_dir install_extra_data
+	for target in $(_CONFIGS_install); do $(MAKE) $$target; done
 	$(INSTALL_FINISH)
-
-prepare_install_dir:
-	mkdir -p $(INSTALL_ML_DIR)
-	mkdir -p $(INSTALL_FONTS_DIR)
-	mkdir -p $(INSTALL_SETTINGS_DIR)
-	mkdir -p $(INSTALL_DATA_DIR)
-	mkdir -p $(INSTALL_CROPMARKS_DIR)
-	mkdir -p $(INSTALL_SCRIPTS_DIR)
-	mkdir -p $(INSTALL_LOGS_DIR)
-	mkdir -p $(INSTALL_DOC_DIR)
 
 install_extra_data: prepare_install_dir
 	$(CP) $(FONT_DIR)/*.rbf $(INSTALL_FONTS_DIR)/
@@ -72,17 +67,23 @@ installdoc:
 	-$(CP) $(SRC_DIR)/logo.bmp $(INSTALL_ML_DIR)/docs || echo "warning Unable to copy logo.bmp"
 
 prepare_zip: FORCE
-	$(eval INSTALL_DIR = $(PWD)/zip)
+	$(eval INSTALL_DIR = $(PWD_DIR)/zip)
+	$(eval INSTALL_PREPARE = )
 	$(eval INSTALL_FINISH = )
+	$(eval WIFI_SD = )
 	$(eval export INSTALL_DIR)
 	$(eval export INSTALL_MODULES_DIR)
+	$(eval export INSTALL_PREPARE)
 	$(eval export INSTALL_FINISH)
+	$(eval export WIFI_SD)
 	$(call rm_dir, $(INSTALL_DIR)/)
-	$(warning remove $(INSTALL_DIR))
+	$(warning removing $(INSTALL_DIR))
+	$(call rm_files, $(PLATFORM_PATH)/*/magiclantern.sym) # only check module dependencies on current camera model
+	$(warning removing $(PLATFORM_PATH)/*/magiclantern.sym)
 	mkdir -p $(INSTALL_DIR)
 
 # zip.txt must be the first item on the list!
-magiclantern-$(VERSION).zip: install installdoc install_fir
+magiclantern-$(VERSION).zip: install installer_check installdoc
 	-$(call rm_files, $@)
 	chmod -x $(INSTALL_DIR)/autoexec.bin
 	cd $(INSTALL_DIR); zip -z ../$@ < \
@@ -90,7 +91,11 @@ magiclantern-$(VERSION).zip: install installdoc install_fir
 	$(call rm_dir, $(INSTALL_DIR)/)
 
 zip:: | prepare_zip
-zip:: magiclantern-$(VERSION).zip
+zip:: magiclantern-$(VERSION).zip print_build_info
+
+install_qemu:: | prepare_zip
+install_qemu:: install
+	$(call build,MTOOLS,cd $(TOP_DIR)/../qemu/; ./mtools_copy_ml.sh $(INSTALL_DIR))
 
 clean::
 	$(call rm_dir, zip)
