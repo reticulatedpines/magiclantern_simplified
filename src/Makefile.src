@@ -255,7 +255,7 @@ $(TOP_DIR)/tcc/libtccx.o: FORCE
 # symlinks caused issues on Windows and apparently also on Mac (?!) so let's avoid them for now
 
 # where QEMU is installed (for emulating ML)
-QEMU_INSTALLED_DBI_DIR=$(TOP_DIR)/../qemu/qemu-2.5.0/hw/eos/dbi
+QEMU_INSTALLED_DBI_DIR=$(QEMU_PATH)/qemu-2.5.0/hw/eos/dbi
 
 ifneq ("$(wildcard $(QEMU_INSTALLED_DBI_DIR)/backtrace.c)","")
 
@@ -323,6 +323,8 @@ gcc-libgcc.a: $(ARM_LIBGCC_A)
 
 clean::
 	$(call rm_files, $(ML_LIBC))
+
+version.o: $(PLATFORM_DIR)/version.c
 
 $(PLATFORM_DIR)/version.c: FORCE
 	$(call build,"VERSION",echo "const char build_version[] = \"$(VERSION)\";") > $@

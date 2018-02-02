@@ -178,6 +178,13 @@ AWK=awk
 PYTHON=python2
 RST2LATEX=rst2latex.py
 
+#
+# QEMU installation directory
+# used for "make install_qemu"
+#
+QEMU_DIR ?= qemu-eos
+QEMU_PATH=$(TOP_DIR)/../$(QEMU_DIR)
+
 # Naming convention for Magic Lantern builds:
 # General rules:
 # - Always specify the camera and its firmware version number in the build name (e.g. 550d.fw109)
