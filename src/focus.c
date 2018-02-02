@@ -160,7 +160,7 @@ void focus_calc_dof()
 
     // Estimate diffraction
     const uint64_t  freq = 550; // mid vis diffraction freq in nm (use 850 if IR)
-    const uint64_t  diff = (244*freq*lens_info.aperture/1000000; // Diffraction blur at infinity in tenths of a micron
+    const uint64_t  diff = (244*freq*lens_info.aperture)/100000; // Diffraction blur at infinity in tenths of a micron
 
     int dof_flags = 0;
 
