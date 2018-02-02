@@ -22,6 +22,7 @@
  */
 
 #include "dryos.h"
+#include "math.h"
 #include "version.h"
 #include "bmp.h"
 #include "gui.h"
@@ -5245,6 +5246,24 @@ static int joystick_pressed = 0;
 static int joystick_longpress = 0;
 static int joy_center_action_disabled = 0;
 
+static void draw_longpress_indicator()
+{
+    /* joystick_longpress goes from 0 to 25; if < 15; it's considered a short press */
+    /* in practice, it seems to behave as if were < 13, figure out why */
+    int n = joystick_longpress / 2;
+    for (int i = 0; i < MIN(n, 12); i++)
+    {
+        float a = 360 * i / 12 * M_PI / 180 - M_PI/2;
+        int x = 690 + roundf(15 * cosf(a));
+        int y = 400 + roundf(15 * sinf(a));
+        int color = (!joystick_pressed) ? COLOR_GRAY(50) :  /* shouldn't happen */
+                    (n >= 25/2)         ? COLOR_ORANGE   :  /* long press event fired */
+                    (i <= 12/2)         ? COLOR_GREEN1   :  /* interpreted short press if released */
+                                          COLOR_YELLOW   ;  /* on the way to long press */
+        draw_circle(x, y, 2, color);
+    }
+}
+
 /* called from GUI timers */
 static void joystick_longpress_check()
 {
@@ -5257,6 +5276,11 @@ static void joystick_longpress_check()
     {
         joystick_longpress++;
         delayed_call(20, joystick_longpress_check, 0);
+    }
+
+    if (gui_menu_shown())
+    {
+        draw_longpress_indicator();
     }
     
     //~ bmp_printf(FONT_MED, 50, 50, "%d ", joystick_longpress);
