@@ -21,7 +21,7 @@ def get_switch_names(camera_model):
     
     gui_h = open(os.path.join(ml_dir, cam_dir, "gui.h")).readlines()
     for l in gui_h:
-        m = re.match(" *#define +([A-Z0-9_]+) +([0-9a-fA-Fx]+)", l)
+        m = re.match(" *#define +([A-Z0-9_]+)[ \t]+([0-9a-fA-Fx]+)", l)
         if m:
             btn_name = m.groups()[0]
             btn_code = m.groups()[1]

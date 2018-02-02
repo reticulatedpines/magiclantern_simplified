@@ -121,9 +121,11 @@ for line in lines:
         current_stack = callstacks[stackid] = current_stack[:level]
 
     elif " -> " in line:
-        m = re.match(" *-> ([^ ]*) +at ", line)
+        # direct jump
+        m = re.match(" *-> ([^ ]* [a-zA-Z0-9_]*) +at ", line)
         if m:
-            jump_target = m.groups()[0]
+            # fixme: this assumes only the last function in the jump chain is named
+            jump_target = m.groups()[0].strip()
             current_stack[-1] = current_stack[-1].replace("(", " -> %s(" % jump_target, 1)
 
     # for all lines:

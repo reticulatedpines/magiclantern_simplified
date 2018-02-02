@@ -58,10 +58,17 @@ def remove_end_loop(buf):
     ['a', '1', '2', '3']
     >>> remove_end_loop(['a', '1', '2'])
     ['a', '1', '2']
+    >>> remove_end_loop(['a', '1', '2', '3', '1', '2', '1', '2', '1', '2', '3', '1', '2', '1', '2'])
+    ['a', '1', '2', '3', '1', '2', '1', '2']
+    >>> remove_end_loop(['a', '1', '2', '3', '1', '2', '1', '2', '1', '2', '3', '1', '2', '1', '2', '1', '2'])
+    ['a', '1', '2', '3', '1', '2', '1', '2']
+    >>> remove_end_loop([])
+    []
     """
 
     # fixme: less convoluted way to do the same?
-    for s in range(1, 9):
+    sol = buf
+    for s in range(1, 32):
         i0 = len(buf) - s
         i = i0
         last = buf[-s:]
@@ -80,9 +87,11 @@ def remove_end_loop(buf):
                 lastx = last[-j:] + last
                 if buf[k-j:k+s] == lastx:
                     i = k - j
-        if i < i0:
-            return buf[:i+s]
-    return buf
+
+        # pick the shortest solution
+        if i+s < len(sol):
+            sol = buf[:i+s]
+    return sol
 
 import doctest
 doctest.testmod()

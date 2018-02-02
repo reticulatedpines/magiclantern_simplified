@@ -11,6 +11,6 @@ for f in $*; do
   css=`realpath --relative-to=$html_dir html/ansi.css`
   echo "$f -> $html"
   mkdir -p $html_dir
-  python ansi_cleanup.py $f | ansi2html > $html
+  head -n10000 $f | python ansi_cleanup.py | ansi2html > $html
   perl -i -pe 'BEGIN{undef $/;} s#<style.*style>#<link href="'"$css"'" rel="stylesheet" type="text/css"/>#smg' $html
 done

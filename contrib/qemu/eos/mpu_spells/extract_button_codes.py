@@ -33,6 +33,7 @@ for name, string, reg, cond, idx in rom_funcs:
     exec("%s = 0x%X" % (name, addr))
 
 switch_names = get_switch_names(camera_model)
+eprint(switch_names)
 
 # some helper routines
 def mem_read32(mu, addr):
@@ -121,6 +122,8 @@ def try_button_code(a, b):
                 eprint("Switch(%d, %d) -> %s" % (a, b, button_name))
                 name_to_mpu[button_name] = (a,b)
                 mpu_to_name[a,b] = button_name
+            else:
+                eprint("Switch(%d, %d) -> ?!" % (a, b))
             break
         
         if "Unknown DIRECTION" in msg:

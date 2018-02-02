@@ -15,3 +15,6 @@ MCF=cf.img@@50688
 # mtools doesn't like our SD image, for some reason
 export MTOOLS_SKIP_CHECK=1
 export MTOOLS_NO_VFAT=1
+
+# some systems have this on by default; our tests assume it off
+export MTOOLS_LOWER_CASE=0

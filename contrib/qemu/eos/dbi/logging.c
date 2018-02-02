@@ -17,6 +17,35 @@
 
 #define CALLSTACK_RIGHT_ALIGN 80
 
+static uint32_t DebugMsg_addr = 0;
+
+static const char * eos_lookup_symbol(uint32_t pc)
+{
+    if (pc < 0x100)
+    {
+        /* very low address? don't bother */
+        return "";
+    }
+
+    /* known function(s)? */
+    if ((pc & ~1) == (DebugMsg_addr & ~1))
+    {
+        return "DebugMsg";
+    }
+
+    /* looks like most (all?) symbols are loaded with Thumb bit cleared */
+    const char * name = lookup_symbol(pc & ~1);
+
+    if (!(name && name[0]))
+    {
+        /* not found? try to look it up with Thumb bit set */
+        name = lookup_symbol(pc | 1);
+    }
+
+    return name;
+}
+
+/* whether the addresses from this memory region should be analyzed (by any logging tools) */
 static inline int should_log_memory_region(MemoryRegion * mr, int is_write)
 {
     int is_read = !is_write;
@@ -33,6 +62,46 @@ static inline int should_log_memory_region(MemoryRegion * mr, int is_write)
             (is_write && qemu_loglevel_mask(EOS_LOG_ROM_W))) {
             return 1;
         }
+    }
+
+    if (mr->name == NULL)
+    {
+        /* unmapped? */
+        assert(!mr->ram);
+        assert(!mr->rom_device);
+        return 1;
+    }
+
+    return 0;
+}
+
+/* whether the addresses from this memory region should be printed in logs */
+/* same as above, but with the EOS_PR[int] modifier */
+/* fixme: duplicate code */
+static inline int should_log_memory_region_verbosely(MemoryRegion * mr, int is_write)
+{
+    int is_read = !is_write;
+
+    if (mr->ram && qemu_loglevel_mask(EOS_PR(EOS_LOG_RAM))) {
+        if ((is_read  && qemu_loglevel_mask(EOS_PR(EOS_LOG_RAM_R))) ||
+            (is_write && qemu_loglevel_mask(EOS_PR(EOS_LOG_RAM_W)))) {
+            return 1;
+        }
+    }
+
+    if (mr->rom_device && qemu_loglevel_mask(EOS_PR(EOS_LOG_ROM))) {
+        if ((is_read  && qemu_loglevel_mask(EOS_PR(EOS_LOG_ROM_R))) ||
+            (is_write && qemu_loglevel_mask(EOS_PR(EOS_LOG_ROM_W)))) {
+            return 1;
+        }
+    }
+
+    if (mr->name == NULL)
+    {
+        /* unmapped? */
+        assert(!mr->ram);
+        assert(!mr->rom_device);
+        return 1;
     }
 
     return 0;
@@ -125,7 +194,6 @@ void eos_log_mem(void * opaque, hwaddr addr, uint64_t value, uint32_t size, int 
     }
 
     EOSState* s = (EOSState*) opaque;
-    bool some_tool_executed = false;
 
     if (qemu_loglevel_mask(EOS_LOG_RAM_DBG))
     {
@@ -133,7 +201,6 @@ void eos_log_mem(void * opaque, hwaddr addr, uint64_t value, uint32_t size, int 
          * all memory write events correctly (not sure how to check reads)
          */
         eos_log_selftest(s, addr, value, size, flags);
-        some_tool_executed = true;
     }
 
     if (qemu_loglevel_mask(EOS_LOG_CALLSTACK))
@@ -143,29 +210,24 @@ void eos_log_mem(void * opaque, hwaddr addr, uint64_t value, uint32_t size, int 
 
     if (qemu_loglevel_mask(EOS_LOG_CALLS))
     {
-        /* note: calls implies callstack */
-        some_tool_executed = true;
+        /* calls implies callstack; nothing to do here */
+        /* will just print the function calls as they happen */
     }
 
     if (qemu_loglevel_mask(EOS_LOG_ROMCPY))
     {
         eos_romcpy_log_mem(s, mr, addr, value, size, flags);
-        some_tool_executed = true;
     }
 
     if (qemu_loglevel_mask(EOS_LOG_RAM_MEMCHK))
     {
         /* in memcheck.c */
         eos_memcheck_log_mem(s, addr, value, size, flags);
-        some_tool_executed = true;
     }
 
-    if (some_tool_executed && !(qemu_loglevel_mask(EOS_LOG_VERBOSE) &&
-                                qemu_loglevel_mask(EOS_LOG_IO)))
+    if (!should_log_memory_region_verbosely(mr, is_write))
     {
-        /* when executing some memory checking tool,
-         * do not log messages unless -d io,verbose is specified
-         */
+        /* only print the items specifically asked by the user */
         return;
     }
 
@@ -200,8 +262,9 @@ void eos_log_mem(void * opaque, hwaddr addr, uint64_t value, uint32_t size, int 
     }
 
     /* all our memory region names start with eos. */
-    assert(strncmp(mr->name, "eos.", 4) == 0);
-    io_log(mr->name + 4, s, addr, mode, value, value, msg, msg_arg1, msg_arg2);
+    assert(!mr->name || strncmp(mr->name, "eos.", 4) == 0);
+    const char * name = (mr->name) ? mr->name + 4 : KLRED"UNMAPPED"KRESET;
+    io_log(name, s, addr, mode, value, value, msg, msg_arg1, msg_arg2);
 }
 
 
@@ -306,15 +369,16 @@ struct call_stack_entry
     };
     uint32_t last_pc;
     uint32_t num_args;
+    uint32_t is_tail_call;      /* boolean: whether it's a tail function call */
     uint32_t interrupt_id;      /* 0 = regular code, nonzero = interrupt */
     uint32_t direct_jumps[4];   /* DIGIC 6 code uses many of those */
 } __attribute__((packed));
 
-static struct call_stack_entry call_stacks[256][128];
+static struct call_stack_entry call_stacks[256][256];
 static int call_stack_num[256] = {0};
 
 static inline void call_stack_push(uint8_t id, uint32_t * regs,
-    uint32_t pc, uint32_t last_pc, uint32_t interrupt_id)
+    uint32_t pc, uint32_t last_pc, uint32_t is_tail_call, uint32_t interrupt_id)
 {
     assert(call_stack_num[id] < COUNT(call_stacks[0]));
 
@@ -323,6 +387,7 @@ static inline void call_stack_push(uint8_t id, uint32_t * regs,
     entry->num_args = 4;        /* fixme */
     entry->pc = pc;             /* override pc (actually, use the one that includes the Thumb flag) */
     entry->last_pc = last_pc;   /* on Thumb, LR is not enough to find this because of variable instruction size */
+    entry->is_tail_call = is_tail_call;
     entry->interrupt_id = interrupt_id;
     memset(entry->direct_jumps, 0, sizeof(entry->direct_jumps));
     call_stack_num[id]++;
@@ -538,10 +603,10 @@ void eos_callstack_print_verbose(EOSState *s)
         {
             /* print direct jumps, if any */
             /* use any of their names for the entire group */
-            const char * name = lookup_symbol(pc);
+            const char * name = eos_lookup_symbol(pc);
             for (int i = COUNT(entry->direct_jumps)-1; i >= 0; i--) {
                 if (entry->direct_jumps[i]) {
-                    const char * jump_name = lookup_symbol(entry->direct_jumps[i]);
+                    const char * jump_name = eos_lookup_symbol(entry->direct_jumps[i]);
                     if (jump_name && jump_name[0]) {
                         name = jump_name;
                     }
@@ -564,7 +629,7 @@ int eos_print_location(EOSState *s, uint32_t pc, uint32_t lr, const char * prefi
 {
     char name_suffix[512];
 
-    const char * name = lookup_symbol(pc);
+    const char * name = eos_lookup_symbol(pc);
     if (name && name[0]) {
         snprintf(name_suffix, sizeof(name_suffix), " (%s)%s", name, suffix);
         suffix = name_suffix;
@@ -722,7 +787,7 @@ static int print_arg(uint32_t arg)
 {
     int len = fprintf(stderr, "%x", arg);
 
-    const char * name = lookup_symbol(arg);
+    const char * name = eos_lookup_symbol(arg);
     if (name && name[0])
     {
         return len + fprintf(stderr, " %s", name);
@@ -859,15 +924,39 @@ static void eos_callstack_log_mem(EOSState *s, hwaddr _addr, uint64_t _value, ui
     }
 }
 
-static void check_abi_register_usage(EOSState *s, CPUARMState *env, int id, int k, uint32_t prev_pc)
+static int check_abi_register_usage(EOSState *s, CPUARMState *env, int id, int k, uint32_t prev_pc, int output)
 {
+    int warnings = 0;
+
     /* check whether the scratch registers were preserved as specified in the ABI */
     for (int i = 4; i <= 11; i++)
     {
         if (env->regs[i] != call_stacks[id][k].regs[i])
         {
+            warnings++;
+
+            if (output)
+            {
+                int len = eos_callstack_indent(s);
+                len += fprintf(stderr, KCYN"Warning: R%d not restored"KRESET" (0x%x -> 0x%x)", i, call_stacks[id][k].regs[i], env->regs[i]);
+                len -= strlen(KCYN KRESET);
+                len += eos_indent(len, CALLSTACK_RIGHT_ALIGN);
+                uint32_t stack_lr = call_stacks[id][k].lr;
+                print_call_location(s, prev_pc, stack_lr);
+            }
+        }
+    }
+
+    uint32_t sp = env->regs[13];
+    if (sp != call_stacks[id][k].sp)
+    {
+        warnings++;
+
+        if (output)
+        {
+            /* fixme: this is OK when ML patches the startup process, but not OK otherwise */
             int len = eos_callstack_indent(s);
-            len += fprintf(stderr, KCYN"Warning: R%d not restored"KRESET" (0x%x -> 0x%x)", i, call_stacks[id][k].regs[i], env->regs[i]);
+            len += fprintf(stderr, KCYN"Warning: SP not restored"KRESET" (0x%x -> 0x%x)", call_stacks[id][k].sp, sp);
             len -= strlen(KCYN KRESET);
             len += eos_indent(len, CALLSTACK_RIGHT_ALIGN);
             uint32_t stack_lr = call_stacks[id][k].lr;
@@ -875,17 +964,7 @@ static void check_abi_register_usage(EOSState *s, CPUARMState *env, int id, int 
         }
     }
 
-    uint32_t sp = env->regs[13];
-    if (sp != call_stacks[id][k].sp)
-    {
-        /* fixme: this is OK when ML patches the startup process, but not OK otherwise */
-        int len = eos_callstack_indent(s);
-        len += fprintf(stderr, KCYN"Warning: SP not restored"KRESET" (0x%x -> 0x%x)", call_stacks[id][k].sp, sp);
-        len -= strlen(KCYN KRESET);
-        len += eos_indent(len, CALLSTACK_RIGHT_ALIGN);
-        uint32_t stack_lr = call_stacks[id][k].lr;
-        print_call_location(s, prev_pc, stack_lr);
-    }
+    return warnings;
 }
 
 /* store the exec log state for each task
@@ -953,7 +1032,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
              * save the previous state (we'll need to restore it when returning from interrupt) */
             uint8_t id = get_stackid(s);
             assert(id != 0xFE);
-            //fprintf(stderr, "Saving state: pc %x, lr %x, sp %x, size %x\n", prev_pc, prev_lr, prev_sp, prev_size);
+            //fprintf(stderr, "Saving state [%x]: pc %x, lr %x, sp %x, size %x\n", id, prev_pc, prev_lr, prev_sp, prev_size);
             cs_exec_states[id] = (struct call_stack_exec_state) {
                 .pc = prev_pc,
                 .lr = prev_lr,
@@ -974,7 +1053,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
         }
         if (interrupt_level == 1) assert(call_stack_num[id] == 0);
         assert(s->irq_id);
-        call_stack_push(id, env->regs, pc, prev_pc, s->irq_id);
+        call_stack_push(id, env->regs, pc, prev_pc, 0, s->irq_id);
         goto end;
     }
 
@@ -1014,6 +1093,12 @@ recheck:
 
             if (pc == call_stacks[id][k].lr)
             {
+                /* pop tail calls, if any */
+                while (k > 0 && call_stacks[id][k].is_tail_call) {
+                    k--;
+                    assert(pc == call_stacks[id][k].lr);
+                }
+
                 call_stack_num[id] = k;
 
                 if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
@@ -1033,7 +1118,7 @@ recheck:
                     interrupt_level -= interrupts_found;
                 }
 
-                check_abi_register_usage(s, env, id, k, prev_pc);
+                check_abi_register_usage(s, env, id, k, prev_pc, 1);
 
                 /* to check whether this heuristic affects the results */
                 /* (normally it should be optimized out...) */
@@ -1057,14 +1142,18 @@ recheck:
      */
     if (lr0 == prev_pc0 + prev_size)
     {
+    function_call:
         assert(sp == prev_sp);
+
+        /* assume anything that doesn't set LR to next instruction is a tail call */
+        int tail_call = (lr0 != prev_pc0 + prev_size);
 
         uint8_t id = get_stackid(s);
 
         if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
-            const char * name = lookup_symbol(pc);
+            const char * name = eos_lookup_symbol(pc);
             int len = call_stack_indent(id, 0, 0);
-            len += fprintf(stderr, "call 0x%X", pc | env->thumb);
+            len += fprintf(stderr, "%scall 0x%X", tail_call ? "tail " : "", pc | env->thumb);
             if (name && name[0]) {
                 len += fprintf(stderr, " %s", name);
             }
@@ -1082,7 +1171,7 @@ recheck:
             eos_idc_log_call(s, cpu, env, tb, prev_pc, prev_lr, prev_size);
         }
 
-        call_stack_push(id, env->regs, pc, prev_pc, 0);
+        call_stack_push(id, env->regs, pc, prev_pc, tail_call, 0);
 
 #ifdef BKT_CROSSCHECK_CALLSTACK
         if (!interrupt_level) {
@@ -1195,7 +1284,8 @@ recheck:
         }
         else /* ARM (32-bit instructions) */
         {
-            if ((insn & 0xFF000000) == 0xEA000000)
+            if ((insn & 0xFF000000) == 0xEA000000 ||    /* B dest */
+                (insn & 0xFFFFFFF0) == 0xE12FFF10)      /* BX Rn */
             {
                 /* unconditional branch */
                 goto jump_instr;
@@ -1204,6 +1294,7 @@ recheck:
             if ((insn & 0x0F000000) == 0x0A000000)
             {
                 /* conditional branch - ignore */
+                /* fixme: a few of those are actually valid tail calls */
                 goto end;
             }
 
@@ -1211,51 +1302,7 @@ recheck:
             {
                 /* LDR PC, [PC, #off] */
                 /* long jump */
-
-            jump_instr:;
-                uint8_t id = get_stackid(s);
-                int level = call_stack_num[id] - 1;
-                struct call_stack_entry * entry = &call_stacks[id][level];
-                uint32_t stack_pc = (level >= 0) ? entry->pc : 0;
-                
-                if (prev_pc == stack_pc)
-                {
-                    /* many DIGIC 6 functions have wrappers that simply jump to another function */
-                    /* don't be too verbose on these, but also make sure it's really just a simple jump */
-                    if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
-                        int len = call_stack_indent(id, 0, 0);
-                        len += fprintf(stderr, "-> 0x%X", pc | env->thumb);
-                        const char * name = lookup_symbol(pc);
-                        if (name && name[0]) {
-                            len += fprintf(stderr, " %s", name);
-                        }
-                        len += eos_indent(len, CALLSTACK_RIGHT_ALIGN);
-
-                        /* print LR from the call stack, so it will always show the caller */
-                        int level = call_stack_num[id] - 1;
-                        uint32_t stack_lr = level >= 0 ? entry->lr : 0;
-                        print_call_location(s, prev_pc, stack_lr);
-                    }
-                    for (int i = 0; i < 14; i++) {
-                        if (i == 12) continue;
-                        if (env->regs[i] != entry->regs[i]) {
-                            fprintf(stderr, "R%d changed\n", i);
-                            assert(0);
-                        }
-                    }
-
-                    /* update PC of the last call on the stack, to allow chaining more direct jumps */
-                    /* (consider it is the same function call) */
-                    assert(level >= 0);
-                    assert(entry->direct_jumps[3] == 0);
-                    entry->direct_jumps[3] = entry->direct_jumps[2];
-                    entry->direct_jumps[2] = entry->direct_jumps[1];
-                    entry->direct_jumps[1] = entry->direct_jumps[0];
-                    entry->direct_jumps[0] = entry->pc;
-                    entry->pc = pc;
-                    goto end;
-                }
-
+                goto jump_instr;
             }
 
             if (insn == 0xe8fddfff || insn == 0xe8d4ffff)
@@ -1264,11 +1311,24 @@ recheck:
                  * VxWorks: LDMIA R4, {R0-PC}^
                  * They can be called from interrupts or from regular code. */
             maybe_task_switch:
-                 if (interrupt_level == 0) {
-                     goto end;
-                 } else {
-                     goto reti;
-                 }
+                if (interrupt_level == 0) {
+                    /* DryOS task switch outside interrupts? save the previous state
+                     * we'll need to restore it when returning from interrupt back to this task
+                     * fixme: duplicate code */
+                    uint8_t id = get_stackid(s);
+                    assert(id != 0xFE);
+                    //fprintf(stderr, "Saving state [%x]: pc %x, lr %x, sp %x, size %x\n", id, prev_pc, prev_lr, prev_sp, prev_size);
+                    cs_exec_states[id] = (struct call_stack_exec_state) {
+                        .pc = prev_pc,
+                        .lr = prev_lr,
+                        .sp = prev_sp,
+                        .size = prev_size
+                    };
+                    goto end;
+                } else {
+                    /* return from interrupt to a DryOS task */
+                    goto reti;
+                }
             }
 
             if (insn == 0xe8fd901f || insn == 0xe8fd800f)
@@ -1353,7 +1413,7 @@ recheck:
                     prev_lr   = cs_exec_states[id].lr;
                     prev_sp   = cs_exec_states[id].sp;
                     prev_size = cs_exec_states[id].size;
-                    //fprintf(stderr, "Restoring state: pc %x->%x lr %x->%x sp %x->%x size %x->%x\n", prev_pc, pc, prev_lr, lr, prev_sp, sp, prev_size, tb->size);
+                    //fprintf(stderr, "Restoring state [%x]: pc %x->%x lr %x->%x sp %x->%x size %x->%x\n", id, prev_pc, pc, prev_lr, lr, prev_sp, sp, prev_size, tb->size);
 
                     if (pc != prev_pc && pc != prev_pc + 4)
                     {
@@ -1362,7 +1422,120 @@ recheck:
                         goto recheck;
                     }
                 }
+                goto end;
             }
+        }
+
+        /* jump instruction - could it be a tail function call? */
+        if (0)
+        {
+        jump_instr:;
+            uint8_t id = get_stackid(s);
+            int level = call_stack_num[id] - 1;
+            struct call_stack_entry * entry = &call_stacks[id][level];
+            uint32_t stack_pc = (level >= 0) ? entry->pc : 0;
+
+            if (prev_pc == stack_pc)
+            {
+                /* many DIGIC 6 functions have wrappers that simply jump to another function */
+                /* don't be too verbose on these, but also make sure it's really just a simple jump */
+                if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
+                    int len = call_stack_indent(id, 0, 0);
+                    len += fprintf(stderr, "-> 0x%X", pc | env->thumb);
+                    const char * name = eos_lookup_symbol(pc);
+                    if (name && name[0]) {
+                        len += fprintf(stderr, " %s", name);
+                    }
+                    len += eos_indent(len, CALLSTACK_RIGHT_ALIGN);
+
+                    /* print LR from the call stack, so it will always show the caller */
+                    int level = call_stack_num[id] - 1;
+                    uint32_t stack_lr = level >= 0 ? entry->lr : 0;
+                    print_call_location(s, prev_pc, stack_lr);
+                }
+                for (int i = 0; i < 14; i++) {
+                    if (i == 12) continue;
+                    if (env->regs[i] != entry->regs[i]) {
+                        fprintf(stderr, "R%d changed\n", i);
+                        assert(0);
+                    }
+                }
+
+                /* update PC of the last call on the stack, to allow chaining more direct jumps */
+                /* (consider it is the same function call) */
+                assert(level >= 0);
+                assert(entry->direct_jumps[3] == 0);
+                entry->direct_jumps[3] = entry->direct_jumps[2];
+                entry->direct_jumps[2] = entry->direct_jumps[1];
+                entry->direct_jumps[1] = entry->direct_jumps[0];
+                entry->direct_jumps[0] = entry->pc;
+                entry->pc = pc;
+                goto end;
+            }
+            else /* not a direct jump to some function */
+            {
+                if (check_abi_register_usage(s, env, id, level, prev_pc, 0) > 0)
+                {
+                    /* this must be a jump inside a function
+                     * do not report it */
+                     goto end;
+                }
+
+                /* jumps from the current function? */
+                if (prev_pc > stack_pc &&
+                    prev_pc < stack_pc + 0x1000)
+                {
+                    /* jumps out of the current function? */
+                    if (pc < stack_pc ||        /* jump "behind" the current function? */
+                        pc > prev_pc + 0x100)   /* large jump forward? */
+                    {
+                        /* assume tail call
+                         * fixme: in IDC, these must be defined before their caller,
+                         * as IDA frequently gets them wrong */
+                        if (qemu_loglevel_mask(EOS_LOG_TAIL_CALLS)) {
+                            goto function_call;
+                        }
+                        /* without -d tail, report as jump */
+                    }
+                    else
+                    {
+                        /* most likely a jump inside a small function (not caught by ABI check) */
+                        /* fixme: there are a few actual tail calls not caught by this */
+                        if (0) {
+                            fprintf(stderr, "short jump?");
+                            print_call_location(s, prev_pc, prev_lr);
+                        }
+                        goto end;
+                    }
+                }
+                else
+                {
+                    /* jump not from the current function?
+                     * note: most cases appear to be valid tail calls,
+                     * but not identified properly because of
+                     * a missed function call right before this */
+                    if (qemu_loglevel_mask(EOS_LOG_TAIL_CALLS)) {
+                        /* note: many warnings without -d tail */
+                        /* there's also a false warning at first jump */
+                        if (!(id == 0x7F && call_stack_num[id] == 0))
+                        {
+                            int len = call_stack_indent(id, 0, 0);
+                            len += fprintf(stderr, KCYN"Warning: missed function call?"KRESET);
+                            len -= strlen(KCYN KRESET);
+                            len += eos_indent(len, CALLSTACK_RIGHT_ALIGN);
+                            print_call_location(s, prev_pc, prev_lr);
+                        }
+
+                        /* heuristic: assume large jumps are tail calls */
+                        if (abs((int)pc - (int)prev_pc) > 0x100)
+                        {
+                            goto function_call;
+                            /* without -d tail, report as jump */
+                        }
+                    }
+                }
+            }
+            /* anything that falls through the cracks is handled below */
         }
 
         /* unknown jump case, to be diagnosed manually */
@@ -1380,6 +1553,7 @@ recheck:
                 call_stack_indent(id, 0, 0);
                 /* hm, target_disas used to look at flags for ARM or Thumb... */
                 int t0 = env->thumb; env->thumb = prev_pc & 1;
+                assert(prev_size);
                 target_disas(stderr, CPU(arm_env_get_cpu(env)), prev_pc0, prev_size, 0);
                 env->thumb = t0;
             }
@@ -1398,7 +1572,7 @@ static void print_task_switch(EOSState *s, uint32_t pc, uint32_t prev_pc, uint32
     int len = eos_callstack_indent(s);
     len += fprintf(stderr,
         KCYN"Task switch"KRESET" to %s:%x %s",
-        eos_get_current_task_name(s), pc, lookup_symbol(pc)
+        eos_get_current_task_name(s), pc, eos_lookup_symbol(pc)
     );
     len -= strlen(KCYN KRESET);
     len += eos_indent(len, CALLSTACK_RIGHT_ALIGN);
@@ -1574,8 +1748,6 @@ static void eos_romcpy_log_mem(EOSState *s, MemoryRegion *mr, hwaddr _addr, uint
 
 static uint64_t saved_loglevel = 0;
 
-static uint32_t DebugMsg_addr = 0;
-
 static void tb_exec_cb(void *opaque, CPUState *cpu, TranslationBlock *tb)
 {
     if (qemu_loglevel_mask(EOS_LOG_AUTOEXEC) &&
@@ -1671,11 +1843,22 @@ void eos_logging_init(EOSState *s)
 
     if (qemu_loglevel_mask(EOS_LOG_MEM))
     {
-        fprintf(stderr, "[EOS] enabling memory access logging.\n");
         int mem_access_mode =
             (qemu_loglevel_mask(EOS_LOG_MEM_R) ? PROT_READ : 0) |
             (qemu_loglevel_mask(EOS_LOG_MEM_W) ? PROT_WRITE : 0);
+
+        fprintf(stderr, "[EOS] enabling memory access logging (%s%s).\n",
+            (mem_access_mode & PROT_READ) ? "R" : "",
+            (mem_access_mode & PROT_WRITE) ? "W" : ""
+        );
+
         memory_set_access_logging_cb(eos_log_mem, s, mem_access_mode);
+
+        /* make sure the backends are enabled */
+        if (qemu_loglevel_mask(EOS_PR(EOS_LOG_RAM_R))) assert(qemu_loglevel_mask(EOS_LOG_RAM_R));
+        if (qemu_loglevel_mask(EOS_PR(EOS_LOG_RAM_W))) assert(qemu_loglevel_mask(EOS_LOG_RAM_W));
+        if (qemu_loglevel_mask(EOS_PR(EOS_LOG_ROM_R))) assert(qemu_loglevel_mask(EOS_LOG_ROM_R));
+        if (qemu_loglevel_mask(EOS_PR(EOS_LOG_ROM_W))) assert(qemu_loglevel_mask(EOS_LOG_ROM_W));
     }
 
     if (qemu_loglevel_mask(EOS_LOG_RAM_MEMCHK))
@@ -1683,7 +1866,7 @@ void eos_logging_init(EOSState *s)
         eos_memcheck_init(s);
     }
 
-    if (qemu_loglevel_mask(EOS_LOG_CALLSTACK))
+    if (qemu_loglevel_mask(CPU_LOG_TB_NOCHAIN))
     {
         fprintf(stderr, "[EOS] enabling singlestep.\n");
         singlestep = 1;
@@ -1706,15 +1889,9 @@ void eos_logging_init(EOSState *s)
             EOS_LOG_VERBOSE |
             EOS_LOG_CALLS   |
             EOS_LOG_IO      |
-            EOS_LOG_ROM     |
+            EOS_LOG_MEM     |
             CPU_LOG_EXEC    |
         0);
-        if (!qemu_loglevel_mask(EOS_LOG_RAM_MEMCHK))
-        {
-            /* note: memchk must be enabled from the beginning,
-             * otherwise you'll get lots of warnings about uninitialized memory */
-            qemu_loglevel &= ~(EOS_LOG_RAM);
-        }
 
         if (saved_loglevel != qemu_loglevel)
         {

@@ -16,7 +16,7 @@
 #define BGMT_MENU 0x6
 #define BGMT_INFO 0x7
 #define BGMT_PLAY 0xb
-#define BGMT_TRASH -0xFFFD // dummy value so button can be faked with fake_simple_button(); negative means internal ML event, not passed to Canon code
+#define BGMT_TRASH 0xD // not present on the camera, but appears to be interpreted correctly by Canon code, http://www.magiclantern.fm/forum/index.php?topic=15895.msg196560#msg196560
 #define BGMT_REC 0x1E
 
 /* no zoom buttons => fake codes */

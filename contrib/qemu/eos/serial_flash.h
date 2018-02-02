@@ -2,6 +2,7 @@
 #define SERIAL_FLASH_H
 
 #include <stdint.h>
+#include <eos.h>
 
 #define RDID_MACRONIX {0xC2,0x10,0x0C}
 
@@ -24,7 +25,10 @@ typedef struct SerialFlashState {
     unsigned int read_value;
     unsigned int write_poll;
     uint32_t mode;
-    
+
+    // fixme
+    SDIOState sd;
+
     // Debug state
     unsigned int rw_count;
 } SerialFlashState;
@@ -41,7 +45,7 @@ void serial_flash_spi_write(SerialFlashState * sf, uint8_t value);
 
 unsigned int eos_handle_sfio ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_sio_serialflash ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
-unsigned int sfio_trigger_int_DMA ( EOSState *s );
+unsigned int eos_handle_sfdma ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 
 #endif
 

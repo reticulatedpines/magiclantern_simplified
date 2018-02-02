@@ -6,6 +6,15 @@ source -v debug-logging.gdb
 macro define CURRENT_TASK 0x40000148
 macro define CURRENT_ISR  (*(int*)0x4000014C ? *(int*)0x40000010 : 0)
 
+b *0x1E002D0
+assert0_log
+
+b *0x1E46C04
+task_create_log
+
+b *0x1E46B74
+register_interrupt_log
+
 b *0x1E43E44
 printf_log
 
@@ -31,9 +40,6 @@ commands
   KRESET
   c
 end
-
-b *0x1E46C04
-task_create_log
 
 b *0x52C
 commands
@@ -74,8 +80,5 @@ commands
   KRESET
   c
 end
-
-b *0x1E002D0
-assert0_log
 
 cont

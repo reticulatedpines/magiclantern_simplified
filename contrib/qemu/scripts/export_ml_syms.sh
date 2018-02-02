@@ -5,15 +5,17 @@
 [ "$0" = "$BASH_SOURCE" ] && echo "This script must be 'sourced':
    . $0 5D3.113" && exit
 
+ML_PATH=${ML_PATH:=../magic-lantern}
+
 export QEMU_ML_PATH=
 export QEMU_EOS_ML_MEMCPY=
 export QEMU_EOS_ML_MEMCCPY=
 export QEMU_EOS_DEBUGMSG=
 
-if [ -d ../magic-lantern/platform/$1 ]; then
-    export QEMU_ML_PATH=../magic-lantern/platform/$1
-elif [ -d ../magic-lantern/$1 ]; then
-    export QEMU_ML_PATH=../magic-lantern/$1
+if [ -d $ML_PATH/platform/$1 ]; then
+    export QEMU_ML_PATH=$ML_PATH/platform/$1
+elif [ -d $ML_PATH/$1 ]; then
+    export QEMU_ML_PATH=$ML_PATH/$1
 elif [ "$1" == "clear" ]; then
     return
 else

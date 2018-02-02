@@ -30,43 +30,42 @@ msleep_log
 b *0xBFE14EF4
 register_interrupt_log
 
-# these are slow
+# semaphores
 if 0
-    # semaphores
+  # create binary semaphore
+  b *0xBFE1530C
+  create_semaphore_log
 
-    # create binary semaphore
-    b *0xBFE1530C
-    create_semaphore_log
+  # create counting semaphore
+  b *0xBFE15358
+  create_semaphore_log
 
-    # create counting semaphore
-    b *0xBFE15358
-    create_semaphore_log
+  b *0xBFE15390
+  delete_semaphore_log
 
-    b *0xBFE15390
-    delete_semaphore_log
+  b *0xBFE15400
+  take_semaphore_log
 
-    b *0xBFE15400
-    take_semaphore_log
+  b *0xBFE15478
+  give_semaphore_log
+end
 
-    b *0xBFE15478
-    give_semaphore_log
+# message queues
+if 0
+  b *0xBFE15054
+  create_msg_queue_log
 
-    # message queues
+  b *0xBFE151A6
+  receive_msg_queue_log
 
-    b *0xBFE15054
-    create_msg_queue_log
+  b *0xBFE1511A
+  try_receive_msg_queue_log
 
-    b *0xBFE151A6
-    receive_msg_queue_log
+  b *0xBFE151F0
+  post_msg_queue_log
 
-    b *0xBFE1511A
-    try_receive_msg_queue_log
-
-    b *0xBFE151F0
-    post_msg_queue_log
-
-    b *0xBFE1526E
-    post_msg_queue_log
+  b *0xBFE1526E
+  post_msg_queue_log
 end
 
 b *0xFC130FE4
