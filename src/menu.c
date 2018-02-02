@@ -2354,7 +2354,7 @@ static int check_default_warnings(struct menu_entry * entry, char* warning)
         //~ snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires ExpSim disabled.");
     else if (DEPENDS_ON(DEP_MANUAL_FOCUS) && !is_manual_focus())
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires manual focus.");
-    else if (DEPENDS_ON(DEP_CHIPPED_LENS) && !lens_info.name[0])
+    else if (DEPENDS_ON(DEP_CHIPPED_LENS) && !lens_info.lens_exists)
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires a chipped (electronic) lens.");
     else if (DEPENDS_ON(DEP_M_MODE) && shooting_mode != SHOOTMODE_M)
         snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires Manual (M) mode.");

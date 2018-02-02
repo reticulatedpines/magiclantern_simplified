@@ -2759,7 +2759,7 @@ static LVINFO_UPDATE_FUNC(mode_update)
 static LVINFO_UPDATE_FUNC(focal_len_update)
 {
     LVINFO_BUFFER(16);
-    if (lens_info.name[0])
+    if (lens_info.lens_exists)
     {
         snprintf(buffer, sizeof(buffer), "%d%s",
                crop_info ? (lens_info.focal_len * SENSORCROPFACTOR + 5) / 10 : lens_info.focal_len,
@@ -2790,7 +2790,7 @@ static LVINFO_UPDATE_FUNC(av_update)
 {
     LVINFO_BUFFER(8);
 
-    if (lens_info.raw_aperture && lens_info.name[0])
+    if (lens_info.raw_aperture && lens_info.lens_exists)
     {
         snprintf(buffer, sizeof(buffer), lens_format_aperture(lens_info.raw_aperture));
     }

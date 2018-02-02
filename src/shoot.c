@@ -1699,7 +1699,7 @@ static MENU_UPDATE_FUNC(aperture_display)
 {
     int a = lens_info.aperture;
     int av = APEX_AV(lens_info.raw_aperture) * 10/8;
-    if (!a || !lens_info.name[0]) // for unchipped lenses, always display zero
+    if (!a || !lens_info.lens_exists) // for unchipped lenses, always display zero
         a = av = 0;
     MENU_SET_VALUE(
         SYM_F_SLASH"%d.%d",
@@ -1718,7 +1718,7 @@ static MENU_UPDATE_FUNC(aperture_display)
     }
     if (!lens_info.aperture)
     {
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, lens_info.name[0] ? "Aperture is automatic - cannot adjust manually." : "Manual lens - cannot adjust aperture.");
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, lens_info.lens_exists ? "Aperture is automatic - cannot adjust manually." : "Manual lens - cannot adjust aperture.");
         MENU_SET_ICON(MNI_PERCENT_OFF, 0);
     }
     else
@@ -1733,7 +1733,7 @@ static MENU_UPDATE_FUNC(aperture_display)
 void
 aperture_toggle( void* priv, int sign)
 {
-    if (!lens_info.name[0]) return; // only chipped lenses can change aperture
+    if (!lens_info.lens_exists) return; // only chipped lenses can change aperture
     if (!lens_info.raw_aperture) return;
     int amin = codes_aperture[1];
     int amax = codes_aperture[COUNT(codes_aperture)-1];
@@ -3163,7 +3163,7 @@ static MENU_UPDATE_FUNC(expo_lock_display)
         info->value[strlen(info->value)-1] = 0; // trim last comma
     }
 
-    if (lens_info.name[0] && lens_info.raw_aperture && lens_info.raw_shutter && lens_info.raw_iso && !menu_active_but_hidden())
+    if (lens_info.lens_exists && lens_info.raw_aperture && lens_info.raw_shutter && lens_info.raw_iso && !menu_active_but_hidden())
     {
         int Av = APEX_AV(lens_info.raw_aperture);
         int Tv = APEX_TV(lens_info.raw_shutter);
