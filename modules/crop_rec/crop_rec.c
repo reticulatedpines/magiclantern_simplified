@@ -10,6 +10,7 @@
 #include <powersave.h>
 #include <raw.h>
 #include <fps.h>
+#include <shoot.h>
 
 #undef CROP_DEBUG
 
@@ -1506,6 +1507,21 @@ static void center_canon_preview()
     uint32_t pos2 = shamem_read(0xc0f383dc);
     int raw_xc = (146 + 3744) / 2 / 4;  /* hardcoded for 5D3 */
     int raw_yc = ( 60 + 1380) / 2;      /* values from old raw.c */
+    if (1)
+    {
+        /* use the focus box position for moving the preview window around */
+        /* don't do that while recording! */
+        dbg_printf("[crop_rec] %d,%d ", raw_xc, raw_yc);
+        raw_xc -= 146 / 2 / 4;  raw_yc -= 60 / 2;
+        /* this won't change the position if the focus box is centered */
+        get_afframe_pos(raw_xc * 2, raw_yc * 2, &raw_xc, &raw_yc);
+        raw_xc += 146 / 2 / 4;  raw_yc += 60 / 2;
+        raw_xc &= ~1;   /* just for consistency */
+        raw_yc &= ~1;   /* this must be even, otherwise the image turns pink */
+        raw_xc = COERCE(raw_xc, 176, 770);  /* trial and error; image pitch changes if we push to the right */
+        raw_yc = COERCE(raw_yc, 444, 950);  /* trial and error; broken image at the edges, outside these limits */
+        dbg_printf("-> %d,%d using focus box position\n", raw_xc, raw_yc);
+    }
     int x1 = pos1 & 0xFFFF;
     int x2 = pos2 & 0xFFFF;
     int y1 = pos1 >> 16;
