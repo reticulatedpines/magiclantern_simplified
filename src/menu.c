@@ -5249,14 +5249,16 @@ static void draw_longpress_indicator()
     int n = joystick_longpress / 2;
     for (int i = 0; i < MIN(n, 12); i++)
     {
-        float a = 360 * i / 12 * M_PI / 180 - M_PI/2;
-        int x = 690 + roundf(15 * cosf(a));
-        int y = 400 + roundf(15 * sinf(a));
+        /* a = 360 * i / 12 * pi / 180 - pi/2; x = round(15 * cos(a)); y = round(15 * sin(a)) */
+        const int8_t sin_table[12] = { -15, -13, -8, 0, 7, 13, 15, 13, 8, 0, -8, -13 };
+        int x = 690 + sin_table[MOD(i+3, 12)];
+        int y = 400 + sin_table[MOD(i, 12)];
+
         int color = (!joystick_pressed) ? COLOR_GRAY(50) :  /* shouldn't happen */
                     (n >= 25/2)         ? COLOR_ORANGE   :  /* long press event fired */
                     (i <= 12/2)         ? COLOR_GREEN1   :  /* interpreted short press if released */
                                           COLOR_YELLOW   ;  /* on the way to long press */
-        draw_circle(x, y, 2, color);
+        fill_circle(x, y, 2, color);
     }
 }
 
