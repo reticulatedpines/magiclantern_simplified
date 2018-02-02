@@ -265,6 +265,7 @@
 
 #define MALLOC_STRUCT 0xAFBB8
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+#define SRM_BUFFER_SIZE 0x2314000
 
 //TODO: Check if this hack works again or not :(
 #define UNAVI_BASE (0x9FC74)
