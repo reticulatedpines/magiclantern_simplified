@@ -195,7 +195,9 @@ void focus_calc_dof()
     }
     else
     {
-        lens_info.dof_far = fl + (fd*H - 2*fl*fd + fl2)/(H-fd); // in mm relative to the sensor plane
+        /* the result may exceed the int32_t range */
+        uint64_t dof_far = fl + (fd*H - 2*fl*fd + fl2)/(H-fd); // in mm relative to the sensor plane
+        lens_info.dof_far = MIN(dof_far, 1000 * 1000);
     }
 
     // update DOF flags
