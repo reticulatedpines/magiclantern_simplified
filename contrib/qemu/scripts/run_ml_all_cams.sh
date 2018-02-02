@@ -4,7 +4,7 @@
 # example: TIMEOUT=10 AUTOEXEC_ONLY=1 ./run_ml_all_cams.sh
 
 ML_PATH=${ML_PATH:=../magic-lantern}
-QEMU_PATH=${QEMU_PATH:=../qemu-eos}
+QEMU_DIR=${QEMU_DIR:=qemu-eos}              # QEMU working directory (same level as the magic-lantern directory)
 TIMEOUT=${TIMEOUT:=20}                      # timeout for default QEMU monitor script
 SCREENSHOT=${SCREENSHOT:=}                  # optional screenshot ($CAM_FW.ppm)
 QEMU_ARGS=${QEMU_ARGS:=}                    # command-line arguments for QEMU
@@ -82,19 +82,19 @@ for CAM_DIR in $ML_PLATFORMS; do
 
         # go to QEMU dir and copy ML to the card images
         if [ "$AUTOEXEC_ONLY" ]; then
-            cd ../$QEMU_DIR
+            cd ../../$QEMU_DIR
             mcopy -o -i $MSD $ML_PATH/$BuildDir/autoexec.bin ::
             mcopy -o -i $MCF $ML_PATH/$BuildDir/autoexec.bin ::
         else
             make -C ../$BuildDir install_qemu $MLOptions
-            cd ../$QEMU_DIR
+            cd ../../$QEMU_DIR
         fi
 
         # export any ML symbols we might want to use in QEMU
         . ./export_ml_syms.sh $BuildDir
     else
         # back to QEMU directory without compiling
-        cd ../$QEMU_DIR
+        cd ../../$QEMU_DIR
 
         # clear previously-exported symbols, if any
         . ./export_ml_syms.sh clear

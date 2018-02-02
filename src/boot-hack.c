@@ -626,9 +626,6 @@ init_task_func init_task_patched(int a, int b, int c, int d)
     uint32_t* addr_BL_AllocMem_init = (void*)(CreateTaskMain_reloc_buf + ROM_ALLOCMEM_INIT + CreateTaskMain_offset);
     uint32_t* addr_B_CreateTaskMain = (void*)(init_task_reloc_buf + ROM_B_CREATETASK_MAIN + init_task_offset);
 
-    qprint("[BOOT] changing AllocMem_end:\n");
-    qdisas((uint32_t)addr_AllocMem_end);
-
     qprint("[BOOT] changing AllocMem limits:\n");
     qdisas((uint32_t)addr_AllocMem_end);
     qdisas((uint32_t)addr_AllocMem_end + 4);
