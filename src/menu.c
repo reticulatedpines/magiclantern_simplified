@@ -39,10 +39,6 @@
 #include "lvinfo.h"
 #include "powersave.h"
 
-#ifdef CONFIG_QEMU
-#define GUIMODE_ML_MENU 0
-#endif
-
 #define CONFIG_MENU_ICONS
 //~ #define CONFIG_MENU_DIM_HACKS
 #undef SUBMENU_DEBUG_JUNKIE
@@ -265,10 +261,6 @@ int beta_should_warn() { return 0; }
 CONFIG_INT("beta.warn", beta_warn, 0);
 static int get_beta_timestamp()
 {
-    #ifdef CONFIG_QEMU
-    return 1;
-    #endif
-    
     struct tm now;
     LoadCalendarFromRTC(&now);
     return now.tm_mday;
@@ -5317,6 +5309,11 @@ int handle_ml_menu_erase(struct event * event)
         #endif
        0)
     {
+        #if defined(CONFIG_QEMU) && (defined(CONFIG_EOSM) || defined(CONFIG_EOSM2))
+        /* allow opening ML menu from anywhere, since the emulation doesn't enter LiveView */
+        int gui_state = GUISTATE_IDLE;
+        #endif
+
         if (gui_state == GUISTATE_IDLE || (gui_menu_shown() && !beta_should_warn()))
         {
             give_semaphore( gui_sem );

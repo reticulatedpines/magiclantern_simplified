@@ -108,9 +108,7 @@ copy_and_restart( int offset )
 
 static void run_test()
 {
-    /* QEMU doesn't emulate GUI mode switches, so we just clear the screen
-     * and draw the preview on the current GUI mode (usually the info screen) */
-    canon_gui_disable_front_buffer();
+    /* clear the screen - hopefully nobody will overwrite us */
     clrscr();
 
     /* capture a full-res silent picture */
@@ -153,7 +151,17 @@ my_init_task(int a, int b, int c, int d)
 
     msleep(1000);
 
-#if 0
+#ifdef CONFIG_QEMU
+    /* for running in QEMU: go to PLAY mode and take the test picture from there
+     * ideally, we should run from LiveView, but we don't have it emulated.
+     * 
+     * The emulation usually starts with the main Canon screen,
+     * however, some models have it off by default (e.g. 550D),
+     * others have sensor cleaning animations (5D2, 50D, 600D),
+     * and generally it's hard to draw over this screen without trickery. */
+    SetGUIRequestMode(GUIMODE_PLAY);
+    msleep(1000);
+#else
     /* for running on real camera: wait for user to enter LiveView,
      * then switch to PLAY mode (otherwise you'll capture a dark frame) */
     for (int i = 0; i < 5; i++)
@@ -217,6 +225,9 @@ int should_run_polling_action(int ms, int* last) { return 1; }
 int fps_get_current_x1000() { return 30000; }
 int wait_lv_frames(int n) { return 0; } 
 void EngDrvOut(uint32_t reg, uint32_t val) { MEM(reg) = val; }
+void EngDrvOutLV(uint32_t reg, uint32_t val) { };
+int get_expsim() { return 0; }
+int module_exec_cbr(unsigned int type) { return 0; }
 
 extern void* _AllocateMemory(size_t size);
 extern void  _FreeMemory(void* ptr);
@@ -230,3 +241,13 @@ void __mem_free( void * buf)
     return _FreeMemory(buf);
 }
 
+char* get_current_task_name()
+{
+    return current_task->name;
+}
+
+int raw2iso(int raw_iso)
+{
+    int iso = (int) roundf(100.0f * powf(2.0f, (raw_iso - 72.0f)/8.0f));
+    return iso;
+}

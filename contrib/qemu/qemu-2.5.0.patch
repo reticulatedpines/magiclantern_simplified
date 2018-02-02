@@ -1,5 +1,5 @@
 diff --git a/cpu-exec.c b/cpu-exec.c
-index c88d0ff..0c0b3ef 100644
+index c88d0ff..4395bb3 100644
 --- a/cpu-exec.c
 +++ b/cpu-exec.c
 @@ -31,6 +31,7 @@
@@ -27,7 +27,7 @@ index c88d0ff..0c0b3ef 100644
  /* main execution loop */
  
  int cpu_exec(CPUState *cpu)
-@@ -500,8 +511,23 @@ int cpu_exec(CPUState *cpu)
+@@ -500,8 +511,28 @@ int cpu_exec(CPUState *cpu)
                      tcg_ctx.tb_ctx.tb_invalidated_flag = 0;
                  }
                  if (qemu_loglevel_mask(CPU_LOG_EXEC)) {
@@ -37,10 +37,15 @@ index c88d0ff..0c0b3ef 100644
 +                        /* separate translation blocks by newlines */
 +                        qemu_log("\n");
 +                    }
-+                    if (CPU_NEXT(first_cpu)) {
-+                        qemu_log("[CPU%d] ", current_cpu->cpu_index);
++                    /* some instructions are printed more than once, not sure why */
++                    static int prev_pc = -1;
++                    if (tb->pc != prev_pc) {
++                        prev_pc = tb->pc;
++                        if (CPU_NEXT(first_cpu)) {
++                            qemu_log("[CPU%d] ", current_cpu->cpu_index);
++                        }
++                        log_target_disas(cpu, tb->pc, tb->size, 0);
 +                    }
-+                    log_target_disas(cpu, tb->pc, tb->size, 0);
 +#else
                      qemu_log("Trace %p [" TARGET_FMT_lx "] %s\n",
                               tb->tc_ptr, tb->pc, lookup_symbol(tb->pc));
@@ -136,7 +141,7 @@ index 0f07159..40c3940 100644
  
  #endif
 diff --git a/include/hw/elf_ops.h b/include/hw/elf_ops.h
-index 0010c44..c963d05 100644
+index 0010c44..d85cc6b 100644
 --- a/include/hw/elf_ops.h
 +++ b/include/hw/elf_ops.h
 @@ -140,8 +140,11 @@ static int glue(load_symbols, SZ)(struct elfhdr *ehdr, int fd, int must_swab,
@@ -153,21 +158,24 @@ index 0010c44..c963d05 100644
              nsyms--;
              if (i < nsyms) {
                  syms[i] = syms[nsyms];
-@@ -159,7 +162,11 @@ static int glue(load_symbols, SZ)(struct elfhdr *ehdr, int fd, int must_swab,
+@@ -157,9 +160,13 @@ static int glue(load_symbols, SZ)(struct elfhdr *ehdr, int fd, int must_swab,
+     syms = g_realloc(syms, nsyms * sizeof(*syms));
+ 
      qsort(syms, nsyms, sizeof(*syms), glue(symcmp, SZ));
-     for (i = 0; i < nsyms - 1; i++) {
+-    for (i = 0; i < nsyms - 1; i++) {
++    for (i = 0; i < nsyms; i++) {
          if (syms[i].st_size == 0) {
 -            syms[i].st_size = syms[i + 1].st_value - syms[i].st_value;
-+            if (syms[i].st_shndx != SHN_ABS) {
-+                syms[i].st_size = syms[i + 1].st_value - syms[i].st_value;
-+            } else {
++            if (syms[i].st_shndx == SHN_ABS) {
 +                syms[i].st_size = 4;
++            } else if (i + 1 < nsyms) {
++                syms[i].st_size = syms[i + 1].st_value - syms[i].st_value;
 +            }
          }
      }
  
 diff --git a/include/qemu/log.h b/include/qemu/log.h
-index 362cbc4..5969f3b 100644
+index 362cbc4..fa5748d 100644
 --- a/include/qemu/log.h
 +++ b/include/qemu/log.h
 @@ -12,7 +12,7 @@
@@ -179,46 +187,50 @@ index 362cbc4..5969f3b 100644
  
  /* 
   * The new API:
-@@ -42,9 +42,46 @@ static inline bool qemu_log_enabled(void)
+@@ -42,9 +42,50 @@ static inline bool qemu_log_enabled(void)
  #define CPU_LOG_MMU        (1 << 12)
  #define CPU_LOG_TB_NOCHAIN (1 << 13)
  
 +/* various EOS options */
 +/* some of them are just defined for future use */
 +#define EOS_LOG_IO         (1LL << 21)
-+#define EOS_LOG_UART       (1LL << 22)
-+#define EOS_LOG_MPU        (1LL << 23)
-+#define EOS_LOG_SDCF       (1LL << 24)
-+#define EOS_LOG_SFLASH     (1LL << 25)
-+#define EOS_LOG_PFLASH     (1LL << 26)
-+#define EOS_LOG_DMA        (1LL << 27)
-+#define EOS_LOG_EDMAC      (1LL << 28)
++#define EOS_LOG_IO_LOG     (1LL << 22)
++#define EOS_LOG_UART       (1LL << 23)
++#define EOS_LOG_MPU        (1LL << 24)
++#define EOS_LOG_SDCF       (1LL << 25)
++#define EOS_LOG_SFLASH     (1LL << 26)
++#define EOS_LOG_PFLASH     (1LL << 27)
++#define EOS_LOG_DMA        (1LL << 28)
++#define EOS_LOG_EDMAC      (1LL << 29)
 +
 +#define EOS_LOG_VERBOSE    (1LL << 32)
 +#define EOS_LOG_AUTOEXEC   (1LL << 33)
 +
 +/* guest memory tracing (logging) */
-+#define EOS_LOG_RAM_R      (1LL << 40)
-+#define EOS_LOG_RAM_W      (1LL << 41)
-+#define EOS_LOG_ROM_R      (1LL << 42)
-+#define EOS_LOG_ROM_W      (1LL << 43)
++#define EOS_LOG_RAM_R      (1LL << 40)      /* memory logging backends */
++#define EOS_LOG_RAM_W      (1LL << 41)      /* used by other analysis tools, but not printed directly */
++#define EOS_LOG_ROM_R      (1LL << 42)      /* these backends have additional overhead on generated code */
++#define EOS_LOG_ROM_W      (1LL << 43)      /* so they are only enabled when actually used */
 +#define EOS_LOG_RAM        (EOS_LOG_RAM_R | EOS_LOG_RAM_W)
 +#define EOS_LOG_ROM        (EOS_LOG_ROM_R | EOS_LOG_ROM_W)
 +#define EOS_LOG_MEM_R      (EOS_LOG_RAM_R | EOS_LOG_ROM_R)
 +#define EOS_LOG_MEM_W      (EOS_LOG_RAM_W | EOS_LOG_ROM_W)
 +#define EOS_LOG_MEM        (EOS_LOG_RAM   | EOS_LOG_ROM)
-+#define EOS_LOG_RAM_DBG    (1LL << 44)    /* self-test */
-+#define EOS_LOG_TASKS      (1LL << 45)    /* task switches */
-+#define EOS_LOG_DEBUGMSG   (1LL << 46)    /* DebugMsg calls */
++#define EOS_PR(mem_flag)  ((mem_flag) << 4) /* memory logging printed in logs (duplicate the above flags) */
++                                            /* this will take 4 bits: 40-43 => 44-47 */
++#define EOS_LOG_RAM_DBG    (1LL << 48)      /* self-test */
++#define EOS_LOG_TASKS      (1LL << 49)      /* task switches */
++#define EOS_LOG_DEBUGMSG   (1LL << 50)      /* DebugMsg calls */
 +
 +/* analysis tools */
-+#define EOS_LOG_CALLSTACK  (1LL << 50)    /* backend: provide call stack to other tools */
-+#define EOS_LOG_CALLS      (1LL << 51)    /* log all calls and returns to console */
-+#define EOS_LOG_IDC        (1LL << 52)    /* export unique calls to IDA */
-+#define EOS_LOG_RAM_MEMCHK (1LL << 53)    /* like valgrind memcheck */
-+#define EOS_LOG_RAM_TSKMEM (1LL << 54)    /* check task memory ownership assumptions */
-+#define EOS_LOG_RAM_SEMCHK (1LL << 55)    /* check semaphore usage (like helgrind) */
-+#define EOS_LOG_ROMCPY     (1LL << 56)    /* find memory blocks copied from ROM to RAM */
++#define EOS_LOG_CALLSTACK  (1LL << 51)      /* backend: provide call stack to other tools */
++#define EOS_LOG_CALLS      (1LL << 52)      /* log all calls and returns to console */
++#define EOS_LOG_IDC        (1LL << 53)      /* export unique calls to IDA */
++#define EOS_LOG_RAM_MEMCHK (1LL << 54)      /* like valgrind memcheck */
++#define EOS_LOG_RAM_TSKMEM (1LL << 55)      /* check task memory ownership assumptions */
++#define EOS_LOG_RAM_SEMCHK (1LL << 56)      /* check semaphore usage (like helgrind) */
++#define EOS_LOG_ROMCPY     (1LL << 57)      /* find memory blocks copied from ROM to RAM */
++#define EOS_LOG_TAIL_CALLS (1LL << 58)      /* attempt to identify tail calls */
 +
  /* Returns true if a bit is set in the current loglevel mask
   */
@@ -227,7 +239,7 @@ index 362cbc4..5969f3b 100644
  {
      return (qemu_loglevel & mask) != 0;
  }
-@@ -67,7 +104,7 @@ qemu_log_vprintf(const char *fmt, va_list va)
+@@ -67,7 +108,7 @@ qemu_log_vprintf(const char *fmt, va_list va)
  
  /* log only if a bit is set on the current loglevel mask
   */
@@ -236,7 +248,7 @@ index 362cbc4..5969f3b 100644
  
  
  /* Special cases: */
-@@ -95,7 +132,7 @@ static inline void log_cpu_state(CPUState *cpu, int flags)
+@@ -95,7 +136,7 @@ static inline void log_cpu_state(CPUState *cpu, int flags)
   *
   * Logs the output of cpu_dump_state() if loglevel includes @mask.
   */
@@ -245,7 +257,7 @@ index 362cbc4..5969f3b 100644
  {
      if (qemu_loglevel & mask) {
          log_cpu_state(cpu, flags);
-@@ -152,7 +189,7 @@ static inline void qemu_log_set_file(FILE *f)
+@@ -152,7 +193,7 @@ static inline void qemu_log_set_file(FILE *f)
  
  /* define log items */
  typedef struct QEMULogItem {
@@ -254,7 +266,7 @@ index 362cbc4..5969f3b 100644
      const char *name;
      const char *help;
  } QEMULogItem;
-@@ -163,9 +200,9 @@ extern const QEMULogItem qemu_log_items[];
+@@ -163,9 +204,9 @@ extern const QEMULogItem qemu_log_items[];
   * changing the log level; it should only be accessed via
   * the qemu_set_log() wrapper.
   */
@@ -266,7 +278,7 @@ index 362cbc4..5969f3b 100644
  {
  #ifdef CONFIG_USER_ONLY
      do_qemu_set_log(log_flags, true);
-@@ -175,7 +212,7 @@ static inline void qemu_set_log(int log_flags)
+@@ -175,7 +216,7 @@ static inline void qemu_set_log(int log_flags)
  }
  
  void qemu_set_log_filename(const char *filename);
@@ -299,7 +311,7 @@ index e193658..9de7251 100644
      subregion->priority = 0;
      memory_region_add_subregion_common(mr, offset, subregion);
 diff --git a/qemu-log.c b/qemu-log.c
-index 7cb01a8..178ee19 100644
+index 7cb01a8..61583ba 100644
 --- a/qemu-log.c
 +++ b/qemu-log.c
 @@ -22,7 +22,7 @@
@@ -329,13 +341,33 @@ index 7cb01a8..178ee19 100644
  {
      qemu_loglevel = log_flags;
      if (qemu_loglevel && !qemu_logfile) {
-@@ -120,6 +120,57 @@ const QEMULogItem qemu_log_items[] = {
+@@ -99,7 +99,7 @@ const QEMULogItem qemu_log_items[] = {
+       "show micro ops for each compiled TB" },
+     { CPU_LOG_TB_OP_OPT, "op_opt",
+       "show micro ops (x86 only: before eflags optimization) and\n"
+-      "after liveness analysis" },
++      "           after liveness analysis" },
+     { CPU_LOG_INT, "int",
+       "show interrupts/exceptions in short format" },
+     { CPU_LOG_EXEC, "exec",
+@@ -116,10 +116,67 @@ const QEMULogItem qemu_log_items[] = {
+       "log unimplemented functionality" },
+     { LOG_GUEST_ERROR, "guest_errors",
+       "log when the guest OS does something invalid (eg accessing a\n"
+-      "non-existent register)" },
++      "           non-existent register)" },
      { CPU_LOG_TB_NOCHAIN, "nochain",
        "do not chain compiled TBs so that \"exec\" and \"cpu\" show\n"
-       "complete traces" },
+-      "complete traces" },
++      "           complete traces; implies -singlestep" },
 +      
-+    { EOS_LOG_IO, "io",
-+      "EOS: log low-level I/O activity" },
++    { EOS_LOG_IO | CPU_LOG_TB_NOCHAIN, "io",
++      "EOS: log low-level I/O activity (implies nochain,singlestep)" },
++    { EOS_LOG_IO, "io_quick",
++      "EOS: log low-level I/O activity (without nochain,singlestep; PC not exact)" },
++    { EOS_LOG_IO_LOG | EOS_LOG_IO | CPU_LOG_TB_NOCHAIN, "io_log",
++      "EOS: for every I/O read, export a mmio_log entry to use in dm-spy-extra.c\n"
++      "                (dm-spy-experiments branch) to see the values from physical hardware." },
 +    { EOS_LOG_MPU, "mpu",
 +      "EOS: log low-level MPU activity" },
 +    { EOS_LOG_SFLASH, "sflash",
@@ -345,30 +377,31 @@ index 7cb01a8..178ee19 100644
 +    { EOS_LOG_UART, "uart",
 +      "EOS: log low-level UART activity" },
 +
-+    { EOS_LOG_RAM, "ram",
++    { EOS_PR(EOS_LOG_RAM) | EOS_LOG_RAM, "ram",
 +      "EOS: log all RAM reads and writes" },
-+    { EOS_LOG_ROM, "rom",
++    { EOS_PR(EOS_LOG_ROM) | EOS_LOG_ROM, "rom",
 +      "EOS: log all ROM reads and writes" },
-+    { EOS_LOG_RAM_R, "ramr",
++    { EOS_PR(EOS_LOG_RAM_R) | EOS_LOG_RAM_R, "ramr",
 +      "EOS: log all RAM reads" },
-+    { EOS_LOG_ROM_R, "romr",
++    { EOS_PR(EOS_LOG_ROM_R) | EOS_LOG_ROM_R, "romr",
 +      "EOS: log all ROM reads" },
-+    { EOS_LOG_RAM_W, "ramw",
++    { EOS_PR(EOS_LOG_RAM_W) | EOS_LOG_RAM_W, "ramw",
 +      "EOS: log all RAM writes" },
-+    { EOS_LOG_ROM_W, "romw",
++    { EOS_PR(EOS_LOG_ROM_W) | EOS_LOG_ROM_W, "romw",
 +      "EOS: log all ROM writes" },
 +    { EOS_LOG_RAM_DBG | EOS_LOG_RAM, "ram_dbg",
 +      "EOS: self-test for the RAM logging routines" },
 +
 +    { EOS_LOG_CALLSTACK | CPU_LOG_TB_NOCHAIN, "callstack",
 +      "EOS: reconstruct call stack (implies nochain,singlestep)" },
-+    { EOS_LOG_CALLS | EOS_LOG_RAM_R | EOS_LOG_CALLSTACK | CPU_LOG_TB_NOCHAIN, "calls",
-+      "EOS: log function calls (implies callstack,ramr,nochain,singlestep)" },
++    { EOS_LOG_CALLS | EOS_LOG_CALLSTACK | CPU_LOG_TB_NOCHAIN | EOS_LOG_RAM_R, "calls",
++      "EOS: log function calls (implies callstack,nochain,singlestep; monitors RAM reads)" },
++    { EOS_LOG_TAIL_CALLS, "tail",
++      "EOS: identify tail calls (heuristic; to be used with calls or callstack)" },
 +    { EOS_LOG_IDC | EOS_LOG_CALLSTACK | CPU_LOG_TB_NOCHAIN, "idc",
 +      "EOS: export called functions to IDA (implies callstack,nochain,singlestep)" },
 +    { EOS_LOG_TASKS, "tasks",
 +      "EOS: log task switches (.current_task_addr must be defined)" },
-+    { EOS_LOG_DEBUGMSG, "dm", "" },
 +    { EOS_LOG_DEBUGMSG, "debugmsg",
 +      "EOS: log DebugMsg calls (QEMU_EOS_DEBUGMSG must be defined)" },
 +    { EOS_LOG_ROMCPY | EOS_LOG_ROM_R | EOS_LOG_RAM_W, "romcpy",
@@ -387,7 +420,7 @@ index 7cb01a8..178ee19 100644
      { 0, NULL, NULL },
  };
  
-@@ -132,10 +183,10 @@ static int cmp1(const char *s1, int n, const char *s2)
+@@ -132,10 +189,10 @@ static int cmp1(const char *s1, int n, const char *s2)
  }
  
  /* takes a comma separated list of log masks. Return 0 if error. */
@@ -401,7 +434,7 @@ index 7cb01a8..178ee19 100644
  
      p = str;
 diff --git a/target-arm/cpu.c b/target-arm/cpu.c
-index 30739fc..9574387 100644
+index 30739fc..1a7bcef 100644
 --- a/target-arm/cpu.c
 +++ b/target-arm/cpu.c
 @@ -501,8 +501,9 @@ static void arm_cpu_initfn(Object *obj)
@@ -516,15 +549,16 @@ index 30739fc..9574387 100644
  static void arm946_initfn(Object *obj)
  {
      ARMCPU *cpu = ARM_CPU(obj);
-@@ -914,9 +1009,15 @@ static void arm_v7m_class_init(ObjectClass *oc, void *data)
+@@ -914,9 +1009,16 @@ static void arm_v7m_class_init(ObjectClass *oc, void *data)
  
  static const ARMCPRegInfo cortexr5_cp_reginfo[] = {
      /* Dummy the TCM region regs for the moment */
 -    { .name = "ATCM", .cp = 15, .opc1 = 0, .crn = 9, .crm = 1, .opc2 = 0,
++    /* fixme: resetvalue hardcoded for DIGIC 6 */
 +    { .name = "ATCM",       .cp = 15, .opc1 = 0, .crn = 9,  .crm = 1, .opc2 = 0,
-+      .access = PL1_RW, .type = ARM_CP_CONST },
++      .access = PL1_RW,     .fieldoffset = offsetof(CPUARMState, cp15.c15_atcm), .resetvalue = 0x00000015 },
 +    { .name = "BTCM",       .cp = 15, .opc1 = 0, .crn = 9,  .crm = 1, .opc2 = 1,
-+      .access = PL1_RW, .type = ARM_CP_CONST },
++      .access = PL1_RW,     .fieldoffset = offsetof(CPUARMState, cp15.c15_btcm), .resetvalue = 0x8000001D },
 +    { .name = "INV_DCACHE", .cp = 15, .opc1 = 0, .crn = 15, .crm = 5, .opc2 = 0,
 +      .access = PL1_RW, .type = ARM_CP_CONST },
 +    { .name = "BUILDOPTS",  .cp = 15, .opc1 = 0, .crn = 15, .crm = 2, .opc2 = CP_ANY,
@@ -534,7 +568,7 @@ index 30739fc..9574387 100644
        .access = PL1_RW, .type = ARM_CP_CONST },
      REGINFO_SENTINEL
  };
-@@ -1328,6 +1429,8 @@ typedef struct ARMCPUInfo {
+@@ -1328,6 +1430,8 @@ typedef struct ARMCPUInfo {
  static const ARMCPUInfo arm_cpus[] = {
  #if !defined(CONFIG_USER_ONLY) || !defined(TARGET_AARCH64)
      { .name = "arm926",      .initfn = arm926_initfn },
@@ -543,6 +577,20 @@ index 30739fc..9574387 100644
      { .name = "arm946",      .initfn = arm946_initfn },
      { .name = "arm1026",     .initfn = arm1026_initfn },
      /* What QEMU calls "arm1136-r2" is actually the 1136 r0p2, i.e. an
+diff --git a/target-arm/cpu.h b/target-arm/cpu.h
+index 815fef8..3904787 100644
+--- a/target-arm/cpu.h
++++ b/target-arm/cpu.h
+@@ -389,6 +389,9 @@ typedef struct CPUARMState {
+         uint64_t pmccfiltr_el0; /* Performance Monitor Filter Register */
+         uint64_t vpidr_el2; /* Virtualization Processor ID Register */
+         uint64_t vmpidr_el2; /* Virtualization Multiprocessor ID Register */
++
++        uint32_t c15_atcm;
++        uint32_t c15_btcm;
+     } cp15;
+ 
+     struct {
 diff --git a/target-arm/helper.c b/target-arm/helper.c
 index afc4163..46cd503 100644
 --- a/target-arm/helper.c

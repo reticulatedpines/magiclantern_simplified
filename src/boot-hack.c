@@ -682,21 +682,31 @@ my_init_task(int a, int b, int c, int d)
 {
 #ifdef ARMLIB_OVERFLOWING_BUFFER
     // An overflow in Canon code may write a zero right in the middle of ML code
-    unsigned int *backup_address = 0;
-    unsigned int backup_data = 0;
-    unsigned int task_id = current_task->taskId;
+    uint32_t * backup_address = 0;
+    uint32_t backup_data = 0;
+    uint32_t task_id = current_task->taskId;
 
     if(task_id > 0x68 && task_id < 0xFFFFFFFF)
     {
-        unsigned int *some_table = (unsigned int *)ARMLIB_OVERFLOWING_BUFFER;
+        uint32_t * some_table = (uint32_t *) ARMLIB_OVERFLOWING_BUFFER;
         backup_address = &some_table[task_id-1];
         backup_data = *backup_address;
+        qprintf("[BOOT] expecting armlib to overwrite %X: %X (task id %x)\n", backup_address, backup_data, task_id);
+        *backup_address = 0xbaaabaaa;
     }
 #endif
 
     // this is generic
     ml_used_mem = (uint32_t)&_bss_end - (uint32_t)&_text_start;
     qprintf("[BOOT] autoexec.bin loaded at %X - %X.\n", &_text_start, &_bss_end);
+
+    /* relative jumps in ARM mode are +/- 32 MB */
+    /* make sure we can reach anything in the ROM (some code, e.g. patchmgr, depend on this) */
+    uint32_t jump_limit = (uint32_t) &_bss_end - 32 * 1024 * 1024;
+    if (jump_limit > 0xFF000000 || jump_limit < 0xFC000000)
+    {
+        qprintf("[BOOT] warning: cannot use relative jumps to anywhere in the ROM (limit=%x)\n", jump_limit);
+    }
 
 #ifdef HIJACK_CACHE_HACK
 
@@ -809,11 +819,12 @@ my_init_task(int a, int b, int c, int d)
 #endif
 
 #ifdef ARMLIB_OVERFLOWING_BUFFER
-    // Restore the overwritten value, if any
-    if(backup_address != 0)
-    {
-        *backup_address = backup_data;
-    }
+    // Restore the overwritten value.
+    // Refuse to boot if ARMLIB_OVERFLOWING_BUFFER is incorrect.
+    qprintf("[BOOT] %X now contains %X, restoring %X.\n", backup_address, *backup_address, backup_data);
+    while (backup_address == 0);
+    while (*backup_address == 0xbaaabaaa);
+    *backup_address = backup_data;
 #endif
 
 #if defined(CONFIG_CRASH_LOG)

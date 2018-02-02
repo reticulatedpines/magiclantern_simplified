@@ -6,7 +6,12 @@
 #    ./run_canon_fw.sh 60D -s -S & arm-none-eabi-gdb -x 60D/debugmsg.gdb
 
 set tcp connect-timeout 300
-target remote localhost:1234
+
+if $_isvoid($TCP_PORT)
+    target remote localhost:1234
+else
+    eval "target remote localhost:%d", $TCP_PORT
+end
 
 ################################################################################
 #
@@ -93,6 +98,7 @@ define print_callstack
 end
 
 # print current task name and return address
+# optional argument: custom return address
 define print_current_location
   KRESET
   if CURRENT_ISR == 0xFFFFFFFF
@@ -110,17 +116,23 @@ define print_current_location
     printf "[CPU%d] ", ($_thread-1)
   end
 
+  if $argc == 1
+    set $i = $arg0
+  else
+    set $i = $lr - 4
+  end
+
   printf "["
   if CURRENT_ISR > 0
     KRED
-    printf "   INT-%02Xh:%08x ", CURRENT_ISR, $r14-4
+    printf "     INT-%02Xh:%08x ", CURRENT_ISR, $i
   else
     if $_thread == 1
       KCYN
     else
       KYLW
     end
-    printf "%10s:%08x ", CURRENT_TASK_NAME, $r14-4
+    printf "%12s:%08x ", CURRENT_TASK_NAME, $i
   end
   KRESET
   printf "] "
@@ -268,7 +280,11 @@ define assert_log
     printf "ASSERT"
     KRESET
     printf "] "
-    printf "%s at %s:%d, %x\n", $r0, $r1, $r2, $r14
+    if $r0
+      printf "%s at %s:%d, %x\n", $r0, $r1, $r2, $lr
+    else
+      printf "at %s:%d, %x\n", $r1, $r2, $lr
+    end
     c
   end
 end
@@ -561,7 +577,11 @@ end
 
 define mpu_decode
   set $buf = $arg0
-  set $size = ((char*)$buf)[0]
+  if $argc == 2
+    set $size = $arg1
+  else
+    set $size = ((char*)$buf)[0]
+  end
   set $i = 0
   while $i < $size
     printf "%02x ", ((char*)$buf)[$i]
@@ -591,6 +611,99 @@ define mpu_recv_log
     mpu_decode $r0
     printf ")\n"
     KRESET
+    c
+  end
+end
+
+define mpu_analyze_recv_data_log
+  commands
+    silent
+    #print_current_location
+    #printf "AnalyzeMpuReceiveData %x %x %x %x\n", $r0, $r1, $r2, $r3
+    print_current_location
+    printf "MPU property: %02x %02x ", *(int*)$r1, *(int*)($r1+4)
+    mpu_decode *(int*)($r1+8) *(int*)($r1+12)
+    printf "\n"
+    c
+  end
+end
+
+# called many times; string: NOT PROPERTYLIST ID
+define prop_lookup_maybe_log
+  commands
+    silent
+    print_current_location
+    printf "prop_lookup_maybe %x %x %x %x\n", $r0, $r1, $r2, $r3
+    c
+  end
+end
+
+# called right after DivideCameraInitData and in many other places
+# in a loop, right after a memcpy from a ROM table with MPU IDs
+define mpu_prop_lookup_log
+  commands
+    silent
+    print_current_location
+    #printf "mpu_prop_lookup (%02x %02x) %x, %x, %x, %x %x %x %x\n", $r3, *(int*)$sp, $r0, $r1, $r2, $r3, *(int*)$sp, *(int*)($sp+4), *(int*)($sp+8)
+    set $mpl_r0 = $r0
+    set $mpl_id1 = $r3
+    set $mpl_id2 = *(int*)$sp
+    tbreak *($lr & ~1)
+    commands
+      silent
+      print_current_location
+      KYLW
+      printf "mpu_prop_lookup (%02x %02x) => %x\n", $mpl_id1, $mpl_id2, **(int**)$mpl_r0
+      KRESET
+      c
+    end
+    c
+  end
+end
+
+define prop_print_data
+  set $buf = $arg0
+  set $size = $arg1 / 4
+  set $i = 0
+  while $i < $size
+    printf "%08x ", ((unsigned int *)$buf)[$i]
+    set $i = $i + 1
+  end
+  if $arg1 % 4 == 3
+    printf "%06x ", ((unsigned int *)$buf)[$i] & 0xFFFFFF
+  end
+  if $arg1 % 4 == 2
+    printf "%04x ", ((unsigned int *)$buf)[$i] & 0xFFFF
+  end
+  if $arg1 % 4 == 1
+    printf "%02x ", ((unsigned int *)$buf)[$i] & 0xFF
+  end
+end
+
+define prop_request_change_log
+  commands
+    silent
+    print_current_location
+    KRED
+    printf "prop_request_change"
+    KRESET
+    printf " %08X { ", $r0
+    prop_print_data $r1 $r2
+    printf "}\n"
+    c
+  end
+end
+
+define prop_deliver_log
+  commands
+    silent
+    print_current_location
+    KRED
+    printf "prop_deliver"
+    KRESET
+    printf " %08X { ", *(int*)$r0
+    prop_print_data $r1 $r2
+    printf "}\n"
     c
   end
 end
@@ -826,6 +939,7 @@ define set_date_time
     set ((int*)$arg0)[0] = $arg6
 end
 
+# no longer needed - we have RTC emulation
 define load_default_date_time_log
   commands
     silent
@@ -856,12 +970,107 @@ define load_default_date_time_log
   end
 end
 
+define rtc_read_log
+  commands
+    silent
+    print_current_location
+    printf "RTC read register %x\n", $r1
+    log_result
+    c
+  end
+end
+
+define rtc_write_log
+  commands
+    silent
+    print_current_location
+    printf "RTC write register %x %x\n", $r0, $r1
+    c
+  end
+end
+
+# state objects
+
+# to find state objects:
+# ( ./run_canon_fw.sh 60D,firmware="boot=0" -d ramw -s -S & arm-none-eabi-gdb -x 60D/debugmsg.gdb ) |& grep --text CreateStateObject -A 1 | grep 'CreateStateObject\|ram'
+
+# to find CreateStateObject:
+# ./run_canon_fw.sh 60D,firmware="boot=0" -d calls |& grep -a PropState
+
+define CreateStateObject_log
+  commands
+    silent
+    print_current_location
+    printf "CreateStateObject(%s, 0x%x, inputs=%d, states=%d)\n", $r0, $r2, $r3, *(int*)$sp
+    # note: I could have used log_result instead of this block, but wanted to get something easier to grep
+    tbreak *($lr & ~1)
+    commands
+      silent
+      print_current_location $pc
+      printf "CreateStateObject => %x at %x\n", $r0, $pc
+      c
+    end
+    c
+  end
+end
+
+# function placed by CreateStateObject in the state object structure
+# see state_transition_log in dm-spy-extra.c (dm-spy-experiments)
+define state_transition_log
+  commands
+    silent
+    print_current_location
+    set $stateobj = $r0
+    set $input    = $r2
+    # see state-object.h; how to define structs in gdb?
+    set $state_name   = ((char**)$stateobj)[1]
+    set $state_matrix = ((int**) $stateobj)[4]
+    set $max_states   = ((int*)  $stateobj)[6]
+    set $old_state    = ((int*)  $stateobj)[7]
+    set $next_state   = $state_matrix[($old_state + $max_states * $input) * 2]
+    set $next_func    = $state_matrix[($old_state + $max_states * $input) * 2 + 1]
+    KYLW
+    printf "%s: (%d) --%d--> (%d)", $state_name, $old_state, $input, $next_state
+    KRESET
+    printf "      %x (x=%x z=%x t=%x)\n", $next_func, $r1, $r3, *(int*)$sp
+    c
+  end
+end
+
+
+# log return value of current function
+# (temporary breakpoint on LR)
 define log_result
   tbreak *($lr & ~1)
   commands
     silent
-    print_current_location
+    print_current_location $pc
     printf " => 0x%x\n", $r0
+    c
+  end
+end
+
+# print first 4 arguments of any given function
+define generic_log
+  commands
+    silent
+    print_current_location
+    KYLW
+    printf "call 0x%X(%x, %x, %x, %x)\n", $pc, $r0, $r1, $r2, $r3
+    KRESET
+    c
+  end
+end
+
+# print first 4 arguments of any given function, and also the return value
+define generic_log_with_result
+  commands
+    silent
+    print_current_location
+    KYLW
+    printf "call 0x%X(%x, %x, %x, %x)\n", $pc, $r0, $r1, $r2, $r3
+    KRESET
+    log_result
     c
   end
 end

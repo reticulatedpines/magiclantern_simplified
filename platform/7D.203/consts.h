@@ -5,7 +5,8 @@
 #define CANON_SHUTTER_RATING 150000
 
 #define CARD_LED_ADDRESS 0xC022D06C // http://magiclantern.wikia.com/wiki/Led_addresses
-/* turning the LED on/off requires writing two values to the register */
+#define LEDON 0x138000
+#define LEDOFF 0x38400
 
 #define CARD_A_MAKER 0x8748F
 #define CARD_A_MODEL 0x874c3
@@ -23,14 +24,12 @@
 #define HIJACK_CACHE_HACK_INITTASK_ADDR  0xFF011064
 #endif
 
-#if defined(CONFIG_INSTALLER)
-/* classic boot process */
+/* classic boot process - for installer and minimal targets */
 #define HIJACK_INSTR_BL_CSTART 0xff010158
 #define HIJACK_INSTR_BSS_END 0xff011058
 #define HIJACK_FIXBR_BZERO32 0xff010fc0
 #define HIJACK_FIXBR_CREATE_ITASK 0xff011048
 #define HIJACK_INSTR_MY_ITASK 0xff011064
-#endif
 
 // thanks Indy
 #define HIJACK_TASK_ADDR 0x1A1C

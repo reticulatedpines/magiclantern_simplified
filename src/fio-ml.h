@@ -145,4 +145,11 @@ uint8_t* read_entire_file(const char * filename, int* buf_size);
 const char* get_dcim_dir();
 const char* get_dcim_dir_suffix();
 
+extern int __attribute__((format(printf,2,3)))
+my_fprintf(
+        FILE *                  file,
+        const char *            fmt,
+        ...
+);
+
 #endif

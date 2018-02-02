@@ -1,11 +1,32 @@
-# ./run_canon_fw.sh 80D -s -S & arm-none-eabi-gdb -x 80D/patches.gdb
+# ./run_canon_fw.sh 80D -s -S & arm-none-eabi-gdb -x 80D/patches.gdb -ex quit
+# Only patches required for emulation
 
-source -v debug-logging.gdb
+source patch-header.gdb
 
-macro define CURRENT_TASK 0x44F4
-macro define CURRENT_ISR  (*(int*)0x44D0 ? (*(int*)0x44D4) : 0)
+# UTimer (fixme)
+set *(int*)0xFE5998C6 = 0x4770
 
-# infinite loop (memory regions related?)
-set *(int*)0xFE237EB0 = 0x4770
+# experimental patches
+# they probably do more harm than good - figure out what's up with them
+if 1
+  # startupPrepareCapture: pretend OmarInit was completed
+  set *(int*)0xFE0D91C8 = 0x4770
 
-cont
+  # SHT_CAPTURE_PATH_InitializeCapturePath
+  set *(int*)0xFE1C0BF4 = 0x4770
+
+  # startupPrepareDevelop
+  set *(int*)0xFE0D52C2 = 0x4770
+
+  # EstimatedSize
+  b *0xFE19B06A
+  commands
+    silent
+    print_current_location
+    printf "EstimatedSize %d\n", $r0
+    set $r0 = 0x7D0
+    c
+  end
+end
+
+source patch-footer.gdb

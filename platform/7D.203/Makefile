@@ -21,3 +21,15 @@ FIR-SLAVE: autoexec-fir-slave
 	# $(call build,OBJCOPY,$(OBJCOPY) -O binary autoexec-fir $@.bin)
 	# $(STAT_CMD) $@.bin;
 	# $(READELF) -l autoexec-fir | grep -C 2 MemSiz
+
+all::
+	$(MAKE) -C $(PLATFORM_PATH)/7D_MASTER.203
+
+# special build_fir target
+build_fir: all
+	$(MAKE) -C $(PLATFORM_PATH)/7D_MASTER.203 autoexec-fir.bin
+	python $(TOP_DIR)/../dumper/build_fir7.py -r \
+		-s $(PLATFORM_PATH)/7D.203/autoexec-fir.bin \
+		-m $(PLATFORM_PATH)/7D_MASTER.203/autoexec-fir.bin \
+		$(TOP_DIR)/../dumper/7D000203.FIR \
+		$(UPDATE_NAME_FIR)

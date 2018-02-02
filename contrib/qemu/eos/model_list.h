@@ -39,21 +39,32 @@ struct eos_model_desc {
             uint32_t current_task_addr;
             uint32_t current_task_name_offs;
             uint32_t mpu_request_register;
-            uint32_t mpu_request_interrupt;
+            uint32_t mpu_request_bitmask;
             uint32_t mpu_status_register;
             uint32_t mpu_control_register;
+            uint32_t mpu_mreq_interrupt;
+            uint32_t mpu_sio3_interrupt;
             uint32_t serial_flash_size;
+            uint32_t serial_flash_cs_register;
+            uint32_t serial_flash_cs_bitmask;
+            uint32_t serial_flash_sio_ch;
+            uint32_t serial_flash_interrupt;
             uint32_t sd_driver_interrupt;
             uint32_t sd_dma_interrupt;
             uint32_t cf_driver_interrupt;
             uint32_t cf_dma_interrupt;
             uint32_t card_led_address;
             uint32_t ram_manufacturer_id;
+            uint32_t uart_rx_interrupt;
+            uint32_t uart_tx_interrupt;
+            uint32_t rtc_cs_register;
+            uint32_t rtc_time_correct;
+            uint32_t rtc_control_reg_2;
         };
         
         /* this must match the number of items in the above struct */
         /* note: you get a compile-time error if params[] is smaller than the struct */
-        uint32_t params[33];
+        uint32_t params[44];
     };
 } __attribute__((packed));
 

@@ -3,6 +3,9 @@
 # run with -p to re-create patch files (after manually changing MPU spell files)
 # run without arguments to re-create spell files (after updating the parsing script or the log files)
 
+# export known spells to C first
+python extract_init_spells.py > known_spells.h
+
 LOGS_PATH=../../../../startup-logs
 
 for log in \
@@ -17,6 +20,7 @@ for log in \
         EOSM-startup.LOG \
         500D-startup-menudisp.log \
         50D-startup-format.log \
+        6D-startup_photo_mode.LOG \
     ; do
 
     MODEL=`echo $log | grep -oE "^[A-Z0-9]+"`

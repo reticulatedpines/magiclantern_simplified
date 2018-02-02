@@ -100,14 +100,6 @@ extern void firmware_entry(void);
 extern void reloc_entry(void);
 extern void __attribute__((noreturn)) cstart(void);
 
-extern int __attribute__((format(printf,2,3)))
-my_fprintf(
-        FILE *                  file,
-        const char *            fmt,
-        ...
-);
-
-
 struct tm {
         int     tm_sec;         /* seconds after the minute [0-60] */
         int     tm_min;         /* minutes after the hour [0-59] */
@@ -146,7 +138,11 @@ void ml_assert_handler(char* msg, char* file, int line, const char* func);
 
 int rand (void);
 
+#if !defined(CONFIG_7D_MASTER)
 #define ASSERT(x) { if (!(x)) { ml_assert_handler(#x, __FILE__, __LINE__, __func__); }}
+#else
+#define ASSERT(x) do{}while(0)
+#endif
 //~ #define ASSERT(x) {}
 
 #define STR_APPEND(orig,fmt,...) ({ int _len = strlen(orig); snprintf(orig + _len, sizeof(orig) - _len, fmt, ## __VA_ARGS__); });
