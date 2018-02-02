@@ -398,6 +398,9 @@ int handle_common_events_by_feature(struct event * event)
     // common to most cameras
     // there may be exceptions
 
+    /* log button codes, if enabled from the Debug menu */
+    spy_event(event);
+
 #ifdef FEATURE_POWERSAVE_LIVEVIEW
     // these are required for correct shutdown from "LV paused" state
     if (event->param == GMT_GUICMD_START_AS_CHECK || 
@@ -466,8 +469,6 @@ int handle_common_events_by_feature(struct event * event)
     #ifdef CONFIG_DIGIC_POKE
     if (handle_digic_poke(event) == 0) return 0;
     #endif
-    
-    spy_event(event); // for debugging only
     
     #ifdef FEATURE_MLU_HANDHELD
     if (handle_mlu_handheld(event) == 0) return 0;
