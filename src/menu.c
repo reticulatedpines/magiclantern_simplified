@@ -5273,7 +5273,10 @@ static void joystick_longpress_check()
     {
         /* short press in menu => do a regular SET */
         fake_simple_button(BGMT_PRESS_SET);
+        
+        #ifdef BGMT_UNPRESS_UDLR
         fake_simple_button(BGMT_UNPRESS_UDLR);
+        #endif
     }
 }
 #endif
@@ -5341,39 +5344,66 @@ int handle_ml_menu_erase(struct event * event)
     
 #if defined(CONFIG_LONG_PRESS_JOYSTICK_MENU) || defined(CONFIG_LONG_PRESS_SET_MENU)
     /* also trigger menu by a long joystick press */
-    if (event->param == BGMT_JOY_CENTER)
+    switch (event->param)
     {
-        if (joy_center_action_disabled)
+        #ifdef BGMT_JOY_CENTER
+        case BGMT_JOY_CENTER:
         {
-            return gui_menu_shown() ? 0 : 1;
+            if (joy_center_action_disabled)
+            {
+                return gui_menu_shown() ? 0 : 1;
+            }
+
+            if (is_submenu_or_edit_mode_active())
+            {
+                /* in submenus, a short press goes back to main menu (since you can edit with left and right) */
+                fake_simple_button(MLEV_JOYSTICK_LONG);
+                return 0;
+            }
+            else if (gui_state == GUISTATE_IDLE || gui_state == GUISTATE_QMENU || gui_menu_shown())
+            {
+                /* if we can make use of a long joystick press, check it */
+                joystick_pressed = 1;
+                joystick_longpress = 0;
+                delayed_call(20, joystick_longpress_check, 0);
+                if (gui_menu_shown()) return 0;
+            }
+            break;
         }
-        
-        if (is_submenu_or_edit_mode_active())
+        #endif
+
+        #ifdef BGMT_UNPRESS_SET
+        case BGMT_UNPRESS_SET:
+        #endif
+        #ifdef BGMT_UNPRESS_UDLR
+        case BGMT_UNPRESS_UDLR:
+        #endif
+        #ifdef BGMT_UNPRESS_LEFT
+        case BGMT_UNPRESS_LEFT:
+        case BGMT_UNPRESS_RIGHT:
+        case BGMT_UNPRESS_UP:
+        case BGMT_UNPRESS_DOWN:
+        #endif
         {
-            /* in submenus, a short press goes back to main menu (since you can edit with left and right) */
-            fake_simple_button(MLEV_JOYSTICK_LONG);
-            return 0;
+            joystick_pressed = 0;
+            joy_center_action_disabled = 0;
+            break;
         }
-        else if (gui_state == GUISTATE_IDLE || gui_state == GUISTATE_QMENU || gui_menu_shown())
+
+        case BGMT_PRESS_LEFT:
+        case BGMT_PRESS_RIGHT:
+        case BGMT_PRESS_DOWN:
+        case BGMT_PRESS_UP:
+        #ifdef BGMT_PRESS_UP_LEFT
+        case BGMT_PRESS_UP_LEFT:
+        case BGMT_PRESS_UP_RIGHT:
+        case BGMT_PRESS_DOWN_LEFT:
+        case BGMT_PRESS_DOWN_RIGHT:
+        #endif
         {
-            /* if we can make use of a long joystick press, check it */
-            joystick_pressed = 1;
-            joystick_longpress = 0;
-            delayed_call(20, joystick_longpress_check, 0);
-            if (gui_menu_shown()) return 0;
+            joy_center_action_disabled = 1;
+            break;
         }
-    }
-    else if (event->param == BGMT_UNPRESS_UDLR || event->param == BGMT_UNPRESS_SET)
-    {
-        joystick_pressed = 0;
-        joy_center_action_disabled = 0;
-    }
-    else if (event->param == BGMT_PRESS_LEFT      || event->param == BGMT_PRESS_RIGHT        ||
-             event->param == BGMT_PRESS_DOWN      || event->param == BGMT_PRESS_UP           ||
-             event->param == BGMT_PRESS_UP_LEFT   || event->param == BGMT_PRESS_UP_RIGHT     ||
-             event->param == BGMT_PRESS_DOWN_LEFT || event->param == BGMT_PRESS_DOWN_RIGHT)
-    {
-        joy_center_action_disabled = 1;
     }
 #endif
 
