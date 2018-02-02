@@ -120,10 +120,12 @@ struct prop_lv_lens
         uint32_t                off_0x35;
         uint32_t                off_0x39;
         uint8_t                 off_0x3d;
+        uint8_t                 off_0x3e;
+        uint8_t                 off_0x3f;
 
 } __attribute__((packed));
 
-SIZE_CHECK_STRUCT( prop_lv_lens, 62 );
+SIZE_CHECK_STRUCT( prop_lv_lens, 64 );
 
 #elif defined(CONFIG_EOSM)
 struct prop_lv_lens
@@ -145,12 +147,13 @@ struct prop_lv_lens
         uint16_t                focus_dist; // One FD; off_0x30
         uint16_t                focus_dist2;// off_0x32
         uint16_t                off_0x34;
-        uint32_t                off_0x36;
-        uint8_t                 off_0x3a;
-        
+        uint16_t                off_0x36;
+        uint16_t                off_0x38;
+        uint16_t                off_0x3a;
+        uint8_t                 off_0x3c;
 } __attribute__((packed));
 
-SIZE_CHECK_STRUCT( prop_lv_lens, 59 );
+SIZE_CHECK_STRUCT( prop_lv_lens, 61 );
 
 #else
 struct prop_lv_lens
