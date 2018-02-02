@@ -160,7 +160,7 @@ void focus_calc_dof()
 
     // Estimate diffraction
     const uint64_t  freq = 550; // mid vis diffraction freq in nm (use 850 if IR)
-    const uint64_t  diff = (244*freq*lens_info.aperture)/1000000; // Diffraction blur at infinity in tenths of a micron
+    const uint64_t  diff = (244*freq*lens_info.aperture)/100000; // Diffraction blur at infinity in tenths of a micron
 
     int dof_flags = 0;
 
@@ -195,7 +195,9 @@ void focus_calc_dof()
     }
     else
     {
-        lens_info.dof_far = fl + (fd*H - 2*fl*fd + fl2)/(H-fd); // in mm relative to the sensor plane
+        /* the result may exceed the int32_t range */
+        uint64_t dof_far = fl + (fd*H - 2*fl*fd + fl2)/(H-fd); // in mm relative to the sensor plane
+        lens_info.dof_far = MIN(dof_far, 1000 * 1000);
     }
 
     // update DOF flags
