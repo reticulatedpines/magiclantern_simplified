@@ -675,20 +675,25 @@ static unsigned int mlv_snd_vsync(unsigned int unused)
 static struct menu_entry mlv_snd_menu[] =
 {
     {
-        .name = "MLV Sound",
-        .priv = &mlv_snd_enabled,
-        .max = 1,
-        .help = "Enable sound recording for MLV.",
-        .submenu_width = 710,
-        .children = (struct menu_entry[])
+        .name       = "Sound recording",
+        .select     = menu_open_submenu,
+        .priv       = &mlv_snd_enabled,
+        .help       = "Sound recording options provided by mlv_snd.",
+        .children   = (struct menu_entry[])
         {
             {
-                .name = "Sampling rate",
-                .priv = &mlv_snd_rate_sel,
-                .min = 0,
-                .max = COUNT(mlv_snd_rates)-1,
-                .choices = CHOICES(MLV_SND_RATE_TEXT),
-                .help = "Select your sampling rate.",
+                .name       = "Enable sound",
+                .priv       = &mlv_snd_enabled,
+                .max        = 1,
+                .help       = "[mlv_snd] Enable sound recording for MLV.",
+            },
+            {
+                .name       = "Sampling rate",
+                .priv       = &mlv_snd_rate_sel,
+                .min        = 0,
+                .max        = COUNT(mlv_snd_rates)-1,
+                .choices    = CHOICES(MLV_SND_RATE_TEXT),
+                .help       = "[mlv_snd] Select your sampling rate.",
             },
             {
                 .name = "Audio delay",
@@ -698,11 +703,11 @@ static struct menu_entry mlv_snd_menu[] =
                 .help = "Delay the audio that many frames. (experimental)",
             },
             {
-                .name = "Trace output",
-                .priv = &mlv_snd_enable_tracing,
-                .min = 0,
-                .max = 1,
-                .help = "Enable log file tracing. Needs camera restart.",
+                .name       = "Trace output",
+                .priv       = &mlv_snd_enable_tracing,
+                .min        = 0,
+                .max        = 1,
+                .help       = "[mlv_snd] Enable log file tracing. Needs camera restart.",
             },
             MENU_EOL,
         },
@@ -722,8 +727,17 @@ static unsigned int mlv_snd_init()
     trace_write(trace_ctx, "mlv_snd_init: init queues");
     mlv_snd_buffers_empty = (struct msg_queue *) msg_queue_create("mlv_snd_buffers_empty", MLV_SND_BLOCKS_PER_SLOT * MLV_SND_SLOTS);
     mlv_snd_buffers_done = (struct msg_queue *) msg_queue_create("mlv_snd_buffers_done", MLV_SND_BLOCKS_PER_SLOT * MLV_SND_SLOTS);
-    
-    menu_add("Audio", mlv_snd_menu, COUNT(mlv_snd_menu));
+
+    /* will the same menu work in both submenus? probably not */
+    if (menu_get_value_from_script("Movie", "RAW video"))
+    {
+        menu_add("RAW video", mlv_snd_menu, COUNT(mlv_snd_menu));
+    }
+    else if (menu_get_value_from_script("Movie", "RAW video (MLV)"))
+    {
+        menu_add("RAW video (MLV)", mlv_snd_menu, COUNT(mlv_snd_menu));
+    }
+
     trace_write(trace_ctx, "mlv_snd_init: done");
     
     /* register callbacks */
