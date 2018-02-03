@@ -5844,30 +5844,33 @@ static void menu_show_version(void)
         build_user);
 }
 
-#if defined(CONFIG_LONG_PRESS_JOYSTICK_MENU) || defined(CONFIG_LONG_PRESS_SET_MENU)
-static int joystick_pressed = 0;
-static int joystick_longpress = 0;
-static int joy_center_action_disabled = 0;
-
-static void draw_longpress_indicator()
+static void draw_longpress_indicator(int n, int pressed)
 {
     /* joystick_longpress goes from 0 to 25; if < 15; it's considered a short press */
     /* in practice, it seems to behave as if were < 13, figure out why */
-    int n = joystick_longpress / 2;
+
+    int x0 = gui_menu_shown() ? 690 : 670;
+    int y0 = gui_menu_shown() ? 400 : 343;
+
     for (int i = 0; i < MIN(n, 12); i++)
     {
         /* a = 360 * i / 12 * pi / 180 - pi/2; x = round(15 * cos(a)); y = round(15 * sin(a)) */
         const int8_t sin_table[12] = { -15, -13, -8, 0, 7, 13, 15, 13, 8, 0, -8, -13 };
-        int x = 690 + sin_table[MOD(i+3, 12)];
-        int y = 400 + sin_table[MOD(i, 12)];
+        int x = x0 + sin_table[MOD(i+3, 12)];
+        int y = y0 + sin_table[MOD(i, 12)];
 
-        int color = (!joystick_pressed) ? COLOR_GRAY(50) :  /* shouldn't happen */
-                    (n >= 25/2)         ? COLOR_ORANGE   :  /* long press event fired */
-                    (i <= 12/2)         ? COLOR_GREEN1   :  /* interpreted short press if released */
-                                          COLOR_YELLOW   ;  /* on the way to long press */
+        int color = (!pressed)  ? COLOR_GRAY(50) :  /* button just released */
+                    (n >= 25/2) ? COLOR_ORANGE   :  /* long press event fired */
+                    (i <= 12/2) ? COLOR_GREEN1   :  /* interpreted short press if released */
+                                  COLOR_YELLOW   ;  /* on the way to long press */
         fill_circle(x, y, 2, color);
     }
 }
+
+#if defined(CONFIG_LONG_PRESS_JOYSTICK_MENU) || defined(CONFIG_LONG_PRESS_SET_MENU)
+static int joystick_pressed = 0;
+static int joystick_longpress = 0;
+static int joy_center_action_disabled = 0;
 
 /* called from GUI timers */
 static void joystick_longpress_check()
@@ -5883,10 +5886,7 @@ static void joystick_longpress_check()
         delayed_call(20, joystick_longpress_check, 0);
     }
 
-    if (gui_menu_shown())
-    {
-        draw_longpress_indicator();
-    }
+    draw_longpress_indicator(joystick_longpress / 2, joystick_pressed);
     
     //~ bmp_printf(FONT_MED, 50, 50, "%d ", joystick_longpress);
     
@@ -5923,8 +5923,8 @@ static void erase_longpress_check()
         delayed_call(20, erase_longpress_check, 0);
     }
     
-    //~ bmp_printf(FONT_MED, 50, 50, "%d ", erase_longpress);
-    
+    draw_longpress_indicator(erase_longpress / 2, erase_pressed);
+
     if (erase_longpress == 25)
     {
         /* long press (500ms) opens ML menu */
@@ -5954,9 +5954,14 @@ static void qset_longpress_check()
         qset_longpress++;
         delayed_call(20, qset_longpress_check, 0);
     }
+    else
+    {
+        /* remove the indicator */
+        redraw();
+    }
     
-    //~ bmp_printf(FONT_MED, 50, 50, "%d ", qset_longpress);
-    
+    draw_longpress_indicator(qset_longpress / 2, qset_pressed);
+
     if (qset_longpress == 25)
     {
         /* long press opens Q-menu */
