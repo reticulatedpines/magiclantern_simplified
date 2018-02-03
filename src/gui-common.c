@@ -478,8 +478,7 @@ int handle_common_events_by_feature(struct event * event)
     if (handle_av_short_for_menu(event) == 0) return 0;
     #endif
 
-    /* before module_keys, to be able to process long-press SET/Q events and forward them to modules/scripts
-     * (that also means the modules are unable to trap the delete button, when we use it to open ML menu) */
+    /* before module_keys, to be able to process long-press SET/Q events and forward them to modules/scripts */
     if (handle_longpress_events(event) == 0) return 0;
 
     #ifdef FEATURE_MAGIC_ZOOM
