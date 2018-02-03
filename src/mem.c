@@ -21,6 +21,7 @@
 #include "edmac.h"
 #include "util.h"
 #include "raw.h"
+#include "propvalues.h"
 
 #ifdef MEM_DEBUG
 #define dbg_printf(fmt,...) { printf(fmt, ## __VA_ARGS__); }
