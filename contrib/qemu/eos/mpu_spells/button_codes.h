@@ -13,6 +13,7 @@ static int button_codes_100D[] = {
     [BGMT_PRESS_ZOOM_IN]                = 0x0901,
     [BGMT_PRESS_ZOOM_OUT]               = 0x0A01,
     [BGMT_Q]                            = 0x2001,
+    [BGMT_UNPRESS_Q]                    = 0x0C00,   /* actually BGMT_UNPRESS_SET (GUI events are Q, PRESS_SET, UNPRESS_SET; unsure about MPU messages) */
     [BGMT_TRASH]                        = 0x0401,
     [BGMT_UNPRESS_AV]                   = 0x1C00,
     [BGMT_UNPRESS_DOWN]                 = 0x1900,
