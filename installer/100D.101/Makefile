@@ -1,0 +1,6 @@
+MODEL=100D
+FW_VERSION=101
+
+include ../Makefile.installer
+
+RESTARTSTART=0xC53A0
