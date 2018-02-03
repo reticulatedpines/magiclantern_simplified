@@ -6014,8 +6014,12 @@ int handle_ml_menu_erase(struct event * event)
             return 0;
         }
     }
-    
-    
+
+    return 1;
+}
+
+int handle_longpress_events(struct event * event)
+{    
 #ifdef CONFIG_LONG_PRESS_JOYSTICK_MENU
     /* also trigger menu by a long joystick press */
     switch (event->param)
