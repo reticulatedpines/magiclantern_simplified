@@ -1097,6 +1097,7 @@ int raw_update_params_work()
         /* autodetect image size from EDMAC */
         width  = shamem_read(RAW_PHOTO_EDMAC + 8) * 8 / 14; /* size B */
         height = shamem_read(RAW_PHOTO_EDMAC + 4) + 1;     /* size N */
+        height &= ~1; /* force it to be always even - https://www.magiclantern.fm/forum/index.php?topic=19300.msg196786#msg196786 */
 
         /* in photo mode, raw buffer size is from ~12 Mpix (1100D) to ~24 Mpix (5D3) */
         /* (this EDMAC may be reused for something else, usually smaller, or with a different size encoding - refuse to run if this happens) */
