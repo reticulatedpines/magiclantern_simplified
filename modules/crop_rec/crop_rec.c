@@ -1376,11 +1376,21 @@ static MENU_UPDATE_FUNC(crop_update)
         {
             if (!is_supported_mode())
             {
-                MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "This feature only works in 1080p and 720p video modes.");
+                MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "This preset only works in 1080p and 720p video modes.");
             }
             else if (lv_dispsize != 1)
             {
                 MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "To use this mode, exit ML menu and press the zoom button (set to x1).");
+            }
+            else if (!is_720p())
+            {
+                if (CROP_PRESET_MENU == CROP_PRESET_3x3_1X ||
+                    CROP_PRESET_MENU == CROP_PRESET_3x3_1X_48p)
+                {
+                    /* these presets only have effect in 720p mode */
+                    MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "This preset only works in the 720p 50/60 fps modes from Canon menu.");
+                    return;
+                }
             }
         }
     }
