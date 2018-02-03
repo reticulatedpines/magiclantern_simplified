@@ -29,6 +29,7 @@
 
 #define BGMT_REC 0x1E
 #define BGMT_LV 0x1E
+#define BGMT_Q_SET 0x1D
 #define BGMT_Q 0x24 // using Av for ML submenus
 
 #define BGMT_PRESS_AV 0x24

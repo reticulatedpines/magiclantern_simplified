@@ -5313,10 +5313,10 @@ static void qset_longpress_check()
     
     //~ bmp_printf(FONT_MED, 50, 50, "%d ", qset_longpress);
     
-    if (qset_longpress == 50)
+    if (qset_longpress == 25)
     {
         /* long press opens Q-menu */
-        fake_simple_button(BGMT_Q);
+        fake_simple_button(BGMT_Q_SET);
         
         /* make sure it won't re-trigger */
         qset_longpress++;
@@ -5451,7 +5451,7 @@ int handle_ml_menu_erase(struct event * event)
 
 #ifdef CONFIG_100D
     /* triggers Q-menu by a long press on the combined q/set button */
-    if (event->param == BGMT_Q)
+    if (event->param == BGMT_Q_SET)
     {
         if (gui_state == GUISTATE_IDLE && !gui_menu_shown() && !IS_FAKE(event))
         {
