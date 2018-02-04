@@ -1308,7 +1308,7 @@ int main (int argc, char *argv[])
     int crop_rec = 0;
     
     /* helper structs for DNG exporting */
-    struct frame_info frame_info;
+    struct frame_info frame_info = { 0 };
     struct dng_data dng_data = { 0, 0, 0, 0, NULL, NULL, NULL, NULL };
     
     enum bug_id fix_bug = BUG_ID_NONE;
