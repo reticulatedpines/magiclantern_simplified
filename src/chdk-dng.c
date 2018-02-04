@@ -417,7 +417,7 @@ static void create_dng_header(struct raw_info * raw_info){
     int32_t extra_offset;
     int32_t raw_offset;
 
-    static int32_t dng_compression = 1;
+    int32_t dng_compression = 1;
 
     if (is_lossless_jpeg(raw_info))
     {
