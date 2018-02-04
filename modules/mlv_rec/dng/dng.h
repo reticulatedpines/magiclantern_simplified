@@ -50,6 +50,7 @@ struct frame_info
     /* flags */
     int deflicker_target; // "--deflicker=value"
     int vertical_stripes; // 0 - "--no-stripes", 1 - no switch (default), 2 - "--force-stripes"
+    int focus_pixels;     // 0 - "--no-fixfp", 1 - no switch (default)
     int bad_pixels;       // 0 - "--no-fixcp", 1 - no switch (default), 2 - "--fixcp2" (makes algorithm aggresive to reveal more bad pixels)
     int save_bpm;         // "--save-bpm" (saves bad pixel map to file)
     int dual_iso;         // "--is-dualiso" (means RAW data is dual iso process bad/focus pixels correctly (can be removed if DISO block parsing implemented)
@@ -58,6 +59,9 @@ struct frame_info
     int show_progress;    // "--show-progress" (verbose mode for 'dng.c')
     int raw_state;        // see 'enum raw_state' above
     int pack_bits;        // 0 - "--no-bitpack" (saves 16bit dngs), 1 - bit packing will be done (default)
+    int fpi_method;       // 0 - "--fpi 0" mlvfs focus pixel interpolation  (default), "--fpi 1" raw2dng focus pixel interpolation
+    int bpi_method;       // 0 - "--bpi 0" mlvfs bad pixel interpolation (default), "--bpi 1" raw2dng bad pixel interpolation
+    int crop_rec;         // 0 - no crop_rec, 1 - crop_rec
 
     /* block headers */
     mlv_vidf_hdr_t vidf_hdr;
@@ -65,6 +69,7 @@ struct frame_info
     mlv_rtci_hdr_t rtci_hdr;
     mlv_idnt_hdr_t idnt_hdr;
     mlv_rawi_hdr_t rawi_hdr;
+    mlv_rawc_hdr_t rawc_hdr;
     mlv_expo_hdr_t expo_hdr;
     mlv_lens_hdr_t lens_hdr;
     mlv_wbal_hdr_t wbal_hdr;

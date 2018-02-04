@@ -925,6 +925,7 @@ void show_usage(char *executable)
     print_msg(MSG_INFO, "  --version           print version information\n");
     print_msg(MSG_INFO, "  --batch             format output message suitable for batch processing\n");
     print_msg(MSG_INFO, "  --relaxed           do not exit on every error, skip blocks that are erroneous\n");
+    print_msg(MSG_INFO, "  --no-audio          for DNG output WAV not saved, for MLV output WAVI/AUDF blocks are not included in destination MLV\n");
     
     print_msg(MSG_INFO, "\n");
     print_msg(MSG_INFO, "-- DNG output --\n");
@@ -933,17 +934,21 @@ void show_usage(char *executable)
     print_msg(MSG_INFO, "  --cs2x2             2x2 chroma smoothing\n");
     print_msg(MSG_INFO, "  --cs3x3             3x3 chroma smoothing\n");
     print_msg(MSG_INFO, "  --cs5x5             5x5 chroma smoothing\n");
+    print_msg(MSG_INFO, "  --no-fixfp          do not fix focus pixels\n");
     print_msg(MSG_INFO, "  --no-fixcp          do not fix bad pixels\n");
     print_msg(MSG_INFO, "  --fixcp2            use aggressive method for revealing more bad pixels\n");
     print_msg(MSG_INFO, "  --no-stripes        do not fix vertical stripes in highlights\n");
     print_msg(MSG_INFO, "  --force-stripes     compute stripe correction for every frame\n");
     print_msg(MSG_INFO, "  --is-dualiso        use dual iso compatible horizontal interpolation of focus and bad pixels\n");
+    print_msg(MSG_INFO, "  --is-croprec        generate focus map for crop_rec mode\n");
     print_msg(MSG_INFO, "  --save-bpm          save bad pixels to .BPM file\n");
     print_msg(MSG_INFO, "  --fixpn             fix pattern noise\n");
     print_msg(MSG_INFO, "  --deflicker=value   per-frame exposure compensation. value is target median in raw units ex: 3072 (default)\n");
     print_msg(MSG_INFO, "  --no-bitpack        write DNG files with unpacked to 16 bit raw data\n");
     print_msg(MSG_INFO, "  --show-progress     show DNG file creation progress. ignored when -v or --batch is specified\n");
     print_msg(MSG_INFO, "                      also works when compressing MLV to MLV and shows compression ratio for each frame\n");
+    print_msg(MSG_INFO, "  --fpi <method>      focus pixel interpolation method: 0 (mlvfs), 1 (raw2dng), default is 0\n");
+    print_msg(MSG_INFO, "  --bpi <method>      bad pixel interpolation method: 0 (mlvfs), 1 (raw2dng), default is 1\n");
 
     print_msg(MSG_INFO, "\n");
     print_msg(MSG_INFO, "-- RAW output --\n");
@@ -953,7 +958,7 @@ void show_usage(char *executable)
     print_msg(MSG_INFO, "-- MLV output --\n");
     print_msg(MSG_INFO, "  -b bits             convert image data to given bit depth per channel (1-16)\n");
     print_msg(MSG_INFO, "  -z bits             zero the lowest bits, so we have only specified number of bits containing data (1-16) (improves compression rate)\n");
-    print_msg(MSG_INFO, "  -f frames           frames to save. e.g. '12' saves frames 0 to 12, '12-40' saves frames 12 to 40.\n");
+    print_msg(MSG_INFO, "  -f frames           frames to save. e.g. '12' saves frames 0 to 12, '12-40' saves frames 12 to 40. forces --no-audio switch\n");
     print_msg(MSG_INFO, "  -A fpsx1000         Alter the video file's FPS metadata\n");
     print_msg(MSG_INFO, "  -x                  build xref file (indexing)\n");
 
@@ -980,7 +985,7 @@ void show_usage(char *executable)
     print_msg(MSG_INFO, "-- Image manipulation --\n");
     print_msg(MSG_INFO, "  -a                  average all frames in <inputfile> and output a single-frame MLV from it\n");
     print_msg(MSG_INFO, "  --avg-vertical      [DARKFRAME ONLY] average the resulting frame in vertical direction, so we will extract vertical banding\n");
-    print_msg(MSG_INFO, "   --avg-horizontal   [DARKFRAME ONLY] average the resulting frame in horizontal direction, so we will extract horizontal banding\n");
+    print_msg(MSG_INFO, "  --avg-horizontal    [DARKFRAME ONLY] average the resulting frame in horizontal direction, so we will extract horizontal banding\n");
     print_msg(MSG_INFO, "  -s mlv_file         subtract the reference frame in given file from every single frame during processing\n");
     print_msg(MSG_INFO, "  -t mlv_file         use the reference frame in given file as flat field (gain correction)\n");
 
@@ -1288,6 +1293,7 @@ int main (int argc, char *argv[])
     int white_fix = 0;
     int dng_output = 0;
     int dump_xrefs = 0;
+    int fix_focus_pixels = 1;
     int fix_cold_pixels = 1;
     int fix_vert_stripes = 1;
     int is_dual_iso = 0;
@@ -1296,6 +1302,10 @@ int main (int argc, char *argv[])
     int deflicker_target = 0;
     int show_progress = 0;
     int pack_dng_bits = 1;
+    int no_audio = 0;
+    int fpi_method = 0; // default is 'mlvfs'
+    int bpi_method = 1; // default is 'raw2dng'
+    int crop_rec = 0;
     
     /* helper structs for DNG exporting */
     struct frame_info frame_info;
@@ -1355,18 +1365,23 @@ int main (int argc, char *argv[])
         {"cs2x2",  no_argument, &chroma_smooth_method,  2 },
         {"cs3x3",  no_argument, &chroma_smooth_method,  3 },
         {"cs5x5",  no_argument, &chroma_smooth_method,  5 },
+        {"no-fixfp",  no_argument, &fix_focus_pixels,  0 },
         {"no-fixcp",  no_argument, &fix_cold_pixels,  0 },
         {"fixcp2",    no_argument, &fix_cold_pixels,  2 },
         {"no-stripes",  no_argument, &fix_vert_stripes,  0 },
         {"avg-vertical",  no_argument, &average_vert,  1 },
         {"avg-horizontal",  no_argument, &average_hor,  1 },
         {"is-dualiso",    no_argument, &is_dual_iso,  1 },
+        {"is-croprec",    no_argument, &crop_rec,  1 },
         {"save-bpm",    no_argument, &save_bpm_file,  1 },
         {"force-stripes",  no_argument, &fix_vert_stripes,  2 },
         {"fixpn",  no_argument, &fix_pattern_noise,  1 },
         {"deflicker",  optional_argument, NULL,  'D' },
         {"show-progress",  no_argument, &show_progress,  1 },
         {"no-bitpack",  no_argument, &pack_dng_bits,  0 },
+        {"no-audio",  no_argument, &no_audio,  1 },
+        {"fpi",     required_argument, NULL,  'i' },
+        {"bpi",     required_argument, NULL,  'j' },
         
         /* MLV autopsy */
         {"relaxed",       no_argument, &relaxed,  1 },
@@ -1397,7 +1412,7 @@ int main (int argc, char *argv[])
     }
 
     int index = 0;
-    while ((opt = getopt_long(argc, argv, "A:F:B:W:L:S:T:V:X:Y:Z:I:D:t:xz:emnas:uvrcdpo:l:b:f:", long_options, &index)) != -1)
+    while ((opt = getopt_long(argc, argv, "A:F:B:W:L:S:T:V:X:Y:Z:I:D:t:xz:eas:uvrcdpo:l:b:f:i:j:", long_options, &index)) != -1)
     {
         switch (opt)
         {
@@ -1637,6 +1652,8 @@ int main (int argc, char *argv[])
             case 'f':
                 {
                     extract_frames = 1;
+                    no_audio = 1; // force no audio output
+
                     char *dash = strchr(optarg, '-');
 
                     /* try to parse "1-10" */
@@ -1658,6 +1675,14 @@ int main (int argc, char *argv[])
                         frame_end = MAX(0, atoi(optarg));
                     }
                 }
+                break;
+
+            case 'i':
+                fpi_method = MIN(1, MAX(0, atoi(optarg)));
+                break;
+
+            case 'j':
+                bpi_method = MIN(1, MAX(0, atoi(optarg)));
                 break;
 
             case 'b':
@@ -1900,6 +1925,7 @@ int main (int argc, char *argv[])
     mlv_wbal_hdr_t wbal_info;
     mlv_wavi_hdr_t wavi_info;
     mlv_rtci_hdr_t rtci_info;
+    mlv_rawc_hdr_t rawc_info;
     mlv_vidf_hdr_t last_vidf;
 
     /* initialize stuff */
@@ -1911,6 +1937,7 @@ int main (int argc, char *argv[])
     memset(&wbal_info, 0x00, sizeof(mlv_wbal_hdr_t));
     memset(&wavi_info, 0x00, sizeof(mlv_wavi_hdr_t));
     memset(&rtci_info, 0x00, sizeof(mlv_rtci_hdr_t));
+    memset(&rawc_info, 0x00, sizeof(mlv_rawc_hdr_t));
     memset(&main_header, 0x00, sizeof(mlv_file_hdr_t));
 
     char info_string[256] = "(MLV Video without INFO blocks)";
@@ -3170,7 +3197,7 @@ read_headers:
                             }
                         }
                     }
-
+                    static int countzz = 1;
                     /* in average mode, sum up all pixel values of a pixel position */
                     if(average_mode)
                     {
@@ -3185,9 +3212,15 @@ read_headers:
                                 uint16_t value = bitextract(src_line, x, current_depth);
 
                                 frame_arith_buffer[y * video_xRes + x] += value;
+
+                                if(countzz)
+                                {
+                                    printf("#%u avg[0] = %u, unpacked[0] = %u\n", average_samples, frame_arith_buffer[0], value);
+                                    countzz = 0;
+                                }
                             }
                         }
-
+                        countzz = 1;
                         average_samples++;
                     }
 
@@ -3430,6 +3463,7 @@ read_headers:
                             frame_info.fps_override         = alter_fps;
                             frame_info.deflicker_target     = deflicker_target;
                             frame_info.vertical_stripes     = fix_vert_stripes;
+                            frame_info.focus_pixels         = fix_focus_pixels;
                             frame_info.bad_pixels           = fix_cold_pixels;
                             frame_info.dual_iso             = is_dual_iso;
                             frame_info.save_bpm             = save_bpm_file;
@@ -3438,6 +3472,9 @@ read_headers:
                             frame_info.show_progress        = show_progress;
                             frame_info.raw_state            = raw_state;
                             frame_info.pack_bits            = pack_dng_bits;
+                            frame_info.fpi_method           = fpi_method;
+                            frame_info.bpi_method           = bpi_method;
+                            frame_info.crop_rec             = crop_rec;
 
                             frame_info.file_hdr             = main_header;
                             frame_info.vidf_hdr             = last_vidf;
@@ -3446,6 +3483,7 @@ read_headers:
                             frame_info.expo_hdr             = expo_info;
                             frame_info.lens_hdr             = lens_info;
                             frame_info.wbal_hdr             = wbal_info;
+                            frame_info.rawc_hdr             = rawc_info;
                             frame_info.rawi_hdr.xRes        = lv_rec_footer.xRes;
                             frame_info.rawi_hdr.yRes        = lv_rec_footer.yRes;
                             frame_info.rawi_hdr.raw_info    = raw_info;
@@ -4202,6 +4240,12 @@ abort:
                     
                     /* complete the averaging, minimizing the roundoff error */
                     value = (value + average_samples/2) / average_samples;
+                    static int countz = 1;
+                    if(countz)
+                    {
+                        printf("avg[0] = %u samples = %u\n", value, average_samples);
+                        countz = 0;
+                    }
                     
                     /* scale value when bit depth changed according to depth conversion in VIDF block */
                     if(old_depth != new_depth)
@@ -4294,6 +4338,11 @@ abort:
             main_header.videoClass &= ~MLV_VIDEO_CLASS_FLAG_DELTA;
         }
         
+        if(no_audio)
+        {
+            main_header.audioClass = 0x0;
+        }
+
         fseek(out_file, 0L, SEEK_SET);
         
         if(fwrite(&main_header, main_header.blockSize, 1, out_file) != 1)
