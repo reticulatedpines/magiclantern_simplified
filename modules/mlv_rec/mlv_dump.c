@@ -948,7 +948,7 @@ void show_usage(char *executable)
     print_msg(MSG_INFO, "  --show-progress     show DNG file creation progress. ignored when -v or --batch is specified\n");
     print_msg(MSG_INFO, "                      also works when compressing MLV to MLV and shows compression ratio for each frame\n");
     print_msg(MSG_INFO, "  --fpi <method>      focus pixel interpolation method: 0 (mlvfs), 1 (raw2dng), default is 0\n");
-    print_msg(MSG_INFO, "  --bpi <method>      bad pixel interpolation method: 0 (mlvfs), 1 (raw2dng), default is 1\n");
+    print_msg(MSG_INFO, "  --bpi <method>      bad pixel interpolation method: 0 (mlvfs), 1 (raw2dng), default is 0\n");
 
     print_msg(MSG_INFO, "\n");
     print_msg(MSG_INFO, "-- RAW output --\n");
@@ -1304,7 +1304,7 @@ int main (int argc, char *argv[])
     int pack_dng_bits = 1;
     int no_audio = 0;
     int fpi_method = 0; // default is 'mlvfs'
-    int bpi_method = 1; // default is 'raw2dng'
+    int bpi_method = 0; // default is 'mlvfs'
     int crop_rec = 0;
     
     /* helper structs for DNG exporting */
