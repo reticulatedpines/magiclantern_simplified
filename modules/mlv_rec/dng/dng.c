@@ -77,6 +77,23 @@ enum
     WB_KELVIN       = 9
 };
 
+/* detect crop rec */
+static int get_croprec(struct frame_info * frame_info)
+{
+    if(frame_info->rawc_hdr.blockType)
+    {
+        int sampling_x = frame_info->rawc_hdr.binning_x + frame_info->rawc_hdr.skipping_x;
+        int sampling_y = frame_info->rawc_hdr.binning_y + frame_info->rawc_hdr.skipping_y;
+        
+        if( !(sampling_y == 5 && sampling_x == 3) )
+        {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 static void deflicker(struct frame_info * frame_info, int target, uint16_t * data, size_t size)
 {
     uint16_t black = frame_info->rawi_hdr.raw_info.black_level;
@@ -495,26 +512,38 @@ static void dng_fill_header(struct frame_info * frame_info, struct dng_data * dn
         int32_t focal_resolution_x[2] = {camera_id[current_cam].focal_resolution_x[0], camera_id[current_cam].focal_resolution_x[1]};
         int32_t focal_resolution_y[2] = {camera_id[current_cam].focal_resolution_y[0], camera_id[current_cam].focal_resolution_y[1]};
         int32_t par[4] = {1,1,1,1};
-        double rawW = frame_info->rawi_hdr.raw_info.active_area.x2 - frame_info->rawi_hdr.raw_info.active_area.x1;
-        double rawH = frame_info->rawi_hdr.raw_info.active_area.y2 - frame_info->rawi_hdr.raw_info.active_area.y1;
-        double aspect_ratio = rawW / rawH;
-        //check the aspect ratio of the original raw buffer, if it's > 2 and we're not in crop mode, then this is probably squeezed footage
-        //TODO: can we be more precise about detecting this?
-        if(aspect_ratio > 2.0 && rawH <= 720)
+
+        /* If RAWC block present calculate aspect ratio from binning/skipping values */
+        if(frame_info->rawc_hdr.blockType[0])
         {
-            // 5x3 line skpping
-            par[2] = 5; par[3] = 3;
-            focal_resolution_x[1] = focal_resolution_x[1] * 3;
-            focal_resolution_y[1] = focal_resolution_y[1] * 5;
+            int sampling_x = frame_info->rawc_hdr.binning_x + frame_info->rawc_hdr.skipping_x;
+            int sampling_y = frame_info->rawc_hdr.binning_y + frame_info->rawc_hdr.skipping_y;
+
+            par[2] = sampling_y; par[3] = sampling_x;
+            focal_resolution_x[1] = focal_resolution_x[1] * sampling_x;
+            focal_resolution_y[1] = focal_resolution_y[1] * sampling_y;
         }
-        //if the width is larger than 2000, we're probably not in crop mode
-        //TODO: this may not be the safest assumption, esp. if adtg control of sensor resolution/crop is implemented, currently it is true for all ML cameras
-        else if(rawW < 2000)
+        else // use old method to calculate aspect ratio and detect crop_rec
         {
-            focal_resolution_x[1] = focal_resolution_x[1] * 3;
-            focal_resolution_y[1] = focal_resolution_y[1] * 3;
+            double rawW = frame_info->rawi_hdr.raw_info.active_area.x2 - frame_info->rawi_hdr.raw_info.active_area.x1;
+            double rawH = frame_info->rawi_hdr.raw_info.active_area.y2 - frame_info->rawi_hdr.raw_info.active_area.y1;
+            double aspect_ratio = rawW / rawH;
+            //check the aspect ratio of the original raw buffer, if it's > 2 and we're not in crop mode, then this is probably squeezed footage
+            if(aspect_ratio > 2.0 && rawH <= 720 && !frame_info->crop_rec)
+            {
+                // 5x3 line skpping
+                par[2] = 5; par[3] = 3;
+                focal_resolution_x[1] = focal_resolution_x[1] * 3;
+                focal_resolution_y[1] = focal_resolution_y[1] * 5;
+            }
+            //if the width is larger than 2000, we're probably not in crop mode
+            else if(rawW < 2000)
+            {
+                focal_resolution_x[1] = focal_resolution_x[1] * 3;
+                focal_resolution_y[1] = focal_resolution_y[1] * 3;
+            }
         }
-        
+
         //we get the active area of the original raw source, not the recorded data, so overwrite the active area if the recorded data does
         //not contain the OB areas
         if(frame_info->rawi_hdr.xRes < frame_info->rawi_hdr.raw_info.active_area.x2 ||
@@ -792,6 +821,11 @@ void dng_process_data(struct frame_info * frame_info, struct dng_data * dng_data
         fix_pattern_noise((int16_t *)dng_data->image_buf, frame_info->rawi_hdr.xRes, frame_info->rawi_hdr.yRes, frame_info->rawi_hdr.raw_info.white_level, 0);
     }
 
+    /* set crop_rec flag from MLV or CLI */
+    int crop_rec = get_croprec(frame_info);
+    if(!crop_rec) crop_rec = frame_info->crop_rec;
+    /* detect if raw data is restricted to 8-12bit lossless */
+    int restricted_lossless = ( (frame_info->file_hdr.videoClass & MLV_VIDEO_CLASS_FLAG_LJ92) && (frame_info->rawi_hdr.raw_info.white_level < 15000) );
     /* set parameters for bad/focus pixel processing */
     struct parameter_list par = 
     {
@@ -800,6 +834,10 @@ void dng_process_data(struct frame_info * frame_info, struct dng_data * dng_data
         (frame_info->bad_pixels == 2),
         frame_info->save_bpm,
         frame_info->show_progress,
+        frame_info->fpi_method,
+        frame_info->bpi_method,
+        crop_rec,
+        (!restricted_lossless ? 0 : 5),
         frame_info->idnt_hdr.cameraModel,
         frame_info->rawi_hdr.xRes,
         frame_info->rawi_hdr.yRes,
@@ -810,11 +848,15 @@ void dng_process_data(struct frame_info * frame_info, struct dng_data * dng_data
         frame_info->rawi_hdr.raw_info.black_level
     };
     /* fix focus pixels */
-    fix_pixels(TYPE_FOCUS, dng_data->image_buf, par);
+    if (frame_info->focus_pixels)
+    {
+        fix_focus_pixels(dng_data->image_buf, par);
+    }
+
     /* fix bad pixels */
     if (frame_info->bad_pixels)
     {
-        fix_pixels(TYPE_BAD, dng_data->image_buf, par);
+        fix_bad_pixels(dng_data->image_buf, par);
     }
 
     /* do chroma smoothing */
@@ -824,7 +866,7 @@ void dng_process_data(struct frame_info * frame_info, struct dng_data * dng_data
         {
             printf("\nUsing chroma smooth method: '%dx%d'\n", frame_info->chroma_smooth, frame_info->chroma_smooth);
         }
-        chroma_smooth(dng_data->image_buf, frame_info->rawi_hdr.xRes, frame_info->rawi_hdr.yRes, frame_info->rawi_hdr.raw_info.black_level, frame_info->chroma_smooth);
+        chroma_smooth(dng_data->image_buf, frame_info->rawi_hdr.xRes, frame_info->rawi_hdr.yRes, frame_info->rawi_hdr.raw_info.black_level, frame_info->rawi_hdr.raw_info.white_level, frame_info->chroma_smooth);
     }
 
     /* fix vertical stripes */
