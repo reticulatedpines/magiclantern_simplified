@@ -729,11 +729,11 @@ static unsigned int mlv_snd_init()
     mlv_snd_buffers_done = (struct msg_queue *) msg_queue_create("mlv_snd_buffers_done", MLV_SND_BLOCKS_PER_SLOT * MLV_SND_SLOTS);
 
     /* will the same menu work in both submenus? probably not */
-    if (menu_get_value_from_script("Movie", "RAW video"))
+    if (menu_get_value_from_script("Movie", "RAW video") != INT_MIN)
     {
         menu_add("RAW video", mlv_snd_menu, COUNT(mlv_snd_menu));
     }
-    else if (menu_get_value_from_script("Movie", "RAW video (MLV)"))
+    else if (menu_get_value_from_script("Movie", "RAW video (MLV)") != INT_MIN)
     {
         menu_add("RAW video (MLV)", mlv_snd_menu, COUNT(mlv_snd_menu));
     }
