@@ -4,7 +4,7 @@
 source -v debug-logging.gdb
 
 macro define CURRENT_TASK 0x40000148
-macro define CURRENT_ISR  (*(int*)0x4000014C ? *(int*)0x40000010 : 0)
+macro define CURRENT_ISR  (MEM(0x4000014C) ? MEM(0x40000010) : 0)
 
 b *0x1E002D0
 assert0_log
@@ -36,7 +36,7 @@ commands
   silent
   print_current_location
   KBLU
-  printf "task_create(entry=%x, %x, %x, stack=%x, %x, %x, %s)\n", $r0, $r1, $r2, $r3, *(int*)$sp, *(int*)($sp+4), *(int*)($sp+8)
+  printf "task_create(entry=%x, %x, %x, stack=%x, %x, %x, %s)\n", $r0, $r1, $r2, $r3, MEM($sp), MEM($sp+4), MEM($sp+8)
   KRESET
   c
 end

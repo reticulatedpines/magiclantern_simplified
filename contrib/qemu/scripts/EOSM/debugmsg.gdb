@@ -10,7 +10,7 @@ source -v EOSM/patches.gdb
 #symbol-file ../magic-lantern/platform/EOSM.202/stubs.o
 
 macro define CURRENT_TASK 0x3DE78
-macro define CURRENT_ISR  (*(int*)0x670 ? (*(int*)0x674) >> 2 : 0)
+macro define CURRENT_ISR  (MEM(0x670) ? MEM(0x674) >> 2 : 0)
 
 # GDB hook is very slow; -d debugmsg is much faster
 # ./run_canon_fw.sh will use this address, don't delete it

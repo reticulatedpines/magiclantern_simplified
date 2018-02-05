@@ -3,7 +3,7 @@
 source -v debug-logging.gdb
 
 macro define CURRENT_TASK 0x195C
-macro define CURRENT_ISR  (*(int*)0x670 ? (*(int*)0x674) : 0)
+macro define CURRENT_ISR  (MEM(0x670) ? MEM(0x674) : 0)
 
 b *0xFFC0B284
 assert_log

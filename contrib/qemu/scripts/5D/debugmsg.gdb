@@ -12,7 +12,7 @@ source -v debug-logging.gdb
 #symbol-file ../magic-lantern/platform/5D.111/autoexec
 #symbol-file ../magic-lantern/platform/5D.111/stubs.o
 
-macro define CURRENT_TASK (*(int*)0x2D2C4 ? *(int*)0x2D2C4 : 0x2D2C4)
+macro define CURRENT_TASK (MEM(0x2D2C4) ? MEM(0x2D2C4) : 0x2D2C4)
 macro define CURRENT_TASK_NAME (((int*)CURRENT_TASK)[0] ? ((char***)CURRENT_TASK)[0][13] : CURRENT_TASK)
 macro define CURRENT_ISR 0
 

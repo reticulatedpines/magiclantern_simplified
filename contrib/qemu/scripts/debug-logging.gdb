@@ -28,7 +28,7 @@ end
 #   - on DIGIC 6,   interrupt ID is MEM(0xD4011000)
 #   To find the expression, look at the interrupt handler code (PC=0x18).
 #   Example for 70D:
-#      macro define CURRENT_ISR  (*(int*)0x648 ? (*(int*)0x64C) >> 2 : 0)
+#      macro define CURRENT_ISR  (MEM(0x648) ? MEM(0x64C) >> 2 : 0)
 #
 # RTC_VALID_FLAG:
 #   Only needed if you use load_default_date_time_log.
@@ -51,6 +51,9 @@ macro define CURRENT_ISR    ((int)0xFFFFFFFF)
 macro define RTC_VALID_FLAG ((int)0xFFFFFFFF)
 macro define NUM_CORES      1
 macro define PRINT_CALLSTACK 0
+
+# helper to read an uint32_t from memory (used in ML as well)
+macro define MEM(x) (*(unsigned int*)(x))
 
 # misc preferences
 set pagination off
@@ -213,7 +216,7 @@ define DebugMsg_log
     silent
     print_current_location
     printf "(%02x:%02x) ", $r0, $r1
-    print_formatted_string $r2 $r3 *(int*)$sp *(int*)($sp+4) *(int*)($sp+8) *(int*)($sp+12) *(int*)($sp+16) *(int*)($sp+20) *(int*)($sp+24)
+    print_formatted_string $r2 $r3 MEM($sp) MEM($sp+4) MEM($sp+8) MEM($sp+12) MEM($sp+16) MEM($sp+20) MEM($sp+24)
     c
   end
 end
@@ -224,7 +227,7 @@ define DebugMsg1_log
     silent
     print_current_location
     printf "(%02x) ", $r0
-    print_formatted_string $r1 $r2 $r3 *(int*)$sp *(int*)($sp+4) *(int*)($sp+8) *(int*)($sp+12) *(int*)($sp+16) *(int*)($sp+20)
+    print_formatted_string $r1 $r2 $r3 MEM($sp) MEM($sp+4) MEM($sp+8) MEM($sp+12) MEM($sp+16) MEM($sp+20)
     c
   end
 end
@@ -233,7 +236,7 @@ define printf_log
   commands
     silent
     print_current_location
-    print_formatted_string $r1 $r2 $r3 *(int*)$sp *(int*)($sp+4) *(int*)($sp+8) *(int*)($sp+12) *(int*)($sp+16) *(int*)($sp+20)
+    print_formatted_string $r1 $r2 $r3 MEM($sp) MEM($sp+4) MEM($sp+8) MEM($sp+12) MEM($sp+16) MEM($sp+20)
     c
   end
 end
@@ -244,7 +247,7 @@ define task_create_log
     silent
     print_current_location
     KBLU
-    printf "task_create(%s, prio=%x, stack=%x, entry=%x, arg=%x)\n", $r0, $r1, $r2, $r3, *(int*)$sp
+    printf "task_create(%s, prio=%x, stack=%x, entry=%x, arg=%x)\n", $r0, $r1, $r2, $r3, MEM($sp)
     KRESET
     c
   end
@@ -506,7 +509,7 @@ define try_receive_msg_queue_log
       KRESET
       printf "%d (pc=%x)\n", $r0, $pc
       eval "try_expand_ram_struct $mq_%s_buf", CURRENT_TASK_NAME
-      eval "try_expand_ram_struct *(int*)$mq_%s_buf", CURRENT_TASK_NAME
+      eval "try_expand_ram_struct MEM($mq_%s_buf)", CURRENT_TASK_NAME
       eval "set $task_%s = \"ready\"", CURRENT_TASK_NAME
       c
     end
@@ -621,8 +624,8 @@ define mpu_analyze_recv_data_log
     #print_current_location
     #printf "AnalyzeMpuReceiveData %x %x %x %x\n", $r0, $r1, $r2, $r3
     print_current_location
-    printf "MPU property: %02x %02x ", *(int*)$r1, *(int*)($r1+4)
-    mpu_decode *(int*)($r1+8) *(int*)($r1+12)
+    printf "MPU property: %02x %02x ", MEM($r1), MEM($r1+4)
+    mpu_decode MEM($r1+8) MEM($r1+12)
     printf "\n"
     c
   end
@@ -644,10 +647,10 @@ define mpu_prop_lookup_log
   commands
     silent
     print_current_location
-    #printf "mpu_prop_lookup (%02x %02x) %x, %x, %x, %x %x %x %x\n", $r3, *(int*)$sp, $r0, $r1, $r2, $r3, *(int*)$sp, *(int*)($sp+4), *(int*)($sp+8)
+    #printf "mpu_prop_lookup (%02x %02x) %x, %x, %x, %x %x %x %x\n", $r3, MEM($sp), $r0, $r1, $r2, $r3, MEM($sp), MEM($sp+4), MEM($sp+8)
     set $mpl_r0 = $r0
     set $mpl_id1 = $r3
-    set $mpl_id2 = *(int*)$sp
+    set $mpl_id2 = MEM($sp)
     tbreak *($lr & ~1)
     commands
       silent
@@ -701,7 +704,7 @@ define prop_deliver_log
     KRED
     printf "prop_deliver"
     KRESET
-    printf " %08X { ", *(int*)$r0
+    printf " %08X { ", MEM($r0)
     prop_print_data $r1 $r2
     printf "}\n"
     c
@@ -711,7 +714,7 @@ end
 define try_expand_ram_struct
     if $arg0 > 0x1000 && $arg0 < 0x1000000
         printf "                       "
-        printf "*0x%x = { %x %x %x %x %x ... }\n", $arg0, *(int*)$arg0, *(int*)($arg0+4), *(int*)($arg0+8), *(int*)($arg0+12), *(int*)($arg0+16)
+        printf "*0x%x = { %x %x %x %x %x ... }\n", $arg0, MEM($arg0), MEM($arg0+4), MEM($arg0+8), MEM($arg0+12), MEM($arg0+16)
     end
 end
 
@@ -719,14 +722,14 @@ define try_post_event_log
   commands
     silent
     print_current_location
-    printf "TryPostEvent('%s', '%s', 0x%x, 0x%x, 0x%x)\n", *(int*)$r0, *(int*)$r1, $r2, $r3, *(int*)$sp
+    printf "TryPostEvent('%s', '%s', 0x%x, 0x%x, 0x%x)\n", MEM($r0), MEM($r1), $r2, $r3, MEM($sp)
     try_expand_ram_struct $r3
-    try_expand_ram_struct *(int*)($r3)
-    try_expand_ram_struct *(int*)($r3+4)
-    try_expand_ram_struct *(int*)($r3+8)
-    try_expand_ram_struct *(int*)($r3+12)
-    try_expand_ram_struct *(int*)($r3+16)
-    try_expand_ram_struct *(int*)$sp
+    try_expand_ram_struct MEM($r3)
+    try_expand_ram_struct MEM($r3+4)
+    try_expand_ram_struct MEM($r3+8)
+    try_expand_ram_struct MEM($r3+12)
+    try_expand_ram_struct MEM($r3+16)
+    try_expand_ram_struct MEM($sp)
     c
   end
 end
@@ -779,7 +782,7 @@ define SetHPTimerNextTick_log
   commands
     silent
     print_current_location
-    printf "SetHPTimerNextTick(last_expiry=%d, offset=%d, cbr=%x, overrun=%x, arg=%x)\n", $r0, $r1, $r2, $r3, *(int*)$sp
+    printf "SetHPTimerNextTick(last_expiry=%d, offset=%d, cbr=%x, overrun=%x, arg=%x)\n", $r0, $r1, $r2, $r3, MEM($sp)
     c
   end
 end
@@ -912,7 +915,7 @@ define SetEDmac_log
     printf "SetEDmac(%d, 0x%x, 0x%x, 0x%x)\n", $r0, $r1, $r2, $r3
     if $r2
       printf "                       "
-      printf "{ %dx%d %dx%d %dx%d %d %d %d %d %d }\n", *(int*)($r2+0x14), *(int*)($r2+0x1c), *(int*)($r2+0x18), *(int*)($r2+0x20), *(int*)($r2+0x24), *(int*)($r2+0x28), *(int*)($r2+0x00), *(int*)($r2+0x04), *(int*)($r2+0x08), *(int*)($r2+0x0c), *(int*)($r2+0x10)
+      printf "{ %dx%d %dx%d %dx%d %d %d %d %d %d }\n", MEM($r2+0x14), MEM($r2+0x1c), MEM($r2+0x18), MEM($r2+0x20), MEM($r2+0x24), MEM($r2+0x28), MEM($r2+0x00), MEM($r2+0x04), MEM($r2+0x08), MEM($r2+0x0c), MEM($r2+0x10)
       # xa*ya xb*yb xn*yn off1a off1b off2a off2b off3
     end
     KRESET
@@ -1001,7 +1004,7 @@ define CreateStateObject_log
   commands
     silent
     print_current_location
-    printf "CreateStateObject(%s, 0x%x, inputs=%d, states=%d)\n", $r0, $r2, $r3, *(int*)$sp
+    printf "CreateStateObject(%s, 0x%x, inputs=%d, states=%d)\n", $r0, $r2, $r3, MEM($sp)
     # note: I could have used log_result instead of this block, but wanted to get something easier to grep
     tbreak *($lr & ~1)
     commands
@@ -1032,7 +1035,7 @@ define state_transition_log
     KYLW
     printf "%s: (%d) --%d--> (%d)", $state_name, $old_state, $input, $next_state
     KRESET
-    printf "      %x (x=%x z=%x t=%x)\n", $next_func, $r1, $r3, *(int*)$sp
+    printf "      %x (x=%x z=%x t=%x)\n", $next_func, $r1, $r3, MEM($sp)
     c
   end
 end

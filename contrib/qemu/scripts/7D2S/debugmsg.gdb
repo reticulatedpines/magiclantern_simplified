@@ -9,7 +9,7 @@ source -v debug-logging.gdb
 #symbol-file ../magic-lantern/platform/7D2.104/stubs.o
 
 macro define CURRENT_TASK 0x44EC
-macro define CURRENT_ISR  (*(int*)0x44C8 ? (*(int*)0x44CC) : 0)
+macro define CURRENT_ISR  (MEM(0x44C8) ? MEM(0x44CC) : 0)
 
 # GDB hook is very slow; -d debugmsg is much faster
 # ./run_canon_fw.sh will use this address, don't delete it
