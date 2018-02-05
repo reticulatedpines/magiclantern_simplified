@@ -36,7 +36,10 @@
 #include "../mlv_rec/mlv.h"
 #include "../mlv_rec/mlv_rec_interface.h"
 
-#define MLV_SND_BUFFERS 4
+/* allocate that many frame slots to be used for WAVI blocks. two is the minimum to maintain operation */
+#define MLV_SND_SLOTS              2
+/* maximum number of WAVI blocks per slot. the larger, the longer queues will get. should we use more? */
+#define MLV_SND_BLOCKS_PER_SLOT  256
 
 static uint32_t trace_ctx = TRACE_ERROR;
 
@@ -279,7 +282,7 @@ static void mlv_snd_queue_slot()
     }
     
     /* make sure that there is still place for a NULL block */
-    while((used + block_size + sizeof(mlv_hdr_t) < size) && (queued < 128))
+    while((used + block_size + sizeof(mlv_hdr_t) < size) && (queued < MLV_SND_BLOCKS_PER_SLOT))
     {
         /* setup AUDF header for that block */
         mlv_audf_hdr_t *hdr = (mlv_audf_hdr_t *)((uint32_t)address + used);
@@ -307,7 +310,7 @@ static void mlv_snd_queue_slot()
         entry->mlv_slot_end = 0;
         
         /* check if this was the last frame and set end flag if so */
-        if((used + block_size + sizeof(mlv_hdr_t) >= size) || (queued >= 127))
+        if((used + block_size + sizeof(mlv_hdr_t) >= size) || (queued >= (MLV_SND_BLOCKS_PER_SLOT - 1)))
         {
             /* this tells the writer task that the buffer is filled with that entry being done and can be committed */
             entry->mlv_slot_end = 1;
@@ -349,8 +352,10 @@ static void mlv_snd_alloc_buffers()
     mlv_snd_in_buffer_size = (mlv_snd_in_sample_rate * (mlv_snd_in_bits_per_sample / 8) * mlv_snd_in_channels) / fps;
     trace_write(trace_ctx, "mlv_snd_alloc_buffers: mlv_snd_in_buffer_size = %d", mlv_snd_in_buffer_size);
     
-    mlv_snd_queue_slot();
-    mlv_snd_queue_slot();
+    for(int slot = 0; slot < MLV_SND_SLOTS; slot++)
+    {
+        mlv_snd_queue_slot();
+    }
 
     /* now everything is ready to fire - real output activation happens as soon mlv_snd_running is set to 1 and mlv_snd_vsync() gets called */
     mlv_snd_state = MLV_SND_STATE_READY;
@@ -613,8 +618,8 @@ static unsigned int mlv_snd_init()
     //}
     
     trace_write(trace_ctx, "mlv_snd_init: init queues");
-    mlv_snd_buffers_empty = (struct msg_queue *) msg_queue_create("mlv_snd_buffers_empty", 300);
-    mlv_snd_buffers_done = (struct msg_queue *) msg_queue_create("mlv_snd_buffers_done", 300);
+    mlv_snd_buffers_empty = (struct msg_queue *) msg_queue_create("mlv_snd_buffers_empty", MLV_SND_BLOCKS_PER_SLOT * MLV_SND_SLOTS);
+    mlv_snd_buffers_done = (struct msg_queue *) msg_queue_create("mlv_snd_buffers_done", MLV_SND_BLOCKS_PER_SLOT * MLV_SND_SLOTS);
     
     menu_add("Audio", mlv_snd_menu, COUNT(mlv_snd_menu));
     trace_write(trace_ctx, "mlv_snd_init: done");
