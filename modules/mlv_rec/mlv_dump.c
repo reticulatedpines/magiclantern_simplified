@@ -3913,9 +3913,13 @@ read_headers:
             {
                 mlv_rawi_hdr_t block_hdr = *(mlv_rawi_hdr_t *)mlv_block;
                 
+                /* 
+                    commented out b/c some postprocessing tools depend on original MLV raw_info.height
+                    to work properly and rounded/unreal values printed out by mlv_dump are misleading
+                */
                 /* well, it appears to happen that MLVs with odd sizes were written, restrict that */
-                block_hdr.raw_info.height &= ~1;
-                block_hdr.yRes &= ~1;
+                //block_hdr.raw_info.height &= ~1;
+                //block_hdr.yRes &= ~1;
                 
                 handled_write = 1;
 
