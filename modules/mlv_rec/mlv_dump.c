@@ -2753,7 +2753,7 @@ read_headers:
                 }
             }
 
-            if(!memcmp(mlv_block->blockType, "AUDF", 4))
+            if(!memcmp(mlv_block->blockType, "AUDF", 4) && !no_audio)
             {
                 mlv_audf_hdr_t block_hdr = *(mlv_audf_hdr_t *)mlv_block;
 
@@ -4012,7 +4012,7 @@ read_headers:
                     print_capture_info(&block_hdr);
                 }
             }            
-            else if(!memcmp(mlv_block->blockType, "WAVI", 4))
+            else if(!memcmp(mlv_block->blockType, "WAVI", 4) && !no_audio)
             {
                 mlv_wavi_hdr_t block_hdr = *(mlv_wavi_hdr_t *)mlv_block;
 
@@ -4123,7 +4123,17 @@ read_headers:
             }
             else
             {
-                print_msg(MSG_INFO, "Unknown Block: %c%c%c%c, skipping\n", mlv_block->blockType[0], mlv_block->blockType[1], mlv_block->blockType[2], mlv_block->blockType[3]);
+                if(no_audio)
+                {
+                    if(!show_progress)
+                    { 
+                        print_msg(MSG_INFO, "Audio Block: %c%c%c%c, skipping\n", mlv_block->blockType[0], mlv_block->blockType[1], mlv_block->blockType[2], mlv_block->blockType[3]);
+                    }
+                }
+                else
+                {
+                    print_msg(MSG_INFO, "Unknown Block: %c%c%c%c, skipping\n", mlv_block->blockType[0], mlv_block->blockType[1], mlv_block->blockType[2], mlv_block->blockType[3]);
+                }
 
                 lua_handle_hdr(lua_state, mlv_block->blockType, "", 0);
             }
