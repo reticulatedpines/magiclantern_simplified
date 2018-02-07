@@ -958,7 +958,7 @@ void show_usage(char *executable)
     print_msg(MSG_INFO, "-- MLV output --\n");
     print_msg(MSG_INFO, "  -b bits             convert image data to given bit depth per channel (1-16)\n");
     print_msg(MSG_INFO, "  -z bits             zero the lowest bits, so we have only specified number of bits containing data (1-16) (improves compression rate)\n");
-    print_msg(MSG_INFO, "  -f frames           frames to save. e.g. '12' saves frames 0 to 12, '12-40' saves frames 12 to 40. forces --no-audio switch\n");
+    print_msg(MSG_INFO, "  -f frames           frames to save. e.g. '12' saves frames 0 to 12, '12-40' saves frames 12 to 40\n");
     print_msg(MSG_INFO, "  -A fpsx1000         Alter the video file's FPS metadata\n");
     print_msg(MSG_INFO, "  -x                  build xref file (indexing)\n");
 
@@ -1652,7 +1652,6 @@ int main (int argc, char *argv[])
             case 'f':
                 {
                     extract_frames = 1;
-                    no_audio = 1; // force no audio output
 
                     char *dash = strchr(optarg, '-');
 
@@ -2573,7 +2572,7 @@ read_headers:
             handled_write = 1;
 
             /* disable '--no-audio' switch if MLV has no audio */
-            if(!file_header.audioClass) no_audio = 0;
+            if(!file_hdr.audioClass) no_audio = 0;
 
             if(verbose)
             {
@@ -4119,10 +4118,12 @@ read_headers:
             else if(!memcmp(mlv_block->blockType, "NULL", 4))
             {
                 /* those are just placeholders. ignore them. */
+                if(extract_frames || no_audio) goto skip_block;
             }
             else if(!memcmp(mlv_block->blockType, "BKUP", 4))
             {
                 /* once they were used to backup headers during frame processing in mlv_rec and could have appeared in a file. no need anymore. */
+                if(extract_frames || no_audio) goto skip_block;
             }
             else
             {
