@@ -4129,6 +4129,7 @@ read_headers:
                     { 
                         print_msg(MSG_INFO, "Skipping '%c%c%c%c' block\n", mlv_block->blockType[0], mlv_block->blockType[1], mlv_block->blockType[2], mlv_block->blockType[3]);
                     }
+                    goto skip_block;
                 }
                 else
                 {
