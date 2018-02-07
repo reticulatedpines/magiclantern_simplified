@@ -2572,6 +2572,9 @@ read_headers:
             
             handled_write = 1;
 
+            /* disable '--no-audio' switch if MLV has no audio */
+            if(!file_header.audioClass) no_audio = 0;
+
             if(verbose)
             {
                 print_msg(MSG_INFO, "File Header (MLVI)\n");
