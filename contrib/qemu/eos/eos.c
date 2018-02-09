@@ -1964,12 +1964,6 @@ unsigned int eos_handle_intengine ( unsigned int parm, EOSState *s, unsigned int
                 msg_arg1 = s->irq_id << 2;
                 msg_arg2 = s->irq_id;
                 ret = s->irq_id << ((address & 0xF) ? 2 : 0);
-                
-                if (s->model->digic_version > 3)
-                {
-                    /* 1000D doesn't like this... */
-                    assert(ret);
-                }
 
                 /* this register resets on read (subsequent reads should report 0) */
                 s->irq_id = 0;
