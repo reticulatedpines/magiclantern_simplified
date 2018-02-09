@@ -890,6 +890,7 @@ void lens_cleanup_af()
     restore_af_button_assignment();
 }
 
+/* please try to call take_a_pic() instead of this one */
 int
 lens_take_picture(
     int wait_to_finish,
