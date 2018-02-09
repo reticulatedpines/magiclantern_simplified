@@ -5138,11 +5138,7 @@ void remote_shot(int wait)
     }
     else
     #endif
-    if (is_movie_mode())
-    {
-        movie_start();
-    }
-    else if (is_hdr_bracketing_enabled())
+    if (is_hdr_bracketing_enabled())
     {
         hdr_shot(0, wait);
     }
