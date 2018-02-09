@@ -314,6 +314,7 @@ static int luaCB_camera_shoot(lua_State * L)
  
  Normally, camera.shoot() returns as soon as the next picture can be taken,
  while image compression and saving happen in background.
+ @function wait
  */
 static int luaCB_camera_wait(lua_State * L)
 {
