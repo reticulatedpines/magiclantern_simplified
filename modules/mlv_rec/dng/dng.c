@@ -77,18 +77,37 @@ enum
     WB_KELVIN       = 9
 };
 
-/* detect crop rec */
-static int get_croprec(struct frame_info * frame_info)
+/* distinguish crop_rec 720 (retun value 1) from regular mv720 (return value 0) mode for focus pixel affected cameras */
+static int check_mv720_vs_croprec720(struct frame_info * frame_info)
 {
-    if(frame_info->rawc_hdr.blockType)
+    switch(frame_info->idnt_hdr.cameraModel)
     {
-        int sampling_x = frame_info->rawc_hdr.binning_x + frame_info->rawc_hdr.skipping_x;
-        int sampling_y = frame_info->rawc_hdr.binning_y + frame_info->rawc_hdr.skipping_y;
-        
-        if( !(sampling_y == 5 && sampling_x == 3) )
-        {
-            return 1;
-        }
+        /* focus pixel affected cameras */
+        case 0x80000331: // EOSM
+        case 0x80000346: // 100D
+        case 0x80000301: // 650D
+        case 0x80000326: // 700D
+            /* if resoutioon is regular mv720 or crop_rec 720 */
+            if(frame_info->rawi_hdr.raw_info.width == 1808 && frame_info->rawi_hdr.raw_info.height < 900)
+            {
+                /* if RAWC block exists */
+                if(frame_info->rawc_hdr.blockType)
+                {
+                    int sampling_x = frame_info->rawc_hdr.binning_x + frame_info->rawc_hdr.skipping_x;
+                    int sampling_y = frame_info->rawc_hdr.binning_y + frame_info->rawc_hdr.skipping_y;
+                    
+                    /* check whether it's crop_rec 720 or regular mv720 mode
+                       ATM crop_rec sampling for focus pixel affected cameras is 3x3
+                       but let's be future proof and include 1x1 sampling as well */
+                    if( !(sampling_y == 5 && sampling_x == 3) )
+                    {
+                        return 1; // it is really crop_rec 720 mode
+                    }
+                }
+            }
+        /* all other cameras do not need this check */
+        default:
+            return 0;
     }
 
     return 0;
@@ -822,7 +841,8 @@ void dng_process_data(struct frame_info * frame_info, struct dng_data * dng_data
     }
 
     /* set crop_rec flag from MLV or CLI */
-    int crop_rec = get_croprec(frame_info);
+    int crop_rec = check_mv720_vs_croprec720(frame_info);
+    /* if crop_rec 720 mode is not detected try to set crop_rec flag from CLI */
     if(!crop_rec) crop_rec = frame_info->crop_rec;
     /* detect if raw data is restricted to 8-12bit lossless */
     int restricted_lossless = ( (frame_info->file_hdr.videoClass & MLV_VIDEO_CLASS_FLAG_LJ92) && (frame_info->rawi_hdr.raw_info.white_level < 15000) );
