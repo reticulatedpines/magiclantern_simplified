@@ -4608,7 +4608,7 @@ static void hdr_iso_shift_restore()
 static int hdr_shutter_release(int ev_x8)
 {
     int ans = 1;
-    //~ NotifyBox(2000, "hdr_shutter_release: %d", ev_x8); msleep(2000);
+    //printf("hdr_shutter_release: %d\n", ev_x8);
     lens_wait_readytotakepic(64);
 
     int manual = (shooting_mode == SHOOTMODE_M || is_movie_mode() || is_bulb_mode());
@@ -4688,7 +4688,7 @@ static int hdr_shutter_release(int ev_x8)
         int expsim0 = get_expsim();
         #endif
         
-        //~ NotifyBox(2000, "ms=%d msc=%d rs=%x rc=%x", ms,msc,rs,rc); msleep(2000);
+        //printf("ms=%d msc=%d rs=%x rc=%x\n", ms,msc,rs,rc);
 
 #ifdef CONFIG_BULB
         // then choose the best option (bulb for long exposures, regular for short exposures)
@@ -4928,7 +4928,7 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
         hdr_auto_take_pics(step_size, skip0);
         return;
     }
-    //~ NotifyBox(2000, "hdr_take_pics: %d, %d, %d", steps, step_size, skip0); msleep(2000);
+    //printf("hdr_take_pics: %d, %d, %d\n", steps, step_size, skip0);
     int i;
     
     // make sure it won't autofocus
@@ -5092,7 +5092,7 @@ void hdr_shot(int skip0, int wait)
 #ifdef FEATURE_HDR_BRACKETING
     if (is_hdr_bracketing_enabled())
     {
-        //~ NotifyBox(1000, "HDR shot (%dx%dEV)...", hdr_steps, hdr_stepsize/8); msleep(1000);
+        printf("[ABRK] HDR sequence (%dx%dEV)...\n", hdr_steps, hdr_stepsize/8);
         lens_wait_readytotakepic(64);
 
         int drive_mode_bak = set_drive_single();
@@ -5101,6 +5101,7 @@ void hdr_shot(int skip0, int wait)
 
         lens_wait_readytotakepic(64);
         if (drive_mode_bak >= 0) lens_set_drivemode(drive_mode_bak);
+        printf("[ABRK] HDR sequence finished.\n");
     }
     else // regular pic (not HDR)
 #endif
@@ -5791,7 +5792,7 @@ shoot_task( void* unused )
             }
         }
         #endif
-        
+
         if (picture_was_taken_flag) // just took a picture, maybe we should take another one
         {
             if (NOT_RECORDING)
@@ -5800,7 +5801,7 @@ shoot_task( void* unused )
                 if (is_hdr_bracketing_enabled())
                 {
                     lens_wait_readytotakepic(64);
-                    hdr_shot(1,1); // skip the middle exposure, which was just taken
+                    hdr_shot(1,1); // skip the first image, which was just taken
                     lens_wait_readytotakepic(64); 
                 }
                 #endif
