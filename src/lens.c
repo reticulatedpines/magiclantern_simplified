@@ -892,7 +892,7 @@ void lens_cleanup_af()
 
 int
 lens_take_picture(
-    int wait, 
+    int wait_to_finish,
     int should_af
 )
 {
@@ -967,30 +967,43 @@ lens_take_picture(
     #endif
 
 end:;
+
+    /* always wait for the photo capture process to start */
+
+    /* additional delays given by drive mode? */
+    switch (drive_mode)
+    {
+        case DRIVE_SELFTIMER_2SEC:
+            msleep(2000);
+            break;
+        case DRIVE_SELFTIMER_REMOTE:
+        case DRIVE_SELFTIMER_CONTINUOUS:
+            msleep(10000);
+            break;
+    }
+
+    /* wait until job_state becomes valid, i.e. exposure started (timeout 2 seconds) */
+    for (int i = 0; i < 100 && lens_info.job_state == 0; i++)
+    {
+        msleep(20);
+    }
+
     int ret = 0;
-    if( !wait )
+    if( !wait_to_finish )
     {
         //~ give_semaphore(lens_sem);
         goto finish;
     }
     else
     {
-        msleep(200);
+        /* wait until the camera is ready to take a new image */
+        lens_wait_readytotakepic(wait_to_finish);
 
-        if (drive_mode == DRIVE_SELFTIMER_2SEC)
+        /* wait until the image file gets saved (timeout 2 seconds) */
+        for (int i = 0; i < 100 && get_shooting_card()->file_number == file_number_before; i++)
         {
-            msleep(2000);
-        }
-        if (drive_mode == DRIVE_SELFTIMER_REMOTE || drive_mode == DRIVE_SELFTIMER_CONTINUOUS)
-        {
-            msleep(10000);
-        }
-
-        lens_wait_readytotakepic(wait);
-
-        while (get_shooting_card()->file_number == file_number_before)
-        {
-            msleep(50);
+            /* reachable? not sure, might be model-dependent */
+            msleep(20);
         }
 
         //~ give_semaphore(lens_sem);

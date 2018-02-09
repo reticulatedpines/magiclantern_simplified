@@ -243,8 +243,8 @@ extern int hdr_set_rawaperture(int aperture);
 extern int hdr_set_ae(int ae);
 extern int hdr_set_flash_ae(int ae);
 
-int lens_take_picture( int wait, int allow_af );
-int lens_take_pictures( int wait, int allow_af, int duration );
+int lens_take_picture( int wait_to_finish, int allow_af );
+int lens_take_pictures( int wait_to_finish, int allow_af, int duration );
 
 /** Will return 1 on success, 0 on error */
 extern int
