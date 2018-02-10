@@ -91,7 +91,7 @@ static int check_mv720_vs_croprec720(struct frame_info * frame_info)
             if(frame_info->rawi_hdr.raw_info.width == 1808 && frame_info->rawi_hdr.raw_info.height < 900)
             {
                 /* if RAWC block exists */
-                if(frame_info->rawc_hdr.blockType)
+                if(frame_info->rawc_hdr.blockType[0])
                 {
                     int sampling_x = frame_info->rawc_hdr.binning_x + frame_info->rawc_hdr.skipping_x;
                     int sampling_y = frame_info->rawc_hdr.binning_y + frame_info->rawc_hdr.skipping_y;
