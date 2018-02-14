@@ -1913,6 +1913,12 @@ static unsigned int silent_init()
         silent_menu[0].children[2].max = 1;
     }
 
+    if (!is_camera("5D3",  "*"))
+    {
+        /* Full-res LV not available; hide from menu */
+        silent_menu[0].children[0].max = 5;
+    }
+
     menu_add("Shoot", silent_menu, COUNT(silent_menu));
 
     return 0;
