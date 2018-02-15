@@ -232,6 +232,7 @@
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x24d48
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 24 + 4) - MEM(MALLOC_STRUCT + 24 + 8)) // "Total Size" - "Allocated Size"
+#define SRM_BUFFER_SIZE 0x1AE0000   /* print it from srm_malloc_cbr */
 
 //~ max volume supported for beeps
 #define ASIF_MAX_VOL 5

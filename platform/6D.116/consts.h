@@ -263,6 +263,7 @@ Output size: 5496 x 3670
 // see "Malloc Information"
 #define FRAME_SHUTTER_BLANKING_ZOOM   (*(uint16_t*)0x404E54CC) // ADTG register 805f
 #define FRAME_SHUTTER_BLANKING_NOZOOM (*(uint16_t*)0x404E54D0) // ADTG register 8061
+#define SRM_BUFFER_SIZE 0x229C000   /* print it from srm_malloc_cbr */
 
 #define FRAME_SHUTTER_BLANKING_READ   (lv_dispsize > 1 ? FRAME_SHUTTER_BLANKING_NOZOOM : FRAME_SHUTTER_BLANKING_ZOOM) /* when reading, use the other mode, as it contains the original value (not overriden) */
 #define FRAME_SHUTTER_BLANKING_WRITE  (lv_dispsize > 1 ? &FRAME_SHUTTER_BLANKING_ZOOM : &FRAME_SHUTTER_BLANKING_NOZOOM)
