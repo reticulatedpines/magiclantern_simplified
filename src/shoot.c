@@ -6205,12 +6205,12 @@ shoot_task( void* unused )
             int display_turned_off = 0;
             //~ int images_compared = 0;
             msleep(20);
-            while (SECONDS_REMAINING > 0 && !ml_shutdown_requested)
+            while (SECONDS_REMAINING > 1 && !ml_shutdown_requested)
             {
                 int dt = get_interval_time();
                 /* allow other tasks to take pictures while we are sleeping */
                 ReleaseRecursiveLock(shoot_task_rlock);
-                msleep(dt < 5 ? 20 : 300);
+                msleep(200);
                 AcquireRecursiveLock(shoot_task_rlock, 0);
 
                 intervalometer_check_trigger();
@@ -6218,6 +6218,7 @@ shoot_task( void* unused )
                 
                 if (gui_menu_shown() || get_halfshutter_pressed())
                 {
+                    /* menu opened or half-shutter pressed? delay the next shot */
                     wait_till_next_second();
 
                     if (intervalometer_pictures_taken == 0)
@@ -6257,6 +6258,7 @@ shoot_task( void* unused )
                 }
             }
 
+            /* last minute (err, second) checks */
             if (interval_stop_after && (int)intervalometer_pictures_taken >= (int)(interval_stop_after))
                 intervalometer_stop();
 
@@ -6264,6 +6266,12 @@ shoot_task( void* unused )
             
             if (!intervalometer_running) continue; // back to start of shoot_task loop
             if (gui_menu_shown() || get_halfshutter_pressed()) continue;
+
+            /* last second - try to get slightly better timing */
+            while (SECONDS_REMAINING > 0)
+            {
+                msleep(10);
+            }
 
             int dt = get_interval_time();
             int seconds_clock = get_seconds_clock();
