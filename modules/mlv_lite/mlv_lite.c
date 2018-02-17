@@ -74,6 +74,12 @@
 #include "ml-cbr.h"
 #include "../silent/lossless.h"
 
+THREAD_ROLE(RawRecTask);            /* our raw recording task */
+THREAD_ROLE(ShootTask);             /* polling CBR */
+
+static GUARDED_BY(GuiMainTask) int show_graph = 0;
+static GUARDED_BY(GuiMainTask) int show_edmac = 0;
+
 /* from mlv_play module */
 extern WEAK_FUNC(ret_0) void mlv_play_file(char *filename);
 
@@ -1570,7 +1576,6 @@ static void hack_liveview(int unhack)
     }
 }
 
-/* used by mlv_snd with mlv_rec; nothing to do here */
 static REQUIRES(LiveViewTask) FAST
 int choose_next_capture_slot()
 {
