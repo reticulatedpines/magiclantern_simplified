@@ -2141,7 +2141,7 @@ static void mlv_rec_dma_cbr_r(void *ctx)
     slots[capture_slot].status = SLOT_FULL;
     mlv_rec_dma_active = 0;
     
-    mlv_rec_dma_end = get_us_clock_value();
+    mlv_rec_dma_end = get_us_clock();
     mlv_rec_dma_duration = (uint32_t)(mlv_rec_dma_end - mlv_rec_dma_start);
     
     edmac_copy_rectangle_adv_cleanup();
@@ -2198,7 +2198,7 @@ static int32_t FAST process_frame()
     
     mlv_rec_dma_active = 1;
     edmac_copy_rectangle_cbr_start(ptr, raw_info.buffer, raw_info.pitch, (skip_x+7)/8*14, skip_y/2*2, res_x*14/8, 0, 0, res_x*14/8, res_y, &mlv_rec_dma_cbr_r, &mlv_rec_dma_cbr_w, NULL);
-    mlv_rec_dma_start = get_us_clock_value();
+    mlv_rec_dma_start = get_us_clock();
 
     /* copy current frame to our buffer and crop it to its final size */
     slots[capture_slot].frame_number = frame_count;
@@ -2806,10 +2806,10 @@ static void raw_writer_task(uint32_t writer)
 
                 /* start write and measure times */
                 job->last_time_after = last_time_after;
-                job->time_before = get_us_clock_value();
+                job->time_before = get_us_clock();
                 job->file_offset = FIO_SeekSkipFile(f, 0, SEEK_CUR);
                 int32_t written = FIO_WriteFile(f, job->block_ptr, job->block_size);
-                job->time_after = get_us_clock_value();
+                job->time_after = get_us_clock();
 
                 last_time_after = job->time_after;
 

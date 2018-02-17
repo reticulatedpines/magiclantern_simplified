@@ -40,7 +40,7 @@ static uint32_t tskmon_isr_task_active_time = 0;
 
 static uint32_t tskmon_get_timer_reg()
 {
-    return *(uint32_t*)0xC0242014;
+    return GET_DIGIC_TIMER();
 }
 
 // returns CPU usage (percentage*10)
@@ -350,7 +350,7 @@ tskmon_task_dispatch(struct task * next_task)
         if(tskmon_trace_active && tskmon_trace_writepos < tskmon_trace_size - 1)
         {
             /* write a stop entry for the task being interrupted */
-            tskmon_trace_buffer[tskmon_trace_writepos].tsc = get_us_clock_value();
+            tskmon_trace_buffer[tskmon_trace_writepos].tsc = get_us_clock();
             tskmon_trace_buffer[tskmon_trace_writepos].type = TSKMON_TRACE_TASK_STOP;
             tskmon_trace_buffer[tskmon_trace_writepos].id = tskmon_last_task->taskId & (TSKMON_MAX_TASKS-1);
             tskmon_trace_buffer[tskmon_trace_writepos].prio = tskmon_last_task->run_prio;
@@ -359,7 +359,7 @@ tskmon_task_dispatch(struct task * next_task)
             tskmon_trace_writepos++;
             
             /* write a start entry for the task being continued */
-            tskmon_trace_buffer[tskmon_trace_writepos].tsc = get_us_clock_value();
+            tskmon_trace_buffer[tskmon_trace_writepos].tsc = get_us_clock();
             tskmon_trace_buffer[tskmon_trace_writepos].type = TSKMON_TRACE_TASK_START;
             tskmon_trace_buffer[tskmon_trace_writepos].id = next_task->taskId & (TSKMON_MAX_TASKS-1);
             tskmon_trace_buffer[tskmon_trace_writepos].prio = next_task->run_prio;
@@ -385,7 +385,7 @@ void tskmon_pre_isr(uint32_t isr)
 #ifdef CONFIG_TSKMON_TRACE
         if(tskmon_trace_active && tskmon_trace_writepos < tskmon_trace_size)
         {
-            tskmon_trace_buffer[tskmon_trace_writepos].tsc = get_us_clock_value();
+            tskmon_trace_buffer[tskmon_trace_writepos].tsc = get_us_clock();
             tskmon_trace_buffer[tskmon_trace_writepos].type = TSKMON_TRACE_ISR_START;
             tskmon_trace_buffer[tskmon_trace_writepos].id = isr;
             tskmon_trace_buffer[tskmon_trace_writepos].prio = isr;
@@ -411,7 +411,7 @@ void tskmon_post_isr(uint32_t isr)
 #ifdef CONFIG_TSKMON_TRACE
         if(tskmon_trace_active && tskmon_trace_writepos < tskmon_trace_size)
         {
-            tskmon_trace_buffer[tskmon_trace_writepos].tsc = get_us_clock_value();
+            tskmon_trace_buffer[tskmon_trace_writepos].tsc = get_us_clock();
             tskmon_trace_buffer[tskmon_trace_writepos].type = TSKMON_TRACE_ISR_STOP;
             tskmon_trace_buffer[tskmon_trace_writepos].id = isr;
             tskmon_trace_buffer[tskmon_trace_writepos].prio = isr;

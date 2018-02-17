@@ -724,7 +724,7 @@ static void menu_numeric_toggle_fast(int* val, int delta, int min, int max, int 
     
     static int prev_t = 0;
     static int prev_delta = 1000;
-    int t = get_ms_clock_value();
+    int t = get_ms_clock();
 
     if (unit == UNIT_TIME)
     {
@@ -1537,7 +1537,7 @@ static void menu_update_usage_counters(struct menu_entry * entry)
      * should count as one */
     static struct menu_entry * prev_entry = 0;
     static int prev_timestamp = 0;
-    int ms_clock = get_ms_clock_value();
+    int ms_clock = get_ms_clock();
     if (entry == prev_entry)
     {
         int elapsed = ms_clock - prev_timestamp;
@@ -4764,13 +4764,13 @@ void menu_benchmark()
 {
     SetGUIRequestMode(1);
     msleep(1000);
-    int t0 = get_ms_clock_value();
+    int t0 = get_ms_clock();
     for (int i = 0; i < 500; i++)
     {
         menu_redraw_do();
         bmp_printf(FONT_MED, 0, 0, "%d%% ", i/5);
     }
-    int t1 = get_ms_clock_value();
+    int t1 = get_ms_clock();
     clrscr();
     NotifyBox(20000, "Elapsed time: %d ms", t1 - t0);
 }
@@ -6529,8 +6529,8 @@ int menu_set_str_value_from_script(const char* name, const char* entry_name, cha
      * - timeout 2 seconds
      */
     int wait_retries = 0;
-    int tstart = get_ms_clock_value();
-    for (int i = 0; get_ms_clock_value() - tstart < 2000; i++)
+    int tstart = get_ms_clock();
+    for (int i = 0; get_ms_clock() - tstart < 2000; i++)
     {
         char* current = menu_get_str_value_from_script_do(name, entry_name, &info);
         if (streq(current, value))
@@ -6686,7 +6686,7 @@ int menu_set_value_from_script(const char* name, const char* entry_name, int val
 int menu_request_image_backend()
 {
     static int last_guimode_request = 0;
-    int t = get_ms_clock_value();
+    int t = get_ms_clock();
     
     if (CURRENT_GUI_MODE != GUIMODE_PLAY)
     {

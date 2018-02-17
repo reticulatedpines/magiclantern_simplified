@@ -46,7 +46,7 @@ static float mem_perf_run(uint32_t block_size, uint32_t address)
 {
     uint64_t runtime = 0;
     uint32_t wall_time = 0;
-    uint32_t wall_start = get_ms_clock_value();
+    uint32_t wall_start = get_ms_clock();
     uint32_t loops = 1024;
     uint32_t outer_loops = 0;
     
@@ -61,15 +61,15 @@ static float mem_perf_run(uint32_t block_size, uint32_t address)
         mem_perf_asm_128(address, block_size, 16);
         
         /* run measurement */
-        uint64_t runtime_start = get_us_clock_value();
+        uint64_t runtime_start = get_us_clock();
         mem_perf_asm_128(address, block_size, loops);
-        uint64_t runtime_stop = get_us_clock_value();
+        uint64_t runtime_stop = get_us_clock();
         
         sei(old_int);
         
         outer_loops++;
         runtime += (runtime_stop - runtime_start);
-        wall_time = get_ms_clock_value() - wall_start;
+        wall_time = get_ms_clock() - wall_start;
     }
     
     float megabytes = (float)outer_loops * (float)block_size / 1000000.0f;

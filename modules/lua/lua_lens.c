@@ -127,9 +127,9 @@ static int luaCB_lens_focus(lua_State * L)
 
 static int wait_focus_status(int timeout, int value1, int value2)
 {
-    int t0 = get_ms_clock_value();
+    int t0 = get_ms_clock();
 
-    while (get_ms_clock_value() - t0 < timeout)
+    while (get_ms_clock() - t0 < timeout)
     {
         msleep(10);
 

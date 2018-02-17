@@ -1704,11 +1704,11 @@ static int write_frames(FILE** pf, void* ptr, int size_used, int num_frames)
         }
     }
     
-    int t0 = get_ms_clock_value();
+    int t0 = get_ms_clock();
     if (!last_write_timestamp) last_write_timestamp = t0;
     idle_time += t0 - last_write_timestamp;
     int r = FIO_WriteFile(f, ptr, size_used);
-    last_write_timestamp = get_ms_clock_value();
+    last_write_timestamp = get_ms_clock();
 
     if (r != size_used) /* 4GB limit or card full? */
     {
@@ -2385,7 +2385,7 @@ static int raw_rec_should_preview(void)
     {
         autofocusing = 0;
         long_halfshutter_press = 0;
-        last_hs_unpress = get_ms_clock_value();
+        last_hs_unpress = get_ms_clock();
     }
     else
     {
@@ -2393,7 +2393,7 @@ static int raw_rec_should_preview(void)
         {
             autofocusing = 1;
         }
-        if (get_ms_clock_value() - last_hs_unpress > 500)
+        if (get_ms_clock() - last_hs_unpress > 500)
         {
             long_halfshutter_press = 1;
         }

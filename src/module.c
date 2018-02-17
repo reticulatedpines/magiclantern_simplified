@@ -1134,7 +1134,7 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
     static void* prev_selected = 0;
     if (entry->selected && entry != prev_selected)
     {
-        last_menu_activity_time = get_ms_clock_value();
+        last_menu_activity_time = get_ms_clock();
         prev_selected = entry;
     }
 
@@ -1151,7 +1151,7 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
     }
 
     /* clean up offline strings if the module menu is no longer used */
-    if (!entry->selected && get_ms_clock_value() > 3000 + last_menu_activity_time)
+    if (!entry->selected && get_ms_clock() > 3000 + last_menu_activity_time)
     {
         if (
                 !module_list[mod_number].valid &&

@@ -436,7 +436,7 @@ int FAST raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_va
     if (speed == 0 && gray_projection == GRAY_PROJECTION_GREEN)
     {
         /* time: 1-2 seconds on full raw 5D3 */
-        //~ int t0 = get_ms_clock_value();
+        //~ int t0 = get_ms_clock();
         for (struct raw_pixblock * row = (struct raw_pixblock *) raw_info.buffer + raw_info.active_area.y1 * raw_info.width / 8 + (raw_info.active_area.x1 + 7) / 8; (void*)row < (void*)raw_info.buffer + raw_info.pitch * raw_info.active_area.y2; row += 2 * raw_info.width / 8)
         {
             struct raw_pixblock * row2 = row + raw_info.pitch / sizeof(struct raw_pixblock);
@@ -484,7 +484,7 @@ int FAST raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_va
                 //~ p->a = rand();
             }
         }
-        //~ int t1 = get_ms_clock_value();
+        //~ int t1 = get_ms_clock();
         //~ NotifyBox(5000, "%d ", t1 - t0);
         //~ save_dng("A:/foo.dng");
     }

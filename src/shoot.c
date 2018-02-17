@@ -274,7 +274,7 @@ int get_seconds_clock()
     return seconds_clock;
 }
 
-int get_ms_clock_value()
+int get_ms_clock()
 {
     seconds_clock_update();
 
@@ -284,7 +284,7 @@ int get_ms_clock_value()
     return miliseconds_clock;
 }
 
-uint64_t get_us_clock_value()
+uint64_t get_us_clock()
 {
     seconds_clock_update();
     return microseconds_clock;
@@ -318,7 +318,7 @@ uint64_t get_us_clock_value()
  */
 int should_run_polling_action(int period_ms, int* last_updated_time)
 {
-    int miliseconds_clock = get_ms_clock_value();
+    int miliseconds_clock = get_ms_clock();
 
     if (miliseconds_clock >= (*last_updated_time) + period_ms)
     {
@@ -379,11 +379,6 @@ static void do_this_every_second() // called every second
     }
 }
 
-#ifndef TIMER_GET_VALUE
-#define TIMER_GET_VALUE() *(volatile uint32_t*)0xC0242014
-#endif
-
-#define TIMER_MAX 1048576
 // called every 200ms or on request
 static void FAST
 seconds_clock_update()
@@ -392,13 +387,13 @@ seconds_clock_update()
     int old_stat = cli();
     
     static uint32_t prev_timer = 0;
-    uint32_t timer_value = TIMER_GET_VALUE();
+    uint32_t timer_value = GET_DIGIC_TIMER();
     // this timer rolls over every 1048576 ticks
     // and 1000000 ticks = 1 second
     // so 1 rollover is done every 1.05 seconds roughly
     
     /* update microsecond timer with simple overflow handling thanks to the timer overflowing at 2^n */
-    uint32_t usec_delta = (timer_value - prev_timer + TIMER_MAX) & (TIMER_MAX - 1);
+    uint32_t usec_delta = (timer_value - prev_timer + DIGIC_TIMER_MAX) & (DIGIC_TIMER_MAX - 1);
     microseconds_clock += usec_delta;               /* overflow after 584942 years */
     
     /* msec and seconds clock will be derived from the high precision counter on request */
@@ -2458,7 +2453,7 @@ void zoom_focus_ring_engage() // called from shoot_task
     if (!DISPLAY_IS_ON) return;
     int zfr = (zoom_focus_ring && is_manual_focus());
     if (!zfr) return;
-    zoom_focus_ring_disable_time = get_ms_clock_value() + 5000;
+    zoom_focus_ring_disable_time = get_ms_clock() + 5000;
     int zoom = zoom_disable_x10 ? 5 : 10;
     set_lv_zoom(zoom);
 }
@@ -2468,7 +2463,7 @@ static void zoom_focus_ring_step()
     if (!zfr) return;
     if (RECORDING) return;
     if (!DISPLAY_IS_ON) return;
-    if (zoom_focus_ring_disable_time && get_ms_clock_value() > zoom_focus_ring_disable_time && !get_halfshutter_pressed())
+    if (zoom_focus_ring_disable_time && get_ms_clock() > zoom_focus_ring_disable_time && !get_halfshutter_pressed())
     {
         if (lv_dispsize > 1) set_lv_zoom(1);
         zoom_focus_ring_disable_time = 0;
@@ -2897,7 +2892,7 @@ bulb_take_pic(int duration)
     
     SW1(1,300);
     
-    int t_start = get_ms_clock_value();
+    int t_start = get_ms_clock();
     int t_end = t_start + duration;
     SW2(1, initial_delay);
     
@@ -2907,13 +2902,13 @@ bulb_take_pic(int duration)
     
     //~ msleep(duration);
     //int d = duration/1000;
-    while (get_ms_clock_value() <= t_end - 1500)
+    while (get_ms_clock() <= t_end - 1500)
     {
         msleep(100);
 
         // number of seconds that passed
         static int prev_s = 0;
-        int s = (get_ms_clock_value() - t_start) / 1000;
+        int s = (get_ms_clock() - t_start) / 1000;
         if (s == prev_s) continue;
         prev_s = s;
         
@@ -2989,7 +2984,7 @@ bulb_take_pic(int duration)
         }
     }
     
-    while (get_ms_clock_value() < t_end && !job_state_ready_to_take_pic())
+    while (get_ms_clock() < t_end && !job_state_ready_to_take_pic())
         msleep(MIN_MSLEEP);
     
     //~ NotifyBox(3000, "BulbEnd");

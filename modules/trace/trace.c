@@ -14,7 +14,7 @@
 
 static trace_entry_t trace_contexts[TRACE_MAX_CONTEXT];
 
-extern tsc_t get_us_clock_value();
+extern tsc_t get_us_clock();
 
 /* general selection of allocation method */
 static void *trace_alloc(uint32_t size)
@@ -157,7 +157,7 @@ uint32_t trace_start(char *name, char *file_name)
         return TRACE_ERROR;
     }
 
-    ctx->start_tsc = get_us_clock_value();
+    ctx->start_tsc = get_us_clock();
     ctx->last_tsc = ctx->start_tsc;
 
     /* make sure task is running */
@@ -475,7 +475,7 @@ uint32_t trace_write(uint32_t context, char *string, ...)
     va_list ap;
     
     va_start(ap, string);
-    uint32_t ret = trace_vwrite(context, get_us_clock_value(), string, ap);
+    uint32_t ret = trace_vwrite(context, get_us_clock(), string, ap);
     va_end(ap);
     
     return ret;
@@ -495,7 +495,7 @@ uint32_t trace_write_tsc(uint32_t context, tsc_t tsc, char *string, ...)
 /* write some binary data into specified trace with an variable length field in front */
 uint32_t trace_write_binary(uint32_t context, uint8_t *buffer, uint32_t length)
 {
-    tsc_t tsc = get_us_clock_value();
+    tsc_t tsc = get_us_clock();
     trace_entry_t *ctx = &trace_contexts[context];
 
     /* make sure ctx is valid, this ctx is used and the writer thread is running */

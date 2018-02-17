@@ -564,7 +564,7 @@ static int edmac_extra_index = 0;
 
 static void FAST edmac_spy_poll(int last_expiry, void* unused)
 {
-    uint32_t start_clock = MEM(0xC0242014);
+    uint32_t start_clock = GET_DIGIC_TIMER();
 
     if (edmac_index >= COUNT(edmac_states))
     {
@@ -626,7 +626,7 @@ static void FAST edmac_spy_poll(int last_expiry, void* unused)
      */
     edmac_states[edmac_index][CLK_IDX] = start_clock;
     edmac_states[edmac_index][TSK_IDX] = (uint32_t) current_task->name;
-    edmac_states[edmac_index][OVH_IDX] = MEM(0xC0242014) - start_clock;
+    edmac_states[edmac_index][OVH_IDX] = GET_DIGIC_TIMER() - start_clock;
     edmac_states[edmac_index][XTR_IDX] = edmac_extra_index;
     edmac_index++;
 }

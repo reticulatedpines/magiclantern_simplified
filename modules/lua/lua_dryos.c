@@ -198,7 +198,7 @@ static int luaCB_dryos_index(lua_State * L)
     if(!strcmp(key, "clock")) lua_pushinteger(L, get_seconds_clock());
     /// Get the number of milliseconds since camera startup.
     // @tfield int ms_clock
-    else if(!strcmp(key, "ms_clock")) lua_pushinteger(L, get_ms_clock_value());
+    else if(!strcmp(key, "ms_clock")) lua_pushinteger(L, get_ms_clock());
     /// Get/Set the image filename prefix (e.g.&nbsp;"IMG_").
     ///
     /// Set to empty string to restore default value.

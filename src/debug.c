@@ -21,7 +21,6 @@
 #include "cropmarks.h"
 #include "fw-signature.h"
 #include "lvinfo.h"
-#include "timer.h"
 #include "raw.h"
 
 #ifdef CONFIG_DEBUG_INTERCEPT

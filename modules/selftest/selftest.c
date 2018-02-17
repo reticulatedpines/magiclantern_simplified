@@ -91,21 +91,21 @@ static void timer_cbr(int arg1, void* arg2)
 {
     timer_func = 1;
     timer_arg = arg1;
-    timer_time = get_us_clock_value();
+    timer_time = get_us_clock();
 }
 
 static void overrun_cbr(int arg1, void* arg2)
 {
     timer_func = 2;
     timer_arg = arg1;
-    timer_time = get_us_clock_value();
+    timer_time = get_us_clock();
 }
 
 static void next_tick_cbr(int arg1, void* arg2)
 {
     timer_func = 3;
     timer_arg = arg1;
-    timer_time = get_us_clock_value();
+    timer_time = get_us_clock();
     SetHPTimerNextTick(arg1, 100000, timer_cbr, overrun_cbr, 0);
 }
 
@@ -166,10 +166,10 @@ static void stub_test_edmac()
         /* caveat: busy waiting; do not use in practice */
         /* here, waiting for ~10ms may be too much, as EDMAC is very fast */
         uint32_t mid = (uint32_t)CACHEABLE(dst) + size / 2;
-        uint64_t t0 = get_us_clock_value();
+        uint64_t t0 = get_us_clock();
         while (edmac_get_pointer(edmac_write_chan) < mid)
             ;
-        uint64_t t1 = get_us_clock_value();
+        uint64_t t1 = get_us_clock();
 
         /* stop here */
         AbortEDmac(edmac_write_chan);
@@ -201,8 +201,8 @@ static void stub_test_edmac()
 /* delay with interrupts disabled */
 static void busy_wait_ms(int ms)
 {
-    int t0 = get_ms_clock_value();
-    while (get_ms_clock_value() - t0 < ms)
+    int t0 = get_ms_clock();
+    while (get_ms_clock() - t0 < ms)
         ;
 }
 
@@ -434,9 +434,9 @@ static void stub_test_cache_fio()
         int handle_cache = rand() & 3;
 
         /* run one iteration and time it */
-        int t0 = get_ms_clock_value();
+        int t0 = get_ms_clock();
         int fail = stub_test_cache_fio_do(handle_cache);
-        int t1 = get_ms_clock_value();
+        int t1 = get_ms_clock();
         ASSERT(fail == (fail & 3));
 
         /* count the stats */
@@ -493,9 +493,9 @@ static void stub_test_cache()
 
 static int wait_focus_status(int timeout, int value)
 {
-    int t0 = get_ms_clock_value();
+    int t0 = get_ms_clock();
 
-    while (get_ms_clock_value() - t0 < timeout)
+    while (get_ms_clock() - t0 < timeout)
     {
         msleep(10);
 
@@ -672,7 +672,7 @@ static void stub_test_gui_timers()
     
     /* SetTimerAfter, CancelTimer */
     {
-        int t0 = get_us_clock_value()/1000;
+        int t0 = get_us_clock()/1000;
         int ta0 = 0;
 
         /* this one should overrun */
@@ -714,7 +714,7 @@ static void stub_test_gui_timers()
         /* run these tests in PLAY mode, because the CPU usage is higher in other modes, and may influence the results */
         enter_play_mode();
 
-        int64_t t0 = get_us_clock_value();
+        int64_t t0 = get_us_clock();
         int ta0 = 0;
 
         /* this one should overrun */
@@ -733,7 +733,7 @@ static void stub_test_gui_timers()
         
         TEST_FUNC_CHECK(ABS(DeltaT(timer_time, t0) - 100000), <= 2000);
         TEST_FUNC_CHECK(ABS(DeltaT(timer_arg, ta0) - 100000), <= 2000);
-        TEST_FUNC_CHECK(ABS((get_us_clock_value() - t0) - 110000), <= 2000);
+        TEST_FUNC_CHECK(ABS((get_us_clock() - t0) - 110000), <= 2000);
 
         /* this one should call SetHPTimerNextTick in the CBR */
         timer_func = 0;
@@ -749,7 +749,7 @@ static void stub_test_gui_timers()
         TEST_FUNC_CHECK(timer_func, == 1);  /* ta0 + 310000 => timer_cbr should be called by now */
         TEST_FUNC_CHECK(ABS(DeltaT(timer_time, t0) - 300000), <= 2000);
         TEST_FUNC_CHECK(ABS(DeltaT(timer_arg, ta0) - 300000), <= 2000);
-        TEST_FUNC_CHECK(ABS((get_us_clock_value() - t0) - 310000), <= 2000);
+        TEST_FUNC_CHECK(ABS((get_us_clock() - t0) - 310000), <= 2000);
     }
 }
 
@@ -757,9 +757,9 @@ static void stub_test_other_timers()
 {
     // digic clock, msleep
     int t0, t1;
-    TEST_FUNC(t0 = *(uint32_t*)0xC0242014);
+    TEST_FUNC(t0 = GET_DIGIC_TIMER());
     TEST_VOID(msleep(250));
-    TEST_FUNC(t1 = *(uint32_t*)0xC0242014);
+    TEST_FUNC(t1 = GET_DIGIC_TIMER());
     TEST_FUNC_CHECK(ABS(MOD(t1-t0, 1048576)/1000 - 250), < 30);
 
     // calendar
@@ -1165,7 +1165,7 @@ static void rpc_test_task(void* unused)
     {
         msleep(50);
 
-        ml_rpc_send(ML_RPC_PING, *(volatile uint32_t *)0xC0242014, 0, 0, 1);
+        ml_rpc_send(ML_RPC_PING, GET_DIGIC_TIMER(), 0, 0, 1);
         loops++;
     }
     ml_rpc_verbose(0);
