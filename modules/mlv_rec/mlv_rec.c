@@ -119,8 +119,8 @@ static uint32_t cam_5d3 = 0;
 static uint32_t cam_5d3_113 = 0;
 static uint32_t cam_5d3_123 = 0;
 
-static uint32_t raw_rec_edmac_align = 0x01000;
-static uint32_t raw_rec_write_align = 0x01000;
+static uint32_t raw_rec_edmac_align = 0x0400;
+static uint32_t raw_rec_write_align = 0x0200;
 
 static uint32_t mlv_rec_dma_active = 0;
 static uint32_t mlv_writer_threads = 2;
@@ -3289,9 +3289,6 @@ static void raw_video_rec_task()
     /* disable Canon's powersaving (30 min in LiveView) */
     powersave_prohibit();
 
-    /* signal that we are starting, call this before any memory allocation to give CBR the chance to allocate memory */
-    mlv_rec_call_cbr(MLV_REC_EVENT_STARTING, NULL);
-
     /* allocate memory */
     if(!setup_buffers())
     {
@@ -3300,6 +3297,13 @@ static void raw_video_rec_task()
         beep();
         goto cleanup;
     }
+
+    /* signal that we are starting */
+    /* note: previously, this used to be called before memory allocation,
+     * but the reason for doing that apparently went away a long time ago
+     * (at least mlv_snd doesn't seem to do any large mallocs on its own any more) */
+    raw_rec_cbr_starting();
+    mlv_rec_call_cbr(MLV_REC_EVENT_STARTING, NULL);
 
     msleep(start_delay * 1000);
 
