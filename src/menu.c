@@ -1537,7 +1537,7 @@ static void menu_update_usage_counters(struct menu_entry * entry)
      * should count as one */
     static struct menu_entry * prev_entry = 0;
     static int prev_timestamp = 0;
-    int ms_clock = get_ms_clock_value_fast();
+    int ms_clock = get_ms_clock_value();
     if (entry == prev_entry)
     {
         int elapsed = ms_clock - prev_timestamp;

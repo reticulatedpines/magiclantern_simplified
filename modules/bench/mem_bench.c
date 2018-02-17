@@ -86,7 +86,7 @@ static void mem_benchmark_run(char* msg, int* y, int bufsize, mem_bench_fun benc
             bench_fun(arg0, arg1, arg2, arg3);
 
             /* run the benchmark for roughly 1 second */
-            if (get_ms_clock_value_fast() - t0m > 1000)
+            if (get_ms_clock_value() - t0m > 1000)
             {
                 times = i + 1;
                 break;

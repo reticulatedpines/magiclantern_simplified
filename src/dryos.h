@@ -238,7 +238,6 @@ void _card_led_off();
 int get_seconds_clock();
 int get_ms_clock_value();
 uint64_t get_us_clock_value();
-int get_ms_clock_value_fast();
 int should_run_polling_action(int period_ms, int* last_updated_time);
 void wait_till_next_second();
 
