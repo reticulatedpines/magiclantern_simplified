@@ -29,6 +29,7 @@
 
 #define MLV_VIDEO_CLASS_FLAG_LZMA    0x80
 #define MLV_VIDEO_CLASS_FLAG_DELTA   0x40
+#define MLV_VIDEO_CLASS_FLAG_LJ92    0x20
 
 #define MLV_AUDIO_CLASS_FLAG_LZMA    0x80
 
@@ -289,6 +290,7 @@ void mlv_fill_lens(mlv_lens_hdr_t *hdr, uint64_t start_timestamp);
 void mlv_fill_idnt(mlv_idnt_hdr_t *hdr, uint64_t start_timestamp);
 void mlv_fill_wbal(mlv_wbal_hdr_t *hdr, uint64_t start_timestamp);
 void mlv_fill_styl(mlv_styl_hdr_t *hdr, uint64_t start_timestamp);
+void mlv_fill_wavi(mlv_wavi_hdr_t *hdr, uint64_t start_timestamp);  /* provided by mlv_snd */
 void mlv_build_vers(mlv_vers_hdr_t **hdr, uint64_t start_timestamp, const char *version_string);
 
 /* randomize the 64 bits passed in parameter using LFSR */

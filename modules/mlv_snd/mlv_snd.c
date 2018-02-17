@@ -261,7 +261,8 @@ static void mlv_snd_stop()
     }
     
     /* some models may need this */
-    SoundDevShutDownIn();
+    StopASIFDMAADC();
+    // SoundDevShutDownIn();  /* no model seems to need this */
     audio_configure(1);
     
     /* now flush the buffers */
@@ -473,16 +474,18 @@ static void mlv_snd_start()
     mlv_snd_state = MLV_SND_STATE_PREPARE;
 }
 
-static void mlv_snd_queue_wavi()
+void mlv_fill_wavi(mlv_wavi_hdr_t *hdr, uint64_t start_timestamp)
 {
-    trace_write(trace_ctx, "mlv_snd_queue_wavi: queueing a WAVI block");
-    
-    /* queue an WAVI block that contains information about the audio format */
-    mlv_wavi_hdr_t *hdr = malloc(sizeof(mlv_wavi_hdr_t));
-    
     mlv_set_type((mlv_hdr_t*)hdr, "WAVI");
     hdr->blockSize = sizeof(mlv_wavi_hdr_t);
-    mlv_rec_set_rel_timestamp((mlv_hdr_t*)hdr, get_us_clock());
+    mlv_set_timestamp((mlv_hdr_t *)hdr, start_timestamp);
+
+    if(!mlv_snd_enabled)
+    {
+        /* not recording sound, don't trick MLV decoders :) */
+        mlv_set_type((mlv_hdr_t*)hdr, "NULL");
+        return;
+    }
     
     /* this part is compatible to RIFF WAVE/fmt header */
     hdr->format = 1;
@@ -491,6 +494,17 @@ static void mlv_snd_queue_wavi()
     hdr->bytesPerSecond = mlv_snd_in_sample_rate * (mlv_snd_in_bits_per_sample / 8) * mlv_snd_in_channels;
     hdr->blockAlign = (mlv_snd_in_bits_per_sample / 8) * mlv_snd_in_channels;
     hdr->bitsPerSample = mlv_snd_in_bits_per_sample;
+}
+
+/* only used with mlv_rec */
+static void mlv_snd_queue_wavi()
+{
+    trace_write(trace_ctx, "mlv_snd_queue_wavi: queueing a WAVI block");
+    
+    /* queue an WAVI block that contains information about the audio format */
+    mlv_wavi_hdr_t *hdr = malloc(sizeof(mlv_wavi_hdr_t));
+    
+    mlv_fill_wavi(hdr, get_us_clock_value());
     
     mlv_rec_queue_block((mlv_hdr_t *)hdr);
 }
@@ -696,7 +710,14 @@ static unsigned int mlv_snd_init()
     mlv_snd_buffers_empty = (struct msg_queue *) msg_queue_create("mlv_snd_buffers_empty", MLV_SND_BLOCKS_PER_SLOT * MLV_SND_SLOTS);
     mlv_snd_buffers_done = (struct msg_queue *) msg_queue_create("mlv_snd_buffers_done", MLV_SND_BLOCKS_PER_SLOT * MLV_SND_SLOTS);
     
-    menu_add("Audio", mlv_snd_menu, COUNT(mlv_snd_menu));
+    if (menu_get_value_from_script("Movie", "RAW video") != INT_MIN)
+    {
+        menu_add("RAW video", mlv_snd_menu, COUNT(mlv_snd_menu));
+    }
+    else if (menu_get_value_from_script("Movie", "RAW video (MLV)") != INT_MIN)
+    {
+        menu_add("RAW video (MLV)", mlv_snd_menu, COUNT(mlv_snd_menu));
+    }
     trace_write(trace_ctx, "mlv_snd_init: done");
     
     /* register callbacks */
