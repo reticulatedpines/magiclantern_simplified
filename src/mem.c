@@ -93,7 +93,7 @@ struct mem_allocator
     int preferred_free_space;               /* if free space would drop under this, will try from other allocators first */
     int minimum_free_space;                 /* will only use as a last resort if free space would drop under this */
     int minimum_alloc_size;                 /* will never allocate a buffer smaller than this */
-    int maximum_blocks;                     /* will never allocate more than N buffers */
+    int depends_on_malloc;                  /* will not allocate if malloc buffer is critically low */
     
     /* private stuff */
     int mem_used;
@@ -190,8 +190,8 @@ static struct mem_allocator allocators[] = {
         
         .is_preferred_for_temporary_space = 1,  /* if we know we'll free this memory quickly, prefer this one */
 
-        /* 5D3 crashes at around 1300 calls to AllocateContinuousMemoryResource, no idea about others */
-        .maximum_blocks = 1000,
+        /* AllocateContinuousMemoryResource also calls malloc for each request, and may run out of space (5D3) */
+        .depends_on_malloc = 1,
         
         /* no free space check yet; just assume it's BIG */
         .preferred_min_alloc_size = 512 * 1024,
@@ -710,11 +710,11 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
             continue;
         }
         
-        /* do we have enough free blocks? */
-        int max_blocks = allocators[a].maximum_blocks ? allocators[a].maximum_blocks : INT_MAX;
-        if (allocators[a].num_blocks >= max_blocks)
+        /* if this allocator requires malloc for its internal data structures,
+         * do we have enough free space there? (if not, we risk ERR70) */
+        if (allocators[a].depends_on_malloc && GetFreeMemForMalloc() < 16*1024)
         {
-            dbg_printf("%s: not enough free blocks (%d,%d)\n", allocators[a].num_blocks, max_blocks);
+            dbg_printf("%s: not enough space for malloc (%d)\n", allocators[a].name, GetFreeMemForMalloc());
             continue;
         }
         
