@@ -115,13 +115,6 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #define DEFAULT_RAW_BUFFER  0x4d600100
 #define DEFAULT_RAW_BUFFER_SIZE (0x4ee00000 - 0x4d600100)
 
-/* for higher resolutions we'll allocate a new buffer, as needed */
-#define CONFIG_ALLOCATE_RAW_LV_BUFFER
-/* buffer size for a full-res LiveView image */
-#define RAW_LV_BUFFER_ALLOC_SIZE ((0x527 + 2612) * (0x2FE - 0x18)*8 * 14/8)
-#endif
-
-
 #ifdef CONFIG_650D
 #define DEFAULT_RAW_BUFFER MEM(0x25B00 + 0x3C)
 #define DEFAULT_RAW_BUFFER_SIZE (0x4ee00000 - 0x4d600100)
@@ -170,6 +163,12 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
     #endif
     #define DEFAULT_RAW_BUFFER_SIZE (9*1024*1024)
 #endif
+
+/* for higher resolutions we'll allocate a new buffer, as needed */
+/* all cameras using CONFIG_EDMAC_RAW_SLURP should be able to handle this */
+/* SRM_BUFFER_SIZE matches the full-res image size, as 14-bit uncompressed (actually a bit larger, but not much) */
+#define CONFIG_ALLOCATE_RAW_LV_BUFFER
+#define RAW_LV_BUFFER_ALLOC_SIZE (SRM_BUFFER_SIZE - 0x1000)
 
 
 #else // "Traditional" RAW LV buffer detection (no CONFIG_EDMAC_RAW_SLURP)
