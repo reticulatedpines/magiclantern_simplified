@@ -155,7 +155,7 @@ static int is_supported_mode()
         /* note: zoom check is also covered by check_cmos_vidmode */
         /* (we need to apply CMOS settings before PROP_LV_DISPSIZE fires) */
         case CROP_PRESET_CENTER_Z:
-            return lv_dispsize < 10;
+            return 1;
 
         default:
             return is_1080p() || is_720p();
@@ -1369,7 +1369,7 @@ static MENU_UPDATE_FUNC(crop_update)
         {
             if (lv_dispsize == 1)
             {
-                MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "To use this mode, exit ML menu and press the zoom button (set to x5).");
+                MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "To use this mode, exit ML menu & press the zoom button (set to x5/x10).");
             }
         }
         else /* non-zoom modes */
@@ -1513,10 +1513,34 @@ static void center_canon_preview()
     /* center the preview window on the raw buffer */
     /* overriding these registers once will do the trick...
      * ... until the focus box is moved by the user */
+    int old = cli();
+
     uint32_t pos1 = shamem_read(0xc0f383d4);
     uint32_t pos2 = shamem_read(0xc0f383dc);
+
+    if ((pos1 & 0x80008000) == 0x80008000 &&
+        (pos2 & 0x80008000) == 0x80008000)
+    {
+        /* already centered */
+        sei(old);
+        return;
+    }
+
+    int x1 = pos1 & 0xFFFF;
+    int x2 = pos2 & 0xFFFF;
+    int y1 = pos1 >> 16;
+    int y2 = pos2 >> 16;
+
+    if (x2 - x1 != 299 && y2 - y1 != 792)
+    {
+        /* not x5/x10 (values hardcoded for 5D3) */
+        sei(old);
+        return;
+    }
+
     int raw_xc = (146 + 3744) / 2 / 4;  /* hardcoded for 5D3 */
     int raw_yc = ( 60 + 1380) / 2;      /* values from old raw.c */
+
     if (1)
     {
         /* use the focus box position for moving the preview window around */
@@ -1532,10 +1556,6 @@ static void center_canon_preview()
         raw_yc = COERCE(raw_yc, 444, 950);  /* trial and error; broken image at the edges, outside these limits */
         dbg_printf("-> %d,%d using focus box position\n", raw_xc, raw_yc);
     }
-    int x1 = pos1 & 0xFFFF;
-    int x2 = pos2 & 0xFFFF;
-    int y1 = pos1 >> 16;
-    int y2 = pos2 >> 16;
     int current_xc = (x1 + x2) / 2;
     int current_yc = (y1 + y2) / 2;
     int dx = raw_xc - current_xc;
@@ -1550,6 +1570,8 @@ static void center_canon_preview()
         EngDrvOutLV(0xc0f383d4, PACK32(x1 + dx, y1 + dy) | 0x80008000);
         EngDrvOutLV(0xc0f383dc, PACK32(x2 + dx, y2 + dy) | 0x80008000);
     }
+
+    sei(old);
 }
 
 /* when closing ML menu, check whether we need to refresh the LiveView */
@@ -1594,7 +1616,8 @@ static unsigned int crop_rec_polling_cbr(unsigned int unused)
         lv_dirty = 0;
     }
 
-    if (lv_dispsize == 5 && crop_preset == CROP_PRESET_CENTER_Z)
+    if (crop_preset == CROP_PRESET_CENTER_Z &&
+        (lv_dispsize == 5 || lv_dispsize == 10))
     {
         center_canon_preview();
     }
