@@ -1263,6 +1263,59 @@ static inline uint32_t reg_override_40_fps(uint32_t reg, uint32_t old_val)
     return 0;
 }
 
+static inline uint32_t reg_override_fps_nocheck(uint32_t reg, uint32_t timerA, uint32_t timerB, uint32_t old_val)
+{
+    /* hardware register requires timer-1 */
+    timerA--;
+    timerB--;
+
+    switch (reg)
+    {
+        case 0xC0F06824:
+        case 0xC0F06828:
+        case 0xC0F0682C:
+        case 0xC0F06830:
+        case 0xC0F06010:
+        {
+            return timerA;
+        }
+        
+        case 0xC0F06008:
+        case 0xC0F0600C:
+        {
+            return timerA | (timerA << 16);
+        }
+
+        case 0xC0F06014:
+        {
+            return timerB;
+        }
+    }
+
+    return 0;
+}
+
+static inline uint32_t reg_override_zoom_fps(uint32_t reg, uint32_t old_val)
+{
+    /* attempt to reconfigure the x5 zoom at the FPS selected in Canon menu */
+    int timerA = 
+        (video_mode_fps == 24) ? 512 :
+        (video_mode_fps == 25) ? 512 :
+        (video_mode_fps == 30) ? 520 :
+        (video_mode_fps == 50) ? 512 :  /* cannot get 50, use 25 */
+        (video_mode_fps == 60) ? 520 :  /* cannot get 60, use 30 */
+                                  -1 ;
+    int timerB =
+        (video_mode_fps == 24) ? 1955 :
+        (video_mode_fps == 25) ? 1875 :
+        (video_mode_fps == 30) ? 1540 :
+        (video_mode_fps == 50) ? 1875 :
+        (video_mode_fps == 60) ? 1540 :
+                                   -1 ;
+
+    return reg_override_fps_nocheck(reg, timerA, timerB, old_val);
+}
+
 static int engio_vidmode_ok = 0;
 
 static void * get_engio_reg_override_func()
@@ -1277,6 +1330,7 @@ static void * get_engio_reg_override_func()
         (crop_preset == CROP_PRESET_UHD)        ? reg_override_UHD        :
         (crop_preset == CROP_PRESET_40_FPS)     ? reg_override_40_fps     :
         (crop_preset == CROP_PRESET_FULLRES_LV) ? reg_override_fullres_lv :
+        (crop_preset == CROP_PRESET_CENTER_Z)   ? reg_override_zoom_fps   :
                                                   0                       ;
     return reg_override_func;
 }
@@ -1299,8 +1353,9 @@ static void FAST engio_write_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
         uint32_t old = *(buf+1);
         if (reg == 0xC0F06804)
         {
-            engio_vidmode_ok =
-                (old == 0x528011B || old == 0x2B6011B);
+            engio_vidmode_ok = (crop_preset == CROP_PRESET_CENTER_Z)
+                ? (old == 0x56601EB)                        /* x5 zoom */
+                : (old == 0x528011B || old == 0x2B6011B);   /* 1080p or 720p */
         }
     }
 
