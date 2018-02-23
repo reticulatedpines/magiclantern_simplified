@@ -81,8 +81,8 @@ struct mem_allocator
     mem_free_func free;
     mem_alloc_func malloc_dma;              /* optional, if you can allocate uncacheable (DMA) memory from here */
     mem_free_func free_dma;
-    mem_get_free_space_func get_free_space; /* can be null; will never try to malloc more than MAX(returned value / 2, get_max_region()) */
-    mem_get_max_region_func get_max_region; /* can be null; will never try to malloc more than returned value */
+    mem_get_free_space_func get_free_space; /* can be null; if unknown, it's assumed to be large enough (30 MB) */
+    mem_get_max_region_func get_max_region; /* can be null; if unknown, it's assumed to be free space / 4 */
     
     int is_preferred_for_temporary_space;   /* prefer using this for memory that will be freed shortly after used */
     
@@ -92,6 +92,7 @@ struct mem_allocator
     int minimum_free_space;                 /* will only use as a last resort if free space would drop under this */
     int minimum_alloc_size;                 /* will never allocate a buffer smaller than this */
     int depends_on_malloc;                  /* will not allocate if malloc buffer is critically low */
+    int try_next_allocator;                 /* if this allocator fails, try the next one */
     
     /* private stuff */
     int mem_used;
@@ -191,7 +192,11 @@ static struct mem_allocator allocators[] = {
 
         /* AllocateContinuousMemoryResource also calls malloc for each request, and may run out of space (5D3) */
         .depends_on_malloc = 1,
-        
+
+        /* on this allocator, it's easier/faster to try to allocate some particular size,
+         * than querying the available size (we don't know how) */
+        .try_next_allocator = 1,
+
         /* no free space check yet; just assume it's BIG */
         .preferred_min_alloc_size = 512 * 1024,
         .preferred_max_alloc_size = 20 * 1024 * 1024,
@@ -813,6 +818,11 @@ void* __mem_malloc(size_t size, unsigned int flags, const char* file, unsigned i
         
         void* ptr = memcheck_malloc(size, file, line, allocator_index, flags);
         
+        if (!ptr && allocators[allocator_index].try_next_allocator)
+        {
+            ptr = memcheck_malloc(size, file, line, allocator_index + 1, flags);
+        }
+
         #ifdef MEM_DEBUG
         int t1 = get_ms_clock_value();
         #endif
