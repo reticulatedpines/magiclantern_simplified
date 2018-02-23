@@ -133,7 +133,7 @@ static struct memSuite *shoot_malloc_suite_int(size_t size, int relaxed)
     
     AllocateMemoryResource(size, allocCBR, (unsigned int)suite_info, 0x50);
     
-    int r = take_semaphore(suite_info->sem, 1000);
+    int r = take_semaphore(suite_info->sem, 100);
     if (r)
     {
         suite_info->timed_out = 1;
@@ -161,11 +161,11 @@ struct memSuite *_shoot_malloc_suite(size_t size)
     else
     {
         /* allocate some backup that will service the queued allocation request that fails during the loop */
-        int backup_size = 8 * 1024 * 1024;
+        int backup_size = 4 * 1024 * 1024;
         int max_size = 0;
         struct memSuite *backup = shoot_malloc_suite_int(backup_size, 0);
 
-        for(int size = 4; size < 1024; size += 4)
+        for (int size = 4; size < 1024; size += 4)
         {
             struct memSuite *testSuite = shoot_malloc_suite_int(size * 1024 * 1024, 1);
             if(testSuite)
@@ -201,7 +201,7 @@ struct memSuite * _shoot_malloc_suite_contig(size_t size)
         
         AllocateContinuousMemoryResource(size, allocCBR, (unsigned int)suite_info, 0x50);
 
-        int r = take_semaphore(suite_info->sem, 1000);
+        int r = take_semaphore(suite_info->sem, 100);
         if (r)
         {
             suite_info->timed_out = 1;
@@ -280,7 +280,7 @@ void exmem_test()
     
     msleep(2000);
     AllocateMemoryResource(1024*1024*32, allocCBR, (unsigned int)&hSuite, 0x50);
-    int r = take_semaphore(alloc_sem, 1000);
+    int r = take_semaphore(alloc_sem, 100);
     if (r) return;
     
     if(!hSuite)
