@@ -33,7 +33,6 @@
 #define MEM_SEC_ZONE 16
 #define MEMCHECK_ENTRIES 256
 #define HISTORY_ENTRIES 256
-#define TASK_NAME_SIZE 12
 
 #define JUST_FREED 0xF12EEEED   /* FREEED */
 #define UNTRACKED 0xFFFFFFFF
@@ -257,7 +256,7 @@ struct memcheck_entry
     char * file;
     uint16_t failed;
     uint16_t line;
-    char task_name[TASK_NAME_SIZE];
+    char * task_name;
 };
 
 static struct memcheck_entry memcheck_entries[MEMCHECK_ENTRIES];
@@ -411,7 +410,7 @@ static unsigned int memcheck_check(unsigned int ptr, unsigned int entry)
         }
         else
         {
-            task_name = get_current_task_name();
+            task_name = current_task->name;
         }
         
         if (allocator >= 0 && allocator < COUNT(allocators))
@@ -490,7 +489,7 @@ static void memcheck_add(unsigned int ptr, const char *file, unsigned int line)
     memcheck_entries[memcheck_bufpos].failed = 0;
     memcheck_entries[memcheck_bufpos].file = file_name_without_path(file);
     memcheck_entries[memcheck_bufpos].line = line;
-    snprintf((char*)memcheck_entries[memcheck_bufpos].task_name, TASK_NAME_SIZE, "%s", get_current_task_name());
+    memcheck_entries[memcheck_bufpos].task_name = current_task->name;
     
     ((struct memcheck_hdr *)ptr)->id = memcheck_bufpos;
     
@@ -797,7 +796,7 @@ void* __mem_malloc(size_t size, unsigned int flags, const char* file, unsigned i
     ASSERT(mem_sem);
     take_semaphore(mem_sem, 0);
 
-    dbg_printf("alloc(%s) from %s:%d task %s\n", format_memory_size_and_flags(size, flags), file, line, get_current_task_name());
+    dbg_printf("alloc(%s) from %s:%d task %s\n", format_memory_size_and_flags(size, flags), file, line, current_task->name);
     
     /* show files without full path in error messages (they are too big) */
     file = file_name_without_path(file);
@@ -849,7 +848,7 @@ void* __mem_malloc(size_t size, unsigned int flags, const char* file, unsigned i
     
     /* could not find an allocator (maybe out of memory?) */
     snprintf(last_error_msg_short, sizeof(last_error_msg_short), "alloc(%s)", format_memory_size_and_flags(size, flags));
-    snprintf(last_error_msg, sizeof(last_error_msg), "No allocator for %s at %s:%d, %s.", format_memory_size_and_flags(size, flags), file, line, get_current_task_name());
+    snprintf(last_error_msg, sizeof(last_error_msg), "No allocator for %s at %s:%d, %s.", format_memory_size_and_flags(size, flags), file, line, current_task->name);
     dbg_printf("alloc not found\n");
     give_semaphore(mem_sem);
     return 0;
@@ -869,7 +868,7 @@ void __mem_free(void* buf)
     /* make sure the caching flag is the same as returned by the allocator */
     buf = (flags & UNCACHEABLE_FLAG) ? UNCACHEABLE(buf) : CACHEABLE(buf);
 
-    dbg_printf("free(%s) from task %s\n", format_memory_size_and_flags(((struct memcheck_hdr *)ptr)->length, flags), get_current_task_name());
+    dbg_printf("free(%x %s) from task %s\n", buf, format_memory_size_and_flags(((struct memcheck_hdr *)ptr)->length, flags), current_task->name);
     
     if (allocator_index >= 0 && allocator_index < COUNT(allocators))
     {
@@ -1351,7 +1350,7 @@ static MENU_UPDATE_FUNC(mem_total_display)
 
             char* file = (char*)memcheck_entries[buf_pos].file;
             int line = memcheck_entries[buf_pos].line;
-            char* task_name = (char*) memcheck_entries[buf_pos].task_name;
+            char* task_name = memcheck_entries[buf_pos].task_name;
             char* allocator_name = allocators[allocator].name;
             bmp_printf(FONT_MED, x, y, "%s%s", memcheck_entries[buf_pos].failed ? "[FAIL] " : "", format_memory_size_and_flags(size, flags));
             bmp_printf(FONT_MED, 180, y, "%s:%d task %s", file, line, task_name);
