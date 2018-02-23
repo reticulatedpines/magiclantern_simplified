@@ -24,6 +24,7 @@ static int is_5D3 = 0;
 static int is_basic = 0;
 
 static CONFIG_INT("crop.preset", crop_preset_index, 0);
+static CONFIG_INT("crop.shutter_range", shutter_range, 0);
 
 enum crop_preset {
     CROP_PRESET_OFF = 0,
@@ -636,15 +637,14 @@ static int adjust_shutter_blanking(int old)
     float orig_shutter = frame_duration_orig * current_exposure / fps_timer_b_orig;
 
     float new_shutter =
-        (current_fps == default_fps) ?
+        (shutter_range == 0) ?
         ({
-            /* same FPS? adjust to match the original shutter speed */
+            /* original shutter speed from the altered video mode */
             orig_shutter;
         }) :
         ({
-            /* in modes with different FPS, map the available range
-             * of 1/4000...1/30 (24-30p) or 1/4000...1/60 (50-60p)
-             * from minimum allowed (1/15000) to 1/fps */
+            /* map the available range of 1/4000...1/30 (24-30p) or 1/4000...1/60 (50-60p)
+             * from minimum allowed (1/15000 with full-res LV) to 1/fps */
             int max_fps_shutter = (video_mode_fps <= 30) ? 33333 : 64000;
             int default_fps_adj = 1e9 / (1e9 / max_fps_shutter - 250);
             (orig_shutter - 250e-6) * default_fps_adj / current_fps;
@@ -1410,6 +1410,15 @@ static struct menu_entry crop_rec_menu[] =
         .depends_on = DEP_LIVEVIEW,
         .children =  (struct menu_entry[]) {
             {
+                .name       = "Shutter range",
+                .priv       = &shutter_range,
+                .max        = 1,
+                .choices    = CHOICES("Original", "Full range"),
+                .help       = "Choose the available shutter speed range:",
+                .help2      = "Original: default range used by Canon in selected video mode.\n"
+                              "Full range: from 1/FPS to minimum exposure time allowed by hardware."
+            },
+            {
                 .name   = "Target YRES",
                 .priv   = &target_yres,
                 .update = target_yres_update,
@@ -1426,6 +1435,7 @@ static struct menu_entry crop_rec_menu[] =
                 .unit   = UNIT_DEC,
                 .help   = "ADTG 0x8178, 0x8196, 0x82F8",
                 .help2  = "May help pushing the resolution a little. Start with small increments.",
+                .advanced = 1,
             },
             {
                 .name   = "Delta ADTG 1",
@@ -1435,6 +1445,7 @@ static struct menu_entry crop_rec_menu[] =
                 .unit   = UNIT_DEC,
                 .help   = "ADTG 0x8179, 0x8197, 0x82F9",
                 .help2  = "May help pushing the resolution a little. Start with small increments.",
+                .advanced = 1,
             },
             {
                 .name   = "Delta HEAD3",
@@ -1443,6 +1454,7 @@ static struct menu_entry crop_rec_menu[] =
                 .max    = 500,
                 .unit   = UNIT_DEC,
                 .help2  = "May help pushing the resolution a little. Start with small increments.",
+                .advanced = 1,
             },
             {
                 .name   = "Delta HEAD4",
@@ -1451,6 +1463,7 @@ static struct menu_entry crop_rec_menu[] =
                 .max    = 500,
                 .unit   = UNIT_DEC,
                 .help2  = "May help pushing the resolution a little. Start with small increments.",
+                .advanced = 1,
             },
             {
                 .name   = "CMOS[1] lo",
@@ -1458,6 +1471,7 @@ static struct menu_entry crop_rec_menu[] =
                 .max    = 63,
                 .unit   = UNIT_DEC,
                 .help   = "Start scanline (very rough). Use for vertical positioning.",
+                .advanced = 1,
             },
             {
                 .name   = "CMOS[1] hi",
@@ -1466,6 +1480,7 @@ static struct menu_entry crop_rec_menu[] =
                 .unit   = UNIT_DEC,
                 .help   = "End scanline (very rough). Increase if white bar at bottom.",
                 .help2  = "Decrease if you get strange colors as you move the camera.",
+                .advanced = 1,
             },
             {
                 .name   = "CMOS[2]",
@@ -1474,7 +1489,9 @@ static struct menu_entry crop_rec_menu[] =
                 .unit   = UNIT_HEX,
                 .help   = "Horizontal position / binning.",
                 .help2  = "Use for horizontal centering.",
+                .advanced = 1,
             },
+            MENU_ADVANCED_TOGGLE,
             MENU_EOL,
         },
     },
@@ -1879,6 +1896,7 @@ MODULE_INFO_END()
 
 MODULE_CONFIGS_START()
     MODULE_CONFIG(crop_preset_index)
+    MODULE_CONFIG(shutter_range)
 MODULE_CONFIGS_END()
 
 MODULE_CBRS_START()
