@@ -500,27 +500,39 @@ static void memcheck_remove(unsigned int ptr, unsigned int failed)
 
     unsigned int buf_pos = ((struct memcheck_hdr *)ptr)->id;
     ((struct memcheck_hdr *)ptr)->id = JUST_FREED;
-    
-    if(buf_pos != UNTRACKED && (failed || memcheck_mallocbuf[buf_pos].ptr != ptr))
+
+    if (buf_pos == UNTRACKED)
     {
-        for(buf_pos = 0;buf_pos < MEMCHECK_ENTRIES;buf_pos++)
+        /* nothing to do */
+        return;
+    }
+
+    if (buf_pos >= MEMCHECK_ENTRIES)
+    {
+        /* should have been caught earlier */
+        ASSERT(failed & 8);
+        return;
+    }
+
+    if (failed || memcheck_mallocbuf[buf_pos].ptr != ptr)
+    {
+        /* anything wrong with the metadata from this buffer?
+         * invalidate it and keep the entry there for further diagnostics */
+        for (int i = 0; i < MEMCHECK_ENTRIES; i++)
         {
-            if(memcheck_mallocbuf[buf_pos].ptr == ptr)
+            if (memcheck_mallocbuf[i].ptr == ptr)
             {
-                memcheck_mallocbuf[buf_pos].ptr = (intptr_t) PTR_INVALID;
-                memcheck_mallocbuf[buf_pos].failed |= (0x00000001 | failed);
+                memcheck_mallocbuf[i].ptr = (intptr_t) PTR_INVALID;
+                memcheck_mallocbuf[i].failed |= (0x00000001 | failed);
             }            
         }
     }
     else
     {
+        /* looks sane? free the memcheck entry */
         memcheck_mallocbuf[buf_pos].failed = 0;
         memcheck_mallocbuf[buf_pos].file = 0;
-        
-        unsigned int state = cli();
         memcheck_mallocbuf[buf_pos].ptr = 0;
-        memcheck_bufpos = buf_pos;
-        sei(state);
     }
 }
 
