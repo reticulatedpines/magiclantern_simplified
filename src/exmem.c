@@ -122,7 +122,7 @@ unsigned int exmem_clear(struct memSuite * hSuite, char fill)
 
 
 /* when size is set to zero, it will try to allocate the maximum possible block */
-static struct memSuite *shoot_malloc_suite_int(size_t size, int relaxed)
+static struct memSuite *shoot_malloc_suite_int(size_t size)
 {
     alloc_msg_t *suite_info = _malloc(sizeof(alloc_msg_t));
     
@@ -143,10 +143,7 @@ static struct memSuite *shoot_malloc_suite_int(size_t size, int relaxed)
     struct memSuite * hSuite = suite_info->ret;
     _free(suite_info);
     
-    if(!relaxed)
-    {
-        ASSERT((int)size <= hSuite->size);
-    }
+    ASSERT((int)size <= hSuite->size);
     
     return hSuite;
 }
@@ -156,18 +153,18 @@ struct memSuite *_shoot_malloc_suite(size_t size)
     if(size)
     {
         /* allocate exact memory size */
-        return shoot_malloc_suite_int(size, 0);
+        return shoot_malloc_suite_int(size);
     }
     else
     {
         /* allocate some backup that will service the queued allocation request that fails during the loop */
         int backup_size = 4 * 1024 * 1024;
         int max_size = 0;
-        struct memSuite *backup = shoot_malloc_suite_int(backup_size, 0);
+        struct memSuite *backup = shoot_malloc_suite_int(backup_size);
 
         for (int size = 4; size < 1024; size += 4)
         {
-            struct memSuite *testSuite = shoot_malloc_suite_int(size * 1024 * 1024, 1);
+            struct memSuite *testSuite = shoot_malloc_suite_int(size * 1024 * 1024);
             if(testSuite)
             {
                 _shoot_free_suite(testSuite);
@@ -182,7 +179,7 @@ struct memSuite *_shoot_malloc_suite(size_t size)
         _shoot_free_suite(backup);
         
         /* allocating max_size + backup_size was reported to fail sometimes */
-        struct memSuite * hSuite = shoot_malloc_suite_int(max_size + backup_size - 1024 * 1024, 1);
+        struct memSuite * hSuite = shoot_malloc_suite_int(max_size + backup_size - 1024 * 1024);
         
         return hSuite;
     }
