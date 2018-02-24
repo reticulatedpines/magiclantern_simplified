@@ -90,7 +90,7 @@ struct mem_allocator
     int preferred_min_alloc_size;           /* if size is outside this range, it will try from other allocators */
     int preferred_max_alloc_size;           /* (but if it can't find any, it may still use this buffer) */
     int preferred_free_space;               /* if free space would drop under this, will try from other allocators first */
-    int minimum_free_space;                 /* will only use as a last resort if free space would drop under this */
+    int minimum_free_space;                 /* small blocks ( < minimum_free_space / 64) are allowed to break this limit (until minimum_free_space / 4) */
     int minimum_alloc_size;                 /* will never allocate a buffer smaller than this */
     int depends_on_malloc;                  /* will not allocate if malloc buffer is critically low */
     int try_next_allocator;                 /* if this allocator fails, try the next one */
@@ -132,8 +132,8 @@ static struct mem_allocator allocators[] = {
         .get_free_space = GetFreeMemForMalloc,
         .preferred_min_alloc_size = 0,
         .preferred_max_alloc_size = 512 * 1024,
-        .preferred_free_space = 128 * 1024,
-        .minimum_free_space = 64 * 1024,
+        .preferred_free_space = 384 * 1024,
+        .minimum_free_space = 256 * 1024,
     },
 
     {
@@ -200,7 +200,8 @@ static struct mem_allocator allocators[] = {
         /* no free space check yet; just assume it's BIG */
         .preferred_min_alloc_size = 512 * 1024,
         .preferred_max_alloc_size = 20 * 1024 * 1024,
-        .minimum_alloc_size = 5 * 1024,
+        .minimum_alloc_size = 64 * 1024,
+        .minimum_free_space = 256 * 1024,
     },
 
 #if 1
@@ -643,8 +644,8 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
 {
     dbg_printf("search_for_allocator(%s, prefer %s%s%s%s)\n",
         format_memory_size(size),
-        require_preferred_size ? "size " : "",
-        require_preferred_free_space ? "space " : "",
+        require_preferred_size > 0       ? "size "  : require_preferred_size == 0       ? "" : "!size ",
+        require_preferred_free_space > 0 ? "space " : require_preferred_free_space == 0 ? "" : "!space ",
         require_tmp == 1 ? "tmp1 " : require_tmp == 2 ? "tmp2 " : require_tmp == -1 ? "tmp_no" : require_tmp ? "err" : "",
         require_dma ? "dma " : ""
     );
@@ -682,13 +683,15 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
         if 
             (!(
                 (
-                    !require_preferred_size ||
+                    require_preferred_size <= 0||
                     (size >= preferred_min && size <= preferred_max)
                 )
                 && 
                 (
-                    /* minimum_alloc_size is mandatory (e.g. don't allocate 5-byte blocks from shoot_malloc) */
-                    size >= allocators[a].minimum_alloc_size
+                    /* minimum_alloc_size is important, but can be relaxed as a last resort
+                     * (e.g. don't allocate 5-byte blocks from shoot_malloc, unless there is no other way) */
+                    size >= allocators[a].minimum_alloc_size ||
+                    require_preferred_size == -1
                 )
            ))
         {
@@ -708,7 +711,9 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
                 &&
                 (
                     /* minimum_free_space is important, but can be relaxed as a last resort, for small buffers */
-                    (require_preferred_free_space == -1 && size < allocators[a].minimum_free_space / 16) ||
+                    (require_preferred_free_space == -1 &&
+                     size < allocators[a].minimum_free_space / 64 &&
+                     free_space - size - 1024 > allocators[a].minimum_free_space / 4) ||
                     (free_space - size - 1024 > allocators[a].minimum_free_space)
                 )
            ))
@@ -719,7 +724,7 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
         
         /* do we have a large enough contiguous chunk? */
         /* use a heuristic if we don't know, use a safety margin even if we know */
-        int max_region = allocators[a].get_max_region ? allocators[a].get_max_region() - 4096 : free_space / 4;
+        int max_region = allocators[a].get_max_region ? allocators[a].get_max_region() - 1024 : free_space / 4;
         if (size > max_region)
         {
             dbg_printf("%s: max region mismatch %s\n", allocators[a].name, format_memory_size(max_region));
@@ -728,7 +733,7 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
         
         /* if this allocator requires malloc for its internal data structures,
          * do we have enough free space there? (if not, we risk ERR70) */
-        if (allocators[a].depends_on_malloc && GetFreeMemForMalloc() < 16*1024)
+        if (allocators[a].depends_on_malloc && GetFreeMemForMalloc() < 8*1024)
         {
             dbg_printf("%s: not enough space for malloc (%d)\n", allocators[a].name, GetFreeMemForMalloc());
             continue;
@@ -779,9 +784,8 @@ static int choose_allocator(int size, unsigned int flags)
     
     /* DMA is mandatory, don't relax it */
 
-    /* for small buffers, let's try an allocator with large minimum_free_space */
-    /* where breaking this constraint is unlikely to cause issues */
-    a = search_for_allocator(size, 0, -1, 0, needs_dma);
+    /* last resort: try ignoring the free space / block size limits */
+    a = search_for_allocator(size, -1, -1, 0, needs_dma);
     if (a >= 0) return a;
 
     /* if we arrive here, you should probably solder some memory chips on the mainboard */
@@ -809,7 +813,12 @@ void* __mem_malloc(size_t size, unsigned int flags, const char* file, unsigned i
     {
         /* yes, let's allocate */
 
-        dbg_printf("using %s (%d blocks)\n", allocators[allocator_index].name, allocators[allocator_index].num_blocks);
+        dbg_printf("using %s (%d blocks, %x free, %x max region)\n",
+            allocators[allocator_index].name,
+            allocators[allocator_index].num_blocks,
+            allocators[allocator_index].get_free_space ? allocators[allocator_index].get_free_space() : -1,
+            allocators[allocator_index].get_max_region ? allocators[allocator_index].get_max_region() : -1
+        );
         
         #ifdef MEM_DEBUG
         int t0 = get_ms_clock();
@@ -839,7 +848,7 @@ void* __mem_malloc(size_t size, unsigned int flags, const char* file, unsigned i
             /* note: internally, this library must use the vanilla pointer (non-mangled) */
             ptr = (flags & MEM_DMA) ? UNCACHEABLE(ptr) : CACHEABLE(ptr);
 
-            dbg_printf("alloc ok, took %s%d.%03d s\n", FMT_FIXEDPOINT3(t1-t0));
+            dbg_printf("alloc ok, took %s%d.%03d s => %x (size %x)\n", FMT_FIXEDPOINT3(t1-t0), ptr, size);
         }
         
         give_semaphore(mem_sem);
