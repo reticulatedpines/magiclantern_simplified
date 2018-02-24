@@ -260,7 +260,7 @@ struct memcheck_entry
     char task_name[TASK_NAME_SIZE];
 };
 
-static struct memcheck_entry memcheck_mallocbuf[MEMCHECK_ENTRIES];
+static struct memcheck_entry memcheck_entries[MEMCHECK_ENTRIES];
 static unsigned int memcheck_bufpos = 0;
 
 static volatile int last_error = 0;
@@ -405,9 +405,9 @@ static unsigned int memcheck_check(unsigned int ptr, unsigned int entry)
         char* allocator_name = "unk";
         if (id_ok)
         {
-            file = (char*) memcheck_mallocbuf[id].file;
-            line = memcheck_mallocbuf[id].line;
-            task_name = memcheck_mallocbuf[id].task_name;
+            file = (char*) memcheck_entries[id].file;
+            line = memcheck_entries[id].line;
+            task_name = memcheck_entries[id].task_name;
         }
         else
         {
@@ -436,9 +436,9 @@ static unsigned int memcheck_check(unsigned int ptr, unsigned int entry)
         );
     }
     
-    if (entry < COUNT(memcheck_mallocbuf))
+    if (entry < COUNT(memcheck_entries))
     {
-        memcheck_mallocbuf[entry].failed |= failed;
+        memcheck_entries[entry].failed |= failed;
     }
     
     return failed;
@@ -450,14 +450,14 @@ static unsigned int memcheck_get_failed()
     
     for(buf_pos = 0; buf_pos < MEMCHECK_ENTRIES; buf_pos++)
     {
-        if(memcheck_mallocbuf[buf_pos].ptr)
+        if(memcheck_entries[buf_pos].ptr)
         {
-            memcheck_check(memcheck_mallocbuf[buf_pos].ptr, buf_pos);
+            memcheck_check(memcheck_entries[buf_pos].ptr, buf_pos);
             
             /* marked as failed? */
-            if(memcheck_mallocbuf[buf_pos].failed)
+            if(memcheck_entries[buf_pos].failed)
             {
-                return memcheck_mallocbuf[buf_pos].failed;
+                return memcheck_entries[buf_pos].failed;
             }
         }
     }
@@ -473,7 +473,7 @@ static void memcheck_add(unsigned int ptr, const char *file, unsigned int line)
     int tries = MEMCHECK_ENTRIES;
     
     unsigned int state = cli();
-    while(memcheck_mallocbuf[memcheck_bufpos].ptr != 0)
+    while(memcheck_entries[memcheck_bufpos].ptr != 0)
     {
         memcheck_bufpos++;
         memcheck_bufpos %= MEMCHECK_ENTRIES;
@@ -486,11 +486,11 @@ static void memcheck_add(unsigned int ptr, const char *file, unsigned int line)
         }
     }
 
-    memcheck_mallocbuf[memcheck_bufpos].ptr = ptr;
-    memcheck_mallocbuf[memcheck_bufpos].failed = 0;
-    memcheck_mallocbuf[memcheck_bufpos].file = file_name_without_path(file);
-    memcheck_mallocbuf[memcheck_bufpos].line = line;
-    snprintf((char*)memcheck_mallocbuf[memcheck_bufpos].task_name, TASK_NAME_SIZE, "%s", get_current_task_name());
+    memcheck_entries[memcheck_bufpos].ptr = ptr;
+    memcheck_entries[memcheck_bufpos].failed = 0;
+    memcheck_entries[memcheck_bufpos].file = file_name_without_path(file);
+    memcheck_entries[memcheck_bufpos].line = line;
+    snprintf((char*)memcheck_entries[memcheck_bufpos].task_name, TASK_NAME_SIZE, "%s", get_current_task_name());
     
     ((struct memcheck_hdr *)ptr)->id = memcheck_bufpos;
     
@@ -519,25 +519,25 @@ static void memcheck_remove(unsigned int ptr, unsigned int failed)
         return;
     }
 
-    if (failed || memcheck_mallocbuf[buf_pos].ptr != ptr)
+    if (failed || memcheck_entries[buf_pos].ptr != ptr)
     {
         /* anything wrong with the metadata from this buffer?
          * invalidate it and keep the entry there for further diagnostics */
         for (int i = 0; i < MEMCHECK_ENTRIES; i++)
         {
-            if (memcheck_mallocbuf[i].ptr == ptr)
+            if (memcheck_entries[i].ptr == ptr)
             {
-                memcheck_mallocbuf[i].ptr = (intptr_t) PTR_INVALID;
-                memcheck_mallocbuf[i].failed |= (0x00000001 | failed);
+                memcheck_entries[i].ptr = (intptr_t) PTR_INVALID;
+                memcheck_entries[i].failed |= (0x00000001 | failed);
             }            
         }
     }
     else
     {
         /* looks sane? free the memcheck entry */
-        memcheck_mallocbuf[buf_pos].failed = 0;
-        memcheck_mallocbuf[buf_pos].file = 0;
-        memcheck_mallocbuf[buf_pos].ptr = 0;
+        memcheck_entries[buf_pos].failed = 0;
+        memcheck_entries[buf_pos].file = 0;
+        memcheck_entries[buf_pos].ptr = 0;
     }
 }
 
@@ -1334,7 +1334,7 @@ static MENU_UPDATE_FUNC(mem_total_display)
         int small_blocks_size = 0;
         for(int buf_pos = 0; buf_pos < MEMCHECK_ENTRIES; buf_pos++)
         {
-            void* ptr = (void*) memcheck_mallocbuf[buf_pos].ptr;
+            void* ptr = (void*) memcheck_entries[buf_pos].ptr;
             if (!ptr) continue;
             
             int size = ((struct memcheck_hdr *)ptr)->length;
@@ -1348,11 +1348,11 @@ static MENU_UPDATE_FUNC(mem_total_display)
                 continue;
             }
 
-            char* file = (char*)memcheck_mallocbuf[buf_pos].file;
-            int line = memcheck_mallocbuf[buf_pos].line;
-            char* task_name = (char*) memcheck_mallocbuf[buf_pos].task_name;
+            char* file = (char*)memcheck_entries[buf_pos].file;
+            int line = memcheck_entries[buf_pos].line;
+            char* task_name = (char*) memcheck_entries[buf_pos].task_name;
             char* allocator_name = allocators[allocator].name;
-            bmp_printf(FONT_MED, x, y, "%s%s", memcheck_mallocbuf[buf_pos].failed ? "[FAIL] " : "", format_memory_size_and_flags(size, flags));
+            bmp_printf(FONT_MED, x, y, "%s%s", memcheck_entries[buf_pos].failed ? "[FAIL] " : "", format_memory_size_and_flags(size, flags));
             bmp_printf(FONT_MED, 180, y, "%s:%d task %s", file, line, task_name);
             bmp_printf(FONT_MED | FONT_ALIGN_RIGHT, 710, y, allocator_name);
             y += font_med.height;
@@ -1407,7 +1407,7 @@ static MENU_UPDATE_FUNC(mem_total_display)
         total_ram_detailed = 0;
         MENU_SET_VALUE("%s", format_memory_size(alloc_total_with_memcheck));
         MENU_APPEND_VALUE(", peak %s", format_memory_size(alloc_total_peak_with_memcheck));
-        int ovh = (alloc_total_with_memcheck + sizeof(memcheck_mallocbuf) - alloc_total) * 1000 / alloc_total;
+        int ovh = (alloc_total_with_memcheck + sizeof(memcheck_entries) - alloc_total) * 1000 / alloc_total;
         MENU_SET_WARNING(MENU_WARN_INFO, "Memcheck overhead: %d.%d%%.", ovh/10, ovh%10, 0);
     }
 }
