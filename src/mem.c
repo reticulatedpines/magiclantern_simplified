@@ -30,7 +30,7 @@
 #define MEMCHECK_CHECK          /* disable if running in qemu with -d memcheck */
 #define MEM_SEC_ZONE 16
 #define MEMCHECK_ENTRIES 256
-#define HISTORY_ENTRIES 256
+#define HISTORY_ENTRIES 1024
 
 #define JUST_FREED 0xF12EEEED   /* FREEED */
 #define UNTRACKED 0xFFFFFFFF
@@ -234,13 +234,7 @@ static volatile int alloc_total_with_memcheck = 0;
 static volatile int alloc_total_peak_with_memcheck = 0;
 
 /* to show a graph with memory usage */
-struct mem_history_node
-{
-    int timestamp;
-    int alloc_total;
-};
-
-static struct mem_history_node history[HISTORY_ENTRIES];
+static uint16_t history[HISTORY_ENTRIES] = {0};
 static int history_index = 0;
 
 struct memcheck_hdr
@@ -593,8 +587,7 @@ static void *memcheck_malloc( unsigned int len, const char *file, unsigned int l
     alloc_total += len;
     alloc_total_with_memcheck += len + 2 * MEM_SEC_ZONE;
     alloc_total_peak_with_memcheck = MAX(alloc_total_peak_with_memcheck, alloc_total_with_memcheck);
-    history[history_index].timestamp = get_ms_clock_value();
-    history[history_index].alloc_total = alloc_total_with_memcheck;
+    history[history_index] = MIN(alloc_total_with_memcheck / 1024, USHRT_MAX);
     history_index = MOD(history_index + 1, HISTORY_ENTRIES);
     
     return (void*)(ptr + MEM_SEC_ZONE);
@@ -620,8 +613,7 @@ static void memcheck_free( void * buf, int allocator_index, unsigned int flags)
     allocators[allocator_index].mem_used -= (len + 2 * MEM_SEC_ZONE);
     alloc_total -= len;
     alloc_total_with_memcheck -= (len + 2 * MEM_SEC_ZONE);
-    history[history_index].timestamp = get_ms_clock_value();
-    history[history_index].alloc_total = alloc_total_with_memcheck;
+    history[history_index] = MIN(alloc_total_with_memcheck / 1024, USHRT_MAX);
     history_index = MOD(history_index + 1, HISTORY_ENTRIES);
 
     /* tell the backend to free this block */
@@ -1387,37 +1379,26 @@ static MENU_UPDATE_FUNC(mem_total_display)
         /* show history */
         
         int first_index = history_index + 1;
-        while (history[first_index].timestamp == 0)
+        while (history[first_index] == 0)
             first_index = MOD(first_index + 1, HISTORY_ENTRIES);
         
-        int t0 = history[first_index].timestamp;
-        int t_end = get_ms_clock_value();
         int peak_y = y+10;
-        int peak = alloc_total_peak_with_memcheck;
-        int total = alloc_total_with_memcheck;
-        if (t_end > t0)
+        int peak = alloc_total_peak_with_memcheck / 1024;
+        int total = alloc_total_with_memcheck / 1024;
+        int maxh = 480 - peak_y;
+        bmp_fill(COLOR_GRAY(20), 0, 480-maxh, 720, maxh);
+        for (int i = first_index; i != history_index; i = MOD(i+1, HISTORY_ENTRIES))
         {
-            int maxh = 480 - peak_y;
-            bmp_fill(COLOR_GRAY(20), 0, 480-maxh, 720, maxh);
-            int next_i;
-            for (int i = first_index; i != history_index; i = next_i)
-            {
-                next_i = MOD(i+1, HISTORY_ENTRIES);
-                int t = history[i].timestamp;
-                int t2 = (next_i != history_index) ? history[next_i].timestamp : t_end;
-                if (t2 < t) continue;
-                if (i == history_index-1) t2 = t_end;
-                int x = 720 * (t - t0) / (t_end - t0);
-                int x2 = 720 * (t2 - t0) / (t_end - t0);
-                int h = MIN((uint64_t)history[i].alloc_total * maxh / peak, maxh);
-                y = 480 - h;
-                int w = MAX(x2-x, 2);
-                bmp_fill(h == maxh ? COLOR_RED : COLOR_BLUE, x, y, w, h);
-            }
+            int x = 720 * MOD(i - first_index, HISTORY_ENTRIES) / HISTORY_ENTRIES;
+            int x2 = 720 * MOD(i + 1 - first_index, HISTORY_ENTRIES) / HISTORY_ENTRIES;
+            int h = MIN((uint64_t)history[i] * maxh / peak, maxh);
+            y = 480 - h;
+            int w = x2 - x;
+            bmp_fill(h == maxh ? COLOR_RED : COLOR_BLUE, x, y, w, h);
         }
 
-        bmp_printf(FONT_MED, 10, peak_y, "%s", format_memory_size(peak));
-        bmp_printf(FONT_MED, 650, MAX(y-20, peak_y), "%s", format_memory_size(total));
+        bmp_printf(FONT_MED, 10, peak_y, "%s", format_memory_size(alloc_total_peak_with_memcheck));
+        bmp_printf(FONT_MED, 650, MAX(y-20, peak_y), "%s", format_memory_size(alloc_total_with_memcheck));
     }
     else
     {
