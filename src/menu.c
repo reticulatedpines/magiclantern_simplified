@@ -5936,7 +5936,7 @@ static void longpress_check(int timer, void * opaque)
         /* optional unpress event */
         if (longpress->short_btn_unpress)
         {
-            fake_simple_button(longpress->long_btn_unpress);
+            fake_simple_button(longpress->short_btn_unpress);
         }
     }
 }
