@@ -1366,15 +1366,24 @@ static MENU_UPDATE_FUNC(mem_total_display)
             bmp_printf(FONT_MED | FONT_ALIGN_RIGHT, 710, y, allocator_name);
             y += font_med.height;
         }
-        
-        if (small_blocks)
+
+        int total_blocks = 0;
+        int total_alloc = 0;
+        for (int a = 0; a < COUNT(allocators); a++)
         {
-            char msg[100];
-            snprintf(msg, sizeof(msg), "%d small blocks, %s, ", small_blocks, format_memory_size(small_blocks_size));
-            STR_APPEND(msg, "overhead %s", format_memory_size(small_blocks * 2 * MEM_SEC_ZONE));
-            bmp_printf(FONT_MED, x, y, msg);
-            y += font_med.height;
+            total_blocks += allocators[a].num_blocks;
+            total_alloc += allocators[a].mem_used;
         }
+
+        char msg[256] = "";
+        STR_APPEND(msg, "%d tracked small blocks (%s), ", small_blocks, format_memory_size(small_blocks_size));
+        STR_APPEND(msg, "%d total (%s), ", total_blocks, format_memory_size(total_alloc));
+        STR_APPEND(msg, "\noverhead %s (dynamic)", format_memory_size(total_blocks * 2 * MEM_SEC_ZONE));
+        STR_APPEND(msg, " + %s (fixed)", format_memory_size(sizeof(memcheck_entries)));
+        STR_APPEND(msg, " + %s (history)", format_memory_size(sizeof(history)));
+
+        bmp_printf(FONT_MED, x, y, msg);
+        y += font_med.height * 2;
         
         /* show history */
         
