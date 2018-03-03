@@ -19,11 +19,44 @@ char camera_serial[32];
 
 /* is_camera("5D3", "1.2.3") - will check for a specific camera / firmware version */
 /* is_camera("5D3", "*") - will accept all firmware versions */
-int is_camera(const char * model, const char * firmware)
+/* is_camera("DIGIC", "5") - will accept all DIGIC 5 models */
+/* todo: possibly other classifications? */
+int is_camera(const char * model, const char * version)
 {
+    if (streq(model, "DIGIC"))
+    {
+        if (streq(version, "*"))
+        {
+            /* only DIGIC models supported */
+            return 1;
+        }
+
+        if (strlen(version) != 1)
+        {
+            /* only one-digit DIGIC version check is currently supported, i.e. no 4+ or similar */
+            return 0;
+        }
+
+        #ifdef CONFIG_VXWORKS
+        return version[0] == '3';
+        #endif
+        #ifdef CONFIG_DIGIC_V
+        return version[0] == '5';
+        #endif
+        #ifdef CONFIG_DIGIC_VI
+        return version[0] == '6';
+        #endif
+        #ifdef CONFIG_DIGIC_VII
+        return version[0] == '7';
+        #endif
+        //#ifdef CONFIG_DIGIC_IV - fixme
+        return version[0] == '4';
+        //#endif
+    }
+
     return 
-        streq(__camera_model_short, model) &&                           /* check camera model */
-        (streq(firmware_version, firmware) || streq(firmware, "*"));    /* check firmware version */
+        streq(__camera_model_short, model) &&                         /* check camera model */
+        (streq(firmware_version, version) || streq(version, "*"));    /* check firmware version */
 }
 
 PROP_HANDLER(PROP_CAM_MODEL)
