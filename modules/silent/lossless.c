@@ -270,10 +270,47 @@ int lossless_compress_raw_rectangle(
     /* configure the processing modules */
     TTL_Prepare(TTL_ResLock, &TTL_Args);
 
-    if (is_camera("5D3", "*"))
+    if (is_camera("6D", "*") ||
+        is_camera("650D", "*"))
     {
-        /* resolution is hardcoded in some places; patch them */
-        EngDrvOut(0xC0F375B4, PACK32(width    - 1,  height/2  - 1));  /* 0xF6D0B8F */
+        /* not sure what exactly these do, but they seem to be required to get correct image
+         * taken from register log diffs: http://www.magiclantern.fm/forum/index.php?topic=18443.msg197987#msg197987 */
+        EngDrvOut(0xC0F37610, 0);       /* 0x11 on 650D, 0 on all other D5 (not sure if needed) */
+        EngDrvOut(0xC0F37628, 0x71000); /* 72000 on 650D, 71000 on all other D5 */
+        EngDrvOut(0xC0F3762C, 0x71000); /* 72000 on 650D, 71000 on all other D5 */
+        EngDrvOut(0xC0F37630, 0x71000); /* 72000 on 650D, 71000 on all other D5 */
+        EngDrvOut(0xC0F37634, 0x71000); /* 72000 on 6D and 650D, 71000 on all other D5 */
+        EngDrvOut(0xC0F3763C, 0);       /* 0x1000000 on 6D and 650D, 0 on all other D5 */
+        EngDrvOut(0xC0F37640, 0);       /* 0x2000000 on 6D and 650D, 0 on all other D5 */
+        EngDrvOut(0xC0F37644, 0);       /* 0x4000000 on 6D and 650D, 0 on all other D5 */
+        EngDrvOut(0xC0F37648, 0);       /* 0x8000000 on 6D and 650D, 0 on all other D5 */
+    }
+
+    if (is_camera("70D", "*"))
+    {
+        /* 70D is different */
+        EngDrvOut(0xC0F37300, PACK32(width    - 1,  height/2  - 1));  /* 0xE7B0ADF on 70D */
+        EngDrvOut(0xC0F373E8, PACK32(width    - 1,  height/2  - 1));  /* 0xE7B0ADF on 70D */
+    }
+    else if (is_camera("DIGIC", "5"))
+    {
+        /* all other D5 models use this register instead */
+        /* the hardware encoder (and other image processing modules that might be used)
+         * expect slice width and slice height for these registers
+         * Canon configuration: slice width = image width / 2, slice height = image height
+         * our configuration:   slice width = image width, slice height = image height / 2 */
+        EngDrvOut(0xC0F375B4, PACK32(width    - 1,  height/2  - 1));  /* 0xF6D0B8F on 5D3 */
+    }
+
+    /* there are a few registers possibly related to RD2/WR2 - we don't use them */
+    /* 5D3: [0xC0F375B4] <- 0xF6D0B8F, [0xC0F12020] <- 0x18A0127  =>  slice width / 10, slice height / 10 */
+    /* 6D:  [0xC0F375B4] <- 0xE7B0ADF, [0xC0F12020] <- 0x13400E7  =>  slice width / 12, slice height / 12 */
+    /* 70D: [0xC0F37300] <- 0xE7B0ADF, [0xC0F12020] <- 0x13400E7  =>  slice width / 12, slice height / 12 */
+    /* 650D, 700D, 100D, EOSM, EOSM2:
+     *      [0xC0F375B4] <- 0xDC70A4F, [0xC0F12020] <- 0x1B80149  =>  /* slice width / 8, slice height / 8 */
+    if (0)
+    {
+        /* values for 5D3 - just for future reference */
         EngDrvOut(0xC0F13068, PACK32(width*2  - 1,  height/2  - 1));  /* 0xF6D171F */
         EngDrvOut(0xC0F12010,        width    - 1                 );  /* 0xB8F     */
         EngDrvOut(0xC0F12014, PACK32(width    - 1,  height/2  - 1));  /* 0xF6D0B8F */
