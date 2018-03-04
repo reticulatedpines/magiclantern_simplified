@@ -302,6 +302,14 @@ int lossless_compress_raw_rectangle(
         EngDrvOut(0xC0F375B4, PACK32(width    - 1,  height/2  - 1));  /* 0xF6D0B8F on 5D3 */
     }
 
+    if (is_camera("DIGIC", "5"))
+    {
+        /* required for full-res silent pictures? */
+        /* this one doesn't seem to refer to slice size, but to total image size */
+        /* sht_mirror shows 0xC0F13000 - 0xC0F13064 as RABBIT */
+        EngDrvOut(0xC0F13068, PACK32(width    - 1,  height    - 1));  /* 0xF6D171F on 5D3 */
+    }
+
     /* there are a few registers possibly related to RD2/WR2 - we don't use them */
     /* 5D3: [0xC0F375B4] <- 0xF6D0B8F, [0xC0F12020] <- 0x18A0127  =>  slice width / 10, slice height / 10 */
     /* 6D:  [0xC0F375B4] <- 0xE7B0ADF, [0xC0F12020] <- 0x13400E7  =>  slice width / 12, slice height / 12 */
@@ -311,7 +319,6 @@ int lossless_compress_raw_rectangle(
     if (0)
     {
         /* values for 5D3 - just for future reference */
-        EngDrvOut(0xC0F13068, PACK32(width*2  - 1,  height/2  - 1));  /* 0xF6D171F */
         EngDrvOut(0xC0F12010,        width    - 1                 );  /* 0xB8F     */
         EngDrvOut(0xC0F12014, PACK32(width    - 1,  height/2  - 1));  /* 0xF6D0B8F */
         EngDrvOut(0xC0F1201C,        width/10 - 1                 );  /* 0x127     */
