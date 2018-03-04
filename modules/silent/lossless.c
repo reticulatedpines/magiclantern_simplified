@@ -171,6 +171,19 @@ int lossless_init()
         TTL_Finish      = (void *) 0xFF412A9C;
     }
 
+    if (is_camera("70D", "1.1.2"))
+    {
+        /* ProcessTwoInTwoOutLosslessPath, 70D 1.1.2 */
+        TTL_SetArgs     = (void *) 0xFF362174;  /* fills TTL_Args struct; PictureSize(Mem1ToRaw) */
+        TTL_Prepare     = (void *) 0xFF438404;  /* called right after ProcessTwoInTwoOutLosslessPath(R) Start; */
+                                                /* calls [TTL] GetPathResources and sets up the encoder for RAW/SRAW/MRAW */
+        TTL_RegisterCBR = (void *) 0xFF43748C;  /* RegisterTwoInTwoOutLosslessPathCompleteCBR */
+        TTL_SetFlags    = (void *) 0xFF372AE8;  /* called next, with PictureType as arguments */
+        TTL_Start       = (void *) 0xFF438474;  /* called next; starts the EDmac transfers */
+        TTL_Stop        = (void *) 0xFF4384AC;  /* called right after sssStopMem1ToRawPath */
+        TTL_Finish      = (void *) 0xFF4384E4;  /* called next; calls UnlockEngineResources and returns output size from JpCoreCompleteCBR */
+    }
+
     lossless_sem = create_named_semaphore(0, 0);
     
     if (is_camera("700D", "*") || is_camera("650D", "*") || is_camera("EOSM", "*") || is_camera("100D", "*"))
@@ -196,7 +209,7 @@ int lossless_init()
 
         TTL_ResLock = CreateResLockEntry(resources, COUNT(resources));
     }
-    else if (is_camera("5D3", "*") || is_camera("6D", "*"))
+    else if (is_camera("5D3", "*") || is_camera("6D", "*") || is_camera("70D", "*"))
     {
         uint32_t resources[] = {
             0x00000 | edmac_channel_to_index(edmac_write_chan),
@@ -490,6 +503,13 @@ static void decompress_init()
         Setup_DecodeLosslessRawPath = (void *) 0xFF409218;
         Start_DecodeLosslessPath    = (void *) 0xFF4092E0;
         Cleanup_DecodeLosslessPath  = (void *) 0xFF409444;
+    }
+
+    if (is_camera("70D", "1.1.2"))
+    {
+        Setup_DecodeLosslessRawPath = (void *) 0xFF4309A4;
+        Start_DecodeLosslessPath    = (void *) 0xFF430A6C;
+        Cleanup_DecodeLosslessPath  = (void *) 0xFF430BD0;
     }
 
     /* all functions known? having the semaphore is an indicator we can decompress */
