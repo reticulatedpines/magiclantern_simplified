@@ -21,6 +21,7 @@
 #endif
 
 static int is_5D3 = 0;
+static int is_6D = 0;
 static int is_basic = 0;
 
 static CONFIG_INT("crop.preset", crop_preset_index, 0);
@@ -349,7 +350,7 @@ static int FAST check_cmos_vidmode(uint16_t* data_buf)
             }
         }
         
-        if (is_basic)
+        if (is_basic && !is_6D)
         {
             if (reg == 7)
             {
@@ -526,7 +527,7 @@ static void FAST cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
         {
             case CROP_PRESET_3x3_1X:
                 /* start/stop scanning line, very large increments */
-                cmos_new[7] = PACK12(6,29);
+                cmos_new[7] = (is_6D) ? PACK12(37,10) : PACK12(6,29);
                 break;            
         }
     }
@@ -1933,6 +1934,22 @@ static unsigned int crop_rec_init()
         crop_rec_menu[0].help       = crop_choices_help_basic;
         crop_rec_menu[0].help2      = crop_choices_help2_basic;
     }       
+    else if (is_camera("6D", "1.1.6"))
+    {
+        CMOS_WRITE = 0x2420C;
+        MEM_CMOS_WRITE = 0xE92D41F0;        
+        
+        ADTG_WRITE = 0x24108;
+        MEM_ADTG_WRITE = 0xE92D41F0;
+        
+        is_6D = 1;
+        is_basic = 1;
+        crop_presets                = crop_presets_basic;
+        crop_rec_menu[0].choices    = crop_choices_basic;
+        crop_rec_menu[0].max        = COUNT(crop_choices_basic) - 1;
+        crop_rec_menu[0].help       = crop_choices_help_basic;
+        crop_rec_menu[0].help2      = crop_choices_help2_basic;
+    }      
     menu_add("Movie", crop_rec_menu, COUNT(crop_rec_menu));
     lvinfo_add_items (info_items, COUNT(info_items));
 

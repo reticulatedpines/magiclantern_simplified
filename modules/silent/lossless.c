@@ -158,6 +158,18 @@ int lossless_init()
         TTL_Finish      = (void *) 0xFF42C0A4;      /* called next; calls UnlockEngineResources and returns output size from JpCoreCompleteCBR */
     }
 
+    if (is_camera("6D", "1.1.6"))
+    {
+        /* ProcessTwoInTwoOutLosslessPath, 6D 1.1.6 */
+        TTL_SetArgs     = (void *) 0xFF3491C8;
+        TTL_Prepare     = (void *) 0xFF4129BC;
+
+        TTL_RegisterCBR = (void *) 0xFF411A44;
+        TTL_SetFlags    = (void *) 0xFF359C78;
+        TTL_Start       = (void *) 0xFF412A2C;
+        TTL_Stop        = (void *) 0xFF412A64;
+        TTL_Finish      = (void *) 0xFF412A9C;
+    }
 
     lossless_sem = create_named_semaphore(0, 0);
     
@@ -184,7 +196,7 @@ int lossless_init()
 
         TTL_ResLock = CreateResLockEntry(resources, COUNT(resources));
     }
-    else if (is_camera("5D3", "*"))
+    else if (is_camera("5D3", "*") || is_camera("6D", "*"))
     {
         uint32_t resources[] = {
             0x00000 | edmac_channel_to_index(edmac_write_chan),
@@ -471,6 +483,13 @@ static void decompress_init()
         Setup_DecodeLosslessRawPath = (void *) 0xFF42F4C8;
         Start_DecodeLosslessPath    = (void *) 0xFF42F590;
         Cleanup_DecodeLosslessPath  = (void *) 0xFF42F6F4;
+    }
+
+    if (is_camera("6D", "1.1.6"))
+    {
+        Setup_DecodeLosslessRawPath = (void *) 0xFF409218;
+        Start_DecodeLosslessPath    = (void *) 0xFF4092E0;
+        Cleanup_DecodeLosslessPath  = (void *) 0xFF409444;
     }
 
     /* all functions known? having the semaphore is an indicator we can decompress */
