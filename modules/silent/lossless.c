@@ -110,65 +110,65 @@ int lossless_init()
     if (is_camera("700D", "1.1.5"))
     {
         /* ProcessTwoInTwoOutJpegath, 700D 1.1.5 */
-        TTL_SetArgs     = (void *) 0xFF35F510;      /* fills TTJ_Args struct; PictureSize(Mem1ToRaw) */
-        TTL_Prepare     = (void *) 0xFF424BA4;      /* called right after ProcessTwoInTwoOutJpegath(R) Start(%d); */
-                                                    /* calls [TTJ] GetPathResources and sets up the encoder for RAW */
-        TTL_RegisterCBR = (void *) 0xFF423B88;      /* RegisterTwoInTwoOutJpegPathCompleteCBR */
-        TTL_SetFlags    = (void *) 0xFF36B2D8;      /* alternate StartTwoInTwoOutJpegPath http://www.magiclantern.fm/forum/index.php?topic=18443.msg188721#msg188721 */
-        TTL_Start       = (void *) 0xFF424C4C;      /* called next; starts the EDmac transfers */
-        TTL_Stop        = (void *) 0xFF423DD4;      /* called right after sssStopMem1ToRawPath */
-        TTL_Finish      = (void *) 0xFF424CBC;      /* called next; calls UnlockEngineResources and returns output size from JpCoreCompleteCBR */
+        TTL_SetArgs     = (void *) 0xFF35F510;  /* fills TTJ_Args struct; PictureSize(Mem1ToRaw) */
+        TTL_Prepare     = (void *) 0xFF424BA4;  /* called right after ProcessTwoInTwoOutJpegath(R) Start(%d); */
+                                                /* calls [TTJ] GetPathResources and sets up the encoder for RAW */
+        TTL_RegisterCBR = (void *) 0xFF423B88;  /* RegisterTwoInTwoOutJpegPathCompleteCBR */
+        TTL_SetFlags    = (void *) 0xFF36B2D8;  /* alternate StartTwoInTwoOutJpegPath http://www.magiclantern.fm/forum/index.php?topic=18443.msg188721#msg188721 */
+        TTL_Start       = (void *) 0xFF424C4C;  /* called next; starts the EDmac transfers */
+        TTL_Stop        = (void *) 0xFF423DD4;  /* called right after sssStopMem1ToRawPath */
+        TTL_Finish      = (void *) 0xFF424CBC;  /* called next; calls UnlockEngineResources and returns output size from JpCoreCompleteCBR */
     }
 
     if (is_camera("650D", "1.0.4"))
     {
         /* ProcessTwoInTwoOutJpegath, 650D 1.0.4 */
-        TTL_SetArgs     = (void *) 0xFF35C9C0;      /* fills TTJ_Args struct; PictureSize(Mem1ToRaw) */
-        TTL_Prepare     = (void *) 0xFF4210BC;      /* called right after ProcessTwoInTwoOutJpegath(R) Start(%d); */
-                                                    /* calls [TTJ] GetPathResources and sets up the encoder for RAW */
-        TTL_RegisterCBR = (void *) 0xFF4200A0;      /* RegisterTwoInTwoOutJpegPathCompleteCBR */
-        TTL_SetFlags    = (void *) 0xFF368788;      /* alternate StartTwoInTwoOutJpegPath http://www.magiclantern.fm/forum/index.php?topic=18443.msg188721#msg188721 */
-        TTL_Start       = (void *) 0xFF421164;      /* called next; starts the EDmac transfers */
-        TTL_Stop        = (void *) 0xFF4202EC;      /* called right after sssStopMem1ToRawPath */
-        TTL_Finish      = (void *) 0xFF4211D4;      /* called next; calls UnlockEngineResources and returns output size from JpCoreCompleteCBR */
+        TTL_SetArgs     = (void *) 0xFF35C9C0;  /* fills TTJ_Args struct; PictureSize(Mem1ToRaw) */
+        TTL_Prepare     = (void *) 0xFF4210BC;  /* called right after ProcessTwoInTwoOutJpegath(R) Start(%d); */
+                                                /* calls [TTJ] GetPathResources and sets up the encoder for RAW */
+        TTL_RegisterCBR = (void *) 0xFF4200A0;  /* RegisterTwoInTwoOutJpegPathCompleteCBR */
+        TTL_SetFlags    = (void *) 0xFF368788;  /* alternate StartTwoInTwoOutJpegPath http://www.magiclantern.fm/forum/index.php?topic=18443.msg188721#msg188721 */
+        TTL_Start       = (void *) 0xFF421164;  /* called next; starts the EDmac transfers */
+        TTL_Stop        = (void *) 0xFF4202EC;  /* called right after sssStopMem1ToRawPath */
+        TTL_Finish      = (void *) 0xFF4211D4;  /* called next; calls UnlockEngineResources and returns output size from JpCoreCompleteCBR */
     }
 
     if (is_camera("EOSM", "2.0.2"))
     {
         /* ProcessTwoInTwoOutJpegath, EOSM 2.0.2 */
-        TTL_SetArgs     = (void *) 0xFF361498;      /* fills TTJ_Args struct; PictureSize(Mem1ToRaw) */
-        TTL_Prepare     = (void *) 0xFF429210;      /* called right after ProcessTwoInTwoOutJpegath(R) Start(%d); */
-                                                    /* calls [TTJ] GetPathResources and sets up the encoder for RAW */
-        TTL_RegisterCBR = (void *) 0xFF4281F4;      /* RegisterTwoInTwoOutJpegPathCompleteCBR */
-        TTL_SetFlags    = (void *) 0xFF36D124;      /* called next, with PictureType as arguments */
-        TTL_Start       = (void *) 0xFF4292B8;      /* called next; starts the EDmac transfers */
-        TTL_Stop        = (void *) 0xFF428440;      /* called right after sssStopMem1ToRawPath */
-        TTL_Finish      = (void *) 0xFF429328;      /* called next; calls UnlockEngineResources and returns output size from JpCoreCompleteCBR */
+        TTL_SetArgs     = (void *) 0xFF361498;  /* fills TTJ_Args struct; PictureSize(Mem1ToRaw) */
+        TTL_Prepare     = (void *) 0xFF429210;  /* called right after ProcessTwoInTwoOutJpegath(R) Start(%d); */
+                                                /* calls [TTJ] GetPathResources and sets up the encoder for RAW */
+        TTL_RegisterCBR = (void *) 0xFF4281F4;  /* RegisterTwoInTwoOutJpegPathCompleteCBR */
+        TTL_SetFlags    = (void *) 0xFF36D124;  /* called next, with PictureType as arguments */
+        TTL_Start       = (void *) 0xFF4292B8;  /* called next; starts the EDmac transfers */
+        TTL_Stop        = (void *) 0xFF428440;  /* called right after sssStopMem1ToRawPath */
+        TTL_Finish      = (void *) 0xFF429328;  /* called next; calls UnlockEngineResources and returns output size from JpCoreCompleteCBR */
     }
     if (is_camera("100D", "1.0.1"))
     {
         /* ProcessTwoInTwoOutJpegath, 100D 1.0.1 */
-        TTL_SetArgs     = (void *) 0xFF3647D0;      /* fills TTJ_Args struct; PictureSize(Mem1ToRaw) */
-        TTL_Prepare     = (void *) 0xFF42Bf8C;      /* called right after ProcessTwoInTwoOutJpegath(R) Start(%d); */
-                                                    /* calls [TTJ] GetPathResources and sets up the encoder for RAW */
-        TTL_RegisterCBR = (void *) 0xFF42AF70;      /* RegisterTwoInTwoOutJpegPathCompleteCBR */
-        TTL_SetFlags    = (void *) 0xFF363148;      /* called next, with PictureType as arguments */ 
-        TTL_Start       = (void *) 0xFF42c034;      /* called next; starts the EDmac transfers */
-        TTL_Stop        = (void *) 0xFF42B1BC;      /* called right after sssStopMem1ToRawPath */
-        TTL_Finish      = (void *) 0xFF42C0A4;      /* called next; calls UnlockEngineResources and returns output size from JpCoreCompleteCBR */
+        TTL_SetArgs     = (void *) 0xFF3647D0;  /* fills TTJ_Args struct; PictureSize(Mem1ToRaw) */
+        TTL_Prepare     = (void *) 0xFF42Bf8C;  /* called right after ProcessTwoInTwoOutJpegath(R) Start(%d); */
+                                                /* calls [TTJ] GetPathResources and sets up the encoder for RAW */
+        TTL_RegisterCBR = (void *) 0xFF42AF70;  /* RegisterTwoInTwoOutJpegPathCompleteCBR */
+        TTL_SetFlags    = (void *) 0xFF363148;  /* called next, with PictureType as arguments */ 
+        TTL_Start       = (void *) 0xFF42c034;  /* called next; starts the EDmac transfers */
+        TTL_Stop        = (void *) 0xFF42B1BC;  /* called right after sssStopMem1ToRawPath */
+        TTL_Finish      = (void *) 0xFF42C0A4;  /* called next; calls UnlockEngineResources and returns output size from JpCoreCompleteCBR */
     }
 
     if (is_camera("6D", "1.1.6"))
     {
         /* ProcessTwoInTwoOutLosslessPath, 6D 1.1.6 */
-        TTL_SetArgs     = (void *) 0xFF3491C8;
-        TTL_Prepare     = (void *) 0xFF4129BC;
-
-        TTL_RegisterCBR = (void *) 0xFF411A44;
-        TTL_SetFlags    = (void *) 0xFF359C78;
-        TTL_Start       = (void *) 0xFF412A2C;
-        TTL_Stop        = (void *) 0xFF412A64;
-        TTL_Finish      = (void *) 0xFF412A9C;
+        TTL_SetArgs     = (void *) 0xFF3491C8;  /* fills TTL_Args struct; PictureSize(Mem1ToRaw) */
+        TTL_Prepare     = (void *) 0xFF4129BC;  /* called right after ProcessTwoInTwoOutLosslessPath(R) Start; */
+                                                /* calls [TTL] GetPathResources and sets up the encoder for RAW/SRAW/MRAW */
+        TTL_RegisterCBR = (void *) 0xFF411A44;  /* RegisterTwoInTwoOutLosslessPathCompleteCBR */
+        TTL_SetFlags    = (void *) 0xFF359C78;  /* called next, with PictureType as arguments */
+        TTL_Start       = (void *) 0xFF412A2C;  /* called next; starts the EDmac transfers */
+        TTL_Stop        = (void *) 0xFF412A64;  /* called right after sssStopMem1ToRawPath */
+        TTL_Finish      = (void *) 0xFF412A9C;  /* called next; calls UnlockEngineResources and returns output size from JpCoreCompleteCBR */
     }
 
     if (is_camera("70D", "1.1.2"))
