@@ -709,8 +709,9 @@ void update_resolution_params()
 
     if (OUTPUT_COMPRESSION)
     {
-        /* assume the compressed output will not exceed this */
-        max_frame_size = (max_frame_size / 100 * 85) & ~4095;
+        /* assume the compressed output will not exceed uncompressed frame size */
+        /* max frame size for the lossless routine also has unusual alignment requirements */
+        max_frame_size &= ~4095;
     }
 
     update_cropping_offsets();
