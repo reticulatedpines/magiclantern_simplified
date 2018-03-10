@@ -9,8 +9,15 @@ if len(sys.argv) <= 2:
     print "Similar script for ADTG/CMOS/ENGIO registers:"
     print "https://bitbucket.org/hudson/magic-lantern/src/iso-research/modules/adtg_gui/annotate_log.py" 
     print
-    print "Usage: python annotate_mpu_log.py 5D3 input.log > output.log"
+    print "Usage:"
+    print "python annotate_mpu_log.py 5D3 input.log output.log  # guess"
+    print "python annotate_mpu_log.py 5D3 input.log             # outputs to input-a.log "
+    print "python annotate_mpu_log.py 5D3 input.log -           # outputs to stdout"
+    print "python annotate_mpu_log.py 5D3 input.log --          # only mpu_send/recv lines to stdout"
     raise SystemExit
+
+def change_ext(file, newext):
+    return os.path.splitext(file)[0] + newext
 
 # identify button codes for the requested camera model
 buttons = {}
@@ -28,9 +35,24 @@ for l in lines:
     buttons[m.groups()[1].upper()] = m.groups()[0]
 print >> sys.stderr, "}"
 
-# input log file
-lines = open(sys.argv[2]).readlines()
+# input and output log file
+inp = sys.argv[2]
+out = change_ext(inp, "-a.log") if len(sys.argv) == 3 else sys.argv[3]
+only_mpu = False
+print >> sys.stderr, "Reading from %s" % inp
+print >> sys.stderr, "Writing to %s" % ("stdout" if out in ["-", "--"] else out)
+if out in ["-", "--"]:
+    only_mpu = (out == "--")
+    out = sys.stdout
+else:
+    if os.path.isfile(out):
+        print >> sys.stderr, "%s already exists." % out
+        raise SystemExit
+    out = open(out, "w")
+
+lines = open(inp).readlines()
 lines = [l.strip("\n") for l in lines]
+print >> sys.stderr, ""
 
 # annotate MPU events
 for l in lines:
@@ -53,8 +75,9 @@ for l in lines:
                 comments.append(buttons[btn_code])
 
     if comments:
-        out = "%-100s ; %s" % (l, "; ".join(comments))
-        print out
-        print >> sys.stderr, out
-    else:
-        print l
+        msg = "%-100s ; %s" % (l, "; ".join(comments))
+        print >> out, msg
+        if out != sys.stdout:
+            print msg
+    elif not only_mpu:
+        print >> out, l
