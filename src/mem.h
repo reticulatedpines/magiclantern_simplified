@@ -115,6 +115,8 @@ extern void * memset ( void * ptr, int value, size_t num );
 extern void*  memcpy( void *, const void *, size_t );
 extern int memcmp( const void* s1, const void* s2,size_t n );
 extern void * memchr( const void *s, int c, size_t n );
+extern void* memset64(void* dest, int val, size_t n);
+extern void* memcpy64(void* dest, void* srce, size_t n);
 extern void* dma_memcpy(void* dest, void* srce, size_t n);
 extern void* edmac_memcpy(void* dest, void* srce, size_t n);
 

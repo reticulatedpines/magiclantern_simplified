@@ -179,48 +179,6 @@ static uint32_t FAST DUMP_ASM mem_test_read32(uint32_t* buf, uint32_t n)
     return tmp;
 }
 
-/**
- * 5D3            cacheable     uncacheable
- * newlib memset: 237MB/s       100MB/s
- * memset64     : 194MB/s (!)   130MB/s
- */
-
-static void* FAST memset64(void* dest, int val, size_t n)
-{
-    /* seems to accept 32-bit aligned pointers */
-    ASSERT(((intptr_t)dest & 3) == 0);
-    ASSERT((n & 7) == 0);
-
-    uint64_t v1 = ((uint64_t) val) & 0xFFFFFFFFull;
-    uint64_t v = v1 << 32 | v1;
-
-    uint64_t* dst = (uint64_t*) dest;
-    for(size_t i = 0; i < n/8; i++)
-        *dst++ = v;
-    return (void*)dest;
-}
-
-/**
- * 5D3            cacheable     uncacheable
- * newlib memcpy: 75MB/s        17MB/s
- * diet memcpy  : 19MB/s        4MB/s
- * memcpy64     : 80MB/s        32MB/s
- */
-
-static void * FAST memcpy64(void* dest, void* srce, size_t n)
-{
-    /* seems to accept 32-bit aligned pointers */
-    ASSERT(((intptr_t)dest & 3) == 0);
-    ASSERT(((intptr_t)srce & 3) == 0);
-    ASSERT((n & 7) == 0);
-
-    uint64_t* dst = (uint64_t*) dest;
-    uint64_t* src = (uint64_t*) srce;
-    for(size_t i = 0; i < n/8; i++)
-        *dst++ = *src++;
-    
-    return (void*)dst;
-}
 
 static void mem_benchmark_task()
 {
@@ -243,7 +201,6 @@ static void mem_benchmark_task()
     void* buf2 = 0;
     buf1 = fio_malloc(bufsize);
     buf2 = fio_malloc(bufsize);
-
     if (!buf1 || !buf2)
     {
         bmp_printf(FONT_LARGE, 0, 0, "malloc error :(");
