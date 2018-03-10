@@ -226,7 +226,7 @@ known_spells = {
     "03 43"  :   (0x80030044, "PROP_STROBO_SETTING_EXP_COMPOSITION"),
     "03 44"  :   (0x80030045, "PROP 80030045"),
     "03 45"  :   (0x80030046, "PROP 80030046"),
-    "03 46"  :   (0x80030047, "PROP 80030047"),
+    "03 46"  :   (0x80030047, "PROP_SILENT_CONTROL_STATUS"),
     "03 4d"  :   (0x8003004E, "PROP 8003004E"),
     "03 4e"  :   (0x8003004F, "PROP_AFFRAME_ENABLE_SETTING"),
     "03 4f"  :   (0x80030050, "PROP 80030050"),
@@ -284,6 +284,7 @@ known_spells = {
     "09 00"  :   (0x80050000, "PROP_LV_LENS"),
     "09 01"  :   (0x80050013, "PROP_LV_LENS_DRIVE_REMOTE"),             # to MPU only?
     "09 02"  :   (0x80050002, "PROP_LV_FOCUS_DONE"),
+    "09 04"  :   (0x80050004, "PROP_LV_APERTURE"),                      # to MPU only? PROP_LV_0004
     "09 05"  :   (0x80050005, "PROP_LV_LENS_STABILIZE"),
     "09 0a"  :   (0x80050008, "PROP_LV_BV"),
     "09 0b"  :   (0x80050029, "PROP_LV_AF_RESULT"),                     # PROP_LV_FOCUS_BAD
