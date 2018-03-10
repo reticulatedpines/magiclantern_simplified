@@ -2716,20 +2716,20 @@ static void grayscale_menus_step()
 
     prev_sig = sig;
 
-    #ifdef CONFIG_5D3
     if (get_yuv422_vram()->vram == 0 && !lv)
     {
         /* 5D3-123 quirk: YUV422 RAM is not initialized until going to LiveView or Playback mode
          * (and even there, you need a valid image first)
          * Workaround: if YUV422 was not yet initialized by Canon, remove the transparency from color 0 (make it black).
          * 
-         * Any other cameras requiring this? Probably not, since the quirk is likely related to the dual monitor support.
+         * Any other cameras requiring this? At least 6D shows artifacts in QEMU when running benchmarks
+         * or playing Arkanoid. 700D and 1100D also have uninitialized buffer. 550D and 600D are OK.
+         * No side effects on cameras that don't need this workaround => always enabled.
          * 
          * Note: alter_bitmap_palette will not affect color 0, so it will not break this workaround (yet).
          */
         alter_bitmap_palette_entry(0, COLOR_BLACK, 256, 256);
     }
-    #endif
 
     if (bmp_color_scheme || prev_b)
     {
