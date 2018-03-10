@@ -790,18 +790,19 @@ static int raw_lv_get_resolution(int* width, int* height)
     *width  = ((bot_right & 0xFFFF) - (top_left & 0xFFFF)) * column_factor;
     *height = (bot_right >> 16)     - (top_left >> 16);
 
-    /* height may be a little different; 5D3 needs to subtract 1,
-     * EOSM/700D/650D needs to add 1, 100D usually gives exact value
-     * but tests show better results if we subtract 1.
-     * is it really important to have exact height?
-     * for some raw types, yes! */
+    /* height may be a little different
+     * 5D3 needs to subtract 1 to match EDMAC; without height-1, raw type DEFCORRE
+     *      (8..12-bit lossless) will only work every other frame (also OK at lower heights)
+     * 100D/M2 report exact value (matches EDMAC), but this results in hiccups in x5 zoom
+     *      these hiccups disappear when using height-1 or lower
+     *      (100D 720p: top=28 active=696 y2=724 above=727 adjusted=726)
+     * EOSM/700D/650D needs to add 1 to match EDMAC - no hiccups reported
+     *      however, height+1 would give 4 invalid lines at the bottom
+     *      (650D 720p: top=28 active=696 y2=724 above=726 adjusted=725)
+     * see also https://a1ex.magiclantern.fm/bleeding-edge/raw/raw_res.txt */
 
-#if defined(CONFIG_5D3) || defined(CONFIG_100D)
+#ifdef CONFIG_DIGIC_V
     (*height)--;
-#endif
-
-#if defined(CONFIG_700D) || defined(CONFIG_650D)
-    (*height)++;
 #endif
 
 #ifdef CONFIG_EOSM
@@ -811,7 +812,6 @@ static int raw_lv_get_resolution(int* width, int* height)
     {
         *height = 727;
     }
-    else (*height)++;
 #endif
 
 
@@ -1050,14 +1050,17 @@ int raw_update_params_work()
         skip_top    =  26;
         skip_left   =  zoom ? 64: 74;
         skip_right  = 0;
-        skip_bottom = 0;
         #endif
 
         #if defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_650D) || defined(CONFIG_100D)
-        skip_top    = zoom ? 26 : 28;
+        skip_top    = 28;
         skip_left   = 72;
         skip_right  = 0;
-        skip_bottom = zoom ? 0 : mv1080crop ? 2 : 4;
+        #ifdef CONFIG_100D
+        skip_bottom = mv720 ? 2 : 0;    /* 720p: H=726, last valid line at y=723, 2 white lines at bottom */
+        #else
+        skip_bottom = mv720 ? 1 : 0;    /* 720p: H=725, last valid line at y=723, 1 white line at bottom */
+        #endif
         #endif
 
         #ifdef CONFIG_7D
@@ -1192,7 +1195,7 @@ int raw_update_params_work()
     skip_left   &= ~1;
     skip_right  &= ~1;
     skip_top    &= ~1;
-    skip_bottom &= ~1;
+    //skip_bottom &= ~1;
 
     if (width != raw_info.width || height != raw_info.height)
     {
