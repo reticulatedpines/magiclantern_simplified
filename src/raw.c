@@ -797,11 +797,14 @@ static int raw_lv_get_resolution(int* width, int* height)
      *      these hiccups disappear when using height-1 or lower
      *      (100D 720p: top=28 active=696 y2=724 above=727 adjusted=726)
      * EOSM/700D/650D needs to add 1 to match EDMAC - no hiccups reported
-     *      however, height+1 would give 4 invalid lines at the bottom
+     *      however, height+1 would give 3 invalid lines at the bottom
      *      (650D 720p: top=28 active=696 y2=724 above=726 adjusted=725)
      * see also https://a1ex.magiclantern.fm/bleeding-edge/raw/raw_res.txt */
 
-#ifdef CONFIG_DIGIC_V
+#if defined(CONFIG_700D) || defined(CONFIG_650D) || defined(CONFIG_EOSM)
+    /* required to squeeze 1080p in x5 zoom */
+    (*height)++;
+#elif defined(CONFIG_DIGIC_V)
     (*height)--;
 #endif
 
@@ -1057,9 +1060,15 @@ int raw_update_params_work()
         skip_left   = 72;
         skip_right  = 0;
         #ifdef CONFIG_100D
-        skip_bottom = mv720 ? 2 : 0;    /* 720p: H=726, last valid line at y=723, 2 white lines at bottom */
+        /* 720p: H=727-1, last valid line at y=723, 2 white lines at bottom */
+        /* VRAM dumps, please: http://www.magiclantern.fm/forum/index.php?topic=12375.0 */
+        skip_bottom = zoom ? 0 : mv1080crop ? 0 : mv720 ? 2 : 0;
         #else
-        skip_bottom = mv720 ? 1 : 0;    /* 720p: H=725, last valid line at y=723, 1 white line at bottom */
+        /* 720p: H=726+1, last valid line at y=723, 3 white lines at bottom */
+        /* 1080p: H=1189+1, 2 white lines at bottom */
+        /* x5 zoom: H=1107+1, no bad lines at bottom; 1108-28=1080 */
+        /* 1080 crop: H=1059+1, no bad lines at bottom */
+        skip_bottom = zoom ? 0 : mv1080crop ? 0 : mv720 ? 3 : 2;
         #endif
         #endif
 
