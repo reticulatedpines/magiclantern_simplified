@@ -1731,7 +1731,7 @@ void io_log(const char * module_name, EOSState *s, unsigned int address, unsigne
     }
     else
     {
-        snprintf(mod_name_and_pc, sizeof(mod_name_and_pc), "%-10s at 0x%08X:%08X", mod_name, pc, lr);
+        snprintf(mod_name_and_pc, sizeof(mod_name_and_pc), "%-14s at 0x%08X:%08X", mod_name, pc, lr);
     }
     
     /* description may have two optional integer arguments */
