@@ -162,5 +162,6 @@ static struct mpu_init_spell mpu_init_spells_550D[] = {
     #include "CardFormat.h"
     #include "MpuProperties.h"
     #include "GPS.h"
+    #include "LiveView.h"
     #include "Shutdown.h"
 };

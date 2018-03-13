@@ -65,7 +65,8 @@ num2 = 0
 
 first_send = True
 waitid_prop = None
-commented_block = False
+comment_block = False
+comment_all_blocks = False
 
 switch_names = get_switch_names(model)
 bind_switches = {}
@@ -129,10 +130,11 @@ for l in lines:
             
             if first_block:
                 first_block = False
-            elif commented_block:
+            elif comment_block:
                 print("     // { 0 } } },");
-                commented_block = False
                 num -= 1
+                if not comment_all_blocks:
+                    comment_block = False
             else:
                 print("        { 0 } } },")
 
@@ -161,22 +163,27 @@ for l in lines:
 
             # comment out NotifyGuiEvent / PROP_GUI_STATE and its associated Complete WaitID
             if description == "NotifyGUIEvent" or description == "Complete WaitID = 0x80020000 NotifyGUIEvent":
-                commented_block = True
+                comment_block = True
 
             # comment out PROP_ICU_UILOCK - we have it in UILock.h
             if description == "PROP_ICU_UILOCK":
-                commented_block = True
+                comment_block = True
 
             # comment out PROP_BATTERY_CHECK
             if description == "PROP_BATTERY_CHECK":
-                commented_block = True
+                comment_block = True
 
             # include PROP_BATTERY_REPORT only once
             if description == "PROP_BATTERY_REPORT":
                 if spell in processed_spells:
-                    commented_block = True
+                    comment_block = True
 
-            if commented_block:
+            if description == "PROP_SHOOTING_TYPE":
+                assert spell[12:17] == "03 00"  # fixme: not sure what to do with these
+                comment_block = True
+                comment_all_blocks = True
+
+            if comment_block:
                 # commented blocks are not numbered, to match the numbers used at runtime
                 if description:
                     print(" // { %-58s" % (format_spell(parm_spell) + ", .description = \"" + description + "\", .out_spells = { "))
@@ -208,7 +215,7 @@ for l in lines:
         last_mpu_timestamp = timestamp
 
         # comment out entire block?
-        if commented_block:
+        if comment_block:
             cmt = "//"
 
         # comment out button codes
@@ -294,12 +301,13 @@ for l in lines:
     if m:
         waitid_prop = m.groups()[0]
 
-print("     // { 0 } } }," if commented_block else "        { 0 } } },")
+print("     // { 0 } } }," if comment_block else "        { 0 } } },")
 print("")
 print('    #include "NotifyGUIEvent.h"')
 print('    #include "UILock.h"')
 print('    #include "CardFormat.h"')
 print('    #include "MpuProperties.h"')
 print('    #include "GPS.h"')
+print('    #include "LiveView.h"')
 print('    #include "Shutdown.h"')
 print("};")
