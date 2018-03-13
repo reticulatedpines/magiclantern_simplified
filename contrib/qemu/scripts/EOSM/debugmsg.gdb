@@ -40,4 +40,19 @@ if 0
   give_semaphore_log
 end
 
+# properties
+if 0
+  b *0xFF11FB04
+  prop_request_change_log
+
+  b *0xFF31F6F0
+  mpu_analyze_recv_data_log
+
+  b *0xFF31CE8C
+  prop_lookup_maybe_log
+
+  b *0xFF325994
+  mpu_prop_lookup_log
+end
+
 continue
