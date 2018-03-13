@@ -520,8 +520,9 @@ function test_gdb {
     touch tests/$CAM/$TEST.log
     ( timeout 2 tail -f -n100000 tests/$CAM/$TEST.log & ) | grep --binary-files=text -qP "task_create\("
 
-    # let it run for 1 second
-    sleep 1
+    # let it run for 10 seconds
+    # (logs will be used later to find interrupt IDs)
+    sleep 10
     stop_qemu_expect_running
 
     tac tests/$CAM/$TEST.log > tmp
