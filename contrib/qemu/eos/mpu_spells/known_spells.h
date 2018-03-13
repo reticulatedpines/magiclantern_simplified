@@ -242,6 +242,7 @@ const struct known_spell known_spells[] = {
     { 0x03, 0x55, 0x8003005A, "PROP 8003005A" },
     { 0x03, 0x56, 0x8003005B, "PROP 8003005B" },
     { 0x03, 0x57, 0x8003005E, "PROP 8003005E" },
+    { 0x03, 0x58, 0x8003005F, "PROP 8003005F" },
     { 0x03, 0x5a, 0x80030060, "PROP 80030060" },
     { 0x03, 0x5b, 0x8003005D, "PROP 8003005D" },
     { 0x03, 0x5c, 0x80030061, "PROP 80030061" },
@@ -308,5 +309,7 @@ const struct known_spell known_spells[] = {
     { 0x09, 0x1a, 0x8005002A, "PROP 8005002A" },
     { 0x09, 0x1b, 0x8005002B, "PROP 8005002B" },
     { 0x09, 0x1f, 0x80050034, "PROP 80050034" },
+    { 0x09, 0x2d, 0x80050044, "PROP 80050044" },
+    { 0x09, 0x2e, 0x80050045, "PROP_LV_FOCAL_DISTANCE" },
     { 0x0a, 0x08, 0xFFFFFFFF, "PD_NotifyOlcInfoChanged" },
 };

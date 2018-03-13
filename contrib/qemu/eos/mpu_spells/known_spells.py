@@ -237,6 +237,7 @@ known_spells = {
     "03 55"  :   (0x8003005A, "PROP 8003005A"),
     "03 56"  :   (0x8003005B, "PROP 8003005B"),
     "03 57"  :   (0x8003005E, "PROP 8003005E"),
+    "03 58"  :   (0x8003005F, "PROP 8003005F"),
     "03 5a"  :   (0x80030060, "PROP 80030060"),
     "03 5b"  :   (0x8003005D, "PROP 8003005D"),
     "03 5c"  :   (0x80030061, "PROP 80030061"),
@@ -303,5 +304,7 @@ known_spells = {
     "09 1a"  :   (0x8005002A, "PROP 8005002A"),                         # to MPU only?
     "09 1b"  :   (0x8005002B, "PROP 8005002B"),
     "09 1f"  :   (0x80050034, "PROP 80050034"),                         # to MPU only?
+    "09 2d"  :   (0x80050044, "PROP 80050044"),
+    "09 2e"  :   (0x80050045, "PROP_LV_FOCAL_DISTANCE"),
     "0a 08"  :   (0xFFFFFFFF, "PD_NotifyOlcInfoChanged"),
 }
