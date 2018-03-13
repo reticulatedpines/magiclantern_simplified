@@ -51,7 +51,7 @@ else:
     out = open(out, "w")
 
 lines = open(inp).readlines()
-lines = [l.strip("\n") for l in lines]
+lines = [l.strip("\r\n") for l in lines]
 print >> sys.stderr, ""
 
 # annotate MPU events
