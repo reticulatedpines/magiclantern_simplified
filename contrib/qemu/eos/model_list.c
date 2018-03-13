@@ -327,7 +327,7 @@ struct eos_model_desc eos_model_list[] = {
         .card_led_address       = 0xC022C188,
         .serial_flash_size      = 0x800000,
         .rtc_cs_register        = 0xC022C0C4,
-      //.rtc_time_correct       = 0x98,         /* the date/time dialog prevents the camera from going into LiveView */
+        .rtc_time_correct       = 0x98,
     },
     {
         .name                   = "EOSM2",
@@ -337,7 +337,6 @@ struct eos_model_desc eos_model_list[] = {
         .serial_flash_sio_ch    = 7,
         .rtc_cs_register        = 0xC022C0C4,
         .rtc_time_correct       = 0x9A,
-        .rtc_control_reg_2      = 0x10,         /* the date/time dialog prevents the camera from going into LiveView */
     },
     {
         .name                   = "EOSM3",
