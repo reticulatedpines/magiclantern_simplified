@@ -445,7 +445,7 @@ function test_menu {
     set_gui_timeout
     sleep $GUI_TIMEOUT
 
-    send_menu_sequence 0.5 2 "${MENU_SEQUENCE[$CAM]}"
+    send_menu_sequence 0.5 3 "${MENU_SEQUENCE[$CAM]}"
 
     shutdown_qemu
 
@@ -1210,7 +1210,7 @@ function test_menu_callstack {
     set_gui_timeout
     sleep $(( 2*GUI_TIMEOUT ))
 
-    send_menu_sequence 0.5 8 "${MENU_SEQUENCE[$CAM]}"
+    send_menu_sequence 0.5 10 "${MENU_SEQUENCE[$CAM]}"
 
     shutdown_qemu
 
