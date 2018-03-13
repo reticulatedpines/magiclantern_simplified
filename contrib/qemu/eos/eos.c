@@ -2168,7 +2168,7 @@ unsigned int eos_handle_timers ( unsigned int parm, EOSState *s, unsigned int ad
                 {
                     if(value & 1)
                     {
-                        if (timer_id == DRYOS_TIMER_ID)
+                        if (DRYOS_TIMER_ID && timer_id == DRYOS_TIMER_ID)
                         {
                             msg = "Timer #%d: starting triggering";
                             eos_trigger_int(s, TIMER_INTERRUPT, s->timer_reload_value[timer_id] >> 8);   /* digic timer */
@@ -2234,13 +2234,11 @@ unsigned int eos_handle_hptimer ( unsigned int parm, EOSState *s, unsigned int a
     switch(address & 0xF0F)
     {
         case 0x100:
-            MMIO_VAR(s->HPTimers[timer_id].active);
-
             if(type & MODE_WRITE)
             {
-                msg = value == 1 ? "HPTimer #%d: active" :
-                      value == 0 ? "HPTimer #%d: inactive" :
-                                   "???";
+                msg = value == 1 ? "HPTimer #%d: enabled?" :
+                      value == 0 ? "HPTimer #%d: disabled?" :
+                                   "HPTimer #%d: ?!";
             }
             else
             {
@@ -2286,7 +2284,12 @@ unsigned int eos_handle_hptimer ( unsigned int parm, EOSState *s, unsigned int a
             break;
 
         case 0x200:
-            msg = "HPTimer #%d: ?!";
+            MMIO_VAR(s->HPTimers[timer_id].active);
+            MMIO_VAR(s->HPTimers[timer_id].active);
+            msg = value == 1 ? "HPTimer #%d: active" :
+                  value == 0 ? "HPTimer #%d: inactive" :
+                  value == 3 ? "HPTimer #%d: periodic?" :
+                               "HPTimer #%d: ?!";
             break;
 
         case 0x204:
