@@ -1861,6 +1861,8 @@ unsigned int eos_handler ( EOSState *s, unsigned int address, unsigned char type
 
 unsigned int eos_trigger_int(EOSState *s, unsigned int id, unsigned int delay)
 {
+    assert(id);
+
     if(!delay && s->irq_enabled[id] && !s->irq_id)
     {
         if (qemu_loglevel_mask(CPU_LOG_INT)) {
@@ -3031,6 +3033,17 @@ unsigned int eos_handle_uart ( unsigned int parm, EOSState *s, unsigned int addr
                 /* 0 written during initialization */
                 if (enable_tio_interrupt)
                 {
+                    static int warned = 0;
+                    if (!s->model->uart_tx_interrupt)
+                    {
+                        if (!warned)
+                        {
+                            fprintf(stderr, "FIXME: uart_tx_interrupt unknown\n");
+                            warned = 1;
+                        }
+                        break;
+                    }
+
                     eos_trigger_int(s, s->model->uart_tx_interrupt, 1);
                 }
             }
@@ -4127,6 +4140,12 @@ unsigned int eos_handle_uart_dma ( unsigned int parm, EOSState *s, unsigned int 
                 static int first_time = 1;
                 if (first_time)
                 {
+                    if (!s->model->uart_rx_interrupt)
+                    {
+                        fprintf(stderr, "FIXME: uart_rx_interrupt unknown\n");
+                        break;
+                    }
+
                     eos_trigger_int(s, s->model->uart_rx_interrupt, 0);
                     first_time = 0;
                 }
