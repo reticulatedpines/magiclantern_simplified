@@ -629,6 +629,14 @@ static int edmac_do_transfer(EOSState *s, int channel)
 
     /* assume 200 MB/s transfer speed */
     int delay = transfer_data_size * 1e6 / (200*1024*1024) / 0x100;
+
+    if (channel & 8)
+    {
+        /* additional delay for read channels */
+        /* required by to pass the memory benchmark (?!) */
+        delay++;
+    }
+
     fprintf(stderr, "[EDMAC#%d] transfer delay %d x 256 us.\n", channel, delay);
 
     edmac_trigger_interrupt(s, channel, delay);
