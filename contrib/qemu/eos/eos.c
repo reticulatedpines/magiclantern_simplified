@@ -2281,7 +2281,6 @@ unsigned int eos_handle_hptimer ( unsigned int parm, EOSState *s, unsigned int a
 
         case 0x200:
             MMIO_VAR(s->HPTimers[timer_id].active);
-            MMIO_VAR(s->HPTimers[timer_id].active);
             msg = value == 1 ? "HPTimer #%d: active" :
                   value == 0 ? "HPTimer #%d: inactive" :
                   value == 3 ? "HPTimer #%d: periodic?" :
