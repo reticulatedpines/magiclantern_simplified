@@ -160,18 +160,21 @@ struct eos_model_desc eos_model_list[] = {
         .rtc_cs_register        = 0xC02200B0,
         .ram_extra_addr         = 0xE8000000,       /* FPGA config 0xF8760000 using DMA */
         .ram_extra_size         = 0x53000,
+        .dedicated_movie_mode   = 0,
     },
     {
         .name                   = "60D",
         .digic_version          = 4,
         .current_task_addr      = 0x1A2C,
         .rtc_time_correct       = 0x8D,
+        .dedicated_movie_mode   = 1,
     },
     {
         .name                   = "600D",
         .digic_version          = 4,
         .current_task_addr      = 0x1A2C,
         .rtc_time_correct       = 0x8C,
+        .dedicated_movie_mode   = 1,
     },
     {
         .name                   = "500D",
@@ -179,6 +182,7 @@ struct eos_model_desc eos_model_list[] = {
         .current_task_addr      = 0x1A74,
         .rtc_time_correct       = 0x8A,
         .rtc_control_reg_2      = 0x20,
+        .dedicated_movie_mode   = 1,
     },
     {
         .name                   = "5D2",
@@ -191,6 +195,7 @@ struct eos_model_desc eos_model_list[] = {
         .rtc_cs_register        = 0xC02200B0,
         .ram_extra_addr         = 0xE8000000,       /* FPGA config 0xF8760000 using DMA */
         .ram_extra_size         = 0x53000,
+        .dedicated_movie_mode   = 0,
     },
     {
         .name                   = "5D3",
@@ -202,6 +207,7 @@ struct eos_model_desc eos_model_list[] = {
         .cf_driver_interrupt    = 0x82,
         .cf_dma_interrupt       = 0xE3,
         .rtc_time_correct       = 0x9F,
+        .dedicated_movie_mode   = 0,
     },
     {
         /* started on request on photo taking, raw develop and others;
@@ -222,6 +228,7 @@ struct eos_model_desc eos_model_list[] = {
         .current_task_addr      = 0x40000148,
         .current_task_name_offs = 0x09,
         .uart_rx_interrupt      = 0x39,
+        .dedicated_movie_mode   = -1,
     },
     {
         .name                   = "650D",
@@ -230,6 +237,7 @@ struct eos_model_desc eos_model_list[] = {
         .serial_flash_size      = 0x800000,
         .rtc_cs_register        = 0xC022C0C4,
         .rtc_time_correct       = 0x98,
+        .dedicated_movie_mode   = 0,
     },
     {
         .name                   = "100D",
@@ -239,12 +247,14 @@ struct eos_model_desc eos_model_list[] = {
         .serial_flash_sio_ch    = 7,
         .rtc_cs_register        = 0xC022C020,
         .rtc_time_correct       = 0x98,
+        .dedicated_movie_mode   = 0,
     },
     {
         .name                   = "7D",
         .digic_version          = 4,
         .card_led_address       = 0xC022D06C,
         .current_task_addr      = 0x1A1C,
+        .dedicated_movie_mode   = 0,
     },
     {
         .name                   = "550D",
@@ -252,6 +262,7 @@ struct eos_model_desc eos_model_list[] = {
         .current_task_addr      = 0x1A20,
         .rtc_time_correct       = 0x8D,
         .rtc_control_reg_2      = 0x20,
+        .dedicated_movie_mode   = 1,
     },
     {
         .name                   = "6D",
@@ -265,6 +276,7 @@ struct eos_model_desc eos_model_list[] = {
         .current_task_addr      = 0x74C28,
         .rtc_cs_register        = 0xC02201D4,
         .rtc_time_correct       = 0x9F,
+        .dedicated_movie_mode   = 0,
     },
     {
         .name                   = "70D",
@@ -278,6 +290,7 @@ struct eos_model_desc eos_model_list[] = {
         .serial_flash_cs_bitmask  = 0x00000002, /* 0x44 / 0x46 */
         .rtc_cs_register        = 0xC02201D4,
         .rtc_time_correct       = 0xA0,
+        .dedicated_movie_mode   = 0,
     },
     {
         .name                   = "700D",
@@ -287,12 +300,14 @@ struct eos_model_desc eos_model_list[] = {
         .serial_flash_size      = 0x800000,
         .rtc_cs_register        = 0xC022C0C4,
         .rtc_time_correct       = 0x98,
+        .dedicated_movie_mode   = 0,
     },
     {
         .name                   = "1100D",
         .digic_version          = 4,
         .current_task_addr      = 0x1A2C,
         .rtc_time_correct       = 0x8D,
+        .dedicated_movie_mode   = 1,
     },
     {
         .name                   = "1200D",
@@ -301,6 +316,7 @@ struct eos_model_desc eos_model_list[] = {
         .current_task_addr      = 0x1A2C,
         .card_led_address       = 0xC0220134,
         .rtc_time_correct       = 0xFD,
+        .dedicated_movie_mode   = 1,
     },
     {
         .name                   = "1300D",
@@ -319,6 +335,7 @@ struct eos_model_desc eos_model_list[] = {
         .uart_rx_interrupt      = 0x38,
         .rtc_time_correct       = 0xFD,         /* RTC_TIME_CORRECT_CHANGE */
         .rtc_cs_register        = 0xC022D0B8,   /* GPIO set/cleared in rtc_read */
+        .dedicated_movie_mode   = 1,
     },
     {
         .name                   = "EOSM",
@@ -328,6 +345,7 @@ struct eos_model_desc eos_model_list[] = {
         .serial_flash_size      = 0x800000,
         .rtc_cs_register        = 0xC022C0C4,
         .rtc_time_correct       = 0x98,
+        .dedicated_movie_mode   = 0,
     },
     {
         .name                   = "EOSM2",
@@ -337,6 +355,7 @@ struct eos_model_desc eos_model_list[] = {
         .serial_flash_sio_ch    = 7,
         .rtc_cs_register        = 0xC022C0C4,
         .rtc_time_correct       = 0x9A,
+        .dedicated_movie_mode   = 0,
     },
     {
         .name                   = "EOSM3",
@@ -438,12 +457,14 @@ struct eos_model_desc eos_model_list[] = {
         .sd_dma_interrupt       = 0x32,
         .rtc_time_correct       = 0x93,
         .rtc_control_reg_2      = 0x20,
+        .dedicated_movie_mode   = -1,
     },
     {
         .name                   = "400D",
         .digic_version          = 3,
         .card_led_address       = 0xC0220000,
         .current_task_addr      = 0x27C20,
+        .dedicated_movie_mode   = -1,
     },
     {
         .name                   = "450D",
@@ -453,11 +474,13 @@ struct eos_model_desc eos_model_list[] = {
         .sd_dma_interrupt       = 0x32,
         .rtc_time_correct       = 0x93,
         .rtc_control_reg_2      = 0x20,
+        .dedicated_movie_mode   = -1,
     },
     {
         .name                   = "40D",
         .digic_version          = 3,
         .current_task_addr      = 0x22E00,
+        .dedicated_movie_mode   = -1,
     },
     {
         .name                   = "5D",
@@ -465,6 +488,7 @@ struct eos_model_desc eos_model_list[] = {
         .io_mem_size            = 0x20000000,
         .card_led_address       = 0xC02200A0,
      /* .current_task_addr      = 0x2D2C4  */   /* fixme: it's MEM(0x2D2C4) */
+        .dedicated_movie_mode   = -1,
     },
     {
         .name                   = "A1100",

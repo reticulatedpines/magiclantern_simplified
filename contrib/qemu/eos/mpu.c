@@ -738,6 +738,7 @@ static struct {
 
     { 0x000B,   MPU_NEXT_SHOOTING_MODE, "0/9",          "Mode dial"                     },
     { 0x000A,   MPU_PREV_SHOOTING_MODE,                                                 },
+    { 0x002F,   MPU_ENTER_MOVIE_MODE,   "V",            "Movie mode"                    },
 
     /* the following unpress events are just tricks for sending two events
      * with a small - apparently non-critical - delay between them */
@@ -775,6 +776,12 @@ static int translate_scancode_2(int scancode, int first_code, int allow_auto_rep
         {
             switch (key_map[i].gui_code)
             {
+                case MPU_EVENT_DISABLED:
+                {
+                    ret = 0;
+                    break;
+                }
+
                 case BGMT_PRESS_HALFSHUTTER:
                 case BGMT_UNPRESS_HALFSHUTTER:
                 case BGMT_PRESS_FULLSHUTTER:
@@ -783,6 +790,7 @@ static int translate_scancode_2(int scancode, int first_code, int allow_auto_rep
                 case MPU_SEND_ABORT_REQUEST:
                 case MPU_NEXT_SHOOTING_MODE:
                 case MPU_PREV_SHOOTING_MODE:
+                case MPU_ENTER_MOVIE_MODE:
                 {
                     /* special: return the raw gui code */
                     ret = 0x0E0E0000 | key_map[i].gui_code;
@@ -1042,6 +1050,64 @@ void mpu_send_keypress(EOSState *s, int keycode)
                 break;
             }
 
+            case MPU_ENTER_MOVIE_MODE:
+            {
+                if (s->model->dedicated_movie_mode)
+                {
+                    /* fixme: duplicate code */
+                    for (int k = 0; k < mpu_init_spell_count && mpu_init_spells[0].out_spells[k][0]; k++)
+                    {
+                        uint16_t * spell = mpu_init_spells[0].out_spells[k];
+
+                        if (spell[2] == 0x02 && (spell[3] == 0x00 || spell[3] == 0x0e))
+                        {
+                            /* toggle between M and Movie */
+                            int old_mode = spell[4];
+                            int new_mode = (old_mode == 0x14) ? 0x3 : 0x14;
+
+                            MPU_EPRINTF("using reply #1.%d for mode switch (%d -> %d).\n", k+1, old_mode, new_mode);
+                            spell[4] = spell[5] = new_mode;
+                            mpu_enqueue_spell_generic(s, spell);
+                            mpu_start_sending(s);
+
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    static int mv = 0;  /* fixme: get current state from properties */
+                    if (mv)
+                    {
+                        /* exit movie mode (back to photo mode) */
+                        uint16_t movie_mode_request[][8] = {
+                            { 0x06, 0x05, 0x03, 0x37, 0x01, 0x00 },         /* PROP_MIRROR_DOWN_IN_MOVIE_MODE */
+                            { 0x06, 0x05, 0x01, 0x48, 0x01, 0x00 },         /* PROP_LIVE_VIEW_MOVIE_SELECT */
+                            { 0x06, 0x05, 0x01, 0x4f, 0x00, 0x00 },         /* PROP_FIXED_MOVIE */
+                            { 0x06, 0x05, 0x01, 0x4b, 0x01, 0x00 },         /* PROP_LIVE_VIEW_VIEWTYPE_SELECT */
+                            { 0x06, 0x05, 0x03, 0x37, 0x00, 0x00 },         /* PROP_MIRROR_DOWN_IN_MOVIE_MODE */
+                          //{ 0x08, 0x06, 0x04, 0x0c, 0x03, 0x00, 0x01 }    /* PROP_SHOOTING_TYPE */
+                        };
+                        MPU_SEND_SPELLS(movie_mode_request);
+                    }
+                    else
+                    {
+                        /* enter movie mode */
+                        uint16_t movie_mode_request[][8] = {
+                            { 0x06, 0x05, 0x03, 0x37, 0x01, 0x00 },         /* PROP_MIRROR_DOWN_IN_MOVIE_MODE */
+                            { 0x06, 0x05, 0x01, 0x48, 0x02, 0x00 },         /* PROP_LIVE_VIEW_MOVIE_SELECT */
+                            { 0x06, 0x05, 0x01, 0x4f, 0x01, 0x00 },         /* PROP_FIXED_MOVIE */
+                            { 0x06, 0x05, 0x01, 0x4b, 0x02, 0x00 },         /* PROP_LIVE_VIEW_VIEWTYPE_SELECT */
+                            { 0x06, 0x05, 0x03, 0x37, 0x00, 0x00 },         /* PROP_MIRROR_DOWN_IN_MOVIE_MODE */
+                          //{ 0x08, 0x06, 0x04, 0x0c, 0x03, 0x00, 0x01 }    /* PROP_SHOOTING_TYPE */
+                        };
+                        MPU_SEND_SPELLS(movie_mode_request);
+                    }
+                    mv = !mv;
+                }
+                break;
+            }
+
             default:
             {
                 assert(0);
@@ -1232,6 +1298,15 @@ void mpu_spells_init(EOSState *s)
         button_codes[BGMT_UNPRESS_DOWN]  = 
         button_codes[BGMT_UNPRESS_LEFT]  = 
         button_codes[BGMT_UNPRESS_RIGHT] = button_codes[BGMT_UNPRESS_UDLR];
+    }
+
+    for (int i = 0; i < COUNT(key_map); i++)
+    {
+        if (key_map[i].gui_code == MPU_ENTER_MOVIE_MODE && s->model->dedicated_movie_mode == -1)
+        {
+            /* no movie mode on this model */
+            key_map[i].gui_code = MPU_EVENT_DISABLED;
+        }
     }
 
     show_keyboard_help();

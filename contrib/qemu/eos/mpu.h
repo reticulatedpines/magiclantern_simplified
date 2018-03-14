@@ -20,6 +20,7 @@ void mpu_send_keypress(EOSState *s, int keycode);
 
 enum button_codes
 {
+    MPU_EVENT_DISABLED,
     BGMT_INFO, BGMT_MENU, BGMT_PLAY, BGMT_UNPRESS_INFO,
     BGMT_PRESS_SET, BGMT_UNPRESS_SET, BGMT_JOY_CENTER,
     BGMT_PRESS_DOWN, BGMT_PRESS_DOWN_LEFT, BGMT_PRESS_DOWN_RIGHT, 
@@ -50,6 +51,7 @@ enum button_codes
     MPU_SEND_ABORT_REQUEST,
     MPU_NEXT_SHOOTING_MODE,
     MPU_PREV_SHOOTING_MODE,
+    MPU_ENTER_MOVIE_MODE,
 
     /* finished */
     BGMT_END_OF_LIST

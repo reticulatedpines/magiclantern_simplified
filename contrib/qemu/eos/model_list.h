@@ -60,11 +60,12 @@ struct eos_model_desc {
             uint32_t rtc_cs_register;
             uint32_t rtc_time_correct;
             uint32_t rtc_control_reg_2;
+            uint32_t dedicated_movie_mode;
         };
         
         /* this must match the number of items in the above struct */
         /* note: you get a compile-time error if params[] is smaller than the struct */
-        uint32_t params[44];
+        uint32_t params[45];
     };
 } __attribute__((packed));
 
