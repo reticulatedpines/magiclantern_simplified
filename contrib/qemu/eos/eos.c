@@ -782,26 +782,53 @@ static void draw_line4_32(void *opaque,
 static void draw_line8_32_bmp_yuv(void *opaque,
                 uint8_t *d, const uint8_t *bmp, const uint8_t *yuv, int width, int deststep, int yuvstep)
 {
-    uint8_t v, r, g, b;
     EOSState* ws = (EOSState*) opaque;
     
     do {
-        v = ldub_p((void *) bmp);
-        if (v)
+        uint8_t v = ldub_p((void *) bmp);
+        int r = ws->disp.palette_8bit[v].R;
+        int g = ws->disp.palette_8bit[v].G;
+        int b = ws->disp.palette_8bit[v].B;
+        int o = ws->disp.palette_8bit[v].opacity;
+
+        if (o == 3)
         {
-            r = ws->disp.palette_8bit[v].R;
-            g = ws->disp.palette_8bit[v].G;
-            b = ws->disp.palette_8bit[v].B;
+            /* opaque */
             ((uint32_t *) d)[0] = rgb_to_pixel32(r, g, b);
         }
         else
         {
+            /* some sort of transparency */
             uint32_t uyvy =  ldl_p((void*)((uintptr_t)yuv & ~3));
             int Y = (uintptr_t)yuv & 3 ? UYVY_GET_Y2(uyvy) : UYVY_GET_Y1(uyvy);
             int U = UYVY_GET_U(uyvy);
             int V = UYVY_GET_V(uyvy);
             int R, G, B;
             yuv2rgb(Y, U, V, &R, &G, &B);
+            
+            if (o == 0 && r == 255 && g == 255 && b == 255)
+            {
+                /* fully transparent (nothing to do) */
+                /* is this an edge case in Canon firmware? */
+            }
+            else
+            {
+                /* assume semi-transparent */
+                /* 5D3: 2 bits, 4 transparency levels
+                 * 0 = somewhat transparent, 3 = opaque,
+                 * 0 with Y=255 (R=G=B=255) = fully transparent
+                 * black image => bitmap overlay looks as if it were opaque
+                 * (colors not altered, except for the fully transparent special case)
+                 * white image => bitmap overlay washed out (except for o=3)
+                 * red image => bitmap overlay hue-shifted (except for o=3)
+                 * the following is just a rough approximation that looks reasonably well */
+                int bmp_weight = (o & 3) + 2;
+                int yuv_weight = 5 - bmp_weight;
+                R = (R * yuv_weight + r * bmp_weight) / 5;
+                G = (G * yuv_weight + g * bmp_weight) / 5;
+                B = (B * yuv_weight + b * bmp_weight) / 5;
+            }
+
             ((uint32_t *) d)[0] = rgb_to_pixel32(R, G, B);
         }
         bmp ++;
@@ -4511,23 +4538,18 @@ static void process_palette_entry(uint32_t value, struct palette_entry * palette
     int R, G, B;
     yuv2rgb(Y, U, V, &R, &G, &B);
 
-    static char msg_pal[50];
+    static char msg_pal[64];
 
-    if (value)
-    {
-        snprintf(msg_pal, sizeof(msg_pal), 
-            "Palette[%X] -> R%03d G%03d B%03d %s",
-            palette_index, R, G, B,
-            opacity != 3 ? "transparent?" : ""
-        );
-    }
-    else
-    {
-        snprintf(msg_pal, sizeof(msg_pal), 
-            "Palette[%X] -> empty",
-            palette_index
-        );
-    }
+    snprintf(msg_pal, sizeof(msg_pal), 
+        "Palette[%X] -> R%03d G%03d B%03d %s",
+        palette_index, R, G, B,
+        opacity == 3 ? "" : 
+            pal == 0x00FF0000 ? "transparent" :
+            pal == 0x00000000 ? "transparent black" :
+            opacity == 1 &&
+             R == G && G == B ? "transparent gray" :
+                                "transparent?"
+    );
     *msg = msg_pal;
 
     palette_entry->R = R;
