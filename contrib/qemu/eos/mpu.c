@@ -725,6 +725,12 @@ static struct {
     { 0x0011,   BGMT_PICSTYLE,          "W",            "Pic.Style",                    },
     { 0x001E,   BGMT_PRESS_AV,          "A",            "Av",                           },
     { 0x009E,   BGMT_UNPRESS_AV,                                                        },
+    { 0x002C,   BGMT_PRESS_MAGNIFY_BUTTON,   "Z",       "Zoom in",                      },
+    { 0x00AC,   BGMT_UNPRESS_MAGNIFY_BUTTON,                                            },
+    { 0x002C,   BGMT_PRESS_ZOOM_IN,          "Z/X",     "Zoom in/out",                  },
+    { 0x00AC,   BGMT_UNPRESS_ZOOM_IN,                                                   },
+    { 0x002D,   BGMT_PRESS_ZOOM_OUT,                                                    },
+    { 0x00AD,   BGMT_UNPRESS_ZOOM_OUT,                                                  },
     { 0x002A,   BGMT_PRESS_HALFSHUTTER, "Shift",        "Half-shutter"                  },
     { 0x0036,   BGMT_PRESS_HALFSHUTTER,                                                 },
     { 0x00AA,   BGMT_UNPRESS_HALFSHUTTER,                                               },
@@ -812,6 +818,12 @@ static int translate_scancode_2(int scancode, int first_code, int allow_auto_rep
                     break;
                 }
             }
+
+            if (ret > 0)
+            {
+                /* valid code found? stop here */
+                break;
+            }
         }
     }
 
@@ -849,11 +861,13 @@ static int translate_scancode(int scancode)
     return translate_scancode_2(scancode, 0, 0);
 }
 
-static int key_avail(int scancode)
+static int key_avail(int scancode, int gui_code)
 {
     /* check whether a given key is available on current camera model */
     /* disable autorepeat checking */
-    return translate_scancode_2(scancode & 0xFF, scancode >> 8, 1) > 0;
+    int raw = translate_scancode_2(scancode & 0xFF, scancode >> 8, 1);
+    if (raw <= 0) return 0;
+    return ((raw & 0xFFFF0000) == 0x0E0E0000) || (raw == button_codes[gui_code]);
 }
 
 static void show_keyboard_help(void)
@@ -867,7 +881,7 @@ static void show_keyboard_help(void)
     {
         if (key_map[i].pc_key_name)
         {
-            last_status = key_avail(key_map[i].scancode);
+            last_status = key_avail(key_map[i].scancode, key_map[i].gui_code);
             if (last_status)
             {
                 int unpress_available = 0;
@@ -875,7 +889,7 @@ static void show_keyboard_help(void)
                 {
                     if ((key_map[i].scancode & 0x80) == 0 &&
                         (key_map[i].scancode | 0x80) == key_map[j].scancode &&
-                        (key_avail(key_map[j].scancode)))
+                        (key_avail(key_map[j].scancode, key_map[j].gui_code)))
                     {
                         unpress_available = 1;
                     }
@@ -897,7 +911,7 @@ static void show_keyboard_help(void)
                 /* 5D3 has UNPRESS_INFO - others? */
                 /* only 100D sends UNPRESS_SET when releasing Q */
             }
-            else if (!key_avail(key_map[i].scancode))
+            else if (!key_avail(key_map[i].scancode, key_map[i].gui_code))
             {
                 MPU_EPRINTF("key code missing: %x %x\n", key_map[i].scancode, key_map[i].gui_code);
                 exit(1);
