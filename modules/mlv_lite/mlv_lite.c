@@ -2634,7 +2634,7 @@ static void compress_task()
 
             int compressed_size = lossless_compress_raw_rectangle(
                 outSuite, fullSizeBuffer,
-                raw_info.width, skip_x, skip_y,
+                raw_info.width, (skip_x + 7) & ~7, skip_y & ~1,
                 res_x, res_y
             );
 
