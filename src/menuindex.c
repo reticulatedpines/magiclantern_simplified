@@ -92,11 +92,13 @@ static struct menu_entry help_menus[] = {
         #endif
         .choices = CHOICES("Edit in LiveView"),
     },
+    #if FEATURE_JUNKIE_MENU
     {
         .select = menu_nav_help_open,
         .name = "Press MENU",
         .choices = CHOICES("Junkie mode"),
     },
+    #endif
     #if defined(FEATURE_OVERLAYS_IN_PLAYBACK_MODE) && defined(BTN_ZEBRAS_FOR_PLAYBACK_NAME) && defined(BTN_ZEBRAS_FOR_PLAYBACK)
     /* if BTN_ZEBRAS_FOR_PLAYBACK_NAME is undefined, you must define it (or undefine FEATURE_OVERLAYS_IN_PLAYBACK_MODE) */
     {

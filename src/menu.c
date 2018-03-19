@@ -127,7 +127,11 @@ static int caret_position = 0;
 static struct menu_entry * entry_being_updated = 0;
 static int entry_removed_itself = 0;
 
+#ifdef FEATURE_JUNKIE_MENU
 static CONFIG_INT("menu.junkie", junkie_mode, 0);
+#else
+#define junkie_mode 0   /* let the compiler optimize out this code */
+#endif
 //~ static CONFIG_INT("menu.set", set_action, 2);
 //~ static CONFIG_INT("menu.start.my", start_in_my_menu, 0);
 
@@ -5062,10 +5066,15 @@ handle_ml_menu_keys(struct event * event)
         }
         else
         {
+            #ifdef FEATURE_JUNKIE_MENU
             // each MENU press adjusts number of Junkie items
             // (off, 10, 20); 3 = show all (unused)
             junkie_mode = MOD(junkie_mode+1, 3);
             my_menu_dirty = 1;
+            #else
+            // close ML menu
+            give_semaphore(gui_sem);
+            #endif
         }
         break;
     }
