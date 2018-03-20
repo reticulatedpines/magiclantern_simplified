@@ -1417,6 +1417,12 @@ PROP_HANDLER(PROP_LV_ACTION)
     update_patch();
 }
 
+/* also try when switching zoom modes */
+PROP_HANDLER(PROP_LV_DISPSIZE)
+{
+    update_patch();
+}
+
 static MENU_UPDATE_FUNC(crop_update)
 {
     if (CROP_PRESET_MENU && lv)
@@ -1647,6 +1653,18 @@ static void center_canon_preview()
     sei(old);
 }
 
+/* faster version than the one from ML core */
+static void set_zoom(int zoom)
+{
+    if (!lv) return;
+    if (RECORDING) return;
+    if (is_movie_mode() && video_mode_crop) return;
+    zoom = COERCE(zoom, 1, 10);
+    if (zoom > 1 && zoom < 10) zoom = 5;
+    prop_request_change_wait(PROP_LV_DISPSIZE, &zoom, 4, 1000);
+}
+
+
 /* when closing ML menu, check whether we need to refresh the LiveView */
 static unsigned int crop_rec_polling_cbr(unsigned int unused)
 {
@@ -1680,8 +1698,9 @@ static unsigned int crop_rec_polling_cbr(unsigned int unused)
             {
                 info_led_on();
                 gui_uilock(UILOCK_EVERYTHING);
-                PauseLiveView();
-                ResumeLiveView();
+                int old_zoom = lv_dispsize;
+                set_zoom(lv_dispsize == 1 ? 5 : 1);
+                set_zoom(old_zoom);
                 gui_uilock(UILOCK_NONE);
                 info_led_off();
             }
@@ -1978,4 +1997,5 @@ MODULE_CBRS_END()
 
 MODULE_PROPHANDLERS_START()
     MODULE_PROPHANDLER(PROP_LV_ACTION)
+    MODULE_PROPHANDLER(PROP_LV_DISPSIZE)
 MODULE_PROPHANDLERS_END()
