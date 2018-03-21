@@ -5975,7 +5975,7 @@ static struct longpress erase_longpress = {
 };
 #endif
 
-#ifdef CONFIG_100D
+#ifdef BGMT_Q_SET
 static struct longpress qset_longpress = {
     .long_btn_press     = BGMT_Q_SET,           /* long press opens Q-menu */
     .short_btn_press    = BGMT_PRESS_SET,       /* short press => fake SET button (centering AF Frame in LV etc...) */
@@ -6153,7 +6153,7 @@ int handle_longpress_events(struct event * event)
 /*         cfn_set_setbtn(0);                                                          */
 /*  #endif                                                                             */
 
-#ifdef CONFIG_100D
+#ifdef BGMT_Q_SET
     /* triggers Q-menu by a long press on the combined q/set button */
     if (event->param == BGMT_Q_SET)
     {
