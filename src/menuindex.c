@@ -34,25 +34,25 @@ static struct menu_entry help_menus[] = {
     {
         .select = menu_nav_help_open,
         #if defined(CONFIG_500D)
-        .name = "Press LiveView " SYM_LV,
+        .name = "Press " SYM_LV " / PLAY",
         .choices = CHOICES("Open submenu (Q)"),
         #elif defined(CONFIG_50D)
-        .name = "Press FUNC",
+        .name = "Press FUNC / PLAY",
         .choices = CHOICES("Open submenu (Q)"),
         #elif defined(CONFIG_5D2)
-        .name = "Press Pict.Style",
+        .name = "Pict.Style / PLAY",
         .choices = CHOICES("Open submenu (Q)"),
         #elif defined(CONFIG_5DC) || defined(CONFIG_40D)
-        .name = "Press JUMP",
+        .name = "Press JUMP / PLAY",
         .choices = CHOICES("Open submenu (Q)"),
         #elif defined(CONFIG_EOSM)
-        .name = "1-finger Tap",
+        .name = "Tap or press PLAY",
         .choices = CHOICES("Open submenu (Q)"),
         #elif defined(CONFIG_100D)
-        .name = "Press Av",
+        .name = "Press Av / PLAY",
         .choices = CHOICES("Open submenu (Q)"),
         #else
-        .name = "Press Q",
+        .name = "Press Q / PLAY",
         .choices = CHOICES("Open submenu"),
         #endif
         

@@ -5227,6 +5227,7 @@ handle_ml_menu_keys(struct event * event)
         //~ menu_hidden_should_display_help = 0;
         break;
 
+#if 0
     case BGMT_PLAY:
         if (menu_help_active) { menu_help_active = 0; /* menu_damage = 1; */ break; }
         menu_entry_select( menu, 1 ); // decrement
@@ -5234,6 +5235,7 @@ handle_ml_menu_keys(struct event * event)
         //~ menu_damage = 1;
         //~ menu_hidden_should_display_help = 0;
         break;
+#endif
 #ifdef CONFIG_TOUCHSCREEN
     case BGMT_TOUCH_1_FINGER:
     case BGMT_TOUCH_2_FINGER:
@@ -5245,6 +5247,7 @@ handle_ml_menu_keys(struct event * event)
     /* Q is always defined */
     case BGMT_Q:
     case MLEV_JOYSTICK_LONG:
+    case BGMT_PLAY:
         if (menu_help_active) { menu_help_active = 0; /* menu_damage = 1; */ break; }
         menu_entry_select( menu, 2 ); // Q action select
         menu_needs_full_redraw = 1;
