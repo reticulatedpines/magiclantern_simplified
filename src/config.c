@@ -302,7 +302,6 @@ static MENU_SELECT_FUNC(config_autosave_toggle)
     
     snprintf(autosave_flag_file, sizeof(autosave_flag_file), "%sAUTOSAVE.NEG", get_config_dir());
     config_flag_file_setting_save(autosave_flag_file, !!config_autosave);
-    msleep(50);
     config_autosave = !config_flag_file_setting_load(autosave_flag_file);
 }
 
@@ -856,14 +855,36 @@ static char* config_choose_startup_preset()
 }
 
 
+/* initialized and used in boot-hack.c */
+int _set_at_startup = 0;
+
+static MENU_SELECT_FUNC(set_at_startup_toggle)
+{
+    /* this one is a bit hard to integrate with config presets, so it's made global */
+    const char * flag_file = "ML/SETTINGS/REQUIRE.SET";
+    config_flag_file_setting_save(flag_file, !_set_at_startup);
+    _set_at_startup = config_flag_file_setting_load(flag_file);
+}
+
 static struct menu_entry cfg_menus[] = {
 {
-    .name = "Config files",
+    .name = "Config options",
     .select = menu_open_submenu,
     .update = config_preset_update,
     .submenu_width = 710,
     .help = "Config auto save, manual save, restore defaults...",
     .children =  (struct menu_entry[]) {
+        {
+            .name       = "SET at startup",
+            .priv       = &_set_at_startup,
+            .max        = 1,
+            .choices    = CHOICES("Bypass loading ML", "Required to load ML"),
+            .select     = set_at_startup_toggle,
+            .icon_type  = IT_BOOL,
+            .help       = "[GLOBAL] If you hold the SET button pressed at camera startup:",
+            .help2      = "Do not load ML if you start the camera with SET pressed (default)\n"
+                          "Load ML only if SET is pressed at startup (optional)"
+        },
         {
             .name = "Config preset",
             .priv = &config_new_preset_index,

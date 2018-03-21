@@ -25,6 +25,9 @@ static MENU_UPDATE_FUNC(set_scrollwheel_display)
     }
 }
 
+/* config.c */
+extern int _set_at_startup;
+
 static struct menu_entry help_menus[] = {
     {
         .select = menu_nav_help_open,
@@ -114,6 +117,15 @@ static struct menu_entry help_menus[] = {
         .choices = CHOICES("Shortcuts (LV only)"),
     },
     #endif
+    {
+        .select = menu_nav_help_open,
+        .name = "SET at startup",
+        .priv = &_set_at_startup,
+        .max  = 1,
+        .icon_type = IT_ACTION,
+        .choices = CHOICES("Bypass loading ML", "Required to load ML"),
+        .help = "To change this setting: Prefs -> Config options",
+    },
     {
         .name = "Key Shortcuts",
         .select = menu_help_go_to_label,
