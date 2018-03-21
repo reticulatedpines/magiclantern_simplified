@@ -280,13 +280,13 @@ error:
 
 int config_autosave = 1;
 
-int config_flag_file_setting_load(char* file)
+int config_flag_file_setting_load(const char * file)
 {
     uint32_t size;
     return ( FIO_GetFileSize( file, &size ) == 0 );
 }
 
-void config_flag_file_setting_save(char* file, int setting)
+void config_flag_file_setting_save(const char * file, int setting)
 {
     FIO_RemoveFile(file);
     if (setting)

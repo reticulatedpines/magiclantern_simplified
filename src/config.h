@@ -147,7 +147,7 @@ void config_save_at_shutdown(); /* CBR */
 void config_load();
 
 /* simple boolean settings that live outside of config files (just by presence of a file) */
-int config_flag_file_setting_load(char* file);
-void config_flag_file_setting_save(char* file, int setting);
+int config_flag_file_setting_load(const char * file);
+void config_flag_file_setting_save(const char * file, int setting);
 
 #endif
