@@ -453,6 +453,19 @@ static void dumper_bootflag()
 }
 #endif
 
+static void led_fade(int arg1, void * on)
+{
+    /* emulate a fade-out PWM using a HPTimer */
+    static int k = 16000;
+    if (k > 0)
+    {
+        if (on) _card_led_on(); else _card_led_off();
+        int next_delay = (on ? k : 16000 - k);   /* cycle: 16000 us => 62.5 Hz */
+        SetHPTimerNextTick(arg1, next_delay, led_fade, led_fade, (void *) !on);
+        k -= MAX(16, k/32);  /* adjust fading speed and shape here */
+    }
+}
+
 /* This runs ML initialization routines and starts user tasks.
  * Unlike init_task, from here we can do file I/O and others.
  */
@@ -484,6 +497,9 @@ static void my_big_init_task()
         additional_version[6] = 'f';
         additional_version[7] = '\0';
     #endif
+
+        /* some very basic feedback - fade out the SD led */
+        SetHPTimerAfterNow(1000, led_fade, led_fade, 0);
 
         /* do not continue loading ML */
         return;
