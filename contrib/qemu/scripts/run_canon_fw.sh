@@ -115,7 +115,8 @@ case $(ps -o stat= -p $$) in
 esac
 
 # also print the command-line of arm-none-eabi-gdb, if any
-gdb_pid=$(pgrep -nx arm-none-eabi-gdb)
+# some systems limit process names to 15 chars; match the full command line
+gdb_pid=$(pgrep -P $PPID -nf arm-none-eabi-gdb)
 if [ "$gdb_pid" != "" ]; then
   gdb_cmd=$(ps -p $gdb_pid -o args | tail -n1)
   case $(ps -o stat= -p $gdb_pid) in
