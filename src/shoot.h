@@ -115,6 +115,9 @@ int set_mlu();
 int get_mlu_delay(int raw);
 int mlu_lock_mirror_if_needed(); /* implemented in lens.c */
 
+/* flash */
+void set_flash_firing(int mode);
+
 /* trap focus */
 int get_trap_focus();
 
