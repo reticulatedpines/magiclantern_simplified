@@ -430,9 +430,6 @@ void idle_powersave_step()
 {
     if (RECORDING && idle_rec == 0) // don't go to powersave when recording
         idle_wakeup_reset_counters(-2345);
-
-    if (NOT_RECORDING && idle_rec == 1) // don't go to powersave when not recording
-        idle_wakeup_reset_counters(-2345);
     
     if (logical_connect)
         idle_wakeup_reset_counters(-305); // EOS utility
@@ -562,53 +559,53 @@ static struct menu_entry powersave_menus[] = {
     .depends_on = DEP_LIVEVIEW,
     .children =  (struct menu_entry[]) {
         {
-            .name = "Enable power saving",
-            .priv           = &idle_rec,
-            .max = 2,
-            .choices = (const char *[]) {"on Standby", "on Recording", "on STBY+REC"},
-            .help = "If enabled, powersave (see above) works when recording too."
+            .name       = "Enable while recording",
+            .priv       = &idle_rec,
+            .max        = 1,
+            .help       = "Powersave always works during standby; optionally also while recording.",
+            .help2      = "Other ML features may use the options below (e.g. intervalometer in LV).",
         },
         #ifdef CONFIG_LCD_SENSOR
         {
-            .name = "Use LCD sensor",
+            .name           = "Use LCD sensor",
             .priv           = &lcd_sensor_wakeup,
-            .max = 1,
-            .help = "With the LCD sensor you may wakeup or force powersave mode."
+            .max            = 1,
+            .help           = "With the LCD sensor you may wakeup or force powersave mode."
         },
         #endif
         {
-            .name = "Use shortcut key",
+            .name           = "Use shortcut key",
             .priv           = &idle_shortcut_key,
-            .max = 1,
-            .choices = (const char *[]) {"OFF", INFO_BTN_NAME},
-            .help = "Shortcut key for enabling powersave modes right away."
+            .max            = 1,
+            .choices        = (const char *[]) {"OFF", INFO_BTN_NAME},
+            .help           = "Shortcut key for enabling powersave modes right away."
         },
         {
-            .name = "Dim display",
+            .name           = "Dim display",
             .priv           = &idle_display_dim_after,
             .update         = idle_display_dim_print,
             .select         = idle_timeout_toggle,
             .max            = 900,
             .icon_type      = IT_PERCENT_LOG_OFF,
-            .help = "Dim LCD display in LiveView when idle, to save power.",
+            .help           = "Dim LCD display in LiveView when idle, to save power.",
         },
         {
-            .name = "Turn off LCD",
+            .name           = "Turn off LCD",
             .priv           = &idle_display_turn_off_after,
             .update         = idle_display_feature_print,
             .select         = idle_timeout_toggle,
             .max            = 900,
             .icon_type      = IT_PERCENT_LOG_OFF,
-            .help = "Turn off display and pause LiveView when idle and not REC.",
+            .help           = "Turn off display. Will also pause LiveView if not recording.",
         },
         {
-            .name = "Turn off GlobalDraw",
+            .name           = "Turn off GlobalDraw",
             .priv           = &idle_display_global_draw_off_after,
             .update         = idle_display_feature_print,
             .select         = idle_timeout_toggle,
             .max            = 900,
             .icon_type      = IT_PERCENT_LOG_OFF,
-            .help = "Turn off GlobalDraw when idle, to save some CPU cycles.",
+            .help           = "Turn off GlobalDraw when idle, to save some CPU cycles.",
         },
         MENU_EOL
     },
