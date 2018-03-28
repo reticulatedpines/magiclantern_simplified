@@ -128,6 +128,7 @@ CONFIG_INT("idle.display.turn_off.after", idle_display_turn_off_after, 0); // th
 static CONFIG_INT("idle.display.dim.after", idle_display_dim_after, 0);
 static CONFIG_INT("idle.display.gdraw_off.after", idle_display_global_draw_off_after, 0);
 static CONFIG_INT("idle.rec", idle_rec, 0);
+static CONFIG_INT("idle.dis.30min", idle_disable_30min_timer, 0);
 static CONFIG_INT("idle.shortcut.key", idle_shortcut_key, 0);
 
 /* also used in zebra.c */
@@ -425,7 +426,7 @@ static void idle_stop_killing_flicker()
 }
 #endif
 
-/* called from zebra.c */
+/* called from zebra.c (only in LiveView) */
 void idle_powersave_step()
 {
     if (RECORDING && idle_rec == 0) // don't go to powersave when recording
@@ -495,6 +496,18 @@ void idle_powersave_step()
             idle_action_do(&idle_countdown_killflicker, &idle_countdown_killflicker_prev, idle_kill_flicker, idle_stop_killing_flicker);
     }
     #endif
+
+    /* prevent Canon firmware from turning off LiveView after 30 minutes */
+    if (idle_disable_30min_timer && !auto_power_off_time)
+    {
+        static int last_prolong = 0;
+        if (should_run_polling_action(10000, &last_prolong))
+        {
+            /* blink the LED as a reminder */
+            info_led_blink(1, 50, 50);
+            powersave_prolong();
+        }
+    }
 }
 
 PROP_HANDLER(PROP_LV_ACTION)
@@ -548,6 +561,18 @@ static void idle_timeout_toggle(void* priv, int sign)
     int i = current_timeout_index(*t);
     i = MOD(i + sign, COUNT(timeout_values));
     *(int*)priv = timeout_values[i];
+}
+
+static MENU_UPDATE_FUNC(idle_disable_30min_timer_upd)
+{
+    if (auto_power_off_time)
+    {
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Only works when 'Auto power off' is disabled in Canon menu.");
+    }
+    else if (idle_disable_30min_timer)
+    {
+        MENU_SET_WARNING(MENU_WARN_ADVICE, entry->help2);
+    }
 }
 
 static struct menu_entry powersave_menus[] = {
@@ -606,6 +631,16 @@ static struct menu_entry powersave_menus[] = {
             .max            = 900,
             .icon_type      = IT_PERCENT_LOG_OFF,
             .help           = "Turn off GlobalDraw when idle, to save some CPU cycles.",
+        },
+        {
+            .name           = "30-minute timer",
+            .priv           = &idle_disable_30min_timer,
+            .max            = 1,
+            .update         = idle_disable_30min_timer_upd,
+            .choices        = CHOICES("ON", "Disabled"),
+            .icon_type      = IT_DISABLE_SOME_FEATURE,
+            .help           = "Prevent Canon firmware from turning off LiveView after 30 minutes.",
+            .help2          = "LED will blink every 10s. WARNING: this limit is there for good reason!",
         },
         MENU_EOL
     },
