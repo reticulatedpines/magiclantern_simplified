@@ -74,6 +74,9 @@ for l in lines:
             if btn_code in buttons:
                 comments.append(buttons[btn_code])
 
+        if not comments:
+            comments.append("???")
+
     if comments:
         msg = "%-100s ; %s" % (l, "; ".join(comments))
         print >> out, msg
