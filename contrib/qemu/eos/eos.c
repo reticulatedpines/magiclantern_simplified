@@ -2665,6 +2665,15 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             break;
         }
 
+        case 0x00B8:
+        {
+            static int last_value = 1;
+            MMIO_VAR(last_value);
+            msg = (value & 0x02) ? "SRM_SetBusy" 
+                                 : "SRM_ClearBusy" ;
+            break;
+        }
+
         case 0x00A0:    /* DIGIC 4 (most models) */
         case 0x004C:    /* 700D, 100D */
         case 0x00D0:    /* 6D */
