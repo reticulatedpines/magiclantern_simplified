@@ -10,7 +10,7 @@
 -- Otherwise, the script will keep running in background (just like modules).
 --
 -- Note: task support is extremely hackish and has many limitations.
--- For example, msleep does not allow other tasks from this script to run.
+-- For example, (m)sleep does not allow other tasks from this script to run.
 -- To allow multitasking within the same script, you must call task.yield()
 -- however, only one task is allowed call task.yield(), as switching between tasks
 -- will corrupt Lua internals.
@@ -24,13 +24,13 @@
 -- close ML menu and open the console
 menu.close()
 console.show()
-msleep(500)
+sleep(0.5)
 
 io.write("Unload test...\n")
 
 function my_task()
     io.write("User task here.\n")
-    msleep(2000)
+    sleep(2)
     io.write("User task exiting.\n")
 end
 

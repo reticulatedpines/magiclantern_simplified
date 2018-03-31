@@ -116,7 +116,7 @@ function main()
     -- wait until menu redrawing finishes, then clear the screen once
     -- during the game, we will use only incremental redraws
     -- that don't require double buffering
-    msleep(500)
+    sleep(0.5)
     display.clear()
     
     game_speed = 3

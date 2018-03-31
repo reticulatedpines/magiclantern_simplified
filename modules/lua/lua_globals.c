@@ -54,20 +54,35 @@ static int luaCB_beep(lua_State * L)
 }
 
 /***
- Pauses for ms miliseconds and allows other tasks to run.
+ Pauses for `s` seconds (floating point) and allows other tasks to run.
 
  This will block other tasks/events from this script, but will allow
  other scripts, ML tasks or Canon tasks.
- 
- TODO: make it identical to task.yield?
 
- @tparam int amount number of milliseconds to sleep.
+ Timer resolution: 10ms.
+ 
+ @tparam float s number of seconds to sleep.
+ @function sleep
+ */
+static int luaCB_sleep(lua_State * L)
+{
+    LUA_PARAM_NUMBER(s, 1);
+    msleep((int) roundf(s * 1000.0));
+    return 0;
+}
+
+/***
+ Pauses for `ms` milliseconds and allows other tasks to run.
+
+ Consider using `sleep` for large delays, e.g. `sleep(2)` instead of `msleep(2000)` for readability (there's no functional difference between the two).
+
+ @tparam int ms number of milliseconds to sleep.
  @function msleep
  */
 static int luaCB_msleep(lua_State * L)
 {
-    LUA_PARAM_INT(amount, 1);
-    msleep(amount);
+    LUA_PARAM_INT(ms, 1);
+    msleep(ms);
     return 0;
 }
 
@@ -109,6 +124,7 @@ static int luaCB_led_blink(lua_State * L)
 
 static const luaL_Reg globallib[] =
 {
+    { "sleep", luaCB_sleep },
     { "msleep", luaCB_msleep },
     { "beep", luaCB_beep },
     { "led_on", luaCB_led_on },
