@@ -117,10 +117,7 @@ static int luaCB_task_create(lua_State * L)
     func->L = L;
     func->function_ref = luaL_ref(L, LUA_REGISTRYINDEX);
     func->disable_psave = disable_psave;
-    char task_name[32];
-    static int lua_task_id = 0;
-    snprintf(task_name,32,"lua_run_task[%d]",lua_task_id++);
-    uint32_t ret = (uint32_t) task_create(task_name, priority, stack_size, lua_run_task, func);
+    uint32_t ret = (uint32_t) task_create("lua_script_task", priority, stack_size, lua_run_task, func);
     if (ret & 1) return luaL_error(L, "task not started\n");
     return 0;
 }
