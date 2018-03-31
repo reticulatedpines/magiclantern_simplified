@@ -10,6 +10,7 @@
 #include <dryos.h>
 #include <fileprefix.h>
 #include <string.h>
+#include <powersave.h>
 
 #include "lua_common.h"
 
@@ -17,6 +18,7 @@ struct lua_task_func
 {
     lua_State * L;
     int function_ref;
+    int disable_psave;
 };
 
 static int luaCB_card_index(lua_State * L);
@@ -44,6 +46,11 @@ static void lua_run_task(struct lua_task_func * lua_task_func)
                  * it can't be unloaded while this task is running */
                 lua_set_cant_unload(L, 1, LUA_TASK_UNLOAD_MASK);
 
+                if (lua_task_func->disable_psave)
+                {
+                    powersave_prohibit();
+                }
+
                 printf("[%s] task starting.\n", lua_get_script_filename(L));
 
                 if(docall(L, 0, 0))
@@ -54,6 +61,11 @@ static void lua_run_task(struct lua_task_func * lua_task_func)
                 luaL_unref(L, LUA_REGISTRYINDEX, lua_task_func->function_ref);
 
                 printf("[%s] task exiting.\n", lua_get_script_filename(L));
+
+                if (lua_task_func->disable_psave)
+                {
+                    powersave_permit();
+                }
 
                 /* If all tasks started by the script are finished
                  * _before_ the main task ends, the script can be unloaded.
@@ -80,10 +92,16 @@ static void lua_run_task(struct lua_task_func * lua_task_func)
 }
 
 /***
- Creates a new task. It will begin executing when you return or call task.yield()
+ Creates a new task. It will begin executing when you return or call task.yield().
+ 
+ Tasks spawned from Lua can optionally run with powersaving disabled
+ (so the camera won't turn off while running them) if you enable `disable_powesave`
+ (for example, `task.create(my_func, nil, nil, true)`).
+ 
  @tparam function f the function to run
- @tparam[opt] int priority
- @tparam[opt] int stack_size
+ @tparam[opt] int priority DryOS task priority (0x1F = lowest priority; lower values = higher priority; default 0x1C)
+ @tparam[opt] int stack_size Memory reserved for this task to be used as stack (default 0x10000)
+ @tparam[opt=false] bool disable_powersave Set to `true` to prevent the camera from turning off while running this task.
  @function create
  */
 static int luaCB_task_create(lua_State * L)
@@ -91,12 +109,14 @@ static int luaCB_task_create(lua_State * L)
     if(!lua_isfunction(L, 1)) return luaL_argerror(L, 1, "function expected");
     LUA_PARAM_INT_OPTIONAL(priority, 2, 0x1c);
     LUA_PARAM_INT_OPTIONAL(stack_size, 3, 0x10000);
-    
+    LUA_PARAM_BOOL_OPTIONAL(disable_psave, 4, 0);
+
     struct lua_task_func * func = malloc(sizeof(struct lua_task_func));
     if(!func) return luaL_error(L, "malloc error\n");
-    
+
     func->L = L;
     func->function_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    func->disable_psave = disable_psave;
     char task_name[32];
     static int lua_task_id = 0;
     snprintf(task_name,32,"lua_run_task[%d]",lua_task_id++);
