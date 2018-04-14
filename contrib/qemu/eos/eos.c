@@ -381,6 +381,23 @@ const char * eos_get_cam_path(EOSState *s, const char * file_rel)
     return file;
 }
 
+static int check_rom_mirroring(void * buf, int size, int full_size)
+{
+    if (size / 2 && memcmp(buf, buf + size / 2, size / 2) == 0)
+    {
+        /* identical halves? check recursively to find the lowest size with unique data */
+        if (!check_rom_mirroring(buf, size / 2, full_size))
+        {
+            fprintf(stderr, "[EOS] mirrored data; unique 0x%X bytes repeated 0x%X times\n", size / 2, full_size / (size / 2));
+        }
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
 void eos_load_image(EOSState *s, const char * file_rel, int offset, int max_size, uint32_t addr, int swap_endian)
 {
     const char * file = eos_get_cam_path(s, file_rel);
@@ -431,7 +448,9 @@ void eos_load_image(EOSState *s, const char * file_rel, int offset, int max_size
     }
     
     fprintf(stderr, "\n");
-    
+
+    check_rom_mirroring(buf + offset, size, size);
+
     if (swap_endian) {
         reverse_bytes_order(buf + offset, size);
     }
