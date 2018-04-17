@@ -26,6 +26,9 @@ assert_log
 b *0xB60
 register_interrupt_log
 
+b *0xFE4841B4
+register_func_log
+
 # MPU communication
 if 0
   b *0xFE253C0E
@@ -37,6 +40,9 @@ end
 
 # state objects
 if 1
+  b *0x12AE
+  CreateStateObject_log
+
   b *0x1224
   state_transition_log
 end

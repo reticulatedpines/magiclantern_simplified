@@ -29,6 +29,12 @@ if MEM(0xFF136C94) == 0xE92D403E
   register_func_log
 end
 
+# 1.1.3
+if 0
+  b *0xFF13B630
+  register_func_log
+end
+
 # semaphores
 if 0
   b *0x8420
@@ -83,5 +89,9 @@ if 0
   prop_lookup_maybe_log
 end
 
+if 0
+  b *0x179A0
+  CreateStateObject_log
+end
 
 cont

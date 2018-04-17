@@ -335,17 +335,7 @@ Initial firmware analysis
 3) Add a very simple definition for your camera and get an `initial test run`_.
    Try to guess some missing bits from the error messages, if possible.
 
-4) (optional) Export the functions called during your test run:
-
-   .. code:: shell
-
-     ./run_canon_fw.sh EOSM2,firmware="boot=0" -d idc
-     ...
-     EOSM2.idc saved.
-
-   Load the IDC script into IDA, or convert it if you are using a different disassembler.
-
-5) Code blocks copied from ROM to RAM
+4) Code blocks copied from ROM to RAM
 
    .. code:: shell
   
@@ -366,6 +356,30 @@ Initial firmware analysis
 
    If you are analyzing the bootloader, extract and load the first two blobs in the same way.
    Other models may have slightly different configurations, so YMMV.
+
+5) Export the functions called during your test run:
+
+   .. code:: shell
+
+     ./run_canon_fw.sh EOSM2,firmware="boot=0" -d idc
+     ...
+     EOSM2.idc saved.
+
+   Load the IDC script into IDA, or convert it if you are using a different disassembler.
+
+   Locate ``task_create``, ``register_func``, ``register_interrupt`` and ``CreateStateObject``
+   and add GDB stubs for them in ``CAM/debugmsg.gdb``. Run the firmware under GDB
+   to identify some (thousands of) named functions.
+
+   .. code:: shell
+
+     ./run_canon_fw.sh EOSM2,firmware="boot=0" -d debugmsg -s -S & arm-none-eabi-gdb -x EOSM2/debugmsg.gdb
+     ...
+     named_functions.idc saved.
+
+   Load the new IDC script into IDA and start hacking!
+
+   Repeat this procedure as the emulation is getting better, to identify new functions.
 
    |
 

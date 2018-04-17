@@ -62,6 +62,7 @@ set output-radix 16
 define hook-quit
   set confirm off
   show convenience
+  named_func_hook_quit
   kill inferiors 1
   KRESET
 end
@@ -241,6 +242,120 @@ define printf_log
   end
 end
 
+
+# Export named functions to IDC (for IDA)
+#########################################
+
+set $named_func_first_time = 1
+
+# log some named function
+# names can come from anywhere (register_func, task_create etc)
+# arguments: function address, pointer to name string, optional suffix chars
+define named_func_add
+  set logging file named_functions.idc
+  set logging redirect on
+  set logging on
+  if $named_func_first_time == 1
+    set logging off
+    set logging overwrite on
+    set logging on
+    printf "/* List of named functions identified during execution. */\n"
+    set logging off
+    set logging overwrite off
+    set logging on
+    printf "/* Generated from QEMU+GDB. */\n"
+    printf "\n"
+    printf "#include <idc.idc>\n"
+    printf "\n"
+    printf "static MakeAutoName(ea,name)\n"
+    printf "{\n"
+    printf "    if (!hasUserName(GetFlags(ea))) {\n"
+    printf "      if (!(MakeNameEx(ea,name,SN_AUTO|SN_CHECK))) {\n"
+    printf "      if (!(MakeNameEx(ea,name+\"_0\",SN_AUTO|SN_CHECK))) {\n"
+    printf "      if (!(MakeNameEx(ea,name+\"_1\",SN_AUTO|SN_CHECK))) {\n"
+    printf "      if (!(MakeNameEx(ea,name+\"_2\",SN_AUTO|SN_CHECK))) {\n"
+    printf "      if (!(MakeNameEx(ea,name+\"_3\",SN_AUTO|SN_CHECK))) {\n"
+    printf "         MakeRptCmt(ea,name); }}}}}\n"
+    printf "    } else {\n"
+    printf "      Message(\"Already named: %%X %%s -- %%s\\n\", ea, name, Name(ea));\n"
+    printf "      MakeRptCmt(ea,name);\n"
+    printf "    }\n"
+    printf "}\n"
+    printf "\n"
+    printf "static MakeAutoNamedFunc(ea,name)\n"
+    printf "{\n"
+    printf "    SetReg(ea, \"T\", ea & 1);\n"
+    printf "    MakeCode(ea & ~1);\n"
+    printf "    MakeFunction(ea & ~1, BADADDR);\n"
+    printf "    MakeAutoName(ea & ~1, name);\n"
+    printf "}\n"
+    printf "\n"
+    printf "static main()\n"
+    printf "{\n"
+    set $named_func_first_time = 0
+  end
+
+  printf "  MakeAutoNamedFunc(0x%08X, \"%s", $arg0, $arg1
+
+  # name suffix
+  # fixme: cannot pass arbitrary strings as arguments, but chars work fine
+  if $argc == 3
+    printf "_%c", $arg2
+  end
+  if $argc == 4
+    printf "_%c%c", $arg2, $arg3
+  end
+  if $argc == 5
+    printf "_%c%c%c", $arg2, $arg3, $arg4
+  end
+  if $argc == 6
+    printf "_%c%c%c%c", $arg2, $arg3, $arg4, $arg5
+  end
+  if $argc == 7
+    printf "_%c%c%c%c%c", $arg2, $arg3, $arg4, $arg5, $arg6
+  end
+  if $argc == 8
+    printf "_%c%c%c%c%c%c", $arg2, $arg3, $arg4, $arg5, $arg6, $arg7
+  end
+  if $argc == 9
+    printf "_%c%c%c%c%c%c%c", $arg2, $arg3, $arg4, $arg5, $arg6, $arg7, $arg8
+  end
+  if $argc == 10
+    printf "_%c%c%c%c%c%c%c%c", $arg2, $arg3, $arg4, $arg5, $arg6, $arg7, $arg8, $arg9
+  end
+
+  if $argc <= 10
+    printf "\");"
+  else
+    set logging off
+    KRED
+    printf "FIXME: too many args\n"
+    KRESET
+    quit
+  end
+  printf "\n"
+  set logging off
+end
+
+# all of this just to close the brace :)
+define named_func_hook_quit
+  if $named_func_first_time == 0
+    set logging file named_functions.idc
+    set logging redirect on
+    set logging on
+    printf "}\n"
+    set logging off
+    KRED
+    printf "\nnamed_functions.idc saved.\n"
+    KRESET
+    printf "If it looks good, consider renaming or moving it, for future use.\n\n"
+  end
+end
+
+# Named function code ends here
+# calls to named_func_add be made from various loggers
+######################################################
+
 # log task_create calls
 define task_create_log
   commands
@@ -249,6 +364,7 @@ define task_create_log
     KBLU
     printf "task_create(%s, prio=%x, stack=%x, entry=%x, arg=%x)\n", $r0, $r1, $r2, $r3, MEM($sp)
     KRESET
+    named_func_add $r3 $r0 't' 'a' 's' 'k'
     c
   end
 end
@@ -556,8 +672,11 @@ define register_interrupt_log
   commands
     silent
     print_current_location
-    if $r0
+    if $r0 && ((char*)$r0)[0]
       printf "register_interrupt(%s, 0x%x, 0x%x, 0x%x)\n", $r0, $r1, $r2, $r3
+      if (unsigned int) $r2 > 0x1000
+        named_func_add $r2 $r0 'I' 'S' 'R'
+      end
     else
       printf "register_interrupt(null, 0x%x, 0x%x, 0x%x)\n", $r1, $r2, $r3
     end
@@ -573,6 +692,7 @@ define register_func_log
     KBLU
     printf "register_func('%s', %x, %x)\n", $r0, $r1, $r2
     KRESET
+    named_func_add $r1 $r0
     c
   end
 end
@@ -1005,6 +1125,27 @@ define CreateStateObject_log
     silent
     print_current_location
     printf "CreateStateObject(%s, 0x%x, inputs=%d, states=%d)\n", $r0, $r2, $r3, MEM($sp)
+
+    # enumerate all functions from this state machine
+    set $state_name = (char *) $r0
+    set $state_matrix = (int *) $r2
+    set $max_inputs = $r3
+    set $max_states = MEM($sp)
+    set $old_state = 0
+    while $old_state < $max_states
+      set $input = 0
+      while $input < $max_inputs
+        set $next_state   = $state_matrix[($old_state + $max_states * $input) * 2]
+        set $next_func    = $state_matrix[($old_state + $max_states * $input) * 2 + 1]
+        if $next_func
+          #printf "(%d) --%d--> (%d) %x %s_S%d_I%d\n", $old_state, $input, $next_state, $next_func, $state_name, $old_state, $input
+          named_func_add $next_func $state_name 'S' 48+$old_state/10 48+$old_state%10 '_' 'I' 48+$input/10 48+$input%10
+        end
+        set $input = $input + 1
+      end
+      set $old_state = $old_state + 1
+    end
+
     # note: I could have used log_result instead of this block, but wanted to get something easier to grep
     tbreak *($lr & ~1)
     commands

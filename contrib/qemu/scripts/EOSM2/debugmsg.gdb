@@ -26,4 +26,10 @@ task_create_log
 b *0x6C08
 register_interrupt_log
 
+b *0xFF146DD8
+register_func_log
+
+b *0x36468
+CreateStateObject_log
+
 continue
