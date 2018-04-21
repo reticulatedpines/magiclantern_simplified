@@ -55,6 +55,9 @@ macro define PRINT_CALLSTACK 0
 # helper to read an uint32_t from memory (used in ML as well)
 macro define MEM(x) (*(unsigned int*)(x))
 
+# helper to print a hex char (lowest 4 bits)
+macro define HEX_DIGIT(x) (char)((((x)&0xF) < 10) ? 48 + ((x)&0xF) : 55 + ((x)&0xF))
+
 # misc preferences
 set pagination off
 set output-radix 16
@@ -295,33 +298,41 @@ define named_func_add
     set $named_func_first_time = 0
   end
 
-  printf "  MakeAutoNamedFunc(0x%08X, \"%s", $arg0, $arg1
+  printf "  MakeAutoNamedFunc(0x%08X, \"", $arg0
+
+  # name prefix
+  if $arg1
+    printf "%s", $arg1
+    if $argc >= 3
+      printf "_"
+    end
+  end
 
   # name suffix
   # fixme: cannot pass arbitrary strings as arguments, but chars work fine
   if $argc == 3
-    printf "_%c", $arg2
+    printf "%c", $arg2
   end
   if $argc == 4
-    printf "_%c%c", $arg2, $arg3
+    printf "%c%c", $arg2, $arg3
   end
   if $argc == 5
-    printf "_%c%c%c", $arg2, $arg3, $arg4
+    printf "%c%c%c", $arg2, $arg3, $arg4
   end
   if $argc == 6
-    printf "_%c%c%c%c", $arg2, $arg3, $arg4, $arg5
+    printf "%c%c%c%c", $arg2, $arg3, $arg4, $arg5
   end
   if $argc == 7
-    printf "_%c%c%c%c%c", $arg2, $arg3, $arg4, $arg5, $arg6
+    printf "%c%c%c%c%c", $arg2, $arg3, $arg4, $arg5, $arg6
   end
   if $argc == 8
-    printf "_%c%c%c%c%c%c", $arg2, $arg3, $arg4, $arg5, $arg6, $arg7
+    printf "%c%c%c%c%c%c", $arg2, $arg3, $arg4, $arg5, $arg6, $arg7
   end
   if $argc == 9
-    printf "_%c%c%c%c%c%c%c", $arg2, $arg3, $arg4, $arg5, $arg6, $arg7, $arg8
+    printf "%c%c%c%c%c%c%c", $arg2, $arg3, $arg4, $arg5, $arg6, $arg7, $arg8
   end
   if $argc == 10
-    printf "_%c%c%c%c%c%c%c%c", $arg2, $arg3, $arg4, $arg5, $arg6, $arg7, $arg8, $arg9
+    printf "%c%c%c%c%c%c%c%c", $arg2, $arg3, $arg4, $arg5, $arg6, $arg7, $arg8, $arg9
   end
 
   if $argc <= 10
@@ -1181,6 +1192,29 @@ define state_transition_log
   end
 end
 
+# PTP
+
+define ptp_register_handler_log
+  commands
+    silent
+    print_current_location
+    KBLU
+    printf "ptp_register_handler(%x, %x, %x)\n", $r0, $r1, $r2
+    KRESET
+    if $r0 >= 0x1000 && $r0 <= 0xFFFF
+      named_func_add $r1 0 'P' 'T' 'P' '_' HEX_DIGIT($r0>>12) HEX_DIGIT($r0>>8) HEX_DIGIT($r0>>4) HEX_DIGIT($r0)
+    else
+      KRED
+      printf "FIXME: invalid PTP ID\n"
+      KRESET
+    end
+    c
+  end
+end
+
+
+# Generic helpers
+#################
 
 # log return value of current function
 # (temporary breakpoint on LR)

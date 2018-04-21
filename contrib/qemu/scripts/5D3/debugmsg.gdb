@@ -94,4 +94,10 @@ if 0
   CreateStateObject_log
 end
 
+# 1.1.3
+if 1
+  b *0xFF3F4F54
+  ptp_register_handler_log
+end
+
 cont
