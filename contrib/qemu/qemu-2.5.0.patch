@@ -1,3 +1,16 @@
+diff --git a/configure b/configure
+index b9552fd..9aeaae3 100755
+--- a/configure
++++ b/configure
+@@ -3612,7 +3612,7 @@ fi
+ # check if memfd is supported
+ memfd=no
+ cat > $TMPC << EOF
+-#include <sys/memfd.h>
++#include <sys/mman.h>
+ 
+ int main(void)
+ {
 diff --git a/cpu-exec.c b/cpu-exec.c
 index c88d0ff..4395bb3 100644
 --- a/cpu-exec.c
@@ -1034,6 +1047,21 @@ index 53ef971..260331a 100644
 +void log_str_cb(uint32_t addr, uint32_t value, uint32_t opc);
 +
  #endif /* TARGET_ARM_TRANSLATE_H */
+diff --git a/util/memfd.c b/util/memfd.c
+index 7c40691..3636f0d 100644
+--- a/util/memfd.c
++++ b/util/memfd.c
+@@ -34,9 +34,7 @@
+ 
+ #include "qemu/memfd.h"
+ 
+-#ifdef CONFIG_MEMFD
+-#include <sys/memfd.h>
+-#elif defined CONFIG_LINUX
++#if defined CONFIG_LINUX && !defined CONFIG_MEMFD
+ #include <sys/syscall.h>
+ #include <asm/unistd.h>
+ 
 diff --git a/vl.c b/vl.c
 index 4211ff1..93d4df4 100644
 --- a/vl.c
