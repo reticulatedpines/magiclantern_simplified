@@ -58,7 +58,7 @@ print >> sys.stderr, ""
 for l in lines:
     comments = []
 
-    m = re.match(".* mpu_(recv|send)\(([^()]*)\)", l)   
+    m = re.match(".* mpu_(recv|send)\(([^()]*)", l)   
     if m:
         spell = m.groups()[1].strip()
         if spell[6:11] in known_spells:
