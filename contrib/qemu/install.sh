@@ -364,6 +364,7 @@ if [ -d $QEMU_NAME ]; then
   echo "*** To reinstall, please rename or delete it first."
   echo ""
   echo "  - R or r        : rename to $(pwd)/${QEMU_NAME}_$DATE/"
+  echo "  - C or c        : make clean & rename to $(pwd)/${QEMU_NAME}_$DATE/"
   echo "  - uppercase D   : delete $(pwd)/$QEMU_NAME/ without confirmation (!)"
   echo "  - any other key : cancel the operation (exit the script)"
   echo ""
@@ -374,6 +375,10 @@ if [ -d $QEMU_NAME ]; then
         rm -Rf $QEMU_NAME
         ;;
       R|r)
+        mv $QEMU_NAME ${QEMU_NAME}_$DATE
+        ;;
+      C|c)
+        make -C $QEMU_NAME clean
         mv $QEMU_NAME ${QEMU_NAME}_$DATE
         ;;
       *)
@@ -474,6 +479,7 @@ if test "$answer" == "Y" -o "$answer" == "y"
         echo
         echo "*** Compilation failed."
         echo "*** Please check what went wrong, try to fix it and report back."
+        exit 1
     fi
 fi
 echo
@@ -521,6 +527,17 @@ echo
 echo
 echo "Online documentation: "
 echo
-echo "   https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/"
+echo "   https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/README.rst"
+echo "   https://bitbucket.org/hudson/magic-lantern/src/qemu/contrib/qemu/HACKING.rst"
 echo
 echo "Enjoy!"
+echo
+
+if ! [[ $DISPLAY ]]; then
+    echo "P.S. To run the GUI, please make sure you have a valid DISPLAY."
+    if [  -n "$(uname -a | grep Microsoft)" ]; then
+        echo "Under Windows, you may install either VcXsrv or XMing."
+        echo "Start it, then type the following into the terminal:"
+        echo "    export DISPLAY=:0"
+    fi
+fi
