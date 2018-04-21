@@ -1257,9 +1257,9 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
     if (!s->workdir) s->workdir = ".";
 
     const char* cpu_name = 
-        (s->model->digic_version <= 5) ? "arm946eos" :
-        (s->model->digic_version == 7) ? "cortex-a9" :
-        (s->model->digic_version >= 6) ? "arm-digic6-eos" :
+        (s->model->digic_version <= 5) ? "arm946-eos" :
+        (s->model->digic_version == 7) ? "cortex-a9-eos" :
+        (s->model->digic_version >= 6) ? "cortex-r4-eos" :
                                          "arm946";
     
     s->cpu0 = cpu_arm_init(cpu_name);

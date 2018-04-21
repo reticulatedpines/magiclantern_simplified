@@ -434,21 +434,18 @@ index 7cb01a8..61583ba 100644
  
      p = str;
 diff --git a/target-arm/cpu.c b/target-arm/cpu.c
-index 30739fc..1a7bcef 100644
+index 30739fc..9939c0c 100644
 --- a/target-arm/cpu.c
 +++ b/target-arm/cpu.c
-@@ -501,8 +501,9 @@ static void arm_cpu_initfn(Object *obj)
+@@ -501,6 +501,7 @@ static void arm_cpu_initfn(Object *obj)
  static Property arm_cpu_reset_cbar_property =
              DEFINE_PROP_UINT64("reset-cbar", ARMCPU, reset_cbar, 0);
  
 +/* fixme: how to change this property from machine code? */
  static Property arm_cpu_reset_hivecs_property =
--            DEFINE_PROP_BOOL("reset-hivecs", ARMCPU, reset_hivecs, false);
-+            DEFINE_PROP_BOOL("reset-hivecs", ARMCPU, reset_hivecs, true);
+             DEFINE_PROP_BOOL("reset-hivecs", ARMCPU, reset_hivecs, false);
  
- static Property arm_cpu_rvbar_property =
-             DEFINE_PROP_UINT64("rvbar", ARMCPU, rvbar, 0);
-@@ -711,6 +712,100 @@ static void arm926_initfn(Object *obj)
+@@ -711,6 +712,113 @@ static void arm926_initfn(Object *obj)
      cpu->reset_sctlr = 0x00090078;
  }
  
@@ -521,7 +518,7 @@ index 30739fc..1a7bcef 100644
 +    REGINFO_SENTINEL
 +};
 +
-+static void arm946eos_initfn(Object *obj)
++static void arm946_eos_initfn(Object *obj)
 +{
 +    ARMCPU *cpu = ARM_CPU(obj);
 +    set_feature(&cpu->env, ARM_FEATURE_V5);
@@ -530,26 +527,39 @@ index 30739fc..1a7bcef 100644
 +    cpu->midr = 0x41059461;
 +    cpu->ctr = (7 << 25) | (1 << 24) | (4 << 18) | (4 << 15) \
 +             | (2 << 12) | (4 << 6) | (4 << 3) | (2 << 0);
-+    cpu->reset_sctlr = 0x00000078;
++    cpu->reset_sctlr = 0x00000078 | (1 << 13);    /* fixme: how to change the HIVECS property? */
 +    define_arm_cp_regs(cpu, eos_digic5_cp_reginfo);
 +}
 +
 +static void cortex_r5_initfn(Object *obj);
 +
-+static void arm_digic6_eos_initfn(Object *obj)
++static void cortex_r4_eos_initfn(Object *obj)
 +{
 +    /* Cortex R4: https://chdk.setepontos.com/index.php?topic=11316.msg124273#msg124273 */
 +    cortex_r5_initfn(obj);
 +    
 +    ARMCPU *cpu = ARM_CPU(obj);
 +    cpu->midr = 0x411FC143;
-+    cpu->reset_sctlr = 0x08ED0878;
++    cpu->reset_sctlr = 0x08ED0878 | (1 << 13);    /* fixme: how to change the HIVECS property? */
++}
++
++static void cortex_a9_initfn(Object *obj);
++
++static void cortex_a9_eos_initfn(Object *obj)
++{
++    /* Cortex A9: http://chdk.setepontos.com/index.php?topic=13014.msg131110#msg131110 */
++    cortex_a9_initfn(obj);
++    
++    ARMCPU *cpu = ARM_CPU(obj);
++    cpu->midr = 0x411FC143;
++    // cpu->reset_sctlr = 0x08ED0878;    /* FIXME: no bootloader yet */
++    cpu->reset_sctlr = 0x48ED0878;
 +}
 +
  static void arm946_initfn(Object *obj)
  {
      ARMCPU *cpu = ARM_CPU(obj);
-@@ -914,9 +1009,16 @@ static void arm_v7m_class_init(ObjectClass *oc, void *data)
+@@ -914,9 +1022,16 @@ static void arm_v7m_class_init(ObjectClass *oc, void *data)
  
  static const ARMCPRegInfo cortexr5_cp_reginfo[] = {
      /* Dummy the TCM region regs for the moment */
@@ -568,15 +578,26 @@ index 30739fc..1a7bcef 100644
        .access = PL1_RW, .type = ARM_CP_CONST },
      REGINFO_SENTINEL
  };
-@@ -1328,6 +1430,8 @@ typedef struct ARMCPUInfo {
- static const ARMCPUInfo arm_cpus[] = {
+@@ -1329,6 +1444,7 @@ static const ARMCPUInfo arm_cpus[] = {
  #if !defined(CONFIG_USER_ONLY) || !defined(TARGET_AARCH64)
      { .name = "arm926",      .initfn = arm926_initfn },
-+    { .name = "arm946eos",   .initfn = arm946eos_initfn },
-+    { .name = "arm-digic6-eos",   .initfn = arm_digic6_eos_initfn },
      { .name = "arm946",      .initfn = arm946_initfn },
++    { .name = "arm946-eos",  .initfn = arm946_eos_initfn },
      { .name = "arm1026",     .initfn = arm1026_initfn },
      /* What QEMU calls "arm1136-r2" is actually the 1136 r0p2, i.e. an
+      * older core than plain "arm1136". In particular this does not
+@@ -1342,9 +1458,11 @@ static const ARMCPUInfo arm_cpus[] = {
+                              .class_init = arm_v7m_class_init },
+     { .name = "cortex-m4",   .initfn = cortex_m4_initfn,
+                              .class_init = arm_v7m_class_init },
++    { .name = "cortex-r4-eos",.initfn = cortex_r4_eos_initfn },
+     { .name = "cortex-r5",   .initfn = cortex_r5_initfn },
+     { .name = "cortex-a8",   .initfn = cortex_a8_initfn },
+     { .name = "cortex-a9",   .initfn = cortex_a9_initfn },
++    { .name = "cortex-a9-eos",.initfn = cortex_a9_eos_initfn },
+     { .name = "cortex-a15",  .initfn = cortex_a15_initfn },
+     { .name = "ti925t",      .initfn = ti925t_initfn },
+     { .name = "sa1100",      .initfn = sa1100_initfn },
 diff --git a/target-arm/cpu.h b/target-arm/cpu.h
 index 815fef8..3904787 100644
 --- a/target-arm/cpu.h
