@@ -1620,14 +1620,54 @@ static uint32_t last_write_addr;
 static uint32_t last_write_size;
 static __uint128_t last_write_value;
 
-static void romcpy_log_n_reset_block(void)
+static char dd_path[100];
+static FILE * dd = 0;
+
+static void close_dd(void)
+{
+    fclose(dd); dd = 0;
+    fprintf(stderr, "%s saved.\n", dd_path);
+}
+
+static void romcpy_log_block(EOSState *s)
+{
+    uint32_t block_rom_start = block_start + block_offset;
+
+    fprintf(stderr, "[ROMCPY] 0x%-8X -> 0x%-8X size 0x%-8X at 0x%-8X\n",
+        block_rom_start, block_start, block_size, block_pc
+    );
+
+    hwaddr l = block_size;
+    hwaddr block_rom_start_rel;
+    MemoryRegion * mr = address_space_translate(&address_space_memory, block_rom_start, &block_rom_start_rel, &l, 0);
+    assert(l == block_size);
+
+    if (strcmp(mr->name, "eos.rom0") == 0 ||
+        strcmp(mr->name, "eos.rom1") == 0)
+    {
+        if (!dd)
+        {
+            snprintf(dd_path, sizeof(dd_path), "%s/romcpy.sh", s->model->name);
+            fprintf(stderr, "Logging ROM-copied blocks to %s.\n", idc_path);
+            dd = fopen(dd_path, "w");
+            assert(dd);
+            atexit(close_dd);
+        }
+
+        /* fixme: dd executes a bit slow with bs=1 */
+        fprintf(dd, "dd if=ROM%c.BIN of=%s.0x%X.bin bs=1 skip=$((0x%X)) count=$((0x%X))\n",
+            mr->name[7],
+            s->model->name, block_start, (int)block_rom_start_rel, block_size
+        );
+    }
+}
+
+static void romcpy_log_n_reset_block(EOSState *s)
 {
     if (block_size >= 64)
     {
         /* block large enough to report? */
-        fprintf(stderr, "[ROMCPY] 0x%-8X -> 0x%-8X size 0x%-8X at 0x%-8X\n",
-            block_start + block_offset, block_start, block_size, block_pc
-        );
+        romcpy_log_block(s);
     }
 
     /* reset block */
@@ -1733,7 +1773,7 @@ static void eos_romcpy_log_mem(EOSState *s, MemoryRegion *mr, hwaddr _addr, uint
                     /* not growing current block; assume a new one might have been started */
                     qemu_log_mask(EOS_LOG_VERBOSE, "new block (previous %x-%x)\n", block_start, block_start + block_size);
                     uint32_t pc = CURRENT_CPU->env.regs[15];
-                    romcpy_log_n_reset_block();
+                    romcpy_log_n_reset_block(s);
                     romcpy_new_block(last_write_addr, last_read_addr, item_size, pc);
                 }
             }
@@ -1741,7 +1781,7 @@ static void eos_romcpy_log_mem(EOSState *s, MemoryRegion *mr, hwaddr _addr, uint
         else /* some other value written to memory */
         {
             qemu_log_mask(EOS_LOG_VERBOSE, "reset block (previous %x-%x)\n", block_start, block_size);
-            romcpy_log_n_reset_block();
+            romcpy_log_n_reset_block(s);
         }
     }
 }
