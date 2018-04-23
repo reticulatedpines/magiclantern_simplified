@@ -6,16 +6,10 @@
 #include <stdarg.h>
 
 /** Some small engio API **/
-#define REG_PRINT_CHAR 0xCF123000
-#define REG_SHUTDOWN   0xCF123004
-#define REG_DUMP_VRAM  0xCF123008
-#define REG_PRINT_NUM  0xCF12300C
-#define REG_DISAS_32   0xCF123010
-#define REG_BMP_VRAM   0xCF123014
-#define REG_IMG_VRAM   0xCF123018
-#define REG_RAW_BUFF   0xCF12301C
-#define REG_DISP_TYPE  0xCF123020
-#define REG_CALLSTACK  0xCF123030
+#define REG_PRINT_CHAR 0xC0123400
+#define REG_PRINT_NUM  0xC012340C
+#define REG_DISAS_32   0xC0123410
+#define REG_CALLSTACK  0xC0123430
 
 /**
  * The following functions will print to QEMU console only when compiling

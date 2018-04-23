@@ -101,7 +101,7 @@ macro define CURRENT_TASK_NAME (((int*)CURRENT_TASK)[0] ? ((char***)CURRENT_TASK
 # requires -d callstack, for example:
 # ./run_canon_fw 1300D,firmware="boot=0" -d callstack -s -S & arm-none-eabi-gdb -x 1300D/debugmsg.gdb
 define print_callstack
-  set $_ = *0xCF123030
+  set $_ = *0xC0123430
 end
 
 # print current task name and return address

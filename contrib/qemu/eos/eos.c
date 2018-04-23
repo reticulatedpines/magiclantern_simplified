@@ -241,7 +241,8 @@ EOSRegionHandler eos_handlers[] =
     { "DIGIC6",       0xD0000000, 0xDFFFFFFF, eos_handle_digic6, 0 },
     { "DIGIC6",       0xC8100000, 0xC8100FFF, eos_handle_digic6, 1 },
     
-    { "ML helpers",   0xCF123000, 0xCF123EFF, eos_handle_ml_helpers, 0 },
+    { "ML helpers",   0xCF123000, 0xCF1230FF, eos_handle_ml_helpers, 0 },
+    { "ML helpers",   0xC0123400, 0xC01234FF, eos_handle_ml_helpers, 1 },
 };
 
 /* io range access */
