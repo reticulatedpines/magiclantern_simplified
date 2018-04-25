@@ -1304,7 +1304,8 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
          * when they have different sizes */
         assert(ATCM_SIZE == BTCM_SIZE);
     }
-    
+
+    assert(RAM_SIZE);
     memory_region_init_ram(&s->ram, NULL, "eos.ram", RAM_SIZE - ATCM_SIZE, &error_abort);
     memory_region_add_subregion(s->system_mem, 0 + ATCM_SIZE, &s->ram);
     memory_region_init_alias(&s->ram_uncached, NULL, "eos.ram_uncached", &s->ram, 0x00000000, RAM_SIZE - ATCM_SIZE);
