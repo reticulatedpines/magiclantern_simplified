@@ -248,7 +248,8 @@ EOSRegionHandler eos_handlers[] =
 /* io range access */
 static uint64_t eos_io_read(void *opaque, hwaddr addr, uint32_t size)
 {
-    addr += IO_MEM_START;
+    EOSState* s = (EOSState*) opaque;
+    addr += MMIO_ADDR;
 
     uint32_t type = MODE_READ;
 
@@ -257,14 +258,15 @@ static uint64_t eos_io_read(void *opaque, hwaddr addr, uint32_t size)
 
 static void eos_io_write(void *opaque, hwaddr addr, uint64_t val, uint32_t size)
 {
-    addr += IO_MEM_START;
+    EOSState* s = (EOSState*) opaque;
+    addr += MMIO_ADDR;
 
     uint32_t type = MODE_WRITE;
 
     eos_handler ( opaque, addr, type, val );
 }
 
-static const MemoryRegionOps iomem_ops = {
+static const MemoryRegionOps mmio_ops = {
     .read = eos_io_read,
     .write = eos_io_write,
     .endianness = DEVICE_NATIVE_ENDIAN,
@@ -1336,8 +1338,8 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
     //memory_region_add_subregion(s->system_mem, 0xF0000000, &s->rom1);
 
     /* set up io space */
-    memory_region_init_io(&s->iomem, NULL, &iomem_ops, s, "eos.iomem", s->model->io_mem_size);
-    memory_region_add_subregion(s->system_mem, IO_MEM_START, &s->iomem);
+    memory_region_init_io(&s->mmio, NULL, &mmio_ops, s, "eos.mmio", MMIO_SIZE);
+    memory_region_add_subregion(s->system_mem, MMIO_ADDR, &s->mmio);
 
     /*ROMState *rom0 = eos_rom_register(0xF8000000, NULL, "ROM1", ROM1_SIZE,
                                 NULL,

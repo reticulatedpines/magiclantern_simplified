@@ -66,8 +66,8 @@
 #define ATCM_SIZE     s->model->atcm_size
 #define RAM_SIZE      s->model->ram_size
 #define CACHING_BIT   s->model->caching_bit
-
-#define IO_MEM_START  0xC0000000    /* common to all DIGICs */
+#define MMIO_ADDR     s->model->mmio_addr
+#define MMIO_SIZE     s->model->mmio_size
 
 /* defines for memory/register access */
 #define INT_ENTRIES 0x200
@@ -266,7 +266,7 @@ typedef struct
     MemoryRegion ram_extra;
     MemoryRegion rom0;
     MemoryRegion rom1;
-    MemoryRegion iomem;
+    MemoryRegion mmio;
     qemu_irq interrupt;
     QemuThread interrupt_thread_id;
     uint32_t verbosity;

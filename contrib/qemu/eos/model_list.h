@@ -29,7 +29,8 @@ struct eos_model_desc {
             uint32_t btcm_size;
             uint32_t ram_extra_addr;
             uint32_t ram_extra_size;
-            uint32_t io_mem_size;
+            uint32_t mmio_addr;
+            uint32_t mmio_size;
             uint32_t firmware_start;
             uint32_t firmware_version;  /* optional, only set if using more than one */
             uint32_t bootflags_addr;
@@ -65,7 +66,7 @@ struct eos_model_desc {
         
         /* this must match the number of items in the above struct */
         /* note: you get a compile-time error if params[] is smaller than the struct */
-        uint32_t params[45];
+        uint32_t params[46];
     };
 } __attribute__((packed));
 
