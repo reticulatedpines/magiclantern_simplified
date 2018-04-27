@@ -1314,20 +1314,28 @@ function check_rom_md5 {
         return
     fi
 
+    if [ "$DEV" == "$MCF" ]; then
+        echo -n "CF: "
+    elif [ "$DEV" == "$MSD" ]; then
+        echo -n "SD: "
+    else
+        echo -en "\e[31m??\e[0m"
+    fi
+
     # copy the ROM files locally to check them
-    rm -f $TMP/ROM*
-    mcopy -i $DEV ::ROM* $TMP/
+    rm -f $TMP/*.BIN $TMP/*.MD5
+    mcopy -i $DEV ::*.BIN ::*.MD5 $TMP/
 
     # check the MD5 sums
     cd $TMP/
     if md5sum --strict --status -c *.MD5; then
         # OK: print MD5 output normally
-        md5sum -c ROM*.MD5 | tr '\n' '\t'
+        md5sum -c *.MD5 | tr '\n' '\t'
         echo ""
     else
         # not OK: print the status of each file, in red
         echo -n -e "\e[31m"
-        md5sum -c ROM*.MD5 2>/dev/null | tr '\n' '\t'
+        md5sum -c *.MD5 2>/dev/null | tr '\n' '\t'
         echo -e "\e[0m"
     fi
     cd $OLDPWD
@@ -1335,6 +1343,8 @@ function check_rom_md5 {
     # delete the ROM files from the SD/CF images
     if mdir -i $MSD ::ROM* &> /dev/null; then mdel -i $MSD ::ROM*; fi
     if mdir -i $MCF ::ROM* &> /dev/null; then mdel -i $MCF ::ROM*; fi
+    if mdir -i $MSD ::SFDATA* &> /dev/null; then mdel -i $MSD ::SFDATA*; fi
+    if mdir -i $MCF ::SFDATA* &> /dev/null; then mdel -i $MCF ::SFDATA*; fi
 
     # check whether other files were created/modified (shouldn't be any)
     mdir -i $MSD > $TMP/sd2.lst
