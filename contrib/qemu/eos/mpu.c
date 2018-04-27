@@ -651,12 +651,16 @@ unsigned int eos_handle_mreq( unsigned int parm, EOSState *s, unsigned int addre
             msg = "CTL register -> idk, sending 0xC";
             ret = 0xC;
         }
+
+        if (qemu_loglevel_mask(EOS_LOG_MPU))
+        {
+            io_log("MREQ", s, address, type, value, ret, msg, msg_arg1, msg_arg2);
+        }
+        return ret;
     }
 
-    if (qemu_loglevel_mask(EOS_LOG_MPU))
-    {
-        io_log("MREQ", s, address, type, value, ret, msg, msg_arg1, msg_arg2);
-    }
+    /* not handled here; unknown */
+    io_log("???", s, address, type, value, ret, msg, msg_arg1, msg_arg2);
     return ret;
 }
 
