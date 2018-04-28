@@ -156,12 +156,12 @@ EOSRegionHandler eos_handlers[] =
     { "Interrupt",    0xD5011000, 0xD5011FFF, eos_handle_intengine, 2 },    /* second core in D7 */
     { "Interrupt",    0xD02C0200, 0xD02C02FF, eos_handle_intengine, 3 },    /* 5D3 eeko */
     { "Interrupt",    0xC1000000, 0xC100FFFF, eos_handle_intengine_gic, 7 },/* D7 */
-    { "Timers",       0xC0210000, 0xC0210FFF, eos_handle_timers, 0 },
-    { "Timers",       0xD4000240, 0xD4000410, eos_handle_timers, 1 },
-    { "Timers",       0xD02C1500, 0xD02C15FF, eos_handle_timers, 2 },
+    { "Timers",       0xC0210000, 0xC0210FFF, eos_handle_timers, 0 },       /* DIGIC 4/5/6 countdown timers */
+    { "Timers",       0xD02C1500, 0xD02C15FF, eos_handle_timers, 2 },       /* Eeko countdown timer */
     { "Timer",        0xC0242014, 0xC0242014, eos_handle_digic_timer, 0 },
-    { "Timer",        0xD400000C, 0xD400000C, eos_handle_digic_timer, 1 },  /* not sure */
-    { "HPTimer",      0xC0243000, 0xC0243FFF, eos_handle_hptimer, 0 },
+    { "Timer",        0xD400000C, 0xD400000C, eos_handle_digic_timer, 1 },
+    { "UTimer",       0xD4000240, 0xD4000440, eos_handle_utimer, 1 },       /* D6 : timers 9...16 */
+    { "HPTimer",      0xC0243000, 0xC0243FFF, eos_handle_hptimer, 0 },      /* DIGIC 2/3/4/5/6 HPTimers */
     { "GPIO",         0xC0220000, 0xC022FFFF, eos_handle_gpio, 0 },
     { "Basic",        0xC0100000, 0xC0100FFF, eos_handle_basic, 0 },
     { "Basic",        0xC0400000, 0xC0400FFF, eos_handle_basic, 1 },
@@ -537,6 +537,23 @@ static void eos_interrupt_timer_body(EOSState *s)
             if(s->irq_schedule[pos] > 1)
             {
                 s->irq_schedule[pos]--;
+            }
+        }
+
+        /* check all UTimers */
+        int utimer_interrupts[COUNT(s->UTimers)] = {
+            0x0E, 0x1E, 0x2E, 0x3E, 0x4E, 0x5E, 0x6E, 0x7E,
+        };
+
+        for (int id = 0; id < COUNT(s->UTimers); id++)
+        {
+            if (s->UTimers[id].active && s->UTimers[id].output_compare == s->digic_timer)
+            {
+                if (qemu_loglevel_mask(EOS_LOG_IO)) {
+                    fprintf(stderr, "[TIMER] Firing UTimer #%d\n", id);
+                }
+                s->UTimers[id].triggered = 1;
+                eos_trigger_int(s, utimer_interrupts[id], 0);
             }
         }
 
@@ -2198,11 +2215,11 @@ unsigned int eos_handle_timers ( unsigned int parm, EOSState *s, unsigned int ad
     int msg_arg2 = 0;
 
     int timer_id = 
-        (parm == 0) ? ((address & 0xF00) >> 8)     :    /* DIGIC 4/5 timers (0,1,2)*/
-        (parm == 1) ? ((address & 0xFC0) >> 6) - 6 :    /* DIGIC 6 timers (3,4,5,6,7,8,9,10)*/
+        (parm == 0) ? ((address & 0xF00) >> 8)     :    /* DIGIC 4/5 timers (0,1,2...5) */
         (parm == 2) ? 11 :                              /* 5D3 Eeko DryOS timer */
-                      0  ;
-    
+                      -1 ;
+    assert(timer_id >= 0);
+
     msg_arg1 = timer_id;
     
     if (timer_id < COUNT(s->timer_enabled))
@@ -2267,6 +2284,78 @@ unsigned int eos_handle_timers ( unsigned int parm, EOSState *s, unsigned int ad
     return ret;
 }
 
+/* DIGIC 6 UTimer (they look like regular timers, but behave like HPTimers) */
+unsigned int eos_handle_utimer ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+{
+    const char * msg = "UTimer #%d: ???";
+    int msg_arg1 = 0;
+    int msg_arg2 = 0;
+    
+    unsigned int ret = 0;
+    int timer_id = ((address & 0xFC0) >> 6) - 9;
+    msg_arg1 = timer_id;
+
+    switch(address & 0x3F)
+    {
+
+        case 0x00:
+            MMIO_VAR(s->UTimers[timer_id].active);
+            msg = value == 1 ? "UTimer #%d: active" :
+                  value == 0 ? "UTimer #%d: inactive" :
+                               "UTimer #%d: ?!";
+            break;
+
+        case 0x08:
+            /* fixme: duplicate code (same as HPTimer offset 1x4) */
+            if(type & MODE_WRITE)
+            {
+                /* upper rounding, to test for equality with digic_timer */
+                int rounded = (value + DIGIC_TIMER_STEP) & DIGIC_TIMER_MASK;
+                s->UTimers[timer_id].output_compare = rounded;
+
+                /* for some reason, the value set to output compare
+                 * is sometimes a little behind digic_timer */
+                int actual_delay = ((int32_t)(rounded - s->digic_timer) << 12) >> 12;
+
+                if (actual_delay < 0)
+                {
+                    /* workaround: when this happens, trigger right away */
+                    s->UTimers[timer_id].output_compare = s->digic_timer + DIGIC_TIMER_STEP;
+                }
+
+                msg = "UTimer #%d: output compare (delay %d microseconds)";
+                msg_arg2 = value - s->digic_timer_last_read;
+            }
+            else
+            {
+                ret = s->UTimers[timer_id].output_compare;
+                msg = "UTimer #%d: output compare";
+            }
+            break;
+
+        case 0x0C:
+            if(type & MODE_WRITE)
+            {
+                msg = value == 1 ? "UTimer #%d: start" :
+                      value == 0 ? "UTimer #%d: stop" :
+                                   "UTimer #%d: ?!";
+            }
+            else
+            {
+                msg = "UTimer #%d: status";
+            }
+            break;
+
+        case 0x10:
+            MMIO_VAR(s->UTimers[timer_id].triggered);
+            msg = "UTimer #%d: triggered?";
+            break;
+    }
+
+    io_log("TIMER", s, address, type, value, ret, msg, msg_arg1, msg_arg2);
+    return ret;
+}
+
 unsigned int eos_handle_hptimer ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
     const char * msg = 0;
@@ -2297,12 +2386,10 @@ unsigned int eos_handle_hptimer ( unsigned int parm, EOSState *s, unsigned int a
             {
                 /* upper rounding, to test for equality with digic_timer */
                 int rounded = (value + DIGIC_TIMER_STEP) & DIGIC_TIMER_MASK;
-                int old = s->HPTimers[timer_id].output_compare;
                 s->HPTimers[timer_id].output_compare = rounded;
                 
                 /* for some reason, the value set to output compare
                  * is sometimes a little behind digic_timer */
-                int delay_since_last = ((int32_t)(value - old) << 12) >> 12;
                 int actual_delay = ((int32_t)(rounded - s->digic_timer) << 12) >> 12;
 
                 if (actual_delay < 0)
@@ -2310,17 +2397,9 @@ unsigned int eos_handle_hptimer ( unsigned int parm, EOSState *s, unsigned int a
                     /* workaround: when this happens, trigger right away */
                     s->HPTimers[timer_id].output_compare = s->digic_timer + DIGIC_TIMER_STEP;
                 }
-                
-                if (old)
-                {
-                    msg = "HPTimer #%d: output compare (%d microseconds since last)";
-                    msg_arg2 = delay_since_last;
-                }
-                else
-                {
-                    msg = "HPTimer #%d: output compare (delay %d microseconds)";
-                    msg_arg2 = actual_delay;
-                }
+
+                msg = "HPTimer #%d: output compare (delay %d microseconds)";
+                msg_arg2 = value - s->digic_timer_last_read;
             }
             else
             {
@@ -3600,7 +3679,7 @@ unsigned int eos_handle_digic_timer ( unsigned int parm, EOSState *s, unsigned i
     }
     else
     {
-        ret = s->digic_timer;
+        ret = s->digic_timer_last_read = s->digic_timer;
 
         if (!(qemu_loglevel_mask(CPU_LOG_INT) &&
               qemu_loglevel_mask(EOS_LOG_VERBOSE)))

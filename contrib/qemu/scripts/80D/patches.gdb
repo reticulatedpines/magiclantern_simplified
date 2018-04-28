@@ -3,9 +3,6 @@
 
 source patch-header.gdb
 
-# UTimer (fixme)
-set *(int*)0xFE5998C6 = 0x4770
-
 # experimental patches
 # they probably do more harm than good - figure out what's up with them
 if 1

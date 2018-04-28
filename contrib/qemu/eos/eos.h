@@ -275,9 +275,11 @@ typedef struct
     uint32_t irq_schedule[INT_ENTRIES];
     uint32_t irq_id;
     uint32_t digic_timer;
+    uint32_t digic_timer_last_read;
     uint32_t timer_reload_value[20];
     uint32_t timer_current_value[20];
     uint32_t timer_enabled[20];
+    struct HPTimer UTimers[8];
     struct HPTimer HPTimers[16];
     uint32_t clock_enable;
     uint32_t clock_enable_6;
@@ -360,6 +362,7 @@ unsigned int eos_handle_uart_dma ( unsigned int parm, EOSState *s, unsigned int 
 unsigned int eos_handle_timers ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_timers_ ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_digic_timer ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
+unsigned int eos_handle_utimer ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_hptimer ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_intengine ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_intengine_vx ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
