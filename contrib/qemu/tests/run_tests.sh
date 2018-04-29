@@ -225,6 +225,7 @@ function vncexpect {
 
     # do everything in one command, for speed
     local vnc_log=$(vncdotool -s $VNC_DISP -v -v -t $3 key $1 pause 0.5 expect-md5 $2 capture $4 2>&1)
+
     if [ $? == 0 ] && [ -f $4 ]; then
 
         # looks OK?
@@ -1100,9 +1101,9 @@ function test_fmtrestore {
         # fixme: how to align these nicely?
         MAIN_SCREEN=2f2febde0863e435fabaed2915661528
         MENU_FORMAT=cae4d8a555d5aa3cc004bd234d3edd74
-        FMT_KEEP_ML=bb059110a57ede04a08058b7684a9f15
-        FMT_RMOV_ML=f6078e94ddc1c39452dc666f9e4f88f1
-        FMT_KEEP_OK=9929e014d9273324633e489a20fb0879
+        FMT_KEEP_ML=077adcdd48ce3c275d94e467f0114045
+        FMT_RMOV_ML=a418b9f5d2565f0989910156cbe47c60
+        FMT_KEEP_OK=7cdf0d8dd2dde291bca0276cf68694b0
         ML_RESTORED=1a287dd9c3fc75ee82bdb5ba1b30a339
         RESTARTING_=3044730d98d5da3e5e5f27642adf878a
 
