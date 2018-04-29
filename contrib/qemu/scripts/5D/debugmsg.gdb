@@ -1,8 +1,8 @@
 # ./run_canon_fw.sh 5D -d debugmsg
 # ./run_canon_fw.sh 5D -d debugmsg -s -S & arm-none-eabi-gdb -x 5D/debugmsg.gdb
-# fixme: this crashes GDB (Cannot access memory at address 0xe7fddef6)
-# but... why it's trying to do that?
-# The crash happens after setting up the MMU (or MPU?) at FF810B60,
+# fixme: this used to crash GDB (Cannot access memory at address 0xe7fddef6)
+# but... why was it trying to do that?
+# The crash happened after setting up the MMU (or MPU?) at FF810B60,
 # where the background region is disabled.
 
 source -v debug-logging.gdb

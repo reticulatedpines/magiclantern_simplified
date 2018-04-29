@@ -123,23 +123,26 @@ define print_current_location
     printf "[CPU%d] ", ($_thread-1)
   end
 
-  if $argc == 1
-    set $i = $arg0
-  else
-    set $i = $lr - 4
-  end
-
   printf "["
   if CURRENT_ISR > 0
     KRED
-    printf "     INT-%02Xh:%08x ", CURRENT_ISR, $i
+    if CURRENT_ISR >= 0x100
+      printf "    INT-%03Xh", CURRENT_ISR
+    else
+      printf "     INT-%02Xh", CURRENT_ISR
+    end
   else
     if $_thread == 1
       KCYN
     else
       KYLW
     end
-    printf "%12s:%08x ", CURRENT_TASK_NAME, $i
+    printf "%12s", CURRENT_TASK_NAME
+  end
+  if $argc == 1
+    printf ":%08x ", $arg0
+  else
+    printf ":%08x ", $lr - 4
   end
   KRESET
   printf "] "
