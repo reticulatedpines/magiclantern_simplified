@@ -597,7 +597,8 @@ void eos_callstack_print_verbose(EOSState *s)
             len += eos_indent(len, CALLSTACK_RIGHT_ALIGN);
             eos_print_location(s, ret, sp, " at ", "\n");
             uint32_t pc0 = pc & ~1;
-            assert(pc0 == 0x18);
+            uint32_t vbar = CURRENT_CPU->env.cp15.vbar_s;
+            assert(pc0 == vbar + 0x18);
         }
         else
         {
@@ -656,6 +657,11 @@ int eos_print_location_gdb(EOSState *s)
         int level = call_stack_num[id] - 1;
         uint32_t stack_lr = level >= 0 ? call_stacks[id][level].lr : 0;
         ret = stack_lr - 4;
+    }
+
+    /* on multicore machines, print CPU index for each message */
+    if (CPU_NEXT(first_cpu)) {
+        fprintf(stderr, "[CPU%d] ", current_cpu->cpu_index);
     }
 
     if (interrupt_level) {
@@ -1000,6 +1006,9 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
     uint32_t lr0 = lr & ~1;
     uint32_t prev_pc0 = prev_pc & ~1;
 
+    uint32_t vbar = env->cp15.vbar_s;
+    assert(vbar == 0 || s->model->digic_version == 7);
+
     /* tb->pc always has the Thumb bit cleared */
     assert(pc0 == tb->pc);
 
@@ -1022,7 +1031,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
         goto end;
     }
 
-    if (pc0 == 0x18)
+    if (pc0 == vbar + 0x18)
     {
         /* handle interrupt jumps first */
 
@@ -1057,7 +1066,7 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
         goto end;
     }
 
-    if (prev_pc0 == 0x18)
+    if (prev_pc0 == vbar + 0x18)
     {
         /* jump from the interrupt vector - ignore */
         goto end;
@@ -1790,6 +1799,12 @@ static uint64_t saved_loglevel = 0;
 
 static void tb_exec_cb(void *opaque, CPUState *cpu, TranslationBlock *tb)
 {
+    if (current_cpu->cpu_index)
+    {
+        /* ignore CPU1 for now */
+        return;
+    }
+
     if (qemu_loglevel_mask(EOS_LOG_AUTOEXEC) &&
         saved_loglevel != 0 &&
         saved_loglevel != qemu_loglevel)
