@@ -395,10 +395,7 @@ function run_test {
     rm -f tests/$CAM/$TEST*.ppm
 
     # run the test function and buffer its output
-    case $(ps -o stat= -p $$) in
-      *+*) printf "%7s: " $CAM && test_$1                 ;;    # Running in foreground
-      *) ( printf "%7s: " $CAM && test_$1 ) 2>&1 | sponge ;;    # Running in background
-    esac
+    ( printf "%7s: " $CAM && test_$1 ) 2>&1 | sponge
 
     # local cleanup
     rm -f $QEMU_MONITOR
@@ -1379,7 +1376,7 @@ function test_romdump {
     ./run_canon_fw.sh $CAM,firmware="boot=1" -display none -monitor stdio -d sdcf,sflash &> tests/$CAM/$TEST.log &
 
     # wait until the log file no longer grows, up to 1 minute
-    ./wait_log.sh tests/$CAM/$TEST.log 60 2 -q "just-wait-until-the-log-stops-growing" &> /dev/null
+    ./wait_log.sh tests/$CAM/$TEST.log 60 5 -q "just-wait-until-the-log-stops-growing" &> /dev/null
 
     sleep 1
     echo "screendump tests/$CAM/$TEST.ppm" | $NC -U $QEMU_MONITOR &> /dev/null
