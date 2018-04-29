@@ -394,7 +394,10 @@ function run_test {
     rm -f tests/$CAM/$TEST*.ppm
 
     # run the test function and buffer its output
-    ( printf "%7s: " $CAM && test_$1 ) 2>&1 | sponge
+    case $(ps -o stat= -p $$) in
+      *+*) printf "%7s: " $CAM && test_$1                 ;;    # Running in foreground
+      *) ( printf "%7s: " $CAM && test_$1 ) 2>&1 | sponge ;;    # Running in background
+    esac
 
     # local cleanup
     rm -f $QEMU_MONITOR
@@ -1372,11 +1375,14 @@ function test_romdump {
         return
     fi
 
-    # for some reason, 7D is slower
-    [ $CAM == "7D" ] && timeout=40 || timeout=20
+    ./run_canon_fw.sh $CAM,firmware="boot=1" -display none -monitor stdio -d sdcf,sflash &> tests/$CAM/$TEST.log &
 
-    (sleep $timeout; echo screendump tests/$CAM/$TEST.ppm; echo quit) \
-      | ./run_canon_fw.sh $CAM,firmware="boot=1" -display none -monitor stdio &> tests/$CAM/$TEST.log
+    # wait until the log file no longer grows, up to 1 minute
+    ./wait_log.sh tests/$CAM/$TEST.log 60 2 -q "just-wait-until-the-log-stops-growing" &> /dev/null
+
+    sleep 1
+    echo "screendump tests/$CAM/$TEST.ppm" | $NC -U $QEMU_MONITOR &> /dev/null
+    stop_qemu_expect_running
     
     check_rom_md5 $CAM
 }
