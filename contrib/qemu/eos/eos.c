@@ -1411,12 +1411,8 @@ static void patch_EOSM3(EOSState *s)
     uint32_t one = 1;
     MEM_WRITE_ROM(0xFCC637A8, (uint8_t*) &one, 4);
 
-    /* fixme: timer issue? some interrupt that needs triggered? */
-    fprintf(stderr, "Patching 0xFC1F0116 (usleep)\n");
-    uint32_t bx_lr = 0x4770;
-    MEM_WRITE_ROM(0xFC1F0116, (uint8_t*) &bx_lr, 2);
-
     fprintf(stderr, "Patching 0xFC0F45B8 (InitExDrivers, locks up)\n");
+    uint32_t bx_lr = 0x4770;
     MEM_WRITE_ROM(0xFC0F45B8, (uint8_t*) &bx_lr, 2);
 
     fprintf(stderr, "Patching 0xFC1F455C (DcdcDrv, assert i2c)\n");
@@ -1458,11 +1454,6 @@ static void patch_EOSM10(EOSState *s)
     fprintf(stderr, "Patching 0xFCE642A8 (enabling TIO)\n");
     uint32_t one = 1;
     MEM_WRITE_ROM(0xFCE642A8, (uint8_t*) &one, 4);
-    
-    /* fixme: timer issue? some interrupt that needs triggered? */
-    fprintf(stderr, "Patching 0xFE1ED4D6 (usleep)\n");
-    uint32_t bx_lr = 0x4770;
-    MEM_WRITE_ROM(0xFE1ED4D6, (uint8_t*) &bx_lr, 2);
 }
 
 static void patch_EOSM5(EOSState *s)
