@@ -523,10 +523,60 @@ struct eos_model_desc eos_model_list[] = {
     {
         /* defaults for DIGIC 7 cameras */
         .digic_version          = 7,
+        .firmware_start         = 0xE0040000,
+        .bootflags_addr         = 0xE1FF8000,
+        .rom0_addr              = 0xE0000000,
+        .rom0_size              = 0x02000000,
+        .rom1_addr              = 0xF0000000,
+        .rom1_size              = 0x01000000,
+      //.ram_size               = 0x40000000,   /* prefer to specify exact size for each model */
+        .caching_bit            = 0x40000000,
+        .mmio_addr              = 0xBFE00000,   /* fixme: BFE is configured as regular RAM, but certain values are expected */
+        .mmio_size              = 0x1F200000,
+        .ram_extra_addr         = 0xDF000000,
+        .ram_extra_size         = 0x01000000,
         .current_task_name_offs = 0x09,
         .dryos_timer_id         = 1,
         .dryos_timer_interrupt  = 0x1B,
         .hptimer_interrupt      = 0x28,
+        .sd_driver_interrupt    = 0xEE,
+        .sd_dma_interrupt       = 0xBE,
+        .mpu_request_register   = 0xD2080230,   /* written in mpu_send (run with -d io) */
+        .mpu_request_bitmask    = 0x00010000,   /* 0x20C0003 request, 0x20D0002 idle, 0x4D01B2 init */
+        .mpu_status_register    = 0xD2082230,   /* read in SIO3_ISR and MREQ_ISR (tst 0x10000) */
+        .mpu_control_register   = 0xD4013008,   /* 0x1C written in MREQ_ISR */
+        .mpu_mreq_interrupt     = 0x2A,         /* MREQ_ISR in InitializeIntercom */
+        .mpu_sio3_interrupt     = 0x147,        /* SIO3_ISR */
+    },
+    {
+        .name                   = "200D",
+        .digic_version          = 7,
+        .ram_size               = 0x20000000,   /* 512MB */
+        .card_led_address       = 0xD208016C,   /* WLAN LED 0xD2080190 */
+        .current_task_addr      = 0x28,         /* fixme: read from virtual memory */
+        .uart_rx_interrupt      = 0x15D,
+        .uart_tx_interrupt      = 0x16D,
+        .dedicated_movie_mode   = 0,
+    },
+    {
+        .name                   = "6D2",
+        .digic_version          = 7,
+        .ram_size               = 0x40000000,   /* 1GB */
+        .card_led_address       = 0xD208016C,
+        .current_task_addr      = 0x28,         /* fixme: read from virtual memory */
+        .uart_rx_interrupt      = 0x15D,
+        .uart_tx_interrupt      = 0x16D,
+        .dedicated_movie_mode   = 0,
+    },
+    {
+        .name                   = "77D",
+        .digic_version          = 7,
+        .ram_size               = 0x40000000,   /* 1GB */
+        .card_led_address       = 0xD208016C,
+        .current_task_addr      = 0x20,         /* fixme: read from virtual memory */
+        .uart_rx_interrupt      = 0x15D,
+        .uart_tx_interrupt      = 0x16D,
+        .dedicated_movie_mode   = 0,
     },
     {
         .name                   = "EOSM5",

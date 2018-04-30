@@ -10,10 +10,10 @@
 # Caveat: this assumes no other qemu-system-arm or
 # arm-none-eabi-gdb processes are running during the tests
 
-EOS_CAMS=( 5D 5D2 5D3 5D4 6D 7D 7D2M
-           40D 50D 60D 70D 80D
+EOS_CAMS=( 5D 5D2 5D3 5D4 6D 6D2 7D 7D2M
+           40D 50D 60D 70D 77D 80D
            400D 450D 500D 550D 600D 650D 700D 750D 760D
-           100D 1000D 1100D 1200D 1300D EOSM EOSM2 )
+           100D 200D 1000D 1100D 1200D 1300D EOSM EOSM2 )
 
 POWERSHOT_CAMS=( EOSM3 EOSM10 EOSM5 A1100 )
 
@@ -25,9 +25,9 @@ GUI_CAMS=( 5D2 5D3 6D 40D 50D 60D 70D
            100D 1000D 1100D 1200D 1300D EOSM EOSM2 )
 
 # cameras with a SD card
-SD_CAMS=( 5D3 5D4 6D 60D 70D 80D
+SD_CAMS=( 5D3 5D4 6D 6D2 60D 70D 77D 80D
           450D 500D 550D 600D 650D 700D 750D 760D
-          100D 1000D 1100D 1200D 1300D EOSM EOSM2 )
+          100D 200D 1000D 1100D 1200D 1300D EOSM EOSM2 )
 
 # cameras with a CF card
 CF_CAMS=( 5D 5D2 5D3 5D4 7D 7D2M 40D 50D 400D )
@@ -568,8 +568,8 @@ function test_calls_main {
     sleep 1
 
     # check for boot message
-    if grep -qE "([KR].* (READY|AECU)|Dry|Boot)" tests/$CAM/$TEST-uart.log; then
-      msg=`grep --text -oEm1 "([KR].* (READY|AECU)|Dry|Boot)[a-zA-Z >]*" tests/$CAM/$TEST-uart.log`
+    if grep -qE "([KR].* (READY|AECU)|Dry|BootL)" tests/$CAM/$TEST-uart.log; then
+      msg=`grep --text -oEm1 "([KR].* (READY|AECU)|Dry|BootL)[a-zA-Z >]*" tests/$CAM/$TEST-uart.log`
       printf "%-16s" "$msg"
     else
       echo -en "\e[33mBad output\e[0m      "
@@ -1056,9 +1056,9 @@ function test_dcim {
 echo
 echo "Testing file I/O (DCIM directory)..."
 # Currently works only on models that can boot Canon GUI,
-# and also on single-core DIGIC 6 models.
+# also on single-core DIGIC 6 models, and on DIGIC 7 too.
 # we need to check the card contents; cannot run in parallel
-for CAM in ${GUI_CAMS[*]} 80D 750D 760D; do
+for CAM in ${GUI_CAMS[*]} 80D 750D 760D 77D 200D 6D2; do
     ((QEMU_JOB_ID++))
     run_test dcim $CAM
 done; cleanup

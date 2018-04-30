@@ -160,7 +160,8 @@ EOSRegionHandler eos_handlers[] =
     { "Timers",       0xD02C1500, 0xD02C15FF, eos_handle_timers, 2 },       /* Eeko countdown timer */
     { "Timer",        0xC0242014, 0xC0242014, eos_handle_digic_timer, 0 },
     { "Timer",        0xD400000C, 0xD400000C, eos_handle_digic_timer, 1 },
-    { "UTimer",       0xD4000240, 0xD4000440, eos_handle_utimer, 1 },       /* D6 : timers 9...16 */
+    { "Timer",        0xD9820014, 0xD9820014, eos_handle_digic_timer, 2 },  /* D7: maybe? firmware waits for this register to change */
+    { "UTimer",       0xD4000240, 0xD4000440, eos_handle_utimer, 1 },       /* D6: timers 9...16 */
     { "HPTimer",      0xC0243000, 0xC0243FFF, eos_handle_hptimer, 0 },      /* DIGIC 2/3/4/5/6 HPTimers */
     { "GPIO",         0xC0220000, 0xC022FFFF, eos_handle_gpio, 0 },
     { "Basic",        0xC0100000, 0xC0100FFF, eos_handle_basic, 0 },
@@ -170,6 +171,7 @@ EOSRegionHandler eos_handlers[] =
     { "SDIO1",        0xC0C10000, 0xC0C10FFF, eos_handle_sdio, 1 },
     { "SDIO2",        0xC0C20000, 0xC0C20FFF, eos_handle_sdio, 2 },
     { "SFIO4",        0xC0C40000, 0xC0C40FFF, eos_handle_sfio, 4 },
+    { "SDIO85",       0xC8050000, 0xC8050FFF, eos_handle_sdio, 0x85 },
     { "SDIO86",       0xC8060000, 0xC8060FFF, eos_handle_sdio, 0x86 },
     { "SFIO87",       0xC8070000, 0xC8070FFF, eos_handle_sfio, 0x87 },
     { "SFIO88",       0xC8080000, 0xC8080FFF, eos_handle_sfio, 0x88 },
@@ -237,10 +239,18 @@ EOSRegionHandler eos_handlers[] =
     { "XDMAC",        0xD6030030, 0xD603005F, eos_handle_xdmac, 1 },
     { "XDMAC",        0xD6030060, 0xD603008F, eos_handle_xdmac, 2 },
     { "XDMAC",        0xD6030090, 0xD60300BF, eos_handle_xdmac, 3 },
-    { "MEMDIV",       0xD9001600, 0xD9003FFF, eos_handle_memdiv, 0 },
+    { "XDMAC7",       0xC9200000, 0xC920003F, eos_handle_xdmac7, 0 },
+    { "XDMAC7",       0xC9200040, 0xC920007F, eos_handle_xdmac7, 1 },
+    { "XDMAC7",       0xC9200080, 0xC92000BF, eos_handle_xdmac7, 2 },
+
+    { "MEMDIV",       0xD9001600, 0xD900FFFF, eos_handle_memdiv, 0 },
+
+    { "ROMID",        0xBFE01FD0, 0xBFE01FDF, eos_handle_rom_id, 0 },
+    { "ROMID",        0xD5100010, 0xD5100010, eos_handle_rom_id, 1 },
+
     { "DIGIC6",       0xD0000000, 0xDFFFFFFF, eos_handle_digic6, 0 },
     { "DIGIC6",       0xC8100000, 0xC8100FFF, eos_handle_digic6, 1 },
-    
+
     { "ML helpers",   0xCF123000, 0xCF1230FF, eos_handle_ml_helpers, 0 },
     { "ML helpers",   0xC0123400, 0xC01234FF, eos_handle_ml_helpers, 1 },
 };
@@ -2496,7 +2506,8 @@ static int eos_handle_card_led( unsigned int parm, EOSState *s, unsigned int add
 
     if (type & MODE_WRITE)
     {
-        if (s->model->digic_version == 6)
+        if (s->model->digic_version == 6 ||
+            s->model->digic_version == 7)
         {
             s->card_led = 
                 ((value & 0x0F000F) == 0x0D0002) ?  1 :
@@ -3070,7 +3081,7 @@ unsigned int eos_handle_xdmac ( unsigned int parm, EOSState *s, unsigned int add
                 if(value & 1)
                 {
                     msg = "Start DMA";
-                    fprintf(stderr, "[ROM-DMA%i] Copy [0x%08X] -> [0x%08X], length [0x%08X], flags [0x%08X]\r\n", parm, srcAddr, dstAddr, count, value);
+                    fprintf(stderr, "[XDMAC%i] Copy [0x%08X] -> [0x%08X], length [0x%08X], flags [0x%08X]\r\n", parm, srcAddr, dstAddr, count, value);
 
                     uint32_t blocksize = 8192;
                     uint8_t *buf = malloc(blocksize);
@@ -3110,6 +3121,75 @@ unsigned int eos_handle_xdmac ( unsigned int parm, EOSState *s, unsigned int add
             break;
 
         case 0x10:
+            msg = "count";
+            MMIO_VAR(count);
+            break;
+    }
+
+    char dma_name[16];
+    snprintf(dma_name, sizeof(dma_name), "XDMAC%i", parm);
+    io_log(dma_name, s, address, type, value, ret, msg, 0, 0);
+
+    return ret;
+}
+
+unsigned int eos_handle_xdmac7 ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+{
+    const char * msg = 0;
+    unsigned int ret = 0;
+    static unsigned int srcAddr = 0;
+    static unsigned int dstAddr = 0;
+    static unsigned int count = 0;
+    unsigned int interruptId[] = { 0x11E, 0x12E, 0x13E };
+
+    switch (address & 0x3F)
+    {
+        case 0x28:
+            if(type & MODE_WRITE)
+            {
+                if(value & 1)
+                {
+                    msg = "Start DMA";
+                    fprintf(stderr, "[XDMAC%i] Copy [0x%08X] -> [0x%08X], length [0x%08X], flags [0x%08X]\r\n", parm, srcAddr, dstAddr, count, value);
+
+                    uint32_t blocksize = 8192;
+                    uint8_t *buf = malloc(blocksize);
+                    uint32_t remain = count;
+                    
+                    uint32_t src = srcAddr;
+                    uint32_t dst = dstAddr;
+
+                    while(remain)
+                    {
+                        uint32_t transfer = (remain > blocksize) ? blocksize : remain;
+
+                        eos_mem_read(s, src, buf, transfer);
+                        eos_mem_write(s, dst, buf, transfer);
+
+                        remain -= transfer;
+                        src += transfer;
+                        dst += transfer;
+                    }
+                    free(buf);
+
+                    fprintf(stderr, "[XDMAC%i] OK\n", parm);
+
+                    eos_trigger_int(s, interruptId[parm], count / 10000);
+                }
+            }
+            break;
+
+        case 0x00:
+            msg = "srcAddr";
+            MMIO_VAR(srcAddr);
+            break;
+
+        case 0x04:
+            msg = "dstAddr";
+            MMIO_VAR(dstAddr);
+            break;
+
+        case 0x08:
             msg = "count";
             MMIO_VAR(count);
             break;
@@ -5134,9 +5214,9 @@ unsigned int eos_handle_memdiv( unsigned int parm, EOSState *s, unsigned int add
         }
         default:
         {
-            /* 0x1600 ... 0x3FFF */
+            /* 0x1600 ... 0xFFFF */
             /* firmware expects to read back what it has written earlier? */
-            static uint32_t shm[0x4000];
+            static uint32_t shm[0x10000];
             MMIO_VAR(shm[address & (COUNT(shm)-1)]);
         }
     }
@@ -5144,6 +5224,53 @@ unsigned int eos_handle_memdiv( unsigned int parm, EOSState *s, unsigned int add
     io_log("MEMDIV", s, address, type, value, ret, msg, 0, 0);
     return ret;
 }
+
+unsigned int eos_handle_rom_id( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+{
+    const char * msg = 0;
+    unsigned int ret = 0;
+
+    switch (address)
+    {
+        case 0xBFE01FD0:
+            msg = "SROM ID";
+            ret = 0x0020;
+            break;
+
+        case 0xBFE01FD2:
+            msg = "SROM ID";
+            ret = 0x00BB;
+            break;
+
+        case 0xBFE01FD4:
+            msg = "SROM ID";
+            ret = 0x0019;
+            break;
+
+        case 0xD5100010:
+        {
+            msg = "ROM ID";
+            const int rom_id[3] = { 0x20, 0xBB, 0x18 };
+            static int i = 0;
+            if (type & MODE_WRITE)
+            {
+                if (value == 0x9F)
+                {
+                    i = 0;
+                }
+            }
+            else
+            {
+                ret = rom_id[i % 3];
+                i++;
+            }
+        }
+    }
+
+    io_log("ROMID", s, address, type, value, ret, msg, 0, 0);
+    return ret;
+}
+
 
 unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
@@ -5194,11 +5321,13 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
         case 0xD2018200:    /* 5D4 */
         case 0xD2018230:    /* 5D4 */
         case 0xD20138BC:    /* M3 */
+        case 0xD2060044:    /* D7 */
             msg = "Display resolution";
             MMIO_VAR_2x16(s->disp.width, s->disp.height);
             break;
         
         case 0xD2030108:    /* D6 */
+        case 0xD2060048:    /* D7 */
             if (strcmp(s->model->name, "EOSM3") == 0)
             {
                 if ((value != 0x17410) && (value != 0x18010)) s->disp.bmp_vram = value << 8;
@@ -5265,6 +5394,11 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
             }
             break;
         }
+
+        case 0xD20822E8:
+            msg = "D7 System Adjustment";
+            //ret = 0x10000;
+            break;
 
         case 0xD2090008: /* CLOCK_ENABLE */
             msg = "CLOCK_ENABLE";
