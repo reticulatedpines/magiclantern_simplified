@@ -27,12 +27,12 @@ What works:
 - Limited support for secondary DryOS cores (such as Eeko or 5D4 AE processor)
 - File I/O works on most models (both SD and CF); might be unreliable
 - Bootloader emulation works on all supported models (from DIGIC 2 to DIGIC 7)
-- Loading AUTOEXEC.BIN / DISKBOOT.BIN from the virtual SD/CF card (from DIGIC 2 to DIGIC 6)
+- Loading AUTOEXEC.BIN / DISKBOOT.BIN from the virtual SD/CF card (from DIGIC 2 to DIGIC 7)
 - Unmodified autoexec.bin works on many single-core camera models
   (and, with major limitations, on dual-core models)
 - ML modules and Lua scripts (within the limitations of the emulation)
 - DryOS/VxWorks timer (heartbeat) and task switching (all supported models)
-- UART emulation (DryOS shell aka Dry-shell or DrySh on DIGIC 4, 5 and 6 models)
+- UART emulation (DryOS shell aka Dry-shell or DrySh on DIGIC 4, 5, 6 and 7 models)
 - Deterministic execution with the ``-icount`` option (except CF PIO)
 - Cache hacks are emulated to some extent (but "uninstalling" them does not work)
 - EDMAC memcpy, including geometry parameters (matches the hardware closely, but not perfectly)
@@ -1137,6 +1137,7 @@ History
 :2017: `RTC emulation, many patches no longer needed <http://www.magiclantern.fm/forum/index.php?topic=2864.msg190823#msg190823>`_ (g3gg0)
 :2017: `Major progress with DIGIC 6 emulation <http://www.magiclantern.fm/forum/index.php?topic=17360.msg194898#msg194898>`_
 :2017: `Menu navigation works on 20 EOS models! (DIGIC 3-5) <http://www.magiclantern.fm/forum/index.php?topic=2864.msg195117#msg195117>`_
+:2018: `Initial support for DIGIC 7 EOS models (77D, 200D, 6D Mark II) <https://www.magiclantern.fm/forum/index.php?topic=19737.msg200799#msg200799>`_
 
 
 

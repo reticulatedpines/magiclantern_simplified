@@ -302,11 +302,19 @@ Initial firmware analysis
    DIGIC 5 and earlier models will start the bootloader at ``0xFFFF0000`` (HIVECS)
    and will jump to main firmware at ``0xFF810000``, ``0xFF010000`` or ``0xFF0C0000``.
    There is one main ROM (ROM1) at ``0xF8000000``, 4/8/16/32 MiB mirrored until ``0xFFFFFFFF``,
-   and there may be a second ROM (ROM0) at 0xF0000000, mirrored until ``0xF8000000 - 1 = 0xF7FFFFFF``.
+   and there may be a second ROM (ROM0) at ``0xF0000000``, mirrored until ``0xF8000000 - 1 = 0xF7FFFFFF``.
+   Some DIGIC 5 models also use a serial flash for storing properties (persistent settings).
 
-   DIGIC 6 will start at ``*(uint32_t*)0xFC000000``,
+   DIGIC 6 models will start at ``*(uint32_t*)0xFC000000``,
    bootloader is at 0xFE020000 and main firmware starts at 0xFE0A0000. There is
    a 32 MiB ROM mirrored at 0xFC000000 and 0xFE000000 (there may be others).
+   There is a serial flash as well, used for storing properties.
+
+   DIGIC 7 models will start at ``0xE0000000`` in ARM mode
+   and will jump to main firmware at ``0xE0040000`` in Thumb mode.
+   There is a 32 MiB ROM (ROM0) at ``0xE0000000``, mirrored until ``0xEFFFFFFF``,
+   and an unusually slow 16 MiB ROM (ROM1) at ``0xF0000000``, mirrored until ``0xFFFFFFFF``.
+   No serial flash was identified.
 
    The ROM load address is the one you have used when dumping it (usually one of the mirrors).
    The memory map is printed when starting QEMU — you'll see where each ROM is loaded
