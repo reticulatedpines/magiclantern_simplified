@@ -447,7 +447,7 @@ index 7cb01a8..61583ba 100644
  
      p = str;
 diff --git a/target-arm/cpu.c b/target-arm/cpu.c
-index 30739fc..9939c0c 100644
+index 30739fc..de478b2 100644
 --- a/target-arm/cpu.c
 +++ b/target-arm/cpu.c
 @@ -501,6 +501,7 @@ static void arm_cpu_initfn(Object *obj)
@@ -675,7 +675,7 @@ index c2a85c7..98aa94b 100644
  DEF_HELPER_1(clear_pstate_ss, void, env)
  DEF_HELPER_1(exception_return, void, env)
 diff --git a/target-arm/op_helper.c b/target-arm/op_helper.c
-index 6cd54c8..c63269c 100644
+index 6cd54c8..ee2ddb7 100644
 --- a/target-arm/op_helper.c
 +++ b/target-arm/op_helper.c
 @@ -474,6 +474,176 @@ void HELPER(set_cp_reg)(CPUARMState *env, void *rip, uint32_t value)
@@ -782,7 +782,7 @@ index 6cd54c8..c63269c 100644
 +        uint64_t base = value & 0xFFFFF000;
 +        uint64_t size = 1ull << (((value >> 1) & 0x1F) + 1);
 +        uint64_t end = base + size - 1;
-+        snprintf(desc, sizeof(desc), "(%08lX - %08lX, 0x%lX)", base, end, size);
++        snprintf(desc, sizeof(desc), "(%08"PRIX64" - %08"PRIX64", 0x%"PRIX64")", base, end, size);
 +
 +        /* workaround to emulate io_trace */
 +        /* fixme - proper solution? */
@@ -796,13 +796,13 @@ index 6cd54c8..c63269c 100644
 +        uint64_t base = value & 0xFFFFF000;
 +        uint64_t size = 1ull << (((value >> 1) & 0x1F) + 9);
 +        uint64_t end = base + size - 1;
-+        snprintf(desc, sizeof(desc), "(%08lX - %08lX, 0x%lX)", base, end, size);
++        snprintf(desc, sizeof(desc), "(%08"PRIX64" - %08"PRIX64", 0x%"PRIX64")", base, end, size);
 +    }
 +
 +    if (strcmp(ri->name, "DRSR") == 0)
 +    {
 +        uint64_t size = 1ull << (((value >> 1) & 0x1F) + 1);
-+        snprintf(desc, sizeof(desc), "(0x%lX)",size);
++        snprintf(desc, sizeof(desc), "(0x%"PRIX64")", size);
 +    }
 +
 +    if (strcmp(ri->name, "DRACR") == 0)

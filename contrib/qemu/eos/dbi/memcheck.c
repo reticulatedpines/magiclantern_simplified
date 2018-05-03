@@ -533,7 +533,7 @@ static void exec_log_memcpy(EOSState *s, uint32_t pc, CPUARMState *env)
         memcpy_chk[id] = mem_status_checksum(memcpy_src[id], memcpy_num[id]);
         if (qemu_loglevel_mask(EOS_LOG_VERBOSE)) {
             eos_callstack_indent(s);
-            fprintf(stderr, "Flags checksum: %lx\n", memcpy_chk[id]);
+            fprintf(stderr, "Flags checksum: %"PRIx64"\n", memcpy_chk[id]);
         }
     }
     for (int id = 0; id < COUNT(memcpy_lr); id++)

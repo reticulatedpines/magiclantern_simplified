@@ -1618,6 +1618,8 @@ static void eos_tasks_log_exec(EOSState *s, CPUState *cpu, TranslationBlock *tb)
     prev_lr = lr;
 }
 
+#ifdef __SIZEOF_INT128__
+
 static uint32_t block_start;        /* destination address */
 static uint32_t block_size;
 static uint32_t block_offset;       /* start + offset = source address */
@@ -1795,6 +1797,14 @@ static void eos_romcpy_log_mem(EOSState *s, MemoryRegion *mr, hwaddr _addr, uint
     }
 }
 
+#else /* no int128_t available */
+
+static void eos_romcpy_log_mem(EOSState *s, MemoryRegion *mr, hwaddr _addr, uint64_t _value, uint32_t size, int flags)
+{
+	fprintf(stderr, "FIXME: ROMCPY not supported on this platform.\n");
+}
+#endif
+
 static uint64_t saved_loglevel = 0;
 
 static void tb_exec_cb(void *opaque, CPUState *cpu, TranslationBlock *tb)
@@ -1863,7 +1873,7 @@ static void load_symbols(const char * elf_filename)
     fprintf(stderr, "[EOS] loading symbols from %s ", elf_filename);
     uint64_t lo, hi;
     int size = load_elf(elf_filename, 0, 0, 0, &lo, &hi, 0, EM_ARM, 1);
-    fprintf(stderr, "(%lX-%lX)\n", lo, hi);
+    fprintf(stderr, "(%X - %X)\n", (int) lo, (int) hi);
     assert(size > 0);
 }
 
