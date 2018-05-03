@@ -34,7 +34,6 @@ static int button_codes_100D[] = {
 
 static int button_codes_1100D[] = {
     [BGMT_INFO]                         = 0x0101,
-    [BGMT_ISO]                          = 0x0B01,
     [BGMT_LV]                           = 0x2101,
     [BGMT_MENU]                         = 0x0001,
     [BGMT_PLAY]                         = 0x0301,
@@ -69,7 +68,6 @@ static int button_codes_1100D[] = {
 
 static int button_codes_1200D[] = {
     [BGMT_INFO]                         = 0x0101,
-    [BGMT_ISO]                          = 0x0B01,
     [BGMT_LV]                           = 0x2101,
     [BGMT_MENU]                         = 0x0001,
     [BGMT_PLAY]                         = 0x0301,
@@ -345,7 +343,6 @@ static int button_codes_5D3[] = {
 
 static int button_codes_600D[] = {
     [BGMT_INFO]                         = 0x0101,
-    [BGMT_ISO]                          = 0x0B01,
     [BGMT_LV]                           = 0x2101,
     [BGMT_MENU]                         = 0x0001,
     [BGMT_PLAY]                         = 0x0301,
