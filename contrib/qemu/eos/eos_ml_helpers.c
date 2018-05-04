@@ -55,9 +55,9 @@ unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *s, unsigned in
         }
     }
 
-    switch (address)
+    switch (address & 0xFF)
     {
-        case REG_CALLSTACK:
+        case REG_CALLSTACK & 0xFF:
             eos_callstack_print_verbose(s);
             return 0;
     }
