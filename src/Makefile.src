@@ -183,6 +183,12 @@ else ifndef ML_OBJS-y
 $(error ML_OBJS-y is not defined)
 endif
 
+# CONFIG_QEMU applies to all profiles, including minimal and installer
+# (by default, CONFIG options are only used for the generic profile)
+ifeq ($(CONFIG_QEMU),y)
+CFLAGS += -DCONFIG_QEMU
+endif # CONFIG_QEMU
+
 ML_OBJS-y += $(ML_SRC_EXTRA_OBJS)
 
 ifdef ML_SRC_EXCLUDE_OBJS
