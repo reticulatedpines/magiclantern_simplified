@@ -6,6 +6,4 @@ ifeq ($(MODEL),5D3)
    CFLAG_USER += -DCONFIG_5D3_113=1
 endif
 
-CFLAG_USER += -DCONFIG_QEMU
-
 include ../Makefile.minimal

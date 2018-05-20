@@ -789,8 +789,8 @@ function test_frsp {
     FRSP_PATH=$ML_PATH/minimal/qemu-frsp
     rm -f $FRSP_PATH/autoexec.bin
     [ $CAM == "1200D" ] && (cd $FRSP_PATH; hg up qemu -C; hg merge 1200D; cd $OLDPWD) &>> tests/$CAM/$TEST-build.log
-    make MODEL=$CAM -C $FRSP_PATH clean &>> tests/$CAM/$TEST-build.log
-    make MODEL=$CAM -C $FRSP_PATH       &>> tests/$CAM/$TEST-build.log
+    make MODEL=$CAM -C $FRSP_PATH clean         &>> tests/$CAM/$TEST-build.log
+    make MODEL=$CAM -C $FRSP_PATH CONFIG_QEMU=y &>> tests/$CAM/$TEST-build.log
     [ $CAM == "1200D" ] && (cd $FRSP_PATH; hg up qemu -C; cd $OLDPWD) &>> tests/$CAM/$TEST-build.log
     
     if [ ! -f $FRSP_PATH/autoexec.bin ]; then
@@ -1153,8 +1153,8 @@ function test_hptimer {
     # compile it from ML dir, for each camera
     HPTIMER_PATH=$ML_PATH/minimal/qemu-hptimer
     rm -f $HPTIMER_PATH/autoexec.bin
-    make MODEL=$CAM -C $HPTIMER_PATH clean &>> tests/$CAM/$TEST-build.log
-    make MODEL=$CAM -C $HPTIMER_PATH       &>> tests/$CAM/$TEST-build.log
+    make MODEL=$CAM -C $HPTIMER_PATH clean         &>> tests/$CAM/$TEST-build.log
+    make MODEL=$CAM -C $HPTIMER_PATH CONFIG_QEMU=y &>> tests/$CAM/$TEST-build.log
     
     if [ ! -f $HPTIMER_PATH/autoexec.bin ]; then
         echo -e "\e[31mCompile error\e[0m"
