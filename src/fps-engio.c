@@ -269,7 +269,7 @@ static void fps_read_current_timer_values();
     #define FPS_TIMER_A_MIN (fps_timer_a_orig)
 #elif defined(CONFIG_100D)
     #define TG_FREQ_BASE 32000000
-    #define FPS_TIMER_A_MIN (ZOOM ? 676 : MV1080CROP ? 540 : 520)
+    #define FPS_TIMER_A_MIN (ZOOM ? 724 : MV1080CROP ? 540 : 520)
     #undef FPS_TIMER_B_MIN
     // no need to cause confusions as recording speed cannot handle such high fps in crop mode
     // (ZOOM || MV1080CROP ? 1288 : 1970)) <-- these are ok while not recording.
