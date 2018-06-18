@@ -1038,19 +1038,26 @@ static void mlv_play_save_index(char *base_filename, mlv_file_hdr_t *ref_file_hd
     uint32_t last_pct = 0;
     mlv_play_progressbar(0, "");
     
-    uint32_t buffer_size = 256;
-    mlv_xref_t *buffer = malloc(sizeof(mlv_xref_t) * buffer_size);
+    /* allocate at least 512 byte */
+    uint32_t entry_count = (512 / sizeof(mlv_xref_t)) + 1;
+    mlv_xref_t *buffer = malloc(sizeof(mlv_xref_t) * entry_count);
+    
+    if(!buffer)
+    {
+        FIO_CloseFile(out_file);
+        return;
+    }
     
     /* and then the single entries */
     for(int entry = 0; entry < entries; entry++)
     {
-        uint32_t buffer_pos = entry % buffer_size;
+        uint32_t buffer_pos = entry % entry_count;
         mlv_xref_t *field = &buffer[buffer_pos];
-        uint32_t pct = (entry*100)/entries;
+        uint32_t pct = (entry * 100) / entries;
         
         if(last_pct != pct)
         {
-            char msg[100];
+            char msg[36];
             
             snprintf(msg, sizeof(msg), "Saving index (%d entries)...", entries);
             mlv_play_progressbar(pct, msg);
@@ -1062,12 +1069,13 @@ static void mlv_play_save_index(char *base_filename, mlv_file_hdr_t *ref_file_hd
         field->fileNumber = index[entry].fileNumber;
         field->frameType = index[entry].frameType;
         
-        if((buffer_pos + 1) == buffer_size || ((entry + 1) == entries))
+        if((buffer_pos + 1) == entry_count || ((entry + 1) == entries))
         {
-            uint32_t write_size = (buffer_pos + 1) * sizeof(mlv_xref_t);
+            int32_t write_size = (buffer_pos + 1) * sizeof(mlv_xref_t);
             
             if(FIO_WriteFile(out_file, buffer, write_size) != write_size)
             {
+                free(buffer);
                 FIO_CloseFile(out_file);
                 return;
             }
@@ -1075,7 +1083,6 @@ static void mlv_play_save_index(char *base_filename, mlv_file_hdr_t *ref_file_hd
     }
     
     free(buffer);
-    
     FIO_CloseFile(out_file);
 }
 
