@@ -315,16 +315,18 @@ static int writing_queue[COUNT(slots)+1];         /* queue of completed frames (
 static int writing_queue_tail = 0;                /* place captured frames here */
 static int writing_queue_head = 0;                /* extract frames to be written from here */ 
 
-static int frame_count = 0;                       /* how many frames we have processed */
-static int chunk_frame_count = 0;                 /* how many frames in the current file chunk */
-static int buffer_full = 0;                       /* true when the memory becomes full */
-char* raw_movie_filename = 0;                     /* file name for current (or last) movie */
-static char* chunk_filename = 0;                  /* file name for current movie chunk */
-static int64_t written_total = 0;                 /* how many bytes we have written in this movie */
-static int64_t written_chunk = 0;                 /* same for current chunk */
-static int writing_time = 0;                      /* time spent by raw_video_rec_task in FIO_WriteFile calls */
-static int idle_time = 0;                         /* time spent by raw_video_rec_task doing something else */
-static uint32_t edmac_active = 0;
+static GUARDED_BY(LiveViewTask) int frame_count = 0;                /* how many frames we have processed */
+static GUARDED_BY(LiveViewTask) int skipped_frames = 0;             /* how many frames we had to drop (only done during pre-recording) */
+static GUARDED_BY(RawRecTask)   int chunk_frame_count = 0;          /* how many frames in the current file chunk */
+static volatile                 int buffer_full = 0;                /* true when the memory becomes full */
+       GUARDED_BY(RawRecTask)   char * raw_movie_filename = 0;      /* file name for current (or last) movie */
+static GUARDED_BY(RawRecTask)   char * chunk_filename = 0;          /* file name for current movie chunk */
+static GUARDED_BY(RawRecTask)   int64_t written_total = 0;          /* how many bytes we have written in this movie */
+static GUARDED_BY(RawRecTask)   int64_t written_chunk = 0;          /* same for current chunk */
+static GUARDED_BY(RawRecTask)   int writing_time = 0;               /* time spent by raw_video_rec_task in FIO_WriteFile calls */
+static GUARDED_BY(RawRecTask)   int idle_time = 0;                  /* time spent by raw_video_rec_task doing something else */
+static volatile                 uint32_t edmac_active = 0;
+static volatile                 uint32_t skip_frames = 0;
 
 static mlv_file_hdr_t file_hdr;
 static mlv_rawi_hdr_t rawi_hdr;
@@ -347,6 +349,13 @@ static int raw_rec_should_preview(void);
 struct msg_queue *mlv_block_queue = NULL;
 /* registry of all other modules CBRs */
 static cbr_entry_t registered_cbrs[32];
+
+
+/* allow modules to set how many frames should be skipped */
+void mlv_rec_skip_frames(uint32_t count)
+{
+    skip_frames = count;
+}
 
 /* register a callback function that is called when one of the events specified happens.
    event can be a OR'ed list of the events specified in mlv_rec_interface.h
@@ -2049,6 +2058,12 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
     if (!RAW_IS_RECORDING) return 0;
     if (!raw_lv_settings_still_valid()) { raw_recording_state = RAW_FINISHING; return 0; }
     if (buffer_full) return 0;
+    
+    if(skip_frames > 0)
+    {
+        skip_frames--;
+        return 0;
+    }
 
     /* double-buffering */
     raw_lv_redirect_edmac(fullsize_buffers[fullsize_buffer_pos % 2]);
