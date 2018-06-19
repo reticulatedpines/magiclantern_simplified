@@ -139,6 +139,103 @@ static CONFIG_INT("raw.warm.up", warm_up, 0);
 static CONFIG_INT("raw.use.srm.memory", use_srm_memory, 1);
 static CONFIG_INT("raw.small.hacks", small_hacks, 1);
 
+static CONFIG_INT("raw.h264.proxy", h264_proxy_menu, 0);
+static CONFIG_INT("raw.sync_beep", sync_beep, 1);
+
+static CONFIG_INT("raw.output_format", output_format, 3);
+#define OUTPUT_14BIT_NATIVE 0
+#define OUTPUT_12BIT_UNCOMPRESSED 1
+#define OUTPUT_10BIT_UNCOMPRESSED 2
+#define OUTPUT_14BIT_LOSSLESS 3
+#define OUTPUT_12BIT_LOSSLESS 4
+#define OUTPUT_AUTO_BIT_LOSSLESS 5
+#define OUTPUT_COMPRESSION (output_format>2)
+
+/* container BPP (variable for uncompressed, always 14 for lossless JPEG) */
+static const int bpp_container[] = { 14, 12, 10, 14, 14, 14, 14, 14, 14 };
+
+/* "fake" lower bit depths using digital gain (for lossless JPEG) */
+//static const int bpp_digi_gain[] = { 14, 14, 14, 14, 12, 11, 10,  9,  8 };
+
+#define BPP     bpp_container[output_format]
+#define BPP_D   (raw_digital_gain_ok() ? bpp_digital_gain() : 14)
+
+static int bpp_digital_gain()
+{
+    if (output_format <= OUTPUT_14BIT_LOSSLESS)
+    {
+        return 14;
+    }
+
+    if (output_format == OUTPUT_12BIT_LOSSLESS)
+    {
+        return 12;
+    }
+
+    /* auto, depending on ISO */
+    /* 5D3 noise levels (raw_diag, dark frame, 1/50, ISO 100-25600, ~50C):
+     * octave code to get recommendations (copy/paste):
+     * see https://theory.uchicago.edu/~ejm/pix/20d/tests/noise/noise-p3.html (third figure)
+           isos   = [100 200 400 800 1600 3200 6400 12800 25600];
+           noises = [6.7 6.9 7.1 7.8  9.0 11.7 16.8  33.6  66.7];   % 3x3 (1080p; 720p is very close)
+           noisez = [6.1 6.4 7.1 8.6 11.8 18.4 31.4  62.5 123.5];   % 1:1 (5x zoom, crop modes)
+           divide = [1 4 8 16 32 64];
+           for i = 1:6,
+               fullhd = [log2(2**14/divide(i)), isos(noises/divide(i) < 2.5 & noises/divide(i) > 0.49 )]
+               crop11 = [log2(2**14/divide(i)), isos(noisez/divide(i) < 2.5 & noisez/divide(i) > 0.49 )]
+           end
+     */
+
+    int sampling_x   = raw_capture_info.binning_x + raw_capture_info.skipping_x;
+    int sampling_y   = raw_capture_info.binning_y + raw_capture_info.skipping_y;
+    int is_crop = (sampling_x == 1 && sampling_y == 1);
+
+    if (lens_info.raw_iso == 0)
+    {
+        /* no auto ISO, please */
+        return 11;
+    }
+
+    if (lens_info.iso_analog_raw <= (is_crop ? ISO_400 : ISO_800))
+    {
+        return 11;
+    }
+
+    if (lens_info.iso_analog_raw <= (is_crop ? ISO_1600 : ISO_3200))
+    {
+        return 10;
+    }
+
+    if (lens_info.iso_analog_raw <= (is_crop ? ISO_3200 : ISO_6400))
+    {
+        return 9;
+    }
+
+    return 8;
+}
+
+static int raw_digital_gain_ok()
+{
+    if (output_format > OUTPUT_14BIT_LOSSLESS)
+    {
+        /* fixme: not working in modes with higher resolution */
+        /* the numbers here are an upper bound that should cover all models */
+        /* our hi-res crop_rec modes will go higher than these limits, so this heuristic should be OK */
+        int default_width  = (lv_dispsize > 1) ? 3744 : 2080;
+        int default_height = (lv_dispsize > 1) ? 1380 : video_mode_fps <= 30 ? 2080 : 728;
+
+        if (raw_info.width > default_width || raw_info.height > default_height)
+        {
+            return 0;
+        }
+    }
+
+    /* no known contraindications */
+    /* note: temporary overrides such as half-shutter
+     * are handled in setup_bit_depth_digital_gain */
+    return 1;
+}
+
 /* Recording Status Indicator Options */
 #define INDICATOR_OFF        0
 #define INDICATOR_IN_LVINFO  1
@@ -2296,7 +2393,10 @@ static void raw_video_rec_task()
     raw_recording_state = pre_record ? RAW_PRE_RECORDING : RAW_RECORDING;
 
     /* try a sync beep (not very precise, but better than nothing) */
-    beep();
+    if(sync_beep)
+    {
+        beep();
+    }
 
     /* signal that we are starting */
     raw_rec_cbr_starting();
@@ -2730,6 +2830,21 @@ static struct menu_entry raw_video_menu[] =
                 .advanced = 1,
             },
             {
+                .name = "Sync beep",
+                .priv = &sync_beep,
+                .max    = 1,
+                .help = "Beeps on recording start for better sync.",
+                .advanced = 1,
+            },
+            {
+                .name   = "Show EDMAC",
+                .priv   = &show_edmac,
+                .max    = 1,
+                .help   = "Plots the EDMAC read/write pointers within the source raw buffer.",
+                .help2  = "If green (RD) is always above red (WR), it's safe to use single-buffering.",
+                .advanced = 1,
+            },
+            {
                 .name = "Playback",
                 .select = raw_playback_start,
                 .update = raw_playback_update,
@@ -3069,4 +3184,7 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(use_srm_memory)
     MODULE_CONFIG(small_hacks)
     MODULE_CONFIG(warm_up)
+    MODULE_CONFIG(sync_beep)
+    MODULE_CONFIG(output_format)
+    MODULE_CONFIG(h264_proxy_menu)
 MODULE_CONFIGS_END()
