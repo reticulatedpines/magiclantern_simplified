@@ -48,6 +48,7 @@ static CONFIG_INT("mlv.snd.mlv_snd_enable_tracing", mlv_snd_enable_tracing, 0);
 static CONFIG_INT("mlv.snd.bit.depth", mlv_snd_in_bits_per_sample, 16);
 static CONFIG_INT("mlv.snd.sample.rate", mlv_snd_in_sample_rate, 48000);
 static CONFIG_INT("mlv.snd.sample.rate.selection", mlv_snd_rate_sel, 0);
+static CONFIG_INT("mlv.snd.vsync_delay", mlv_snd_vsync_delay, 0);
 
 extern int StartASIFDMAADC(void *, uint32_t, void *, uint32_t, void (*)(), uint32_t);
 extern int SetNextASIFADCBuffer(void *, uint32_t);
@@ -63,6 +64,7 @@ extern void mlv_rec_get_slot_info(int32_t slot, uint32_t *size, void **address);
 extern int32_t mlv_rec_get_free_slot();
 extern void mlv_rec_release_slot(int32_t slot, uint32_t write);
 extern void mlv_rec_set_rel_timestamp(mlv_hdr_t *hdr, uint64_t timestamp);
+extern void mlv_rec_skip_frames(uint32_t count);
 
 static volatile int32_t mlv_snd_rec_active = 0;
 static struct msg_queue * volatile mlv_snd_buffers_empty = NULL;
@@ -75,6 +77,7 @@ static uint32_t mlv_snd_rates[] = { 48000, 44100, 22050, 11025, 8000 };
 #define MLV_SND_RATE_TEXT "48kHz", "44.1kHz", "22kHz", "11kHz", "8kHz"
 
 static uint32_t mlv_snd_in_channels = 2;
+static uint32_t mlv_snd_vsync_skips = 0;
 
 typedef struct
 {
@@ -194,22 +197,21 @@ static void mlv_snd_flush_entries(struct msg_queue *queue, uint32_t clear)
         audio_data_t *entry = NULL;
         if(msg_queue_receive(queue, &entry, 10))
         {
-            trace_write(trace_ctx, "mlv_snd_flush_entries: msg_queue_receive(queue, ) failed");
+            trace_write(trace_ctx, "mlv_snd_flush_entries: msg_queue_receive() failed");
             return;
         }
     
-        trace_write(trace_ctx, "mlv_snd_flush_entries: entry is MLV slot");
         mlv_audf_hdr_t *hdr = (mlv_audf_hdr_t *)entry->mlv_slot_buffer;
         
         if(clear)
         {
-            trace_write(trace_ctx, "mlv_snd_flush_entries: NULL slot %d entry", entry->mlv_slot_id);
+            trace_write(trace_ctx, "mlv_snd_flush_entries:   NULL slot %d entry", entry->mlv_slot_id);
             mlv_set_type((mlv_hdr_t *)hdr, "NULL");
             hdr->timestamp = 0;
         }
         else
         {
-            trace_write(trace_ctx, "mlv_snd_flush_entries: data %d entry for frame #%d", entry->mlv_slot_id, entry->frameNumber);
+            trace_write(trace_ctx, "mlv_snd_flush_entries:   data %d entry for frame #%d", entry->mlv_slot_id, entry->frameNumber);
             mlv_set_type((mlv_hdr_t *)hdr, "AUDF");
             hdr->frameNumber = entry->frameNumber;
             mlv_rec_set_rel_timestamp((mlv_hdr_t*)hdr, entry->timestamp);
@@ -217,7 +219,7 @@ static void mlv_snd_flush_entries(struct msg_queue *queue, uint32_t clear)
         
         if(entry->mlv_slot_end)
         {
-            trace_write(trace_ctx, "mlv_snd_flush_entries: entry is MLV slot %d (last buffer, so release)", entry->mlv_slot_id);
+            trace_write(trace_ctx, "mlv_snd_flush_entries:   last entry of slot %d -> release for writing", entry->mlv_slot_id);
             mlv_rec_release_slot(entry->mlv_slot_id, 1);
         }
         free(entry);
@@ -434,13 +436,22 @@ static void mlv_snd_start()
     {
         char filename[] = "mlv_snd.txt";
         trace_ctx = trace_start("mlv_snd", filename);
-        trace_format(trace_ctx, TRACE_FMT_TIME_REL | TRACE_FMT_COMMENT, ' ');
+        trace_format(trace_ctx, TRACE_FMT_TIME_REL | TRACE_FMT_COMMENT | TRACE_FMT_TASK_ID | TRACE_FMT_TASK_NAME, ' ');
     }
 
     trace_write(trace_ctx, "mlv_snd_start: starting");
     
     mlv_snd_prepare_audio();
     task_create("mlv_snd", 0x16, 0x1000, mlv_snd_writer, NULL);
+    
+    if(mlv_snd_vsync_delay < 0)
+    {
+        mlv_rec_skip_frames(-mlv_snd_vsync_delay);
+    }
+    else
+    {
+        mlv_snd_vsync_skips = mlv_snd_vsync_delay;
+    }
     
     mlv_snd_state = MLV_SND_STATE_PREPARE;
 }
@@ -495,7 +506,7 @@ static void mlv_snd_cbr_started(uint32_t event, void *ctx, mlv_hdr_t *hdr)
 
 static void mlv_snd_cbr_stopping(uint32_t event, void *ctx, mlv_hdr_t *hdr)
 {
-    if(mlv_snd_state != MLV_SND_STATE_IDLE)
+    if(mlv_snd_state == MLV_SND_STATE_SOUND_RUNNING)
     {
         trace_write(trace_ctx, "mlv_snd_cbr_stopping: stopping");
         mlv_snd_stop();
@@ -539,6 +550,12 @@ static unsigned int mlv_snd_vsync(unsigned int unused)
     
     if(mlv_snd_state != MLV_SND_STATE_READY)
     {
+        return 0;
+    }
+    
+    if(mlv_snd_vsync_skips > 0)
+    {
+        mlv_snd_vsync_skips--;
         return 0;
     }
     
@@ -594,6 +611,13 @@ static struct menu_entry mlv_snd_menu[] =
                 .max = COUNT(mlv_snd_rates)-1,
                 .choices = CHOICES(MLV_SND_RATE_TEXT),
                 .help = "Select your sampling rate.",
+            },
+            {
+                .name = "Frame delay",
+                .priv = &mlv_snd_vsync_delay,
+                .min = -32,
+                .max = 32,
+                .help = "Delay the audio that many frames.",
             },
             {
                 .name = "Trace output",
@@ -660,4 +684,5 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(mlv_snd_in_bits_per_sample)
     MODULE_CONFIG(mlv_snd_rate_sel)
     MODULE_CONFIG(mlv_snd_in_sample_rate)
+    MODULE_CONFIG(mlv_snd_vsync_delay)
 MODULE_CONFIGS_END()
