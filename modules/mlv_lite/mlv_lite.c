@@ -1131,9 +1131,9 @@ static void show_buffer_status()
             }
 
             int color = slots[i].status == SLOT_FREE      ? COLOR_GRAY(10) :
+                        slots[i].is_meta                  ? COLOR_BLUE :
                         slots[i].status == SLOT_WRITING   ? COLOR_GREEN1 :
                         slots[i].status == SLOT_FULL      ? COLOR_LIGHT_BLUE :
-                        slots[i].is_meta                  ? COLOR_BLUE :
                         slots[i].status == SLOT_RESERVED  ? COLOR_GRAY(50) :
                         slots[i].status == SLOT_LOCKED    ? COLOR_YELLOW :
                                                             COLOR_RED ;
