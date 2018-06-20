@@ -289,15 +289,14 @@ struct frame_slot
     int frame_number;   /* from 0 to n */
     int is_meta;        /* when used by some other module and does not contain VIDF, disables consistency checks used for video frame slots */
     enum {
-        SLOT_FREE = 0x00,          /* available for image capture */
-        SLOT_RESERVED = 0x01,      /* it may become available when resizing the previous slots */
-        SLOT_CAPTURING = 0x02,     /* in progress */
-        SLOT_LOCKED = 0x03,        /* locked by some other module */
-        SLOT_FULL = 0x04,          /* contains fully captured image data */
-        SLOT_WRITING = 0x05,       /* it's being saved to card */
+        SLOT_FREE,          /* available for image capture */
+        SLOT_RESERVED,      /* it may become available when resizing the previous slots */
+        SLOT_CAPTURING,     /* in progress */
+        SLOT_LOCKED,        /* locked by some other module */
+        SLOT_FULL,          /* contains fully captured image data */
+        SLOT_WRITING        /* it's being saved to card */
     } status;
 };
-
 
 static struct memSuite * shoot_mem_suite = 0;     /* memory suite for our buffers */
 static struct memSuite * srm_mem_suite = 0;
@@ -2042,6 +2041,7 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
     if (!raw_lv_settings_still_valid()) { raw_recording_state = RAW_FINISHING; return 0; }
     if (buffer_full) return 0;
     
+	/* other modules can ask for some frames to skip, e.g. for syncing audio */
     if(skip_frames > 0)
     {
         skip_frames--;
@@ -2395,7 +2395,13 @@ static void raw_video_rec_task()
         beep();
     }
 
-    /* signal that we are starting */
+    /* some modules may do some specific stuff right when we started recording */
+    if(!pre_record)
+    {
+        mlv_rec_call_cbr(MLV_REC_EVENT_STARTED, NULL);
+    }
+	
+	/* shall we still support the old interface? */
     raw_rec_cbr_starting();
     
     writing_time = 0;
@@ -2578,7 +2584,9 @@ static void raw_video_rec_task()
         {
             if (i == writing_queue_tail)
             {
-                bmp_printf(FONT_MED, 30, 110, "Queue overflow");
+                bmp_printf( FONT_MED, 30, 110, 
+                    "Queue overflow"
+                );
                 beep();
             }
             
@@ -2588,13 +2596,17 @@ static void raw_video_rec_task()
             {
                 if (frame_check_saved(slot_index) != 1)
                 {
-                    bmp_printf(FONT_MED, 30, 110, "Data corruption at slot %d, frame %d ", slot_index, slots[slot_index].frame_number);
+                    bmp_printf( FONT_MED, 30, 110, 
+                        "Data corruption at slot %d, frame %d ", slot_index, slots[slot_index].frame_number
+                    );
                     beep();
                 }
                 
                 if (slots[slot_index].frame_number != last_processed_frame + 1)
                 {
-                    bmp_printf(FONT_MED, 30, 110, "Frame order error: slot %d, state: %d, frame %d, expected %d ", slot_index, slots[slot_index].status, slots[slot_index].frame_number, last_processed_frame + 1);
+                    bmp_printf( FONT_MED, 30, 110, 
+                        "Frame order error: slot %d, frame %d, expected %d ", slot_index, slots[slot_index].frame_number, last_processed_frame + 1
+                    );
                     beep();
                 }
                 last_processed_frame++;
@@ -2620,12 +2632,16 @@ abort_and_check_early_stop:
 
             if (last_block_size > 2)
             {
-                bmp_printf(FONT_MED, 30, 90, "Early stop (%d). Should have recorded a few more frames.", last_block_size);
+                bmp_printf( FONT_MED, 30, 90, 
+                    "Early stop (%d). Should have recorded a few more frames.", last_block_size
+                );
                 beep_times(last_block_size);
             }
             else
             {
-                bmp_printf(FONT_MED, 30, 90, "Movie recording stopped automagically         ");
+                bmp_printf( FONT_MED, 30, 90, 
+                    "Movie recording stopped automagically         "
+                );
                 /* this is error beep, not audio sync beep */
                 beep_times(2);
             }
@@ -2688,7 +2704,9 @@ abort_and_check_early_stop:
 
         if (slots[slot_index].status != SLOT_FULL)
         {
-            bmp_printf(FONT_MED, 30, 110, "Slot %d: frame %d not saved ", slot_index, slots[slot_index].frame_number);
+            bmp_printf( FONT_MED, 30, 110, 
+                "Slot %d: frame %d not saved ", slot_index, slots[slot_index].frame_number
+            );
             beep();
         }
 
@@ -2697,13 +2715,17 @@ abort_and_check_early_stop:
         {
             if (frame_check_saved(slot_index) != 1)
             {
-                bmp_printf( FONT_MED, 30, 110, "Data corruption at slot %d, frame %d ", slot_index, slots[slot_index].frame_number);
+                bmp_printf( FONT_MED, 30, 110, 
+                    "Data corruption at slot %d, frame %d ", slot_index, slots[slot_index].frame_number
+                );
                 beep();
             }
 
             if (slots[slot_index].frame_number != last_processed_frame + 1)
             {
-                bmp_printf(FONT_MED, 30, 110, "Frame order error: slot %d, frame %d, expected %d ", slot_index, slots[slot_index].frame_number, last_processed_frame + 1);
+                bmp_printf( FONT_MED, 30, 110, 
+                    "Frame order error: slot %d, frame %d, expected %d ", slot_index, slots[slot_index].frame_number, last_processed_frame + 1
+                );
                 beep();
             }
             last_processed_frame++;
@@ -3208,7 +3230,7 @@ static unsigned int raw_rec_init()
     raw_preview_lock = create_named_semaphore(0, 1);
 
     ASSERT(((uint32_t)task_create("compress_task", 0x0F, 0x1000, compress_task, (void*)0) & 1) == 0);
-    
+
     return 0;
 }
 
