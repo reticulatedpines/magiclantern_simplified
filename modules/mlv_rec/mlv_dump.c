@@ -3845,7 +3845,7 @@ read_headers:
             }
             else if(!memcmp(mlv_block->blockType, "DISO", 4))
             {
-                mlv_diso_hdr_t block_hdr = *(mlv_diso_hdr_t *)mlv_block;
+                diso_info = *(mlv_diso_hdr_t *)mlv_block;
 
                 if(verbose)
                 {
