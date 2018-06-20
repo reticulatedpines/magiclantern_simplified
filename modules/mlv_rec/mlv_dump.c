@@ -3843,36 +3843,14 @@ read_headers:
                     }
                 }
             }
-            else if(!memcmp(buf.blockType, "DISO", 4))
+            else if(!memcmp(mlv_block->blockType, "DISO", 4))
             {
-                uint32_t hdr_size = MIN(sizeof(mlv_diso_hdr_t), buf.blockSize);
-
-                if(fread(&diso_info, hdr_size, 1, in_file) != 1)
-                {
-                    print_msg(MSG_ERROR, "File ends in the middle of a block\n");
-                    goto abort;
-                }
-
-                /* skip remaining data, if there is any */
-                file_set_pos(in_file, position + diso_info.blockSize, SEEK_SET);
-
-                lua_handle_hdr(lua_state, buf.blockType, &diso_info, sizeof(diso_info));
+                mlv_diso_hdr_t block_hdr = *(mlv_diso_hdr_t *)mlv_block;
 
                 if(verbose)
                 {
                     print_msg(MSG_INFO, "     Mode:        %d\n", diso_info.dualMode);
                     print_msg(MSG_INFO, "     ISO Value:   %d\n", diso_info.isoValue);
-                }
-
-                if(mlv_output && !no_metadata_mode && (!extract_block || !strncasecmp(extract_block, (char*)diso_info.blockType, 4)))
-                {
-                    /* correct header size if needed */
-                    diso_info.blockSize = sizeof(mlv_lens_hdr_t);
-                    if(fwrite(&diso_info, diso_info.blockSize, 1, out_file) != 1)
-                    {
-                        print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
-                        goto abort;
-                    }
                 }
             }
             else if(!memcmp(buf.blockType, "NULL", 4))
