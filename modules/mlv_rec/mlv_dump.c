@@ -3841,6 +3841,10 @@ read_headers:
                         print_msg(MSG_ERROR, "Failed writing into .WAV file\n");
                         goto abort;
                     }
+                    
+                    /* init WAV data size, will be grow later block by block (AUDF) */
+                    wav_data_size = 0;
+                    wav_header_size = file_get_pos(out_file_wav); /* same as sizeof(struct wav_header) */
                 }
             }
             else if(!memcmp(mlv_block->blockType, "DISO", 4))
