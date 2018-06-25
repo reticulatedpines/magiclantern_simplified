@@ -201,7 +201,7 @@ if [  -n "$(lsb_release -i 2>/dev/null | grep Ubuntu)" ]; then
             echo "    - install the gcc-arm-embedded:i386 package."
             echo "    This will install 32-bit binaries."
             echo
-            echo "3 - Install gcc-arm-none-eabi from Ubuntu repository (64-bit)"
+            echo "3 - Install gcc-arm-none-eabi from Ubuntu repository"
             echo "    and compile arm-none-eabi-gdb 8.1 from source."
             echo
             echo "4 - Manually install arm-none-eabi-gdb from https://launchpad.net/gcc-arm-embedded"
@@ -252,8 +252,9 @@ if [  -n "$(lsb_release -i 2>/dev/null | grep Ubuntu)" ]; then
                 sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa
                 ;;
             3)
-                # install 64-bit gcc and compile arm-none-eabi-gdb from source
-                packages="$packages gcc-arm-none-eabi:amd64 libnewlib-arm-none-eabi"
+                # install native (64 or 32) arm-none-eabi-gcc from package manager
+                # and compile arm-none-eabi-gdb 8.1 from source
+                packages="$packages gcc-arm-none-eabi libnewlib-arm-none-eabi"
                 ;;
             4)
                 # user will install arm-none-eabi-gdb and run the script again
