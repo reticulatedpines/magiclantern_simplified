@@ -447,7 +447,7 @@ index 7cb01a8..61583ba 100644
  
      p = str;
 diff --git a/target-arm/cpu.c b/target-arm/cpu.c
-index 30739fc..9889241 100644
+index 30739fc..6077632 100644
 --- a/target-arm/cpu.c
 +++ b/target-arm/cpu.c
 @@ -501,6 +501,7 @@ static void arm_cpu_initfn(Object *obj)
@@ -458,7 +458,7 @@ index 30739fc..9889241 100644
  static Property arm_cpu_reset_hivecs_property =
              DEFINE_PROP_BOOL("reset-hivecs", ARMCPU, reset_hivecs, false);
  
-@@ -711,6 +712,44 @@ static void arm926_initfn(Object *obj)
+@@ -711,6 +712,45 @@ static void arm926_initfn(Object *obj)
      cpu->reset_sctlr = 0x00090078;
  }
  
@@ -485,6 +485,7 @@ index 30739fc..9889241 100644
 +    ARMCPU *cpu = ARM_CPU(obj);
 +    cpu->midr = 0x411FC143;
 +    cpu->reset_sctlr = 0x08ED0878 | (1 << 13);    /* fixme: how to change the HIVECS property? */
++    unset_feature(&cpu->env, ARM_FEATURE_V7MP);
 +}
 +
 +static void cortex_a9_initfn(Object *obj);
@@ -503,7 +504,7 @@ index 30739fc..9889241 100644
  static void arm946_initfn(Object *obj)
  {
      ARMCPU *cpu = ARM_CPU(obj);
-@@ -914,9 +953,16 @@ static void arm_v7m_class_init(ObjectClass *oc, void *data)
+@@ -914,9 +954,16 @@ static void arm_v7m_class_init(ObjectClass *oc, void *data)
  
  static const ARMCPRegInfo cortexr5_cp_reginfo[] = {
      /* Dummy the TCM region regs for the moment */
@@ -522,7 +523,7 @@ index 30739fc..9889241 100644
        .access = PL1_RW, .type = ARM_CP_CONST },
      REGINFO_SENTINEL
  };
-@@ -1329,6 +1375,7 @@ static const ARMCPUInfo arm_cpus[] = {
+@@ -1329,6 +1376,7 @@ static const ARMCPUInfo arm_cpus[] = {
  #if !defined(CONFIG_USER_ONLY) || !defined(TARGET_AARCH64)
      { .name = "arm926",      .initfn = arm926_initfn },
      { .name = "arm946",      .initfn = arm946_initfn },
@@ -530,7 +531,7 @@ index 30739fc..9889241 100644
      { .name = "arm1026",     .initfn = arm1026_initfn },
      /* What QEMU calls "arm1136-r2" is actually the 1136 r0p2, i.e. an
       * older core than plain "arm1136". In particular this does not
-@@ -1342,9 +1389,11 @@ static const ARMCPUInfo arm_cpus[] = {
+@@ -1342,9 +1390,11 @@ static const ARMCPUInfo arm_cpus[] = {
                               .class_init = arm_v7m_class_init },
      { .name = "cortex-m4",   .initfn = cortex_m4_initfn,
                               .class_init = arm_v7m_class_init },
