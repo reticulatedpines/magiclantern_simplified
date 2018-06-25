@@ -10,7 +10,6 @@ ML_PATH=${ML_PATH:=../magic-lantern}
 
 ML_NAME=${ML_PATH##*/}
 GREP=${GREP:=grep}
-ALLOW_64BIT_GDB=n
 WGET_OPTS="-c -q --show-progress --progress=dot:giga"
 
 echo
@@ -118,23 +117,10 @@ function valid_arm_gdb {
         return 0
     fi
 
-    if [ "$ALLOW_64BIT_GDB" != "y" ]; then
-        if arm-none-eabi-gdb -v | grep -q "host=x86_64"; then
-            # 64-bit version - doesn't work well
-
-            if [ $(uname) == "Darwin" ] || [  -n "$(uname -a | grep Microsoft)" ]; then
-                # we don't have a 64-bit option on these systems
-                # just warn about it (--strict is used for that), but consider it valid
-                if [ "$1" != "--strict" ]; then
-                    return 0
-                fi
-            fi
-
-            # systems assumed to be able to run a 32-bit GDB
-            # consider the 64-bit one invalid
-            echo "*** WARNING: 64-bit GDB is known to have issues."
-            return 1
-        fi
+    if arm-none-eabi-gdb -v | grep -q "host=x86_64"; then
+        # old 64-bit version - doesn't work well
+        echo "*** WARNING: old 64-bit GDB is known to have issues."
+        return 1
     fi
 
     # assume it's OK
@@ -191,7 +177,7 @@ if [  -n "$(lsb_release -i 2>/dev/null | grep Ubuntu)" ]; then
     # otherwise, we'll try to install something
     if ! valid_arm_gdb || ! valid_arm_gcc; then
         echo "*** You do not seem to have an usable arm-none-eabi-gcc and/or gdb installed."
-        echo "*** 64-bit GDB is known to have issues, so you may want to install a 32-bit version."
+        echo "*** Old 64-bit GDB versions are known to have issues."
         echo
         echo "*** You have a few options:"
         echo
@@ -236,11 +222,6 @@ if [  -n "$(lsb_release -i 2>/dev/null | grep Ubuntu)" ]; then
             echo
         fi
 
-        if arm-none-eabi-gdb -v &> /dev/null; then
-            echo "5 - Just use the current 64-bit toolchain."
-            echo "    WARNING: this will not be able to run all our GDB scripts."
-        fi
-
         echo
         echo -n "Your choice? "
         read answer
@@ -277,10 +258,6 @@ if [  -n "$(lsb_release -i 2>/dev/null | grep Ubuntu)" ]; then
             4)
                 # user will install arm-none-eabi-gdb and run the script again
                 exit 0
-                ;;
-            5)
-                # use the installed version, even though it's known not to work well
-                ALLOW_64BIT_GDB=y
                 ;;
             *)
                 # invalid choice
@@ -345,7 +322,7 @@ if ! valid_arm_gcc; then
     install_gcc
 fi
 
-if ! valid_arm_gdb --strict; then
+if ! valid_arm_gdb; then
     echo
     echo "*** WARNING: a valid arm-none-eabi-gdb could not be found."
     echo "*** Will compile gdb 8.1 from source and install it under your home directory."
@@ -358,7 +335,7 @@ if ! valid_arm_gdb --strict; then
 fi
 
 # make sure we have a valid arm-none-eabi-gdb (regardless of operating system)
-if ! valid_arm_gdb --strict; then
+if ! valid_arm_gdb; then
     if ! arm-none-eabi-gdb -v &> /dev/null; then
         echo "*** Please set up a valid arm-none-eabi-gdb before continuing."
         exit 1
