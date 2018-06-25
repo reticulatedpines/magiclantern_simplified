@@ -188,38 +188,41 @@ if [  -n "$(lsb_release -i 2>/dev/null | grep Ubuntu)" ]; then
             echo "1 - Install gdb-arm-none-eabi:i386 and gcc-arm-none-eabi from Ubuntu repo (recommended)"
             echo "    This will install 32-bit binaries."
             echo
+            echo "2 - Download a 32-bit gcc-arm-embedded and install it without the package manager."
+            echo "    Will be installed in your home directory; to move it, you must edit the Makefiles."
+            echo "    This will install 32-bit binaries."
+            echo
             if dpkg -l binutils-arm-none-eabi 2>/dev/null | grep -q '^.i'; then
-                echo "2 - Remove Ubuntu toolchain and install the one from gcc-arm-embedded PPA (gcc 6.x)"
+                echo "3 - Remove Ubuntu toolchain and install the one from gcc-arm-embedded PPA (gcc 6.x)"
                 echo "    This will:"
                 echo "    - sudo apt-get remove gcc-arm-none-eabi gdb-arm-none-eabi \\"
                 echo "           binutils-arm-none-eabi libnewlib-arm-none-eabi"
             else
-                echo "2 - Install the toolchain from gcc-arm-embedded PPA (gcc 6.x)"
+                echo "3 - Install the toolchain from gcc-arm-embedded PPA (gcc 6.x)"
                 echo "    This will:"
             fi
             echo "    - sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa"
             echo "    - install the gcc-arm-embedded:i386 package."
             echo "    This will install 32-bit binaries."
             echo
-            echo "3 - Install gcc-arm-none-eabi from Ubuntu repository"
+            echo "4 - Install gcc-arm-none-eabi from Ubuntu repository"
             echo "    and compile arm-none-eabi-gdb 8.1 from source."
             echo
-            echo "4 - Manually install arm-none-eabi-gdb from https://launchpad.net/gcc-arm-embedded"
+            echo "5 - Manually install arm-none-eabi-gdb from https://launchpad.net/gcc-arm-embedded"
             echo "    or any other source, make sure it is in PATH, then run this script again."
             echo
         else
             # WSL
-            echo "1-2: options not available on Windows 10 WSL (32-bit Linux binaries not supported)."
+            echo "1-3: options not available on Windows 10 WSL (32-bit Linux binaries not supported)."
             echo
-            echo "3 - Install gcc-arm-none-eabi from Ubuntu repository (64-bit)"
+            echo "4 - Install gcc-arm-none-eabi from Ubuntu repository (64-bit)"
             echo "    and compile arm-none-eabi-gdb 8.1 from source."
             echo "    Sorry, we don't have a better option yet -> this is the recommended choice."
             echo
-            echo "4 - Manually install arm-none-eabi-gdb from https://launchpad.net/gcc-arm-embedded"
+            echo "5 - Manually install arm-none-eabi-gdb from https://launchpad.net/gcc-arm-embedded"
             echo "    or any other source (choose 64-bit Linux binaries),"
             echo "    make sure it is in PATH, then run this script again."
             echo "    WARNING: this may not be able to run all our GDB scripts."
-            echo
         fi
 
         echo
@@ -234,6 +237,10 @@ if [  -n "$(lsb_release -i 2>/dev/null | grep Ubuntu)" ]; then
                 packages="$packages gcc-arm-none-eabi libnewlib-arm-none-eabi"
                 ;;
             2)
+                # 32-bit gdb will be downloaded after installing these packages
+                packages="$packages libc6:i386 libncurses5:i386"
+                ;;
+            3)
                 # gcc-arm-embedded conflicts with gcc-arm-none-eabi
                 # but the dependencies are not configured properly
                 # so we have to fix the conflict manually...
@@ -251,12 +258,12 @@ if [  -n "$(lsb_release -i 2>/dev/null | grep Ubuntu)" ]; then
                 echo
                 sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa
                 ;;
-            3)
+            4)
                 # install native (64 or 32) arm-none-eabi-gcc from package manager
                 # and compile arm-none-eabi-gdb 8.1 from source
                 packages="$packages gcc-arm-none-eabi libnewlib-arm-none-eabi"
                 ;;
-            4)
+            5)
                 # user will install arm-none-eabi-gdb and run the script again
                 exit 0
                 ;;
@@ -288,7 +295,7 @@ if [  -n "$(lsb_release -i 2>/dev/null | grep Ubuntu)" ]; then
         if [[ "$packages" == *i386* ]]; then
             sudo dpkg --add-architecture i386
         fi
-        sudo apt-get update
+        sudo apt-get update || true
         sudo apt-get install $packages
         echo
     fi
