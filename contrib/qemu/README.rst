@@ -21,7 +21,7 @@ Current state
 
 What works:
 
-- Canon GUI with menu navigation — most DIGIC 3, 4 and 5 models,
+- Canon GUI with menu navigation — most DIGIC 3, 4 and 5 models
 - Limited support for DIGIC 2, 6 and 7 models
 - Limited support for some PowerShot models (including recent EOS M models)
 - Limited support for secondary DryOS cores (such as Eeko or 5D4 AE processor)
@@ -34,7 +34,7 @@ What works:
 - DryOS/VxWorks timer (heartbeat) and task switching (all supported models)
 - UART emulation (DryOS shell aka Dry-shell or DrySh on DIGIC 4, 5, 6 and 7 models)
 - Deterministic execution with the ``-icount`` option (except CF PIO)
-- Cache hacks are emulated to some extent (but "uninstalling" them does not work)
+- Cache hacks are emulated to some extent, but not exactly accurate
 - EDMAC memcpy, including geometry parameters (matches the hardware closely, but not perfectly)
 - Debugging with GDB:
 
@@ -94,13 +94,6 @@ Common issues and workarounds
   - quicker: press ``C`` to `"open" the card door`__ => also clean shutdown.
 
 __ `Opening the card door`_
-
-- dm-spy-experiments: saving the log and anything executed afterwards may not work
-
-  - issue: cache hacks are not emulated very well
-  - workaround: compile with ``CONFIG_QEMU=y``
-
-  |
 
 .. _netcat-issue:
 

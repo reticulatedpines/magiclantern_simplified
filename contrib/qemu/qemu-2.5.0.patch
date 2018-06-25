@@ -566,7 +566,7 @@ index 815fef8..74ce4a9 100644
  
  static inline int arm_feature(CPUARMState *env, int feature)
 diff --git a/target-arm/helper.c b/target-arm/helper.c
-index afc4163..794fbaa 100644
+index afc4163..1de4d3c 100644
 --- a/target-arm/helper.c
 +++ b/target-arm/helper.c
 @@ -549,6 +549,13 @@ static const ARMCPRegInfo not_v6_cp_reginfo[] = {
@@ -583,7 +583,7 @@ index afc4163..794fbaa 100644
  static const ARMCPRegInfo not_v7_cp_reginfo[] = {
      /* Standard v6 WFI (also used in some pre-v6 cores); not in v7 (which
       * is UNPREDICTABLE; we choose to NOP as most implementations do).
-@@ -598,6 +605,72 @@ static const ARMCPRegInfo not_v7_cp_reginfo[] = {
+@@ -598,6 +605,131 @@ static const ARMCPRegInfo not_v7_cp_reginfo[] = {
      REGINFO_SENTINEL
  };
  
@@ -591,6 +591,19 @@ index afc4163..794fbaa 100644
 +/* ARM946E-S (EOS) cache lockdown emulation */
 +/* note: the model is very incomplete, just enough to emulate
 + * the cache hacks from Magic Lantern */
++
++struct cache_patch
++{
++    uint32_t addr;
++    uint32_t old;
++    uint32_t new;
++};
++
++static struct cache_patch cache_patches[32];
++
++static int num_cache_patches = 0;
++
++
 +static uint64_t eos_cache_lockdown_read(CPUARMState *env, const ARMCPRegInfo *ri)
 +{
 +    fprintf(stderr, "Lockdown read %x\n", ri->crm);
@@ -604,8 +617,19 @@ index afc4163..794fbaa 100644
 +    
 +    if (value != old)
 +    {
-+        fprintf(stderr, "Cache patch: [%08X] <- %X\n", addr, value);
++        fprintf(stderr, "Cache patch: [%08X] <- %X (was %X)\n", addr, value, old);
++        cache_patches[num_cache_patches++] = (struct cache_patch) { .addr = addr, .old = old, .new = value };
 +        cpu_physical_memory_write(addr, &value, sizeof(value));
++    }
++}
++
++static void eos_revert_cache_patches(void)
++{
++    for ( ; num_cache_patches > 0; num_cache_patches--)
++    {
++        struct cache_patch * p = &cache_patches[num_cache_patches - 1];
++        fprintf(stderr, "Reverting cache patch: [%08X] <- %X (was patched to %X)\n", p->addr, p->old, p->new);
++        cpu_physical_memory_write(p->addr, &p->old, sizeof(p->old));
 +    }
 +}
 +
@@ -614,6 +638,33 @@ index afc4163..794fbaa 100644
 +    static uint32_t index = 0;
 +    static uint32_t itag = 0;
 +    static uint32_t dtag = 0;
++
++    /* FIXME: not exactly accurate, just a rough approximation */
++    /* no difference is made between data and instruction cache -
++     * first cache flush or lockdown disable event will revert all cache patches */
++    switch (ri->crn)
++    {
++        case 7:
++            /* FlushICache */
++            eos_revert_cache_patches();
++            return;
++
++        case 9:
++            /* DLockDown / ILockDown */
++            if (val == 0) {
++                eos_revert_cache_patches();
++            }
++            CPREG_FIELD32(env, ri) = val;
++            return;
++
++        case 15:
++            /* see the next switch */
++            break;
++
++        default:
++            /* unreachable */
++            assert(0);
++    }
 +
 +    switch (ri->crm)
 +    {
@@ -650,13 +701,21 @@ index afc4163..794fbaa 100644
 +      .access = PL1_RW, .readfn = eos_cache_lockdown_read, .writefn = eos_cache_lockdown_write },
 +    { .name = "DcacheVal",   .cp = 15, .crn = 15, .crm = 4, .opc1 = 3, .opc2 = 0,
 +      .access = PL1_RW, .readfn = eos_cache_lockdown_read, .writefn = eos_cache_lockdown_write },
++    { .name = "DLockDown",   .cp = 15, .crn = 9,  .crm = 0, .opc1 = 0, .opc2 = 0,
++      .access = PL1_RW, .fieldoffset = offsetof(CPUARMState, cp15.c9_data),
++      .writefn = eos_cache_lockdown_write, .resetvalue = 0, .type = ARM_CP_OVERRIDE },
++    { .name = "ILockDown",   .cp = 15, .crn = 9,  .crm = 0, .opc1 = 0, .opc2 = 1,
++      .access = PL1_RW, .fieldoffset = offsetof(CPUARMState, cp15.c9_insn),
++      .writefn = eos_cache_lockdown_write, .resetvalue = 0, .type = ARM_CP_OVERRIDE },
++    { .name = "FlushICache", .cp = 15, .crn = 7, .crm = 5, .opc1 = 0, .opc2 = 0,
++      .access = PL1_RW, .readfn = eos_cache_lockdown_read, .writefn = eos_cache_lockdown_write },
 +    REGINFO_SENTINEL
 +};
 +
  static void cpacr_write(CPUARMState *env, const ARMCPRegInfo *ri,
                          uint64_t value)
  {
-@@ -4542,6 +4615,12 @@ void register_cp_regs_for_features(ARMCPU *cpu)
+@@ -4542,6 +4674,12 @@ void register_cp_regs_for_features(ARMCPU *cpu)
          }
          define_one_arm_cp_reg(cpu, &sctlr);
      }
@@ -669,7 +728,7 @@ index afc4163..794fbaa 100644
  }
  
  ARMCPU *cpu_arm_init(const char *cpu_model)
-@@ -5891,11 +5970,21 @@ void arm_cpu_do_interrupt(CPUState *cs)
+@@ -5891,11 +6029,21 @@ void arm_cpu_do_interrupt(CPUState *cs)
      /* Switch to the new mode, and to the correct instruction set.  */
      env->uncached_cpsr = (env->uncached_cpsr & ~CPSR_M) | new_mode;
      env->daif |= mask;
