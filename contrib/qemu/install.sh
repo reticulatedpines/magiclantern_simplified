@@ -533,7 +533,7 @@ echo
 echo "Enjoy!"
 echo
 
-if ! [[ $DISPLAY ]]; then
+if [ $(uname) != "Darwin" ] && ! [[ $DISPLAY ]]; then
     echo "P.S. To run the GUI, please make sure you have a valid DISPLAY."
     if [  -n "$(uname -a | grep Microsoft)" ]; then
         echo "Under Windows, you may install either VcXsrv or XMing."
