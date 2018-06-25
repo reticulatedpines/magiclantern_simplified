@@ -66,6 +66,14 @@ function install_gcc {
     exit
 }
 
+function gdb_error {
+    tail -n 20 $1
+    echo
+    echo "*** GDB compilation failed; logs saved in $(pwd)"
+    echo "*** Please check what went wrong, try to fix it and report back."
+    exit 1
+}
+
 function install_gdb {
     # we may need to compile a recent GDB
     # the latest pre-built version is buggy (at the time of writing)
@@ -87,11 +95,11 @@ function install_gdb {
         mkdir build-gdb
         cd build-gdb
         echo "Configuring arm-none-eabi-gdb... (configure.log)"
-        ../gdb-8.1/configure --target=arm-none-eabi --prefix=$GDB_DIR/ &> configure.log || exit 1
+        ../gdb-8.1/configure --target=arm-none-eabi --prefix=$GDB_DIR/ &> configure.log || gdb_error configure.log
         echo "Building arm-none-eabi-gdb... (make.log)"
-        make all &> make.log || exit 1
+        make &> make.log || gdb_error make.log
         echo "Installing arm-none-eabi-gdb... (install.log)"
-        make install &> install.log || exit 1
+        (make install || make install MAKEINFO=false) &> install.log || gdb_error install.log
         popd > /dev/null
     else
         echo "*** GDB already installed in:"
