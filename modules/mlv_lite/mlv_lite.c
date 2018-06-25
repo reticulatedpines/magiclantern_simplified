@@ -42,8 +42,7 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#define DEBUG_REDRAW_INTERVAL 1000   /* normally 1000; low values like 50 will reduce write speed a lot! */
-#undef DEBUG_BUFFERING_GRAPH      /* some funky graphs */
+#define __MLV_LITE_C__
 
 #include <module.h>
 #include <dryos.h>
@@ -2203,6 +2202,10 @@ static int mlv_chunk = 0;               /* MLV chunk index from header */
 static void finish_chunk(FILE* f)
 {
     file_hdr.videoFrameCount = chunk_frame_count;
+    
+    /* call the CBRs which may update fields */
+    mlv_rec_call_cbr(MLV_REC_EVENT_BLOCK, &file_hdr);
+    
     FIO_SeekSkipFile(f, 0, SEEK_SET);
     FIO_WriteFile(f, &file_hdr, file_hdr.blockSize);
     FIO_CloseFile(f);
