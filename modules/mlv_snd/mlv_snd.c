@@ -73,6 +73,14 @@ static volatile uint32_t mlv_snd_in_buffers = 64;
 static volatile uint32_t mlv_snd_frame_number = 0;
 static volatile uint32_t mlv_snd_in_buffer_size = 0;
 
+/* for tracking chunks */
+static volatile uint16_t mlv_snd_file_num = UINT16_MAX;
+/* frames issued to mlv_lite for writing */
+static volatile uint32_t mlv_snd_frames_queued = 0;
+/* frames written to previous chunks */
+static volatile uint32_t mlv_snd_frames_saved = 0;
+
+
 static uint32_t mlv_snd_rates[] = { 48000, 44100, 22050, 11025, 8000 };
 #define MLV_SND_RATE_TEXT "48kHz", "44.1kHz", "22kHz", "11kHz", "8kHz"
 
@@ -215,6 +223,9 @@ static void mlv_snd_flush_entries(struct msg_queue *queue, uint32_t clear)
             mlv_set_type((mlv_hdr_t *)hdr, "AUDF");
             hdr->frameNumber = entry->frameNumber;
             mlv_rec_set_rel_timestamp((mlv_hdr_t*)hdr, entry->timestamp);
+            
+            /* set the highest frame number for updating header later */
+            mlv_snd_frames_queued = MAX(mlv_snd_frames_queued, entry->frameNumber + 1);
         }
         
         if(entry->mlv_slot_end)
@@ -333,7 +344,12 @@ static void mlv_snd_queue_slot()
 
 static void mlv_snd_prepare_audio()
 {
+    /* reset all variables first */
+    mlv_snd_file_num = UINT16_MAX;
     mlv_snd_frame_number = 0;
+    mlv_snd_frames_queued = 0;
+    mlv_snd_frames_saved = 0;
+    
     mlv_snd_in_sample_rate = mlv_snd_rates[mlv_snd_rate_sel];
 
     /* some models may need this */
@@ -416,6 +432,7 @@ static void mlv_snd_writer(int unused)
                 {
                     trace_write(trace_ctx, "   --> WRITER: entry is MLV slot %d (last buffer, so release)", buffer->mlv_slot_id);
                     mlv_rec_release_slot(buffer->mlv_slot_id, 1);
+                    mlv_snd_frames_queued = hdr->frameNumber + 1;
                     mlv_snd_queue_slot();
                 }
                 free(buffer);
@@ -514,15 +531,49 @@ static void mlv_snd_cbr_stopping(uint32_t event, void *ctx, mlv_hdr_t *hdr)
     }
 }
 
+
 static void mlv_snd_cbr_mlv_block(uint32_t event, void *ctx, mlv_hdr_t *hdr)
 {
     if(hdr && !memcmp(hdr->blockType, "MLVI", 4))
     {
         mlv_file_hdr_t *file_hdr = (mlv_file_hdr_t *)hdr;
         
-        /* this block is filled on recording start and when the block gets updates on recording end */
-        file_hdr->audioClass = 1; /* 0=none, 1=WAV */
-        file_hdr->audioFrameCount = mlv_snd_frame_number;
+        uint16_t file_num = file_hdr->fileNum;
+        
+        trace_write(trace_ctx, "mlv_snd_cbr_mlv_block: called for file %d", file_num);
+        
+        /* the MLV block is filled on recording start and when the block gets updates on recording end */
+        if(mlv_snd_file_num == UINT16_MAX)
+        {
+            trace_write(trace_ctx, "mlv_snd_cbr_mlv_block: first chunk");
+            /* first chunk's header is being written, save the number of frames in previous chunks */
+            file_hdr->audioClass = 1; /* 0=none, 1=WAV */
+            file_hdr->audioFrameCount = 0;
+        }
+        else if(file_num == mlv_snd_file_num)
+        {
+            /* block gets updated, capture AUDF count */
+            uint32_t queued = mlv_snd_frames_queued;
+            
+            file_hdr->audioFrameCount = queued - mlv_snd_frames_saved;
+            
+            trace_write(trace_ctx, "mlv_snd_cbr_mlv_block: update: q:%d, s:%d", queued, mlv_snd_frames_saved);
+            
+            mlv_snd_frames_saved = queued;
+        }
+        else if(file_num > mlv_snd_file_num)
+        {
+            trace_write(trace_ctx, "mlv_snd_cbr_mlv_block: next");
+            /* next chunk's header is being written */
+            file_hdr->audioClass = 1; /* 0=none, 1=WAV */
+            file_hdr->audioFrameCount = 0;
+        }
+        else
+        {
+            /* suddenly file_num goes back? unexpected, do not tamper with */
+        }
+        
+        mlv_snd_file_num = file_num;
     }
 }
 
