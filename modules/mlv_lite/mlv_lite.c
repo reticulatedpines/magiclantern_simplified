@@ -65,6 +65,7 @@
 #include "focus.h"
 #include "fps.h"
 #include "../mlv_rec/mlv.h"
+#include "../mlv_rec/mlv_rec_interface.h"
 #include "../trace/trace.h"
 #include "powersave.h"
 #include "shoot.h"
@@ -2204,7 +2205,7 @@ static void finish_chunk(FILE* f)
     file_hdr.videoFrameCount = chunk_frame_count;
     
     /* call the CBRs which may update fields */
-    mlv_rec_call_cbr(MLV_REC_EVENT_BLOCK, &file_hdr);
+    mlv_rec_call_cbr(MLV_REC_EVENT_BLOCK, (mlv_hdr_t *)&file_hdr);
     
     FIO_SeekSkipFile(f, 0, SEEK_SET);
     FIO_WriteFile(f, &file_hdr, file_hdr.blockSize);
