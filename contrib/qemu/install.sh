@@ -345,7 +345,7 @@ if ! valid_arm_gcc; then
     install_gcc
 fi
 
-if ! valid_arm_gdb; then
+if ! valid_arm_gdb --strict; then
     echo
     echo "*** WARNING: a valid arm-none-eabi-gdb could not be found."
     echo "*** Will compile gdb 8.1 from source and install it under your home directory."
