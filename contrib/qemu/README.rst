@@ -215,7 +215,7 @@ the `boot flag <http://magiclantern.wikia.com/wiki/Bootflags>`_ is disabled:
   ./run_canon_fw.sh 60D,firmware="boot=0"
 
 Some models may need additional patches to run — these are stored under ``CAM/patches.gdb``.
-To emulate these models, you will also need arm-none-eabi-gdb:
+To emulate these models, you will also need ``arm-none-eabi-gdb`` or ``gdb-multiarch``:
 
 .. code:: shell
 
@@ -240,6 +240,7 @@ __ `Debugging with GDB`_
 .. code:: shell
 
   ./run_canon_fw.sh 60D,firmware="boot=0" -s -S & arm-none-eabi-gdb -x 60D/debugmsg.gdb
+  ./run_canon_fw.sh 60D,firmware="boot=0" -s -S & gdb-multiarch -x 60D/debugmsg.gdb
 
 Running Magic Lantern
 ---------------------

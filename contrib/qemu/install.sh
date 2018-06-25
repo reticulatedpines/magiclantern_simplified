@@ -11,6 +11,7 @@ ML_PATH=${ML_PATH:=../magic-lantern}
 ML_NAME=${ML_PATH##*/}
 GREP=${GREP:=grep}
 WGET_OPTS="-c -q --show-progress --progress=dot:giga"
+ARM_GDB=
 
 echo
 echo "This will setup QEMU for emulating Magic Lantern."
@@ -118,25 +119,40 @@ function install_gdb {
 }
 
 function valid_arm_gdb {
-    if ! arm-none-eabi-gdb -v &> /dev/null; then
+    if ! arm-none-eabi-gdb -v &> /dev/null && ! gdb-multiarch -v &> /dev/null; then
         # not installed, or not able to run for any reason
         return 1
     fi
 
-    if arm-none-eabi-gdb -v | grep " 8.1" &> /dev/null; then
+    # 8.0 and earlier is buggy on 64-bit; 8.1 is known to work
+    # FIXME: the check will reject 9.x and later
+
+    if arm-none-eabi-gdb -v 2>/dev/null | grep -q " [8]\.[1-9]"; then
         # this one is good, even if compiled for 64-bit
+        ARM_GDB="arm-none-eabi-gdb"
         return 0
     fi
 
-    if arm-none-eabi-gdb -v | grep -q "host=x86_64"; then
-        # old 64-bit version - doesn't work well
-        echo "*** WARNING: old 64-bit GDB is known to have issues."
-        return 1
+    if gdb-multiarch -v 2>/dev/null | grep -q " [8]\.[1-9]"; then
+        # this one is just as good
+        ARM_GDB="gdb-multiarch"
+        return 0
     fi
 
-    # assume it's OK
-    # todo: check version number
-    return 0
+    if arm-none-eabi-gdb -v 2>/dev/null | grep -q "host=i[3-6]86"; then
+        # let's hope it's OK
+        ARM_GDB="arm-none-eabi-gdb"
+        return 0
+    fi
+
+    if gdb-multiarch -v 2>/dev/null | grep -q "host=i[3-6]86"; then
+        # let's hope it's OK
+        ARM_GDB="gdb-multiarch"
+        return 0
+    fi
+
+    echo "*** WARNING: old 64-bit GDB is known to have issues."
+    return 1
 }
 
 function valid_arm_gcc {
@@ -196,8 +212,16 @@ if [  -n "$(lsb_release -i 2>/dev/null | grep Ubuntu)" ]; then
         # 32-bit binaries not working under WSL - hide these options
         # fixme: hidden options can still be selected
         if [  -z "$(uname -a | grep Microsoft)" ]; then
-            echo "1 - Install gdb-arm-none-eabi:i386 and gcc-arm-none-eabi from Ubuntu repo (recommended)"
-            echo "    This will install 32-bit binaries."
+            if apt-cache show gdb-arm-none-eabi &>/dev/null; then
+                echo "1 - Install gdb-arm-none-eabi:i386 and gcc-arm-none-eabi from Ubuntu repo (recommended)"
+                echo "    This will install 32-bit binaries."
+            elif apt-cache show gdb-multiarch &>/dev/null; then
+                echo "1 - Install gdb-multiarch and gcc-arm-none-eabi from Ubuntu repo (recommended)"
+                echo "    GDB 8.1 or later is known to work well."
+            else
+                echo "1 - Sorry, gdb-arm-none-eabi is not available on your distro."
+                echo "    Please pick something else."
+            fi
             echo
             echo "2 - Download a 32-bit gcc-arm-embedded and install it without the package manager."
             echo "    Will be installed in your home directory; to move it, you must edit the Makefiles."
@@ -242,9 +266,18 @@ if [  -n "$(lsb_release -i 2>/dev/null | grep Ubuntu)" ]; then
         echo
         case $answer in
             1)
-                # Ubuntu's 32-bit arm-none-eabi-gdb works fine
+                if apt-cache show gdb-arm-none-eabi &>/dev/null; then
+                    # Ubuntu's 32-bit arm-none-eabi-gdb works fine (if available)
+                    packages="$packages gdb-arm-none-eabi:i386 "
+                elif apt-cache show gdb-multiarch &>/dev/null; then
+                    # Ubuntu Bionic's 64-bit gdb-multiarch works fine (8.1.x); there's no standalone gdb-arm-none-eabi
+                    # Ubuntu Artful's 64-bit gdb-multiarch does not work (8.0.x); using gdb-arm-none-eabi:i386 instead
+                    packages="$packages gdb-multiarch "
+                else
+                    # invalid choice
+                    exit 1
+                fi
                 # gcc-arm-none-eabi:i386 does not include libnewlib - Ubuntu bug?
-                packages="$packages gdb-arm-none-eabi:i386 "
                 packages="$packages gcc-arm-none-eabi libnewlib-arm-none-eabi"
                 ;;
             2)
@@ -355,16 +388,8 @@ fi
 
 # make sure we have a valid arm-none-eabi-gdb (regardless of operating system)
 if ! valid_arm_gdb; then
-    if ! arm-none-eabi-gdb -v &> /dev/null; then
-        echo "*** Please set up a valid arm-none-eabi-gdb before continuing."
-        exit 1
-    else
-        # valid_arm_gdb will print why the current one is not good
-        echo -n "Continue anyway? [y/N] "
-        read answer
-        if test "$answer" != "Y" -a "$answer" != "y"; then exit 1; fi
-        echo
-    fi
+    echo "*** Please set up a valid arm-none-eabi-gdb or gdb-multiarch before continuing."
+    exit 1
 fi
 
 # same for arm-none-eabi-gcc
@@ -379,8 +404,8 @@ command -v arm-none-eabi-gcc
 arm-none-eabi-gcc -v 2>&1 | grep "gcc version"
 echo
 echo -n "*** Using GDB: "
-command -v arm-none-eabi-gdb
-arm-none-eabi-gdb -v | head -n1
+command -v $ARM_GDB         # set by valid_arm_gcc
+$ARM_GDB -v | head -n1
 echo
 
 # install docutils (for compiling ML modules) and vncdotool (for test suite)
@@ -565,9 +590,9 @@ echo "     ./run_canon_fw.sh 60D -d io,int"
 echo "   - to show the executed ASM code, step by step, use:"
 echo "     ./run_canon_fw.sh 60D -d exec,int -singlestep"
 echo "   - to trace debug messages and various functions in the firmware, use:"
-echo "     ./run_canon_fw.sh 60D -d debugmsg -s -S & arm-none-eabi-gdb -x 60D/debugmsg.gdb"
+echo "     ./run_canon_fw.sh 60D -d debugmsg -s -S & $ARM_GDB -x 60D/debugmsg.gdb"
 echo "   - some camera models require GDB patches to bypass tricky code sequences:"
-echo "     ./run_canon_fw.sh EOSM -s -S & arm-none-eabi-gdb -x EOSM/patches.gdb"
+echo "     ./run_canon_fw.sh EOSM -s -S & $ARM_GDB -x EOSM/patches.gdb"
 echo
 echo
 echo "Online documentation: "

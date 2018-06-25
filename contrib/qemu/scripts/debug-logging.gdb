@@ -5,6 +5,7 @@
 # To use gdb, start emulation with, for example:
 #    ./run_canon_fw.sh 60D -s -S & arm-none-eabi-gdb -x 60D/debugmsg.gdb
 
+set architecture arm
 set tcp connect-timeout 300
 
 if $_isvoid($TCP_PORT)
