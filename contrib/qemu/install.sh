@@ -11,6 +11,7 @@ ML_PATH=${ML_PATH:=../magic-lantern}
 ML_NAME=${ML_PATH##*/}
 GREP=${GREP:=grep}
 ALLOW_64BIT_GDB=n
+WGET_OPTS="-c -q --show-progress --progress=dot:giga"
 
 echo
 echo "This will setup QEMU for emulating Magic Lantern."
@@ -20,22 +21,18 @@ read answer
 if test "$answer" != "Y" -a "$answer" != "y"; then exit 0; fi
 echo
 
-function install_gdb {
-    echo
-    echo "*** Will download gcc-arm-none-eabi-5_4-2016q3 from:"
-    echo "    https://developer.arm.com/open-source/gnu-toolchain/gnu-rm"
-    echo
+function install_gcc {
 
     UNTAR="tar -jxf"
 
     if [ $(uname) == "Darwin" ]; then
-        # 64-bit (fixme: compile a 32-bit GDB)
+        # Mac: 64-bit (we'll have to compile a 32-bit GDB)
         TOOLCHAIN=gcc-arm-none-eabi-7-2017-q4-major
         DOWNLOAD=https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/7-2017q4/
         MIRROR="$DOWNLOAD"
         TARBALL=$TOOLCHAIN-mac.tar.bz2
     elif [  -n "$(uname -a | grep Microsoft)" ]; then
-        # WSL
+        # WSL: 64-bit (we'll have to compile a 32-bit GDB)
         TOOLCHAIN=gcc-arm-none-eabi-7-2017-q4-major
         DOWNLOAD=https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/7-2017q4/
         MIRROR="$DOWNLOAD"
@@ -48,27 +45,77 @@ function install_gdb {
         TARBALL=$TOOLCHAIN-20160926-linux.tar.bz2
     fi
 
+    echo "*** Will download $TOOLCHAIN from:"
+    echo "    https://developer.arm.com/open-source/gnu-toolchain/gnu-rm"
+    echo
+
     if [ ! -f ~/$TOOLCHAIN/bin/arm-none-eabi-gdb ]; then
         cd ~
-        wget -c $DOWNLOAD$TARBALL || wget -c $MIRROR$TARBALL \
+        wget $WGET_OPTS $DOWNLOAD$TARBALL || wget $WGET_OPTS $MIRROR$TARBALL \
             && $UNTAR $TARBALL && rm $TARBALL
         cd -
     else
         echo "*** Toolchain already installed in:"
         echo "    ~/$TOOLCHAIN"
-        echo
     fi
 
-    echo "*** Please add gcc binaries to your executable PATH."
+    echo
+    echo "*** Please add GCC binaries to your executable PATH, then run this script again."
     echo "*** Run this command, or paste it into your .profile and reopen the terminal:"
     echo "    export PATH=~/$TOOLCHAIN/bin:\$PATH"
     echo
+    exit
+}
+
+function install_gdb {
+    # we may need to compile a recent GDB
+    # the latest pre-built version is buggy (at the time of writing)
+    # on Linux, the old 32-bit version works fine, but we can't run it on Mac/WSL
+    GDB_DIR=$HOME/gdb-arm-none-eabi-8_1
+
+    if [ ! -f $GDB_DIR/bin/arm-none-eabi-gdb ]; then
+        pushd . > /dev/null
+        local MIRROR=https://ftp.gnu.org/gnu
+        mkdir $GDB_DIR
+        cd $GDB_DIR
+        echo "*** Setting up GDB in $(pwd)..."
+        mkdir src
+        cd src
+        wget $WGET_OPTS $MIRROR/gdb/gdb-8.1.tar.xz
+        echo
+        tar xJf gdb-8.1.tar.xz || exit 1
+        echo
+        mkdir build-gdb
+        cd build-gdb
+        echo "Configuring arm-none-eabi-gdb... (configure.log)"
+        ../gdb-8.1/configure --target=arm-none-eabi --prefix=$GDB_DIR/ &> configure.log || exit 1
+        echo "Building arm-none-eabi-gdb... (make.log)"
+        make all &> make.log || exit 1
+        echo "Installing arm-none-eabi-gdb... (install.log)"
+        make install &> install.log || exit 1
+        popd > /dev/null
+    else
+        echo "*** GDB already installed in:"
+        echo "    $GDB_DIR/bin/"
+    fi
+
+    echo
+    echo "*** Please add GDB binaries to your executable PATH, then run this script again."
+    echo "*** Run this command, or paste it into your .profile and reopen the terminal:"
+    echo "    export PATH=$GDB_DIR/bin/:\$PATH"
+    echo
+    exit
 }
 
 function valid_arm_gdb {
     if ! arm-none-eabi-gdb -v &> /dev/null; then
         # not installed, or not able to run for any reason
         return 1
+    fi
+
+    if arm-none-eabi-gdb -v | grep " 8.1" &> /dev/null; then
+        # this one is good, even if compiled for 64-bit
+        return 0
     fi
 
     if [ "$ALLOW_64BIT_GDB" != "y" ]; then
@@ -155,49 +202,42 @@ if [  -n "$(lsb_release -i 2>/dev/null | grep Ubuntu)" ]; then
             echo "1 - Install gdb-arm-none-eabi:i386 and gcc-arm-none-eabi from Ubuntu repo (recommended)"
             echo "    This will install 32-bit binaries."
             echo
-            echo "2 - Download a 32-bit gcc-arm-embedded and install it without the package manager."
-            echo "    Will be installed in your home directory; to move it, you must edit the Makefiles."
-            echo "    This will install 32-bit binaries."
-            echo
             if dpkg -l binutils-arm-none-eabi 2>/dev/null | grep -q '^.i'; then
-                echo "3 - Remove Ubuntu toolchain and install the one from gcc-arm-embedded PPA (gcc 6.x)"
+                echo "2 - Remove Ubuntu toolchain and install the one from gcc-arm-embedded PPA (gcc 6.x)"
                 echo "    This will:"
                 echo "    - sudo apt-get remove gcc-arm-none-eabi gdb-arm-none-eabi \\"
                 echo "           binutils-arm-none-eabi libnewlib-arm-none-eabi"
             else
-                echo "3 - Install the toolchain from gcc-arm-embedded PPA (gcc 6.x)"
+                echo "2 - Install the toolchain from gcc-arm-embedded PPA (gcc 6.x)"
                 echo "    This will:"
             fi
             echo "    - sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa"
             echo "    - install the gcc-arm-embedded:i386 package."
             echo "    This will install 32-bit binaries."
             echo
-            echo "4 - Install gdb-arm-none-eabi and gcc-arm-none-eabi from Ubuntu repository (64-bit)"
-            echo "    WARNING: this may not be able to run all our GDB scripts."
+            echo "3 - Install gcc-arm-none-eabi from Ubuntu repository (64-bit)"
+            echo "    and compile arm-none-eabi-gdb 8.1 from source."
             echo
-            echo "5 - Manually install arm-none-eabi-gdb from https://launchpad.net/gcc-arm-embedded"
+            echo "4 - Manually install arm-none-eabi-gdb from https://launchpad.net/gcc-arm-embedded"
             echo "    or any other source, make sure it is in PATH, then run this script again."
             echo
         else
             # WSL
-            echo "1-3: options not available on Windows 10 WSL (32-bit Linux binaries not supported)."
+            echo "1-2: options not available on Windows 10 WSL (32-bit Linux binaries not supported)."
             echo
-            echo "4 - Install gdb-arm-none-eabi and gcc-arm-none-eabi from Ubuntu repository (64-bit)"
-            echo "    WARNING: this may not be able to run all our GDB scripts."
+            echo "3 - Install gcc-arm-none-eabi from Ubuntu repository (64-bit)"
+            echo "    and compile arm-none-eabi-gdb 8.1 from source."
             echo "    Sorry, we don't have a better option yet -> this is the recommended choice."
             echo
-            echo "5 - Manually install arm-none-eabi-gdb from https://launchpad.net/gcc-arm-embedded"
+            echo "4 - Manually install arm-none-eabi-gdb from https://launchpad.net/gcc-arm-embedded"
             echo "    or any other source (choose 64-bit Linux binaries),"
             echo "    make sure it is in PATH, then run this script again."
             echo "    WARNING: this may not be able to run all our GDB scripts."
             echo
-            echo "    You may also try the Win32 GDB build from gcc-arm-embedded,"
-            echo "    but getting it to work is not straightforward (contribution welcome)."
-            echo
         fi
 
         if arm-none-eabi-gdb -v &> /dev/null; then
-            echo "6 - Just use the current 64-bit toolchain."
+            echo "5 - Just use the current 64-bit toolchain."
             echo "    WARNING: this will not be able to run all our GDB scripts."
         fi
 
@@ -213,10 +253,6 @@ if [  -n "$(lsb_release -i 2>/dev/null | grep Ubuntu)" ]; then
                 packages="$packages gcc-arm-none-eabi libnewlib-arm-none-eabi"
                 ;;
             2)
-                # 32-bit gdb will be downloaded after installing these packages
-                packages="$packages libc6:i386 libncurses5:i386"
-                ;;
-            3)
                 # gcc-arm-embedded conflicts with gcc-arm-none-eabi
                 # but the dependencies are not configured properly
                 # so we have to fix the conflict manually...
@@ -234,17 +270,15 @@ if [  -n "$(lsb_release -i 2>/dev/null | grep Ubuntu)" ]; then
                 echo
                 sudo add-apt-repository ppa:team-gcc-arm-embedded/ppa
                 ;;
-            4)
-                # Ubuntu's 64-bit arm-none-eabi-gdb is... well... better than nothing
-                packages="$packages gdb-arm-none-eabi:amd64"
+            3)
+                # install 64-bit gcc and compile arm-none-eabi-gdb from source
                 packages="$packages gcc-arm-none-eabi:amd64 libnewlib-arm-none-eabi"
-                ALLOW_64BIT_GDB=y
                 ;;
-            5)
+            4)
                 # user will install arm-none-eabi-gdb and run the script again
                 exit 0
                 ;;
-            6)
+            5)
                 # use the installed version, even though it's known not to work well
                 ALLOW_64BIT_GDB=y
                 ;;
@@ -298,12 +332,27 @@ if [  -n "$(lsb_release -i 2>/dev/null | grep Ubuntu)" ]; then
 fi
 
 # all systems (including Mac, or Ubuntu if the installation from repositories failed)
-# this one works on old systems as well, but it won't work under WSL
+if ! valid_arm_gcc; then
+    echo
+    echo "*** WARNING: a valid arm-none-eabi-gcc could not be found."
+    echo "*** Downloading a toolchain and installing it without the package manager."
+    echo "*** Will be installed in your home directory (Makefile.user.default expects it there)."
+    echo
+    echo -n "Continue? [y/n] "
+    read answer
+    if test "$answer" != "Y" -a "$answer" != "y"; then exit 0; fi
+    echo
+    install_gcc
+fi
+
 if ! valid_arm_gdb; then
     echo
     echo "*** WARNING: a valid arm-none-eabi-gdb could not be found."
-    echo "*** Downloading a toolchain and installing it without the package manager."
-    echo "*** Will be installed in your home directory (Makefile.user.default expects it there)."
+    echo "*** Will compile gdb 8.1 from source and install it under your home directory."
+    echo
+    echo -n "Continue? [y/n] "
+    read answer
+    if test "$answer" != "Y" -a "$answer" != "y"; then exit 0; fi
     echo
     install_gdb
 fi
@@ -329,13 +378,13 @@ if ! valid_arm_gcc; then
 fi
 
 echo
-echo -n "*** Using GDB: "
-command -v arm-none-eabi-gdb
-arm-none-eabi-gdb -v | head -n1
-echo
 echo -n "*** Using GCC: "
 command -v arm-none-eabi-gcc
 arm-none-eabi-gcc -v 2>&1 | grep "gcc version"
+echo
+echo -n "*** Using GDB: "
+command -v arm-none-eabi-gdb
+arm-none-eabi-gdb -v | head -n1
 echo
 
 # install docutils (for compiling ML modules) and vncdotool (for test suite)
@@ -388,7 +437,7 @@ if [ -d $QEMU_NAME ]; then
 fi
 
 # get qemu
-wget -q --show-progress --progress=dot:giga -c http://wiki.qemu-project.org/download/$QEMU_NAME.tar.bz2
+wget $WGET_OPTS http://wiki.qemu-project.org/download/$QEMU_NAME.tar.bz2
 echo
 tar jxf $QEMU_NAME.tar.bz2
 echo
