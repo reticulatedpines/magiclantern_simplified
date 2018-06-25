@@ -447,7 +447,7 @@ index 7cb01a8..61583ba 100644
  
      p = str;
 diff --git a/target-arm/cpu.c b/target-arm/cpu.c
-index 30739fc..de478b2 100644
+index 30739fc..9889241 100644
 --- a/target-arm/cpu.c
 +++ b/target-arm/cpu.c
 @@ -501,6 +501,7 @@ static void arm_cpu_initfn(Object *obj)
@@ -458,11 +458,136 @@ index 30739fc..de478b2 100644
  static Property arm_cpu_reset_hivecs_property =
              DEFINE_PROP_BOOL("reset-hivecs", ARMCPU, reset_hivecs, false);
  
-@@ -711,6 +712,113 @@ static void arm926_initfn(Object *obj)
+@@ -711,6 +712,44 @@ static void arm926_initfn(Object *obj)
      cpu->reset_sctlr = 0x00090078;
  }
  
-+/* cache lockdown emulation */
++static void arm946_eos_initfn(Object *obj)
++{
++    ARMCPU *cpu = ARM_CPU(obj);
++    set_feature(&cpu->env, ARM_FEATURE_V5);
++    set_feature(&cpu->env, ARM_FEATURE_MPU);
++    set_feature(&cpu->env, ARM_FEATURE_XSCALE); /* for MCR p15, 0,R0,c9,c1,0 */
++    cpu->midr = 0x41059461;
++    cpu->ctr = (7 << 25) | (1 << 24) | (4 << 18) | (4 << 15) \
++             | (2 << 12) | (4 << 6) | (4 << 3) | (2 << 0);
++    cpu->reset_sctlr = 0x00000078 | (1 << 13);    /* fixme: how to change the HIVECS property? */
++    set_feature(&cpu->env, ARM_FEATURE_946EOS);
++}
++
++static void cortex_r5_initfn(Object *obj);
++
++static void cortex_r4_eos_initfn(Object *obj)
++{
++    /* Cortex R4: https://chdk.setepontos.com/index.php?topic=11316.msg124273#msg124273 */
++    cortex_r5_initfn(obj);
++    
++    ARMCPU *cpu = ARM_CPU(obj);
++    cpu->midr = 0x411FC143;
++    cpu->reset_sctlr = 0x08ED0878 | (1 << 13);    /* fixme: how to change the HIVECS property? */
++}
++
++static void cortex_a9_initfn(Object *obj);
++
++static void cortex_a9_eos_initfn(Object *obj)
++{
++    /* Cortex A9: http://chdk.setepontos.com/index.php?topic=13014.msg131110#msg131110 */
++    cortex_a9_initfn(obj);
++    
++    ARMCPU *cpu = ARM_CPU(obj);
++    cpu->midr = 0x411FC143;
++    // cpu->reset_sctlr = 0x08ED0878;    /* FIXME: no bootloader yet */
++    cpu->reset_sctlr = 0x48ED0878;
++}
++
+ static void arm946_initfn(Object *obj)
+ {
+     ARMCPU *cpu = ARM_CPU(obj);
+@@ -914,9 +953,16 @@ static void arm_v7m_class_init(ObjectClass *oc, void *data)
+ 
+ static const ARMCPRegInfo cortexr5_cp_reginfo[] = {
+     /* Dummy the TCM region regs for the moment */
+-    { .name = "ATCM", .cp = 15, .opc1 = 0, .crn = 9, .crm = 1, .opc2 = 0,
++    /* fixme: resetvalue hardcoded for DIGIC 6 */
++    { .name = "ATCM",       .cp = 15, .opc1 = 0, .crn = 9,  .crm = 1, .opc2 = 0,
++      .access = PL1_RW,     .fieldoffset = offsetof(CPUARMState, cp15.c15_atcm), .resetvalue = 0x00000015 },
++    { .name = "BTCM",       .cp = 15, .opc1 = 0, .crn = 9,  .crm = 1, .opc2 = 1,
++      .access = PL1_RW,     .fieldoffset = offsetof(CPUARMState, cp15.c15_btcm), .resetvalue = 0x8000001D },
++    { .name = "INV_DCACHE", .cp = 15, .opc1 = 0, .crn = 15, .crm = 5, .opc2 = 0,
++      .access = PL1_RW, .type = ARM_CP_CONST },
++    { .name = "BUILDOPTS",  .cp = 15, .opc1 = 0, .crn = 15, .crm = 2, .opc2 = CP_ANY,
+       .access = PL1_RW, .type = ARM_CP_CONST },
+-    { .name = "BTCM", .cp = 15, .opc1 = 0, .crn = 9, .crm = 1, .opc2 = 1,
++    { .name = "ACTLR2",     .cp = 15, .opc1 = 0, .crn = 15, .crm = 0, .opc2 = 0,
+       .access = PL1_RW, .type = ARM_CP_CONST },
+     REGINFO_SENTINEL
+ };
+@@ -1329,6 +1375,7 @@ static const ARMCPUInfo arm_cpus[] = {
+ #if !defined(CONFIG_USER_ONLY) || !defined(TARGET_AARCH64)
+     { .name = "arm926",      .initfn = arm926_initfn },
+     { .name = "arm946",      .initfn = arm946_initfn },
++    { .name = "arm946-eos",  .initfn = arm946_eos_initfn },
+     { .name = "arm1026",     .initfn = arm1026_initfn },
+     /* What QEMU calls "arm1136-r2" is actually the 1136 r0p2, i.e. an
+      * older core than plain "arm1136". In particular this does not
+@@ -1342,9 +1389,11 @@ static const ARMCPUInfo arm_cpus[] = {
+                              .class_init = arm_v7m_class_init },
+     { .name = "cortex-m4",   .initfn = cortex_m4_initfn,
+                              .class_init = arm_v7m_class_init },
++    { .name = "cortex-r4-eos",.initfn = cortex_r4_eos_initfn },
+     { .name = "cortex-r5",   .initfn = cortex_r5_initfn },
+     { .name = "cortex-a8",   .initfn = cortex_a8_initfn },
+     { .name = "cortex-a9",   .initfn = cortex_a9_initfn },
++    { .name = "cortex-a9-eos",.initfn = cortex_a9_eos_initfn },
+     { .name = "cortex-a15",  .initfn = cortex_a15_initfn },
+     { .name = "ti925t",      .initfn = ti925t_initfn },
+     { .name = "sa1100",      .initfn = sa1100_initfn },
+diff --git a/target-arm/cpu.h b/target-arm/cpu.h
+index 815fef8..74ce4a9 100644
+--- a/target-arm/cpu.h
++++ b/target-arm/cpu.h
+@@ -389,6 +389,9 @@ typedef struct CPUARMState {
+         uint64_t pmccfiltr_el0; /* Performance Monitor Filter Register */
+         uint64_t vpidr_el2; /* Virtualization Processor ID Register */
+         uint64_t vmpidr_el2; /* Virtualization Multiprocessor ID Register */
++
++        uint32_t c15_atcm;
++        uint32_t c15_btcm;
+     } cp15;
+ 
+     struct {
+@@ -912,6 +915,7 @@ enum arm_features {
+     ARM_FEATURE_V8_SHA256, /* implements SHA256 part of v8 Crypto Extensions */
+     ARM_FEATURE_V8_PMULL, /* implements PMULL part of v8 Crypto Extensions */
+     ARM_FEATURE_THUMB_DSP, /* DSP insns supported in the Thumb encodings */
++    ARM_FEATURE_946EOS,    /* EOS-specific (DIGIC 2...5) */
+ };
+ 
+ static inline int arm_feature(CPUARMState *env, int feature)
+diff --git a/target-arm/helper.c b/target-arm/helper.c
+index afc4163..794fbaa 100644
+--- a/target-arm/helper.c
++++ b/target-arm/helper.c
+@@ -549,6 +549,13 @@ static const ARMCPRegInfo not_v6_cp_reginfo[] = {
+     REGINFO_SENTINEL
+ };
+ 
++static const ARMCPRegInfo eos_wfi_cp_reginfo[] = {
++    /* similar to not_v6_cp_reginfo, but .crn was changed from 7 to 15 */
++    { .name = "WFI_v5", .cp = 15, .crn = 15, .crm = 8, .opc1 = 0, .opc2 = 2,
++      .access = PL1_W, .type = ARM_CP_WFI },
++    REGINFO_SENTINEL
++};
++
+ static const ARMCPRegInfo not_v7_cp_reginfo[] = {
+     /* Standard v6 WFI (also used in some pre-v6 cores); not in v7 (which
+      * is UNPREDICTABLE; we choose to NOP as most implementations do).
+@@ -598,6 +605,72 @@ static const ARMCPRegInfo not_v7_cp_reginfo[] = {
+     REGINFO_SENTINEL
+ };
+ 
++
++/* ARM946E-S (EOS) cache lockdown emulation */
 +/* note: the model is very incomplete, just enough to emulate
 + * the cache hacks from Magic Lantern */
 +static uint64_t eos_cache_lockdown_read(CPUARMState *env, const ARMCPRegInfo *ri)
@@ -513,11 +638,7 @@ index 30739fc..de478b2 100644
 +    }
 +}
 +
-+/* similar to not_v6_cp_reginfo, but .crn was changed from 7 to 15 */
-+/* note: this conflicts with ARM_FEATURE_DUMMY_C15_REGS */
-+static const ARMCPRegInfo eos_digic5_cp_reginfo[] = {
-+    { .name = "WFI_eos",     .cp = 15, .crn = 15, .crm = 8, .opc1 = 0, .opc2 = 2,
-+      .access = PL1_W,  .type = ARM_CP_WFI },
++static const ARMCPRegInfo eos_lockdown_cp_reginfo[] = {
 +    { .name = "CacheDbgIdx", .cp = 15, .crn = 15, .crm = 0, .opc1 = 3, .opc2 = 0,
 +      .access = PL1_RW, .readfn = eos_cache_lockdown_read, .writefn = eos_cache_lockdown_write },
 +    { .name = "IcacheTag",   .cp = 15, .crn = 15, .crm = 1, .opc1 = 3, .opc2 = 0,
@@ -531,105 +652,23 @@ index 30739fc..de478b2 100644
 +    REGINFO_SENTINEL
 +};
 +
-+static void arm946_eos_initfn(Object *obj)
-+{
-+    ARMCPU *cpu = ARM_CPU(obj);
-+    set_feature(&cpu->env, ARM_FEATURE_V5);
-+    set_feature(&cpu->env, ARM_FEATURE_MPU);
-+    set_feature(&cpu->env, ARM_FEATURE_XSCALE); /* for MCR p15, 0,R0,c9,c1,0 */
-+    cpu->midr = 0x41059461;
-+    cpu->ctr = (7 << 25) | (1 << 24) | (4 << 18) | (4 << 15) \
-+             | (2 << 12) | (4 << 6) | (4 << 3) | (2 << 0);
-+    cpu->reset_sctlr = 0x00000078 | (1 << 13);    /* fixme: how to change the HIVECS property? */
-+    define_arm_cp_regs(cpu, eos_digic5_cp_reginfo);
-+}
-+
-+static void cortex_r5_initfn(Object *obj);
-+
-+static void cortex_r4_eos_initfn(Object *obj)
-+{
-+    /* Cortex R4: https://chdk.setepontos.com/index.php?topic=11316.msg124273#msg124273 */
-+    cortex_r5_initfn(obj);
-+    
-+    ARMCPU *cpu = ARM_CPU(obj);
-+    cpu->midr = 0x411FC143;
-+    cpu->reset_sctlr = 0x08ED0878 | (1 << 13);    /* fixme: how to change the HIVECS property? */
-+}
-+
-+static void cortex_a9_initfn(Object *obj);
-+
-+static void cortex_a9_eos_initfn(Object *obj)
-+{
-+    /* Cortex A9: http://chdk.setepontos.com/index.php?topic=13014.msg131110#msg131110 */
-+    cortex_a9_initfn(obj);
-+    
-+    ARMCPU *cpu = ARM_CPU(obj);
-+    cpu->midr = 0x411FC143;
-+    // cpu->reset_sctlr = 0x08ED0878;    /* FIXME: no bootloader yet */
-+    cpu->reset_sctlr = 0x48ED0878;
-+}
-+
- static void arm946_initfn(Object *obj)
+ static void cpacr_write(CPUARMState *env, const ARMCPRegInfo *ri,
+                         uint64_t value)
  {
-     ARMCPU *cpu = ARM_CPU(obj);
-@@ -914,9 +1022,16 @@ static void arm_v7m_class_init(ObjectClass *oc, void *data)
- 
- static const ARMCPRegInfo cortexr5_cp_reginfo[] = {
-     /* Dummy the TCM region regs for the moment */
--    { .name = "ATCM", .cp = 15, .opc1 = 0, .crn = 9, .crm = 1, .opc2 = 0,
-+    /* fixme: resetvalue hardcoded for DIGIC 6 */
-+    { .name = "ATCM",       .cp = 15, .opc1 = 0, .crn = 9,  .crm = 1, .opc2 = 0,
-+      .access = PL1_RW,     .fieldoffset = offsetof(CPUARMState, cp15.c15_atcm), .resetvalue = 0x00000015 },
-+    { .name = "BTCM",       .cp = 15, .opc1 = 0, .crn = 9,  .crm = 1, .opc2 = 1,
-+      .access = PL1_RW,     .fieldoffset = offsetof(CPUARMState, cp15.c15_btcm), .resetvalue = 0x8000001D },
-+    { .name = "INV_DCACHE", .cp = 15, .opc1 = 0, .crn = 15, .crm = 5, .opc2 = 0,
-+      .access = PL1_RW, .type = ARM_CP_CONST },
-+    { .name = "BUILDOPTS",  .cp = 15, .opc1 = 0, .crn = 15, .crm = 2, .opc2 = CP_ANY,
-       .access = PL1_RW, .type = ARM_CP_CONST },
--    { .name = "BTCM", .cp = 15, .opc1 = 0, .crn = 9, .crm = 1, .opc2 = 1,
-+    { .name = "ACTLR2",     .cp = 15, .opc1 = 0, .crn = 15, .crm = 0, .opc2 = 0,
-       .access = PL1_RW, .type = ARM_CP_CONST },
-     REGINFO_SENTINEL
- };
-@@ -1329,6 +1444,7 @@ static const ARMCPUInfo arm_cpus[] = {
- #if !defined(CONFIG_USER_ONLY) || !defined(TARGET_AARCH64)
-     { .name = "arm926",      .initfn = arm926_initfn },
-     { .name = "arm946",      .initfn = arm946_initfn },
-+    { .name = "arm946-eos",  .initfn = arm946_eos_initfn },
-     { .name = "arm1026",     .initfn = arm1026_initfn },
-     /* What QEMU calls "arm1136-r2" is actually the 1136 r0p2, i.e. an
-      * older core than plain "arm1136". In particular this does not
-@@ -1342,9 +1458,11 @@ static const ARMCPUInfo arm_cpus[] = {
-                              .class_init = arm_v7m_class_init },
-     { .name = "cortex-m4",   .initfn = cortex_m4_initfn,
-                              .class_init = arm_v7m_class_init },
-+    { .name = "cortex-r4-eos",.initfn = cortex_r4_eos_initfn },
-     { .name = "cortex-r5",   .initfn = cortex_r5_initfn },
-     { .name = "cortex-a8",   .initfn = cortex_a8_initfn },
-     { .name = "cortex-a9",   .initfn = cortex_a9_initfn },
-+    { .name = "cortex-a9-eos",.initfn = cortex_a9_eos_initfn },
-     { .name = "cortex-a15",  .initfn = cortex_a15_initfn },
-     { .name = "ti925t",      .initfn = ti925t_initfn },
-     { .name = "sa1100",      .initfn = sa1100_initfn },
-diff --git a/target-arm/cpu.h b/target-arm/cpu.h
-index 815fef8..3904787 100644
---- a/target-arm/cpu.h
-+++ b/target-arm/cpu.h
-@@ -389,6 +389,9 @@ typedef struct CPUARMState {
-         uint64_t pmccfiltr_el0; /* Performance Monitor Filter Register */
-         uint64_t vpidr_el2; /* Virtualization Processor ID Register */
-         uint64_t vmpidr_el2; /* Virtualization Multiprocessor ID Register */
+@@ -4542,6 +4615,12 @@ void register_cp_regs_for_features(ARMCPU *cpu)
+         }
+         define_one_arm_cp_reg(cpu, &sctlr);
+     }
 +
-+        uint32_t c15_atcm;
-+        uint32_t c15_btcm;
-     } cp15;
++    /* Features specific to DIGIC 2..5 (EOS) */
++    if (arm_feature(env, ARM_FEATURE_946EOS)) {
++        define_arm_cp_regs(cpu, eos_wfi_cp_reginfo);
++        define_arm_cp_regs(cpu, eos_lockdown_cp_reginfo);
++    }
+ }
  
-     struct {
-diff --git a/target-arm/helper.c b/target-arm/helper.c
-index afc4163..46cd503 100644
---- a/target-arm/helper.c
-+++ b/target-arm/helper.c
-@@ -5891,11 +5891,21 @@ void arm_cpu_do_interrupt(CPUState *cs)
+ ARMCPU *cpu_arm_init(const char *cpu_model)
+@@ -5891,11 +5970,21 @@ void arm_cpu_do_interrupt(CPUState *cs)
      /* Switch to the new mode, and to the correct instruction set.  */
      env->uncached_cpsr = (env->uncached_cpsr & ~CPSR_M) | new_mode;
      env->daif |= mask;
