@@ -2209,7 +2209,9 @@ static void finish_chunk(FILE* f)
     chunk_frame_count = 0;
 }
 
-/* This saves a group of frames, also taking care of file splitting if required */
+/* This saves a group of frames, also taking care of file splitting if required.
+   Parameter num_frames is meant for counting the VIDF blocks for updating MLVI header.
+ */
 static int write_frames(FILE** pf, void* ptr, int size_used, int num_frames)
 {
     /* note: num_frames can be computed as size_used / frame_size, but compressed frames are around the corner) */
@@ -2469,7 +2471,9 @@ static void raw_video_rec_task()
         /* group items from the queue in a contiguous block - as many as we can */
         int last_grouped = w_head;
         
-        for (int i = w_head; i != w_tail; i = MOD(i+1, COUNT(writing_queue)))
+        int group_size = 0;
+        int meta_slots = 0;
+        for (int i = w_head; i != w_tail; INC_MOD(i, COUNT(writing_queue)))
         {
             int slot_index = writing_queue[i];
 
@@ -2490,6 +2494,11 @@ static void raw_video_rec_task()
                 {
                     ASSERT(slots[slot_index].size < max_frame_size);
                 }
+            }
+            else
+            {
+                /* count the number of slots being non-VIDF */
+                meta_slots++;
             }
 
             /* TBH, I don't care if these are part of the same group or not,
@@ -2549,7 +2558,12 @@ static void raw_video_rec_task()
             slots[slot_index].status = SLOT_WRITING;
         }
 
-        if (!write_frames(&f, ptr, size_used, num_frames))
+        int t0 = get_ms_clock();
+        if (!last_write_timestamp) last_write_timestamp = t0;
+        idle_time += t0 - last_write_timestamp;
+
+        /* save a group of frames and measure execution time */
+        if (!write_frames(&f, ptr, group_size, num_frames - meta_slots))
         {
             goto abort;
         }
@@ -2740,7 +2754,7 @@ abort_and_check_early_stop:
         slots[slot_index].status = SLOT_WRITING;
         
         if (indicator_display == INDICATOR_RAW_BUFFER) show_buffer_status();
-        if (!write_frames(&f, slots[slot_index].ptr, frame_size, 1))
+        if (!write_frames(&f, slots[slot_index].ptr, slots[slot_index].size, slots[slot_index].is_meta ? 0 : 1))
         {
             NotifyBox(5000, "Card Full");
             beep();
