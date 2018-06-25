@@ -67,7 +67,10 @@ function install_gcc {
 }
 
 function gdb_error {
-    tail -n 20 $1
+    echo
+    echo "*** Last 30 lines from $1:"
+    echo
+    tail -n 30 $1
     echo
     echo "*** GDB compilation failed; logs saved in $(pwd)"
     echo "*** Please check what went wrong, try to fix it and report back."
@@ -85,7 +88,7 @@ function install_gdb {
         local MIRROR=https://ftp.gnu.org/gnu
         mkdir $GDB_DIR
         cd $GDB_DIR
-        echo "*** Setting up GDB in $(pwd)..."
+        echo "*** Setting up GDB in $(pwd)/  ..."
         mkdir src
         cd src
         wget $WGET_OPTS $MIRROR/gdb/gdb-8.1.tar.xz
@@ -99,7 +102,7 @@ function install_gdb {
         echo "Building arm-none-eabi-gdb... (make.log)"
         make &> make.log || gdb_error make.log
         echo "Installing arm-none-eabi-gdb... (install.log)"
-        (make install || make install MAKEINFO=false) &> install.log || gdb_error install.log
+        (make install || make install MAKEINFO=true) &> install.log || gdb_error install.log
         popd > /dev/null
     else
         echo "*** GDB already installed in:"
@@ -397,7 +400,7 @@ mkdir -p $QEMU_DIR
 cd $QEMU_DIR
 
 echo
-echo "*** Setting up QEMU in $(pwd)..."
+echo "*** Setting up QEMU in $(pwd)/ ..."
 echo
 
 if [ -d $QEMU_NAME ]; then
