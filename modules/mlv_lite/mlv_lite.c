@@ -2364,21 +2364,29 @@ static void raw_video_rec_task()
 {
     //~ console_show();
     /* init stuff */
+
+    /* make sure preview or raw updates are not running */
+    /* (they won't start in RAW_PREPARING, but we might catch them running) */
+    take_semaphore(settings_sem, 0);
     raw_recording_state = RAW_PREPARING;
-    slot_count = 0;
-    capture_slot = -1;
-    fullsize_buffer_pos = 0;
-    frame_count = 0;
-    chunk_frame_count = 0;
-    buffer_full = 0;
+    give_semaphore(settings_sem);
+
+    mlv_rec_call_cbr(MLV_REC_EVENT_PREPARING, NULL);
+    /* locals */
     FILE* f = 0;
-    written_total = 0; /* in bytes */
     int last_block_size = 0; /* for detecting early stops */
-    last_write_timestamp = 0;
+    int liveview_hacked = 0;
+    int last_write_timestamp = 0;    /* last FIO_WriteFile call */
+
+    /* globals - updated by vsync hook */
+    NO_THREAD_SAFETY_CALL(init_vsync_vars)();
+
+    /* globals - updated by RawRecTask or shared */
+    chunk_frame_count = 0;
+    written_total = 0; /* in bytes */
+    writing_time = 0;
+    idle_time = 0;
     mlv_chunk = 0;
-    edmac_active = 0;
-    pre_record_triggered = 0;
-    
     powersave_prohibit();
 
     /* wait for two frames to be sure everything is refreshed */
