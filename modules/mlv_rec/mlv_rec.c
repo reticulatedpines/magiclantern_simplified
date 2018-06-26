@@ -3304,10 +3304,6 @@ static void raw_video_rec_task()
     }
 
     /* signal that we are starting */
-    /* note: previously, this used to be called before memory allocation,
-     * but the reason for doing that apparently went away a long time ago
-     * (at least mlv_snd doesn't seem to do any large mallocs on its own any more) */
-    raw_rec_cbr_starting();
     mlv_rec_call_cbr(MLV_REC_EVENT_STARTING, NULL);
 
     msleep(start_delay * 1000);
