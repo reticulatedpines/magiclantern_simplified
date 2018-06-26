@@ -48,7 +48,7 @@ static CONFIG_INT("mlv.snd.mlv_snd_enable_tracing", mlv_snd_enable_tracing, 0);
 static CONFIG_INT("mlv.snd.bit.depth", mlv_snd_in_bits_per_sample, 16);
 static CONFIG_INT("mlv.snd.sample.rate", mlv_snd_in_sample_rate, 48000);
 static CONFIG_INT("mlv.snd.sample.rate.selection", mlv_snd_rate_sel, 0);
-static CONFIG_INT("mlv.snd.vsync_delay", mlv_snd_vsync_delay, 2);
+static CONFIG_INT("mlv.snd.vsync_delay", mlv_snd_vsync_delay, 1);
 
 extern int StartASIFDMAADC(void *, uint32_t, void *, uint32_t, void (*)(), uint32_t);
 extern int SetNextASIFADCBuffer(void *, uint32_t);
@@ -86,7 +86,6 @@ static uint32_t mlv_snd_rates[] = { 48000, 44100, 22050, 11025, 8000 };
 #define MLV_SND_RATE_TEXT "48kHz", "44.1kHz", "22kHz", "11kHz", "8kHz"
 
 static uint32_t mlv_snd_in_channels = 2;
-static uint32_t mlv_snd_vsync_skips = 0;
 
 typedef struct
 {
@@ -460,16 +459,6 @@ static void mlv_snd_start()
     mlv_snd_prepare_audio();
     task_create("mlv_snd", 0x16, 0x1000, mlv_snd_writer, NULL);
     
-    /* "delaying audio" in the video timeline means to skip video frames */
-    if(mlv_snd_vsync_delay > 0)
-    {
-        mlv_rec_skip_frames(mlv_snd_vsync_delay);
-    }
-    else
-    {
-        mlv_snd_vsync_skips = -mlv_snd_vsync_delay;
-    }
-    
     mlv_snd_state = MLV_SND_STATE_PREPARE;
 }
 
@@ -527,22 +516,61 @@ static void mlv_snd_cbr_starting(uint32_t event, void *ctx, mlv_hdr_t *hdr)
     }
 }
 
-/* may or may not be called from vsync hook or raw_rec_task */
-/* fixme: provide only one way to do things */
+/* will get called from mlv_lite's vsync hook */
 static void mlv_snd_cbr_started(uint32_t event, void *ctx, mlv_hdr_t *hdr)
 {
     if(mlv_snd_state == MLV_SND_STATE_PREPARE)
     {
-        trace_write(trace_ctx, "mlv_snd_cbr_started: queueing WAVI");
         /* only used with mlv_rec (dummy mlv_rec_queue_block in mlv_lite) */
         if ((void *) &mlv_rec_queue_block != (void *) &ret_0)
         {
+            trace_write(trace_ctx, "mlv_snd_cbr_started: queueing WAVI");
             mlv_snd_queue_wavi();
         }
 
-        /* now everything is ready to fire - real output activation happens
-         * as soon as mlv_snd_vsync() switches to MLV_SND_STATE_SOUND_RUNNING */
+        /* since mlv_snd doesnt use vsync anymore, but only the CBR prvided by mlv_lite, this state is not required anymore */
         mlv_snd_state = MLV_SND_STATE_READY;
+        
+        /* "delaying audio" in the video timeline means to skip video frames */
+        mlv_rec_skip_frames(mlv_snd_vsync_delay);
+        
+        /* in running mode, start audio recording here */
+        uint32_t msgs = 0;
+        msg_queue_count(mlv_snd_buffers_empty, &msgs);
+        
+        if(msgs < 2)
+        {
+            trace_write(trace_ctx, "mlv_snd_cbr_started: fatal error, no buffers");
+            bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 10, 130, "fatal: no buffers");
+            beep();
+            return;
+        }
+        
+        trace_write(trace_ctx, "mlv_snd_cbr_started: starting audio");
+        
+        /* get two buffers and queue them to ASIF */
+        mlv_snd_current_buffer = NULL;
+        mlv_snd_next_buffer = NULL;
+        
+        msg_queue_receive(mlv_snd_buffers_empty, &mlv_snd_current_buffer, 10);
+        msg_queue_receive(mlv_snd_buffers_empty, &mlv_snd_next_buffer, 10);
+        
+        if(!mlv_snd_current_buffer || !mlv_snd_next_buffer)
+        {
+            trace_write(trace_ctx, "mlv_snd_cbr_started: fatal error, no buffers");
+            bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 10, 130, "fatal: no buffers");
+            beep();
+            return;
+        }
+    
+        audio_configure(1);
+        StartASIFDMAADC(mlv_snd_current_buffer->data, mlv_snd_current_buffer->length, mlv_snd_next_buffer->data, mlv_snd_next_buffer->length, mlv_snd_asif_in_cbr, 0);
+        
+        /* the current one will get filled right now */
+        mlv_snd_current_buffer->timestamp = get_us_clock();
+        trace_write(trace_ctx, "mlv_snd_cbr_started: starting audio DONE");
+        
+        mlv_snd_state = MLV_SND_STATE_SOUND_RUNNING;
     }
 }
 
@@ -617,61 +645,6 @@ static void mlv_snd_trace_buf(char *caption, uint8_t *buffer, uint32_t length)
 }
 
 
-static unsigned int mlv_snd_vsync(unsigned int unused)
-{
-    if(!mlv_snd_enabled)
-    {
-        return 0;
-    }
-    
-    if(mlv_snd_state != MLV_SND_STATE_READY)
-    {
-        return 0;
-    }
-    
-    if(mlv_snd_vsync_skips > 0)
-    {
-        mlv_snd_vsync_skips--;
-        return 0;
-    }
-    
-    /* in running mode, start audio recording here */
-    uint32_t msgs = 0;
-    msg_queue_count(mlv_snd_buffers_empty, &msgs);
-    
-    if(msgs >= 2)
-    {
-        trace_write(trace_ctx, "mlv_snd_vsync: starting audio");
-        
-        /* get two buffers and queue them to ASIF */
-        mlv_snd_current_buffer = NULL;
-        mlv_snd_next_buffer = NULL;
-        
-        msg_queue_receive(mlv_snd_buffers_empty, &mlv_snd_current_buffer, 10);
-        msg_queue_receive(mlv_snd_buffers_empty, &mlv_snd_next_buffer, 10);
-        
-        if(mlv_snd_current_buffer && mlv_snd_next_buffer)
-        {
-            mlv_snd_state = MLV_SND_STATE_SOUND_RUNNING;
-        
-            audio_configure(1);
-            StartASIFDMAADC(mlv_snd_current_buffer->data, mlv_snd_current_buffer->length, mlv_snd_next_buffer->data, mlv_snd_next_buffer->length, mlv_snd_asif_in_cbr, 0);
-            
-            /* the current one will get filled right now */
-            mlv_snd_current_buffer->timestamp = get_us_clock();
-            trace_write(trace_ctx, "mlv_snd_vsync: starting audio DONE");
-
-            return 0;
-        }
-    }
-
-    /* should not happen */
-    trace_write(trace_ctx, "mlv_snd_vsync: expected at least 2 buffers in mlv_snd_buffers_empty");
-    ASSERT(0);
-    
-    return 0;
-}
-
 static struct menu_entry mlv_snd_menu[] =
 {
     {
@@ -698,7 +671,7 @@ static struct menu_entry mlv_snd_menu[] =
             {
                 .name = "Audio delay",
                 .priv = &mlv_snd_vsync_delay,
-                .min = -32,
+                .min = 0,
                 .max = 32,
                 .help = "Delay the audio that many frames. (experimental)",
             },
@@ -766,7 +739,6 @@ MODULE_INFO_START()
 MODULE_INFO_END()
 
 MODULE_CBRS_START()
-    MODULE_CBR(CBR_VSYNC, mlv_snd_vsync, 0)
     MODULE_NAMED_CBR("snd_rec_enabled", mlv_snd_snd_rec_cbr)
 MODULE_CBRS_END()
 

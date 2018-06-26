@@ -2724,6 +2724,13 @@ void process_frame(int next_fullsize_buffer_pos)
         mlv_rec_call_cbr(MLV_REC_EVENT_STARTED, NULL);
     }
 
+    /* other modules can ask for some frames to skip, e.g. for syncing audio */
+    if (skip_frames > 0)
+    {
+        skip_frames--;
+        return;
+    }
+    
     if (edmac_active)
     {
         /* EDMAC too slow */
@@ -2816,13 +2823,6 @@ unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
     if (!raw_lv_settings_still_valid()) { raw_recording_state = RAW_FINISHING; return 0; }
     if (buffer_full) return 0;
     
-	/* other modules can ask for some frames to skip, e.g. for syncing audio */
-    if(skip_frames > 0)
-    {
-        skip_frames--;
-        return 0;
-    }
-
     /* double-buffering */
     raw_lv_redirect_edmac(fullsize_buffers[fullsize_buffer_pos % 2]);
 
@@ -3015,7 +3015,7 @@ int write_mlv_chunk_headers(FILE* f)
     /* WAVI written only if we record sound */
     if (wavi_hdr.samplingRate)
     {
-    	if (!mlv_write_hdr(f, (mlv_hdr_t *)&wavi_hdr)) return 0;
+        if (!mlv_write_hdr(f, (mlv_hdr_t *)&wavi_hdr)) return 0;
     }
     
     int hdr_size = FIO_SeekSkipFile(f, 0, SEEK_CUR);
