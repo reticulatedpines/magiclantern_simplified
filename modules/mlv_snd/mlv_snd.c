@@ -691,11 +691,11 @@ static struct menu_entry mlv_snd_menu[] =
                 .help = "Select your sampling rate.",
             },
             {
-                .name = "Frame delay",
+                .name = "Audio delay",
                 .priv = &mlv_snd_vsync_delay,
                 .min = -32,
                 .max = 32,
-                .help = "Delay the audio that many frames.",
+                .help = "Delay the audio that many frames. (experimental)",
             },
             {
                 .name = "Trace output",
