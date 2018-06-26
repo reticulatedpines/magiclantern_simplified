@@ -168,6 +168,9 @@ static CONFIG_INT("mlv.warm_up", warm_up, 0);
 static CONFIG_INT("mlv.use_srm_memory", use_srm_memory, 1);
 static CONFIG_INT("mlv.small_hacks", small_hacks, 1);
 static CONFIG_INT("mlv.create_dirs", create_dirs, 0);
+static CONFIG_INT("mlv.bpp", bpp_mode, 2);
+
+static uint32_t bits_per_pixel[] = { 10, 12, 14 };
 
 static int start_delay = 0;
 
@@ -3259,6 +3262,8 @@ static void raw_video_rec_task()
 {
     /* init stuff */
     raw_recording_state = RAW_PREPARING;
+
+    mlv_rec_call_cbr(MLV_REC_EVENT_PREPARING, NULL);
 
     if(DISPLAY_REC_INFO_DEBUG)
     {

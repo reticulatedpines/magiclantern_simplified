@@ -33,6 +33,7 @@ typedef void (*event_cbr_t) (uint32_t event, void *ctx, mlv_hdr_t *hdr);
 #define MLV_REC_EVENT_CYCLIC      (1U<<4) /* gets called whenever the cyclic RTCI block is written (usually 2 second interval) */
 #define MLV_REC_EVENT_BLOCK       (1U<<5) /* gets called for every block before it is being written to the file. 'hdr' parameter will contain a pointer to the the block. might get called multiple times per block! */
 #define MLV_REC_EVENT_VIDF        (1U<<6) /* gets called for every VIDF being queued for write. called from EDMAC CBR, so avoid using too much CPU time. */
+#define MLV_REC_EVENT_PREPARING   (1U<<7) /* gets called before any buffer allocation or LV manipulation */
 
 
 #if !defined(__MLV_REC_C__) && !defined(__MLV_LITE_C__)
