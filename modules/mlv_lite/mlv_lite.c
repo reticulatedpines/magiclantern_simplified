@@ -349,13 +349,8 @@ static GUARDED_BY(LiveViewTask) mlv_vidf_hdr_t vidf_hdr;
 static GUARDED_BY(RawRecTask)   uint64_t mlv_start_timestamp = 0;
        GUARDED_BY(RawRecTask)   uint32_t raw_rec_trace_ctx = TRACE_ERROR;
 
-/* interface to other modules: these are called when recording starts or stops  */
-extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_starting();
-extern WEAK_FUNC(ret_0) unsigned int raw_rec_cbr_stopping();
-extern WEAK_FUNC(ret_0) uint32_t raw_rec_cbr_started();
-extern WEAK_FUNC(ret_0) uint32_t raw_rec_cbr_stopped();
-extern WEAK_FUNC(ret_0) uint32_t raw_rec_cbr_mlv_block(mlv_hdr_t *hdr);
-extern WEAK_FUNC(ret_0) void mlv_fill_wavi(mlv_wavi_hdr_t *hdr, uint64_t start_timestamp);  /* provided by mlv_snd */
+/* dedicated interface to mlv_snd */
+extern WEAK_FUNC(ret_0) void mlv_fill_wavi(mlv_wavi_hdr_t *hdr, uint64_t start_timestamp);
 
 static int raw_rec_should_preview(void);
 
@@ -1971,8 +1966,6 @@ static void FAST process_frame()
     if (frame_count == 1)
     {
         mlv_rec_call_cbr(MLV_REC_EVENT_STARTED, NULL);
-        /* shall we still support the old interface? */
-        raw_rec_cbr_started();
     }
 
     if (edmac_active)
@@ -2160,7 +2153,6 @@ static void init_mlv_chunk_headers(struct raw_info * raw_info)
     file_hdr.audioFrameCount = 0;
     file_hdr.sourceFpsNom = fps_get_current_x1000();
     file_hdr.sourceFpsDenom = 1000;
-    raw_rec_cbr_mlv_block((mlv_hdr_t*)&file_hdr);
     
     memset(&rawi_hdr, 0, sizeof(mlv_rawi_hdr_t));
     mlv_set_type((mlv_hdr_t *)&rawi_hdr, "RAWI");
@@ -2192,6 +2184,7 @@ static void init_mlv_chunk_headers(struct raw_info * raw_info)
     mlv_fill_lens(&lens_hdr, mlv_start_timestamp);
     mlv_fill_rtci(&rtci_hdr, mlv_start_timestamp);
     mlv_fill_wbal(&wbal_hdr, mlv_start_timestamp);
+    
     /* WAVI will be valid only if we record sound; otherwise NULL and zeroed out */
     memset(&wavi_hdr, 0, sizeof(mlv_wavi_hdr_t));
     mlv_fill_wavi(&wavi_hdr, mlv_start_timestamp);
@@ -2206,14 +2199,14 @@ static int write_mlv_chunk_headers(FILE* f)
     if (!mlv_write_hdr(f, (mlv_hdr_t *)&expo_hdr)) return 0;
     if (!mlv_write_hdr(f, (mlv_hdr_t *)&lens_hdr)) return 0;
     if (!mlv_write_hdr(f, (mlv_hdr_t *)&rtci_hdr)) return 0;
-
-    if (wavi_hdr.samplingRate)
-    {
-        /* WAVI written only if we record sound */
-    	if (!mlv_write_hdr(f, (mlv_hdr_t *)&wavi_hdr)) return 0;
-    }
     if (!mlv_write_hdr(f, (mlv_hdr_t *)&wbal_hdr)) return 0;
     if (mlv_write_vers_blocks(f, mlv_start_timestamp)) return 0;
+
+    /* WAVI written only if we record sound */
+    if (wavi_hdr.samplingRate)
+    {
+    	if (!mlv_write_hdr(f, (mlv_hdr_t *)&wavi_hdr)) return 0;
+    }
     
     int hdr_size = FIO_SeekSkipFile(f, 0, SEEK_CUR);
     
@@ -2445,9 +2438,6 @@ static void raw_video_rec_task()
 
     /* this will enable the vsync CBR and the other task(s) */
     raw_recording_state = pre_record ? RAW_PRE_RECORDING : RAW_RECORDING;
-
-    /* note: raw_rec_cbr_started() will be called from the vsync hook,
-     * for the first recorded frame */
     
     /* main recording loop */
     while (RAW_IS_RECORDING && lv)
@@ -2698,9 +2688,6 @@ abort_and_check_early_stop:
     
     /* make sure the user doesn't rush to turn off the camera or something */
     gui_uilock(UILOCK_EVERYTHING);
-    
-    /* signal that we are stopping */
-    raw_rec_cbr_stopping();
     
     /* done, this will stop the vsync CBR and the copying task */
     raw_recording_state = RAW_FINISHING;
