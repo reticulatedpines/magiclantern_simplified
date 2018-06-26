@@ -1877,7 +1877,6 @@ static void FAST pre_record_vsync_step()
             /* return to pre-recording state */
             pre_record_first_frame = frame_count;
             raw_recording_state = RAW_PRE_RECORDING;
-            mlv_rec_call_cbr(MLV_REC_EVENT_STARTED, NULL);
             printf("Pre-rec: back to pre-recording (frame %d).\n", pre_record_first_frame);
             /* fall through the next block */
         }
@@ -1905,7 +1904,6 @@ static void FAST pre_record_vsync_step()
             {
                 /* done, from now on we can just record normally */
                 raw_recording_state = RAW_RECORDING;
-                mlv_rec_call_cbr(MLV_REC_EVENT_STARTED, NULL);
             }
             else
             {
@@ -1976,7 +1974,6 @@ static void FAST process_frame()
         /* shall we still support the old interface? */
         raw_rec_cbr_started();
     }
-
 
     if (edmac_active)
     {
@@ -2407,7 +2404,7 @@ static void raw_video_rec_task()
         goto cleanup;
     }
 
-    /* Need to start the recording of audio before the init of the mlv chunk 
+    /* Need to start the recording of audio before the init of the mlv chunk */
     mlv_rec_call_cbr(MLV_REC_EVENT_STARTING, NULL);
 
     init_mlv_chunk_headers(&raw_info);

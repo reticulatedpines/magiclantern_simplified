@@ -65,8 +65,6 @@ extern void mlv_rec_get_slot_info(int32_t slot, uint32_t *size, void **address);
 extern int32_t mlv_rec_get_free_slot();
 extern void mlv_rec_release_slot(int32_t slot, uint32_t write);
 extern void mlv_rec_set_rel_timestamp(mlv_hdr_t *hdr, uint64_t timestamp);
-
-extern WEAK_FUNC(ret_0) void mlv_rec_queue_block(mlv_hdr_t *hdr);
 extern void mlv_rec_skip_frames(uint32_t count);
 
 static volatile int32_t mlv_snd_rec_active = 0;
@@ -504,7 +502,7 @@ static void mlv_snd_queue_wavi()
     /* queue an WAVI block that contains information about the audio format */
     mlv_wavi_hdr_t *hdr = malloc(sizeof(mlv_wavi_hdr_t));
     
-    mlv_fill_wavi(hdr, get_us_clock_value());
+    mlv_fill_wavi(hdr, get_us_clock());
     
     mlv_rec_queue_block((mlv_hdr_t *)hdr);
 }
@@ -662,7 +660,7 @@ static unsigned int mlv_snd_vsync(unsigned int unused)
             mlv_snd_current_buffer->timestamp = get_us_clock();
             trace_write(trace_ctx, "mlv_snd_vsync: starting audio DONE");
 
-            return;
+            return 0;
         }
     }
 
@@ -724,14 +722,7 @@ static unsigned int mlv_snd_init()
     mlv_snd_buffers_empty = (struct msg_queue *) msg_queue_create("mlv_snd_buffers_empty", MLV_SND_BLOCKS_PER_SLOT * MLV_SND_SLOTS);
     mlv_snd_buffers_done = (struct msg_queue *) msg_queue_create("mlv_snd_buffers_done", MLV_SND_BLOCKS_PER_SLOT * MLV_SND_SLOTS);
     
-    if (menu_get_value_from_script("Movie", "RAW video") != INT_MIN)
-    {
-        menu_add("RAW video", mlv_snd_menu, COUNT(mlv_snd_menu));
-    }
-    else if (menu_get_value_from_script("Movie", "RAW video (MLV)") != INT_MIN)
-    {
-        menu_add("RAW video (MLV)", mlv_snd_menu, COUNT(mlv_snd_menu));
-    }
+    menu_add("Audio", mlv_snd_menu, COUNT(mlv_snd_menu));
     trace_write(trace_ctx, "mlv_snd_init: done");
     
     /* register callbacks */
