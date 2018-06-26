@@ -48,7 +48,7 @@ static CONFIG_INT("mlv.snd.mlv_snd_enable_tracing", mlv_snd_enable_tracing, 0);
 static CONFIG_INT("mlv.snd.bit.depth", mlv_snd_in_bits_per_sample, 16);
 static CONFIG_INT("mlv.snd.sample.rate", mlv_snd_in_sample_rate, 48000);
 static CONFIG_INT("mlv.snd.sample.rate.selection", mlv_snd_rate_sel, 0);
-static CONFIG_INT("mlv.snd.vsync_delay", mlv_snd_vsync_delay, 0);
+static CONFIG_INT("mlv.snd.vsync_delay", mlv_snd_vsync_delay, 1);
 
 extern int StartASIFDMAADC(void *, uint32_t, void *, uint32_t, void (*)(), uint32_t);
 extern int SetNextASIFADCBuffer(void *, uint32_t);
@@ -460,13 +460,14 @@ static void mlv_snd_start()
     mlv_snd_prepare_audio();
     task_create("mlv_snd", 0x16, 0x1000, mlv_snd_writer, NULL);
     
-    if(mlv_snd_vsync_delay < 0)
+    /* "delaying audio" in the video timeline means to skip video frames */
+    if(mlv_snd_vsync_delay > 0)
     {
-        mlv_rec_skip_frames(-mlv_snd_vsync_delay);
+        mlv_rec_skip_frames(mlv_snd_vsync_delay);
     }
     else
     {
-        mlv_snd_vsync_skips = mlv_snd_vsync_delay;
+        mlv_snd_vsync_skips = -mlv_snd_vsync_delay;
     }
     
     mlv_snd_state = MLV_SND_STATE_PREPARE;
