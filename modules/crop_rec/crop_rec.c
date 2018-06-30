@@ -175,6 +175,11 @@ static uint32_t cmos2 = 0;
 /* helper to allow indexing various properties of Canon's video modes */
 static inline int get_video_mode_index()
 {
+    if (lv_dispsize > 1)
+    {
+        return 5;
+    }
+
     return
         (video_mode_fps == 24) ?  0 :
         (video_mode_fps == 25) ?  1 :
@@ -262,15 +267,15 @@ static inline int get_default_skip_top()
 /* max resolution for each video mode (trial and error) */
 /* it's usually possible to push the numbers a few pixels further,
  * at the risk of corrupted frames */
-static int max_resolutions[NUM_CROP_PRESETS][5] = {
-                                /*   24p   25p   30p   50p   60p */
-    [CROP_PRESET_3X_TALL]       = { 1920, 1728, 1536,  960,  800 },
-    [CROP_PRESET_3x3_1X]        = { 1290, 1290, 1290,  960,  800 },
-    [CROP_PRESET_3x3_1X_48p]    = { 1290, 1290, 1290, 1080, 1040 }, /* 1080p45/48 */
-    [CROP_PRESET_3K]            = { 1920, 1728, 1504,  760,  680 },
-    [CROP_PRESET_UHD]           = { 1536, 1472, 1120,  640,  540 },
-    [CROP_PRESET_4K_HFPS]       = { 3072, 3072, 2500, 1440, 1200 },
-    [CROP_PRESET_FULLRES_LV]    = { 3870, 3870, 3870, 3870, 3870 },
+static int max_resolutions[NUM_CROP_PRESETS][6] = {
+                                /*   24p   25p   30p   50p   60p   x5 */
+    [CROP_PRESET_3X_TALL]       = { 1920, 1728, 1536,  960,  800, 1320 },
+    [CROP_PRESET_3x3_1X]        = { 1290, 1290, 1290,  960,  800, 1320 },
+    [CROP_PRESET_3x3_1X_48p]    = { 1290, 1290, 1290, 1080, 1040, 1320 }, /* 1080p45/48 */
+    [CROP_PRESET_3K]            = { 1920, 1728, 1504,  760,  680, 1320 },
+    [CROP_PRESET_UHD]           = { 1536, 1472, 1120,  640,  540, 1320 },
+    [CROP_PRESET_4K_HFPS]       = { 3072, 3072, 2500, 1440, 1200, 1320 },
+    [CROP_PRESET_FULLRES_LV]    = { 3870, 3870, 3870, 3870, 3870, 1320 },
 };
 
 /* 5D3 vertical resolution increments over default configuration */
@@ -605,9 +610,9 @@ static void * get_engio_reg_override_func();
 
 /* from SENSOR_TIMING_TABLE (fps-engio.c) */
 /* hardcoded for 5D3 */
-const int default_timerA[] = { 0x1B8, 0x1E0, 0x1B8, 0x1E0, 0x1B8 };
-const int default_timerB[] = { 0x8E3, 0x7D0, 0x71C, 0x3E8, 0x38E };
-const int default_fps_1k[] = { 23976, 25000, 29970, 50000, 59940 };
+const int default_timerA[] = { 0x1B8, 0x1E0, 0x1B8, 0x1E0, 0x1B8, 0x206 };
+const int default_timerB[] = { 0x8E3, 0x7D0, 0x71C, 0x3E8, 0x38E, 0x614 };
+const int default_fps_1k[] = { 23976, 25000, 29970, 50000, 59940, 29776 };
 
 /* adapted from fps_override_shutter_blanking in fps-engio.c */
 static int adjust_shutter_blanking(int old)
@@ -690,13 +695,6 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
     }
     
 
-    if (crop_preset == CROP_PRESET_CENTER_Z)
-    {
-        /* no ADTG overrides required */
-        /* fixme: they will actually interfere with shutter speed */
-        return;
-    }
-
     if (is_5D3 && !is_720p())
     {
         if (crop_preset == CROP_PRESET_3x3_1X ||
@@ -750,7 +748,12 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
     /* some modes may need adjustments to maintain exposure */
     if (shutter_blanking)
     {
-        shutter_blanking = adjust_shutter_blanking(shutter_blanking);
+        /* FIXME: remove this kind of hardcoded conditions */
+        if ((crop_preset == CROP_PRESET_CENTER_Z && lv_dispsize != 1) ||
+            (crop_preset != CROP_PRESET_CENTER_Z && lv_dispsize == 1))
+        {
+            shutter_blanking = adjust_shutter_blanking(shutter_blanking);
+        }
     }
 
     if (is_5D3 || is_EOSM || is_700D)
