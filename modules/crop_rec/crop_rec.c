@@ -606,8 +606,6 @@ static int FAST adtg_lookup(uint32_t* data_buf, int reg_needle)
     return -1;
 }
 
-static void * get_engio_reg_override_func();
-
 /* from SENSOR_TIMING_TABLE (fps-engio.c) */
 /* hardcoded for 5D3 */
 const int default_timerA[] = { 0x1B8, 0x1E0, 0x1B8, 0x1E0, 0x1B8, 0x206 };
@@ -622,6 +620,7 @@ static int adjust_shutter_blanking(int old)
 
     int video_mode = get_video_mode_index();
 
+    /* what value Canon firmware assumes for timer B? */
     int fps_timer_b_orig = default_timerB[video_mode];
 
     int current_exposure = fps_timer_b_orig - current_blanking;
@@ -656,16 +655,8 @@ static int adjust_shutter_blanking(int old)
             (orig_shutter - 250e-6) * default_fps_adj / current_fps;
         });
 
-    uint32_t (*reg_override_func)(uint32_t, uint32_t) = 
-        get_engio_reg_override_func();
-
-    /* what value we are going to use for overriding timer B? */
-    int fps_timer_b = (reg_override_func)
-        ? (int) reg_override_func(0xC0F06014, fps_timer_b_orig - 1)
-        : fps_timer_b_orig;
-
-    /* will we actually override it? */
-    fps_timer_b = fps_timer_b ? fps_timer_b + 1 : fps_timer_b_orig;
+    /* what value is actually used for timer B? (possibly after our overrides) */
+    int fps_timer_b = shamem_read(0xC0F06014) & 0xFFFF;
 
     dbg_printf("Timer B %d->%d\n", fps_timer_b_orig, fps_timer_b);
 
