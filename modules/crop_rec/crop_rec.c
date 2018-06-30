@@ -820,7 +820,7 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
                 adtg_new[8]  = (struct adtg_new) {6, 0x8179, nrzi_encode(fps_timer_b - 1) }; /* PowerSaveTiming OFF (5D3/6D/700D) */
                 adtg_new[9]  = (struct adtg_new) {6, 0x8197, nrzi_encode(fps_timer_b - 1) }; /* PowerSaveTiming OFF (5D3) */
 
-                adtg_new[10] = (struct adtg_new) {6, 0x82B6, nrzi_encode(fps_timer_b - 3) }; /* PowerSaveTiming ON? (700D) */
+                adtg_new[10] = (struct adtg_new) {6, 0x82B6, nrzi_encode(readout_end - 1) }; /* PowerSaveTiming ON? (700D); 2 units below the "ON" timing from above */
 
                 /* ReadOutTiming registers */
                 /* these shouldn't be 0, as they affect the image */
