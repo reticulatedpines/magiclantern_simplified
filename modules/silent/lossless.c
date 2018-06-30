@@ -340,7 +340,7 @@ int lossless_compress_raw_rectangle(
     /* 6D:  [0xC0F375B4] <- 0xE7B0ADF, [0xC0F12020] <- 0x13400E7  =>  slice width / 12, slice height / 12 */
     /* 70D: [0xC0F37300] <- 0xE7B0ADF, [0xC0F12020] <- 0x13400E7  =>  slice width / 12, slice height / 12 */
     /* 650D, 700D, 100D, EOSM, EOSM2:
-     *      [0xC0F375B4] <- 0xDC70A4F, [0xC0F12020] <- 0x1B80149  =>  /* slice width / 8, slice height / 8 */
+     *      [0xC0F375B4] <- 0xDC70A4F, [0xC0F12020] <- 0x1B80149  =>  slice width / 8, slice height / 8 */
     if (0)
     {
         /* values for 5D3 - just for future reference */
