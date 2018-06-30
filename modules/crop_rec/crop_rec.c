@@ -303,9 +303,6 @@ static inline int FAST calc_yres_delta()
 #define YRES_DELTA calc_yres_delta()
 
 
-static int is_5D3 = 0;
-static int is_EOSM = 0;
-
 static int cmos_vidmode_ok = 0;
 
 /* return value:
@@ -719,7 +716,7 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
     };
     
     /* expand this as required */
-    struct adtg_new adtg_new[10] = {{0}};
+    struct adtg_new adtg_new[13] = {{0}};
 
     /* scan for shutter blanking and make both zoom and non-zoom value equal */
     /* (the values are different when using FPS override with ADTG shutter override) */
@@ -747,7 +744,8 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
         }
     }
 
-    if (is_5D3 || is_EOSM || is_700D)
+    /* should probably be made generic */
+    if (is_5D3)
     {
         /* all modes may want to override shutter speed */
         /* ADTG[0x8060]: shutter blanking for 3x3 mode  */
@@ -793,7 +791,8 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
                 break;
         }
 
-        /* all modes with higher vertical resolution */
+        /* PowerSaveTiming & ReadOutTiming registers */
+        /* these need changing in all modes with higher vertical resolution */
         switch (crop_preset)
         {
             case CROP_PRESET_3X_TALL:
@@ -803,29 +802,33 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
             case CROP_PRESET_UHD:
             case CROP_PRESET_4K_HFPS:
             case CROP_PRESET_FULLRES_LV:
-                /* adjust vertical resolution */
-                adtg_new[4] = (struct adtg_new) {6, 0x8178, nrzi_encode(0x529 + YRES_DELTA + delta_adtg0)};
-                adtg_new[5] = (struct adtg_new) {6, 0x8196, nrzi_encode(0x529 + YRES_DELTA + delta_adtg0)};
-                adtg_new[6] = (struct adtg_new) {6, 0x82F8, nrzi_encode(0x528 + YRES_DELTA + delta_adtg0)};
-                break;
-        }
-
-        /* some modes require additional height adjustments */
-        switch (crop_preset)
-        {
-            case CROP_PRESET_FULLRES_LV:
-            case CROP_PRESET_UHD:
-            case CROP_PRESET_4K_HFPS:
             case CROP_PRESET_40_FPS:
-                /* the following are required for breaking the ~2100px barrier */
-                /* (0x891, 0x891, 0x8E2 at 24p; lower values affect bottom lines) */
-                /* see also http://www.magiclantern.fm/forum/index.php?topic=11965 */
-                adtg_new[7] = (struct adtg_new) {6, 0x8179, nrzi_encode(0x535 + YRES_DELTA + delta_adtg1)};
-                adtg_new[8] = (struct adtg_new) {6, 0x8197, nrzi_encode(0x535 + YRES_DELTA + delta_adtg1)};
-                adtg_new[9] = (struct adtg_new) {6, 0x82F9, nrzi_encode(0x580 + YRES_DELTA + delta_adtg1)};
-                break;
-        }
+            {
+                /* assuming FPS timer B was overridden before this */
+                int fps_timer_b = shamem_read(0xC0F06014) & 0xFFFF;
+                int readout_end = shamem_read(0xC0F06804) >> 16;    /* fixme: D5 only */
 
+                /* PowerSaveTiming registers */
+                /* after readout is finished, we can turn off the sensor until the next frame */
+                /* we could also set these to 0; it will work, but the sensor will run a bit hotter */
+                /* to be tested to find out exactly how much */
+                adtg_new[4]  = (struct adtg_new) {6, 0x8172, nrzi_encode(readout_end + 1) }; /* PowerSaveTiming ON (6D/700D) */
+                adtg_new[5]  = (struct adtg_new) {6, 0x8178, nrzi_encode(readout_end + 1) }; /* PowerSaveTiming ON (5D3/6D/700D) */
+                adtg_new[6]  = (struct adtg_new) {6, 0x8196, nrzi_encode(readout_end + 1) }; /* PowerSaveTiming ON (5D3) */
+
+                adtg_new[7]  = (struct adtg_new) {6, 0x8173, nrzi_encode(fps_timer_b - 1) }; /* PowerSaveTiming OFF (6D/700D) */
+                adtg_new[8]  = (struct adtg_new) {6, 0x8179, nrzi_encode(fps_timer_b - 1) }; /* PowerSaveTiming OFF (5D3/6D/700D) */
+                adtg_new[9]  = (struct adtg_new) {6, 0x8197, nrzi_encode(fps_timer_b - 1) }; /* PowerSaveTiming OFF (5D3) */
+
+                adtg_new[10] = (struct adtg_new) {6, 0x82B6, nrzi_encode(fps_timer_b - 3) }; /* PowerSaveTiming ON? (700D) */
+
+                /* ReadOutTiming registers */
+                /* these shouldn't be 0, as they affect the image */
+                adtg_new[11] = (struct adtg_new) {6, 0x82F8, nrzi_encode(readout_end + 1) }; /* ReadOutTiming */
+                adtg_new[12] = (struct adtg_new) {6, 0x82F9, nrzi_encode(fps_timer_b - 1) }; /* ReadOutTiming end? */
+                break;
+            }
+        }
     }
 
     if (is_basic)
