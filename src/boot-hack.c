@@ -472,6 +472,7 @@ static void dumper_bootflag()
  */
 static void my_big_init_task()
 {
+    _mem_init();
     _find_ml_card();
     _load_fonts();
 

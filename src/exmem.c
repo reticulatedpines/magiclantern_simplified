@@ -21,8 +21,6 @@ typedef struct
 static struct semaphore * alloc_sem = 0;
 static struct semaphore * free_sem = 0;
 
-static volatile void* entire_memory_allocated = 0;
-
 int GetNumberOfChunks(struct memSuite * suite)
 {
     CHECK_SUITE_SIGNATURE(suite);
@@ -54,7 +52,6 @@ void _shoot_free_suite(struct memSuite * hSuite)
 {
     FreeMemoryResource(hSuite, freeCBR, 0);
     take_semaphore(free_sem, 0);
-    if (hSuite == entire_memory_allocated) entire_memory_allocated = 0;
 }
 
 static void allocCBR(unsigned int priv, struct memSuite * hSuite)
@@ -125,7 +122,7 @@ unsigned int exmem_clear(struct memSuite * hSuite, char fill)
 
 
 /* when size is set to zero, it will try to allocate the maximum possible block */
-static struct memSuite *shoot_malloc_suite_int(size_t size, int relaxed)
+static struct memSuite *shoot_malloc_suite_int(size_t size)
 {
     alloc_msg_t *suite_info = _malloc(sizeof(alloc_msg_t));
     
@@ -136,7 +133,7 @@ static struct memSuite *shoot_malloc_suite_int(size_t size, int relaxed)
     
     AllocateMemoryResource(size, allocCBR, (unsigned int)suite_info, 0x50);
     
-    int r = take_semaphore(suite_info->sem, 1000);
+    int r = take_semaphore(suite_info->sem, 100);
     if (r)
     {
         suite_info->timed_out = 1;
@@ -146,113 +143,156 @@ static struct memSuite *shoot_malloc_suite_int(size_t size, int relaxed)
     struct memSuite * hSuite = suite_info->ret;
     _free(suite_info);
     
-    if(!relaxed)
-    {
-        ASSERT((int)size <= hSuite->size);
-    }
+    ASSERT((int)size <= hSuite->size);
     
     return hSuite;
 }
 
+static size_t largest_chunk_size(struct memSuite * hSuite)
+{
+    int max_size = 0;
+    struct memChunk * hChunk = GetFirstChunkFromSuite(hSuite);
+    while(hChunk)
+    {
+        int size = GetSizeOfMemoryChunk(hChunk);
+        max_size = MAX(max_size, size);
+        hChunk = GetNextMemoryChunk(hSuite, hChunk);
+    }
+    return max_size;
+}
+
+static size_t shoot_malloc_autodetect()
+{
+    /* allocate some backup that will service the queued allocation request that fails during the loop */
+    size_t backup_size = 4 * 1024 * 1024;
+    size_t max_size = 0;
+    struct memSuite * backup = shoot_malloc_suite_int(backup_size);
+
+    for (int size_mb = 4; size_mb < 1024; size_mb += 4)
+    {
+        int tested_size = size_mb * 1024 * 1024;
+        //qprintf("[shoot_malloc] trying %s\n", format_memory_size(tested_size));
+        struct memSuite * testSuite = shoot_malloc_suite_int(tested_size);
+        if (testSuite)
+        {
+            /* leave 1MB unallocated, just in case */
+            max_size = tested_size + backup_size - 1024 * 1024;
+            _shoot_free_suite(testSuite);
+        }
+        else
+        {
+            //qprintf("[shoot_malloc] memory full\n");
+            break;
+        }
+    }
+    /* now free the backup suite. this causes the queued allocation before to get finished. as we timed out, it will get freed immediately in exmem.c:allocCBR */
+    _shoot_free_suite(backup);
+    
+    //qprintf("[shoot_malloc] autodetected size: %s\n", format_memory_size(max_size));
+    return max_size;
+}
+
+static size_t shoot_malloc_autodetect_contig(uint32_t requested_size)
+{
+    /* allocate some backup that will service the queued allocation request that fails during the loop */
+    size_t backup_size = 1024 * 1024;
+    size_t max_contig_size = 0;
+    struct memSuite * backup = shoot_malloc_suite_int(backup_size);
+
+    for (int size_mb = 1; size_mb < 1024; size_mb++)
+    {
+        int tested_size = size_mb * 1024 * 1024;
+        //qprintf("[shoot_contig] trying %s\n", format_memory_size(tested_size));
+        struct memSuite * testSuite = shoot_malloc_suite_int(tested_size);
+        if (testSuite)
+        {
+            /* find largest chunk */
+            max_contig_size = largest_chunk_size(testSuite);
+ 
+            _shoot_free_suite(testSuite);
+
+            if (requested_size && requested_size <= max_contig_size)
+            {
+                /* have we already got a contiguous block large enough? */
+                break;
+            }
+        }
+        else
+        {
+            //qprintf("[shoot_contig] memory full\n");
+            break;
+        }
+    }
+    /* now free the backup suite. this causes the queued allocation before to get finished. as we timed out, it will get freed immediately in exmem.c:allocCBR */
+    _shoot_free_suite(backup);
+    
+    //qprintf("[shoot_contig] autodetected size: %s (requested %x)\n", format_memory_size(max_contig_size), requested_size);
+    return max_contig_size;
+}
+
 struct memSuite *_shoot_malloc_suite(size_t size)
 {
-    if(entire_memory_allocated)
-    {
-        /* you may need to solder some more RAM chips */
-        return 0;
-    }
+    //qprintf("_shoot_malloc_suite(%x)\n", size);
 
     if(size)
     {
         /* allocate exact memory size */
-        return shoot_malloc_suite_int(size, 0);
+        return shoot_malloc_suite_int(size);
     }
     else
     {
-        /* allocate some backup that will service the queued allocation request that fails during the loop */
-        int backup_size = 8 * 1024 * 1024;
-        int max_size = 0;
-        struct memSuite *backup = shoot_malloc_suite_int(backup_size, 0);
-
-        for(int size = 4; size < 1024; size += 4)
-        {
-            struct memSuite *testSuite = shoot_malloc_suite_int(size * 1024 * 1024, 1);
-            if(testSuite)
-            {
-                _shoot_free_suite(testSuite);
-                max_size = size * 1024 * 1024;
-            }
-            else
-            {
-                break;
-            }
-        }
-        /* now free the backup suite. this causes the queued allocation before to get finished. as we timed out, it will get freed immediately in exmem.c:allocCBR */
-        _shoot_free_suite(backup);
-        
-        /* allocating max_size + backup_size was reported to fail sometimes */
-        struct memSuite * hSuite = shoot_malloc_suite_int(max_size + backup_size - 1024 * 1024, 1);
-        entire_memory_allocated = hSuite;   /* we need to know which memory suite ate all the RAM; when this is freed, we can shoot_malloc again */
-        
-        return hSuite;
+        /* allocate as much as we can */
+        size_t max_size = shoot_malloc_autodetect();
+        return shoot_malloc_suite_int(max_size);
     }
 }
 
 struct memSuite * _shoot_malloc_suite_contig(size_t size)
 {
-    if (entire_memory_allocated)
-    {
-        /* you may need to solder some more RAM chips */
-        return 0;
-    }
+    //qprintf("_shoot_malloc_suite_contig(%x)\n", size);
 
-    if(size > 0)
+    if (size == 0 || size > 1024*1024)
     {
-        alloc_msg_t *suite_info = _malloc(sizeof(alloc_msg_t));
-        
-        suite_info->ret = NULL;
-        suite_info->timed_out = 0;
-        suite_info->size = size;
-        suite_info->sem = alloc_sem;
-        
-        AllocateContinuousMemoryResource(size, allocCBR, (unsigned int)suite_info, 0x50);
+        /* check whether we can allocate a block with the requested size */
+        size_t max_size = shoot_malloc_autodetect_contig(size);
 
-        int r = take_semaphore(suite_info->sem, 1000);
-        if (r)
+        if (size && size > max_size)
         {
-            suite_info->timed_out = 1;
-            return NULL;
+            /* requested more than we can handle? give up */
+            return 0;
         }
-        
-        struct memSuite * hSuite = suite_info->ret;
-        _free(suite_info);
-        
-        ASSERT((int)size <= hSuite->size);
-        return hSuite;
-    }
-    else
-    {
-        //~ entire_memory_allocated = (void*) -1;   /* temporary, just mark as busy */
 
-        /* find the largest chunk and try to allocate it */
-        struct memSuite * hSuite = _shoot_malloc_suite(0);
-        if (!hSuite) return 0;
-        
-        int max_size = 0;
-        struct memChunk * hChunk = GetFirstChunkFromSuite(hSuite);
-        while(hChunk)
+        if (size == 0)
         {
-            int size = GetSizeOfMemoryChunk(hChunk);
-            max_size = MAX(max_size, size);
-            hChunk = GetNextMemoryChunk(hSuite, hChunk);
+            /* allocate as much as we can */
+            size = max_size;
         }
-        
-        _shoot_free_suite(hSuite);
-        
-        hSuite = _shoot_malloc_suite_contig(max_size);
-        entire_memory_allocated = hSuite;   /* we need to know which memory suite ate all the RAM; when this is freed, we can shoot_malloc again */
-        return hSuite;
     }
+
+    /* we now know for sure how much to allocate */
+    //qprintf("_shoot_malloc_suite_contig(trying %x)\n", size);
+
+    alloc_msg_t *suite_info = _malloc(sizeof(alloc_msg_t));
+    
+    suite_info->ret = NULL;
+    suite_info->timed_out = 0;
+    suite_info->size = size;
+    suite_info->sem = alloc_sem;
+    
+    AllocateContinuousMemoryResource(size, allocCBR, (unsigned int)suite_info, 0x50);
+
+    int r = take_semaphore(suite_info->sem, 100);
+    if (r)
+    {
+        suite_info->timed_out = 1;
+        return NULL;
+    }
+    
+    struct memSuite * hSuite = suite_info->ret;
+    _free(suite_info);
+    
+    ASSERT((int)size <= hSuite->size);
+    return hSuite;
 }
 
 void* _shoot_malloc(size_t size)
@@ -276,7 +316,6 @@ void _shoot_free(void* ptr)
     //~ printf("shoot_free(%x) hSuite=%x\n", ptr, hSuite);
     FreeMemoryResource(hSuite, freeCBR, 0);
     take_semaphore(free_sem, 0);
-    if (hSuite == entire_memory_allocated) entire_memory_allocated = 0;
 }
 
 /* just a dummy heuristic for now */
@@ -286,15 +325,10 @@ int _shoot_get_free_space()
     {
         return 0;
     }
-    
-    if (entire_memory_allocated)
-    {
-        return 0;
-    }
-    else
-    {
-        return (int)(31.5*1024*1024);
-    }
+
+    /* fixme: should fail quickly when shoot memory is full */
+    /* performing test allocations is usually very slow */
+    return (int)(31.5*1024*1024);
 }
 
 #if 0
@@ -305,7 +339,7 @@ void exmem_test()
     
     msleep(2000);
     AllocateMemoryResource(1024*1024*32, allocCBR, (unsigned int)&hSuite, 0x50);
-    int r = take_semaphore(alloc_sem, 1000);
+    int r = take_semaphore(alloc_sem, 100);
     if (r) return;
     
     if(!hSuite)
@@ -438,8 +472,6 @@ struct memSuite * _srm_malloc_suite(int num_requested_buffers)
             /* (unlike shoot_malloc, here it won't trigger the CBR after freeing something) */
             break;
         }
-
-        printf("srm buffer #%d: %x\n", num_buffers+1, buffers[num_buffers]);
     }
     
     if (num_buffers == 0)
