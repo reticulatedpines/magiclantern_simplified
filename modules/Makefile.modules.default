@@ -17,3 +17,4 @@ ML_MODULES ?= \
 	bench \
 	selftest \
 	adv_int \
+	edmac \

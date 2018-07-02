@@ -81,6 +81,9 @@ static void edmac_memcpy_init()
     resLock = CreateResLockEntry(resIds, 4);
     
     ASSERT(resLock);
+
+    /* just to make sure we have this stub */
+    static int AbortEDmac_check __attribute__((used)) = &AbortEDmac;
 }
 
 INIT_FUNC("edmac_memcpy", edmac_memcpy_init);
