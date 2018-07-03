@@ -164,7 +164,7 @@ static CONFIG_INT( "zoom.focus_ring", zoom_focus_ring, 0);
        CONFIG_INT( "zoom.auto.exposure", zoom_auto_exposure, 0);
 
 #ifdef FEATURE_BULB_TIMER
-static int bulb_duration_change(struct config_var * var, int old_value, int new_value);
+static CONFIG_VAR_CHANGE_FUNC(bulb_duration_change);
 static CONFIG_INT_EX( "bulb.duration", bulb_duration, 5, bulb_duration_change);
 static CONFIG_INT   ( "bulb.timer", bulb_timer, 0);
 static CONFIG_INT   ( "bulb.display.mode", bulb_display_mode, 0);
@@ -2967,7 +2967,7 @@ bulb_take_pic(int duration)
 }
 
 #ifdef FEATURE_BULB_TIMER
-static int bulb_duration_change(struct config_var * var, int old_value, int new_value)
+static CONFIG_VAR_CHANGE_FUNC(bulb_duration_change)
 {
     #ifdef FEATURE_EXPO_OVERRIDE
     /* refresh bulb ExpSim */

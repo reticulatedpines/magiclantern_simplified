@@ -82,7 +82,7 @@ static struct gain_struct gain = {
 };
 
 
-static int lovl_on_change(struct config_var* var, int old_value, int new_value)
+static CONFIG_VAR_CHANGE_FUNC(lovl_on_change)
 {
 #ifdef FEATURE_HEADPHONE_OUTPUT_VOLUME
     *(var->value) = COERCE(new_value, 0, 3);
@@ -93,7 +93,7 @@ static int lovl_on_change(struct config_var* var, int old_value, int new_value)
 #endif
 }
 
-static int audio_monitoring_var_on_change(struct config_var* var, int old_value, int new_value)
+static CONFIG_VAR_CHANGE_FUNC(audio_monitoring_var_on_change)
 {
 #ifdef FEATURE_HEADPHONE_MONITORING
     *(var->value) = new_value;
@@ -104,7 +104,7 @@ static int audio_monitoring_var_on_change(struct config_var* var, int old_value,
 #endif
 }
 
-static int enable_filters_on_change(struct config_var* var, int old_value, int new_value)
+static CONFIG_VAR_CHANGE_FUNC(enable_filters_on_change)
 {
 #ifdef FEATURE_WIND_FILTER
     *(var->value) = new_value;
@@ -115,8 +115,8 @@ static int enable_filters_on_change(struct config_var* var, int old_value, int n
 #endif
 }
 
-static int alc_enable_on_change(struct config_var* var, int old_value, int new_value);
-static int input_choice_on_change(struct config_var* var, int old_value, int new_value);
+static CONFIG_VAR_CHANGE_FUNC(alc_enable_on_change);
+static CONFIG_VAR_CHANGE_FUNC(input_choice_on_change);
 
 static CONFIG_INT_EX("audio.lovl",         lovl,             0, lovl_on_change );
 static CONFIG_INT_EX("audio.alc-enable",   alc_enable,       0, alc_enable_on_change );
