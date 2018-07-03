@@ -87,14 +87,8 @@ struct config_var
         config_var_change_func change_cbr;
 };
 
-#ifdef MODULE
-#define CONFIG_VAR_ATTR static
-#else
-#define CONFIG_VAR_ATTR
-#endif
-
 #define _CONFIG_VAR( NAME, TYPE_ENUM, VAR, VALUE, CHANGE_CBR ) \
-CONFIG_VAR_ATTR struct config_var \
+static __attribute__((used)) struct config_var \
 __attribute__((section(".config_vars"))) \
 __config_##VAR = \
 { \
