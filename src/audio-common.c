@@ -46,7 +46,9 @@ int audio_thresholds[] = { 0x7fff, 0x7213, 0x65ab, 0x5a9d, 0x50c2, 0x47fa, 0x402
 
 void audio_configure(int force);
 static void volume_display();
-
+#ifdef FEATURE_HEADPHONE_MONITORING
+static void audio_monitoring_update();
+#endif
 static void audio_monitoring_display_headphones_connected_or_not();
 static void audio_menus_init();
 static void audio_input_toggle( void * priv, int delta );
@@ -79,13 +81,47 @@ static struct gain_struct gain = {
     .sem                    = (void*) 1,
 };
 
-static CONFIG_INT( "audio.lovl",       lovl,           0 );
-static CONFIG_INT( "audio.alc-enable", alc_enable,     0 );
+
+static CONFIG_VAR_CHANGE_FUNC(lovl_on_change)
+{
+#ifdef FEATURE_HEADPHONE_OUTPUT_VOLUME
+    *(var->value) = COERCE(new_value, 0, 3);
+    audio_monitoring_update();
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+static CONFIG_VAR_CHANGE_FUNC(audio_monitoring_var_on_change)
+{
+#ifdef FEATURE_HEADPHONE_MONITORING
+    *(var->value) = new_value;
+    audio_monitoring_update();
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+static CONFIG_VAR_CHANGE_FUNC(enable_filters_on_change)
+{
+#ifdef FEATURE_WIND_FILTER
+    *(var->value) = new_value;
+    audio_configure( 1 );
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+static CONFIG_INT_EX("audio.lovl",         lovl,             0, lovl_on_change );
+static CONFIG_INT_EX("audio.alc-enable",   alc_enable,       0, alc_enable_on_change );
 static int loopback = 1;
-static CONFIG_INT( "audio.input-choice",       input_choice,           4 ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced, 4 = auto (0 or 1)
-static CONFIG_INT( "audio.filters",    enable_filters,        0 ); //disable the HPF, LPF and pre-emphasis filters
+static CONFIG_INT_EX("audio.input-choice", input_choice,     4, input_choice_on_change ); //0=internal; 1=L int, R ext; 2 = stereo ext; 3 = L int, R ext balanced, 4 = auto (0 or 1)
+static CONFIG_INT_EX("audio.filters",      enable_filters,   0, enable_filters_on_change ); //disable the HPF, LPF and pre-emphasis filters
 #define cfg_draw_meters 1
-static CONFIG_INT("audio.monitoring", audio_monitoring, 1);
+static CONFIG_INT_EX("audio.monitoring",   audio_monitoring, 1, audio_monitoring_var_on_change );
 static int do_draw_meters = 0;
 
 static struct audio_level audio_levels[2];
@@ -1004,7 +1040,6 @@ void audio_monitoring_display_headphones_connected_or_not()
 PROP_INT(PROP_USBRCA_MONITOR, rca_monitor);
 
 #ifdef FEATURE_HEADPHONE_MONITORING
-static void audio_monitoring_update();
 
 static void
 audio_monitoring_toggle( void * priv, int delta )
@@ -1072,7 +1107,7 @@ PROP_HANDLER( PROP_MVR_REC_START )
 void input_toggle()
 {
 #ifdef FEATURE_INPUT_SOURCE
-    audio_input_toggle(&input_choice, 1);
+    set_config_var_ptr(&input_choice, input_choice + 1);
     NotifyBox(2000, "Input: %s", get_audio_input_string());
 #endif
 }
