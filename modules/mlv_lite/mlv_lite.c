@@ -2996,20 +2996,27 @@ void init_mlv_chunk_headers(struct raw_info * raw_info)
 }
 
 static REQUIRES(RawRecTask)
-int write_mlv_chunk_headers(FILE* f)
+int write_mlv_chunk_headers(FILE* f, int chunk)
 {
+    /* looks a bit cleaner not to have several return points */
     int fail = 0;
     
+    /* all chunks contain the MLVI header */
     fail |= !mlv_write_hdr(f, (mlv_hdr_t *)&file_hdr);
-    fail |= !mlv_write_hdr(f, (mlv_hdr_t *)&rawi_hdr);
-    fail |= !mlv_write_hdr(f, (mlv_hdr_t *)&rawc_hdr);
-    fail |= !mlv_write_hdr(f, (mlv_hdr_t *)&idnt_hdr);
-    fail |= !mlv_write_hdr(f, (mlv_hdr_t *)&expo_hdr);
-    fail |= !mlv_write_hdr(f, (mlv_hdr_t *)&lens_hdr);
-    fail |= !mlv_write_hdr(f, (mlv_hdr_t *)&rtci_hdr);
-    fail |= !mlv_write_hdr(f, (mlv_hdr_t *)&wbal_hdr);
-    fail |= mlv_write_vers_blocks(f, mlv_start_timestamp);
-
+    
+    /* only the first chunk contains this information if nothing changes */
+    if(chunk == 0)
+    {
+        fail |= !mlv_write_hdr(f, (mlv_hdr_t *)&rawi_hdr);
+        fail |= !mlv_write_hdr(f, (mlv_hdr_t *)&rawc_hdr);
+        fail |= !mlv_write_hdr(f, (mlv_hdr_t *)&idnt_hdr);
+        fail |= !mlv_write_hdr(f, (mlv_hdr_t *)&expo_hdr);
+        fail |= !mlv_write_hdr(f, (mlv_hdr_t *)&lens_hdr);
+        fail |= !mlv_write_hdr(f, (mlv_hdr_t *)&rtci_hdr);
+        fail |= !mlv_write_hdr(f, (mlv_hdr_t *)&wbal_hdr);
+        fail |= mlv_write_vers_blocks(f, mlv_start_timestamp);
+    }
+    
     /* write all queued blocks, if any */
     uint32_t msg_count = 0;
     msg_queue_count(mlv_block_queue, &msg_count);
@@ -3026,6 +3033,7 @@ int write_mlv_chunk_headers(FILE* f)
         }
     }
     
+    /* any of the above writes failed, exit */
     if(fail)
     {
         return 0;
@@ -3080,7 +3088,7 @@ int write_frames(FILE** pf, void* ptr, int group_size, int num_frames)
         if (!g) return 0;
         
         file_hdr.fileNum = mlv_chunk;
-        written_chunk = write_mlv_chunk_headers(g);
+        written_chunk = write_mlv_chunk_headers(g, mlv_chunk);
         written_total += written_chunk;
         
         if (written_chunk)
@@ -3141,7 +3149,7 @@ int write_frames(FILE** pf, void* ptr, int group_size, int num_frames)
         if (!g) return 0;
         
         file_hdr.fileNum = mlv_chunk;
-        written_chunk = write_mlv_chunk_headers(g);
+        written_chunk = write_mlv_chunk_headers(g, mlv_chunk);
         written_total += written_chunk;
         
         int r2 = written_chunk ? FIO_WriteFile(g, ptr, group_size) : 0;
@@ -3288,7 +3296,7 @@ void raw_video_rec_task()
     mlv_rec_call_cbr(MLV_REC_EVENT_STARTING, NULL);
 
     init_mlv_chunk_headers(&raw_info);
-    written_total = written_chunk = write_mlv_chunk_headers(f);
+    written_total = written_chunk = write_mlv_chunk_headers(f, mlv_chunk);
     if (!written_chunk)
     {
         NotifyBox(5000, "Card Full");
