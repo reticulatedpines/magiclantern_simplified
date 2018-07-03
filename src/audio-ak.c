@@ -361,7 +361,7 @@ static int mgain_on_change(struct config_var* var, int old_value, int new_value)
 {
 #ifdef FEATURE_ANALOG_GAIN
 #ifdef CONFIG_500D
-    *(var->value) = mod(new_value, 10);
+    *(var->value) = MOD(new_value, 10);
 #else
     *(var->value) = new_value & 0x7;
 #endif
