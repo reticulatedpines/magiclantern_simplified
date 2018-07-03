@@ -93,8 +93,7 @@ struct config_var
 #define CONFIG_VAR_ATTR
 #endif
 
-#define _CONFIG_VAR( NAME, TYPE_ENUM, TYPE, VAR, VALUE, CHANGE_CBR ) \
-TYPE VAR = VALUE; \
+#define _CONFIG_VAR( NAME, TYPE_ENUM, VAR, VALUE, CHANGE_CBR ) \
 CONFIG_VAR_ATTR struct config_var \
 __attribute__((section(".config_vars"))) \
 __config_##VAR = \
@@ -107,10 +106,13 @@ __config_##VAR = \
 }
 
 #define CONFIG_INT( NAME, VAR, VALUE ) \
-        _CONFIG_VAR( NAME, 0, int, VAR, VALUE, NULL )
+        int VAR = VALUE; \
+        _CONFIG_VAR( NAME, 0, VAR, VALUE, NULL )
 
 #define CONFIG_INT_EX( NAME, VAR, VALUE, CHANGE_CBR ) \
-        _CONFIG_VAR( NAME, 0, int, VAR, VALUE, CHANGE_CBR )
+        int VAR = VALUE; \
+        static CONFIG_VAR_CHANGE_FUNC(CHANGE_CBR); \
+        _CONFIG_VAR( NAME, 0, VAR, VALUE, CHANGE_CBR )
 
 #define _CONFIG_ARRAY_ELEMENT( NAME, TYPE_ENUM, VAR, INDEX, VALUE ) \
 struct config_var \

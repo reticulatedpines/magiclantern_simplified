@@ -115,9 +115,6 @@ static CONFIG_VAR_CHANGE_FUNC(enable_filters_on_change)
 #endif
 }
 
-static CONFIG_VAR_CHANGE_FUNC(alc_enable_on_change);
-static CONFIG_VAR_CHANGE_FUNC(input_choice_on_change);
-
 static CONFIG_INT_EX("audio.lovl",         lovl,             0, lovl_on_change );
 static CONFIG_INT_EX("audio.alc-enable",   alc_enable,       0, alc_enable_on_change );
 static int loopback = 1;

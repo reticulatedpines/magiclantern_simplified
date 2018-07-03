@@ -30,10 +30,6 @@
 #include "audio-common.c"
 #include "boot-hack.h"
 
-static CONFIG_VAR_CHANGE_FUNC(dgain_on_change);
-static CONFIG_VAR_CHANGE_FUNC(mgain_on_change);
-static CONFIG_VAR_CHANGE_FUNC(mic_power_on_change);
-
 static CONFIG_INT_EX( "audio.dgain.l",    dgain_l,        0, dgain_on_change );
 static CONFIG_INT_EX( "audio.dgain.r",    dgain_r,        0, dgain_on_change );
 static CONFIG_INT_EX( "audio.mgain",      mgain,          4, mgain_on_change );

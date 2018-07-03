@@ -30,15 +30,6 @@
 #include "console.h"
 #include "audio-common.c"
 
-static CONFIG_VAR_CHANGE_FUNC(override_audio_on_change);
-static CONFIG_VAR_CHANGE_FUNC(analog_gain_on_change);
-static CONFIG_VAR_CHANGE_FUNC(analog_boost_on_change);
-static CONFIG_VAR_CHANGE_FUNC(audio_filter_on_change);
-static CONFIG_VAR_CHANGE_FUNC(filter_hpf2config_on_change);
-static CONFIG_VAR_CHANGE_FUNC(recdgain_on_change);
-static CONFIG_VAR_CHANGE_FUNC(dgain_on_change);
-static CONFIG_VAR_CHANGE_FUNC(effect_mode_on_change);
-
 // Set defaults
 CONFIG_INT_EX( "audio.override_audio", cfg_override_audio,   0, override_audio_on_change );
 CONFIG_INT_EX( "audio.analog_gain",    cfg_analog_gain,      0, analog_gain_on_change );

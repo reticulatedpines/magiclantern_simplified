@@ -164,7 +164,6 @@ static CONFIG_INT( "zoom.focus_ring", zoom_focus_ring, 0);
        CONFIG_INT( "zoom.auto.exposure", zoom_auto_exposure, 0);
 
 #ifdef FEATURE_BULB_TIMER
-static CONFIG_VAR_CHANGE_FUNC(bulb_duration_change);
 static CONFIG_INT_EX( "bulb.duration", bulb_duration, 5, bulb_duration_change);
 static CONFIG_INT   ( "bulb.timer", bulb_timer, 0);
 static CONFIG_INT   ( "bulb.display.mode", bulb_display_mode, 0);
