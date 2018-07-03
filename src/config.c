@@ -658,7 +658,7 @@ static void config_preset_scan()
     }
     
     /* update the Config Presets menu */
-    cfg_menus[0].children[0].max = config_preset_num - 1;
+    cfg_menus[0].children[1].max = config_preset_num - 1;
 }
 
 static MENU_SELECT_FUNC(config_save_select)
@@ -668,7 +668,7 @@ static MENU_SELECT_FUNC(config_save_select)
 
 static MENU_SELECT_FUNC(config_preset_toggle)
 {
-    menu_numeric_toggle(&config_new_preset_index, delta, 0, config_preset_num);
+    menu_numeric_toggle(&config_new_preset_index, delta, 0, config_preset_num - 1);
     
     if (!config_new_preset_index)
     {
