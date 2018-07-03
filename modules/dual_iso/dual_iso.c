@@ -1301,7 +1301,7 @@ static unsigned int isoless_init()
         return 1;
     }
     
-    mlv_rec_register_cbr(MLV_REC_EVENT_STARTED, &isoless_mlv_rec_cbr, NULL);
+    mlv_rec_register_cbr(MLV_REC_EVENT_PREPARING, &isoless_mlv_rec_cbr, NULL);
     
     return 0;
 }
