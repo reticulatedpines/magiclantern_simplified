@@ -67,7 +67,6 @@ extern void mlv_rec_release_slot(int32_t slot, uint32_t write);
 extern void mlv_rec_set_rel_timestamp(mlv_hdr_t *hdr, uint64_t timestamp);
 extern void mlv_rec_skip_frames(uint32_t count);
 
-static volatile int32_t mlv_snd_rec_active = 0;
 static struct msg_queue * volatile mlv_snd_buffers_empty = NULL;
 static struct msg_queue * volatile mlv_snd_buffers_done = NULL;
 static volatile uint32_t mlv_snd_in_buffers = 64;
@@ -104,13 +103,12 @@ audio_data_t *mlv_snd_current_buffer = NULL;
 audio_data_t *mlv_snd_next_buffer = NULL;
 
 #define MLV_SND_STATE_IDLE                   0  /* waiting for action, set by writer task upon exit */
-#define MLV_SND_STATE_PREPARE                1  /* recording was started, set by mlv_snd_start() */
-#define MLV_SND_STATE_READY                  2  /* buffers etc are set up, set by mlv_snd_alloc_buffers() */
-#define MLV_SND_STATE_SOUND_RUNNING          3  /* ASIF sound recording was started, set by mlv_snd_vsync() */
-#define MLV_SND_STATE_SOUND_STOPPING         4  /* stop audio recording, set by mlv_snd_stop() */
-#define MLV_SND_STATE_SOUND_STOP_ASIF        5  /* waiting for ASIF to process its last buffer, set by mlv_snd_asif_in_cbr() */
-#define MLV_SND_STATE_SOUND_STOP_TASK        6  /* waiting for thread to stop, set by mlv_snd_asif_in_cbr() */
-#define MLV_SND_STATE_SOUND_STOPPED          7  /* all threads and stuff is stopped, finish cleanup, set by task */
+#define MLV_SND_STATE_READY                  1  /* buffers etc are set up, set by mlv_snd_cbr_starting() */
+#define MLV_SND_STATE_SOUND_RUNNING          2  /* ASIF sound recording was started, set by mlv_snd_vsync() */
+#define MLV_SND_STATE_SOUND_STOPPING         3  /* stop audio recording, set by mlv_snd_stop() */
+#define MLV_SND_STATE_SOUND_STOP_ASIF        4  /* waiting for ASIF to process its last buffer, set by mlv_snd_asif_in_cbr() */
+#define MLV_SND_STATE_SOUND_STOP_TASK        5  /* waiting for thread to stop, set by mlv_snd_asif_in_cbr() */
+#define MLV_SND_STATE_SOUND_STOPPED          6  /* all threads and stuff is stopped, finish cleanup, set by task */
 
 static uint32_t mlv_snd_state = MLV_SND_STATE_IDLE;
 
@@ -270,8 +268,6 @@ static void mlv_snd_stop()
     mlv_snd_flush_entries(mlv_snd_buffers_done, 0);
     trace_write(trace_ctx, "mlv_snd_stop: flush mlv_snd_buffers_empty");
     mlv_snd_flush_entries(mlv_snd_buffers_empty, 1);
-
-    mlv_snd_state = MLV_SND_STATE_IDLE;
 }
 
 static void mlv_snd_queue_slot()
@@ -345,12 +341,6 @@ static void mlv_snd_queue_slot()
 
 static void mlv_snd_prepare_audio()
 {
-    /* reset all variables first */
-    mlv_snd_file_num = UINT16_MAX;
-    mlv_snd_frame_number = 0;
-    mlv_snd_frames_queued = 0;
-    mlv_snd_frames_saved = 0;
-    
     mlv_snd_in_sample_rate = mlv_snd_rates[mlv_snd_rate_sel];
 
     /* some models may need this */
@@ -458,8 +448,6 @@ static void mlv_snd_start()
     
     mlv_snd_prepare_audio();
     task_create("mlv_snd", 0x16, 0x1000, mlv_snd_writer, NULL);
-    
-    mlv_snd_state = MLV_SND_STATE_PREPARE;
 }
 
 void mlv_fill_wavi(mlv_wavi_hdr_t *hdr, uint64_t start_timestamp)
@@ -484,7 +472,6 @@ void mlv_fill_wavi(mlv_wavi_hdr_t *hdr, uint64_t start_timestamp)
     hdr->bitsPerSample = mlv_snd_in_bits_per_sample;
 }
 
-/* only used with mlv_rec */
 static void mlv_snd_queue_wavi()
 {
     trace_write(trace_ctx, "mlv_snd_queue_wavi: queueing a WAVI block");
@@ -497,7 +484,6 @@ static void mlv_snd_queue_wavi()
     mlv_rec_queue_block((mlv_hdr_t *)hdr);
 }
 
-/* callback functions for mlv_rec */
 static void mlv_snd_cbr_starting(uint32_t event, void *ctx, mlv_hdr_t *hdr)
 {
     if(!mlv_snd_enabled)
@@ -505,83 +491,101 @@ static void mlv_snd_cbr_starting(uint32_t event, void *ctx, mlv_hdr_t *hdr)
         return;
     }
     
-    if(mlv_snd_state == MLV_SND_STATE_IDLE)
+    if(mlv_snd_state != MLV_SND_STATE_IDLE)
     {
-        trace_write(trace_ctx, "mlv_snd_cbr_starting: starting mlv_snd");
-        mlv_snd_rec_active = 1;
-        mlv_snd_start();
-
-        trace_write(trace_ctx, "raw_rec_cbr_starting: allocating buffers");
-        mlv_snd_alloc_buffers();
+        return;
     }
+    
+    /* recording is about to start, everything was set up there, now it is our turn */
+    trace_write(trace_ctx, "mlv_snd_cbr_starting: starting mlv_snd");
+    mlv_snd_start();
+    mlv_snd_queue_wavi();
+    mlv_snd_alloc_buffers();
+    
+    /* reset all variables first */
+    mlv_snd_file_num = UINT16_MAX;
+    mlv_snd_frame_number = 0;
+    mlv_snd_frames_queued = 0;
+    mlv_snd_frames_saved = 0;
+    
+
+    mlv_snd_state = MLV_SND_STATE_READY;
 }
 
 /* will get called from mlv_lite's vsync hook */
 static void mlv_snd_cbr_started(uint32_t event, void *ctx, mlv_hdr_t *hdr)
 {
-    if(mlv_snd_state == MLV_SND_STATE_PREPARE)
+    /* the first time we get called from vsync, start recording */
+    if(mlv_snd_state != MLV_SND_STATE_READY)
     {
-        /* only used with mlv_rec (dummy mlv_rec_queue_block in mlv_lite) */
-        if ((void *) &mlv_rec_queue_block != (void *) &ret_0)
-        {
-            trace_write(trace_ctx, "mlv_snd_cbr_started: queueing WAVI");
-            mlv_snd_queue_wavi();
-        }
-
-        /* since mlv_snd doesnt use vsync anymore, but only the CBR prvided by mlv_lite, this state is not required anymore */
-        mlv_snd_state = MLV_SND_STATE_READY;
-        
-        /* "delaying audio" in the video timeline means to skip video frames */
-        mlv_rec_skip_frames(mlv_snd_vsync_delay);
-        
-        /* in running mode, start audio recording here */
-        uint32_t msgs = 0;
-        msg_queue_count(mlv_snd_buffers_empty, &msgs);
-        
-        if(msgs < 2)
-        {
-            trace_write(trace_ctx, "mlv_snd_cbr_started: fatal error, no buffers");
-            bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 10, 130, "fatal: no buffers");
-            beep();
-            return;
-        }
-        
-        trace_write(trace_ctx, "mlv_snd_cbr_started: starting audio");
-        
-        /* get two buffers and queue them to ASIF */
-        mlv_snd_current_buffer = NULL;
-        mlv_snd_next_buffer = NULL;
-        
-        msg_queue_receive(mlv_snd_buffers_empty, &mlv_snd_current_buffer, 10);
-        msg_queue_receive(mlv_snd_buffers_empty, &mlv_snd_next_buffer, 10);
-        
-        if(!mlv_snd_current_buffer || !mlv_snd_next_buffer)
-        {
-            trace_write(trace_ctx, "mlv_snd_cbr_started: fatal error, no buffers");
-            bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 10, 130, "fatal: no buffers");
-            beep();
-            return;
-        }
-    
-        audio_configure(1);
-        StartASIFDMAADC(mlv_snd_current_buffer->data, mlv_snd_current_buffer->length, mlv_snd_next_buffer->data, mlv_snd_next_buffer->length, mlv_snd_asif_in_cbr, 0);
-        
-        /* the current one will get filled right now */
-        mlv_snd_current_buffer->timestamp = get_us_clock();
-        trace_write(trace_ctx, "mlv_snd_cbr_started: starting audio DONE");
-        
-        mlv_snd_state = MLV_SND_STATE_SOUND_RUNNING;
+        return;
     }
+    
+    /* "delaying audio" in the video timeline means to skip video frames */
+    mlv_rec_skip_frames(mlv_snd_vsync_delay);
+    
+    /* fetch buffers to start recording */
+    uint32_t msgs = 0;
+    msg_queue_count(mlv_snd_buffers_empty, &msgs);
+    
+    if(msgs < 2)
+    {
+        trace_write(trace_ctx, "mlv_snd_cbr_started: fatal error, no buffers");
+        bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 10, 130, "fatal: no buffers");
+        beep();
+        return;
+    }
+    
+    trace_write(trace_ctx, "mlv_snd_cbr_started: starting audio");
+    
+    /* get two buffers and queue them to ASIF */
+    mlv_snd_current_buffer = NULL;
+    mlv_snd_next_buffer = NULL;
+    
+    msg_queue_receive(mlv_snd_buffers_empty, &mlv_snd_current_buffer, 10);
+    msg_queue_receive(mlv_snd_buffers_empty, &mlv_snd_next_buffer, 10);
+    
+    if(!mlv_snd_current_buffer || !mlv_snd_next_buffer)
+    {
+        trace_write(trace_ctx, "mlv_snd_cbr_started: fatal error, no buffers");
+        bmp_printf(FONT(FONT_MED, COLOR_RED, COLOR_BLACK), 10, 130, "fatal: no buffers");
+        beep();
+        return;
+    }
+
+    audio_configure(1);
+    StartASIFDMAADC(mlv_snd_current_buffer->data, mlv_snd_current_buffer->length, mlv_snd_next_buffer->data, mlv_snd_next_buffer->length, mlv_snd_asif_in_cbr, 0);
+    
+    /* the current one will get filled right now */
+    mlv_snd_current_buffer->timestamp = get_us_clock();
+    trace_write(trace_ctx, "mlv_snd_cbr_started: starting audio DONE");
+    
+    mlv_snd_state = MLV_SND_STATE_SOUND_RUNNING;
 }
 
 static void mlv_snd_cbr_stopping(uint32_t event, void *ctx, mlv_hdr_t *hdr)
 {
-    if(mlv_snd_state == MLV_SND_STATE_SOUND_RUNNING)
+    if(mlv_snd_state != MLV_SND_STATE_SOUND_RUNNING)
     {
-        trace_write(trace_ctx, "mlv_snd_cbr_stopping: stopping");
-        mlv_snd_stop();
-        mlv_snd_rec_active = 0;
+        return;
     }
+    
+    trace_write(trace_ctx, "mlv_snd_cbr_stopping: stopping");
+    mlv_snd_stop();
+
+    mlv_snd_state = MLV_SND_STATE_IDLE;
+}
+
+static void mlv_snd_cbr_stopped(uint32_t event, void *ctx, mlv_hdr_t *hdr)
+{
+    if(mlv_snd_state == MLV_SND_STATE_IDLE)
+    {
+        return;
+    }
+    
+    trace_write(trace_ctx, "mlv_snd_cbr_stopped: seems recording aborted during setup");
+    mlv_snd_stop();
+    mlv_snd_state = MLV_SND_STATE_IDLE;
 }
 
 
@@ -596,7 +600,7 @@ static void mlv_snd_cbr_mlv_block(uint32_t event, void *ctx, mlv_hdr_t *hdr)
         trace_write(trace_ctx, "mlv_snd_cbr_mlv_block: called for file %d", file_num);
         
         /* the MLV block is filled on recording start and when the block gets updates on recording end */
-        if(mlv_snd_file_num == UINT16_MAX)
+        if(mlv_snd_state == MLV_SND_STATE_READY)
         {
             trace_write(trace_ctx, "mlv_snd_cbr_mlv_block: first chunk");
             /* first chunk's header is being written, save the number of frames in previous chunks */
@@ -717,6 +721,7 @@ static unsigned int mlv_snd_init()
     mlv_rec_register_cbr(MLV_REC_EVENT_STARTING, &mlv_snd_cbr_starting, NULL);
     mlv_rec_register_cbr(MLV_REC_EVENT_STARTED, &mlv_snd_cbr_started, NULL);
     mlv_rec_register_cbr(MLV_REC_EVENT_STOPPING, &mlv_snd_cbr_stopping, NULL);
+    mlv_rec_register_cbr(MLV_REC_EVENT_STOPPED, &mlv_snd_cbr_stopped, NULL);
     mlv_rec_register_cbr(MLV_REC_EVENT_BLOCK, &mlv_snd_cbr_mlv_block, NULL);
     
     return 0;

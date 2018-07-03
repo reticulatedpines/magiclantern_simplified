@@ -368,13 +368,9 @@ static GUARDED_BY(RawRecTask)   mlv_expo_hdr_t expo_hdr;
 static GUARDED_BY(RawRecTask)   mlv_lens_hdr_t lens_hdr;
 static GUARDED_BY(RawRecTask)   mlv_rtci_hdr_t rtci_hdr;
 static GUARDED_BY(RawRecTask)   mlv_wbal_hdr_t wbal_hdr;
-static GUARDED_BY(RawRecTask)   mlv_wavi_hdr_t wavi_hdr;
 static GUARDED_BY(LiveViewTask) mlv_vidf_hdr_t vidf_hdr;
 static GUARDED_BY(RawRecTask)   uint64_t mlv_start_timestamp = 0;
        GUARDED_BY(RawRecTask)   uint32_t raw_rec_trace_ctx = TRACE_ERROR;
-
-/* dedicated interface to mlv_snd */
-extern WEAK_FUNC(ret_0) void mlv_fill_wavi(mlv_wavi_hdr_t *hdr, uint64_t start_timestamp);
 
 static int raw_rec_should_preview(void);
 
@@ -3002,20 +2998,37 @@ void init_mlv_chunk_headers(struct raw_info * raw_info)
 static REQUIRES(RawRecTask)
 int write_mlv_chunk_headers(FILE* f)
 {
-    if (!mlv_write_hdr(f, (mlv_hdr_t *)&file_hdr)) return 0;
-    if (!mlv_write_hdr(f, (mlv_hdr_t *)&rawi_hdr)) return 0;
-    if (!mlv_write_hdr(f, (mlv_hdr_t *)&rawc_hdr)) return 0;
-    if (!mlv_write_hdr(f, (mlv_hdr_t *)&idnt_hdr)) return 0;
-    if (!mlv_write_hdr(f, (mlv_hdr_t *)&expo_hdr)) return 0;
-    if (!mlv_write_hdr(f, (mlv_hdr_t *)&lens_hdr)) return 0;
-    if (!mlv_write_hdr(f, (mlv_hdr_t *)&rtci_hdr)) return 0;
-    if (!mlv_write_hdr(f, (mlv_hdr_t *)&wbal_hdr)) return 0;
-    if (mlv_write_vers_blocks(f, mlv_start_timestamp)) return 0;
+    int fail = 0;
+    
+    fail |= !mlv_write_hdr(f, (mlv_hdr_t *)&file_hdr);
+    fail |= !mlv_write_hdr(f, (mlv_hdr_t *)&rawi_hdr);
+    fail |= !mlv_write_hdr(f, (mlv_hdr_t *)&rawc_hdr);
+    fail |= !mlv_write_hdr(f, (mlv_hdr_t *)&idnt_hdr);
+    fail |= !mlv_write_hdr(f, (mlv_hdr_t *)&expo_hdr);
+    fail |= !mlv_write_hdr(f, (mlv_hdr_t *)&lens_hdr);
+    fail |= !mlv_write_hdr(f, (mlv_hdr_t *)&rtci_hdr);
+    fail |= !mlv_write_hdr(f, (mlv_hdr_t *)&wbal_hdr);
+    fail |= mlv_write_vers_blocks(f, mlv_start_timestamp);
 
-    /* WAVI written only if we record sound */
-    if (wavi_hdr.samplingRate)
+    /* write all queued blocks, if any */
+    uint32_t msg_count = 0;
+    msg_queue_count(mlv_block_queue, &msg_count);
+    
+    for(uint32_t msg = 0; msg < msg_count; msg++)
     {
-        if (!mlv_write_hdr(f, (mlv_hdr_t *)&wavi_hdr)) return 0;
+        mlv_hdr_t *block = NULL;
+
+        /* there is a block in the queue, try to get that block */
+        if(!msg_queue_receive(mlv_block_queue, &block, 0))
+        {
+            fail |= !mlv_write_hdr(f, block);
+            free(block);
+        }
+    }
+    
+    if(fail)
+    {
+        return 0;
     }
     
     int hdr_size = FIO_SeekSkipFile(f, 0, SEEK_CUR);
@@ -3473,25 +3486,6 @@ void raw_video_rec_task()
         if (!write_frames(&f, ptr, group_size, num_frames - meta_slots))
         {
             goto abort;
-        }
-        
-        /* write all queued blocks, if any */
-        uint32_t msg_count = 0;
-        msg_queue_count(mlv_block_queue, &msg_count);
-        
-        for(uint32_t msg = 0; msg < msg_count; msg++)
-        {
-            mlv_hdr_t *block = NULL;
-
-            /* there is a block in the queue, try to get that block */
-            if(!msg_queue_receive(mlv_block_queue, &block, 0))
-            {
-                /* use the write func to write the block */
-                write_frames(&f, block, block->blockSize, 0);
-                
-                /* free the block */
-                free(block);
-            }
         }
         
         last_write_timestamp = get_ms_clock_value();
