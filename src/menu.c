@@ -529,15 +529,16 @@ static void menu_numeric_toggle_R20(int* val, int delta, int min, int max)
         int v0 = round_to_R20(v);
         if (v0 != v && SGN(v0 - v) == SGN(delta)) // did we round in the correct direction? if so, stop here
         {
-            *val = v0;
-            return;
+            v = v0;
+            goto end;
         }
         // slow, but works (fast enough for numbers like 5000)
         while (v0 == round_to_R20(v))
             v += delta;
         v = COERCE(round_to_R20(v), min, max);
     }
-    
+
+end:
     set_config_var_ptr(val, v);
 }
 
