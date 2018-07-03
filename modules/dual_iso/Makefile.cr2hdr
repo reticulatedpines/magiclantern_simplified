@@ -7,7 +7,8 @@ CR2HDR_LDFLAGS=-lm -m32
 CR2HDR_DEPS=$(SRC_DIR)/chdk-dng.c dcraw-bridge.c exiftool-bridge.c adobedng-bridge.c amaze_demosaic_RT.c dither.c timing.c kelvin.c
 HOST=host
 
-EXIFTOOL_VERS=10.58
+# Find the latest version of exiftool
+EXIFTOOL_VERS=$(shell echo $$(curl -s https://www.sno.phy.queensu.ca/~phil/exiftool/ | grep -Em 1 'Download|Version' | grep -Eo '[0-9]+([.][0-9]+)?') | cut -d ' ' -f 1)
 
 ifdef CROSS
 	HOSTCC=$(MINGW_GCC)

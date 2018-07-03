@@ -161,8 +161,6 @@ static int show_lv_fps = 0; // for debugging
 
 #define WAVEFORM_FULLSCREEN (waveform_draw && waveform_size == 2)
 
-#define BVRAM_MIRROR_SIZE (BMPPITCH*540)
-
 CONFIG_INT("lv.disp.profiles", disp_profiles_0, 0);
 
 static CONFIG_INT("disp.mode", disp_mode, 0);
@@ -4479,9 +4477,6 @@ INIT_FUNC(__FILE__, zebra_init);
 
 static void make_overlay()
 {
-    //~ draw_cropmark_area();
-    msleep(1000);
-    //~ bvram_mirror_init();
     clrscr();
 
     bmp_printf(FONT_MED, 0, 0, "Saving overlay...");
@@ -4517,19 +4512,27 @@ static void make_overlay()
     FILE* f = FIO_CreateFile("ML/DATA/overlay.dat");
     if (f)
     {
-        FIO_WriteFile( f, (const void *) bvram_mirror, BVRAM_MIRROR_SIZE);
+        /* note: bvram_mirror's size is smaller than BMP_VRAM_SIZE */
+        FIO_WriteFile( f, (const void *) bvram_mirror, BMPPITCH * 480);
         FIO_CloseFile(f);
-        bmp_printf(FONT_MED, 0, 0, "Overlay saved.  ");
+        bmp_printf(FONT_MED, 0, 0, "Overlay saved.   ");
     }
     else
     {
-        bmp_printf(FONT_MED, 0, 0, "Overlay error.  ");
+        bmp_printf(FONT_MED, 0, 0, "Overlay error.   ");
     }
     msleep(1000);
 }
 
 static void show_overlay()
 {
+    const char * overlay_filename = "ML/DATA/overlay.dat";
+    if (!is_file(overlay_filename))
+    {
+        /* no overlay configured yet */
+        return;
+    }
+
     get_yuv422_vram();
     uint8_t * const bvram = bmp_vram_real();
     if (!bvram) return;
@@ -4537,7 +4540,7 @@ static void show_overlay()
     clrscr();
 
     int size = 0;
-    void * overlay = read_entire_file("ML/DATA/overlay.dat", &size);
+    void * overlay = read_entire_file(overlay_filename, &size);
     if (!overlay)
     {
         ASSERT(0);
@@ -4552,7 +4555,7 @@ static void show_overlay()
         uint8_t * const m_row = (uint8_t*)( overlay + ym * BMPPITCH);  // 1 pixel
         uint8_t* bp;  // through bmp vram
         uint8_t* mp;  // through our overlay
-        if (ym < 0 || ym > 480) continue;
+        if (ym < 0 || ym >= 480) continue;
 
         for (int x = os.x0; x < os.x_max; x++)
         {
