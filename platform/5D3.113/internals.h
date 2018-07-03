@@ -2,9 +2,6 @@
  * Camera internals for 5D3 1.1.3
  */
 
-/** This camera has both a CF and an SD slot **/
-#define CONFIG_DUAL_SLOT
-
 /** Properties are persistent (saved in NVRAM) => a mistake can cause permanent damage. Undefine this for new ports. */
 /** The 5D3 port is young, but... let's give it a try! **/
 #define CONFIG_PROP_REQUEST_CHANGE
@@ -23,6 +20,9 @@
 
 /** This camera has a full-frame sensor */
 #define CONFIG_FULLFRAME
+
+/** This camera has both a CF and an SD slot **/
+#define CONFIG_DUAL_SLOT
 
 /** This camera has LiveView and can record video **/
 #define CONFIG_LIVEVIEW
@@ -96,8 +96,8 @@
 /** This camera has no trouble saving Kelvin and/or WBShift in movie mode **/
 //~ #define CONFIG_WB_WORKAROUND
 
-/** We can't restore ML files after formatting the card in the camera **/
-//~ #define CONFIG_RESTORE_AFTER_FORMAT
+/** We ca restore ML files after formatting the card in the camera **/
+#define CONFIG_RESTORE_AFTER_FORMAT
 
 /** We know how to use DMA_MEMCPY, though I don't see any reason for doing so **/
 /** it's not really faster than plain memcpy, and the side effects are not yet fully understood **/
@@ -106,9 +106,6 @@
 
 /** We know how to use edmac_memcpy. This one is really fast (600MB/s!) */
 #define CONFIG_EDMAC_MEMCPY
-
-/** We know how to use engine resource locks */
-#define CONFIG_ENGINE_RESLOCK
 
 /** We shouldn't warn the user if movie exposure is Auto **/
 //~ #define CONFIG_MOVIE_AE_WARNING
@@ -154,3 +151,6 @@
 
 /** this method bypasses Canon's lv_save_raw and slurps the raw data directly from connection #0 */
 #define CONFIG_EDMAC_RAW_SLURP
+
+/** Hide Canon bottom bar from DebugMsg hook */
+#define CONFIG_LVAPP_HACK_DEBUGMSG

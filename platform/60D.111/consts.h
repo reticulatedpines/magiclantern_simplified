@@ -2,13 +2,11 @@
  *  60D 1.1.1 consts
  */
 
+#define CANON_SHUTTER_RATING 100000
+
 #define CARD_LED_ADDRESS 0xC0220134 // http://magiclantern.wikia.com/wiki/Led_addresses
 #define LEDON 0x46
 #define LEDOFF 0x44
-
-//~ Format dialog consts
-#define FORMAT_BTN "[Q]"
-#define STR_LOC 11
 
 #define HIJACK_INSTR_BL_CSTART  0xFF01019C
 #define HIJACK_INSTR_BSS_END 0xFF0110D0
@@ -47,48 +45,28 @@
 #define YUV422_HD_BUFFER_3 0x48000080
 #define YUV422_HD_BUFFER_4 0x4e000080
 #define YUV422_HD_BUFFER_5 0x50000080
-#define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080 ) // quick check if x looks like a valid HD buffer
 
-#define YUV422_HD_PITCH_IDLE 2112
-#define YUV422_HD_HEIGHT_IDLE 704
 
-#define YUV422_HD_PITCH_ZOOM 2048
-#define YUV422_HD_HEIGHT_ZOOM 680
 
-#define YUV422_HD_PITCH_REC_FULLHD 3440
-#define YUV422_HD_HEIGHT_REC_FULLHD 974
 
 // guess
-#define YUV422_HD_PITCH_REC_720P 2560
-#define YUV422_HD_HEIGHT_REC_720P 580
 
-#define YUV422_HD_PITCH_REC_480P 1280
-#define YUV422_HD_HEIGHT_REC_480P 480
 
 #define FOCUS_CONFIRMATION (*(int*)0x4680)
 #define HALFSHUTTER_PRESSED (*(int*)0x1bdc) // only used to show trap focus status
 //~ #define AF_BUTTON_PRESSED_LV 0
 
-#define DISPLAY_SENSOR_POWERED 0
-
 // for gui_main_task
 #define GMT_NFUNCS 7
 #define GMT_FUNCTABLE 0xFF53D848 // dec gui_main_task
-#define GMT_IDLEHANDLER_TASK (*(int*)0x251c8) // dec create_idleHandler_task
 
-#define MAIN_CTRL_FUNCTBL 0x370d0
 
-#define SENSOR_RES_X 5202
-#define SENSOR_RES_Y 3465
 
-//~ #define FLASH_BTN_MOVIE_MODE ((*(int*)0x14c1c) & 0x40000)
-#define CLK_25FPS 0x1e24c  // this is updated at 25fps and seems to be related to auto exposure
 
 /*
  * From 550D - needs testing / modification
  * START
  */
-#define AJ_LCD_Palette 0x3BFA4
 
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int8_t*)0x5680) == 0xF) || ((*(int8_t*)0x2A434) != 0x17)) // dec CancelBottomInfoDispTimer
 #define LV_BOTTOM_BAR_STATE (*(uint8_t*)0x24BF7) // in JudgeBottomInfoDispTimerState, if bottom bar state is 2, Judge returns 0; ML will make it 0 to hide bottom bar
@@ -110,10 +88,8 @@
 
 #define MVR_FRAME_NUMBER (*(int*)(312 + MVR_968_STRUCT))
 //#define MVR_LAST_FRAME_SIZE (*(int*)(512 + MVR_968_STRUCT))
-#define MVR_BYTES_WRITTEN (*(int*)(280 + MVR_968_STRUCT))
+#define MVR_BYTES_WRITTEN MEM((280 + MVR_968_STRUCT))
 
-#define MOV_REC_STATEOBJ (*(void**)0x5A40)
-#define MOV_REC_CURRENT_STATE *(int*)(MOV_REC_STATEOBJ + 28)
 
 #define MOV_RES_AND_FPS_COMBINATIONS 7
 #define MOV_OPT_NUM_PARAMS 2
@@ -133,19 +109,19 @@
 #define AE_STATE (*(int8_t*)(0x24BBC + 0x1C))
 #define AE_VALUE (*(int8_t*)(0x24BBC + 0x1D))
 
-#define CURRENT_DIALOG_MAYBE_2 MEM(0x5680)
-#define CURRENT_DIALOG_MAYBE MEM(0x3d70) // that's actually GUIMode
+#define CURRENT_GUI_MODE_2 MEM(0x5680)
+#define CURRENT_GUI_MODE MEM(0x3d70) // that's actually GUIMode
 #define DLG2_FOCUS_MODE 0xA
 #define DLG2_DRIVE_MODE 0xB
 #define DLG2_ISO 0xF
 #define DLG2_METERING 0xC
 #define DLG2_AF_POINTS 0xE
 #define DLG2_Q_UNAVI 0x1F
-#define DLG_Q_UNAVI 0x21
-#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_DIALOG_MAYBE == 0x1c)
-#define DLG_MOVIE_PRESS_LV_TO_RESUME (CURRENT_DIALOG_MAYBE == 0x1d)
-#define DLG_PLAY 1
-#define DLG_MENU 2
+#define GUIMODE_Q_UNAVI 0x21
+#define GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_GUI_MODE == 0x1c)
+#define GUIMODE_MOVIE_PRESS_LV_TO_RESUME (CURRENT_GUI_MODE == 0x1d)
+#define GUIMODE_PLAY 1
+#define GUIMODE_MENU 2
 
 
 // trial and error
@@ -154,7 +130,7 @@
 // * optional: send PRESS SET and UNPRESS SET events (if it doesn't, add an exception under EVENT_1)
 // * see LiveView image under menu
 // * go back safely to mode 0 (idle) without side effects (check display, Q menu, keys etc)
-#define GUIMODE_ML_MENU (lv ? 0x45 : 2)
+#define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 0x45 : 2)
 // outside LiveView, Canon menu is a good choice
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
@@ -164,7 +140,6 @@
 #define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && *(int*)0x3d74 == 1)
 #define MENU_MODE (gui_state == GUISTATE_PLAYMENU && *(int*)0x3d74 == 2)
 
-#define BTN_METERING_PRESSED_IN_LV ((*(int*)0x24c0c) & 0x800)
 //~ 308f4 & 0x10000
 //~ 24bd0 & 0x80000
 
@@ -211,12 +186,7 @@
 #define DISPLAY_TRAP_FOCUS_MSG_BLANK "          "
 
 #define NUM_PICSTYLES 9
-#define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
 
-#define MOVIE_MODE_REMAP_X SHOOTMODE_C
-#define MOVIE_MODE_REMAP_Y SHOOTMODE_CA
-#define MOVIE_MODE_REMAP_X_STR "C"
-#define MOVIE_MODE_REMAP_Y_STR "CA"
 
 #define FLASH_MAX_EV 3
 #define FLASH_MIN_EV -10
@@ -226,6 +196,9 @@
 
 #define DIALOG_MnCardFormatBegin   (0x3031c+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x35290+4) // similar
+#define FORMAT_BTN_NAME "[Q]"
+#define FORMAT_BTN BGMT_Q
+#define FORMAT_STR_LOC 11
 
 #define BULB_MIN_EXPOSURE 500
 
@@ -234,7 +207,6 @@
 #define BFNT_BITMAP_OFFSET 0xff7b4644 // right after character codes (when numbers no longer increase)
 #define BFNT_BITMAP_DATA   0xFF7B6CD0 // these 3 codes are spaced equally, so do the math :)
 
-#define DLG_SIGNATURE 0x006e4944 // just print it
 
 // from CFn
 #define AF_BTN_HALFSHUTTER 0
@@ -292,4 +264,4 @@
 
 // temperature convertion from raw-temperature to celsius
 // http://www.magiclantern.fm/forum/index.php?topic=9673.0
-#define EFIC_CELSIUS ((int)efic_temp - 128)
+#define EFIC_CELSIUS ((int)efic_temp * 80 / 100 - 93)

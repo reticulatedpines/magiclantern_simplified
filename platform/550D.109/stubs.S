@@ -53,9 +53,9 @@ NSTUB(   0x15094,  additional_version)
 NSTUB(0xFF1C69EC,  FIO_CloseFile)
 NSTUB(0xFF1C7934,  FIO_FindClose)                           // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
 NSTUB(0xFF1C7854,  FIO_FindNextEx)
-NSTUB(0xFF1C679C,  FIO_ReadFile)
-NSTUB(0xFF1C691C,  FIO_SeekFile)
-NSTUB(0xFF1C693C,  FIO_WriteFile)
+NSTUB(0xFF1C679C, _FIO_ReadFile)
+NSTUB(0xFF1C684C,  FIO_SeekSkipFile)
+NSTUB(0xFF1C693C, _FIO_WriteFile)
 NSTUB(0xFF1C71A0, _FIO_CreateDirectory)
 NSTUB(0xFF1C6648, _FIO_CreateFile)
 NSTUB(0xFF1C7760, _FIO_FindFirstEx)
@@ -81,13 +81,15 @@ NSTUB(0xFF093108,  gui_massive_event_loop)                  // GUI_Control_Post
 /** ASIF **/
 NSTUB(0xFF064114,  PowerAudioOutput)
 NSTUB(0xFF063EA8,  SetAudioVolumeOut)
+NSTUB(0xFF052088,  SetNextASIFADCBuffer)
 NSTUB(0xFF0521CC,  SetNextASIFDACBuffer)
 NSTUB(0xFF06419C,  SetSamplingRate)
 NSTUB(0xFF051950,  StartASIFDMAADC)
 NSTUB(0xFF051AFC,  StartASIFDMADAC)
 NSTUB(0xFF051BD0,  StopASIFDMADAC)
+// NSTUB(    ???,  PowerMicAmp)                             /* present on 650D.104, EOSM.202, 700D.113 */
+// NSTUB(    ???,  SetASIFMode)                             /* present on 700D.113 */
 // NSTUB(    ???,  SetAudioVolumeIn)                        /* present on 6D.113 */
-// NSTUB(    ???,  SetNextASIFADCBuffer)                    /* present on 7D.203, 500D.111, 60D.111, 6D.113, 5D3.113, 5D2.212, 600D.102, 650D.104, 1100D.105, EOSM.202, 700D.113 */
 // NSTUB(    ???,  SoundDevActiveIn)                        /* present on 7D.203, 6D.113, 650D.104, EOSM.202, 700D.113 */
 // NSTUB(    ???,  SoundDevShutDownIn)                      /* present on 7D.203, 6D.113, 650D.104, EOSM.202, 700D.113 */
 // NSTUB(    ???,  StopASIFDMAADC)                          /* present on 7D.203, 6D.113, EOSM.202 */
@@ -99,6 +101,7 @@ NSTUB(0xFF063BF4, _audio_ic_write)
 NSTUB(0xFF4C466C,  audio_thresholds)                        // after ptr to "ALVFactorySemSignature"
 NSTUB(0xFF0537D4,  sounddev_active_in)
 NSTUB(0xFF05346C,  sounddev_task)
+// NSTUB(    ???, _audio_ic_write_bulk)                     /* present on 6D.116 */
 
 /** Bitmap **/
 NSTUB(   0x2CDB0,  LCD_Palette)                             // in InitializeBitmapDisplayDevice, right after 0xc0f14800
@@ -148,6 +151,7 @@ NSTUB(0xFF2CFAB4,  NormalDisplay)
 NSTUB(0xFF2CFA84,  ReverseDisplay)
 
 /** EDMAC **/
+NSTUB(0xFF1C0378,  AbortEDmac)
 NSTUB(0xFF1C00C0,  ConnectReadEDmac)
 NSTUB(0xFF1BFFFC,  ConnectWriteEDmac)
 NSTUB(0xFF1C0440,  RegisterEDmacAbortCBR)
@@ -178,14 +182,18 @@ NSTUB(0xFF068178,  call)
 // NSTUB(    ???,  TryPostStageEvent_end)                   /* present on 6D.113, 650D.104, EOSM.202, 700D.113 */
 
 /** ExMem **/
+NSTUB(0xFF06C918,  AddMemoryChunk)
 NSTUB(0xFF06F424,  AllocateContinuousMemoryResource)        // m_pfContAllocMemoryCBR
 NSTUB(0xFF06F3D8,  AllocateMemoryResource)                  // m_pfAllocMemoryCBR
+NSTUB(0xFF06BEC8,  CreateMemoryChunk)
+NSTUB(0xFF06C678,  CreateMemorySuite)
+NSTUB(0xFF06C4A8,  DeleteMemorySuite)
 NSTUB(0xFF06F53C,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 NSTUB(0xFF06C9EC,  GetFirstChunkFromSuite)                  // AJ_PackMemory_PackMem_p3
 NSTUB(0xFF06C434,  GetMemoryAddressOfMemoryChunk)           // AJ_PackMemory_PackMem.c_IsChunkSignature
 NSTUB(0xFF06D184,  GetNextMemoryChunk)                      // AJ_PackMemory_PackMem.c_IsChunkSignature_p2
-// NSTUB(    ???,  CreateMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
-// NSTUB(    ???,  DeleteMemorySuite)                       /* present on 6D.113, 5D3.113, 650D.104, EOSM.202, 700D.113 */
+NSTUB(0xFF028590,  SRM_AllocateMemoryResourceFor1stJob)
+NSTUB(0xFF02AD5C,  SRM_FreeMemoryResourceFor1stJob)
 
 /** GUI for old cameras **/
 NSTUB(    0x3AC8,  gui_timer_struct)                        // in GUI_Control_Post
@@ -197,6 +205,13 @@ NSTUB(0xFF095728,  gui_other_post)
 // NSTUB(    ???,  gui_init_event)                          /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  gui_post_10000085)                       /* present on 500D.111, 50D.109, 5D2.212 */
 // NSTUB(    ???,  gui_timer_something)                     /* present on 7D.203, 500D.111, 50D.109, 5D2.212 */
+
+/** GUI timers **/
+NSTUB(0xFF3050A4,  CancelDateTimer)                         /* present on 7D.203, 6D.113, 5D3.113 */
+NSTUB(0xFF070C60,  CancelTimer)                             /* present on 650D.104 */
+NSTUB(0xFF068BB8,  SetHPTimerAfterNow)
+NSTUB(0xFF068C38,  SetHPTimerNextTick)
+NSTUB(0xFF070A60,  SetTimerAfter)
 
 /** H264 Encoder **/
 NSTUB(    0x67BC,  mvr_config)
@@ -219,6 +234,7 @@ NSTUB(0xFF07C6A0,  DispSensorStart)
 NSTUB(   0x26258,  cf_device)                               // in cfReadBlk
 NSTUB(   0x26284,  sd_device)                               // in sdReadBlk
 NSTUB(0xFF386714,  fsuDecodePartitionTable)
+// NSTUB(    ???,  cf_device_ptr)                           /* present on 5D3.113 */
 
 /** Memory allocation **/
 NSTUB(0xFF06B014,  GetMemoryInformation)                    // called from AllocateMemory
@@ -242,7 +258,6 @@ NSTUB(0xFF250BF0,  ptp_register_handler)
 // NSTUB(    ???,  ptpPropSetUILock)                        /* present on 650D.104, 700D.113 */
 
 /** Properties **/
-NSTUB(0xFF058284,  PROPAD_GetPropertyData)
 NSTUB(0xFF0575C0, _prop_cleanup)
 NSTUB(0xFF056E38, _prop_request_change)
 NSTUB(0xFF057418,  prop_deliver)
@@ -252,6 +267,7 @@ NSTUB(0xFF0574A0,  prop_register_slave)                     // called by"GUI_Reg
 /** RPC (for 7D) **/
 // NSTUB(    ???,  BulkInIPCTransfer)                       /* present on 7D.203 */
 // NSTUB(    ???,  BulkOutIPCTransfer)                      /* present on 7D.203 */
+// NSTUB(    ???,  QuickOutIPCTransfer)                     /* present on 7D.203 */
 // NSTUB(    ???,  RegisterRPCHandler)                      /* present on 7D.203, 7D_MASTER.203 */
 // NSTUB(    ???,  RequestRPC)                              /* present on 7D.203, 7D_MASTER.203 */
 
@@ -261,9 +277,9 @@ NSTUB(0xFF06E358,  CreateRecursiveLock)
 NSTUB(0xFF1D2FBC,  ReleaseRecursiveLock)
 
 /** ResLock **/
-// NSTUB(    ???,  CreateResLockEntry)                      /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 650D.104, 1100D.105, EOSM.202, 700D.113 */
-// NSTUB(    ???,  LockEngineResources)                     /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 650D.104, 1100D.105, EOSM.202, 700D.113 */
-// NSTUB(    ???,  UnLockEngineResources)                   /* present on 7D.203, 60D.111, 6D.113, 5D3.113, 50D.109, 650D.104, 1100D.105, EOSM.202, 700D.113 */
+NSTUB(0xFF1C4074,  CreateResLockEntry)
+NSTUB(0xFF1C4A34,  LockEngineResources)
+NSTUB(0xFF1C46F8,  UnLockEngineResources)
 
 /** Semaphores **/
 NSTUB(0xFF069D10,  create_named_semaphore)
@@ -272,9 +288,9 @@ NSTUB(0xFF069E70,  take_semaphore)
 
 /** Task info **/
 NSTUB(    0x3080,  task_max)
-NSTUB(0xFF016B8C,  get_current_task)                        // called from AJ_armlib_setup_related3
-NSTUB(0xFF079CE4,  get_obj_attr)                            // AJ_checks_if_Process_id_created_by_Dryos
 NSTUB(0xFF2E9AB0,  is_taskid_valid)                         // AJ_task_trampoline_related_p10
+NSTUB(    0x1A20,  current_task)
+NSTUB(     0x674,  current_interrupt)                       // in interrupt handler (0x18), where MEM(C0201004) is stored
 
 /** Task sleep **/
 NSTUB(0xFF06A344,  msleep)                                  // called from EV_GETDONE_CACHE param 0x64
@@ -293,6 +309,7 @@ NSTUB(0xFF1D6638,  vsnprintf)
 //NSTUB(0xFF2FEA48, ChangeHDMIOutputSizeToFULLHD)
 //NSTUB(0xFF2FECB0, ChangeHDMIOutputSizeToVGA)
 // NSTUB(    ???,  EnableImagePhysicalScreenParameter)      /* present on 7D.203, 50D.109, 5D2.212 */
+// NSTUB(    ???,  FSUunMountDevice)                        /* present on 5D3.113 */
 // NSTUB(    ???,  PtpDps_remote_release_SW1_SW2_worker)    /* present on 7D.203, 5D2.212 */
 // NSTUB(    ???,  memcpy)                                  /* present on 7D_MASTER.203 */
 
@@ -301,11 +318,11 @@ NSTUB(0xFF1D6638,  vsnprintf)
 ///NSTUB(0xFF1D8A3C,  AJ_UserLevel_task)
 ///NSTUB( 0xFF2DF554, AJ_guess_LED_OFF )
 ///NSTUB( 0xFF2DF524, AJ_guess_LED_ON )
-///NSTUB([idk], AbortEDmac)
 ///NSTUB(0xFF3026F8,  CancelBottomInfoDispTimer)
 ///NSTUB(0xFF31CFCC,  ChangeColorPalette)
 ///NSTUB(0xFF2B5EEC,  CreateDialogBox)
 ///NSTUB(0xFF2B5890,  DeleteDialogBox)
+///NSTUB(0xFF1C691C,  FIO_SeekFile)
 ///NSTUB(0xFF020760,  GUI_CONTROL)
 ///NSTUB(0xFF20CBB0,  GUI_GetFirmVersion)
 ///NSTUB(0xFF204C8C,  GUI_SetElectricShutter)
@@ -318,6 +335,7 @@ NSTUB(0xFF1D6638,  vsnprintf)
 ///NSTUB(0xFF1C9860,  MuteOn_0)
 ///NSTUB(0xFF03B8EC, PD_GetBatteryPower) not safe to call
 ///NSTUB(0xFF03B3D8,  PD_RemoteRelease)
+///NSTUB(0xFF058284,  PROPAD_GetPropertyData)
 ///NSTUB(0xFF057654,  PROP_GetMulticastProperty)
 ///NSTUB(0xFF064EB8,  PlayWaveData)                            // args: sampling rate, bit, channel, size maybe; wav data ptr is at 0x26F8
 ///NSTUB(0xFF1C042C,  PopEDmac)

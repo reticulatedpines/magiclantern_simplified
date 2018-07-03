@@ -14,6 +14,7 @@
 #include "histogram.h"
 #include "fileprefix.h"
 #include "module.h"
+#include "console.h"
 
 static CONFIG_INT("post.deflicker", post_deflicker, 0);
 static CONFIG_INT("post.deflicker.sidecar", post_deflicker_sidecar_type, 1);
@@ -80,7 +81,7 @@ static void post_deflicker_save_sidecar_file(int type, char* photo_filename, flo
     snprintf(sidecar, sizeof(sidecar), "%s/%s.%s", dir, basename, type ? "UFR" : "XMP");
 
     FILE* f = FIO_CreateFile(sidecar);
-    if (f == INVALID_PTR) return;
+    if (!f) return;
     if (type == 0)
     {
         /* not sure */
@@ -109,6 +110,13 @@ static void post_deflicker_save_sidecar_file_for_cr2(int type, int file_number, 
     post_deflicker_save_sidecar_file(type, fn, ev);
 }
 
+static float raw_to_ev_custom(int raw, int white_level)
+{
+    int raw_max = white_level - raw_info.black_level;
+    float raw_ev = -log2f(raw_max) + log2f(COERCE(raw - raw_info.black_level, 1, raw_max));
+    return raw_ev;
+}
+
 static void post_deflicker_task()
 {
     /* not quite correct in burst mode, but at least only one task will run at a time */
@@ -118,7 +126,7 @@ static void post_deflicker_task()
     deflicker_waiting--;
     
     int raw_fast = raw_hist_get_percentile_level(post_deflicker_percentile*10, GRAY_PROJECTION_GREEN, 4);
-    //~ console_printf("fast deflick: %d\n", raw_fast);
+    //~ printf("fast deflick: %d\n", raw_fast);
     int raw = raw_fast;
         
     /* no rush? do a precise deflicker */
@@ -130,10 +138,10 @@ static void post_deflicker_task()
     if (!deflicker_waiting)
     {
         int raw_precise = raw_hist_get_percentile_level(post_deflicker_percentile*10, GRAY_PROJECTION_GREEN, 0);
-        //~ console_printf("precise deflick: %d\n", raw_precise);
+        //~ printf("precise deflick: %d\n", raw_precise);
         if (raw_precise > 0 && raw_precise < 16384) raw = raw_precise;
     }
-    //~ else console_printf("hurry, hurry\n");
+    //~ else printf("hurry, hurry\n");
     
     if (raw <= 0 || raw >= 16384)
     {
@@ -141,11 +149,16 @@ static void post_deflicker_task()
         give_semaphore(deflicker_sem);
         return;
     }
-    float ev = raw_to_ev(raw);
+    
+    /* assume a fixed white level, like most raw image processors do */
+    /* any value around 15000 will do (the effect of changing it would be a small shift in exposure, same amount in all images) */
+    /* without this, variations in the the default (autodetected) white level will introduce flicker */
+    float ev = raw_to_ev_custom(raw, 15000);
+
     float correction = post_deflicker_target_level - ev;
     deflicker_last_correction_x100 = (int)roundf(correction * 100);
 
-    console_printf("deflick corr: %s%d.%02d\n", FMT_FIXEDPOINT2S(deflicker_last_correction_x100));
+    printf("deflick corr: %s%d.%02d\n", FMT_FIXEDPOINT2S(deflicker_last_correction_x100));
     post_deflicker_save_sidecar_file_for_cr2(post_deflicker_sidecar_type, get_shooting_card()->file_number, correction);
     give_semaphore(deflicker_sem);
 }
@@ -180,7 +193,7 @@ static MENU_UPDATE_FUNC(post_deflicker_update)
     }
     
     if (post_deflicker && post_deflicker_sidecar_type==1)
-        MENU_SET_WARNING(MENU_WARN_INFO, "You must rename *.UFR to *.ufraw: rename 's/UFR$/ufraw' *");
+        MENU_SET_WARNING(MENU_WARN_INFO, "You must rename *.UFR to *.ufraw: rename 's/UFR$/ufraw/' *");
 }
 
 PROP_HANDLER(PROP_GUI_STATE)
@@ -216,7 +229,7 @@ static struct menu_entry post_deflicker_menu[] = {
                 .min = 20,
                 .max = 80,
                 .unit = UNIT_PERCENT,
-                .help  = "Where to meter for deflickering. Recommended: 50% (median).",
+                .help  = "Where to meter for deflicking. Recommended: 50% (median).",
                 .help2 = "Try 75% if you get black borders (e.g. Samyang 8mm on 5D).",
             },
             {
@@ -225,7 +238,8 @@ static struct menu_entry post_deflicker_menu[] = {
                 .min = -8,
                 .max = -1,
                 .choices = CHOICES("-8 EV", "-7 EV", "-6 EV", "-5 EV", "-4 EV", "-3 EV", "-2 EV", "-1 EV"),
-                .help = "Desired exposure level for processed pics. 0=overexposed.",
+                .help = "Where to place the exposure level for processed pics",
+                .help2 = "EV below overexposure.",
             },
             MENU_EOL,
         },

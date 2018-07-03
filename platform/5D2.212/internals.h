@@ -126,3 +126,10 @@
 /** We have access to raw data in both photo mode and in LiveView */
 #define CONFIG_RAW_PHOTO
 #define CONFIG_RAW_LIVEVIEW
+
+/** LV RAW has trouble with 10x zoom, disable it */
+#define CONFIG_RAW_DISABLE_IN_10X_ZOOM
+#define CONFIG_RAW_DISABLE_IN_10X_ZOOM_WEAK
+
+/** Use joystick for one-finger menu navigation */
+#define CONFIG_JOY_CENTER_ACTIONS

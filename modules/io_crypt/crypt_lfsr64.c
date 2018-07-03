@@ -111,18 +111,47 @@ static void update_key(lfsr64_ctx_t *ctx, uint32_t offset, uint32_t force)
         //trace_write(iocrypt_trace_ctx, "update_key: forced update");
     }
     
+#define INCREMENTAL
+
+#if defined(INCREMENTAL)
+    if(ctx->current_block < block)
+    {
+        while(ctx->current_block < block)
+        {
+            crypt_lfsr64_clock(ctx, 64);
+            ctx->current_block++;
+        }
+    }
+    else
+    {
+        ctx->lfsr_state = ctx->lfsr_init;
+        ctx->current_block = 0;
+        
+        while(ctx->current_block < block)
+        {
+            crypt_lfsr64_clock(ctx, 64);
+            ctx->current_block++;
+        }
+    }
+#else
     ctx->current_block = block;
     
-    /* first initialize LFSR with base key and block */
-    ctx->lfsr_state = ctx->password ^ block;
-    crypt_lfsr64_clock(ctx, 111);
+    uint32_t block_mask = block;
+    block_mask ^= block_mask << 8;
+    block_mask ^= block_mask << 16;
+    block_mask ^= block_mask << 32;
     
-    /* then update it with the file offset again and shift by an amount based on file offset */
-    ctx->lfsr_state ^= block;
-    crypt_lfsr64_clock(ctx, (11 * block) % 16);
-    
-    /* mask it again */
-    ctx->lfsr_state ^= ctx->password;
+    /* first initialize LFSR with base key and modify with block number */
+    ctx->lfsr_state = ctx->lfsr_init;
+
+    /* shuffle again a few times */
+    ctx->lfsr_state ^= block_mask;
+    crypt_lfsr64_clock(ctx, (block & 0x03) + 5);
+    ctx->lfsr_state ^= ctx->lfsr_init;
+    crypt_lfsr64_clock(ctx, ((ctx->lfsr_state >> 23) & 0x03) + 5);
+    ctx->lfsr_state ^= block_mask;
+    crypt_lfsr64_clock(ctx, ((ctx->lfsr_state >> 21) & 0x07) + 16);
+#endif
     
     trace_write(iocrypt_trace_ctx, "update_key: offset 0x%08X, password: 0x%08X%08X, key: 0x%08X%08X", offset, (uint32_t)(ctx->password>>32), (uint32_t)ctx->password, (uint32_t)(ctx->lfsr_state>>32), (uint32_t)ctx->lfsr_state);
     
@@ -333,8 +362,16 @@ void crypt_lfsr64_init(crypt_cipher_t *crypt_ctx, uint64_t password)
     
     /* initialize to default values */
     ctx->password = password;
-    crypt_lfsr64_reset(ctx);
     
+    /* shift the password into the LFSR */
+    ctx->lfsr_state = ctx->password;
+    crypt_lfsr64_clock(ctx, 1024);
+    crypt_lfsr64_clock(ctx, ctx->lfsr_state & 0xFF);
+    ctx->lfsr_init = ctx->lfsr_state;
+    
+    trace_write(iocrypt_trace_ctx, "password: 0x%08X%08X, init-key: 0x%08X%08X", (uint32_t)(ctx->password>>32), (uint32_t)ctx->password, (uint32_t)(ctx->lfsr_state>>32), (uint32_t)ctx->lfsr_state);
+    
+    crypt_lfsr64_reset(ctx);
     trace_write(iocrypt_trace_ctx, "crypt_lfsr64_init: initialized");
 }
 

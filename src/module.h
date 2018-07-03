@@ -1,18 +1,21 @@
 #ifndef _module_h_
 #define _module_h_
 
+#include <stdint.h>
+
 #define MODULE_PATH                   "ML/MODULES/"
 
 /* module info structures */
 #define MODULE_INFO_PREFIX            __module_info_
 #define MODULE_STRINGS_PREFIX         __module_strings_
-#define MODULE_PARAMS_PREFIX          __module_params_
 #define MODULE_PROPHANDLERS_PREFIX    __module_prophandlers_
 #define MODULE_CBR_PREFIX             __module_cbr_
 #define MODULE_CONFIG_PREFIX          __module_config_
 #define MODULE_PROPHANDLER_PREFIX     __module_prophandler_
 
-#define MODULE_STRINGS_SECTION        __attribute__ ((section(".module_strings")))
+#define MODULE_STRINGS_SECTION        __attribute__ ((section(".module_strings"),unused))
+#define MODULE_HGDIFF_SECTION         __attribute__ ((section(".module_hgdiff")))
+#define MODULE_HGINFO_SECTION         __attribute__ ((section(".module_hginfo")))
 
 #define MODULE_MAGIC                  0x5A
 #define STR(x)                        STR_(x)
@@ -20,11 +23,12 @@
 
 #define MODULE_COUNT_MAX              32
 #define MODULE_NAME_LENGTH            8
-#define MODULE_FILENAME_LENGTH        64
-#define MODULE_STATUS_LENGTH          64
-
+#define MODULE_FILENAME_LENGTH        31    /* A:/ML/MODULES/8_3_name.mo */
+#define MODULE_STATUS_LENGTH          7     /* longest is FileErr */
+#define MODULE_LONG_STATUS_LENGTH     63
 
 /* some callbacks that may be needed by modules. more to come. ideas? needs? */
+#define CBR_NAMED                     0x8000 /* named CBR using ml-cbr */
 #define CBR_PRE_SHOOT                 1 /* called before image is taken */
 #define CBR_POST_SHOOT                2 /* called after image is taken */
 #define CBR_SHOOT_TASK                3 /* called periodically from shoot task */
@@ -50,6 +54,9 @@
 
 #define CBR_CUSTOM_PICTURE_TAKING    11 /* special types of picture taking (e.g. silent pics); so intervalometer and other photo taking routines should use that instead of regular pics */
 #define CBR_INTERVALOMETER           12 /* called after a picture is taken with the intervalometer */
+#define CBR_CONFIG_SAVE              13 /* called when ML configs are being saved */
+
+#define CBR_RAW_INFO_UPDATE          14 /* called after raw_info is updated successfully */
 
 /* return values from CBRs */
 #define CBR_RET_CONTINUE              0             /* keep calling other CBRs of the same type */
@@ -96,13 +103,13 @@
 #define MODULE_KEY_TOUCH_2_FINGER          (37)
 #define MODULE_KEY_UNTOUCH_2_FINGER        (38)
 
-
+int module_translate_key(int key, int dest);
 #define MODULE_KEY_CANON     0
 #define MODULE_KEY_PORTABLE  1
 
 
 /* update major if older modules will *not* be compatible */
-#define MODULE_MAJOR 5
+#define MODULE_MAJOR 6
 /* update minor if older modules will be compatible, but newer module will not run on older magic lantern versions */
 #define MODULE_MINOR 0
 /* update patch if nothing regarding to compatibility changes */
@@ -126,19 +133,6 @@ typedef struct
     unsigned int (*init) ();
     unsigned int (*deinit) ();
 } module_info_t;
-
-/* modules can have parameters - optional */
-typedef struct
-{
-    /* pointer to parameter in memory */
-    const void *parameter;
-    /* stringified type like "uint32_t", "int32_t". restrict to stdint.h types */
-    const char *type;
-    /* name of the parameter, must match to variable name */
-    const char *name;
-    /* description for the user */
-    const char *desc;
-} module_parminfo_t;
 
 /* this struct supplies additional information like license, author etc - optional */
 typedef struct
@@ -168,7 +162,7 @@ typedef struct
 typedef struct
 {
     const char *name;
-    void (*handler)(unsigned int property, void * priv, void * addr, unsigned int len);
+    void (*handler)(unsigned int property, void * priv, uint32_t * addr, unsigned int len);
     const unsigned int property;
     const unsigned int property_length;
 } module_prophandler_t;
@@ -181,10 +175,9 @@ typedef struct
     char filename[MODULE_FILENAME_LENGTH+1];
     char long_filename[MODULE_FILENAME_LENGTH+1];
     char status[MODULE_STATUS_LENGTH+1];
-    char long_status[MODULE_STATUS_LENGTH+1];
+    char long_status[MODULE_LONG_STATUS_LENGTH+1];
     module_info_t *info;
     module_strpair_t *strings;
-    module_parminfo_t *params;
     module_prophandler_t **prop_handlers;
     module_cbr_t *cbr;
     module_config_t *config;
@@ -206,11 +199,12 @@ typedef struct
 #define MODULE_INIT(func)                                           .init = &func,
 #define MODULE_DEINIT(func)                                         .deinit = &func,
 #define MODULE_LONGNAME(name)                                       .long_name = name,
-#define MODULE_CB_SHOOT_TASK(func)                                  .cb_shoot_task = &func,
-#define MODULE_CB_PRE_SHOOT(func)                                   .cb_pre_shoot = &func,
-#define MODULE_CB_POST_SHOOT(func)                                  .cb_post_shoot = &func,
-#define MODULE_INFO_END()                                       };
-                                                                
+#define MODULE_INFO_END()                                       }; \
+    MODULE_STRINGS();
+/* ^^^ module strings are auto-included after the info block
+ * => they end up only in the file that defines module info.
+ */
+                              
 #define MODULE_STRINGS_START()                                  MODULE_STRINGS_START_(MODULE_STRINGS_PREFIX,MODULE_NAME)
 #define MODULE_STRINGS_START_(prefix,modname)                   MODULE_STRINGS_START__(prefix,modname)
 #define MODULE_STRINGS_START__(prefix,modname)                  module_strpair_t prefix##modname[] MODULE_STRINGS_SECTION = {
@@ -220,7 +214,8 @@ typedef struct
 #define MODULE_CBRS_START()                                     MODULE_CBRS_START_(MODULE_CBR_PREFIX,MODULE_NAME)
 #define MODULE_CBRS_START_(prefix,modname)                      MODULE_CBRS_START__(prefix,modname)
 #define MODULE_CBRS_START__(prefix,modname)                     module_cbr_t prefix##modname[] = {
-#define MODULE_CBR(cb_type,cbr,context)                         { .name = #cb_type, .symbol = #cbr, .type = cb_type, .handler = cbr, .ctx = context },
+#define MODULE_CBR(cb_type,cbr,context)                         { .name = #cb_type, .symbol = #cbr, .type = cb_type,   .handler = cbr, .ctx = context },
+#define MODULE_NAMED_CBR(cb_name,cbr)                           { .name = cb_name,  .symbol = #cbr, .type = CBR_NAMED, .handler = (void*)cbr, .ctx = 0       },
 #define MODULE_CBRS_END()                                           { (void *)0, (void *)0, 0, (void *)0, 0 }\
                                                                 };
                                                             
@@ -231,13 +226,6 @@ typedef struct
 #define MODULE_CONFIGS_END()                                        { (void *)0, (void *)0 }\
                                                                 };
                                                                 
-#define MODULE_PARAMS_START()                                   MODULE_PARAMS_START_(MODULE_PARAMS_PREFIX,MODULE_NAME)
-#define MODULE_PARAMS_START_(prefix,modname)                    MODULE_PARAMS_START__(prefix,modname)
-#define MODULE_PARAMS_START__(prefix,modname)                   module_parminfo_t prefix##modname[] = {
-#define MODULE_PARAM(var,typestr,descr)                             { .parameter = &var, .name = #var, .type = typestr, .desc = descr },
-#define MODULE_PARAMS_END()                                         { (void *)0, (const char *)0, (const char *)0, (const char *)0 }\
-                                                                };
-
 #define MODULE_PROPHANDLERS_START()                             MODULE_PROPHANDLERS_START_(MODULE_PROPHANDLERS_PREFIX,MODULE_NAME,MODULE_PROPHANDLER_PREFIX)
 #define MODULE_PROPHANDLERS_START_(prefix,modname,ph_prefix)    MODULE_PROPHANDLERS_START__(prefix,modname,ph_prefix)
 #define MODULE_PROPHANDLERS_START__(prefix,modname,ph_prefix)   module_prophandler_t *prefix##modname[] = {
@@ -250,7 +238,7 @@ typedef struct
 #if defined(MODULE)
 #define PROP_HANDLER(id)                                        MODULE_PROP_ENTRY_(MODULE_PROPHANDLER_PREFIX,MODULE_NAME, id, #id)
 #define MODULE_PROP_ENTRY_(prefix,modname,id,idstr)             MODULE_PROP_ENTRY__(prefix,modname,id,idstr)
-#define MODULE_PROP_ENTRY__(prefix,modname,id,idstr)            void prefix##modname##_##id(unsigned int, void *, void *, unsigned int);\
+#define MODULE_PROP_ENTRY__(prefix,modname,id,idstr)            void prefix##modname##_##id(unsigned int, void *, uint32_t *, unsigned int);\
                                                                 module_prophandler_t prefix##modname##_##id##_block = { \
                                                                     .name            = idstr, \
                                                                     .handler         = &prefix##modname##_##id, \
@@ -260,9 +248,16 @@ typedef struct
                                                                 void prefix##modname##_##id( \
                                                                         unsigned int property, \
                                                                         void *       token, \
-                                                                        void *       buf, \
+                                                                        uint32_t *   buf, \
                                                                         unsigned int len \
                                                                 )
+
+#define PROP_INT(id,name) \
+volatile uint32_t name; \
+PROP_HANDLER(id) { \
+        name = buf[0]; \
+}
+
 #endif
 
 
@@ -275,6 +270,11 @@ void *module_load(char *filename);
 int module_exec(void *module, char *symbol, int count, ...);
 int module_unload(void *module);
 unsigned int module_get_symbol(void *module, char *symbol);
+
+/* those are used by e.g. mlv_lite to surf the loaded modules and their versions */
+int module_get_next_loaded(int mod_number);
+const char* module_get_string(int mod_number, const char* name);
+const char* module_get_name(int mod_number);
 
 /* execute all callback routines of given type. maybe it will get extended to support varargs */
 int module_exec_cbr(unsigned int type);
@@ -307,7 +307,8 @@ struct module_symbol_entry
     void** address;
 };
 
-/* for module routines that may be called from core
+/* 
+ * For module routines that may be called from core:
  *
  * usage:
  * static void(*auto_ettr_intervalometer_wait)(void) = MODULE_FUNCTION(auto_ettr_intervalometer_wait);
@@ -317,6 +318,9 @@ struct module_symbol_entry
  * static void(*foobar)(int, int) = MODULE_SYMBOL(do_foobar, default_function)
  * 
  * All module symbols are updated after modules are loaded.
+ * 
+ * You **MUST** declare these symbols static.
+ * If you don't, the error will only be detected at runtime, if no modules are loaded.
  */
 
 #define MODULE_SYMBOL(NAME, DEFAULT_ADDRESS) \

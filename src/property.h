@@ -81,6 +81,7 @@
 #define PROP_LV_FOCUS_STOP      0x80050003 // LVCAF_LensDriveStop
 #define PROP_LV_FOCUS_BAD       0x80050029 // true if camera couldn't focus?
 #define PROP_LV_FOCUS_STATE     0x80050009 // 1 OK, 101 bad, 201 not done?
+#define PROP_LV_FOCUS_STATUS    0x80050023 // 1 = idle, 3 = focusing in LiveView
 #define PROP_LV_FOCUS_CMD       0x80050027 // 3002 = full speed, 4/5 = slow, 6 = fine tune?
 #define PROP_LV_FOCUS_DATA      0x80050026 // 8 integers; updates quickly when AF is active
 #define PROP_LVAF_0003          0x80050003
@@ -95,8 +96,6 @@
 #define PROP_LV_FOCAL_DISTANCE 0x80050045
 #endif
 
-#define PROP_APERTURE2          0x8000002d
-#define PROP_APERTURE3          0x80000036
 #define PROP_LIVE_VIEW_VIEWTYPE 0x80000034
 
 #define PROP_MODE               0x80000001 // maybe; set in FA_DISP_COM
@@ -127,8 +126,7 @@
     #define DRIVE_CONTINUOUS 1
 #endif
 #define PROP_SHUTTER            0x80000005
-#define PROP_SHUTTER_ALSO       0x8000002c
-#define PROP_SHUTTER_RANGE		0x80000035 // Len=4, 6D:100098 30" & 1/4k
+#define PROP_SHUTTER_RANGE      0x80000035 // Len=4, 6D:100098 30" & 1/4k
 #define PROP_APERTURE           0x80000006
 #define PROP_ISO                        0x80000007
 #ifndef CONFIG_NO_AUTO_ISO_LIMITS
@@ -136,7 +134,12 @@
 #endif
 #define PROP_AE                         0x80000008 // signed 8-bit value
 #define PROP_UILOCK                     0x8000000b // maybe?
+
 #define PROP_ISO_AUTO           0x8000002E // computed by AUTO ISO if PROP_ISO is 0; otherwise, equal to PROP_ISO; in movie mode, is 0 unless you half-press shutter
+#define PROP_SHUTTER_AUTO       0x8000002c // computed in Av mode
+#define PROP_APERTURE_AUTO      0x8000002d // computed in Tv mode
+
+#define PROP_APERTURE3          0x80000036
 
 #define PROP_SHUTTER_RELEASE    0x8003000A
 #define PROP_AVAIL_SHOT         0x80030005
@@ -157,7 +160,6 @@
 #define PROP_LV_OUTPUT_DEVICE   0x80050011      // 1 == LCD?
 #define PROP_HOUTPUT_TYPE       0x80030030      // 0 = no info displayed in LV, 1 = info displayed (this is toggled with DISP)
 #define PROP_MIRROR_DOWN        0x8005001C
-#define PROP_LV_EXPSIM          0x80050023
 #define PROP_MYMENU_LISTING     0x80040009
 
 #define PROP_LV_MOVIE_SELECT    0x8004001C      // 0=DisableMovie, 1=? or 2=EnableMovie
@@ -200,13 +202,14 @@
 #define DATE_FORMAT_DD_MM_YYYY 	2
 
 #define PROP_ICU_UILOCK         0x80020009
-#define UILOCK_NONE       0x41000000
-#define UILOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL 0x4100014f
-#define UILOCK_EVERYTHING 0x4100017f
-#define UILOCK_SHUTTER    0x41000001
-#define UILOCK_ARROWS     0x41000008
-#define UILOCK_MODE_DIAL  0x41000010
-#define UILOCK_POWER_SW   0x41000020
+#define UILOCK_REQUEST    0x41000000
+#define UILOCK_NONE       0x0000
+#define UILOCK_EVERYTHING_EXCEPT_POWEROFF_AND_MODEDIAL 0x014f
+#define UILOCK_EVERYTHING 0x017f
+#define UILOCK_SHUTTER    0x0001
+#define UILOCK_ARROWS     0x0008
+#define UILOCK_MODE_DIAL  0x0010
+#define UILOCK_POWER_SW   0x0020
 
 #define PROP_SHOOTING_MODE  0x80000000 // During mode switch, it takes other values.
 #define PROP_SHOOTING_MODE_2  0x80000001 // for custom modes
@@ -220,6 +223,7 @@
 #define SHOOTMODE_C2 0x10
 #define SHOOTMODE_C3 0x11
 #define SHOOTMODE_CA 0x13
+#define SHOOTMODE_AP 0x16
 #define SHOOTMODE_AUTO 9
 #define SHOOTMODE_NOFLASH 0xF
 #define SHOOTMODE_PORTRAIT 0xC
@@ -227,6 +231,8 @@
 #define SHOOTMODE_MACRO 0xE
 #define SHOOTMODE_SPORTS 0xB
 #define SHOOTMODE_NIGHT 0xA
+#define SHOOTMODE_NIGHTH 0x17
+#define SHOOTMODE_HDR 0x18
 #define SHOOTMODE_MOVIE 0x14
 
 // WB in LiveView (and movie) mode
@@ -298,6 +304,18 @@
 #define PROP_HTP 0x8000004a
 #define PROP_MULTIPLE_EXPOSURE 0x0202000c
 #define PROP_MLU 0x80000047
+#endif
+
+#ifdef CONFIG_GPS
+#define PROP_GPS 0x8004004c // 0 - Off 1 - External 2 - Internal
+#define PROP_BUILTINGPS_INTERVAL 0x80040054
+
+/* to debug GPS code on cameras without GPS (fake it with WB mode) */
+#ifdef CONFIG_GPS_FAKE
+#undef PROP_GPS
+#define PROP_GPS PROP_WB_MODE_PH
+#endif
+
 #endif
 
 #ifdef CONFIG_6D //May work for others.
@@ -420,8 +438,6 @@
 #define PROP_SELECTED_FILE_PREFIX  0x02050008
 #define PROP_CARD_COVER 0x8003002F
 
-#define PROP_TERMINATE_SHUT_REQ 0x80010001
-
 #define PROP_BUTTON_ASSIGNMENT 0x80010007
 
 #define PROP_PIC_QUALITY   0x8000002f
@@ -467,9 +483,10 @@
 
 #define PROP_VRAM_SIZE_MAYBE 0x8005001f
 
-#define PROP_ICU_AUTO_POWEROFF 0x80030024
+#define PROP_ICU_AUTO_POWEROFF  0x80030024
 #define PROP_AUTO_POWEROFF_TIME 0x80000024
-#define PROP_REBOOT_MAYBE 0x80010003 // used by firmware update code
+#define PROP_TERMINATE_SHUT_REQ 0x80010001
+#define PROP_REBOOT             0x80010003 // used by firmware update code
 
 #define PROP_DIGITAL_ZOOM_RATIO 0x8005002f
 

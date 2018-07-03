@@ -1,11 +1,3 @@
 #Makefile for 100D
 
-# compile position independent (experimental)
-CONFIG_PIC=n
-
-ML_SRC_EXTRA_OBJS = \
-	misc.o \
-#	raw.o \
-#	chdk-dng.o \
-#	edmac-memcpy.o \
 

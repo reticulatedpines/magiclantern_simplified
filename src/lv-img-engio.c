@@ -12,6 +12,10 @@
 #include "math.h"
 #include "fps.h"
 
+#if defined(CONFIG_7D)
+#include "ml_rpc.h"
+#endif
+
 //~ #define EngDrvOutLV(reg, value) *(int*)(reg) = value
 
 //~ #define LV_PAUSE_REGISTER 0xC0F08000 // writing to this pauses LiveView cleanly => good for silent pics
@@ -188,7 +192,6 @@ static CONFIG_INT("digic.desaturate", desaturate, 0);
 static CONFIG_INT("digic.negative", negative, 0);
 static CONFIG_INT("digic.swap-uv", swap_uv, 0);
 static CONFIG_INT("digic.cartoon", cartoon, 0);
-static CONFIG_INT("digic.oilpaint", oilpaint, 0);
 static CONFIG_INT("digic.sharp", sharp, 0);
 static CONFIG_INT("digic.zerosharp", zerosharp, 0);
 //~ static CONFIG_INT("digic.fringing", fringing, 0);
@@ -406,34 +409,38 @@ void digic_dump()
     }
 
     FILE* f = FIO_CreateFile(log_filename);
-    
-    for (uint32_t reg = 0xc0f00000; reg < 0xC0f40000; reg+=4)
+    if (f)
     {
-        int value = (int) shamem_read(reg);
-        if (value && value != -1)
+        for (uint32_t reg = 0xc0f00000; reg < 0xC0f40000; reg+=4)
         {
-            bmp_printf(FONT_LARGE, 50, 50, "%8x: %8x", reg, value);
-            my_fprintf(f, "%8x: %8x\n", reg, value);
+            int value = (int) shamem_read(reg);
+            if (value && value != -1)
+            {
+                bmp_printf(FONT_LARGE, 50, 50, "%8x: %8x", reg, value);
+                my_fprintf(f, "%8x: %8x\n", reg, value);
+            }
         }
+        FIO_CloseFile(f);
     }
-    FIO_CloseFile(f);
 }
 
 void digic_dump_h264()
 {
     msleep(1000);
     FILE* f = FIO_CreateFile("ML/LOGS/h264.log");
-    
-    for (uint32_t reg = 0xc0e10000; reg < 0xC0f00000; reg+=4)
+    if (f)
     {
-        int value = MEM(reg);
-        if (value && value != -1)
+        for (uint32_t reg = 0xc0e10000; reg < 0xC0f00000; reg+=4)
         {
-            bmp_printf(FONT_LARGE, 50, 50, "%8x: %8x", reg, value);
-            my_fprintf(f, "%8x: %8x\n", reg, value);
+            int value = MEM(reg);
+            if (value && value != -1)
+            {
+                bmp_printf(FONT_LARGE, 50, 50, "%8x: %8x", reg, value);
+                my_fprintf(f, "%8x: %8x\n", reg, value);
+            }
         }
+        FIO_CloseFile(f);
     }
-    FIO_CloseFile(f);
 }
 
 #endif // CONFIG_DIGIC_POKE
@@ -536,7 +543,7 @@ static void vignetting_correction_set_coeffs(int a, int b, int c)
 void vignetting_correction_apply_lvmgr(uint32_t *lvmgr)
 {
     uint32_t index = 0;
-    if(vignetting_correction_enable && lvmgr)
+    if(vignetting_correction_enable && lvmgr && is_movie_mode())
     {
         uint32_t *vign = &lvmgr[0x83];
 
@@ -743,9 +750,9 @@ static MENU_UPDATE_FUNC(shutter_finetune_display)
         
         MENU_SET_VALUE("%s%d.%02d ms", delta > 0 ? "+" : "-", ABS(delta)/100, ABS(delta)%100);
         if (orig_shutter/1000 < 1000)
-            MENU_SET_WARNING(MENU_WARN_INFO, "Shutter speed: 1/%d.%03d -> 1/%d.%03d", orig_shutter/1000, orig_shutter%1000, adjusted_shutter/1000, adjusted_shutter%1000);
+            MENU_SET_WARNING(MENU_WARN_INFO, "Shutter speed: 1/%d.%03d -> 1/%d.%03d (%s%d units)", orig_shutter/1000, orig_shutter%1000, adjusted_shutter/1000, adjusted_shutter%1000, delta > 0 ? "+" : "", shutter_finetune);
         else
-            MENU_SET_WARNING(MENU_WARN_INFO, "Shutter speed: 1/%d -> 1/%d", orig_shutter/1000, adjusted_shutter/1000);
+            MENU_SET_WARNING(MENU_WARN_INFO, "Shutter speed: 1/%d -> 1/%d (%s%d units)", orig_shutter/1000, adjusted_shutter/1000, delta > 0 ? "+" : "", shutter_finetune);
     }
     else
     {
@@ -798,7 +805,7 @@ void image_effects_step()
         }
         EngDrvOutLV(0xc0f2116c, 0xffff0000); // boost picturestyle sharpness to max
     }
-    if (oilpaint)   EngDrvOutLV(0xc0f2135c, -1);
+    //if (oilpaint)   EngDrvOutLV(0xc0f2135c, -1);
     if (sharp)      EngDrvOutLV(0xc0f0f280, -1);
     if (zerosharp)  EngDrvOutLV(0xc0f2116c, 0x0); // sharpness trick: at -1, cancel it completely
 
@@ -931,7 +938,7 @@ static struct menu_entry lv_img_menu[] = {
 
     #if defined(FEATURE_IMAGE_EFFECTS) || defined(FEATURE_EXPO_ISO_DIGIC) || defined(FEATURE_SHUTTER_FINE_TUNING)
     {
-        .name = "Image Finetuning",
+        .name = "Image Fine-tuning",
         .select = menu_open_submenu,
         .help = "Subtle image enhancements via DIGIC register tweaks.",
         .depends_on = DEP_MOVIE_MODE,
@@ -991,13 +998,6 @@ static struct menu_entry lv_img_menu[] = {
                 .priv = &sharp, 
                 .max = 1,
                 .help = "Darken sharp edges in bright areas.",
-                .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
-            },
-            {
-                .name = "Noise Reduction", 
-                .priv = &oilpaint, 
-                .max = 1,
-                .help = "Some sort of movie noise reduction, or smearing.",
                 .depends_on = DEP_LIVEVIEW | DEP_MOVIE_MODE,
             },
             #endif

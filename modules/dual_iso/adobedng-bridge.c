@@ -92,6 +92,15 @@ void dng_compress(const char* source, int lossy)
     snprintf(tmp, sizeof(tmp), "%s.DNG", source);
     rename(source, tmp);
     
+    /* Find filename part only, '-o' parameter to DNG converter does not accept path */
+    const char *src_filename = strrchr(source, '/');
+    if (!src_filename)
+        src_filename =  strrchr(source, '\\');
+    if (!src_filename)
+        src_filename = source;
+    else
+        src_filename++;
+
     char compress_cmd[1000];
     char* start =
 #if defined(WIN32) || defined(_WIN32)
@@ -99,7 +108,7 @@ void dng_compress(const char* source, int lossy)
 #else
     "";
 #endif
-    snprintf(compress_cmd, sizeof(compress_cmd), "%s\"%s\" -dng1.4 %s -o \"%s\" \"%s\"", start, adobe_dng, lossy ? "-lossy" : "", source, tmp);
+    snprintf(compress_cmd, sizeof(compress_cmd), "%s\"%s\" -dng1.4 %s -o \"%s\" \"%s\"", start, adobe_dng, lossy ? "-lossy" : "", src_filename, tmp);
     printf("%s\n", compress_cmd);
     int r = system(compress_cmd);
     if(r!=0)

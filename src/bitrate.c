@@ -83,7 +83,9 @@ void bitrate_write_mvr_config()
 
 #endif
 
+#ifdef FEATURE_NITRATE
 static struct mvr_config mvr_config_copy;
+#endif
 
 static void cbr_init()
 {
@@ -94,7 +96,9 @@ static void cbr_init()
     bitrate_read_mvr_config();
 #endif
 
+#ifdef FEATURE_NITRATE
     memcpy(&mvr_config_copy, &mvr_config, sizeof(mvr_config_copy));
+#endif
 }
 
 static void vbr_fix(uint16_t param)
@@ -161,6 +165,7 @@ static void opt_set(int num, int den)
     return;
 #endif
 
+#ifdef FEATURE_NITRATE
     int i, j;
     
 
@@ -181,6 +186,8 @@ static void opt_set(int num, int den)
             if (*opt0 < 10000) { bmp_printf(FONT_LARGE, 0, 50, "opt_set: err %d %d %d ", i, j, *opt0); return; }
             (*opt) = (*opt0) * num / den;
         }
+        
+        #if MOV_GOP_OPT_NUM_PARAMS
         for (j = 0; j < MOV_GOP_OPT_NUM_PARAMS; j++)
         {
             int* opt0 = (int*) &(mvr_config_copy.fullhd_30fps_gop_opt_0) + i * MOV_GOP_OPT_STEP + j;
@@ -188,7 +195,9 @@ static void opt_set(int num, int den)
             if (*opt0 < 10000) { bmp_printf(FONT_LARGE, 0, 50, "gop_set: err %d %d %d ", i, j, *opt0); return; }
             (*opt) = (*opt0) * num / den;
         }
+        #endif
     }
+#endif
 }
 
 static void bitrate_set()
@@ -338,41 +347,15 @@ static int movie_elapsed_time_01s = 0;   // seconds since starting the current m
 void time_indicator_show()
 {
     if (!get_global_draw()) return;
-    
+
+    lvinfo_display(1,0); //force it to update, else stays frozen until other item updates eg. fps
+   
 #if defined(CONFIG_7D)
     bitrate_read_mvr_config();
 #endif
 
-    // time until filling the card
-    // in "movie_elapsed_time_01s" seconds, the camera saved "movie_bytes_written_32k"x32kbytes, and there are left "free_space_32k"x32kbytes
-    int time_cardfill = movie_elapsed_time_01s * get_free_space_32k(get_shooting_card()) / movie_bytes_written_32k / 10;
-    
-    // time until 4 GB
-    int time_4gb = movie_elapsed_time_01s * (4 * 1024 * 1024 / 32 - movie_bytes_written_32k) / movie_bytes_written_32k / 10;
-
     //~ bmp_printf(FONT_MED, 0, 300, "%d %d %d %d ", movie_elapsed_time_01s, movie_elapsed_ticks, rec_time_card, rec_time_4gb);
 
-    // what to display
-    int dispvalue = time_indicator == 1 ? movie_elapsed_time_01s / 10:
-                    time_indicator == 2 ? time_cardfill :
-                    time_indicator == 3 ? MIN(time_4gb, time_cardfill)
-                    : 0;
-
-    int time_indic_x = os.x_max - 160;
-    int time_indic_y = get_ml_topbar_pos();
-    if (time_indic_y > BMP_H_PLUS - 30) time_indic_y = BMP_H_PLUS - 30;
-
-    if (time_indicator)
-    {
-        bmp_printf(
-            time_4gb < time_indic_warning ? time_indic_font : FONT(FONT_MED, COLOR_WHITE, TOPBAR_BGCOLOR),
-            time_indic_x + 160 - 6 * font_med.width,
-            time_indic_y,
-            "%3d:%02d",
-            dispvalue / 60,
-            dispvalue % 60
-        );
-    }
     if (bitrate_indicator)
     {
         bmp_printf( FONT_SMALL,
@@ -387,6 +370,7 @@ void time_indicator_show()
             "B%3d ",
             measured_bitrate
         );
+#ifdef FEATURE_NITRATE
         int fnts = FONT(FONT_SMALL, COLOR_WHITE, mvr_config.actual_qscale_maybe == -16 ? COLOR_RED : COLOR_BLACK);
         bmp_printf(fnts,
             680,
@@ -395,8 +379,9 @@ void time_indicator_show()
             mvr_config.actual_qscale_maybe < 0 ? "-" : "+",
             ABS(mvr_config.actual_qscale_maybe)
         );
+#endif
     }
-    
+   
     //~ if (flicker_being_killed()) // this also kills recording dot
     //~ {
         //~ maru(os.x_max - 28, os.y0 + 12, COLOR_RED);
@@ -425,15 +410,53 @@ bitrate_indicator_display( void * priv, int x, int y, int selected )
     menu_draw_icon(x, y, MNI_BOOL_GDR(bitrate_indicator));
 }*/
 
+static LVINFO_UPDATE_FUNC(time_indicator_update)
+{
+    LVINFO_BUFFER(8);
+
+    if (!is_movie_mode())
+        return;
+
+    if (!time_indicator)
+        return;
+
+    #ifdef FEATURE_REC_INDICATOR
+    if (RECORDING_H264 && !gui_menu_shown() )
+    {
+
+    // time until filling the card
+    // in "movie_elapsed_time_01s" seconds, the camera saved "movie_bytes_written_32k"x32kbytes, and there are left "free_space_32k"x32kbytes
+    int time_cardfill = movie_elapsed_time_01s * get_free_space_32k(get_shooting_card()) / movie_bytes_written_32k / 10;
+
+    // time until 4 GB
+    int time_4gb = movie_elapsed_time_01s * (4 * 1024 * 1024 / 32 - movie_bytes_written_32k) / movie_bytes_written_32k / 10;
+
+    // what to display
+    int dispvalue = time_indicator == 1 ? movie_elapsed_time_01s / 10:
+                    time_indicator == 2 ? time_cardfill :
+                    time_indicator == 3 ? MIN(time_4gb, time_cardfill)
+                    : 0;
+
+    snprintf(
+        buffer, sizeof(buffer),
+        "%3d:%02d",
+        dispvalue / 60,
+        dispvalue % 60
+    );
+    item->color_fg = time_4gb < time_indic_warning ? time_indic_font : COLOR_WHITE;
+    }
+    #endif
+}
+
 static CONFIG_INT("buffer.warning.level", buffer_warning_level, 70);
 
 static int warning = 0;
-int is_mvr_buffer_almost_full() 
+int is_mvr_buffer_almost_full()
 {
     if (NOT_RECORDING) return 0;
     if (RECORDING_H264_STARTING) return 1;
     // 2
-    
+
     int ans = MVR_BUFFER_USAGE > (unsigned int)buffer_warning_level;
     if (ans) warning = 1;
     return warning;
@@ -442,10 +465,12 @@ int is_mvr_buffer_almost_full()
 void show_mvr_buffer_status()
 {
     int fnt = warning ? FONT(FONT_SMALL, COLOR_WHITE, COLOR_RED) : FONT(FONT_SMALL, COLOR_WHITE, COLOR_GREEN2);
+    int buffer_indic_y = get_ml_topbar_pos() + 32;
+    if (buffer_indic_y > 400) buffer_indic_y = get_ml_topbar_pos() - 23; // bottom modes need shifting up
     if (warning) warning--;
     if (RECORDING_H264 && get_global_draw() && !gui_menu_shown())
     {
-        bmp_printf(fnt, 680, 55, " %3d%%", MVR_BUFFER_USAGE);
+        bmp_printf(fnt, os.x_max - 131, buffer_indic_y, "%3d%%", MVR_BUFFER_USAGE);
     }
 }
 
@@ -568,13 +593,24 @@ static struct menu_entry mov_tweak_menus[] = {
 #endif
 };
 
+static struct lvinfo_item info_item[] = {
+    {
+        .name = "Time indicator",
+        .which_bar = LV_TOP_BAR_ONLY,
+        .update = time_indicator_update,
+        .preferred_position = 127,
+        .priority = 1,
+    },
+};
+
 static void bitrate_init()
 {
+    lvinfo_add_item(info_item);
     menu_add( "Movie", mov_menus, COUNT(mov_menus) );
     menu_add( "Movie Tweaks", mov_tweak_menus, COUNT(mov_tweak_menus) );
-	#ifdef FEATURE_NITRATE_WAV_RECORD
-	menu_add( "Audio", wav_menus, COUNT(wav_menus) );
-	#endif
+    #ifdef FEATURE_NITRATE_WAV_RECORD
+    menu_add( "Audio", wav_menus, COUNT(wav_menus) );
+    #endif
 }
 
 INIT_FUNC(__FILE__, bitrate_init);
@@ -583,7 +619,7 @@ static void
 bitrate_task( void* unused )
 {
     cbr_init();
-    
+
     TASK_LOOP
     {
 

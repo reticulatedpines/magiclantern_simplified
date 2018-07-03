@@ -26,54 +26,9 @@
 #include "dryos.h"
 #include "bmp.h"
 #include <property.h>
+#include <boot-hack.h>
 
 struct semaphore * gui_sem;
-
-static int joy_center_press_count = 0;
-static int joy_center_action_disabled = 0;
-static void joypress_task()
-{
-	extern int joy_center_pressed;
-	TASK_LOOP
-	{
-		msleep(20);
-		if (joy_center_pressed) joy_center_press_count++;
-		else
-		{
-			if (!joy_center_action_disabled && gui_menu_shown() && joy_center_press_count && joy_center_press_count <= 20) // short press, ML menu active
-			{
-				if (is_submenu_or_edit_mode_active())
-				{
-					fake_simple_button(BGMT_PICSTYLE); // close submenu
-				}
-				else
-				{
-					fake_simple_button(BGMT_PRESS_SET); // do normal SET
-					fake_simple_button(BGMT_UNPRESS_UDLR);
-				}
-			}
-			joy_center_press_count = 0;
-		}
-
-		if (!joy_center_action_disabled && joy_center_press_count > 20) // long press
-		{
-			joy_center_press_count = 0;
-			fake_simple_button(BGMT_UNPRESS_UDLR);
-
-			if (gui_menu_shown())
-				fake_simple_button(BGMT_PICSTYLE); // Q
-			else if (gui_state == GUISTATE_IDLE || gui_state == GUISTATE_QMENU || PLAY_MODE)
-			{
-				give_semaphore( gui_sem ); // open ML menu
-				joy_center_press_count = 0;
-				joy_center_pressed = 0;
-			}
-			msleep(500);
-		}
-
-	}
-}
-TASK_CREATE( "joypress_task", joypress_task, 0, 0x1a, 0x1000 );
 
 int lv_stopped_by_user = 0;
 
@@ -89,12 +44,6 @@ static int handle_buttons(struct event * event)
 
 	if (handle_common_events_by_feature(event) == 0) return 0;
 
-	if (event->param == BGMT_JOY_CENTER && gui_menu_shown())
-	{
-		joy_center_press_count = 1;
-		return 0; // handled above
-	}
-
 	if (event->param == BGMT_LV)// && !IS_FAKE(event))
 		lv_stopped_by_user = 1;
 
@@ -103,15 +52,6 @@ static int handle_buttons(struct event * event)
 		extern int movie_was_stopped_by_set;
 		movie_was_stopped_by_set = 1;
 	}
-
-	if (event->param == BGMT_PRESS_LEFT || event->param == BGMT_PRESS_RIGHT ||
-		event->param == BGMT_PRESS_DOWN || event->param == BGMT_PRESS_UP ||
-		event->param == BGMT_PRESS_UP_LEFT || event->param == BGMT_PRESS_UP_RIGHT ||
-		event->param == BGMT_PRESS_DOWN_LEFT || event->param == BGMT_PRESS_DOWN_RIGHT)
-		joy_center_action_disabled = 1;
-
-	if (event->param == BGMT_UNPRESS_UDLR)
-		joy_center_action_disabled = 0;
 
 	return 1;
 }
@@ -155,10 +95,14 @@ struct gui_timer_struct
 extern struct gui_timer_struct gui_timer_struct;
 
 // Replaces the gui_main_task
-static void
-my_gui_main_task( void )
+void ml_gui_main_task( void )
 {
-	gui_init_end();
+	#ifdef CONFIG_QEMU
+	gui_main_struct.msg_queue = msg_queue_create("gui", 100);
+	#else
+	gui_init_end(); // no params?
+	#endif
+
 	uint32_t * obj = 0;
 
 	while(1)
@@ -188,7 +132,7 @@ my_gui_main_task( void )
         }
 
         if (event->type == 0 && event->param < 0) {
-            continue;           /* do not pass internal ML events to Canon code */
+            goto event_loop_bottom;           /* do not pass internal ML events to Canon code */
         }
 
 		switch( event->type )
@@ -309,4 +253,4 @@ queue_clear:
 	}
 }
 
-TASK_OVERRIDE( gui_main_task, my_gui_main_task );
+TASK_OVERRIDE( gui_main_task, ml_gui_main_task );

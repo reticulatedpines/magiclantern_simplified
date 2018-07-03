@@ -18,17 +18,20 @@ my @font_range		= 97 .. 114; # a-r
 my $font_chars		= @font_range;
 my $font_type		= 'const unsigned';
 my $font_name		= 'menu_icons';
+my $labels	        = ' ';
 
 GetOptions(
 	"name=s"		=> \$font_name,
 	"width=i"		=> \$font_width,
 	"height=i"		=> \$font_height,
+	"labels=s"		=> \$labels,
 ) or die "$0: Bad argument\n";
 
 # Round the bitmap size up since we might have a partial byte
 my $font_bytes = int(($font_width + 7) / 8);
 my $font_bitmap_size = $font_bytes * $font_height;
 
+my @labels = split(',', $labels);
 
 # Paragraph mode
 $/ = "\n\n";
@@ -70,7 +73,8 @@ while(<>)
 		# Strip trailing spaces for display
 		$row =~ s/ *$//;
 
-		$bytes .= join (", ", @array) . ", // $row\n";
+		my $posi = ord($pos) - ord('a');
+		$bytes .= join (", ", @array) . ", // ".$labels[$posi].": $row \n";
 	}
 
 	$cmaps{$pos} = <<"";

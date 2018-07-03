@@ -2,9 +2,9 @@
 #define _histogram_h_
 
 // those colors will not be considered for histogram (so they should be very unlikely to appear in real situations)
-#define MZ_WHITE 0xFA12FA34 
+#define MZ_WHITE 0xFE12FE34
 #define MZ_BLACK 0x00120034
-#define MZ_GREEN 0x80808080
+#define MZ_GREEN 0xB68DB69E
 
 #define hist_height         54
 #define HIST_WIDTH          128
@@ -24,6 +24,7 @@ struct Histogram
     /** total number of pixels analyzed by histogram */
     uint32_t total_px;
 
+    int is_rgb;
     int is_raw;
 };
 
@@ -40,11 +41,8 @@ void hist_build_raw();
 void
 hist_draw_image(
     unsigned        x_origin,
-    unsigned        y_origin,
-    int highlight_level
+    unsigned        y_origin
 );
-
-void hist_highlight(int level);
 
 int raw_hist_get_percentile_level(int percentile, int gray_projection, int speed);
 int raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_values, int n, int gray_projection, int speed);
@@ -52,7 +50,7 @@ int raw_hist_get_overexposure_percentage(int gray_projection);
 
 extern struct menu_entry hist_menu_entry;
 
-extern int hist_colorspace;
+extern int hist_type;
 extern int hist_draw;
 extern int hist_meter;
 extern int hist_warn;
@@ -63,6 +61,8 @@ MENU_UPDATE_FUNC(hist_warn_display);
 
 MENU_UPDATE_FUNC(raw_histo_update);
 
-extern int raw_histogram_enable;
+#define RAW_HISTOGRAM_ENABLED (hist_draw && hist_type >= 2)
+#define RAW_HISTOBAR_ENABLED (hist_draw && hist_type == 3)
+
 
 #endif /* _histogram_h_ */

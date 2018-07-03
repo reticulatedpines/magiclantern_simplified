@@ -1,0 +1,14 @@
+#Makefile.setup.platform for 700D
+
+ifeq ($(FW_VERSION),115)
+CANON_NAME_FIR=CCF14115.FIR
+
+# DryOSmemory map
+# RESTARTSTART is selected to be just above the end of the bss
+#
+ROMBASEADDR     = 0xFF0C0000
+RESTARTSTART    = 0x0007EC00
+AUTOEXEC_BASE   = 0x40800000
+FIR_BASE        = 0x40800120
+
+endif

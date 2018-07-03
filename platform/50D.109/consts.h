@@ -2,13 +2,11 @@
  *  50D 1.0.9 consts
  */
 
+#define CANON_SHUTTER_RATING 100000
+
 #define CARD_LED_ADDRESS 0xC02200BC // http://magiclantern.wikia.com/wiki/Led_addresses
 #define LEDON 0x46
 #define LEDOFF 0x44
-
-//~ Format dialog consts
-#define FORMAT_BTN "[FUNC]"
-#define STR_LOC 6
 
 //~ Reloc Boot
 #define HIJACK_INSTR_BL_CSTART  0xff812ae8
@@ -65,23 +63,12 @@
 #define YUV422_HD_BUFFER_3 0x48000080
 #define YUV422_HD_BUFFER_4 0x4e000080
 #define YUV422_HD_BUFFER_5 0x50000080
-#define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080 ) // quick check if x looks like a valid HD buffer
 
-/*#define YUV422_HD_PITCH_IDLE 2112
-#define YUV422_HD_HEIGHT_IDLE 704
 
-#define YUV422_HD_PITCH_ZOOM 2048
-#define YUV422_HD_HEIGHT_ZOOM 680
 
-#define YUV422_HD_PITCH_REC_FULLHD 3440
-#define YUV422_HD_HEIGHT_REC_FULLHD 974
 
 // guess
-#define YUV422_HD_PITCH_REC_720P 2560
-#define YUV422_HD_HEIGHT_REC_720P 580
 
-#define YUV422_HD_PITCH_REC_480P 1280
-#define YUV422_HD_HEIGHT_REC_480P 480*/
 
 #define FOCUS_CONFIRMATION (*(int*)0x3ce0) // see "focusinfo" and Wiki:Struct_Guessing
 #define HALFSHUTTER_PRESSED (*(int*)0x1c14) // used for Trap Focus and Magic Off.
@@ -93,10 +80,7 @@
 //~ #define DISPLAY_SENSOR_ACTIVE (*(int*)0xC0220104)
 #define DISPLAY_SENSOR_POWERED (*(int*)0x3178) // dec AJ_Req_DispSensorStart
 
-#define GMT_IDLEHANDLER_TASK (*(int*)0x10000) // dec create_idleHandler_task
 
-#define SENSOR_RES_X 4752
-#define SENSOR_RES_Y 3168
 
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int8_t*)0x6A50) == 0xF) /*|| ((*(int8_t*)0x20164) != 0x17)*/ )
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x6A50) == 0xF)
@@ -114,10 +98,8 @@
 
 #define MVR_FRAME_NUMBER (*(int*)(220 + MVR_190_STRUCT))
 //#define MVR_LAST_FRAME_SIZE (*(int*)(512 + MVR_752_STRUCT))
-#define MVR_BYTES_WRITTEN (*(int*)(212 + MVR_190_STRUCT))
+#define MVR_BYTES_WRITTEN MEM((212 + MVR_190_STRUCT))
 
- #define MOV_REC_STATEOBJ (*(void**)0x5B34)
- #define MOV_REC_CURRENT_STATE *(int*)(MOV_REC_STATEOBJ + 28)
 
 #define MOV_RES_AND_FPS_COMBINATIONS 2
 #define MOV_OPT_NUM_PARAMS 2
@@ -129,29 +111,28 @@
 #define AE_STATE (*(int8_t*)(0xFB30 + 0x1C)) 
 #define AE_VALUE (*(int8_t*)(0xFB30 + 0x1D))
 
-#define CURRENT_DIALOG_MAYBE (*(int*)0x387C)
-#define CURRENT_DIALOG_MAYBE_2 (*(int*)0x6A50)
-#define DLG_WB 5
-#define DLG_FOCUS_MODE 9
-#define DLG_DRIVE_MODE 8
-#define DLG_PICTURE_STYLE 4
-#define DLG_PLAY 1
-#define DLG_MENU 2
-#define DLG_Q_UNAVI 0x18
-#define DLG_FLASH_AE 0x22
-#define DLG_PICQ 6
+#define CURRENT_GUI_MODE (*(int*)0x387C)
+#define CURRENT_GUI_MODE_2 (*(int*)0x6A50)
+#define GUIMODE_WB 5
+#define GUIMODE_FOCUS_MODE 9
+#define GUIMODE_DRIVE_MODE 8
+#define GUIMODE_PICTURE_STYLE 4
+#define GUIMODE_PLAY 1
+#define GUIMODE_MENU 2
+#define GUIMODE_Q_UNAVI 0x18
+#define GUIMODE_FLASH_AE 0x22
+#define GUIMODE_PICQ 6
 
-#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_DIALOG_MAYBE == 0x1B) //Sure
-#define DLG_MOVIE_PRESS_LV_TO_RESUME (CURRENT_DIALOG_MAYBE == 0x1C) //Not Sure
+#define GUIMODE_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_GUI_MODE == 0x1B) //Sure
+#define GUIMODE_MOVIE_PRESS_LV_TO_RESUME (CURRENT_GUI_MODE == 0x1C) //Not Sure
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
 #define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x1af8 // this prop_deliver performs the action for Video Connect and Video Disconnect
 #define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0x1b24 // passed as 2nd arg to prop_deliver; 1 = display connected, 0 = not, other values disable this event (trick)
 
-#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
-#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
+#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_PLAY)
+#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_MENU)
 
-#define BTN_METERING_PRESSED_IN_LV 0 // 60D only
 
 #define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 36 : 2)
 
@@ -169,12 +150,7 @@
 #define DISPLAY_TRAP_FOCUS_MSG_BLANK "     \n     "
 
 #define NUM_PICSTYLES 9
-#define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
 
-#define MOVIE_MODE_REMAP_X SHOOTMODE_ADEP
-#define MOVIE_MODE_REMAP_Y SHOOTMODE_CA
-#define MOVIE_MODE_REMAP_X_STR "A-DEP"
-#define MOVIE_MODE_REMAP_Y_STR "CA"
 
 #define FLASH_MAX_EV 3
 #define FLASH_MIN_EV -10 // not sure if it actually works
@@ -184,6 +160,9 @@
 
 #define DIALOG_MnCardFormatBegin (0x1e704+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
 #define DIALOG_MnCardFormatExecute (0x1E7B8+4) // similar
+#define FORMAT_BTN_NAME "[FUNC]"
+#define FORMAT_BTN BGMT_FUNC
+#define FORMAT_STR_LOC 6
 
 #define BULB_MIN_EXPOSURE 500
 
@@ -192,7 +171,6 @@
 #define BFNT_BITMAP_OFFSET 0xf7c608ec
 #define BFNT_BITMAP_DATA   0xf7c63000
 
-#define DLG_SIGNATURE 0x414944
 
 // from CFn
 #define AF_BTN_HALFSHUTTER 0
@@ -253,7 +231,7 @@
 #define FRAME_SHUTTER_BLANKING_ZOOM   (*(uint16_t*)0x404B5A2C) // ADTG register 105F
 #define FRAME_SHUTTER_BLANKING_NOZOOM (*(uint16_t*)0x404B5A30) // ADTG register 1061
 #define FRAME_SHUTTER_BLANKING_READ   (lv_dispsize > 1 ? FRAME_SHUTTER_BLANKING_NOZOOM : FRAME_SHUTTER_BLANKING_ZOOM) /* when reading, use the other mode, as it contains the original value (not overriden) */
-#define FRAME_SHUTTER_BLANKING_WRITE  (lv_dispsize > 1 ? &FRAME_SHUTTER_BLANKING_ZOOM : &FRAME_SHUTTER_BLANKING_NOZOOM)
+//~ #define FRAME_SHUTTER_BLANKING_WRITE  (lv_dispsize > 1 ? &FRAME_SHUTTER_BLANKING_ZOOM : &FRAME_SHUTTER_BLANKING_NOZOOM)
 
 // see "Malloc Information"
 #define MALLOC_STRUCT 0x1F1C8

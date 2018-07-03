@@ -26,10 +26,6 @@
 
 #include "compiler.h"
 
-/** Write the VRAM to a BMP file named "A:/test.bmp" */
-extern void
-dispcheck( void );
-
 /** Canon data structure containing BMP VRAM address.
  * 
  * LCD: it points to a 720x480 cropped area, but the image buffer is actually 960x540.
@@ -65,16 +61,10 @@ struct vram_info
         int             height;
 };
 
-#ifdef CONFIG_VXWORKS
-#define UNCACHEABLE(x) ((void*)(((uint32_t)(x)) |  0x10000000))
-#define CACHEABLE(x)   ((void*)(((uint32_t)(x)) & ~0x10000000))
-#else
-#define UNCACHEABLE(x) ((void*)(((uint32_t)(x)) |  0x40000000))
-#define CACHEABLE(x)   ((void*)(((uint32_t)(x)) & ~0x40000000))
-#endif
-
-void update_vram_params();
 void vram_params_set_dirty();
+
+/* internal; also called from bmp.c */
+void _update_vram_params();
 
 /* to be removed (new-lv-buffer-detection branch) */
 void guess_fastrefresh_direction();
@@ -314,3 +304,6 @@ int* get_screen_layout_ptr();
 #define SCREENLAYOUT_UNDER_16_9 4 // HDMI VGA and SD
 
 #endif
+
+/* check if the YUV buffer is initialized, and print a warning if not */
+void yuv422_buffer_check();

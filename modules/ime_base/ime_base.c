@@ -11,20 +11,22 @@
 #include <bmp.h>
 #include <menu.h>
 #include <config.h>
+#include <string.h>
 
 #include "ime_base.h"
 
-static unsigned int ime_base_method = 0;
-static unsigned int ime_base_method_count = 0;
-static unsigned char ime_base_test_text[100];
+static CONFIG_INT("ime.base.method", ime_base_method, 0);
+
+static int32_t ime_base_method_count = 0;
+static char ime_base_test_text[100];
 static t_ime_handler ime_base_methods[IME_MAX_METHODS];
 
 
 /* this function has to be public so that other modules can register file types for viewing this file */
-unsigned int ime_base_register(t_ime_handler *handler)
+uint32_t ime_base_register(t_ime_handler *handler)
 {
     /* locking without semaphores as this function may get called even before our own init routine */
-    unsigned int old_int = cli();
+    uint32_t old_int = cli();
     
     if(ime_base_method_count < IME_MAX_METHODS)
     {
@@ -36,7 +38,7 @@ unsigned int ime_base_register(t_ime_handler *handler)
     return 0;
 }
 
-void *ime_base_start (unsigned char *caption, unsigned char *text, int max_length, int codepage, int charset, t_ime_update_cbr update_cbr, t_ime_done_cbr done_cbr, int x, int y, int w, int h )
+void *ime_base_start (char *caption, char *text, int32_t max_length, int32_t codepage, int32_t charset, t_ime_update_cbr update_cbr, t_ime_done_cbr done_cbr, int32_t x, int32_t y, int32_t w, int32_t h )
 {
     if(ime_base_method < ime_base_method_count)
     {
@@ -71,15 +73,14 @@ static MENU_SELECT_FUNC(ime_base_method_select)
     }
 }
 
-IME_UPDATE_FUNC(ime_base_test_update)
+static IME_UPDATE_FUNC(ime_base_test_update)
 {
-    //bmp_printf(FONT_MED, 30, 90, "ime_base: CBR: <%s>, %d, %d", text, caret_pos, selection_length);
     return IME_OK;
 }
 
-IME_DONE_FUNC(ime_base_test_done)
+static IME_DONE_FUNC(ime_base_test_done)
 {
-    for(int loops = 0; loops < 50; loops++)
+    for(int32_t loops = 0; loops < 50; loops++)
     {
         bmp_printf(FONT_MED, 30, 120, "ime_base: done: <%s>, %d", text, status);
         msleep(100);
@@ -89,30 +90,42 @@ IME_DONE_FUNC(ime_base_test_done)
 
 static MENU_SELECT_FUNC(ime_base_test_any)
 {
+    strncpy(ime_base_test_text, "This is a test", sizeof(ime_base_test_text));
     ime_base_start("Any charset", ime_base_test_text, sizeof(ime_base_test_text), IME_UTF8, IME_CHARSET_ANY, &ime_base_test_update, &ime_base_test_done, 0, 0, 0, 0);
 }
 static MENU_SELECT_FUNC(ime_base_test_alpha)
 {
+    strncpy(ime_base_test_text, "Test", sizeof(ime_base_test_text));
     ime_base_start("Alpha", ime_base_test_text, sizeof(ime_base_test_text), IME_UTF8, IME_CHARSET_ALPHA, &ime_base_test_update, &ime_base_test_done, 0, 0, 0, 0);
 }
 static MENU_SELECT_FUNC(ime_base_test_num)
 {
+    strncpy(ime_base_test_text, "16384", sizeof(ime_base_test_text));
     ime_base_start("Numeric", ime_base_test_text, sizeof(ime_base_test_text), IME_UTF8, IME_CHARSET_NUMERIC, &ime_base_test_update, &ime_base_test_done, 0, 0, 0, 0);
 }
 static MENU_SELECT_FUNC(ime_base_test_alnum)
 {
+    strncpy(ime_base_test_text, "Test1", sizeof(ime_base_test_text));
     ime_base_start("Alphanumeric", ime_base_test_text, sizeof(ime_base_test_text), IME_UTF8, (IME_CHARSET_ALPHA | IME_CHARSET_NUMERIC), &ime_base_test_update, &ime_base_test_done, 0, 0, 0, 0);
+}
+static MENU_SELECT_FUNC(ime_base_test_hex)
+{
+    strncpy(ime_base_test_text, "0xDEADBEEF", sizeof(ime_base_test_text));
+    ime_base_start("Hexadecimal", ime_base_test_text, sizeof(ime_base_test_text), IME_UTF8, (IME_CHARSET_HEX), &ime_base_test_update, &ime_base_test_done, 0, 0, 0, 0);
 }
 static MENU_SELECT_FUNC(ime_base_test_punct)
 {
+    strncpy(ime_base_test_text, ".,", sizeof(ime_base_test_text));
     ime_base_start("Punctuation", ime_base_test_text, sizeof(ime_base_test_text), IME_UTF8, IME_CHARSET_PUNCTUATION, &ime_base_test_update, &ime_base_test_done, 0, 0, 0, 0);
 }
 static MENU_SELECT_FUNC(ime_base_test_math)
 {
+    strncpy(ime_base_test_text, "1+2*3", sizeof(ime_base_test_text));
     ime_base_start("Math", ime_base_test_text, sizeof(ime_base_test_text), IME_UTF8, IME_CHARSET_MATH, &ime_base_test_update, &ime_base_test_done, 0, 0, 0, 0);
 }
 static MENU_SELECT_FUNC(ime_base_test_file)
 {
+    strncpy(ime_base_test_text, "FILE.DAT", sizeof(ime_base_test_text));
     ime_base_start("Filename", ime_base_test_text, sizeof(ime_base_test_text), IME_UTF8, IME_CHARSET_FILENAME, NULL, &ime_base_test_done, 0, 0, 0, 0);
 }
 
@@ -154,6 +167,10 @@ static struct menu_entry ime_base_menu[] =
                 .select = &ime_base_test_num,
             },
             {
+                .name = "Test: Hexadecimal",
+                .select = &ime_base_test_hex,
+            },
+            {
                 .name = "Test: Alphanumeric",
                 .select = &ime_base_test_alnum,
             },
@@ -186,14 +203,12 @@ static unsigned int ime_base_deinit()
     return 0;
 }
 
-
-
 MODULE_INFO_START()
     MODULE_INIT(ime_base_init)
     MODULE_DEINIT(ime_base_deinit)
 MODULE_INFO_END()
 
-MODULE_CBRS_START()
-MODULE_CBRS_END()
-
+MODULE_CONFIGS_START()
+    MODULE_CONFIG(ime_base_method)
+MODULE_CONFIGS_END()
 #endif

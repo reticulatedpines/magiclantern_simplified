@@ -217,10 +217,13 @@ void tskmon_stack_get_max(uint32_t task_id, uint32_t *used, uint32_t *free)
     *used = tskmon_task_stack_used[task_id & (TSKMON_MAX_TASKS-1)];
 }
 
-static void null_pointer_check()
+/* note: this function reads from a null pointer,
+ * so we have to tell GCC that we really want that */
+static void __attribute__((optimize("-fno-delete-null-pointer-checks")))
+null_pointer_check()
 {
-    static volatile int first_time = 1;
-    static volatile int value_at_zero = 0;
+    static int first_time = 1;
+    static int value_at_zero = 0;
     if (first_time)
     {
         value_at_zero = *(int*)0; // assume this is the correct value
@@ -305,13 +308,19 @@ static void null_pointer_check()
     }
 }
 
-void tskmon_task_dispatch()
+/* not sure why we have to specify the attribute here as well */
+/* if we don't, gcc inserts a UDF instruction at the end of tskmon_task_dispatch */
+/* could it be a gcc bug? */
+void __attribute__((optimize("-fno-delete-null-pointer-checks")))
+tskmon_task_dispatch()
 {
 #ifdef HIJACK_TASK_ADDR
 
     if (RECORDING_RAW)
     {
         /* we need full speed; these checks might cause a small performance hit */
+        /* keep the null pointer check, as some Canon tasks may cause errors that should be ignored */
+        null_pointer_check();
         return;
     }
     
@@ -326,9 +335,8 @@ void tskmon_task_dispatch()
     tskmon_stack_checker(next_task);
     tskmon_update_timers();
     null_pointer_check();
-    
 
-    if(next_task->taskId != tskmon_last_task->taskId)
+    if (!tskmon_last_task || next_task->taskId != tskmon_last_task->taskId)
     {
 #ifdef CONFIG_TSKMON_TRACE
         if(tskmon_trace_active && tskmon_trace_writepos < tskmon_trace_size - 1)

@@ -41,31 +41,31 @@ typedef unsigned long long tsc_t;
 
 typedef struct
 {
-    int used;
+    uint32_t used;
     char name[TRACE_MAX_STRING];
     char file_name[TRACE_MAX_STRING];
     struct msg_queue *queue;
     
     /* format options */
-    unsigned int format;
-    unsigned char separator;
-    unsigned int sleep_time;
-    unsigned int max_entries;
-    unsigned int cur_entries;
+    uint32_t format;
+    char separator;
+    uint32_t sleep_time;
+    uint32_t max_entries;
+    uint32_t cur_entries;
     
     /* runtime variables */
     FILE *file_handle;
     char *buffer;
-    unsigned int buffer_read_pos;
-    unsigned int buffer_write_pos;
-    unsigned int buffer_size;
-    unsigned int buffer_written;
+    uint32_t buffer_read_pos;
+    uint32_t buffer_write_pos;
+    uint32_t buffer_size;
+    uint32_t buffer_written;
     tsc_t start_tsc;
     tsc_t last_tsc;
     
     /* task status */
-    unsigned int task_state;
-    unsigned int task;
+    uint32_t task_state;
+    uint32_t task;
 } trace_entry_t;
 
 
@@ -86,38 +86,38 @@ typedef struct
 
 #if defined(MODULE)
 /* check if the module is available */
-unsigned int EXT_WEAK_FUNC(ret_0) trace_available();
+uint32_t EXT_WEAK_FUNC(ret_0) trace_available();
 /* create a new trace with given short name and filename */
-unsigned int EXT_WEAK_FUNC(ret_0) trace_start(char *name, char *file_name);
+uint32_t EXT_WEAK_FUNC(ret_0) trace_start(char *name, char *file_name);
 /* free a previously created trace context */
-unsigned int EXT_WEAK_FUNC(ret_0) trace_stop(unsigned int trace, int wait);
+uint32_t EXT_WEAK_FUNC(ret_0) trace_stop(uint32_t trace, uint32_t wait);
 /* setup some custom format options. when separator is a null byte, it will be omitted */
-unsigned int EXT_WEAK_FUNC(ret_0) trace_format(unsigned int context, unsigned int format, unsigned char separator);
-unsigned int EXT_WEAK_FUNC(ret_0) trace_set_flushrate(unsigned int context, unsigned int timeout);
-unsigned int EXT_WEAK_FUNC(ret_0) trace_flush(unsigned int context);
+uint32_t EXT_WEAK_FUNC(ret_0) trace_format(uint32_t context, uint32_t format, char separator);
+uint32_t EXT_WEAK_FUNC(ret_0) trace_set_flushrate(uint32_t context, uint32_t timeout);
+uint32_t EXT_WEAK_FUNC(ret_0) trace_flush(uint32_t context);
 /* write some string into specified trace */
-unsigned int EXT_WEAK_FUNC(ret_0) trace_write(unsigned int context, char *string, ...);
-unsigned int EXT_WEAK_FUNC(ret_0) trace_write_tsc(unsigned int context, tsc_t tsc, char *string, ...);
-unsigned int EXT_WEAK_FUNC(ret_0) trace_vwrite(unsigned int context, tsc_t tsc, char *string, va_list ap);
+uint32_t EXT_WEAK_FUNC(ret_0) trace_write(uint32_t context, char *string, ...);
+uint32_t EXT_WEAK_FUNC(ret_0) trace_write_tsc(uint32_t context, tsc_t tsc, char *string, ...);
+uint32_t EXT_WEAK_FUNC(ret_0) trace_vwrite(uint32_t context, tsc_t tsc, char *string, va_list ap);
 /* write some binary data into specified trace with an variable length field in front */
-unsigned int EXT_WEAK_FUNC(ret_0) trace_write_binary(unsigned int context, unsigned char *buffer, unsigned int length);
+uint32_t EXT_WEAK_FUNC(ret_0) trace_write_binary(uint32_t context, uint8_t *buffer, uint32_t length);
 #else
-static unsigned int (*trace_available)() = MODULE_FUNCTION(trace_available);
-static unsigned int (*trace_start)(char *name, char *file_name) = MODULE_FUNCTION(trace_start);
-static unsigned int (*trace_stop)(unsigned int trace, int wait) = MODULE_FUNCTION(trace_stop);
-static unsigned int (*trace_format)(unsigned int context, unsigned int format, unsigned char separator) = MODULE_FUNCTION(trace_format);
-static unsigned int (*trace_set_flushrate)(unsigned int context, unsigned int timeout) = MODULE_FUNCTION(trace_set_flushrate);
-static unsigned int (*trace_flush)(unsigned int context) = MODULE_FUNCTION(trace_flush);
-static unsigned int (*trace_write)(unsigned int context, char *string, ...) = MODULE_FUNCTION(trace_write);
-static unsigned int (*trace_write_tsc)(unsigned int context, uint64_t tsc, char *string, ...) = MODULE_FUNCTION(trace_write_tsc);
-static unsigned int (*trace_vwrite)(unsigned int context, tsc_t tsc, char *string, va_list ap) = MODULE_FUNCTION(trace_vwrite);
-static unsigned int (*trace_write_binary)(unsigned int context, unsigned char *buffer, unsigned int length) = MODULE_FUNCTION(trace_write_binary);
+static uint32_t (*trace_available)() = MODULE_FUNCTION(trace_available);
+static uint32_t (*trace_start)(char *name, char *file_name) = MODULE_FUNCTION(trace_start);
+static uint32_t (*trace_stop)(uint32_t trace, uint32_t wait) = MODULE_FUNCTION(trace_stop);
+static uint32_t (*trace_format)(uint32_t context, uint32_t format, char separator) = MODULE_FUNCTION(trace_format);
+static uint32_t (*trace_set_flushrate)(uint32_t context, uint32_t timeout) = MODULE_FUNCTION(trace_set_flushrate);
+static uint32_t (*trace_flush)(uint32_t context) = MODULE_FUNCTION(trace_flush);
+static uint32_t (*trace_write)(uint32_t context, char *string, ...) = MODULE_FUNCTION(trace_write);
+static uint32_t (*trace_write_tsc)(uint32_t context, uint64_t tsc, char *string, ...) = MODULE_FUNCTION(trace_write_tsc);
+static uint32_t (*trace_vwrite)(uint32_t context, tsc_t tsc, char *string, va_list ap) = MODULE_FUNCTION(trace_vwrite);
+static uint32_t (*trace_write_binary)(uint32_t context, uint8_t *buffer, uint32_t length) = MODULE_FUNCTION(trace_write_binary);
 
 #endif
 #endif
 
 /* internal */
-static unsigned int trace_write_varlength(unsigned int context, unsigned int length);
+static uint32_t trace_write_varlength(uint32_t context, uint32_t length);
 
 
 

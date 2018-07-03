@@ -3,12 +3,12 @@
 
 
 // button codes as received by gui_main_task
-#define BGMT_WHEEL_UP 2
-#define BGMT_WHEEL_DOWN 3
+#define BGMT_WHEEL_LEFT 2
+#define BGMT_WHEEL_RIGHT 3
 
 /* no top wheel => use fake negative values => they will fail read-only tests and will not be passed to Canon firmware */
-#define BGMT_WHEEL_LEFT -12345
-#define BGMT_WHEEL_RIGHT -123456
+#define BGMT_WHEEL_UP -12345
+#define BGMT_WHEEL_DOWN -123456
 
 #define BGMT_PRESS_SET 0x4
 #define BGMT_UNPRESS_SET 0x5
@@ -20,8 +20,8 @@
 #define BGMT_REC 0x1E
 
 /* no zoom buttons => fake codes */
-#define BGMT_PRESS_ZOOMIN_MAYBE -0x112
-#define BGMT_UNPRESS_ZOOMIN_MAYBE -0x113
+#define BGMT_PRESS_ZOOM_IN -0x112
+#define BGMT_UNPRESS_ZOOM_IN -0x113
 
 #define BGMT_LV 0x1E
 #define BGMT_Q -0xFFFE // dummy value so button can be faked with fake_simple_button(); negative means internal ML event, not passed to Canon code
@@ -36,9 +36,6 @@
 #define BGMT_UNPRESS_DOWN 0x2d
 
 #define BGMT_PRESS_HALFSHUTTER 0x50
-#define BGMT_UNPRESS_HALFSHUTTER 0x51
-#define BGMT_PRESS_FULLSHUTTER 0x52
-#define BGMT_UNPRESS_FULLSHUTTER 0x53
 
 // touch events
 #define BGMT_TOUCH_1_FINGER 0x6f

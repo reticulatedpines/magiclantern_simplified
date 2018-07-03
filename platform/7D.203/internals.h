@@ -61,7 +61,7 @@
 /** There is a separate bulb mode on the mode dial (other cameras have BULB = M + shutter speed beyond 30s) **/
 #define CONFIG_SEPARATE_BULB_MODE
 
-/** We can control audio settings from ML **/
+/** We can control audio settings from ML**/
 #define CONFIG_AUDIO_CONTROLS
 
 /** Zoom button can't be used while recording (for Magic Zoom) **/
@@ -92,7 +92,7 @@
 #define CONFIG_RESTORE_AFTER_FORMAT
 
 /** We know how to use DMA_MEMCPY, of course :) **/
-#define CONFIG_DMA_MEMCPY
+//~ #define CONFIG_DMA_MEMCPY
 
 /** We should not warn the user if movie exposure is Auto **/
 //~ #define CONFIG_MOVIE_AE_WARNING
@@ -114,5 +114,18 @@
 /** (but that doesn't mean we should use it, because existing prop handlers were not designed with this in mind */
 //~ #define CONFIG_UNREGISTER_PROP
 
+/** We can adjust AFMA (AF microadjustment) */
+#define CONFIG_AFMA
+
+/** The camera accepts extended AFMA values (default range: -20...20; extended: -100...100) */
+/** This can be dangerous, as the values are outside Canon limits */
+#define CONFIG_AFMA_EXTENDED
+
 /** We can use the DMA controller to copy data */
 #define CONFIG_EDMAC_MEMCPY
+
+/** LV RAW has trouble with 10x zoom, disable it */
+#define CONFIG_RAW_DISABLE_IN_10X_ZOOM
+
+/** Use joystick for one-finger menu navigation */
+#define CONFIG_JOY_CENTER_ACTIONS

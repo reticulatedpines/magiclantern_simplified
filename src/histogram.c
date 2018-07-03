@@ -25,7 +25,11 @@ extern int nondigic_zoom_overlay_enabled();
 
 
 CONFIG_INT( "hist.draw", hist_draw,  1 );
-CONFIG_INT( "hist.colorspace",   hist_colorspace,    1 );
+#ifdef FEATURE_RAW_HISTOGRAM
+CONFIG_INT( "hist.type", hist_type,  2 );
+#else
+CONFIG_INT( "hist.type", hist_type,  1 );
+#endif
 CONFIG_INT( "hist.warn", hist_warn,  1 );
 CONFIG_INT( "hist.log",  hist_log,   1 );
 CONFIG_INT( "hist.meter", hist_meter,  2);
@@ -65,6 +69,9 @@ void FAST hist_build_raw()
             int r = raw_red_pixel_dark(x, y);
             int g = raw_green_pixel_dark(x, y);
             int b = raw_blue_pixel_dark(x, y);
+
+            /* ignore bad pixels */
+            if (r == 0 || g == 0 || b == 0) continue;
 
             int ir = r2ev[r];
             int ig = r2ev[g];
@@ -106,21 +113,26 @@ void FAST hist_build_raw()
         histogram.max = MAX(histogram.max, histogram.hist_r[i]);
         histogram.max = MAX(histogram.max, histogram.hist_g[i]);
         histogram.max = MAX(histogram.max, histogram.hist_b[i]);
-        histogram.hist[i] = (histogram.hist_r[i] + histogram.hist_g[i] + histogram.hist_b[i]) / 3;
     }
 
     histobar_refresh();
 }
 
-CONFIG_INT("raw.histo", raw_histogram_enable, 2);
-#define HISTOBAR_ENABLED (hist_draw && raw_histogram_enable == 2)
-
 MENU_UPDATE_FUNC(raw_histo_update)
 {
-    menu_checkdep_raw(entry, info);
+    if (RAW_HISTOGRAM_ENABLED)
+    {
+        menu_checkdep_raw(entry, info);
+    }
 
-    if (raw_histogram_enable)
+    if (RAW_HISTOBAR_ENABLED)
+    {
+        MENU_SET_WARNING(MENU_WARN_INFO, "Will use Histobar in LiveView, RAW histogram after taking a pic.");
+    }
+    else if (RAW_HISTOGRAM_ENABLED)
+    {
         MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW histogram in LiveView and after taking a pic.");
+    }
 }
 #endif
 
@@ -199,12 +211,11 @@ static int (*auto_ettr_export_correction)(int* out) = MODULE_FUNCTION(auto_ettr_
  */
 void hist_draw_image(
     unsigned        x_origin,
-    unsigned        y_origin,
-    int highlight_level
+    unsigned        y_origin
 )
 {
     #ifdef FEATURE_RAW_HISTOGRAM
-    if (HISTOBAR_ENABLED && lv && can_use_raw_overlays_menu())
+    if (RAW_HISTOBAR_ENABLED && lv && can_use_raw_overlays_menu())
         return;
     #endif
     
@@ -223,9 +234,6 @@ void hist_draw_image(
         histogram.max = 1;
 
     unsigned i, y;
-
-    if (highlight_level >= 0)
-        highlight_level = (highlight_level * HIST_WIDTH) >> 8;
 
     int log_max = log_length(histogram.max);
 
@@ -247,12 +255,7 @@ void hist_draw_image(
         // vertical line up to the hist size
         for( y=hist_height ; y>0 ; y-- , col += BMPPITCH )
         {
-            if (highlight_level >= 0)
-            {
-                int hilight = ABS(i-highlight_level) <= 1;
-                *col = y > size + hilight ? COLOR_BG : (hilight ? COLOR_RED : COLOR_WHITE);
-            }
-            else if (hist_colorspace == 1 && !EXT_MONITOR_RCA) // RGB
+            if (histogram.is_rgb)
                 *col = hist_rgb_color(y, sizeR, sizeG, sizeB);
             else
                 *col = y > size ? COLOR_BG :
@@ -264,13 +267,14 @@ void hist_draw_image(
         }
 
 #if defined(FEATURE_HISTOGRAM)
+        /* draw clip warnings */
         if (hist_warn && i == HIST_WIDTH - 1)
         {
             unsigned int thr = histogram.total_px / 100000; // start at 0.0001 with a tiny dot
             thr = MAX(thr, 1);
             int yw = y_origin + 12 + (hist_log ? hist_height - 24 : 0);
             int bg = (hist_log ? COLOR_WHITE : COLOR_BLACK);
-            if (hist_colorspace == 1 && !EXT_MONITOR_RCA) // RGB
+            if (histogram.is_rgb)
             {
                 unsigned int over_r = histogram.hist_r[i] + histogram.hist_r[i-1];
                 unsigned int over_g = histogram.hist_g[i] + histogram.hist_g[i-1];
@@ -293,13 +297,23 @@ void hist_draw_image(
         {
             static unsigned bar_pos;
             if (i == 0) bar_pos = 0;
-            int h = hist_height - MAX(MAX(sizeR, sizeG), sizeB) - 1;
+            int H = hist_height - MAX(MAX(sizeR, sizeG), sizeB) - 1;
+            int h = hist_height - MIN(MIN(sizeR, sizeG), sizeB) - 1;
 
-            if ((int)i <= underexposed_level + HIST_WIDTH/12)
+            /* mark what's below the noise floor with... noise */
+            if ((int)i <= underexposed_level && i%2==0)
             {
-                draw_line(x_origin + i, y_origin, x_origin + i, y_origin + h, (int)i <= underexposed_level ? 4 : COLOR_GRAY(20));
+                for (int y = y_origin + ((i/2)%2)*2; y < (int)y_origin + hist_height; y += 4)
+                {
+                    int noise_color = 
+                        (y < (int)y_origin + H) ? COLOR_GRAY(60) :      /* noise color on top of histogram */
+                        (y < (int)y_origin + h) ? COLOR_WHITE    :      /* noise color where histogram has a solid color, but not white */
+                                                  COLOR_BLACK    ;      /* noise color where histogram is white */
+                    bmp_putpixel(x_origin + i, y, noise_color);
+                }
             }
 
+            /* draw full-stop (EV) bars */
             if (i == bar_pos)
             {
                 int dy = (i < font_med.width * 4) ? font_med.height : 0;
@@ -307,6 +321,7 @@ void hist_draw_image(
                 bar_pos = (((bar_pos+1)*12/HIST_WIDTH) + 1) * HIST_WIDTH/12;
             }
 
+            /* compute a basic ETTR hint */
             unsigned int thr = histogram.total_px / 10000;
             if (histogram.hist_r[i] > thr || histogram.hist_g[i] > thr || histogram.hist_b[i] > thr)
                 stops_until_overexposure = 120 - (i * 120 / (HIST_WIDTH-1));
@@ -314,7 +329,9 @@ void hist_draw_image(
         #endif
 
     }
-    bmp_draw_rect(60, x_origin-1, y_origin-1, HIST_WIDTH+1, hist_height+1);
+
+    /* draw histogram border */
+    bmp_draw_rect(60, x_origin-1, y_origin-1, HIST_WIDTH+2, hist_height+2);
 
     #ifdef FEATURE_RAW_HISTOGRAM
     if (histogram.is_raw)
@@ -363,25 +380,18 @@ MENU_UPDATE_FUNC(hist_print)
 #if defined(FEATURE_HISTOGRAM)
     if (hist_draw)
     {
-#ifdef FEATURE_RAW_HISTOGRAM
-        int raw = raw_histogram_enable && can_use_raw_overlays_menu();
-        if (raw && HISTOBAR_ENABLED)
-        {
-            MENU_SET_VALUE("RAW HistoBar");
-        }
-        else
-#endif
-        {
-            MENU_SET_VALUE(
-                "%s%s%s",
-                #ifdef FEATURE_RAW_HISTOGRAM
-                raw ? "RAW RGB" :
-                #endif
-                hist_colorspace == 0 ? "Luma" : "RGB",
-                hist_log ? ", Log" : ", Lin",
-                hist_warn ? ", dots" : ""
-            );
-        }
+        int raw = 0;
+        #ifdef FEATURE_RAW_HISTOGRAM
+        raw = RAW_HISTOGRAM_ENABLED && can_use_raw_overlays_menu();
+        #endif
+        
+        MENU_SET_VALUE(
+            "%s%s",
+            raw ? (RAW_HISTOBAR_ENABLED ? "RAW HistoBar" : "RAW RGB") :
+            hist_type == 0 ? "Luma (YUV)" :
+            hist_type == 1 ? "RGB (YUV)" : "RAW N/A",
+            hist_log ? ", Log" : (raw && RAW_HISTOBAR_ENABLED) ? "" : ", Linear"
+        );
     }
 #endif
 }
@@ -403,15 +413,6 @@ MENU_UPDATE_FUNC(hist_warn_display)
 #endif /* defined(FEATURE_HISTOGRAM) */
 }
 
-
-void hist_highlight(int level)
-{
-#ifdef FEATURE_HISTOGRAM
-    get_yuv422_vram();
-    hist_draw_image( os.x_max - HIST_WIDTH, os.y0 + 100, level );
-#endif
-}
-
 #ifdef FEATURE_RAW_HISTOGRAM
 
 /* speed:
@@ -424,11 +425,11 @@ void hist_highlight(int level)
 
 int FAST raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_values, int n, int gray_projection, int speed)
 {
-    if (!raw_update_params()) return -1;
+    if (!raw_update_params()) goto err;
     get_yuv422_vram();
 
     int* hist = malloc(16384*4);
-    if (!hist) return -1;
+    if (!hist) goto err;
     memset(hist, 0, 16384*4);
 
     int off = get_y_skip_offset_for_histogram();
@@ -528,6 +529,13 @@ int FAST raw_hist_get_percentile_levels(int* percentiles_x10, int* output_raw_va
 
     free(hist);
     return 1;
+
+err:
+    for (int k = 0; k < n; k++)
+    {
+        output_raw_values[k] = -1;
+    }
+    return -1;
 }
 
 int raw_hist_get_percentile_level(int percentile_x10, int gray_projection, int speed)
@@ -609,7 +617,7 @@ static void histobar_refresh()
         int max = MAX(MAX(histogram.hist_r[i], histogram.hist_g[i]), histogram.hist_b[i]);
         int ev_till_right_x10 = 120 - (i * 120 / (HIST_WIDTH-1));
         int ev_till_right = ev_till_right_x10 / 10;
-        int ev_from_left = 12 - ev_till_right;
+        int ev_from_left = histobar_stops - ev_till_right;
         if (max > thr)
         {
             stops_until_overexposure = ev_till_right_x10;
@@ -638,13 +646,25 @@ static void histobar_refresh()
 
     histobar_stops_until_overexposure = stops_until_overexposure;
 
+    #ifdef CONFIG_QEMU
+    /* double-check median and shadow levels (compare with histobar readings) */
+    int prctiles[2] = {500, 50};
+    int raw_levels[2];
+    int ev_levels[2];
+    raw_hist_get_percentile_levels(prctiles, raw_levels, 2, GRAY_PROJECTION_MAX_RGB, 0);
+    ev_levels[0] = (int)roundf(raw_to_ev(raw_levels[0]) * 10);
+    ev_levels[1] = (int)roundf(raw_to_ev(raw_levels[1]) * 10);
+    printf("Median   : %d = %s%d.%d EV\n", raw_levels[0], FMT_FIXEDPOINT1(ev_levels[0]));
+    printf("Shadow 5%%: %d = %s%d.%d EV\n", 0, raw_levels[1], FMT_FIXEDPOINT1(ev_levels[1]));
+    #endif
+
     lens_display_set_dirty();
 }
 
 static LVINFO_UPDATE_FUNC(histobar_update)
 {
 #ifdef FEATURE_RAW_HISTOGRAM
-    if (!HISTOBAR_ENABLED)
+    if (!RAW_HISTOBAR_ENABLED)
         return;
 #endif    
     if (!lv_luma_is_accurate())
@@ -674,24 +694,30 @@ static LVINFO_UPDATE_FUNC(histobar_update)
             int fg = item->color_fg;    /* outline color */
             int bg0 = item->color_bg;   /* background color */
             int bg = bg0;               /* fill color */
-            if (full) bg = fg;
-            if (ev == histobar_stops-1 && histobar_clipped > thr)
+
+            if (full)
             {
-                fg = bg = COLOR_RED;
+                bg = fg;
             }
-            else if (ev == 0 && full)
+
+            if (ev == histobar_midtone_level)
             {
-                fg = bg = COLOR_LIGHT_BLUE;
+                fg = bg = COLOR_YELLOW;
             }
             
             if (ev < histobar_shadow_level && full)
             {
                 fh = h/3;
             }
-            
-            if (ev == histobar_midtone_level && full)
+
+            if (ev == histobar_stops-1 && histobar_clipped > thr)
             {
-                fg = bg = COLOR_YELLOW;
+                fg = bg = COLOR_RED;
+                fh = h;
+            }
+            else if (ev == 0 && full)
+            {
+                fg = bg = COLOR_LIGHT_BLUE;
             }
             
             bmp_fill(bg0, x, y, w-2, h-fh);
@@ -709,7 +735,7 @@ static LVINFO_UPDATE_FUNC(histobar_indic_update)
         return;
     
 #ifdef FEATURE_RAW_HISTOGRAM
-    if (!HISTOBAR_ENABLED)
+    if (!RAW_HISTOBAR_ENABLED)
         return;
 #endif
     if (!lv_luma_is_accurate())

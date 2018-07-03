@@ -5,50 +5,67 @@
 #http://www.gnu.org/software/make/manual/make.html#Automatic-Variables
 #http://www.gnu.org/software/make/manual/make.html#Variables_002fRecursion
 
-TOP_DIR=$(PWD)
+TOP_DIR=.
 include Makefile.setup
 
-all: $(SUPPORTED_MODELS)
-
+############################################################################################################
+#
+# include platform data to build "top level" rules for every model
+#
+# this allows e.g.
+#   make 5D3
+#   make 5D3.113
+#   make 5D3.123
+#   make 5D3_install
+#   make 5D3.113_install
+# on this top level Makefile
+#
 include $(PLATFORM_PATH)/Makefile.platform.map
+$(foreach _,$(PLATFORM_MAP),$(eval $(call makerule,$(word 1, $(subst ., ,$_)),$_,$(PLATFORM_PATH)/)))
+############################################################################################################
 
-# This rule is able to run make for specific model (defined in ALL_SUPPORTED_MODELS)
-#60D 550D 600D 1100D 50D 500D 5D2 5DC 40D 5D3 EOSM 650D 6D 7D_MASTER::
-$(ALL_SUPPORTED_MODELS)::
-	$(call call_make_platform)
 
-7D:: 7D_MASTER
-	$(MAKE) -C $(PLATFORM_PATH)/7D.203
+all: modules_all platform_all
 
-7DFIR: 7D_MASTER 7D
-	dd if=$(PLATFORM_PATH)/7D.203/autoexec.bin of=$(PLATFORM_PATH)/7D.203/autoexec.fir bs=288 skip=1 >/dev/null 2>&1
-	dd if=$(PLATFORM_PATH)/7D_MASTER.203/autoexec.bin of=$(PLATFORM_PATH)/7D_MASTER.203/autoexec.fir bs=288 skip=1 >/dev/null 2>&1
-	python ../dumper/build_fir7.py -r -s $(PLATFORM_PATH)/7D.203/autoexec.fir -m $(PLATFORM_PATH)/7D_MASTER.203/autoexec.fir $(PLATFORM_PATH)/7D.203/7D000203.FIR $(PLATFORM_PATH)/7D.203/MAGIC.FIR >/dev/null
+install: platform_install
 
-platform_all_model:
-	$(MAKE) -C $(PLATFORM_PATH) clean-all-model all-model
+clean: platform_clean doxygen_clean modules_clean
 
-install_platform_all_model: platform_all_model
-	$(MAKE) -C $(PLATFORM_PATH) install-all-model
-
-install: install_platform_all_model
-
-all_modules:
-	$(MAKE) -C modules
-
-fir:
-	$(MAKE) -C installer clean_and_fir
-
-install_fir: fir
-	$(MAKE) -C installer install_fir
-
-platform_clean:
-	$(MAKE) -C platform clean
+############################
+# module rules
+############################
+modules_all:
+	$(MAKE) -C modules all
 
 modules_clean:
 	$(MAKE) -C modules clean
 
-clean: platform_clean doxygen_clean modules_clean
+############################
+# fir rules
+############################
+fir_all:
+	$(MAKE) -C installer clean_and_fir
+
+fir_install: fir
+	$(MAKE) -C installer install_fir
+
+############################
+# platform rules
+############################
+platform_install:
+	$(MAKE) -C $(PLATFORM_PATH) install
+
+platform_clean:
+	$(MAKE) -C $(PLATFORM_PATH) clean
+
+platform_all:
+	$(MAKE) -C $(PLATFORM_PATH) all
+
+  
+############################  
+# additional clean rules
+############################
+clean:
 	$(call rm_files, \
 		magiclantern.lds \
 		$(LUA_PATH)/*.o \
@@ -89,9 +106,9 @@ clean: platform_clean doxygen_clean modules_clean
 # during 'make all'. We can't write 'zip: all docs' because
 # of possible problem in case of parallel build.
 # (see make's '-j' option documentation)
-zip: docs
-	$(MAKE) all
-	cd $(PLATFORM_PATH)/all; $(MAKE) zip
+#zip: docs
+#	$(MAKE) all
+#	cd $(PLATFORM_PATH)/all; $(MAKE) zip
 
 docs:
 	cd $(PLATFORM_PATH)/all; $(MAKE) docs
@@ -105,11 +122,12 @@ doxygen:
 doxygen_clean:
 	$(call rm_dir, doxygen-doc)
 
-dropbox: all
-	cp $(PLATFORM_PATH)/all/autoexec.bin ~/Dropbox/Public/bleeding-edge/
-
 features.html: FORCE
 	cd features; python features-html.py > ../features.html
  
 FORCE:
 
+# we want ML platforms to be built sequentially, to avoid conflicts
+# => use .NOTPARALLEL in the upper-level Makefiles only
+# parallel build is still used within each platform
+.NOTPARALLEL:

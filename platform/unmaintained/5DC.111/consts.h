@@ -2,6 +2,8 @@
  *  5Dc 1.1.1 consts
  */
 
+#define CANON_SHUTTER_RATING 100000
+
 #define CARD_LED_ADDRESS 0xC02200A0 // http://magiclantern.wikia.com/wiki/Led_addresses
 #define LEDBLUE     *(int*)0xC02200F0
 #define LEDRED      *(int*)0xC02200A0
@@ -24,7 +26,6 @@
 // idk
 #define FOCUS_CONFIRMATION 0
 #define HALFSHUTTER_PRESSED get_halfshutter_pressed()
-//~ #define DISPLAY_SENSOR_POWERED 0
 
 #define LV_BOTTOM_BAR_DISPLAYED 0
 //~ #define ISO_ADJUSTMENT_ACTIVE 0
@@ -38,7 +39,7 @@
 #define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && MEM(0x27D8) && !MEM(0x3D50)) // StartPl1App, but not StartPlEraseApp
 #define MENU_MODE (gui_state == GUISTATE_PLAYMENU && MEM(0x4C48)) // StartMenuMainHeaderApp
 
-#define CURRENT_DIALOG_MAYBE (gui_state == GUISTATE_PLAYMENU ? 1 : 0)
+#define CURRENT_GUI_MODE (gui_state == GUISTATE_PLAYMENU ? 1 : 0)
 
 #define NUM_PICSTYLES 9
 #define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
@@ -55,7 +56,6 @@
 #define BFNT_BITMAP_OFFSET 0xffa87520
 #define BFNT_BITMAP_DATA   0xffa88ef0
 
- #define DLG_SIGNATURE 0x414944
 
 // from CFn
  #define AF_BTN_HALFSHUTTER 0
@@ -76,7 +76,7 @@
 
 #define DISPLAY_IS_ON MEM(0xFCA0)
 
-#define DLG_FOCUS_MODE 12345
+#define GUIMODE_FOCUS_MODE 12345
 
 #define MALLOC_FREE_MEMORY 0
 
@@ -91,7 +91,6 @@
 #define DISPLAY_TRAP_FOCUS_MSG_BLANK "     \n     "
 
 #define CONTROL_BV 0
-#define DISPLAY_SENSOR_POWERED 0
 #define LVAE_DISP_GAIN 0
 #define MVR_FRAME_NUMBER 0
 

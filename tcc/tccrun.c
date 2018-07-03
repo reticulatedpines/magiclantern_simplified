@@ -189,7 +189,7 @@ static int tcc_relocate_ex(TCCState *s1, void *ptr)
             {
                 #warning FIXME: why does it overflow without this extra RAM when loading the big adtg_gui?
                 offset += extra_ram + 10240;
-                console_printf("%s: %d\n", s->name, extra_ram);
+                printf("%s: %d\n", s->name, extra_ram);
             }
         }
     }
@@ -731,8 +731,8 @@ static TCCSyms tcc_syms[] = {
 #define TCCSYM(a) { #a, &a, },
     TCCSYM(printf)
     //~ TCCSYM(fprintf)
-    TCCSYM(fopen)
-    TCCSYM(fclose)
+    //~ TCCSYM(fopen)
+    //~ TCCSYM(fclose)
 #undef TCCSYM
 #endif
     { NULL, NULL },

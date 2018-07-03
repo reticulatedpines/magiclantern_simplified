@@ -19,9 +19,11 @@
  */
 
 #include <dryos.h>
+#include <module.h>
 #include <stdint.h>
 #include <lens.h>
 #include <property.h>
+#include <propvalues.h>
 #include <picstyle.h>
 #include <raw.h>
 #include <fps.h>
@@ -37,14 +39,6 @@ extern char *strncpy(char *dest, const char *src, int n);
 extern const char* get_picstyle_name(int raw_picstyle);
 
 extern struct prop_picstyle_settings picstyle_settings[];
-
-extern int WEAK_FUNC(own_PROPAD_GetPropertyData) PROPAD_GetPropertyData(uint32_t property, void** addr, size_t* len);
-
-static int own_PROPAD_GetPropertyData(uint32_t property, void** addr, size_t* len)
-{
-    trace_write(raw_rec_trace_ctx, "WARNING: This model doesn't have 'PROPAD_GetPropertyData' defined. Reading properties not possible.");
-    return 1;
-}
 
 void mlv_fill_lens(mlv_lens_hdr_t *hdr, uint64_t start_timestamp)
 {
@@ -150,58 +144,33 @@ void mlv_fill_rtci(mlv_rtci_hdr_t *hdr, uint64_t start_timestamp)
 
 void mlv_fill_idnt(mlv_idnt_hdr_t *hdr, uint64_t start_timestamp)
 {
-    char *model_data = NULL;
-    uint64_t *body_data = NULL;
-    size_t model_len = 0;
-    size_t body_len = 0;
-    int err = 0;
-
     /* prepare header */
     mlv_set_type((mlv_hdr_t *)hdr, "IDNT");
     mlv_set_timestamp((mlv_hdr_t *)hdr, start_timestamp);
     hdr->blockSize = sizeof(mlv_idnt_hdr_t);
-
-    /* default values */
-    hdr->cameraName[0] = '\000';
-    hdr->cameraSerial[0] = '\000';
-    hdr->cameraModel = 0;
-
-    /* get camera properties */
-    err = PROPAD_GetPropertyData(PROP_CAM_MODEL, (void **) &model_data, &model_len);
-    if(err || model_len < 36 || !model_data)
-    {
-        trace_write(raw_rec_trace_ctx, "[IDNT] err: %d model_data: 0x%08X model_len: %d", err, model_data, model_len);
-        snprintf((char*)hdr->cameraName, sizeof(hdr->cameraName), "ERR:%d md:0x%8X ml:%d", err, model_data, model_len);
-        return;
-    }
-
-    err = PROPAD_GetPropertyData(PROP_BODY_ID, (void **) &body_data, &body_len);
-    if(err || !body_data || body_len == 0)
-    {
-        trace_write(raw_rec_trace_ctx, "[IDNT] err: %d body_data: 0x%08X body_len: %d", err, body_data, body_len);
-        snprintf((char*)hdr->cameraSerial, sizeof(hdr->cameraSerial), "ERR:%d bd:0x%8X bl:%d", err, body_data, body_len);
-        return;
-    }
-
-    /* different camera serial lengths */
-    if(body_len == 8)
-    {
-        snprintf((char *)hdr->cameraSerial, sizeof(hdr->cameraSerial), "%X%08X", (uint32_t)(*body_data & 0xFFFFFFFF), (uint32_t) (*body_data >> 32));
-    }
-    else if(body_len == 4)
-    {
-        snprintf((char *)hdr->cameraSerial, sizeof(hdr->cameraSerial), "%08X", *((uint32_t*)body_data));
-    }
-    else
-    {
-        snprintf((char *)hdr->cameraSerial, sizeof(hdr->cameraSerial), "(unknown len %d)", body_len);
-    }
-
-    /* properties are ok, so read data */
-    memcpy((char *)hdr->cameraName, &model_data[0], 32);
-    memcpy((char *)&hdr->cameraModel, &model_data[32], 4);
+    
+    hdr->cameraModel = camera_model_id;
+    memcpy(hdr->cameraName, camera_model, 32);
+    memcpy(hdr->cameraSerial, camera_serial, 32);
 
     trace_write(raw_rec_trace_ctx, "[IDNT] cameraName: '%s' cameraModel: 0x%08X cameraSerial: '%s'", hdr->cameraName, hdr->cameraModel, hdr->cameraSerial);
+}
+
+void mlv_build_vers(mlv_vers_hdr_t **hdr, uint64_t start_timestamp, const char *version_string)
+{
+    int block_length = (strlen(version_string) + sizeof(mlv_vers_hdr_t) + 3) & ~3;
+    mlv_vers_hdr_t *header = malloc(block_length);
+    
+    /* prepare header */
+    mlv_set_type((mlv_hdr_t *)header, "VERS");
+    mlv_set_timestamp((mlv_hdr_t *)header, start_timestamp);
+    header->blockSize = block_length;
+    header->length = strlen(version_string);
+    
+    char *vers_hdr_payload = (char *)&header[1];
+    strcpy(vers_hdr_payload, version_string);
+    
+    *hdr = header;
 }
 
 uint64_t mlv_prng_lfsr(uint64_t value)
@@ -261,4 +230,71 @@ uint64_t mlv_set_timestamp(mlv_hdr_t *hdr, uint64_t start)
         hdr->timestamp = timestamp - start;
     }
     return timestamp;
+}
+
+int mlv_write_vers_blocks(FILE *f, uint64_t mlv_start_timestamp)
+{
+    int mod = -1;
+    int error = 0;
+    
+    do
+    {
+        /* get next loaded module id */
+        mod = module_get_next_loaded(mod);
+        
+        /* make sure thats a valid one */
+        if(mod >= 0)
+        {
+            /* fetch information from module loader */
+            const char *mod_name = module_get_name(mod);
+            const char *mod_build_date = module_get_string(mod, "Build date");
+            const char *mod_last_update = module_get_string(mod, "Last update");
+            
+            if(mod_name != NULL)
+            {
+                /* just in case that ever happens */
+                if(mod_build_date == NULL)
+                {
+                    mod_build_date = "(no build date)";
+                }
+                if(mod_last_update == NULL)
+                {
+                    mod_last_update = "(no version)";
+                }
+                
+                /* separating the format string allows us to measure its length for malloc */
+                const char *fmt_string = "%s built %s; commit %s";
+                int buf_length = strlen(fmt_string) + strlen(mod_name) + strlen(mod_build_date) + strlen(mod_last_update) + 1;
+                char *version_string = malloc(buf_length);
+                
+                /* now build the string */
+                snprintf(version_string, buf_length, fmt_string, mod_name, mod_build_date, mod_last_update);
+                
+                /* and finally remove any newlines, they are annoying */
+                for(unsigned int pos = 0; pos < strlen(version_string); pos++)
+                {
+                    if(version_string[pos] == '\n')
+                    {
+                        version_string[pos] = ' ';
+                    }
+                }
+                
+                /* let the mlv helpers build the block for us */
+                mlv_vers_hdr_t *hdr = NULL;
+                mlv_build_vers(&hdr, mlv_start_timestamp, version_string);
+                
+                /* try to write to output file */
+                if(FIO_WriteFile(f, hdr, hdr->blockSize) != (int)hdr->blockSize)
+                {
+                    error = 1;
+                }
+                
+                /* free both temporary string and allocated mlv block */
+                free(version_string);
+                free(hdr);
+            }
+        }
+    } while(mod >= 0 && !error);
+    
+    return error;
 }

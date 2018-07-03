@@ -28,10 +28,11 @@ typedef struct
 } ml_rpc_request_t;
 
 
+uint32_t ml_rpc_available();
 uint32_t ml_rpc_send(uint32_t command, uint32_t parm1, uint32_t parm2, uint32_t parm3, uint32_t wait);
 uint32_t ml_rpc_send_recv(uint32_t command, uint32_t *parm1, uint32_t *parm2, uint32_t *parm3, uint32_t wait);
 uint32_t ml_rpc_call(uint32_t address, uint32_t arg0, uint32_t arg1);
 uint32_t ml_rpc_readmem(uint32_t address, uint32_t length, uint8_t *buffer);
 uint32_t ml_rpc_send_vignetting(uint32_t *buffer, uint32_t length);
-
+void ml_rpc_verbose(uint32_t state);
 #endif

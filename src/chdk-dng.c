@@ -43,6 +43,7 @@ static int get_tick_count() { return get_ms_clock_value_fast(); }
 #include "stdint.h"
 #include "stdio.h"
 #include "stdlib.h"
+#include "unistd.h"
 #include "string.h"
 #include "math.h"
 #include <sys/types.h>
@@ -54,10 +55,13 @@ static int get_tick_count() { return get_ms_clock_value_fast(); }
 #define FIO_CreateFile(name) fopen(name, "wb")
 #define FIO_WriteFile(f, ptr, count) fwrite(ptr, 1, count, f)
 #define FIO_CloseFile(f) fclose(f)
+#define FIO_RemoveFile(f) unlink(f)
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 #define COERCE(x,lo,hi) MAX(MIN((x),(hi)),(lo))
+
+#define INVALID_PTR             ((void *)0xFFFFFFFF)
 
 #endif
 
@@ -386,7 +390,7 @@ void dng_set_iso(int value)
     exif_data.iso = value;
 }
 
-void dng_set_wbgain(float gain_r_n, float gain_r_d, float gain_g_n, float gain_g_d, float gain_b_n, float gain_b_d)
+void dng_set_wbgain(int gain_r_n, int gain_r_d, int gain_g_n, int gain_g_d, int gain_b_n, int gain_b_d)
 {
     cam_AsShotNeutral[0] = gain_r_n;
     cam_AsShotNeutral[1] = gain_r_d;
@@ -444,7 +448,7 @@ static void create_dng_header(struct raw_info * raw_info){
         {0xC62C, T_RATIONAL,   1,  (int)cam_BaselineSharpness},
         {0xC62E, T_RATIONAL,   1,  (int)cam_LinearResponseLimit},
         {0xC65A, T_SHORT,      1, 21},                                 // CalibrationIlluminant1 D65
-        {0xC65B, T_SHORT,      1, 21},                                 // CalibrationIlluminant2 D65 (change this if ColorMatrix2 is added)
+        // {0xC65B, T_SHORT,      1, 21},                                 // CalibrationIlluminant2 D65 (change this if ColorMatrix2 is added); see issue #2343
         {0xC764, T_SRATIONAL,  1,  (int)cam_FrameRate},
     };
 
@@ -712,7 +716,7 @@ static void create_thumbnail(struct raw_info * raw_info)
 //-------------------------------------------------------------------
 // Write DNG header, thumbnail and data to file
 
-static void write_dng(FILE* fd, struct raw_info * raw_info) 
+static int write_dng(FILE* fd, struct raw_info * raw_info) 
 {
     create_dng_header(raw_info);
     char* rawadr = (void*)raw_info->buffer;
@@ -720,14 +724,15 @@ static void write_dng(FILE* fd, struct raw_info * raw_info)
     if (dng_header_buf)
     {
         create_thumbnail(raw_info);
-        write(fd, dng_header_buf, dng_header_buf_size);
-        write(fd, thumbnail_buf, dng_th_width*dng_th_height*3);
+        if (write(fd, dng_header_buf, dng_header_buf_size) != dng_header_buf_size) return 0;
+        if (write(fd, thumbnail_buf, dng_th_width*dng_th_height*3) != dng_th_width*dng_th_height*3) return 0;
 
         reverse_bytes_order(UNCACHEABLE(rawadr), camera_sensor.raw_size);
-        write(fd, UNCACHEABLE(rawadr), camera_sensor.raw_size);
+        if (write(fd, UNCACHEABLE(rawadr), camera_sensor.raw_size) != camera_sensor.raw_size) return 0;
 
         free_dng_header();
     }
+    return 1;
 }
 
 #ifdef CONFIG_MAGICLANTERN
@@ -737,6 +742,7 @@ PROP_HANDLER(PROP_CAM_MODEL)
 }
 #endif
 
+/* returns 1 on success, 0 on error */
 int save_dng(char* filename, struct raw_info * raw_info)
 {
     #ifdef RAW_DEBUG_BLACK
@@ -752,7 +758,12 @@ int save_dng(char* filename, struct raw_info * raw_info)
     
     FILE* f = FIO_CreateFile(filename);
     if (!f) return 0;
-    write_dng(f, raw_info);
+    int ok = write_dng(f, raw_info);
     FIO_CloseFile(f);
+    if (!ok)
+    {
+        FIO_RemoveFile(filename);
+        return 0;
+    }
     return 1;
 }

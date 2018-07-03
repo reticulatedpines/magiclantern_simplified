@@ -35,6 +35,7 @@ unsorted_categs = [
     "Not Used",
     "Misc",
     "Unused Some Are OldFW",
+    "SRM JobMem",
 ]
 
 porting_notes_categ = "Unused stubs or porting notes"
