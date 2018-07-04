@@ -22,6 +22,7 @@
 
 static int is_5D3 = 0;
 static int is_6D = 0;
+static int is_EOSM = 0;
 static int is_basic = 0;
 
 static CONFIG_INT("crop.preset", crop_preset_index, 0);
@@ -145,6 +146,14 @@ static int is_1080p()
 
 static int is_720p()
 {
+    if (is_EOSM)
+    {
+        if (lv_dispsize == 1 && !RECORDING_H264)
+        {
+            return 1;
+        }
+    }
+
     return is_movie_mode() && video_mode_resolution == 1;
 }
 
@@ -683,7 +692,7 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
     }
     
 
-    if (is_5D3 && !is_720p())
+    if (!is_720p())
     {
         if (crop_preset == CROP_PRESET_3x3_1X ||
             crop_preset == CROP_PRESET_3x3_1X_48p)
@@ -752,7 +761,11 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
         /* ADTG[0x805E]: shutter blanking for zoom mode  */
         adtg_new[0] = (struct adtg_new) {6, 0x8060, shutter_blanking};
         adtg_new[1] = (struct adtg_new) {6, 0x805E, shutter_blanking};
+    }
 
+    /* hopefully generic; to be tested later */
+    if (1)
+    {
         switch (crop_preset)
         {
             /* all 1:1 modes (3x, 3K, 4K...) */
@@ -763,9 +776,12 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
             case CROP_PRESET_4K_HFPS:
             case CROP_PRESET_FULLRES_LV:
                 /* ADTG2/4[0x8000] = 5 (set in one call) */
-                /* ADTG2[0x8806] = 0x6088 (artifacts without it) */
+                /* ADTG2[0x8806] = 0x6088 on 5D3 (artifacts without it) */
                 adtg_new[2] = (struct adtg_new) {6, 0x8000, 5};
-                adtg_new[3] = (struct adtg_new) {2, 0x8806, 0x6088};
+                if (is_5D3) {
+                    /* this register is model-specific */
+                    adtg_new[3] = (struct adtg_new) {2, 0x8806, 0x6088};
+                }
                 break;
 
             /* 3x3 binning in 720p (in 1080p it's already 3x3) */
@@ -785,9 +801,12 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
             /* doesn't work well, figure out why */
             case CROP_PRESET_3x1:
                 /* ADTG2/4[0x800C] = 2: vertical binning factor = 3 */
-                /* ADTG2[0x8806] = 0x6088 (artifacts worse without it) */
+                /* ADTG2[0x8806] = 0x6088 on 5D3 (artifacts worse without it) */
                 adtg_new[2] = (struct adtg_new) {6, 0x800C, 2};
-                adtg_new[3] = (struct adtg_new) {2, 0x8806, 0x6088};
+                if (is_5D3) {
+                    /* this register is model-specific */
+                    adtg_new[3] = (struct adtg_new) {2, 0x8806, 0x6088};
+                }
                 break;
         }
 
@@ -828,18 +847,6 @@ static void FAST adtg_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
                 adtg_new[12] = (struct adtg_new) {6, 0x82F9, nrzi_encode(fps_timer_b - 1) }; /* ReadOutTiming end? */
                 break;
             }
-        }
-    }
-
-    if (is_basic)
-    {
-        switch (crop_preset)
-        {
-            /* 3x3 binning in 720p (in 1080p it's already 3x3) */
-            case CROP_PRESET_3x3_1X:
-                /* ADTG2/4[0x800C] = 2: vertical binning factor = 3 */
-                adtg_new[0] = (struct adtg_new) {6, 0x800C, 2};
-                break;
         }
     }
 
@@ -1912,7 +1919,8 @@ static unsigned int crop_rec_init()
         
         ADTG_WRITE = 0x2986C;
         MEM_ADTG_WRITE = 0xE92D43F8;
-        
+
+        is_EOSM = 1;
         is_basic = 1;
         crop_presets                = crop_presets_basic;
         crop_rec_menu[0].choices    = crop_choices_basic;
