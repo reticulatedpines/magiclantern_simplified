@@ -253,6 +253,7 @@ static int get_top_bar_adjustment()
         case CROP_PRESET_3x3_1X:
         case CROP_PRESET_3x3_1X_48p:
             if (is_720p()) return 28;   /* 0x1D0017 from 0x10017 */
+            /* fall through */
         default:
             return 30;                  /* 0x1F0017 from 0x10017 */
     }
@@ -951,6 +952,8 @@ static inline uint32_t reg_override_fps(uint32_t reg, uint32_t timerA, uint32_t 
             {
                 return timerA;
             }
+
+            break;
         }
         
         case 0xC0F06008:
@@ -963,6 +966,8 @@ static inline uint32_t reg_override_fps(uint32_t reg, uint32_t timerA, uint32_t 
             {
                 return timerA | (timerA << 16);
             }
+
+            break;
         }
 
         case 0xC0F06014:
@@ -973,6 +978,8 @@ static inline uint32_t reg_override_fps(uint32_t reg, uint32_t timerA, uint32_t 
             {
                 return timerB;
             }
+
+            break;
         }
     }
 
