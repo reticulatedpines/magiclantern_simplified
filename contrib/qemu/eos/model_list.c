@@ -579,6 +579,16 @@ struct eos_model_desc eos_model_list[] = {
         .dedicated_movie_mode   = 0,
     },
     {
+        .name                   = "800D",
+        .digic_version          = 7,
+        .ram_size               = 0x40000000,   /* 1GB */
+        .card_led_address       = 0xD208016C,
+        .current_task_addr      = 0x20,         /* fixme: read from virtual memory */
+        .uart_rx_interrupt      = 0x15D,
+        .uart_tx_interrupt      = 0x16D,
+        .dedicated_movie_mode   = 0,
+    },
+    {
         .name                   = "EOSM5",
         .digic_version          = 7,
         .firmware_start         = 0xE0000000,
