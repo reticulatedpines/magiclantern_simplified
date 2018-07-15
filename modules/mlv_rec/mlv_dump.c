@@ -3747,13 +3747,14 @@ read_headers:
                 mlv_info_hdr_t block_hdr = *(mlv_info_hdr_t *)mlv_block;
 
                 /* get the string length and malloc a buffer for that string */
-                int str_length = block_hdr.blockSize - sizeof(block_hdr);
+                int str_length = MIN(block_hdr.blockSize - sizeof(block_hdr), sizeof(info_string) - 1);
 
                 if(str_length)
                 {
                     void *payload = BYTE_OFFSET(mlv_block, sizeof(mlv_info_hdr_t));
 
                     strncpy(info_string, payload, MIN((size_t)str_length, sizeof(info_string)));
+                    info_string[str_length] = '\000';
 
                     if(verbose)
                     {
@@ -3774,10 +3775,10 @@ read_headers:
                     char *buf = malloc(str_length + 1);
             
                     strncpy(buf, payload, str_length);
+                    buf[str_length] = '\000';
             
                     if(verbose)
                     {
-                        buf[block_hdr.length] = '\000';
                         print_msg(MSG_INFO, "     String:   '%s'\n", buf);
                     }
                     
@@ -3805,10 +3806,10 @@ read_headers:
                     char *buf = malloc(str_length + 1);
             
                     strncpy(buf, payload, str_length);
+                    buf[str_length] = '\000';
                     
                     if(verbose)
                     {
-                        buf[block_hdr.length] = '\000';
                         print_msg(MSG_INFO, "  String: '%s'\n", buf);
                     }
                     free(buf);
