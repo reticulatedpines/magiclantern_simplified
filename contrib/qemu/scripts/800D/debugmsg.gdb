@@ -15,16 +15,19 @@ task_create_log
 b *0xE05D4B08
 assert_log
 
-b *0xdf00a1ea
+b *0xDF00A1EA
 CreateStateObject_log
 
-b *0xe04bbf6a
+b *0xE04BFDD8
 register_func_log
 
-b *0xe042517c
+b *0xDF008274
 register_interrupt_log
 
-b *0xe05a423a
+b *0xE01C56B6
+mpu_send_log
+
+b *0xE05A423A
 mpu_recv_log
 
 cont
