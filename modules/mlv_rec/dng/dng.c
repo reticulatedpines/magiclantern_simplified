@@ -39,7 +39,7 @@
 #include "../raw_proc/patternnoise.h"
 #include "../raw_proc/histogram.h"
 
-#define IFD0_COUNT 41
+#define IFD0_COUNT 42
 #define EXIF_IFD_COUNT 11
 #define PACK(a) (((uint16_t)a[1] << 16) | ((uint16_t)a[0]))
 #define PACK2(a,b) (((uint16_t)b << 16) | ((uint16_t)a))
@@ -667,6 +667,7 @@ static void dng_fill_header(struct frame_info * frame_info, struct dng_data * dn
             {tcFrameRate,                   ttSRational,RATIONAL_ENTRY(frame_rate, header, &data_offset, 2)},
             {tcReelName,                    ttAscii,    STRING_ENTRY(reel_name, header, &data_offset)},
             {tcBaselineExposureOffset,      ttSRational,RATIONAL_ENTRY2(0, 1, header, &data_offset)},
+            {tcImageDescription,            ttAscii,    STRING_ENTRY(frame_info->info_str, header, &data_offset)},
         };
         
         struct directory_entry EXIF_IFD[EXIF_IFD_COUNT] =
@@ -683,6 +684,12 @@ static void dng_fill_header(struct frame_info * frame_info, struct dng_data * dn
             {tcFocalPlaneResolutionUnitExif,ttShort,    1,      camera_id[current_cam].focal_unit}, //inches
             {tcLensModelExif,               ttAscii,    STRING_ENTRY((char*)frame_info->lens_hdr.lensName, header, &data_offset)},
         };
+        
+        /* do not put image description, if the length is zero */
+        if(strlen(frame_info->info_str) == 0)
+        {
+            IFD0[41].tag = tcDNGPrivateData; /* tcImageDescription */
+        }
         
         /* no match in database, pass through RAWI info and cancel out advanced info, as it is not available */
         if(camera_id[current_cam].cameraModel == 0)

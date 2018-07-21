@@ -73,6 +73,7 @@ struct frame_info
     mlv_expo_hdr_t expo_hdr;
     mlv_lens_hdr_t lens_hdr;
     mlv_wbal_hdr_t wbal_hdr;
+    char *info_str;
 };
 
 /* buffers of DNG header and image data */

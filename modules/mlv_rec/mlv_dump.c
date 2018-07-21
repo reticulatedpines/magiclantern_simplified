@@ -1939,7 +1939,7 @@ int main (int argc, char *argv[])
     memset(&rawc_info, 0x00, sizeof(mlv_rawc_hdr_t));
     memset(&main_header, 0x00, sizeof(mlv_file_hdr_t));
 
-    char info_string[256] = "(MLV Video without INFO blocks)";
+    char info_string[1024] = "";
 
     /* this table contains the XREF chunk read from idx file, if existing */
     mlv_xref_hdr_t *block_xref = NULL;
@@ -3486,6 +3486,7 @@ read_headers:
                             frame_info.lens_hdr             = lens_info;
                             frame_info.wbal_hdr             = wbal_info;
                             frame_info.rawc_hdr             = rawc_info;
+                            frame_info.info_str             = info_string;
                             frame_info.rawi_hdr.xRes        = lv_rec_footer.xRes;
                             frame_info.rawi_hdr.yRes        = lv_rec_footer.yRes;
                             frame_info.rawi_hdr.raw_info    = raw_info;
