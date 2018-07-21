@@ -62,7 +62,7 @@ What works:
   - log hardware devices: ``-d mpu/sflash/sdcf/uart/int``
   - log all debug messages from Canon: ``-d debugmsg``
   - log all memory accesses: ``-d rom/ram/romr/ramw/etc``
-  - log all function calls: ``-d calls``, ``-d calls,tail``
+  - log all function calls: ``-d calls``
   - log all DryOS/VxWorks task switches: ``-d tasks``
   - track all function calls to provide a stack trace: ``-d callstack``
   - export all called functions to IDC script: ``-d idc``
@@ -890,17 +890,11 @@ Memory access trace (ROM reads, RAM writes) — very verbose:
 
   ./run_canon_fw.sh 60D,firmware="boot=0" -d romr,ramw
 
-Call/return trace (not including tail function calls):
+Call/return trace, redirected to a log file:
 
 .. code:: shell
 
-  ./run_canon_fw.sh 60D,firmware="boot=0" -d calls
-
-Also with tail calls, redirected to a log file:
-
-.. code:: shell
-
-  ./run_canon_fw.sh 60D,firmware="boot=0" -d calls,tail &> calls.log
+  ./run_canon_fw.sh 60D,firmware="boot=0" -d calls &> calls.log
 
 Tip: set your editor to highlight the log file as if it were Python code.
 You'll get collapse markers for free :)
@@ -909,7 +903,7 @@ Also with debug messages, I/O events and interrupts, redirected to file
 
 .. code:: shell
 
-  ./run_canon_fw.sh 60D,firmware="boot=0" -d debugmsg,calls,tail,io,int &> full.log
+  ./run_canon_fw.sh 60D,firmware="boot=0" -d debugmsg,calls,io,int &> full.log
 
 Filter the logs with grep:
 
@@ -1011,7 +1005,7 @@ Printing call stack from GDB
 
 The ``callstack`` option from QEMU (``eos/dbi/logging.c``) can be very useful to find where a function was called from.
 This works even when gdb's ``backtrace`` command cannot figure it out from the stack contents, does not require any debugging symbols,
-but you need to run the emulation with instrumentation enabled: ``-d callstack`` or ``-d callstack,tail``.
+but you need to run the emulation with instrumentation enabled: ``-d callstack``.
 
 Then, in GDB, use ``print_current_location_with_callstack`` to see the call stack for the current DryOS task.
 
@@ -1083,7 +1077,7 @@ The instrumentation framework provides the following features:
 
 - log all debug messages from Canon: ``-d debugmsg``
 - log all memory accesses: ``-d rom/ram/romr/ramw/etc``
-- log all function calls: ``-d calls``, ``-d calls,tail``
+- log all function calls: ``-d calls``
 - log all DryOS/VxWorks task switches: ``-d tasks``
 - track all function calls to provide a stack trace: ``-d callstack``
 - export all called functions to IDC script: ``-d idc``

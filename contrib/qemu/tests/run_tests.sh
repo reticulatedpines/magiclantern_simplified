@@ -559,7 +559,7 @@ function test_calls_main {
     # fixme: execution under gdb is not deterministic, even with -icount
     # ansi2txt used here (only once) because it's very slow
     ./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot -icount 5 \
-        -display none -d calls,idc,tasks \
+        -display none -d calls,notail,idc,tasks \
         -serial file:tests/$CAM/$TEST-uart.log \
         |& ansi2txt > tests/$CAM/$TEST-raw.log &
 
@@ -710,7 +710,7 @@ function test_calls_from {
 
     # log all function calls/returns and export to IDC
     ./run_canon_fw.sh $CAM,firmware="boot=1" -snapshot \
-        -display none -d calls,idc \
+        -display none -d calls,notail,idc \
         -serial file:tests/$CAM/$TEST-uart.log \
         &> tests/$CAM/$TEST-raw.log &
 
@@ -1244,13 +1244,13 @@ function test_calls_cstack {
     if [ -f $CAM/patches.gdb ]; then
         (
             ./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot \
-                -display none -d calls,tasks,debugmsg,v -S -gdb tcp::$GDB_PORT \
+                -display none -d calls,notail,tasks,debugmsg,v -S -gdb tcp::$GDB_PORT \
                 -serial file:tests/$CAM/$TEST-uart.log &
             arm-none-eabi-gdb -ex "set \$TCP_PORT=$GDB_PORT" -x $CAM/patches.gdb -ex quit &
         ) &> tests/$CAM/$TEST-raw.log
     else
         ./run_canon_fw.sh $CAM,firmware="boot=0" -snapshot \
-            -display none -d calls,tasks,debugmsg,v \
+            -display none -d calls,notail,tasks,debugmsg,v \
             -serial file:tests/$CAM/calls-cstack-uart.log \
             &> tests/$CAM/$TEST-raw.log &
     fi

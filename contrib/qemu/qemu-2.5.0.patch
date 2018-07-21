@@ -188,7 +188,7 @@ index 0010c44..d85cc6b 100644
      }
  
 diff --git a/include/qemu/log.h b/include/qemu/log.h
-index 362cbc4..fa5748d 100644
+index 362cbc4..7859c5f 100644
 --- a/include/qemu/log.h
 +++ b/include/qemu/log.h
 @@ -12,7 +12,7 @@
@@ -243,7 +243,7 @@ index 362cbc4..fa5748d 100644
 +#define EOS_LOG_RAM_TSKMEM (1LL << 55)      /* check task memory ownership assumptions */
 +#define EOS_LOG_RAM_SEMCHK (1LL << 56)      /* check semaphore usage (like helgrind) */
 +#define EOS_LOG_ROMCPY     (1LL << 57)      /* find memory blocks copied from ROM to RAM */
-+#define EOS_LOG_TAIL_CALLS (1LL << 58)      /* attempt to identify tail calls */
++#define EOS_LOG_NO_TAIL_CALLS (1LL << 58)   /* don't attempt to identify tail calls */
 +
  /* Returns true if a bit is set in the current loglevel mask
   */
@@ -324,7 +324,7 @@ index e193658..9de7251 100644
      subregion->priority = 0;
      memory_region_add_subregion_common(mr, offset, subregion);
 diff --git a/qemu-log.c b/qemu-log.c
-index 7cb01a8..61583ba 100644
+index 7cb01a8..7b57b2e 100644
 --- a/qemu-log.c
 +++ b/qemu-log.c
 @@ -22,7 +22,7 @@
@@ -409,8 +409,8 @@ index 7cb01a8..61583ba 100644
 +      "EOS: reconstruct call stack (implies nochain,singlestep)" },
 +    { EOS_LOG_CALLS | EOS_LOG_CALLSTACK | CPU_LOG_TB_NOCHAIN | EOS_LOG_RAM_R, "calls",
 +      "EOS: log function calls (implies callstack,nochain,singlestep; monitors RAM reads)" },
-+    { EOS_LOG_TAIL_CALLS, "tail",
-+      "EOS: identify tail calls (heuristic; to be used with calls or callstack)" },
++    { EOS_LOG_NO_TAIL_CALLS, "notail",
++      "EOS: don't identify tail calls (for troubleshooting)" },
 +    { EOS_LOG_IDC | EOS_LOG_CALLSTACK | CPU_LOG_TB_NOCHAIN, "idc",
 +      "EOS: export called functions to IDA (implies callstack,nochain,singlestep)" },
 +    { EOS_LOG_TASKS, "tasks",

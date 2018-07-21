@@ -1501,10 +1501,10 @@ recheck:
                         /* assume tail call
                          * fixme: in IDC, these must be defined before their caller,
                          * as IDA frequently gets them wrong */
-                        if (qemu_loglevel_mask(EOS_LOG_TAIL_CALLS)) {
+                        if (!qemu_loglevel_mask(EOS_LOG_NO_TAIL_CALLS)) {
                             goto function_call;
                         }
-                        /* without -d tail, report as jump */
+                        /* with -d notail, report as jump */
                     }
                     else
                     {
@@ -1523,8 +1523,8 @@ recheck:
                      * note: most cases appear to be valid tail calls,
                      * but not identified properly because of
                      * a missed function call right before this */
-                    if (qemu_loglevel_mask(EOS_LOG_TAIL_CALLS)) {
-                        /* note: many warnings without -d tail */
+                    if (!qemu_loglevel_mask(EOS_LOG_NO_TAIL_CALLS)) {
+                        /* note: many warnings with -d notail */
                         /* there's also a false warning at first jump */
                         if (!(id == 0x7F && call_stack_num[id] == 0))
                         {
@@ -1539,7 +1539,7 @@ recheck:
                         if (abs((int)pc - (int)prev_pc) > 0x100)
                         {
                             goto function_call;
-                            /* without -d tail, report as jump */
+                            /* with -d notail, report as jump */
                         }
                     }
                 }
