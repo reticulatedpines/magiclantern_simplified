@@ -1659,7 +1659,7 @@ static void romcpy_log_block(EOSState *s)
         if (!dd)
         {
             snprintf(dd_path, sizeof(dd_path), "%s/romcpy.sh", s->model->name);
-            fprintf(stderr, "Logging ROM-copied blocks to %s.\n", idc_path);
+            fprintf(stderr, "Logging ROM-copied blocks to %s.\n", dd_path);
             dd = fopen(dd_path, "w");
             assert(dd);
             atexit(close_dd);
