@@ -279,7 +279,7 @@ static FILE * idc = NULL;
 static void close_idc(void)
 {
     fprintf(idc, "}\n");
-    fclose(idc);
+    fclose(idc); idc = 0;
     fprintf(stderr, "%s saved.\n", idc_path);
 }
 
@@ -290,7 +290,7 @@ static void eos_idc_log_call(EOSState *s, CPUState *cpu, CPUARMState *env,
 
     if (!idc)
     {
-        snprintf(idc_path, sizeof(idc_path), "%s.idc", MACHINE_GET_CLASS(current_machine)->name);
+        snprintf(idc_path, sizeof(idc_path), "%s/calls.idc", s->model->name);
         fprintf(stderr, "Exporting called functions to %s.\n", idc_path);
         idc = fopen(idc_path, "w");
         assert(idc);

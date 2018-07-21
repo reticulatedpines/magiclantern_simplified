@@ -577,7 +577,7 @@ function test_calls_main {
     echo -n ' '
 
     # wait until it the IDC no longer grows, up to 5 minutes
-    ./wait_log.sh $CAM.idc 300 5 -q "^}" 
+    ./wait_log.sh $CAM/calls.idc 300 5 -q "^}" 
     echo
     echo -n "                          "
 
@@ -593,7 +593,7 @@ function test_calls_main {
     # let's trim until matching the MD5 of $TEST-basic.idc
     # this assumes the needles (expected test results) were created on a slower PC and/or using a smaller timeout
 
-    cat $CAM.idc | grep -o "MakeFunction(.*)" \
+    cat $CAM/calls.idc | grep -o "MakeFunction(.*)" \
         > tests/$CAM/$TEST-basic.idc
 
     # compute the MD5 of $TEST-basic.idc, line by line, until it matches its reference MD5
@@ -636,8 +636,8 @@ function test_calls_main {
     # also copy the IDC file for checking its MD5
     # this works on old CF models too (40D), even if some nondeterminism is present
     # the IDC needs trimming, too, as it doesn't always stop at the same line
-    cat $CAM.idc | sed -n "1,/MakeFunction($last_call/ p" > tests/$CAM/$TEST.idc
-    cat $CAM.idc | tail -n 2 >> tests/$CAM/$TEST.idc
+    cat $CAM/calls.idc | sed -n "1,/MakeFunction($last_call/ p" > tests/$CAM/$TEST.idc
+    cat $CAM/calls.idc | tail -n 2 >> tests/$CAM/$TEST.idc
 
     # extract only the call address from IDC
     # useful for checking when some additional info changes (e.g. comments)
@@ -741,7 +741,7 @@ function test_calls_from {
 
     # also copy the IDC file for checking its MD5
     # this works on CF models too, even if some nondeterminism is present
-    cp $CAM.idc tests/$CAM/$TEST.idc
+    cp $CAM/calls.idc tests/$CAM/$TEST.idc
 
     # extract only the call address from IDC
     # useful for checking when some additional info changes (e.g. comments)
