@@ -610,6 +610,19 @@ static void dng_fill_header(struct frame_info * frame_info, struct dng_data * dn
         #endif
         (!reel_name) ? (reel_name = frame_info->mlv_filename) : ++reel_name;
 
+        /* if we have the current model in database, use our matrices. if not, use in RAWI provided one.
+           we have two different illuminant profiles and also the forward matrices. 
+           might be that in this "colorMatrix1-only" mode some tools might not work properly. (but they should work)
+        */
+        int32_t colorMatrix1[18];
+        memcpy(colorMatrix1, camera_id[current_cam].ColorMatrix1, sizeof(colorMatrix1));
+        
+        /* no match in database, pass through RAWI color matrix */
+        if(camera_id[current_cam].cameraModel == 0)
+        {
+            memcpy(colorMatrix1, frame_info->rawi_hdr.raw_info.color_matrix1, sizeof(colorMatrix1));
+        }
+        
         /* Fill up IFD structs */
         struct directory_entry IFD0[IFD0_COUNT] =
         {
@@ -640,7 +653,7 @@ static void dng_fill_header(struct frame_info * frame_info, struct dng_data * dn
             {tcDefaultScale,                ttRational, RATIONAL_ENTRY(par, header, &data_offset, 4)},
             {tcDefaultCropOrigin,           ttShort,    2,      PACK(frame_info->rawi_hdr.raw_info.crop.origin)},
             {tcDefaultCropSize,             ttShort,    2,      PACK2((frame_info->rawi_hdr.raw_info.active_area.x2 - frame_info->rawi_hdr.raw_info.active_area.x1), (frame_info->rawi_hdr.raw_info.active_area.y2 - frame_info->rawi_hdr.raw_info.active_area.y1))},
-            {tcColorMatrix1,                ttSRational,RATIONAL_ENTRY(camera_id[current_cam].ColorMatrix1, header, &data_offset, 18)},
+            {tcColorMatrix1,                ttSRational,RATIONAL_ENTRY(colorMatrix1, header, &data_offset, 18)},
             {tcColorMatrix2,                ttSRational,RATIONAL_ENTRY(camera_id[current_cam].ColorMatrix2, header, &data_offset, 18)},
             {tcAsShotNeutral,               ttRational, RATIONAL_ENTRY(wbal, header, &data_offset, 6)},
             {tcBaselineExposure,            ttSRational,RATIONAL_ENTRY(basline_exposure, header, &data_offset, 2)},
@@ -670,6 +683,15 @@ static void dng_fill_header(struct frame_info * frame_info, struct dng_data * dn
             {tcFocalPlaneResolutionUnitExif,ttShort,    1,      camera_id[current_cam].focal_unit}, //inches
             {tcLensModelExif,               ttAscii,    STRING_ENTRY((char*)frame_info->lens_hdr.lensName, header, &data_offset)},
         };
+        
+        /* no match in database, pass through RAWI info and cancel out advanced info, as it is not available */
+        if(camera_id[current_cam].cameraModel == 0)
+        {
+            IFD0[28].tag = tcDNGPrivateData; /* tcColorMatrix2 */
+            IFD0[33].tag = tcDNGPrivateData; /* tcCalibrationIlluminant2 */
+            IFD0[35].tag = tcDNGPrivateData; /* tcForwardMatrix1 */
+            IFD0[36].tag = tcDNGPrivateData; /* tcForwardMatrix2 */
+        }
         
         /* update the StripOffsets to the correct location
            the image data starts where our extra data ends */
