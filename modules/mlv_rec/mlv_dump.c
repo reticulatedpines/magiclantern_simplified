@@ -3767,7 +3767,7 @@ read_headers:
                 mlv_debg_hdr_t block_hdr = *(mlv_debg_hdr_t *)mlv_block;
 
                 /* get the string length and malloc a buffer for that string */
-                int str_length = block_hdr.blockSize - sizeof(block_hdr);
+                int str_length = MIN(block_hdr.length, block_hdr.blockSize - sizeof(block_hdr));
 
                 if(str_length)
                 {
@@ -3798,7 +3798,7 @@ read_headers:
                 mlv_vers_hdr_t block_hdr = *(mlv_vers_hdr_t *)mlv_block;
 
                 /* get the string length and malloc a buffer for that string */
-                int str_length = block_hdr.blockSize - sizeof(block_hdr);
+                int str_length = MIN(block_hdr.length, block_hdr.blockSize - sizeof(block_hdr));
 
                 if(str_length)
                 {
