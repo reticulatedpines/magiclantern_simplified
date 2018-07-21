@@ -3874,7 +3874,6 @@ read_headers:
                     print_msg(MSG_INFO, "     Camera Serial: '%s' (%s)\n", idnt_info.cameraSerial, serial_str);
                     print_msg(MSG_INFO, "     Camera Model:  0x%08X\n", idnt_info.cameraModel);
                 }
-
             }
             else if(!memcmp(mlv_block->blockType, "RTCI", 4))
             {
@@ -4075,7 +4074,7 @@ read_headers:
                         .subchunk2_size = 0x504D4554, // for now it's "TEMP", should be (uint32_t)(wav_data_size), gonna be patched later
                     };
 
-                    char temp[33];
+                    char temp[64];
                     snprintf(temp, sizeof(temp), "%s", idnt_info.cameraName);
                     memcpy(wav_hdr.bext.originator, temp, 32);
                     snprintf(temp, sizeof(temp), "JPCAN%04d%.8s%02d%02d%02d%09d", idnt_info.cameraModel, idnt_info.cameraSerial , rtci_info.tm_hour, rtci_info.tm_min, rtci_info.tm_sec, rand());
