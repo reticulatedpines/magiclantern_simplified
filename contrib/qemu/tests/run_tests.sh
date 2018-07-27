@@ -37,6 +37,20 @@ FRSP_CAMS=( 5D3 500D 550D 50D 60D 1100D 1200D )
 
 ML_PATH=${ML_PATH:=../magic-lantern}
 
+# cameras not yet in mainline
+declare -A CAM_BRANCH
+CAM_BRANCH=( 
+    [5D]=vxworks    [40D]=vxworks   [450D]=vxworks  [1000D]=vxworks
+    [1200D]=1200D                   [1300D]=1300D
+    [100D]=100D_merge_fw101         [70D]=70D_merge_fw112
+#   [EOSM2]=EOSM2.103_wip
+    [80D]=digic6-dumper     [750D]=digic6-dumper    [760D]=digic6-dumper
+    [7D2]=digic6-dumper     [5D4]=digic6-dumper     [5DS]=digic6-dumper
+    [77D]=digic6-dumper     [6D2]=digic6-dumper
+    [200D]=digic6-dumper    [800D]=digic6-dumper
+    [M50]=digic6-dumper
+)
+
 # newer openbsd netcat requires -N (since 1.111)
 # older openbsd netcat does not have -N (prints error if we attempt to use it)
 # try to autodetect which one should be used, and let the user override it
@@ -788,11 +802,11 @@ function test_frsp {
     # compile it from ML dir, for each camera
     FRSP_PATH=$ML_PATH/minimal/qemu-frsp
     rm -f $FRSP_PATH/autoexec.bin
-    [ $CAM == "1200D" ] && (cd $FRSP_PATH; hg up qemu -C; hg merge 1200D; cd $OLDPWD) &>> tests/$CAM/$TEST-build.log
+    [ "${CAM_BRANCH[$CAM]}" != "" ] && (cd $FRSP_PATH; hg up qemu -C; hg merge ${CAM_BRANCH[$CAM]}; cd $OLDPWD) &>> tests/$CAM/$TEST-build.log
     make MODEL=$CAM -C $FRSP_PATH clean         &>> tests/$CAM/$TEST-build.log
     make MODEL=$CAM -C $FRSP_PATH CONFIG_QEMU=y &>> tests/$CAM/$TEST-build.log
-    [ $CAM == "1200D" ] && (cd $FRSP_PATH; hg up qemu -C; cd $OLDPWD) &>> tests/$CAM/$TEST-build.log
-    
+    (cd $FRSP_PATH; hg up qemu -C; cd $OLDPWD)  &>> tests/$CAM/$TEST-build.log
+
     if [ ! -f $FRSP_PATH/autoexec.bin ]; then
         echo -e "\e[31mCompile error\e[0m"
         return
@@ -1153,8 +1167,10 @@ function test_hptimer {
     # compile it from ML dir, for each camera
     HPTIMER_PATH=$ML_PATH/minimal/qemu-hptimer
     rm -f $HPTIMER_PATH/autoexec.bin
+    [ "${CAM_BRANCH[$CAM]}" != "" ] && (cd $HPTIMER_PATH; hg up qemu -C; hg merge ${CAM_BRANCH[$CAM]}; cd $OLDPWD) &>> tests/$CAM/$TEST-build.log
     make MODEL=$CAM -C $HPTIMER_PATH clean         &>> tests/$CAM/$TEST-build.log
     make MODEL=$CAM -C $HPTIMER_PATH CONFIG_QEMU=y &>> tests/$CAM/$TEST-build.log
+    (cd $HPTIMER_PATH; hg up qemu -C; cd $OLDPWD)  &>> tests/$CAM/$TEST-build.log
     
     if [ ! -f $HPTIMER_PATH/autoexec.bin ]; then
         echo -e "\e[31mCompile error\e[0m"
@@ -1177,9 +1193,9 @@ function test_hptimer {
     stop_qemu_expect_running
 
     tests/check_grep.sh tests/$CAM/$TEST.log -m1 "Hello from task run_test"
-    printf "       "
+    printf "         "
     tests/check_grep.sh tests/$CAM/$TEST.log -m1 "Hello from HPTimer" && return
-    printf "       "
+    printf "         "
     tests/check_grep.sh tests/$CAM/$TEST.log -m1 "Hello from task init" && return
 }
 
