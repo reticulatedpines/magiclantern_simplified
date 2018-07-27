@@ -32,9 +32,6 @@ SD_CAMS=( 5D3 5D4 6D 6D2 60D 70D 77D 80D
 # cameras with a CF card
 CF_CAMS=( 5D 5D2 5D3 5D4 7D 7D2M 40D 50D 400D )
 
-# cameras able to run the FA_CaptureTestImage test (full-res silent picture backend)
-FRSP_CAMS=( 5D3 500D 550D 50D 60D 1100D 1200D )
-
 ML_PATH=${ML_PATH:=../magic-lantern}
 
 # cameras not yet in mainline
@@ -84,7 +81,6 @@ if (( $# > 0 )) && has_upper_args "$@"; then
     GUI_CAMS=($(join <(printf %s\\n "${REQ_CAMS[@]}" | sort -u) <(printf %s\\n "${GUI_CAMS[@]}" | sort -u) | sort -n))
     SD_CAMS=($(join <(printf %s\\n "${REQ_CAMS[@]}" | sort -u) <(printf %s\\n "${SD_CAMS[@]}" | sort -u) | sort -n))
     CF_CAMS=($(join <(printf %s\\n "${REQ_CAMS[@]}" | sort -u) <(printf %s\\n "${CF_CAMS[@]}" | sort -u) | sort -n))
-    FRSP_CAMS=($(join <(printf %s\\n "${FRSP_CAMS[@]}" | sort -u) <(printf %s\\n "${FRSP_CAMS[@]}" | sort -u) | sort -n))
     EOS_SECONDARY_CORES=($(join <(printf %s\\n "${REQ_CAMS[@]}" | sort -u) <(printf %s\\n "${EOS_SECONDARY_CORES[@]}" | sort -u) | sort -n))
 fi
 
@@ -849,7 +845,7 @@ function test_frsp {
 echo
 echo "Testing FA_CaptureTestImage..."
 # this requires a custom build; cannot run in parallel
-for CAM in ${FRSP_CAMS[*]}; do
+for CAM in ${GUI_CAMS[*]}; do
     ((QEMU_JOB_ID++))
     run_test frsp $CAM
 done; cleanup
