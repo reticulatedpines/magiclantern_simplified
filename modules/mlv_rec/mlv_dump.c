@@ -2088,6 +2088,11 @@ read_headers:
             position = xrefs[block_xref_pos].frameOffset;
 
             /* select file and seek to the right position */
+            if(in_file_num >= in_file_count)
+            {
+                print_msg(MSG_ERROR, "Index points to non-existent file #%d (delete the .IDX file or start with -x)\n", in_file_num);
+                return ERR_FILE;
+            }
             in_file = in_files[in_file_num];
             file_set_pos(in_file, position, SEEK_SET);
         }
