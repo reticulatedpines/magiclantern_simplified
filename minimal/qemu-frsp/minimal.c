@@ -273,3 +273,10 @@ int raw2iso(int raw_iso)
     int iso = (int) roundf(100.0f * powf(2.0f, (raw_iso - 72.0f)/8.0f));
     return iso;
 }
+
+const char * format_memory_size(uint64_t size)
+{
+    static char buf[32];
+    snprintf(buf, sizeof(buf), "%d", size);
+    return buf;
+}
