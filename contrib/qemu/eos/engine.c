@@ -865,8 +865,14 @@ unsigned int eos_handle_edmac_chsw ( unsigned int parm, EOSState *s, unsigned in
     unsigned int ret = 0;
     
     /* fixme: reads not implemented */
-    assert(type & MODE_WRITE);
-    
+    if (!(type & MODE_WRITE))
+    {
+        /* apparently these reads are just bugs in Canon code */
+        msg = KLRED"unexpected read"KRESET;
+        // assert(0);
+        goto end;
+    }
+
     if (value == 0x80000000)
     {
         /* ?! used on M3 */
