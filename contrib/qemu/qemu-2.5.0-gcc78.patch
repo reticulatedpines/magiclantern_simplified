@@ -24,6 +24,18 @@ index c5f8e8d..b242680 100644
                   bs->file->bs->exact_filename,
                   s->test_file->bs->exact_filename);
      }
+diff --git a/hw/9pfs/virtio-9p.c b/hw/9pfs/virtio-9p.c
+index f972731..7eb54a8 100644
+--- a/hw/9pfs/virtio-9p.c
++++ b/hw/9pfs/virtio-9p.c
+@@ -22,6 +22,7 @@
+ #include "virtio-9p-coth.h"
+ #include "trace.h"
+ #include "migration/migration.h"
++#include <sys/sysmacros.h>
+ 
+ int open_fd_hw;
+ int total_open_fd;
 diff --git a/hw/char/exynos4210_uart.c b/hw/char/exynos4210_uart.c
 index 215f962..53190a1 100644
 --- a/hw/char/exynos4210_uart.c
