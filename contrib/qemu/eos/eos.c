@@ -1781,8 +1781,8 @@ void io_log(const char * module_name, EOSState *s, unsigned int address, unsigne
     const char * color = io_highlight(address, type, module_name, task_name)
         ? (type & MODE_WRITE ? KYLW : KLGRN) : "";
 
-    char mod_name[50];
-    char mod_name_and_pc[50];
+    char mod_name[24];
+    char mod_name_and_pc[72];
     int indent = eos_callstack_get_indent(s);
     char indent_spaces[] = "                ";
     indent_spaces[MIN(indent, sizeof(indent_spaces)-1)] = 0;
