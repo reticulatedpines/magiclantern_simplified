@@ -565,7 +565,20 @@ static int edmac_do_transfer(EOSState *s, int channel)
                 load_fullres_14bit_raw(s, s->edmac.conn_data[conn].buf, raw_width, raw_height);
             }
         }
-        
+        else if (conn == 6 || conn == 7)
+        {
+            /* pass-through; wait for data sent by some other channel on the same connection */
+            /* nothing to do here */
+        }
+        else
+        {
+            fprintf(stderr, "[ENGINE] FIXME: returning dummy data on <%d>\n", conn);
+            s->edmac.conn_data[conn].buf = malloc(transfer_data_size);
+            assert(s->edmac.conn_data[conn].buf);
+            s->edmac.conn_data[conn].data_size = transfer_data_size;
+            memset(s->edmac.conn_data[conn].buf, 0, transfer_data_size);
+        }
+
         if (s->edmac.conn_data[conn].data_size < transfer_data_size)
         {
             fprintf(stderr, "[EDMAC#%d] Data %s; will try again later.\n", channel,
