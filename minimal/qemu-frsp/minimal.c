@@ -161,6 +161,19 @@ my_init_task(int a, int b, int c, int d)
      * and generally it's hard to draw over this screen without trickery. */
     SetGUIRequestMode(GUIMODE_PLAY);
     msleep(1000);
+
+    /* some cameras don't initialize the YUV buffer right away - but we need it! */
+    if (!YUV422_LV_BUFFER_DISPLAY_ADDR)
+    {
+        /* let's hope this works... */
+        extern void * _AllocateMemory(size_t);
+        int size = 720 * 480 * 2;
+        void * buf = _AllocateMemory(720 * 480 * 2);
+        while (!buf);   /* lock up on error */
+        memset(buf, 0, size);
+        MEM(0xC0F140E0) = YUV422_LV_BUFFER_DISPLAY_ADDR = (uint32_t) buf;
+        qprintf("Allocated YUV buffer: %X\n", YUV422_LV_BUFFER_DISPLAY_ADDR);
+    }
 #else
     /* for running on real camera: wait for user to enter LiveView,
      * then switch to PLAY mode (otherwise you'll capture a dark frame) */
