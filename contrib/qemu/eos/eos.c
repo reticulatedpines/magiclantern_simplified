@@ -1053,6 +1053,12 @@ static void eos_update_display(void *parm)
         assert(out_height == height * height_multiplier);
     }
 
+    if (strcmp(s->model->name, "1100D") == 0)
+    {
+        /* half-size YUV buffer */
+        yuv_height /= 2;
+    }
+
     if (s->disp.width && s->disp.height)
     {
         /* did we manage to get them from registers? override the above stuff */
