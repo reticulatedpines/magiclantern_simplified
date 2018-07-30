@@ -106,10 +106,18 @@ copy_and_restart( int offset )
         ;
 }
 
+extern void _prop_request_change(unsigned property, const void* addr, size_t len);
+
 static void run_test()
 {
     /* clear the screen - hopefully nobody will overwrite us */
     clrscr();
+
+    /* make sure we've got some sane exposure settings */
+    int iso = ISO_100;
+    int shutter = SHUTTER_1_50;
+    _prop_request_change(PROP_ISO, &iso, 4);
+    _prop_request_change(PROP_SHUTTER, &shutter, 4);
 
     /* capture a full-res silent picture */
     /* (on real camera, you won't see anything, unless you start in LV PLAY mode */
