@@ -490,9 +490,10 @@ cd ${QEMU_NAME}
 mkdir -p hw/eos
 cp -r ../$ML_PATH/contrib/qemu/eos/* hw/eos/
 cp -r ../$ML_PATH/src/backtrace.[ch] hw/eos/dbi/
-if gcc -v 2>&1 | grep -q "gcc version 7"; then
-  patch -N -p1 < ../$ML_PATH/contrib/qemu/$QEMU_NAME-gcc7.patch
-  git add -u . && git commit -q -m "$QEMU_NAME patched for gcc 7.x"
+if gcc -v 2>&1 | grep -q "gcc version [789]"; then
+  # hopefully these will also work for gcc 9.x (not tested)
+  patch -N -p1 < ../$ML_PATH/contrib/qemu/$QEMU_NAME-gcc78.patch
+  git add -u . && git commit -q -m "$QEMU_NAME patched for gcc 7.x and 8.x"
 fi
 
 patch -N -p1 < ../$ML_PATH/contrib/qemu/$QEMU_NAME.patch
