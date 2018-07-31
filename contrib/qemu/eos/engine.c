@@ -500,6 +500,9 @@ static int edmac_do_transfer(EOSState *s, int channel)
         (((xa + off1a) * yb + xa + off2b) * xn +
           (xb + off1b) * yb + xb + off3);
 
+    /* we must have some valid address configured */
+    assert(s->edmac.ch[channel].addr);
+
     if (channel & 8)
     {
         /* from memory to image processing modules */
