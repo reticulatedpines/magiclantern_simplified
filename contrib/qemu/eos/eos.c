@@ -2578,6 +2578,50 @@ static int eos_handle_serial_flash_cs( unsigned int parm, EOSState *s, unsigned 
     return ret;
 }
 
+static unsigned int eos_handle_imgpowdet( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+{
+    const char * msg = 0;
+    unsigned int ret = 0;
+
+    static uint32_t imgpowcfg_written = 0;
+    static uint32_t imgpowdet_written = 0;
+    static uint32_t imgpowdet_enabled = 0;
+
+    if (address == s->model->imgpowdet_register)
+    {
+        msg = "ImgPowDet";
+        MMIO_VAR(imgpowdet_written);
+
+        if (!(type & MODE_WRITE))
+        {
+            ret = (imgpowdet_written & ~s->model->imgpowdet_register_bit) |
+                  (imgpowdet_enabled &  s->model->imgpowdet_register_bit) ;
+        }
+    }
+
+    if (address == s->model->imgpowcfg_register)
+    {
+        msg = "InitializePcfgPort";
+        MMIO_VAR(imgpowcfg_written);
+
+        if (type & MODE_WRITE)
+        {
+            /* to double-check: if you swap the values here,
+             * all the FRSP tests should print "Image Power Failure" */
+            imgpowdet_enabled = (value & s->model->imgpowcfg_register_bit)
+                ? s->model->imgpowdet_register_bit : 0;
+
+            if (imgpowdet_enabled && s->model->imgpowdet_interrupt)
+            {
+                eos_trigger_int(s, s->model->imgpowdet_interrupt, 100);
+            }
+        }
+    }
+    
+    io_log("IMGPOW", s, address, type, value, ret, msg, 0, 0);
+    return ret;
+}
+
 unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
     unsigned int ret = 1;
@@ -2608,6 +2652,13 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
     if (s->sf && address == s->model->serial_flash_cs_register)
     {
         return eos_handle_serial_flash_cs(parm, s, address, type, value);
+    }
+
+    /* 0xC0220008, 0xC022001C, 0xC0220124; 0xC0220118 */
+    if (address == s->model->imgpowdet_register ||
+        address == s->model->imgpowcfg_register)
+    {
+        return eos_handle_imgpowdet(parm, s, address, type, value);
     }
 
     switch (address & 0xFFFF)
@@ -2936,6 +2987,11 @@ unsigned int eos_handle_ram ( unsigned int parm, EOSState *s, unsigned int addre
 
 unsigned int eos_handle_power_control ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
+    if (address == s->model->imgpowcfg_register)
+    {
+        return eos_handle_imgpowdet(parm, s, address, type, value);
+    }
+
     unsigned int ret = 0;
     static uint32_t data[0x100 >> 2];
     uint32_t index = (address & 0xFF) >> 2;
@@ -5308,6 +5364,13 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
     if (s->sf && address == s->model->serial_flash_cs_register)
     {
         return eos_handle_serial_flash_cs(parm, s, address, type, value);
+    }
+
+    /* 0xD20B004C, 0xD20B2294, 0xD20B21DC */
+    if (address == s->model->imgpowdet_register ||
+        address == s->model->imgpowcfg_register)
+    {
+        return eos_handle_imgpowdet(parm, s, address, type, value);
     }
 
     switch (address)

@@ -36,6 +36,11 @@ struct eos_model_desc eos_model_list[] = {
         .uart_rx_interrupt      = 0x2E,
         .uart_tx_interrupt      = 0x3A,
         .rtc_cs_register        = 0xC022005C,
+        .imgpowcfg_register     = 0xC0220118,   /* unsure, tested on 450D */
+        .imgpowcfg_register_bit = 0x00000002,
+        .imgpowdet_register     = 0xC0220124,   /* Image Power Failure */
+        .imgpowdet_register_bit = 0x00000001,   /* register and bit checked to print that message */
+        .imgpowdet_interrupt    = 0x56,         /* only used on 1000D? */
     },
     {
         .name                   = "5D",
@@ -118,6 +123,11 @@ struct eos_model_desc eos_model_list[] = {
         .uart_rx_interrupt      = 0x2E,
         .uart_tx_interrupt      = 0x3A,
         .rtc_cs_register        = 0xC0220128,
+        .imgpowcfg_register     = 0xC0F01010,   /* InitializePcfgPort (register used to power on the sensor?) */
+        .imgpowcfg_register_bit = 0x00200000,   /* bit enabled when powering on */
+        .imgpowdet_register     = 0xC022001C,   /* Image Power Failure */
+        .imgpowdet_register_bit = 0x00000001,   /* register and bit checked to print that message */
+        .imgpowdet_interrupt    = 0x52,         /* interrupt registered when powering on the sensor */
     },
     {
         .name                   = "50D",
@@ -275,6 +285,11 @@ struct eos_model_desc eos_model_list[] = {
         .serial_flash_interrupt = 0x17B,        /* where .serial_flash_size is set */
         .serial_flash_cs_register = 0xC022C0D4,
         .serial_flash_cs_bitmask  = 0x00100000, /* 0x83DC00 / 0x93D800 */
+        .imgpowcfg_register     = 0xC0F01010,   /* InitializePcfgPort (register used to power on the sensor?) */
+        .imgpowcfg_register_bit = 0x00200000,   /* bit enabled when powering on */
+        .imgpowdet_register     = 0xC02200F0,   /* Image Power Failure */
+        .imgpowdet_register_bit = 0x00000001,   /* register and bit checked to print that message */
+        .imgpowdet_interrupt    = 0x52,         /* interrupt registered when powering on the sensor */
     },
     {
         .name                   = "5D3",
@@ -288,6 +303,7 @@ struct eos_model_desc eos_model_list[] = {
         .cf_dma_interrupt       = 0xE3,
         .rtc_time_correct       = 0x9F,
         .dedicated_movie_mode   = 0,
+        .imgpowdet_register     = 0xC0220008,   /* Image Power Failure */
     },
     {
         /* started on request on photo taking, raw develop and others;
@@ -325,6 +341,7 @@ struct eos_model_desc eos_model_list[] = {
         .rtc_cs_register        = 0xC02201D4,
         .rtc_time_correct       = 0x9F,
         .dedicated_movie_mode   = 0,
+        .imgpowdet_register     = 0xC0220008,   /* Image Power Failure */
     },
     {
         .name                   = "650D",
@@ -394,6 +411,7 @@ struct eos_model_desc eos_model_list[] = {
         .rtc_cs_register        = 0xC02201D4,
         .rtc_time_correct       = 0xA0,
         .dedicated_movie_mode   = 0,
+        .imgpowdet_register     = 0xC02201C4,   /* Image Power Failure */
     },
 /*************************** DIGIC VI *********************************/
     {
@@ -432,6 +450,9 @@ struct eos_model_desc eos_model_list[] = {
         .mpu_control_register   = 0xD4013008,   /* 0x1C written in MREQ_ISR */
         .mpu_mreq_interrupt     = 0x2A,         /* MREQ_ISR in InitializeIntercom */
         .mpu_sio3_interrupt     = 0x147,        /* SIO3_ISR */
+        .imgpowdet_register     = 0xD20B004C,   /* Image Power Failure */
+        .imgpowdet_register_bit = 0x00010000,   /* register and bit checked to print that message */
+        .imgpowdet_interrupt    = 0xDA,         /* interrupt registered when powering on the sensor */
     },
     {
         .name                   = "80D",
@@ -490,6 +511,9 @@ struct eos_model_desc eos_model_list[] = {
         .serial_flash_size      = 0x1000000,
         .serial_flash_sio_ch    = 0,
         .serial_flash_cs_register = 0xD20B037C,
+        .imgpowdet_register     = 0xD20B2294,   /* Image Power Failure */
+        .imgpowdet_register_bit = 0x00010000,   /* register and bit checked to print that message */
+        .imgpowdet_interrupt    = 0x10A,        /* interrupt registered when powering on the sensor */
     },
     {
         .name                   = "5D4AE",
@@ -547,6 +571,9 @@ struct eos_model_desc eos_model_list[] = {
         .mpu_control_register   = 0xD4013008,   /* 0x1C written in MREQ_ISR */
         .mpu_mreq_interrupt     = 0x2A,         /* MREQ_ISR in InitializeIntercom */
         .mpu_sio3_interrupt     = 0x147,        /* SIO3_ISR */
+        .imgpowdet_register     = 0xD20821DC,   /* Image Power Failure */
+        .imgpowdet_register_bit = 0x00010000,   /* register and bit checked to print that message */
+        .imgpowdet_interrupt    = 0xDA,         /* interrupt registered when powering on the sensor */
     },
     {
         .name                   = "200D",

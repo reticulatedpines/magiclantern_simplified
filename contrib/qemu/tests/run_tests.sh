@@ -826,6 +826,10 @@ function test_frsp {
         -serial file:tests/$CAM/$TEST-uart.log \
     ) &> tests/$CAM/$TEST.log
 
+    if grep -q "Image Power Failure\|Img Pwr Fail" tests/$CAM/$TEST-uart.log; then
+        echo -en "\e[33mImage Power Failure\e[0m "
+    fi
+
     tests/check_grep.sh tests/$CAM/$TEST-uart.log \
         -qm1 "FA_CreateTestImage Fin"  || return
 
