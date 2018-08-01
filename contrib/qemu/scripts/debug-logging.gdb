@@ -156,6 +156,13 @@ define print_current_location_with_callstack
   print_current_location
 end
 
+# helper for unknown data structures
+define try_expand_ram_struct
+    if $arg0 > 0x1000 && $arg0 < 0x1000000
+        printf "                         "
+        printf "*0x%x = { %x %x %x %x %x ... }\n", $arg0, MEM($arg0), MEM($arg0+4), MEM($arg0+8), MEM($arg0+12), MEM($arg0+16)
+    end
+end
 
 define print_formatted_string
   # count how many % characters we have
@@ -844,13 +851,6 @@ define prop_deliver_log
     printf "}\n"
     c
   end
-end
-
-define try_expand_ram_struct
-    if $arg0 > 0x1000 && $arg0 < 0x1000000
-        printf "                         "
-        printf "*0x%x = { %x %x %x %x %x ... }\n", $arg0, MEM($arg0), MEM($arg0+4), MEM($arg0+8), MEM($arg0+12), MEM($arg0+16)
-    end
 end
 
 define try_post_event_log
