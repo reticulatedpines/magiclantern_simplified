@@ -848,7 +848,7 @@ end
 
 define try_expand_ram_struct
     if $arg0 > 0x1000 && $arg0 < 0x1000000
-        printf "                       "
+        printf "                         "
         printf "*0x%x = { %x %x %x %x %x ... }\n", $arg0, MEM($arg0), MEM($arg0+4), MEM($arg0+8), MEM($arg0+12), MEM($arg0+16)
     end
 end
@@ -1049,7 +1049,7 @@ define SetEDmac_log
     KBLU
     printf "SetEDmac(%d, 0x%x, 0x%x, 0x%x)\n", $r0, $r1, $r2, $r3
     if $r2
-      printf "                       "
+      printf "                         "
       printf "{ %dx%d %dx%d %dx%d %d %d %d %d %d }\n", MEM($r2+0x14), MEM($r2+0x1c), MEM($r2+0x18), MEM($r2+0x20), MEM($r2+0x24), MEM($r2+0x28), MEM($r2+0x00), MEM($r2+0x04), MEM($r2+0x08), MEM($r2+0x0c), MEM($r2+0x10)
       # xa*ya xb*yb xn*yn off1a off1b off2a off2b off3
     end
