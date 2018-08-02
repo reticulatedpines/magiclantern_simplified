@@ -125,7 +125,7 @@ MENU_SEQUENCE[1100D]="f1 i i m i i left m p p down right space right right space
 MENU_SEQUENCE[1200D]="f1 i i m i i space m m p p down right space right right space up right space 9 q 9 q 9 l i q space [ space q l" # drive mode not working
 MENU_SEQUENCE[1300D]="f1 i i m i i up up up space m up up space right space down space i m space space m left up space down space m left right space right left space q right space right i q up p p 9 q 9 q 9 l i i q space l"
 MENU_SEQUENCE[EOSM]="m up up up space m up space m up space m left down down down space space p p 0 9 9 9 m m i i p p space" # starts in LiveView; Q button not working
-MENU_SEQUENCE[EOSM2]="m space space space up up space m up space m up space m up space m right space space m m m i q q 9 0 space i i m" # starts in LiveView
+MENU_SEQUENCE[EOSM2]="m space space space up up space m up space m up space m up space m right space space m m m l i q q 9 0 space i i m" # starts in LiveView
 
 FMT_SEQ="space right space f1 space"
 FMT_SEQ_5D3="space space right space f1 space space"

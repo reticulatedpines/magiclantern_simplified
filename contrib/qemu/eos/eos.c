@@ -175,6 +175,7 @@ EOSRegionHandler eos_handlers[] =
     { "SDIO86",       0xC8060000, 0xC8060FFF, eos_handle_sdio, 0x86 },
     { "SFIO87",       0xC8070000, 0xC8070FFF, eos_handle_sfio, 0x87 },
     { "SFIO88",       0xC8080000, 0xC8080FFF, eos_handle_sfio, 0x88 },
+    { "ADTGDMA",      0xC0500060, 0xC050007F, eos_handle_adtg_dma, 0 },
     { "UartDMA",      0xC05000C0, 0xC05000DF, eos_handle_uart_dma, 0 },
     { "CFDMA0*",      0xC0500000, 0xC05000FF, eos_handle_cfdma, 0x0F },
     { "CFDMA10",      0xC0510000, 0xC051001F, eos_handle_cfdma, 0x10 },
@@ -4433,6 +4434,47 @@ unsigned int eos_handle_uart_dma ( unsigned int parm, EOSState *s, unsigned int 
     }
 
     io_log("UartDMA", s, address, type, value, ret, msg, 0, 0);
+    return ret;
+}
+
+unsigned int eos_handle_adtg_dma ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+{
+    unsigned int ret = 0;
+    const char * msg = 0;
+
+    static uint32_t addr;
+    static uint32_t count;
+    static uint32_t status;
+
+    switch(address & 0x1F)
+    {
+        case 0x00:
+        case 0x08:
+            msg = "Transfer memory address";
+            MMIO_VAR(addr);
+            break;
+
+        case 0x04:
+        case 0x0C:
+            msg = "Transfer byte count";
+            MMIO_VAR(count);
+            break;
+
+        case 0x10:
+            msg = "Transfer command / status?";
+            if (value == 0x3000025)
+            {
+                eos_trigger_int(s, 0x37, 100);
+            }
+            break;
+
+        case 0x14:
+            msg = "DMA status?";
+            MMIO_VAR(status);
+            break;
+    }
+
+    io_log("ADTGDMA", s, address, type, value, ret, msg, 0, 0);
     return ret;
 }
 
