@@ -830,6 +830,14 @@ function test_frsp {
         echo -en "\e[33mImage Power Failure\e[0m "
     fi
 
+    if grep -q "ImgPowDet( 0 )" tests/$CAM/$TEST.log; then
+        echo -en "\e[33mImgPowDet( 0 )\e[0m "
+    fi
+
+    if grep -q "S_SCS_E_SENSOR_LATCHUP" tests/$CAM/$TEST-uart.log; then
+        echo -en "\e[33mS_SCS_E_SENSOR_LATCHUP\e[0m "
+    fi
+
     tests/check_grep.sh tests/$CAM/$TEST-uart.log \
         -qm1 "FA_CreateTestImage Fin"  || return
 

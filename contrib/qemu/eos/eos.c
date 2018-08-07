@@ -2614,7 +2614,7 @@ static unsigned int eos_handle_imgpowdet( unsigned int parm, EOSState *s, unsign
 
             if (imgpowdet_enabled && s->model->imgpowdet_interrupt)
             {
-                eos_trigger_int(s, s->model->imgpowdet_interrupt, 100);
+                eos_trigger_int(s, s->model->imgpowdet_interrupt, 1);
             }
         }
     }
