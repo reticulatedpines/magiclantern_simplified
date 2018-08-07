@@ -283,6 +283,7 @@ define named_func_add
     printf "\n"
     printf "static MakeAutoName(ea,name)\n"
     printf "{\n"
+    printf "    auto p; while ((p = strstr(name, \" \")) >= 0) name[p] = \"_\";\n"
     printf "    if (!hasUserName(GetFlags(ea))) {\n"
     printf "      if (!(MakeNameEx(ea,name,SN_AUTO|SN_CHECK))) {\n"
     printf "      if (!(MakeNameEx(ea,name+\"_0\",SN_AUTO|SN_CHECK))) {\n"
