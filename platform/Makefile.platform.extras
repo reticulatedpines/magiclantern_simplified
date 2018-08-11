@@ -66,3 +66,9 @@ installer_check:
 	$(info )
 
 endif
+
+# make sure the minimal targets can be compiled without errors
+# the results won't be included in the zip; this is just to prevent code rot
+minimal_check:
+	$(MAKE) -C $(TOP_DIR)/minimal/ MODEL=$(MODEL) clean
+	$(MAKE) -C $(TOP_DIR)/minimal/ MODEL=$(MODEL) FW_VERSION=$(FW_VERSION)
