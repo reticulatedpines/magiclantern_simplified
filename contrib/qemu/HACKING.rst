@@ -30,8 +30,8 @@ The default directory structure looks like this::
   │   │   └── ...
   │   │
   │   ├── minimal/                  # minimal targets, for experiments
-  │   │   ├── 5D3.113                   # these will use other files from the platform directory
-  │   │   ├── EOSM                      # if only one firmware version is supported, it can be omitted
+  │   │   ├── hello-world           # these will use other files from the platform directory
+  │   │   ├── qemu-frsp             # compile with "make MODEL=EOSM" or "make MODEL=5D3 FW_VERSION=123"
   │   │   └── ...
   │   │
   │   ├── installer/                # for building ML-SETUP.FIR (which enables/disables the boot flag)
