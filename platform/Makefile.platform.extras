@@ -53,9 +53,11 @@ installer_check: | autoexec.bin
 	$(MAKE) -C $(INSTALLER_DIR)/$(ML_MODEL_DIR) autoexec-fir.bin
 	$(MAKE) -C $(INSTALLER_DIR)/$(ML_MODEL_DIR) clean
 
+ifeq ($(ML_SRC_PROFILE),generic)
 # install ML-SETUP.FIR built from the installer directory
 install:: $(INSTALLER_NAME_FIR)
 	-$(CP) $(INSTALLER_NAME_FIR) $(INSTALL_DIR)/
+endif
 
 else
 
