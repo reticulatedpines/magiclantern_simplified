@@ -496,8 +496,12 @@ int handle_set_wheel_play(struct event * event)
         else if (event->param == BGMT_UNPRESS_SET)
       #endif        
         {
-            set_maindial_action_enabled = 0;
-            print_set_maindial_hint(0);
+            /* only clear the display if something was printed */
+            if (set_maindial_action_enabled)
+            {
+                set_maindial_action_enabled = 0;
+                print_set_maindial_hint(0);
+            }
         }
     
         // make sure the display is updated, just in case
