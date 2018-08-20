@@ -235,6 +235,8 @@ struct eos_model_desc eos_model_list[] = {
         .rtc_time_correct       = 0xFD,         /* RTC_TIME_CORRECT_CHANGE */
         .rtc_cs_register        = 0xC022D0B8,   /* GPIO set/cleared in rtc_read */
         .dedicated_movie_mode   = 1,
+      //.imgpowdet_register     = 0xC022F484,   /* Image Power Failure (FIXME: shared with mpu_status_register)  */
+      //.imgpowdet_register_bit = 0x00080000,   /* register and bit checked to print that message */
     },
     {
         .name                   = "A1100",
