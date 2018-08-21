@@ -2,7 +2,8 @@
 
 TOPTARGETS := all clean
 
-SUBDIRS := $(wildcard */.)
+SUBDIRS := $(sort $(patsubst %/Makefile,%,$(wildcard */Makefile)))
+$(info Minimal targets: $(SUBDIRS))
 
 $(TOPTARGETS): $(SUBDIRS)
 $(SUBDIRS):
