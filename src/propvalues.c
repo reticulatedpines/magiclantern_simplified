@@ -114,6 +114,8 @@ volatile PROP_INT(PROP_AUTO_POWEROFF_TIME, auto_power_off_time);
 volatile PROP_INT(PROP_VIDEO_SYSTEM, video_system_pal);
 volatile PROP_INT(PROP_LV_FOCUS_STATUS, lv_focus_status);
 volatile PROP_INT(PROP_ICU_UILOCK, icu_uilock);
+volatile PROP_INT(PROP_CONTINUOUS_AF, continuous_af_photo);
+volatile PROP_INT(PROP_MOVIE_SERVO_AF, continuous_af_movie);
 
 #ifdef CONFIG_NO_DEDICATED_MOVIE_MODE
 int ae_mode_movie = 1;

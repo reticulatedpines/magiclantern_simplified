@@ -112,6 +112,8 @@ extern int auto_power_off_time;
 extern int video_system_pal;
 extern int lv_focus_status;
 extern int icu_uilock;
+extern int continuous_af_photo;
+extern int continuous_af_movie;
 #endif
 
 #define EXT_MONITOR_CONNECTED (ext_monitor_hdmi || _ext_monitor_rca)
