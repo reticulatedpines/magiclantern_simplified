@@ -93,6 +93,7 @@ int is_follow_focus_active()
     if (!follow_focus) return 0;
     if (!lv) return 0;
     if (is_manual_focus()) return 0;
+    if (is_continuous_af()) return 0;
     if (!liveview_display_idle()) return 0;
     if (gui_menu_shown()) return 0;
 #ifdef FEATURE_LCD_SENSOR_SHORTCUTS
@@ -1350,6 +1351,7 @@ int handle_follow_focus_save_restore(struct event * event)
 {
     if (!lv) return 1;
     if (is_manual_focus()) return 1;
+    if (is_continuous_af()) return 1;
 
     if (RECORDING && !gui_menu_shown())
     {
@@ -1376,6 +1378,7 @@ int handle_rack_focus_menu_overrides(struct event * event)
 #ifdef FEATURE_RACK_FOCUS
     if (!lv) return 1;
     if (is_manual_focus()) return 1;
+    if (is_continuous_af()) return 1;
     if (!should_override_zoom_buttons()) return 1;
     
     if (gui_menu_shown() && is_menu_active("Focus"))

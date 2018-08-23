@@ -668,6 +668,7 @@ lens_focus(
 
     if (!lv) return 0;
     if (is_manual_focus()) return 0;
+    if (is_continuous_af()) return 0;
 
     if (num_steps < 0)
     {
