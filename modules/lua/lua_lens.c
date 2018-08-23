@@ -119,6 +119,7 @@ static int luaCB_lens_focus(lua_State * L)
 
     if (!lv) return luaL_error(L, "lens.focus() only works in LiveView.");
     if (is_manual_focus()) return luaL_error(L, "lens.focus() requires autofocus enabled.");
+    if (is_continuous_af()) return luaL_error(L, "lens.focus() requires %s AF disabled.", is_movie_mode() ? "movie servo" : "continuous");
 
     lua_pushboolean(L, lens_focus(num_steps, step_size, wait, delay));
 
