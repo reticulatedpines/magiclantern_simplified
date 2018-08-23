@@ -2382,6 +2382,10 @@ static int check_default_warnings(struct menu_entry * entry, char* warning)
         );
     else if (DEPENDS_ON(DEP_NOT_SOUND_RECORDING) && sound_recording_enabled())
         snprintf(warning, MENU_MAX_WARNING_LEN, "Disable sound recording from Canon menu!");
+    else if (DEPENDS_ON(DEP_CONTINUOUS_AF) && !is_continuous_af())
+        snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires %s AF enabled.", is_movie_mode() ? "movie servo" : "continuous");
+    else if (DEPENDS_ON(DEP_NOT_CONTINUOUS_AF) && is_continuous_af())
+        snprintf(warning, MENU_MAX_WARNING_LEN, "This feature requires %s AF disabled.", is_movie_mode() ? "movie servo" : "continuous");
     
     if (warning[0]) 
         return MENU_WARN_NOT_WORKING;
@@ -2422,7 +2426,11 @@ static int check_default_warnings(struct menu_entry * entry, char* warning)
             //~ snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with sound recording enabled.");
         //~ else if (WORKS_BEST_IN(DEP_NOT_SOUND_RECORDING) && sound_recording_enabled())
             //~ snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with sound recording disabled.");
-        
+        //~ else if (WORKS_BEST_IN(DEP_CONTINUOUS_AF) && !is_continuous_af())
+            //~ snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with %s AF enabled.", is_movie_mode() ? "movie servo" : "continuous");
+        //~ else if (WORKS_BEST_IN(DEP_NOT_CONTINUOUS_AF) && is_continuous_af())
+            //~ snprintf(warning, MENU_MAX_WARNING_LEN, "This feature works best with %s AF disabled.", is_movie_mode() ? "movie servo" : "continuous");
+
         if (warning[0]) 
             return MENU_WARN_ADVICE;
     }

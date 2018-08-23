@@ -264,6 +264,9 @@ struct menu_entry
 #define DEP_SOUND_RECORDING (1<<14)
 #define DEP_NOT_SOUND_RECORDING (1<<15)
 
+#define DEP_CONTINUOUS_AF (1<<16)
+#define DEP_NOT_CONTINUOUS_AF (1<<17)
+
 struct menu
 {
     struct menu *       next;               /* [auto-set] linked list pointers */

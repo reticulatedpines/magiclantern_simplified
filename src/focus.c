@@ -1125,7 +1125,7 @@ static struct menu_entry focus_menu[] = {
         .priv = &follow_focus,
         .update    = follow_focus_print,
         .max = 1,
-        .depends_on = DEP_LIVEVIEW | DEP_AUTOFOCUS,
+        .depends_on = DEP_LIVEVIEW | DEP_AUTOFOCUS | DEP_NOT_CONTINUOUS_AF,
         .works_best_in = DEP_CFN_AF_BACK_BUTTON,
         .help = "Focus with arrow keys. MENU while REC = save focus point.",
 
@@ -1152,7 +1152,7 @@ static struct menu_entry focus_menu[] = {
         .icon_type = IT_BOOL,
         .edit_mode = EM_SHOW_LIVEVIEW,
         .help = "[Q]: fix here rack end point. SET+L/R: start point.",
-        .depends_on = DEP_LIVEVIEW | DEP_AUTOFOCUS,
+        .depends_on = DEP_LIVEVIEW | DEP_AUTOFOCUS | DEP_NOT_CONTINUOUS_AF,
     },
     {
         .name = "Rack Focus",
@@ -1160,7 +1160,7 @@ static struct menu_entry focus_menu[] = {
         .select     = rack_focus_start_delayed,
         .icon_type = IT_ACTION,
         .help = "Press SET for rack focus, or PLAY to also start recording.",
-        .depends_on = DEP_LIVEVIEW | DEP_AUTOFOCUS,
+        .depends_on = DEP_LIVEVIEW | DEP_AUTOFOCUS | DEP_NOT_CONTINUOUS_AF,
         .works_best_in = DEP_MOVIE_MODE,
     },
     #endif
@@ -1169,7 +1169,7 @@ static struct menu_entry focus_menu[] = {
         .name = "Focus Stacking",
         .select = menu_open_submenu,
         .help = "Takes pictures at different focus points.",
-        .depends_on = DEP_LIVEVIEW | DEP_AUTOFOCUS | DEP_PHOTO_MODE,
+        .depends_on = DEP_LIVEVIEW | DEP_AUTOFOCUS | DEP_PHOTO_MODE | DEP_NOT_CONTINUOUS_AF,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Run focus stack",
@@ -1238,7 +1238,7 @@ static struct menu_entry focus_menu[] = {
         .name = "Focus Settings",
         .select     = menu_open_submenu,
         .help = "Tuning parameters and prefs for rack/stack/follow focus.",
-        .depends_on = DEP_LIVEVIEW,
+        .depends_on = DEP_LIVEVIEW | DEP_AUTOFOCUS | DEP_NOT_CONTINUOUS_AF,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Step Size",
