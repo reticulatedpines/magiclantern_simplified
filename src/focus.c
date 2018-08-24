@@ -1454,7 +1454,6 @@ int handle_follow_focus(struct event * event)
                     return 1;
             }
         }
-        else lens_focus_stop();
     }
     return 1;
 }
