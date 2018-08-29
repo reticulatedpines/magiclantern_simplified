@@ -820,7 +820,8 @@ void dng_init_data(struct frame_info * frame_info, struct dng_data * dng_data)
         dng_data->image_buf = (uint16_t*)malloc(dng_data->image_size);
     
         dng_data->image_size_bitpacked = dng_get_image_size(frame_info, IMG_SIZE_AUTO);
-        dng_data->image_buf_bitpacked = (uint16_t*)malloc(dng_data->image_size_bitpacked);
+        /* add extra padding at the end so dng_pack_image_bits can write 32-bits at a time */
+        dng_data->image_buf_bitpacked = (uint16_t*)malloc(dng_data->image_size_bitpacked + sizeof(uint16_t));
 
         /* backup size and pointer of the original image buffer
            it might change later if raw compression is enabled 
