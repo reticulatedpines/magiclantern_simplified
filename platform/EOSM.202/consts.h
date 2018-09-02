@@ -105,10 +105,10 @@
 #define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0x3DEC8
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
-// Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
- //~ #define GUIMODE_ML_MENU (recording ? 0 : lv ? 90 : 2) // any from 90...102 ?!
-
-#define GUIMODE_ML_MENU ( RECORDING_H264 ?  99 : 91 ) // any from 90...102 ?!
+// Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something) => valid values from 90 to 102
+// 99 shows the same dialog as 97 on 700D/650D
+// 93 shows the same dialog as 91 on 700D/650D
+#define GUIMODE_ML_MENU ( RECORDING_H264 ? 99 : 93 )
 
 // for displaying TRAP FOCUS msg outside LV
 #define DISPLAY_TRAP_FOCUS_POS_X 50

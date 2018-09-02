@@ -176,8 +176,10 @@
 #define DISPLAY_TRAP_FOCUS_MSG_BLANK "          "
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
-// Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
-#define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 94 : 2) // any from 88...98 ?!
+// Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something) => valid values from 91 to 103
+// 100 shows the same dialog as 97 on 700D/650D or 99 on EOSM
+// 94 shows the same dialog as 91 on 700D/650D
+#define GUIMODE_ML_MENU (RECORDING ? 100 : lv ? 94 : 2)
 #define NUM_PICSTYLES 10
 
 #define FLASH_MAX_EV 3
