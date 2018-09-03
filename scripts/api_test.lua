@@ -306,6 +306,7 @@ function test_camera_gui()
     end
 
     lv.stop()
+    assert(not lv.enabled)
 
     printf("Canon GUI tests completed.\n")
     printf("\n")
@@ -347,9 +348,43 @@ function test_menu()
     sleep(1)
 
     assert(menu.select("Overlay"))
-    assert(menu.select("Movie"))
-    assert(menu.select("Shoot"))
 
+    assert(menu.select("Movie"))
+
+    -- perform the next test in LiveView
+    menu.close()
+    lv.start()
+    assert(lv.enabled)
+    assert(lv.running)
+    menu.open()
+
+    assert(menu.select("Movie", "FPS override"))
+    assert(menu.set("Movie", "FPS override", "OFF"))            -- "OFF" and "ON" are boolean matches for zero/nonzero internal state
+    assert(menu.get("Movie", "FPS override") == "OFF")
+    assert(menu.set("FPS override", "Desired FPS", "23.976"))   -- this menu entry will print "23.976 (from 25)" or something like that
+    assert(menu.get("FPS override", "Desired FPS"):sub(1,13) == "23.976 (from ")
+    assert(menu.set("FPS override", "Desired FPS", "5"))        -- this menu entry will print "5 (from 30)" or something like that
+    assert(menu.get("FPS override", "Desired FPS"):sub(1,8) == "5 (from ")
+    assert(menu.set("FPS override", "Desired FPS", "10"))       -- this menu entry will print "10 (from 25)" or something like that
+    assert(menu.get("FPS override", "Desired FPS"):sub(1,9) == "10 (from ")
+    assert(menu.set("FPS override", "Optimize for", "Exact FPS")) -- nothing fancy here, just request exact frame rate
+    assert(menu.get("FPS override", "Optimize for") == "Exact FPS")
+    assert(menu.set("Movie", "FPS override", "ON"))             -- enable FPS override
+    assert(menu.get("Movie", "FPS override") ~= "ON")           -- the menu entry will print something else
+    sleep(2)                                                    -- switching the frame rate takes a while
+    assert(menu.get("Movie", "FPS override") == "10.000")       -- it should eventually settle to our requested value
+    assert(menu.get("FPS override", "Actual FPS") == "10.000")  -- current FPS value can be read from here
+    assert(menu.set("Movie", "FPS override", "OFF"))            -- that was it
+    assert(menu.get("Movie", "FPS override") == "OFF")          -- make sure it's turned off
+
+    -- LiveView test completed
+    menu.close()
+    lv.stop()
+    assert(not lv.running)
+    assert(not lv.enabled)
+    menu.open()
+
+    assert(menu.select("Shoot"))
     assert(menu.select("Shoot", "Advanced Bracket"))
 
     -- boolean items should be set-able as int (0 or 1)
@@ -368,6 +403,14 @@ function test_menu()
     assert(menu.get("Shoot", "Advanced Bracket", 0) == 0)
     assert(menu.get("Shoot", "Advanced Bracket") == "OFF")
     sleep(1)
+
+    -- "ON" and "OFF" are interpreted as booleans,
+    -- even if the menu entry doesn't display exactly this string
+    assert(menu.set("Shoot", "Advanced Bracket", "ON"))
+    assert(menu.get("Shoot", "Advanced Bracket") ~= "ON")
+    assert(menu.get("Shoot", "Advanced Bracket") ~= "OFF")
+    assert(menu.set("Shoot", "Advanced Bracket", "OFF"))
+    assert(menu.get("Shoot", "Advanced Bracket") == "OFF")
 
     assert(menu.set("Shoot", "Intervalometer", 0))
     assert(menu.get("Shoot", "Intervalometer", 0) == 0)
