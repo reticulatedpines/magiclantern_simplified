@@ -255,10 +255,19 @@ void close_liveview()
     }
 #else
     {
-        /* in photo mode, just exit LiveView by "pressing" the LiveView button */
-        /* in movie mode, pressing LiveView would start recording,
-         * so go to PLAY mode instead */
-        fake_simple_button(is_movie_mode() ? BGMT_PLAY : BGMT_LV);
+        if (!is_movie_mode()) {
+            /* in photo mode, just exit LiveView by "pressing" the LiveView button */
+            fake_simple_button(BGMT_LV);
+        } else {
+            #if defined(CONFIG_5D2) || defined(CONFIG_50D)
+            /* on these cameras, pressing the LiveView button won't start recording */
+            fake_simple_button(BGMT_LV);
+            #else
+            /* in movie mode, pressing LiveView would start recording,
+             * so go to PLAY mode instead */
+            enter_play_mode();
+            #endif
+        }
         msleep(1000);
     }
 #endif
