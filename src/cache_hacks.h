@@ -446,27 +446,18 @@ static uint32_t cache_locked()
 
 static void cache_lock()
 {
-#if !defined(CONFIG_QEMU)
     icache_lock();
     dcache_lock();
-#endif
 }
 
 static void cache_unlock()
 {
-#if !defined(CONFIG_QEMU)
     icache_unlock();
     dcache_unlock();
-#endif
 }
 
 static uint32_t cache_fake(uint32_t address, uint32_t data, uint32_t type)
 {
-#if defined(CONFIG_QEMU)
-    /* QEMU doesn't seem to model the CPU cache, but we have configured the ROM area as RAM, so it's trivial to patch things */
-    MEM(address) = data;
-    return 0;
-#else    
     /* that word is already patched? return failure */
     /*
     if(!cache_is_patchable(address, type))
@@ -482,7 +473,6 @@ static uint32_t cache_fake(uint32_t address, uint32_t data, uint32_t type)
     }
 
     return cache_patch_single_word(address, data, type);
-#endif
 }
 
 #endif /* __ARM__ */
