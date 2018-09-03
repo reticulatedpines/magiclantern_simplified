@@ -1232,10 +1232,28 @@ function test_lens_focus()
     -- note: some lenses may be able to AF only in LiveView
     -- so let's check each mode regardless of the other
 
+    local function try_autofocus()
+        if lens.autofocus() then
+            return
+        end
+
+        -- if it didn't work, it's likely because the subject is hard to focus on
+        -- (camera might be pointed to a blank wall, or with lens cap on or whatever)
+        printf("Is there something to focus on?\n")
+        for i = 1,30 do
+            alert()
+            printf("\b\b\b\b\b%d...", 30 - i)
+            io.flush()
+            sleep(1)
+            if lens.autofocus() then return end
+        end
+        assert(false, "could not autofocus")
+    end
+
     if not lv.running then
         if lens.af then
             printf("Autofocus outside LiveView...\n")
-            assert(lens.autofocus())
+            try_autofocus()
         end
 
         lv.start()
@@ -1247,11 +1265,11 @@ function test_lens_focus()
 
         printf("Autofocus in LiveView...\n")
         assert(not lens.autofocusing)
-        assert(lens.autofocus())
+        try_autofocus()
         assert(not lens.autofocusing)
 
         printf("Please trigger autofocus (half-shutter / AF-ON / * ).\n")
-        for i = 1,2000 do
+        for i = 1,6000 do
             msleep(10)
             if lens.autofocusing then
                 printf("Autofocus triggered.\n")
@@ -1262,11 +1280,11 @@ function test_lens_focus()
                 break
             end
             if i % 100 == 0 then
-                printf("\b\b\b\b\b%d...", 20 - i // 100)
+                printf("\b\b\b\b\b%d...", 60 - i // 100)
                 io.flush()
                 alert()
             end
-            if i // 100 == 20 then
+            if i // 100 == 60 then
                 printf("\b\b\b\b\b")
                 io.flush()
                 assert(false, "Autofocus not triggered.\n")
@@ -1275,6 +1293,9 @@ function test_lens_focus()
 
         sleep(1)
         printf("Focus distance: %s\n",  lens.focus_distance)
+
+        -- just in case user presses AF twice by mistake
+        sleep(5)
 
         -- note: focus direction is not consistent
         -- some lenses will focus to infinity, others to macro
