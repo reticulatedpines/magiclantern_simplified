@@ -1384,28 +1384,39 @@ function api_tests()
     console.show()
     test_log = logger("LUATEST.LOG")
 
-    -- note: each test routine must print a blank line at the end
-    strict_tests()
-    generic_tests()
-    
-    printf("Module tests...\n")
-    test_io()
-    test_camera_gui()
-    test_menu()
-    test_camera_take_pics()
-    sleep(1)
-    test_multitasking()
-    test_keys()
-    test_lv()
-    test_lens_focus()
-    test_camera_exposure()
-    test_movie()
-    
-    printf("Done!\n")
-    
-    test_log:close()
-    key.wait()
-    console.hide()
+    local s,e = xpcall(function()
+
+        -- note: each test routine must print a blank line at the end
+        strict_tests()
+        generic_tests()
+        
+        printf("Module tests...\n")
+        test_io()
+        test_camera_gui()
+        test_menu()
+        test_camera_take_pics()
+        sleep(1)
+        test_multitasking()
+        test_keys()
+        test_lv()
+        test_lens_focus()
+        test_camera_exposure()
+        test_movie()
+        printf("Done!\n")
+
+    end, debug.traceback)
+
+    if s == false then
+        -- log the error message and keep console open
+        test_log:write("\n")
+        test_log:write(e)
+        test_log:close()
+    else
+        -- close the log file; hide the console on keypress
+        test_log:close()
+        key.wait()
+        console.hide()
+    end
 end
 
 -- check script arguments
