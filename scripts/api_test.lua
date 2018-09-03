@@ -427,12 +427,19 @@ function test_menu()
 
     -- note: setting menu by string works by brute force
     -- that is, trying every possible value and comparing the string
-    -- the range for this menu is huge, so it only checks round values
-    -- for speed reasons (so entering 1m10s will fail)
-    -- smaller ranges are OK for trying every single value
+    assert(menu.set("Intervalometer", "Take a pic every", "1m10s"))
+    assert(menu.get("Intervalometer", "Take a pic every", 0) == 70)
+    assert(menu.get("Intervalometer", "Take a pic every") == "1m10s")
+
+    -- going from 1m10s to 1m30s should be easy
     assert(menu.set("Intervalometer", "Take a pic every", "1m30s"))
     assert(menu.get("Intervalometer", "Take a pic every", 0) == 90)
     assert(menu.get("Intervalometer", "Take a pic every") == "1m30s")
+
+    -- going back to 1m10s would have to go through LOTS of intermediate values
+    assert(menu.set("Intervalometer", "Take a pic every", "1m10s"))
+    assert(menu.get("Intervalometer", "Take a pic every", 0) == 70)
+    assert(menu.get("Intervalometer", "Take a pic every") == "1m10s")
     sleep(1)
 
     -- actual string will be 10s
@@ -441,7 +448,8 @@ function test_menu()
     assert(menu.get("Intervalometer", "Take a pic every") == "10s")
     sleep(1)
 
-    -- integer should work as well - e.g. 1m10s should work now
+    -- integer should work as well, as long as the internal state variable matches the menu value
+    -- on other menus, where internal state is some index, integer argument may not be the best choice
     assert(menu.set("Intervalometer", "Take a pic every", 70))
     assert(menu.get("Intervalometer", "Take a pic every", 0) == 70)
     assert(menu.get("Intervalometer", "Take a pic every") == "1m10s")

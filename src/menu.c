@@ -6826,13 +6826,13 @@ int menu_set_str_value_from_script(const char* name, const char* entry_name, cha
     int wait_after_toggle = 0;
     int start_time = get_ms_clock();
     int elapsed_time = 0;
-    for (int i = 0; (elapsed_time = get_ms_clock() - start_time) < 2000; i++)
+    for (int i = 0; (elapsed_time = get_ms_clock() - start_time) < 5000; i++)
     {
         if (wait_after_toggle)
         {
             /* maybe we need to wait for other tasks? */
-            int delay = (elapsed_time < 500) ? 200 :
-                        (elapsed_time < 1500) ? 50 : 10;
+            int delay = (elapsed_time < 2000) ? 200 :
+                        (elapsed_time < 4000) ? 50  : 10;
             //~ printf("menu.set('%s', '%s'): wait for %d ms\n", entry_name, value, delay);
             msleep(delay);
         }
@@ -6938,7 +6938,7 @@ int menu_set_str_value_from_script(const char* name, const char* entry_name, cha
         }
         else if IS_ML_PTR(entry->priv)
         {
-            if (entry->max - entry->min > 1000)
+            if (entry->max - entry->min > (wait_after_toggle ? 100 : 100000))
             {
                 /* for very long min-max ranges, don't try every single value */
                 menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max, entry->unit, entry->edit_mode, 1);
