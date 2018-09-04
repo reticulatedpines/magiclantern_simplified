@@ -117,6 +117,17 @@ int lua_msg_queue_receive(lua_State * L, uint32_t * msg, int timeout)
     return msg_queue_receive(script->key_mq, msg, timeout);
 }
 
+static void lua_print_free_mem(void)
+{
+    extern int core_reallocs;    /* ml-lua-shim.c */
+    extern int core_reallocs_size;
+    printf("[Lua] free umm_heap : %s\n", format_memory_size(umm_free_heap_size()));
+    if (core_reallocs)
+    {
+        printf("[Lua] core reallocs : %d (%s)\n", core_reallocs, format_memory_size(core_reallocs_size));
+    }
+}
+
 /*
  Determines if a string ends in some string
  */
@@ -853,6 +864,9 @@ static void load_script(struct lua_script * script)
         printf("[%s] script finished.\n\n", script->filename);
     }
 
+    /* print available memory */
+    lua_print_free_mem();
+
     /* script finished or loaded in background; allow auto power off */
     powersave_permit();
 }
@@ -1336,13 +1350,7 @@ static void lua_load_task(int unused)
     
     lua_do_autoload();
     
-    extern int core_reallocs;    /* ml-lua-shim.c */
-    extern int core_reallocs_size;
-    printf("[Lua] free umm_heap : %s\n", format_memory_size(umm_free_heap_size()));
-    if (core_reallocs)
-    {
-        printf("[Lua] core reallocs : %d (%s)\n", core_reallocs, format_memory_size(core_reallocs_size));
-    }
+    lua_print_free_mem();
     printf("[Lua] all scripts loaded.\n");
 
     if (console_visible && !console_was_visible)
