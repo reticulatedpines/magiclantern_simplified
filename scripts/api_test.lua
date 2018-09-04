@@ -1135,7 +1135,7 @@ function test_lv()
 
     console.hide(); assert(not console.visible)
     local old_gdr = menu.get("Overlay", "Global Draw")
-    for i=1,10 do
+    for i=1,16 do
         key.press(KEY.INFO)
         sleep(0.2); print_overlays_status()
         sleep(1)
@@ -1151,6 +1151,7 @@ function test_lv()
             sleep(0.2); print_overlays_status()
             assert(lv.overlays == false)
             sleep(1)
+            if i > 8 then break end
         end
     end
     -- restore original Global Draw setting
