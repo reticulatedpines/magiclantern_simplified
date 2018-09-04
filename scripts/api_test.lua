@@ -1308,8 +1308,9 @@ function test_lens_focus()
 
         printf("Focus distance: %s\n",  lens.focus_distance)
         printf("Focus motor position: %d\n", lens.focus_pos)
-        
-        for i,step in pairs{3,2,1} do
+
+        -- step size 1 may be too slow or may fail on certain lenses
+        for i,step in pairs{3,2} do   -- pairs{3,2,1} to run the full test
             for j,wait in pairs{true,false} do
                 printf("Focusing forward with step size %d, wait=%s...\n", step, wait)
                 local steps_front = 0
