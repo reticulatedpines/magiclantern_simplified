@@ -1389,7 +1389,7 @@ function test_movie()
     lv.pause()
     local s,e = pcall(movie.start)
     assert(s == false)
-    assert(e:find("LiveView"))
+    assert(e:find("LiveView") or e:find("movie mode"))
     menu.close()
     lv.resume()
 
