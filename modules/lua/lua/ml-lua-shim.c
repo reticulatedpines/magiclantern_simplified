@@ -276,7 +276,14 @@ void* my_realloc(void* ptr, size_t size)
     if (use_umm)
     {
         ans = umm_realloc(ptr, size);
-        
+
+#if 0
+        /* apparently not needed, as Lua will run its garbage collector on realloc failure */
+        /* even the large api_test.lua script runs comfortably with just the UMM heap */
+        /* todo: if we find the UMM heap is not enough, we may return failure just once,
+         * that way Lua will call its garbage collector, hopefully succeeding;
+         * however, if the same allocation fails a second time, we may fall back to core malloc
+         */
         if (ans == 0 && size > 0)
         {
             /* umm_realloc failed? try again using core malloc */
@@ -286,6 +293,7 @@ void* my_realloc(void* ptr, size_t size)
             core_reallocs++;
             core_reallocs_size += size;
         }
+#endif
     }
     else
     {
