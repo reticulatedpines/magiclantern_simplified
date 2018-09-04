@@ -15,12 +15,19 @@ function printf(s,...)
     end
 end
 
+function alert()
+    display.off()
+    beep()
+    display.on()
+end
+
 function request_mode(mode, mode_str)
     while camera.mode ~= mode do
         printf("Please switch to %s mode.\n", mode_str, mode)
         while camera.mode ~= mode do
             console.show(); assert(console.visible)
             sleep(1)
+            alert()
         end
     end
 end
@@ -1217,6 +1224,7 @@ function test_lens_focus()
         while not lens.af and lens.name ~= "" do
             console.show(); assert(console.visible)
             sleep(1)
+            alert()
         end
         sleep(1)
     end
@@ -1256,6 +1264,7 @@ function test_lens_focus()
             if i % 100 == 0 then
                 printf("\b\b\b\b\b%d...", 20 - i // 100)
                 io.flush()
+                alert()
             end
             if i // 100 == 20 then
                 printf("\b\b\b\b\b")
