@@ -4689,6 +4689,15 @@ PROP_HANDLER(PROP_LV_ACTION)
     #ifdef FEATURE_LV_ZOOM_SETTINGS
     zoom_sharpen_step();
     #endif
+
+    #ifdef CONFIG_500D
+    if (buf[0] == 0 && !is_manual_focus())
+    {
+        /* disable the "Perform autofocus with AE lock <*> button" message in LiveView */
+        extern void FirstWarningTimer_CBR(void);
+        FirstWarningTimer_CBR();
+    }
+    #endif
 }
 
 void peaking_benchmark()
