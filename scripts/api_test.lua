@@ -314,6 +314,11 @@ function test_camera_gui()
         end
     end
 
+    if lv.paused then
+        printf("Resume LiveView...\n");
+        lv.resume()
+    end
+
     lv.stop()
     assert(not lv.enabled)
 
@@ -1182,6 +1187,7 @@ function test_lv()
     lv.pause()
     assert(lv.enabled, "LiveView stopped")
     assert(lv.paused, "LiveView could not be paused")
+    assert(not lv.running, "LiveView should not be running")
     assert(not lens.autofocusing)
     assert(lv.vidmode == "PAUSED-LV");
 
