@@ -6760,6 +6760,7 @@ static char* menu_get_str_value_from_script_do(const char* name, const char* ent
 
     /* not thread-safe; must be guarded by menu_sem */
     entry_default_display_info(entry, info);
+    info->can_custom_draw = 0;
     if (entry->update) entry->update(entry, info);
     return info->value;
 }
