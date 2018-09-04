@@ -22,14 +22,16 @@ function alert()
 end
 
 function request_mode(mode, mode_str)
-    while camera.mode ~= mode do
+    if camera.mode ~= mode or not camera.gui.idle then
         printf("Please switch to %s mode.\n", mode_str, mode)
-        while camera.mode ~= mode do
+
+        while camera.mode ~= mode or not camera.gui.idle do
             console.show(); assert(console.visible)
+            if camera.gui.idle then alert() end
             sleep(1)
-            alert()
         end
     end
+    sleep(2)
 end
 
 function round(x)
