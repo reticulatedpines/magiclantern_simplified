@@ -158,8 +158,25 @@ static int luaCB_lens_autofocus(lua_State * L)
         goto error;
     }
 
-    lens_setup_af(AF_ENABLE);
-    module_send_keypress(MODULE_KEY_PRESS_HALFSHUTTER);
+    /* these models won't AF with half-shutter in LiveView */
+    int back_btn_af_lv = lv && (
+        is_camera("5D2", "*") ||
+        is_camera("50D", "*") ||
+        is_camera("500D", "*")
+    );
+
+    if (back_btn_af_lv)
+    {
+        /* FIXME: this method fails on 60D, why? */
+        int af_request = 1;
+        prop_request_change(PROP_REMOTE_AFSTART_BUTTON, &af_request, 4);
+    }
+    else
+    {
+        lens_setup_af(AF_ENABLE);
+        module_send_keypress(MODULE_KEY_PRESS_HALFSHUTTER);
+    }
+
     focus_command_sent = 1;
 
     if (!lv)
@@ -188,10 +205,11 @@ static int luaCB_lens_autofocus(lua_State * L)
         else
         {
             /* timeout */
-            printf("[%s] focus status: %d\n", lua_get_script_filename(L), lv_focus_status);
+            printf("[%s] focus status: %d (expected 1 or 2)\n", lua_get_script_filename(L), lv_focus_status);
             goto error;
         }
     }
+    printf("[%s] focus status: %d (expected 3)\n", lua_get_script_filename(L), lv_focus_status);
 
 error:
     lua_pushboolean(L, false);
@@ -204,8 +222,16 @@ success:
 cleanup:
     if (focus_command_sent)
     {
-        module_send_keypress(MODULE_KEY_UNPRESS_HALFSHUTTER);
-        lens_cleanup_af();
+        if (back_btn_af_lv)
+        {
+            int af_request = 0;
+            prop_request_change(PROP_REMOTE_AFSTART_BUTTON, &af_request, 4);
+        }
+        else
+        {
+            module_send_keypress(MODULE_KEY_UNPRESS_HALFSHUTTER);
+            lens_cleanup_af();
+        }
     }
     return 1;
 }
