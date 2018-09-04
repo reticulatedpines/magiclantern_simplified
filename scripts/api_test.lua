@@ -989,7 +989,7 @@ function test_camera_take_pics()
     -- let's also check if we can find the image file
     -- fixme: a way to check these routines when the image number wraps around at 10000
     initial_file_num = dryos.shooting_card.file_number
-    local image_path = dryos.dcim_dir.path ..  dryos.image_prefix .. string.format("%04d", (initial_file_num + 1) % 10000)
+    local image_path = dryos.dcim_dir.path ..  dryos.image_prefix .. string.format("%04d", initial_file_num % 9999 + 1)
     local image_path_cr2 = image_path .. ".CR2"
     local image_path_jpg = image_path .. ".JPG"
     -- the image file(s) should not be present before taking the picture :)
@@ -999,7 +999,7 @@ function test_camera_take_pics()
     camera.shoot()
 
     -- but either CR2 or JPG should be there afterwards (or maybe both)
-    assert((dryos.shooting_card.file_number - initial_file_num) % 10000 == 1)
+    assert((dryos.shooting_card.file_number - initial_file_num) % 9999 == 1)
     camera.wait()
     local size_cr2 = print_file_size(image_path_cr2)
     local size_jpg = print_file_size(image_path_jpg)
@@ -1022,10 +1022,10 @@ function test_camera_take_pics()
     local old_prefix = dryos.image_prefix
     dryos.image_prefix = "ABC_"
     assert(dryos.image_prefix == "ABC_")
-    local image1_path = dryos.dcim_dir.path ..  dryos.image_prefix .. string.format("%04d", (initial_file_num + 1) % 10000)
+    local image1_path = dryos.dcim_dir.path ..  dryos.image_prefix .. string.format("%04d", initial_file_num % 9999 + 1)
     local image1_path_cr2 = image1_path .. ".CR2"
     local image1_path_jpg = image1_path .. ".JPG"
-    local image2_path = dryos.dcim_dir.path ..  dryos.image_prefix .. string.format("%04d", (initial_file_num + 2) % 10000)
+    local image2_path = dryos.dcim_dir.path ..  dryos.image_prefix .. string.format("%04d", (initial_file_num + 1) % 9999 + 1)
     local image2_path_cr2 = image2_path .. ".CR2"
     local image2_path_jpg = image2_path .. ".JPG"
     assert(io.open(image1_path_cr2, "rb") == nil)
@@ -1035,7 +1035,7 @@ function test_camera_take_pics()
 
     camera.burst(2)
 
-    assert((dryos.shooting_card.file_number - initial_file_num) % 10000 == 2)
+    assert((dryos.shooting_card.file_number - initial_file_num) % 9999 == 2)
     camera.wait()
     local size1_cr2 = print_file_size(image1_path_cr2)
     local size1_jpg = print_file_size(image1_path_jpg)
@@ -1064,11 +1064,11 @@ function test_camera_take_pics()
     camera.shoot()
     camera.shutter.value = 1/5
     camera.shoot()
-    assert((dryos.shooting_card.file_number - initial_file_num) % 10000 == 3)
+    assert((dryos.shooting_card.file_number - initial_file_num) % 9999 == 3)
     camera.wait()
     -- fixme: how to check metadata in the files?
     for i = dryos.shooting_card.file_number - 2, dryos.shooting_card.file_number do
-        image_path = dryos.dcim_dir.path ..  dryos.image_prefix .. string.format("%04d", i % 10000)
+        image_path = dryos.dcim_dir.path ..  dryos.image_prefix .. string.format("%04d", (i - 1) % 9999 + 1)
         image_path_cr2 = image_path .. ".CR2"
         image_path_jpg = image_path .. ".JPG"
         local size_cr2 = print_file_size(image_path_cr2)
@@ -1081,7 +1081,7 @@ function test_camera_take_pics()
     printf("Bulb picture...\n")
     local t0 = dryos.ms_clock
     initial_file_num = dryos.shooting_card.file_number
-    image_path = dryos.dcim_dir.path ..  dryos.image_prefix .. string.format("%04d", (initial_file_num + 1) % 10000)
+    image_path = dryos.dcim_dir.path ..  dryos.image_prefix .. string.format("%04d", initial_file_num % 9999 + 1)
     image_path_cr2 = image_path .. ".CR2"
     image_path_jpg = image_path .. ".JPG"
     assert(io.open(image_path_cr2, "rb") == nil)
@@ -1095,7 +1095,7 @@ function test_camera_take_pics()
     -- we can't measure this time accurately, so we only do a very rough check
     -- slow cards may be an issue, so let's allow a wide error margin
     assert(elapsed > 9900 and elapsed < 30000)
-    assert((dryos.shooting_card.file_number - initial_file_num) % 10000 == 1)
+    assert((dryos.shooting_card.file_number - initial_file_num) % 9999 == 1)
     camera.wait()
     local size_cr2 = print_file_size(image_path_cr2)
     local size_jpg = print_file_size(image_path_jpg)
