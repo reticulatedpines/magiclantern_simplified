@@ -212,8 +212,8 @@ static int handle_prop_string(lua_State * L, const char * name)
     else if(!strcmp(name, "LV_FOCUS_DONE")) prop_id = PROP_LV_FOCUS_DONE;
     /// @tfield property LV_FOCUS_STOP
     else if(!strcmp(name, "LV_FOCUS_STOP")) prop_id = PROP_LV_FOCUS_STOP;
-    /// @tfield property LV_FOCUS_BAD
-    else if(!strcmp(name, "LV_FOCUS_BAD")) prop_id = PROP_LV_FOCUS_BAD;
+    /// @tfield property LV_AF_RESULT
+    else if(!strcmp(name, "LV_AF_RESULT")) prop_id = PROP_LV_AF_RESULT;
     /// @tfield property LV_FOCUS_STATE
     else if(!strcmp(name, "LV_FOCUS_STATE")) prop_id = PROP_LV_FOCUS_STATE;
     /// @tfield property LV_FOCUS_STATUS

@@ -96,7 +96,7 @@
 #define PROP_LV_FOCUS           0x80050001 // only works in liveview mode; LVCAF_LensDriveStart
 #define PROP_LV_FOCUS_DONE      0x80050002 // output when focus motor is done?
 #define PROP_LV_FOCUS_STOP      0x80050003 // LVCAF_LensDriveStop
-#define PROP_LV_FOCUS_BAD       0x80050029 // true if camera couldn't focus?
+#define PROP_LV_AF_RESULT       0x80050029 // 0 = OK, 1 = couldn't focus; triggered at the end of AF operation
 #define PROP_LV_FOCUS_STATE     0x80050009 // 1 OK, 101 bad, 201 not done?
 #define PROP_LV_FOCUS_STATUS    0x80050023 // 1 = idle, 3 = focusing in LiveView
 #define PROP_LV_FOCUS_CMD       0x80050027 // 3002 = full speed, 4/5 = slow, 6 = fine tune?
