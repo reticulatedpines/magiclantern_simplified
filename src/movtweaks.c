@@ -246,6 +246,11 @@ void force_liveview()
 
 void close_liveview()
 {
+    if (lv_paused)
+    {
+        ResumeLiveView();
+    }
+
     if (lv)
 #ifdef CONFIG_EOSM
     {

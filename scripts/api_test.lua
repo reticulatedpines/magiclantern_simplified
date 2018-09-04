@@ -314,11 +314,6 @@ function test_camera_gui()
         end
     end
 
-    if lv.paused then
-        printf("Resume LiveView...\n");
-        lv.resume()
-    end
-
     lv.stop()
     assert(not lv.enabled)
 
