@@ -232,6 +232,7 @@ function card_test()
         printf("CF card (%s) present\n", dryos.cf_card.path)
         printf("- free space: %d MiB\n", dryos.cf_card.free_space)
         printf("- next image: %s\n", dryos.cf_card:image_path(1))
+        printf("- DCIM dir. : %s\n", dryos.cf_card.dcim_dir.path)
         assert(dryos.cf_card.path == "A:/")
         assert(dryos.cf_card.type == "CF")
     end
@@ -239,6 +240,7 @@ function card_test()
         printf("SD card (%s) present\n", dryos.sd_card.path)
         printf("- free space: %d MiB\n", dryos.sd_card.free_space)
         printf("- next image: %s\n", dryos.sd_card:image_path(1))
+        printf("- DCIM dir. : %s\n", dryos.sd_card.dcim_dir.path)
         assert(dryos.sd_card.path == "B:/")
         assert(dryos.sd_card.type == "SD")
     end
@@ -1026,7 +1028,10 @@ function test_camera_take_pics()
     -- next image path is harder to build manually, as you need to take care
     -- of wrapping around (100CANON/IMG_9999.CR2 -> 101CANON/IMG_0001.CR2)
     -- this is why dryos.shooting_card:image_path is preferred -- it handles these edge cases for you
-    local image_path_dcim = dryos.dcim_dir.path ..  dryos.image_prefix .. string.format("%04d", dryos.shooting_card.file_number)
+    local image_path_dcim =
+        dryos.shooting_card.dcim_dir.path ..
+        dryos.image_prefix ..
+        string.format("%04d", dryos.shooting_card.file_number)
     assert(image_path_dcim == dryos.shooting_card:image_path(0, ""))
 
     -- but either CR2 or JPG should be there afterwards (or maybe both)

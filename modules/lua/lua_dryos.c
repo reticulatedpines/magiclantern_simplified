@@ -45,6 +45,7 @@ const char * lua_dryos_card_fields[] =
 {
     "cluster_size",
     "drive_letter",
+    "dcim_dir",
     "file_number",
     "folder_number",
     "free_space",
@@ -243,14 +244,6 @@ static int luaCB_dryos_index(lua_State * L)
     /// Set to empty string to restore default value.
     // @tfield string image_prefix
     else if(!strcmp(key, "image_prefix")) lua_pushstring(L, get_file_prefix());
-    /// Get the DCIM directory.
-    // @tfield directory dcim_dir
-    else if(!strcmp(key, "dcim_dir"))
-    {
-        lua_pushcfunction(L, luaCB_dryos_directory);
-        lua_pushstring(L, get_dcim_dir());
-        lua_call(L, 1, 1);
-    }
     /// Get the ML config directory.
     // @tfield directory config_dir
     else if(!strcmp(key, "config_dir"))
@@ -564,6 +557,13 @@ static int luaCB_card_image_path(lua_State * L)
     }
 }
 
+static const char * get_card_dcim_dir(struct card_info * card)
+{
+    static char dcim_dir[FIO_MAX_PATH_LENGTH];
+    snprintf(dcim_dir, sizeof(dcim_dir), "%s:/DCIM/%03d%s", card->drive_letter, card->folder_number, get_dcim_dir_suffix());
+    return dcim_dir;
+}
+
 static int luaCB_card_index(lua_State * L)
 {
     if(!lua_istable(L, 1)) return luaL_argerror(L, 1, "expected table");
@@ -577,6 +577,14 @@ static int luaCB_card_index(lua_State * L)
         /// Get the drive letter (A or B).
         // @tfield string drive_letter
         else if(!strcmp(key, "drive_letter")) lua_pushstring(L, card->drive_letter);
+        /// Get the DCIM directory for this card.
+        // @tfield directory dcim_dir
+        else if(!strcmp(key, "dcim_dir"))
+        {
+            lua_pushcfunction(L, luaCB_dryos_directory);
+            lua_pushstring(L, get_card_dcim_dir(card));
+            lua_call(L, 1, 1);
+        }
         /// Get the current Canon file number (e.g. IMG_1234.CR2 -> 1234).
         // @tfield int file_number
         else if(!strcmp(key, "file_number")) lua_pushinteger(L, card->file_number);
@@ -609,7 +617,6 @@ static const char * lua_dryos_fields[] =
     "clock",
     "ms_clock",
     "image_prefix",
-    "dcim_dir",
     "config_dir",
     "ml_card",
     "shooting_card",
