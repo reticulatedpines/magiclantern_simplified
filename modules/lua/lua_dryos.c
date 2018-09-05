@@ -49,6 +49,8 @@ const char * lua_dryos_card_fields[] =
     "file_number",
     "folder_number",
     "free_space",
+    "image_path",
+  //"path",
     "type",
     NULL
 };
@@ -193,12 +195,6 @@ static void setboolfield (lua_State *L, const char *key, int value) {
     lua_setfield(L, -2, key);
 }
 
-static const luaL_Reg card_funcs[] =
-{
-    { "image_path", luaCB_card_image_path },
-    { NULL, NULL }
-};
-
 static int lua_card_obj(lua_State * L, struct card_info * card)
 {
     if(!card) return luaL_error(L, "Card info error");
@@ -216,7 +212,6 @@ static int lua_card_obj(lua_State * L, struct card_info * card)
     lua_setfield(L, -2, "_card_ptr");
     lua_pushfstring(L, "%s:/", card->drive_letter);
     lua_setfield(L, -2, "path");
-    luaL_setfuncs(L, card_funcs, 0);
     lua_newtable(L);
     lua_pushcfunction(L, luaCB_card_index);
     lua_setfield(L, -2, "__index");
@@ -489,17 +484,6 @@ static int luaCB_directory_newindex(lua_State * L)
 // Inherits from @{directory}
 // @type card
 
-/***
- Returns current/previous/future still image path. Examples:
-
- - `B:/DCIM/100CANON/IMG1234.CR2` (with extension)
- - `B:/DCIM/100CANON/IMG1234` (without extension)
- 
- @tparam[opt=0] int file_offset 0 = last saved image, positive = future images, negative = previous images.
- @tparam[opt=nil] ?string|nil = preferred extension, nil = automatic.
- @function image_path
- @treturn string
- */
 static int luaCB_card_image_path(lua_State * L)
 {
     if(!lua_istable(L, 1)) return luaL_argerror(L, 1, "expected table");
@@ -596,6 +580,16 @@ static int luaCB_card_index(lua_State * L)
         /// FIXME: does not update after writing files from ML code.
         // @tfield int free_space
         else if(!strcmp(key, "free_space")) lua_pushinteger(L, get_free_space_32k(card) * 32 / 1024);
+        /// Get current/previous/future still image path. Examples:
+        /// 
+        ///  - `B:/DCIM/100CANON/IMG1234.CR2` (with extension)
+        ///  - `B:/DCIM/100CANON/IMG1234` (without extension)
+        ///  
+        // @tparam[opt=0] int file_offset 0 = last saved image, positive = future images, negative = previous images.
+        // @tparam[opt=nil] ?string|nil = preferred extension, nil = automatic.
+        // @function image_path
+        // @treturn string
+        else if(!strcmp(key, "image_path")) lua_pushcfunction(L, luaCB_card_image_path);
         /// Get the type of card (SD or CF).
         // @tfield string type
         else if(!strcmp(key, "type")) lua_pushstring(L, card->type);
