@@ -106,10 +106,13 @@ static MENU_UPDATE_FUNC(file_prefix_upd)
 
 static int file_num = -1;
 static int file_num_canon = -1;
+static int file_num_requested = -1;
 static int file_num_dirty = 0;
 
 static int folder_num = -1;
 static int folder_num_canon = -1;
+static int folder_num_requested = -1;
+static int folder_num_dirty = 0;
 
 static void file_folder_number_refresh()
 {
@@ -117,8 +120,15 @@ static void file_folder_number_refresh()
     int folder_num_canon_latest = get_shooting_card()->folder_number;
     if (file_num_canon != file_num_canon_latest)
     {
-        /* Canon code updated their file number (likely an image was taken) */
-        file_num = file_num_canon = file_num_canon_latest;
+        /* Canon code updated their file number */
+        if (file_num_canon_latest != file_num_requested)
+        {
+            /* maybe an image was taken? */
+            /* fixme: move this logic into property handlers */
+            file_num_dirty = 0;
+            folder_num_dirty = 0;
+            file_num = file_num_canon = file_num_canon_latest;
+        }
     }
 
     ASSERT(file_num != -1);
@@ -126,7 +136,10 @@ static void file_folder_number_refresh()
     if (folder_num_canon != folder_num_canon_latest)
     {
         /* Canon code updated their folder number (e.g. file_num reached 9999) */
-        folder_num = folder_num_canon = folder_num_canon_latest;
+        if (folder_num_canon_latest != folder_num_requested)
+        {
+            folder_num = folder_num_canon = folder_num_canon_latest;
+        }
     }
 
     ASSERT(folder_num != -1);
@@ -135,17 +148,20 @@ static void file_folder_number_refresh()
 
     if (folder_num != folder_num_canon_latest)
     {
-        printf("Changing folder number from %d to %d...\n", folder_num_canon_latest, folder_num);
+        folder_num_requested = folder_num;
+        printf("Changing folder number from %d to %d...\n", folder_num_canon_latest, folder_num_requested);
         int folder_number_prop = shooting_drive_letter == 'A' ? PROP_FOLDER_NUMBER_A : PROP_FOLDER_NUMBER_B;
-        prop_request_change_wait(folder_number_prop, &folder_num, 4, 1000);
+        prop_request_change_wait(folder_number_prop, &folder_num_requested, 4, 1000);
+        folder_num_dirty = 1;
     }
 
     if (file_num != file_num_canon_latest)
     {
-        printf("Changing file number from %d to %d...\n", file_num_canon_latest, file_num);
+        file_num_requested = file_num;
+        printf("Changing file number from %d to %d...\n", file_num_canon_latest, file_num_requested);
         int file_number_prop = shooting_drive_letter == 'A' ? PROP_FILE_NUMBER_A : PROP_FILE_NUMBER_B;
-        prop_request_change_wait(PROP_NUMBER_OF_CONTINUOUS_MODE, &file_num, 4, 1000);
-        prop_request_change_wait(file_number_prop, &file_num, 4, 1000);
+        prop_request_change_wait(PROP_NUMBER_OF_CONTINUOUS_MODE, &file_num_requested, 4, 1000);
+        prop_request_change_wait(file_number_prop, &file_num_requested, 4, 1000);
         file_num_dirty = 1;
     }
 
@@ -163,6 +179,11 @@ static MENU_UPDATE_FUNC(file_number_upd)
     if (file_num_dirty)
     {
         MENU_SET_RINFO("Restart");
+        MENU_SET_WARNING(MENU_WARN_INFO, "Please restart your camera to apply the changes.");
+    }
+    else
+    {
+        MENU_SET_ENABLED(0);
     }
 }
 
@@ -195,8 +216,19 @@ static MENU_UPDATE_FUNC(folder_number_upd)
 
     /* fixme: hackish */
     bmp_printf(FONT(FONT_LARGE, COLOR_GRAY(50), 0), 50, 350, "Next image: %s", next_image_filename(0));
+
+    if (folder_num_dirty)
+    {
+        MENU_SET_RINFO("Take pic");
+        MENU_SET_WARNING(MENU_WARN_INFO, "Please take a picture to apply the changes.");
+    }
+    else
+    {
+        MENU_SET_ENABLED(0);
+    }
 }
 
+/* main entry */
 static MENU_UPDATE_FUNC(file_name_upd)
 {
     file_folder_number_refresh();
@@ -206,7 +238,15 @@ static MENU_UPDATE_FUNC(file_name_upd)
     if (file_num_dirty)
     {
         MENU_SET_RINFO("Restart");
+        MENU_SET_WARNING(MENU_WARN_INFO, "Please restart your camera to apply the changes.");
     }
+    else if (folder_num_dirty)
+    {
+        MENU_SET_RINFO("Take pic");
+        MENU_SET_WARNING(MENU_WARN_INFO, "Please take a picture to apply the changes.");
+    }
+
+    /* fixme: you can't change both at the same time */
 }
 
 static struct menu_entry img_name_menu[] =
@@ -230,8 +270,8 @@ static struct menu_entry img_name_menu[] =
             {
                 .name       = "Image file number",
                 .priv       = &file_num,
-                .min        = 0,
-                .max        = 9999,
+                .min        = 0,            /* we can set to 0 and the next image will be IMG_0001 */
+                .max        = 9999,         /* setting it to 9999 => next image will be IMG_0001, too */
                 .unit       = UNIT_DEC,
                 .icon_type  = IT_DICE,
                 .update     = file_number_upd,
@@ -245,7 +285,8 @@ static struct menu_entry img_name_menu[] =
                 .min        = 100,
                 .max        = 999,
                 .unit       = UNIT_DEC,
-                .help       = "Custom image folder number. You must take an image to save this setting.",
+                .icon_type  = IT_DICE,
+                .help       = "Custom image folder num. You must take a picture to apply this setting.",
                 .help2      = "DCIM/100CANON/IMG_1234.JPG -> DCIM/123CANON/IMG_1234.JPG",
             },
             MENU_EOL,
