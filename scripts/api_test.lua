@@ -227,6 +227,23 @@ function rename_test(src, dst)
     printf("Rename test OK\n")
 end
 
+function card_test()
+    if dryos.cf_card then
+        printf("CF card (%s) present\n", dryos.cf_card.path)
+        printf("- free space: %d MiB\n", dryos.cf_card.free_space)
+        printf("- next image: %s\n", dryos.cf_card:image_path(1))
+        assert(dryos.cf_card.path == "A:/")
+        assert(dryos.cf_card.type == "CF")
+    end
+    if dryos.sd_card then
+        printf("SD card (%s) present\n", dryos.sd_card.path)
+        printf("- free space: %d MiB\n", dryos.sd_card.free_space)
+        printf("- next image: %s\n", dryos.sd_card:image_path(1))
+        assert(dryos.sd_card.path == "B:/")
+        assert(dryos.sd_card.type == "SD")
+    end
+end
+
 function test_io()
     printf("Testing file I/O...\n")
     stdio_test()
@@ -234,6 +251,7 @@ function test_io()
     append_test("tmp.txt")
     rename_test("apple.txt", "banana.txt")
     rename_test("apple.txt", "ML/banana.txt")
+    card_test()
 
     printf("File I/O tests completed.\n")
     printf("\n")

@@ -198,6 +198,36 @@ static const luaL_Reg card_funcs[] =
     { NULL, NULL }
 };
 
+static int lua_card_obj(lua_State * L, struct card_info * card)
+{
+    if(!card) return luaL_error(L, "Card info error");
+
+    char root_path[] = "X:/";
+    root_path[0] = card->drive_letter[0];
+    if (!is_dir(root_path))
+    {
+        lua_pushnil(L);
+        return 1;
+    }
+
+    lua_newtable(L);
+    lua_pushlightuserdata(L, card);
+    lua_setfield(L, -2, "_card_ptr");
+    lua_pushfstring(L, "%s:/", card->drive_letter);
+    lua_setfield(L, -2, "path");
+    luaL_setfuncs(L, card_funcs, 0);
+    lua_newtable(L);
+    lua_pushcfunction(L, luaCB_card_index);
+    lua_setfield(L, -2, "__index");
+    lua_pushcfunction(L, luaCB_card_newindex);
+    lua_setfield(L, -2, "__newindex");
+    lua_pushcfunction(L, luaCB_pairs);
+    lua_setfield(L, -2, "__pairs");
+    lua_pushlightuserdata(L, lua_dryos_card_fields);
+    lua_setfield(L, -2, "fields");
+    lua_setmetatable(L, -2);
+    return 1;
+}
 
 static int luaCB_dryos_index(lua_State * L)
 {
@@ -231,49 +261,16 @@ static int luaCB_dryos_index(lua_State * L)
     }
     /// Get the card ML was started from.
     // @tfield card ml_card
-    else if(!strcmp(key, "ml_card"))
-    {
-        lua_newtable(L);
-        struct card_info * card = get_ml_card();
-        if(!card) return luaL_error(L, "Error getting ml_card");
-        lua_pushlightuserdata(L, card);
-        lua_setfield(L, -2, "_card_ptr");
-        lua_pushfstring(L, "%s:/", card->drive_letter);
-        lua_setfield(L, -2, "path");
-        lua_newtable(L);
-        lua_pushcfunction(L, luaCB_card_index);
-        lua_setfield(L, -2, "__index");
-        lua_pushcfunction(L, luaCB_card_newindex);
-        lua_setfield(L, -2, "__newindex");
-        lua_pushcfunction(L, luaCB_pairs);
-        lua_setfield(L, -2, "__pairs");
-        lua_pushlightuserdata(L, lua_dryos_card_fields);
-        lua_setfield(L, -2, "fields");
-        lua_setmetatable(L, -2);
-    }
+    else if(!strcmp(key, "ml_card")) return lua_card_obj(L, get_ml_card());
     /// Get the shooting card (the one selected in Canon menu for taking pictures / recording videos).
     // @tfield card shooting_card
-    else if(!strcmp(key, "shooting_card"))
-    {
-        lua_newtable(L);
-        struct card_info * card = get_shooting_card();
-        if(!card) return luaL_error(L, "Error getting shooting_card");
-        lua_pushlightuserdata(L, card);
-        lua_setfield(L, -2, "_card_ptr");
-        lua_pushfstring(L, "%s:/", card->drive_letter);
-        lua_setfield(L, -2, "path");
-        luaL_setfuncs(L, card_funcs, 0);
-        lua_newtable(L);
-        lua_pushcfunction(L, luaCB_card_index);
-        lua_setfield(L, -2, "__index");
-        lua_pushcfunction(L, luaCB_card_newindex);
-        lua_setfield(L, -2, "__newindex");
-        lua_pushcfunction(L, luaCB_pairs);
-        lua_setfield(L, -2, "__pairs");
-        lua_pushlightuserdata(L, lua_dryos_card_fields);
-        lua_setfield(L, -2, "fields");
-        lua_setmetatable(L, -2);
-    }
+    else if(!strcmp(key, "shooting_card")) return lua_card_obj(L, get_shooting_card());
+    /// Get the CF card if your camera has one, otherwise nil
+    // @tfield ?card|nil cf_card
+    else if(!strcmp(key, "cf_card")) return lua_card_obj(L, get_card(CARD_A));
+    /// Get the SD card if your camera has one, otherwise nil
+    // @tfield ?card|nil sd_card
+    else if(!strcmp(key, "sd_card")) return lua_card_obj(L, get_card(CARD_B));
     /// Gets a table representing the current date/time.
     // @tfield date date
     else if(!strcmp(key, "date"))
@@ -616,6 +613,8 @@ static const char * lua_dryos_fields[] =
     "config_dir",
     "ml_card",
     "shooting_card",
+    "cf_card",
+    "sd_card",
     "date",
     NULL
 };
