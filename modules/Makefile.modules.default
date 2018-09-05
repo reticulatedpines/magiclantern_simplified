@@ -13,6 +13,7 @@ ML_MODULES ?= \
 	autoexpo \
 	arkanoid \
 	deflick \
+	img_name \
 	lua \
 	bench \
 	selftest \
