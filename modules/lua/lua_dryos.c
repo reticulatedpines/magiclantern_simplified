@@ -21,6 +21,7 @@
 #include <fileprefix.h>
 #include <string.h>
 #include <config.h>
+#include <propvalues.h>
 
 #include "lua_common.h"
 
@@ -28,6 +29,7 @@ static int luaCB_card_index(lua_State * L);
 static int luaCB_card_newindex(lua_State * L);
 static int luaCB_directory_index(lua_State * L);
 static int luaCB_directory_newindex(lua_State * L);
+static int luaCB_card_image_path(lua_State * L);
 
 const char * lua_dryos_directory_fields[] =
 {
@@ -190,6 +192,13 @@ static void setboolfield (lua_State *L, const char *key, int value) {
     lua_setfield(L, -2, key);
 }
 
+static const luaL_Reg card_funcs[] =
+{
+    { "image_path", luaCB_card_image_path },
+    { NULL, NULL }
+};
+
+
 static int luaCB_dryos_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
@@ -253,6 +262,7 @@ static int luaCB_dryos_index(lua_State * L)
         lua_setfield(L, -2, "_card_ptr");
         lua_pushfstring(L, "%s:/", card->drive_letter);
         lua_setfield(L, -2, "path");
+        luaL_setfuncs(L, card_funcs, 0);
         lua_newtable(L);
         lua_pushcfunction(L, luaCB_card_index);
         lua_setfield(L, -2, "__index");
@@ -488,6 +498,74 @@ static int luaCB_directory_newindex(lua_State * L)
 /// Represents a card (storage media).
 // Inherits from @{directory}
 // @type card
+
+/***
+ Returns current/previous/future still image path. Examples:
+
+ - `B:/DCIM/100CANON/IMG1234.CR2` (with extension)
+ - `B:/DCIM/100CANON/IMG1234` (without extension)
+ 
+ @tparam[opt=0] int file_offset 0 = last saved image, positive = future images, negative = previous images.
+ @tparam[opt=nil] ?string|nil = preferred extension, nil = automatic.
+ @function image_path
+ @treturn string
+ */
+static int luaCB_card_image_path(lua_State * L)
+{
+    if(!lua_istable(L, 1)) return luaL_argerror(L, 1, "expected table");
+    if(lua_getfield(L, 1, "_card_ptr") == LUA_TLIGHTUSERDATA)
+    {
+        struct card_info * card = lua_touserdata(L, -1);
+        LUA_PARAM_INT_OPTIONAL(file_offset, 2, 0);
+        LUA_PARAM_STRING_OPTIONAL(extension, 3, 0);
+
+        char image_path[32];    /* B:/DCIM/100CANON/IMG_1234.CR2 */
+
+        int folder_num = card->folder_number;
+        int file_num = card->file_number;
+        for (int i = 0; i != file_offset; i += SGN(file_offset))
+        {
+            file_num += SGN(file_offset);
+            if (file_num > 9999)
+            {
+                file_num = 1;
+                folder_num++;
+                if (folder_num > 999)
+                {
+                    folder_num = 100;
+                }
+            }
+            else if (file_num < 1)
+            {
+                file_num = 9999;
+                folder_num--;
+                if (folder_num < 100)
+                {
+                    folder_num = 999;
+                }
+            }
+        }
+
+        int raw = pic_quality & 0x60000;
+
+        snprintf(image_path, sizeof(image_path),
+            "%s:/DCIM/%03d%s/%s%04d%s",
+            card->drive_letter,     /* B */
+            folder_num,             /* 100 */
+            get_dcim_dir_suffix(),  /* CANON */
+            get_file_prefix(),      /* IMG_ */
+            file_num,               /* 1234 */
+            extension ? extension : raw ? ".CR2" : ".JPG"
+        );
+
+        lua_pushstring(L, image_path);
+        return 1;
+    }
+    else
+    {
+        return luaL_error(L, "could not get lightuserdata for card");
+    }
+}
 
 static int luaCB_card_index(lua_State * L)
 {

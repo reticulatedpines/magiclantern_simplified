@@ -970,7 +970,6 @@ end
 
 function test_camera_take_pics()
     printf("Testing picture taking functions...\n")
-    local initial_file_num
 
     request_mode(MODE.M, "M")
     camera.shutter = 1/50
@@ -978,7 +977,7 @@ function test_camera_take_pics()
     
     printf("Snap simulation test...\n")
     assert(menu.set("Shoot Preferences", "Snap Simulation", 1))
-    initial_file_num = dryos.shooting_card.file_number
+    local initial_file_num = dryos.shooting_card.file_number
     camera.shoot()
     assert(dryos.shooting_card.file_number == initial_file_num)
     assert(menu.set("Shoot Preferences", "Snap Simulation", 0))
@@ -987,16 +986,30 @@ function test_camera_take_pics()
 
     printf("Single picture...\n")
     -- let's also check if we can find the image file
-    -- fixme: a way to check these routines when the image number wraps around at 10000
     initial_file_num = dryos.shooting_card.file_number
-    local image_path = dryos.dcim_dir.path ..  dryos.image_prefix .. string.format("%04d", initial_file_num % 9999 + 1)
-    local image_path_cr2 = image_path .. ".CR2"
-    local image_path_jpg = image_path .. ".JPG"
+    local image_path_cr2 = dryos.shooting_card:image_path(1, ".CR2") -- next image (assume CR2)
+    local image_path_jpg = dryos.shooting_card:image_path(1, ".JPG") -- next image (assume JPG)
+    local image_path_auto = dryos.shooting_card:image_path(1)        -- next image (autodetect extension)
+    assert(dryos.shooting_card:image_path(1, nil) == image_path_auto)
+    assert(image_path_auto == image_path_cr2 or image_path_auto == image_path_jpg)
+    assert(dryos.shooting_card:image_path(1, "") .. ".CR2" == image_path_cr2)
+    assert(dryos.shooting_card:image_path(1, "") .. ".JPG" == image_path_jpg)
+
     -- the image file(s) should not be present before taking the picture :)
     assert(io.open(image_path_cr2, "rb") == nil)
     assert(io.open(image_path_jpg, "rb") == nil)
 
     camera.shoot()
+
+    assert(dryos.shooting_card:image_path(0) == image_path_auto) -- last captured image
+    assert(dryos.shooting_card:image_path() == image_path_auto)  -- that's the default
+
+    -- manually build last image path name
+    -- next image path is harder to build manually, as you need to take care
+    -- of wrapping around (100CANON/IMG_9999.CR2 -> 101CANON/IMG_0001.CR2)
+    -- this is why dryos.shooting_card:image_path is preferred -- it handles these edge cases for you
+    local image_path_dcim = dryos.dcim_dir.path ..  dryos.image_prefix .. string.format("%04d", dryos.shooting_card.file_number)
+    assert(image_path_dcim == dryos.shooting_card:image_path(0, ""))
 
     -- but either CR2 or JPG should be there afterwards (or maybe both)
     assert((dryos.shooting_card.file_number - initial_file_num) % 9999 == 1)
@@ -1022,12 +1035,12 @@ function test_camera_take_pics()
     local old_prefix = dryos.image_prefix
     dryos.image_prefix = "ABC_"
     assert(dryos.image_prefix == "ABC_")
-    local image1_path = dryos.dcim_dir.path ..  dryos.image_prefix .. string.format("%04d", initial_file_num % 9999 + 1)
-    local image1_path_cr2 = image1_path .. ".CR2"
-    local image1_path_jpg = image1_path .. ".JPG"
-    local image2_path = dryos.dcim_dir.path ..  dryos.image_prefix .. string.format("%04d", (initial_file_num + 1) % 9999 + 1)
-    local image2_path_cr2 = image2_path .. ".CR2"
-    local image2_path_jpg = image2_path .. ".JPG"
+    -- edge case if image number is 9997 (next image 9998) before running api_test.lua
+    -- (image1 will be 100CANON/IMG_9999 and image2 should be 101CANON/IMG_0001)
+    local image1_path_cr2 = dryos.shooting_card:image_path(1, ".CR2")
+    local image1_path_jpg = dryos.shooting_card:image_path(1, ".JPG")
+    local image2_path_cr2 = dryos.shooting_card:image_path(2, ".CR2")
+    local image2_path_jpg = dryos.shooting_card:image_path(2, ".JPG")
     assert(io.open(image1_path_cr2, "rb") == nil)
     assert(io.open(image1_path_jpg, "rb") == nil)
     assert(io.open(image2_path_cr2, "rb") == nil)
@@ -1056,6 +1069,11 @@ function test_camera_take_pics()
     dryos.image_prefix = ""
     assert(dryos.image_prefix == old_prefix)
 
+    -- edge case if image number is 9994/9995 (next image 9995/9996) before running api_test.lua
+    -- images from previous tests will be either (9995, 9996, 9997), or (9996, 9997, 9998)
+    -- the next 3 images will be either (100CANON/IMG_9998, 100CANON/IMG_9999, 101CANON/IMG_0001)
+    -- or (100CANON/IMG_9999, 101CANON/IMG_0001, 101CANON/IMG_0002)
+    -- dryos.shooting_card:image_path takes care of this
     printf("Bracketed pictures...\n")
     initial_file_num = dryos.shooting_card.file_number
     camera.shutter.value = 1/500
@@ -1067,10 +1085,9 @@ function test_camera_take_pics()
     assert((dryos.shooting_card.file_number - initial_file_num) % 9999 == 3)
     camera.wait()
     -- fixme: how to check metadata in the files?
-    for i = dryos.shooting_card.file_number - 2, dryos.shooting_card.file_number do
-        image_path = dryos.dcim_dir.path ..  dryos.image_prefix .. string.format("%04d", (i - 1) % 9999 + 1)
-        image_path_cr2 = image_path .. ".CR2"
-        image_path_jpg = image_path .. ".JPG"
+    for i = -2,0 do
+        image_path_cr2 = dryos.shooting_card:image_path(i, ".CR2")
+        image_path_jpg = dryos.shooting_card:image_path(i, ".JPG")
         local size_cr2 = print_file_size(image_path_cr2)
         local size_jpg = print_file_size(image_path_jpg)
         assert(size_cr2 or size_jpg)
@@ -1081,9 +1098,8 @@ function test_camera_take_pics()
     printf("Bulb picture...\n")
     local t0 = dryos.ms_clock
     initial_file_num = dryos.shooting_card.file_number
-    image_path = dryos.dcim_dir.path ..  dryos.image_prefix .. string.format("%04d", initial_file_num % 9999 + 1)
-    image_path_cr2 = image_path .. ".CR2"
-    image_path_jpg = image_path .. ".JPG"
+    image_path_cr2 = dryos.shooting_card:image_path(1, ".CR2")
+    image_path_jpg = dryos.shooting_card:image_path(1, ".JPG")
     assert(io.open(image_path_cr2, "rb") == nil)
     assert(io.open(image_path_jpg, "rb") == nil)
 
