@@ -4419,7 +4419,7 @@ void hdr_flag_picture_was_taken()
 
 int hdr_script_get_first_file_number(int skip0)
 {
-    return MOD(get_shooting_card()->file_number + 1 - (skip0 ? 1 : 0), 10000);
+    return DCIM_WRAP(get_shooting_card()->file_number + 1 - (skip0 ? 1 : 0));
 }
 
 // create a post script for HDR bracketing or focus stacking,
@@ -4432,7 +4432,7 @@ void hdr_create_script(int f0, int focus_stack)
     if (snap_sim) return; // no script for virtual shots
     #endif
     
-    int steps = MOD(get_shooting_card()->file_number - f0 + 1, 10000);
+    int steps = MOD(get_shooting_card()->file_number - f0 + 1, 9999);
     if (steps <= 1) return;
 
     char name[100];
@@ -4448,22 +4448,22 @@ void hdr_create_script(int f0, int focus_stack)
     if (hdr_scripts == 1)
     {
         my_fprintf(f, "#!/usr/bin/env bash\n");
-        my_fprintf(f, "\n# %s_%04d.JPG from %s%04d.JPG ... %s%04d.JPG\n\n", focus_stack ? "FST" : "HDR", f0, get_file_prefix(), f0, get_file_prefix(), MOD(f0 + steps - 1, 10000));
+        my_fprintf(f, "\n# %s_%04d.JPG from %s%04d.JPG ... %s%04d.JPG\n\n", focus_stack ? "FST" : "HDR", f0, get_file_prefix(), f0, get_file_prefix(), DCIM_WRAP(f0 + steps - 1));
         my_fprintf(f, "enfuse \"$@\" %s --output=%s_%04d.JPG ", focus_stack ? "--exposure-weight=0 --saturation-weight=0 --contrast-weight=1 --hard-mask" : "", focus_stack ? "FST" : "HDR", f0);
         for(int i = 0; i < steps; i++ )
         {
-            my_fprintf(f, "%s%04d.JPG ", get_file_prefix(), MOD(f0 + i, 10000));
+            my_fprintf(f, "%s%04d.JPG ", get_file_prefix(), DCIM_WRAP(f0 + i));
         }
         my_fprintf(f, "\n");
     }
     else if (hdr_scripts == 2)
     {
         my_fprintf(f, "#!/usr/bin/env bash\n");
-        my_fprintf(f, "\n# %s_%04d.JPG from %s%04d.JPG ... %s%04d.JPG with aligning first\n\n", focus_stack ? "FST" : "HDR", f0, get_file_prefix(), f0, get_file_prefix(), MOD(f0 + steps - 1, 10000));
+        my_fprintf(f, "\n# %s_%04d.JPG from %s%04d.JPG ... %s%04d.JPG with aligning first\n\n", focus_stack ? "FST" : "HDR", f0, get_file_prefix(), f0, get_file_prefix(), DCIM_WRAP(f0 + steps - 1));
         my_fprintf(f, "align_image_stack -m -a %s_AIS_%04d", focus_stack ? "FST" : "HDR", f0);
         for(int i = 0; i < steps; i++ )
         {
-            my_fprintf(f, " %s%04d.JPG", get_file_prefix(), MOD(f0 + i, 10000));
+            my_fprintf(f, " %s%04d.JPG", get_file_prefix(), DCIM_WRAP(f0 + i));
         }
         my_fprintf(f, "\n");
         my_fprintf(f, "enfuse \"$@\" %s --output=%s_%04d.JPG %s_AIS_%04d*\n", focus_stack ? "--contrast-window-size=9 --exposure-weight=0 --saturation-weight=0 --contrast-weight=1 --hard-mask" : "", focus_stack ? "FST" : "HDR", f0, focus_stack ? "FST" : "HDR", f0);
@@ -4473,12 +4473,12 @@ void hdr_create_script(int f0, int focus_stack)
     {
         for(int i = 0; i < steps; i++ )
         {
-            my_fprintf(f, " %s%04d.JPG", get_file_prefix(), MOD(f0 + i, 10000));
+            my_fprintf(f, " %s%04d.JPG", get_file_prefix(), DCIM_WRAP(f0 + i));
         }
     }
     
     FIO_CloseFile(f);
-    NotifyBox(5000, "Saved %s\n%s%04d.JPG ... %s%04d.JPG", name + 17, get_file_prefix(), f0, get_file_prefix(), MOD(f0 + steps - 1, 10000));
+    NotifyBox(5000, "Saved %s\n%s%04d.JPG ... %s%04d.JPG", name + 17, get_file_prefix(), f0, get_file_prefix(), DCIM_WRAP(f0 + steps - 1));
 }
 #endif // HDR/FST
 
@@ -4490,7 +4490,7 @@ void interval_create_script(int f0)
 {
     if (!interval_scripts) return;
     
-    int steps = MOD(get_shooting_card()->file_number - f0 + 1, 10000);
+    int steps = MOD(get_shooting_card()->file_number - f0 + 1, 9999);
     if (steps <= 1) return;
     
     char name[100];
@@ -4529,7 +4529,7 @@ void interval_create_script(int f0)
         my_fprintf(f, "\nmkdir INT_%04d\n", f0);
         for(int i = 0; i < steps; i++ )
         {
-            my_fprintf(f, "mv %s%04d.* INT_%04d\n", get_file_prefix(), MOD(f0 + i, 10000), f0);
+            my_fprintf(f, "mv %s%04d.* INT_%04d\n", get_file_prefix(), DCIM_WRAP(f0 + i), f0);
         }
     }
     else if (interval_scripts == 2)
@@ -4537,7 +4537,7 @@ void interval_create_script(int f0)
         my_fprintf(f, "\nMD INT_%04d\n", f0);
         for(int i = 0; i < steps; i++ )
         {
-            my_fprintf(f, "MOVE %s%04d.* INT_%04d\n", get_file_prefix(), MOD(f0 + i, 10000), f0);
+            my_fprintf(f, "MOVE %s%04d.* INT_%04d\n", get_file_prefix(), DCIM_WRAP(f0 + i), f0);
         }
     }
     else if(interval_scripts == 3)
@@ -4545,7 +4545,7 @@ void interval_create_script(int f0)
         my_fprintf(f, "\n*** New Sequence ***\n");
         for(int i = 0; i < steps; i++ )
         {
-            my_fprintf(f, "%s%04d.*\n", get_file_prefix(), MOD(f0 + i, 10000));
+            my_fprintf(f, "%s%04d.*\n", get_file_prefix(), DCIM_WRAP(f0 + i));
         }
     }
     
@@ -5329,7 +5329,7 @@ void intervalometer_stop()
     {
         intervalometer_running = 0;
         NotifyBox(2000, "Intervalometer stopped.");
-        interval_create_script(MOD(get_shooting_card()->file_number - intervalometer_pictures_taken + 1, 10000));
+        interval_create_script(DCIM_WRAP(get_shooting_card()->file_number - intervalometer_pictures_taken + 1));
         //~ display_on();
     }
 #endif
@@ -5492,7 +5492,9 @@ int take_fast_pictures( int number )
         int f0 = get_shooting_card()->file_number;
         SW1(1,100);
         SW2(1,100);
-        while (MOD(f0 + number - get_shooting_card()->file_number + 10, 10000) > 10 && get_halfshutter_pressed()) {
+        while (get_halfshutter_pressed() &&
+               DCIM_WRAP(f0 + number - get_shooting_card()->file_number + 10) > 10)
+        {
             msleep(10);
         }
         SW2(0,100);
@@ -6337,7 +6339,7 @@ shoot_task( void* unused )
             #ifdef FEATURE_INTERVALOMETER
             if (intervalometer_pictures_taken)
             {
-                interval_create_script(MOD(get_shooting_card()->file_number - intervalometer_pictures_taken + 1, 10000));
+                interval_create_script(DCIM_WRAP(get_shooting_card()->file_number - intervalometer_pictures_taken + 1));
             }
             intervalometer_pictures_taken = 0;
             int seconds_clock = get_seconds_clock();
