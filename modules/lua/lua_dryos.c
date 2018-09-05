@@ -43,7 +43,6 @@ const char * lua_dryos_directory_fields[] =
 
 const char * lua_dryos_card_fields[] =
 {
-    "cluster_size",
     "drive_letter",
     "dcim_dir",
     "file_number",
@@ -555,12 +554,9 @@ static int luaCB_card_index(lua_State * L)
     if(lua_getfield(L, 1, "_card_ptr") == LUA_TLIGHTUSERDATA)
     {
         struct card_info * card = lua_touserdata(L, -1);
-        /// Get the cluster size of the filesystem.
-        // @tfield int cluster_size
-        if(!strcmp(key, "cluster_size")) lua_pushinteger(L, card->cluster_size);
         /// Get the drive letter (A or B).
         // @tfield string drive_letter
-        else if(!strcmp(key, "drive_letter")) lua_pushstring(L, card->drive_letter);
+        if(!strcmp(key, "drive_letter")) lua_pushstring(L, card->drive_letter);
         /// Get the DCIM directory for this card.
         // @tfield directory dcim_dir
         else if(!strcmp(key, "dcim_dir"))
