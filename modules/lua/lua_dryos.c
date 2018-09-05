@@ -587,7 +587,7 @@ static int luaCB_card_index(lua_State * L)
         ///
         /// FIXME: does not update after writing files from ML code.
         // @tfield int free_space
-        else if(!strcmp(key, "free_space")) lua_pushinteger(L, get_free_space_32k(card) * 1024 / 32);
+        else if(!strcmp(key, "free_space")) lua_pushinteger(L, get_free_space_32k(card) * 32 / 1024);
         /// Get the type of card (SD or CF).
         // @tfield string type
         else if(!strcmp(key, "type")) lua_pushstring(L, card->type);
