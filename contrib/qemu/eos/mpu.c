@@ -274,6 +274,9 @@ static void mpu_interpret_command(EOSState *s)
             {
                 request_shutdown();
             }
+
+            /* next time, start matching from next spell */
+            spell_set = (spell_set+1) % mpu_init_spell_count;
             return;
         }
     }
