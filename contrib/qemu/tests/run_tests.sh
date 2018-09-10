@@ -536,10 +536,12 @@ function test_gdb {
     sleep 10
     stop_qemu_expect_running
 
-    tac tests/$CAM/$TEST.log > tmp
-    tests/check_grep.sh tmp -Em1 "task_create\("
+    local tmp="tmp$QEMU_JOB_ID"
+    tac tests/$CAM/$TEST.log > $tmp
+    tests/check_grep.sh $tmp -Em1 "task_create\("
     echo -n "         "
-    tests/check_grep.sh tmp -Em1 "register_interrupt\([^n]"
+    tests/check_grep.sh $tmp -Em1 "register_interrupt\([^n]"
+    rm $tmp
 }
 
 echo
