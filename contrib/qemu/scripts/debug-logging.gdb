@@ -5,6 +5,10 @@
 # To use gdb, start emulation with, for example:
 #    ./run_canon_fw.sh 60D -s -S & arm-none-eabi-gdb -x 60D/debugmsg.gdb
 
+# misc preferences
+set pagination off
+set output-radix 16
+
 set architecture arm
 set tcp connect-timeout 300
 
@@ -58,10 +62,6 @@ macro define MEM(x) (*(unsigned int*)(x))
 
 # helper to print a hex char (lowest 4 bits)
 macro define HEX_DIGIT(x) (char)((((x)&0xF) < 10) ? 48 + ((x)&0xF) : 55 + ((x)&0xF))
-
-# misc preferences
-set pagination off
-set output-radix 16
 
 define hook-quit
   set confirm off
