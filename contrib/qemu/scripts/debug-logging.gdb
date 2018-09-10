@@ -404,7 +404,7 @@ define task_create_log
     silent
     print_current_location
     KBLU
-    printf "task_create(%s, prio=%x, stack=%x, entry=%x, arg=%x)\n", $r0, $r1, $r2, $r3, MEM($sp)
+    printf "task_create(%s, prio=%x, stack=%x, entry=%x, arg=%x)\n", STR($r0), $r1, $r2, $r3, MEM($sp)
     KRESET
     named_func_add $r3 $r0 't' 'a' 's' 'k'
     c
@@ -441,11 +441,7 @@ define assert_log
     printf "ASSERT"
     KRESET
     printf "] "
-    if $r0
-      printf "%s at %s:%d, %x\n", $r0, $r1, $r2, $lr
-    else
-      printf "at %s:%d, %x\n", $r1, $r2, $lr
-    end
+    printf "%s at %s:%d, %x\n", STR($r0), STR($r1), $r2, $lr
     c
   end
 end
@@ -459,7 +455,7 @@ define assert0_log
     printf "ASSERT"
     KRESET
     printf "] "
-    printf " at %s:%d\n", $r0, $r1
+    printf " at %s:%d\n", STR($r0), $r1
     c
   end
 end
@@ -905,7 +901,7 @@ define try_post_event_log
   commands
     silent
     print_current_location
-    printf "TryPostEvent('%s', '%s', 0x%x, 0x%x, 0x%x)\n", MEM($r0), MEM($r1), $r2, $r3, MEM($sp)
+    printf "TryPostEvent('%s', '%s', 0x%x, 0x%x, 0x%x)\n", STR(MEM($r0)), STR(MEM($r1)), $r2, $r3, MEM($sp)
     try_expand_ram_struct $r3
     try_expand_ram_struct MEM($r3)
     try_expand_ram_struct MEM($r3+4)
