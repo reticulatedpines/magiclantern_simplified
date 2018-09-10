@@ -1,4 +1,12 @@
+# ./run_canon_fw.sh 800D -d debugmsg
+# ./run_canon_fw.sh 800D -d debugmsg -s -S & arm-none-eabi-gdb -x 800D/debugmsg.gdb
+
 source -v debug-logging.gdb
+
+# To get debugging symbols from Magic Lantern, uncomment one of these:
+#symbol-file ../magic-lantern/platform/800D.101/magiclantern
+#symbol-file ../magic-lantern/platform/800D.101/autoexec
+#symbol-file ../magic-lantern/platform/800D.101/stubs.o
 
 macro define CURRENT_TASK 0x1020
 macro define CURRENT_ISR  (*(int*)0x1004 ? (*(int*)0x1008) : 0)
