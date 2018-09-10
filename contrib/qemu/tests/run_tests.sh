@@ -544,6 +544,13 @@ function test_gdb {
     rm $tmp
 }
 
+# FIXME: cannot run the 7D without boot flag yet
+# workaround: will compile minimal ML just to be able to boot the main firmware
+echo
+echo "Preparing GDB script test for 7D..."
+make MODEL=7D -C $ML_PATH/minimal/hello-world clean         &>  tests/7D/gdb-build.log
+make MODEL=7D -C $ML_PATH/minimal/hello-world install_qemu  &>> tests/7D/gdb-build.log
+
 echo
 echo "Testing GDB scripts..."
 for CAM in ${EOS_CAMS[*]} ${EOS_SECONDARY_CORES[*]} ${POWERSHOT_CAMS[*]}; do
