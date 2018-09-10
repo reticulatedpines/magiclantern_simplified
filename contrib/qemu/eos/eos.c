@@ -148,8 +148,8 @@ machine_init(eos_machine_init);
 EOSRegionHandler eos_handlers[] =
 {
     { "FlashControl", 0xC0000000, 0xC0001FFF, eos_handle_flashctrl, 0 },
-    { "ROM0",         0xF8000000, 0xFFFFFFFF, eos_handle_rom, 0 },
-    { "ROM1",         0xF0000000, 0xF7FFFFFF, eos_handle_rom, 1 },
+  //{ "ROM0",         0xF8000000, 0xFFFFFFFF, eos_handle_rom, 0 },
+  //{ "ROM1",         0xF0000000, 0xF7FFFFFF, eos_handle_rom, 1 },
     { "Interrupt",    0xC0200000, 0xC02000FF, eos_handle_intengine_vx, 0 }, /* mostly used on D2/3, but also 60D */
     { "Interrupt",    0xC0201000, 0xC0201FFF, eos_handle_intengine, 0 },    /* <= D5 */
     { "Interrupt",    0xD4011000, 0xD4011FFF, eos_handle_intengine, 1 },    /* D6; first core in D7 */
