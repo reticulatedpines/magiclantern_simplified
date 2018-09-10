@@ -57,6 +57,25 @@ macro define RTC_VALID_FLAG ((int)0xFFFFFFFF)
 macro define NUM_CORES      1
 macro define PRINT_CALLSTACK 0
 
+# some of the firmware-specific constants can be found by pattern matching
+define find_rom_string
+  if $_isvoid($_)
+    find /1 0xFE000000, 0xFFFFFFF0, $arg0
+  end
+  if $_isvoid($_)
+    find /1 0xE0000000, 0xFFFFFFF0, $arg0
+  end
+end
+
+if $_isvoid($NULL_STR)
+  # only look this up if not defined in CAM/debugmsg.gdb
+  find_rom_string "(null)"
+  set $NULL_STR = $_
+end
+
+# helper to dereference strings
+macro define STR(x) ((x) ? (x) : $NULL_STR)
+
 # helper to read an uint32_t from memory (used in ML as well)
 macro define MEM(x) (*(unsigned int*)(x))
 
@@ -452,7 +471,7 @@ define create_semaphore_log
     silent
     print_current_location
     KBLU
-    printf "create_semaphore('%s', %d)\n", $r0, $r1
+    printf "create_semaphore('%s', %d)\n", STR($r0), $r1
     KRESET
     set $sem_cr_name = $r0
     tbreak *($lr & ~1)
@@ -466,7 +485,7 @@ define create_semaphore_log
         print "create semaphore: race condition?"
         KRESET
       end
-      printf "*** Created semaphore 0x%x: %x '%s'\n", $r0, $sem_cr_name, $sem_cr_name
+      printf "*** Created semaphore 0x%x: %x '%s'\n", $r0, $sem_cr_name, STR($sem_cr_name)
       eval "set $sem_%x_name = $sem_cr_name", $r0
       set $sem_cr_name = -1234
       c
@@ -558,7 +577,7 @@ define create_msg_queue_log
     silent
     print_current_location
     KBLU
-    printf "create_msg_queue('%s', %d)\n", $r0, $r1
+    printf "create_msg_queue('%s', %d)\n", STR($r0), $r1
     KRESET
     set $mq_cr_name = $r0
     tbreak *($lr & ~1)
@@ -572,7 +591,7 @@ define create_msg_queue_log
         print "create message queue: race condition?"
         KRESET
       end
-      printf "*** Created message queue 0x%x: %x '%s'\n", $r0, $mq_cr_name, $mq_cr_name
+      printf "*** Created message queue 0x%x: %x '%s'\n", $r0, $mq_cr_name, STR($mq_cr_name)
       eval "set $mq_%x_name = $mq_cr_name", $r0
       set $mq_cr_name = -1234
       c

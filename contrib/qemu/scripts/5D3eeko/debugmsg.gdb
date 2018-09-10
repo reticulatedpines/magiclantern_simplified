@@ -1,6 +1,9 @@
 # ./run_canon_fw.sh 5D3eeko -s -S & arm-none-eabi-gdb -x 5D3eeko/debugmsg.gdb
 # unless otherwise specified, these are valid for both 1.1.3 and 1.2.3
 
+# autodetection fails on this one
+set $NULL_STR = 0x1e469fc
+
 source -v debug-logging.gdb
 
 macro define CURRENT_TASK 0x40000148
