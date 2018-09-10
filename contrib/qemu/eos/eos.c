@@ -2525,6 +2525,7 @@ static int eos_handle_card_led( unsigned int parm, EOSState *s, unsigned int add
         {
             s->card_led = 
                 (value == 0x46 || value == 0x138800
+                               || value == 0x138000  /* 7D */
                                || value == 0x93D800) ?  1 :
                 (value == 0x44 || value == 0x838C00 ||
                  value == 0x40 || value == 0x038C00
