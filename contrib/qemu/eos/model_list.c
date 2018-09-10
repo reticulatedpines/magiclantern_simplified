@@ -512,6 +512,7 @@ struct eos_model_desc eos_model_list[] = {
         .mpu_mreq_interrupt     = 0x12A,        /* MREQ_ISR in InitializeIntercom */
         .serial_flash_size      = 0x1000000,
         .serial_flash_sio_ch    = 0,
+        .serial_flash_interrupt = 0x10E,
         .serial_flash_cs_register = 0xD20B037C,
         .imgpowdet_register     = 0xD20B2294,   /* Image Power Failure */
         .imgpowdet_register_bit = 0x00010000,   /* register and bit checked to print that message */
