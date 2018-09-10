@@ -494,6 +494,34 @@ define create_semaphore_log
   end
 end
 
+define create_semaphore_n3_log
+  commands
+    silent
+    print_current_location
+    KBLU
+    printf "create_semaphore(%d, %d, '%s')\n", $r0, $r1, STR($r2)
+    set $sem_cr_name = $r2
+    KRESET
+    tbreak *($lr & ~1)
+    commands
+      silent
+      if $sem_cr_name == -1234
+        KRED
+        # fixme: create_semaphore is not atomic,
+        # so if two tasks create semaphores at the same time, we may mix them up
+        # (maybe call cli/sei from gdb, or is this check enough?)
+        print "create semaphore: race condition?"
+        KRESET
+      end
+      printf "*** Created semaphore 0x%x: %x '%s'\n", $r0, $sem_cr_name, STR($sem_cr_name)
+      eval "set $sem_%x_name = $sem_cr_name", $r0
+      set $sem_cr_name = -1234
+      c
+    end
+    c
+  end
+end
+
 define delete_semaphore_log
   commands
     silent
