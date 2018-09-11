@@ -67,6 +67,7 @@ first_send = True
 waitid_prop = None
 comment_block = False
 comment_all_blocks = False
+commented_replies = False
 
 switch_names = get_switch_names(model)
 bind_switches = {}
@@ -269,6 +270,12 @@ for l in lines:
             cmt = "//"
             warning = "mode switch?"
 
+        # comment out photo capture and anything past that, if any
+        if description == "EVENTID_METERING_START_SW1ON":
+            cmt = "//"
+            comment_block = True
+            comment_all_blocks = True
+            commented_replies = True
 
         # show lens name as comment
         if description == "PROP_LENS_NAME":
@@ -301,7 +308,7 @@ for l in lines:
     if m:
         waitid_prop = m.groups()[0]
 
-print("     // { 0 } } }," if comment_block else "        { 0 } } },")
+print("     // { 0 } } }," if comment_block and not commented_replies else "        { 0 } } },")
 print("")
 print('    #include "NotifyGUIEvent.h"')
 print('    #include "UILock.h"')
