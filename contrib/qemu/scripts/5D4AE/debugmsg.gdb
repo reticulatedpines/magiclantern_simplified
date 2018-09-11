@@ -20,4 +20,7 @@ register_interrupt_log
 b *0xFE0AD6B0
 register_func_log
 
+b *0x1DFE
+CreateStateObject_log
+
 cont

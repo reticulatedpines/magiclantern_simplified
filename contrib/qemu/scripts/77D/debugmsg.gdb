@@ -29,6 +29,9 @@ register_interrupt_log
 b *0xE04D8B94
 register_func_log
 
+b *0xDF00A1E6
+CreateStateObject_log
+
 b *0xE01E781E
 mpu_send_log
 

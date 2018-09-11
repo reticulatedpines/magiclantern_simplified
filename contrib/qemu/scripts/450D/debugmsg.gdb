@@ -32,6 +32,9 @@ register_interrupt_log
 b *0xFFCF98C4
 register_func_log
 
+b *0xFFD0A2B0
+CreateStateObject_log
+
 if 0
   b *0xFFCF4BE0
   rtc_read_log

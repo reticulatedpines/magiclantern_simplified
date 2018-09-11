@@ -28,6 +28,9 @@ register_interrupt_log
 b *0xFF138B0C
 register_func_log
 
+b *0x16890
+CreateStateObject_log
+
 if 0
   b *0xFF132368
   rtc_read_log

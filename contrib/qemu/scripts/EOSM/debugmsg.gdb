@@ -29,6 +29,9 @@ register_interrupt_log
 b *0xFF137B40
 register_func_log
 
+b *0x21F78
+CreateStateObject_log
+
 if 0
   b *0x6958
   create_semaphore_log

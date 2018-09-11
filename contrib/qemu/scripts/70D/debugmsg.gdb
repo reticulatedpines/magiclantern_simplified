@@ -30,6 +30,9 @@ register_interrupt_log
 b *0xFF1442C0
 register_func_log
 
+b *0x3D970
+CreateStateObject_log
+
 # MPU communication
 if 0
   b *0x396bc

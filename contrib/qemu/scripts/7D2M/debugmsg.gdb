@@ -29,6 +29,9 @@ register_interrupt_log
 b *0xFE109834
 register_func_log
 
+b *0x206A
+CreateStateObject_log
+
 # semaphores
 if 0
   b *0x1830

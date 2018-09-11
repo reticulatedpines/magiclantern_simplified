@@ -20,6 +20,9 @@ macro define CURRENT_ISR  (MEM(0x670) ? MEM(0x674) >> 2 : 0)
 b *0x8b10
 task_create_log
 
+b *0x179A0
+CreateStateObject_log
+
 b *0x83B8
 register_interrupt_log
 
@@ -87,11 +90,6 @@ if 0
 
   b *0xFF2E8C78
   prop_lookup_maybe_log
-end
-
-if 0
-  b *0x179A0
-  CreateStateObject_log
 end
 
 # 1.1.3

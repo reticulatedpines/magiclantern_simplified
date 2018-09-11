@@ -25,6 +25,9 @@ register_interrupt_log
 b *0xFF06C6C8
 register_func_log
 
+b *0xFF1DC6CC
+CreateStateObject_log
+
 # MPU communication
 if 0
   b *0xFF1BF26C
@@ -71,9 +74,6 @@ if 0
 end
 
 if 0
-  b *0xFF1DC6CC
-  CreateStateObject_log
-
   b *0xFF1DC614
   state_transition_log
 

@@ -25,6 +25,9 @@ register_interrupt_log
 b *0xFF143310
 register_func_log
 
+b *0x3A53C
+CreateStateObject_log
+
 cont
 
 

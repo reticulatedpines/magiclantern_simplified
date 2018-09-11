@@ -547,6 +547,10 @@ function test_gdb {
     # this one may get called near shutdown, with incomplete message;
     # display the second last, just in case
     tests/check_grep.sh $tmp -aEm2 "register_func\([^n]" | tail -n1
+    if grep -q "CreateStateObject" $CAM/ROM[01].BIN; then
+        echo -n "         "
+        tests/check_grep.sh $tmp -aEm1 "CreateStateObject\([^n]"
+    fi
     rm $tmp
 }
 

@@ -25,6 +25,9 @@ register_interrupt_log
 b *0xFF06809C
 register_func_log
 
+b *0xFF1D85E4
+CreateStateObject_log
+
 # RTC communication
 if 0
   b *0xFF0639B4
