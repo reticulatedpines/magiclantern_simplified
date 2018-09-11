@@ -25,6 +25,9 @@ printf "register_func() not available.\n"
 b *0x1E43E44
 printf_log
 
+b *0x1E448C6
+register_cmd_log
+
 # enable early UART output
 set *(int*)0x4000000C = 1
 

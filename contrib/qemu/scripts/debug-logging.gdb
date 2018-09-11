@@ -764,6 +764,18 @@ define register_func_log
   end
 end
 
+# named functions registered to the DryOS shell
+define register_cmd_log
+  commands
+    silent
+    print_current_location
+    KBLU
+    printf "register_cmd('%s', %x, '%s')\n", $r2, $r3, MEM($sp)
+    KRESET
+    named_func_add $r3 $r2
+    c
+  end
+end
 
 define mpu_decode
   set $buf = $arg0

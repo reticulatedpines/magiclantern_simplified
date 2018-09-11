@@ -36,6 +36,9 @@ end
 if MEM(0xFF6AB08C) == 0xE92D4FFE
   b *0xFF13B630
   register_func_log
+
+  b *0xFF1425F8
+  register_cmd_log
 end
 
 # semaphores
