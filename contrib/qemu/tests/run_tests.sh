@@ -262,6 +262,16 @@ function vncexpect {
             fi
         else
             # doesn't always work - race condition?
+            # 50D's flicker may cause this (Canon GUI keeps refreshing all the time)
+            # let's retry the screenshot a few times
+            local i
+            for i in `seq 1 5`; do
+                vncdotool -s $VNC_DISP -v -v -t $3 expect-md5 $2 capture $4 &> /dev/null
+                if [ "$2" == "$(md5sum $4 | cut -d ' ' -f 1)" ]; then
+                    echo -n ":"
+                    return 0
+                fi
+            done
             echo -ne "\e[31m¿\e[0m"
             return 1
         fi
