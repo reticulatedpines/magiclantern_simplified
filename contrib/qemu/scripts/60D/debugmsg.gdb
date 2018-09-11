@@ -22,6 +22,9 @@ task_create_log
 b *0xFF1D68C0
 register_interrupt_log
 
+b *0xFF06C6C8
+register_func_log
+
 # MPU communication
 if 0
   b *0xFF1BF26C

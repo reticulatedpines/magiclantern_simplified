@@ -29,6 +29,9 @@ msleep_log
 b *0xFFCFDC18
 register_interrupt_log
 
+b *0xFFCF98C4
+register_func_log
+
 if 0
   b *0xFFCF4BE0
   rtc_read_log

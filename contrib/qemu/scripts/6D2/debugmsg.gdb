@@ -26,6 +26,9 @@ assert_log
 b *0xDF008284
 register_interrupt_log
 
+b *0xE04E6FF0
+register_func_log
+
 b *0xE01F67AA
 mpu_send_log
 

@@ -18,6 +18,10 @@ task_create_log
 b *0x1E46B74
 register_interrupt_log
 
+# just to please the tests
+print_current_location
+printf "register_func() not available.\n"
+
 b *0x1E43E44
 printf_log
 

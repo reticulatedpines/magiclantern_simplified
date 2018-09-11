@@ -33,4 +33,7 @@ msleep_log
 b *0xFFB16CDC
 register_interrupt_log
 
+b *0xFFB12930
+register_func_log
+
 cont

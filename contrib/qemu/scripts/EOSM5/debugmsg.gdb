@@ -12,6 +12,9 @@ task_create_log
 b *0xDFFCCAFC
 register_interrupt_log
 
+b *0xE0355008
+register_func_log
+
 # infinite loop, not sure what it does
 b *0xE0008266
 commands

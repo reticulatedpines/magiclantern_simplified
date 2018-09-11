@@ -22,6 +22,9 @@ task_create_log
 b *0x8FE4
 register_interrupt_log
 
+b *0xFF146760
+register_func_log
+
 # properties
 if 0
   b *0xFF12FD6C

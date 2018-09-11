@@ -30,7 +30,7 @@ if MEM(0xFF136C94) == 0xE92D403E
 end
 
 # 1.1.3
-if 0
+if MEM(0xFF6AB08C) == 0xE92D4FFE
   b *0xFF13B630
   register_func_log
 end

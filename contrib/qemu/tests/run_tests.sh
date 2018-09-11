@@ -536,11 +536,17 @@ function test_gdb {
     sleep 10
     stop_qemu_expect_running
 
+    # make sure we've got at least the basics right
+    # these are very useful for auto-naming functions in the firmware 
     local tmp="tmp$QEMU_JOB_ID"
     tac tests/$CAM/$TEST.log > $tmp
-    tests/check_grep.sh $tmp -Em1 "task_create\("
+    tests/check_grep.sh $tmp -aEm1 "task_create\("
     echo -n "         "
-    tests/check_grep.sh $tmp -Em1 "register_interrupt\([^n]"
+    tests/check_grep.sh $tmp -aEm1 "register_interrupt\([^n]"
+    echo -n "         "
+    # this one may get called near shutdown, with incomplete message;
+    # display the second last, just in case
+    tests/check_grep.sh $tmp -aEm2 "register_func\([^n]" | tail -n1
     rm $tmp
 }
 

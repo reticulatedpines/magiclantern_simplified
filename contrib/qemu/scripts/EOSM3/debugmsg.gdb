@@ -30,6 +30,9 @@ msleep_log
 b *0xBFE14EF4
 register_interrupt_log
 
+b *0xFC327C18
+register_func_log
+
 # semaphores
 if 0
   # create binary semaphore

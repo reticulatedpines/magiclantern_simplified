@@ -22,4 +22,7 @@ task_create_log
 b *0xFF205A44
 register_interrupt_log
 
+b *0xFF078350
+register_func_log
+
 cont

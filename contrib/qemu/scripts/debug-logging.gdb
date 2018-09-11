@@ -751,6 +751,7 @@ define register_interrupt_log
 end
 
 # eventprocs (functions that can be called by name)
+# RegisterEventProcedure on some models
 define register_func_log
   commands
     silent

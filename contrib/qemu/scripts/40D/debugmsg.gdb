@@ -29,6 +29,9 @@ msleep_log
 b *0xFFD427B0
 register_interrupt_log
 
+b *0xFFD3E45C
+register_func_log
+
 # MPU communication
 if 0
   b *0xFFC8E2D0

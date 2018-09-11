@@ -17,4 +17,7 @@ assert_log
 b *0xBFE14F04
 register_interrupt_log
 
+b *0xFC33E25C
+register_func_log
+
 continue
