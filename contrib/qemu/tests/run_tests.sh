@@ -242,6 +242,24 @@ function vncexpect {
         if [ "$2" == "$(md5sum $4 | cut -d ' ' -f 1)" ]; then
             echo -n "."
             return 0
+
+            # enable this to check the validity of the reference screenshots
+            # i.e. whether they are transient (i.e. from some animation) or not
+            if false; then
+                # let's retry the screenshot, just to make sure it's not transient
+                mkdir -p $(dirname $4)/old
+                mv $4 $(dirname $4)/old/$(basename $4)
+                sleep 0.5
+                vncdotool -s $VNC_DISP -v -v -t $3 expect-md5 $2 capture $4 &> /dev/null
+                if [ $? == 0 ] && [ -f $4 ] && [ "$2" == "$(md5sum $4 | cut -d ' ' -f 1)" ]; then
+                    echo -n "."
+                    return 0
+                else
+                    vncdotool -s $VNC_DISP capture $4 &> /dev/null
+                    echo -ne "\e[31m¡\e[0m"
+                    return 1
+                fi
+            fi
         else
             # doesn't always work - race condition?
             echo -ne "\e[31m¿\e[0m"
