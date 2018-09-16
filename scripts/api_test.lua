@@ -732,8 +732,9 @@ function test_camera_exposure()
     for k = 1,100 do
         local method = math.random(1,3)
         local d = nil
+        -- 500D: max ISO 3200
         if method == 1 then
-            local iso = math.random(100, 6400)
+            local iso = math.random(100, 3200)
             if math.random(1,2) == 1 then
                 camera.iso.value = iso
             else
@@ -741,11 +742,11 @@ function test_camera_exposure()
             end
             d = math.abs(math.log(camera.iso.value,2) - math.log(iso,2))
         elseif method == 2 then
-            local apex = math.random(5*100,11*100)/100
+            local apex = math.random(5*100,10*100)/100
             camera.iso.apex = apex
             d = math.abs(camera.iso.apex - apex)
         elseif method == 3 then
-            local raw = math.random(72, 120)
+            local raw = math.random(72, 112)
             camera.iso.raw = raw
             d = math.abs(camera.iso.raw - raw) / 8
         end
