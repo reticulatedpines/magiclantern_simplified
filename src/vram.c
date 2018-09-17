@@ -61,6 +61,17 @@ int y_times_BMPPITCH_cache[BMP_H_PLUS - BMP_H_MINUS];
 
 static void vram_update_luts()
 {
+    static int prev_bm2lv_tx = 0;
+    static int prev_bm2lv_sx = 0;
+    if (bm2lv.tx == prev_bm2lv_tx &&
+        bm2lv.sx == prev_bm2lv_sx)
+    {
+        /* unchanged */
+        return;
+    }
+    prev_bm2lv_tx = bm2lv.tx;
+    prev_bm2lv_sx = bm2lv.sx;
+
     for (int x = BMP_W_MINUS; x < BMP_W_PLUS; x++) 
     {
         bm2lv_x_cache[x - BMP_W_MINUS] = BM2LV_Xu(x);
