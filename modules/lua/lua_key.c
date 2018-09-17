@@ -54,6 +54,10 @@ static int luaCB_key_wait(lua_State * L)
     lua_msg_queue_receive(L, &pressed_key, 10);
     waiting_for_keypress = key;
 
+    /* let's hope the stack is not going to be modified by other tasks */
+    int t1 = lua_gettop(L);         /* current stack top */
+    int v1 = lua_tointeger(L, t1);  /* duration (integer) */
+
     /* let other script tasks run */
     lua_give_semaphore(L, NULL);
 
@@ -62,6 +66,12 @@ static int luaCB_key_wait(lua_State * L)
 
     /* other script tasks no longer allowed */
     lua_take_semaphore(L, 0, NULL);
+
+    /* check the stack */
+    int t2 = lua_gettop(L);
+    int v2 = lua_tointeger(L, t2);
+    ASSERT(t1 == t2);
+    ASSERT(v1 == v2);
 
     if (err)
     {
