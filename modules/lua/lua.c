@@ -208,8 +208,12 @@ static unsigned int lua_do_cbr(unsigned int ctx, struct script_event_entry * eve
                         }
                         
                     }
+                    lua_pop(L, 1);
                 }
-                lua_pop(L,1);
+                else
+                {
+                    ASSERT(0);
+                }
                 give_semaphore(sem);
             }
             else
