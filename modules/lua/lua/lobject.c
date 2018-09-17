@@ -384,7 +384,8 @@ const char *luaO_pushvfstring (lua_State *L, const char *fmt, va_list argp) {
       }
       case 'p': {
         char buff[4*sizeof(void *) + 8]; /* should be enough space for a '%p' */
-        int l = snprintf(buff, 65536, "%p", va_arg(argp, void *));
+        /* Canon's vsnprintf does not handle %p */
+        int l = snprintf(buff, 65536, "0x%x", va_arg(argp, void *));
         pushstr(L, buff, l);
         break;
       }
