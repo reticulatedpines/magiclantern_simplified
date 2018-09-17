@@ -29,6 +29,7 @@ static int luaCB_card_index(lua_State * L);
 static int luaCB_card_newindex(lua_State * L);
 static int luaCB_directory_index(lua_State * L);
 static int luaCB_directory_newindex(lua_State * L);
+static int luaCB_directory_tostring(lua_State * L);
 static int luaCB_card_image_path(lua_State * L);
 
 const char * lua_dryos_directory_fields[] =
@@ -92,6 +93,8 @@ static int luaCB_dryos_directory(lua_State * L)
     }
     lua_setfield(L, -2, "path");
     lua_newtable(L);
+    lua_pushcfunction(L, luaCB_directory_tostring);
+    lua_setfield(L, -2, "__tostring");
     lua_pushcfunction(L, luaCB_directory_index);
     lua_setfield(L, -2, "__index");
     lua_pushcfunction(L, luaCB_directory_newindex);
@@ -477,6 +480,13 @@ static int luaCB_directory_index(lua_State * L)
 static int luaCB_directory_newindex(lua_State * L)
 {
     return luaL_error(L, "'directory' type is readonly");
+}
+
+static int luaCB_directory_tostring(lua_State * L)
+{
+    if(!lua_istable(L, 1)) return luaL_argerror(L, 1, "expected table");
+    lua_getfield(L, 1, "path");
+    return 1;
 }
 
 /// Represents a card (storage media).
