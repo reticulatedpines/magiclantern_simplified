@@ -224,12 +224,6 @@ static void cropmark_draw_from_cache()
             if (!(m & 0x80)) continue;
             if (p != 0 && p != 0x14 && p != 0x3 && p != m) continue;
             B[BM(j,i)] = m & ~0x80;
-            #ifdef CONFIG_500D
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            asm("nop");
-            #endif
         }
     }
 }
