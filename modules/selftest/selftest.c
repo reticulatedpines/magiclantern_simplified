@@ -1755,6 +1755,16 @@ static void bmp_fill_test_task()
     }
 }
 
+static void info_screen_test_task()
+{
+    msleep(2000);
+    while(1)
+    {
+        fake_simple_button(BGMT_INFO);
+        msleep(rand() % 100);
+    }
+}
+
 #if 0
 static void menu_duplicate_test()
 {
@@ -2247,6 +2257,13 @@ static struct menu_entry selftest_menu[] =
                 .select     = run_in_separate_task,
                 .priv       = bmp_fill_test_task,
                 .help       = "Stresses graphics bandwith. Run this while recording.",
+            },
+            {
+                .name       = "Info screen test (infinite)",
+                .select     = run_in_separate_task,
+                .priv       = info_screen_test_task,
+                .help       = "Switches INFO screens very quickly.",
+                .help2      = "This crashes the 500D if the test is run while recording.",
             },
             {
                 .name       = "SRM memory test (5 minutes)",
