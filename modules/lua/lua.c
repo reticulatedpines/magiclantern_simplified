@@ -1369,6 +1369,39 @@ static void lua_load_task(int unused)
     }
 }
 
+/* http://www.lua.org/pil/24.2.3.html */
+void lua_stack_dump(lua_State *L)
+{
+  int i;
+  int top = lua_gettop(L);
+  printf("Stack[%d] = { ", top);
+  for (i = top; i >= 0; i--) {  /* repeat for each level */
+    int t = lua_type(L, i);
+    printf("%d:", i);
+    switch (t) {
+
+      case LUA_TSTRING:  /* strings */
+        printf("'%s'", lua_tostring(L, i));
+        break;
+
+      case LUA_TBOOLEAN:  /* booleans */
+        printf(lua_toboolean(L, i) ? "true" : "false");
+        break;
+
+      case LUA_TNUMBER:  /* numbers */
+        printf("%d", lua_tointeger(L, i));
+        break;
+
+      default:  /* other values */
+        printf("%s", lua_typename(L, t));
+        break;
+
+    }
+    printf("  ");  /* put a separator */
+  }
+  printf(" }\n");  /* end the listing */
+}
+
 static unsigned int lua_init()
 {
     task_create("lua_load_task", 0x1c, 0x10000, lua_load_task, (void*) 0);

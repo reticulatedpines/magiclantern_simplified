@@ -115,6 +115,8 @@ int  lua_get_cant_yield(lua_State * L);
 
 const char * lua_get_script_filename(lua_State * L);
 
+void lua_stack_dump(lua_State *L);
+
 int luaCB_next(lua_State * L);
 int luaCB_pairs(lua_State * L);
 
