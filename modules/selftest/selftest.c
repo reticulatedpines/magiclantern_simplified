@@ -2263,7 +2263,7 @@ static struct menu_entry selftest_menu[] =
                 .select     = run_in_separate_task,
                 .priv       = info_screen_test_task,
                 .help       = "Switches INFO screens very quickly.",
-                .help2      = "This crashes the 500D if the test is run while recording.",
+                .help2      = "This used to crash the 500D if the test was run while recording.",
             },
             {
                 .name       = "SRM memory test (5 minutes)",

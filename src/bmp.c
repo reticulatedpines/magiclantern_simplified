@@ -43,6 +43,15 @@
     // BMP_VRAM_START and BMP_VRAM_START are not generic - they only work on BMP buffer addresses returned by Canon firmware
     uint8_t* BMP_VRAM_START(uint8_t* bmp_buf)
     {
+        #ifdef CONFIG_500D
+        if (RECORDING_H264 && sound_recording_enabled_canon())
+        {
+            /* trick to slow down writes to BMP buffer */
+            /* apparently this causes ERR70 while recording H.264 with sound */
+            bmp_buf = UNCACHEABLE(bmp_buf);
+        }
+        #endif
+
         // 5D3: LCD: 00dc3100 / HDMI: 00d3c008
         // 500D: LCD: 003638100 / HDMI: 003631008
         // 550D/60D/5D2: LCD: ***87100 / HDMI: ***80008
