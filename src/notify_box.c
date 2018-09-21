@@ -21,21 +21,6 @@ static int notify_box_dirty = 0;
 static char notify_box_msg[100];
 static char notify_box_msg_tmp[100];
 
-/*int handle_notifybox_bgmt(struct event * event)
-{
-    if (event->param == MLEV_NOTIFY_BOX_OPEN)
-    {
-        //~ BMP_LOCK ( bfnt_puts(notify_box_msg, 50, 50, COLOR_WHITE, COLOR_BLACK); )
-        BMP_LOCK ( bmp_printf(FONT_LARGE, 50, 50, notify_box_msg); )
-    }
-    else if (event->param == MLEV_NOTIFY_BOX_CLOSE)
-    {
-        redraw();
-        give_semaphore(notify_box_sem);
-    }
-    return 0;
-}*/
-
 static void NotifyBox_task(void* priv)
 {
     TASK_LOOP
@@ -51,12 +36,14 @@ static void NotifyBox_task(void* priv)
         // show notification for a while, then redraw to erase it
         notify_box_stop_request = 0;
         notify_box_dirty = 0;
-        //int i;
         for ( ; notify_box_timeout > 0 ; notify_box_timeout -= 50)
         {
             if (notify_box_dirty)
-                bmp_fill(COLOR_EMPTY,  50,  50, 650, 32); // clear old message
-            notify_box_dirty = 0;
+            {
+                /* clear old message */
+                redraw();
+                notify_box_dirty = 0;
+            }
             bmp_printf(FONT_LARGE,  50,  50, notify_box_msg);
             msleep(50);
             if (notify_box_stop_request)
@@ -85,7 +72,11 @@ void NotifyBox(int timeout, char* fmt, ...)
     va_end( ap );
     
     if (notify_box_timeout && streq(notify_box_msg_tmp, notify_box_msg)) 
-        goto end; // same message: do not redraw, just increase the timeout
+    {
+        // same message: do not redraw, just re-set the timeout
+        notify_box_timeout = MAX(timeout, 100);
+        goto end;
+    }
 
     // new message
     qprint("[NotifyBox] "); qprint(notify_box_msg_tmp); qprint("\n");
