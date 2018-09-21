@@ -679,7 +679,7 @@ void gui_uilock(int what)
 
 void fake_simple_button(int bgmt_code)
 {
-    if ((icu_uilock & 0xFFFF) && (bgmt_code >= 0))
+    if ((icu_uilock & (0xFFFF & ~UILOCK_SHUTTER)) && (bgmt_code >= 0))
     {
         // Canon events may not be safe to send when UI is locked; ML events are (and should be sent)
         printf("fake_simple_button(%d): UI locked (%x)\n", bgmt_code, icu_uilock);
