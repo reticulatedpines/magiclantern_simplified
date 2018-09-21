@@ -592,11 +592,13 @@ static int luaCB_card_index(lua_State * L)
         ///  - `B:/DCIM/100CANON/IMG1234` (without extension)
         ///  
         // @tparam[opt=0] int file_offset 0 = last saved image, positive = future images, negative = previous images.
-        // @tparam[opt=nil] ?string|nil = preferred extension, nil = automatic.
+        // @tparam[opt=nil] ?string|nil extension Suffix to append to the file name: `".CR2"` or `".JPG"`
+        //
+        // or `nil` = autodetect from picture quality setting (CR2 for RAW+JPEG).
         // @function image_path
         // @treturn string
         else if(!strcmp(key, "image_path")) lua_pushcfunction(L, luaCB_card_image_path);
-        /// Get the type of card (SD or CF).
+        /// Get the type of card (`"SD"` or `"CF"`).
         // @tfield string type
         else if(!strcmp(key, "type")) lua_pushstring(L, card->type);
         else return luaCB_directory_index(L);
