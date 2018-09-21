@@ -358,7 +358,7 @@ static int luaCB_directory_create(lua_State * L)
 }
 
 /***
- Get a table (of @{directory} objects) containing this directory's child directories.
+ Get a list of subdirectories, as table of @{directory} objects.
  @treturn {directory,...}
  @function children
  */
@@ -377,11 +377,14 @@ static int luaCB_directory_children(lua_State * L)
         {
             if (file.mode & ATTR_DIRECTORY)
             {
-                //call the directory constructor
-                lua_pushcfunction(L, luaCB_dryos_directory);
-                lua_pushfstring(L, "%s%s/", path, file.name);
-                lua_call(L, 1, 1);
-                lua_seti(L, -2, index++);
+                if (!streq(file.name, ".") && !streq(file.name, ".."))
+                {
+                    //call the directory constructor
+                    lua_pushcfunction(L, luaCB_dryos_directory);
+                    lua_pushfstring(L, "%s%s/", path, file.name);
+                    lua_call(L, 1, 1);
+                    lua_seti(L, -2, index++);
+                }
             }
         }
         while(FIO_FindNextEx(dirent, &file) == 0);
@@ -396,7 +399,7 @@ static int luaCB_directory_children(lua_State * L)
 }
 
 /***
- Get a table (of @{string}s) that are the file names of this directory's files.
+ Get a list of file names (with full path) in this directory, as table of @{string}s.
  @treturn {string,...}
  @function files
  */

@@ -227,6 +227,18 @@ function rename_test(src, dst)
     printf("Rename test OK\n")
 end
 
+function list_dir(dir, prefix)
+    prefix = prefix or "- "
+    local i, d, f
+    for i,d in pairs(dir:children()) do
+       printf("%s%s\n", prefix, d)
+       list_dir(d, "  " .. prefix)
+    end
+    for i,f in pairs(dir:files()) do
+       printf("%s%s\n", prefix, f)
+    end
+end
+
 function card_test()
     if dryos.cf_card then
         printf("CF card (%s) present\n", dryos.cf_card.path)
@@ -235,6 +247,8 @@ function card_test()
         printf("- DCIM dir. : %s\n", dryos.cf_card.dcim_dir)
         assert(dryos.cf_card.path == "A:/")
         assert(dryos.cf_card.type == "CF")
+        list_dir(dryos.cf_card.dcim_dir)
+        list_dir(dryos.directory(dryos.cf_card.path))
     end
     if dryos.sd_card then
         printf("SD card (%s) present\n", dryos.sd_card.path)
@@ -243,6 +257,8 @@ function card_test()
         printf("- DCIM dir. : %s\n", dryos.sd_card.dcim_dir)
         assert(dryos.sd_card.path == "B:/")
         assert(dryos.sd_card.type == "SD")
+        list_dir(dryos.sd_card.dcim_dir)
+        list_dir(dryos.directory(dryos.sd_card.path))
     end
 end
 
