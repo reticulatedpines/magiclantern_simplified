@@ -730,6 +730,7 @@ static struct {
     { 0x0020,   BGMT_PRESS_DIRECT_PRINT,"D",            "Direct Print",                 },
     { 0x00A0,   BGMT_UNPRESS_DIRECT_PRINT,                                              },
     { 0x0011,   BGMT_PICSTYLE,          "W",            "Pic.Style",                    },
+    { 0x0013,   BGMT_RATE,              "R",            "Rate",                         },
     { 0x001E,   BGMT_PRESS_AV,          "A",            "Av",                           },
     { 0x009E,   BGMT_UNPRESS_AV,                                                        },
     { 0x002C,   BGMT_PRESS_MAGNIFY_BUTTON,   "Z",       "Zoom in",                      },
