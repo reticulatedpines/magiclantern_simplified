@@ -833,7 +833,10 @@ void dng_init_data(struct frame_info * frame_info, struct dng_data * dng_data)
     
     if(frame_info->rawi_hdr.raw_info.bits_per_pixel < 16)
     {
-        dng_unpack_image_bits(frame_info->rawi_hdr.raw_info.buffer, dng_data->image_buf, dng_data->image_size, frame_info->rawi_hdr.raw_info.bits_per_pixel);
+        dng_unpack_image_bits(frame_info->frame_buffer,
+                              dng_data->image_buf,
+                              dng_data->image_size,
+                              frame_info->rawi_hdr.raw_info.bits_per_pixel);
     }
     else
     {
@@ -849,14 +852,17 @@ void dng_process_data(struct frame_info * frame_info, struct dng_data * dng_data
 {
     static int first_time = 1;
 
-    /* deflicker RAW data */
-    if (frame_info->deflicker_target)
+    /* fix vertical stripes */
+    if (frame_info->vertical_stripes)
     {
-        if (first_time && frame_info->show_progress) 
-        {
-            printf("\nPer-frame exposure compensation: 'ON'\nDeflicker target: '%d'\n", frame_info->deflicker_target);
-        }
-        deflicker(frame_info, frame_info->deflicker_target, dng_data->image_buf, dng_data->image_size);
+        fix_vertical_stripes(dng_data->image_buf,
+                             frame_info->rawi_hdr.raw_info.black_level,
+                             frame_info->rawi_hdr.raw_info.white_level,
+                             frame_info->rawi_hdr.raw_info.frame_size,
+                             frame_info->rawi_hdr.xRes,
+                             frame_info->rawi_hdr.yRes,
+                             frame_info->vertical_stripes,
+                             frame_info->show_progress);
     }
 
     /* fix pattern noise */
@@ -866,7 +872,10 @@ void dng_process_data(struct frame_info * frame_info, struct dng_data * dng_data
         {
             printf("\nFixing pattern noise...\n");
         }
-        fix_pattern_noise((int16_t *)dng_data->image_buf, frame_info->rawi_hdr.xRes, frame_info->rawi_hdr.yRes, frame_info->rawi_hdr.raw_info.white_level, 0);
+        fix_pattern_noise((int16_t *)dng_data->image_buf,
+                          frame_info->rawi_hdr.xRes,
+                          frame_info->rawi_hdr.yRes,
+                          frame_info->rawi_hdr.raw_info.white_level, 0);
     }
 
     /* set crop_rec flag from MLV or CLI */
@@ -915,13 +924,25 @@ void dng_process_data(struct frame_info * frame_info, struct dng_data * dng_data
         {
             printf("\nUsing chroma smooth method: '%dx%d'\n", frame_info->chroma_smooth, frame_info->chroma_smooth);
         }
-        chroma_smooth(dng_data->image_buf, frame_info->rawi_hdr.xRes, frame_info->rawi_hdr.yRes, frame_info->rawi_hdr.raw_info.black_level, frame_info->rawi_hdr.raw_info.white_level, frame_info->chroma_smooth);
+        chroma_smooth(dng_data->image_buf,
+                      frame_info->rawi_hdr.xRes,
+                      frame_info->rawi_hdr.yRes,
+                      frame_info->rawi_hdr.raw_info.black_level,
+                      frame_info->rawi_hdr.raw_info.white_level,
+                      frame_info->chroma_smooth);
     }
-
-    /* fix vertical stripes */
-    if (frame_info->vertical_stripes)
+    
+    /* deflicker RAW data */
+    if (frame_info->deflicker_target)
     {
-        fix_vertical_stripes(dng_data->image_buf, 0, dng_data->image_size / 2, &(frame_info->rawi_hdr.raw_info), frame_info->rawi_hdr.xRes, frame_info->rawi_hdr.yRes, frame_info->vertical_stripes, frame_info->show_progress);
+        if (first_time && frame_info->show_progress) 
+        {
+            printf("\nPer-frame exposure compensation: 'ON'\nDeflicker target: '%d'\n", frame_info->deflicker_target);
+        }
+        deflicker(frame_info,
+                  frame_info->deflicker_target,
+                  dng_data->image_buf,
+                  dng_data->image_size);
     }
 
     first_time = 0;

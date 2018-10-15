@@ -26,14 +26,17 @@
 #include <sys/types.h>
 #include <raw.h>
 
-struct stripes_correction
-{
+typedef struct {
     int correction_needed;
     int coeffficients[8];
-};
+} stripes_correction;
 
-void fix_vertical_stripes(uint16_t * image_data, off_t offset, size_t size, struct raw_info * raw_info, uint16_t width, uint16_t height, int vertical_stripes, int show_progress);
-void stripes_compute_correction(struct stripes_correction * correction, uint16_t * image_data, struct raw_info * raw_info, uint16_t width, uint16_t height);
-void stripes_apply_correction(struct stripes_correction * correction, uint16_t * image_data, off_t offset, size_t size, struct raw_info * raw_info, uint16_t width);
-
+void fix_vertical_stripes(uint16_t * image_data,
+                          int32_t black_level,
+                          int32_t white_level,
+                          int32_t raw_info_frame_size,
+                          uint16_t width,
+                          uint16_t height,
+                          int vertical_stripes,
+                          int show_progress);
 #endif
