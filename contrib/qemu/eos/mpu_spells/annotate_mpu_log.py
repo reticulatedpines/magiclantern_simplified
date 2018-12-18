@@ -73,6 +73,8 @@ for l in lines:
             btn_code = spell[9:14].replace(" ", "").upper()
             if btn_code in buttons:
                 comments.append(buttons[btn_code])
+            else:
+                comments.append("Unknown GUI event")
 
         if not comments:
             comments.append("???")
