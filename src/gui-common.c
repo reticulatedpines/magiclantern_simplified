@@ -245,6 +245,21 @@ int handle_scrollwheel_fast_clicks(struct event * event)
 /* some mappings are valid for cameras with a Q button as well */
 static int handle_Q_button_equiv(struct event * event)
 {
+    /* Some cameras (at least 600D and 1100D) use two button codes for Q,
+     * depending on operating mode (e.g. Canon menu vs LiveView)
+     * Canon firmware happily reacts to both codes, in other words,
+     * fake_simple_button appears to work with any of them;
+     * to keep things simple, we'll just remap the "alternate" code
+     * so the rest of ML will just use BGMT_Q to handle both codes */
+    switch (event->param)
+    {
+#ifdef BGMT_Q_ALT_
+    case BGMT_Q_ALT_:
+#endif
+        fake_simple_button(BGMT_Q);
+        return 0;
+    }
+
     if (!gui_menu_shown())
     {
         /* only remap other buttons while in ML menu */
