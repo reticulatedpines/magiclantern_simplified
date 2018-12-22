@@ -1467,8 +1467,12 @@ function test_movie()
     assert(camera.gui.idle == true)
     camera.gui.play = true
     assert(camera.gui.play == true)
-    assert(camera.gui.play_movie == true)
-    assert(camera.gui.play_photo == false)
+
+    -- 50D is the only camera without video playback functionality
+    if camera.model ~= "50D" then
+        assert(camera.gui.play_movie == true)
+        assert(camera.gui.play_photo == false)
+    end
 
     printf("Movie recording tests completed.\n")
     printf("\n")
