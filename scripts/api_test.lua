@@ -396,38 +396,41 @@ function test_menu()
 
     assert(menu.select("Movie"))
 
-    -- perform the next test in LiveView
-    menu.close()
-    lv.start()
-    assert(lv.enabled)
-    assert(lv.running)
-    menu.open()
+    -- only run this test if FPS override is available in menu
+    if menu.get("Movie", "FPS override") ~= nil then
+        -- perform the next test in LiveView
+        menu.close()
+        lv.start()
+        assert(lv.enabled)
+        assert(lv.running)
+        menu.open()
 
-    assert(menu.select("Movie", "FPS override"))
-    assert(menu.set("Movie", "FPS override", "OFF"))            -- "OFF" and "ON" are boolean matches for zero/nonzero internal state
-    assert(menu.get("Movie", "FPS override") == "OFF")
-    assert(menu.set("FPS override", "Desired FPS", "23.976"))   -- this menu entry will print "23.976 (from 25)" or something like that
-    assert(menu.get("FPS override", "Desired FPS"):sub(1,13) == "23.976 (from ")
-    assert(menu.set("FPS override", "Desired FPS", "5"))        -- this menu entry will print "5 (from 30)" or something like that
-    assert(menu.get("FPS override", "Desired FPS"):sub(1,8) == "5 (from ")
-    assert(menu.set("FPS override", "Desired FPS", "10"))       -- this menu entry will print "10 (from 25)" or something like that
-    assert(menu.get("FPS override", "Desired FPS"):sub(1,9) == "10 (from ")
-    assert(menu.set("FPS override", "Optimize for", "Exact FPS")) -- nothing fancy here, just request exact frame rate
-    assert(menu.get("FPS override", "Optimize for") == "Exact FPS")
-    assert(menu.set("Movie", "FPS override", "ON"))             -- enable FPS override
-    assert(menu.get("Movie", "FPS override") ~= "ON")           -- the menu entry will print something else
-    sleep(2)                                                    -- switching the frame rate takes a while
-    assert(menu.get("Movie", "FPS override") == "10.000")       -- it should eventually settle to our requested value
-    assert(menu.get("FPS override", "Actual FPS") == "10.000")  -- current FPS value can be read from here
-    assert(menu.set("Movie", "FPS override", "OFF"))            -- that was it
-    assert(menu.get("Movie", "FPS override") == "OFF")          -- make sure it's turned off
+        assert(menu.select("Movie", "FPS override"))
+        assert(menu.set("Movie", "FPS override", "OFF"))            -- "OFF" and "ON" are boolean matches for zero/nonzero internal state
+        assert(menu.get("Movie", "FPS override") == "OFF")
+        assert(menu.set("FPS override", "Desired FPS", "23.976"))   -- this menu entry will print "23.976 (from 25)" or something like that
+        assert(menu.get("FPS override", "Desired FPS"):sub(1,13) == "23.976 (from ")
+        assert(menu.set("FPS override", "Desired FPS", "5"))        -- this menu entry will print "5 (from 30)" or something like that
+        assert(menu.get("FPS override", "Desired FPS"):sub(1,8) == "5 (from ")
+        assert(menu.set("FPS override", "Desired FPS", "10"))       -- this menu entry will print "10 (from 25)" or something like that
+        assert(menu.get("FPS override", "Desired FPS"):sub(1,9) == "10 (from ")
+        assert(menu.set("FPS override", "Optimize for", "Exact FPS")) -- nothing fancy here, just request exact frame rate
+        assert(menu.get("FPS override", "Optimize for") == "Exact FPS")
+        assert(menu.set("Movie", "FPS override", "ON"))             -- enable FPS override
+        assert(menu.get("Movie", "FPS override") ~= "ON")           -- the menu entry will print something else
+        sleep(2)                                                    -- switching the frame rate takes a while
+        assert(menu.get("Movie", "FPS override") == "10.000")       -- it should eventually settle to our requested value
+        assert(menu.get("FPS override", "Actual FPS") == "10.000")  -- current FPS value can be read from here
+        assert(menu.set("Movie", "FPS override", "OFF"))            -- that was it
+        assert(menu.get("Movie", "FPS override") == "OFF")          -- make sure it's turned off
 
-    -- LiveView test completed
-    menu.close()
-    lv.stop()
-    assert(not lv.running)
-    assert(not lv.enabled)
-    menu.open()
+        -- LiveView test completed
+        menu.close()
+        lv.stop()
+        assert(not lv.running)
+        assert(not lv.enabled)
+        menu.open()
+    end
 
     assert(menu.select("Shoot"))
     assert(menu.select("Shoot", "Advanced Bracket"))
