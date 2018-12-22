@@ -1485,7 +1485,7 @@ function api_tests()
     menu.close()
     console.clear()
     console.show()
-    test_log = logger("LUATEST.LOG")
+    test_log = logger("ML/LOGS/LUATEST.LOG")
 
     local s,e = xpcall(function()
 
