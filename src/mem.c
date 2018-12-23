@@ -810,7 +810,7 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
                 )
            ))
         {
-            dbg_printf("%s: free space mismatch (req=%d,free=%d,pref=%d,min=%d)\n", allocators[a].name, size, free_space, allocators[a].preferred_free_space, allocators[a].minimum_free_space);
+            dbg_printf("%s: free space mismatch (req=%d,free=%d,pref=%d,min=%d,maxrgn=%d)\n", allocators[a].name, size, free_space, allocators[a].preferred_free_space, allocators[a].minimum_free_space, allocators[a].get_max_region ? allocators[a].get_max_region() : -1);
             continue;
         }
         
@@ -823,12 +823,16 @@ static int search_for_allocator(int size, int require_preferred_size, int requir
             continue;
         }
         
-        /* if this allocator requires malloc for its internal data structures,
+        /* if this allocator requires malloc/AllocateMemory for its internal data structures,
          * do we have enough free space there? (if not, we risk ERR70) */
-        if (allocators[a].depends_on_malloc && GetFreeMemForMalloc() < 8*1024)
+        if (allocators[a].depends_on_malloc)
         {
-            dbg_printf("%s: not enough space for malloc (%d)\n", allocators[a].name, GetFreeMemForMalloc());
-            continue;
+            if (GetFreeMemForMalloc() < 16 * 1024 ||           /* FIXME: implement GetMaxRegionForMalloc */
+                GetMaxRegionForAllocateMemory() < 16 * 1024)
+            {
+                dbg_printf("%s: not enough space for malloc (%d)\n", allocators[a].name, GetFreeMemForMalloc());
+                continue;
+            }
         }
         
         /* yes, we do! */
