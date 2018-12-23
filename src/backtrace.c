@@ -12,7 +12,7 @@
 #include "tasks.h"
 #include "backtrace.h"
 
-#define qemu_log_mask(...)
+#define qemu_log_mask(level, fmt, ...) { qprintf(fmt, ## __VA_ARGS__); }
 #define qemu_loglevel_mask(x) 0
 #define EOSState void
 
