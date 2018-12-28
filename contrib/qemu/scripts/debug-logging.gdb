@@ -98,6 +98,23 @@ document hook-quit
 Called at the end of the debugging session.
 end
 
+# Helpers to silence all GDB messages
+define silence_start
+  set logging file /dev/null
+  set logging redirect on
+  set logging on
+end
+document silence_start
+Turn off all GDB messages.
+end
+
+define silence_end
+  set logging off
+end
+document silence_end
+Resume printing GDB messages.
+end
+
 # color output to terminal
 define KRED
     printf "%c[1;31m", 0x1B
@@ -630,6 +647,7 @@ define create_semaphore_log
     printf "create_semaphore('%s', %d)\n", STR($r0), $r1
     KRESET
     set $sem_cr_name = $r0
+    silence_start
     tbreak *($lr & ~1)
     commands
       silent
@@ -646,6 +664,7 @@ define create_semaphore_log
       set $sem_cr_name = -1234
       c
     end
+    silence_end
     c
   end
 end
@@ -662,6 +681,7 @@ define create_semaphore_n3_log
     printf "create_semaphore(%d, %d, '%s')\n", $r0, $r1, STR($r2)
     set $sem_cr_name = $r2
     KRESET
+    silence_start
     tbreak *($lr & ~1)
     commands
       silent
@@ -678,6 +698,7 @@ define create_semaphore_n3_log
       set $sem_cr_name = -1234
       c
     end
+    silence_end
     c
   end
 end
@@ -735,6 +756,7 @@ define take_semaphore_log
     print_sem_name $r0
     printf ", %d)\n", $r1
     eval "set $task_%s = \"wait_sem 0x%08X\"", CURRENT_TASK_NAME, $r0
+    silence_start
     tbreak *($lr & ~1)
     commands
       silent
@@ -750,6 +772,7 @@ define take_semaphore_log
       eval "set $task_%s = \"ready\"", CURRENT_TASK_NAME
       c
     end
+    silence_end
     c
   end
 end
@@ -785,6 +808,7 @@ define create_msg_queue_log
     printf "create_msg_queue('%s', %d)\n", STR($r0), $r1
     KRESET
     set $mq_cr_name = $r0
+    silence_start
     tbreak *($lr & ~1)
     commands
       silent
@@ -801,6 +825,7 @@ define create_msg_queue_log
       set $mq_cr_name = -1234
       c
     end
+    silence_end
     c
   end
 end
@@ -869,6 +894,7 @@ define try_receive_msg_queue_log
     printf ", %x, timeout=%d)\n", $r1, $r2
     eval "set $task_%s = \"wait_mq  0x%08X\"", CURRENT_TASK_NAME, $r0
     eval "set $mq_%s_buf = 0x%x", CURRENT_TASK_NAME, $r1
+    silence_start
     tbreak *($lr & ~1)
     commands
       silent
@@ -886,6 +912,7 @@ define try_receive_msg_queue_log
       eval "set $task_%s = \"ready\"", CURRENT_TASK_NAME
       c
     end
+    silence_end
     c
   end
 end
@@ -906,6 +933,7 @@ define receive_msg_queue_log
     printf ", %x)\n", $r1
     eval "set $task_%s = \"wait_mq  0x%08X\"", CURRENT_TASK_NAME, $r0
     eval "set $mq_%s_buf = 0x%x", CURRENT_TASK_NAME, $r1
+    silence_start
     tbreak *($lr & ~1)
     commands
       silent
@@ -922,6 +950,7 @@ define receive_msg_queue_log
       eval "set $task_%s = \"ready\"", CURRENT_TASK_NAME
       c
     end
+    silence_end
     c
   end
 end
@@ -1103,6 +1132,7 @@ define mpu_prop_lookup_log
     set $mpl_r0 = $r0
     set $mpl_id1 = $r3
     set $mpl_id2 = MEM($sp)
+    silence_start
     tbreak *($lr & ~1)
     commands
       silent
@@ -1112,6 +1142,7 @@ define mpu_prop_lookup_log
       KRESET
       c
     end
+    silence_end
     c
   end
 end
@@ -1223,6 +1254,7 @@ define delayed_call_log
       printf "not handled: cbr != overrun\n"
       KRESET
     end
+    silence_start
     tbreak *$r1
     commands
       silent
@@ -1231,6 +1263,7 @@ define delayed_call_log
       printf " calling CBR %x(%x,%x)\n", $pc, $r0, $r1
       c
     end
+    silence_end
     c
   end
 end
@@ -1324,6 +1357,7 @@ define CreateResLockEntry_log
     KBLU
     printf "CreateResLockEntry(%x, %x)\n", $r0, $r1
     KRESET
+    silence_start
     tbreak *($lr & ~1)
     commands
       silent
@@ -1331,6 +1365,7 @@ define CreateResLockEntry_log
       engine_resources_list ((int*)$r0)[5] ((int*)$r0)[6]
       c
     end
+    silence_end
     c
   end
 end
@@ -1347,6 +1382,7 @@ commands
     printf "LockEngineResources(%x)\n", $r0
     KRESET
     eval "set $task_%s = \"wait_rlk 0x%08X\"", CURRENT_TASK_NAME, $r0
+    silence_start
     tbreak *($lr & ~1)
     commands
       silent
@@ -1361,6 +1397,7 @@ commands
       eval "set $task_%s = \"ready\"", CURRENT_TASK_NAME
       c
     end
+    silence_end
     c
   end
 end
@@ -1467,6 +1504,7 @@ define load_default_date_time_log
     printf "load_default_date_time(%x)\n", $r0
     set $tm = $r0
     print_date_time $tm
+    silence_start
     tbreak *($lr & ~1)
     commands
       silent
@@ -1486,6 +1524,7 @@ define load_default_date_time_log
       printf "\n"
       c
     end
+    silence_end
     c
   end
 end
@@ -1555,6 +1594,7 @@ define CreateStateObject_log
     end
 
     # note: I could have used log_result instead of this block, but wanted to get something easier to grep
+    silence_start
     tbreak *($lr & ~1)
     commands
       silent
@@ -1562,6 +1602,7 @@ define CreateStateObject_log
       printf "CreateStateObject => %x at %x\n", $r0, $pc
       c
     end
+    silence_end
     c
   end
 end
@@ -1725,6 +1766,7 @@ end
 #################
 
 define log_result
+  silence_start
   tbreak *($lr & ~1)
   commands
     silent
@@ -1732,6 +1774,7 @@ define log_result
     printf " => 0x%x\n", $r0
     c
   end
+  silence_end
 end
 document log_result
 Log the return value of any given function.
