@@ -26,7 +26,7 @@ assert_log
 b *0xDF008274
 register_interrupt_log
 
-b *0xE04D8B94
+b *0xE04D8A74
 register_func_log
 
 b *0xDF00A1E6

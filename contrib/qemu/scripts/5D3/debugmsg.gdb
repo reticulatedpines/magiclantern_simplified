@@ -34,7 +34,7 @@ end
 
 # 1.1.3
 if MEM(0xFF6AB08C) == 0xE92D4FFE
-  b *0xFF13B630
+  b *0xFF13B5B0
   register_func_log
 
   b *0xFF1425F8

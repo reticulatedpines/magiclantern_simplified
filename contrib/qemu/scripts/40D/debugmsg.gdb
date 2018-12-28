@@ -30,7 +30,7 @@ b *0xFFD427B0
 register_interrupt_log
 
 b *0xFFD3E45C
-register_func_log
+register_func_old_log
 
 b *0xFFD4EE48
 CreateStateObject_log

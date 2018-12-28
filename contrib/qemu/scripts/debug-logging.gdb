@@ -752,12 +752,33 @@ end
 
 # eventprocs (functions that can be called by name)
 # RegisterEventProcedure on some models
+
+# new-style, with 3 arguments
 define register_func_log
   commands
     silent
     print_current_location
     KBLU
     printf "register_func('%s', %x, %x)\n", $r0, $r1, $r2
+    KRESET
+    if (unsigned int) $r2 > (unsigned int) 0xE0000000
+        # some functions are registered indirectly, using a wrapper
+        # the actual function is passed as argument
+        named_func_add $r2 $r0
+    else
+        named_func_add $r1 $r0
+    end
+    c
+  end
+end
+
+# old-style, with 2 arguments (some VxWorks models only)
+define register_func_old_log
+  commands
+    silent
+    print_current_location
+    KBLU
+    printf "register_func('%s', %x)\n", $r0, $r1
     KRESET
     named_func_add $r1 $r0
     c
