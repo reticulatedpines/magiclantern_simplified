@@ -651,6 +651,7 @@ define create_semaphore_log
     tbreak *($lr & ~1)
     commands
       silent
+      print_current_location $pc
       if $sem_cr_name == -1234
         KRED
         # fixme: create_semaphore is not atomic,
@@ -659,7 +660,7 @@ define create_semaphore_log
         print "create semaphore: race condition?"
         KRESET
       end
-      printf "*** Created semaphore 0x%x: %x '%s'\n", $r0, $sem_cr_name, STR($sem_cr_name)
+      printf "Created semaphore 0x%x: %x '%s'\n", $r0, $sem_cr_name, STR($sem_cr_name)
       eval "set $sem_%x_name = $sem_cr_name", $r0
       set $sem_cr_name = -1234
       c
@@ -685,6 +686,7 @@ define create_semaphore_n3_log
     tbreak *($lr & ~1)
     commands
       silent
+      print_current_location $pc
       if $sem_cr_name == -1234
         KRED
         # fixme: create_semaphore is not atomic,
@@ -693,7 +695,7 @@ define create_semaphore_n3_log
         print "create semaphore: race condition?"
         KRESET
       end
-      printf "*** Created semaphore 0x%x: %x '%s'\n", $r0, $sem_cr_name, STR($sem_cr_name)
+      printf "Created semaphore 0x%x: %x '%s'\n", $r0, $sem_cr_name, STR($sem_cr_name)
       eval "set $sem_%x_name = $sem_cr_name", $r0
       set $sem_cr_name = -1234
       c
@@ -760,7 +762,7 @@ define take_semaphore_log
     tbreak *($lr & ~1)
     commands
       silent
-      print_current_location
+      print_current_location $pc
       if $r0
         KRED
       else
@@ -812,6 +814,7 @@ define create_msg_queue_log
     tbreak *($lr & ~1)
     commands
       silent
+      print_current_location $pc
       if $mq_cr_name == -1234
         KRED
         # fixme: create_msg_queue is not atomic,
@@ -820,7 +823,7 @@ define create_msg_queue_log
         print "create message queue: race condition?"
         KRESET
       end
-      printf "*** Created message queue 0x%x: %x '%s'\n", $r0, $mq_cr_name, STR($mq_cr_name)
+      printf "Created message queue 0x%x: %x '%s'\n", $r0, $mq_cr_name, STR($mq_cr_name)
       eval "set $mq_%x_name = $mq_cr_name", $r0
       set $mq_cr_name = -1234
       c
@@ -898,7 +901,7 @@ define try_receive_msg_queue_log
     tbreak *($lr & ~1)
     commands
       silent
-      print_current_location
+      print_current_location $pc
       if $r0
         KRED
       else
@@ -937,7 +940,7 @@ define receive_msg_queue_log
     tbreak *($lr & ~1)
     commands
       silent
-      print_current_location
+      print_current_location $pc
       if $r0
         KRED
       else
@@ -1136,7 +1139,7 @@ define mpu_prop_lookup_log
     tbreak *($lr & ~1)
     commands
       silent
-      print_current_location
+      print_current_location $pc
       KYLW
       printf "mpu_prop_lookup (%02x %02x) => %x\n", $mpl_id1, $mpl_id2, **(int**)$mpl_r0
       KRESET
@@ -1340,7 +1343,8 @@ end
 define engine_resources_list
   set $i = 0
   while $i < $arg1
-    printf "    %2d) %8x ", $i, ((int*)$arg0)[$i]
+    print_current_location_placeholder
+    printf "   %2d) %8x ", $i, ((int*)$arg0)[$i]
     engine_resource_description ((int*)$arg0)[$i]
     printf "\n"
     set $i = $i + 1
@@ -1361,7 +1365,8 @@ define CreateResLockEntry_log
     tbreak *($lr & ~1)
     commands
       silent
-      printf "*** Created ResLock 0x%x:'\n", $r0
+      print_current_location $pc
+      printf "Created ResLock 0x%x:'\n", $r0
       engine_resources_list ((int*)$r0)[5] ((int*)$r0)[6]
       c
     end
@@ -1386,7 +1391,7 @@ commands
     tbreak *($lr & ~1)
     commands
       silent
-      print_current_location
+      print_current_location $pc
       if $r0
         KRED
       else
@@ -1508,11 +1513,11 @@ define load_default_date_time_log
     tbreak *($lr & ~1)
     commands
       silent
-      print_current_location
+      print_current_location $pc
       printf "load_default_date_time => "
       print_date_time $tm
       printf "\n"
-      print_current_location
+      print_current_location $pc
       printf "overriding date/time to : "
       set_date_time $tm 2015 01 15 13 37 00
       if RTC_VALID_FLAG == 0xFFFFFFFF
@@ -1567,7 +1572,9 @@ define CreateStateObject_log
   commands
     silent
     print_current_location
+    KBLU
     printf "CreateStateObject(%s, 0x%x, inputs=%d, states=%d)\n", $r0, $r2, $r3, MEM($sp)
+    KRESET
 
     # enumerate all functions from this state machine
     set $state_name = (char *) $r0
@@ -1599,7 +1606,9 @@ define CreateStateObject_log
     commands
       silent
       print_current_location $pc
+      KBLU
       printf "CreateStateObject => %x at %x\n", $r0, $pc
+      KRESET
       c
     end
     silence_end
