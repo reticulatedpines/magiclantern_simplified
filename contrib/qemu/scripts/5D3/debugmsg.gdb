@@ -37,6 +37,9 @@ if MEM(0xFF6AB08C) == 0xE92D4FFE
   b *0xFF13B5B0
   register_func_log
 
+  b *0xFF13B68C
+  call_by_name_log
+
   b *0xFF1425F8
   register_cmd_log
 end

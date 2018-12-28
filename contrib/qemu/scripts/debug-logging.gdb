@@ -1027,6 +1027,21 @@ document register_func_old_log
 Same as register_func_log, but for VxWorks models.
 end
 
+define call_by_name_log
+  commands
+    silent
+    print_current_location
+    KYLW
+    printf "call('%s', %x)\n", $r0, $r1
+    KRESET
+    c
+  end
+end
+document call_by_name_log
+Log calls to event procedures (named functions).
+FIXME: only the first argument is printed.
+end
+
 define register_cmd_log
   commands
     silent

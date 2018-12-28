@@ -29,6 +29,9 @@ register_interrupt_log
 b *0xE04BDB14
 register_func_log
 
+b *0xE04BDB8E
+call_by_name_log
+
 b *0xDF00A1FA
 CreateStateObject_log
 

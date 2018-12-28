@@ -28,6 +28,10 @@ register_interrupt_log
 b *0xFE48CE74
 register_func_log
 
+# 104: 0xFE48A7D6
+b *0xFE48CEEC
+call_by_name_log
+
 b *0x80001FC0
 create_semaphore_n3_log
 
