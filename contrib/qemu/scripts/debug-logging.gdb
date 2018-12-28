@@ -1424,3 +1424,14 @@ define generic_log_with_result
     c
   end
 end
+
+# hexdump formatted with xxd
+# https://stackoverflow.com/questions/9233095/memory-dump-formatted-like-xxd-from-gdb
+define xxd
+  if $argc == 1
+    dump binary memory dump.tmp ((void*)$arg0) ((void*)$arg0)+0x100
+  else
+    dump binary memory dump.tmp ((void*)$arg0) ((void*)$arg0)+$arg1
+  end
+  eval "shell xxd -e -o 0x%X dump.tmp", ((void*)$arg0)
+end
