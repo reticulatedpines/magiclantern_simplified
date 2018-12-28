@@ -25,9 +25,12 @@ static int button_codes_100D[] = {
     [BGMT_UNPRESS_ZOOM_OUT]             = 0x0A00,
     [BGMT_WHEEL_LEFT]                   = 0x0DFF,
     [BGMT_WHEEL_RIGHT]                  = 0x0D01,
+    [GMT_GUICMD_CLOSE_BATT_COVER]       = 0x1300,
     [GMT_GUICMD_OPEN_BATT_COVER]        = 0x1301,
+    [GMT_GUICMD_CLOSE_SLOT_COVER]       = 0x1200,
     [GMT_GUICMD_OPEN_SLOT_COVER]        = 0x1201,
     [GMT_GUICMD_START_AS_CHECK]         = 0x1100,
+    [GMT_GUICMD_LOCK_ON]                = 0x1101,
     [GMT_GUICMD_PRESS_BUTTON_SOMETHING] = 0x2601,
     [BGMT_END_OF_LIST]                  = 0x0000
 };
@@ -61,9 +64,12 @@ static int button_codes_1100D[] = {
     [BGMT_WHEEL_LEFT]                   = 0x0DFF,
     [BGMT_WHEEL_RIGHT]                  = 0x0D01,
     [BGMT_WHEEL_UP]                     = 0x0EFF,
+    [GMT_GUICMD_CLOSE_BATT_COVER]       = 0x1300,
     [GMT_GUICMD_OPEN_BATT_COVER]        = 0x1301,
+    [GMT_GUICMD_CLOSE_SLOT_COVER]       = 0x1200,
     [GMT_GUICMD_OPEN_SLOT_COVER]        = 0x1201,
     [GMT_GUICMD_START_AS_CHECK]         = 0x1100,
+    [GMT_GUICMD_LOCK_ON]                = 0x1101,
     [BGMT_END_OF_LIST]                  = 0x0000
 };
 
@@ -96,9 +102,12 @@ static int button_codes_1200D[] = {
     [BGMT_WHEEL_LEFT]                   = 0x0DFF,
     [BGMT_WHEEL_RIGHT]                  = 0x0D01,
     [BGMT_WHEEL_UP]                     = 0x0EFF,
+    [GMT_GUICMD_CLOSE_BATT_COVER]       = 0x1300,
     [GMT_GUICMD_OPEN_BATT_COVER]        = 0x1301,
+    [GMT_GUICMD_CLOSE_SLOT_COVER]       = 0x1200,
     [GMT_GUICMD_OPEN_SLOT_COVER]        = 0x1201,
     [GMT_GUICMD_START_AS_CHECK]         = 0x1100,
+    [GMT_GUICMD_LOCK_ON]                = 0x1101,
     [BGMT_END_OF_LIST]                  = 0x0000
 };
 
@@ -128,9 +137,12 @@ static int button_codes_450D[] = {
     [BGMT_WHEEL_LEFT]                   = 0x0DFF,
     [BGMT_WHEEL_RIGHT]                  = 0x0D01,
     [BGMT_WHEEL_UP]                     = 0x0EFF,
+    [GMT_GUICMD_CLOSE_BATT_COVER]       = 0x1300,
     [GMT_GUICMD_OPEN_BATT_COVER]        = 0x1301,
+    [GMT_GUICMD_CLOSE_SLOT_COVER]       = 0x1200,
     [GMT_GUICMD_OPEN_SLOT_COVER]        = 0x1201,
     [GMT_GUICMD_START_AS_CHECK]         = 0x1100,
+    [GMT_GUICMD_LOCK_ON]                = 0x1101,
     [BGMT_END_OF_LIST]                  = 0x0000
 };
 
@@ -160,9 +172,12 @@ static int button_codes_500D[] = {
     [BGMT_WHEEL_LEFT]                   = 0x0DFF,
     [BGMT_WHEEL_RIGHT]                  = 0x0D01,
     [BGMT_WHEEL_UP]                     = 0x0EFF,
+    [GMT_GUICMD_CLOSE_BATT_COVER]       = 0x1300,
     [GMT_GUICMD_OPEN_BATT_COVER]        = 0x1301,
+    [GMT_GUICMD_CLOSE_SLOT_COVER]       = 0x1200,
     [GMT_GUICMD_OPEN_SLOT_COVER]        = 0x1201,
     [GMT_GUICMD_START_AS_CHECK]         = 0x1100,
+    [GMT_GUICMD_LOCK_ON]                = 0x1101,
     [BGMT_END_OF_LIST]                  = 0x0000
 };
 
@@ -193,9 +208,12 @@ static int button_codes_550D[] = {
     [BGMT_WHEEL_LEFT]                   = 0x0DFF,
     [BGMT_WHEEL_RIGHT]                  = 0x0D01,
     [BGMT_WHEEL_UP]                     = 0x0EFF,
+    [GMT_GUICMD_CLOSE_BATT_COVER]       = 0x1300,
     [GMT_GUICMD_OPEN_BATT_COVER]        = 0x1301,
+    [GMT_GUICMD_CLOSE_SLOT_COVER]       = 0x1200,
     [GMT_GUICMD_OPEN_SLOT_COVER]        = 0x1201,
     [GMT_GUICMD_START_AS_CHECK]         = 0x1100,
+    [GMT_GUICMD_LOCK_ON]                = 0x1101,
     [BGMT_END_OF_LIST]                  = 0x0000
 };
 
@@ -228,9 +246,12 @@ static int button_codes_40D[] = {
     [BGMT_WHEEL_LEFT]                   = 0x0DFF,
     [BGMT_WHEEL_RIGHT]                  = 0x0D01,
     [BGMT_WHEEL_UP]                     = 0x0EFF,
+    [GMT_GUICMD_CLOSE_BATT_COVER]       = 0x1300,
     [GMT_GUICMD_OPEN_BATT_COVER]        = 0x1301,
+    [GMT_GUICMD_CLOSE_SLOT_COVER]       = 0x1200,
     [GMT_GUICMD_OPEN_SLOT_COVER]        = 0x1201,
     [GMT_GUICMD_START_AS_CHECK]         = 0x1100,
+    [GMT_GUICMD_LOCK_ON]                = 0x1101,
     [BGMT_END_OF_LIST]                  = 0x0000
 };
 
@@ -262,9 +283,12 @@ static int button_codes_50D[] = {
     [BGMT_WHEEL_LEFT]                   = 0x0DFF,
     [BGMT_WHEEL_RIGHT]                  = 0x0D01,
     [BGMT_WHEEL_UP]                     = 0x0EFF,
+    [GMT_GUICMD_CLOSE_BATT_COVER]       = 0x1300,
     [GMT_GUICMD_OPEN_BATT_COVER]        = 0x1301,
+    [GMT_GUICMD_CLOSE_SLOT_COVER]       = 0x1200,
     [GMT_GUICMD_OPEN_SLOT_COVER]        = 0x1201,
     [GMT_GUICMD_START_AS_CHECK]         = 0x1100,
+    [GMT_GUICMD_LOCK_ON]                = 0x1101,
     [BGMT_END_OF_LIST]                  = 0x0000
 };
 
@@ -295,9 +319,12 @@ static int button_codes_5D2[] = {
     [BGMT_WHEEL_LEFT]                   = 0x0DFF,
     [BGMT_WHEEL_RIGHT]                  = 0x0D01,
     [BGMT_WHEEL_UP]                     = 0x0EFF,
+    [GMT_GUICMD_CLOSE_BATT_COVER]       = 0x1300,
     [GMT_GUICMD_OPEN_BATT_COVER]        = 0x1301,
+    [GMT_GUICMD_CLOSE_SLOT_COVER]       = 0x1200,
     [GMT_GUICMD_OPEN_SLOT_COVER]        = 0x1201,
     [GMT_GUICMD_START_AS_CHECK]         = 0x1100,
+    [GMT_GUICMD_LOCK_ON]                = 0x1101,
     [BGMT_END_OF_LIST]                  = 0x0000
 };
 
@@ -339,10 +366,13 @@ static int button_codes_5D3[] = {
     [BGMT_WHEEL_LEFT]                   = 0x0DFF,
     [BGMT_WHEEL_RIGHT]                  = 0x0D01,
     [BGMT_WHEEL_UP]                     = 0x0EFF,
+    [GMT_GUICMD_CLOSE_BATT_COVER]       = 0x1300,
     [GMT_GUICMD_OPEN_BATT_COVER]        = 0x1301,
+    [GMT_GUICMD_CLOSE_SLOT_COVER]       = 0x1200,
     [GMT_GUICMD_OPEN_SLOT_COVER]        = 0x1201,
-    [GMT_GUICMD_PRESS_BUTTON_SOMETHING] = 0x2601,
     [GMT_GUICMD_START_AS_CHECK]         = 0x1100,
+    [GMT_GUICMD_LOCK_ON]                = 0x1101,
+    [GMT_GUICMD_PRESS_BUTTON_SOMETHING] = 0x2601,
     [BGMT_END_OF_LIST]                  = 0x0000
 };
 
@@ -375,9 +405,12 @@ static int button_codes_600D[] = {
     [BGMT_WHEEL_LEFT]                   = 0x0DFF,
     [BGMT_WHEEL_RIGHT]                  = 0x0D01,
     [BGMT_WHEEL_UP]                     = 0x0EFF,
+    [GMT_GUICMD_CLOSE_BATT_COVER]       = 0x1300,
     [GMT_GUICMD_OPEN_BATT_COVER]        = 0x1301,
+    [GMT_GUICMD_CLOSE_SLOT_COVER]       = 0x1200,
     [GMT_GUICMD_OPEN_SLOT_COVER]        = 0x1201,
     [GMT_GUICMD_START_AS_CHECK]         = 0x1100,
+    [GMT_GUICMD_LOCK_ON]                = 0x1101,
     [BGMT_END_OF_LIST]                  = 0x0000
 };
 
@@ -408,9 +441,12 @@ static int button_codes_60D[] = {
     [BGMT_WHEEL_LEFT]                   = 0x0DFF,
     [BGMT_WHEEL_RIGHT]                  = 0x0D01,
     [BGMT_WHEEL_UP]                     = 0x0EFF,
+    [GMT_GUICMD_CLOSE_BATT_COVER]       = 0x1300,
     [GMT_GUICMD_OPEN_BATT_COVER]        = 0x1301,
+    [GMT_GUICMD_CLOSE_SLOT_COVER]       = 0x1200,
     [GMT_GUICMD_OPEN_SLOT_COVER]        = 0x1201,
     [GMT_GUICMD_START_AS_CHECK]         = 0x1100,
+    [GMT_GUICMD_LOCK_ON]                = 0x1101,
     [BGMT_END_OF_LIST]                  = 0x0000
 };
 
@@ -443,10 +479,13 @@ static int button_codes_6D[] = {
     [BGMT_WHEEL_LEFT]                   = 0x0DFF,
     [BGMT_WHEEL_RIGHT]                  = 0x0D01,
     [BGMT_WHEEL_UP]                     = 0x0EFF,
+    [GMT_GUICMD_CLOSE_BATT_COVER]       = 0x1300,
     [GMT_GUICMD_OPEN_BATT_COVER]        = 0x1301,
+    [GMT_GUICMD_CLOSE_SLOT_COVER]       = 0x1200,
     [GMT_GUICMD_OPEN_SLOT_COVER]        = 0x1201,
-    [GMT_GUICMD_PRESS_BUTTON_SOMETHING] = 0x2601,
     [GMT_GUICMD_START_AS_CHECK]         = 0x1100,
+    [GMT_GUICMD_LOCK_ON]                = 0x1101,
+    [GMT_GUICMD_PRESS_BUTTON_SOMETHING] = 0x2601,
     [BGMT_END_OF_LIST]                  = 0x0000
 };
 
@@ -477,10 +516,13 @@ static int button_codes_650D[] = {
     [BGMT_WHEEL_LEFT]                   = 0x0DFF,
     [BGMT_WHEEL_RIGHT]                  = 0x0D01,
     [BGMT_WHEEL_UP]                     = 0x0EFF,
+    [GMT_GUICMD_CLOSE_BATT_COVER]       = 0x1300,
     [GMT_GUICMD_OPEN_BATT_COVER]        = 0x1301,
+    [GMT_GUICMD_CLOSE_SLOT_COVER]       = 0x1200,
     [GMT_GUICMD_OPEN_SLOT_COVER]        = 0x1201,
-    [GMT_GUICMD_PRESS_BUTTON_SOMETHING] = 0x2601,
     [GMT_GUICMD_START_AS_CHECK]         = 0x1100,
+    [GMT_GUICMD_LOCK_ON]                = 0x1101,
+    [GMT_GUICMD_PRESS_BUTTON_SOMETHING] = 0x2601,
     [BGMT_END_OF_LIST]                  = 0x0000
 };
 
@@ -511,10 +553,13 @@ static int button_codes_700D[] = {
     [BGMT_WHEEL_LEFT]                   = 0x0DFF,
     [BGMT_WHEEL_RIGHT]                  = 0x0D01,
     [BGMT_WHEEL_UP]                     = 0x0EFF,
+    [GMT_GUICMD_CLOSE_BATT_COVER]       = 0x1300,
     [GMT_GUICMD_OPEN_BATT_COVER]        = 0x1301,
+    [GMT_GUICMD_CLOSE_SLOT_COVER]       = 0x1200,
     [GMT_GUICMD_OPEN_SLOT_COVER]        = 0x1201,
-    [GMT_GUICMD_PRESS_BUTTON_SOMETHING] = 0x2601,
     [GMT_GUICMD_START_AS_CHECK]         = 0x1100,
+    [GMT_GUICMD_LOCK_ON]                = 0x1101,
+    [GMT_GUICMD_PRESS_BUTTON_SOMETHING] = 0x2601,
     [BGMT_END_OF_LIST]                  = 0x0000
 };
 
@@ -544,9 +589,12 @@ static int button_codes_70D[] = {
     [BGMT_WHEEL_LEFT]                   = 0x0DFF,
     [BGMT_WHEEL_RIGHT]                  = 0x0D01,
     [BGMT_WHEEL_UP]                     = 0x0EFF,
+    [GMT_GUICMD_CLOSE_BATT_COVER]       = 0x1300,
     [GMT_GUICMD_OPEN_BATT_COVER]        = 0x1301,
+    [GMT_GUICMD_CLOSE_SLOT_COVER]       = 0x1200,
     [GMT_GUICMD_OPEN_SLOT_COVER]        = 0x1201,
     [GMT_GUICMD_START_AS_CHECK]         = 0x1100,
+    [GMT_GUICMD_LOCK_ON]                = 0x1101,
     [GMT_GUICMD_PRESS_BUTTON_SOMETHING] = 0x2601,
     [BGMT_END_OF_LIST]                  = 0x0000
 };
@@ -581,9 +629,12 @@ static int button_codes_7D[] = {
     [BGMT_WHEEL_LEFT]                   = 0x0DFF,
     [BGMT_WHEEL_RIGHT]                  = 0x0D01,
     [BGMT_WHEEL_UP]                     = 0x0EFF,
+    [GMT_GUICMD_CLOSE_BATT_COVER]       = 0x1300,
     [GMT_GUICMD_OPEN_BATT_COVER]        = 0x1301,
+    [GMT_GUICMD_CLOSE_SLOT_COVER]       = 0x1200,
     [GMT_GUICMD_OPEN_SLOT_COVER]        = 0x1201,
     [GMT_GUICMD_START_AS_CHECK]         = 0x1100,
+    [GMT_GUICMD_LOCK_ON]                = 0x1101,
     [BGMT_END_OF_LIST]                  = 0x0000
 };
 
@@ -607,10 +658,13 @@ static int button_codes_EOSM[] = {
     [BGMT_UNPRESS_UP]                   = 0x1800,
     [BGMT_WHEEL_LEFT]                   = 0x0DFF,
     [BGMT_WHEEL_RIGHT]                  = 0x0D01,
+    [GMT_GUICMD_CLOSE_BATT_COVER]       = 0x1300,
     [GMT_GUICMD_OPEN_BATT_COVER]        = 0x1301,
+    [GMT_GUICMD_CLOSE_SLOT_COVER]       = 0x1200,
     [GMT_GUICMD_OPEN_SLOT_COVER]        = 0x1201,
-    [GMT_GUICMD_PRESS_BUTTON_SOMETHING] = 0x2601,
     [GMT_GUICMD_START_AS_CHECK]         = 0x1100,
+    [GMT_GUICMD_LOCK_ON]                = 0x1101,
+    [GMT_GUICMD_PRESS_BUTTON_SOMETHING] = 0x2601,
     [BGMT_END_OF_LIST]                  = 0x0000
 };
 
@@ -640,9 +694,12 @@ static int button_codes_EOSM2[] = {
     [BGMT_UNPRESS_ZOOM_OUT]             = 0x0A00,
     [BGMT_WHEEL_LEFT]                   = 0x0DFF,
     [BGMT_WHEEL_RIGHT]                  = 0x0D01,
+    [GMT_GUICMD_CLOSE_BATT_COVER]       = 0x1300,
     [GMT_GUICMD_OPEN_BATT_COVER]        = 0x1301,
+    [GMT_GUICMD_CLOSE_SLOT_COVER]       = 0x1200,
     [GMT_GUICMD_OPEN_SLOT_COVER]        = 0x1201,
     [GMT_GUICMD_START_AS_CHECK]         = 0x1100,
+    [GMT_GUICMD_LOCK_ON]                = 0x1101,
     [GMT_GUICMD_PRESS_BUTTON_SOMETHING] = 0x2601,
     [BGMT_END_OF_LIST]                  = 0x0000
 };
