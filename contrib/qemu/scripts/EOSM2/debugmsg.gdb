@@ -32,4 +32,18 @@ register_func_log
 b *0x36468
 CreateStateObject_log
 
+if 1
+  b *0x42E30
+  adtg_write_log
+
+  b *0x432A4
+  cmos_write_log
+
+  b *0xFF2C6F44
+  engio_write_log
+
+  b *0xFF2C6C2C
+  EngDrvOut_log
+end
+
 continue

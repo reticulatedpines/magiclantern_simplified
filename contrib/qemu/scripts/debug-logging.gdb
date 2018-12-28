@@ -282,6 +282,21 @@ define printf_log
   end
 end
 
+# helper to decompose a bitfield value
+define print_bits
+    set $i = 0
+    set $b = $arg0
+    while $i < 32
+        if $b & (1 << $i)
+            printf "%d", $b & (1 << $i)
+            set $b &= ~(1 << $i)
+            if $b
+                printf "|"
+            end
+        end
+        set $i = $i + 1
+    end
+end
 
 # Export named functions to IDC (for IDA)
 #########################################
@@ -1301,6 +1316,74 @@ define ptp_register_handler_log
   end
 end
 
+
+# ENGIO, ADTG, CMOS
+
+define EngDrvOut_log
+  commands
+    silent
+    print_current_location
+    KGRN
+    printf "EngDrvOut(0x%X, 0x%X)\n", $r0, $r1
+    KRESET
+    c
+  end
+end
+
+define engio_write_log
+  commands
+    silent
+    print_current_location
+    KGRN
+    printf "engio_write(0x%X)\n", $r0
+    set $a = $r0
+    while *(int*)$a != -1
+        print_current_location_placeholder
+        printf "    [0x%X] <- 0x%X\n", *(int*)$a, *(int*)($a+4)
+        set $a = $a + 8
+    end
+    KRESET
+    c
+  end
+end
+
+define adtg_write_log
+  commands
+    silent
+    print_current_location
+    KGRN
+    printf "adtg_write("
+    print_bits $r0
+    printf ", 0x%X)\n", $r1
+    set $a = $r1
+    while *(int*)$a != -1
+        print_current_location_placeholder
+        printf "    ADTG"
+        print_bits $r0
+        printf "[%04X] <- 0x%X\n", *(unsigned int *) $a >> 16, *(unsigned int *) $a & 0xFFFF
+        set $a = $a + 4
+    end
+    KRESET
+    c
+  end
+end
+
+define cmos_write_log
+  commands
+    silent
+    print_current_location
+    KGRN
+    printf "cmos_write(0x%X)\n", $r0
+    set $a = $r0
+    while *(short*)$a != -1
+        print_current_location_placeholder
+        printf "    CMOS[%X] <- 0x%X\n", *(unsigned short *) $a >> 12, *(unsigned short *) $a & 0xFFF
+        set $a = $a + 2
+    end
+    KRESET
+    c
+  end
+end
 
 # Generic helpers
 #################

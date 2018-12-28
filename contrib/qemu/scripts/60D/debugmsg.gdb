@@ -81,4 +81,19 @@ if 0
   try_post_event_log
 end
 
+# ENGIO, ADTG, CMOS
+if 0
+    b *0xFF2C9788
+    adtg_write_log
+
+    b *0xFF2C997C
+    cmos_write_log
+
+    b *0xFF1C5A68
+    engio_write_log
+
+    b *0xFF1C56A4
+    EngDrvOut_log
+end
+
 cont
