@@ -90,6 +90,7 @@ define hook-quit
   set confirm off
   show convenience
   named_func_hook_quit
+  state_objects_hook_quit
   kill inferiors 1
   KRESET
 end
@@ -484,6 +485,59 @@ end
 # Named function code ends here
 # calls to named_func_add be made from various loggers
 ######################################################
+
+# Export state object definitions as Python code
+################################################
+
+set $state_objects_first_time = 1
+
+define state_object_add
+  set logging file state_objects.py
+  set logging redirect on
+  set logging on
+  if $state_objects_first_time == 1
+    set logging off
+    set logging overwrite on
+    set logging on
+    printf "# State object list: (address, states, inputs, name, pc)\n"
+    set logging off
+    set logging overwrite off
+    set logging on
+    printf "# Generated from QEMU+GDB.\n"
+    printf "\n"
+    printf "States = [\n"
+    set $state_objects_first_time = 0
+  end
+
+  printf "  (0x%08X, %2d, %2d, '%s', 0x%08X),\n", $arg0, $arg1, $arg2, $arg3, $pc
+  set logging off
+end
+document state_object_add
+Helper to add a state object definition into state_objects.py.
+Syntax: state_object_add state_matrix_address, num_states, num_inputs, state_machine_name
+end
+
+# all of this just to close the bracket :)
+define state_objects_hook_quit
+  if $state_objects_first_time == 0
+    set logging file state_objects.py
+    set logging redirect on
+    set logging on
+    printf "]\n"
+    set logging off
+    KRED
+    printf "\nstate_objects.py saved.\n"
+    KRESET
+    printf "If it looks good, consider renaming or moving it, for future use.\n\n"
+  end
+end
+document state_objects_hook_quit
+Helper to finish writing state_objects.py.
+end
+
+# State object definitions end here
+# calls to state_object_add be made from CreateStateObject_log or other loggers
+###############################################################################
 
 # log task_create calls
 define task_create_log
@@ -1482,6 +1536,10 @@ define CreateStateObject_log
     set $max_inputs = $r3
     set $max_states = MEM($sp)
     set $old_state = 0
+
+    # log this state object
+    state_object_add $state_matrix $max_states $max_inputs $state_name
+
     while $old_state < $max_states
       set $input = 0
       while $input < $max_inputs
