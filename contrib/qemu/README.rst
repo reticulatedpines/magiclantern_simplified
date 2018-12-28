@@ -982,6 +982,19 @@ To log the return value of any function, use ``log_result`` in the definition of
 
 For quick experiments, you may find ``generic_log`` and ``generic_log_with_result`` handy.
 
+To get help on all of these user-defined commands at the GDB prompt:
+
+  (gdb) help user-defined
+  ...
+  printf_log -- Log calls to plain printf
+  register_cmd_log -- Log named functions registered to the DryOS shell
+  xxd -- Memory dump formatted with xxd
+  ...
+
+  (gdb) help xxd
+  Memory dump formatted with xxd. Temporary file: dump.tmp.
+  Syntax: xxd startaddr [size]
+
 Debugging symbols
 '''''''''''''''''
 

@@ -590,6 +590,13 @@ make MODEL=7D -C $ML_PATH/minimal/hello-world clean         &>  tests/7D/gdb-bui
 make MODEL=7D -C $ML_PATH/minimal/hello-world install_qemu  &>> tests/7D/gdb-build.log
 
 echo
+echo "Testing main GDB script..."
+(sleep 1; echo "help user-defined"; echo "quit") | \
+    ( ./run_canon_fw.sh 500D,firmware=boot=0 -display none -s -S &
+        arm-none-eabi-gdb -x debug-logging.gdb
+    ) 2>&1 | grep -a -- "-- User-defined" && echo -e "\e[31mFAILED!\e[0m" || echo "OK"
+
+echo
 echo "Testing GDB scripts..."
 for CAM in ${EOS_CAMS[*]} ${EOS_SECONDARY_CORES[*]} ${POWERSHOT_CAMS[*]}; do
     ((QEMU_JOB_ID++))
