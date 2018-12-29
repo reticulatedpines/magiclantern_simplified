@@ -447,7 +447,7 @@ index 7cb01a8..7b57b2e 100644
  
      p = str;
 diff --git a/target-arm/cpu.c b/target-arm/cpu.c
-index 30739fc..6077632 100644
+index 30739fc..0e3a691 100644
 --- a/target-arm/cpu.c
 +++ b/target-arm/cpu.c
 @@ -501,6 +501,7 @@ static void arm_cpu_initfn(Object *obj)
@@ -458,7 +458,18 @@ index 30739fc..6077632 100644
  static Property arm_cpu_reset_hivecs_property =
              DEFINE_PROP_BOOL("reset-hivecs", ARMCPU, reset_hivecs, false);
  
-@@ -711,6 +712,45 @@ static void arm926_initfn(Object *obj)
+@@ -513,8 +514,9 @@ static Property arm_cpu_has_el3_property =
+ static Property arm_cpu_has_mpu_property =
+             DEFINE_PROP_BOOL("has-mpu", ARMCPU, has_mpu, true);
+ 
++/* fixme: how to change this property from machine code? */
+ static Property arm_cpu_pmsav7_dregion_property =
+-            DEFINE_PROP_UINT32("pmsav7-dregion", ARMCPU, pmsav7_dregion, 16);
++            DEFINE_PROP_UINT32("pmsav7-dregion", ARMCPU, pmsav7_dregion, 8);
+ 
+ static void arm_cpu_post_init(Object *obj)
+ {
+@@ -711,6 +713,93 @@ static void arm926_initfn(Object *obj)
      cpu->reset_sctlr = 0x00090078;
  }
  
@@ -481,10 +492,33 @@ index 30739fc..6077632 100644
 +{
 +    /* Cortex R4: https://chdk.setepontos.com/index.php?topic=11316.msg124273#msg124273 */
 +    cortex_r5_initfn(obj);
-+    
++
++    /* https://www.magiclantern.fm/forum/index.php?topic=17714.0 */
 +    ARMCPU *cpu = ARM_CPU(obj);
-+    cpu->midr = 0x411FC143;
-+    cpu->reset_sctlr = 0x08ED0878 | (1 << 13);    /* fixme: how to change the HIVECS property? */
++    cpu->midr        = 0x411FC143;
++    cpu->ctr         = 0x8003C003;
++    cpu->id_mmfr3    = 0x00000011;
++    cpu->id_isar0    = 0x01101111;
++    cpu->id_isar2    = 0x21232131;
++    cpu->clidr       = 0x09000003;
++    cpu->ccsidr[0]   = 0xF00FE019;
++    cpu->ccsidr[1]   = 0xF00FE019;
++    cpu->dbgdidr     = 0x77040013;  /* https://www.magiclantern.fm/forum/index.php?topic=17360.msg202322#msg202322 */
++    cpu->reset_sctlr = 0x08E50878 | (1 << 13);    /* fixme: how to change the HIVECS property? */
++    //        1=MPU,        2=align,      4=DCacheL1,  8=SBO        => 8
++    //       10=SBO,       20=SBO,       40=SBO,      80=SBZ        => 7
++    //      100=SBZ,      200=SBZ,      400=SBZ,     800=Z(SBO)     => 8
++    //     1000=ICacheL1,2000=HIVECS,  4000=RR,     8000=SBZ        => 2 (1 << 13)
++    //    10000=SBO,    20000=BR,     40000=SBO,   80000=DZ         => 5
++    //   100000=SBZ,   200000=FI/SBO,400000=SBO,  800000=SBO        => E
++    //  1000000=VE,   2000000=EE,   4000000=SBZ, 8000000=NMFIQ      => 8
++    // 10000000=TRE, 20000000=AFE, 40000000=TE, 80000000=IE         => 0
++    // bic                0x20000   (disable background region)
++    // orr                    0x1   (enable MPU)
++    // bic              0x1002000   (disable HIVECS, VE?!)
++    // orr                   1004   (enable L1 DCache & ICache)
++    // ->reset_sctlr = 0x08E5187D;  /* as printed by CHDK cpuinfo running from bootloader */
++    cpu->reset_auxcr = 0x00000020;  /* ACTLR */
 +    unset_feature(&cpu->env, ARM_FEATURE_V7MP);
 +}
 +
@@ -494,36 +528,65 @@ index 30739fc..6077632 100644
 +{
 +    /* Cortex A9: http://chdk.setepontos.com/index.php?topic=13014.msg131110#msg131110 */
 +    cortex_a9_initfn(obj);
-+    
++
++    /* https://www.magiclantern.fm/forum/index.php?topic=19737.msg200737#msg200737 */
 +    ARMCPU *cpu = ARM_CPU(obj);
-+    cpu->midr = 0x411FC143;
-+    // cpu->reset_sctlr = 0x08ED0878;    /* FIXME: no bootloader yet */
-+    cpu->reset_sctlr = 0x48ED0878;
++    cpu->midr        = 0x414FC091;
++    cpu->ctr         = 0x83338003;
++    cpu->id_pfr0     = 0x00001231;
++    cpu->id_pfr1     = 0x00000011;
++    cpu->id_dfr0     = 0x00010444;
++    cpu->id_mmfr3    = 0x00102111;
++    cpu->id_isar4    = 0x00011142;
++    cpu->clidr       = 0x09200003;
++    cpu->ccsidr[0]   = 0x700FE019;
++    cpu->ccsidr[1]   = 0x200FE019;
++    cpu->reset_sctlr = 0x08C50078;  /* best guess */
++    //        1=MMU,        2=align,      4=DCache,    8=SBO        => 8
++    //       10=SBO,       20=SBO,       40=SBO,      80=SBZ        => 7
++    //      100=SBZ,      200=SBZ,      400=SWP,     800=Z(BP)      => 0 
++    //     1000=ICache,  2000=HIVECS,  4000=RR,     8000=SBZ        => 0
++    //    10000=SBO,    20000=SBZ,    40000=SBO,   80000=SBZ        => 5
++    //   100000=SBZ,   200000=SBZ,   400000=SBO,  800000=SBO        => C
++    //  1000000=SBZ,  2000000=EE,   4000000=SBZ, 8000000=NMFIQ      => 8
++    // 10000000=TRE, 20000000=AFE, 40000000=TE, 80000000=SBZ        => 0
++    // bic              0x1003005   (disable MMU, DCache, ICache, HIVECS, ???)
++    // orr             0x40000800   (enable branch predictor and Thumb exceptions)
++    // orr                   1005   (enable MMU, DCache, ICache)
++    // ->reset_sctlr = 0x48C5187D;  /* as printed by CHDK cpuinfo running from bootloader */
++    cpu->reset_auxcr = 0x00000045;  /* ACTLR */
++    //cpu->actlr2    = 0x00000201;
++    //cpu->cpacr     = 0xC0000000;
++    //cpu->dbgdidr   = TODO;
 +}
 +
  static void arm946_initfn(Object *obj)
  {
      ARMCPU *cpu = ARM_CPU(obj);
-@@ -914,9 +954,16 @@ static void arm_v7m_class_init(ObjectClass *oc, void *data)
+@@ -914,9 +1003,20 @@ static void arm_v7m_class_init(ObjectClass *oc, void *data)
  
  static const ARMCPRegInfo cortexr5_cp_reginfo[] = {
      /* Dummy the TCM region regs for the moment */
 -    { .name = "ATCM", .cp = 15, .opc1 = 0, .crn = 9, .crm = 1, .opc2 = 0,
 +    /* fixme: resetvalue hardcoded for DIGIC 6 */
-+    { .name = "ATCM",       .cp = 15, .opc1 = 0, .crn = 9,  .crm = 1, .opc2 = 0,
++    { .name = "ATCM",       .cp = 15, .opc1 = 0, .crn = 9,  .crm = 1, .opc2 = 1,
 +      .access = PL1_RW,     .fieldoffset = offsetof(CPUARMState, cp15.c15_atcm), .resetvalue = 0x00000015 },
-+    { .name = "BTCM",       .cp = 15, .opc1 = 0, .crn = 9,  .crm = 1, .opc2 = 1,
++    { .name = "BTCM",       .cp = 15, .opc1 = 0, .crn = 9,  .crm = 1, .opc2 = 0,
 +      .access = PL1_RW,     .fieldoffset = offsetof(CPUARMState, cp15.c15_btcm), .resetvalue = 0x8000001D },
 +    { .name = "INV_DCACHE", .cp = 15, .opc1 = 0, .crn = 15, .crm = 5, .opc2 = 0,
 +      .access = PL1_RW, .type = ARM_CP_CONST },
 +    { .name = "BUILDOPTS",  .cp = 15, .opc1 = 0, .crn = 15, .crm = 2, .opc2 = CP_ANY,
        .access = PL1_RW, .type = ARM_CP_CONST },
 -    { .name = "BTCM", .cp = 15, .opc1 = 0, .crn = 9, .crm = 1, .opc2 = 1,
++    { .name = "BUILDOPTS1", .cp = 15, .opc1 = 0, .crn = 15, .crm = 2, .opc2 = 0,
++      .access = PL1_RW, .type = ARM_CP_CONST | ARM_CP_OVERRIDE, .resetvalue = 0x00010000 },
++    { .name = "BUILDOPTS2", .cp = 15, .opc1 = 0, .crn = 15, .crm = 2, .opc2 = 1,
++      .access = PL1_RW, .type = ARM_CP_CONST | ARM_CP_OVERRIDE, .resetvalue = 0x00CFC010 },
 +    { .name = "ACTLR2",     .cp = 15, .opc1 = 0, .crn = 15, .crm = 0, .opc2 = 0,
        .access = PL1_RW, .type = ARM_CP_CONST },
      REGINFO_SENTINEL
  };
-@@ -1329,6 +1376,7 @@ static const ARMCPUInfo arm_cpus[] = {
+@@ -1329,6 +1429,7 @@ static const ARMCPUInfo arm_cpus[] = {
  #if !defined(CONFIG_USER_ONLY) || !defined(TARGET_AARCH64)
      { .name = "arm926",      .initfn = arm926_initfn },
      { .name = "arm946",      .initfn = arm946_initfn },
@@ -531,7 +594,7 @@ index 30739fc..6077632 100644
      { .name = "arm1026",     .initfn = arm1026_initfn },
      /* What QEMU calls "arm1136-r2" is actually the 1136 r0p2, i.e. an
       * older core than plain "arm1136". In particular this does not
-@@ -1342,9 +1390,11 @@ static const ARMCPUInfo arm_cpus[] = {
+@@ -1342,9 +1443,11 @@ static const ARMCPUInfo arm_cpus[] = {
                               .class_init = arm_v7m_class_init },
      { .name = "cortex-m4",   .initfn = cortex_m4_initfn,
                               .class_init = arm_v7m_class_init },
@@ -566,7 +629,7 @@ index 815fef8..74ce4a9 100644
  
  static inline int arm_feature(CPUARMState *env, int feature)
 diff --git a/target-arm/helper.c b/target-arm/helper.c
-index afc4163..1de4d3c 100644
+index afc4163..6a1882e 100644
 --- a/target-arm/helper.c
 +++ b/target-arm/helper.c
 @@ -549,6 +549,13 @@ static const ARMCPRegInfo not_v6_cp_reginfo[] = {
@@ -715,6 +778,15 @@ index afc4163..1de4d3c 100644
  static void cpacr_write(CPUARMState *env, const ARMCPRegInfo *ri,
                          uint64_t value)
  {
+@@ -4410,7 +4542,7 @@ void register_cp_regs_for_features(ARMCPU *cpu)
+             /* TCMTR and TLBTR exist in v8 but have no 64-bit versions */
+             { .name = "TCMTR",
+               .cp = 15, .crn = 0, .crm = 0, .opc1 = 0, .opc2 = 2,
+-              .access = PL1_R, .type = ARM_CP_CONST, .resetvalue = 0 },
++              .access = PL1_R, .type = ARM_CP_CONST, .resetvalue = 0x00010001 },    /* DIGIC 6 */
+             REGINFO_SENTINEL
+         };
+         /* TLBTR is specific to VMSA */
 @@ -4542,6 +4674,12 @@ void register_cp_regs_for_features(ARMCPU *cpu)
          }
          define_one_arm_cp_reg(cpu, &sctlr);
