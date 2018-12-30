@@ -19,10 +19,19 @@ if len(sys.argv) <= 2:
 def change_ext(file, newext):
     return os.path.splitext(file)[0] + newext
 
+# using buttons from some other camera model?
+cam = sys.argv[1]
+lines = open("../mpu.c").readlines()
+for l in lines:
+    m = re.match(" *MPU_BUTTON_CODES_OTHER_CAM\((.*), *(.*)\)", l)
+    if m and m.groups()[0] == cam:
+        cam = m.groups()[1]
+        print >> sys.stderr, "Using button codes from %s." % cam
+
 # identify button codes for the requested camera model
 buttons = {}
 lines = open("button_codes.h").readlines()
-first = next(i for i,l in enumerate(lines) if "_" + sys.argv[1] + "[" in l) + 1
+first = next(i for i,l in enumerate(lines) if "_" + cam + "[" in l) + 1
 last  = next(i for i,l in enumerate(lines[first:]) if "END_OF_LIST" in l) + first
 print >> sys.stderr, lines[first-1].strip()
 lines = lines[first:last]
