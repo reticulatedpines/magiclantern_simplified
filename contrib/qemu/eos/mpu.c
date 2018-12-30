@@ -1287,7 +1287,7 @@ void mpu_spells_init(EOSState *s)
     MPU_BUTTON_CODES(70D)
     MPU_BUTTON_CODES(7D)
     MPU_BUTTON_CODES(EOSM)
-    MPU_BUTTON_CODES(EOSM2)
+    MPU_BUTTON_CODES_OTHER_CAM(EOSM2, EOSM)
 
     if (!button_codes)
     {
