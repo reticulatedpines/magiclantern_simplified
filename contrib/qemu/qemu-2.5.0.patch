@@ -117,6 +117,20 @@ index 788b361..6aaeced 100644
  }
  
  static int ide_cd_initfn(IDEDevice *dev)
+diff --git a/hw/sd/sd.c b/hw/sd/sd.c
+index 1a9935c..2561560 100644
+--- a/hw/sd/sd.c
++++ b/hw/sd/sd.c
+@@ -1479,6 +1479,9 @@ static void sd_blk_write(SDState *sd, uint64_t addr, uint32_t len)
+ {
+     uint64_t end = addr + len;
+ 
++    DPRINTF("sd_blk_write: addr = 0x%08llx, len = %d\n",
++            (unsigned long long) addr, len);
++
+     if ((addr & 511) || len < 512)
+         if (!sd->blk || blk_read(sd->blk, addr >> 9, sd->buf, 1) < 0) {
+             fprintf(stderr, "sd_blk_write: read error on host side\n");
 diff --git a/include/exec/exec-all.h b/include/exec/exec-all.h
 index d900b0d..1ad5332 100644
 --- a/include/exec/exec-all.h
