@@ -446,8 +446,20 @@ index 7cb01a8..7b57b2e 100644
      const char *p, *p1;
  
      p = str;
+diff --git a/target-arm/cpu-qom.h b/target-arm/cpu-qom.h
+index 25fb1ce..c180f78 100644
+--- a/target-arm/cpu-qom.h
++++ b/target-arm/cpu-qom.h
+@@ -141,6 +141,7 @@ typedef struct ARMCPU {
+     uint32_t mvfr1;
+     uint32_t mvfr2;
+     uint32_t ctr;
++    uint32_t tcmtr;
+     uint32_t reset_sctlr;
+     uint32_t id_pfr0;
+     uint32_t id_pfr1;
 diff --git a/target-arm/cpu.c b/target-arm/cpu.c
-index 30739fc..0e3a691 100644
+index 30739fc..e332483 100644
 --- a/target-arm/cpu.c
 +++ b/target-arm/cpu.c
 @@ -501,6 +501,7 @@ static void arm_cpu_initfn(Object *obj)
@@ -469,21 +481,30 @@ index 30739fc..0e3a691 100644
  
  static void arm_cpu_post_init(Object *obj)
  {
-@@ -711,6 +713,93 @@ static void arm926_initfn(Object *obj)
+@@ -711,6 +713,103 @@ static void arm926_initfn(Object *obj)
      cpu->reset_sctlr = 0x00090078;
  }
  
 +static void arm946_eos_initfn(Object *obj)
 +{
++    /* https://chdk.setepontos.com/index.php?topic=2139.msg19836#msg19836 */
 +    ARMCPU *cpu = ARM_CPU(obj);
 +    set_feature(&cpu->env, ARM_FEATURE_V5);
 +    set_feature(&cpu->env, ARM_FEATURE_MPU);
-+    set_feature(&cpu->env, ARM_FEATURE_XSCALE); /* for MCR p15, 0,R0,c9,c1,0 */
-+    cpu->midr = 0x41059461;
-+    cpu->ctr = (7 << 25) | (1 << 24) | (4 << 18) | (4 << 15) \
-+             | (2 << 12) | (4 << 6) | (4 << 3) | (2 << 0);
++    cpu->midr        = 0x41059461;
++    cpu->ctr         = 0x0F112112;                /* DIGIC 5: 0x0F192192 */
++    cpu->tcmtr       = 0x000C00C0;
 +    cpu->reset_sctlr = 0x00000078 | (1 << 13);    /* fixme: how to change the HIVECS property? */
 +    set_feature(&cpu->env, ARM_FEATURE_946EOS);
++}
++
++static void arm946_eos5_initfn(Object *obj)
++{
++    /* mostly identical to DIGIC 2..4, with minor differences */
++    arm946_eos_initfn(obj);
++
++    ARMCPU *cpu = ARM_CPU(obj);
++    cpu->ctr = 0x0F192192;
 +}
 +
 +static void cortex_r5_initfn(Object *obj);
@@ -497,6 +518,7 @@ index 30739fc..0e3a691 100644
 +    ARMCPU *cpu = ARM_CPU(obj);
 +    cpu->midr        = 0x411FC143;
 +    cpu->ctr         = 0x8003C003;
++    cpu->tcmtr       = 0x00010001;
 +    cpu->id_mmfr3    = 0x00000011;
 +    cpu->id_isar0    = 0x01101111;
 +    cpu->id_isar2    = 0x21232131;
@@ -563,7 +585,7 @@ index 30739fc..0e3a691 100644
  static void arm946_initfn(Object *obj)
  {
      ARMCPU *cpu = ARM_CPU(obj);
-@@ -914,9 +1003,20 @@ static void arm_v7m_class_init(ObjectClass *oc, void *data)
+@@ -914,9 +1013,20 @@ static void arm_v7m_class_init(ObjectClass *oc, void *data)
  
  static const ARMCPRegInfo cortexr5_cp_reginfo[] = {
      /* Dummy the TCM region regs for the moment */
@@ -586,15 +608,16 @@ index 30739fc..0e3a691 100644
        .access = PL1_RW, .type = ARM_CP_CONST },
      REGINFO_SENTINEL
  };
-@@ -1329,6 +1429,7 @@ static const ARMCPUInfo arm_cpus[] = {
+@@ -1329,6 +1439,8 @@ static const ARMCPUInfo arm_cpus[] = {
  #if !defined(CONFIG_USER_ONLY) || !defined(TARGET_AARCH64)
      { .name = "arm926",      .initfn = arm926_initfn },
      { .name = "arm946",      .initfn = arm946_initfn },
 +    { .name = "arm946-eos",  .initfn = arm946_eos_initfn },
++    { .name = "arm946-eos5", .initfn = arm946_eos5_initfn },
      { .name = "arm1026",     .initfn = arm1026_initfn },
      /* What QEMU calls "arm1136-r2" is actually the 1136 r0p2, i.e. an
       * older core than plain "arm1136". In particular this does not
-@@ -1342,9 +1443,11 @@ static const ARMCPUInfo arm_cpus[] = {
+@@ -1342,9 +1454,11 @@ static const ARMCPUInfo arm_cpus[] = {
                               .class_init = arm_v7m_class_init },
      { .name = "cortex-m4",   .initfn = cortex_m4_initfn,
                               .class_init = arm_v7m_class_init },
@@ -629,7 +652,7 @@ index 815fef8..74ce4a9 100644
  
  static inline int arm_feature(CPUARMState *env, int feature)
 diff --git a/target-arm/helper.c b/target-arm/helper.c
-index afc4163..6a1882e 100644
+index afc4163..f83b6af 100644
 --- a/target-arm/helper.c
 +++ b/target-arm/helper.c
 @@ -549,6 +549,13 @@ static const ARMCPRegInfo not_v6_cp_reginfo[] = {
@@ -646,10 +669,17 @@ index afc4163..6a1882e 100644
  static const ARMCPRegInfo not_v7_cp_reginfo[] = {
      /* Standard v6 WFI (also used in some pre-v6 cores); not in v7 (which
       * is UNPREDICTABLE; we choose to NOP as most implementations do).
-@@ -598,6 +605,131 @@ static const ARMCPRegInfo not_v7_cp_reginfo[] = {
+@@ -598,6 +605,138 @@ static const ARMCPRegInfo not_v7_cp_reginfo[] = {
      REGINFO_SENTINEL
  };
  
++static const ARMCPRegInfo eos_tcm_cp_reginfo[] = {
++    { .name = "ITCM",       .cp = 15, .opc1 = 0, .crn = 9,  .crm = 1, .opc2 = 1,
++      .access = PL1_RW,     .fieldoffset = offsetof(CPUARMState, cp15.c15_atcm), .resetvalue = 0x00000006 },
++    { .name = "DTCM",       .cp = 15, .opc1 = 0, .crn = 9,  .crm = 1, .opc2 = 0,
++      .access = PL1_RW,     .fieldoffset = offsetof(CPUARMState, cp15.c15_btcm), .resetvalue = 0x40000006 },
++    REGINFO_SENTINEL
++};
 +
 +/* ARM946E-S (EOS) cache lockdown emulation */
 +/* note: the model is very incomplete, just enough to emulate
@@ -778,16 +808,16 @@ index afc4163..6a1882e 100644
  static void cpacr_write(CPUARMState *env, const ARMCPRegInfo *ri,
                          uint64_t value)
  {
-@@ -4410,7 +4542,7 @@ void register_cp_regs_for_features(ARMCPU *cpu)
+@@ -4410,7 +4549,7 @@ void register_cp_regs_for_features(ARMCPU *cpu)
              /* TCMTR and TLBTR exist in v8 but have no 64-bit versions */
              { .name = "TCMTR",
                .cp = 15, .crn = 0, .crm = 0, .opc1 = 0, .opc2 = 2,
 -              .access = PL1_R, .type = ARM_CP_CONST, .resetvalue = 0 },
-+              .access = PL1_R, .type = ARM_CP_CONST, .resetvalue = 0x00010001 },    /* DIGIC 6 */
++              .access = PL1_R, .type = ARM_CP_CONST, .resetvalue = cpu->tcmtr },
              REGINFO_SENTINEL
          };
          /* TLBTR is specific to VMSA */
-@@ -4542,6 +4674,12 @@ void register_cp_regs_for_features(ARMCPU *cpu)
+@@ -4542,6 +4681,13 @@ void register_cp_regs_for_features(ARMCPU *cpu)
          }
          define_one_arm_cp_reg(cpu, &sctlr);
      }
@@ -796,11 +826,12 @@ index afc4163..6a1882e 100644
 +    if (arm_feature(env, ARM_FEATURE_946EOS)) {
 +        define_arm_cp_regs(cpu, eos_wfi_cp_reginfo);
 +        define_arm_cp_regs(cpu, eos_lockdown_cp_reginfo);
++        define_arm_cp_regs(cpu, eos_tcm_cp_reginfo);
 +    }
  }
  
  ARMCPU *cpu_arm_init(const char *cpu_model)
-@@ -5891,11 +6029,21 @@ void arm_cpu_do_interrupt(CPUState *cs)
+@@ -5891,11 +6037,21 @@ void arm_cpu_do_interrupt(CPUState *cs)
      /* Switch to the new mode, and to the correct instruction set.  */
      env->uncached_cpsr = (env->uncached_cpsr & ~CPSR_M) | new_mode;
      env->daif |= mask;

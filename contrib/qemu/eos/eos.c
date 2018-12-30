@@ -1294,10 +1294,11 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
     if (!s->workdir) s->workdir = ".";
 
     const char* cpu_name = 
-        (s->model->digic_version <= 5) ? "arm946-eos" :
-        (s->model->digic_version == 7) ? "cortex-a9-eos" :
-        (s->model->digic_version >= 6) ? "cortex-r4-eos" :
-                                         "arm946";
+        (s->model->digic_version <= 4) ? "arm946-eos"    :  /* apparently the same for DIGIC 2, 3 and 4 */
+        (s->model->digic_version == 5) ? "arm946-eos5"   :  /* minor differences */
+        (s->model->digic_version == 7) ? "cortex-a9-eos" :  /* dual core */
+        (s->model->digic_version >= 6) ? "cortex-r4-eos" :  /* also used on Eeko (fake version 50) */
+                                         "arm946";          /* unused here */
     
     s->cpu0 = cpu_arm_init(cpu_name);
     assert(s->cpu0);
