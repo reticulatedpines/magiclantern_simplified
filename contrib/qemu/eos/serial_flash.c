@@ -128,7 +128,6 @@ uint8_t serial_flash_spi_read(SerialFlashState * sf)
             break;
 
         case 0x9f: // Read id
-            sf->read_value = sf->RDID_seq[sf->substate+1];
             sf->rw_count++;
             sf->substate++;
             if (sf->substate == 3)
@@ -136,6 +135,7 @@ uint8_t serial_flash_spi_read(SerialFlashState * sf)
                 sf->state = 0;
                 sf->substate = 0;
             }
+            sf->read_value = sf->RDID_seq[sf->substate];
             EE_DPRINTF("Verbose: READ in RDID = %02Xh\n", ret);
             break;
 
