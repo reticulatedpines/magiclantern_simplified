@@ -38,7 +38,7 @@ if [[ $CC == gcc* ]]; then
 fi
 
 echo "Using $CC / $CXX with $EXTRA_CFLAGS"
-echo "Options: $GUI_FLAGS $*"
+echo "Options: $GUI_FLAGS $@"
 
 ./configure --target-list=arm-softmmu --disable-docs --enable-vnc $GUI_FLAGS \
---extra-cflags="$EXTRA_CFLAGS" $*
+--extra-cflags="$EXTRA_CFLAGS" "$@"
