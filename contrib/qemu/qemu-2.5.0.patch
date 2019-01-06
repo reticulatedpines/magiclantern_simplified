@@ -125,6 +125,19 @@ index 2195b60..e3e2c14 100644
  
  obj-y += armv7m.o exynos4210.o pxa2xx.o pxa2xx_gpio.o pxa2xx_pic.o
  obj-$(CONFIG_DIGIC) += digic.o
+diff --git a/hw/display/exynos4210_fimd.c b/hw/display/exynos4210_fimd.c
+index 45239e8..825d6e6 100644
+--- a/hw/display/exynos4210_fimd.c
++++ b/hw/display/exynos4210_fimd.c
+@@ -97,7 +97,7 @@
+ #define FIMD_WINCON_BUFSTATUS       ((1 << 21) | (1 << 31))
+ #define FIMD_WINCON_BUF0_STAT       ((0 << 21) | (0 << 31))
+ #define FIMD_WINCON_BUF1_STAT       ((1 << 21) | (0 << 31))
+-#define FIMD_WINCON_BUF2_STAT       ((0 << 21) | (1 << 31))
++#define FIMD_WINCON_BUF2_STAT       ((0 << 21) | (1U << 31))
+ #define FIMD_WINCON_BUFSELECT       ((1 << 20) | (1 << 30))
+ #define FIMD_WINCON_BUF0_SEL        ((0 << 20) | (0 << 30))
+ #define FIMD_WINCON_BUF1_SEL        ((1 << 20) | (0 << 30))
 diff --git a/hw/ide/qdev.c b/hw/ide/qdev.c
 index 788b361..6aaeced 100644
 --- a/hw/ide/qdev.c
