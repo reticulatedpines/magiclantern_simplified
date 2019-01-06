@@ -1720,7 +1720,7 @@ static void eos_romcpy_log_mem(EOSState *s, MemoryRegion *mr, hwaddr _addr, uint
         {
             if (was_read && addr == last_read_addr + last_read_size)
             {
-                last_read_value |= ((__int128_t)value << (last_read_size * 8));
+                last_read_value |= ((__uint128_t)value << (last_read_size * 8));
                 last_read_size += size;
                 qemu_log_mask(EOS_LOG_VERBOSE, "%d-bit read from %x (accumulated)\n", last_read_size * 8, last_read_addr);
             }
@@ -1739,7 +1739,7 @@ static void eos_romcpy_log_mem(EOSState *s, MemoryRegion *mr, hwaddr _addr, uint
         {
             if (size < last_read_size && addr == last_write_addr + last_write_size)
             {
-                last_write_value |= ((__int128_t)value << (last_write_size * 8));
+                last_write_value |= ((__uint128_t)value << (last_write_size * 8));
                 last_write_size += size;
                 qemu_log_mask(EOS_LOG_VERBOSE, "%d-bit write to %x (accumulated)\n", last_write_size * 8, last_write_addr);
             }
