@@ -76,7 +76,7 @@ void DebugMsg_log(EOSState * s)
 
             // Skip if it fills format buffer or is {long long} or {short} type
             // (I've never seen those in EOS code)
-            if (n == COUNT(format_string) || format_string[n-3] == 'h' || (n >= 4 && format_string[n-3] == 'l'))
+            if (n == COUNT(format_string) || (n >= 4 && (format_string[n-3] == 'h' || format_string[n-3] == 'l')))
             {
                 APPEND(KERR);
                 APPEND("[FORMATTING_ERROR]");
