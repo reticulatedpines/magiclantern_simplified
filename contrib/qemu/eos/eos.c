@@ -1979,7 +1979,7 @@ unsigned int eos_handle_intengine_vx ( unsigned int parm, EOSState *s, unsigned 
 
                 for (int i = 0; i < 32; i++)
                 {
-                    if (value & (1<<i))
+                    if (value & (1u << i))
                     {
                         msg_arg2 = ((address & 0xF0) >> 1) + i;
                         if (msg_arg2 < COUNT(s->irq_enabled))
@@ -1999,7 +1999,7 @@ unsigned int eos_handle_intengine_vx ( unsigned int parm, EOSState *s, unsigned 
 
                 for (int i = 0; i < 32; i++)
                 {
-                    if (value & (1<<i))
+                    if (value & (1u << i))
                     {
                         msg_arg2 = ((address & 0xF0) >> 1) + i;
                         if (msg_arg2 < COUNT(s->irq_enabled))
@@ -4701,7 +4701,7 @@ static char* format_clock_enable(int value)
     int i;
     for (i = 0; i < 32; i++)
     {
-        if (value & (1 << i))
+        if (value & (1u << i))
         {
             STR_APPEND(clock_msg, "%s ", clock_modules[i]);
         }
