@@ -125,6 +125,19 @@ index 2195b60..e3e2c14 100644
  
  obj-y += armv7m.o exynos4210.o pxa2xx.o pxa2xx_gpio.o pxa2xx_pic.o
  obj-$(CONFIG_DIGIC) += digic.o
+diff --git a/hw/arm/digic.c b/hw/arm/digic.c
+index 90f8190..8e934be 100644
+--- a/hw/arm/digic.c
++++ b/hw/arm/digic.c
+@@ -36,7 +36,7 @@ static void digic_init(Object *obj)
+     object_property_add_child(obj, "cpu", OBJECT(&s->cpu), NULL);
+ 
+     for (i = 0; i < DIGIC4_NB_TIMERS; i++) {
+-#define DIGIC_TIMER_NAME_MLEN    11
++#define DIGIC_TIMER_NAME_MLEN    20
+         char name[DIGIC_TIMER_NAME_MLEN];
+ 
+         object_initialize(&s->timer[i], sizeof(s->timer[i]), TYPE_DIGIC_TIMER);
 diff --git a/hw/display/exynos4210_fimd.c b/hw/display/exynos4210_fimd.c
 index 45239e8..825d6e6 100644
 --- a/hw/display/exynos4210_fimd.c
