@@ -1441,105 +1441,107 @@ recheck:
         jump_instr:;
             uint8_t id = get_stackid(s);
             int level = call_stack_num[id] - 1;
-            struct call_stack_entry * entry = &call_stacks[id][level];
-            uint32_t stack_pc = (level >= 0) ? entry->pc : 0;
-
-            if (prev_pc == stack_pc)
+            if (level >= 0)
             {
-                /* many DIGIC 6 functions have wrappers that simply jump to another function */
-                /* don't be too verbose on these, but also make sure it's really just a simple jump */
-                if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
-                    int len = call_stack_indent(id, 0, 0);
-                    len += fprintf(stderr, "-> 0x%X", pc | env->thumb);
-                    const char * name = eos_lookup_symbol(pc);
-                    if (name && name[0]) {
-                        len += fprintf(stderr, " %s", name);
-                    }
-                    len += eos_indent(len, CALLSTACK_RIGHT_ALIGN);
+                struct call_stack_entry * entry = &call_stacks[id][level];
+                uint32_t stack_pc = entry->pc;
 
-                    /* print LR from the call stack, so it will always show the caller */
-                    int level = call_stack_num[id] - 1;
-                    uint32_t stack_lr = level >= 0 ? entry->lr : 0;
-                    print_call_location(s, prev_pc, stack_lr);
-                }
-                for (int i = 0; i < 14; i++) {
-                    if (i == 12) continue;
-                    if (env->regs[i] != entry->regs[i]) {
-                        fprintf(stderr, "R%d changed\n", i);
-                        assert(0);
-                    }
-                }
-
-                /* update PC of the last call on the stack, to allow chaining more direct jumps */
-                /* (consider it is the same function call) */
-                assert(level >= 0);
-                assert(entry->direct_jumps[3] == 0);
-                entry->direct_jumps[3] = entry->direct_jumps[2];
-                entry->direct_jumps[2] = entry->direct_jumps[1];
-                entry->direct_jumps[1] = entry->direct_jumps[0];
-                entry->direct_jumps[0] = entry->pc;
-                entry->pc = pc;
-                goto end;
-            }
-            else /* not a direct jump to some function */
-            {
-                if (check_abi_register_usage(s, env, id, level, prev_pc, 0) > 0)
+                if (prev_pc == stack_pc)
                 {
-                    /* this must be a jump inside a function
-                     * do not report it */
-                     goto end;
-                }
-
-                /* jumps from the current function? */
-                if (prev_pc > stack_pc &&
-                    prev_pc < stack_pc + 0x1000)
-                {
-                    /* jumps out of the current function? */
-                    if (pc < stack_pc ||        /* jump "behind" the current function? */
-                        pc > prev_pc + 0x100)   /* large jump forward? */
-                    {
-                        /* assume tail call
-                         * fixme: in IDC, these must be defined before their caller,
-                         * as IDA frequently gets them wrong */
-                        if (!qemu_loglevel_mask(EOS_LOG_NO_TAIL_CALLS)) {
-                            goto function_call;
+                    /* many DIGIC 6 functions have wrappers that simply jump to another function */
+                    /* don't be too verbose on these, but also make sure it's really just a simple jump */
+                    if (qemu_loglevel_mask(EOS_LOG_CALLS)) {
+                        int len = call_stack_indent(id, 0, 0);
+                        len += fprintf(stderr, "-> 0x%X", pc | env->thumb);
+                        const char * name = eos_lookup_symbol(pc);
+                        if (name && name[0]) {
+                            len += fprintf(stderr, " %s", name);
                         }
-                        /* with -d notail, report as jump */
+                        len += eos_indent(len, CALLSTACK_RIGHT_ALIGN);
+
+                        /* print LR from the call stack, so it will always show the caller */
+                        uint32_t stack_lr = entry->lr;
+                        print_call_location(s, prev_pc, stack_lr);
+                    }
+                    for (int i = 0; i < 14; i++) {
+                        if (i == 12) continue;
+                        if (env->regs[i] != entry->regs[i]) {
+                            fprintf(stderr, "R%d changed\n", i);
+                            assert(0);
+                        }
+                    }
+
+                    /* update PC of the last call on the stack, to allow chaining more direct jumps */
+                    /* (consider it is the same function call) */
+                    assert(level >= 0);
+                    assert(entry->direct_jumps[3] == 0);
+                    entry->direct_jumps[3] = entry->direct_jumps[2];
+                    entry->direct_jumps[2] = entry->direct_jumps[1];
+                    entry->direct_jumps[1] = entry->direct_jumps[0];
+                    entry->direct_jumps[0] = entry->pc;
+                    entry->pc = pc;
+                    goto end;
+                }
+                else /* not a direct jump to some function */
+                {
+                    if (check_abi_register_usage(s, env, id, level, prev_pc, 0) > 0)
+                    {
+                        /* this must be a jump inside a function
+                         * do not report it */
+                         goto end;
+                    }
+
+                    /* jumps from the current function? */
+                    if (prev_pc > stack_pc &&
+                        prev_pc < stack_pc + 0x1000)
+                    {
+                        /* jumps out of the current function? */
+                        if (pc < stack_pc ||        /* jump "behind" the current function? */
+                            pc > prev_pc + 0x100)   /* large jump forward? */
+                        {
+                            /* assume tail call
+                             * fixme: in IDC, these must be defined before their caller,
+                             * as IDA frequently gets them wrong */
+                            if (!qemu_loglevel_mask(EOS_LOG_NO_TAIL_CALLS)) {
+                                goto function_call;
+                            }
+                            /* with -d notail, report as jump */
+                        }
+                        else
+                        {
+                            /* most likely a jump inside a small function (not caught by ABI check) */
+                            /* fixme: there are a few actual tail calls not caught by this */
+                            if (0) {
+                                fprintf(stderr, "short jump?");
+                                print_call_location(s, prev_pc, prev_lr);
+                            }
+                            goto end;
+                        }
                     }
                     else
                     {
-                        /* most likely a jump inside a small function (not caught by ABI check) */
-                        /* fixme: there are a few actual tail calls not caught by this */
-                        if (0) {
-                            fprintf(stderr, "short jump?");
-                            print_call_location(s, prev_pc, prev_lr);
-                        }
-                        goto end;
-                    }
-                }
-                else
-                {
-                    /* jump not from the current function?
-                     * note: most cases appear to be valid tail calls,
-                     * but not identified properly because of
-                     * a missed function call right before this */
-                    if (!qemu_loglevel_mask(EOS_LOG_NO_TAIL_CALLS)) {
-                        /* note: many warnings with -d notail */
-                        /* there's also a false warning at first jump */
-                        if (!(id == 0x7F && call_stack_num[id] == 0))
-                        {
-                            int len = call_stack_indent(id, 0, 0);
-                            len += fprintf(stderr, KCYN"Warning: missed function call?"KRESET);
-                            len -= strlen(KCYN KRESET);
-                            len += eos_indent(len, CALLSTACK_RIGHT_ALIGN);
-                            print_call_location(s, prev_pc, prev_lr);
-                        }
+                        /* jump not from the current function?
+                         * note: most cases appear to be valid tail calls,
+                         * but not identified properly because of
+                         * a missed function call right before this */
+                        if (!qemu_loglevel_mask(EOS_LOG_NO_TAIL_CALLS)) {
+                            /* note: many warnings with -d notail */
+                            /* there's also a false warning at first jump */
+                            if (!(id == 0x7F && call_stack_num[id] == 0))
+                            {
+                                int len = call_stack_indent(id, 0, 0);
+                                len += fprintf(stderr, KCYN"Warning: missed function call?"KRESET);
+                                len -= strlen(KCYN KRESET);
+                                len += eos_indent(len, CALLSTACK_RIGHT_ALIGN);
+                                print_call_location(s, prev_pc, prev_lr);
+                            }
 
-                        /* heuristic: assume large jumps are tail calls */
-                        if (abs((int)pc - (int)prev_pc) > 0x100)
-                        {
-                            goto function_call;
-                            /* with -d notail, report as jump */
+                            /* heuristic: assume large jumps are tail calls */
+                            if (abs((int)pc - (int)prev_pc) > 0x100)
+                            {
+                                goto function_call;
+                                /* with -d notail, report as jump */
+                            }
                         }
                     }
                 }
