@@ -116,7 +116,7 @@ static void eos_log_selftest(EOSState *s, hwaddr addr, uint64_t value, uint32_t 
     if (!no_check && !is_write)
     {
         uint64_t check;
-        uint64_t mask = (1 << (size*8)) - 1;
+        uint64_t mask = (1ull << (size*8)) - 1;
         assert(size <= 4);
         cpu_physical_memory_read(addr, &check, size);
         if ((check & mask) != (value & mask))
@@ -306,7 +306,7 @@ static void eos_idc_log_call(EOSState *s, CPUState *cpu, CPUARMState *env,
     }
 
     /* bit array for every possible PC & ~3 */
-    static uint32_t saved_pcs[(1 << 30) / 32] = {0};
+    static uint32_t saved_pcs[(1u << 30) / 32] = {0};
 
     uint32_t pc = env->regs[15];
     uint32_t lr = env->regs[14];
@@ -314,9 +314,9 @@ static void eos_idc_log_call(EOSState *s, CPUState *cpu, CPUARMState *env,
 
     /* log each called function to IDC, only once */
     int pca = pc >> 2;
-    if (!(saved_pcs[pca/32] & (1 << (pca%32))))
+    if (!(saved_pcs[pca/32] & (1u << (pca%32))))
     {
-        saved_pcs[pca/32] |= (1 << pca%32);
+        saved_pcs[pca/32] |= (1u << pca%32);
         
         /* log_target_disas writes to stderr; redirect it to our output file */
         /* todo: any other threads that might output to stderr? */
