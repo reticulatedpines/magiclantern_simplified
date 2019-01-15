@@ -18,7 +18,7 @@ static void print_char(char value)
     static int len = 0;
     buf[len++] = value;
     buf[len] = 0;
-    if (value == '\n' || value == '\0' || len == COUNT(buf))
+    if (value == '\n' || value == '\0' || len == COUNT(buf)-1)
     {
         fprintf(stderr, KBLU"%s"KRESET, buf);
         len = 0;
