@@ -1005,10 +1005,10 @@ index 347998c..6265345 100644
  }
  
 diff --git a/target-arm/op_helper.c b/target-arm/op_helper.c
-index 6cd54c8..ee2ddb7 100644
+index 6cd54c8..78d4c16 100644
 --- a/target-arm/op_helper.c
 +++ b/target-arm/op_helper.c
-@@ -474,6 +474,176 @@ void HELPER(set_cp_reg)(CPUARMState *env, void *rip, uint32_t value)
+@@ -474,6 +474,201 @@ void HELPER(set_cp_reg)(CPUARMState *env, void *rip, uint32_t value)
      ri->writefn(env, ri, value);
  }
  
@@ -1129,10 +1129,35 @@ index 6cd54c8..ee2ddb7 100644
 +        snprintf(desc, sizeof(desc), "(%08"PRIX64" - %08"PRIX64", 0x%"PRIX64")", base, end, size);
 +    }
 +
-+    if (strcmp(ri->name, "DRSR") == 0)
++    if (strcmp(ri->name, "DRSR") == 0 &&
++        (value & 1))
 +    {
 +        uint64_t size = 1ull << (((value >> 1) & 0x1F) + 1);
 +        snprintf(desc, sizeof(desc), "(0x%"PRIX64")", size);
++
++        uint32_t rgnr = env->cp15.c6_rgnr;
++        uint32_t base = env->pmsav7.drbar[rgnr];
++        assert(base % size == 0);
++
++        /* subregion disable bits */
++        uint32_t subregion_disable = (value & 0xFF00) >> 8;
++        if (subregion_disable)
++        {
++            /* Region sizes of less than 256 bytes do not support subregions
++             * (Cortex R4 TRM, 7.1.1 Memory regions) */
++            assert(size >= 256);
++
++            uint32_t subregion_size = size / 8;
++            for (int i = 0; i < 8; i++)
++            {
++                fprintf(stderr,
++                    "Subregion %08X - %08X: %s\n",
++                    base + subregion_size * i,
++                    base + subregion_size * (i + 1) - 1,
++                    subregion_disable & (1 << i) ? "disabled" : "enabled"
++                );
++            }
++        }
 +    }
 +
 +    if (strcmp(ri->name, "DRACR") == 0)
