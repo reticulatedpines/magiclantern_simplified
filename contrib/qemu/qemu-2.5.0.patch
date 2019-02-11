@@ -740,7 +740,7 @@ index 815fef8..74ce4a9 100644
  
  static inline int arm_feature(CPUARMState *env, int feature)
 diff --git a/target-arm/helper.c b/target-arm/helper.c
-index afc4163..f83b6af 100644
+index afc4163..632ea26 100644
 --- a/target-arm/helper.c
 +++ b/target-arm/helper.c
 @@ -549,6 +549,13 @@ static const ARMCPRegInfo not_v6_cp_reginfo[] = {
@@ -919,6 +919,24 @@ index afc4163..f83b6af 100644
  }
  
  ARMCPU *cpu_arm_init(const char *cpu_model)
+@@ -5422,7 +5568,7 @@ void arm_v7m_cpu_do_interrupt(CPUState *cs)
+     uint32_t lr;
+     uint32_t addr;
+ 
+-    arm_log_exception(cs->exception_index);
++    arm_log_exception(cs->exception_index, env);
+ 
+     lr = 0xfffffff1;
+     if (env->v7m.current_sp)
+@@ -5719,7 +5865,7 @@ void arm_cpu_do_interrupt(CPUState *cs)
+ 
+     assert(!IS_M(env));
+ 
+-    arm_log_exception(cs->exception_index);
++    arm_log_exception(cs->exception_index, env);
+ 
+     if (arm_is_psci_call(cpu, cs->exception_index)) {
+         arm_handle_psci_call(cpu);
 @@ -5891,11 +6037,21 @@ void arm_cpu_do_interrupt(CPUState *cs)
      /* Switch to the new mode, and to the correct instruction set.  */
      env->uncached_cpsr = (env->uncached_cpsr & ~CPSR_M) | new_mode;
@@ -964,6 +982,28 @@ index c2a85c7..98aa94b 100644
  DEF_HELPER_3(msr_i_pstate, void, env, i32, i32)
  DEF_HELPER_1(clear_pstate_ss, void, env)
  DEF_HELPER_1(exception_return, void, env)
+diff --git a/target-arm/internals.h b/target-arm/internals.h
+index 347998c..6265345 100644
+--- a/target-arm/internals.h
++++ b/target-arm/internals.h
+@@ -72,7 +72,7 @@ static const char * const excnames[] = {
+     [EXCP_SEMIHOST] = "Semihosting call",
+ };
+ 
+-static inline void arm_log_exception(int idx)
++static inline void arm_log_exception(int idx, CPUARMState *env)
+ {
+     if (qemu_loglevel_mask(CPU_LOG_INT)) {
+         const char *exc = NULL;
+@@ -83,7 +83,7 @@ static inline void arm_log_exception(int idx)
+         if (!exc) {
+             exc = "unknown";
+         }
+-        qemu_log_mask(CPU_LOG_INT, "Taking exception %d [%s]\n", idx, exc);
++        qemu_log_mask(CPU_LOG_INT, "%08X: Taking exception %d [%s]\n", env->regs[15], idx, exc);
+     }
+ }
+ 
 diff --git a/target-arm/op_helper.c b/target-arm/op_helper.c
 index 6cd54c8..ee2ddb7 100644
 --- a/target-arm/op_helper.c
