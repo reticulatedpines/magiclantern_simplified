@@ -1914,23 +1914,7 @@ unsigned int eos_handler ( EOSState *s, unsigned int address, unsigned char type
     }
     else
     {
-        static uint32_t last_addr = 0;
-        static uint32_t repeats = 0;
-
-        if(address != last_addr || repeats < 5)
-        {
-            if(address == last_addr)
-            {
-                repeats++;
-            }
-            else
-            {
-                last_addr = address;
-                repeats = 0;
-            }
-
-            io_log("*unk*", s, address, type, value, 0, 0, 0, 0);
-        }
+        io_log("*unk*", s, address, type, value, 0, 0, 0, 0);
     }
     return 0;
 }
