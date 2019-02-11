@@ -4000,6 +4000,13 @@ unsigned int eos_handle_sdio ( unsigned int parm, EOSState *s, unsigned int addr
     intptr_t msg_arg1 = 0;
     intptr_t msg_arg2 = 0;
 
+    if (0)
+    {
+        /* FIXME: only working in bootloader context */
+        assert(s->clock_enable & 0x00000008);   /* DIGIC 3/4 */
+        assert(s->clock_enable & 0x10000000);   /* DIGIC 4, but not 4+ */
+    }
+
     switch(address & 0xFFF)
     {
         case 0x08:
@@ -4533,6 +4540,13 @@ unsigned int eos_handle_cfata ( unsigned int parm, EOSState *s, unsigned int add
     const char * msg = 0;
     intptr_t msg_arg1 = 0;
     intptr_t msg_arg2 = 0;
+
+    if (0)
+    {
+        /* DIGIC 4 and earlier */
+        /* FIXME: only working in bootloader context */
+        assert(s->clock_enable & 0x40);
+    }
 
     switch(address & 0xFFFF)
     {
