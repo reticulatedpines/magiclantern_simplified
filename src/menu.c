@@ -5196,7 +5196,8 @@ handle_ml_menu_keys(struct event * event)
         break;
 
     case BGMT_PRESS_UP:
-        if (edit_mode && !menu_lv_transparent_mode)
+        if ((edit_mode && !menu_lv_transparent_mode) ||
+            (menu_lv_transparent_mode && !CURRENT_GUI_MODE))
         {
             struct menu_entry * entry = get_selected_menu_entry(menu);
             if(entry && uses_caret_editing(entry))
@@ -5226,7 +5227,8 @@ handle_ml_menu_keys(struct event * event)
         break;
 
     case BGMT_PRESS_DOWN:
-        if (edit_mode && !menu_lv_transparent_mode)
+        if ((edit_mode && !menu_lv_transparent_mode) ||
+            (menu_lv_transparent_mode && !CURRENT_GUI_MODE))
         {
             struct menu_entry * entry = get_selected_menu_entry(menu);
             if(entry && uses_caret_editing(entry))
