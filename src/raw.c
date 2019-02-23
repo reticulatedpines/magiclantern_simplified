@@ -133,6 +133,7 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 
 #ifdef CONFIG_70D
 #define DEFAULT_RAW_BUFFER MEM(0x7CFEC + 0x30)
+#define DEFAULT_RAW_BUFFER_SIZE (0x4CFF0000 - 0x4B328000)
 #endif
 
 #ifdef CONFIG_EOSM
