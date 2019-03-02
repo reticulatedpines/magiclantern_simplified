@@ -342,7 +342,7 @@ function shutdown_qemu {
 function kill_qemu {
 
     if pidof qemu-system-arm > /dev/null; then
-        echo -e "\e[31mQEMU still running"
+        echo -e "\e[31mQEMU still running\e[0m"
     fi
 
     if killall -TERM -w qemu-system-arm 2>/dev/null; then
