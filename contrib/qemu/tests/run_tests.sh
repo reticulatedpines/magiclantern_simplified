@@ -154,8 +154,8 @@ FORMAT_SEQUENCE[EOSM]="m left left left $FMT_SEQ"
 FORMAT_SEQUENCE[EOSM2]="m left left left up $FMT_SEQ"
 
 function set_gui_timeout {
-    if [ $CAM == "100D" ]; then
-        # 100D appears slower, for some reason
+    if [[ " 100D 70D 1100D 1200D 1300D EOSM EOSM2 " == *" $CAM "* ]]; then
+        # some cameras are a bit slower to boot
         GUI_TIMEOUT=10
     else
         # 500D needs less than 2 seconds; let's be a bit conservative
