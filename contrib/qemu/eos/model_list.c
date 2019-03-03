@@ -497,7 +497,7 @@ struct eos_model_desc eos_model_list[] = {
         .ram_size               = 0x20000000,   /* 512MB */
         .current_task_addr      = 0x28568,
         .card_led_address       = 0xD20B0C34,
-        .ram_manufacturer_id    = 0x18000103,   /* 80D bootloader */
+        .ram_manufacturer_id    = 0x14000101,
     },
     {
         .name                   = "7D2S",

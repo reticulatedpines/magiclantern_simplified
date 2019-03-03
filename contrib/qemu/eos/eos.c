@@ -5418,10 +5418,17 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
 
     switch (address)
     {
+        case 0xD20B071C:
+        case 0xD0034068:
+        case 0xD0034020:
+            msg = "7D2 comm";
+            ret = rand();
+            break;
+
         case 0xD203046C:
         case 0xD203086C:
-            ret = 1;
             msg = "7D2 init";
+            ret = 1;
             break;
 
         case 0xD2030000:    /* M3: memif_wait_us */
