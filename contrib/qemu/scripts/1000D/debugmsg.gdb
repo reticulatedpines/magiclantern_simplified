@@ -10,7 +10,7 @@ source -v debug-logging.gdb
 
 macro define CURRENT_TASK 0x352C0
 macro define CURRENT_TASK_NAME (((int*)CURRENT_TASK)[0] ? ((char***)CURRENT_TASK)[0][13] : CURRENT_TASK)
-macro define CURRENT_ISR  0
+macro define CURRENT_ISR  (MEM(0x11078) ? MEM(0x38290) : 0)
 
 # GDB hook is very slow; -d debugmsg is much faster
 # ./run_canon_fw.sh will use this address, don't delete it
