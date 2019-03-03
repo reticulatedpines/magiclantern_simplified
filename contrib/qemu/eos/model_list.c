@@ -48,7 +48,7 @@ struct eos_model_desc eos_model_list[] = {
         .ram_size               = 0x08000000,   /* 128MB (guess) */
         .mmio_size              = 0x20000000,
         .card_led_address       = 0xC02200A0,
-     /* .current_task_addr      = 0x2D2C4  */   /* fixme: it's MEM(0x2D2C4) */
+        .current_task_addr      = 0x2D2C4,
         .dedicated_movie_mode   = -1,
     },
     {
