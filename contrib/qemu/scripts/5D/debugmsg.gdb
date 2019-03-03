@@ -39,4 +39,18 @@ register_func_old_log
 b *0xFFB22574
 CreateStateObject_log
 
+b *0xFFB4066C
+commands
+  silent
+  if $r3 == 0xF800002D
+    KYLW
+    printf "Workaround to prevent GDB from crashing...\n"
+    # before: F8000000 - F87FFFFF
+    # after:  E0000000 - FFFFFFFF (background region for the entire ROM area)
+    set $r3 = 0xE0000039
+    KRESET
+  end
+  c
+end
+
 cont
