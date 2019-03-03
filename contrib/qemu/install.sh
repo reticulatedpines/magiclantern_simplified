@@ -467,9 +467,9 @@ echo
 cd $QEMU_NAME
 if [ ! -d .git ]; then
   git init
-  # git requires a valid email; if not setup, add one for this directory only
-  git config user.email || git config user.email qemu-eos@magiclantern.fm
-  git config user.name || git config user.name qemu-eos
+  # git requires a valid email; add one for this directory only
+  git config user.email qemu-eos@magiclantern.fm
+  git config user.name qemu-eos
   git add . && git commit -q -m "$QEMU_NAME vanilla"
 fi
 cd ..
