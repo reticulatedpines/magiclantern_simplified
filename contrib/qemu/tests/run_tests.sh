@@ -1356,11 +1356,10 @@ ROM_DUMPER_BIN=tests/test-progs/portable-rom-dumper/autoexec.bin
 TMP=tests/tmp
 
 mkdir -p $TMP
+rm -f $TMP/*
 
-if [ ! -f $ROM_DUMPER_BIN ]; then
-    mkdir -p `dirname $ROM_DUMPER_BIN`
-    wget -q -O $ROM_DUMPER_BIN http://a1ex.magiclantern.fm/debug/portable-rom-dumper/qemu/autoexec.bin
-fi
+mkdir -p `dirname $ROM_DUMPER_BIN`
+wget -q -O $ROM_DUMPER_BIN https://a1ex.magiclantern.fm/debug/portable-rom-dumper/qemu/autoexec.bin
 
 # we don't know whether the camera will use SD or CF, so prepare both
 mcopy -o -i $MSD $ROM_DUMPER_BIN ::
@@ -1424,22 +1423,18 @@ function check_rom_md5 {
     if mdir -i $MCF ::ROM* &> /dev/null; then mdel -i $MCF ::ROM*; fi
     if mdir -i $MSD ::SFDATA* &> /dev/null; then mdel -i $MSD ::SFDATA*; fi
     if mdir -i $MCF ::SFDATA* &> /dev/null; then mdel -i $MCF ::SFDATA*; fi
+    if mdir -i $MSD ::RESCUE.LOG &> /dev/null; then mdel -i $MSD ::RESCUE.LOG; fi
+    if mdir -i $MCF ::RESCUE.LOG &> /dev/null; then mdel -i $MCF ::RESCUE.LOG; fi
 
     # check whether other files were created/modified (shouldn't be any)
     mdir -i $MSD > $TMP/sd2.lst
     mdir -i $MCF > $TMP/cf2.lst
-    diff -q $TMP/sd.lst $TMP/sd2.lst
-    diff -q $TMP/cf.lst $TMP/cf2.lst
+    diff -u $TMP/sd.lst $TMP/sd2.lst
+    diff -u $TMP/cf.lst $TMP/cf2.lst
 }
 
 # Most EOS cameras should run the portable ROM dumper.
 function test_romdump {
-
-    # The dumper requires the "Open file for write" string present in the firmware.
-    if ! grep -q "Open file for write" $CAM/ROM[01].BIN ; then
-        echo "skipping"
-        return
-    fi
 
     # make sure there are no ROM files on the card
     if mdir -i $MSD ::ROM* &> /dev/null; then
