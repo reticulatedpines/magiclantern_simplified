@@ -3,7 +3,7 @@
 source -v debug-logging.gdb
 
 macro define CURRENT_TASK 0x1020
-macro define CURRENT_ISR 0
+macro define CURRENT_ISR  (MEM(0x1004) ? MEM(0x1008) : 0)
 macro define NUM_CORES 2
 
 b *0xDFFC93A2

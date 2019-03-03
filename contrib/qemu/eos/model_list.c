@@ -630,7 +630,7 @@ struct eos_model_desc eos_model_list[] = {
         .mmio_size              = 0x1F000000,
         .ram_extra_addr         = 0xDF000000,
         .ram_extra_size         = 0x01000000,
-        .current_task_addr      = 0x1020,
+        .current_task_addr      = 0x20,         /* fixme: read from virtual memory */
     },
     {
         .name = NULL,
