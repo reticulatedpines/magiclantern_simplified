@@ -180,7 +180,8 @@ static void mpu_start_sending(EOSState *s)
 
 static int match_spell(uint16_t * received, uint16_t * in_spell)
 {
-    int n = in_spell[0];
+    int n = MIN(in_spell[0], received[0]);
+
     for (int i = 0; i < n; i++)
     {
         uint8_t in_lo = in_spell[i] & 0xFF;
