@@ -403,6 +403,7 @@ static int check_rom_mirroring(void * buf, int size, int full_size)
         if (!check_rom_mirroring(buf, size / 2, full_size))
         {
             fprintf(stderr, "[EOS] mirrored data; unique 0x%X bytes repeated 0x%X times\n", size / 2, full_size / (size / 2));
+            assert(0);
         }
         return 1;
     }
