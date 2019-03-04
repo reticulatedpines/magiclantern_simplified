@@ -10,7 +10,7 @@
 # Caveat: this assumes no other qemu-system-arm or
 # arm-none-eabi-gdb processes are running during the tests
 
-EOS_CAMS=( 5D 5D2 5D3 5D4 6D 6D2 7D 7D2M
+EOS_CAMS=( 5D 5D2 5D3 5D4 6D 6D2 7D 7D2
            40D 50D 60D 70D 77D 80D
            400D 450D 500D 550D 600D 650D 700D 750D 760D 800D
            100D 200D 1000D 1100D 1200D 1300D EOSM EOSM2 )
@@ -30,7 +30,7 @@ SD_CAMS=( 5D3 5D4 6D 6D2 60D 70D 77D 80D
           100D 200D 1000D 1100D 1200D 1300D EOSM EOSM2 )
 
 # cameras with a CF card
-CF_CAMS=( 5D 5D2 5D3 5D4 7D 7D2M 40D 50D 400D )
+CF_CAMS=( 5D 5D2 5D3 5D4 7D 7D2 40D 50D 400D )
 
 ML_PATH=${ML_PATH:=../magic-lantern}
 

@@ -1,4 +1,4 @@
-# ./run_canon_fw.sh 7D2M -s -S & arm-none-eabi-gdb -x 7D2M/patches.gdb -ex quit
+# ./run_canon_fw.sh 7D2 -s -S & arm-none-eabi-gdb -x 7D2/patches.gdb -ex quit
 # Only patches required for emulation
 
 source patch-header.gdb

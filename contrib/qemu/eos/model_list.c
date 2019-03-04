@@ -492,7 +492,7 @@ struct eos_model_desc eos_model_list[] = {
         .serial_flash_sio_ch    = 2,
     },
     {
-        .name                   = "7D2M",
+        .name                   = "7D2",
         .digic_version          = 6,
         .ram_size               = 0x20000000,   /* 512MB */
         .current_task_addr      = 0x28568,
