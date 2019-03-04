@@ -650,6 +650,7 @@ int eos_print_location(EOSState *s, uint32_t pc, uint32_t lr, const char * prefi
 
 int eos_print_location_gdb(EOSState *s)
 {
+    int len = 0;
     uint32_t ret = CURRENT_CPU->env.regs[14] - 4;
 
     if (qemu_loglevel_mask(EOS_LOG_CALLSTACK)) {
@@ -661,16 +662,18 @@ int eos_print_location_gdb(EOSState *s)
 
     /* on multicore machines, print CPU index for each message */
     if (CPU_NEXT(first_cpu)) {
-        fprintf(stderr, "[CPU%d] ", current_cpu->cpu_index);
+        len += fprintf(stderr, "[CPU%d] ", current_cpu->cpu_index);
     }
 
     if (interrupt_level) {
-        return fprintf(stderr, "[%s     INT-%02Xh:%08x %s] ", KCYN, s->irq_id, ret, KRESET);
+        len += fprintf(stderr, "[%s     INT-%02Xh:%08x %s] ", KCYN, s->irq_id, ret, KRESET) - strlen(KCYN KRESET);
     } else {
         const char * task_name = eos_get_current_task_name(s);
         if (!task_name) task_name = "";
-        return fprintf(stderr, "[%s%12s:%08x %s] ", KCYN, task_name, ret, KRESET);
+        len += fprintf(stderr, "[%s%12s:%08x %s] ", KCYN, task_name, ret, KRESET) - strlen(KCYN KRESET);
     }
+
+    return len;
 }
 
 static int print_call_location(EOSState *s, uint32_t pc, uint32_t lr)

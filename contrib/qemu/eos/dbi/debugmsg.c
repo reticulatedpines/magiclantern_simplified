@@ -36,8 +36,9 @@ void DebugMsg_log(EOSState * s)
     int arg_i = 0;
     char c;
     uint32_t address = r2;
-    eos_print_location_gdb(s);
+    int spaces = eos_print_location_gdb(s);
     APPEND("(%02x:%02x) ", r0, r1);
+    spaces += len;
 
     c = eos_get_mem_b(s, address++);
     while (c)
@@ -46,10 +47,14 @@ void DebugMsg_log(EOSState * s)
         while (c != '\0' && c != '%')
         {
             if (c == '\n') {
-                APPEND("\n                ");
+                APPEND("\n");
+                for (int i = 0; i < spaces; i++) {
+                    APPEND(" ");
+                }
             }
-            else if (c != '\r')
+            else if (c != '\r') {
                 APPEND("%c", c);
+            }
             c = eos_get_mem_b(s, address++);
         }
         
