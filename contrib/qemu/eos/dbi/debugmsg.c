@@ -30,7 +30,7 @@ void DebugMsg_log(EOSState * s)
 
     char out[512];
     int len = 0;
-    #define APPEND(fmt,...) do { len += snprintf(out + len, sizeof(out) - len, fmt, ## __VA_ARGS__); } while(0);
+    #define APPEND(fmt,...) do { len += scnprintf(out + len, sizeof(out) - len, fmt, ## __VA_ARGS__); } while(0);
 
     char format_string[128]; // 128 bytes should be enough for anyone...
     int arg_i = 0;

@@ -6,6 +6,7 @@
 #include "hw/sd/sd.h"
 #include "hw/ide/internal.h"
 #include "hw/char/digic-uart.h"
+#include "scnprintf.h"
 
 /** Helper macros **/
 #define COUNT(x)        ((int)(sizeof(x)/sizeof((x)[0])))
