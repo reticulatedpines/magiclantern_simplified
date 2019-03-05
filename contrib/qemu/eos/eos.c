@@ -28,7 +28,8 @@
 #define IGNORE_CONNECT_POLL
 
 #define DIGIC_TIMER_STEP 0x100
-#define DIGIC_TIMER_MASK (0xFFFFF & ~(DIGIC_TIMER_STEP-1))
+#define DIGIC_TIMER20_MASK (0x000FFFFF & ~(DIGIC_TIMER_STEP-1))
+#define DIGIC_TIMER32_MASK (0xFFFFFFFF & ~(DIGIC_TIMER_STEP-1))
 
 /* Machine class */
 
@@ -494,9 +495,11 @@ static void eos_interrupt_timer_body(EOSState *s)
             return;
         }
 
-        s->digic_timer += DIGIC_TIMER_STEP;
-        s->digic_timer &= DIGIC_TIMER_MASK;
-        
+        s->digic_timer20 += DIGIC_TIMER_STEP;
+        s->digic_timer20 &= DIGIC_TIMER20_MASK;
+        s->digic_timer32 += DIGIC_TIMER_STEP;
+        s->digic_timer32 &= DIGIC_TIMER32_MASK;
+
         for (pos = 0; pos < COUNT(s->timer_enabled); pos++)
         {
             if (s->timer_enabled[pos])
@@ -559,7 +562,7 @@ static void eos_interrupt_timer_body(EOSState *s)
 
         for (int id = 0; id < COUNT(s->UTimers); id++)
         {
-            if (s->UTimers[id].active && s->UTimers[id].output_compare == s->digic_timer)
+            if (s->UTimers[id].active && s->UTimers[id].output_compare == s->digic_timer32)
             {
                 if (qemu_loglevel_mask(EOS_LOG_IO)) {
                     fprintf(stderr, "[TIMER] Firing UTimer #%d\n", id);
@@ -580,7 +583,7 @@ static void eos_interrupt_timer_body(EOSState *s)
         
         for (pos = 0; pos < COUNT(s->HPTimers); pos++)
         {
-            if (s->HPTimers[pos].active && s->HPTimers[pos].output_compare == s->digic_timer)
+            if (s->HPTimers[pos].active && s->HPTimers[pos].output_compare == s->digic_timer20)
             {
                 if (qemu_loglevel_mask(EOS_LOG_IO)) {
                     fprintf(stderr, "[HPTimer] Firing HPTimer #%d\n", pos);
@@ -2303,22 +2306,22 @@ unsigned int eos_handle_utimer ( unsigned int parm, EOSState *s, unsigned int ad
             /* fixme: duplicate code (same as HPTimer offset 1x4) */
             if(type & MODE_WRITE)
             {
-                /* upper rounding, to test for equality with digic_timer */
-                int rounded = (value + DIGIC_TIMER_STEP) & DIGIC_TIMER_MASK;
+                /* upper rounding, to test for equality with digic_timer32 */
+                uint32_t rounded = (value + DIGIC_TIMER_STEP) & DIGIC_TIMER32_MASK;
                 s->UTimers[timer_id].output_compare = rounded;
 
                 /* for some reason, the value set to output compare
-                 * is sometimes a little behind digic_timer */
-                int actual_delay = ((int32_t)(rounded - s->digic_timer) << 12) >> 12;
+                 * is sometimes a little behind digic_timer32 */
+                int actual_delay = (int32_t)(rounded - s->digic_timer32);
 
                 if (actual_delay < 0)
                 {
                     /* workaround: when this happens, trigger right away */
-                    s->UTimers[timer_id].output_compare = s->digic_timer + DIGIC_TIMER_STEP;
+                    s->UTimers[timer_id].output_compare = s->digic_timer32 + DIGIC_TIMER_STEP;
                 }
 
                 msg = "UTimer #%d: output compare (delay %d microseconds)";
-                msg_arg2 = value - s->digic_timer_last_read;
+                msg_arg2 = value - s->digic_timer32_last_read;
             }
             else
             {
@@ -2378,22 +2381,22 @@ unsigned int eos_handle_hptimer ( unsigned int parm, EOSState *s, unsigned int a
         case 0x104:
             if(type & MODE_WRITE)
             {
-                /* upper rounding, to test for equality with digic_timer */
-                int rounded = (value + DIGIC_TIMER_STEP) & DIGIC_TIMER_MASK;
+                /* upper rounding, to test for equality with digic_timer20 */
+                int rounded = (value + DIGIC_TIMER_STEP) & DIGIC_TIMER20_MASK;
                 s->HPTimers[timer_id].output_compare = rounded;
                 
                 /* for some reason, the value set to output compare
-                 * is sometimes a little behind digic_timer */
-                int actual_delay = ((int32_t)(rounded - s->digic_timer) << 12) >> 12;
+                 * is sometimes a little behind digic_timer20 */
+                int actual_delay = ((int32_t)(rounded - s->digic_timer20) << 12) >> 12;
 
                 if (actual_delay < 0)
                 {
                     /* workaround: when this happens, trigger right away */
-                    s->HPTimers[timer_id].output_compare = s->digic_timer + DIGIC_TIMER_STEP;
+                    s->HPTimers[timer_id].output_compare = s->digic_timer20 + DIGIC_TIMER_STEP;
                 }
 
                 msg = "HPTimer #%d: output compare (delay %d microseconds)";
-                msg_arg2 = value - s->digic_timer_last_read;
+                msg_arg2 = value - s->digic_timer20_last_read;
             }
             else
             {
@@ -3800,7 +3803,11 @@ unsigned int eos_handle_digic_timer ( unsigned int parm, EOSState *s, unsigned i
     }
     else
     {
-        ret = s->digic_timer_last_read = s->digic_timer;
+        if (parm) {
+            ret = s->digic_timer32_last_read = s->digic_timer32;
+        } else {
+            ret = s->digic_timer20_last_read = s->digic_timer20;
+        }
 
         if (!(qemu_loglevel_mask(CPU_LOG_INT) &&
               qemu_loglevel_mask(EOS_LOG_VERBOSE)))
