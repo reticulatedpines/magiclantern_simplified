@@ -209,7 +209,7 @@ int lossless_init()
 
         TTL_ResLock = CreateResLockEntry(resources, COUNT(resources));
     }
-    else if (is_camera("5D3", "*") || is_camera("6D", "*") || is_camera("70D", "*"))
+    else if (is_camera("5D3", "*") || is_camera("6D", "*"))
     {
         uint32_t resources[] = {
             0x00000 | edmac_channel_to_index(edmac_write_chan),
@@ -219,6 +219,28 @@ int lossless_init()
           //0x20016,    /* Write connection 22 (for WR2 - not used) */
             0x50034,
             0x5002d,
+            0x50010,
+            0x90001,
+            0x230000,
+            0x160000,
+            0x260000,
+            0x260001,
+            0x260002,
+            0x260003,
+        };
+        
+        TTL_ResLock = CreateResLockEntry(resources, COUNT(resources));
+    }
+    else if (is_camera("70D", "*"))
+    {
+        uint32_t resources[] = {
+            0x00000 | edmac_channel_to_index(edmac_write_chan),
+            0x10000 | edmac_channel_to_index(edmac_read_chan),
+            0x30001,    /* Read connection 1 (uncompressed input) */
+            0x2002d,    /* Write connection 45 (compressed output) */
+          //0x20016,    /* Write connection 22 (for WR2 - not used) */
+            0x50034,
+          //0x5002d,    /* workaround, TTL_Prepare stucks otherwise if called in LV */
             0x50010,
             0x90001,
             0x230000,
@@ -314,6 +336,8 @@ int lossless_compress_raw_rectangle(
     if (is_camera("70D", "*"))
     {
         /* 70D is different */
+        // EngDrvOut(0xC0F373F4, 0x00000000);  /* alternative fixing method; 0x7FFF7FFF on 70D */
+        EngDrvOut(0xC0F373B4, 0);              /* 0x11 on 70D */
         EngDrvOut(0xC0F37300, PACK32(width    - 1,  height/2  - 1));  /* 0xE7B0ADF on 70D */
         EngDrvOut(0xC0F373E8, PACK32(width    - 1,  height/2  - 1));  /* 0xE7B0ADF on 70D */
     }
