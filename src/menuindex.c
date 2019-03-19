@@ -118,12 +118,14 @@ static struct menu_entry help_menus[] = {
         .choices = CHOICES("Overlays (PLAY only)"),
     },
     #endif
-    #ifdef ARROW_MODE_TOGGLE_KEY
+    #ifdef FEATURE_ARROW_SHORTCUTS
     {
         .select = menu_nav_help_open,
         .name = "Press "ARROW_MODE_TOGGLE_KEY,
         .choices = CHOICES("Shortcuts (LV only)"),
     },
+    #elif defined(ARROW_MODE_TOGGLE_KEY)
+    #error Please remove unused definition of ARROW_MODE_TOGGLE_KEY.
     #endif
     {
         .select = menu_nav_help_open,

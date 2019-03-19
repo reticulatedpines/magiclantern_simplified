@@ -13,8 +13,6 @@
 // Audio features working
 #define FEATURE_AUDIO_REMOTE_SHOT // generic enabled until AudioIC is programmed
 
-//~ #undef FEATURE_ARROW_SHORTCUTS
-
 // Not working :(
 #undef FEATURE_IMAGE_EFFECTS
 //~ #undef FEATURE_DEFISHING_PREVIEW
