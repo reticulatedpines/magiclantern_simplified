@@ -6184,6 +6184,7 @@ static struct longpress erase_longpress = {
 #ifdef BGMT_Q_SET
 static struct longpress qset_longpress = {
     .long_btn_press     = BGMT_Q_SET,           /* long press opens Q-menu */
+    .long_btn_unpress   = BGMT_UNPRESS_SET,     /* hack: Q-menu will disable the "unpress SET" event */
     .short_btn_press    = BGMT_PRESS_SET,       /* short press => fake SET button (centering AF Frame in LV etc...) */
     .short_btn_unpress  = BGMT_UNPRESS_SET,
     .pos_x = 670,   /* outside ML menu, on the Q screen */
