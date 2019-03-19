@@ -6176,8 +6176,8 @@ static struct longpress erase_longpress = {
     .long_btn_press     = BGMT_TRASH,           /* long press (500ms) opens ML menu */
     .short_btn_press    = BGMT_PRESS_DOWN,      /* short press => do a regular "down/erase" */
     .short_btn_unpress  = BGMT_UNPRESS_DOWN,
-    .pos_x = 680,   /* in LiveView */
-    .pos_y = 350,   /* above ExpSim */
+    .pos_x = 670,   /* in LiveView */
+    .pos_y = 343,   /* above ExpSim */
 };
 #endif
 
