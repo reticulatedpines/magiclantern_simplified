@@ -521,7 +521,7 @@ function test_menu()
     assert(menu.select("Bulb Timer", "Exposure duration")); sleep(1)
     assert(menu.select("Shoot Preferences", "Snap Simulation")); sleep(1)
     assert(menu.select("Misc key settings", "Sticky HalfShutter")); sleep(1)
-    assert(menu.select("Play mode actions", "Trigger key(s)")); sleep(1)
+    -- assert(menu.select("Play mode actions", "Trigger key(s)")); sleep(1)     -- FIXME: not present on EOS M
     assert(menu.select("LiveView zoom tweaks", "Zoom on HalfShutter")); sleep(1)
     assert(menu.select("Lens info", "Lens ID")); sleep(1)
     assert(menu.select("Shoot", "Intervalometer")); sleep(1)
