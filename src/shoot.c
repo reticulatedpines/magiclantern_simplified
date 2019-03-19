@@ -2450,8 +2450,54 @@ static void zoom_halfshutter_step()
 #ifdef CONFIG_LIVEVIEW
     if (!lv) return;
     if (RECORDING) return;
-    
-    if (zoom_halfshutter && is_manual_focus())
+
+    if (!is_manual_focus())
+    {
+        /* AF enabled? we should not interrupt it while autofocusing */
+        /* AF operation is announced via PROP_LV_FOCUS_STATUS, but the notification arrives too late */
+        static int prev_hs = 0;
+        static int press_timestamp = 0;
+        static int autofocused = 0;
+        int hs = get_halfshutter_pressed();
+        int hs_just_pressed = hs && !prev_hs;
+        prev_hs = hs;
+
+        if (hs_just_pressed)
+        {
+            /* half-shutter pressed, expect AF to start soon */
+            press_timestamp = get_ms_clock();
+            return;
+        }
+
+        if (lv_focus_status != 1)
+        {
+            /* autofocusing */
+            info_led_on();
+            autofocused = 1;
+            press_timestamp = 0;
+            return;
+        }
+
+        if (press_timestamp && get_ms_clock() - press_timestamp < 700)
+        {
+            /* too early to tell whether AF started or not */
+            return;
+        }
+
+        if (!hs)
+        {
+            info_led_off();
+            autofocused = 0;
+        }
+
+        if (autofocused)
+        {
+            /* once it autofocused, we can no longer switch to x5 zoom (why, Canon?) */
+            return;
+        }
+    }
+
+    if (zoom_halfshutter)
     {
         int hs = get_halfshutter_pressed();
         if (hs && lv_dispsize == 1 && display_idle())
@@ -4106,7 +4152,7 @@ struct menu_entry tweak_menus_shoot[] = {
                 .priv = &zoom_halfshutter,
                 .max = 1,
                 .help = "Enable zoom when you hold the shutter halfway pressed.",
-                .depends_on = DEP_MANUAL_FOCUS,
+                .help2 = "This feature only works as long as you don't trigger autofocus.",
             },
             {
                 .name = "Zoom with Focus Ring",
