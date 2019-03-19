@@ -455,10 +455,11 @@ editor =
             name = "Edit",
             items = {"Cut","Copy","Paste","Select All"},
         },
-        {
-            name = "Debug",
-            items = {"Run","Step Into","Stacktrace","Locals","Detach"},
-        },
+        -- FIXME: doesn't seem to work
+        --{
+        --    name = "Debug",
+        --    items = {"Run","Step Into","Stacktrace","Locals","Detach"},
+        --},
         {
             name = "Font",
             items = {}
@@ -473,9 +474,9 @@ editor =
 }
 
 for k,v in pairs(FONT) do
-    table.insert(editor.menu[4].items,k)
+    table.insert(editor.menu[3].items,k)
 end
-table.sort(editor.menu[4].items)
+table.sort(editor.menu[3].items)
 
 editor.lines_per_page = (display.height - 20 - FONT.LARGE.height) / editor.font.height / 2
 editor.scrollbar = scrollbar.create(editor.font.height,1,1,display.width - 2,20 + FONT.LARGE.height,2)
