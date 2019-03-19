@@ -1201,7 +1201,7 @@ function test_lv()
         key.press(KEY.INFO)
         sleep(0.2); print_overlays_status()
         sleep(1)
-        if lv.overlays ~= 1 then
+        if lv.enabled and lv.overlays ~= 1 then
             -- Canon overlays disabled?
             -- Enable ML overlays
             assert(menu.set("Overlay", "Global Draw", "ON"))
