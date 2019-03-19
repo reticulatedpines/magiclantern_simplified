@@ -6110,11 +6110,6 @@ static void longpress_check(int timer, void * opaque)
     }
     else if (longpress->count < 15 && !longpress->pressed)
     {
-        if (!gui_menu_shown())
-        {
-            return;
-        }
-
         if (!longpress->short_cbr || longpress->short_cbr())
         {
             /* optional short press ( < 300 ms) */
