@@ -115,8 +115,8 @@ NSTUB(0xFF545F38,  LiveViewApp_handler)
 NSTUB(0xFF5485FC,  LiveViewApp_handler_end)
 NSTUB(0xFF546CC4,  LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
 NSTUB(0xFF7103A4,  LiveViewShutterApp_handler)
-NSTUB(0xFF72EC20,  PlayMain_handler)
-NSTUB(0xFF56436C,  PlayMovieGuideApp_handler)
+NSTUB(0xFF72EC20,  PlayMain_handler)                        // StartPlayTouchPassFilterApp
+NSTUB(0xFF56436C,  PlayMovieGuideApp_handler)               // StartPlayMovieGuideApp
 NSTUB(0xFF553078,  ShootOlcApp_handler)
 
 /** Display **/

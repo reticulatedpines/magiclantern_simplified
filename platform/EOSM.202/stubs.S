@@ -122,8 +122,8 @@ NSTUB(0xFF520960,  ErrForCamera_handler)                    // ERR70, ERR80 etc 
 NSTUB(0xFF53800C,  HideUnaviFeedBack_maybe)                 // look for StartUnaviFeedBackTimer
 NSTUB(0xFF53A558,  LiveViewApp_handler)
 NSTUB(0xFF6FBD44,  LiveViewShutterApp_handler)
-NSTUB(0xFF3BC078,  PlayMain_handler)
-NSTUB(0xFF5540E4,  PlayMovieGuideApp_handler)
+NSTUB(0xFF715BA4,  PlayMain_handler)                        // StartPlayTouchPassFilterApp
+NSTUB(0xFF5540E4,  PlayMovieGuideApp_handler)               // StartPlayMovieGuideApp
 NSTUB(0xFF541BD4,  ShootOlcApp_handler)                     // AJ_DIALOG.HANDLER_DlgShootOlcInfo.c
 // NSTUB(    ???,  LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)/* present on 60D.111, 6D.113, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
 // NSTUB(    ???,  LiveViewApp_handler_end)                 /* present on 60D.111, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */

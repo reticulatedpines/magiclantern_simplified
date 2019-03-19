@@ -131,8 +131,8 @@ NSTUB(0xFF528718,  LiveViewApp_handler)
 NSTUB(0xFF5295C0,  LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
 NSTUB(0xFF52A8C4,  LiveViewApp_handler_end)                 // start of next function
 NSTUB(0xFF6E056C,  LiveViewShutterApp_handler)
-NSTUB(0xFF6F9D74,  PlayMain_handler)
-NSTUB(0xFF542BA0,  PlayMovieGuideApp_handler)
+NSTUB(0xFF6F9D74,  PlayMain_handler)                        // StartPlayTouchPassFilterApp
+NSTUB(0xFF542BA0,  PlayMovieGuideApp_handler)               // StartPlayMovieGuideApp
 NSTUB(0xFF52EFE8,  ShootOlcApp_handler)                     // AJ_DIALOG.HANDLER_DlgShootOlcInfo.c
 // NSTUB(    ???,  LiveViewLevelApp_handler)                /* present on 5D3.113 */
 // NSTUB(    ???,  LiveViewWbApp_handler)                   /* present on 7D.203, 5D3.113, 5D2.212 */
