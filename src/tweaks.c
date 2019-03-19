@@ -2658,7 +2658,7 @@ static void alter_bitmap_palette(int dim_factor, int grayscale, int u_shift, int
     for (int i = 0; i < 255; i++)
     {
         if (i==0 || i==3 || i==0x14) continue; // don't alter transparent entries
-
+        if (i == FAST_ZEBRA_GRID_COLOR) continue;   // don't alter fast zebra color either
         int orig_palette_entry = LCD_Palette[3*i + 2];
         //~ bmp_printf(FONT_LARGE,0,0,"%x ", orig_palette_entry);
         //~ msleep(300);

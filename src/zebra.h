@@ -111,6 +111,8 @@ struct raw_highlight_info
 #define ZEBRA_FILL_50_PERCENT 2
 #define ZEBRA_FILL_SOLID 3
 
+#define FAST_ZEBRA_GRID_COLOR 4 // invisible diagonal grid for zebras; must be unused and only from 0-15
+
 /**
  * Custom highlighting of raw zones / levels
  * Parameter: array of struct raw_highlight_info (where you can define highlight zones and customize pretty much anything)

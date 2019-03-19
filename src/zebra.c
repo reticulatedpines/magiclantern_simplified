@@ -60,7 +60,6 @@ extern uint32_t ml_refresh_display_needed;
 
 
 #define DIGIC_ZEBRA_REGISTER 0xC0F140cc
-#define FAST_ZEBRA_GRID_COLOR 4 // invisible diagonal grid for zebras; must be unused and only from 0-15
 
 // those colors will not be considered for histogram (so they should be very unlikely to appear in real situations)
 #define MZ_WHITE 0xFE12FE34
