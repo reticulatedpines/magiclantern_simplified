@@ -103,7 +103,7 @@ static struct menu_entry help_menus[] = {
         #endif
         .choices = CHOICES("Edit in LiveView"),
     },
-    #if FEATURE_JUNKIE_MENU
+    #ifdef FEATURE_JUNKIE_MENU
     {
         .select = menu_nav_help_open,
         .name = "Press MENU",
