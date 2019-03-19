@@ -347,7 +347,7 @@ PROP_HANDLER( PROP_COPYRIGHT_STRING )
 char* get_video_mode_name(int include_fps)
 {
     static char zoom_msg[12];
-    snprintf(zoom_msg, sizeof(zoom_msg), "ZOOM-X%d", lv_dispsize);
+    snprintf(zoom_msg, sizeof(zoom_msg), "ZOOM-X%d", lv_dispsize & 0xF);
     
     char* video_mode = 
         is_pure_play_photo_mode()                   ? "PLAY-PH"  :      /* Playback, reviewing a picture */

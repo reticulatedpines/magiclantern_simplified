@@ -115,6 +115,9 @@
 // Needs more hacking, I'll fix it once i get the EOSM - nanomad
 #define CONFIG_TOUCHSCREEN
 
+/** Intermediate "x1" zoom, before going into x5/x10 (what's the point?!) */
+#define CONFIG_ZOOM_X1
+
 /** Perfect sync using EVF_STATE **/
 #define CONFIG_EVF_STATE_SYNC
 

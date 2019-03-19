@@ -1224,6 +1224,10 @@ function test_lv()
 
     sleep(2)
 
+    local old_x5 = menu.get("LiveView zoom tweaks", "Zoom x5")
+    local old_x10 = menu.get("LiveView zoom tweaks", "Zoom x10")
+    assert(menu.set("LiveView zoom tweaks", "Zoom x5", "ON"))
+    assert(menu.set("LiveView zoom tweaks", "Zoom x10", "ON"))
     for i,z in pairs{1, 5, 10, 5, 1, 10, 1} do
         printf("Setting zoom to x%d...\n", z)
         lv.zoom = z
@@ -1237,6 +1241,10 @@ function test_lv()
         end
         lv.wait(5)
     end
+    assert(menu.set("LiveView zoom tweaks", "Zoom x5", old_x5))
+    assert(menu.set("LiveView zoom tweaks", "Zoom x10", old_x10))
+    assert(menu.get("LiveView zoom tweaks", "Zoom x5") == old_x5)
+    assert(menu.get("LiveView zoom tweaks", "Zoom x10") == old_x10)
 
     printf("Pausing LiveView...\n")
     lv.pause()
