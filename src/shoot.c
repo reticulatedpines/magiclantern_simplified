@@ -84,7 +84,11 @@ int display_idle()
 {
     extern thunk ShootOlcApp_handler;
     if (lv) return liveview_display_idle();
-    else return gui_state == GUISTATE_IDLE && !gui_menu_shown() &&
+    else return
+        #ifndef CONFIG_EOSM
+        gui_state == GUISTATE_IDLE &&
+        #endif
+        !gui_menu_shown() &&
         ((!DISPLAY_IS_ON && CURRENT_GUI_MODE == 0) || (intptr_t)get_current_dialog_handler() == (intptr_t)&ShootOlcApp_handler);
 }
 
