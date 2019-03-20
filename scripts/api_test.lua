@@ -1165,6 +1165,66 @@ function test_camera_take_pics()
     sleep(5)
 end
 
+function test_ml_overlays()
+    assert(lv.overlays == 2)    -- Global Draw ON, INFO in the current position etc
+    local all_overlays = {"Zebras", "Focus Peak", "Magic Zoom",
+        "Cropmarks", "Ghost image", "Spotmeter", "False color",
+        "Histogram", "Waveform", "Vectorscope", "Level Indicator"}
+
+    printf("Overlays:\n")
+    sleep(2)
+    local available_overlays = {}
+    local old_state = {}
+    for i,feature in pairs(all_overlays) do
+        old_state[feature] = menu.get("Overlay", feature)
+        if old_state[feature] ~= nil then
+            table.insert(available_overlays, feature)
+            printf("- %s: %s\n", feature, old_state[feature]);
+            sleep(1)
+        end
+    end
+    printf("Turning everything off:\n")
+    sleep(2)
+    for i,feature in pairs(available_overlays) do
+        if old_state[feature] ~= "OFF" then
+            printf("- %s: %s -> OFF\n", feature, old_state[feature]);
+            assert(menu.set("Overlay", feature, "OFF"))
+            assert(menu.get("Overlay", feature) == "OFF")
+            sleep(1)
+        end
+    end
+    printf("Turning on one by one:\n")
+    sleep(2)
+    for i,feature in pairs(available_overlays) do
+        printf("- %s: ON/OFF", feature);
+        assert(menu.set("Overlay", feature, "ON"))
+        assert(menu.get("Overlay", feature) ~= "OFF")   -- it may have different text
+        printf(" (%s)\n", menu.get("Overlay", feature));
+        sleep(2)
+        assert(menu.set("Overlay", feature, "OFF"))
+        assert(menu.get("Overlay", feature) == "OFF")
+        sleep(1)
+    end
+    printf("Turning everything on:\n")
+    sleep(2)
+    for i,feature in pairs(available_overlays) do
+        printf("- %s: ON\n", feature);
+        assert(menu.set("Overlay", feature, "ON"))
+        assert(menu.get("Overlay", feature) ~= "OFF")   -- it may have different text
+        sleep(1)
+    end
+    sleep(5)
+    printf("Restoring previous state:\n")
+    sleep(2)
+    for i,feature in pairs(available_overlays) do
+        printf("- %s: %s\n", feature, old_state[feature]);
+        assert(menu.set("Overlay", feature, old_state[feature]))
+        assert(menu.get("Overlay", feature) == old_state[feature])
+    end
+    printf("Overlays working :)\n")
+    sleep(2)
+end
+
 function test_lv()
     request_mode(MODE.M, "M")
 
@@ -1197,6 +1257,7 @@ function test_lv()
 
     console.hide(); assert(not console.visible)
     local old_gdr = menu.get("Overlay", "Global Draw")
+    local overlays_tested = false
     for i=1,16 do
         key.press(KEY.INFO)
         sleep(0.2); print_overlays_status()
@@ -1208,6 +1269,11 @@ function test_lv()
             sleep(0.2); print_overlays_status()
             assert(lv.overlays == 2)
             sleep(1)
+            if not overlays_tested then
+                test_ml_overlays()
+                overlays_tested = true
+                sleep(1)
+            end
             -- Disable ML overlays
             assert(menu.set("Overlay", "Global Draw", "OFF"))
             sleep(0.2); print_overlays_status()
