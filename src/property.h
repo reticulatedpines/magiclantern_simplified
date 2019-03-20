@@ -527,6 +527,7 @@
 #define PROP_ICU_AUTO_POWEROFF  0x80030024
 #define PROP_AUTO_POWEROFF_TIME 0x80000024
 #define PROP_TERMINATE_SHUT_REQ 0x80010001
+#define PROP_ABORT              0x80010002 // when opening the battery door
 #define PROP_REBOOT             0x80010003 // used by firmware update code
 
 #define PROP_SHUTDOWN_REASON    0x8002005b
