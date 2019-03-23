@@ -696,7 +696,7 @@ static void caret_move(struct menu_entry * entry, int delta)
 {
     int max = (entry->unit == UNIT_TIME) ? 7 :
               (entry->unit == UNIT_HEX)  ? log2i(MAX(ABS(entry->max),ABS(entry->min)))/4
-                                         : log10i(MAX(ABS(entry->max),ABS(entry->min))/2) ;
+                                         : log10i(MAX(ABS(entry->max),ABS(entry->min))) ;
 
     menu_numeric_toggle(&caret_position, delta, 0, max);
 
