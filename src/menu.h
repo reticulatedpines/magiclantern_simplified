@@ -237,8 +237,8 @@ struct menu_entry
 #define UNIT_PERCENT 3
 #define UNIT_PERCENT_x10 4
 #define UNIT_ISO 5
-#define UNIT_HEX 6
-#define UNIT_DEC 7
+#define UNIT_HEX 6      /* unsigned */
+#define UNIT_DEC 7      /* signed */
 #define UNIT_TIME 8     /* seconds */
 #define UNIT_TIME_MS 9  /* milliseconds */
 #define UNIT_TIME_US 10 /* microseconds */
