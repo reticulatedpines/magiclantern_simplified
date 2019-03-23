@@ -2522,7 +2522,7 @@ entry_default_display_info(
                 }
                 case UNIT_DEC:
                 {
-                    if(edit_mode)
+                    if (EDIT_OR_TRANSPARENT)
                     {
                         char* zero_pad = "00000000";
                         STR_APPEND(value, "%s%d", (zero_pad + COERCE(8-(caret_position - log10i(MEM(entry->priv))),0,8)), MEM(entry->priv));
@@ -2535,7 +2535,7 @@ entry_default_display_info(
                 }
                 case UNIT_HEX:
                 {
-                    if(edit_mode)
+                    if (EDIT_OR_TRANSPARENT)
                     {
                         char* zero_pad = "00000000";
                         STR_APPEND(value, "0x%s%x", (zero_pad + COERCE(8-(caret_position - log2i(MEM(entry->priv))/4),0,8)), MEM(entry->priv));
@@ -2573,7 +2573,7 @@ entry_default_display_info(
                 case UNIT_TIME_MS:
                 case UNIT_TIME_US:
                 {
-                    if(edit_mode)
+                    if (EDIT_OR_TRANSPARENT)
                     {
                         char* zero_pad = "00000000";
                         STR_APPEND(value, "%s%d", (zero_pad + COERCE(8-(caret_position - log10i(MEM(entry->priv))),0,8)), MEM(entry->priv));
