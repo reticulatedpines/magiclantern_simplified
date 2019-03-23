@@ -144,8 +144,12 @@ static int is_customize_selected();
 
 extern void CancelDateTimer();
 
-#define CAN_HAVE_PICKBOX(entry) ((entry)->max > (entry)->min && (((entry)->max - (entry)->min < 15) || (entry)->choices) && IS_ML_PTR((entry)->priv))
-#define SHOULD_HAVE_PICKBOX(entry) ((entry)->max > (entry)->min + 1 && (entry)->max - (entry)->min < 10 && IS_ML_PTR((entry)->priv))
+#define CAN_HAVE_PICKBOX(entry) (                               \
+    (entry)->max > (entry)->min &&                              \
+    (((entry)->max - (entry)->min < 15) || (entry)->choices) && \
+    IS_ML_PTR((entry)->priv) &&                                 \
+    !uses_caret_editing(entry))
+
 #define IS_BOOL(entry) (((entry)->max - (entry)->min == 1 && IS_ML_PTR((entry)->priv)) || (entry->icon_type == IT_BOOL))
 #define IS_ACTION(entry) ((entry)->icon_type == IT_ACTION || (entry)->icon_type == IT_SUBMENU)
 #define SHOULD_USE_EDIT_MODE(entry) (!IS_BOOL(entry) && !IS_ACTION(entry))
