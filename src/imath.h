@@ -1,8 +1,8 @@
 /* Integer math routines */
 
-int powi(int base, int power);
-int log2i(int x);
-int log10i(int x);
+uint32_t powi(uint32_t base, uint32_t power);
+uint32_t log2i(uint32_t x);
+uint32_t log10i(uint32_t x);
 
 // mod like in math... x mod n is from 0 to n-1
 //~ #define MOD(x,m) ((((int)x) % ((int)m) + ((int)m)) % ((int)m))
