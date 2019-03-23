@@ -2350,6 +2350,205 @@ static struct menu_entry selftest_menu[] =
     },
 };
 
+static int menu_vars[25] = {
+    [2] = 15,
+    [3] = 15,
+    [6] = 25,
+    [17] = 0x100,
+    [24] = 234,
+};
+
+static struct menu_entry edit_tests_menu[] =
+{
+    {
+        .name = "Menu edit tests",
+        .select = menu_open_submenu,
+        .help = "Dummy variables with various edit ranges.",
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Decimal 0..5",
+                .priv = &menu_vars[0],
+                .min = 0,
+                .max = 5,
+                .unit = UNIT_DEC,
+                .edit_mode = EM_SHOW_LIVEVIEW,
+            },
+            {
+                .name = "Decimal 0..10",
+                .priv = &menu_vars[1],
+                .min = 0,
+                .max = 10,
+                .unit = UNIT_DEC,
+                .edit_mode = EM_SHOW_LIVEVIEW,
+            },
+            {
+                .name = "Decimal 0..15",
+                .priv = &menu_vars[2],
+                .min = 1,
+                .max = 15,
+                .unit = UNIT_DEC,
+                .edit_mode = EM_SHOW_LIVEVIEW,
+            },
+            {
+                .name = "Decimal 10..20",
+                .priv = &menu_vars[3],
+                .min = 10,
+                .max = 20,
+                .unit = UNIT_DEC,
+                .edit_mode = EM_SHOW_LIVEVIEW,
+            },
+            {
+                .name = "Decimal 0..99",
+                .priv = &menu_vars[4],
+                .min = 0,
+                .max = 99,
+                .unit = UNIT_DEC,
+            },
+            {
+                .name = "Decimal 0..100",
+                .priv = &menu_vars[5],
+                .min = 0,
+                .max = 100,
+                .unit = UNIT_DEC,
+            },
+            {
+                .name = "Decimal 25..150",
+                .priv = &menu_vars[6],
+                .min = 25,
+                .max = 150,
+                .unit = UNIT_DEC,
+            },
+            {
+                .name = "Decimal -5..5",
+                .priv = &menu_vars[7],
+                .min = -5,
+                .max = 5,
+                .unit = UNIT_DEC,
+            },
+            {
+                .name = "Decimal -9..9",
+                .priv = &menu_vars[8],
+                .min = -9,
+                .max = 9,
+                .unit = UNIT_DEC,
+            },
+            {
+                .name = "Decimal -10..10",
+                .priv = &menu_vars[9],
+                .min = -10,
+                .max = 10,
+                .unit = UNIT_DEC,
+            },
+            {
+                .name = "Decimal -50..500",
+                .priv = &menu_vars[10],
+                .min = -50,
+                .max = 500,
+                .unit = UNIT_DEC,
+            },
+            {
+                .name = "Decimal 1..10000000",
+                .priv = &menu_vars[11],
+                .min = 1,
+                .max = 10000000,
+                .unit = UNIT_DEC,
+            },
+            {
+                .name = "Hex 0..7",
+                .priv = &menu_vars[12],
+                .min = 0,
+                .max = 0x7,
+                .unit = UNIT_HEX,
+            },
+            {
+                .name = "Hex 0..F",
+                .priv = &menu_vars[13],
+                .min = 0,
+                .max = 0xF,
+                .unit = UNIT_HEX,
+            },
+            {
+                .name = "Hex 0..FF",
+                .priv = &menu_vars[14],
+                .min = 0,
+                .max = 0xFF,
+                .unit = UNIT_HEX,
+            },
+            {
+                .name = "Hex 0..1FF",
+                .priv = &menu_vars[15],
+                .min = 0,
+                .max = 0x1FF,
+                .unit = UNIT_HEX,
+            },
+            {
+                .name = "Hex 0..3FF",
+                .priv = &menu_vars[16],
+                .min = 0,
+                .max = 0x3FF,
+                .unit = UNIT_HEX,
+            },
+            {
+                .name = "Hex 100..3FF",
+                .priv = &menu_vars[17],
+                .min = 0x100,
+                .max = 0x3FF,
+                .unit = UNIT_HEX,
+            },
+            {
+                .name = "Hex 0..FFFFFFFF",
+                .priv = &menu_vars[18],
+                .min = 0,
+                .max = 0xFFFFFFFF,
+                .unit = UNIT_HEX,
+            },
+            {
+                .name = "Time 0..10s",
+                .priv = &menu_vars[19],
+                .min = 0,
+                .max = 10,
+                .unit = UNIT_TIME,
+            },
+            {
+                .name = "Time 0..1m",
+                .priv = &menu_vars[20],
+                .min = 0,
+                .max = 60,
+                .unit = UNIT_TIME,
+            },
+            {
+                .name = "Time 0..1h",
+                .priv = &menu_vars[21],
+                .min = 0,
+                .max = 60 * 60,
+                .unit = UNIT_TIME,
+            },
+            {
+                .name = "Time 0..24h",
+                .priv = &menu_vars[22],
+                .min = 0,
+                .max = 24 * 60 * 60,
+                .unit = UNIT_TIME,
+            },
+            {
+                .name = "Time 0..500ms",
+                .priv = &menu_vars[23],
+                .min = 0,
+                .max = 500,
+                .unit = UNIT_TIME_MS,
+            },
+            {
+                .name = "Time 113..512"SYM_MICRO"s",
+                .priv = &menu_vars[24],
+                .min = 113,
+                .max = 512,
+                .unit = UNIT_TIME_US,
+            },
+            MENU_EOL,
+        },
+    },
+};
+
 static struct menu_entry * selftest_menu_entry(const char* entry_name)
 {
     /* menu entries are not yet linked, so iterate as in array, not as in linked list */
@@ -2392,6 +2591,9 @@ static unsigned int selftest_init()
     BGMT_TRASH       = module_translate_key(MODULE_KEY_TRASH,       MODULE_KEY_CANON);
     
     menu_add("Debug", selftest_menu, COUNT(selftest_menu));
+
+    /* TODO: automatic tests */
+    menu_add("Debug", edit_tests_menu, COUNT(edit_tests_menu));
     
     if (is_camera("7D", "*"))
     {
