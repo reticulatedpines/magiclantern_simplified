@@ -711,7 +711,27 @@ void menu_numeric_toggle(int* val, int delta, int min, int max)
 {
     ASSERT(IS_ML_PTR(val));
 
-    set_config_var_ptr(val, MOD(*val - min + delta, max - min + 1) + min);
+    int old_val = (*val);
+    int new_val = old_val + delta;
+
+    /* wrap around, keeping the lower digits unchanged */
+    new_val = (new_val < min) ? max : (new_val > max) ? min : new_val;
+
+    /* keep lower digits from the old value */
+    /* 13 -> 3 -> -7 -> -17 doesn't look very intuitive */
+    /* 13 -> 3 -> -3 -> -13 might be a bit better */
+    int lo = MOD(ABS(old_val), ABS(delta));
+    int hi = ABS(new_val) / ABS(delta);
+    new_val = (hi * ABS(delta) + lo) * SGN(new_val);
+
+    /* out of range? perform one more increment in the same direction
+     * e.g. [25-150] 25 -> delta -10 -> wrap at 150 -> keep lower digit -> 155 -> one more increment -> 145 */
+    if (new_val < min || new_val > max)
+    {
+        new_val += delta;
+    }
+
+    set_config_var_ptr(val, new_val);
 }
 
 void menu_numeric_toggle_time(int * val, int delta, int min, int max)
