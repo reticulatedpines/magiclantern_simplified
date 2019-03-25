@@ -1140,6 +1140,54 @@ for CAM in ${GUI_CAMS[*]} 5D4 80D 750D 760D 77D 200D 6D2 800D; do
 done; cleanup
 
 
+# All EOS cameras should be able to use file I/O functions
+# from the minimal ML codebase
+function test_fio {
+    # compile it from ML dir, for each camera
+    FIO_PATH=$ML_PATH/minimal/qemu-fio
+    rm -f $FIO_PATH/autoexec.bin
+    [ "${CAM_BRANCH[$CAM]}" != "" ] && (cd $FIO_PATH; hg up qemu -C; hg merge ${CAM_BRANCH[$CAM]}; cd $OLDPWD) &>> tests/$CAM/$TEST-build.log
+    make MODEL=$CAM -C $FIO_PATH clean         &>> tests/$CAM/$TEST-build.log
+    make MODEL=$CAM -C $FIO_PATH CONFIG_QEMU=y &>> tests/$CAM/$TEST-build.log
+    (cd $FIO_PATH; hg up qemu -C; cd $OLDPWD)  &>> tests/$CAM/$TEST-build.log
+
+    if [ ! -f $FIO_PATH/autoexec.bin ]; then
+        echo -e "\e[31mCompile error\e[0m"
+        return
+    fi
+
+    # copy autoexec.bin to card images
+    mcopy -o -i $MSD $FIO_PATH/autoexec.bin ::
+    mcopy -o -i $MCF $FIO_PATH/autoexec.bin ::
+
+    # run the FIO test
+    ./run_canon_fw.sh $CAM,firmware="boot=1" -snapshot -display none -d debugmsg &> tests/$CAM/$TEST.log &
+
+    # wait for "timestamp" (header printed by the test program)
+    touch tests/$CAM/$TEST.log
+    ( timeout 20 tail -f -n100000 tests/$CAM/$TEST.log & ) | grep -aq "timestamp"
+
+    # let it run for 2 seconds
+    sleep 2
+    stop_qemu_expect_running
+
+    tac tests/$CAM/$TEST.log > tests/$CAM/$TEST-rev.log
+    tests/check_grep.sh tests/$CAM/$TEST-rev.log -Em1 "Trying (SD|CF) card..."
+    printf "         "; tests/check_grep.sh tests/$CAM/$TEST-rev.log -m1 -- "--> DCIM" || return
+    printf "         "; tests/check_grep.sh tests/$CAM/$TEST-rev.log -m1 -- "--> AUTOEXEC.BIN" || return
+    rm tests/$CAM/$TEST-rev.log
+}
+
+echo
+echo "Testing file I/O (minimal/qemu-fio)..."
+# this requires a custom build; cannot run in parallel
+for CAM in ${EOS_CAMS[*]}; do
+    ((QEMU_JOB_ID++))
+    run_test fio $CAM
+done; cleanup
+
+
+
 # All GUI cameras should be able to format the virtual card
 # and also restore Magic Lantern:
 function test_fmtrestore {
