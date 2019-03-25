@@ -1246,9 +1246,9 @@ function test_hptimer {
     # run the HPTimer test
     ./run_canon_fw.sh $CAM,firmware="boot=1" -snapshot -display none &> tests/$CAM/$TEST.log &
 
-    # wait for He (Hello) from qprintf (blue, each char colored) 
+    # wait for "Hello from" (printed with qprintf)
     touch tests/$CAM/$TEST.log
-    ( timeout 1 tail -f -n100000 tests/$CAM/$TEST.log & ) | grep --binary-files=text -qP "\x1B\x5B34mH\x1B\x5B0m\x1B\x5B34me\x1B\x5B0m"
+    ( timeout 5 tail -f -n100000 tests/$CAM/$TEST.log & ) | grep -aqP "Hello from"
 
     # let it run for 1 second
     sleep 1
