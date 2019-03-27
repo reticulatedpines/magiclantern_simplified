@@ -1167,14 +1167,15 @@ function test_fio {
     touch tests/$CAM/$TEST.log
     ( timeout 20 tail -f -n100000 tests/$CAM/$TEST.log & ) | grep -aq "timestamp"
 
-    # let it run for 2 seconds
-    sleep 2
+    # let it run for 5 seconds
+    sleep 5
     stop_qemu_expect_running
 
     tac tests/$CAM/$TEST.log > tests/$CAM/$TEST-rev.log
     tests/check_grep.sh tests/$CAM/$TEST-rev.log -Em1 "Trying (SD|CF) card..."
     printf "         "; tests/check_grep.sh tests/$CAM/$TEST-rev.log -m1 -- "--> DCIM" || return
     printf "         "; tests/check_grep.sh tests/$CAM/$TEST-rev.log -m1 -- "--> AUTOEXEC.BIN" || return
+    printf "         "; tests/check_grep.sh tests/$CAM/$TEST-rev.log -m1 -- "FIO_FindClose: completed" || return
     rm tests/$CAM/$TEST-rev.log
 }
 
