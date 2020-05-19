@@ -1,0 +1,392 @@
+#
+# Magic Lantern Core source files and rules
+#
+
+all:: autoexec.bin print_build_info
+
+clean::
+	$(call rm_files, *.o *.d autoexec autoexec.bin magiclantern magiclantern.bin)
+
+CFLAGS += \
+	-DCONFIG_MAGICLANTERN=1 \
+	-DCONFIG_$(MODEL)=1 \
+	-DCONFIG_$(MODEL)_$(FW_VERSION)=1 \
+	-DRESTARTSTART=$(RESTARTSTART) \
+	-DROMBASEADDR=$(ROMBASEADDR) \
+	-DVERSION=\"$(VERSION)\" \
+	-DCAMERA_MODEL=\"$(MODEL)\" \
+	-DCONFIG_DEBUGMSG=$(CONFIG_DEBUGMSG) \
+	-DCONFIG_FW_VERSION=$(FW_VERSION) \
+	-DCURRENT_CAMERA_SIGNATURE=SIG_$(MODEL)_$(FW_VERSION)
+
+ifeq ($(ML_BOOT_HACK_OBJ), n)
+ML_BOOT_HACK_OBJ =
+else ifndef ML_BOOT_HACK_OBJ
+ML_BOOT_HACK_OBJ = boot-hack.o
+endif
+
+ifeq ($(ML_PICSTYLE_AUTO), n)
+ML_PICSTYLE_OBJ = picstyle-noauto.o
+else
+ML_PICSTYLE_OBJ = picstyle.o
+endif
+
+ifeq ($(ML_BITRATE_OBJ), n)
+ML_BITRATE_OBJ =
+else ifndef ML_BITRATE_OBJ
+ML_BITRATE_OBJ = bitrate.o
+endif
+
+ifeq ($(ML_AUDIO_OBJ), n)
+ML_AUDIO_OBJ =
+else ifndef ML_AUDIO_OBJ
+ML_AUDIO_OBJ = audio-ak.o
+endif
+
+ifeq ($(ML_ZEBRA_OBJ), n)
+ML_ZEBRA_OBJ =
+else ifndef ML_ZEBRA_OBJ
+ML_ZEBRA_OBJ = zebra.o \
+			   vectorscope.o
+endif
+
+ifeq ($(ML_BOOTFLAGS_OBJ), n)
+ML_BOOTFLAGS_OBJ =
+else ifndef ML_BOOTFLAGS_OBJ
+ML_BOOTFLAGS_OBJ = bootflags.o
+endif
+
+ifeq ($(ML_AF_PATTERNS_OBJ), n)
+ML_AF_PATTERNS_OBJ = 
+else ifndef ML_AF_PATTERNS_OBJ
+ML_AF_PATTERNS_OBJ = af_patterns.o
+endif
+
+ifeq ($(ML_ENTRY_OBJ), n)
+ML_ENTRY_OBJ =
+else ifndef ML_ENTRY_OBJ
+ML_ENTRY_OBJ = entry.o
+endif
+
+ifeq ($(ML_SRC_PROFILE),minimal)
+ML_OBJS-y = \
+	magiclantern.lds \
+	$(ML_ENTRY_OBJ) \
+	minimal.o \
+	font_direct.o \
+	$(PLATFORM_DIR)/stubs.o
+
+else ifeq ($(ML_SRC_PROFILE),installer)
+ML_INSTALLER_OBJS = \
+	magiclantern.lds \
+	$(ML_ENTRY_OBJ) \
+	$(PLATFORM_DIR)/stubs.o \
+	installer.o \
+	version.o \
+	fio-ml.o \
+	ico.o \
+	bmp.o \
+	rbf_font.o \
+	stdio.o \
+	dialog_test.o \
+	bootflags.o \
+	mem.o \
+	util.o \
+
+ML_OBJS-y += $(ML_INSTALLER_OBJS)
+
+CFLAGS += -DCONFIG_INSTALLER
+
+else ifeq ($(ML_SRC_PROFILE),generic)
+
+ML_OBJS-y += \
+	magiclantern.lds \
+	$(ML_ENTRY_OBJ) \
+	$(PLATFORM_DIR)/stubs.o \
+	version.o
+
+ML_SRC_OBJS = \
+	backtrace.o \
+	$(ML_BOOT_HACK_OBJ) \
+	fio-ml.o \
+	mem.o \
+	ico.o \
+	edmac.o \
+	menu.o \
+	debug.o \
+	rand.o \
+	posix.o \
+	util.o \
+	imath.o \
+	electronic_level.o \
+	cfn.o \
+	gui.o \
+	$(ML_PICSTYLE_OBJ) \
+	exmem.o \
+	bmp.o \
+	rbf_font.o \
+	config.o \
+	stdio.o \
+	$(ML_BITRATE_OBJ) \
+	lcdsensor.o \
+	tweaks.o \
+	tweaks-eyefi.o \
+	lens.o \
+	property.o \
+	propvalues.o \
+	gui-common.o \
+	chdk-gui_draw.o \
+	movtweaks.o \
+	menuhelp.o \
+	menuindex.o \
+	$(ML_AF_PATTERNS_OBJ) \
+	focus.o \
+	notify_box.o \
+	$(ML_BOOTFLAGS_OBJ) \
+	dialog_test.o \
+	vram.o \
+	greenscreen.o \
+	fps-engio.o \
+	shoot.o \
+	hdr.o \
+	lv-img-engio.o \
+	state-object.o \
+	tasks.o \
+	vsync-lite.o \
+	tskmon.o \
+	battery.o \
+	imgconv.o \
+	histogram.o \
+	falsecolor.o \
+	$(ML_AUDIO_OBJ) \
+	$(ML_ZEBRA_OBJ) \
+	beep.o \
+	crop-mode-hack.o \
+	ph_info_disp.o \
+	flexinfo.o \
+	screenshot.o \
+	fileprefix.o \
+	lvinfo.o \
+	builtin-enforcing.o \
+	powersave.o \
+	ml-cbr.o \
+	raw.o \
+	chdk-dng.o \
+	edmac-memcpy.o \
+
+
+ML_OBJS-y += $(ML_SRC_OBJS)
+
+include $(TOP_DIR)/src/Makefile.src.config
+
+else ifndef ML_OBJS-y
+$(error ML_OBJS-y is not defined)
+endif
+
+ML_OBJS-y += $(ML_SRC_EXTRA_OBJS)
+
+ifdef ML_SRC_EXCLUDE_OBJS
+ML_OBJS-y := $(filter-out $(ML_SRC_EXCLUDE_OBJS), $(ML_OBJS-y))
+endif
+
+include $(TOP_DIR)/Makefile.filerules
+
+# Magic Lantern rules
+
+magiclantern: $(ML_OBJS-y) $(ML_LIBC)
+	$(call build,LD,$(LD) \
+		-o $@ \
+		-N \
+		$(LFLAGS) \
+		-T \
+		$^ \
+        -Map=location.map \
+	)
+
+reboot.o: $(SRC_DIR)/reboot.c $(PLATFORM_DIR)/version.bin magiclantern.bin
+
+ifndef ML_SRC_REBOOT_OBJ
+ML_SRC_REBOOT_OBJ = reboot.o \
+	disp_direct.o font_direct.o \
+	strlen.o strcmp.o gcc-libgcc.a \
+	footer.o
+endif
+
+clean::
+	$(call rm_files, magiclantern.bin autoexec autoexec.map location.map)
+
+autoexec: $(ML_SRC_REBOOT_OBJ)
+	$(call build,LD,$(LD) \
+		-o $@ \
+		-e _start \
+		-N \
+		-Ttext $(AUTOEXEC_BASE) \
+		$^ \
+		--cref \
+		-Map=autoexec.map \
+	); \
+
+autoexec-fir: $(ML_SRC_REBOOT_OBJ)
+	$(call build,LD,$(LD) \
+		-o $@ \
+		-e _start \
+		-N \
+		-Ttext $(FIR_BASE) \
+		$^ \
+		--cref \
+		-Map=autoexec.map \
+	);
+
+clean::
+	$(call rm_files, autoexec-fir autoexec-fir.bin)
+
+magiclantern.lds: $(SRC_DIR)/magiclantern.lds.S
+	$(call build,CPP,$(CPP) $(CFLAGS) $< | $(GREP) -v '^#' > $@)
+
+clean::
+	$(call rm_files, magiclantern.lds)
+
+$(TOP_DIR)/tcc/libtccx.o: FORCE
+	+$(MAKE) -C $(TOP_DIR)/tcc
+
+# backtrace.[ch] are shared with QEMU
+# the install script will copy them from src/
+# but I'd still like to edit them from one place and have the changes both in QEMU and ML
+# symlinks caused issues on Windows and apparently also on Mac (?!) so let's avoid them for now
+
+# where QEMU is installed (for emulating ML)
+QEMU_INSTALLED_DBI_DIR=$(QEMU_PATH)/qemu-2.5.0/hw/eos/dbi
+
+ifneq ("$(wildcard $(QEMU_INSTALLED_DBI_DIR)/backtrace.c)","")
+
+# copy backtrace.[ch] from QEMU (outside ML dir) if they were edited there
+# optional dependency, only if QEMU is installed "near" ML dir (the install script does that)
+# https://stackoverflow.com/questions/5553352/how-do-i-check-if-file-exists-in-makefile
+$(SRC_DIR)/backtrace.c $(SRC_DIR)/backtrace.h:: $(SRC_DIR)/backtrace.%: $(QEMU_INSTALLED_DBI_DIR)/backtrace.%
+	$(call build,CP,$(CP) $^ $@)
+
+# make sure we have the latest header when compiling after "make clean"
+# normally, *.h are added as dependencies of *.o in the *.d (make)files
+# but after "make clean" we don't have them
+$(SRC_DIR)/backtrace.c:: $(SRC_DIR)/backtrace.h
+
+endif
+
+# Extract the stdio files that we need
+DIET_OBJ = \
+	strrchr.o \
+	strncpy.o \
+	strlen.o \
+	strncmp.o \
+	strcpy.o \
+	strcmp.o \
+	strcasecmp.o \
+	errno.o \
+	errno_location.o \
+	strtoull.o \
+	strtol.o \
+	strtoul.o \
+	strchr.o \
+	strstr.o \
+	memcmp.o \
+	memmove.o \
+	atoi.o \
+	atol.o \
+
+$(DIET_OBJ): $(DIETLIBC_A)
+	$(call build,AR,$(AR) x $? $(DIET_OBJ))
+
+dietlibc.a: $(DIET_OBJ)
+	$(call build,AR,$(AR) cr $@ $^)
+
+# use setjmp from newlib because... the one from dietlibc freezes
+# memcpy/memset are also much faster in newlib
+NEWLIB_OBJ = \
+	lib_a-setjmp.o \
+	lib_a-memcpy.o \
+	lib_a-memcpy-stub.o \
+	lib_a-memccpy.o \
+	lib_a-memset.o \
+	lib_a-memmove.o \
+
+$(NEWLIB_OBJ): $(NEWLIB_LIBC_A)
+	$(call build,AR,$(AR) x $? $(NEWLIB_OBJ))
+
+newlib-libc.a: $(NEWLIB_OBJ)
+	$(call build,AR,$(AR) cr $@ $^)
+
+newlib-libm.a: $(NEWLIB_LIBM_A)
+	$(call build,CP,$(CP) $^ $@)
+
+gcc-libgcc.a: $(ARM_LIBGCC_A)
+	$(call build,CP,$(CP) $^ $@)
+
+clean::
+	$(call rm_files, $(ML_LIBC))
+
+version.o: $(PLATFORM_DIR)/version.c
+
+$(PLATFORM_DIR)/version.c: FORCE
+	$(call build,"VERSION",echo "const char build_version[] = \"$(VERSION)\";") > $@
+	@echo 'const char build_id[] = "'`hg id`'";' >> $@
+	@echo 'const char build_date[] ="'`$(DATE) "+%Y-%m-%d %H:%M:%S %Z"`'";' >> $@
+	@echo 'const char build_user[] = "'`whoami`@`hostname`'";'  >> $@
+
+# include ML version, camera, firmware, hg changeset, build date,
+# diffs from src and platform/cam directories,
+# and some lines from Makefile.user (CONFIG entries, gcc version)
+$(PLATFORM_DIR)/version.bin: FORCE
+	$(call build,"VERSION",echo '') > $@
+	@echo '' >> $@
+	@echo 'Magic Lantern $(VERSION)' >> $@
+	@echo 'Camera   : $(MODEL)' >> $@
+	@echo 'Firmware : $(FW_VERSION)' >> $@
+	@echo 'Changeset: '`hg id` >> $@
+	@echo 'Built on : '`date -u "+%Y-%m-%d %H:%M:%S"`' by '`whoami`@`hostname` >> $@
+	@echo '' >> $@
+	@hg diff $(SRC_DIR)/ >> $@
+	@hg diff $(PLATFORM_DIR)/ >> $@
+	@echo '' >> $@
+	@echo '' >> $@
+	@(cat $(TOP_DIR)/Makefile.user 2>/dev/null) | grep -E "^ *(CONFIG_|[A-Z0-9_]*VERSION)" >> $@ || true
+	@echo '' >> $@
+	@echo '' >> $@
+
+print_build_info: FORCE magiclantern
+	@$(READELF) -l magiclantern | $(GREP) -C 2 MemSiz | $(GREP) -v EXIDX
+	@echo
+	@(cat $(TOP_DIR)/Makefile.user 2>/dev/null) | grep -E "^ *(CONFIG_|[A-Z0-9_]*VERSION)" || true
+	@printf "%s\n" $(foreach v, $(filter CONFIG_%,$(MAKEOVERRIDES)), $(v))
+	@echo
+	@NUM_CPUS=$$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 2); \
+		if [ $$NUM_CPUS -gt 1 ]; then \
+			case "$(MAKEFLAGS)" in \
+				(*-j*) ;; \
+				(*) echo "Tip: to compile faster, try one of these:"; \
+					echo "    make -j$$NUM_CPUS"; \
+					echo "    export MAKEFLAGS='-j$$NUM_CPUS'"; \
+					echo ;; \
+			esac; \
+		fi
+
+$(SRC_DIR)/menuindexentries.h:
+	$(call build,"MENU IDX", if [ -f $(DOC_DIR)/menuindex.txt ]; then \
+		cd $(DOC_DIR); $(PYTHON) menuindex.py; \
+	else \
+		echo ; \
+		echo "No menuindex.txt! The \"Complete user guide\" menu is empty!" ; \
+		echo "Run make docq to update menuindex.txt." ; \
+		echo ; \
+		echo '' > $@ ; \
+	fi)
+
+menuindex.o: $(SRC_DIR)/menuindexentries.h
+
+clean::
+	$(call rm_files, version.c version.bin)
+
+FORCE:
+
+# fixme: better place for this?
+include $(BUILD_TOOLS_DIR)/Makefile
+

@@ -1,0 +1,4423 @@
+# HG changeset patch
+# User alex@thinkpad
+# Date 1332521606 -7200
+# Branch unified
+# Node ID 9f8d9bb7e92e2fbdd606eef3f52d55e9656a7448
+# Parent  774a30f44f0b211d6165f64f0851045e5e176028
+Temporarily switched back to old firmware versions - 5D2 211, 50D 108, 600D 101 - until next major release
+
+diff -r 774a30f44f0b -r 9f8d9bb7e92e Makefile
+--- a/Makefile	Fri Mar 23 18:34:23 2012 +0200
++++ b/Makefile	Fri Mar 23 18:53:26 2012 +0200
+@@ -19,19 +19,19 @@
+ 	$(MAKE) -C $(PLATFORM_PATH)/550D.109
+ 
+ 600D:
+-	$(MAKE) -C $(PLATFORM_PATH)/600D.102
++	$(MAKE) -C $(PLATFORM_PATH)/600D.101
+ 
+ 1100D:
+-	$(MAKE) -C $(PLATFORM_PATH)/1100D.105
++	$(MAKE) -C $(PLATFORM_PATH)/1100D.104
+ 
+ 50D:
+-	$(MAKE) -C $(PLATFORM_PATH)/50D.109
++	$(MAKE) -C $(PLATFORM_PATH)/50D.108
+ 
+ 500D:
+ 	$(MAKE) -C $(PLATFORM_PATH)/500D.111
+ 
+ 5D2:
+-	$(MAKE) -C $(PLATFORM_PATH)/5D2.212
++	$(MAKE) -C $(PLATFORM_PATH)/5D2.211
+ 
+ plugins: FORCE
+ 	$(MAKE) -C $(PLUGINS_DIR)
+@@ -45,24 +45,24 @@
+ fir:
+ 	cd installer/550D.109/; $(MAKE) clean
+ 	cd installer/60D.110/; $(MAKE) clean
+-	cd installer/600D.102/; $(MAKE) clean
+-	cd installer/50D.109/; $(MAKE) clean
++	cd installer/600D.101/; $(MAKE) clean
++	cd installer/50D.108/; $(MAKE) clean
+ 	cd installer/500D.111/; $(MAKE) clean
+-	cd installer/5D2.212/; $(MAKE) clean
++	cd installer/5D2.211/; $(MAKE) clean
+ 	$(MAKE) -C installer/550D.109/
+ 	$(MAKE) -C installer/60D.110/
+-	$(MAKE) -C installer/600D.102/
+-	$(MAKE) -C installer/50D.109/
++	$(MAKE) -C installer/600D.101/
++	$(MAKE) -C installer/50D.108/
+ 	$(MAKE) -C installer/500D.111/
+-	$(MAKE) -C installer/5D2.212/
++	$(MAKE) -C installer/5D2.211/
+ 
+ install_fir: fir
+ 	cp installer/550D.109/ml-550d-109.fir /media/EOS_DIGITAL/
+ 	cp installer/60D.110/ml-60d-110.fir /media/EOS_DIGITAL/
+-	cp installer/600D.102/ml-600d-102.fir /media/EOS_DIGITAL/
+-	cp installer/50D.109/ml-50d-102.fir /media/EOS_DIGITAL/
++	cp installer/600D.101/ml-600d-101.fir /media/EOS_DIGITAL/
++	cp installer/50D.108/ml-50d-108.fir /media/EOS_DIGITAL/
+ 	cp installer/500D.111/ml-500d-111.fir /media/EOS_DIGITAL/
+-	cp installer/5D2.212/ml-5D2-212.fir /media/EOS_DIGITAL/
++	cp installer/5D2.211/ml-5D2-211.fir /media/EOS_DIGITAL/
+ 
+ clean:
+ 	$(call build,CLEAN,$(RM) -f \
+@@ -79,10 +79,10 @@
+ 		$(LUA_PATH)/liblua.a
+ 	cd $(PLATFORM_PATH)/550D.109/; $(MAKE) clean
+ 	cd $(PLATFORM_PATH)/60D.110/; $(MAKE) clean
+-	cd $(PLATFORM_PATH)/600D.102/; $(MAKE) clean
+-	cd $(PLATFORM_PATH)/50D.109/; $(MAKE) clean
++	cd $(PLATFORM_PATH)/600D.101/; $(MAKE) clean
++	cd $(PLATFORM_PATH)/50D.108/; $(MAKE) clean
+ 	cd $(PLATFORM_PATH)/500D.111/; $(MAKE) clean
+-	cd $(PLATFORM_PATH)/5D2.212/; $(MAKE) clean
++	cd $(PLATFORM_PATH)/5D2.211/; $(MAKE) clean
+ 	$(MAKE) -C $(PLUGINS_DIR) clean
+ 	$(RM) -rf  $(BINARIES_PATH)
+ 
+diff -r 774a30f44f0b -r 9f8d9bb7e92e platform/50D.108/Makefile
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/platform/50D.108/Makefile	Fri Mar 23 18:53:26 2012 +0200
+@@ -0,0 +1,72 @@
++#Makefile for 550D firmware 109
++
++TOP_DIR=../..
++include $(TOP_DIR)/Makefile.top
++
++#must be defined first because they are used in Makefile.inc, for $(VERSION) for example
++FW_VERSION=108
++MODEL=50D
++UPDATE_NAME=50d_108.fir
++ML_VERSION=unified1 
++
++#used in CFLAGS
++PLATFORM_INC=.
++
++PLATFORM_DIR=$(PLATFORM_PATH)/$(MODEL).$(FW_VERSION)
++
++# magiclantern.lds script MUST be first
++# entry.o MUST be second
++# menu.o and debug.o must come before the modules
++ML_OBJS-y = \
++	magiclantern.lds \
++	$(SRC_DIR)/entry.o \
++	boot-hack.o \
++	stubs.o \
++	version.o \
++	bmp.o \
++	font-dyn.o \
++	config.o \
++	menu.o \
++	debug.o \
++	stdio.o \
++	property.o \
++	propvalues.o \
++	gui.o \
++	gui-common.o \
++	misc.o \
++	tweaks.o \
++	movtweaks.o \
++	bitrate.o \
++	lens.o \
++	lensfocus.o \
++	cfn.o \
++	zebra.o \
++	shoot.o \
++	chdk-gui_draw.o \
++	my_memset.o \
++	menuhelp.o \
++	menuindex.o \
++	af_patterns.o \
++	focus.o \
++	notify_box.o \
++	bootflags.o \
++	dialog_test.o \
++	vram.o \
++	morse.o \
++	aj_port.o \
++	fps-engio.o \
++	hdr.o \
++	lv-img-engio.o \
++	state-object.o \
++
++#include generic rules and definitions
++#TOP_DIR defined in upper Makefile
++include ../../Makefile.inc
++
++# DryOSmemory map
++# RESTARTSTART is selected to be just above the end of the bss
++#
++ROMBASEADDR		= 0xFF810000
++RESTARTSTART		= 0x0004b000
++
++all: autoexec.bin
+diff -r 774a30f44f0b -r 9f8d9bb7e92e platform/50D.108/cfn.c
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/platform/50D.108/cfn.c	Fri Mar 23 18:53:26 2012 +0200
+@@ -0,0 +1,18 @@
++#include <dryos.h>
++
++// look on camera menu or review sites to get custom function numbers
++
++int get_htp() { return GetCFnData(1, 3); }
++void set_htp(int value) { SetCFnData(1, 3, value); }
++
++int get_alo() { return GetCFnData(1, 4); }
++void set_alo(int value) { SetCFnData(1, 4, value); }
++
++int get_mlu() { return GetCFnData(2, 6); }
++void set_mlu(int value) { SetCFnData(2, 6, value); }
++
++int cfn_get_af_button_assignment() { return GetCFnData(3, 1); }
++void cfn_set_af_button(int value) { SetCFnData(3, 1, value); }
++
++int get_af_star_swap() { return GetCFnData(3, 2); }
++void set_af_star_swap(int value) { SetCFnData(3, 2, value); }
+diff -r 774a30f44f0b -r 9f8d9bb7e92e platform/50D.108/consts.h
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/platform/50D.108/consts.h	Fri Mar 23 18:53:26 2012 +0200
+@@ -0,0 +1,254 @@
++#define CARD_DRIVE "A:/"
++#define CARD_LED_ADDRESS 0xC02200BC // http://magiclantern.wikia.com/wiki/Led_addresses
++
++#define HIJACK_INSTR_BL_CSTART  0xff812ae8
++#define HIJACK_INSTR_BSS_END 0xff81093c
++#define HIJACK_FIXBR_BZERO32 0xff8108a4
++#define HIJACK_FIXBR_CREATE_ITASK 0xff81092c
++#define HIJACK_INSTR_MY_ITASK 0xff810948
++#define HIJACK_TASK_ADDR 0x1A70
++
++#define ARMLIB_OVERFLOWING_BUFFER 0x1e948 // in AJ_armlib_setup_related3
++
++#define DRYOS_ASSERT_HANDLER 0x1A14 // dec TH_assert or assert_0
++
++// 720x480, changes when external monitor is connected
++#define YUV422_LV_BUFFER_1 0x41B00000
++#define YUV422_LV_BUFFER_2 0x5C000000
++#define YUV422_LV_BUFFER_3 0x5F600000
++#define YUV422_LV_PITCH 1440
++//~ #define YUV422_LV_PITCH_RCA 1080
++//~ #define YUV422_LV_PITCH_HDMI 3840
++//~ #define YUV422_LV_HEIGHT 480
++//~ #define YUV422_LV_HEIGHT_RCA 540
++//~ #define YUV422_LV_HEIGHT_HDMI 1080
++
++#define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)0x28f8) // workaround
++//#define YUV422_LV_BUFFER_DMA_ANOTHER_ADDR (*(uint32_t*)0x4c60)
++#define YUV422_HD_BUFFER_DMA_ADDR 0x46000080
++
++
++#define YUV422_HD_BUFFER_1 0x44000080
++#define YUV422_HD_BUFFER_2 0x46000080
++#define YUV422_HD_BUFFER_3 0x48000080
++#define YUV422_HD_BUFFER_4 0x4e000080
++#define YUV422_HD_BUFFER_5 0x50000080
++#define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080 ) // quick check if x looks like a valid HD buffer
++
++/*#define YUV422_HD_PITCH_IDLE 2112
++#define YUV422_HD_HEIGHT_IDLE 704
++
++#define YUV422_HD_PITCH_ZOOM 2048
++#define YUV422_HD_HEIGHT_ZOOM 680
++
++#define YUV422_HD_PITCH_REC_FULLHD 3440
++#define YUV422_HD_HEIGHT_REC_FULLHD 974
++
++// guess
++#define YUV422_HD_PITCH_REC_720P 2560
++#define YUV422_HD_HEIGHT_REC_720P 580
++
++#define YUV422_HD_PITCH_REC_480P 1280
++#define YUV422_HD_HEIGHT_REC_480P 480*/
++
++#define FOCUS_CONFIRMATION (*(int*)0x3ce0) // see "focusinfo" and Wiki:Struct_Guessing
++#define HALFSHUTTER_PRESSED (*(int*)0x1c14) // used for Trap Focus and Magic Off.
++//~ #define AF_BUTTON_PRESSED_LV 0
++// To find it, go to MainCtrl task and take the number from the second line minus 4.
++// See also "cam event metering"
++
++//~ #define DISPLAY_SENSOR (*(int*)0x2dec)
++//~ #define DISPLAY_SENSOR_ACTIVE (*(int*)0xC0220104)
++#define DISPLAY_SENSOR_POWERED (*(int*)0x3178) // dec AJ_Req_DispSensorStart
++
++#define GMT_IDLEHANDLER_TASK (*(int*)0x10000) // dec create_idleHandler_task
++
++// button codes as received by gui_main_task
++#define BGMT_PRESS_UP 0x16
++#define BGMT_PRESS_UP_RIGHT 0x17
++#define BGMT_PRESS_UP_LEFT 0x18
++#define BGMT_PRESS_RIGHT 0x19
++#define BGMT_PRESS_LEFT 0x1a
++#define BGMT_PRESS_DOWN_RIGHT 0x1B
++#define BGMT_PRESS_DOWN_LEFT 0x1C
++#define BGMT_PRESS_DOWN 0x1d
++
++#define BGMT_UNPRESS_UDLR 0x15
++
++#define BGMT_PRESS_SET 4
++#define BGMT_UNPRESS_SET 0x3d
++
++#define BGMT_TRASH 9
++#define BGMT_MENU 5
++#define BGMT_INFO 6
++//~ #define BGMT_Q 0xE
++//~ #define BGMT_Q_ALT 0xE
++#define BGMT_PLAY 8
++#define BGMT_PRESS_HALFSHUTTER 0x1f
++#define BGMT_UNPRESS_HALFSHUTTER 0x20
++#define BGMT_PRESS_FULLSHUTTER 0x21
++#define BGMT_UNPRESS_FULLSHUTTER 0x22
++#define BGMT_PRESS_ZOOMIN_MAYBE 0xA
++#define BGMT_UNPRESS_ZOOMIN_MAYBE 0xB
++#define BGMT_PRESS_ZOOMOUT_MAYBE 0xC
++#define BGMT_UNPRESS_ZOOMOUT_MAYBE 0xD
++#define BGMT_PICSTYLE 0x13
++#define BGMT_FUNC 0x12
++#define BGMT_JOY_CENTER 0x1e // press the joystick maybe?
++
++#define BGMT_LV 0xE
++
++#define BGMT_WHEEL_LEFT 2
++#define BGMT_WHEEL_RIGHT 3
++#define BGMT_WHEEL_UP 0
++#define BGMT_WHEEL_DOWN 1
++
++#define BGMT_FLASH_MOVIE 0
++#define BGMT_PRESS_FLASH_MOVIE 0
++#define BGMT_UNPRESS_FLASH_MOVIE 0
++#define FLASH_BTN_MOVIE_MODE 0
++
++#define BGMT_ISO_MOVIE 0
++#define BGMT_PRESS_ISO_MOVIE 0
++#define BGMT_UNPRESS_ISO_MOVIE 0
++
++#define GMT_OLC_INFO_CHANGED 59 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
++
++#define SENSOR_RES_X 4752
++#define SENSOR_RES_Y 3168
++
++//~ #define FLASH_BTN_MOVIE_MODE (((*(int*)0x14c1c) & 0x40000) && (shooting_mode == SHOOTMODE_MOVIE))
++//~ #define CLK_25FPS 0x1e24c  // this is updated at 25fps and seems to be related to auto exposure
++
++//~ #define AJ_LCD_Palette 0x2CDB0
++
++#define LV_BOTTOM_BAR_DISPLAYED (((*(int8_t*)0x6A50) == 0xF) /*|| ((*(int8_t*)0x20164) != 0x17)*/ )
++#define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x6A50) == 0xF)
++#define SHOOTING_MODE (*(int*)0x313C)
++
++#define COLOR_FG_NONLV 80
++
++#define MVR_190_STRUCT (*(void**)0x1ed8) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
++
++#define MEM(x) (*(int*)(x))
++#define div_maybe(a,b) ((a)/(b))
++
++// see mvrGetBufferUsage, which is not really safe to call => err70
++// macros copied from arm-console
++#define MVR_BUFFER_USAGE div_maybe(-100*MEM(236 + MVR_190_STRUCT) - 100*MEM(244 + MVR_190_STRUCT) - 100*MEM(384 + MVR_190_STRUCT) - 100*MEM(392 + MVR_190_STRUCT) + 100*MEM(240 + MVR_190_STRUCT) + 100*MEM(248 + MVR_190_STRUCT), -MEM(236 + MVR_190_STRUCT) - MEM(244 + MVR_190_STRUCT) + MEM(240 + MVR_190_STRUCT) + MEM(248 + MVR_190_STRUCT))
++
++#define MVR_FRAME_NUMBER (*(int*)(220 + MVR_190_STRUCT))
++//#define MVR_LAST_FRAME_SIZE (*(int*)(512 + MVR_752_STRUCT))
++#define MVR_BYTES_WRITTEN (*(int*)(212 + MVR_190_STRUCT))
++
++ #define MOV_REC_STATEOBJ (*(void**)0x5B34)
++ #define MOV_REC_CURRENT_STATE *(int*)(MOV_REC_STATEOBJ + 28)
++
++#define MOV_RES_AND_FPS_COMBINATIONS 2
++#define MOV_OPT_NUM_PARAMS 2
++#define MOV_GOP_OPT_NUM_PARAMS 0
++#define MOV_OPT_STEP 2
++#define MOV_GOP_OPT_STEP 2
++
++#define AE_VALUE (*(int8_t*)0xfb30)
++
++#define CURRENT_DIALOG_MAYBE (*(int*)0x387C)
++#define CURRENT_DIALOG_MAYBE_2 (*(int*)0x6A50)
++#define DLG_WB 5
++#define DLG_FOCUS_MODE 9
++#define DLG_DRIVE_MODE 8
++#define DLG_PICTURE_STYLE 4
++#define DLG_PLAY 1
++#define DLG_MENU 2
++#define DLG_Q_UNAVI 0x18
++#define DLG_FLASH_AE 0x22
++#define DLG_PICQ 6
++#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED 0 // (CURRENT_DIALOG_MAYBE == 0x1A)
++#define DLG_MOVIE_PRESS_LV_TO_RESUME 0 // (CURRENT_DIALOG_MAYBE == 0x1B)
++
++#define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
++#define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x1af8 // this prop_deliver performs the action for Video Connect and Video Disconnect
++#define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0x1b24 // passed as 2nd arg to prop_deliver; 1 = display connected, 0 = not, other values disable this event (trick)
++
++#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
++#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
++
++#define BTN_METERING_PRESSED_IN_LV 0 // 60D only
++
++// position for displaying shutter count and other info
++#define MENU_DISP_INFO_POS_X 0
++#define MENU_DISP_INFO_POS_Y 395
++
++// position for displaying clock outside LV
++#define DISPLAY_CLOCK_POS_X 200
++#define DISPLAY_CLOCK_POS_Y 410
++
++#define MENU_DISP_ISO_POS_X 500
++#define MENU_DISP_ISO_POS_Y 27
++
++// for displaying TRAP FOCUS msg outside LV
++#define DISPLAY_TRAP_FOCUS_POS_X 410
++#define DISPLAY_TRAP_FOCUS_POS_Y 330
++#define DISPLAY_TRAP_FOCUS_MSG       "TRAP \nFOCUS"
++#define DISPLAY_TRAP_FOCUS_MSG_BLANK "     \n     "
++
++#define NUM_PICSTYLES 9
++#define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
++
++#define MOVIE_MODE_REMAP_X SHOOTMODE_ADEP
++#define MOVIE_MODE_REMAP_Y SHOOTMODE_CA
++#define MOVIE_MODE_REMAP_X_STR "A-DEP"
++#define MOVIE_MODE_REMAP_Y_STR "CA"
++
++#define FLASH_MAX_EV 3
++#define FLASH_MIN_EV -10 // not sure if it actually works
++
++//~ #define MENU_NAV_HELP_STRING "Keys: Joystick / SET / PLAY / Q (joy press) / INFO" 
++#define MENU_NAV_HELP_STRING (PLAY_MODE ? "FUNC outside menu: show LiveV tools      SET/PLAY/FUNC/INFO" : "SET/PLAY/FUNC=edit values    MENU=Easy/Advanced   INFO=Help")
++
++#define DIALOG_MnCardFormatBegin (0x1e704+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
++#define DIALOG_MnCardFormatExecute (0x1E7B8+4) // similar
++
++#define BULB_MIN_EXPOSURE 100
++
++// http://magiclantern.wikia.com/wiki/Fonts
++#define BFNT_CHAR_CODES    0xf7c5e1d8
++#define BFNT_BITMAP_OFFSET 0xf7c608ec
++#define BFNT_BITMAP_DATA   0xf7c63000
++
++#define DLG_SIGNATURE 0x414944
++
++// from CFn
++#define AF_BTN_HALFSHUTTER 0
++#define AF_BTN_STAR 2
++
++#define IMGPLAY_ZOOM_LEVEL_ADDR (0xFA14+12) // dec GuiImageZoomDown and look for a negative counter
++#define IMGPLAY_ZOOM_LEVEL_MAX 14
++
++#define BULB_EXPOSURE_CORRECTION 150 // min value for which bulb exif is OK [not tested]
++
++#define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x12b8c+0x30)
++// DebugMsg(4, 2, msg='Whole Screen Backup end')
++// winsys_struct.WINSYS_BMP_DIRTY_BIT_NEG /*off_0x30, 0x12BBC*/ = 0
++
++#define BTN_ZEBRAS_FOR_PLAYBACK BGMT_FUNC // what button to use for zebras in Play mode
++
++// manual exposure overrides
++#define LVAE_STRUCT 0x10dd0
++#define CONTROL_BV      (*(uint16_t*)(LVAE_STRUCT+0x10)) // EP_SetControlBv
++#define CONTROL_BV_TV   (*(uint16_t*)(LVAE_STRUCT+0x12)) // EP_SetControlParam
++#define CONTROL_BV_AV   (*(uint16_t*)(LVAE_STRUCT+0x14))
++#define CONTROL_BV_ISO  (*(uint16_t*)(LVAE_STRUCT+0x16))
++#define CONTROL_BV_ZERO (*(uint16_t*)(LVAE_STRUCT+0x18))
++#define LVAE_ISO_SPEED  (*(uint8_t* )(LVAE_STRUCT))      // offset 0x0; at 3 it changes iso very slowly
++#define LVAE_ISO_MIN    (*(uint8_t* )(LVAE_STRUCT+0x2a)) // string: ISOMin:%d
++#define LVAE_ISO_HIS    (*(uint8_t* )(LVAE_STRUCT+0x2c)) // no idea what this is
++#define LVAE_DISP_GAIN  (*(uint16_t*)(LVAE_STRUCT+0x1a)) // lvae_setdispgain
++#define LVAE_MOV_M_CTRL (*(uint8_t* )(LVAE_STRUCT+0x54)) // lvae_setmoviemanualcontrol
++
++#define MIN_MSLEEP 11
++
++#define INFO_BTN_NAME "INFO"
++#define Q_BTN_NAME "FUNC"
++
++#define DISPLAY_IS_ON MEM(0x2860) // TurnOnDisplay (PUB) Type=%ld fDisplayTurnOn=%ld
+diff -r 774a30f44f0b -r 9f8d9bb7e92e platform/50D.108/gui.c
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/platform/50D.108/gui.c	Fri Mar 23 18:53:26 2012 +0200
+@@ -0,0 +1,283 @@
++/** \file
++ * Magic Lantern GUI main task.
++ *
++ * Overrides the DryOS gui_main_task() to be able to re-map events.
++ */
++/*
++ * Copyright (C) 2009 Trammell Hudson <hudson+ml@osresearch.net>
++ * 
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation; either version 2
++ * of the License, or (at your option) any later version.
++ * 
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ * 
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the
++ * Free Software Foundation, Inc.,
++ * 51 Franklin Street, Fifth Floor,
++ * Boston, MA  02110-1301, USA.
++ */
++
++#include "dryos.h"
++#include "bmp.h"
++#include <property.h>
++
++struct semaphore * gui_sem;
++
++int joy_center_press_count = 0;
++int joy_center_action_disabled = 0;
++void joypress_task()
++{
++	extern int joy_center_pressed;
++	static int count = 0;
++	while(1)
++	{
++		msleep(20);
++		if (joy_center_pressed) joy_center_press_count++;
++		else
++		{
++			if (!joy_center_action_disabled && gui_menu_shown() && joy_center_press_count && joy_center_press_count <= 20) // short press, ML menu active
++			{
++				if (is_submenu_mode_active())
++				{
++					fake_simple_button(BGMT_FUNC); // close submenu
++				}
++				else
++				{
++					fake_simple_button(BGMT_PRESS_SET); // open submenu
++					fake_simple_button(BGMT_UNPRESS_UDLR);
++				}
++			}
++			joy_center_press_count = 0;
++		}
++
++		if (!joy_center_action_disabled && joy_center_press_count > 20) // long press
++		{
++			joy_center_press_count = 0;
++			fake_simple_button(BGMT_UNPRESS_UDLR);
++
++			if (gui_menu_shown())
++				fake_simple_button(BGMT_FUNC); // Q
++			else if (gui_state == GUISTATE_IDLE || gui_state == GUISTATE_QMENU || PLAY_MODE)
++				give_semaphore( gui_sem ); // open ML menu
++			msleep(500);
++		}
++
++	}
++}
++TASK_CREATE( "joypress_task", joypress_task, 0, 0x1a, 0x1000 );
++
++// return 0 if you want to block this event
++static int handle_buttons(struct event * event)
++{
++	if (event->type != 0) return 1; // only handle events with type=0 (buttons)
++	if (handle_common_events_startup(event) == 0) return 0;
++	extern int ml_started;
++	if (!ml_started) return 1;
++
++	if (handle_common_events_by_feature(event) == 0) return 0;
++
++	if (event->param == BGMT_JOY_CENTER && gui_menu_shown())
++	{
++		joy_center_press_count = 1;
++		return 0; // handled above
++	}
++
++	if (event->param == BGMT_PRESS_SET && recording)
++	{
++		extern int movie_was_stopped_by_set;
++		movie_was_stopped_by_set = 1;
++	}
++
++	if (event->param == BGMT_PRESS_LEFT || event->param == BGMT_PRESS_RIGHT ||
++		event->param == BGMT_PRESS_DOWN || event->param == BGMT_PRESS_UP ||
++		event->param == BGMT_PRESS_UP_LEFT || event->param == BGMT_PRESS_UP_RIGHT ||
++		event->param == BGMT_PRESS_DOWN_LEFT || event->param == BGMT_PRESS_DOWN_RIGHT)
++		joy_center_action_disabled = 1;
++
++	if (event->param == BGMT_UNPRESS_UDLR)
++		joy_center_action_disabled = 0;
++
++	return 1;
++}
++
++
++struct gui_main_struct {
++	void *			obj;		// off_0x00;
++	uint32_t		counter;	// off_0x04;
++	uint32_t		off_0x08;
++	uint32_t		off_0x0c;
++	uint32_t		off_0x10;
++	uint32_t		off_0x14;
++	uint32_t		off_0x18;
++	uint32_t		off_0x1c;
++	uint32_t		off_0x20;
++	uint32_t		off_0x24;
++	uint32_t		off_0x28;
++	uint32_t		off_0x2c;
++	uint32_t		off_0x30;
++	struct msg_queue *	msg_queue;	// off_0x34;
++	uint32_t		off_0x38;
++	uint32_t		off_0x3c;
++};
++
++extern struct gui_main_struct gui_main_struct;
++
++struct gui_timer_struct
++{
++	void *			obj;	// off_0x00
++};
++
++extern struct gui_timer_struct gui_timer_struct;
++
++// Replaces the gui_main_task
++static void
++my_gui_main_task( void )
++{
++	gui_init_end();
++	uint32_t * obj = 0;
++
++	while(1)
++	{
++		struct event * event;
++		msg_queue_receive(
++			gui_main_struct.msg_queue,
++			&event,
++			0
++		);
++
++		if( !event )
++			goto event_loop_bottom;
++
++		if (!magic_is_off() && event->type == 0)
++		{
++			if (handle_buttons(event) == 0) // ML button/event handler
++				goto event_loop_bottom;
++		}
++
++		if (IS_FAKE(event)) event->arg = 0;
++
++		switch( event->type )
++		{
++		case 0:
++			if( gui_main_struct.obj != obj
++			&&  event->param != 0x25
++			&&  event->param != 0x26
++			&&  event->param != 0x27
++			&&  event->param != 0x28
++			&&  event->param != 0x29
++			&&  event->param != 0x2A
++			&&  event->param != 0x1F
++			&&  event->param != 0x2B
++			&&  event->param != 0x23
++			&&  event->param != 0x2C
++			&&  event->param != 0x2D
++			&&  event->param != 0x2E
++			&&  event->param != 0x2F
++			&&  event->param != 0x30
++			&&  event->param != 0x31
++			&&  event->param != 0x32
++			&&  event->param != 0x3B
++			)
++				goto queue_clear;
++
++			DebugMsg( DM_MAGIC, 2, "GUI_CONTROL:%d", event->param );
++			gui_massive_event_loop( event->param, event->obj, event->arg );
++			break;
++
++		case 1:
++			if( gui_main_struct.obj != obj
++			&&  event->param != 0x00
++			&&  event->param != 0x07
++			&&  event->param != 0x05
++			)
++				goto queue_clear;
++
++			DebugMsg( 0x84, 2, "GUI_CHANGE_MODE:%d", event->param );
++
++			if( event->param == 0 )
++			{
++				gui_local_post( 0x10, 0, 0 );
++				if( gui_timer_struct.obj )
++					gui_timer_something( gui_timer_struct.obj, 4 );
++			}
++
++			gui_change_mode( event->param );
++			break;
++
++		case 2:
++			if( gui_main_struct.obj != obj
++			&&  event->param != 0x15
++			&&  event->param != 0x16
++			&&  event->param != 0x12
++			&&  event->param != 0x19
++			&&  event->param != 0x2E
++			&&  event->param != 0x2F
++			)
++				goto queue_clear;
++
++			gui_local_post( event->param, event->obj, event->arg );
++			break;
++		case 3:
++			if( event->param == 0x11 )
++			{
++				DebugMsg( 0x84, 2, "GUIOTHER_CANCEL_ALL_EVENT" );
++				obj = event->obj;
++				break;
++			}
++
++			if( gui_main_struct.obj != obj
++			&&  event->param != 0x00
++			&&  event->param != 0x03
++			&&  event->param != 0x01
++			&&  event->param != 0x12
++			&&  event->param != 0x13
++			&&  event->param != 0x14
++			)
++				goto queue_clear;
++
++			DebugMsg( 0x84, 2, "GUI_OTHEREVENT:%d", event->param );
++			gui_other_post( event->param, event->obj, event->arg );
++			break;
++		case 4:
++			gui_post_10000085( event->param, event->obj, event->arg );
++			break;
++		case 5:
++			gui_init_event( event->obj );
++			break;
++		case 6:
++			DebugMsg( 0x84, 2, "GUI_CHANGE_SHOOT_TYPE:%d", event->param );
++			gui_change_shoot_type_post( event->param );
++			break;
++		case 7:
++			DebugMsg( 0x84, 2, "GUI_CHANGE_LCD_STATE:%d", event->param );
++			gui_change_lcd_state_post( event->param );
++			break;
++
++		default:
++			break;
++		}
++
++event_loop_bottom:
++		gui_main_struct.counter--;
++		continue;
++
++queue_clear:
++		DebugMsg(
++			0x84,
++			3,
++			"**** Queue Clear **** event(%d) param(%d)",
++			event->type,
++			event->param
++		);
++
++		goto event_loop_bottom;
++	}
++}
++
++TASK_OVERRIDE( gui_main_task, my_gui_main_task );
+diff -r 774a30f44f0b -r 9f8d9bb7e92e platform/50D.108/gui.h
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/platform/50D.108/gui.h	Fri Mar 23 18:53:26 2012 +0200
+@@ -0,0 +1,67 @@
++#ifndef _cameraspecific_gui_h_
++#define _cameraspecific_gui_h_
++
++/** Event types */
++typedef enum {
++	GOT_TOP_OF_CONTROL		= 0x800,
++	LOST_TOP_OF_CONTROL		= 0x801,
++	INITIALIZE_CONTROLLER		= 0x802,
++	TERMINATE_WINSYS		= 0x804,
++	DELETE_DIALOG_REQUEST		= 0x805,
++	PRESS_RIGHT_BUTTON		= 0x807,
++	PRESS_LEFT_BUTTON		= 0x809,
++	PRESS_UP_BUTTON			= 0x80B,
++	PRESS_DOWN_BUTTON		= 0x80D,
++	PRESS_MENU_BUTTON		= 0x80F,
++	PRESS_SET_BUTTON		= 0x812, // also joy center?
++	UNPRESS_SET_BUTTON		= 0x813,
++	PRESS_PICSTYLE_BUTTON		= 0x81C,
++	PRESS_ZOOM_IN_BUTTON		= 0x819,
++	UNPRESS_ZOOM_IN_BUTTON		= 0x81A,
++	//PRESS_ZOOM_OUT_BUTTON		= 0x10000039,
++	//UNPRESS_ZOOM_OUT_BUTTON		= 0x1000003A,
++	PRESS_JOY_LEFTUP		= 0x81f,
++	PRESS_JOY_LEFT			= 0x820,
++	PRESS_JOY_LEFTDOWN		= 0x821,
++	PRESS_JOY_UP			= 0x822,
++	PRESS_JOY_DOWN			= 0x824,
++	PRESS_JOY_RIGHTUP		= 0x825,
++	PRESS_JOY_RIGHT			= 0x826,
++	PRESS_JOY_RIGHTDOWN		= 0x827,
++	JOY_CENTER			= 0x823,
++	PRESS_INFO_BUTTON		= 0x829,
++	ELECTRONIC_SUB_DIAL_RIGHT	= 0x82B,
++	ELECTRONIC_SUB_DIAL_LEFT	= 0x82C,
++	DIAL_LEFT			= 0x82E,
++	DIAL_RIGHT			= 0x82F,
++	PRESS_DISP_BUTTON		= 0x10000000, // also play?
++	PRESS_PLAY_BUTTON		= 0x10000000,
++	PRESS_ERASE_BUTTON		= 0x10000001,
++	PRESS_DIRECT_PRINT_BUTTON	= 0x10000005,
++	PRESS_FUNC_BUTTON		= 0x10000007,
++	PRESS_PICTURE_STYLE_BUTTON	= 0x10000009,
++	GUICMD_OPEN_SLOT_COVER		= 0x1000000B,
++	GUICMD_CLOSE_SLOT_COVER		= 0x1000000C,
++	GUICMD_MADE_QR			= 0x10000037,
++	GUICMD_MADE_FILE		= 0x10000038,
++	GUI_TIMER4			= 0x10000054, // no idea
++	GUI_TIMER2			= 0x10000069, // no idea
++	GUI_TIMER3			= 0x1000006D, // no idea
++	START_SHOOT_MOVIE		= 0x1000008A,
++	GUI_PROP_EVENT			= 0x10000085, // maybe?
++	LOCAL_MOVIE_RECORD_STOP		= 0x10000078, // DlgLiveViewApp
++	GUICMD_UI_OK			= 0x100000A1,
++	GUICMD_START_AS_CHECK		= 0x100000A2,
++	GUICMD_LOCK_OFF			= 0x100000A3,
++	GUICMD_LOCK_ON			= 0x100000A4,
++
++	EVENTID_METERING_START			= 0x10000037,
++	EVENTID_METERING_TIMER_START	= 0x10000038,
++	EVENTID_RELEASE_START			= 0x10000039,
++	EVENTID_RELEASE_END				= 0x1000003a,
++
++	EVENTID_94			= 0x10000094,
++	EVENT_1 = 1
++} gui_event_t;
++
++#endif
+diff -r 774a30f44f0b -r 9f8d9bb7e92e platform/50D.108/lensfocus.c
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/platform/50D.108/lensfocus.c	Fri Mar 23 18:53:26 2012 +0200
+@@ -0,0 +1,90 @@
++#include <dryos.h>
++#include <lens.h>
++#include <property.h>
++#include <bmp.h>
++#include <config.h>
++
++int get_prop_picstyle_from_index(int index)
++{
++	switch(index)
++	{
++		case 1: return 0x81;
++		case 2: return 0x82;
++		case 3: return 0x83;
++		case 4: return 0x84;
++		case 5: return 0x85;
++		case 6: return 0x86;
++		case 7: return 0x21;
++		case 8: return 0x22;
++		case 9: return 0x23;
++	}
++	bmp_printf(FONT_LARGE, 0, 0, "unk picstyle index: %x", index);
++	return 0;
++}
++
++int get_prop_picstyle_index(int pic_style)
++{
++	switch(pic_style)
++	{
++		case 0x81: return 1;
++		case 0x82: return 2;
++		case 0x83: return 3;
++		case 0x84: return 4;
++		case 0x85: return 5;
++		case 0x86: return 6;
++		case 0x21: return 7;
++		case 0x22: return 8;
++		case 0x23: return 9;
++	}
++	bmp_printf(FONT_LARGE, 0, 0, "unk picstyle: %x", pic_style);
++	return 0;
++}
++
++struct prop_picstyle_settings picstyle_settings[10];
++
++// prop_register_slave is much more difficult to use than copy/paste...
++
++PROP_HANDLER( PROP_PICSTYLE_SETTINGS_STANDARD ) {
++	memcpy(&picstyle_settings[1], buf, 24);
++	return prop_cleanup( token, property );
++}
++
++PROP_HANDLER( PROP_PICSTYLE_SETTINGS_PORTRAIT ) {
++	memcpy(&picstyle_settings[2], buf, 24);
++	return prop_cleanup( token, property );
++}
++
++PROP_HANDLER( PROP_PICSTYLE_SETTINGS_LANDSCAPE ) {
++	memcpy(&picstyle_settings[3], buf, 24);
++	return prop_cleanup( token, property );
++}
++
++PROP_HANDLER( PROP_PICSTYLE_SETTINGS_NEUTRAL ) {
++	memcpy(&picstyle_settings[4], buf, 24);
++	return prop_cleanup( token, property );
++}
++
++PROP_HANDLER( PROP_PICSTYLE_SETTINGS_FAITHFUL ) {
++	memcpy(&picstyle_settings[5], buf, 24);
++	return prop_cleanup( token, property );
++}
++
++PROP_HANDLER( PROP_PICSTYLE_SETTINGS_MONOCHROME ) {
++	memcpy(&picstyle_settings[6], buf, 24);
++	return prop_cleanup( token, property );
++}
++
++PROP_HANDLER( PROP_PICSTYLE_SETTINGS_USERDEF1 ) {
++	memcpy(&picstyle_settings[7], buf, 24);
++	return prop_cleanup( token, property );
++}
++
++PROP_HANDLER( PROP_PICSTYLE_SETTINGS_USERDEF2 ) {
++	memcpy(&picstyle_settings[8], buf, 24);
++	return prop_cleanup( token, property );
++}
++
++PROP_HANDLER( PROP_PICSTYLE_SETTINGS_USERDEF3 ) {
++	memcpy(&picstyle_settings[9], buf, 24);
++	return prop_cleanup( token, property );
++}
+diff -r 774a30f44f0b -r 9f8d9bb7e92e platform/50D.108/misc.c
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/platform/50D.108/misc.c	Fri Mar 23 18:53:26 2012 +0200
+@@ -0,0 +1,67 @@
++// misc functions specific to 550D/109
++
++#include <dryos.h>
++#include <property.h>
++#include <bmp.h>
++#include <config.h>
++#include <consts.h>
++#include <lens.h>
++
++// some dummy stubs
++int lcd_release_running = 0;
++void lcd_release_step() {};
++int get_lcd_sensor_shortcuts() { return 0; }
++void display_lcd_remote_icon(int x0, int y0) {}
++int new_LiveViewApp_handler = 0xff123456;
++
++void display_shooting_info() // called from debug task
++{
++	if (lv) return;
++	
++	int bg = bmp_getpixel(314, 260);
++	uint32_t fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
++
++	if (lens_info.wb_mode == WB_KELVIN)
++	{
++		bmp_printf(fnt, 320, 260, "%5dK", lens_info.kelvin);
++	}
++	if (lens_info.wbs_gm || lens_info.wbs_ba)
++	{
++		fnt = FONT(FONT_LARGE, COLOR_FG_NONLV, bg);
++
++		int ba = lens_info.wbs_ba;
++		if (ba) bmp_printf(fnt, 435, 240, "%s%d ", ba > 0 ? "A" : "B", ABS(ba));
++		else bmp_printf(fnt, 435, 240, "   ");
++
++		int gm = lens_info.wbs_gm;
++		if (gm) bmp_printf(fnt, 435, 270, "%s%d ", gm > 0 ? "G" : "M", ABS(gm));
++		else bmp_printf(fnt, 435, 270, "   ");
++	}
++
++	iso_refresh_display();
++
++	bg = bmp_getpixel(15, 430);
++	fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
++	
++	extern int hdr_steps, hdr_stepsize, hdr_enabled;
++	if (hdr_enabled)
++		bmp_printf(fnt, 380, 450, "HDR %dx%dEV", hdr_steps, hdr_stepsize/8);
++	else
++		bmp_printf(fnt, 380, 450, "           ");
++
++	//~ bmp_printf(fnt, 200, 450, "Flash:%s", 
++		//~ strobo_firing == 0 ? " ON" : 
++		//~ strobo_firing == 1 ? "OFF" : "Auto"
++		//~ strobo_firing < 2 && flash_and_no_flash ? "/T" : "  "
++		//~ );
++
++	bmp_printf(fnt, 40, 460, get_mlu() ? "MLU" : "   ");
++
++	display_lcd_remote_icon(480, 0);
++	display_trap_focus_info();
++}
++
++
++int audio_meters_are_drawn() { return 0; }
++void volume_up(){};
++void volume_down(){};
+diff -r 774a30f44f0b -r 9f8d9bb7e92e platform/50D.108/mvr.h
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/platform/50D.108/mvr.h	Fri Mar 23 18:53:26 2012 +0200
+@@ -0,0 +1,171 @@
++
++// Movie recording.
++
++extern struct mvr_struct * mvr_struct;
++extern struct state_object * mvr_state;
++
++// tab size: 4
++
++struct mvr_config
++{
++	uint16_t		debug_flag;				// 0x00,
++	uint16_t		qscale_mode;			// 0x02,
++	uint16_t		db_filter_a;			// 0x04,
++	uint16_t		db_filter_b;			// 0x06,
++	int16_t			def_q_scale;			// 0x08,
++	int16_t 		actual_qscale_maybe;	// 0x0a,  // random, just to compile
++	int16_t 		qscale_related_2;		// 0x0c,
++	int16_t 		qscale_related_3;		// 0x0e,
++	uint32_t 		fullhd_30fps_opt_size_I;// 0x10, // ok
++	uint32_t		fullhd_30fps_opt_size_P;// 0x14, // ok
++	uint32_t		vga_30fps_opt_size_I;   // 0x18, // ok
++	uint32_t	    vga_30fps_opt_size_P;   // 0x1c, // ok
++	uint32_t 		fullhd_30fps_gop_opt_0; // 0x10, // ng,  just to compile
++} __attribute__((aligned,packed));
++
++//~ SIZE_CHECK_STRUCT( mvr_config, 0x30 );
++
++extern struct mvr_config mvr_config;
++
++
++// This is from 5D2, not used here.
++/*
++ *
++ * State information is in this structure.  A pointer to the global
++ * object is at 0x1ee0.  It is of size 0x1b4.
++ *
++ * The state object is in 0x68a4.
++ */
++/*struct mvr_struct
++{
++	const char *		type;	 // "MovieRecorder" off 0
++	uint32_t		off_0x04;
++	uint32_t		task;	// off_0x08;
++	uint32_t		off_0x0c;
++	uint32_t		off_0x10;
++	uint32_t		off_0x14;
++	uint32_t		off_0x18;
++	uint32_t		off_0x1c;
++	uint32_t		off_0x20;
++	uint32_t		off_0x24;
++	uint32_t		off_0x28;
++	uint32_t		off_0x2c;
++	uint32_t		off_0x30;
++	uint32_t		off_0x34;
++	uint32_t		off_0x38;
++	uint32_t		off_0x3c;
++	uint32_t		off_0x40;
++	uint32_t		off_0x44;
++	uint32_t		off_0x48;
++	uint32_t		off_0x4c;
++	uint32_t		off_0x50;
++	uint32_t		off_0x54;
++	uint32_t		off_0x58;
++	uint32_t		off_0x5c;
++	uint32_t		off_0x60;
++	uint32_t		off_0x64;
++	uint32_t		off_0x68;
++	uint32_t		off_0x6c;
++	uint32_t		off_0x70;
++	uint32_t		off_0x74;
++	uint32_t		off_0x78;
++	uint32_t		off_0x7c;
++	uint32_t		off_0x80;
++	uint32_t		off_0x84;
++	uint32_t		off_0x88;
++	uint32_t		off_0x8c;
++	uint32_t		off_0x90;
++	uint32_t		off_0x94;
++	uint32_t		off_0x98;
++	uint32_t		off_0x9c;
++	uint32_t		off_0xa0;
++	uint32_t		off_0xa4;
++	uint32_t		off_0xa8;
++	uint32_t		off_0xac;
++	uint32_t		off_0xb0;
++	uint32_t		off_0xb4;
++	uint32_t		off_0xb8;
++	uint32_t		off_0xbc;
++	uint32_t		off_0xc0;
++	uint32_t		off_0xc4;
++	uint32_t		off_0xc8;
++	uint32_t		off_0xcc;
++	uint32_t		off_0xd0;
++	uint32_t		off_0xd4;
++	uint32_t		off_0xd8;
++	uint32_t		off_0xdc;
++	uint32_t		off_0xe0;
++	uint32_t		off_0xe4;
++	uint32_t		off_0xe8;
++	uint32_t		off_0xec;
++	uint32_t		off_0xf0;
++	uint32_t		off_0xf4;
++	uint32_t		off_0xf8;
++	uint32_t		off_0xfc;
++	uint32_t		off_0x100;
++	uint32_t		off_0x104;
++	uint32_t		off_0x108;
++	uint32_t		off_0x10c;
++	uint32_t		off_0x110;
++	uint32_t		off_0x114;
++	uint32_t		off_0x118;
++	uint32_t		off_0x11c;
++	uint32_t		off_0x120;
++	uint32_t		off_0x124;
++	uint32_t		off_0x128;
++	uint32_t		off_0x12c;
++	uint32_t		off_0x130;
++	uint32_t		off_0x134;
++	uint32_t		off_0x138;
++	uint32_t		off_0x13c;
++	uint32_t		is_vga;	// 0==1920, 1==640 off_0x140;
++	uint32_t		off_0x144;
++	uint32_t		off_0x148;
++	uint32_t		fps;		// 30, off_0x14c;
++	uint32_t		width;		// off_0x150;
++	uint32_t		height;		// off_0x154;
++	uint32_t		audio_rec;	// off_0x158;
++	uint32_t		auido_channels;	// 2 or 0, off_0x15c;
++	uint32_t		audio_rate;	// 44100 or 0, off_0x160;
++	uint32_t		off_0x164;
++	uint32_t		off_0x168;
++	uint32_t		off_0x16c;
++	uint32_t		off_0x170;
++	uint32_t		off_0x174;
++	uint32_t		off_0x178;
++	uint32_t		off_0x17c;
++	uint32_t		off_0x180;
++	uint32_t		off_0x184;
++	uint32_t		off_0x188;
++	uint32_t		off_0x18c;
++	uint32_t		bit_rate; // off_0x190;
++	uint32_t		off_0x194;
++	uint32_t		off_0x198;
++	uint32_t		off_0x19c;
++	uint32_t		off_0x1a0;
++	uint32_t		off_0x1a4;
++	uint32_t		off_0x1a8;
++	uint32_t		off_0x1ac;
++	uint32_t		off_0x1b0;
++	uint32_t		off_0x1b4;
++	uint32_t		off_0x1b8;
++	uint32_t		off_0x1bc;
++	uint32_t		off_0x1c0;
++	uint32_t		off_0x1c4;
++	uint32_t		off_0x1c8;
++	uint32_t		off_0x1cc;
++	uint32_t		off_0x1d0;
++	uint32_t		off_0x1d4;
++	uint32_t		off_0x1d8;
++	uint32_t		off_0x1dc;
++	uint32_t		off_0x1e0;
++	uint32_t		off_0x1e4;
++	uint32_t		off_0x1e8;
++	uint32_t		off_0x1ec;
++	uint32_t		off_0x1f0;
++	uint32_t		off_0x1f4;
++	uint32_t		off_0x1f8;
++	uint32_t		off_0x1fc;
++};
++
++SIZE_CHECK_STRUCT( mvr_struct, 512 );*/
+diff -r 774a30f44f0b -r 9f8d9bb7e92e platform/50D.108/stubs.S
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/platform/50D.108/stubs.S	Fri Mar 23 18:53:26 2012 +0200
+@@ -0,0 +1,258 @@
++/** \file
++ * Entry points into the firmware image.
++ *
++ * These are the functions that we can call from our tasks
++ * in the Canon 1.0.7 firmware for the 50d.
++ *
++ *
++ *	-- All stubs marked with //d are verified and correct --
++ *	--- Coutts
++ *
++ *
++ *
++ * Copyright (C) 2010 Magic Lantern Team
++ * 
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation; either version 2
++ * of the License, or (at your option) any later version.
++ * 
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ * 
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the
++ * Free Software Foundation, Inc.,
++ * 51 Franklin Street, Fifth Floor,
++ * Boston, MA  02110-1301, USA.
++ */
++ 
++.text
++
++#define NSTUB(addr,name) \
++	.global name; \
++	name = addr
++
++NSTUB( ROMBASEADDR, firmware_entry )
++
++/** These must be found first for any progress to be made */
++NSTUB( 0xFF810894, cstart )																					//d
++NSTUB( 0xffc09a40, bzero32 ) // called by cstart()															//d
++NSTUB( 0xff811dbc, init_task ) // passed as arg to create_init_task, look for dmSetup						//d
++NSTUB( 0xff817260, create_init_task )																		//d
++
++
++NSTUB( 0xff983470, FIO_FindFirstEx )																		//d
++NSTUB( 0xff98359c, FIO_FindNextEx )																			//d
++NSTUB( 0xff98369c, FIO_CleanupAfterFindNext_maybe) // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
++
++NSTUB( 0x3787c, LV_EX_X)		//couldn't find in 500d dump anywhere -- for hdmi related stuff
++NSTUB( 0x37880, LV_EX_Y)		//couldn't find in 500d dump anywhere -- for hdmi related stuff
++
++NSTUB( 0xFF822CB0, GUI_ChangeMode )																			//d
++
++//NSTUB( 0xffa71330, AJ_guess_LED_ON )																		//d
++//NSTUB( 0xffa71350, AJ_guess_LED_OFF )																		//d
++NSTUB( 0xff9add24, DispSensorStart )																		//d
++//NSTUB( 0xFF822A9C, GUI_CONTROL )																			//d
++NSTUB( 0xffaab7e4, ChangeColorPalette )																		//d
++//NSTUB( 0xFF2CFA54, MirrorDisplay ) // don't need - april fools joke
++//NSTUB( 0xFF2CFAB4, NormalDisplay ) // don't need
++NSTUB( 0xffa5f734, RedrawDisplay )																			//d
++
++
++/** Look for the normal printf strings */
++NSTUB( 0xff863b0c, DryosDebugMsg )																			//d
++
++/** Task dispatch hook hasn't moved in several versions */
++NSTUB( 0x1934, task_dispatch_hook )																			//d
++
++/** Find the additional version string in GUI_GetFirmVersion */
++NSTUB( 0xFF3C, additional_version )																			//d
++NSTUB( 0xff9abff0, GUI_GetFirmVersion )																		//d
++
++// Everything below here is not needed for the first boot
++
++/** Camera interface? */
++NSTUB( 0xC0220000, camera_engine )																			//d
++
++NSTUB( 0xff864888, call )										//d
++
++/** Find the shell register commands */
++NSTUB( 0xff98f968, register_func )								//d
++
++/** Debugging commands are all registered by name.  Search for the strings */
++NSTUB( 0xff863a8c, dmstart )									//d
++NSTUB( 0xff863acc, dmstop )										//d
++NSTUB( 0xff8643a0, dumpf )										//d
++
++/** Look in DebugMsg, near the bottom.  It calls vsnprintf()
++ * with a buffer size of 0x4C.
++ */
++NSTUB( 0xff98e1e0, vsnprintf )									//d
++
++NSTUB( 0xff866e04, msleep ) // called from EV_GETDONE_CACHE param 0x64								//d
++NSTUB( 0xff866eb8, task_create )								//d
++NSTUB( 0xff982430, FIO_Open)									//d
++NSTUB( 0xff9824e4, FIO_CreateFile )								//d
++NSTUB( 0xff98258c, FIO_CloseFile )								//d
++NSTUB( 0xff982b80, FIO_GetFileSize )							//d
++NSTUB( 0xff9829cc, FIO_WriteFile )								//d
++NSTUB( 0xff98281c, FIO_ReadFile )								//d
++NSTUB( 0xff982700, FIO_RemoveFile )								//d
++NSTUB( 0xff982df0, FIO_CreateDirectory)
++	
++NSTUB( 0xff866a18, give_semaphore )																		//d
++NSTUB( 0xff866930, take_semaphore )																		//d
++NSTUB( 0xff863e58, dm_set_store_level ) // called by "dmstore"											//d
++NSTUB( 0xff859788, prop_register_slave ) // called by"GUI_RegisterPropertySlave"							//d
++NSTUB( 0xff8598c0, prop_request_change )																//d
++NSTUB( 0xff859700, prop_deliver )																		//d
++NSTUB( 0xff8599dc, prop_get_value )																		//d
++	
++NSTUB( 0xff85ed28, dispcheck )																		//d
++NSTUB( 0xff85f110, SetBitmapVramAddress ) // where to find bmp_vram_info							//d
++NSTUB( 0x24284	 , bmp_vram_info )																	//d
++NSTUB( 0x36318	 , vram_info ) // located in vram_get_number										//d
++NSTUB( 0xffa1d5c4, vram_get_number )																//d
++NSTUB( 0xff983b94, vram_get_pos_and_size )
++
++NSTUB( 0xff818cf0, malloc ) // maybe it's better to use Allocate/Free?
++NSTUB( 0xff818dc4, free )
++NSTUB( 0xff867b50, AllocateMemory ) // thanks Alex
++NSTUB( 0xff867d14, FreeMemory ) // release_mem in Indy's IDC
++
++NSTUB( 0x2c48, dm_names )                // in DebugMsg, before the 1st loop target
++NSTUB( 0xff8751b8, strcpy )
++NSTUB( 0xff863348, LoadCalendarFromRTC )
++NSTUB( 0xff86f98c, task_trampoline )
++
++NSTUB( 0xff85985c, _prop_cleanup )
++
++NSTUB( 0xff854138, _audio_ic_write )
++NSTUB( 0xff854a84, _audio_ic_read )
++NSTUB( 0xff855774, sounddev_task )
++NSTUB( 0xff855b64, sounddev_active_in )
++ NSTUB( 0xFF48E58C, audio_thresholds )        // after ptr to "ALVFactorySemSignature"
++NSTUB( 0x2348	 , sounddev )                    // in sounddev_task								//d
++
++NSTUB( 0xff8667d0, create_named_semaphore )
++NSTUB( 0xffa45f90, gui_task_create )
++NSTUB( 0xffa460b0, gui_task_destroy )
++NSTUB( 0xffa45e40, ctrlman_dispatch_event )
++
++NSTUB( 0xffc0994c, memcpy )
++NSTUB( 0xff88b7c0, prop_request_icu_auto_poweroff )
++NSTUB( 0xff991014, alloc_dma_memory )
++NSTUB( 0xff991048, free_dma_memory )
++
++NSTUB( 0xffb62564, cfReadBlk )
++NSTUB( 0x1D6FC, cf_device )                // in cfReadBlk
++NSTUB( 0xffb6e8fc, sdReadBlk )
++NSTUB( 0x1d744, sd_device )                // in sdReadBlk
++
++NSTUB( 0xffb0a9b0, fsuDecodePartitionTable )
++
++NSTUB( 0xff81d9d4, hotplug_task )
++NSTUB( 0x1AF0	 , hotplug_struct )																		//d
++NSTUB( 0x1B28	 , hotplug_usb_buf )          // after "USB Disconnect"									//d
++
++NSTUB( 0xff863774, bootdisk_enable )
++NSTUB( 0xff863780, bootdisk_disable )
++
++NSTUB( 0xFF812E44, cli_save )																				//d
++NSTUB( 0xFF812E58, sei_restore )																			//d
++NSTUB( 0xff9ed884, ptp_register_handler )																//d
++NSTUB( 0xff90e760, gui_lock )             // PtpPropSetUILock											//d
++NSTUB( 0xff8652c8, oneshot_timer )																		//d
++NSTUB( 0xffa460b0, gui_task_destroy )																	//d
++NSTUB( 0xff8225ec, gui_main_task )       //identical to 5d2 and 500d									//d
++NSTUB( 0xff822f9c, gui_init_end )     // EndGuiInit														//d
++NSTUB( 0x3960	 , gui_timer_struct )     // in GUI_Control_Post										//d
++NSTUB( 0x1C50	 , gui_main_struct )      //  in gui_main_task												//d
++NSTUB( 0xff866530, msg_queue_receive )																		//d
++NSTUB( 0x1C18	 , main_ctrl_struct )																		//d
++NSTUB( 0x1FAF0	 , main_ctrl_struct_2 )																		//d
++NSTUB( 0xff86671c, msg_queue_post )																			//d
++NSTUB( 0xff8898c8, gui_local_post )																		//d
++NSTUB( 0xff889354, gui_change_mode )   // GUI_ChangeMode_Post												//d
++NSTUB( 0xff889ca4, gui_other_post )																		//d
++NSTUB( 0xff888008, gui_massive_event_loop )   // GUI_Control_Post										//d
++NSTUB( 0xff822ab0, GUI_Control )
++
++NSTUB( 0xff968870, mvrFixQScale )																			//d
++NSTUB( 0xff96868c, mvrSetDefQScale )																	//d
++NSTUB( 0xff84d888, mvrSetBitRate )																		//ds
++NSTUB( 0xff968890, mvrSetPrintMovieLog )																//d
++NSTUB( 0xff9686c4, mvrSetFullHDOptSize )																//d
++//NSTUB( 0xFF17BF24, mvrSetHDOptSize )
++NSTUB( 0xff968800, mvrSetVGAOptSize )																	//d
++//NSTUB( 0xFF17BF94, mvrSetGopOptSizeFULLHD )
++//NSTUB( 0xFF17BFDC, mvrSetGopOptSizeHD )
++//NSTUB( 0xFF17C024, mvrSetGopOptSizeVGA )
++NSTUB( 0xff968638, mvrSetDeblockingFilter )																//d
++
++NSTUB( 0xff875214, strlen )																				//d
++NSTUB( 0xff8751d0, strcmp )																				//d
++NSTUB( 0xff820e7c, main_ctrl_task )																		//d
++NSTUB( 0xff834b00, LVCAF_LensDriveStart )																//d
++NSTUB( 0x7674	 , mvr_config )																			//d
++NSTUB( 0xff9ada58, GuiEdLedOn )																			//d
++NSTUB( 0xff9ada7c, GuiEdLedOff )																		//d
++NSTUB( 0xff9adaa0, GuiEdLedBlink )
++
++NSTUB( 0xff889dc8, gui_post_10000085 ) // should be called post 100000a5 no ? <-- not sure what this means..							//d
++NSTUB( 0xff88a480, gui_init_event )																	//d
++NSTUB( 0xff889e7c, gui_change_shoot_type_post )													//d
++NSTUB( 0xff889f14, gui_change_lcd_state_post )														//d
++NSTUB( 0xff98a98c, gui_timer_something )															//d
++
++//NSTUB( 0xffa855f4, ChangeHDMIOutputSizeToVGA)														//d
++//NSTUB( 0xffa86684, ChangeHDMIOutputSizeToFULLHD)														//d
++
++NSTUB(0xff86af14, CreateRecursiveLock)
++NSTUB(0xff98ad24, AcquireRecursiveLock)
++NSTUB(0xff98ae38, ReleaseRecursiveLock) // not sure, these are not called anywhere
++
++NSTUB(0xffa47a7c, dialog_redraw) // called by CreateDialogBox
++NSTUB(0x12A58, gui_task_list) // look in gui_task_create
++
++NSTUB(0xffa854cc, BeginMovieRecSequence)
++NSTUB( 0xFFA850DC, EndMovieRecSequence )
++
++NSTUB(0xff9a4670, GUI_SetLvMode)
++NSTUB(0xff9a4748, GUI_SetMovieSize_a)
++NSTUB(0xFF9A4844, GUI_SetMovieSize_b)
++
++NSTUB(0xff85ddd8, MuteOff_0) // not quite the same as in other cameras, but should work
++NSTUB(0xff85dd94, MuteOn_0) // idem
++
++NSTUB(0xFF90EC28, RemoteRelease)
++NSTUB(0xFF90ED54, ptpPropButtonSW1)
++NSTUB(0xff90ede4, ptpPropButtonSW2)
++
++// NSTUB(0xFF8764B0, GetMemoryInformation) // called from AllocateMemory
++
++NSTUB(0xffa47178, CreateDialogBox)
++NSTUB(0xffa46c10, DeleteDialogBox)
++NSTUB(0xFFA47A7C, dialog_redraw)
++NSTUB(0xFFAAB650, dialog_set_property_str)
++
++NSTUB(0xffbe75b8, StartFactoryMenuApp)
++
++NSTUB(0xFFB38BB4, GetCFnData)
++NSTUB(0xFFB38CBC, SetCFnData)
++
++NSTUB(0xffa86e88, LiveViewApp_handler)
++NSTUB(0xffaa7c98, ShootOlcApp_handler)
++NSTUB(0xdeadbeef, ErrCardForLVApp_handler)
++
++NSTUB(0xFF97D900, _engio_write)
++NSTUB(0xff97d7f4, shamem_read) // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr
++NSTUB(0xff97d790, _EngDrvOut)
++
++NSTUB(0xff8166b0, get_current_task)
++
++NSTUB(0x242C0, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
+diff -r 774a30f44f0b -r 9f8d9bb7e92e platform/5D2.211/Makefile
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/platform/5D2.211/Makefile	Fri Mar 23 18:53:26 2012 +0200
+@@ -0,0 +1,75 @@
++#Makefile for 550D firmware 109
++
++TOP_DIR=../..
++include $(TOP_DIR)/Makefile.top
++
++#must be defined first because they are used in Makefile.inc, for $(VERSION) for example
++FW_VERSION=211
++MODEL=5D2
++UPDATE_NAME=5D2_211.fir
++ML_VERSION=unified1 
++
++#used in CFLAGS
++PLATFORM_INC=.
++
++PLATFORM_DIR=$(PLATFORM_PATH)/$(MODEL).$(FW_VERSION)
++
++# magiclantern.lds script MUST be first
++# entry.o MUST be second
++# menu.o and debug.o must come before the modules
++ML_OBJS-y = \
++	magiclantern.lds \
++	$(SRC_DIR)/entry.o \
++	boot-hack.o \
++	stubs.o \
++	version.o \
++	bmp.o \
++	font-dyn.o \
++	config.o \
++	menu.o \
++	debug.o \
++	stdio.o \
++	audio.o \
++	bitrate.o \
++	property.o \
++	propvalues.o \
++	gui.o \
++	gui-common.o \
++	misc.o \
++	tweaks.o \
++	lens.o \
++	lensfocus.o \
++	cfn.o \
++	zebra.o \
++	shoot.o \
++	chdk-gui_draw.o \
++	movtweaks.o \
++	my_memset.o \
++	menuhelp.o \
++	menuindex.o \
++	af_patterns.o \
++	focus.o \
++	notify_box.o \
++	bootflags.o \
++	dialog_test.o \
++	vram.o \
++	morse.o \
++	aj_port.o \
++	fps-engio.o \
++	hdr.o \
++	lightsensor.o \
++	lv-img-engio.o \
++	state-object.o \
++
++
++#include generic rules and definitions
++#TOP_DIR defined in upper Makefile
++include ../../Makefile.inc
++
++# DryOSmemory map
++# RESTARTSTART is selected to be just above the end of the bss
++#
++ROMBASEADDR		= 0xFF810000
++RESTARTSTART		= 0x0004E000
++
++all: autoexec.bin
+diff -r 774a30f44f0b -r 9f8d9bb7e92e platform/5D2.211/cfn.c
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/platform/5D2.211/cfn.c	Fri Mar 23 18:53:26 2012 +0200
+@@ -0,0 +1,18 @@
++#include <dryos.h>
++
++// look on camera menu or review sites to get custom function numbers
++
++int get_htp() { return GetCFnData(1, 3); }
++void set_htp(int value) { SetCFnData(1, 3, value); }
++
++int get_alo() { return GetCFnData(1, 4); }
++void set_alo(int value) { SetCFnData(1, 4, value); }
++
++int get_mlu() { return GetCFnData(2, 6); }
++void set_mlu(int value) { SetCFnData(2, 6, value); }
++
++int cfn_get_af_button_assignment() { return GetCFnData(3, 1); }
++void cfn_set_af_button(int value) { SetCFnData(3, 1, value); }
++
++int get_af_star_swap() { return GetCFnData(3, 2); }
++void set_af_star_swap(int value) { SetCFnData(3, 2, value); }
+diff -r 774a30f44f0b -r 9f8d9bb7e92e platform/5D2.211/consts.h
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/platform/5D2.211/consts.h	Fri Mar 23 18:53:26 2012 +0200
+@@ -0,0 +1,257 @@
++#define CARD_DRIVE "A:/"
++#define CARD_LED_ADDRESS 0xC02200BC // http://magiclantern.wikia.com/wiki/Led_addresses
++
++// thanks Indy
++#define HIJACK_INSTR_BL_CSTART  0xFF812AE8
++#define HIJACK_INSTR_BSS_END 0xFF81093C
++#define HIJACK_FIXBR_BZERO32 0xFF8108A4
++#define HIJACK_FIXBR_CREATE_ITASK 0xFF81092C
++#define HIJACK_INSTR_MY_ITASK 0xFF810948
++#define HIJACK_TASK_ADDR 0x1A24
++
++#define ARMLIB_OVERFLOWING_BUFFER 0x21c94 // in AJ_armlib_setup_related3
++
++#define DRYOS_ASSERT_HANDLER 0x19c8 // dec TH_assert or assert_0
++
++// 720x480, changes when external monitor is connected
++#define YUV422_LV_BUFFER_1 0x41B07800
++#define YUV422_LV_BUFFER_2 0x5C007800
++#define YUV422_LV_BUFFER_3 0x5F607800
++
++// http://magiclantern.wikia.com/wiki/VRAM_ADDR_from_code
++// stateobj_disp[1]
++//~ #define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)(0x27E0+something))
++
++// from AJ 5.9:
++#define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)0x2900)
++#define YUV422_HD_BUFFER_DMA_ADDR (*(uint32_t*)(0x44FC + 0xC0))
++
++
++// http://magiclantern.wikia.com/wiki/ASM_Zedbra
++#define YUV422_HD_BUFFER_1 0x44000080
++#define YUV422_HD_BUFFER_2 0x4C000080
++#define YUV422_HD_BUFFER_3 0x50000080
++#define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080 ) // quick check if x looks like a valid HD buffer
++
++// see "focusinfo" and Wiki:Struct_Guessing
++#define FOCUS_CONFIRMATION (*(int*)0x3C54)
++
++// used for Trap Focus 
++// To find it, go to MainCtrl task and take the number from the second line minus 4.
++// See also "cam event metering"
++#define HALFSHUTTER_PRESSED (*(int*)0x1c10)
++
++#define DISPLAY_SENSOR_POWERED 0
++
++#define GMT_IDLEHANDLER_TASK (*(int*)0x134f4) // dec create_idleHandler_task
++
++// button codes as received by gui_main_task
++// look for strings, find gui event codes, then backtrace them in gui_massive_event_loop
++
++// In [127]: S press_left
++// ffac4284:	e28f20d4 	add	r2, pc, #212	; *'DlgPlayMain.c PRESS_LEFT_BUTTON'
++
++// In [128]: bd ffac4284
++// if arg2 == 2057 /*EQ5*/:
++// => 0x809 PRESS_LEFT_BUTTON in gui.h
++
++// In [129]: bgmt 0x809
++//    if arg0 == 53 /*EQ53*/:
++// => BGMT_PRESS_LEFT 0x35
++
++// But for 5D2 we'll use the joystick instead of arrows
++// => S press_mlt_left => bgmt 0x820 => #define BGMT_PRESS_LEFT 0x1a or 0x1e (not sure, but in 50D it's 1a)
++
++#define BGMT_WHEEL_UP 0
++#define BGMT_WHEEL_DOWN 1
++#define BGMT_WHEEL_LEFT 2
++#define BGMT_WHEEL_RIGHT 3
++
++#define BGMT_PRESS_SET 4
++#define BGMT_UNPRESS_SET 0x3d
++
++#define BGMT_MENU 5
++#define BGMT_INFO 6
++#define BGMT_PLAY 8
++#define BGMT_TRASH 9
++
++#define BGMT_PRESS_ZOOMIN_MAYBE 0xA
++#define BGMT_UNPRESS_ZOOMIN_MAYBE 0xB
++#define BGMT_PRESS_ZOOMOUT_MAYBE 0xC
++#define BGMT_UNPRESS_ZOOMOUT_MAYBE 0xD
++
++#define BGMT_LV 0xE
++#define BGMT_Q 0xE
++#define BGMT_Q_ALT 0xE
++
++//~ #define BGMT_FUNC 0x12
++#define BGMT_PICSTYLE 0x13
++//~ #define BGMT_JOY_CENTER (lv ? 0x1e : 0x3b)
++#define BGMT_JOY_CENTER 0x1e
++
++#define BGMT_PRESS_UP 0x16
++#define BGMT_PRESS_UP_RIGHT 0x17
++#define BGMT_PRESS_UP_LEFT 0x18
++#define BGMT_PRESS_RIGHT 0x19
++#define BGMT_PRESS_LEFT 0x1a
++#define BGMT_PRESS_DOWN_RIGHT 0x1B
++#define BGMT_PRESS_DOWN_LEFT 0x1C
++#define BGMT_PRESS_DOWN 0x1d
++
++#define BGMT_UNPRESS_UDLR 0x15
++#define BGMT_PRESS_HALFSHUTTER 0x1f
++#define BGMT_UNPRESS_HALFSHUTTER 0x20
++#define BGMT_PRESS_FULLSHUTTER 0x21
++#define BGMT_UNPRESS_FULLSHUTTER 0x22
++
++#define BGMT_FLASH_MOVIE 0
++#define BGMT_PRESS_FLASH_MOVIE 0
++#define BGMT_UNPRESS_FLASH_MOVIE 0
++#define FLASH_BTN_MOVIE_MODE 0
++#define BGMT_ISO_MOVIE 0
++#define BGMT_PRESS_ISO_MOVIE 0
++#define BGMT_UNPRESS_ISO_MOVIE 0
++
++#define GMT_OLC_INFO_CHANGED 59 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
++
++ #define SENSOR_RES_X 4752
++ #define SENSOR_RES_Y 3168
++
++#define LV_BOTTOM_BAR_DISPLAYED (((*(int*)0x79B8) == 0xF))
++#define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x79B8) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)
++
++// from a screenshot
++#define COLOR_FG_NONLV 1
++
++#define MVR_516_STRUCT (*(void**)0x1ef0) // look in MVR_Initialize for AllocateMemory call; decompile it and see where ret_AllocateMemory is stored.
++
++#define MEM(x) (*(int*)(x))
++#define div_maybe(a,b) ((a)/(b))
++
++// see mvrGetBufferUsage, which is not really safe to call => err70
++// macros copied from arm-console
++#define MVR_BUFFER_USAGE_FRAME ABS(div_maybe(-100*MEM(256 + MVR_516_STRUCT) - 100*MEM(264 + MVR_516_STRUCT) - 100*MEM(488 + MVR_516_STRUCT) - 100*MEM(496 + MVR_516_STRUCT) + 100*MEM(260 + MVR_516_STRUCT) + 100*MEM(268 + MVR_516_STRUCT), -MEM(256 + MVR_516_STRUCT) - MEM(264 + MVR_516_STRUCT) + MEM(260 + MVR_516_STRUCT) + MEM(268 + MVR_516_STRUCT)))
++#define MVR_BUFFER_USAGE_SOUND div_maybe(-100*MEM(436 + MVR_516_STRUCT) + 100*MEM(424 + MVR_516_STRUCT), 0xa)
++#define MVR_BUFFER_USAGE MAX(MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND)
++
++#define MVR_FRAME_NUMBER  (*(int*)(0xEC + MVR_516_STRUCT)) // in mvrExpStarted
++#define MVR_BYTES_WRITTEN (*(int*)(0xE4 + MVR_516_STRUCT)) // in mvrSMEncodeDone
++
++#define MOV_RES_AND_FPS_COMBINATIONS 5
++#define MOV_OPT_NUM_PARAMS 2
++#define MOV_GOP_OPT_NUM_PARAMS 5
++#define MOV_OPT_STEP 5
++#define MOV_GOP_OPT_STEP 5
++
++#define AE_VALUE 0 // 404
++
++#define CURRENT_DIALOG_MAYBE (*(int*)0x37F0)
++
++#define DLG_PLAY 1
++#define DLG_MENU 2
++
++// not sure
++#define DLG_FOCUS_MODE 9
++#define DLG_DRIVE_MODE 8
++#define DLG_PICTURE_STYLE 4
++#define DLG_Q_UNAVI 0x18
++#define DLG_FLASH_AE 0x22
++#define DLG_PICQ 6
++
++#define _MOVIE_MODE_NON_LIVEVIEW (!lv && !lv_paused && !get_lv_stopped_by_user() && gui_state == GUISTATE_IDLE && lv_movie_select == LVMS_ENABLE_MOVIE && lens_info.job_state == 0 && !HALFSHUTTER_PRESSED)
++#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED  (_MOVIE_MODE_NON_LIVEVIEW && !lens_info.name[0])
++#define DLG_MOVIE_PRESS_LV_TO_RESUME (_MOVIE_MODE_NON_LIVEVIEW && lens_info.name[0])
++
++
++
++#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
++#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
++
++#define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
++#define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x1aac // this prop_deliver performs the action for Video Connect and Video Disconnect
++#define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0x1ad4 // passed as 2nd arg to prop_deliver; 1 = display connected, 0 = not, other values disable this event (trick)
++
++// trial and error
++// choose a gui mode which lets you:
++// * use the wheel and all other keys for menu navigation
++// * optional: send PRESS SET and UNPRESS SET events (if it doesn't, add an exception under EVENT_1)
++// * see LiveView image under menu
++// * go back safely to mode 0 (idle) without side effects (check display, Q menu, keys etc)
++// * does not interfere with recording
++//~ #define GUIMODE_ML_MENU guimode_ml_menu
++#define GUIMODE_ML_MENU (recording ? 0 : lv ? 38 : 2)
++// outside LiveView, Canon menu is a good choice
++
++// position for displaying clock outside LV
++#define DISPLAY_CLOCK_POS_X 435
++#define DISPLAY_CLOCK_POS_Y 452
++
++#define MENU_DISP_ISO_POS_X 500
++#define MENU_DISP_ISO_POS_Y 27
++
++// for displaying TRAP FOCUS msg outside LV
++#define DISPLAY_TRAP_FOCUS_POS_X 500
++#define DISPLAY_TRAP_FOCUS_POS_Y 320
++#define DISPLAY_TRAP_FOCUS_MSG       "TRAP \nFOCUS"
++#define DISPLAY_TRAP_FOCUS_MSG_BLANK "     \n     "
++
++#define NUM_PICSTYLES 9
++#define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
++
++#define MOVIE_MODE_REMAP_X SHOOTMODE_ADEP
++#define MOVIE_MODE_REMAP_Y SHOOTMODE_CA
++#define MOVIE_MODE_REMAP_X_STR "A-DEP"
++#define MOVIE_MODE_REMAP_Y_STR "CA"
++
++#define FLASH_MAX_EV 3
++#define FLASH_MIN_EV -10 // not sure if it actually works
++
++//~ #define MENU_NAV_HELP_STRING "Keys: Joystick / SET / PLAY / Q (joy press) / INFO" 
++#define MENU_NAV_HELP_STRING (PLAY_MODE ? "PicSty outside menu: show LV tools     SET/PLAY/PicSty/INFO" : "SET/PLAY/PicSty=edit values   MENU=Easy/Advanced  INFO=Help")
++
++#define DIALOG_MnCardFormatBegin (0x219EC) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
++#define DIALOG_MnCardFormatExecute (0x21B0C) // similar
++
++#define BULB_MIN_EXPOSURE 100
++
++// http://magiclantern.wikia.com/wiki/Fonts
++#define BFNT_CHAR_CODES    0xf7c5E9C0
++#define BFNT_BITMAP_OFFSET 0xf7c61108
++#define BFNT_BITMAP_DATA   0xf7c63850
++
++ #define DLG_SIGNATURE 0x414944
++
++// from CFn
++ #define AF_BTN_HALFSHUTTER 0
++ #define AF_BTN_STAR 2
++
++#define IMGPLAY_ZOOM_LEVEL_ADDR (0x12EF8) // dec GuiImageZoomDown and look for a negative counter
++#define IMGPLAY_ZOOM_LEVEL_MAX 14
++
++#define BULB_EXPOSURE_CORRECTION 150 // min value for which bulb exif is OK [not tested]
++
++#define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x15C64+0x30)
++// DebugMsg(4, 2, msg='Whole Screen Backup end')
++// winsys_struct.WINSYS_BMP_DIRTY_BIT_NEG /*off_0x30, 0x12BBC*/ = 0
++
++#define BTN_ZEBRAS_FOR_PLAYBACK BGMT_PICSTYLE // what button to use for zebras in Play mode
++
++// manual exposure overrides
++#define LVAE_STRUCT 0x4724
++#define CONTROL_BV      (*(uint16_t*)(LVAE_STRUCT+0x1a)) // EP_SetControlBv
++#define CONTROL_BV_TV   (*(uint16_t*)(LVAE_STRUCT+0x1c)) // EP_SetControlParam
++#define CONTROL_BV_AV   (*(uint16_t*)(LVAE_STRUCT+0x1e))
++#define CONTROL_BV_ISO  (*(uint16_t*)(LVAE_STRUCT+0x20))
++#define CONTROL_BV_ZERO (*(uint16_t*)(LVAE_STRUCT+0x22))
++#define LVAE_ISO_SPEED  (*(uint8_t* )(LVAE_STRUCT))      // offset 0x0; at 3 it changes iso very slowly
++#define LVAE_ISO_MIN    (*(uint8_t* )(LVAE_STRUCT+0x28)) // string: ISOMin:%d
++#define LVAE_ISO_HIS    (*(uint8_t* )(LVAE_STRUCT+0x2a)) // no idea what this is
++#define LVAE_DISP_GAIN  (*(uint16_t*)(LVAE_STRUCT+0x24)) // lvae_setdispgain
++#define LVAE_MOV_M_CTRL (*(uint8_t* )(LVAE_STRUCT+0x6c)) // lvae_setmoviemanualcontrol
++
++#define MIN_MSLEEP 11
++
++#define INFO_BTN_NAME "INFO"
++#define Q_BTN_NAME "Pict.Style"
++
++#define DISPLAY_IS_ON MEM(0x2804) // TurnOnDisplay (PUB) Type=%ld fDisplayTurnOn=%ld
+diff -r 774a30f44f0b -r 9f8d9bb7e92e platform/5D2.211/gui.c
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/platform/5D2.211/gui.c	Fri Mar 23 18:53:26 2012 +0200
+@@ -0,0 +1,298 @@
++/** \file
++ * Magic Lantern GUI main task.
++ *
++ * Overrides the DryOS gui_main_task() to be able to re-map events.
++ */
++/*
++ * Copyright (C) 2009 Trammell Hudson <hudson+ml@osresearch.net>
++ * 
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation; either version 2
++ * of the License, or (at your option) any later version.
++ * 
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ * 
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the
++ * Free Software Foundation, Inc.,
++ * 51 Franklin Street, Fifth Floor,
++ * Boston, MA  02110-1301, USA.
++ */
++
++#include "dryos.h"
++#include "bmp.h"
++#include <property.h>
++
++struct semaphore * gui_sem;
++
++int joy_center_press_count = 0;
++int joy_center_action_disabled = 0;
++void joypress_task()
++{
++	extern int joy_center_pressed;
++	static int count = 0;
++	while(1)
++	{
++		msleep(20);
++		if (joy_center_pressed) joy_center_press_count++;
++		else
++		{
++			if (!joy_center_action_disabled && gui_menu_shown() && joy_center_press_count && joy_center_press_count <= 20) // short press, ML menu active
++			{
++				if (is_submenu_mode_active())
++				{
++					fake_simple_button(BGMT_PICSTYLE); // close submenu
++				}
++				else
++				{
++					fake_simple_button(BGMT_PRESS_SET); // open submenu
++					fake_simple_button(BGMT_UNPRESS_UDLR);
++				}
++			}
++			joy_center_press_count = 0;
++		}
++
++		if (!joy_center_action_disabled && joy_center_press_count > 20) // long press
++		{
++			joy_center_press_count = 0;
++			fake_simple_button(BGMT_UNPRESS_UDLR);
++
++			if (gui_menu_shown())
++				fake_simple_button(BGMT_PICSTYLE); // Q
++			else if (gui_state == GUISTATE_IDLE || gui_state == GUISTATE_QMENU || PLAY_MODE)
++				give_semaphore( gui_sem ); // open ML menu
++			msleep(500);
++		}
++
++	}
++}
++TASK_CREATE( "joypress_task", joypress_task, 0, 0x1a, 0x1000 );
++
++int lv_stopped_by_user = 0;
++
++// return 0 if you want to block this event
++static int handle_buttons(struct event * event)
++{
++	if (event->type != 0) return 1; // only handle events with type=0 (buttons)
++	if (handle_common_events_startup(event) == 0) return 0;
++	extern int ml_started;
++	if (!ml_started) return 1;
++
++	if (handle_common_events_by_feature(event) == 0) return 0;
++
++	if (event->param == BGMT_JOY_CENTER && gui_menu_shown())
++	{
++		joy_center_press_count = 1;
++		return 0; // handled above
++	}
++
++	if (event->param == BGMT_LV)// && !IS_FAKE(event))
++		lv_stopped_by_user = 1;
++
++	if (event->param == BGMT_PRESS_SET && recording)
++	{
++		extern int movie_was_stopped_by_set;
++		movie_was_stopped_by_set = 1;
++	}
++
++	if (event->param == BGMT_PRESS_LEFT || event->param == BGMT_PRESS_RIGHT ||
++		event->param == BGMT_PRESS_DOWN || event->param == BGMT_PRESS_UP ||
++		event->param == BGMT_PRESS_UP_LEFT || event->param == BGMT_PRESS_UP_RIGHT ||
++		event->param == BGMT_PRESS_DOWN_LEFT || event->param == BGMT_PRESS_DOWN_RIGHT)
++		joy_center_action_disabled = 1;
++
++	if (event->param == BGMT_UNPRESS_UDLR)
++		joy_center_action_disabled = 0;
++
++	return 1;
++}
++
++PROP_HANDLER(PROP_LV_ACTION)
++{
++	if (buf[0] == 0) // liveview on
++	{
++		lv_stopped_by_user = 0;
++	}
++	return prop_cleanup(token, property);
++}
++
++int get_lv_stopped_by_user() { return !lv && lv_stopped_by_user; }
++
++struct gui_main_struct {
++	void *			obj;		// off_0x00;
++	uint32_t		counter;	// off_0x04;
++	uint32_t		off_0x08;
++	uint32_t		off_0x0c;
++	uint32_t		off_0x10;
++	uint32_t		off_0x14;
++	uint32_t		off_0x18;
++	uint32_t		off_0x1c;
++	uint32_t		off_0x20;
++	uint32_t		off_0x24;
++	uint32_t		off_0x28;
++	uint32_t		off_0x2c;
++	uint32_t		off_0x30;
++	struct msg_queue *	msg_queue;	// off_0x34;
++	uint32_t		off_0x38;
++	uint32_t		off_0x3c;
++};
++
++extern struct gui_main_struct gui_main_struct;
++
++struct gui_timer_struct
++{
++	void *			obj;	// off_0x00
++};
++
++extern struct gui_timer_struct gui_timer_struct;
++
++// Replaces the gui_main_task
++static void
++my_gui_main_task( void )
++{
++	gui_init_end();
++	uint32_t * obj = 0;
++
++	while(1)
++	{
++		struct event * event;
++		msg_queue_receive(
++			gui_main_struct.msg_queue,
++			&event,
++			0
++		);
++
++		if( !event )
++			goto event_loop_bottom;
++
++		if (!magic_is_off() && event->type == 0)
++		{
++			if (handle_buttons(event) == 0) // ML button/event handler
++				goto event_loop_bottom;
++		}
++
++		if (IS_FAKE(event)) event->arg = 0;
++
++		switch( event->type )
++		{
++		case 0:
++			if( gui_main_struct.obj != obj
++			&&  event->param != 0x25
++			&&  event->param != 0x26
++			&&  event->param != 0x27
++			&&  event->param != 0x28
++			&&  event->param != 0x29
++			&&  event->param != 0x2A
++			&&  event->param != 0x1F
++			&&  event->param != 0x2B
++			&&  event->param != 0x23
++			&&  event->param != 0x2C
++			&&  event->param != 0x2D
++			&&  event->param != 0x2E
++			&&  event->param != 0x2F
++			&&  event->param != 0x30
++			&&  event->param != 0x31
++			&&  event->param != 0x32
++			&&  event->param != 0x3B
++			)
++				goto queue_clear;
++
++			DebugMsg( DM_MAGIC, 2, "GUI_CONTROL:%d", event->param );
++			gui_massive_event_loop( event->param, event->obj, event->arg );
++			break;
++
++		case 1:
++			if( gui_main_struct.obj != obj
++			&&  event->param != 0x00
++			&&  event->param != 0x07
++			&&  event->param != 0x05
++			)
++				goto queue_clear;
++
++			DebugMsg( 0x84, 2, "GUI_CHANGE_MODE:%d", event->param );
++
++			if( event->param == 0 )
++			{
++				gui_local_post( 0x12, 0, 0 );
++				if( gui_timer_struct.obj )
++					gui_timer_something( gui_timer_struct.obj, 4 );
++			}
++
++			gui_change_mode( event->param );
++			break;
++
++		case 2:
++			if( gui_main_struct.obj != obj
++			&&  event->param != 0x17
++			&&  event->param != 0x18
++			&&  event->param != 0x14
++			&&  event->param != 0x1b
++			&&  event->param != 0x31
++			&&  event->param != 0x32
++			)
++				goto queue_clear;
++
++			gui_local_post( event->param, event->obj, event->arg );
++			break;
++		case 3:
++			if( event->param == 0x11 )
++			{
++				DebugMsg( 0x84, 2, "GUIOTHER_CANCEL_ALL_EVENT" );
++				obj = event->obj;
++				break;
++			}
++
++			if( gui_main_struct.obj != obj
++			&&  event->param != 0x00
++			&&  event->param != 0x03
++			&&  event->param != 0x01
++			&&  event->param != 0x12
++			&&  event->param != 0x13
++			&&  event->param != 0x14
++			)
++				goto queue_clear;
++
++			DebugMsg( 0x84, 2, "GUI_OTHEREVENT:%d", event->param );
++			gui_other_post( event->param, event->obj, event->arg );
++			break;
++		case 4:
++			gui_post_10000085( event->param, event->obj, event->arg );
++			break;
++		case 5:
++			gui_init_event( event->obj );
++			break;
++		case 6:
++			DebugMsg( 0x84, 2, "GUI_CHANGE_SHOOT_TYPE:%d", event->param );
++			gui_change_shoot_type_post( event->param );
++			break;
++		case 7:
++			DebugMsg( 0x84, 2, "GUI_CHANGE_LCD_STATE:%d", event->param );
++			gui_change_lcd_state_post( event->param );
++			break;
++
++		default:
++			break;
++		}
++
++event_loop_bottom:
++		gui_main_struct.counter--;
++		continue;
++
++queue_clear:
++		DebugMsg(
++			0x84,
++			3,
++			"**** Queue Clear **** event(%d) param(%d)",
++			event->type,
++			event->param
++		);
++
++		goto event_loop_bottom;
++	}
++}
++
++TASK_OVERRIDE( gui_main_task, my_gui_main_task );
+diff -r 774a30f44f0b -r 9f8d9bb7e92e platform/5D2.211/gui.h
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/platform/5D2.211/gui.h	Fri Mar 23 18:53:26 2012 +0200
+@@ -0,0 +1,67 @@
++#ifndef _cameraspecific_gui_h_
++#define _cameraspecific_gui_h_
++
++/** Event types */
++typedef enum {
++	GOT_TOP_OF_CONTROL		= 0x800,
++	LOST_TOP_OF_CONTROL		= 0x801,
++	INITIALIZE_CONTROLLER		= 0x802,
++	TERMINATE_WINSYS		= 0x804,
++	DELETE_DIALOG_REQUEST		= 0x805,
++	PRESS_RIGHT_BUTTON		= 0x807,
++	PRESS_LEFT_BUTTON		= 0x809,
++	PRESS_UP_BUTTON			= 0x80B,
++	PRESS_DOWN_BUTTON		= 0x80D,
++	PRESS_MENU_BUTTON		= 0x80F,
++	PRESS_SET_BUTTON		= 0x812, // also joy center?
++	UNPRESS_SET_BUTTON		= 0x813,
++	PRESS_PICSTYLE_BUTTON		= 0x81C,
++	PRESS_ZOOM_IN_BUTTON		= 0x819,
++	UNPRESS_ZOOM_IN_BUTTON		= 0x81A,
++	//PRESS_ZOOM_OUT_BUTTON		= 0x10000039,
++	//UNPRESS_ZOOM_OUT_BUTTON		= 0x1000003A,
++	PRESS_JOY_LEFTUP		= 0x81f,
++	PRESS_JOY_LEFT			= 0x820,
++	PRESS_JOY_LEFTDOWN		= 0x821,
++	PRESS_JOY_UP			= 0x822,
++	PRESS_JOY_DOWN			= 0x824,
++	PRESS_JOY_RIGHTUP		= 0x825,
++	PRESS_JOY_RIGHT			= 0x826,
++	PRESS_JOY_RIGHTDOWN		= 0x827,
++	JOY_CENTER			= 0x810,
++	PRESS_INFO_BUTTON		= 0x829,
++	ELECTRONIC_SUB_DIAL_RIGHT	= 0x82B,
++	ELECTRONIC_SUB_DIAL_LEFT	= 0x82C,
++	DIAL_LEFT			= 0x82E,
++	DIAL_RIGHT			= 0x82F,
++	PRESS_DISP_BUTTON		= 0x10000000, // also play?
++	PRESS_PLAY_BUTTON		= 0x10000000,
++	PRESS_ERASE_BUTTON		= 0x10000001,
++	PRESS_DIRECT_PRINT_BUTTON	= 0x10000005,
++	PRESS_FUNC_BUTTON		= 0x10000007,
++	PRESS_PICTURE_STYLE_BUTTON	= 0x10000009,
++	GUICMD_OPEN_SLOT_COVER		= 0x1000000B,
++	GUICMD_CLOSE_SLOT_COVER		= 0x1000000C,
++	GUICMD_MADE_QR			= 0x10000037,
++	GUICMD_MADE_FILE		= 0x10000038,
++	GUI_TIMER4			= 0x10000054, // no idea
++	GUI_TIMER2			= 0x10000069, // no idea
++	GUI_TIMER3			= 0x1000006D, // no idea
++	START_SHOOT_MOVIE		= 0x1000008A,
++	GUI_PROP_EVENT			= 0x10000085, // maybe?
++	LOCAL_MOVIE_RECORD_STOP		= 0x10000078, // DlgLiveViewApp
++	GUICMD_UI_OK			= 0x100000A1,
++	GUICMD_START_AS_CHECK		= 0x100000A2,
++	GUICMD_LOCK_OFF			= 0x100000A3,
++	GUICMD_LOCK_ON			= 0x100000A4,
++
++	EVENTID_METERING_START			= 0x10000039,
++	EVENTID_METERING_TIMER_START	= 0x1000003a,
++	EVENTID_RELEASE_START			= 0x1000003b,
++	EVENTID_RELEASE_END				= 0x1000003c,
++
++	EVENTID_94			= 0x10000094,
++	EVENT_1 = 1
++} gui_event_t;
++
++#endif
+diff -r 774a30f44f0b -r 9f8d9bb7e92e platform/5D2.211/lensfocus.c
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/platform/5D2.211/lensfocus.c	Fri Mar 23 18:53:26 2012 +0200
+@@ -0,0 +1,90 @@
++#include <dryos.h>
++#include <lens.h>
++#include <property.h>
++#include <bmp.h>
++#include <config.h>
++
++int get_prop_picstyle_from_index(int index)
++{
++	switch(index)
++	{
++		case 1: return 0x81;
++		case 2: return 0x82;
++		case 3: return 0x83;
++		case 4: return 0x84;
++		case 5: return 0x85;
++		case 6: return 0x86;
++		case 7: return 0x21;
++		case 8: return 0x22;
++		case 9: return 0x23;
++	}
++	bmp_printf(FONT_LARGE, 0, 0, "unk picstyle index: %x", index);
++	return 0;
++}
++
++int get_prop_picstyle_index(int pic_style)
++{
++	switch(pic_style)
++	{
++		case 0x81: return 1;
++		case 0x82: return 2;
++		case 0x83: return 3;
++		case 0x84: return 4;
++		case 0x85: return 5;
++		case 0x86: return 6;
++		case 0x21: return 7;
++		case 0x22: return 8;
++		case 0x23: return 9;
++	}
++	bmp_printf(FONT_LARGE, 0, 0, "unk picstyle: %x", pic_style);
++	return 0;
++}
++
++struct prop_picstyle_settings picstyle_settings[10];
++
++// prop_register_slave is much more difficult to use than copy/paste...
++
++PROP_HANDLER( PROP_PICSTYLE_SETTINGS_STANDARD ) {
++	memcpy(&picstyle_settings[1], buf, 24);
++	return prop_cleanup( token, property );
++}
++
++PROP_HANDLER( PROP_PICSTYLE_SETTINGS_PORTRAIT ) {
++	memcpy(&picstyle_settings[2], buf, 24);
++	return prop_cleanup( token, property );
++}
++
++PROP_HANDLER( PROP_PICSTYLE_SETTINGS_LANDSCAPE ) {
++	memcpy(&picstyle_settings[3], buf, 24);
++	return prop_cleanup( token, property );
++}
++
++PROP_HANDLER( PROP_PICSTYLE_SETTINGS_NEUTRAL ) {
++	memcpy(&picstyle_settings[4], buf, 24);
++	return prop_cleanup( token, property );
++}
++
++PROP_HANDLER( PROP_PICSTYLE_SETTINGS_FAITHFUL ) {
++	memcpy(&picstyle_settings[5], buf, 24);
++	return prop_cleanup( token, property );
++}
++
++PROP_HANDLER( PROP_PICSTYLE_SETTINGS_MONOCHROME ) {
++	memcpy(&picstyle_settings[6], buf, 24);
++	return prop_cleanup( token, property );
++}
++
++PROP_HANDLER( PROP_PICSTYLE_SETTINGS_USERDEF1 ) {
++	memcpy(&picstyle_settings[7], buf, 24);
++	return prop_cleanup( token, property );
++}
++
++PROP_HANDLER( PROP_PICSTYLE_SETTINGS_USERDEF2 ) {
++	memcpy(&picstyle_settings[8], buf, 24);
++	return prop_cleanup( token, property );
++}
++
++PROP_HANDLER( PROP_PICSTYLE_SETTINGS_USERDEF3 ) {
++	memcpy(&picstyle_settings[9], buf, 24);
++	return prop_cleanup( token, property );
++}
+diff -r 774a30f44f0b -r 9f8d9bb7e92e platform/5D2.211/misc.c
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/platform/5D2.211/misc.c	Fri Mar 23 18:53:26 2012 +0200
+@@ -0,0 +1,110 @@
++// misc functions specific to 60D/109
++
++#include <dryos.h>
++#include <property.h>
++#include <bmp.h>
++#include <config.h>
++#include <consts.h>
++#include <lens.h>
++
++void display_shooting_info() // called from debug task
++{
++	if (lv) return;
++	
++	int bg = COLOR_BLACK;
++	uint32_t fnt = SHADOW_FONT(FONT_MED);
++
++	bmp_printf(fnt, 215, 385, "%d%% ", GetBatteryLevel());
++
++	if (lens_info.wb_mode == WB_KELVIN)
++	{
++		bmp_printf(fnt, 490, 275, "%5dK", lens_info.kelvin);
++	}
++	if (lens_info.wbs_gm || lens_info.wbs_ba)
++	{
++		bg = bmp_getpixel(15, 460);
++		fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
++
++		int ba = lens_info.wbs_ba;
++		if (ba) bmp_printf(fnt, 350 + 2 * font_med.width, 460, "%s%d", ba > 0 ? "A" : "B", ABS(ba));
++		else    bmp_printf(fnt, 350 + 2 * font_med.width, 460, "  ");
++
++		int gm = lens_info.wbs_gm;
++		if (gm) bmp_printf(fnt, 350, 460, "%s%d", gm > 0 ? "G" : "M", ABS(gm));
++		else    bmp_printf(fnt, 350, 460, "  ");
++	}
++
++	//~ iso_refresh_display();
++
++	//~ bg = bmp_getpixel(15, 430);
++	//~ fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
++	
++	extern int hdr_steps, hdr_stepsize, hdr_enabled;
++	if (hdr_enabled)
++		bmp_printf(fnt, 180, 460, "HDR %dx%dEV", hdr_steps, hdr_stepsize/8);
++	else
++		bmp_printf(fnt, 180, 460, "         ");
++
++	//~ bmp_printf(fnt, 400, 450, "Flash:%s", 
++		//~ strobo_firing == 0 ? " ON" : 
++		//~ strobo_firing == 1 ? "OFF" : "Auto"
++		//~ strobo_firing < 2 && flash_and_no_flash ? "/T" : "  "
++		//~ );
++
++	bmp_printf(fnt, 40, 460, get_mlu() ? "MLU" : "   ");
++
++	display_lcd_remote_icon(555, 460);
++	display_trap_focus_info();
++}
++
++
++int battery_level = 0;
++CONFIG_INT("battery.drain.rate.rev", battery_seconds_same_level_ok, 0);
++int battery_seconds_same_level_tmp = 0;
++int battery_level_transitions = 0;
++
++PROP_HANDLER(PROP_BATTERY_REPORT)
++{
++	battery_level = buf[1] & 0xff;
++	return prop_cleanup(token, property);
++}
++int GetBatteryLevel()
++{
++	return battery_level;
++}
++int GetBatteryTimeRemaining()
++{
++	return battery_seconds_same_level_ok * battery_level;
++}
++int GetBatteryDrainRate() // percents per hour
++{
++	return 3600 / battery_seconds_same_level_ok;
++}
++
++// called every second
++void RefreshBatteryLevel_1Hz()
++{
++	int x = 31;
++	prop_request_change(PROP_BATTERY_REPORT, &x, 1); // see PROP_Request PROP_BATTERY_REPORT
++	
++	msleep(50);
++	
++	// check how many seconds battery indicator was at the same percentage
++	// this is a rough indication of how fast the battery is draining
++	static int old_battery_level = -1;
++	if (battery_level == old_battery_level)
++	{
++		battery_seconds_same_level_tmp++;
++	}
++	else
++	{
++		battery_level_transitions++;
++		if (battery_level_transitions >= 2)
++			battery_seconds_same_level_ok = battery_seconds_same_level_tmp;
++		battery_seconds_same_level_tmp = 0;
++	}
++	old_battery_level = battery_level;
++}
++
++// dummy stub
++int new_LiveViewApp_handler = 0xff123456;
+diff -r 774a30f44f0b -r 9f8d9bb7e92e platform/5D2.211/mvr.h
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/platform/5D2.211/mvr.h	Fri Mar 23 18:53:26 2012 +0200
+@@ -0,0 +1,301 @@
++
++// Movie recording.
++
++extern struct mvr_struct * mvr_struct;
++extern struct state_object * mvr_state;
++
++// tab size: 4
++
++/***** Added by from AJ 2.0.4 IDC *************************************************************
++*                                                                                             *
++*  mvr_config  (also called aAJ_Movie_CompressionRate_struct_0x86AC_0x00_to_0xA8 in AJ 2.0.4  *
++*                                                                                             *
++***********************************************************************************************
++*  Callable DRYOS functions that relate to configuring the H264 compression. 
++*
++*  "mvrSetQscale"
++*  "mvrSetQscaleYC"
++*  "mvrSetDeblockingFilter"
++*  "mvrSetLimitQScale"
++*  "mvrSetDefQScale"
++*  "mvrSetTimeConst"
++*  "mvrSetFullHDOptSize"
++*  "mvrSetVGAOptSize"
++*  "mvrSetGopOptSizeFULLHD"
++*  "mvrSetGopOptSizeVGA"
++*  "mvrSetD_FULLHD"
++*  "mvrSetD_VGA"
++*  "mvrFixQScale"
++*  "mvrSetDefDBFilter"
++*  "mvrSetPrintMovieLog"
++*
++**********************************************************************************************/
++
++struct mvr_config   // used in aj_bitrate.c to change the CBR and VBR     mvr_config=0x86AC
++{
++   uint16_t   debug_flag;              // 0x00, 1 = write debugmsg's
++   uint16_t   qscale_mode;             // 0x02, {CBR=0, VBR(QScale)=1} AJ_mvrFixQScale()
++
++   uint16_t   db_filter_a;             // 0x04, AJ_mvrSetDefDBFilter()  Alex: No effect?
++   uint16_t   db_filter_b;             // 0x06, AJ_mvrSetDefDBFilter()  Alex: No effect?
++
++   int16_t    def_q_scale;             // 0x08, AJ_mvrSetDefQScale() VBR works when qscale_mode=1      
++   int16_t    def_q_scale2;            // 0x0A  
++
++   int16_t    qscale_limit_L;          // 0x0C, AJ_mvrSetLimitQScale()
++   int16_t    qscale_limit_H;          // 0x0E, AJ_mvrSetLimitQScale()
++
++   uint16_t   time_const;              // 0x10, AJ_mvrSetTimeConst()  [0..255]?
++                                       //       AJ_mvrFixQScale() <-- prints out in this
++   uint16_t   x12;                     // 0x12					
++
++   /***************************************
++   *   1920 pix @ 30 fps  -------  CBR    *
++   ***************************************/ 
++
++   unsigned int   v1920_30fps_opt_size_I;    // 0x14   AJ_mvrSetFullHDOptSize() [I]
++   unsigned int   v1920_30fps_opt_size_P;    // 0x18   AJ_mvrSetFullHDOptSize() [P]
++   unsigned int   v1920_30fps_D_H;           // 0x1C   AJ_mvrSetD_FULLHD() copy to -> 0x30
++   unsigned int   v1920_30fps_D_L;           // 0x20   AJ_mvrSetD_FULLHD() copy to -> 0x34,0x44,0x48
++   unsigned int   v1920_30fps_kinda_counter; // 0x24 
++
++
++   /***************************************
++   *   1920 pix @ 25 fps  -------  CBR    *
++   ***************************************/ 
++
++   unsigned int   v1920_25fps_opt_size_I;    // 0x28  AJ_mvrSetFullHDOptSize() [I]
++   unsigned int   v1920_25fps_opt_size_P;    // 0x2C  AJ_mvrSetFullHDOptSize() [P]
++   unsigned int   v1920_25fps_D_H;           // 0x30  AJ_mvrSetD_FULLHD() <-- 0x1C
++   unsigned int   v1920_25fps_D_L;           // 0x34  AJ_mvrSetD_FULLHD() <-- 0x20
++   unsigned int   v1920_25fps_kinda_counter; // 0x38  
++
++
++   /***************************************
++   *   1920 pix @ 24 fps  -------  CBR    *
++   ***************************************/ 
++
++   unsigned int   v1920_24fps_opt_size_I;    // 0x3C  AJ_mvrSetFullHDOptSize()   IOptSize
++   unsigned int   v1920_24fps_opt_size_P;    // 0x40  AJ_mvrSetFullHDOptSize()   POptSize
++   unsigned int   v1920_24fps_D_H;           // 0x44  AJ_mvrSetD_FULLHD() <-- 0x20
++   unsigned int   v1920_24fps_D_L;           // 0x48  AJ_mvrSetD_FULLHD() <-- 0x20
++   unsigned int   v1920_24fps_kinda_counter; // 0x4C
++
++   /***************************************
++   *   640 pix @ 30 fps   -------  CBR    *
++   ***************************************/   
++
++   unsigned int   v640_30fps_opt_size_I;     // 0x50   AJ_mvrSetVGAOptSize() [I]   
++   unsigned int   v640_30fps_opt_size_P;     // 0x54   AJ_mvrSetVGAOptSize() [P] 
++   unsigned int   v640_30fps_D_H;            // 0x58   AJ_mvrSetD_VGA() --> 0x6C
++   unsigned int   v640_30fps_D_L;            // 0x5C   AJ_mvrSetD_VGA() --> 0x70
++   unsigned int   v640_30fps_kinda_counter;  // 0x60 
++
++   /***************************************
++   *   640 pix @ 25 fps   -------  CBR    *
++   ***************************************/ 
++
++   unsigned int   v640_25fps_opt_size_I;     // 0x64   AJ_mvrSetVGAOptSize() [I]
++   unsigned int   v640_25fps_opt_size_P;     // 0x68   AJ_mvrSetVGAOptSize() [P]
++   unsigned int   v640_25fps_D_H;            // 0x6C   AJ_mvrSetD_VGA() <-- 0x58
++   unsigned int   v640_25fps_D_L;            // 0x70   AJ_mvrSetD_VGA() <-- 0x70
++   unsigned int   v640_25fps_kinda_counter;  // 0x74 
++
++
++   /***************************************/ 
++   /***************************************/ 
++   /***************************************/ 
++
++
++   unsigned int   DefQScale;            // 0x78  AJ_Movie_CompressionRateAdjuster.c
++   unsigned int   IniQScale;            // 0x7C  AJ_Movie_CompressionRateAdjuster.c
++   int            actual_qscale_maybe;  // 0x80  inited #0x8000_0000
++    				        //       in AJ_Movie_CompressionRateAdjuster.c
++
++   unsigned int   _IOptSize;            // 0x84   XXX OPT XXX
++   unsigned int   _POptSize;            // 0x88   XXX OPT XXX
++
++   unsigned int   IOptSize2;            // 0x8C  AJ_MovieCompression_setup_Gop_size_Qscale()
++   unsigned int   POptSize2;            // 0x90  AJ_MovieCompression_setup_Gop_size_Qscale()
++   unsigned int   GopSize;              // 0x94  AJ_MovieCompression_setup_Gop_size_Qscale()
++   unsigned int   ABC_zone_NowIndex;    // 0x98  A, B or C Zone _NowIndex
++   unsigned int   GopOpt_struct_ptr;    // 0x9C   &Struct [2,3,4,5,6] -> Copied into here
++
++   unsigned int   D1_DH;                // 0xA0  XXX GOPT XXX
++   unsigned int   D2_DL;     		// 0xA4  XXX GOPT XXX   
++   unsigned int   kinda_counter;            
++
++	uint32_t		fullhd_30fps_gop_opt_0; // 0xac
++	uint32_t		fullhd_30fps_gop_opt_1; // 0xb0
++	uint32_t		fullhd_30fps_gop_opt_2; // 0xb4
++	uint32_t		fullhd_30fps_gop_opt_3; // 0xb8
++	uint32_t		fullhd_30fps_gop_opt_4; // 0xbc
++	uint32_t		fullhd_25fps_gop_opt_0; // 0xc0
++	uint32_t		fullhd_25fps_gop_opt_1; // 0xc4
++	uint32_t		fullhd_25fps_gop_opt_2; // 0xc8
++	uint32_t		fullhd_25fps_gop_opt_3; // 0xcc
++	uint32_t		fullhd_25fps_gop_opt_4; // 0xd0
++	uint32_t		fullhd_24fps_gop_opt_0; // 0xd4
++	uint32_t		fullhd_24fps_gop_opt_1; // 0xd8
++	uint32_t		fullhd_24fps_gop_opt_2; // 0xdc
++	uint32_t		fullhd_24fps_gop_opt_3; // 0xe0
++	uint32_t		fullhd_24fps_gop_opt_4; // 0xe4
++	uint32_t		vga_30fps_gop_opt_0;    // 0xe8
++	uint32_t		vga_30fps_gop_opt_1;    // 0xec
++	uint32_t		vga_30fps_gop_opt_2;    // 0xf0
++	uint32_t		vga_30fps_gop_opt_3;    // 0xf4
++	uint32_t		vga_30fps_gop_opt_4;    // 0xf8
++	uint32_t		vga_25fps_gop_opt_0;    // 0xfc
++	uint32_t		vga_25fps_gop_opt_1;    // 0x100
++	uint32_t		vga_25fps_gop_opt_2;    // 0x104
++	uint32_t		vga_25fps_gop_opt_3;    // 0x108
++	uint32_t		vga_25fps_gop_opt_4;    // 0x10c
++
++} __attribute__((aligned,packed));
++
++//~ SIZE_CHECK_STRUCT( mvr_config, 0x30 );
++
++extern struct mvr_config mvr_config;
++
++
++// This is from 5D2, not used here.
++/*
++ *
++ * State information is in this structure.  A pointer to the global
++ * object is at 0x1ee0.  It is of size 0x1b4.
++ *
++ * The state object is in 0x68a4.
++ */
++/*struct mvr_struct
++{
++	const char *		type;	 // "MovieRecorder" off 0
++	uint32_t		off_0x04;
++	uint32_t		task;	// off_0x08;
++	uint32_t		off_0x0c;
++	uint32_t		off_0x10;
++	uint32_t		off_0x14;
++	uint32_t		off_0x18;
++	uint32_t		off_0x1c;
++	uint32_t		off_0x20;
++	uint32_t		off_0x24;
++	uint32_t		off_0x28;
++	uint32_t		off_0x2c;
++	uint32_t		off_0x30;
++	uint32_t		off_0x34;
++	uint32_t		off_0x38;
++	uint32_t		off_0x3c;
++	uint32_t		off_0x40;
++	uint32_t		off_0x44;
++	uint32_t		off_0x48;
++	uint32_t		off_0x4c;
++	uint32_t		off_0x50;
++	uint32_t		off_0x54;
++	uint32_t		off_0x58;
++	uint32_t		off_0x5c;
++	uint32_t		off_0x60;
++	uint32_t		off_0x64;
++	uint32_t		off_0x68;
++	uint32_t		off_0x6c;
++	uint32_t		off_0x70;
++	uint32_t		off_0x74;
++	uint32_t		off_0x78;
++	uint32_t		off_0x7c;
++	uint32_t		off_0x80;
++	uint32_t		off_0x84;
++	uint32_t		off_0x88;
++	uint32_t		off_0x8c;
++	uint32_t		off_0x90;
++	uint32_t		off_0x94;
++	uint32_t		off_0x98;
++	uint32_t		off_0x9c;
++	uint32_t		off_0xa0;
++	uint32_t		off_0xa4;
++	uint32_t		off_0xa8;
++	uint32_t		off_0xac;
++	uint32_t		off_0xb0;
++	uint32_t		off_0xb4;
++	uint32_t		off_0xb8;
++	uint32_t		off_0xbc;
++	uint32_t		off_0xc0;
++	uint32_t		off_0xc4;
++	uint32_t		off_0xc8;
++	uint32_t		off_0xcc;
++	uint32_t		off_0xd0;
++	uint32_t		off_0xd4;
++	uint32_t		off_0xd8;
++	uint32_t		off_0xdc;
++	uint32_t		off_0xe0;
++	uint32_t		off_0xe4;
++	uint32_t		off_0xe8;
++	uint32_t		off_0xec;
++	uint32_t		off_0xf0;
++	uint32_t		off_0xf4;
++	uint32_t		off_0xf8;
++	uint32_t		off_0xfc;
++	uint32_t		off_0x100;
++	uint32_t		off_0x104;
++	uint32_t		off_0x108;
++	uint32_t		off_0x10c;
++	uint32_t		off_0x110;
++	uint32_t		off_0x114;
++	uint32_t		off_0x118;
++	uint32_t		off_0x11c;
++	uint32_t		off_0x120;
++	uint32_t		off_0x124;
++	uint32_t		off_0x128;
++	uint32_t		off_0x12c;
++	uint32_t		off_0x130;
++	uint32_t		off_0x134;
++	uint32_t		off_0x138;
++	uint32_t		off_0x13c;
++	uint32_t		is_vga;	// 0==1920, 1==640 off_0x140;
++	uint32_t		off_0x144;
++	uint32_t		off_0x148;
++	uint32_t		fps;		// 30, off_0x14c;
++	uint32_t		width;		// off_0x150;
++	uint32_t		height;		// off_0x154;
++	uint32_t		audio_rec;	// off_0x158;
++	uint32_t		auido_channels;	// 2 or 0, off_0x15c;
++	uint32_t		audio_rate;	// 44100 or 0, off_0x160;
++	uint32_t		off_0x164;
++	uint32_t		off_0x168;
++	uint32_t		off_0x16c;
++	uint32_t		off_0x170;
++	uint32_t		off_0x174;
++	uint32_t		off_0x178;
++	uint32_t		off_0x17c;
++	uint32_t		off_0x180;
++	uint32_t		off_0x184;
++	uint32_t		off_0x188;
++	uint32_t		off_0x18c;
++	uint32_t		bit_rate; // off_0x190;
++	uint32_t		off_0x194;
++	uint32_t		off_0x198;
++	uint32_t		off_0x19c;
++	uint32_t		off_0x1a0;
++	uint32_t		off_0x1a4;
++	uint32_t		off_0x1a8;
++	uint32_t		off_0x1ac;
++	uint32_t		off_0x1b0;
++	uint32_t		off_0x1b4;
++	uint32_t		off_0x1b8;
++	uint32_t		off_0x1bc;
++	uint32_t		off_0x1c0;
++	uint32_t		off_0x1c4;
++	uint32_t		off_0x1c8;
++	uint32_t		off_0x1cc;
++	uint32_t		off_0x1d0;
++	uint32_t		off_0x1d4;
++	uint32_t		off_0x1d8;
++	uint32_t		off_0x1dc;
++	uint32_t		off_0x1e0;
++	uint32_t		off_0x1e4;
++	uint32_t		off_0x1e8;
++	uint32_t		off_0x1ec;
++	uint32_t		off_0x1f0;
++	uint32_t		off_0x1f4;
++	uint32_t		off_0x1f8;
++	uint32_t		off_0x1fc;
++};
++
++SIZE_CHECK_STRUCT( mvr_struct, 512 );*/
+diff -r 774a30f44f0b -r 9f8d9bb7e92e platform/5D2.211/stubs.S
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/platform/5D2.211/stubs.S	Fri Mar 23 18:53:26 2012 +0200
+@@ -0,0 +1,183 @@
++/** \file
++ * Entry points into the firmware image.
++ *
++ * These are the functions that we can call from our tasks
++ * in the Canon 1.0.9 firmware for the 550d.
++ *
++ * \todo Sort this file?  Generate it from the IDA map?
++ */
++/*
++ * Copyright (C) 2010 Magic Lantern Team
++ * 
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation; either version 2
++ * of the License, or (at your option) any later version.
++ * 
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ * 
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the
++ * Free Software Foundation, Inc.,
++ * 51 Franklin Street, Fifth Floor,
++ * Boston, MA  02110-1301, USA.
++ */
++
++.text
++
++#define NSTUB(addr,name) \
++	.global name; \
++	name = addr
++
++NSTUB( ROMBASEADDR, firmware_entry )
++
++NSTUB(0xFF9B3E68, AcquireRecursiveLock)           // might be good (dumps=1, score=12)
++NSTUB(0xFF86F16C, AllocateMemory)                 // might be good (dumps=1, score=74)
++NSTUB(0xFFAACD38, BeginMovieRecSequence)          // might be good (dumps=1, score=3.4)
++NSTUB(0xFFAD2828, ChangeColorPalette)             // might be good (dumps=1, score=4.3)
++NSTUB(0xFFA6D108, CreateDialogBox)                // might be good (dumps=1, score=62)
++NSTUB(0xFF8724EC, CreateRecursiveLock)            // might be good (dumps=1, score=6)
++NSTUB(0xFFA6CBA0, DeleteDialogBox)                // might be good (dumps=1, score=47)
++NSTUB(0xFF9D8250, DispSensorStart)                // might be good (dumps=1, score=2.3)
++NSTUB(0xFF86AF64, DryosDebugMsg)                  // might be good (dumps=1, score=4.6e+02)
++NSTUB(0xFF9ABE20, FIO_CleanupAfterFindNext_maybe) // might be good (dumps=1, score=18)
++NSTUB(0xFF9AAD10, FIO_CloseFile)                  // Good. Found matches: ff9aad10/42, ff95ac28/6.2
++NSTUB(0xFF9AB574, FIO_CreateDirectory)            // Ambiguous match. Found matches: ff95b48c/7.5, ff9ab574/5.7
++NSTUB(0xFF9AAC68, FIO_CreateFile)                 // might be good (dumps=1, score=29)
++NSTUB(0xFF9ABBF4, FIO_FindFirstEx)                // might be good (dumps=1, score=16)
++NSTUB(0xFF9ABD20, FIO_FindNextEx)                 // might be good (dumps=1, score=16)
++NSTUB(0xFF9AB304, FIO_GetFileSize)                // might be good (dumps=1, score=15)
++NSTUB(0xFF9AABB4, FIO_Open)                       // might be good (dumps=1, score=27)
++NSTUB(0xFF9AAFA0, FIO_ReadFile)                   // might be good (dumps=1, score=26)
++NSTUB(0xFF9AAE84, FIO_RemoveFile)                 // might be good (dumps=1, score=4.8)
++NSTUB(0xFF9AB150, FIO_WriteFile)                  // might be good (dumps=1, score=39)
++NSTUB(0xFF86F4FC, FreeMemory)                     // Good. Found matches: ff86f4fc/87, ff92f638/-0.44
++NSTUB(0xFF824060, GUI_ChangeMode)                 // might be good (dumps=1, score=2.5)
++NSTUB(0xFF823E60, GUI_Control)                    // Good. Found matches: ff823e60/15, ff83a970/-0.45
++NSTUB(0xFF9D6128, GUI_GetFirmVersion)             // might be good (dumps=1, score=6.1)
++NSTUB(0xFF9CE5D8, GUI_SetLvMode)                  // might be good (dumps=1, score=1.7)
++//NSTUB(0xFF9CE7D0, GUI_SetMovieSize_a)             // might be good (dumps=1, score=-3.1)
++NSTUB(0xFFB5E88C, GetCFnData)                     // might be good (dumps=1, score=5.4)
++NSTUB(0xff9d7f88, GuiEdLedBlink)                  // Good. Found matches: ff9854a0/10, ff9d7f88/1.4
++NSTUB(0xFF9D7F64, GuiEdLedOff)                    // might be good (dumps=1, score=13)
++NSTUB(0xFF9D7F40, GuiEdLedOn)                     // might be good (dumps=1, score=5.6)
++NSTUB(0xFF8377D0, LVCAF_LensDriveStart)           // might be good (dumps=1, score=2.3)
++NSTUB(0xFF8696D8, LoadCalendarFromRTC)            // might be good (dumps=1, score=9.3)
++NSTUB(0xff86438c, MuteOff_0)                      // MuteOffBmp in 5D2
++NSTUB(0xff864358, MuteOn_0)                       // MuteOnBmp in 5D2
++NSTUB(0xFFA856B8, RedrawDisplay)                  // might be good (dumps=1, score=68)
++NSTUB(0xFF9B3F7C, ReleaseRecursiveLock)           // might be good (dumps=1, score=12)
++NSTUB(0xFF92EBDC, RemoteRelease)                  // might be good (dumps=1, score=3.2)
++NSTUB(0xFF864BD8, SetBitmapVramAddress)           // might be good (dumps=1, score=0.8)
++NSTUB(0xFFB5E994, SetCFnData)                     // might be good (dumps=1, score=4.7)
++NSTUB(0xff88f710, SetGUIRequestMode)
++NSTUB(0xFFBFB888, StartFactoryMenuApp)            // might be good (dumps=1, score=5.6)
++NSTUB(0xff859468, _audio_ic_read)                 // no match
++NSTUB(0xff859638, _audio_ic_write)                // no match
++NSTUB(   0x13428, additional_version)             // might be good (dumps=1, score=3.6)
++NSTUB(0xFF9BA190, alloc_dma_memory)               // might be good (dumps=1, score=35)
++NSTUB(0xffcb4ae4, audio_thresholds)               // no match
++NSTUB(   0x27624, bmp_vram_info )                 // look in dispcheck
++NSTUB(0xFFC458D4, bzero32)                        // might be good (dumps=1, score=66)
++NSTUB(0xFF86BCE0, call)                           // might be good (dumps=1, score=63)
++NSTUB(0xC0220000, camera_engine)                  // no match
++NSTUB(0xFFB8B724, cfReadBlk)                      // might be good (dumps=1, score=5.8)
++NSTUB(   0x20890, cf_device)                      // might be good (dumps=1, score=14)
++NSTUB(0xFF812E44, cli_save)                       // might be good (dumps=1, score=0.32)
++NSTUB(0xFF817470, create_init_task)               // might be good (dumps=1, score=3)
++NSTUB(0xFF86DC28, create_named_semaphore)         // might be good (dumps=1, score=37)
++NSTUB(0xFF810894, cstart)                         // might be good (dumps=1, score=1.6)
++NSTUB(0xFFA6BDD0, ctrlman_dispatch_event)         // might be good (dumps=1, score=10)
++NSTUB(0xFFA6DA0C, dialog_redraw)                  // might be good (dumps=1, score=63)
++NSTUB(0xFFAD2694, dialog_set_property_str)        // might be good (dumps=1, score=29)
++NSTUB(0xFF864694, dispcheck)                      // might be good (dumps=1, score=4.3)
++NSTUB(    0x2ba0, dm_names)                       // no match
++NSTUB(0xFF86B2B0, dm_set_store_level)             // might be good (dumps=1, score=7.4)
++NSTUB(0xFF86AEE4, dmstart)                        // might be good (dumps=1, score=1.9)
++NSTUB(0xFF86AF24, dmstop)                         // might be good (dumps=1, score=1.9)
++NSTUB(0xFF86B7F8, dumpf)                          // might be good (dumps=1, score=1.8)
++NSTUB(0xFF818FD4, free)                           // Good. Found matches: ff818fd4/9.7, ff818bb4/0.027
++NSTUB(0xFF9BA1C4, free_dma_memory)                // might be good (dumps=1, score=40)
++NSTUB(0xFFB30CC0, fsuDecodePartitionTable)        // might be good (dumps=1, score=2.1)
++NSTUB(0xFF86DE70, give_semaphore)                 // might be good (dumps=1, score=57)
++NSTUB(0xFF892358, gui_change_lcd_state_post)      // no match
++NSTUB(0xFF891718, gui_change_mode)                // no match
++NSTUB(0xFF8922C0, gui_change_shoot_type_post)     // might be good (dumps=1, score=3.5)
++NSTUB(0xFF82434C, gui_init_end)                   // might be good (dumps=1, score=4.1)
++NSTUB(0xFF89284C, gui_init_event)                 // might be good (dumps=1, score=8.1)
++NSTUB(0xFF891BBC, gui_local_post)                 // no match
++NSTUB(    0x1C4C, gui_main_struct)                // might be good (dumps=1, score=6.7)
++NSTUB(0xFF82399C, gui_main_task)                  // might be good (dumps=1, score=6.3)
++NSTUB(0xFF8901A4, gui_massive_event_loop)         // no match
++NSTUB(0xFF891FB4, gui_other_post)                 // no match
++NSTUB(0xFF89220C, gui_post_10000085)              // might be good (dumps=1, score=0.27)
++NSTUB(0xFFA6BF20, gui_task_create)                // might be good (dumps=1, score=7.1)
++NSTUB(0xFFA6C040, gui_task_destroy)               // might be good (dumps=1, score=14)
++NSTUB(   0x15B30, gui_task_list)                  // might be good (dumps=1, score=12)
++NSTUB(0xFF9B3AD0, gui_timer_something)            // might be good (dumps=1, score=22)
++NSTUB(    0x38F0, gui_timer_struct)               // might be good (dumps=1, score=4.5)
++NSTUB(0xFF811DBC, init_task)                      // might be good (dumps=1, score=14)
++NSTUB(0xFF82222C, main_ctrl_task)                 // might be good (dumps=1, score=3.3)
++NSTUB(0xFF818F00, malloc)                         // might be good (dumps=1, score=4.9)
++NSTUB(0xFFC457E0, memcpy)                         // might be good (dumps=1, score=1.1e+02)
++NSTUB(0xFF86DB74, msg_queue_post)                 // might be good (dumps=1, score=11)
++NSTUB(0xFF86D988, msg_queue_receive)              // might be good (dumps=1, score=15)
++NSTUB(0xFF86E22C, msleep)                         // might be good (dumps=1, score=46)
++NSTUB(0xFF9905D4, mvrFixQScale)                   // might be good (dumps=1, score=2.5)
++NSTUB(0xFF852FAC, mvrSetBitRate)                  // might be good (dumps=1, score=0.96)
++NSTUB(0xFF990118, mvrSetDeblockingFilter)         // might be good (dumps=1, score=2.5)
++NSTUB(0xFF990188, mvrSetDefQScale)                // might be good (dumps=1, score=2.1)
++NSTUB(0xFF9905F4, mvrSetPrintMovieLog)            // might be good (dumps=1, score=2.5)
++NSTUB(    0x86B0, mvr_config)                     // might be good (dumps=1, score=4.7)
++NSTUB(0xFF86C720, oneshot_timer)                  // might be good (dumps=1, score=6.9)
++NSTUB(0xFF85F1C4, _prop_cleanup)                   // might be good (dumps=1, score=21)
++NSTUB(0xFF85F068, prop_deliver)                   // might be good (dumps=1, score=21)
++NSTUB(0xFF85F344, prop_get_value)                 // might be good (dumps=1, score=35)
++NSTUB(0xFF85F0F0, prop_register_slave)            // might be good (dumps=1, score=20)
++NSTUB(0xFF85F228, prop_request_change)            // might be good (dumps=1, score=64)
++NSTUB(0xFF893CF4, prop_request_icu_auto_poweroff) // might be good (dumps=1, score=32)
++NSTUB(0xFFA0FED8, ptp_register_handler)           // might be good (dumps=1, score=5.4)
++NSTUB(0xFF9B8AE4, register_func)                  // might be good (dumps=1, score=56)
++NSTUB(0xFFB97BCC, sdReadBlk)                      // might be good (dumps=1, score=5.6)
++NSTUB(   0x208D8, sd_device)                      // might be good (dumps=1, score=29)
++NSTUB(0xFF812E58, sei_restore)                    // might be good (dumps=1, score=0.22)
++NSTUB(    0x2360, sounddev)                       // might be good (dumps=1, score=2.7)
++NSTUB(0xff85b0e4, sounddev_task)                  // no match
++NSTUB(0xff85b454, sounddev_active_in)
++NSTUB(0xFF87CC04, strcmp)                         // might be good (dumps=1, score=39)
++NSTUB(0xFF87CBEC, strcpy)                         // might be good (dumps=1, score=54)
++NSTUB(0xFF87CC48, strlen)                         // might be good (dumps=1, score=67)
++NSTUB(0xFF86DD88, take_semaphore)                 // might be good (dumps=1, score=71)
++NSTUB(0xFF86E2E4, task_create)                    // might be good (dumps=1, score=17)
++NSTUB(    0x1934, task_dispatch_hook )
++NSTUB(0xFF8773C0, task_trampoline)                // might be good (dumps=1, score=0.42)
++NSTUB(0xFFA41604, vram_get_number)                // might be good (dumps=1, score=12)
++NSTUB(0xFF9AC318, vram_get_pos_and_size)          // might be good (dumps=1, score=12)
++NSTUB(   0x38920, vram_info)                      // might be good (dumps=1, score=8.4)
++NSTUB(0xFF9B7324, vsnprintf)                      // might be good (dumps=1, score=2)
++NSTUB(0xFFAAEEB8, LiveViewApp_handler)
++NSTUB(0xffac3964, PlayMain_handler)
++NSTUB(0xffac7ac8, OlcAFFrameApp_handler)
++NSTUB(0xdeadbeef, ErrCardForLVApp_handler)
++
++NSTUB(0xFF9A5618, _engio_write)
++NSTUB(0xff9a550c, shamem_read) // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr
++NSTUB(0xff9a54a8, _EngDrvOut) // AJ_EngDrvOut_1xVar_to_ShadowStruct
++
++NSTUB(0xff9b1be0, LightMeasure_n_Callback_r0)
++NSTUB(0xffacf26c, ShootOlcApp_handler) // AJ_DIALOG.HANDLER_DlgShootOlcInfo.c
++
++NSTUB(0xff987200, set_fps_maybe)
++
++NSTUB(0xff8168c0, get_current_task)
++
++NSTUB(0x27660, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
++
++NSTUB(0xFF9D8194, GuiSetAutoBrightness) // guess: refreshes brightness in auto mode?
++
++NSTUB(0xff9ce7d0, Gui_SetSoundRecord)
++
++NSTUB(0xff866158, AJ_Wait_Vsync)
+diff -r 774a30f44f0b -r 9f8d9bb7e92e platform/600D.101/Makefile
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/platform/600D.101/Makefile	Fri Mar 23 18:53:26 2012 +0200
+@@ -0,0 +1,79 @@
++#Makefile for 60D firmware 109
++
++TOP_DIR=../..
++include $(TOP_DIR)/Makefile.top
++
++#must be defined first because they are used in Makefile.inc, for $(VERSION) for example
++FW_VERSION=101
++MODEL=600D
++UPDATE_NAME=600d_101.fir
++
++#used in CFLAGS
++PLATFORM_INC=.
++
++PLATFORM_DIR=$(PLATFORM_PATH)/$(MODEL).$(FW_VERSION)
++
++# magiclantern.lds script MUST be first
++# entry.o MUST be second
++# menu.o and debug.o must come before the modules
++ML_OBJS-y = \
++	magiclantern.lds \
++	$(SRC_DIR)/entry.o \
++	boot-hack.o \
++	stubs.o \
++	version.o \
++	bmp.o \
++	font-dyn.o \
++	config.o \
++	menu.o \
++	debug.o \
++	stdio.o \
++	audio.o \
++	bitrate.o \
++	tweaks.o \
++	lens.o \
++	property.o \
++	propvalues.o \
++	gui.o \
++	gui-common.o \
++	misc.o \
++	lensfocus.o \
++	cfn.o \
++	zebra.o \
++	shoot.o \
++	chdk-gui_draw.o \
++	movtweaks.o \
++	my_memset.o \
++	menuhelp.o \
++	menuindex.o \
++	af_patterns.o \
++	focus.o \
++	notify_box.o \
++	bootflags.o \
++	dialog_test.o \
++	vram.o \
++	morse.o \
++	liveview.o \
++	reloc.o \
++	aj_port.o \
++	fps-engio.o \
++	cartridge.o \
++	hdr.o \
++	lv-img-engio.o \
++	state-object.o \
++
++#include generic rules and definitions
++
++include  $(TOP_DIR)/Makefile.inc
++
++
++# DryOSmemory map
++# RESTARTSTART is selected to be just above the end of the bss
++#
++ROMBASEADDR		= 0xFF010000
++RESTARTSTART		= 0x00082000
++
++#not used but...
++FIRMWARE_ID_600D 	= 0x80000286
++
++all: autoexec.bin
+diff -r 774a30f44f0b -r 9f8d9bb7e92e platform/600D.101/cfn.c
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/platform/600D.101/cfn.c	Fri Mar 23 18:53:26 2012 +0200
+@@ -0,0 +1,23 @@
++#include <dryos.h>
++#include <property.h>
++
++// look on camera menu or review sites to get custom function numbers
++
++int get_htp() { return GetCFnData(0, 6); }
++void set_htp(int value) { SetCFnData(0, 6, value); }
++
++int get_mlu() { return GetCFnData(0, 8); }
++void set_mlu(int value) { SetCFnData(0, 8, value); }
++
++int cfn_get_af_button_assignment() { return GetCFnData(0, 9); }
++void cfn_set_af_button(int value) { SetCFnData(0, 9, value); }
++
++// on some cameras, ALO is CFn
++PROP_INT(PROP_ALO, alo);
++int get_alo() { return alo; }
++
++void set_alo(int value)
++{
++	value = COERCE(value, 0, 3);
++	prop_request_change(PROP_ALO, &value, 4);
++}
+diff -r 774a30f44f0b -r 9f8d9bb7e92e platform/600D.101/consts.h
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/platform/600D.101/consts.h	Fri Mar 23 18:53:26 2012 +0200
+@@ -0,0 +1,335 @@
++#define CARD_DRIVE "B:/"
++#define CARD_LED_ADDRESS 0xC0220134 // http://magiclantern.wikia.com/wiki/Led_addresses
++
++#define HIJACK_INSTR_BL_CSTART  0xff01019c
++#define HIJACK_INSTR_BSS_END 0xff0110d0
++#define HIJACK_FIXBR_BZERO32 0xff011038
++#define HIJACK_FIXBR_CREATE_ITASK 0xff0110c0
++#define HIJACK_INSTR_MY_ITASK 0xff0110dc
++#define HIJACK_TASK_ADDR 0x1a2c
++
++#define ARMLIB_OVERFLOWING_BUFFER 0x167FC // in AJ_armlib_setup_related3
++
++#define DRYOS_ASSERT_HANDLER 0x1A18 // dec TH_assert or assert_0
++
++// BGMT Button codes as received by gui_main_task
++
++#define BGMT_BUTTON_HANDLING_EVENT_TYPE 0 // Event type for button handing
++
++// Generic button code sent after many events or initialization (non-deterministic)
++#define BGMT_UNKNOWN1 0xF
++#define BGMT_UNKNOWN2 0x11
++#define BGMT_UNKNOWN3 0x34
++#define BGMT_UNKNOWN4 0x4C
++#define BGMT_UNKNOWN5 0x54
++#define BGMT_UNKNOWN6 0x56
++#define BGMT_UNKNOWN7 0x58
++#define BGMT_UNKNOWN8 0x59
++#define BGMT_UNKNOWN9 0x61
++
++
++
++
++#define BGMT_WHEEL_UP 0
++#define BGMT_WHEEL_DOWN 1
++#define BGMT_WHEEL_LEFT 2
++#define BGMT_WHEEL_RIGHT 3
++#define BGMT_PRESS_SET 4 // same
++#define BGMT_UNPRESS_SET 5 // new, only in menu mode
++#define BGMT_MENU 6 // same
++#define BGMT_INFO 7 // new, old value for BGMT_DISP
++#define BGMT_PRESS_DISP 8 // new, old value for BGMT_Q
++#define BGMT_UNPRESS_DISP 9 // new, old value for BGMT_PLAY
++#define BGMT_PLAY 0xB // was 9
++#define BGMT_TRASH 0xD // old value for BGMT_PRESS_ZOOMOUT_MAYBE, was 0xA
++#define BGMT_ZOOM_OUT 0xE // new (unpress?)
++#define BGMT_Q_ALT 0x13
++#define BGMT_Q 0x1C // was 8
++#define BGMT_LV 0x1D // new
++#define BGMT_PRESS_RIGHT 0x23 // was 0x1a
++#define BGMT_UNPRESS_RIGHT 0x24 // was 0x1b
++#define BGMT_PRESS_LEFT 0x25 // was 0x1c
++#define BGMT_UNPRESS_LEFT 0x26 // was 0x1d
++#define BGMT_PRESS_UP 0x27 // was 0x1e
++#define BGMT_UNPRESS_UP 0x28 // was 0x1f
++#define BGMT_PRESS_DOWN 0x29 // was 0x20
++#define BGMT_UNPRESS_DOWN 0x2A // was 0x21
++
++#define BGMT_ISO 0x33 // new
++
++#define BGMT_PRESS_HALFSHUTTER 0x48 // was 0x3F, shared with magnify/zoom out
++#define BGMT_UNPRESS_HALFSHUTTER 0x49 // was 0x40, shared with magnify/zoom out, shared with unpress full shutter?
++#define BGMT_PRESS_FULLSHUTTER 0x52    // was 0x41, can't return 0 to block this (to verify)...
++
++#define BGMT_SHUTDOWN 0x53 // new
++
++#define GMT_OLC_INFO_CHANGED 0x61 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
++#define GMT_LOCAL_DIALOG_REFRESH_LV 0x34 // event type = 2, gui code = 0x100000a1 in 600d
++#define GMT_LOCAL_UNAVI_FEED_BACK 0x36 // event type = 2, sent when Q menu disappears; look for StartUnaviFeedBackTimer
++
++// these were found in ROM, but not tested yet
++
++#define MVR_992_STRUCT (*(void**)0x1e44) // look in MVR_Initialize for AllocateMemory call
++
++#define MEM(x) (*(int*)(x))
++#define div_maybe(a,b) ((a)/(b))
++
++// see mvrGetBufferUsage, which is not really safe to call => err70
++// macros copied from arm-console
++#define MVR_BUFFER_USAGE_FRAME ABS(div_maybe(-100*MEM(356 + MVR_992_STRUCT) - 100*MEM(364 + MVR_992_STRUCT) - 100*MEM(952 + MVR_992_STRUCT) - 100*MEM(960 + MVR_992_STRUCT) + 100*MEM(360 + MVR_992_STRUCT) + 100*MEM(368 + MVR_992_STRUCT), -MEM(356 + MVR_992_STRUCT) - MEM(364 + MVR_992_STRUCT) + MEM(360 + MVR_992_STRUCT) + MEM(368 + MVR_992_STRUCT)))
++#define MVR_BUFFER_USAGE_SOUND div_maybe(-100*MEM(544 + MVR_992_STRUCT) + 100*MEM(532 + MVR_992_STRUCT), 0xa)
++#define MVR_BUFFER_USAGE MAX(MVR_BUFFER_USAGE_FRAME, MVR_BUFFER_USAGE_SOUND)
++
++#define MVR_FRAME_NUMBER (*(int*)(332 + MVR_992_STRUCT))
++#define MVR_BYTES_WRITTEN (*(int*)(296 + MVR_992_STRUCT))
++
++#define MOV_RES_AND_FPS_COMBINATIONS 9
++#define MOV_OPT_NUM_PARAMS 2
++#define MOV_GOP_OPT_NUM_PARAMS 5
++#define MOV_OPT_STEP 5
++#define MOV_GOP_OPT_STEP 5
++
++#define AUDIO_MONITORING_HEADPHONES_CONNECTED (!((*(int*)0xc0220070) & 1))
++#define HOTPLUG_VIDEO_OUT_PROP_DELIVER_ADDR 0x1a8c // this prop_deliver performs the action for Video Connect and Video Disconnect
++#define HOTPLUG_VIDEO_OUT_STATUS_ADDR 0x1ac4 // passed as 2nd arg to prop_deliver; 1 = display connected, 0 = not, other values disable this event (trick)
++
++
++// 720x480, changes when external monitor is connected
++#define YUV422_LV_BUFFER_1 0x40d07800 
++#define YUV422_LV_BUFFER_2 0x4c233800
++#define YUV422_LV_BUFFER_3 0x4f11d800
++#define YUV422_LV_PITCH 1440
++ //~ #define YUV422_LV_PITCH_RCA 1080
++ //~ #define YUV422_LV_PITCH_HDMI 3840
++ //~ #define YUV422_LV_HEIGHT 480
++ //~ #define YUV422_LV_HEIGHT_RCA 540
++ //~ #define YUV422_LV_HEIGHT_HDMI 1080
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++
++// Below this line, all constant are from 550D/T2i 1.0.9 and not yet confirmed for 600D/T3i 1.0.1 !!!
++
++
++#define YUV422_LV_BUFFER_DMA_ADDR (*(uint32_t*)0x2490)
++#define YUV422_HD_BUFFER_DMA_ADDR (*(uint32_t*)0x73620)
++
++// changes during record
++#define YUV422_HD_BUFFER_1 0x44000080
++#define YUV422_HD_BUFFER_2 0x46000080
++#define YUV422_HD_BUFFER_3 0x48000080
++#define YUV422_HD_BUFFER_4 0x4e000080
++#define YUV422_HD_BUFFER_5 0x50000080
++#define IS_HD_BUFFER(x)  ((0x40FFFFFF & (x)) == 0x40000080 ) // quick check if x looks like a valid HD buffer
++
++ #define YUV422_HD_PITCH_IDLE 2112
++ #define YUV422_HD_HEIGHT_IDLE 704
++
++ #define YUV422_HD_PITCH_ZOOM 2048
++ #define YUV422_HD_HEIGHT_ZOOM 680
++
++ #define YUV422_HD_PITCH_REC_FULLHD 3440
++ #define YUV422_HD_HEIGHT_REC_FULLHD 974
++
++// guess
++ #define YUV422_HD_PITCH_REC_720P 2560
++ #define YUV422_HD_HEIGHT_REC_720P 580
++
++ #define YUV422_HD_PITCH_REC_480P 1280
++ #define YUV422_HD_HEIGHT_REC_480P 480
++
++#define FOCUS_CONFIRMATION (*(int*)0x479C) 
++#define HALFSHUTTER_PRESSED (*(int*)0x1bdc) // same as 60D
++//~ #define AF_BUTTON_PRESSED_LV 0
++
++//~ #define DISPLAY_SENSOR (*(int*)0x2dec)
++//~ #define DISPLAY_SENSOR_ACTIVE (*(int*)0xC0220104)
++ #define DISPLAY_SENSOR_POWERED (*(int*)0x3138)
++
++// for gui_main_task
++#define GMT_NFUNCS 7
++#define GMT_FUNCTABLE 0xff56dccc
++
++
++#define SENSOR_RES_X 5202
++#define SENSOR_RES_Y 3465
++
++#define BGMT_FLASH_MOVIE (event->type == 0 && event->param == 0x61 && is_movie_mode() && event->arg == 9)
++#define BGMT_PRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x4000000))
++#define BGMT_UNPRESS_FLASH_MOVIE (BGMT_FLASH_MOVIE && (*(int*)(event->obj) & 0x4000000) == 0)
++#define FLASH_BTN_MOVIE_MODE (get_disp_pressed() && lv)
++
++ #define CLK_25FPS 0x1e24c  // this is updated at 25fps and seems to be related to auto exposure
++
++ #define AJ_LCD_Palette 0x2CDB0
++
++#define LV_BOTTOM_BAR_DISPLAYED (((*(int8_t*)0x5B28) == 0xF) || ((*(int8_t*)0xC84C) != 0x17))
++#define LV_BOTTOM_BAR_STATE (*(uint8_t*)0x7DF7) // in JudgeBottomInfoDispTimerState, if bottom bar state is 2, Judge returns 0; ML will make it 0 to hide bottom bar
++#define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x5B28) == 0xF)
++#define SHOOTING_MODE (*(int*)0x3364)
++#define UNAVI_FEEDBACK_TIMER_ACTIVE (MEM(0xC848) != 0x17) // dec CancelUnaviFeedBackTimer
++
++ #define COLOR_FG_NONLV 80
++
++
++
++
++ #define MOV_REC_STATEOBJ (*(void**)0x5B34)
++ #define MOV_REC_CURRENT_STATE *(int*)(MOV_REC_STATEOBJ + 28)
++ 
++#define AE_VALUE (*(int8_t*)0x7E14)
++
++#define CURRENT_DIALOG_MAYBE (*(int*)0x3ef4) // GUIMode_maybe
++ #define DLG_WB 5
++ #define DLG_FOCUS_MODE 9
++ #define DLG_DRIVE_MODE 8
++ #define DLG_PICTURE_STYLE 4
++ #define DLG_PLAY 1
++ #define DLG_MENU 2
++ #define DLG_Q_UNAVI 0x1F
++ #define DLG_FLASH_AE 0x22
++ #define DLG_PICQ 6
++#define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED (CURRENT_DIALOG_MAYBE == 0x1e)
++#define DLG_MOVIE_PRESS_LV_TO_RESUME (CURRENT_DIALOG_MAYBE == 0x1f)
++//~ #define DLG_MOVIE_ENSURE_A_LENS_IS_ATTACHED 0 // not good
++//~ #define DLG_MOVIE_PRESS_LV_TO_RESUME 0
++
++#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_PLAY)
++#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_DIALOG_MAYBE == DLG_MENU)
++
++
++#define BTN_METERING_PRESSED_IN_LV 0 // 60D only
++
++// position for displaying shutter count and other info
++#define MENU_DISP_INFO_POS_X 0
++#define MENU_DISP_INFO_POS_Y 395
++
++#define MENU_DISP_ISO_POS_X 590
++#define MENU_DISP_ISO_POS_Y 26
++
++// position for displaying clock outside LV
++#define DISPLAY_CLOCK_POS_X 400
++#define DISPLAY_CLOCK_POS_Y 410
++
++// for displaying TRAP FOCUS msg outside LV
++#define DISPLAY_TRAP_FOCUS_POS_X 65
++#define DISPLAY_TRAP_FOCUS_POS_Y 360
++#define DISPLAY_TRAP_FOCUS_MSG       "TRAP FOCUS"
++#define DISPLAY_TRAP_FOCUS_MSG_BLANK "          "
++
++
++// these are wrong (just for compiling)
++#define BGMT_PRESS_ZOOMOUT_MAYBE 0x10
++#define BGMT_UNPRESS_ZOOMOUT_MAYBE 0x11
++
++#define BGMT_PRESS_ZOOMIN_MAYBE 0xe
++#define BGMT_UNPRESS_ZOOMIN_MAYBE 0xf
++
++#define NUM_PICSTYLES 10
++#define PROP_PICSTYLE_SETTINGS(i) ((i) == 1 ? PROP_PICSTYLE_SETTINGS_AUTO : PROP_PICSTYLE_SETTINGS_STANDARD - 2 + i)
++
++#define MOVIE_MODE_REMAP_X SHOOTMODE_ADEP
++#define MOVIE_MODE_REMAP_Y SHOOTMODE_CA
++#define MOVIE_MODE_REMAP_X_STR "A-DEP"
++#define MOVIE_MODE_REMAP_Y_STR "CA"
++
++#define FLASH_MAX_EV 3
++#define FLASH_MIN_EV -10
++
++#define MENU_NAV_HELP_STRING (PLAY_MODE ? "DISP outside menu: show LiveV tools         SET/PLAY/Q/INFO" : "SET/PLAY/Q=change values    MENU=Easy/Advanced    INFO=Help")
++
++#define DIALOG_MnCardFormatBegin   (0x12864+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
++#define DIALOG_MnCardFormatExecute (0x158BC+4) // ret_CreateDialogBox(...DlgMnCardFormatBegin_handler...) is stored there
++
++#define BULB_MIN_EXPOSURE 1000
++
++// http://magiclantern.wikia.com/wiki/Fonts
++#define BFNT_CHAR_CODES    0xff89477c
++#define BFNT_BITMAP_OFFSET 0xff8971b0
++#define BFNT_BITMAP_DATA   0xff899be4
++
++#define DLG_SIGNATURE 0x006e4944 // just print it
++
++// from CFn
++#define AF_BTN_HALFSHUTTER 0
++#define AF_BTN_STAR 1
++
++#define IMGPLAY_ZOOM_LEVEL_ADDR (0x8428+12) // dec GuiImageZoomDown and look for a negative counter
++#define IMGPLAY_ZOOM_LEVEL_MAX 14
++
++#define BULB_EXPOSURE_CORRECTION 100 // min value for which bulb exif is OK [not tested]
++
++#define WINSYS_BMP_DIRTY_BIT_NEG MEM(0xad80+0x2C) // see http://magiclantern.wikia.com/wiki/VRAM/BMP
++
++#define BTN_ZEBRAS_FOR_PLAYBACK BGMT_PRESS_DISP // what button to use for zebras in Play mode
++
++// manual exposure overrides
++#define LVAE_STRUCT 0x8b0c
++#define CONTROL_BV      (*(uint16_t*)(LVAE_STRUCT+0x1c)) // EP_SetControlBv
++#define CONTROL_BV_TV   (*(uint16_t*)(LVAE_STRUCT+0x1e)) // EP_SetControlParam
++#define CONTROL_BV_AV   (*(uint16_t*)(LVAE_STRUCT+0x20))
++#define CONTROL_BV_ISO  (*(uint16_t*)(LVAE_STRUCT+0x22))
++#define CONTROL_BV_ZERO (*(uint16_t*)(LVAE_STRUCT+0x24))
++#define LVAE_ISO_SPEED  (*(uint8_t* )(LVAE_STRUCT))      // offset 0x0; at 3 it changes iso very slowly
++#define LVAE_ISO_MIN    (*(uint8_t* )(LVAE_STRUCT+0x2a)) // string: ISOMin:%d
++#define LVAE_ISO_HIS    (*(uint8_t* )(LVAE_STRUCT+0x2c)) // no idea what this is
++#define LVAE_DISP_GAIN  (*(uint16_t*)(LVAE_STRUCT+0x26)) // lvae_setdispgain
++#define LVAE_MOV_M_CTRL (*(uint8_t* )(LVAE_STRUCT+0x78)) // lvae_setmoviemanualcontrol
++
++#define DISPLAY_ORIENTATION MEM(0x23dc+0x7C) // read-only; string: UpdateReverseTFT
++
++#define MIN_MSLEEP 20
++
++#define INFO_BTN_NAME "INFO"
++#define Q_BTN_NAME "[Q]"
++
++#define DISPLAY_STATEOBJ (*(struct state_object **)0x2480)
++#define DISPLAY_IS_ON (DISPLAY_STATEOBJ->current_state != 0)
+diff -r 774a30f44f0b -r 9f8d9bb7e92e platform/600D.101/gui.c
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/platform/600D.101/gui.c	Fri Mar 23 18:53:26 2012 +0200
+@@ -0,0 +1,167 @@
++/** \file
++ * Magic Lantern GUI main task.
++ *
++ * Overrides the DryOS gui_main_task() to be able to re-map events.
++ */
++/*
++ * Copyright (C) 2009 Trammell Hudson <hudson+ml@osresearch.net>
++ * 
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation; either version 2
++ * of the License, or (at your option) any later version.
++ * 
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ * 
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the
++ * Free Software Foundation, Inc.,
++ * 51 Franklin Street, Fifth Floor,
++ * Boston, MA  02110-1301, USA.
++ */
++
++#include <dryos.h>
++#include <property.h>
++#include <bmp.h>
++#include <config.h>
++#include <consts.h>
++#include <lens.h>
++
++PROP_INT(PROP_DIGITAL_ZOOM_RATIO, digital_zoom_ratio);
++
++int video_mode[5];
++PROP_HANDLER(PROP_VIDEO_MODE)
++{
++	memcpy(video_mode, buf, 20);
++	return prop_cleanup(token, property);
++}
++
++int disp_pressed = 0;
++int get_disp_pressed() { return disp_pressed; }
++
++
++// return 0 if you want to block this event
++static int handle_buttons(struct event * event)
++{
++	if (event->type != 0) return 1; // only handle events with type=0 (buttons)
++	if (handle_common_events_startup(event) == 0) return 0;
++	extern int ml_started;
++	if (!ml_started) return 1;
++
++	// shortcut for 3x zoom mode
++	if (event->param == BGMT_PRESS_DISP) disp_pressed = 1;
++	if (event->param == BGMT_UNPRESS_DISP) disp_pressed = 0;
++
++	#if 1
++	extern int digital_zoom_shortcut;
++	if (digital_zoom_shortcut && lv && is_movie_mode() && !recording && disp_pressed)
++	{
++		if (!video_mode_crop)
++		{
++			if (video_mode_resolution == 0 && event->param == BGMT_PRESS_ZOOMIN_MAYBE)
++			{
++				video_mode[0] = 0xc;
++				video_mode[4] = 2;
++				prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
++				return 0;
++			}
++		}
++		else
++		{
++			if (event->param == BGMT_PRESS_ZOOMIN_MAYBE)
++			{
++				int x = 300;
++				prop_request_change(PROP_DIGITAL_ZOOM_RATIO, &x, 4);
++				return 0; // don't allow more than 3x zoom
++			}
++			if (event->param == BGMT_PRESS_ZOOMOUT_MAYBE)
++			{
++				video_mode[0] = 0;
++				video_mode[4] = 0;
++				prop_request_change(PROP_VIDEO_MODE, video_mode, 20);
++				return 0;
++			}
++		}
++	}
++	#endif
++	
++	// hack for Q button in ML menu
++	if (event->param == BGMT_Q_ALT && gui_menu_shown())
++	{
++		fake_simple_button(BGMT_Q);
++	}
++
++	if (handle_common_events_by_feature(event) == 0) return 0;
++
++	if (handle_lv_play(event) == 0) return 0;
++
++	return 1;
++}
++
++struct semaphore * gui_sem;
++
++struct gui_main_struct {
++	void *			obj;		// off_0x00;
++	uint32_t		counter;	// off_0x04;
++	uint32_t		off_0x08;
++	uint32_t		counter_60d;    //off_0x0c;
++	uint32_t		off_0x10;
++	uint32_t		off_0x14;
++	uint32_t		off_0x18;
++	uint32_t		off_0x1c;
++	uint32_t		off_0x20;
++	uint32_t		off_0x24;
++	uint32_t		off_0x28;
++	uint32_t		off_0x2c;
++	struct msg_queue *	msg_queue_60d;	// off_0x30;
++	struct msg_queue *	msg_queue;	// off_0x34;
++	struct msg_queue *	msg_queue_550d;	// off_0x38;
++	uint32_t		off_0x3c;
++};
++
++extern struct gui_main_struct gui_main_struct;
++
++static void gui_main_task_60d()
++{
++	struct event * event = NULL;
++	int index = 0;
++	void* funcs[GMT_NFUNCS];
++	memcpy(funcs, (void*)GMT_FUNCTABLE, 4*GMT_NFUNCS);
++	gui_init_end();
++	while(1)
++	{
++		msg_queue_receive(gui_main_struct.msg_queue_60d, &event, 0);
++		gui_main_struct.counter_60d--;
++		if (event == NULL) continue;
++		index = event->type;
++		
++		if (!magic_is_off())
++		{
++			if (event->type == 0)
++			{
++				if (handle_buttons(event) == 0) // ML button/event handler
++					continue;
++			}
++			else
++			{
++				if (handle_other_events(event) == 0)
++					continue;
++			}
++		}
++
++		if (IS_FAKE(event)) event->arg = 0;
++
++		if ((index >= GMT_NFUNCS) || (index < 0))
++			continue;
++		
++		void(*f)(struct event *) = funcs[index];
++		f(event);
++	}
++} 
++
++// 5D2 has a different version for gui_main_task
++
++TASK_OVERRIDE( gui_main_task, gui_main_task_60d );
+diff -r 774a30f44f0b -r 9f8d9bb7e92e platform/600D.101/gui.h
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/platform/600D.101/gui.h	Fri Mar 23 18:53:26 2012 +0200
+@@ -0,0 +1,69 @@
++#ifndef _cameraspecific_gui_h_
++#define _cameraspecific_gui_h_
++
++/** Event types */
++typedef enum {
++	GOT_TOP_OF_CONTROL		= 0x800,
++	LOST_TOP_OF_CONTROL		= 0x801,
++	INITIALIZE_CONTROLLER		= 0x802,
++	TERMINATE_WINSYS		= 0x804,
++	DELETE_DIALOG_REQUEST		= 0x805,
++	PRESS_RIGHT_BUTTON		= 0x807,
++	PRESS_LEFT_BUTTON		= 0x809,
++	PRESS_UP_BUTTON			= 0x80B,
++	PRESS_DOWN_BUTTON		= 0x80D,
++	PRESS_MENU_BUTTON		= 0x80F,
++	PRESS_SET_BUTTON		= 0x812, // also joy center?
++	UNPRESS_SET_BUTTON		= 0x813,
++	PRESS_PICSTYLE_BUTTON		= 0x81C,
++	PRESS_ZOOM_IN_BUTTON		= 0x819,
++	UNPRESS_ZOOM_IN_BUTTON		= 0x81A,
++	PRESS_ZOOM_OUT_BUTTON		= 0x10000039,
++	UNPRESS_ZOOM_OUT_BUTTON		= 0x1000003A,
++	PRESS_JOY_LEFT			= 0x820,
++	PRESS_JOY_UP			= 0x822,
++	PRESS_JOY_DOWN			= 0x824,
++	PRESS_JOY_RIGHT			= 0x826,
++	JOY_CENTER			= 0x828,
++	PRESS_INFO_BUTTON		= 0x829,
++	ELECTRONIC_SUB_DIAL_RIGHT	= 0x82B,
++	ELECTRONIC_SUB_DIAL_LEFT	= 0x82C,
++	DIAL_LEFT			= 0x82E,
++	DIAL_RIGHT			= 0x82F,
++	PRESS_ISO_BUTTON	= 0x842,
++	PRESS_PLAY_BUTTON		= 0x10000000,
++	PRESS_ERASE_BUTTON		= 0x10000002,
++	PRESS_DIRECT_PRINT_BUTTON	= 0x1000000e,
++	PRESS_DIRECT_PRINT_BUTTON_ALT	= 0x10000006,
++	PRESS_FUNC_BUTTON		= 0x10000007,
++	PRESS_LV_BUTTON			= 0x1000000f,
++	PRESS_PICTURE_STYLE_BUTTON	= 0x10000009,
++	GUICMD_OPEN_SLOT_COVER		= 0x1000000B,
++	GUICMD_CLOSE_SLOT_COVER		= 0x1000000C,
++	GUICMD_MADE_QR			= 0x10000037,
++	GUICMD_MADE_FILE		= 0x10000038,
++	GUI_TIMER4			= 0x10000054, // no idea
++	GUI_TIMER2			= 0x10000069, // no idea
++	GUI_TIMER3			= 0x1000006D, // no idea
++	START_SHOOT_MOVIE		= 0x1000008A,
++	GUI_PROP_EVENT			= 0x100000A6, // maybe?
++	LOCAL_MOVIE_RECORD_STOP		= 0x10000078, // DlgLiveViewApp
++	GUICMD_UI_OK			= 0x100000A1,
++	GUICMD_START_AS_CHECK		= 0x100000A2,
++	GUICMD_LOCK_OFF			= 0x100000A3,
++	GUICMD_LOCK_ON			= 0x100000A4,
++
++	PRESS_DISP_BUTTON		= 0x10000013,
++	UNPRESS_DISP_BUTTON		= 0x10000014,
++
++	EVENTID_METERING_START			= 0x1000006b,
++	EVENTID_METERING_TIMER_START	= 0x1000006c,
++	EVENTID_RELEASE_START			= 0x1000006d,
++	EVENTID_RELEASE_END				= 0x1000006e,
++
++	EVENTID_94			= 0x10000094,
++	EVENT_10000086 = 0x10000086,
++	EVENT_1 = 1
++} gui_event_t;
++
++#endif
+diff -r 774a30f44f0b -r 9f8d9bb7e92e platform/600D.101/lensfocus.c
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/platform/600D.101/lensfocus.c	Fri Mar 23 18:53:26 2012 +0200
+@@ -0,0 +1,106 @@
++#include <dryos.h>
++#include <lens.h>
++#include <property.h>
++#include <bmp.h>
++#include <config.h>
++
++int get_prop_picstyle_from_index(int index)
++{
++	switch(index)
++	{
++		case 1: return 0x87; // auto
++		case 2: return 0x81;
++		case 3: return 0x82;
++		case 4: return 0x83;
++		case 5: return 0x84;
++		case 6: return 0x85;
++		case 7: return 0x86;
++		case 8: return 0x21;
++		case 9: return 0x22;
++		case 10: return 0x23;
++	}
++	bmp_printf(FONT_LARGE, 0, 0, "unk picstyle index: %x", index);
++	return 0;
++}
++
++int get_prop_picstyle_index(int pic_style)
++{
++	switch(pic_style)
++	{
++		case 0x87: return 1; // auto
++		case 0x81: return 2; // std
++		case 0x82: return 3; // portrait
++		case 0x83: return 4; // landscape
++		case 0x84: return 5; // neutral
++		case 0x85: return 6; // faithful
++		case 0x86: return 7; // mono
++		case 0x21: return 8; // user 1
++		case 0x22: return 9; // user 2
++		case 0x23: return 10; // user 3
++	}
++	bmp_printf(FONT_LARGE, 0, 0, "unk picstyle: %x", pic_style);
++	return 0;
++}
++
++
++PROP_HANDLER(PROP_PICTURE_STYLE)
++{
++	const uint32_t raw = *(uint32_t *) buf;
++	lens_info.raw_picstyle = raw;
++	lens_info.picstyle = get_prop_picstyle_index(raw);
++	return prop_cleanup( token, property );
++}
++
++struct prop_picstyle_settings picstyle_settings[NUM_PICSTYLES + 1];
++
++// prop_register_slave is much more difficult to use than copy/paste...
++
++PROP_HANDLER( PROP_PICSTYLE_SETTINGS_AUTO ) {
++	memcpy(&picstyle_settings[1], buf, 24);
++	return prop_cleanup( token, property );
++}
++
++PROP_HANDLER( PROP_PICSTYLE_SETTINGS_STANDARD ) {
++	memcpy(&picstyle_settings[2], buf, 24);
++	return prop_cleanup( token, property );
++}
++
++PROP_HANDLER( PROP_PICSTYLE_SETTINGS_PORTRAIT ) {
++	memcpy(&picstyle_settings[3], buf, 24);
++	return prop_cleanup( token, property );
++}
++
++PROP_HANDLER( PROP_PICSTYLE_SETTINGS_LANDSCAPE ) {
++	memcpy(&picstyle_settings[4], buf, 24);
++	return prop_cleanup( token, property );
++}
++
++PROP_HANDLER( PROP_PICSTYLE_SETTINGS_NEUTRAL ) {
++	memcpy(&picstyle_settings[5], buf, 24);
++	return prop_cleanup( token, property );
++}
++
++PROP_HANDLER( PROP_PICSTYLE_SETTINGS_FAITHFUL ) {
++	memcpy(&picstyle_settings[6], buf, 24);
++	return prop_cleanup( token, property );
++}
++
++PROP_HANDLER( PROP_PICSTYLE_SETTINGS_MONOCHROME ) {
++	memcpy(&picstyle_settings[7], buf, 24);
++	return prop_cleanup( token, property );
++}
++
++PROP_HANDLER( PROP_PICSTYLE_SETTINGS_USERDEF1 ) {
++	memcpy(&picstyle_settings[8], buf, 24);
++	return prop_cleanup( token, property );
++}
++
++PROP_HANDLER( PROP_PICSTYLE_SETTINGS_USERDEF2 ) {
++	memcpy(&picstyle_settings[9], buf, 24);
++	return prop_cleanup( token, property );
++}
++
++PROP_HANDLER( PROP_PICSTYLE_SETTINGS_USERDEF3 ) {
++	memcpy(&picstyle_settings[10], buf, 24);
++	return prop_cleanup( token, property );
++}
+diff -r 774a30f44f0b -r 9f8d9bb7e92e platform/600D.101/misc.c
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/platform/600D.101/misc.c	Fri Mar 23 18:53:26 2012 +0200
+@@ -0,0 +1,64 @@
++// misc functions specific to 60D/109
++
++#include <dryos.h>
++#include <property.h>
++#include <bmp.h>
++#include <config.h>
++#include <consts.h>
++#include <lens.h>
++
++void display_shooting_info() // called from debug task
++{
++	if (lv) return;
++	
++	int bg = bmp_getpixel(314, 260);
++	uint32_t fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
++
++	if (lens_info.wb_mode == WB_KELVIN)
++	{
++		bmp_printf(fnt, 185, 250, "%5dK", lens_info.kelvin);
++	}
++	if (lens_info.wbs_gm || lens_info.wbs_ba)
++	{
++		bg = bmp_getpixel(380, 250);
++		fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
++
++		int ba = lens_info.wbs_ba;
++		if (ba) bmp_printf(fnt, 380 + 2 * font_med.width, 250, "%s%d", ba > 0 ? "A" : "B", ABS(ba));
++		else    bmp_printf(fnt, 380 + 2 * font_med.width, 250, "  ");
++
++		int gm = lens_info.wbs_gm;
++		if (gm) bmp_printf(fnt, 380, 250, "%s%d", gm > 0 ? "G" : "M", ABS(gm));
++		else    bmp_printf(fnt, 380, 250, "  ");
++	}
++
++	iso_refresh_display();
++
++	bg = bmp_getpixel(15, 430);
++	fnt = FONT(FONT_MED, COLOR_FG_NONLV, bg);
++	
++	extern int hdr_steps, hdr_stepsize, hdr_enabled;
++	if (hdr_enabled)
++		bmp_printf(fnt, 190, 450, "HDR %dx%dEV", hdr_steps, hdr_stepsize/8);
++	else
++		bmp_printf(fnt, 190, 450, "         ");
++
++	//~ bmp_printf(fnt, 400, 450, "Flash:%s", 
++		//~ strobo_firing == 0 ? " ON" : 
++		//~ strobo_firing == 1 ? "OFF" : "Auto"
++		//~ strobo_firing < 2 && flash_and_no_flash ? "/T" : "  "
++		//~ );
++
++	bmp_printf(fnt, 40, 460, get_mlu() ? "MLU" : "   ");
++
++	//~ display_lcd_remote_info();
++	display_trap_focus_info();
++}
++
++
++// some dummy stubs
++int lcd_release_running = 0;
++void lcd_release_step() {};
++int get_lcd_sensor_shortcuts() { return 0; }
++void display_lcd_remote_icon(int x0, int y0) {}
++
+diff -r 774a30f44f0b -r 9f8d9bb7e92e platform/600D.101/mvr.h
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/platform/600D.101/mvr.h	Fri Mar 23 18:53:26 2012 +0200
+@@ -0,0 +1,282 @@
++
++// Movie recording.
++
++extern struct mvr_struct * mvr_struct;
++extern struct state_object * mvr_state;
++
++// tab size: 4
++// not all values are correct (most of them are for 550D)
++struct mvr_config
++{
++	uint16_t		debug_flag;				// 0x00, 6290, 1 = write debugmsg's OK
++	uint16_t		qscale_mode;			// 0x02, 6292, 1 = QScale, 0 = CBR
++	uint16_t		db_filter_a;			// 0x04, 67c0, no effect
++	uint16_t		db_filter_b;			// 0x06, 67c2, no effect
++	int16_t			def_q_scale;			// 0x08, 67c4, works when qscale_mode = 1
++	int16_t 		qscale_related_1;		// 0x0a, 67c6
++	int16_t 		qscale_related_2;		// 0x0c, 67c8
++	int16_t 		qscale_related_3;		// 0x0e, 67ca
++	int16_t 		qscale_limit_L;			// 0x10, 67cc
++	int16_t 		qscale_limit_H;			// 0x12, 67ce
++	uint16_t		time_const;				// 0x14, 67d0, unknown
++	uint16_t		x67d0;					// 0x16, 67d2
++	uint32_t		fullhd_30fps_opt_size_I;// 0x18, 62a8, works when qscale_mode = 0
++	uint32_t		fullhd_30fps_opt_size_P;// 0x1c, 62ac
++	uint32_t		D1_30fps;				// 0x20, 67dc
++	uint32_t		D2_30fps;				// 0x24, 67e0
++	uint32_t		x67e4;					// 0x28, 67e4
++	uint32_t		fullhd_25fps_opt_size_I;// 0x2c, 67e8 OK
++	uint32_t		fullhd_25fps_opt_size_P;// 0x30, 67ec
++	uint32_t		fullhd_25fps_D1;		// 0x34, 67f0
++	uint32_t		fullhd_25fps_D2;		// 0x38, 67f4
++	uint32_t		x67f8;					// 0x3c, 67f8
++	uint32_t		fullhd_24fps_opt_size_I;// 0x40, 67fc
++	uint32_t		fullhd_24fps_opt_size_P;// 0x44, 6800
++	uint32_t		fullhd_24fps_D1;		// 0x48, 6804
++	uint32_t		fullhd_24fps_D2;		// 0x4c, 6808
++	uint32_t		x680c;					// 0x50, 680c
++	uint32_t		hd_60fps_opt_size_I;	// 0x54, 6810 OK
++	uint32_t		hd_60fps_opt_size_P;	// 0x58, 6814
++	uint32_t		hd_60fps_D1;			// 0x5c, 6818
++	uint32_t		hd_60fps_D2;			// 0x60, 681c
++	uint32_t		x6820;					// 0x64, 6820
++	uint32_t		hd_50fps_opt_size_I;	// 0x68, 6824
++	uint32_t		hd_50fps_opt_size_P;	// 0x6c, 6828
++	uint32_t		hd_50fps_D1;			// 0x70, 682c
++	uint32_t		hd_50fps_D2;			// 0x74, 6830
++	uint32_t		x6834_kinda_counter;	// 0x78, 6834
++	uint32_t		vga_60fps_opt_size_I;	// 0x7c, 6838 nope (it's for other resolution)
++	uint32_t		vga_60fps_opt_size_P;	// 0x80, 683c
++	uint32_t		vga_60fps_D1;			// 0x84, 6840
++	uint32_t		vga_60fps_D2;			// 0x88, 6844
++	uint32_t		x6848;					// 0x8c, 6848
++	uint32_t		vga_50fps_opt_size_I;	// 0x90, 684c
++	uint32_t		vga_50fps_opt_size_P;	// 0x94, 6850
++	uint32_t		vga_50fps_D1;			// 0x98, 6854
++	uint32_t		vga_50fps_D2;			// 0x9c, 6858
++	uint32_t		x685c;					// 0xa0, 685c
++	int32_t 		xa4;					// 0xa4, 6860 here is for VGA
++	int32_t 		xa8;					// 0xa8, 6864
++	int32_t 		xac;					// 0xac, 6868
++	uint32_t		xb0;					// 0xb0, 686c
++	uint32_t		xb4;					// 0xb4, 6870
++	uint32_t		xb8;					// 0xb8, 6874 and here should be the second
++	uint32_t		xbc;					// 0xbc, 6878
++	uint32_t		xc0;					// 0xc0, 687c
++	uint32_t		xc4;					// 0xc4, 6880
++	uint32_t		xc8;					// 0xc8, 6884
++	uint32_t		xcc;					// 0xcc, 6888
++	uint32_t		xd0;					// 0xd0, 688c
++	uint32_t		xd4;					// 0xd4, 6890
++	uint32_t		xd8;					// 0xd8, 6894
++	uint32_t		xdc;					// 0xdc, 6898
++	uint32_t		xe0;					// 0xe0, 689c
++	uint32_t		xe4;					// 0xe4, 68a0
++	uint32_t		xe8;					// 0xe8, 68a4
++	uint32_t		xec;					// 0xec, 68a8
++	uint32_t		xf0;					// 0xf0, 68ac
++	int32_t			another_def_q_scale;	// 0xf4, 68b0
++	int32_t			IniQScale;				// 0xf8, 68b4
++	int32_t			actual_qscale_maybe;	// 0xfc, 68b8
++	uint32_t		x100;	// 0x100, 68bc
++	uint32_t		x104;	// 0x104, 68c0
++	uint32_t		x108;	// 0x108, 68c4
++	uint32_t		x10c;	// 0x10c, 68c8
++	uint32_t		x110;	// 0x110, 68cc
++	uint32_t		x114;			// 0x114, 68d0
++	uint32_t		x118;			// 0x118, 68d4
++	uint32_t		x11c;			// 0x11c, 68d8
++	uint32_t		x120;			// 0x120, 68dc
++	uint32_t		x124;			// 0x124, 68e0
++	uint32_t		fullhd_30fps_gop_opt_0;	// 0x128, 63b8 OK
++	uint32_t		fullhd_30fps_gop_opt_1;	// 0x12c
++	uint32_t		fullhd_30fps_gop_opt_2;	// 0x130
++	uint32_t		fullhd_30fps_gop_opt_3;	// 0x134
++	uint32_t		fullhd_30fps_gop_opt_4;	// 0x138
++	uint32_t		fullhd_25fps_gop_opt_0;	// 0x13c OK
++	uint32_t		fullhd_25fps_gop_opt_1;	// 0x140
++	uint32_t		fullhd_25fps_gop_opt_2;	// 0x144
++	uint32_t		fullhd_25fps_gop_opt_3;	// 0x148
++	uint32_t		fullhd_25fps_gop_opt_4;	// 0x14c
++	uint32_t		fullhd_24fps_gop_opt_0;	// 0x150 OK
++	uint32_t		fullhd_24fps_gop_opt_1;	// 0x154
++	uint32_t		fullhd_24fps_gop_opt_2;	// 0x158
++	uint32_t		fullhd_24fps_gop_opt_3;	// 0x15c
++	uint32_t		fullhd_24fps_gop_opt_4;	// 0x160
++	uint32_t		hd_60fps_gop_opt_0;		// 0x164, 63f4 OK
++	uint32_t		hd_60fps_gop_opt_1;		// 0x168
++	uint32_t		hd_60fps_gop_opt_2;		// 0x16c
++	uint32_t		hd_60fps_gop_opt_3;		// 0x170
++	uint32_t		hd_60fps_gop_opt_4;		// 0x174
++	uint32_t		hd_50fps_gop_opt_0;		// 0x178 OK
++	uint32_t		hd_50fps_gop_opt_1;		// 0x17c
++	uint32_t		hd_50fps_gop_opt_2;		// 0x180
++	uint32_t		hd_50fps_gop_opt_3;		// 0x184
++	uint32_t		hd_50fps_gop_opt_4;		// 0x188
++	uint32_t		unk_xfps_gop_opt_0;		// 0x18c // ??
++	uint32_t		unk_xfps_gop_opt_1;		// 0x190 
++	uint32_t		unk_xfps_gop_opt_2;		// 0x194
++	uint32_t		unk_xfps_gop_opt_3;		// 0x198
++	uint32_t		unk_xfps_gop_opt_4;		// 0x19c
++	uint32_t		unk_yfps_gop_opt_0;		// 0x1a0 // ??
++	uint32_t		unk_yfps_gop_opt_1;		// 0x1a4
++	uint32_t		unk_yfps_gop_opt_2;		// 0x1a8
++	uint32_t		unk_yfps_gop_opt_3;		// 0x1ac
++	uint32_t		unk_yfps_gop_opt_4;		// 0x1b0
++	uint32_t		vga_60fps_gop_opt_0;	// 0x1b4, 6444 // that's first VGA
++	uint32_t		vga_60fps_gop_opt_1;	// 0x1b8
++	uint32_t		vga_60fps_gop_opt_2;	// 0x1bc
++	uint32_t		vga_60fps_gop_opt_3;	// 0x1c0
++	uint32_t		vga_60fps_gop_opt_4;	// 0x1c4
++	uint32_t		vga_50fps_gop_opt_0;	// 0x1c8 OK
++	uint32_t		vga_50fps_gop_opt_1;	// 0x1cc
++	uint32_t		vga_50fps_gop_opt_2;	// 0x1d0
++	uint32_t		vga_50fps_gop_opt_3;	// 0x1d4
++	uint32_t		vga_50fps_gop_opt_4;	// 0x1d8
++}__attribute__((aligned,packed));
++
++//~ SIZE_CHECK_STRUCT( mvr_config, 0x30 );
++
++extern struct mvr_config mvr_config;
++
++// This is from 5D2, not used here.
++/*
++ *
++ * State information is in this structure.  A pointer to the global
++ * object is at 0x1ee0.  It is of size 0x1b4.
++ *
++ * The state object is in 0x68a4.
++ */
++/*struct mvr_struct
++{
++	const char *		type;	 // "MovieRecorder" off 0
++	uint32_t		off_0x04;
++	uint32_t		task;	// off_0x08;
++	uint32_t		off_0x0c;
++	uint32_t		off_0x10;
++	uint32_t		off_0x14;
++	uint32_t		off_0x18;
++	uint32_t		off_0x1c;
++	uint32_t		off_0x20;
++	uint32_t		off_0x24;
++	uint32_t		off_0x28;
++	uint32_t		off_0x2c;
++	uint32_t		off_0x30;
++	uint32_t		off_0x34;
++	uint32_t		off_0x38;
++	uint32_t		off_0x3c;
++	uint32_t		off_0x40;
++	uint32_t		off_0x44;
++	uint32_t		off_0x48;
++	uint32_t		off_0x4c;
++	uint32_t		off_0x50;
++	uint32_t		off_0x54;
++	uint32_t		off_0x58;
++	uint32_t		off_0x5c;
++	uint32_t		off_0x60;
++	uint32_t		off_0x64;
++	uint32_t		off_0x68;
++	uint32_t		off_0x6c;
++	uint32_t		off_0x70;
++	uint32_t		off_0x74;
++	uint32_t		off_0x78;
++	uint32_t		off_0x7c;
++	uint32_t		off_0x80;
++	uint32_t		off_0x84;
++	uint32_t		off_0x88;
++	uint32_t		off_0x8c;
++	uint32_t		off_0x90;
++	uint32_t		off_0x94;
++	uint32_t		off_0x98;
++	uint32_t		off_0x9c;
++	uint32_t		off_0xa0;
++	uint32_t		off_0xa4;
++	uint32_t		off_0xa8;
++	uint32_t		off_0xac;
++	uint32_t		off_0xb0;
++	uint32_t		off_0xb4;
++	uint32_t		off_0xb8;
++	uint32_t		off_0xbc;
++	uint32_t		off_0xc0;
++	uint32_t		off_0xc4;
++	uint32_t		off_0xc8;
++	uint32_t		off_0xcc;
++	uint32_t		off_0xd0;
++	uint32_t		off_0xd4;
++	uint32_t		off_0xd8;
++	uint32_t		off_0xdc;
++	uint32_t		off_0xe0;
++	uint32_t		off_0xe4;
++	uint32_t		off_0xe8;
++	uint32_t		off_0xec;
++	uint32_t		off_0xf0;
++	uint32_t		off_0xf4;
++	uint32_t		off_0xf8;
++	uint32_t		off_0xfc;
++	uint32_t		off_0x100;
++	uint32_t		off_0x104;
++	uint32_t		off_0x108;
++	uint32_t		off_0x10c;
++	uint32_t		off_0x110;
++	uint32_t		off_0x114;
++	uint32_t		off_0x118;
++	uint32_t		off_0x11c;
++	uint32_t		off_0x120;
++	uint32_t		off_0x124;
++	uint32_t		off_0x128;
++	uint32_t		off_0x12c;
++	uint32_t		off_0x130;
++	uint32_t		off_0x134;
++	uint32_t		off_0x138;
++	uint32_t		off_0x13c;
++	uint32_t		is_vga;	// 0==1920, 1==640 off_0x140;
++	uint32_t		off_0x144;
++	uint32_t		off_0x148;
++	uint32_t		fps;		// 30, off_0x14c;
++	uint32_t		width;		// off_0x150;
++	uint32_t		height;		// off_0x154;
++	uint32_t		audio_rec;	// off_0x158;
++	uint32_t		auido_channels;	// 2 or 0, off_0x15c;
++	uint32_t		audio_rate;	// 44100 or 0, off_0x160;
++	uint32_t		off_0x164;
++	uint32_t		off_0x168;
++	uint32_t		off_0x16c;
++	uint32_t		off_0x170;
++	uint32_t		off_0x174;
++	uint32_t		off_0x178;
++	uint32_t		off_0x17c;
++	uint32_t		off_0x180;
++	uint32_t		off_0x184;
++	uint32_t		off_0x188;
++	uint32_t		off_0x18c;
++	uint32_t		bit_rate; // off_0x190;
++	uint32_t		off_0x194;
++	uint32_t		off_0x198;
++	uint32_t		off_0x19c;
++	uint32_t		off_0x1a0;
++	uint32_t		off_0x1a4;
++	uint32_t		off_0x1a8;
++	uint32_t		off_0x1ac;
++	uint32_t		off_0x1b0;
++	uint32_t		off_0x1b4;
++	uint32_t		off_0x1b8;
++	uint32_t		off_0x1bc;
++	uint32_t		off_0x1c0;
++	uint32_t		off_0x1c4;
++	uint32_t		off_0x1c8;
++	uint32_t		off_0x1cc;
++	uint32_t		off_0x1d0;
++	uint32_t		off_0x1d4;
++	uint32_t		off_0x1d8;
++	uint32_t		off_0x1dc;
++	uint32_t		off_0x1e0;
++	uint32_t		off_0x1e4;
++	uint32_t		off_0x1e8;
++	uint32_t		off_0x1ec;
++	uint32_t		off_0x1f0;
++	uint32_t		off_0x1f4;
++	uint32_t		off_0x1f8;
++	uint32_t		off_0x1fc;
++};
++
++SIZE_CHECK_STRUCT( mvr_struct, 512 );*/
+diff -r 774a30f44f0b -r 9f8d9bb7e92e platform/600D.101/stubs.S
+--- /dev/null	Thu Jan 01 00:00:00 1970 +0000
++++ b/platform/600D.101/stubs.S	Fri Mar 23 18:53:26 2012 +0200
+@@ -0,0 +1,261 @@
++/** \file
++ * Entry points into the firmware image.
++ *
++ * These are the functions that we can call from our tasks
++ * in the Canon 1.0.1 firmware for the 600d.
++ *
++ */
++/*
++ * Copyright (C) 2011 Magic Lantern Team
++ * 
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation; either version 2
++ * of the License, or (at your option) any later version.
++ * 
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ * 
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the
++ * Free Software Foundation, Inc.,
++ * 51 Franklin Street, Fifth Floor,
++ * Boston, MA  02110-1301, USA.
++ */
++
++.text
++
++#define NSTUB(addr,name) \
++	.global name; \
++	name = addr
++
++NSTUB( ROMBASEADDR, firmware_entry )
++// ROMBASE = 0xff010000
++// RESTARTSTART = 0x82000
++
++/** These must be found first for any progress to be made */
++NSTUB( 0xFF011028, cstart )
++NSTUB( 0xFF5683E8, bzero32 ) // called by cstart()
++NSTUB( 0xFF0197FC, init_task ) // passed as arg to create_init_task, look for dmSetup
++NSTUB( 0xFF017FA4, create_init_task ) 
++
++/** Look for the normal printf strings */
++NSTUB( 0xFF06E398, DryosDebugMsg )
++
++/** Task dispatch hook hasn't moved in several versions */
++NSTUB( 0x193C, task_dispatch_hook )
++
++/** Find the additional version string in GUI_GetFirmVersion */
++NSTUB( 0x82E0, additional_version )
++NSTUB( 0xFF23081C, GUI_GetFirmVersion )
++
++// Everything below here is not needed for the first boot
++
++/** Camera interface? */
++NSTUB( 0xC0220000, camera_engine )
++
++NSTUB( 0xFF06F260, call )
++
++/** Find the shell register commands */
++NSTUB( 0xFF1FAEEC, register_func )
++
++/** Debugging commands are all registered by name.  Search for the strings */
++NSTUB( 0xFF06E318, dmstart )
++NSTUB( 0xFF06E358, dmstop )
++NSTUB( 0xFF06ED38, dumpf )
++
++/** Look in DebugMsg, near the bottom.  It calls vsnprintf()
++ * with a buffer size of 0x4C.
++ */
++NSTUB( 0xff1f94bc, vsnprintf )
++
++NSTUB( 0xFF0714C4, msleep ) // called from EV_GETDONE_CACHE param 0x64
++NSTUB( 0xFF071578, task_create )
++NSTUB( 0xFF1E6254, FIO_Open)
++NSTUB( 0xFF1E6310, FIO_CreateFile )
++NSTUB( 0xFF1E66B4, FIO_CloseFile )
++NSTUB( 0xFF1E6830, FIO_GetFileSize )
++NSTUB( 0xFF1E6604, FIO_WriteFile )
++NSTUB( 0xFF1E6464, FIO_ReadFile )
++NSTUB( 0xFF1E63BC, FIO_RemoveFile )
++NSTUB( 0xFF1E6EF0, FIO_CreateDirectory)
++NSTUB( 0xff1e6d28, FIO_RenameFile)
++
++NSTUB( 0xFF0710D8, give_semaphore )
++NSTUB( 0xFF070FF0, take_semaphore )
++NSTUB( 0xFF06E6F8, dm_set_store_level ) // called by "dmstore"
++NSTUB( 0xff06e690, dm_set_print_level )
++NSTUB( 0xFF05BD4C, prop_register_slave ) // called by"GUI_RegisterPropertySlave"
++NSTUB( 0xFF05B6E4, prop_request_change )
++NSTUB( 0xFF05BCC4, prop_deliver ) 
++NSTUB( 0xFF05BF04, prop_get_value )
++	
++NSTUB( 0xff1e8fe0, dispcheck )
++NSTUB( 0xFF062CEC, SetBitmapVramAddress ) // where to find bmp_vram_info
++NSTUB( 0x1db6c, bmp_vram_info )
++NSTUB( 0x75DDC, vram_info )
++NSTUB( 0xFF2E1124, vram_get_number ) // after "[ImgPlyer]   Rate"
++NSTUB( 0xFF1E7C04, vram_get_pos_and_size )
++                 
++NSTUB( 0xFF018D58, malloc ) // maybe it's better to use Allocate/Free?
++NSTUB( 0xFF018DB0, free )
++
++NSTUB( 0xff0723f0, AllocateMemory ) // "[MEM] NG AllocateMemory"
++NSTUB( 0xFF072780, FreeMemory ) 
++// FF05FECC WinSys_FreeMemory
++
++NSTUB( 0x2E0C, dm_names )                // in DebugMsg, before the 1st loop target
++NSTUB( 0xff20f3e4, strcpy )
++NSTUB( 0xFF069AE0, LoadCalendarFromRTC )
++NSTUB( 0xff07e3f4, task_trampoline )
++
++NSTUB( 0xFF05BE6C, _prop_cleanup )
++
++NSTUB( 0xFF06A144, _audio_ic_write ) 
++NSTUB( 0xFF069FF8, _audio_ic_read )
++NSTUB( 0xFF057774, sounddev_task )            // "[SND] _SoundDeviceTask"
++NSTUB( 0xFF057BE0, sounddev_active_in )      // "SoundDevActiveIn"
++NSTUB( 0xFF5DF9A0, audio_thresholds )        // find "ALV_Initialize", then pointer to "AudioLevel", thresholds are following array of 41 values
++NSTUB( 0x1EA8, sounddev )                    // in sounddev_task
++
++NSTUB( 0xff070e90, create_named_semaphore )
++NSTUB( 0xff31c594, gui_task_create )
++NSTUB( 0xff31c6b4, gui_task_destroy )
++NSTUB( 0xff31c444, ctrlman_dispatch_event )
++
++NSTUB( 0xFF5682F4, memcpy )
++NSTUB( 0xff230e48, prop_request_icu_auto_poweroff )           // "PROP_Request PROP_ICU_AUTO_POWEROFF(%d)"
++NSTUB( 0xff1fd2e4, alloc_dma_memory )
++NSTUB( 0xff1fd318, free_dma_memory )
++
++NSTUB( 0xFF4F2648, cfReadBlk )
++NSTUB( 0x15728, cf_device )                // in cfReadBlk
++NSTUB( 0xFF4F838C, sdReadBlk )
++NSTUB( 0x1574C, sd_device )                // in sdReadBlk
++
++// called by fsuGetPart with arg0 = (446 + ret_alloc_dma_memory) 
++// => first partition table; see http://www.datarescue.com/laboratory/partition.htm
++NSTUB( 0xFF4319A4, fsuDecodePartitionTable )
++
++
++NSTUB( 0xff01b5d8, hotplug_task )
++NSTUB( 0x1A7C, hotplug_struct )
++NSTUB( 0x1AC8, hotplug_usb_buf )          // after "USB Disconnect" 
++
++NSTUB( 0xFF06DFC0, bootdisk_enable )
++NSTUB( 0xFF06DFCC, bootdisk_disable )
++
++NSTUB( 0xFF010500, cli_save )
++NSTUB( 0xFF010514, sei_restore )
++NSTUB( 0xff2a49a0, ptp_register_handler )
++NSTUB( 0xff14b8f4, gui_lock )             // PtpPropSetUILock
++NSTUB( 0xff06fce4, oneshot_timer )
++NSTUB( 0xFF02156C, gui_main_task )       //  message at 0x30, counter at 0x0c
++NSTUB( 0xff021f78, gui_init_end )     // EndGuiInit
++NSTUB( 0x4588, gui_timer_struct )     // in GUI_Control_Post  
++NSTUB( 0x1C38, gui_main_struct )      //  in gui_main_task
++NSTUB( 0xff1f5a54, msg_queue_receive )
++NSTUB( 0xFF0AA5A4, gui_local_post )
++NSTUB( 0xFF0A9E34, gui_change_mode )   // GUI_ChangeMode_Post
++NSTUB( 0xFF0AAB3C, gui_other_post )
++NSTUB( 0xff021928, GUI_Control )
++
++NSTUB( 0xff56dccc, gui_main_task_functbl ) // 7 functions
++
++NSTUB( 0xFF04E9E4, mvrSetBitRate )
++NSTUB( 0xFF1C9A74, mvrFixQScale )
++NSTUB( 0xFF1C9550, mvrSetDefQScale )
++NSTUB( 0xFF1C9A94, mvrSetPrintMovieLog )
++NSTUB( 0xFF1C9588, mvrSetFullHDOptSize )
++NSTUB( 0xFF1C96E8, mvrSetHDOptSize )
++NSTUB( 0xFF1C9730, mvrSetVGAOptSize )
++NSTUB( 0xFF1C9778, mvrSetGopOptSizeFULLHD )
++NSTUB( 0xFF1C97FC, mvrSetGopOptSizeHD )
++NSTUB( 0xFF1C9874, mvrSetGopOptSizeVGA )
++NSTUB( 0xFF1C94E0, mvrSetDeblockingFilter )
++// FF04E88C mvrAppendCheckSetRecLimit
++
++NSTUB( 0xFF1E74B0, FIO_FindFirstEx )
++NSTUB( 0xFF1E75A4, FIO_FindNextEx )
++NSTUB( 0xff1e7684, FIO_CleanupAfterFindNext_maybe) // called with ret_FIO_FindFirstEx after finishing the dir scanning loop
++
++// 550d 109 values!!
++NSTUB( 0x3787c, LV_EX_X)
++NSTUB( 0x37880, LV_EX_Y)
++
++NSTUB( 0xFF021A28, GUI_ChangeMode )
++NSTUB( 0xFF0A7F90, gui_massive_event_loop )   // GUI_Control_Post
++
++//NSTUB( 0xFF34B6F4, AJ_guess_LED_ON )   // led for SD/CF read and write ops
++//NSTUB( 0xFF34B724, AJ_guess_LED_OFF )
++
++// NSTUB( 0xFF1A1CA4, SleepLiveViewDevice )               // not found
++// NSTUB( 0xFF1A16D0, ReadyLiveViewDevice )
++NSTUB( 0xFF08397C, DispSensorStart ) 
++
++NSTUB( 0xff234fcc, ChangeColorPalette )
++
++NSTUB( 0xFF33BF7C, MirrorDisplay )
++NSTUB( 0xFF33BFDC, NormalDisplay )
++NSTUB( 0xFF33BFAC, ReverseDisplay )
++//NSTUB( 0xff33a734, RedrawDisplay )
++
++
++NSTUB( 0xFF018C74, strlen )
++NSTUB( 0xFF082704, strcmp )     // used to cmp "akashimorino" 
++
++NSTUB( 0x6290, mvr_config )
++
++NSTUB( 0xff1f5c40, msg_queue_post)
++//NSTUB( 0xff37aee4, ChangeHDMIOutputSizeToFULLHD)
++//NSTUB( 0xff37b174, ChangeHDMIOutputSizeToVGA)
++NSTUB( 0xff29e25c, AfCtrl_SetLensParameterRemote )
++
++NSTUB( 0xff039d4c, PD_GetBatteryPower )
++
++NSTUB(0xff075500, CreateRecursiveLock)
++NSTUB(0xff1f5d8c, AcquireRecursiveLock)
++NSTUB(0xff1f5ea0, ReleaseRecursiveLock)
++
++NSTUB(0xFF37FAF4, CancelBottomInfoDispTimer)
++NSTUB(0xff378968, HideBottomInfoDisp_maybe) // look for StartBottomInfoDispTimer
++NSTUB(0xff378b34, HideUnaviFeedBack_maybe) // look for StartUnaviFeedBackTimer
++
++NSTUB(0xFF31DA7C, CreateDialogBox)
++NSTUB(0xFF31D214, DeleteDialogBox)
++NSTUB(0xFF31E390, dialog_redraw)
++NSTUB(0xFF234DF4, dialog_set_property_str)
++
++NSTUB(0xAC30, gui_task_list)
++
++NSTUB(0xff1e963c, MuteOff_0)
++NSTUB(0xff1e95f4, MuteOn_0)
++
++NSTUB(0xFF14B9E4, RemoteRelease)
++NSTUB(0xFF14BAC8, ptpPropButtonSW1)
++NSTUB(0xFF14BC30, ptpPropButtonSW2)
++
++NSTUB(0xFF072194, GetMemoryInformation) // called from AllocateMemory
++
++NSTUB(0xff227f64, GUI_SetRollingPitchingLevelStatus)
++
++NSTUB(0xFF54F9E0, GetCFnData)
++NSTUB(0xFF54FC0C, SetCFnData)
++
++NSTUB(0xff37d5c4, LiveViewApp_handler)
++NSTUB(0xff37dc4c, LiveViewApp_handler_BL_JudgeBottomInfoDispTimerState)
++NSTUB(0xff37f29c, LiveViewApp_handler_end) // start of next function
++NSTUB(0xff38c928, ShootOlcApp_handler)
++NSTUB(0xff476bf4, ErrCardForLVApp_handler) // LiveViewErrorApp, as in 60D
++
++NSTUB(0x73590, lv_path_struct) // first arg of SelectPathDriveMode
++
++NSTUB(0xFF1E1D20, _engio_write)
++NSTUB(0xFF1E184C, shamem_read) // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr
++NSTUB(0xff1e195c, _EngDrvOut)
++
++NSTUB(0xff017618, get_current_task) // called from AJ_armlib_setup_related3
++
++NSTUB(0x1C36C, LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
+diff -r 774a30f44f0b -r 9f8d9bb7e92e src/consts.h
+--- a/src/consts.h	Fri Mar 23 18:34:23 2012 +0200
++++ b/src/consts.h	Fri Mar 23 18:53:26 2012 +0200
+@@ -7,11 +7,11 @@
+ #endif
+ 
+ #ifdef CONFIG_600D
+-#include "../platform/600D.102/consts.h"
++#include "../platform/600D.101/consts.h"
+ #endif
+ 
+ #ifdef CONFIG_50D
+-#include "../platform/50D.109/consts.h"
++#include "../platform/50D.108/consts.h"
+ #endif
+ 
+ #ifdef CONFIG_500D
+@@ -19,10 +19,10 @@
+ #endif
+ 
+ #ifdef CONFIG_1100D
+-#include "../platform/1100D.105/consts.h"
++#include "../platform/1100D.104/consts.h"
+ #endif
+ 
+ #ifdef CONFIG_5D2
+-#include "../platform/5D2.212/consts.h"
++#include "../platform/5D2.211/consts.h"
+ #endif
+ 
+diff -r 774a30f44f0b -r 9f8d9bb7e92e src/gui.h
+--- a/src/gui.h	Fri Mar 23 18:34:23 2012 +0200
++++ b/src/gui.h	Fri Mar 23 18:53:26 2012 +0200
+@@ -10,11 +10,11 @@
+ #endif
+ 
+ #ifdef CONFIG_600D
+-#include "../platform/600D.102/gui.h"
++#include "../platform/600D.101/gui.h"
+ #endif
+ 
+ #ifdef CONFIG_50D
+-#include "../platform/50D.109/gui.h"
++#include "../platform/50D.108/gui.h"
+ #endif
+ 
+ #ifdef CONFIG_500D
+@@ -22,11 +22,11 @@
+ #endif
+ 
+ #ifdef CONFIG_1100D
+-#include "../platform/1100D.105/gui.h"
++#include "../platform/1100D.104/gui.h"
+ #endif
+ 
+ #ifdef CONFIG_5D2
+-#include "../platform/5D2.212/gui.h"
++#include "../platform/5D2.211/gui.h"
+ #endif
+ 
+ 
+@@ -48,7 +48,7 @@
+ #define MLEV_MENU_OPEN -13
+ #define MLEV_MENU_CLOSE -14
+ #define MLEV_MENU_REDRAW -15
+-
++ 
+ 
+ /** \file
+  * DryOS GUI structures and functions.
+diff -r 774a30f44f0b -r 9f8d9bb7e92e src/mvr.h
+--- a/src/mvr.h	Fri Mar 23 18:34:23 2012 +0200
++++ b/src/mvr.h	Fri Mar 23 18:53:26 2012 +0200
+@@ -7,11 +7,11 @@
+ #endif
+ 
+ #ifdef CONFIG_600D
+-#include "../platform/600D.102/mvr.h"
++#include "../platform/600D.101/mvr.h"
+ #endif
+ 
+ #ifdef CONFIG_50D
+-#include "../platform/50D.109/mvr.h"
++#include "../platform/50D.108/mvr.h"
+ #endif
+ 
+ #ifdef CONFIG_500D
+@@ -19,9 +19,9 @@
+ #endif
+ 
+ #ifdef CONFIG_1100D
+-#include "../platform/1100D.105/mvr.h"
++#include "../platform/1100D.104/mvr.h"
+ #endif
+ 
+ #ifdef CONFIG_5D2
+-#include "../platform/5D2.212/mvr.h"
++#include "../platform/5D2.211/mvr.h"
+ #endif
+diff -r 774a30f44f0b -r 9f8d9bb7e92e src/reboot-all.c
+--- a/src/reboot-all.c	Fri Mar 23 18:34:23 2012 +0200
++++ b/src/reboot-all.c	Fri Mar 23 18:53:26 2012 +0200
+@@ -38,11 +38,11 @@
+ 
+ #define SIG_60D_110  0xac958a1e // from FF010000
+ #define SIG_550D_109 0x851320e6 // from FF010000
+-#define SIG_600D_102 0x27fc03de // from FF010000
++#define SIG_600D_101 0x290106d8 // from FF010000
+ #define SIG_500D_110 0x4c0e5a7e // from FF010000
+-#define SIG_50D_109  0x4673ef59 // from FF010000
++#define SIG_50D_108  0xb2311152 // from FF010000
+ #define SIG_500D_111 0x44f49aef // from FF010000
+-#define SIG_5D2_212  0xae78b938 // from FF010000
++#define SIG_5D2_211  0xaf79902b // from FF010000
+ 
+ asm(
+ ".text\n"
+@@ -132,12 +132,12 @@
+             blob_end = &blob_end_60;
+             RESTARTSTART = (void*)RESTARTSTART_60;
+             return 1;
+-        case SIG_600D_102:
++        case SIG_600D_101:
+             blob_start = &blob_start_600;
+             blob_end = &blob_end_600;
+             RESTARTSTART = (void*)RESTARTSTART_600;
+             return 1;
+-        case SIG_50D_109:
++        case SIG_50D_108:
+             blob_start = &blob_start_50;
+             blob_end = &blob_end_50;
+             RESTARTSTART = (void*)RESTARTSTART_50;
+@@ -148,7 +148,7 @@
+             blob_end = &blob_end_500;
+             RESTARTSTART = (void*)RESTARTSTART_500;
+             return 1;
+-        case SIG_5D2_212:
++        case SIG_5D2_211:
+             blob_start = &blob_start_5d2;
+             blob_end = &blob_end_5d2;
+             RESTARTSTART = (void*)RESTARTSTART_5D2;
+@@ -180,14 +180,14 @@
+ 
+     ".globl blob_start_600\n"
+     "blob_start_600:\n"
+-    ".incbin \"../600D.102/magiclantern.bin\"\n" // 
++    ".incbin \"../600D.101/magiclantern.bin\"\n" // 
+     ".align 12\n"
+     "blob_end_600:"
+     ".globl blob_end_600\n"
+ 
+     ".globl blob_start_50\n"
+     "blob_start_50:\n"
+-    ".incbin \"../50D.109/magiclantern.bin\"\n" // 
++    ".incbin \"../50D.108/magiclantern.bin\"\n" // 
+     ".align 12\n"
+     "blob_end_50:"
+     ".globl blob_end_50\n"
+@@ -201,7 +201,7 @@
+ 
+     ".globl blob_start_5d2\n"
+     "blob_start_5d2:\n"
+-    ".incbin \"../5D2.212/magiclantern.bin\"\n" // 
++    ".incbin \"../5D2.211/magiclantern.bin\"\n" // 
+     ".align 12\n"
+     "blob_end_5d2:"
+     ".globl blob_end_5d2\n"

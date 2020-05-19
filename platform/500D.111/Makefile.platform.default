@@ -1,0 +1,14 @@
+#Makefile.setup.platform for 500D
+
+ifeq ($(FW_VERSION),111)
+CANON_NAME_FIR=E7KR6111.FIR
+
+ROMBASEADDR	= 0xFF010000
+
+# DryOSmemory map
+# RESTARTSTART is selected to be just above the end of the bss
+#
+RESTARTSTART	= 0x0004D000
+
+#End of FW_VERSION == 111
+endif

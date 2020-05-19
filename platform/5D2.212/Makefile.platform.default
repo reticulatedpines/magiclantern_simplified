@@ -1,0 +1,16 @@
+#Makefile.setup.platform for 5D2
+
+FIRMWARE_ID	= 0x80000218
+
+ifeq ($(FW_VERSION),212)
+CANON_NAME_FIR=5D200212.FIR
+
+ROMBASEADDR     = 0xFF810000
+
+# DryOSmemory map
+# RESTARTSTART is selected to be just above the end of the bss
+#
+RESTARTSTART    = 0x0004E000
+
+#End of FW_VERSION == 212
+endif

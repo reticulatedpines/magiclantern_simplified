@@ -1,0 +1,85 @@
+#!/usr/bin/perl
+#
+# Generate a program-space font definition from a textual representation.
+# For speed in representation, each 8-line character is split into
+# separate bytes, stripped by the line number.
+#
+use warnings;
+use strict;
+use Getopt::Long;
+
+my $font_width		= 8;
+my $font_height		= 12;
+my $font_type		= 'const unsigned';
+my $font_name		= 'font';
+
+GetOptions(
+	"name=s"		=> \$font_name,
+	"width=i"		=> \$font_width,
+	"height=i"		=> \$font_height,
+) or die "$0: Bad argument\n";
+
+
+print <<"";
+#include "font.h"
+struct font ${font_name} = {
+	.width		= $font_width,
+	.height		= $font_height,
+	.bitmap		= {
+
+# Paragraph mode
+$/ = "\n\n";
+
+my $index = 0;
+my $base = ord( ' ' );
+my $offset = 0;
+
+while(<>)
+{
+	my ($key,@rows) = split /\n/;
+	my ($pos) = $key =~ /^(.) =/;
+
+	for my $line (0..$font_height-1)
+	{
+		my $row = $rows[ $line ] || ( ' ' x $font_width );
+		# Pad with spaces to the width of the font
+		$row .= ' ' x (64 - length($row));
+
+		my $bits = $row;
+		$bits =~ s/[^ ]/1/g;
+		$bits =~ s/[ ]/0/g;
+
+		# Fix $pos for special chars
+		$pos = "\\$pos" if $pos eq '\\' or $pos eq '\'';
+
+		my ($low,$high) = unpack( "NN", pack( "B*", $bits ) );
+
+		# Strip trailing spaces for display
+		$row =~ s/ *$//;
+
+		print "// $row\n"
+			if $font_width > 32;
+
+		printf "[ '%s' + (%2d << 7) ] = 0x%08x,%s\n",
+			$pos,
+			$line,
+			$low,
+			$font_width > 32 ? "" : " // $row",
+			;
+
+		printf "[ '%s' + ((128+%2d) << 7) ] = 0x%08x,\n",
+			$pos,
+			$line,
+			$high,
+		if $font_width > 32;
+	}
+
+	print "\n";
+}
+
+
+print <<"";
+	},
+};
+
+__END__

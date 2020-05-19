@@ -1,0 +1,147 @@
+
+Important notes
+---------------
+
+* **After opening the card door, always wait for LED confirmation (or for 5 seconds) before removing the card!!!** (no such problem on 550D).
+
+* If you have a bootable SD card and have the ``BOOTDISK`` flag set in the camera (which the installer does), and you do not have an ``AUTOEXEC.BIN`` file on the card the camera **WILL NOT BOOT**! It will hang and not wake up until the battery is removed.
+
+* If you encounter a "locked up" camera, **quickly remove the battery**.
+
+* When in doubt, remove the battery and reboot.
+
+* **And, remember that this software can damage or destroy your camera.**
+
+.. raw:: latex
+
+    \newpage
+    \tableofcontents
+    \newpage
+
+Known issues
+------------
+
+* First second of recorded audio may be very loud (5D2, 550D, 60D, 500D).
+* SD monitors are not completely supported (magic zoom and RGB tools will not work).
+
+Common terms
+------------
+
+Movie mode
+~~~~~~~~~~
+
+Most cameras have a dedicated movie mode on the mode dial. In this case, it's obvious what movie mode is.
+
+However, the following cameras do not have a dedicated movie mode. For these cameras, Magic Lantern considers the following configurations as "movie mode":
+
+* **Canon 5D Mark II**: in *LiveView*, with *movie recording enabled* AND *LiveView display set to Movie*.
+* **Canon 50D**: in *LiveView*, with *movie recording enabled* from ML menu.
+
+When movie mode is active, Magic Lantern will show a ``Mv`` symbol on the bottom info bar. In this mode, certain ML tools that normally work for stills (like intervalometer or audio remote shot) will change their behavior and will record movies.
+
+The ``Q`` button
+~~~~~~~~~~~~~~~~
+
+Most cameras have a button labeled as ``[Q]``. A few cameras don't, so you will have to use some other button:
+
+* 5D Mark II: use the ``Picture Style`` button.
+* 50D: use the ``FUNC`` button.
+* 500D: use the LiveView button.
+
+
+Liveview screen layout
+----------------------
+
+#Magic Lantern uses the available screen space to display operational information in a clear and practical manner. The image shows a screenshot with commonly used ML features enabled.
+
+.. figure:: beertje6.jpg
+    :alt: LiveView screen info
+    :align: center
+    :width: 10cm
+
+Some items that may need more details:
+
+* Audio meters: this shows the audio record levels, in dB. The bars become yellow at -12 dB and red at -3 dB.
+* FPS: the current FPS value is displayed with 3 decimal places (25.000, 24.000, 23.976 etc).
+* Shutter speed: in movie mode, values that maintain a certain amount of filmic motion blur (180 degree shutter) are displayed in green. In photo mode, values that may cause blurry pictures are displayed in red.
+* ISO: values with low noise (negative digital gain) are displayed in green.
+* Clipping dots on histogram: they appear when the image contains overexposed areas.
+* Green/magenta white balance shift: not all cameras let you adjust these in movie mode; fine-tune them from White Balance submenu in ML menu.
+#* Focus distance: this is displayed for most newer Canon lenses. If your lens does not report focus distance, ML will display the AF/MF status instead. Detailed `focus and DOF info`_ is displayed in the Focus menu.
+
+.. _shortcut keys:
+
+Key shortcuts
+-------------
+
+PLAY mode shortcuts
+~~~~~~~~~~~~~~~~~~~
+
+* ``Q`` (550D), ``UNLOCK`` (60D), ``DISP`` (600D), ``LV`` (500D), ``FUNC`` (50D), ``Picture Style`` (5D Mark II) or ``Light`` (5D Mark III): show exposure tools (zebra, false color, histogram, waveform, spotmeter) and cropmarks (as configured from `Overlay`_ menu).
+* ``SET`` + ``Main Dial (Scrollwheel)`` in ``PLAY`` mode: customizable function (adjust exposure, preview HDR images, timelapse playback and others). See `SET+MainDial`_.
+* ``LV``: create a transparent overlay from current image (when `Ghost Image`_ is active). You can use it for panoramas or for repeating shots.
+* ``LV`` on 60D/600D: you can configure it to protect or rate images with a single button press.
+* ``SET+Erase``: you can configure it to erase images without the confirmation dialog.
+
+Arrow key shortcuts
+~~~~~~~~~~~~~~~~~~~
+
+Arrow keys can be used to quickly adjust the following settings:
+
+* Audio gains and input source;
+* ISO (in intermediate steps) and Kelvin WB (press SET for push-button WB);
+* Shutter and aperture, in finer steps;
+* LCD backlight, saturation and display gain.
+
+You can select what functions you need from `Arrow/SET shortcuts`_ submenu, under `Prefs`_.
+
+To enable the shortcut menu, press the following key:
+
+* 550D: the ``Av`` button (optional: cover the LCD sensor);
+* 60D: the ``Metering`` button (near ISO);
+* 600D: the ``DISP`` button;
+* 500D: cover the LCD sensor;
+* 50D: the ``FUNC`` button;
+* 5D Mark II: the ``Picture Style`` button;
+* 5D Mark III: the ``RATE`` button.
+
+Besides the shortcuts, arrow keys can also be used for focusing (see `Follow Focus`_).
+
+See also our `Shortcuts article <http://www.magiclantern.fm/cameraoperating/101-articles/cat-camop/catshort/91-art-fast-operating-with-shortcuts>`_.
+
+Misc shortcuts
+~~~~~~~~~~~~~~
+
+* ``SET`` pressed at startup: loads vanilla firmware (does not load Magic Lantern).
+* ``INFO/DISP`` in LiveView: change current `display preset`_, if this feature is enabled.
+* ``Zoom In`` while recording: it does just that :) (`Magic Zoom`_)
+* ``SET`` in LiveView: center the focus box.
+* Activating *AF mode* dialog when Manual Focus is active will toggle `Trap Focus`_.
+
+.. _customizable menus:
+
+Magic Lantern menu
+------------------
+
+* **Press the ``ERASE`` button** to bring up the Magic Lantern menu.
+* Use arrow keys, joystick or scrollwheels to navigate.
+* Use ``SET`` and ``PLAY`` to toggle values.
+* Use ``Q`` (or equivalent) to open a submenu with more settings.
+* Press ``INFO`` or ``DISP`` button to get help.
+* In LiveView, press ``Zoom In`` to preview the image behind ML menu.
+* Press ``MENU`` to hide items that you don't use (to reduce clutter).
+
+For cameras without ``Q``, use this equivalent button:
+
+* 5D Mark II: press the ``Picture Style`` button.
+* 50D: press the ``FUNC`` button.
+* 500D: press the LiveView button.
+
+One-handed menu navigation for 5D Mark II and 50D (optional):
+
+* Open ML menu and submenus with a long press on joystick center key;
+* Navigate ML menu with joystick or scrollwheels;
+* Close submenus with a short press of joystick center key (use Left and Right to adjust values);
+* Close ML menu with a short half-shutter press.
+
+    

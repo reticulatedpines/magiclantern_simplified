@@ -1,0 +1,217 @@
+
+
+::
+
+          .***************************************************
+           * THIS IS DANGEROUS AND MIGHT DAMAGE YOUR CAMERA. *
+           *         NO WARRANTIES.  NO GUARANTEES.          *
+           *                                                 *
+           *     IF IT BREAKS YOU GET TO KEEP BOTH PIECES    *
+           ***************************************************
+
+If you are not comfortable with this, stop reading and delete the
+software before you are tempted to try running it on your camera.
+
+.. raw:: latex
+
+  {
+  \setcounter{tocdepth}{1}
+  \renewcommand*\contentsname{}
+  \setlength{\fboxsep}{10pt}
+  \fbox{\begin{minipage}{7cm}\vspace{-5mm}
+  \tableofcontents
+  \end{minipage}}
+  }
+
+
+Important notes
+===============
+
+* **After opening the card door, always wait for LED confirmation (or for 5 seconds) before removing the card!!!** (no such problem on 550D).
+
+* **EyeFi cards will not work**; you will have to use SD / SDHC / SDXC / CF cards.
+
+* If you have a bootable card and have the ``BOOTDISK`` flag set in the camera (which the installer does), and you do not have an ``AUTOEXEC.BIN`` file on the card the camera **WILL NOT BOOT**! It will hang and not wake up until the battery is removed.
+
+* If you encounter a "locked up" camera, **quickly remove the battery**.
+
+* When in doubt, remove the battery and reboot.
+
+* **And, remember that this software can damage or destroy your camera.**
+
+.. raw:: latex
+
+  \newpage
+
+Introduction
+============
+
+There are two ways of running user code on Canon DSLR cameras:
+
+1. Using the update process with a ``.fir`` file, which must be digitally signed.
+
+2. Using the bootdisk process: the ``autoexec.bin`` file is loaded and executed. 
+   This file does not have to be signed, but the bootdisk flag must be enabled in the camera.
+
+With great power comes great responsibility!
+============================================
+
+Before installing Magic Lantern, you need to:
+
+* Know how to use a computer (how to download a file, how to unzip an archive, how to open a PDF document...)
+* We recommend you to use your camera for a few months. Then you know how to operate it properly and know your way around the different functions. Then take the next step and consider installing Magic Lantern.
+* Do your research. There is a lot of information available on Magic Lantern web site. Read the `user guide <http://wiki.magiclantern.fm/userguide>`_ and the `FAQ <http://wiki.magiclantern.fm/faq>`_, explore the `forum <http://www.magiclantern.fm/forum/index.php>`_ and the `documentation <http://magiclantern.fm/documentation>`_ section.
+* Be patient. Magic Lantern can overwhelm with the amount of functions added. But it is actually very easy to use once you know the basics.
+
+.. raw:: latex
+
+   \color{red}
+
+Very important
+--------------
+
+* After opening the card door, **always wait for LED confirmation** (or for 5 seconds) before removing the card!!!
+
+* This applies even if you have turned off the camera 5 hours ago. The camera will wake up when you open the card door, even if the power switch is off.
+
+* During the 5-second period after you opened the card door, Canon firmware **accesses the card without turning on the LED**. If you remove the card too early, the camera will freeze and will drain the battery.
+
+.. raw:: latex
+
+   \color{black}
+
+
+Get the right camera firmware version
+=====================================
+
+Firmware updates in general can damage your camera. Read the section in your camera manual before updating your firmware. If you are not comfortable with the risks, stop reading and delete the software before you are tempted to try running it on your camera. 
+
+This version of Magic Lantern works **only** with the following camera firmware versions: 
+
+* Canon **500D / T1i / Kiss X3**: firmware `1.1.1 <http://www.canon-europe.com/Support/Consumer_Products/products/cameras/Digital_SLR/EOS_500D.aspx?type=download&page=1>`_
+* Canon **550D / T2i / Kiss X4**: firmware `1.0.9 <http://web.canon.jp/imaging/eosd/firm-e/eosdigital7/firmware.html>`_
+* Canon **600D / T3i / Kiss X5**: firmware `1.0.2 <http://www.canon-europe.com/Support/Consumer_Products/products/cameras/Digital_SLR/EOS_600D.aspx?type=download&page=1>`_
+* Canon **50D**: firmware `1.0.9. <http://www.canon-europe.com/Support/Consumer_Products/products/cameras/Digital_SLR/EOS_50D.aspx?type=download&page=1>`_
+* Canon **60D**: firmware `1.1.1. <http://www.canon-europe.com/Support/Consumer_Products/products/cameras/Digital_SLR/EOS_60D.aspx?type=download&page=1>`_
+* Canon **5D Mark II**: firmware `2.1.2 <http://www.canon-europe.com/Support/Consumer_Products/products/cameras/Digital_SLR/EOS_5D_Mark_II.aspx?type=download&page=1>`_
+
+For other cameras, please check the sticky topics from `the New Ports forum <http://www.magiclantern.fm/forum/index.php?board=34.0>`_.
+
+If, for some reason, these links don't work, `check the online install guide for updated links <http://wiki.magiclantern.fm/install>`_.
+
+You can check your firmware version by setting your mode dial to **Manual (M)** and looking in the Canon menu. 
+
+Nothing bad will happen if you try to run ML on a different firmware version - the card LED will start blinking and you'll have to take the battery out. Magic Lantern checks firmware version before attempting to run. 
+
+First-time installation 
+=======================
+
+Step 1. Preparing your camera
+-----------------------------
+
+* Use a **fully charged Canon battery** (original, not third party).
+
+* Remove any accessories from your camera (such as battery grip or external flash).
+
+* For first install, use a simple **SD/SDHC/CF** card (**32 GB or smaller**). 64GB cards and larger will not work for first install (but you can use them with ML, see below).
+
+* Make sure you have a card reader.
+
+* Double-check your Canon firmware version.
+
+* Rotate your mode dial to **Manual (M)** position.
+
+* *Recommended*: Restore your camera to default settings (*Clear camera settings*). *Remember this will reset all canon settings and removes custom picture styles!*
+
+
+Step 2. Installation
+--------------------
+
+* Format the card **in the camera** (low level format).
+
+* Unzip **all** of the files from from Magic Lantern zip archive on the **root** of your card.
+
+* Launch the **Firmware Update** process.
+
+* If the screen goes black and card LED starts blinking, **upgrade your Canon firmware** from the links above (**even if you already have the correct version number!**) and try again.
+
+* Once you see the **green confirmation screen**, restart your camera. Done.
+
+.. figure:: BootdiskEnabled.png
+    :alt: thumb|right|Magic Lantern install - confirmation screen
+    :align: center
+    :width: 3cm
+
+* If something goes wrong, **check the Troubleshooting section** below. 
+
+Step 3. Magic Lantern first startup
+-----------------------------------
+
+* Go to Canon menus and restore your preferences. Don't forget these:
+
+  - On 550D/60D/600D, enable manual video exposure.
+  - On 5D Mark II and 50D, enable LiveView shooting.
+  - You may also have to re-install your custom picture styles.
+
+* In LiveView, toggle the ``INFO/DISP`` button until you see the Magic Lantern audio levels and bottom info bar.
+* Press the **DELETE** button to open ML menu and **READ THE HELP TEXT** that pops up.
+* Read the User Guide and start using Magic Lantern.
+* **Don't forget to wait for LED confirmation before removing the card!** (unless you use a 550D)
+
+
+Installing Magic Lantern on other cards
+=======================================
+
+* If you use **SD/SDHC/CF** cards, you may simply **repeat Step 2** on every card you would like to use Magic Lantern.
+
+* If you use **SDXC** cards, or if you prefer to skip the firmware update step and prepare all your cards from the PC, you may copy ML files on your card and make it bootable with a special utility: `EOSCard <http://pel.hu/down/EOScard.exe>`_ for Windows, `MacBoot <http://www.zenoshrdlu.com/macboot/macboot.html>`_ for Mac, or `make_bootable.sh <http://groups.google.com/group/ml-devel/browse_thread/thread/1161d4e6e93232de/41a65807171f71a0>`_ for Mac/Linux in command line.
+
+Updating Magic Lantern
+======================
+
+* If your previous version of Magic Lantern required a different Canon firmware, format your card(s), update to latest Canon firmware, unzip new ML files and make the card(s) bootable. If you get stuck, do a fresh install.
+
+* Otherwise, just unzip (or copy) the new Magic Lantern files on your card and overwrite the old ones.
+
+* Check the `Download page <http://magiclantern.fm/download>`_ for updates.
+
+Uninstalling Magic Lantern
+==========================
+
+.. raw:: latex
+
+   \color{red}
+
+**Don't just delete the Magic Lantern files from the card! If you do, the camera will freeze at startup and you'll have to take the battery out.**
+
+.. raw:: latex
+
+   \color{black}
+
+Uninstalling ML from one card
+-------------------------------
+
+* Format that card from the camera (select this option: *Format card, **remove** Magic Lantern*) and reboot. Your camera will load the original firmware when you use that card.
+
+Uninstalling ML from the camera
+-------------------------------
+
+* With a Magic Lantern card, launch the ``Firmware Update`` process and follow the instructions on-screen.
+
+.. figure:: BootdiskDisabled.png
+    :alt: thumb|right|Magic Lantern install - confirmation screen
+    :align: center
+    :width: 3cm
+
+
+Troubleshooting
+===============
+
+* **If the card LED blinks continuously after running Firmware Upgrade**, you don't have the right Canon firmware version or sub-version. To fix it, install the official Canon firmware upgrade from the links from this guide, even if you already have the correct version number (you may have a different sub-version number).
+* **If the screen does not turn on, but autofocus works**, remove the battery and format the card. This happens when the card is bootable, but autoexec.bin is not there.
+* **Check if all doors are closed.** The camera will not boot if any of the card or battery doors are open!
+* **If the camera does not boot** (seems dead), **remove the battery and the card**. Then put the battery back and try to boot the camera without card. Then put a formatted card in the camera and try to boot **without** Magic Lantern. Only after you are sure the camera is OK, you can try to see what's wrong with Magic Lantern.
+* **If the camera asks for a firmware update**, place Canon firmware on the card (this was a problem in older versions).
+* **DO NOT use a bootable card without a working autoexec.bin on it!** If you do, remove the battery immediately, switching the camera off is not enough !!!
+* Check our `support forum <http://www.magiclantern.fm/forum/index.php?board=4.0>`_ for similar problems; if you can't find the solution, just ask.
+

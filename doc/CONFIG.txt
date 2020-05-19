@@ -1,0 +1,22 @@
+
+.. _magic.cfg:
+
+Hidden settings
+---------------
+
+The configuration file (``MAGIC.CFG``) lets you tweak various hidden settings
+using a simple text editor (Notepad, gedit, vi...), and is also used
+to save Magic Lantern configuration from the GUI menu.
+
+These settings can not be changed from the ML menu::
+
+    # Delay between clearing the overlay in Clear Preview mode
+    clear.preview.delay = 500
+
+    # Background color for waveform
+    waveform_bg = 20   # Semitransparent gray
+    waveform_bg = 3    # Semitransparent black
+    waveform_bg = 0    # Transparent
+
+    # shutter display in degrees on the bottom bar
+    shutter.display.degrees = 1

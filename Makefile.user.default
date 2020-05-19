@@ -1,0 +1,232 @@
+#User-defined values for ML build system
+#Copy me to Makefile.user, keeping ONLY the options that you want to customize
+
+UNAME:=$(shell uname)
+
+ifeq ($(UNAME), Darwin)
+	# Variable declaration for Mac OS X
+	UMOUNT=hdiutil unmount
+	CF_CARD="/Volumes/EOS_DIGITAL"
+	STAT_CMD=stat -f "%N: %z bytes"
+else
+	# Default settings for remaining operating systems
+	UMOUNT=umount
+	# some distros may require:
+	# UMOUNT=sudo umount
+	# CF_CARD=/media/EOS_DIGITAL
+	CF_CARD = $(call eval_once,CF_CARD,$(shell mount | grep -oE "[^ ]+/EOS_DIGITAL[^ ]*"))
+	STAT_CMD=stat -c "%n: %s bytes"
+endif
+
+# change this if you have to mount the card every time you run "make install"
+# examples:
+# MOUNT_CARD=gio mount -d /dev/mmcblk0p1
+# MOUNT_CARD=gio mount dav://192.168.0.1/
+MOUNT_CARD=
+
+# Experimental setup for Wi-Fi SD cards
+# to enable, run this before "make install":
+#    export WIFI_SD=y
+# alternatives: "make install WIFI_SD=y", "WIFI_SD=y make install"
+# override network names and IP address in Makefile.user
+# fixme: how to enable it from Makefile.user?
+ifeq ($(WIFI_SD),y)
+  # fill in the name of your regular wifi network
+  # leave this empty to disable wifi after installation
+  WIFI_MAIN_NETWORK=<your regular wifi network>
+  
+  # these are for Toshiba FlashAir; you may have to change them for other wifi cards
+  # note: if the wifi card connects directly to a router and gets a fixed IP,
+  # just enter your regular wifi network name here as well
+  WIFI_CARD_NETWORK=flashair
+  WIFI_CARD_IP=192.168.0.1
+  CF_CARD=/run/user/1000/gvfs/dav:host=$(WIFI_CARD_IP),ssl=false
+  
+  # executed before installation
+  # connect to WIFI_CARD_NETWORK if not already,
+  # and mount card directory via WebDAV
+  # also monitor the connection in background while the card is mounted (signal tends to be weak)
+  INSTALL_PREPARE=$(call build,WIFI_SET,\
+    if ! nmcli conn show --active | grep $(WIFI_CARD_NETWORK) > /dev/null; then \
+      while ! nmcli device wifi list | grep $(WIFI_CARD_NETWORK); do \
+        if [ `nmcli radio wifi` = disabled ]; \
+          then nmcli radio wifi on; sleep 5; \
+          else nmcli dev wifi rescan 2>/dev/null || true; sleep 2; \
+        fi; \
+        echo -n "."; \
+      done; \
+      nmcli conn up $(WIFI_CARD_NETWORK); \
+    fi; \
+    for i in `seq 1 20`; do \
+        if ping -c 3 -l 3 -W 1 $(WIFI_CARD_IP) > /dev/null; then break; fi; \
+        echo -n "."; \
+    done; \
+    if ping -c 3 -l 3 -W 1 $(WIFI_CARD_IP) > /dev/null; then \
+      if ! gio mount -l | grep "dav://$(WIFI_CARD_IP)/"; then \
+        gio mount dav://$(WIFI_CARD_IP)/ ; \
+      fi; \
+    else \
+      echo "$(WIFI_CARD_IP) appears to be offline." ; \
+      exit 1; \
+    fi; \
+    ( while gio mount -l | grep -q "dav://$(WIFI_CARD_IP)/"; do \
+        if ! ping -c 3 -l 3 -W 1 $(WIFI_CARD_IP) > /dev/null; then \
+           echo -n "!"; \
+        fi; \
+        sleep 1; \
+     done \
+     ) & \
+  )
+  
+  # restore connection to your main wifi network
+  # or just turn it off if you are using a wired network
+  WIFI_RESTORE=$(call build,WIFI_END,\
+    if [ "$(WIFI_MAIN_NETWORK)" = "" ]; then \
+      echo "Turning off Wi-Fi..."; \
+      nmcli radio wifi off; \
+    elif ! nmcli conn show --active | grep $(WIFI_MAIN_NETWORK) > /dev/null; then \
+      echo "Connecting to $(WIFI_MAIN_NETWORK)..."; \
+      nmcli conn up $(WIFI_MAIN_NETWORK); \
+    fi; )
+  
+  UMOUNT_CARD=$(call build,UNMOUNT,\
+    while ! gio mount -u dav://$(WIFI_CARD_IP)/; do \
+      sleep 2; \
+    done \
+  )
+  
+  # executed after installation
+  define INSTALL_FINISH =
+	$(UMOUNT_CARD)
+	$(WIFI_RESTORE)
+	@printf "\nFinished.\nMake sure the camera will not write anything to the card until restart.\n"
+  endef
+endif
+
+# GCC-related stuff
+# for yagarto or the official ARM toolchain use ARM_ABI=none-eabi otherwise use ARM_ABI=elf
+# for linaro bare-metal toolchain, use ARM_ABI=eabi
+ARM_ABI=none-eabi
+
+# example: GCC_VERSION=-5.4.1
+# use default if unspecified
+GCC_VERSION=
+
+# use this one if installed on the system
+# otherwise, use the one from executable PATH
+PREFERRED_ARM_PATH=~/gcc-arm-none-eabi-5_4-2016q3
+#PREFERRED_ARM_PATH=~/gcc-linaro-7.1.1-2017.08-i686_arm-eabi
+
+DIETLIB_VERSION=0.33
+DIETLIBC_OPT_LEVEL=Os
+NEWLIB_OPT_LEVEL=O3
+
+NEWLIB_PATH=$(SRC_DIR)/libs/arm-$(ARM_ABI_LIB)-$(NEWLIB_OPT_LEVEL)
+DIETLIBC_PATH=$(SRC_DIR)/libs/dietlib-$(DIETLIB_VERSION)-$(ARM_ABI_LIB)-$(DIETLIBC_OPT_LEVEL)
+
+# Static libraries used
+ARM_LIBGCC_A=$(shell $(CC) -print-libgcc-file-name)
+NEWLIB_LIBM_A=$(NEWLIB_PATH)/libm.a
+NEWLIB_LIBC_A=$(NEWLIB_PATH)/libc.a
+DIETLIBC_A=$(DIETLIBC_PATH)/dietlibc.a
+
+ML_LIBC = dietlibc.a newlib-libc.a newlib-libm.a gcc-libgcc.a
+
+OBJCOPY=$(CROSS_COMPILE)objcopy
+OBJDUMP=$(CROSS_COMPILE)objdump
+AR=$(CROSS_COMPILE)ar
+RANLIB=$(CROSS_COMPILE)ranlib
+READELF=$(CROSS_COMPILE)readelf
+LD=$(CROSS_COMPILE)ld
+STRIP=$(CROSS_COMPILE)strip
+
+#
+# Host compiler settings
+# 
+HOST_CC=$(shell which gcc)
+HOST_LD=$(shell which ld)
+HOST_AR=$(shell which ar)
+
+# You can customize CFLAG here
+HOST_CFLAGS=-g -O3 -W -Wall -fms-extensions -std=c99 
+HOST_LFLAGS=
+HOST_LIBS=
+
+# large file support
+# you can also get them with $(shell getconf LFS_CFLAGS)
+HOST_LFS_FLAGS=-DLARGEFILES -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 
+
+
+#
+# mingw cross compiler settings
+# 
+MINGW=i686-w64-mingw32
+MINGW_GCC=$(MINGW)-gcc
+MINGW_AR=$(MINGW)-ar
+
+MINGW_CFLAGS=-g -O3 -W -Wall -fms-extensions -std=c99 -m32
+MINGW_LFLAGS=
+MINGW_LIBS=
+MINGW_LFS_FLAGS=-DLARGEFILES -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 
+
+#
+# Additional binaries
+#
+CCACHE=ccache
+GREP=grep
+AWK=awk
+PYTHON=python2
+RST2LATEX=rst2latex.py
+
+#
+# QEMU installation directory
+# used for "make install_qemu"
+#
+QEMU_DIR ?= qemu-eos
+QEMU_PATH=$(TOP_DIR)/../$(QEMU_DIR)
+
+# Naming convention for Magic Lantern builds:
+# General rules:
+# - Always specify the camera and its firmware version number in the build name (e.g. 550d.fw109)
+# - For non-release builds, specify the build date and author's (nick)name.
+# - For experimental builds, add a short keyword indicating the particular feature tested.
+
+# Examples for experimental builds:
+# magiclantern-2010dec07.550d.fw108.cropmarks.a1ex.zip 
+# magiclantern-2010nov23.550d.fw108.selectable-audio.piers.zip 
+
+# Example for pre-release builds:
+# magiclantern-2010dec17.550d.fw109.PRERELEASE.alex.zip
+
+# Release builds:
+# magiclantern-0.2.0.rc1.550d.fw109.zip
+#~ VERSION=0.2.0.rc1.550d.fw109
+BUILDVER=$(shell whoami).$(shell hg id -i -r .)
+VERSION = $(call eval_once,VERSION,Nightly.$(shell LC_TIME=EN date +'%Y%b%d').$(MODEL)$(FW_VERSION))
+
+# Build configuration - untested and debug stuff handy for devs
+# these can be specified either in Makefile.user, or in the command line:
+# 
+#   make clean; make CONFIG_QEMU=y
+
+# FIXME: you will need to use "make clean" before recompiling with different options.
+
+CONFIG_PTP          = n
+CONFIG_PTP_CHDK     = n
+CONFIG_PTP_ML       = n
+CONFIG_GDB          = n
+CONFIG_GDBSTUB      = n
+CONFIG_CONSOLE      = y
+CONFIG_DEBUGMSG     = 0
+CONFIG_CCACHE       = n
+CONFIG_TCC          = y
+CONFIG_MODULES      = y
+CONFIG_TINYPY       = n
+
+# Work in progress - would be nice to run the unmodified autoexec.bin in QEMU, but we are not there yet
+# so, for now, we'll just hack the source code to work around the limitations of the emulator
+CONFIG_QEMU         = n
+CONFIG_QEMU_MENU_SCREENSHOTS = n
+
+# Work in progress - load ML as position-independent code (PIC)
+CONFIG_PIC          = n

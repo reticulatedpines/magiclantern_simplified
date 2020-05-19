@@ -1,0 +1,83 @@
+.. raw:: latex
+
+    { \small \vspace{-10mm}
+
+Magic Lantern is an open (GPL) framework for developing enhancements to the amazing Canon 5D Mark II and 550D/T2i digital SLRs. 
+Magic Lantern is being developed by a small team, helped by a very enthusiastic and respectful `user community <http://www.magiclantern.fm/forum>`_.
+
+.. raw:: latex
+
+    { \small \vspace{5mm}
+
+**Active developers**:
+
+ `Alex <http://www.magiclantern.fm/forum/index.php?action=profile;u=3>`_ -- main developer
+ 
+ `Arm.Indy <http://www.magiclantern.fm/forum/index.php?action=profile;u=1021>`_ -- author of crypto tools and most new ports
+ 
+ `G3gg0 <http://www.magiclantern.fm/forum/index.php?action=profile;u=158>`_ -- reverse engineering guru
+ 
+ `Coutts <http://www.magiclantern.fm/forum/index.php?action=profile;u=155>`_ -- porting ML to 5Dc and EOS M
+ 
+ `Nanomad <http://www.magiclantern.fm/forum/index.php?action=profile;u=123>`_ -- porting ML to 1100D/T3
+
+ `Miyake <http://www.magiclantern.fm/forum/index.php?action=profile;u=472>`_, `1% <http://www.magiclantern.fm/forum/index.php?action=profile;u=407>`_, `Scrax <http://www.magiclantern.fm/forum/index.php?action=profile;u=171>`_ -- 600D developers
+ 
+ `SztupY <http://www.magiclantern.fm/forum/index.php?action=profile;u=805>`_ -- author of ML USB controller and others
+
+**Past developers** (come back guys!):
+
+ `Trammell Hudson <http://magiclantern.wikia.com/wiki/User:Autopilot>`_ -- original author and former leader of Magic Lantern project
+ 
+ `AJ <http://magiclantern.wikia.com/wiki/2.0.4_AJ>`_ -- developed the AJ version of Magic Lantern for 5D Mark II
+
+**Code contributions**
+ `piersg <http://pdaddy.wordpress.com/2010/11/07/quick-notes-on-magic-lantern-for-550d/>`_, 
+ `nandoide <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=nandoide+|+nangdoide&qt_g=Search+this+group>`_, 
+ `stefano <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=stefano&qt_g=Search+this+group>`_, 
+ `trho <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=tobias&qt_g=Search+this+group>`_, 
+ `deti <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=deti&qt_g=Search+this+group>`_, 
+ `tapani <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=tapani&qt_g=Search+this+group>`_, 
+ `phil <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=phil&qt_g=Search+this+group>`_,
+ `RoaldFre <http://magiclantern.wikia.com/wiki/User:RoaldFre>`_,
+ `Colin Peart <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=colin+peart&qt_g=Search+this+group>`_,
+ `cpc <http://www.cinema5d.com/viewtopic.php?f=30&t=24384&p=166944&hilit=waveform#p166944>`_,
+ `msi <http://forum.slashcam.de/11-vt86738.html?postdays=0&postorder=asc&&start=350>`_,
+ `robotsound <http://www.dvxuser.com/V6/showthread.php?218686-Magic-Lantern-for-550D-in-progress!/page117>`_,
+ `maclema <https://bitbucket.org/maclema/ml500d/overview>`_,
+ `adijiwa <https://bitbucket.org/adijiwa/magic-lantern-for-500d-local-hacks/>`_,
+ `kyselejsyrecek <http://chdk.setepontos.com/index.php?action=profile;u=20247/>`_,
+ `mk11174 <http://chdk.setepontos.com/index.php?action=profile;u=17096/>`_, 
+  Raymond Lo, 
+  Rob Kramer, 
+  Tobias Doerffel, 
+  Paul Nolan, 
+  Martin M,
+  and the list is growing :)
+
+**Card tools by** 
+  `Pel <http://pel.hu>`_,
+  `Zeno <http://www.zenoshrdlu.com/>`_,
+  `lichtjaar <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=lichtjaar&qt_g=Search+this+group>`_
+
+**Website Team**
+  `Redkite Bart <http://www.magiclantern.fm/forum/index.php?action=profile;u=78>`_,
+  `Nanomad <http://www.magiclantern.fm/forum/index.php?action=profile;u=123>`_, 
+  `Michael Zöller <http://www.magiclantern.fm/forum/index.php?action=profile;u=149>`_, 
+  `Malcolm Debono <http://www.magiclantern.fm/forum/index.php?action=profile;u=143>`_, 
+  `CameraRick <http://www.magiclantern.fm/forum/index.php?action=profile;u=145>`_, 
+  `Francis Danforth <http://www.magiclantern.fm/forum/index.php?action=profile;u=146>`_,
+  `Scrax <http://www.magiclantern.fm/forum/index.php?action=profile;u=171>`_,
+  `1% <http://www.magiclantern.fm/forum/index.php?action=profile;u=407>`_
+
+**Magic Lantern logo by**
+ `elJoseph <http://groups.google.com/group/ml-devel/search?group=ml-devel&q=eljoseph&qt_g=Search+this+group>`_
+
+Thanks to all the users who provided feedback, `reported bugs <http://bitbucket.org/hudson/magic-lantern/issues>`_, 
+and supported the Magic Lantern project by donations!
+
+Also, thanks to `CHDK team <http://chdk.wikia.com/>`_ and all the `supporters of the old 5D2 Magic Lantern <http://magiclantern.wikia.com/wiki/Thanks>`_!
+
+.. raw:: latex
+
+    }}

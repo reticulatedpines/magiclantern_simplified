@@ -1,0 +1,67 @@
+PLATFORM_MAP = \
+    5D3.113 \
+    5D3.123 \
+    5D2.212 \
+    7D.203 \
+    7D_MASTER.203 \
+    50D.109 \
+    60D.111 \
+    500D.111 \
+    550D.109 \
+    600D.102 \
+    650D.104 \
+    700D.115 \
+    EOSM.202 \
+    1100D.105 \
+    6D.116
+
+PLATFORM_MAP_UNMAINTAINED = \
+    40D.111 \
+    5DC.111 \
+    100D.100 \
+
+
+# call this with 1 parameter, e.g. 5D2 (without firmware version) to get the firmware version from PLATFORM_MAP
+# used by Makefile.platform.base if a platform Makefile only defined MODEL but not FIRMWARE_VER
+platform_version = $(word 2, $(subst ., ,$(filter $(1).%, $(PLATFORM_MAP))))
+
+
+# this helper is used to build 'short' and the clean/install targets for every model, e.g. 5D3 for 5D3.113 plus 5D3.123
+# parameters:
+#   $1 short model name (5D3, 7D)
+#   $2 model name with version (5D3.113)
+#   $3 directory prefix with trailing slash (e.g. 'platform/')
+define makerule
+.PHONY: all clean zip check
+.PHONY: $1 $1_clean $1_zip $1_install $1_install_qemu
+.PHONY: $2 $2_clean $2_zip $2_install $2_install_qemu $2_check $2_autoexec_fir
+
+# append to global all, clean and zip targets
+all: $2
+clean: $2_clean
+zip: $2_zip
+check: $2_check
+
+# build the firmware-agnostic make rule, e.g. 5D3 or 5D2 and link to the firmware-specific rule
+$1: $2
+$1_clean: $2_clean
+$1_zip: $2_zip
+$1_install: $2_install
+$1_install_qemu: $2_install_qemu
+
+$2:
+	+$(MAKE) -C $3$2
+$2_zip:
+	+$(MAKE) -C $3$2 zip
+$2_clean:
+	+$(MAKE) -C $3$2 clean
+$2_install:
+	+$(MAKE) -C $3$2 install
+$2_install_qemu:
+	+$(MAKE) -C $3$2 install_qemu
+$2_check:
+	@echo $2: $$(shell $$(READELF) -l $3$2/magiclantern 2>/dev/null | $$(GREP) -C 2 MemSiz | $$(GREP) -v EXIDX | $$(GREP) LOAD )
+$2_autoexec_fir:
+	+$(MAKE) -C $3$2 autoexec-fir.bin
+
+endef

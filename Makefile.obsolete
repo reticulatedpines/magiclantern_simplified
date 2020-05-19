@@ -1,0 +1,150 @@
+
+dumper: dumper_entry.o dumper.o
+	$(call build,LD,$(LD) \
+		-o $@ \
+		-nostdlib \
+		-mthumb-interwork \
+		-march=armv5te \
+		-e _start \
+		$^ \
+	)
+
+test: test.o
+	$(call build,LD,$(LD) \
+		-o $@ \
+		-nostdlib \
+		-mthumb-interwork \
+		-march=armv5te \
+		-e _start \
+		$^ \
+	)
+
+dumper_entry.o: flasher-stubs.S
+
+#
+# are these still relevant?
+#
+
+BASE=0xFF800000
+
+1.1.0/ROM0.elf: 1.1.0/ROM0.bin 1.1.0/ROM0.map
+	./remake-elf \
+		--base $(BASE) \
+		--cc $(CC) \
+		--relative \
+		-o $@ \
+		$^
+
+
+strings: ROM0.bin
+	strings -t x $^
+
+ROM0.bin: FORCE
+
+
+#
+# Fetch the firmware archive from the Canon website
+# and unpack it to generate the pristine firmware image.
+#
+eos5d2107.exe:
+	wget http://web.canon.jp/imaging/eosd/firm-e/eos5dmk2/data/eos5d2107.exe
+
+5d200107.fir: eos5d2107.exe
+	-unzip -o $< $@
+	touch $@
+
+# Extract the flasher binary file from the firmware image
+# and generate an ELF from it for analysis.
+
+ifdef FETCH_FROM_CANON
+%.1.flasher.bin: %.fir dissect_fw
+	./dissect_fw $< . $(basename $<)
+endif
+
+flasher.elf: 5d200107.1.flasher.bin flasher.map
+	./remake-elf \
+		--cc $(CC) \
+		--base 0x800120 \
+		-o $@ \
+		$^
+
+dumper.elf: 5d2_dump.fir flasher.map
+	./remake-elf \
+		--cc $(CC) \
+		--base 0x800000 \
+		-o $@ \
+		$^
+
+#
+# Generate a new firmware image suitable for dumping the ROM images
+#
+5d2_dumper.fir: dumper.bin 5d200107.1.flasher.bin
+	./assemble_fw \
+		--output $@ \
+		--user $< \
+		--offset 0x5ab8 \
+		--id $(FIRMWARE_ID) \
+
+magiclantern-5d.fir: autoexec.bin
+	$(call build,ASSEMBLE,./assemble_fw \
+		--output $@ \
+		--user $< \
+		--offset 0x120 \
+		--flasher empty.bin \
+		--id $(FIRMWARE_ID) \
+		--zero \
+	)
+
+#
+# Replace the start of the 550d firmware file with our own image
+# We don't want to distribute any Canon code, so we replace the
+# unencrypted flasher file with a zero-padded version.
+#
+550d-flasher.bin: autoexec.bin
+	#cp ../1.0.8/0270_108_updaters.bin $@
+	dd of=$@ if=/dev/zero bs=1829408 count=1
+	dd \
+		of=$@ \
+		if=$< \
+		bs=1 \
+		conv=notrunc \
+		seek=0 \
+
+550d-empty.fir: 550d-empty.hdr
+	( cat $< ; \
+	dd if=/dev/zero bs=9538232 count=1 \
+	) > $@
+
+magiclantern.fir: autoexec.bin
+	@if [ -f $(BUILDER_DIR)/build_fir.py ]; then \
+		$(PYTHON) $(BUILDER_DIR)/build_fir.py -r $^ $@ ; \
+	else \
+		echo "\nNotice: $(BUILDER_DIR)/build_fir.py not found; will not build magiclantern.fir. It's okay."; \
+		[ -f magiclantern.fir ] && echo "Leaving magiclantern.fir unchanged.";\
+		[ ! -f magiclantern.fir ] && echo "Please download magiclantern.fir ";\
+		echo "";\
+	fi; \
+
+dummy_data_head.bin:
+	perl -e 'print chr(0) x 24' > $@
+
+#ROM0.bin: 5d200107.fir
+
+# Use the dump_toolkit files
+# deprectated; use the dumper.c program instead
+5d2_dump.fir:
+	-rm $@
+	cat \
+		5d200107.0.header.bin \
+		5d200107.1.flasher.bin \
+		dump_toolkit/repack/dummy_data_head.bin \
+	> $@
+	./patch-bin $@ < dump_toolkit/diffs/5d2_dump.diff
+
+
+# Firmware manipulation tools
+dissect_fw: dissect_fw.c
+	$(HOST_CC) $(HOST_CFLAGS) -o $@ $<
+
+FORCE:
+

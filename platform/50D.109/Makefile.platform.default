@@ -1,0 +1,14 @@
+#Makefile.setup.platform for 50D
+
+FIRMWARE_ID	= 0x80000261
+
+ifeq ($(FW_VERSION),109)
+CANON_NAME_FIR=50D00109.FIR
+
+ROMBASEADDR     = 0xFF810000
+
+# DryOSmemory map
+# RESTARTSTART is selected to be just above the end of the bss
+#
+RESTARTSTART    = 0x0004b000
+endif

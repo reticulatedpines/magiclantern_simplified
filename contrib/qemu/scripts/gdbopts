@@ -1,0 +1,5 @@
+symbol-file magiclantern
+target remote localhost:1234
+layout asm
+b my_task_dispatch_hook
+nexti

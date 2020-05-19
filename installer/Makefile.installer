@@ -1,0 +1,16 @@
+
+TOP_DIR?=../..
+ML_SETUP_DISABLE_USER_CONFIGS=y
+ML_SETUP_EXTENSION=installer
+ML_SRC_PROFILE=installer
+
+include $(TOP_DIR)/platform/Makefile.platform.base
+
+installer:: build_fir
+
+install:: build_fir install_prepare
+	$(CP) $(UPDATE_NAME_FIR) $(INSTALL_DIR)/
+	$(INSTALL_FINISH)
+
+clean::
+	$(call rm_files, *.fir *.FIR)

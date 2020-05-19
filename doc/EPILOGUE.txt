@@ -1,0 +1,23 @@
+
+Epilogue
+--------
+
+If you find this software useful, please help Magic Lantern development by:
+
+* Sharing tips and tricks with ML user community;
+* Reporting bugs on the issue tracker;
+* Sending patches and suggesting improvements;
+* Creating or improving tutorials and cropmarks;
+* Keeping the wiki and this user guide up-to-date;
+* Making a donation.
+
+.. raw:: latex
+
+    \begin{flushright}
+    \vspace{-1.5cm}
+    \includegraphics[width=1.5cm]{logo-trans.png}
+
+    Thank you!
+
+    Magic Lantern development team
+    \end{flushright}

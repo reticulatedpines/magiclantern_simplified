@@ -1,0 +1,13 @@
+#Makefile.setup.platform for 7D
+
+ifeq ($(FW_VERSION),203)
+CANON_NAME_FIR=7D000203.FIR
+ROMBASEADDR     = 0xF8010000
+
+# DryOSmemory map
+# RESTARTSTART is selected to be just above the end of the bss
+#
+RESTARTSTART    = 0x1F800100
+AUTOEXEC_BASE   = 0x40800000
+FIR_BASE        = 0x40800120
+endif

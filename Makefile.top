@@ -1,0 +1,80 @@
+RM=rm
+MV=mv
+MKDIR=mkdir
+CP=cp
+export BIN_FILES=magiclantern magiclantern.bin autoexec.bin autoexec
+
+# redefine to 'date' if you want see you zone time in version timestamp
+DATE=date -u
+
+BINARIES_PATH=binaries
+LUA_PATH=$(TOP_DIR)/lua
+PWD_DIR=$(shell pwd)
+SRC_DIR=$(TOP_DIR)/src
+PLATFORM_PATH=$(TOP_DIR)/platform
+BUILDER_DIR=$(TOP_DIR)/../dumper
+DOC_DIR=$(TOP_DIR)/doc
+FONT_DIR=$(TOP_DIR)/data/fonts
+CROP_DIR=$(TOP_DIR)/data/cropmks
+VRAM_DIR=$(TOP_DIR)/data/vram
+SCRIPT_DIR=$(TOP_DIR)/scripts
+MODULES_DIR=$(TOP_DIR)/modules
+INSTALLER_DIR=$(TOP_DIR)/installer
+BIN_FILES=magiclantern magiclantern.bin autoexec.bin autoexec
+CF_CARD_ML_DIR = $(CF_CARD)/ML
+
+BUILD_TOOLS_DIR=$(TOP_DIR)/build_tools
+XOR_CHK=$(BUILD_TOOLS_DIR)/xor_chk
+
+INSTALL_DIR ?= $(CF_CARD)
+INSTALL_ML_DIR = $(INSTALL_DIR)/ML
+INSTALL_FONTS_DIR= $(INSTALL_ML_DIR)/fonts
+INSTALL_MODULES_DIR = $(INSTALL_ML_DIR)/modules
+INSTALL_SETTINGS_DIR= $(INSTALL_ML_DIR)/settings
+INSTALL_DATA_DIR= $(INSTALL_ML_DIR)/data
+INSTALL_CROPMARKS_DIR= $(INSTALL_ML_DIR)/cropmks
+INSTALL_SCRIPTS_DIR= $(INSTALL_ML_DIR)/scripts
+INSTALL_DOC_DIR = $(INSTALL_ML_DIR)/doc
+INSTALL_LOGS_DIR = $(INSTALL_ML_DIR)/logs
+INSTALL_PREPARE ?= $(MOUNT_CARD)
+INSTALL_FINISH ?= $(UMOUNT) $(CF_CARD)
+
+# this one is called from both platform and modules
+# copies all scripts, preserving directory structure
+# (simpler way to do this?)
+INSTALL_ALL_SCRIPTS = \
+	$(call build,SCRIPTS,\
+		for f in $(shell find $(SCRIPT_DIR) -type f -name *.lua); do \
+			dst=$(INSTALL_SCRIPTS_DIR)/$${f\#\#$(SCRIPT_DIR)/}; \
+			dstdir=`dirname $$dst`; \
+			$(MKDIR) -p $$dstdir; \
+			$(CP) $$f $$dst; \
+		done)
+
+make_loop = +$(foreach entry, $(1), $(MAKE) -C $(entry) $(2);)
+
+# $1 = root_dir
+# $2 = dir-target
+define call_make_rule
+	+$(MAKE) -C $(1)/$(word 1, $(subst _rule_, ,$@)) $(word 2, $(subst _rule_, ,$@))
+endef
+
+define call_make_rule_ex
+	+$(MAKE) -C $(2)/$(call $(1), $(word 1, $(subst _rule_, ,$@))) $(word 2, $(subst _rule_, ,$@))
+endef
+
+
+# $1 - targets
+# $2 - rule name
+# Returns list of targets (combination of target name and rule name)
+define targets_rules
+$(foreach model, $1, $(model)_rule_$(strip $(2)))
+endef
+
+
+# evaluate once and only when used
+# https://stackoverflow.com/a/28542922
+# example: FOO = $(call eval_once,FOO,$(shell command))
+define eval_once
+$(eval $1 := $2)$(value $1)
+endef
