@@ -279,17 +279,40 @@ static int parse_next_int(char* source, size_t max_len)
     }
 }
 
+//for some reason I can't link to strstr
+static char* my_strstr(char* source, const char* search)
+{
+    if(source && search && strlen(source) > 0 && strlen(search) > 0)
+    {
+        for (size_t pos = 0; pos < strlen(source) - strlen(search); pos++)
+        {
+            int found = TRUE;
+            for(size_t i = 0; i < strlen(search); i++)
+            {
+                if(source[pos + i] != search[i])
+                {
+                    found = FALSE;
+                    break;
+                }
+            }
+            if(found)
+                return source + pos;
+        }
+    }
+    return NULL;
+}
+
 static int parse_property(const char * property, char * source, size_t max_len)
 {
     if(source)
     {
-        char * loc = strstr(source, property);
+        char * loc = my_strstr(source, property);
         return loc ? parse_next_int(loc + strlen(property), max_len) : 0;
     }
     return 0;
 }
 
-static void adv_int_load(void)
+static MENU_SELECT_FUNC(adv_int_load)
 {
     char filename[MAX_PATH];
     char line_temp[LINE_BUF_SIZE];
@@ -309,45 +332,35 @@ static void adv_int_load(void)
                 while(read_line(buffer, &buf_pos, FILE_BUF_SIZE, line_temp, LINE_BUF_SIZE) > 0)
                 {
                     int kfr_time = parse_next_int(line_temp, LINE_BUF_SIZE);
-                    if (kfr_time)
+                    struct keyframe * new_kfr = new_keyframe(keyframes, kfr_time);
+                    if(new_kfr)
                     {
-                        struct keyframe * new_kfr = new_keyframe(keyframes, kfr_time);
-                        if(new_kfr)
-                        {
-                            new_kfr->shutter = parse_property("tv=", line_temp, LINE_BUF_SIZE);
-                            new_kfr->aperture = parse_property("av=", line_temp, LINE_BUF_SIZE);
-                            new_kfr->iso = parse_property("iso=", line_temp, LINE_BUF_SIZE);
-                            new_kfr->focus = parse_property("fcs=", line_temp, LINE_BUF_SIZE);
-                            new_kfr->interval_time = parse_property("int=", line_temp, LINE_BUF_SIZE);
-                            new_kfr->kelvin = parse_property("wb=", line_temp, LINE_BUF_SIZE);
-                            new_kfr->bulb_duration = parse_property("bulb=", line_temp, LINE_BUF_SIZE);
-                        }
+                        new_kfr->shutter = parse_property("tv=", line_temp, LINE_BUF_SIZE);
+                        new_kfr->aperture = parse_property("av=", line_temp, LINE_BUF_SIZE);
+                        new_kfr->iso = parse_property("iso=", line_temp, LINE_BUF_SIZE);
+                        new_kfr->focus = parse_property("fcs=", line_temp, LINE_BUF_SIZE);
+                        new_kfr->interval_time = parse_property("int=", line_temp, LINE_BUF_SIZE);
+                        new_kfr->kelvin = parse_property("wb=", line_temp, LINE_BUF_SIZE);
+                        new_kfr->bulb_duration = parse_property("bulb=", line_temp, LINE_BUF_SIZE);
                     }
                 }
                 success = TRUE;
             }
             else
-            {
                 NotifyBox(2000, "Error: Could not read file");
-            }
             fio_free(buffer);
+             
         }
         else
-        {
             NotifyBox(2000, "Error: Could not create buffer");
-        }
         
         FIO_CloseFile(f);
     }
     else
-    {
-        printf("adv_int: sequence file not found.\n%s", filename);
-    }
+        NotifyBox(2000, "Error: Could not open file");
     
     if(success)
-    {
-        printf("adv_int: sequence file loaded.\n");
-    }
+        NotifyBox(2000, "Sequence File Loaded");
 }
 
 static MENU_SELECT_FUNC(adv_int_save)
@@ -409,7 +422,28 @@ static MENU_UPDATE_FUNC(time_menu_update)
     {
         entry->unit = UNIT_DEC;
         int seconds = get_config_var("interval.time") * keyframe_time;
-        MENU_SET_RINFO("%s", format_time_hours_minutes_seconds(seconds));
+        static char msg[50];
+        
+        msg[0] = '\0';
+        if (seconds >= 3600)
+        {
+            STR_APPEND(msg, "%dh", seconds / 3600);
+            seconds = seconds % 3600;
+        }
+        
+        if (seconds >= 60)
+        {
+            STR_APPEND(msg, "%dm", seconds / 60);
+            seconds = seconds % 60;
+        }
+        
+        if (seconds || !msg[0])
+        {
+            STR_APPEND(msg, "%ds", seconds);
+        }
+        
+        MENU_SET_RINFO("%s", msg);
+        
     }
     if(keyframe_exists(keyframe_time))
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING,"This keyframe already exists, will be overwritten");
@@ -749,12 +783,12 @@ PROP_HANDLER(PROP_GUI_STATE)
 static struct menu_entry adv_int_menu[] =
 {
     {
-        .name = "Ramping options",
+        .name = "Advanced Intervalometer",
         .priv = &adv_int,
         .select = menu_open_submenu,
         .max = 1,
         .works_best_in = DEP_M_MODE,
-        .help = "Advanced intervalometer ramping options.",
+        .help = "Advanced intervalometer ramping",
         .children =  (struct menu_entry[])
         {
             {
@@ -795,16 +829,19 @@ static struct menu_entry adv_int_menu[] =
                 }
             },
             {
-                .name   = "Save Keyframes",
-                .select = adv_int_save,
-                .help   = "Save current keyframes to file.",
-                .help2  = "This sequence will be auto-loaded at startup."
+                .name = "Load...",
+                .select = adv_int_load,
+                .help = "Load keyframes from file"
             },
             {
-                .name   = "Clear Keyframes",
+                .name = "Save...",
+                .select = adv_int_save,
+                .help = "Save current keyframes to file"
+            },
+            {
+                .name = "Clear",
                 .select = adv_int_clear,
-                .help   = "Clears all keyframes.",
-                .help2  = "Note: this will not remove the saved sequence."
+                .help = "Clears all keyframes"
             },
             {
                 .name = "New Keyframe...",
@@ -960,7 +997,6 @@ static struct menu_entry adv_int_menu[] =
 
 static unsigned int adv_int_init()
 {
-    adv_int_load();
     menu_add("Intervalometer", adv_int_menu, COUNT(adv_int_menu));
     return 0;
 }

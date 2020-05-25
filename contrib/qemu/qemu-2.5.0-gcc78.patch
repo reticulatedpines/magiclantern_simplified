@@ -1,0 +1,113 @@
+diff --git a/block/blkdebug.c b/block/blkdebug.c
+index dee3a0e..b00d0f0 100644
+--- a/block/blkdebug.c
++++ b/block/blkdebug.c
+@@ -756,7 +756,7 @@ static void blkdebug_refresh_filename(BlockDriverState *bs)
+ 
+     if (!force_json && bs->file->bs->exact_filename[0]) {
+         snprintf(bs->exact_filename, sizeof(bs->exact_filename),
+-                 "blkdebug:%s:%s",
++                 "blkdebug:%s:%.4085s",
+                  qdict_get_try_str(bs->options, "config") ?: "",
+                  bs->file->bs->exact_filename);
+     }
+diff --git a/block/blkverify.c b/block/blkverify.c
+index c5f8e8d..b242680 100644
+--- a/block/blkverify.c
++++ b/block/blkverify.c
+@@ -333,7 +333,7 @@ static void blkverify_refresh_filename(BlockDriverState *bs)
+         && s->test_file->bs->exact_filename[0])
+     {
+         snprintf(bs->exact_filename, sizeof(bs->exact_filename),
+-                 "blkverify:%s:%s",
++                 "blkverify:%.2000s:%.2000s",
+                  bs->file->bs->exact_filename,
+                  s->test_file->bs->exact_filename);
+     }
+diff --git a/hw/9pfs/virtio-9p.c b/hw/9pfs/virtio-9p.c
+index f972731..7eb54a8 100644
+--- a/hw/9pfs/virtio-9p.c
++++ b/hw/9pfs/virtio-9p.c
+@@ -22,6 +22,7 @@
+ #include "virtio-9p-coth.h"
+ #include "trace.h"
+ #include "migration/migration.h"
++#include <sys/sysmacros.h>
+ 
+ int open_fd_hw;
+ int total_open_fd;
+diff --git a/hw/char/exynos4210_uart.c b/hw/char/exynos4210_uart.c
+index 215f962..53190a1 100644
+--- a/hw/char/exynos4210_uart.c
++++ b/hw/char/exynos4210_uart.c
+@@ -589,7 +589,7 @@ DeviceState *exynos4210_uart_create(hwaddr addr,
+     SysBusDevice *bus;
+ 
+     const char chr_name[] = "serial";
+-    char label[ARRAY_SIZE(chr_name) + 1];
++    char label[ARRAY_SIZE(chr_name) + 12];
+ 
+     dev = qdev_create(NULL, TYPE_EXYNOS4210_UART);
+ 
+diff --git a/hw/usb/bus.c b/hw/usb/bus.c
+index ee6b43a..c8a5f83 100644
+--- a/hw/usb/bus.c
++++ b/hw/usb/bus.c
+@@ -396,7 +396,7 @@ void usb_register_companion(const char *masterbus, USBPort *ports[],
+ void usb_port_location(USBPort *downstream, USBPort *upstream, int portnr)
+ {
+     if (upstream) {
+-        snprintf(downstream->path, sizeof(downstream->path), "%s.%d",
++        snprintf(downstream->path, sizeof(downstream->path), "%.12s.%d",
+                  upstream->path, portnr);
+         downstream->hubcount = upstream->hubcount + 1;
+     } else {
+diff --git a/net/slirp.c b/net/slirp.c
+index f505570..1c5c606 100644
+--- a/net/slirp.c
++++ b/net/slirp.c
+@@ -463,7 +463,7 @@ int net_slirp_redir(const char *redir_str)
+ /* automatic user mode samba server configuration */
+ static void slirp_smb_cleanup(SlirpState *s)
+ {
+-    char cmd[128];
++    char cmd[256];
+     int ret;
+ 
+     if (s->smb_dir[0] != '\0') {
+@@ -482,8 +482,8 @@ static void slirp_smb_cleanup(SlirpState *s)
+ static int slirp_smb(SlirpState* s, const char *exported_dir,
+                      struct in_addr vserver_addr)
+ {
+-    char smb_conf[128];
+-    char smb_cmdline[128];
++    char smb_conf[128+10];
++    char smb_cmdline[128+256];
+     struct passwd *passwd;
+     FILE *f;
+ 
+diff --git a/qemu-char.c b/qemu-char.c
+index 2969c44..84e13e4 100644
+--- a/qemu-char.c
++++ b/qemu-char.c
+@@ -87,7 +87,7 @@
+ 
+ #define READ_BUF_LEN 4096
+ #define READ_RETRIES 10
+-#define CHR_MAX_FILENAME_SIZE 256
++#define CHR_MAX_FILENAME_SIZE 4096
+ #define TCP_MAX_FDS 16
+ 
+ /***********************************************************/
+diff --git a/qga/commands-posix.c b/qga/commands-posix.c
+index c2ff970..ae64df0 100644
+--- a/qga/commands-posix.c
++++ b/qga/commands-posix.c
+@@ -13,6 +13,7 @@
+ 
+ #include <glib.h>
+ #include <sys/types.h>
++#include <sys/sysmacros.h>
+ #include <sys/ioctl.h>
+ #include <sys/wait.h>
+ #include <unistd.h>

@@ -48,6 +48,7 @@
 #include "fio-ml.h"
 #include "imath.h"
 #include "notify_box.h"
+#include "qemu-util.h"
 
 extern float roundf(float x);
 extern float powf(float x, float y);
@@ -98,14 +99,6 @@ bzero32(
 extern void firmware_entry(void);
 extern void reloc_entry(void);
 extern void __attribute__((noreturn)) cstart(void);
-
-extern int __attribute__((format(printf,2,3)))
-my_fprintf(
-        FILE *                  file,
-        const char *            fmt,
-        ...
-);
-
 
 struct tm {
         int     tm_sec;         /* seconds after the minute [0-60] */

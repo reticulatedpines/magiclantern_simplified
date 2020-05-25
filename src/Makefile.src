@@ -183,6 +183,12 @@ else ifndef ML_OBJS-y
 $(error ML_OBJS-y is not defined)
 endif
 
+# CONFIG_QEMU applies to all profiles, including minimal and installer
+# (by default, CONFIG options are only used for the generic profile)
+ifeq ($(CONFIG_QEMU),y)
+CFLAGS += -DCONFIG_QEMU
+endif # CONFIG_QEMU
+
 ML_OBJS-y += $(ML_SRC_EXTRA_OBJS)
 
 ifdef ML_SRC_EXCLUDE_OBJS
@@ -328,7 +334,7 @@ version.o: $(PLATFORM_DIR)/version.c
 
 $(PLATFORM_DIR)/version.c: FORCE
 	$(call build,"VERSION",echo "const char build_version[] = \"$(VERSION)\";") > $@
-	@echo 'const char build_id[] = "NO HG";' >> $@
+	@echo 'const char build_id[] = "'`hg id`'";' >> $@
 	@echo 'const char build_date[] ="'`$(DATE) "+%Y-%m-%d %H:%M:%S %Z"`'";' >> $@
 	@echo 'const char build_user[] = "'`whoami`@`hostname`'";'  >> $@
 
@@ -341,11 +347,11 @@ $(PLATFORM_DIR)/version.bin: FORCE
 	@echo 'Magic Lantern $(VERSION)' >> $@
 	@echo 'Camera   : $(MODEL)' >> $@
 	@echo 'Firmware : $(FW_VERSION)' >> $@
-#	@echo 'Changeset: '`hg id` >> $@
+	@echo 'Changeset: '`hg id` >> $@
 	@echo 'Built on : '`date -u "+%Y-%m-%d %H:%M:%S"`' by '`whoami`@`hostname` >> $@
 	@echo '' >> $@
-#	@hg diff $(SRC_DIR)/ >> $@
-#	@hg diff $(PLATFORM_DIR)/ >> $@
+	@hg diff $(SRC_DIR)/ >> $@
+	@hg diff $(PLATFORM_DIR)/ >> $@
 	@echo '' >> $@
 	@echo '' >> $@
 	@(cat $(TOP_DIR)/Makefile.user 2>/dev/null) | grep -E "^ *(CONFIG_|[A-Z0-9_]*VERSION)" >> $@ || true

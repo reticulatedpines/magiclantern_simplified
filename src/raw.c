@@ -40,7 +40,7 @@
 #ifdef RAW_DEBUG
 #define dbg_printf(fmt,...) { printf(fmt, ## __VA_ARGS__); }
 #else
-#define dbg_printf(fmt,...) {}
+#define dbg_printf(fmt,...) { qprintf(fmt, ## __VA_ARGS__); }
 #endif
 
 static struct semaphore * raw_sem = 0;
@@ -629,6 +629,7 @@ static int raw_update_params_work()
 
         if (!can_use_raw_overlays_photo())
         {
+            dbg_printf("Picture quality not RAW\n");
             return 0;
         }
         
@@ -787,6 +788,7 @@ static int raw_update_params_work()
             /* reset black level to force recomputing */
             raw_info.black_level = 0;
             
+            dbg_printf("LV raw dimensions changed\n");
             return 0;
         }
     }
@@ -854,6 +856,7 @@ static int raw_update_params_work()
             }
         }
 
+        dbg_printf("Black check error\n");
         return 0;
     }
 
@@ -876,7 +879,11 @@ static int raw_update_params_work()
         static int last_iso = 0;
         if (!iso) iso = last_iso;
         last_iso = iso;
-        if (!iso) return 0;
+        if (!iso)
+        {
+            dbg_printf("ISO error\n");
+            return 0;
+        }
         int iso_rounded = COERCE((iso + 3) / 8 * 8, 72, 200);
         float iso_digital = (iso - iso_rounded) / 8.0f;
         
@@ -915,8 +922,11 @@ static int raw_update_params_work()
         static int last_iso = 0;
         if (!iso) iso = last_iso;
         last_iso = iso;
-        if (!iso) return 0;
-        
+        if (!iso)
+        {
+            dbg_printf("ISO error\n");
+            return 0;
+        }
         int iso2 = dual_iso_get_recovery_iso();
         if (iso2) iso = MIN(iso, iso2);
         int dr_boost = dual_iso_get_dr_improvement();
@@ -1629,13 +1639,23 @@ int raw_lv_settings_still_valid()
 
 static void FAST raw_preview_color_work(void* raw_buffer, void* lv_buffer, int y1, int y2)
 {
+    dbg_printf("Raw color preview...\n");
+
     uint16_t* lv16 = CACHEABLE(lv_buffer);
     uint32_t* lv32 = (uint32_t*) lv16;
-    if (!lv16) return;
-    
+    if (!lv16)
+    {
+        dbg_printf("No YUV buffer\n");
+        return;
+    }
+
     struct raw_pixblock * raw = CACHEABLE(raw_buffer);
-    if (!raw) return;
-    
+    if (!raw)
+    {
+        dbg_printf("No RAW buffer\n");
+        return;
+    }
+
     /* white balance 2,1,2 => use two gamma curves to simplify code */
     uint8_t gamma_rb[1024];
     uint8_t gamma_g[1024];
@@ -1728,13 +1748,23 @@ static void FAST raw_preview_color_work(void* raw_buffer, void* lv_buffer, int y
 
 static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1, int y2)
 {
+    dbg_printf("Raw grayscale preview...\n");
+
     uint16_t* lv16 = CACHEABLE(lv_buffer);
     uint64_t* lv64 = (uint64_t*) lv16;
-    if (!lv16) return;
-    
+    if (!lv16)
+    {
+        dbg_printf("No YUV buffer\n");
+        return;
+    }
+
     struct raw_pixblock * raw = CACHEABLE(raw_buffer);
-    if (!raw) return;
-    
+    if (!raw)
+    {
+        dbg_printf("No RAW buffer\n");
+        return;
+    }
+
     uint8_t gamma[1024];
     
     for (int i = 0; i < 1024; i++)

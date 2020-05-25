@@ -70,6 +70,7 @@ CFLAGS +=\
 	-I$(PLATFORM_INC) \
 	-I$(PLATFORM_INC)/include \
 	-I$(SRC_DIR) \
+	-ggdb3
 
 # The short-double flag is removed in GCC 6+
 GCC_DUMPVERSION := $(shell ${CC} -dumpversion)
