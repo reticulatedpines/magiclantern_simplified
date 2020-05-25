@@ -5,7 +5,19 @@
  * the %pc relative addressing modes. These will be fixed-up to allow
  * the function to be run from a new location.
  */
-#ifdef RELOC_PRINT
+#ifdef CONFIG_MAGICLANTERN
+
+#ifdef CONFIG_QEMU
+    /* redirect all printf's to QEMU console */
+    #include <dryos.h>
+    #define printf qprintf
+#else
+    /* by default, quiet all printf's */
+    #define printf(...)
+#endif
+
+#else /* for host PC */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -13,22 +25,10 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+
 #endif
 
 #include "reloc.h"
-
-#ifndef __ARM__
-#define RELOC_PRINT
-#endif
-
-#ifdef CONFIG_QEMU
-#include <qemu-util.h>
-#define RELOC_PRINT
-#define printf qprintf
-#endif
-
-
-int verbose = 1;
 
 #define REG_PC      15
 #define LOAD_MASK   0x0C000000
@@ -58,9 +58,7 @@ reloc(
     uint8_t * const     mem = ((uint8_t*) buf) - load_addr;
     // const uintptr_t      func_len = func_end - func_offset;
 
-#ifdef RELOC_PRINT
     printf( "Fixing from %08x to %08x\n", func_offset, func_end );
-#endif
 
     // Add up to 16 bytes of fixups
     uintptr_t fixups = new_pc;
@@ -72,10 +70,8 @@ reloc(
         uint32_t branch = instr & BRANCH_MASK;
         uint32_t load = instr & LOAD_MASK;
 
-#ifdef __ARM__
         // The default is to just copy the instruction
         *(uint32_t*) new_pc = instr;
-#endif
 
         // Check for branch
         if( branch == BRANCH_LINK
@@ -92,8 +88,6 @@ reloc(
             if( func_offset <= dest && dest < func_end )
                 continue;
 
-#ifdef RELOC_PRINT
-            if( verbose )
             printf( "%08x: %08x B%s %08x => %08x\n",
                 pc,
                 instr,
@@ -101,7 +95,6 @@ reloc(
                 offset,
                 dest
             );
-#endif
 
             // Can we make this work?
             int32_t new_jump = (dest - new_pc - 8);
@@ -109,7 +102,6 @@ reloc(
             if( new_jump >= +0x00800000
             ||  new_jump <= -0x00800000
             ) {
-#ifdef RELOC_PRINT
                 printf( "%08x: !!!! can not fixup jump from %08x to %08x (offset %s%08x)\n",
                     pc,
                     new_pc,
@@ -117,7 +109,6 @@ reloc(
                     new_jump < 0 ? "-" : "+",
                     new_jump < 0 ? -new_jump : new_jump
                 );
-#endif
                 continue;
             }
 
@@ -125,8 +116,6 @@ reloc(
                 | (instr & ~BRANCH_OFFSET)
                 | (new_jump & BRANCH_OFFSET);
 
-#ifdef RELOC_PRINT
-            if(0)
             printf( "%08x: %08x => %08x fixup offset %08x => %s%08x\n",
                 pc,
                 instr,
@@ -135,7 +124,6 @@ reloc(
                 new_jump < 0 ? "-" : "+",
                 new_jump < 0 ? -new_jump : new_jump
             );
-#endif
 
 #ifdef __ARM__
             // Write the new instruction into memory
@@ -168,9 +156,7 @@ reloc(
             {
                 // Not an immediate 12-bit value;
                 // update the offset
-#ifdef RELOC_PRINT
                 printf( "%08x: unknown mode?\n", pc );
-#endif
                 continue;
             }
 
@@ -183,7 +169,7 @@ reloc(
             // Ignore offetss inside the reloc space
             if( func_offset <= dest && dest < func_end )
                 continue;
-#ifdef RELOC_PRINT
+
             printf( "%08x: %08x add pc shift=%x imm=%2x offset=%x => %08x\n",
                 pc,
                 instr,
@@ -192,7 +178,6 @@ reloc(
                 offset,
                 dest
             );
-#endif
             continue;
         }
 
@@ -233,7 +218,7 @@ reloc(
                 | ( instr & ~0xFFF )
                 | ( new_offset & 0xFFF )
                 ;
-#ifdef RELOC_PRINT
+
             // This is one that will need to be copied
             // but we currently don't do anything!
             printf( "%08x: %08x LD %d, %d, %d => %08x: %08x %d data=%08x\n",
@@ -247,7 +232,7 @@ reloc(
                 new_offset,
                 data
             );
-#endif
+
 #ifdef __ARM__
             // Copy the data to the offset location
             *(uint32_t*) fixups = data;
@@ -259,9 +244,7 @@ reloc(
         }
     }
 
-#ifdef RELOC_PRINT
     printf( "Fixups=%x entry=%x free_space=%x\n", fixups, entry, entry - fixups);
-#endif
 
 #ifdef __ARM__
     /* don't return if executable code was overwritten by fixups */

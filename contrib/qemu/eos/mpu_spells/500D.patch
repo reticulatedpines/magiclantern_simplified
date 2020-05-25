@@ -1,0 +1,9 @@
+--- 500D.h
++++ 500D.h
+@@ -1,3 +1,6 @@
++/**
++ * 500D (menu navigation works)
++ */
+ static struct mpu_init_spell mpu_init_spells_500D[] = {
+     { { 0x06, 0x04, 0x02, 0x00, 0x00 }, .description = "Init", .out_spells = { /* spell #1 */
+         { 0x0a, 0x08, 0x03, 0x2f, 0x00, 0x00, 0x00, 0x00, 0x00 },/* reply #1.1, PROP_SPECIAL_OPTION */

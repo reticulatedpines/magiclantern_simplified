@@ -85,6 +85,7 @@ void NotifyBox(int timeout, char* fmt, ...)
         goto end; // same message: do not redraw, just increase the timeout
 
     // new message
+    qprint("[NotifyBox] "); qprint(notify_box_msg_tmp); qprint("\n");
     memcpy(notify_box_msg, notify_box_msg_tmp, sizeof(notify_box_msg));
     notify_box_msg[sizeof(notify_box_msg)-1] = '\0';
     notify_box_timeout = MAX(timeout, 100);

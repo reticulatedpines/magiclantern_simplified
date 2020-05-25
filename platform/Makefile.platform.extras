@@ -43,8 +43,8 @@ ifneq ("$(wildcard $(INSTALLER_DIR)/$(ML_MODEL_DIR)/Makefile)","")
 # note: a precompiled ML-SETUP.FIR is supplied by default; this will not rebuild it
 # to force rebuilding, run "make ML-SETUP.FIR -B"
 $(INSTALLER_NAME_FIR):
-	$(MAKE) -C $(INSTALLER_DIR)/$(ML_MODEL_DIR) build_fir
-	$(CP) $(INSTALLER_DIR)/$(ML_MODEL_DIR)/$(INSTALLER_NAME_FIR) $@
+	-$(MAKE) -C $(INSTALLER_DIR)/$(ML_MODEL_DIR) build_fir
+	-$(CP) $(INSTALLER_DIR)/$(ML_MODEL_DIR)/$(INSTALLER_NAME_FIR) $@
 
 # just to make sure the installer can be compiled from source
 # do not actually build the FIR - just the plain binary
@@ -53,9 +53,11 @@ installer_check: | autoexec.bin
 	$(MAKE) -C $(INSTALLER_DIR)/$(ML_MODEL_DIR) autoexec-fir.bin
 	$(MAKE) -C $(INSTALLER_DIR)/$(ML_MODEL_DIR) clean
 
+ifeq ($(ML_SRC_PROFILE),generic)
 # install ML-SETUP.FIR built from the installer directory
 install:: $(INSTALLER_NAME_FIR)
-	$(CP) $(INSTALLER_NAME_FIR) $(INSTALL_DIR)/
+	-$(CP) $(INSTALLER_NAME_FIR) $(INSTALL_DIR)/
+endif
 
 else
 
@@ -66,3 +68,9 @@ installer_check:
 	$(info )
 
 endif
+
+# make sure the minimal targets can be compiled without errors
+# the results won't be included in the zip; this is just to prevent code rot
+minimal_check:
+	$(MAKE) -C $(TOP_DIR)/minimal/ MODEL=$(MODEL) clean
+	$(MAKE) -C $(TOP_DIR)/minimal/ MODEL=$(MODEL) FW_VERSION=$(FW_VERSION)
