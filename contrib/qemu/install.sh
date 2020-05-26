@@ -6,7 +6,7 @@ QEMU_DIR=${QEMU_DIR:=qemu-eos}
 
 # paths relative to QEMU_DIR (where it will be installed)
 QEMU_NAME=${QEMU_NAME:=qemu-2.5.0}
-ML_PATH=${ML_PATH:=../magic-lantern}
+ML_PATH=${ML_PATH:=../magiclantern_simplified}
 
 ML_NAME=${ML_PATH##*/}
 GREP=${GREP:=grep}
@@ -133,7 +133,7 @@ function valid_arm_gdb {
         return 0
     fi
 
-    if gdb-multiarch -v 2>/dev/null | grep -q " [8]\.[1-9]"; then
+    if gdb-multiarch -v 2>/dev/null | grep -q " [89]\.[1-9]"; then
         # this one is just as good
         ARM_GDB="gdb-multiarch"
         return 0

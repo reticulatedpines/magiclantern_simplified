@@ -1,0 +1,25 @@
+TODO
+
+====
+Update QEMU
+Qemu 2.5.0 is old (2015) and requires Python 2.  You can specify which
+python interpreter to use with --python=/path/to/python2
+
+2.5.0 doesn't compile with GCC 9 or later without some hacking around,
+as these GCC will give more warnings and -Werror is set.  You can
+add exceptions in configure via QEMU_CFLAGS, a better solution is
+the update as upstream has fixed the causes.
+
+QEMU_CFLAGS="-Wno-address-of-packed-member -Wno-format-truncation -Wno-stringop-truncation $QEMU_CFLAGS"
+====
+
+====
+Update Python deps to 3
+    contrib/qemu/install.sh
+This is dependent on pip2.  You can work around by changing to pip3,
+but this is incomplete.  It lets it install (because the pip3 command
+will succeed) but downstream testing and ML module generation is
+presumably broken.
+====
+
+DONE
