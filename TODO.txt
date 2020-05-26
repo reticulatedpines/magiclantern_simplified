@@ -1,6 +1,12 @@
 TODO
 
 ====
+Make hg and git optional for building (currently disabled).
+Perhaps put in the info from both if they exist?
+If neither exist, NO_SOURCE_CONTROL or something.
+====
+
+====
 Update QEMU
 Qemu 2.5.0 is old (2015) and requires Python 2.  You can specify which
 python interpreter to use with --python=/path/to/python2
