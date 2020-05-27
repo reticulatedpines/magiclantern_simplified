@@ -1,3 +1,4 @@
+#!/usr/bin/env python2
 # checks dependencies between modules (if a module requires some other module to be loaded)
 # and between modules and ML core (prints on what cameras the module will load)
 

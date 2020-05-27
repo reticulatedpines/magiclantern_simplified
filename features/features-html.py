@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python2
 # make a table with what features are enabled on what camera
 import os, sys, string, re
 import commands
@@ -296,7 +296,7 @@ def module_get_status(m, cam):
     return True
 
 def module_check_cams(m):
-    out = run("cd ../modules/ && python checkdep.py " + m)
+    out = run("cd ../modules/ && python2 checkdep.py " + m)
     lines = out.split("\n")
     cameras = []
     for i,l in enumerate(lines):

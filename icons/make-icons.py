@@ -1,3 +1,4 @@
+#!/usr/bin/env python2
 from PIL import Image
 import os
 import copy

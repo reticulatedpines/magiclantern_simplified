@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 print("Hello, World!")
 
 # simple loop test

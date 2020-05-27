@@ -1,3 +1,4 @@
+#!/usr/bin/env python2
 # fc.py
 # Generate images showing false color palettes (for docs)
 # Based on remap.py

@@ -1,3 +1,4 @@
+#!/usr/bin/env python2
 # python firmsum.py file offset length
 
 import ctypes

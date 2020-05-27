@@ -1,3 +1,4 @@
+#!/usr/bin/env python2
 # http://code.activestate.com/recipes/577946-word-wrap-for-proportional-fonts/
 # MIT license
 

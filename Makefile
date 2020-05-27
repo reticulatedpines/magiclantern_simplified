@@ -122,7 +122,7 @@ doxygen_clean:
 	$(call rm_dir, doxygen-doc)
 
 features.html: FORCE
-	cd features; python features-html.py > ../features.html
+	cd features; python2 features-html.py > ../features.html
  
 FORCE:
 

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # Render the user guide in BMP format (with RLE compression)
 # in order to use it as a help system in the camera menu.

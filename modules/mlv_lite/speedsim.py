@@ -1,3 +1,4 @@
+#!/usr/bin/env python2
 # A simple simulation of the raw recording process
 # customize memory buffers, resolution, fps, write speed,
 # and you get an estimate of how many frames you will be able to record.

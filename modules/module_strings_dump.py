@@ -1,3 +1,4 @@
+#!/usr/bin/env python2
 # print the module_strings section from a ML module (*.mo)
 # sorry, not compatible with Python 3 (patches welcome)
 import os, sys

@@ -26,12 +26,12 @@ $(foreach _,$(PLATFORM_MAP),$(eval $(call makerule,$(word 1, $(subst ., ,$_)),$_
 include $(TOP_DIR)/Makefile.setup
 
 beautify-stubs:
-	for f in */stubs.S ; do python ../contrib/stub-format/stub-format.py $$f $$f; done
+	for f in */stubs.S ; do python2 ../contrib/stub-format/stub-format.py $$f $$f; done
 
 reorder-stubs:
-	python ../contrib/stub-format/stub-reorder.py all
+	python2 ../contrib/stub-format/stub-reorder.py all
 
 cleanup-stubs:
-	python ../contrib/stub-format/stub-cleanup.py all
+	python2 ../contrib/stub-format/stub-cleanup.py all
 
 pretty-stubs: beautify-stubs reorder-stubs cleanup-stubs

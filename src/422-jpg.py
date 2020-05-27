@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 # Convert YUV 422 LiveView buffer image to JPEG
 # (C) 2011 Alex Dumitrache <broscutamaker@gmail.com>

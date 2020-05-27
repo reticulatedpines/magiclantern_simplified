@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python2
 # make a table with what features are enabled on what camera
 import os, sys, string, re
 import commands

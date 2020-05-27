@@ -1,3 +1,4 @@
+#!/usr/bin/env python2
 # remap.py
 # Remap any image to Magic Lantern BVRAM palette.
 # Useful for converting a bitmap in cropmarks fromat.

@@ -1,3 +1,4 @@
+#!/usr/bin/env python2
 ### This file is grabbed from Python's Lib/test/test_math.py
 ###---------------------------------------------------------
 # Python test set -- math module
