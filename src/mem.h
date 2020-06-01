@@ -58,7 +58,8 @@ const char * format_memory_size(uint64_t size); /* e.g. 2.0GB, 32MB, 2.4kB... */
 
 #endif
 
-
+/* initialization */
+void _mem_init();
 
 
 /* general-purpose memory-related routines (not routed through the backend) */
@@ -66,6 +67,7 @@ const char * format_memory_size(uint64_t size); /* e.g. 2.0GB, 32MB, 2.4kB... */
 
 /* in posix.c */
 extern void * realloc( void * buf, size_t newlen );
+extern void * calloc(size_t nmemb, size_t size);
 
 #define IS_ML_PTR(val) (((uintptr_t)(val) > (uintptr_t)0x1000) && ((uintptr_t)(val) < (uintptr_t)0x20000000))
 

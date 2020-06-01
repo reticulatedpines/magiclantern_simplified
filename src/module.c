@@ -9,6 +9,7 @@
 #include "property.h"
 #include "beep.h"
 #include "bmp.h"
+#include "lens.h"
 #include "ml-cbr.h"
 
 #ifndef CONFIG_MODULES_MODEL_SYM
@@ -261,7 +262,7 @@ static void _module_load_all(uint32_t list_only)
             strncpy(module_list[module_cnt].name, module_name, sizeof(module_list[module_cnt].name));
             
             /* check for a .en file that tells the module is enabled */
-            char enable_file[MODULE_FILENAME_LENGTH];
+            char enable_file[FIO_MAX_PATH_LENGTH];
             snprintf(enable_file, sizeof(enable_file), "%s%s.en", get_config_dir(), module_list[module_cnt].name);
             
             /* if enable-file is nonexistent, dont load module */
@@ -857,8 +858,6 @@ int module_translate_key(int key, int dest)
     MODULE_TRANSLATE_KEY(BGMT_INFO                 , MODULE_KEY_INFO                 , dest);
     MODULE_TRANSLATE_KEY(BGMT_PLAY                 , MODULE_KEY_PLAY                 , dest);
     MODULE_TRANSLATE_KEY(BGMT_TRASH                , MODULE_KEY_TRASH                , dest);
-    MODULE_TRANSLATE_KEY(BGMT_PRESS_DP             , MODULE_KEY_PRESS_DP             , dest);
-    MODULE_TRANSLATE_KEY(BGMT_UNPRESS_DP           , MODULE_KEY_UNPRESS_DP           , dest);
     MODULE_TRANSLATE_KEY(BGMT_RATE                 , MODULE_KEY_RATE                 , dest);
     MODULE_TRANSLATE_KEY(BGMT_REC                  , MODULE_KEY_REC                  , dest);
     MODULE_TRANSLATE_KEY(BGMT_PRESS_ZOOM_IN   , MODULE_KEY_PRESS_ZOOMIN         , dest);
@@ -883,6 +882,8 @@ int module_translate_key(int key, int dest)
     MODULE_TRANSLATE_KEY(BGMT_TOUCH_2_FINGER       , MODULE_KEY_TOUCH_2_FINGER       , dest);
     MODULE_TRANSLATE_KEY(BGMT_UNTOUCH_2_FINGER     , MODULE_KEY_UNTOUCH_2_FINGER     , dest);
     MODULE_TRANSLATE_KEY(BGMT_Q                    , MODULE_KEY_Q                    , dest);
+    MODULE_TRANSLATE_KEY(BGMT_PRESS_DP             , MODULE_KEY_PRESS_DP             , dest);
+    MODULE_TRANSLATE_KEY(BGMT_UNPRESS_DP           , MODULE_KEY_UNPRESS_DP           , dest);
     /* these are not simple key codes, so they will not work with MODULE_TRANSLATE_KEY */
     //~ MODULE_TRANSLATE_KEY(BGMT_PRESS_FLASH_MOVIE    , MODULE_KEY_PRESS_FLASH_MOVIE    , dest);
     //~ MODULE_TRANSLATE_KEY(BGMT_UNPRESS_FLASH_MOVIE  , MODULE_KEY_UNPRESS_FLASH_MOVIE  , dest);
@@ -894,7 +895,28 @@ int module_translate_key(int key, int dest)
 int module_send_keypress(int module_key)
 {
     int key = module_translate_key(module_key, MODULE_KEY_CANON);
-    fake_simple_button(key);
+    switch (module_key)
+    {
+        case MODULE_KEY_PRESS_HALFSHUTTER:
+            SW1(1,0);
+            break;
+
+        case MODULE_KEY_UNPRESS_HALFSHUTTER:
+            SW1(0,0);
+            break;
+
+        case MODULE_KEY_PRESS_FULLSHUTTER:
+            SW2(1,0);
+            break;
+
+        case MODULE_KEY_UNPRESS_FULLSHUTTER:
+            SW1(0,0);
+            break;
+            
+        default:
+            fake_simple_button(key);
+            break;
+    }
     return 0;
 }
 
@@ -910,33 +932,40 @@ int handle_module_keys(struct event * event)
         count = MAX(count, event->arg);
     }
     
-    while (count--)
+    for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
     {
-        for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
+        module_cbr_t *cbr = module_list[mod].cbr;
+        if(module_list[mod].valid && cbr)
         {
-            module_cbr_t *cbr = module_list[mod].cbr;
-            if(module_list[mod].valid && cbr)
+            while(cbr->name)
             {
-                while(cbr->name)
+                if(cbr->type == CBR_KEYPRESS)
                 {
-                    if(cbr->type == CBR_KEYPRESS)
+                    int pass_event = 1;
+                    /* one event may include multiple key presses - decompose it */
+                    for (int i = 0; i < count; i++)
                     {
-                        /* key got handled? */
-                        if(!cbr->handler(module_translate_key(event->param, MODULE_KEY_PORTABLE)))
-                        {
-                            return 0;
-                        }
+                        int portable_key = module_translate_key(event->param, MODULE_KEY_PORTABLE);
+                        pass_event &= cbr->handler(portable_key);
                     }
-                    if(cbr->type == CBR_KEYPRESS_RAW)
+                    if (!pass_event)
                     {
-                        /* key got handled? */
-                        if(!cbr->handler((int)event))
-                        {
-                            return 0;
-                        }
+                        /* key handled */
+                        return 0;
                     }
-                    cbr++;
                 }
+                if(cbr->type == CBR_KEYPRESS_RAW)
+                {
+                    /* raw event includes counter - let's pass it only once */
+                    int pass_event = cbr->handler((int)event);
+
+                    if (!pass_event)
+                    {
+                        /* key handled */
+                        return 0;
+                    }
+                }
+                cbr++;
             }
         }
     }
@@ -1006,12 +1035,13 @@ int module_display_filter_update()
 
 static MENU_SELECT_FUNC(module_menu_update_select)
 {
-    char enable_file[MODULE_FILENAME_LENGTH];
+    char enable_file[FIO_MAX_PATH_LENGTH];
     int mod_number = (int) priv;
     
     module_list[mod_number].enabled = !module_list[mod_number].enabled;
     snprintf(enable_file, sizeof(enable_file), "%s%s.en", get_config_dir(), module_list[mod_number].name);
     config_flag_file_setting_save(enable_file, module_list[mod_number].enabled);
+    ASSERT(is_file(enable_file) == module_list[mod_number].enabled);
 }
 
 static int startswith(const char* str, const char* prefix)
@@ -1104,7 +1134,7 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
     static void* prev_selected = 0;
     if (entry->selected && entry != prev_selected)
     {
-        last_menu_activity_time = get_ms_clock_value();
+        last_menu_activity_time = get_ms_clock();
         prev_selected = entry;
     }
 
@@ -1121,7 +1151,7 @@ static MENU_UPDATE_FUNC(module_menu_update_entry)
     }
 
     /* clean up offline strings if the module menu is no longer used */
-    if (!entry->selected && get_ms_clock_value() > 3000 + last_menu_activity_time)
+    if (!entry->selected && get_ms_clock() > 3000 + last_menu_activity_time)
     {
         if (
                 !module_list[mod_number].valid &&
@@ -1174,6 +1204,8 @@ static void module_menu_update()
         /* only update those which display module information */
         if(entry->update == module_menu_update_entry)
         {
+            ASSERT(mod_number == (int) entry->priv);
+
             if(module_list[mod_number].valid)
             {
                 MENU_SET_SHIDDEN(0);
@@ -1190,6 +1222,9 @@ static void module_menu_update()
         }
         entry = entry->next;
     }
+
+    /* make sure we have as many menu entries as modules */
+    ASSERT(mod_number == MODULE_COUNT_MAX);
 }
 
 /* check which modules are loaded and hide others */
@@ -1535,9 +1570,48 @@ static struct menu_entry module_menu[] = {
     MODULE_ENTRY(29)
     MODULE_ENTRY(30)
     MODULE_ENTRY(31)
+    MODULE_ENTRY(32)
+    MODULE_ENTRY(33)
+    MODULE_ENTRY(34)
+    MODULE_ENTRY(35)
+    MODULE_ENTRY(36)
+    MODULE_ENTRY(37)
+    MODULE_ENTRY(38)
+    MODULE_ENTRY(39)
+    MODULE_ENTRY(40)
+    MODULE_ENTRY(41)
+    MODULE_ENTRY(42)
+    MODULE_ENTRY(43)
+    MODULE_ENTRY(44)
+    MODULE_ENTRY(45)
+    MODULE_ENTRY(46)
+    MODULE_ENTRY(47)
+    MODULE_ENTRY(48)
+    MODULE_ENTRY(49)
+    MODULE_ENTRY(50)
+    MODULE_ENTRY(51)
+    MODULE_ENTRY(52)
+    MODULE_ENTRY(53)
+    MODULE_ENTRY(54)
+    MODULE_ENTRY(55)
+    MODULE_ENTRY(56)
+    MODULE_ENTRY(57)
+    MODULE_ENTRY(58)
+    MODULE_ENTRY(59)
+    MODULE_ENTRY(60)
+    MODULE_ENTRY(61)
+    MODULE_ENTRY(62)
+    MODULE_ENTRY(63)
 };
 
 static struct menu_entry module_debug_menu[] = {
+    {
+        .name = "Show console",
+        .priv = &module_console_enabled,
+        .select = console_toggle,
+        .max = 1,
+        .help = "Keep console shown after modules were loaded",
+    },
     {
         .name = "Modules debug",
         .select = menu_open_submenu,
@@ -1555,13 +1629,6 @@ static struct menu_entry module_debug_menu[] = {
                 .priv = &module_ignore_crashes,
                 .max = 1,
                 .help = "Load modules even after camera crashed and you took battery out.",
-            },
-            {
-                .name = "Show console",
-                .priv = &module_console_enabled,
-                .select = console_toggle,
-                .max = 1,
-                .help = "Keep console shown after modules were loaded",
             },
             MENU_EOL,
         },

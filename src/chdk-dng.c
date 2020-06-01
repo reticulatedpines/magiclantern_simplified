@@ -37,7 +37,7 @@
 #define ufree fio_free
 #define pow powf
 
-static int get_tick_count() { return get_ms_clock_value_fast(); }
+static int get_tick_count() { return get_ms_clock(); }
 
 #else // if we compile it for desktop
 #include "stdint.h"

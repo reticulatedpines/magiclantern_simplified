@@ -18,8 +18,8 @@ static int _info_items_count = 0;
 static int layout_dirty = 0;
 static struct semaphore * lvinfo_sem = 0;
 
-static int default_font = FONT_MED_LARGE;   /* used in normal situations */
-static int small_font = FONT_MED;           /* used if the layout gets really tight */
+static int default_font = FONT_MED_LARGE | FONT_ALIGN_CENTER;   /* used in normal situations */
+static int small_font = FONT_MED | FONT_ALIGN_CENTER;           /* used if the layout gets really tight */
 
 void lvinfo_add_items(struct lvinfo_item * items, int count)
 {
@@ -465,15 +465,15 @@ static void lvinfo_display_bar(struct lvinfo_item * items[], int count, int bar_
 static void lvinfo_align_and_display(struct lvinfo_item * items[], int count, int bar_x, int bar_y, int bar_width, int bar_height)
 {
     #ifdef LVINFO_PERF_MON
-    int64_t t0 = get_us_clock_value();
+    int64_t t0 = get_us_clock();
     #endif
     
     /* choose a default font */
     /* try to borrow the color from the cropmarks; if it's fully transparent, use transparent gray */
     int bg = (items == top_items) ? TOPBAR_BGCOLOR : BOTTOMBAR_BGCOLOR;
     if (bg == 0) bg = COLOR_BG_DARK;
-    default_font = FONT(FONT_MED_LARGE, COLOR_WHITE, bg) | FONT_ALIGN_CENTER;
-    small_font = FONT(FONT_MED, COLOR_WHITE, bg) | FONT_ALIGN_CENTER;
+    default_font = FONT(default_font, COLOR_WHITE, bg);
+    small_font = FONT(small_font, COLOR_WHITE, bg);
     
     int font_changed = 0;
 
@@ -531,14 +531,14 @@ static void lvinfo_align_and_display(struct lvinfo_item * items[], int count, in
     lvinfo_valign_items(items, count, bar_y, bar_height);
 
     #ifdef LVINFO_PERF_MON
-    int64_t t1 = get_us_clock_value();
+    int64_t t1 = get_us_clock();
     #endif
 
     /* and... finally, display them! */
     lvinfo_display_bar(items, count, bar_x, bar_y, bar_width, bar_height);
 
     #ifdef LVINFO_PERF_MON
-    int64_t t2 = get_us_clock_value();
+    int64_t t2 = get_us_clock();
     bmp_printf(FONT_MED, 10, items == top_items ? 100 : 200, "Layout : %d "SYM_MICRO"s \nDrawing: %d "SYM_MICRO"s", (int)(t1-t0), (int)(t2-t1));
     #endif
 }

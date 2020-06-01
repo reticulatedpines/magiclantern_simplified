@@ -78,7 +78,9 @@ struct lens_info
         int                     dof_diffraction_blur;   /* fixme: move those near other DOF fields on next API update */
         //~ float                   lens_rotation;
         //~ float                   lens_step;
-        
+        int                     focus_pos;              /* fine steps, starts at 0, range is lens-dependent,
+                                                         * only updates when motor moves (will lose position during MF) */
+
         /* those were retrieved from PROP_LENS property */
         uint8_t                 lens_exists;
         uint16_t                lens_focal_min;
@@ -93,7 +95,7 @@ extern struct lens_info lens_info;
 
 #define DOF_DIFFRACTION_LIMIT_REACHED 1
 
-#if defined(CONFIG_6D) || defined(CONFIG_5D3_123)
+#if defined(CONFIG_6D) || defined(CONFIG_5D3_123) || defined(CONFIG_100D)
 struct prop_lv_lens
 {  
         uint32_t                lens_rotation; // Identical Doesn't Change
@@ -104,47 +106,54 @@ struct prop_lv_lens
         uint32_t                off_0x14;
         uint32_t                off_0x18;
         uint32_t                off_0x1c;
-        uint32_t                off_0x20;
-        uint32_t                off_0x24;
+        uint16_t                off_0x20;
+        uint8_t                 off_0x22;
+        uint16_t                focus_pos; // off_0x23
+        uint8_t                 off_0x25;
+        uint16_t                off_0x26;
         uint32_t                off_0x28;
-        uint16_t                off_unk0;        
-        uint8_t                 off_unk1;
-        uint16_t                focal_len;      
-        uint16_t                off_unk2;
-        uint16_t                focus_dist;      
-        uint32_t                off_0x30;
-        uint32_t                off_0x34;
-        uint8_t                 off_0x38;
+        uint16_t                off_0x2c;        
+        uint8_t                 off_0x2e;
+        uint16_t                focal_len;  // off_0x2f
+        uint16_t                off_0x31;
+        uint16_t                focus_dist; // off_0x33
+        uint32_t                off_0x35;
+        uint32_t                off_0x39;
+        uint8_t                 off_0x3d;
+        uint8_t                 off_0x3e;
+        uint8_t                 off_0x3f;
 
 } __attribute__((packed));
 
-SIZE_CHECK_STRUCT( prop_lv_lens, 62 );
+SIZE_CHECK_STRUCT( prop_lv_lens, 64 );
 
 #elif defined(CONFIG_EOSM)
 struct prop_lv_lens
 {
-        uint32_t                lens_rotation; // 
-        uint32_t                lens_step; // 
-        uint32_t                off_0x08;  // 
-        uint32_t                off_0x0c;  // 
-        uint32_t                off_0x10;  // 
-        uint32_t                off_0x14;  // 
-        uint32_t                off_0x18;  // 
-        uint32_t                off_0x1c;  // 
-        uint32_t                off_0x20;  // 
-        uint32_t                off_0x24;  // 
-        uint32_t                off_0x28;  // L10  - names not accurate
-        uint16_t                off_0x30;  //      
-        uint16_t                focal_len; // 
-        uint16_t                focus_dist; // One FD
-        uint16_t                focus_dist2;//       
-        uint16_t                off_0x38;  // 
-        uint32_t                off_0x3c;  // 
-        uint8_t                 off_0x3D;  // 
-        
+        uint32_t                lens_rotation;
+        uint32_t                lens_step;
+        uint32_t                off_0x08;
+        uint32_t                off_0x0c;
+        uint32_t                off_0x10;
+        uint32_t                off_0x14;
+        uint32_t                off_0x18;
+        uint32_t                off_0x1c;
+        uint16_t                off_0x20;
+        uint16_t                focus_pos;  // off_0x22; guess (not tested)
+        uint32_t                off_0x24;
+        uint32_t                off_0x28;
+        uint16_t                off_0x2c;
+        uint16_t                focal_len;  // off_0x2e
+        uint16_t                focus_dist; // One FD; off_0x30
+        uint16_t                focus_dist2;// off_0x32
+        uint16_t                off_0x34;
+        uint16_t                off_0x36;
+        uint16_t                off_0x38;
+        uint16_t                off_0x3a;
+        uint8_t                 off_0x3c;
 } __attribute__((packed));
 
-SIZE_CHECK_STRUCT( prop_lv_lens, 59 );
+SIZE_CHECK_STRUCT( prop_lv_lens, 61 );
 
 #else
 struct prop_lv_lens
@@ -157,7 +166,8 @@ struct prop_lv_lens
         uint32_t                off_0x14;
         uint32_t                off_0x18;
         uint32_t                off_0x1c;
-        uint32_t                off_0x20;
+        int16_t                 focus_pos;  /* off_0x20; see lens_info.focus_pos */
+        uint16_t                off_0x22;
         uint32_t                off_0x24;
         uint32_t                off_0x28;
         uint16_t                focal_len;      // off_0x2c;
@@ -233,8 +243,8 @@ extern int hdr_set_rawaperture(int aperture);
 extern int hdr_set_ae(int ae);
 extern int hdr_set_flash_ae(int ae);
 
-int lens_take_picture( int wait, int allow_af );
-int lens_take_pictures( int wait, int allow_af, int duration );
+int lens_take_picture( int wait_to_finish, int allow_af );
+int lens_take_pictures( int wait_to_finish, int allow_af, int duration );
 
 /** Will return 1 on success, 0 on error */
 extern int
@@ -246,19 +256,24 @@ lens_focus(
 );
 
 /** Format a distance in mm into something useful */
-extern const char *
-lens_format_dist(
-        unsigned                mm
-);
+/** FIXME: not thread-safe */
+const char * lens_format_dist(unsigned mm);
 
 /** Pretty prints the shutter speed given the raw shutter value as input */
-char* lens_format_shutter(int tv);
+/** FIXME: not thread-safe */
+const char * lens_format_shutter(int raw_shutter);
 
 /** Pretty prints the shutter speed given the shutter reciprocal (times 1000) as input */
-char* lens_format_shutter_reciprocal(int shutter_reciprocal_x1000, int digits);
+/** FIXME: not thread-safe */
+const char * lens_format_shutter_reciprocal(int shutter_reciprocal_x1000, int digits);
 
 /** Pretty prints the aperture given the raw value as input */
-char* lens_format_aperture(int av);
+/** FIXME: not thread-safe */
+const char * lens_format_aperture(int raw_aperture);
+
+/** Pretty prints the ISO given the raw value as input */
+/** FIXME: not thread-safe */
+const char * lens_format_iso(int raw_iso);
 
 #define KELVIN_MIN 1500
 #define KELVIN_MAX 15000
@@ -297,7 +312,7 @@ static const uint8_t  codes_aperture[] =  {0,  10,  11,  12,  13,  14,  15,  16,
 // UNIT_1_8_EV
 #define APEX_TV(raw) ((int)(raw) - 56)
 #define APEX_AV(raw) ((raw) ? (int)(raw) - 8 : 0)
-#define APEX_SV(raw) ((int)(raw) - 32)
+#define APEX_SV(raw) ((raw) ? (int)(raw) - 32 : 0)
 
 // UNIT APEX * 10
 #define APEX10_RAW2TV(raw) RSCALE(APEX_TV(raw), 10, 8)
@@ -307,7 +322,7 @@ static const uint8_t  codes_aperture[] =  {0,  10,  11,  12,  13,  14,  15,  16,
 
 #define APEX10_TV2RAW(apex) -APEX_TV(RSCALE(-(apex), 8, 10))
 #define APEX10_AV2RAW(apex) -APEX_AV(RSCALE(-(apex), 8, 10))    /* pathological case at f/0.8 */
-#define APEX10_SV2RAW(apex) -APEX_SV(RSCALE(-(apex), 8, 10))
+#define APEX10_SV2RAW(apex) -APEX_SV(RSCALE(-(apex), 8, 10))    /* pathological case at ISO 3.125 */
 #define APEX10_AV2VAL(apex) values_aperture[raw2index_aperture(APEX10_AV2RAW(apex))]
 
 #define APEX1000_RAW2TV(raw) RSCALE(APEX_TV(raw), 1000, 8)
@@ -317,7 +332,7 @@ static const uint8_t  codes_aperture[] =  {0,  10,  11,  12,  13,  14,  15,  16,
 
 #define APEX1000_TV2RAW(apex) -APEX_TV(RSCALE(-(apex), 8, 1000))
 #define APEX1000_AV2RAW(apex) -APEX_AV(RSCALE(-(apex), 8, 1000))    /* pathological case at f/0.8 */
-#define APEX1000_SV2RAW(apex) -APEX_SV(RSCALE(-(apex), 8, 1000))
+#define APEX1000_SV2RAW(apex) -APEX_SV(RSCALE(-(apex), 8, 1000))    /* pathological case at ISO 3.125 */
 #define APEX1000_EC2RAW(apex) RSCALE(apex, 8, 1000)
 
 // Conversions
@@ -358,6 +373,8 @@ void kelvin_toggle( void* priv, int sign );
 // max iso with expo override
 #if defined(CONFIG_6D)
 #define MAX_ISO_BV 136 // see ControlIso <= LVGAIN_MAX_ISO
+#elif defined(CONFIG_100D)
+#define MAX_ISO_BV 120 // 128 will freeze if iso expansion not set
 #elif defined(CONFIG_DIGIC_V) //All DigicV except 6D apparently
 #define MAX_ISO_BV 199
 #elif defined(CONFIG_500D)
@@ -536,5 +553,8 @@ void set_htp(int value);
 /* camera ready to take a picture or change shooting settings? */
 int job_state_ready_to_take_pic();
 void lens_wait_readytotakepic();
+
+/* force an update of PROP_LV_LENS outside LiveView */
+void _prop_lv_lens_request_update();
 
 #endif /* _lens_h_ */

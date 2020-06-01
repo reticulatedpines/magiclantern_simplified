@@ -218,7 +218,7 @@ void clrscr()
 
 /* dummy stubs to include raw.c */
 
-int get_ms_clock_value()
+int get_ms_clock()
 {
     static int ms = 0;
     ms += 10;

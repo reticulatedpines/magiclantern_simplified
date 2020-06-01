@@ -43,6 +43,7 @@ extern WEAK_FUNC(ret_0) int GetBatteryDrainRate();
 static CONFIG_INT( "silent.pic", silent_pic_enabled, 0 );
 static CONFIG_INT( "silent.pic.mode", silent_pic_mode, 0 );
 static CONFIG_INT( "silent.pic.slitscan.mode", silent_pic_slitscan_mode, 0 );
+static CONFIG_INT( "silent.pic.fullres.trigger", silent_pic_fullres_trigger_mode, 0 );
 static CONFIG_INT( "silent.pic.file_format", silent_pic_file_format, 0 );
 #define SILENT_PIC_MODE_SIMPLE 0
 #define SILENT_PIC_MODE_BURST 1
@@ -78,6 +79,9 @@ static MENU_UPDATE_FUNC(silent_pic_mode_update)
     /* reveal options for the current shooting mode, if any */
     silent_menu[0].children[1].shidden =
         (silent_pic_mode != SILENT_PIC_MODE_SLITSCAN);
+
+    silent_menu[0].children[2].shidden =
+        (silent_pic_mode != SILENT_PIC_MODE_FULLRES);
 }
 
 static MENU_UPDATE_FUNC(silent_pic_check_mlv)
@@ -1109,26 +1113,13 @@ static void show_battery_status()
 static PROP_INT(PROP_ISO, prop_iso);
 static PROP_INT(PROP_SHUTTER, prop_shutter);
 
-/* this will check (poll) if we are still in QR (or paused LV) mode, every 100ms,
+/* used to check (in polling_cbr) whether we are still in QR (or paused LV) mode,
  * until preview_time expires or until you get out of QR, whichever happens first
- * if we didn't leave QR mode, it will turn off the display
+ * if we didn't leave QR mode, it will return to LiveView or turn off the display
+ * depending on powersave settings.
  */
-static void display_off_if_qr_mode(int unused, int preview_time)
-{
-    if (is_play_or_qr_mode() || LV_PAUSED)
-    {
-        if (preview_time > 0)
-        {
-            /* OK for now, re-check after 100ms */
-            delayed_call(100, display_off_if_qr_mode, (void*)(preview_time - 100));
-        }
-        else
-        {
-            /* preview_time expired */
-            display_off();
-        }
-    }
-}
+static int image_review_duration = 0;   /* ms */
+static int image_review_start_time = 0; /* ms_clock */
 
 static uint32_t SLOWEST_SHUTTER = SHUTTER_15s;
 
@@ -1157,9 +1148,30 @@ static int
 silent_pic_take_fullres(int interactive)
 {
     int ok = 1;
-    
+
     /* get out of LiveView, but leave the shutter open */
     PauseLiveView();
+
+    if (interactive && silent_pic_fullres_trigger_mode)
+    {
+        /* trigger on shutter release? */
+        while (get_halfshutter_pressed())
+        {
+            bmp_printf(FONT_MED, 0, 0, "Half-shutter...");
+            msleep(10);
+        }
+
+        /* wait after shutter release? */
+        if (silent_pic_fullres_trigger_mode == 2)
+        {
+            /* also trigger half-shutter to activate IS */
+            info_led_on();
+            SW1(1, 0);
+            msleep(2000);
+            SW1(0, 0);
+            info_led_off();
+        }
+    }
     
     /* block all keys until finished, to avoid errors */
     gui_uilock(UILOCK_EVERYTHING);
@@ -1227,7 +1239,7 @@ silent_pic_take_fullres(int interactive)
     
     lens_info.job_state = 1;
     info_led_on();
-    int t0 = get_ms_clock_value();
+    int t0 = get_ms_clock();
     
     /*
      * This one sets PROP_FA_ADJUST_FLAG to 4 (configures scsReleaseData for DARK_MEM1),
@@ -1243,7 +1255,7 @@ silent_pic_take_fullres(int interactive)
      */
     call("FA_CaptureTestImage", job);
     
-    int t1 = get_ms_clock_value();
+    int t1 = get_ms_clock();
     int capture_time = t1 - t0;
 
     info_led_off();
@@ -1307,6 +1319,9 @@ silent_pic_take_fullres(int interactive)
         }
     }
 
+    /* image review timeout starts here */
+    image_review_start_time = get_ms_clock();
+
     /* prepare to save the file */
     struct raw_info local_raw_info = raw_info;
     
@@ -1330,7 +1345,7 @@ silent_pic_take_fullres(int interactive)
         bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", local_raw_info.jpeg.width, local_raw_info.jpeg.height);
         bmp_printf(FONT_MED, 0, 83, "Captured in %d ms.", capture_time);
         
-        int t0 = get_ms_clock_value();
+        int t0 = get_ms_clock();
         
         if (copy_buf)
         {
@@ -1339,7 +1354,7 @@ silent_pic_take_fullres(int interactive)
         }
         
         ok = silent_pic_save_file(&local_raw_info, capture_time);
-        int t1 = get_ms_clock_value();
+        int t1 = get_ms_clock();
         save_time = t1 - t0;
      
         if (ok)
@@ -1358,16 +1373,14 @@ silent_pic_take_fullres(int interactive)
         /* (will set a timer - if we are still in QR mode, turn off the display) */
         int intervalometer_delay = get_interval_time() * 1000;
         int intervalometer_remaining = intervalometer_delay - capture_time - save_time - 2000;
-        int preview_delay = 
-            image_review_time ? COERCE(intervalometer_remaining, 0, image_review_time * 1000 - save_time) 
+        image_review_duration = 
+            image_review_time ? COERCE(intervalometer_remaining, 0, image_review_time * 1000) 
                               : 0;
-        delayed_call(100, display_off_if_qr_mode, (void*)preview_delay);
     }
     else
     {
         bmp_printf(FONT_MED, 0, 106, "Long half-shutter will take another picture.");
-        int preview_delay = MAX(1000, image_review_time * 1000 - save_time);
-        delayed_call(100, display_off_if_qr_mode, (void*)preview_delay);
+        image_review_duration = MAX(1000, image_review_time * 1000);
     }
 
 cleanup:
@@ -1448,6 +1461,7 @@ static unsigned int silent_pic_polling_cbr(unsigned int ctx)
     if (silent_pic_mode == SILENT_PIC_MODE_FULLRES && (shooting_mode != SHOOTMODE_M || is_movie_mode()))
         return 0;
 
+    /* don't trigger a silent picture when pressing half-shutter to exit some menu */
     static int silent_pic_countdown;
     if (!display_idle())
     {
@@ -1457,6 +1471,25 @@ static unsigned int silent_pic_polling_cbr(unsigned int ctx)
     {
         if (silent_pic_countdown)
             silent_pic_countdown--;
+    }
+
+    /* after the image review time, return to LiveView or turn off the display */
+    if (image_review_duration && get_ms_clock() - image_review_start_time > image_review_duration)
+    {
+        /* do this only once */
+        image_review_duration = 0;
+
+        extern int idle_display_turn_off_after;
+        if (is_intervalometer_running() || idle_display_turn_off_after)
+        {
+            /* prefer turning off the display to save power */
+            display_off();
+        }
+        else
+        {
+            /* prefer going back to LiveView (more user-friendly) */
+            force_liveview();
+        }
     }
 
     if (lv && get_halfshutter_pressed())
@@ -1496,7 +1529,18 @@ static unsigned int silent_pic_polling_cbr(unsigned int ctx)
                 }
             }
         }
-        
+
+        if (lv && lens_info.IS)
+        {
+            /* if enabled on the lens, wait until the half-shutter activates it (500ms timeout) */
+            /* fixme: with a short half-shutter press, IS may not be activated */
+            for (int i = 0; i < 50 && get_halfshutter_pressed() && lens_info.IS != 0xE; i++)
+            {
+                bmp_printf(FONT_MED, 0, 37, "Waiting for IS...");
+                msleep(10);
+            }
+        }
+
         silent_pic_take(1);
     }
     
@@ -1532,7 +1576,7 @@ static struct menu_entry silent_menu[] = {
         .depends_on = DEP_LIVEVIEW | DEP_CFN_AF_BACK_BUTTON,
         .help  = "Take pics in LiveView without moving the shutter mechanism.",
         #ifdef FEATURE_SILENT_PIC_RAW_BURST
-        .submenu_width = 650,
+        .submenu_width = 700,
         .children =  (struct menu_entry[]) {
             {
                 .name = "Silent Mode",
@@ -1575,6 +1619,22 @@ static struct menu_entry silent_menu[] = {
                     "Scan from right to left.\n"
                     "Keep scan line in middle of frame, horizontally.\n",
                 .shidden = 1,   /* enabled only when choosing slit-scan */
+            },
+            {
+                .name = "Trigger Mode",
+                .priv = &silent_pic_fullres_trigger_mode,
+                .max = 2,
+                .choices = CHOICES(
+                    "Half-shutter press",
+                    "Half-shutter release",
+                    "Delayed",
+                ),
+                .help = "Choose when to capture the image:",
+                .help2 =
+                    "Start image capture on half-shutter press (quick).\n"
+                    "Start image capture on half-shutter release (end trigger).\n"
+                    "Start image capture 2 seconds after half-shutter release.\n",
+                .shidden = 1,   /* enabled only when choosing full-res */
             },
             {
                 .name = "File Format",
@@ -1633,6 +1693,7 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(silent_pic_enabled)
     MODULE_CONFIG(silent_pic_mode)
     MODULE_CONFIG(silent_pic_slitscan_mode)
+    MODULE_CONFIG(silent_pic_fullres_trigger_mode)
     MODULE_CONFIG(silent_pic_file_format)
 MODULE_CONFIGS_END()
 

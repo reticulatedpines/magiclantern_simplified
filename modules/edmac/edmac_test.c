@@ -69,14 +69,14 @@ static void edmac_test_copy(
     
     /* start transfer. no flags for write, 2 for read channels */
     info_led_on();
-    int64_t t0 = get_us_clock_value();
+    int64_t t0 = get_us_clock();
     
     StartEDmac(edmac_write_chan, dst_start_flags);
     StartEDmac(edmac_read_chan,  src_start_flags);
     
     while(!read_done || !write_done)
     {
-        if (get_us_clock_value() - t0 > 200000)
+        if (get_us_clock() - t0 > 200000)
         {
             if(!read_done)
             {
@@ -96,7 +96,7 @@ static void edmac_test_copy(
     AbortEDmac(edmac_read_chan);
     AbortEDmac(edmac_write_chan);
 
-    int64_t t1 = get_us_clock_value();
+    int64_t t1 = get_us_clock();
     info_led_off();
 
     if (show_elapsed)

@@ -1,3 +1,4 @@
+-- Movie Delayed Start
 -- starts movie recording after a delay
 
 recdelay_running = false
@@ -5,6 +6,7 @@ recdelay_stop = false
 recdelay_countdown = 0
 
 function recdelay_main()
+    menu.close()
     if recdelay_running then recdelay_stop = true return end
     if camera.mode == MODE.MOVIE and movie.recording == false and recdelay_menu.submenu["Delay Amount"].value > 0 then
         recdelay_running = true
@@ -56,12 +58,12 @@ recdelay_menu = menu.new
             name = "Run",
             help = "Start the delay count down now",
             help2 = "You can also use SET to start or cancel the delay",
-            run_in_separate_task = true,
+            select = function(this) task.create(recdelay_main) end,
             depends_on = DEPENDS_ON.MOVIE_MODE,
-            select = recdelay_main
         },
         {
             name = "Delay Amount",
+            value = 5,
             min = 0,
             max = 600,
             unit = UNIT.TIME,
@@ -69,6 +71,7 @@ recdelay_menu = menu.new
         },
         {
             name = "Stop After",
+            value = 10,
             min = 0,
             max = 1800,
             unit = UNIT.TIME

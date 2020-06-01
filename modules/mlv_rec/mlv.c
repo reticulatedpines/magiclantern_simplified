@@ -33,7 +33,7 @@
 
 extern uint32_t raw_rec_trace_ctx;
 
-extern uint64_t get_us_clock_value();
+extern uint64_t get_us_clock();
 extern char *strcpy(char *dest, const char *src);
 extern char *strncpy(char *dest, const char *src, int n);
 extern const char* get_picstyle_name(int raw_picstyle);
@@ -191,7 +191,7 @@ uint64_t mlv_prng_lfsr(uint64_t value)
 uint64_t mlv_generate_guid()
 {
     struct tm now;
-    uint64_t guid = get_us_clock_value();
+    uint64_t guid = get_us_clock();
     LoadCalendarFromRTC(&now);
 
     /* now run through prng once to shuffle bits */
@@ -203,7 +203,7 @@ uint64_t mlv_generate_guid()
     guid ^= now.tm_hour << 12;
     guid ^= now.tm_yday << 17;
     guid ^= now.tm_year << 26;
-    guid ^= get_us_clock_value() << 37;
+    guid ^= get_us_clock() << 37;
 
     /* now run through final prng pass */
     return mlv_prng_lfsr(guid);
@@ -223,7 +223,7 @@ void mlv_set_type(mlv_hdr_t *hdr, char *type)
 
 uint64_t mlv_set_timestamp(mlv_hdr_t *hdr, uint64_t start)
 {
-    uint64_t timestamp = get_us_clock_value();
+    uint64_t timestamp = get_us_clock();
 
     if(hdr)
     {

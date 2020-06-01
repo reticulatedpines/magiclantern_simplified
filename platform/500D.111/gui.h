@@ -15,8 +15,6 @@
 #define BGMT_TRASH 0xA
 #define BGMT_MENU 6
 #define BGMT_INFO 7
-//~ #define BGMT_Q 0xF
-//#define BGMT_Q_ALT 0xF
 #define BGMT_PLAY 9
 #define BGMT_PRESS_HALFSHUTTER 0x23
 #define BGMT_PRESS_ZOOM_IN 0xB

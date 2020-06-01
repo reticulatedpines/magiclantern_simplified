@@ -483,7 +483,7 @@ static void afma_auto_tune()
     if (lv) { NotifyBox(5000, "Turn off LiveView and try again."); beep(); return; }
     if (!display_is_on() || !display_idle()) { NotifyBox(5000, "Press %s and try again.", get_info_button_name()); beep(); return; }
     if (!is_manual_focus()) { NotifyBox(5000, "Switch to MF and try again."); beep(); return; }
-    if (!lens_info.name[0]) { NotifyBox(5000, "Attach a chipped lens and try again."); beep(); return; }
+    if (!lens_info.lens_exists) { NotifyBox(5000, "Attach a chipped lens and try again."); beep(); return; }
     NotifyBox(5000, "You should have perfect focus.");
     msleep(2000);
     NotifyBox(5000, "Leave the camera still...");
@@ -553,7 +553,7 @@ static void afma_mode_sync()
     int mode = get_afma_mode();
 
     // no lens? disable ML AFMA controls
-    if (!lens_info.name[0])
+    if (!lens_info.lens_exists)
         mode = AFMA_MODE_DISABLED;
 
     if ((afma_mode & 0xFF) != mode)
@@ -574,7 +574,7 @@ static MENU_SELECT_FUNC(afma_scan_range_toggle)
 {
     int afma_index_max = 3;
     
-    if (!lens_info.name[0])
+    if (!lens_info.lens_exists)
         return;
 
     menu_numeric_toggle(&afma_scan_range_index, delta, 0, afma_index_max);
@@ -648,7 +648,7 @@ static MENU_SELECT_FUNC(afma_mode_toggle)
 {
     int afma_index_max = afma_wide_tele ? 4 : 2;
     
-    if (!lens_info.name[0])
+    if (!lens_info.lens_exists)
         return;
 
     afma_mode_sync();
@@ -696,14 +696,12 @@ static struct menu_entry afma_menu[] = {
                 .update = afma_scan_passes_display,
                 .select = afma_scan_passes_toggle,
                 .help  = "Number of time to check for focus confirmation.",
-                .edit_mode = EM_MANY_VALUES,
             },
             {
                 .name = "AF microadjust",
                 .update = afma_display,
                 .select = afma_toggle,
                 .help  = "Adjust AFMA value manually. Range: -100...+100.",
-                .edit_mode = EM_MANY_VALUES,
             },
             MENU_EOL
         },

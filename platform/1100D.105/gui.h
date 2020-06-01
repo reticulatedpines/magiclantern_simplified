@@ -11,8 +11,7 @@
 #define BGMT_UNPRESS_DISP 9 // new, old value for BGMT_PLAY
 #define BGMT_PLAY 0xB // was 9
 
-#define BGMT_Q 0x1C // was 8
-#define BGMT_Q_ALT 0x13
+#define BGMT_Q 0x13
 #define BGMT_LV 0x1D // new
 
 #define BGMT_WHEEL_LEFT 2

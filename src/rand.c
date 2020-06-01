@@ -22,7 +22,7 @@ void rand_fill(uint32_t *buffer, uint32_t length)
     /* make it threadsafe */
     int old_stat = cli();
     /* use system timer value as additional random input */
-    uint32_t timer = *(volatile uint32_t*)0xC0242014;
+    uint32_t timer = GET_DIGIC_TIMER();
 
     for(uint32_t pos = 0; pos < length; pos++)
     {
@@ -45,7 +45,7 @@ void rand_seed(uint32_t seed)
     for(int loops = 0; loops < 128; loops++)
     {
         /* use system timer value as additional random input */
-        uint32_t timer = *(volatile uint32_t*)0xC0242014;
+        uint32_t timer = GET_DIGIC_TIMER();
         
         lfsr113[loops%4] ^= seed + timer;
         rand_fill(&tmp, 1);
@@ -72,7 +72,7 @@ void rand_fill(uint32_t *buffer, uint32_t length)
     /* make it threadsafe */
     int old_stat = cli();
     /* use system timer value as additional random input */
-    uint32_t timer = *(volatile uint32_t*)0xC0242014;
+    uint32_t timer = GET_DIGIC_TIMER();
     uint32_t e;
 
     if(index > N)

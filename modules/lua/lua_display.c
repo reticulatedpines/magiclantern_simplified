@@ -289,10 +289,9 @@ static int luaCB_display_notify_box(lua_State * L)
 static int luaCB_display_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
-    if(!strcmp(key, "idle")) lua_pushboolean(L, display_idle());
     /// The width of the display (720)
     //@tfield int width
-    else if(!strcmp(key, "width")) lua_pushinteger(L, 720);
+    if(!strcmp(key, "width")) lua_pushinteger(L, 720);
     /// The height of the display (480)
     //@tfield int height
     else if(!strcmp(key, "height")) lua_pushinteger(L, 480);
@@ -303,7 +302,7 @@ static int luaCB_display_index(lua_State * L)
 static int luaCB_display_newindex(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
-    if(!strcmp(key, "idle") || !strcmp(key, "height") || !strcmp(key, "width"))
+    if (!strcmp(key, "height") || !strcmp(key, "width"))
     {
         return luaL_error(L, "'%s' is readonly!", key);
     }

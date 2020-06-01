@@ -73,7 +73,7 @@ struct menu_display_info
 };
 
 #define MENU_MAX_NAME_LEN 35
-#define MENU_MAX_VALUE_LEN 25
+#define MENU_MAX_VALUE_LEN 35
 #define MENU_MAX_SHORT_NAME_LEN 15
 #define MENU_MAX_SHORT_VALUE_LEN 15
 #define MENU_MAX_HELP_LEN 100
@@ -137,45 +137,61 @@ typedef void (*menu_update_func)(                    // called before displaying
 
 struct menu_entry
 {
-        struct menu_entry *     next;
-        struct menu_entry *     prev;
-        struct menu_entry * children;
-        struct menu * parent_menu; // mostly for custom menus, so we know where each entry comes from
+        struct menu_entry * next;           /* [readonly] linked list pointers (set by menu_add) */
+        struct menu_entry * prev;
+        struct menu_entry * children;       /* [init,opt] submenu entries */
+        struct menu_entry * parent;         /* [readonly] parent menu entry, only for entries in submenus */
+        struct menu       * parent_menu;    /* [readonly] always valid; used for custom menus, so we know where each entry comes from */
 
-        const char * name;
-        void * priv;
+        const char * name;          /* always valid; must be unique, as name look-ups are used often */
+        void * priv;                /* [opt] usually pointer to int32 value, but can be anything */
         
-        int min;
+        int min;                    /* [opt] valid toggle range (for int32); not enforced */
         int max;
         
-        const char** choices;
+        const char** choices;       /* [opt] pickbox choices (use the CHOICES macro; dynamic choices are difficult, but possible) */
 
-        menu_select_func select;
-        menu_select_func select_Q;
-        menu_update_func update;
+        menu_select_func select;    /* [opt] function called on SET/left/right (or when changing the value from script) */
+        menu_select_func select_Q;  /* [opt] function called when pressing Q or equivalent button */
+        menu_update_func update;    /* [opt] function called before display (or when reading the value from script) */
 
-        unsigned selected   : 1;
+        unsigned selected   : 1;    /* [readonly] only one entry from each menu has this property */
 
-        unsigned starred    : 1; // present in "my menu"
-        unsigned hidden     : 1; // hidden from main menu
-        unsigned jhidden    : 1; // hidden from junkie menu
-        unsigned shidden    : 1; // special hide, not toggleable by user
+        unsigned starred    : 1;    /* [internal] present in "my menu" */
+        unsigned hidden     : 1;    /* [internal] hidden from main menu */
+        unsigned jhidden    : 1;    /* [internal] hidden from junkie menu  */
+        unsigned jstarred   : 1;    /* [internal] in junkie menu, auto-placed in My Menu */
+        unsigned shidden    : 1;    /* [opt] special hide, not toggleable from GUI, but can be set by user code */
+        unsigned placeholder: 1;    /* [internal] place reserved for a future menu (see MENU_PLACEHOLDER) */
+        unsigned cust_loaded: 1;    /* [internal] whether customization data was loaded (hidden/starred/jhidden/jstarred, usage counters) */
         
-        unsigned advanced   : 1; // advanced setting in submenus; add a MENU_ADVANCED_TOGGLE if you use it
+        unsigned advanced   : 1;    /* [opt] advanced setting in submenus; add a MENU_ADVANCED_TOGGLE if you use it */
 
-        unsigned edit_mode  : 2;
-        unsigned unit       : 4;
-        unsigned icon_type  : 4;
+        unsigned edit_mode  : 8;    /* [opt] EM_ constants (fine-tune edit behavior) */
+        unsigned unit       : 4;    /* [opt] UNIT_ constants (fine-tune display and toggle behavior) */
+        unsigned icon_type  : 4;    /* [auto-set,override] IT_ constants (to be specified only when automatic detection fails) */
         
-        const char * help;
-        const char * help2;
+        const char * help;          /* [opt] first help line; can be customized for each choice using \n as separator */
+        const char * help2;         /* [opt] second help line (one-size-fits-all or per-choice, same as above) */
     
-        // not required for entry item, but makes it easier to declare in existing menu structures
-        int16_t submenu_width; 
-        int16_t submenu_height;
+        /* not required for entry item, but makes it easier to declare in existing menu structures  */
+        int16_t submenu_width;      /* [opt] copied to submenu, if any (see struct menu) */
+        int16_t submenu_height;     /* [opt] same */
         
-        uint32_t depends_on;     // hard requirement, won't work otherwise
-        uint32_t works_best_in;  // soft requirement, it will work, but not as well
+        /* predefined warning messages for commonly-used cases (for others cases, use MENU_SET_WARNING) */
+        uint32_t depends_on;        /* [opt] hard requirement, won't work otherwise */
+        uint32_t works_best_in;     /* [opt] soft requirement, it will work, but not as well */
+
+        /* internal */
+        union
+        {
+            uint64_t usage_counters;
+            struct
+            {
+                union { float usage_counter_long_term;  uint32_t usage_counter_long_term_raw;  };
+                union { float usage_counter_short_term; uint32_t usage_counter_short_term_raw; };
+            };
+        };
 };
 
 
@@ -189,14 +205,14 @@ struct menu_entry
 #define NUM_CHOICES(entry) ((entry)->max - (entry)->min + 1)
 #define CHOICES(...) (const char *[]) { __VA_ARGS__ }
 
-#define EM_FEW_VALUES 0
-#define EM_MANY_VALUES 1
-#define EM_MANY_VALUES_LV 2
+#define EM_AUTO 0
+#define EM_SHOW_LIVEVIEW 1
 
-/*#define EM_FEW_VALUES 0
-#define EM_MANY_VALUES 0
-#define EM_MANY_VALUES_LV 0*/
-
+/* rounding modes */
+#define EM_ROUND_ISO_R10    0x10      /* ISO 3 R"10: 10, 12, 15, 20, 25, 30, 40, 50, 60, 80, 100 ... */
+#define EM_ROUND_ISO_R20    0x20      /* ISO 3 R"20: 10, 11, 12, 14, 15, 18, 20, 22, 25, 28, 30, 35, 40, 45, 50, 55, 60, 70, 80, 90, 100 ... */
+#define EM_ROUND_1_2_5_10   0x40      /* 1, 2, 5, 10, 20, 50, 100 ... (modified ISO 3 R3?) */
+#define EM_ROUND_POWER_OF_2 0x80      /* 1, 2, 4, 8, 16... */
 
 #define IT_AUTO 0
 #define IT_BOOL 1
@@ -223,7 +239,9 @@ struct menu_entry
 #define UNIT_ISO 5
 #define UNIT_HEX 6
 #define UNIT_DEC 7
-#define UNIT_TIME 8
+#define UNIT_TIME 8     /* seconds */
+#define UNIT_TIME_MS 9  /* milliseconds */
+#define UNIT_TIME_US 10 /* microseconds */
 
 #define DEPENDS_ON(foo) (entry->depends_on & (foo))
 #define WORKS_BEST_IN(foo) (entry->works_best_in & (foo))
@@ -248,17 +266,22 @@ struct menu_entry
 
 struct menu
 {
-        struct menu *           next;
-        struct menu *           prev;
-        const char *            name;
-        struct menu_entry *     children;
-        int                     selected;
-        int icon;
-        int16_t submenu_width;
-        int16_t submenu_height;
-        int16_t scroll_pos;
-        int split_pos; // the limit between name and value columns
-        char advanced;
+    struct menu *       next;               /* [auto-set] linked list pointers */
+    struct menu *       prev;
+    const char *        name;               /* [init] always valid (specified when creating) */
+    struct menu_entry * children;           /* [auto-set] menu entries (set on menu_add) */
+    struct menu_entry * parent_entry;       /* [readonly] submenus: menu entry with the same name */
+    struct menu       * parent_menu;        /* [readonly] submenus: up one level */
+    int                 selected;           /* [readonly] only one menu has this property */
+    int                 icon;               /* [init,opt] displayed icon; IT_SUBMENU identifies submenus (in the same "namespace", just hidden) */
+    int16_t             submenu_width;      /* [auto-set,opt] width of the displayed submenu (copied from menu_entry; todo: autodetect?) */
+    int16_t             submenu_height;     /* [auto-set,opt] height --"-- */
+    int16_t             scroll_pos;         /* [internal] number of visible items to skip (because of scroll position) */
+    int16_t             split_pos;          /* [override] the limit between name and value columns; negative values are internal, positive are user overrides */
+    char                advanced;           /* [internal] whether this submenu shows advanced entries or not */
+    char                has_placeholders;   /* [internal] whether this menu has placeholders (to force the location of certain menu entries) */
+    char                no_name_lookup;     /* [override] use to disable name lookup for this entry (e.g. entries with duplicate names, or huge menus) */
+                                            /*            note: this will disable all functionality depending on name look-up (such as usage counters, selecting for My Menu etc) */
 };
 
 #define IS_SUBMENU(menu) (menu->icon == ICON_ML_SUBMENU)
@@ -283,7 +306,6 @@ extern void menu_numeric_toggle(int* val, int delta, int min, int max);
 extern void run_in_separate_task(void* routine, int argument);
 
 extern void menu_add( const char * name, struct menu_entry * new_entry, int count );
-extern void menu_add_base( const char * name, struct menu_entry * new_entry, int count, bool update_placeholders );
 
 extern void menu_remove(const char * name, struct menu_entry * old_entry, int count);
 
@@ -327,10 +349,10 @@ menu_init( void );
 #define MENU_EOL { .priv = MENU_EOL_PRIV }
 #define MENU_IS_EOL(entry) ((intptr_t)(entry)->priv == -1)
 
-#define MENU_PLACEHOLDER(namae) { .name = namae, .priv = (void*) -2, .shidden = 1 }
-#define MENU_IS_PLACEHOLDER(entry) ((intptr_t)(entry)->priv == -2)
+#define MENU_PLACEHOLDER(namae) { .name = namae, .placeholder = 1, .shidden = 1 }
+#define MENU_IS_PLACEHOLDER(entry) ((entry)->placeholder == 1)
 
-#define MENU_ADVANCED_TOGGLE { .select = menu_advanced_toggle, .update = menu_advanced_update }
+#define MENU_ADVANCED_TOGGLE { .name = "Advanced...", .select = menu_advanced_toggle, .update = menu_advanced_update }
 
 extern MENU_SELECT_FUNC(menu_advanced_toggle);
 extern MENU_UPDATE_FUNC(menu_advanced_update);
@@ -384,7 +406,7 @@ void menu_close_submenu();
 void menu_toggle_submenu();
 
 int menu_get_value_from_script(const char* name, const char* entry_name);
-char* menu_get_str_value_from_script(const char* name, const char* entry_name);
+char* menu_get_str_value_from_script(const char* name, const char* entry_name, struct menu_display_info * info);
 int menu_set_value_from_script(const char* name, const char* entry_name, int value);
 int menu_set_str_value_from_script(const char* name, const char* entry_name, char* value, int value_int);
 

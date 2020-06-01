@@ -14,6 +14,7 @@
 #include <edmac-memcpy.h>
 #include <screenshot.h>
 #include <powersave.h>
+#include <focus.h>
 #include <alloca.h>
 
 /* optional routines */
@@ -90,21 +91,21 @@ static void timer_cbr(int arg1, void* arg2)
 {
     timer_func = 1;
     timer_arg = arg1;
-    timer_time = get_us_clock_value();
+    timer_time = get_us_clock();
 }
 
 static void overrun_cbr(int arg1, void* arg2)
 {
     timer_func = 2;
     timer_arg = arg1;
-    timer_time = get_us_clock_value();
+    timer_time = get_us_clock();
 }
 
 static void next_tick_cbr(int arg1, void* arg2)
 {
     timer_func = 3;
     timer_arg = arg1;
-    timer_time = get_us_clock_value();
+    timer_time = get_us_clock();
     SetHPTimerNextTick(arg1, 100000, timer_cbr, overrun_cbr, 0);
 }
 
@@ -165,10 +166,10 @@ static void stub_test_edmac()
         /* caveat: busy waiting; do not use in practice */
         /* here, waiting for ~10ms may be too much, as EDMAC is very fast */
         uint32_t mid = (uint32_t)CACHEABLE(dst) + size / 2;
-        uint64_t t0 = get_us_clock_value();
+        uint64_t t0 = get_us_clock();
         while (edmac_get_pointer(edmac_write_chan) < mid)
             ;
-        uint64_t t1 = get_us_clock_value();
+        uint64_t t1 = get_us_clock();
 
         /* stop here */
         AbortEDmac(edmac_write_chan);
@@ -200,8 +201,8 @@ static void stub_test_edmac()
 /* delay with interrupts disabled */
 static void busy_wait_ms(int ms)
 {
-    int t0 = get_ms_clock_value();
-    while (get_ms_clock_value() - t0 < ms)
+    int t0 = get_ms_clock();
+    while (get_ms_clock() - t0 < ms)
         ;
 }
 
@@ -433,9 +434,9 @@ static void stub_test_cache_fio()
         int handle_cache = rand() & 3;
 
         /* run one iteration and time it */
-        int t0 = get_ms_clock_value();
+        int t0 = get_ms_clock();
         int fail = stub_test_cache_fio_do(handle_cache);
-        int t1 = get_ms_clock_value();
+        int t1 = get_ms_clock();
         ASSERT(fail == (fail & 3));
 
         /* count the stats */
@@ -488,6 +489,103 @@ static void stub_test_cache()
     stub_test_cache_fio();
 
     TEST_MSG("Cache tests finished.\n\n");
+}
+
+static int wait_focus_status(int timeout, int value)
+{
+    int t0 = get_ms_clock();
+
+    while (get_ms_clock() - t0 < timeout)
+    {
+        msleep(10);
+
+        if (lv_focus_status == value)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static void stub_test_af()
+{
+    /* Autofocus (with or without LiveView) */
+    int lv0 = lv;
+
+    /* test this loop 10 times */
+    for (int k = 0; k < 10; k++)
+    {
+        if (k < 5) force_liveview();
+        else close_liveview();
+
+        while (is_manual_focus())
+        {
+            NotifyBox(2000, 
+                "Please enable autofocus.\n"
+                "Press half-shutter to skip."
+            );
+            msleep(1000);
+
+            if (HALFSHUTTER_PRESSED)
+            {
+                return;
+            }
+        }
+
+        /* assume half-shutter is not pressed before starting the test */
+        TEST_FUNC_CHECK(HALFSHUTTER_PRESSED, == 0);
+
+        /* enable autofocus on half-shutter */
+        /* lv_focus_status expected to be 3 when focusing and 1 or 2 when idle */
+        lens_setup_af(AF_ENABLE);
+        module_send_keypress(MODULE_KEY_PRESS_HALFSHUTTER);
+        msleep(200);
+        TEST_FUNC_CHECK(HALFSHUTTER_PRESSED, == 1);
+        if (lv) {
+            TEST_FUNC_CHECK(wait_focus_status(1000, 3), == 1);
+            TEST_FUNC_CHECK(lv_focus_status, == 3)
+        } else {
+            msleep(1000);
+            TEST_FUNC_CHECK(get_focus_confirmation(), != 0);
+        }
+
+        module_send_keypress(MODULE_KEY_UNPRESS_HALFSHUTTER);
+        msleep(500);
+        TEST_FUNC_CHECK(HALFSHUTTER_PRESSED, == 0);
+        if (lv) {
+            TEST_FUNC_CHECK(wait_focus_status(1000, 3), == 0);
+            TEST_FUNC_CHECK(lv_focus_status, != 3)
+        } else {
+            TEST_FUNC_CHECK(get_focus_confirmation(), == 0);
+        }
+        lens_cleanup_af();
+
+        /* disable autofocus on half-shutter */
+        /* this time, autofocus should fail */
+        lens_setup_af(AF_DISABLE);
+        module_send_keypress(MODULE_KEY_PRESS_HALFSHUTTER);
+        TEST_FUNC_CHECK(HALFSHUTTER_PRESSED, == 1);
+        if (lv)
+        {
+            TEST_FUNC_CHECK(wait_focus_status(1000, 3), == 0);
+        }
+        else
+        {
+            msleep(1000);
+            TEST_FUNC_CHECK(get_focus_confirmation(), == 0);
+        }
+        module_send_keypress(MODULE_KEY_UNPRESS_HALFSHUTTER);
+        msleep(500);
+        TEST_FUNC_CHECK(HALFSHUTTER_PRESSED, == 0);
+        TEST_FUNC_CHECK(lv_focus_status, != 3)
+        lens_cleanup_af();
+    }
+
+    if (lv0)
+    {
+        /* if the test was started from LiveView, return to LV */
+        force_liveview();
+    }
 }
 
 static void stub_test_file_io()
@@ -574,7 +672,7 @@ static void stub_test_gui_timers()
     
     /* SetTimerAfter, CancelTimer */
     {
-        int t0 = get_us_clock_value()/1000;
+        int t0 = get_us_clock()/1000;
         int ta0 = 0;
 
         /* this one should overrun */
@@ -616,7 +714,7 @@ static void stub_test_gui_timers()
         /* run these tests in PLAY mode, because the CPU usage is higher in other modes, and may influence the results */
         enter_play_mode();
 
-        int64_t t0 = get_us_clock_value();
+        int64_t t0 = get_us_clock();
         int ta0 = 0;
 
         /* this one should overrun */
@@ -635,7 +733,7 @@ static void stub_test_gui_timers()
         
         TEST_FUNC_CHECK(ABS(DeltaT(timer_time, t0) - 100000), <= 2000);
         TEST_FUNC_CHECK(ABS(DeltaT(timer_arg, ta0) - 100000), <= 2000);
-        TEST_FUNC_CHECK(ABS((get_us_clock_value() - t0) - 110000), <= 2000);
+        TEST_FUNC_CHECK(ABS((get_us_clock() - t0) - 110000), <= 2000);
 
         /* this one should call SetHPTimerNextTick in the CBR */
         timer_func = 0;
@@ -651,7 +749,7 @@ static void stub_test_gui_timers()
         TEST_FUNC_CHECK(timer_func, == 1);  /* ta0 + 310000 => timer_cbr should be called by now */
         TEST_FUNC_CHECK(ABS(DeltaT(timer_time, t0) - 300000), <= 2000);
         TEST_FUNC_CHECK(ABS(DeltaT(timer_arg, ta0) - 300000), <= 2000);
-        TEST_FUNC_CHECK(ABS((get_us_clock_value() - t0) - 310000), <= 2000);
+        TEST_FUNC_CHECK(ABS((get_us_clock() - t0) - 310000), <= 2000);
     }
 }
 
@@ -659,9 +757,9 @@ static void stub_test_other_timers()
 {
     // digic clock, msleep
     int t0, t1;
-    TEST_FUNC(t0 = *(uint32_t*)0xC0242014);
+    TEST_FUNC(t0 = GET_DIGIC_TIMER());
     TEST_VOID(msleep(250));
-    TEST_FUNC(t1 = *(uint32_t*)0xC0242014);
+    TEST_FUNC(t1 = GET_DIGIC_TIMER());
     TEST_FUNC_CHECK(ABS(MOD(t1-t0, 1048576)/1000 - 250), < 30);
 
     // calendar
@@ -707,24 +805,24 @@ static void stub_test_malloc_n_allocmem()
         TEST_FUNC_CHECK(ABS(m0-m2), < 2048);
 
         TEST_FUNC(m0 = GetFreeMemForAllocateMemory());
-        TEST_FUNC_CHECK(p = (void*)_AllocateMemory(256*1024), != 0);
+        TEST_FUNC_CHECK(p = (void*)_AllocateMemory(128*1024), != 0);
         TEST_FUNC_CHECK(CACHEABLE(p), == (int)p);
         TEST_FUNC(m1 = GetFreeMemForAllocateMemory());
         TEST_VOID(_FreeMemory(p));
         TEST_FUNC(m2 = GetFreeMemForAllocateMemory());
-        TEST_FUNC_CHECK(ABS((m0-m1) - 256*1024), < 2048);
+        TEST_FUNC_CHECK(ABS((m0-m1) - 128*1024), < 2048);
         TEST_FUNC_CHECK(ABS(m0-m2), < 2048);
 
         // these buffers may be from different memory pools, just check for leaks in main pools
         int m01, m02, m11, m12;
         TEST_FUNC(m01 = MALLOC_FREE_MEMORY);
         TEST_FUNC(m02 = GetFreeMemForAllocateMemory());
-        TEST_FUNC_CHECK(p = (void*)_alloc_dma_memory(256*1024), != 0);
+        TEST_FUNC_CHECK(p = (void*)_alloc_dma_memory(128*1024), != 0);
         TEST_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
         TEST_FUNC_CHECK(CACHEABLE(p), != (int)p);
         TEST_FUNC_CHECK(UNCACHEABLE(CACHEABLE(p)), == (int)p);
         TEST_VOID(_free_dma_memory(p));
-        TEST_FUNC_CHECK(p = (void*)_shoot_malloc(24*1024*1024), != 0);
+        TEST_FUNC_CHECK(p = (void*)_shoot_malloc(16*1024*1024), != 0);
         TEST_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
         TEST_VOID(_shoot_free(p));
         TEST_FUNC(m11 = MALLOC_FREE_MEMORY);
@@ -748,34 +846,38 @@ static void stub_test_exmem()
         int total = 0;
 
         // contiguous allocation
-        TEST_FUNC_CHECK(suite = shoot_malloc_suite_contig(24*1024*1024), != 0);
+        // assume we can allocate at least 16MB continuously
+        TEST_FUNC_CHECK(suite = shoot_malloc_suite_contig(16*1024*1024), != 0);
         TEST_FUNC_CHECK_STR(suite->signature, "MemSuite");
         TEST_FUNC_CHECK(suite->num_chunks, == 1);
-        TEST_FUNC_CHECK(suite->size, == 24*1024*1024);
+        TEST_FUNC_CHECK(suite->size, == 16*1024*1024);
         TEST_FUNC_CHECK(chunk = GetFirstChunkFromSuite(suite), != 0);
         TEST_FUNC_CHECK_STR(chunk->signature, "MemChunk");
-        TEST_FUNC_CHECK(chunk->size, == 24*1024*1024);
+        TEST_FUNC_CHECK(chunk->size, == 16*1024*1024);
         TEST_FUNC_CHECK(p = GetMemoryAddressOfMemoryChunk(chunk), != 0);
         TEST_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
         TEST_VOID(shoot_free_suite(suite); suite = 0; chunk = 0;);
 
         // contiguous allocation, largest block
+        int largest_shoot_block = 0;
         TEST_FUNC_CHECK(suite = shoot_malloc_suite_contig(0), != 0);
         TEST_FUNC_CHECK_STR(suite->signature, "MemSuite");
         TEST_FUNC_CHECK(suite->num_chunks, == 1);
-        TEST_FUNC_CHECK(suite->size, > 24*1024*1024);
+        TEST_FUNC_CHECK(suite->size, > 16*1024*1024);
         TEST_FUNC_CHECK(chunk = GetFirstChunkFromSuite(suite), != 0);
         TEST_FUNC_CHECK_STR(chunk->signature, "MemChunk");
         TEST_FUNC_CHECK(chunk->size, == suite->size);
         TEST_FUNC_CHECK(p = GetMemoryAddressOfMemoryChunk(chunk), != 0);
         TEST_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
+        TEST_FUNC(largest_shoot_block = suite->size);
+        TEST_MSG("[INFO] largest_shoot_block: %s\n", format_memory_size(largest_shoot_block));
         TEST_VOID(shoot_free_suite(suite); suite = 0; chunk = 0;);
 
         // fragmented allocation
-        TEST_FUNC_CHECK(suite = shoot_malloc_suite(64*1024*1024), != 0);
+        TEST_FUNC_CHECK(suite = shoot_malloc_suite(largest_shoot_block + 1024*1024), != 0);
         TEST_FUNC_CHECK_STR(suite->signature, "MemSuite");
         TEST_FUNC_CHECK(suite->num_chunks, > 1);
-        TEST_FUNC_CHECK(suite->size, == 64*1024*1024);
+        TEST_FUNC_CHECK(suite->size, == largest_shoot_block + 1024*1024);
 
         // iterating through chunks
         total = 0;
@@ -783,19 +885,19 @@ static void stub_test_exmem()
         while(chunk)
         {
             TEST_FUNC_CHECK_STR(chunk->signature, "MemChunk");
-            TEST_FUNC_CHECK(total += chunk->size, <= 64*1024*1024);
+            TEST_FUNC_CHECK(total += chunk->size, <= largest_shoot_block + 1024*1024);
             TEST_FUNC_CHECK(p = GetMemoryAddressOfMemoryChunk(chunk), != 0);
             TEST_FUNC_CHECK(UNCACHEABLE(p), == (int)p);
             TEST_FUNC(chunk = GetNextMemoryChunk(suite, chunk));
         }
-        TEST_FUNC_CHECK(total, == 64*1024*1024);
+        TEST_FUNC_CHECK(total, == largest_shoot_block + 1024*1024);
         TEST_VOID(shoot_free_suite(suite); suite = 0; chunk = 0; );
 
         // fragmented allocation, max size
         TEST_FUNC_CHECK(suite = shoot_malloc_suite(0), != 0);
         TEST_FUNC_CHECK_STR(suite->signature, "MemSuite");
         TEST_FUNC_CHECK(suite->num_chunks, > 1);
-        TEST_FUNC_CHECK(suite->size, > 64*1024*1024);
+        TEST_FUNC_CHECK(suite->size, >= largest_shoot_block + 1024*1024);
 
         // iterating through chunks
         total = 0;
@@ -957,7 +1059,8 @@ static void stub_test_dryos()
     msleep(100);
     TEST_FUNC_CHECK(test_task_created, == 1);
     TEST_FUNC_CHECK_STR(get_current_task_name(), "run_test");
-    
+    TEST_FUNC_CHECK_STR(get_task_name_from_id(current_task->taskId), "run_test");
+
     extern int task_max;
     TEST_FUNC_CHECK(task_max, >= 104);    /* so far, task_max is 104 on most cameras */
     TEST_FUNC_CHECK(task_max, <= 512);    /* I guess it's not higher than that */
@@ -990,9 +1093,43 @@ static void stub_test_dryos()
     TEST_FUNC_CHECK(ReleaseRecursiveLock(rlock), != 0);
 }
 
+static void stub_test_model_id()
+{
+    // model, firmware version
+    TEST_MSG("[INFO] Camera model: %s %s (0x%X %s)\n", camera_model, firmware_version, camera_model_id, __camera_model_short);
+
+    TEST_FUNC_CHECK(is_camera("DIGIC", "*"), == 1);
+    TEST_FUNC_CHECK(is_camera(__camera_model_short, firmware_version), == 1);
+
+    if (is_camera("5D3", "*"))
+    {
+        TEST_FUNC_CHECK(is_camera("5D2", "*"), == 0);
+        TEST_FUNC_CHECK(is_camera("DIGIC", "4"), == 0);
+        TEST_FUNC_CHECK(is_camera("DIGIC", "5"), == 1);
+    }
+    else if (is_camera("60D", "*"))
+    {
+        TEST_FUNC_CHECK(is_camera("600D", "*"), == 0);
+        TEST_FUNC_CHECK(is_camera("DIGIC", "5"), == 0);
+        TEST_FUNC_CHECK(is_camera("DIGIC", "4"), == 1);
+    }
+    else if (is_camera("80D", "*"))
+    {
+        TEST_FUNC_CHECK(is_camera("70D", "*"), == 0);
+        TEST_FUNC_CHECK(is_camera("DIGIC", "5"), == 0);
+        TEST_FUNC_CHECK(is_camera("DIGIC", "6"), == 1);
+    }
+    else if (is_camera("200D", "*"))
+    {
+        TEST_FUNC_CHECK(is_camera("100D", "*"), == 0);
+        TEST_FUNC_CHECK(is_camera("DIGIC", "6"), == 0);
+        TEST_FUNC_CHECK(is_camera("DIGIC", "7"), == 1);
+    }
+}
+
 static void stub_test_save_log()
 {
-    FILE* log = FIO_CreateFile( "stubtest.log" );
+    FILE* log = FIO_CreateFile("ML/LOGS/stubtest.log");
     if (log)
     {
         FIO_WriteFile(log, stub_log_buf, stub_log_len);
@@ -1023,8 +1160,10 @@ static void stub_test_task(void* arg)
     /* save log after each sub-test */
     for (int i=0; i < n; i++)
     {
+        stub_test_model_id();               stub_test_save_log();
         stub_test_edmac();                  stub_test_save_log();
         stub_test_cache();                  stub_test_save_log();
+        stub_test_af();                     stub_test_save_log();
         stub_test_file_io();                stub_test_save_log();
         stub_test_gui_timers();             stub_test_save_log();
         stub_test_other_timers();           stub_test_save_log();
@@ -1041,15 +1180,15 @@ static void stub_test_task(void* arg)
 
     enter_play_mode();
 
-    stub_test_save_log();
-    fio_free(stub_log_buf);
-    stub_log_buf = 0;
-
-    printf(
+    TEST_MSG(
         "=========================================================\n"
         "Test complete, %d passed, %d failed.\n.",
         stub_passed_tests, stub_failed_tests
     );
+
+    stub_test_save_log();
+    fio_free(stub_log_buf);
+    stub_log_buf = 0;
 }
 
 static void rpc_test_task(void* unused)
@@ -1061,7 +1200,7 @@ static void rpc_test_task(void* unused)
     {
         msleep(50);
 
-        ml_rpc_send(ML_RPC_PING, *(volatile uint32_t *)0xC0242014, 0, 0, 1);
+        ml_rpc_send(ML_RPC_PING, GET_DIGIC_TIMER(), 0, 0, 1);
         loops++;
     }
     ml_rpc_verbose(0);
@@ -1934,6 +2073,77 @@ static void edmac_test_task()
     edmac_memcpy_res_unlock();
 }
 
+static void __attribute__((optimize("-fno-delete-null-pointer-checks")))
+null_pointer_task()
+{
+    msleep(1000);
+    console_clear();
+    printf("Testing null pointer checker...\n");
+    console_show();
+    msleep(1000);
+
+    /* find the last crash log number - will trigger a new one */
+    char log_filename[100];
+    int log_number;
+    for (log_number = 99; log_number >= 0; log_number--)
+    {
+        snprintf(log_filename, sizeof(log_filename), "CRASH%02d.LOG", log_number);
+        if (is_file(log_filename))
+        {
+            ASSERT(log_number < 99);
+            break;
+        }
+    }
+
+    /* this should trigger a crash log */
+    /* the error will be noticed when DryOS switches to the next task */
+    uint32_t old = cli();
+    *(volatile uint32_t *) 0x0 = 0xBAADBAAD;
+    printf("MEM(0) = %X %s\n", MEM(0), MEM(0) == 0xBAADBAAD ? "OK" : "ERR");
+    sei(old);
+
+    msleep(1000);
+
+    /* this should be restored to the old value */
+    printf("MEM(0) = %X %s\n", MEM(0), MEM(0) == 0xBAADBAAD ? "ERR" : "OK");
+
+    /* does the new crash log look sane? */
+    snprintf(log_filename, sizeof(log_filename), "CRASH%02d.LOG", log_number + 1);
+    if (!is_file(log_filename))
+    {
+        printf("%s not saved - please report.\n", log_filename);
+    }
+    else
+    {
+        /* crash log was saved */
+        int size;
+        char * log = (char *) read_entire_file(log_filename, &size);
+        if (strstr(log, "baadbaad") && strstr(log, "run_test: NULL PTR"))
+        {
+            printf("%s looks OK.\n", log_filename);
+        }
+        else
+        {
+            printf("%s not good - please report.\n", log_filename);
+        }
+        free(log);
+    }
+
+    /* hide the crash log prompt(s) */
+    printf("Please wait; ignore any flashing prompts    ");
+    for (int i = 0; i <= 100; i++)
+    {
+        NotifyBoxHide();
+        msleep(50);
+        printf("\b\b\b(%d)", 5 - i / 20);
+    }
+
+    /* finished */
+    printf("\nNull pointer test completed.\n");
+    msleep(2000);
+    console_hide();
+}
+
 static void frozen_task()
 {
     NotifyBox(2000, "while(1);");
@@ -2064,6 +2274,13 @@ static struct menu_entry selftest_menu[] =
                 .priv       = edmac_test_task,
                 .help       = "Shift the entire display left and right with EDMAC routines.",
                 .help2      = "Fixme: this will lock up if you change the video mode during the test.",
+            },
+            {
+                .name       = "Null pointer test (quick)",
+                .select     = run_in_separate_task,
+                .priv       = null_pointer_task,
+                .help       = "Writes 0xBAADBAAD to address 0 (simulating a null pointer error).",
+                .help2      = "ML should save a crash log about 0xBAADBAAD and should not crash.",
             },
             MENU_EOL,
         }

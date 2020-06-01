@@ -718,29 +718,29 @@ static void iocrypt_speed_test()
         uint32_t delta = 0;
         uint32_t speed = 0;
         
-        start = get_ms_clock_value();
+        start = get_ms_clock();
         iocrypt_speed_test_write("IO_CRYPT.CR2", blocksize, blocks);
-        delta = get_ms_clock_value() - start;
+        delta = get_ms_clock() - start;
         speed = (blocksize / 1024) * blocks * 1000 * 10 / delta;
         trace_write(iocrypt_trace_ctx, "iocrypt_speed_test: [crypted] write %d ms, %d.%02d MB/s", delta, speed/10, speed % 10);
         bmp_printf(FONT_MED, 10, 60 + (4 * loop + 0) * font_med.height, "[crypted] write %d.%02d MB/s     ", speed/10, speed % 10);
         
-        start = get_ms_clock_value();
+        start = get_ms_clock();
         iocrypt_speed_test_read("IO_CRYPT.CR2", blocksize);
-        delta = get_ms_clock_value() - start;
+        delta = get_ms_clock() - start;
         speed = (blocksize / 1024) * blocks * 1000 * 10 / delta;
         trace_write(iocrypt_trace_ctx, "iocrypt_speed_test: [crypted] read %d ms, %d.%02d MB/s", delta, speed/10, speed % 10);
         bmp_printf(FONT_MED, 10, 60 + (4 * loop + 1) * font_med.height, "[crypted] read %d.%02d MB/s      ", speed/10, speed % 10);
 
-        start = get_ms_clock_value();
+        start = get_ms_clock();
         iocrypt_speed_test_write("IO_CRYPT.DAT", blocksize, blocks);
-        delta = get_ms_clock_value() - start;
+        delta = get_ms_clock() - start;
         speed = (blocksize / 1024) * blocks * 1000 * 10 / delta;
         trace_write(iocrypt_trace_ctx, "iocrypt_speed_test:   [plain] write %d ms, %d.%02d MB/s", delta, speed/10, speed % 10);
         bmp_printf(FONT_MED, 10, 60 + (4 * loop + 2) * font_med.height, "[plain] write %d.%02d MB/s      ", speed/10, speed % 10);
-        start = get_ms_clock_value();
+        start = get_ms_clock();
         iocrypt_speed_test_read("IO_CRYPT.DAT", blocksize);
-        delta = get_ms_clock_value() - start;
+        delta = get_ms_clock() - start;
         speed = (blocksize / 1024) * blocks * 1000 * 10 / delta;
         trace_write(iocrypt_trace_ctx, "iocrypt_speed_test:   [plain] read %d ms, %d.%02d MB/s", delta, speed/10, speed % 10);
         bmp_printf(FONT_MED, 10, 60 + (4 * loop + 3) * font_med.height, "[plain] read %d.%02d MB/s     ", speed/10, speed % 10);

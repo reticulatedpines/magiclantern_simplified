@@ -54,4 +54,22 @@ extern void CancelTimer(int timer_id);
 extern int SetHPTimerAfterNow(int delay_us, timerCbr_t timer_cbr, timerCbr_t overrun_cbr, void* priv);
 extern int SetHPTimerNextTick(int last_expiry, int offset, timerCbr_t timer_cbr, timerCbr_t overrun_cbr, void *priv);
 
+/*
+ * current timer value
+ * (similar to millis() on arduino)
+ */
+int get_seconds_clock();
+int get_ms_clock();    /* millis() on arduino */
+uint64_t get_us_clock();
+
+/* misc timer helpers */
+int should_run_polling_action(int period_ms, int* last_updated_time);
+void wait_till_next_second();
+
+/* low-level interface */
+
+#define GET_DIGIC_TIMER() *(volatile uint32_t*)0xC0242014   /* 20-bit microsecond timer */
+#define DIGIC_TIMER_MAX 1048576
+
+
 #endif //_timer_h

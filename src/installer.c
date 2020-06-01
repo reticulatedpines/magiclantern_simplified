@@ -583,7 +583,7 @@ void bvram_mirror_init(){};
 int display_is_on_550D = 0;
 int get_display_is_on_550D() { return display_is_on_550D; }
 void config_save(){};
-int get_ms_clock_value() { return 0; }
+int get_ms_clock() { return 0; }
 char * get_task_name_from_id(int id) { return ""; }
 void beep() {} ;
 uint32_t ml_used_mem = 0;

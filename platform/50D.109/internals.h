@@ -139,4 +139,7 @@
 #define CONFIG_RAW_DISABLE_IN_10X_ZOOM_WEAK
 
 /** Use joystick for one-finger menu navigation */
-#define CONFIG_JOY_CENTER_ACTIONS
+#define CONFIG_LONG_PRESS_JOYSTICK_MENU
+
+/** Focus commands are not confirmed in LiveView (lens_focus - requires pfAfComplete_counter stub) */
+#define CONFIG_FOCUS_COMMANDS_PROP_NOT_CONFIRMED

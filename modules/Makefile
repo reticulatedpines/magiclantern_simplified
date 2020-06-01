@@ -24,7 +24,7 @@ all_silent: $(MODULES_ALL_TARGETS_DELETE_IF_FAILED)
 # run module-specific clean rules
 # also run a generic clean, just in case there are any modules left over
 clean: $(MODULES_CLEAN_ALL_TARGETS)
-	$(call rm_files, $(addprefix $(MODULES_DIR)/, *.o *.d *.dep *.sym hgstamp))
+	$(call rm_files, $(addprefix $(MODULES_DIR)/, */*.mo */*.o */*.d */*.dep */*.sym */module_strings.h */hgstamp */hginfo.tmp))
 
 install: | prepare_install_dir
 install: all

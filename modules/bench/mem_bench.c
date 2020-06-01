@@ -77,8 +77,8 @@ static void mem_benchmark_run(char* msg, int* y, int bufsize, mem_bench_fun benc
         msleep(200);
 
         int times = 0;
-        int t0m = get_ms_clock_value();
-        int64_t t0 = get_us_clock_value();
+        int t0m = get_ms_clock();
+        int64_t t0 = get_us_clock();
         for (int i = 0; i < INT_MAX; i++)
         {
             if (i%2) info_led_off(); else info_led_on();
@@ -86,13 +86,13 @@ static void mem_benchmark_run(char* msg, int* y, int bufsize, mem_bench_fun benc
             bench_fun(arg0, arg1, arg2, arg3);
 
             /* run the benchmark for roughly 1 second */
-            if (get_ms_clock_value_fast() - t0m > 1000)
+            if (get_ms_clock() - t0m > 1000)
             {
                 times = i + 1;
                 break;
             }
         }
-        int64_t t1 = get_us_clock_value();
+        int64_t t1 = get_us_clock();
         int64_t dt = t1 - t0;
 
         info_led_off();

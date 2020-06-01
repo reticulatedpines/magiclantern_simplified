@@ -1,5 +1,5 @@
 /***
- Intervalometer operations and properties
+ Intervalometer operations and properties.
  
  @author Magic Lantern Team
  @copyright 2014
@@ -16,15 +16,15 @@
 static int luaCB_interval_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
-    /// Get/Set the interval time (in seconds)
+    /// Get/Set the interval time (in seconds).
     // @tfield int time
     if(!strcmp(key, "time")) lua_pushinteger(L, get_interval_time());
-    /// Get the current number of pictures that have been taken
-    // @tfield int count
+    /// Get the current number of pictures that have been taken.
+    // @tfield int count readonly
     else if(!strcmp(key, "count")) lua_pushinteger(L, get_interval_count());
-    /// Get whether or not the intervalometer is currently running
-    // @tfield bool running
-    else if(!strcmp(key, "running")) lua_pushinteger(L, is_intervalometer_running());
+    /// Get whether or not the intervalometer is currently running.
+    // @tfield bool running readonly
+    else if(!strcmp(key, "running")) lua_pushboolean(L, is_intervalometer_running());
     else lua_rawget(L, 1);
     return 1;
 }

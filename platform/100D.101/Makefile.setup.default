@@ -1,0 +1,4 @@
+#Makefile for 100D
+
+ML_SRC_EXTRA_OBJS = \
+	reloc.o \

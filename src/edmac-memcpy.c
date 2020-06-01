@@ -81,6 +81,9 @@ static void edmac_memcpy_init()
     resLock = CreateResLockEntry(resIds, 4);
     
     ASSERT(resLock);
+
+    /* just to make sure we have this stub */
+    static int AbortEDmac_check __attribute__((used)) = &AbortEDmac;
 }
 
 INIT_FUNC("edmac_memcpy", edmac_memcpy_init);
@@ -355,14 +358,14 @@ static void edmac_slurp_complete_cbr (void* ctx)
 void edmac_raw_slurp(void* dst, int w, int h)
 {
     /* see wiki, register map, EDMAC what the flags mean. they are for setting up copy block size */
-#if defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_EOSM)
+#if defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_EOSM) || defined(CONFIG_100D)
     uint32_t dmaFlags = EDMAC_2_BYTES_PER_TRANSFER;
 #elif defined(CONFIG_6D)
     uint32_t dmaFlags = EDMAC_4_BYTES_PER_TRANSFER;
 #else
     uint32_t dmaFlags = EDMAC_8_BYTES_PER_TRANSFER;
 #endif
-    
+
     /* @g3gg0: this callback does get called */
     RegisterEDmacCompleteCBR(raw_write_chan, &edmac_slurp_complete_cbr, 0);
     RegisterEDmacAbortCBR(raw_write_chan, &edmac_slurp_complete_cbr, 0);

@@ -211,15 +211,34 @@ void force_liveview()
     msleep(50);
     if (lv) return;
     info_led_on();
+
+    /* wait for some preconditions */
     while (sensor_cleaning) msleep(100);
+    while (lens_info.job_state) msleep(100);
     while (get_halfshutter_pressed()) msleep(100);
+
+    /* paused LV? */
     ResumeLiveView();
     while (get_halfshutter_pressed()) msleep(100);
-    SetGUIRequestMode(0);
-    msleep(200);
+
+    if (CURRENT_GUI_MODE)
+    {
+        /* we may be in some Canon menu opened from LiveView */
+        SetGUIRequestMode(0);
+        msleep(1000);
+    }
+
+    if (!lv)
+    {
+        /* we are probably in photo mode */
+        fake_simple_button(BGMT_LV);
+        msleep(1500);
+    }
+
     info_led_off();
-    if (!lv) fake_simple_button(BGMT_LV);
-    msleep(1500);
+
+    /* make sure LiveView is up and running */
+    wait_lv_frames(3);
 #endif
 }
 

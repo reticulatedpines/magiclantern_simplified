@@ -1,10 +1,16 @@
 #include "ml-lua-shim.h"
+
+/* undefine realloc, because we'll call the core function here */
+#undef realloc
+void *realloc(void *ptr, size_t size);
+
 #include <math.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <fio-ml.h>
 #include <errno.h>
+#include "umm_malloc/umm_malloc.h"
 
 #undef DEBUG
 
@@ -17,7 +23,7 @@
 /* note: this does not add newline */
 void console_puts(const char* str);
 
-extern const char * format_memory_size( unsigned size); /* e.g. 2.0GB, 32MB, 2.4kB... */
+extern const char * format_memory_size( uint64_t size); /* e.g. 2.0GB, 32MB, 2.4kB... */
 
 static uint64_t filesizes[16] = {0};
 
@@ -117,7 +123,7 @@ ssize_t __libc_read(int fd, void* buf, size_t count)
 
 ssize_t __libc_write(int fd, const void* buf, size_t count)
 {
-    dbg_printf("__libc_write(%d,%s)\n", fd, format_memory_size(count));
+    dbg_printf("__libc_write(%d,%s,%s)\n", fd, buf, format_memory_size(count));
     
     switch (fd)
     {
@@ -134,18 +140,26 @@ ssize_t __libc_write(int fd, const void* buf, size_t count)
                 /* pop the console on error */
                 console_show();
             }
-            
+
             /* the buffer is not null-terminated */
-            char* msg = (char*) buf;
-            int last_char = msg[count-1];
-            msg[count-1] = 0;
-            console_puts(msg);
-            console_puts((char*) &last_char);
-            
+            if (count > 0)
+            {
+                int old = cli();
+                char* msg = (char*) buf;
+                int last_char = msg[count-1];
+                msg[count-1] = 0;
+                console_puts(msg);
+                console_puts((char*) &last_char);
+                msg[count-1] = last_char;
+                sei(old);
+            }
+
             return count;
         }
         default:
+        {
             return FIO_WriteFile((void*) fd, buf, count);
+        }
     }
 }
 
@@ -216,14 +230,69 @@ void* malloc(size_t size)
 {
     /* this appears to be called only from dietlibc stdio
      * if it has round values, assume it's fio_malloc, for buffering files */
-    int is_fio = !(size & 0xFF);
+    int is_fio = !(size & 0x3FF);
     dbg_printf("%smalloc(%s)\n", is_fio ? "fio_" : "", format_memory_size(size));
-    return __mem_malloc(size, is_fio ? 3 : 0, "lua_stdio", 0);
+    
+    void* ans = 0;
+    
+    if (size < 1024 && !is_fio)
+    {
+        /* process small requests with umm_malloc */
+        ans = umm_malloc(size);
+    }
+    
+    if (ans == 0)
+    {
+        /* process large and/or failed requests with core malloc wrapper */
+        ans = __mem_malloc(size, is_fio ? 3 : 0, "lua_stdio", 0);
+    }
+    
+    return ans;
 }
 
 void free(void* ptr)
 {
-    __mem_free(ptr);
+    if (umm_ptr_in_heap(ptr))
+    {
+        umm_free(ptr);
+    }
+    else
+    {
+        __mem_free(ptr);
+    }
+}
+
+int core_reallocs = 0;
+int core_reallocs_size = 0;
+
+void* my_realloc(void* ptr, size_t size)
+{
+    int use_umm =
+        (umm_ptr_in_heap(ptr)) ||
+        (ptr == 0 && size < 1024);
+    
+    void* ans = 0;
+    
+    if (use_umm)
+    {
+        ans = umm_realloc(ptr, size);
+        
+        if (ans == 0 && size > 0)
+        {
+            /* umm_realloc failed? try again using core malloc */
+            ans = __mem_malloc(size, 0, "lua", __LINE__);
+            if (ans) memcpy(ans, ptr, size);
+            umm_free(ptr);
+            core_reallocs++;
+            core_reallocs_size += size;
+        }
+    }
+    else
+    {
+        ans = realloc(ptr, size);
+    }
+    
+    return ans;
 }
 
 void abort()
@@ -252,6 +321,8 @@ int ftoa(char *s, float n) {
         int neg = (n < 0);
         if (neg)
             n = -n;
+        // round to our precision
+        n += PRECISION / 2;
         // calculate magnitude
         m = log10f(n);
         int useExp = (m >= 14 || (neg && m >= 9) || m <= -9);

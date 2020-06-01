@@ -7,10 +7,19 @@
 #include <bmp.h>
 #include <menu.h>
 #include <beep.h>
+#include <console.h>
+#include <powersave.h>
 #include "file_man.h"
 
 
 //Definitions
+
+enum file_entry_type {
+    TYPE_DIR,
+    TYPE_FILE,
+    TYPE_ACTION,
+};
+
 #define MAX_PATH_LEN 0x80
 struct file_entry
 {
@@ -18,7 +27,7 @@ struct file_entry
     struct menu_entry * menu_entry;
     char name[MAX_PATH_LEN];
     unsigned int size;
-    unsigned int type: 2;
+    enum file_entry_type type;
     unsigned int timestamp;
 };
 
@@ -27,11 +36,6 @@ typedef struct _multi_files
     struct _multi_files *next;
     char name[MAX_PATH_LEN];
 }FILES_LIST;
-
-
-#define TYPE_DIR 0
-#define TYPE_FILE 1
-#define TYPE_ACTION 2
 
 enum _FILER_OP {
     FILE_OP_NONE,
@@ -94,6 +98,7 @@ static MENU_SELECT_FUNC(FileOpCancel);
 static unsigned int mfile_add_tail(char* path);
 static unsigned int mfile_clean_all();
 static int mfile_is_regged(char *fname);
+static int mfile_get_count();
 struct filetype_handler fileman_filetypes[MAX_FILETYPE_HANDLERS];
 
 /**********************************
@@ -133,6 +138,14 @@ static MENU_UPDATE_FUNC(main_update)
         /* close the viewer if we are at top level (e.g. if we exit the viewer via half-shutter) */
         view_file = 0;
     }
+
+    update_status(entry, info);
+
+    if (gStatusMsg[0])
+    {
+        /* show a BUSY icon */
+        MENU_SET_ICON(MNI_RECORD, 0);
+    }
 }
 
 static struct menu_entry fileman_menu[] =
@@ -166,7 +179,7 @@ static void clear_file_menu()
     free(compacted);
 }
 
-static struct file_entry * add_file_entry(char* txt, int type, int size, int timestamp)
+static struct file_entry * add_file_entry(char* txt, enum file_entry_type type, int size, int timestamp)
 {
     struct file_entry * fe = malloc(sizeof(struct file_entry));
     if (!fe) return 0;
@@ -186,22 +199,27 @@ static struct file_entry * add_file_entry(char* txt, int type, int size, int tim
 
     fe->type = type;
     fe->menu_entry->select_Q = BrowseUpMenu;
-    if (fe->type == TYPE_DIR)
+
+    /* note: each update function must display a name */
+    switch (fe->type)
     {
-        fe->menu_entry->select = select_dir;
-        fe->menu_entry->update = update_dir;
+        case TYPE_DIR:
+            fe->menu_entry->select = select_dir;
+            fe->menu_entry->update = update_dir;
+            break;
+
+        case TYPE_FILE:
+            fe->menu_entry->select = select_file;
+            fe->menu_entry->update = update_file;
+            break;
+
+        case TYPE_ACTION:
+            fe->menu_entry->select = default_select_action;
+            fe->menu_entry->update = update_action;
+            fe->menu_entry->icon_type = IT_ACTION;
+            break;
     }
-    else if (fe->type == TYPE_FILE)
-    {
-        fe->menu_entry->select = select_file;
-        fe->menu_entry->update = update_file;
-    }
-    else if (fe->type == TYPE_ACTION)
-    {
-        fe->menu_entry->select = default_select_action;
-        fe->menu_entry->update = update_action;
-        fe->menu_entry->icon_type = IT_ACTION;
-    }
+
     fe->next = file_entries;
     file_entries = fe;
     return fe;
@@ -224,7 +242,7 @@ static bool ordered_file_entries(struct file_entry *a, struct file_entry *b)
 
 static void build_file_menu()
 {
-    int start_time = get_ms_clock_value();
+    int start_time = get_ms_clock();
 
     // Mergesort on a linked list
     // e.g., http://www.chiark.greenend.org.uk/~sgtatham/algorithms/listsort.html
@@ -296,7 +314,7 @@ static void build_file_menu()
 
         length *= 2;
 
-    } while ((nmerges > 1) && (get_ms_clock_value() - start_time < 3000)); // Allows 3 seconds for the Mergesort
+    } while ((nmerges > 1) && (get_ms_clock() - start_time < 3000)); // Allows 3 seconds for the Mergesort
 
     file_entries = list;
 
@@ -311,7 +329,15 @@ static void build_file_menu()
         ptr++;
     }
 
-    menu_add_base("File Manager", compacted, count, false); // do not update placeholders
+    menu_add("File Manager", compacted, count);
+
+    /* disable name lookup on this submenu */
+    /* (it will take effect as soon as we have a non-empty submenu; further calls are superfluous) */
+    if (compacted)
+    {
+        ASSERT(compacted->parent_menu);
+        compacted->parent_menu->no_name_lookup = 1;
+    }
 }
 
 static struct semaphore * scandir_sem = 0;
@@ -464,10 +490,12 @@ static void BrowseUp()
     }
 }
 
-static void
-FileCopy(void *unused)
+static void FileCopyOrMove(int op)
 {
 MFILE_SEM (
+    /* this may take a long time - prevent powersaving from interrupting us */
+    powersave_prohibit();
+
     char fname[MAX_PATH_LEN];
     char tmpdst[MAX_PATH_LEN];
     char dstfile[MAX_PATH_LEN];
@@ -475,7 +503,14 @@ MFILE_SEM (
     FILES_LIST *mf = mfile_root;
     strcpy(tmpdst,gPath);
 
-    while(mf->next){
+    int copy = (op == FILE_OP_COPY);
+    int move = (op == FILE_OP_MOVE);
+    ASSERT(copy || move);
+
+    int N = mfile_get_count();
+
+    for (int k = 0; mf->next; k++)
+    {
         mf = mf->next;
         dstfile[0] = 0;
         fname[0] = 0;
@@ -484,62 +519,45 @@ MFILE_SEM (
         while (p > mf->name && *p != '/') p--;
         strcpy(fname,p+1);
         
-        snprintf(dstfile,MAX_PATH_LEN,"%s%s",tmpdst,fname);
-        if(streq(mf->name,dstfile)) continue; // src and dst are idential.skip this transaction.
+        snprintf(dstfile, MAX_PATH_LEN, "%s%s", tmpdst, fname);
+
+        if(streq(mf->name,dstfile))
+        {
+            // src and dst are identical. skip this transaction.
+            continue;
+        }
         
-        snprintf(gStatusMsg, sizeof(gStatusMsg), "Copying %s to %s...", mf->name, tmpdst);
-        int err = FIO_CopyFile(mf->name,dstfile);
-        if (err) snprintf(gStatusMsg, sizeof(gStatusMsg), "Copy error (%d)", err);
-        else gStatusMsg[0] = 0;
+        snprintf(gStatusMsg, sizeof(gStatusMsg),
+            "[%d/%d] %s %s to %s...", k, N,
+            move ? "Moving" : "Copying", mf->name, tmpdst
+        );
+
+        int err = (move ? FIO_MoveFile : FIO_CopyFile)(mf->name, dstfile);
+        if (err)
+        {
+            console_show();
+            printf("%s -> %s: %s error (%d)", mf->name, dstfile, move ? "move" : "copy", err);
+        }
+
+        gStatusMsg[0] = 0;
     }
 
     mfile_clean_all();
 
     /* are we still in the same dir? rescan */
-    if(!strcmp(gPath,tmpdst)) ScanDir(gPath);
-)
-}
-
-static void
-FileMove(void *unused)
-{
-MFILE_SEM (
-    
-    char fname[MAX_PATH_LEN];
-    char tmpdst[MAX_PATH_LEN];
-    char dstfile[MAX_PATH_LEN];
-    size_t totallen = 0;
-    FILES_LIST *mf = mfile_root;
-    strcpy(tmpdst,gPath);
-
-    while(mf->next){
-        mf = mf->next;
-        dstfile[0] = 0;
-        fname[0] = 0;
-        totallen = strlen(mf->name);
-        char *p = mf->name + totallen;
-        while (p > mf->name && *p != '/') p--;
-        strcpy(fname,p+1);
-        
-        snprintf(dstfile,MAX_PATH_LEN,"%s%s",tmpdst,fname);
-        if(streq(mf->name,dstfile)) continue; // src and dst are idential.skip this transaction.
-        
-        snprintf(gStatusMsg, sizeof(gStatusMsg), "Moving %s to %s...", mf->name, tmpdst);
-        int err = FIO_MoveFile(mf->name,dstfile);
-        if (err) snprintf(gStatusMsg, sizeof(gStatusMsg), "Move error (%d)", err);
-        else gStatusMsg[0] = 0;
+    if(!strcmp(gPath,tmpdst))
+    {
+        ScanDir(gPath);
     }
 
-    mfile_clean_all();
-    ScanDir(gPath);
+    powersave_permit();
 )
 }
-
 
 static MENU_SELECT_FUNC(FileCopyStart)
 {
 MFILE_SEM (
-    task_create("filecopy_task", 0x1b, 0x4000, FileCopy, 0);
+    task_create("filecopy_task", 0x1b, 0x4000, FileCopyOrMove, (void *) FILE_OP_COPY);
     op_mode = FILE_OP_NONE;
 )
     ScanDir(gPath);
@@ -548,7 +566,7 @@ MFILE_SEM (
 static MENU_SELECT_FUNC(FileMoveStart)
 {
 MFILE_SEM (
-    task_create("filemove_task", 0x1b, 0x4000, FileMove, 0);
+    task_create("filemove_task", 0x1b, 0x4000, FileCopyOrMove, (void *) FILE_OP_MOVE);
     op_mode = FILE_OP_NONE;
 )
     ScanDir(gPath);
@@ -593,7 +611,8 @@ static MENU_UPDATE_FUNC(update_dir)
 static const char * format_date_size( unsigned size, unsigned timestamp )
 {
     static char str[32];
-    static char datestr [11];
+    char sizestr[16];
+    char datestr[11];
     int year=1970;                   // Unix Epoc begins 1970-01-01
     int month=11;                    // This will be the returned MONTH NUMBER.
     int day;                         // This will be the returned day number. 
@@ -632,35 +651,20 @@ static const char * format_date_size( unsigned size, unsigned timestamp )
     else  
         snprintf( datestr, sizeof(datestr), "%02d/%02d/%d ", day, month, year);
 
-    if ( size >= 1000*1024*1024-512*1024/10 ) // transition from "999.9MB" to " 0.98GB"
+    snprintf( sizestr, sizeof(sizestr), "%s", format_memory_size(size));
+
+    while (bmp_string_width(MENU_FONT, sizestr) < 100)
     {
-        int size_gb = (size/1024/1024 * 100 + 512)  / 1024;
-        snprintf( str, sizeof(str), "%s %s%2d.%02dGB", datestr, FMT_FIXEDPOINT2(size_gb));
+        void* memmove(void*, void*, int);
+        memmove(sizestr + 1, sizestr, sizeof(sizestr) - 1);
+        sizestr[0] = ' ';
+        sizestr[sizeof(sizestr)-1] = '\0';
     }
-    else if ( size >= 10*1024*1024-512*1024/100 ) // transition from " 9.99MB" to " 10.0MB"
-    {
-        int size_mb = (size/1024 * 10 + 512) / 1024;
-        snprintf( str, sizeof(str), "%s %s%3d.%01dMB", datestr, FMT_FIXEDPOINT1(size_mb));
-    }
-    else if ( size >= 1000*1024-512/10 ) // transition from "999.9kB" to " 0.98MB"
-    {
-        int size_mb = (size/1024 * 100 + 512) / 1024;
-        snprintf( str, sizeof(str), "%s %s%2d.%02dMB", datestr, FMT_FIXEDPOINT2(size_mb));
-    }
-    else if ( size >= 10*1024-512/100 ) // transition from " 9.99kB" to " 10.0kB"
-    {
-        int size_kb = (size * 10 + 512) / 1024;
-        snprintf( str, sizeof(str), "%s %s%3d.%01dkB", datestr, FMT_FIXEDPOINT1(size_kb));
-    }
-    else if ( size >= 1000 ) // transition from "  999 B" to " 0.98kB"
-    {
-        int size_kb = (size * 100 + 512) / 1024;
-        snprintf( str, sizeof(str), "%s %s%2d.%02dkB", datestr, FMT_FIXEDPOINT2(size_kb));
-    }
-    else
-    {
-        snprintf( str, sizeof(str), "%s   %3d B", datestr, size);
-    }
+
+    int minute = (timestamp / 60) % 60;
+    int hour = (timestamp / 60 / 60) % 24;
+
+    snprintf( str, sizeof(str), "%s %02d:%02d %s", datestr, hour, minute, sizestr);
 
     return str;
 }
@@ -779,7 +783,7 @@ MFILE_SEM (
 
     if (!delete_confirm_flag)
     {
-        delete_confirm_flag = get_ms_clock_value();
+        delete_confirm_flag = get_ms_clock();
         beep();
     }
     else
@@ -808,7 +812,7 @@ static MENU_UPDATE_FUNC(delete_confirm)
     update_action(entry, info);
 
     /* delete confirmation timeout after 2 seconds */
-    if (get_ms_clock_value() > delete_confirm_flag + 2000)
+    if (get_ms_clock() > delete_confirm_flag + 2000)
         delete_confirm_flag = 0;
 
     /* no question mark in in our font, fsck! */
@@ -1173,7 +1177,7 @@ static MENU_UPDATE_FUNC(update_file)
     if (entry->selected && view_file)
     {
         static int last_updated = 0;
-        int t = get_ms_clock_value();
+        int t = get_ms_clock();
         if (t - last_updated > 1000) dirty = 1;
 
         static char prev_filename[MAX_PATH_LEN];
@@ -1208,7 +1212,7 @@ static MENU_UPDATE_FUNC(update_file)
             /* nothing changed, keep previous screen */
             info->custom_drawing = CUSTOM_DRAW_DO_NOT_DRAW;
         }
-        last_updated = get_ms_clock_value();
+        last_updated = get_ms_clock();
     }
 }
 

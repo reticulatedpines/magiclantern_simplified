@@ -349,7 +349,7 @@ static MENU_SELECT_FUNC(reg_clear_override)
             .select = reg_toggle, \
             .select_Q = reg_clear_override, \
             .update = reg_update, \
-            .edit_mode = EM_MANY_VALUES_LV, \
+            .edit_mode = EM_SHOW_LIVEVIEW, \
             .shidden = 1, \
         }
 
@@ -1064,7 +1064,14 @@ static unsigned int adtg_gui_init()
     {
         ADTG_WRITE_FUNC = 0x178FC; //"[REG] @@@@@@@@@@@@ Start ADTG[CS:%lx]"
         CMOS_WRITE_FUNC = 0x17A1C; //"[REG] ############ Start CMOS"
-    }    
+    }
+    else if (is_camera("100D", "1.0.1"))
+    {
+        ADTG_WRITE_FUNC = 0x47144; //"[REG] @@@@@@@@@@@@ Start ADTG[CS:%lx]"
+        CMOS_WRITE_FUNC = 0x475B8; //"[REG] ############ Start CMOS"
+        ENGIO_WRITE_FUNC = 0xFF2B2460;  // from stubs
+        ENG_DRV_OUT_FUNC = 0xFF2B2148;
+    }
     else return CBR_RET_ERROR;
 
     

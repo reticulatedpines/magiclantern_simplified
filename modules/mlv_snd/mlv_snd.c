@@ -53,7 +53,7 @@ extern WEAK_FUNC(ret_0) int SetAudioVolumeOut(uint32_t);
 extern WEAK_FUNC(ret_0) int SoundDevActiveIn(uint32_t);
 extern WEAK_FUNC(ret_0) int SoundDevShutDownIn();
 extern void SetSamplingRate(int sample_rate, int channels);
-extern uint64_t get_us_clock_value();
+extern uint64_t get_us_clock();
 
 extern void mlv_rec_get_slot_info(int32_t slot, uint32_t *size, void **address);
 extern int32_t mlv_rec_get_free_slot();
@@ -119,7 +119,7 @@ static void mlv_snd_asif_in_cbr()
     /* the next buffer is now being filled, so update timestamp. do this first to be closer to real start. */
     if(mlv_snd_next_buffer)
     {
-        mlv_snd_next_buffer->timestamp = get_us_clock_value();
+        mlv_snd_next_buffer->timestamp = get_us_clock();
     }
     
     /* and pass the filled buffer into done queue */
@@ -448,7 +448,7 @@ static void mlv_snd_queue_wavi()
     
     mlv_set_type((mlv_hdr_t*)hdr, "WAVI");
     hdr->blockSize = sizeof(mlv_wavi_hdr_t);
-    mlv_rec_set_rel_timestamp((mlv_hdr_t*)hdr, get_us_clock_value());
+    mlv_rec_set_rel_timestamp((mlv_hdr_t*)hdr, get_us_clock());
     
     /* this part is compatible to RIFF WAVE/fmt header */
     hdr->format = 1;
@@ -564,7 +564,7 @@ static unsigned int mlv_snd_vsync(unsigned int unused)
             StartASIFDMAADC(mlv_snd_current_buffer->data, mlv_snd_current_buffer->length, mlv_snd_next_buffer->data, mlv_snd_next_buffer->length, mlv_snd_asif_in_cbr, 0);
             
             /* the current one will get filled right now */
-            mlv_snd_current_buffer->timestamp = get_us_clock_value();
+            mlv_snd_current_buffer->timestamp = get_us_clock();
             trace_write(trace_ctx, "mlv_snd_vsync: starting audio DONE");
         }
         else

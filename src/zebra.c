@@ -161,8 +161,6 @@ static int show_lv_fps = 0; // for debugging
 
 #define WAVEFORM_FULLSCREEN (waveform_draw && waveform_size == 2)
 
-#define BVRAM_MIRROR_SIZE (BMPPITCH*540)
-
 CONFIG_INT("lv.disp.profiles", disp_profiles_0, 0);
 
 static CONFIG_INT("disp.mode", disp_mode, 0);
@@ -421,7 +419,7 @@ int get_global_draw() // menu setting, or off if
     
     #ifdef CONFIG_CONSOLE
     extern int console_visible;
-    if (console_visible) return 0;
+    if (console_visible && !lv) return 0;
     #endif
     
     if (lv && ZEBRAS_IN_LIVEVIEW)
@@ -854,6 +852,7 @@ static MENU_UPDATE_FUNC(raw_zebra_update)
 }
 #endif
 
+/* used for auto bracketing */
 int get_under_and_over_exposure(int thr_lo, int thr_hi, int* under, int* over)
 {
     *under = -1;
@@ -865,16 +864,16 @@ int get_under_and_over_exposure(int thr_lo, int thr_hi, int* under, int* over)
     *over = 0;
     int total = 0;
     void* vram = lv->vram;
-    int x,y;
-    for( y = os.y0 ; y < os.y_max; y ++ )
+
+    bmp_draw_rect(COLOR_GRAY(50), os.x0 + 20, os.y0 + 20, os.x_ex - 40, os.y_ex - 40);
+    for (int y = os.y0 + 20 ; y < os.y_max - 20; y++)
     {
         uint32_t * const v_row = (uint32_t*)( vram + BM2LV_R(y) );
-        for( x = os.x0 ; x < os.x_max ; x += 2 )
+        for (int x = os.x0 + 20 ; x < os.x_max - 20; x += 2)
         {
             uint32_t pixel = v_row[x >> 1];
             
             int Y, R, G, B;
-            //~ uyvy2yrgb(pixel, &Y, &R, &G, &B);
             COMPUTE_UYVY2YRGB(pixel, Y, R, G, B);
             
             int M = MAX(R,G);
@@ -2686,7 +2685,6 @@ struct menu_entry zebra_menus[] = {
         .select_Q   = toggle_disp_mode_menu,
         .update    = global_draw_display,
         .icon_type = IT_DICE_OFF,
-        .edit_mode = EM_MANY_VALUES,
         .choices = (const char *[]) {"OFF", "LiveView", "QuickReview", "ON, all modes"},
         .help = "Enable/disable ML overlay graphics (zebra, cropmarks...)",
         //.essential = FOR_LIVEVIEW,
@@ -3368,10 +3366,10 @@ static void draw_zoom_overlay(int dirty)
     {
         int timeout_us = timeout_ms * 1000;
         void* old = (void*)shamem_read(hd ? REG_EDMAC_WRITE_HD_ADDR : REG_EDMAC_WRITE_LV_ADDR);
-        int t0 = *(uint32_t*)0xC0242014;
+        int t0 = GET_DIGIC_TIMER();
         while(1)
         {
-            int t1 = *(uint32_t*)0xC0242014;
+            int t1 = GET_DIGIC_TIMER();
             int dt = MOD(t1 - t0, 1048576);
             void* new = (void*)shamem_read(hd ? REG_EDMAC_WRITE_HD_ADDR : REG_EDMAC_WRITE_LV_ADDR);
             if (old != new) break;
@@ -3436,6 +3434,9 @@ static void draw_zoom_overlay(int dirty)
             break;
     }
 
+    /* (W<<1) should be 64-bit aligned for memset64 */
+    W &= ~3;
+
     // Magnification factor
     int X = zoom_overlay_x + 1;
 
@@ -3479,8 +3480,9 @@ static void draw_zoom_overlay(int dirty)
         #endif
         w /= X;
         h /= X;
+        w &= ~3;    /* (w<<1) should be 64-bit aligned for memset64 */
         const int val_in_coerce_w = aff_x0_lv - (w>>1);
-        const int coerce_w = COERCE(val_in_coerce_w, 0, 720-w);
+        const int coerce_w = COERCE(val_in_coerce_w, 0, 720-w) & ~1;    /* should be 32-bit (2px) aligned for memset64 */
         const int val_in_coerce_h1 = aff_y0_lv - (h>>1);
         const int val_in_coerce_h2 = aff_y0_lv + (h>>1);
 
@@ -3492,7 +3494,7 @@ static void draw_zoom_overlay(int dirty)
 
     //~ draw_circle(x0,y0,45,COLOR_WHITE);
     int y;
-    int x0c = COERCE(zb_x0_lv - (W>>1), 0, lv->width-W);
+    int x0c = COERCE(zb_x0_lv - (W>>1), 0, lv->width-W) & ~1;   /* should be 32-bit (2px) aligned for memset64 */
     int y0c = COERCE(zb_y0_lv - (H>>1), 0, lv->height-H);
 
     extern int focus_value;
@@ -3527,6 +3529,7 @@ static void draw_zoom_overlay(int dirty)
     #ifdef CONFIG_1100D
     H /= 2; //LCD res fix (half height)
     #endif
+
     memset64(lvr + x0c + COERCE(0   + y0c, 0, 720) * lv->width, rawoff ? MZ_BLACK : MZ_GREEN, W<<1);
     memset64(lvr + x0c + COERCE(1   + y0c, 0, 720) * lv->width, rawoff ? MZ_WHITE : MZ_GREEN, W<<1);
     if (!rawoff) {
@@ -3729,6 +3732,7 @@ void draw_histogram_and_waveform(int allow_play)
 #ifdef FEATURE_HISTOGRAM
     if( hist_draw && !WAVEFORM_FULLSCREEN)
     {
+        extern int console_visible;
         #ifdef CONFIG_4_3_SCREEN
         if (PLAY_OR_QR_MODE)
             BMP_LOCK( hist_draw_image( os.x0 + 500,  1); )
@@ -3736,6 +3740,8 @@ void draw_histogram_and_waveform(int allow_play)
         #endif
         if (should_draw_bottom_graphs())
             BMP_LOCK( hist_draw_image( os.x0 + 50,  480 - hist_height - 1); )
+        else if (console_visible)
+            BMP_LOCK( hist_draw_image( os.x_max - HIST_WIDTH - 5, os.y0 + 70); )
         else if (screen_layout == SCREENLAYOUT_3_2)
             BMP_LOCK( hist_draw_image( os.x_max - HIST_WIDTH - 2,  os.y_max - (lv ? os.off_169 + 10 : 0) - hist_height - 1); )
         else
@@ -4471,9 +4477,6 @@ INIT_FUNC(__FILE__, zebra_init);
 
 static void make_overlay()
 {
-    //~ draw_cropmark_area();
-    msleep(1000);
-    //~ bvram_mirror_init();
     clrscr();
 
     bmp_printf(FONT_MED, 0, 0, "Saving overlay...");
@@ -4509,23 +4512,27 @@ static void make_overlay()
     FILE* f = FIO_CreateFile("ML/DATA/overlay.dat");
     if (f)
     {
-        FIO_WriteFile( f, (const void *) bvram_mirror, BVRAM_MIRROR_SIZE);
+        /* note: bvram_mirror's size is smaller than BMP_VRAM_SIZE */
+        FIO_WriteFile( f, (const void *) bvram_mirror, BMPPITCH * 480);
         FIO_CloseFile(f);
-        bmp_printf(FONT_MED, 0, 0, "Overlay saved.  ");
+        bmp_printf(FONT_MED, 0, 0, "Overlay saved.   ");
     }
     else
     {
-        bmp_printf(FONT_MED, 0, 0, "Overlay error.  ");
+        bmp_printf(FONT_MED, 0, 0, "Overlay error.   ");
     }
     msleep(1000);
 }
 
 static void show_overlay()
 {
-    //~ bvram_mirror_init();
-    //~ struct vram_info * vram = get_yuv422_vram();
-    //~ uint8_t * const lvram = vram->vram;
-    //~ int lvpitch = YUV422_LV_PITCH;
+    const char * overlay_filename = "ML/DATA/overlay.dat";
+    if (!is_file(overlay_filename))
+    {
+        /* no overlay configured yet */
+        return;
+    }
+
     get_yuv422_vram();
     uint8_t * const bvram = bmp_vram_real();
     if (!bvram) return;
@@ -4533,42 +4540,38 @@ static void show_overlay()
     clrscr();
 
     int size = 0;
-    void * tmp = read_entire_file("ML/DATA/overlay.dat", &size);
-    if (tmp)
+    void * overlay = read_entire_file(overlay_filename, &size);
+    if (!overlay)
     {
-        ASSERT(size == BVRAM_MIRROR_SIZE);
-        memcpy(bvram_mirror, tmp, BVRAM_MIRROR_SIZE);
-        free(tmp); tmp = NULL;
+        ASSERT(0);
+        return;
     }
 
     for (int y = os.y0; y < os.y_max; y++)
     {
         int yn = BM2N_Y(y);
         int ym = yn - (int)transparent_overlay_offy; // normalized with offset applied
-        //~ int k;
-        //~ uint16_t * const v_row = (uint16_t*)( lvram + y * lvpitch );        // 1 pixel
-        uint8_t * const b_row = (uint8_t*)( bvram + y * BMPPITCH);          // 1 pixel
-        uint8_t * const m_row = (uint8_t*)( bvram_mirror + ym * BMPPITCH);   // 1 pixel
+        uint8_t * const b_row = (uint8_t*)( bvram + y * BMPPITCH);     // 1 pixel
+        uint8_t * const m_row = (uint8_t*)( overlay + ym * BMPPITCH);  // 1 pixel
         uint8_t* bp;  // through bmp vram
-        uint8_t* mp;  //through bmp vram mirror
-        if (ym < 0 || ym > 480) continue;
-        //~ int offm = 0;
-        //~ int offb = 0;
-        //~ if (transparent_overlay == 2) offm = 720/2;
-        //~ if (transparent_overlay == 3) offb = 720/2;
+        uint8_t* mp;  // through our overlay
+        if (ym < 0 || ym >= 480) continue;
+
         for (int x = os.x0; x < os.x_max; x++)
         {
             int xn = BM2N_X(x);
             int xm = xn - (int)transparent_overlay_offx;
             bp = b_row + x;
             mp = m_row + xm;
-            if (((x+y) % 2) && xm >= 0 && xm <= 720)
+            if (((x+y) % 2) && xm >= 0 && xm < 720)
                 *bp = *mp;
         }
     }
-    
+
     bvram_mirror_clear();
     afframe_clr_dirty();
+
+    free(overlay);
 }
 
 static void transparent_overlay_from_play()

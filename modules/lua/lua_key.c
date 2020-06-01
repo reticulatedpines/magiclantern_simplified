@@ -13,11 +13,12 @@
 #include "lua_common.h"
 
 extern int last_keypress;
+extern int waiting_for_keypress;
 int module_send_keypress(int module_key);
 
 /***
  Send a keypress.
- @tparam int key the key to press
+ @tparam constants.KEY key the key to press.
  @function press
  */
 static int luaCB_key_press(lua_State * L)
@@ -29,32 +30,48 @@ static int luaCB_key_press(lua_State * L)
 
 /***
  Wait for a key to be pressed.
- @tparam[opt] int key
- @tparam[opt] int timeout
- @treturn int the key that was pressed
+ 
+ FIXME: while waiting for a key to be pressed,
+ a task.yield() is performed, with identical limitations.
+ 
+ @tparam[opt] constants.KEY key
+ @tparam[opt] int timeout (milliseconds; 0 = wait forever)
+ @treturn constants.KEY the key that was pressed.
  @function wait
  */
 static int luaCB_key_wait(lua_State * L)
 {
     LUA_PARAM_INT_OPTIONAL(key, 1, 0);
-    LUA_PARAM_INT_OPTIONAL(timeout, 1, 0);
-    timeout *= 10;
-    last_keypress = 0;
-    int time = 0;
-    lua_give_semaphore(L, NULL);
-    //TODO: probably better to use a semaphore
-    while((key && last_keypress != key) || (!key && !last_keypress))
+    LUA_PARAM_INT_OPTIONAL(timeout, 2, 0);
+    uint32_t pressed_key = 0;
+
+    if (lua_get_cant_yield(L))
     {
-        msleep(100);
-        if(timeout && time++ > timeout)
-        {
-            lua_take_semaphore(L, 0, NULL);
-            lua_pushinteger(L, 0);
-            return 1;
-        }
+        return luaL_error(L, "FIXME: cannot use task.yield() or key.wait() from two tasks");
     }
+
+    /* clear "keypress buffer" and block the key(s) we are waiting for */
+    lua_msg_queue_receive(L, &pressed_key, 10);
+    waiting_for_keypress = key;
+
+    /* let other script tasks run */
+    lua_give_semaphore(L, NULL);
+
+    /* wait for key to be pressed, or for timeout */
+    int err = lua_msg_queue_receive(L, &pressed_key, timeout);
+
+    /* other script tasks no longer allowed */
     lua_take_semaphore(L, 0, NULL);
-    lua_pushinteger(L, last_keypress);
+
+    if (err)
+    {
+        lua_pushinteger(L, 0);
+        waiting_for_keypress = -1;
+        return 1;
+    }
+
+    /* waiting_for_keypress was already disabled when the pressed key was placed in the queue */
+    lua_pushinteger(L, pressed_key);
     return 1;
 }
 

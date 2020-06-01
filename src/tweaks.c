@@ -209,7 +209,7 @@ static MENU_UPDATE_FUNC(expsim_display)
                 MENU_SET_WARNING(MENU_WARN_ADVICE, "Expo Override is active, LiveView exposure may be incorrect.");
             }
         }
-        else if (shooting_mode == SHOOTMODE_M && !lens_info.name[0])  /* Canon's LiveView underexposure bug with manual lenses */
+        else if (shooting_mode == SHOOTMODE_M && !lens_info.lens_exists)  /* Canon's LiveView underexposure bug with manual lenses */
         {
             MENU_SET_WARNING(MENU_WARN_ADVICE, "LiveView exposure may be incorrect. Enable expo override to fix it.");
         }
@@ -407,45 +407,6 @@ static void playback_set_wheel_action(int dir)
 }
 #endif
 
-int is_pure_play_photo_mode() // no other dialogs active (such as delete)
-{
-    if (!PLAY_MODE) return 0;
-#ifdef CONFIG_5DC
-    return 1;
-#else
-    extern thunk PlayMain_handler;
-    return (intptr_t)get_current_dialog_handler() == (intptr_t)&PlayMain_handler;
-#endif
-}
-
-int is_pure_play_movie_mode() // no other dialogs active (such as delete)
-{
-    if (!PLAY_MODE) return 0;
-#ifdef CONFIG_VXWORKS
-    return 0;
-#else
-    extern thunk PlayMovieGuideApp_handler;
-    return (intptr_t)get_current_dialog_handler() == (intptr_t)&PlayMovieGuideApp_handler;
-#endif
-}
-
-int is_pure_play_photo_or_movie_mode() { return is_pure_play_photo_mode() || is_pure_play_movie_mode(); }
-
-int is_play_or_qr_mode()
-{
-    return PLAY_OR_QR_MODE;
-}
-
-int is_play_mode()
-{
-    return PLAY_MODE;
-}
-
-int is_menu_mode()
-{
-    return MENU_MODE;
-}
-
 #ifdef FEATURE_SET_MAINDIAL
 
 static void print_set_maindial_hint(int set)
@@ -514,7 +475,13 @@ int handle_set_wheel_play(struct event * event)
        (play_set_wheel_trigger == PLAY_ACTION_TRIGGER_WHEEL || 
         play_set_wheel_trigger == PLAY_ACTION_TRIGGER_WHEEL_OR_LR))
     {
+      // combined q/set button immediately pops up canon menu
+      // (protect, rotate, rate etc..) so we better use Av button instead
+      #ifdef CONFIG_100D
+        if (event->param == BGMT_PRESS_AV)
+      #else
         if (event->param == BGMT_PRESS_SET)
+      #endif
         {
             // for cameras where SET does not send an unpress event, pressing SET again should do the trick
             set_maindial_action_enabled = !set_maindial_action_enabled;
@@ -523,7 +490,11 @@ int handle_set_wheel_play(struct event * event)
             #endif
             print_set_maindial_hint(set_maindial_action_enabled);
         }
+      #ifdef CONFIG_100D
+        else if (event->param == BGMT_UNPRESS_AV)
+      #else
         else if (event->param == BGMT_UNPRESS_SET)
+      #endif        
         {
             set_maindial_action_enabled = 0;
             print_set_maindial_hint(0);
@@ -1438,11 +1409,11 @@ int handle_arrow_keys(struct event * event)
     static int t_press = 0;
     if (BGMT_PRESS_AV)
     {
-        t_press = get_ms_clock_value();
+        t_press = get_ms_clock();
     }
     if (BGMT_UNPRESS_AV)
     {
-        int t_unpress = get_ms_clock_value();
+        int t_unpress = get_ms_clock();
         
         if (t_unpress - t_press < 400)
             arrow_key_mode_toggle();
@@ -1792,7 +1763,7 @@ void zoom_trick_step()
     if (!zoom_trick) return;
     if (!lv && !PLAY_OR_QR_MODE) return;
 
-    int current_timestamp = get_ms_clock_value();
+    int current_timestamp = get_ms_clock();
 
     static int prev_timestamp = 0;
     if (prev_timestamp != current_timestamp)
@@ -1839,7 +1810,7 @@ int handle_zoom_trick_event(struct event * event)
     {
         if (!countdown_for_unknown_button)
         {
-            int t = get_ms_clock_value();
+            int t = get_ms_clock();
             if (t - timestamp_for_unknown_button > 500)
                 numclicks_for_unknown_button = 0;
             
@@ -2418,11 +2389,11 @@ static void preview_contrast_n_saturation_step()
     int halfshutter_pressed = get_halfshutter_pressed();
     if (halfshutter_pressed)
     {
-        peaking_hs_last_press = get_ms_clock_value();
+        peaking_hs_last_press = get_ms_clock();
     }
     int preview_peaking_force_normal_image =
         halfshutter_pressed ||                                  /* show normal image on half-hutter press */
-        get_ms_clock_value() < peaking_hs_last_press + 500;     /* and keep it at least 500ms (avoids flicker with fast toggling) */
+        get_ms_clock() < peaking_hs_last_press + 500;     /* and keep it at least 500ms (avoids flicker with fast toggling) */
 #endif
     
 #ifdef FEATURE_LV_SATURATION
@@ -2713,7 +2684,7 @@ static void grayscale_menus_step()
     if (gui_menu_shown())
     {
         // make the warning text blinking, so beginners will notice it...
-        int t = *(uint32_t*)0xC0242014;
+        int t = GET_DIGIC_TIMER();
         alter_bitmap_palette_entry(MENU_WARNING_COLOR, COLOR_RED, 512 - ABS((t >> 11) - 256), ABS((t >> 11) - 256));
         warning_color_dirty = 1;
     }
@@ -2745,20 +2716,20 @@ static void grayscale_menus_step()
 
     prev_sig = sig;
 
-    #ifdef CONFIG_5D3
     if (get_yuv422_vram()->vram == 0 && !lv)
     {
         /* 5D3-123 quirk: YUV422 RAM is not initialized until going to LiveView or Playback mode
          * (and even there, you need a valid image first)
          * Workaround: if YUV422 was not yet initialized by Canon, remove the transparency from color 0 (make it black).
          * 
-         * Any other cameras requiring this? Probably not, since the quirk is likely related to the dual monitor support.
+         * Any other cameras requiring this? At least 6D shows artifacts in QEMU when running benchmarks
+         * or playing Arkanoid. 700D and 1100D also have uninitialized buffer. 550D and 600D are OK.
+         * No side effects on cameras that don't need this workaround => always enabled.
          * 
          * Note: alter_bitmap_palette will not affect color 0, so it will not break this workaround (yet).
          */
         alter_bitmap_palette_entry(0, COLOR_BLACK, 256, 256);
     }
-    #endif
 
     if (bmp_color_scheme || prev_b)
     {
@@ -3423,7 +3394,7 @@ static struct menu_entry display_menus[] = {
                 .min = 0,
                 #ifdef FEATURE_LV_SATURATION
                 .max = 3,   /* to get raw values, set .max = 0x1000, .unit = UNIT_HEX and comment out .choices */
-                .edit_mode = EM_MANY_VALUES_LV,
+                .edit_mode = EM_SHOW_LIVEVIEW,
                 #else
                 .max = 1,   /* the other options require saturation controls available */
                 #endif
@@ -3439,7 +3410,7 @@ static struct menu_entry display_menus[] = {
                 .max = 2,
                 .help = "For LiveView preview only. Does not affect recording.",
                 .update = preview_brightness_display,
-                .edit_mode = EM_MANY_VALUES_LV,
+                .edit_mode = EM_SHOW_LIVEVIEW,
                 .choices = (const char *[]) {"Normal", "High", "Very high"},
                 .depends_on = DEP_LIVEVIEW,
                 .icon_type = IT_PERCENT_OFF,
@@ -3451,7 +3422,7 @@ static struct menu_entry display_menus[] = {
                 .max = 3,
                 .update = preview_contrast_display,
                 .help = "For LiveView preview only. Does not affect recording.",
-                .edit_mode = EM_MANY_VALUES_LV,
+                .edit_mode = EM_SHOW_LIVEVIEW,
                 .choices = (const char *[]) {"Zero", "Very low", "Low", "Normal", "High", "Very high", "Auto"},
                 .depends_on = DEP_LIVEVIEW,
                 .icon_type = IT_PERCENT_OFF,
@@ -3471,7 +3442,7 @@ static struct menu_entry display_menus[] = {
                          " \n"
                          " \n"
                          "Boost on WB: increase saturation when you are adjusting WB.",
-                .edit_mode = EM_MANY_VALUES_LV,
+                .edit_mode = EM_SHOW_LIVEVIEW,
                 .choices = (const char *[]) {"Grayscale", "Low", "Normal", "High", "Very high", "Boost on WB adjust"},
                 .depends_on = DEP_LIVEVIEW,
                 .icon_type = IT_PERCENT_OFF,
@@ -3499,7 +3470,7 @@ static struct menu_entry display_menus[] = {
                 .icon_type = IT_PERCENT_OFF,
                 .help   = "Makes LiveView usable in complete darkness (photo mode).",
                 .help2  = "Tip: if it gets really dark, also enable FPS override.",
-                .edit_mode = EM_MANY_VALUES_LV,
+                .edit_mode = EM_SHOW_LIVEVIEW,
                 .depends_on = DEP_LIVEVIEW | DEP_PHOTO_MODE,
             },
             #endif
@@ -3673,7 +3644,7 @@ static struct menu_entry display_menus[] = {
                 .priv     = &preview_crazy,
                 .min = 0,
                 .max = 2,
-                .edit_mode = EM_MANY_VALUES_LV,
+                .edit_mode = EM_SHOW_LIVEVIEW,
                 .choices = (const char *[]) {"OFF", "Swap U-V", "Extreme Chroma"},
                 .depends_on = DEP_LIVEVIEW,
                 .icon_type = IT_PERCENT_OFF,
@@ -3735,6 +3706,16 @@ static struct menu_entry play_menus[] = {
                         .help = "Chose the action type to perform when triggered.",
                         .icon_type = IT_PERCENT_OFF,
                     },
+                    #ifdef CONFIG_100D
+                    {
+                        .name = "Trigger key(s)",
+                        .priv = &play_set_wheel_trigger,
+                        .max = 0,
+                        .choices = (const char *[]) {"Av+MainDial"},
+                        .help = "Use Av+MainDial together to perform selected action.",
+                        .icon_type = IT_DICE,
+                    },
+                    #else
                     {
                         .name = "Trigger key(s)",
                         .priv = &play_set_wheel_trigger,
@@ -3743,6 +3724,7 @@ static struct menu_entry play_menus[] = {
                         .help = "Either use a key combination and/or just an easier single keystroke.",
                         .icon_type = IT_DICE,
                     },
+                    #endif
                     MENU_EOL
                 }
             },
@@ -3870,7 +3852,6 @@ static struct menu_entry play_menus[] = {
             .help = "What to do when you press SET and turn the scrollwheel.",
             //.essential = FOR_PHOTO,
             .icon_type = IT_BOOL,
-            //~ .edit_mode = EM_MANY_VALUES,
         },
 };
 #endif
