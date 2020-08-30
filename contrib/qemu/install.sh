@@ -5,7 +5,7 @@ set -e
 QEMU_DIR=${QEMU_DIR:=qemu-eos}
 
 # paths relative to QEMU_DIR (where it will be installed)
-QEMU_NAME=${QEMU_NAME:=qemu-2.5.0}
+QEMU_NAME=${QEMU_NAME:=qemu-4.2.1}
 ML_PATH=${ML_PATH:=../magiclantern_simplified}
 
 ML_NAME=${ML_PATH##*/}

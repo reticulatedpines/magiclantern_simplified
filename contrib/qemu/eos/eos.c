@@ -1,28 +1,31 @@
+#include "qemu/osdep.h"
 #include "hw/hw.h"
 #include "hw/loader.h"
 #include "sysemu/sysemu.h"
-#include "hw/devices.h"
 #include "hw/boards.h"
+#include "hw/qdev-properties.h"
+#include "exec/exec-all.h"
 #include "exec/address-spaces.h"
 #include "exec/memory-internal.h"
+#include "migration/vmstate.h"
 #include "exec/ram_addr.h"
 #include "hw/sysbus.h"
 #include "ui/console.h"
 #include "ui/pixel_ops.h"
 #include "hw/display/framebuffer.h"
 #include "hw/sd/sd.h"
-#include "sysemu/char.h"
-#include <hw/ide/internal.h>
-#include "hw/arm/arm.h"
-#include "eos.h"
-#include "dbi/logging.h"
+//#include "chardev/char.h"
+//#include "hw/ide/internal.h"
+//#include "hw/arm/arm.h"
+#include "hw/eos/eos.h"
+#include "hw/eos/dbi/logging.h"
 
 #include "hw/eos/model_list.h"
 #include "hw/eos/eos_ml_helpers.h"
 #include "hw/eos/mpu.h"
 #include "hw/eos/serial_flash.h"
 #include "hw/eos/eos_utils.h"
-#include "eos_bufcon_100D.h"
+#include "hw/eos/eos_bufcon_100D.h"
 #include "hw/eos/engine.h"
 
 #define IGNORE_CONNECT_POLL
@@ -47,11 +50,18 @@ typedef struct {
 
 static void eos_init_common(MachineState *machine);
 
+static Property eos_uart_properties[] = {
+    DEFINE_PROP_CHR("chardev", DigicUartState, chr),
+    DEFINE_PROP_END_OF_LIST(),
+};
+
 static void eos_class_init(ObjectClass *oc, void *data)
 {
     MachineClass *mc = MACHINE_CLASS(oc);
+    DeviceClass *dc = DEVICE_CLASS(oc);
     mc->desc = EOS_DESC_BASE;
     mc->init = eos_init_common;
+    dc->props = eos_uart_properties;
 }
 static const TypeInfo canon_eos_info = {
     .name = TYPE_EOS_MACHINE,
@@ -80,16 +90,6 @@ static void eos_cam_class_init(ObjectClass *oc, void *data)
     mc->desc = desc;
 }
 
-static void eos_cam_class_finalize(ObjectClass *oc, void *data)
-{
-    MachineClass *mc = MACHINE_CLASS(oc);
-    if (mc->desc) {
-        free((char*)mc->desc);
-        mc->desc = NULL;
-    }
-}
-
-
 static void eos_machine_init(void)
 {
     /* Register base type */
@@ -100,7 +100,6 @@ static void eos_machine_init(void)
     TypeInfo info = {
         .name = name,
         .class_init = eos_cam_class_init,
-        .class_finalize = eos_cam_class_finalize,
         .parent = TYPE_EOS_MACHINE,
     };
     
@@ -142,7 +141,7 @@ static void eos_machine_init(void)
     }
 }
 
-machine_init(eos_machine_init);
+type_init(eos_machine_init);
 
 
 
@@ -339,7 +338,8 @@ end:;
 
     /* make sure we execute the latest code */
     /* fixme: shouldn't this be handled internally by QEMU?! */
-    tb_invalidate_phys_addr(&address_space_memory, address);
+    tb_invalidate_phys_addr(&address_space_memory, address,
+                            MEMTXATTRS_UNSPECIFIED);
 }
 
 static const MemoryRegionOps rom_ops = {
@@ -440,7 +440,7 @@ void eos_load_image(EOSState *s, const char * file_rel, int offset, int max_size
         abort();
     }
 
-    if (load_image(file, buf) != size)
+    if (load_image_size(file, buf, size) != size)
     {
         fprintf(stderr, "%s: error loading '%s'\n", __func__, file);
         abort();
@@ -919,7 +919,7 @@ static void framebuffer_update_display_bmp_yuv(
     uint8_t *src_base_bmp;
     uint8_t *src_base_yuv;
     int first, last = 0;
-    int dirty;
+    //int dirty;
     int i;
     ram_addr_t addr_bmp;
     ram_addr_t addr_yuv;
@@ -952,8 +952,8 @@ static void framebuffer_update_display_bmp_yuv(
     assert(mem_yuv);
     assert(mem_section_yuv.offset_within_address_space == base_yuv);
 
-    memory_region_sync_dirty_bitmap(mem_bmp);
-    memory_region_sync_dirty_bitmap(mem_yuv);
+    //memory_region_sync_dirty_bitmap(mem_bmp);
+    //memory_region_sync_dirty_bitmap(mem_yuv);
     src_base_bmp = cpu_physical_memory_map(base_bmp, &src_len_bmp, 0);
     src_base_yuv = cpu_physical_memory_map(base_yuv, &src_len_yuv, 0);
     /* If we can't map the framebuffer then bail.  We could try harder,
@@ -995,11 +995,12 @@ static void framebuffer_update_display_bmp_yuv(
     int src_yuv_pitch = src_width_yuv / cols;
 
     for (; i < rows_bmp; i++) {
-        dirty = memory_region_get_dirty(mem_bmp, addr_bmp, src_width_bmp,
-                                             DIRTY_MEMORY_VGA);
-        dirty |= memory_region_get_dirty(mem_yuv, addr_yuv, src_width_yuv,
-                                             DIRTY_MEMORY_VGA);
-        if (dirty || invalidate) {
+        //dirty = memory_region_get_dirty(mem_bmp, addr_bmp, src_width_bmp,
+        //                                     DIRTY_MEMORY_VGA);
+        //dirty |= memory_region_get_dirty(mem_yuv, addr_yuv, src_width_yuv,
+        //                                     DIRTY_MEMORY_VGA);
+        //if (dirty || invalidate) {
+        if (invalidate) {
             fn(opaque, dest, src_bmp, src_yuv, cols, dest_col_pitch, src_yuv_pitch);
             if (first == -1)
                 first = i;
@@ -1304,12 +1305,12 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
         (s->model->digic_version >= 6) ? "cortex-r4-eos" :  /* also used on Eeko (fake version 50) */
                                          "arm946";          /* unused here */
     
-    s->cpu0 = cpu_arm_init(cpu_name);
+    s->cpu0 = ARM_CPU(cpu_create(cpu_name));
     assert(s->cpu0);
 
     if (s->model->digic_version == 7)
     {
-        s->cpu1 = cpu_arm_init(cpu_name);
+        s->cpu1 = ARM_CPU(cpu_create(cpu_name));
         assert(s->cpu1);
         CPU(s->cpu1)->halted = 1;
     }
@@ -1549,12 +1550,27 @@ static void eos_init_common(MachineState *machine)
     }
     
     /* init UART */
-    /* FIXME use a qdev chardev prop instead of qemu_char_get_next_serial() */
-    s->uart.chr = qemu_char_get_next_serial();
-    if (s->uart.chr) {
-        qemu_chr_add_handlers(s->uart.chr, eos_uart_can_rx, eos_uart_rx, eos_uart_event, &s->uart);
-    }
+    // SJE - this is probably nasty bodge code at present.  Working on
+    // getting it compiling for now, given the change away from qemu_char_get_next_serial().
+    // My suspicion is this will compile but break at runtime, and a larger refactor
+    // will be needed, to make this code more modern, like:
+    // http://people.redhat.com/~thuth/blog/qemu/2018/09/10/instance-init-realize.html
+// SJE probably needed new code, but don't know how to deal with "obj" yet
+//    sysbus_init_child_obj(obj, "uart", &s->uart, sizeof(s->uart),
+//                          TYPE_DIGIC_UART);
+    qdev_prop_set_chr(DEVICE(&s->uart), "chardev", serial_hd(0));
+//    if (s->uart.chr) {
+//        qemu_chr_add_handlers(s->uart.chr, eos_uart_can_rx, eos_uart_rx, eos_uart_event, &s->uart);
+//    }
+    qemu_chr_fe_set_handlers(&s->uart.chr, eos_uart_can_rx, eos_uart_rx,
+                             eos_uart_event, NULL, &s->uart, NULL, true);
     eos_uart_reset(&s->uart);
+// SJE needed new code?  Pairs with some a few lines up.
+// Unsure how this should work with the multiple serial port addresses
+// in the eos_handlers array.  Multiple SysBusDevice lines?
+//    SysBusDevice *sbd;
+//    sbd = SYS_BUS_DEVICE(&s->uart);
+//    sysbus_mmio_map(sbd, 0, DIGIC_UART_BASE);
 
     /* init MPU */
     mpu_spells_init(s);
@@ -3279,14 +3295,12 @@ unsigned int eos_handle_uart ( unsigned int parm, EOSState *s, unsigned int addr
                 msg = "Write char";
                 assert(value == (value & 0xFF));
                 
-                if (s->uart.chr) {
-                    qemu_chr_fe_write_all(s->uart.chr, (void*) &value, 1);
-                }
+                qemu_chr_fe_write_all(&s->uart.chr, (void*) &value, 1);
                 
                 /* fixme: better way to check whether the serial is printing to console? */
-                if (strcmp(s->uart.chr->filename, "stdio") != 0 &&
-                    strcmp(s->uart.chr->filename, "mux") != 0 &&
-                    strcmp(s->uart.chr->filename, "file") != 0)
+                if (strcmp(s->uart.chr.chr->filename, "stdio") != 0 &&
+                    strcmp(s->uart.chr.chr->filename, "mux") != 0 &&
+                    strcmp(s->uart.chr.chr->filename, "file") != 0)
                 {
                     fprintf(stderr, KRED"%c"KRESET, value);
                 }

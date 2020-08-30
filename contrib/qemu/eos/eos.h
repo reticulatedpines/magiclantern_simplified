@@ -427,7 +427,7 @@ ROMState *eos_rom_register(hwaddr base, DeviceState *qdev, const char *name, hwa
 #endif
 
 #define MEM_WRITE_ROM(addr, buf, size) \
-    cpu_physical_memory_write_rom(&address_space_memory, addr, buf, size)
+    address_space_write_rom(&address_space_memory, addr, MEMTXATTRS_UNSPECIFIED, buf, size)
 
 void eos_mem_read(EOSState *s, hwaddr addr, void * buf, int size);
 void eos_mem_write(EOSState *s, hwaddr addr, void * buf, int size);

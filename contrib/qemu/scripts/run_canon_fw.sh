@@ -6,7 +6,7 @@
 # 2 = compiling QEMU failed
 
 GREP=${GREP:=grep}
-QEMU_PATH=${QEMU_PATH:=qemu-2.5.0}
+QEMU_PATH=${QEMU_PATH:=qemu-4.2.1}
 MAKE=${MAKE:=make}
 
 if [ $(uname) == "Darwin" ]; then
