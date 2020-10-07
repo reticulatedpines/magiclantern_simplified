@@ -17,6 +17,19 @@ add exceptions in configure via QEMU_CFLAGS, a better solution is
 the update as upstream has fixed the causes.
 
 QEMU_CFLAGS="-Wno-address-of-packed-member -Wno-format-truncation -Wno-stringop-truncation $QEMU_CFLAGS"
+
+This is mostly done; good enough for testing.
+Current target is Qemu 4.2.1.
+This works with at least 50D rom, with boot=0 or boot=1,
+full GUI, with ML GUI if chosen.
+
+Needs testing on more roms.
+====
+
+====
+Work out what leaves .lds files lying around, and fix it.
+I think this may be Qemu install.sh.
+Or, add matches to .gitignore & .hgignore.
 ====
 
 ====

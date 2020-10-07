@@ -21,6 +21,7 @@ a.out
 */compile.h
 chdk
 eos
+!/contrib/qemu/eos
 font-*.c
 version.c
 font-*.in

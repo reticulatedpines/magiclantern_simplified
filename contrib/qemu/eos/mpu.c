@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "qemu/osdep.h"
+#include "qemu/log.h"
+#include "sysemu/runstate.h"
 #include "eos.h"
 #include "model_list.h"
 #include "mpu.h"
@@ -233,7 +236,7 @@ static void request_shutdown(void)
 {
     MPU_EPRINTF("Shutdown requested.\n");
     clean_shutdown = 1;
-    qemu_system_shutdown_request();
+    qemu_system_shutdown_request(SHUTDOWN_CAUSE_GUEST_SHUTDOWN);
 }
 
 static void mpu_interpret_command(EOSState *s)

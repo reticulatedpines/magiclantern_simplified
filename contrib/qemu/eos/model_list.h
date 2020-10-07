@@ -3,6 +3,48 @@
 
 #include <stdint.h>
 
+#define MODEL_NAME_5D "5D"
+#define MODEL_NAME_400D "400D"
+#define MODEL_NAME_40D "40D"
+#define MODEL_NAME_450D "450D"
+#define MODEL_NAME_1000D "1000D"
+#define MODEL_NAME_50D "50D"
+#define MODEL_NAME_5D2 "5D2"
+#define MODEL_NAME_500D "500D"
+#define MODEL_NAME_550D "550D"
+#define MODEL_NAME_7D "7D"
+#define MODEL_NAME_60D "60D"
+#define MODEL_NAME_600D "600D"
+#define MODEL_NAME_1100D "1100D"
+#define MODEL_NAME_1200D "1200D"
+#define MODEL_NAME_1300D "1300D"
+#define MODEL_NAME_A1100 "A1100"
+#define MODEL_NAME_5D3 "5D3"
+#define MODEL_NAME_5D3eeko "5D3eeko"
+#define MODEL_NAME_6D "6D"
+#define MODEL_NAME_650D "650D"
+#define MODEL_NAME_700D "700D"
+#define MODEL_NAME_EOSM "EOSM"
+#define MODEL_NAME_EOSM2 "EOSM2"
+#define MODEL_NAME_100D "100D"
+#define MODEL_NAME_70D "70D"
+#define MODEL_NAME_80D "80D"
+#define MODEL_NAME_750D "750D"
+#define MODEL_NAME_760D "760D"
+#define MODEL_NAME_7D2 "7D2"
+#define MODEL_NAME_7D2S "7D2S"
+#define MODEL_NAME_5D4 "5D4"
+#define MODEL_NAME_5D4AE "5D4AE"
+#define MODEL_NAME_EOSM3 "EOSM3"
+#define MODEL_NAME_EOSM10 "EOSM10"
+#define MODEL_NAME_200D "200D"
+#define MODEL_NAME_6D2 "6D2"
+#define MODEL_NAME_77D "77D"
+#define MODEL_NAME_800D "800D"
+#define MODEL_NAME_EOSM5 "EOSM5"
+
+enum { ram_extra_array_len = 2 };
+
 struct eos_model_desc {
     const char * name;
 
@@ -27,8 +69,8 @@ struct eos_model_desc {
             uint32_t atcm_size;
             uint32_t btcm_addr;
             uint32_t btcm_size;
-            uint32_t ram_extra_addr;
-            uint32_t ram_extra_size;
+            uint32_t ram_extra_addr[ram_extra_array_len];
+            uint32_t ram_extra_size[ram_extra_array_len];
             uint32_t mmio_addr;
             uint32_t mmio_size;
             uint32_t firmware_start;
@@ -67,11 +109,12 @@ struct eos_model_desc {
             uint32_t imgpowdet_register;
             uint32_t imgpowdet_register_bit;
             uint32_t imgpowdet_interrupt;
+            uint32_t max_cpus;
         };
         
         /* this must match the number of items in the above struct */
         /* note: you get a compile-time error if params[] is smaller than the struct */
-        uint32_t params[51];
+        uint32_t params[50 + ram_extra_array_len * 2];
     };
 } __attribute__((packed));
 

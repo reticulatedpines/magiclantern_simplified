@@ -21,233 +21,6 @@ diff --git a/hw/usb/bus.c b/hw/usb/bus.c
                           upstream->path, portnr);
          /* Max string is nn.nn.nn.nn.nn, which fits in 16 bytes */
          assert(l < sizeof(downstream->path));
-diff -u a/hw/eos/serial_flash.h b/hw/eos/serial_flash.h
---- a/hw/eos/serial_flash.h
-+++ b/hw/eos/serial_flash.h
-@@ -2,7 +2,7 @@
- #define SERIAL_FLASH_H
- 
- #include <stdint.h>
--#include <eos.h>
-+#include "hw/eos/eos.h"
- 
- #define RDID_MACRONIX {0xC2,0x10,0x0C}
- 
-diff -u a/hw/eos/serial_flash.c b/hw/eos/serial_flash.c
---- a/hw/eos/serial_flash.c
-+++ b/hw/eos/serial_flash.c
-@@ -3,6 +3,8 @@
- #include <stdint.h>
- #include <string.h>
-
-+#include "qemu/osdep.h"
-+#include "qemu/log.h"
- #include "eos.h"
- #include "hw/sd/sd.h"
- #include "hw/eos/serial_flash.h"
-diff -u a/hw/eos/mpu.c b/hw/eos/mpu.c
---- a/hw/eos/mpu.c
-+++ b/hw/eos/mpu.c
-@@ -2,6 +2,9 @@
- #include <stdlib.h>
- #include <stdint.h>
- 
-+#include "qemu/osdep.h"
-+#include "qemu/log.h"
-+#include "sysemu/runstate.h"
- #include "eos.h"
- #include "model_list.h"
- #include "mpu.h"
-@@ -233,7 +236,7 @@
- {
-     MPU_EPRINTF("Shutdown requested.\n");
-     clean_shutdown = 1;
--    qemu_system_shutdown_request();
-+    qemu_system_shutdown_request(SHUTDOWN_CAUSE_GUEST_SHUTDOWN);
- }
-
- static void mpu_interpret_command(EOSState *s)
-diff -u a/hw/eos/eos_ml_helpers.c b/hw/eos/eos_ml_helpers.c
---- a/hw/eos/eos_ml_helpers.c
-+++ b/hw/eos/eos_ml_helpers.c
-@@ -4,7 +4,8 @@
- #include <stdint.h>
- #include <string.h>
- 
--
-+#include "qemu/osdep.h"
-+#include "disas/disas.h"
- #include "sysemu/sysemu.h"
- #include "eos.h"
- #include "eos_ml_helpers.h"
-@@ -57,7 +58,7 @@
-                     uint32_t bits = eos_get_mem_h(s, value & ~1) >> 11;
-                     size = (bits == 0b11101 || bits == 0b11110 || bits == 0b11111) ? 4 : 2;
-                 }
--                target_disas(stderr, CPU(arm_env_get_cpu(&s->cpu0->env)), value, size, 0);
-+                target_disas(stderr, CPU(env_archcpu(&s->cpu0->env)), value, size);
-                 fprintf(stderr, KRESET);
-                 return 0;
-         }
-diff -u a/hw/eos/eos.h b/hw/eos/eos.h
---- a/hw/eos/eos.h
-+++ b/hw/eos/eos.h
-@@ -2,6 +2,8 @@
- 
- #define HW_EOS_H
- 
-+//#include "hw/hw.h"
-+#include "target/arm/cpu.h"
- #include "hw/sysbus.h"
- #include "hw/sd/sd.h"
- #include "hw/ide/internal.h"
-diff -u a/hw/eos/engine.c b/hw/eos/engine.c
---- a/hw/eos/engine.c
-+++ b/hw/eos/engine.c
-@@ -7,6 +7,8 @@
- #include <stdlib.h>
- #include <stdint.h>
- #include <math.h>
-+#include "qemu/osdep.h"
-+#include "hw/hw.h"
- #include "eos.h"
- #include "engine.h"
- #include "model_list.h"
-diff -u a/hw/eos/dbi/memcheck.c b/hw/eos/dbi/memcheck.c
---- a/hw/eos/dbi/memcheck.c
-+++ b/hw/eos/dbi/memcheck.c
-@@ -3,6 +3,7 @@
- #include <stdint.h>
-
- #include "qemu/osdep.h"
-+#include "qemu/log.h"
- #include "qapi/error.h"
- #include "cpu.h"
- 
-
-diff -u a/hw/eos/dbi/logging.c b/hw/eos/dbi/logging.c
---- a/hw/eos/dbi/logging.c
-+++ b/hw/eos/dbi/logging.c
-@@ -3,6 +3,10 @@
- #include <stdint.h>
- 
- #include "qemu/osdep.h"
-+#include "qemu/log.h"
-+#include "disas/disas.h"
-+#include "exec/exec-all.h"
-+#include "exec/log.h"
- #include "qapi/error.h"
- #include "cpu.h"
- #include "elf.h"
-@@ -186,7 +190,8 @@
-     /* fixme: can be slow */
-     hwaddr l = 4;
-     hwaddr addr1;
--    MemoryRegion * mr = address_space_translate(&address_space_memory, addr, &addr1, &l, is_write);
-+    MemoryRegion * mr = address_space_translate(&address_space_memory, addr, &addr1, &l, is_write,
-+                                                MEMTXATTRS_UNSPECIFIED);
- 
-     if (!should_log_memory_region(mr, is_write))
-     {
-@@ -323,8 +328,8 @@
-         assert(stderr_dup);
-         fflush(stderr); fflush(idc);
-         dup2(fileno(idc), fileno(stderr));
--        fprintf(stderr, "  /* from "); log_target_disas(cpu, prev_pc, prev_size, 0);
--        fprintf(stderr, "   *   -> "); log_target_disas(cpu, tb->pc, tb->size, 0);
-+        fprintf(stderr, "  /* from "); log_target_disas(cpu, prev_pc, prev_size);
-+        fprintf(stderr, "   *   -> "); log_target_disas(cpu, tb->pc, tb->size);
-         char * task_name = eos_get_current_task_name(s);
-         fprintf(stderr, "   * %s%sPC:%x->%x LR:%x->%x SP:%x */\n",
-             task_name ? task_name : "", task_name ? " " : "",
-@@ -372,7 +377,7 @@
-     uint32_t is_tail_call;      /* boolean: whether it's a tail function call */
-     uint32_t interrupt_id;      /* 0 = regular code, nonzero = interrupt */
-     uint32_t direct_jumps[4];   /* DIGIC 6 code uses many of those */
--} __attribute__((packed));
-+};
-
- static struct call_stack_entry call_stacks[256][256];
- static int call_stack_num[256] = {0};
-@@ -686,7 +691,8 @@
- {
-     hwaddr l = len;
-     hwaddr addr1;
--    MemoryRegion * mr = address_space_translate(&address_space_memory, ptr, &addr1, &l, 0);
-+    MemoryRegion * mr = address_space_translate(&address_space_memory, ptr, &addr1, &l, 0,
-+                                                MEMTXATTRS_UNSPECIFIED);
- 
-     if (!mr)
-     {
-@@ -1568,7 +1574,7 @@
-                 /* hm, target_disas used to look at flags for ARM or Thumb... */
-                 int t0 = env->thumb; env->thumb = prev_pc & 1;
-                 assert(prev_size);
--                target_disas(stderr, CPU(arm_env_get_cpu(env)), prev_pc0, prev_size, 0);
-+                target_disas(stderr, CPU(env_archcpu(env)), prev_pc0, prev_size);
-                 env->thumb = t0;
-             }
-         }
-@@ -1655,7 +1661,8 @@
- 
-     hwaddr l = block_size;
-     hwaddr block_rom_start_rel;
--    MemoryRegion * mr = address_space_translate(&address_space_memory, block_rom_start, &block_rom_start_rel, &l, 0);
-+    MemoryRegion * mr = address_space_translate(&address_space_memory, block_rom_start, &block_rom_start_rel, &l, 0,
-+                                                MEMTXATTRS_UNSPECIFIED);
-     assert(l == block_size);
- 
-     if (strcmp(mr->name, "eos.rom0") == 0 ||
-@@ -1877,7 +1884,8 @@
- {
-     fprintf(stderr, "[EOS] loading symbols from %s ", elf_filename);
-     uint64_t lo, hi;
--    int size = load_elf(elf_filename, 0, 0, 0, &lo, &hi, 0, EM_ARM, 1);
-+    int size = load_elf(elf_filename, NULL, NULL, NULL, NULL,
-+                        &lo, &hi, 0, EM_ARM, 1, 0);
-     fprintf(stderr, "(%X - %X)\n", (int) lo, (int) hi);
-     assert(size > 0);
- }
-diff -u a/hw/eos/dbi/backtrace.c b/hw/eos/dbi/backtrace.c
---- a/hw/eos/dbi/backtrace.c
-+++ b/hw/eos/dbi/backtrace.c
-@@ -38,6 +38,8 @@
- #include <stdint.h>
-
- #include "qemu/osdep.h"
-+#include "qemu/log.h"
-+#include "disas/disas.h"
- #include "qapi/error.h"
- #include "cpu.h"
-
-@@ -258,7 +260,7 @@
-     if (qemu_loglevel_mask(BKT_LOG_DISAS))
-     {
-         CPUARMState *env = &(CURRENT_CPU->env);
--        target_disas(stderr, CPU(arm_env_get_cpu(env)), pc, 4, 0);
-+        target_disas(stderr, CPU(env_archcpu(env)), pc, 4);
-     }
- #endif
-
-@@ -833,7 +835,7 @@
-             {
-                 fprintf(stderr, "SP mismatch: expected %x->%x, got %x (=> %x at %x,%x)\n", prev_sp, sp, ssp, ret, prev_pc, pc);
-                 CPUARMState *env = &(CURRENT_CPU->env);
--                target_disas(stderr, CPU(arm_env_get_cpu(env)), prev_pc, 4, 0);
-+                target_disas(stderr, CPU(env_archcpu(env)), prev_pc, 4);
-                 assert(0);
-             }
-
-@@ -853,7 +855,7 @@
-                 }
-                 fprintf(stderr, "LR mismatch: expected %x->%x, got %x (=> %x at %x,%x)\n", prev_lr, lr, slr, ret, prev_pc, pc);
-                 CPUARMState *env = &(CURRENT_CPU->env);
--                target_disas(stderr, CPU(arm_env_get_cpu(env)), prev_pc, 4, 0);
-+                target_disas(stderr, CPU(env_archcpu(env)), prev_pc, 4);
-                 //assert(0);
-             }
-         }
-
 diff --git a/default-configs/arm-softmmu.mak b/default-configs/arm-softmmu.mak
 index 1f2e0e7f..cc5f7eb8 100644
 --- a/default-configs/arm-softmmu.mak
@@ -276,6 +49,19 @@ index c6e77825..5896cb42 100644
  config EXYNOS4
      bool
      select A9MPCORE
+diff --git a/Makefile b/Makefile
+index b437a346..db1d5341 100644
+--- a/Makefile
++++ b/Makefile
+@@ -491,7 +491,7 @@ $(TARGET_DIRS_RULES):
+        $(call quiet-command,$(MAKE) $(SUBDIR_MAKEFLAGS) -C $(dir $@) V="$(V)" TARGET_DIR="$(dir $@)" $(notdir $@),)
+ 
+ DTC_MAKE_ARGS=-I$(SRC_PATH)/dtc VPATH=$(SRC_PATH)/dtc -C dtc V="$(V)" LIBFDT_srcdir=$(SRC_PATH)/dtc/libfdt
+-DTC_CFLAGS=$(CFLAGS) $(QEMU_CFLAGS)
++DTC_CFLAGS=$(CFLAGS) $(QEMU_CFLAGS) -rdynamic -ggdb3
+ DTC_CPPFLAGS=-I$(BUILD_DIR)/dtc -I$(SRC_PATH)/dtc -I$(SRC_PATH)/dtc/libfdt
+ 
+ .PHONY: dtc/all
 diff -u a/hw/Makefile.objs b/hw/Makefile.objs
 --- a/hw/Makefile.objs
 +++ b/hw/Makefile.objs
@@ -289,6 +75,36 @@ diff -u a/hw/Makefile.objs b/hw/Makefile.objs
  devices-dirs-$(CONFIG_I2C) += i2c/
 diff --git a/accel/tcg/cpu-exec.c b/accel/tcg/cpu-exec.c
 index c88d0ff..4395bb3 100644
+--- a/accel/tcg/cpu-exec.c	2020-09-25 01:05:10.191629923 +0100
++++ b/accel/tcg/cpu-exec.c	2020-09-28 05:53:01.626514844 +0100
+@@ -146,6 +146,27 @@
+     int tb_exit;
+     uint8_t *tb_ptr = itb->tc.ptr;
+ 
++#if defined(TARGET_ARM)
++    if (qemu_loglevel_mask(CPU_LOG_EXEC)) {
++        qemu_log_lock();
++        /* rather than logging just PC, also log the disassembled code */
++        if (!singlestep) {
++            /* separate translation blocks by newlines */
++            qemu_log("\n");
++        }
++        /* some instructions are printed more than once, not sure why */
++        static int prev_pc = -1;
++        if (itb->pc != prev_pc) {
++            prev_pc = itb->pc;
++            if (CPU_NEXT(first_cpu)) {
++                qemu_log("[CPU%d] ", current_cpu->cpu_index);
++            }
++            log_target_disas(cpu, itb->pc, itb->size);
++        }
++        qemu_log_unlock();
++    }
++#endif
++
+     qemu_log_mask_and_addr(CPU_LOG_EXEC, itb->pc,
+                            "Trace %d: %p ["
+                            TARGET_FMT_lx "/" TARGET_FMT_lx "/%#x] %s\n",
 --- a/accel/tcg/cpu-exec.c
 +++ b/accel/tcg/cpu-exec.c
 @@ -391,6 +391,16 @@ static inline void cpu_loop_exec_tb(CPUState *cpu, TranslationBlock *tb,
@@ -319,6 +135,20 @@ index c88d0ff..4395bb3 100644
      /* See if we can patch the calling TB. */
      if (last_tb) {
          tb_add_jump(last_tb, tb_exit, tb);
+diff --git a/exec.c b/exec.c
+--- a/exec.c	2020-06-25 19:12:17.000000000 +0100
++++ b/exec.c	2020-09-15 07:20:23.500746798 +0100
+@@ -2050,7 +2050,9 @@
+     RAMBlock *block;
+ 
+     assert(new_block);
+-    assert(!new_block->idstr[0]);
++    // FIXME this fails, but I don't know why.  What's supposed to set this?
++    // Commenting it out doesn't obviously break anything...
++    //assert(!new_block->idstr[0]);
+ 
+     if (dev) {
+         char *id = qdev_get_dev_path(dev);
 diff --git a/disas/arm.c b/disas/arm.c
 index 7a7354b..95f82cc 100644
 --- a/disas/arm.c
@@ -536,6 +366,28 @@ diff --git a/memory.c b/memory.c
 index e193658..9de7251 100644
 --- a/memory.c
 +++ b/memory.c
+@@ -1417,6 +1417,10 @@
+
+     if (!memory_region_access_valid(mr, addr, size, false, attrs)) {
+         *pval = unassigned_mem_read(mr, addr, size);
++        fprintf(stderr, "[EOS] MEMTX invalid read - addr, size: 0x%lx, 0x%x\n", addr, size);
++        // the cause needs investigating, but if this is due to a read from normal ram
++        // that would succeed on real cam, extending ram_extra in model_list.c may be appropriate.
++        assert(0);
+         return MEMTX_DECODE_ERROR;
+     }
+
+@@ -1461,6 +1463,10 @@
+
+     if (!memory_region_access_valid(mr, addr, size, true, attrs)) {
+         unassigned_mem_write(mr, addr, data, size);
++        fprintf(stderr, "[EOS] MEMTX invalid write - addr, size: 0x%lx, 0x%x\n", addr, size);
++        // the cause needs investigating, but if this is due to a write from normal ram
++        // that would succeed on real cam, extending ram_extra in model_list.c may be appropriate.
++        assert(0);
+         return MEMTX_DECODE_ERROR;
+     }
+
 @@ -2397,6 +2397,9 @@ void memory_region_add_subregion(MemoryRegion *mr,
                                   hwaddr offset,
                                   MemoryRegion *subregion)
@@ -652,18 +504,6 @@ index 7cb01a8..7b57b2e 100644
      char **parts = g_strsplit(str, ",", 0);
      char **tmp;
  
-diff --git a/target/arm/cpu.h b/target/arm/cpu.h
-index 25fb1ce..c180f78 100644
---- a/target/arm/cpu.h
-+++ b/target/arm/cpu.h
-@@ -868,6 +868,7 @@ typedef struct ARMCPU {
-     uint32_t revidr;
-     uint32_t reset_fpsid;
-     uint32_t ctr;
-+    uint32_t tcmtr;
-     uint32_t reset_sctlr;
-     uint32_t id_pfr0;
-     uint32_t id_pfr1;
 diff --git a/target/arm/cpu.c b/target/arm/cpu.c
 index 30739fc..e332483 100644
 --- a/target/arm/cpu.c
@@ -676,7 +516,7 @@ index 30739fc..e332483 100644
  static Property arm_cpu_reset_hivecs_property =
              DEFINE_PROP_BOOL("reset-hivecs", ARMCPU, reset_hivecs, false);
  
-@@ -1723,7 +1723,104 @@ static void arm926_initfn(Object *obj)
+@@ -1723,7 +1723,106 @@ static void arm926_initfn(Object *obj)
      cpu->isar.mvfr0 = FIELD_DP32(cpu->isar.mvfr0, MVFR0, FPSHVEC, 1);
      cpu->isar.mvfr0 = FIELD_DP32(cpu->isar.mvfr0, MVFR0, FPDP, 1);
  }
@@ -685,8 +525,10 @@ index 30739fc..e332483 100644
 +{
 +    /* https://chdk.setepontos.com/index.php?topic=2139.msg19836#msg19836 */
 +    ARMCPU *cpu = ARM_CPU(obj);
++    cpu->dtb_compatible = "arm,arm946";
 +    set_feature(&cpu->env, ARM_FEATURE_V5);
 +    set_feature(&cpu->env, ARM_FEATURE_PMSA);
++    set_feature(&cpu->env, ARM_FEATURE_DUMMY_C15_REGS);
 +    cpu->midr        = 0x41059461;
 +    cpu->ctr         = 0x0F112112;                /* DIGIC 5: 0x0F192192 */
 +    cpu->tcmtr       = 0x000C00C0;
@@ -842,6 +684,14 @@ index 815fef8..74ce4a9 100644
      } cp15;
  
      struct {
+@@ -868,6 +871,7 @@ struct ARMCPU {
+     uint32_t revidr;
+     uint32_t reset_fpsid;
+     uint32_t ctr;
++    uint32_t tcmtr;
+     uint32_t reset_sctlr;
+     uint32_t id_pfr0;
+     uint32_t id_pfr1;
 @@ -1849,6 +1849,7 @@ enum arm_features {
      ARM_FEATURE_VBAR, /* has cp15 VBAR */
      ARM_FEATURE_M_SECURITY, /* M profile Security Extension */
@@ -1039,16 +889,6 @@ index afc4163..632ea26 100644
  {
      if (qemu_loglevel_mask(CPU_LOG_INT)) {
          const char *exc = NULL;
-@@ -8448,7 +8448,7 @@
-     unsigned int new_el = env->exception.target_el;
- 
-     assert(!arm_feature(env, ARM_FEATURE_M));
- 
--    arm_log_exception(cs->exception_index);
-+    arm_log_exception(cs->exception_index, env);
-     qemu_log_mask(CPU_LOG_INT, "...from EL%d to EL%d\n", arm_current_el(env),
-                   new_el);
-     if (qemu_loglevel_mask(CPU_LOG_INT)
 @@ -7982,7 +7982,7 @@ static inline void arm_log_exception(int idx)
          if (!exc) {
              exc = "unknown";
@@ -1083,6 +923,16 @@ index afc4163..632ea26 100644
          }
          env->regs[14] = env->regs[15] + offset;
      }
+@@ -8448,7 +8448,7 @@
+     unsigned int new_el = env->exception.target_el;
+ 
+     assert(!arm_feature(env, ARM_FEATURE_M));
+ 
+-    arm_log_exception(cs->exception_index);
++    arm_log_exception(cs->exception_index, env);
+     qemu_log_mask(CPU_LOG_INT, "...from EL%d to EL%d\n", arm_current_el(env),
+                   new_el);
+     if (qemu_loglevel_mask(CPU_LOG_INT)
 --- a/target/arm/internals.h
 +++ b/target/arm/internals.h
 @@ -1051,7 +1051,7 @@
@@ -1129,7 +979,7 @@ diff --git a/target/arm/op_helper.c b/target/arm/op_helper.c
 index 6cd54c8..055aaf7 100644
 --- a/target/arm/op_helper.c
 +++ b/target/arm/op_helper.c
-@@ -474,6 +474,199 @@ void HELPER(set_cp_reg)(CPUARMState *env, void *rip, uint32_t value)
+@@ -474,6 +474,200 @@ void HELPER(set_cp_reg)(CPUARMState *env, void *rip, uint32_t value)
      ri->writefn(env, ri, value);
  }
  
@@ -1210,7 +1060,8 @@ index 6cd54c8..055aaf7 100644
 +     */
 +    static int cachemaint_count = 0;
 +    static uint32_t cachemaint_pc = 0;
-+    if (strcmp(ri->name, "CACHEMAINT") == 0)
++    if (strcmp(ri->name, "CACHEMAINT_S") == 0 ||
++        strcmp(ri->name, "CACHEMAINT") ==0)
 +    {
 +        cachemaint_pc = env->regs[15];
 +        cachemaint_count++;
@@ -1221,7 +1072,7 @@ index 6cd54c8..055aaf7 100644
 +        if (cachemaint_count)
 +        {
 +            print_cpu_mpidr(env);
-+            fprintf(stderr, "%08X: MCR p%d, ...          : CACHEMAINT x%d (omitted)\n", cachemaint_pc, ri->cp, cachemaint_count);
++            fprintf(stderr, "%08X: MCR p%d, ...          : CACHEMAINT / CACHEMAINT_S x%d (omitted)\n", cachemaint_pc, ri->cp, cachemaint_count);
 +            cachemaint_count = 0;
 +        }
 +    }

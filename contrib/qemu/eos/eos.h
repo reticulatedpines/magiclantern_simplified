@@ -2,11 +2,15 @@
 
 #define HW_EOS_H
 
+//#include "hw/hw.h"
+#include "target/arm/cpu.h"
+#include "hw/arm/armv7m.h"
 #include "hw/sysbus.h"
 #include "hw/sd/sd.h"
 #include "hw/ide/internal.h"
 #include "hw/char/digic-uart.h"
 #include "scnprintf.h"
+#include "hw/eos/model_list.h" // only for ram_extra_array_len enum
 
 /** Helper macros **/
 #define COUNT(x)        ((int)(sizeof(x)/sizeof((x)[0])))
@@ -241,16 +245,33 @@ typedef struct
     uint32_t def_enb;
 } PreproState;
 
-typedef struct
+typedef struct EOSState
 {
+    /*< private >*/
+    SysBusDevice parent_obj;
+    /*< public >*/
+
     const char * workdir;
 
     /* model-specific settings from model_list.c */
     struct eos_model_desc * model;
 
+//    char *cpu_type;
+
+/*
     union
     {
-        ARMCPU * cpus[2];
+        ARMv7MState cpus[2];
+        struct
+        {
+            ARMv7MState cpu0;
+            ARMv7MState cpu1;
+        };
+    };
+*/
+    union
+    {
+        ARMCPU *cpus[2];
         struct
         {
             ARMCPU *cpu0;
@@ -264,7 +285,7 @@ typedef struct
     MemoryRegion ram;
     MemoryRegion ram_uncached;
     MemoryRegion ram_uncached0;
-    MemoryRegion ram_extra;
+    MemoryRegion ram_extra[ram_extra_array_len];
     MemoryRegion rom0;
     MemoryRegion rom1;
     MemoryRegion mmio;

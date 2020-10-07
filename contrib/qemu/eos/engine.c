@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <math.h>
+#include "qemu/osdep.h"
+#include "hw/hw.h"
 #include "eos.h"
 #include "engine.h"
 #include "model_list.h"
