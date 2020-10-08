@@ -42,7 +42,7 @@ index b437a346..db1d5341 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -491,7 +491,7 @@ $(TARGET_DIRS_RULES):
-        $(call quiet-command,$(MAKE) $(SUBDIR_MAKEFLAGS) -C $(dir $@) V="$(V)" TARGET_DIR="$(dir $@)" $(notdir $@),)
+ 	$(call quiet-command,$(MAKE) $(SUBDIR_MAKEFLAGS) -C $(dir $@) V="$(V)" TARGET_DIR="$(dir $@)" $(notdir $@),)
  
  DTC_MAKE_ARGS=-I$(SRC_PATH)/dtc VPATH=$(SRC_PATH)/dtc -C dtc V="$(V)" LIBFDT_srcdir=$(SRC_PATH)/dtc/libfdt
 -DTC_CFLAGS=$(CFLAGS) $(QEMU_CFLAGS)
@@ -93,10 +93,7 @@ index c88d0ff..4395bb3 100644
      qemu_log_mask_and_addr(CPU_LOG_EXEC, itb->pc,
                             "Trace %d: %p ["
                             TARGET_FMT_lx "/" TARGET_FMT_lx "/%#x] %s\n",
---- a/accel/tcg/cpu-exec.c
-+++ b/accel/tcg/cpu-exec.c
-@@ -391,6 +391,16 @@ static inline void cpu_loop_exec_tb(CPUState *cpu, TranslationBlock *tb,
-     qemu_spin_unlock(&tb_next->jmp_lock);
+@@ -392,6 +392,16 @@ static inline void cpu_loop_exec_tb(CPUState *cpu, TranslationBlock *tb,
      return;
  }
  
@@ -167,22 +164,22 @@ diff --git a/hw/arm/digic.c b/hw/arm/digic.c
 index 90f8190..8e934be 100644
 --- a/hw/arm/digic.c
 +++ b/hw/arm/digic.c
-@@ -36,7 +36,7 @@ static void digic_init(Object *obj)
-     object_property_add_child(obj, "cpu", OBJECT(&s->cpu), NULL);
+@@ -41,7 +41,7 @@ static void digic_init(Object *obj)
+                             &error_abort, NULL);
  
      for (i = 0; i < DIGIC4_NB_TIMERS; i++) {
 -#define DIGIC_TIMER_NAME_MLEN    11
 +#define DIGIC_TIMER_NAME_MLEN    20
          char name[DIGIC_TIMER_NAME_MLEN];
  
-         object_initialize(&s->timer[i], sizeof(s->timer[i]), TYPE_DIGIC_TIMER);
+         snprintf(name, DIGIC_TIMER_NAME_MLEN, "timer[%d]", i);
 diff --git a/include/exec/exec-all.h b/include/exec/exec-all.h
 index d900b0d..1ad5332 100644
 --- a/include/exec/exec-all.h
 +++ b/include/exec/exec-all.h
-@@ -405,4 +405,7 @@ extern int singlestep;
- extern CPUState *tcg_current_cpu;
- extern bool exit_request;
+@@ -590,4 +590,7 @@ extern int singlestep;
+ /* vl.c */
+ extern int singlestep;
  
 +void cpu_set_tb_exec_cb(void (*cb)(void *opaque, CPUState *cpu, TranslationBlock *tb),
 +                        void *opaque);
@@ -192,9 +189,9 @@ diff --git a/include/exec/memory.h b/include/exec/memory.h
 index 0f07159..40c3940 100644
 --- a/include/exec/memory.h
 +++ b/include/exec/memory.h
-@@ -1356,6 +1356,19 @@ void address_space_unmap(AddressSpace *as, void *buffer, hwaddr len,
-                          int is_write, hwaddr access_len);
- 
+@@ -2244,6 +2244,19 @@ void address_space_unmap(AddressSpace *as, void *buffer, hwaddr len,
+ }
+ #endif
  
 +/* memory_set_access_logging_cb: allow logging guest memory accesses
 + * using callbacks.
@@ -216,7 +213,7 @@ diff --git a/include/hw/elf_ops.h b/include/hw/elf_ops.h
 index 0010c44..d85cc6b 100644
 --- a/include/hw/elf_ops.h
 +++ b/include/hw/elf_ops.h
-@@ -140,8 +140,11 @@ static int glue(load_symbols, SZ)(struct elfhdr *ehdr, int fd, int must_swab,
+@@ -156,8 +156,11 @@ static int glue(load_symbols, SZ)(struct elfhdr *ehdr, int fd, int must_swab,
          /* We are only interested in function symbols.
             Throw everything else away.  */
          if (syms[i].st_shndx == SHN_UNDEF ||
@@ -230,7 +227,7 @@ index 0010c44..d85cc6b 100644
              nsyms--;
              if (i < nsyms) {
                  syms[i] = syms[nsyms];
-@@ -157,9 +160,13 @@ static int glue(load_symbols, SZ)(struct elfhdr *ehdr, int fd, int must_swab,
+@@ -173,9 +176,13 @@ static int glue(load_symbols, SZ)(struct elfhdr *ehdr, int fd, int must_swab,
      syms = g_realloc(syms, nsyms * sizeof(*syms));
  
      qsort(syms, nsyms, sizeof(*syms), glue(symcmp, SZ));
@@ -298,7 +295,7 @@ index 362cbc4..7859c5f 100644
  /* Lock output for a series of related logs.  Since this is not needed
   * for a single qemu_log / qemu_log_mask / qemu_log_mask_and_addr, we
   * assume that qemu_loglevel_mask has already been tested, and that
-@@ -147,7 +147,7 @@ static inline void qemu_log_set_file(FILE *f)
+@@ -106,7 +106,7 @@ static inline void qemu_log_set_file(FILE *f)
  
  /* define log items */
  typedef struct QEMULogItem {
@@ -307,7 +304,7 @@ index 362cbc4..7859c5f 100644
      const char *name;
      const char *help;
  } QEMULogItem;
-@@ -154,12 +154,12 @@ extern const QEMULogItem qemu_log_items[];
+@@ -113,12 +113,12 @@ extern const QEMULogItem qemu_log_items[];
  
  extern const QEMULogItem qemu_log_items[];
  
@@ -376,7 +373,7 @@ index e193658..9de7251 100644
          return MEMTX_DECODE_ERROR;
      }
 
-@@ -2397,6 +2397,9 @@ void memory_region_add_subregion(MemoryRegion *mr,
+@@ -2398,6 +2398,9 @@ void memory_region_add_subregion(MemoryRegion *mr,
                                   hwaddr offset,
                                   MemoryRegion *subregion)
  {
@@ -611,7 +608,7 @@ index 30739fc..e332483 100644
  static void arm946_initfn(Object *obj)
  {
      ARMCPU *cpu = ARM_CPU(obj);
-@@ -2026,9 +2026,20 @@ static void arm_v7m_class_init(ObjectClass *oc, void *data)
+@@ -2025,9 +2025,20 @@ static void arm_v7m_class_init(ObjectClass *oc, void *data)
  
  static const ARMCPRegInfo cortexr5_cp_reginfo[] = {
      /* Dummy the TCM region regs for the moment */
@@ -632,8 +629,8 @@ index 30739fc..e332483 100644
 +      .access = PL1_RW, .type = ARM_CP_CONST | ARM_CP_OVERRIDE, .resetvalue = 0x00CFC010 },
 +    { .name = "ACTLR2",     .cp = 15, .opc1 = 0, .crn = 15, .crm = 0, .opc2 = 0,
        .access = PL1_RW, .type = ARM_CP_CONST },
-     REGINFO_SENTINEL
- };
+     { .name = "DCACHE_INVAL", .cp = 15, .opc1 = 0, .crn = 15, .crm = 5,
+       .opc2 = 0, .access = PL1_W, .type = ARM_CP_NOP },
 @@ -2544,6 +2544,8 @@ static const ARMCPUInfo arm_cpus[] = {
  #if !defined(CONFIG_USER_ONLY) || !defined(TARGET_AARCH64)
      { .name = "arm926",      .initfn = arm926_initfn },
@@ -662,7 +659,7 @@ diff --git a/target-arm/cpu.h b/target-arm/cpu.h
 index 815fef8..74ce4a9 100644
 --- a/target/arm/cpu.h
 +++ b/target/arm/cpu.h
-@@ -389,6 +389,9 @@ typedef struct CPUARMState {
+@@ -491,6 +491,9 @@ typedef struct CPUARMState {
          uint64_t pmccfiltr_el0; /* Performance Monitor Filter Register */
          uint64_t vpidr_el2; /* Virtualization Processor ID Register */
          uint64_t vmpidr_el2; /* Virtualization Multiprocessor ID Register */
@@ -680,7 +677,7 @@ index 815fef8..74ce4a9 100644
      uint32_t reset_sctlr;
      uint32_t id_pfr0;
      uint32_t id_pfr1;
-@@ -1849,6 +1849,7 @@ enum arm_features {
+@@ -1848,6 +1848,7 @@ enum arm_features {
      ARM_FEATURE_VBAR, /* has cp15 VBAR */
      ARM_FEATURE_M_SECURITY, /* M profile Security Extension */
      ARM_FEATURE_M_MAIN, /* M profile Main Extension */
@@ -692,7 +689,7 @@ diff --git a/target/arm/helper.c b/target/arm/helper.c
 index afc4163..632ea26 100644
 --- a/target/arm/helper.c
 +++ b/target/arm/helper.c
-@@ -549,6 +549,13 @@ static const ARMCPRegInfo not_v6_cp_reginfo[] = {
+@@ -833,6 +833,13 @@ static const ARMCPRegInfo not_v6_cp_reginfo[] = {
      REGINFO_SENTINEL
  };
  
@@ -706,7 +703,7 @@ index afc4163..632ea26 100644
  static const ARMCPRegInfo not_v7_cp_reginfo[] = {
      /* Standard v6 WFI (also used in some pre-v6 cores); not in v7 (which
       * is UNPREDICTABLE; we choose to NOP as most implementations do).
-@@ -598,6 +605,138 @@ static const ARMCPRegInfo not_v7_cp_reginfo[] = {
+@@ -882,6 +882,138 @@ static const ARMCPRegInfo not_v7_cp_reginfo[] = {
      REGINFO_SENTINEL
  };
  
@@ -845,7 +842,7 @@ index afc4163..632ea26 100644
  static void cpacr_write(CPUARMState *env, const ARMCPRegInfo *ri,
                          uint64_t value)
  {
-@@ -4410,7 +4549,7 @@ void register_cp_regs_for_features(ARMCPU *cpu)
+@@ -6726,7 +6726,7 @@ void register_cp_regs_for_features(ARMCPU *cpu)
              /* TCMTR and TLBTR exist in v8 but have no 64-bit versions */
              { .name = "TCMTR",
                .cp = 15, .crn = 0, .crm = 0, .opc1 = 0, .opc2 = 2,
@@ -854,7 +851,7 @@ index afc4163..632ea26 100644
              REGINFO_SENTINEL
          };
          /* TLBTR is specific to VMSA */
-@@ -7056,6 +7056,13 @@ void register_cp_regs_for_features(ARMCPU *cpu)
+@@ -6917,6 +6917,13 @@ void register_cp_regs_for_features(ARMCPU *cpu)
          }
          define_one_arm_cp_reg(cpu, &sctlr);
      }
@@ -877,7 +874,7 @@ index afc4163..632ea26 100644
  {
      if (qemu_loglevel_mask(CPU_LOG_INT)) {
          const char *exc = NULL;
-@@ -7982,7 +7982,7 @@ static inline void arm_log_exception(int idx)
+@@ -7843,7 +7843,7 @@ static inline void arm_log_exception(int idx)
          if (!exc) {
              exc = "unknown";
          }
@@ -911,8 +908,7 @@ index afc4163..632ea26 100644
          }
          env->regs[14] = env->regs[15] + offset;
      }
-@@ -8448,7 +8448,7 @@
-     unsigned int new_el = env->exception.target_el;
+@@ -8497,7 +8497,7 @@
  
      assert(!arm_feature(env, ARM_FEATURE_M));
  
@@ -947,8 +943,7 @@ diff --git a/target/arm/helper.h b/target/arm/helper.h
 index c2a85c7..98aa94b 100644
 --- a/target/arm/helper.h
 +++ b/target/arm/helper.h
-@@ -78,10 +78,15 @@ DEF_HELPER_2(v7m_mrs, i32, env, i32)
- 
+@@ -78,9 +78,14 @@ DEF_HELPER_2(v7m_mrs, i32, env, i32)
  DEF_HELPER_4(access_check_cp_reg, void, env, ptr, i32, i32)
  DEF_HELPER_3(set_cp_reg, void, env, ptr, i32)
  DEF_HELPER_2(get_cp_reg, i32, env, ptr)
@@ -967,8 +962,8 @@ diff --git a/target/arm/op_helper.c b/target/arm/op_helper.c
 index 6cd54c8..055aaf7 100644
 --- a/target/arm/op_helper.c
 +++ b/target/arm/op_helper.c
-@@ -474,6 +474,200 @@ void HELPER(set_cp_reg)(CPUARMState *env, void *rip, uint32_t value)
-     ri->writefn(env, ri, value);
+@@ -668,6 +668,200 @@ void HELPER(set_cp_reg)(CPUARMState *env, void *rip, uint32_t value)
+     }
  }
  
 +/* adapted from CHDK cpuinfo */
@@ -1173,8 +1168,8 @@ index 5d22879..a413e2c 100644
 --- a/target/arm/translate.c
 +++ b/target/arm/translate.c
 @@ -37,6 +37,8 @@
- 
  #include "trace-tcg.h"
+ #include "exec/log.h"
  
 +#define LOG_ALL_CP_READS
 +#define LOG_ALL_CP_WRITES
@@ -1290,7 +1285,7 @@ index 5d22879..a413e2c 100644
      gen_aa32_st_i64(s, val, a32, index, MO_Q | s->be_data);
  }
  
-@@ -7222,6 +7300,27 @@ static int disas_coproc_insn(DisasContext *s, uint32_t insn)
+@@ -6968,6 +6968,27 @@ static int disas_coproc_insn(DisasContext *s, uint32_t insn)
          /* Handle special cases first */
          switch (ri->type & ~(ARM_CP_FLAG_MASK & ~ARM_CP_SPECIAL)) {
          case ARM_CP_NOP:
@@ -1318,7 +1313,7 @@ index 5d22879..a413e2c 100644
              return 0;
          case ARM_CP_WFI:
              if (isread) {
-@@ -7276,6 +7375,15 @@ static int disas_coproc_insn(DisasContext *s, uint32_t insn)
+@@ -7021,6 +7021,15 @@ static int disas_coproc_insn(DisasContext *s, uint32_t insn)
                  } else {
                      tmp = load_cpu_offset(ri->fieldoffset);
                  }
@@ -1334,7 +1329,7 @@ index 5d22879..a413e2c 100644
                  if (rt == 15) {
                      /* Destination register of r15 for 32 bit loads sets
                       * the condition codes from the high 4 bits of the value
-@@ -7287,6 +7395,19 @@ static int disas_coproc_insn(DisasContext *s, uint32_t insn)
+@@ -7032,6 +7032,19 @@ static int disas_coproc_insn(DisasContext *s, uint32_t insn)
                  }
              }
          } else {
@@ -1358,9 +1353,9 @@ diff --git a/target/arm/translate.h b/target/arm/translate.h
 index 53ef971..260331a 100644
 --- a/target/arm/translate.h
 +++ b/target/arm/translate.h
-@@ -151,4 +151,8 @@ void arm_free_cc(DisasCompare *cmp);
- void arm_jump_cc(DisasCompare *cmp, TCGLabel *label);
- void arm_gen_test_cc(int cc, TCGLabel *label);
+@@ -290,4 +290,8 @@ void arm_free_cc(DisasCompare *cmp);
+ #define dc_isar_feature(name, ctx) \
+     ({ DisasContext *ctx_ = (ctx); isar_feature_##name(ctx_->isar); })
  
 +/* fixme: duplicate declaration in op_helper.c */
 +void log_ldr_cb(uint32_t addr, uint32_t value, uint32_t opc);
@@ -1371,7 +1366,7 @@ diff --git a/vl.c b/vl.c
 index 4211ff1..93d4df4 100644
 --- a/vl.c
 +++ b/vl.c
-@@ -4102,7 +4102,7 @@ int main(int argc, char **argv, char **envp)
+@@ -3932,7 +3932,7 @@ int main(int argc, char **argv, char **envp)
      }
  
      if (log_mask) {
