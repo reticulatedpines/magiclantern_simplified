@@ -9,18 +9,6 @@ diff -u a/include/qemu/bswap.h b/include/qemu/bswap.h
  
  #ifdef CONFIG_MACHINE_BSWAP_H
  # include <sys/endian.h>
-diff --git a/hw/usb/bus.c b/hw/usb/bus.c
---- a/hw/usb/bus.c
-+++ b/hw/usb/bus.c
-@@ -401,7 +401,7 @@
- void usb_port_location(USBPort *downstream, USBPort *upstream, int portnr)
- {
-     if (upstream) {
--        int l = snprintf(downstream->path, sizeof(downstream->path), "%s.%d",
-+        int l = snprintf(downstream->path, sizeof(downstream->path), "%.12s.%d",
-                          upstream->path, portnr);
-         /* Max string is nn.nn.nn.nn.nn, which fits in 16 bytes */
-         assert(l < sizeof(downstream->path));
 diff --git a/default-configs/arm-softmmu.mak b/default-configs/arm-softmmu.mak
 index 1f2e0e7f..cc5f7eb8 100644
 --- a/default-configs/arm-softmmu.mak
