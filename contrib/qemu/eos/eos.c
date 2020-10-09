@@ -57,8 +57,6 @@ static void eos_init(MachineState *machine)
 
     // This triggers calling the realize function
     object_property_set_bool(OBJECT(dev), true, "realized", &error_fatal);
-
-    printf(" ---- eos_init\n");
 }
 
 
