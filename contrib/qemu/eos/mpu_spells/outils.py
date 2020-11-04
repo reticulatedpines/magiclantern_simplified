@@ -1,5 +1,6 @@
-from __future__ import print_function
-import os, sys, re
+import os
+import sys
+import re
 from struct import unpack
 
 def eprint(*args, **kwargs):

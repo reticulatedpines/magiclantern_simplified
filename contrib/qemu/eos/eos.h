@@ -58,6 +58,7 @@
 #define LOOP_INSTR       0xeafffffe    // 1: b 1b
 
 #define CURRENT_CPU   s->cpus[current_cpu ? current_cpu->cpu_index : 0]
+#define OTHER_CPU     s->cpus[current_cpu ? 0 : current_cpu->cpu_index]
 
 /** Memory configuration **/
 #define ROM0_ADDR     s->model->rom0_addr
@@ -319,7 +320,9 @@ typedef struct EOSState
     PreproState prepro;
     struct SerialFlashState * sf;
     uint32_t card_led;  /* 1 = on, -1 = off, 0 = not used */
-    QEMUTimer * interrupt_timer;
+    QEMUTimer *interrupt_timer;
+    QEMUTimer multicore_timer_01;
+    QEMUTimer multicore_timer_02;
 } EOSState;
 
 typedef struct
@@ -389,6 +392,7 @@ unsigned int eos_handle_timers_ ( unsigned int parm, EOSState *s, unsigned int a
 unsigned int eos_handle_digic_timer ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_utimer ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_hptimer ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
+unsigned int eos_handle_multicore ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_intengine ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_intengine_vx ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_intengine_gic ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );

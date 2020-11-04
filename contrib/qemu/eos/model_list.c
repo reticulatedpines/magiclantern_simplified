@@ -478,6 +478,8 @@ struct eos_model_desc eos_model_list[] = {
         .current_task_addr      = 0x44F4,
         .serial_flash_size      = 0x800000,
         .serial_flash_sio_ch    = 2,
+        .ram_extra_addr[1]      = 0x82180000,
+        .ram_extra_size[1]      = 0x00010000,
     },
     {
         .name                   = MODEL_NAME_750D,

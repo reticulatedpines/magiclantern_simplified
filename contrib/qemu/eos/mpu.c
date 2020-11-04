@@ -770,6 +770,8 @@ static int translate_scancode_2(int scancode, int first_code, int allow_auto_rep
     {
         return -1;
     }
+
+    printf(" ==== scancode: %08x\n", scancode);
     
     int code = (first_code << 8) | scancode;
 
@@ -1291,6 +1293,7 @@ void mpu_spells_init(EOSState *s)
     MPU_BUTTON_CODES(70D)
     MPU_BUTTON_CODES(7D)
     MPU_BUTTON_CODES(EOSM)
+    MPU_BUTTON_CODES(200D)
     MPU_BUTTON_CODES_OTHER_CAM(EOSM2, EOSM)
 
     if (!button_codes)

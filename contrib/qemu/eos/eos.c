@@ -57,6 +57,8 @@ static void eos_init(MachineState *machine)
 
     // This triggers calling the realize function
     object_property_set_bool(OBJECT(dev), true, "realized", &error_fatal);
+
+    printf(" ---- eos_init\n");
 }
 
 
@@ -465,6 +467,7 @@ EOSRegionHandler eos_handlers[] =
     { "Interrupt",    0xD5011000, 0xD5011FFF, eos_handle_intengine, 2 },    // second core in D7
     { "Interrupt",    0xD02C0200, 0xD02C02FF, eos_handle_intengine, 3 },    // 5D3 eeko
     { "Interrupt",    0xC1000000, 0xC100FFFF, eos_handle_intengine_gic, 7 },// D7
+    { "Multicore",    0xC1100000, 0xC110FFFF, eos_handle_multicore, 7 },    // D7
     { "Timers",       0xC0210000, 0xC0210FFF, eos_handle_timers, 0 },       // DIGIC 4/5/6 countdown timers
     { "Timers",       0xD02C1500, 0xD02C15FF, eos_handle_timers, 2 },       // Eeko countdown timer
     { "Timer",        0xC0242014, 0xC0242014, eos_handle_digic_timer, 0 },
@@ -1670,7 +1673,7 @@ static void *eos_init_cpu(EOSState *s)
         i++)
     {
         sprintf(ram_region_name, "eos.ram_extra_%ld", i);
-        if (s->model->ram_extra_addr != 0)
+        if (s->model->ram_extra_addr[i] != 0)
         {
             memory_region_init_ram(&s->ram_extra[i], NULL, ram_region_name, s->model->ram_extra_size[i], &error_abort);
             memory_region_add_subregion(s->system_mem, s->model->ram_extra_addr[i], &s->ram_extra[i]);
@@ -1738,6 +1741,21 @@ static void *eos_init_cpu(EOSState *s)
 
     return s;
 }
+
+#if 1
+static void patch_200D(EOSState *s)
+{
+    uint8_t *buf = NULL;
+    buf = calloc(0xce24, 1);
+    address_space_read(&address_space_memory, 0xe11c11c0,
+                       MEMTXATTRS_UNSPECIFIED, buf,
+                       0xce24);
+    address_space_write(&address_space_memory, 0xdf002800,
+                        MEMTXATTRS_UNSPECIFIED, buf,
+                        0xce24);
+    return;
+}
+#endif
 
 static void patch_EOSM3(EOSState *s)
 {
@@ -1879,6 +1897,14 @@ static void eos_init_common(EOSState *s)
         MEM_WRITE_ROM(s->model->bootflags_addr + 0x24, (uint8_t*) &flag, 4);
     }
     
+#if 1
+    if (strcmp(s->model->name, MODEL_NAME_200D) == 0)
+    {
+        printf(" ==== patching 200D\n");
+        patch_200D(s);
+    }
+#endif
+
     if (strcmp(s->model->name, MODEL_NAME_EOSM3) == 0)
     {
         patch_EOSM3(s);
@@ -2253,6 +2279,86 @@ unsigned int eos_trigger_int(EOSState *s, unsigned int id, unsigned int delay)
     return 0;
 }
 
+#if 0
+static void cpu1_wakeup_timer(void *opaque)
+{
+    EOSState *s = opaque;
+    printf(" ==== wakeup_timer callback fired\n");
+    CPU(s->cpu1)->halted = 0;
+    printf(KLRED"Wake Up CPU1\n"KRESET);
+}
+#endif
+
+#if 1
+static void cpu1_interrupt_timer(void *opaque)
+{
+    EOSState *s = opaque;
+    printf(" ==== interrupt_timer callback fired\n");
+    s->irq_id = 0xa; // FIXME SJE, do we want this?  Alex didn't have it, but
+                     // I see asserts from hw/eos/dbi/logging.c if I use -d callstacks without it.
+    s->irq_enabled[s->irq_id] = 0;
+//    cpu_interrupt(CPU(OTHER_CPU), CPU_INTERRUPT_HARD);
+    cpu_interrupt(CPU(s->cpus[1]), CPU_INTERRUPT_HARD);
+}
+#endif
+
+unsigned int eos_handle_multicore(unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value)
+{
+    const char * module = "MULTICORE";
+    const char * msg = 0;
+    int msg_arg1 = 0;
+    int msg_arg2 = 0;
+    unsigned int ret = 0;
+
+    switch (address & 0xFFFF)
+    {
+        case 0x730:
+            msg = "sync caches?";
+            break;
+
+        case 0x7B0:
+            msg = "sync cache address?";
+            break;
+
+        case 0x100:
+            msg = "Wake Up CPU1?";
+            assert(s->cpu1);
+            #if 1
+            CPU(s->cpu1)->halted = 0;
+            printf(KLRED"Wake Up CPU1\n"KRESET);
+            #endif
+            #if 0
+            printf(" ==== scheduled CPU1 wakeup\n");
+            timer_init_ms(&s->multicore_timer_01, QEMU_CLOCK_VIRTUAL, cpu1_wakeup_timer, s);
+            timer_mod(&s->multicore_timer_01, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) + 50);
+            #endif
+            break;
+
+        case 0x214:
+            msg = "Signal to CPU1?";
+            if (value) {
+                #if 0
+                s->irq_id = 0xa; // FIXME SJE, do we want this?  Alex didn't have it, but
+                                 // I see asserts from hw/eos/dbi/logging.c if I use -d callstacks without it.
+                s->irq_enabled[s->irq_id] = 0;
+                cpu_interrupt(CPU(OTHER_CPU), CPU_INTERRUPT_HARD);
+                #endif
+                #if 1
+                printf(" ==== scheduled CPU1 interrupt\n");
+                timer_init_ms(&s->multicore_timer_02, QEMU_CLOCK_VIRTUAL, cpu1_interrupt_timer, s);
+                timer_mod(&s->multicore_timer_02, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) + 250);
+                #endif
+            }
+            break;
+    }
+
+    if (qemu_loglevel_mask(CPU_LOG_INT))
+    {
+        io_log(module, s, address, type, value, ret, msg, msg_arg1, msg_arg2);
+    }
+    return ret;
+}
+
 /* this appears to be an older interface for the same interrupt controller */
 unsigned int eos_handle_intengine_vx(unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value)
 {
@@ -2434,7 +2540,7 @@ unsigned int eos_handle_intengine_gic ( unsigned int parm, EOSState *s, unsigned
                 case 0x0C:
                 {
                     msg = "GICC_IAR";
-                    ret = 0x20;
+                    ret = (current_cpu->cpu_index) ? 0x0A : 0x20;
                     break;
                 }
             }

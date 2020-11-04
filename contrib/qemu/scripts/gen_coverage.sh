@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-QEMU_PATH=${QEMU_PATH:=qemu-2.5.0}
+QEMU_PATH=${QEMU_PATH:=qemu-4.2.1}
 OUT_DIR=`realpath coverage`
 EOS_BINDIR=`realpath $QEMU_PATH/arm-softmmu/hw/eos`
 EOS_SRCDIR=`realpath $QEMU_PATH/hw/eos`

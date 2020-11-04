@@ -620,3 +620,37 @@ static int button_codes_EOSM[] = {
     [GMT_GUICMD_PRESS_BUTTON_SOMETHING] = 0x2601,
     [BGMT_END_OF_LIST]                  = 0x0000
 };
+
+static int button_codes_200D[] = {
+    [BGMT_INFO]                         =   0x0101,
+    [BGMT_LV]                           =   0x2101,
+    [BGMT_MENU]                         =   0x0001,
+    [BGMT_PLAY]                         =   0x0301,
+    [BGMT_PRESS_DOWN]                   =   0x1901,
+    [BGMT_PRESS_LEFT]                   =   0x1B01,
+    [BGMT_PRESS_RIGHT]                  =   0x1A01,
+    [BGMT_PRESS_SET]                    = 0x0c01,
+    [BGMT_PRESS_UP]                     =   0x1801,
+    [BGMT_PRESS_ZOOM_IN]                = 0x0901,   /* internal */
+    [BGMT_PRESS_ZOOM_OUT]               = 0x0A01,   /* internal */
+    [BGMT_Q]                            =   0x2001,   /* same as 100D */
+    [BGMT_UNPRESS_Q]                    = 0x0C00,   /* actually BGMT_UNPRESS_SET (GUI events are Q, PRESS_SET, UNPRESS_SET; unsure about MPU messages) */
+    [BGMT_TRASH]                        =   0x0401,   /* this might be used in Canon menu (to be checked) */
+    [BGMT_UNPRESS_DOWN]                 =   0x1900,
+    [BGMT_UNPRESS_LEFT]                 =   0x1B00,
+    [BGMT_UNPRESS_RIGHT]                =   0x1A00,
+    [BGMT_UNPRESS_SET]                  = 0x0C00,
+    [BGMT_UNPRESS_UP]                   =   0x1800,
+    [BGMT_UNPRESS_ZOOM_IN]              = 0x0900,   /* internal */
+    [BGMT_UNPRESS_ZOOM_OUT]             = 0x0A00,   /* internal */
+    [BGMT_WHEEL_LEFT]                   = 0x0DFF,
+    [BGMT_WHEEL_RIGHT]                  = 0x0D01,
+    [GMT_GUICMD_CLOSE_BATT_COVER]       = 0x1300,
+    [GMT_GUICMD_OPEN_BATT_COVER]        = 0x1301,
+    [GMT_GUICMD_CLOSE_SLOT_COVER]       = 0x1200,
+    [GMT_GUICMD_OPEN_SLOT_COVER]        = 0x1201,
+    [GMT_GUICMD_START_AS_CHECK]         = 0x1100,
+    [GMT_GUICMD_LOCK_ON]                = 0x1101,
+    [GMT_GUICMD_PRESS_BUTTON_SOMETHING] = 0x2601,
+    [BGMT_END_OF_LIST]                  = 0x0000
+};
