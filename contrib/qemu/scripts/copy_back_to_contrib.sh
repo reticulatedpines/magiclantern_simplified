@@ -2,7 +2,7 @@
 
 # run this if you make changes to qemu and want to commit them back into ML tree
 
-QEMU_PATH=${QEMU_PATH:=qemu-2.5.0}
+QEMU_PATH=${QEMU_PATH:=qemu-4.2.1}
 ML_PATH=${ML_PATH:=../magic-lantern}
 
 cp -v *.sh *.py *.gdb gdbopts $ML_PATH/contrib/qemu/scripts

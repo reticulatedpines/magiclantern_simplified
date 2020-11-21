@@ -5,7 +5,7 @@ set -e
 QEMU_DIR=${QEMU_DIR:=qemu-eos}
 
 # paths relative to QEMU_DIR (where it will be installed)
-QEMU_NAME=${QEMU_NAME:=qemu-2.5.0}
+QEMU_NAME=${QEMU_NAME:=qemu-4.2.1}
 ML_PATH=${ML_PATH:=../magiclantern_simplified}
 
 ML_NAME=${ML_PATH##*/}
@@ -490,10 +490,10 @@ cd ${QEMU_NAME}
 mkdir -p hw/eos
 cp -r ../$ML_PATH/contrib/qemu/eos/* hw/eos/
 cp -r ../$ML_PATH/src/backtrace.[ch] hw/eos/dbi/
-if gcc -v 2>&1 | grep -q "gcc version [789]"; then
-  # hopefully these will also work for gcc 9.x (not tested)
+if gcc -v 2>&1 | grep -q -P "gcc version (7\.|8\.|9\.|10\.|11\.)"; then
+  # hopefully these will also work for gcc 9+ (not tested)
   patch -N -p1 < ../$ML_PATH/contrib/qemu/$QEMU_NAME-gcc78.patch
-  git add -u . && git commit -q -m "$QEMU_NAME patched for gcc 7.x and 8.x"
+  git add -u . && git commit -q -m "$QEMU_NAME patched for gcc 7+"
 fi
 
 patch -N -p1 < ../$ML_PATH/contrib/qemu/$QEMU_NAME.patch

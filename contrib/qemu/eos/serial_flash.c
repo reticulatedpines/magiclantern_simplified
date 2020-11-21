@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "qemu/osdep.h"
+#include "qemu/log.h"
 #include "eos.h"
 #include "hw/sd/sd.h"
 #include "hw/eos/serial_flash.h"

@@ -4,7 +4,8 @@
 #include <stdint.h>
 #include <string.h>
 
-
+#include "qemu/osdep.h"
+#include "disas/disas.h"
 #include "sysemu/sysemu.h"
 #include "eos.h"
 #include "eos_ml_helpers.h"
@@ -57,7 +58,7 @@ unsigned int eos_handle_ml_helpers ( unsigned int parm, EOSState *s, unsigned in
                     uint32_t bits = eos_get_mem_h(s, value & ~1) >> 11;
                     size = (bits == 0b11101 || bits == 0b11110 || bits == 0b11111) ? 4 : 2;
                 }
-                target_disas(stderr, CPU(arm_env_get_cpu(&s->cpu0->env)), value, size, 0);
+                target_disas(stderr, CPU(env_archcpu(&s->cpu0->env)), value, size);
                 fprintf(stderr, KRESET);
                 return 0;
         }

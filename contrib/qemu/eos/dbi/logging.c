@@ -3,6 +3,10 @@
 #include <stdint.h>
 
 #include "qemu/osdep.h"
+#include "qemu/log.h"
+#include "disas/disas.h"
+#include "exec/exec-all.h"
+#include "exec/log.h"
 #include "qapi/error.h"
 #include "cpu.h"
 #include "elf.h"
@@ -186,7 +190,8 @@ void eos_log_mem(void * opaque, hwaddr addr, uint64_t value, uint32_t size, int 
     /* fixme: can be slow */
     hwaddr l = 4;
     hwaddr addr1;
-    MemoryRegion * mr = address_space_translate(&address_space_memory, addr, &addr1, &l, is_write);
+    MemoryRegion * mr = address_space_translate(&address_space_memory, addr, &addr1, &l, is_write,
+                                                MEMTXATTRS_UNSPECIFIED);
 
     if (!should_log_memory_region(mr, is_write))
     {
@@ -323,8 +328,8 @@ static void eos_idc_log_call(EOSState *s, CPUState *cpu, CPUARMState *env,
         assert(stderr_dup);
         fflush(stderr); fflush(idc);
         dup2(fileno(idc), fileno(stderr));
-        fprintf(stderr, "  /* from "); log_target_disas(cpu, prev_pc, prev_size, 0);
-        fprintf(stderr, "   *   -> "); log_target_disas(cpu, tb->pc, tb->size, 0);
+        fprintf(stderr, "  /* from "); log_target_disas(cpu, prev_pc, prev_size);
+        fprintf(stderr, "   *   -> "); log_target_disas(cpu, tb->pc, tb->size);
         char * task_name = eos_get_current_task_name(s);
         fprintf(stderr, "   * %s%sPC:%x->%x LR:%x->%x SP:%x */\n",
             task_name ? task_name : "", task_name ? " " : "",
@@ -372,7 +377,7 @@ struct call_stack_entry
     uint32_t is_tail_call;      /* boolean: whether it's a tail function call */
     uint32_t interrupt_id;      /* 0 = regular code, nonzero = interrupt */
     uint32_t direct_jumps[4];   /* DIGIC 6 code uses many of those */
-} __attribute__((packed));
+};
 
 static struct call_stack_entry call_stacks[256][256];
 static int call_stack_num[256] = {0};
@@ -686,7 +691,8 @@ static int check_address_range(uint32_t ptr, uint32_t len)
 {
     hwaddr l = len;
     hwaddr addr1;
-    MemoryRegion * mr = address_space_translate(&address_space_memory, ptr, &addr1, &l, 0);
+    MemoryRegion * mr = address_space_translate(&address_space_memory, ptr, &addr1, &l, 0,
+                                                MEMTXATTRS_UNSPECIFIED);
 
     if (!mr)
     {
@@ -1568,7 +1574,7 @@ recheck:
                 /* hm, target_disas used to look at flags for ARM or Thumb... */
                 int t0 = env->thumb; env->thumb = prev_pc & 1;
                 assert(prev_size);
-                target_disas(stderr, CPU(arm_env_get_cpu(env)), prev_pc0, prev_size, 0);
+                target_disas(stderr, CPU(env_archcpu(env)), prev_pc0, prev_size);
                 env->thumb = t0;
             }
         }
@@ -1655,7 +1661,8 @@ static void romcpy_log_block(EOSState *s)
 
     hwaddr l = block_size;
     hwaddr block_rom_start_rel;
-    MemoryRegion * mr = address_space_translate(&address_space_memory, block_rom_start, &block_rom_start_rel, &l, 0);
+    MemoryRegion * mr = address_space_translate(&address_space_memory, block_rom_start, &block_rom_start_rel, &l, 0,
+                                                MEMTXATTRS_UNSPECIFIED);
     assert(l == block_size);
 
     if (strcmp(mr->name, "eos.rom0") == 0 ||
@@ -1877,7 +1884,8 @@ static void load_symbols(const char * elf_filename)
 {
     fprintf(stderr, "[EOS] loading symbols from %s ", elf_filename);
     uint64_t lo, hi;
-    int size = load_elf(elf_filename, 0, 0, 0, &lo, &hi, 0, EM_ARM, 1);
+    int size = load_elf(elf_filename, NULL, NULL, NULL, NULL,
+                        &lo, &hi, 0, EM_ARM, 1, 0);
     fprintf(stderr, "(%X - %X)\n", (int) lo, (int) hi);
     assert(size > 0);
 }

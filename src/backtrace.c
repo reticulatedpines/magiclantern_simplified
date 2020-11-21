@@ -38,6 +38,8 @@ static int eos_get_current_task_stack(EOSState *s, uint32_t * top, uint32_t * bo
 #include <stdint.h>
 
 #include "qemu/osdep.h"
+#include "qemu/log.h"
+#include "disas/disas.h"
 #include "qapi/error.h"
 #include "cpu.h"
 
@@ -258,7 +260,7 @@ static int sim_instr(EOSState *s,
     if (qemu_loglevel_mask(BKT_LOG_DISAS))
     {
         CPUARMState *env = &(CURRENT_CPU->env);
-        target_disas(stderr, CPU(arm_env_get_cpu(env)), pc, 4, 0);
+        target_disas(stderr, CPU(env_archcpu(env)), pc, 4);
     }
 #endif
 
@@ -833,7 +835,7 @@ void eos_bkt_log_exec(EOSState *s)
             {
                 fprintf(stderr, "SP mismatch: expected %x->%x, got %x (=> %x at %x,%x)\n", prev_sp, sp, ssp, ret, prev_pc, pc);
                 CPUARMState *env = &(CURRENT_CPU->env);
-                target_disas(stderr, CPU(arm_env_get_cpu(env)), prev_pc, 4, 0);
+                target_disas(stderr, CPU(env_archcpu(env)), prev_pc, 4);
                 assert(0);
             }
 
@@ -853,7 +855,7 @@ void eos_bkt_log_exec(EOSState *s)
                 }
                 fprintf(stderr, "LR mismatch: expected %x->%x, got %x (=> %x at %x,%x)\n", prev_lr, lr, slr, ret, prev_pc, pc);
                 CPUARMState *env = &(CURRENT_CPU->env);
-                target_disas(stderr, CPU(arm_env_get_cpu(env)), prev_pc, 4, 0);
+                target_disas(stderr, CPU(env_archcpu(env)), prev_pc, 4);
                 //assert(0);
             }
         }

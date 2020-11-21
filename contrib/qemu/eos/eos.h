@@ -2,11 +2,15 @@
 
 #define HW_EOS_H
 
+//#include "hw/hw.h"
+#include "target/arm/cpu.h"
+#include "hw/arm/armv7m.h"
 #include "hw/sysbus.h"
 #include "hw/sd/sd.h"
 #include "hw/ide/internal.h"
 #include "hw/char/digic-uart.h"
 #include "scnprintf.h"
+#include "hw/eos/model_list.h" // only for ram_extra_array_len enum
 
 /** Helper macros **/
 #define COUNT(x)        ((int)(sizeof(x)/sizeof((x)[0])))
@@ -54,6 +58,7 @@
 #define LOOP_INSTR       0xeafffffe    // 1: b 1b
 
 #define CURRENT_CPU   s->cpus[current_cpu ? current_cpu->cpu_index : 0]
+#define OTHER_CPU     s->cpus[current_cpu ? 0 : current_cpu->cpu_index]
 
 /** Memory configuration **/
 #define ROM0_ADDR     s->model->rom0_addr
@@ -241,16 +246,33 @@ typedef struct
     uint32_t def_enb;
 } PreproState;
 
-typedef struct
+typedef struct EOSState
 {
+    /*< private >*/
+    SysBusDevice parent_obj;
+    /*< public >*/
+
     const char * workdir;
 
     /* model-specific settings from model_list.c */
     struct eos_model_desc * model;
 
+//    char *cpu_type;
+
+/*
     union
     {
-        ARMCPU * cpus[2];
+        ARMv7MState cpus[2];
+        struct
+        {
+            ARMv7MState cpu0;
+            ARMv7MState cpu1;
+        };
+    };
+*/
+    union
+    {
+        ARMCPU *cpus[2];
         struct
         {
             ARMCPU *cpu0;
@@ -264,7 +286,7 @@ typedef struct
     MemoryRegion ram;
     MemoryRegion ram_uncached;
     MemoryRegion ram_uncached0;
-    MemoryRegion ram_extra;
+    MemoryRegion ram_extra[ram_extra_array_len];
     MemoryRegion rom0;
     MemoryRegion rom1;
     MemoryRegion mmio;
@@ -298,7 +320,9 @@ typedef struct
     PreproState prepro;
     struct SerialFlashState * sf;
     uint32_t card_led;  /* 1 = on, -1 = off, 0 = not used */
-    QEMUTimer * interrupt_timer;
+    QEMUTimer *interrupt_timer;
+    QEMUTimer multicore_timer_01;
+    QEMUTimer multicore_timer_02;
 } EOSState;
 
 typedef struct
@@ -368,6 +392,7 @@ unsigned int eos_handle_timers_ ( unsigned int parm, EOSState *s, unsigned int a
 unsigned int eos_handle_digic_timer ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_utimer ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_hptimer ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
+unsigned int eos_handle_multicore ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_intengine ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_intengine_vx ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_intengine_gic ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
@@ -427,7 +452,7 @@ ROMState *eos_rom_register(hwaddr base, DeviceState *qdev, const char *name, hwa
 #endif
 
 #define MEM_WRITE_ROM(addr, buf, size) \
-    cpu_physical_memory_write_rom(&address_space_memory, addr, buf, size)
+    address_space_write_rom(&address_space_memory, addr, MEMTXATTRS_UNSPECIFIED, buf, size)
 
 void eos_mem_read(EOSState *s, hwaddr addr, void * buf, int size);
 void eos_mem_write(EOSState *s, hwaddr addr, void * buf, int size);

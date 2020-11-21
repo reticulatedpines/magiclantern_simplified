@@ -1,28 +1,32 @@
+#include "qemu/osdep.h"
 #include "hw/hw.h"
 #include "hw/loader.h"
 #include "sysemu/sysemu.h"
-#include "hw/devices.h"
 #include "hw/boards.h"
+#include "hw/qdev-properties.h"
+#include "exec/exec-all.h"
 #include "exec/address-spaces.h"
 #include "exec/memory-internal.h"
+#include "migration/vmstate.h"
 #include "exec/ram_addr.h"
 #include "hw/sysbus.h"
 #include "ui/console.h"
 #include "ui/pixel_ops.h"
 #include "hw/display/framebuffer.h"
 #include "hw/sd/sd.h"
-#include "sysemu/char.h"
-#include <hw/ide/internal.h>
-#include "hw/arm/arm.h"
-#include "eos.h"
-#include "dbi/logging.h"
+//#include "chardev/char.h"
+//#include "hw/ide/internal.h"
+//#include "hw/arm/arm.h"
+#include "hw/arm/armv7m.h"
+#include "hw/eos/eos.h"
+#include "hw/eos/dbi/logging.h"
 
 #include "hw/eos/model_list.h"
 #include "hw/eos/eos_ml_helpers.h"
 #include "hw/eos/mpu.h"
 #include "hw/eos/serial_flash.h"
 #include "hw/eos/eos_utils.h"
-#include "eos_bufcon_100D.h"
+#include "hw/eos/eos_bufcon_100D.h"
 #include "hw/eos/engine.h"
 
 #define IGNORE_CONNECT_POLL
@@ -31,8 +35,415 @@
 #define DIGIC_TIMER20_MASK (0x000FFFFF & ~(DIGIC_TIMER_STEP-1))
 #define DIGIC_TIMER32_MASK (0xFFFFFFFF & ~(DIGIC_TIMER_STEP-1))
 
-/* Machine class */
+static void eos_init_common(EOSState *s);
+static void *eos_init_cpu(EOSState *s);
 
+#define TYPE_EOS "eos"
+
+static void eos_init(MachineState *machine)
+{
+    DeviceState *dev;
+
+    MachineClass *mc = MACHINE_GET_CLASS(qdev_get_machine());
+    machine->smp.max_cpus = mc->max_cpus;
+
+    // This looks up our TypeInfo by name, TYPE_EOS, then kicks off eos_initfn(),
+    // because that's part of eos_info struct.
+    dev = qdev_create(NULL, TYPE_EOS);
+
+    // Set the options for the EOS device before realising it, but,
+    // don't seem to need any after the refactor?  Not yet well tested.
+//    qdev_prop_set_string(dev, "cpu-type", ARM_CPU_TYPE_NAME("arm946-eos"));
+
+    // This triggers calling the realize function
+    object_property_set_bool(OBJECT(dev), true, "realized", &error_fatal);
+
+    printf(" ---- eos_init\n");
+}
+
+
+static void eos_5D_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 5D";
+    mc->init = eos_init;
+}
+
+static void eos_400D_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 400D";
+    mc->init = eos_init;
+}
+
+static void eos_40D_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 40D";
+    mc->init = eos_init;
+}
+
+static void eos_450D_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 450D";
+    mc->init = eos_init;
+}
+
+static void eos_1000D_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 1000D";
+    mc->init = eos_init;
+}
+
+static void eos_50D_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 50D";
+    mc->init = eos_init;
+//    mc->ignore_memory_transaction_failures = true;
+}
+
+static void eos_5D2_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 5D2";
+    mc->init = eos_init;
+}
+
+static void eos_500D_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 500D";
+    mc->init = eos_init;
+}
+
+static void eos_550D_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 550D";
+    mc->init = eos_init;
+}
+
+static void eos_7D_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 7D";
+    mc->init = eos_init;
+}
+
+static void eos_60D_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 60D";
+    mc->init = eos_init;
+}
+
+static void eos_600D_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 600D";
+    mc->init = eos_init;
+}
+
+static void eos_1100D_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 1100D";
+    mc->init = eos_init;
+}
+
+static void eos_1200D_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 1200D";
+    mc->init = eos_init;
+}
+
+static void eos_1300D_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 1300D";
+    mc->init = eos_init;
+}
+
+static void eos_A1100_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS A1100";
+    mc->init = eos_init;
+}
+
+static void eos_5D3_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 5D3";
+    mc->init = eos_init;
+}
+
+static void eos_5D3eeko_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 5D3eeko";
+    mc->init = eos_init;
+}
+
+static void eos_6D_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 6D";
+    mc->init = eos_init;
+}
+
+static void eos_650D_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 650D";
+    mc->init = eos_init;
+}
+
+static void eos_700D_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 700D";
+    mc->init = eos_init;
+}
+
+static void eos_EOSM_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS M";
+    mc->init = eos_init;
+}
+
+static void eos_EOSM2_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS M2";
+    mc->init = eos_init;
+}
+
+static void eos_100D_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 100D";
+    mc->init = eos_init;
+}
+
+static void eos_70D_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 70D";
+    mc->init = eos_init;
+}
+
+static void eos_80D_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 80D";
+    mc->init = eos_init;
+}
+
+static void eos_750D_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 750D";
+    mc->init = eos_init;
+}
+
+static void eos_760D_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 760D";
+    mc->init = eos_init;
+}
+
+static void eos_7D2_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 7D2";
+    mc->init = eos_init;
+}
+
+static void eos_7D2S_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 7D2S";
+    mc->init = eos_init;
+}
+
+static void eos_5D4_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 5D4";
+    mc->init = eos_init;
+}
+
+static void eos_5D4AE_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 5D4AE";
+    mc->init = eos_init;
+}
+
+static void eos_EOSM3_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS M3";
+    mc->init = eos_init;
+}
+
+static void eos_EOSM10_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS M10";
+    mc->init = eos_init;
+}
+
+static void eos_200D_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 200D";
+    mc->init = eos_init;
+    mc->max_cpus = 2; // wants to be in sync with value in model_list.c
+}
+
+static void eos_6D2_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 6D2";
+    mc->init = eos_init;
+    mc->max_cpus = 2; // wants to be in sync with value in model_list.c
+}
+
+static void eos_77D_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 77D";
+    mc->init = eos_init;
+    mc->max_cpus = 2; // wants to be in sync with value in model_list.c
+}
+
+static void eos_800D_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS 800D";
+    mc->init = eos_init;
+    mc->max_cpus = 2; // wants to be in sync with value in model_list.c
+}
+
+static void eos_EOSM5_machine_init(MachineClass *mc)
+{
+    mc->desc = "Canon EOS M5";
+    mc->init = eos_init;
+    mc->max_cpus = 2; // wants to be in sync with value in model_list.c
+}
+
+// This macro hides three function definitions and a call.
+// I don't like this but it's the QOM style I believe.
+//
+// Triggers each eos_XXX_machine_init function and
+// registers the machine types with Qemu.
+DEFINE_MACHINE(MODEL_NAME_5D, eos_5D_machine_init)
+DEFINE_MACHINE(MODEL_NAME_400D, eos_400D_machine_init)
+DEFINE_MACHINE(MODEL_NAME_40D, eos_40D_machine_init)
+DEFINE_MACHINE(MODEL_NAME_450D, eos_450D_machine_init)
+DEFINE_MACHINE(MODEL_NAME_1000D, eos_1000D_machine_init)
+DEFINE_MACHINE(MODEL_NAME_50D, eos_50D_machine_init)
+DEFINE_MACHINE(MODEL_NAME_5D2, eos_5D2_machine_init)
+DEFINE_MACHINE(MODEL_NAME_500D, eos_500D_machine_init)
+DEFINE_MACHINE(MODEL_NAME_550D, eos_550D_machine_init)
+DEFINE_MACHINE(MODEL_NAME_7D, eos_7D_machine_init)
+DEFINE_MACHINE(MODEL_NAME_60D, eos_60D_machine_init)
+DEFINE_MACHINE(MODEL_NAME_600D, eos_600D_machine_init)
+DEFINE_MACHINE(MODEL_NAME_1100D, eos_1100D_machine_init)
+DEFINE_MACHINE(MODEL_NAME_1200D, eos_1200D_machine_init)
+DEFINE_MACHINE(MODEL_NAME_1300D, eos_1300D_machine_init)
+DEFINE_MACHINE(MODEL_NAME_A1100, eos_A1100_machine_init)
+DEFINE_MACHINE(MODEL_NAME_5D3, eos_5D3_machine_init)
+DEFINE_MACHINE(MODEL_NAME_5D3eeko, eos_5D3eeko_machine_init)
+DEFINE_MACHINE(MODEL_NAME_6D, eos_6D_machine_init)
+DEFINE_MACHINE(MODEL_NAME_650D, eos_650D_machine_init)
+DEFINE_MACHINE(MODEL_NAME_700D, eos_700D_machine_init)
+DEFINE_MACHINE(MODEL_NAME_EOSM, eos_EOSM_machine_init)
+DEFINE_MACHINE(MODEL_NAME_EOSM2, eos_EOSM2_machine_init)
+DEFINE_MACHINE(MODEL_NAME_100D, eos_100D_machine_init)
+DEFINE_MACHINE(MODEL_NAME_70D, eos_70D_machine_init)
+DEFINE_MACHINE(MODEL_NAME_80D, eos_80D_machine_init)
+DEFINE_MACHINE(MODEL_NAME_750D, eos_750D_machine_init)
+DEFINE_MACHINE(MODEL_NAME_760D, eos_760D_machine_init)
+DEFINE_MACHINE(MODEL_NAME_7D2, eos_7D2_machine_init)
+DEFINE_MACHINE(MODEL_NAME_7D2S, eos_7D2S_machine_init)
+DEFINE_MACHINE(MODEL_NAME_5D4, eos_5D4_machine_init)
+DEFINE_MACHINE(MODEL_NAME_5D4AE, eos_5D4AE_machine_init)
+DEFINE_MACHINE(MODEL_NAME_EOSM3, eos_EOSM3_machine_init)
+DEFINE_MACHINE(MODEL_NAME_EOSM10, eos_EOSM10_machine_init)
+DEFINE_MACHINE(MODEL_NAME_200D, eos_200D_machine_init)
+DEFINE_MACHINE(MODEL_NAME_6D2, eos_6D2_machine_init)
+DEFINE_MACHINE(MODEL_NAME_77D, eos_77D_machine_init)
+DEFINE_MACHINE(MODEL_NAME_800D, eos_800D_machine_init)
+DEFINE_MACHINE(MODEL_NAME_EOSM5, eos_EOSM5_machine_init)
+
+static void eos_initfn(Object *obj)
+{
+    EOSState *s = OBJECT_CHECK(EOSState, (obj), TYPE_EOS);
+
+    sysbus_init_child_obj(obj, "uart", &s->uart, sizeof(s->uart),
+                          TYPE_DIGIC_UART);
+
+    // FIXME do we need other devices here?  Most of the work is done
+    // in eos_init_common(), which is old style.  But it works, I think.
+}
+
+// Takes a model name, e.g., "50D" / MODEL_NAME_50D, finds it in model_list,
+// from model_list.c, returns an initialised model
+static struct eos_model_desc get_model_from_name(char *name)
+{
+    struct eos_model_desc model;
+
+    // find the right model, copy it
+    const struct eos_model_desc *m = eos_model_list;
+    while(m->digic_version) // end item has version == 0
+    {
+        if (m->name && strcmp(m->name, name) == 0)
+        {
+            model = *m;
+            break;
+        }
+        m++;
+    }
+
+    // step back to find the generic entries for that digic version,
+    // generic items have no name
+    while(m->name)
+    {
+        m--;
+    }
+
+    // where model is empty, copy fields from generic
+    for (int i = 0; i < COUNT(model.params); i++)
+    {
+        if (model.params[i] == 0)
+        {
+            // fprintf(stderr, "%s: params[%d] = %x\n", model->name, i, generic->params[i]);
+            model.params[i] = m->params[i];
+        }
+    }
+    return model;
+}
+
+static void eos_realize(DeviceState *dev, Error **errp)
+{
+    EOSState *s = OBJECT_CHECK(EOSState, (dev), TYPE_EOS);
+    Error *err = NULL;
+
+    MachineClass *mc = MACHINE_GET_CLASS(qdev_get_machine());
+    s->model = calloc(sizeof(*s->model), 1);
+    *(s->model) = get_model_from_name(mc->name);
+    assert(s->model->digic_version != 0); // name not found
+
+    eos_init_common(s);
+
+    if (err != NULL) {
+        error_propagate(errp, err);
+        return;
+    }
+}
+
+static Property eos_properties[] = {
+//    DEFINE_PROP_STRING("cpu-type", EOSState, cpu_type),
+//    DEFINE_PROP_CHR("chardev", DigicUartState, chr),
+    DEFINE_PROP_END_OF_LIST(),
+};
+
+static void eos_class_init(ObjectClass *class, void *data)
+{
+    DeviceClass *dc = DEVICE_CLASS(class);
+
+    dc->realize = eos_realize;
+    dc->props = eos_properties;
+}
+
+static const TypeInfo eos_info = {
+    .name = TYPE_EOS,
+    .parent = TYPE_SYS_BUS_DEVICE,
+//    .abstract = true,
+    .instance_size = sizeof(EOSState),
+    .instance_init = eos_initfn,
+    .class_init = eos_class_init,
+};
+
+static void eos_types(void)
+{
+    type_register_static(&eos_info);
+}
+
+type_init(eos_types)
+
+// Machine class
 typedef struct {
     MachineClass parent;
     struct eos_model_desc * model;
@@ -45,125 +456,25 @@ typedef struct {
 #define EOS_MACHINE_CLASS(klass) \
     OBJECT_CLASS_CHECK(EosMachineClass, klass, TYPE_EOS_MACHINE)
 
-static void eos_init_common(MachineState *machine);
-
-static void eos_class_init(ObjectClass *oc, void *data)
-{
-    MachineClass *mc = MACHINE_CLASS(oc);
-    mc->desc = EOS_DESC_BASE;
-    mc->init = eos_init_common;
-}
-static const TypeInfo canon_eos_info = {
-    .name = TYPE_EOS_MACHINE,
-    .parent = TYPE_MACHINE,
-    .abstract = true,
-//  .instance_size = sizeof(MachineState), // Could probably be used for something
-//  .instance_init = vexpress_instance_init,
-    .class_size = sizeof(EosMachineClass),
-    .class_init = eos_class_init,
-};
-
-
-static void eos_cam_class_init(ObjectClass *oc, void *data)
-{
-    MachineClass *mc = MACHINE_CLASS(oc);
-    EosMachineClass *emc = EOS_MACHINE_CLASS(oc);
-    struct eos_model_desc * model = (struct eos_model_desc*) data;
-    emc->model = model;
-
-    /* Create description from name */
-    int desc_size = sizeof(EOS_DESC_BASE) + strlen(model->name) + 1;
-    char * desc = (char*)malloc(desc_size * sizeof(char));
-    if (desc) {
-        snprintf(desc, desc_size, EOS_DESC_BASE " %s", model->name);
-    }
-    mc->desc = desc;
-}
-
-static void eos_cam_class_finalize(ObjectClass *oc, void *data)
-{
-    MachineClass *mc = MACHINE_CLASS(oc);
-    if (mc->desc) {
-        free((char*)mc->desc);
-        mc->desc = NULL;
-    }
-}
-
-
-static void eos_machine_init(void)
-{
-    /* Register base type */
-    type_register_static(&canon_eos_info);
-
-    /* Base info for camera models */
-    char name[32]; // "XXXX-machine"
-    TypeInfo info = {
-        .name = name,
-        .class_init = eos_cam_class_init,
-        .class_finalize = eos_cam_class_finalize,
-        .parent = TYPE_EOS_MACHINE,
-    };
-    
-    /* Loop over all models listed in model_list.c */
-    
-    /* fill in the defaults from generic entries */
-    /* note: generic entries don't have a name */
-    for (const struct eos_model_desc * generic = eos_model_list; generic->digic_version; generic++)
-    {
-        if (!generic->name)
-        {
-            for (struct eos_model_desc * model = eos_model_list; model->digic_version; model++)
-            {
-                if (model->name && model->digic_version == generic->digic_version)
-                {
-                    /* copy settings from generic to model */
-                    for (int i = 0; i < COUNT(model->params); i++)
-                    {
-                        if (model->params[i] == 0)
-                        {
-                            // fprintf(stderr, "%s: params[%d] = %x\n", model->name, i, generic->params[i]);
-                            model->params[i] = generic->params[i];
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    /* then register every supported camera model */
-    for (struct eos_model_desc * model = eos_model_list; model->digic_version; model++)
-    {
-        if (model->name)
-        {
-            snprintf(name, 32, "%s" TYPE_MACHINE_SUFFIX, model->name);
-            info.class_data = (void*)model;
-            type_register(&info);
-        }
-    }
-}
-
-machine_init(eos_machine_init);
-
-
-
 EOSRegionHandler eos_handlers[] =
 {
     { "FlashControl", 0xC0000000, 0xC0001FFF, eos_handle_flashctrl, 0 },
   //{ "ROM0",         0xF8000000, 0xFFFFFFFF, eos_handle_rom, 0 },
   //{ "ROM1",         0xF0000000, 0xF7FFFFFF, eos_handle_rom, 1 },
-    { "Interrupt",    0xC0200000, 0xC02000FF, eos_handle_intengine_vx, 0 }, /* mostly used on D2/3, but also 60D */
-    { "Interrupt",    0xC0201000, 0xC0201FFF, eos_handle_intengine, 0 },    /* <= D5 */
-    { "Interrupt",    0xD4011000, 0xD4011FFF, eos_handle_intengine, 1 },    /* D6; first core in D7 */
-    { "Interrupt",    0xD5011000, 0xD5011FFF, eos_handle_intengine, 2 },    /* second core in D7 */
-    { "Interrupt",    0xD02C0200, 0xD02C02FF, eos_handle_intengine, 3 },    /* 5D3 eeko */
-    { "Interrupt",    0xC1000000, 0xC100FFFF, eos_handle_intengine_gic, 7 },/* D7 */
-    { "Timers",       0xC0210000, 0xC0210FFF, eos_handle_timers, 0 },       /* DIGIC 4/5/6 countdown timers */
-    { "Timers",       0xD02C1500, 0xD02C15FF, eos_handle_timers, 2 },       /* Eeko countdown timer */
+    { "Interrupt",    0xC0200000, 0xC02000FF, eos_handle_intengine_vx, 0 }, // mostly used on D2/3, but also 60D
+    { "Interrupt",    0xC0201000, 0xC0201FFF, eos_handle_intengine, 0 },    // <= D5
+    { "Interrupt",    0xD4011000, 0xD4011FFF, eos_handle_intengine, 1 },    // D6; first core in D7
+    { "Interrupt",    0xD5011000, 0xD5011FFF, eos_handle_intengine, 2 },    // second core in D7
+    { "Interrupt",    0xD02C0200, 0xD02C02FF, eos_handle_intengine, 3 },    // 5D3 eeko
+    { "Interrupt",    0xC1000000, 0xC100FFFF, eos_handle_intengine_gic, 7 },// D7
+    { "Multicore",    0xC1100000, 0xC110FFFF, eos_handle_multicore, 7 },    // D7
+    { "Timers",       0xC0210000, 0xC0210FFF, eos_handle_timers, 0 },       // DIGIC 4/5/6 countdown timers
+    { "Timers",       0xD02C1500, 0xD02C15FF, eos_handle_timers, 2 },       // Eeko countdown timer
     { "Timer",        0xC0242014, 0xC0242014, eos_handle_digic_timer, 0 },
     { "Timer",        0xD400000C, 0xD400000C, eos_handle_digic_timer, 1 },
-    { "Timer",        0xD9820014, 0xD9820014, eos_handle_digic_timer, 2 },  /* D7: maybe? firmware waits for this register to change */
-    { "UTimer",       0xD4000240, 0xD4000440, eos_handle_utimer, 1 },       /* D6: timers 9...16 */
-    { "HPTimer",      0xC0243000, 0xC0243FFF, eos_handle_hptimer, 0 },      /* DIGIC 2/3/4/5/6 HPTimers */
+    { "Timer",        0xD9820014, 0xD9820014, eos_handle_digic_timer, 2 },  // D7: maybe? firmware waits for this register to change
+    { "UTimer",       0xD4000240, 0xD4000440, eos_handle_utimer, 1 },       // D6: timers 9...16
+    { "HPTimer",      0xC0243000, 0xC0243FFF, eos_handle_hptimer, 0 },      // DIGIC 2/3/4/5/6 HPTimers
     { "GPIO",         0xC0220000, 0xC022FFFF, eos_handle_gpio, 0 },
     { "Basic",        0xC0100000, 0xC0100FFF, eos_handle_basic, 0 },
     { "Basic",        0xC0400000, 0xC0400FFF, eos_handle_basic, 1 },
@@ -234,7 +545,7 @@ EOSRegionHandler eos_handlers[] =
 
     { "EEKO",         0xD02C2000, 0xD02C243F, eos_handle_eeko_comm, 0 },
 
-    /* generic catch-all for everything unhandled from this range */
+    // generic catch-all for everything unhandled from this range
     { "ENGIO",        0xC0F00000, 0xC0FFFFFF, eos_handle_engio, 0 },
 
     { "XDMAC",        0xD6030000, 0xD603002F, eos_handle_xdmac, 0 },
@@ -257,7 +568,7 @@ EOSRegionHandler eos_handlers[] =
     { "ML helpers",   0xC0123400, 0xC01234FF, eos_handle_ml_helpers, 1 },
 };
 
-/* io range access */
+// io range access
 static uint64_t eos_io_read(void *opaque, hwaddr addr, uint32_t size)
 {
     EOSState* s = (EOSState*) opaque;
@@ -288,8 +599,8 @@ static const MemoryRegionOps mmio_ops = {
     },
 };
 
-/* fixme: how to get this called? */
-/* no luck with memory_region_rom_device_set_romd... */
+// fixme: how to get this called?
+// no luck with memory_region_rom_device_set_romd...
 static uint64_t eos_rom_read(void * opaque, hwaddr addr, uint32_t size)
 {
     fprintf(stderr, "ROM read: %x %x\n", (int)addr, (int)size);
@@ -304,13 +615,13 @@ static void eos_rom_write(void * opaque, hwaddr addr, uint64_t value, uint32_t s
     uint32_t rom_addr = (rom_id) ? ROM1_ADDR : ROM0_ADDR;;
     uint32_t address = rom_addr + addr;
 
-    if (strcmp(s->model->name, "1300D") == 0)
+    if (strcmp(s->model->name, MODEL_NAME_1300D) == 0)
     {
         if (address == 0xF8000000 && size == 1 && value == 6)
         {
-            /* Reading flash model ID? */
-            /* Startup code writes to this address, but expects to read
-             * different values: C2 25 39, 20 BB 19 or 01 02 19. */
+            // Reading flash model ID?
+            // Startup code writes to this address, but expects to read
+            // different values: C2 25 39, 20 BB 19 or 01 02 19.
             msg = "Flash model ID?";
             uint32_t model_id = 0x003925C2;
             MEM_WRITE_ROM(address, (uint8_t *) &model_id, 4);
@@ -332,14 +643,15 @@ static void eos_rom_write(void * opaque, hwaddr addr, uint64_t value, uint32_t s
     }
 
 end:;
-    /* log all ROM writes */
+    // log all ROM writes
     char name[16];
     snprintf(name, sizeof(name), "ROM%d:%d", rom_id, size);
     io_log(name, s, address, MODE_WRITE, value, 0, msg, 0, 0);
 
-    /* make sure we execute the latest code */
-    /* fixme: shouldn't this be handled internally by QEMU?! */
-    tb_invalidate_phys_addr(&address_space_memory, address);
+    // make sure we execute the latest code
+    // fixme: shouldn't this be handled internally by QEMU?!
+    tb_invalidate_phys_addr(&address_space_memory, address,
+                            MEMTXATTRS_UNSPECIFIED);
 }
 
 static const MemoryRegionOps rom_ops = {
@@ -354,7 +666,7 @@ void eos_mem_read(EOSState *s, hwaddr addr, void * buf, int size)
 
     if (qemu_loglevel_mask(EOS_LOG_MEM_R))
     {
-        /* fixme: can be optimized */
+        // fixme: can be optimized
         for (int i = 0; i < size; i++)
         {
             eos_log_mem(s, addr + i, *(uint8_t*)(buf + i), 1, NOCHK_LOG);
@@ -366,7 +678,7 @@ void eos_mem_write(EOSState *s, hwaddr addr, void * buf, int size)
 {
     if (qemu_loglevel_mask(EOS_LOG_MEM_W))
     {
-        /* fixme: can be optimized */
+        // fixme: can be optimized
         for (int i = 0; i < size; i ++)
         {
             eos_log_mem(s, addr + i, *(uint8_t*)(buf + i), 1, 1 | NOCHK_LOG);
@@ -378,18 +690,18 @@ void eos_mem_write(EOSState *s, hwaddr addr, void * buf, int size)
 
 const char * eos_get_cam_path(EOSState *s, const char * file_rel)
 {
-    /* all files are loaded from $QEMU_EOS_WORKDIR/CAM/ */
-    /* or $QEMU_EOS_WORKDIR/CAM/FIRM_VER/ if specified */
+    // all files are loaded from $QEMU_EOS_WORKDIR/CAM/
+    // or $QEMU_EOS_WORKDIR/CAM/FIRM_VER/ if specified
     static char file[1024];
 
     if (s->model->firmware_version)
     {
-        /* load from the firmware version directory, if specified */
+        // load from the firmware version directory, if specified
         snprintf(file, sizeof(file), "%s/%s/%d/%s", s->workdir, s->model->name, s->model->firmware_version, file_rel);
     }
     else
     {
-        /* or from the camera directory, if no firmware version is specified */
+        // or from the camera directory, if no firmware version is specified
         snprintf(file, sizeof(file), "%s/%s/%s", s->workdir, s->model->name, file_rel);
     }
 
@@ -400,7 +712,7 @@ static int check_rom_mirroring(void * buf, int size, int full_size)
 {
     if (size / 2 && memcmp(buf, buf + size / 2, size / 2) == 0)
     {
-        /* identical halves? check recursively to find the lowest size with unique data */
+        // identical halves? check recursively to find the lowest size with unique data
         if (!check_rom_mirroring(buf, size / 2, full_size))
         {
             fprintf(stderr, "[EOS] mirrored data; unique 0x%X bytes repeated 0x%X times\n", size / 2, full_size / (size / 2));
@@ -440,7 +752,7 @@ void eos_load_image(EOSState *s, const char * file_rel, int offset, int max_size
         abort();
     }
 
-    if (load_image(file, buf) != size)
+    if (load_image_size(file, buf, size) != size)
     {
         fprintf(stderr, "%s: error loading '%s'\n", __func__, file);
         abort();
@@ -486,7 +798,7 @@ static void eos_interrupt_timer_body(EOSState *s)
     {
         uint32_t pos;
 
-        /* don't loop thread if cpu stopped in gdb */
+        // don't loop thread if cpu stopped in gdb
         if (s->cpu0 && cpu_is_stopped(CPU(s->cpu0))) {
             return;
         }
@@ -513,23 +825,24 @@ static void eos_interrupt_timer_body(EOSState *s)
             }
         }
 
-        /* go through all interrupts and check if they are pending/scheduled */
+        // go through all interrupts and check if they are pending/scheduled
         for(pos = INT_ENTRIES-1; pos > 0; pos--)
         {
-            /* it is pending, so trigger int and set to 0 */
+            // it is pending, so trigger int and set to 0
             if(s->irq_schedule[pos] == 1)
             {
-                /* wait, its not enabled. keep it pending */
+                //g_assert(pos != 80);
+                // wait, its not enabled. keep it pending
                 if(s->irq_enabled[pos] && !s->irq_id)
                 {
-                    /* timer interrupt will re-fire periodically */
+                    // timer interrupt will re-fire periodically
                     if(pos == TIMER_INTERRUPT)
                     {
                         if (qemu_loglevel_mask(CPU_LOG_INT) &&
                             qemu_loglevel_mask(EOS_LOG_VERBOSE))
                         {
-                            /* timer interrupt, quiet */
-                            fprintf(stderr, "[EOS] trigger int 0x%02X (delayed)\n", pos);    /* quiet */
+                            // timer interrupt, quiet
+                            fprintf(stderr, "[EOS] trigger int 0x%02X (delayed)\n", pos);    // quiet
                         }
                         s->irq_schedule[pos] = s->timer_reload_value[DRYOS_TIMER_ID] >> 8;
                     }
@@ -548,14 +861,14 @@ static void eos_interrupt_timer_body(EOSState *s)
                 }
             }
 
-            /* still counting down? */
+            // still counting down?
             if(s->irq_schedule[pos] > 1)
             {
                 s->irq_schedule[pos]--;
             }
         }
 
-        /* check all UTimers */
+        // check all UTimers
         int utimer_interrupts[COUNT(s->UTimers)] = {
             0x0E, 0x1E, 0x2E, 0x3E, 0x4E, 0x5E, 0x6E, 0x7E,
         };
@@ -572,8 +885,8 @@ static void eos_interrupt_timer_body(EOSState *s)
             }
         }
 
-        /* also check all HPTimers */
-        /* note: we can trigger multiple HPTimers on a single interrupt */
+        // also check all HPTimers
+        // note: we can trigger multiple HPTimers on a single interrupt
         int trigger_hptimers[64] = {0};
         int hptimer_interrupts[COUNT(s->HPTimers)] = {
             0x18, 0x1A, 0x1C, 0x1E, 0, 0,
@@ -634,7 +947,7 @@ static void eos_interrupt_timer_cb(void *parm)
 
 
 
-/** FRAMEBUFFER & DISPLAY (move to separate file?) **/
+// FRAMEBUFFER & DISPLAY (move to separate file?)
 
 
 
@@ -645,28 +958,28 @@ static int yuv2rgb_GU[256];
 static int yuv2rgb_GV[256];
 static int yuv2rgb_BU[256];
 
-/** http://www.martinreddy.net/gfx/faqs/colorconv.faq
- * BT 601:
- * R'= Y' + 0.000*U' + 1.403*V'
- * G'= Y' - 0.344*U' - 0.714*V'
- * B'= Y' + 1.773*U' + 0.000*V'
- * 
- * BT 709:
- * R'= Y' + 0.0000*Cb + 1.5701*Cr
- * G'= Y' - 0.1870*Cb - 0.4664*Cr
- * B'= Y' - 1.8556*Cb + 0.0000*Cr
- */
+// http://www.martinreddy.net/gfx/faqs/colorconv.faq
+// BT 601:
+// R'= Y' + 0.000*U' + 1.403*V'
+// G'= Y' - 0.344*U' - 0.714*V'
+// B'= Y' + 1.773*U' + 0.000*V'
+// 
+// BT 709:
+// R'= Y' + 0.0000*Cb + 1.5701*Cr
+// G'= Y' - 0.1870*Cb - 0.4664*Cr
+// B'= Y' - 1.8556*Cb + 0.0000*Cr
+
 
 static void precompute_yuv2rgb(int rec709)
 {
     int u, v;
     if (rec709)
     {
-        /*
-        *R = *Y + 1608 * V / 1024;
-        *G = *Y -  191 * U / 1024 - 478 * V / 1024;
-        *B = *Y + 1900 * U / 1024;
-        */
+        //
+        // R = *Y + 1608 * V / 1024;
+        // G = *Y -  191 * U / 1024 - 478 * V / 1024;
+        // B = *Y + 1900 * U / 1024;
+        //
         for (u = 0; u < 256; u++)
         {
             int8_t U = u;
@@ -683,11 +996,11 @@ static void precompute_yuv2rgb(int rec709)
     }
     else // REC 601
     {
-        /*
-        *R = *Y + ((1437 * V) >> 10);
-        *G = *Y -  ((352 * U) >> 10) - ((731 * V) >> 10);
-        *B = *Y + ((1812 * U) >> 10);
-        */
+        //
+        // R = *Y + ((1437 * V) >> 10);
+        // G = *Y -  ((352 * U) >> 10) - ((731 * V) >> 10);
+        // B = *Y + ((1812 * U) >> 10);
+        //
         for (u = 0; u < 256; u++)
         {
             int8_t U = u;
@@ -724,7 +1037,7 @@ static void yuv2rgb(int Y, int U, int V, int* R, int* G, int* B)
 #define UYVY_GET_V(uyvy)  (((uyvy) >> 16) & 0xFF)
 
 
-/* todo: supoort other bith depths */
+// todo: supoort other bith depths
 
 typedef void (*drawfn_bmp_yuv)(void *, uint8_t *, const uint8_t *, const uint8_t*, int, int, int);
 
@@ -828,7 +1141,7 @@ static void draw_line4_32(void *opaque,
 
     if (ws->model->digic_version < 4)
     {
-        /* double each line */
+        // double each line
         memcpy(d, d0, (void *) d - d0);
     }
 }
@@ -847,12 +1160,12 @@ static void draw_line8_32_bmp_yuv(void *opaque,
 
         if (o == 3)
         {
-            /* opaque */
+            // opaque
             ((uint32_t *) d)[0] = rgb_to_pixel32(r, g, b);
         }
         else
         {
-            /* some sort of transparency */
+            // some sort of transparency
             uint32_t uyvy =  ldl_p((void*)((uintptr_t)yuv & ~3));
             int Y = (uintptr_t)yuv & 3 ? UYVY_GET_Y2(uyvy) : UYVY_GET_Y1(uyvy);
             int U = UYVY_GET_U(uyvy);
@@ -862,20 +1175,20 @@ static void draw_line8_32_bmp_yuv(void *opaque,
             
             if (o == 0 && r == 255 && g == 255 && b == 255)
             {
-                /* fully transparent (nothing to do) */
-                /* is this an edge case in Canon firmware? */
+                // fully transparent (nothing to do)
+                // is this an edge case in Canon firmware?
             }
             else
             {
-                /* assume semi-transparent */
-                /* 5D3: 2 bits, 4 transparency levels
-                 * 0 = somewhat transparent, 3 = opaque,
-                 * 0 with Y=255 (R=G=B=255) = fully transparent
-                 * black image => bitmap overlay looks as if it were opaque
-                 * (colors not altered, except for the fully transparent special case)
-                 * white image => bitmap overlay washed out (except for o=3)
-                 * red image => bitmap overlay hue-shifted (except for o=3)
-                 * the following is just a rough approximation that looks reasonably well */
+                // assume semi-transparent
+                // 5D3: 2 bits, 4 transparency levels
+                // 0 = somewhat transparent, 3 = opaque,
+                // 0 with Y=255 (R=G=B=255) = fully transparent
+                // black image => bitmap overlay looks as if it were opaque
+                // (colors not altered, except for the fully transparent special case)
+                // white image => bitmap overlay washed out (except for o=3)
+                // red image => bitmap overlay hue-shifted (except for o=3)
+                // the following is just a rough approximation that looks reasonably well
                 int bmp_weight = (o & 3) + 2;
                 int yuv_weight = 5 - bmp_weight;
                 R = (R * yuv_weight + r * bmp_weight) / 5;
@@ -891,25 +1204,25 @@ static void draw_line8_32_bmp_yuv(void *opaque,
     } while (-- width != 0);
 }
 
-/* similar to QEMU's framebuffer_update_display, but with two image planes */
-/* main plane is BMP (8-bit, same size as output), secondary plane is YUV (scaled to match the BMP one) */
+// similar to QEMU's framebuffer_update_display, but with two image planes
+// main plane is BMP (8-bit, same size as output), secondary plane is YUV (scaled to match the BMP one)
 static void framebuffer_update_display_bmp_yuv(
     DisplaySurface *ds,
     MemoryRegion *address_space,
     hwaddr base_bmp,
     hwaddr base_yuv,
-    int cols, /* Width in pixels.  */
-    int rows_bmp, /* Height in pixels.  */
+    int cols, // Width in pixels.
+    int rows_bmp, // Height in pixels.
     int rows_yuv,
-    int src_width_bmp, /* Length of source line, in bytes.  */
+    int src_width_bmp, // Length of source line, in bytes.
     int src_width_yuv,
-    int dest_row_pitch, /* Bytes between adjacent horizontal output pixels.  */
-    int dest_col_pitch, /* Bytes between adjacent vertical output pixels.  */
-    int invalidate, /* nonzero to redraw the whole image.  */
+    int dest_row_pitch, // Bytes between adjacent horizontal output pixels.
+    int dest_col_pitch, // Bytes between adjacent vertical output pixels.
+    int invalidate, // nonzero to redraw the whole image.
     drawfn_bmp_yuv fn,
     void *opaque,
-    int *first_row, /* Input and output.  */
-    int *last_row /* Output only */)
+    int *first_row, // Input and output.
+    int *last_row) // Output only
 {
     hwaddr src_len_bmp;
     hwaddr src_len_yuv;
@@ -919,7 +1232,7 @@ static void framebuffer_update_display_bmp_yuv(
     uint8_t *src_base_bmp;
     uint8_t *src_base_yuv;
     int first, last = 0;
-    int dirty;
+    //int dirty;
     int i;
     ram_addr_t addr_bmp;
     ram_addr_t addr_yuv;
@@ -952,13 +1265,13 @@ static void framebuffer_update_display_bmp_yuv(
     assert(mem_yuv);
     assert(mem_section_yuv.offset_within_address_space == base_yuv);
 
-    memory_region_sync_dirty_bitmap(mem_bmp);
-    memory_region_sync_dirty_bitmap(mem_yuv);
+    //memory_region_sync_dirty_bitmap(mem_bmp);
+    //memory_region_sync_dirty_bitmap(mem_yuv);
     src_base_bmp = cpu_physical_memory_map(base_bmp, &src_len_bmp, 0);
     src_base_yuv = cpu_physical_memory_map(base_yuv, &src_len_yuv, 0);
-    /* If we can't map the framebuffer then bail.  We could try harder,
-       but it's not really worth it as dirty flag tracking will probably
-       already have failed above.  */
+    // If we can't map the framebuffer then bail.  We could try hard
+    //   but it's not really worth it as dirty flag tracking will probably
+    //   already have failed above.
     if (!src_base_bmp)
         goto out;
     if (!src_base_yuv)
@@ -991,15 +1304,16 @@ static void framebuffer_update_display_bmp_yuv(
     src_yuv = src_base_yuv + j * src_width_yuv;
     dest += i * dest_row_pitch;
     
-    /* fixme: only works for integer factors */
+    // fixme: only works for integer factors
     int src_yuv_pitch = src_width_yuv / cols;
 
     for (; i < rows_bmp; i++) {
-        dirty = memory_region_get_dirty(mem_bmp, addr_bmp, src_width_bmp,
-                                             DIRTY_MEMORY_VGA);
-        dirty |= memory_region_get_dirty(mem_yuv, addr_yuv, src_width_yuv,
-                                             DIRTY_MEMORY_VGA);
-        if (dirty || invalidate) {
+        //dirty = memory_region_get_dirty(mem_bmp, addr_bmp, src_width_bmp,
+        //                                     DIRTY_MEMORY_VGA);
+        //dirty |= memory_region_get_dirty(mem_yuv, addr_yuv, src_width_yuv,
+        //                                     DIRTY_MEMORY_VGA);
+        //if (dirty || invalidate) {
+        if (invalidate) {
             fn(opaque, dest, src_bmp, src_yuv, cols, dest_col_pitch, src_yuv_pitch);
             if (first == -1)
                 first = i;
@@ -1035,8 +1349,8 @@ static void eos_update_display(void *parm)
 
     DisplaySurface *surface = qemu_console_surface(s->disp.con);
     
-    /* these numbers need double-checking */
-    /*                  LCD    HDMI-1080   HDMI-480    SD-PAL      SD-NTSC */
+    // these numbers need double-checking
+    //                  LCD    HDMI-1080   HDMI-480    SD-PAL      SD-NTSC
     int widths[]      = {   720,   960,        720,        720,        720     };
     int heights[]     = {   480,   540,        480,        576,        480     };
     int yuv_widths[]  = {   720,  1920,        720,        540,        540     };
@@ -1050,7 +1364,7 @@ static void eos_update_display(void *parm)
     int height_multiplier = 1;
     int out_height = height;
 
-    /* VxWorks models have 720x240 screens stretched vertically */
+    // VxWorks models have 720x240 screens stretched vertically
     if (s->model->digic_version < 4)
     {
         height_multiplier = 2;
@@ -1058,15 +1372,15 @@ static void eos_update_display(void *parm)
         assert(out_height == height * height_multiplier);
     }
 
-    if (strcmp(s->model->name, "1100D") == 0)
+    if (strcmp(s->model->name, MODEL_NAME_1100D) == 0)
     {
-        /* half-size YUV buffer */
+        // half-size YUV buffer
         yuv_height /= 2;
     }
 
     if (s->disp.width && s->disp.height)
     {
-        /* did we manage to get them from registers? override the above stuff */
+        // did we manage to get them from registers? override the above stuff
         width = s->disp.width;
         out_height = height = s->disp.height;
     }
@@ -1080,7 +1394,7 @@ static void eos_update_display(void *parm)
 
     if (s->card_led)
     {
-        /* fixme: inefficient (redraws non-dirty areas) */
+        // fixme: inefficient (redraws non-dirty areas)
         s->disp.invalidate = 1;
     }
 
@@ -1091,7 +1405,7 @@ static void eos_update_display(void *parm)
 
     if (s->disp.is_4bit)
     {
-        /* bootloader config, 4 bpp */
+        // bootloader config, 4 bpp
         uint64_t size = height * width / 2;
         MemoryRegionSection section = memory_region_find(
             s->system_mem,
@@ -1120,7 +1434,7 @@ static void eos_update_display(void *parm)
             &first, &last
         );
     }
-    else if (strcmp(s->model->name, "EOSM3") == 0)
+    else if (strcmp(s->model->name, MODEL_NAME_EOSM3) == 0)
     {
         uint64_t size = height * s->disp.bmp_pitch;
         MemoryRegionSection section = memory_region_find(
@@ -1157,7 +1471,7 @@ static void eos_update_display(void *parm)
 
     if (s->card_led)
     {
-        /* draw the LED at the bottom-right corner of the screen */
+        // draw the LED at the bottom-right corner of the screen
         int x_led = width - 8;
         int y_led = out_height - 8;
         uint8_t * dest = surface_data(surface);
@@ -1200,16 +1514,16 @@ static const GraphicHwOps eos_display_ops = {
 
 static void eos_key_event(void *parm, int keycode)
 {
-    /* keys sent to guest machine */
+    // keys sent to guest machine
     EOSState *s = (EOSState *)parm;
     mpu_send_keypress(s, keycode);
     //s->keyb.buf[(s->keyb.tail++) & 15] = keycode;
 }
 
-/**
- * UART code taken from hw/char/digic-uart.c
- * (sorry, couldn't figure out how to reuse it...)
- */
+//
+// UART code taken from hw/char/digic-uart.c
+// (sorry, couldn't figure out how to reuse it...)
+//
 
 enum {
     ST_RX_RDY = (1 << 0),
@@ -1221,11 +1535,11 @@ static int eos_uart_can_rx(void *opaque)
     DigicUartState *s = opaque;
     EOSState *es = (EOSState *)(opaque - offsetof(EOSState, uart));
 
-    /* fixme: make it work without this workaround */
+    // fixme: make it work without this workaround
     if (es->uart_just_received)
     {
-        /* extra wait states to work around buffer issues; test code follows */
-        /* ( sleep 5; echo "akashimorino" ) | ./run_canon_fw.sh 750D -serial stdio */
+        // extra wait states to work around buffer issues; test code follows
+        // ( sleep 5; echo "akashimorino" ) | ./run_canon_fw.sh 750D -serial stdio
         es->uart_just_received--;
         return 0;
     }
@@ -1248,7 +1562,7 @@ static void eos_uart_rx(void *opaque, const uint8_t *buf, int size)
     EOSState *es = (EOSState *)(opaque - offsetof(EOSState, uart));
     assert(es->model->uart_rx_interrupt);
 
-    /* fixme: why it locks up without a delay? */
+    // fixme: why it locks up without a delay?
     eos_trigger_int(es, es->model->uart_rx_interrupt, 10);
 }
 
@@ -1262,21 +1576,21 @@ static void eos_uart_reset(DigicUartState *s)
     s->reg_st = ST_TX_RDY;
 }
 
-/** EOS CPU SETUP **/
+// EOS CPU SETUP 
 
 static void eos_init_rom(EOSState *s, int rom_id, MemoryRegion * rom, uint32_t rom_addr, uint32_t rom_size, uint64_t rom_limit)
 {
     char name[32];
     uint32_t start_addr = rom_addr;
 
-    /* main ROM */
+    // main ROM
     sprintf(name, "eos.rom%d", rom_id);
-    /* fixme: not a very nice way to pass both EOSState * and rom ID */
+    // fixme: not a very nice way to pass both EOSState * and rom ID
     void * rom_ops_arg = (void *)((uintptr_t) s | rom_id);
     memory_region_init_rom_device(rom, NULL, &rom_ops, rom_ops_arg, name, rom_size, &error_abort);
     memory_region_add_subregion(s->system_mem, start_addr, rom);
 
-    /* mirrored ROMs (aliases: changing one will update all others) */
+    // mirrored ROMs (aliases: changing one will update all others)
     for(uint64_t offset = start_addr + rom_size; offset < rom_limit; offset += rom_size)
     {
         sprintf(name, "eos.rom%d_mirror", rom_id);
@@ -1286,32 +1600,28 @@ static void eos_init_rom(EOSState *s, int rom_id, MemoryRegion * rom, uint32_t r
     }
 }
 
-
-static EOSState *eos_init_cpu(struct eos_model_desc * model)
+static void *eos_init_cpu(EOSState *s)
 {
-    EOSState *s = g_new(EOSState, 1);
-    memset(s, 0, sizeof(*s));
-
-    s->model = model;
-
     s->workdir = getenv("QEMU_EOS_WORKDIR");
-    if (!s->workdir) s->workdir = ".";
+    if (!s->workdir)
+        s->workdir = ".";
 
     const char* cpu_name = 
-        (s->model->digic_version <= 4) ? "arm946-eos"    :  /* apparently the same for DIGIC 2, 3 and 4 */
-        (s->model->digic_version == 5) ? "arm946-eos5"   :  /* minor differences */
-        (s->model->digic_version == 7) ? "cortex-a9-eos" :  /* dual core */
-        (s->model->digic_version >= 6) ? "cortex-r4-eos" :  /* also used on Eeko (fake version 50) */
-                                         "arm946";          /* unused here */
+        (s->model->digic_version <= 4) ? "arm946-eos-arm-cpu"    :  // apparently the same for DIGIC 2, 3 and 4
+        (s->model->digic_version == 5) ? "arm946-eos5-arm-cpu"   :  // minor differences
+        (s->model->digic_version == 7) ? "cortex-a9-eos-arm-cpu" :  // dual core
+        (s->model->digic_version >= 6) ? "cortex-r4-eos-arm-cpu" :  // also used on Eeko (fake version 50)
+                                         "arm946-arm-cpu";          // unused here
     
-    s->cpu0 = cpu_arm_init(cpu_name);
+    s->cpu0 = ARM_CPU(cpu_create(cpu_name));
     assert(s->cpu0);
 
-    if (s->model->digic_version == 7)
+    if (s->model->max_cpus > 1)
     {
-        s->cpu1 = cpu_arm_init(cpu_name);
+        s->cpu1 = ARM_CPU(cpu_create(cpu_name));
         assert(s->cpu1);
         CPU(s->cpu1)->halted = 1;
+        assert(s->model->max_cpus < 3); // not yet supported, none exist yet
     }
 
     s->verbosity = 0xFFFFFFFF;
@@ -1331,16 +1641,16 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
         memory_region_add_subregion(s->system_mem, BTCM_ADDR, &s->tcm_data);
     }
 
-    /* set up RAM, cached and uncached */
-    /* main RAM starts at 0 */
-    /* the ATCM overlaps the RAM (so far all models);
-     * the BTCM may or may not overlap the uncached RAM (model-dependent) */
+    // set up RAM, cached and uncached
+    // main RAM starts at 0
+    // the ATCM overlaps the RAM (so far all models);
+    // the BTCM may or may not overlap the uncached RAM (model-dependent)
     assert(ATCM_ADDR == 0);
     
     if (BTCM_ADDR == CACHING_BIT)
     {
-        /* not sure what to do if both TCMs overlap the RAM,
-         * when they have different sizes */
+        // not sure what to do if both TCMs overlap the RAM,
+        // when they have different sizes
         assert(ATCM_SIZE == BTCM_SIZE);
     }
 
@@ -1352,18 +1662,25 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
     
     if (ATCM_SIZE && (BTCM_ADDR != CACHING_BIT))
     {
-        /* I believe there's a small section of RAM visible only as uncacheable (to be tested) */
+        // I believe there's a small section of RAM visible only as uncacheable (to be tested)
         memory_region_init_ram(&s->ram_uncached0, NULL, "eos.ram_uncached0", ATCM_SIZE, &error_abort);
         memory_region_add_subregion(s->system_mem, CACHING_BIT, &s->ram_uncached0);
     }
     
-    if (s->model->ram_extra_addr)
+    char ram_region_name[32] = "";
+    for(size_t i = 0;
+        i < ram_extra_array_len;
+        i++)
     {
-        memory_region_init_ram(&s->ram_extra, NULL, "eos.ram_extra", s->model->ram_extra_size, &error_abort);
-        memory_region_add_subregion(s->system_mem, s->model->ram_extra_addr, &s->ram_extra);
+        sprintf(ram_region_name, "eos.ram_extra_%ld", i);
+        if (s->model->ram_extra_addr[i] != 0)
+        {
+            memory_region_init_ram(&s->ram_extra[i], NULL, ram_region_name, s->model->ram_extra_size[i], &error_abort);
+            memory_region_add_subregion(s->system_mem, s->model->ram_extra_addr[i], &s->ram_extra[i]);
+        }
     }
 
-    /* set up ROM0 */
+    // set up ROM0
     if (ROM0_SIZE)
     {
         eos_init_rom(s, 0, &s->rom0, ROM0_ADDR, ROM0_SIZE, ROM1_ADDR);
@@ -1377,20 +1694,18 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
     //memory_region_init_ram(&s->rom1, "eos.rom", 0x10000000, &error_abort);
     //memory_region_add_subregion(s->system_mem, 0xF0000000, &s->rom1);
 
-    /* set up io space */
+    // set up io space
     memory_region_init_io(&s->mmio, NULL, &mmio_ops, s, "eos.mmio", MMIO_SIZE);
     memory_region_add_subregion(s->system_mem, MMIO_ADDR, &s->mmio);
 
-    /*ROMState *rom0 = eos_rom_register(0xF8000000, NULL, "ROM1", ROM1_SIZE,
-                                NULL,
-                                0x100, 0x100, 32,
-                                0, 0, 0, 0, 0);
-
-                                */
+    // ROMState *rom0 = eos_rom_register(0xF8000000, NULL, "ROM1", ROM1_SIZE,
+    //                            NULL,
+    //                            0x100, 0x100, 32,
+    //                            0, 0, 0, 0, 0);
 
     vmstate_register_ram_global(&s->ram);
 
-    /* initialize RTC registers, compatible to Ricoh R2062 etc */
+    // initialize RTC registers, compatible to Ricoh R2062 etc
     s->rtc.transfer_format = RTC_INACTIVE;
     s->rtc.regs[0x00] = 0x00;   /* second (BCD) */
     s->rtc.regs[0x01] = 0x15;   /* minute (BCD) */
@@ -1403,7 +1718,7 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
     s->rtc.regs[0x0E] = 0x20;                           /* Control Register 1: 24-hour mode, no alarms */
     s->rtc.regs[0x0F] = s->model->rtc_control_reg_2;    /* Control Register 2: XST (model-specific), PON... */
 
-    if (strcmp(s->model->name, "400D") == 0)
+    if (strcmp(s->model->name, MODEL_NAME_400D) == 0)
     {
         /* fixme: RTC protocol unknown, but returning 0xC everywhere brings the GUI */
         s->rtc.regs[0x00] = 0xC;
@@ -1426,6 +1741,21 @@ static EOSState *eos_init_cpu(struct eos_model_desc * model)
 
     return s;
 }
+
+#if 1
+static void patch_200D(EOSState *s)
+{
+    uint8_t *buf = NULL;
+    buf = calloc(0xce24, 1);
+    address_space_read(&address_space_memory, 0xe11c11c0,
+                       MEMTXATTRS_UNSPECIFIED, buf,
+                       0xce24);
+    address_space_write(&address_space_memory, 0xdf002800,
+                        MEMTXATTRS_UNSPECIFIED, buf,
+                        0xce24);
+    return;
+}
+#endif
 
 static void patch_EOSM3(EOSState *s)
 {
@@ -1490,9 +1820,9 @@ static void patch_EOSM5(EOSState *s)
     MEM_WRITE_ROM(0xE115CF88+0x98, (uint8_t*) &one, 4);
 }
 
-static void eos_init_common(MachineState *machine)
+static void eos_init_common(EOSState *s)
 {
-    EOSState *s = eos_init_cpu(EOS_MACHINE_GET_CLASS(machine)->model);
+    eos_init_cpu(s);
 
     /* hijack machine option "firmware" to pass command-line parameters */
     /* e.g. ./run_canon_fw 5D3,firmware="113;boot=1" */
@@ -1535,7 +1865,7 @@ static void eos_init_common(MachineState *machine)
         exit(1);
     }
 
-    ide_bus_new(&s->cf.bus, sizeof(s->cf.bus), NULL, 0, 2);
+    ide_bus_new(&s->cf.bus, sizeof(s->cf.bus), DEVICE(s), 0, 2);
     ide_init2(&s->cf.bus, s->interrupt);
     ide_create_drive(&s->cf.bus, 0, dj);
     s->cf.bus.ifs[0].drive_kind = IDE_CFATA;
@@ -1549,11 +1879,9 @@ static void eos_init_common(MachineState *machine)
     }
     
     /* init UART */
-    /* FIXME use a qdev chardev prop instead of qemu_char_get_next_serial() */
-    s->uart.chr = qemu_char_get_next_serial();
-    if (s->uart.chr) {
-        qemu_chr_add_handlers(s->uart.chr, eos_uart_can_rx, eos_uart_rx, eos_uart_event, &s->uart);
-    }
+    qdev_prop_set_chr(DEVICE(&s->uart), "chardev", serial_hd(0));
+    qemu_chr_fe_set_handlers(&s->uart.chr, eos_uart_can_rx, eos_uart_rx,
+                             eos_uart_event, NULL, &s->uart, NULL, true);
     eos_uart_reset(&s->uart);
 
     /* init MPU */
@@ -1562,24 +1890,32 @@ static void eos_init_common(MachineState *machine)
     /* init image processing engine */
     engine_init();
 
-    if (strcmp(s->model->name, "7D") == 0)
+    if (strcmp(s->model->name, MODEL_NAME_7D) == 0)
     {
         fprintf(stderr, "Disabling IPC (boot flag 0x24)\n");
         uint32_t flag = 0;
         MEM_WRITE_ROM(s->model->bootflags_addr + 0x24, (uint8_t*) &flag, 4);
     }
     
-    if (strcmp(s->model->name, "EOSM3") == 0)
+#if 1
+    if (strcmp(s->model->name, MODEL_NAME_200D) == 0)
+    {
+        printf(" ==== patching 200D\n");
+        patch_200D(s);
+    }
+#endif
+
+    if (strcmp(s->model->name, MODEL_NAME_EOSM3) == 0)
     {
         patch_EOSM3(s);
     }
 
-    if (strcmp(s->model->name, "EOSM10") == 0)
+    if (strcmp(s->model->name, MODEL_NAME_EOSM10) == 0)
     {
         patch_EOSM10(s);
     }
 
-    if (strcmp(s->model->name, "EOSM5") == 0)
+    if (strcmp(s->model->name, MODEL_NAME_EOSM5) == 0)
     {
         patch_EOSM5(s);
     }
@@ -1600,7 +1936,7 @@ static void eos_init_common(MachineState *machine)
         fprintf(stderr, "Start address: 0x%08X\n", s->cpu0->env.regs[15]);
     }
 
-    if (strcmp(s->model->name, "5D3eeko") == 0)
+    if (strcmp(s->model->name, MODEL_NAME_5D3eeko) == 0)
     {
         /* see EekoBltDmac calls (5D3 1.1.3)
          * EekoBltDmac(0x0, 0xd0288000, 0xff99541c, 0x6b8c,  0xff508e78, 0x0), from ff508f30
@@ -1845,14 +2181,7 @@ void io_log(const char * module_name, EOSState *s, unsigned int address, unsigne
 }
 
 
-
-
-
-
 /** HANDLES **/
-
-
-
 
 unsigned int eos_default_handle ( EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
@@ -1894,7 +2223,7 @@ unsigned int eos_default_handle ( EOSState *s, unsigned int address, unsigned ch
     return data;
 }
 
-EOSRegionHandler *eos_find_handler( unsigned int address)
+EOSRegionHandler *eos_find_handler(unsigned int address)
 {
     int pos = 0;
     for(pos = 0; pos < sizeof(eos_handlers) / sizeof(eos_handlers[0]); pos++)
@@ -1908,7 +2237,7 @@ EOSRegionHandler *eos_find_handler( unsigned int address)
     return NULL;
 }
 
-unsigned int eos_handler ( EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+unsigned int eos_handler(EOSState *s, unsigned int address, unsigned char type, unsigned int value)
 {
     EOSRegionHandler *handler = eos_find_handler(address);
 
@@ -1950,8 +2279,88 @@ unsigned int eos_trigger_int(EOSState *s, unsigned int id, unsigned int delay)
     return 0;
 }
 
+#if 0
+static void cpu1_wakeup_timer(void *opaque)
+{
+    EOSState *s = opaque;
+    printf(" ==== wakeup_timer callback fired\n");
+    CPU(s->cpu1)->halted = 0;
+    printf(KLRED"Wake Up CPU1\n"KRESET);
+}
+#endif
+
+#if 1
+static void cpu1_interrupt_timer(void *opaque)
+{
+    EOSState *s = opaque;
+    printf(" ==== interrupt_timer callback fired\n");
+    s->irq_id = 0xa; // FIXME SJE, do we want this?  Alex didn't have it, but
+                     // I see asserts from hw/eos/dbi/logging.c if I use -d callstacks without it.
+    s->irq_enabled[s->irq_id] = 0;
+//    cpu_interrupt(CPU(OTHER_CPU), CPU_INTERRUPT_HARD);
+    cpu_interrupt(CPU(s->cpus[1]), CPU_INTERRUPT_HARD);
+}
+#endif
+
+unsigned int eos_handle_multicore(unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value)
+{
+    const char * module = "MULTICORE";
+    const char * msg = 0;
+    int msg_arg1 = 0;
+    int msg_arg2 = 0;
+    unsigned int ret = 0;
+
+    switch (address & 0xFFFF)
+    {
+        case 0x730:
+            msg = "sync caches?";
+            break;
+
+        case 0x7B0:
+            msg = "sync cache address?";
+            break;
+
+        case 0x100:
+            msg = "Wake Up CPU1?";
+            assert(s->cpu1);
+            #if 1
+            CPU(s->cpu1)->halted = 0;
+            printf(KLRED"Wake Up CPU1\n"KRESET);
+            #endif
+            #if 0
+            printf(" ==== scheduled CPU1 wakeup\n");
+            timer_init_ms(&s->multicore_timer_01, QEMU_CLOCK_VIRTUAL, cpu1_wakeup_timer, s);
+            timer_mod(&s->multicore_timer_01, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) + 50);
+            #endif
+            break;
+
+        case 0x214:
+            msg = "Signal to CPU1?";
+            if (value) {
+                #if 0
+                s->irq_id = 0xa; // FIXME SJE, do we want this?  Alex didn't have it, but
+                                 // I see asserts from hw/eos/dbi/logging.c if I use -d callstacks without it.
+                s->irq_enabled[s->irq_id] = 0;
+                cpu_interrupt(CPU(OTHER_CPU), CPU_INTERRUPT_HARD);
+                #endif
+                #if 1
+                printf(" ==== scheduled CPU1 interrupt\n");
+                timer_init_ms(&s->multicore_timer_02, QEMU_CLOCK_VIRTUAL, cpu1_interrupt_timer, s);
+                timer_mod(&s->multicore_timer_02, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) + 250);
+                #endif
+            }
+            break;
+    }
+
+    if (qemu_loglevel_mask(CPU_LOG_INT))
+    {
+        io_log(module, s, address, type, value, ret, msg, msg_arg1, msg_arg2);
+    }
+    return ret;
+}
+
 /* this appears to be an older interface for the same interrupt controller */
-unsigned int eos_handle_intengine_vx ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+unsigned int eos_handle_intengine_vx(unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value)
 {
     const char * msg = 0;
     int msg_arg1 = 0;
@@ -2007,7 +2416,7 @@ unsigned int eos_handle_intengine_vx ( unsigned int parm, EOSState *s, unsigned 
     return ret;
 }
 
-unsigned int eos_handle_intengine ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+unsigned int eos_handle_intengine(unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value)
 {
     const char * msg = 0;
     int msg_arg1 = 0;
@@ -2131,7 +2540,7 @@ unsigned int eos_handle_intengine_gic ( unsigned int parm, EOSState *s, unsigned
                 case 0x0C:
                 {
                     msg = "GICC_IAR";
-                    ret = 0x20;
+                    ret = (current_cpu->cpu_index) ? 0x0A : 0x20;
                     break;
                 }
             }
@@ -2613,7 +3022,7 @@ static unsigned int eos_handle_imgpowdet( unsigned int parm, EOSState *s, unsign
     return ret;
 }
 
-unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+unsigned int eos_handle_gpio(unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value)
 {
     unsigned int ret = 1;
     const char * msg = 0;
@@ -2704,8 +3113,8 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             }
             else
             {
-                if (strcmp(s->model->name, "5D2") == 0 ||
-                    strcmp(s->model->name, "50D") == 0)
+                if (strcmp(s->model->name, MODEL_NAME_5D2) == 0 ||
+                    strcmp(s->model->name, MODEL_NAME_50D) == 0)
                 {
                     ret = 0x6000;
                     msg = "VSW_STATUS 5D2/50D";
@@ -2724,7 +3133,7 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
             break;
 
       case 0xF48C:
-            if(strcmp(s->model->name, "1300D") == 0)
+            if(strcmp(s->model->name, MODEL_NAME_1300D) == 0)
             {
                 /* 1300D: return 0 here to bypass "System & Display Check & Adjustment program" */
                 /* 0x4000000 = HDMI disconnected */
@@ -2862,7 +3271,7 @@ unsigned int eos_handle_gpio ( unsigned int parm, EOSState *s, unsigned int addr
 
         case 0x011C:    /* 40D, 450D */
             msg = "VIDEO CONNECT";
-            ret = (strcmp(s->model->name, "40D") == 0) ? 0 : 1;
+            ret = (strcmp(s->model->name, MODEL_NAME_40D) == 0) ? 0 : 1;
 #ifdef IGNORE_CONNECT_POLL
             return ret;
 #endif
@@ -3009,8 +3418,8 @@ unsigned int eos_handle_adc ( unsigned int parm, EOSState *s, unsigned int addre
         msg = "channel #%d";
         msg_arg1 = channel;
         
-        if (strcmp(s->model->name, "EOSM3") == 0 ||
-            strcmp(s->model->name, "EOSM10") == 0)
+        if (strcmp(s->model->name, MODEL_NAME_EOSM3) == 0 ||
+            strcmp(s->model->name, MODEL_NAME_EOSM10) == 0)
         {
             /* values from Ant123's camera (M3) */
             uint32_t adc_values[] = {
@@ -3279,14 +3688,12 @@ unsigned int eos_handle_uart ( unsigned int parm, EOSState *s, unsigned int addr
                 msg = "Write char";
                 assert(value == (value & 0xFF));
                 
-                if (s->uart.chr) {
-                    qemu_chr_fe_write_all(s->uart.chr, (void*) &value, 1);
-                }
+                qemu_chr_fe_write_all(&s->uart.chr, (void*) &value, 1);
                 
                 /* fixme: better way to check whether the serial is printing to console? */
-                if (strcmp(s->uart.chr->filename, "stdio") != 0 &&
-                    strcmp(s->uart.chr->filename, "mux") != 0 &&
-                    strcmp(s->uart.chr->filename, "file") != 0)
+                if (strcmp(s->uart.chr.chr->filename, "stdio") != 0 &&
+                    strcmp(s->uart.chr.chr->filename, "mux") != 0 &&
+                    strcmp(s->uart.chr.chr->filename, "file") != 0)
                 {
                     fprintf(stderr, KRED"%c"KRESET, value);
                 }
@@ -3364,7 +3771,7 @@ unsigned int eos_handle_uart ( unsigned int parm, EOSState *s, unsigned int addr
                     msg = "enable interrupt?";
                     enable_tio_interrupt = 1;
                 }
-                else if (strcmp(s->model->name, "EOSM3") != 0)
+                else if (strcmp(s->model->name, MODEL_NAME_EOSM3) != 0)
                 {
                     enable_tio_interrupt = value & 1;
                 }
@@ -3602,9 +4009,9 @@ static unsigned int eos_handle_rtc ( unsigned int parm, EOSState *s, unsigned in
                     {
                         uint8_t cmd = last_sio_txdata & 0x0F;
                         uint8_t reg = (last_sio_txdata>>4) & 0x0F;
-                        if (!strcmp(s->model->name, "5D2") ||
-                            !strcmp(s->model->name, "50D") ||
-                            !strcmp(s->model->name, "40D"))
+                        if (!strcmp(s->model->name, MODEL_NAME_5D2) ||
+                            !strcmp(s->model->name, MODEL_NAME_50D) ||
+                            !strcmp(s->model->name, MODEL_NAME_40D))
                         {
                             reg = last_sio_txdata & 0x0F;
                             cmd = (last_sio_txdata>>4) & 0x0F;
@@ -4976,7 +5383,7 @@ unsigned int flash_get_blocksize(unsigned int rom, unsigned int size, unsigned i
     }
 }
 
-unsigned int eos_handle_rom ( unsigned int rom, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+unsigned int eos_handle_rom(unsigned int rom, EOSState *s, unsigned int address, unsigned char type, unsigned int value)
 {
     unsigned int pc = CURRENT_CPU->env.regs[15];
     unsigned int ret = 0;
@@ -5454,7 +5861,7 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
         
         case 0xD2030108:    /* D6 */
         case 0xD2060048:    /* D7 */
-            if (strcmp(s->model->name, "EOSM3") == 0)
+            if (strcmp(s->model->name, MODEL_NAME_EOSM3) == 0)
             {
                 if ((value != 0x17410) && (value != 0x18010)) s->disp.bmp_vram = value << 8;
                 s->disp.bmp_pitch = (s->disp.width + 16) * 2;
@@ -5586,7 +5993,7 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
             else
             {
                 msg = "I2C status?";
-                if (strcmp(s->model->name, "EOSM10") == 0)
+                if (strcmp(s->model->name, MODEL_NAME_EOSM10) == 0)
                 {
                     ret = rand();
                 }
@@ -5723,7 +6130,6 @@ static const TypeInfo eos_rom_info = {
     .instance_size  = sizeof(ROMState),
     .class_init     = eos_rom_class_init,
 };
-
 
 static void eos_rom_class_init(ObjectClass *class, void *data)
 {

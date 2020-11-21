@@ -2,7 +2,7 @@
 #define SERIAL_FLASH_H
 
 #include <stdint.h>
-#include <eos.h>
+#include "hw/eos/eos.h"
 
 #define RDID_MACRONIX {0xC2,0x10,0x0C}
 

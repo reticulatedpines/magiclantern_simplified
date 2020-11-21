@@ -6,7 +6,7 @@
 # this script runs from qemu/tests/ so we have to go up one level
 cd ..
 
-QEMU_PATH=${QEMU_PATH:=qemu-2.5.0}
+QEMU_PATH=${QEMU_PATH:=qemu-4.2.1}
 BKT_H=$QEMU_PATH/hw/eos/dbi/backtrace.h
 
 function bkt_restore {

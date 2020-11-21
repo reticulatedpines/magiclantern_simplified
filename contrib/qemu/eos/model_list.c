@@ -41,9 +41,10 @@ struct eos_model_desc eos_model_list[] = {
         .imgpowdet_register     = 0xC0220124,   /* Image Power Failure */
         .imgpowdet_register_bit = 0x00000001,   /* register and bit checked to print that message */
         .imgpowdet_interrupt    = 0x56,         /* only used on 1000D? */
+        .max_cpus               = 1,
     },
     {
-        .name                   = "5D",
+        .name                   = MODEL_NAME_5D,
         .digic_version          = 3,            /* actually 2 */
         .ram_size               = 0x08000000,   /* 128MB (guess) */
         .mmio_size              = 0x20000000,
@@ -52,7 +53,7 @@ struct eos_model_desc eos_model_list[] = {
         .dedicated_movie_mode   = -1,
     },
     {
-        .name                   = "400D",
+        .name                   = MODEL_NAME_400D,
         .digic_version          = 3,
         .ram_size               = 0x08000000,   /* 128MB */
         .card_led_address       = 0xC0220000,
@@ -60,14 +61,14 @@ struct eos_model_desc eos_model_list[] = {
         .dedicated_movie_mode   = -1,
     },
     {
-        .name                   = "40D",
+        .name                   = MODEL_NAME_40D,
         .digic_version          = 3,
         .ram_size               = 0x10000000,   /* 256MB */
         .current_task_addr      = 0x22E00,
         .dedicated_movie_mode   = -1,
     },
     {
-        .name                   = "450D",
+        .name                   = MODEL_NAME_450D,
         .digic_version          = 3,
         .ram_size               = 0x08000000,   /* 128MB */
         .current_task_addr      = 0x355C0,
@@ -78,7 +79,7 @@ struct eos_model_desc eos_model_list[] = {
         .dedicated_movie_mode   = -1,
     },
     {
-        .name                   = "1000D",
+        .name                   = MODEL_NAME_1000D,
         .digic_version          = 3,
         .current_task_addr      = 0x352C0,
         .ram_size               = 0x04000000,   /* only 64MB */
@@ -128,9 +129,10 @@ struct eos_model_desc eos_model_list[] = {
         .imgpowdet_register     = 0xC022001C,   /* Image Power Failure */
         .imgpowdet_register_bit = 0x00000001,   /* register and bit checked to print that message */
         .imgpowdet_interrupt    = 0x52,         /* interrupt registered when powering on the sensor */
+        .max_cpus               = 1,
     },
     {
-        .name                   = "50D",
+        .name                   = MODEL_NAME_50D,
         .digic_version          = 4,
         .rom0_size              = 0x00400000,   /* 4MB */
         .rom1_size              = 0x00800000,   /* 8MB */
@@ -140,12 +142,14 @@ struct eos_model_desc eos_model_list[] = {
         .cf_dma_interrupt       = 0xE3,
         .current_task_addr      = 0x1A70,
         .rtc_cs_register        = 0xC02200B0,
-        .ram_extra_addr         = 0xE8000000,   /* FPGA config 0xF8760000 using DMA */
-        .ram_extra_size         = 0x53000,
+        .ram_extra_addr[0]      = 0xE8000000,   /* FPGA config 0xF8760000 using DMA */
+        .ram_extra_size[0]      = 0x53000,
+        .ram_extra_addr[1]      = 0xE0000000, // Added for 4.2.  Causes exception unless mapped, 50D writes here.
+        .ram_extra_size[1]      = 0x00010000, // Don't really understand why Qemu 2.5.0 didn't mind this
         .dedicated_movie_mode   = 0,
     },
     {
-        .name                   = "5D2",
+        .name                   = MODEL_NAME_5D2,
         .digic_version          = 4,
         .rom0_size              = 0x00400000,   /* 4MB */
         .rom1_size              = 0x00800000,   /* 8MB */
@@ -156,12 +160,12 @@ struct eos_model_desc eos_model_list[] = {
         .cf_dma_interrupt       = 0xE3,
         .current_task_addr      = 0x1A24,
         .rtc_cs_register        = 0xC02200B0,
-        .ram_extra_addr         = 0xE8000000,       /* FPGA config 0xF8760000 using DMA */
-        .ram_extra_size         = 0x53000,
+        .ram_extra_addr[0]      = 0xE8000000,       /* FPGA config 0xF8760000 using DMA */
+        .ram_extra_size[0]      = 0x53000,
         .dedicated_movie_mode   = 0,
     },
     {
-        .name                   = "500D",
+        .name                   = MODEL_NAME_500D,
         .digic_version          = 4,
         .ram_size               = 0x10000000,   /* 256MB */
         .current_task_addr      = 0x1A74,
@@ -170,7 +174,7 @@ struct eos_model_desc eos_model_list[] = {
         .dedicated_movie_mode   = 1,
     },
     {
-        .name                   = "550D",
+        .name                   = MODEL_NAME_550D,
         .digic_version          = 4,
         .ram_size               = 0x10000000,   /* 256MB */
         .current_task_addr      = 0x1A20,
@@ -179,7 +183,7 @@ struct eos_model_desc eos_model_list[] = {
         .dedicated_movie_mode   = 1,
     },
     {
-        .name                   = "7D",
+        .name                   = MODEL_NAME_7D,
         .digic_version          = 4,
         .ram_size               = 0x20000000,   /* 512MB */
         .card_led_address       = 0xC022D06C,
@@ -187,7 +191,7 @@ struct eos_model_desc eos_model_list[] = {
         .dedicated_movie_mode   = 0,
     },
     {
-        .name                   = "60D",
+        .name                   = MODEL_NAME_60D,
         .digic_version          = 4,
         .ram_size               = 0x20000000,   /* 512MB */
         .current_task_addr      = 0x1A2C,
@@ -195,7 +199,7 @@ struct eos_model_desc eos_model_list[] = {
         .dedicated_movie_mode   = 1,
     },
     {
-        .name                   = "600D",
+        .name                   = MODEL_NAME_600D,
         .digic_version          = 4,
         .ram_size               = 0x10000000,   /* 256MB */
         .current_task_addr      = 0x1A2C,
@@ -203,7 +207,7 @@ struct eos_model_desc eos_model_list[] = {
         .dedicated_movie_mode   = 1,
     },
     {
-        .name                   = "1100D",
+        .name                   = MODEL_NAME_1100D,
         .digic_version          = 4,
         .ram_size               = 0x08000000,   /* 128MB */
         .current_task_addr      = 0x1A2C,
@@ -211,7 +215,7 @@ struct eos_model_desc eos_model_list[] = {
         .dedicated_movie_mode   = 1,
     },
     {
-        .name                   = "1200D",
+        .name                   = MODEL_NAME_1200D,
         .digic_version          = 4,
         .ram_size               = 0x10000000,   /* 256MB */
         .firmware_start         = 0xFF0C0000,
@@ -221,7 +225,7 @@ struct eos_model_desc eos_model_list[] = {
         .dedicated_movie_mode   = 1,
     },
     {
-        .name                   = "1300D",
+        .name                   = MODEL_NAME_1300D,
         .digic_version          = 4,
         .ram_size               = 0x10000000,   /* 256MB */
         .rom0_size              = 0x02000000,   /* 32MB */
@@ -243,7 +247,7 @@ struct eos_model_desc eos_model_list[] = {
       //.imgpowdet_register_bit = 0x00080000,   /* register and bit checked to print that message */
     },
     {
-        .name                   = "A1100",
+        .name                   = MODEL_NAME_A1100,
         .digic_version          = 4,
         .rom0_size              = 0x400000,     /* fixme: unknown */
         .rom1_size              = 0x400000,     /* 4MB */
@@ -296,9 +300,10 @@ struct eos_model_desc eos_model_list[] = {
         .imgpowdet_register     = 0xC02200F0,   /* Image Power Failure */
         .imgpowdet_register_bit = 0x00000001,   /* register and bit checked to print that message */
         .imgpowdet_interrupt    = 0x52,         /* interrupt registered when powering on the sensor */
+        .max_cpus               = 1,
     },
     {
-        .name                   = "5D3",
+        .name                   = MODEL_NAME_5D3,
         .digic_version          = 5,
         .rom0_size              = 0x00800000,   /* 8MB */
         .ram_size               = 0x20000000,   /* 512MB */
@@ -315,11 +320,11 @@ struct eos_model_desc eos_model_list[] = {
     {
         /* started on request on photo taking, raw develop and others;
          * see EekoBltDmac, Eeko WakeUp; runs Thumb-2 code */
-        .name                   = "5D3eeko",
+        .name                   = MODEL_NAME_5D3eeko,
         .digic_version          = 50,           /* hack to get an empty configuration */
         .ram_size               = 0x00100000,   /* unknown, mapped to 0xD0288000 on main CPU*/
-        .ram_extra_addr         = 0x01E00000,   /* mapped to the same address on main CPU */
-        .ram_extra_size         = 0x00200000,   /* 1E0-1F0, 1F0-1F2, 1F2-1F4 (I/O; fixme) */
+        .ram_extra_addr[0]      = 0x01E00000,   /* mapped to the same address on main CPU */
+        .ram_extra_size[0]      = 0x00200000,   /* 1E0-1F0, 1F0-1F2, 1F2-1F4 (I/O; fixme) */
         .caching_bit            = 0x40000000,   /* D0284000-D0288000: identical to D028C000-D0290000 */
         .mmio_addr              = 0xC0000000,
         .mmio_size              = 0x40000000,   /* really? */
@@ -335,7 +340,7 @@ struct eos_model_desc eos_model_list[] = {
         .dedicated_movie_mode   = -1,
     },
     {
-        .name                   = "6D",
+        .name                   = MODEL_NAME_6D,
         .digic_version          = 5,
         .rom0_size              = 0x00800000,   /* 8MB */
         .ram_size               = 0x20000000,   /* 512MB */
@@ -352,7 +357,7 @@ struct eos_model_desc eos_model_list[] = {
         .imgpowdet_register     = 0xC0220008,   /* Image Power Failure */
     },
     {
-        .name                   = "650D",
+        .name                   = MODEL_NAME_650D,
         .digic_version          = 5,
         .ram_size               = 0x10000000,   /* 256MB */
         .current_task_addr      = 0x233D8,
@@ -362,7 +367,7 @@ struct eos_model_desc eos_model_list[] = {
         .dedicated_movie_mode   = 0,
     },
     {
-        .name                   = "700D",
+        .name                   = MODEL_NAME_700D,
         .digic_version          = 5,
         .ram_size               = 0x10000000,   /* 256MB */
         .current_task_addr      = 0x233DC,
@@ -373,7 +378,7 @@ struct eos_model_desc eos_model_list[] = {
         .dedicated_movie_mode   = 0,
     },
     {
-        .name                   = "EOSM",
+        .name                   = MODEL_NAME_EOSM,
         .digic_version          = 5,
         .ram_size               = 0x10000000,   /* 256MB */
         .current_task_addr      = 0x3DE78,
@@ -384,7 +389,7 @@ struct eos_model_desc eos_model_list[] = {
         .dedicated_movie_mode   = 0,
     },
     {
-        .name                   = "EOSM2",
+        .name                   = MODEL_NAME_EOSM2,
         .digic_version          = 5,
         .rom0_size              = 0x01000000,   /* 16MB */
         .ram_size               = 0x10000000,   /* 256MB */
@@ -396,7 +401,7 @@ struct eos_model_desc eos_model_list[] = {
         .dedicated_movie_mode   = 0,
     },
     {
-        .name                   = "100D",
+        .name                   = MODEL_NAME_100D,
         .digic_version          = 5,
         .ram_size               = 0x10000000,   /* 256MB */
         .current_task_addr      = 0x652AC,
@@ -407,7 +412,7 @@ struct eos_model_desc eos_model_list[] = {
         .dedicated_movie_mode   = 0,
     },
     {
-        .name                   = "70D",
+        .name                   = MODEL_NAME_70D,
         .digic_version          = 5,
         .rom0_size              = 0x00800000,   /* 8MB */
         .ram_size               = 0x20000000,   /* 512MB */
@@ -436,8 +441,8 @@ struct eos_model_desc eos_model_list[] = {
         .atcm_size              = 0x00004000,
         .btcm_addr              = 0x80000000,
         .btcm_size              = 0x00010000,
-        .ram_extra_addr         = 0xBFE00000,
-        .ram_extra_size         = 0x00200000,
+        .ram_extra_addr[0]      = 0xBFE00000,
+        .ram_extra_size[0]      = 0x00200000,
         .mmio_addr              = 0xC0000000,
         .mmio_size              = 0x20000000,
         .firmware_start         = 0xFE0A0000,
@@ -463,18 +468,21 @@ struct eos_model_desc eos_model_list[] = {
         .imgpowdet_register     = 0xD20B004C,   /* Image Power Failure */
         .imgpowdet_register_bit = 0x00010000,   /* register and bit checked to print that message */
         .imgpowdet_interrupt    = 0xDA,         /* interrupt registered when powering on the sensor */
+        .max_cpus               = 1,
     },
     {
-        .name                   = "80D",
+        .name                   = MODEL_NAME_80D,
         .digic_version          = 6,
         .ram_size               = 0x40000000,   /* 1GB */
         .ram_manufacturer_id    = 0x18000103,   /* RAM manufacturer: Micron */
         .current_task_addr      = 0x44F4,
         .serial_flash_size      = 0x800000,
         .serial_flash_sio_ch    = 2,
+        .ram_extra_addr[1]      = 0x82180000,
+        .ram_extra_size[1]      = 0x00010000,
     },
     {
-        .name                   = "750D",
+        .name                   = MODEL_NAME_750D,
         .digic_version          = 6,
         .ram_size               = 0x20000000,   /* 512MB */
         .ram_manufacturer_id    = 0x14000203,
@@ -483,7 +491,7 @@ struct eos_model_desc eos_model_list[] = {
         .serial_flash_sio_ch    = 2,
     },
     {
-        .name                   = "760D",
+        .name                   = MODEL_NAME_760D,
         .digic_version          = 6,
         .ram_size               = 0x20000000,   /* 512MB */
         .ram_manufacturer_id    = 0x14000203,
@@ -492,7 +500,7 @@ struct eos_model_desc eos_model_list[] = {
         .serial_flash_sio_ch    = 2,
     },
     {
-        .name                   = "7D2",
+        .name                   = MODEL_NAME_7D2,
         .digic_version          = 6,
         .ram_size               = 0x20000000,   /* 512MB */
         .current_task_addr      = 0x28568,
@@ -500,7 +508,7 @@ struct eos_model_desc eos_model_list[] = {
         .ram_manufacturer_id    = 0x14000101,
     },
     {
-        .name                   = "7D2S",
+        .name                   = MODEL_NAME_7D2S,
         .digic_version          = 6,
         .ram_size               = 0x20000000,   /* 512MB */
         .current_task_addr      = 0x44EC,
@@ -508,7 +516,7 @@ struct eos_model_desc eos_model_list[] = {
         .ram_manufacturer_id    = 0x18000103,   /* 80D bootloader */
     },
     {
-        .name                   = "5D4",
+        .name                   = MODEL_NAME_5D4,
         .digic_version          = 6,
         .ram_size               = 0x40000000,   /* 1GB */
         .ram_manufacturer_id    = 0x18000401,
@@ -527,7 +535,7 @@ struct eos_model_desc eos_model_list[] = {
         .imgpowdet_interrupt    = 0x10A,        /* interrupt registered when powering on the sensor */
     },
     {
-        .name                   = "5D4AE",
+        .name                   = MODEL_NAME_5D4AE,
         .digic_version          = 6,
         .ram_size               = 0x10000000,   /* 256MB? */
         .ram_manufacturer_id    = 0x18000401,
@@ -535,7 +543,7 @@ struct eos_model_desc eos_model_list[] = {
         .current_task_addr      = 0x44F4,
     },
     {
-        .name                   = "EOSM3",
+        .name                   = MODEL_NAME_EOSM3,
         .digic_version          = 6,
         .ram_size               = 0x20000000,   /* 512MB? */
         .firmware_start         = 0xFC000000,
@@ -545,7 +553,7 @@ struct eos_model_desc eos_model_list[] = {
         .card_led_address       = 0xD20B0994,
     },
     {
-        .name                   = "EOSM10",
+        .name                   = MODEL_NAME_EOSM10,
         .digic_version          = 6,
         .ram_size               = 0x20000000,   /* 512MB? */
         .firmware_start         = 0xFC000000,
@@ -568,8 +576,8 @@ struct eos_model_desc eos_model_list[] = {
         .caching_bit            = 0x40000000,
         .mmio_addr              = 0xBFE00000,   /* fixme: BFE is configured as regular RAM, but certain values are expected */
         .mmio_size              = 0x1F200000,
-        .ram_extra_addr         = 0xDF000000,
-        .ram_extra_size         = 0x01000000,
+        .ram_extra_addr[0]      = 0xDF000000,
+        .ram_extra_size[0]      = 0x01000000,
         .current_task_name_offs = 0x09,
         .dryos_timer_id         = 1,
         .dryos_timer_interrupt  = 0x1B,
@@ -585,11 +593,14 @@ struct eos_model_desc eos_model_list[] = {
         .imgpowdet_register     = 0xD20821DC,   /* Image Power Failure */
         .imgpowdet_register_bit = 0x00010000,   /* register and bit checked to print that message */
         .imgpowdet_interrupt    = 0xDA,         /* interrupt registered when powering on the sensor */
+        .max_cpus               = 2,
     },
     {
-        .name                   = "200D",
+        .name                   = MODEL_NAME_200D,
         .digic_version          = 7,
         .ram_size               = 0x20000000,   /* 512MB */
+        .ram_extra_addr[1]      = 0x82100000,
+        .ram_extra_size[1]      = 0x00100000,
         .card_led_address       = 0xD208016C,   /* WLAN LED 0xD2080190 */
         .current_task_addr      = 0x28,         /* fixme: read from virtual memory */
         .uart_rx_interrupt      = 0x15D,
@@ -597,7 +608,7 @@ struct eos_model_desc eos_model_list[] = {
         .dedicated_movie_mode   = 0,
     },
     {
-        .name                   = "6D2",
+        .name                   = MODEL_NAME_6D2,
         .digic_version          = 7,
         .ram_size               = 0x40000000,   /* 1GB */
         .card_led_address       = 0xD208016C,
@@ -607,7 +618,7 @@ struct eos_model_desc eos_model_list[] = {
         .dedicated_movie_mode   = 0,
     },
     {
-        .name                   = "77D",
+        .name                   = MODEL_NAME_77D,
         .digic_version          = 7,
         .ram_size               = 0x40000000,   /* 1GB */
         .card_led_address       = 0xD208016C,
@@ -617,7 +628,7 @@ struct eos_model_desc eos_model_list[] = {
         .dedicated_movie_mode   = 0,
     },
     {
-        .name                   = "800D",
+        .name                   = MODEL_NAME_800D,
         .digic_version          = 7,
         .ram_size               = 0x40000000,   /* 1GB */
         .card_led_address       = 0xD208016C,
@@ -627,15 +638,13 @@ struct eos_model_desc eos_model_list[] = {
         .dedicated_movie_mode   = 0,
     },
     {
-        .name                   = "EOSM5",
+        .name                   = MODEL_NAME_EOSM5,
         .digic_version          = 7,
         .firmware_start         = 0xE0000000,
         .ram_size               = 0x40000000,   /* not yet known */
         .caching_bit            = 0x40000000,
         .mmio_addr              = 0xC0000000,
         .mmio_size              = 0x1F000000,
-        .ram_extra_addr         = 0xDF000000,
-        .ram_extra_size         = 0x01000000,
         .current_task_addr      = 0x20,         /* fixme: read from virtual memory */
     },
     {

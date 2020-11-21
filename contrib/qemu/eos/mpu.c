@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "qemu/osdep.h"
+#include "qemu/log.h"
+#include "sysemu/runstate.h"
 #include "eos.h"
 #include "model_list.h"
 #include "mpu.h"
@@ -233,7 +236,7 @@ static void request_shutdown(void)
 {
     MPU_EPRINTF("Shutdown requested.\n");
     clean_shutdown = 1;
-    qemu_system_shutdown_request();
+    qemu_system_shutdown_request(SHUTDOWN_CAUSE_GUEST_SHUTDOWN);
 }
 
 static void mpu_interpret_command(EOSState *s)
@@ -767,6 +770,8 @@ static int translate_scancode_2(int scancode, int first_code, int allow_auto_rep
     {
         return -1;
     }
+
+    printf(" ==== scancode: %08x\n", scancode);
     
     int code = (first_code << 8) | scancode;
 
@@ -1288,6 +1293,7 @@ void mpu_spells_init(EOSState *s)
     MPU_BUTTON_CODES(70D)
     MPU_BUTTON_CODES(7D)
     MPU_BUTTON_CODES(EOSM)
+    MPU_BUTTON_CODES(200D)
     MPU_BUTTON_CODES_OTHER_CAM(EOSM2, EOSM)
 
     if (!button_codes)
