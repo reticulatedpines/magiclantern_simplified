@@ -1,6 +1,5 @@
 #ifndef __PLATFORM_MVR_H__
 #define __PLATFORM_MVR_H__
-
 /*
  * Just a copy of the 650D stuff. Indented = WRONG
  */

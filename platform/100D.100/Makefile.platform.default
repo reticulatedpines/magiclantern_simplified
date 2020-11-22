@@ -1,14 +1,19 @@
 #Makefile.setup.platform for 100D
 
-ifeq ($(FW_VERSION),100)
-CANON_NAME_FIR=100D0100.FIR
+ifeq ($(FW_VERSION),101)
+CANON_NAME_FIR=CCF16101.FIR
+ROMBASEADDR	= 0xFF0C0000
 
-# DryOSmemory map
-# RESTARTSTART is selected to be just above the end of the bss
-#
-ROMBASEADDR     = 0xFF0C0000
-RESTARTSTART    = 0x000C5300
-AUTOEXEC_BASE   = 0x40800000
-FIR_BASE        = 0x40800120
+ifeq ($(ML_SRC_PROFILE),generic)
+# Load ML at the beginning of the AllocateMemory pool
+# default 0x44C000 - 0xC3C000, patched to 0x4E0000 - 0xC3C000 (592K for us).
+RESTARTSTART    = 0x44C100
+else
+# Load ML at user_mem_start (aka heap start / DRY_HEAP_START / malloc memory pool)
+# The malloc memory pool will be pushed to the right, so it will start after our BSS.
+# user_mem_start: FF0C1C7C: 000C5388
+RESTARTSTART    = 0xC53A0
+endif
 
+#End of FW_VERSION == 101
 endif
