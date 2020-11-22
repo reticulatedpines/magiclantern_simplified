@@ -205,6 +205,9 @@ static int rbf_font_load(char *file, font* f, int maxchar)
 
     FIO_CloseFile(fd);
 
+    /* hardcoded tab width: 4 spaces */
+    f->wTable['\t'] = f->wTable[' '] * 4;
+
     return 1;
 }
 
@@ -338,6 +341,14 @@ static int FAST rbf_draw_char(font *rbf_font, int x, int y, int ch, int fontspec
         font_draw_char_shadow(rbf_font, x, y, cdata, rbf_font->width, rbf_font->hdr.height, rbf_font->wTable[ch], fontspec);
     else
         font_draw_char(rbf_font, x, y, cdata, rbf_font->width, rbf_font->hdr.height, rbf_font->wTable[ch], fontspec);
+
+#if 0   /* fixme: breaks cursor in editor.lua */
+    if (ch == '\t')
+    {
+        int tab_width = rbf_font->wTable[' '] * 4;
+        return (x + tab_width) / tab_width * tab_width - x;
+    }
+#endif
 
     return rbf_font->wTable[ch];
 }

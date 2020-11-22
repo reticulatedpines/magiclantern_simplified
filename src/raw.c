@@ -70,6 +70,88 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 
 /*********************** Camera-specific constants ****************************/
 
+#ifdef CONFIG_EDMAC_RAW_SLURP
+/* undefine so we don't use it by mistake */
+#undef RAW_LV_EDMAC
+
+/* hardcode Canon's raw buffer directly */
+/* you can find it from lv_raw_dump, arg1 passed to dump_file:
+ * 
+ * raw_buffer = get_raw_buffer()
+ * sprintf_maybe(filename, '%08lx.mm1', raw_buffer)
+ * ...
+ * dump_file(filename, raw_buffer, 7*something...)
+ */
+
+#ifdef CONFIG_60D
+#define DEFAULT_RAW_BUFFER MEM(MEM(0x5028))
+#define DEFAULT_RAW_BUFFER_SIZE (0x49F00000 - 0x48332200)   /* ~28MB, really? */
+#endif
+
+#ifdef CONFIG_600D
+#define DEFAULT_RAW_BUFFER MEM(MEM(0x51FC))
+#endif
+
+#ifdef CONFIG_5D3_113
+/* MEM(0x2600C + 0x2c) = 0x4B152000; appears free until 0x4CE00000 */
+#define DEFAULT_RAW_BUFFER MEM(0x2600C + 0x2c)
+#define DEFAULT_RAW_BUFFER_SIZE (0x4CDF0000 - 0x4B152000)
+#endif
+
+#ifdef CONFIG_5D3_123
+/* MEM(0x25f1c + 0x34) (0x4d31a000) is used near 0x4d600000 in photo mode
+ * that's probably just because the memory layout changes
+ * next buffer is at 0x4ee00000; can we assume it can be safely reused by us?
+ * (Free Memory dialog, memory map with CONFIG_MARK_UNUSED_MEMORY_AT_STARTUP)
+ */
+#define DEFAULT_RAW_BUFFER MEM(0x25f1c + 0x34)
+#define DEFAULT_RAW_BUFFER_SIZE (0x4e000000 - 0x4d31a000)
+#endif
+
+#ifdef CONFIG_5D3
+/* for higher resolutions we'll allocate a new buffer, as needed */
+#define CONFIG_ALLOCATE_RAW_LV_BUFFER
+/* buffer size for a full-res LiveView image */
+#define RAW_LV_BUFFER_ALLOC_SIZE ((0x527 + 2612) * (0x2FE - 0x18)*8 * 14/8)
+#endif
+
+
+#ifdef CONFIG_650D
+#define DEFAULT_RAW_BUFFER MEM(0x25B00 + 0x3C)
+#endif
+
+#ifdef CONFIG_700D
+#define DEFAULT_RAW_BUFFER MEM(0x25B0C + 0x3C)
+#define DEFAULT_RAW_BUFFER_SIZE (0x47F00000 - 0x46798080)
+#endif
+
+#ifdef CONFIG_EOSM
+#define DEFAULT_RAW_BUFFER MEM(0x404E4 + 0x44)
+#define DEFAULT_RAW_BUFFER_SIZE (0x47F00000 - 0x46798080)
+#endif
+
+#ifdef CONFIG_6D
+#define DEFAULT_RAW_BUFFER MEM(0x76d6c + 0x2C)
+#endif
+
+#ifdef CONFIG_100D
+#define DEFAULT_RAW_BUFFER MEM(0x6733C + 0x40)
+#endif
+
+#ifdef CONFIG_1100D
+#define DEFAULT_RAW_BUFFER MEM(MEM(0x4C64))     /* how much do we have allocated? */
+#define DEFAULT_RAW_BUFFER_SIZE 8*1024*1024     /* is this really overwritten by other code? needs some investigation */
+#endif
+
+#ifndef DEFAULT_RAW_BUFFER_SIZE
+/* todo: figure out how much Canon code allocates for their LV RAW buffer - how? */
+#warning FIXME: using dummy DEFAULT_RAW_BUFFER_SIZE
+#define DEFAULT_RAW_BUFFER_SIZE (9*1024*1024)
+#endif
+
+
+#else // "Traditional" RAW LV buffer detection (no CONFIG_EDMAC_RAW_SLURP)
+
 /**
  * LiveView raw buffer address
  * To find it, call("lv_save_raw") and look for an EDMAC channel that becomes active (Debug menu)
@@ -88,57 +170,7 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #define RAW_LV_EDMAC 0xC0F26208
 #endif
 
-#ifdef CONFIG_EDMAC_RAW_SLURP
-/* undefine so we don't use it by mistake */
-#undef RAW_LV_EDMAC
-
-/* hardcode Canon's raw buffer directly */
-/* you can find it from lv_raw_dump, arg1 passed to dump_file:
- * 
- * raw_buffer = get_raw_buffer()
- * sprintf_maybe(filename, '%08lx.mm1', raw_buffer)
- * ...
- * dump_file(filename, raw_buffer, 7*something...)
- */
-
-#ifdef CONFIG_60D
-#define DEFAULT_RAW_BUFFER MEM(MEM(0x5028))
-#endif
-
-#ifdef CONFIG_600D
-#define DEFAULT_RAW_BUFFER MEM(MEM(0x51FC))
-#endif
-
-#ifdef CONFIG_5D3_113
-#define DEFAULT_RAW_BUFFER MEM(0x2600C + 0x2c)
-#endif
-
-#ifdef CONFIG_5D3_123
-#define DEFAULT_RAW_BUFFER MEM(0x25f1c + 0x34)
-#endif
-
-#ifdef CONFIG_650D
-#define DEFAULT_RAW_BUFFER MEM(0x25B00 + 0x3C)
-#endif
-
-#ifdef CONFIG_700D
-#define DEFAULT_RAW_BUFFER MEM(0x25B0C + 0x3C)
-#endif
-
-#ifdef CONFIG_EOSM
-#define DEFAULT_RAW_BUFFER MEM(0x404E4 + 0x44)
-#endif
-
-#ifdef CONFIG_6D
-#define DEFAULT_RAW_BUFFER MEM(0x76d6c + 0x2C)
-#endif
-
-#else
-
-/* with Canon lv_save_raw, just read it from EDMAC */
-#define DEFAULT_RAW_BUFFER shamem_read(RAW_LV_EDMAC)
-
-#endif
+#endif  /* no CONFIG_EDMAC_RAW_SLURP */
 
 /**
  * Photo-mode raw buffer address
@@ -160,7 +192,7 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #define RAW_PHOTO_EDMAC 0xc0f04208
 #endif
 
-#if defined(CONFIG_5D3) || defined(CONFIG_700D) || defined(CONFIG_6D) || defined(CONFIG_EOSM) || defined(CONFIG_650D)
+#if defined(CONFIG_5D3) || defined(CONFIG_700D) || defined(CONFIG_6D) || defined(CONFIG_EOSM) || defined(CONFIG_650D) || defined(CONFIG_70D) || defined(CONFIG_100D)
 #define RAW_PHOTO_EDMAC 0xc0f04008
 #endif
 
@@ -279,7 +311,7 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
     -1774, 10000,     3178, 10000,    7005, 10000
 #endif
 	
-#if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_100D) //Same sensor??. TODO: Check 700D/100D
+#if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_100D) // Same sensor
     //~ { "Canon EOS 650D", 0, 0x354d,
     //~ { "Canon EOS M", 0, 0,
     //~ { 6602,-841,-939,-4472,12458,2247,-975,2039,6148 } },
@@ -373,6 +405,10 @@ static int dynamic_ranges[] = {1062, 1047, 1021, 963,  888, 804, 695, 623, 548};
 
 #ifdef CONFIG_700D
 static int dynamic_ranges[] = {1058, 1053, 1032, 967,  893, 807, 704, 618, 510};
+#endif
+
+#ifdef CONFIG_100D
+static int dynamic_ranges[] = {1067, 1061, 1038, 972, 894, 802, 707, 625, 510};
 #endif
 
 #ifdef CONFIG_60D
@@ -487,15 +523,15 @@ static int raw_update_params_work()
     
     /* params useful for hardcoding buffer sizes, according to video mode */
     int mv = is_movie_mode();
+    int mv640 = mv && video_mode_resolution == 2;
     int mv720 = mv && video_mode_resolution == 1;
     int mv1080 = mv && video_mode_resolution == 0;
-    int mv640 = mv && video_mode_resolution == 2;
     int mv1080crop = mv && video_mode_resolution == 0 && video_mode_crop;
     int mv640crop = mv && video_mode_resolution == 2 && video_mode_crop;
     int zoom = lv_dispsize > 1;
     
     /* silence warnings; not all cameras have all these modes */
-    (void)mv640; (void)mv720; (void)mv1080; (void)mv640; (void)mv1080crop; (void)mv640crop; (void)zoom;
+    (void)mv640; (void)mv720; (void)mv1080; (void)mv1080crop; (void)mv640crop; (void)zoom;
 
     if (lv)
     {
@@ -596,7 +632,7 @@ static int raw_update_params_work()
         skip_bottom = 0;
         #endif
 
-        #if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_100D)
+        #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
         #warning FIXME: are these values correct for 720p and crop modes?
         skip_top    = 28;
         skip_left   = 74;
@@ -604,7 +640,9 @@ static int raw_update_params_work()
         skip_bottom = 6;
         #endif
 
-        #ifdef CONFIG_700D
+        // 650D and EOSM probably need to fit into this
+        // http://www.magiclantern.fm/forum/index.php?topic=16608.msg174241#msg174241
+        #if defined(CONFIG_700D) || defined(CONFIG_100D)
         skip_top    = 28;
         skip_left   = 72;
         skip_right  = 0;

@@ -1093,7 +1093,7 @@ int handle_lv_afframe_workaround(struct event * event)
     /* most cameras will block the focus box keys in Manual Focus mode while recording */
     /* 6D seems to block them always in MF, https://bitbucket.org/hudson/magic-lantern/issue/1816/cant-move-focus-box-on-6d */
     if (
-        #if !defined(CONFIG_6D) /* others? */
+        #if !defined(CONFIG_6D) && !defined(CONFIG_100D) /* others? */
         RECORDING_H264 &&
         #endif
         liveview_display_idle() &&
@@ -6295,11 +6295,12 @@ shoot_task( void* unused )
                 interval_create_script(MOD(get_shooting_card()->file_number - intervalometer_pictures_taken + 1, 10000));
             }
             intervalometer_pictures_taken = 0;
+            int seconds_clock = get_seconds_clock();
             intervalometer_next_shot_time = seconds_clock + MAX(interval_start_time, 1);
             #endif
 
 #ifdef FEATURE_AUDIO_REMOTE_SHOT
-#if defined(CONFIG_7D) || defined(CONFIG_6D) || defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_EOSM)
+#if defined(CONFIG_7D) || defined(CONFIG_6D) || defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_EOSM) || defined(CONFIG_100D)
             /* experimental for 7D now, has to be made generic */
             static int last_audio_release_running = 0;
             
