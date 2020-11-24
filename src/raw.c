@@ -170,6 +170,9 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #define RAW_LV_EDMAC 0xC0F26208
 #endif
 
+/* with Canon lv_save_raw, just read it from EDMAC */
+#define DEFAULT_RAW_BUFFER shamem_read(RAW_LV_EDMAC)
+
 #endif  /* no CONFIG_EDMAC_RAW_SLURP */
 
 /**
