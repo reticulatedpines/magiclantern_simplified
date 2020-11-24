@@ -641,7 +641,7 @@ static void menu_numeric_toggle_fast(int* val, int delta, int min, int max, int 
     
     static int prev_t = 0;
     static int prev_delta = 1000;
-    int t = get_ms_clock_value();
+    int t = get_ms_clock();
     
     if(is_time)
         menu_numeric_toggle_time(val, delta, min, max);
@@ -4180,13 +4180,13 @@ void menu_benchmark()
 {
     SetGUIRequestMode(1);
     msleep(1000);
-    int t0 = get_ms_clock_value();
+    int t0 = get_ms_clock();
     for (int i = 0; i < 500; i++)
     {
         menu_redraw_do();
         bmp_printf(FONT_MED, 0, 0, "%d%% ", i/5);
     }
-    int t1 = get_ms_clock_value();
+    int t1 = get_ms_clock();
     clrscr();
     NotifyBox(20000, "Elapsed time: %d ms", t1 - t0);
 }
@@ -4463,7 +4463,7 @@ handle_ml_menu_keys(struct event * event)
         {
             // double click will go to "extra junkie" mode (nothing hidden)
             static int last_t = 0;
-            int t = get_ms_clock_value();
+            int t = get_ms_clock();
             if (t > last_t && t < last_t + 300)
                 junkie_mode = !junkie_mode*2;
             else
@@ -5693,7 +5693,7 @@ int menu_set_value_from_script(const char* name, const char* entry_name, int val
 int menu_request_image_backend()
 {
     static int last_guimode_request = 0;
-    int t = get_ms_clock_value();
+    int t = get_ms_clock();
     
     if (CURRENT_GUI_MODE != GUIMODE_PLAY)
     {

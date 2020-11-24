@@ -48,13 +48,13 @@ static struct semaphore * raw_sem = 0;
 /* whether to recompute all the raw parameters (1), or just use cached values(0) */
 static int dirty = 0;
  
-/* if get_ms_clock_value() is less than this, assume the raw data is invalid */
+/* if get_ms_clock() is less than this, assume the raw data is invalid */
 static int next_retry_lv = 0;
 
 /* mark the raw data dirty for the next few ms (raw_update_params_once will return failure, to allow the backend to settle) */
 static void raw_set_dirty_with_timeout(int timeout_ms)
 {
-    next_retry_lv = get_ms_clock_value() + timeout_ms;
+    next_retry_lv = get_ms_clock() + timeout_ms;
     dirty = 1;
 }
 
@@ -545,7 +545,7 @@ static int raw_update_params_work()
             return 0;
         }
 
-        if (get_ms_clock_value() < next_retry_lv)
+        if (get_ms_clock() < next_retry_lv)
         {
             /* LiveView raw data is invalid, wait a bit and request a retry */
             dbg_printf("LV raw invalid\n");
@@ -745,7 +745,6 @@ static int raw_update_params_work()
         skip_left = 64;
         skip_top = 54;
         #endif 
-
 
         #if defined(CONFIG_650D) || defined(CONFIG_EOSM) || defined(CONFIG_700D) || defined(CONFIG_100D)
         skip_left = 72;
@@ -1020,7 +1019,7 @@ int raw_update_params()
         wait_lv_frames(1);
         
         /* if LV raw settings are marked as "dirty", retrying without waiting will fail for sure */
-        while (get_ms_clock_value() < next_retry_lv)
+        while (get_ms_clock() < next_retry_lv)
         {
             msleep(10);
         }

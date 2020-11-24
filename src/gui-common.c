@@ -291,13 +291,13 @@ int handle_av_short_for_menu(struct event* event) {
      * even if the button is held
      */ 
     if(bgmt_av_status == 1) { // AV PRESSED
-        t_press = get_ms_clock_value();
+        t_press = get_ms_clock();
         dt = t_press - t_unpress; // Time elapsed since the button was unpressed
         if(dt < 200) { // Ignore if happened less than 200ms ago (anti-bump)
             t_press = 0; 
         } 
     } else if (bgmt_av_status == 0) { // AV UNPRESSED
-        t_unpress = get_ms_clock_value();
+        t_unpress = get_ms_clock();
         dt = t_unpress - t_press; // Time elapsed since the AV button was pressed
         if (dt < 500 && is_idle) { // 500ms  -> short press
             fake_simple_button(BGMT_TRASH);
@@ -573,7 +573,7 @@ int detect_double_click(int key, int pressed_code, int unpressed_code)
     if (key == pressed_code && !last_was_pressed)
     {
         last_was_pressed = 1;
-        int t = get_ms_clock_value();
+        int t = get_ms_clock();
         tp1 = tu1;
         tu1 = tp2;
         tp2 = t;
@@ -581,7 +581,7 @@ int detect_double_click(int key, int pressed_code, int unpressed_code)
     else if (key == unpressed_code && last_was_pressed)
     {
         last_was_pressed = 0;
-        int tu2 = get_ms_clock_value();
+        int tu2 = get_ms_clock();
         int p1 = tu1 - tp1;
         int u1 = tp2 - tu1;
         int p2 = tu2 - tp2;

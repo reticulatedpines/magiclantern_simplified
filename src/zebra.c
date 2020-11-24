@@ -3368,10 +3368,10 @@ static void draw_zoom_overlay(int dirty)
     {
         int timeout_us = timeout_ms * 1000;
         void* old = (void*)shamem_read(hd ? REG_EDMAC_WRITE_HD_ADDR : REG_EDMAC_WRITE_LV_ADDR);
-        int t0 = *(uint32_t*)0xC0242014;
+        int t0 = GET_DIGIC_TIMER();
         while(1)
         {
-            int t1 = *(uint32_t*)0xC0242014;
+            int t1 = GET_DIGIC_TIMER();
             int dt = MOD(t1 - t0, 1048576);
             void* new = (void*)shamem_read(hd ? REG_EDMAC_WRITE_HD_ADDR : REG_EDMAC_WRITE_LV_ADDR);
             if (old != new) break;

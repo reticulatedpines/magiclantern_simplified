@@ -465,7 +465,7 @@ static void lvinfo_display_bar(struct lvinfo_item * items[], int count, int bar_
 static void lvinfo_align_and_display(struct lvinfo_item * items[], int count, int bar_x, int bar_y, int bar_width, int bar_height)
 {
     #ifdef LVINFO_PERF_MON
-    int64_t t0 = get_us_clock_value();
+    int64_t t0 = get_us_clock();
     #endif
     
     /* choose a default font */
@@ -531,14 +531,14 @@ static void lvinfo_align_and_display(struct lvinfo_item * items[], int count, in
     lvinfo_valign_items(items, count, bar_y, bar_height);
 
     #ifdef LVINFO_PERF_MON
-    int64_t t1 = get_us_clock_value();
+    int64_t t1 = get_us_clock();
     #endif
 
     /* and... finally, display them! */
     lvinfo_display_bar(items, count, bar_x, bar_y, bar_width, bar_height);
 
     #ifdef LVINFO_PERF_MON
-    int64_t t2 = get_us_clock_value();
+    int64_t t2 = get_us_clock();
     bmp_printf(FONT_MED, 10, items == top_items ? 100 : 200, "Layout : %d "SYM_MICRO"s \nDrawing: %d "SYM_MICRO"s", (int)(t1-t0), (int)(t2-t1));
     #endif
 }

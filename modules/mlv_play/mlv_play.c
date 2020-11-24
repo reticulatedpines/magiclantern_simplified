@@ -567,7 +567,7 @@ static void mlv_play_osd_delete(char *msg, uint32_t msg_len, uint32_t selected)
         if(!mlv_play_osd_delete_selected || selected == 2)
         {
             mlv_play_osd_force_redraw = 1;
-            mlv_play_osd_delete_selected = get_ms_clock_value();
+            mlv_play_osd_delete_selected = get_ms_clock();
         }
         else
         {
@@ -579,7 +579,7 @@ static void mlv_play_osd_delete(char *msg, uint32_t msg_len, uint32_t selected)
     
     if(msg)
     {
-        uint32_t time_passed = get_ms_clock_value() - mlv_play_osd_delete_selected;
+        uint32_t time_passed = get_ms_clock() - mlv_play_osd_delete_selected;
         uint32_t seconds = (max_time - time_passed) / 1000;
         
         if(mlv_play_osd_delete_selected && seconds > 0)
@@ -739,24 +739,24 @@ static void mlv_play_osd_act(void *handler)
 
 static void mlv_play_osd_task(void *priv)
 {
-    uint32_t next_render_time = get_ms_clock_value() + mlv_play_render_timestep;
+    uint32_t next_render_time = get_ms_clock() + mlv_play_render_timestep;
  
     mlv_play_osd_state = MLV_PLAY_MENU_IDLE;
     mlv_play_osd_item = 1;
     mlv_play_paused = 0;   
     
-    uint32_t last_keypress_time = get_ms_clock_value();
+    uint32_t last_keypress_time = get_ms_clock();
     TASK_LOOP
     {
         uint32_t key;
-        uint32_t timeout = next_render_time - get_ms_clock_value();
+        uint32_t timeout = next_render_time - get_ms_clock();
         
         timeout = MIN(timeout, mlv_play_idle_timestep);
         
         if(!msg_queue_receive(mlv_play_queue_osd, &key, timeout))
         {
             /* there was a keypress */
-            last_keypress_time = get_ms_clock_value();
+            last_keypress_time = get_ms_clock();
             
             /* no matter which state - these are handled */
             switch(key)
@@ -863,7 +863,7 @@ static void mlv_play_osd_task(void *priv)
                 }
             }
         }
-        uint32_t idle_time = get_ms_clock_value() - last_keypress_time;
+        uint32_t idle_time = get_ms_clock() - last_keypress_time;
         
         if(mlv_play_render_abort)
         {
@@ -872,11 +872,11 @@ static void mlv_play_osd_task(void *priv)
         
         if(mlv_play_osd_draw())
         {
-            next_render_time = get_ms_clock_value() + mlv_play_render_timestep;
+            next_render_time = get_ms_clock() + mlv_play_render_timestep;
         }
         else
         {
-            next_render_time = get_ms_clock_value() + mlv_play_idle_timestep;
+            next_render_time = get_ms_clock() + mlv_play_idle_timestep;
             
             /* when redrawing is forced, keep OSD shown */
             if(mlv_play_osd_force_redraw)

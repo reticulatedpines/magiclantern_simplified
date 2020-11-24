@@ -224,7 +224,7 @@ static bool ordered_file_entries(struct file_entry *a, struct file_entry *b)
 
 static void build_file_menu()
 {
-    int start_time = get_ms_clock_value();
+    int start_time = get_ms_clock();
 
     // Mergesort on a linked list
     // e.g., http://www.chiark.greenend.org.uk/~sgtatham/algorithms/listsort.html
@@ -296,7 +296,7 @@ static void build_file_menu()
 
         length *= 2;
 
-    } while ((nmerges > 1) && (get_ms_clock_value() - start_time < 3000)); // Allows 3 seconds for the Mergesort
+    } while ((nmerges > 1) && (get_ms_clock() - start_time < 3000)); // Allows 3 seconds for the Mergesort
 
     file_entries = list;
 
@@ -779,7 +779,7 @@ MFILE_SEM (
 
     if (!delete_confirm_flag)
     {
-        delete_confirm_flag = get_ms_clock_value();
+        delete_confirm_flag = get_ms_clock();
         beep();
     }
     else
@@ -808,7 +808,7 @@ static MENU_UPDATE_FUNC(delete_confirm)
     update_action(entry, info);
 
     /* delete confirmation timeout after 2 seconds */
-    if (get_ms_clock_value() > delete_confirm_flag + 2000)
+    if (get_ms_clock() > delete_confirm_flag + 2000)
         delete_confirm_flag = 0;
 
     /* no question mark in in our font, fsck! */
@@ -1173,7 +1173,7 @@ static MENU_UPDATE_FUNC(update_file)
     if (entry->selected && view_file)
     {
         static int last_updated = 0;
-        int t = get_ms_clock_value();
+        int t = get_ms_clock();
         if (t - last_updated > 1000) dirty = 1;
 
         static char prev_filename[MAX_PATH_LEN];
@@ -1208,7 +1208,7 @@ static MENU_UPDATE_FUNC(update_file)
             /* nothing changed, keep previous screen */
             info->custom_drawing = CUSTOM_DRAW_DO_NOT_DRAW;
         }
-        last_updated = get_ms_clock_value();
+        last_updated = get_ms_clock();
     }
 }
 

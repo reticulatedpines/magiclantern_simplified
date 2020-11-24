@@ -141,7 +141,7 @@ static unsigned int bulb_nd_shoot_cbr()
         bmp_printf(FONT_LARGE, 50, 50, "Attach ND filter and hold SET/Joystick");
     }
     
-    if (set_pressed && job_state_ready_to_take_pic() && get_ms_clock_value() - set_pressed > 1000)
+    if (set_pressed && job_state_ready_to_take_pic() && get_ms_clock() - set_pressed > 1000)
     {
         beep();
         info_led_blink(1,50,50); // short blink so you know bulb timer was triggered
@@ -191,7 +191,7 @@ static unsigned int bulb_nd_keypress_cbr(unsigned int key)
     if((key == MODULE_KEY_PRESS_SET) ||
        (key == MODULE_KEY_JOY_CENTER) )
     {
-        set_pressed = get_ms_clock_value();
+        set_pressed = get_ms_clock();
         return 0;
     }
     else if((key == MODULE_KEY_UNPRESS_SET) ||

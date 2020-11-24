@@ -14,6 +14,7 @@
 #include <edmac-memcpy.h>
 #include <screenshot.h>
 #include <powersave.h>
+#include <focus.h>
 #include <alloca.h>
 
 /* optional routines */
@@ -90,21 +91,21 @@ static void timer_cbr(int arg1, void* arg2)
 {
     timer_func = 1;
     timer_arg = arg1;
-    timer_time = get_us_clock_value();
+    timer_time = get_us_clock();
 }
 
 static void overrun_cbr(int arg1, void* arg2)
 {
     timer_func = 2;
     timer_arg = arg1;
-    timer_time = get_us_clock_value();
+    timer_time = get_us_clock();
 }
 
 static void next_tick_cbr(int arg1, void* arg2)
 {
     timer_func = 3;
     timer_arg = arg1;
-    timer_time = get_us_clock_value();
+    timer_time = get_us_clock();
     SetHPTimerNextTick(arg1, 100000, timer_cbr, overrun_cbr, 0);
 }
 
@@ -165,10 +166,10 @@ static void stub_test_edmac()
         /* caveat: busy waiting; do not use in practice */
         /* here, waiting for ~10ms may be too much, as EDMAC is very fast */
         uint32_t mid = (uint32_t)CACHEABLE(dst) + size / 2;
-        uint64_t t0 = get_us_clock_value();
+        uint64_t t0 = get_us_clock();
         while (edmac_get_pointer(edmac_write_chan) < mid)
             ;
-        uint64_t t1 = get_us_clock_value();
+        uint64_t t1 = get_us_clock();
 
         /* stop here */
         AbortEDmac(edmac_write_chan);
@@ -200,8 +201,8 @@ static void stub_test_edmac()
 /* delay with interrupts disabled */
 static void busy_wait_ms(int ms)
 {
-    int t0 = get_ms_clock_value();
-    while (get_ms_clock_value() - t0 < ms)
+    int t0 = get_ms_clock();
+    while (get_ms_clock() - t0 < ms)
         ;
 }
 
@@ -433,9 +434,9 @@ static void stub_test_cache_fio()
         int handle_cache = rand() & 3;
 
         /* run one iteration and time it */
-        int t0 = get_ms_clock_value();
+        int t0 = get_ms_clock();
         int fail = stub_test_cache_fio_do(handle_cache);
-        int t1 = get_ms_clock_value();
+        int t1 = get_ms_clock();
         ASSERT(fail == (fail & 3));
 
         /* count the stats */

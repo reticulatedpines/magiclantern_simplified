@@ -1038,7 +1038,7 @@ static void show_recording_status()
             int rl_icon_width=0;
 
             /* Draw the movie camera icon */
-            rl_icon_width = bfnt_draw_char (ICON_ML_MOVIE,rl_x,rl_y,rl_color,COLOR_BG_DARK);
+            rl_icon_width = bfnt_draw_char (ICON_ML_MOVIE,rl_x,rl_y,rl_color,NO_BG_ERASE);
 
             /* Display the Status */
             bmp_printf (FONT(FONT_MED, COLOR_WHITE, COLOR_BG_DARK), rl_x+rl_icon_width+5, rl_y+5, "%02d:%02d", t/60, t%60);
@@ -1700,11 +1700,11 @@ static int write_frames(FILE** pf, void* ptr, int size_used, int num_frames)
         }
     }
     
-    int t0 = get_ms_clock_value();
+    int t0 = get_ms_clock();
     if (!last_write_timestamp) last_write_timestamp = t0;
     idle_time += t0 - last_write_timestamp;
     int r = FIO_WriteFile(f, ptr, size_used);
-    last_write_timestamp = get_ms_clock_value();
+    last_write_timestamp = get_ms_clock();
 
     if (r != size_used) /* 4GB limit or card full? */
     {
@@ -2381,7 +2381,7 @@ static int raw_rec_should_preview(void)
     {
         autofocusing = 0;
         long_halfshutter_press = 0;
-        last_hs_unpress = get_ms_clock_value();
+        last_hs_unpress = get_ms_clock();
     }
     else
     {
@@ -2389,7 +2389,7 @@ static int raw_rec_should_preview(void)
         {
             autofocusing = 1;
         }
-        if (get_ms_clock_value() - last_hs_unpress > 500)
+        if (get_ms_clock() - last_hs_unpress > 500)
         {
             long_halfshutter_press = 1;
         }

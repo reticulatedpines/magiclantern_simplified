@@ -1448,11 +1448,11 @@ int handle_arrow_keys(struct event * event)
     static int t_press = 0;
     if (BGMT_PRESS_AV)
     {
-        t_press = get_ms_clock_value();
+        t_press = get_ms_clock();
     }
     if (BGMT_UNPRESS_AV)
     {
-        int t_unpress = get_ms_clock_value();
+        int t_unpress = get_ms_clock();
         
         if (t_unpress - t_press < 400)
             arrow_key_mode_toggle();
@@ -1802,7 +1802,7 @@ void zoom_trick_step()
     if (!zoom_trick) return;
     if (!lv && !PLAY_OR_QR_MODE) return;
 
-    int current_timestamp = get_ms_clock_value();
+    int current_timestamp = get_ms_clock();
 
     static int prev_timestamp = 0;
     if (prev_timestamp != current_timestamp)
@@ -1849,7 +1849,7 @@ int handle_zoom_trick_event(struct event * event)
     {
         if (!countdown_for_unknown_button)
         {
-            int t = get_ms_clock_value();
+            int t = get_ms_clock();
             if (t - timestamp_for_unknown_button > 500)
                 numclicks_for_unknown_button = 0;
             
@@ -2428,11 +2428,11 @@ static void preview_contrast_n_saturation_step()
     int halfshutter_pressed = get_halfshutter_pressed();
     if (halfshutter_pressed)
     {
-        peaking_hs_last_press = get_ms_clock_value();
+        peaking_hs_last_press = get_ms_clock();
     }
     int preview_peaking_force_normal_image =
         halfshutter_pressed ||                                  /* show normal image on half-hutter press */
-        get_ms_clock_value() < peaking_hs_last_press + 500;     /* and keep it at least 500ms (avoids flicker with fast toggling) */
+        get_ms_clock() < peaking_hs_last_press + 500;     /* and keep it at least 500ms (avoids flicker with fast toggling) */
 #endif
     
 #ifdef FEATURE_LV_SATURATION
@@ -2723,7 +2723,7 @@ static void grayscale_menus_step()
     if (gui_menu_shown())
     {
         // make the warning text blinking, so beginners will notice it...
-        int t = *(uint32_t*)0xC0242014;
+        int t = GET_DIGIC_TIMER();
         alter_bitmap_palette_entry(MENU_WARNING_COLOR, COLOR_RED, 512 - ABS((t >> 11) - 256), ABS((t >> 11) - 256));
         warning_color_dirty = 1;
     }

@@ -19,7 +19,7 @@ static void card_benchmark_wr(int bufsize, int K, int N)
     FILE* f = FIO_CreateFile(CARD_BENCHMARK_FILE);
     if (f)
     {
-        int t0 = get_ms_clock_value();
+        int t0 = get_ms_clock();
         int i;
         for (i = 0; i < n; i++)
         {
@@ -28,7 +28,7 @@ static void card_benchmark_wr(int bufsize, int K, int N)
             FIO_WriteFile( f, (const void *) start, bufsize );
         }
         FIO_CloseFile(f);
-        int t1 = get_ms_clock_value();
+        int t1 = get_ms_clock();
         int speed = filesize * 1000 * 10 / (t1 - t0);
         bmp_printf(FONT_MONO_20, x, y += 20, "Write speed (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
     }
@@ -40,7 +40,7 @@ static void card_benchmark_wr(int bufsize, int K, int N)
         if (buf)
         {
             FILE* f = FIO_OpenFile(CARD_BENCHMARK_FILE, O_RDONLY | O_SYNC);
-            int t0 = get_ms_clock_value();
+            int t0 = get_ms_clock();
             int i;
             for (i = 0; i < n; i++)
             {
@@ -49,7 +49,7 @@ static void card_benchmark_wr(int bufsize, int K, int N)
             }
             FIO_CloseFile(f);
             fio_free(buf);
-            int t1 = get_ms_clock_value();
+            int t1 = get_ms_clock();
             int speed = filesize * 1000 * 10 / (t1 - t0);
             bmp_printf(FONT_MONO_20, x, y += 20, "Read speed  (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
         }
@@ -138,7 +138,7 @@ static volatile int twocard_done = 0;
 static void twocard_write_task(char* filename)
 {
     int bufsize = twocard_bufsize;
-    int t0 = get_ms_clock_value();
+    int t0 = get_ms_clock();
     int cf = filename[0] == 'A';
     int msg;
     int filesize = 0;
@@ -155,7 +155,7 @@ static void twocard_write_task(char* filename)
         }
         FIO_CloseFile(f);
         FIO_RemoveFile(filename);
-        int t1 = get_ms_clock_value() - 1000;
+        int t1 = get_ms_clock() - 1000;
         int speed = filesize * 1000 * 10 / (t1 - t0);
         bmp_printf(FONT_MONO_20, 0, 120+cf*20, "[%s] Write speed (buffer=%dk):\t %d.%d MB/s\n", cf ? "CF" : "SD", bufsize/1024, speed/10, speed % 10);
     }
@@ -243,7 +243,7 @@ static void card_bufsize_benchmark_task()
         FILE* f = FIO_CreateFile(CARD_BENCHMARK_FILE);
         if (!f) goto cleanup;
 
-        int t0 = get_ms_clock_value();
+        int t0 = get_ms_clock();
         int total = 0;
         for (uint32_t i = 0; i < n; i++)
         {
@@ -255,7 +255,7 @@ static void card_bufsize_benchmark_task()
         }
         FIO_CloseFile(f);
 
-        int t1 = get_ms_clock_value();
+        int t1 = get_ms_clock();
         int speed = total / 1024 * 1000 / 1024 * 10 / (t1 - t0);
         bmp_printf(FONT_MONO_20, x, y += 20, "Write speed (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
         if (y > 450) y = 100;
