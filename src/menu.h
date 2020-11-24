@@ -189,14 +189,14 @@ struct menu_entry
 #define NUM_CHOICES(entry) ((entry)->max - (entry)->min + 1)
 #define CHOICES(...) (const char *[]) { __VA_ARGS__ }
 
-#define EM_FEW_VALUES 0
-#define EM_MANY_VALUES 1
-#define EM_MANY_VALUES_LV 2
+#define EM_AUTO 0
+#define EM_SHOW_LIVEVIEW 1
 
-/*#define EM_FEW_VALUES 0
-#define EM_MANY_VALUES 0
-#define EM_MANY_VALUES_LV 0*/
-
+/* rounding modes */
+#define EM_ROUND_ISO_R10    0x10      /* ISO 3 R"10: 10, 12, 15, 20, 25, 30, 40, 50, 60, 80, 100 ... */
+#define EM_ROUND_ISO_R20    0x20      /* ISO 3 R"20: 10, 11, 12, 14, 15, 18, 20, 22, 25, 28, 30, 35, 40, 45, 50, 55, 60, 70, 80, 90, 100 ... */
+#define EM_ROUND_1_2_5_10   0x40      /* 1, 2, 5, 10, 20, 50, 100 ... (modified ISO 3 R3?) */
+#define EM_ROUND_POWER_OF_2 0x80      /* 1, 2, 4, 8, 16... */
 
 #define IT_AUTO 0
 #define IT_BOOL 1

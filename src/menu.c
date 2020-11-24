@@ -3828,9 +3828,8 @@ menu_entry_select(
             }
             else if (edit_mode) edit_mode = 0;
             else if (menu_lv_transparent_mode && entry->icon_type != IT_ACTION) menu_lv_transparent_mode = 0;
-            else if (entry->edit_mode == EM_MANY_VALUES) edit_mode = !edit_mode;
-            else if (entry->edit_mode == EM_MANY_VALUES_LV && lv) menu_lv_transparent_mode = !menu_lv_transparent_mode;
-            else if (entry->edit_mode == EM_MANY_VALUES_LV && !lv) edit_mode = !edit_mode;
+            else if (entry->edit_mode == EM_SHOW_LIVEVIEW && lv) menu_lv_transparent_mode = !menu_lv_transparent_mode;
+            else if (entry->edit_mode == EM_SHOW_LIVEVIEW && !lv) edit_mode = !edit_mode;
             else if (SHOULD_USE_EDIT_MODE(entry)) edit_mode = !edit_mode;
             else if (entry->select) entry->select( entry->priv, 1);
             else if IS_ML_PTR(entry->priv) menu_numeric_toggle_fast(entry->priv, 1, entry->min, entry->max, entry->unit == UNIT_TIME);

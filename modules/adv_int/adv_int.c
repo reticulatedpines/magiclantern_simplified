@@ -890,7 +890,7 @@ static struct menu_entry adv_int_menu[] =
                                 .select     = shutter_toggle,
                                 .icon_type  = IT_PERCENT,
                                 .help = "Fine-tune shutter value. Displays APEX Tv or degrees equiv.",
-                                .edit_mode = EM_MANY_VALUES_LV,
+                                .edit_mode = EM_SHOW_LIVEVIEW,
                             },
                             MENU_EOL
                         }
@@ -920,7 +920,7 @@ static struct menu_entry adv_int_menu[] =
                                 .icon_type  = IT_PERCENT,
                                 .help = "Adjust aperture. Also displays APEX aperture (Av) in stops.",
                                 .depends_on = DEP_CHIPPED_LENS,
-                                .edit_mode = EM_MANY_VALUES_LV,
+                                .edit_mode = EM_SHOW_LIVEVIEW,
                             },
                             MENU_EOL
                         }
@@ -947,7 +947,7 @@ static struct menu_entry adv_int_menu[] =
                                 .update = iso_display,
                                 .select = iso_toggle,
                                 .help  = "Adjust and fine-tune ISO. Also displays APEX Sv value.",
-                                .edit_mode = EM_MANY_VALUES_LV,
+                                .edit_mode = EM_SHOW_LIVEVIEW,
                             },
                             MENU_EOL
                         }

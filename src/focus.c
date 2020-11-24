@@ -1139,7 +1139,7 @@ static struct menu_entry focus_menu[] = {
         .update    = focus_show_a,
         .select_Q    = focus_reset_a,
         .icon_type = IT_BOOL,
-        .edit_mode = EM_MANY_VALUES_LV,
+        .edit_mode = EM_SHOW_LIVEVIEW,
         .help = "[Q]: fix here rack end point. SET+L/R: start point.",
         .depends_on = DEP_LIVEVIEW | DEP_AUTOFOCUS,
     },
