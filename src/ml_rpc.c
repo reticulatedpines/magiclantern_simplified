@@ -157,12 +157,12 @@ uint32_t ml_rpc_available()
     }
     
     /* wait 200ms for a successful reply */
-    if(ml_rpc_send(ML_RPC_PING, *(volatile uint32_t *)0xC0242014, 0, 0, 4) == ML_RPC_PING_REPLY)
+    if(ml_rpc_send(ML_RPC_PING, GET_DIGIC_TIMER(), 0, 0, 4) == ML_RPC_PING_REPLY)
     {
         ml_rpc_available_cached = 1;
     }
     /* again wait 200ms for a successful reply */
-    else if(ml_rpc_send(ML_RPC_PING, *(volatile uint32_t *)0xC0242014, 0, 0, 4) == ML_RPC_PING_REPLY)
+    else if(ml_rpc_send(ML_RPC_PING, GET_DIGIC_TIMER(), 0, 0, 4) == ML_RPC_PING_REPLY)
     {
         ml_rpc_available_cached = 1;
     }
@@ -311,7 +311,7 @@ uint32_t ml_rpc_handler (uint8_t *buffer, uint32_t length)
             case ML_RPC_PING_REPLY:
                 if(ml_rpc_verbosity)
                 {
-                    bmp_printf(FONT_MED, 0, 60, "PING REPLY %d us       ", (*(volatile uint32_t *)0xC0242014 - req->parm1));
+                    bmp_printf(FONT_MED, 0, 60, "PING REPLY %d us       ", (GET_DIGIC_TIMER() - req->parm1));
                 }
                 break;
                 
