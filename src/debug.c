@@ -21,7 +21,6 @@
 #include "cropmarks.h"
 #include "fw-signature.h"
 #include "lvinfo.h"
-#include "timer.h"
 #include "raw.h"
 
 #ifdef CONFIG_DEBUG_INTERCEPT
@@ -568,8 +567,6 @@ static void screenshot_start(void* priv, int delta)
     screenshot_sec = 10;
 }
 
-static int draw_event = 0;
-
 #ifdef FEATURE_SHOW_IMAGE_BUFFERS_INFO
 static MENU_UPDATE_FUNC(image_buf_display)
 {
@@ -740,12 +737,14 @@ void menu_kill_flicker()
 #endif
 
 
-extern void menu_open_submenu();
 extern MENU_UPDATE_FUNC(tasks_print);
 extern MENU_UPDATE_FUNC(batt_display);
 extern MENU_SELECT_FUNC(tasks_toggle_flags);
 
 extern int show_cpu_usage_flag;
+
+static int gui_events_show = 0;
+static MENU_SELECT_FUNC(gui_events_toggle);
 
 static struct menu_entry debug_menus[] = {
     MENU_PLACEHOLDER("File Manager"),
@@ -917,11 +916,11 @@ static struct menu_entry debug_menus[] = {
 #endif
 #ifdef FEATURE_SHOW_GUI_EVENTS
     {
-        .name = "Show GUI evts",
-        .priv = &draw_event,
-        .max = 2,
-        .choices = (const char *[]) {"OFF", "ON", "ON + delay 300ms"},
-        .help = "Display GUI events (button codes).",
+        .name   = "Show GUI events",
+        .priv   = &gui_events_show,
+        .select = gui_events_toggle,
+        .max    = 1,
+        .help   = "Display GUI events (button codes).",
     },
 #endif
 #ifdef FEATURE_GUIMODE_TEST
@@ -1656,23 +1655,28 @@ void debug_menu_init()
     movie_tweak_menu_init();
 }
 
+static MENU_SELECT_FUNC(gui_events_toggle)
+{
+    gui_events_show = !gui_events_show;
+
+    if (gui_events_show) {
+        console_show();
+    } else {
+        console_hide();
+    }
+}
+
 void spy_event(struct event * event)
 {
-    if (draw_event)
+    if (gui_events_show)
     {
-        static int kev = 0;
-        static int y = 250;
-        kev++;
-        bmp_printf(FONT_MONO_20, 0, y, "Ev%d: p=%8x *o=%8x/%8x/%8x a=%8x\n                                                           ",
-            kev,
+        printf("Event param=%8x *obj=%8x/%8x/%8x arg=%8x\n",
             event->param,
             event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj)) : 0,
             event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 4)) : 0,
             event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 8)) : 0,
-            event->arg);
-        y += 20;
-        if (y > 350) y = 250;
-        if (draw_event == 2) msleep(300);
+            event->arg
+        );
     }
 }
 

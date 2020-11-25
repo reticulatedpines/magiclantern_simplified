@@ -17,8 +17,7 @@
 #define BGMT_TRASH 0xA
 #define BGMT_MENU 6
 #define BGMT_INFO 7
-#define BGMT_Q 8
-#define BGMT_Q_ALT 0xF
+#define BGMT_Q 0xF
 #define BGMT_PLAY 9
 
 #define BGMT_PRESS_HALFSHUTTER 0x3F
@@ -66,6 +65,6 @@
 #define GMT_GUICMD_OPEN_SLOT_COVER 75
 #define GMT_GUICMD_LOCK_OFF 73
 
-#define BTN_ZEBRAS_FOR_PLAYBACK BGMT_Q_ALT // what button to use for zebras in Play mode
+#define BTN_ZEBRAS_FOR_PLAYBACK BGMT_Q // what button to use for zebras in Play mode
 #define BTN_ZEBRAS_FOR_PLAYBACK_NAME Q_BTN_NAME
 #endif

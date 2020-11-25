@@ -8,45 +8,32 @@
 #define LEDON 0x138800
 #define LEDOFF 0x838C00
 
-#define HIJACK_CACHE_HACK
-
-//~ max volume supported for beeps
+// max volume supported for beeps
 #define ASIF_MAX_VOL 10
 
-#define HIJACK_CACHE_HACK_INITTASK_ADDR 0xFF0C1C6C
-#define HIJACK_CACHE_HACK_GUITASK_6D_ADDR 0xFF0DF6D4
-
-// load ML in the AllocateMemory pool
-#define HIJACK_CACHE_HACK_BSS_END_ADDR 0xFF0C3470
-//~ #define HIJACK_CACHE_HACK_BSS_END_INSTR 0xCBC000
-//0xA0000 - 640K Should Be enough for everyone
-#define HIJACK_CACHE_HACK_BSS_END_INSTR 0xC1C000
-
-#define ML_RESERVED_MEM (640*1024)
-
-//~ fixup start address of AllocateMemory pool 0x8F0000
-#define HIJACK_CACHE_HACK_ALLOCMEM_SIZE_ADDR 0xFF0C3190
-//#define HIJACK_CACHE_HACK_ALLOCMEM_SIZE_INSTR 0xE2410887 
-//0x7D0000
-#define HIJACK_CACHE_HACK_ALLOCMEM_SIZE_INSTR 0xE241087D 
-
-/* for installer and minimal targets */
 #define HIJACK_INSTR_BL_CSTART  0xFF0C0D90
 #define HIJACK_INSTR_BSS_END 0xFF0C1C64
 #define HIJACK_FIXBR_BZERO32 0xFF0C1BB8
 #define HIJACK_FIXBR_CREATE_ITASK 0xFF0C1C54
 #define HIJACK_INSTR_MY_ITASK 0xFF0C1C6C
 
-#define HIJACK_TASK_ADDR 0x74C28
-
-#define CACHE_HACK_FLUSH_RATE_SLAVE 0xFF0EBEB8
-#define CACHE_HACK_GOP_SIZE_SLAVE   0xFF226750
-
+// Used in boot-hack.c with CONFIG_ALLOCATE_MEMORY_POOL
+#define ROM_ITASK_START 0xFF0C5438
+#define ROM_ITASK_END  0xFF0C54B0
+#define ROM_CREATETASK_MAIN_START 0xFF0C3168
+#define ROM_CREATETASK_MAIN_END 0xFF0C3558
+#define ROM_ALLOCMEM_END 0xFF0C318C
+#define ROM_ALLOCMEM_INIT 0xFF0C3194
+#define ROM_B_CREATETASK_MAIN 0xFF0C54AC
 
 // look for LDRNE near 2nd ARM Library runtime error
 #define ARMLIB_OVERFLOWING_BUFFER 0x93B80 // in AJ_armlib_setup_related3
 
 #define DRYOS_ASSERT_HANDLER 0x74C08 // dec TH_assert or assert_0
+
+/* these are used in bitrate.c for video bitrate hacks */
+#define CACHE_HACK_FLUSH_RATE_SLAVE 0xFF0EBEB8
+#define CACHE_HACK_GOP_SIZE_SLAVE   0xFF226750
 
 // 6D.116 same as 6D.113
 #define YUV422_LV_BUFFER_1 0x5F227800
@@ -270,8 +257,8 @@ Output size: 5496 x 3670
 //calculated frame bv (faster?)
 
 // see "Malloc Information"
-#define FRAME_SHUTTER_BLANKING_ZOOM   (*(uint16_t*)0x404514CC) // ADTG register 805f
-#define FRAME_SHUTTER_BLANKING_NOZOOM (*(uint16_t*)0x404514D0) // ADTG register 8061
+#define FRAME_SHUTTER_BLANKING_ZOOM   (*(uint16_t*)0x404E54CC) // ADTG register 805f
+#define FRAME_SHUTTER_BLANKING_NOZOOM (*(uint16_t*)0x404E54D0) // ADTG register 8061
 
 #define FRAME_SHUTTER_BLANKING_READ   (lv_dispsize > 1 ? FRAME_SHUTTER_BLANKING_NOZOOM : FRAME_SHUTTER_BLANKING_ZOOM) /* when reading, use the other mode, as it contains the original value (not overriden) */
 #define FRAME_SHUTTER_BLANKING_WRITE  (lv_dispsize > 1 ? &FRAME_SHUTTER_BLANKING_ZOOM : &FRAME_SHUTTER_BLANKING_NOZOOM)

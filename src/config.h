@@ -72,7 +72,10 @@ config_save_file(
 struct config_var;
 
 //return false in this cbr to block the value from being changed
-typedef int (*config_var_update_func)(struct config_var *, int old_value, int new_value);
+typedef int (*config_var_change_func)(struct config_var *, int old_value, int new_value);
+
+#define CONFIG_VAR_CHANGE_FUNC(func) \
+    int func(struct config_var * var, int old_value, int new_value)
 
 /** Create an auto-parsed config variable */
 struct config_var
@@ -81,18 +84,11 @@ struct config_var
         //int        type;   //!< 0 == int, 1 == char *
         int *        value;
         int          default_value;
-        config_var_update_func update;
+        config_var_change_func change_cbr;
 };
 
-#ifdef MODULE
-#define CONFIG_VAR_ATTR static
-#else
-#define CONFIG_VAR_ATTR
-#endif
-
-#define _CONFIG_VAR( NAME, TYPE_ENUM, TYPE, VAR, VALUE, UPDATE_CBR ) \
-TYPE VAR = VALUE; \
-CONFIG_VAR_ATTR struct config_var \
+#define _CONFIG_VAR( NAME, TYPE_ENUM, VAR, VALUE, CHANGE_CBR ) \
+static __attribute__((used)) struct config_var \
 __attribute__((section(".config_vars"))) \
 __config_##VAR = \
 { \
@@ -100,14 +96,17 @@ __config_##VAR = \
 /*        .type           = TYPE_ENUM, */ \
         .value          = (int*) &VAR, \
         .default_value  = (int) VALUE, \
-        .update         = UPDATE_CBR, \
+        .change_cbr     = CHANGE_CBR, \
 }
 
 #define CONFIG_INT( NAME, VAR, VALUE ) \
-        _CONFIG_VAR( NAME, 0, int, VAR, VALUE, NULL )
+        int VAR = VALUE; \
+        _CONFIG_VAR( NAME, 0, VAR, VALUE, NULL )
 
-#define CONFIG_INT_UPDATE( NAME, VAR, VALUE, UPDATE_CBR ) \
-        _CONFIG_VAR( NAME, 0, int, VAR, VALUE, UPDATE_CBR )
+#define CONFIG_INT_EX( NAME, VAR, VALUE, CHANGE_CBR ) \
+        int VAR = VALUE; \
+        static CONFIG_VAR_CHANGE_FUNC(CHANGE_CBR); \
+        _CONFIG_VAR( NAME, 0, VAR, VALUE, CHANGE_CBR )
 
 #define _CONFIG_ARRAY_ELEMENT( NAME, TYPE_ENUM, VAR, INDEX, VALUE ) \
 struct config_var \
@@ -147,7 +146,7 @@ void config_save_at_shutdown(); /* CBR */
 void config_load();
 
 /* simple boolean settings that live outside of config files (just by presence of a file) */
-int config_flag_file_setting_load(char* file);
-void config_flag_file_setting_save(char* file, int setting);
+int config_flag_file_setting_load(const char * file);
+void config_flag_file_setting_save(const char * file, int setting);
 
 #endif

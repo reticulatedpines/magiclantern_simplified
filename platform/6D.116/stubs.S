@@ -281,7 +281,7 @@ NSTUB(0xFFCDAD80 - RAM_OFFSET,  give_semaphore)
 NSTUB(0xFFCDAC94 - RAM_OFFSET,  take_semaphore)
 
 /** Task info **/
-NSTUB(   0x75F58,  task_max)
+NSTUB(   0x75F5C,  task_max)
 NSTUB(0xFFD1D5F4 - RAM_OFFSET,  is_taskid_valid)            // AJ_task_trampoline_related_p10
 NSTUB(   0x74C28,  current_task)
 NSTUB(     0x64C,  current_interrupt)                       // in interrupt handler (0x18), where MEM(C0201004) is stored
@@ -290,7 +290,7 @@ NSTUB(     0x64C,  current_interrupt)                       // in interrupt hand
 NSTUB(0xFFCDB170 - RAM_OFFSET,  msleep)
 
 /** Tasks **/
-NSTUB(   0x74B1C,  task_dispatch_hook)
+NSTUB(   0x74C3C,  task_dispatch_hook)                      /* from task_trampoline -> last sub -> if (arg0 == CURRENT_TASK) call_new_task_dispatch_hook() */
 NSTUB(0xFFCDB224 - RAM_OFFSET,  task_create)
 NSTUB(0xFFCE0548 - RAM_OFFSET,  task_trampoline)
 // NSTUB(    ???,  current_task_ctx)                        /* present on 7D.203 */

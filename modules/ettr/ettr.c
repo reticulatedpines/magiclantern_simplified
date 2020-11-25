@@ -45,8 +45,6 @@ static int show_metered_areas = 0;
 #define AUTO_ETTR_TRIGGER_BY_SET (auto_ettr_trigger == 2)
 #define AUTO_ETTR_TRIGGER_BY_HALFSHUTTER_DBLCLICK (auto_ettr_trigger == 3)
 
-#define IS_EOS_M (camera_model_id == MODEL_EOS_M)
-
 /* status codes */
 #define ETTR_EXPO_PRECOND_TIMEOUT -2
 #define ETTR_EXPO_LIMITS_REACHED -1
@@ -57,6 +55,8 @@ static int show_metered_areas = 0;
 extern WEAK_FUNC(ret_0) void raw_lv_request();
 extern WEAK_FUNC(ret_0) void raw_lv_release();
 extern WEAK_FUNC(ret_0) int  raw_lv_is_enabled();
+// allow compiling module if FEATURE_RAW_ZEBRAS is undefined
+extern WEAK_FUNC(ret_0) void zebra_highlight_raw_advanced(struct raw_highlight_info * raw_highlight_info);
 
 /* optional beeps */
 static void ettr_beep()
@@ -1063,7 +1063,7 @@ static int auto_ettr_prepare_lv(int reset, int force_expsim_and_zoom)
         /* temporarily enable get_expsim() while metering */
         if (force_expsim_and_zoom)
         {
-            if (shooting_mode == SHOOTMODE_M && !lens_info.name[0])
+            if (shooting_mode == SHOOTMODE_M && !lens_info.lens_exists)
             {
                 /* workaround for Canon's manual lens underexposure bug */
                 /* use expo override instead of ExpSim */
@@ -1152,7 +1152,7 @@ static void auto_ettr_on_request_task_fast()
         float ev = raw_to_ev(raw);
         int x = 360 + delta * 3;
         int y = 100 - ev * 24; /* multiplier must be 8 x the one from delta */
-        dot(x-16, y-16, COLOR_BLUE, 3);
+        draw_circle(x, y, 2, COLOR_BLUE);
         draw_angled_line(360, y0, 300, 1800-450, COLOR_RED);
         draw_angled_line(360, y0, 300, -450, COLOR_RED);
         draw_angled_line(0, 100, 720, 0, COLOR_RED);
@@ -1463,8 +1463,7 @@ static unsigned int auto_ettr_keypress_cbr(unsigned int key)
     if (lv && !auto_ettr_check_in_lv()) return 1;
     
     if (
-            (IS_EOS_M && AUTO_ETTR_TRIGGER_BY_SET && detect_double_click(key, MODULE_KEY_TOUCH_1_FINGER, MODULE_KEY_UNTOUCH_1_FINGER)) ||
-            (!IS_EOS_M && AUTO_ETTR_TRIGGER_BY_SET && key == MODULE_KEY_PRESS_SET) ||
+            (AUTO_ETTR_TRIGGER_BY_SET && key == MODULE_KEY_PRESS_SET) ||
             (AUTO_ETTR_TRIGGER_BY_HALFSHUTTER_DBLCLICK && detect_double_click(key, MODULE_KEY_PRESS_HALFSHUTTER, MODULE_KEY_UNPRESS_HALFSHUTTER)) ||
        0)
     {
@@ -1511,8 +1510,7 @@ static MENU_UPDATE_FUNC(auto_ettr_update)
         MENU_SET_VALUE(
             AUTO_ETTR_TRIGGER_ALWAYS_ON ? "Always ON" : 
             AUTO_ETTR_TRIGGER_AUTO_SNAP ? "Auto Snap" : 
-            AUTO_ETTR_TRIGGER_BY_SET && IS_EOS_M ? "Screen DblTap" :
-            AUTO_ETTR_TRIGGER_BY_SET && !IS_EOS_M ? "Press SET" :
+            AUTO_ETTR_TRIGGER_BY_SET ? "Press SET" : 
             AUTO_ETTR_TRIGGER_BY_HALFSHUTTER_DBLCLICK ? "HalfS DBC" : "err"
         );
     }
@@ -1629,11 +1627,12 @@ static struct menu_entry ettr_menu[] =
                 .name = "Trigger mode",
                 .priv = &auto_ettr_trigger,
                 .max = 3, // NOTE: Modifed by the module init task to disable ETTR in LV if not supported
-                // choices is set in module init because it is dynamic now
-                //~ .choices =
+                .choices = CHOICES("Always ON", "Auto Snap", "Press SET", "HalfS DblClick"),
                 .help  = "When should the exposure be adjusted for ETTR:",
-                // help2 is set in module init because it is dynamic now
-                //~ .help2 =
+                .help2 = "Always ON: when you take a pic, or continuously in LiveView\n"
+                         "Auto Snap: after u take a pic,trigger another pic if needed\n"
+                         "Press SET: meter for ETTR when you press SET (LiveView)\n"
+                         "HalfS DblClick: meter for ETTR when pressing halfshutter 2x\n"
             },
             {
                 .name = "Slowest shutter",
@@ -1735,21 +1734,6 @@ static struct menu_entry ettr_menu[] =
     },
 };
 
-static const char * trigger_choices_eosm[] = {"Always ON", "Auto Snap", "Screen DblTap", "HalfS DblClick"};
-static const char * trigger_choices_others[] = {"Always ON", "Auto Snap", "Press SET", "HalfS DblClick"};
-
-static const char * trigger_help_eosm = 
-    "Always ON: when you take a pic, or continuously in LiveView\n"
-    "Auto Snap: after u take a pic,trigger another pic if needed\n"
-    "Screen DblTap: meter for ETTR when you tap the screen twice\n"
-    "HalfS DblClick: meter for ETTR when pressing halfshutter 2x\n";
-
-static const char * trigger_help_others = 
-    "Always ON: when you take a pic, or continuously in LiveView\n"
-    "Auto Snap: after u take a pic,trigger another pic if needed\n"
-    "Press SET: meter for ETTR when you press SET (LiveView)\n"
-    "HalfS DblClick: meter for ETTR when pressing halfshutter 2x\n";
-
 static unsigned int ettr_init()
 {
     if ((void*)&raw_lv_request == (void*)&ret_0)
@@ -1757,21 +1741,7 @@ static unsigned int ettr_init()
         auto_ettr_trigger  = auto_ettr_trigger > 1 ? 0 : auto_ettr_trigger;
         ettr_menu[0].children[0].max = 1;
     }
-
-    // Modify menu for the EOS M
-    if (IS_EOS_M)
-    {
-        ettr_menu[0].children[0].choices = trigger_choices_eosm;
-        ettr_menu[0].children[0].help2 = trigger_help_eosm;
-    }
-    else
-    {
-        ettr_menu[0].children[0].choices = trigger_choices_others;
-        ettr_menu[0].children[0].help2 = trigger_help_others;
-    }
-
     menu_add("Expo", ettr_menu, COUNT(ettr_menu));
-
     return 0;
 }
 

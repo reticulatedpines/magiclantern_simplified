@@ -31,6 +31,12 @@
 #define BGMT_PRESS_FULLSHUTTER   (BGMT_PRESS_HALFSHUTTER+2)
 #define BGMT_UNPRESS_FULLSHUTTER (BGMT_PRESS_HALFSHUTTER+3)
 
+/* make sure all cameras have a Q event, to simplify portable code */
+/* negative events are not passed to Canon firmware */
+#ifndef BGMT_Q
+#define BGMT_Q -0x879001
+#endif
+
 /** \file
  * DryOS GUI structures and functions.
  */
@@ -206,8 +212,6 @@ void canon_gui_disable();
 void canon_gui_enable();
 int canon_gui_disabled();
 
-extern void menu_open_submenu();
-
 int detect_double_click(int key, int pressed_code, int unpressed_code);
 
 int handle_common_events_startup(struct event * event);
@@ -278,6 +282,7 @@ int handle_voice_tags(struct event * event);
 int handle_lv_play(struct event * event);
 int handle_fast_zoom_in_play_mode(struct event * event);
 int handle_lv_afframe_workaround(struct event * event);
+int handle_longpress_events(struct event * event);
 
 void spy_event(struct event * event);
 
@@ -294,6 +299,23 @@ int get_disp_pressed();
 int get_zoom_out_pressed();
 
 int display_is_on();
+
+/* go to Canon's PLAY or MENU mode and wait until the mode change is completed */
+void enter_play_mode();
+void enter_menu_mode();
+
+/* go back to LiveView or plain photo mode */
+void exit_play_qr_menu_mode();
+void exit_play_qr_mode();
+void exit_menu_mode();
+
+/* status helpers for PLAY and MENU modes */
+int is_pure_play_movie_mode();
+int is_pure_play_photo_mode();
+int is_pure_play_photo_or_movie_mode();
+int is_play_mode();
+int is_play_or_qr_mode();
+int is_menu_mode();
 
 /* wrapper for GUI timers */
 void delayed_call(int delay_ms, void(*function)(), void* arg);

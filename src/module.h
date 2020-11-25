@@ -21,7 +21,7 @@
 #define STR(x)                        STR_(x)
 #define STR_(x)                       #x
 
-#define MODULE_COUNT_MAX              32
+#define MODULE_COUNT_MAX              64
 #define MODULE_NAME_LENGTH            8
 #define MODULE_FILENAME_LENGTH        31    /* A:/ML/MODULES/8_3_name.mo */
 #define MODULE_STATUS_LENGTH          7     /* longest is FileErr */
@@ -109,7 +109,7 @@ int module_translate_key(int key, int dest);
 
 
 /* update major if older modules will *not* be compatible */
-#define MODULE_MAJOR 6
+#define MODULE_MAJOR 7
 /* update minor if older modules will be compatible, but newer module will not run on older magic lantern versions */
 #define MODULE_MINOR 0
 /* update patch if nothing regarding to compatibility changes */
@@ -337,8 +337,9 @@ module_symbol_##NAME = { \
 
 /* for camera-specific tricks in modules */
 /* e.g. if (is_camera("5D3", "1.2.3")) { adtg_write_addr = 0x1234 } */
+/* also if (is_camera("DIGIC", "5")) { ... } */
 /* see propvalues.c */
-extern int is_camera(const char * model, const char * firmware);
+extern int is_camera(const char * model, const char * version);
 
 #ifdef MODULE
 #include "module_strings.h"

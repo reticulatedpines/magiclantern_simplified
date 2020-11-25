@@ -12,6 +12,14 @@ void set_interval_time(int seconds);
 void intervalometer_stop();
 int is_intervalometer_running();
 
+/* take a single picture according to current settings */
+/* (regular, bulb, or custom, e.g. silent) */
+int take_a_pic(int should_af);
+
+/* take a sequence of regular pictures in continuous (burst) mode */
+/* (note: your camera must be already in some continuous mode) */
+int take_fast_pictures(int number);
+
 /* take a long exposure image in BULB mode */
 /* returns nonzero if canceled by user, zero otherwise */
 int bulb_take_pic(int duration);
@@ -44,14 +52,6 @@ void set_lv_zoom(int zoom);
 
 /* todo: move it somewhere else (playback tricks?) */
 void next_image_in_play_mode(int direction);
-void exit_play_qr_mode();
-void enter_play_mode();
-int is_pure_play_movie_mode();      /* tweaks.c, to be moved */
-int is_pure_play_photo_mode();
-int is_pure_play_photo_or_movie_mode();
-int is_play_mode();
-int is_play_or_qr_mode();
-int is_menu_mode();
 void play_zoom_center_on_selected_af_point();
 
 /* set+maindial actions for playback */
@@ -114,6 +114,9 @@ int get_mlu();
 int set_mlu();
 int get_mlu_delay(int raw);
 int mlu_lock_mirror_if_needed(); /* implemented in lens.c */
+
+/* flash */
+void set_flash_firing(int mode);
 
 /* trap focus */
 int get_trap_focus();

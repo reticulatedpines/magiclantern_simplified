@@ -24,7 +24,7 @@
 #define BGMT_UNPRESS_ZOOM_IN -0x113
 
 #define BGMT_LV 0x1E
-#define BGMT_Q -0xFFFE // dummy value so button can be faked with fake_simple_button(); negative means internal ML event, not passed to Canon code
+#define BGMT_Q_SET 0x1D
 
 #define BGMT_PRESS_UP 0x2a          //~ unpress = 0x2b
 #define BGMT_UNPRESS_UP 0x2b

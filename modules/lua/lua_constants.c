@@ -16,6 +16,199 @@
 
 #include "lua_common.h"
 
+/// Key Codes
+// @field HALFSHUTTER
+// @field UNPRESS_HALFSHUTTER
+// @field FULLSHUTTER
+// @field UNPRESS_FULLSHUTTER
+// @field WHEEL_UP
+// @field WHEEL_DOWN
+// @field WHEEL_LEFT
+// @field WHEEL_RIGHT
+// @field SET
+// @field UNPRESS_SET
+// @field JOY_CENTER
+// @field UP
+// @field UP_RIGHT
+// @field UP_LEFT
+// @field RIGHT
+// @field LEFT
+// @field DOWN_RIGHT
+// @field DOWN_LEFT
+// @field DOWN
+// @field UNPRESS_UDLR
+// @field ZOOMIN
+// @field MENU
+// @field INFO
+// @field PLAY
+// @field TRASH
+// @field RATE
+// @field REC
+// @field LV
+// @field Q
+// @field PICSTYLE
+// @field FLASH_MOVIE
+// @field UNPRESS_FLASH_MOVIE
+// @field DP
+// @field UNPRES_DP
+// @field TOUCH_1_FINGER
+// @field UNTOUCH_1_FINGER
+// @field TOUCH_2_FINGER
+// @field UNTOUCH_2_FINGER
+// @table KEY
+int luaopen_KEY(lua_State * L)
+{
+    lua_newtable(L);
+    LUA_CONSTANT(HALFSHUTTER, MODULE_KEY_PRESS_HALFSHUTTER);
+    LUA_CONSTANT(UNPRESS_HALFSHUTTER, MODULE_KEY_UNPRESS_HALFSHUTTER);
+    LUA_CONSTANT(FULLSHUTTER, MODULE_KEY_PRESS_FULLSHUTTER);
+    LUA_CONSTANT(UNPRESS_FULLSHUTTER, MODULE_KEY_UNPRESS_FULLSHUTTER);
+    LUA_CONSTANT(WHEEL_UP, MODULE_KEY_WHEEL_UP);
+    LUA_CONSTANT(WHEEL_DOWN, MODULE_KEY_WHEEL_DOWN);
+    LUA_CONSTANT(WHEEL_LEFT, MODULE_KEY_WHEEL_LEFT);
+    LUA_CONSTANT(WHEEL_RIGHT, MODULE_KEY_WHEEL_RIGHT);
+    LUA_CONSTANT(SET, MODULE_KEY_PRESS_SET);
+    LUA_CONSTANT(UNPRESS_SET, MODULE_KEY_UNPRESS_SET);
+    LUA_CONSTANT(JOY_CENTER, MODULE_KEY_JOY_CENTER);
+    LUA_CONSTANT(UP, MODULE_KEY_PRESS_UP);
+    LUA_CONSTANT(UP_RIGHT, MODULE_KEY_PRESS_UP_RIGHT);
+    LUA_CONSTANT(UP_LEFT, MODULE_KEY_PRESS_UP_LEFT);
+    LUA_CONSTANT(RIGHT, MODULE_KEY_PRESS_RIGHT);
+    LUA_CONSTANT(LEFT, MODULE_KEY_PRESS_LEFT);
+    LUA_CONSTANT(DOWN_RIGHT, MODULE_KEY_PRESS_DOWN_RIGHT);
+    LUA_CONSTANT(DOWN_LEFT, MODULE_KEY_PRESS_DOWN_LEFT);
+    LUA_CONSTANT(DOWN, MODULE_KEY_PRESS_DOWN);
+    LUA_CONSTANT(UNPRESS_UDLR, MODULE_KEY_UNPRESS_UDLR);
+    LUA_CONSTANT(ZOOMIN, MODULE_KEY_PRESS_ZOOMIN);
+    LUA_CONSTANT(MENU, MODULE_KEY_MENU);
+    LUA_CONSTANT(INFO, MODULE_KEY_INFO);
+    LUA_CONSTANT(PLAY, MODULE_KEY_PLAY);
+    LUA_CONSTANT(TRASH, MODULE_KEY_TRASH);
+    LUA_CONSTANT(RATE, MODULE_KEY_RATE);
+    LUA_CONSTANT(REC, MODULE_KEY_REC);
+    LUA_CONSTANT(LV, MODULE_KEY_LV);
+    LUA_CONSTANT(Q, MODULE_KEY_Q);
+    LUA_CONSTANT(PICSTYLE, MODULE_KEY_PICSTYLE);
+    LUA_CONSTANT(FLASH_MOVIE, MODULE_KEY_PRESS_FLASH_MOVIE);
+    LUA_CONSTANT(UNPRESS_FLASH_MOVIE, MODULE_KEY_UNPRESS_FLASH_MOVIE);
+    LUA_CONSTANT(DP, MODULE_KEY_PRESS_DP);
+    LUA_CONSTANT(UNPRESS_DP, MODULE_KEY_UNPRESS_DP);
+    LUA_CONSTANT(TOUCH_1_FINGER, MODULE_KEY_TOUCH_1_FINGER);
+    LUA_CONSTANT(UNTOUCH_1_FINGER, MODULE_KEY_UNTOUCH_1_FINGER);
+    LUA_CONSTANT(TOUCH_2_FINGER, MODULE_KEY_TOUCH_2_FINGER);
+    LUA_CONSTANT(UNTOUCH_2_FINGER, MODULE_KEY_UNTOUCH_2_FINGER);
+    return 1;
+}
+
+static int luaCB_color_gray(lua_State * L)
+{
+    LUA_PARAM_INT(percent, 1);
+    lua_pushinteger(L, COLOR_GRAY(percent));
+    return 1;
+}
+
+/// Color palatte
+// @field TRANSPARENT
+// @field WHITE
+// @field BLACK
+// @field TRANSPARENT_BLACK
+// @field LIGHT_GRAY
+// @field GRAY
+// @field DARK_GRAY
+// @field CYAN
+// @field GREEN1
+// @field GREEN2
+// @field RED
+// @field LIGHT_BLUE
+// @field BLUE
+// @field DARK_RED
+// @field MAGENTA
+// @field YELLOW
+// @field ORANGE
+// @field ALMOST_BLACK
+// @field ALMOST_WHITE
+// @field DARK_GREEN1_MOD
+// @field DARK_GREEN2_MOD
+// @field DARK_ORANGE_MOD
+// @field DARK_CYAN1_MOD
+// @field DARK_CYAN2_MOD
+// @tfield func gray converts integer percentage to shade of gray
+// @table COLOR
+int luaopen_COLOR(lua_State * L)
+{
+    lua_newtable(L);
+    LUA_CONSTANT(TRANSPARENT, COLOR_EMPTY);
+    LUA_CONSTANT(WHITE, COLOR_WHITE);
+    LUA_CONSTANT(BLACK, COLOR_BLACK);
+    LUA_CONSTANT(TRANSPARENT_BLACK, COLOR_TRANSPARENT_BLACK);
+    LUA_CONSTANT(LIGHT_GRAY, COLOR_GRAY(80));
+    LUA_CONSTANT(GRAY, COLOR_GRAY(50));
+    LUA_CONSTANT(DARK_GRAY, COLOR_GRAY(20));
+    LUA_CONSTANT(CYAN, COLOR_CYAN);
+    LUA_CONSTANT(GREEN1, COLOR_GREEN1);
+    LUA_CONSTANT(GREEN2, COLOR_GREEN2);
+    LUA_CONSTANT(RED, COLOR_RED);
+    LUA_CONSTANT(LIGHT_BLUE, COLOR_LIGHT_BLUE);
+    LUA_CONSTANT(BLUE, COLOR_BLUE);
+    LUA_CONSTANT(DARK_RED, COLOR_DARK_RED);
+    LUA_CONSTANT(MAGENTA, COLOR_MAGENTA);
+    LUA_CONSTANT(YELLOW, COLOR_YELLOW);
+    LUA_CONSTANT(ORANGE, COLOR_ORANGE);
+    LUA_CONSTANT(ALMOST_BLACK, COLOR_ALMOST_BLACK);
+    LUA_CONSTANT(ALMOST_WHITE, COLOR_ALMOST_WHITE);
+    LUA_CONSTANT(DARK_GREEN1_MOD, COLOR_DARK_GREEN1_MOD);
+    LUA_CONSTANT(DARK_GREEN2_MOD, COLOR_DARK_GREEN2_MOD);
+    LUA_CONSTANT(DARK_ORANGE_MOD, COLOR_DARK_ORANGE_MOD);
+    LUA_CONSTANT(DARK_CYAN1_MOD, COLOR_DARK_CYAN1_MOD);
+    LUA_CONSTANT(DARK_CYAN2_MOD, COLOR_DARK_CYAN2_MOD);
+    lua_pushcfunction(L, luaCB_color_gray);
+    lua_setfield(L, -2, "gray");
+    return 1;
+}
+
+static int luaCB_font_index(lua_State * L);
+static int luaCB_font_newindex(lua_State * L);
+
+#define LUA_FONT(name, value) \
+lua_newtable(L);\
+lua_pushinteger(L, value);\
+lua_setfield(L, -2, "_spec");\
+lua_pushcfunction(L, luaCB_font_index);\
+lua_setfield(L, -2, "__index");\
+lua_pushcfunction(L, luaCB_font_newindex);\
+lua_setfield(L, -2, "__newindex");\
+lua_pushvalue(L, -1);\
+lua_setmetatable(L, -2);\
+lua_setfield(L, -2, #name);
+
+/// Fonts
+// @tfield font MONO_12
+// @tfield font MONO_20
+// @tfield font SANS_23
+// @tfield font SANS_28
+// @tfield font SANS_32
+// @tfield font CANON
+// @tfield font SMALL
+// @tfield font MED
+// @tfield font MED_LARGE
+// @tfield font LARGE
+// @table FONT
+int luaopen_FONT(lua_State * L)
+{
+    lua_newtable(L);
+    LUA_FONT(MONO_12, FONT_MONO_12);
+    LUA_FONT(MONO_20, FONT_MONO_20);
+    LUA_FONT(SANS_23, FONT_SANS_23);
+    LUA_FONT(SANS_28, FONT_SANS_28);
+    LUA_FONT(SANS_32, FONT_SANS_32);
+    LUA_FONT(CANON, FONT_CANON);
+    LUA_FONT(SMALL, FONT_SMALL);
+    LUA_FONT(MED, FONT_MED);
+    LUA_FONT(MED_LARGE, FONT_MED_LARGE);
+    LUA_FONT(LARGE, FONT_LARGE);
+    return 1;
+}
+
 /// Camera shooting mode
 // @field P
 // @field TV
@@ -158,206 +351,16 @@ int luaopen_DEPENDS_ON(lua_State * L)
     return 1;
 }
 
-static int luaCB_font_index(lua_State * L);
-static int luaCB_font_newindex(lua_State * L);
-
-#define LUA_FONT(name, value) \
-lua_newtable(L);\
-lua_pushinteger(L, value);\
-lua_setfield(L, -2, "_spec");\
-lua_pushcfunction(L, luaCB_font_index);\
-lua_setfield(L, -2, "__index");\
-lua_pushcfunction(L, luaCB_font_newindex);\
-lua_setfield(L, -2, "__newindex");\
-lua_pushvalue(L, -1);\
-lua_setmetatable(L, -2);\
-lua_setfield(L, -2, #name);
-
-/// Fonts
-// @tfield font MONO_12
-// @tfield font MONO_20
-// @tfield font SANS_23
-// @tfield font SANS_28
-// @tfield font SANS_32
-// @tfield font CANON
-// @tfield font SMALL
-// @tfield font MED
-// @tfield font MED_LARGE
-// @tfield font LARGE
-// @table FONT
-int luaopen_FONT(lua_State * L)
-{
-    lua_newtable(L);
-    LUA_FONT(MONO_12, FONT_MONO_12);
-    LUA_FONT(MONO_20, FONT_MONO_20);
-    LUA_FONT(SANS_23, FONT_SANS_23);
-    LUA_FONT(SANS_28, FONT_SANS_28);
-    LUA_FONT(SANS_32, FONT_SANS_32);
-    LUA_FONT(CANON, FONT_CANON);
-    LUA_FONT(SMALL, FONT_SMALL);
-    LUA_FONT(MED, FONT_MED);
-    LUA_FONT(MED_LARGE, FONT_MED_LARGE);
-    LUA_FONT(LARGE, FONT_LARGE);
-    return 1;
-}
-
-static int luaCB_color_gray(lua_State * L)
-{
-    LUA_PARAM_INT(percent, 1);
-    lua_pushinteger(L, COLOR_GRAY(percent));
-    return 1;
-}
-
-/// Color palatte
-// @field TRANSPARENT
-// @field WHITE
-// @field BLACK
-// @field TRANSPARENT_BLACK
-// @field LIGHT_GRAY
-// @field GRAY
-// @field DARK_GRAY
-// @field CYAN
-// @field GREEN1
-// @field GREEN2
-// @field RED
-// @field LIGHT_BLUE
-// @field BLUE
-// @field DARK_RED
-// @field MAGENTA
-// @field YELLOW
-// @field ORANGE
-// @field ALMOST_BLACK
-// @field ALMOST_WHITE
-// @field DARK_GREEN1_MOD
-// @field DARK_GREEN2_MOD
-// @field DARK_ORANGE_MOD
-// @field DARK_CYAN1_MOD
-// @field DARK_CYAN2_MOD
-// @tfield func gray converts integer percentage to shade of gray
-// @table COLOR
-int luaopen_COLOR(lua_State * L)
-{
-    lua_newtable(L);
-    LUA_CONSTANT(TRANSPARENT, COLOR_EMPTY);
-    LUA_CONSTANT(WHITE, COLOR_WHITE);
-    LUA_CONSTANT(BLACK, COLOR_BLACK);
-    LUA_CONSTANT(TRANSPARENT_BLACK, COLOR_TRANSPARENT_BLACK);
-    LUA_CONSTANT(LIGHT_GRAY, COLOR_GRAY(80));
-    LUA_CONSTANT(GRAY, COLOR_GRAY(50));
-    LUA_CONSTANT(DARK_GRAY, COLOR_GRAY(20));
-    LUA_CONSTANT(CYAN, COLOR_CYAN);
-    LUA_CONSTANT(GREEN1, COLOR_GREEN1);
-    LUA_CONSTANT(GREEN2, COLOR_GREEN2);
-    LUA_CONSTANT(RED, COLOR_RED);
-    LUA_CONSTANT(LIGHT_BLUE, COLOR_LIGHT_BLUE);
-    LUA_CONSTANT(BLUE, COLOR_BLUE);
-    LUA_CONSTANT(DARK_RED, COLOR_DARK_RED);
-    LUA_CONSTANT(MAGENTA, COLOR_MAGENTA);
-    LUA_CONSTANT(YELLOW, COLOR_YELLOW);
-    LUA_CONSTANT(ORANGE, COLOR_ORANGE);
-    LUA_CONSTANT(ALMOST_BLACK, COLOR_ALMOST_BLACK);
-    LUA_CONSTANT(ALMOST_WHITE, COLOR_ALMOST_WHITE);
-    LUA_CONSTANT(DARK_GREEN1_MOD, COLOR_DARK_GREEN1_MOD);
-    LUA_CONSTANT(DARK_GREEN2_MOD, COLOR_DARK_GREEN2_MOD);
-    LUA_CONSTANT(DARK_ORANGE_MOD, COLOR_DARK_ORANGE_MOD);
-    LUA_CONSTANT(DARK_CYAN1_MOD, COLOR_DARK_CYAN1_MOD);
-    LUA_CONSTANT(DARK_CYAN2_MOD, COLOR_DARK_CYAN2_MOD);
-    lua_pushcfunction(L, luaCB_color_gray);
-    lua_setfield(L, -2, "gray");
-    return 1;
-}
-
-/// Key Codes
-// @field HALFSHUTTER
-// @field UNPRESS_HALFSHUTTER
-// @field FULLSHUTTER
-// @field UNPRESS_FULLSHUTTER
-// @field WHEEL_UP
-// @field WHEEL_DOWN
-// @field WHEEL_LEFT
-// @field WHEEL_RIGHT
-// @field SET
-// @field UNPRESS_SET
-// @field JOY_CENTER
-// @field UP
-// @field UP_RIGHT
-// @field UP_LEFT
-// @field RIGHT
-// @field LEFT
-// @field DOWN_RIGHT
-// @field DOWN_LEFT
-// @field DOWN
-// @field UNPRESS_UDLR
-// @field ZOOMIN
-// @field MENU
-// @field INFO
-// @field PLAY
-// @field TRASH
-// @field RATE
-// @field REC
-// @field LV
-// @field Q
-// @field PICSTYLE
-// @field FLASH_MOVIE
-// @field UNPRESS_FLASH_MOVIE
-// @field DP
-// @field UNPRES_DP
-// @field TOUCH_1_FINGER
-// @field UNTOUCH_1_FINGER
-// @field TOUCH_2_FINGER
-// @field UNTOUCH_2_FINGER
-// @table KEY
-int luaopen_KEY(lua_State * L)
-{
-    lua_newtable(L);
-    LUA_CONSTANT(HALFSHUTTER, MODULE_KEY_PRESS_HALFSHUTTER);
-    LUA_CONSTANT(UNPRESS_HALFSHUTTER, MODULE_KEY_UNPRESS_HALFSHUTTER);
-    LUA_CONSTANT(FULLSHUTTER, MODULE_KEY_PRESS_FULLSHUTTER);
-    LUA_CONSTANT(UNPRESS_FULLSHUTTER, MODULE_KEY_UNPRESS_FULLSHUTTER);
-    LUA_CONSTANT(WHEEL_UP, MODULE_KEY_WHEEL_UP);
-    LUA_CONSTANT(WHEEL_DOWN, MODULE_KEY_WHEEL_DOWN);
-    LUA_CONSTANT(WHEEL_LEFT, MODULE_KEY_WHEEL_LEFT);
-    LUA_CONSTANT(WHEEL_RIGHT, MODULE_KEY_WHEEL_RIGHT);
-    LUA_CONSTANT(SET, MODULE_KEY_PRESS_SET);
-    LUA_CONSTANT(UNPRESS_SET, MODULE_KEY_UNPRESS_SET);
-    LUA_CONSTANT(JOY_CENTER, MODULE_KEY_JOY_CENTER);
-    LUA_CONSTANT(UP, MODULE_KEY_PRESS_UP);
-    LUA_CONSTANT(UP_RIGHT, MODULE_KEY_PRESS_UP_RIGHT);
-    LUA_CONSTANT(UP_LEFT, MODULE_KEY_PRESS_UP_LEFT);
-    LUA_CONSTANT(RIGHT, MODULE_KEY_PRESS_RIGHT);
-    LUA_CONSTANT(LEFT, MODULE_KEY_PRESS_LEFT);
-    LUA_CONSTANT(DOWN_RIGHT, MODULE_KEY_PRESS_DOWN_RIGHT);
-    LUA_CONSTANT(DOWN_LEFT, MODULE_KEY_PRESS_DOWN_LEFT);
-    LUA_CONSTANT(DOWN, MODULE_KEY_PRESS_DOWN);
-    LUA_CONSTANT(UNPRESS_UDLR, MODULE_KEY_UNPRESS_UDLR);
-    LUA_CONSTANT(ZOOMIN, MODULE_KEY_PRESS_ZOOMIN);
-    LUA_CONSTANT(MENU, MODULE_KEY_MENU);
-    LUA_CONSTANT(INFO, MODULE_KEY_INFO);
-    LUA_CONSTANT(PLAY, MODULE_KEY_PLAY);
-    LUA_CONSTANT(TRASH, MODULE_KEY_TRASH);
-    LUA_CONSTANT(RATE, MODULE_KEY_RATE);
-    LUA_CONSTANT(REC, MODULE_KEY_REC);
-    LUA_CONSTANT(LV, MODULE_KEY_LV);
-    LUA_CONSTANT(Q, MODULE_KEY_Q);
-    LUA_CONSTANT(PICSTYLE, MODULE_KEY_PICSTYLE);
-    LUA_CONSTANT(FLASH_MOVIE, MODULE_KEY_PRESS_FLASH_MOVIE);
-    LUA_CONSTANT(UNPRESS_FLASH_MOVIE, MODULE_KEY_UNPRESS_FLASH_MOVIE);
-    LUA_CONSTANT(DP, MODULE_KEY_PRESS_DP);
-    LUA_CONSTANT(UNPRESS_DP, MODULE_KEY_UNPRESS_DP);
-    LUA_CONSTANT(TOUCH_1_FINGER, MODULE_KEY_TOUCH_1_FINGER);
-    LUA_CONSTANT(UNTOUCH_1_FINGER, MODULE_KEY_UNTOUCH_1_FINGER);
-    LUA_CONSTANT(TOUCH_2_FINGER, MODULE_KEY_TOUCH_2_FINGER);
-    LUA_CONSTANT(UNTOUCH_2_FINGER, MODULE_KEY_UNTOUCH_2_FINGER);
-    return 1;
-}
-
 /***
- Font
+ Font.
+
+ TODO: move to a module.
+
  @type font
  */
 
 /***
- Gets the width of some text in this font
+ Gets the width of some text in this font.
  @tparam string text
  @function width
  */
@@ -394,13 +397,13 @@ static int luaCB_font_newindex(lua_State * L)
 
 int luaopen_constants(lua_State *L)
 {
+    luaL_requiref(L, "KEY", luaopen_KEY, 1);
+    luaL_requiref(L, "COLOR", luaopen_COLOR, 1);
+    luaL_requiref(L, "FONT", luaopen_FONT, 1);
     luaL_requiref(L, "MODE", luaopen_MODE, 1);
     luaL_requiref(L, "ICON_TYPE", luaopen_ICON_TYPE, 1);
     luaL_requiref(L, "UNIT", luaopen_UNIT, 1);
     luaL_requiref(L, "DEPENDS_ON", luaopen_DEPENDS_ON, 1);
-    luaL_requiref(L, "FONT", luaopen_FONT, 1);
-    luaL_requiref(L, "COLOR", luaopen_COLOR, 1);
-    luaL_requiref(L, "KEY", luaopen_KEY, 1);
     
     //just return true
     lua_pushboolean(L, 1);

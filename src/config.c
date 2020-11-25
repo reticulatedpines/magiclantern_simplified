@@ -280,13 +280,13 @@ error:
 
 int config_autosave = 1;
 
-int config_flag_file_setting_load(char* file)
+int config_flag_file_setting_load(const char * file)
 {
     uint32_t size;
     return ( FIO_GetFileSize( file, &size ) == 0 );
 }
 
-void config_flag_file_setting_save(char* file, int setting)
+void config_flag_file_setting_save(const char * file, int setting)
 {
     FIO_RemoveFile(file);
     if (setting)
@@ -302,7 +302,6 @@ static MENU_SELECT_FUNC(config_autosave_toggle)
     
     snprintf(autosave_flag_file, sizeof(autosave_flag_file), "%sAUTOSAVE.NEG", get_config_dir());
     config_flag_file_setting_save(autosave_flag_file, !!config_autosave);
-    msleep(50);
     config_autosave = !config_flag_file_setting_load(autosave_flag_file);
 }
 
@@ -372,10 +371,10 @@ static int set_config_var_struct(struct config_var * var, int new_value)
     if(var && var->value)
     {
         //check if the callback routine exists
-        if(var->update)
+        if (var->change_cbr)
         {
             //run the callback routine
-            int cbr_result = var->update(var, *(var->value), new_value);
+            int cbr_result = var->change_cbr(var, *(var->value), new_value);
             //if the cbr returns false, it means we are not allowed to change the value
             if(cbr_result)
             {
@@ -659,7 +658,7 @@ static void config_preset_scan()
     }
     
     /* update the Config Presets menu */
-    cfg_menus[0].children[0].max = config_preset_num - 1;
+    cfg_menus[0].children[1].max = config_preset_num - 1;
 }
 
 static MENU_SELECT_FUNC(config_save_select)
@@ -669,7 +668,7 @@ static MENU_SELECT_FUNC(config_save_select)
 
 static MENU_SELECT_FUNC(config_preset_toggle)
 {
-    menu_numeric_toggle(&config_new_preset_index, delta, 0, config_preset_num);
+    menu_numeric_toggle(&config_new_preset_index, delta, 0, config_preset_num - 1);
     
     if (!config_new_preset_index)
     {
@@ -695,7 +694,11 @@ static MENU_UPDATE_FUNC(config_preset_update)
 {
     int preset_changed = (config_new_preset_index != config_preset_index);
     char* current_preset_name = get_config_preset_name();
-    MENU_SET_RINFO(current_preset_name);
+
+    if (current_preset_name)
+    {
+        MENU_SET_RINFO(current_preset_name);
+    }
 
     if (config_new_preset_index == 1) /* startup shooting mode */
     {
@@ -852,14 +855,36 @@ static char* config_choose_startup_preset()
 }
 
 
+/* initialized and used in boot-hack.c */
+int _set_at_startup = 0;
+
+static MENU_SELECT_FUNC(set_at_startup_toggle)
+{
+    /* this one is a bit hard to integrate with config presets, so it's made global */
+    const char * flag_file = "ML/SETTINGS/REQUIRE.SET";
+    config_flag_file_setting_save(flag_file, !_set_at_startup);
+    _set_at_startup = config_flag_file_setting_load(flag_file);
+}
+
 static struct menu_entry cfg_menus[] = {
 {
-    .name = "Config files",
+    .name = "Config options",
     .select = menu_open_submenu,
     .update = config_preset_update,
     .submenu_width = 710,
     .help = "Config auto save, manual save, restore defaults...",
     .children =  (struct menu_entry[]) {
+        {
+            .name       = "SET at startup",
+            .priv       = &_set_at_startup,
+            .max        = 1,
+            .choices    = CHOICES("Bypass loading ML", "Required to load ML"),
+            .select     = set_at_startup_toggle,
+            .icon_type  = IT_BOOL,
+            .help       = "[GLOBAL] If you hold the SET button pressed at camera startup:",
+            .help2      = "Do not load ML if you start the camera with SET pressed (default)\n"
+                          "Load ML only if SET is pressed at startup (optional)"
+        },
         {
             .name = "Config preset",
             .priv = &config_new_preset_index,

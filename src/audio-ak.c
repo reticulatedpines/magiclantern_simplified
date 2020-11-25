@@ -30,11 +30,11 @@
 #include "audio-common.c"
 #include "boot-hack.h"
 
-static CONFIG_INT( "audio.dgain.l",    dgain_l,        0 );
-static CONFIG_INT( "audio.dgain.r",    dgain_r,        0 );
-static CONFIG_INT( "audio.mgain",      mgain,          4 );
-static CONFIG_INT( "audio.mic-power",  mic_power,      1 );
-static CONFIG_INT( "audio.o2gain",     o2gain,         0 );
+static CONFIG_INT_EX( "audio.dgain.l",    dgain_l,        0, dgain_on_change );
+static CONFIG_INT_EX( "audio.dgain.r",    dgain_r,        0, dgain_on_change );
+static CONFIG_INT_EX( "audio.mgain",      mgain,          4, mgain_on_change );
+static CONFIG_INT_EX( "audio.mic-power",  mic_power,      1, mic_power_on_change );
+static CONFIG_INT   ( "audio.o2gain",     o2gain,         0 );
 
 int audio_meters_are_drawn()
 {
@@ -353,70 +353,71 @@ audio_gain_to_cmd(
 }
 
 
-static void
-audio_3bit_toggle( void * priv, int delta )
+static CONFIG_VAR_CHANGE_FUNC(mgain_on_change)
 {
-    unsigned * ptr = priv;
-    *ptr = (*ptr + delta) & 0x3;
-    audio_configure( 1 );
-}
-
-static void
-audio_binary_toggle( void * priv, int delta )
-{
-    unsigned * ptr = priv;
-    *ptr = !*ptr;
-    audio_configure( 1 );
-}
-
 #ifdef FEATURE_ANALOG_GAIN
-static void
-audio_mgain_toggle( void * priv, int delta )
-{
-    unsigned * ptr = priv;
 #ifdef CONFIG_500D
-    *ptr = MOD((*ptr + delta), 10);
+    *(var->value) = MOD(new_value, 10);
 #else
-    *ptr = (*ptr + delta) & 0x7;
+    *(var->value) = new_value & 0x7;
 #endif
     audio_configure( 1 );
+    return 1;
+#else
+    return 0;
+#endif
 }
 
+static CONFIG_VAR_CHANGE_FUNC(alc_enable_on_change)
+{
+#ifdef FEATURE_AGC_TOGGLE
+    *(var->value) = new_value;
+    audio_configure( 1 );
+    return 1;
+#else
+    return 0;
 #endif
+}
+
+static CONFIG_VAR_CHANGE_FUNC(input_choice_on_change)
+{
+#ifdef FEATURE_INPUT_SOURCE
+    *(var->value) = new_value;
+    audio_configure( 1 );
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+static CONFIG_VAR_CHANGE_FUNC(mic_power_on_change)
+{
+#ifdef FEATURE_MIC_POWER
+    *(var->value) = new_value;
+    audio_configure( 1 );
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+static CONFIG_VAR_CHANGE_FUNC(dgain_on_change)
+{
+#ifdef FEATURE_DIGITAL_GAIN
+    *(var->value) = COERCE(new_value, 0, 36);
+    audio_configure( 1 );
+    return 1;
+#else
+    return 0;
+#endif
+}
 
 #ifdef FEATURE_DIGITAL_GAIN
-static inline void
-audio_dgain_toggle_reverse( void * priv, int delta )
-{
-    unsigned dgain = *(unsigned*) priv;
-    if( dgain <= 0 ) {
-        dgain = 36;
-    } else {
-        dgain -= 6;
-    }
-    *(unsigned*) priv = dgain;
-    audio_configure( 1 );
-}
-static void
-audio_dgain_toggle( void * priv, int delta )
-{
-    if (delta < 0) // will the compiler optimize it? :)
-    {
-        audio_dgain_toggle_reverse( priv, delta );
-        return;
-    }
-    unsigned dgain = *(unsigned*) priv;
-    dgain += 6;
-    if( dgain > 40 )
-        dgain = 0;
-    *(unsigned*) priv = dgain;
-    audio_configure( 1 );
-}
 
 static MENU_UPDATE_FUNC(audio_dgain_display)
 {
     unsigned val = CURRENT_VALUE;
-    MENU_SET_VALUE("%d dB", val);
+    MENU_SET_RINFO("(dB)");
     if (alc_enable)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "AGC is enabled.");
     MENU_SET_ENABLED(val);
@@ -428,15 +429,6 @@ static MENU_UPDATE_FUNC(audio_lovl_display)
 {
     if (!audio_monitoring)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Headphone monitoring is disabled");
-}
-#endif
-
-#ifdef FEATURE_INPUT_SOURCE
-static void
-audio_input_toggle( void * priv, int delta )
-{
-    menu_numeric_toggle(priv, delta, 0, 4);
-    audio_configure( 1 );
 }
 #endif
 
@@ -460,7 +452,6 @@ static struct menu_entry audio_menus[] = {
     {
         .name = "Analog Gain",
         .priv           = &mgain,
-        .select         = audio_mgain_toggle,
         .icon_type = IT_PERCENT_OFF,
         #ifdef CONFIG_500D
         // should match gains[]
@@ -472,7 +463,6 @@ static struct menu_entry audio_menus[] = {
         #endif
         .help = "Gain applied to both inputs in analog domain (preferred).",
         .depends_on = DEP_SOUND_RECORDING,
-        .edit_mode = EM_MANY_VALUES,
     },
     #endif
     #ifdef FEATURE_DIGITAL_GAIN
@@ -487,7 +477,7 @@ static struct menu_entry audio_menus[] = {
                 .priv           = &dgain_l,
                 .max            = 36,
                 .icon_type      = IT_PERCENT_OFF,
-                .select         = audio_dgain_toggle,
+                .unit           = UNIT_DEC,
                 .update         = audio_dgain_display,
                 .help = "Digital gain (LEFT). Any nonzero value reduces quality.",
             },
@@ -496,7 +486,7 @@ static struct menu_entry audio_menus[] = {
                 .priv           = &dgain_r,
                 .max            = 36,
                 .icon_type      = IT_PERCENT_OFF,
-                .select         = audio_dgain_toggle,
+                .unit           = UNIT_DEC,
                 .update         = audio_dgain_display,
                 .help = "Digital gain (RIGHT). Any nonzero value reduces quality.",
             },
@@ -504,7 +494,6 @@ static struct menu_entry audio_menus[] = {
             {
                 .name = "AGC",
                 .priv           = &alc_enable,
-                .select         = audio_binary_toggle,
                 .max            = 1,
                 .help = "Automatic Gain Control - turn it off :)",
             },
@@ -517,7 +506,6 @@ static struct menu_entry audio_menus[] = {
     {
         .name = "Input source",
         .priv           = &input_choice,
-        .select         = audio_input_toggle,
         .icon_type      = IT_DICE,
         .max            = 4,
         .choices = (const char *[]) {"Internal mic", "L:int R:ext", "External stereo", "L:int R:balanced", "Auto int/ext"},
@@ -531,7 +519,6 @@ static struct menu_entry audio_menus[] = {
         .name = "Wind Filter",
         .priv              = &enable_filters,
         .help = "High pass filter for wind noise reduction.",
-        .select            = audio_binary_toggle,
         .max = 1,
         .depends_on = DEP_SOUND_RECORDING,
     },
@@ -548,7 +535,6 @@ static struct menu_entry audio_menus[] = {
     {
         .name = "Mic Power",
         .priv           = &mic_power,
-        .select         = audio_binary_toggle,
         .update         = audio_micpower_display,
         .max = 1,
         .help = "Needed for int. and some other mics, but lowers impedance.",
@@ -576,7 +562,6 @@ static struct menu_entry audio_menus[] = {
     {
         .name = "Headphone Mon.",
         .priv = &audio_monitoring,
-        .select = audio_monitoring_toggle,
         .max = 1,
         .help = "Monitoring via A-V jack. Disable if you use a SD display.",
         .depends_on = DEP_SOUND_RECORDING,
@@ -585,7 +570,6 @@ static struct menu_entry audio_menus[] = {
     {
         .name = "Headphone Volume",
         .priv           = &lovl,
-        .select         = audio_3bit_toggle,
         .update         = audio_lovl_display,
         .max = 3,
         .icon_type      = IT_PERCENT_OFF,
@@ -675,16 +659,16 @@ void volume_up()
 {
     int mgain_db = mgain_index2gain(mgain);
     if (mgain_db < 32)
-        audio_mgain_toggle(&mgain, 1);
+        set_config_var_ptr(&mgain, mgain + 1);
     #ifdef FEATURE_DIGITAL_GAIN
     else
+    {
+        if( MAX(dgain_l, dgain_r) + 6 <= 40 )
         {
-            if( MAX(dgain_l, dgain_r) + 6 <= 40 )
-                {
-                    audio_dgain_toggle(&dgain_l, 1);
-                    audio_dgain_toggle(&dgain_r, 1);
-                }
+            set_config_var_ptr(&dgain_l, dgain_l + 6);
+            set_config_var_ptr(&dgain_r, dgain_r + 6);
         }
+    }
     #endif
     volume_display();
 }
@@ -695,14 +679,14 @@ void volume_down()
     
     #ifdef FEATURE_DIGITAL_GAIN
     if( MIN(dgain_l, dgain_r) > 0 )
-        {
-            audio_dgain_toggle(&dgain_l, -1);
-            audio_dgain_toggle(&dgain_r, -1);
-        }
-    else 
+    {
+        set_config_var_ptr(&dgain_l, dgain_l - 6);
+        set_config_var_ptr(&dgain_r, dgain_r - 6);
+    }
+    else
     #endif
     if (mgain_db > 0)
-        audio_mgain_toggle(&mgain, -1);
+        set_config_var_ptr(&mgain, mgain + 1);
     volume_display();
 }
 #endif

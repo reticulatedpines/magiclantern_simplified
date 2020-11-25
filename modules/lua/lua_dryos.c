@@ -1,5 +1,14 @@
 /***
- DryOS functions
+ DryOS operating system functions.
+ 
+ TODO: what about Penlight-like API for file I/O (see e.g.
+ [pl.path](http://stevedonovan.github.io/Penlight/api/libraries/pl.path.html),
+ [pl.dir](http://stevedonovan.github.io/Penlight/api/libraries/pl.dir.html),
+ [pl.file](http://stevedonovan.github.io/Penlight/api/libraries/pl.file.html),
+ [pl.utils](http://stevedonovan.github.io/Penlight/api/libraries/pl.utils.html))?
+ 
+ Or maybe even porting a subset of [Penlight](http://stevedonovan.github.io/Penlight/api/manual/01-introduction.md.html)
+ and/or [LFS](https://keplerproject.github.io/luafilesystem/manual.html)?
  
  @author Magic Lantern Team
  @copyright 2014
@@ -19,50 +28,6 @@ static int luaCB_card_index(lua_State * L);
 static int luaCB_card_newindex(lua_State * L);
 static int luaCB_directory_index(lua_State * L);
 static int luaCB_directory_newindex(lua_State * L);
-
-/***
- Calls an eventproc (a function from the camera firmware which can be called by name).
- See Eventprocs. Dangerous - you need to compile Lua yourself in order to enable it.
- @tparam string function the name of the function to call
- @param[opt] arg argument to pass to the call
- @function call
- */
-static int luaCB_dryos_call(lua_State * L)
-{
-#if 1
-    return luaL_error(L,
-        "dryos.call() is disabled for safety reasons.\n"
-        "If you know what you are doing, just remove this message and recompile.\n"
-    );
-#endif
-
-    LUA_PARAM_STRING(function_name, 1);
-    int result = 0;
-    int argc = lua_gettop(L);
-    
-    if(argc <= 1)
-    {
-        result = call(function_name);
-    }
-    else if(lua_isinteger(L, 2))
-    {
-        int arg = lua_tointeger(L, 2);
-        result = call(function_name, arg);
-    }
-    else if(lua_isnumber(L, 2))
-    {
-        float arg = lua_tonumber(L, 2);
-        result = call(function_name, arg);
-    }
-    else if(lua_isstring(L, 2))
-    {
-        const char * arg = lua_tostring(L, 2);
-        result = call(function_name, arg);
-    }
-    
-    lua_pushinteger(L, result);
-    return 1;
-}
 
 const char * lua_dryos_directory_fields[] =
 {
@@ -90,7 +55,7 @@ const char * lua_dryos_card_fields[] =
  
  This function does not actually create a directory on the file system, it just creates
  an object that represents a directory. To actually create the directory in the file system
- call directory:create()
+ call `directory:create()`.
  @usage
  local mydir = dryos.directory("mydir")
  if mydir.exists == false then
@@ -148,6 +113,71 @@ static int luaCB_dryos_remove(lua_State * L)
     return 1;
 }
 
+/***
+ Renames/moves a file on the card (or between cards).
+ @tparam string filename
+ @treturn bool success
+ @function rename
+ */
+static int luaCB_dryos_rename(lua_State * L)
+{
+    LUA_PARAM_STRING(src, 1);
+    LUA_PARAM_STRING(dst, 2);
+    int err = FIO_RenameFile(src, dst);
+    if (err)
+    {
+        err = FIO_MoveFile(src, dst);
+    }
+    lua_pushboolean(L, err == 0);
+    return 1;
+}
+
+/***
+ Calls an eventproc (a function from the camera firmware which can be called by name).
+ See [Eventprocs](http://magiclantern.wikia.com/wiki/Call_by_name).
+
+ Dangerous - you need to compile Lua yourself in order to enable it.
+ @tparam string function the name of the function to call
+ @param[opt] arg argument to pass to the call
+ @function call
+ */
+static int luaCB_dryos_call(lua_State * L)
+{
+#if 1
+    return luaL_error(L,
+        "dryos.call() is disabled for safety reasons.\n"
+        "If you know what you are doing, just remove this message and recompile.\n"
+    );
+#endif
+
+    LUA_PARAM_STRING(function_name, 1);
+    int result = 0;
+    int argc = lua_gettop(L);
+    
+    if(argc <= 1)
+    {
+        result = call(function_name);
+    }
+    else if(lua_isinteger(L, 2))
+    {
+        int arg = lua_tointeger(L, 2);
+        result = call(function_name, arg);
+    }
+    else if(lua_isnumber(L, 2))
+    {
+        float arg = lua_tonumber(L, 2);
+        result = call(function_name, arg);
+    }
+    else if(lua_isstring(L, 2))
+    {
+        const char * arg = lua_tostring(L, 2);
+        result = call(function_name, arg);
+    }
+    
+    lua_pushinteger(L, result);
+    return 1;
+}
+
 static void setfield (lua_State *L, const char *key, int value) {
     lua_pushinteger(L, value);
     lua_setfield(L, -2, key);
@@ -163,16 +193,18 @@ static void setboolfield (lua_State *L, const char *key, int value) {
 static int luaCB_dryos_index(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
-    /// Get the value of the seconds clock
+    /// Get the number of the seconds since camera startup.
     // @tfield int clock
     if(!strcmp(key, "clock")) lua_pushinteger(L, get_seconds_clock());
-    /// Get the value of the milliseconds clock
+    /// Get the number of milliseconds since camera startup.
     // @tfield int ms_clock
-    else if(!strcmp(key, "ms_clock")) lua_pushinteger(L, get_ms_clock_value());
-    /// Get/Set the image filename prefix
-    // @tfield string prefix
-    else if(!strcmp(key, "prefix")) lua_pushstring(L, get_file_prefix());
-    /// Get the DCIM directory
+    else if(!strcmp(key, "ms_clock")) lua_pushinteger(L, get_ms_clock());
+    /// Get/Set the image filename prefix (e.g.&nbsp;"IMG_").
+    ///
+    /// Set to empty string to restore default value.
+    // @tfield string image_prefix
+    else if(!strcmp(key, "image_prefix")) lua_pushstring(L, get_file_prefix());
+    /// Get the DCIM directory.
     // @tfield directory dcim_dir
     else if(!strcmp(key, "dcim_dir"))
     {
@@ -180,7 +212,7 @@ static int luaCB_dryos_index(lua_State * L)
         lua_pushstring(L, get_dcim_dir());
         lua_call(L, 1, 1);
     }
-    /// Get the ML config directory
+    /// Get the ML config directory.
     // @tfield directory config_dir
     else if(!strcmp(key, "config_dir"))
     {
@@ -188,7 +220,7 @@ static int luaCB_dryos_index(lua_State * L)
         lua_pushstring(L, get_config_dir());
         lua_call(L, 1, 1);
     }
-    /// Get the card ML started from
+    /// Get the card ML was started from.
     // @tfield card ml_card
     else if(!strcmp(key, "ml_card"))
     {
@@ -210,7 +242,7 @@ static int luaCB_dryos_index(lua_State * L)
         lua_setfield(L, -2, "fields");
         lua_setmetatable(L, -2);
     }
-    /// Get the shooting card
+    /// Get the shooting card (the one selected in Canon menu for taking pictures / recording videos).
     // @tfield card shooting_card
     else if(!strcmp(key, "shooting_card"))
     {
@@ -232,7 +264,7 @@ static int luaCB_dryos_index(lua_State * L)
         lua_setfield(L, -2, "fields");
         lua_setmetatable(L, -2);
     }
-    /// Gets a table representing the current date/time
+    /// Gets a table representing the current date/time.
     // @tfield date date
     else if(!strcmp(key, "date"))
     {
@@ -280,12 +312,29 @@ static int luaCB_dryos_newindex(lua_State * L)
     {
         return luaL_error(L, "'%s' is readonly!", key);
     }
-    else if(!strcmp(key, "prefix"))
+    else if(!strcmp(key, "image_prefix"))
     {
         static char prefix[8];
+        static int prefix_key = 0;
         LUA_PARAM_STRING(new_prefix, 3);
-        strncpy(prefix, new_prefix, 7);
-        file_prefix_set(prefix);
+
+        int len = strlen(new_prefix);
+        if (len != 0 && len != 4)
+        {
+            return luaL_error(L, "invalid prefix length (4 chars, 0 to reset)");
+        }
+
+        if (prefix_key)
+        {
+            file_prefix_reset(prefix_key);
+            prefix_key = 0;
+        }
+
+        if (len == 4)
+        {
+            strncpy(prefix, new_prefix, 7);
+            prefix_key = file_prefix_set(prefix);
+        }
     }
     else
     {
@@ -298,7 +347,7 @@ static int luaCB_dryos_newindex(lua_State * L)
 // @type directory
 
 /***
- Creates a directory
+ Creates a directory.
  @treturn bool whether or not the directory was sucessfully created
  @function create
  */
@@ -312,7 +361,7 @@ static int luaCB_directory_create(lua_State * L)
 }
 
 /***
- Get a table (of @{directory} objects) containing this directory's child directories
+ Get a table (of @{directory} objects) containing this directory's child directories.
  @treturn {directory,...}
  @function children
  */
@@ -350,7 +399,7 @@ static int luaCB_directory_children(lua_State * L)
 }
 
 /***
- Get a table (of @{string}s) that are the file names of this directory's files
+ Get a table (of @{string}s) that are the file names of this directory's files.
  @treturn {string,...}
  @function files
  */
@@ -388,14 +437,14 @@ static int luaCB_directory_index(lua_State * L)
 {
     if(!lua_istable(L, 1)) return luaL_argerror(L, 1, "expected table");
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
-    /// Get the full path of the directory
+    /// Get the full path of the directory.
     // @tfield string path
     if(!strcmp(key, "path")) return lua_rawget(L, 1);
     
     if(lua_getfield(L, 1, "path") != LUA_TSTRING) return luaL_error(L, "invalid directory path");
     const char * path = lua_tostring(L, -1);
     lua_pop(L, 1);
-    /// Get whether or not the directory exists
+    /// Get whether or not the directory exists.
     // @tfield bool exists
     if(!strcmp(key, "exists")) lua_pushboolean(L, is_dir(path));
     else if(!strcmp(key, "create")) lua_pushcfunction(L, luaCB_directory_create);
@@ -436,7 +485,7 @@ static int luaCB_directory_newindex(lua_State * L)
     return luaL_error(L, "'directory' type is readonly");
 }
 
-/// Represents a card (storage media)
+/// Represents a card (storage media).
 // Inherits from @{directory}
 // @type card
 
@@ -447,22 +496,24 @@ static int luaCB_card_index(lua_State * L)
     if(lua_getfield(L, 1, "_card_ptr") == LUA_TLIGHTUSERDATA)
     {
         struct card_info * card = lua_touserdata(L, -1);
-        /// Get the cluster size
+        /// Get the cluster size of the filesystem.
         // @tfield int cluster_size
         if(!strcmp(key, "cluster_size")) lua_pushinteger(L, card->cluster_size);
-        /// Get the drive letter
+        /// Get the drive letter (A or B).
         // @tfield string drive_letter
         else if(!strcmp(key, "drive_letter")) lua_pushstring(L, card->drive_letter);
-        /// Get the current Canon file number
+        /// Get the current Canon file number (e.g. IMG_1234.CR2 -> 1234).
         // @tfield int file_number
         else if(!strcmp(key, "file_number")) lua_pushinteger(L, card->file_number);
-        /// Get the current Canon folder number
+        /// Get the current Canon folder number (e.g. DCIM/101CANON => 101).
         // @tfield int folder_number
         else if(!strcmp(key, "folder_number")) lua_pushinteger(L, card->folder_number);
-        /// Get the current free space (in MiB)
+        /// Get the current free space (in MiB).
+        ///
+        /// FIXME: does not update after writing files from ML code.
         // @tfield int free_space
         else if(!strcmp(key, "free_space")) lua_pushinteger(L, get_free_space_32k(card) * 1024 / 32);
-        /// Get the type of card
+        /// Get the type of card (SD or CF).
         // @tfield string type
         else if(!strcmp(key, "type")) lua_pushstring(L, card->type);
         else return luaCB_directory_index(L);
@@ -482,7 +533,7 @@ static const char * lua_dryos_fields[] =
 {
     "clock",
     "ms_clock",
-    "prefix",
+    "image_prefix",
     "dcim_dir",
     "config_dir",
     "ml_card",
@@ -496,6 +547,7 @@ const luaL_Reg dryoslib[] =
     {"call", luaCB_dryos_call},
     {"directory", luaCB_dryos_directory},
     {"remove", luaCB_dryos_remove},
+    {"rename", luaCB_dryos_rename},
     {NULL, NULL}
 };
 

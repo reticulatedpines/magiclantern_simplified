@@ -18,8 +18,8 @@ static int _info_items_count = 0;
 static int layout_dirty = 0;
 static struct semaphore * lvinfo_sem = 0;
 
-static int default_font = FONT_MED_LARGE;   /* used in normal situations */
-static int small_font = FONT_MED;           /* used if the layout gets really tight */
+static int default_font = FONT_MED_LARGE | FONT_ALIGN_CENTER;   /* used in normal situations */
+static int small_font = FONT_MED | FONT_ALIGN_CENTER;           /* used if the layout gets really tight */
 
 void lvinfo_add_items(struct lvinfo_item * items, int count)
 {
@@ -472,8 +472,8 @@ static void lvinfo_align_and_display(struct lvinfo_item * items[], int count, in
     /* try to borrow the color from the cropmarks; if it's fully transparent, use transparent gray */
     int bg = (items == top_items) ? TOPBAR_BGCOLOR : BOTTOMBAR_BGCOLOR;
     if (bg == 0) bg = COLOR_BG_DARK;
-    default_font = FONT(FONT_MED_LARGE, COLOR_WHITE, bg) | FONT_ALIGN_CENTER;
-    small_font = FONT(FONT_MED, COLOR_WHITE, bg) | FONT_ALIGN_CENTER;
+    default_font = FONT(default_font, COLOR_WHITE, bg);
+    small_font = FONT(small_font, COLOR_WHITE, bg);
     
     int font_changed = 0;
 

@@ -54,29 +54,35 @@ static int luaCB_beep(lua_State * L)
 }
 
 /***
- Take a picture
- @tparam[opt=64] int wait how long to wait for camera to be ready to take a picture
- @tparam[opt=true] bool should_af whether or not to use auto focus
- @function shoot
+ Pauses for `s` seconds (floating point) and allows other tasks to run.
+
+ This will block other tasks/events from this script, but will allow
+ other scripts, ML tasks or Canon tasks.
+
+ Timer resolution: 10ms.
+ 
+ @tparam float s number of seconds to sleep.
+ @function sleep
  */
-static int luaCB_shoot(lua_State * L)
+static int luaCB_sleep(lua_State * L)
 {
-    LUA_PARAM_INT_OPTIONAL(wait, 1, 64);
-    LUA_PARAM_BOOL_OPTIONAL(should_af, 2, 1);
-    int result = lens_take_picture(wait, should_af);
-    lua_pushinteger(L, result);
-    return 1;
+    LUA_PARAM_NUMBER(s, 1);
+    msleep((int) roundf(s * 1000.0));
+    return 0;
 }
 
 /***
- Pauses for ms miliseconds and allows other tasks to run.
- @tparam int amount number of milliseconds to sleep
+ Pauses for `ms` milliseconds and allows other tasks to run.
+
+ Consider using `sleep` for large delays, e.g. `sleep(2)` instead of `msleep(2000)` for readability (there's no functional difference between the two).
+
+ @tparam int ms number of milliseconds to sleep.
  @function msleep
  */
 static int luaCB_msleep(lua_State * L)
 {
-    LUA_PARAM_INT(amount, 1);
-    msleep(amount);
+    LUA_PARAM_INT(ms, 1);
+    msleep(ms);
     return 0;
 }
 
@@ -110,17 +116,17 @@ static int luaCB_led_off(lua_State * L)
 static int luaCB_led_blink(lua_State * L)
 {
     LUA_PARAM_INT_OPTIONAL(times, 1, 1);
-    LUA_PARAM_INT_OPTIONAL(delay_on, 1, 50);
-    LUA_PARAM_INT_OPTIONAL(delay_off, 1, 50);
+    LUA_PARAM_INT_OPTIONAL(delay_on, 2, 50);
+    LUA_PARAM_INT_OPTIONAL(delay_off, 3, 50);
     info_led_blink(times, delay_on, delay_off);
     return 0;
 }
 
 static const luaL_Reg globallib[] =
 {
+    { "sleep", luaCB_sleep },
     { "msleep", luaCB_msleep },
     { "beep", luaCB_beep },
-    { "shoot", luaCB_shoot },
     { "led_on", luaCB_led_on },
     { "led_off", luaCB_led_off },
     { "led_blink", luaCB_led_blink },

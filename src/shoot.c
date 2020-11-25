@@ -166,10 +166,9 @@ static CONFIG_INT( "zoom.focus_ring", zoom_focus_ring, 0);
        CONFIG_INT( "zoom.auto.exposure", zoom_auto_exposure, 0);
 
 #ifdef FEATURE_BULB_TIMER
-static int bulb_duration_change(struct config_var * var, int old_value, int new_value);
-static CONFIG_INT_UPDATE( "bulb.duration", bulb_duration, 5, bulb_duration_change);
-static CONFIG_INT       ( "bulb.timer", bulb_timer, 0);
-static CONFIG_INT       ( "bulb.display.mode", bulb_display_mode, 0);
+static CONFIG_INT_EX( "bulb.duration", bulb_duration, 5, bulb_duration_change);
+static CONFIG_INT   ( "bulb.timer", bulb_timer, 0);
+static CONFIG_INT   ( "bulb.display.mode", bulb_display_mode, 0);
 #else
 static int bulb_duration = 0;
 static int bulb_display_mode = 0;
@@ -372,11 +371,12 @@ static void do_this_every_second() // called every second
     }
     #endif
 
+    /* update lens info outside LiveView */
+    if (!lv && lens_info.lens_exists)
+    {
+        _prop_lv_lens_request_update();
+    }
 }
-
-#ifndef TIMER_GET_VALUE
-#define TIMER_GET_VALUE() *(volatile uint32_t*)0xC0242014
-#endif
 
 // called every 200ms or on request
 static void FAST
@@ -1720,7 +1720,7 @@ static MENU_UPDATE_FUNC(aperture_display)
 {
     int a = lens_info.aperture;
     int av = APEX_AV(lens_info.raw_aperture) * 10/8;
-    if (!a || !lens_info.name[0]) // for unchipped lenses, always display zero
+    if (!a || !lens_info.lens_exists) // for unchipped lenses, always display zero
         a = av = 0;
     MENU_SET_VALUE(
         SYM_F_SLASH"%d.%d",
@@ -1739,7 +1739,7 @@ static MENU_UPDATE_FUNC(aperture_display)
     }
     if (!lens_info.aperture)
     {
-        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, lens_info.name[0] ? "Aperture is automatic - cannot adjust manually." : "Manual lens - cannot adjust aperture.");
+        MENU_SET_WARNING(MENU_WARN_NOT_WORKING, lens_info.lens_exists ? "Aperture is automatic - cannot adjust manually." : "Manual lens - cannot adjust aperture.");
         MENU_SET_ICON(MNI_PERCENT_OFF, 0);
     }
     else
@@ -1754,7 +1754,7 @@ static MENU_UPDATE_FUNC(aperture_display)
 void
 aperture_toggle( void* priv, int sign)
 {
-    if (!lens_info.name[0]) return; // only chipped lenses can change aperture
+    if (!lens_info.lens_exists) return; // only chipped lenses can change aperture
     if (!lens_info.raw_aperture) return;
     int amin = codes_aperture[1];
     int amax = codes_aperture[COUNT(codes_aperture)-1];
@@ -2788,7 +2788,11 @@ void ensure_bulb_mode()
 {
 #ifdef CONFIG_BULB
 
-    while (lens_info.job_state) msleep(100);
+    while (!job_state_ready_to_take_pic()) {
+        msleep(20);
+    }
+
+    AcquireRecursiveLock(shoot_task_rlock, 0);
 
     #ifdef CONFIG_SEPARATE_BULB_MODE
         int a = lens_info.raw_aperture;
@@ -2805,7 +2809,9 @@ void ensure_bulb_mode()
     
     SetGUIRequestMode(0);
     while (!display_idle()) msleep(100);
-    
+
+    ReleaseRecursiveLock(shoot_task_rlock);
+
 #endif
 }
 
@@ -2834,14 +2840,25 @@ int set_drive_single()
 int
 bulb_take_pic(int duration)
 {
+    AcquireRecursiveLock(shoot_task_rlock, 0);
+
     int canceled = 0;
 #ifdef CONFIG_BULB
     extern int ml_taking_pic;
-    if (ml_taking_pic) return 1;
+    if (ml_taking_pic)
+    {
+        /* fixme: make this unreachable */
+        ReleaseRecursiveLock(shoot_task_rlock);
+        return 1;
+    }
     ml_taking_pic = 1;
 
+    printf("[BULB] taking picture @ %s %d.%d\" %s\n",
+        lens_format_iso(lens_info.raw_iso),
+        duration / 1000, (duration / 100) % 10,
+        lens_format_aperture(lens_info.raw_aperture)
+    );
 
-    //~ NotifyBox(2000,  "Bulb: %d ", duration); msleep(2000);
     duration = MAX(duration, BULB_MIN_EXPOSURE) + BULB_EXPOSURE_CORRECTION;
     int s0r = lens_info.raw_shutter; // save settings (for restoring them back)
     int m0r = shooting_mode;
@@ -2984,11 +3001,13 @@ bulb_take_pic(int duration)
     
     ml_taking_pic = 0;
 #endif
+
+    ReleaseRecursiveLock(shoot_task_rlock);
     return canceled;
 }
 
 #ifdef FEATURE_BULB_TIMER
-static int bulb_duration_change(struct config_var * var, int old_value, int new_value)
+static CONFIG_VAR_CHANGE_FUNC(bulb_duration_change)
 {
     #ifdef FEATURE_EXPO_OVERRIDE
     /* refresh bulb ExpSim */
@@ -3180,7 +3199,7 @@ static MENU_UPDATE_FUNC(expo_lock_display)
         info->value[strlen(info->value)-1] = 0; // trim last comma
     }
 
-    if (lens_info.name[0] && lens_info.raw_aperture && lens_info.raw_shutter && lens_info.raw_iso && !menu_active_but_hidden())
+    if (lens_info.lens_exists && lens_info.raw_aperture && lens_info.raw_shutter && lens_info.raw_iso && !menu_active_but_hidden())
     {
         int Av = APEX_AV(lens_info.raw_aperture);
         int Tv = APEX_TV(lens_info.raw_shutter);
@@ -4529,6 +4548,8 @@ void interval_create_script(int f0)
 // returns zero if successful, nonzero otherwise (user canceled, module error, etc)
 int take_a_pic(int should_af)
 {
+    AcquireRecursiveLock(shoot_task_rlock, 0);
+
     int canceled = 0;
     #ifdef FEATURE_SNAP_SIM
     if (snap_sim) {
@@ -4539,10 +4560,11 @@ int take_a_pic(int should_af)
         display_on();
         _card_led_off();
         msleep(100);
+        ReleaseRecursiveLock(shoot_task_rlock);
         return canceled;
     }
     #endif
-    
+
     #ifdef CONFIG_MODULES
     int cbr_result = 0;
     if ((cbr_result = module_exec_cbr(CBR_CUSTOM_PICTURE_TAKING)) == CBR_RET_CONTINUE)
@@ -4561,10 +4583,13 @@ int take_a_pic(int should_af)
 #ifdef CONFIG_MODULES
     else
     {
+        ReleaseRecursiveLock(shoot_task_rlock);
         return cbr_result != CBR_RET_STOP;
     }
 #endif
     lens_wait_readytotakepic(64);
+
+    ReleaseRecursiveLock(shoot_task_rlock);
     return canceled;
 }
 
@@ -4619,7 +4644,7 @@ static void hdr_iso_shift_restore()
 static int hdr_shutter_release(int ev_x8)
 {
     int ans = 1;
-    //~ NotifyBox(2000, "hdr_shutter_release: %d", ev_x8); msleep(2000);
+    //printf("hdr_shutter_release: %d\n", ev_x8);
     lens_wait_readytotakepic(64);
 
     int manual = (shooting_mode == SHOOTMODE_M || is_movie_mode() || is_bulb_mode());
@@ -4699,7 +4724,7 @@ static int hdr_shutter_release(int ev_x8)
         int expsim0 = get_expsim();
         #endif
         
-        //~ NotifyBox(2000, "ms=%d msc=%d rs=%x rc=%x", ms,msc,rs,rc); msleep(2000);
+        //printf("ms=%d msc=%d rs=%x rc=%x\n", ms,msc,rs,rc);
 
 #ifdef CONFIG_BULB
         // then choose the best option (bulb for long exposures, regular for short exposures)
@@ -4816,28 +4841,36 @@ static void hdr_check_for_under_or_over_exposure(int* under, int* over)
     ensure_play_or_qr_mode_after_shot();
 
     int under_numpix, over_numpix;
-    int total_numpix = get_under_and_over_exposure(20, 235, &under_numpix, &over_numpix);
-    int po = over_numpix * 10000 / total_numpix;
-    int pu = under_numpix * 10000 / total_numpix;
+    int total_numpix = get_under_and_over_exposure(50, 235, &under_numpix, &over_numpix);
+    int po = (uint64_t) over_numpix * 100000ull / total_numpix;
+    int pu = (uint64_t) under_numpix * 100000ull / total_numpix;
     if (over_numpix  > 0) po = MAX(po, 1);
     if (under_numpix > 0) pu = MAX(pu, 1);
-    *over  = po >  15; // 0.15 % highlight ignore
-    *under = pu > 250; // 2.50 % shadow ignore
+    *over  = po >    20; // 0.02% highlight ignore
+    *under = pu > 10000; // 10% shadow ignore
+
+    printf("[ABRK] over:%3d.%02d%% %s 0.02%% under:%3d.%02d%% %s 10%%\n",
+        po/1000, (po/10)%100, 0, *over ? ">" : "<", 0,
+        pu/1000, (pu/10)%100, 0, *under ? ">" : "<", 0
+    );
+
     bmp_printf(
         FONT_LARGE, 50, 50, 
-        "Under:%3d.%02d%%\n"
-        "Over :%3d.%02d%%", 
-        pu/100, pu%100, 0, 
-        po/100, po%100, 0
+        "Over :%3d.%02d%%\n"
+        "Under:%3d.%02d%%",
+        po/1000, (po/10)%100, 0,
+        pu/1000, (pu/10)%100, 0 
     ); 
+
     msleep(500);
 }
 
 static int hdr_shutter_release_then_check_for_under_or_over_exposure(int ev_x8, int* under, int* over)
 {
-    int ans = hdr_shutter_release(ev_x8);
+    int ok = hdr_shutter_release(ev_x8);
     hdr_check_for_under_or_over_exposure(under, over);
-    return ans;
+    if (!ok) printf("[ABRK] exposure limits reached.\n");
+    return ok;
 }
 
 static void hdr_auto_take_pics(int step_size, int skip0)
@@ -4931,7 +4964,7 @@ static void hdr_take_pics(int steps, int step_size, int skip0)
         hdr_auto_take_pics(step_size, skip0);
         return;
     }
-    //~ NotifyBox(2000, "hdr_take_pics: %d, %d, %d", steps, step_size, skip0); msleep(2000);
+    //printf("hdr_take_pics: %d, %d, %d\n", steps, step_size, skip0);
     int i;
     
     // make sure it won't autofocus
@@ -5095,7 +5128,7 @@ void hdr_shot(int skip0, int wait)
 #ifdef FEATURE_HDR_BRACKETING
     if (is_hdr_bracketing_enabled())
     {
-        //~ NotifyBox(1000, "HDR shot (%dx%dEV)...", hdr_steps, hdr_stepsize/8); msleep(1000);
+        printf("[ABRK] HDR sequence (%dx%dEV)...\n", hdr_steps, hdr_stepsize/8);
         lens_wait_readytotakepic(64);
 
         int drive_mode_bak = set_drive_single();
@@ -5104,6 +5137,7 @@ void hdr_shot(int skip0, int wait)
 
         lens_wait_readytotakepic(64);
         if (drive_mode_bak >= 0) lens_set_drivemode(drive_mode_bak);
+        printf("[ABRK] HDR sequence finished.\n");
     }
     else // regular pic (not HDR)
 #endif
@@ -5127,55 +5161,6 @@ void schedule_movie_start() { movie_start_flag = 1; }
 static int movie_end_flag = 0;
 void schedule_movie_end() { movie_end_flag = 1; }
 
-/* exit from PLAY or QR modes (to LiveView or plain photo mode) */
-void exit_play_qr_mode()
-{
-    /* not there? */
-    if (!PLAY_OR_QR_MODE) return;
-
-    /* request new mode */
-    SetGUIRequestMode(0);
-    
-    /* wait up to 2 seconds */
-    for (int i = 0; i < 20 && PLAY_MODE; i++)
-    {
-        msleep(100);
-    }
-    
-    /* wait a little extra for the new mode to settle */
-    msleep(200);
-    
-    /* if in LiveView, wait for the first frame */
-    if (lv)
-    {
-        wait_lv_frames(1);
-    }
-}
-
-/* enter PLAY mode */
-void enter_play_mode()
-{
-    if (PLAY_MODE) return;
-    
-    /* request new mode */
-    SetGUIRequestMode(GUIMODE_PLAY);
-
-    /* wait up to 2 seconds to enter the PLAY mode */
-    for (int i = 0; i < 20 && !PLAY_MODE; i++)
-    {
-        msleep(100);
-    }
-
-    /* also wait for display to come up, up to 1 second */
-    for (int i = 0; i < 10 && !DISPLAY_IS_ON; i++)
-    {
-        msleep(100);
-    }
-    
-    /* wait a little extra for the new mode to settle */
-    msleep(200);
-}
-
 // take one shot, a sequence of HDR shots, or start a movie
 // to be called by remote triggers
 void remote_shot(int wait)
@@ -5190,11 +5175,7 @@ void remote_shot(int wait)
     }
     else
     #endif
-    if (is_movie_mode())
-    {
-        movie_start();
-    }
-    else if (is_hdr_bracketing_enabled())
+    if (is_hdr_bracketing_enabled())
     {
         hdr_shot(0, wait);
     }
@@ -5480,6 +5461,8 @@ int is_continuous_drive()
 
 int take_fast_pictures( int number )
 {
+    AcquireRecursiveLock(shoot_task_rlock, 0);
+
     int canceled = 0;
     // take fast pictures
 #ifdef CONFIG_PROP_REQUEST_CHANGE
@@ -5518,6 +5501,8 @@ int take_fast_pictures( int number )
             if(canceled) break;
         }
     }
+
+    ReleaseRecursiveLock(shoot_task_rlock);
     return canceled;
 }
 
@@ -5648,7 +5633,12 @@ shoot_task( void* unused )
 
     /* creating a message queue primarily for interrupting sleep to repaint immediately */
     shoot_task_mqueue = (void*)msg_queue_create("shoot_task_mqueue", 1);
-    
+
+    /* use a recursive lock for photo capture functions that may be called both from this task, or from other tasks */
+    /* fixme: refactor and use semaphores, with thread safety annotations */
+    shoot_task_rlock = CreateRecursiveLock(1);
+    AcquireRecursiveLock(shoot_task_rlock, 0);
+
     #ifdef FEATURE_MLU
     mlu_selftimer_update();
     #endif
@@ -5681,7 +5671,11 @@ shoot_task( void* unused )
         {
             delay = MIN_MSLEEP;
         }
+
+        /* allow other tasks to take pictures while we are sleeping */
+        ReleaseRecursiveLock(shoot_task_rlock);
         int err = msg_queue_receive(shoot_task_mqueue, (struct event**)&msg, delay);        
+        AcquireRecursiveLock(shoot_task_rlock, 0);
 
         priority_feature_enabled = 0;
 
@@ -5848,7 +5842,7 @@ shoot_task( void* unused )
             }
         }
         #endif
-        
+
         if (picture_was_taken_flag) // just took a picture, maybe we should take another one
         {
             if (NOT_RECORDING)
@@ -5857,7 +5851,7 @@ shoot_task( void* unused )
                 if (is_hdr_bracketing_enabled())
                 {
                     lens_wait_readytotakepic(64);
-                    hdr_shot(1,1); // skip the middle exposure, which was just taken
+                    hdr_shot(1,1); // skip the first image, which was just taken
                     lens_wait_readytotakepic(64); 
                 }
                 #endif
@@ -6431,7 +6425,7 @@ void iso_refresh_display() // in photo mode
             bmp_fill(bg, MENU_DISP_ISO_POS_X, MENU_DISP_ISO_POS_Y-10, 175, 85);
             char msg[30];
             snprintf(msg, sizeof(msg), "%d ", raw2iso(lens_info.raw_iso));
-            int w = bfnt_draw_char(ICON_ISO, MENU_DISP_ISO_POS_X + 5, MENU_DISP_ISO_POS_Y + 10, COLOR_FG_NONLV, bg);
+            int w = bfnt_draw_char(ICON_ISO, MENU_DISP_ISO_POS_X + 5, MENU_DISP_ISO_POS_Y + 10, COLOR_FG_NONLV, NO_BG_ERASE);
             bmp_printf(FONT(FONT_CANON, COLOR_FG_NONLV, bg), MENU_DISP_ISO_POS_X + w + 10, MENU_DISP_ISO_POS_Y + 10, msg);
         }
     }

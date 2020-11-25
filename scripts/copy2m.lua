@@ -1,4 +1,5 @@
---copies the shutter, aperture, and iso of the current mode when switching to M mode
+-- Copy exposure to M
+-- Copies current Tv, Av and ISO when switching to M mode
 require("config")
 
 --class to keep track of property values using prophandlers
@@ -74,9 +75,9 @@ end
 
 copy2m_menu = menu.new
 {
-    parent  = "Prefs",
-    name    = "Copy To M",
-    help    = "Copy exposure settings when switching to M",
+    parent  = "Copy exposure to M",
+    name    = "Enabled",
+    help    = "Copy exposure settings (Tv, Av, ISO) when switching to M.",
     choices = {"OFF","ON"},
     value   = "OFF"
 }

@@ -1,7 +1,7 @@
 #ifndef _zebra_h_
 #define _zebra_h_
 
-#include "gui-common.h"
+#include "dryos.h"
 
 /* return true if Canon display is in idle state (ready for shooting) */
 /* to be cleaned up and moved together */
