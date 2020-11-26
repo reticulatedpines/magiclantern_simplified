@@ -418,6 +418,7 @@ unsigned int eos_handle_memdiv( unsigned int parm, EOSState *s, unsigned int add
 unsigned int eos_handle_rom_id( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_adtg_dma ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 
+unsigned int eos_handle_boot_digic8 ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value );
 
 void eos_set_mem_w ( EOSState *s, uint32_t addr, uint32_t val );

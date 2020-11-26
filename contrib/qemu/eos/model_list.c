@@ -647,6 +647,44 @@ struct eos_model_desc eos_model_list[] = {
         .mmio_size              = 0x1F000000,
         .current_task_addr      = 0x20,         /* fixme: read from virtual memory */
     },
+/*************************** DIGIC VIII ********************************/
+    {
+        // defaults for DIGIC 8 cameras
+        .digic_version          = 8,
+        .firmware_start         = 0xE0040000,   // M50: same as D7
+        .bootflags_addr         = 0xE1FF8000,
+        .rom0_addr              = 0xE0000000,
+        .rom0_size              = 0x02000000,
+        .rom1_addr              = 0xF0000000,
+        .rom1_size              = 0x01000000,
+      //.ram_size               = 0x40000000,   // prefer to specify exact size for each model
+        .caching_bit            = 0x40000000,
+        .mmio_addr              = 0xBFE00000,   // fixme: BFE is configured as regular RAM, but certain values are expected
+        .mmio_size              = 0x1F200000,
+        .ram_extra_addr[0]      = 0xDF000000,
+        .ram_extra_size[0]      = 0x01000000,
+        .current_task_name_offs = 0x09,
+        .dryos_timer_id         = 1,
+       .dryos_timer_interrupt  = 0x1B,
+        .hptimer_interrupt      = 0x28,
+        .sd_driver_interrupt    = 0xEE,         // M50: OK
+        .sd_dma_interrupt       = 0xBE,
+    },
+    {
+        .name                   = MODEL_NAME_M50,
+        .digic_version          = 8,
+        .ram_size               = 0x40000000,   // 1GB
+        .card_led_address       = 0xD01300E4,
+        .current_task_addr      = 0x28,         // fixme: read from virtual memory
+        .uart_rx_interrupt      = 0x15D,
+        .uart_tx_interrupt      = 0x16D,
+      //.serial_flash_size      = 0x1000000,
+      //.serial_flash_sio_ch    = 10,
+      //.serial_flash_interrupt = 0xFE,
+      //.serial_flash_cs_register = 0xD01302B4,
+      //.serial_flash_cs_bitmask  = 0x00010000, // 0xC0003 / 0xD0002
+        .dedicated_movie_mode   = 0,
+    },
     {
         .name = NULL,
         .digic_version = 0,
