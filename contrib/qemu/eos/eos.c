@@ -467,13 +467,16 @@ EOSRegionHandler eos_handlers[] =
     { "Interrupt",    0xD5011000, 0xD5011FFF, eos_handle_intengine, 2 },    // second core in D7
     { "Interrupt",    0xD02C0200, 0xD02C02FF, eos_handle_intengine, 3 },    // 5D3 eeko
     { "Interrupt",    0xC1000000, 0xC100FFFF, eos_handle_intengine_gic, 7 },// D7
+    { "Interrupt",    0xD0211000, 0xD0211FFF, eos_handle_intengine, 8 },    /* first core in D8 */
     { "Multicore",    0xC1100000, 0xC110FFFF, eos_handle_multicore, 7 },    // D7
     { "Timers",       0xC0210000, 0xC0210FFF, eos_handle_timers, 0 },       // DIGIC 4/5/6 countdown timers
     { "Timers",       0xD02C1500, 0xD02C15FF, eos_handle_timers, 2 },       // Eeko countdown timer
     { "Timer",        0xC0242014, 0xC0242014, eos_handle_digic_timer, 0 },
     { "Timer",        0xD400000C, 0xD400000C, eos_handle_digic_timer, 1 },
     { "Timer",        0xD9820014, 0xD9820014, eos_handle_digic_timer, 2 },  // D7: maybe? firmware waits for this register to change
+    { "Timer",        0xD020000C, 0xD020000C, eos_handle_digic_timer, 3 },  /* D8 */
     { "UTimer",       0xD4000240, 0xD4000440, eos_handle_utimer, 1 },       // D6: timers 9...16
+    { "UTimer",       0xD0200240, 0xD0200440, eos_handle_utimer, 2 },       /* D8: same? */
     { "HPTimer",      0xC0243000, 0xC0243FFF, eos_handle_hptimer, 0 },      // DIGIC 2/3/4/5/6 HPTimers
     { "GPIO",         0xC0220000, 0xC022FFFF, eos_handle_gpio, 0 },
     { "Basic",        0xC0100000, 0xC0100FFF, eos_handle_basic, 0 },
@@ -487,6 +490,7 @@ EOSRegionHandler eos_handlers[] =
     { "SDIO86",       0xC8060000, 0xC8060FFF, eos_handle_sdio, 0x86 },
     { "SFIO87",       0xC8070000, 0xC8070FFF, eos_handle_sfio, 0x87 },
     { "SFIO88",       0xC8080000, 0xC8080FFF, eos_handle_sfio, 0x88 },
+    { "SDIOM50",      0xD0740000, 0xD0740FFF, eos_handle_sdio, 0x50 },
     { "ADTGDMA",      0xC0500060, 0xC050007F, eos_handle_adtg_dma, 0 },
     { "UartDMA",      0xC05000C0, 0xC05000DF, eos_handle_uart_dma, 0 },
     { "CFDMA0*",      0xC0500000, 0xC05000FF, eos_handle_cfdma, 0x0F },
@@ -500,6 +504,7 @@ EOSRegionHandler eos_handlers[] =
     { "SDDMA82*",     0xC8020000, 0xC80200FF, eos_handle_sddma, 0x82F },
     { "SFDMA83*",     0xC8030000, 0xC80300FF, eos_handle_sfdma, 0x83F },
     { "SFDMA84*",     0xC8040000, 0xC80400FF, eos_handle_sfdma, 0x84F },
+    { "SDDMAM50",     0xD0710000, 0xD0710FFF, eos_handle_sddma, 0x50 },
     { "CFATA0",       0xC0600000, 0xC060FFFF, eos_handle_cfata, 0 },
     { "CFATA2",       0xC0620000, 0xC062FFFF, eos_handle_cfata, 2 },
     { "CFATA16",      0xC0700000, 0xC070FFFF, eos_handle_cfata, 0x10 },
@@ -515,6 +520,8 @@ EOSRegionHandler eos_handlers[] =
     { "SIO6",         0xC0820600, 0xC08206FF, eos_handle_sio, 6 },
     { "SIO7",         0xC0820700, 0xC08207FF, eos_handle_sio, 7 },
     { "SIO8",         0xC0820800, 0xC08208FF, eos_handle_sio, 8 },
+    { "SIO9",         0xC0820900, 0xC08209FF, eos_handle_sio, 9 },
+    { "SIO10",        0xC0820A00, 0xC0820AFF, eos_handle_sio, 10 },
     { "MREQ",         0xC0203000, 0xC02030FF, eos_handle_mreq, 0 },
     { "DMA1",         0xC0A10000, 0xC0A100FF, eos_handle_dma, 1 },
     { "DMA2",         0xC0A20000, 0xC0A200FF, eos_handle_dma, 2 },
@@ -555,6 +562,9 @@ EOSRegionHandler eos_handlers[] =
     { "XDMAC7",       0xC9200000, 0xC920003F, eos_handle_xdmac7, 0 },
     { "XDMAC7",       0xC9200040, 0xC920007F, eos_handle_xdmac7, 1 },
     { "XDMAC7",       0xC9200080, 0xC92000BF, eos_handle_xdmac7, 2 },
+  //{ "XDMAC8",       0xC9200D00, 0xC9200D3F, eos_handle_xdmac8, 0 },   /* not implemented */
+  //{ "XDMAC8",       0xC9200D40, 0xC9200D7F, eos_handle_xdmac8, 1 },
+  //{ "XDMAC8",       0xC9200D80, 0xC9200DBF, eos_handle_xdmac8, 2 },
 
     { "MEMDIV",       0xD9001600, 0xD900FFFF, eos_handle_memdiv, 0 },
 
@@ -563,6 +573,8 @@ EOSRegionHandler eos_handlers[] =
 
     { "DIGIC6",       0xD0000000, 0xDFFFFFFF, eos_handle_digic6, 0 },
     { "DIGIC6",       0xC8100000, 0xC8100FFF, eos_handle_digic6, 1 },
+
+    { "BOOT8",        0xBFE01FC4, 0xBFE01FCF, eos_handle_boot_digic8, 0 },
 
     { "ML helpers",   0xCF123000, 0xCF1230FF, eos_handle_ml_helpers, 0 },
     { "ML helpers",   0xC0123400, 0xC01234FF, eos_handle_ml_helpers, 1 },
@@ -1434,7 +1446,8 @@ static void eos_update_display(void *parm)
             &first, &last
         );
     }
-    else if (strcmp(s->model->name, MODEL_NAME_EOSM3) == 0)
+    else if (strcmp(s->model->name, MODEL_NAME_EOSM3) == 0 ||
+             strcmp(s->model->name, MODEL_NAME_M50) == 0)
     {
         uint64_t size = height * s->disp.bmp_pitch;
         MemoryRegionSection section = memory_region_find(
@@ -1610,6 +1623,7 @@ static void *eos_init_cpu(EOSState *s)
         (s->model->digic_version <= 4) ? "arm946-eos-arm-cpu"    :  // apparently the same for DIGIC 2, 3 and 4
         (s->model->digic_version == 5) ? "arm946-eos5-arm-cpu"   :  // minor differences
         (s->model->digic_version == 7) ? "cortex-a9-eos-arm-cpu" :  // dual core
+        (s->model->digic_version == 8) ? "cortex-a9-eos" :          // same as D7?
         (s->model->digic_version >= 6) ? "cortex-r4-eos-arm-cpu" :  // also used on Eeko (fake version 50)
                                          "arm946-arm-cpu";          // unused here
     
@@ -1928,7 +1942,8 @@ static void eos_init_common(EOSState *s)
         fprintf(stderr, "Start address: 0x%08X\n", s->cpu0->env.regs[15]);
     }
 
-    if (s->model->digic_version == 7)
+    if (s->model->digic_version == 7 ||
+        s->model->digic_version == 8)
     {
         /* fixme: what configures this address as startup? */
         s->cpu0->env.regs[15] = 0xE0000000;
@@ -2427,7 +2442,9 @@ unsigned int eos_handle_intengine(unsigned int parm, EOSState *s, unsigned int a
     {
         case 0xC0201000:    /* DIGIC 2,3 */
         case 0xC0201004:    /* DIGIC 4,5 (returns irq_id << 2) */
-        case 0xD4011000:    /* DIGIC 6 */
+        case 0xD4011000:    /* DIGIC 6,7 */
+        case 0xD0211000:    /* DIGIC 8 */
+
         case 0xD02C0290:    /* 5D3 EEKO */
             if(type & MODE_WRITE)
             {
@@ -2455,7 +2472,8 @@ unsigned int eos_handle_intengine(unsigned int parm, EOSState *s, unsigned int a
             break;
 
         case 0xC0201010:    /* DIGIC <= 5 */
-        case 0xD4011010:    /* DIGIC 6 */
+        case 0xD4011010:    /* DIGIC 6,7 */
+        case 0xD0211010:    /* DIGIC 8 */
         case 0xD02C029C:    /* 5D3 EEKO */
             if(type & MODE_WRITE)
             {
@@ -2483,7 +2501,8 @@ unsigned int eos_handle_intengine(unsigned int parm, EOSState *s, unsigned int a
             break;
 
         case 0xC0201200:    /* DIGIC <= 5 */
-        case 0xD4011200:    /* DIGIC 6 */
+        case 0xD4011200:    /* DIGIC 6,7 */
+        case 0xD0211200:    /* DIGIC 8 */
         case 0xD02C02CC:    /* 5D3 EEKO */
             if(type & MODE_WRITE)
             {
@@ -2912,7 +2931,8 @@ static int eos_handle_card_led( unsigned int parm, EOSState *s, unsigned int add
     if (type & MODE_WRITE)
     {
         if (s->model->digic_version == 6 ||
-            s->model->digic_version == 7)
+            s->model->digic_version == 7 ||
+            s->model->digic_version == 8)
         {
             s->card_led = 
                 ((value & 0x0F000F) == 0x0D0002) ?  1 :
@@ -5790,6 +5810,28 @@ unsigned int eos_handle_rom_id( unsigned int parm, EOSState *s, unsigned int add
     return ret;
 }
 
+unsigned int eos_handle_boot_digic8( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
+{
+    const char * msg = 0;
+    unsigned int ret = 0;
+
+    static uint32_t boot_addr;
+
+    switch (address)
+    {
+        case 0xBFE01FC4:
+            msg = "Flags?";
+            break;
+
+        case 0xBFE01FC8:
+            msg = "Boot address?";
+            MMIO_VAR(boot_addr);
+            break;
+    }
+
+    io_log("BOOT8", s, address, type, value, ret, msg, 0, 0);
+    return ret;
+}
 
 unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int address, unsigned char type, unsigned int value )
 {
@@ -5848,7 +5890,10 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
         case 0xD2030000:    /* M3: memif_wait_us */
         case 0xD20F0000:    /* M3: many reads from FC000382, value seems ignored */
             return 0;
-        
+
+        case 0xD0304238:    /* M50 */
+            value = (value & 0xFFFF) / 2 | (value & 0xFFFF0000);
+            /* fall through */
         case 0xD2013800:    /* D6 */
         case 0xD201381C:    /* D6 */
         case 0xD2018200:    /* 5D4 */
@@ -5876,11 +5921,13 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
             break;
 
         case 0xD2018228:    /* 5D4 */
+        case 0xD0304230:    /* M50 */
             msg = "BMP VRAM";
             MMIO_VAR(s->disp.bmp_vram);
             break;
         
         case 0xD201822C:    /* 5D4 */
+        case 0xD0304234:    /* M50 */
             msg = "BMP pitch";
             MMIO_VAR(s->disp.bmp_pitch);
             break;
@@ -6032,7 +6079,60 @@ unsigned int eos_handle_digic6 ( unsigned int parm, EOSState *s, unsigned int ad
             msg = "Wake up CPU1?";       /* M5: wake up the second CPU? */
             assert(s->cpu1);
             CPU(s->cpu1)->halted = 0;
+            printf(KLRED"Wake up CPU1\n"KRESET);
             break;
+
+        case 0xD0110404:
+            msg = "Wake up CPU1?";       /* M50: wake up the second CPU? */
+            assert(s->cpu1);
+            CPU(s->cpu1)->halted = 0;
+            printf(KLRED"Wake up CPU1\n"KRESET);
+            ret = 1;
+            break;
+
+        case 0xD7100014:
+        case 0xD7100020:
+        case 0xD7100000:
+        case 0xD0740010:
+        case 0xD98000BC:
+        case 0xDE000000:
+        case 0xDE000014:
+        case 0xDE000020:
+        case 0xD7301000:
+            msg = "M50 loop";
+            ret = rand();
+            break;
+
+        case 0xD01302B4:
+            msg = "EEP_CS2";
+            break;
+
+        case 0xD01322B4:
+            msg = "EEP_CS2 ack";
+            ret = (rand() & 1) ? 0xD0002 : 0xC0003;
+            break;
+
+        case 0xD0213024:
+            msg = "SubCPU ack?";
+            break;
+
+        case 0xD02100AC:
+            msg = "SubCPU wakeup?";
+            //~ eos_trigger_int(s, 0x19A, 1000);
+            break;
+
+        case 0xD0040000:
+            msg = "Busy waiting?";
+            if (!qemu_loglevel_mask(EOS_LOG_VERBOSE)) {
+                /* quiet */
+                return 0;
+            }
+            break;
+
+        case 0xD0132280:
+            msg = "M50 SD detect";
+            ret = 0;
+            //~ ret = 0x10000;
     }
     
     io_log("DIGIC6", s, address, type, value, ret, msg, 0, 0);
