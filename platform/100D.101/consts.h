@@ -21,7 +21,6 @@
 #define HIJACK_FIXBR_BZERO32 0xFF0C1BE0
 #define HIJACK_FIXBR_CREATE_ITASK 0xFF0C1C6C
 #define HIJACK_INSTR_MY_ITASK 0xFF0C1C88
-#define HIJACK_TASK_ADDR 0x652ac // FIXME take this out when new task code is ported
 
 // Used in boot-hack.c with CONFIG_ALLOCATE_MEMORY_POOL
 #define ROM_ITASK_START             0xFF0C56BC      /* init_task start */
