@@ -10,6 +10,7 @@
 
 #undef FEATURE_WIND_FILTER //Blocks Meters, esp external audio
 #undef FEATURE_HEADPHONE_MONITORING // need code on master (?)
+#undef FEATURE_HEADPHONE_OUTPUT_VOLUME
 
 //~ #define FEATURE_VIDEO_HACKS // unclean patching
 
