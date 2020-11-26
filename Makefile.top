@@ -49,7 +49,7 @@ H := \#
 INSTALL_ALL_SCRIPTS = \
 	$(call build,SCRIPTS,\
 		for f in $(shell find $(SCRIPT_DIR) -type f -name *.lua); do \
-			dst=$(INSTALL_SCRIPTS_DIR)/$${f$H$H(SCRIPT_DIR)/}; \
+			dst=$(INSTALL_SCRIPTS_DIR)/$${f$H$H$(SCRIPT_DIR)/}; \
 			dstdir=`dirname $$dst`; \
 			$(MKDIR) -p $$dstdir; \
 			$(CP) $$f $$dst; \
