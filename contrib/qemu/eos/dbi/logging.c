@@ -1016,7 +1016,9 @@ static void eos_callstack_log_exec(EOSState *s, CPUState *cpu, TranslationBlock 
     uint32_t prev_pc0 = prev_pc & ~1;
 
     uint32_t vbar = env->cp15.vbar_s;
-    assert(vbar == 0 || s->model->digic_version == 7);
+    assert(vbar == 0 || s->model->digic_version == 7 || s->model->digic_version == 8
+        || s->model->digic_version == 10);
+
 
     /* tb->pc always has the Thumb bit cleared */
     assert(pc0 == tb->pc);
