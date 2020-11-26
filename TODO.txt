@@ -7,16 +7,17 @@ If neither exist, NO_SOURCE_CONTROL or something.
 ====
 
 ====
-Update QEMU
-Qemu 2.5.0 is old (2015) and requires Python 2.  You can specify which
-python interpreter to use with --python=/path/to/python2
+Qemu 4.2.1 needs testing on more roms.  Ideally, make
+a testing system that isn't so dependent on checksums
+of screenshots, since this is fragile and hard to debug.
 
-2.5.0 doesn't compile with GCC 9 or later without some hacking around,
-as these GCC will give more warnings and -Werror is set.  You can
-add exceptions in configure via QEMU_CFLAGS, a better solution is
-the update as upstream has fixed the causes.
+OpenCV?  ssdeep?
+====
 
-QEMU_CFLAGS="-Wno-address-of-packed-member -Wno-format-truncation -Wno-stringop-truncation $QEMU_CFLAGS"
+====
+Work out what leaves .lds files lying around, and fix it.
+I think this may be Qemu install.sh.
+Or, add matches to .gitignore & .hgignore.
 ====
 
 ====
@@ -28,4 +29,63 @@ will succeed) but downstream testing and ML module generation is
 presumably broken.
 ====
 
+
+
+
 DONE
+
+====
+lua_fix merge to dev.
+
+This branch seems to have multiple different projects
+at once.  Major pieces so far identified:
+
+ - lua changes
+ - button changes, names change across multiple cams
+ - menu config changes (possibly Lua related?)
+   see e.g. src/config.c
+ - src/gui-common.c changes - might be related to above
+   menu config changes?
+ - use of e.g. COLOR_WHITE macros.  May need to be
+   careful here as I made changes separately as some of
+   these macros had name collisions that I corrected.
+
+ - task changes.  See my_task_dispatch_hook.  Also,
+   I recall some d6-dumper note about calle2010 or
+   chris_overseas porting / changing some task code,
+   that needs checking.
+
+ - edmac module (possibly 100D related?  Not checked)
+ - changes to src/raw.c, which look edmac related
+
+ - 100D support (moved out of unmaintained)
+ - timer changes (moved from dryos.h into timer.h)
+ - EM_SHOW_LIVEVIEW name change
+
+ - some 6D fixes to stubs?  Which version is correct?
+
+ - lens / focus stuff
+
+ - audio changes?  Possibly Lua related but I think distinct
+   e.g. src/audio-lapis.c
+
+ - adv_int / Advanced Intervalometer
+====
+
+====
+Update QEMU
+Qemu 2.5.0 is old (2015) and requires Python 2.  You can specify which
+python interpreter to use with --python=/path/to/python2
+
+2.5.0 doesn't compile with GCC 9 or later without some hacking around,
+as these GCC will give more warnings and -Werror is set.  You can
+add exceptions in configure via QEMU_CFLAGS, a better solution is
+the update as upstream has fixed the causes.
+
+QEMU_CFLAGS="-Wno-address-of-packed-member -Wno-format-truncation -Wno-stringop-truncation $QEMU_CFLAGS"
+
+This is mostly done; good enough for testing.
+Current target is Qemu 4.2.1.
+This works with at least 50D rom, with boot=0 or boot=1,
+full GUI, with ML GUI if chosen.
+====
