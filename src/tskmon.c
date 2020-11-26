@@ -238,15 +238,18 @@ null_pointer_check()
             int bad = *(int*)0;
             *(int*)0 = value_at_zero;
 
-            uint32_t id = (tskmon_last_task->taskId) & (TSKMON_MAX_TASKS-1);
-
-            char* task_name = get_task_name_from_id(id);
+            /* which task caused this error? */
+            int id = tskmon_last_task ? tskmon_last_task->taskId : -1;
+            const char * task_name = tskmon_last_task ? tskmon_last_task->name : "?";
 
             // Ignore Canon null pointer bugs (let's hope they are harmless...)
-            
-            if (isupper(task_name[0])) // Canon tasks are named with uppercase letters, ML tasks are lowercase
+            if (isupper(task_name[0]))
+            {
+                // Canon tasks are named with uppercase letters, ML tasks are lowercase
                 return;
-            
+            }
+
+            /* for reference only */
             #if 0
             #if defined(CONFIG_60D) || defined(CONFIG_1100D) || defined(CONFIG_600D)
             /* [60D]   AeWB -> pc=ff07cb10
@@ -298,12 +301,20 @@ null_pointer_check()
                 id, task_name,
                 bad, ok
             );
-            STR_APPEND(msg, "pc=%8x lr=%8x stack=%x+0x%x\n", tskmon_last_task->context->pc, tskmon_last_task->context->lr, tskmon_last_task->stackStartAddr, tskmon_last_task->stackSize);
-            STR_APPEND(msg, "entry=%x(%x)\n", tskmon_last_task->entry, tskmon_last_task->arg);
-            STR_APPEND(msg, "%8x %8x %8x %8x\n%8x %8x %8x %8x\n", *(uint32_t*)0, *(uint32_t*)4, *(uint32_t*)8, *(uint32_t*)0xc, *(uint32_t*)0x10, *(uint32_t*)0x14, *(uint32_t*)0x18, *(uint32_t*)0x1c);
+
+            if (tskmon_last_task)
+            {
+                STR_APPEND(msg, "pc=%8x lr=%8x stack=%x+0x%x\n", tskmon_last_task->context->pc, tskmon_last_task->context->lr, tskmon_last_task->stackStartAddr, tskmon_last_task->stackSize);
+                STR_APPEND(msg, "entry=%x(%x)\n", tskmon_last_task->entry, tskmon_last_task->arg);
+                STR_APPEND(msg, "%8x %8x %8x %8x\n%8x %8x %8x %8x\n", *(uint32_t*)0, *(uint32_t*)4, *(uint32_t*)8, *(uint32_t*)0xc, *(uint32_t*)0x10, *(uint32_t*)0x14, *(uint32_t*)0x18, *(uint32_t*)0x1c);
+            }
 
             ml_crash_message(msg);
-            request_core_dump(tskmon_last_task->stackStartAddr, tskmon_last_task->stackSize);
+
+            if (tskmon_last_task)
+            {
+                request_core_dump(tskmon_last_task->stackStartAddr, tskmon_last_task->stackSize);
+            }
         }
     }
 }
@@ -312,15 +323,14 @@ null_pointer_check()
 /* if we don't, gcc inserts a UDF instruction at the end of tskmon_task_dispatch */
 /* could it be a gcc bug? */
 void __attribute__((optimize("-fno-delete-null-pointer-checks")))
-tskmon_task_dispatch()
+tskmon_task_dispatch(struct task * next_task)
 {
-#ifdef HIJACK_TASK_ADDR
-
     if (RECORDING_RAW)
     {
         /* we need full speed; these checks might cause a small performance hit */
         /* keep the null pointer check, as some Canon tasks may cause errors that should be ignored */
         null_pointer_check();
+        tskmon_last_task = next_task;
         return;
     }
     
@@ -329,8 +339,6 @@ tskmon_task_dispatch()
         /* 5D2 locks up, even with loop of of asm("nop"); maybe others too? */
         return;
     }
-
-    struct task *next_task = *(struct task **)(HIJACK_TASK_ADDR);
 
     tskmon_stack_checker(next_task);
     tskmon_update_timers();
@@ -366,7 +374,6 @@ tskmon_task_dispatch()
         tskmon_active_time = 0;
         tskmon_last_task = next_task;
     }
-#endif
 }
 
 #ifdef CONFIG_ISR_HOOKS

@@ -209,7 +209,7 @@ static MENU_UPDATE_FUNC(expsim_display)
                 MENU_SET_WARNING(MENU_WARN_ADVICE, "Expo Override is active, LiveView exposure may be incorrect.");
             }
         }
-        else if (shooting_mode == SHOOTMODE_M && !lens_info.name[0])  /* Canon's LiveView underexposure bug with manual lenses */
+        else if (shooting_mode == SHOOTMODE_M && !lens_info.lens_exists)  /* Canon's LiveView underexposure bug with manual lenses */
         {
             MENU_SET_WARNING(MENU_WARN_ADVICE, "LiveView exposure may be incorrect. Enable expo override to fix it.");
         }
@@ -406,45 +406,6 @@ static void playback_set_wheel_action(int dir)
     {};
 }
 #endif
-
-int is_pure_play_photo_mode() // no other dialogs active (such as delete)
-{
-    if (!PLAY_MODE) return 0;
-#ifdef CONFIG_5DC
-    return 1;
-#else
-    extern thunk PlayMain_handler;
-    return (intptr_t)get_current_dialog_handler() == (intptr_t)&PlayMain_handler;
-#endif
-}
-
-int is_pure_play_movie_mode() // no other dialogs active (such as delete)
-{
-    if (!PLAY_MODE) return 0;
-#ifdef CONFIG_VXWORKS
-    return 0;
-#else
-    extern thunk PlayMovieGuideApp_handler;
-    return (intptr_t)get_current_dialog_handler() == (intptr_t)&PlayMovieGuideApp_handler;
-#endif
-}
-
-int is_pure_play_photo_or_movie_mode() { return is_pure_play_photo_mode() || is_pure_play_movie_mode(); }
-
-int is_play_or_qr_mode()
-{
-    return PLAY_OR_QR_MODE;
-}
-
-int is_play_mode()
-{
-    return PLAY_MODE;
-}
-
-int is_menu_mode()
-{
-    return MENU_MODE;
-}
 
 #ifdef FEATURE_SET_MAINDIAL
 
@@ -2755,20 +2716,20 @@ static void grayscale_menus_step()
 
     prev_sig = sig;
 
-    #ifdef CONFIG_5D3
     if (get_yuv422_vram()->vram == 0 && !lv)
     {
         /* 5D3-123 quirk: YUV422 RAM is not initialized until going to LiveView or Playback mode
          * (and even there, you need a valid image first)
          * Workaround: if YUV422 was not yet initialized by Canon, remove the transparency from color 0 (make it black).
          * 
-         * Any other cameras requiring this? Probably not, since the quirk is likely related to the dual monitor support.
+         * Any other cameras requiring this? At least 6D shows artifacts in QEMU when running benchmarks
+         * or playing Arkanoid. 700D and 1100D also have uninitialized buffer. 550D and 600D are OK.
+         * No side effects on cameras that don't need this workaround => always enabled.
          * 
          * Note: alter_bitmap_palette will not affect color 0, so it will not break this workaround (yet).
          */
         alter_bitmap_palette_entry(0, COLOR_BLACK, 256, 256);
     }
-    #endif
 
     if (bmp_color_scheme || prev_b)
     {
