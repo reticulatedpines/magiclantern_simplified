@@ -687,6 +687,18 @@ struct eos_model_desc eos_model_list[] = {
         .dedicated_movie_mode   = 0,
     },
     {
+        .name                   = MODEL_NAME_EOSRP,
+        .digic_version          = 8,
+        .ram_size               = 0x40000000,   /* unknown. assuming 1GB for now */
+        .card_led_address       = 0xD208016C,   // invalid: taken 1:1 from 200D. TODO: find correct address.
+        .current_task_addr      = 0x28,         /* fixme: read from virtual memory */
+        .uart_rx_interrupt      = 0x15D,        // TODO: taken from 200D. Probably valid but Has to be validated.
+        .uart_tx_interrupt      = 0x16D,        // TODO: taken from 200D. Probably valid but Has to be validated.
+        .rom0_size              = 0x02000000,   /* 32MB (main ROM) */
+        .rom1_size              = 0x02000000,   /* 32MB (secondary ROM) */
+        .dedicated_movie_mode   = 0,            // camera has support for it. TODO: Set to 1 when implementing it.
+    },
+    {
         .name = NULL,
         .digic_version = 0,
     }
