@@ -1623,7 +1623,7 @@ static void *eos_init_cpu(EOSState *s)
         (s->model->digic_version <= 4) ? "arm946-eos-arm-cpu"    :  // apparently the same for DIGIC 2, 3 and 4
         (s->model->digic_version == 5) ? "arm946-eos5-arm-cpu"   :  // minor differences
         (s->model->digic_version == 7) ? "cortex-a9-eos-arm-cpu" :  // dual core
-        (s->model->digic_version == 8) ? "cortex-a9-eos" :          // same as D7?
+        (s->model->digic_version == 8) ? "cortex-a9-eos-arm-cpu" :  // same as D7?
         (s->model->digic_version >= 6) ? "cortex-r4-eos-arm-cpu" :  // also used on Eeko (fake version 50)
                                          "arm946-arm-cpu";          // unused here
     
