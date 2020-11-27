@@ -669,6 +669,7 @@ struct eos_model_desc eos_model_list[] = {
         .hptimer_interrupt      = 0x28,
         .sd_driver_interrupt    = 0xEE,         // M50: OK
         .sd_dma_interrupt       = 0xBE,
+        .max_cpus               = 2,
     },
     {
         .name                   = MODEL_NAME_M50,
