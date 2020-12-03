@@ -24,24 +24,49 @@
  * Boston, MA  02110-1301, USA.
  */
 
-#include "compiler.h"
-#include "consts.h"
+#include "dryos.h"
 #include "fw-signature.h"
 #include "disp_direct.h"
 #include <string.h>
 #include <qemu-util.h>
 
-/* this magic is a BX R3 */
-#define FOOTER_MAGIC 0xE12FFF13
 #define STR(x) STRx(x)
 #define STRx(x) #x
 
-#ifdef __ARM__
+/* we need this ASM block to be the first thing in the file */
+#pragma GCC optimize ("-fno-reorder-functions")
+
+/* polyglot startup code that works if loaded as either ARM or Thumb */
 asm(
     ".text\n"
     ".globl _start\n"
     "_start:\n"
-    
+
+    ".code 16\n"
+    "NOP\n"                     /* as ARM, this is interpreted as: and r4, r1, r0, asr #13 (harmless) */
+    "B loaded_as_thumb\n"       /* as Thumb, this will eventually switch to ARM mode */
+
+    ".code 32\n"
+    "loaded_as_arm:\n"          /* you may insert ARM-specific code here */
+    "B xor_check\n"             /* this will jump over the Thumb code */
+
+    ".code 16\n"
+    "loaded_as_thumb:\n"        /* you may insert Thumb-specific code here */
+
+/* this does not compile on DIGIC 5 and earlier */
+#if defined(CONFIG_DIGIC_VII) || defined(CONFIG_DIGIC_VIII)
+    "MRC    p15,0,R0,c0,c0,5\n" /* refuse to run on cores other than #0 */
+    "ANDS.W R0, R0, #3\n"       /* read the lowest 2 bits of the MPIDR register */
+    "ITTT   NE\n"               /* check if CPU ID is nonzero (i.e. other cores) */
+    "LDRNE  R0, rombaseaddr\n"  /* jump to main firmware if running from other cores */
+    "ORRNE  R0, R0, #1\n"       /* assuming Thumb code at ROMBASEADDR (DIGIC 7 & 8) */
+    "BLXNE  R0\n"               /* not expected to return, but... */
+#endif
+
+    "BLX    xor_check\n"        /* LR doesn't matter much, as we'll never return to caller */
+
+    ".code 32\n"                /* from now on, we've got generic code for all platforms */
+    "xor_check:\n"
     /* first comes the check if we were loaded successfully, efficiently packed into 0x20 bytes */
     "ADD   R4, PC, #0x0C\n"
     "LDM   R4, {R1-R3}\n"
@@ -53,6 +78,7 @@ asm(
     "reset:\n"
     "BX    R3\n"                    /* -> R1 (magic 0xE12FFF13) */
     ".word   autoexec_bin_footer\n" /* -> R2 (footer address) */
+    "rombaseaddr:\n"
     ".word   "STR(ROMBASEADDR)"\n"  /* -> R3 (reset address) */
     
     /* embed some human-readable version info */
@@ -109,8 +135,6 @@ asm(
 extern uint8_t blob_start;
 extern uint8_t blob_end;
 
-#endif /* __ARM__ */
-
 static void busy_wait(int n)
 {
     int i,j;
@@ -125,9 +149,9 @@ static void blink(int n)
     while (1)
     {
         #if defined(CARD_LED_ADDRESS) && defined(LEDON) && defined(LEDOFF)
-        *(volatile int*) (CARD_LED_ADDRESS) = (LEDON);
+        MEM(CARD_LED_ADDRESS) = LEDON;
         busy_wait(n);
-        *(volatile int*)(CARD_LED_ADDRESS) = (LEDOFF);
+        MEM(CARD_LED_ADDRESS) = LEDOFF;
         busy_wait(n);
         #endif
     }
@@ -204,32 +228,44 @@ static void fail()
     while(1);
 }
 
-extern int compute_signature(int* start, int num);
+/* this duplicates 32-bit integers, unlike memset, which converts to char first */
+static void memset32(uint32_t * buf, uint32_t val, size_t size)
+{
+    for (uint32_t i = 0; i < size / 4; i++)
+    {
+        buf[i] = val;
+    }
+}
+
+#ifdef CONFIG_DUAL_DIGIC
+static void set_S_TX_DATA(int value)
+{
+    while (!(MEM(0xD0034020) & 0x10));
+    MEM(0xD0034014) = value;
+}
+#endif
+
 
 void
 __attribute__((noreturn))
 cstart( void )
 {
-    #if !(CURRENT_CAMERA_SIGNATURE)
-    #warning Signature Checking bypassed!! Please use a proper signature
-    #else
-    int s = compute_signature((int*)SIG_START, SIG_LEN);
-    int _signature = (int)CURRENT_CAMERA_SIGNATURE;
-    if (s != _signature)
+    uint32_t s = compute_signature((void*)SIG_START, SIG_LEN);
+    uint32_t expected_signature = CURRENT_CAMERA_SIGNATURE;
+    if (s != expected_signature)
     {
         qprint("[boot] firmware signature: "); qprintn(s); qprint("\n");
-        qprint("                 expected: "); qprintn(_signature); qprint("\n");
+        qprint("                 expected: "); qprintn(expected_signature); qprint("\n");
+        qprint("            computed from: "); qprintn(SIG_START); qprint("\n");
         fail();
     }
-    #endif
 
-#ifdef __ARM__
     /* turn on the LED as soon as autoexec.bin is loaded (may happen without powering on) */
     #if defined(CONFIG_40D) || defined(CONFIG_5DC)
-        *(volatile int*) (LEDBLUE) = (LEDON);
-        *(volatile int*) (LEDRED)  = (LEDON); // do we need the red too ?
+        MEM(LEDBLUE) = LEDON;
+        MEM(LEDRED)  = LEDON; // do we need the red too ?
     #elif defined(CARD_LED_ADDRESS) && defined(LEDON) // A more portable way, hopefully
-        *(volatile int*) (CARD_LED_ADDRESS) = (LEDON);
+        MEM(CARD_LED_ADDRESS) = LEDON;
     #endif
 
     blob_memcpy(
@@ -240,8 +276,53 @@ cstart( void )
     
     sync_caches();
 
-    #if defined(CONFIG_7D)
-        *(volatile int*)0xC0A00024 = 0x80000010; // send SSTAT for master processor, so it is in right state for rebooting
+    #ifdef CONFIG_MARK_UNUSED_MEMORY_AT_STARTUP
+      #ifdef CONFIG_DIGIC_VIII
+        /* EOS R has 2 GiB of RAM, but memory above BFE00000 has special meaning. */
+        /* RscMgr shows used memory regions until BEE10000. */
+        /* Without this trick, RAM content until BFE00000 looks like electrical noise. */
+        /* M50 has only 1 GiB, but MMU configuration is identical. Let's see what happens. */
+        /* There is a small blob (running DryOS core) copied near 0x82000000. Skip this. */
+        memset32((uint32_t *) 0x41000000, 0x124B1DE0 /* RA(W)VIDEO*/, 0x82000000 - 0x41000000);
+        memset32((uint32_t *) 0x83000000, 0x124B1DE0 /* RA(W)VIDEO*/, 0xBFE00000 - 0x83000000);
+      #else
+        /* FIXME: only mark the memory actually available on each model */
+        memset32((uint32_t *) 0x00D00000, 0x124B1DE0 /* RA(W)VIDEO*/, 0x40000000 - 0x00D00000);
+      #endif
+    #endif
+
+    /* Model-specific MMIO pokes required to start Canon firmware */
+    #ifdef CONFIG_DUAL_DIGIC
+      #ifdef CONFIG_DIGIC_IV    /* 7D */
+        MEM(0xC0A00024) = 0x80000010; // send SSTAT for master processor, so it is in right state for rebooting
+      #endif
+      #ifdef CONFIG_DIGIC_VI    /* 5DS, 5DSR, 7D2 */
+        set_S_TX_DATA(0x20040);
+      #endif
+    #endif
+    #ifdef CONFIG_DIGIC_VI
+      #ifdef CONFIG_5D4
+        MEM(0xD20B0270) = 0xC0003;
+        MEM(0xD20B0274) = 0xC0003;
+        MEM(0xD20B0278) = 0xC0003;
+        MEM(0xD20B027C) = 0xC0003;
+      #else
+        MEM(0xD20C0084) = 0;
+      #endif
+    #endif
+    #ifdef CONFIG_DIGIC_VIII
+    MEM(0xBFE01FC8) = ROMBASEADDR;  /* required by EOS R; possibly also by M50 etc */
+    MEM(0xBFE01FC4) = 0x10;         /* guess: start the second core at the above address */
+    #endif
+
+    #if 0
+      qprint("[boot] jump to main firmware: "); qprintn(ROMBASEADDR); qprint("\n");
+      #if defined(CONFIG_DIGIC_VII) || defined(CONFIG_DIGIC_VIII)
+        void __attribute__((long_call)) (*main_firmware)() = (void*) (ROMBASEADDR | 1);
+      #else
+        void __attribute__((long_call)) (*main_firmware)() = (void*) ROMBASEADDR;
+      #endif
+      main_firmware();
     #endif
 
     /* Jump into the newly relocated code
@@ -264,8 +345,6 @@ cstart( void )
     qprint("[boot] copy_and_restart "); qprintn(RESTARTSTART); qprint("\n");
     void __attribute__((long_call)) (*copy_and_restart)() = (void*) RESTARTSTART;
     copy_and_restart();
-
-#endif /* __ARM__ */
 
     // Unreachable
     while(1)

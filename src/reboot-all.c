@@ -36,6 +36,9 @@
 #define RESTARTSTART_5D2 0x4E000
 #define RESTARTSTART_1100 0xC80100
 
+/* we need this ASM block to be the first thing in the file */
+#pragma GCC optimize ("-fno-reorder-functions")
+
 asm(
 ".text\n"
 ".globl _start\n"

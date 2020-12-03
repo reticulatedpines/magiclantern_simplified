@@ -12,7 +12,8 @@ ifeq ($(ML_SRC_PROFILE),generic)
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss
 #
-RESTARTSTART	= 0x00C80100
+RESTARTSTART    = 0x00C80100
+ML_BOOT_OBJ     = boot-d45-am.o
 else
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss

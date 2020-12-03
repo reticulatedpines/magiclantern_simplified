@@ -9,10 +9,9 @@ ROMBASEADDR  = 0xFF010000
 #
 ifeq ($(ML_SRC_PROFILE),generic)
 RESTARTSTART    = 0x1F800100
+ML_BOOT_OBJ     = boot-d45-ch.o
 else
 RESTARTSTART    = 0x88000
 endif
 
-AUTOEXEC_BASE   = 0x40800000
-FIR_BASE        = 0x40800120
 endif

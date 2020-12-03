@@ -146,12 +146,12 @@ static void tskmon_update_runtime(struct task *task, uint32_t active_time)
     tskmon_total_runtime += active_time;
 
     /* first time set idle/powermgr task ids */
-    if(tskmon_idle_task_id == 0 && !strcmp(task->name, "idle"))
+    if(tskmon_idle_task_id == 0 && !strcmp(task->task_name, "idle"))
     {
         tskmon_idle_task_id = task->taskId & (TSKMON_MAX_TASKS-1);
     }
 
-    if(tskmon_powermgr_task_id == 0 && !strcmp(task->name, "PowerMgr"))
+    if(tskmon_powermgr_task_id == 0 && !strcmp(task->task_name, "PowerMgr"))
     {
         tskmon_powermgr_task_id = task->taskId & (TSKMON_MAX_TASKS-1);
     }
@@ -183,7 +183,7 @@ static void tskmon_stack_checker(struct task *next_task)
     /* at 1024 it gives warning for PowerMgr task */
     if (free < 256)
     {
-        char* task_name = get_task_name_from_id(id);
+        const char * task_name = get_task_name_from_id(id);
         
         /* at 136 it gives warning for LightMeasure task (5D2/7D) - Canon allocated only 512 bytes for this task */
         #if defined(CONFIG_5D2) || defined(CONFIG_7D)
@@ -240,7 +240,7 @@ null_pointer_check()
 
             /* which task caused this error? */
             int id = tskmon_last_task ? tskmon_last_task->taskId : -1;
-            const char * task_name = tskmon_last_task ? tskmon_last_task->name : "?";
+            const char * task_name = tskmon_last_task ? tskmon_last_task->task_name : "?";
 
             // Ignore Canon null pointer bugs (let's hope they are harmless...)
             if (isupper(task_name[0]))

@@ -521,9 +521,9 @@ int FIO_ReadFile( FILE* stream, void* ptr, size_t count )
         /* there's a lot of existing code (e.g. mlv_play) that's hard to refactor */
         /* workaround: allocate DMA memory here (for small buffers only)
          * code that operates on large buffers should be already correct */
-        if (!streq(current_task->name, "run_test"))
+        if (!streq(current_task->task_name, "run_test"))
         {
-            printf("fixme: please use fio_malloc (in %s)\n", current_task->name);
+            printf("fixme: please use fio_malloc (in %s)\n", current_task->task_name);
         }
         ASSERT(count <= 8192);
         void * ubuf = fio_malloc(count);
@@ -550,8 +550,8 @@ int FIO_WriteFile( FILE* stream, const void* ptr, size_t count )
     if (ptr == CACHEABLE(ptr))
     {
         /* write back all data to RAM */
-        /* overhead is minimal (see selfcheck.mo for benchmark) */
-        clean_d_cache();
+        /* overhead is minimal (see selftest.mo for benchmark) */
+        sync_caches();
     }
 
     return _FIO_WriteFile(stream, ptr, count);

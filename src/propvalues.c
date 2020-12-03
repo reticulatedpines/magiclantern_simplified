@@ -37,21 +37,23 @@ int is_camera(const char * model, const char * version)
             return 0;
         }
 
-        #ifdef CONFIG_VXWORKS
+        #if   defined(CONFIG_DIGIC_II)
+        return version[0] == '2';
+        #elif defined(CONFIG_DIGIC_III)
         return version[0] == '3';
-        #endif
-        #ifdef CONFIG_DIGIC_V
-        return version[0] == '5';
-        #endif
-        #ifdef CONFIG_DIGIC_VI
-        return version[0] == '6';
-        #endif
-        #ifdef CONFIG_DIGIC_VII
-        return version[0] == '7';
-        #endif
-        //#ifdef CONFIG_DIGIC_IV - fixme
+        #elif defined(CONFIG_DIGIC_IV)
         return version[0] == '4';
-        //#endif
+        #elif defined(CONFIG_DIGIC_V)
+        return version[0] == '5';
+        #elif defined(CONFIG_DIGIC_VI)
+        return version[0] == '6';
+        #elif defined(CONFIG_DIGIC_VII)
+        return version[0] == '7';
+        #elif defined(CONFIG_DIGIC_VIII)
+        return version[0] == '8';
+        #else
+        #error FIXME: no CONFIG_DIGIC_version defined.
+        #endif
     }
 
     return 

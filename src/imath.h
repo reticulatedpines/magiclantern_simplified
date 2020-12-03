@@ -12,6 +12,10 @@ int log10i(int x);
       int _m = (m); \
      (_x % _m + _m) % _m; })
 
+/* increment modulo (fast, but x must be already modulo N) */
+/* todo: assert? */
+#define INC_MOD(x,m) \
+    ((x) = ((x)+1 < (m)) ? (x)+1 : (x)+1-(m))
 
 #define MIN(a,b) \
    ({ __typeof__ ((a)+(b)) _a = (a); \
@@ -72,3 +76,11 @@ int log10i(int x);
 
 /* log2(x) * 100 */
 uint32_t log_length(int v);
+
+/* log2 on constants */
+/* https://stackoverflow.com/a/27593398 */
+#define LOG_1(n) (((n) >= 2) ? 1 : 0)
+#define LOG_2(n) (((n) >= 1<<2) ? (2 + LOG_1((n)>>2)) : LOG_1(n))
+#define LOG_4(n) (((n) >= 1<<4) ? (4 + LOG_2((n)>>4)) : LOG_2(n))
+#define LOG_8(n) (((n) >= 1<<8) ? (8 + LOG_4((n)>>8)) : LOG_4(n))
+#define LOG2(n)  (((n) >= 1<<16) ? (16 + LOG_8((n)>>16)) : LOG_8(n))

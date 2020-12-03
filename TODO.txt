@@ -1,6 +1,14 @@
 TODO
 
 ====
+d6-dumper renamed struct task.name to .task_name.
+I prefer name, but changing to task_name allows finding
+all old uses in order to replace with get_current_task_name().
+
+Can then change back to .name
+====
+
+====
 Make hg and git optional for building (currently disabled).
 Perhaps put in the info from both if they exist?
 If neither exist, NO_SOURCE_CONTROL or something.

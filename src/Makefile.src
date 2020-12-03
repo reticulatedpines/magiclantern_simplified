@@ -19,10 +19,10 @@ CFLAGS += \
 	-DCONFIG_FW_VERSION=$(FW_VERSION) \
 	-DCURRENT_CAMERA_SIGNATURE=SIG_$(MODEL)_$(FW_VERSION)
 
-ifeq ($(ML_BOOT_HACK_OBJ), n)
-ML_BOOT_HACK_OBJ =
-else ifndef ML_BOOT_HACK_OBJ
-ML_BOOT_HACK_OBJ = boot-hack.o
+ifeq ($(ML_INIT_OBJ), n)
+ML_INIT_OBJ =
+else ifndef ML_INIT_OBJ
+ML_INIT_OBJ = init.o
 endif
 
 ifeq ($(ML_PICSTYLE_AUTO), n)
@@ -68,11 +68,21 @@ else ifndef ML_ENTRY_OBJ
 ML_ENTRY_OBJ = entry.o
 endif
 
+ifndef ML_BOOT_OBJ
+ML_BOOT_OBJ = boot-d45.o
+endif
+
+ifndef ML_MINIMAL_OBJ
+ML_MINIMAL_OBJ = minimal.o
+endif
+
 ifeq ($(ML_SRC_PROFILE),minimal)
 ML_OBJS-y = \
 	magiclantern.lds \
 	$(ML_ENTRY_OBJ) \
-	minimal.o \
+	$(ML_BOOT_OBJ) \
+	$(ML_MINIMAL_OBJ) \
+	cache.o \
 	font_direct.o \
 	$(PLATFORM_DIR)/stubs.o
 
@@ -80,6 +90,7 @@ else ifeq ($(ML_SRC_PROFILE),installer)
 ML_INSTALLER_OBJS = \
 	magiclantern.lds \
 	$(ML_ENTRY_OBJ) \
+	$(ML_BOOT_OBJ) \
 	$(PLATFORM_DIR)/stubs.o \
 	installer.o \
 	version.o \
@@ -92,6 +103,7 @@ ML_INSTALLER_OBJS = \
 	bootflags.o \
 	mem.o \
 	util.o \
+	cache.o \
 
 ML_OBJS-y += $(ML_INSTALLER_OBJS)
 
@@ -107,7 +119,8 @@ ML_OBJS-y += \
 
 ML_SRC_OBJS = \
 	backtrace.o \
-	$(ML_BOOT_HACK_OBJ) \
+	$(ML_BOOT_OBJ) \
+	$(ML_INIT_OBJ) \
 	fio-ml.o \
 	mem.o \
 	ico.o \
@@ -173,6 +186,7 @@ ML_SRC_OBJS = \
 	raw.o \
 	chdk-dng.o \
 	edmac-memcpy.o \
+	patch.o \
 
 
 ML_OBJS-y += $(ML_SRC_OBJS)
@@ -188,6 +202,13 @@ endif
 ifeq ($(CONFIG_QEMU),y)
 CFLAGS += -DCONFIG_QEMU
 endif # CONFIG_QEMU
+
+# same for CONFIG_MMIO_TRACE
+ifeq ($(CONFIG_MMIO_TRACE),y)
+CFLAGS += -DCONFIG_MMIO_TRACE
+ML_OBJS-y += \
+	io_trace.o
+endif
 
 ML_OBJS-y += $(ML_SRC_EXTRA_OBJS)
 
@@ -215,6 +236,7 @@ ifndef ML_SRC_REBOOT_OBJ
 ML_SRC_REBOOT_OBJ = reboot.o \
 	disp_direct.o font_direct.o \
 	strlen.o strcmp.o gcc-libgcc.a \
+	cache.o \
 	footer.o
 endif
 

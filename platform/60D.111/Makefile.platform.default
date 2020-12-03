@@ -13,6 +13,7 @@ RESTARTSTART  = 0x0005f000
 
 ifeq ($(ML_SRC_PROFILE),generic)
 RESTARTSTART  = 0x1FE00000
+ML_BOOT_OBJ   = boot-d45-ch.o
 endif
 
 #End of FW_VERSION == 111
