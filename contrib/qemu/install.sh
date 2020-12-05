@@ -133,7 +133,7 @@ function valid_arm_gdb {
         return 0
     fi
 
-    if gdb-multiarch -v 2>/dev/null | grep -q " [89]\.[1-9]"; then
+    if gdb-multiarch -v 2>/dev/null | grep -q -P " (8|9|10)\.[1-9]"; then
         # this one is just as good
         ARM_GDB="gdb-multiarch"
         return 0
