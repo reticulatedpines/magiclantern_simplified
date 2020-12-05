@@ -672,7 +672,7 @@ struct eos_model_desc eos_model_list[] = {
         .max_cpus               = 2,
     },
     {
-        .name                   = MODEL_NAME_M50,
+        .name                   = MODEL_NAME_EOSM50,
         .digic_version          = 8,
         .ram_size               = 0x40000000,   // 1GB
         .card_led_address       = 0xD01300E4,
