@@ -37,9 +37,24 @@ extern int bmp_enabled;
 /** Returns a pointer to the real BMP vram (or to idle BMP vram) */
 uint8_t * bmp_vram(void);
 
+#ifdef CONFIG_DIGIC_45
 /** Returns a pointer to the real BMP vram, as reported by Canon firmware.
  *  Not to be used directly - it may be somewhere in the middle of VRAM! */
 inline uint8_t* bmp_vram_raw() { return bmp_vram_info[1].vram2; } 
+#endif
+
+#ifdef CONFIG_DIGIC_678
+inline struct MARV * bmp_marv()
+{
+    return (bmp_vram_info[0].back_vram == bmp_vram_info[0].vram1)
+        ? bmp_vram_info[0].vram2 : bmp_vram_info[0].vram1;
+}
+
+inline uint8_t * bmp_vram_raw() {
+    struct MARV * MARV = bmp_marv();
+    return MARV ? MARV->bitmap_data : NULL;
+}
+#endif
 
 /**
  * The total BMP area starts at 0x***80008 or 0x***00008 and has 960x540 pixels.

@@ -521,9 +521,9 @@ int FIO_ReadFile( FILE* stream, void* ptr, size_t count )
         /* there's a lot of existing code (e.g. mlv_play) that's hard to refactor */
         /* workaround: allocate DMA memory here (for small buffers only)
          * code that operates on large buffers should be already correct */
-        if (!streq(current_task->task_name, "run_test"))
+        if (!streq(get_current_task_name(), "run_test"))
         {
-            printf("fixme: please use fio_malloc (in %s)\n", current_task->task_name);
+            printf("fixme: please use fio_malloc (in %s)\n", get_current_task_name());
         }
         ASSERT(count <= 8192);
         void * ubuf = fio_malloc(count);

@@ -20,7 +20,7 @@ preferred_categs = [
     "PackMem",
     "Electronic Level",
     "Making the card bootable",
-    "Task info",
+    "Tasks",
     "LCD Sensor",
     "EDMAC",
     "ExMem",
@@ -80,7 +80,7 @@ def parse_stub(inp_file):
         
         # parse categories
         m = re.match(r"/\*\*?(.*)\*/\s*", l)
-        if m:
+        if m and len(l) < 50:
             categ = m.groups()[0].strip(" \t*")
             continue
         
@@ -100,16 +100,21 @@ def parse_stub(inp_file):
             categ = "Misc"
         
         # parse NSTUB entries
-        m = re.match(r"(.*)\s*NSTUB\s*\(([^,]*),([^\)]*)\)(.*)", l)
+        m = re.match(r"(.*)\s*(NSTUB|ARM32_FN|THUMB_FN|DATA_PTR)\s*\(([^,]*),([^\)]*)\)(.*)", l)
         if m:
             prefix = m.groups()[0]
-            addr_raw = m.groups()[1]
-            name_raw = m.groups()[2]
-            comment = m.groups()[3]
+            stub_type = m.groups()[1]
+            addr_raw = m.groups()[2]
+            name_raw = m.groups()[3]
+            comment = m.groups()[4]
             
             name = name_raw.strip()
-            try: addr = eval(addr_raw)
-            except: addr = 0
+            try:
+                addr = eval(addr_raw)
+                if stub_type == "THUMB_FN": addr |= 1;
+                if stub_type == "ARM32_FN": addr &= ~3;
+            except:
+                addr = 0
             
             try: cam = os.path.split(inp_file)[0]
             except: cam = 0
@@ -117,7 +122,7 @@ def parse_stub(inp_file):
             c = categ
             if l.startswith("///"): c = porting_notes_categ
 
-            stub = Bunch(name=name, addr=addr, categ=c, raw_line=l, camera=cam)
+            stub = Bunch(name=name, addr=addr, categ=c, raw_line=l, camera=cam, type=stub_type)
             
             if name in names2stubs:
                 # abort on consistency errors, rather than screwing up the output
@@ -183,7 +188,7 @@ def lookup_mising_stubs(stubs1, stubs2):
             formatted_name = " " + name
             if formatted_name[1] == '_':
                 formatted_name = formatted_name[1:]
-            code = "// NSTUB(%7s, %s)" % ("???", formatted_name)
+            code = "// %s(0x????????, %s)" % (stub.type, formatted_name)
             dummy_line = "%-60s%s" % (code, "/* present on %s */" % (", ".join(other_cams)))
             
             dummy_stub = Bunch(
@@ -195,20 +200,40 @@ def lookup_mising_stubs(stubs1, stubs2):
             c2s1[stub.categ].append(dummy_stub)
 
 def stub_sort(stub):
-    key = stub.name
+    key = stub.name.strip("_")
     
     # some exceptions for the startup group
-    custom_keys = {"firmware_entry": "0", "cstart": "1", "additional_version": "z"}
+    custom_keys = {
+        "firmware_entry"        : chr(0),                   # this one should be first
+        "cstart"                : chr(1),                   # this too, in its group
+        "bzero32"               : chr(2),                   # this is next
+        "additional_version"    : "z",                      # this one should be last in its group
+        "free"                  : "malloc1",                # free should be right after malloc
+        "free_dma_memory"       : "alloc_dma_memory1",      # free should be right after malloc
+    }
 
-    if stub.name in custom_keys:
-        key = custom_keys[stub.name]    # forced ordering?
+    # stubs with these substrings should be first/second/last in their (sub-)group
+    should_be_first  = ["createfile", "openfile", "closefile", "readfile", "writefile", "seekskipfile",
+                        "first", "next", "create", "delete", "open", "close"]
+    should_be_last   = ["cancel", "flush"]
+    for i,k in enumerate(should_be_first + should_be_last):
+        if k in key.lower():
+            p = key.lower().index(k)
+            char = (chr(i) if k in should_be_first else "|")
+            key = key[:p] + char + key[p:]
+            break
+
+    if key in custom_keys:
+        key = custom_keys[key]                              # custom keys for certain stubs
     elif "???," in stub.raw_line:
-        key = "zz" + key                # force stubs present on other cameras at the end
+        key = "zz" + key                                    # force stubs present on other cameras at the end
     elif stub.raw_line.strip().startswith("//"):
-        key = "z" + key                 # force unused addresses at the end
-    elif "NSTUB(  " in stub.raw_line:
-        key = "1" + key                 # force small addresses at the beginning
-    
+        key = "z" + key                                     # force unused addresses at the end
+    elif "file" in key.lower():
+        key = "@" + key                                     # file functions should be first
+    elif key.startswith("prop_"):
+        key = [-ord(ch) for ch in key]                      # property functions: logical order is the opposite of alphabetical
+
     return key
 
 def print_stubs(stubs, file):
@@ -225,10 +250,14 @@ def print_stubs(stubs, file):
     #~ print categs
     
     # force some important items at the beginning and unimportant ones at the end
-    categs.remove("GUI"); categs = ["GUI"] + categs
-    categs.remove("File I/O"); categs = ["File I/O"] + categs
-    categs.remove("Startup"); categs = ["Startup"] + categs
-    categs.remove("Misc"); categs = categs + ["Misc"]
+    for categ in ["Startup", "Tasks", "Interrupts", "File I/O", "GUI"][::-1]:
+        if categ in categs:
+            categs.remove(categ);
+            categs = [categ] + categs
+    for categ in ["Misc"]:
+        if categ in categs:
+            categs.remove(categ);
+            categs = categs + [categ]
     
     try: categs.remove("Unused"); categs = categs + ["Unused"]
     except: pass
@@ -275,10 +304,11 @@ for k,s in enumerate(stubs):
     for s2 in orig_stubs:
         merge_stubs(s, s2)  # merging with itself should not change anything
 
-# find stubs present on other cameras
-for k,s in enumerate(stubs):
-    for s2 in stubs:
-        lookup_mising_stubs(s, s2)
+# optional: find stubs present on other cameras
+if False:
+    for k,s in enumerate(stubs):
+        for s2 in stubs:
+            lookup_mising_stubs(s, s2)
 
 # print the results
 for k,s in enumerate(stubs):

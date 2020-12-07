@@ -46,6 +46,7 @@
 
 /** What internals do we have on each camera? **/
 #include "internals.h" // from platform directory
+#include "internals-common.h"
 
 /** What features are enabled on each camera? **/
 #include "features.h" // from platform directory

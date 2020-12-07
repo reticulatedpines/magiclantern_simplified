@@ -1,0 +1,27 @@
+# 200D 1.0.1
+
+CANON_NAME_FIR  = CCF18101.FIR
+FIRMWARE_ID     = 0x80000417
+UPDATE_NAME_FIR = LOG_200D.FIR
+ROMBASEADDR     = 0xE0040000
+
+CONFIG_MMIO_TRACE = y
+
+# Shrink Canon's malloc heap by changing its end address
+#          ("meminfo -m" in drysh)    ("memmap" in drysh)
+# Default: 0x000e1bd8 - 0x001f6288, 0x000e1bd0 - 0x001f6558 (total size 0x114988)
+# Patched: 0x000e1bd8 - 0x001b6288, 0x000e1bd0 - 0x001b6558 (256K reserved for ML)
+RESTARTSTART    = 0x001B6300
+
+# Cortex A9, binaries loaded as Thumb
+CFLAG_USER = -mthumb -march=armv7-a -mlong-calls
+
+# these should be removed when porting starts
+ifeq ($(ML_SRC_PROFILE),generic)
+ML_SRC_PROFILE  = minimal
+ML_MINIMAL_OBJ  = minimal-d678.o
+ML_SRC_EXTRA_OBJS += log-d678.o stdio.o function_overrides.o
+endif
+
+ML_BOOT_OBJ     = boot-d78.o
+

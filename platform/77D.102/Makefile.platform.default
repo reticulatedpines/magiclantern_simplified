@@ -1,0 +1,24 @@
+# 77D 1.0.2
+
+CANON_NAME_FIR  = 5D300133.FIR
+FIRMWARE_ID     = 0x80000408
+UPDATE_NAME_FIR = LOG_77D.FIR
+ROMBASEADDR     = 0xE0040000
+
+# Shrink Canon's malloc heap by changing its end address
+#          ("meminfo -m" in drysh)    ("memmap" in drysh)
+# Default: 0x000e0fa8 - 0x001f5658, 0x000e0fa0 - 0x001f5928 (total size 0x114988)
+# Patched: 0x000e0fa8 - 0x001b5658, 0x000e0fa0 - 0x001b5928 (256K reserved for ML)
+RESTARTSTART    = 0x001B5700
+
+# Cortex A9, binaries loaded as Thumb
+CFLAG_USER = -mthumb -march=armv7-a -mlong-calls
+
+# these should be removed when porting starts
+ifeq ($(ML_SRC_PROFILE),generic)
+ML_SRC_PROFILE  = minimal
+ML_MINIMAL_OBJ  = minimal-d78.o
+#ML_SRC_EXTRA_OBJS += log-d678.o stdio.o
+endif
+
+ML_BOOT_OBJ     = boot-d78.o

@@ -28,6 +28,7 @@ force_unused = [
     "StartFactoryMenuApp",   # RE only
     "prop_request_icu_auto_poweroff", # antique
     "dumpf", "dmstart", "dmstop",   # eventprocs
+    "dm_names", # obsolete
     "bootdisk_enable", "bootdisk_disable", # eventprocs
     "GUI_CONTROL",
     "EngDrvIn",
@@ -79,9 +80,9 @@ def cleanup_stub(inp_file, out_file):
         l = l.strip("\n")
         
         # parse NSTUB entries
-        m = re.match(r"(.*)\s*NSTUB\s*\(([^,]*),([^\)]*)\)(.*)", l)
+        m = re.match(r"(.*)\s*(NSTUB|ARM32_FN|THUMB_FN|DATA_PTR)\s*\(([^,]*),([^\)]*)\)(.*)", l)
         if m:
-            name_raw = m.groups()[2]
+            name_raw = m.groups()[3]
             name = name_raw.strip()
             
             if not check_used(name):
@@ -91,7 +92,7 @@ def cleanup_stub(inp_file, out_file):
                 continue
             elif name in force_used and l.strip().startswith("///"):
                 # commented out? uncomment and the address looks valid
-                addr = m.groups()[1]
+                addr = m.groups()[2]
                 addr = addr.replace("RAM_OFFSET", "");
                 addr = addr.strip(" -");
                 try:

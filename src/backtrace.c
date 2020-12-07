@@ -17,9 +17,9 @@
 #define EOSState void
 #define scnprintf snprintf /* FIXME */
 
-static char * eos_get_current_task_name(EOSState *s)
+static const char * eos_get_current_task_name(EOSState *s)
 {
-    return current_task->task_name;
+    return get_current_task_name();
 }
 
 static int eos_get_current_task_stack(EOSState *s, uint32_t * top, uint32_t * bottom)

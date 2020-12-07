@@ -25,14 +25,14 @@
 #define SIG_700D_115 0x4c2d9f68 // from FF0C0000
 #define SIG_100D_101 0x3b82b55e // from FF0C0000
 #define SIG_200D_101 0xf72c729a // from E0040000
-//#define SIG_200D_101 0xbc72bf41 // from E0040000
-#define SIG_M50_101  0x80bd9b4b // from E0040000
-#define SIG_R_110    0x64132108 // from E0040000
+#define SIG_M50_102  0x3b70901c // from E0040000
+#define SIG_R_120    0x8C19E5DA // from E0040000
 #define SIG_5D4_112  0xf3316d96 // from FE0A0000
 #define SIG_5DS_111  0x6f867e6a // from FE0A0000
 #define SIG_5DSR_112 0xc60c4679 // from FE0A0000
 #define SIG_7D2_104  0x9c68409c // from FE0A0000
 #define SIG_80D_102  0x74d93d11 // from FE0A0000
+#define SIG_77D_102  0x6dd89c83 // from e0040000
 
 static uint32_t compute_signature(uint32_t * start, uint32_t num)
 {

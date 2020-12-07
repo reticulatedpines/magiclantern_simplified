@@ -1,0 +1,19 @@
+# 6D2 1.0.3
+
+CANON_NAME_FIR  = 6D200103.FIR
+FIRMWARE_ID     = 0x80000406
+UPDATE_NAME_FIR = BLNK_6D2.FIR
+
+# these are not correct (just to compile)
+RESTARTSTART    = 0x0
+ROMBASEADDR     = 0xFC000000
+
+# Cortex A9, binaries loaded as Thumb
+CFLAG_USER = -mthumb -march=armv7-a -mlong-calls
+
+# these should be removed when porting starts
+ML_SRC_PROFILE  = minimal
+ML_SRC_REBOOT_OBJ = reboot-dumper.o footer.o
+
+# FIXME: should be boot-d6.o
+ML_BOOT_OBJ = minimal.o

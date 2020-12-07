@@ -20,7 +20,7 @@ extern int is_taskid_valid(int, int, void*);
 
 int ml_shutdown_requested = 0;
 
-const char* get_task_name_from_id(int id)
+const char * get_task_name_from_id(int id)
 {
 #if defined(CONFIG_VXWORKS)
 return "?";
@@ -82,7 +82,7 @@ void task_update_loads() // called every second from clock_task
                 int cpu_percent = show_cpu_usage_flag == 2 ? tskmon_task_loads[i].absolute : tskmon_task_loads[i].relative;
                 if (cpu_percent)
                 {
-                    char* name = "";
+                    const char * name = "";
                     
                     if(i < TSKMON_MAX_TASKS-1)
                     {

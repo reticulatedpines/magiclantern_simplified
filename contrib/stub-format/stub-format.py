@@ -22,6 +22,17 @@ data_structs = [
     "vram_info",
     "task_dispatch_hook",
     "gui_task_list",
+    "current_task",
+    "current_interrupt",
+    "pre_isr_hook",
+    "post_isr_hook",
+    "isr_table_handler",
+    "isr_table_param",
+    "mpu_recv_cbr",
+    "mpu_recv_ring_buffer",
+    "mpu_recv_ring_buffer_tail",
+    "mpu_send_ring_buffer",
+    "mpu_send_ring_buffer_tail",
 ]
 
 try: inp = sys.argv[1];
@@ -56,18 +67,30 @@ for l in lines:
         print "RAM_OFFSET: %x" % RAM_OFFSET
     
     # parse NSTUB entries
-    m = re.match(r"\s*NSTUB\s*\(([^,]*),([^\)]*)\)(.*)", l)
+    m = re.match(r"\s*(NSTUB|ARM32_FN|THUMB_FN|DATA_PTR)\s*\(([^,]*),([^\)]*)\)(.*)", l)
     if m:
-        addr = m.groups()[0]
-        name = m.groups()[1]
-        comment = m.groups()[2]
+        stub_type = m.groups()[0]
+        addr = m.groups()[1]
+        name = m.groups()[2]
+        comment = m.groups()[3]
         
         # extract address; if invalid, print that line unmodified
-        try: addr = eval(addr);
+        try:
+            addr = eval(addr);
+            if stub_type == "THUMB_FN": addr |= 1;
+            if stub_type == "ARM32_FN": addr &= ~3;
         except:
             print "Parse error:", l
             if out: print >> out, l
             continue
+
+        if comment.strip() == "// Thumb":
+            assert addr & 1
+            comment = ""
+
+        if comment.strip().startswith("// Thumb; "):
+            assert addr & 1
+            comment = comment.replace("// Thumb; ", "// ")
 
         # align underscored names
         name = " " + name.strip()
@@ -77,7 +100,23 @@ for l in lines:
         # strip whitespace from the right
         comment = comment.rstrip()
         if comment.strip() == ";": comment = ""
-        
+
+        # update old code to ARM32_FN / THUMB_FN / DATA_PTR
+        if stub_type == "NSTUB":
+            if name.strip() in data_structs:
+                stub_type = "DATA_PTR";
+            else:
+                if addr & 1:
+                    stub_type = "THUMB_FN";
+                else:
+                    stub_type = "ARM32_FN";
+
+        # fix address parity
+        if stub_type == "THUMB_FN":
+            addr &= ~1
+        if stub_type == "ARM32_FN":
+            addr &= ~3
+
         # add RAM_OFFSET, if any
         if (addr & 0xFF000000) or name.strip() in data_structs or RAM_OFFSET is None:
             addr = "0x%X" % addr
@@ -85,7 +124,7 @@ for l in lines:
             addr = "0x%X - RAM_OFFSET" % (addr + RAM_OFFSET)
 
         # format the part without comments
-        code = "NSTUB(%10s, %s)" % (addr, name)
+        code = "%s(%10s, %s)" % (stub_type, addr, name)
 
         if comment:
             comment = comment.strip().replace("; //", "//").replace("//~", "//").replace("// ~", "//").replace("//", "// ")

@@ -1,9 +1,19 @@
 #ifndef _imgconv_h_
 #define _imgconv_h_
 
-#define UYVY_GET_AVG_Y(uyvy) (((((uyvy) >> 24) & 0xFF) + (((uyvy) >> 8) & 0xFF)) >> 1)
+
+#ifdef CONFIG_DIGIC_678
+#define UYVY_PACK(u,y1,v,y2) ((u + 0x80) & 0xFF) | (((y1) & 0xFF) << 8) | (((v + 0x80) & 0xFF) << 16) | (((y2) & 0xFF) << 24)
+#define UYVY_GET_U(uyvy) ((((uyvy)      ) - 0x80) & 0xFF)
+#define UYVY_GET_V(uyvy) ((((uyvy) >> 16) - 0x80) & 0xFF)
+#else
+#define UYVY_PACK(u,y1,v,y2) ((u) & 0xFF) | (((y1) & 0xFF) << 8) | (((v) & 0xFF) << 16) | (((y2) & 0xFF) << 24)
 #define UYVY_GET_U(uyvy) (((uyvy)       ) & 0xFF)
 #define UYVY_GET_V(uyvy) (((uyvy) >>  16) & 0xFF)
+#endif
+
+#define UYVY_GET_AVG_Y(uyvy) (((((uyvy) >> 24) & 0xFF) + (((uyvy) >> 8) & 0xFF)) >> 1)
+
 #define COMPUTE_UYVY2YRGB(uyvy, Y, R, G, B) \
 { \
     Y = UYVY_GET_AVG_Y(uyvy); \
@@ -16,8 +26,6 @@
     v = Y + yuv2rgb_BU[gu]; \
     B = COERCE(v, 0, 255); \
 } \
-
-#define UYVY_PACK(u,y1,v,y2) ((u) & 0xFF) | (((y1) & 0xFF) << 8) | (((v) & 0xFF) << 16) | (((y2) & 0xFF) << 24);
 
 extern int yuv2rgb_RV[256];
 extern int yuv2rgb_GU[256];

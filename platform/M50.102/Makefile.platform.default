@@ -1,0 +1,23 @@
+# EOS M50 1.0.2
+
+CANON_NAME_FIR  = CCF19102.FIR
+FIRMWARE_ID     = 0x00000412
+UPDATE_NAME_FIR = D_M50102.FIR
+ROMBASEADDR     = 0xE0040000
+
+# Shrink Canon's malloc heap by changing its end address
+#          ("meminfo -m" in drysh)    ("memmap" in drysh)
+# Default: 0x000dc878 - 0x001f0ec0, 0x000dc870 - 0x001f1190 (total size 0x114920)
+# Patched: 0x000dc878 - 0x001b0ec0, 0x000dc870 - 0x001b1190 (256K reserved for ML)
+RESTARTSTART    = 0x001B0FC0
+
+# Cortex A9, binaries loaded as Thumb
+CFLAG_USER = -mthumb -march=armv7-a -mlong-calls
+
+# these should be removed when porting starts
+ifeq ($(ML_SRC_PROFILE),generic)
+ML_SRC_PROFILE  = minimal
+ML_MINIMAL_OBJ  = minimal-d78.o
+endif
+
+ML_BOOT_OBJ     = boot-d78.o
