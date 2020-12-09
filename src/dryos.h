@@ -115,10 +115,13 @@ struct tm {
         char    *tm_zone;       /* timezone abbreviation */
 };
 
-extern void
-LoadCalendarFromRTC(
-        struct tm *             tm
-);
+#if defined CONFIG_200D
+void LoadCalendarFromRTC(struct tm *tm);
+extern void _LoadCalendarFromRTC(struct tm *tm, uint32_t a, uint32_t b,
+                                 uint32_t c, uint32_t d);
+#else
+extern void LoadCalendarFromRTC(struct tm *tm);
+#endif
 
 extern void DryosDebugMsg(int,int,const char *,...);
 

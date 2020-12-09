@@ -2167,7 +2167,8 @@ static void menu_draw_icon(int x, int y, int type, intptr_t arg, int warn)
             //~ else dice_icon(x, y, i-1, N-1, COLOR_GREEN1, 50);
             if (i == 0) //maru(x, y, color_off);
                 slider(x, y, i-1, N-1, color_off, color_off);
-            else slider(x, y, i-1, N-1, color_slider_off_fg, color_slider_bg); return;
+            else
+                slider(x, y, i-1, N-1, color_slider_off_fg, color_slider_bg);
 
             return;
         }
@@ -5102,12 +5103,15 @@ handle_ml_menu_keys(struct event * event)
     
     #if !defined(CONFIG_500D) && !defined(CONFIG_5DC) // LV is Q
     case BGMT_LV:
-        if (!lv) return 1;
-        // else fallthru
+        if (!lv)
+            return 1;
     #endif
+    // fall through
     case BGMT_PRESS_ZOOM_IN:
-        if (lv) menu_lv_transparent_mode = !menu_lv_transparent_mode;
-        else edit_mode = !edit_mode;
+        if (lv)
+            menu_lv_transparent_mode = !menu_lv_transparent_mode;
+        else
+            edit_mode = !edit_mode;
         menu_damage = 1;
         menu_help_active = 0;
         break;
@@ -5118,18 +5122,25 @@ handle_ml_menu_keys(struct event * event)
             struct menu_entry * entry = get_selected_menu_entry(menu);
             if(entry && uses_caret_editing(entry))
             {
-                menu_entry_select( menu, 0 );
+                menu_entry_select(menu, 0);
                 break;
             }
         }
+    // fall through
     case BGMT_WHEEL_UP:
-        if (menu_help_active) { menu_help_prev_page(); break; }
+        if (menu_help_active)
+        {
+            menu_help_prev_page();
+            break;
+        }
 
         if (edit_mode && !menu_lv_transparent_mode)
-            menu_entry_select( menu, 1 );
+        {
+            menu_entry_select(menu, 1);
+        }
         else
         {
-            menu_entry_move( menu, -1 );
+            menu_entry_move(menu, -1);
             if (menu_lv_transparent_mode) menu_needs_full_redraw = 1;
         }
 
@@ -5141,18 +5152,25 @@ handle_ml_menu_keys(struct event * event)
             struct menu_entry * entry = get_selected_menu_entry(menu);
             if(entry && uses_caret_editing(entry))
             {
-                menu_entry_select( menu, 1 );
+                menu_entry_select(menu, 1);
                 break;
             }
         }
+    // fall through
     case BGMT_WHEEL_DOWN:
-        if (menu_help_active) { menu_help_next_page(); break; }
+        if (menu_help_active)
+        {
+            menu_help_next_page();
+            break;
+        }
         
         if (edit_mode && !menu_lv_transparent_mode)
-            menu_entry_select( menu, 0 );
+        {
+            menu_entry_select(menu, 0);
+        }
         else
         {
-            menu_entry_move( menu, 1 );
+            menu_entry_move(menu, 1);
             if (menu_lv_transparent_mode) menu_needs_full_redraw = 1;
         }
 
@@ -5169,11 +5187,24 @@ handle_ml_menu_keys(struct event * event)
                 break;
             }
         }
+    // fall through
     case BGMT_WHEEL_RIGHT:
         menu_damage = 1;
-        if (menu_help_active) { menu_help_next_page(); break; }
-        if (SUBMENU_OR_EDIT || menu_lv_transparent_mode) menu_entry_select( menu, 0 );
-        else { menu_move( menu, 1 ); menu_lv_transparent_mode = 0; menu_needs_full_redraw = 1; }
+        if (menu_help_active)
+        {
+            menu_help_next_page();
+            break;
+        }
+        if (SUBMENU_OR_EDIT || menu_lv_transparent_mode)
+        {
+            menu_entry_select(menu, 0);
+        }
+        else
+        {
+            menu_move(menu, 1);
+            menu_lv_transparent_mode = 0;
+            menu_needs_full_redraw = 1;
+        }
         //~ menu_hidden_should_display_help = 0;
         break;
 
@@ -5188,11 +5219,24 @@ handle_ml_menu_keys(struct event * event)
                 break;
             }
         }
+    // fall through
     case BGMT_WHEEL_LEFT:
         menu_damage = 1;
-        if (menu_help_active) { menu_help_prev_page(); break; }
-        if (SUBMENU_OR_EDIT || menu_lv_transparent_mode) menu_entry_select( menu, 1 );
-        else { menu_move( menu, -1 ); menu_lv_transparent_mode = 0;  menu_needs_full_redraw = 1; }
+        if (menu_help_active)
+        {
+            menu_help_prev_page();
+            break;
+        }
+        if (SUBMENU_OR_EDIT || menu_lv_transparent_mode)
+        {
+            menu_entry_select(menu, 1);
+        }
+        else
+        {
+            menu_move(menu, -1);
+            menu_lv_transparent_mode = 0;
+            menu_needs_full_redraw = 1;
+        }
         //~ menu_hidden_should_display_help = 0;
         break;
 

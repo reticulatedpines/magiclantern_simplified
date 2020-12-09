@@ -1388,7 +1388,7 @@ static MENU_UPDATE_FUNC(mem_total_display)
         
         int peak_y = y+10;
         int peak = alloc_total_peak_with_memcheck / 1024;
-        int total = alloc_total_with_memcheck / 1024;
+        //int total = alloc_total_with_memcheck / 1024;
         int maxh = 480 - peak_y;
         bmp_fill(COLOR_GRAY(20), 0, 480-maxh, 720, maxh);
         for (int i = first_index; i != history_index; i = MOD(i+1, HISTORY_ENTRIES))

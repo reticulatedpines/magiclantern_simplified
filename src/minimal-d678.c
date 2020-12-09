@@ -45,33 +45,6 @@ static uint32_t rgb2yuv422(uint8_t r, uint8_t g, uint8_t b)
     return (u << 24) | (y << 16) | (v << 8) | y;
 }
 
-void disp_set_pixel(uint32_t x, uint32_t y, uint32_t color)
-{
-    // color is 0xRRGGBB00
-
-    // UYVY display, must convert
-    uint32_t uyvy = rgb2yuv422(color >> 24,
-                               (color >> 16) & 0xff,
-                               (color >> 8) & 0xff);
-    uint8_t *pixel;
-    if (x % 2)
-    {
-        pixel = disp_framebuf + (x*2 + y*2*disp_xres);
-        *pixel = (uyvy >> 8) & 0xff;
-
-        pixel = disp_framebuf + (x*2 + y*2*disp_xres + 1);
-        *pixel = uyvy & 0xff;
-    }
-    else
-    {
-        pixel = disp_framebuf + (x*2 + y*2*disp_xres);
-        *pixel = (uyvy >> 24) & 0xff;
-
-        pixel = disp_framebuf + (x*2 + y*2*disp_xres + 1);
-        *pixel = (uyvy >> 16) & 0xff;
-    }
-}
-
 // Note this function never returns!
 // It is for printing address of interest,
 // while you do camera things to see if it changes.

@@ -4893,8 +4893,10 @@ static void hdr_auto_take_pics(int step_size, int skip0)
     // first exposure is always at 0 EV (and might be skipped)
     if (!skip0) hdr_shutter_release_then_check_for_under_or_over_exposure(0, &under, &over);
     else hdr_check_for_under_or_over_exposure(&under, &over);
-    if (!under) UNDER = 0; if (!over) OVER = 0;
-    if (hdr_check_cancel(0)) goto end;
+    if (!under) UNDER = 0;
+    if (!over) OVER = 0;
+    if (hdr_check_cancel(0))
+        goto end;
     
     switch (hdr_sequence)
     {
@@ -4905,7 +4907,8 @@ static void hdr_auto_take_pics(int step_size, int skip0)
                 if (OVER)
                 {
                     int ok = hdr_shutter_release_then_check_for_under_or_over_exposure(-step_size * i, &under, &over);
-                    if (!under) UNDER = 0; if (!over) OVER = 0;
+                    if (!under) UNDER = 0;
+                    if (!over) OVER = 0;
                     if (!ok) OVER = 0; // Canon limit reached, don't continue this sequence
                     if (hdr_check_cancel(0)) goto end;
                 }
@@ -4913,7 +4916,8 @@ static void hdr_auto_take_pics(int step_size, int skip0)
                 if (UNDER)
                 {
                     int ok = hdr_shutter_release_then_check_for_under_or_over_exposure(step_size * i, &under, &over);
-                    if (!under) UNDER = 0; if (!over) OVER = 0;
+                    if (!under) UNDER = 0;
+                    if (!over) OVER = 0;
                     if (!ok) UNDER = 0; // Canon limit reached, don't continue this sequence
                     if (hdr_check_cancel(0)) goto end;
                 }
@@ -4927,7 +4931,8 @@ static void hdr_auto_take_pics(int step_size, int skip0)
                 if (OVER)
                 {
                     int ok = hdr_shutter_release_then_check_for_under_or_over_exposure(-step_size * i, &under, &over);
-                    if (!under) UNDER = 0; if (!over) OVER = 0;
+                    if (!under) UNDER = 0;
+                    if (!over) OVER = 0;
                     if (!ok) OVER = 0;
                     if (hdr_check_cancel(0)) goto end;
                 }
@@ -4941,7 +4946,8 @@ static void hdr_auto_take_pics(int step_size, int skip0)
                 if (UNDER)
                 {
                     int ok = hdr_shutter_release_then_check_for_under_or_over_exposure(step_size * i, &under, &over);
-                    if (!under) UNDER = 0; if (!over) OVER = 0;
+                    if (!under) UNDER = 0;
+                    if (!over) OVER = 0;
                     if (!ok) UNDER = 0;
                     if (hdr_check_cancel(0)) goto end;
                 }
@@ -6206,7 +6212,7 @@ shoot_task( void* unused )
             msleep(20);
             while (SECONDS_REMAINING > 1 && !ml_shutdown_requested)
             {
-                int dt = get_interval_time();
+                //int dt = get_interval_time();
                 /* allow other tasks to take pictures while we are sleeping */
                 ReleaseRecursiveLock(shoot_task_rlock);
                 msleep(200);

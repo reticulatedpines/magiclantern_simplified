@@ -5,7 +5,7 @@ FIRMWARE_ID     = 0x80000417
 UPDATE_NAME_FIR = LOG_200D.FIR
 ROMBASEADDR     = 0xE0040000
 
-CONFIG_MMIO_TRACE = y
+#CONFIG_MMIO_TRACE = y
 
 # Shrink Canon's malloc heap by changing its end address
 #          ("meminfo -m" in drysh)    ("memmap" in drysh)
