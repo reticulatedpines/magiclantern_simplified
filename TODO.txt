@@ -1,6 +1,14 @@
 TODO
 
 ====
+Audit minimal-d678.c for any code that is 200D specific,
+but not guarded.  In general, this still contains a bunch
+of non-generic code from when I was playing around.
+
+That can be unsafe on other cams and must be fixed.
+====
+
+====
 d6-dumper renamed struct task.name to .task_name.
 I prefer name, but changing to task_name allows finding
 all old uses in order to replace with get_current_task_name().

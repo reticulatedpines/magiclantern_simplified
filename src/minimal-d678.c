@@ -13,7 +13,7 @@ extern void smemShowFix(void);
 extern void font_draw(uint32_t, uint32_t, uint32_t, uint32_t, char*);
 
 static uint32_t disp_xres = 0;
-static uint8_t *disp_framebuf = 0x56500000; // safe area on 200D, will get changed before use
+static uint8_t *disp_framebuf = NULL;
 static char *vram_next = NULL;
 static char *vram_current = NULL;
 
@@ -52,15 +52,18 @@ static void print_dword_from_address(uint32_t address)
 {
     char result[10] = {0};
     uint8_t scale = 4;
-    while(1) {
-        snprintf(result, 10, "%08x", (uint32_t *)address);
-        disp_framebuf = (uint8_t *)*(uint32_t *)(vram_current + 4);
-        font_draw(80, 120, 0xff000000, scale, result);
-        disp_framebuf = (uint8_t *)*(uint32_t *)(vram_next + 4);
-        font_draw(80, 120, 0xff000000, scale, result);
-        MEM(CARD_LED_ADDRESS) = LEDON;
-        msleep(100);
-        MEM(CARD_LED_ADDRESS) = LEDOFF;
+    if (disp_framebuf != NULL)
+    {
+        while(1) {
+            snprintf(result, 10, "%08x", (uint32_t *)address);
+            disp_framebuf = (uint8_t *)*(uint32_t *)(vram_current + 4);
+            font_draw(80, 120, 0xff000000, scale, result);
+            disp_framebuf = (uint8_t *)*(uint32_t *)(vram_next + 4);
+            font_draw(80, 120, 0xff000000, scale, result);
+            MEM(CARD_LED_ADDRESS) = LEDON;
+            msleep(100);
+            MEM(CARD_LED_ADDRESS) = LEDOFF;
+        }
     }
 }
 
@@ -89,11 +92,10 @@ static void DUMP_ASM dump_task()
     //{
     //    led_blink(1, 100, 100);
     //}
-    char *vram1 = MEM(0xFD84);
-    char *vram2 = MEM(0xFD88);
-    char *vram_next = MEM(0xFD8C);
+    char *vram1 = (char *)MEM(0xFD84);
+    char *vram2 = (char *)MEM(0xFD88);
+    char *vram_next = (char *)MEM(0xFD8C);
     //char *vram_current = NULL;
-    vram_next = MEM(0xFD8C);
     vram_current = NULL;
 
     // find screen dimensions from MARV struct
