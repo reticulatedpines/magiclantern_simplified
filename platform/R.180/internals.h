@@ -1,5 +1,5 @@
 /**
- * Camera internals for EOS R 1.2.0
+ * Camera internals for EOS R 1.8.0
  */
 
 /** This camera has a DIGIC VIII chip */
