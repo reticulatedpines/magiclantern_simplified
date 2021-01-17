@@ -31,7 +31,7 @@
 
 
 /** Startup **/
-NSTUB( ROMBASEADDR, firmware_entry )
+NSTUB(  ROMBASEADDR,  firmware_entry)
 THUMB_FN(0xE0040104,  cstart)                               /* calls bzero32 and create_init_task(..., init_task, ...) */
 THUMB_FN(0xE056313c,  bzero32)                              /* zeros out a data structure */
 THUMB_FN(0xE011E120,  create_init_task)                     /* low-level DryOS initialization */
@@ -48,18 +48,18 @@ THUMB_FN(0XE05172FA,  task_create)                          /* used to start Tas
 /** File I/O **/
 THUMB_FN(0xE053BAC2, _FIO_CreateFile)
 THUMB_FN(0xE053BA10, _FIO_OpenFile)
-THUMB_FN(0xe053c24a,  FIO_CloseFile)
-THUMB_FN(0xe053be9a, _FIO_ReadFile)
-THUMB_FN(0xe053c036, _FIO_WriteFile)
-THUMB_FN(0xe053bf76,  FIO_SeekSkipFile)                     // guess: Search?!
-THUMB_FN(0xe053c3e6, _FIO_GetFileSize)                      // AcqSize
-THUMB_FN(0xe053be00, _FIO_RemoveFile)
-THUMB_FN(0xe053ce1c, _FIO_RenameFile)
-THUMB_FN(0xe053d2a4, _FIO_CreateDirectory)
-THUMB_FN(0xe053d706, _FIO_FindFirstEx)                      // FirstEnt
-THUMB_FN(0xe053d7fe,  FIO_FindNextEx)                       // NextEnt
-THUMB_FN(0xe053d8c0,  FIO_FindClose)                        // CloseEnt
-THUMB_FN(0xe053d48e,  FIO_Flush)                            // to be called after FIO_CloseFile?
+THUMB_FN(0xE053C24A,  FIO_CloseFile)
+THUMB_FN(0xE053BE9A, _FIO_ReadFile)
+THUMB_FN(0xE053C036, _FIO_WriteFile)
+THUMB_FN(0xE053BF76,  FIO_SeekSkipFile)                     // guess: Search?!
+THUMB_FN(0xE053C3E6, _FIO_GetFileSize)                      // AcqSize
+THUMB_FN(0xE053BE00, _FIO_RemoveFile)
+THUMB_FN(0xE053CE1C, _FIO_RenameFile)
+THUMB_FN(0xE053D2A4, _FIO_CreateDirectory)
+THUMB_FN(0xE053D706, _FIO_FindFirstEx)                      // FirstEnt
+THUMB_FN(0xE053D7FE,  FIO_FindNextEx)                       // NextEnt
+THUMB_FN(0xE053D8C0,  FIO_FindClose)                        // CloseEnt
+THUMB_FN(0xE053D48E,  FIO_Flush)                            // to be called after FIO_CloseFile?
 
 /** Bitmap **/
 DATA_PTR(    0xFDFC,  bmp_vram_info)                        /* first VRAM buffer, used right after DISP_SetUpdateOSDVram */
@@ -74,27 +74,27 @@ THUMB_FN(0xE13192D8,  dump_file)                            /* tries to save a f
 THUMB_FN(0xE0553072,  call)                                 /* used in ElectricCurrentFirm */
 
 /** GUI timers **/
-THUMB_FN(0xe039d062,  SetHPTimerNextTick)                   /* next function; same "worker" as SetHPTimerAfterNow */
-THUMB_FN(0xe039d002,  SetHPTimerAfterNow)                   /* System::HPTimer.c */
-THUMB_FN(0xe053ae8c,  SetTimerAfter)                        /* from error message */
-THUMB_FN(0xe053af42,  CancelTimer)                          /* CancelRefreshTimer, CancelPlayTimer */
+THUMB_FN(0xE039D062,  SetHPTimerNextTick)                   /* next function; same "worker" as SetHPTimerAfterNow */
+THUMB_FN(0xE039D002,  SetHPTimerAfterNow)                   /* System::HPTimer.c */
+THUMB_FN(0xE053AE8C,  SetTimerAfter)                        /* from error message */
+THUMB_FN(0xE053AF42,  CancelTimer)                          /* CancelRefreshTimer, CancelPlayTimer */
 
 /** Memory allocation **/
-THUMB_FN(0xe0552814, _AllocateMemory)                       /* NG AllocateMemory */
-THUMB_FN(0xe05529cc, _FreeMemory)                           /* uses the same heap */
-THUMB_FN(0xe055269e,  GetMemoryInformation)                 /* called from AllocateMemory */
-THUMB_FN(0xe0552672,  GetSizeOfMaxRegion)                   /* same */
-THUMB_FN(0xe0552274, _alloc_dma_memory)                     /* allocates 64 bytes more, aligns at 32 and sets the uncacheable bit */
-THUMB_FN(0xe05522a8, _free_dma_memory)                      /* paired with the above; clears the uncacheable bit and frees the raw pointer */
-THUMB_FN(0xe021c7fc, _malloc)                               /* see "can't malloc" */
-THUMB_FN(0xe021c834, _free)                                 /* next function; paired with the above */
+THUMB_FN(0xE0552814, _AllocateMemory)                       /* NG AllocateMemory */
+THUMB_FN(0xE05529CC, _FreeMemory)                           /* uses the same heap */
+THUMB_FN(0xE055269E,  GetMemoryInformation)                 /* called from AllocateMemory */
+THUMB_FN(0xE0552672,  GetSizeOfMaxRegion)                   /* same */
+THUMB_FN(0xE0552274, _alloc_dma_memory)                     /* allocates 64 bytes more, aligns at 32 and sets the uncacheable bit */
+THUMB_FN(0xE05522A8, _free_dma_memory)                      /* paired with the above; clears the uncacheable bit and frees the raw pointer */
+THUMB_FN(0xE021C7FC, _malloc)                               /* see "can't malloc" */
+THUMB_FN(0xE021C834, _free)                                 /* next function; paired with the above */
 
 /** Memory info **/
-THUMB_FN(0xe00cde5c,  malloc_info)                          /* Malloc Information */
-THUMB_FN(0xe008c974,  memmap_info)                          /* Exception vector, DRYOS system memory etc */
-THUMB_FN(0xe015a14a,  smemShowFix)                          /* Common Lower, Common Upper etc */ //?
-THUMB_FN(0xe00cdef4,  sysmem_info)                          /* System Memory Information */
+THUMB_FN(0xE008C974,  memmap_info)                          /* Exception vector, DRYOS system memory etc */
+THUMB_FN(0xE015A14A,  smemShowFix)                          /* Common Lower, Common Upper etc */
+THUMB_FN(0xE00CDE5C,  malloc_info)                          /* Malloc Information */
+THUMB_FN(0xE00CDEF4,  sysmem_info)                          /* System Memory Information */
 
 /** Misc **/
-THUMB_FN(0xe054d31c,  uart_printf)
-THUMB_FN(0xe006463c,  vsnprintf)                            /* called by LogFile_printf(..., "*Data Lost*\n", ...); the one called by DebugMsg only knows %s */
+THUMB_FN(0xE054D31C,  uart_printf)
+THUMB_FN(0xE006463C,  vsnprintf)                            /* called by LogFile_printf(..., "*Data Lost*\n", ...); the one called by DebugMsg only knows %s */
