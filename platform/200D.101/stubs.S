@@ -208,13 +208,13 @@ NSTUB(0xe05cd1fe, _LoadCalendarFromRTC) // 0xff885058 in 50D is 0xe00742fc in 20
                                         // make sense given RTC related.
 
 // WRONG but partially found
-NSTUB(   0x24284,  bmp_vram_info) // function e04a044c looks relevant, see refs to 0x3c0 and 0x21c; 960x540
-                                  // 0xfda0 seems bool for whether it's in 960x540 or 720x480.
-                                  // 0xfd70 looks like a struct base, at the end of this func
-                                  // you can see fd70 + 0x14, 0x18, 0x1c being used to see which vram buffer
-                                  // is active, or ready maybe.
-                                  // However, I'm confused by the vram.h bmp_vram_info struct def.
-                                  // Don't see how it relates.
+NSTUB(   0xfd84,  bmp_vram_info) // function e04a044c looks relevant, see refs to 0x3c0 and 0x21c; 960x540
+                                 // 0xfda0 seems bool for whether it's in 960x540 or 720x480.
+                                 // 0xfd70 looks like a struct base, at the end of this func
+                                 // you can see fd70 + 0x14, 0x18, 0x1c being used to see which vram buffer
+                                 // is active, or ready maybe.
+                                 // However, I'm confused by the vram.h bmp_vram_info struct def.
+                                 // Don't see how it relates.
 
 
 // WRONG
