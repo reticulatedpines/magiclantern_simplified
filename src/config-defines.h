@@ -9,7 +9,7 @@
  */
 
     /** Load fonts and print Hello World; will not start any other ML tasks, handlers etc. */
-#define CONFIG_HELLO_WORLD
+    //~ #define CONFIG_HELLO_WORLD
     
     /** Create a developer FIR for enabling the bootflag and dumping the ROM. */
     //~ #define CONFIG_DUMPER_BOOTFLAG
