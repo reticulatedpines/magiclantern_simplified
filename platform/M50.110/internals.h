@@ -1,5 +1,5 @@
 /**
- * Camera internals for EOS M50 1.0.2
+ * Camera internals for EOS M50 1.1.0
  */
 
 /** This camera has a DIGIC VIII chip */
