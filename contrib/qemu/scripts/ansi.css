@@ -1,0 +1,40 @@
+body {background-color: white;}
+pre {
+	font-weight: normal;
+	color: #222;
+	white-space: -moz-pre-wrap;
+	white-space: -o-pre-wrap;
+	white-space: -pre-wrap;
+	white-space: pre-wrap;
+	word-wrap: break-word;
+}
+b {font-weight: normal}
+b.BLK {color: #000}
+b.BLU {color: #00a}
+b.GRN {color: #0a0}
+b.CYN {color: #0aa}
+b.RED {color: #a00}
+b.MAG {color: #a0a}
+b.YEL {color: #aa0}
+b.WHI {color: #aaa}
+b.HIK {color: #555}
+b.HIB {color: #55f}
+b.HIG {color: #5f5}
+b.HIC {color: #0aa}
+b.HIR {color: #f55}
+b.HIM {color: #f5f}
+b.HIY {color: #ff5}
+b.HIW {color: #fff}
+b.BOLD {color: #fff}
+b.BBLK {background-color: #000}
+b.BBLU {background-color: #00a}
+b.BGRN {background-color: #0a0}
+b.BCYN {background-color: #0aa}
+b.BRED {background-color: #a00}
+b.BMAG {background-color: #a0a}
+b.BYEL {background-color: #aa0}
+b.BWHI {background-color: #aaa}
+b.ITA {font-style: italic}
+b.UND {text-decoration: underline}
+b.BLI {text-decoration: blink}
+b.UNDBLI {text-decoration: underline blink}

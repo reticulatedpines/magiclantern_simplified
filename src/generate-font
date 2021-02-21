@@ -1,0 +1,39 @@
+#!/usr/bin/perl
+# This uses the bigtext program, which you must build separately.
+use strict;
+use warnings;
+
+my $font = shift || '-*-helvetica-*-r-*-*-34-*-100-100-*-*-iso8859-*';
+my $start = shift || 19;
+my $width = shift || 25;
+
+my @chars = (
+	'A'..'Z',
+	'a'..'z',
+	'0'..'9',
+	' ', '/', '#', ',', "'", "?", 
+	qw/ < > { } @ \\ = : ! " $ % & ( ) * + - . [ ] ^ _ ` ~ /
+);
+
+
+for my $char (@chars)
+{
+	# The _ is to force a leading space and the Mj is to force
+	# maximum ascender and descender
+	my $str = "'_$char   |`Mj'~";
+	$str = q{"_'   |\\`Mj~"} if $char eq "'";
+#	$str = q{"_'   |\\`Mj~"} if $char eq "`";
+	$str = q{"_\\   |\\`Mj~"} if $char eq "\\";
+
+	my @lines = `bigtext -font '$font' $str`;
+
+	# Cut out just the second character worth of space
+	my $text;
+	for( @lines )
+	{
+		$text .= substr( $_, $start, $width ) . "\n";
+	}
+
+	print "$char =\n$text\n";
+}
+

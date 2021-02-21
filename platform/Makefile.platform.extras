@@ -1,0 +1,76 @@
+ML_BUILD_FIR_PLATFORM_FILE = autoexec-fir.bin
+
+build_fir: $(ML_BUILD_FIR_PLATFORM_FILE)
+ifndef ML_BUILD_FIR_DIR
+	$(eval ML_BUILD_FIR_DIR=../../../dumper)
+endif
+ifndef CANON_FIR_DIR
+	$(eval CANON_FIR_DIR=$(ML_BUILD_FIR_DIR))
+endif
+ifndef ML_INSTALLER_BUILD_FIR
+ifndef CANON_NAME_FIR
+	$(warning CANON_NAME_FIR is not defined)
+endif
+ifndef UPDATE_NAME_FIR
+	$(error UPDATE_NAME_FIR is not defined)
+endif
+
+ifndef CANON_NAME_FIR
+	$(eval CANON_FIR_PATH = )
+else
+	$(eval CANON_FIR_PATH = $(CANON_FIR_DIR)/$(CANON_NAME_FIR))
+endif
+
+	$(eval ML_INSTALLER_BUILD_FIR = python $(ML_BUILD_FIR_DIR)/build_fir.py -r \
+											$(CANON_FIR_PATH) $(ML_BUILD_FIR_PLATFORM_FILE) $(UPDATE_NAME_FIR) $(FIRMWARE_ID))
+endif
+
+	@# don't worry if we can't build a FIR - just use the precompiled one
+	-$(ML_INSTALLER_BUILD_FIR)
+
+install_fir: build_fir
+	@-$(CP) $(UPDATE_NAME_FIR) $(INSTALL_DIR)/
+
+clean_fir::
+	$(call rm_files, $(ML_BUILD_FIR_PLATFORM_FILE) $(UPDATE_NAME))
+
+clean_install_fir: install_fir | clean_fir
+
+# do we have a valid installer directory?
+ifneq ("$(wildcard $(INSTALLER_DIR)/$(ML_MODEL_DIR)/Makefile)","")
+
+# build ML-SETUP.FIR from the installer directory
+# note: a precompiled ML-SETUP.FIR is supplied by default; this will not rebuild it
+# to force rebuilding, run "make ML-SETUP.FIR -B"
+$(INSTALLER_NAME_FIR):
+	-$(MAKE) -C $(INSTALLER_DIR)/$(ML_MODEL_DIR) build_fir
+	-$(CP) $(INSTALLER_DIR)/$(ML_MODEL_DIR)/$(INSTALLER_NAME_FIR) $@
+
+# just to make sure the installer can be compiled from source
+# do not actually build the FIR - just the plain binary
+# also clean the installer directory afterwards; we are not going to use the results, just make sure it builds
+installer_check: | autoexec.bin
+	$(MAKE) -C $(INSTALLER_DIR)/$(ML_MODEL_DIR) autoexec-fir.bin
+	$(MAKE) -C $(INSTALLER_DIR)/$(ML_MODEL_DIR) clean
+
+ifeq ($(ML_SRC_PROFILE),generic)
+# install ML-SETUP.FIR built from the installer directory
+install:: $(INSTALLER_NAME_FIR)
+	-$(CP) $(INSTALLER_NAME_FIR) $(INSTALL_DIR)/
+endif
+
+else
+
+# dummy target
+installer_check:
+	$(info )
+	$(info $@: no installer for $(ML_MODEL_DIR).)
+	$(info )
+
+endif
+
+# make sure the minimal targets can be compiled without errors
+# the results won't be included in the zip; this is just to prevent code rot
+minimal_check:
+	$(MAKE) -C $(TOP_DIR)/minimal/ MODEL=$(MODEL) clean
+	$(MAKE) -C $(TOP_DIR)/minimal/ MODEL=$(MODEL) FW_VERSION=$(FW_VERSION)

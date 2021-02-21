@@ -1,0 +1,5 @@
+.. raw:: latex
+
+    \let\oldssec=\subsection
+    \def\subsection{\newpage\oldssec}
+

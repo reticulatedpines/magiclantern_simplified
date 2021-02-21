@@ -1,0 +1,2 @@
+upload autoexec.bin B:/AUTOEXEC.BIN
+download B:/AUTOEXEC.BIN autoexec.test

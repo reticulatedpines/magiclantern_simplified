@@ -1,0 +1,711 @@
+Archive member included to satisfy reference by file (symbol)
+
+dietlibc.a(strlen.o)          font_direct.o (strlen)
+newlib-libc.a(lib_a-memcpy-stub.o)
+                              minimal-d78.o (memcpy)
+gcc-libgcc.a(_udivsi3.o)      font_direct.o (__aeabi_uidiv)
+gcc-libgcc.a(_dvmd_tls.o)     gcc-libgcc.a(_udivsi3.o) (__aeabi_idiv0)
+
+Discarded input sections
+
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc boot-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .group         0x0000000000000000        0xc minimal-d78.o
+ .debug_macro   0x0000000000000000      0xade minimal-d78.o
+ .debug_macro   0x0000000000000000       0x28 minimal-d78.o
+ .debug_macro   0x0000000000000000       0x28 minimal-d78.o
+ .debug_macro   0x0000000000000000       0x3a minimal-d78.o
+ .debug_macro   0x0000000000000000       0x10 minimal-d78.o
+ .debug_macro   0x0000000000000000       0x22 minimal-d78.o
+ .debug_macro   0x0000000000000000       0x8e minimal-d78.o
+ .debug_macro   0x0000000000000000       0x51 minimal-d78.o
+ .debug_macro   0x0000000000000000      0x103 minimal-d78.o
+ .debug_macro   0x0000000000000000       0x6a minimal-d78.o
+ .debug_macro   0x0000000000000000      0x1df minimal-d78.o
+ .debug_macro   0x0000000000000000       0x5e minimal-d78.o
+ .debug_macro   0x0000000000000000      0x16d minimal-d78.o
+ .debug_macro   0x0000000000000000      0x35c minimal-d78.o
+ .debug_macro   0x0000000000000000       0x7c minimal-d78.o
+ .debug_macro   0x0000000000000000       0x17 minimal-d78.o
+ .debug_macro   0x0000000000000000      0x118 minimal-d78.o
+ .debug_macro   0x0000000000000000       0x18 minimal-d78.o
+ .debug_macro   0x0000000000000000       0x35 minimal-d78.o
+ .debug_macro   0x0000000000000000       0x34 minimal-d78.o
+ .debug_macro   0x0000000000000000       0x10 minimal-d78.o
+ .debug_macro   0x0000000000000000       0x16 minimal-d78.o
+ .debug_macro   0x0000000000000000       0x43 minimal-d78.o
+ .debug_macro   0x0000000000000000       0x34 minimal-d78.o
+ .debug_macro   0x0000000000000000       0x1c minimal-d78.o
+ .debug_macro   0x0000000000000000       0x52 minimal-d78.o
+ .debug_macro   0x0000000000000000       0x40 minimal-d78.o
+ .debug_macro   0x0000000000000000       0x10 minimal-d78.o
+ .debug_macro   0x0000000000000000       0x40 minimal-d78.o
+ .debug_macro   0x0000000000000000       0xd5 minimal-d78.o
+ .debug_macro   0x0000000000000000       0x1c minimal-d78.o
+ .debug_macro   0x0000000000000000       0x3d minimal-d78.o
+ .debug_macro   0x0000000000000000       0xe4 minimal-d78.o
+ .debug_macro   0x0000000000000000       0x5e minimal-d78.o
+ .debug_macro   0x0000000000000000       0x22 minimal-d78.o
+ .debug_macro   0x0000000000000000      0x2cc minimal-d78.o
+ .debug_macro   0x0000000000000000       0xba minimal-d78.o
+ .debug_macro   0x0000000000000000      0x33d minimal-d78.o
+ .debug_macro   0x0000000000000000       0x10 minimal-d78.o
+ .debug_macro   0x0000000000000000       0x16 minimal-d78.o
+ .debug_macro   0x0000000000000000       0x20 minimal-d78.o
+ .debug_macro   0x0000000000000000       0xd6 minimal-d78.o
+ .debug_macro   0x0000000000000000       0xff minimal-d78.o
+ .debug_macro   0x0000000000000000       0x58 minimal-d78.o
+ .debug_macro   0x0000000000000000       0x16 minimal-d78.o
+ .debug_macro   0x0000000000000000       0xd0 minimal-d78.o
+ .debug_macro   0x0000000000000000       0x16 minimal-d78.o
+ .debug_macro   0x0000000000000000       0x35 minimal-d78.o
+ .debug_macro   0x0000000000000000       0x10 minimal-d78.o
+ .debug_macro   0x0000000000000000       0x58 minimal-d78.o
+ .debug_macro   0x0000000000000000      0x182 minimal-d78.o
+ .debug_macro   0x0000000000000000       0x16 minimal-d78.o
+ .debug_macro   0x0000000000000000      0x16f minimal-d78.o
+ .debug_macro   0x0000000000000000       0xa6 minimal-d78.o
+ .debug_macro   0x0000000000000000       0xa6 minimal-d78.o
+ .debug_macro   0x0000000000000000       0x7b minimal-d78.o
+ .group         0x0000000000000000        0xc cache.o
+ .group         0x0000000000000000        0xc cache.o
+ .group         0x0000000000000000        0xc cache.o
+ .group         0x0000000000000000        0xc cache.o
+ .group         0x0000000000000000        0xc cache.o
+ .group         0x0000000000000000        0xc cache.o
+ .group         0x0000000000000000        0xc cache.o
+ .group         0x0000000000000000        0xc cache.o
+ .group         0x0000000000000000        0xc cache.o
+ .group         0x0000000000000000        0xc cache.o
+ .group         0x0000000000000000        0xc cache.o
+ .group         0x0000000000000000        0xc cache.o
+ .group         0x0000000000000000        0xc cache.o
+ .group         0x0000000000000000        0xc cache.o
+ .group         0x0000000000000000        0xc cache.o
+ .group         0x0000000000000000        0xc cache.o
+ .group         0x0000000000000000        0xc cache.o
+ .group         0x0000000000000000        0xc cache.o
+ .group         0x0000000000000000        0xc cache.o
+ .group         0x0000000000000000        0xc cache.o
+ .group         0x0000000000000000        0xc cache.o
+ .group         0x0000000000000000        0xc cache.o
+ .group         0x0000000000000000        0xc cache.o
+ .group         0x0000000000000000        0xc cache.o
+ .group         0x0000000000000000        0xc cache.o
+ .group         0x0000000000000000        0xc cache.o
+ .group         0x0000000000000000        0xc cache.o
+ .group         0x0000000000000000        0xc cache.o
+ .group         0x0000000000000000        0xc cache.o
+ .group         0x0000000000000000        0xc cache.o
+ .group         0x0000000000000000        0xc cache.o
+ .debug_macro   0x0000000000000000      0xade cache.o
+ .debug_macro   0x0000000000000000       0x3a cache.o
+ .debug_macro   0x0000000000000000       0x10 cache.o
+ .debug_macro   0x0000000000000000       0x22 cache.o
+ .debug_macro   0x0000000000000000       0x8e cache.o
+ .debug_macro   0x0000000000000000       0x51 cache.o
+ .debug_macro   0x0000000000000000      0x103 cache.o
+ .debug_macro   0x0000000000000000       0x6a cache.o
+ .debug_macro   0x0000000000000000      0x1df cache.o
+ .debug_macro   0x0000000000000000       0x5e cache.o
+ .debug_macro   0x0000000000000000      0x16d cache.o
+ .debug_macro   0x0000000000000000      0x35c cache.o
+ .debug_macro   0x0000000000000000       0x7c cache.o
+ .debug_macro   0x0000000000000000       0x17 cache.o
+ .debug_macro   0x0000000000000000      0x118 cache.o
+ .debug_macro   0x0000000000000000       0x18 cache.o
+ .debug_macro   0x0000000000000000       0x35 cache.o
+ .debug_macro   0x0000000000000000       0x34 cache.o
+ .debug_macro   0x0000000000000000       0x10 cache.o
+ .debug_macro   0x0000000000000000       0x16 cache.o
+ .debug_macro   0x0000000000000000       0x43 cache.o
+ .debug_macro   0x0000000000000000       0x34 cache.o
+ .debug_macro   0x0000000000000000       0x1c cache.o
+ .debug_macro   0x0000000000000000       0x52 cache.o
+ .debug_macro   0x0000000000000000       0x40 cache.o
+ .debug_macro   0x0000000000000000       0x10 cache.o
+ .debug_macro   0x0000000000000000       0x40 cache.o
+ .debug_macro   0x0000000000000000       0xd5 cache.o
+ .debug_macro   0x0000000000000000       0x1c cache.o
+ .debug_macro   0x0000000000000000       0x3d cache.o
+ .debug_macro   0x0000000000000000       0xe4 cache.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .group         0x0000000000000000        0xc font_direct.o
+ .debug_macro   0x0000000000000000      0xade font_direct.o
+ .debug_macro   0x0000000000000000       0x22 font_direct.o
+ .debug_macro   0x0000000000000000       0x18 font_direct.o
+ .debug_macro   0x0000000000000000       0x35 font_direct.o
+ .debug_macro   0x0000000000000000       0x34 font_direct.o
+ .debug_macro   0x0000000000000000      0x16d font_direct.o
+ .debug_macro   0x0000000000000000       0x16 font_direct.o
+ .debug_macro   0x0000000000000000       0x43 font_direct.o
+ .debug_macro   0x0000000000000000       0x34 font_direct.o
+ .debug_macro   0x0000000000000000       0x10 font_direct.o
+ .debug_macro   0x0000000000000000       0x58 font_direct.o
+ .debug_macro   0x0000000000000000      0x182 font_direct.o
+ .debug_macro   0x0000000000000000      0x35c font_direct.o
+ .debug_macro   0x0000000000000000       0x35 font_direct.o
+ .debug_macro   0x0000000000000000      0x103 font_direct.o
+ .debug_macro   0x0000000000000000       0x6a font_direct.o
+ .debug_macro   0x0000000000000000      0x1df font_direct.o
+ .debug_macro   0x0000000000000000       0x10 font_direct.o
+ .debug_macro   0x0000000000000000       0x1c font_direct.o
+ .debug_macro   0x0000000000000000       0x52 font_direct.o
+ .debug_macro   0x0000000000000000       0x40 font_direct.o
+ .debug_macro   0x0000000000000000       0x10 font_direct.o
+ .debug_macro   0x0000000000000000       0x40 font_direct.o
+ .debug_macro   0x0000000000000000       0xd5 font_direct.o
+ .debug_macro   0x0000000000000000       0x1c font_direct.o
+ .debug_macro   0x0000000000000000       0x3d font_direct.o
+ .debug_macro   0x0000000000000000       0x16 font_direct.o
+ .debug_macro   0x0000000000000000      0x16f font_direct.o
+ .debug_macro   0x0000000000000000       0x3a font_direct.o
+ .debug_macro   0x0000000000000000       0x10 font_direct.o
+ .debug_macro   0x0000000000000000       0x7c font_direct.o
+ .debug_macro   0x0000000000000000       0x17 font_direct.o
+ .debug_macro   0x0000000000000000      0x118 font_direct.o
+ .debug_macro   0x0000000000000000       0xe4 font_direct.o
+ .debug_macro   0x0000000000000000       0x5e font_direct.o
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+*default*        0x0000000000000000 0xffffffffffffffff
+
+Linker script and memory map
+
+                0x00000000001b0fc0                . = 0x1b0fc0
+
+.text           0x00000000001b0fc0      0xba0
+                0x00000000001b0fc0                _text_start = .
+ *(.text)
+ .text          0x00000000001b0fc0        0x4 entry.o
+                0x00000000001b0fc0                _start
+ *fill*         0x00000000001b0fc4        0xc 
+ .text          0x00000000001b0fd0      0x310 boot-d78.o
+                0x00000000001b1000                info_led_blink
+                0x00000000001b1080                copy_and_restart
+ .text          0x00000000001b12e0       0xe8 minimal-d78.o
+                0x00000000001b1390                boot_pre_init_task
+                0x00000000001b1392                boot_post_init_task
+                0x00000000001b13c4                disp_set_pixel
+ *fill*         0x00000000001b13c8        0x8 
+ .text          0x00000000001b13d0       0xdc cache.o
+                0x00000000001b13e6                sync_caches
+ *fill*         0x00000000001b14ac        0x4 
+ .text          0x00000000001b14b0       0x94 font_direct.o
+                0x00000000001b14b0                font_draw
+ .text          0x00000000001b1544        0x0 ../../platform/M50.110/stubs.o
+ .text          0x00000000001b1544       0x1c dietlibc.a(strlen.o)
+                0x00000000001b1544                strlen
+ .text          0x00000000001b1560      0x168 newlib-libc.a(lib_a-memcpy-stub.o)
+                0x00000000001b1560                memcpy
+ .text          0x00000000001b16c8      0x114 gcc-libgcc.a(_udivsi3.o)
+                0x00000000001b16c8                __udivsi3
+                0x00000000001b16c8                __aeabi_uidiv
+                0x00000000001b17bc                __aeabi_uidivmod
+ .text          0x00000000001b17dc        0x4 gcc-libgcc.a(_dvmd_tls.o)
+                0x00000000001b17dc                __aeabi_ldiv0
+                0x00000000001b17dc                __aeabi_idiv0
+ .text.__stub   0x00000000001b17e0        0x8 linker stubs
+                0x00000000001b17e8                _text_end = .
+                0x00000000001b1800                . = ALIGN (0x40)
+ *fill*         0x00000000001b17e8       0x18 
+                0x00000000001b1800                _rodata_start = .
+ *(.rodata)
+ .rodata        0x00000000001b1800      0x360 font_direct.o
+                0x00000000001b1b60                _rodata_end = .
+                0x00000000001b1b60                _data_start = .
+
+.glue_7         0x00000000001b1b60        0x0
+ .glue_7        0x00000000001b1b60        0x0 linker stubs
+
+.glue_7t        0x00000000001b1b60        0x0
+ .glue_7t       0x00000000001b1b60        0x0 linker stubs
+
+.vfp11_veneer   0x00000000001b1b60        0x0
+ .vfp11_veneer  0x00000000001b1b60        0x0 linker stubs
+
+.v4_bx          0x00000000001b1b60        0x0
+ .v4_bx         0x00000000001b1b60        0x0 linker stubs
+
+.iplt           0x00000000001b1b60        0x0
+ .iplt          0x00000000001b1b60        0x0 entry.o
+
+.dump_asm       0x00000000001b1b60       0xfc
+ .dump_asm      0x00000000001b1b60       0xfc minimal-d78.o
+
+.rodata.str1.1  0x00000000001b1c5c       0x38
+ .rodata.str1.1
+                0x00000000001b1c5c       0x38 minimal-d78.o
+
+.rel.dyn        0x00000000001b1c94        0x0
+ .rel.iplt      0x00000000001b1c94        0x0 entry.o
+
+.data           0x00000000001b1c94       0x38
+                0x00000000001b1c98                . = ALIGN (0x8)
+ *fill*         0x00000000001b1c94        0x4 
+                0x00000000001b1c98                _task_overrides_start = .
+ *(.task_overrides)
+                0x00000000001b1c98                _task_overrides_end = .
+                0x00000000001b1c98                . = ALIGN (0x8)
+                0x00000000001b1c98                _tasks_start = .
+ *(.tasks)
+                0x00000000001b1c98                _tasks_end = .
+                0x00000000001b1c98                . = ALIGN (0x8)
+                0x00000000001b1c98                _init_funcs_start = .
+ *(.init_funcs)
+                0x00000000001b1c98                _init_funcs_end = .
+                0x00000000001b1c98                . = ALIGN (0x8)
+                0x00000000001b1c98                _ptp_handlers_start = .
+ *(.ptp_handlers)
+                0x00000000001b1c98                _ptp_handlers_end = .
+                0x00000000001b1c98                . = ALIGN (0x8)
+                0x00000000001b1c98                _config_vars_start = .
+ *(.config_vars)
+                0x00000000001b1c98                _config_vars_end = .
+                0x00000000001b1c98                . = ALIGN (0x8)
+                0x00000000001b1c98                _prop_handlers_start = .
+ *(.prop_handlers)
+                0x00000000001b1c98                _prop_handlers_end = .
+                0x00000000001b1c98                . = ALIGN (0x8)
+                0x00000000001b1c98                _module_symbols_start = .
+ *(.module_symbols)
+                0x00000000001b1c98                _module_symbols_end = .
+                0x00000000001b1cc0                . = ALIGN (0x40)
+ *fill*         0x00000000001b1c98       0x28 
+ *(.data)
+ .data          0x00000000001b1cc0        0x0 entry.o
+ .data          0x00000000001b1cc0        0x0 boot-d78.o
+ .data          0x00000000001b1cc0        0xc minimal-d78.o
+ .data          0x00000000001b1ccc        0x0 cache.o
+ .data          0x00000000001b1ccc        0x0 font_direct.o
+ .data          0x00000000001b1ccc        0x0 ../../platform/M50.110/stubs.o
+ .data          0x00000000001b1ccc        0x0 dietlibc.a(strlen.o)
+ .data          0x00000000001b1ccc        0x0 newlib-libc.a(lib_a-memcpy-stub.o)
+ .data          0x00000000001b1ccc        0x0 gcc-libgcc.a(_udivsi3.o)
+ .data          0x00000000001b1ccc        0x0 gcc-libgcc.a(_dvmd_tls.o)
+                0x00000000001b1ccc                _data.end = .
+                0x00000000001b1ccc                __exidx_start = .
+
+.igot.plt       0x00000000001b1ccc        0x0
+ .igot.plt      0x00000000001b1ccc        0x0 entry.o
+
+.ARM.exidx
+ *(.ARM.exidx*)
+                0x00000000001b1ccc                __exidx_end = .
+                0x00000000001b1d00                . = ALIGN (0x40)
+                0x00000000001b1d00                _bss_start = .
+
+.bss            0x00000000001b1d00     0x1008
+ *(.bss)
+ .bss           0x00000000001b1d00        0x0 entry.o
+ .bss           0x00000000001b1d00     0x1008 boot-d78.o
+                0x00000000001b1d00                ml_used_mem
+                0x00000000001b1d04                ml_reserved_mem
+ .bss           0x00000000001b2d08        0x0 minimal-d78.o
+ .bss           0x00000000001b2d08        0x0 cache.o
+ .bss           0x00000000001b2d08        0x0 font_direct.o
+ .bss           0x00000000001b2d08        0x0 ../../platform/M50.110/stubs.o
+ .bss           0x00000000001b2d08        0x0 dietlibc.a(strlen.o)
+ .bss           0x00000000001b2d08        0x0 newlib-libc.a(lib_a-memcpy-stub.o)
+ .bss           0x00000000001b2d08        0x0 gcc-libgcc.a(_udivsi3.o)
+ .bss           0x00000000001b2d08        0x0 gcc-libgcc.a(_dvmd_tls.o)
+                0x00000000001b2d40                . = ALIGN (0x40)
+                0x00000000001b2d40                _bss_end = .
+
+.stab
+ *(.stab)
+
+.stabstr
+ *(.stabstr)
+
+.stab.excl
+ *(.stab.excl)
+
+.stab.exclstr
+ *(.stab.exclstr)
+
+.stab.index
+ *(.stab.index)
+
+.stab.indexstr
+ *(.stab.indexstr)
+
+.comment        0x0000000000000000       0xe6
+ *(.comment)
+ .comment       0x0000000000000000       0x76 boot-d78.o
+                                         0x77 (size before relaxing)
+ .comment       0x0000000000000076       0x77 minimal-d78.o
+ .comment       0x0000000000000076       0x77 cache.o
+ .comment       0x0000000000000076       0x77 font_direct.o
+ .comment       0x0000000000000076       0x70 newlib-libc.a(lib_a-memcpy-stub.o)
+                                         0x71 (size before relaxing)
+
+.ARM.attributes
+                0x0000000000000000       0x2b
+ .ARM.attributes
+                0x0000000000000000       0x1a entry.o
+ .ARM.attributes
+                0x000000000000001a       0x2b boot-d78.o
+ .ARM.attributes
+                0x0000000000000045       0x2b minimal-d78.o
+ .ARM.attributes
+                0x0000000000000070       0x2b cache.o
+ .ARM.attributes
+                0x000000000000009b       0x2b font_direct.o
+ .ARM.attributes
+                0x00000000000000c6       0x1a ../../platform/M50.110/stubs.o
+ .ARM.attributes
+                0x00000000000000e0       0x14 dietlibc.a(strlen.o)
+ .ARM.attributes
+                0x00000000000000f4       0x30 newlib-libc.a(lib_a-memcpy-stub.o)
+ .ARM.attributes
+                0x0000000000000124       0x1c gcc-libgcc.a(_udivsi3.o)
+ .ARM.attributes
+                0x0000000000000140       0x1c gcc-libgcc.a(_dvmd_tls.o)
+
+.debug
+ *(.debug)
+
+.line
+ *(.line)
+
+.debug_srcinfo
+ *(.debug_srcinfo)
+
+.debug_sfnames
+ *(.debug_sfnames)
+
+.debug_aranges  0x0000000000000000       0xa8
+ *(.debug_aranges)
+ .debug_aranges
+                0x0000000000000000       0x20 boot-d78.o
+ .debug_aranges
+                0x0000000000000020       0x28 minimal-d78.o
+ .debug_aranges
+                0x0000000000000048       0x20 cache.o
+ .debug_aranges
+                0x0000000000000068       0x20 font_direct.o
+ .debug_aranges
+                0x0000000000000088       0x20 newlib-libc.a(lib_a-memcpy-stub.o)
+
+.debug_pubnames
+ *(.debug_pubnames)
+
+.debug_info     0x0000000000000000     0x504b
+ *(.debug_info .gnu.linkonce.wi.*)
+ .debug_info    0x0000000000000000     0x224a boot-d78.o
+ .debug_info    0x000000000000224a     0x1bd8 minimal-d78.o
+ .debug_info    0x0000000000003e22      0x5d1 cache.o
+ .debug_info    0x00000000000043f3      0xb28 font_direct.o
+ .debug_info    0x0000000000004f1b      0x130 newlib-libc.a(lib_a-memcpy-stub.o)
+
+.debug_abbrev   0x0000000000000000      0xd6e
+ *(.debug_abbrev)
+ .debug_abbrev  0x0000000000000000      0x458 boot-d78.o
+ .debug_abbrev  0x0000000000000458      0x3b2 minimal-d78.o
+ .debug_abbrev  0x000000000000080a      0x21b cache.o
+ .debug_abbrev  0x0000000000000a25      0x2b0 font_direct.o
+ .debug_abbrev  0x0000000000000cd5       0x99 newlib-libc.a(lib_a-memcpy-stub.o)
+
+.debug_line     0x0000000000000000     0x1fa8
+ *(.debug_line .debug_line.* .debug_line_end)
+ .debug_line    0x0000000000000000      0xd0c boot-d78.o
+ .debug_line    0x0000000000000d0c      0x6cc minimal-d78.o
+ .debug_line    0x00000000000013d8      0x518 cache.o
+ .debug_line    0x00000000000018f0      0x521 font_direct.o
+ .debug_line    0x0000000000001e11      0x197 newlib-libc.a(lib_a-memcpy-stub.o)
+
+.debug_frame    0x0000000000000000      0x21c
+ *(.debug_frame)
+ .debug_frame   0x0000000000000000       0xac boot-d78.o
+ .debug_frame   0x00000000000000ac       0xa0 minimal-d78.o
+ .debug_frame   0x000000000000014c       0x40 cache.o
+ .debug_frame   0x000000000000018c       0x40 font_direct.o
+ .debug_frame   0x00000000000001cc       0x30 newlib-libc.a(lib_a-memcpy-stub.o)
+ .debug_frame   0x00000000000001fc       0x20 gcc-libgcc.a(_udivsi3.o)
+
+.debug_str      0x0000000000000000     0xdf5d
+ *(.debug_str)
+ .debug_str     0x0000000000000000     0xd8f6 boot-d78.o
+                                       0xdcf7 (size before relaxing)
+ .debug_str     0x000000000000d8f6      0x1d5 minimal-d78.o
+                                       0xdaa4 (size before relaxing)
+ .debug_str     0x000000000000dacb      0x129 cache.o
+                                       0x71d8 (size before relaxing)
+ .debug_str     0x000000000000dbf4      0x280 font_direct.o
+                                       0x8f65 (size before relaxing)
+ .debug_str     0x000000000000de74       0xe9 newlib-libc.a(lib_a-memcpy-stub.o)
+                                        0x180 (size before relaxing)
+
+.debug_loc      0x0000000000000000     0x167e
+ *(.debug_loc)
+ .debug_loc     0x0000000000000000      0xc80 boot-d78.o
+ .debug_loc     0x0000000000000c80      0x21f minimal-d78.o
+ .debug_loc     0x0000000000000e9f      0x3d0 cache.o
+ .debug_loc     0x000000000000126f      0x222 font_direct.o
+ .debug_loc     0x0000000000001491      0x1ed newlib-libc.a(lib_a-memcpy-stub.o)
+
+.debug_macinfo
+ *(.debug_macinfo)
+
+.debug_weaknames
+ *(.debug_weaknames)
+
+.debug_funcnames
+ *(.debug_funcnames)
+
+.debug_typenames
+ *(.debug_typenames)
+
+.debug_varnames
+ *(.debug_varnames)
+
+.debug_pubtypes
+ *(.debug_pubtypes)
+
+.debug_ranges   0x0000000000000000      0x298
+ *(.debug_ranges)
+ .debug_ranges  0x0000000000000000      0x110 boot-d78.o
+ .debug_ranges  0x0000000000000110       0x68 minimal-d78.o
+ .debug_ranges  0x0000000000000178       0x98 cache.o
+ .debug_ranges  0x0000000000000210       0x88 font_direct.o
+
+.debug_macro    0x0000000000000000     0x37e5
+ *(.debug_macro)
+ .debug_macro   0x0000000000000000      0x343 boot-d78.o
+ .debug_macro   0x0000000000000343      0xade boot-d78.o
+ .debug_macro   0x0000000000000e21       0x28 boot-d78.o
+ .debug_macro   0x0000000000000e49       0x28 boot-d78.o
+ .debug_macro   0x0000000000000e71       0x3a boot-d78.o
+ .debug_macro   0x0000000000000eab       0x10 boot-d78.o
+ .debug_macro   0x0000000000000ebb       0x22 boot-d78.o
+ .debug_macro   0x0000000000000edd       0x8e boot-d78.o
+ .debug_macro   0x0000000000000f6b       0x51 boot-d78.o
+ .debug_macro   0x0000000000000fbc      0x103 boot-d78.o
+ .debug_macro   0x00000000000010bf       0x6a boot-d78.o
+ .debug_macro   0x0000000000001129      0x1df boot-d78.o
+ .debug_macro   0x0000000000001308       0x5e boot-d78.o
+ .debug_macro   0x0000000000001366      0x16d boot-d78.o
+ .debug_macro   0x00000000000014d3      0x35c boot-d78.o
+ .debug_macro   0x000000000000182f       0x7c boot-d78.o
+ .debug_macro   0x00000000000018ab       0x17 boot-d78.o
+ .debug_macro   0x00000000000018c2      0x118 boot-d78.o
+ .debug_macro   0x00000000000019da       0x18 boot-d78.o
+ .debug_macro   0x00000000000019f2       0x35 boot-d78.o
+ .debug_macro   0x0000000000001a27       0x34 boot-d78.o
+ .debug_macro   0x0000000000001a5b       0x10 boot-d78.o
+ .debug_macro   0x0000000000001a6b       0x16 boot-d78.o
+ .debug_macro   0x0000000000001a81       0x43 boot-d78.o
+ .debug_macro   0x0000000000001ac4       0x34 boot-d78.o
+ .debug_macro   0x0000000000001af8       0x1c boot-d78.o
+ .debug_macro   0x0000000000001b14       0x52 boot-d78.o
+ .debug_macro   0x0000000000001b66       0x40 boot-d78.o
+ .debug_macro   0x0000000000001ba6       0x10 boot-d78.o
+ .debug_macro   0x0000000000001bb6       0x40 boot-d78.o
+ .debug_macro   0x0000000000001bf6       0xd5 boot-d78.o
+ .debug_macro   0x0000000000001ccb       0x1c boot-d78.o
+ .debug_macro   0x0000000000001ce7       0x3d boot-d78.o
+ .debug_macro   0x0000000000001d24       0xe4 boot-d78.o
+ .debug_macro   0x0000000000001e08       0x5e boot-d78.o
+ .debug_macro   0x0000000000001e66       0x22 boot-d78.o
+ .debug_macro   0x0000000000001e88      0x2cc boot-d78.o
+ .debug_macro   0x0000000000002154       0xba boot-d78.o
+ .debug_macro   0x000000000000220e      0x33d boot-d78.o
+ .debug_macro   0x000000000000254b       0x10 boot-d78.o
+ .debug_macro   0x000000000000255b       0x16 boot-d78.o
+ .debug_macro   0x0000000000002571       0x20 boot-d78.o
+ .debug_macro   0x0000000000002591       0xd6 boot-d78.o
+ .debug_macro   0x0000000000002667       0xff boot-d78.o
+ .debug_macro   0x0000000000002766       0x58 boot-d78.o
+ .debug_macro   0x00000000000027be       0x16 boot-d78.o
+ .debug_macro   0x00000000000027d4       0xd0 boot-d78.o
+ .debug_macro   0x00000000000028a4       0x16 boot-d78.o
+ .debug_macro   0x00000000000028ba       0x35 boot-d78.o
+ .debug_macro   0x00000000000028ef       0x10 boot-d78.o
+ .debug_macro   0x00000000000028ff       0x58 boot-d78.o
+ .debug_macro   0x0000000000002957      0x182 boot-d78.o
+ .debug_macro   0x0000000000002ad9       0x16 boot-d78.o
+ .debug_macro   0x0000000000002aef      0x16f boot-d78.o
+ .debug_macro   0x0000000000002c5e       0xa6 boot-d78.o
+ .debug_macro   0x0000000000002d04       0xa6 boot-d78.o
+ .debug_macro   0x0000000000002daa       0x7b boot-d78.o
+ .debug_macro   0x0000000000002e25      0x344 minimal-d78.o
+ .debug_macro   0x0000000000003169      0x1b3 cache.o
+ .debug_macro   0x000000000000331c      0x28d font_direct.o
+ .debug_macro   0x00000000000035a9       0x58 font_direct.o
+ .debug_macro   0x0000000000003601       0x94 font_direct.o
+ .debug_macro   0x0000000000003695       0x57 font_direct.o
+ .debug_macro   0x00000000000036ec       0x10 font_direct.o
+ .debug_macro   0x00000000000036fc       0x16 font_direct.o
+ .debug_macro   0x0000000000003712       0x16 font_direct.o
+ .debug_macro   0x0000000000003728       0x29 font_direct.o
+ .debug_macro   0x0000000000003751       0x1c font_direct.o
+ .debug_macro   0x000000000000376d       0x10 font_direct.o
+ .debug_macro   0x000000000000377d       0x16 font_direct.o
+ .debug_macro   0x0000000000003793       0x52 font_direct.o
+LOAD entry.o
+LOAD boot-d78.o
+LOAD minimal-d78.o
+LOAD cache.o
+LOAD font_direct.o
+LOAD ../../platform/M50.110/stubs.o
+LOAD dietlibc.a
+LOAD newlib-libc.a
+LOAD newlib-libm.a
+LOAD gcc-libgcc.a
+OUTPUT(magiclantern elf32-littlearm)

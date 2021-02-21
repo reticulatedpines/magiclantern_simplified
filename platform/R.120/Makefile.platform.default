@@ -1,0 +1,23 @@
+# EOS R 1.2.0
+
+#CANON_NAME_FIR  = EOSR0120.FIR   # not good
+#UPDATE_NAME_FIR = LOG_R120.FIR
+FIRMWARE_ID     = 0x00000424
+ROMBASEADDR     = 0xE0040000
+
+# Shrink Canon's malloc heap by changing its end address
+#          ("meminfo -m" in drysh)    ("memmap" in drysh)
+# Default: 0x000e3240 - 0x001f7ad4, 0x000e3240 - 0x001f7ad4 (total size 0x114894)
+# Patched: 0x000e3240 - 0x001b7ad4, 0x000e3240 - 0x001b7ad4 (256K reserved for ML)
+RESTARTSTART    = 0x001b7b00
+
+# Cortex A9, binaries loaded as Thumb
+CFLAG_USER = -mthumb -march=armv7-a -mlong-calls
+
+# these should be removed when porting starts
+ifeq ($(ML_SRC_PROFILE),generic)
+ML_SRC_PROFILE  = minimal
+ML_MINIMAL_OBJ  = minimal-d78.o
+endif
+
+ML_BOOT_OBJ     = boot-d78.o

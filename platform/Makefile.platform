@@ -1,0 +1,21 @@
+TOP_DIR?=../..
+ML_SETUP_EXTENSION=platform
+ML_SRC_PROFILE?=generic
+
+include $(TOP_DIR)/platform/Makefile.platform.base
+
+install:: autoexec.bin
+	$(CP) autoexec.bin $(INSTALL_DIR)/
+
+# quick install for slow media (e.g. wifi cards)
+# only copy autoexec.bin and the symbol file
+installq: install_prepare autoexec.bin $(ML_MODULES_SYM_NAME)
+	$(CP) autoexec.bin $(INSTALL_DIR)/
+	$(CP) $(ML_MODULES_SYM_NAME) $(INSTALL_MODULES_DIR)/
+	$(INSTALL_FINISH)
+
+include $(TOP_DIR)/Makefile.inc
+
+# tag any function with DUMP_ASM, then run "make dump_asm" from platform/CAM directory
+dump_asm: all
+	$(OBJDUMP) -d -M reg-names-raw --section=.dump_asm magiclantern

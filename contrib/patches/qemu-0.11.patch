@@ -1,0 +1,216 @@
+diff -u --recursive pristine/qemu-0.11.0/Makefile.target qemu-0.11.0/Makefile.target
+--- pristine/qemu-0.11.0/Makefile.target	2009-09-23 15:01:31.000000000 -0400
++++ qemu-0.11.0/Makefile.target	2009-11-10 11:53:50.000000000 -0500
+@@ -586,7 +586,7 @@
+ obj-arm-y += pxa2xx.o pxa2xx_pic.o pxa2xx_gpio.o pxa2xx_timer.o pxa2xx_dma.o
+ obj-arm-y += pxa2xx_lcd.o pxa2xx_mmci.o pxa2xx_pcmcia.o pxa2xx_keypad.o
+ obj-arm-y += pflash_cfi01.o gumstix.o
+-obj-arm-y += zaurus.o ide.o serial.o spitz.o tosa.o tc6393xb.o
++obj-arm-y += zaurus.o ide.o serial.o spitz.o tosa.o tc6393xb.o ixus.o
+ obj-arm-y += omap1.o omap_lcdc.o omap_dma.o omap_clk.o omap_mmc.o omap_i2c.o
+ obj-arm-y += omap2.o omap_dss.o soc_dma.o
+ obj-arm-y += omap_sx1.o palm.o tsc210x.o
+--- pristine/qemu-0.11.0/hw/ixus.c	1969-12-31 19:00:00.000000000 -0500
++++ qemu-0.11.0/hw/ixus.c	2009-11-14 15:20:08.000000000 -0500
+@@ -0,0 +1,201 @@
++#include "hw.h"
++#include "pxa.h"
++#include "arm-misc.h"
++#include "net.h"
++#include "flash.h"
++#include "sysemu.h"
++#include "devices.h"
++#include "boards.h"
++#include "exec-all.h"
++
++#define ROM_START 0xff810000
++#define ROM_SIZE 0x7f0000
++#define KERNEL_LOAD_ADDR 0x00010000
++
++#define IO_MEM_START 0xc0000000
++#define IO_MEM_LEN 0xa00000
++
++static uint8_t io_mem[ IO_MEM_LEN ];
++
++// iomem: 0xc0000000 
++// 		  0xc0200000
++// 		  0xc0400000
++// 		  0xc0500000
++//        0xc0800000
++//        0xc0900000
++// 64MB
++// #define RAM_SIZE = 0x4000000
++//
++
++struct ixus_info_s {
++    target_phys_addr_t target_base;
++};
++static uint32_t sl_readb(void *opaque, target_phys_addr_t addr) {
++    struct ixus_info_s *s = (struct ixus_info_s *) opaque;
++
++	uint32_t value = io_mem[ addr >> 2 ];
++	addr += s->target_base;
++
++	// 0xc09000d4
++    switch (addr) {
++		case 0xc0800000:
++		case 0xc0800014:
++			return 2;
++			break;
++		case 0xc0400044:
++			return 0x03;
++		case 0xc0800008:
++			return 0;
++		default:
++			printf("IO 0x%x -> %02x\n", addr, value );
++			return value;
++	}
++	return 0;
++}
++static void sl_writeb(void *opaque, target_phys_addr_t addr, uint32_t val) {
++    struct ixus_info_s *s = (struct ixus_info_s *) opaque;
++
++	io_mem[ addr >> 2 ] = val;
++
++	addr += s->target_base;
++
++    switch (addr) {
++		case 0xc0800000:
++		case 0xc0800014:
++			fprintf( stderr, "%c", val);
++			break;
++		default:
++			printf("IO 0x%x <- 0x%x\n", addr, val);
++			break;
++	}
++	return;
++}
++
++static void
++ixus_init(
++	ram_addr_t ram_size,
++	const char *boot_device,
++	const char *kernel_filename,
++	const char *kernel_cmdline,
++	const char *initrd_filename,
++	const char *cpu_model
++)
++{
++
++	CPUState *cpu;
++	ram_addr_t phys_rom_base;
++	int rom_size;
++    int iomemtype;
++	struct ixus_info_s *s;
++    CPUReadMemoryFunc *sl_readfn[] = {
++        sl_readb,
++        sl_readb,
++        sl_readb,
++    };
++    CPUWriteMemoryFunc *sl_writefn[] = {
++        sl_writeb,
++        sl_writeb,
++        sl_writeb,
++    };
++
++    if (!cpu_model)
++        cpu_model = "arm926";
++    cpu = cpu_init(cpu_model);
++
++	// I'm cheating here
++	cpu->features |= 1u << ARM_FEATURE_OMAPCP;
++
++    if (!cpu) {
++        fprintf(stderr, "Unable to find CPU definition\n");
++        exit(1);
++    }
++    cpu_register_physical_memory(0, ram_size, 
++		qemu_ram_alloc(ram_size) | IO_MEM_RAM
++	);
++    cpu_register_physical_memory(
++		ROM_START,
++		ROM_SIZE,
++		(phys_rom_base = qemu_ram_alloc(ROM_SIZE)) | IO_MEM_ROMD
++	);
++
++	// 0x4000000 smells like dma
++	// just put some mem there to debug
++	cpu_register_physical_memory(
++		0x40000000,
++		0x10000,
++		// phys_rom_base + ROM_SIZE | IO_MEM_RAM
++		qemu_ram_alloc(0x10000) | IO_MEM_RAM
++	);
++
++	// IO
++	// attach callbacks to dump IO work 0xc0000000 ...
++    s = (struct ixus_info_s *) qemu_mallocz(sizeof(struct ixus_info_s));
++	s->target_base = IO_MEM_START;
++	iomemtype = cpu_register_io_memory(sl_readfn, sl_writefn, s);
++	cpu_register_physical_memory(IO_MEM_START, IO_MEM_LEN, iomemtype);
++
++	// set entry point
++	uint32_t entry = ROM_START;
++	char * entry_env = getenv( "QEMU_ENTRY" );
++	if( entry_env )
++		entry = strtoul( entry_env, 0, 0 );
++	cpu->regs[15] = entry;
++
++	uint32_t load_addr = ROM_START;
++	char * load_env = getenv( "QEMU_LOAD" );
++	if( load_env )
++		load_addr = strtoul( load_env, 0, 0 );
++
++	// load rom file
++fprintf(stderr, "loading '%s' to %p\n", option_rom[0], load_addr ); // (void*) phys_rom_base);
++	rom_size = get_image_size(option_rom[0]);
++	//target_ulong phys_ram_base = get_phys_addr_code( cpu,  );
++fprintf( stderr, "size %ld entry %p\n", rom_size, entry );
++	if (0 > load_image_targphys(option_rom[0], load_addr, rom_size)) {
++		fprintf(stderr, "%s: error loading '%s'\n",
++			__FUNCTION__, option_rom[0]);
++		
++	}
++    //arm_load_kernel(cpu, ROM_SIZE, kernel_filename, kernel_cmdline,
++    //                initrd_filename, 0x80, ROM_START);
++}
++
++static QEMUMachine canon_ixus_machine = {
++    .name = "ixus",
++    .desc = "Canon ixus Cam",
++    .init = ixus_init,
++};
++/*
++void cpu_register_physical_memory(target_phys_addr_t start_addr,
++	unsigned long size,
++	unsigned long phys_offset)
++
++
++int cpu_register_io_memory(int io_index,
++                           CPUReadMemoryFunc **mem_read,
++                           CPUWriteMemoryFunc **mem_write,
++                           void *opaque)
++
++void arm_load_kernel(CPUState *env, int ram_size, const char *kernel_filename,
++	 const char *kernel_cmdline, const char *initrd_filename,
++	 int board_id, target_phys_addr_t loader_start);
++
++*/
++
++/* 
++void tcx_init(DisplayState *ds, target_phys_addr_t addr, uint8_t *vram_base,
++              unsigned long vram_offset, int vram_size, int width, int height,
++              int depth)
++void *pl110_init(DisplayState *ds, uint32_t base, qemu_irq irq,
++		int versatile 0 oder 1)
++
++
++*/
++
++
++static void ixus_machine_init(void)
++{
++    qemu_register_machine(&canon_ixus_machine);
++}
++
++machine_init(ixus_machine_init);

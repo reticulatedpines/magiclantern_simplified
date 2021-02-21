@@ -1,0 +1,71 @@
+
+ifndef ML_SRC_PROFILE
+$(error ML_SRC_PROFILE is not defined)
+endif
+
+ifndef MODEL
+$(error Camera MODEL is not defined)
+endif
+
+include $(TOP_DIR)/Makefile.top
+
+include $(PLATFORM_PATH)/Makefile.platform.map
+
+# check for multiple firmware versions 
+ifndef FW_VERSION
+FW_VERSION=$(call platform_version,$(MODEL))
+ifeq ($(FW_VERSION),)
+# fixme: this triggers when running make clean from platform dir; how to avoid? 
+$(warning FW_VERSION for $(MODEL) is not defined)
+endif
+endif
+
+ifndef ML_MODEL_DIR
+ML_MODEL_DIR = $(MODEL).$(FW_VERSION)
+endif
+
+PLATFORM_DIR=$(PLATFORM_PATH)/$(ML_MODEL_DIR)
+PLATFORM_INC=$(PLATFORM_DIR)
+
+# must have 8.3 characters for 64GB EXFAT cards
+
+# installer (enable boot flag, make card bootable etc)
+INSTALLER_NAME_FIR=ML-SETUP.FIR
+
+# same thing as autoexec.bin, just run as FIR
+# it's not auto-loaded, just named the same so you know it does the same thing
+ML_NAME_FIR=AUTOEXEC.FIR
+
+ifeq ($(ML_SRC_PROFILE),installer)
+UPDATE_NAME_FIR=$(INSTALLER_NAME_FIR)
+else
+UPDATE_NAME_FIR=$(ML_NAME_FIR)
+endif
+
+ifndef ML_MAKEFILE_PLATFORM_SETUP
+ML_MAKEFILE_PLATFORM_SETUP = $(PLATFORM_DIR)/Makefile.platform.default
+endif
+
+-include $(ML_MAKEFILE_PLATFORM_SETUP)
+
+ifndef AUTOEXEC_BASE
+AUTOEXEC_BASE	= 0x800000
+endif
+
+ifndef FIR_BASE
+FIR_BASE	= 0x800120
+endif
+
+ifndef ROMBASEADDR
+$(error ROMBASEADDR is not defined)
+endif
+
+ifndef RESTARTSTART
+$(error RESTARTSTART is not defined)
+endif
+
+include $(TOP_DIR)/Makefile.setup
+
+include $(SRC_DIR)/Makefile.src
+
+include $(PLATFORM_PATH)/Makefile.platform.extras

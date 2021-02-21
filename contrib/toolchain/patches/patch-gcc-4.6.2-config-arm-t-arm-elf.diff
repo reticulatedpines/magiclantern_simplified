@@ -1,0 +1,61 @@
+--- gcc/config/arm/t-arm-elf.orig	2011-02-03 10:41:08.000000000 +1100
++++ gcc/config/arm/t-arm-elf	2011-02-03 10:44:22.000000000 +1100
+@@ -31,10 +31,55 @@
+ 	_arm_floatdidf _arm_floatdisf _arm_floatundidf _arm_floatundisf \
+ 	_clzsi2 _clzdi2 
+ 
+-MULTILIB_OPTIONS     = marm/mthumb
+-MULTILIB_DIRNAMES    = arm thumb
+-MULTILIB_EXCEPTIONS  = 
++# We build 4 multilibs:
++#  ./            (default)
++#  thumb/        -mthumb
++#  thumb2/       -mthumb -march=armv7
++#  armv4t/      -mthumb -march=armv4t
++
++MULTILIB_OPTIONS     = mthumb
++MULTILIB_DIRNAMES    = thumb
++MULTILIB_EXCEPTIONS  =
+ MULTILIB_MATCHES     =
++MULTILIB_EXTRA_OPTS  += msoft-float
++
++MULTILIB_OPTIONS      += march=armv7/march=armv4t
++MULTILIB_DIRNAMES     += v7 v4t
++MULTILIB_EXCEPTIONS   += march=armv7*
++MULTILIB_MATCHES      += march?armv7=march?armv7-a
++MULTILIB_MATCHES      += march?armv7=march?armv7-r
++MULTILIB_MATCHES      += march?armv7=march?armv7-m
++MULTILIB_MATCHES      += march?armv7=march?armv7e-m
++MULTILIB_MATCHES      += march?armv7=mcpu?cortex-a9
++MULTILIB_MATCHES      += march?armv7=mcpu?cortex-a8
++MULTILIB_MATCHES      += march?armv7=mcpu?cortex-a5
++MULTILIB_MATCHES      += march?armv7=mcpu?cortex-r4
++MULTILIB_MATCHES      += march?armv7=mcpu?cortex-r4f
++MULTILIB_MATCHES      += march?armv7=mcpu?cortex-m4
++MULTILIB_MATCHES      += march?armv7=mcpu?cortex-m3
++
++MULTILIB_EXCEPTIONS   += march=armv4t
++MULTILIB_MATCHES      += march?armv4t=mcpu?arm7tdmi-s
++#MULTILIB_MATCHES      +=
++
++# FIXME: We need a sane way of doing this.
++# This isn't really a multilib, it's a hack to add an extra option
++# to the v7-m multilib.
++MULTILIB_OPTIONS      += mfix-cortex-m3-ldrd
++MULTILIB_DIRNAMES     += broken_ldrd
++
++MULTILIB_EXCEPTIONS   += mfix-cortex-m3-ldrd
++MULTILIB_EXCEPTIONS   += mthumb/mfix-cortex-m3-ldrd
++MULTILIB_EXCEPTIONS   += *march=armv4t*mfix-cortex-m3-ldrd
++
++MULTILIB_ALIASES      += mthumb/march?armv7/mfix-cortex-m3-ldrd=mthumb/march?armv7
++
++# As of at least 4.2, gcc passes the wrong -L options if some multilibs are
++# omitted from MULTILIB_OSDIRNAMES
++MULTILIB_OSDIRNAMES    = mthumb=!thumb
++MULTILIB_OSDIRNAMES   += mthumb/march.armv7/mfix-cortex-m3-ldrd=!thumb2
++MULTILIB_OSDIRNAMES   += mthumb/march.armv4t=!armv4t
++
+ 
+ #MULTILIB_OPTIONS      += march=armv7
+ #MULTILIB_DIRNAMES     += thumb2

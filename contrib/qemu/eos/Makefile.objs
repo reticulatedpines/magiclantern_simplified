@@ -1,0 +1,7 @@
+# Paths are relative ../arm
+obj-y += ../eos/eos.o ../eos/model_list.o ../eos/engine.o
+obj-y += ../eos/eos_ml_helpers.o ../eos/mpu.o ../eos/serial_flash.o
+obj-y += ../eos/dbi/logging.o ../eos/dbi/memcheck.o ../eos/dbi/debugmsg.o
+obj-y += ../eos/dbi/backtrace.o
+obj-y += ../eos/scnprintf.o
+

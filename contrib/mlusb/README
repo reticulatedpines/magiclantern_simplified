@@ -1,0 +1,45 @@
+================================
+Simple ML USB controller library
+================================
+
+About
+=====
+This small utility lets you control some ML features through USB
+
+Install
+=======
+
+To run test.rb
+--------------
+
+You will need ruby, rubygems, and the ruby-usb package.
+
+For Ubuntu 11.10:
+
+$ sudo apt-get install ruby-full rubygems libusb-ruby
+
+For Microsoft Windows:
+
+1. Download rubyinstaller
+2. Download libusb-win32
+3. From a prompt type:
+> gem install ruby-usb
+
+To run mlusb.rb
+---------------
+
+It is packaged with shoes, it should work as a native application.
+
+On Windows you will also need to install libusb-win32-devel-filter drive:
+http://sourceforge.net/projects/libusb-win32/files/libusb-win32-releases/1.2.6.0/
+
+To compile mlusb.rb
+-------------------
+
+You will need shoes. Get it from http://shoesrb.com/downloads
+
+Licence
+=======
+Copyright Zsolt Sz. Sztupak <mail@sztupy.hu>
+Licenced under the GPLv2
+

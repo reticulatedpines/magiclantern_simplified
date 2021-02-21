@@ -1,0 +1,20 @@
+# 760D 1.0.0
+
+CANON_NAME_FIR  = 5D300133.FIR
+FIRMWARE_ID     = 0x80000347
+UPDATE_NAME_FIR = DUMP760D.FIR
+
+# these are not correct (just to compile)
+RESTARTSTART    = 0x0
+ROMBASEADDR     = 0xFC000000
+
+# Cortex R4
+CFLAG_USER += -march=armv7-r -mlong-calls
+
+# these should be removed when porting starts
+ML_SRC_PROFILE  = minimal
+ML_SRC_REBOOT_OBJ = reboot-dumper.o footer.o
+
+# FIXME: should be boot-d6.o
+ML_BOOT_OBJ = minimal.o
+

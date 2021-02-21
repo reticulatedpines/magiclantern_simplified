@@ -1,0 +1,6 @@
+MODEL=6D
+FW_VERSION=113
+include ../Makefile.installer
+
+# BSS_END: ff0c1c64:	000d7848
+RESTARTSTART=0xd7900
