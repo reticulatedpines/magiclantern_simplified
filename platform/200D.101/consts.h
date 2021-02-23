@@ -78,15 +78,25 @@
 #define Q_BTN_NAME "FUNC"
 #define ARROW_MODE_TOGGLE_KEY "FUNC"
 
+#define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x4444+0x30) // wrong, no idea
+#define FOCUS_CONFIRMATION (*(int*)0x4444) // wrong, focusinfo looks really different 50D -> 200D
+
 
 // Low confidence:
 #define MIN_MSLEEP 11
 #define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_PLAY)
 #define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_MENU)
+#define GUIMODE_WB 5
+#define GUIMODE_FOCUS_MODE 9
+#define GUIMODE_DRIVE_MODE 8
+#define GUIMODE_PICTURE_STYLE 4
+#define GUIMODE_PLAY 1
+#define GUIMODE_MENU 2
+#define GUIMODE_Q_UNAVI 0x18
+#define GUIMODE_FLASH_AE 0x22
+#define GUIMODE_PICQ 6
 
 // Definitely wrong / hacks / no testing at all:
-#define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x4444+0x30) // wrong, no idea
-#define FOCUS_CONFIRMATION (*(int*)0x4444) // wrong, focusinfo looks really different 50D -> 200D
 #define YUV422_LV_BUFFER_DISPLAY_ADDR 0x0 // it expects this to be pointer to address
 #define YUV422_HD_BUFFER_DMA_ADDR 0x0 // it expects this to be shamem_read(some_DMA_ADDR)
 #define YUV422_LV_BUFFER_1 0x41B00000
