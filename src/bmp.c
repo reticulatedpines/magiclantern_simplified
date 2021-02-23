@@ -922,14 +922,20 @@ static int bfnt_ok()
     int* codes = (int*) BFNT_CHAR_CODES;
     int i;
 
+    if (BFNT_CHAR_CODES == 0)
+        return 0;
+
     for (i = 0; i < 20; i++)
-        if (codes[i] != 0x20+i) return 0;
+        if (codes[i] != 0x20+i)
+            return 0;
 
     int* off = (int*) BFNT_BITMAP_OFFSET;
-    if (off[0] != 0) return 0;
+    if (off[0] != 0)
+        return 0;
 
     for (i = 1; i < 20; i++)
-        if (off[i] <= off[i-1]) return 0;
+        if (off[i] <= off[i-1])
+            return 0;
 
     return 1;
 }
@@ -1025,7 +1031,10 @@ int bfnt_char_get_width(int c)
 {
     if (!bfnt_ok())
     {
-        bmp_printf(FONT_SMALL, 0, 0, "font addr bad");
+        // FIXME SJE bmp_printf not yet working on 200D,
+        // so let's avoid using it
+        if (BFNT_CHAR_CODES != 0)
+            bmp_printf(FONT_SMALL, 0, 0, "font addr bad");
         return 0;
     }
 

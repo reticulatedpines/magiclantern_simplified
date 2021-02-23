@@ -91,7 +91,7 @@ copy_and_restart( int offset )
     // Note: unlike most (all?) DIGIC 4/5 cameras,
     // the malloc heap is specified as start + size (not start + end)
     // easiest way is to reduce its size and load ML right after it
-    ml_reserved_mem = 0x40000;
+    ml_reserved_mem = 0x46000;
     qprint("[BOOT] reserving memory: "); qprintn(ml_reserved_mem); qprint("\n");
     qprint("before: user_mem_size = "); qprintn(INSTR(HIJACK_INSTR_HEAP_SIZE)); qprint("\n");
     INSTR( HIJACK_INSTR_HEAP_SIZE ) -= ml_reserved_mem;

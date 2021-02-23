@@ -586,11 +586,13 @@ void _load_fonts()
 {
     /* tolerate multiple calls, but only run the first */
     static int fonts_loaded = 0;
-    if (fonts_loaded) return;
+    if (fonts_loaded)
+        return;
     fonts_loaded = 1;
     
     /* fake font for Canon font backend, with the same metrics */
-    font * canon_font = new_font();
+    font *canon_font = new_font();
+
     canon_font->hdr.height = 40;
     for (int i = 0; i < 256; i++)
         canon_font->wTable[i] = bfnt_char_get_width(i);

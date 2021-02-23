@@ -530,6 +530,12 @@ static uint32_t find_caller(EOSState *s, uint32_t pc, uint32_t *psp)
     uint32_t sp = *psp;
     int iter = 0;
 
+    // FIXME SJE, so much FIXME.
+    // Currently the backtrace handling causes an exception...
+    #ifdef CONFIG_200D
+    return 0;
+    #endif
+
     /* we need to find one code path that returns from the function */
     /* first we try the deterministic path (no conditional branches taken) */
     /* if that doesn't work, we'll try taking them randomly */

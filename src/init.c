@@ -243,7 +243,7 @@ static void backup_rom_task()
 #ifdef CONFIG_HELLO_WORLD
 static void hello_world()
 {
-    int sig = compute_signature((int*)SIG_START, 0x10000);
+    int sig = compute_signature((uint32_t*)SIG_START, 0x10000);
     while(1)
     {
         bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
@@ -508,7 +508,8 @@ void boot_post_init_task(void)
 #endif
 
     // wait for firmware to initialize
-    while (!bmp_vram_raw()) msleep(100);
+    while (!bmp_vram_raw())
+        msleep(100);
     
     // wait for overriden gui_main_task (but use a timeout so it doesn't break if you disable that for debugging)
     for (int i = 0; i < 50; i++)

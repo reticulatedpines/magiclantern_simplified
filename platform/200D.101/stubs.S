@@ -141,7 +141,7 @@ NSTUB(0xe04ba81d,  DeleteMemorySuite)
 NSTUB(0xe04baa5c,  CreateMemorySuite)
 NSTUB(0xe04b9f88,  CreateMemoryChunk) // called from CreateMemorySuite
 //NSTUB(0xe04ba7e6,  GetSizeOfMemorySuite) // not needed, but I found it along the way
-NSTUB(0xdf008514,  take_semaphore) // Fairly sure. Same function sig and followed by give_semaphore
+NSTUB(0xdf008515,  take_semaphore) // Fairly sure. Same function sig and followed by give_semaphore
 NSTUB(0xdf00858f,  give_semaphore)
 NSTUB(0xdf008419,  create_named_semaphore) // also see df00b114, very similar, but 8418 is closer to 50D create_named_semaphore
 NSTUB(0xe02d35aa,  gui_change_mode) // GUI_ChangeMode_Post
