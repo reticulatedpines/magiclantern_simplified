@@ -138,7 +138,11 @@ int _patch_sync_caches(int also_data)
     else
     {
         dbg_printf("Flushing ICache...\n");
+        #ifdef CONFIG_200D
+        // 200D doesn't have this, find something appropriate
+        #else
         _flush_i_cache();
+        #endif
     }
     
     if (locked)

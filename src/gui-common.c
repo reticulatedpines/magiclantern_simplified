@@ -773,7 +773,9 @@ void exit_play_qr_menu_mode()
     /* if in LiveView, wait for the first frame */
     if (lv)
     {
+        #ifdef CONFIG_STATE_OBJECT_HOOKS
         wait_lv_frames(1);
+        #endif
     }
 
     /* wait for any remaining GUI stuff to settle */
