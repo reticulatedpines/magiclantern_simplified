@@ -1,1 +1,2 @@
-
+#define CONFIG_HELLO_WORLD
+//#define CONFIG_CRASH_LOG

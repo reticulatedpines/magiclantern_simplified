@@ -1,0 +1,19 @@
+Get real BGMT values via MPU ring buffer logging or similar, update gui.h
+
+Verify cfn.c contents are sane
+
+Verify if include/platform/mvr.h makes any sense
+
+Check all the low and medium confidence items in consts.h
+
+Fix include/platform/state-object.h constants
+
+Decide what to do with src/fps-engio.c change for CONFIG_200D.  It's probably
+safe as is, but look at CONFIG_100D, quite different.  What is 200D really like?
+
+Work out what to do to replace _flush_i_cache() in patch.c, see CONFIG_200D
+
+Revisit BFNT_CHAR_CODES == 0 minor bodge and see if it's acceptable
+
+Audit all stubs.S for wrong Thumb bit, and probably move to THUMB_FN
+even though it's a pain.
