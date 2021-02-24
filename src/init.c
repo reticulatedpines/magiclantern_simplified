@@ -121,7 +121,7 @@ my_task_dispatch_hook(
 
     thunk entry = (thunk) next_task->entry;
 
-    qprintf("[****] Starting task %x(%x) %s\n", next_task->entry, next_task->arg, next_task->task_name);
+    qprintf("[****] Starting task %x(%x) %s\n", next_task->entry, next_task->arg, next_task->name);
 
     // Search the task_mappings array for a matching entry point
     extern struct task_mapping _task_overrides_start[];

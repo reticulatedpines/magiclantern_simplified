@@ -36,33 +36,50 @@ struct context
 
 struct task
 {
-        uint32_t                off_0x00;       // always 0?
-        uint32_t                off_0x04;       // stack maybe?
-        uint32_t                run_prio;       // flags?
-        void *                  entry;          // off 0x0c
-        uint32_t                arg;            // off_0x10;
-        uint32_t                waitObjId;
-        uint32_t                off_0x18;
-        uint32_t                stackStartAddr;
-        uint32_t                stackSize;
-        const char *            task_name;      // off_0x24; please use get_current_task_name() instead
-        uint32_t                off_0x28;
-        uint32_t                off_0x2c;
-        uint32_t                self;
-        uint32_t                off_0x34;
-        uint32_t                off_0x38;
-        uint32_t                off_0x3c;
-        uint32_t                taskId;
-        uint32_t                off_0x44;
-        uint8_t                 off_0x48;
-        uint8_t                 currentState;
-        uint8_t                 off_0x4a;
-        uint8_t                 yieldRequest;
-        uint8_t                 off_0x4c;
-        uint8_t                 sleepReason;
-        uint8_t                 off_0x4e;
-        uint8_t                 off_0x4f;
-        struct context *        context;        // off 0x4C
+//      type            name            offset, size
+        uint32_t            unknown_01; // 0x00, 4   always 0?
+        uint32_t            unknown_02; // 0x04, 4   stack maybe?  SJE maybe next task in queue?
+        uint32_t        run_prio;       // 0x08, 4   flags?
+        void *          entry;          // 0x0c, 4
+        uint32_t        arg;            // 0x10, 4
+        uint32_t        waitObjId;      // 0x14, 4
+        uint32_t            unknown_03; // 0x18, 4
+        uint32_t        stackStartAddr; // 0x1c, 4
+        uint32_t        stackSize;      // 0x20, 4
+        char *          name;           // 0x24, 4
+        uint32_t            unknown_04; // 0x28, 4
+        uint32_t            unknown_05; // 0x2c, 4
+        uint32_t        self;           // 0x30, 4
+        uint32_t            unknown_06; // 0x34, 4
+        uint32_t            unknown_07; // 0x38, 4
+        uint32_t            unknown_08; // 0x3c, 4
+        uint32_t        taskId;         // 0x40, 4
+#if defined(CONFIG_200D) // probably all Digic7, maybe 8 and 9?  But only confirmed on 200D
+        uint32_t            unknown_09; // 0x44, 4
+#endif
+        uint8_t             unknown_0a; // 0x44 / 0x48, 1
+        int8_t          currentState;   // 0x45 / 0x49, 1
+        uint8_t             unknown_0b; // 0x46 / 0x4a, 1
+        uint8_t         yieldRequest;   // 0x47 / 0x4b, 1
+        uint8_t             unknown_0c; // 0x48 / 0x4c, 1
+        uint8_t         sleepReason;    // 0x49 / 0x4d, 1
+        uint8_t             unknown_0d; // 0x4a / 0x4e, 1
+        uint8_t             unknown_0e; // 0x4b / 0x4f, 1
+#if defined(CONFIG_200D) // again, probably more broadly applicable but this needs testing
+        uint8_t             cpu_requested; // 0x50, 1 // SJE working theory: which CPU can
+                                                      // take the task.  0xff means any.
+        uint8_t             cpu_assigned; // 0x51, 1  // Which CPU has taken the task,
+                                                      // 0xff means not yet taken.
+                                                      // See df0028a2, 200D 1.0.1, which
+                                                      // I believe is "int get_task_for_cpu(int cpu_id)"
+        uint8_t             unknown_11; // 0x52, 1
+        uint8_t             unknown_12; // 0x53, 1
+        struct context *context;        // 0x54, 4
+        uint32_t            unknown_13; // 0x58, 4
+#else
+        struct context *context;        // 0x4c, 4
+#endif
+                                        // 0x50 / 0x5c // sizeof struct
 };
 
 
@@ -185,7 +202,7 @@ static inline const char * get_current_task_name()
 
     if (!interrupt_level)
     {
-        return current_task->task_name;
+        return current_task->name;
     }
     else
     {

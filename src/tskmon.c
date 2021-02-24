@@ -146,12 +146,12 @@ static void tskmon_update_runtime(struct task *task, uint32_t active_time)
     tskmon_total_runtime += active_time;
 
     /* first time set idle/powermgr task ids */
-    if(tskmon_idle_task_id == 0 && !strcmp(task->task_name, "idle"))
+    if(tskmon_idle_task_id == 0 && !strcmp(task->name, "idle"))
     {
         tskmon_idle_task_id = task->taskId & (TSKMON_MAX_TASKS-1);
     }
 
-    if(tskmon_powermgr_task_id == 0 && !strcmp(task->task_name, "PowerMgr"))
+    if(tskmon_powermgr_task_id == 0 && !strcmp(task->name, "PowerMgr"))
     {
         tskmon_powermgr_task_id = task->taskId & (TSKMON_MAX_TASKS-1);
     }
@@ -240,7 +240,7 @@ null_pointer_check()
 
             /* which task caused this error? */
             int id = tskmon_last_task ? tskmon_last_task->taskId : -1;
-            const char * task_name = tskmon_last_task ? tskmon_last_task->task_name : "?";
+            const char *task_name = tskmon_last_task ? tskmon_last_task->name : "?";
 
             // Ignore Canon null pointer bugs (let's hope they are harmless...)
             if (isupper(task_name[0]))
