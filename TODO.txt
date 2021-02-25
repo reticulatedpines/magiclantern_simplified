@@ -8,13 +8,6 @@ of non-generic code from when I was playing around.
 That can be unsafe on other cams and must be fixed.
 ====
 
-====
-d6-dumper renamed struct task.name to .task_name.
-I prefer name, but changing to task_name allows finding
-all old uses in order to replace with get_current_task_name().
-
-Can then change back to .name
-====
 
 ====
 Make hg and git optional for building (currently disabled).
@@ -34,6 +27,9 @@ OpenCV?  ssdeep?
 Work out what leaves .lds files lying around, and fix it.
 I think this may be Qemu install.sh.
 Or, add matches to .gitignore & .hgignore.
+
+This is the weird minimal builds being linked to platform builds.
+Clean on platform doesn't run clean on minimal?
 ====
 
 ====
@@ -104,4 +100,12 @@ This is mostly done; good enough for testing.
 Current target is Qemu 4.2.1.
 This works with at least 50D rom, with boot=0 or boot=1,
 full GUI, with ML GUI if chosen.
+====
+
+====
+d6-dumper renamed struct task.name to .task_name.
+I prefer name, but changing to task_name allows finding
+all old uses in order to replace with get_current_task_name().
+
+Can then change back to .name
 ====
