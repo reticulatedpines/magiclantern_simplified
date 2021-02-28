@@ -47,9 +47,12 @@ TARGET_COMPILER ?= arm-gcc
 
 CFLAGS =
 
+ifndef PLATFORM_ARCH
+$(error PLATFORM_ARCH must be defined (e.g., armv5te, armv7-a+fp+simd))
+endif
+
 ifeq ($(TARGET_COMPILER), arm-gcc)
-	CFLAGS += -Os -march=armv5te \
-				-D__ARM__
+	CFLAGS += -Os -march=$(PLATFORM_ARCH) -D__ARM__
 endif
 
 CFLAGS +=\
@@ -81,10 +84,6 @@ ifneq (,$(findstring GCC-5,GCC-$(GCC_DUMPVERSION)))
 CFLAGS += -fshort-double
 endif
 
-
-NOT_USED_FLAGS=\
-	-march=armv5te \
-	-msoft-float
 
 AFLAGS=\
 	$(FLAGS)

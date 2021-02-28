@@ -12,7 +12,8 @@ ROMBASEADDR     = 0xE0040000
 RESTARTSTART    = 0x001B0FC0
 
 # Cortex A9, binaries loaded as Thumb
-CFLAG_USER = -mthumb -march=armv7-a -mlong-calls
+PLATFORM_ARCH = armv7-a
+CFLAG_USER = -mthumb -mlong-calls
 
 # these should be removed when porting starts
 ifeq ($(ML_SRC_PROFILE),generic)
