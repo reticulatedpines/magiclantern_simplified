@@ -141,32 +141,99 @@ void bmp_idle_copy(int direction, int fullsize)
     }
 }
 
-inline void bmp_putpixel_fast(uint8_t * const bvram, int x, int y, uint8_t color)
+#ifdef CONFIG_200D // maybe CONFIG_DIGIC_678?  Untested
+static uint32_t indexed2uyvyLUT[COLOR_ORANGE + 1] = {
+    0x00800080, // COLOR_EMPTY (black, but we will apply alpha later)
+    0xff80ff80, // COLOR_WHITE
+    0x00800080, // COLOR_BLACK
+    0x00800080, // COLOR_TRANSPARENT_BLACK (SJE not handled correctly in bmp_putpixel_fast: should be 50% alpha maybe?)
+    0x7f807f80, // unknown, default to 50% gray so it's probably visible
+    0xb200b2ab, // COLOR_CYAN
+    0x9515952b, // COLOR_GREEN1
+    0x7a457a51, // COLOR_GREEN2
+    0x4cff4c54, // COLOR_RED
+    0x8e758ebf, // COLOR_LIGHT_BLUE
+    0x7f807f80, // unknown, default to 50% gray so it's probably visible
+    0x1d6b1dff, // COLOR_BLUE
+    0x26c0266a, // COLOR_DARK_RED
+    0x7f807f80, // unknown, default to 50% gray so it's probably visible
+    0x69ea69d4, // COLOR_MAGENTA
+    0xe194e100, // COLOR_YELLOW
+    0x7f807f80, // unknown, default to 50% gray so it's probably visible
+    0x7f807f80, // unknown, default to 50% gray so it's probably visible
+    0x7f807f80, // unknown, default to 50% gray so it's probably visible
+    0x97c9972a  // COLOR_ORANGE
+};
+
+uint32_t indexed2yuv422(uint8_t color)
+{
+    if (color < COLOR_ORANGE)
+    {
+        return indexed2uyvyLUT[color];
+    }
+    else
+    {
+        // return gray so it's probably visible
+        return 0x7f807f80;
+    }
+}
+#endif
+
+inline void bmp_putpixel_fast(uint8_t *const bvram, int x, int y, uint8_t color)
 {
     #ifdef CONFIG_VXWORKS
-    char* p = (char*)&bvram[(x)/2 + (y)/2 * BMPPITCH];
-    SET_4BIT_PIXEL(p, x, color);
-    #else
-    bvram[x + y * BMPPITCH] = color;
-    #endif
+        char *p = (char*)&bvram[(x)/2 + (y)/2 * BMPPITCH];
+        SET_4BIT_PIXEL(p, x, color);
+    #elif defined(CONFIG_DIGIC_678)
+        struct MARV *MARV = bmp_marv();
+        uint8_t alpha = 0xff;
+        if (color == COLOR_EMPTY)
+            alpha = 0x00; // minimal alpha support in this function
+        uint32_t uyvy = indexed2yuv422(color);
+        if (MARV->opacity_data)
+        {   // 80D, 200D
+            uint32_t *offset = (uint32_t *)&bvram[(x & ~1) * 2 + y * 2 * MARV->width];
+            if (x % 2) {
+                *offset = (*offset & 0x0000FF00) | (uyvy & 0xFFFF00FF);     // set U, Y2, V, keep Y1
+            } else {
+                *offset = (*offset & 0xFF000000) | (uyvy & 0x00FFFFFF);     // set U, Y1, V, keep Y2
+            }
+            MARV->opacity_data[x + y * MARV->width] = alpha;
+        }
+        else
+        {   // 5D4, M50
+            // adapted from https://bitbucket.org/chris_miller/ml-fork/src/d1f1cdf978acc06c6fd558221962c827a7dc28f8/src/minimal-d678.c?fileviewer=file-view-de    fault#minimal-d678.c-175
+            // VRAM layout is UYVYAA (each character is one byte) for pixel pairs
+            uint32_t *offset = (uint32_t *) &bvram[(x & ~1) * 3 + y * 3 * MARV->width];   // unaligned pointer
+            if (x % 2) {
+                *offset = (*offset & 0x0000FF00) | (uyvy & 0xFFFF00FF);     // set U, Y2, V, keep Y1
+            } else {
+                *offset = (*offset & 0xFF000000) | (uyvy & 0x00FFFFFF);     // set U, Y1, V, keep Y2
+            }
+            uint8_t *opacity = (uint8_t *) offset + 4 + x % 2;
+            *opacity = alpha;
+        }
 
-     #ifdef CONFIG_500D // err70?!
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
-        asm("nop");
+    #else
+        bvram[x + y * BMPPITCH] = color;
+        #ifdef CONFIG_500D // err70?!
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+            asm("nop");
+         #endif
      #endif
 }
 
@@ -186,10 +253,11 @@ bmp_puts(
     *x = COERCE(*x, BMP_W_MINUS, BMP_W_PLUS);
     *y = COERCE(*y, BMP_H_MINUS, BMP_H_PLUS);
     
-    uint32_t    fg_color    = fontspec_fg( fontspec );
-    uint32_t    bg_color    = fontspec_bg( fontspec );
+    uint32_t fg_color = fontspec_fg(fontspec);
+    uint32_t bg_color = fontspec_bg(fontspec);
     
-    int len = rbf_draw_string((void*)font_dynamic[FONT_ID(fontspec)].bitmap, *x, *y, s, FONT(fontspec, fg_color, bg_color));
+    int len = rbf_draw_string((void*)font_dynamic[FONT_ID(fontspec)].bitmap,
+                              *x, *y, s, FONT(fontspec, fg_color, bg_color));
     *x += len;
     return len;
 }
@@ -922,6 +990,12 @@ static int bfnt_ok()
     int* codes = (int*) BFNT_CHAR_CODES;
     int i;
 
+    // for cameras that don't have built-in fonts, e.g. 200D,
+    // we return failure.  This means very early printing won't work.
+    // It's okay after RBF fonts are initialised.
+    //
+    // FIXME - get this working properly, maybe embed
+    // a bitmap font into autoexec.bin?
     if (BFNT_CHAR_CODES == 0)
         return 0;
 
@@ -1031,8 +1105,9 @@ int bfnt_char_get_width(int c)
 {
     if (!bfnt_ok())
     {
-        // FIXME SJE bmp_printf not yet working on 200D,
-        // so let's avoid using it
+        // 200D and similar cams don't have built-in fonts,
+        // so we can't display an error using them...
+        // FIXME SJE this should probably be a guard based on a feature flag?
         if (BFNT_CHAR_CODES != 0)
             bmp_printf(FONT_SMALL, 0, 0, "font addr bad");
         return 0;
