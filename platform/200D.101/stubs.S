@@ -80,7 +80,8 @@ THUMB_FN(0xE04BC3B7, _FIO_WriteFile)
 THUMB_FN(0xE04BD935,  FIO_SeekSkipFile)
 THUMB_FN(0xE04BC429,  FIO_CloseFile)
 THUMB_FN(0xE04BCD51, _FIO_CreateDirectory)
-THUMB_FN(0xE04BD061, _FIO_FindFirstEx)
+//THUMB_FN(0xE04BD061,  FIO_FindFirst)
+THUMB_FN(0xE04BD17b, _FIO_FindFirstEx)
 THUMB_FN(0xE04BD0EF,  FIO_FindNextEx)
 THUMB_FN(0xE04BD15B,  FIO_FindClose)
 THUMB_FN(0xE04BC547, _FIO_GetFileSize)
@@ -206,6 +207,8 @@ THUMB_FN(0xe05cd1ff, _LoadCalendarFromRTC) // 0xff885058 in 50D is 0xe00742fc in
                                            // and the code within looks really different.  One of those args is a pointer to function,
                                            // with that function being semaphore related.  Multi-core sync stuff?  Could
                                            // make sense given RTC related.
+
+THUMB_FN(0xe04bdc5d, uart_printf)
 
 // WRONG but partially found
 DATA_PTR(   0xfd84,  bmp_vram_info) // function e04a044c looks relevant, see refs to 0x3c0 and 0x21c; 960x540

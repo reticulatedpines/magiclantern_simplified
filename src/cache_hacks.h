@@ -447,9 +447,29 @@ static void dcache_lock()
 
 /* these are the "public" functions. please use only these if you are not sure what the others are for */
 
+#if !defined(CONFIG_DIGIC_678)
+// FIXME SJE, this wants proving / disproving for compatibility with Digic7,
+// and maybe replacing with a known good version for ARMv7-A (and -R).
 static uint32_t cache_locked()
 {
     uint32_t status = 0;
+    // e.g. see:
+    // https://developer.arm.com/documentation/ddi0406/cb/Appendixes/ARMv4-and-ARMv5-Differences/System-Control-coprocessor--CP15-support/CP15-c9--cache-lockdown-support
+
+    // For 200D (Digic7), this may be relevant:
+    // https://developer.arm.com/documentation/ddi0406/cb/System-Level-Architecture/Common-Memory-System-Architecture-Features/Caches-and-branch-predictors/Cache-behavior?lang=en#CBHFDAJB
+    // "For an ARMv7 implementation:
+    //
+    //  There is no requirement to support cache lockdown.
+    //
+    //  If cache lockdown is supported, the lockdown mechanism is implementation defined. However key properties of the interaction of lockdown with the architecture must be described in the implementation documentation.
+    //
+    //  The Cache Type Register does not hold information about lockdown."
+    // 
+    // Might this explain Qemu triggering UndefinedInstruction for the following line?
+    //
+    // Also: 
+    // "With the ARMv7 abstraction of the hierarchical memory model, for CP15 c9, all encodings with CRm = {c0-c2, c5-c8} are reserved for implementation defined cache, branch predictor and TCM operations"
     asm volatile ("\
        /* get lockdown status */\
        MRC p15, 0, %0, c9, c0, 1\r\n\
@@ -457,6 +477,7 @@ static uint32_t cache_locked()
     
     return status;
 }
+#endif
 
 static void cache_lock()
 {
