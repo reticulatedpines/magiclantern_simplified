@@ -6,7 +6,7 @@
  *
  */
 /*
- * Copyright (C) 2020 Magic Lantern Team
+ * Copyright (C) 2021 Magic Lantern Team
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -52,7 +52,6 @@ THUMB_FN(0xE053C24A,  FIO_CloseFile)
 THUMB_FN(0xE053BE9A, _FIO_ReadFile)
 THUMB_FN(0xE053C036, _FIO_WriteFile)
 THUMB_FN(0xE053BF76,  FIO_SeekSkipFile)                     // guess: Search?!
-THUMB_FN(0xE053C3E6, _FIO_GetFileSize)                      // AcqSize
 THUMB_FN(0xE053BE00, _FIO_RemoveFile)
 THUMB_FN(0xE053CE1C, _FIO_RenameFile)
 THUMB_FN(0xE053D2A4, _FIO_CreateDirectory)
@@ -60,6 +59,7 @@ THUMB_FN(0xE053D706, _FIO_FindFirstEx)                      // FirstEnt
 THUMB_FN(0xE053D7FE,  FIO_FindNextEx)                       // NextEnt
 THUMB_FN(0xE053D8C0,  FIO_FindClose)                        // CloseEnt
 THUMB_FN(0xE053D48E,  FIO_Flush)                            // to be called after FIO_CloseFile?
+THUMB_FN(0xE053C3E6, _FIO_GetFileSize64)                    // AcqSize; different in D8 cameras - returns 64 bit size in struct of lower/upper 32bit part.
 
 /** Bitmap **/
 DATA_PTR(    0xFDFC,  bmp_vram_info)                        /* first VRAM buffer, used right after DISP_SetUpdateOSDVram */
@@ -98,3 +98,165 @@ THUMB_FN(0xE00CDEF4,  sysmem_info)                          /* System Memory Inf
 /** Misc **/
 THUMB_FN(0xE054D31C,  uart_printf)
 THUMB_FN(0xE006463C,  vsnprintf)                            /* called by LogFile_printf(..., "*Data Lost*\n", ...); the one called by DebugMsg only knows %s */
+
+/** New stubs **/
+
+/** Startup **/
+DATA_PTR(    0xE079,  additional_version)
+/* kitor: Please note that this points at '\n' char in char* with FW version */
+
+/** Tasks **/
+DATA_PTR(    0x4108,  task_dispatch_hook)
+THUMB_FN(0xE00C6BC8,  task_trampoline)
+/*
+ * kitor: task_create calls internal function (e02392e0) which set up basic
+ * task structure, and one of that is call to task_trampoline_caller (e00c6be8)
+ * (it is followed by check of caller return value).
+ * task_trampoline_caller will pass task_trampoline+1 as parameter to other
+ * function.
+ */
+THUMB_FN(0xe00fd122, is_taskid_valid)
+/*
+ * kitor: WRONG: this is it, but params has changed.
+ * ~alex: at some point I've tried to get rid of that stub
+ */
+
+/** Recursive locks **/
+THUMB_FN(0xE02504A4,  AcquireRecursiveLock)                 /* SystemIF::KerRLock.c */
+THUMB_FN(0xE0554740,  CreateRecursiveLock)                  /* SystemIF::KerMisc.c  */
+THUMB_FN(0xE0250516,  ReleaseRecursiveLock)                 /* SystemIF::KerRLock.c */
+/* kitor: Found in ROM. Called from RAM copy on D5 machines) */
+
+/** Semaphores **/
+THUMB_FN(0xE0562DD4,  create_named_semaphore)
+THUMB_FN(0xE0562f4A,  give_semaphore)                       /* SystemIF::KerSem.c   */
+THUMB_FN(0xE0562ED0,  take_semaphore)                       /* SystemIF::KerSem.c   */
+/* kitor: Found in ROM. Called from RAM copy on D5 machines) */
+
+/** GUI **/
+DATA_PTR(    0xfcb4,  gui_task_list)                        // based on 200d
+THUMB_FN(0xe052f34c,  SetGUIRequestMode)                    // by debug message
+THUMB_FN(0xE004AD80,  gui_main_task)                        // task_create("GuiMainTask"...
+THUMB_FN(0xe0541db6,  dialog_redraw)                        // via xrefs to "pDialog->pSignature == m_pcSignature"
+THUMB_FN(0xE004AE96,  gui_enqueue_message)                  // see comment below
+/*
+ * kitor: gui_init_end DNE on R180. It's the only diff in gui_main_task vs 200d.
+ *
+ * I was unable to find GUI_Control either. It should print debug message and
+ * call e004ae96(0, param_1, param_2, param_3 ), which adds it to gui queue.
+ */
+ DATA_PTR(    0x5308,  gui_main_struct)
+/*
+ * kitor: referenced in gui_main_task, but struct may start earlier. Another
+ * possibility is 0x5304 used in function that calls gui_massive_event_loop.
+ * This seems to be earliest address referenced in context of gui.
+ */
+
+/** GUI timers **/
+THUMB_FN(0xE07ad2e4,  StartDateTimer)                       // by debug message
+THUMB_FN(0xE07AD390,  CancelDateTimer)                      // by debug message
+
+/** MPU communication **/
+THUMB_FN(0xE008AE16,  mpu_send)                             // "dwSize < TXBD_DATA_SIZE", see comment below
+THUMB_FN(0xE022D3F4,  mpu_recv)                             // passed as last argument by InitializeIntercom and eventually stored into mpu_recv_cbr
+DATA_PTR(    0x9E88,  mpu_recv_cbr)                         // mpu_recv is called indirectly through this function pointer in recv helper of SIO3_ISR
+DATA_PTR(   0x47B74,  mpu_send_ring_buffer)                 // ring buffer used in mpu_send
+DATA_PTR(    0x9E6C,  mpu_send_ring_buffer_tail)            // ring buffer index incremented in mpu_send
+DATA_PTR(   0x47A34,  mpu_recv_ring_buffer)                 // ring buffer used in SIO3_ISR, subroutine that processes two chars at a time
+DATA_PTR(    0x9E60,  mpu_recv_ring_buffer_tail)            // ring buffer index incremented in the above subroutine
+
+/*
+ * kitor: I'm not 100% sure of mpu_send itself. Offsets below are from R180.
+ *
+ * InitializeIntercom (e022d496) at the end calls helper (e008ad02) which will
+ * allocRingBuffer(e008aa50) in sizes:
+ * - 0x50 for mpu_recv_ring_buffer - checks for previous models
+ * - 0x32 for mpu_send_ring_buffer - checks for previous models
+ * - 0x05 for unk_send_ring_buffer - and this is important for what's going on.
+ *
+ * Any later use of "mpu_send" in function names is based on assumption that 0x32
+ * buffer is indeed mpu_send_ring_buffer.
+ *
+ * There are two sio_send functions:
+ * sio_send_2arg (e008ae16) takes 2 args. Seems to use unk_send_ring_buffer
+ * sio_send_4arg (e008ada0) takes 4 args. Seems to use mpu_send_ring_buffer
+ * which is opposite to expected (previous models had 2 args for mpu)
+ *
+ * SIO3_ISR (e008ac6c) calls (not in order, names may be wrong):
+ * mpu_recv_isr (e008af72): uses mpu_recv_ring_buffer
+ * sio_send_isr (e008ab4c): uses unk_send_ring_buffer
+ * mpu_send_isr (e008aa9c): uses mpu_send_ring_buffer
+ *
+ * To make matters worse, there seems to be two tails for each buffer.
+ * mpu_recv_isr  -> mpu_recv_ring_buffer_tail   (9e60)
+ *                  mpu_recv_ring_buffer_tail_2 (9e64)
+ *
+ * sio_send_2arg -> unk_send_ring_buffer_tail   (9e7c)
+ * sio_send_isr  -> unk_send_ring_buffer_tail_2 (9e78)
+ *
+ * mpu_send_isr  -> mpu_send_ring_buffer_tail   (9e6c)
+ * sio_send_4arg -> mpu_send_ring_buffer_tail_2 (9e68)
+ *
+ * To add even more confusion, if you look at assembly of send-related functions
+ * you will find out that sio_unknown_send_ring_buffer is counted by memory
+ * offset from mpu_send_ring_buffer.
+ * (maybe that should be understood as struct of two buffers?)
+ */
+
+/** Queue **/
+THUMB_FN(0xe053f63c,  msg_queue_create)                     // easy to spot in create_gui_main_task
+THUMB_FN(0xe053f700,  msg_queue_receive)                    // used on gui queue in gui_main_task
+THUMB_FN(0xe053f85e,  msg_queue_post)                       // used in gui_enqueue_message
+THUMB_FN(0xe053f894,  msg_queue_count)                      // string "warning! QueueLength"
+
+/** Memory **/
+THUMB_FN(0xe06b8d56,  AllocateMemoryResource)               // m_pfAllocMemoryCBR, this function takes 4 params in 200D/EOSR, 3 for 50D
+THUMB_FN(0xe06b8d84,  AllocateContinuousMemoryResource)     // m_pfContAllocMemoryCBR, takes 4 params now, 3 for 50D
+THUMB_FN(0xe06b8e2a,  FreeMemoryResource)                   // m_pfFreeMemoryCBR
+THUMB_FN(0xe054c3da,  AddMemoryChunk)                       // Same as in 200D, may be wrong as multiple variants exists.
+THUMB_FN(0xe054c500,  GetFirstChunkFromSuite)               // AJ_PackMemory_PackMem_p3
+THUMB_FN(0xe054ce18,  GetNextMemoryChunk)                   // AJ_PackMemory_PackMem.c_IsChunkSignature_p2, identical fn is at e054cf14, but with just 3 xrefs
+THUMB_FN(0xe054c31a,  GetMemoryAddressOfMemoryChunk)        // AJ_PackMemory_PackMem.c_IsChunkSignature - 200D uses "MemChunk" directly
+THUMB_FN(0xe054c758,  DeleteMemorySuite)
+THUMB_FN(0xe054c9ea,  CreateMemorySuite)                    // String "PackMem.c", calls malloc(0x18)
+THUMB_FN(0xe054bed0,  CreateMemoryChunk)                    // called from CreateMemorySuite
+
+THUMB_FN(0xe04e4656,  SRM_AllocateMemoryResourceFor1stJob)  // "pMessage" and "pPriorMessage" with "RscMgr.c". Unsure - there seems to be multiple identical functions
+THUMB_FN(0xe04e7762,  SRM_FreeMemoryResourceFor1stJob)      // find refs to "pMessage", there are several similar looking functions using it,
+                                                            // this is my best guess
+
+/** Uncategorized **/
+DATA_PTR(   0x11dc0,  sd_device)                            // From function that references "SD_DeviceCreate:"
+THUMB_FN(0xE05B7F9E, _LoadCalendarFromRTC)
+THUMB_FN(0xe083819e,  ErrForCamera_handler)                 // ERR70, ERR80 etc (DlgErrForCamera.c)
+
+/** Properties **/
+THUMB_FN(0xe0553d88, _prop_cleanup)                         // "PropertyMgr.c", strings changed, found based on 200D
+THUMB_FN(0xe0553cd0,  prop_register_slave)                  // "PropertyMgr.c", "pDeliverProperty"
+
+/** Wrong on purpose **/
+DATA_PTR(       0x0,  LCD_Palette)                          // D8 has YUV buffers.
+
+/**
+ * STUFF BELOW IS WRONG!
+ **/
+
+/** App handlers **/
+THUMB_FN(0xe046fc49,  PlayMain_handler)                     // "DlgPlayMain.c PRESS_ERASE_BUTTON" - code above the string, wasn't found automatically
+THUMB_FN(0xDEADBEEF,  PlayMovieGuideApp_handler)            // needed for CONFIG_QEMU
+THUMB_FN(0xe05f67d1,  ShootOlcApp_handler)                  // near "StopShootOlcApp PopPalette(%d)"
+THUMB_FN(0xe0381ba9,  LiveViewApp_handler)                  // not sure - function is quite different 50D -> 200D, but that
+                                                            // doesn't seem unreasonable since large GUI changes.  String use and surrounding
+                                                            // functions look similar / related.
+
+// SJE couldn't find it, some other cameras don't have it, looks like
+// audio-common.c has a static array for that.
+NSTUB(0xDEADBEEF,  audio_thresholds) // after ptr to "ALVFactorySemSignature"
+
+THUMB_FN(0xdf00d365,  fsuDecodePartitionTable) // this is called in one place in 50D, 0xffb0a18c,
+                                               // and that function is easy to find in 200D via "CARD_EMERGENCY_STOP".
+                                               // The function called 200D looks a lot different from fsuDecodePartitionTable, however.
+                                               // Constant offsets used are the same in both, maybe fsuDPT has been partially 
+                                               // inlined in 200D?  The decompilation looks weird too, claims it just returns
+                                               // the calling param but it clearly twiddles some registers.
+                                               // TODO check how ML uses this stub, since the sig has changed.
