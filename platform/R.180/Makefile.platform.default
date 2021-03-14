@@ -6,19 +6,31 @@ FIRMWARE_ID     = 0x00000424
 ROMBASEADDR     = 0xE0040000
 
 # Shrink Canon's malloc heap by changing its end address
-#          ("meminfo -m" in drysh)    ("memmap" in drysh)
-# Default: 0x000e3240 - 0x001f7ad4, 0x000e3240 - 0x001f7ad4 (total size 0x114894)
-# Patched: 0x000e3240 - 0x001b7ad4, 0x000e3240 - 0x001b7ad4 (256K reserved for ML)
-RESTARTSTART    = 0x001b7b00
+# Run `meminfo -m` in drysh:
+#
+# Dry[WarpPUX]> meminfo -m
+# Malloc Information (onetime type)
+#  Start Address       = 0x000b0080
+#  End Address         = 0x001c4630
+#  Total Size          = 0x001145b0 (  1131952)
+#
+# Now, default heap is from 0x000b0080 to 0x001c4630.
+# Just subtract 0x40000 (256K) from Heap end address, this is your RESTARTSTART.
+# 0x001c4630 - 0x40000 = 0x00184630
+#
+# kitor: why 256K? I don't understand yet. It was mentioned in original comment,
+# which wasn't clear at all :)
+RESTARTSTART    = 0x00184630
 
 # Cortex A9, binaries loaded as Thumb
 PLATFORM_ARCH = armv7-a
 CFLAG_USER = -mthumb -mlong-calls
 
 # these should be removed when porting starts
-ifeq ($(ML_SRC_PROFILE),generic)
-ML_SRC_PROFILE  = minimal
-ML_MINIMAL_OBJ  = minimal-d78.o
-endif
+#ifeq ($(ML_SRC_PROFILE),generic)
+#ML_SRC_PROFILE  = minimal
+#ML_MINIMAL_OBJ  = minimal-d78.o
+#endif
 
 ML_BOOT_OBJ     = boot-d78.o
+ML_SRC_EXTRA_OBJS += function_overrides.o
