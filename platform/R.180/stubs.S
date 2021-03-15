@@ -145,7 +145,7 @@ THUMB_FN(0xE004AE96,  gui_enqueue_message)                  // see comment below
  * I was unable to find GUI_Control either. It should print debug message and
  * call e004ae96(0, param_1, param_2, param_3 ), which adds it to gui queue.
  */
- DATA_PTR(    0x5308,  gui_main_struct)
+ DATA_PTR(    0x5304,  gui_main_struct)
 /*
  * kitor: referenced in gui_main_task, but struct may start earlier. Another
  * possibility is 0x5304 used in function that calls gui_massive_event_loop.
@@ -249,9 +249,6 @@ THUMB_FN(0xe0381ba9,  LiveViewApp_handler)                  // not sure - functi
                                                             // doesn't seem unreasonable since large GUI changes.  String use and surrounding
                                                             // functions look similar / related.
 
-// SJE couldn't find it, some other cameras don't have it, looks like
-// audio-common.c has a static array for that.
-NSTUB(0xDEADBEEF,  audio_thresholds) // after ptr to "ALVFactorySemSignature"
 
 THUMB_FN(0xdf00d365,  fsuDecodePartitionTable) // this is called in one place in 50D, 0xffb0a18c,
                                                // and that function is easy to find in 200D via "CARD_EMERGENCY_STOP".
