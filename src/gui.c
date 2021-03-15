@@ -87,7 +87,7 @@ struct gui_main_struct {
   uint32_t        off_0x10;
   uint32_t        off_0x14;
   uint32_t        off_0x18;
-  uint32_t        off_0x1c;
+  struct msg_queue *    msg_queue_eosr;    // off_0x1C;
   uint32_t        off_0x20;
   uint32_t        off_0x24;
   uint32_t        off_0x28;
@@ -113,6 +113,9 @@ void ml_gui_main_task()
     {
         #if defined(CONFIG_550D) || defined(CONFIG_7D)
         msg_queue_receive(gui_main_struct.msg_queue_550d, &event, 0);
+        gui_main_struct.counter_550d--;
+        #elif defined(CONFIG_R)
+        msg_queue_receive(gui_main_struct.msg_queue_eosr, &event, 0);
         gui_main_struct.counter_550d--;
         #else
         msg_queue_receive(gui_main_struct.msg_queue, &event, 0);
