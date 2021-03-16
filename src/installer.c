@@ -219,7 +219,7 @@ void boot_pre_init_task(void)
 /* called right after Canon's init_task, while their initialization continues in background */
 void boot_post_init_task(void)
 {
-#if !defined(CONFIG_NO_ADDITIONAL_VERSION)
+#if defined(CONFIG_ADDITIONAL_VERSION)
     // Re-write the version string.
     // Don't use strcpy() so that this can be done
     // before strcpy() or memcpy() are located.

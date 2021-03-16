@@ -12,11 +12,15 @@
                                              // range, brute forced it by logging them to disk with digic6-dumper
                                              // while pressing halfshutter on and off.
 #define DRYOS_ASSERT_HANDLER 0x4000 // Used early in a function I've named debug_assert_maybe
-#define CURRENT_GUI_MODE (*(int*)0x662c) // see SetGUIRequestMode, 0x65c8 + 0x64 on 200D,
-                                         // first arg gets stored here.
+#define CURRENT_GUI_MODE (*(int*)0x6624) // see SetGUIRequestMode, 0x65c8 + 0x5c on 200D
+#define GUIMODE_PLAY 2
+#define GUIMODE_MENU 3
+
+// FIXME: this should follow the conditional definition to handle LV etc, see other cams
+#define GUIMODE_ML_MENU 3
 
 // Medium confidence:
-#define DISPLAY_SENSOR_POWERED (*(int *))(0xc678) // c638 looks like base of struct, not sure on the fields.
+#define DISPLAY_SENSOR_POWERED (*(int *))(0xc640) // c638 looks like base of struct, not sure on the fields.
                                                   // From 0xe014969e
 #define DISPLAY_IS_ON (*(int *)0xc650) // unsure if this is backlight, menu, or what.
                                        // But seems when I can view menu, it's 1, when I can't it's 0.
@@ -97,6 +101,9 @@
 #define GUIMODE_PICQ 6
 
 // Definitely wrong / hacks / no testing at all:
+#define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x56500000+0x30) // wrong, no idea (this address may be written to,
+                                                      // value is chosen because it's probably safe on 200D
+#define FOCUS_CONFIRMATION (*(int*)0x4444) // wrong, focusinfo looks really different 50D -> 200D
 #define YUV422_LV_BUFFER_DISPLAY_ADDR 0x0 // it expects this to be pointer to address
 #define YUV422_HD_BUFFER_DMA_ADDR 0x0 // it expects this to be shamem_read(some_DMA_ADDR)
 #define YUV422_LV_BUFFER_1 0x41B00000
@@ -120,20 +127,15 @@
 #define AF_BTN_HALFSHUTTER 0
 #define AF_BTN_STAR 2
 // another block copied from 50D
-#define GUIMODE_ML_MENU 2
 #define GUIMODE_WB 5
 #define GUIMODE_FOCUS_MODE 9
 #define GUIMODE_DRIVE_MODE 8
 #define GUIMODE_PICTURE_STYLE 4
-#define GUIMODE_PLAY 1
-#define GUIMODE_MENU 2
 #define GUIMODE_Q_UNAVI 0x18
 #define GUIMODE_FLASH_AE 0x22
 #define GUIMODE_PICQ 6
 
-// all these MVR ones are junk, don't try and record video and they probably don't get used?
-#define MVR_190_STRUCT (*(void**)0x1ed8) // look in MVR_Initialize for AllocateMemory call;
-                                         // decompile it and see where ret_AllocateMemory is stored.
+#define MVR_190_STRUCT (*(void**)0x6cb8) // Found via "NotifyLenseMove"
 #define div_maybe(a,b) ((a)/(b))
 // see mvrGetBufferUsage, which is not really safe to call => err70
 // macros copied from arm-console

@@ -26,13 +26,32 @@
 
 #include "dryos.h"
 
-struct context
-{
-        uint32_t                cpsr;           // off_0x00;
-        uint32_t                r[13];          // off_0x04;
-        uint32_t                lr;             // off_0x38;
-        uint32_t                pc;             // off_0x3C;
-}; // 0x40 bytes
+#ifdef CONFIG_DIGIC_678
+// SJE - I believe this has changed because ARMv6 introduced RFE,
+// which Digic7 is using to restore context when task switching.
+// See 200D, 1.0.1, e0274f3a onwards.
+//
+// The context for a task seems to always be stored on the stack.
+//
+// Because you have to do RFE last, as it changes PC, and because
+// RFE restores CPSR and PC, it's natural to put everything else
+// before them on the stack, so you can pop then RFE.
+    struct context
+    {
+        uint32_t r[13]; // off_0x00;
+        uint32_t lr;    // off_0x34;
+        uint32_t pc;    // off_0x38;
+        uint32_t cpsr;  // off_0x3c;
+    }; // 0x40 bytes
+#else
+    struct context
+    {
+        uint32_t cpsr;  // off_0x00;
+        uint32_t r[13]; // off_0x04;
+        uint32_t lr;    // off_0x38;
+        uint32_t pc;    // off_0x3C;
+    }; // 0x40 bytes
+#endif
 
 struct task
 {

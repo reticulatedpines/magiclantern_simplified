@@ -65,7 +65,17 @@
         if (((uintptr_t)bmp_buf & 0xFFF) == 0xc28) // 100D
             return (uint8_t*)((uintptr_t)bmp_buf - BMP_HDMI_OFFSET - 0xb28);
 
+        // seen from 200D: 0x800, 0xb00.  Real?  Some other bug?
+        // For now, suppress them to avoid the spammy asserts
+        #ifdef CONFIG_200D
+        if (((uintptr_t)bmp_buf & 0xfff) == 0x800)
+            return bmp_buf;
+        if (((uintptr_t)bmp_buf & 0xfff) == 0xb00)
+            return bmp_buf;
+        #endif
+
         // something else - new camera? return it unchanged (failsafe)
+        DryosDebugMsg(0, 15, "bmp_buf & 0xfff: 0x%x\n", (uintptr_t)bmp_buf & 0xfff);
         ASSERT(0);
         return bmp_buf;
     }

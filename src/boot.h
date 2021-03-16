@@ -93,12 +93,6 @@ static int my_init_task(int a, int b, int c, int d)
     qprintf("[BOOT] starting init_task %X...\n", &init_task_func);
     int ans = init_task_func(a,b,c,d);
 
-#if defined(CONFIG_DIGIC_VII) || defined(CONFIG_DIGIC_VIII)
-    // SJE: without this sleep, display remains off.  Unsure why,
-    // Canon code needs some time to init it?  Feels like there
-    // must be a better way.
-    msleep(2000);
-#endif
 
 #ifdef ARMLIB_OVERFLOWING_BUFFER
     // Restore the overwritten value.

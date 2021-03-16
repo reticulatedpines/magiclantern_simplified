@@ -26,8 +26,10 @@ static void DUMP_ASM my_DebugMsg(int class, int level, char* fmt, ...)
 {
     uintptr_t lr = read_lr();
 
-    if (!buf) return;
-    if (buf_size - len < 100) return;
+    if (!buf)
+        return;
+    if (buf_size - len < 100)
+        return;
 
 #if 0
     if ((class != 0 || level != 15) && level < 3)
@@ -66,7 +68,8 @@ static void DUMP_ASM my_DebugMsg(int class, int level, char* fmt, ...)
     /* Canon's vsnprintf doesn't know %20s */
     char task_name_padded[11] = "           ";
     int spaces = 10 - strlen(task_name);
-    if (spaces < 0) spaces = 0;
+    if (spaces < 0)
+        spaces = 0;
     snprintf(task_name_padded + spaces, 11 - spaces, "%s", task_name);
     len += snprintf( buf+len, buf_size-len, "%d.%06d  %s:%08x:%02x:%02x: ", us_timer/1000000, us_timer%1000000, task_name_padded, lr-4, class, level );
 
@@ -181,7 +184,7 @@ static void pre_isr_log(uint32_t isr)
 //#endif
 
     const char * name = isr_names[isr & 0x1FF];
-    DryosDebugMsg(0, 15, ">>> INT-%03Xh %s %X(%X)", isr, name ? name : "", handler, arg);
+//    DryosDebugMsg(0, 15, ">>> INT-%03Xh %s %X(%X)", isr, name ? name : "", handler, arg);
 
     /* DIGIC 7: MPU messages arrive on the first core only,
      * but some of these interrupts are also triggered on second core */
@@ -211,7 +214,7 @@ static void pre_isr_log(uint32_t isr)
 static void post_isr_log(uint32_t isr)
 {
     const char * name = isr_names[isr & 0x1FF];
-    DryosDebugMsg(0, 15, "<<< INT-%03Xh %s", isr, name ? name : "");
+//    DryosDebugMsg(0, 15, "<<< INT-%03Xh %s", isr, name ? name : "");
 
     /* CPU check is here just in case, for future models */
     if ((isr == 0x147) && (get_cpu_id() == 0))
