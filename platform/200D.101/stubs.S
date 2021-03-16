@@ -134,8 +134,9 @@ THUMB_FN(0xe023ccc7,  is_taskid_valid) // probably wrong
 NSTUB(    0x4ea4,  dm_names) // in DebugMsg, before the 1st loop target
 NSTUB(   0x1fd7c,  sd_device) // in sdReadBlk, probably 0xe02b6fa2.  Lots of refs
                               // to 0x1fd7c, some to 0x1fd80
-NSTUB(    0x4844,  gui_main_struct) // in gui_main_task, 0xe00c527c, load reg after bl gui_init_end
-                                    // or possibly 0x4838 - this looks to be the start of the struct
+NSTUB(    0x4838,  gui_main_struct) // See function using "Queue Clear event" string, e00c55b6
+                                    // There's a base of struct, and some refs to fields via offsets.
+                                    // Find the right one.
 THUMB_FN(0xe00c54ab,  GUI_ChangeMode) // "GUI_ChangeMode:%d" string
 THUMB_FN(0xe04b907d,  DispSensorStart) // 0xe794 looks to be a bool for whether Sensor is started
 THUMB_FN(0xe04ba81d,  DeleteMemorySuite)
@@ -209,6 +210,8 @@ THUMB_FN(0xe05cd1ff, _LoadCalendarFromRTC) // 0xff885058 in 50D is 0xe00742fc in
                                            // make sense given RTC related.
 
 THUMB_FN(0xe04bdc5d, uart_printf)
+#NSTUB(0xdf008c7c, uart_printf) // Thunked equivalent of the above.  Note, ARM, not Thumb.
+                               // Both seem to work the same.
 
 // WRONG but partially found
 DATA_PTR(   0xfd84,  bmp_vram_info) // function e04a044c looks relevant, see refs to 0x3c0 and 0x21c; 960x540
@@ -229,20 +232,20 @@ DATA_PTR(   0xfd84,  bmp_vram_info) // function e04a044c looks relevant, see ref
 
 NSTUB(   0x242C0,  LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
 //NSTUB(    0x30F8,  task_max)
-//NSTUB(    0x1934,  task_dispatch_hook)
+DATA_PTR(    0x412c,  task_dispatch_hook)
 //NSTUB(    0x3960,  gui_timer_struct) // in GUI_Control_Post
 //NSTUB(    0x7674,  mvr_config)
 //NSTUB(0xC0220000,  camera_engine)
 //NSTUB(0xDEADBEEF,  ErrCardForLVApp_handler)
 NSTUB(0xDEADBEEF,  PlayMovieGuideApp_handler) // needed for CONFIG_QEMU
-NSTUB(    0xFF3C,  additional_version)
+DATA_PTR(    0xFF3C,  additional_version) // this gets written to in early code.  Pick a safe area!
 //NSTUB(0xFF8542C4,  PowerAudioOutput)
 //NSTUB(0xFF85460C,  SetAudioVolumeOut)
 //NSTUB(0xFF855290,  SetSamplingRate)
 //NSTUB(0xFF8598C4, _prop_request_change)
 //NSTUB(0xFF85E90C,  EnableImagePhysicalScreenParameter)
 //NSTUB(0xFF863E5C,  dm_set_store_level) // called by "dmstore"
-//NSTUB(0xFF86F990,  task_trampoline)
+THUMB_FN(0xdf00325d,  task_trampoline)
 //NSTUB(0xFF8898CC,  gui_local_post)
 //NSTUB(0xFF889CA8,  gui_other_post)
 //NSTUB(0xFF889DCC,  gui_post_10000085) // should be called post 100000a5 no ? <-- not sure what this means.

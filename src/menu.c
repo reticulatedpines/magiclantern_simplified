@@ -4813,20 +4813,27 @@ static struct msg_queue * menu_redraw_queue = 0;
 static void
 menu_redraw_task()
 {
+    DryosDebugMsg(0, 15, "starting menu_redraw_task");
     menu_redraw_queue = (struct msg_queue *) msg_queue_create("menu_redraw_mq", 1);
     TASK_LOOP
     {
         /* this loop will only receive redraw messages */
         int msg;
         int err = msg_queue_receive(menu_redraw_queue, (struct event**)&msg, 500);
-        if (err) continue;
+        if (err) {
+            DryosDebugMsg(0, 15, "err from queue: 0x%x", err);
+            continue;
+        }
+        DryosDebugMsg(0, 15, "no err from queue");
         
         if (gui_menu_shown())
         {
+            DryosDebugMsg(0, 15, "menu_shown, menu_redraw_do");
             if (get_halfshutter_pressed())
             {
                 /* close menu on half-shutter */
                 /* (the event is not always caught by the key handler) */
+                DryosDebugMsg(0, 15, "halfshutter, skipping, menu_redraw_do");
                 gui_stop_menu();
                 continue;
             }
@@ -4836,14 +4843,17 @@ menu_redraw_task()
             if (!menu_ensure_canon_dialog())
             {
                 /* didn't work, close ML menu */
+                DryosDebugMsg(0, 15, "canon dialog, skipping, menu_redraw_do");
                 gui_stop_menu();
                 continue;
             }
             
             if (!menu_redraw_blocked)
             {
+                DryosDebugMsg(0, 15, "attempting menu_redraw_do");
                 menu_redraw_do();
             }
+            DryosDebugMsg(0, 15, "nothing special, menu_redraw_do");
         }
     }
 }
@@ -4853,19 +4863,30 @@ TASK_CREATE( "menu_redraw_task", menu_redraw_task, 0, 0x1a, 0x8000 );
 void
 menu_redraw()
 {
-    if (!DISPLAY_IS_ON) return;
-    if (ml_shutdown_requested) return;
-    if (menu_help_active) bmp_draw_request_stop();
-    if (menu_redraw_queue) msg_queue_post(menu_redraw_queue, MENU_REDRAW);
+    if (!DISPLAY_IS_ON)
+        return;
+    if (ml_shutdown_requested)
+        return;
+    if (menu_help_active)
+        bmp_draw_request_stop();
+    if (menu_redraw_queue)
+        msg_queue_post(menu_redraw_queue, MENU_REDRAW);
 }
 
 static void
 menu_redraw_full()
 {
-    if (!DISPLAY_IS_ON) return;
-    if (ml_shutdown_requested) return;
-    if (menu_help_active) bmp_draw_request_stop();
-    if (menu_redraw_queue) msg_queue_post(menu_redraw_queue, MENU_REDRAW);
+    DryosDebugMsg(0, 15, "in menu_redraw_full");
+    if (!DISPLAY_IS_ON)
+        return;
+    if (ml_shutdown_requested)
+        return;
+    if (menu_help_active)
+        bmp_draw_request_stop();
+    if (menu_redraw_queue) {
+        DryosDebugMsg(0, 15, "menu_redraw_full msg_queue_post");
+        msg_queue_post(menu_redraw_queue, MENU_REDRAW);
+    }
 }
 
 
@@ -5015,15 +5036,21 @@ handle_ml_menu_keys(struct event * event)
     if (menu_shown || arrow_keys_shortcuts_active())
         handle_ml_menu_keyrepeat(event);
 
-    if (!menu_shown) return 1;
+    if (!menu_shown)
+        return 1;
     if (!DISPLAY_IS_ON)
-        if (event->param != BGMT_PRESS_HALFSHUTTER) return 1;
+    {
+        if (event->param != BGMT_PRESS_HALFSHUTTER)
+            return 1;
+    }
 
     // on some cameras, scroll events may arrive grouped; we can't handle it, so split into individual events
-    if (handle_scrollwheel_fast_clicks(event)==0) return 0;
+    if (handle_scrollwheel_fast_clicks(event)==0)
+        return 0;
 
     // rack focus may override some menu keys
-    if (handle_rack_focus_menu_overrides(event)==0) return 0;
+    if (handle_rack_focus_menu_overrides(event)==0)
+        return 0;
     
     if (beta_should_warn())
     {
@@ -5056,7 +5083,8 @@ handle_ml_menu_keys(struct event * event)
     
     int button_code = event->param;
 #if defined(CONFIG_60D) || defined(CONFIG_600D) || defined(CONFIG_7D) // Q not working while recording, use INFO instead
-    if (button_code == BGMT_INFO && RECORDING) button_code = BGMT_Q;
+    if (button_code == BGMT_INFO && RECORDING)
+        button_code = BGMT_Q;
 #endif
 
     int menu_needs_full_redraw = 0; // if true, do not allow quick redraws
@@ -5307,13 +5335,14 @@ handle_ml_menu_keys(struct event * event)
         break;
 
     default:
-        /*DebugMsg( DM_MAGIC, 3, "%s: unknown event %08x? %08x %08x %x08",
+        // SJE enable this until we get things working
+        DebugMsg( DM_MAGIC, 3, "%s: unknown event %08x? %08x %08x %x08",
             __func__,
             event,
             arg2,
             arg3,
             arg4
-        );*/
+        );
         return 1;
     }
 
@@ -5323,11 +5352,14 @@ handle_ml_menu_keys(struct event * event)
     // if submenu mode was changed, force a full redraw
     static int prev_menu_mode = 0;
     int menu_mode = submenu_level | edit_mode*2 | menu_lv_transparent_mode*4 | customize_mode*8 | junkie_mode*16;
-    if (menu_mode != prev_menu_mode) menu_needs_full_redraw = 1;
+    if (menu_mode != prev_menu_mode)
+        menu_needs_full_redraw = 1;
     prev_menu_mode = menu_mode;
     
-    if (menu_needs_full_redraw) menu_redraw_full();
-    else menu_redraw();
+    if (menu_needs_full_redraw)
+        menu_redraw_full();
+    else
+        menu_redraw();
     keyrepeat_ack(button_code);
     hist_countdown = 3;
     return 0;
@@ -5341,6 +5373,7 @@ menu_init( void )
     menus = NULL;
     menu_sem = create_named_semaphore( "menus", 1 );
     gui_sem = create_named_semaphore( "gui", 0 );
+    DryosDebugMsg(0, 15, "created gui_sem in menu_init()");
     menu_redraw_sem = create_named_semaphore( "menu_r", 1);
 
     menu_find_by_name( "Audio",     ICON_ML_AUDIO   );
@@ -5357,7 +5390,7 @@ menu_init( void )
     menu_find_by_name( "Debug",     ICON_ML_DEBUG   );
     menu_find_by_name( "Help",      ICON_ML_INFO    );
 
-    struct menu * m = menu_find_by_name( "Modules", 0 );
+    struct menu *m = menu_find_by_name( "Modules", 0 );
     ASSERT(m);
     m->split_pos = -11;
     m->no_name_lookup = 1;
@@ -5487,8 +5520,10 @@ static void close_canon_menu()
 
 static void menu_open() 
 { 
-    if (menu_shown) return;
+    if (menu_shown)
+        return;
 
+    DryosDebugMsg(0, 15, "in menu_open");
     
     // start in my menu, if configured
     /*
@@ -5502,7 +5537,8 @@ static void menu_open()
 
 #ifdef CONFIG_5DC
     //~ forces the 5dc screen to turn on for ML menu.
-    if (!DISPLAY_IS_ON) fake_simple_button(BGMT_MENU);
+    if (!DISPLAY_IS_ON)
+        fake_simple_button(BGMT_MENU);
     msleep(50);
 #endif
     
@@ -5514,11 +5550,13 @@ static void menu_open()
     keyrepeat = 0;
     menu_shown = 1;
     //~ menu_hidden_should_display_help = 0;
-    if (lv) menu_zebras_mirror_dirty = 1;
+    if (lv)
+        menu_zebras_mirror_dirty = 1;
 
     piggyback_canon_menu();
     canon_gui_disable_front_buffer(0);
-    if (lv && EXT_MONITOR_CONNECTED) clrscr();
+    if (lv && EXT_MONITOR_CONNECTED)
+        clrscr();
 
     CancelDateTimer();
 
@@ -5562,12 +5600,19 @@ static void
 menu_task( void* unused )
 {
     extern int ml_started;
-    while (!ml_started) msleep(100);
+    while (!ml_started)
+        msleep(100);
     
+    extern int ml_gui_initialized;
+    DryosDebugMsg(0, 15, "ml started, in menu_task()");
+    DryosDebugMsg(0, 15, "GMT flag: %x", MEM(0xdf00f600));
+    DryosDebugMsg(0, 15, "ml_gui_initialized: %d", ml_gui_initialized);
+
     debug_menu_init();
     
     int initial_mode = 0; // shooting mode when menu was opened (if changed, menu should close)
     
+    DryosDebugMsg(0, 15, "in menu_task(), entering TASK_LOOP");
     TASK_LOOP
     {
         int keyrepeat_active = keyrepeat &&
@@ -6042,7 +6087,7 @@ static struct longpress set_longpress = {
 };
 #endif
 
-#ifdef CONFIG_EOSM
+#if defined(CONFIG_EOSM)
 static struct longpress erase_longpress = {
     .long_btn_press     = BGMT_TRASH,           /* long press (500ms) opens ML menu */
     .short_btn_press    = BGMT_PRESS_DOWN,      /* short press => do a regular "down/erase" */
@@ -6063,9 +6108,32 @@ static struct longpress qset_longpress = {
 #endif
 
 // this should work on most cameras
-int handle_ml_menu_erase(struct event * event)
+int handle_ml_menu_erase(struct event *event)
 {
-    if (dofpreview) return 1; // don't open menu when DOF preview is locked
+// SJE if we get here, ML GUI is almost working!
+    DryosDebugMsg(0, 15, "in handle_ml_menu_erase");
+    if (dofpreview)
+        return 1; // don't open menu when DOF preview is locked
+
+// SJE useful for logging buttons
+    DryosDebugMsg(0, 15, "event->param 0x%x", event->param);
+
+// SJE logging GUIMODE
+    DryosDebugMsg(0, 15, "guimode: %d", CURRENT_GUI_MODE);
+
+#if 0
+// SJE bubbles hack for fun
+    int n = 1 + rand() % 12;
+    while(n)
+    {
+        int x = 30 + rand() % 600;
+        int y = 30 + rand() % 400;
+        int c = 1 + rand() % 10;
+        int r = 20 + rand() % 40;
+        fill_circle(x, y, r, c);
+        n--;
+    }
+#endif
     
     if (event->param == BGMT_TRASH ||
         #ifdef CONFIG_TOUCHSCREEN
@@ -6184,7 +6252,7 @@ int handle_longpress_events(struct event * event)
     }
 #endif
 
-#ifdef CONFIG_EOSM
+#if defined(CONFIG_EOSM)
     /* also trigger menu by a long press on ERASE (DOWN) */
     if (event->param == BGMT_PRESS_DOWN)
     {

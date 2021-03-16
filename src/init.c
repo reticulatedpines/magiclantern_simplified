@@ -38,6 +38,8 @@
 #include "ml-cbr.h"
 #include "backtrace.h"
 
+extern int uart_printf(const char * fmt, ...);
+
 #if defined(FEATURE_GPS_TWEAKS)
 #include "gps.h"
 #endif
@@ -56,9 +58,9 @@ int ml_gui_initialized = 0; // 1 after gui_main_task is started
  */
 static void
 my_task_dispatch_hook(
-        struct context ** p_context_old,    /* on new DryOS (6D+), this argument is different (small number, unknown meaning) */
-        struct task * prev_task_unused,     /* only present on new DryOS */
-        struct task * next_task_new         /* only present on new DryOS; old versions use HIJACK_TASK_ADDR */
+        struct context **p_context_old,    /* on new DryOS (6D+), this argument is different (small number, unknown meaning) */
+        struct task *prev_task_unused,     /* only present on new DryOS */
+        struct task *next_task_new         /* only present on new DryOS; old versions use HIJACK_TASK_ADDR */
 )
 {
     struct task * next_task = 
@@ -95,13 +97,13 @@ my_task_dispatch_hook(
 #ifdef CONFIG_NEW_DRYOS_TASK_HOOKS
     /* on new DryOS, first argument is not context; get it from the task structure */
     /* this also works for some models with old-style DryOS, but not all */
-    struct context * context = next_task->context;
+    struct context *context = next_task->context;
 #else
     /* on old DryOS, context is passed as argument
      * on some models (not all!), it can be found in the task structure as well */
-    struct context * context = p_context_old ? (*p_context_old) : 0;
+    struct context *context = p_context_old ? (*p_context_old) : 0;
 #endif
-
+    
     if (!context)
         return;
     
@@ -116,7 +118,7 @@ my_task_dispatch_hook(
     }
 
     // Do nothing unless a new task is starting via the trampoile
-    if( context->pc != (uint32_t) task_trampoline )
+    if(context->pc != (uint32_t)task_trampoline)
         return;
 
     thunk entry = (thunk) next_task->entry;
@@ -126,7 +128,7 @@ my_task_dispatch_hook(
     // Search the task_mappings array for a matching entry point
     extern struct task_mapping _task_overrides_start[];
     extern struct task_mapping _task_overrides_end[];
-    struct task_mapping * mapping = _task_overrides_start;
+    struct task_mapping *mapping = _task_overrides_start;
 
     for( ; mapping < _task_overrides_end ; mapping++ )
     {
@@ -291,7 +293,10 @@ static void led_fade(int arg1, void * on)
     static int k = 16000;
     if (k > 0)
     {
-        if (on) _card_led_on(); else _card_led_off();
+        if (on)
+            _card_led_on();
+        else
+            _card_led_off();
         int next_delay = (on ? k : 16000 - k);   /* cycle: 16000 us => 62.5 Hz */
         SetHPTimerNextTick(arg1, next_delay, led_fade, led_fade, (void *) !on);
         k -= MAX(16, k/32);  /* adjust fading speed and shape here */
@@ -317,7 +322,7 @@ static void my_big_init_task()
         /* (pressing SET after this point will be ignored) */
         magic_off = 1;
 
-    #if !defined(CONFIG_NO_ADDITIONAL_VERSION)
+    #if defined(CONFIG_ADDITIONAL_VERSION)
         /* fixme: enable on all models */
         extern char additional_version[];
         additional_version[0] = '-';
@@ -429,8 +434,11 @@ static int my_assert_handler(char* msg, char* file, int line, int arg4)
         file, line, get_current_task_name(), lr,
         lv, shooting_mode
     );
-    backtrace_getstr(assert_msg + len, sizeof(assert_msg) - len);
-    request_crash_log(1);
+// SJE FIXME: assert handling is buggy on modern Digic.
+// Disable some of it here and do quick hack output:
+    uart_printf("[SJE] my_assert_msg: %s", assert_msg);
+//    backtrace_getstr(assert_msg + len, sizeof(assert_msg) - len);
+//    request_crash_log(1);
     return old_assert_handler(msg, file, line, arg4);
 }
 
@@ -444,6 +452,9 @@ void ml_assert_handler(char* msg, char* file, int line, const char* func)
         file, line, func, get_current_task_name(), 
         lv, shooting_mode
     );
+// SJE FIXME: assert handling is buggy on modern Digic.
+// Disable some of it here and do quick hack output:
+    uart_printf("[SJE] ml_assert_msg: %s", assert_msg);
     backtrace_getstr(assert_msg + len, sizeof(assert_msg) - len);
     request_crash_log(2);
 }
@@ -460,6 +471,7 @@ void boot_pre_init_task()
 #if !defined(CONFIG_HELLO_WORLD) && !defined(CONFIG_DUMPER_BOOTFLAG)
     // Install our task creation hooks
     qprint("[BOOT] installing task dispatch hook at "); qprintn((int)&task_dispatch_hook); qprint("\n");
+    DryosDebugMsg(0, 15, "replacing task_dispatch_hook");
     task_dispatch_hook = my_task_dispatch_hook;
     #ifdef CONFIG_TSKMON
     tskmon_init();
@@ -486,7 +498,7 @@ void boot_post_init_task(void)
         build_user
     );
 
-#if !defined(CONFIG_NO_ADDITIONAL_VERSION)
+#if defined(CONFIG_ADDITIONAL_VERSION)
     // Re-write the version string.
     // Don't use strcpy() so that this can be done
     // before strcpy() or memcpy() are located.
@@ -514,7 +526,8 @@ void boot_post_init_task(void)
     // wait for overriden gui_main_task (but use a timeout so it doesn't break if you disable that for debugging)
     for (int i = 0; i < 50; i++)
     {
-        if (ml_gui_initialized) break;
+        if (ml_gui_initialized)
+            break;
         msleep(50);
     }
     msleep(50);
