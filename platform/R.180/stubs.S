@@ -124,7 +124,7 @@ THUMB_FN(0xe00fd122, is_taskid_valid)
 /** Recursive locks **/
 THUMB_FN(0xE02504A4,  AcquireRecursiveLock)                 /* SystemIF::KerRLock.c */
 THUMB_FN(0xE0554740,  CreateRecursiveLock)                  /* SystemIF::KerMisc.c  */
-THUMB_FN(0xE0250516,  ReleaseRecursiveLock)                 /* SystemIF::KerRLock.c */
+THUMB_FN(0xe025056e,  ReleaseRecursiveLock)                 /* SystemIF::KerRLock.c */
 /* kitor: Found in ROM. Called from RAM copy on D5 machines) */
 
 /** Semaphores **/
@@ -227,7 +227,7 @@ THUMB_FN(0xe04e7762,  SRM_FreeMemoryResourceFor1stJob)      // find refs to "pMe
 
 /** Uncategorized **/
 DATA_PTR(   0x11dc0,  sd_device)                            // From function that references "SD_DeviceCreate:"
-THUMB_FN(0xE05B7F9E, _LoadCalendarFromRTC)
+THUMB_FN(0xe079beec,  LoadCalendarFromRTC)
 THUMB_FN(0xe083819e,  ErrForCamera_handler)                 // ERR70, ERR80 etc (DlgErrForCamera.c)
 
 /** Properties **/
