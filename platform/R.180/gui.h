@@ -4,7 +4,7 @@
 /* Codes found for R180 */
 
 #define BGMT_PRESS_UP                0x31
-#define BGMT_PRESS_UP_LEFT           0x2F
+#define BGMT_PRESS_LEFT              0x2F
 #define BGMT_PRESS_RIGHT             0x2D
 #define BGMT_PRESS_DOWN              0x33
 
@@ -25,7 +25,7 @@
 
 /* WRONG: DNE in R */
 #define BGMT_PRESS_UP_RIGHT          0xF0
-#define BGMT_PRESS_LEFT              0xF1
+#define BGMT_PRESS_UP_LEFT           0xF1
 #define BGMT_PRESS_DOWN_RIGHT        0xF2
 #define BGMT_PRESS_DOWN_LEFT         0xF3
 
