@@ -52,12 +52,6 @@ int _FIO_GetFileSize(const char * filename, uint32_t * size){
     return code;
 }
 
-extern void _LoadCalendarFromRTC(struct tm*, int, int, int, int);
-void LoadCalendarFromRTC(struct tm *tm)
-{
-    _LoadCalendarFromRTC(tm, 0, 0, 0, 0);
-}
-
 /** WRONG: temporary overrides to get CONFIG_HELLO_WORLD working **/
 
 void SetEDmac(unsigned int channel, void *address, struct edmac_info *ptr, int flags)
