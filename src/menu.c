@@ -6169,6 +6169,19 @@ int handle_ml_menu_erase(struct event *event)
     }
 #endif
 
+#if 0
+// bmp_draw_scaled_ex() testing
+    static struct bmp_file_t *image = NULL;
+    if (image == NULL)
+        image = bmp_load("B:/256test.bmp", 0);
+    if (image != NULL)
+    {
+        bmp_draw_scaled_ex(image, 240, 240,
+                           image->width, image->height,
+                           0);
+    }
+#endif
+
 
 #if 0
     // these are Gryp related logging callbacks
