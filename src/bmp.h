@@ -43,17 +43,16 @@ uint8_t * bmp_vram(void);
 inline uint8_t* bmp_vram_raw() { return bmp_vram_info[1].vram2; } 
 #endif
 
-#ifdef CONFIG_DIGIC_678
-inline struct MARV * bmp_marv()
-{
-    return (bmp_vram_info[0].back_vram == bmp_vram_info[0].vram1)
-        ? bmp_vram_info[0].vram2 : bmp_vram_info[0].vram1;
+#ifdef FEATURE_VRAM_RGBA
+void refresh_yuv_from_rgb(void);
+uint32_t indexed2rgb(uint8_t color);
+extern struct MARV *rgb_vram_info;
+#define RGB_LUT_MAX 80
+inline uint8_t *bmp_vram_raw() {
+    struct MARV *marv = rgb_vram_info;
+    return marv ? marv->bitmap_data : NULL;
 }
 
-inline uint8_t * bmp_vram_raw() {
-    struct MARV * MARV = bmp_marv();
-    return MARV ? MARV->bitmap_data : NULL;
-}
 #endif
 
 /**
@@ -84,60 +83,78 @@ inline uint8_t * bmp_vram_raw() {
 /** These are the hard limits - never ever write outside them! */
 #ifdef CONFIG_VXWORKS
 
-#define BMP_W_PLUS 720
-#define BMP_W_MINUS 0
-#define BMP_H_PLUS 480
-#define BMP_H_MINUS 0
+    #define BMP_W_PLUS 720
+    #define BMP_W_MINUS 0
+    #define BMP_H_PLUS 480
+    #define BMP_H_MINUS 0
 
-#define BMPPITCH 360
-#define BMP_VRAM_SIZE (360*240)
-#define BMP_HDMI_OFFSET 0
+    #define BMPPITCH 360
+    #define BMP_VRAM_SIZE (360*240)
+    #define BMP_HDMI_OFFSET 0
 
-/** Returns a pointer to the real BMP vram */
-#ifdef CONFIG_5DC
-inline uint8_t* bmp_vram_real() { return (uint8_t*) MEM(0x29328); }
-#elif defined(CONFIG_40D)
-inline uint8_t* bmp_vram_real() { return (uint8_t*) MEM(0x1E330); }
-#else
-error
-#endif
+    /** Returns a pointer to the real BMP vram */
+    #ifdef CONFIG_5DC
+        inline uint8_t* bmp_vram_real() { return (uint8_t*) MEM(0x29328); }
+    #elif defined(CONFIG_40D)
+        inline uint8_t* bmp_vram_real() { return (uint8_t*) MEM(0x1E330); }
+    #else
+    error
+    #endif
 
-extern int bmp_vram_idle_ptr;
+    extern int bmp_vram_idle_ptr;
 
-/** Returns a pointer to idle BMP vram */
-inline uint8_t* bmp_vram_idle()
-{
-	return (uint8_t *)((uintptr_t)bmp_vram_idle_ptr);
-}
+    /** Returns a pointer to idle BMP vram */
+    inline uint8_t* bmp_vram_idle()
+    {
+        return (uint8_t *)((uintptr_t)bmp_vram_idle_ptr);
+    }
 
-inline uint8_t* BMP_VRAM_START(uint8_t* bmp_buf) { return bmp_buf; }
+    inline uint8_t* BMP_VRAM_START(uint8_t* bmp_buf) { return bmp_buf; }
 
-#define BMP_VRAM_END(bmp_buf) (BMP_VRAM_START((uint8_t*)(bmp_buf)) + BMP_VRAM_SIZE)
+    #define BMP_VRAM_END(bmp_buf) (BMP_VRAM_START((uint8_t*)(bmp_buf)) + BMP_VRAM_SIZE)
 
-#define SET_4BIT_PIXEL(p, x, color) *(char*)(p) = ((x) % 2) ? ((*(char*)(p) & 0x0F) | (D2V(color) << 4)) : ((*(char*)(p) & 0xF0) | (D2V(color) & 0x0F))
+    #define SET_4BIT_PIXEL(p, x, color) *(char*)(p) = ((x) % 2) ? ((*(char*)(p) & 0x0F) | (D2V(color) << 4)) : ((*(char*)(p) & 0xF0) | (D2V(color) & 0x0F))
 
 #else // dryos
 
-#define BMP_W_PLUS 840
-#define BMP_W_MINUS -120
-#define BMP_H_PLUS 510
-#define BMP_H_MINUS -30
+    #ifdef CONFIG_200D // maybe other Digic 7?
+// SJE FIXME these values let me draw in the right place,
+// but, they cannot be used.  ML assumes BMP_W_MINUS is negative,
+// and subtracts it from array indices.  This can lead to writing
+// outside of bounds.
+//        #define BMP_W_PLUS 1080
+//        #define BMP_W_MINUS 120
+//        #define BMP_H_PLUS 570
+//        #define BMP_H_MINUS 30
 
-#define BMPPITCH 960
-#define BMP_VRAM_SIZE (960*540)
+// SJE FIXME these values are wrong for 200D, but safe to use.
+// Or, probably safe.  Not known to definitely be bad, like the above.
+        #define BMP_W_PLUS 840
+        #define BMP_W_MINUS -120
+        #define BMP_H_PLUS 510
+        #define BMP_H_MINUS -30
+    #else
+        #define BMP_W_PLUS 840
+        #define BMP_W_MINUS -120
+        #define BMP_H_PLUS 510
+        #define BMP_H_MINUS -30
+    #endif
 
-#define BMP_HDMI_OFFSET ((-BMP_H_MINUS)*BMPPITCH + (-BMP_W_MINUS))
+    #define BMPPITCH 960
+    #define BMP_VRAM_SIZE (960*540)
 
-// BMP_VRAM_START and BMP_VRAM_START are not generic - they only work on BMP buffer addresses returned by Canon firmware
-uint8_t* BMP_VRAM_START(uint8_t* bmp_buf);
+    #define BMP_HDMI_OFFSET ((-BMP_H_MINUS)*BMPPITCH + (-BMP_W_MINUS))
 
-#define BMP_VRAM_END(bmp_buf) (BMP_VRAM_START((uint8_t*)(bmp_buf)) + BMP_VRAM_SIZE)
+    // BMP_VRAM_START and BMP_VRAM_START are not generic - they only work on BMP buffer addresses returned by Canon firmware
+    uint8_t* BMP_VRAM_START(uint8_t* bmp_buf);
 
-/** Returns a pointer to the real BMP vram */
-uint8_t* bmp_vram_real();
+    #define BMP_VRAM_END(bmp_buf) (BMP_VRAM_START((uint8_t*)(bmp_buf)) + BMP_VRAM_SIZE)
 
-/** Returns a pointer to idle BMP vram */
-uint8_t* bmp_vram_idle();
+    /** Returns a pointer to the real BMP vram */
+    uint8_t* bmp_vram_real();
+
+    /** Returns a pointer to idle BMP vram */
+    uint8_t* bmp_vram_idle();
 #endif
 
 

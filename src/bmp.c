@@ -100,13 +100,18 @@ static int bmp_idle_flag = 0;
 
 void bmp_draw_to_idle(int value) { bmp_idle_flag = value; }
 
+static uint8_t *bmp_vram_indexed = NULL;
+
 /** Returns a pointer to currently selected BMP vram (real or mirror) */
 uint8_t * bmp_vram(void)
 {
-    #ifdef CONFIG_VXWORKS
+    #if defined(CONFIG_VXWORKS)
     set_ml_palette_if_dirty();
+    #elif defined(FEATURE_VRAM_RGBA)
+    uint8_t *bmp_buf = bmp_vram_indexed; // initialised by bmp_init()
+    #else
+    uint8_t *bmp_buf = bmp_idle_flag ? bmp_vram_idle() : bmp_vram_real();
     #endif
-    uint8_t * bmp_buf = bmp_idle_flag ? bmp_vram_idle() : bmp_vram_real();
 
     // if (PLAY_MODE) return UNCACHEABLE(bmp_buf);
     return bmp_buf;
@@ -151,7 +156,54 @@ void bmp_idle_copy(int direction, int fullsize)
     }
 }
 
-#ifdef CONFIG_200D // maybe CONFIG_DIGIC_678?  Untested
+#ifdef FEATURE_VRAM_RGBA
+
+// XimrExe is used to trigger refreshing the OSD after the RGBA buffer
+// has been updated.  Should probably take a XimrContext *,
+// but this struct is not yet determined for 200D
+extern int XimrExe(void *);
+extern int winsys_sem;
+void refresh_yuv_from_rgb(void)
+{
+    // get our indexed buffer, convert into our real rgb buffer
+    uint8_t *b = bmp_vram_indexed;
+
+    uint32_t *rgb = (uint32_t *)rgb_vram_info->bitmap_data;
+    //SJE FIXME benchmark this loop, it probably wants optimising
+    for (size_t n = 0; n < BMP_VRAM_SIZE; n++)
+    {
+        *rgb++ = indexed2rgb(*b++);
+    }
+
+    // trigger Ximr to render to OSD from RGB buffer
+    take_semaphore(winsys_sem, 0);
+    // SJE FIXME stop using the fixed value.  Is this truly
+    // fixed and safe to use?  If so, should go in stub.S / consts.
+    // If dynamic, we should make our own.
+    XimrExe((void *)0xa09a0);
+    give_semaphore(winsys_sem);
+}
+
+static uint32_t indexed2rgbLUT[RGB_LUT_MAX] = {
+    0x00000000,0xffffffff,0xff000000,0x77000000,0xff777777, // 0
+    0xff00ffff,0xff00ff00,0xff008000,0xffff0000,0xffadd8e6, // 5
+    0xff777777,0xff1e2683,0xff8b0000,0xff777777,0xffff00ff, // 10
+    0xffffff00,0xff777777,0xff777777,0xff777777,0xffffa500, // 15
+    0xff666666,0xff666666,0xff666666,0xff666666,0xff666666, // 20
+    0xff666666,0xff666666,0xff666666,0xff666666,0xff666666, // 25
+    0xff666666,0xff666666,0xff666666,0xff666666,0xff666666, // 30
+    0xff666666,0xff666666,0xff666666,0xff111111,0xff666666, // 35
+    0xff666666,0xff666666,0xff242424,0xff666666,0xff666666, // 40
+    0xff242424,0xff666666,0xff666666,0xff666666,0xff666666, // 45
+    0xff555555,0xff666666,0xff666666,0xff666666,0xff666666, // 50
+    0xff666666,0xff666666,0xff666666,0xff666666,0xff666666, // 55
+    0xff343434,0xff666666,0xff666666,0xff666666,0xff666666, // 60
+    0xff666666,0xff666666,0xff666666,0xff666666,0xff666666, // 65
+    0xff909090,0xff666666,0xff666666,0xff666666,0xff666666, // 70
+    0xff666666,0xff666666,0xff666666,0xff666666,0xff666666  // 75
+};
+
+#if 0
 static uint32_t indexed2uyvyLUT[COLOR_ORANGE + 1] = {
     0x00800080, // COLOR_EMPTY (black, but we will apply alpha later)
     0xff80ff80, // COLOR_WHITE
@@ -174,19 +226,22 @@ static uint32_t indexed2uyvyLUT[COLOR_ORANGE + 1] = {
     0x7f807f80, // unknown, default to 50% gray so it's probably visible
     0x97c9972a  // COLOR_ORANGE
 };
+#endif
 
-uint32_t indexed2yuv422(uint8_t color)
+
+uint32_t indexed2rgb(uint8_t color)
 {
-    if (color < COLOR_ORANGE)
+    if (color < RGB_LUT_MAX)
     {
-        return indexed2uyvyLUT[color];
+        return indexed2rgbLUT[color];
     }
     else
     {
         // return gray so it's probably visible
-        return 0x7f807f80;
+        return indexed2rgbLUT[4];
     }
 }
+
 #endif
 
 inline void bmp_putpixel_fast(uint8_t *const bvram, int x, int y, uint8_t color)
@@ -194,36 +249,6 @@ inline void bmp_putpixel_fast(uint8_t *const bvram, int x, int y, uint8_t color)
     #ifdef CONFIG_VXWORKS
         char *p = (char*)&bvram[(x)/2 + (y)/2 * BMPPITCH];
         SET_4BIT_PIXEL(p, x, color);
-    #elif defined(CONFIG_DIGIC_678)
-        struct MARV *MARV = bmp_marv();
-        uint8_t alpha = 0xff;
-        if (color == COLOR_EMPTY)
-            alpha = 0x00; // minimal alpha support in this function
-        uint32_t uyvy = indexed2yuv422(color);
-        if (MARV->opacity_data)
-        {   // 80D, 200D
-            uint32_t *offset = (uint32_t *)&bvram[(x & ~1) * 2 + y * 2 * MARV->width];
-            if (x % 2) {
-                *offset = (*offset & 0x0000FF00) | (uyvy & 0xFFFF00FF);     // set U, Y2, V, keep Y1
-            } else {
-                *offset = (*offset & 0xFF000000) | (uyvy & 0x00FFFFFF);     // set U, Y1, V, keep Y2
-            }
-            MARV->opacity_data[x + y * MARV->width] = alpha;
-        }
-        else
-        {   // 5D4, M50
-            // adapted from https://bitbucket.org/chris_miller/ml-fork/src/d1f1cdf978acc06c6fd558221962c827a7dc28f8/src/minimal-d678.c?fileviewer=file-view-de    fault#minimal-d678.c-175
-            // VRAM layout is UYVYAA (each character is one byte) for pixel pairs
-            uint32_t *offset = (uint32_t *) &bvram[(x & ~1) * 3 + y * 3 * MARV->width];   // unaligned pointer
-            if (x % 2) {
-                *offset = (*offset & 0x0000FF00) | (uyvy & 0xFFFF00FF);     // set U, Y2, V, keep Y1
-            } else {
-                *offset = (*offset & 0xFF000000) | (uyvy & 0x00FFFFFF);     // set U, Y1, V, keep Y2
-            }
-            uint8_t *opacity = (uint8_t *) offset + 4 + x % 2;
-            *opacity = alpha;
-        }
-
     #else
         bvram[x + y * BMPPITCH] = color;
         #ifdef CONFIG_500D // err70?!
@@ -434,7 +459,6 @@ bmp_hexdump(
 
 /** Fill a section of bitmap memory with solid color
  */
-
 void
 bmp_fill(
     uint8_t            color,
@@ -851,6 +875,11 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int w, int h, u
 {
     if (!bmp) return;
 
+// SJE FIXME this function doesn't work right on 200D.
+// I have got it drawing at correct coords and output size,
+// but content is garbled.
+    DryosDebugMsg(0, 15, "in bmp_draw_scaled_ex");
+    
     _bmp_draw_should_stop = 0;
     //~ if (!bmp_enabled) return;
 
@@ -912,9 +941,9 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int w, int h, u
             y = (ys-y0)*bmp->height/h;
             int ysc = COERCE(ys, BMP_H_MINUS, BMP_H_PLUS);
             #ifdef CONFIG_VXWORKS
-            uint8_t * const b_row =              bvram + ysc/2 * BMPPITCH;
+            uint8_t * const b_row = bvram + ysc/2 * BMPPITCH;
             #else
-            uint8_t * const b_row =              bvram + ysc * BMPPITCH;
+            uint8_t * const b_row = bvram + ysc * BMPPITCH;
             #endif
             uint8_t * const m_row = (uint8_t*)( mirror + ysc * BMPPITCH );
 
@@ -1232,7 +1261,7 @@ void bmp_flip_ex(uint8_t* dst, uint8_t* src, uint8_t* mirror, int voffset)
 
 static void palette_disable(uint32_t disabled)
 {
-    #ifdef CONFIG_VXWORKS
+    #if defined(CONFIG_VXWORKS) | defined(CONFIG_DIGIC_78)
     return; // see set_ml_palette
     #endif
 
@@ -1325,6 +1354,11 @@ static void bmp_init(void* unused)
     bmp_lock = CreateRecursiveLock(0);
     ASSERT(bmp_lock)
     bvram_mirror_init();
+#ifdef FEATURE_VRAM_RGBA
+    bmp_vram_indexed = malloc(BMP_VRAM_SIZE);
+    ASSERT(bmp_vram_indexed);
+#endif
+
     _update_vram_params();
 }
 

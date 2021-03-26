@@ -85,18 +85,18 @@ struct task
         uint8_t             unknown_0d; // 0x4a / 0x4e, 1
         uint8_t             unknown_0e; // 0x4b / 0x4f, 1
 #if defined(CONFIG_200D) // again, probably more broadly applicable but this needs testing
-        uint8_t             cpu_requested; // 0x50, 1 // SJE working theory: which CPU can
-                                                      // take the task.  0xff means any.
-        uint8_t             cpu_assigned; // 0x51, 1  // Which CPU has taken the task,
-                                                      // 0xff means not yet taken.
-                                                      // See df0028a2, 200D 1.0.1, which
-                                                      // I believe is "int get_task_for_cpu(int cpu_id)"
+        uint8_t         cpu_requested; // 0x50, 1 // SJE working theory: which CPU can
+                                                  // take the task.  0xff means any.
+        uint8_t         cpu_assigned; // 0x51, 1  // Which CPU has taken the task,
+                                                  // 0xff means not yet taken.
+                                                  // See df0028a2, 200D 1.0.1, which
+                                                  // I believe is "int get_task_for_cpu(int cpu_id)"
         uint8_t             unknown_11; // 0x52, 1
         uint8_t             unknown_12; // 0x53, 1
-        struct context *context;        // 0x54, 4
+        struct context  *context;       // 0x54, 4
         uint32_t            unknown_13; // 0x58, 4
 #else
-        struct context *context;        // 0x4c, 4
+        struct context  *context;       // 0x4c, 4
 #endif
                                         // 0x50 / 0x5c // sizeof struct
 };

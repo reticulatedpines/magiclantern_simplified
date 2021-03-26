@@ -121,6 +121,10 @@ DATA_PTR(    0x799C,  mpu_recv_ring_buffer_tail) // ring buffer index incremente
 /** Misc **/
 THUMB_FN(0xE11C7CF9,  vsnprintf)              /* called near dmstart; references "01234567", "0123456789", "0123456789abcdef" and "0123456789ABCDEF"; second arg is size; the one called by DebugMsg only knows %s */
 
+// SJE stuff found during investigation, maybe not needed for ML
+// but I wanted to call by name
+THUMB_FN(0xe049e9bf,  SaveVRAM)
+
 
 // SJE unsure stuff: currently majority copied from 50D (I have roms for this),
 // or 100D (more modern, presumably sort of similar)
@@ -199,7 +203,7 @@ THUMB_FN(0xe05f67d1,  ShootOlcApp_handler) // near "StopShootOlcApp PopPalette(%
 NSTUB(    0xfc88,  gui_task_list) // "pDialog" strings often have refs to 0xfcb4, if so, should be
                                   // around 20 before that? "pDeleteController->psSignature" also distinctive.
                                   // Found in function 0xe0660c90.
-THUMB_FN(0xe05cd1ff, _LoadCalendarFromRTC) // 0xff885058 in 50D is 0xe00742fc in 200D.  In 50D this calls
+//THUMB_FN(0xe05cd1ff, _LoadCalendarFromRTC) // 0xff885058 in 50D is 0xe00742fc in 200D.  In 50D this calls
                                            // LoadCalendarFromRTC, which takes one arg, the first local var;
                                            // but really this is a local struct of six fields, ie, the next 5 locals
                                            // are initialised by the call (Ghidra can't work out func takes pointer to struct?).
@@ -208,10 +212,28 @@ THUMB_FN(0xe05cd1ff, _LoadCalendarFromRTC) // 0xff885058 in 50D is 0xe00742fc in
                                            // and the code within looks really different.  One of those args is a pointer to function,
                                            // with that function being semaphore related.  Multi-core sync stuff?  Could
                                            // make sense given RTC related.
+THUMB_FN(0xe0642801, LoadCalendarFromRTC)
 
 THUMB_FN(0xe04bdc5d, uart_printf)
 #NSTUB(0xdf008c7c, uart_printf) // Thunked equivalent of the above.  Note, ARM, not Thumb.
                                // Both seem to work the same.
+THUMB_FN(0xe049f041, fill_rectangle_to_vram) // "FillRectangleToVram ILLEGAL_PARAMETER"
+
+THUMB_FN(0xe04a044d, RefreshVrmsSurface) // "Call RefreshVrmsSurface"
+DATA_PTR(   0xfd94,  display_refresh_needed) // if 0, RefreshVrmsSurface() does nothing
+THUMB_FN(0xe02b07c3, marv_dcache_clean) // find rgb_vram_info, this function is called with
+                                        // that address as only param, after null check.
+                                        // Function inspects the struct and does dcache_clean
+                                        // on the extent of the bitmap_data.  Not referenced
+                                        // much.  Possibly only used during init?
+THUMB_FN(0xe02ba483, JediDraw) // maybe sends a buffer to 2d accel unit, for output / render?
+THUMB_FN(0xe048f6e7, OsdReverseMode) // "OsdReverseMode" - does this flip the OSD output?
+THUMB_FN(0xe01ef519, XimrExe) // trigger Ximr unit to execute?  Ximr seems to be compositor / renderer related
+THUMB_FN(0xe025e88d, XimrSetLayerVisibility)
+THUMB_FN(0xe025e8ad, XimrSetInputLayerMARV)
+THUMB_FN(0xe025ea65, XimrSetLayer_unk2)
+THUMB_FN(0xe025eaed, maybe_XimrSetLayerColorParams)
+THUMB_FN(0xe025e949, XimrContextInputLayerSetDimensions)
 
 // WRONG but partially found
 DATA_PTR(   0xfd84,  bmp_vram_info) // function e04a044c looks relevant, see refs to 0x3c0 and 0x21c; 960x540
@@ -222,6 +244,15 @@ DATA_PTR(   0xfd84,  bmp_vram_info) // function e04a044c looks relevant, see ref
                                     // However, I'm confused by the vram.h bmp_vram_info struct def.
                                     // Don't see how it relates.
 
+DATA_PTR(   0xfd80,  rgb_vram_info) // Used in many places, written to in "InitializeScreen"
+                                    // At least for 200D, this is BGRA buffer, earlier in the render
+                                    // chain than the YUV ones.  But, changes made to it will not
+                                    // render until a refresh occurs (can manually trigger via RefreshVrmsSurface())
+
+DATA_PTR(   0xfda0,  display_output_mode) // on 200D, 1: 960x540, anything else, 720x480
+DATA_PTR(   0xfd7c,  winsys_sem)
+
+
 
 // WRONG
 //NSTUB(   0x1D6FC,  cf_device) // in cfReadBlk - probably this is 0xe0400446, but, in 200D,
@@ -230,7 +261,7 @@ DATA_PTR(   0xfd84,  bmp_vram_info) // function e04a044c looks relevant, see ref
                               // Probably not needed; 200D doesn't have CF.
 
 
-NSTUB(   0x242C0,  LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
+NSTUB(0x56500000,  LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
 //NSTUB(    0x30F8,  task_max)
 DATA_PTR(    0x412c,  task_dispatch_hook)
 //NSTUB(    0x3960,  gui_timer_struct) // in GUI_Control_Post
