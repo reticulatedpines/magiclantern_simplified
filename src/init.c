@@ -243,14 +243,66 @@ static void backup_rom_task()
 #endif
 
 #ifdef CONFIG_HELLO_WORLD
+extern void marv_dcache_clean(struct MARV *marv);
+extern void dcache_clean(void *, int size);
+extern void JediDraw(struct MARV *marv, uint8_t buf, int unknown, int size);
+extern void OsdReverseMode(int);
+extern int XimrSetLayerVisibility(void *ximr_context, int, int);
+extern int XimrSetInputLayerMARV(void *ximr_context, int, struct MARV *rgb_vram, int);
+extern int XimrSetLayer_unk2(void *ximr_context, int, int, int, int);
+extern int XimrContextInputLayerSetDimensions(void *ximr_context, int, int, int, int, int, int, int);
+extern int maybe_XimrSetLayerColorParams(void *ximr_context, int, struct MARV *rgb_vram, int, int);
+extern int display_output_mode;
+extern int display_refresh_needed;
+
+static void draw_test_pattern(int colour)
+{
+    uint8_t *b = bmp_vram();
+
+    // draw a rectangle on the exact visible border
+    for (int y=30; y < 510; y++)
+    {
+        bmp_putpixel_fast(b, 120, y, colour);
+        bmp_putpixel_fast(b, 839, y, colour);
+    }
+    for (int x=120; x < 840; x++)
+    {
+        bmp_putpixel_fast(b, x, 30, colour);
+        bmp_putpixel_fast(b, x, 509, colour);
+    }
+}
+
 static void hello_world()
 {
     int sig = compute_signature((uint32_t*)SIG_START, 0x10000);
+
+    // wait for GUI to be up
+    while (!bmp_vram_raw())
+        msleep(100);
+
+//    DryosDebugMsg(0, 15, "==== HELLO WORLD ====");
+    int colour = 4;
     while(1)
     {
-        bmp_printf(FONT_LARGE, 50, 50, "Hello, World!");
-        bmp_printf(FONT_LARGE, 50, 400, "firmware signature = 0x%x", sig);
-        info_led_blink(1, 500, 500);
+        bmp_printf(FONT_LARGE, 140, 50, "Hello, World!");
+        bmp_printf(FONT_LARGE, 140, 400, "firmware signature = 0x%x", sig);
+
+        if (colour == 15)
+            colour = 4;
+        else
+            colour++;
+        DryosDebugMsg(0, 15, "display mode: %d", display_output_mode);
+        DryosDebugMsg(0, 15, "colour: %d", colour);
+        draw_test_pattern(colour);
+
+        bmp_fill(6, 140, 200, 40, 1);
+
+//        DISP_SetUpdateOSDVram(bmp_vram_info->bitmap_data); // params not fully known.  See 0xe0552dfa for setup
+//        OsdReverseMode(1);  // cool, this works for horizontal flip.  Not tested other values
+
+        refresh_yuv_from_rgb();
+        msleep(200);
+        //info_led_blink(1, 500, 500);
     }
 }
 #endif

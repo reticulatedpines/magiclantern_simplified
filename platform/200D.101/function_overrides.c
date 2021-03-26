@@ -11,11 +11,6 @@
 #include <consts.h>
 #include <lens.h>
 
-void LoadCalendarFromRTC(struct tm *tm)
-{
-    _LoadCalendarFromRTC(tm, 0, 0, 0, 0);
-}
-
 void SetEDmac(unsigned int channel, void *address, struct edmac_info *ptr, int flags)
 {
     return;

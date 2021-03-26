@@ -44,7 +44,9 @@
 //~ #define CONFIG_MENU_DIM_HACKS
 #undef SUBMENU_DEBUG_JUNKIE
 
-#define DOUBLE_BUFFERING 1
+// SJE hack while we get stuff working on Digic7, probably don't need this
+//#define DOUBLE_BUFFERING 1
+#define DOUBLE_BUFFERING 0
 
 //~ #define MENU_KEYHELP_Y_POS (menu_lv_transparent_mode ? 425 : 430)
 #define MENU_HELP_Y_POS 435
@@ -2043,6 +2045,7 @@ static void FAST selection_bar_backend(int c, int black, int x0, int y0, int w, 
     black = D2V(black);
     #endif
     #define P(x,y) B[BM(x,y)]
+    DryosDebugMsg(0, 15, "selection_bar_backend");
     for (int y = y0; y < y0 + h; y++)
     {
         for (int x = x0; x < x0 + w; x++)
@@ -4626,120 +4629,133 @@ CONFIG_INT("menu.upside.down", menu_upside_down, 0);
 static void
 menu_redraw_do()
 {
+    menu_damage = 0;
+    //~ g_submenu_width = 720;
+
+    DryosDebugMsg(0, 15, "menu_redraw_do() -> top");
+
+    if (!DISPLAY_IS_ON)
+        return;
+    if (sensor_cleaning)
+        return;
+    if (gui_state == GUISTATE_MENUDISP)
+        return;
+
+    if (menu_help_active)
+    {
+        menu_help_redraw();
         menu_damage = 0;
-        //~ g_submenu_width = 720;
-        
-        if (!DISPLAY_IS_ON) return;
-        if (sensor_cleaning) return;
-        if (gui_state == GUISTATE_MENUDISP) return;
-        
-        if (menu_help_active)
+    }
+    else
+    {
+        if (!lv)
+            menu_lv_transparent_mode = 0;
+        if (menu_lv_transparent_mode && edit_mode)
+            edit_mode = 0;
+
+        if (DOUBLE_BUFFERING)
         {
-            menu_help_redraw();
-            menu_damage = 0;
+            // draw to mirror buffer to avoid flicker
+            //~ bmp_idle_copy(0); // no need, drawing is fullscreen anyway
+            bmp_draw_to_idle(1);
+        }
+
+        /*
+        int z = zebra_should_run();
+        if (menu_zebras_mirror_dirty && !z)
+        {
+            clear_zebras_from_mirror();
+            menu_zebras_mirror_dirty = 0;
+        }*/
+
+        if (menu_lv_transparent_mode)
+        {
+            bmp_fill( 0, 0, 0, 720, 480 );
+            
+            /*
+            if (z)
+            {
+                if (prev_z) copy_zebras_from_mirror();
+                else cropmark_clear_cache(); // will clear BVRAM mirror and reset cropmarks
+                menu_zebras_mirror_dirty = 1;
+            }
+            */
+            
+            if (hist_countdown == 0 && !should_draw_zoom_overlay())
+                draw_histogram_and_waveform(0); // too slow
+            else
+                hist_countdown--;
         }
         else
         {
-            if (!lv) menu_lv_transparent_mode = 0;
-            if (menu_lv_transparent_mode && edit_mode) edit_mode = 0;
+            bmp_fill(COLOR_BLACK, 0, 40, 720, 400 );
+        }
+        //~ prev_z = z;
+        
+        menus_display( menus, 0, 0 ); 
 
-            if (DOUBLE_BUFFERING)
-            {
-                // draw to mirror buffer to avoid flicker
-                //~ bmp_idle_copy(0); // no need, drawing is fullscreen anyway
-                bmp_draw_to_idle(1);
-            }
-            
-            /*
-            int z = zebra_should_run();
-            if (menu_zebras_mirror_dirty && !z)
-            {
-                clear_zebras_from_mirror();
-                menu_zebras_mirror_dirty = 0;
-            }*/
+        if (!menu_lv_transparent_mode && !SUBMENU_OR_EDIT && !junkie_mode)
+        {
+            if (is_menu_active("Help"))
+                menu_show_version();
+        }
+        
+        if (menu_lv_transparent_mode) 
+        {
+            draw_ml_topbar();
+            draw_ml_bottombar();
+            bfnt_draw_char(ICON_ML_Q_BACK, 680, -5, COLOR_WHITE, NO_BG_ERASE);
+        }
 
-            if (menu_lv_transparent_mode)
+        if (beta_should_warn())
+            draw_beta_warning();
+        
+        #ifdef CONFIG_CONSOLE
+        console_draw_from_menu();
+        #endif
+
+        if (DOUBLE_BUFFERING)
+        {
+            // copy image to main buffer
+            bmp_draw_to_idle(0);
+
+            if (menu_redraw_cancel)
             {
-                bmp_fill( 0, 0, 0, 720, 480 );
-                
-                /*
-                if (z)
-                {
-                    if (prev_z) copy_zebras_from_mirror();
-                    else cropmark_clear_cache(); // will clear BVRAM mirror and reset cropmarks
-                    menu_zebras_mirror_dirty = 1;
-                }
-                */
-                
-                if (hist_countdown == 0 && !should_draw_zoom_overlay())
-                    draw_histogram_and_waveform(0); // too slow
-                else
-                    hist_countdown--;
+                /* maybe next time */
+                menu_redraw_cancel = 0;
             }
             else
             {
-                bmp_fill(COLOR_BLACK, 0, 40, 720, 400 );
-            }
-            //~ prev_z = z;
-            
-            menus_display( menus, 0, 0 ); 
-
-            if (!menu_lv_transparent_mode && !SUBMENU_OR_EDIT && !junkie_mode)
-            {
-                if (is_menu_active("Help")) menu_show_version();
-            }
-            
-            if (menu_lv_transparent_mode) 
-            {
-                draw_ml_topbar();
-                draw_ml_bottombar();
-                bfnt_draw_char(ICON_ML_Q_BACK, 680, -5, COLOR_WHITE, NO_BG_ERASE);
-            }
-
-            if (beta_should_warn()) draw_beta_warning();
-            
-            #ifdef CONFIG_CONSOLE
-            console_draw_from_menu();
-            #endif
-
-            if (DOUBLE_BUFFERING)
-            {
-                // copy image to main buffer
-                bmp_draw_to_idle(0);
-
-                if (menu_redraw_cancel)
+                int screen_layout = get_screen_layout();
+                if (hdmi_code == 2) // copy at a smaller scale to fit the screen
                 {
-                    /* maybe next time */
-                    menu_redraw_cancel = 0;
-                }
-                else
-                {
-                    int screen_layout = get_screen_layout();
-                    if (hdmi_code == 2) // copy at a smaller scale to fit the screen
-                    {
-                        if (screen_layout == SCREENLAYOUT_16_10)
-                            bmp_zoom(bmp_vram(), bmp_vram_idle(),  360,  150, /* 128 div */ 143, /* 128 div */ 169);
-                        else if (screen_layout == SCREENLAYOUT_16_9)
-                            bmp_zoom(bmp_vram(), bmp_vram_idle(),  360,  165, /* 128 div */ 143, /* 128 div */ 185);
-                        else
-                        {
-                            if (menu_upside_down) bmp_flip(bmp_vram(), bmp_vram_idle(), 0);
-                            else bmp_idle_copy(1,0);
-                        }
-                    }
-                    else if (EXT_MONITOR_RCA)
-                        bmp_zoom(bmp_vram(), bmp_vram_idle(),  360,  200, /* 128 div */ 135, /* 128 div */ 135);
+                    if (screen_layout == SCREENLAYOUT_16_10)
+                        bmp_zoom(bmp_vram(), bmp_vram_idle(),  360,  150, /* 128 div */ 143, /* 128 div */ 169);
+                    else if (screen_layout == SCREENLAYOUT_16_9)
+                        bmp_zoom(bmp_vram(), bmp_vram_idle(),  360,  165, /* 128 div */ 143, /* 128 div */ 185);
                     else
                     {
-                        if (menu_upside_down) bmp_flip(bmp_vram(), bmp_vram_idle(), 0);
-                        else bmp_idle_copy(1,0);
+                        if (menu_upside_down)
+                            bmp_flip(bmp_vram(), bmp_vram_idle(), 0);
+                        else
+                            bmp_idle_copy(1,0);
                     }
                 }
-                //~ bmp_idle_clear();
+                else if (EXT_MONITOR_RCA)
+                    bmp_zoom(bmp_vram(), bmp_vram_idle(),  360,  200, /* 128 div */ 135, /* 128 div */ 135);
+                else
+                {
+                    if (menu_upside_down)
+                        bmp_flip(bmp_vram(), bmp_vram_idle(), 0);
+                    else
+                        bmp_idle_copy(1,0);
+                }
             }
-            //~ update_stuff();
-            lens_display_set_dirty();
+            //~ bmp_idle_clear();
         }
+        //~ update_stuff();
+        lens_display_set_dirty();
+    }
     
     bmp_on();
 
@@ -4763,6 +4779,10 @@ menu_redraw_do()
 
     #ifdef CONFIG_VXWORKS   
     set_ml_palette();    
+    #endif
+
+    #ifdef FEATURE_VRAM_RGBA
+    refresh_yuv_from_rgb();
     #endif
 }
 
@@ -4808,7 +4828,7 @@ static int menu_ensure_canon_dialog()
     return 1;
 }
 
-static struct msg_queue * menu_redraw_queue = 0;
+static struct msg_queue *menu_redraw_queue = 0;
 
 static void
 menu_redraw_task()
@@ -4821,10 +4841,15 @@ menu_redraw_task()
         int msg;
         int err = msg_queue_receive(menu_redraw_queue, (struct event**)&msg, 500);
         if (err) {
-            DryosDebugMsg(0, 15, "err from queue: 0x%x", err);
-            continue;
+            DryosDebugMsg(0, 15, "err from queue, continuing anyway: 0x%x", err);
+            //SJE FIXME - we see 0x9 errors.
+            // There looks to be only one path where msg_queue_receive() returns 9,
+            // understand the cause and fix it, then re-enable the continue I guess.
+            //continue;
         }
-        DryosDebugMsg(0, 15, "no err from queue");
+        else {
+            DryosDebugMsg(0, 15, "no err from queue");
+        }
         
         if (gui_menu_shown())
         {
@@ -4855,6 +4880,10 @@ menu_redraw_task()
             }
             DryosDebugMsg(0, 15, "nothing special, menu_redraw_do");
         }
+        else
+        {
+            DryosDebugMsg(0, 15, "gui_menu_shown() was false");
+        }
     }
 }
 
@@ -4876,7 +4905,6 @@ menu_redraw()
 static void
 menu_redraw_full()
 {
-    DryosDebugMsg(0, 15, "in menu_redraw_full");
     if (!DISPLAY_IS_ON)
         return;
     if (ml_shutdown_requested)
@@ -4884,7 +4912,6 @@ menu_redraw_full()
     if (menu_help_active)
         bmp_draw_request_stop();
     if (menu_redraw_queue) {
-        DryosDebugMsg(0, 15, "menu_redraw_full msg_queue_post");
         msg_queue_post(menu_redraw_queue, MENU_REDRAW);
     }
 }
@@ -5051,7 +5078,7 @@ handle_ml_menu_keys(struct event * event)
     // rack focus may override some menu keys
     if (handle_rack_focus_menu_overrides(event)==0)
         return 0;
-    
+
     if (beta_should_warn())
     {
         if (event->param == BGMT_PRESS_SET ||
@@ -5652,7 +5679,11 @@ menu_task( void* unused )
                     keyrep_countdown--;
                     if (keyrep_countdown <= 0) {
                         keyrep_ack = 0;
+                        #ifndef CONFIG_DIGIC_78
+                        //SJE FIXME - find out why this doesn't work, it repeats
+                        // until another key is pressed
                         fake_simple_button(keyrepeat);
+                        #endif
                     }
                 }
                 continue;
@@ -5683,6 +5714,9 @@ menu_task( void* unused )
                  * or on request (menu_damage) */
                 if ((!menu_help_active && !menu_lv_transparent_mode) || menu_damage) {
                     menu_redraw();
+                    #ifdef FEATURE_VRAM_RGBA
+                    refresh_yuv_from_rgb();
+                    #endif
                 }
             }
             else
@@ -6111,15 +6145,15 @@ static struct longpress qset_longpress = {
 int handle_ml_menu_erase(struct event *event)
 {
 // SJE if we get here, ML GUI is almost working!
-    DryosDebugMsg(0, 15, "in handle_ml_menu_erase");
+//    DryosDebugMsg(0, 15, "in handle_ml_menu_erase");
     if (dofpreview)
         return 1; // don't open menu when DOF preview is locked
 
 // SJE useful for logging buttons
-    DryosDebugMsg(0, 15, "event->param 0x%x", event->param);
+//    DryosDebugMsg(0, 15, "event->param 0x%x", event->param);
 
 // SJE logging GUIMODE
-    DryosDebugMsg(0, 15, "guimode: %d", CURRENT_GUI_MODE);
+//    DryosDebugMsg(0, 15, "guimode: %d", CURRENT_GUI_MODE);
 
 #if 0
 // SJE bubbles hack for fun
@@ -6134,7 +6168,34 @@ int handle_ml_menu_erase(struct event *event)
         n--;
     }
 #endif
-    
+
+
+#if 0
+    // these are Gryp related logging callbacks
+    // and log threshold values
+    extern int uart_printf(const char * fmt, ...);
+    if (MEM(0x115d8) == NULL)
+    {
+        MEM(0x115d8) = &uart_printf;
+    }
+    else
+    {
+        DryosDebugMsg(0, 15, "*115d8        : 0x%x", MEM(0x115d8));
+    }
+    // this is something like log priority threshold
+    MEM(0x115e0) = 0x0000ffff;
+
+    if (MEM(0x115e4) == NULL)
+    {
+        MEM(0x115e4) = &uart_printf;
+    }
+    else
+    {
+        DryosDebugMsg(0, 15, "*115e4        : 0x%x", MEM(0x115e4));
+    }
+    MEM(0x115d4) = 0x0000ffff;
+#endif
+
     if (event->param == BGMT_TRASH ||
         #ifdef CONFIG_TOUCHSCREEN
         event->param == BGMT_TOUCH_2_FINGER ||
