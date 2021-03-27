@@ -65,17 +65,7 @@
         if (((uintptr_t)bmp_buf & 0xFFF) == 0xc28) // 100D
             return (uint8_t*)((uintptr_t)bmp_buf - BMP_HDMI_OFFSET - 0xb28);
 
-        // seen from 200D: 0x800, 0xb00.  Real?  Some other bug?
-        // For now, suppress them to avoid the spammy asserts
-        #ifdef CONFIG_200D
-        if (((uintptr_t)bmp_buf & 0xfff) == 0x800)
-            return bmp_buf;
-        if (((uintptr_t)bmp_buf & 0xfff) == 0xb00)
-            return bmp_buf;
-        #endif
-
         // something else - new camera? return it unchanged (failsafe)
-        DryosDebugMsg(0, 15, "bmp_buf & 0xfff: 0x%x\n", (uintptr_t)bmp_buf & 0xfff);
         ASSERT(0);
         return bmp_buf;
     }
@@ -100,7 +90,9 @@ static int bmp_idle_flag = 0;
 
 void bmp_draw_to_idle(int value) { bmp_idle_flag = value; }
 
+#ifdef FEATURE_VRAM_RGBA
 static uint8_t *bmp_vram_indexed = NULL;
+#endif
 
 /** Returns a pointer to currently selected BMP vram (real or mirror) */
 uint8_t * bmp_vram(void)
@@ -108,7 +100,22 @@ uint8_t * bmp_vram(void)
     #if defined(CONFIG_VXWORKS)
     set_ml_palette_if_dirty();
     #elif defined(FEATURE_VRAM_RGBA)
-    uint8_t *bmp_buf = bmp_vram_indexed; // initialised by bmp_init()
+    // SJE FIXME I'm not using BMP_VRAM_START because a) it's fragile evil magic
+    // and b) we're using a generic malloc'd block so we can't.
+    // It's supposed to adjust where we look inside the 960x540 region to determine
+    // where we base our drawing from, for various bmp_* and other functions.
+    //
+    // It does this by direct inspection of a pointer value to make guesses
+    // about how far into another buffer it is.  Which is nasty, and incompatible
+    // with our malloc'd block in any case.
+    //
+    // With the marv structs having width and height fields, and a mode global
+    // being known (display_output_mode, fda0 on 200D), there must be a nicer way
+    // to dynamically determine the real offset without inspecting the pointer.
+    //
+    // For now, assume 720x480.
+    uint8_t *bmp_buf = bmp_vram_indexed + BMP_HDMI_OFFSET;
+    // bmp_vram_indexed is initialised by bmp_init()
     #else
     uint8_t *bmp_buf = bmp_idle_flag ? bmp_vram_idle() : bmp_vram_real();
     #endif
