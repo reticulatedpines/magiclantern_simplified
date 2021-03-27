@@ -1091,7 +1091,17 @@ static uint8_t* bfnt_find_char(int code)
 // returns width
 int bfnt_draw_char(int c, int px, int py, int fg, int bg)
 {
-    if (!bfnt_ok())
+    // c is the character index to draw, or, if negative,
+    // a signal that the character is not "real",
+    // but one of the icon characters, defined by ML itself.
+    // These always exist (see ico.c).
+    // Therefore, we can proceed in that case even on
+    // Digic >= 7, which don't have embedded bitmap fonts.
+    // (Digic 6 unknown to me).
+    //
+    // FIXME this is not the best way to communicate that intent,
+    // perhaps a different top-level function for drawing ML chars?
+    if (c >= 0 && !bfnt_ok())
     {
         bmp_printf(FONT_SMALL, 0, 0, "font addr bad");
         return 0;
