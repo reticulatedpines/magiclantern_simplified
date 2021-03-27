@@ -109,7 +109,10 @@ inline uint8_t *bmp_vram_raw() {
         return (uint8_t *)((uintptr_t)bmp_vram_idle_ptr);
     }
 
-    inline uint8_t* BMP_VRAM_START(uint8_t* bmp_buf) { return bmp_buf; }
+    inline uint8_t* BMP_VRAM_START(uint8_t* bmp_buf)
+    {
+        return bmp_buf;
+    }
 
     #define BMP_VRAM_END(bmp_buf) (BMP_VRAM_START((uint8_t*)(bmp_buf)) + BMP_VRAM_SIZE)
 
