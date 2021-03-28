@@ -174,10 +174,15 @@ void refresh_yuv_from_rgb(void)
 {
     // get our indexed buffer, convert into our real rgb buffer
     uint8_t *b = bmp_vram_indexed;
-    uint32_t *rgb;
+    uint32_t *rgb = NULL;
 
     if (rgb_vram_info != NULL)
-        *rgb = (uint32_t *)rgb_vram_info->bitmap_data;
+        rgb = (uint32_t *)rgb_vram_info->bitmap_data;
+    else
+    {
+        DryosDebugMsg(0, 15, "rgb_vram_info was NULL, can't refresh OSD");
+        return;
+    }
 
     //SJE FIXME benchmark this loop, it probably wants optimising
     for (size_t n = 0; n < BMP_VRAM_SIZE; n++)
