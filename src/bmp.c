@@ -1166,6 +1166,16 @@ int bfnt_char_get_width(int c)
 {
     if (!bfnt_ok())
     {
+        #ifdef FEATURE_VRAM_RGBA
+            /**
+             * kitor: This allows drawing ML icons, which are handled as BMP
+             * font chars with negative indexes. bfnt_find_char will fail when
+             * bfnt is not initialized.
+             */
+            if (c < 0) {
+                return 40;
+            }
+        #endif
         // 200D and similar cams don't have built-in fonts,
         // so we can't display an error using them...
         // FIXME SJE this should probably be a guard based on a feature flag?
