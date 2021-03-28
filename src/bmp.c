@@ -100,8 +100,8 @@ uint8_t * bmp_vram(void)
     #if defined(CONFIG_VXWORKS)
     set_ml_palette_if_dirty();
     #elif defined(FEATURE_VRAM_RGBA)
-    // SJE FIXME I'm not using BMP_VRAM_START because a) it's fragile evil magic
-    // and b) we're using a generic malloc'd block so we can't.
+    // SJE FIXME I'm not using BMP_VRAM_START because
+    // we're using a generic malloc'd block so we can't.
     // It's supposed to adjust where we look inside the 960x540 region to determine
     // where we base our drawing from, for various bmp_* and other functions.
     //
@@ -174,8 +174,11 @@ void refresh_yuv_from_rgb(void)
 {
     // get our indexed buffer, convert into our real rgb buffer
     uint8_t *b = bmp_vram_indexed;
+    uint32_t *rgb;
 
-    uint32_t *rgb = (uint32_t *)rgb_vram_info->bitmap_data;
+    if (rgb_vram_info != NULL)
+        *rgb = (uint32_t *)rgb_vram_info->bitmap_data;
+
     //SJE FIXME benchmark this loop, it probably wants optimising
     for (size_t n = 0; n < BMP_VRAM_SIZE; n++)
     {
@@ -884,11 +887,6 @@ void bmp_draw_scaled_ex(struct bmp_file_t * bmp, int x0, int y0, int w, int h, u
 {
     if (!bmp) return;
 
-// SJE FIXME this function doesn't work right on 200D.
-// I have got it drawing at correct coords and output size,
-// but content is garbled.
-    DryosDebugMsg(0, 15, "in bmp_draw_scaled_ex");
-    
     _bmp_draw_should_stop = 0;
     //~ if (!bmp_enabled) return;
 
@@ -1042,7 +1040,7 @@ static int bfnt_ok()
     // we return failure.  This means very early printing won't work.
     // It's okay after RBF fonts are initialised.
     //
-    // FIXME - get this working properly, maybe embed
+    // SJE FIXME - get this working properly, maybe embed
     // a bitmap font into autoexec.bin?
     if (BFNT_CHAR_CODES == 0)
         return 0;
