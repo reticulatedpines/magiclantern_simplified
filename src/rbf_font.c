@@ -590,6 +590,8 @@ void _load_fonts()
         return;
     fonts_loaded = 1;
     
+    //kitor: New models have no BMP font, can't be used as fallback.
+    #if !defined(FEATURE_VRAM_RGBA)
     /* fake font for Canon font backend, with the same metrics */
     font *canon_font = new_font();
 
@@ -605,6 +607,7 @@ void _load_fonts()
         font_dynamic[i].height = 40;
         font_dynamic[i].width = rbf_char_width((void*)font_dynamic[i].bitmap, '0');
     }
+    #endif
 
     /* load some fonts */
     font_by_name("term12", COLOR_BLACK, COLOR_WHITE);
@@ -616,10 +619,32 @@ void _load_fonts()
     #endif
     font_by_name("argnor28", COLOR_BLACK, COLOR_WHITE);
     font_by_name("argnor32", COLOR_BLACK, COLOR_WHITE);
+    
+    #if defined(FEATURE_VRAM_RGBA)
+    /**
+     * kitor FIXME?: Use last loaded RBF font as fallback.
+     * To make it consistent between generations, we should have additional font
+     * with the same height and similar widths as Canon BMP in previous gens,
+     * and use it as replacement instead of "last loaded".
+     */
+    if(dyn_fonts)
+    {
+        for (int i = (dyn_fonts - 1); i <= MAX_DYN_FONTS; i++)
+            font_dynamic[i] = font_dynamic[dyn_fonts - 1];
+    }
+    //kitor FIXME: we need to exit with some error when 0 fonts are loaded.
+    #endif
 
     font_small = *fontspec_font(FONT_SMALL);
     font_med = *fontspec_font(FONT_MED);
     font_med_large = *fontspec_font(FONT_MED_LARGE);
     font_large = *fontspec_font(FONT_LARGE);
+    
+    #if defined(FEATURE_VRAM_RGBA)
+    //kitor: Use FONT_LARGE instead of missing FONT_CANON
+    font_canon = *fontspec_font(FONT_LARGE);
+    #else
     font_canon = *fontspec_font(FONT_CANON);
+    #endif
+
 }
