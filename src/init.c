@@ -488,7 +488,9 @@ static int my_assert_handler(char* msg, char* file, int line, int arg4)
     );
 // SJE FIXME: assert handling is buggy on modern Digic.
 // Disable some of it here and do quick hack output:
+#ifdef CONFIG_DIGIC_78
     uart_printf("[SJE] my_assert_msg: %s", assert_msg);
+#endif
 //    backtrace_getstr(assert_msg + len, sizeof(assert_msg) - len);
 //    request_crash_log(1);
     return old_assert_handler(msg, file, line, arg4);
@@ -506,7 +508,9 @@ void ml_assert_handler(char* msg, char* file, int line, const char* func)
     );
 // SJE FIXME: assert handling is buggy on modern Digic.
 // Disable some of it here and do quick hack output:
+#ifdef CONFIG_DIGIC_78
     uart_printf("[SJE] ml_assert_msg: %s", assert_msg);
+#endif
     backtrace_getstr(assert_msg + len, sizeof(assert_msg) - len);
     request_crash_log(2);
 }
