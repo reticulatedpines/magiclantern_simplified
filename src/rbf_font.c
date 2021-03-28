@@ -635,6 +635,8 @@ void _load_fonts()
      * with the same height and similar widths as Canon BMP in previous gens,
      * and use it as replacement instead of "last loaded".
      */
+    font_by_name("argnor36", COLOR_BLACK, COLOR_WHITE);
+
     if(dyn_fonts)
     {
         for (int i = (dyn_fonts - 1); i <= MAX_DYN_FONTS; i++)
