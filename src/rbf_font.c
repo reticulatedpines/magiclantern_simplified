@@ -275,6 +275,11 @@ static void FAST font_draw_char(font *rbf_font, int x, int y, char *cdata, int w
     // draw pixels for font character
     if (cdata)
     {
+        if (bg != NO_BG_ERASE)
+        {
+            bmp_fill(bg, x, y, width, height);
+        }
+
         for (yy=0; yy<height; ++yy)
         {
             if (y+yy <= BMP_H_MINUS || y+yy >= BMP_H_PLUS)
@@ -283,7 +288,10 @@ static void FAST font_draw_char(font *rbf_font, int x, int y, char *cdata, int w
             }
             for (xx=x0; xx<pixel_width; ++xx)
             {
-                bmp_putpixel_fast(bmp, x+xx, y+yy, (cdata[yy*width/8+xx/8] & (1<<(xx%8))) ? fg : bg);
+                if(cdata[yy*width/8+xx/8] & (1<<(xx%8)))
+                {
+                  bmp_putpixel_fast(bmp, x+xx, y+yy, fg);
+                }
             }
         }
     }
