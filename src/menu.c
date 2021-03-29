@@ -279,22 +279,11 @@ static int get_beta_timestamp()
 {
     struct tm now;
     LoadCalendarFromRTC(&now);
-// SJE FIXME - very strange, sometimes LoadCal returns
-// the correct date, sometimes a valid format but incorrect
-// date.  sync_caches() doesn't fix it.
-//    DryosDebugMsg(0, 15, "day:  %d", now.tm_mday);
-//    DryosDebugMsg(0, 15, "hour: %d", now.tm_hour);
-//    DryosDebugMsg(0, 15, "min:  %d", now.tm_min);
     return now.tm_mday;
 }
 static int beta_should_warn()
 {
     int t = get_beta_timestamp();
-// SJE FIXME we must fake this for now, as LoadCal
-// doesn't work consistently and so the beta warning popup
-// randomly occurs.
-    return 0;
-
     return beta_warn != t;
 }
 

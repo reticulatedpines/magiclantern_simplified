@@ -212,7 +212,7 @@ NSTUB(    0xfc88,  gui_task_list) // "pDialog" strings often have refs to 0xfcb4
                                            // and the code within looks really different.  One of those args is a pointer to function,
                                            // with that function being semaphore related.  Multi-core sync stuff?  Could
                                            // make sense given RTC related.
-THUMB_FN(0xe0642801, LoadCalendarFromRTC)
+THUMB_FN(0xe0642801, _LoadCalendarFromRTC)
 
 THUMB_FN(0xe04bdc5d, uart_printf)
 #NSTUB(0xdf008c7c, uart_printf) // Thunked equivalent of the above.  Note, ARM, not Thumb.
