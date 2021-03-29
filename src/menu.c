@@ -279,11 +279,22 @@ static int get_beta_timestamp()
 {
     struct tm now;
     LoadCalendarFromRTC(&now);
+// SJE FIXME - very strange, sometimes LoadCal returns
+// the correct date, sometimes a valid format but incorrect
+// date.  sync_caches() doesn't fix it.
+//    DryosDebugMsg(0, 15, "day:  %d", now.tm_mday);
+//    DryosDebugMsg(0, 15, "hour: %d", now.tm_hour);
+//    DryosDebugMsg(0, 15, "min:  %d", now.tm_min);
     return now.tm_mday;
 }
 static int beta_should_warn()
 {
     int t = get_beta_timestamp();
+// SJE FIXME we must fake this for now, as LoadCal
+// doesn't work consistently and so the beta warning popup
+// randomly occurs.
+    return 0;
+
     return beta_warn != t;
 }
 
@@ -2045,7 +2056,6 @@ static void FAST selection_bar_backend(int c, int black, int x0, int y0, int w, 
     black = D2V(black);
     #endif
     #define P(x,y) B[BM(x,y)]
-    DryosDebugMsg(0, 15, "selection_bar_backend");
     for (int y = y0; y < y0 + h; y++)
     {
         for (int x = x0; x < x0 + w; x++)
@@ -4632,8 +4642,6 @@ menu_redraw_do()
     menu_damage = 0;
     //~ g_submenu_width = 720;
 
-    DryosDebugMsg(0, 15, "menu_redraw_do() -> top");
-
     if (!DISPLAY_IS_ON)
         return;
     if (sensor_cleaning)
@@ -4853,7 +4861,6 @@ menu_redraw_task()
         
         if (gui_menu_shown())
         {
-            DryosDebugMsg(0, 15, "menu_shown, menu_redraw_do");
             if (get_halfshutter_pressed())
             {
                 /* close menu on half-shutter */
@@ -4875,14 +4882,8 @@ menu_redraw_task()
             
             if (!menu_redraw_blocked)
             {
-                DryosDebugMsg(0, 15, "attempting menu_redraw_do");
                 menu_redraw_do();
             }
-            DryosDebugMsg(0, 15, "nothing special, menu_redraw_do");
-        }
-        else
-        {
-            DryosDebugMsg(0, 15, "gui_menu_shown() was false");
         }
     }
 }
