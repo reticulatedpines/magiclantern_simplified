@@ -470,6 +470,7 @@ int bfnt_draw_char(int c, int px, int py, int fg, int bg);
 /* return the width of a Canon built-in character */
 int bfnt_char_get_width(int c);
 
+#if !defined(CONFIG_DIGIC_78)
 // Canon built-in icons (CanonGothic font)
 #define ICON_TAB 0xa496ee
 #define ICON_PRINT 0xac96ee
@@ -509,6 +510,7 @@ int bfnt_char_get_width(int c);
 #define ICON_VIDEOCAM 0x9b9aee
 #define ICON_FLASH_A 0xa29aee
 #define ICON_FLASH_B 0xa59aee
+#endif
 
 #ifdef CONFIG_500D
 #undef ICON_VIDEOCAM

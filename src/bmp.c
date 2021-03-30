@@ -1094,16 +1094,26 @@ static uint8_t* bfnt_find_char(int code)
 // returns width
 int bfnt_draw_char(int c, int px, int py, int fg, int bg)
 {
-    // c is the character index to draw, or, if negative,
-    // a signal that the character is not "real",
-    // but one of the icon characters, defined by ML itself.
-    // These always exist (see ico.c).
-    // Therefore, we can proceed in that case even on
-    // Digic >= 7, which don't have embedded bitmap fonts.
-    // (Digic 6 unknown to me).
+    // It seems to me that c is used in three different ways.
+    //
+    // If a small positive integer, bfnt_find_char() uses
+    // it as an index into an array.
+    //
+    // If a negative integer, this signals it's one of the
+    // ML defined icon characters, in ico.c.
+    //
+    // Otherwise, it's implicitly a pointer address,
+    // which is searched for in some Canon struct, within
+    // bfnt_find_char().
+    //
+    // Digic >= 7 (maybe 6?) doesn't have Canon bitmap
+    // fonts, so on those platforms we can only handle
+    // the negative case.
     //
     // FIXME this is not the best way to communicate that intent,
-    // perhaps a different top-level function for drawing ML chars?
+    // perhaps a different top-level function for drawing ML icons?
+
+    // if c < 0 we can always proceed as these are built-in via ico.c
     if (c >= 0 && !bfnt_ok())
     {
         bmp_printf(FONT_SMALL, 0, 0, "font addr bad");

@@ -205,7 +205,8 @@ int get_menu_edit_mode() { return edit_mode; }
 
 //~ static CONFIG_INT("menu.transparent", semitransparent, 0);
 
-static CONFIG_INT("menu.first", menu_first_by_icon, ICON_i);
+//static CONFIG_INT("menu.first", menu_first_by_icon, ICON_i);
+static CONFIG_INT("menu.first", menu_first_by_icon, ICON_ML_INFO);
 
 void menu_set_dirty() { menu_damage = 1; }
 
@@ -2976,7 +2977,15 @@ menu_post_display()
     {
         // we can't use the scrollwheel
         // and you need to be careful because you will change shooting settings while recording!
+        #if defined(CONFIG_DIGIC_78)
+        // SJE FIXME we can't use ICON_MAINDIAL as that's in Canon bitmap font
+        // and Digic >= 7 doesn't have it.  So I substitute a different icon.
+        // A better fix might be to make our own dial icon and add it to ico.c,
+        // then we could use the same code on all cams.
+        bfnt_draw_char(ICON_ML_MODIFIED, 680, 395, MENU_WARNING_COLOR, NO_BG_ERASE);
+        #else
         bfnt_draw_char(ICON_MAINDIAL, 680, 395, MENU_WARNING_COLOR, NO_BG_ERASE);
+        #endif
         draw_line(720, 405, 680, 427, MENU_WARNING_COLOR);
         draw_line(720, 406, 680, 428, MENU_WARNING_COLOR);
     }
