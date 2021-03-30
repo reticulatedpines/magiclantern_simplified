@@ -115,7 +115,7 @@ struct tm {
         char    *tm_zone;       /* timezone abbreviation */
 };
 
-#if defined CONFIG_200D
+#if defined(CONFIG_DIGIC_78)
 void LoadCalendarFromRTC(struct tm *tm);
 extern void _LoadCalendarFromRTC(struct tm *tm, uint32_t a, uint32_t b, uint32_t c);
 #else

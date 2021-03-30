@@ -227,7 +227,7 @@ THUMB_FN(0xe04e7762,  SRM_FreeMemoryResourceFor1stJob)      // find refs to "pMe
 
 /** Uncategorized **/
 DATA_PTR(   0x11dc0,  sd_device)                            // From function that references "SD_DeviceCreate:"
-THUMB_FN(0xe079beec,  LoadCalendarFromRTC)
+THUMB_FN(0xe079beec,  _LoadCalendarFromRTC)
 THUMB_FN(0xe083819e,  ErrForCamera_handler)                 // ERR70, ERR80 etc (DlgErrForCamera.c)
 
 /** Properties **/
