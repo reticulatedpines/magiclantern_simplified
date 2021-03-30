@@ -639,7 +639,7 @@ void _load_fonts()
 
     if(dyn_fonts)
     {
-        for (int i = (dyn_fonts - 1); i <= MAX_DYN_FONTS; i++)
+        for (int i = dyn_fonts; i <= MAX_DYN_FONTS; i++)
             font_dynamic[i] = font_dynamic[dyn_fonts - 1];
     }
     //kitor FIXME: we need to exit with some error when 0 fonts are loaded.
