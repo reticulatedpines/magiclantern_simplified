@@ -131,3 +131,6 @@
 #define MVR_FRAME_NUMBER (*(int*)(220 + MVR_190_STRUCT))
 //#define MVR_LAST_FRAME_SIZE (*(int*)(512 + MVR_752_STRUCT))
 #define MVR_BYTES_WRITTEN MEM((212 + MVR_190_STRUCT))
+
+//address of XimrContext structure to redraw in FEATURE_VRAM_RGBA
+#define XIMR_CONTEXT 0xbce810

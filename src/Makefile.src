@@ -136,6 +136,7 @@ ML_SRC_OBJS = \
 	gui.o \
 	$(ML_PICSTYLE_OBJ) \
 	exmem.o \
+	compositor.o \
 	bmp.o \
 	rbf_font.o \
 	config.o \
@@ -424,4 +425,3 @@ FORCE:
 
 # fixme: better place for this?
 include $(BUILD_TOOLS_DIR)/Makefile
-
