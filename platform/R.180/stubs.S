@@ -234,8 +234,36 @@ THUMB_FN(0xe083819e,  ErrForCamera_handler)                 // ERR70, ERR80 etc 
 THUMB_FN(0xe0553d88, _prop_cleanup)                         // "PropertyMgr.c", strings changed, found based on 200D
 THUMB_FN(0xe05537da,  prop_register_slave)                  // "PropertyMgr.c", "pDeliverProperty"
 
+/*
+ * Name depends on compositor/layers support usage.
+ * for just FEATURE_VRAM_RGBA use  rgb_vram_info
+ * for FEATURE_COMPOSITOR_XCM use _rgb_vram_info
+ */
+DATA_PTR(    0xFD98, _rgb_vram_info);
+
+/*
+ * Stubs only for FEATURE_COMPOSITOR_XCM
+ */
+THUMB_FN(0xe00ddf30, XCM_GetOutputChunk);
+THUMB_FN(0xe00dde68, XCM_SetSourceArea);
+THUMB_FN(0xe00dddfe, XCM_SetSourceSurface);
+THUMB_FN(0xe01104c6, XOC_SetLayerEnable);
+THUMB_FN(0xe0701f4a, RefreshVrmsSurface);
+DATA_PTR(    0xFE64, XimrContextMaker);
+DATA_PTR(    0xFE74, XCM_Inititialized);
+DATA_PTR(   0x6F2A4, XCM_LayersArr);
+DATA_PTR(   0x6EFA0, XCM_RendererLayersArr);
+DATA_PTR(   0x6F2BC, XCM_LayersEnableArr);
+DATA_PTR(    0xFE6C, display_refresh_needed)
+
+/*
+ * Stubs only if not FEATURE_COMPOSITOR_XCM
+ */
+THUMB_FN(0xe00da8c0, XimrExe);
+DATA_PTR(    0xFDF0, winsys_sem);
+
 /** Wrong on purpose **/
-DATA_PTR(       0x0,  LCD_Palette)                          // D8 has YUV buffers.
+DATA_PTR(       0x0,  LCD_Palette)                          // D8 has no RGB8 buffers.
 
 /**
  * STUFF BELOW IS WRONG!

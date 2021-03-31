@@ -29,6 +29,7 @@
 #include "config.h"
 #include "version.h"
 #include "bmp.h"
+#include "compositor.h"
 #include "menu.h"
 #include "property.h"
 #include "consts.h"
@@ -363,6 +364,11 @@ static void my_big_init_task()
     _mem_init();
     _find_ml_card();
 
+    #ifdef FEATURE_COMPOSITOR_XCM
+    while (surface_setup())
+      msleep(500);
+    #endif
+
     /* should we require SET for loading ML, or not? */
     extern int _set_at_startup;
     _set_at_startup = config_flag_file_setting_load("ML/SETTINGS/REQUIRE.SET");
@@ -575,6 +581,11 @@ void boot_post_init_task(void)
     additional_version[13] = '\0';
 #endif
 
+    #ifdef FEATURE_COMPOSITOR_XCM
+    while (!compositor_preinit())
+        msleep(100);
+    #endif
+
     // wait for firmware to initialize
     while (!bmp_vram_raw())
         msleep(100);
@@ -592,5 +603,3 @@ void boot_post_init_task(void)
 
     return;
 }
-
-

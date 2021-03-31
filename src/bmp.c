@@ -27,6 +27,7 @@
 #include "dryos.h"
 #include "bmp.h"
 #include "font.h"
+#include "compositor.h"
 #include <stdarg.h>
 #include "propvalues.h"
 
@@ -190,13 +191,20 @@ void refresh_yuv_from_rgb(void)
         *rgb++ = indexed2rgb(*b++);
     }
 
+    #ifdef FEATURE_COMPOSITOR_XCM
+    surface_redraw();
+    #else
     // trigger Ximr to render to OSD from RGB buffer
     take_semaphore(winsys_sem, 0);
-    // SJE FIXME stop using the fixed value.  Is this truly
-    // fixed and safe to use?  If so, should go in stub.S / consts.
-    // If dynamic, we should make our own.
-    XimrExe((void *)0xa09a0);
+    /*
+     * kitor: Structure address stays the same on R, RP, 200d. Well, it can
+     *        be dynamic on XCM cameras, but R and RP use single struct
+     *        and address of each one is known.
+     *        I moved definition to contsts.h
+     */
+    XimrExe((void *)XIMR_CONTEXT);
     give_semaphore(winsys_sem);
+    #endif
 }
 
 static uint32_t indexed2rgbLUT[RGB_LUT_MAX] = {
