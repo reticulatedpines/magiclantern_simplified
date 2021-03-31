@@ -86,11 +86,13 @@ void prop_add_handler (uint32_t property, void *handler)
 {
     // SJE FIXME these two properties cause problems that prevent accessing ML gui.
     // Cause is not yet known.
+    #ifdef CONFIG_200D
     if (property == PROP_ISO || property == PROP_MVR_REC_START)
     {
         DryosDebugMsg(0, 15, "not adding prop handler: 0x%x", property);
         return;
     }
+    #endif
 
     //DryosDebugMsg(0, 15, "adding prop handler: 0x%x", property);
 #if defined(POSITION_INDEPENDENT)
