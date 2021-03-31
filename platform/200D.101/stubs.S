@@ -170,7 +170,8 @@ THUMB_FN(0xdf00b17d,  msg_queue_count) // Above "!!!!!!! QUE Overflo" - maybe 0x
 THUMB_FN(0xdf00b615,  msg_queue_create) // CreateMessageQueue - In 50D, msg_queue_create calls 0xff866424,
                                      // the equiv of which is 0xdf00b114 (and was easier to find)
 THUMB_FN(0xe04bba45,  prop_deliver)
-THUMB_FN(0xe04bbde1,  prop_register_slave) // called by"GUI_RegisterPropertySlave"
+//THUMB_FN(0xe04bbde1,  prop_register_slave) // called by"GUI_RegisterPropertySlave"
+THUMB_FN(0xe04bb4df,  prop_register_slave) // "pRegisterSlave"
 THUMB_FN(0xe0381ba9,  LiveViewApp_handler) // not sure - function is quite different 50D -> 200D, but that
                                         // doesn't seem unreasonable since large GUI changes.  String use and surrounding
                                         // functions look similar / related.
