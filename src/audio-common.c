@@ -40,7 +40,7 @@ int sound_recording_enabled()
     return sound_recording_enabled_canon();
 }
 
-#if defined(CONFIG_500D) || defined(CONFIG_5D3) || defined(CONFIG_200D)
+#if defined(CONFIG_500D) || defined(CONFIG_5D3) || defined(CONFIG_200D) || defined(CONFIG_R)
 int audio_thresholds[] = { 0x7fff, 0x7213, 0x65ab, 0x5a9d, 0x50c2, 0x47fa, 0x4026, 0x392c, 0x32f4, 0x2d6a, 0x2879, 0x2412, 0x2026, 0x1ca7, 0x1989, 0x16c2, 0x1449, 0x1214, 0x101d, 0xe5c, 0xccc, 0xb68, 0xa2a, 0x90f, 0x813, 0x732, 0x66a, 0x5b7, 0x518, 0x48a, 0x40c, 0x39b, 0x337, 0x2dd, 0x28d, 0x246, 0x207, 0x1ce, 0x19c, 0x16f, 0x147 };
 #endif
 
@@ -553,7 +553,7 @@ static void audio_common_task(void * unused)
 
 }
 
-TASK_CREATE( "audio_common_task", audio_common_task , 0, 0x18, 0x1000 );
+//TASK_CREATE( "audio_common_task", audio_common_task , 0, 0x18, 0x1000 );
 /** Write the MGAIN2-0 bits.
  * Table 19 for the gain values (variable "bits"):
  *
