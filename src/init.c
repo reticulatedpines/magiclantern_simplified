@@ -416,7 +416,7 @@ static void my_big_init_task()
     #if defined(CONFIG_AUTOBACKUP_ROM)
     /* backup ROM first time to be prepared if anything goes wrong. choose low prio */
     /* On 5D3, this needs to run after init functions (after card tests) */
-    task_create("ml_backup", 0x1f, 0x4000, backup_rom_task, 0 );
+    //task_create("ml_backup", 0x1f, 0x4000, backup_rom_task, 0 );
     #endif
 
     /* Read ML config. if feature disabled, nothing happens */
