@@ -419,10 +419,15 @@ static void my_big_init_task()
     call_init_funcs();
     msleep(200); // leave some time for property handlers to run
 
-    #if defined(CONFIG_AUTOBACKUP_ROM)
+    /**
+     * kitor FIXME: disabling rom dump for D678 as it uses different addresses
+     * and offsets. I feel those should be per generation, or maybe per camera
+     * as R has different rom size than RP in same gen...
+     */
+    #if defined(CONFIG_AUTOBACKUP_ROM) && !defined(CONFIG_DIGIC_678)
     /* backup ROM first time to be prepared if anything goes wrong. choose low prio */
     /* On 5D3, this needs to run after init functions (after card tests) */
-    //task_create("ml_backup", 0x1f, 0x4000, backup_rom_task, 0 );
+    task_create("ml_backup", 0x1f, 0x4000, backup_rom_task, 0 );
     #endif
 
     /* Read ML config. if feature disabled, nothing happens */
