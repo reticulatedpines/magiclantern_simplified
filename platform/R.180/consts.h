@@ -25,6 +25,12 @@
 
 #define CURRENT_GUI_MODE            (*(int*)0x8708)      // see SetGUIRequestMode, first arg gets stored here.
 
+#define GUIMODE_PLAY 2
+#define GUIMODE_MENU 3
+// FIXME: this should follow the conditional definition to handle LV etc, see other cams
+#define GUIMODE_ML_MENU 3
+
+
 #define GMT_FUNCTABLE               0xE0938568           //from gui_main_task
 #define GMT_NFUNCS                  0x7                  //size of table above
 
@@ -65,7 +71,7 @@
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED 0
 #define INFO_BTN_NAME               "INFO"
-#define Q_BTN_NAME                  "FUNC"
+#define Q_BTN_NAME                  "Q/SET"
 #define ARROW_MODE_TOGGLE_KEY       "FUNC"
 
 #define MIN_MSLEEP 11
@@ -100,13 +106,10 @@
 #define AF_BTN_HALFSHUTTER 0
 #define AF_BTN_STAR 2
 // another block copied from 50D
-#define GUIMODE_ML_MENU 2
 #define GUIMODE_WB 5
 #define GUIMODE_FOCUS_MODE 9
 #define GUIMODE_DRIVE_MODE 8
 #define GUIMODE_PICTURE_STYLE 4
-#define GUIMODE_PLAY 1
-#define GUIMODE_MENU 2
 #define GUIMODE_Q_UNAVI 0x18
 #define GUIMODE_FLASH_AE 0x22
 #define GUIMODE_PICQ 6
