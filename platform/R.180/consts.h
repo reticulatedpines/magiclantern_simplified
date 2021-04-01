@@ -51,14 +51,10 @@
 /* PROPABLY WRONG: Some hacks for early porting */
 #define DISPLAY_IS_ON               1
 /* WRONG! */
-#define HALFSHUTTER_PRESSED         0x831BEC
+#define HALFSHUTTER_PRESSED         0
 /* kitor: I was unable to find any related stuff from 200D
  * Working theory: since R is LV all-the-time, maybe it's not special anymore
  * and is handled by MPU now?
- *
- * The best thing I found is 0x831bec which is a part of some AE structure.
- * It was 0x1 on AE lock, 0x2 during AE measurement and 0x3 when AE was stopped.
- * Then only issue is that it was 0x1 right after boot until you touch AE controls.
  */
 
 #define BFNT_CHAR_CODES             0x00000000 // These are wrong, EOSR uses opentype, not bitmap fonts.

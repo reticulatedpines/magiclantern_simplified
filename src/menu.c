@@ -4860,14 +4860,14 @@ menu_redraw_task()
         
         if (gui_menu_shown())
         {
-    //        if (get_halfshutter_pressed())
-    //        {
-    //            /* close menu on half-shutter */
-    //            /* (the event is not always caught by the key handler) */
-    //           DryosDebugMsg(0, 15, "halfshutter, skipping, menu_redraw_do");
-    //            gui_stop_menu();
-    //            continue;
-    //      }
+            if (get_halfshutter_pressed())
+            {
+                /* close menu on half-shutter */
+                /* (the event is not always caught by the key handler) */
+                DryosDebugMsg(0, 15, "halfshutter, skipping, menu_redraw_do");
+                gui_stop_menu();
+                continue;
+            }
 
             /* make sure to check the canon dialog even if drawing is blocked
              * (for scripts and such that piggyback the ML menu) */
