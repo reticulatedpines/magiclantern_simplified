@@ -553,7 +553,7 @@ static void audio_common_task(void * unused)
 
 }
 
-//TASK_CREATE( "audio_common_task", audio_common_task , 0, 0x18, 0x1000 );
+TASK_CREATE( "audio_common_task", audio_common_task , 0, 0x18, 0x1000 );
 /** Write the MGAIN2-0 bits.
  * Table 19 for the gain values (variable "bits"):
  *
@@ -1111,4 +1111,3 @@ void input_toggle()
     NotifyBox(2000, "Input: %s", get_audio_input_string());
 #endif
 }
-
