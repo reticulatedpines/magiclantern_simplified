@@ -201,6 +201,7 @@ THUMB_FN(0xdf00d365,  fsuDecodePartitionTable) // this is called in one place in
                                                // the calling param but it clearly twiddles some registers.
                                                // TODO check how ML uses this stub, since the sig has changed.
 THUMB_FN(0xe05f67d1,  ShootOlcApp_handler) // near "StopShootOlcApp PopPalette(%d)"
+NSTUB(    0x40f4,  task_max)
 NSTUB(    0xfc88,  gui_task_list) // "pDialog" strings often have refs to 0xfcb4, if so, should be
                                   // around 20 before that? "pDeleteController->psSignature" also distinctive.
                                   // Found in function 0xe0660c90.

@@ -151,6 +151,9 @@
 #define MVR_BYTES_WRITTEN MEM((212 + MVR_190_STRUCT))
 
 
+// SJE new stuff added after we have ML menus working!
+// Not needed for early code.
+#define CANON_SHUTTER_RATING 100000
 
 
 
