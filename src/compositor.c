@@ -3,21 +3,21 @@
  */
 /*
  * kitor: So I found a compositor on EOSR
- * Uses up to 6 RGBA input layers, but Canon ever alocates only two.
+ * Uses up to 6 RGBA input layers, but Canon ever allocates only two.
  *
  * This uses RGBA layers that @coon noticed on RP long time ago.
  *
  * Layers are stored from bottom (0) to top (5). Canon uses 0 for GUI
  * and 1 for overlays in LV mode (focus overlay)
  *
- * I was able to create own layer(s), drawn above two Canon pre-alocated ones.
- * This PoC will alocate one new layer on top of existing two, and use that
+ * I was able to create own layer(s), drawn above two Canon pre-allocated ones.
+ * This PoC will allocate one new layer on top of existing two, and use that
  * buffer to draw on screen.
  *
  * Tested (briefly) on LV, menus, during recording, playback, also on HDMI.
  *
- * The only cavieat that I was able to catch was me calling redraw while GUI
- * also wanted to redraw screen. This "glitched" by showing partialy rendered
+ * The only caveat that I was able to catch was me calling redraw while GUI
+ * also wanted to redraw screen. This "glitched" by showing partially rendered
  * frame. Shouldn't be an issue while we have a control over GUI events.
  *
  * But since we don't have to constantly redraw until we want to update the
@@ -25,7 +25,7 @@
  *
  * For drawing own LV overlays it should be enough to disable layers 0 (GUI)
  * and maybe 1 (AF points, AF confirmation).
- * LV calls redraw very often, so probably we don't need to call it ourselfs
+ * LV calls redraw very often, so probably we don't need to call it ourselves
  * in that mode.
  */
 
@@ -128,7 +128,7 @@ extern uint8_t     **XimrContextMaker;
 
 /*
  * Not sure if sync_caches() call is needed. It was when I was drawing
- * over Canon buffers, but now when we have our own may be unncesessary.
+ * over Canon buffers, but now when we have our own may be unnecessary.
  */
 void surface_redraw()
 {
@@ -138,7 +138,7 @@ void surface_redraw()
 }
 
 /*
- * This array toggles coresponding layers. What is weird, this has no effect
+ * This array toggles corresponding layers. What is weird, this has no effect
  * on XCMStatus command output, they will still be seen as "enabled":
  *
  * [Input Layer] No:2, Enabled:1
@@ -195,7 +195,7 @@ int surface_setup()
     /*
      * In theory XimrContextMaker can have multiple (4?) XimrContext chunks.
      * But the only code that Canon uses to call this function has 0 hardcoded.
-     * Thus, at least on R I don't expect more to exists.
+     * Thus, at least on R I don't expect more to exist.
      */
     uart_printf("XimrContextMaker at 0x%08x\n", XimrContextMaker);
     uint32_t *pOutChunk = XCM_GetOutputChunk(XimrContextMaker, 0);

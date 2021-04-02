@@ -200,7 +200,7 @@ void refresh_yuv_from_rgb(void)
      * kitor: Structure address stays the same on R, RP, 200d. Well, it can
      *        be dynamic on XCM cameras, but R and RP use single struct
      *        and address of each one is known.
-     *        I moved definition to contsts.h
+     *        I moved definition to consts.h
      */
     XimrExe((void *)XIMR_CONTEXT);
     give_semaphore(winsys_sem);
