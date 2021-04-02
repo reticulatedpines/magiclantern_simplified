@@ -40,6 +40,10 @@
 #include "lvinfo.h"
 #include "powersave.h"
 
+#ifdef FEATURE_COMPOSITOR_XCM
+#include "compositor.h"
+#endif
+
 #define CONFIG_MENU_ICONS
 //~ #define CONFIG_MENU_DIM_HACKS
 #undef SUBMENU_DEBUG_JUNKIE
@@ -5588,6 +5592,7 @@ static void menu_open()
 
     menu_redraw_full();
 }
+
 static void menu_close() 
 { 
     if (!menu_shown) return;
@@ -5601,7 +5606,18 @@ static void menu_close()
     
     close_canon_menu();
     canon_gui_enable_front_buffer(0);
+
+    #ifdef FEATURE_COMPOSITOR_XCM
+    /*
+     * kitor: FIXME: this is needed until RGB8->RGBA translation will learn
+     * alpha channel, so RGB8 surface wipe would be possible.
+     * With own layers there's no Canon code to overwrite buffer on exit.
+     */
+    surface_clean();
+    #else
     redraw();
+    #endif
+
     if (lv) bmp_on();
 }
 

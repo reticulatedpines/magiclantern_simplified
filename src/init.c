@@ -33,6 +33,9 @@
 #include "property.h"
 #include "consts.h"
 #include "tskmon.h"
+#ifdef FEATURE_COMPOSITOR_XCM
+#include "compositor.h"
+#endif
 
 #include "boot-hack.h"
 #include "ml-cbr.h"
@@ -363,6 +366,11 @@ static void my_big_init_task()
     _mem_init();
     _find_ml_card();
 
+    #ifdef FEATURE_COMPOSITOR_XCM
+    while (surface_setup())
+      msleep(500);
+    #endif
+
     /* should we require SET for loading ML, or not? */
     extern int _set_at_startup;
     _set_at_startup = config_flag_file_setting_load("ML/SETTINGS/REQUIRE.SET");
@@ -413,6 +421,11 @@ static void my_big_init_task()
     call_init_funcs();
     msleep(200); // leave some time for property handlers to run
 
+    /**
+     * kitor FIXME: disabling rom dump for D678 as it uses different addresses
+     * and offsets. I feel those should be per generation, or maybe per camera
+     * as R has different rom size than RP in same gen...
+     */
     #if defined(CONFIG_AUTOBACKUP_ROM)
     /* backup ROM first time to be prepared if anything goes wrong. choose low prio */
     /* On 5D3, this needs to run after init functions (after card tests) */
@@ -575,6 +588,11 @@ void boot_post_init_task(void)
     additional_version[13] = '\0';
 #endif
 
+    #ifdef FEATURE_COMPOSITOR_XCM
+    while (!compositor_preinit())
+        msleep(100);
+    #endif
+
     // wait for firmware to initialize
     while (!bmp_vram_raw())
         msleep(100);
@@ -592,5 +610,3 @@ void boot_post_init_task(void)
 
     return;
 }
-
-

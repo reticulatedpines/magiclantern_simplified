@@ -46,6 +46,10 @@ inline uint8_t* bmp_vram_raw() { return bmp_vram_info[1].vram2; }
 #ifdef FEATURE_VRAM_RGBA
 void refresh_yuv_from_rgb(void);
 uint32_t indexed2rgb(uint8_t color);
+
+#ifdef FEATURE_COMPOSITOR_XCM
+    extern struct MARV *_rgb_vram_info;
+#endif
 extern struct MARV *rgb_vram_info;
 #define RGB_LUT_MAX 80
 inline uint8_t *bmp_vram_raw() {
@@ -119,29 +123,11 @@ inline uint8_t *bmp_vram_raw() {
     #define SET_4BIT_PIXEL(p, x, color) *(char*)(p) = ((x) % 2) ? ((*(char*)(p) & 0x0F) | (D2V(color) << 4)) : ((*(char*)(p) & 0xF0) | (D2V(color) & 0x0F))
 
 #else // dryos
-
-    #ifdef CONFIG_200D // maybe other Digic 7?
-// SJE FIXME these values let me draw in the right place,
-// but, they cannot be used.  ML assumes BMP_W_MINUS is negative,
-// and subtracts it from array indices.  This can lead to writing
-// outside of bounds.
-//        #define BMP_W_PLUS 1080
-//        #define BMP_W_MINUS 120
-//        #define BMP_H_PLUS 570
-//        #define BMP_H_MINUS 30
-
-// SJE FIXME these values are wrong for 200D, but safe to use.
-// Or, probably safe.  Not known to definitely be bad, like the above.
-        #define BMP_W_PLUS 840
-        #define BMP_W_MINUS -120
-        #define BMP_H_PLUS 510
-        #define BMP_H_MINUS -30
-    #else
-        #define BMP_W_PLUS 840
-        #define BMP_W_MINUS -120
-        #define BMP_H_PLUS 510
-        #define BMP_H_MINUS -30
-    #endif
+    // kitor: Still works for RGB buffers in 200D and EOSR
+    #define BMP_W_PLUS   840
+    #define BMP_W_MINUS -120
+    #define BMP_H_PLUS   510
+    #define BMP_H_MINUS -30
 
     #define BMPPITCH 960
     #define BMP_VRAM_SIZE (960*540)

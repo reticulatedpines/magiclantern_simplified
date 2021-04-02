@@ -339,6 +339,15 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
     -673, 10000,    1918, 10000,    5538, 10000
 #endif
 
+#ifdef CONFIG_R // from https://github.com/LibRaw/LibRaw src/tables/colordata.cpp
+    // { LIBRAW_CAMERAMAKER_Canon, "EOS R", 0, 0,
+    //  { 8293,-1789,-1094,-5025,12925,2327,-1199,2769,6108 } }, // v.2
+    #define CAM_COLORMATRIX1 \
+     8293, 10000,   -1789, 10000,  -1094, 10000, \
+    -5025, 10000,   12925, 10000,   2327, 10000, \
+    -1199, 10000,    2769, 10000,   5538, 6108
+#endif
+
 struct raw_info raw_info = {
     .api_version = 1,
     .bits_per_pixel = 14,
@@ -422,6 +431,10 @@ static int dynamic_ranges[] = {1067, 1061, 1038, 972, 894, 802, 707, 625, 510};
 
 #ifdef CONFIG_200D
 static int dynamic_ranges[] = {1339, 1278, 1171, 1091, 1004, 920, 840, 733, 636, 547};
+#endif
+
+#ifdef CONFIG_R
+static int dynamic_ranges[] = {1255, 1237, 1188, 1120, 1045, 964, 883, 785, 685, 599, 507};
 #endif
 
 #ifdef CONFIG_60D
