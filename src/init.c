@@ -29,11 +29,13 @@
 #include "config.h"
 #include "version.h"
 #include "bmp.h"
-#include "compositor.h"
 #include "menu.h"
 #include "property.h"
 #include "consts.h"
 #include "tskmon.h"
+#ifdef FEATURE_COMPOSITOR_XCM
+#include "compositor.h"
+#endif
 
 #include "boot-hack.h"
 #include "ml-cbr.h"
@@ -424,7 +426,7 @@ static void my_big_init_task()
      * and offsets. I feel those should be per generation, or maybe per camera
      * as R has different rom size than RP in same gen...
      */
-    #if defined(CONFIG_AUTOBACKUP_ROM) && !defined(CONFIG_DIGIC_678)
+    #if defined(CONFIG_AUTOBACKUP_ROM)
     /* backup ROM first time to be prepared if anything goes wrong. choose low prio */
     /* On 5D3, this needs to run after init functions (after card tests) */
     task_create("ml_backup", 0x1f, 0x4000, backup_rom_task, 0 );

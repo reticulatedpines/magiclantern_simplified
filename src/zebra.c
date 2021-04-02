@@ -27,7 +27,6 @@
 #include "electronic_level.h"
 #include "dryos.h"
 #include "bmp.h"
-#include "compositor.h"
 #include "version.h"
 #include "config.h"
 #include "menu.h"

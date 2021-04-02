@@ -53,6 +53,10 @@
     }; // 0x40 bytes
 #endif
 
+// SJE FIXME this struct has been changed for both 50D *and* 200D/R.
+// But, this may break some older cams that work differently than 50D
+// (code was previously broken for 50D and not noticed, I fixed this
+//  without realising it might change other cams)
 struct task
 {
 //      type            name            offset, size
@@ -73,7 +77,7 @@ struct task
         uint32_t            unknown_07; // 0x38, 4
         uint32_t            unknown_08; // 0x3c, 4
         uint32_t        taskId;         // 0x40, 4
-#if defined(CONFIG_200D) || defined(CONFIG_R) // probably all Digic7, maybe 8 and 9?  But only confirmed on 200D
+#if defined(CONFIG_200D) || defined(CONFIG_R) // probably all Digic7, maybe 8 and 9?  But only confirmed on 200D + R
         uint32_t            unknown_09; // 0x44, 4
 #endif
         uint8_t             unknown_0a; // 0x44 / 0x48, 1

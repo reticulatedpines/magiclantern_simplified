@@ -25,7 +25,6 @@
 #include "math.h"
 #include "version.h"
 #include "bmp.h"
-#include "compositor.h"
 #include "gui.h"
 #include "config.h"
 #include "property.h"
@@ -40,6 +39,10 @@
 #include "debug.h"
 #include "lvinfo.h"
 #include "powersave.h"
+
+#ifdef FEATURE_COMPOSITOR_XCM
+#include "compositor.h"
+#endif
 
 #define CONFIG_MENU_ICONS
 //~ #define CONFIG_MENU_DIM_HACKS
