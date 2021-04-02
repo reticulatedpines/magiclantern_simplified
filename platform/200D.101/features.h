@@ -2,6 +2,10 @@
 
 #define FEATURE_VRAM_RGBA
 
+// partially working
+//#define FEATURE_SHOW_SHUTTER_COUNT
+//#define FEATURE_SHOW_TASKS
+
 // prevent ML attempting stack unwinding in some cases.
 // This does not yet work (assumes ARM, not Thumb).  Alex recommends
 // a good looking fix:
