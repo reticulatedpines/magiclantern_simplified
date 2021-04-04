@@ -56,6 +56,7 @@ uint32_t edmac_channel_to_index(uint32_t channel)
             for (int i = 0; i < COUNT(read_edmacs); i++)
                 if (read_edmacs[i] == channel)
                     return i;
+            break;
         }
         case EDMAC_DIR_WRITE:
         {
