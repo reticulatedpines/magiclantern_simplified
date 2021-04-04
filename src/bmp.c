@@ -175,10 +175,10 @@ void refresh_yuv_from_rgb(void)
 {
     // get our indexed buffer, convert into our real rgb buffer
     uint8_t *b = bmp_vram_indexed;
-    uint32_t *rgb = NULL;
+    uint32_t *rgb_data = NULL;
 
     if (rgb_vram_info != NULL)
-        rgb = (uint32_t *)rgb_vram_info->bitmap_data;
+        rgb_data = (uint32_t *)rgb_vram_info->bitmap_data;
     else
     {
         DryosDebugMsg(0, 15, "rgb_vram_info was NULL, can't refresh OSD");
@@ -188,7 +188,15 @@ void refresh_yuv_from_rgb(void)
     //SJE FIXME benchmark this loop, it probably wants optimising
     for (size_t n = 0; n < BMP_VRAM_SIZE; n++)
     {
-        *rgb++ = indexed2rgb(*b++);
+        // limited alpha support, if dest pixel would be full alpha,
+        // don't copy into dest.  This is COLOR_TRANSPARENT_BLACK in
+        // the LUT
+        uint32_t rgb = indexed2rgb(*b);
+        if ((rgb && 0xff000000) == 0x00000000)
+            rgb_data++;
+        else
+            *rgb_data++ = rgb;
+        b++;
     }
 
     #ifdef FEATURE_COMPOSITOR_XCM
@@ -207,8 +215,8 @@ void refresh_yuv_from_rgb(void)
     #endif
 }
 
-static uint32_t indexed2rgbLUT[RGB_LUT_MAX] = {
-    0xffffffff, 0xffebebeb, 0xff000000, 0xff000000, 0xffa33800, // 0
+static uint32_t indexed2rgbLUT[RGB_LUT_SIZE] = {
+    0xffffffff, 0xffebebeb, 0xff000000, 0x00000000, 0xffa33800, // 0
     0xff20bbd9, 0xff009900, 0xff01ad01, 0xffea0001, 0xff0042d4, // 5
     0xffb9bb8c, 0xff1c237e, 0xffc80000, 0xff0000a8, 0xffc9009a, // 10
     0xffd1c000, 0xffe800e8, 0xffd95e4c, 0xff003e4b, 0xffe76d00, // 15
@@ -256,7 +264,7 @@ static uint32_t indexed2uyvyLUT[COLOR_ORANGE + 1] = {
 
 uint32_t indexed2rgb(uint8_t color)
 {
-    if (color < RGB_LUT_MAX)
+    if (color < RGB_LUT_SIZE)
     {
         return indexed2rgbLUT[color];
     }
@@ -1406,7 +1414,13 @@ static void bmp_init(void* unused)
     bvram_mirror_init();
 #ifdef FEATURE_VRAM_RGBA
     bmp_vram_indexed = malloc(BMP_VRAM_SIZE);
-    ASSERT(bmp_vram_indexed);
+    // initialise to transparent, this allows us to draw over
+    // existing screen, rather than replace it, due to checks
+    // in refresh_yuv_from_rgb()
+    if (bmp_vram_indexed != NULL)
+        memset(bmp_vram_indexed, COLOR_TRANSPARENT_BLACK, BMP_VRAM_SIZE);
+    else
+        ASSERT(1);
 #endif
 
     _update_vram_params();
