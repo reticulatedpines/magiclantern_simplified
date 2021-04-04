@@ -275,7 +275,7 @@ DATA_PTR(    0xFF3C,  additional_version) // this gets written to in early code.
 //NSTUB(0xFF8542C4,  PowerAudioOutput)
 //NSTUB(0xFF85460C,  SetAudioVolumeOut)
 //NSTUB(0xFF855290,  SetSamplingRate)
-//NSTUB(0xFF8598C4, _prop_request_change)
+THUMB_FN(0xe04bb5ad, _prop_request_change)
 //NSTUB(0xFF85E90C,  EnableImagePhysicalScreenParameter)
 //NSTUB(0xFF863E5C,  dm_set_store_level) // called by "dmstore"
 THUMB_FN(0xdf00325d,  task_trampoline)
