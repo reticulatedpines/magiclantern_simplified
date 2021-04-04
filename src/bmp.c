@@ -170,7 +170,7 @@ void bmp_idle_copy(int direction, int fullsize)
 // has been updated.  Should probably take a XimrContext *,
 // but this struct is not yet determined for 200D
 extern int XimrExe(void *);
-extern int winsys_sem;
+extern struct semaphore *winsys_sem;
 void refresh_yuv_from_rgb(void)
 {
     // get our indexed buffer, convert into our real rgb buffer
