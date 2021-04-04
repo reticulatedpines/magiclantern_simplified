@@ -51,7 +51,7 @@ uint32_t indexed2rgb(uint8_t color);
     extern struct MARV *_rgb_vram_info;
 #endif
 extern struct MARV *rgb_vram_info;
-#define RGB_LUT_MAX 80
+#define RGB_LUT_SIZE 80
 inline uint8_t *bmp_vram_raw() {
     struct MARV *marv = rgb_vram_info;
     return marv ? marv->bitmap_data : NULL;
