@@ -244,12 +244,7 @@ DATA_PTR(    0xFD98, _rgb_vram_info);
 /*
  * Stubs only for FEATURE_COMPOSITOR_XCM
  */
-THUMB_FN(0xe00ddf30, XCM_GetOutputChunk);
-THUMB_FN(0xe00dde68, XCM_SetSourceArea);
-THUMB_FN(0xe00dddfe, XCM_SetSourceSurface);
-THUMB_FN(0xe01104c6, XOC_SetLayerEnable);
 THUMB_FN(0xe0701f4a, RefreshVrmsSurface);
-DATA_PTR(    0xFE64, XimrContextMaker);
 DATA_PTR(    0xFE74, XCM_Inititialized);
 DATA_PTR(   0x6F2A4, XCM_LayersArr);
 DATA_PTR(   0x6EFA0, XCM_RendererLayersArr);
