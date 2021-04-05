@@ -2,6 +2,11 @@ TOP_DIR?=..
 
 ML_SETUP_EXTENSION=modules
 
+# SJE FIXME - this is a hack.  We force arch to old Digic, so that modules
+# will build there.  They still don't run on new Digic and forcing this
+# arch could mean they never will - need a proper solution
+PLATFORM_ARCH = arm5vte
+
 include $(TOP_DIR)/Makefile.setup
 
 ifdef ML_MODULES_DYNAMIC
