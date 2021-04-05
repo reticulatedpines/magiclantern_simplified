@@ -54,33 +54,6 @@ int _rgb_vram_layer = 0;
  * XCM functions - for cameras that have it.
  * FEATURE_COMPOSITOR_XCM
  */
-extern uint32_t *XCM_GetOutputChunk(
-    uint8_t  **ppXCM,
-    uint32_t   outChunkID
-);
-
-/*
- * On EOS R RefreshVrmsSurface() will set all layers x,y values
- * to predefined in-rom constants on every redraw.
- */
-extern uint32_t XCM_SetSourceArea(
-    uint8_t  **ppXCM,
-    uint32_t   layerID,
-    uint16_t   x,
-    uint16_t   y,
-    uint16_t   w,
-    uint16_t   h
- );
-extern uint32_t XCM_SetSourceSurface(
-    uint8_t     **ppXCM,
-    uint32_t      layerID,
-    struct MARV  *pSrcMARV
-);
-extern uint32_t XOC_SetLayerEnable(
-    uint32_t    *pOutChunk,
-    uint32_t     layerID,
-    struct MARV *pSrcMARV
-);
 
 /*
  * Pure Ximr functions - for cameras without XCM
@@ -98,7 +71,7 @@ extern uint32_t XOC_SetLayerEnable(
  * (no compositor), memory write will be used.
  */
 extern void      RefreshVrmsSurface();
-extern uint32_t *display_refresh_needed;
+extern uint32_t  display_refresh_needed;
 
 /*
  * All the important memory structures.
@@ -118,13 +91,11 @@ extern uint32_t *display_refresh_needed;
  * XCM_Inititialized     Variable set by refreshVrmsSurface after it initialized
  *                       XCM (XCM_Reset(), ... ). Init ends with debug message
  *                       containing "initializeXimrContext".
- * XimrContextMaker      Internal structure used by XCM for Ximr configuration.
  */
-extern struct MARV **XCM_RendererLayersArr[];
-extern struct MARV **XCM_LayersArr[];
-extern uint32_t     *XCM_LayersEnableArr[];
-extern uint32_t     *XCM_Inititialized;
-extern uint8_t     **XimrContextMaker;
+extern struct MARV *XCM_RendererLayersArr[XCM_MAX_LAYERS];
+extern struct MARV *XCM_LayersArr[XCM_MAX_LAYERS];
+extern uint32_t     XCM_LayersEnableArr[XCM_MAX_LAYERS];
+extern uint32_t     XCM_Inititialized;
 
 /*
  * Not sure if sync_caches() call is needed. It was when I was drawing
@@ -192,18 +163,6 @@ int surface_setup()
         return 1;
     }
 
-    /*
-     * In theory XimrContextMaker can have multiple (4?) XimrContext chunks.
-     * But the only code that Canon uses to call this function has 0 hardcoded.
-     * Thus, at least on R I don't expect more to exist.
-     */
-    uart_printf("XimrContextMaker at 0x%08x\n", XimrContextMaker);
-    uint32_t *pOutChunk = XCM_GetOutputChunk(XimrContextMaker, 0);
-    if(pOutChunk == NULL)
-        return 1;
-
-    uart_printf("pOutChunk   at 0x%08x\n", pOutChunk);
-
     struct MARV* pNewLayer = malloc(sizeof(struct MARV));
     uint8_t* pBitmapData = malloc(BMP_VRAM_SIZE*4);
 
@@ -222,14 +181,19 @@ int surface_setup()
     //prepare MARV
     pNewLayer->signature    = 0x5652414D;  //MARV
     pNewLayer->bitmap_data  = pBitmapData;
-    pNewLayer->opacity_data = NULL;
+    pNewLayer->opacity_data = 0x0;
     pNewLayer->flags        = 0x5040100;   //bitmask (?) for RGBA
     pNewLayer->width        = (uint32_t)bmp_w;
-    pNewLayer->height       = (uint32_t)bmp_w;
-    pNewLayer->pmem         = NULL;
+    pNewLayer->height       = (uint32_t)bmp_h;
+    pNewLayer->pmem         = 0x0;
 
     uart_printf("pNewLayer   at 0x%08x\n", pNewLayer);
     uart_printf("pBitmapData at 0x%08x\n", pBitmapData);
+
+    /*
+     * The code below seems to be R specific. RP/R6 seems to use single struct
+     * for that.
+     */
 
     //add new layer to compositor layers array
     XCM_LayersArr[newLayerID] = pNewLayer;
@@ -237,13 +201,6 @@ int surface_setup()
 
     //enable new layer - just in case (all were enabled by default on R180)
     XCM_LayersEnableArr[newLayerID] = 1;
-
-    //call XCM to add new layer to render
-    XCM_SetSourceArea( XimrContextMaker, newLayerID,
-            -BMP_W_MINUS, -BMP_H_MINUS, bmp_w, bmp_h
-            );
-    XCM_SetSourceSurface(XimrContextMaker, newLayerID, pNewLayer);
-    XOC_SetLayerEnable(pOutChunk, newLayerID, pNewLayer);
 
     //save rgb_vram_info as last step, in case something above fails.
     rgb_vram_info   = pNewLayer;
@@ -262,7 +219,7 @@ void rgba_fill(uint32_t color, int x, int y, int w, int h)
     }
 
     //Note: buffers are GBRA :)
-    uint32_t *b = rgb_vram_info->bitmap_data;
+    uint32_t *b = (uint32_t*)rgb_vram_info->bitmap_data;
     for (int i = y; i < y + h; i++)
     {
         uint32_t *row = b + 960*i + x;
