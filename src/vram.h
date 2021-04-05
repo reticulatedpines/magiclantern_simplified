@@ -60,7 +60,7 @@ struct MARV
     uint32_t flags;             /* unknown */
     uint32_t width;             /* X resolution; may be larger than screen size */
     uint32_t height;            /* Y resolution; may be larger than screen size */
-    uint32_t pmem;              /* pointer to PMEM (Permanent Memory) structure */
+    void * pmem;                /* pointer to PMEM (Permanent Memory) structure */
 };
 
 struct bmp_vram_info
