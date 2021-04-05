@@ -233,6 +233,7 @@ THUMB_FN(0xe083819e,  ErrForCamera_handler)                 // ERR70, ERR80 etc 
 /** Properties **/
 THUMB_FN(0xe0553d88, _prop_cleanup)                         // "PropertyMgr.c", strings changed, found based on 200D
 THUMB_FN(0xe05537da,  prop_register_slave)                  // "PropertyMgr.c", "pDeliverProperty"
+THUMB_FN(0xe05538a8, _prop_request_change)                  // "PropertyMgr.c", "pRequestChange"
 
 /*
  * Name depends on compositor/layers support usage.
