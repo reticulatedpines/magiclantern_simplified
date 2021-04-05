@@ -6,7 +6,6 @@
 
 int surface_setup();
 void rgba_fill(uint32_t color, int x, int y, int w, int h);
-void surface_redraw();
 void surface_clean();
 
 #define XCM_MAX_LAYERS   6             //This is hardcoded on R/RP code

@@ -206,6 +206,8 @@ int surface_setup()
     rgb_vram_info   = pNewLayer;
     _rgb_vram_layer = newLayerID;
 
+    //make sure XCM notices a new layer by calling redraw
+    surface_redraw();
     return 0;
 }
 
