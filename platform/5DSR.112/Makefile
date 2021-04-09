@@ -1,7 +1,6 @@
 # 5DS R 1.1.2
 
 MODEL=5DSR
-PLATFORM_ARCH = armv7-r
 
 include ../Makefile.platform
 

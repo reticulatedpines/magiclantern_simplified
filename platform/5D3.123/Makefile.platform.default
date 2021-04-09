@@ -4,6 +4,7 @@ ifeq ($(FW_VERSION),123)
 CANON_NAME_FIR=5D300133.FIR
 
 ROMBASEADDR	= 0xFF0C0000
+PLATFORM_ARCH = armv5te
 
 # DryOSmemory map
 # RESTARTSTART is selected to be just above the end of the bss

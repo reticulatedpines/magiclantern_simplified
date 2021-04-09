@@ -3,6 +3,7 @@
 ifeq ($(FW_VERSION),101)
 CANON_NAME_FIR=CCF16101.FIR
 ROMBASEADDR	= 0xFF0C0000
+PLATFORM_ARCH = armv5te
 
 ifeq ($(ML_SRC_PROFILE),generic)
 # Load ML at the beginning of the AllocateMemory pool

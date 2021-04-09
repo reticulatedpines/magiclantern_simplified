@@ -7,10 +7,6 @@ ifndef MODEL
 $(error Camera MODEL is not defined)
 endif
 
-ifndef PLATFORM_ARCH
-$(error PLATFORM_ARCH must be defined (e.g., armv5te, armv7-a))
-endif
-
 include $(TOP_DIR)/Makefile.top
 
 include $(PLATFORM_PATH)/Makefile.platform.map
@@ -51,6 +47,9 @@ ML_MAKEFILE_PLATFORM_SETUP = $(PLATFORM_DIR)/Makefile.platform.default
 endif
 
 -include $(ML_MAKEFILE_PLATFORM_SETUP)
+ifndef PLATFORM_ARCH
+$(error PLATFORM_ARCH must be defined (e.g., armv5te, armv7-a))
+endif
 
 ifndef AUTOEXEC_BASE
 AUTOEXEC_BASE	= 0x800000

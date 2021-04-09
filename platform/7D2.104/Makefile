@@ -1,7 +1,6 @@
 #Makefile for 7D2
 
 MODEL=7D2
-PLATFORM_ARCH = armv7-r
 
 include ../Makefile.platform
 
