@@ -2,6 +2,7 @@
 
 MODEL=5D3
 FW_VERSION=113
+PLATFORM_ARCH = armv5te
 
 include ../Makefile.platform
 

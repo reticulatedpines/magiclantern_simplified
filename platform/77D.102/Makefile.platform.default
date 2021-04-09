@@ -12,7 +12,6 @@ ROMBASEADDR     = 0xE0040000
 RESTARTSTART    = 0x001B5700
 
 # Cortex A9, binaries loaded as Thumb
-PLATFORM_ARCH = armv7-a
 CFLAG_USER = -mthumb -mlong-calls
 
 # these should be removed when porting starts

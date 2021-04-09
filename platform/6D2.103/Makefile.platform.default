@@ -9,7 +9,7 @@ RESTARTSTART    = 0x0
 ROMBASEADDR     = 0xFC000000
 
 # Cortex A9, binaries loaded as Thumb
-CFLAG_USER = -mthumb -march=armv7-a -mlong-calls
+CFLAG_USER = -mthumb -mlong-calls
 
 # these should be removed when porting starts
 ML_SRC_PROFILE  = minimal

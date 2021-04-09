@@ -1,6 +1,7 @@
 #Makefile for 7D
 
 MODEL=7D
+PLATFORM_ARCH = armv5te
 
 include ../Makefile.platform
 

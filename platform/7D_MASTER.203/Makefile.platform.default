@@ -6,7 +6,6 @@ CANON_NAME_FIR=7D000203.FIR
 # RESTARTSTART is selected to be just above the end of the bss
 #
 ROMBASEADDR     = 0xFF810000
-PLATFORM_ARCH = armv5te
 RESTARTSTART    = 0xC80100
 ML_BOOT_OBJ     = boot-d45-ch.o
 endif

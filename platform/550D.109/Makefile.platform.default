@@ -7,7 +7,6 @@ ifeq ($(FW_VERSION),109)
 CANON_NAME_FIR=e8kr7109.fir
 
 ROMBASEADDR     = 0xFF010000
-PLATFORM_ARCH = armv5te
 
 ifeq ($(ML_SRC_PROFILE),generic)
 # for injecting ML into malloc pool (Trammell's approach)

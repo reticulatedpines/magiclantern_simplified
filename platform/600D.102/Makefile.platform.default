@@ -7,7 +7,6 @@ ifeq ($(FW_VERSION),102)
 CANON_NAME_FIR=CCF11102.FIR
 
 ROMBASEADDR     = 0xFF010000
-PLATFORM_ARCH = armv5te
 
 ifeq ($(ML_SRC_PROFILE),generic)
 # DryOSmemory map

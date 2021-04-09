@@ -1,6 +1,7 @@
 #Makefile for 5DS
 
 MODEL=5DS
+PLATFORM_ARCH = armv7-r
 ROMBASEADDR=0xFE0A0000
 
 include ../Makefile.platform
