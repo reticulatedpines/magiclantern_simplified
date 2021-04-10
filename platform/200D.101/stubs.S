@@ -124,6 +124,7 @@ THUMB_FN(0xE11C7CF9,  vsnprintf)              /* called near dmstart; references
 // SJE stuff found during investigation, maybe not needed for ML
 // but I wanted to call by name
 THUMB_FN(0xe049e9bf,  SaveVRAM)
+THUMB_FN(0xe05f1c94, debug_assert) // DRYOS_ASSERT_HANDLER related
 
 
 // SJE unsure stuff: currently majority copied from 50D (I have roms for this),
@@ -134,7 +135,7 @@ THUMB_FN(0xe049e9bf,  SaveVRAM)
 
 // UNSURE or untested
 THUMB_FN(0xdf0031a3,  task_info_by_id) // called indirectly by task_create and functions using string "TASK Name"
-THUMB_FN(0xe023ccc7,  is_taskid_valid) // probably wrong
+THUMB_FN(0xdf004041,  is_taskid_valid) // e023ccc7 calls this thunked func, the thunked one has right number of params for ML
 NSTUB(    0x4ea4,  dm_names) // in DebugMsg, before the 1st loop target
 NSTUB(   0x1fd7c,  sd_device) // in sdReadBlk, probably 0xe02b6fa2.  Lots of refs
                               // to 0x1fd7c, some to 0x1fd80
@@ -151,11 +152,11 @@ THUMB_FN(0xdf008515,  take_semaphore) // Fairly sure. Same function sig and foll
 THUMB_FN(0xdf00858f,  give_semaphore)
 THUMB_FN(0xdf008419,  create_named_semaphore) // also see df00b114, very similar, but 8418 is closer to 50D create_named_semaphore
 THUMB_FN(0xe02d35ab,  gui_change_mode) // GUI_ChangeMode_Post
-THUMB_FN(0xe00c55b7,  gui_massive_event_loop) // GUI_Control_Post string.  Calling convention differs on 200D vs 50D
+THUMB_FN(0xe02d1d51,  gui_massive_event_loop) // various "GUICMD_"* strings
 THUMB_FN(0xe00979d9,  gui_init_event) // "-> handleGuiInit"
 THUMB_FN(0xe04ba537,  AddMemoryChunk) // called before " 32(Src,bytes,Unit)=(%#lx,%#lx,%#lx)" in many places; see also hAddSuite
-                                   // maybe 0xe04ba536? Similar, except it returns void, not int.
-                                   // Also see 0xe04ba494, v. similar but diff struct offsets
+                                      // maybe 0xe04ba536? Similar, except it returns void, not int.
+                                      // Also see 0xe04ba494, v. similar but diff struct offsets
 THUMB_FN(0xe04ba5bb,  GetFirstChunkFromSuite)                  // AJ_PackMemory_PackMem_p3
 THUMB_FN(0xe04bae8b,  GetNextMemoryChunk)                      // AJ_PackMemory_PackMem.c_IsChunkSignature_p2
 THUMB_FN(0xe04ba3d5,  GetMemoryAddressOfMemoryChunk)           // AJ_PackMemory_PackMem.c_IsChunkSignature - 200D uses "MemChunk" directly
@@ -177,7 +178,7 @@ THUMB_FN(0xe0381ba9,  LiveViewApp_handler) // not sure - function is quite diffe
                                         // functions look similar / related.
 THUMB_FN(0xe046fc49,  PlayMain_handler) // "DlgPlayMain.c PRESS_ERASE_BUTTON" - code above the string, wasn't found automatically
 THUMB_FN(0xe0354327,  GetCFnData) // "GetCFnData" Function sig is different but the body looks similar
-THUMB_FN(0xdeadbeef,  SetCFnData) // No string refs, but 200D doesn't have C1 on main dial, maybe no custom functions?
+THUMB_FN(0xe0353761,  SetCFnData) // There are some "SetCFnData" related strings, and 
 THUMB_FN(0xe069ce15,  GUI_SetLvMode) // "GUI_SetBracketReset"
 THUMB_FN(0xe0693b23, _malloc) // These two names are used in 50D and CONFIG_HELLO_WORLD won't build without them,
 THUMB_FN(0xe0693b5b, _free)   // however, the inital stubs for 200D call these simply malloc/free.
@@ -264,6 +265,9 @@ DATA_PTR(   0xfd7c,  winsys_sem)
 
 
 NSTUB(0x56500000,  LCD_Palette) // in InitializeBitmapDisplayDevice, right after 0xc0f14800
+                                // SJE FIXME fake address in safe writable region, may not exist
+                                // on 200D (doesn't seem to use indexed colour anywhere)
+
 //NSTUB(    0x30F8,  task_max)
 DATA_PTR(    0x412c,  task_dispatch_hook)
 //NSTUB(    0x3960,  gui_timer_struct) // in GUI_Control_Post
