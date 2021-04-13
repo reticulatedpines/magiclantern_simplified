@@ -119,12 +119,13 @@ DATA_PTR(   0x87998,  mpu_recv_ring_buffer)      // ring buffer used in SIO3_ISR
 DATA_PTR(    0x799C,  mpu_recv_ring_buffer_tail) // ring buffer index incremented in the above subroutine
 
 /** Misc **/
-THUMB_FN(0xE11C7CF9,  vsnprintf)              /* called near dmstart; references "01234567", "0123456789", "0123456789abcdef" and "0123456789ABCDEF"; second arg is size; the one called by DebugMsg only knows %s */
+THUMB_FN(0xE11C7CF9,  vsnprintf)              /* called near dmstart; references "01234567", "0123456789", "0123456789abcdef"
+                                                 and "0123456789ABCDEF"; second arg is size; the one called by DebugMsg only knows %s */
 
 // SJE stuff found during investigation, maybe not needed for ML
 // but I wanted to call by name
 THUMB_FN(0xe049e9bf,  SaveVRAM)
-THUMB_FN(0xe05f1c94, debug_assert) // DRYOS_ASSERT_HANDLER related
+THUMB_FN(0xe05f1c94,  debug_assert) // DRYOS_ASSERT_HANDLER related
 
 
 // SJE unsure stuff: currently majority copied from 50D (I have roms for this),
@@ -160,16 +161,28 @@ THUMB_FN(0xe04ba537,  AddMemoryChunk) // called before " 32(Src,bytes,Unit)=(%#l
 THUMB_FN(0xe04ba5bb,  GetFirstChunkFromSuite)                  // AJ_PackMemory_PackMem_p3
 THUMB_FN(0xe04bae8b,  GetNextMemoryChunk)                      // AJ_PackMemory_PackMem.c_IsChunkSignature_p2
 THUMB_FN(0xe04ba3d5,  GetMemoryAddressOfMemoryChunk)           // AJ_PackMemory_PackMem.c_IsChunkSignature - 200D uses "MemChunk" directly
-THUMB_FN(0xe062df0b,  AllocateMemoryResource)                  // m_pfAllocMemoryCBR, this function takes 4 params in 200D, 3 for 50D
-THUMB_FN(0xe062df39,  AllocateContinuousMemoryResource)        // m_pfContAllocMemoryCBR, takes 4 params now, 3 for 50D
+THUMB_FN(0xe062df0b,  AllocateMemoryResource)                  // m_pfAllocMemoryCBR
+THUMB_FN(0xe062df39,  AllocateContinuousMemoryResource)        // m_pfContAllocMemoryCBR
 THUMB_FN(0xe062dfdf,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
 THUMB_FN(0xdf00b1d9,  msg_queue_receive) // "SystemIF::KerQueue.c" useful for finding some of these msg_ functions
-THUMB_FN(0xdf00b26b,  msg_queue_post)
-THUMB_FN(0xdf00b17d,  msg_queue_count) // Above "!!!!!!! QUE Overflo" - maybe 0xdf00b17c.  Not sure here,
-                                    // params looks weird but I think decompilation may have confused
-                                    // stack variables with params.  Code itself similar.
+
+// This was my first guess for msg_queue_post, and it's very similar.
+//THUMB_FN(0xdf00b26b,  msg_queue_post)
+
+// Second guess for msg_queue_post, I think this is right, if you look
+// at the function it calls, the checks inside that are a closer match.
+THUMB_FN(0xdf00b337,  msg_queue_post)
+
+THUMB_FN(0xdf00b36d,  msg_queue_count) // Fairly hard to find.  Often used near DispLockStop, which is easy to find
+                                       // and not used often.
+                                       // This is the thunked address, which is called from e042680c
+//THUMB_FN(0xdf00b17d,  msg_queue_count) // Above "!!!!!!! QUE Overflo" - maybe 0xdf00b17c.  Not sure here,
+                                         // params looks weird but I think decompilation may have confused
+                                         // stack variables with params.  Code itself similar.
+                                         //
+                                         // Wrong, kept for history.
 THUMB_FN(0xdf00b615,  msg_queue_create) // CreateMessageQueue - In 50D, msg_queue_create calls 0xff866424,
-                                     // the equiv of which is 0xdf00b114 (and was easier to find)
+                                        // the equiv of which is 0xdf00b114 (and was easier to find)
 THUMB_FN(0xe04bba45,  prop_deliver)
 //THUMB_FN(0xe04bbde1,  prop_register_slave) // called by"GUI_RegisterPropertySlave"
 THUMB_FN(0xe04bb4df,  prop_register_slave) // "pRegisterSlave"
@@ -177,15 +190,22 @@ THUMB_FN(0xe0381ba9,  LiveViewApp_handler) // not sure - function is quite diffe
                                         // doesn't seem unreasonable since large GUI changes.  String use and surrounding
                                         // functions look similar / related.
 THUMB_FN(0xe046fc49,  PlayMain_handler) // "DlgPlayMain.c PRESS_ERASE_BUTTON" - code above the string, wasn't found automatically
-THUMB_FN(0xe0354327,  GetCFnData) // "GetCFnData" Function sig is different but the body looks similar
-THUMB_FN(0xe0353761,  SetCFnData) // There are some "SetCFnData" related strings, and 
-THUMB_FN(0xe069ce15,  GUI_SetLvMode) // "GUI_SetBracketReset"
+THUMB_FN(0xe0354327,  GetCFnData) // "GetCFnData" Function sig is different but the body looks similar.
+                                  // Looks like the inner functions use registers the outer doesn't, which confuses Ghidra
+                                  // re how many args outer takes.
+THUMB_FN(0xe0353761,  SetCFnData) // There are some "SetCFnData" related strings
+
+// Not required on 200D given usage by ML is always behind cam specific guards.
+//THUMB_FN(0xe069ce15,  GUI_SetLvMode) // via "GUI_SetBracketReset" - but this takes void now, and overwrites r0,
+                                     // whereas ML thinks it takes int.  Either this is wrong, or will
+                                     // need wrapping to preserve the reg.
+
 THUMB_FN(0xe0693b23, _malloc) // These two names are used in 50D and CONFIG_HELLO_WORLD won't build without them,
 THUMB_FN(0xe0693b5b, _free)   // however, the inital stubs for 200D call these simply malloc/free.
                            // I'm leaving them defined with both names, although that seems wrong.
 THUMB_FN(0xe04cff73,  SRM_AllocateMemoryResourceFor1stJob) // "hJobMemorySuite" strings, function a little earlier
 THUMB_FN(0xe04d2fed,  SRM_FreeMemoryResourceFor1stJob) // find refs to "pMessage", there are several similar looking functions using it,
-                                                    // this is my best guess
+                                                       // this is my best guess
 THUMB_FN(0xe04bbad7, _prop_cleanup) // "./Multicast/PropertyMgr.c" check funcs that ref this string
 THUMB_FN(0xdf00b67d,  CreateRecursiveLock) // via "KerRLock.c", CRL() calls a function that regs this string, not many do
 THUMB_FN(0xdf00b451,  AcquireRecursiveLock)
@@ -194,13 +214,18 @@ THUMB_FN(0xe04b1d75,  dialog_redraw) // Found via checking xrefs to "pDialog->pS
 THUMB_FN(0xe04b3739,  CreateResLockEntry) // via xrefs to a pointer to "ResInfo"
 THUMB_FN(0xe04b3b59,  LockEngineResources) //  Down a bit from CreateResLockEntry, start v similar but end is different.
 THUMB_FN(0xe06217f1,  ErrForCamera_handler) // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
-THUMB_FN(0xdf00d365,  fsuDecodePartitionTable) // this is called in one place in 50D, 0xffb0a18c,
-                                               // and that function is easy to find in 200D via "CARD_EMERGENCY_STOP".
-                                               // The function called 200D looks a lot different from fsuDecodePartitionTable, however.
-                                               // Constant offsets used are the same in both, maybe fsuDPT has been partially 
-                                               // inlined in 200D?  The decompilation looks weird too, claims it just returns
+
+THUMB_FN(0xdf00d365,  fsuDecodePartitionTable) // SJE FIXME wrong, see notes below.
+//THUMB_FN(0xdf00d365,  fsuDecodePartitionTable) // this is called in one place in 50D, 0xffb0a18c, which is 0xe02b6678 on 200D.
+                                               // The function called on 200D looks a lot different from fsuDecodePartitionTable, however.
+                                               // Constant offsets used are the same in both, looks like fsuDPT has been partially 
+                                               // inlined in 200D.  We can't call it directly.
+                                               // The decompilation looks weird too, claims it just returns
                                                // the calling param but it clearly twiddles some registers.
-                                               // TODO check how ML uses this stub, since the sig has changed.
+                                               //
+                                               // ML looks to use this for writing to bootsector of card, either for installer,
+                                               // or preserving ML on the card after an in-cam format.
+
 THUMB_FN(0xe05f67d1,  ShootOlcApp_handler) // near "StopShootOlcApp PopPalette(%d)"
 NSTUB(    0x40f4,  task_max)
 NSTUB(    0xfc88,  gui_task_list) // "pDialog" strings often have refs to 0xfcb4, if so, should be
@@ -244,13 +269,13 @@ DATA_PTR(   0xfd84,  bmp_vram_info) // function e04a044c looks relevant, see ref
                                     // 0xfd70 looks like a struct base, at the end of this func
                                     // you can see fd70 + 0x14, 0x18, 0x1c being used to see which vram buffer
                                     // is active, or ready maybe.
-                                    // However, I'm confused by the vram.h bmp_vram_info struct def.
-                                    // Don't see how it relates.
 
 DATA_PTR(   0xfd80,  rgb_vram_info) // Used in many places, written to in "InitializeScreen"
                                     // At least for 200D, this is BGRA buffer, earlier in the render
                                     // chain than the YUV ones.  But, changes made to it will not
-                                    // render until a refresh occurs (can manually trigger via RefreshVrmsSurface())
+                                    // render until a refresh occurs (can manually trigger via RefreshVrmsSurface()),
+                                    // but direct refresh via XimrExe() is simpler (we think this tells
+                                    // the renderer peripheral to take the RGB data and update the screen(s).
 
 DATA_PTR(   0xfda0,  display_output_mode) // on 200D, 1: 960x540, anything else, 720x480
 DATA_PTR(   0xfd7c,  winsys_sem)
@@ -274,8 +299,9 @@ DATA_PTR(    0x412c,  task_dispatch_hook)
 //NSTUB(    0x7674,  mvr_config)
 //NSTUB(0xC0220000,  camera_engine)
 //NSTUB(0xDEADBEEF,  ErrCardForLVApp_handler)
-NSTUB(0xDEADBEEF,  PlayMovieGuideApp_handler) // needed for CONFIG_QEMU
-DATA_PTR(    0xFF3C,  additional_version) // this gets written to in early code.  Pick a safe area!
+NSTUB(0x56500000,  PlayMovieGuideApp_handler) // needed for CONFIG_QEMU, unknown
+                                              // SJE FIXME
+DATA_PTR(    0xe731,  additional_version) // this gets written to in early code.  Pick a safe area!
 //NSTUB(0xFF8542C4,  PowerAudioOutput)
 //NSTUB(0xFF85460C,  SetAudioVolumeOut)
 //NSTUB(0xFF855290,  SetSamplingRate)
