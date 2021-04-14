@@ -78,23 +78,23 @@ extern uint32_t  display_refresh_needed;
  * Note: those may be valid only for R. RP seems to have simpler setup,
  *       but it wasn't validated yet.
  *
- * XCM_RendererLayersArr holds MARV struct pointers to layers created by
+ * RENDERER_LayersArr    holds MARV struct pointers to layers created by
  *                       RENDERER_InitializeScreen(). Those are layers created
  *                       by Canon GUI renderer code.
  *                       SaveVRAM on EvShell uses this array for enumeration.
- * XCM_LayersArr         Like above, but used by XCM for rendering setup.
+ * VMIX_LayersArr        Like above, but used by VMIX for XCM rendering setup.
  *                       Entries from array above are copied in (what I called)
  *                       Initialize_Renedrer() after RENDERER_InitializeScreen()
  *                       and VMIX_InitializeScreen() are done.
- * XCM_LayersEnableArr   Controls if layer with given ID is displayed or not.
+ * VMIX_LayersEnableArr  Controls if layer with given ID is displayed or not.
  *                       Set up just after XCM_LayersArr is populated.
  * XCM_Inititialized     Variable set by refreshVrmsSurface after it initialized
  *                       XCM (XCM_Reset(), ... ). Init ends with debug message
  *                       containing "initializeXimrContext".
  */
-extern struct MARV *XCM_RendererLayersArr[XCM_MAX_LAYERS];
-extern struct MARV *XCM_LayersArr[XCM_MAX_LAYERS];
-extern uint32_t     XCM_LayersEnableArr[XCM_MAX_LAYERS];
+extern struct MARV *RENDERER_LayersArr[XCM_MAX_LAYERS];
+extern struct MARV *VMIX_LayersArr[XCM_MAX_LAYERS];
+extern uint32_t     VMIX_LayersEnableArr[XCM_MAX_LAYERS];
 extern uint32_t     XCM_Inititialized;
 
 /*
@@ -122,7 +122,7 @@ void surface_set_visibility(int state)
     if((XCM_Inititialized == 0) || (rgb_vram_info == 0x0))
         return;
 
-    XCM_LayersEnableArr[_rgb_vram_layer] = state;
+    VMIX_LayersEnableArr[_rgb_vram_layer] = state;
     //do we want to call redraw, or leave it to the caller?
     surface_redraw();
 }
@@ -149,7 +149,7 @@ int surface_setup()
     int newLayerID = 0;
     for(int i = 0; i < XCM_MAX_LAYERS; i++)
     {
-        if(XCM_LayersArr[i] == NULL)
+        if(RENDERER_LayersArr[i] == NULL)
             break;
 
         newLayerID++;
@@ -196,11 +196,11 @@ int surface_setup()
      */
 
     //add new layer to compositor layers array
-    XCM_LayersArr[newLayerID] = pNewLayer;
-    XCM_RendererLayersArr[newLayerID] = pNewLayer;
+    RENDERER_LayersArr[newLayerID] = pNewLayer;
+    VMIX_LayersArr[newLayerID] = pNewLayer;
 
     //enable new layer - just in case (all were enabled by default on R180)
-    XCM_LayersEnableArr[newLayerID] = 1;
+    VMIX_LayersEnableArr[newLayerID] = 1;
 
     //save rgb_vram_info as last step, in case something above fails.
     rgb_vram_info   = pNewLayer;

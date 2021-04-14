@@ -18,7 +18,7 @@ inline uint8_t *compositor_preinit()
 {
 #ifdef FEATURE_COMPOSITOR_XCM
     struct MARV *MARV = _rgb_vram_info;
-    if(MARV)
+    if(MARV != NULL)
         rgb_vram_info = _rgb_vram_info;
 
     return rgb_vram_info ? rgb_vram_info->bitmap_data : NULL;
