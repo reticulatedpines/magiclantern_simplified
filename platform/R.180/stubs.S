@@ -110,20 +110,22 @@ DATA_PTR(    0x4108,  task_dispatch_hook)
 THUMB_FN(0xE00C6BC8,  task_trampoline)
 /*
  * kitor: task_create calls internal function (e02392e0) which set up basic
- * task structure, and one of that is call to task_trampoline_caller (e00c6be8)
+ * task structure, and part of that is call to task_trampoline_caller (e00c6be8)
  * (it is followed by check of caller return value).
- * task_trampoline_caller will pass task_trampoline+1 as parameter to other
+ * task_trampoline_caller will pass task_trampoline+1 as parameter to another
  * function.
  */
-THUMB_FN(0xe00fd122, is_taskid_valid)
+THUMB_FN(0xe02ebf38, is_taskid_valid)
 /*
- * kitor: WRONG: this is it, but params has changed.
- * ~alex: at some point I've tried to get rid of that stub
+ * kitor: via extask function. While on 5D3 it was called directly, now helper
+ * is used. Find extask via string formats. Trace variables holding task id, 
+ * you will quickly find where it is verified (this is the mentioned helper).
+ * In the helper code you will find call to our stub.
  */
 
 /** Recursive locks **/
-THUMB_FN(0xE02504A4,  AcquireRecursiveLock)                 /* SystemIF::KerRLock.c */
 THUMB_FN(0xE0554740,  CreateRecursiveLock)                  /* SystemIF::KerMisc.c  */
+THUMB_FN(0xE02504A4,  AcquireRecursiveLock)                 /* SystemIF::KerRLock.c */
 THUMB_FN(0xe025056e,  ReleaseRecursiveLock)                 /* SystemIF::KerRLock.c */
 /* kitor: Found in ROM. Called from RAM copy on D5 machines) */
 
@@ -138,18 +140,19 @@ DATA_PTR(    0xfcb4,  gui_task_list)                        // based on 200d
 THUMB_FN(0xe052f34c,  SetGUIRequestMode)                    // by debug message
 THUMB_FN(0xE004AD80,  gui_main_task)                        // task_create("GuiMainTask"...
 THUMB_FN(0xe0541db6,  dialog_redraw)                        // via xrefs to "pDialog->pSignature == m_pcSignature"
-THUMB_FN(0xE004AE96,  gui_enqueue_message)                  // see comment below
+THUMB_FN(0xe03ae6ea,  gui_massive_event_loop)               // various "GUICMD_"* strings
+THUMB_FN(0xE004AE96,  gui_enqueue_message)                  // via string "warning! QueueLength=" and "GUI::GUI.c" in one function
+DATA_PTR(    0x5304,  gui_main_struct)
+/*
+ * kitor: It is referenced in gui_main_task, but struct starts earlier. Real
+ * structure start was found via function that calls gui_massive_event_loop.
+ */
+
 /*
  * kitor: gui_init_end DNE on R180. It's the only diff in gui_main_task vs 200d.
  *
  * I was unable to find GUI_Control either. It should print debug message and
  * call e004ae96(0, param_1, param_2, param_3 ), which adds it to gui queue.
- */
- DATA_PTR(    0x5304,  gui_main_struct)
-/*
- * kitor: referenced in gui_main_task, but struct may start earlier. Another
- * possibility is 0x5304 used in function that calls gui_massive_event_loop.
- * This seems to be earliest address referenced in context of gui.
  */
 
 /** GUI timers **/
@@ -174,8 +177,8 @@ DATA_PTR(    0x9E60,  mpu_recv_ring_buffer_tail)            // ring buffer index
  * - 0x32 for mpu_send_ring_buffer - checks for previous models
  * - 0x05 for unk_send_ring_buffer - and this is important for what's going on.
  *
- * Any later use of "mpu_send" in function names is based on assumption that 0x32
- * buffer is indeed mpu_send_ring_buffer.
+ * Any later use of "mpu_send" in function names is based on assumption that
+ * 0x32 buffer is indeed mpu_send_ring_buffer.
  *
  * There are two sio_send functions:
  * sio_send_2arg (e008ae16) takes 2 args. Seems to use unk_send_ring_buffer
@@ -235,31 +238,40 @@ THUMB_FN(0xe0553d88, _prop_cleanup)                         // "PropertyMgr.c", 
 THUMB_FN(0xe05537da,  prop_register_slave)                  // "PropertyMgr.c", "pDeliverProperty"
 THUMB_FN(0xe05538a8, _prop_request_change)                  // "PropertyMgr.c", "pRequestChange"
 
+/**
+ * RGBA / Compositor functions and structures
+ */
+
+/** Stubs only for FEATURE_COMPOSITOR_XCM **/
+THUMB_FN(0xe0701f4a, RefreshVrmsSurface);                   //via "refreshVrmsSurface" string. Renamed to VMIX_TransferRectangleToVram on Digic X
+DATA_PTR(    0xFE74, XCM_Inititialized);                    //Easy to spot in RefreshVrmsSurface
+DATA_PTR(    0xFE6C, display_refresh_needed)                //Easy to spot in RefreshVrmsSurface
+
+/*
+ * Structures below are probably specific to EOSR implementation.
+ * See https://www.magiclantern.fm/forum/index.php?topic=26024
+ */
+DATA_PTR(   0x6EFA0, RENDERER_LayersArr);
+DATA_PTR(   0x6F2A4, VMIX_LayersArr);
+DATA_PTR(   0x6F2BC, VMIX_LayersEnableArr);
+
+/** Stubs only if not FEATURE_COMPOSITOR_XCM **/
+THUMB_FN(0xe00da8c0, XimrExe);                              //In RefreshVrmsSurface, just before "XimrExe" debug message
+DATA_PTR(    0xFDF0, winsys_sem);                           //Used in RefreshVrmsSurface around XimrExe call
+
+/** Wrong on purpose **/
+DATA_PTR(       0x0,  LCD_Palette)                          // D8 has no indexed RGB buffers.
+
 /*
  * Name depends on compositor/layers support usage.
  * for just FEATURE_VRAM_RGBA use  rgb_vram_info
  * for FEATURE_COMPOSITOR_XCM use _rgb_vram_info
  */
 DATA_PTR(    0xFD98, _rgb_vram_info);
-
 /*
- * Stubs only for FEATURE_COMPOSITOR_XCM
+ * Pointer to first Canon RGBA buffer (GUI). On R this is set up by
+ * RENDERER_InitializeScreen function, just after MARVs are created.
  */
-THUMB_FN(0xe0701f4a, RefreshVrmsSurface);
-DATA_PTR(    0xFE74, XCM_Inititialized);
-DATA_PTR(   0x6F2A4, XCM_LayersArr);
-DATA_PTR(   0x6EFA0, XCM_RendererLayersArr);
-DATA_PTR(   0x6F2BC, XCM_LayersEnableArr);
-DATA_PTR(    0xFE6C, display_refresh_needed)
-
-/*
- * Stubs only if not FEATURE_COMPOSITOR_XCM
- */
-THUMB_FN(0xe00da8c0, XimrExe);
-DATA_PTR(    0xFDF0, winsys_sem);
-
-/** Wrong on purpose **/
-DATA_PTR(       0x0,  LCD_Palette)                          // D8 has no RGB8 buffers.
 
 /**
  * STUFF BELOW IS WRONG!
