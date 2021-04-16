@@ -44,13 +44,27 @@ inline uint8_t* bmp_vram_raw() { return bmp_vram_info[1].vram2; }
 #endif
 
 #ifdef FEATURE_VRAM_RGBA
+
+/**
+ * rgb_vram_info is used by source code elsewhere
+ * _rgb_vram_info is used only by rgb_vram_preinit() to initialize pointer
+ * controlled by us with Canon GUI layer on boot. This allows us to plug
+ * arbitrary layer on runtime (eg with compositor enabled)
+ */
+extern struct MARV *rgb_vram_info;
+extern struct MARV *_rgb_vram_info;
+inline uint8_t *rgb_vram_preinit()
+{
+    struct MARV *MARV = _rgb_vram_info;
+    if(MARV != NULL)
+        rgb_vram_info = _rgb_vram_info;
+
+    return rgb_vram_info ? rgb_vram_info->bitmap_data : NULL;
+}
+
 void refresh_yuv_from_rgb(void);
 uint32_t indexed2rgb(uint8_t color);
 
-#ifdef FEATURE_COMPOSITOR_XCM
-    extern struct MARV *_rgb_vram_info;
-#endif
-extern struct MARV *rgb_vram_info;
 #define RGB_LUT_SIZE 80
 inline uint8_t *bmp_vram_raw() {
     struct MARV *marv = rgb_vram_info;

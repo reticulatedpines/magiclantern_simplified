@@ -35,9 +35,7 @@
 
 extern int uart_printf(const char * fmt, ...);
 
-//our vram struct
 #ifdef FEATURE_COMPOSITOR_XCM
-struct MARV *rgb_vram_info = 0x0;
 
 int _rgb_vram_layer = 0;
 

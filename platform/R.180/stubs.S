@@ -255,23 +255,25 @@ DATA_PTR(   0x6EFA0, RENDERER_LayersArr);
 DATA_PTR(   0x6F2A4, VMIX_LayersArr);
 DATA_PTR(   0x6F2BC, VMIX_LayersEnableArr);
 
-/** Stubs only if not FEATURE_COMPOSITOR_XCM **/
+/** Generic stubs **/
 THUMB_FN(0xe00da8c0, XimrExe);                              //In RefreshVrmsSurface, just before "XimrExe" debug message
 DATA_PTR(    0xFDF0, winsys_sem);                           //Used in RefreshVrmsSurface around XimrExe call
 
-/** Wrong on purpose **/
-DATA_PTR(       0x0,  LCD_Palette)                          // D8 has no indexed RGB buffers.
-
-/*
- * Name depends on compositor/layers support usage.
- * for just FEATURE_VRAM_RGBA use  rgb_vram_info
- * for FEATURE_COMPOSITOR_XCM use _rgb_vram_info
- */
-DATA_PTR(    0xFD98, _rgb_vram_info);
 /*
  * Pointer to first Canon RGBA buffer (GUI). On R this is set up by
  * RENDERER_InitializeScreen function, just after MARVs are created.
  */
+DATA_PTR(    0xFD98, _rgb_vram_info);
+
+/*
+ * Place where we can hook into RefreshVrmsSurface.
+ * Found inside function called just before "GraphicSystemFinish" debug message.
+ * Function should return int, takes no params. Found on M50, 200D, R6, RP too.
+ */
+DATA_PTR(   0x1098c, screen_redraw_hook);
+
+/** Wrong on purpose **/
+DATA_PTR(       0x0,  LCD_Palette)                          // D8 has no indexed RGB buffers.
 
 /**
  * STUFF BELOW IS WRONG!

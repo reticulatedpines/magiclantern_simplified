@@ -92,6 +92,7 @@ static int bmp_idle_flag = 0;
 void bmp_draw_to_idle(int value) { bmp_idle_flag = value; }
 
 #ifdef FEATURE_VRAM_RGBA
+struct MARV *rgb_vram_info = NULL;
 static uint8_t *bmp_vram_indexed = NULL;
 #endif
 
@@ -199,14 +200,14 @@ void refresh_yuv_from_rgb(void)
         b++;
     }
 
-    // trigger Ximr to render to OSD from RGB buffer
-    take_semaphore(winsys_sem, 0);
     /*
      * kitor: Structure address stays the same on R, RP, 200d. Well, it can
      *        be dynamic on XCM cameras, but R and RP use single struct
      *        and address of each one is known.
      *        I moved definition to consts.h
      */
+    take_semaphore(winsys_sem, 0);
+    // trigger Ximr to render to OSD from RGB buffer
     XimrExe((void *)XIMR_CONTEXT);
     give_semaphore(winsys_sem);
 }
