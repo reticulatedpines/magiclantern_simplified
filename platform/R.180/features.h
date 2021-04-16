@@ -1,5 +1,11 @@
 #define FEATURE_VRAM_RGBA
+
+//enable FEATURE_COMPOSITOR_XCM only in full build
+#ifndef ML_MINIMAL_OBJ
 #define FEATURE_COMPOSITOR_XCM
+#endif
+
+#define CONFIG_ADDITIONAL_VERSION
 
 #undef CONFIG_CRASH_LOG
 #undef CONFIG_TSKMON

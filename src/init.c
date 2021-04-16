@@ -589,8 +589,8 @@ void boot_post_init_task(void)
     additional_version[13] = '\0';
 #endif
 
-    #ifdef FEATURE_COMPOSITOR_XCM
-    while (!compositor_preinit())
+    #ifdef FEATURE_VRAM_RGBA
+    while (!rgb_vram_preinit())
         msleep(100);
     #endif
 

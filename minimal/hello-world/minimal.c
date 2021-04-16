@@ -44,20 +44,10 @@ void refresh_yuv_from_rgb(void)
         b++;
     }
 
-    #ifdef FEATURE_COMPOSITOR_XCM
-    surface_redraw();
-    #else
     // trigger Ximr to render to OSD from RGB buffer
     take_semaphore(winsys_sem, 0);
-    /*
-     * kitor: Structure address stays the same on R, RP, 200d. Well, it can
-     *        be dynamic on XCM cameras, but R and RP use single struct
-     *        and address of each one is known.
-     *        I moved definition to consts.h
-     */
     XimrExe((void *)XIMR_CONTEXT);
     give_semaphore(winsys_sem);
-    #endif
 }
 
 static uint32_t indexed2rgbLUT[RGB_LUT_SIZE] = {

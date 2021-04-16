@@ -249,7 +249,7 @@ THUMB_FN(0xe049f041, fill_rectangle_to_vram) // "FillRectangleToVram ILLEGAL_PAR
 
 THUMB_FN(0xe04a044d, RefreshVrmsSurface) // "Call RefreshVrmsSurface"
 DATA_PTR(   0xfd94,  display_refresh_needed) // if 0, RefreshVrmsSurface() does nothing
-THUMB_FN(0xe02b07c3, marv_dcache_clean) // find rgb_vram_info, this function is called with
+THUMB_FN(0xe02b07c3, marv_dcache_clean) // find _rgb_vram_info, this function is called with
                                         // that address as only param, after null check.
                                         // Function inspects the struct and does dcache_clean
                                         // on the extent of the bitmap_data.  Not referenced
@@ -270,12 +270,12 @@ DATA_PTR(   0xfd84,  bmp_vram_info) // function e04a044c looks relevant, see ref
                                     // you can see fd70 + 0x14, 0x18, 0x1c being used to see which vram buffer
                                     // is active, or ready maybe.
 
-DATA_PTR(   0xfd80,  rgb_vram_info) // Used in many places, written to in "InitializeScreen"
-                                    // At least for 200D, this is BGRA buffer, earlier in the render
-                                    // chain than the YUV ones.  But, changes made to it will not
-                                    // render until a refresh occurs (can manually trigger via RefreshVrmsSurface()),
-                                    // but direct refresh via XimrExe() is simpler (we think this tells
-                                    // the renderer peripheral to take the RGB data and update the screen(s).
+DATA_PTR(   0xfd80,  _rgb_vram_info) // Used in many places, written to in "InitializeScreen"
+                                     // At least for 200D, this is BGRA buffer, earlier in the render
+                                     // chain than the YUV ones.  But, changes made to it will not
+                                     // render until a refresh occurs (can manually trigger via RefreshVrmsSurface()),
+                                     // but direct refresh via XimrExe() is simpler (we think this tells
+                                     // the renderer peripheral to take the RGB data and update the screen(s).
 
 DATA_PTR(   0xfda0,  display_output_mode) // on 200D, 1: 960x540, anything else, 720x480
 DATA_PTR(   0xfd7c,  winsys_sem)
