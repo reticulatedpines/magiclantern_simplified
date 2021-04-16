@@ -23,7 +23,7 @@
 /* high confidence */
 #define DRYOS_ASSERT_HANDLER        0x4000               //from debug_asset function, hard to miss
 
-#define CURRENT_GUI_MODE            (*(int*)0x8708)      // see SetGUIRequestMode, first arg gets stored here.
+#define CURRENT_GUI_MODE            (*(int*)0x8700)      // see SetGUIRequestMode, Compared with param 1 before write to 0x8708
 
 #define GUIMODE_PLAY 2
 #define GUIMODE_MENU 3
