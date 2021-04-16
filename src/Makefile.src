@@ -248,7 +248,7 @@ ML_SRC_REBOOT_OBJ = reboot.o \
 endif
 
 clean::
-	$(call rm_files, magiclantern.bin autoexec autoexec.map location.map)
+	$(call rm_files, magiclantern.bin autoexec autoexec.map location.map test.lds)
 
 autoexec: $(ML_SRC_REBOOT_OBJ)
 	$(call build,LD,$(LD) \
@@ -275,11 +275,15 @@ autoexec-fir: $(ML_SRC_REBOOT_OBJ)
 clean::
 	$(call rm_files, autoexec-fir autoexec-fir.bin)
 
+# kitor: fix race condition on WSL by using temporary file
+# target itself creates magiclantern.lds which was at the same time overwritten
+# by grep redirected output.
 magiclantern.lds: $(SRC_DIR)/magiclantern.lds.S
-	$(call build,CPP,$(CPP) $(CFLAGS) $< | $(GREP) -v '^#' > $@)
+	$(call build,CPP,$(CPP) $(CFLAGS) $< | $(GREP) -v '^#' > tmp.lds)
+	$(MV) tmp.lds $@
 
 clean::
-	$(call rm_files, magiclantern.lds)
+	$(call rm_files, magiclantern.lds, tmp.lds)
 
 $(TOP_DIR)/tcc/libtccx.o: FORCE
 	+$(MAKE) -C $(TOP_DIR)/tcc

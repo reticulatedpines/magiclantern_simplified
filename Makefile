@@ -68,6 +68,7 @@ platform_all:
 clean:
 	$(call rm_files, \
 		magiclantern.lds \
+		tmp.lds \
 		$(LUA_PATH)/*.o \
 		$(LUA_PATH)/.*.d \
 		$(LUA_PATH)/liblua.a \
