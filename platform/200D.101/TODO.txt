@@ -1,3 +1,6 @@
+Test and fix take_screenshot(), there's some YUV / RGB confusion
+going on and my workaround is hackish.
+
 Verify cfn.c contents are sane
 
 Verify if include/platform/mvr.h makes any sense

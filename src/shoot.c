@@ -278,9 +278,9 @@ int get_ms_clock()
     seconds_clock_update();
 
     /* derived from microseconds_clock */
-    int miliseconds_clock = microseconds_clock / 1000;  /* overflow after 24 days */
+    int milliseconds_clock = microseconds_clock / 1000;  /* overflow after 24 days */
 
-    return miliseconds_clock;
+    return milliseconds_clock;
 }
 
 uint64_t get_us_clock()
@@ -317,11 +317,11 @@ uint64_t get_us_clock()
  */
 int should_run_polling_action(int period_ms, int* last_updated_time)
 {
-    int miliseconds_clock = get_ms_clock();
+    int milliseconds_clock = get_ms_clock();
 
-    if (miliseconds_clock >= (*last_updated_time) + period_ms)
+    if (milliseconds_clock >= (*last_updated_time) + period_ms)
     {
-        *last_updated_time = miliseconds_clock;
+        *last_updated_time = milliseconds_clock;
         return 1;
     }
     return 0;

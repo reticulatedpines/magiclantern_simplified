@@ -6,6 +6,7 @@
 // partially working
 //#define FEATURE_SHOW_SHUTTER_COUNT
 //#define FEATURE_SHOW_TASKS
+#define FEATURE_SCREENSHOT
 
 // prevent ML attempting stack unwinding in some cases.
 // This does not yet work (assumes ARM, not Thumb).  Alex recommends

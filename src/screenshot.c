@@ -11,9 +11,9 @@
 int take_screenshot( char* filename, uint32_t mode )
 {
     /* image buffers */
-    uint8_t * rgb = 0;
-    uint8_t * bmp_copy = 0;
-    uint32_t * yuv_copy = 0;
+    uint8_t *rgb = NULL;
+    uint8_t *bmp_copy = NULL;
+    uint32_t *yuv_copy = NULL;
     
     beep();
     info_led_on();
@@ -22,8 +22,11 @@ int take_screenshot( char* filename, uint32_t mode )
     int save_bmp = mode & SCREENSHOT_BMP;
     int save_yuv = mode & SCREENSHOT_YUV;
     
-    uint8_t* bvram = bmp_vram();
-    uint32_t* lvram = (uint32_t*) get_yuv422_vram()->vram;
+    uint8_t *bvram = bmp_vram();
+    uint32_t *lvram = NULL;
+    struct vram_info *vram_info = get_yuv422_vram();
+    if (vram_info != NULL) 
+        lvram = vram_info->vram;
     
     if (!lvram)
     {
@@ -32,12 +35,17 @@ int take_screenshot( char* filename, uint32_t mode )
     }
 
     /* do a fast temporary copy of the VRAMs to minimize motion artifacts (tearing) */
+    if (save_yuv)
+    {
+        yuv_copy = tmp_malloc(vram_lv.width * vram_lv.pitch);
+        if (!yuv_copy)
+            goto err;
+        memcpy(yuv_copy, lvram, vram_lv.width * vram_lv.pitch);
+    }
+
     bmp_copy = tmp_malloc(720 * 480);
-    yuv_copy = tmp_malloc(vram_lv.width * vram_lv.pitch);
-    if (!bmp_copy) goto err;
-    if (!yuv_copy) goto err;
-    
-    memcpy(yuv_copy, lvram, vram_lv.width * vram_lv.pitch);
+    if (!bmp_copy)
+        goto err;
     for (int y = 0; y < 480; y++)
     {
         memcpy(bmp_copy + y*720, &bvram[BM(0,y)], 720);
@@ -46,7 +54,8 @@ int take_screenshot( char* filename, uint32_t mode )
     /* setup output buffer */
     /* todo: support HDMI resolutions? */
     rgb = malloc(720 * 480 * 3);
-    if (!rgb) goto err;
+    if (!rgb)
+        goto err;
     
     /* fill it with data */
     for (int y = 0; y < 480; y++)
@@ -64,7 +73,8 @@ int take_screenshot( char* filename, uint32_t mode )
                 
                 /* get palette entry (including our DIGIC pokes, if any) */
                 pal = shamem_read(LCD_Palette[3*p]);
-                if (!pal) pal = LCD_Palette[3*p + 2];
+                if (!pal)
+                    pal = LCD_Palette[3*p + 2];
                 opacity = (pal >> 24) & 0xFF;
                 Y = (pal >> 16) & 0xFF;
                 U = (pal >>  8) & 0xFF;
@@ -154,9 +164,12 @@ int take_screenshot( char* filename, uint32_t mode )
     return 1;
 
 err:
-    if (rgb) free(rgb);
-    if (bmp_copy) free(bmp_copy);
-    if (yuv_copy) free(yuv_copy);
+    if (rgb)
+        free(rgb);
+    if (bmp_copy)
+        free(bmp_copy);
+    if (yuv_copy)
+        free(yuv_copy);
     info_led_off();
     return 0;
 }

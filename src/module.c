@@ -12,6 +12,8 @@
 #include "lens.h"
 #include "ml-cbr.h"
 
+#include "libtcc.h"
+
 #ifndef CONFIG_MODULES_MODEL_SYM
 #error Not defined file name with symbols
 #endif
@@ -332,7 +334,20 @@ static void _module_load_all(uint32_t list_only)
         if(module_list[mod].enabled)
         {
             printf("  [i] load: %s\n", module_list[mod].filename);
+
             int32_t ret = tcc_add_file(state, module_list[mod].long_filename);
+
+            // SJE FIXME trying to determine module base address
+            // so I can use addr2line
+#if 0
+            int size = 0;
+            void *data_addr = NULL;
+            data_addr = tcc_get_section_ptr(state, ".text", &size);
+            DryosDebugMsg(0, 15, "loading module: %s", module_list[mod].filename);
+            DryosDebugMsg(0, 15, "module .text: 0x%x", data_addr);
+            //DryosDebugMsg(0, 15, "module text_addr: 0x%x", state->text_addr);
+#endif
+
             module_list[mod].valid = 1;
 
             /* seems bad, disable it */
@@ -1359,8 +1374,12 @@ static int module_show_about_page(int mod_number)
             int xl = 710 - max_width * font_med.width;
             xm = xm - xl + 10;
             xl = 10;
-            
-            int lines_for_update_msg = strchr(module_last_update, '\n') ? 3 : 2;
+
+            int lines_for_update_msg;
+            if (module_last_update == NULL)
+                lines_for_update_msg = 2;
+            else
+                lines_for_update_msg = strchr(module_last_update, '\n') ? 3 : 2;
 
             int yr = 480 - (num_extra_strings + lines_for_update_msg) * font_med.height;
 
@@ -1424,6 +1443,10 @@ static MENU_UPDATE_FUNC(module_menu_info_update)
             y += font_med.height;
             for ( ; strings->name != NULL; strings++)
             {
+                if (strings->value == NULL)
+                    // strchr() will segfault if strings->value is NULL, at least make it easier
+                    // to diagnose.
+                    DryosDebugMsg(0, 15, "WARN: null strings->value");
                 if (strchr(strings->value, '\n'))
                 {
                     continue; /* don't display multiline strings here */

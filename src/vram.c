@@ -509,6 +509,12 @@ int first_video_clip = 1;
 
 struct vram_info * get_yuv422_vram()
 {
+    // SJE FIXME quick hack to diagnose crash in take_screenshot(),
+    // I think YUV422_LV_BUFFER_1 or similar are junk values
+    #ifdef CONFIG_200D
+    return NULL;
+    #endif
+
     vram_params_update_if_dirty();
     
     if (digic_zoom_overlay_enabled()) // compute histograms and such on full-screen image
