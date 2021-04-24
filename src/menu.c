@@ -4801,12 +4801,14 @@ void menu_benchmark()
     SetGUIRequestMode(1);
     msleep(1000);
     int t0 = get_ms_clock();
+
     for (int i = 0; i < 500; i++)
     {
         menu_redraw_do();
         bmp_printf(FONT_MED, 0, 0, "%d%% ", i/5);
     }
     int t1 = get_ms_clock();
+
     clrscr();
     NotifyBox(20000, "Elapsed time: %d ms", t1 - t0);
 }
@@ -4854,8 +4856,13 @@ menu_redraw_task()
             DryosDebugMsg(0, 15, "err from queue, continuing anyway: 0x%x", err);
             //SJE FIXME - we see 0x9 errors.
             // There looks to be only one path where msg_queue_receive() returns 9,
-            // understand the cause and fix it, then re-enable the continue I guess.
-            //continue;
+            // might be useful to understand the cause
+            continue;
+
+            // This is a handy place to put checks you want to run periodically
+            //DryosDebugMsg(0, 15, "*4e48: 0x%x", *(int *)0x4e48);
+            //clrscr();
+            //NotifyBox(5000, "Message");
         }
         else {
             DryosDebugMsg(0, 15, "no err from queue");
