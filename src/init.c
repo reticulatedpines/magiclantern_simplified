@@ -401,29 +401,6 @@ static void my_big_init_task()
         /* do not continue loading ML */
         return;
     }
-    else
-    {
-      #if defined(CONFIG_ADDITIONAL_VERSION)
-          // Re-write the version string.
-          // Don't use strcpy() so that this can be done
-          // before strcpy() or memcpy() are located.
-          extern char additional_version[];
-          additional_version[0] = '-';
-          additional_version[1] = 'm';
-          additional_version[2] = 'l';
-          additional_version[3] = '-';
-          additional_version[4] = build_version[0];
-          additional_version[5] = build_version[1];
-          additional_version[6] = build_version[2];
-          additional_version[7] = build_version[3];
-          additional_version[8] = build_version[4];
-          additional_version[9] = build_version[5];
-          additional_version[10] = build_version[6];
-          additional_version[11] = build_version[7];
-          additional_version[12] = build_version[8];
-          additional_version[13] = '\0';
-      #endif
-    }
 
     _load_fonts();
 
@@ -591,6 +568,27 @@ void boot_post_init_task(void)
         build_user
     );
 
+#if defined(CONFIG_ADDITIONAL_VERSION)
+    // Re-write the version string.
+    // Don't use strcpy() so that this can be done
+    // before strcpy() or memcpy() are located.
+    extern char additional_version[];
+    additional_version[0] = '-';
+    additional_version[1] = 'm';
+    additional_version[2] = 'l';
+    additional_version[3] = '-';
+    additional_version[4] = build_version[0];
+    additional_version[5] = build_version[1];
+    additional_version[6] = build_version[2];
+    additional_version[7] = build_version[3];
+    additional_version[8] = build_version[4];
+    additional_version[9] = build_version[5];
+    additional_version[10] = build_version[6];
+    additional_version[11] = build_version[7];
+    additional_version[12] = build_version[8];
+    additional_version[13] = '\0';
+#endif
+
     #ifdef FEATURE_VRAM_RGBA
     while (!rgb_vram_preinit())
         msleep(100);
@@ -599,7 +597,7 @@ void boot_post_init_task(void)
     // wait for firmware to initialize
     while (!bmp_vram_raw())
         msleep(100);
-
+    
     // wait for overriden gui_main_task (but use a timeout so it doesn't break if you disable that for debugging)
     for (int i = 0; i < 50; i++)
     {
