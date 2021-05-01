@@ -339,7 +339,7 @@ static void _module_load_all(uint32_t list_only)
 
             // SJE FIXME trying to determine module base address
             // so I can use addr2line
-#if 0
+#if 1
             int size = 0;
             void *data_addr = NULL;
             data_addr = tcc_get_section_ptr(state, ".text", &size);

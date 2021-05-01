@@ -53,6 +53,9 @@ static void mem_benchmark_run(char* msg, int* y, int bufsize, mem_bench_fun benc
     bmp_fill(COLOR_BLACK, 0, 0, 720, font_large.height);
     bmp_printf(FONT_LARGE, 0, 0, "%s", msg);
 
+    // SJE FIXME working out where this module crashes...
+    DryosDebugMsg(0, 15, "bench_fun: 0x%x", bench_fun);
+
     int speeds[2];
 
     for (int display = 1; display >= 0; display--)
@@ -184,6 +187,10 @@ static void mem_benchmark_task()
 {
     msleep(1000);
     
+    // SJE testing
+    DryosDebugMsg(0, 15, "in mem_benchmark_task");
+    msleep(200);
+
     if (!lv)
     {
         /* run the benchmark in either LV on PLAY mode */
