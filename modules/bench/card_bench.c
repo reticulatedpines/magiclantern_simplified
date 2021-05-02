@@ -10,7 +10,8 @@ static void card_benchmark_wr(int bufsize, int K, int N)
 {
     int x = 0;
     static int y = 80;
-    if (K == 1) y = 80;
+    if (K == 1)
+        y = 80;
 
     FIO_RemoveFile(CARD_BENCHMARK_FILE);
     msleep(2000);
@@ -96,7 +97,7 @@ static void card_benchmark_run(int full_test)
 
     print_benchmark_header();
 
-    struct card_info * card = get_shooting_card();
+    struct card_info *card = get_shooting_card();
     if (card->maker && card->model)
     {
         bmp_printf(FONT_MONO_20, 0, 80, "%s %s %s", card->type, card->maker, card->model);
@@ -150,7 +151,8 @@ static void twocard_write_task(char* filename)
             uint32_t start = 0x50000000;
             bmp_printf(FONT_MONO_20, 0, cf*20, "[%s] Writing chunk %d [total=%d MB] (buf=%dK)... ", cf ? "CF" : "SD", msg, filesize, bufsize/1024);
             int r = FIO_WriteFile( f, (const void *) start, bufsize );
-            if (r != bufsize) break; // card full?
+            if (r != bufsize)
+                break; // card full?
             filesize += bufsize / 1024 / 1024;
         }
         FIO_CloseFile(f);
@@ -175,7 +177,7 @@ static void twocard_benchmark_task()
     clrscr();
     print_benchmark_header();
 
-    struct card_info * card = get_shooting_card();
+    struct card_info *card = get_shooting_card();
     if (card->maker && card->model)
     {
         bmp_printf(FONT_MONO_20, 0, 80, "%s %s %s", card->type, card->maker, card->model);
@@ -218,14 +220,15 @@ static void card_bufsize_benchmark_task()
     int y = 100;
 
     FILE* log = FIO_CreateFile("bench.log");
-    if (!log) goto cleanup;
+    if (!log)
+        goto cleanup;
 
     my_fprintf(log, "Buffer size experiment\n");
     my_fprintf(log, "ML %s, %s\n", build_version, build_id); // this includes camera name
     char* mode = print_benchmark_header();
     my_fprintf(log, "%s\n", mode);
 
-    struct card_info * card = get_shooting_card();
+    struct card_info *card = get_shooting_card();
     if (card->maker && card->model)
     {
         my_fprintf(log, "%s %s %s", card->type, card->maker, card->model);
@@ -241,7 +244,8 @@ static void card_bufsize_benchmark_task()
         uint32_t n = filesize * 1024 * 1024 / bufsize;
 
         FILE* f = FIO_CreateFile(CARD_BENCHMARK_FILE);
-        if (!f) goto cleanup;
+        if (!f)
+            goto cleanup;
 
         int t0 = get_ms_clock();
         int total = 0;
@@ -251,19 +255,22 @@ static void card_bufsize_benchmark_task()
             bmp_printf(FONT_LARGE, 0, 0, "Writing: %d/100 (buf=%dK)... ", i * 100 / n, bufsize/1024);
             uint32_t r = FIO_WriteFile( f, (const void *) start, bufsize );
             total += r;
-            if (r != bufsize) break;
+            if (r != bufsize)
+                break;
         }
         FIO_CloseFile(f);
 
         int t1 = get_ms_clock();
         int speed = total / 1024 * 1000 / 1024 * 10 / (t1 - t0);
         bmp_printf(FONT_MONO_20, x, y += 20, "Write speed (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
-        if (y > 450) y = 100;
+        if (y > 450)
+            y = 100;
 
         my_fprintf(log, "%d %d\n", bufsize, speed);
 
     }
 cleanup:
-    if (log) FIO_CloseFile(log);
+    if (log)
+        FIO_CloseFile(log);
     canon_gui_enable_front_buffer(1);
 }
