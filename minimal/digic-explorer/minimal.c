@@ -8,8 +8,19 @@
 #include "font_direct.h"
 #include "imgconv.h"
 
+#ifdef CONFIG_DIGIC_45
+/** Returns a pointer to the real BMP vram, as reported by Canon firmware.
+ *  Not to be used directly - it may be somewhere in the middle of VRAM! */
+inline uint8_t* _bmp_vram_raw() { return bmp_vram_info[1].vram2; } 
+#endif
+
 #ifdef FEATURE_VRAM_RGBA
 static uint8_t *bmp_vram_indexed = NULL;
+
+inline uint8_t *_bmp_vram_raw() {
+    struct MARV *marv = _rgb_vram_info;
+    return marv ? marv->bitmap_data : NULL;
+}
 
 // XimrExe is used to trigger refreshing the OSD after the RGBA buffer
 // has been updated.  Should probably take a XimrContext *,
@@ -22,11 +33,11 @@ void refresh_yuv_from_rgb(void)
     uint8_t *b = bmp_vram_indexed;
     uint32_t *rgb_data = NULL;
 
-    if (rgb_vram_info != NULL)
-        rgb_data = (uint32_t *)rgb_vram_info->bitmap_data;
+    if (_rgb_vram_info != NULL)
+        rgb_data = (uint32_t *)_rgb_vram_info->bitmap_data;
     else
     {
-        DryosDebugMsg(0, 15, "rgb_vram_info was NULL, can't refresh OSD");
+        DryosDebugMsg(0, 15, "_rgb_vram_info was NULL, can't refresh OSD");
         return;
     }
 
@@ -104,7 +115,7 @@ static void run_test()
 static void hello_world()
 {
     // wait for display to initialize
-    while (!bmp_vram_raw())
+    while (!_bmp_vram_raw())
     {
         msleep(100);
     }
@@ -175,7 +186,7 @@ void boot_post_init_task(void)
 // used by font_draw
 void disp_set_pixel(int x, int y, int c)
 {
-    uint8_t *bmp = bmp_vram_raw();
+    uint8_t *bmp = _bmp_vram_raw();
 
 #ifdef FEATURE_VRAM_RGBA
     bmp_vram_indexed[x + y * BMPPITCH] = c;
