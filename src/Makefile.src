@@ -248,7 +248,7 @@ ML_SRC_REBOOT_OBJ = reboot.o \
 endif
 
 clean::
-	$(call rm_files, magiclantern.bin autoexec autoexec.map location.map test.lds)
+	$(call rm_files, magiclantern.bin autoexec autoexec.map location.map tmp.lds)
 
 autoexec: $(ML_SRC_REBOOT_OBJ)
 	$(call build,LD,$(LD) \
