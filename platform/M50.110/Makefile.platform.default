@@ -1,15 +1,25 @@
 # EOS M50 1.1.0
 
 CANON_NAME_FIR  = CCF19110.FIR
-FIRMWARE_ID     = 0x00000412
 UPDATE_NAME_FIR = D_M50110.FIR
+FIRMWARE_ID     = 0x00000412
 ROMBASEADDR     = 0xE0040000
 
 # Shrink Canon's malloc heap by changing its end address
-#          ("meminfo -m" in drysh)    ("memmap" in drysh)
-# Default: 0x000dc878 - 0x001f0ec0, 0x000dc870 - 0x001f1190 (total size 0x114920)
-# Patched: 0x000dc878 - 0x001b0ec0, 0x000dc870 - 0x001b1190 (256K reserved for ML)
-RESTARTSTART    = 0x001B0FC0
+# Example:
+#         | "meminfo -m" in drysh  |    "memmap" in drysh   |    memmap summary:
+#         |    start       end     |    start       end     |
+# Default | 0x000dc878  0x001f0ec0 | 0x000dc870  0x001f1190 | (total size 0x114920)
+# Patched | 0x000dc878  0x001b0ec0 | 0x000dc870  0x001b1190 | (256K reserved for ML)
+#
+# This can be also determined from code.
+# HIJACK_INSTR_HEAP_SIZE is size from memmap. Trace xref in cstart, you will find
+# memory start address set in the same struct as HEAP_SIZE.
+# With that RESTARTSTART = HEAP_START + HEAP_SIZE - ml_reserved_mem
+RESTARTSTART    = 0x001B1190
+
+# Note: At the moment of writing, D78 has ml_reserved_mem hardcoded to 0x46000
+# in boot-d78.c. With that in mind RESTARTSTART should be probably 0x1AB190
 
 # Cortex A9, binaries loaded as Thumb
 CFLAG_USER = -mthumb -mlong-calls
@@ -22,3 +32,4 @@ ML_MINIMAL_OBJ  = minimal-d78.o
 endif
 
 ML_BOOT_OBJ     = boot-d78.o
+ML_SRC_EXTRA_OBJS += function_overrides.o

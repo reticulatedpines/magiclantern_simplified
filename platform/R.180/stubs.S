@@ -62,7 +62,7 @@ THUMB_FN(0xE053D48E,  FIO_Flush)                            // to be called afte
 THUMB_FN(0xE053C3E6, _FIO_GetFileSize64)                    // AcqSize; different in D8 cameras - returns 64 bit size in struct of lower/upper 32bit part.
 
 /** Bitmap **/
-DATA_PTR(    0xFDFC,  bmp_vram_info)                        /* first VRAM buffer, used right after DISP_SetUpdateOSDVram */
+DATA_PTR(    0xFDFC,  bmp_vram_info)                        /* first YUV VRAM buffer, used right after DISP_SetUpdateOSDVram */
 
 /** Debug messages **/
 THUMB_FN(0xE0563314,  DryosDebugMsg)                        /* lots of debug messages; format string is third argument */
@@ -255,7 +255,7 @@ DATA_PTR(   0x6EFA0, RENDERER_LayersArr);
 DATA_PTR(   0x6F2A4, VMIX_LayersArr);
 DATA_PTR(   0x6F2BC, VMIX_LayersEnableArr);
 
-/** Generic stubs **/
+/** General FEATURE_VRAM_RGBA stubs **/
 THUMB_FN(0xe00da8c0, XimrExe);                              //In RefreshVrmsSurface, just before "XimrExe" debug message
 DATA_PTR(    0xFDF0, winsys_sem);                           //Used in RefreshVrmsSurface around XimrExe call
 

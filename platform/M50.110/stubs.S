@@ -2,11 +2,11 @@
  * Entry points into the firmware image.
  *
  * These are the functions that we can call from our tasks
- * in the Canon 1.0.2 firmware for the EOS M50.
+ * in the Canon 1.1.0 firmware for the EOS M50.
  *
  */
 /*
- * Copyright (C) 2019 Magic Lantern Team
+ * Copyright (C) 2021 Magic Lantern Team
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -36,7 +36,7 @@ THUMB_FN(0xE00400FC,  cstart)                               /* calls bzero32 and
 THUMB_FN(0xE0578D64,  bzero32)                              /* zeros out a data structure */
 THUMB_FN(0xE0143CFC,  create_init_task)                     /* low-level DryOS initialization */
 THUMB_FN(0xE05777D0,  dcache_clean)                         /* loop with MCR p15 c7,c10,1; DSB */
-THUMB_FN(0xE05778A4 ,  icache_invalidate)                    /* loop with MCR p15 c7,c5,1; c7,c1,6; c7,c1,0; ISB */
+THUMB_FN(0xE05778A4,  icache_invalidate)                    /* loop with MCR p15 c7,c5,1; c7,c1,6; c7,c1,0; ISB */
 THUMB_FN(0xE0040224,  init_task)                            /* USER_MEM size checking, dmSetup, termDriverInit, stdlibSetup etc */
 
 /** Tasks **/
@@ -52,7 +52,6 @@ THUMB_FN(0xE0546D56,  FIO_CloseFile)
 THUMB_FN(0xE05469B6, _FIO_ReadFile)
 THUMB_FN(0xE0546B42, _FIO_WriteFile)
 THUMB_FN(0xE0546A82,  FIO_SeekSkipFile)                     // guess: Search?!
-THUMB_FN(0xE0546EF2, _FIO_GetFileSize)                      // AcqSize
 THUMB_FN(0xE054691C, _FIO_RemoveFile)
 THUMB_FN(0xE0547926, _FIO_RenameFile)
 THUMB_FN(0xE0547DB0, _FIO_CreateDirectory)
@@ -60,6 +59,7 @@ THUMB_FN(0xE0548212, _FIO_FindFirstEx)                      // FirstEnt
 THUMB_FN(0xE0548318,  FIO_FindNextEx)                       // NextEnt
 THUMB_FN(0xE05483DA,  FIO_FindClose)                        // CloseEnt
 THUMB_FN(0xE0547F9A,  FIO_Flush)                            // to be called after FIO_CloseFile?
+THUMB_FN(0xE0546EF2, _FIO_GetFileSize64)                    // AcqSize; different in D8 cameras - returns 64 bit size in struct of lower/upper 32bit part.
 
 /** Bitmap **/
 DATA_PTR(    0xFC20,  bmp_vram_info)                        /* first VRAM buffer, used right after DISP_SetUpdateOSDVram */
@@ -75,7 +75,7 @@ THUMB_FN(0xE05722C6 ,  call)                                 /* many functions c
 
 /** GUI timers **/
 THUMB_FN(0xE0732BDE,  SetHPTimerNextTick)                   /* same "worker" function as SetHPTimerAfterNow */
-THUMB_FN(0xE0732B7E ,  SetHPTimerAfterNow)                   /* from error message */
+THUMB_FN(0xE0732B7E,  SetHPTimerAfterNow)                   /* from error message */
 THUMB_FN(0xE054CF14,  SetTimerAfter)                        /* from error message */
 THUMB_FN(0xE054CFCA,  CancelTimer)                          /* CancelRefreshTimer, CancelPlayTimer */
 
@@ -90,11 +90,30 @@ THUMB_FN(0xE03C242E, _malloc)
 THUMB_FN(0xE03C2466, _free)
 
 /** Memory info **/
-THUMB_FN(0xE00F1C18,  malloc_info)                          /* Malloc Information */
 THUMB_FN(0xE009DEB8,  memmap_info)                          /* Exception vector, DRYOS system memory etc */
 THUMB_FN(0xE0146FD6,  smemShowFix)                          /* Common Lower, Common Upper etc */
+THUMB_FN(0xE00F1C18,  malloc_info)                          /* Malloc Information */
 THUMB_FN(0xE00F1CB0,  sysmem_info)                          /* System Memory Information */
 
 /** Misc **/
 THUMB_FN(0xE055A8B4,  uart_printf)
 THUMB_FN(0xE0096060,  vsnprintf)                            /* called by LogFile_printf(..., "*Data Lost*\n", ...); the one called by DebugMsg only knows %s */
+
+/** Semaphores **/
+THUMB_FN(0xe0577b60,  create_named_semaphore)
+THUMB_FN(0xe0577cd6,  give_semaphore)                       /* SystemIF::KerSem.c   */
+THUMB_FN(0xe0577c5c,  take_semaphore)                       /* SystemIF::KerSem.c   */
+
+/**
+ * RGBA / Compositor functions and structures
+ */
+
+/** General FEATURE_VRAM_RGBA stubs **/
+THUMB_FN(0xe00d6404, XimrExe);                              //In RefreshVrmsSurface, just before "XimrExe" debug message
+DATA_PTR(    0xFC10, winsys_sem);                           //Used in RefreshVrmsSurface around XimrExe call
+
+/*
+ * Pointer to first Canon RGBA buffer (GUI). On M50 this is set up by 
+ * VDrv_InitializeScreen function, 2nd param is saved there.
+ */
+DATA_PTR(    0xFC1C, _rgb_vram_info);
