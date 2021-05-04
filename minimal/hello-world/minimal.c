@@ -26,7 +26,7 @@ static void blink_once()
 #ifdef CONFIG_DIGIC_45
 /** Returns a pointer to the real BMP vram, as reported by Canon firmware.
  *  Not to be used directly - it may be somewhere in the middle of VRAM! */
-inline uint8_t* bmp_vram_raw() { return bmp_vram_info[1].vram2; }
+uint8_t* bmp_vram_raw() { return bmp_vram_info[1].vram2; }
 #endif
 
 /** We never tried Digic 6 yet. With CHDK progress on XIMR we believe it will
@@ -41,7 +41,7 @@ inline uint8_t* bmp_vram_raw() { return NULL; }
 static uint8_t *bmp_vram_indexed = NULL;
 extern struct MARV *_rgb_vram_info;
 
-inline uint8_t *bmp_vram_raw() {
+static inline uint8_t *bmp_vram_raw() {
     struct MARV *marv = _rgb_vram_info;
     return marv ? marv->bitmap_data : NULL;
 }
@@ -50,7 +50,7 @@ extern void* _malloc(size_t size);
 /** for real ML, malloc is preferred, which may wrap the function with one with
   * more logging. That's not always available so we use the underlying malloc
   * in this simple test code. */
-inline void rgb_vram_init(){
+static inline void rgb_vram_init(){
     bmp_vram_indexed = _malloc(BMP_VRAM_SIZE);
     if (bmp_vram_indexed == NULL)
     { // can't display anything, blink led to indicate sadness
@@ -112,7 +112,7 @@ static void run_test()
 {
     /* change to A:/ for CF cards */
     FILE * f = _FIO_CreateFile("B:/FF000000.BIN");
-    
+
     if (f != (void*) -1)
     {
         FIO_WriteFile(f, (void*) 0xFF000000, 0x1000000);

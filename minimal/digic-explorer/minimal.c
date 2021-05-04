@@ -50,7 +50,7 @@ extern void* _malloc(size_t size);
 /** for real ML, malloc is preferred, which may wrap the function with one with
   * more logging. That's not always available so we use the underlying malloc
   * in this simple test code. */
-inline void rgb_vram_init(){
+static inline void rgb_vram_init(){
     bmp_vram_indexed = _malloc(BMP_VRAM_SIZE);
     if (bmp_vram_indexed == NULL)
     { // can't display anything, blink led to indicate sadness
