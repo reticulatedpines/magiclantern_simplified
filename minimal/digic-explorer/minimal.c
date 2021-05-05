@@ -15,6 +15,22 @@ static void blink_once()
 
 // block of code needed for basic graphics routines to work
 
+/** Some selected colors */
+
+#define COLOR_EMPTY             0x00 // total transparent
+#define COLOR_WHITE             0x01 // Normal white
+#define COLOR_BLACK             0x02
+#define COLOR_TRANSPARENT_BLACK 0x03
+#define COLOR_CYAN              0x05
+#define COLOR_GREEN1            0x06
+#define COLOR_GREEN2            0x07
+#define COLOR_RED               0x08 // normal red
+#define COLOR_LIGHT_BLUE        0x09
+#define COLOR_BLUE              0x0B // normal blue
+#define COLOR_DARK_RED          0x0C
+#define COLOR_MAGENTA           0x0E
+#define COLOR_YELLOW            0x0F // normal yellow
+
 #ifdef CONFIG_VXWORKS
     #define BMPPITCH 360
     #define BMP_VRAM_SIZE (360*240)
@@ -38,6 +54,7 @@ inline uint8_t* bmp_vram_raw() { return NULL; }
 #endif
 
 #ifdef FEATURE_VRAM_RGBA
+#define RGB_LUT_SIZE 16
 static uint8_t *bmp_vram_indexed = NULL;
 extern struct MARV *_rgb_vram_info;
 
@@ -58,7 +75,28 @@ static inline void rgb_vram_init(){
           blink_once();
     }
     //initialize buffer with zeros
-    memset(bmp_vram_indexed, 0x0, BMP_VRAM_SIZE);
+    memset(bmp_vram_indexed, COLOR_TRANSPARENT_BLACK, BMP_VRAM_SIZE);
+}
+
+//short LUT
+static uint32_t indexed2rgbLUT[RGB_LUT_SIZE] = {
+    0xffffffff, 0xffebebeb, 0xff000000, 0x00000000, 0xffa33800, // 0
+    0xff20bbd9, 0xff009900, 0xff01ad01, 0xffea0001, 0xff0042d4, // 5
+    0xffb9bb8c, 0xff1c237e, 0xffc80000, 0xff0000a8, 0xffc9009a, // 10
+    0xffd1c000
+};
+
+uint32_t indexed2rgb(uint8_t color)
+{
+    if (color < RGB_LUT_SIZE)
+    {
+        return indexed2rgbLUT[color];
+    }
+    else
+    {
+        // return gray so it's probably visible
+        return indexed2rgbLUT[4];
+    }
 }
 
 extern int XimrExe(void *);
@@ -76,10 +114,11 @@ void refresh_yuv_from_rgb(void)
 
     for (size_t n = 0; n < BMP_VRAM_SIZE; n++)
     {
-        if (*b == 0x0)
+        uint32_t rgb = indexed2rgb(*b);
+        if ((rgb && 0xff000000) == 0x00000000)
             rgb_data++;
         else
-            *rgb_data++ = 0xFFFFFFFF; //white
+            *rgb_data++ = rgb;
         b++;
     }
 
@@ -136,7 +175,7 @@ static void hello_world()
     {
         blink_once();
 
-        font_draw(120, 75, 0x1, 3, "Hello, World!");
+        font_draw(120, 75, COLOR_WHITE, 3, "Hello, World!");
         #ifdef FEATURE_VRAM_RGBA
         refresh_yuv_from_rgb();
         #endif
