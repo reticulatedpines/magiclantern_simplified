@@ -99,10 +99,72 @@ THUMB_FN(0xE00F1CB0,  sysmem_info)                          /* System Memory Inf
 THUMB_FN(0xE055A8B4,  uart_printf)
 THUMB_FN(0xE0096060,  vsnprintf)                            /* called by LogFile_printf(..., "*Data Lost*\n", ...); the one called by DebugMsg only knows %s */
 
+/** Startup **/
+DATA_PTR(    0xE484,  additional_version)
+/* kitor: Please note that this points at '\n' char in char* with FW version */
+
+/** Tasks **/
+DATA_PTR(    0x4108,  task_dispatch_hook)                   /* same as R180 */
+THUMB_FN(0xe00e968c,  task_trampoline)
+/*
+ * kitor: task_create calls internal function (e05f5fb4) which set up basic
+ * task structure, and part of that is call to task_trampoline_caller (e00e96ac)
+ * (it is followed by check of caller return value).
+ * task_trampoline_caller will pass task_trampoline+1 as parameter to another
+ * function.
+ */
+THUMB_FN(0xe01c8378, is_taskid_valid)
+/*
+ * kitor: via extask function. While on 5D3 it was called directly, now helper
+ * is used. Find extask via string formats. Trace variables holding task id,
+ * you will quickly find where it is verified (this is the mentioned helper).
+ * In the helper code you will find call to our stub.
+ */
+
+/** Recursive locks **/
+THUMB_FN(0xe0577598,  CreateRecursiveLock)                  /* SystemIF::KerMisc.c  */
+THUMB_FN(0xe06d77dc,  AcquireRecursiveLock)                 /* SystemIF::KerRLock.c */
+THUMB_FN(0xe06d78a6,  ReleaseRecursiveLock)                 /* SystemIF::KerRLock.c */
+
 /** Semaphores **/
 THUMB_FN(0xe0577b60,  create_named_semaphore)
 THUMB_FN(0xe0577cd6,  give_semaphore)                       /* SystemIF::KerSem.c   */
 THUMB_FN(0xe0577c5c,  take_semaphore)                       /* SystemIF::KerSem.c   */
+
+/** GUI **/
+    //DATA_PTR(    0xfcb4,  gui_task_list)                        // based on 200d
+THUMB_FN(0xe0519d94,  SetGUIRequestMode)                    // by debug message
+THUMB_FN(0xe004f032,  gui_main_task)                        // task_create("GuiMainTask"...
+THUMB_FN(0xe054f3ca,  dialog_redraw)                        // via xrefs to "pDialog->pSignature == pcSignature"
+THUMB_FN(0xe037719e,  gui_massive_event_loop)               // various "GUICMD_"* strings
+THUMB_FN(0xe004efcc,  gui_enqueue_message)                  // via string "warning! QueueLength=" and "GUI::GUI.c" in one function
+THUMB_FN(0xe065a4f4,  gui_init_end)                         // via "EndGuiInit" string
+DATA_PTR(    0x536c,  gui_main_struct)
+/*
+ * kitor: It is referenced in gui_main_task, but struct starts earlier. Real
+ * structure start was found via function that calls gui_massive_event_loop.
+ */
+
+/*
+ * kitor Similar to R180 I was unable to find GUI_Control either. If you compare
+ * 200D.101 surrounding functions, it just seems to DNE on R and M50.
+ */
+
+ /** GUI timers **/
+ THUMB_FN(0xe064895c,  StartDateTimer)                       // by debug message
+ THUMB_FN(0xe06489d4,  CancelDateTimer)                      // by debug message
+
+/** MPU communication **/
+/*
+ * kitor: skipped for now. InitializeIntercom looks identical to R180?!
+ * I thought M50 has no MPU, yet at least buffers are initialized.
+ */
+
+/** Queue **/
+THUMB_FN(0xe0544124,  msg_queue_create)                     // easy to spot in create_gui_main_task
+THUMB_FN(0xe05441e8,  msg_queue_receive)                    // used on gui queue in gui_main_task
+THUMB_FN(0xe0544346,  msg_queue_post)                       // used in gui_enqueue_message
+THUMB_FN(0xe054437c,  msg_queue_count)                      // called before string "warning! QueueLength"
 
 /**
  * RGBA / Compositor functions and structures
