@@ -127,6 +127,11 @@ THUMB_FN(0xE11C7CF9,  vsnprintf)              /* called near dmstart; references
 THUMB_FN(0xe049e9bf,  SaveVRAM)
 THUMB_FN(0xe05f1c94,  debug_assert) // DRYOS_ASSERT_HANDLER related
 
+// SJE trying to get a substitute vsync callback working for screen refresh
+DATA_PTR(    0xfd78,  winsys_sem_count)
+DATA_PTR(    0xfd7c,  winsys_sem)
+DATA_PTR(    0xfec8,  bmp_vsync_cbr)
+THUMB_FN(0xe049e96c,  BmpVsyncCallBack)
 
 // SJE unsure stuff: currently majority copied from 50D (I have roms for this),
 // or 100D (more modern, presumably sort of similar)
@@ -263,7 +268,6 @@ THUMB_FN(0xe025ea65, XimrSetLayer_unk2)
 THUMB_FN(0xe025eaed, maybe_XimrSetLayerColorParams)
 THUMB_FN(0xe025e949, XimrContextInputLayerSetDimensions)
 
-// WRONG but partially found
 DATA_PTR(   0xfd84,  bmp_vram_info) // function e04a044c looks relevant, see refs to 0x3c0 and 0x21c; 960x540
                                     // 0xfda0 seems bool for whether it's in 960x540 or 720x480.
                                     // 0xfd70 looks like a struct base, at the end of this func
@@ -278,7 +282,6 @@ DATA_PTR(   0xfd80,  _rgb_vram_info) // Used in many places, written to in "Init
                                      // the renderer peripheral to take the RGB data and update the screen(s).
 
 DATA_PTR(   0xfda0,  display_output_mode) // on 200D, 1: 960x540, anything else, 720x480
-DATA_PTR(   0xfd7c,  winsys_sem)
 
 
 

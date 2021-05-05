@@ -63,6 +63,7 @@ inline uint8_t *rgb_vram_preinit()
 }
 
 void refresh_yuv_from_rgb(void);
+static void refresh_yuv_from_rgb_task(void *);
 uint32_t indexed2rgb(uint8_t color);
 
 #define RGB_LUT_SIZE 80

@@ -199,7 +199,7 @@ libtcc.a: $(LIBTCC_OBJ)
 localsyms: libtcctmp.o
 	@$(READELF) $< -Ws | tr -d '\r' |$(AWK) "{print \$$8}" | sort | uniq \
 		| grep -Ev \
-		'^tcc_(new|delete|add_file|relocate|get_symbol|add_symbol|set_options|load_offline_section)$$' \
+		'^tcc_(new|delete|add_file|relocate|get_symbol|get_section_ptr|add_symbol|set_options|load_offline_section)$$' \
 		> $@
 
 #~ libtcc.a: libtcctmp.a localsyms

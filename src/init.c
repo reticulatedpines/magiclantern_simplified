@@ -303,7 +303,7 @@ static void hello_world()
 //        DISP_SetUpdateOSDVram(bmp_vram_info->bitmap_data); // params not fully known.  See 0xe0552dfa for setup
 //        OsdReverseMode(1);  // cool, this works for horizontal flip.  Not tested other values
 
-        refresh_yuv_from_rgb();
+        ml_refresh_display_needed = 1;
         msleep(200);
         //info_led_blink(1, 500, 500);
     }
@@ -368,7 +368,7 @@ static void my_big_init_task()
 
     #ifdef FEATURE_COMPOSITOR_XCM
     while (surface_setup())
-      msleep(500);
+        msleep(500);
     #endif
 
     /* should we require SET for loading ML, or not? */

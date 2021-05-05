@@ -4,6 +4,8 @@
 #include "beep.h"
 #include "rbf_font.h"
 
+extern uint32_t ml_refresh_display_needed;
+
 /* here some macros to wrap the CHDK functions for ML code */
 #define FG_COLOR(f) FONT_FG(f)
 #define BG_COLOR(f) FONT_BG(f)
@@ -357,7 +359,7 @@ static int FAST rbf_draw_char(font *rbf_font, int x, int y, int ch, int fontspec
         return (x + tab_width) / tab_width * tab_width - x;
     }
 #endif
-
+    ml_refresh_display_needed = 1;
     return rbf_font->wTable[ch];
 }
 

@@ -94,7 +94,11 @@ void bmp_draw_to_idle(int value) { bmp_idle_flag = value; }
 #ifdef FEATURE_VRAM_RGBA
 struct MARV *rgb_vram_info = NULL;
 static uint8_t *bmp_vram_indexed = NULL;
+// SJE what is an appropriate priority for this task?
+TASK_CREATE( "redraw_task", refresh_yuv_from_rgb_task, 0, 0x1e, 0x1000 );
 #endif
+// SJE should this global live in bmp.c?
+uint32_t ml_refresh_display_needed = 0;
 
 /** Returns a pointer to currently selected BMP vram (real or mirror) */
 uint8_t * bmp_vram(void)
@@ -200,16 +204,23 @@ void refresh_yuv_from_rgb(void)
         b++;
     }
 
-    /*
-     * kitor: Structure address stays the same on R, RP, 200d. Well, it can
-     *        be dynamic on XCM cameras, but R and RP use single struct
-     *        and address of each one is known.
-     *        I moved definition to consts.h
-     */
     take_semaphore(winsys_sem, 0);
     // trigger Ximr to render to OSD from RGB buffer
     XimrExe((void *)XIMR_CONTEXT);
     give_semaphore(winsys_sem);
+    ml_refresh_display_needed = 0;
+}
+
+static void refresh_yuv_from_rgb_task(void *unused)
+{
+    TASK_LOOP
+    {
+        if (ml_refresh_display_needed && gui_menu_shown() && !ml_shutdown_requested && DISPLAY_IS_ON)
+        {
+            refresh_yuv_from_rgb();
+        }
+        msleep(50); // max 20 fps refresh
+    }
 }
 
 static uint32_t indexed2rgbLUT[RGB_LUT_SIZE] = {

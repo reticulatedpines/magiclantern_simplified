@@ -52,6 +52,8 @@
 #include "lcdsensor.h"
 #endif
 
+extern uint32_t ml_refresh_display_needed;
+
 #if defined(FEATURE_RAW_HISTOGRAM) || defined(FEATURE_RAW_ZEBRAS) || defined(FEATURE_RAW_SPOTMETER)
 #define FEATURE_RAW_OVERLAYS
 #endif
@@ -3872,12 +3874,6 @@ void _redraw_do()
     if (!ml_started) return;
     if (gui_menu_shown()) { menu_redraw(); return; }
     
-#ifdef FEATURE_VRAM_RGBA
-    // this stops occasional graphical corruption
-    // when returning to Canon menu from ML menu.
-    refresh_yuv_from_rgb();
-#endif
-
 BMP_LOCK (
 
 #ifdef CONFIG_VARIANGLE_DISPLAY

@@ -40,6 +40,8 @@
 #include "lvinfo.h"
 #include "powersave.h"
 
+extern uint32_t ml_refresh_display_needed;
+
 #ifdef FEATURE_COMPOSITOR_XCM
 #include "compositor.h"
 #endif
@@ -4790,10 +4792,7 @@ menu_redraw_do()
     #ifdef CONFIG_VXWORKS   
     set_ml_palette();    
     #endif
-
-    #ifdef FEATURE_VRAM_RGBA
-    refresh_yuv_from_rgb();
-    #endif
+    ml_refresh_display_needed = 1;
 }
 
 void menu_benchmark()
@@ -4858,14 +4857,14 @@ menu_redraw_task()
             // There looks to be only one path where msg_queue_receive() returns 9,
             // might be useful to understand the cause
             continue;
-
-            // This is a handy place to put checks you want to run periodically
-            //DryosDebugMsg(0, 15, "*4e48: 0x%x", *(int *)0x4e48);
-            //clrscr();
-            //NotifyBox(5000, "Message");
         }
         else {
             DryosDebugMsg(0, 15, "no err from queue");
+
+            // SJE this is a handy place to put checks you want to run periodically
+            //DryosDebugMsg(0, 15, "*fec8: 0x%x", *(int *)0xfec8);
+            //clrscr();
+            //NotifyBox(5000, "Message");
         }
         
         if (gui_menu_shown())
@@ -5508,6 +5507,10 @@ void menu_redraw_flood()
         menu_redraw_full();
         msleep(20);
     }
+#ifdef FEATURE_VRAM_RGBA
+    // force redraw now, it looks glitchy if you only set ml_refresh_display_needed
+    refresh_yuv_from_rgb();
+#endif
     msleep(50);
     redraw_flood_stop = 1;
 }
@@ -5736,9 +5739,7 @@ menu_task( void* unused )
                  * or on request (menu_damage) */
                 if ((!menu_help_active && !menu_lv_transparent_mode) || menu_damage) {
                     menu_redraw();
-                    #ifdef FEATURE_VRAM_RGBA
-                    refresh_yuv_from_rgb();
-                    #endif
+                    ml_refresh_display_needed = 1;
                 }
             }
             else
@@ -6986,14 +6987,35 @@ struct cbr
 
 static void task_without_powersave(struct cbr * cbr)
 {
+    // SJE debugging printfs
+    DryosDebugMsg(0, 15, "=== in task_without_powersave ===");
+    DryosDebugMsg(0, 15, "=== cbr: 0x%x", cbr);
     powersave_prohibit();
-    cbr->user_routine(cbr->argument);
+    DryosDebugMsg(0, 15, "=== yes 1");
+    if (cbr != NULL) {
+        DryosDebugMsg(0, 15, "=== cbr->user_routine: 0x%x", cbr->user_routine);
+        DryosDebugMsg(0, 15, "=== user_routine: %08x %08x %08x %08x",
+                      *((uint32_t *)(cbr->user_routine) + 0),
+                      *((uint32_t *)(cbr->user_routine) + 1),
+                      *((uint32_t *)(cbr->user_routine) + 2),
+                      *((uint32_t *)(cbr->user_routine) + 3)
+                      );
+        DryosDebugMsg(0, 15, "=== cbr->argument: 0x%d", cbr->argument);
+    }
+    bmp_printf(FONT_MONO_20, 0, 80, "Some Text");
+    msleep(3000);
+//    cbr->user_routine(cbr->argument);
+    DryosDebugMsg(0, 15, "=== yes 2");
     free(cbr);
+    DryosDebugMsg(0, 15, "=== yes 3");
     powersave_permit();
+    DryosDebugMsg(0, 15, "=== leaving task_without_powersave ===");
 }
 
 void run_in_separate_task(void* routine, int argument)
 {
+    // SJE debugging printfs...
+    DryosDebugMsg(0, 15, "=== in run_in_separate_task ===");
     gui_stop_menu();
     if (!routine) return;
     
@@ -7001,6 +7023,7 @@ void run_in_separate_task(void* routine, int argument)
     cbr->user_routine = routine;
     cbr->argument = argument;
     task_create("run_test", 0x1a, 0x8000, task_without_powersave, cbr);
+    DryosDebugMsg(0, 15, "=== leaving run_in_separate_task ===");
 }
 
 /* fixme: may be slow on large menus */

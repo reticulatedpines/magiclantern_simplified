@@ -57,9 +57,6 @@ static void NotifyBox_task(void* priv)
             notify_box_dirty = 0;
             bmp_printf(FONT_LARGE,  50,  50, notify_box_msg);
             msleep(50);
-            #ifdef FEATURE_VRAM_RGBA
-            refresh_yuv_from_rgb();
-            #endif
             if (notify_box_stop_request) break;
         }
         notify_box_timeout = 0;

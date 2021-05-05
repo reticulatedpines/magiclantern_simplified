@@ -12,6 +12,8 @@ static void card_benchmark_wr(int bufsize, int K, int N)
     static int y = 80;
     if (K == 1)
         y = 80;
+    DryosDebugMsg(0, 15, "=== in card_benchmark_wr ===");
+    msleep(2000);
 
     FIO_RemoveFile(CARD_BENCHMARK_FILE);
     msleep(2000);
@@ -30,7 +32,14 @@ static void card_benchmark_wr(int bufsize, int K, int N)
         }
         FIO_CloseFile(f);
         int t1 = get_ms_clock();
-        int speed = filesize * 1000 * 10 / (t1 - t0);
+        int speed = 0;
+        if (t0 != t1)
+            speed = filesize * 1000 * 10 / (t1 - t0);
+        // SJE debug printf...  but it doesn't print.  Crashing earlier?
+        // Or the fact we have disabled powersave meaning the output doesn't get serviced
+        // quickly enough, and the crash is nearby, but could be later?
+//        DryosDebugMsg(0, 15, "x, y, bufsize, speed: %d, %d, %d, %d",
+//                      x, y, bufsize, speed);
         bmp_printf(FONT_MONO_20, x, y += 20, "Write speed (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
     }
 
@@ -51,7 +60,9 @@ static void card_benchmark_wr(int bufsize, int K, int N)
             FIO_CloseFile(f);
             fio_free(buf);
             int t1 = get_ms_clock();
-            int speed = filesize * 1000 * 10 / (t1 - t0);
+            int speed = 0;
+            if (t0 != t1)
+                speed = filesize * 1000 * 10 / (t1 - t0);
             bmp_printf(FONT_MONO_20, x, y += 20, "Read speed  (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
         }
         else
@@ -81,7 +92,20 @@ static char* print_benchmark_header()
 
 static void card_benchmark_run(int full_test)
 {
+    // crashes:
+    //msleep(1000);
+    //DryosDebugMsg(0, 15, "=== in card_benchmark_run ===");
+
+    // doesn't crash:
+    //msleep(1000);
+
+    // doesn't crash:
+    //DryosDebugMsg(0, 15, "=== in card_benchmark_run ===");
+
+    // SJE testing
     msleep(1000);
+    //DryosDebugMsg(0, 15, "=== in card_benchmark_run ===");
+//    return;
 
     if (!lv)
     {
