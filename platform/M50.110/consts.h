@@ -17,8 +17,8 @@
 #define HIJACK_INSTR_MY_ITASK       0xE00401DC   /* address of init_task passed to create_init_task */
 
 /* "Malloc Information" */
-    #define MALLOC_STRUCT 0x2885C
-    #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
+#define MALLOC_STRUCT 0x56a1c
+#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
 /* high confidence */
 #define DRYOS_ASSERT_HANDLER        0x4000               //from debug_asset function, hard to miss
@@ -31,27 +31,27 @@
 #define GUIMODE_ML_MENU 3
 
 
-    #define GMT_FUNCTABLE               0xE0938568           //from gui_main_task
-    #define GMT_NFUNCS                  0x7                  //size of table above
+#define GMT_FUNCTABLE               0xE08FFB94           //from gui_main_task
+#define GMT_NFUNCS                  0x7                  //size of table above
 
-    #define LVAE_STRUCT                 0x45EF0              // First value written in 0xe12f9d86
-    #define CONTROL_BV      (*(uint16_t*)(LVAE_STRUCT+0x28)) // via "lvae_sentcontrolbv"
-    #define CONTROL_BV_TV   (*(uint16_t*)(LVAE_STRUCT+0x36)) // via "lvae_setcontrolaeparam"
-    #define CONTROL_BV_AV   (*(uint16_t*)(LVAE_STRUCT+0x38)) // via "lvae_setcontrolaeparam"
-    #define CONTROL_BV_ISO  (*(uint16_t*)(LVAE_STRUCT+0x3A)) // via "lvae_setcontrolaeparam"
-    #define CONTROL_BV_ZERO (*(uint16_t*)(LVAE_STRUCT+0x3C)) // via "lvae_setcontrolaccumh"
-    #define LVAE_DISP_GAIN  (*(uint16_t*)(LVAE_STRUCT+0x58)) // via "lvae_setdispgain"
-    #define LVAE_MOV_M_CTRL (*(uint8_t* )(LVAE_STRUCT+0x24)) // via "lvae_setmoviemanualcontrol"
+#define LVAE_STRUCT                 0x75094              // First value written in 0xe04ffb38
+#define CONTROL_BV      (*(uint16_t*)(LVAE_STRUCT+0x28)) // via "lvae_sentcontrolbv"
+#define CONTROL_BV_TV   (*(uint16_t*)(LVAE_STRUCT+0x2E)) // via "lvae_setcontrolaeparam"
+#define CONTROL_BV_AV   (*(uint16_t*)(LVAE_STRUCT+0x30)) // via "lvae_setcontrolaeparam"
+#define CONTROL_BV_ISO  (*(uint16_t*)(LVAE_STRUCT+0x32)) // via "lvae_setcontrolaeparam"
+#define CONTROL_BV_ZERO (*(uint16_t*)(LVAE_STRUCT+0x34)) // via "lvae_setcontrolaccumh"
+#define LVAE_DISP_GAIN  (*(uint16_t*)(LVAE_STRUCT+0x48)) // via "lvae_setdispgain"
+#define LVAE_MOV_M_CTRL (*(uint8_t* )(LVAE_STRUCT+0x24)) // via "lvae_setmoviemanualcontrol"
 
 /*
  * kitor: ISO related stuff is not in LVAE struct anymore?
  * iso-related stuff calls 0x02275de which returns pointer at 0x02276168 to 0x6b818
  */
-    #define LVAE_ISO_STRUCT 0x6b818
-    #define LVAE_ISO_MIN    (*(uint8_t* )LVAE_ISO_STRUCT + 0x0E ) // via string: ISOMin:%d
+#define LVAE_ISO_STRUCT 0x8e660
+#define LVAE_ISO_MIN    (*(uint8_t* )LVAE_ISO_STRUCT + 0x0E ) // via string: ISOMin:%d
 
-    //#define LVAE_ISO_HIS    (*(uint8_t* )(LVAE_STRUCT+0xXX)) // no idea, not referenced in ./src?!
-    #define LVAE_ISO_SPEED  (*(uint8_t* )(LVAE_STRUCT+0xXX))  //WRONG, not sure how to follow
+//#define LVAE_ISO_HIS    (*(uint8_t* )(LVAE_STRUCT+0xXX)) // no idea, not referenced in ./src?!
+//#define LVAE_ISO_SPEED  (*(uint8_t* )(LVAE_STRUCT+0xXX))  //WRONG, not sure how to follow
 
 
 /* PROPABLY WRONG: Some hacks for early porting */

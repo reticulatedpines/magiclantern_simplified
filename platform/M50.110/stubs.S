@@ -132,7 +132,7 @@ THUMB_FN(0xe0577cd6,  give_semaphore)                       /* SystemIF::KerSem.
 THUMB_FN(0xe0577c5c,  take_semaphore)                       /* SystemIF::KerSem.c   */
 
 /** GUI **/
-    DATA_PTR(    0xfcb4,  gui_task_list)                        // based on 200d
+DATA_PTR(    0xfb38,  gui_task_list)                        // based on R. Ref to "CtrlMan: Use RecursiveLock"
 THUMB_FN(0xe0519d94,  SetGUIRequestMode)                    // by debug message
 THUMB_FN(0xe004f032,  gui_main_task)                        // task_create("GuiMainTask"...
 THUMB_FN(0xe054f3ca,  dialog_redraw)                        // via xrefs to "pDialog->pSignature == pcSignature"
@@ -140,19 +140,15 @@ THUMB_FN(0xe037719e,  gui_massive_event_loop)               // various "GUICMD_"
 THUMB_FN(0xe004efcc,  gui_enqueue_message)                  // via string "warning! QueueLength=" and "GUI::GUI.c" in one function
 THUMB_FN(0xe065a4f4,  gui_init_end)                         // via "EndGuiInit" string
 DATA_PTR(    0x536c,  gui_main_struct)
-/*
- * kitor: It is referenced in gui_main_task, but struct starts earlier. Real
- * structure start was found via function that calls gui_massive_event_loop.
- */
 
 /*
  * kitor Similar to R180 I was unable to find GUI_Control either. If you compare
  * 200D.101 surrounding functions, it just seems to DNE on R and M50.
  */
 
- /** GUI timers **/
- THUMB_FN(0xe064895c,  StartDateTimer)                       // by debug message
- THUMB_FN(0xe06489d4,  CancelDateTimer)                      // by debug message
+/** GUI timers **/
+THUMB_FN(0xe064895c,  StartDateTimer)                       // by debug message
+THUMB_FN(0xe06489d4,  CancelDateTimer)                      // by debug message
 
 /** MPU communication **/
 /*
@@ -167,32 +163,33 @@ THUMB_FN(0xe0544346,  msg_queue_post)                       // used in gui_enque
 THUMB_FN(0xe054437c,  msg_queue_count)                      // called before string "warning! QueueLength"
 
 /** Memory **/
-    THUMB_FN(0xe06b8d56,  AllocateMemoryResource)               // m_pfAllocMemoryCBR, this function takes 4 params in 200D/EOSR, 3 for 50D
-    THUMB_FN(0xe06b8d84,  AllocateContinuousMemoryResource)     // m_pfContAllocMemoryCBR, takes 4 params now, 3 for 50D
-    THUMB_FN(0xe06b8e2a,  FreeMemoryResource)                   // m_pfFreeMemoryCBR
-    THUMB_FN(0xe054c47c,  AddMemoryChunk)                       // Same as in 200D (matched by offsets), may be wrong as multiple variants exists.
+THUMB_FN(0xe05c7f0e,  AllocateMemoryResource)               // m_pfAllocMemoryCBR, this function takes 4 params in 200D/EOSR, 3 for 50D
+THUMB_FN(0xe05c7f3c,  AllocateContinuousMemoryResource)     // m_pfContAllocMemoryCBR, takes 4 params now, 3 for 50D
+THUMB_FN(0xe05c7fe2,  FreeMemoryResource)                   // m_pfFreeMemoryCBR
+THUMB_FN(0xe0553c5c,  AddMemoryChunk)                       // Same as in 200D (matched by offsets), may be wrong as multiple variants exists.
                                                             // Other options: e054c3da e054cf5a
-    THUMB_FN(0xe054c500,  GetFirstChunkFromSuite)               // AJ_PackMemory_PackMem_p3
-    THUMB_FN(0xe054ce18,  GetNextMemoryChunk)                   // AJ_PackMemory_PackMem.c_IsChunkSignature_p2, identical fn is at e054cf14, but with just 3 xrefs
-    THUMB_FN(0xe054c31a,  GetMemoryAddressOfMemoryChunk)        // AJ_PackMemory_PackMem.c_IsChunkSignature - 200D uses "MemChunk" directly
-    THUMB_FN(0xe054c758,  DeleteMemorySuite)                    // String "DeleteMemorySuite 0x%x"
-    THUMB_FN(0xe054c9ea,  CreateMemorySuite)                    // String "PackMem.c", calls malloc(0x18)
-    THUMB_FN(0xe054bed0,  CreateMemoryChunk)                    // called from CreateMemorySuite
+THUMB_FN(0xe0553d82,  GetFirstChunkFromSuite)               // "IsSuiteSignature( hSuite )" + PackMem
+THUMB_FN(0xe05546a4,  GetNextMemoryChunk)                   // "IsSuiteSignature( hSuite )" + PackMem
+                                                            // Similar function is at e05547a0, but with just a few xrefs and different offset used
+THUMB_FN(0xe0553b9c,  GetMemoryAddressOfMemoryChunk)        // "IsChunkSignature( hChunk )" + PackMem - 200D uses "MemChunk" directly
+THUMB_FN(0xe0553fe4,  DeleteMemorySuite)                    // String "DeleteMemorySuite 0x%x"
+THUMB_FN(0xe0554276,  CreateMemorySuite)                    // String "PackMem.c", calls malloc(0x18)
+THUMB_FN(0xe055374c,  CreateMemoryChunk)                    // called from CreateMemorySuite
 
-    THUMB_FN(0xe04e41be,  SRM_AllocateMemoryResourceFor1stJob)  // "pMessage" and "pPriorMessage" with "RscMgr.c". Unsure - there seems to be multiple identical functions
-                                                            // Matched by structure params to 200D stub.
-    THUMB_FN(0xe04e7762,  SRM_FreeMemoryResourceFor1stJob)      // find refs to "pMessage", there are several similar looking functions using it,
+THUMB_FN(0xe056a5c6,  SRM_AllocateMemoryResourceFor1stJob)  // "pMessage" and "pPriorMessage" with "RscMgr.c". Unsure - there seems to be multiple identical functions
+                                                            // Matched like in R by structure params to 200D stub 
+THUMB_FN(0xe056da22,  SRM_FreeMemoryResourceFor1stJob)      // find refs to "pMessage", there are several similar looking functions using it,
                                                             // Matched to 200D stub, just buffer size differs (0x34 vs 0x30)
 
 /** Uncategorized **/
-    DATA_PTR(   0x11dc0,  sd_device)                            // From function that references "SD_DeviceCreate:"
-    THUMB_FN(0xe079beec,  _LoadCalendarFromRTC)                 // "Private" as it now has more arguments, needs a wrapper.
-    THUMB_FN(0xe083819e,  ErrForCamera_handler)                 // ERR70, ERR80 etc (DlgErrForCamera.c)
+DATA_PTR(   0x115b8,  sd_device)                            // From function that references "SD_DeviceCreate:"
+THUMB_FN(0xe0637210,  _LoadCalendarFromRTC)                 // "Private" as it now has more arguments, needs a wrapper.
+THUMB_FN(0xe037f9c0,  ErrForCamera_handler)                 // ERR70, ERR80 etc (DlgErrForCamera.c)
 
 /** Properties **/
-    THUMB_FN(0xe0553d88, _prop_cleanup)                         // "PropertyMgr.c", strings changed, found based on 200D
-    THUMB_FN(0xe05537da,  prop_register_slave)                  // "PropertyMgr.c", "pDeliverProperty"
-    THUMB_FN(0xe05538a8, _prop_request_change)                  // "PropertyMgr.c", "pRequestChange"
+THUMB_FN(0xe055a246, _prop_cleanup)                         // "PropertyMgr.c", strings changed, found based on 200D
+THUMB_FN(0xe0559c92,  prop_register_slave)                  // "PropertyMgr.c", "pRegisterSlave"
+THUMB_FN(0xe0559d60, _prop_request_change)                  // "PropertyMgr.c", "pRequestChange"
 
 /**
  * RGBA / Compositor functions and structures
@@ -212,12 +209,12 @@ DATA_PTR(    0xFC1C, _rgb_vram_info);
 DATA_PTR(       0x0,  LCD_Palette)                          // D8 has no indexed RGB buffers.
 
 
-/** App handlers - found after 200D, but not sure if correct function start found **/
-    THUMB_FN(0xe04f71fc,  PlayMain_handler)                     // "DlgPlayMain.c PRESS_ERASE_BUTTON" - code above the string, wasn't found automatically
-    THUMB_FN(0xe024584e,  ShootOlcApp_handler)                  // near "StopShootOlcApp PopPalette(%d)"
-    THUMB_FN(0xe03ec4cc,  LiveViewApp_handler)                  // not sure - function is quite different 50D -> 200D, but that
-                                                             // doesn't seem unreasonable since large GUI changes.  String use and surrounding
-                                                             
+/** App handlers - found after 200D, like on R not sure if correct function start found **/
+THUMB_FN(0xe04c7e5c,  PlayMain_handler)                     // "DlgPlayMain.c PRESS_ERASE_BUTTON" - code above the string, wasn't found automatically
+THUMB_FN(0xe02d40f2,  ShootOlcApp_handler)                  // near "StopShootOlcApp PopPalette(%d)"
+THUMB_FN(0xe04dc446,  LiveViewApp_handler)                  // not sure - function is quite different 50D -> 200D, but that
+                                                            // doesn't seem unreasonable since large GUI changes.  String use and surrounding
+
 /**
  * STUFF BELOW IS WRONG!
  **/
