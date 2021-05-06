@@ -79,13 +79,16 @@ static int handle_buttons(struct event * event)
     return 1;
 }
 
+/** TODO: rename stuff in this structure, don't use camera names maybe?
+ * Other possibility, move in-structure offset to platform dir and define
+ * per camera. */
 struct gui_main_struct {
   void *          obj;        // off_0x00;
   uint32_t        counter_550d;
   uint32_t        off_0x08;
   uint32_t        counter; // off_0x0c;
   uint32_t        off_0x10;
-  uint32_t        off_0x14;
+  struct msg_queue *    msg_queue_m50;    // off_0x14;
   uint32_t        off_0x18;
   struct msg_queue *    msg_queue_eosr;    // off_0x1C;
   uint32_t        off_0x20;
@@ -116,6 +119,9 @@ void ml_gui_main_task()
         gui_main_struct.counter_550d--;
         #elif defined(CONFIG_R)
         msg_queue_receive(gui_main_struct.msg_queue_eosr, &event, 0);
+        gui_main_struct.counter_550d--;
+        #elif defined(CONFIG_M50)
+        msg_queue_receive(gui_main_struct.msg_queue_m50, &event, 0);
         gui_main_struct.counter_550d--;
         #else
         msg_queue_receive(gui_main_struct.msg_queue, &event, 0);
