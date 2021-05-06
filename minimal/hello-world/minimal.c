@@ -173,11 +173,10 @@ void boot_post_init_task(void)
 /* used by font_draw */
 void disp_set_pixel(int x, int y, int c)
 {
-    uint8_t *bmp = _bmp_vram_raw();
-
 #ifdef FEATURE_VRAM_RGBA
     bmp_vram_indexed[x + y * BMPPITCH] = c;
 #else
+    uint8_t *bmp = _bmp_vram_raw();
     bmp[x + y * BMPPITCH] = c;
 #endif
 }
