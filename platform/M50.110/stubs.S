@@ -132,7 +132,7 @@ THUMB_FN(0xe0577cd6,  give_semaphore)                       /* SystemIF::KerSem.
 THUMB_FN(0xe0577c5c,  take_semaphore)                       /* SystemIF::KerSem.c   */
 
 /** GUI **/
-    //DATA_PTR(    0xfcb4,  gui_task_list)                        // based on 200d
+    DATA_PTR(    0xfcb4,  gui_task_list)                        // based on 200d
 THUMB_FN(0xe0519d94,  SetGUIRequestMode)                    // by debug message
 THUMB_FN(0xe004f032,  gui_main_task)                        // task_create("GuiMainTask"...
 THUMB_FN(0xe054f3ca,  dialog_redraw)                        // via xrefs to "pDialog->pSignature == pcSignature"
@@ -166,6 +166,34 @@ THUMB_FN(0xe05441e8,  msg_queue_receive)                    // used on gui queue
 THUMB_FN(0xe0544346,  msg_queue_post)                       // used in gui_enqueue_message
 THUMB_FN(0xe054437c,  msg_queue_count)                      // called before string "warning! QueueLength"
 
+/** Memory **/
+    THUMB_FN(0xe06b8d56,  AllocateMemoryResource)               // m_pfAllocMemoryCBR, this function takes 4 params in 200D/EOSR, 3 for 50D
+    THUMB_FN(0xe06b8d84,  AllocateContinuousMemoryResource)     // m_pfContAllocMemoryCBR, takes 4 params now, 3 for 50D
+    THUMB_FN(0xe06b8e2a,  FreeMemoryResource)                   // m_pfFreeMemoryCBR
+    THUMB_FN(0xe054c47c,  AddMemoryChunk)                       // Same as in 200D (matched by offsets), may be wrong as multiple variants exists.
+                                                            // Other options: e054c3da e054cf5a
+    THUMB_FN(0xe054c500,  GetFirstChunkFromSuite)               // AJ_PackMemory_PackMem_p3
+    THUMB_FN(0xe054ce18,  GetNextMemoryChunk)                   // AJ_PackMemory_PackMem.c_IsChunkSignature_p2, identical fn is at e054cf14, but with just 3 xrefs
+    THUMB_FN(0xe054c31a,  GetMemoryAddressOfMemoryChunk)        // AJ_PackMemory_PackMem.c_IsChunkSignature - 200D uses "MemChunk" directly
+    THUMB_FN(0xe054c758,  DeleteMemorySuite)                    // String "DeleteMemorySuite 0x%x"
+    THUMB_FN(0xe054c9ea,  CreateMemorySuite)                    // String "PackMem.c", calls malloc(0x18)
+    THUMB_FN(0xe054bed0,  CreateMemoryChunk)                    // called from CreateMemorySuite
+
+    THUMB_FN(0xe04e41be,  SRM_AllocateMemoryResourceFor1stJob)  // "pMessage" and "pPriorMessage" with "RscMgr.c". Unsure - there seems to be multiple identical functions
+                                                            // Matched by structure params to 200D stub.
+    THUMB_FN(0xe04e7762,  SRM_FreeMemoryResourceFor1stJob)      // find refs to "pMessage", there are several similar looking functions using it,
+                                                            // Matched to 200D stub, just buffer size differs (0x34 vs 0x30)
+
+/** Uncategorized **/
+    DATA_PTR(   0x11dc0,  sd_device)                            // From function that references "SD_DeviceCreate:"
+    THUMB_FN(0xe079beec,  _LoadCalendarFromRTC)                 // "Private" as it now has more arguments, needs a wrapper.
+    THUMB_FN(0xe083819e,  ErrForCamera_handler)                 // ERR70, ERR80 etc (DlgErrForCamera.c)
+
+/** Properties **/
+    THUMB_FN(0xe0553d88, _prop_cleanup)                         // "PropertyMgr.c", strings changed, found based on 200D
+    THUMB_FN(0xe05537da,  prop_register_slave)                  // "PropertyMgr.c", "pDeliverProperty"
+    THUMB_FN(0xe05538a8, _prop_request_change)                  // "PropertyMgr.c", "pRequestChange"
+
 /**
  * RGBA / Compositor functions and structures
  */
@@ -179,3 +207,27 @@ DATA_PTR(    0xFC10, winsys_sem);                           //Used in RefreshVrm
  * VDrv_InitializeScreen function, 2nd param is saved there.
  */
 DATA_PTR(    0xFC1C, _rgb_vram_info);
+
+/** Wrong on purpose **/
+DATA_PTR(       0x0,  LCD_Palette)                          // D8 has no indexed RGB buffers.
+
+
+/** App handlers - found after 200D, but not sure if correct function start found **/
+    THUMB_FN(0xe04f71fc,  PlayMain_handler)                     // "DlgPlayMain.c PRESS_ERASE_BUTTON" - code above the string, wasn't found automatically
+    THUMB_FN(0xe024584e,  ShootOlcApp_handler)                  // near "StopShootOlcApp PopPalette(%d)"
+    THUMB_FN(0xe03ec4cc,  LiveViewApp_handler)                  // not sure - function is quite different 50D -> 200D, but that
+                                                             // doesn't seem unreasonable since large GUI changes.  String use and surrounding
+                                                             
+/**
+ * STUFF BELOW IS WRONG!
+ **/
+/** App handlers **/
+THUMB_FN(0xDEADBEEF,  PlayMovieGuideApp_handler)            // needed for CONFIG_QEMU
+
+THUMB_FN(0xdf00d365,  fsuDecodePartitionTable) // this is called in one place in 50D, 0xffb0a18c,
+                                               // and that function is easy to find in 200D via "CARD_EMERGENCY_STOP".
+                                               // The function called 200D looks a lot different from fsuDecodePartitionTable, however.
+                                               // Constant offsets used are the same in both, maybe fsuDPT has been partially 
+                                               // inlined in 200D?  The decompilation looks weird too, claims it just returns
+                                               // the calling param but it clearly twiddles some registers.
+                                               // TODO check how ML uses this stub, since the sig has changed.
