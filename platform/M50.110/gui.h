@@ -1,18 +1,15 @@
 #ifndef _cameraspecific_gui_h_
 #define _cameraspecific_gui_h_
 
-/* WRONG, copied over from R180 */
-
 #define BGMT_PRESS_UP                0x31
 #define BGMT_PRESS_LEFT              0x2F
 #define BGMT_PRESS_RIGHT             0x2D
 #define BGMT_PRESS_DOWN              0x33
 
-/* Q/Set is one button on R */
+/* Q/Set is one button on M50 */
 #define BGMT_PRESS_SET               0x04
 #define BGMT_UNPRESS_SET             0x05
 
-#define BGMT_TRASH                   0x0E
 #define BGMT_MENU                    0x06
 #define BGMT_INFO                    0x08
 
@@ -21,22 +18,16 @@
 #define BGMT_WHEEL_LEFT              0x02
 #define BGMT_WHEEL_RIGHT             0x03
 
-#define BGMT_PRESS_HALFSHUTTER       0x7D
+#define BGMT_PRESS_HALFSHUTTER       0x5B // unpress 0x5c
 
-/* WRONG: DNE in R */
+/* WRONG: DNE in M50 */
 #define BGMT_PRESS_UP_RIGHT          0xF0
 #define BGMT_PRESS_UP_LEFT           0xF1
 #define BGMT_PRESS_DOWN_RIGHT        0xF2
 #define BGMT_PRESS_DOWN_LEFT         0xF3
 
 #define BGMT_JOY_CENTER              0xF4
-/*
- * kitor: Top dial fires 0x02 + 0x9D for left
- *        and 0x03 + 0x9D events for right.
- *        Mode dial fires only 0x9D in both directions
- *        Thus skipping for now.
- *        Same applies for RF lenses ring btw.
- */
+
 #define BGMT_WHEEL_UP                0xF5
 #define BGMT_WHEEL_DOWN              0xF6
 #define BGMT_LV                      0xF7
@@ -56,6 +47,10 @@
 #define BGMT_ISO_MOVIE               0xE7
 #define BGMT_PRESS_ISO_MOVIE         0xE8
 #define BGMT_UNPRESS_ISO_MOVIE       0xE9
+
+/** Trash is one button with BGMT_PRESS_DOWN
+ * Will not emit any button code in LV if no function was assigned in C.fn */
+#define BGMT_TRASH                   0xEA
 
 /* WRONG: to be checked */
 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
