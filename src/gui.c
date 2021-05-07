@@ -83,20 +83,20 @@ static int handle_buttons(struct event * event)
  * Other possibility, move in-structure offset to platform dir and define
  * per camera. */
 struct gui_main_struct {
-  void *          obj;        // off_0x00;
+  void *          obj;                     // off_0x00;
   uint32_t        counter_550d;
   uint32_t        off_0x08;
-  uint32_t        counter; // off_0x0c;
+  uint32_t        counter;                 // off_0x0c;
   uint32_t        off_0x10;
-  struct msg_queue *    msg_queue_m50;    // off_0x14;
-  uint32_t        off_0x18;
+  uint32_t        off_0x14;
+  struct msg_queue *    msg_queue_m50;     // off_0x18;
   struct msg_queue *    msg_queue_eosr;    // off_0x1C;
   uint32_t        off_0x20;
   uint32_t        off_0x24;
   uint32_t        off_0x28;
   uint32_t        off_0x2c;
-  struct msg_queue *    msg_queue;    // off_0x30;
-  struct msg_queue *    off_0x34;    // off_0x34;
+  struct msg_queue *    msg_queue;         // off_0x30;
+  struct msg_queue *    off_0x34;          // off_0x34;
   struct msg_queue *    msg_queue_550d;    // off_0x38;
   uint32_t        off_0x3c;
 };
