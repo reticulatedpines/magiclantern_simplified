@@ -1,10 +1,15 @@
 #ifndef _cameraspecific_gui_h_
 #define _cameraspecific_gui_h_
 
-#define BGMT_PRESS_UP                0x31
-#define BGMT_PRESS_LEFT              0x2F
 #define BGMT_PRESS_RIGHT             0x2D
+#define BGMT_UNPRESS_RIGHT           0x2E
+#define BGMT_PRESS_LEFT              0x2F
+#define BGMT_UNPRESS_LEFT            0x30
+#define BGMT_PRESS_UP                0x31
+#define BGMT_UNPRESS_UP              0x32
 #define BGMT_PRESS_DOWN              0x33
+#define BGMT_UNPRESS_DOWN            0x34
+
 
 /* Q/Set is one button on M50 */
 #define BGMT_PRESS_SET               0x04
@@ -18,7 +23,13 @@
 #define BGMT_WHEEL_LEFT              0x02
 #define BGMT_WHEEL_RIGHT             0x03
 
-#define BGMT_PRESS_HALFSHUTTER       0x5B // unpress 0x5c
+#define BGMT_PRESS_HALFSHUTTER       0x5B //unpress 0x5C
+
+/** WRONG, MAPPED TO M.Fn for now!
+ *  Trash button is shared with DOWN on M50. IN LV mode it will not send any
+ *  keycode by default. Keycode changes with assigned function in C.Fn.
+ *  In menu modes it sends BGMT_*_DOWN. */
+#define BGMT_TRASH                   0x1A
 
 /* WRONG: DNE in M50 */
 #define BGMT_PRESS_UP_RIGHT          0xF0
@@ -47,10 +58,6 @@
 #define BGMT_ISO_MOVIE               0xE7
 #define BGMT_PRESS_ISO_MOVIE         0xE8
 #define BGMT_UNPRESS_ISO_MOVIE       0xE9
-
-/** Trash is one button with BGMT_PRESS_DOWN
- * Will not emit any button code in LV if no function was assigned in C.fn */
-#define BGMT_TRASH                   0xEA
 
 /* WRONG: to be checked */
 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
