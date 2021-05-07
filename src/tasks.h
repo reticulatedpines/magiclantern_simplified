@@ -77,7 +77,7 @@ struct task
         uint32_t            unknown_07; // 0x38, 4
         uint32_t            unknown_08; // 0x3c, 4
         uint32_t        taskId;         // 0x40, 4
-#if defined(CONFIG_200D) || defined(CONFIG_R) // probably all Digic7, maybe 8 and 9?  But only confirmed on 200D + R
+#ifdef CONFIG_DIGIC_78 // Maybe D678X? Confirmed on 200D, M50, R
         uint32_t            unknown_09; // 0x44, 4
 #endif
         uint8_t             unknown_0a; // 0x44 / 0x48, 1
@@ -88,7 +88,7 @@ struct task
         uint8_t         sleepReason;    // 0x49 / 0x4d, 1
         uint8_t             unknown_0d; // 0x4a / 0x4e, 1
         uint8_t             unknown_0e; // 0x4b / 0x4f, 1
-#if defined(CONFIG_200D) || defined(CONFIG_R) // again, probably more broadly applicable but this needs testing
+#ifdef CONFIG_DIGIC_78 // again, probably more broadly applicable but this needs testing
         uint8_t         cpu_requested; // 0x50, 1 // SJE working theory: which CPU can
                                                   // take the task.  0xff means any.
         uint8_t         cpu_assigned; // 0x51, 1  // Which CPU has taken the task,
