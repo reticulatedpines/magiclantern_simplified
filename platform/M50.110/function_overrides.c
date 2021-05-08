@@ -21,113 +21,116 @@
  * Boston, MA  02110-1301, USA.
  */
  
- #include <dryos.h>
- #include <property.h>
- #include <bmp.h>
- #include <config.h>
- #include <consts.h>
- #include <lens.h>
- 
- /** GUI **/
- 
- //Not sure if all args are uint.
- extern void gui_enqueue_message(uint32_t, uint32_t, uint32_t, uint32_t);
- void GUI_Control(int bgmt_code, int obj, int arg, int unknown){
-     gui_enqueue_message(0, bgmt_code, obj, arg);
- }
+#include <dryos.h>
+#include <property.h>
+#include <bmp.h>
+#include <config.h>
+#include <consts.h>
+#include <lens.h>
 
- void LoadCalendarFromRTC(struct tm *tm)
- {
-     _LoadCalendarFromRTC(tm, 0, 0, 16);
- }
- 
- /** File I/O **/
+/** GUI **/
 
- /**
-  * _FIO_GetFileSize returns now 64bit size in form of struct.
-  * This probably should be integrated into fio-ml for CONFIG_DIGIC_VIII
-  */
- extern int _FIO_GetFileSize64(const char *, void *);
- int _FIO_GetFileSize(const char * filename, uint32_t * size){
-     uint32_t size64[2];
-     int code = _FIO_GetFileSize64(filename, &size64);
-     *size = size64[0]; //return "lower" part
-     return code;
- }
+//Not sure if all args are uint.
+extern void gui_enqueue_message(uint32_t, uint32_t, uint32_t, uint32_t);
+void GUI_Control(int bgmt_code, int obj, int arg, int unknown){
+   gui_enqueue_message(0, bgmt_code, obj, arg);
+}
 
- /** WRONG: temporary overrides to get CONFIG_HELLO_WORLD working **/
+void LoadCalendarFromRTC(struct tm *tm)
+{
+   _LoadCalendarFromRTC(tm, 0, 0, 16);
+}
 
- void SetEDmac(unsigned int channel, void *address, struct edmac_info *ptr, int flags)
- {
-     return;
- }
+/** File I/O **/
 
- void ConnectWriteEDmac(unsigned int channel, unsigned int where)
- {
-     return;
- }
+/**
+* _FIO_GetFileSize returns now 64bit size in form of struct.
+* This probably should be integrated into fio-ml for CONFIG_DIGIC_VIII
+*/
+extern int _FIO_GetFileSize64(const char *, void *);
+int _FIO_GetFileSize(const char * filename, uint32_t * size){
+   uint32_t size64[2];
+   int code = _FIO_GetFileSize64(filename, &size64);
+   *size = size64[0]; //return "lower" part
+   return code;
+}
 
- void ConnectReadEDmac(unsigned int channel, unsigned int where)
- {
-     return;
- }
+/** WRONG: temporary overrides to get CONFIG_HELLO_WORLD working **/
 
- void StartEDmac(unsigned int channel, int flags)
- {
-     return;
- }
+void SetEDmac(unsigned int channel, void *address, struct edmac_info *ptr, int flags)
+{
+   return;
+}
 
- void AbortEDmac(unsigned int channel)
- {
-     return;
- }
+void ConnectWriteEDmac(unsigned int channel, unsigned int where)
+{
+   return;
+}
 
- void RegisterEDmacCompleteCBR(int channel, void (*cbr)(void*), void* cbr_ctx)
- {
-     return;
- }
+void ConnectReadEDmac(unsigned int channel, unsigned int where)
+{
+   return;
+}
 
- void UnregisterEDmacCompleteCBR(int channel)
- {
-     return;
- }
+void StartEDmac(unsigned int channel, int flags)
+{
+   return;
+}
 
- void RegisterEDmacAbortCBR(int channel, void (*cbr)(void*), void* cbr_ctx)
- {
-     return;
- }
+void AbortEDmac(unsigned int channel)
+{
+   return;
+}
 
- void UnregisterEDmacAbortCBR(int channel)
- {
-     return;
- }
+void RegisterEDmacCompleteCBR(int channel, void (*cbr)(void*), void* cbr_ctx)
+{
+   return;
+}
 
- void RegisterEDmacPopCBR(int channel, void (*cbr)(void*), void* cbr_ctx)
- {
-     return;
- }
+void UnregisterEDmacCompleteCBR(int channel)
+{
+   return;
+}
 
- void UnregisterEDmacPopCBR(int channel)
- {
-     return;
- }
+void RegisterEDmacAbortCBR(int channel, void (*cbr)(void*), void* cbr_ctx)
+{
+   return;
+}
 
- void _EngDrvOut(uint32_t reg, uint32_t value)
- {
-     return;
- }
+void UnregisterEDmacAbortCBR(int channel)
+{
+   return;
+}
 
- uint32_t shamem_read(uint32_t addr)
- {
-     return 0;
- }
+void RegisterEDmacPopCBR(int channel, void (*cbr)(void*), void* cbr_ctx)
+{
+   return;
+}
 
- void _engio_write(uint32_t* reg_list)
- {
-     return;
- }
+void UnregisterEDmacPopCBR(int channel)
+{
+   return;
+}
 
- unsigned int UnLockEngineResources(struct LockEntry *lockEntry)
- {
-     return 0;
- }
+void _EngDrvOut(uint32_t reg, uint32_t value)
+{
+   return;
+}
+
+uint32_t shamem_read(uint32_t addr)
+{
+   return 0;
+}
+
+void _engio_write(uint32_t* reg_list)
+{
+   return;
+}
+
+unsigned int UnLockEngineResources(struct LockEntry *lockEntry)
+{
+   return 0;
+}
+
+//at the very end so it will appear near the end of build log.
+#warning EXPERIMENTAL BUILD, YOU MAY EXPERIENCE ERR70. SEE README.MD in M50 PLATFORM DIR
