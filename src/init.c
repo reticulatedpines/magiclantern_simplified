@@ -368,7 +368,7 @@ static void my_big_init_task()
 
     #ifdef FEATURE_COMPOSITOR_XCM
     while (surface_setup())
-        msleep(500);
+        msleep(100);
     #endif
 
     /* should we require SET for loading ML, or not? */

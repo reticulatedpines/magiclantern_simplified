@@ -215,7 +215,7 @@ static void refresh_yuv_from_rgb_task(void *unused)
 {
     TASK_LOOP
     {
-        if (ml_refresh_display_needed && gui_menu_shown() && !ml_shutdown_requested && DISPLAY_IS_ON)
+        if (ml_refresh_display_needed && !ml_shutdown_requested && DISPLAY_IS_ON)
         {
             refresh_yuv_from_rgb();
         }
@@ -502,27 +502,28 @@ bmp_hexdump(
  */
 void
 bmp_fill(
-    uint8_t            color,
-    int        x,
-    int        y,
-    int        w,
-    int        h
+    uint8_t color,
+    int x,
+    int y,
+    int w,
+    int h
 )
 {
     #ifdef CONFIG_VXWORKS
     color = D2V(color);
     #endif
 
+
     x = COERCE(x, BMP_W_MINUS, BMP_W_PLUS-1);
     y = COERCE(y, BMP_H_MINUS, BMP_H_PLUS-1);
     w = COERCE(w, 0, BMP_W_PLUS-x-1);
     h = COERCE(h, 0, BMP_H_PLUS-y-1);
 
-    uint8_t* b = bmp_vram();
+    uint8_t *b = bmp_vram();
 
     for (int i = y; i < y + h; i++)
     {
-        uint8_t* row = b + BM(x,i);
+        uint8_t *row = b + BM(x,i);
 #ifdef CONFIG_VXWORKS
         memset(row, color, w/2);
 #else
@@ -547,8 +548,8 @@ bmp_fill(
         asm("nop");
         asm("nop");
      #endif
-
     }
+    ml_refresh_display_needed = 1;
 }
 
 /** Load a BMP file into memory so that it can be drawn onscreen */

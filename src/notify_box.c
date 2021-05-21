@@ -42,7 +42,8 @@ static void NotifyBox_task(void* priv)
     {
         // wait until some other task asks for a notification
         int err = take_semaphore(notify_box_show_sem, 500);
-        if (err) continue;
+        if (err)
+            continue;
         
         if (!notify_box_timeout) 
             continue;
@@ -53,11 +54,13 @@ static void NotifyBox_task(void* priv)
         //int i;
         for ( ; notify_box_timeout > 0 ; notify_box_timeout -= 50)
         {
-            if (notify_box_dirty) bmp_fill(0,  50,  50, 650, 32); // clear old message
+            if (notify_box_dirty)
+                bmp_fill(COLOR_EMPTY,  50,  50, 650, 32); // clear old message
             notify_box_dirty = 0;
             bmp_printf(FONT_LARGE,  50,  50, notify_box_msg);
             msleep(50);
-            if (notify_box_stop_request) break;
+            if (notify_box_stop_request)
+                break;
         }
         notify_box_timeout = 0;
         redraw();
@@ -89,7 +92,8 @@ void NotifyBox(int timeout, char* fmt, ...)
     memcpy(notify_box_msg, notify_box_msg_tmp, sizeof(notify_box_msg));
     notify_box_msg[sizeof(notify_box_msg)-1] = '\0';
     notify_box_timeout = MAX(timeout, 100);
-    if (notify_box_timeout) notify_box_dirty = 1; // ask for a redraw, message changed
+    if (notify_box_timeout)
+        notify_box_dirty = 1; // ask for a redraw, message changed
 
     give_semaphore(notify_box_show_sem); // request displaying the notification box
 

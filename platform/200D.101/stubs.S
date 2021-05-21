@@ -156,7 +156,12 @@ THUMB_FN(0xe04b9f89,  CreateMemoryChunk) // called from CreateMemorySuite
 //NSTUB(0xe04ba7e6,  GetSizeOfMemorySuite) // not needed, but I found it along the way
 THUMB_FN(0xdf008515,  take_semaphore) // Fairly sure. Same function sig and followed by give_semaphore
 THUMB_FN(0xdf00858f,  give_semaphore)
-THUMB_FN(0xdf008419,  create_named_semaphore) // also see df00b114, very similar, but 8418 is closer to 50D create_named_semaphore
+THUMB_FN(0xdf008419,  create_named_semaphore) // also see df00b114, very similar, but df008418 is closer to 50D create_named_semaphore.
+                                              // Complicated by there being df00b648, which wraps 8418 with an extra assert possible,
+                                              // and e0426a20, which is what most sites call, which calls 8418 - but thunked.
+                                              // In theory that means DryOS could replace the underlying create_named_semaphore
+                                              // at run-time.  No evidence that they do.
+
 THUMB_FN(0xe02d35ab,  gui_change_mode) // GUI_ChangeMode_Post
 THUMB_FN(0xe02d1d51,  gui_massive_event_loop) // various "GUICMD_"* strings
 THUMB_FN(0xe00979d9,  gui_init_event) // "-> handleGuiInit"

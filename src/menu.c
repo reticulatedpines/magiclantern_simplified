@@ -4862,9 +4862,9 @@ menu_redraw_task()
             DryosDebugMsg(0, 15, "no err from queue");
 
             // SJE this is a handy place to put checks you want to run periodically
+            //bmp_fill(COLOR_RED, 280, 280, 40, 40);
             //DryosDebugMsg(0, 15, "*fec8: 0x%x", *(int *)0xfec8);
             //clrscr();
-            //NotifyBox(5000, "Message");
         }
         
         if (gui_menu_shown())
@@ -5605,7 +5605,8 @@ static void menu_open()
 
 static void menu_close() 
 { 
-    if (!menu_shown) return;
+    if (!menu_shown)
+        return;
     menu_shown = false;
 
     customize_mode = 0;
@@ -5628,7 +5629,11 @@ static void menu_close()
     redraw();
     #endif
 
-    if (lv) bmp_on();
+    if (lv)
+        bmp_on();
+
+    // SJE test, prevent drawing over Canon after leaving ML menu
+    ml_refresh_display_needed = 0;
 }
 
 /*
@@ -7002,12 +7007,8 @@ static void task_without_powersave(struct cbr * cbr)
                       );
         DryosDebugMsg(0, 15, "=== cbr->argument: 0x%d", cbr->argument);
     }
-    bmp_printf(FONT_MONO_20, 0, 80, "Some Text");
-    msleep(3000);
-//    cbr->user_routine(cbr->argument);
-    DryosDebugMsg(0, 15, "=== yes 2");
+    cbr->user_routine(cbr->argument);
     free(cbr);
-    DryosDebugMsg(0, 15, "=== yes 3");
     powersave_permit();
     DryosDebugMsg(0, 15, "=== leaving task_without_powersave ===");
 }

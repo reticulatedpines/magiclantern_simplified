@@ -92,21 +92,6 @@ static char* print_benchmark_header()
 
 static void card_benchmark_run(int full_test)
 {
-    // crashes:
-    //msleep(1000);
-    //DryosDebugMsg(0, 15, "=== in card_benchmark_run ===");
-
-    // doesn't crash:
-    //msleep(1000);
-
-    // doesn't crash:
-    //DryosDebugMsg(0, 15, "=== in card_benchmark_run ===");
-
-    // SJE testing
-    msleep(1000);
-    //DryosDebugMsg(0, 15, "=== in card_benchmark_run ===");
-//    return;
-
     if (!lv)
     {
         /* run the benchmark in either LV on PLAY mode */
