@@ -12,8 +12,6 @@ static void card_benchmark_wr(int bufsize, int K, int N)
     static int y = 80;
     if (K == 1)
         y = 80;
-    DryosDebugMsg(0, 15, "=== in card_benchmark_wr ===");
-    msleep(2000);
 
     FIO_RemoveFile(CARD_BENCHMARK_FILE);
     msleep(2000);
@@ -35,11 +33,6 @@ static void card_benchmark_wr(int bufsize, int K, int N)
         int speed = 0;
         if (t0 != t1)
             speed = filesize * 1000 * 10 / (t1 - t0);
-        // SJE debug printf...  but it doesn't print.  Crashing earlier?
-        // Or the fact we have disabled powersave meaning the output doesn't get serviced
-        // quickly enough, and the crash is nearby, but could be later?
-//        DryosDebugMsg(0, 15, "x, y, bufsize, speed: %d, %d, %d, %d",
-//                      x, y, bufsize, speed);
         bmp_printf(FONT_MONO_20, x, y += 20, "Write speed (buffer=%dk):\t %d.%d MB/s\n", bufsize/1024, speed/10, speed % 10);
     }
 

@@ -7011,8 +7011,6 @@ static void task_without_powersave(struct cbr * cbr)
 
 void run_in_separate_task(void* routine, int argument)
 {
-    // SJE debugging printfs...
-    DryosDebugMsg(0, 15, "=== in run_in_separate_task ===");
     gui_stop_menu();
     if (!routine) return;
     
@@ -7020,7 +7018,6 @@ void run_in_separate_task(void* routine, int argument)
     cbr->user_routine = routine;
     cbr->argument = argument;
     task_create("run_test", 0x1a, 0x8000, task_without_powersave, cbr);
-    DryosDebugMsg(0, 15, "=== leaving run_in_separate_task ===");
 }
 
 /* fixme: may be slow on large menus */
