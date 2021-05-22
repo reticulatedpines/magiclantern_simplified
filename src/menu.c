@@ -50,9 +50,12 @@ extern uint32_t ml_refresh_display_needed;
 //~ #define CONFIG_MENU_DIM_HACKS
 #undef SUBMENU_DEBUG_JUNKIE
 
-// SJE hack while we get stuff working on Digic7, probably don't need this
-//#define DOUBLE_BUFFERING 1
+#ifdef FEATURE_VRAM_RGBA
+// For D6+ RGBA we don't need double buffering
 #define DOUBLE_BUFFERING 0
+#else
+#define DOUBLE_BUFFERING 1
+#endif
 
 //~ #define MENU_KEYHELP_Y_POS (menu_lv_transparent_mode ? 425 : 430)
 #define MENU_HELP_Y_POS 435
