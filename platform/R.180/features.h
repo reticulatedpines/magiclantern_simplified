@@ -6,6 +6,8 @@
 #endif
 
 #define CONFIG_ADDITIONAL_VERSION
+#define FEATURE_SCREENSHOT
+
 
 #undef CONFIG_CRASH_LOG
 #undef CONFIG_TSKMON
