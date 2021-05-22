@@ -511,7 +511,7 @@ struct vram_info * get_yuv422_vram()
 {
     // SJE FIXME quick hack to diagnose crash in take_screenshot(),
     // I think YUV422_LV_BUFFER_1 or similar are junk values
-    #ifdef CONFIG_200D
+    #if defined(CONFIG_200D) || defined(CONFIG_R)
     return NULL;
     #endif
 
