@@ -5661,15 +5661,11 @@ menu_task( void* unused )
         msleep(100);
     
     extern int ml_gui_initialized;
-    DryosDebugMsg(0, 15, "ml started, in menu_task()");
-    DryosDebugMsg(0, 15, "GMT flag: %x", MEM(0xdf00f600));
-    DryosDebugMsg(0, 15, "ml_gui_initialized: %d", ml_gui_initialized);
 
     debug_menu_init();
     
     int initial_mode = 0; // shooting mode when menu was opened (if changed, menu should close)
     
-    DryosDebugMsg(0, 15, "in menu_task(), entering TASK_LOOP");
     TASK_LOOP
     {
         int keyrepeat_active = keyrepeat &&
