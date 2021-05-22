@@ -11,6 +11,10 @@ include $(TOP_DIR)/Makefile.setup
 
 # should we define a platform for modules? for now use 'all' platform
 PLATFORM_INC=$(TOP_DIR)/platform/all
+# SJE TODO - should we do -mlong-calls for all cams? It has some space and runtime cost,
+# though this is probably quite low.  It's required for cams where the addresses where
+# modules will be loaded (heap) are further than 32MB from ML or DryOS code.  E.g. on
+# 200D, heap tends to be 0xbb.0000 and stubs are 0xe000.0000 or 0xdf00.0000, too far.
 CFLAGS += -mlong-calls -DMODULE -DMODULE_NAME=$(MODULE_NAME) -DCONFIG_MAGICLANTERN $(MODULE_CFLAGS) -I.
 
 MODULE_SRC    = $(MODULE_NAME).c

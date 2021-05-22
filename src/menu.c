@@ -6988,25 +6988,10 @@ struct cbr
 
 static void task_without_powersave(struct cbr * cbr)
 {
-    // SJE debugging printfs
-    DryosDebugMsg(0, 15, "=== in task_without_powersave ===");
-    DryosDebugMsg(0, 15, "=== cbr: 0x%x", cbr);
     powersave_prohibit();
-    DryosDebugMsg(0, 15, "=== yes 1");
-    if (cbr != NULL) {
-        DryosDebugMsg(0, 15, "=== cbr->user_routine: 0x%x", cbr->user_routine);
-        DryosDebugMsg(0, 15, "=== user_routine: %08x %08x %08x %08x",
-                      *((uint32_t *)(cbr->user_routine) + 0),
-                      *((uint32_t *)(cbr->user_routine) + 1),
-                      *((uint32_t *)(cbr->user_routine) + 2),
-                      *((uint32_t *)(cbr->user_routine) + 3)
-                      );
-        DryosDebugMsg(0, 15, "=== cbr->argument: 0x%d", cbr->argument);
-    }
     cbr->user_routine(cbr->argument);
     free(cbr);
     powersave_permit();
-    DryosDebugMsg(0, 15, "=== leaving task_without_powersave ===");
 }
 
 void run_in_separate_task(void* routine, int argument)

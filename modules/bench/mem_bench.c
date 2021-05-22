@@ -252,9 +252,9 @@ static void mem_benchmark_task()
     
     mem_benchmark_run("memset cacheable    ", &y, bufsize, (mem_bench_fun)memset,
                       (intptr_t)CACHEABLE(buf1), 0, bufsize, 0, 0);
-    mem_benchmark_run("memset uncacheable  ", &y, bufsize, (mem_bench_fun)memset, 
+    mem_benchmark_run("memset uncacheable  ", &y, bufsize, (mem_bench_fun)memset,
                       (intptr_t)UNCACHEABLE(buf1), 0, bufsize, 0, 0);
-    mem_benchmark_run("memset64 cacheable  ", &y, bufsize, (mem_bench_fun)memset64, 
+    mem_benchmark_run("memset64 cacheable  ", &y, bufsize, (mem_bench_fun)memset64,
                       (intptr_t)CACHEABLE(buf1), 0, bufsize, 0, 0);
     mem_benchmark_run("memset64 uncacheable", &y, bufsize, (mem_bench_fun)memset64,
                       (intptr_t)UNCACHEABLE(buf1), 0, bufsize, 0, 0);
