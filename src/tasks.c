@@ -375,6 +375,14 @@ PROP_HANDLER(PROP_TERMINATE_SHUT_REQ)
     if (buf[0] == 0)  ml_shutdown();
 }
 
+#ifdef CONFIG_R //kitor: maybe CONFIG_DIGIC_VIII ? see comment in property.h
+PROP_HANDLER(PROP_SHUTDOWN_REASON)
+{
+    DryosDebugMsg(0, 15, "SHUTDOWN REASON %d", buf[0]);
+    if (buf[0] != 0)  ml_shutdown();
+}
+#endif
+
 #if 0
 static int task_holding_bmp_lock = 0;
 static int line_holding_bmp_lock = 0;

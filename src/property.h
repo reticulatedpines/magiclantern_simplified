@@ -488,6 +488,20 @@
 #define PROP_TERMINATE_SHUT_REQ 0x80010001
 #define PROP_REBOOT             0x80010003 // used by firmware update code
 
+#define PROP_SHUTDOWN_REASON    0x8002005b
+/* EOS R won't receive 0 on PROP_TERMINATE_SHUT_REQ, hovever it will change
+   PROP_SHUTDOWN_REASON to non-zero value.
+
+   Shutdown code is similar on M50, RP. R6 also mentions this property in CBRs.
+
+   kitor TODO: Is it true for all types of shutdown? Needs testing.
+   Value of args[0] from R:
+   0 - after boot
+   2 - normal shutdown (power switch)
+   4 - card door open
+   8 - battery door open
+   */
+
 #define PROP_DIGITAL_ZOOM_RATIO 0x8005002f
 
 #define PROP_INFO_BUTTON_FUNCTION 0x02070006
