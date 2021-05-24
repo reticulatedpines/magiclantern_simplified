@@ -639,6 +639,11 @@ quit:
 }
 
 static MENU_SELECT_FUNC(arkanoid_start) {
+// SJE FIXME logging a known function address to work out
+// offset from crash logs, to get addr2line working on modules.
+// Would be nice to centralise this
+    DryosDebugMsg(0, 15, "arkanoid_task: 0x%x", arkanoid_task);
+    DryosDebugMsg(0, 15, "delete_elem: 0x%x", delete_elem);
     task_create("arkanoid_task", 0x1c, 0x1000, arkanoid_task, (void*)0);
 }
 
