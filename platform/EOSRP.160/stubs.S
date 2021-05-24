@@ -50,6 +50,7 @@ THUMB_FN(0xE05DA6C2,  task_create)                     /* used to start TaskMain
 
 /** Misc (Optional) **/
 THUMB_FN(0xE059100C,  uart_printf)                     // The function which prints Kxxx READY.
+// THUMB_FN(0xe03b714A,  snprintf) // crashes on cam!?
 THUMB_FN(0xE006C3B8,  vsnprintf)                       // prints "!!! ERROR !!!\n" on uart.
 
 //*************************************************************************************************************
@@ -64,15 +65,15 @@ THUMB_FN(0xE006C3B8,  vsnprintf)                       // prints "!!! ERROR !!!\
 // DATA_PTR(    0x4030,  pre_isr_hook)                    /* from interrupt handler; called before the ISR handler */
 
 /** File I/O **/
-// THUMB_FN(0xE0584BDE, _FIO_CreateFile)
-// THUMB_FN(0xE0584B2C, _FIO_OpenFile)
-// THUMB_FN(0xE0585362,  FIO_CloseFile)
-// THUMB_FN(0xE0584FB6, _FIO_ReadFile)
-// THUMB_FN(0xE058514E, _FIO_WriteFile)
+THUMB_FN(0xE0584BDE, _FIO_CreateFile)
+THUMB_FN(0xE0584B2C, _FIO_OpenFile)
+THUMB_FN(0xE0585362,  FIO_CloseFile)
+THUMB_FN(0xE0584FB6, _FIO_ReadFile)
+THUMB_FN(0xE058514E, _FIO_WriteFile)
 // THUMB_FN(0xE0585090,  FIO_SeekSkipFile)                // renamed to FIO_SeekSkipFile but seems to have same functionality as FIO_SeekSkipFile. TODO: check!
-// THUMB_FN(0xE05854FC, _FIO_GetFileSize)                 // renamed to FIO_AcquireFileSize and was probably called FIO_GetFileSize64 on older models.
-// THUMB_FN(0xE0584F1E, _FIO_RemoveFile)
-// THUMB_FN(0xE0585F5E, _FIO_RenameFile)
+THUMB_FN(0xE05854FC, _FIO_GetFileSize)                 // renamed to FIO_AcquireFileSize and was probably called FIO_GetFileSize64 on older models.
+THUMB_FN(0xE0584F1E, _FIO_RemoveFile)
+THUMB_FN(0xE0585F5E, _FIO_RenameFile)
 // THUMB_FN(0xE05863D2, _FIO_CreateDirectory)
 // THUMB_FN(0xE0586840, _FIO_FindFirstEx)
 // THUMB_FN(0xE0586936,  FIO_FindNextEx)
@@ -124,7 +125,7 @@ DATA_PTR(    0xA360,  mpu_recv_ring_buffer_tail)       // ring buffer index incr
 // THUMB_FN(0xE0595266,  GetMemoryInformation)            // called from AllocateMemory
 // THUMB_FN(0xE059523A,  GetSizeOfMaxRegion)              // same
 THUMB_FN(0xE0594E3C, _alloc_dma_memory)                // calls AllocateMemory(size + 64), aligns the pointer, makes it uncacheable, syncs caches
-// THUMB_FN(0xE0594E70, _free_dma_memory)                 // opposite of the above
+THUMB_FN(0xE0594E70, _free_dma_memory)                 // opposite of the above
 // THUMB_FN(0xE05AA07C, _malloc)                          // "can't malloc"
 // THUMB_FN(0xE05AA0B4, _free)                            // from context
 
