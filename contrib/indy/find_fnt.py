@@ -62,12 +62,64 @@ https://bitbucket.org/hudson/magic-lantern/changeset/cfba492ea84d
 Daniel Fort, 05Jul2017
 https://bitbucket.org/hudson/magic-lantern/pull-requests/844/find_fntpy-update/diff
 
-
+kitor, 25May2021
+Updated to Python 3, added arg parser and font extraction functions.
 """
 
-import sys
+import sys, argparse
 from struct import unpack
-from pprint import pprint
+
+parser = argparse.ArgumentParser(
+    description='Find bitmap fonts in Canon DSLR firmwares')
+
+file_args = parser.add_argument_group("Input file")
+file_args.add_argument(
+    "file",
+    default="ROM0.bin",
+    help="ROM dump to analyze"
+)
+file_args.add_argument(
+    "--address", "-a",
+    required=False,
+    help="Load (memory) address of file. Guessed if not provided."
+)
+
+save_args = parser.add_argument_group("Font extraction")
+save_args.add_argument(
+    "--extract", "-e",
+    action="store_true",
+    help="Extract found fonts"
+)
+save_args.add_argument(
+    "--prefix",
+    help="Prepend saved font names (requires -e)"
+)
+
+args=parser.parse_args()
+
+def saveFont(m, data_size, name, width, unknown):
+  input_name = args.file
+
+  #font_name sometimes has some garbage after null, without split it is decoded by python...
+  name = name.split(b'\x00')[0].decode()
+  file_name = "{}_{}_{}.bfnt".format(name, width, "%04x" % unknown )
+  if args.prefix:
+    file_name = "{}_{}".format(args.prefix, file_name)
+
+  #align end to 4 bytes
+  data_size += 4-(data_size%4)
+
+  try:
+    with open(sys.argv[1], "rb") as rom_file:
+      rom_file.seek(off, 0)
+      font_data = rom_file.read(data_size)
+
+    with open(file_name, "wb") as font_file:
+      font_file.write(font_data)
+
+    print("Saved as {}".format(file_name))
+  except Exception(E):
+    print("Exception during save: {}".format(str(e)))
 
 def getLongLE(d, a):
   return unpack('<L',(d)[a:a+4])[0]
@@ -77,14 +129,18 @@ def getShortLE(d, a):
 
 def parseFont(m, off, base):
   print('0x%08x: %s' % (base+off, m[off:off+4] ))
-  print('0x%08x: (+0x04) 0x%x' % ( base+off+4, getShortLE(m, off+4) ))
-  print('0x%08x: (+0x06) font_width = %d' % ( base+off+6, getShortLE(m, off+6) ))
+  unknown_field = getShortLE(m, off+4)
+  print('0x%08x: (+0x04) 0x%x' % ( base+off+4, unknown_field ))
+  font_width = getShortLE(m, off+6)
+  print('0x%08x: (+0x06) font_width = %d' % ( base+off+6, font_width ))
   charmap_offset = getLongLE(m, off+8) 
   print('0x%08x: (+0x08) charmap_offset = 0x%x' % ( base+off+8, charmap_offset ))
   charmap_size = getLongLE(m, off+12)
   print('0x%08x: (+0x0c) charmap_size = 0x%x' % ( base+off+12, charmap_size ))
-  print('0x%08x: (+0x10) bitmap_size = 0x%x' % ( base+off+16, getLongLE(m, off+16) ))
-  print('0x%08x: (+0x14) font name = \'%s\'' % ( base+off+20, m[off+20: off+36] ))
+  bitmap_size = getLongLE(m, off+16)
+  print('0x%08x: (+0x10) bitmap_size = 0x%x' % ( base+off+16, bitmap_size ))
+  font_name = m[off+20: off+36]
+  print('0x%08x: (+0x14) font name = \'%s\'' % ( base+off+20, font_name ))
   nb_char = int(charmap_size/4)
   print('0x%08x: (+0x%02x) char_codes[]. %d chars' % ( base+off+charmap_offset, charmap_offset, nb_char ))
   last_offset = getLongLE(m, off + charmap_offset + charmap_size + (nb_char-1)*4 )
@@ -93,7 +149,13 @@ def parseFont(m, off, base):
   print('0x%08x: (+0x%02x) bitmaps[]' % ( base+off+bitmap_offset, bitmap_offset  ))
   print('  0x%06x: (+0x%02x) last bitmap' % ( base+off+bitmap_offset+last_offset, bitmap_offset+last_offset  ))
   parseBitmap( m, off+bitmap_offset+last_offset, base )
-  print('')
+
+  if args.extract:
+    #charmap size twice, once for char list and char offsets
+    font_data_size = charmap_offset + charmap_size + charmap_size + bitmap_size
+    saveFont(m, font_data_size, font_name, font_width, unknown_field)
+
+  print()
 
 def parseBitmap(m, off, base):
   width = getShortLE(m, off)
@@ -119,18 +181,20 @@ def guess_load_addr(rom, name):
   # unknown, just report the offset inside the ROM.
   return 0
 
-f = open(sys.argv[1], 'rb')
-m = f.read()
-f.close()
-
-if (len(sys.argv)>2):
-  base = int(sys.argv[2], 16)
-else:
-  base = guess_load_addr(m, sys.argv[1])
+with open(args.file, "rb") as f:
+  m = f.read()
 
 print('Find bitmap fonts in Canon DSLR firmwares')
 print('Arm.Indy. based on work by Pel, Trammel Hudson and A1ex')
-print('Assume ROM file was dumped from 0x%08x \n' % base)
+
+if (args.address):
+  base = int(args.addres, 16)
+  print('Using user-provided base address 0x%08x \n' % base)
+else:
+  base = guess_load_addr(m, args.file)
+  print('Assumed that ROM file was dumped from 0x%08x \n' % base)
+
+
 
 off = 0
 while off < len(m) and off != -1:
