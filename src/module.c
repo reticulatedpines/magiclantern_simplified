@@ -628,23 +628,27 @@ static void _module_load_all(uint32_t list_only)
             int32_t ret = tcc_add_file(state, module_list[mod].long_filename);
 
             // SJE FIXME trying to determine module base address
-            // so I can use addr2line
+            // so I can use addr2line.  The listed address seems wrong,
+            // don't know why.  Instead I am dumping some function address
+            // from whatever module I'm testing, which is annoyingly module
+            // specific
 #if 0
             int size = 0;
             void *data_addr = NULL;
             data_addr = tcc_get_section_ptr(state, ".text", &size);
             DryosDebugMsg(0, 15, "loading module: %s", module_list[mod].filename);
+            DryosDebugMsg(0, 15, "module priv: 0x%x", module_list[mod].cbr);
             DryosDebugMsg(0, 15, "module .text: 0x%x", data_addr);
             DryosDebugMsg(0, 15, "module text_addr: 0x%x", state->text_addr);
-            DryosDebugMsg(0, 15, "sections: %d", state->nb_sections);
-            for (int ii = 1; ii < state->nb_sections; ii++)
-            {
-                Section *s = state->sections[ii];
-                DryosDebugMsg(0, 15, "section: %s", s->name);
-                DryosDebugMsg(0, 15, "section sh_addr: 0x%x", s->sh_addr);
-                DryosDebugMsg(0, 15, "section data_offset: 0x%x", s->data_offset);
-                DryosDebugMsg(0, 15, "section data: 0x%x", s->data);
-            }
+//            DryosDebugMsg(0, 15, "sections: %d", state->nb_sections);
+//            for (int ii = 1; ii < state->nb_sections; ii++)
+//            {
+//                Section *s = state->sections[ii];
+//                DryosDebugMsg(0, 15, "section: %s", s->name);
+//                DryosDebugMsg(0, 15, "section sh_addr: 0x%x", s->sh_addr);
+//                DryosDebugMsg(0, 15, "section data_offset: 0x%x", s->data_offset);
+//                DryosDebugMsg(0, 15, "section data: 0x%x", s->data);
+//            }
 #endif
 
             module_list[mod].valid = 1;
