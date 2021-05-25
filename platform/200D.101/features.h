@@ -3,9 +3,13 @@
 #define FEATURE_VRAM_RGBA
 
 
-// partially working
-//#define FEATURE_SHOW_SHUTTER_COUNT
+// "working" - but is the number correct?
+#define FEATURE_SHOW_SHUTTER_COUNT
+
 //#define FEATURE_SHOW_TASKS
+//#define FEATURE_SHOW_CPU_USAGE
+//#define CONFIG_TSKMON
+
 #define FEATURE_SCREENSHOT
 
 // prevent ML attempting stack unwinding in some cases.
