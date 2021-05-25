@@ -75,7 +75,10 @@ static element* new_elem(int type) {
     // allocate new elem
     element *new = malloc(sizeof(element));
     if(!new)
+    {
+        DryosDebugMsg(0, 15, "arkanoid: malloc fail");
         return NULL;
+    }
     memset(new, 0, sizeof(element));
     new->type = type;
     
@@ -101,11 +104,26 @@ static element* new_elem(int type) {
 }
 
 static void delete_elem(element *e) {
-    e->next->prev = e->prev;
-    e->prev->next = e->next;
-    // if e was head => head is now the next on the right
     if(e == head)
-        head = e->next;
+    {
+        // new head becomes the next element
+        // e->prev will be NULL, avoid accessing it
+        if (head->next != NULL)
+            head = e->next;
+        head->prev = NULL;
+    }
+    else
+    {
+        if (e->next != NULL)
+        {
+            e->next->prev = e->prev;
+            e->prev->next = e->next;
+        }
+        else
+        { // last item in the list
+            e->prev->next = NULL;
+        }
+    }
     free(e);
 }
 
@@ -116,6 +134,23 @@ static void reset_elems() {
 
 static void arkanoid_draw_elem(element * e, int x, int y, int color)
 {
+    if (x < 0) {
+        DryosDebugMsg(0, 15, "x was negative: %d", x);
+        return;
+    }
+    if (x >= 720) {
+        DryosDebugMsg(0, 15, "x was large: %d", x);
+        return;
+    }
+    if (y < 0) {
+        DryosDebugMsg(0, 15, "y was negative: %d", y);
+        return;
+    }
+    if (y >= 540) {
+        DryosDebugMsg(0, 15, "y was large: %d", y);
+        return;
+    }
+
     switch(e->type) {
         case ELEM_PAD:
             bmp_draw_rect_chamfer(color, x, y, e->w, e->h, 4, 0);
@@ -145,6 +180,12 @@ static void arkanoid_redraw()
 {
     ELEM_LOOP
     (
+        if (e == NULL)
+        {
+            DryosDebugMsg(0, 15, "arkanoid: e was NULL in redraw, should never happen!");
+            continue;
+        }
+
         // erase elements that changed their position (to minimize flicker)
         if (e->old_x != e->x || e->old_y != e->y)
         {
@@ -164,6 +205,12 @@ static void arkanoid_redraw()
     
     ELEM_LOOP
     (
+        if (e == NULL)
+        {
+            DryosDebugMsg(0, 15, "arkanoid: e was NULL in redraw, should never happen!");
+            continue;
+        }
+
         // draw the rest
         arkanoid_draw_elem(e, e->x, e->y, e->color);
         
@@ -235,6 +282,12 @@ static void generate_level() {
                 if (width > 0 && width < 100)
                     break;
             }
+            if (width == 0)
+            {
+                DryosDebugMsg(0, 15, "arkanoid: width 0");
+                width = 3; // SJE FIXME we later pass width - 2 to bmp_draw_rect_chamfer()
+                           // this is a quick hack to avoid underflow and crash
+            }
             
             e->x = x;
             e->y = y;
@@ -246,7 +299,8 @@ static void generate_level() {
             x += e->w + 5;
         }
         
-        if((rand() % (level * 100)) < 95) y += 22;
+        if((rand() % (level * 100)) < 95)
+            y += 22;
     }
 }
 
@@ -305,6 +359,8 @@ static element* new_ball() {
 }
 
 static void handle_fades(element *e) {
+    if(e == NULL)
+        return;
     if(e->fade_delta == 0)
         return;
     
