@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python3
 """
 * Pel,  15Mar2011
 http://chdk.setepontos.com/index.php?topic=6204.msg63022
@@ -67,56 +67,57 @@ https://bitbucket.org/hudson/magic-lantern/pull-requests/844/find_fntpy-update/d
 
 import sys
 from struct import unpack
+from pprint import pprint
 
 def getLongLE(d, a):
-   return unpack('<L',(d)[a:a+4])[0]
+  return unpack('<L',(d)[a:a+4])[0]
 
 def getShortLE(d, a):
-   return unpack('<H',(d)[a:a+2])[0]
+  return unpack('<H',(d)[a:a+2])[0]
 
 def parseFont(m, off, base):
-  print '0x%08x: %s' % (base+off, m[off:off+4] )
-  print '0x%08x: (+0x04) 0x%x' % ( base+off+4, getShortLE(m, off+4) )  
-  print '0x%08x: (+0x06) font_width = %d' % ( base+off+6, getShortLE(m, off+6) ) 
+  print('0x%08x: %s' % (base+off, m[off:off+4] ))
+  print('0x%08x: (+0x04) 0x%x' % ( base+off+4, getShortLE(m, off+4) ))
+  print('0x%08x: (+0x06) font_width = %d' % ( base+off+6, getShortLE(m, off+6) ))
   charmap_offset = getLongLE(m, off+8) 
-  print '0x%08x: (+0x08) charmap_offset = 0x%x' % ( base+off+8, charmap_offset )
+  print('0x%08x: (+0x08) charmap_offset = 0x%x' % ( base+off+8, charmap_offset ))
   charmap_size = getLongLE(m, off+12)
-  print '0x%08x: (+0x0c) charmap_size = 0x%x' % ( base+off+12, charmap_size )
-  print '0x%08x: (+0x10) bitmap_size = 0x%x' % ( base+off+16, getLongLE(m, off+16) )
-  print '0x%08x: (+0x14) font name = \'%s\'' % ( base+off+20, m[off+20: off+36] )
-  nb_char = charmap_size/4
-  print '0x%08x: (+0x%02x) char_codes[]. %d chars' % ( base+off+charmap_offset, charmap_offset, nb_char )
+  print('0x%08x: (+0x0c) charmap_size = 0x%x' % ( base+off+12, charmap_size ))
+  print('0x%08x: (+0x10) bitmap_size = 0x%x' % ( base+off+16, getLongLE(m, off+16) ))
+  print('0x%08x: (+0x14) font name = \'%s\'' % ( base+off+20, m[off+20: off+36] ))
+  nb_char = int(charmap_size/4)
+  print('0x%08x: (+0x%02x) char_codes[]. %d chars' % ( base+off+charmap_offset, charmap_offset, nb_char ))
   last_offset = getLongLE(m, off + charmap_offset + charmap_size + (nb_char-1)*4 )
-  print '0x%08x: (+0x%02x) offsets[]. Last offset value = 0x%x' % ( base+off+charmap_offset+charmap_size, charmap_offset+charmap_size, last_offset )
+  print('0x%08x: (+0x%02x) offsets[]. Last offset value = 0x%x' % ( base+off+charmap_offset+charmap_size, charmap_offset+charmap_size, last_offset ))
   bitmap_offset = charmap_offset+charmap_size+nb_char*4
-  print '0x%08x: (+0x%02x) bitmaps[]' % ( base+off+bitmap_offset, bitmap_offset  )
-  print '  0x%06x: (+0x%02x) last bitmap' % ( base+off+bitmap_offset+last_offset, bitmap_offset+last_offset  )
+  print('0x%08x: (+0x%02x) bitmaps[]' % ( base+off+bitmap_offset, bitmap_offset  ))
+  print('  0x%06x: (+0x%02x) last bitmap' % ( base+off+bitmap_offset+last_offset, bitmap_offset+last_offset  ))
   parseBitmap( m, off+bitmap_offset+last_offset, base )
-  print  
+  print('')
 
 def parseBitmap(m, off, base):
   width = getShortLE(m, off)
-  print '  +0x%02x: bitmap width = %d' % (0, width )
+  print('  +0x%02x: bitmap width = %d' % (0, width ))
   height = getShortLE(m, off)
-  print '  +0x%02x: bitmap height = %d' % (2, height )
-  print '  +0x%02x: char width = %d' % (4, getShortLE(m, off+4) )
-  print '  +0x%02x: X offset = %d' % (6, getShortLE(m, off+6) )
-  print '  +0x%02x: Y offset = %d' % (8, getShortLE(m, off+8) )
-  nb_byte = width/8
+  print('  +0x%02x: bitmap height = %d' % (2, height ))
+  print('  +0x%02x: char width = %d' % (4, getShortLE(m, off+4) ))
+  print('  +0x%02x: X offset = %d' % (6, getShortLE(m, off+6) ))
+  print('  +0x%02x: Y offset = %d' % (8, getShortLE(m, off+8) ))
+  nb_byte = int(width/8)
   if width%8 > 0:
     nb_byte = nb_byte + 1
-  print '    bitmap size = 0x%x' % ( nb_byte*height )
+  print('    bitmap size = 0x%x' % ( nb_byte*height ))
 
 def guess_load_addr(rom, name):
-    if rom[4:12] == "gaonisoy":
-        return 0xFF010000  # assume old DIGIC 4 ROM dumped from 0xFF010000
-    if "ROM0" in name:
-        return 0xF0000000  # ROM0 from ML/LOGS/
-    if "ROM1" in name:
-        return 0xF8000000  # ROM1 from ML/LOGS/
+  if rom[4:12] == "gaonisoy":
+    return 0xFF010000  # assume old DIGIC 4 ROM dumped from 0xFF010000
+  if "ROM0" in name:
+    return 0xF0000000  # ROM0 from ML/LOGS/
+  if "ROM1" in name:
+    return 0xF8000000  # ROM1 from ML/LOGS/
 
-    # unknown, just report the offset inside the ROM.
-    return 0
+  # unknown, just report the offset inside the ROM.
+  return 0
 
 f = open(sys.argv[1], 'rb')
 m = f.read()
@@ -127,15 +128,15 @@ if (len(sys.argv)>2):
 else:
   base = guess_load_addr(m, sys.argv[1])
 
-print 'Find bitmap fonts in Canon DSLR firmwares'
-print 'Arm.Indy. based on work by Pel, Trammel Hudson and A1ex'
-print 'Assume ROM file was dumped from 0x%08x \n' % base
+print('Find bitmap fonts in Canon DSLR firmwares')
+print('Arm.Indy. based on work by Pel, Trammel Hudson and A1ex')
+print('Assume ROM file was dumped from 0x%08x \n' % base)
 
 off = 0
-while off < len(m) and off <> -1: 
-  off = m.find('FNT\0', off)
-  if off <> -1:
+while off < len(m) and off != -1:
+  off = m.find(b'FNT\0', off)
+  if off != -1:
     val = getShortLE(m, off+4)
     if val==0xffd8 or val==0xffe2:
       parseFont(m, off, base)
-    off = off + 4 
+    off = off + 4
