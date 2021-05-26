@@ -63,10 +63,11 @@
  * and is handled by MPU now?
  */
 
-#define BFNT_CHAR_CODES             0x00000000 // These are wrong, EOSR uses opentype, not bitmap fonts.
-#define BFNT_BITMAP_OFFSET          0x00000000 // However, I am using 0x0 to trigger a workaround.
-#define BFNT_BITMAP_DATA            0x00000000 // This makes rbf fonts work, but you can't use
-                                               // in-built fonts for early debugging.
+//not needed with BFNTs loaded from card
+//#define BFNT_CHAR_CODES             0x00000000
+//#define BFNT_BITMAP_OFFSET          0x00000000
+//#define BFNT_BITMAP_DATA            0x00000000
+
 #define NUM_PICSTYLES 10 // guess, but seems to be always 9 for old cams, 10 for new
 
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED 0

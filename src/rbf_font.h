@@ -10,6 +10,33 @@
 //-------------------------------------------------------------------
 #define RBF_MAX_NAME        64
 
+/* kitor: BFNT font header, as seen in Digic5 and below.
+ * Taken from Trammells post:
+ * https://groups.google.com/g/ml-devel/c/rsTIDu8c3Wo/m/jftkwmD0ABkJ
+ *
+ * Perhaps we should update all the old models code to pointer to this header
+ * instead of using direct pointers to specific parts and hardcoded sizes... */
+typedef struct
+{
+        uint32_t magic;           // 0x464e5400 (0x00544e46 LE) == "FNT\0"
+        uint16_t off_0x4;         // 0xffe2 in most of them?
+        uint16_t font_width;      // off_0x6;
+        uint32_t charmap_offset;  // off_0x8, typicaly 0x24
+        uint32_t charmap_size;    // off_0xc
+        uint32_t bitmap_size;     // off_0x10
+        const char name[16];
+} bfnt_font;
+
+#ifdef FEATURE_VRAM_RGBA
+/* kitor: Those replace entries in platform consts.h for DIGIC6+
+ *        that does not use BMP fonts anymore.  */
+uint8_t * BFNT_CHAR_CODES;
+uint8_t * BFNT_BITMAP_OFFSET;
+uint8_t * BFNT_BITMAP_DATA;
+
+bfnt_font* BFNT_FONT;
+#endif
+
 //-------------------------------------------------------------------
 // Format of header block for each character in the 'font_data' array
 // This is immediately followed by 'size' bytes of character data.
@@ -70,4 +97,3 @@ extern int rbf_draw_string(font *rbf_font, int x, int y, const char *str, int cl
 void _load_fonts();
 
 #endif
-

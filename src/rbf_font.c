@@ -591,6 +591,45 @@ struct font font_med_large;
 struct font font_large;
 struct font font_canon;
 
+
+#ifdef FEATURE_VRAM_RGBA
+//-------------------------------------------------------------------
+// Load bitmap.bfn from card
+static int bfnt_load_from_card()
+{
+    char filename[128];
+    //TODO? make it configurable?
+    snprintf(filename, sizeof(filename), "ML/FONTS/bitmap.bfn");
+    uint32_t size;
+    if( FIO_GetFileSize( filename, &size ) != 0 )
+        return 1;
+
+    DryosDebugMsg(0, 15, "File '%s' size %d bytes", filename, size);
+
+    BFNT_FONT = malloc(size + 1);
+    if( !BFNT_FONT ) {
+        DryosDebugMsg(0, 15, "malloc fail");
+        return 2;
+    }
+
+    size_t rc = read_file( filename, BFNT_FONT, size );
+    if( rc != size ){
+        DryosDebugMsg(0, 15, "read size wrong %d != %d", rc, size );
+        free(BFNT_FONT);
+        return 3;
+    }
+    DryosDebugMsg(0, 15, "read ok %d", rc);
+
+    if( BFNT_FONT->magic != 0x00544e46) { // "FNT\0"
+        DryosDebugMsg(0, 15, "Font magic incorrect: 0x%08x", BFNT_FONT->magic);
+        free(BFNT_FONT);
+        return 4;
+    }
+
+    return 0;
+}
+#endif
+
 /* must be called before menu_init, otherwise it can't measure strings */
 void _load_fonts()
 {
@@ -599,27 +638,39 @@ void _load_fonts()
     if (fonts_loaded)
         return;
     fonts_loaded = 1;
-    
-    //kitor: New models have no BMP font, can't be used as fallback.
-    #if !defined(FEATURE_VRAM_RGBA)
-    /* fake font for Canon font backend, with the same metrics */
-    font *canon_font = new_font();
 
+    int bfnt_status = -1;
+
+    #ifdef FEATURE_VRAM_RGBA
+    //DIGIC6+: try to load BFNT from card on newer generations
+    bfnt_status = bfnt_load_from_card();
+    if ( bfnt_status == 0) {
+        DryosDebugMsg(0, 15, "bfnt read OK: %08x %s",  BFNT_FONT, BFNT_FONT->name);
+        DryosDebugMsg(0, 15, "hdr %08x char %08x", BFNT_FONT->charmap_offset, BFNT_FONT->charmap_size);
+
+        //setup variables that would be constants from ROM on old generations
+        BFNT_CHAR_CODES    = (uint8_t *)BFNT_FONT + BFNT_FONT->charmap_offset;
+        BFNT_BITMAP_OFFSET = BFNT_CHAR_CODES + BFNT_FONT->charmap_size;
+        BFNT_BITMAP_DATA   = BFNT_BITMAP_OFFSET + BFNT_FONT->charmap_size;
+
+        DryosDebugMsg(0, 15, "%08x %08x %08x", BFNT_CHAR_CODES, BFNT_BITMAP_OFFSET, BFNT_BITMAP_DATA);
+    }
+    else{
+        DryosDebugMsg(0, 15, "bfnt read fail: %d", bfnt_status);
+    }
+    #else
+    //DIGIC < 6: if constants are not zero - assume BFNT is available from ROM
+    if(BFNT_CHAR_CODES && BFNT_BITMAP_OFFSET && BFNT_BITMAP_DATA)
+        bfnt_status = 0;
+    #endif
+
+    /* fake font for Canon BFNT font backend, with the same metrics */
+    font *canon_font = new_font();
     canon_font->hdr.height = 40;
     for (int i = 0; i < 256; i++)
         canon_font->wTable[i] = bfnt_char_get_width(i);
 
-    /* use Canon font as fallback */
-    /* (will be overwritten when loading named fonts) */
-    for (int i = 0; i <= MAX_DYN_FONTS; i++)
-    {
-        font_dynamic[i].bitmap = (void*) canon_font;
-        font_dynamic[i].height = 40;
-        font_dynamic[i].width = rbf_char_width((void*)font_dynamic[i].bitmap, '0');
-    }
-    #endif
-
-    /* load some fonts */
+    /* Try to load some RBF fonts */
     font_by_name("term12", COLOR_BLACK, COLOR_WHITE);
     font_by_name("term20", COLOR_BLACK, COLOR_WHITE);
     #ifdef CONFIG_LOW_RESOLUTION_DISPLAY
@@ -629,34 +680,33 @@ void _load_fonts()
     #endif
     font_by_name("argnor28", COLOR_BLACK, COLOR_WHITE);
     font_by_name("argnor32", COLOR_BLACK, COLOR_WHITE);
-    
-    #if defined(FEATURE_VRAM_RGBA)
-    /**
-     * kitor FIXME?: Use last loaded RBF font as fallback.
-     * To make it consistent between generations, we should have additional font
-     * with the same height and similar widths as Canon BMP in previous gens,
-     * and use it as replacement instead of "last loaded".
-     */
-    font_by_name("argnor32", COLOR_BLACK, COLOR_WHITE);
 
-    if(dyn_fonts)
-    {
+    if (bfnt_status == 0) {
+        /* use BFNT font as fallback */
         for (int i = dyn_fonts; i <= MAX_DYN_FONTS; i++)
-            font_dynamic[i] = font_dynamic[dyn_fonts - 1];
+        {
+            font_dynamic[i].bitmap = (void*) canon_font;
+            font_dynamic[i].height = 40;
+            font_dynamic[i].width = rbf_char_width((void*)font_dynamic[i].bitmap, '0');
+        }
+
+        font_canon = *fontspec_font(FONT_CANON);
     }
-    //kitor FIXME: we need to exit with some error when 0 fonts are loaded.
-    #endif
+    else {
+        /* use last loaded RBF font as a fallback */
+        font_by_name("argnor32", COLOR_BLACK, COLOR_WHITE);
+        if(dyn_fonts)
+        {
+            for (int i = dyn_fonts; i <= MAX_DYN_FONTS; i++)
+                font_dynamic[i] = font_dynamic[dyn_fonts - 1];
+        }
+
+        //kitor: Use FONT_LARGE instead of missing FONT_CANON
+        font_canon = *fontspec_font(FONT_LARGE);
+    }
 
     font_small = *fontspec_font(FONT_SMALL);
     font_med = *fontspec_font(FONT_MED);
     font_med_large = *fontspec_font(FONT_MED_LARGE);
     font_large = *fontspec_font(FONT_LARGE);
-    
-    #if defined(FEATURE_VRAM_RGBA)
-    //kitor: Use FONT_LARGE instead of missing FONT_CANON
-    font_canon = *fontspec_font(FONT_LARGE);
-    #else
-    font_canon = *fontspec_font(FONT_CANON);
-    #endif
-
 }
