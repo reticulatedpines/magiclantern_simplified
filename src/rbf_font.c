@@ -592,7 +592,7 @@ struct font font_large;
 struct font font_canon;
 
 
-#ifdef FEATURE_VRAM_RGBA
+#ifdef CONFIG_NO_BFNT
 //-------------------------------------------------------------------
 // Load bitmap.bfn from card
 static int bfnt_load_from_card()
@@ -641,8 +641,8 @@ void _load_fonts()
 
     int bfnt_status = -1;
 
-    #ifdef FEATURE_VRAM_RGBA
-    //DIGIC6+: try to load BFNT from card on newer generations
+    #ifdef CONFIG_NO_BFNT
+    //Try to load BFNT from card on newer generations
     bfnt_status = bfnt_load_from_card();
     if ( bfnt_status == 0) {
         DryosDebugMsg(0, 15, "bfnt read OK: %08x %s",  BFNT_FONT, BFNT_FONT->name);
@@ -659,7 +659,7 @@ void _load_fonts()
         DryosDebugMsg(0, 15, "bfnt read fail: %d", bfnt_status);
     }
     #else
-    //DIGIC < 6: if constants are not zero - assume BFNT is available from ROM
+    //If constants are not zero - assume BFNT is available from ROM
     if(BFNT_CHAR_CODES && BFNT_BITMAP_OFFSET && BFNT_BITMAP_DATA)
         bfnt_status = 0;
     #endif
@@ -701,7 +701,7 @@ void _load_fonts()
                 font_dynamic[i] = font_dynamic[dyn_fonts - 1];
         }
 
-        //kitor: Use FONT_LARGE instead of missing FONT_CANON
+        /* Replace missing FONT_CANON with FONT_LARGE */
         font_canon = *fontspec_font(FONT_LARGE);
     }
 

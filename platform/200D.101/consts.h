@@ -72,7 +72,7 @@
 #define LV_STRUCT_PTR 0xaf2d0
 #define NUM_PICSTYLES 10 // guess, but seems to be always 9 for old cams, 10 for new
 
-//not needed with BFNTs loaded from card
+//Replaced by CONFIG_NO_BFNT in internals.h
 //#define BFNT_CHAR_CODES             0x00000000
 //#define BFNT_BITMAP_OFFSET          0x00000000
 //#define BFNT_BITMAP_DATA            0x00000000

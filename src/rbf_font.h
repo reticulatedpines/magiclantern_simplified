@@ -27,7 +27,7 @@ typedef struct
         const char name[16];
 } bfnt_font;
 
-#ifdef FEATURE_VRAM_RGBA
+#ifdef CONFIG_NO_BFNT
 /* kitor: Those replace entries in platform consts.h for DIGIC6+
  *        that does not use BMP fonts anymore.  */
 uint8_t * BFNT_CHAR_CODES;

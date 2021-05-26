@@ -63,7 +63,7 @@
  * and is handled by MPU now?
  */
 
-//not needed with BFNTs loaded from card
+//Replaced by CONFIG_NO_BFNT in internals.h
 //#define BFNT_CHAR_CODES             0x00000000
 //#define BFNT_BITMAP_OFFSET          0x00000000
 //#define BFNT_BITMAP_DATA            0x00000000
