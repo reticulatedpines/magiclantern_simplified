@@ -81,7 +81,7 @@ THUMB_FN(0xE054CFCA,  CancelTimer)                          /* CancelRefreshTime
 
 /** Memory allocation **/
 THUMB_FN(0xE055B094, _AllocateMemory)
-THUMB_FN(0xE055B12A, _FreeMemory)
+THUMB_FN(0xE055B24C, _FreeMemory)
 THUMB_FN(0xE055AF1E,  GetMemoryInformation)
 THUMB_FN(0xE055AEF2,  GetSizeOfMaxRegion)
 THUMB_FN(0xE055AAF4, _alloc_dma_memory)
