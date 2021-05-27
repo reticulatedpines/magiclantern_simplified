@@ -214,8 +214,9 @@ THUMB_FN(0xe0693b23, _malloc) // These two names are used in 50D and CONFIG_HELL
 THUMB_FN(0xe0693b5b, _free)   // however, the inital stubs for 200D call these simply malloc/free.
                            // I'm leaving them defined with both names, although that seems wrong.
 THUMB_FN(0xe04cff73,  SRM_AllocateMemoryResourceFor1stJob) // "hJobMemorySuite" strings, function a little earlier
-THUMB_FN(0xe04d2fed,  SRM_FreeMemoryResourceFor1stJob) // find refs to "pMessage", there are several similar looking functions using it,
-                                                       // this is my best guess
+THUMB_FN(0xe04d2e17,  SRM_FreeMemoryResourceFor1stJob) // find refs to "pMessage", there are several similar looking functions using it,
+                                                       // this is my best guess - this one has pPriorMessage and sets offset 8
+                                                       // in the struct to 0, offset 0x10 to param1
 THUMB_FN(0xe04bbad7, _prop_cleanup) // "./Multicast/PropertyMgr.c" check funcs that ref this string
 THUMB_FN(0xdf00b67d,  CreateRecursiveLock) // via "KerRLock.c", CRL() calls a function that regs this string, not many do
 THUMB_FN(0xdf00b451,  AcquireRecursiveLock)
