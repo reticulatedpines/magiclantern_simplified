@@ -98,8 +98,6 @@ save_args.add_argument(
 args=parser.parse_args()
 
 def saveFont(m, data_size, name, width, unknown):
-  input_name = args.file
-
   #font_name sometimes has some garbage after null, without split it is decoded by python...
   name = name.split(b'\x00')[0].decode()
   file_name = "{}_{}_{}.bfnt".format(name, width, "%04x" % unknown )
@@ -110,7 +108,7 @@ def saveFont(m, data_size, name, width, unknown):
   data_size += 4-(data_size%4)
 
   try:
-    with open(sys.argv[1], "rb") as rom_file:
+    with open(args.file, "rb") as rom_file:
       rom_file.seek(off, 0)
       font_data = rom_file.read(data_size)
 
