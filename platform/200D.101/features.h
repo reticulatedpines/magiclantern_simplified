@@ -10,6 +10,8 @@
 // "working" - but is the number correct?
 #define FEATURE_SHOW_SHUTTER_COUNT
 
+#define FEATURE_SHOW_FREE_MEMORY
+
 //#define FEATURE_SHOW_TASKS
 //#define FEATURE_SHOW_CPU_USAGE
 //#define CONFIG_TSKMON
