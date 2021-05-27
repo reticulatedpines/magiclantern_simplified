@@ -30,12 +30,9 @@
                                        // Should probably do more work to find a value via a similar
                                        // route to other cams.
 
-#define MALLOC_STRUCT 0x6de60 // via memMap, find the referenced struct point and scroll forwards
-                              // through xrefs to that location, looking at R/W patterns.
-                              // That leads to ff018c5c in 50D, e0583d44 in 200D.
-                              // These are not exactly the same, but see the function called by both
-                              // that takes (1,2, "dm_lock" | "mallocSem").  And they're both
-                              // doing init of a struct in a similar loop.
+#define MALLOC_STRUCT 0x6e234 // via malloc_info(), the call inside the main if block
+                              // initialises a struct and MALLOC_STRUCT itself is a short
+                              // distance away.
 
 #define GMT_FUNCTABLE 0xe0805f20
 #define GMT_NFUNCS 0x7
@@ -105,7 +102,7 @@
 #define YUV422_LV_BUFFER_3 0x5F600000
 #define YUV422_LV_PITCH 1440
 #define LV_BOTTOM_BAR_DISPLAYED 0x0 // wrong, fake bool
-#define MALLOC_FREE_MEMORY 0x0 // FIXME
+#define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 // below definitely wrong, just copied from 50D
 #define FRAME_SHUTTER *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x56)
 #define FRAME_APERTURE *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x57)
