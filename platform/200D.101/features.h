@@ -2,6 +2,10 @@
 
 #define FEATURE_VRAM_RGBA
 
+// Don't Click Me menu looks to be intended as a place
+// for devs to put custom code in debug.c run_test(),
+// and allowing triggering from a menu context.
+#define FEATURE_DONT_CLICK_ME
 
 // "working" - but is the number correct?
 #define FEATURE_SHOW_SHUTTER_COUNT

@@ -276,6 +276,8 @@ void guimode_test()
 
 static void run_test()
 {
+    clrscr();
+    NotifyBox(2000, "It was clicked");
 }
 
 static void unmount_sd_card()
