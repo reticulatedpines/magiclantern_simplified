@@ -10,6 +10,8 @@
 // "working" - but is the number correct?
 #define FEATURE_SHOW_SHUTTER_COUNT
 
+// working but incomplete, some allocators don't report
+// anything yet as they're faked / not yet found
 #define FEATURE_SHOW_FREE_MEMORY
 
 //#define FEATURE_SHOW_TASKS
