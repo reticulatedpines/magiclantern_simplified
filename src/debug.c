@@ -276,6 +276,7 @@ void guimode_test()
 
 static void run_test()
 {
+#if 0
     static int dm_toggle = 1;
     if (dm_toggle)
     {
@@ -290,6 +291,7 @@ static void run_test()
         dm_set_store_level(0xe, 0x3); // re-enables FAC logging
         dm_toggle = 1;
     }
+#endif
 }
 
 static void unmount_sd_card()
