@@ -276,8 +276,23 @@ void guimode_test()
 
 static void run_test()
 {
-    clrscr();
-    NotifyBox(2000, "It was clicked");
+    static int dm_toggle = 1;
+    if (dm_toggle)
+    {
+        DryosDebugMsg(0, 15, "Setting level to 0x17");
+        dm_set_store_level(0xe, 0x17); // 0xe is [FAC] class, 17 suppresses mode dial logging
+                                       // as that message happens to be at level 16
+        dm_toggle = 0;
+    }
+    else
+    {
+        DryosDebugMsg(0, 15, "Setting level to 0x3");
+        dm_set_store_level(0xe, 0x3); // re-enables FAC logging
+        dm_toggle = 1;
+    }
+
+    DryosDebugMsg(0, 15, "*fb48: 0x%x", (int)(*(char *)0xfb48)); // 0xe - hopefully [FAC] class
+    DryosDebugMsg(0xe, 15, "fac logging?");
 }
 
 static void unmount_sd_card()
