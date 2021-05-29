@@ -126,6 +126,12 @@ THUMB_FN(0xE11C7CF9,  vsnprintf)              /* called near dmstart; references
 // but I wanted to call by name
 THUMB_FN(0xe049e9bf,  SaveVRAM)
 THUMB_FN(0xe05f1c94,  debug_assert) // DRYOS_ASSERT_HANDLER related
+THUMB_FN(0xe0152d8b,  set_rec_mode) // possibly sets Movie mode, e.g., IPB, ALL-I
+THUMB_FN(0xe0152689,  c2rec) // Cave2 - might start mp4 recording?
+THUMB_FN(0xe0152775,  c2stop) // Cave2 - might stop recording?
+THUMB_FN(0xe0153159,  c2install) // Cave2 - looks like an init function
+THUMB_FN(0xe0150fd7,  c2command) // Cave2 - takes a command parameter, see movie_state_name_mappings,
+                                 // 0xe0aa8120 on 200D 1.0.1
 
 // SJE trying to get a substitute vsync callback working for screen refresh
 DATA_PTR(    0xfd78,  winsys_sem_count)
