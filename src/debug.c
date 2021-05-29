@@ -290,9 +290,6 @@ static void run_test()
         dm_set_store_level(0xe, 0x3); // re-enables FAC logging
         dm_toggle = 1;
     }
-
-    DryosDebugMsg(0, 15, "*fb48: 0x%x", (int)(*(char *)0xfb48)); // 0xe - hopefully [FAC] class
-    DryosDebugMsg(0xe, 15, "fac logging?");
 }
 
 static void unmount_sd_card()
