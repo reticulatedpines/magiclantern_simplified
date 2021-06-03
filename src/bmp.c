@@ -217,7 +217,7 @@ static void refresh_yuv_from_rgb_task(void *unused)
     {
         if (ml_refresh_display_needed && !ml_shutdown_requested && DISPLAY_IS_ON)
         {
-            #if defined(CONFIG_R) && !defined(FEATURE_COMPOSITOR_XCM)
+            #if (defined(CONFIG_R) || defined(CONFIG_EOSRP)) && !defined(FEATURE_COMPOSITOR_XCM)
                 /* kitor FIXME: R seems to do GUI double buffering or buffer swaps.
                  * Somehow ML menus ended up on layer 1 - _rgb_vram_info pointer
                  * had to change between ML init and runtime.

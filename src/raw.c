@@ -455,6 +455,10 @@ static int dynamic_ranges[] = {1339, 1278, 1171, 1091, 1004, 920, 840, 733, 636,
 static int dynamic_ranges[] = {1255, 1237, 1188, 1120, 1045, 964, 883, 785, 685, 599, 507};
 #endif
 
+#ifdef CONFIG_EOSRP
+static int dynamic_ranges[] = {1105, 1086, 1065, 1038, 1000, 936, 846, 773, 676, 585, 499};
+#endif
+
 /** M50 data missing from DxO.
  *  For now I just copied R
  */
