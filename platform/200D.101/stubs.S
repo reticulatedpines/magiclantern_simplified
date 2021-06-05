@@ -264,13 +264,19 @@ NSTUB(    0xfc88,  gui_task_list) // "pDialog" strings often have refs to 0xfcb4
                                            // make sense given RTC related.
 THUMB_FN(0xe0642801, _LoadCalendarFromRTC)
 
+// These are required on Digic 678
+THUMB_FN(0xe04a044d, RefreshVrmsSurface) // "Call RefreshVrmsSurface"
+DATA_PTR(   0xfd94,  display_refresh_needed) // if 0, RefreshVrmsSurface() does nothing
+THUMB_FN(0xe01ef519, XimrExe) // trigger Ximr unit to execute (HW compositor, partially understood)
+
+// These are not strictly required, although recent dev work has added dependencies;
+// these likely should be removed before a "real" release
 THUMB_FN(0xe04bdc5d, uart_printf)
 #NSTUB(0xdf008c7c, uart_printf) // Thunked equivalent of the above.  Note, ARM, not Thumb.
                                // Both seem to work the same.
-THUMB_FN(0xe049f041, fill_rectangle_to_vram) // "FillRectangleToVram ILLEGAL_PARAMETER"
 
-THUMB_FN(0xe04a044d, RefreshVrmsSurface) // "Call RefreshVrmsSurface"
-DATA_PTR(   0xfd94,  display_refresh_needed) // if 0, RefreshVrmsSurface() does nothing
+// These are not required, but have been used for experiments, debugging, etc
+THUMB_FN(0xe049f041, fill_rectangle_to_vram) // "FillRectangleToVram ILLEGAL_PARAMETER"
 THUMB_FN(0xe02b07c3, marv_dcache_clean) // find _rgb_vram_info, this function is called with
                                         // that address as only param, after null check.
                                         // Function inspects the struct and does dcache_clean
@@ -278,12 +284,16 @@ THUMB_FN(0xe02b07c3, marv_dcache_clean) // find _rgb_vram_info, this function is
                                         // much.  Possibly only used during init?
 THUMB_FN(0xe02ba483, JediDraw) // maybe sends a buffer to 2d accel unit, for output / render?
 THUMB_FN(0xe048f6e7, OsdReverseMode) // "OsdReverseMode" - does this flip the OSD output?
-THUMB_FN(0xe01ef519, XimrExe) // trigger Ximr unit to execute?  Ximr seems to be compositor / renderer related
 THUMB_FN(0xe025e88d, XimrSetLayerVisibility)
 THUMB_FN(0xe025e8ad, XimrSetInputLayerMARV)
 THUMB_FN(0xe025ea65, XimrSetLayer_unk2)
 THUMB_FN(0xe025eaed, maybe_XimrSetLayerColorParams)
 THUMB_FN(0xe025e949, XimrContextInputLayerSetDimensions)
+THUMB_FN(0xe021ded9, WinSys_AllocateMemory)
+THUMB_FN(0xe021df7d, WinSys_FreeMemory)
+
+
+
 
 DATA_PTR(   0xfd84,  bmp_vram_info) // function e04a044c looks relevant, see refs to 0x3c0 and 0x21c; 960x540
                                     // 0xfda0 seems bool for whether it's in 960x540 or 720x480.
@@ -299,8 +309,6 @@ DATA_PTR(   0xfd80,  _rgb_vram_info) // Used in many places, written to in "Init
                                      // the renderer peripheral to take the RGB data and update the screen(s).
 
 DATA_PTR(   0xfda0,  display_output_mode) // on 200D, 1: 960x540, anything else, 720x480
-
-
 
 // WRONG
 //NSTUB(   0x1D6FC,  cf_device) // in cfReadBlk - probably this is 0xe0400446, but, in 200D,

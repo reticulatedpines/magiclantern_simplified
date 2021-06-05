@@ -70,7 +70,12 @@ extern void * realloc( void * buf, size_t newlen );
 extern void * calloc(size_t nmemb, size_t size);
 
 #define IS_ML_PTR(val) (((uintptr_t)(val) > (uintptr_t)0x1000) && ((uintptr_t)(val) < (uintptr_t)0x20000000))
-#define IS_ROM_PTR(val) ((uintptr_t)(val) > (uintptr_t)0xF0000000)
+#ifndef CONFIG_DIGIC_678
+    // the range check used is not appropriate for D678, but,
+    // we don't use this macro on those platforms (no patching yet).
+    // Guard against future use.
+    #define IS_ROM_PTR(val) ((uintptr_t)(val) > (uintptr_t)0xF0000000)
+#endif
 
 #define PTR_INVALID             ((void *)0xFFFFFFFF)
 

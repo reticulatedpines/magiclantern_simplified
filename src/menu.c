@@ -776,6 +776,8 @@ static void menu_numeric_toggle_fast(int* val, int delta, int min, int max, int 
     }
     else
     {
+        // SJE FIXME - does the following need a check to avoid div by zero?
+        // If so, consider fixing MOD itself
         set_config_var_ptr(val, MOD(*val - min + delta, max - min + 1) + min);
     }
     
@@ -3071,13 +3073,20 @@ menu_entry_process(
  */
 
 static void
-dyn_menu_add_entry(struct menu * dyn_menu, struct menu_entry * entry, struct menu_entry * dyn_entry)
+dyn_menu_add_entry(struct menu *dyn_menu, struct menu_entry *entry, struct menu_entry *dyn_entry)
 {
     // copy most things from old menu structure to this one
     // except for some essential things :P
-    void* next = dyn_entry->next;
-    void* prev = dyn_entry->prev;
-    int selected = dyn_entry->selected;
+    void *next;
+    void *prev;
+    int selected;
+
+    ASSERT(dyn_entry);
+
+    next = dyn_entry->next;
+    prev = dyn_entry->prev;
+    selected = dyn_entry->selected;
+
     memcpy(dyn_entry, entry, sizeof(struct menu_entry));
     dyn_entry->next = next;
     dyn_entry->prev = prev;
