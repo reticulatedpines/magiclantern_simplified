@@ -66,7 +66,9 @@
 // Definitely wrong / hacks / no testing at all:
 #define LV_STRUCT_PTR 0 // 0xaf2d0
 
-#define WINSYS_BMP_DIRTY_BIT_NEG MEM(0) // WINSYS_BMP_DIRTY_BIT_NEG MEM(0x4444+0x30) // wrong, no idea
+extern int _WINSYS_BMP_DIRTY_BIT_NEG;
+
+#define WINSYS_BMP_DIRTY_BIT_NEG MEM(&_WINSYS_BMP_DIRTY_BIT_NEG) // WINSYS_BMP_DIRTY_BIT_NEG MEM(0x4444+0x30) // wrong, no idea
 #define FOCUS_CONFIRMATION (*(int*)0) // FOCUS_CONFIRMATION (*(int*)0x4444) // wrong, focusinfo looks really different 50D -> 200D
 #define YUV422_LV_BUFFER_DISPLAY_ADDR 0x0 // it expects this to be pointer to address
 #define YUV422_HD_BUFFER_DMA_ADDR 0x0 // it expects this to be shamem_read(some_DMA_ADDR)

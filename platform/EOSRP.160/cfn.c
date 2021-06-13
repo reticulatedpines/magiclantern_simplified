@@ -1,6 +1,8 @@
 #include <dryos.h>
 #include <property.h>
 
+extern int _WINSYS_BMP_DIRTY_BIT_NEG = 0;
+
 // look on camera menu or review sites to get custom function numbers
 
 /* kitor: nerfed everything for now, just in case */
