@@ -5,6 +5,6 @@
 /** This camera has a DIGIC VIII chip */
 #define CONFIG_DIGIC_VIII
 
-#define BFNT_CHAR_CODES             0x00000000
-#define BFNT_BITMAP_OFFSET          0x00000000
-#define BFNT_BITMAP_DATA            0x00000000
+/** Digic 8 does not have bitmap font in ROM, try to load it from card **/
+#define CONFIG_NO_BFNT
+
