@@ -257,7 +257,6 @@ extern int XimrSetLayer_unk2(void *ximr_context, int, int, int, int);
 extern int XimrContextInputLayerSetDimensions(void *ximr_context, int, int, int, int, int, int, int);
 extern int maybe_XimrSetLayerColorParams(void *ximr_context, int, struct MARV *rgb_vram, int, int);
 extern int display_output_mode;
-extern int display_refresh_needed;
 
 static void draw_test_pattern(int colour)
 {
