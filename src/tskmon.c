@@ -217,6 +217,16 @@ void tskmon_stack_get_max(uint32_t task_id, uint32_t *used, uint32_t *free)
     *used = tskmon_task_stack_used[task_id & (TSKMON_MAX_TASKS-1)];
 }
 
+#ifndef CONFIG_DIGIC_678
+// SJE this causes a nasty early crash on D678 so I'm removing it as much
+// as possible so it's very obvious not to use it.
+//
+// Reading from address 0 makes D678 angry, Error Exception loop early in boot.
+//
+// I think null_pointer_check() is trying to spot if an ML task writes
+// through a null pointer.  If so, this check is safe to remove, because
+// DryOS on these cams won't allow such a write.
+
 /* note: this function reads from a null pointer,
  * so we have to tell GCC that we really want that */
 static void __attribute__((optimize("-fno-delete-null-pointer-checks")))
@@ -318,6 +328,7 @@ null_pointer_check()
         }
     }
 }
+#endif
 
 /* not sure why we have to specify the attribute here as well */
 /* if we don't, gcc inserts a UDF instruction at the end of tskmon_task_dispatch */
@@ -329,7 +340,12 @@ tskmon_task_dispatch(struct task * next_task)
     {
         /* we need full speed; these checks might cause a small performance hit */
         /* keep the null pointer check, as some Canon tasks may cause errors that should be ignored */
+#ifndef CONFIG_DIGIC_678
+    // SJE can't run this on D678, reading from address 0 triggers exception,
+    // presumably due to MMU, I believe this area is reserved, something to do
+    // with dual-core.
         null_pointer_check();
+#endif
         tskmon_last_task = next_task;
         return;
     }
@@ -340,9 +356,14 @@ tskmon_task_dispatch(struct task * next_task)
         return;
     }
 
+
     tskmon_stack_checker(next_task);
     tskmon_update_timers();
+
+
+#ifndef CONFIG_DIGIC_678
     null_pointer_check();
+#endif
 
     if (!tskmon_last_task || next_task->taskId != tskmon_last_task->taskId)
     {
