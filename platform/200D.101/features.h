@@ -10,14 +10,16 @@
 // "working" - but is the number correct?
 #define FEATURE_SHOW_SHUTTER_COUNT
 
-// working but incomplete, some allocators don't report
-// anything yet as they're faked / not yet found
+// working but slightly hackish, don't yet have a good
+// way to determine free stack size
 #define FEATURE_SHOW_FREE_MEMORY
 
 //#define FEATURE_SHOW_TASKS
 //#define FEATURE_SHOW_CPU_USAGE
 //#define CONFIG_TSKMON
 
+// partially working; wrong colorspace and not
+// dumping all the images that old cams support
 #define FEATURE_SCREENSHOT
 
 // mostly working - task display is too crowded.
