@@ -1,5 +1,3 @@
-
-
 #include <dryos.h>
 #include <property.h>
 #include <util.h>
@@ -24,10 +22,13 @@ void util_atomic_dec(uint32_t *value)
 int bin_search(int lo, int hi, CritFunc crit)
 {
     ASSERT(crit);
-    if (lo >= hi-1) return lo;
-    int m = (lo+hi)/2;
+    if (lo >= hi - 1)
+        return lo;
+    int m = (lo + hi) / 2;
     int c = crit(m);
-    if (c == 0) return m;
-    if (c > 0) return bin_search(m, hi, crit);
+    if (c == 0)
+        return m;
+    if (c > 0)
+        return bin_search(m, hi, crit);
     return bin_search(lo, m, crit);
 }
