@@ -67,7 +67,12 @@
             return (uint8_t*)((uintptr_t)bmp_buf - BMP_HDMI_OFFSET - 0xb28);
 
         // something else - new camera? return it unchanged (failsafe)
+        #ifdef FEATURE_VRAM_RGBA
+        // SJE we use a malloc'd buffer and the above hack doesn't work, so,
+        // don't assert.
+        #else
         ASSERT(0);
+        #endif
         return bmp_buf;
     }
 
