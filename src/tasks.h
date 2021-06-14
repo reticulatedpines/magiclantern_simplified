@@ -106,6 +106,35 @@ struct task
 };
 
 
+#ifdef CONFIG_DIGIC_678
+// NB, these fields get copied from a struct task,
+// and the effective types seems to change.  I guess this
+// is just down to alignment of the structs (the asm loads a byte,
+// but stores a word).
+//
+// SJE FIXME - I have updated this struct purely from reversing,
+// it is currently untested.  I also haven't audited current ML
+// usage of this struct.  It has new fields now, which old code
+// might not populate, and DryOS might require, etc.
+struct task_attr_str {
+  unsigned int state;           // 0x00
+  unsigned int pri;             // 0x04
+  unsigned int unknown_0b;      // 0x08
+
+  unsigned int entry;           // 0x0c
+  unsigned int args;            // 0x10
+  unsigned int wait_id;         // 0x14
+  unsigned int flags;           // 0x18
+  unsigned int stack;           // 0x1c
+  unsigned int size;            // 0x20
+  unsigned int used;            // 0x24
+  unsigned int cpu_requested;   // 0x28
+  unsigned int cpu_assigned;    // 0x2c
+  unsigned int context;         // 0x30
+  unsigned int unknown_13;      // 0x34
+  char *name;                   // 0x38
+}; // size = 0x3c
+#else
 struct task_attr_str {
   unsigned int entry;
   unsigned int args;
@@ -121,6 +150,7 @@ struct task_attr_str {
   unsigned char fpu;
   unsigned int id;
 }; // size = 0x28
+#endif
 
 /** The head of the running task list */
 extern struct task * current_task;
