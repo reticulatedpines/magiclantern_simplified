@@ -227,6 +227,7 @@ static size_t shoot_malloc_autodetect_contig(uint32_t requested_size)
     _shoot_free_suite(backup);
     
     //qprintf("[shoot_contig] autodetected size: %s (requested %x)\n", format_memory_size(max_contig_size), requested_size);
+
     return max_contig_size;
 }
 
@@ -421,7 +422,7 @@ static void srm_shutter_unlock()
     gui_uilock(unlocked_shutter);
 }
 
-struct memSuite * _srm_malloc_suite(int num_requested_buffers)
+struct memSuite* _srm_malloc_suite(int num_requested_buffers)
 {
     printf("srm_malloc_suite(%d)...\n", num_requested_buffers);
 
@@ -448,12 +449,30 @@ struct memSuite * _srm_malloc_suite(int num_requested_buffers)
         return 0;
     }
 
-    void* buffers[16];
+#ifdef CONFIG_DIGIC_678
+    enum BUF_COUNT {BUF_COUNT = 4};
+    // SJE any higher than 4 on 200D (other D678 untested)
+    // and we hit the err case in the later for num_buffers loop,
+    // *and* that error case puts DryOS memory management in a bad state
+    // such that calling _srm_malloc_suite(0) a second time triggers
+    // a crash (guess_free_mem_task() does this).
+    //
+    // Cause not fully understood but limiting to 4 seems to prevent it.
+    // If anyone wants to dig deeper, the error messages looks like this:
+    //   2971:  8780.908 [RSC] ERROR NG AllocMem1 0 0
+    //   2972:  8780.926 [RSCC] ERROR TryReceiveMessageQueue : Current = 0, dwEventID = 0, dwParam =
+    //
+    // The code suggests D45 doesn't crash even when the err
+    // case is hit.
+#else
+    enum BUF_COUNT {BUF_COUNT = 16};
+#endif
+    void *buffers[BUF_COUNT];
     
-    if (num_requested_buffers <= 0 || num_requested_buffers > COUNT(buffers))
+    if (num_requested_buffers <= 0 || num_requested_buffers > BUF_COUNT)
     {
         /* if you request 0, this means allocate as much as you can */
-        num_requested_buffers = COUNT(buffers);
+        num_requested_buffers = BUF_COUNT;
     }
     
     int num_buffers = 0;
@@ -480,7 +499,7 @@ struct memSuite * _srm_malloc_suite(int num_requested_buffers)
         return 0;
     }
     
-    if (num_requested_buffers == COUNT(buffers))
+    if (num_requested_buffers == BUF_COUNT)
     {
         /* all SRM memory allocated => Canon code already locked the shutter for us */
         /* (we still need the lock active while allocating, to pass the race condition test) */
@@ -488,12 +507,12 @@ struct memSuite * _srm_malloc_suite(int num_requested_buffers)
     }
     
     /* pack the buffers into a memory suite, so they can be used in the same way as with shoot_malloc_suite */
-    struct memSuite * suite = CreateMemorySuite(buffers[0], srm_buffer_size, 0);
+    struct memSuite *suite = CreateMemorySuite(buffers[0], srm_buffer_size, 0);
     ASSERT(suite);
     
     for (int i = 1; i < num_buffers; i++)
     {
-        struct memChunk * chunk = CreateMemoryChunk(buffers[i], srm_buffer_size, 0);
+        struct memChunk *chunk = CreateMemoryChunk(buffers[i], srm_buffer_size, 0);
         ASSERT(chunk);
         AddMemoryChunk(suite, chunk);
     }
@@ -503,11 +522,20 @@ struct memSuite * _srm_malloc_suite(int num_requested_buffers)
     return suite;
 }
 
-void _srm_free_suite(struct memSuite * suite)
+void _srm_free_suite(struct memSuite *suite)
 {
+    if (suite == NULL)
+    {
+        DryosDebugMsg(0, 15, "WARNING: suite was NULL");
+        // SJE should we do srm_shutter_unlock() and clear srm_allocated,
+        // as below?  Probably not, but I don't know how to handle this
+        // error case.
+        return;
+    }
+        
     printf("srm_free_suite(%x)\n", suite);
-    
-    struct memChunk * chunk = GetFirstChunkFromSuite(suite);
+
+    struct memChunk *chunk = GetFirstChunkFromSuite(suite);
 
     while(chunk)
     {
@@ -516,7 +544,7 @@ void _srm_free_suite(struct memSuite * suite)
         ASSERT(size == srm_buffer_size);
         
         /* we need to delete each chunk in exactly the same order as we have allocated them */
-        void* buf = GetMemoryAddressOfMemoryChunk(chunk);
+        void *buf = GetMemoryAddressOfMemoryChunk(chunk);
         SRM_FreeMemoryResourceFor1stJob(buf, 0, 0);
         
         chunk = GetNextMemoryChunk(suite, chunk);
@@ -536,7 +564,7 @@ struct srm_malloc_buf
     int used;
 };
 
-static struct memSuite * srm_malloc_hSuite = 0;
+static struct memSuite *srm_malloc_hSuite = 0;
 static struct srm_malloc_buf srm_malloc_buffers[10] = {{0}};
 
 /* similar to shoot_malloc, but limited to a single large buffer for now */

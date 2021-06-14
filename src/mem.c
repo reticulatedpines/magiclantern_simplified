@@ -953,14 +953,18 @@ void _mem_init()
 
 static volatile int max_stack_ack = 0;
 
-static void max_stack_try(void* size) { max_stack_ack = (int) size; }
+static void max_stack_try(void* size)
+{
+    max_stack_ack = (int) size;
+}
 
 static int stack_size_crit(int x)
 {
     int size = x * 1024;
     task_create("stack_try", 0x1e, size, max_stack_try, (void*) size);
     msleep(50);
-    if (max_stack_ack == size) return 1;
+    if (max_stack_ack == size)
+        return 1;
     return -1;
 }
 
@@ -977,23 +981,29 @@ static char memory_map[720];
 /* fixme: find a way to read the free stack memory from DryOS */
 /* current workaround: compute it by trial and error when you press SET on Free Memory menu item */
 static volatile int guess_mem_running = 0;
-static void guess_free_mem_task(void* priv, int delta)
+static void guess_free_mem_task(void *priv, int delta)
 {
     /* reset values */
     max_stack_ack = 0;
     max_shoot_malloc_mem = 0;
     max_shoot_malloc_frag_mem = 0;
 
-return;
-
+#ifdef CONFIG_DIGIC_678
+    // SJE only tested on 200D, but there, trying to create
+    // a task with a too large stack via stack_size_crit()
+    // triggers Err 70.  128 it gets glitchy, 256 dies hard.
+//    bin_search(1, 72, stack_size_crit);
+    bin_search(1, 72, stack_size_crit);
+#else
     bin_search(1, 1024, stack_size_crit);
+#endif
 
     /* we won't keep these things allocated much, so we can pause malloc activity while running this (just so nothing will fail) */
     /* note: we use the _underlined routines here, but please don't do that in user code */
     take_semaphore(mem_sem, 0);
 
     {
-        struct memSuite * shoot_suite = _shoot_malloc_suite_contig(0);
+        struct memSuite *shoot_suite = _shoot_malloc_suite_contig(0);
         if (!shoot_suite)
         {
             beep();
@@ -1001,12 +1011,13 @@ return;
             give_semaphore(mem_sem);
             return;
         }
+
         ASSERT(shoot_suite->num_chunks == 1);
         max_shoot_malloc_mem = shoot_suite->size;
         _shoot_free_suite(shoot_suite);
     }
 
-    struct memSuite * shoot_suite = _shoot_malloc_suite(0);
+    struct memSuite *shoot_suite = _shoot_malloc_suite(0);
     if (!shoot_suite)
     {
         beep();
@@ -1048,7 +1059,7 @@ return;
     exmem_clear(shoot_suite, 0);
 
     /* test the new SRM job allocator */
-    struct memSuite * srm_suite = _srm_malloc_suite(0);
+    struct memSuite *srm_suite = _srm_malloc_suite(0);
     
     if (!srm_suite)
     {
@@ -1086,6 +1097,16 @@ return;
     /* mallocs can resume now */
     give_semaphore(mem_sem);
 
+#ifdef CONFIG_DIGIC_678
+// SJE FIXME the old code crashes on new Digic,
+// because it tries to read from forbidden regions.
+//
+// Avoid the per CPU mem region?  There's a 0xdf00.0000
+// region that is very slow to read from that is probably
+// best avoided, too.  I would also expect this to crash
+// when reading from regions that aren't mapped, since
+// new Digic has MMU, but I haven't tested this.
+#else
     /* memory analysis: how much appears unused? */
     for (uint32_t i = 0; i < 720; i++)
     {
@@ -1112,6 +1133,7 @@ return;
 
         memory_map[i] = empty ? COLOR_BLUE : COLOR_RED;
     }
+#endif
 
     menu_redraw();
     guess_mem_running = 0;
