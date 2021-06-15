@@ -244,7 +244,7 @@ THUMB_FN(0xdf00d365,  fsuDecodePartitionTable) // SJE FIXME wrong, see notes bel
                                                // or preserving ML on the card after an in-cam format.
 
 THUMB_FN(0xe05f67d1,  ShootOlcApp_handler) // near "StopShootOlcApp PopPalette(%d)"
-NSTUB(    0x40f4,  task_max)
+NSTUB(    0x40f0,  task_max)
 NSTUB(    0xfc88,  gui_task_list) // "pDialog" strings often have refs to 0xfcb4, if so, should be
                                   // around 20 before that? "pDeleteController->psSignature" also distinctive.
                                   // Found in function 0xe0660c90.
