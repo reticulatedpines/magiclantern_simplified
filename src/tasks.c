@@ -16,8 +16,6 @@
 #include "config.h"
 #include "lens.h"
 
-extern int is_taskid_valid(int, int, void*);
-
 int ml_shutdown_requested = 0;
 
 const char * get_task_name_from_id(int id)

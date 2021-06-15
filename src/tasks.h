@@ -27,6 +27,13 @@
 #include "dryos.h"
 
 #ifdef CONFIG_DIGIC_678
+int is_taskid_valid(int, int, void*);
+extern int _is_taskid_valid(int, void*);
+#else
+extern int is_taskid_valid(int, int, void*);
+#endif
+
+#ifdef CONFIG_DIGIC_678
 // SJE - I believe this has changed because ARMv6 introduced RFE,
 // which Digic7 is using to restore context when task switching.
 // See 200D, 1.0.1, e0274f3a onwards.
