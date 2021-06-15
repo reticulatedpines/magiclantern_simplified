@@ -146,8 +146,8 @@ THUMB_FN(0xe049e96c,  BmpVsyncCallBack)
 // and leaving the stub blank.  50D does this in misc.c (can choose a better name)
 
 // UNSURE or untested
-THUMB_FN(0xdf0031a3,  task_info_by_id) // called indirectly by task_create and functions using string "TASK Name"
-THUMB_FN(0xdf004041,  is_taskid_valid) // e023ccc7 calls this thunked func, the thunked one has right number of params for ML
+THUMB_FN(0xdf0031a3,  get_task_by_id) // called indirectly by task_create and functions using string "TASK Name"
+THUMB_FN(0xdf004041,  _get_task_info_by_id) // e023ccc7 calls this thunked func, the thunked one has right number of params for ML
 NSTUB(    0x4ea4,  dm_names) // in DebugMsg, before the 1st loop target
 NSTUB(   0x1fd7c,  sd_device) // in sdReadBlk, probably 0xe02b6fa2.  Lots of refs
                               // to 0x1fd7c, some to 0x1fd80

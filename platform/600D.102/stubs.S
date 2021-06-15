@@ -297,7 +297,7 @@ NSTUB(0xFF070FF0,  take_semaphore)
 
 /** Task info **/
 NSTUB(    0x3328,  task_max)
-NSTUB(0xFF3557F0,  is_taskid_valid)                         // AJ_task_trampoline_related_p10
+NSTUB(0xFF3557F0,  get_task_info_by_id)                         // AJ_task_trampoline_related_p10
 NSTUB(    0x1A2C,  current_task)
 NSTUB(     0x674,  current_interrupt)                       // in interrupt handler (0x18), where MEM(C0201004) is stored
 

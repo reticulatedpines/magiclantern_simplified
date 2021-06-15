@@ -27,10 +27,10 @@
 #include "dryos.h"
 
 #ifdef CONFIG_DIGIC_678
-int is_taskid_valid(int, int, void*);
-extern int _is_taskid_valid(int, void*);
+int get_task_info_by_id(int, int, void*);
+extern int _get_task_info_by_id(int, void*);
 #else
-extern int is_taskid_valid(int, int, void*);
+extern int get_task_info_by_id(int, int, void*);
 #endif
 
 #ifdef CONFIG_DIGIC_678

@@ -115,7 +115,7 @@ THUMB_FN(0xE00C6BC8,  task_trampoline)
  * task_trampoline_caller will pass task_trampoline+1 as parameter to another
  * function.
  */
-THUMB_FN(0xe02ebf38, is_taskid_valid)
+THUMB_FN(0xe02ebf38, get_task_info_by_id)
 /*
  * kitor: via extask function. While on 5D3 it was called directly, now helper
  * is used. Find extask via string formats. Trace variables holding task id, 

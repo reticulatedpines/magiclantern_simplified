@@ -17,9 +17,9 @@ void LoadCalendarFromRTC(struct tm *tm)
     _LoadCalendarFromRTC(tm, 0, 0, 16);
 }
 
-int is_taskid_valid(int unknown_flag, int task_id, void *task_attr)
+int get_task_info_by_id(int unknown_flag, int task_id, void *task_attr)
 {
-    return _is_taskid_valid(task_id, task_attr);
+    return _get_task_info_by_id(task_id, task_attr);
 }
 
 void SetEDmac(unsigned int channel, void *address, struct edmac_info *ptr, int flags)

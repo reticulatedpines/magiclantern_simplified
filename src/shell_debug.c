@@ -392,7 +392,7 @@ void debug_task()
 
   //DebugMsg( DM_MAGIC, 3, "      ID   STATE PRI         WAIT(ID)  FLAGS     ENTRY(ARGUMENT)     STACK   SIZE   USED  NAME");
 
-  int (*is_taskid_valid)(int, int, unsigned int) =  (void*)0xFF2e9ab0;
+  int (*get_task_info_by_id)(int, int, unsigned int) =  (void*)0xFF2e9ab0;
   int (*get_obj_attr)(void*, unsigned char*, int, int) =  (void*)0xFF079ce4;
 
   // wait_id: 0=sleep, 1=sem, 2=flg/event, 3=sendmq, 4=recvmq, 5=mutex
@@ -401,7 +401,7 @@ void debug_task()
   c = 1;
   DebugMsg( DM_MAGIC, 3, "*task_max=%d", *task_max);
   for (c=1; c<(*task_max); c++) {
-    r = is_taskid_valid(1, c, &task_attr); // ok
+    r = get_task_info_by_id(1, c, &task_attr); // ok
     if (r==0) {
       r = get_obj_attr( &(task_attr.args), &(task_attr.fpu), 0, 0); // buggy ?
       if (task_attr.name!=0)

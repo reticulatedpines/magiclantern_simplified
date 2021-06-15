@@ -217,7 +217,7 @@ THUMB_FN(     0x33E,  give_semaphore)
 THUMB_FN(     0x2C6,  take_semaphore)
 
 /** Task info **/
-//NSTUB(0x????????,  is_taskid_valid)            // AJ_task_trampoline_related_p10
+//NSTUB(0x????????,  get_task_info_by_id)            // AJ_task_trampoline_related_p10
 //NSTUB(0x????????,  task_max)
 
 /** Misc **/

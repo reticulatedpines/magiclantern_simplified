@@ -162,7 +162,7 @@ NSTUB(0xFFD4AD9C,  msg_queue_create)
 
 	// for task information
     //NSTUB(0x2B24, task_max)
-    //NSTUB(0xFF087940, is_taskid_valid) // AJ_task_trampoline_related_p10
+    //NSTUB(0xFF087940, get_task_info_by_id) // AJ_task_trampoline_related_p10
     //NSTUB(0xff08779c, get_obj_attr) // AJ_checks_if_Process_id_created_by_Dryos
     //NSTUB(0xff014c10, get_current_task)
 

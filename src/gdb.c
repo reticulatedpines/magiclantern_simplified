@@ -13,7 +13,7 @@
 
 
 extern unsigned int task_max;
-extern int is_taskid_valid(int, int, void*);
+extern int get_task_info_by_id(int, int, void*);
 extern void (*pre_task_hook) (void);
 extern void (*post_task_hook)(uint32_t *,uint32_t *,uint32_t *);
 extern void (*pre_isr_hook)  (uint32_t);
@@ -1546,7 +1546,7 @@ void gdb_cmd_query(char *args, char *reply)
         
         for (taskId = 1; taskId < (int)task_max; taskId++)
         {
-            if (is_taskid_valid(1, taskId, &task_attr) == 0) 
+            if (get_task_info_by_id(1, taskId, &task_attr) == 0)
             {
                 sprintf(buf, "%X,", taskId);
                 strcpy(&reply[strlen(reply)], buf);

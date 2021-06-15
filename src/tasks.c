@@ -32,7 +32,7 @@ return "?";
     int c = id & 0xFF;
 
     struct task_attr_str task_attr;
-    int r = is_taskid_valid(1, c, &task_attr); // ok
+    int r = get_task_info_by_id(1, c, &task_attr); // ok
     if (r==0) {
       if (task_attr.name!=0) name=task_attr.name;
       else name="?";
@@ -143,7 +143,7 @@ int task_check_stack()
     #elif !defined(CONFIG_VXWORKS)
     */
     
-    int r = is_taskid_valid(1, id, &task_attr);
+    int r = get_task_info_by_id(1, id, &task_attr);
     if (r == 0)
     {
         int free = task_attr.size - task_attr.used;
@@ -252,7 +252,7 @@ MENU_UPDATE_FUNC(tasks_print)
     int total_tasks = 0;
     for (task_id=1; task_id<=(int)task_max; task_id++)
     {
-        r = is_taskid_valid(1, task_id, &task_attr); // ok
+        r = get_task_info_by_id(1, task_id, &task_attr); // ok
         if (r==0)
         {
             total_tasks++;

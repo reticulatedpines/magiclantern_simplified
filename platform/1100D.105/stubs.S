@@ -279,7 +279,7 @@ NSTUB(0xFF06F56C,  take_semaphore)                          // might be good (du
 
 /** Task info **/
 NSTUB(    0x2E00,  task_max)
-NSTUB(0xFF34E544,  is_taskid_valid)                         // AJ_task_trampoline_related_p10
+NSTUB(0xFF34E544,  get_task_info_by_id)                         // AJ_task_trampoline_related_p10
 
 /** Task sleep **/
 NSTUB(0xFF06FA40,  msleep)                                  // might be good (dumps=1, score=1.1e+02)
