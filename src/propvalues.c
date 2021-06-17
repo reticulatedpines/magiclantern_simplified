@@ -170,7 +170,17 @@ PROP_HANDLER(PROP_MECHA_COUNTER)
     shutter_count = buf[0];
     //I don't have access to any DSLR to find if it's stored anywhere.
     //Maybe old property holds for SLRs and new ones are just for MILCs?
-    shutter_count_plus_lv_actuations = buf[0];
+
+#ifdef CONFIG_EOSRP
+    // coon: Firmware of RP has a bug which leads into a very huge shutter count number.
+    // Regarding to a user of the forum who read out the shutter count on a fresh RP
+    // with only one photo taken, the offset seems to be 1086947309 so this value needs
+    // to be subtracted to get the real shutter count:
+
+    shutter_count -= 1086947309;
+#endif
+
+    shutter_count_plus_lv_actuations = shutter_count;
 }
 //kitor: New on D8, total counter including silent shoots.
 PROP_HANDLER(PROP_RELEASE_COUNTER)
