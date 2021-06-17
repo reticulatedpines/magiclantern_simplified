@@ -2,6 +2,8 @@
  *  RP 1.6.0 consts
  */
 
+#define CANON_SHUTTER_RATING 100000
+
 #define CARD_LED_ADDRESS               0xD01300D4
 #define AF_LED_ADDRESS                 0xD01300D8
 #define LEDON                          0x004D0002
