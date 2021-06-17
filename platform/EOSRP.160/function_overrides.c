@@ -28,6 +28,8 @@
  #include <consts.h>
  #include <lens.h>
 
+extern int _WINSYS_BMP_DIRTY_BIT_NEG = 0;
+
 /** GUI **/
 //see comments in stub.S
 void gui_init_end(void){ }
