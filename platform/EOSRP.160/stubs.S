@@ -92,8 +92,9 @@ THUMB_FN(0xe05825f6,  dialog_redraw)       // often called as last function in d
 THUMB_FN(0xe004b1ee,  gui_enqueue_message) // via string "warning! QueueLength=" and "GUI::GUI.c" in one function
 
 /** Bitmap **/
-// TODO: vram handling has changed on RP. ML needs some adjustments here! 
-// DATA_PTR(    0x72258,  bmp_vram_info)                  // first VRAM buffer */
+// TODO: Rendering is done via XIMR. bmp_vram_info stub is only defined for compatibility to existing code.
+//       It should not be required for RP at all! 
+DATA_PTR(    0x72258,  bmp_vram_info)                  // first VRAM buffer. */
 // DATA_PTR(    0x72254,  bmp_vram_info2)              // second VRAM buffer */
 
 /** DMA **/
