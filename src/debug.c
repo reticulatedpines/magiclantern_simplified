@@ -274,23 +274,163 @@ void guimode_test()
 }
 #endif
 
+#include "tasks.h"
+extern struct task * get_task_by_id(int id);
+extern struct task *first_task;
+
+static void dump_hex_lines(char *address, uint num_lines)
+{
+    for (int i = 0; i < num_lines; i++)
+    {
+        DryosDebugMsg(0, 15, "%02x %02x %02x %02x %02x %02x %02x %02x",
+                      *(address + 0),
+                      *(address + 1),
+                      *(address + 2),
+                      *(address + 3),
+                      *(address + 4),
+                      *(address + 5),
+                      *(address + 6),
+                      *(address + 7));
+        DryosDebugMsg(0, 15, "%02x %02x %02x %02x %02x %02x %02x %02x",
+                      *(address + 8),
+                      *(address + 9),
+                      *(address + 10),
+                      *(address + 11),
+                      *(address + 12),
+                      *(address + 13),
+                      *(address + 14),
+                      *(address + 15));
+    }
+}
+
+static void dump_task_attr(struct task_attr_str *task_attr)
+{
+    DryosDebugMsg(0, 15, "dumping task_attr");
+    DryosDebugMsg(0, 15, ".name: 0x%x", task_attr->name);
+    if (task_attr->name != NULL)
+        DryosDebugMsg(0, 15, ".name: %s", task_attr->name);
+    DryosDebugMsg(0, 15, ".state: 0x%x", task_attr->state);
+    DryosDebugMsg(0, 15, ".pri: 0x%x", task_attr->pri);
+    DryosDebugMsg(0, 15, ".entry: 0x%x", task_attr->entry);
+    DryosDebugMsg(0, 15, ".args: 0x%x", task_attr->args);
+    DryosDebugMsg(0, 15, ".wait_id: 0x%x", task_attr->wait_id); // is this one always uninit?
+    DryosDebugMsg(0, 15, ".flags: 0x%x", task_attr->flags); // is this one always uninit?
+    DryosDebugMsg(0, 15, ".stack: 0x%x", task_attr->stack);
+    DryosDebugMsg(0, 15, ".size: 0x%x", task_attr->size);
+    DryosDebugMsg(0, 15, ".used: 0x%x", task_attr->used);
+#ifdef CONFIG_DIGIC_78
+    DryosDebugMsg(0, 15, ".unknown_0b: 0x%x", task_attr->unknown_0b);
+    DryosDebugMsg(0, 15, ".unknown_13: 0x%x", task_attr->unknown_13);
+    DryosDebugMsg(0, 15, ".cpu_requested: 0x%x", task_attr->cpu_requested);
+    DryosDebugMsg(0, 15, ".cpu_assigned: 0x%x", task_attr->cpu_assigned);
+    DryosDebugMsg(0, 15, ".context: 0x%x", task_attr->context);
+#endif
+    DryosDebugMsg(0, 15, "");
+}
+
+static void dump_task_compact(struct task *task)
+{
+    //dump_hex_lines((char *)task, 1);
+    DryosDebugMsg(0, 15, "task addr: 0x%x", (int)task);
+    DryosDebugMsg(0, 15, "prev_task: 0x%x", task->prev_task);
+    DryosDebugMsg(0, 15, "next_task: 0x%x", task->next_task);
+    DryosDebugMsg(0, 15, "entry: 0x%x", task->entry);
+    DryosDebugMsg(0, 15, "run_prio: 0x%x", task->run_prio);
+    DryosDebugMsg(0, 15, "arg: 0x%x", task->arg);
+    if (task->name != NULL)
+        DryosDebugMsg(0, 15, "name: %s", task->name);
+    DryosDebugMsg(0, 15, "currentState: 0x%x", task->currentState);
+#ifdef CONFIG_DIGIC_78
+    DryosDebugMsg(0, 15, "cpu_requested: 0x%x", task->cpu_requested);
+    DryosDebugMsg(0, 15, "cpu_assigned: 0x%x", task->cpu_assigned);
+#endif
+    DryosDebugMsg(0, 15, "");
+
+    msleep(50);
+    struct task *next_task = task->next_task;
+    if (next_task != NULL && next_task != task)
+    {
+        DryosDebugMsg(0, 15, "Dumping linked task");
+        dump_task_compact(next_task);
+    }
+}
+static void dump_task(struct task *task)
+{
+    DryosDebugMsg(0, 15, "prev_task: 0x%x", task->prev_task);
+    DryosDebugMsg(0, 15, "next_task: 0x%x", task->next_task);
+    DryosDebugMsg(0, 15, "run_prio: 0x%x", task->run_prio);
+    DryosDebugMsg(0, 15, "entry: 0x%x", task->entry);
+    DryosDebugMsg(0, 15, "arg: 0x%x", task->arg);
+    DryosDebugMsg(0, 15, "waitObjId: 0x%x", task->waitObjId);
+    DryosDebugMsg(0, 15, "unknown_03: 0x%x", task->unknown_03);
+    DryosDebugMsg(0, 15, "stackStartAddr: 0x%x", task->stackStartAddr);
+    DryosDebugMsg(0, 15, "stackSize: 0x%x", task->stackSize);
+    DryosDebugMsg(0, 15, "name: 0x%x", task->name);
+    if (task->name != NULL)
+        DryosDebugMsg(0, 15, "name: %s", task->name);
+    DryosDebugMsg(0, 15, "unknown_04: 0x%x", task->unknown_04);
+    DryosDebugMsg(0, 15, "unknown_05: 0x%x", task->unknown_05);
+//    DryosDebugMsg(0, 15, "self: 0x%x", task->self);
+    DryosDebugMsg(0, 15, "unknown_06: 0x%x", task->unknown_06);
+    DryosDebugMsg(0, 15, "unknown_07: 0x%x", task->unknown_07);
+    DryosDebugMsg(0, 15, "unknown_08: 0x%x", task->unknown_08);
+    DryosDebugMsg(0, 15, "taskId: 0x%x", task->taskId);
+    DryosDebugMsg(0, 15, "unknown_0a: 0x%x", task->unknown_0a);
+    DryosDebugMsg(0, 15, "currentState: 0x%x", task->currentState);
+    DryosDebugMsg(0, 15, "unknown_0b: 0x%x", task->unknown_0b);
+    DryosDebugMsg(0, 15, "yieldRequest: 0x%x", task->yieldRequest);
+    DryosDebugMsg(0, 15, "unknown_0c: 0x%x", task->unknown_0c);
+    DryosDebugMsg(0, 15, "sleepReason: 0x%x", task->sleepReason);
+    DryosDebugMsg(0, 15, "unknown_0d: 0x%x", task->unknown_0d);
+    DryosDebugMsg(0, 15, "unknown_0e: 0x%x", task->unknown_0e);
+#ifdef CONFIG_DIGIC_78
+    DryosDebugMsg(0, 15, "cpu_requested: 0x%x", task->cpu_requested);
+    DryosDebugMsg(0, 15, "cpu_assigned: 0x%x", task->cpu_assigned);
+    DryosDebugMsg(0, 15, "unknown_09: 0x%x", task->unknown_09);
+    DryosDebugMsg(0, 15, "unknown_11: 0x%x", task->unknown_11);
+    DryosDebugMsg(0, 15, "unknown_12: 0x%x", task->unknown_12);
+    DryosDebugMsg(0, 15, "unknown_13: 0x%x", task->unknown_13);
+#endif
+    DryosDebugMsg(0, 15, "context: 0x%x", task->context);
+    DryosDebugMsg(0, 15, "");
+}
+
+static struct semaphore *mp_sem; // for multi-process cooperation
+
+static void cpu0_test()
+{
+    while(1)
+    {
+        DryosDebugMsg(0, 15, "Hello from CPU0");
+        take_semaphore(mp_sem, 0);
+        msleep(1000);
+        give_semaphore(mp_sem);
+    }
+}
+
+static void cpu1_test()
+{
+    while(1)
+    {
+        DryosDebugMsg(0, 15, "Hello from CPU1");
+        take_semaphore(mp_sem, 0);
+        msleep(1000);
+        give_semaphore(mp_sem);
+    }
+}
+
 static void run_test()
 {
-#if 0
-    static int dm_toggle = 1;
-    if (dm_toggle)
-    {
-        DryosDebugMsg(0, 15, "Setting level to 0x17");
-        dm_set_store_level(0xe, 0x17); // 0xe is [FAC] class, 17 suppresses mode dial logging
-                                       // as that message happens to be at level 16
-        dm_toggle = 0;
-    }
-    else
-    {
-        DryosDebugMsg(0, 15, "Setting level to 0x3");
-        dm_set_store_level(0xe, 0x3); // re-enables FAC logging
-        dm_toggle = 1;
-    }
+#if 0 && defined CONFIG_200D
+    mp_sem = create_named_semaphore("mp_sem", 1);
+    task_create_ex("cpu1_test", 0x1e, 0, cpu1_test, 0, 1);
+    task_create_ex("cpu0_test", 0x1e, 0, cpu0_test, 0, 0);
+    return;
+#endif
+
+#if 1
+//    task = get_task_by_id(-1);
+    dump_task_compact(first_task);
 #endif
 }
 
