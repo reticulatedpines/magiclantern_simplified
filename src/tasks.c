@@ -35,8 +35,7 @@ return "?";
 
     char *name = "?";
     struct task_attr_str task_attr = {0};
-    // SJE unsure why id is masked.  May not work on D678, use of taskId
-    // has changed, needs testing
+
     int r = get_task_info_by_id(1, id & 0xff, &task_attr);
     if (r == 0) {
         if (task_attr.name != NULL) {
@@ -257,14 +256,7 @@ MENU_UPDATE_FUNC(tasks_print)
     int total_tasks = 0;
     for (task_id = 1; task_id <= (int)task_max; task_id++)
     {
-#ifdef CONFIG_DIGIC_678
-        // You need to use the full taskId with get_task_info_by_id() on these cams.
-        // Can probably use this logic on old cams too, but I have no way of testing that.
-        struct task *task = first_task + task_id;
-        r = get_task_info_by_id(1, task->taskId, &task_attr);
-#else
         r = get_task_info_by_id(1, task_id, &task_attr);
-#endif
         if (r == 0)
         {
             total_tasks++;
