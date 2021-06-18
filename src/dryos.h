@@ -60,11 +60,26 @@ extern float powf(float x, float y);
  */
 extern struct task *
 task_create(
-        const char *            name,
-        uint32_t                priority,
-        uint32_t                stack_size,
-        void *                  entry,
-        void *                  arg
+        const char *name,
+        uint32_t priority,
+        uint32_t stack_size,
+        void *entry,
+        void *arg
+);
+
+/** Create a new user level task on a given CPU.
+ *
+ * As task_create() but with additional arg for
+ * selecting CPU
+ */
+extern struct task *
+task_create_ex(
+        const char *name,
+        uint32_t priority,
+        uint32_t stack_size,
+        void *entry,
+        void *arg,
+        int cpu_id
 );
 
 extern void *AcquireRecursiveLock(void *lock, int n);

@@ -67,23 +67,26 @@ extern int get_task_info_by_id(int, int, void*);
 struct task
 {
 //      type            name            offset, size
-        uint32_t            unknown_01; // 0x00, 4   always 0?
-        uint32_t            unknown_02; // 0x04, 4   stack maybe?  SJE maybe next task in queue?
-        uint32_t        run_prio;       // 0x08, 4   flags?
-        void *          entry;          // 0x0c, 4
+        struct task    *prev_task;      // 0x00, 4   // SJE not sure what these two fields are used for,
+        struct task    *next_task;      // 0x04, 4   // but they're doubly-linked lists of tasks
+        uint32_t        run_prio;       // 0x08, 4
+        void           *entry;          // 0x0c, 4
         uint32_t        arg;            // 0x10, 4
         uint32_t        waitObjId;      // 0x14, 4
         uint32_t            unknown_03; // 0x18, 4
         uint32_t        stackStartAddr; // 0x1c, 4
         uint32_t        stackSize;      // 0x20, 4
-        char *          name;           // 0x24, 4
+        char           *name;           // 0x24, 4
         uint32_t            unknown_04; // 0x28, 4
         uint32_t            unknown_05; // 0x2c, 4
-        uint32_t        self;           // 0x30, 4
+        struct task    *self;           // 0x30, 4
         uint32_t            unknown_06; // 0x34, 4
         uint32_t            unknown_07; // 0x38, 4
         uint32_t            unknown_08; // 0x3c, 4
-        uint32_t        taskId;         // 0x40, 4
+        uint32_t        taskId;         // 0x40, 4 // size 4, but low 16-bits are used as task index.
+                                                   // Comparison against taskId is done with full 32 in *some*
+                                                   // APIs though, at least on D678, so the upper bits
+                                                   // mean something different.
 #ifdef CONFIG_DIGIC_78 // Maybe D678X? Confirmed on 200D, M50, R
         uint32_t            unknown_09; // 0x44, 4
 #endif
@@ -159,8 +162,10 @@ struct task_attr_str {
 }; // size = 0x28
 #endif
 
+extern struct task *first_task;
+
 /** The head of the running task list */
-extern struct task * current_task;
+extern struct task *current_task;
 
 /** Current interrupt ( << 2 on D4/5, exact value on D2/3/6) */
 extern uint32_t current_interrupt;

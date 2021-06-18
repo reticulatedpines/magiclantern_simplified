@@ -40,6 +40,7 @@ THUMB_FN(0xE06BE23D,  icache_invalidate)      /* loop with MCR p15 c7,c5,1; c7,c
 
 /** Tasks **/
 THUMB_FN(0xDF008CE7,  task_create)            /* used to start TaskMain, GuiMainTask etc */
+THUMB_FN(0xdf008f0b,  task_create_ex)         /* as task_create, but allows selecting CPU for task*/
 THUMB_FN(0xDF00880F,  msleep)                 /* argument is always multiple of 10 */
 DATA_PTR(    0x1028,  current_task)           /* from task_create; pointer to the current task structure */
 DATA_PTR(    0x1010,  current_interrupt)      /* from interrupt handler (VBAR + 0x18); where the interrupt ID is stored */
@@ -244,6 +245,10 @@ THUMB_FN(0xdf00d365,  fsuDecodePartitionTable) // SJE FIXME wrong, see notes bel
                                                // or preserving ML on the card after an in-cam format.
 
 THUMB_FN(0xe05f67d1,  ShootOlcApp_handler) // near "StopShootOlcApp PopPalette(%d)"
+//DATA_PTR(    0x40d0,  first_task) // unsure on naming here.  First item in an array of task structs.
+                                  // Seems to always be "idle" task.
+                                  // (we don't use this, but instead calculate it during early init,
+                                  //  to save backporting this stub for all older cams)
 NSTUB(    0x40f0,  task_max)
 NSTUB(    0xfc88,  gui_task_list) // "pDialog" strings often have refs to 0xfcb4, if so, should be
                                   // around 20 before that? "pDeleteController->psSignature" also distinctive.

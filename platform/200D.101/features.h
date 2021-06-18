@@ -16,8 +16,10 @@
 
 #define FEATURE_SCREENSHOT
 
-// start work on fixing tskmon
+// mostly working - task display
+// can't handle high number of tasks
 #define CONFIG_TSKMON
+#define FEATURE_SHOW_TASKS
 
 // prevent ML attempting stack unwinding in some cases.
 // This does not yet work (assumes ARM, not Thumb).  Alex recommends

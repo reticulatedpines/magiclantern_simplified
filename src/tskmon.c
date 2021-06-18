@@ -181,14 +181,20 @@ static void tskmon_stack_checker(struct task *next_task)
     tskmon_task_stack_check[id] = 0;
 
     /* at 1024 it gives warning for PowerMgr task */
+    const char *task_name = NULL;
     if (free < 256)
     {
-        const char * task_name = get_task_name_from_id(id);
+        task_name = next_task->name;
         
         /* at 136 it gives warning for LightMeasure task (5D2/7D) - Canon allocated only 512 bytes for this task */
         #if defined(CONFIG_5D2) || defined(CONFIG_7D)
         if (streq(task_name, "LightMeasure") && free > 64)
             return;
+        #endif
+
+        #if defined(CONFIG_200D) // SJE I bet this is CONFIG_DIGIC_678 really, but untested
+        if (streq(task_name, "RTCMgr") && free > 128)
+            return; // RTCMgr uses 796 of 1024, 228 free
         #endif
 
         bmp_printf(FONT(FONT_MED, free < 128 ? COLOR_RED : COLOR_WHITE, COLOR_BLACK), 0, 0, 
@@ -349,17 +355,15 @@ tskmon_task_dispatch(struct task * next_task)
         tskmon_last_task = next_task;
         return;
     }
-    
+
     if (sensor_cleaning)
     {
         /* 5D2 locks up, even with loop of of asm("nop"); maybe others too? */
         return;
     }
 
-
     tskmon_stack_checker(next_task);
     tskmon_update_timers();
-
 
 #ifndef CONFIG_DIGIC_678
     null_pointer_check();

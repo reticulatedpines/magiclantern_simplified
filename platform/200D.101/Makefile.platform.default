@@ -11,7 +11,7 @@ ROMBASEADDR     = 0xE0040000
 #          ("meminfo -m" in drysh)    ("memmap" in drysh)
 # Default: 0x000e1bd8 - 0x001f6288, 0x000e1bd0 - 0x001f6558 (total size 0x114988)
 # Patched: 0x000e1bd8 - 0x001b6288, 0x000e1bd0 - 0x001b6558 (256K reserved for ML)
-RESTARTSTART    = 0x001B6300
+RESTARTSTART    = 0x001b4300
 
 # Cortex A9, binaries loaded as Thumb
 PLATFORM_ARCH = armv7-a
