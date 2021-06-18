@@ -16,10 +16,11 @@
 
 #define FEATURE_SCREENSHOT
 
-// mostly working - task display
-// can't handle high number of tasks
+// mostly working - task display is too crowded.
+// Maybe CPU usage should update faster?
 #define CONFIG_TSKMON
 #define FEATURE_SHOW_TASKS
+#define FEATURE_SHOW_CPU_USAGE
 
 // prevent ML attempting stack unwinding in some cases.
 // This does not yet work (assumes ARM, not Thumb).  Alex recommends
