@@ -5622,6 +5622,14 @@ static void menu_close()
     close_canon_menu();
     canon_gui_enable_front_buffer(0);
 
+    #ifdef FEATURE_VRAM_RGBA
+    // we need to blank the indexed RGB buffer with transparent black,
+    // to remove ML menus.  Otherwise, floating elements that we want
+    // to display over Canon GUI will trigger redraw, and we'll display
+    // ML menu elements too.
+    clrscr();
+    #endif
+
     #ifdef FEATURE_COMPOSITOR_XCM
     /*
      * kitor: FIXME: this is needed until RGB8->RGBA translation will learn
@@ -5635,9 +5643,6 @@ static void menu_close()
 
     if (lv)
         bmp_on();
-
-    // SJE test, prevent drawing over Canon after leaving ML menu
-    ml_refresh_display_needed = 0;
 }
 
 /*
