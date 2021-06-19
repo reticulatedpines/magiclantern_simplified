@@ -195,6 +195,8 @@ static void tskmon_stack_checker(struct task *next_task)
         #if defined(CONFIG_200D) // SJE I bet this is CONFIG_DIGIC_678 really, but untested
         if (streq(task_name, "RTCMgr") && free > 128)
             return; // RTCMgr uses 796 of 1024, 228 free
+        if (streq(task_name, "idle") && free > 64)
+            return; // in Play mode, uses 128 of 256, 128 free
         #endif
 
         bmp_printf(FONT(FONT_MED, free < 128 ? COLOR_RED : COLOR_WHITE, COLOR_BLACK), 0, 0, 
