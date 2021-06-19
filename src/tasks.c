@@ -332,6 +332,8 @@ MENU_UPDATE_FUNC(tasks_print)
                 x += 360;
                 y = 10 + font_med.height;
             }
+            if (x > 710) // there is no more space, give up
+                break;
         }
     }
     bmp_printf(
