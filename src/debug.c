@@ -431,6 +431,9 @@ static void run_test()
 #if 1
 //    task = get_task_by_id(-1);
     dump_task_compact(first_task);
+    struct task_attr_str task_attr;
+    if (get_task_info_by_id(1, first_task->taskId, &task_attr) == 0)
+        dump_task_attr(&task_attr);
 #endif
 }
 
@@ -1822,10 +1825,36 @@ static MENU_SELECT_FUNC(gui_events_toggle)
     }
 }
 
-void spy_event(struct event * event)
+void spy_event(struct event *event)
 {
-    if (gui_events_show)
+    if (gui_events_show && event)
     {
+#ifdef CONFIG_DIGIC_678
+        int e_obj0 = 0, e_obj1 = 0, e_obj2 = 0;
+        if ((int)event->obj > 0x100000)
+        {   // SJE I've seen event->obj == 0x2, during shutdown.
+            // Doesn't make any sense to me, but we can't read through that,
+            // immediate crash, so we must skip that case.
+            e_obj0 = *(int *)(event->obj + 0);
+            e_obj1 = *(int *)(event->obj + 4);
+            e_obj2 = *(int *)(event->obj + 8);
+        }
+        else if (event->obj) // some strange, low, non-zero value
+        {
+            DryosDebugMsg(0, 15, "Weird event->obj: 0x%x", event->obj);
+        }
+        printf("Event param=%8x *obj=%8x/%8x/%8x arg=%8x\n",
+               event->param,
+               e_obj0,
+               e_obj1,
+               e_obj2,
+               event->arg
+        );
+#else
+    // SJE it's hard to understand the intent of the old code,
+    // so I'm leaving it as is.  Probably it could be combined
+    // in a safe way, but I don't know what the bitmask is trying
+    // to do.
         printf("Event param=%8x *obj=%8x/%8x/%8x arg=%8x\n",
             event->param,
             event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj)) : 0,
@@ -1833,6 +1862,7 @@ void spy_event(struct event * event)
             event->obj ? ((int)event->obj & 0xf0000000 ? (int)event->obj : *(int*)(event->obj + 8)) : 0,
             event->arg
         );
+#endif
     }
 }
 

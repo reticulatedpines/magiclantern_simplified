@@ -21,6 +21,7 @@
 #define CONFIG_TSKMON
 #define FEATURE_SHOW_TASKS
 #define FEATURE_SHOW_CPU_USAGE
+#define FEATURE_SHOW_GUI_EVENTS
 
 // prevent ML attempting stack unwinding in some cases.
 // This does not yet work (assumes ARM, not Thumb).  Alex recommends
