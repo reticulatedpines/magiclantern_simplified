@@ -156,11 +156,28 @@
 #define HIJACK_FIXBR_DCACHE_CLN_2   0xE00400A0   /* second call to dcache_clean, before cstart */
 #define HIJACK_FIXBR_ICACHE_INV_2   0xE00400AA   /* second call to icache_invalidate, before cstart */
 #define HIJACK_INSTR_BL_CSTART      0xE00400C0   /* easier to fix up here, rather than at E0040034 */
-#define HIJACK_INSTR_HEAP_SIZE      0xE00401D0   /* easier to patch the size; start address is computed */
+#define PTR_USER_MEM_SIZE           0xE00401D0   /* easier to patch the size; start address is computed */
+#define PTR_SYS_OFFSET              0xe00401c8   // offset from DryOS base to sys_mem start
+#define PTR_SYS_OBJS_OFFSET         0xe00401d4   // offset from DryOS base to sys_obj start
 #define HIJACK_FIXBR_BZERO32        0xE004014A   /* called from cstart */
 #define HIJACK_FIXBR_CREATE_ITASK   0xE00401AC   /* called from cstart */
 #define HIJACK_INSTR_MY_ITASK       0xE00401DC   /* address of init_task passed to create_init_task */
+#define PTR_DRYOS_BASE              0xe00401b4
+#define ML_MAX_USER_MEM_STOLEN 0x40000 // True max differs per cam, 0x40000 has been tested on
+                                       // the widest range of D678 cams with no observed problems,
+                                       // but not all cams have been tested!
 
+#define ML_MAX_SYS_MEM_INCREASE 0x40000 // More may be VERY unsafe!  Increasing this pushes sys_mem
+                                        // higher in memory, at some point that must cause Bad Things,
+                                        // consequences unknown.  0x40000 has been tested, a little...
+
+#define ML_RESERVED_MEM 0x66000 // Can be lower than ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE,
+                                // but must not be higher; sys_objs would get overwritten by ML code.
+                                // Must be larger than MemSiz reported by build for magiclantern.bin
+
+#if ML_RESERVED_MEM > ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE
+#error "ML_RESERVED_MEM too big to fit!"
+#endif
 
 //address of XimrContext structure to redraw in FEATURE_VRAM_RGBA
 #define XIMR_CONTEXT 0xa09a0

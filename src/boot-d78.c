@@ -87,15 +87,59 @@ copy_and_restart( int offset )
      * calls bzero(), then loads bs_end and calls
      * create_init_task
      */
-    // Reserve memory at the end of malloc pool for our application
+    // Reserve memory by reducing the user_mem pool and, if necessary for the
+    // requested size, moving up the start of sys_objs and sys_mem.
+    // ML goes in the gap.  RESTARTSTART defines the start address of the gap,
+    // ML_RESERVED_MEM the size.
+    //
     // Note: unlike most (all?) DIGIC 4/5 cameras,
     // the malloc heap is specified as start + size (not start + end)
-    // easiest way is to reduce its size and load ML right after it
-    ml_reserved_mem = 0x46000;
+    ml_reserved_mem = ML_RESERVED_MEM;
+
+    // align up to 8, DryOS does this for the various mem regions
+    // that we are adjusting.
+    if (ml_reserved_mem % 8 != 0)
+        ml_reserved_mem += 8 - ml_reserved_mem % 8;
+
+    // The base address is stored with low bits set, but masked out in DryOS
+    // before usage.  I don't know why.
+    uint32_t sys_objs_start = (*(int *)PTR_DRYOS_BASE & ~3) + *(int *)PTR_SYS_OBJS_OFFSET;
+    if (RESTARTSTART > sys_objs_start)
+    {   // I don't know of a reason to extend user_mem or leave a gap so this
+        // is probably a mistake.
+        qprint("[BOOT] unexpected RESTARTSTART address > sys_objs_start\n");
+        goto fail;
+    }
+
+    // the RESTARTSTART > sys_objs_start guard means mem to steal from user will be positive
+    uint32_t steal_from_user_size = sys_objs_start - RESTARTSTART;
+    if (steal_from_user_size > ML_MAX_USER_MEM_STOLEN)
+    {
+        qprint("[BOOT] RESTARTSTART possibly unsafe, too much stolen from user_mem\n");
+        goto fail;
+    }
+
+    int32_t sys_mem_offset_increase = ml_reserved_mem - steal_from_user_size;
+    if (sys_mem_offset_increase < 0)
+    {
+        qprint("[BOOT] sys_mem_offset_increase was negative, shouldn't happen!\n");
+        goto fail;
+    }
+    if (sys_mem_offset_increase > ML_MAX_SYS_MEM_INCREASE)
+    {   // SJE 0x40000 is the most I've tested, and only on 200D
+        qprint("[BOOT] sys_mem_offset_increase possibly unsafe, not tested this high, aborting\n");
+        goto fail;
+    }
+
     qprint("[BOOT] reserving memory: "); qprintn(ml_reserved_mem); qprint("\n");
-    qprint("before: user_mem_size = "); qprintn(INSTR(HIJACK_INSTR_HEAP_SIZE)); qprint("\n");
-    INSTR( HIJACK_INSTR_HEAP_SIZE ) -= ml_reserved_mem;
-    qprint(" after: user_mem_size = "); qprintn(INSTR(HIJACK_INSTR_HEAP_SIZE)); qprint("\n");
+    qprint("before: user_mem_size = "); qprintn(INSTR(PTR_USER_MEM_SIZE)); qprint("\n");
+    // shrink user_mem
+    INSTR(PTR_USER_MEM_SIZE) -= steal_from_user_size;
+    qprint(" after: user_mem_size = "); qprintn(INSTR(PTR_USER_MEM_SIZE)); qprint("\n");
+
+    // move sys_mem later in ram
+    INSTR(PTR_SYS_OBJS_OFFSET) += sys_mem_offset_increase;
+    INSTR(PTR_SYS_OFFSET) += sys_mem_offset_increase;
 
     // Fix cache maintenance calls before cstart
     FIXUP_BRANCH( HIJACK_FIXBR_DCACHE_CLN_1, my_dcache_clean );
@@ -128,6 +172,7 @@ copy_and_restart( int offset )
     reloc_entry();
 
     // Unreachable
+fail:
     while(1)
         ;
 }
