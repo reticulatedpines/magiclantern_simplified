@@ -172,23 +172,37 @@ void str_make_lowercase(char* s)
 void menu_help_go_to_label(void* label, int delta)
 {
     int page = 0; // if help page won't be found, will show 404
-    if (is_menu_selected("Help")) page = 1; // don't show the 404 page in Help menu :P
+    if (is_menu_selected("Help"))
+        page = 1; // don't show the 404 page in Help menu :P
     
     int size = 0;
+
+    if (label == NULL)
+        DryosDebugMsg(0, 15, "label was NULL");
+    else
+        DryosDebugMsg(0, 15, "label: %s", label);
+
     char* buf = (void*)read_entire_file("ML/doc/menuidx.dat", &size);
-    if (!buf || !size) page = -1; // show "help not found" warning
+    if (!buf || !size)
+        page = -1; // show "help not found" warning
     
     // trim spaces
     char label_adj[100];
-    snprintf(label_adj, sizeof(label_adj), "%s", label);
-    while (label_adj[strlen(label_adj)-1] == ' ')
+    label_adj[0] = '\0';
+    if (label != NULL)
+    {   // this snprintf() implementation is not safe with NULL pointers
+        snprintf(label_adj, sizeof(label_adj), "%s", label);
+    }
+    int i = strlen(label_adj);
+    while (i > 0 && label_adj[i - 1] == ' ')
     {
-        label_adj[strlen(label_adj)-1] = '\0';
+        label_adj[i - 1] = '\0';
+        i--;
     }
     str_make_lowercase(label_adj);
 
     int prev = -1;
-    for (int i = 0; i < size; i++)
+    for (i = 0; i < size; i++)
     {
         if (buf[i] == '\n')
         {
