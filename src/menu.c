@@ -4143,9 +4143,10 @@ static int submenu_default_height(int count)
     /* body + titlebar + padding - smaller padding for large submenus */
 }
 static void
-submenu_display(struct menu * submenu)
+submenu_display(struct menu *submenu)
 {
-    if (!submenu) return;
+    if (!submenu)
+        return;
 
     int count = get_menu_visible_count(submenu);
     int h = submenu->submenu_height ? submenu->submenu_height : submenu_default_height(count);
@@ -4153,17 +4154,17 @@ submenu_display(struct menu * submenu)
     int w = submenu->submenu_width  ? submenu->submenu_width : 600;
 
     // submenu promoted to pickbox? expand the pickbox by default
-    if (IS_SINGLE_ITEM_SUBMENU_ENTRY(submenu->children))
+    if (submenu->children && IS_SINGLE_ITEM_SUBMENU_ENTRY(submenu->children))
     {
         w = 720;
         int num_choices = submenu->children[0].max - submenu->children[0].min;
         if (CAN_HAVE_PICKBOX(submenu->children))
         {
-            h = MAX(h, submenu_default_height(num_choices)+7);
+            h = MAX(h, submenu_default_height(num_choices) + 7);
         }
     }
     
-    w = MIN(w, 720-10);
+    w = MIN(w, 720 - 10);
     
     g_submenu_width = w;
     int bx = (720 - w)/2;
@@ -4172,18 +4173,18 @@ submenu_display(struct menu * submenu)
     
     // submenu header
     if (
-            (IS_SINGLE_ITEM_SUBMENU_ENTRY(submenu->children) && edit_mode) // promoted submenu
+            (submenu->children && IS_SINGLE_ITEM_SUBMENU_ENTRY(submenu->children) && edit_mode) // promoted submenu
                 ||
             (!menu_lv_transparent_mode && !edit_mode)
         )
     {
-        w = 720-2*bx;
+        w = 720 - 2 * bx;
         bmp_fill(MENU_BG_COLOR_HEADER_FOOTER,  bx,  by, w, 40);
         bmp_fill(COLOR_BLACK,  bx,  by + 40, w, h-40);
-        bmp_printf(FONT(FONT_CANON, COLOR_WHITE, NO_BG_ERASE),  bx + 15,  by+2, "%s", submenu->name);
+        bmp_printf(FONT(FONT_CANON, COLOR_WHITE, NO_BG_ERASE),  bx + 15,  by + 2, "%s", submenu->name);
 
         for (int i = 0; i < 5; i++)
-            bmp_draw_rect(45,  bx-i,  by-i, w+i*2, h+i*2);
+            bmp_draw_rect(45,  bx - i,  by - i, w + i * 2, h + i * 2);
 
 /* gradient experiments
         for (int i = 0; i < 3; i++)
@@ -4199,7 +4200,7 @@ submenu_display(struct menu * submenu)
             bmp_draw_rect(COLOR_BLACK,  bx-i,  by-i, w+i*2, h+i*2);
 */            
 
-        submenu_key_hint(720-bx-45, by+5, COLOR_WHITE, MENU_BG_COLOR_HEADER_FOOTER, ICON_ML_Q_BACK);
+        submenu_key_hint(720 - bx - 45, by + 5, COLOR_WHITE, MENU_BG_COLOR_HEADER_FOOTER, ICON_ML_Q_BACK);
     }
                                                    /* titlebar + padding difference for large submenus */
     menu_display(submenu,  bx + SUBMENU_OFFSET,  by + 40 + (count > 7 ? 10 : 25), edit_mode ? 1 : 0);
