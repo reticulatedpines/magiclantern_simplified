@@ -751,6 +751,8 @@ struct _PTPParams {
 	PTPDeviceInfo deviceinfo;
 };
 
+uint16_t ptp_runeventproc(PTPParams* params, char string[]);
+
 /* last, but not least - ptp functions */
 uint16_t ptp_usb_sendreq	(PTPParams* params, PTPContainer* req);
 uint16_t ptp_usb_senddata	(PTPParams* params, PTPContainer* ptp,

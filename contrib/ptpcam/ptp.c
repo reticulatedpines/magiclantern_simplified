@@ -2330,3 +2330,25 @@ int ptp_chdk_print_all_script_messages(PTPParams* params, PTPDeviceInfo* devicei
   }
   return 1;
 }
+
+// Execute canon event prodecure
+uint16_t ptp_runeventproc(PTPParams* params, char string[])
+{
+	uint16_t ret;
+	PTPContainer ptp;
+
+	// Generous zero padding to prevent crashes
+	char command[100] = {0};
+	strcpy(command, string);
+	char *_command = command;
+
+	// Memset ptp to zero
+	PTP_CNT_INIT(ptp);
+
+	ptp.Code = 0x9052;
+	ptp.Nparam = 0;
+
+	ret = ptp_transaction(params, &ptp, PTP_DP_SENDDATA, sizeof(command), &_command);
+
+	return ret;
+}

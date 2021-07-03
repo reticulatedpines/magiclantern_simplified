@@ -186,6 +186,7 @@ help()
 	"  --chdk[=command]             CHDK mode. Interactive shell unless optional\n"
 	"                               command is given. Run interactive shell and\n"
 	"                               press 'h' for a list of commands.\n"
+	"  --execute-event-proc=COMMAND Run a Canon event prodecure, such as 'EnableBootDisk'\n"
 	"\n");
 }
 
@@ -1861,6 +1862,21 @@ show_all_properties (int busn,int devn,short force, int unknown)
 	close_camera(&ptp_usb, &params, dev);
 }
 
+void
+execute_event_proc (int busn,int devn,short force, char command[])
+{
+	PTPParams params;
+	PTP_USB ptp_usb;
+	struct usb_device *dev;
+
+	if (open_camera(busn, devn, force, &ptp_usb, &params, &dev)<0)
+		return;
+
+	ptp_runeventproc(&params, command);
+
+	close_camera(&ptp_usb, &params, dev);
+}
+
 int
 usb_get_endpoint_status(PTP_USB* ptp_usb, int ep, uint16_t* status)
 {
@@ -2010,6 +2026,7 @@ main(int argc, char ** argv)
 		{"list-properties",0,0,'p'},
 		{"show-all-properties",0,0,0},
 		{"show-unknown-properties",0,0,0},
+		{"execute-event-proc",1,0,0},
 		{"show-property",1,0,'s'},
 		{"set-property",1,0,'s'},
 		{"set",1,0,0},
@@ -2073,6 +2090,8 @@ main(int argc, char ** argv)
 			}
 			if (!(strcmp("show-all-properties", loptions[option_index].name)))
 				action=ACT_SHOW_ALL_PROPERTIES;
+			if (!(strcmp("execute-event-proc", loptions[option_index].name)))
+				execute_event_proc(busn,devn,force,optarg);
 			if (!(strcmp("show-unknown-properties", loptions[option_index].name)))
 				action=ACT_SHOW_UNKNOWN_PROPERTIES;
 			if (!(strcmp("set",loptions[option_index].name)))
@@ -3337,7 +3356,7 @@ int chdk(int busn, int devn, short force)
                         }
                         
                         rate = 1000000.0f / (avgDelta / maxVal);
-                        printf("Overflows: %i µsec (avg: %f), maxVal = 0x%08X, tickRate = %f Hz\n", delta, avgDelta, maxVal, rate);
+                        printf("Overflows: %i ï¿½sec (avg: %f), maxVal = 0x%08X, tickRate = %f Hz\n", delta, avgDelta, maxVal, rate);
                     }
                 }
                 
