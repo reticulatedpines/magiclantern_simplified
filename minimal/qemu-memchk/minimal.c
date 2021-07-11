@@ -4,6 +4,9 @@
 
 #include "dryos.h"
 
+struct task *first_task = NULL; // needed to build due to usage in function_overrides.c
+                                // for D678 cams, not used
+
 extern void * _malloc(int);
 extern void   _free(void *);
 

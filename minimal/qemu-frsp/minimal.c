@@ -9,6 +9,9 @@
 #include "font_direct.h"
 #include "raw.h"
 
+struct task *first_task = NULL; // needed to build due to usage in function_overrides.c
+                                // for D678 cams, not used
+
 extern void _prop_request_change(unsigned property, const void* addr, size_t len);
 
 static void run_test()

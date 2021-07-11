@@ -123,7 +123,7 @@ struct task
 // but stores a word).
 //
 // SJE FIXME - I have updated this struct purely from reversing,
-// it is currently untested.  I also haven't audited current ML
+// it is currently only lightly tested.  I also haven't audited current ML
 // usage of this struct.  It has new fields now, which old code
 // might not populate, and DryOS might require, etc.
 struct task_attr_str {

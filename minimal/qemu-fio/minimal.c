@@ -7,6 +7,9 @@
 #include "lens.h"
 #include "timer.h"
 
+struct task *first_task = NULL; // needed to build due to usage in function_overrides.c
+                                // for D678 cams, not used
+
 /* adapted from file_man.c */
 static const char * format_date( unsigned timestamp )
 {

@@ -17,6 +17,7 @@ void LoadCalendarFromRTC(struct tm *tm)
     _LoadCalendarFromRTC(tm, 0, 0, 16);
 }
 
+extern struct task* first_task;
 int get_task_info_by_id(int unknown_flag, int task_id, void *task_attr)
 {
     // D678 uses the high half of the ID for some APIs, D45 looks to only

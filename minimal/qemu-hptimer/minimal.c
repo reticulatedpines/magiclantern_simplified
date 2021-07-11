@@ -7,6 +7,9 @@
 #include "lens.h"
 #include "timer.h"
 
+struct task *first_task = NULL; // needed to build due to usage in function_overrides.c
+                                // for D678 cams, not used
+
 static void hptimer_cbr(int a, void* b)
 {
     qprintf("Hello from HPTimer (%d, %d) %s\n", a, b, get_current_task_name());

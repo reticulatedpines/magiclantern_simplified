@@ -67,6 +67,7 @@ task_create(
         void *arg
 );
 
+#ifdef CONFIG_DIGIC_78
 /** Create a new user level task on a given CPU.
  *
  * As task_create() but with additional arg for
@@ -81,6 +82,7 @@ task_create_ex(
         void *arg,
         int cpu_id
 );
+#endif
 
 extern void *AcquireRecursiveLock(void *lock, int n);
 extern void *CreateRecursiveLock(int n);
