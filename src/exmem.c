@@ -15,25 +15,25 @@ typedef struct
     struct memSuite *ret;
     uint32_t size;
     uint32_t timed_out;
-    struct semaphore * sem;
+    struct semaphore *sem;
 } alloc_msg_t;
 
-static struct semaphore * alloc_sem = 0;
-static struct semaphore * free_sem = 0;
+static struct semaphore *alloc_sem = 0;
+static struct semaphore *free_sem = 0;
 
-int GetNumberOfChunks(struct memSuite * suite)
+int GetNumberOfChunks(struct memSuite *suite)
 {
     CHECK_SUITE_SIGNATURE(suite);
     return suite->num_chunks;
 }
 
-int GetSizeOfMemorySuite(struct memSuite * suite)
+int GetSizeOfMemorySuite(struct memSuite *suite)
 {
     CHECK_SUITE_SIGNATURE(suite);
     return suite->size;
 }
 
-int GetSizeOfMemoryChunk(struct memChunk * chunk)
+int GetSizeOfMemoryChunk(struct memChunk *chunk)
 {
     CHECK_CHUNK_SIGNATURE(chunk);
     return chunk->size;
@@ -48,7 +48,7 @@ static void freeCBR_nowait(unsigned int a)
 {
 }
 
-void _shoot_free_suite(struct memSuite * hSuite)
+void _shoot_free_suite(struct memSuite *hSuite)
 {
     if (hSuite != NULL)
     {
@@ -58,7 +58,7 @@ void _shoot_free_suite(struct memSuite * hSuite)
     take_semaphore(free_sem, 0);
 }
 
-static void allocCBR(unsigned int priv, struct memSuite * hSuite)
+static void allocCBR(unsigned int priv, struct memSuite *hSuite)
 {
     alloc_msg_t *suite_info = (alloc_msg_t *)priv;
     
@@ -78,7 +78,7 @@ static void allocCBR(unsigned int priv, struct memSuite * hSuite)
     give_semaphore(suite_info->sem);
 }
 
-unsigned int exmem_save_buffer(struct memSuite * hSuite, char *file)
+unsigned int exmem_save_buffer(struct memSuite *hSuite, char *file)
 {
     unsigned int written = 0;
     
@@ -106,7 +106,7 @@ unsigned int exmem_save_buffer(struct memSuite * hSuite, char *file)
     return written;
 }
 
-unsigned int exmem_clear(struct memSuite * hSuite, char fill)
+unsigned int exmem_clear(struct memSuite *hSuite, char fill)
 {
     unsigned int written = 0;
     
@@ -149,7 +149,7 @@ static struct memSuite *shoot_malloc_suite_int(size_t size)
         return NULL;
     }
     
-    struct memSuite * hSuite = suite_info->ret;
+    struct memSuite *hSuite = suite_info->ret;
     _free(suite_info);
     
     ASSERT((int)size <= hSuite->size);
@@ -157,10 +157,10 @@ static struct memSuite *shoot_malloc_suite_int(size_t size)
     return hSuite;
 }
 
-static size_t largest_chunk_size(struct memSuite * hSuite)
+static size_t largest_chunk_size(struct memSuite *hSuite)
 {
     int max_size = 0;
-    struct memChunk * hChunk = GetFirstChunkFromSuite(hSuite);
+    struct memChunk *hChunk = GetFirstChunkFromSuite(hSuite);
     while(hChunk)
     {
         int size = GetSizeOfMemoryChunk(hChunk);
@@ -175,7 +175,7 @@ static size_t shoot_malloc_autodetect()
     /* allocate some backup that will service the queued allocation request that fails during the loop */
     size_t backup_size = 4 * 1024 * 1024;
     size_t max_size = 0;
-    struct memSuite * backup = shoot_malloc_suite_int(backup_size);
+    struct memSuite *backup = shoot_malloc_suite_int(backup_size);
 
     if (backup == NULL)
         return max_size;
@@ -184,7 +184,7 @@ static size_t shoot_malloc_autodetect()
     {
         int tested_size = size_mb * 1024 * 1024;
         //qprintf("[shoot_malloc] trying %s\n", format_memory_size(tested_size));
-        struct memSuite * testSuite = shoot_malloc_suite_int(tested_size);
+        struct memSuite *testSuite = shoot_malloc_suite_int(tested_size);
         if (testSuite)
         {
             /* leave 1MB unallocated, just in case */
@@ -209,7 +209,7 @@ static size_t shoot_malloc_autodetect_contig(uint32_t requested_size)
     /* allocate some backup that will service the queued allocation request that fails during the loop */
     size_t backup_size = 1024 * 1024;
     size_t max_contig_size = 0;
-    struct memSuite * backup = shoot_malloc_suite_int(backup_size);
+    struct memSuite *backup = shoot_malloc_suite_int(backup_size);
 
     if (backup == NULL)
         return max_contig_size;
@@ -218,7 +218,7 @@ static size_t shoot_malloc_autodetect_contig(uint32_t requested_size)
     {
         int tested_size = size_mb * 1024 * 1024;
         //qprintf("[shoot_contig] trying %s\n", format_memory_size(tested_size));
-        struct memSuite * testSuite = shoot_malloc_suite_int(tested_size);
+        struct memSuite *testSuite = shoot_malloc_suite_int(tested_size);
         if (testSuite)
         {
             /* find largest chunk */
@@ -313,22 +313,25 @@ struct memSuite * _shoot_malloc_suite_contig(size_t size)
 
 void* _shoot_malloc(size_t size)
 {
-    struct memSuite * theSuite = _shoot_malloc_suite_contig(size + 4);
-    if (!theSuite) return 0;
+    struct memSuite *theSuite = _shoot_malloc_suite_contig(size + 4);
+    if (!theSuite)
+        return 0;
     
     /* now we only have to tweak some things so it behaves like plain malloc */
-    void* hChunk = (void*) GetFirstChunkFromSuite(theSuite);
-    void* ptr = (void*) GetMemoryAddressOfMemoryChunk(hChunk);
+    void* hChunk = (void*)GetFirstChunkFromSuite(theSuite);
+    void* ptr = (void*)GetMemoryAddressOfMemoryChunk(hChunk);
     *(struct memSuite **)ptr = theSuite;
     //~ printf("shoot_malloc(%s) => %x hSuite=%x\n", format_memory_size(size), ptr+4, theSuite);
     return ptr + 4;
 }
 
-void _shoot_free(void* ptr)
+void _shoot_free(void *ptr)
 {
-    if (!ptr) return;
-    if ((intptr_t)ptr & 3) return;
-    struct memSuite * hSuite = *(struct memSuite **)(ptr - 4);
+    if (!ptr)
+        return;
+    if ((intptr_t)ptr & 3)
+        return;
+    struct memSuite *hSuite = *(struct memSuite **)(ptr - 4);
     //~ printf("shoot_free(%x) hSuite=%x\n", ptr, hSuite);
     if (hSuite != NULL)
         FreeMemoryResource(hSuite, freeCBR, 0);
@@ -345,19 +348,20 @@ int _shoot_get_free_space()
 
     /* fixme: should fail quickly when shoot memory is full */
     /* performing test allocations is usually very slow */
-    return (int)(31.5*1024*1024);
+    return (int)(31.5 * 1024 * 1024);
 }
 
 #if 0
 void exmem_test()
 {
-    struct memSuite * hSuite = 0;
-    struct memChunk * hChunk = 0;
+    struct memSuite *hSuite = 0;
+    struct memChunk *hChunk = 0;
     
     msleep(2000);
     AllocateMemoryResource(1024*1024*32, allocCBR, (unsigned int)&hSuite, 0x50);
     int r = take_semaphore(alloc_sem, 100);
-    if (r) return;
+    if (r)
+        return;
     
     if(!hSuite)
     {
@@ -397,9 +401,9 @@ static int srm_allocated = 0;
 static uint32_t srm_buffer_size = 0;
 
 /* used to know when allocation was done */
-static struct semaphore * srm_alloc_sem = 0;
+static struct semaphore *srm_alloc_sem = 0;
 
-static void srm_malloc_cbr(void** dst_ptr, void* raw_buffer, uint32_t raw_buffer_size)
+static void srm_malloc_cbr(void **dst_ptr, void *raw_buffer, uint32_t raw_buffer_size)
 {
     if (!srm_buffer_size)
     {
@@ -603,7 +607,7 @@ void* _srm_malloc(size_t size)
         }
         
         /* let's see what we've got here */
-        struct memChunk * chunk = GetFirstChunkFromSuite(srm_malloc_hSuite);
+        struct memChunk *chunk = GetFirstChunkFromSuite(srm_malloc_hSuite);
         int i = 0;
 
         while(chunk)
@@ -647,9 +651,10 @@ void* _srm_malloc(size_t size)
     return buffer;
 }
 
-void _srm_free(void* ptr)
+void _srm_free(void *ptr)
 {
-    if (!ptr) return;
+    if (!ptr)
+        return;
 
     /* identify the buffer from its pointer, and mark it as unused */
     /* also count how many used buffers are left */
@@ -680,8 +685,9 @@ int _srm_get_max_region()
     if (!srm_buffer_size)
     {
         /* do a quick test malloc just to check the size */
-        void* test_suite = _srm_malloc_suite(1);
-        if (test_suite) _srm_free_suite(test_suite);
+        void *test_suite = _srm_malloc_suite(1);
+        if (test_suite)
+            _srm_free_suite(test_suite);
     }
     
     return srm_buffer_size;
@@ -701,8 +707,9 @@ int _srm_get_free_space()
     if (!srm_buffer_size)
     {
         /* do a quick test malloc just to check the size */
-        void* test_suite = _srm_malloc_suite(1);
-        if (test_suite) _srm_free_suite(test_suite);
+        void *test_suite = _srm_malloc_suite(1);
+        if (test_suite)
+            _srm_free_suite(test_suite);
     }
     
     if (srm_malloc_hSuite)
