@@ -338,6 +338,7 @@ THUMB_FN(0xe04bb5ad, _prop_request_change)
 THUMB_FN(0xdf0070c5,  dm_set_store_level) // called by "dmstore"
                                           // Called in init_task(), shortly before ICU Firmware version string
                                           // is logged.
+THUMB_FN(0xdf00707d,  dm_set_print_level)
 THUMB_FN(0xdf00325d,  task_trampoline)
 //NSTUB(0xFF8898CC,  gui_local_post)
 //NSTUB(0xFF889CA8,  gui_other_post)
