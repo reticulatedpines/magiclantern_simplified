@@ -453,9 +453,6 @@ static void test_task(void *size)
 
 static void run_test()
 {
-//    clrscr();
-//    NotifyBox(2000, "It was clicked");
-//    char *mem_struct = *(int *)0x48f8;
     DryosDebugMsg(0, 15, "run_test fired");
 #if 0
     if (is_hooked)
@@ -469,9 +466,28 @@ static void run_test()
     DryosDebugMsg(0, 15, "returned from hooking");
 #endif
 
-#if 1
-    int size = 64 * 1024;
-    task_create("test", 0x1e, size, test_task, (void *)size);
+#if 0
+    static int dm_toggle = 1;
+    if (dm_toggle)
+    {
+        DryosDebugMsg(0, 15, "Logging less");
+//        dm_set_store_level(0x80, 0x17);
+        dm_set_print_level(0x0, 0x8);
+        dm_set_store_level(0x0, 0x8);
+        dm_set_print_level(0x80, 0x5);
+        dm_set_store_level(0x80, 0x5);
+        dm_toggle = 0;
+    }
+    else
+    {
+        DryosDebugMsg(0, 15, "Logging more");
+//        dm_set_store_level(0x80, 0x1); // re-enables SRM related logging
+        dm_set_print_level(0x0, 0x5);
+        dm_set_store_level(0x0, 0x5);
+        dm_set_print_level(0x80, 0x3);
+        dm_set_store_level(0x80, 0x3);
+        dm_toggle = 1;
+    }
 #endif
 
 }

@@ -164,7 +164,8 @@ void ml_gui_main_task()
         }
 
         void(*f)(struct event *) = funcs[index];
-        f(event);
+        if (f != NULL)
+            f(event);
     }
 } 
 
