@@ -50,7 +50,11 @@ static void freeCBR_nowait(unsigned int a)
 
 void _shoot_free_suite(struct memSuite * hSuite)
 {
-    FreeMemoryResource(hSuite, freeCBR, 0);
+    if (hSuite != NULL)
+    {
+        // FreeMemoryResource is not null pointer safe on D678, crashes
+        FreeMemoryResource(hSuite, freeCBR, 0);
+    }
     take_semaphore(free_sem, 0);
 }
 
@@ -61,7 +65,11 @@ static void allocCBR(unsigned int priv, struct memSuite * hSuite)
     /* in case we timed out last time, immediately free the newly allocated suite (its the one that timed out) */
     if(suite_info->timed_out)
     {
-        FreeMemoryResource(hSuite, freeCBR_nowait, 0);
+        if (hSuite != NULL)
+        {
+            // FreeMemoryResource is not null pointer safe on D678, crashes
+            FreeMemoryResource(hSuite, freeCBR_nowait, 0);
+        }
         _free(suite_info);
         return;
     }
@@ -136,6 +144,7 @@ static struct memSuite *shoot_malloc_suite_int(size_t size)
     int r = take_semaphore(suite_info->sem, 100);
     if (r)
     {
+        // signal to allocCBR that it needs to free suite_info
         suite_info->timed_out = 1;
         return NULL;
     }
@@ -168,6 +177,9 @@ static size_t shoot_malloc_autodetect()
     size_t max_size = 0;
     struct memSuite * backup = shoot_malloc_suite_int(backup_size);
 
+    if (backup == NULL)
+        return max_size;
+
     for (int size_mb = 4; size_mb < 1024; size_mb += 4)
     {
         int tested_size = size_mb * 1024 * 1024;
@@ -198,6 +210,9 @@ static size_t shoot_malloc_autodetect_contig(uint32_t requested_size)
     size_t backup_size = 1024 * 1024;
     size_t max_contig_size = 0;
     struct memSuite * backup = shoot_malloc_suite_int(backup_size);
+
+    if (backup == NULL)
+        return max_contig_size;
 
     for (int size_mb = 1; size_mb < 1024; size_mb++)
     {
@@ -315,7 +330,8 @@ void _shoot_free(void* ptr)
     if ((intptr_t)ptr & 3) return;
     struct memSuite * hSuite = *(struct memSuite **)(ptr - 4);
     //~ printf("shoot_free(%x) hSuite=%x\n", ptr, hSuite);
-    FreeMemoryResource(hSuite, freeCBR, 0);
+    if (hSuite != NULL)
+        FreeMemoryResource(hSuite, freeCBR, 0);
     take_semaphore(free_sem, 0);
 }
 
@@ -545,7 +561,8 @@ void _srm_free_suite(struct memSuite *suite)
         
         /* we need to delete each chunk in exactly the same order as we have allocated them */
         void *buf = GetMemoryAddressOfMemoryChunk(chunk);
-        SRM_FreeMemoryResourceFor1stJob(buf, 0, 0);
+        if (buf != NULL)
+            SRM_FreeMemoryResourceFor1stJob(buf, 0, 0);
         
         chunk = GetNextMemoryChunk(suite, chunk);
     }
