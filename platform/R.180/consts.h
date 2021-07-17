@@ -50,6 +50,8 @@
 #define GUIMODE_ML_MENU 3
 
 
+#define DISPLAY_IS_ON               (*(int *)0x9fa0)     //search for "DispOperator_PropertyMasterSetDisplayTurnOffOn (%d)"
+
 #define GMT_FUNCTABLE               0xE0938568           //from gui_main_task
 #define GMT_NFUNCS                  0x7                  //size of table above
 
@@ -72,9 +74,14 @@
 //#define LVAE_ISO_HIS    (*(uint8_t* )(LVAE_STRUCT+0xXX)) // no idea, not referenced in ./src?!
 //#define LVAE_ISO_SPEED  (*(uint8_t* )(LVAE_STRUCT+0xXX))  //WRONG, not sure how to follow
 
+#define YUV422_LV_BUFFER_1 0x9F230000
+#define YUV422_LV_BUFFER_2 0x9F624800
+#define YUV422_LV_BUFFER_3 0x9FA19000
+#define YUV422_LV_PITCH    1024
 
-/* PROPABLY WRONG: Some hacks for early porting */
-#define DISPLAY_IS_ON               1
+#define YUV422_LV_BUFFER_DISPLAY_ADDR 0x0 // it expects this to be pointer to address
+#define YUV422_HD_BUFFER_DMA_ADDR 0x0 // it expects this to be shamem_read(some_DMA_ADDR)
+
 /* WRONG! */
 #define HALFSHUTTER_PRESSED         0
 /* kitor: I was unable to find any related stuff from 200D
@@ -104,12 +111,7 @@
 
 #define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x4444+0x30) // wrong, no idea
 #define FOCUS_CONFIRMATION (*(int*)0x4444) // wrong, focusinfo looks really different 50D -> 200D
-#define YUV422_LV_BUFFER_DISPLAY_ADDR 0x0 // it expects this to be pointer to address
-#define YUV422_HD_BUFFER_DMA_ADDR 0x0 // it expects this to be shamem_read(some_DMA_ADDR)
-#define YUV422_LV_BUFFER_1 0x41B00000
-#define YUV422_LV_BUFFER_2 0x5C000000
-#define YUV422_LV_BUFFER_3 0x5F600000
-#define YUV422_LV_PITCH 1440
+
 #define LV_BOTTOM_BAR_DISPLAYED 0x0 // wrong, fake bool
 // below definitely wrong, just copied from 50D
 #define FRAME_SHUTTER *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x56)

@@ -211,22 +211,20 @@ THUMB_FN(0xe053f85e,  msg_queue_post)                       // used in gui_enque
 THUMB_FN(0xe053f894,  msg_queue_count)                      // string "warning! QueueLength"
 
 /** Memory **/
-THUMB_FN(0xe06b8d56,  AllocateMemoryResource)               // m_pfAllocMemoryCBR, this function takes 4 params in 200D/EOSR, 3 for 50D
-THUMB_FN(0xe06b8d84,  AllocateContinuousMemoryResource)     // m_pfContAllocMemoryCBR, takes 4 params now, 3 for 50D
+THUMB_FN(0xe06b8d56,  AllocateMemoryResource)               // m_pfAllocMemoryCBR
+THUMB_FN(0xe06b8d84,  AllocateContinuousMemoryResource)     // m_pfContAllocMemoryCBR
 THUMB_FN(0xe06b8e2a,  FreeMemoryResource)                   // m_pfFreeMemoryCBR
-THUMB_FN(0xe054c47c,  AddMemoryChunk)                       // Same as in 200D (matched by offsets), may be wrong as multiple variants exists.
-                                                            // Other options: e054c3da e054cf5a
+THUMB_FN(0xe054c47c,  AddMemoryChunk)                       // Matched to 5D3. Similar (but slightly different): e054c3da e054cf5a
 THUMB_FN(0xe054c500,  GetFirstChunkFromSuite)               // AJ_PackMemory_PackMem_p3
 THUMB_FN(0xe054ce18,  GetNextMemoryChunk)                   // AJ_PackMemory_PackMem.c_IsChunkSignature_p2, identical fn is at e054cf14, but with just 3 xrefs
 THUMB_FN(0xe054c31a,  GetMemoryAddressOfMemoryChunk)        // AJ_PackMemory_PackMem.c_IsChunkSignature - 200D uses "MemChunk" directly
 THUMB_FN(0xe054c758,  DeleteMemorySuite)                    // String "DeleteMemorySuite 0x%x"
 THUMB_FN(0xe054c9ea,  CreateMemorySuite)                    // String "PackMem.c", calls malloc(0x18)
 THUMB_FN(0xe054bed0,  CreateMemoryChunk)                    // called from CreateMemorySuite
-
 THUMB_FN(0xe04e41be,  SRM_AllocateMemoryResourceFor1stJob)  // "pMessage" and "pPriorMessage" with "RscMgr.c". Unsure - there seems to be multiple identical functions
                                                             // Matched by structure params to 200D stub.
-THUMB_FN(0xe04e7762,  SRM_FreeMemoryResourceFor1stJob)      // find refs to "pMessage", there are several similar looking functions using it,
-                                                            // Matched to 200D stub, just buffer size differs (0x34 vs 0x30)
+THUMB_FN(0xe04e7590,  SRM_FreeMemoryResourceFor1stJob)      // Refs to "pPriorMessage". One that stores 0 and all three input
+                                                            // params to struct matches 5D3.113 even in offsets
 
 /** Uncategorized **/
 DATA_PTR(   0x11dc0,  sd_device)                            // From function that references "SD_DeviceCreate:"
