@@ -492,6 +492,28 @@ static void run_test()
 
 }
 
+#ifdef FEATURE_BOOTFLAG_MENU
+static void bootflag_disable(void* priv, int delta)
+{
+    console_show();
+    printf("Call DisableBootDisk()\n");
+
+    call("DisableBootDisk");
+
+    printf("done.\n");
+}
+
+static void bootflag_enable(void* priv, int delta)
+{
+  console_show();
+  printf("Call EnableBootDisk()\n");
+
+  call("EnableBootDisk");
+
+  printf("done.\n");
+}
+#endif
+
 static void unmount_sd_card()
 {
     extern void FSUunMountDevice(int drive);
@@ -1094,6 +1116,26 @@ static struct menu_entry debug_menus[] = {
         .priv =         run_test,
         .select        = run_in_separate_task,
         .help = "The camera may turn into a 1DX or it may explode."
+    },
+#endif
+#ifdef FEATURE_BOOTFLAG_MENU
+    {
+        .name       = "Bootflag settings",
+        .select     = menu_open_submenu,
+        .help       = "Change camera bootflag status",
+        .children =  (struct menu_entry[]) {
+            {
+                .name   = "Disable bootflag",
+                .select = bootflag_disable,
+                .help   = "Calls DisableBootDisk EvProc"
+            },
+            {
+                .name   = "Enable bootflag",
+                .select = bootflag_enable,
+                .help   = "Calls EnableBootDisk EvProc"
+            },
+            MENU_EOL,
+        },
     },
 #endif
 #ifdef CONFIG_DEBUG_INTERCEPT
