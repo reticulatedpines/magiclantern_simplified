@@ -80,14 +80,26 @@ THUMB_FN(0xE053AE8C,  SetTimerAfter)                        /* from error messag
 THUMB_FN(0xE053AF42,  CancelTimer)                          /* CancelRefreshTimer, CancelPlayTimer */
 
 /** Memory allocation **/
-THUMB_FN(0xE0552814, _AllocateMemory)                       /* NG AllocateMemory */
-THUMB_FN(0XE05529CC, _FreeMemory)                           /* uses the same heap */
-THUMB_FN(0xE055269E,  GetMemoryInformation)                 /* called from AllocateMemory */
-THUMB_FN(0xE0552672,  GetSizeOfMaxRegion)                   /* same */
+//THUMB_FN(0xE0552814, _AllocateMemory)                       /* NG AllocateMemory */
+//THUMB_FN(0XE05529CC, _FreeMemory)                           /* uses the same heap */
+//THUMB_FN(0xE055269E,  GetMemoryInformation)                 /* called from AllocateMemory */
+//THUMB_FN(0xE0552672,  GetSizeOfMaxRegion)                   /* same */
 THUMB_FN(0xE0552274, _alloc_dma_memory)                     /* allocates 64 bytes more, aligns at 32 and sets the uncacheable bit */
 THUMB_FN(0xE05522A8, _free_dma_memory)                      /* paired with the above; clears the uncacheable bit and frees the raw pointer */
 THUMB_FN(0xE021C7FC, _malloc)                               /* see "can't malloc" */
 THUMB_FN(0xE021C834, _free)                                 /* next function; paired with the above */
+
+/** Memory allocation - experimental **/
+/* Functions used by MemoryManager based allocators. Take MemoryManager object as 1st argument */
+THUMB_FN(0xe0552720, _AllocateMemory_impl)                  /* Called from _AllocateMemory */
+THUMB_FN(0Xe05528aa, _FreeMemory_impl)                      /* Called from _FreeMemory */
+THUMB_FN(0xe055267a, _GetMemoryInformation_impl)            /* Called from GetMemoryInformation */
+THUMB_FN(0xe0552602, _GetSizeOfMaxRegion_impl)              /* Called from GetSizeOfMaxRegion */
+THUMB_FN(0xe0552308, MMGR_InitializeRegion)                 /* Initializes MemoryManager. Called in InitializePermanentMemory */
+
+DATA_PTR(    0x50BC, MMGR_DEFAULT_POOL)                     /* MemoryManager pointer from _AllocateMemory (passed to _AllocateMemory_impl) */
+DATA_PTR(0x9D9A0000, MMGR_REGION_START)                     /* Start of our managed region */
+DATA_PTR(0x9DE5FFFF, MMGR_REGION_END)                       /* End of our managed region */
 
 /** Memory info **/
 THUMB_FN(0xE008C974,  memmap_info)                          /* Exception vector, DRYOS system memory etc */

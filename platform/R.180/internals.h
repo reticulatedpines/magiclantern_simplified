@@ -7,3 +7,6 @@
 
 /** Digic 8 does not have bitmap font in ROM, try to load it from card **/
 #define CONFIG_NO_BFNT
+
+/** Execute platform prepare function in post_init_task **/
+#define CONFIG_PLATFORM_POST_INIT

@@ -43,6 +43,8 @@
 
 extern int uart_printf(const char * fmt, ...);
 
+extern void platform_post_init();
+
 #if defined(FEATURE_GPS_TWEAKS)
 #include "gps.h"
 #endif
@@ -561,6 +563,9 @@ void boot_pre_init_task()
 /* called right after Canon's init_task, while their initialization continues in background */
 void boot_post_init_task(void)
 {
+#if defined(CONFIG_PLATFORM_POST_INIT)
+    platform_post_init();
+#endif
 #if defined(CONFIG_CRASH_LOG)
     // decompile TH_assert to find out the location
     old_assert_handler = (void*)MEM(DRYOS_ASSERT_HANDLER);
