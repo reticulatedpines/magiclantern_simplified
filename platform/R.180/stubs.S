@@ -233,9 +233,10 @@ THUMB_FN(0xe054c31a,  GetMemoryAddressOfMemoryChunk)        // AJ_PackMemory_Pac
 THUMB_FN(0xe054c758,  DeleteMemorySuite)                    // String "DeleteMemorySuite 0x%x"
 THUMB_FN(0xe054c9ea,  CreateMemorySuite)                    // String "PackMem.c", calls malloc(0x18)
 THUMB_FN(0xe054bed0,  CreateMemoryChunk)                    // called from CreateMemorySuite
-THUMB_FN(0xe04e41be,  SRM_AllocateMemoryResourceFor1stJob)  // "pMessage" and "pPriorMessage" with "RscMgr.c". Unsure - there seems to be multiple identical functions
+//kitor: disabled using CONFIG_MEMORY_SRM_NOT_WORKING
+//THUMB_FN(0xe04e41be,  SRM_AllocateMemoryResourceFor1stJob)  // "pMessage" and "pPriorMessage" with "RscMgr.c". Unsure - there seems to be multiple identical functions
                                                             // Matched by structure params to 200D stub.
-THUMB_FN(0xe04e7590,  SRM_FreeMemoryResourceFor1stJob)      // Refs to "pPriorMessage". One that stores 0 and all three input
+//THUMB_FN(0xe04e7590,  SRM_FreeMemoryResourceFor1stJob)      // Refs to "pPriorMessage". One that stores 0 and all three input
                                                             // params to struct matches 5D3.113 even in offsets
 
 /** Uncategorized **/

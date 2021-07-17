@@ -10,3 +10,9 @@
 
 /** Execute platform prepare function in post_init_task **/
 #define CONFIG_PLATFORM_POST_INIT
+
+/** disable SRM for now
+ * in current state SRM_AllocateMemoryResourceFor1stJob makes camera crash
+ * even if just one buffer is requrested.
+ */
+#define CONFIG_MEMORY_SRM_NOT_WORKING
