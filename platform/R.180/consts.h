@@ -49,6 +49,8 @@
 // FIXME: this should follow the conditional definition to handle LV etc, see other cams
 #define GUIMODE_ML_MENU 3
 
+// I can't find any official data. Unofficial say 200k
+#define CANON_SHUTTER_RATING 200000
 
 #define DISPLAY_IS_ON               (*(int *)0x9fa0)     //search for "DispOperator_PropertyMasterSetDisplayTurnOffOn (%d)"
 
