@@ -1450,4 +1450,4 @@ static void bmp_init(void* unused)
     _update_vram_params();
 }
 
-INIT_FUNC(__FILE__, bmp_init);
+INIT_FUNC("bmp_init", bmp_init);

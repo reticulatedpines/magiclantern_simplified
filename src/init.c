@@ -249,16 +249,6 @@ static void backup_rom_task()
 #endif
 
 #ifdef CONFIG_HELLO_WORLD
-extern void marv_dcache_clean(struct MARV *marv);
-extern void dcache_clean(void *, int size);
-extern void JediDraw(struct MARV *marv, uint8_t buf, int unknown, int size);
-extern void OsdReverseMode(int);
-extern int XimrSetLayerVisibility(void *ximr_context, int, int);
-extern int XimrSetInputLayerMARV(void *ximr_context, int, struct MARV *rgb_vram, int);
-extern int XimrSetLayer_unk2(void *ximr_context, int, int, int, int);
-extern int XimrContextInputLayerSetDimensions(void *ximr_context, int, int, int, int, int, int, int);
-extern int maybe_XimrSetLayerColorParams(void *ximr_context, int, struct MARV *rgb_vram, int, int);
-extern int display_output_mode;
 
 static void draw_test_pattern(int colour)
 {
@@ -277,15 +267,70 @@ static void draw_test_pattern(int colour)
     }
 }
 
+#ifdef FEATURE_VRAM_RGBA
+extern int ml_refresh_display_needed;
+
+/** kitor: This aint pretty, but we selectively call bmp init functions
+ *  and run required tasks. Other solution would be to have function in bmp.c
+ *  to break static scope.
+ *
+ * We should be safe to run them as:
+ * - we are already past _mem_init()
+ * - if this code runs, we successfully started ml_init task */
+static void init_bmp_indexed()
+{
+    //first call bmp_init
+    extern struct task_create _init_funcs_start[];
+    extern struct task_create _init_funcs_end[];
+    struct task_create * init_func = _init_funcs_start;
+
+    for( ; init_func < _init_funcs_end ; init_func++ )
+    {
+        if(strcmp(init_func->name, "bmp_init") == 0)
+        {
+            thunk entry = (thunk) init_func->entry;
+            entry();
+            break;
+        }
+    }
+
+    //then start redraw_task
+    extern struct task_create _tasks_start[];
+    extern struct task_create _tasks_end[];
+    struct task_create * task = _tasks_start;
+
+    for( ; task < _tasks_end ; task++ )
+    {
+        if(strcmp(task->name, "redraw_task") == 0)
+        {
+            task_create(
+                task->name,
+                task->priority,
+                task->stack_size,
+                task->entry,
+                task->arg
+            );
+            break;
+        }
+    }
+}
+#endif
+
 static void hello_world()
 {
     int sig = compute_signature((uint32_t*)SIG_START, 0x10000);
 
+    #ifdef FEATURE_VRAM_RGBA
+    //kitor: see comment on init_bmp_indexed() above
+    init_bmp_indexed();
+    #endif
+
     // wait for GUI to be up
+    //kitor: we already did it once in boot_post_init_task() ?!
     while (!bmp_vram_raw())
         msleep(100);
 
-//    DryosDebugMsg(0, 15, "==== HELLO WORLD ====");
+    //DryosDebugMsg(0, 15, "==== HELLO WORLD ====");
     int colour = 4;
     while(1)
     {
@@ -296,14 +341,11 @@ static void hello_world()
             colour = 4;
         else
             colour++;
-        DryosDebugMsg(0, 15, "display mode: %d", display_output_mode);
+        //DryosDebugMsg(0, 15, "display mode: %d", display_output_mode);
         DryosDebugMsg(0, 15, "colour: %d", colour);
         draw_test_pattern(colour);
 
         bmp_fill(6, 140, 200, 40, 1);
-
-//        DISP_SetUpdateOSDVram(bmp_vram_info->bitmap_data); // params not fully known.  See 0xe0552dfa for setup
-//        OsdReverseMode(1);  // cool, this works for horizontal flip.  Not tested other values
 
         ml_refresh_display_needed = 1;
         msleep(200);
