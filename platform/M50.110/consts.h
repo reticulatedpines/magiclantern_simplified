@@ -49,6 +49,7 @@
 // FIXME: this should follow the conditional definition to handle LV etc, see other cams
 #define GUIMODE_ML_MENU 3
 
+#define CANON_SHUTTER_RATING 100000
 
 #define GMT_FUNCTABLE               0xE08FFB94           //from gui_main_task
 #define GMT_NFUNCS                  0x7                  //size of table above
