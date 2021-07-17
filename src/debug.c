@@ -820,6 +820,19 @@ static MENU_UPDATE_FUNC(shuttercount_display)
 }
 #endif
 
+#ifdef FEATURE_SHOW_TOTAL_SHOTS
+static MENU_UPDATE_FUNC(totalshots_display)
+{
+    MENU_SET_VALUE(
+        "%d (%d+%d)",
+        total_shots_count, shutter_count, total_shots_count - shutter_count
+    );
+    MENU_SET_WARNING(
+        MENU_WARN_ADVICE,
+        "May drift a bit - check after restart for accurate values.");
+}
+#endif
+
 #ifdef FEATURE_SHOW_CMOS_TEMPERATURE
 #ifdef EFIC_CELSIUS
 #define FAHRENHEIT (EFIC_CELSIUS * 9 / 5 + 32)
@@ -1158,12 +1171,31 @@ static struct menu_entry debug_menus[] = {
 #ifdef FEATURE_SHOW_SHUTTER_COUNT
     {
         .name = "Shutter Count",
+        .select = menu_open_submenu,
         .update = shuttercount_display,
-        .icon_type = IT_ALWAYS_ON,
         .help = "Number of pics taken + number of LiveView actuations",
         //.essential = FOR_MOVIE | FOR_PHOTO,
+        .submenu_width = 710,
+        .children =  (struct menu_entry[]) {
+            {
+                .name = "Shutter Count",
+                .update = shuttercount_display,
+                .icon_type = IT_ALWAYS_ON,
+                .help = "Number of pics taken + number of LiveView actuations",
+            },
+            #ifdef FEATURE_SHOW_TOTAL_SHOTS
+            {
+                .name = "Total Shots",
+                .update = totalshots_display,
+                .icon_type = IT_ALWAYS_ON,
+                .help = "Number of shots, including silent (electronic) shutter",
+            },
+            #endif
+            MENU_EOL,
+        },
     },
 #endif
+
 #ifdef FEATURE_SHOW_CMOS_TEMPERATURE
     {
         .name = "Internal Temp",
@@ -1978,4 +2010,3 @@ void engio_write(uint32_t* reg_list)
     if (!(MEM(0xC0400008) & 0x2)) return; // this routine requires LCLK enabled
     _engio_write(reg_list);
 }
-

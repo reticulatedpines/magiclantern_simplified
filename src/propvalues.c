@@ -172,6 +172,11 @@ PROP_HANDLER(PROP_MECHA_COUNTER)
     //Maybe old property holds for SLRs and new ones are just for MILCs?
     shutter_count_plus_lv_actuations = buf[0];
 }
+//kitor: New on D8, total counter including silent shoots.
+PROP_HANDLER(PROP_RELEASE_COUNTER)
+{
+    total_shots_count = buf[0];
+}
 #else
 PROP_HANDLER(PROP_SHUTTER_COUNTER)
 {
