@@ -293,6 +293,7 @@ static void hook_target()
     asm __volatile__ (
         "mov %0, r1" : "=r" (val)
     );
+
     intercepted_val = val;
 }
 
@@ -450,6 +451,7 @@ static void test_task(void *size)
 }
 #endif
 
+static void run_test()
 {
     DryosDebugMsg(0, 15, "run_test fired");
 #if 0
@@ -457,6 +459,7 @@ static void test_task(void *size)
     {
         DryosDebugMsg(0, 15, "last value seen: 0x%x", intercepted_val);
     }
+    else
     {
         hook_memoryManager_AllocateMemory();
     }
@@ -1877,7 +1880,9 @@ static MENU_SELECT_FUNC(gui_events_toggle)
     }
 }
 
+void spy_event(struct event * event)
 {
+    if (gui_events_show)
     {
         printf("Event param=%8x *obj=%8x/%8x/%8x arg=%8x\n",
             event->param,
@@ -1973,3 +1978,4 @@ void engio_write(uint32_t* reg_list)
     if (!(MEM(0xC0400008) & 0x2)) return; // this routine requires LCLK enabled
     _engio_write(reg_list);
 }
+
