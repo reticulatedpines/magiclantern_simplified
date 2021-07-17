@@ -181,6 +181,72 @@ SIZE_CHECK_STRUCT( prop_lv_lens, 58 );
 
 #endif
 
+#ifdef CONFIG_DIGIC_VIII
+/* kitor: Modeled after EOS R implementation. EvProc readid is very useful.
+ * I collapsed huge chunks of unknown data into arrays for readability. */
+struct prop_lens_static_data {
+        uint8_t                 attached;
+        uint8_t                 type; /* 90 EF, 91 RF */
+            uint8_t                 field_0x2[38];
+        uint16_t                lens_id;
+        uint16_t                lens_id_ext;
+        uint16_t                fl_wide;
+        uint16_t                fl_tele;
+        uint8_t                 lens_serial[5];
+            uint8_t                 field_0x35[24];
+        uint8_t                 extender_id[6];
+        uint8_t                 lens_firm_ver[3];
+        uint8_t                 field_vision;
+        uint8_t                 lens_type;
+            uint8_t                 field_0x58;
+        uint8_t                 lens_name_len;
+        char                    lens_name[73];
+            uint8_t                 field_0xa3;
+        uint8_t                 mount_size;
+        uint8_t                 lens_switch_exists;
+        uint8_t                 lens_is_switch_exists;
+        uint8_t                 lens_is_funct_exists;
+        uint8_t                 af_speed_setting_available;
+        uint8_t                 dafLimitFno;
+        uint8_t                 distortionCorrectionInfo;
+        uint8_t                 bcfInfo;
+            uint8_t                 field_0xac;
+            uint8_t                 field_0xad;
+        uint16_t                zoom_pos_size;
+        uint16_t                focus_pos_size;
+        uint16_t                fine_focus_size;
+        uint8_t                 av_dlp_lens;
+        uint8_t                 av_slow_enable;
+        uint8_t                 av_slow_div;
+            uint8_t                 field_0xb7;
+        uint16_t                av_max_spd;
+        uint16_t                av_silent_spd;
+        uint16_t                av_min_spd;
+            uint8_t                 field_0xbe[151];
+        uint8_t                 colorBalance;
+        uint8_t                 pza_exists;
+        uint8_t                 pza_id[5];
+        uint8_t                 pza_firm_ver[3];
+        uint8_t                 pza_firmup;
+        uint8_t                 dlAdp_count;
+            uint8_t                 field_0x161;
+            uint8_t                 field_0x162;
+            uint8_t                 field_0x163;
+        uint32_t                dlAdpl_id;
+        uint8_t                 dlAdpl_funcl;
+        uint8_t                 dlAdpl_firm_ver[3];
+        uint32_t                dlAdpl2_id;
+        uint8_t                 dlAdpl2_funcl;
+        uint8_t                 dlAdpl2_firm_ver[3];
+            uint8_t                 field_0x174;
+        uint8_t                 demandWarnDispFromLens;
+        uint8_t                 demandWarnDispFromAdp;
+            uint8_t                 field_0x177[13];
+} __attribute__((packed));
+
+SIZE_CHECK_STRUCT( prop_lens_static_data, 388 );
+#endif
+
 struct prop_focus
 {
         uint8_t                 active;         // off_0x00, must be 1

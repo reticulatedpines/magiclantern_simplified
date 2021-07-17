@@ -37,6 +37,9 @@
 #define PROP_TFT_STATUS         0x80030015
 #define PROP_LENS_NAME          0x80030021
 #define PROP_LENS_SOMETHING     0x80030022
+//duplicate of PROP_LENS_SOMETHING, name found in R rom.
+//Not replaced as it was already exposed in LUA api
+#define PROP_LENS_ALL_NAME      0x80030022
 
 //~ 5dc doesn't have a PROP_LENS.
 #ifdef CONFIG_5DC
@@ -44,6 +47,9 @@
 #else
 #define PROP_LENS               0x80030011 // info about lens? flags?
 #endif
+
+#define PROP_LENS_STATIC_DATA   0x8003009a
+#define PROP_LENS_DYNAMIC_DATA  0x80020037
 
 #define PROP_HDMI_CHANGE        0x8003002c // 1 if HDMI display connected
 #define PROP_HDMI_CHANGE_CODE   0x8003002e // edidc?
