@@ -525,6 +525,20 @@
 //~ #define PROP_CARD2_CLUSTER_SIZE 0x2010007
 #define PROP_SHUTTER_COUNTER 0x80030029
 
+/* EOS R does not use old shutter counter property.
+ * There's a new family of functions with mecha* names.
+ *
+ * There seems to be no `shutter_count_plus_lv_actuations` equiv on R,
+ * which makes sense for mirrorless, but this shall be verified on Digic 8 DSLR.
+ *
+ * 0x12000002 is also Mecha related (see InitMechaCnt()), I was unable to find
+ * the name / purpose.
+ *
+ * PROP_RELEASE_COUNTER counts also silent (electronic) shutter shots.
+ */
+#define PROP_MECHA_COUNTER    0x12000001
+#define PROP_RELEASE_COUNTER  0x12000003
+
 #define PROP_AFPOINT 0x8000000A // len=70x8003004F
 
 #define PROP_BEEP 0x80000023

@@ -162,11 +162,23 @@ bool FAST is_movie_mode()
 
 volatile int shutter_count = 0;
 volatile int shutter_count_plus_lv_actuations = 0;
+volatile int total_shots_count = 0;
+#ifdef CONFIG_DIGIC_VIII
+//kitor: Confirmed R, RP, M50. Not checked on DSLRs. See comment in property.h
+PROP_HANDLER(PROP_MECHA_COUNTER)
+{
+    shutter_count = buf[0];
+    //I don't have access to any DSLR to find if it's stored anywhere.
+    //Maybe old property holds for SLRs and new ones are just for MILCs?
+    shutter_count_plus_lv_actuations = buf[0];
+}
+#else
 PROP_HANDLER(PROP_SHUTTER_COUNTER)
 {
     shutter_count = buf[0];
     shutter_count_plus_lv_actuations = buf[1];
 }
+#endif
 
 volatile int display_sensor = 0;
 
