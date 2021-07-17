@@ -5,22 +5,36 @@
 FIRMWARE_ID     = 0x00000424
 ROMBASEADDR     = 0xE0040000
 
-# Shrink Canon's malloc heap by changing its end address
-# Run `meminfo -m` in drysh:
+# We can get space for ML both by shrinking Canon's "user_mem" malloc heap
+# by changing its end address, and by moving the sys_mem and sys_objs regions
+# upwards; creating a gap in the middle.
 #
-# Dry[WarpPUX]> meminfo -m
-# Malloc Information (onetime type)
-#  Start Address       = 0x000b0080
-#  End Address         = 0x001c4630
-#  Total Size          = 0x001145b0 (  1131952)
+# Some info is available from drysh:
+#          ("meminfo -m" in drysh)    ("memmap" in drysh)
 #
-# Now, default heap is from 0x000b0080 to 0x001c4630.
-# Just subtract 0x40000 (256K) from Heap end address, this is your RESTARTSTART.
-# 0x001c4630 - 0x40000 = 0x00184630
+# See mkcfg (e008cc60 on R180) for most of the names, but note memmap (e008c974)
+# calls user_mem "Heap".
 #
-# kitor: why 256K? I don't understand yet. It was mentioned in original comment,
-# which wasn't clear at all :)
-RESTARTSTART    = 0x00184630
+# Canon also use names like user_mem_max, but sometimes this is len, not max.
+# I use len or size when it's treated as a length.
+#
+# See fimrware entry function for where these values are used to calc / position
+# the regions.
+# boot-d78.c adjusts these constants before the code runs.
+#
+# Presumably, if too much mem is stolen from user_mem, or sys region
+# is moved too far upwards, Bad Things happen.
+#
+# We could calculate RESTARTSTART at runtime, but the build system currently
+# needs a value for it, I believe because magiclantern binary is not PIC.
+# Consequently, you need to work this out, and you need to ensure it's
+# compatible with the limits defined in consts.h, see ML_MAX_* and
+# ML_RESERVED_MEM.  This is a sensible default:
+# *PTR_DRYOS_BASE + *PTR_SYS_OBJS_OFFSET - 0x40000
+#
+# It's a sensible precaution to pick a value that's well aligned,
+# we run code from this address.
+RESTARTSTART    = 0x00185000
 
 # Cortex A9, binaries loaded as Thumb
 CFLAG_USER = -mthumb -mlong-calls
