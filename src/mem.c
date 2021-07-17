@@ -204,7 +204,7 @@ static struct mem_allocator allocators[] = {
         .minimum_free_space = 256 * 1024,
     },
 
-#if 1
+#if !defined(CONFIG_MEMORY_SRM_NOT_WORKING)
     /* large buffers (30-40 MB), but you can't even take a picture with one of those allocated */
     {
         .name = "srm_malloc",
@@ -1057,6 +1057,7 @@ static void guess_free_mem_task(void *priv, int delta)
     ASSERT(max_shoot_malloc_frag_mem == total);
 
     exmem_clear(shoot_suite, 0);
+    _shoot_free_suite(shoot_suite);
 
     /* test the new SRM job allocator */
     struct memSuite *srm_suite = _srm_malloc_suite(0);
@@ -1090,8 +1091,6 @@ static void guess_free_mem_task(void *priv, int delta)
     ASSERT(srm_buffer_size * srm_num_buffers == srm_suite->size);
 
     exmem_clear(srm_suite, 0);
-    
-    _shoot_free_suite(shoot_suite);
     _srm_free_suite(srm_suite);
 
     /* mallocs can resume now */
