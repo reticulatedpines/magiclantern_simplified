@@ -44,6 +44,7 @@ DATA_PTR(    0x1010,  current_interrupt)                    /* from interrupt ha
 DATA_PTR(    0x1028,  current_task)                         /* from task_create; pointer to the current task structure */
 THUMB_FN(0xE0549952,  msleep)                               /* argument is always multiple of 10 */
 THUMB_FN(0XE05172FA,  task_create)                          /* used to start TaskMain, GuiMainTask etc */
+NSTUB( 0x40CC, task_max)
 
 /** File I/O **/
 THUMB_FN(0xE053BAC2, _FIO_CreateFile)
@@ -127,7 +128,7 @@ THUMB_FN(0xE00C6BC8,  task_trampoline)
  * task_trampoline_caller will pass task_trampoline+1 as parameter to another
  * function.
  */
-THUMB_FN(0xe02ebf38, get_task_info_by_id)
+THUMB_FN(0xe02ebf38, _get_task_info_by_id)
 /*
  * kitor: via extask function. While on 5D3 it was called directly, now helper
  * is used. Find extask via string formats. Trace variables holding task id, 
