@@ -5,9 +5,17 @@
 #define FEATURE_COMPOSITOR_XCM
 #endif
 
+// Don't Click Me menu looks to be intended as a place
+// for devs to put custom code in debug.c run_test(),
+// and allowing triggering from a menu context.
+#define FEATURE_DONT_CLICK_ME
+
+// working but incomplete, some allocators don't report
+// anything yet as they're faked / not yet found
+#define FEATURE_SHOW_FREE_MEMORY
+
 #define CONFIG_ADDITIONAL_VERSION
 #define FEATURE_SCREENSHOT
-
 
 #undef CONFIG_CRASH_LOG
 #undef CONFIG_TSKMON
