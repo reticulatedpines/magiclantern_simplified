@@ -204,7 +204,11 @@ static struct mem_allocator allocators[] = {
         .minimum_free_space = 256 * 1024,
     },
 
-#if !defined(CONFIG_MEMORY_SRM_NOT_WORKING)
+#if defined(CONFIG_MEMORY_SRM_NOT_WORKING)
+    // SJE FIXME SRM is not understood well enough to function on these cams,
+    // on tested cams (RP, 200D, R, M50), the free function seems to not work
+    // somehow.
+#else
     /* large buffers (30-40 MB), but you can't even take a picture with one of those allocated */
     {
         .name = "srm_malloc",
