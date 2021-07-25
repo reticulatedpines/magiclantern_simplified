@@ -18,7 +18,7 @@ ROMBASEADDR     = 0xE0040000
 # Canon also use names like user_mem_max, but sometimes this is len, not max.
 # I use len or size when it's treated as a length.
 #
-# See fimrware entry function for where these values are used to calc / position
+# See firmware entry function for where these values are used to calc / position
 # the regions.
 # boot-d78.c adjusts these constants before the code runs.
 #
