@@ -1,0 +1,39 @@
+Basic workflow, notes for automating in the future.
+
+Determine which rom is code, which assets
+Use qemu to get rom copy regions
+Determine load addresses
+Determine arch for code rom
+Load code rom, set r-x
+Load asset rom, set r--
+Load copy regions, set rwx (or maybe r-x?  If Canon never writes after the initial copy this may be better)
+    This is complicated by cache/uncache bits (more generally, the page type)
+        How to get this before loading regions?
+Set sensible analysis options
+Define known data types
+Define functions for known stubs, with param and return types (helps analysis)
+Define entry point
+Increase analysis timeout
+Do headless analysis (allegedly GUI load is significant on wimpy machines)
+
+
+====
+77D walkthrough
+
+(trying to find strings shared across old and new cams,
+that distinguish between asset and code roms)
+rom0 is code, strings:
+    DRYOS version
+    DRYOS PANIC
+    handler
+    create a task
+    TakeSemaphore
+
+rom1 is assets, strings:
+    Copyright-Info
+    <MENU>
+    batteries
+    activate movie
+    Autofocus
+
+
