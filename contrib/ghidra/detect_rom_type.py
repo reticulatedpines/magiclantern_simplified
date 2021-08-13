@@ -25,17 +25,34 @@ def main():
     with open(args.rom, "rb") as f:
         rom = f.read()
 
+    score = get_code_score(rom)
+    print("Code score: %f" % score)
+
+    score = get_asset_score(rom)
+    print("Asset score: %f" % score)
+
+
+def get_code_score(rom):
+    """
+    Takes a byte array of rom contents, returns score (0.0 to 1.0)
+    for how much it looks like a code rom
+    """
     code_score_max = len(code_markers)
-    asset_score_max = len(asset_markers)
     code_matches = {s for s in code_markers if s in rom}
-    asset_matches = {s for s in asset_markers if s in rom}
-
     code_score = len(code_matches) / code_score_max
-    asset_score = len(asset_matches) / asset_score_max
+    return code_score
 
-    print("Code score: %f" % code_score)
-    print("Asset score: %f" % asset_score)
     
+def get_asset_score(rom):
+    """
+    Takes a byte array of rom contents, returns score (0.0 to 1.0)
+    for how much it looks like an asset rom
+    """
+    asset_score_max = len(asset_markers)
+    asset_matches = {s for s in asset_markers if s in rom}
+    asset_score = len(asset_matches) / asset_score_max
+    return asset_score
+
 
 def parse_args():
     description = '''
