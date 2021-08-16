@@ -183,7 +183,7 @@ THUMB_FN(0xe00e3ab0,  task_trampoline)    // see comment below:
  * task_trampoline_caller will pass task_trampoline+1 as parameter to another
  * function.
  */
-THUMB_FN(0xe03c9888, is_taskid_valid) // function before " CORE : %d\n" string
+THUMB_FN(0xe03c9114, _get_task_info_by_id) // called from function using "StackDump" string
 
 /** General FEATURE_VRAM_RGBA stubs **/
 THUMB_FN(0xe010c180, XimrExe);                      // In RefreshVrmsSurface, just before "XimrExe" debug message
