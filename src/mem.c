@@ -1058,8 +1058,9 @@ static void guess_free_mem_task(void *priv, int delta)
 	if ((start < sizeof(memory_map)) && (start + width < sizeof(memory_map)))
           memset(memory_map + start, COLOR_GREEN1, width);
 	else {
-          uart_printf("[ML] guess_free_mem_task: green: attempt to write out of bounds on memory_map[%d]: start=%d, width=%d, chunkAddress=%X, chunkAvail=%X",
-			  sizeof(memory_map), start, width, chunkAddress, chunkAvail);
+          uart_printf("[ML] guess_free_mem_task: green: attempt to write out of bounds on "
+                      "memory_map[%d]: start=%d, width=%d, chunkAddress=%X, chunkAvail=%X",
+                      sizeof(memory_map), start, width, chunkAddress, chunkAvail);
 	}
 
         currentChunk = GetNextMemoryChunk(shoot_suite, currentChunk);
@@ -1098,8 +1099,9 @@ static void guess_free_mem_task(void *priv, int delta)
 	if ((start < sizeof(memory_map)) && (start + width < sizeof(memory_map)))
           memset(memory_map + start, COLOR_CYAN, width);
 	else {
-          uart_printf("[ML] guess_free_mem_task: cyan: attempt to write out of bounds on memory_map[%d]: start=%d, width=%d, chunkAddress=%X, chunkAvail=%X",
-			  sizeof(memory_map), start, width, chunkAddress, chunkAvail);
+          uart_printf("[ML] guess_free_mem_task: cyan: attempt to write out of bounds on "
+                      "memory_map[%d]: start=%d, width=%d, chunkAddress=%X, chunkAvail=%X",
+                      sizeof(memory_map), start, width, chunkAddress, chunkAvail);
 	}
 
         currentChunk = GetNextMemoryChunk(srm_suite, currentChunk);
