@@ -103,7 +103,6 @@ struct mem_allocator
 /* Canon stubs */
 extern int GetMemoryInformation(int* total, int* free);
 extern int GetSizeOfMaxRegion(int* max_region);
-extern int uart_printf(const char* fmt, ...);
 
 int GetFreeMemForAllocateMemory()
 {
@@ -1058,9 +1057,8 @@ static void guess_free_mem_task(void *priv, int delta)
 	if ((start < sizeof(memory_map)) && (start + width < sizeof(memory_map)))
           memset(memory_map + start, COLOR_GREEN1, width);
 	else {
-          uart_printf("[ML] guess_free_mem_task: green: attempt to write out of bounds on "
-                      "memory_map[%d]: start=%d, width=%d, chunkAddress=%X, chunkAvail=%X",
-                      sizeof(memory_map), start, width, chunkAddress, chunkAvail);
+          DryosDebugMsg(0, 15, "[ML] g_f_m_t: green: OOB write memory_map[%d]: ", sizeof(memory_map));
+          DryosDebugMsg(0, 15, "[ML] g_f_m_t: s=%d, w=%d, cAd=%X, cAv=%X", start, width, chunkAddress, chunkAvail);
 	}
 
         currentChunk = GetNextMemoryChunk(shoot_suite, currentChunk);
@@ -1099,9 +1097,8 @@ static void guess_free_mem_task(void *priv, int delta)
 	if ((start < sizeof(memory_map)) && (start + width < sizeof(memory_map)))
           memset(memory_map + start, COLOR_CYAN, width);
 	else {
-          uart_printf("[ML] guess_free_mem_task: cyan: attempt to write out of bounds on "
-                      "memory_map[%d]: start=%d, width=%d, chunkAddress=%X, chunkAvail=%X",
-                      sizeof(memory_map), start, width, chunkAddress, chunkAvail);
+          DryosDebugMsg(0, 15, "[ML] g_f_m_t: cyan: OOB write memory_map[%d]: ", sizeof(memory_map));
+          DryosDebugMsg(0, 15, "[ML] g_f_m_t: s=%d, w=%d, cAd=%X, cAv=%X", start, width, chunkAddress, chunkAvail);
 	}
 
         currentChunk = GetNextMemoryChunk(srm_suite, currentChunk);
