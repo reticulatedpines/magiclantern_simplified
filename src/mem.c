@@ -1054,12 +1054,15 @@ static void guess_free_mem_task(void *priv, int delta)
         int start = MEMORY_MAP_ADDRESS_TO_INDEX(chunkAddress);
         int width = MEMORY_MAP_ADDRESS_TO_INDEX(chunkAvail);
 
-    if ((start < sizeof(memory_map)) && (start + width < sizeof(memory_map)))
-          memset(memory_map + start, COLOR_GREEN1, width);
-    else {
-          DryosDebugMsg(0, 15, "[ML] g_f_m_t: green: OOB write memory_map[%d]: ", sizeof(memory_map));
-          DryosDebugMsg(0, 15, "[ML] g_f_m_t: s=%d, w=%d, cAd=%X, cAv=%X", start, width, chunkAddress, chunkAvail);
-    }
+        if ((start < sizeof(memory_map)) && (start + width < sizeof(memory_map)))
+        {
+            memset(memory_map + start, COLOR_GREEN1, width);
+        }
+        else
+        {
+            DryosDebugMsg(0, 15, "[ML] g_f_m_t: green: OOB write memory_map[%d]: ", sizeof(memory_map));
+            DryosDebugMsg(0, 15, "[ML] g_f_m_t: s=%d, w=%d, cAd=%X, cAv=%X", start, width, chunkAddress, chunkAvail);
+        }
 
         currentChunk = GetNextMemoryChunk(shoot_suite, currentChunk);
     }
@@ -1094,12 +1097,15 @@ static void guess_free_mem_task(void *priv, int delta)
         int start = MEMORY_MAP_ADDRESS_TO_INDEX(chunkAddress);
         int width = MEMORY_MAP_ADDRESS_TO_INDEX(chunkAvail);
 
-    if ((start < sizeof(memory_map)) && (start + width < sizeof(memory_map)))
-          memset(memory_map + start, COLOR_CYAN, width);
-    else {
-          DryosDebugMsg(0, 15, "[ML] g_f_m_t: cyan: OOB write memory_map[%d]: ", sizeof(memory_map));
-          DryosDebugMsg(0, 15, "[ML] g_f_m_t: s=%d, w=%d, cAd=%X, cAv=%X", start, width, chunkAddress, chunkAvail);
-    }
+        if ((start < sizeof(memory_map)) && (start + width < sizeof(memory_map)))
+        {
+            memset(memory_map + start, COLOR_CYAN, width);
+        }
+        else
+        {
+            DryosDebugMsg(0, 15, "[ML] g_f_m_t: cyan: OOB write memory_map[%d]: ", sizeof(memory_map));
+            DryosDebugMsg(0, 15, "[ML] g_f_m_t: s=%d, w=%d, cAd=%X, cAv=%X", start, width, chunkAddress, chunkAvail);
+        }
 
         currentChunk = GetNextMemoryChunk(srm_suite, currentChunk);
     }
