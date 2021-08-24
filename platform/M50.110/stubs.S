@@ -176,10 +176,10 @@ THUMB_FN(0xe0553b9c,  GetMemoryAddressOfMemoryChunk)        // "IsChunkSignature
 THUMB_FN(0xe0553fe4,  DeleteMemorySuite)                    // String "DeleteMemorySuite 0x%x"
 THUMB_FN(0xe0554276,  CreateMemorySuite)                    // String "PackMem.c", calls malloc(0x18)
 THUMB_FN(0xe055374c,  CreateMemoryChunk)                    // called from CreateMemorySuite
-
-THUMB_FN(0xe056a5c6,  SRM_AllocateMemoryResourceFor1stJob)  // "pMessage" and "pPriorMessage" with "RscMgr.c". Unsure - there seems to be multiple identical functions
+//kitor: disabled using CONFIG_MEMORY_SRM_NOT_WORKING
+//THUMB_FN(0xe056a5c6,  SRM_AllocateMemoryResourceFor1stJob)  // "pMessage" and "pPriorMessage" with "RscMgr.c". Unsure - there seems to be multiple identical functions
                                                             // Matched like in R by structure params to 200D stub 
-THUMB_FN(0xe056da22,  SRM_FreeMemoryResourceFor1stJob)      // find refs to "pMessage", there are several similar looking functions using it,
+//THUMB_FN(0xe056da22,  SRM_FreeMemoryResourceFor1stJob)      // find refs to "pMessage", there are several similar looking functions using it,
                                                             // Matched to 200D stub, just buffer size differs (0x34 vs 0x30)
 
 /** Uncategorized **/
