@@ -378,6 +378,15 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
     -922, 10000,    2319, 10000,    5565, 10000
 #endif
 
+#ifdef CONFIG_6D2 // from https://github.com/LibRaw/LibRaw src/tables/colordata.cpp
+    //{ LIBRAW_CAMERAMAKER_Canon, "EOS 6D Mark II", 0, 0x38de,
+    //  { 6875,-970,-932,-4691,12459,2501,-874,1953,5809 } },
+    #define CAM_COLORMATRIX1 \
+    6875, 10000,    -970, 10000,    -932, 10000, \
+    -4691, 10000,   12459, 10000,   2501, 10000, \
+    -874, 10000,    1953, 10000,    5809, 10000
+#endif
+
 #ifdef CONFIG_R // from https://github.com/LibRaw/LibRaw src/tables/colordata.cpp
     // { LIBRAW_CAMERAMAKER_Canon, "EOS R", 0, 0,
     //  { 8293,-1789,-1094,-5025,12925,2327,-1199,2769,6108 } }, // v.2

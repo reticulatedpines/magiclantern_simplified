@@ -121,6 +121,7 @@ DATA_PTR(    0x7c00,  mpu_recv_ring_buffer_tail) // ring buffer index incremente
 THUMB_FN(0xdf009338,  vsnprintf)              /* called near dmstart; references "01234567", "0123456789", "0123456789abcdef"
                                                  and "0123456789ABCDEF"; second arg is size; the one called by DebugMsg only knows %s */
 
+DATA_PTR(    0x100b4,  winsys_sem) // used in RefreshVrmsSurface
 
 THUMB_FN(0xdf0031a3,  get_task_by_id) // called indirectly by task_create and functions using string "TASK Name"
 THUMB_FN(0xdf004041,  _get_task_info_by_id)

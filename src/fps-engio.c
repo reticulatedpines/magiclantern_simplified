@@ -259,6 +259,9 @@ static void fps_read_current_timer_values();
 #elif defined(CONFIG_200D)
     #define TG_FREQ_BASE 32000000 //copy from 700D
     #define FPS_TIMER_A_MIN (fps_timer_a_orig)
+#elif defined(CONFIG_6D2)
+    #define TG_FREQ_BASE 32000000 //copy from 700D
+    #define FPS_TIMER_A_MIN (fps_timer_a_orig)
 #elif defined(CONFIG_R)
     #define TG_FREQ_BASE 32000000 //copy from 700D
     #define FPS_TIMER_A_MIN (fps_timer_a_orig)
