@@ -27,8 +27,6 @@
 
 #include <stub.h>
 
-/* Using Thumb stubs everywhere to keep things simple. The Thumb bit needs to be enabled manually. */
-
 /** Startup **/
 NSTUB( ROMBASEADDR, firmware_entry )
 THUMB_FN(0xE00400FD,  cstart)                 /* calls bzero32 and create_init_task(..., init_task, ...) */
@@ -83,7 +81,8 @@ THUMB_FN(0xE04BC429,  FIO_CloseFile)
 THUMB_FN(0xE04BCD51, _FIO_CreateDirectory)
 //THUMB_FN(0xE04BD061,  FIO_FindFirst)
 THUMB_FN(0xE04BD17b, _FIO_FindFirstEx)
-THUMB_FN(0xE04BD0EF,  FIO_FindNextEx)
+//THUMB_FN(0xE04BD0EF,  FIO_FindNextEx) // SJE this looks like FIO_FindNext to me, not Ex
+THUMB_FN(0xe04bd212,  FIO_FindNextEx)
 THUMB_FN(0xE04BD15B,  FIO_FindClose)
 THUMB_FN(0xE04BC547, _FIO_GetFileSize)
 THUMB_FN(0xE04BC2C5, _FIO_RemoveFile)
