@@ -88,7 +88,13 @@ void prop_add_handler (uint32_t property, void *handler)
     // Cause is not yet known.
     // Confirmed on 750D, 200D, R, RP, M50
     #ifdef CONFIG_DIGIC_678
-    if (property == PROP_ISO || property == PROP_MVR_REC_START)
+    if (
+        property == PROP_ISO || property == PROP_MVR_REC_START
+        // Does not crash D67, but crashes R in LV
+        #ifdef CONFIG_DIGIC_VIII
+        || property == PROP_LV_AFFRAME
+        #endif
+        )
     {
         DryosDebugMsg(0, 15, "not adding prop handler: 0x%x", property);
         return;

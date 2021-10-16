@@ -298,7 +298,11 @@ DATA_PTR(       0x0,  LCD_Palette)                          // D8 has no indexed
 THUMB_FN(0xe04f71fc,  PlayMain_handler)                     // msg: "StartPlayMain"
 THUMB_FN(0xe024584e,  ShootOlcApp_handler)                  // msg: "StartShootOlcApp PushPalette(%d)"
 THUMB_FN(0xe03ec4cc,  LiveViewApp_handler)                  // msg: "StartLiveViewApp(%#x)"
+THUMB_FN(0xe02a9f58,  LiveViewShutterApp_handler)           // msg: "StartLiveViewShutterApp"
 THUMB_FN(0xe038f1c6,  PlayMovieGuideApp_handler)            // msg: "StartPlayMovieGuideApp"
+
+THUMB_FN(0xe0842940,  TouchBarFeedBackApp_handler)          // msg: "StartTouchBarFeedBackApp"
+THUMB_FN(0xe0786d74,  LiveViewTouchBarApp_handler)          // msg: "StartLiveViewTouchBarApp"
 
 /**
  * UNUSED but referenced elsewhere

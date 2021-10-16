@@ -46,8 +46,11 @@
 
 #define GUIMODE_PLAY 2
 #define GUIMODE_MENU 3
-// FIXME: this should follow the conditional definition to handle LV etc, see other cams
-#define GUIMODE_ML_MENU 3
+// bindGUIEventFromGUICBR DNE on R, however by educated guess from older generations:
+// In SetGUIRequestMode, look at what code calls NotifyGUIEvent(9, something)
+// skip RECORDING variant for now
+#define GUIMODE_ML_MENU (lv ? 0x7F : 2)
+//#define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 0x68 : 2)
 
 // I can't find any official data. Unofficial say 200k
 #define CANON_SHUTTER_RATING 200000
@@ -110,6 +113,8 @@
 /* WRONG: copied straight from 200d/50d */
 // Definitely wrong / hacks / no testing at all:
 #define LV_STRUCT_PTR 0xaf2d0
+
+#define IMGPLAY_ZOOM_LEVEL_ADDR (0x2CBC) //wrong
 
 #define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x4444+0x30) // wrong, no idea
 #define FOCUS_CONFIRMATION (*(int*)0x4444) // wrong, focusinfo looks really different 50D -> 200D

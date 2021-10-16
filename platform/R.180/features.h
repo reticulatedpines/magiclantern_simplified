@@ -25,6 +25,10 @@
 #define CONFIG_ADDITIONAL_VERSION
 #define FEATURE_SCREENSHOT
 
+// enable global draw
+#define FEATURE_GLOBAL_DRAW
+#define FEATURE_CROPMARKS
+
 // enable for testing gui structure changes
 #define CONFIG_RESTORE_AFTER_FORMAT
 

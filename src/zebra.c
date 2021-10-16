@@ -3566,6 +3566,10 @@ int liveview_display_idle()
     extern thunk LiveViewShutterApp_handler;
     #endif
 
+    #if defined(CONFIG_R)
+    extern thunk TouchBarFeedBackApp_handler;
+    extern thunk LiveViewTouchBarApp_handler;
+    #endif
     #if defined(CONFIG_6D)
     extern thunk LiveViewWifiApp_handler;
     #endif
@@ -3589,6 +3593,10 @@ int liveview_display_idle()
                   #endif
                   #if defined(CONFIG_6D)
                   || dialog->handler == (dialog_handler_t) &LiveViewWifiApp_handler
+                  #endif
+                  #if defined(CONFIG_R)
+                  || dialog->handler == (dialog_handler_t) &TouchBarFeedBackApp_handler
+                  || dialog->handler == (dialog_handler_t) &LiveViewTouchBarApp_handler
                   #endif
                   //~ for this, check value of get_current_dialog_handler()
                   #if !defined(CONFIG_5D3) && defined(CONFIG_DIGIC_V) || defined(CONFIG_DIGIC_678)
