@@ -1,0 +1,1 @@
+#define FEATURE_VRAM_RGBA
