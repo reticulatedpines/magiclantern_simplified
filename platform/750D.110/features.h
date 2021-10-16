@@ -19,6 +19,11 @@
 #define FEATURE_SHOW_CPU_USAGE
 #define FEATURE_SHOW_GUI_EVENTS
 
+// enable global draw
+#define FEATURE_GLOBAL_DRAW
+#define FEATURE_CROPMARKS
+
+// explicitly disable stuff that don't work or may break things
 #undef CONFIG_CRASH_LOG
 #undef CONFIG_PROP_REQUEST_CHANGE
 #undef CONFIG_AUTOBACKUP_ROM

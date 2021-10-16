@@ -210,4 +210,5 @@ DATA_PTR(       0x0,  LCD_Palette)                          // D6 has no indexed
 THUMB_FN(0xfe410e0a,  PlayMain_handler)                     // msg: "StartPlayMain"
 THUMB_FN(0xfe575c58,  ShootOlcApp_handler)                  // msg: "StartShootOlcApp PushPalette(%d)"
 THUMB_FN(0xfe3d5ecc,  LiveViewApp_handler)                  // msg: "StartLiveViewApp(%#x)"
+THUMB_FN(0xfe69c5d0,  LiveViewShutterApp_handler)           // msg: "LiveViewShutterApp"
 THUMB_FN(0xfe31022e,  PlayMovieGuideApp_handler)            // msg: "StartPlayMovieGuideApp"

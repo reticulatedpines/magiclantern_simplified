@@ -8,6 +8,8 @@
 /** Digic 6 does not have bitmap font in ROM, try to load it from card **/
 #define CONFIG_NO_BFNT
 
-/** disable SRM for early port
- */
-//#define CONFIG_MEMORY_SRM_NOT_WORKING
+/* has LV */
+#define CONFIG_LIVEVIEW
+
+/* enable state objects hooks */
+#define CONFIG_STATE_OBJECT_HOOKS

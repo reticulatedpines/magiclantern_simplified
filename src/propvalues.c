@@ -210,7 +210,11 @@ PROP_HANDLER(PROP_VIDEO_MODE)
 #ifdef CONFIG_LIVEVIEW
 PROP_HANDLER( PROP_LV_ACTION )
 {
+#ifdef CONFIG_750D // TODO: check D78
+    lv = !(uint32_t*)buf[0]; // now prop holds pointer to value
+#else
     lv = !buf[0];
+#endif
 }
 #endif
 
