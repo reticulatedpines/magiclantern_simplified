@@ -183,7 +183,7 @@ THUMB_FN(0xe00e3ab0,  task_trampoline)    // see comment below:
  * task_trampoline_caller will pass task_trampoline+1 as parameter to another
  * function.
  */
-THUMB_FN(0xe03c9114, _get_task_info_by_id) // called from function using "StackDump" string
+THUMB_FN(0xe03c9888, _get_task_info_by_id) // function before " CORE : %d\n" string
 
 /**
  * RGBA / Compositor functions and structures
