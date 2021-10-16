@@ -227,6 +227,8 @@ THUMB_FN(0xe06f0358,  _LoadCalendarFromRTC)         // function call after "hand
                                                     // "Private" as it now has more arguments, needs a wrapper.
 //THUMB_FN(0x,  ErrForCamera_handler)                 // ERR70, ERR80 etc (DlgErrForCamera.c)
 
+NSTUB(    0x40D0,  task_max)
+
 /** Properties **/
 THUMB_FN(0xe0596920, _prop_cleanup)                         // function call after "faChangeCBR(ID=%#lx)" string
 THUMB_FN(0xe059638e,  prop_register_slave)                  // function call after "sdsActivate" string
