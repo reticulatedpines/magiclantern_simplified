@@ -87,7 +87,7 @@ struct task
                                                    // Comparison against taskId is done with full 32 in *some*
                                                    // APIs though, at least on D678, so the upper bits
                                                    // mean something different.
-#ifdef CONFIG_DIGIC_78 // Maybe D678X? Confirmed on 200D, M50, R
+#ifdef CONFIG_DIGIC_678 // Maybe D678X? Confirmed on 750D (D6), 200D (D7), M50, R, RP (D8)
         uint32_t            unknown_09; // 0x44, 4
 #endif
         uint8_t             unknown_0a; // 0x44 / 0x48, 1
@@ -98,7 +98,7 @@ struct task
         uint8_t         sleepReason;    // 0x49 / 0x4d, 1
         uint8_t             unknown_0d; // 0x4a / 0x4e, 1
         uint8_t             unknown_0e; // 0x4b / 0x4f, 1
-#ifdef CONFIG_DIGIC_78 // again, probably more broadly applicable but this needs testing
+#ifdef CONFIG_DIGIC_78 // Maybe D78X? DNE on D6, exists on D7, D8
         uint8_t         cpu_requested; // 0x50, 1 // SJE working theory: which CPU can
                                                   // take the task.  0xff means any.
         uint8_t         cpu_assigned; // 0x51, 1  // Which CPU has taken the task,
@@ -109,7 +109,7 @@ struct task
         uint8_t             unknown_12; // 0x53, 1
         struct context  *context;       // 0x54, 4
         uint32_t            unknown_13; // 0x58, 4
-#else
+#else // D6 ends with *context
         struct context  *context;       // 0x4c, 4
 #endif
                                         // 0x50 / 0x5c // sizeof struct
@@ -126,24 +126,28 @@ struct task
 // it is currently only lightly tested.  I also haven't audited current ML
 // usage of this struct.  It has new fields now, which old code
 // might not populate, and DryOS might require, etc.
+//
+// kitor: Digic 6 is single core. Uses new structure, but without CPU fields.
 struct task_attr_str {
-  unsigned int state;           // 0x00
-  unsigned int pri;             // 0x04
-  unsigned int unknown_0b;      // 0x08
+  unsigned int state;
+  unsigned int pri;
+  unsigned int unknown_0b;
 
-  unsigned int entry;           // 0x0c
-  unsigned int args;            // 0x10
-  unsigned int wait_id;         // 0x14
-  unsigned int flags;           // 0x18
-  unsigned int stack;           // 0x1c
-  unsigned int size;            // 0x20
-  unsigned int used;            // 0x24
-  unsigned int cpu_requested;   // 0x28
-  unsigned int cpu_assigned;    // 0x2c
-  unsigned int context;         // 0x30
-  unsigned int unknown_13;      // 0x34
-  char *name;                   // 0x38
-}; // size = 0x3c
+  unsigned int entry;
+  unsigned int args;
+  unsigned int wait_id;
+  unsigned int flags;
+  unsigned int stack;
+  unsigned int size;
+  unsigned int used;
+#ifdef CONFIG_DIGIC_78
+  unsigned int cpu_requested;
+  unsigned int cpu_assigned;
+#endif
+  unsigned int context;
+  unsigned int unknown_13;
+  char *name;
+}; // size = 0x34 (D6) 0x3c (D78)
 #else
 struct task_attr_str {
   unsigned int entry;
