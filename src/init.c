@@ -554,7 +554,7 @@ static int my_assert_handler(char* msg, char* file, int line, int arg4)
     );
 // SJE FIXME: assert handling is buggy on modern Digic.
 // Disable some of it here and do quick hack output:
-#ifdef CONFIG_DIGIC_78
+#ifdef CONFIG_DIGIC_678
     uart_printf("[SJE] my_assert_msg: %s", assert_msg);
 #else
     backtrace_getstr(assert_msg + len, sizeof(assert_msg) - len);
@@ -575,7 +575,7 @@ void ml_assert_handler(char* msg, char* file, int line, const char* func)
     );
 // SJE FIXME: assert handling is buggy on modern Digic.
 // Disable some of it here and do quick hack output:
-#ifdef CONFIG_DIGIC_78
+#ifdef CONFIG_DIGIC_678
     uart_printf("[SJE] ml_assert_msg: %s", assert_msg);
 #endif
     backtrace_getstr(assert_msg + len, sizeof(assert_msg) - len);
@@ -624,6 +624,8 @@ void boot_post_init_task(void)
         build_user
     );
 
+// kitor: on D678 this gets executed before value
+//        is updated with running fw version
 #if defined(CONFIG_ADDITIONAL_VERSION)
     // Re-write the version string.
     // Don't use strcpy() so that this can be done
