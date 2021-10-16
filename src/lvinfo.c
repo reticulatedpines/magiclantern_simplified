@@ -105,7 +105,8 @@ static int lvinfo_check_if_needs_reflow(struct lvinfo_item * items[], int count,
             {
                 too_tight = 1;
             }
-            prev_right = items[i]->x + items[i]->width/2;
+
+            if (i < count) prev_right = items[i]->x + items[i]->width/2;
         }
     }
     
@@ -573,4 +574,3 @@ static void lvinfo_init()
 }
 
 INIT_FUNC("lvinfo", lvinfo_init);
-
