@@ -339,6 +339,16 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
     -673, 10000,    1918, 10000,    5538, 10000
 #endif
 
+#if defined(CONFIG_750D) || defined(CONFIG_760D)
+    // from https://github.com/LibRaw/LibRaw src/tables/colordata.cpp
+    // { LIBRAW_CAMERAMAKER_Canon, "EOS 750D", 0, 0x3c00,
+    //  { 6362,-823,-847,-4426,12109,2616,-743,1857,5635 } },
+    #define CAM_COLORMATRIX1 \
+     6362, 10000,    -823, 10000,   -847, 10000, \
+    -4426, 10000,   12109, 10000,   2616, 10000, \
+     -743, 10000,    1857, 10000,   5635, 10000
+#endif
+
 #ifdef CONFIG_R // from https://github.com/LibRaw/LibRaw src/tables/colordata.cpp
     // { LIBRAW_CAMERAMAKER_Canon, "EOS R", 0, 0,
     //  { 8293,-1789,-1094,-5025,12925,2327,-1199,2769,6108 } }, // v.2
@@ -441,6 +451,11 @@ static int dynamic_ranges[] = {1062, 1047, 1021, 963,  888, 804, 695, 623, 548};
 
 #ifdef CONFIG_700D
 static int dynamic_ranges[] = {1058, 1053, 1032, 967,  893, 807, 704, 618, 510};
+#endif
+
+#if defined(CONFIG_750D) || defined(CONFIG_760D)
+//same sensor
+static int dynamic_ranges[] = {1196, 1170, 1139, 1087, 1019, 938, 848, 756, 664};
 #endif
 
 #ifdef CONFIG_100D
