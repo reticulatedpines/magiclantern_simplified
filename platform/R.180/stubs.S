@@ -305,3 +305,33 @@ THUMB_FN(0xe038f1c6,  PlayMovieGuideApp_handler)            // msg: "StartPlayMo
  **/
 
 //THUMB_FN(0xe0780cb8,  ctrlman_dispatch_event)
+
+/**
+ * Stuff below should not be enabled. Looks that there are many hardcoded
+ * addresses in 0xCxxxxxxx range all over ML code. D8 seems to use 0xDxxxxxxx
+ * range for Engio.
+ */
+
+/** Engio **/
+// THUMB_FN(0x, _EngDrvOut)                                      // not found yet, can be wrapped to _engio_write if needed
+// THUMB_FN(0xE06B92B4, _engio_write)                            // via "Count < MAX_ENG_REG_NUM","EngineDS::DSEngIO.c" strings
+// THUMB_FN(0x,  shamem_read)                                    // not found yet
+
+/** ResLock **/
+// THUMB_FN(0xE054761E,  CreateResLockEntry)                     // one that creates 0x24 structure with cls pointer to "LockEntry"
+//                                                               // and multiple "ResInfo" structures
+// THUMB_FN(0xE0547806,  LockEngineResources)                    // Takes LockEntry as input, creates "EFM_ERSC_STATIC" inside LockEntry
+// THUMB_FN(0xE05478A6,  UnLockEngineResources)                  // Takes LockEntry as input, releases semaphore from LockEntry field
+
+/** EDMAC **/
+// THUMB_FN(0x,  AbortEDmac)
+// THUMB_FN(0x,  ConnectReadEDmac)
+// THUMB_FN(0x,  ConnectWriteEDmac)
+// THUMB_FN(0x,  RegisterEDmacAbortCBR)
+// THUMB_FN(0x,  UnregisterEDmacAbortCBR)
+// THUMB_FN(0xE0535A82,  RegisterEDmacCompleteCBR)               // Not sure. Many registered CBRs have "CompCBR" in debug print names
+// THUMB_FN(0xE0535E16,  UnregisterEDmacCompleteCBR)             // Uses same data structure as above. Replaces CBR with pointer to "do nothing" function.
+// THUMB_FN(0x,  RegisterEDmacPopCBR)
+// THUMB_FN(0x,  UnregisterEDmacPopCBR)
+// THUMB_FN(0x,  SetEDmac)
+// THUMB_FN(0x,  StartEDmac)
