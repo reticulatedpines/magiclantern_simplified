@@ -606,24 +606,17 @@ static int bfnt_load_from_card()
 
     DryosDebugMsg(0, 15, "File '%s' size %d bytes", filename, size);
 
-    BFNT_FONT = malloc(size + 1);
-    if( !BFNT_FONT ) {
-        DryosDebugMsg(0, 15, "malloc fail");
+    BFNT_FONT = (bfnt_font*)read_entire_file(filename, (int*)&size);
+    if( BFNT_FONT == NULL ){
+        DryosDebugMsg(0, 15, "BFNT read failed.");
         return 2;
     }
-
-    size_t rc = read_file( filename, BFNT_FONT, size );
-    if( rc != size ){
-        DryosDebugMsg(0, 15, "read size wrong %d != %d", rc, size );
-        free(BFNT_FONT);
-        return 3;
-    }
-    DryosDebugMsg(0, 15, "read ok %d", rc);
+    DryosDebugMsg(0, 15, "read ok");
 
     if( BFNT_FONT->magic != 0x00544e46) { // "FNT\0"
         DryosDebugMsg(0, 15, "Font magic incorrect: 0x%08x", BFNT_FONT->magic);
         free(BFNT_FONT);
-        return 4;
+        return 3;
     }
 
     return 0;
