@@ -25,6 +25,9 @@
 #define CONFIG_ADDITIONAL_VERSION
 #define FEATURE_SCREENSHOT
 
+// enable for testing gui structure changes
+#define CONFIG_RESTORE_AFTER_FORMAT
+
 #undef CONFIG_CRASH_LOG
 #undef CONFIG_PROP_REQUEST_CHANGE
 #undef CONFIG_AUTOBACKUP_ROM

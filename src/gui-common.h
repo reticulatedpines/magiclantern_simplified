@@ -69,7 +69,9 @@
  *
  * Event types are defined below.
  */
-
+ /**
+  * kitor: not sure about arg4?
+  */
 typedef int (*gui_event_handler)(
         void *                  priv,
         gui_event_t             event,
@@ -83,16 +85,34 @@ typedef int (*gui_event_handler)(
  * Not sure about the next/prev fields.
  * See gui_task_call_events() at 0xFFA53B8C
  */
+/**
+ * kitor: EOSR has two new fields, initialized with zeros.
+ */
 struct gui_task
 {
         gui_event_handler       handler;        // off_0x00;
         void *                  priv;           // off_0x04;
         struct gui_task *       next;           // off_0x08;
         const char *            signature;      // off_0x0c
+#ifdef CONFIG_R
+        uint32_t                unk_01;
+        uint32_t                unk_02;
+#endif
 };
 
+#ifdef CONFIG_R
+SIZE_CHECK_STRUCT( gui_task, 0x18 );
+#else
 SIZE_CHECK_STRUCT( gui_task, 0x10 );
+#endif
 
+/**
+ * kitor: On EOSR:
+ *     0x04 contains pointer to gui_task, probably "previous task"
+ *     0x14 contains pointer to "CtrlMan: Use RecursiveLock" string
+ *     0x18 contains pointer to gui_task, named 'pDeleteControler'
+ *             in WINSYS_DeleteController()
+ */
 struct gui_task_list
 {
         void *                  lock;           // off_0x00;
@@ -106,12 +126,18 @@ struct gui_task_list
 
 extern struct gui_task_list     gui_task_list;
 
+/*
+ * kitor: New generations call it WINSYS_CreateController()
+ */
 extern struct gui_task *
 gui_task_create(
         gui_event_handler       handler,
         void *                  priv
 );
 
+/*
+ * kitor: New generations call it WINSYS_DeleteController()
+ */
 extern void
 gui_task_destroy(
         struct gui_task *       task

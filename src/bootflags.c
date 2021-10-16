@@ -107,6 +107,7 @@ static void exfat_sum(uint32_t* buffer) // size: 12 sectors (0-11)
 int
 bootflag_write_bootblock( void )
 {
+
 #if defined(CONFIG_7D)
     struct cf_device * const dev = (struct cf_device *) cf_device[6];
 #elif defined(CONFIG_5D3)
@@ -114,6 +115,9 @@ bootflag_write_bootblock( void )
     int ml_on_cf = (get_ml_card()->drive_letter[0] == 'A');
     extern struct cf_device ** cf_device_ptr[];
     struct cf_device * const dev = (struct cf_device *) (ml_on_cf ? cf_device_ptr[0][4] : sd_device[1]);
+#elif defined(CONFIG_R)
+    //kitor: R180 has a single pointer to device structure.
+    struct cf_device * const dev = (struct cf_device *) sd_device[0];
 #else
     struct cf_device * const dev = (struct cf_device *) sd_device[1];
 #endif
