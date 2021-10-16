@@ -209,10 +209,14 @@ void refresh_yuv_from_rgb(void)
         b++;
     }
 
-    take_semaphore(winsys_sem, 0);
     // trigger Ximr to render to OSD from RGB buffer
+#ifdef CONFIG_DIGIC_VI
+    XimrExe((void *)XIMR_CONTEXT);
+#else
+    take_semaphore(winsys_sem, 0);
     XimrExe((void *)XIMR_CONTEXT);
     give_semaphore(winsys_sem);
+#endif
     ml_refresh_display_needed = 0;
 }
 
