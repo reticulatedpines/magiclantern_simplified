@@ -16,8 +16,12 @@
 #define GUIMODE_PLAY 2
 #define GUIMODE_MENU 3
 
-// FIXME: this should follow the conditional definition to handle LV etc, see other cams
-#define GUIMODE_ML_MENU 3
+// In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 9
+// Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(9, something)
+// IN 200D.101 this is valid from case 0x4E to case 0x5B
+// skip RECORDING variant for now
+#define GUIMODE_ML_MENU (lv ? 0x4E : 2)
+//#define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 0x4E : 2)
 
 // Medium confidence:
 #define DISPLAY_SENSOR_POWERED (*(int *))(0xc640) // c638 looks like base of struct, not sure on the fields.
@@ -139,6 +143,7 @@
 //#define MVR_LAST_FRAME_SIZE (*(int*)(512 + MVR_752_STRUCT))
 #define MVR_BYTES_WRITTEN MEM((212 + MVR_190_STRUCT))
 
+#define IMGPLAY_ZOOM_LEVEL_ADDR (0x2CBC) //wrong, will be needed when overlays are enabled in play mode
 
 // SJE new stuff added after we have ML menus working!
 // Not needed for early code.

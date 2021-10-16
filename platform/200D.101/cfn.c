@@ -3,11 +3,13 @@
 
 // look on camera menu or review sites to get custom function numbers
 
-int get_htp() { return GetCFnData(1, 3); }
-void set_htp(int value) { SetCFnData(1, 3, value); }
+// 1,3 was definitely wrong, as camera complained on UART
+int get_htp() { return 0; }
+void set_htp(int value) { }
 
-int get_alo() { return GetCFnData(1, 4); }
-void set_alo(int value) { SetCFnData(1, 4, value); }
+// not in CFn anyore, shoot menu, 3rd section, 2nd option
+int get_alo() { return 0; }
+void set_alo(int value) { }
 
 int get_mlu() { return GetCFnData(2, 6); }
 void set_mlu(int value) { SetCFnData(2, 6, value); }

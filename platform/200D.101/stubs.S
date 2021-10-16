@@ -203,10 +203,9 @@ THUMB_FN(0xdf00b615,  msg_queue_create) // CreateMessageQueue - In 50D, msg_queu
 THUMB_FN(0xe04bba45,  prop_deliver)
 //THUMB_FN(0xe04bbde1,  prop_register_slave) // called by"GUI_RegisterPropertySlave"
 THUMB_FN(0xe04bb4df,  prop_register_slave) // "pRegisterSlave"
-THUMB_FN(0xe0381ba9,  LiveViewApp_handler) // not sure - function is quite different 50D -> 200D, but that
-                                        // doesn't seem unreasonable since large GUI changes.  String use and surrounding
-                                        // functions look similar / related.
-THUMB_FN(0xe046fc49,  PlayMain_handler) // "DlgPlayMain.c PRESS_ERASE_BUTTON" - code above the string, wasn't found automatically
+THUMB_FN(0xe0381ba9,  LiveViewApp_handler) // DebugMsg: "StartLiveViewApp(%#x)", address passed to CreateDialogBox
+THUMB_FN(0xe06cda95,  LiveViewShutterApp_handler) // DebugMsg: "StartLiveViewShutterApp CreateDialogBox(%d)", address passed to CreateDialogBox
+THUMB_FN(0xe046fc49,  PlayMain_handler) // DebugMsg: "StartPlayMain", address passed to CreateDialogBox
 THUMB_FN(0xe0354327,  GetCFnData) // "GetCFnData" Function sig is different but the body looks similar.
                                   // Looks like the inner functions use registers the outer doesn't, which confuses Ghidra
                                   // re how many args outer takes.

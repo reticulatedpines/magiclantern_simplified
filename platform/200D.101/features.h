@@ -14,10 +14,6 @@
 // way to determine free stack size
 #define FEATURE_SHOW_FREE_MEMORY
 
-//#define FEATURE_SHOW_TASKS
-//#define FEATURE_SHOW_CPU_USAGE
-//#define CONFIG_TSKMON
-
 // partially working; wrong colorspace and not
 // dumping all the images that old cams support
 #define FEATURE_SCREENSHOT
@@ -28,6 +24,10 @@
 #define FEATURE_SHOW_TASKS
 #define FEATURE_SHOW_CPU_USAGE
 #define FEATURE_SHOW_GUI_EVENTS
+
+// enable global draw
+#define FEATURE_GLOBAL_DRAW
+#define FEATURE_CROPMARKS
 
 // prevent ML attempting stack unwinding in some cases.
 // This does not yet work (assumes ARM, not Thumb).  Alex recommends
