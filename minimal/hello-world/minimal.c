@@ -11,6 +11,10 @@
 struct task *first_task = NULL; // needed to build due to usage in function_overrides.c
                                 // for D678 cams, not used
 
+#if defined(CONFIG_DIGIC_678) && !defined(FEATURE_VRAM_RGBA)
+#error Unexpected model / feature combo.  We expect all 'modern' Digic to be FEATURE_VRAM_RGBA.  Probably you need to define stubs for that
+#endif
+
 #ifdef CONFIG_DIGIC_45
 /** Returns a pointer to the real BMP vram, as reported by Canon firmware.
  *  Not to be used directly - it may be somewhere in the middle of VRAM! */

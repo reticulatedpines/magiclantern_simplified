@@ -248,6 +248,15 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
      -908, 10000,     2162, 10000,    5668, 10000
 #endif
 
+#ifdef CONFIG_5D4
+//    { LIBRAW_CAMERAMAKER_Canon, "EOS 5D Mark IV", 0, 0,
+//      { 6446,-366,-864,-4436,12204,2513,-952,2496,6348 } },
+    #define CAM_COLORMATRIX1 \
+     6446, 10000, -366, 10000, -864, 10000, \
+     -4436, 10000, 12204, 10000, 2513, 10000, \
+     -952, 10000, 2496, 10000, 6348
+#endif
+
 #ifdef CONFIG_550D
    //~ { "Canon EOS 550D", 0, 0x3dd7,
    //~	{  6941,-1164,-857,-3825,11597,2534,-416,1540,6039 } },
@@ -405,6 +414,10 @@ PROP_HANDLER(PROP_LV_AFFRAME)
  * 
  * This is only used in photo LiveView, where we can't compute it
  */
+
+#ifdef CONFIG_5D4
+static int dynamic_ranges[] = {1359, 1341, 1284, 1218, 1146, 1066, 982, 885, 783, 703, 618};
+#endif
 
 #ifdef CONFIG_5D3
 static int dynamic_ranges[] = {1097, 1087, 1069, 1041, 994, 923, 830, 748, 648, 552, 464};
@@ -2038,7 +2051,7 @@ void FAST raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int y1, int y2,
     
     if (lv_buffer == (void*)-1)
         lv_buffer = (void*)YUV422_LV_BUFFER_DISPLAY_ADDR;
-    
+
     if (y1 == -1)
         y1 = BM2LV_Y(os.y0);
     

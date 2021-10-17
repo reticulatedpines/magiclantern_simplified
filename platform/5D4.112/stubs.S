@@ -92,6 +92,12 @@ THUMB_FN(0xFE42DD18,  SetAudioVolumeOut)                    // JC Best guess
 /** Bitmap **/
 DATA_PTR(    0xFE9C,  bmp_vram_info)                        /* first VRAM buffer, used right after DISP_SetUpdateOSDVram */
 
+// SJE this block is from 1.0.2 rom and CANNOT be used as is
+// I'm only putting these in so the build works
+DATA_PTR(    0xfd08, _rgb_vram_info) // Used in many places, written to in "InitializeScreen"
+DATA_PTR(    0xfd04,  winsys_sem) // used before call to XimrExe() in RefreshVrmsSurface
+THUMB_FN(0xfc1fc4d4,  XimrExe)
+
 /** DMA **/
 // NSTUB(0x????????, dma_memcpy)
 
