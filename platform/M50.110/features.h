@@ -21,5 +21,9 @@
 #undef CONFIG_PROP_REQUEST_CHANGE
 #undef CONFIG_AUTOBACKUP_ROM
 
+// enable global draw
+#define FEATURE_GLOBAL_DRAW
+#define FEATURE_CROPMARKS
+
 //~kitor: add bootdisk menu for easier testing on foreign camera :)
 #define FEATURE_BOOTFLAG_MENU

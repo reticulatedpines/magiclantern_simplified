@@ -159,7 +159,8 @@ struct dialog_list
 
 
 /** Dialog box gui elements */
-#ifdef CONFIG_R
+#if defined(CONFIG_R) || defined(CONFIG_M50)
+// tested on R and M50. RP has slightly different size.
 struct dialog {
     char * type;
     struct window * window;

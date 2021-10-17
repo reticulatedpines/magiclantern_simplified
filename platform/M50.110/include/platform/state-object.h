@@ -1,10 +1,6 @@
 #ifndef __platform_state_object_h
 #define __platform_state_object_h
 
-/* WRONG: copy from 50D! */
-#define MOVREC_STATE (*(struct state_object **)0x6CDC)
-#define LV_STATE (*(struct state_object **)0x4580)
-//~ #define SDS_FRONT_1 (*(struct state_object **)0x374C)
-#define SDS_FRONT3_STATE (*(struct state_object **)0x3750)
+#define EVF_STATE (*(struct state_object **)0x6cec)
 
 #endif // __platform_state_object_h
