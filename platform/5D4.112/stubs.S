@@ -35,13 +35,13 @@ NSTUB( ROMBASEADDR, firmware_entry )
 THUMB_FN(0xFE0DD4F4,  cstart)                               /* calls bzero32 and create_init_task(..., init_task, ...) */
 ARM32_FN(0xFE428CD0,  bzero32)                              /* zeros out a data structure */
 ARM32_FN(0xFE428778,  create_init_task)                     /* low-level DryOS initialization */
-THUMB_FN(0xfe0dd710,  init_task)            //done                /* USER_MEM size checking, dmSetup, termDriverInit, stdlibSetup etc */
+	THUMB_FN(0xfe0dd710,  init_task)                            /* USER_MEM size checking, dmSetup, termDriverInit, stdlibSetup etc */
 
 /** Tasks **/
 DATA_PTR(    0x4584,  current_interrupt)
 DATA_PTR(    0x45A4,  current_task)
-THUMB_FN(     0x5B8,  msleep)
-THUMB_FN(     0x6D8,  task_create)
+	THUMB_FN(     0x5B8,  msleep)
+	THUMB_FN(     0x6D8,  task_create)
 //NSTUB(0x????????,  task_dispatch_hook)
 //NSTUB(0x????????,  task_trampoline)
 
@@ -52,14 +52,14 @@ DATA_PTR(    0x4564,  post_isr_hook)
 DATA_PTR(    0x4560,  pre_isr_hook)
 
 /** File I/O **/
-THUMB_FN(0xfc493842, _FIO_CreateFile)//maybedone
-THUMB_FN(0xfe493798, _FIO_OpenFile) //done
-THUMB_FN(0xfc493c0a,  FIO_CloseFile)//maybedone
+	THUMB_FN(0xfc493842, _FIO_CreateFile)
+	THUMB_FN(0xfe493798, _FIO_OpenFile)
+	THUMB_FN(0xfc493c0a,  FIO_CloseFile)
 THUMB_FN(0xFE48D22A,  FIO_ReadFile)
-THUMB_FN(0xfc493afe,  FIO_WriteFile)//maybedone
+	THUMB_FN(0xfc493afe,  FIO_WriteFile)
 THUMB_FN(0xFE48D2C4,  FIO_SeekSkipFile)
 THUMB_FN(0xFE48D638, _FIO_GetFileSize)
-THUMB_FN(0xfc4938f2, _FIO_RemoveFile)//maybedone
+	THUMB_FN(0xfc4938f2, _FIO_RemoveFile)
 THUMB_FN(0xFE48DBE0, _FIO_RenameFile)
 THUMB_FN(0xFE48DE4C, _FIO_CreateDirectory)
 THUMB_FN(0xFE48E50C, _FIO_FindFirstEx)
@@ -67,11 +67,11 @@ THUMB_FN(0xFE48E5E2,  FIO_FindNextEx)
 THUMB_FN(0xFE48E698,  FIO_FindClose)
 
 /** GUI **/
-THUMB_FN(0xfe1718ee,  GUI_Control) //done
-THUMB_FN(0xfe4a89de,  SetGUIRequestMode) //done
-THUMB_FN(0xfe49547c,  gui_init_end)            //done             /* EndGuiInit */
-THUMB_FN(0xfe171748,  gui_main_task)       //done
-NSTUB(0xfcfc,  gui_task_list) //done
+	THUMB_FN(0xfe1718ee,  GUI_Control)
+	THUMB_FN(0xfe4a89de,  SetGUIRequestMode)
+	THUMB_FN(0xfe49547c,  gui_init_end)				/* EndGuiInit */
+	THUMB_FN(0xfe171748,  gui_main_task)
+	NSTUB(0xfcfc,  gui_task_list)
 //NSTUB(0x????????,  gui_main_struct)
 
 /** ASIF **/
@@ -90,7 +90,7 @@ THUMB_FN(0xFE42DD18,  SetAudioVolumeOut)                    // JC Best guess
 //NSTUB(0x????????, _audio_ic_write)                          // str:Reg_0x_02X_Data_04x
 
 /** Bitmap **/
-DATA_PTR(    0xfdfc,  bmp_vram_info)    //done                    /* first VRAM buffer, used right after DISP_SetUpdateOSDVram */
+	DATA_PTR(    0xfdfc,  bmp_vram_info)                 /* first VRAM buffer, used right after DISP_SetUpdateOSDVram */
 
 // SJE this block is from 1.0.2 rom and CANNOT be used as is
 // I'm only putting these in so the build works
@@ -102,7 +102,7 @@ THUMB_FN(0xfc1fc4d4,  XimrExe)
 // NSTUB(0x????????, dma_memcpy)
 
 /** Debug messages **/
-THUMB_FN(     0xC14,  DryosDebugMsg)     //done                   /* prefer the RAM version, to override it easily */
+	THUMB_FN(     0xC14,  DryosDebugMsg)                 /* prefer the RAM version, to override it easily */
 
 /** Dialog API **/
 ARM32_FN(0xFE4BD128,  dialog_redraw)                        /* not checked */
@@ -141,8 +141,8 @@ ARM32_FN(0xFE4DFDF8, _engio_write)                          /* no mirror?! */
 THUMB_FN(0xFE48CEEE,  call)
 
 /** ExMem **/
-THUMB_FN(0xfcf2bfa4,  AcquireRecursiveLock)
-THUMB_FN(0xfcf2c06c,  ReleaseRecursiveLock)
+	THUMB_FN(0xfcf2bfa4,  AcquireRecursiveLock)
+	THUMB_FN(0xfcf2c06c,  ReleaseRecursiveLock)
 THUMB_FN(0xFE49CFBE,  CreateMemoryChunk)
 THUMB_FN(0xFE49DA86,  CreateMemorySuite)
 THUMB_FN(0xFE49D7A0,  DeleteMemorySuite)                    // or FEA8E248?
@@ -181,7 +181,7 @@ DATA_PTR(    0x7A48,  mpu_send_ring_buffer_tail)            // ring buffer index
 
 /** Memory allocation **/
 THUMB_FN(0x80004AAA, _AllocateMemory)
-THUMB_FN(0x80004C44, _FreeMemory)
+	THUMB_FN(0xfea01ad0, _FreeMemory)
 THUMB_FN(0x80004954,  GetMemoryInformation)
 THUMB_FN(0x80004928,  GetSizeOfMaxRegion)
 THUMB_FN(0xFE428C00, _alloc_dma_memory)
@@ -215,14 +215,14 @@ THUMB_FN(0xFE49F022, _prop_cleanup)                         /* called at the end
 //NSTUB(0x????????,  ReleaseRecursiveLock)       // AJ_KernelDry_KerRLock.c_p2
 
 /** ResLock **/
-THUMB_FN(0xFE9F6864,  CreateResLockEntry)
+	THUMB_FN(0xfe9fd4a8,  CreateResLockEntry)
 THUMB_FN(0xFE9F6A46,  LockEngineResources)
 THUMB_FN(0xFE2EE86C,  UnLockEngineResources)
 
 /** Semaphores **/
 THUMB_FN(     0x1D0,  create_named_semaphore)               /* CreateBinarySemaphore */
-THUMB_FN(     0x33E,  give_semaphore)
-THUMB_FN(     0x2C6,  take_semaphore)
+	THUMB_FN(     0x33E,  give_semaphore)
+	THUMB_FN(     0x2C6,  take_semaphore)
 
 /** Task info **/
 //NSTUB(0x????????,  get_task_info_by_id)            // AJ_task_trampoline_related_p10
@@ -230,5 +230,6 @@ THUMB_FN(     0x2C6,  take_semaphore)
 
 /** Misc **/
 THUMB_FN(0xFE4C47E4,  FSUunMountDevice)
-THUMB_FN(0xFE35F216,  LoadCalendarFromRTC)
+	THUMB_FN(0xfe5f3d62,  LoadCalendarFromRTC)
 THUMB_FN(0xFE95F424,  vsnprintf)
+	THUMB_FN(0xfe484d7c,  uart_printf) //REMOVE FOR REAL RELEASE
