@@ -31,10 +31,10 @@
 
 
 /** Startup **/
-NSTUB( ROMBASEADDR, firmware_entry )
+	NSTUB( ROMBASEADDR, firmware_entry )
 THUMB_FN(0xFE0DD4F4,  cstart)                               /* calls bzero32 and create_init_task(..., init_task, ...) */
-ARM32_FN(0xFE428CD0,  bzero32)                              /* zeros out a data structure */
-ARM32_FN(0xFE428778,  create_init_task)                     /* low-level DryOS initialization */
+	ARM32_FN(0x80007d08,  bzero32)                              /* zeros out a data structure */
+	ARM32_FN(0x80000f74,  create_init_task)                     /* low-level DryOS initialization */
 	THUMB_FN(0xfe0dd710,  init_task)                            /* USER_MEM size checking, dmSetup, termDriverInit, stdlibSetup etc */
 
 /** Tasks **/
@@ -55,16 +55,20 @@ DATA_PTR(    0x4560,  pre_isr_hook)
 	THUMB_FN(0xfc493842, _FIO_CreateFile)
 	THUMB_FN(0xfe493798, _FIO_OpenFile)
 	THUMB_FN(0xfc493c0a,  FIO_CloseFile)
-THUMB_FN(0xFE48D22A,  FIO_ReadFile)
+	THUMB_FN(0xfc493982,  FIO_ReadFile)
 	THUMB_FN(0xfc493afe,  FIO_WriteFile)
-THUMB_FN(0xFE48D2C4,  FIO_SeekSkipFile)
-THUMB_FN(0xFE48D638, _FIO_GetFileSize)
+	THUMB_FN(0xfc493a1c,  FIO_SeekSkipFile)
+	THUMB_FN(0xfc493d90, _FIO_GetFileSize)
+	THUMB_FN(0xfc493cb6, _FIO_GetFileInfo) /* We don't use this */
+	THUMB_FN(0xfc493dd6, _FIO_GetFileSize64) /* We don't use this */
+	THUMB_FN(0xfc493e1c, _FIO_GetFileAttributes) /* We don't use this */
+	THUMB_FN(0xfc493e94, _FIO_SetFileAttributes) /* We don't use this */
 	THUMB_FN(0xfc4938f2, _FIO_RemoveFile)
-THUMB_FN(0xFE48DBE0, _FIO_RenameFile)
-THUMB_FN(0xFE48DE4C, _FIO_CreateDirectory)
-THUMB_FN(0xFE48E50C, _FIO_FindFirstEx)
-THUMB_FN(0xFE48E5E2,  FIO_FindNextEx)
-THUMB_FN(0xFE48E698,  FIO_FindClose)
+	THUMB_FN(0xfc494338, _FIO_RenameFile)
+	THUMB_FN(0xfc4945a4, _FIO_CreateDirectory)
+	THUMB_FN(0xfc494c64, _FIO_FindFirstEx)
+	THUMB_FN(0xfc494d3a,  FIO_FindNextEx)
+	THUMB_FN(0xfc494bf0,  FIO_FindClose)
 
 /** GUI **/
 	THUMB_FN(0xfe1718ee,  GUI_Control)
@@ -92,11 +96,10 @@ THUMB_FN(0xFE42DD18,  SetAudioVolumeOut)                    // JC Best guess
 /** Bitmap **/
 	DATA_PTR(    0xfdfc,  bmp_vram_info)                 /* first VRAM buffer, used right after DISP_SetUpdateOSDVram */
 
-// SJE this block is from 1.0.2 rom and CANNOT be used as is
-// I'm only putting these in so the build works
+/** From 1.0.2 **/
 DATA_PTR(    0xfd08, _rgb_vram_info) // Used in many places, written to in "InitializeScreen"
 DATA_PTR(    0xfd04,  winsys_sem) // used before call to XimrExe() in RefreshVrmsSurface
-THUMB_FN(0xfc1fc4d4,  XimrExe)
+	THUMB_FN(0xfc1fd630,  XimrExe)
 
 /** DMA **/
 // NSTUB(0x????????, dma_memcpy)
