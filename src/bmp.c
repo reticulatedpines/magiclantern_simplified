@@ -209,10 +209,14 @@ void refresh_yuv_from_rgb(void)
         b++;
     }
 
-    take_semaphore(winsys_sem, 0);
     // trigger Ximr to render to OSD from RGB buffer
+#ifdef CONFIG_DIGIC_VI
+    XimrExe((void *)XIMR_CONTEXT);
+#else
+    take_semaphore(winsys_sem, 0);
     XimrExe((void *)XIMR_CONTEXT);
     give_semaphore(winsys_sem);
+#endif
     ml_refresh_display_needed = 0;
 }
 
@@ -1343,7 +1347,7 @@ void bmp_flip_ex(uint8_t* dst, uint8_t* src, uint8_t* mirror, int voffset)
 
 static void palette_disable(uint32_t disabled)
 {
-    #if defined(CONFIG_VXWORKS) | defined(CONFIG_DIGIC_78)
+    #if defined(CONFIG_VXWORKS) | defined(FEATURE_VRAM_RGBA)
     return; // see set_ml_palette
     #endif
 

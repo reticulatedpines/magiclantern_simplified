@@ -201,7 +201,7 @@ THUMB_FN(0xe00d6404, XimrExe);                              //In RefreshVrmsSurf
 DATA_PTR(    0xFC10, winsys_sem);                           //Used in RefreshVrmsSurface around XimrExe call
 
 /*
- * Pointer to first Canon RGBA buffer (GUI). On M50 this is set up by 
+ * Pointer to first Canon RGBA buffer (GUI). On M50 this is set up by
  * VDrv_InitializeScreen function, 2nd param is saved there.
  */
 DATA_PTR(    0xFC1C, _rgb_vram_info);
@@ -210,22 +210,21 @@ DATA_PTR(    0xFC1C, _rgb_vram_info);
 DATA_PTR(       0x0,  LCD_Palette)                          // D8 has no indexed RGB buffers.
 
 
-/** App handlers - found after 200D, like on R not sure if correct function start found **/
-THUMB_FN(0xe04c7e5c,  PlayMain_handler)                     // "DlgPlayMain.c PRESS_ERASE_BUTTON" - code above the string, wasn't found automatically
-THUMB_FN(0xe02d40f2,  ShootOlcApp_handler)                  // near "StopShootOlcApp PopPalette(%d)"
-THUMB_FN(0xe04dc446,  LiveViewApp_handler)                  // not sure - function is quite different 50D -> 200D, but that
-                                                            // doesn't seem unreasonable since large GUI changes.  String use and surrounding
+/** App handlers **/
+/**
+ * Those can usually be found by looking at function address passed to
+ * WINSYS_CreateDialogBox_wrapper / WINSYS_CreateDialogBox, just after some
+ * debug message */
+THUMB_FN(0xe04c7e5c,  PlayMain_handler)                     // msg: "StartPlayMain"
+THUMB_FN(0xe02d40f2,  ShootOlcApp_handler)                  // msg: "StopShootOlcApp PopPalette(%d)"
+THUMB_FN(0xe04dc446,  LiveViewApp_handler)                  // msg: "StartLiveViewApp(%#x)"
+THUMB_FN(0xe0338a10,  LiveViewShutterApp_handler)           // msg: "StartLiveViewShutterApp"
+THUMB_FN(0xe058af54,  PlayMovieGuideApp_handler)            // msg: "StartPlayMovieGuideApp"
+
+THUMB_FN(0xe0337e4c,  LiveViewLevelApp_handler)             // msg: "StartLiveViewLevelApp"
 
 /**
  * STUFF BELOW IS WRONG!
  **/
-/** App handlers **/
-THUMB_FN(0xDEADBEEF,  PlayMovieGuideApp_handler)            // needed for CONFIG_QEMU
 
-THUMB_FN(0xdf00d365,  fsuDecodePartitionTable) // this is called in one place in 50D, 0xffb0a18c,
-                                               // and that function is easy to find in 200D via "CARD_EMERGENCY_STOP".
-                                               // The function called 200D looks a lot different from fsuDecodePartitionTable, however.
-                                               // Constant offsets used are the same in both, maybe fsuDPT has been partially 
-                                               // inlined in 200D?  The decompilation looks weird too, claims it just returns
-                                               // the calling param but it clearly twiddles some registers.
-                                               // TODO check how ML uses this stub, since the sig has changed.
+THUMB_FN(0xdf00d365,  fsuDecodePartitionTable)             // inlined like in EOS R. See R180 function_overrides.c for WIP alternative

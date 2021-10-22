@@ -471,7 +471,8 @@ int bfnt_draw_char(int c, int px, int py, int fg, int bg);
 /* return the width of a Canon built-in character */
 int bfnt_char_get_width(int c);
 
-#if !defined(CONFIG_DIGIC_78)
+// kitor TODO? if CONFIG_NO_BFNT and font was loaded, this should work anyway, right?
+#if !defined(CONFIG_DIGIC_678)
 // Canon built-in icons (CanonGothic font)
 #define ICON_TAB 0xa496ee
 #define ICON_PRINT 0xac96ee

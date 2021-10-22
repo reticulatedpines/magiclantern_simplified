@@ -150,14 +150,17 @@ THUMB_FN(0xE0562ED0,  take_semaphore)                       /* SystemIF::KerSem.
 DATA_PTR(    0xfcb4,  gui_task_list)                        // based on 200d
 THUMB_FN(0xe052f34c,  SetGUIRequestMode)                    // by debug message
 THUMB_FN(0xE004AD80,  gui_main_task)                        // task_create("GuiMainTask"...
-THUMB_FN(0xe0541db6,  dialog_redraw)                        // via xrefs to "pDialog->pSignature == m_pcSignature"
 THUMB_FN(0xe03ae6ea,  gui_massive_event_loop)               // various "GUICMD_"* strings
 THUMB_FN(0xE004AE96,  gui_enqueue_message)                  // via string "warning! QueueLength=" and "GUI::GUI.c" in one function
-DATA_PTR(    0x5304,  gui_main_struct)
 /*
- * kitor: It is referenced in gui_main_task, but struct starts earlier. Real
- * structure start was found via function that calls gui_massive_event_loop.
+ * kitor: gui_main_struct is referenced in gui_main_task, but it starts earlier.
+ * Real start was found via function that calls gui_massive_event_loop.
  */
+DATA_PTR(    0x5304,  gui_main_struct)
+
+ /** Dialog API **/
+ THUMB_FN(0xe0541db6,  dialog_redraw)                        // via xrefs to "pDialog->pSignature == m_pcSignature"
+ THUMB_FN(0xe0524080,  dialog_set_property_str)
 
 /*
  * kitor: gui_init_end DNE on R180. It's the only diff in gui_main_task vs 200d.
@@ -287,26 +290,52 @@ DATA_PTR(   0x1098c, screen_redraw_hook);
 /** Wrong on purpose **/
 DATA_PTR(       0x0,  LCD_Palette)                          // D8 has no indexed RGB buffers.
 
-/**
- * Unsure
- **/
-
-/** App handlers - found after 200D, but not sure if correct function start found **/
-THUMB_FN(0xe04f71fc,  PlayMain_handler)                     // "DlgPlayMain.c PRESS_ERASE_BUTTON" - code above the string, wasn't found automatically
-THUMB_FN(0xe024584e,  ShootOlcApp_handler)                  // near "StopShootOlcApp PopPalette(%d)"
-THUMB_FN(0xe03ec4cc,  LiveViewApp_handler)                  // not sure - function is quite different 50D -> 200D, but that
-                                                            // doesn't seem unreasonable since large GUI changes.  String use and surrounding
-                                                            // functions look similar / related.
-/**
- * STUFF BELOW IS WRONG!
- **/
 /** App handlers **/
-THUMB_FN(0xDEADBEEF,  PlayMovieGuideApp_handler)            // needed for CONFIG_QEMU
+/**
+ * Those can usually be found by looking at function address passed to
+ * WINSYS_CreateDialogBox_wrapper / WINSYS_CreateDialogBox, just after some
+ * debug message */
+THUMB_FN(0xe04f71fc,  PlayMain_handler)                     // msg: "StartPlayMain"
+THUMB_FN(0xe024584e,  ShootOlcApp_handler)                  // msg: "StartShootOlcApp PushPalette(%d)"
+THUMB_FN(0xe03ec4cc,  LiveViewApp_handler)                  // msg: "StartLiveViewApp(%#x)"
+THUMB_FN(0xe02a9f58,  LiveViewShutterApp_handler)           // msg: "StartLiveViewShutterApp"
+THUMB_FN(0xe038f1c6,  PlayMovieGuideApp_handler)            // msg: "StartPlayMovieGuideApp"
 
-THUMB_FN(0xdf00d365,  fsuDecodePartitionTable) // this is called in one place in 50D, 0xffb0a18c,
-                                               // and that function is easy to find in 200D via "CARD_EMERGENCY_STOP".
-                                               // The function called 200D looks a lot different from fsuDecodePartitionTable, however.
-                                               // Constant offsets used are the same in both, maybe fsuDPT has been partially 
-                                               // inlined in 200D?  The decompilation looks weird too, claims it just returns
-                                               // the calling param but it clearly twiddles some registers.
-                                               // TODO check how ML uses this stub, since the sig has changed.
+THUMB_FN(0xe0842940,  TouchBarFeedBackApp_handler)          // msg: "StartTouchBarFeedBackApp"
+THUMB_FN(0xe0786d74,  LiveViewTouchBarApp_handler)          // msg: "StartLiveViewTouchBarApp"
+
+/**
+ * UNUSED but referenced elsewhere
+ **/
+
+//THUMB_FN(0xe0780cb8,  ctrlman_dispatch_event)
+
+/**
+ * Stuff below should not be enabled. Looks that there are many hardcoded
+ * addresses in 0xCxxxxxxx range all over ML code. D8 seems to use 0xDxxxxxxx
+ * range for Engio.
+ */
+
+/** Engio **/
+// THUMB_FN(0x, _EngDrvOut)                                      // not found yet, can be wrapped to _engio_write if needed
+// THUMB_FN(0xE06B92B4, _engio_write)                            // via "Count < MAX_ENG_REG_NUM","EngineDS::DSEngIO.c" strings
+// THUMB_FN(0x,  shamem_read)                                    // not found yet
+
+/** ResLock **/
+// THUMB_FN(0xE054761E,  CreateResLockEntry)                     // one that creates 0x24 structure with cls pointer to "LockEntry"
+//                                                               // and multiple "ResInfo" structures
+// THUMB_FN(0xE0547806,  LockEngineResources)                    // Takes LockEntry as input, creates "EFM_ERSC_STATIC" inside LockEntry
+// THUMB_FN(0xE05478A6,  UnLockEngineResources)                  // Takes LockEntry as input, releases semaphore from LockEntry field
+
+/** EDMAC **/
+// THUMB_FN(0x,  AbortEDmac)
+// THUMB_FN(0x,  ConnectReadEDmac)
+// THUMB_FN(0x,  ConnectWriteEDmac)
+// THUMB_FN(0x,  RegisterEDmacAbortCBR)
+// THUMB_FN(0x,  UnregisterEDmacAbortCBR)
+// THUMB_FN(0xE0535A82,  RegisterEDmacCompleteCBR)               // Not sure. Many registered CBRs have "CompCBR" in debug print names
+// THUMB_FN(0xE0535E16,  UnregisterEDmacCompleteCBR)             // Uses same data structure as above. Replaces CBR with pointer to "do nothing" function.
+// THUMB_FN(0x,  RegisterEDmacPopCBR)
+// THUMB_FN(0x,  UnregisterEDmacPopCBR)
+// THUMB_FN(0x,  SetEDmac)
+// THUMB_FN(0x,  StartEDmac)

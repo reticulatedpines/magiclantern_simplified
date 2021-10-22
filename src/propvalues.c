@@ -109,7 +109,7 @@ volatile PROP_INT(PROP_BURST_COUNT, burst_count);
 volatile PROP_INT(PROP_BATTERY_POWER, battery_level_bars);
 volatile PROP_INT(PROP_MOVIE_SOUND_RECORD, sound_recording_mode);
 volatile PROP_INT(PROP_DATE_FORMAT, date_format);
-volatile PROP_INT(PROP_AUTO_POWEROFF_TIME, auto_power_off_time)
+volatile PROP_INT(PROP_AUTO_POWEROFF_TIME, auto_power_off_time);
 volatile PROP_INT(PROP_VIDEO_SYSTEM, video_system_pal);
 volatile PROP_INT(PROP_LV_FOCUS_STATUS, lv_focus_status);
 volatile PROP_INT(PROP_ICU_UILOCK, icu_uilock);
@@ -220,7 +220,11 @@ PROP_HANDLER(PROP_VIDEO_MODE)
 #ifdef CONFIG_LIVEVIEW
 PROP_HANDLER( PROP_LV_ACTION )
 {
+#ifdef CONFIG_750D // TODO: check D78
+    lv = !(uint32_t*)buf[0]; // now prop holds pointer to value
+#else
     lv = !buf[0];
+#endif
 }
 #endif
 

@@ -3560,10 +3560,15 @@ int liveview_display_idle()
     struct dialog * dialog = current->priv;
     extern thunk LiveViewApp_handler;
 
-    #if defined(CONFIG_5D3)
+    #if defined(CONFIG_5D3) || defined(CONFIG_M50)
     extern thunk LiveViewLevelApp_handler;
-    #elif defined(CONFIG_DIGIC_V)
+    #elif defined(CONFIG_DIGIC_V) || defined(CONFIG_DIGIC_678)
     extern thunk LiveViewShutterApp_handler;
+    #endif
+
+    #if defined(CONFIG_R)
+    extern thunk TouchBarFeedBackApp_handler;
+    extern thunk LiveViewTouchBarApp_handler;
     #endif
 
     #if defined(CONFIG_6D)
@@ -3584,14 +3589,18 @@ int liveview_display_idle()
                   #if defined(CONFIG_LVAPP_HACK_RELOC)
                   || dialog->handler == (dialog_handler_t) new_LiveViewApp_handler
                   #endif
-                  #if defined(CONFIG_5D3)
+                  #if defined(CONFIG_5D3) || defined (CONFIG_M50)
                   || dialog->handler == (dialog_handler_t) &LiveViewLevelApp_handler
                   #endif
                   #if defined(CONFIG_6D)
                   || dialog->handler == (dialog_handler_t) &LiveViewWifiApp_handler
                   #endif
+                  #if defined(CONFIG_R)
+                  || dialog->handler == (dialog_handler_t) &TouchBarFeedBackApp_handler
+                  || dialog->handler == (dialog_handler_t) &LiveViewTouchBarApp_handler
+                  #endif
                   //~ for this, check value of get_current_dialog_handler()
-                  #if defined(CONFIG_DIGIC_V) && !defined(CONFIG_5D3)
+                  #if !defined(CONFIG_5D3) && defined(CONFIG_DIGIC_V) || !defined(CONFIG_M50) && defined(CONFIG_DIGIC_678)
                   || dialog->handler == (dialog_handler_t) &LiveViewShutterApp_handler
                   #endif
               ) &&

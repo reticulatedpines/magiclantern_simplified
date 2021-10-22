@@ -9,7 +9,8 @@
 static int my_init_task(int a, int b, int c, int d);
 
 /** This just goes into the bss */
-#define RELOCSIZE 0x50000 // look in HIJACK macros for the highest address, and subtract ROMBASEADDR
+#define RELOCSIZE 0x2D100  // look in HIJACK macros for the highest address, and subtract ROMBASEADDR; 0x50000 was too much for 750D
+
 static uint32_t _reloc[ RELOCSIZE / 4 ];
 #define RELOCADDR ((uintptr_t) _reloc)
 

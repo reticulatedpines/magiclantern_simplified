@@ -2988,7 +2988,7 @@ menu_post_display()
     {
         // we can't use the scrollwheel
         // and you need to be careful because you will change shooting settings while recording!
-        #if defined(CONFIG_DIGIC_78)
+        #if defined(CONFIG_DIGIC_678)
         // SJE FIXME we can't use ICON_MAINDIAL as that's in Canon bitmap font
         // and Digic >= 7 doesn't have it.  So I substitute a different icon.
         // A better fix might be to make our own dial icon and add it to ico.c,
@@ -5723,7 +5723,7 @@ menu_task( void* unused )
                     keyrep_countdown--;
                     if (keyrep_countdown <= 0) {
                         keyrep_ack = 0;
-                        #ifndef CONFIG_DIGIC_78
+                        #ifndef CONFIG_DIGIC_678
                         //SJE FIXME - find out why this doesn't work, it repeats
                         // until another key is pressed
                         fake_simple_button(keyrepeat);

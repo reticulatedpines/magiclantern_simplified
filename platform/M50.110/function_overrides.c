@@ -139,6 +139,3 @@ unsigned int UnLockEngineResources(struct LockEntry *lockEntry)
 {
    return 0;
 }
-
-//at the very end so it will appear near the end of build log.
-#warning EXPERIMENTAL BUILD, YOU MAY EXPERIENCE ERR70. SEE README.MD in M50 PLATFORM DIR
