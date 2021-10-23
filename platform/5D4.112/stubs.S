@@ -32,10 +32,10 @@
 
 /** Startup **/
 	NSTUB( ROMBASEADDR, firmware_entry )
-THUMB_FN(0xFE0DD4F4,  cstart)                               /* calls bzero32 and create_init_task(..., init_task, ...) */
-	ARM32_FN(0x80007d08,  bzero32)                              /* zeros out a data structure */
-	ARM32_FN(0x80000f74,  create_init_task)                     /* low-level DryOS initialization */
-	THUMB_FN(0xfe0dd710,  init_task)                            /* USER_MEM size checking, dmSetup, termDriverInit, stdlibSetup etc */
+THUMB_FN(0xFE0DD4F4,  cstart)                       
+	ARM32_FN(0x80007d08,  bzero32)                             	
+	ARM32_FN(0x80000f74,  create_init_task)           
+	THUMB_FN(0xfe0dd710,  init_task)                    
 
 /** Tasks **/
 DATA_PTR(    0x4584,  current_interrupt)
@@ -59,10 +59,10 @@ DATA_PTR(    0x4560,  pre_isr_hook)
 	THUMB_FN(0xfc493afe,  FIO_WriteFile)
 	THUMB_FN(0xfc493a1c,  FIO_SeekSkipFile)
 	THUMB_FN(0xfc493d90, _FIO_GetFileSize)
-	THUMB_FN(0xfc493cb6, _FIO_GetFileInfo) /* We don't use this */
-	THUMB_FN(0xfc493dd6, _FIO_GetFileSize64) /* We don't use this */
-	THUMB_FN(0xfc493e1c, _FIO_GetFileAttributes) /* We don't use this */
-	THUMB_FN(0xfc493e94, _FIO_SetFileAttributes) /* We don't use this */
+	THUMB_FN(0xfc493cb6, _FIO_GetFileInfo)				/* We don't use this */
+	THUMB_FN(0xfc493dd6, _FIO_GetFileSize64) 			/* We don't use this */
+	THUMB_FN(0xfc493e1c, _FIO_GetFileAttributes) 			/* We don't use this */
+	THUMB_FN(0xfc493e94, _FIO_SetFileAttributes) 			/* We don't use this */
 	THUMB_FN(0xfc4938f2, _FIO_RemoveFile)
 	THUMB_FN(0xfc494338, _FIO_RenameFile)
 	THUMB_FN(0xfc4945a4, _FIO_CreateDirectory)
@@ -97,8 +97,8 @@ THUMB_FN(0xFE42DD18,  SetAudioVolumeOut)                    // JC Best guess
 	DATA_PTR(    0xfdfc,  bmp_vram_info)                 /* first VRAM buffer, used right after DISP_SetUpdateOSDVram */
 
 /** From 1.0.2 **/
-DATA_PTR(    0xfd08, _rgb_vram_info) // Used in many places, written to in "InitializeScreen"
-DATA_PTR(    0xfd04,  winsys_sem) // used before call to XimrExe() in RefreshVrmsSurface
+	DATA_PTR(    0xfdf8, _rgb_vram_info)
+DATA_PTR(    0xfd04,  winsys_sem)
 	THUMB_FN(0xfc1fd630,  XimrExe)
 
 /** DMA **/
@@ -108,12 +108,12 @@ DATA_PTR(    0xfd04,  winsys_sem) // used before call to XimrExe() in RefreshVrm
 	THUMB_FN(     0xC14,  DryosDebugMsg)                 /* prefer the RAM version, to override it easily */
 
 /** Dialog API **/
-ARM32_FN(0xFE4BD128,  dialog_redraw)                        /* not checked */
+	ARM32_FN(0xfc4c4c30,  dialog_redraw)                        /* not checked */
 ARM32_FN(0xFE4BCD60,  dialog_set_property_str)              /* not checked */
 
 /** Dialog handlers **/
-THUMB_FN(0xFE5941E6,  ErrForCamera_handler)                 // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
-THUMB_FN(0xFE3FB2F0,  LiveViewApp_handler)                  // Thumb function, but LSB not set in Canon code, why?
+	THUMB_FN(0xfc59c176,  ErrForCamera_handler)                 // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
+	THUMB_FN(0xfe4024a4,  LiveViewApp_handler)                  // Thumb function, but LSB not set in Canon code, why?
 THUMB_FN(0xFE6E7894,  LiveViewLevelApp_handler)             // fixme: some other app may be at top level in LiveView
 THUMB_FN(0xFE4750E4,  PlayMain_handler)                     // this should be active when reviewing a still image
 THUMB_FN(0xFE29A7A0,  PlayMovieGuideApp_handler)            // this should be active when playing a video
@@ -141,30 +141,30 @@ ARM32_FN(0xFE4DFDF8, _engio_write)                          /* no mirror?! */
 //NSTUB(0x????????,  shamem_read)                             // AJ_0x_engio_struct_n_R0_manipulation_to_get_ptr
 
 /** Eventprocs (call by name) **/
-THUMB_FN(0xFE48CEEE,  call)
+	THUMB_FN(0xfe493646,  call)
 
 /** ExMem **/
 	THUMB_FN(0xfcf2bfa4,  AcquireRecursiveLock)
 	THUMB_FN(0xfcf2c06c,  ReleaseRecursiveLock)
-THUMB_FN(0xFE49CFBE,  CreateMemoryChunk)
-THUMB_FN(0xFE49DA86,  CreateMemorySuite)
-THUMB_FN(0xFE49D7A0,  DeleteMemorySuite)                    // or FEA8E248?
-THUMB_FN(0xFE53DFEC,  AllocateContinuousMemoryResource)     // m_pfContAllocMemoryCBR
-THUMB_FN(0xFE53DFBE,  AllocateMemoryResource)               // m_pfAllocMemoryCBR
-THUMB_FN(0xFE53E092,  FreeMemoryResource)                   // m_pfFreeMemoryCBR
-THUMB_FN(0xFEA944A8,  GetFirstChunkFromSuite)               // or FE49AE88?
-THUMB_FN(0xFE49DE8C,  GetNextMemoryChunk)
-THUMB_FN(0xFE49D410,  GetMemoryAddressOfMemoryChunk)
-THUMB_FN(0xFE47F6BA,  SRM_AllocateMemoryResourceFor1stJob)
-THUMB_FN(0xFE481FAA,  SRM_FreeMemoryResourceFor1stJob)
-//NSTUB(0x????????,  AddMemoryChunk)
+	THUMB_FN(0xfe4a3716,  CreateMemoryChunk)
+	THUMB_FN(0xfe4a41de,  CreateMemorySuite)
+	THUMB_FN(0xfe4a3ef8,  DeleteMemorySuite)                    // or FEA8E248?
+	THUMB_FN(0xfc548f80,  AllocateContinuousMemoryResource)     // m_pfContAllocMemoryCBR
+	THUMB_FN(0xfc548f52,  AllocateMemoryResource)               // m_pfAllocMemoryCBR
+	THUMB_FN(0xfc549026,  FreeMemoryResource)                   // m_pfFreeMemoryCBR
+	THUMB_FN(0xfe4a3d68,  GetFirstChunkFromSuite)               // or FE49AE88?
+	THUMB_FN(0xfe4a45e4,  GetNextMemoryChunk)
+	THUMB_FN(0xfe4a3b68,  GetMemoryAddressOfMemoryChunk)
+	THUMB_FN(0xfc485e12,  SRM_AllocateMemoryResourceFor1stJob)
+	THUMB_FN(0xfc488702,  SRM_FreeMemoryResourceFor1stJob)
+	THUMB_FN(0xfe4a3cdc,  AddMemoryChunk)
 
 /** GUI timers **/
-THUMB_FN(0xFE328AB2,  SetHPTimerNextTick)
-THUMB_FN(0xFE328A62,  SetHPTimerAfterNow)
-THUMB_FN(0xFE4A1A38,  SetTimerAfter)
+	THUMB_FN(0xfc32f566,  SetHPTimerNextTick)
+	THUMB_FN(0xfc32f516,  SetHPTimerAfterNow)
+	THUMB_FN(0xfc4a8190,  SetTimerAfter)
 THUMB_FN(0xFE562FD4,  CancelDateTimer)                      // Look for "CancelDateTimer" or "StopDateTimer" (7D)
-THUMB_FN(0xFE4A1AAE,  CancelTimer)
+	THUMB_FN(0xfc4a8206,  CancelTimer)
 
 /** Logging experiments **/
 THUMB_FN(0xFE129BEE,  dump_file)
@@ -183,34 +183,34 @@ DATA_PTR(    0x7A48,  mpu_send_ring_buffer_tail)            // ring buffer index
 //NSTUB(0x????????,  sd_device)
 
 /** Memory allocation **/
-THUMB_FN(0x80004AAA, _AllocateMemory)
+	THUMB_FN(0x80004aaa, _AllocateMemory)
 	THUMB_FN(0xfea01ad0, _FreeMemory)
 THUMB_FN(0x80004954,  GetMemoryInformation)
 THUMB_FN(0x80004928,  GetSizeOfMaxRegion)
-THUMB_FN(0xFE428C00, _alloc_dma_memory)
+THUMB_FN(0x80006190, _alloc_dma_memory)
 THUMB_FN(0xFE428C38, _free_dma_memory)
 THUMB_FN(0xFE343D60, _malloc)
 THUMB_FN(0xFE343D96, _free)
 
 /** Memory info **/
-THUMB_FN(0xFE29FF7C,  malloc_info)
-THUMB_FN(0xFE2E02D0,  smemShowFix)
-THUMB_FN(0xFE2A0014,  sysmem_info)
+	THUMB_FN(0xfe2a4e30,  malloc_info)
+	THUMB_FN(0xfe2e747a,  smemShowFix)
+	THUMB_FN(0xfe2a4ec8,  sysmem_info)
 
 /** Message queues **/
 THUMB_FN(    0x1BE0,  msg_queue_create)                     /* CreateMessageQueue */
-THUMB_FN(    0x1E2A,  msg_queue_count)                      /* used in "[TASK ERROR] GetNumOfEvent" */
-THUMB_FN(    0x1DF4,  msg_queue_post)                       /* TryPostMessageQueue */
-THUMB_FN(    0x1CA0,  msg_queue_receive)                    /* ReceiveMessageQueue */
+	THUMB_FN(    0xfcf2bebe,  msg_queue_count)                      /* used in "[TASK ERROR] GetNumOfEvent" */
+	THUMB_FN(    0xfcf2be88,  msg_queue_post)                       /* TryPostMessageQueue */
+	THUMB_FN(    0xfcf2bd34,  msg_queue_receive)                    /* ReceiveMessageQueue */
 
 /** PTP **/
 //NSTUB(0x????????,  ptp_register_handler)
 
 /** Properties **/
-THUMB_FN(0xFE42CCB6, _prop_request_change)                  /* pRequestChange */
-THUMB_FN(0xFE49EA3A,  prop_register_slave)                  /* pRegisterSlave */
-THUMB_FN(0xFE49EF92,  prop_deliver)                         /* pDeliverProperty */
-THUMB_FN(0xFE49F022, _prop_cleanup)                         /* called at the end of property handlers */
+	THUMB_FN(0xfc4a5262, _prop_request_change)                  /* pRequestChange */
+	THUMB_FN(0xfc4a5192,  prop_register_slave)                  /* pRegisterSlave */
+	THUMB_FN(0xfc4a56ea,  prop_deliver)                         /* pDeliverProperty */
+	THUMB_FN(0xfc4a577a, _prop_cleanup)                         /* called at the end of property handlers */
 
 /** Recursive locks **/
 //NSTUB(0x????????,  CreateRecursiveLock)
@@ -223,7 +223,7 @@ THUMB_FN(0xFE9F6A46,  LockEngineResources)
 THUMB_FN(0xFE2EE86C,  UnLockEngineResources)
 
 /** Semaphores **/
-THUMB_FN(     0x1D0,  create_named_semaphore)               /* CreateBinarySemaphore */
+	THUMB_FN(     0x1d0,  create_named_semaphore)               /* CreateBinarySemaphore */
 	THUMB_FN(     0x33E,  give_semaphore)
 	THUMB_FN(     0x2C6,  take_semaphore)
 
@@ -232,7 +232,7 @@ THUMB_FN(     0x1D0,  create_named_semaphore)               /* CreateBinarySemap
 //NSTUB(0x????????,  task_max)
 
 /** Misc **/
-THUMB_FN(0xFE4C47E4,  FSUunMountDevice)
+//THUMB_FN(0xFE4C47E4,  FSUunMountDevice)
 	THUMB_FN(0xfe5f3d62,  LoadCalendarFromRTC)
-THUMB_FN(0xFE95F424,  vsnprintf)
+	THUMB_FN(0xfc966068,  vsnprintf)
 	THUMB_FN(0xfe484d7c,  uart_printf) //REMOVE FOR REAL RELEASE
