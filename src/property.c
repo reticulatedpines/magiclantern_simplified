@@ -20,6 +20,10 @@
 #include "property.h"
 #include "bmp.h"
 
+#ifdef CONFIG_DIGIC_678
+#include "property_whitelist.h"
+#endif
+
 extern struct prop_handler _prop_handlers_start[];
 extern struct prop_handler _prop_handlers_end[];
 
@@ -297,6 +301,21 @@ static void prop_reset_ack(uint32_t property)
     }
 }
 
+static int is_prop_allowed(uint32_t property)
+{
+    if (property == 0) // shouldn't happen, but whitelist may contain 0s
+        return 0;
+
+    for(int i = 0; i < sizeof(prop_whitelist) / sizeof(*prop_whitelist); i++)
+    {
+        if (prop_whitelist[i] == property)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 /**
  * This is just a safe wrapper for changing camera settings (well... only slightly safer than Canon's)
  * Double-check the len parameter => less chances that our call will cause permanent damage.
@@ -335,7 +354,8 @@ void prop_request_change(unsigned property, const void* addr, size_t len)
     #endif
 
     int correct_len = prop_get_prop_len((int)property);
-    if (len == 0) len = correct_len;
+    if (len == 0)
+        len = correct_len;
     if (len == 0)
     {
         char msg[100];
@@ -346,7 +366,8 @@ void prop_request_change(unsigned property, const void* addr, size_t len)
         return;
     }
 
-    if (property == PROP_BATTERY_REPORT && len == 1) goto ok; // exception: this call is correct for polling battery level
+    if (property == PROP_BATTERY_REPORT && len == 1)
+        goto ok; // exception: this call is correct for polling battery level
 
     #ifndef CONFIG_5DC
     if (property == PROP_REMOTE_SW1 || property == PROP_REMOTE_SW2)
@@ -366,6 +387,18 @@ void prop_request_change(unsigned property, const void* addr, size_t len)
 ok:
     (void)0;
     //~ printf("prop:%x data:%x len:%x\n", property, MEM(addr), len);
+
+    #ifdef CONFIG_DIGIC_678
+    if (is_prop_allowed(property))
+    {
+        // SJE TODO could put some logging here, but I'm betting
+        // DryosDebugMsg() may hang given the context we may be in
+    }
+    else
+    { // prop not allowed
+        return;
+    }
+    #endif
 
     /* call Canon stub */
     extern void _prop_request_change(unsigned property, const void* addr, size_t len);
