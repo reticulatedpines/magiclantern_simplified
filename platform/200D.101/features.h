@@ -18,6 +18,15 @@
 // dumping all the images that old cams support
 #define FEATURE_SCREENSHOT
 
+// Testing disabling 30min LV timer.
+// This requires prop_request_change!
+// Also requires LV and State objects; but you
+// don't need any actual objects found in state-object.h
+#define CONFIG_PROP_REQUEST_CHANGE
+#define CONFIG_STATE_OBJECT_HOOKS
+#define CONFIG_LIVEVIEW
+#define FEATURE_POWERSAVE_LIVEVIEW
+
 // mostly working - task display is too crowded.
 // Maybe CPU usage should update faster?
 #define CONFIG_TSKMON
@@ -36,5 +45,4 @@
 #undef CONFIG_CRASH_LOG
 
 #undef CONFIG_ADDITIONAL_VERSION
-#undef CONFIG_PROP_REQUEST_CHANGE
 #undef CONFIG_AUTOBACKUP_ROM

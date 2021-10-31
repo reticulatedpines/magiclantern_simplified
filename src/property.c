@@ -90,21 +90,19 @@ void prop_add_handler (uint32_t property, void *handler)
 {
     // SJE FIXME these two properties cause problems that prevent accessing ML gui.
     // Cause is not yet known.
-    // Confirmed on 750D, 200D, R, RP, M50
+    // kitor the same excludeds helped on R.
     #ifdef CONFIG_DIGIC_678
-    if (
-        property == PROP_ISO || property == PROP_MVR_REC_START
-        // Does not crash D67, but crashes R in LV
-        #ifdef CONFIG_DIGIC_VIII
-        || property == PROP_LV_AFFRAME
-        #endif
-        )
+    for(int i = 0;
+        i < sizeof(prop_handler_blacklist) / sizeof(*prop_handler_blacklist);
+        i++)
     {
-        DryosDebugMsg(0, 15, "not adding prop handler: 0x%x", property);
-        return;
+        if (prop_handler_blacklist[i] == property)
+        {
+            DryosDebugMsg(0, 15, "not adding prop handler: 0x%x", property);
+            return;
+        }
     }
     #endif
-
 
     //DryosDebugMsg(0, 15, "adding prop handler: 0x%x", property);
 #if defined(POSITION_INDEPENDENT)
@@ -303,12 +301,11 @@ static void prop_reset_ack(uint32_t property)
 
 static int is_prop_allowed(uint32_t property)
 {
-    if (property == 0) // shouldn't happen, but whitelist may contain 0s
-        return 0;
-
-    for(int i = 0; i < sizeof(prop_whitelist) / sizeof(*prop_whitelist); i++)
+    for(int i = 0;
+        i < sizeof(prop_write_whitelist) / sizeof(*prop_write_whitelist);
+        i++)
     {
-        if (prop_whitelist[i] == property)
+        if (prop_write_whitelist[i] == property)
         {
             return 1;
         }
@@ -393,9 +390,11 @@ ok:
     {
         // SJE TODO could put some logging here, but I'm betting
         // DryosDebugMsg() may hang given the context we may be in
+        DryosDebugMsg(0, 15, "changing prop: %x", property);
     }
     else
     { // prop not allowed
+        DryosDebugMsg(0, 15, "prop not allowed: %x", property);
         return;
     }
     #endif

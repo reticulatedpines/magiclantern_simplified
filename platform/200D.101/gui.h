@@ -62,9 +62,11 @@
 #define GMT_OLC_INFO_CHANGED 59 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
 
 // needed for correct shutdown from powersave modes
-#define GMT_GUICMD_START_AS_CHECK 43
-#define GMT_GUICMD_OPEN_SLOT_COVER 40
-#define GMT_GUICMD_LOCK_OFF 38
+// SJE these are wrong, I've set the values so they don't conflict
+// with buttons used during ML menu navigation
+#define GMT_GUICMD_START_AS_CHECK 0x2e
+#define GMT_GUICMD_OPEN_SLOT_COVER 0x2f
+#define GMT_GUICMD_LOCK_OFF 0x30
 
 #define BTN_ZEBRAS_FOR_PLAYBACK BGMT_FUNC // what button to use for zebras in Play mode
 #define BTN_ZEBRAS_FOR_PLAYBACK_NAME "FUNC"
