@@ -88,15 +88,14 @@ global_property_handler(
 
 void prop_add_handler (uint32_t property, void *handler)
 {
-    // SJE FIXME these two properties cause problems that prevent accessing ML gui.
-    // Cause is not yet known.
-    // kitor the same excludeds helped on R.
+    // SJE TODO investigate and fix all currently denied
+    // properties (those known to cause problems on D678 cams)
     #ifdef CONFIG_DIGIC_678
     for(int i = 0;
-        i < sizeof(prop_handler_blacklist) / sizeof(*prop_handler_blacklist);
+        i < sizeof(prop_handler_deny) / sizeof(*prop_handler_deny);
         i++)
     {
-        if (prop_handler_blacklist[i] == property)
+        if (prop_handler_deny[i] == property)
         {
             DryosDebugMsg(0, 15, "not adding prop handler: 0x%x", property);
             return;
@@ -302,10 +301,10 @@ static void prop_reset_ack(uint32_t property)
 static int is_prop_allowed(uint32_t property)
 {
     for(int i = 0;
-        i < sizeof(prop_write_whitelist) / sizeof(*prop_write_whitelist);
+        i < sizeof(prop_write_allow) / sizeof(*prop_write_allow);
         i++)
     {
-        if (prop_write_whitelist[i] == property)
+        if (prop_write_allow[i] == property)
         {
             return 1;
         }
@@ -390,11 +389,11 @@ ok:
     {
         // SJE TODO could put some logging here, but I'm betting
         // DryosDebugMsg() may hang given the context we may be in
-        DryosDebugMsg(0, 15, "changing prop: %x", property);
+        //DryosDebugMsg(0, 15, "changing prop: %x", property);
     }
     else
     { // prop not allowed
-        DryosDebugMsg(0, 15, "prop not allowed: %x", property);
+        //DryosDebugMsg(0, 15, "prop not allowed: %x", property);
         return;
     }
     #endif
