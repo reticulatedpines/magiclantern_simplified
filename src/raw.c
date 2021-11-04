@@ -330,6 +330,16 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
      -593, 10000,     1772, 10000,    6198, 10000
 #endif
 
+#ifdef CONFIG_77D
+    // { LIBRAW_CAMERAMAKER_Canon, "EOS 77D", 0, 0,
+    //   { 7377,-742,-998,-4235,11981,2549,-673,1918,5538 } },
+    // same as 200D?
+    #define CAM_COLORMATRIX1                     \
+    7377, 10000,    -742, 10000,    -998, 10000, \
+    -4235, 10000,   11981, 10000,   2549, 10000, \
+    -673, 10000,    1918, 10000,    5538, 10000
+#endif
+
 #ifdef CONFIG_200D // from https://github.com/LibRaw/LibRaw src/tables/colordata.cpp
     // { LIBRAW_CAMERAMAKER_Canon, "EOS 200D", 0, 0,
     //   { 7377,-742,-998,-4235,11981,2549,-673,1918,5538 } },
@@ -495,6 +505,10 @@ static int dynamic_ranges[] = {1060, 1063, 1037, 982, 901, 831, 718, 622, 536};
 
 #ifdef CONFIG_7D
 static int dynamic_ranges[] = {1112, 1108, 1076, 1010, 902, 826, 709, 622};
+#endif
+
+#ifdef CONFIG_77D
+static int dynamic_ranges[] = {1246, 1196, 1105, 1014, 927, 844, 758, 660, 566, 468};
 #endif
 
 static int autodetect_black_level(int* black_mean, int* black_stdev);

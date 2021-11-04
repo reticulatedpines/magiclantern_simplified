@@ -71,6 +71,13 @@ THUMB_FN(0xE04D7DD4,  FIO_Flush)                            // to be called afte
 /** Bitmap **/
 DATA_PTR(   0x10128,  bmp_vram_info)                        /* first VRAM buffer, used right after DISP_SetUpdateOSDVram */
 
+// SJE needed for "minimal" builds
+DATA_PTR(   0x10124,  _rgb_vram_info) // Used in many places, written to in "InitializeScreen"
+DATA_PTR(   0x10120,  winsys_sem) // also used in "InitializeScreen"
+THUMB_FN(0xdf008504,  take_semaphore) // Just above give_semaphore
+THUMB_FN(0xdf00857e,  give_semaphore) // Look for KerSem.c string near 0xdf thunk region, a little above that
+THUMB_FN(0xe030fab8,  XimrExe) // trigger Ximr unit to execute (HW compositor, partially understood)
+
 /** Debug messages **/
 THUMB_FN(0xDF006E6C,  DryosDebugMsg)                        /* lots of debug messages; format string is third argument */
 
