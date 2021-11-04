@@ -33,10 +33,10 @@ all::
 	$(call build,AS,$(CC) $(AFLAGS) -c -o $@ $<)
 autoexec.bin: autoexec $(XOR_CHK)
 	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@)
-	$(call build,XOR_CHK,$(XOR_CHK) $@)
+	$(call build,XOR_CHK,./xor_chk $@)
 autoexec-fir.bin: autoexec-fir $(XOR_CHK)
 	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@)
-	$(call build,XOR_CHK,$(XOR_CHK) $@)
+	$(call build,XOR_CHK,./xor_chk $@)
 %.bin: %
 	$(call build,OBJCOPY,$(OBJCOPY) -O binary $< $@)
 	$(call build,STAT,$(STAT_CMD) $@)

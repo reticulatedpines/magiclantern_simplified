@@ -2,15 +2,10 @@ PLATFORM_MAP = \
     5D3.113 \
     5D3.123 \
     5D2.212 \
-    5D4.112 \
-    5DS.111 \
-    5DSR.112 \
     6D.116 \
-    6D2.103 \
     50D.109 \
     60D.111 \
     77D.102 \
-    80D.102 \
     200D.101 \
     500D.111 \
     550D.109 \
@@ -18,7 +13,6 @@ PLATFORM_MAP = \
     650D.104 \
     700D.115 \
     750D.110 \
-    760D.100 \
     100D.101 \
     1100D.105 \
     EOSM.202 \
@@ -26,6 +20,19 @@ PLATFORM_MAP = \
     R.180 \
 #    7D2.104 \
 #    EOSRP.160 \
+
+# SJE these cams don't build due to missing Ximr
+# structs, but I have roms so can find them:
+#    6D2.103 \
+#    80D.102 \
+
+# SJE these cams don't build due to "minimal" builds
+# needing Ximr related structs found.  I don't have roms.
+#    5D4.112 \
+#    5DS.111 \
+#    5DSR.112 \
+#    7D2.104 \
+#    760D.100 \
 
 # SJE FIXME 7D builds are broken, not sure why.  Cam seems very quirky, unsure
 # it's well supported even by mainline.  Disabling for now so I can easily

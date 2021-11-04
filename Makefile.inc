@@ -90,7 +90,7 @@ magiclantern-$(VERSION).zip: install installer_check installdoc minimal_check
 	$(call rm_dir, $(INSTALL_DIR)/)
 
 zip:: | prepare_zip
-zip:: magiclantern-$(VERSION).zip print_build_info
+zip:: magiclantern-$(VERSION).zip print_build_info minimal_check_clean
 
 install_qemu:: | prepare_zip
 install_qemu:: install

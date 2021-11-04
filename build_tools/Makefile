@@ -8,7 +8,7 @@ XOR_CHK:=$(notdir $(XOR_CHK))
 endif
 
 $(XOR_CHK): $(XOR_CHK).c
-	$(call build,XOR_CHK,$(HOST_CC) $< -o $@)
+	$(call build,XOR_CHK,$(HOST_CC) $< -o xor_chk)
 
 clean::
-	$(call rm_files, $(XOR_CHK) $(XOR_CHK).exe)
+	$(call rm_files, xor_chk xor_chk.exe)
