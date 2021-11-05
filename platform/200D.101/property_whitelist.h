@@ -28,7 +28,6 @@
 // deny reads / do not register property handlers for these
 const uint32_t const prop_handler_deny[] =
 {
-    PROP_ISO,
     PROP_MVR_REC_START // probably related to MVR stubs being all wrong
 };
 
