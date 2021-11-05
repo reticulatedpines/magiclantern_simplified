@@ -49,8 +49,8 @@
 // bindGUIEventFromGUICBR DNE on R, however by educated guess from older generations:
 // In SetGUIRequestMode, look at what code calls NotifyGUIEvent(9, something)
 // skip RECORDING variant for now
-#define GUIMODE_ML_MENU (lv ? 0x7F : 2)
-//#define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 0x68 : 2)
+#define GUIMODE_ML_MENU (lv ? 0x7F : GUIMODE_MENU)
+//#define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 0x68 : GUIMODE_MENU)
 
 // I can't find any official data. Unofficial say 200k
 #define CANON_SHUTTER_RATING 200000

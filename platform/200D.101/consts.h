@@ -20,8 +20,8 @@
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(9, something)
 // IN 200D.101 this is valid from case 0x4E to case 0x5B
 // skip RECORDING variant for now
-#define GUIMODE_ML_MENU (lv ? 0x4E : 2)
-//#define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 0x4E : 2)
+#define GUIMODE_ML_MENU (lv ? 0x4E : GUIMODE_MENU)
+//#define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 0x4E : GUIMODE_MENU)
 
 // Medium confidence:
 #define DISPLAY_SENSOR_POWERED (*(int *))(0xc640) // c638 looks like base of struct, not sure on the fields.
