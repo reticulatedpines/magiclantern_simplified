@@ -95,9 +95,9 @@ extern struct lens_info lens_info;
 
 #define DOF_DIFFRACTION_LIMIT_REACHED 1
 
-#if defined(CONFIG_6D) || defined(CONFIG_5D3_123) || defined(CONFIG_100D)
+#if defined(CONFIG_6D) || defined(CONFIG_5D3_123) || defined(CONFIG_100D) || defined(CONFIG_750D)
 struct prop_lv_lens
-{  
+{
         uint32_t                lens_rotation; // Identical Doesn't Change
         uint32_t                lens_step; // Value Matches initial but doesn't move.
         uint32_t                off_0x08;
@@ -112,7 +112,7 @@ struct prop_lv_lens
         uint8_t                 off_0x25;
         uint16_t                off_0x26;
         uint32_t                off_0x28;
-        uint16_t                off_0x2c;        
+        uint16_t                off_0x2c;
         uint8_t                 off_0x2e;
         uint16_t                focal_len;  // off_0x2f
         uint16_t                off_0x31;
