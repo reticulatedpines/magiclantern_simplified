@@ -30,6 +30,7 @@
 #include "compositor.h"
 #include <stdarg.h>
 #include "propvalues.h"
+#include "zebra.h"
 
 //~ int bmp_enabled = 1;
 
@@ -196,17 +197,26 @@ void refresh_yuv_from_rgb(void)
     }
 
     //SJE FIXME benchmark this loop, it probably wants optimising
-    for (size_t n = 0; n < BMP_VRAM_SIZE; n++)
-    {
-        // limited alpha support, if dest pixel would be full alpha,
-        // don't copy into dest.  This is COLOR_TRANSPARENT_BLACK in
-        // the LUT
-        uint32_t rgb = indexed2rgb(*b);
-        if ((rgb && 0xff000000) == 0x00000000)
-            rgb_data++;
-        else
-            *rgb_data++ = rgb;
-        b++;
+    if(zebra_should_run()){
+        // always draw our stuff, including full alpha
+        for (size_t n = 0; n < BMP_VRAM_SIZE; n++){
+            *rgb_data++ = indexed2rgb(*b);
+            b++;
+        }
+    }
+    else{
+        for (size_t n = 0; n < BMP_VRAM_SIZE; n++)
+        {
+            // limited alpha support, if dest pixel would be full alpha,
+            // don't copy into dest.  This is COLOR_TRANSPARENT_BLACK in
+            // the LUT
+            uint32_t rgb = indexed2rgb(*b);
+            if ((rgb && 0xff000000) == 0x00000000)
+                rgb_data++;
+            else
+                *rgb_data++ = rgb;
+            b++;
+        }
     }
 
     // trigger Ximr to render to OSD from RGB buffer
