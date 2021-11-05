@@ -2695,6 +2695,8 @@ static LVINFO_UPDATE_FUNC(picq_update)
 
     if (!is_movie_mode())
     {
+        // kitor FIXME: Not true on R anymore
+        // Leads to werid values like RAW+L is "RAW+Err", RAW+M is "mRAW"
         int raw = pic_quality & 0x60000;
         int jpg = pic_quality & 0x10000;
         int rawsize = pic_quality & 0xF;

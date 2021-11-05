@@ -93,7 +93,12 @@ volatile PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
 volatile PROP_INT(PROP_LIVE_VIEW_VIEWTYPE, _expsim);
 volatile PROP_INT(PROP_EFIC_TEMP, efic_temp);
 volatile PROP_INT(PROP_GUI_STATE, gui_state);
+#ifdef CONFIG_DIGIC_678
+// confirmed 750D, 200D, R
+volatile PROP_INT(PROP_PIC_QUALITY2, pic_quality);
+#else
 volatile PROP_INT(PROP_PIC_QUALITY, pic_quality);
+#endif
 volatile PROP_INT(PROP_AVAIL_SHOT, avail_shot);
 volatile PROP_INT(PROP_AF_MODE, af_mode);
 volatile PROP_INT(PROP_METERING_MODE, metering_mode);
