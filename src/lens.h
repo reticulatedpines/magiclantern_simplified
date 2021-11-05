@@ -127,6 +127,30 @@ struct prop_lv_lens
 
 SIZE_CHECK_STRUCT( prop_lv_lens, 64 );
 
+#elif defined(CONFIG_200D)
+/* Structure looks exactly like 2nd half of struct on 750D (dumped on both cams)
+ * focus_pos was not aligned before and was supposed to be uint16_t.
+ * But the first byte is gone, so maybe it was a wrong assumption? */
+struct prop_lv_lens
+{
+        uint8_t                 focus_pos; // off_0x23
+        uint8_t                 off_0x25;
+        uint16_t                off_0x26;
+        uint32_t                off_0x28;
+        uint16_t                off_0x2c;
+        uint8_t                 off_0x2e;
+        uint16_t                focal_len;  // off_0x2f
+        uint16_t                off_0x31;
+        uint16_t                focus_dist; // off_0x33
+        uint32_t                off_0x35;
+        uint32_t                off_0x39;
+        uint8_t                 off_0x3d;
+        uint8_t                 off_0x3e;
+        uint8_t                 off_0x3f;
+} __attribute__((packed));
+
+SIZE_CHECK_STRUCT( prop_lv_lens, 0x1C );
+
 #elif defined(CONFIG_EOSM)
 struct prop_lv_lens
 {
