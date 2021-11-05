@@ -371,11 +371,19 @@ static void do_this_every_second() // called every second
     }
     #endif
 
+#ifdef CONFIG_750D
+    /* always update lens info, cam does not do it on LV on its own */
+    if (lens_info.lens_exists)
+    {
+        _prop_lv_lens_request_update();
+    }
+#else
     /* update lens info outside LiveView */
     if (!lv && lens_info.lens_exists)
     {
         _prop_lv_lens_request_update();
     }
+#endif
 }
 
 // called every 200ms or on request
@@ -6437,4 +6445,3 @@ void iso_refresh_display() // in photo mode
     }
 #endif
 }
-
