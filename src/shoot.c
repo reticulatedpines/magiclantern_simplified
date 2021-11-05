@@ -371,11 +371,18 @@ static void do_this_every_second() // called every second
     }
     #endif
 
-#ifdef CONFIG_750D
+#if defined(CONFIG_750D)
     /* always update lens info, cam does not do it on LV on its own */
     if (lens_info.lens_exists)
     {
         _prop_lv_lens_request_update();
+    }
+#elif defined(CONFIG_200D)
+    /* There's evproc that updates LV_LENS while outside LV
+     * No solution for LV yet */
+    if (!lv && lens_info.lens_exists)
+    {
+        call("msub.lensdata");
     }
 #else
     /* update lens info outside LiveView */
