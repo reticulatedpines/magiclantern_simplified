@@ -59,14 +59,18 @@
 #define BGMT_PRESS_ISO_MOVIE 0
 #define BGMT_UNPRESS_ISO_MOVIE 0
 
-#define GMT_OLC_INFO_CHANGED 59 // backtrace copyOlcDataToStorage call in gui_massive_event_loop
+// search for "copyOlcDataToStorage uiCommand(%d)", condition is event ID
+#define GMT_OLC_INFO_CHANGED 0x62
 
 // needed for correct shutdown from powersave modes
-// SJE these are wrong, I've set the values so they don't conflict
-// with buttons used during ML menu navigation
-#define GMT_GUICMD_START_AS_CHECK 0x2e
-#define GMT_GUICMD_OPEN_SLOT_COVER 0x2f
-#define GMT_GUICMD_LOCK_OFF 0x30
+// kitor: gui_massive_event_loop decomp looks insane on 200D, had to work those backwards.
+// 200D.101 at e02d1f1a does relative jump based on event ID as index in table of offsets at e02d1f1e
+// Offsets point to jump instructions that start from e02d2824 to e02d2880
+// Some of those jumps point to another table of jumps...
+// Decomp everything, you will get xrefs in relevant code.
+#define GMT_GUICMD_START_AS_CHECK 0x5A
+#define GMT_GUICMD_OPEN_SLOT_COVER 0x56
+#define GMT_GUICMD_LOCK_OFF 0x54
 
 #define BTN_ZEBRAS_FOR_PLAYBACK BGMT_FUNC // what button to use for zebras in Play mode
 #define BTN_ZEBRAS_FOR_PLAYBACK_NAME "FUNC"
