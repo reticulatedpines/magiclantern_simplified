@@ -46,18 +46,17 @@
 #define GMT_FUNCTABLE 0xe0805f20
 #define GMT_NFUNCS 0x7
 
-#define LVAE_STRUCT 0x86308 // eg see 0xe027d866 for Tv, Av, ISO found via string search on EP_SetControlParam
-#define CONTROL_BV      (*(uint16_t*)(LVAE_STRUCT+0x28)) // EP_SetControlBv, SJE: if sequential as in 50D, then 0x28
-                                                         // CtrlBv string maybe better hits?
-#define CONTROL_BV_TV   (*(uint16_t*)(LVAE_STRUCT+0x2a))
-#define CONTROL_BV_AV   (*(uint16_t*)(LVAE_STRUCT+0x2c))
-#define CONTROL_BV_ISO  (*(uint16_t*)(LVAE_STRUCT+0x2e))
+#define LVAE_STRUCT 0x86308 // via "lvae_setcontrolbv", struct base is set as param1 to two called functions
+#define CONTROL_BV      (*(uint16_t*)(LVAE_STRUCT+0x28)) // via "lvae_setcontrolbv"
+#define CONTROL_BV_TV   (*(uint16_t*)(LVAE_STRUCT+0x2a)) // via "lvae_setcontrolaeparam"
+#define CONTROL_BV_AV   (*(uint16_t*)(LVAE_STRUCT+0x2c)) // via "lvae_setcontrolaeparam"
+#define CONTROL_BV_ISO  (*(uint16_t*)(LVAE_STRUCT+0x2e)) // via "lvae_setcontrolaeparam"
 #define CONTROL_BV_ZERO (*(uint16_t*)(LVAE_STRUCT+0x30)) // SJE strings ref AccumH, don't know where BV_ZERO comes from
-#define LVAE_ISO_SPEED  (*(uint8_t* )(LVAE_STRUCT+0x0))  // offset 0x0; at 3 it changes iso very slowly
+//#define LVAE_ISO_SPEED  (*(uint8_t* )(LVAE_STRUCT+0x0))  // offset 0x0; at 3 it changes iso very slowly
                                                          // SJE: assuming the 0 offset is correct, not sure on this one.
                                                          // But see e027ed10, where r4 <- 0x86308, then [r4] <- 0
-#define LVAE_ISO_MIN    (*(uint8_t* )(LVAE_STRUCT+0xXX)) // string: ISOMin:%d, SJE maybe 0x1a via e027e828 (if so, uint16_t)
-#define LVAE_ISO_HIS    (*(uint8_t* )(LVAE_STRUCT+0xXX)) // 10DFC 88 ISO LIMIT
+//#define LVAE_ISO_MIN    (*(uint8_t* )(LVAE_STRUCT+0xXX)) // string: ISOMin:%d, SJE maybe 0x1a via e027e828 (if so, uint16_t)
+//#define LVAE_ISO_HIS    (*(uint8_t* )(LVAE_STRUCT+0xXX)) // 10DFC 88 ISO LIMIT
 #define LVAE_DISP_GAIN  (*(uint16_t*)(LVAE_STRUCT+0x44)) // lvae_setdispgain
 #define LVAE_MOV_M_CTRL (*(uint8_t* )(LVAE_STRUCT+0xXX)) // lvae_setmoviemanualcontrol, possibly EP_SetMovieManualExp below?
 // others found but maybe not needed:

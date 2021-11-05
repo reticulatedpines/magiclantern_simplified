@@ -205,7 +205,7 @@ THUMB_FN(0xe04bb4df,  prop_register_slave) // "pRegisterSlave"
 THUMB_FN(0xe0381ba9,  LiveViewApp_handler) // DebugMsg: "StartLiveViewApp(%#x)", address passed to CreateDialogBox
 THUMB_FN(0xe06cda95,  LiveViewShutterApp_handler) // DebugMsg: "StartLiveViewShutterApp CreateDialogBox(%d)", address passed to CreateDialogBox
 THUMB_FN(0xe046fc49,  PlayMain_handler) // DebugMsg: "StartPlayMain", address passed to CreateDialogBox
-THUMB_FN(0xe0354327,  GetCFnData) // "GetCFnData" Function sig is different but the body looks similar.
+THUMB_FN(0xe03536c1,  GetCFnData) // "GetCFnData" Function sig is different but the body looks similar.
                                   // Looks like the inner functions use registers the outer doesn't, which confuses Ghidra
                                   // re how many args outer takes.
 THUMB_FN(0xe0353761,  SetCFnData) // There are some "SetCFnData" related strings
