@@ -176,6 +176,9 @@ THUMB_FN(0xfe445136,  prop_register_slave)                  // Assert "pRegister
 THUMB_FN(0xfe445206, _prop_request_change)                  // Assert "pRequestChange"; 2nd (almost identical) is at 0xfe44574a but uses different struct address - matched to struct from prop_register_slave()
 THUMB_FN(0xfe445718, _prop_cleanup)                         // DebugMsg "ChangeCBR(...". Last call in those functions.
 
+/** CFn **/
+THUMB_FN(0xFE3600D0, GetCFnData)                            // "GetCFnData"
+THUMB_FN(0xFE36016E, SetCFnData)                            // "SetCFnData"
 /**
  * RGBA / Compositor functions and structures
  */
