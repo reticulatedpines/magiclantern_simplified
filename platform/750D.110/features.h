@@ -24,6 +24,9 @@
 #define FEATURE_CROPMARKS
 
 #define CONFIG_PROP_REQUEST_CHANGE
+#define CONFIG_STATE_OBJECT_HOOKS
+#define CONFIG_LIVEVIEW
+#define FEATURE_POWERSAVE_LIVEVIEW
 
 // explicitly disable stuff that don't work or may break things
 #undef CONFIG_CRASH_LOG

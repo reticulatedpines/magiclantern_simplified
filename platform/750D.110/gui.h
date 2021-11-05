@@ -35,6 +35,14 @@
 
 #define BGMT_PRESS_HALFSHUTTER       0x50
 
+// backtrace copyOlcDataToStorage call in gui_massive_event_loop
+#define GMT_OLC_INFO_CHANGED         0x6A
+
+// needed for correct shutdown from powersave modes
+#define GMT_GUICMD_START_AS_CHECK    0x62
+#define GMT_GUICMD_OPEN_SLOT_COVER   0x5E
+#define GMT_GUICMD_LOCK_OFF          0x5C
+
 /* WRONG: DNE */
     #define BGMT_PRESS_UP_RIGHT          0xF0
     #define BGMT_PRESS_UP_LEFT           0xF1
@@ -47,25 +55,17 @@
 
     #define BGMT_UNPRESS_UDLR            0xF8
 
-    #define BGMT_PICSTYLE                0xE3
+    #define BGMT_PICSTYLE                0xF9
 
-    #define BGMT_FLASH_MOVIE             0xE4
-    #define BGMT_PRESS_FLASH_MOVIE       0xE5
-    #define BGMT_UNPRESS_FLASH_MOVIE     0xE6
+    #define BGMT_FLASH_MOVIE             0xFA
+    #define BGMT_PRESS_FLASH_MOVIE       0xFB
+    #define BGMT_UNPRESS_FLASH_MOVIE     0xFC
 
-    #define BGMT_ISO_MOVIE               0xE7
-    #define BGMT_PRESS_ISO_MOVIE         0xE8
-    #define BGMT_UNPRESS_ISO_MOVIE       0xE9
+    #define BGMT_ISO_MOVIE               0xFD
+    #define BGMT_PRESS_ISO_MOVIE         0xFE
+    #define BGMT_UNPRESS_ISO_MOVIE       0xFF
 
-    /* WRONG: to be checked */
-    // backtrace copyOlcDataToStorage call in gui_massive_event_loop
-    #define GMT_OLC_INFO_CHANGED         59
-
-    // needed for correct shutdown from powersave modes
-    #define GMT_GUICMD_START_AS_CHECK    43
-    #define GMT_GUICMD_OPEN_SLOT_COVER   40
-    #define GMT_GUICMD_LOCK_OFF          38
-
+    /* WRONG: Not yet used */
     #define BTN_ZEBRAS_FOR_PLAYBACK      BGMT_FUNC // what button to use for zebras in Play mode
     #define BTN_ZEBRAS_FOR_PLAYBACK_NAME "FUNC"
 
