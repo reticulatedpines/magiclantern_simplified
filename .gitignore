@@ -42,6 +42,7 @@ tags
 location.map
 autoexec.map
 plugins/plugin.lds
+build_tools/xor_chk
 docs/html
 docs/latex
 pymite-nat.c
