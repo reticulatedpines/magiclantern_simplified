@@ -298,6 +298,7 @@ static void prop_reset_ack(uint32_t property)
     }
 }
 
+#ifdef CONFIG_DIGIC_678
 static int is_prop_allowed(uint32_t property)
 {
     for(int i = 0;
@@ -311,6 +312,7 @@ static int is_prop_allowed(uint32_t property)
     }
     return 0;
 }
+#endif
 
 /**
  * This is just a safe wrapper for changing camera settings (well... only slightly safer than Canon's)
