@@ -26,14 +26,14 @@
 // (and unnecessary as far as I know).
 
 // deny reads / do not register property handlers for these
-const uint32_t const prop_handler_deny[] =
+const uint32_t prop_handler_deny[] =
 {
     PROP_ISO,
     PROP_MVR_REC_START // probably related to MVR stubs being all wrong
 };
 
 // allow writes / allow prop_request_change() for these:
-const uint32_t const prop_write_allow[] =
+const uint32_t prop_write_allow[] =
 {
 };
 
