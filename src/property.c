@@ -91,7 +91,7 @@ void prop_add_handler (uint32_t property, void *handler)
     // SJE TODO investigate and fix all currently denied
     // properties (those known to cause problems on D678 cams)
     #ifdef CONFIG_DIGIC_678
-    for(int i = 0;
+    for(uint32_t i = 0;
         i < sizeof(prop_handler_deny) / sizeof(*prop_handler_deny);
         i++)
     {
@@ -301,7 +301,7 @@ static void prop_reset_ack(uint32_t property)
 #ifdef CONFIG_DIGIC_678
 static int is_prop_allowed(uint32_t property)
 {
-    for(int i = 0;
+    for(uint32_t i = 0;
         i < sizeof(prop_write_allow) / sizeof(*prop_write_allow);
         i++)
     {
