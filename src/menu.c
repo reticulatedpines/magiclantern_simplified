@@ -5384,7 +5384,9 @@ handle_ml_menu_keys(struct event * event)
         break;
 
     default:
-        // SJE enable this until we get things working
+        // SJE The below can't be used with CONFIG_QEMU, build is broken,
+        // looks like a bug with a macro
+        /*
         DebugMsg( DM_MAGIC, 3, "%s: unknown event %08x? %08x %08x %x08",
             __func__,
             event,
@@ -5392,6 +5394,7 @@ handle_ml_menu_keys(struct event * event)
             arg3,
             arg4
         );
+        */
         return 1;
     }
 
