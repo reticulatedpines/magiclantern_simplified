@@ -8,8 +8,20 @@
 
 #define HIJACK_FIXBR_BZERO32        0xfe0cd00a   /* blx bzero32 in cstart*/
 #define HIJACK_FIXBR_CREATE_ITASK   0xfe0cd05e   /* blx create_init_task at the very end*/
-#define HIJACK_INSTR_BSS_END        0xfe0cd078
+#define PTR_USER_MEM_START          0xfe0cd078
 #define HIJACK_INSTR_MY_ITASK       0xfe0cd084   /* pointer to address of init_task passed to create_init_task */
+
+#define ML_MAX_USER_MEM_STOLEN 0x40000 // SJE: let's assume D6 can steal the same as D78 from user_mem
+                                       // I'm not very confident on this, early mem stuff is significantly
+                                       // different on D6...
+
+#define ML_MAX_SYS_MEM_INCREASE 0x90000 // SJE: we require close to 0xb0000 total, given the large size of early
+                                        // code on D6.  Pushing up sys_mem by this size has not yet
+                                        // been tested!  Could be very dangerous.
+
+#define ML_RESERVED_MEM 0xa2000 // Can be lower than ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE,
+                                // but must not be higher; sys_objs would get overwritten by ML code.
+                                // Must be larger than MemSiz reported by build for magiclantern.bin
 
 /* "Malloc Information" */
 #define MALLOC_STRUCT 0x42358                    // from get_malloc_info, helper of malloc_info
