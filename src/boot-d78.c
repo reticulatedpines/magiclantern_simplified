@@ -128,12 +128,15 @@ static void my_create_init_task(struct dryos_init_info *dryos, uint32_t init_tas
     // sys_objs start and sys_mem start.
     // The effects of this have not been fully tested.
 
+    // replace Canon's init_task with ours
+    init_task = (uint32_t)my_init_task;
+
     // Reserve memory by reducing the user_mem pool and, if necessary for the
     // requested size, moving up the start of sys_objs and sys_mem.
     // ML goes in the gap.  RESTARTSTART defines the start address of the gap,
     // ML_RESERVED_MEM the size.
     ml_reserved_mem = ML_RESERVED_MEM;
-    dump_dryos_init_info(dryos);
+    //dump_dryos_init_info(dryos);
 
     // align up to 8, DryOS does this for the various mem regions
     // that we are adjusting.
@@ -178,7 +181,7 @@ static void my_create_init_task(struct dryos_init_info *dryos, uint32_t init_tas
     dryos->sys_objs_end += sys_offset_increase;
     dryos->sys_mem_start += sys_offset_increase;
 
-    dump_dryos_init_info(dryos);
+    //dump_dryos_init_info(dryos);
 
     create_init_task(dryos, init_task, c);
 
@@ -241,13 +244,11 @@ copy_and_restart(int offset)
 #endif
 
     // Fix the calls to bzero32() and create_init_task() in cstart
+    //
+    // Our my_create_init_task wraps Canon create_init_task
+    // and modifies OS memory layout to make room for ML
     FIXUP_BRANCH(HIJACK_FIXBR_BZERO32, my_bzero32);
     FIXUP_BRANCH(HIJACK_FIXBR_CREATE_ITASK, my_create_init_task);
-
-    // Set our init task to run instead of the firmware one
-    qprint("[BOOT] changing init_task from "); qprintn(INSTR(HIJACK_INSTR_MY_ITASK));
-    qprint("to "); qprintn((uint32_t)my_init_task); qprint("\n");
-    INSTR(HIJACK_INSTR_MY_ITASK) = (uint32_t)my_init_task;
 
     // Make sure that our self-modifying code clears the cache
     sync_caches();
