@@ -43,10 +43,20 @@ static inline uint32_t thumb_branch_instr(uint32_t pc, uint32_t dest, uint32_t o
 #define INSTR( addr ) ( *(uint32_t*)( (addr) - ROMBASEADDR + RELOCADDR ) )
 
 /** Fix a branch instruction in the relocated firmware image */
-#define FIXUP_BRANCH( rom_addr, dest_addr ) \
-    qprint("[BOOT] fixing up branch at "); qprintn((uint32_t) &INSTR( rom_addr )); \
-    qprint(" (ROM: "); qprintn(rom_addr); qprint(") to "); qprintn((uint32_t)(dest_addr)); qprint("\n"); \
-    INSTR( rom_addr ) = THUMB_BL_INSTR( &INSTR( rom_addr ), (dest_addr) )
+#ifdef CONFIG_DIGIC_78
+// SJE FIXME let's stop using so many insane macros
+    #define FIXUP_BRANCH( rom_addr, dest_addr ) \
+        qprint("[BOOT] fixing up branch at "); qprintn((uint32_t) &INSTR( rom_addr )); \
+        qprint(" (ROM: "); qprintn(rom_addr); qprint(") to "); qprintn((uint32_t)(dest_addr)); qprint("\n"); \
+        INSTR( rom_addr ) = THUMB_BL_INSTR( &INSTR( rom_addr ), (dest_addr) )
+#elif defined(CONFIG_DIGIC_VI)
+    #define FIXUP_BRANCH( rom_addr, dest_addr ) \
+        qprint("[BOOT] fixing up branch at "); qprintn((uint32_t) &INSTR( rom_addr )); \
+        qprint(" (ROM: "); qprintn(rom_addr); qprint(") to "); qprintn((uint32_t)(dest_addr)); qprint("\n"); \
+        INSTR( rom_addr ) = THUMB_BLX_INSTR( &INSTR( rom_addr ), (dest_addr) )
+#else
+    #error "Expected D678!"
+#endif
 
 static void my_bzero32(void* buf, size_t len)
 {
@@ -218,6 +228,9 @@ copy_and_restart(int offset)
     FIXUP_BRANCH(HIJACK_FIXBR_DCACHE_CLN_2, my_dcache_clean);
     FIXUP_BRANCH(HIJACK_FIXBR_ICACHE_INV_1, my_icache_invalidate);
     FIXUP_BRANCH(HIJACK_FIXBR_ICACHE_INV_2, my_icache_invalidate);
+
+    // SJE FIXME - this comment is untrue for 200D,
+    // it's a relative jump.  Is it true for any cams?
 
     // Fix the absolute jump to cstart
     FIXUP_BRANCH(HIJACK_INSTR_BL_CSTART, &INSTR(cstart));
