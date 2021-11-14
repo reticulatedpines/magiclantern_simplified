@@ -22,6 +22,10 @@
 #define HIJACK_INSTR_MY_ITASK 0xFF0C1D58
 #define HIJACK_TASK_ADDR 0x23E14
 
+// Used for copying and modifying ROM code before transferring control.
+// Look in HIJACK macros for the highest address, subtract ROMBASEADDR, align up.
+#define RELOCSIZE 0x3000
+
 /* these are used in bitrate.c for video bitrate hacks */
 #define CACHE_HACK_FLUSH_RATE_SLAVE  0xFF0EA570
 #define CACHE_HACK_GOP_SIZE_SLAVE    0xFF21B8D0

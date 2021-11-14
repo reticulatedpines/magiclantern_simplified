@@ -5,18 +5,14 @@
 #include "dryos.h"
 #include "boot.h"
 
+#if !defined(CONFIG_DIGIC_678)
+    #error "Expected D678"
+#endif
+
 /** These are called when new tasks are created */
 static int my_init_task(int a, int b, int c, int d);
 
 /** This just goes into the bss */
-#ifdef CONFIG_DIGIC_VI
-// SJE FIXME move RELOCSIZE to per cam dir and include via header
-    #define RELOCSIZE 0x3d100
-#elif defined CONFIG_DIGIC_78
-    #define RELOCSIZE 0x1000 // look in HIJACK macros for the highest address, and subtract ROMBASEADDR
-#else
-    #error "Expected D678"
-#endif
 static uint32_t _reloc[ RELOCSIZE / 4 ];
 #define RELOCADDR ((uintptr_t) _reloc)
 
@@ -54,8 +50,6 @@ static inline uint32_t thumb_branch_instr(uint32_t pc, uint32_t dest, uint32_t o
         qprint("[BOOT] fixing up branch at "); qprintn((uint32_t) &INSTR( rom_addr )); \
         qprint(" (ROM: "); qprintn(rom_addr); qprint(") to "); qprintn((uint32_t)(dest_addr)); qprint("\n"); \
         INSTR( rom_addr ) = THUMB_BLX_INSTR( &INSTR( rom_addr ), (dest_addr) )
-#else
-    #error "Expected D678!"
 #endif
 
 static void my_bzero32(void* buf, size_t len)
@@ -258,8 +252,6 @@ copy_and_restart(int offset)
     thunk __attribute__((long_call)) reloc_entry = (thunk)(RELOCADDR + 0xc + 1);
 #elif defined(CONFIG_DIGIC_78)
     thunk __attribute__((long_call)) reloc_entry = (thunk)(RELOCADDR + 1);
-#else
-    #error "Expected D678"
 #endif
     qprint("[BOOT] jumping to relocated startup code at "); qprintn((uint32_t)reloc_entry); qprint("\n");
     reloc_entry();

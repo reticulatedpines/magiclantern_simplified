@@ -16,6 +16,10 @@
 #define HIJACK_INSTR_MY_ITASK 0xFF810948
 #define HIJACK_TASK_ADDR 0x1A24
 
+// Used for copying and modifying ROM code before transferring control.
+// Look in HIJACK macros for the highest address, subtract ROMBASEADDR, align up.
+#define RELOCSIZE 0x3000
+
 #define ARMLIB_OVERFLOWING_BUFFER 0x21c94 // in AJ_armlib_setup_related3
 
 #define DRYOS_ASSERT_HANDLER 0x19c8 // dec TH_assert or assert_0

@@ -32,6 +32,10 @@
                                 // but must not be higher; sys_objs would get overwritten by ML code.
                                 // Must be larger than MemSiz reported by build for magiclantern.bin
 
+// Used for copying and modifying ROM code before transferring control.
+// Look in HIJACK macros for the highest address, subtract ROMBASEADDR, align up.
+#define RELOCSIZE 0x1000
+
 /*
 Before patching:
 DryOS base    user_start                       sys_objs_start    sys_start

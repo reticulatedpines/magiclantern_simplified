@@ -17,6 +17,10 @@
 #define HIJACK_FIXBR_CREATE_ITASK 0xFF0C1C54
 #define HIJACK_INSTR_MY_ITASK 0xFF0C1C6C
 
+// Used for copying and modifying ROM code before transferring control.
+// Look in HIJACK macros for the highest address, subtract ROMBASEADDR, align up.
+#define RELOCSIZE 0x3000
+
 // Used in boot-hack.c with CONFIG_ALLOCATE_MEMORY_POOL
 #define ROM_ITASK_START 0xFF0C5438
 #define ROM_ITASK_END  0xFF0C54B0
