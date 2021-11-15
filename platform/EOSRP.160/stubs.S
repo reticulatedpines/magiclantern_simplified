@@ -209,6 +209,8 @@ DATA_PTR(    0xFF1C, _rgb_vram_info); // there is no string string reference nea
 THUMB_FN(0xe055373c,  PlayMain_handler)                     // contains "DlgPlayMain.c StartFirmInfoApp" string
 THUMB_FN(0xe06f3ef8,  ShootOlcApp_handler)                  // contains "DlgOlcMainCreative.c GUI_DIAL_Event(%#x)" string
 THUMB_FN(0xe043519c,  LiveViewApp_handler)                  // contains "DlgLiveView.c During QR Request Event(0x%08X) Consume" string
+THUMB_FN(0xe07e066a,  LiveViewShutterApp_handler)           // msg: "StartLiveViewShutterApp"
+
 /**
  * STUFF BELOW IS WRONG!
  **/
