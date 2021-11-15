@@ -12,12 +12,40 @@
 /** These are called when new tasks are created */
 static int my_init_task(int a, int b, int c, int d);
 
-/** This just goes into the bss */
+// This reserves space for some early Canon code to be copied into,
+// edited by us, then executed.  The build locates this in bss of
+// our binary, so the location is known.
 static uint32_t _reloc[ RELOCSIZE / 4 ];
 #define RELOCADDR ((uintptr_t) _reloc)
 
-static inline uint32_t thumb_branch_instr(uint32_t pc, uint32_t dest, uint32_t opcode)
+static uint32_t reloc_addr(uint32_t addr)
 {
+    // converts an address from "normal" cam range
+    // to its address within our copied code in reloc buffer
+    return (uint32_t*)((addr) - ROMBASEADDR + RELOCADDR);
+}
+
+#define THUMB_B_W 0x9000f000
+#define THUMB_BL  0xd000f000
+#define THUMB_BLX 0xc000f000
+
+static inline void patch_thumb_branch(uint32_t pc, uint32_t dest, uint32_t opcode)
+{
+    // Converts the pc address to within the reloc buffer range,
+    // and patches the reloc copy to branch to dest.
+    //
+    // pc should be an address in "normal" cam range for code,
+    // dest should be an address within ML address range.
+    //
+    // pc should be part of the rom region that has been copied
+    // to reloc buffer.  The instruction at pc should be b.w, bx or blx.
+    //
+    // opcode must be one of the above defines, this selects the type
+    // of branch patched into reloc (allowing you to change Thumb / ARM mode).
+
+    pc = reloc_addr(pc);
+    qprint("[BOOT] fixing up branch at "); qprintn(pc);
+    qprint(" (ROM: "); qprintn(pc); qprint(") to "); qprintn(dest); qprint("\n");
     /* thanks atonal */
     //uint32_t offset = dest - ((pc + 4) & ~3); /* according to datasheets, this should be the correct calculation -> ALIGN(PC, 4) */
     uint32_t offset = dest - (pc + 4);  /* this one works for BX */
@@ -29,28 +57,8 @@ static inline uint32_t thumb_branch_instr(uint32_t pc, uint32_t dest, uint32_t o
     uint32_t j1 = (!(i1 ^ s)) & 0x1;
     uint32_t j2 = (!(i2 ^ s)) & 0x1;
 
-    return opcode | (s << 10) | imm10 | (j1 << 29) | (j2 << 27) | (imm11 << 16);
+    *(uint32_t *)pc = opcode | (s << 10) | imm10 | (j1 << 29) | (j2 << 27) | (imm11 << 16);
 }
-
-#define THUMB_B_W_INSTR(pc,dest)    thumb_branch_instr((uint32_t)(pc), (uint32_t)(dest), 0x9000f000)
-#define THUMB_BL_INSTR(pc,dest)     thumb_branch_instr((uint32_t)(pc), (uint32_t)(dest), 0xd000f000)
-#define THUMB_BLX_INSTR(pc,dest)    thumb_branch_instr((uint32_t)(pc), (uint32_t)(dest), 0xc000f000)
-
-#define INSTR( addr ) ( *(uint32_t*)( (addr) - ROMBASEADDR + RELOCADDR ) )
-
-/** Fix a branch instruction in the relocated firmware image */
-#ifdef CONFIG_DIGIC_78
-// SJE FIXME let's stop using so many insane macros
-    #define FIXUP_BRANCH( rom_addr, dest_addr ) \
-        qprint("[BOOT] fixing up branch at "); qprintn((uint32_t) &INSTR( rom_addr )); \
-        qprint(" (ROM: "); qprintn(rom_addr); qprint(") to "); qprintn((uint32_t)(dest_addr)); qprint("\n"); \
-        INSTR( rom_addr ) = THUMB_BL_INSTR( &INSTR( rom_addr ), (dest_addr) )
-#elif defined(CONFIG_DIGIC_VI)
-    #define FIXUP_BRANCH( rom_addr, dest_addr ) \
-        qprint("[BOOT] fixing up branch at "); qprintn((uint32_t) &INSTR( rom_addr )); \
-        qprint(" (ROM: "); qprintn(rom_addr); qprint(") to "); qprintn((uint32_t)(dest_addr)); qprint("\n"); \
-        INSTR( rom_addr ) = THUMB_BLX_INSTR( &INSTR( rom_addr ), (dest_addr) )
-#endif
 
 static void my_bzero32(void* buf, size_t len)
 {
@@ -58,7 +66,6 @@ static void my_bzero32(void* buf, size_t len)
 }
 
 #ifdef CONFIG_DIGIC_678
-// SJE FIXME - probably move this to a header
 struct dryos_init_info
 {
     uint32_t sys_mem_start;
@@ -100,18 +107,6 @@ struct dryos_init_info
 };
 #endif
 
-#ifdef CONFIG_QEMU
-static void dump_dryos_init_info(struct dryos_init_info *dryos)
-{
-    qprintn(dryos->sys_mem_start); qprint("\n");
-    qprintn(dryos->sys_mem_len); qprint("\n");
-    qprintn(dryos->user_mem_start); qprint("\n");
-    qprintn(dryos->user_mem_len); qprint("\n");
-    qprintn(dryos->sys_objs_start); qprint("\n");
-    qprintn(dryos->sys_objs_end); qprint("\n");
-}
-#endif
-
 static void my_create_init_task(struct dryos_init_info *dryos, uint32_t init_task, uint32_t c)
 {
     // We wrap Canon's create_init_task, allowing us to modify the
@@ -130,7 +125,6 @@ static void my_create_init_task(struct dryos_init_info *dryos, uint32_t init_tas
     // ML goes in the gap.  RESTARTSTART defines the start address of the gap,
     // ML_RESERVED_MEM the size.
     ml_reserved_mem = ML_RESERVED_MEM;
-    //dump_dryos_init_info(dryos);
 
     // align up to 8, DryOS does this for the various mem regions
     // that we are adjusting.
@@ -174,8 +168,6 @@ static void my_create_init_task(struct dryos_init_info *dryos, uint32_t init_tas
     dryos->sys_objs_start += sys_offset_increase;
     dryos->sys_objs_end += sys_offset_increase;
     dryos->sys_mem_start += sys_offset_increase;
-
-    //dump_dryos_init_info(dryos);
 
     create_init_task(dryos, init_task, c);
 
@@ -221,28 +213,34 @@ copy_and_restart(int offset)
 
 #ifdef CONFIG_DIGIC_78
     // Fix cache maintenance calls before cstart
-    FIXUP_BRANCH(HIJACK_FIXBR_DCACHE_CLN_1, my_dcache_clean);
-    FIXUP_BRANCH(HIJACK_FIXBR_DCACHE_CLN_2, my_dcache_clean);
-    FIXUP_BRANCH(HIJACK_FIXBR_ICACHE_INV_1, my_icache_invalidate);
-    FIXUP_BRANCH(HIJACK_FIXBR_ICACHE_INV_2, my_icache_invalidate);
+    patch_thumb_branch(HIJACK_FIXBR_DCACHE_CLN_1, my_dcache_clean, THUMB_BL);
+    patch_thumb_branch(HIJACK_FIXBR_DCACHE_CLN_2, my_dcache_clean, THUMB_BL);
+    patch_thumb_branch(HIJACK_FIXBR_ICACHE_INV_1, my_icache_invalidate, THUMB_BL);
+    patch_thumb_branch(HIJACK_FIXBR_ICACHE_INV_2, my_icache_invalidate, THUMB_BL);
 
     // SJE FIXME - this comment is untrue for 200D,
     // it's a relative jump.  Is it true for any cams?
 
     // Fix the absolute jump to cstart
-    FIXUP_BRANCH(HIJACK_INSTR_BL_CSTART, &INSTR(cstart));
+    patch_thumb_branch(HIJACK_INSTR_BL_CSTART, reloc_addr(cstart), THUMB_BL);
 
     /* there are two more functions in cstart that don't require patching */
     /* the first one is within the relocated code; it initializes the per-CPU data structure at VA 0x1000 */
     /* the second one is called only when running on CPU1; assuming our code only runs on CPU0 */
 #endif
 
-    // Fix the calls to bzero32() and create_init_task() in cstart
+    // Fix the calls to bzero32() and create_init_task() in cstart.
+    // These are ARM functions in D6 so we must swap modes.
     //
     // Our my_create_init_task wraps Canon create_init_task
     // and modifies OS memory layout to make room for ML
-    FIXUP_BRANCH(HIJACK_FIXBR_BZERO32, my_bzero32);
-    FIXUP_BRANCH(HIJACK_FIXBR_CREATE_ITASK, my_create_init_task);
+#ifdef CONFIG_DIGIC_78
+    uint32_t b_type = THUMB_BL;
+#else
+    uint32_t b_type = THUMB_BLX;
+#endif
+    patch_thumb_branch(HIJACK_FIXBR_BZERO32, my_bzero32, b_type);
+    patch_thumb_branch(HIJACK_FIXBR_CREATE_ITASK, my_create_init_task, b_type);
 
     // Make sure that our self-modifying code clears the cache
     sync_caches();
