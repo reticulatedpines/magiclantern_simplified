@@ -4,11 +4,18 @@ CANON_NAME_FIR  = 7D200104.FIR
 FIRMWARE_ID     = 0x80000289
 ROMBASEADDR     = 0xFE0A0000
 
-# Shrink Canon's malloc heap by changing its start address (identical to 80D)
-#          ("meminfo -m" in drysh)    ("memmap" in drysh)
-# Default: 0x001cc408 - 0x002e0c18, 001cc400 - 002e0df4 (total size 0x1149f4)
-# Patched: variable   - 0x002e0c18, variable - 002e0df4 (reserved according to autoexec.bin size + BSS)
-RESTARTSTART    = 0x001CC400
+# RESTARTSTART is the location in mem that ML binary will be copied to.
+# For D678 we put ML in between user_mem and sys_objs, and may
+# shrink user_mem.  Therefore this value should be:
+# sys_objs_start - ML_MAX_USER_MEM_STOLEN
+# I align up a little out of caution.
+#
+# See 200D Makefile.platform.default for a longer description
+
+# SJE FIXME I don't have a 7D2 rom to work from, so I can't
+# determine this value.
+#RESTARTSTART    = 0x001CC400
+
 
 # Cortex R4
 CFLAG_USER += -mlong-calls
@@ -21,4 +28,4 @@ ML_MINIMAL_OBJ  = minimal-d678.o
 ML_SRC_EXTRA_OBJS += log-d678.o stdio.o
 endif
 
-ML_BOOT_OBJ     = boot-d6.o
+ML_BOOT_OBJ     = boot-d678.o

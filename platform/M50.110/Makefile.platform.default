@@ -20,7 +20,7 @@ ROMBASEADDR     = 0xE0040000
 #
 # See firmware entry function for where these values are used to calc / position
 # the regions.
-# boot-d78.c adjusts these constants before the code runs.
+# boot-d678.c adjusts these constants before the code runs.
 #
 # Presumably, if too much mem is stolen from user_mem, or sys region
 # is moved too far upwards, Bad Things happen.
@@ -46,5 +46,5 @@ PLATFORM_ARCH = armv7-a
 #ML_MINIMAL_OBJ  = minimal-d78.o
 #endif
 
-ML_BOOT_OBJ     = boot-d78.o
+ML_BOOT_OBJ     = boot-d678.o
 ML_SRC_EXTRA_OBJS += function_overrides.o

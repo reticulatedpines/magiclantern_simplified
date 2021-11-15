@@ -50,6 +50,6 @@ CFLAG_USER += -mthumb -mlong-calls
 #ML_SRC_EXTRA_OBJS += log-d678.o stdio.o function_overrides.o
 #endif
 
-ML_BOOT_OBJ     = boot-d78.o
+ML_BOOT_OBJ     = boot-d678.o
 ML_SRC_EXTRA_OBJS += function_overrides.o
 

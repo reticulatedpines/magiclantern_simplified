@@ -18,3 +18,15 @@
 // cstart is close to firmware_entry?  I don't have a ROM to confirm this,
 // so I've set RELOCSIZE as high as a "standard" D6.  Possibly it can be
 // adjusted much lower.
+
+#define ML_MAX_USER_MEM_STOLEN 0x40000 // SJE: let's assume D6 can steal the same as D78 from user_mem
+                                       // I'm not very confident on this, early mem stuff is significantly
+                                       // different on D6...
+
+#define ML_MAX_SYS_MEM_INCREASE 0x90000 // SJE: we require close to 0xb0000 total, given the large size of early
+                                        // code on D6.  Pushing up sys_mem by this size has only had minimal
+                                        // testing.  Could be very dangerous.
+
+#define ML_RESERVED_MEM 0xa2000 // Can be lower than ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE,
+                                // but must not be higher; sys_objs would get overwritten by ML code.
+                                // Must be larger than MemSiz reported by build for magiclantern.bin

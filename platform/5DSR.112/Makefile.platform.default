@@ -21,4 +21,4 @@ ML_MINIMAL_OBJ  = minimal-d678.o
 ML_SRC_EXTRA_OBJS += log-d678.o stdio.o
 endif
 
-ML_BOOT_OBJ     = boot-d6.o
+ML_BOOT_OBJ     = boot-d678.o
