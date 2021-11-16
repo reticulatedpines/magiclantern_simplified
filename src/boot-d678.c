@@ -213,16 +213,16 @@ copy_and_restart(int offset)
 
 #ifdef CONFIG_DIGIC_78
     // Fix cache maintenance calls before cstart
-    patch_thumb_branch(HIJACK_FIXBR_DCACHE_CLN_1, (uint32_t)my_dcache_clean, THUMB_BL);
-    patch_thumb_branch(HIJACK_FIXBR_DCACHE_CLN_2, (uint32_t)my_dcache_clean, THUMB_BL);
-    patch_thumb_branch(HIJACK_FIXBR_ICACHE_INV_1, (uint32_t)my_icache_invalidate, THUMB_BL);
-    patch_thumb_branch(HIJACK_FIXBR_ICACHE_INV_2, (uint32_t)my_icache_invalidate, THUMB_BL);
+    patch_thumb_branch(BR_DCACHE_CLN_1, (uint32_t)my_dcache_clean, THUMB_BL);
+    patch_thumb_branch(BR_DCACHE_CLN_2, (uint32_t)my_dcache_clean, THUMB_BL);
+    patch_thumb_branch(BR_ICACHE_INV_1, (uint32_t)my_icache_invalidate, THUMB_BL);
+    patch_thumb_branch(BR_ICACHE_INV_2, (uint32_t)my_icache_invalidate, THUMB_BL);
 
     // SJE FIXME - this comment is untrue for 200D,
     // it's a relative jump.  Is it true for any cams?
 
     // Fix the absolute jump to cstart
-    patch_thumb_branch(HIJACK_INSTR_BL_CSTART, reloc_addr((uint32_t)cstart), THUMB_BL);
+    patch_thumb_branch(BR_CSTART, reloc_addr((uint32_t)cstart), THUMB_BL);
 
     /* there are two more functions in cstart that don't require patching */
     /* the first one is within the relocated code; it initializes the per-CPU data structure at VA 0x1000 */
@@ -237,14 +237,14 @@ copy_and_restart(int offset)
     // The early code copied to reloc buffer in D678 is Thumb.
     // If we patch a branch to a target that's ARM, we must swap modes.
     if ((uint32_t)bzero32 % 2) // Thumb target
-        patch_thumb_branch(HIJACK_FIXBR_BZERO32, (uint32_t)my_bzero32, THUMB_BL);
+        patch_thumb_branch(BR_BZERO32, (uint32_t)my_bzero32, THUMB_BL);
     else // ARM target
-        patch_thumb_branch(HIJACK_FIXBR_BZERO32, (uint32_t)my_bzero32, THUMB_BLX);
+        patch_thumb_branch(BR_BZERO32, (uint32_t)my_bzero32, THUMB_BLX);
 
     if ((uint32_t)create_init_task % 2) // Thumb target
-        patch_thumb_branch(HIJACK_FIXBR_CREATE_ITASK, (uint32_t)my_create_init_task, THUMB_BL);
+        patch_thumb_branch(BR_CREATE_ITASK, (uint32_t)my_create_init_task, THUMB_BL);
     else // ARM target
-        patch_thumb_branch(HIJACK_FIXBR_CREATE_ITASK, (uint32_t)my_create_init_task, THUMB_BLX);
+        patch_thumb_branch(BR_CREATE_ITASK, (uint32_t)my_create_init_task, THUMB_BLX);
 
     // Make sure that our self-modifying code clears the cache
     sync_caches();

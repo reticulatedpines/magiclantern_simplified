@@ -6,13 +6,12 @@
 #define LEDON                       0x4D0002
 #define LEDOFF                      0x4C0003
 
-#define HIJACK_FIXBR_BZERO32        0xfe0cd00a   /* blx bzero32 in cstart*/
-#define HIJACK_FIXBR_CREATE_ITASK   0xfe0cd05e   /* blx create_init_task at the very end*/
-#define PTR_USER_MEM_START          0xfe0cd078
-#define HIJACK_INSTR_MY_ITASK       0xfe0cd084   /* pointer to address of init_task passed to create_init_task */
+#define BR_BZERO32         0xfe0cd00a // blx bzero32 in cstart
+#define BR_CREATE_ITASK    0xfe0cd05e // blx create_init_task at the very end
+#define PTR_USER_MEM_START 0xfe0cd078
 
 // Used for copying and modifying ROM code before transferring control.
-// Look in HIJACK macros for the highest address, subtract ROMBASEADDR, align up.
+// Look in BR_ macros above for the highest address, subtract ROMBASEADDR, align up.
 #define RELOCSIZE 0x2d100
 
 #define ML_MAX_USER_MEM_STOLEN 0x40000 // SJE: let's assume D6 can steal the same as D78 from user_mem

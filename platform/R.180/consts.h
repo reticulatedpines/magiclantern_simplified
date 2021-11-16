@@ -6,18 +6,17 @@
 #define LEDON                       0xD0002
 #define LEDOFF                      0xC0003
 
-#define HIJACK_FIXBR_ICACHE_INV_1   0xE0040072   /* first call to icache_invalidate, before cstart */
-#define HIJACK_FIXBR_DCACHE_CLN_1   0xE0040068   /* first call to dcache_clean, before cstart */
-#define HIJACK_FIXBR_DCACHE_CLN_2   0xE00400A0   /* second call to dcache_clean, before cstart */
-#define HIJACK_FIXBR_ICACHE_INV_2   0xE00400AA   /* second call to icache_invalidate, before cstart */
-#define HIJACK_INSTR_BL_CSTART      0xE00400C0   /* easier to fix up here, rather than at E0040034 */
-#define PTR_USER_MEM_SIZE           0xE00401D8   /* easier to patch the size; start address is computed */
-#define PTR_SYS_OFFSET              0xE00401D0   // offset from DryOS base to sys_mem start
-#define PTR_SYS_OBJS_OFFSET         0xE00401DC   // offset from DryOS base to sys_obj start
-#define HIJACK_FIXBR_BZERO32        0xE0040152   /* called from cstart */
-#define HIJACK_FIXBR_CREATE_ITASK   0xE00401B4   /* called from cstart */
-#define HIJACK_INSTR_MY_ITASK       0xE00401E4   /* address of init_task passed to create_init_task */
-#define PTR_DRYOS_BASE              0xE00401BC
+#define BR_ICACHE_INV_1     0xE0040072   /* first call to icache_invalidate, before cstart */
+#define BR_DCACHE_CLN_1     0xE0040068   /* first call to dcache_clean, before cstart */
+#define BR_DCACHE_CLN_2     0xE00400A0   /* second call to dcache_clean, before cstart */
+#define BR_ICACHE_INV_2     0xE00400AA   /* second call to icache_invalidate, before cstart */
+#define BR_CSTART           0xE00400C0   /* easier to fix up here, rather than at E0040034 */
+#define PTR_USER_MEM_SIZE   0xE00401D8   /* easier to patch the size; start address is computed */
+#define PTR_SYS_OFFSET      0xE00401D0   // offset from DryOS base to sys_mem start
+#define PTR_SYS_OBJS_OFFSET 0xE00401DC   // offset from DryOS base to sys_obj start
+#define BR_BZERO32          0xE0040152   /* called from cstart */
+#define BR_CREATE_ITASK     0xE00401B4   /* called from cstart */
+#define PTR_DRYOS_BASE      0xE00401BC
 
 #define ML_MAX_USER_MEM_STOLEN      0x40000 // True max differs per cam, 0x40000 has been tested on
                                             // the widest range of D678 cams with no observed problems,
@@ -32,7 +31,7 @@
                                 // Must be larger than MemSiz reported by build for magiclantern.bin
 
 // Used for copying and modifying ROM code before transferring control.
-// Look in HIJACK macros for the highest address, subtract ROMBASEADDR, align up.
+// Look in BR_ macros for the highest address, subtract ROMBASEADDR, align up.
 #define RELOCSIZE 0x1000
 
 #if ML_RESERVED_MEM > ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE

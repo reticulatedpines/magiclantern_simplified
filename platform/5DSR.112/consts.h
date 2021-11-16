@@ -6,13 +6,11 @@
 #define LEDON                       0xD0002
 #define LEDOFF                      0xC0003
 
-#define HIJACK_INSTR_BSS_END        0xFE0EE388
-#define HIJACK_FIXBR_BZERO32        0xFE0EE31A
-#define HIJACK_FIXBR_CREATE_ITASK   0xFE0EE36E
-#define HIJACK_INSTR_MY_ITASK       0xFE0EE394
+#define BR_BZERO32        0xFE0EE31A
+#define BR_CREATE_ITASK   0xFE0EE36E
 
 // Used for copying and modifying ROM code before transferring control.
-// Look in HIJACK macros for the highest address, subtract ROMBASEADDR, align up.
+// Look in BR_ macros for the highest address, subtract ROMBASEADDR, align up.
 #define RELOCSIZE 0x4e400
 
 #define ML_MAX_USER_MEM_STOLEN 0x40000 // SJE: let's assume D6 can steal the same as D78 from user_mem
