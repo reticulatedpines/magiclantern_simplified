@@ -15,21 +15,21 @@ static int my_init_task(int a, int b, int c, int d);
 // This reserves space for some early Canon code to be copied into,
 // edited by us, then executed.  The build locates this in bss of
 // our binary, so the location is known.
-static uint32_t _reloc[ RELOCSIZE / 4 ];
+static uint32_t _reloc[RELOCSIZE / 4];
 #define RELOCADDR ((uintptr_t) _reloc)
 
 static uint32_t reloc_addr(uint32_t addr)
 {
     // converts an address from "normal" cam range
     // to its address within our copied code in reloc buffer
-    return (uint32_t*)((addr) - ROMBASEADDR + RELOCADDR);
+    return addr - ROMBASEADDR + RELOCADDR;
 }
 
 #define THUMB_B_W 0x9000f000
 #define THUMB_BL  0xd000f000
 #define THUMB_BLX 0xc000f000
 
-static inline void patch_thumb_branch(uint32_t pc, uint32_t dest, uint32_t opcode)
+static void patch_thumb_branch(uint32_t pc, uint32_t dest, uint32_t opcode)
 {
     // Converts the pc address to within the reloc buffer range,
     // and patches the reloc copy to branch to dest.
@@ -60,7 +60,7 @@ static inline void patch_thumb_branch(uint32_t pc, uint32_t dest, uint32_t opcod
     *(uint32_t *)pc = opcode | (s << 10) | imm10 | (j1 << 29) | (j2 << 27) | (imm11 << 16);
 }
 
-static void my_bzero32(void* buf, size_t len)
+static void my_bzero32(void *buf, size_t len)
 {
     bzero32(buf, len);
 }
@@ -213,16 +213,16 @@ copy_and_restart(int offset)
 
 #ifdef CONFIG_DIGIC_78
     // Fix cache maintenance calls before cstart
-    patch_thumb_branch(HIJACK_FIXBR_DCACHE_CLN_1, my_dcache_clean, THUMB_BL);
-    patch_thumb_branch(HIJACK_FIXBR_DCACHE_CLN_2, my_dcache_clean, THUMB_BL);
-    patch_thumb_branch(HIJACK_FIXBR_ICACHE_INV_1, my_icache_invalidate, THUMB_BL);
-    patch_thumb_branch(HIJACK_FIXBR_ICACHE_INV_2, my_icache_invalidate, THUMB_BL);
+    patch_thumb_branch(HIJACK_FIXBR_DCACHE_CLN_1, (uint32_t)my_dcache_clean, THUMB_BL);
+    patch_thumb_branch(HIJACK_FIXBR_DCACHE_CLN_2, (uint32_t)my_dcache_clean, THUMB_BL);
+    patch_thumb_branch(HIJACK_FIXBR_ICACHE_INV_1, (uint32_t)my_icache_invalidate, THUMB_BL);
+    patch_thumb_branch(HIJACK_FIXBR_ICACHE_INV_2, (uint32_t)my_icache_invalidate, THUMB_BL);
 
     // SJE FIXME - this comment is untrue for 200D,
     // it's a relative jump.  Is it true for any cams?
 
     // Fix the absolute jump to cstart
-    patch_thumb_branch(HIJACK_INSTR_BL_CSTART, reloc_addr(cstart), THUMB_BL);
+    patch_thumb_branch(HIJACK_INSTR_BL_CSTART, reloc_addr((uint32_t)cstart), THUMB_BL);
 
     /* there are two more functions in cstart that don't require patching */
     /* the first one is within the relocated code; it initializes the per-CPU data structure at VA 0x1000 */
@@ -230,22 +230,29 @@ copy_and_restart(int offset)
 #endif
 
     // Fix the calls to bzero32() and create_init_task() in cstart.
-    // These are ARM functions in D6 so we must swap modes.
     //
     // Our my_create_init_task wraps Canon create_init_task
     // and modifies OS memory layout to make room for ML
-#ifdef CONFIG_DIGIC_78
-    uint32_t b_type = THUMB_BL;
-#else
-    uint32_t b_type = THUMB_BLX;
-#endif
-    patch_thumb_branch(HIJACK_FIXBR_BZERO32, my_bzero32, b_type);
-    patch_thumb_branch(HIJACK_FIXBR_CREATE_ITASK, my_create_init_task, b_type);
+
+    // The early code copied to reloc buffer in D678 is Thumb.
+    // If we patch a branch to a target that's ARM, we must swap modes.
+    if ((uint32_t)bzero32 % 2) // Thumb target
+        patch_thumb_branch(HIJACK_FIXBR_BZERO32, (uint32_t)my_bzero32, THUMB_BL);
+    else // ARM target
+        patch_thumb_branch(HIJACK_FIXBR_BZERO32, (uint32_t)my_bzero32, THUMB_BLX);
+
+    if ((uint32_t)create_init_task % 2) // Thumb target
+        patch_thumb_branch(HIJACK_FIXBR_CREATE_ITASK, (uint32_t)my_create_init_task, THUMB_BL);
+    else // ARM target
+        patch_thumb_branch(HIJACK_FIXBR_CREATE_ITASK, (uint32_t)my_create_init_task, THUMB_BLX);
 
     // Make sure that our self-modifying code clears the cache
     sync_caches();
 
-    // jump to Canon firmware (Thumb code)
+    // Jump to copied firmware code in our modified buffer.
+    // Currently we are in Thumb mode, but in D6 this code starts in ARM.
+    // The first few instructions do nothing apart from switch mode to Thumb,
+    // so we can instead skip them.
 #ifdef CONFIG_DIGIC_VI
     thunk __attribute__((long_call)) reloc_entry = (thunk)(RELOCADDR + 0xc + 1);
 #elif defined(CONFIG_DIGIC_78)
