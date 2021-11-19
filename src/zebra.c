@@ -4255,6 +4255,9 @@ static void loprio_sleep()
     while (is_mvr_buffer_almost_full()) msleep(100);
 }
 
+#if defined(LV_OVERLAYS_MODE) && defined(CONFIG_COMPOSITOR_DEDICATED_LAYER)
+uint32_t last_lv_overlays_mode = 0;
+#endif
 // Items which do not need a high FPS, but are CPU intensive
 // histogram, waveform...
 static void
@@ -4263,6 +4266,20 @@ livev_lopriority_task( void* unused )
     msleep(500);
     TASK_LOOP
     {
+        #if defined(LV_OVERLAYS_MODE) && defined(CONFIG_COMPOSITOR_DEDICATED_LAYER)
+        // Monitor overlays mode and clear screen if needed
+        // Existing code counts on Canon to overdraw screen.
+        if( (last_lv_overlays_mode == 3) &&
+            (LV_OVERLAYS_MODE != last_lv_overlays_mode ) &&
+            liveview_display_idle() )
+        {
+            //DryosDebugMsg(0, 15, "clear overlay %d", LV_OVERLAYS_MODE);
+            clrscr();
+        }
+        // update last overlays state
+        last_lv_overlays_mode = LV_OVERLAYS_MODE;
+        #endif
+
         #ifdef FEATURE_CROPMARKS
         #ifdef FEATURE_GHOST_IMAGE
         if (transparent_overlay_flag)
