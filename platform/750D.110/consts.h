@@ -6,25 +6,33 @@
 #define LEDON                       0x4D0002
 #define LEDOFF                      0x4C0003
 
+#define BR_PRE_CSTART      0xfe0a00a4 // call to function just before cstart
+#define BR_CSTART          0xfe0a00fe // b.w to cstart, end of firmware_entry
 #define BR_BZERO32         0xfe0cd00a // blx bzero32 in cstart
 #define BR_CREATE_ITASK    0xfe0cd05e // blx create_init_task at the very end
 #define PTR_USER_MEM_START 0xfe0cd078
 
-// Used for copying and modifying ROM code before transferring control.
-// Look in BR_ macros above for the highest address, subtract ROMBASEADDR, align up.
-#define RELOCSIZE 0x2d100
+// Constants for copying and modifying ROM code before transferring control,
+// see boot-d678.c
+// If you define CSTART_LEN boot logic does more complicated things and
+// may save you space; this is only needed on some cams (D6 only so far).
+#define FIRMWARE_ENTRY_LEN 0x140
+#define CSTART_LEN 0xa0
 
-#define ML_MAX_USER_MEM_STOLEN 0x40000 // SJE: let's assume D6 can steal the same as D78 from user_mem
-                                       // I'm not very confident on this, early mem stuff is significantly
-                                       // different on D6...
+#define ML_MAX_USER_MEM_STOLEN 0x47000 // This lowers DryOS max heap in order
+                                       // to reserve space for ML.  Too much and
+                                       // DryOS will malfunction.
 
-#define ML_MAX_SYS_MEM_INCREASE 0x90000 // SJE: we require close to 0xb0000 total, given the large size of early
-                                        // code on D6.  Pushing up sys_mem by this size has only had minimal
-                                        // testing.  Could be very dangerous.
+#define ML_MAX_SYS_MEM_INCREASE 0x0 // It's only safe to increase this on cams that
+                                    // have a gap after sys_mem.  200D seems to, for example,
+                                    // but some cams hard-code a buffer that starts at
+                                    // the exact end of sys_mem, so it's not safe to move up.
 
-#define ML_RESERVED_MEM 0xa2000 // Can be lower than ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE,
+#define ML_RESERVED_MEM 0x46000 // Can be lower than ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE,
                                 // but must not be higher; sys_objs would get overwritten by ML code.
                                 // Must be larger than MemSiz reported by build for magiclantern.bin
+                                // RESTARTSTART must be somewhere in the stolen region, and must
+                                // allow MemSiz to be fit in the region.
 
 /* "Malloc Information" */
 #define MALLOC_STRUCT 0x42358                    // from get_malloc_info, helper of malloc_info

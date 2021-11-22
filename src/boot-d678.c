@@ -4,6 +4,7 @@
 
 #include "dryos.h"
 #include "boot.h"
+#include "boot-d678.h"
 
 #if !defined(CONFIG_DIGIC_678)
     #error "Expected D678"
@@ -15,14 +16,41 @@ static int my_init_task(int a, int b, int c, int d);
 // This reserves space for some early Canon code to be copied into,
 // edited by us, then executed.  The build locates this in bss of
 // our binary, so the location is known.
-static uint32_t _reloc[RELOCSIZE / 4];
-#define RELOCADDR ((uintptr_t) _reloc)
+//
+// See reboot.c for the prior part in the process.
+//
+// Some cams have the cstart region far from the firmware_entry region.
+// If firmware_entry and cstart are close, make FIRMWARE_ENTRY_LEN
+// enough to cover both.
+//
+// If they're far apart, define CSTART_LEN, as well as FIRMWARE_ENTRY_LEN,
+// each for their own region.  The starts are already defined in stubs.S.
+// Ensure you cover the constants after the code.  If in doubt, it's safe
+// to make the regions larger than needed.
+//
+// Values must be 4 aligned.
+//
+// We then copy both regions so they are adjacent in our buffer,
+// compacting them and correcting the relevant calls
+// so the middle can be skipped.
+#ifdef CSTART_LEN
+    static uint32_t _reloc[(FIRMWARE_ENTRY_LEN + CSTART_LEN)/ 4];
+#else
+    static uint32_t _reloc[FIRMWARE_ENTRY_LEN / 4];
+#endif
+#define RELOCADDR ((uintptr_t)_reloc)
 
 static uint32_t reloc_addr(uint32_t addr)
 {
     // converts an address from "normal" cam range
     // to its address within our copied code in reloc buffer
-    return addr - ROMBASEADDR + RELOCADDR;
+#ifdef CSTART_LEN
+    if (addr >= ((uint32_t)cstart & 0xfffffffe))
+    {
+        return RELOCADDR + (addr - ((uint32_t)cstart & 0xfffffffe)) + FIRMWARE_ENTRY_LEN;
+    }
+#endif
+    return RELOCADDR + addr - ROMBASEADDR;
 }
 
 static void patch_thumb_branch(uint32_t pc, uint32_t dest)
@@ -41,6 +69,7 @@ static void patch_thumb_branch(uint32_t pc, uint32_t dest)
     // Type of branch to patch in is detected from dest,
     // Thumb targets should be specified with LSb set.
 
+    qprint("[BOOT] orig pc: "); qprintn(pc);
     pc = reloc_addr(pc);
     qprint("[BOOT] fixing up branch at "); qprintn(pc);
     qprint(" (ROM: "); qprintn(pc); qprint(") to "); qprintn(dest); qprint("\n");
@@ -81,48 +110,6 @@ static void my_bzero32(void *buf, size_t len)
 {
     bzero32(buf, len);
 }
-
-#ifdef CONFIG_DIGIC_678
-struct dryos_init_info
-{
-    uint32_t sys_mem_start;
-    uint32_t sys_mem_len;
-    uint32_t user_mem_start;
-    uint32_t user_mem_len;
-    uint32_t sys_objs_start;
-    uint32_t sys_objs_end;
-
-/* more fields are here but we don't use them.
-   D45 cams are shorter, look to be missing one
-   of condition_max, timer_max or vector_max.
-
-   Since we only use pointer to this struct,
-   we never reserve space for it and don't care.
-
-    uint32_t prio_max;
-    uint32_t task_max;
-    uint32_t semaphore_max;
-    uint32_t event_max;
-    uint32_t message_q_max;
-    uint32_t mutex_max;
-    uint32_t condition_max;
-    uint32_t timer_max;
-    uint32_t vector_max;
-    uint32_t unk_01;
-    uint32_t unk_02;
-    uint32_t unk_03;
-    uint32_t unk_04;
-    uint32_t unk_05;
-    uint32_t unk_06;
-    uint32_t unk_07;
-    uint32_t unk_08;
-    uint32_t prio_default;
-    uint32_t stack_default;
-    uint32_t stack_idle;
-    uint32_t stack_init;
-*/
-};
-#endif
 
 static void my_create_init_task(struct dryos_init_info *dryos, uint32_t init_task, uint32_t c)
 {
@@ -165,9 +152,8 @@ static void my_create_init_task(struct dryos_init_info *dryos, uint32_t init_tas
 
     int32_t sys_offset_increase = ml_reserved_mem - steal_from_user_size;
     if (sys_offset_increase < 0)
-    {
-        qprint("[BOOT] sys_mem_offset_increase was negative, shouldn't happen!\n");
-        goto fail;
+    { // user mem is enough, no need to move sys mem
+        sys_offset_increase = 0;
     }
     if (sys_offset_increase > ML_MAX_SYS_MEM_INCREASE)
     {   // SJE 0x40000 is the most I've tested, and only on 200D
@@ -208,6 +194,13 @@ static void my_icache_invalidate(uint32_t addr, uint32_t size, uint32_t keep1, u
     icache_invalidate(addr, size, keep1, keep2);
 }
 
+#ifdef CONFIG_750D
+static void my_pre_cstart_func(void)
+{
+    extern void pre_cstart_func(void);
+    pre_cstart_func();
+}
+#endif
 
 void
 __attribute__((noreturn,noinline,naked))
@@ -223,10 +216,16 @@ copy_and_restart(int offset)
 
     // Copy the firmware to somewhere safe in memory
     const uint8_t *const firmware_start = (void *)ROMBASEADDR;
-    const uint32_t firmware_len = RELOCSIZE;
-    uint32_t *const new_image = (void *)RELOCADDR;
+    const uint8_t *const cstart_start = (uint32_t)cstart & 0xfffffffe;
+    const uint32_t firmware_len = FIRMWARE_ENTRY_LEN;
+    uint8_t *const new_image = (void *)RELOCADDR;
 
     blob_memcpy(new_image, firmware_start, firmware_start + firmware_len);
+#if defined(CSTART_LEN)
+    blob_memcpy(new_image + firmware_len,
+                cstart_start,
+                cstart_start + CSTART_LEN);
+#endif
 
 #ifdef CONFIG_DIGIC_78
     // Fix cache maintenance calls before cstart
@@ -235,15 +234,23 @@ copy_and_restart(int offset)
     patch_thumb_branch(BR_ICACHE_INV_1, (uint32_t)my_icache_invalidate);
     patch_thumb_branch(BR_ICACHE_INV_2, (uint32_t)my_icache_invalidate);
 
-    // SJE FIXME - this comment is untrue for 200D,
-    // it's a relative jump.  Is it true for any cams?
-
-    // Fix the absolute jump to cstart
-    patch_thumb_branch(BR_CSTART, reloc_addr((uint32_t)cstart));
-
     /* there are two more functions in cstart that don't require patching */
     /* the first one is within the relocated code; it initializes the per-CPU data structure at VA 0x1000 */
     /* the second one is called only when running on CPU1; assuming our code only runs on CPU0 */
+#endif
+
+#if defined(CSTART_LEN)
+    // if we're compacting firmware_entry and cstart,
+    // we need to patch the jump
+    uint32_t reloc_cstart = reloc_addr((uint32_t)cstart_start);
+    reloc_cstart -= ((uint32_t)cstart_start - ROMBASEADDR - FIRMWARE_ENTRY_LEN);
+    patch_thumb_branch(BR_CSTART, reloc_cstart | 0x1);
+#endif
+
+    // if firmware_entry calls code in the cstart reloc'd region,
+    // we also need to patch that
+#ifdef CONFIG_750D
+    patch_thumb_branch(BR_PRE_CSTART, (uint32_t)my_pre_cstart_func);
 #endif
 
     // Fix the calls to bzero32() and create_init_task() in cstart.
@@ -257,10 +264,10 @@ copy_and_restart(int offset)
     sync_caches();
 
     // Jump to copied firmware code in our modified buffer.
-    // Currently we are in Thumb mode, but in D6 this code starts in ARM.
+#ifdef CONFIG_DIGIC_VI
+    // In D6 this code starts in ARM.  This function is Thumb.
     // The first few instructions do nothing apart from switch mode to Thumb,
     // so we can instead skip them.
-#ifdef CONFIG_DIGIC_VI
     thunk __attribute__((long_call)) reloc_entry = (thunk)(RELOCADDR + 0xc + 1);
 #elif defined(CONFIG_DIGIC_78)
     thunk __attribute__((long_call)) reloc_entry = (thunk)(RELOCADDR + 1);

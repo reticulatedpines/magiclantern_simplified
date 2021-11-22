@@ -12,10 +12,12 @@ ROMBASEADDR     = 0xFE0A0000
 # I align up a little out of caution.
 #
 # See 200D Makefile.platform.default for a longer description
-RESTARTSTART    = 0x002a0e00
+# user_mem ends at 0x2e0df4 before we patch
+RESTARTSTART    = 0x00299e00
+# remove 47000-ish to match max stolen in consts.h
 
 # Cortex R4
-CFLAG_USER += -mlong-calls
+CFLAG_USER += -mthumb -mlong-calls
 PLATFORM_ARCH = armv7-r
 
 # these should be removed when porting starts
