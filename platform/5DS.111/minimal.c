@@ -9,8 +9,8 @@
 
 
 /** This just goes into the bss */
-#define RELOCSIZE 0x0000300 // look in HIJACK macros for the highest address, and subtract ROMBASEADDR
-static uint8_t _reloc[RELOCSIZE];
+#define FIRMWARE_ENTRY_LEN 0x0000300 // look in HIJACK macros for the highest address, and subtract ROMBASEADDR
+static uint8_t _reloc[FIRMWARE_ENTRY_LEN];
 #define RELOCADDR ((uintptr_t) _reloc)
 
 #define ROMBASEADDR  0xFE0A0000

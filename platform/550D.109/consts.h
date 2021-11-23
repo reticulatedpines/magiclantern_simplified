@@ -17,7 +17,7 @@
 
 // Used for copying and modifying ROM code before transferring control.
 // Look in HIJACK macros for the highest address, subtract ROMBASEADDR, align up.
-#define RELOCSIZE 0x3000
+#define FIRMWARE_ENTRY_LEN 0x3000
 
 // Used in boot-hack.c with CONFIG_ALLOCATE_MEMORY_POOL
 #define ROM_ITASK_START 0xFF018D1C

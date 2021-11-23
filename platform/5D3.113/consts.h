@@ -24,7 +24,7 @@
 
 // Used for copying and modifying ROM code before transferring control.
 // Look in HIJACK macros for the highest address, subtract ROMBASEADDR, align up.
-#define RELOCSIZE 0x3000
+#define FIRMWARE_ENTRY_LEN 0x3000
 
 /* these are used in bitrate.c for video bitrate hacks */
 #define CACHE_HACK_FLUSH_RATE_SLAVE  0xFF0EA4D0

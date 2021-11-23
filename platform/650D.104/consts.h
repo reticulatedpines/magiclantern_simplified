@@ -21,7 +21,7 @@
 
 // Used for copying and modifying ROM code before transferring control.
 // Look in HIJACK macros for the highest address, subtract ROMBASEADDR, align up.
-#define RELOCSIZE 0x3000
+#define FIRMWARE_ENTRY_LEN 0x3000
 
 // no idea if it's overflowing, need to check experimentally 
 #define ARMLIB_OVERFLOWING_BUFFER 0x4A824 // in AJ_armlib_setup_related3

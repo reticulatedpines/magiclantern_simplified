@@ -17,7 +17,7 @@
 static int my_init_task(int a, int b, int c, int d);
 
 /** This just goes into the bss */
-static uint32_t _reloc[ RELOCSIZE / 4 ];
+static uint32_t _reloc[FIRMWARE_ENTRY_LEN / 4];
 #define RELOCADDR ((uintptr_t) _reloc)
 
 /** Translate a firmware address into a relocated address */
@@ -35,7 +35,7 @@ copy_and_restart( int offset )
 
     // Copy the firmware to somewhere safe in memory
     const uint8_t * const firmware_start = (void*) ROMBASEADDR;
-    const uint32_t firmware_len = RELOCSIZE;
+    const uint32_t firmware_len = FIRMWARE_ENTRY_LEN;
     uint32_t * const new_image = (void*) RELOCADDR;
 
     blob_memcpy( new_image, firmware_start, firmware_start + firmware_len );

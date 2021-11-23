@@ -11,7 +11,7 @@
 
 // Used for copying and modifying ROM code before transferring control.
 // Look in BR_ macros for the highest address, subtract ROMBASEADDR, align up.
-#define RELOCSIZE 0x33300
+#define FIRMWARE_ENTRY_LEN 0x33300
 
 #define ML_MAX_USER_MEM_STOLEN 0x40000 // SJE: let's assume D6 can steal the same as D78 from user_mem
                                        // I'm not very confident on this, early mem stuff is significantly

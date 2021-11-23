@@ -32,7 +32,7 @@
 
 // Used for copying and modifying ROM code before transferring control.
 // Look in BR_ macros for the highest address, subtract ROMBASEADDR, align up.
-#define RELOCSIZE 0x1000
+#define FIRMWARE_ENTRY_LEN 0x1000
 
 #if ML_RESERVED_MEM > ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE
 #error "ML_RESERVED_MEM too big to fit!"
