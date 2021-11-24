@@ -18,8 +18,7 @@ PLATFORM_MAP = \
     EOSM.202 \
     M50.110 \
     R.180 \
-#    7D2.104 \
-#    EOSRP.160 \
+    EOSRP.160 \
 
 # SJE these cams don't build due to missing Ximr
 # structs, but I have roms so can find them:
