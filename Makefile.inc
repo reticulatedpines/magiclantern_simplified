@@ -82,7 +82,7 @@ prepare_zip: FORCE
 	mkdir -p $(INSTALL_DIR)
 
 # zip.txt must be the first item on the list!
-magiclantern-$(VERSION).zip: install installer_check installdoc minimal_check
+magiclantern-$(VERSION).zip: install installer_check installdoc
 	-$(call rm_files, $@)
 	chmod -x $(INSTALL_DIR)/autoexec.bin
 	cd $(INSTALL_DIR); zip -z ../$@ < \
@@ -90,7 +90,7 @@ magiclantern-$(VERSION).zip: install installer_check installdoc minimal_check
 	$(call rm_dir, $(INSTALL_DIR)/)
 
 zip:: | prepare_zip
-zip:: magiclantern-$(VERSION).zip print_build_info minimal_check_clean
+zip:: magiclantern-$(VERSION).zip print_build_info
 
 install_qemu:: | prepare_zip
 install_qemu:: install
