@@ -234,6 +234,11 @@ copy_and_restart(int offset)
     patch_thumb_branch(BR_ICACHE_INV_1, (uint32_t)my_icache_invalidate);
     patch_thumb_branch(BR_ICACHE_INV_2, (uint32_t)my_icache_invalidate);
 
+    // On D78, there's an indirect branch to branch to cstart,
+    // the first branch goes to absolute cstart original address.
+    // Patch the setup for that into a relative branch to our reloc'd cstart.
+    patch_thumb_branch(BR_BR_CSTART, reloc_addr((uint32_t)cstart));
+
     /* there are two more functions in cstart that don't require patching */
     /* the first one is within the relocated code; it initializes the per-CPU data structure at VA 0x1000 */
     /* the second one is called only when running on CPU1; assuming our code only runs on CPU0 */

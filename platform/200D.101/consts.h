@@ -159,7 +159,8 @@
 #define BR_ICACHE_INV_1   0xE0040072   /* first call to icache_invalidate, before cstart */
 #define BR_DCACHE_CLN_2   0xE00400A0   /* second call to dcache_clean, before cstart */
 #define BR_ICACHE_INV_2   0xE00400AA   /* second call to icache_invalidate, before cstart */
-#define BR_CSTART         0xE00400C0   /* easier to fix up here, rather than at E0040034 */
+#define BR_BR_CSTART      0xE00400C0   // indirect branch to cstart; the first branch is
+                                       // absolute to original, we must patch
 #define BR_BZERO32        0xE004014A   /* called from cstart */
 #define BR_CREATE_ITASK   0xE00401AC   /* called from cstart */
 

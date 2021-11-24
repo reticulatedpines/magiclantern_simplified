@@ -10,7 +10,8 @@
 #define BR_ICACHE_INV_1   0xe0040062   /* first call to icache_invalidate, before cstart */
 #define BR_DCACHE_CLN_2   0xe0040090   /* second call to dcache_clean, before cstart */
 #define BR_ICACHE_INV_2   0xe004009a   /* second call to icache_invalidate, before cstart */
-#define BR_CSTART         0xe00400b0   /* easier to fix up here */
+#define BR_BR_CSTART      0xe00400b0   // indirect branch to cstart; the first branch is
+                                       // absolute to original, we must patch
 #define BR_BZERO32        0xe004013a   /* called from cstart */
 #define BR_CREATE_ITASK   0xe004019c   /* called from cstart */
 

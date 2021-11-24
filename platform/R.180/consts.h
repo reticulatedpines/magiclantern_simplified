@@ -10,7 +10,8 @@
 #define BR_DCACHE_CLN_1     0xE0040068   /* first call to dcache_clean, before cstart */
 #define BR_DCACHE_CLN_2     0xE00400A0   /* second call to dcache_clean, before cstart */
 #define BR_ICACHE_INV_2     0xE00400AA   /* second call to icache_invalidate, before cstart */
-#define BR_CSTART           0xE00400C0   /* easier to fix up here, rather than at E0040034 */
+#define BR_BR_CSTART        0xE00400C0   // indirect branch to cstart; the first branch is
+                                         // absolute to original, we must patch
 #define PTR_USER_MEM_SIZE   0xE00401D8   /* easier to patch the size; start address is computed */
 #define PTR_SYS_OFFSET      0xE00401D0   // offset from DryOS base to sys_mem start
 #define PTR_SYS_OBJS_OFFSET 0xE00401DC   // offset from DryOS base to sys_obj start
