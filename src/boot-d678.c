@@ -19,20 +19,24 @@ static int my_init_task(int a, int b, int c, int d);
 //
 // See reboot.c for the prior part in the process.
 //
+// Note that some instructions in the copied region may load
+// constants or call code located nearby.  If so, you should
+// ensure the LEN constants mean these are also copied.
+//
 // Some cams have the cstart region far from the firmware_entry region.
 // If firmware_entry and cstart are close, make FIRMWARE_ENTRY_LEN
 // enough to cover both.
 //
 // If they're far apart, define CSTART_LEN, as well as FIRMWARE_ENTRY_LEN,
 // each for their own region.  The starts are already defined in stubs.S.
-// Ensure you cover the constants after the code.  If in doubt, it's safe
-// to make the regions larger than needed.
-//
-// Values must be 4 aligned.
+// If in doubt about sizes, it's safe to make the regions larger than needed,
+// you lose some space for ML / DryOS.
 //
 // We then copy both regions so they are adjacent in our buffer,
 // compacting them and correcting the relevant calls
 // so the middle can be skipped.
+//
+// Values must be 4 aligned.
 #ifdef CSTART_LEN
     static uint32_t _reloc[(FIRMWARE_ENTRY_LEN + CSTART_LEN)/ 4];
 #else

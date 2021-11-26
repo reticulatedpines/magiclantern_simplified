@@ -18,24 +18,28 @@
 #define BR_BZERO32           0xE0040152   /* called from cstart */
 #define BR_CREATE_ITASK      0xE00401B4   /* called from cstart */
 
+// This block no longer required but left for reference (may be removed later)
 #define PTR_USER_MEM_SIZE              0xE00401D8   /* easier to patch the size; start address is computed */
 #define PTR_SYS_OFFSET                 0xe00401d0   // offset from DryOS base to sys_mem start
 #define PTR_SYS_OBJS_OFFSET            0xe00401dc   // offset from DryOS base to sys_obj start
 #define PTR_DRYOS_BASE                 0xe00401bc
+
 #define ML_MAX_USER_MEM_STOLEN 0x40000 // True max differs per cam, 0x40000 has been tested on
                                        // the widest range of D678 cams with no observed problems,
                                        // but not all cams have been tested!
 
-#define ML_MAX_SYS_MEM_INCREASE 0x40000 // More may be VERY unsafe!  Increasing this pushes sys_mem
-                                        // higher in memory, at some point that must cause Bad Things,
-                                        // consequences unknown.  0x40000 has been tested, a little...
+#define ML_MAX_SYS_MEM_INCREASE 0x0 // More may be VERY unsafe!  Increasing this pushes sys_mem
+                                    // higher in memory, on some cams that is known to cause problems;
+                                    // They hard-code things to be directly after sys_mem.
+                                    // Other cams have some space, e.g. 200D 1.0.1
 
-#define ML_RESERVED_MEM 0x66000 // Can be lower than ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE,
+#define ML_RESERVED_MEM 0x40000 // Can be lower than ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE,
                                 // but must not be higher; sys_objs would get overwritten by ML code.
                                 // Must be larger than MemSiz reported by build for magiclantern.bin
 
 // Used for copying and modifying ROM code before transferring control.
-// Look in BR_ macros for the highest address, subtract ROMBASEADDR, align up.
+// Approximately: look at BR_ macros for the highest address, subtract ROMBASEADDR,
+// align up.  This may not be exactly enough.  See boot-d678.c for longer explanation.
 #define FIRMWARE_ENTRY_LEN 0x1000
 
 /*

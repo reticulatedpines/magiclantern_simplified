@@ -10,6 +10,8 @@
 #define BR_CSTART          0xfe0a00fe // b.w to cstart, end of firmware_entry
 #define BR_BZERO32         0xfe0cd00a // blx bzero32 in cstart
 #define BR_CREATE_ITASK    0xfe0cd05e // blx create_init_task at the very end
+
+// This block no longer required but left for reference (may be removed later)
 #define PTR_USER_MEM_START 0xfe0cd078
 
 // Constants for copying and modifying ROM code before transferring control,
@@ -33,6 +35,10 @@
                                 // Must be larger than MemSiz reported by build for magiclantern.bin
                                 // RESTARTSTART must be somewhere in the stolen region, and must
                                 // allow MemSiz to be fit in the region.
+
+#if ML_RESERVED_MEM > ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE
+#error "ML_RESERVED_MEM too big to fit!"
+#endif
 
 /* "Malloc Information" */
 #define MALLOC_STRUCT 0x42358                    // from get_malloc_info, helper of malloc_info

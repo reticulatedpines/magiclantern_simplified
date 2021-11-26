@@ -164,10 +164,12 @@
 #define BR_BZERO32        0xE004014A   /* called from cstart */
 #define BR_CREATE_ITASK   0xE00401AC   /* called from cstart */
 
+// this block no longer required, left as a reference
 #define PTR_USER_MEM_SIZE           0xE00401D0   /* easier to patch the size; start address is computed */
 #define PTR_SYS_OFFSET              0xe00401c8   // offset from DryOS base to sys_mem start
 #define PTR_SYS_OBJS_OFFSET         0xe00401d4   // offset from DryOS base to sys_obj start
 #define PTR_DRYOS_BASE              0xe00401b4
+
 #define ML_MAX_USER_MEM_STOLEN 0x40000 // True max differs per cam, 0x40000 has been tested on
                                        // the widest range of D678 cams with no observed problems,
                                        // but not all cams have been tested!
