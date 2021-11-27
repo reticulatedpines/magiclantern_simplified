@@ -21,23 +21,22 @@
 #define PTR_SYS_OBJS_OFFSET 0xE00401DC   // offset from DryOS base to sys_obj start
 #define PTR_DRYOS_BASE      0xE00401BC
 
-#define ML_MAX_USER_MEM_STOLEN 0x40000 // True max differs per cam, 0x40000 has been tested on
+#define ML_MAX_USER_MEM_STOLEN 0x49000 // True max differs per cam, 0x40000 has been tested on
                                        // the widest range of D678 cams with no observed problems,
                                        // but not all cams have been tested!
 
 #define ML_MAX_SYS_MEM_INCREASE 0x0 // More may be VERY unsafe!  Increasing this pushes sys_mem
-                                    // higher in memory, on some cams that is known to cause problems;
-                                    // They hard-code things to be directly after sys_mem.
-                                    // Other cams have some space, e.g. 200D 1.0.1
+                                    // higher in memory, at some point that must cause Bad Things,
+                                    // consequences unknown.  0x40000 has been tested, a little...
 
-#define ML_RESERVED_MEM 0x40000 // Can be lower than ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE,
+#define ML_RESERVED_MEM 0x48000 // Can be lower than ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE,
                                 // but must not be higher; sys_objs would get overwritten by ML code.
                                 // Must be larger than MemSiz reported by build for magiclantern.bin
 
 // Used for copying and modifying ROM code before transferring control.
 // Approximately: look at BR_ macros for the highest address, subtract ROMBASEADDR,
 // align up.  This may not be exactly enough.  See boot-d678.c for longer explanation.
-#define FIRMWARE_ENTRY_LEN 0x1000
+#define FIRMWARE_ENTRY_LEN 0x228
 
 #if ML_RESERVED_MEM > ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE
 #error "ML_RESERVED_MEM too big to fit!"
