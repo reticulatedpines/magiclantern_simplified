@@ -73,7 +73,7 @@ static void patch_thumb_branch(uint32_t pc, uint32_t dest)
     // Type of branch to patch in is detected from dest,
     // Thumb targets should be specified with LSb set.
 
-    qprint("[BOOT] orig pc: "); qprintn(pc);
+    qprint("[BOOT] orig pc: "); qprintn(pc); qprint("\n");
     pc = reloc_addr(pc);
     qprint("[BOOT] fixing up branch at "); qprintn(pc);
     qprint(" (ROM: "); qprintn(pc); qprint(") to "); qprintn(dest); qprint("\n");
@@ -150,7 +150,8 @@ static void my_create_init_task(struct dryos_init_info *dryos, uint32_t init_tas
     uint32_t steal_from_user_size = dryos->sys_objs_start - RESTARTSTART;
     if (steal_from_user_size > ML_MAX_USER_MEM_STOLEN)
     {
-        qprint("[BOOT] RESTARTSTART possibly unsafe, too much stolen from user_mem\n");
+        qprint("[BOOT] RESTARTSTART possibly unsafe, too much stolen from user_mem: ");
+        qprintn(steal_from_user_size); qprint("\n");
         goto fail;
     }
 
@@ -161,7 +162,8 @@ static void my_create_init_task(struct dryos_init_info *dryos, uint32_t init_tas
     }
     if (sys_offset_increase > ML_MAX_SYS_MEM_INCREASE)
     {   // SJE 0x40000 is the most I've tested, and only on 200D
-        qprint("[BOOT] sys_offset_increase possibly unsafe, not tested this high, aborting\n");
+        qprint("[BOOT] sys_offset_increase possibly unsafe, not tested this high, aborting: ");
+        qprintn(sys_offset_increase); qprint("\n");
         goto fail;
     }
 
@@ -252,7 +254,6 @@ copy_and_restart(int offset)
     // if we're compacting firmware_entry and cstart,
     // we need to patch the jump
     uint32_t reloc_cstart = reloc_addr((uint32_t)cstart_start);
-    reloc_cstart -= ((uint32_t)cstart_start - ROMBASEADDR - FIRMWARE_ENTRY_LEN);
     patch_thumb_branch(BR_CSTART, reloc_cstart | 0x1);
 #endif
 
