@@ -57,6 +57,7 @@ platform/*/magiclantern.lds
 platform/*.OLD
 platform/*/qemu-helper
 platform/*/version.c
+platform/*/xor_chk
 platform/all/autoexec-all
 platform/all/autoexec-fir
 platform/all/ML
