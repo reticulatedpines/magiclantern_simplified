@@ -359,6 +359,15 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
      -743, 10000,    1857, 10000,   5635, 10000
 #endif
 
+#ifdef CONFIG_850D // from https://github.com/LibRaw/LibRaw src/tables/colordata.cpp
+    // { LIBRAW_CAMERAMAKER_Canon, "EOS 850D", 0, 0,
+    //   { 9079,-1923,-1236,-4677,12454,2492,-922,2319,5565}},
+    #define CAM_COLORMATRIX1 \
+    9079, 10000,    -1923, 10000,   -1236, 10000, \
+    -4677, 10000,   12454, 10000,   2492, 10000, \
+    -922, 10000,    2319, 10000,    5565, 10000
+#endif
+
 #ifdef CONFIG_R // from https://github.com/LibRaw/LibRaw src/tables/colordata.cpp
     // { LIBRAW_CAMERAMAKER_Canon, "EOS R", 0, 0,
     //  { 8293,-1789,-1094,-5025,12925,2327,-1199,2769,6108 } }, // v.2
@@ -466,6 +475,12 @@ static int dynamic_ranges[] = {1058, 1053, 1032, 967,  893, 807, 704, 618, 510};
 #if defined(CONFIG_750D) || defined(CONFIG_760D)
 //same sensor
 static int dynamic_ranges[] = {1196, 1170, 1139, 1087, 1019, 938, 848, 756, 664};
+#endif
+
+#ifdef CONFIG_850D
+// SJE FIXME - dxomark didn't have 850D listed, check again in the future.
+// For now, copied from R.
+static int dynamic_ranges[] = {1255, 1237, 1188, 1120, 1045, 964, 883, 785, 685, 599, 507};
 #endif
 
 #ifdef CONFIG_100D

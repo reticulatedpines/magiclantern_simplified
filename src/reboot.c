@@ -310,9 +310,14 @@ cstart( void )
         MEM(0xD20C0084) = 0;
       #endif
     #endif
-    #ifdef CONFIG_DIGIC_VIII
-    MEM(0xBFE01FC8) = ROMBASEADDR;  /* required by EOS R; possibly also by M50 etc */
-    MEM(0xBFE01FC4) = 0x10;         /* guess: start the second core at the above address */
+    #ifdef CONFIG_850D
+        // not the same addresses as other D8 (R, RP, M50 at least), and it requires
+        // you store the address with thumb bit set, other D8 add one to stored value.
+        MEM(0xBFE01FC4) = ROMBASEADDR | 0x1;
+        // looks like setting the flag is replaced by a cache sync
+    #elif defined(CONFIG_DIGIC_VIII)
+        MEM(0xBFE01FC8) = ROMBASEADDR;  /* required by EOS R; possibly also by M50 etc */
+        MEM(0xBFE01FC4) = 0x10;         /* guess: start the second core at the above address */
     #endif
 
     #if 0
