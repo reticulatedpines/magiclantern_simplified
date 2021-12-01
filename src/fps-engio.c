@@ -229,6 +229,9 @@ static void fps_read_current_timer_values();
     #define FPS_TIMER_A_MIN (fps_timer_a_orig - (ZOOM ? 4 : MV720 ? 30 : 42)) /* zoom: can do 20, but has a black bar on the right */
     #undef FPS_TIMER_B_MIN
     #define FPS_TIMER_B_MIN (fps_timer_b_orig - (ZOOM ? 44 : MV720 ? 0 : 70)) /* you can push LiveView until 68fps (timer_b_orig - 50), but good luck recording that */
+#elif defined(CONFIG_5D4)
+    #define TG_FREQ_BASE 32000000 //copy from 700D
+    #define FPS_TIMER_A_MIN (fps_timer_a_orig)
 #elif defined(CONFIG_EOSM)
     #define TG_FREQ_BASE 32000000
     #define FPS_TIMER_A_MIN (ZOOM ? 666 : MV1080CROP ? 532 : 520)
