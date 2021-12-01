@@ -494,7 +494,7 @@ static int audio_meters_step( int reconfig_audio )
         }
         else if(!reconfig_audio)
         {
-            #if defined(CONFIG_600D) || defined(CONFIG_7D)
+            #if defined(CONFIG_600D) || defined(CONFIG_7D) || defined(CONFIG_5D4)
             audio_configure(1);
             #elif defined(CONFIG_650D) || defined(CONFIG_700D) || defined(CONFIG_EOSM) || defined(CONFIG_100D)
             void PowerMicAmp();

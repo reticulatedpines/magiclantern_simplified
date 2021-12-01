@@ -248,6 +248,16 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
      -908, 10000,     2162, 10000,    5668, 10000
 #endif
 
+
+#ifdef CONFIG_5D4
+    //~ { "Canon EOS 5D Mark IV", 0, 0x3c80,
+    //~ { 6446,-366,-864,-4436,12204,2513,-952,2496,6348 } },
+    #define CAM_COLORMATRIX1                       \
+     6722, 10000,     -635, 10000,    -963, 10000, \
+    -4287, 10000,    12460, 10000,    2028, 10000, \
+     -908, 10000,     2162, 10000,    5668, 10000
+#endif
+
 #ifdef CONFIG_550D
    //~ { "Canon EOS 550D", 0, 0x3dd7,
    //~	{  6941,-1164,-857,-3825,11597,2534,-416,1540,6039 } },
@@ -437,6 +447,10 @@ PROP_HANDLER(PROP_LV_AFFRAME)
 
 #ifdef CONFIG_5D3
 static int dynamic_ranges[] = {1097, 1087, 1069, 1041, 994, 923, 830, 748, 648, 552, 464};
+#endif
+
+#ifdef CONFIG_5D4
+static int dynamic_ranges[] = {1260, 1243, 1186, 1120, 1048, 968, 884, 787, 684, 605, 520};
 #endif
 
 #ifdef CONFIG_5D2
