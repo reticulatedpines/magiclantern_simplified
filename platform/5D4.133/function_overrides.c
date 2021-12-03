@@ -11,6 +11,12 @@ uint32_t shamem_read(uint32_t addr)
     return 0;
 }
 
+void LoadCalendarFromRTC(struct tm *tm)
+{
+    // differs from D78, one arg is missing
+    _LoadCalendarFromRTC(tm, 0, 16);
+}
+
 // Partition tables stuff. Copied from 750D.  The parsing logic
 // does exist in 5D4, but the specific function we want no longer exists.
 struct chs_entry
