@@ -1,17 +1,21 @@
-# 5D Mark IV 1.1.2
+# 5D Mark IV 1.3.3
 
 CANON_NAME_FIR  = 5D400112.FIR
 UPDATE_NAME_FIR = DUMP_5D4.FIR
 ROMBASEADDR     = 0xFE0A0000
 
-# Shrink Canon's malloc heap by changing its start address (identical to 80D)
-#          ("meminfo -m" in drysh)    ("memmap" in drysh)
-# Default: 0x001cc408 - 0x002e0c18, 001cc400 - 002e0df4 (total size 0x1149f4)
-# Patched: variable   - 0x002e0c18, variable - 002e0df4 (reserved according to autoexec.bin size + BSS)
-RESTARTSTART    = 0x001CC400
+# RESTARTSTART is the location in mem that ML binary will be copied to.
+# For D678 we put ML in between user_mem and sys_objs, and may
+# shrink user_mem.  Therefore this value should be:
+# sys_objs_start - ML_MAX_USER_MEM_STOLEN
+# I align up a little out of caution.
+#
+# See 200D Makefile.platform.default for a longer description
+# user_mem ends at 0x2e0df4 before we patch
+RESTARTSTART    = 0x299e00
 
 # Cortex R4
-CFLAG_USER += -mlong-calls
+CFLAG_USER += -mthumb -mlong-calls
 PLATFORM_ARCH = armv7-r
 
 # these should be removed when porting starts
@@ -21,5 +25,5 @@ PLATFORM_ARCH = armv7-r
 #ML_SRC_EXTRA_OBJS += log-d678.o stdio.o function_overrides.o
 #endif
 
-ML_BOOT_OBJ     = boot-d6.o
+ML_BOOT_OBJ     = boot-d678.o
 ML_SRC_EXTRA_OBJS += function_overrides.o

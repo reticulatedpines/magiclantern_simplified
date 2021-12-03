@@ -42,13 +42,13 @@ THUMB_FN(0x80000f74,  create_init_task)
 THUMB_FN(0xfe0dd710,  init_task)                    
 
 /** Tasks **/
-THUMB_FN(0x80001350, _get_task_info_by_id) //Probably wrong. PC Crashes, but all signs lead to it. -Lithiuman
+THUMB_FN(0x80001354, _get_task_info_by_id)
 DATA_PTR(    0x4584,  current_interrupt)
 DATA_PTR(    0x45a4,  current_task)
 THUMB_FN(     0x5B8,  msleep)
 THUMB_FN(     0x6D8,  task_create)
 NSTUB(0x478c,  task_dispatch_hook)
-THUMB_FN(0x80001726,  task_trampoline)
+THUMB_FN(0x80001724,  task_trampoline)
 
 /** Interrupts **/
 //DATA_PTR(   0x1F968,  isr_table_handler)
@@ -64,10 +64,10 @@ THUMB_FN(0xfe493982, _FIO_ReadFile)
 THUMB_FN(0xfe493afe, _FIO_WriteFile)
 THUMB_FN(0xfe493a1c,  FIO_SeekSkipFile)
 THUMB_FN(0xfe493d90, _FIO_GetFileSize)
-THUMB_FN(0xfe493cb6, _FIO_GetFileInfo)				/* We don't use this */
-THUMB_FN(0xfe493dd6, _FIO_GetFileSize64) 			/* We don't use this */
-THUMB_FN(0xfe493e1c, _FIO_GetFileAttributes) 			/* We don't use this */
-THUMB_FN(0xfe493e94, _FIO_SetFileAttributes) 			/* We don't use this */
+THUMB_FN(0xfe493cb6, _FIO_GetFileInfo)
+THUMB_FN(0xfe493dd6, _FIO_GetFileSize64)
+THUMB_FN(0xfe493e1c, _FIO_GetFileAttributes)
+THUMB_FN(0xfe493e94, _FIO_SetFileAttributes)
 THUMB_FN(0xfe4938f2, _FIO_RemoveFile)
 THUMB_FN(0xfe494338, _FIO_RenameFile)
 THUMB_FN(0xfe4945a4, _FIO_CreateDirectory)
@@ -78,10 +78,10 @@ THUMB_FN(0xfe494bf0,  FIO_FindClose)
 /** GUI **/
 THUMB_FN(0xfe1718ee,  GUI_Control)
 THUMB_FN(0xfe4a89de,  SetGUIRequestMode)
-THUMB_FN(0xfe49547c,  gui_init_end)				/* EndGuiInit */
+THUMB_FN(0xfe49547c,  gui_init_end) // EndGuiInit
 THUMB_FN(0xfe171748,  gui_main_task)
 NSTUB(0xfcfc,  gui_task_list)
-NSTUB(0x4bf4,  gui_main_struct)
+NSTUB(0x4bd0,  gui_main_struct)
 
 /** ASIF **/
 //THUMB_FN(0xFE42DD18,  SetAudioVolumeOut)                    // JC Best guess
@@ -103,7 +103,7 @@ DATA_PTR(    0xfdfc,  bmp_vram_info)                 /* first VRAM buffer, used 
 
 /** From 1.0.2 **/
 DATA_PTR(    0xfdf8, _rgb_vram_info)
-DATA_PTR(    0xfd04,  winsys_sem)
+DATA_PTR(    0xfdf4,  winsys_sem)
 THUMB_FN(0xfe1fd630,  XimrExe)
 
 /** DMA **/
@@ -113,17 +113,17 @@ THUMB_FN(0xfe1fd630,  XimrExe)
 THUMB_FN(     0xC14,  DryosDebugMsg)                 /* prefer the RAM version, to override it easily */
 
 /** Dialog API **/
-ARM32_FN(0xfe4c4c30,  dialog_redraw)                        /* not checked */
-//ARM32_FN(0xFE4BCD60,  dialog_set_property_str)              /* not checked */
+ARM32_FN(0xfe4c4c30,  dialog_redraw)
+//ARM32_FN(0xFE4BCD60,  dialog_set_property_str)
 
 /** Dialog handlers **/
 THUMB_FN(0xfe59c176,  ErrForCamera_handler)                 // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
-THUMB_FN(0xfe4024a4,  LiveViewApp_handler)                  // Thumb function, but LSB not set in Canon code, why?
-THUMB_FN(0xFE6E7894,  LiveViewLevelApp_handler)  
-THUMB_FN(0xFE3E7894,  LiveViewShutterApp_handler)           // fixme: some other app may be at top level in LiveView
-THUMB_FN(0xFE4750E4,  PlayMain_handler)                     // this should be active when reviewing a still image
-THUMB_FN(0xFE29A7A0,  PlayMovieGuideApp_handler)            // this should be active when playing a video
-THUMB_FN(0xFE6E0AFC,  ShootOlcApp_handler)                  // this should be active in photo mode, outside LiveView
+THUMB_FN(0xfe4024a4,  LiveViewApp_handler)
+THUMB_FN(0xfe6effe9,  LiveViewLevelApp_handler)
+THUMB_FN(0xfe6f0c68,  LiveViewShutterApp_handler)
+THUMB_FN(0xfe47b6e0,  PlayMain_handler)                     // this should be active when reviewing a still image
+THUMB_FN(0xfe29f648,  PlayMovieGuideApp_handler)            // this should be active when playing a video
+THUMB_FN(0xfe6e71cc,  ShootOlcApp_handler)                  // this should be active in photo mode, outside LiveView
 //NSTUB(0x????????,  ErrCardForLVApp_handler)
 
 /** EDMAC **/
@@ -142,7 +142,7 @@ THUMB_FN(0xFE6E0AFC,  ShootOlcApp_handler)                  // this should be ac
 //THUMB_FN(0x????????,  GUI_SetRollingPitchingLevelStatus)    // JC-C RequestRollingPitching - no side effects :)
 
 /** Engio **/
-ARM32_FN(0xFE4DFDF8, _engio_write)                          /* no mirror?! */
+//ARM32_FN(0xFE4DFDF8, _engio_write)
 //NSTUB(0x????????, _EngDrvOut)                               // AJ_EngDrvOut_1xVar_to_ShadowStruct
 //NSTUB(0x????????,  shamem_read)                             // AJ_0x_engio_struct_n_R0_manipulation_to_get_ptr
 
@@ -174,17 +174,22 @@ THUMB_FN(0xfe4a8206,  CancelTimer)
 THUMB_FN(0xfe129c46,  dump_file)
 
 /** MPU communication **/
-THUMB_FN(0xfe292f12,  mpu_recv)                             // passed as last argument by InitializeIntercom and eventually stored into mpu_recv_cbr
-DATA_PTR(0x00007a48,  mpu_recv_cbr)                         // mpu_recv is called indirectly through this function pointer
-DATA_PTR(0xfe293020,  mpu_recv_ring_buffer)                 // ring buffer used in SIO3_ISR, subroutine that processes two chars at a time
-DATA_PTR(    0x7A40,  mpu_recv_ring_buffer_tail)            // ring buffer index incremented in the above subroutine
-THUMB_FN(0xfe292f7a,  mpu_send)                             // "dwSize < TXBD_DATA_SIZE"
-DATA_PTR(0x330d4,  mpu_send_ring_buffer)                 // ring buffer used in mpu_send
-DATA_PTR(0x00007a40,  mpu_send_ring_buffer_tail)            // ring buffer index incremented in mpu_send
+// 5D4 has two mpu_send functions, each with own ring buffer.
+// no idea how they're used yet - one per digic, dual digic cam?
+THUMB_FN(0xfe292f12,  mpu_send)                             // "dwSize < TXBD_DATA_SIZE"
+DATA_PTR(   0x3300c,  mpu_send_ring_buffer)                 // ring buffer used in mpu_send
+DATA_PTR(    0x7a2c,  mpu_send_ring_buffer_tail)            // ring buffer index incremented in mpu_send
+//
+// This second one seems limited to shorter messages, it's % 5 not % 0x32
+//THUMB_FN(0xfe292f7a,  mpu_send)                             // "dwSize < TXBD_DATA_SIZE"
+
+//DATA_PTR(    0x7a48,  mpu_recv_cbr)                         // mpu_recv is called indirectly through this function pointer
+//DATA_PTR(0x,  mpu_recv_ring_buffer)                 // ring buffer used in SIO3_ISR, subroutine that processes two chars at a time
+//DATA_PTR(    0x7A40,  mpu_recv_ring_buffer_tail)            // ring buffer index incremented in the above subroutine
+//THUMB_FN(0xfe292f7a,  mpu_recv)                             // passed as last argument by InitializeIntercom and eventually stored into mpu_recv_cbr
 
 /** Making the card bootable **/
-NSTUB(0x00000000,  fsuDecodePartitionTable)                 // AJ_fsuGetPart_related   - called from loc_FE256364?
-NSTUB(0x9444,  sd_device)                                /* Not really sure on this one, as 5D4 has CF and SD */
+NSTUB(0x9444,  sd_device)
 
 /** Memory allocation **/
 THUMB_FN(0x80004aaa, _AllocateMemory)
@@ -202,24 +207,24 @@ THUMB_FN(0xfe2e747a,  smemShowFix)
 THUMB_FN(0xfe2a4ec8,  sysmem_info)
 
 /** Message queues **/
-THUMB_FN(    0x1BE0,  msg_queue_create)                     /* CreateMessageQueue */
-THUMB_FN(    0xfef2bebe,  msg_queue_count)                      /* used in "[TASK ERROR] GetNumOfEvent" */
-THUMB_FN(    0xfef2be88,  msg_queue_post)                       /* TryPostMessageQueue */
-THUMB_FN(    0xfef2bd34,  msg_queue_receive)                    /* ReceiveMessageQueue */
+THUMB_FN(    0x1BE0,  msg_queue_create)      /* CreateMessageQueue */
+THUMB_FN(    0xfef2bebe,  msg_queue_count)   /* used in "[TASK ERROR] GetNumOfEvent" */
+THUMB_FN(    0xfef2be88,  msg_queue_post)    /* TryPostMessageQueue */
+THUMB_FN(    0xfef2bd34,  msg_queue_receive) /* ReceiveMessageQueue */
 
 /** PTP **/
 //NSTUB(0x????????,  ptp_register_handler)
 
 /** Properties **/
-THUMB_FN(0xfe4a5262, _prop_request_change)                  /* pRequestChange */
-THUMB_FN(0xfe4a5192,  prop_register_slave)                  /* pRegisterSlave */
-THUMB_FN(0xfe4a56ea,  prop_deliver)                         /* pDeliverProperty */
-THUMB_FN(0xfe4a577a, _prop_cleanup)                         /* called at the end of property handlers */
+THUMB_FN(0xfe4a5262, _prop_request_change)  /* pRequestChange */
+THUMB_FN(0xfe4a5192,  prop_register_slave)  /* pRegisterSlave */
+THUMB_FN(0xfe4a56ea,  prop_deliver)         /* pDeliverProperty */
+THUMB_FN(0xfe4a577a, _prop_cleanup)         /* called at the end of property handlers */
 
 /** Recursive locks **/
-THUMB_FN(0x0000000,  CreateRecursiveLock)
-THUMB_FN(0xfef2bfa4,  AcquireRecursiveLock)
-THUMB_FN(0xfef2c06c,  ReleaseRecursiveLock)     // AJ_KernelDry_KerRLock.c_p2
+THUMB_FN(0x996,       CreateRecursiveLock)
+THUMB_FN(0xfe88897c,  AcquireRecursiveLock)
+THUMB_FN(0xfe888a44,  ReleaseRecursiveLock)
 
 /** ResLock **/
 THUMB_FN(0xfe9fd4a8,  CreateResLockEntry)
@@ -232,14 +237,14 @@ THUMB_FN(     0x33E,  give_semaphore)
 THUMB_FN(     0x2C6,  take_semaphore)
 
 /** Task info **/
-//NSTUB(0x????????,  get_task_info_by_id)            // AJ_task_trampoline_related_p10
+//NSTUB(0x????????,  get_task_info_by_id)
 //NSTUB(0x????????,  task_max)
 
 /** Misc **/
-THUMB_FN(0x00000000,  LCD_Palette) //This shouldn't apply to d6, but it's here anyway
+//THUMB_FN(0x00000000,  LCD_Palette)
 //THUMB_FN(0x????????,  FSUunMountDevice)
-THUMB_FN(0xfc3a2d60,  SetCFnData)
-THUMB_FN(0xfc4da384,  GetCFnData)
+//THUMB_FN(0xfe3a2d60,  SetCFnData)
+//THUMB_FN(0xfe4da384,  GetCFnData)
 THUMB_FN(0xfe5f3d62,  LoadCalendarFromRTC)
 THUMB_FN(0xfe966068,  vsnprintf)
 THUMB_FN(0xfe484d7c,  uart_printf)
