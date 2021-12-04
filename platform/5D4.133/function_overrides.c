@@ -14,7 +14,7 @@ uint32_t shamem_read(uint32_t addr)
 void LoadCalendarFromRTC(struct tm *tm)
 {
     // differs from D78, one arg is missing
-    _LoadCalendarFromRTC(tm, 0, 16);
+    _LoadCalendarFromRTC(tm, 0, 0, 16);
 }
 
 // Partition tables stuff. Copied from 750D.  The parsing logic
