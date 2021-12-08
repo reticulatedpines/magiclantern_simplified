@@ -1,0 +1,40 @@
+FROM debian:bullseye-slim
+LABEL description="Magiclantern qemu-eos builder"
+
+# clean is not needed with official Debian images,
+# RUN apt-get clean
+
+# update is required since we later install packages,
+# and Debian images ship with empty apt cache
+RUN apt-get update && \
+apt-get install -qy --no-install-recommends \
+build-essential \
+python3 \
+wget \
+unzip \
+pkg-config \
+libgtk-3-dev \
+zip \
+&& rm -rf /var/lib/apt/lists/*
+
+#RUN update-ca-certificates
+
+ENV NUM_CPUS=16
+
+# create user for building with,
+# and copy in the script that runs the build
+RUN useradd -ms /bin/bash ml_builder
+WORKDIR /home/ml_builder
+USER ml_builder
+
+COPY qemu_src.tar .
+RUN mkdir qemu-eos && \
+cd qemu-eos && \
+tar -xf ../qemu_src.tar
+
+RUN cd qemu-eos && \
+./configure --target-list=arm-softmmu --disable-docs --enable-vnc --enable-gtk && \
+./scripts/git-submodule.sh update && \
+make -j $NUM_CPUS
+
+RUN zip qemu.zip -r qemu-eos/arm-softmmu

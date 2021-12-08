@@ -24,9 +24,11 @@ a.out
 chdk
 eos
 !/contrib/qemu/eos
+qemu_tools/qemu-eos*
 font-*.c
 version.c
 font-*.in
+*.tar
 *.zip
 *.orig
 tags
