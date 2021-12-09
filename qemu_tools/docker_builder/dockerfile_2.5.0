@@ -38,4 +38,4 @@ RUN cd qemu-eos && \
 make -j $NUM_CPUS
 
 # zip runtime for copy to host
-RUN zip qemu-2.zip -r qemu-eos/arm-softmmu
+RUN zip qemu_2.zip -r qemu-eos/arm-softmmu

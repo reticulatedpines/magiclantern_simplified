@@ -5,20 +5,13 @@ import argparse
 import subprocess
 from collections import namedtuple
 
+
 def main():
     args = parse_args()
 
     starting_dir = os.getcwd()
-    version = get_qemu_version(args.qemu_source_dir)
-
     try:
-        if version.major == 2:
-            build_qemu_2(args.qemu_source_dir)
-        elif version.major == 4:
-            build_qemu_4(args.qemu_source_dir)
-        else:
-            print("ERROR: unexpected Qemu version: %d.%d.%d" % version)
-            exit(-1)
+        build_qemu(args.qemu_source_dir)
     except QemuInstallerError as e:
         print("ERROR: " + str(e))
         os.chdir(starting_dir)
@@ -54,9 +47,19 @@ def run(command=[], error_message="", cwd="."):
         raise QemuInstallerError(error_message + str(e))
 
 
-def build_qemu_2(source_dir):
+def build_qemu(source_dir):
+    version = get_qemu_version(args.qemu_source_dir)
+    # major version match is probably good enough,
+    # deps don't change that fast.
+    if version.major == 2:
+        docker_file = "dockerfile_2.5.0"
+    elif version.major == 4:
+        docker_file = "dockerfile_4.2.1"
+    else:
+        raise QemuInstallerError("unexpected Qemu version: %d.%d.%d" % version)
+
     script_dir = os.path.split(os.path.realpath(__file__))[0]
-    target_tar = os.path.join(script_dir, "docker_builder", "qemu_src_2.tar")
+    target_tar = os.path.join(script_dir, "docker_builder", "qemu_src_" + str(version.major) + ".tar")
     run(command=["./scripts/archive-source.sh", target_tar],
         error_message="Tarring qemu source failed: ",
         cwd=source_dir)
@@ -73,31 +76,7 @@ def build_qemu_2(source_dir):
                  "qemu_build"],
         error_message="sudo docker create failed: ")
 
-    run(command=["sudo", "docker", "cp", "qemu_build_output:/home/ml_builder/qemu.zip",
-                 "."],
-        error_message="sudo docker cp failed: ")
-
-
-def build_qemu_4(source_dir):
-    script_dir = os.path.split(os.path.realpath(__file__))[0]
-    target_tar = os.path.join(script_dir, "docker_builder", "qemu_src_4.tar")
-    run(command=["./scripts/archive-source.sh", target_tar],
-        error_message="Tarring qemu source failed: ",
-        cwd=source_dir)
-
-    run(command=["sudo", "docker", "build", "-t", "qemu_build",
-                 "-f", "docker_builder/dockerfile_4.2.1",
-                 "docker_builder"],
-        error_message="sudo docker build failed: ")
-
-    run(command=["sudo", "docker", "rm", "qemu_build_output"],
-        error_message="sudo docker rm failed: ")
-
-    run(command=["sudo", "docker", "create", "--name", "qemu_build_output",
-                 "qemu_build"],
-        error_message="sudo docker create failed: ")
-
-    run(command=["sudo", "docker", "cp", "qemu_build_output:/home/ml_builder/qemu.zip",
+    run(command=["sudo", "docker", "cp", "qemu_build_output:/home/ml_builder/qemu_2.zip",
                  "."],
         error_message="sudo docker cp failed: ")
 
