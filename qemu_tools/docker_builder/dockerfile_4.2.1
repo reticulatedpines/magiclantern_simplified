@@ -22,15 +22,17 @@ RUN useradd -ms /bin/bash ml_builder
 WORKDIR /home/ml_builder
 USER ml_builder
 
-COPY qemu_src.tar .
+# copy qemu source from host to container
+COPY qemu_src_4.tar qemu_src.tar
 RUN mkdir qemu-eos && \
 cd qemu-eos && \
 tar -xf ../qemu_src.tar
 
+# build qemu
 ENV NUM_CPUS=16
-
 RUN cd qemu-eos && \
 ./configure --target-list=arm-softmmu --disable-docs --enable-vnc --enable-gtk && \
 make -j $NUM_CPUS
 
-RUN zip qemu.zip -r qemu-eos/arm-softmmu
+# zip runtime for copy to host
+RUN zip qemu-4.zip -r qemu-eos/arm-softmmu

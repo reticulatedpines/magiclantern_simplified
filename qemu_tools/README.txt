@@ -11,7 +11,7 @@ mkdir magiclantern
 cd magiclantern
 git clone https://github.com/reticulatedpines/qemu-eos.git
 cd qemu-eos
-git switch qemu-eos.v4.2.1
+git switch qemu-eos-v4.2.1
 cd ..
 git clone https://github.com/reticulatedpines/magiclantern_simplified.git
 cd magiclantern_simplified/qemu_tools

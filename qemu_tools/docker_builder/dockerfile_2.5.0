@@ -1,0 +1,41 @@
+FROM debian:buster-slim
+LABEL description="Magiclantern qemu-eos builder"
+
+# clean is not needed with official Debian images,
+# RUN apt-get clean
+
+# update is required since we later install packages,
+# and Debian images ship with empty apt cache
+RUN apt-get update && \
+apt-get install -qy --no-install-recommends \
+build-essential \
+python2 \
+wget \
+unzip \
+pkg-config \
+libgtk-3-dev \
+flex \
+bison \
+zip \
+&& rm -rf /var/lib/apt/lists/*
+
+# create user for building
+RUN useradd -ms /bin/bash ml_builder
+WORKDIR /home/ml_builder
+USER ml_builder
+
+# copy qemu source from host to container
+COPY qemu_src_2.tar qemu_src.tar
+RUN mkdir qemu-eos && \
+cd qemu-eos && \
+tar -xf ../qemu_src.tar
+
+# build qemu
+ENV NUM_CPUS=16
+RUN cd qemu-eos && \
+./configure --target-list=arm-softmmu --disable-docs --enable-vnc --enable-gtk \
+            --python=/usr/bin/python2 --extra-cflags="-Wno-deprecated-declarations" && \
+make -j $NUM_CPUS
+
+# zip runtime for copy to host
+RUN zip qemu-2.zip -r qemu-eos/arm-softmmu
