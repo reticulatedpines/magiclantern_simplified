@@ -223,9 +223,9 @@ THUMB_FN(0xfe4a56ea,  prop_deliver)         /* pDeliverProperty */
 THUMB_FN(0xfe4a577a, _prop_cleanup)         /* called at the end of property handlers */
 
 /** Recursive locks **/
-THUMB_FN(0x996,       CreateRecursiveLock)
-THUMB_FN(0xfe88897c,  AcquireRecursiveLock)
-THUMB_FN(0xfe888a44,  ReleaseRecursiveLock)
+THUMB_FN(0x996,   CreateRecursiveLock)
+THUMB_FN(0x1f10,  AcquireRecursiveLock)
+THUMB_FN(0x1fd8,  ReleaseRecursiveLock)
 
 /** ResLock **/
 THUMB_FN(0xfe9fd4a8,  CreateResLockEntry)
