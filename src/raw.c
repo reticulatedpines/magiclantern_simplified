@@ -470,6 +470,10 @@ static int dynamic_ranges[] = {1116, 1112, 1092, 1066, 1005, 909, 813, 711, 567}
 static int dynamic_ranges[] = {1143, 1139, 1122, 1087, 1044, 976, 894, 797, 683, 624, 505};
 #endif
 
+#ifdef CONFIG_6D2
+static int dynamic_ranges[] = {1103, 1088, 1067, 1041, 999, 938, 848, 775, 667, 570, 476};
+#endif
+
 #ifdef CONFIG_500D
 static int dynamic_ranges[] = {1104, 1094, 1066, 1007, 933, 848, 737, 625};
 #endif

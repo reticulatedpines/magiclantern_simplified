@@ -166,9 +166,9 @@ THUMB_FN(0xdf00b615,  msg_queue_create) // CreateMessageQueue - In 50D, msg_queu
 
 THUMB_FN(0xe04e520c,  prop_deliver)
 THUMB_FN(0xe04e4ca6,  prop_register_slave) // "pRegisterSlave"
-THUMB_FN(0xe03a1c00,  LiveViewApp_handler) // not sure - function is quite different 50D -> 200D, but that
-                                        // doesn't seem unreasonable since large GUI changes.  String use and surrounding
-                                        // functions look similar / related.
+THUMB_FN(0xe03a1c00,  LiveViewApp_handler) // DebugMsg: "StartLiveViewApp(%#x)", address passed to CreateDialogBox
+THUMB_FN(0xe07bc900,  LiveViewShutterApp_handler) // DebugMsg: "StartLiveViewShutterApp", address passed to CreateDialogBox
+THUMB_FN(0xe054383a,  PlayMovieGuideApp_handler) // "StartPlayMovieGuideApp" 
 THUMB_FN(0xe0486f60,  PlayMain_handler) // "DlgPlayMain.c PRESS_ERASE_BUTTON" - code above the string, wasn't found automatically
 THUMB_FN(0xe03d5b1e,  GetCFnData) // Differs significantly from 200D
 THUMB_FN(0xe03d4c80,  SetCFnData) // There are some "SetCFnData" related strings

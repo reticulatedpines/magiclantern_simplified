@@ -138,30 +138,40 @@
 #define LEDOFF                      0x20C0003
 
 
-#define HIJACK_FIXBR_DCACHE_CLN_1   0xE0040068   /* first call to dcache_clean, before cstart */
-#define HIJACK_FIXBR_ICACHE_INV_1   0xE0040072   /* first call to icache_invalidate, before cstart */
-#define HIJACK_FIXBR_DCACHE_CLN_2   0xE00400A0   /* second call to dcache_clean, before cstart */
-#define HIJACK_FIXBR_ICACHE_INV_2   0xE00400AA   /* second call to icache_invalidate, before cstart */
-#define HIJACK_INSTR_BL_CSTART      0xE00400C0   /* easier to fix up here, rather than at E0040034 */
-#define HIJACK_FIXBR_BZERO32        0xE004014A   /* called from cstart */
-#define HIJACK_FIXBR_CREATE_ITASK   0xE00401AC   /* called from cstart */
-#define HIJACK_INSTR_MY_ITASK       0xE00401DC   /* address of init_task passed to create_init_task */
+#define BR_DCACHE_CLN_1   0xE0040068   /* first call to dcache_clean, before cstart */
+#define BR_ICACHE_INV_1   0xE0040072   /* first call to icache_invalidate, before cstart */
+#define BR_DCACHE_CLN_2   0xE00400A0   /* second call to dcache_clean, before cstart */
+#define BR_ICACHE_INV_2   0xE00400AA   /* second call to icache_invalidate, before cstart */
+#define BR_BR_CSTART      0xE00400C0   // D78 cams have an indirect branch to cstart,
+                                       // the first of which is absolute; overwrite it
+#define BR_BZERO32        0xE004014A   /* called from cstart */
+#define BR_CREATE_ITASK   0xE00401AC   /* called from cstart */
 
 #define PTR_USER_MEM_SIZE           0xE00401D0   /* easier to patch the size; start address is computed */
 #define PTR_SYS_OFFSET              0xe00401c8   // offset from DryOS base to sys_mem start
 #define PTR_SYS_OBJS_OFFSET         0xe00401d4   // offset from DryOS base to sys_obj start
 #define PTR_DRYOS_BASE              0xe00401b4
-#define ML_MAX_USER_MEM_STOLEN 0x40000 // True max differs per cam, 0x40000 has been tested on
+
+#define ML_MAX_USER_MEM_STOLEN 0x47000 // True max differs per cam, 0x40000 has been tested on
                                        // the widest range of D678 cams with no observed problems,
                                        // but not all cams have been tested!
 
-#define ML_MAX_SYS_MEM_INCREASE 0x40000 // More may be VERY unsafe!  Increasing this pushes sys_mem
-                                        // higher in memory, at some point that must cause Bad Things,
-                                        // consequences unknown.  0x40000 has been tested, a little...
+// On some cams, e.g. 200D, there is a gap after sys_mem that we can steal from.
+// Some cams, e.g. 750D, do not have this and moving it up conflicts with
+// other hard-coded uses of the region - DO NOT do this.
+// Check for xrefs into the region before attempting this.
+#define ML_MAX_SYS_MEM_INCREASE 0x0
 
-#define ML_RESERVED_MEM 0x66000 // Can be lower than ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE,
+#define ML_RESERVED_MEM 0x46000 // Can be lower than ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE,
                                 // but must not be higher; sys_objs would get overwritten by ML code.
                                 // Must be larger than MemSiz reported by build for magiclantern.bin
+
+// Used for copying and modifying ROM code before transferring control.
+// Look in BR_ macros for the highest address, subtract ROMBASEADDR, align up.
+// On 6D2 there is an extra call, the code of which is after cstart, so we must
+// also ensure this is covered.
+#define FIRMWARE_ENTRY_LEN 0x300
+
 /*
 Before patching:
 DryOS base    user_start                       sys_objs_start    sys_start

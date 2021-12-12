@@ -36,8 +36,9 @@ ROMBASEADDR     = 0xE0040000
 # It's a sensible precaution to pick a value that's well aligned,
 # we run code from this address.
 
-# e078f + 115188 - 40000 = 1b5917
-RESTARTSTART    = 0x001b5a00
+# user_mem_end is 1f5910 on 6D2 1.0.5
+RESTARTSTART    = 0x001ae910
+# 47000 back
 
 # Cortex A9, binaries loaded as Thumb
 PLATFORM_ARCH = armv7-a
@@ -50,6 +51,6 @@ CFLAG_USER += -mthumb -mlong-calls
 #ML_SRC_EXTRA_OBJS += log-d678.o stdio.o function_overrides.o
 #endif
 
-ML_BOOT_OBJ     = boot-d78.o
+ML_BOOT_OBJ     = boot-d678.o
 ML_SRC_EXTRA_OBJS += function_overrides.o
 
