@@ -159,207 +159,118 @@ struct dialog_list
 
 
 /** Dialog box gui elements */
-#if defined(CONFIG_R) || defined(CONFIG_M50)
-// tested on R and M50. RP has slightly different size.
+#ifdef CONFIG_DIGIC_678
+// Verified on 750D (D6), 200D (D7), M50, R, RP, 250D (D8)
 struct dialog {
-    char * type;
-    struct window * window;
-    uint32_t arg4; /* 4th arg to WINSYS_CreateDialogBox, referenced as ID in some prints */
+    char * type;                                        // Signature, pointer to "DIALOG" string
+    struct window *          window;
+    uint32_t                 id;                        // 4th arg to CreateDialogBox, referenced as ID in some prints
     struct subscriberClass * hLanguageSubscriber;
-    struct subscriberClass * hTerminateSubscriber; /* disp_sw_controller? */
-    uint32_t refresh_x; /* rectangle to redraw? */
-    uint32_t refresh_y;
-    uint32_t refresh_w;
-    uint32_t refresh_h;
-    uint32_t origin_maybe; /* not sure, referenced as origin in messages */
-    uint32_t pos_x;
-    uint32_t pos_y;
-    uint32_t pos_w;
-    uint32_t pos_h;
-    uint32_t field_0x38;
-    uint32_t field_0x3c;
-    struct gui_task * controller; /* CtrlServ aka gui_task object */
-    uint8_t field_0x44;
-    uint8_t field_0x45;
-    uint8_t field_0x46;
-    uint8_t field_0x47;
-    uint32_t field_0x48;
-    uint32_t * field_0x4c;
-    uint32_t * field_0x50;
-    void * handler;
-    void * handler_arg;
-    uint32_t field_0x5c; /* set in WINSYS_GetFocusedItemIDOfDialogItem_maybe */
-    uint16_t field_0x60;
-    uint16_t field_0x62;
-    uint16_t field_0x64;
-    uint16_t field_0x66;
-    uint32_t field_0x68;
-    uint32_t field_0x6c;
-    uint32_t field_0x70;
-    uint8_t field_0x74;
-    uint8_t field_0x75;
-    uint8_t field_0x76;
-    uint8_t field_0x77;
-    uint32_t field_0x78;
-    uint32_t const_40000000_0; /* set in WINSYS_CreateDialogBox */
-    uint32_t some_w; /* see WINSYS_ResizeDialogBox_maybe */
-    uint32_t some_h;
-    uint32_t id; /* is id ID really? See 0x8, this is referenced as ID */
-    uint32_t level_maybe;
-    uint32_t const_40000000_1; /* set in WINSYS_CreateDialogBox */
-    uint16_t field_0x94;
-    uint8_t field_0x96;
-    uint8_t field_0x97;
-    void * child_list_maybe; /* buffer of (pointer size * count below) */
-    uint child_list_count_maybe; /* search table length %d; +2 from "real" size - see WINSYS_CreateDialogBox */
-    uint32_t reaction_x; /* see WINSYS_SetReactionAreaToDialog */
-    uint32_t reaction_y;
-    uint32_t reaction_w;
-    uint32_t reaction_h;
-    uint32_t field_0xb0;
-    uint32_t field_0xb4;
-    uint32_t field_0xb8;
-    uint32_t field_0xbc;
-    uint32_t field_0xc0;
-    uint16_t field_0xc4;
-    uint8_t field_0xc6;
-    uint8_t field_0xc7;
-    uint8_t field_0xc8;
-    uint8_t field_0xc9;
-    uint8_t field_0xca;
-    uint8_t field_0xcb;
-    uint32_t field_0xcc;
-    uint32_t field_0xd0;
-    uint16_t field_0xd4;
-    uint8_t field_0xd6;
-    uint8_t field_0xd7;
-    uint32_t field_0xd8;
-    uint32_t field_0xdc;
-    uint32_t field_0xe0;
-    uint32_t field_0xe4;
-    uint32_t field_0xe8;
-    uint32_t field_0xec;
-    uint32_t field_0xf0;
-    uint32_t field_0xf4;
-    uint32_t field_0xf8;
-    uint32_t field_0xfc;
-    uint32_t field_0x100;
-    uint32_t field_0x104;
-    uint32_t field_0x108;
-    uint32_t field_0x10c;
-    uint32_t field_0x110;
-    uint32_t field_0x114;
-    uint32_t field_0x118;
-    uint32_t rotationAngle;
+#if defined(CONFIG_DIGIC_VI) || defined(CONFIG_DIGIC_VII)
+    uint32_t                 unk_d67_01;                // Not initialized in CreateDialogBox; type may be wrong
+#endif
+    struct subscriberClass * hTerminateSubscriber;      // disp_sw_controller?
+    uint32_t                 refresh_x;                 // Region to redraw? probably a "damaged" region.
+    uint32_t                 refresh_y;
+    uint32_t                 refresh_w;
+    uint32_t                 refresh_h;
+    uint32_t                 origin_maybe;              // not sure, referenced as origin in messages, may be resolution related ID
+    uint32_t                 pos_x;                     // Region of window onscreen position?
+    uint32_t                 pos_y;
+    uint32_t                 pos_w;
+    uint32_t                 pos_h;
+#ifdef CONFIG_DIGIC_VIII
+    uint32_t                 flag_1;                    // Set either 0 or 1. Defaults to 0.
+    uint32_t                 flag_2;                    // Set either 0 or 1. Defaults to 0.
+#endif // CONFIG_DIGIC_VIII
+    struct gui_task *        controller;                // CtrlServ object. We call it gui_task
+    void *                   dlgItem_related_1;
+    uint32_t                 unk_01;
+#if defined(CONFIG_DIGIC_VI) || defined(CONFIG_DIGIC_VII)
+    uint8_t                  unk_d67_02[20];            // Not initialized in CreateDialogBox; Compacted to array, type surely wrong.
+#endif // defined(CONFIG_DIGIC_VI) || defined(CONFIG_DIGIC_VII)
+    void *                   dlgItem_related_2;         // dlgItem_related_2 and _3 are set to dlgItem_related_1 in CreateDialogBox
+    void *                   dlgItem_related_3;         // Referenced in TerminateDialogBox, item[1] passed to DestroyDialogItem.
+    void *                   handler;                   // Pointer to CBR
+    void *                   handler_arg;               // Arg for CBR
+    uint32_t                 unk_02;                    // Set in WINSYS_GetFocusedItemIDOfDialogItem.
+    uint16_t                 short_x;                   // Another region. This one expressed in shorts insted of uint32_t
+    uint16_t                 short_y;                   // region may be connected with resources loading, called from ResLoad function
+    uint16_t                 short_w;                   // where it returns XYWH to resource structure.
+    uint16_t                 short_h;
+    uint32_t                 unk_03;
+    uint32_t                 unk_04;
+    uint32_t                 unk_05;
+    uint8_t                  unk_06;                    // Not initialized in CreateDialogBox; type may be wrong
+    uint8_t                  unk_07;                    // ^ like above
+    uint8_t                  unk_08;                    // ^ like above
+    uint8_t                  unk_09;                    // ^ like above
+    uint32_t                 unk_10;
+    uint32_t                 color_related_1;           // Set to 0x40000000 in CreateDialogBox. Seems to be some kind of bitmask, color related.
+    uint32_t                 some_x;                    // Another region, unknown meaning
+    uint32_t                 some_y;                    // Set by default to 0,0,arg1,arg2 in CreateDialogBox
+    uint32_t                 some_w;
+    uint32_t                 some_h;
+    uint32_t                 color_related_2;           // See color_related_1
+    uint16_t                 unk_11;
+    uint8_t                  unk_12;
+    uint8_t                  unk_13;
+    void *                   child_list;                // Pointer to buffer of (sizeof(ptr) * child_list_count_maybe)
+    uint                     child_list_count;          // "search table length %d"; +2 from "real" size - see CreateDialogBox
+    uint32_t                 reaction_x;                // Region. See SetReactionAreaToDialog
+    uint32_t                 reaction_y;
+    uint32_t                 reaction_w;
+    uint32_t                 reaction_h;
+    uint32_t                 unk_14;
+    uint32_t                 unk_15;
+    uint32_t                 unk_16;
+    uint32_t                 unk_17;
+    uint32_t                 unk_18;
+    uint16_t                 unk_19;
+    uint8_t                  unk_20;                    // Not initialized in CreateDialogBox; type may be wrong
+    uint8_t                  unk_21;                    // ^ like above
+    uint8_t                  unk_22;                    // ^ like above
+    uint8_t                  unk_23;                    // ^ like above
+    uint8_t                  unk_24;                    // ^ like above
+    uint8_t                  unk_25;                    // ^ like above
+    uint32_t                 unk_26;
+    uint32_t                 unk_27;
+    uint16_t                 unk_28;
+    uint8_t                  unk_29;                    // Not initialized in CreateDialogBox; type may be wrong
+    uint8_t                  unk_30;                    // ^ like above
+    uint32_t                 unk_31;
+    uint32_t                 unk_32;
+    uint32_t                 unk_33;
+    uint32_t                 unk_34;
+    uint32_t                 unk_35;
+    uint32_t                 unk_36;
+    uint32_t                 unk_37;
+    uint32_t                 unk_38;
+    uint32_t                 unk_39;
+    uint32_t                 unk_40;
+#ifdef CONFIG_DIGIC_VIII                                // DIGIC8
+    uint32_t                 _refresh_x;                // Region used as arguments passed to WINSYS_RegisterRefreshRectangle_maybe
+    uint32_t                 _refresh_y;                // which updates refresh_[xywh] conditionally from those values.
+    uint32_t                 _refresh_w;
+    uint32_t                 _refresh_h;
+    uint32_t                 unk_d8_01;
+    uint32_t                 unk_d8_02;
+    uint32_t                 unk_d8_03;
+    uint32_t                 rotationAngle;             // Guess: GUI can render rotated 90 degrees (EVF)
+    //uint32_t               field_0x122;               // Those two exists on RP and later. We don't use them, and
+    //uint32_t               field_0x124;               // do not create struct so I left them commented out.
+#endif // CONFIG_DIGIC_VIII
 };
-#elif defined(CONFIG_DIGIC_VI) || defined(CONFIG_DIGIC_VII)
-// confirmed on 750D, 200D
-struct dialog {
-    const char * type; //class, pSignature
-    void * hWindow;
-    uint32_t id;
-    void * hLanguageSubscriber;
-    uint8_t field_0x10;
-    uint8_t field_0x11;
-    uint8_t field_0x12;
-    uint8_t field_0x13;
-    void * hTerminateSubscriber;
-    uint32_t field_0x18;
-    uint32_t field_0x1c;
-    uint32_t field_0x20;
-    uint32_t field_0x24;
-    uint32_t field_0x28;
-    uint32_t field_0x2c;
-    uint32_t field_0x30;
-    uint32_t field_0x34;
-    uint32_t field_0x38;
-    void * controller;
-    uint8_t field_0x40;
-    uint8_t field_0x41;
-    uint8_t field_0x42;
-    uint8_t field_0x43;
-    uint32_t field_0x44;
-    uint8_t field_0x48;
-    uint8_t field_0x49;
-    uint8_t field_0x4a;
-    uint8_t field_0x4b;
-    uint8_t field_0x4c;
-    uint8_t field_0x4d;
-    uint8_t field_0x4e;
-    uint8_t field_0x4f;
-    uint8_t field_0x50;
-    uint8_t field_0x51;
-    uint8_t field_0x52;
-    uint8_t field_0x53;
-    uint8_t field_0x54;
-    uint8_t field_0x55;
-    uint8_t field_0x56;
-    uint8_t field_0x57;
-    uint8_t field_0x58;
-    uint8_t field_0x59;
-    uint8_t field_0x5a;
-    uint8_t field_0x5b;
-    uint32_t * field_0x5c;
-    uint32_t * field_0x60;
-    void * handler;
-    void * handler_arg;
-    uint32_t field_0x6c;
-    uint16_t field_0x70;
-    uint16_t field_0x72;
-    uint16_t field_0x74;
-    uint16_t field_0x76;
-    uint32_t field_0x78;
-    uint32_t field_0x7c;
-    uint32_t field_0x80;
-    uint8_t field_0x84;
-    uint8_t field_0x85;
-    uint8_t field_0x86;
-    uint8_t field_0x87;
-    uint32_t field_0x88;
-    uint32_t color_related_1;
-    uint32_t unknown_region_x;
-    uint32_t unknown_region_y;
-    uint32_t unknown_region_w;
-    uint32_t unknown_region_h;
-    uint32_t color_related_2;
-    uint16_t field_0xa4;
-    uint8_t field_0xa6;
-    uint8_t field_0xa7;
-    void * child_list_maybe;
-    int child_list_count_maybe;
-    uint32_t field_0xb0;
-    uint32_t field_0xb4;
-    uint32_t field_0xb8;
-    uint32_t field_0xbc;
-    uint32_t field_0xc0;
-    uint32_t field_0xc4;
-    uint32_t field_0xc8;
-    uint32_t field_0xcc;
-    uint32_t field_0xd0;
-    uint16_t field_0xd4;
-    uint8_t field_0xd6;
-    uint8_t field_0xd7;
-    uint8_t field_0xd8;
-    uint8_t field_0xd9;
-    uint8_t field_0xda;
-    uint8_t field_0xdb;
-    uint32_t field_0xdc;
-    uint32_t field_0xe0;
-    uint16_t field_0xe4;
-    uint8_t field_0xe6;
-    uint8_t field_0xe7;
-    uint32_t field_0xe8;
-    uint32_t field_0xec;
-    uint32_t field_0xf0;
-    uint32_t field_0xf4;
-    uint32_t field_0xf8;
-    uint32_t field_0xfc;
-    uint32_t field_0x100;
-    uint32_t field_0x104;
-    uint32_t field_0x108;
-    uint32_t field_0x10c;
-};
+
+#ifdef CONFIG_DIGIC_VIII
+// RP, 250D is 0x128, but we left two commented out as they are not needed
+SIZE_CHECK_STRUCT( dialog, 0x120 );
 #else
+// verified on 750D, 200D
+SIZE_CHECK_STRUCT( dialog, 0x110 );
+#endif
+
+#else // =< DIGIC5
 struct dialog
 {
         const char *            type;                   // "DIALOG" at 0x147F8
