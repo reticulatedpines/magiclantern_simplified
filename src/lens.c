@@ -1232,41 +1232,36 @@ PROP_HANDLER( PROP_LENS_STATIC_DATA )
 {
     ASSERT(len == sizeof(struct prop_lens_static_data));
 
-    const struct prop_lens_static_data * lens_data = (void*) buf;
+    const struct prop_lens_static_data * _static = (void*) buf;
 
-    strncpy( lens_info.name, lens_data->lens_name, sizeof(lens_info.name) );
+    strncpy( lens_info.name, _static->lens_name, sizeof(lens_info.name) );
     lens_info.name[sizeof(lens_info.name) - 1] = '\0'; //null terminate
 
-    lens_info.lens_exists      = lens_data->attached;
-    lens_info.raw_aperture_min = lens_data->av_min_spd;
-    lens_info.raw_aperture_max = lens_data->av_max_spd;
-    lens_info.lens_id          = lens_data->lens_id;
-    lens_info.lens_focal_min   = lens_data->fl_wide;
-    lens_info.lens_focal_max   = lens_data->fl_tele;
-    lens_info.lens_extender    = lens_data->extender_id[0];
+    lens_info.lens_exists      = _static->attached;
+    // those are not RAW values! RAW are available in PROP_LENS_DYNAMIC_DATA
+    //lens_info.raw_aperture_min = _static->av_min_spd;
+    //lens_info.raw_aperture_max = _static->av_max_spd;
+    lens_info.lens_id          = _static->lens_id;
+    lens_info.lens_focal_min   = _static->fl_wide;
+    lens_info.lens_focal_max   = _static->fl_tele;
+    lens_info.lens_extender    = _static->extender_id[0];
 
-    lens_info.IS               = lens_data->lens_is_funct_exists;
+    lens_info.IS               = _static->lens_is_funct_exists;
 
      //not sure?
     lens_info.lens_version      = 0;
-    lens_info.lens_capabilities = lens_data->type; //Wrong, let's display type.
+    lens_info.lens_capabilities = _static->type; //Wrong, let's display type.
 
     uint32_t lens_serial_lo =
-         lens_data->lens_serial[4]        |
-        (lens_data->lens_serial[3] << 8)  |
-        (lens_data->lens_serial[2] << 16) |
-        (lens_data->lens_serial[1] << 24) ;
+         _static->lens_serial[4]        |
+        (_static->lens_serial[3] << 8)  |
+        (_static->lens_serial[2] << 16) |
+        (_static->lens_serial[1] << 24) ;
     uint32_t lens_serial_hi =
-        lens_data->lens_serial[0]         ;
+        _static->lens_serial[0]         ;
     lens_info.lens_serial =
          (uint64_t) lens_serial_lo |
         ((uint64_t) lens_serial_hi << 32);
-
-    if (lens_info.raw_aperture < lens_info.raw_aperture_min || lens_info.raw_aperture > lens_info.raw_aperture_max)
-    {
-        int raw = COERCE(lens_info.raw_aperture, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
-        lensinfo_set_aperture(raw); // valid limits changed
-    }
 }
 #else
 
