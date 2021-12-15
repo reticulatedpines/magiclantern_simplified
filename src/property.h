@@ -65,6 +65,8 @@
 #define PROP_LIVE_VIEW_FACE_AF  0x0205000A
 #define PROP_LV_LOCK            0x80050021
 #define PROP_LV_ACTION          0x80050022 // 0 == LV_START, 1 == LV_STOP
+#define PROP_LV_LCD_OVERLAY_ID  0x02050039 // Updated with LvInfoToggle index while in LCD
+#define PROP_LV_EVF_OVERLAY_ID  0x0205003A // Updated with LvInfoToggle index while in EVF
 
 /** These are guesses */
 #define PROP_LCD_POSITION       0x80040020 // 0 = like on non-flippable, 1 = backwards, 2 = flipped outside
