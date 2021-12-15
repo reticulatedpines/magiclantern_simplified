@@ -1729,6 +1729,8 @@ static void focus_ring_powersave_fix()
     }
 }
 
+#if !defined(CONFIG_DIGIC_VIII)
+// DIGIC8 uses PROP_LENS_DYNAMIC_DATA
 /* only used for requesting a refresh of PROP_LV_LENS;
  * raw data is model-dependent, do not use directly */
 static struct prop_lv_lens lv_lens_raw;
@@ -1791,6 +1793,81 @@ void _prop_lv_lens_request_update()
      */
     prop_request_change(PROP_LV_LENS, &lv_lens_raw, 0);
 }
+#endif
+
+#ifdef CONFIG_DIGIC_VIII
+#define DYNAMIC_FLAG_ST2_MF    0x80  // true -> MF, false -> AF
+#define DYNAMIC_FLAG_ST3_IS    0x0F  // looks PROP_LV_LENS_STABILIZE equiv.
+
+PROP_HANDLER( PROP_LENS_DYNAMIC_DATA ){
+    if(len != sizeof(struct prop_lens_dynamic_data))
+        return;
+
+    const struct prop_lens_dynamic_data * const _dynamic = (void*) buf;
+    lens_info.focal_len        = _dynamic->FL;
+    lens_info.IS               = (_dynamic->st3 & DYNAMIC_FLAG_ST3_IS);
+
+    // This can be used to fake PROP_AF_MODE. Works only on lenses with physical AF/MF switch.
+    //af_mode = (_dynamic->st2 & DYNAMIC_FLAG_ST2_MF) ? AF_MODE_MANUAL_FOCUS : AF_MODE_ONE_SHOT;
+
+    /*
+    // Disabled for now. Requires lens_info rewrite due to storage size change
+    lens_info.raw_aperture_min = _dynamic->AVO;
+    lens_info.raw_aperture_max = _dynamic->AVMAX;
+    if (lens_info.raw_aperture < lens_info.raw_aperture_min || lens_info.raw_aperture > lens_info.raw_aperture_max)
+    {
+        int raw = COERCE(lens_info.raw_aperture, lens_info.raw_aperture_min, lens_info.raw_aperture_max);
+        lensinfo_set_aperture(raw); // valid limits changed
+    } */
+
+    // PROP_LENS_DYNAMIC_DATA provides focus near and focus far values.
+    // We compute focus dist using harmonic mean ( 2*Dn*Df / (Dn + Df) )
+    lens_info.focus_dist       = (2*_dynamic->focus_near*_dynamic->focus_far) / (_dynamic->focus_near + _dynamic->focus_far);
+
+    // We can get this data for free, do we need to compute it in our code?
+    //lens_info.dof_near         = _dynamic->focus_near * 10;
+    //lens_info.dof_far          = _dynamic->focus_far * 10;
+
+    if(_dynamic->focusPos == 0xFFFF)
+    {
+        // lens doesn't report focusPos, work around by using focus distance instead.
+        lens_info.focus_pos     = lens_info.focus_dist;
+    }
+    else
+    {
+        lens_info.focus_pos     = _dynamic->focusPos;
+    }
+
+    static unsigned old_focus_dist = 0;
+    static int      old_focus_pos  = 0;
+    static unsigned old_focal_len  = 0;
+    int focus_dist_changed = (old_focus_dist && lens_info.focus_dist != old_focus_dist);
+    int focus_pos_changed  = (lens_info.focus_pos != old_focus_pos);
+    int lens_not_zoomed    = (old_focal_len && lens_info.focal_len == old_focal_len);
+
+    if (lv && lens_not_zoomed && (focus_pos_changed || focus_dist_changed))
+    {
+        #ifdef FEATURE_MAGIC_ZOOM
+        if (get_zoom_overlay_trigger_by_focus_ring()) zoom_overlay_set_countdown(300);
+        #endif
+
+        idle_wakeup_reset_counters(-11);
+        lens_display_set_dirty();
+        focus_ring_powersave_fix();
+
+        #ifdef FEATURE_LV_ZOOM_SETTINGS
+        zoom_focus_ring_trigger();
+        #endif
+    }
+
+    old_focus_dist = lens_info.focus_dist;
+    old_focus_pos = lens_info.focus_pos;
+    old_focal_len = lens_info.focal_len;
+    update_stuff();
+}
+
+
+#endif
 
 /**
  * This tells whether the camera is ready to take a picture (or not)

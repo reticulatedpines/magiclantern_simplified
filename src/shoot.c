@@ -371,6 +371,8 @@ static void do_this_every_second() // called every second
     }
     #endif
 
+// DIGIC 8+ uses different props
+#if !defined(CONFIG_DIGIC_VIII)
 #if defined(CONFIG_750D)
     /* always update lens info, cam does not do it on LV on its own */
     if (lens_info.lens_exists)
@@ -390,6 +392,7 @@ static void do_this_every_second() // called every second
     {
         _prop_lv_lens_request_update();
     }
+#endif
 #endif
 }
 

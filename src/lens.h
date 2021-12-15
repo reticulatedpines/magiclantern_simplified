@@ -390,6 +390,124 @@ SIZE_CHECK_STRUCT( prop_lens_static_data, 0x1C8 );
 #error No PROP_LENS_STATIC_DATA defined for built cam model
 #endif // unknown model
 
+/*
+ * PROP_LENS_DYNAMIC_DATA structure
+ *
+ * For PROP_LENS_DYNAMIC_DATA it is a bit hard to track in decomp. Full content
+ * is copied a lot between different subsystems.
+ *
+ * However after a lot of tracking I found function that names a lot of fields.
+ * See _prints_dynamic_data(dynamic*, static*).
+ * M50.110: e06e6dbc, R180: e02307b8, 250D.100: e06469f8...
+ * Function easy to trace with print starting with "AVEF:0x%x"(...)
+ *
+ * There's also another function, see R180 e0381a64. On param2 it takes
+ * "ShootingInfoEx" structure. This struct is a bundle of multiple structs,
+ * including lens dynamic data.
+ * Scroll to a debug print "ShootingInfoEx:LensDynamicInfo avef:%x"(...)
+ * First field of "ShootingInfoEx" used by that print is also first field of
+ * prop_lens_dynamic_data embedded into "ShootingInfoEx".
+ */
+struct prop_lens_dynamic_data {
+        uint16_t                AVEF;             // ShootingInfoEx: avef
+        uint16_t                AVO;              // ShootingInfoEx: avo
+        uint16_t                AVMAX;            // ShootingInfoEx: avmax
+#if !defined(CONFIG_M50)
+        uint16_t                AVD;              // Not referenced in M50
+#if defined(CONFIG_R6) || defined(CONFIG_850D)
+        uint16_t                NowAvRF;          // Referenced 850D, R6
+#endif
+        uint16_t                NowAvEF;          // Not referenced in M50. Before 850D named just NowAv
+#endif
+        uint8_t                _pad_01[22];       // M50, R, RP, 250D, 850D, R6
+        uint16_t                jsstep;
+        uint8_t                _pad_02[4];        // M50, R, RP, 250D, 850D, R6
+        uint16_t                IDC;
+#if !defined(CONFIG_M50) && !defined(CONFIG_250D)
+        uint8_t                _pad_03[2];        // R, RP, 850D, R6; not on M50, 250D (alignment?)
+#endif
+        uint16_t                po;
+        uint16_t                po05;
+        uint16_t                po10;
+        uint16_t                po00;
+        uint16_t                po15;
+        uint16_t                Npo;
+        uint16_t                po0;
+        uint16_t                po25;
+        uint16_t                po50;
+        uint16_t                po75;
+        uint16_t                po100;            // po100+ not referenced on 850D
+        uint16_t                po125;
+        uint16_t                po150;
+        uint16_t                po175;
+        uint16_t                po200;
+        uint8_t                 v0;               // vignetting
+        uint8_t                 v1;
+        uint8_t                 v2;
+        uint8_t                 v3;
+        uint16_t                FL;
+        uint16_t                focal_len_image;  // ShootingInfoEx R6, R
+        uint16_t                focus_far;        // ShootingInfoEx: abs_inf; FarAbs
+        uint16_t                focus_near;       // ShootingInfoEx: abs_near; NearAbs
+        uint16_t                zoomPos;          // ShootingInfoEx: zoom_pos
+        uint16_t                focusPos;         //
+        uint16_t                fineFocusPos;     // ShootingInfoEx: fine_focus_pos
+        uint16_t                HighResoZoomPos;  // ShootingInfoEx: high_res_zoom_pos
+        uint16_t                HighResoFocusPos; // ShootingInfoEx: high_res_focus_pos
+#ifdef CONFIG_R6
+        uint8_t                _r6_01[6];         // only on R6, some extra fields?
+#endif
+#if defined(CONFIG_R6) || defined(CONFIG_R) || defined(CONFIG_EOSRP)
+        uint8_t                 abstat;           // lens abberation related; exists only on R series
+#endif
+        uint8_t                 st1;
+        uint8_t                 st2;              // & 0x80 true -> MF, false -> AF
+        uint8_t                 st3;              // & 0x0F looks equv to PROP_LV_LENS_STABILIZE
+        uint8_t                 st4;
+        uint8_t                 st5;
+        uint8_t                _pad_04[3];        // M50, R, RP, 250D, 850D, R6
+        uint8_t                 FcsSt1;           // FocusStep?
+        uint8_t                 FcsSt2;           // FcsSt* are unnamed on M50
+        uint8_t                 FcsSt3;
+        uint8_t                 FcsSt4;
+        uint8_t                 ZmSt1;            // ZoomStep?
+        uint8_t                 ZmSt2;            // ZmSt* are unnamed on M50
+        uint8_t                 ZmSt3;
+        uint8_t                 ZmSt4;
+        uint8_t                _pad_05[4];        // M50, R, RP, 250D, 850D, R6
+#if defined(CONFIG_R) || defined(CONFIG_EOSRP) || defined(CONFIG_R6)
+        uint8_t                _pad_05a;          // R, RP, R6 (alignment?)
+#endif
+        uint16_t                ts_shift;         // via ShootingInfoEx
+        uint8_t                 ts_tilt;          // via ShootingInfoEx
+        uint8_t                 ts_all_revo;      // via ShootingInfoEx
+        uint8_t                 ts_ts_revo;       // via ShootingInfoEx
+        uint8_t                _pad_06[7];        // M50, R, RP, 250D, 850D, R6
+#if defined(CONFIG_M50)
+        uint8_t                _m50_01[4];        // M50, some extra fields?
+#endif
+        uint8_t                 LENSEr;           // not mentioned on 850D
+#if defined(CONFIG_M50)
+        uint8_t                _pad_07[7];        // M50
+#elif defined(CONFIG_R6)
+        uint8_t                _pad_07[11];       // R6
+#else
+        uint8_t                _pad_07[15];       // 850D, 250D, R, RP
+#endif
+};
+
+#if defined(CONFIG_R6)
+SIZE_CHECK_STRUCT( prop_lens_dynamic_data, 0x94 );
+#elif defined(CONFIG_850D) || defined(CONFIG_R) || defined(CONFIG_EOSRP)
+SIZE_CHECK_STRUCT( prop_lens_dynamic_data, 0x90);
+#elif defined(CONFIG_250D)
+SIZE_CHECK_STRUCT( prop_lens_dynamic_data, 0x8C);
+#elif defined(CONFIG_M50)
+SIZE_CHECK_STRUCT( prop_lens_dynamic_data, 0x84);
+#else  // unknown model
+#error No PROP_LENS_DYNAMIC_DATA defined for built cam model
+#endif // /unknown model
+
 #endif // CONFIG_DIGIC_VIII
 
 struct prop_focus
