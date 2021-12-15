@@ -100,11 +100,17 @@ volatile PROP_INT(PROP_PIC_QUALITY2, pic_quality);
 volatile PROP_INT(PROP_PIC_QUALITY, pic_quality);
 #endif
 volatile PROP_INT(PROP_AVAIL_SHOT, avail_shot);
+#if defined(CONFIG_DIGIC_VIII)
+/* R uses PROP_LVAF_MODE. However code suggests that both may be used
+ * on DSLRs. When both are enabled, there's a race, so this is left to
+ * be tested on 250D/850D/etc. */
+volatile PROP_INT(PROP_LVAF_MODE, af_mode);
+#else
 volatile PROP_INT(PROP_AF_MODE, af_mode);
+#endif
 volatile PROP_INT(PROP_METERING_MODE, metering_mode);
 volatile PROP_INT(PROP_DRIVE, drive_mode);
 volatile PROP_INT(PROP_STROBO_FIRING, strobo_firing);
-volatile PROP_INT(PROP_LVAF_MODE, lvaf_mode);
 volatile PROP_INT(PROP_IMAGE_REVIEW_TIME, image_review_time);
 volatile PROP_INT(PROP_MIRROR_DOWN, mirror_down);
 volatile PROP_INT(PROP_LCD_BRIGHTNESS, backlight_level);

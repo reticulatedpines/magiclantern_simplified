@@ -74,6 +74,7 @@
 #define PROP_MVR_MOVW_START0    0x80000020 // not sure?
 #define PROP_MVR_MOVW_START1    0x80000021
 #define PROP_AF_MODE            0x80000004
+#define PROP_LVAF_MODE          0x80000050 // same values as PROP_AF_MODE
 #define AF_MODE_ONE_SHOT        0
 #define AF_MODE_MANUAL_FOCUS    3
 #define AF_MODE_AI_FOCUS        202        // TODO: seems to be model-specific or bit operation
@@ -182,7 +183,7 @@
 #define PROP_DEFAULT_BRACKET    0x8002000A
 #define PROP_PARTIAL_SETTING    0x8002000B
 #define PROP_EMPOWER_OFF        0x80030007      // 1 == prohibit, 2 == permit
-#define PROP_LVAF_MODE      0x8004001d // 0 = shutter killer, 1 = live mode, 2 = face detect
+#define PROP_LVAF_550D          0x8004001d      // 0 = shutter killer, 1 = live mode, 2 = face detect; introduced by a1ex on 550D branch
 
 #define PROP_ACTIVE_SWEEP_STATUS 0x8002000C     // 1 == cleaning sensor?
 
