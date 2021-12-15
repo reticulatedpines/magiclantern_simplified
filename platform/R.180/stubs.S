@@ -131,7 +131,7 @@ THUMB_FN(0xE00C6BC8,  task_trampoline)
 THUMB_FN(0xe02ebf38, _get_task_info_by_id)
 /*
  * kitor: via extask function. While on 5D3 it was called directly, now helper
- * is used. Find extask via string formats. Trace variables holding task id, 
+ * is used. Find extask via string formats. Trace variables holding task id,
  * you will quickly find where it is verified (this is the mentioned helper).
  * In the helper code you will find call to our stub.
  */
@@ -149,7 +149,7 @@ THUMB_FN(0xE0562ED0,  take_semaphore)                       /* SystemIF::KerSem.
 /** GUI **/
 DATA_PTR(    0xfcb4,  gui_task_list)                        // based on 200d
 THUMB_FN(0xe052f34c,  SetGUIRequestMode)                    // by debug message
-THUMB_FN(0xE004AD80,  gui_main_task)                        // task_create("GuiMainTask"...
+THUMB_FN(0xE004AD80,  gui_main_task)                        // via task_create("GuiMainTask"...
 THUMB_FN(0xe03ae6ea,  gui_massive_event_loop)               // various "GUICMD_"* strings
 THUMB_FN(0xE004AE96,  gui_enqueue_message)                  // via string "warning! QueueLength=" and "GUI::GUI.c" in one function
 /*
@@ -158,15 +158,15 @@ THUMB_FN(0xE004AE96,  gui_enqueue_message)                  // via string "warni
  */
 DATA_PTR(    0x5304,  gui_main_struct)
 
- /** Dialog API **/
- THUMB_FN(0xe0541db6,  dialog_redraw)                        // via xrefs to "pDialog->pSignature == m_pcSignature"
- THUMB_FN(0xe0524080,  dialog_set_property_str)
+/** Dialog API **/
+THUMB_FN(0xe0541db6,  dialog_redraw)                        // via xrefs to "pDialog->pSignature == m_pcSignature"
+THUMB_FN(0xe0524080,  dialog_set_property_str)
 
 /*
  * kitor: gui_init_end DNE on R180. It's the only diff in gui_main_task vs 200d.
  *
  * I was unable to find GUI_Control either. It should print debug message and
- * call e004ae96(0, param_1, param_2, param_3 ), which adds it to gui queue.
+ * call gui_enqueue_message(0, param_1, param_2, param_3 ), which adds it to gui queue.
  */
 
 /** GUI timers **/
@@ -275,7 +275,7 @@ DATA_PTR(    0xFE64, _pXCM);                                // param1 to XCM_Mak
  * Stubs needed for CONFIG_XCM_DEDICATED_LAYER
  */
 THUMB_FN(0xe0701f4a, refreshVrmsSurface);                   // by debug message. Renamed to VMIX_TransferRectangleToVram on Digic X
-DATA_PTR(    0xFE6C, display_refresh_needed)                // Easy to spot in RefreshVrmsSurface
+DATA_PTR(    0xFE6C, display_refresh_needed)                // Easy to spot in refreshVrmsSurface()
 
 /**
  * Structures needed for CONFIG_XCM_DEDICATED_LAYER. Specific for EOS R only!
@@ -293,18 +293,17 @@ DATA_PTR(   0x6F2BC, VMIX_LayersEnableArr);
  * 'rgb_vram_info = RENDERER_LayersArr[0];'
  **/
 //THUMB_FN(0xe0567322, RENDERER_InitializeScreen)           // by debug message. Not used in code, left for reference above.
-THUMB_FN(0xe00da8c0, XimrExe);                              //In RefreshVrmsSurface, just before "XimrExe" debug message
-DATA_PTR(    0xFDF0, winsys_sem);                           //Used in RefreshVrmsSurface around XimrExe call
+THUMB_FN(0xe00da8c0, XimrExe);                              // In RefreshVrmsSurface, just before "XimrExe" debug message
+DATA_PTR(    0xFDF0, winsys_sem);                           // Used in RefreshVrmsSurface around XimrExe call
 DATA_PTR(    0xFD98, _rgb_vram_info);
 
 /** Wrong on purpose **/
-DATA_PTR(       0x0,  LCD_Palette)                          // D8 has no indexed RGB buffers.
+DATA_PTR(       0x0,  LCD_Palette)                          // D6+ do use palletes to draw GUI, but it is hw rendered into RGBA
 
 /** App handlers **/
 /**
  * Those can usually be found by looking at function address passed to
- * WINSYS_CreateDialogBox_wrapper / WINSYS_CreateDialogBox, just after some
- * debug message
+ * WINSYS_CreateDialogBox_wrapper(), usually after a debug message.
  * For some reason those doesn't seem to show up on gui_task_list on D8
  * (LiveViewApp) or there are not on top (PlayMain)
  */
@@ -318,7 +317,7 @@ THUMB_FN(0xe038f1c6,  PlayMovieGuideApp_handler)            // in StartPlayMovie
  * Code that creates / stops given task from above, also saves dialog pointer
  * somewhere. This seems to be a better way to detect if given app is running.
  *
- * Pointers to result of WINSYS_CreateDialogBox() call in given function.
+ * Pointers to result of WINSYS_CreateDialogBox_wrapper() call in given function.
  */
 //DATA_PTR(  0xe5b4,  PlayMain_dialog)                      // in StartPlayMain()
 //DATA_PTR( 0x14284,  ShootOlcApp_dialog)                   // in StartShootOlcApp()
@@ -329,8 +328,10 @@ DATA_PTR(   0x13874,  LiveViewApp_dialog)                   // in StartLiveViewA
 /**
  * UNUSED but referenced elsewhere
  **/
-
 //THUMB_FN(0xe0780cb8,  ctrlman_dispatch_event)
+//THUMB_FN(, WINSYS_CreateDialogBox_wrapper)                // Equiv. of `CreateDialogBox()`. Forces layer ID to 0 (GUI)
+//THUMB_FN(, WINSYS_CreateDialogBox)                        // Actual logic. Takes one more argument than CreateDialogBox() (layer ID)
+                                                            // On R, Layer 1 is used only by StartLiveViewAFFrameApp()
 
 /**
  * Stuff below should not be enabled. Looks that there are many hardcoded
@@ -339,15 +340,15 @@ DATA_PTR(   0x13874,  LiveViewApp_dialog)                   // in StartLiveViewA
  */
 
 /** Engio **/
-// THUMB_FN(0x, _EngDrvOut)                                      // not found yet, can be wrapped to _engio_write if needed
-// THUMB_FN(0xE06B92B4, _engio_write)                            // via "Count < MAX_ENG_REG_NUM","EngineDS::DSEngIO.c" strings
-// THUMB_FN(0x,  shamem_read)                                    // not found yet
+// THUMB_FN(0x, _EngDrvOut)                                  // not found yet, can be wrapped to _engio_write if needed
+// THUMB_FN(0xE06B92B4, _engio_write)                        // via "Count < MAX_ENG_REG_NUM","EngineDS::DSEngIO.c" strings
+// THUMB_FN(0x,  shamem_read)                                // not found yet
 
 /** ResLock **/
-// THUMB_FN(0xE054761E,  CreateResLockEntry)                     // one that creates 0x24 structure with cls pointer to "LockEntry"
-//                                                               // and multiple "ResInfo" structures
-// THUMB_FN(0xE0547806,  LockEngineResources)                    // Takes LockEntry as input, creates "EFM_ERSC_STATIC" inside LockEntry
-// THUMB_FN(0xE05478A6,  UnLockEngineResources)                  // Takes LockEntry as input, releases semaphore from LockEntry field
+// THUMB_FN(0xE054761E,  CreateResLockEntry)                 // One that creates 0x24 structure with cls pointer to "LockEntry"
+//                                                           // and multiple "ResInfo" structures
+// THUMB_FN(0xE0547806,  LockEngineResources)                // Takes LockEntry as input, creates "EFM_ERSC_STATIC" inside LockEntry
+// THUMB_FN(0xE05478A6,  UnLockEngineResources)              // Takes LockEntry as input, releases semaphore from LockEntry content
 
 /** EDMAC **/
 // THUMB_FN(0x,  AbortEDmac)
@@ -355,8 +356,8 @@ DATA_PTR(   0x13874,  LiveViewApp_dialog)                   // in StartLiveViewA
 // THUMB_FN(0x,  ConnectWriteEDmac)
 // THUMB_FN(0x,  RegisterEDmacAbortCBR)
 // THUMB_FN(0x,  UnregisterEDmacAbortCBR)
-// THUMB_FN(0xE0535A82,  RegisterEDmacCompleteCBR)               // Not sure. Many registered CBRs have "CompCBR" in debug print names
-// THUMB_FN(0xE0535E16,  UnregisterEDmacCompleteCBR)             // Uses same data structure as above. Replaces CBR with pointer to "do nothing" function.
+// THUMB_FN(0xE0535A82,  RegisterEDmacCompleteCBR)            // Not sure. Many registered CBRs have "CompCBR" in debug print names
+// THUMB_FN(0xE0535E16,  UnregisterEDmacCompleteCBR)          // Uses same data structure as above. Replaces CBR with pointer to "do nothing" function.
 // THUMB_FN(0x,  RegisterEDmacPopCBR)
 // THUMB_FN(0x,  UnregisterEDmacPopCBR)
 // THUMB_FN(0x,  SetEDmac)
