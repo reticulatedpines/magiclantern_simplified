@@ -40,8 +40,6 @@
 #include "lvinfo.h"
 #include "powersave.h"
 
-extern uint32_t ml_refresh_display_needed;
-
 #define CONFIG_MENU_ICONS
 //~ #define CONFIG_MENU_DIM_HACKS
 #undef SUBMENU_DEBUG_JUNKIE

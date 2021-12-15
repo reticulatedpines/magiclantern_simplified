@@ -265,7 +265,6 @@ static void draw_test_pattern(int colour)
 }
 
 #ifdef FEATURE_VRAM_RGBA
-extern int ml_refresh_display_needed;
 
 /** kitor: This aint pretty, but we selectively call bmp init functions
  *  and run required tasks. Other solution would be to have function in bmp.c
