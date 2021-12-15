@@ -49,14 +49,25 @@
 
 #define CURRENT_GUI_MODE (*(int*)0x27394)                 // from SetGUIRequestMode
 
-#define GUIMODE_PLAY 2
-#define GUIMODE_MENU 3
+/**
+ * Some GUI modes as dumped on camera
+ * 0x01 - Play mode
+ * 0x02 - Main menu
+ * 0x2F - LV "Q" menu overlay
+ * Note that overlays below timeout quickly, so they are bad for ML menu.
+ * 0x5B - LV "Shutter speed" overlay
+ * 0x5C - LV "Aperture" overlay
+ * 0x5D - LV "Exposure compensation" overlay
+ * 0x5E - LV "ISO" overlay
+ */
+#define GUIMODE_PLAY 1
+#define GUIMODE_MENU 2
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)
 // skip RECORDING variant for now
-#define GUIMODE_ML_MENU (lv ? 86 : GUIMODE_MENU)
-//#define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 86 : GUIMODE_MENU)
+#define GUIMODE_ML_MENU (lv ? 0x5B : GUIMODE_MENU)
+//#define GUIMODE_ML_MENU (RECORDING ? 0 : lv ? 0x5B : GUIMODE_MENU)
 
 // I can't find any official data. Unofficial say 100k
 #define CANON_SHUTTER_RATING 100000
