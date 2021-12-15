@@ -257,35 +257,45 @@ THUMB_FN(0xe05538a8, _prop_request_change)                  // "PropertyMgr.c", 
  * RGBA / Compositor functions and structures
  */
 
-/** Stubs only for FEATURE_COMPOSITOR_XCM **/
-THUMB_FN(0xe0701f4a, RefreshVrmsSurface);                   //via "refreshVrmsSurface" string. Renamed to VMIX_TransferRectangleToVram on Digic X
-DATA_PTR(    0xFE74, XCM_Inititialized);                    //Easy to spot in RefreshVrmsSurface
-DATA_PTR(    0xFE6C, display_refresh_needed)                //Easy to spot in RefreshVrmsSurface
+/**
+ * Things needed for CONFIG_COMPOSITOR_XCM.
+ *
+ * R uses two layers (GUI, focus overlays). WINSYS code swaps pointer in
+ * WINSYS structure (one we know as _rgb_vram_info) to select which layer to
+ * draw.
+ *
+ * With FEATURE_COMPOSITOR_XCM we ask XCM via XCM_GetSourceSurface to give us
+ * pointer to layer 0, which is more reliable.
+ */
+THUMB_FN(0xe00dde38, XCM_GetSourceSurface)                  // by debug message
+//THUMB_FN(0xe00ddc02, XCM_MakeContext)                     // by debug message. Not used in code, left for reference below.
+DATA_PTR(    0xFE64, _pXCM);                                // param1 to XCM_MakeContext() when called from refreshVrmsSurface()
 
-/*
- * Structures below are probably specific to EOSR implementation.
+/**
+ * Stubs needed for CONFIG_XCM_DEDICATED_LAYER
+ */
+THUMB_FN(0xe0701f4a, refreshVrmsSurface);                   // by debug message. Renamed to VMIX_TransferRectangleToVram on Digic X
+DATA_PTR(    0xFE6C, display_refresh_needed)                // Easy to spot in RefreshVrmsSurface
+
+/**
+ * Structures needed for CONFIG_XCM_DEDICATED_LAYER. Specific for EOS R only!
  * See https://www.magiclantern.fm/forum/index.php?topic=26024
  */
 DATA_PTR(   0x6EFA0, RENDERER_LayersArr);
 DATA_PTR(   0x6F2A4, VMIX_LayersArr);
 DATA_PTR(   0x6F2BC, VMIX_LayersEnableArr);
 
-/** General FEATURE_VRAM_RGBA stubs **/
+/**
+ * General FEATURE_VRAM_RGBA stubs
+ *
+ * _rgb_vram_info is a pointer to first Canon RGBA buffer (GUI).
+ * On R this is set up by RENDERER_InitializeScreen(), after MARVs are created:
+ * 'rgb_vram_info = RENDERER_LayersArr[0];'
+ **/
+//THUMB_FN(0xe0567322, RENDERER_InitializeScreen)           // by debug message. Not used in code, left for reference above.
 THUMB_FN(0xe00da8c0, XimrExe);                              //In RefreshVrmsSurface, just before "XimrExe" debug message
 DATA_PTR(    0xFDF0, winsys_sem);                           //Used in RefreshVrmsSurface around XimrExe call
-
-/*
- * Pointer to first Canon RGBA buffer (GUI). On R this is set up by
- * RENDERER_InitializeScreen function, just after MARVs are created.
- */
 DATA_PTR(    0xFD98, _rgb_vram_info);
-
-/*
- * Place where we can hook into RefreshVrmsSurface.
- * Found inside function called just before "GraphicSystemFinish" debug message.
- * Function should return int, takes no params. Found on M50, 200D, R6, RP too.
- */
-DATA_PTR(   0x1098c, screen_redraw_hook);
 
 /** Wrong on purpose **/
 DATA_PTR(       0x0,  LCD_Palette)                          // D8 has no indexed RGB buffers.

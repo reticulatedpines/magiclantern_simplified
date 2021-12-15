@@ -4,9 +4,8 @@
 #include "vram.h"
 #include "bmp.h"
 
-int surface_setup();
-void rgba_fill(uint32_t color, int x, int y, int w, int h);
-void surface_clean();
+int compositor_layer_setup();
+void compositor_layer_clear();
 
 #if defined(CONFIG_DIGIC_VI) || defined(CONFIG_DIGIC_VII)
 #define XCM_MAX_LAYERS 8
@@ -16,6 +15,7 @@ void surface_clean();
 /*
  * Just a pointer to MARV four our own layer, plus layer ID for toggling later.
  */
-extern int _rgb_vram_layer;// = 0;
+extern int _rgb_vram_layer; // = 0;
+extern struct semaphore *compositor_vsync_semaphore;
 
 #endif

@@ -33,9 +33,6 @@
 #include "property.h"
 #include "consts.h"
 #include "tskmon.h"
-#ifdef FEATURE_COMPOSITOR_XCM
-#include "compositor.h"
-#endif
 
 #include "boot-hack.h"
 #include "ml-cbr.h"
@@ -409,11 +406,6 @@ static void my_big_init_task()
 {
     _mem_init();
     _find_ml_card();
-
-    #ifdef FEATURE_COMPOSITOR_XCM
-    while (surface_setup())
-        msleep(100);
-    #endif
 
     /* should we require SET for loading ML, or not? */
     extern int _set_at_startup;

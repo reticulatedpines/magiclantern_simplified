@@ -34,13 +34,15 @@
 
 extern int bmp_enabled;
 
+extern uint32_t ml_refresh_display_needed;
+
 /** Returns a pointer to the real BMP vram (or to idle BMP vram) */
 uint8_t * bmp_vram(void);
 
 #ifdef CONFIG_DIGIC_45
 /** Returns a pointer to the real BMP vram, as reported by Canon firmware.
  *  Not to be used directly - it may be somewhere in the middle of VRAM! */
-inline uint8_t* bmp_vram_raw() { return bmp_vram_info[1].vram2; } 
+inline uint8_t* bmp_vram_raw() { return bmp_vram_info[1].vram2; }
 #endif
 
 #ifdef FEATURE_VRAM_RGBA
@@ -52,13 +54,23 @@ inline uint8_t* bmp_vram_raw() { return bmp_vram_info[1].vram2; }
  * arbitrary layer on runtime (eg with compositor enabled)
  */
 extern struct MARV *rgb_vram_info;
+#ifdef CONFIG_COMPOSITOR_XCM
+extern void* _pXCM;
+extern struct MARV *XCM_GetSourceSurface(void *pXCM, uint32_t layer_id);
+#else
 extern struct MARV *_rgb_vram_info;
+#endif
 inline uint8_t *rgb_vram_preinit()
 {
+#ifdef CONFIG_COMPOSITOR_XCM
+    // Get address of MARV for layer 0 from XCM
+    rgb_vram_info = XCM_GetSourceSurface(_pXCM, 0);
+#else
+    // Get address of MARV used by WINSYS to draw GUI
     struct MARV *MARV = _rgb_vram_info;
     if(MARV != NULL)
         rgb_vram_info = _rgb_vram_info;
-
+#endif
     return rgb_vram_info ? rgb_vram_info->bitmap_data : NULL;
 }
 

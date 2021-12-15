@@ -1,5 +1,5 @@
 /** \file
- * VRAM RGBA Compositor interface
+ * VRAM Compositor interface
  */
 /*
  * kitor: So I found a compositor on EOSR
@@ -29,192 +29,99 @@
  * in that mode.
  */
 
+/**
+ * Terminology:
+ * Zico core    - Xtensa core, running DryOS, used for graphics acceeleration,
+ *                GUI rendering and compositing. Connected with GPU (Takumi
+ *                GV550 IP core)
+ * mzrm         - Marius - Zico remote messaging (?). RPC used to talk between
+ *                main ARM core (named Marius on D6) and Zico.
+ * Ximr         - Render MIXer (?). Low level compositor on D6 and up.
+ * Ximr Context - Data structure representing Ximr configuration, sent via mzrm
+ *                using XimrExe() to Zico for render.
+ * Input layer  - Layer (described by MARV struct) to be included in mix.
+ * XOC          - Ximr Output Chunk. Buffer where final image is rendered.
+ * XCM          - Ximr Context Maker. "Userspace" tool to deal with Ximr setup.
+ *                Exists on D8 and up, from EOS R (M50 uses pure Ximr)
+ */
+
 #include "dryos.h"
 #include "bmp.h"
 #include "compositor.h"
 
-extern int uart_printf(const char * fmt, ...);
-
-#ifdef FEATURE_COMPOSITOR_XCM
-
-int _rgb_vram_layer = 0;
-
-/*
- * Family of functions new to compositor.
- * Terminology:
- * Ximr - X image renderer (?). Compositor itself.
- * XCM  - Ximr Context Maker. "Userspace" tool to deal with Ximr setup.
- *        Exists on R, RP, DNE on m50, 200d.
- * XOC  - Ximr Output Chunk.
+#ifdef CONFIG_COMPOSITOR_DEDICATED_LAYER
+/**
+ * refreshVrmsSurface (renamed to VMIX_TransferRectangleToVram on Digic X)
+ * is used by Canon code to render Input layers into XOC.
+ *
+ * On pure XIMR cameras it uses XIMR functions to setup Ximr Context
  */
-
-/*
- * XCM functions - for cameras that have it.
- * FEATURE_COMPOSITOR_XCM
- */
-
-/*
- * Pure Ximr functions - for cameras without XCM
- * FEATURE_COMPOSITOR_XIMR
- */
-
-//TODO: Add Ximr support from 200D PoC
-
-/*
- * Common functions and structures for both implementations.
- */
-/*
- * R has XCM_SetRefreshDisplay() which all it does is set refreshDisplay
- * location to 1. For compatibility reasons with 200d and similar
- * (no compositor), memory write will be used.
- */
-extern void      RefreshVrmsSurface();
+extern void      refreshVrmsSurface();
 extern uint32_t  display_refresh_needed;
 
-/*
- * All the important memory structures.
- * Note: those may be valid only for R. RP seems to have simpler setup,
- *       but it wasn't validated yet.
- *
- * RENDERER_LayersArr    holds MARV struct pointers to layers created by
- *                       RENDERER_InitializeScreen(). Those are layers created
- *                       by Canon GUI renderer code.
- *                       SaveVRAM on EvShell uses this array for enumeration.
- * VMIX_LayersArr        Like above, but used by VMIX for XCM rendering setup.
- *                       Entries from array above are copied in (what I called)
- *                       Initialize_Renedrer() after RENDERER_InitializeScreen()
- *                       and VMIX_InitializeScreen() are done.
- * VMIX_LayersEnableArr  Controls if layer with given ID is displayed or not.
- *                       Set up just after XCM_LayersArr is populated.
- * XCM_Inititialized     Variable set by refreshVrmsSurface after it initialized
- *                       XCM (XCM_Reset(), ... ). Init ends with debug message
- *                       containing "initializeXimrContext".
- */
-extern struct MARV *RENDERER_LayersArr[XCM_MAX_LAYERS];
-extern struct MARV *VMIX_LayersArr[XCM_MAX_LAYERS];
-extern uint32_t     VMIX_LayersEnableArr[XCM_MAX_LAYERS];
-extern uint32_t     XCM_Inititialized;
+// Store our Input Layer ID.
+int _rgb_vram_layer = 0;
 
-/*
+/**
  * Not sure if sync_caches() call is needed. It was when I was drawing
  * over Canon buffers, but now when we have our own may be unnecessary.
  */
-void surface_redraw()
+void _compositor_force_redraw()
 {
     display_refresh_needed = 1;
+    ml_refresh_display_needed = 1;
     sync_caches();
-    RefreshVrmsSurface();
+    //refreshVrmsSurface();
 }
 
-/*
- * This array toggles corresponding layers. What is weird, this has no effect
- * on XCMStatus command output, they will still be seen as "enabled":
- *
- * [Input Layer] No:2, Enabled:1
- *  VRMS Addr:0x000e0c08, pImg:0x00ea6d54, pAlp:0x00000000, W:960, H:540
- *  Color:=0x05040100, Range:FULL
- *  srcX:0120, srcY:0030, srcW:0720, srcH:0480, dstX:0000, dstY:0000
- */
-void surface_set_visibility(int state)
+void compositor_layer_clear()
 {
-    if((XCM_Inititialized == 0) || (rgb_vram_info == 0x0))
-        return;
-
-    VMIX_LayersEnableArr[_rgb_vram_layer] = state;
-    //do we want to call redraw, or leave it to the caller?
-    surface_redraw();
-}
-
-void surface_clean()
-{
-    if(rgb_vram_info == 0x0)
+    // abort if we draw over Canon GUI layer
+    if(_rgb_vram_layer == 0)
         return;
 
     bzero32(rgb_vram_info->bitmap_data, BMP_VRAM_SIZE*4);
-}
+    _compositor_force_redraw();
+ }
 
-/*
- * Create a new VRAM (MARV) structure, alloc buffer for VRAM.
- * Call compositor to enable newly created layer.
- */
-int surface_setup()
+
+struct MARV *_compositor_create_layer()
 {
-    //just in case we raced renderer init code.
-    if(XCM_Inititialized == 0)
-        return 1;
+    // buffer for layer data
+    // looks like code expect it to be in uncacheable area
+    uint8_t* pBitmapData = UNCACHEABLE(malloc(BMP_VRAM_SIZE*4));
+    if(pBitmapData == NULL) return NULL;
 
-    //may differ per camera? R and RP have 6.
-    int newLayerID = 0;
-    for(int i = 0; i < XCM_MAX_LAYERS; i++)
-    {
-        if(RENDERER_LayersArr[i] == NULL)
-            break;
-
-        newLayerID++;
-    }
-
-    uart_printf("Found %d layers\n", newLayerID);
-    if(newLayerID >= XCM_MAX_LAYERS)
-    {
-        uart_printf("Too many layers: %d/%d, aborting!\n",
-                newLayerID, XCM_MAX_LAYERS);
-        return 1;
-    }
-
+    // buffer for MARV structure
     struct MARV* pNewLayer = malloc(sizeof(struct MARV));
-    uint8_t* pBitmapData = malloc(BMP_VRAM_SIZE*4);
-
-    if((pNewLayer == NULL) || (pBitmapData == NULL))
-    {
-        uart_printf("New layer preparation failed.\n");
-        return 1;
-    }
-
-    //clean up new surface
-    bzero32(pBitmapData, BMP_VRAM_SIZE*4);
+    if(pNewLayer == NULL) return NULL;
 
     uint16_t bmp_w = BMP_W_PLUS - BMP_W_MINUS;
     uint16_t bmp_h = BMP_H_PLUS - BMP_H_MINUS;
 
-    //prepare MARV
-    pNewLayer->signature    = 0x5652414D;  //MARV
+    // fill MARV data
+    pNewLayer->signature    = 0x5652414D;  // MARV
     pNewLayer->bitmap_data  = pBitmapData;
     pNewLayer->opacity_data = 0x0;
-    pNewLayer->flags        = 0x5040100;   //bitmask (?) for RGBA
+    // 0x5040100 is used by D78. Some early D6 use a different value
+    pNewLayer->flags        = 0x5040100;   // bitmask (?) for RGBA
     pNewLayer->width        = (uint32_t)bmp_w;
     pNewLayer->height       = (uint32_t)bmp_h;
+    // Probably pmem is not needed. No issues observed so far.
     pNewLayer->pmem         = 0x0;
 
-    uart_printf("pNewLayer   at 0x%08x\n", pNewLayer);
-    uart_printf("pBitmapData at 0x%08x\n", pBitmapData);
+    DryosDebugMsg(0, 15, "MARV 0x%08x, bitmap_data 0x%08x", pNewLayer, pBitmapData);
 
-    /*
-     * The code below seems to be R specific. RP/R6 seems to use single struct
-     * for that.
-     */
-
-    //add new layer to compositor layers array
-    RENDERER_LayersArr[newLayerID] = pNewLayer;
-    VMIX_LayersArr[newLayerID] = pNewLayer;
-
-    //enable new layer - just in case (all were enabled by default on R180)
-    VMIX_LayersEnableArr[newLayerID] = 1;
-
-    //save rgb_vram_info as last step, in case something above fails.
-    rgb_vram_info   = pNewLayer;
-    _rgb_vram_layer = newLayerID;
-
-    //make sure XCM notices a new layer by calling redraw
-    surface_redraw();
-    return 0;
+    return pNewLayer;
 }
 
-/* test drawing outside bmp.h code */
+/* Uncomment if you need to test direct RGBA drawing */
+/*
 void rgba_fill(uint32_t color, int x, int y, int w, int h)
 {
     if(rgb_vram_info == 0x0)
     {
-        uart_printf("ERROR: rgb_vram_info not initialized\n");
+        DryosDebugMsg(0, 15, "ERROR: rgb_vram_info not initialized");
         return;
     }
 
@@ -226,6 +133,124 @@ void rgba_fill(uint32_t color, int x, int y, int w, int h)
         for(int j = x; j < x + w; j++)
             *row++ = color;
     }
+}*/
+
+#ifdef CONFIG_COMPOSITOR_XCM
+/**
+ * Implementation specific to XCM
+ */
+
+#ifdef CONFIG_R
+/*
+ * Structures specific to EOSR
+ *
+ * RENDERER_LayersArr    holds MARV struct pointers to layers created by
+ *                       RENDERER_InitializeScreen(). Those are layers created
+ *                       by Canon GUI renderer code.
+ *                       SaveVRAM on EvShell uses this array for enumeration.
+ * VMIX_LayersArr        Like above, but used by VMIX for XCM rendering setup.
+ *                       Entries from array above are copied in (what I called)
+ *                       Initialize_Renedrer() after RENDERER_InitializeScreen()
+ *                       and VMIX_InitializeScreen() are done.
+ * VMIX_LayersEnableArr  Controls if layer with given ID is displayed or not.
+ *                       Set up just after XCM_LayersArr is populated.
+ */
+extern struct MARV *RENDERER_LayersArr[XCM_MAX_LAYERS];
+extern struct MARV *VMIX_LayersArr[XCM_MAX_LAYERS];
+extern uint32_t     VMIX_LayersEnableArr[XCM_MAX_LAYERS];
+#endif // CONFIG_R
+
+void compositor_set_visibility(int state)
+{
+    /**
+     * We either didn't setup layer, or layer setup failed and we draw to
+     * Canon GUI layer. Either way, abort - as this was probably not intended.
+     */
+    if(_rgb_vram_layer == 0)
+        return;
+
+#ifdef CONFIG_R
+    /**
+     * Very specific to EOS R.
+     * This array toggles layers visibility. It is independent from XCM,
+     * and somehow XCM still thinks layer is enabled.
+     * refreshVrmsSurface() regenerate XimrContext on every redraw, so we can't
+     * just use XCM functions to toggle layer off.
+     */
+    VMIX_LayersEnableArr[_rgb_vram_layer] = state;
+#else
+    DryosDebugMsg(0, 15, "compositor_set_visibility not implemented yet!");
+#endif // CONFIG_R
+    //do we want to call redraw, or leave it to the caller?
+    _compositor_force_redraw();
 }
 
-#endif
+/*
+ * Create a new VRAM (MARV) structure, alloc buffer for VRAM.
+ * Call compositor to enable newly created layer.
+ */
+int compositor_layer_setup()
+{
+    // So far it seems that default GUI layer is always 0
+    int newLayerID = 0;
+#ifdef CONFIG_R
+    for(int i = 0; i < XCM_MAX_LAYERS; i++)
+    {
+        if(RENDERER_LayersArr[i] == NULL)
+            break;
+        newLayerID++;
+    }
+#else
+    DryosDebugMsg(0, 15, "Not implemented yet");
+    return 1;
+#endif // CONFIG_R
+
+    DryosDebugMsg(0, 15, "Found %d layers", newLayerID);
+    if(newLayerID >= XCM_MAX_LAYERS)
+    {
+        DryosDebugMsg(0, 15, "Too many layers: %d/%d, aborting!",
+                newLayerID, XCM_MAX_LAYERS);
+        return 1;
+    }
+
+    // create layer
+    struct MARV *pNewLayer = _compositor_create_layer();
+    if(pNewLayer == NULL){
+        DryosDebugMsg(0, 15, "Failed to create a new layer. Falling back to _rgb_vram_info");
+        return 1;
+    }
+    /*
+     * The code below seems to be R specific. RP/R6 seems to use single struct
+     * for that.
+     */
+
+#ifdef CONFIG_R
+    // EOS R specific
+
+    // add new layer to compositor layers array
+    RENDERER_LayersArr[newLayerID] = pNewLayer;
+    VMIX_LayersArr[newLayerID] = pNewLayer;
+
+    // enable new layer - just in case (all were enabled by default on R180)
+    VMIX_LayersEnableArr[newLayerID] = 1;
+#else
+    DryosDebugMsg(0, 15, "Not implemented yet");
+    return 1;
+#endif // CONFIG_R
+
+    // save rgb_vram_info as last step, in case something above fails.
+    rgb_vram_info   = pNewLayer;
+    _rgb_vram_layer = newLayerID;
+
+    // erase buffer and force redraw
+    compositor_layer_clear();
+    return 0;
+}
+
+/*
+ // TODO: Write implementationf for pure Ximr, if we ever want it.
+ #elif defined(CONFIG_COMPOSITOR_XIMR)
+*/
+#endif // CONFIG_COMPOSITOR_XCM
+
+#endif // CONFIG_COMPOSITOR_DEDICATED_LAYER
