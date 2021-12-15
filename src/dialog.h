@@ -271,11 +271,12 @@ SIZE_CHECK_STRUCT( dialog, 0x110 );
 #endif
 
 #else // =< DIGIC5
+// kitor: looks a bit similar to D67. By comparing with 5D3 I fixed a few mistakes.
 struct dialog
 {
         const char *            type;                   // "DIALOG" at 0x147F8
         struct window *         window;                 // off 0x04
-        void *                  arg0;                   // off 0x08
+        void *                  id;                     // off 0x08
         struct langcon *        langcon;                // off 0x0c
         struct dispsw_control * disp_sw_controller;     // off 0x10
         struct publisher *      publisher;              // off 0x14
@@ -309,12 +310,12 @@ struct dialog
         uint32_t                off_0x7c;               // initial=0
         struct publisher *      publisher_callback;     // off_0x80;
         uint32_t                off_0x84;
-        uint32_t                const_40000000_0;       // off_0x88;
-        uint32_t                off_0x8c;               // initial=0xA
-        uint32_t                off_0x90;               // initial=0xA
-        uint32_t                id;                     // off_0x94;
-        uint32_t                level_maybe;            // off_0x98;
-        uint32_t                const_40000000_1;       // off_0x9c;
+        uint32_t                color_related_1;        // Set to 0x40000000 in CreateDialogBox. Seems to be some kind of bitmask, color related.
+        uint32_t                some_x;                 // Another region, unknown meaning
+        uint32_t                some_y;                 // Set by default to 0,0,arg1,arg2 in CreateDialogBox
+        uint32_t                some_w;
+        uint32_t                some_h;
+        uint32_t                color_related_2;        // See color_related_1
         uint16_t                off_0xa0;               // initial=0
         uint16_t                off_0xa2;
         uint32_t                off_0xa4;
@@ -324,17 +325,35 @@ struct dialog
 
 SIZE_CHECK_STRUCT( dialog, 0xB0 );
 #endif
+
 /*
- * kitor: New generations call it WINSYS_CreateDialogBox()
- * EOS R has one more param at the end. Unconfirmed guess: z-index
+ * DIGIC8+ naming is WINSYS_CreateDialogBox
  */
 extern struct dialog *
 dialog_create(
-        int                     id,      // must be unique?
-        int                     level_maybe,
+        int                     width,         // region set as 10,10,width,height
+        int                     height,        // on dialog init
         dialog_handler_t        handler,
-        void *                  arg1,
-        void *                  arg2
+        int                     id,
+        void *                  handler_arg
+);
+
+/*
+ * Models that use multiple GUI layers have additional parameter with layer ID.
+ * Those also have a wrapper with hardcoded layer 0 (equiv to dialog_create),
+ * I guess for compatibility reasons (so all not-layer-aware code can run)
+ *
+ * On R/RP layer 1 is used just to draw focus overlays while in LV mode, only
+ * one app makes use of it.
+ */
+extern struct dialog *
+dialog_create_ex(
+        int                     width,         // region set as 10,10,width,height
+        int                     height,        // on dialog init
+        dialog_handler_t        handler,
+        int                     id,
+        void *                  handler_arg,
+        int                     layer_id       // GUI layer to draw window on
 );
 
 extern void
