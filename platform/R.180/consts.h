@@ -51,6 +51,19 @@
 
 #define CURRENT_GUI_MODE            (*(int*)0x8700)      // see SetGUIRequestMode, Compared with param 1 before write to 0x8708
 
+/**
+ * Some GUI modes as dumped on camera
+ * 0x02 - Play mode
+ * 0x03 - Main menu
+ * 0x29 - Camera mode selection menu
+ * 0x40 - LV "Q" menu overlay
+ * 0x68 - LV "Picture profile" overlay
+ * 0x6E - LV "Shutter speed" overlay
+ * 0x6F - LV "Aperture" overlay
+ * 0x70 - LV "Exposure compensation" overlay
+ * 0x71 - LV "ISO" overlay
+ * 0x7A - LV "Focus mode" overlay
+ */
 #define GUIMODE_PLAY 2
 #define GUIMODE_MENU 3
 // bindGUIEventFromGUICBR DNE on R, however by educated guess from older generations:
