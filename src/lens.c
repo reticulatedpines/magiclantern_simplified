@@ -1729,30 +1729,12 @@ static void focus_ring_powersave_fix()
     }
 }
 
-#if !defined(CONFIG_DIGIC_VIII)
-// DIGIC8 uses PROP_LENS_DYNAMIC_DATA
-/* only used for requesting a refresh of PROP_LV_LENS;
- * raw data is model-dependent, do not use directly */
-static struct prop_lv_lens lv_lens_raw;
-
-PROP_HANDLER( PROP_LV_LENS )
+void _lens_dynamic_data_post_update()
 {
-    ASSERT(len <= sizeof(lv_lens_raw));
-    memcpy(&lv_lens_raw, buf, sizeof(lv_lens_raw));
-
-    const struct prop_lv_lens * const lv_lens = (void*) buf;
-    lens_info.focal_len     = bswap16( lv_lens->focal_len );
-    lens_info.focus_dist    = bswap16( lv_lens->focus_dist );
-    lens_info.focus_pos     = (int16_t) bswap16( lv_lens->focus_pos );
-    
-    if (lens_info.focal_len > 1000) // bogus values
-        lens_info.focal_len = 0;
-
-    //~ uint32_t lrswap = SWAP_ENDIAN(lv_lens->lens_rotation);
-    //~ uint32_t lsswap = SWAP_ENDIAN(lv_lens->lens_step);
-    //~ lens_info.lens_rotation = *((float*)&lrswap);
-    //~ lens_info.lens_step = *((float*)&lsswap);
-    
+    /* This code was previously a part of PROP_LV_LENS handler.
+     * With D67 requiring handling of PROP_LV_LENS_D67 and Digic 8 having
+     * completly new properties for that case, common code was moved here.
+     */
     static unsigned old_focus_dist = 0;
     static int      old_focus_pos = 0;
     static unsigned old_focal_len = 0;
@@ -1765,11 +1747,11 @@ PROP_HANDLER( PROP_LV_LENS )
         #ifdef FEATURE_MAGIC_ZOOM
         if (get_zoom_overlay_trigger_by_focus_ring()) zoom_overlay_set_countdown(300);
         #endif
-        
+
         idle_wakeup_reset_counters(-11);
         lens_display_set_dirty();
         focus_ring_powersave_fix();
-        
+
         #ifdef FEATURE_LV_ZOOM_SETTINGS
         zoom_focus_ring_trigger();
         #endif
@@ -1780,18 +1762,68 @@ PROP_HANDLER( PROP_LV_LENS )
     update_stuff();
 }
 
+#if !defined(CONFIG_DIGIC_VIII)
+// DIGIC8 uses PROP_LENS_DYNAMIC_DATA
+/* only used for requesting a refresh of PROP_LV_LENS;
+ * raw data is model-dependent, do not use directly */
+static struct prop_lv_lens lv_lens_raw;
+
+PROP_HANDLER( PROP_LV_LENS )
+{
+    ASSERT(len <= sizeof(struct prop_lv_lens));
+    memcpy(&lv_lens_raw, buf, sizeof(struct prop_lv_lens));
+
+    const struct prop_lv_lens * const lv_lens = (void*) buf;
+    lens_info.focal_len     = bswap16( lv_lens->focal_len );
+    lens_info.focus_dist    = bswap16( lv_lens->focus_dist );
+    lens_info.focus_pos     = (int16_t) bswap16( lv_lens->focus_pos );
+
+    if (lens_info.focal_len > 1000) // bogus values
+        lens_info.focal_len = 0;
+
+    //~ uint32_t lrswap = SWAP_ENDIAN(lv_lens->lens_rotation);
+    //~ uint32_t lsswap = SWAP_ENDIAN(lv_lens->lens_step);
+    //~ lens_info.lens_rotation = *((float*)&lrswap);
+    //~ lens_info.lens_step = *((float*)&lsswap);
+
+    _lens_dynamic_data_post_update();
+}
+
+#if defined(CONFIG_DIGIC_VI) || defined(CONFIG_DIGIC_VII)
+PROP_HANDLER( PROP_LV_LENS_D67 )
+{
+    ASSERT(len <= sizeof(struct prop_lv_lens));
+    memcpy(&lv_lens_raw, buf, sizeof(struct prop_lv_lens));
+
+    const struct prop_lv_lens * const lv_lens = (void*) buf;
+    lens_info.focal_len     = bswap16( lv_lens->focal_len );
+    lens_info.focus_dist    = bswap16( lv_lens->focus_dist );
+    lens_info.focus_pos     = (int16_t) bswap16( lv_lens->focus_pos );
+
+    if (lens_info.focal_len > 1000) // bogus values
+        lens_info.focal_len = 0;
+
+    _lens_dynamic_data_post_update();
+}
+#endif
+
 /* called once per second */
 void _prop_lv_lens_request_update()
 {
+#if defined(CONFIG_DIGIC_VI) || defined(CONFIG_DIGIC_VII)
+    // this will make PROP_LV_LENS update itself outside LV mode on D67 models.
+    call("msub.lensdata");
+#elif defined(CONFIG_DIGIC_45)
     /* this property is normally active only in LiveView
      * however, the MPU can be tricked into sending its value outside LiveView as well
      * (Canon code also updates these values outside LiveView, when taking a picture)
      * the input data should not be used, but... better safe than sorry
-     * this should send MPU message 06 04 09 00 00 
+     * this should send MPU message 06 04 09 00 00
      * and the MPU is expected to reply with the complete property (much larger)
      * size is model-specific, but should not be larger than sizeof(lv_lens_raw)
      */
     prop_request_change(PROP_LV_LENS, &lv_lens_raw, 0);
+#endif
 }
 #endif
 
@@ -1799,7 +1831,8 @@ void _prop_lv_lens_request_update()
 #define DYNAMIC_FLAG_ST2_MF    0x80  // true -> MF, false -> AF
 #define DYNAMIC_FLAG_ST3_IS    0x0F  // looks PROP_LV_LENS_STABILIZE equiv.
 
-PROP_HANDLER( PROP_LENS_DYNAMIC_DATA ){
+PROP_HANDLER( PROP_LENS_DYNAMIC_DATA )
+{
     if(len != sizeof(struct prop_lens_dynamic_data))
         return;
 
@@ -1838,35 +1871,8 @@ PROP_HANDLER( PROP_LENS_DYNAMIC_DATA ){
         lens_info.focus_pos     = _dynamic->focusPos;
     }
 
-    static unsigned old_focus_dist = 0;
-    static int      old_focus_pos  = 0;
-    static unsigned old_focal_len  = 0;
-    int focus_dist_changed = (old_focus_dist && lens_info.focus_dist != old_focus_dist);
-    int focus_pos_changed  = (lens_info.focus_pos != old_focus_pos);
-    int lens_not_zoomed    = (old_focal_len && lens_info.focal_len == old_focal_len);
-
-    if (lv && lens_not_zoomed && (focus_pos_changed || focus_dist_changed))
-    {
-        #ifdef FEATURE_MAGIC_ZOOM
-        if (get_zoom_overlay_trigger_by_focus_ring()) zoom_overlay_set_countdown(300);
-        #endif
-
-        idle_wakeup_reset_counters(-11);
-        lens_display_set_dirty();
-        focus_ring_powersave_fix();
-
-        #ifdef FEATURE_LV_ZOOM_SETTINGS
-        zoom_focus_ring_trigger();
-        #endif
-    }
-
-    old_focus_dist = lens_info.focus_dist;
-    old_focus_pos = lens_info.focus_pos;
-    old_focal_len = lens_info.focal_len;
-    update_stuff();
+    _lens_dynamic_data_post_update();
 }
-
-
 #endif
 
 /**

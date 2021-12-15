@@ -81,6 +81,14 @@
 #define AF_MODE_AI_SERVO        101        // TODO: seems to be model-specific or bit operation
 #define PROP_MVR_REC            0x80030002
 #define PROP_LV_LENS            0x80050000
+/* As names_are_hard found, PROP_LV_LENS_D67 exists on D6/7 models.
+ * On D6/D7 PROP_LV_LENS_D67 is getting updated in LV. However there's no known
+ * method to force it update outside LV.
+ * But there's EvProc called msub.lensdata which result in PROP_LV_LENS update,
+ * however works only outside (!) LV.
+ * Thus for Digic 6 and 7 we need to use both properties.
+ */
+#define PROP_LV_LENS_D67        0x8008003c
 #define PROP_LV_0004            0x80050004
 #define PROP_LV_LENS_STABILIZE  0x80050005 // 0 = off, e0000 = on
 #define PROP_LV_MANIPULATION    0x80050006

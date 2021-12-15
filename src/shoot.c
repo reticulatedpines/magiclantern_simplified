@@ -371,29 +371,14 @@ static void do_this_every_second() // called every second
     }
     #endif
 
-// DIGIC 8+ uses different props
-#if !defined(CONFIG_DIGIC_VIII)
-#if defined(CONFIG_750D)
-    /* always update lens info, cam does not do it on LV on its own */
-    if (lens_info.lens_exists)
-    {
-        _prop_lv_lens_request_update();
-    }
-#elif defined(CONFIG_200D)
-    /* There's evproc that updates LV_LENS while outside LV
-     * No solution for LV yet */
-    if (!lv && lens_info.lens_exists)
-    {
-        call("msub.lensdata");
-    }
-#else
+    // DIGIC 8+ uses different props
+    #if defined(CONFIG_DIGIC_45) || defined(CONFIG_DIGIC_VI) || defined(CONFIG_DIGIC_VII)
     /* update lens info outside LiveView */
     if (!lv && lens_info.lens_exists)
     {
         _prop_lv_lens_request_update();
     }
-#endif
-#endif
+    #endif
 }
 
 // called every 200ms or on request
