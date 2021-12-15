@@ -2695,19 +2695,45 @@ static LVINFO_UPDATE_FUNC(picq_update)
 
     if (!is_movie_mode())
     {
-        // kitor FIXME: Not true on R anymore
-        // Leads to werid values like RAW+L is "RAW+Err", RAW+M is "mRAW"
+#ifdef CONFIG_DIGIC_VIII
+/* via R.180, confirmed RP.160; M50 and 850D have the same set of modes:
+ * L        03030100   .XX .... ..XX .... ...X .... ....
+ * l        03020100   .XX .... ..X. .... ...X .... ....
+ * M        03030101   .XX .... ..XX .... ...X .... ...X
+ * m        03020101   .XX .... ..X. .... ...X .... ...X
+ * S1       0303010E   .XX .... ..XX .... ...X .... XXX.
+ * s1       0302010E   .XX .... ..X. .... ...X .... XXX.
+ * S2       0303010F   .XX .... ..XX .... ...X .... XXXX
+ * CRAW     03030600   .XX .... ..XX .... .XX. .... ....
+ * RAW      04030600   X.. .... ..XX .... .XX. .... ....
+ * Some combinations:
+ *  RAW + L 04030700   X.. .... ..XX .... .XXX .... ....
+ *  RAW + l 04020700   X.. .... ..X. .... .XXX .... ....
+ * CRAW + L 03030700   .XX .... ..XX .... .XXX .... ....
+ * CRAW + l 03020700   .XX .... ..X. .... .XXX .... ....
+ */
+        int raw = pic_quality & 0x600; // 3 for *RAW, 0 - not RAW
+        int jpg = (pic_quality & 0x100);
+        int rawsize = pic_quality >> 26; // if raw: 0 CRAW, 1 RAW
+        int jpegtype = (pic_quality >> 16) & 0xF;
+        int jpegsize = pic_quality & 0xFF;
+#else
         int raw = pic_quality & 0x60000;
         int jpg = pic_quality & 0x10000;
         int rawsize = pic_quality & 0xF;
         int jpegtype = pic_quality >> 24;
         int jpegsize = (pic_quality >> 8) & 0xFF;
+#endif //CONFIG_DIGIC_VIII
         snprintf(buffer, sizeof(buffer), "%s%s%s",
+#ifdef CONFIG_DIGIC_VIII
+            raw ? (rawsize ? "RAW" : "CRAW") : "",  // just two options on D8
+#else
             rawsize == 1 ? "mRAW" : rawsize == 2 ? "sRAW" : rawsize == 7 ? "sRAW1" : rawsize == 8 ? "sRAW2" : raw ? "RAW" : "",
+#endif
             jpg == 0 ? "" : (raw ? "+" : "JPG-"),
             jpg == 0 ? "" : (
-                jpegsize == 0 ? (jpegtype == 3 ? "L" : "l") : 
-                jpegsize == 1 ? (jpegtype == 3 ? "M" : "m") : 
+                jpegsize == 0 ? (jpegtype == 3 ? "L" : "l") :
+                jpegsize == 1 ? (jpegtype == 3 ? "M" : "m") :
                 jpegsize == 2 ? (jpegtype == 3 ? "S" : "s") :
                 jpegsize == 0x0e ? (jpegtype == 3 ? "S1" : "s1") :
                 jpegsize == 0x0f ? (jpegtype == 3 ? "S2" : "s2") :
