@@ -165,6 +165,7 @@
 #define PROP_DISPSENSOR_CTRL    0x80020010      // 1 == show results?
 #define PROP_LV_OUTPUT_DEVICE   0x80050011      // 1 == LCD?
 #define PROP_HOUTPUT_TYPE       0x80030030      // 0 = no info displayed in LV, 1 = info displayed (this is toggled with DISP)
+#define PROP_LV_OUTPUT_TYPE     0x80030030      // Real name of HOUTPUT_TYPE, as seen on D6+. Old name left for LUA compatibility.
 #define PROP_MIRROR_DOWN        0x8005001C
 #define PROP_MYMENU_LISTING     0x80040009
 

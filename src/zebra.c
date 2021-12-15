@@ -385,7 +385,7 @@ uint8_t* get_bvram_mirror() { return bvram_mirror; }
 
 #include "cropmarks.c"
 
-PROP_HANDLER(PROP_HOUTPUT_TYPE)
+PROP_HANDLER(PROP_LV_OUTPUT_TYPE)
 {
     extern int ml_started;
     if (ml_started) redraw();
@@ -409,8 +409,17 @@ int get_global_draw() // menu setting, or off if
 {
 #ifdef FEATURE_GLOBAL_DRAW
     
-    #ifdef LV_DISP_MODE
-        lv_disp_mode = LV_DISP_MODE;
+    #ifdef LV_OVERLAYS_MODE
+        /* kitor: As checked on R180:
+         *    0x0 - 1st overlays mode in LV (top+bottom)
+         *    0x1 - above + sides
+         *    0x2 - above + level
+         *    0x3 - clean overlays
+         *    0x6 - OlcApp? The screen like outside LV on DSLR
+         * EOSM and 5D2 already used this value in the past, and it was also "3"
+         * for clean overalys.
+         */
+        lv_disp_mode = LV_OVERLAYS_MODE != 3;
     #endif
 
     extern int ml_started;

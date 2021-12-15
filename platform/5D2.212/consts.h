@@ -53,6 +53,7 @@
 #define HALFSHUTTER_PRESSED (*(int*)0x1c10)
 
 
+#define LV_OVERLAYS_MODE MEM(0x34894 + 0x48)
 
 #define LV_BOTTOM_BAR_DISPLAYED (((*(int*)0x79B8) == 0xF))
 #define ISO_ADJUSTMENT_ACTIVE ((*(int*)0x79B8) == 0xF) // dec ptpNotifyOlcInfoChanged and look for: if arg1 == 1: MEM(0x79B8) = *(arg2)

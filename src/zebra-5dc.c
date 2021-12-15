@@ -223,7 +223,7 @@ void crop_set_dirty(int value)
     crop_dirty = MAX(crop_dirty, value);
 }
 
-PROP_HANDLER(PROP_HOUTPUT_TYPE)
+PROP_HANDLER(PROP_LV_OUTPUT_TYPE)
 {
     extern int ml_started;
     if (ml_started) redraw();

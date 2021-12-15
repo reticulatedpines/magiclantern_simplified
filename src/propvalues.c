@@ -300,8 +300,12 @@ void set_recording_custom(int state)
 
 int lv_disp_mode;
 
-#ifndef CONFIG_EOSM //~ we update lv_disp_mode from 
-PROP_HANDLER(PROP_HOUTPUT_TYPE)
+#ifndef LV_OVERLAYS_MODE
+/*
+ * For models with LV_OVERLAYS_MODE defined we update in zebra.c instead.
+ * See zebra.c `get_global_draw()` for more details.
+ */
+PROP_HANDLER(PROP_LV_OUTPUT_TYPE)
 {
     #if defined(CONFIG_5D3)
     /* 1 when Canon overlays are present on the built-in LCD, 0 when they are not present (so we can display our overlays) */
@@ -315,11 +319,6 @@ PROP_HANDLER(PROP_HOUTPUT_TYPE)
     #else
     lv_disp_mode = (uint8_t)buf[0];
     #endif
-
-    #ifdef CONFIG_5D2 // PROP_HOUTPUT_TYPE not reported correctly?
-    lv_disp_mode = (MEM(0x34894 + 0x48) != 3); // AJ_LDR_0x34894_guess_HDMI_disp_type_related_0x48
-    #endif
-
 }
 #endif
 
