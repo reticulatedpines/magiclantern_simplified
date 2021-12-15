@@ -90,6 +90,21 @@
 #define LVAE_MOV_M_CTRL (*(uint8_t* )(LVAE_STRUCT+0x24)) // via "lvae_setmoviemanualcontrol"
 
 /*
+ * kitor: DIGIC 8 has no PROP_LV_OUTPUT_TYPE (PROP_HOUTPUT_TYPE in ML source)
+ * I looked around LiveViewApp and found `LvInfoToggle_Update()` which updates
+ * variable to represent currently display overlays:
+ *    0x0 - 1st overlays mode in LV (top+bottom)
+ *    0x1 - above + sides
+ *    0x2 - above + level
+ *    0x3 - clean overlays
+ *    0x6 - OlcApp? The screen like outside LV on DSLR
+ * Now the fun part - 5D2 and EOSM already use this exact variable! So let's
+ * re-use the existing logic.
+ * It could be backported to older models, 5D3 & 750d refer to it as LvInfoType`
+ */
+#define LV_OVERLAYS_MODE MEM(0x13cf4)
+
+/*
  * kitor: ISO related stuff is not in LVAE struct anymore?
  * iso-related stuff calls 0x02275de which returns pointer at 0x02276168 to 0x6b818
  */

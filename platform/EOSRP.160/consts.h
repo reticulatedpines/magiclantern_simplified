@@ -146,6 +146,14 @@ extern int _WINSYS_BMP_DIRTY_BIT_NEG;
 #define GUIMODE_FLASH_AE 0x22
 #define GUIMODE_PICQ 6
 
+/*
+ * kitor: DIGIC 8 has no PROP_LV_OUTPUT_TYPE (PROP_HOUTPUT_TYPE in ML source)
+ * I looked around LiveViewApp and found `LvInfoToggle_Update()` which updates
+ * variable to represent currently display overlays. Look at R conts.h for more
+ * details.
+ */
+#define LV_OVERLAYS_MODE MEM(0x14cd4)
+
 // all these MVR ones are junk, don't try and record video and they probably don't get used?
 #define MVR_190_STRUCT (*(void**)0) // MVR_190_STRUCT (*(void**)0x1ed8) // look in MVR_Initialize for AllocateMemory call;
                                          // decompile it and see where ret_AllocateMemory is stored.
@@ -164,4 +172,3 @@ extern int _WINSYS_BMP_DIRTY_BIT_NEG;
 #define MVR_BYTES_WRITTEN MEM((212 + MVR_190_STRUCT))
 
 #define LV_BOTTOM_BAR_DISPLAYED 0x0 // wrong, fake bool
-
