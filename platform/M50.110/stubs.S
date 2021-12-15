@@ -218,10 +218,17 @@ DATA_PTR(       0x0,  LCD_Palette)                          // D8 has no indexed
 THUMB_FN(0xe04c7e5c,  PlayMain_handler)                     // msg: "StartPlayMain"
 THUMB_FN(0xe02d40f2,  ShootOlcApp_handler)                  // msg: "StopShootOlcApp PopPalette(%d)"
 THUMB_FN(0xe04dc446,  LiveViewApp_handler)                  // msg: "StartLiveViewApp(%#x)"
-THUMB_FN(0xe0338a10,  LiveViewShutterApp_handler)           // msg: "StartLiveViewShutterApp"
+//THUMB_FN(0xe0338a10,  LiveViewShutterApp_handler)         // msg: "StartLiveViewShutterApp"
 THUMB_FN(0xe058af54,  PlayMovieGuideApp_handler)            // msg: "StartPlayMovieGuideApp"
 
-THUMB_FN(0xe0337e4c,  LiveViewLevelApp_handler)             // msg: "StartLiveViewLevelApp"
+// See R180 stubs.s for details.
+//DATA_PTR(  0xe708,  PlayMain_dialog)                      // in StartPlayMain()
+//DATA_PTR( 0x13fa4,  ShootOlcApp_dialog)                   // in StartShootOlcApp()
+DATA_PTR(   0x139b8,  LiveViewApp_dialog)                   // in StartLiveViewApp()
+//DATA_PTR( 0x1c434,  LiveViewShutterApp_dialog)            // in StartLiveViewShutterApp(), not sure if needed
+//DATA_PTR( 0x14fa8,  PlayMovieGuideApp_dialog)             // in StartPlayMovieGuideApp()
+
+
 
 /**
  * STUFF BELOW IS WRONG!

@@ -3556,19 +3556,31 @@ static void draw_zoom_overlay(int dirty)
 
 int liveview_display_idle()
 {
+#ifdef CONFIG_DIGIC_678
+    extern struct dialog* LiveViewApp_dialog;
+
+/**
+ * kitor TODO: contains a lot of duplicates from D45 code.
+ * Do we want to keep it that way? Seems cleaner to me.
+ */
+    return
+        LV_NON_PAUSED &&
+        DISPLAY_IS_ON &&
+        !menu_active_and_not_hidden() &&
+        LiveViewApp_dialog &&
+        gui_state == GUISTATE_IDLE &&
+        CURRENT_GUI_MODE <= 3 &&
+        job_state_ready_to_take_pic() &&
+        !mirror_down;
+#else
     struct gui_task * current = gui_task_list.current;
     struct dialog * dialog = current->priv;
     extern thunk LiveViewApp_handler;
 
     #if defined(CONFIG_5D3) || defined(CONFIG_M50)
     extern thunk LiveViewLevelApp_handler;
-    #elif defined(CONFIG_DIGIC_V) || defined(CONFIG_DIGIC_678)
+    #elif defined(CONFIG_DIGIC_V)
     extern thunk LiveViewShutterApp_handler;
-    #endif
-
-    #if defined(CONFIG_R)
-    extern thunk TouchBarFeedBackApp_handler;
-    extern thunk LiveViewTouchBarApp_handler;
     #endif
 
     #if defined(CONFIG_6D)
@@ -3595,12 +3607,8 @@ int liveview_display_idle()
                   #if defined(CONFIG_6D)
                   || dialog->handler == (dialog_handler_t) &LiveViewWifiApp_handler
                   #endif
-                  #if defined(CONFIG_R)
-                  || dialog->handler == (dialog_handler_t) &TouchBarFeedBackApp_handler
-                  || dialog->handler == (dialog_handler_t) &LiveViewTouchBarApp_handler
-                  #endif
                   //~ for this, check value of get_current_dialog_handler()
-                  #if !defined(CONFIG_5D3) && defined(CONFIG_DIGIC_V) || !defined(CONFIG_M50) && defined(CONFIG_DIGIC_678)
+                  #if defined(CONFIG_DIGIC_V) && !defined(CONFIG_5D3)
                   || dialog->handler == (dialog_handler_t) &LiveViewShutterApp_handler
                   #endif
               ) &&
@@ -3611,6 +3619,7 @@ int liveview_display_idle()
             job_state_ready_to_take_pic() &&
             !mirror_down )
         );
+#endif
 }
 
 // when it's safe to draw zebras and other on-screen stuff
@@ -3882,7 +3891,7 @@ void _redraw_do()
     extern int ml_started;
     if (!ml_started) return;
     if (gui_menu_shown()) { menu_redraw(); return; }
-    
+
 BMP_LOCK (
 
 #ifdef CONFIG_VARIANGLE_DISPLAY
@@ -3897,6 +3906,32 @@ BMP_LOCK (
         display_dont_mirror_dirty = 0;
     }
 #endif
+
+#ifdef CONFIG_DIGIC_678
+/**
+ * kitor: On D678 apps handlers that are in our interest either doesn't show up
+ * on `gui_task_list` at all, or are buried down on the list (would require
+ * list search via gui_task->next to find those that do).
+ *
+ * However I found out that when all apps of our interest are started, dialog
+ * struct pointers are saved to other memory locations, and deleted on app close.
+ *
+ * We don't mess with any font buffers on D6+, as well as so far any flicker
+ * kill feature is not implmented, so I skipped those code paths.
+ *
+ * TODO: Code should probably be expanded by other apps that we want to mess
+ *       with (PlayMain, ShootOlcApp, PlayMovieGuideApp?)
+ */
+    extern struct dialog* LiveViewApp_dialog;
+    if(LiveViewApp_dialog)
+    {
+        dialog_redraw(LiveViewApp_dialog); // try to redraw (this has semaphores for winsys)
+    }
+    else
+    {
+        clrscr(); // out of luck, fallback
+    }
+#else
 
     //~ if (disable_redraw) 
     //~ {
@@ -3935,6 +3970,7 @@ BMP_LOCK (
             clrscr(); // out of luck, fallback
         }
     }
+#endif //CONFIG_DIGIC_678
 )
 
     // ask other stuff to redraw

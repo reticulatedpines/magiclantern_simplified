@@ -211,6 +211,13 @@ THUMB_FN(0xe06f3ef8,  ShootOlcApp_handler)                  // contains "DlgOlcM
 THUMB_FN(0xe043519c,  LiveViewApp_handler)                  // contains "DlgLiveView.c During QR Request Event(0x%08X) Consume" string
 THUMB_FN(0xe07e066a,  LiveViewShutterApp_handler)           // msg: "StartLiveViewShutterApp"
 
+// See R180 stubs.s for details.
+//DATA_PTR(   0xe498,  PlayMain_dialog)                    // in PlayMain_StartPlayMain(), 0xe508 - 0x70
+//DATA_PTR(  0x15008,  ShootOlcApp_dialog)                 // in StartShootOlcApp()
+DATA_PTR(    0x14844,  LiveViewApp_dialog)                 // in StartLiveViewApp(), 0x14840 + 0x4
+//DATA_PTR(  0x1e488,  LiveViewShutterApp_dialog)          // in StartLiveViewShutterApp(), not sure if needed
+//DATA_PTR(  0x16338,  PlayMovieGuideApp_dialog)           // in PlayMovieGuide_Start()
+
 /**
  * STUFF BELOW IS WRONG!
  **/

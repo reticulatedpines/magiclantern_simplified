@@ -202,9 +202,18 @@ THUMB_FN(0xdf00b615,  msg_queue_create) // CreateMessageQueue - In 50D, msg_queu
 THUMB_FN(0xe04bba45,  prop_deliver)
 //THUMB_FN(0xe04bbde1,  prop_register_slave) // called by"GUI_RegisterPropertySlave"
 THUMB_FN(0xe04bb4df,  prop_register_slave) // "pRegisterSlave"
+
 THUMB_FN(0xe0381ba9,  LiveViewApp_handler) // DebugMsg: "StartLiveViewApp(%#x)", address passed to CreateDialogBox
-THUMB_FN(0xe06cda95,  LiveViewShutterApp_handler) // DebugMsg: "StartLiveViewShutterApp CreateDialogBox(%d)", address passed to CreateDialogBox
+//THUMB_FN(0xe06cda95,  LiveViewShutterApp_handler) // DebugMsg: "StartLiveViewShutterApp CreateDialogBox(%d)", address passed to CreateDialogBox
 THUMB_FN(0xe046fc49,  PlayMain_handler) // DebugMsg: "StartPlayMain", address passed to CreateDialogBox
+
+// See R180 stubs.s for details.
+//DATA_PTR(    0xec7c,  PlayMain_dialog)                    // in StartPlayMain()
+//DATA_PTR(   0x1af3c,  ShootOlcApp_dialog)                 // in StartShootOlcApp()
+DATA_PTR(      0xeb44,  LiveViewApp_dialog)                 // in StartLiveViewApp()
+//DATA_PTR(   0x1a970,  LiveViewShutterApp_dialog)          // in StartLiveViewShutterApp(), not sure if needed
+//DATA_PTR(   0x1be20,  PlayMovieGuideApp_dialog)           // in StartPlayMovieGuideApp()
+
 THUMB_FN(0xe03536c1,  GetCFnData) // "GetCFnData" Function sig is different but the body looks similar.
                                   // Looks like the inner functions use registers the outer doesn't, which confuses Ghidra
                                   // re how many args outer takes.

@@ -214,5 +214,12 @@ DATA_PTR(       0x0,  LCD_Palette)                          // D6 has no indexed
 THUMB_FN(0xfe410e0a,  PlayMain_handler)                     // msg: "StartPlayMain"
 THUMB_FN(0xfe575c58,  ShootOlcApp_handler)                  // msg: "StartShootOlcApp PushPalette(%d)"
 THUMB_FN(0xfe3d5ecc,  LiveViewApp_handler)                  // msg: "StartLiveViewApp(%#x)"
-THUMB_FN(0xfe69c5d0,  LiveViewShutterApp_handler)           // msg: "LiveViewShutterApp"
+//THUMB_FN(0xfe69c5d0,  LiveViewShutterApp_handler)         // msg: "LiveViewShutterApp"
 THUMB_FN(0xfe31022e,  PlayMovieGuideApp_handler)            // msg: "StartPlayMovieGuideApp"
+
+// See R180 stubs.s for details.
+//DATA_PTR( 0x2BD60,  PlayMain_dialog)                      // in StartPlayMain(), 0x2bd54 + 0xc
+//DATA_PTR( 0x35298,  ShootOlcApp_dialog)                   // in StartShootOlcApp()
+DATA_PTR(   0x2fe98,  LiveViewApp_dialog)                   // in StartLiveViewApp()
+//DATA_PTR( 0x35a58,  LiveViewShutterApp_dialog)            // in StartLiveViewShutterApp(), not sure if needed
+//DATA_PTR( 0x3042c,  PlayMovieGuideApp_dialog)             // in StartPlayMovieGuideApp()

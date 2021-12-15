@@ -304,15 +304,27 @@ DATA_PTR(       0x0,  LCD_Palette)                          // D8 has no indexed
 /**
  * Those can usually be found by looking at function address passed to
  * WINSYS_CreateDialogBox_wrapper / WINSYS_CreateDialogBox, just after some
- * debug message */
-THUMB_FN(0xe04f71fc,  PlayMain_handler)                     // msg: "StartPlayMain"
-THUMB_FN(0xe024584e,  ShootOlcApp_handler)                  // msg: "StartShootOlcApp PushPalette(%d)"
-THUMB_FN(0xe03ec4cc,  LiveViewApp_handler)                  // msg: "StartLiveViewApp(%#x)"
-THUMB_FN(0xe02a9f58,  LiveViewShutterApp_handler)           // msg: "StartLiveViewShutterApp"
-THUMB_FN(0xe038f1c6,  PlayMovieGuideApp_handler)            // msg: "StartPlayMovieGuideApp"
+ * debug message
+ * For some reason those doesn't seem to show up on gui_task_list on D8
+ * (LiveViewApp) or there are not on top (PlayMain)
+ */
+THUMB_FN(0xe04f71fc,  PlayMain_handler)                     // in StartPlayMain()
+THUMB_FN(0xe024584e,  ShootOlcApp_handler)                  // in StartShootOlcApp()
+THUMB_FN(0xe03ec4cc,  LiveViewApp_handler)                  // in StartLiveViewApp()
+//THUMB_FN(0xe02a9f58,  LiveViewShutterApp_handler)         // in StartLiveViewShutterApp()
+THUMB_FN(0xe038f1c6,  PlayMovieGuideApp_handler)            // in StartPlayMovieGuideApp()
 
-THUMB_FN(0xe0842940,  TouchBarFeedBackApp_handler)          // msg: "StartTouchBarFeedBackApp"
-THUMB_FN(0xe0786d74,  LiveViewTouchBarApp_handler)          // msg: "StartLiveViewTouchBarApp"
+/**
+ * Code that creates / stops given task from above, also saves dialog pointer
+ * somewhere. This seems to be a better way to detect if given app is running.
+ *
+ * Pointers to result of WINSYS_CreateDialogBox() call in given function.
+ */
+//DATA_PTR(  0xe5b4,  PlayMain_dialog)                      // in StartPlayMain()
+//DATA_PTR( 0x14284,  ShootOlcApp_dialog)                   // in StartShootOlcApp()
+DATA_PTR(   0x13874,  LiveViewApp_dialog)                   // in StartLiveViewApp()
+//DATA_PTR( 0x1bd58,  LiveViewShutterApp_dialog)            // in StartLiveViewShutterApp(), not sure if needed
+//DATA_PTR( 0x15750,  PlayMovieGuideApp_dialog)             // in StartPlayMovieGuideApp()
 
 /**
  * UNUSED but referenced elsewhere
