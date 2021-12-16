@@ -1,6 +1,8 @@
 //#define CONFIG_HELLO_WORLD
 
 #define FEATURE_VRAM_RGBA
+#define FEATURE_SHOW_SHUTTER_COUNT
+#define FEATURE_SHOW_TOTAL_SHOTS
 
 // prevent ML attempting stack unwinding in some cases.
 // This does not yet work (assumes ARM, not Thumb).  Alex recommends
