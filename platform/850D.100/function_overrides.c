@@ -12,6 +12,9 @@
 #include <lens.h>
 #include <tasks.h>
 
+// fake WINSYS_BMP_DIRTY_BIT_NEG
+int winsys_bmp_dirty_bit_neg = 0;
+
 void LoadCalendarFromRTC(struct tm *tm)
 {
     _LoadCalendarFromRTC(tm, 0, 0, 16);

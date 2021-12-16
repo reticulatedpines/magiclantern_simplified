@@ -28,7 +28,12 @@
 // deny reads / do not register property handlers for these
 const uint32_t prop_handler_deny[] =
 {
-    PROP_MVR_REC_START // probably related to MVR stubs being all wrong
+    PROP_MVR_REC_START, // probably related to MVR stubs being all wrong
+
+    PROP_ISO, // possible crash?
+
+    PROP_LENS_STATIC_DATA, // ML assert about size of prop
+    PROP_LV_AFFRAME, // ML assert about size of prop
 };
 
 // allow writes / allow prop_request_change() for these:

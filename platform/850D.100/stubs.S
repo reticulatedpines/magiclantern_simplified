@@ -91,7 +91,7 @@
 
 /** GUI **/
 //THUMB_FN(0xE00C5415,  GUI_Control) // Looks missing on 850D, possibly same as R
-    THUMB_FN(0xE04A7EF5,  SetGUIRequestMode) // Code is quite different from earlier cams, not a big switch?
+    THUMB_FN(0xe056305e,  SetGUIRequestMode) // Code is quite different from earlier cams, not a big switch?
                                              // Possibly weird decomp?  Param is the same though, maybe it still works
     THUMB_FN(0xe0557a8c,  gui_init_end) // DNE on R, but does on 850D
     THUMB_FN(0xe0061430,  gui_main_task)

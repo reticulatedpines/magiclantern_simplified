@@ -64,10 +64,21 @@ DryOS base    user_start                                 sys_objs_start    sys_s
 #define DRYOS_ASSERT_HANDLER 0x4000 // Used early in a function I've named debug_assert
 #define CURRENT_GUI_MODE (*(int*)0x83a0) // see SetGUIRequestMode, 0x65c8 + 0x5c on 200D
 
-// SJE I bet these two have changed given changes to SetGUIRequestMode...
-// Easiest to test on real cam
-#define GUIMODE_PLAY 2
-#define GUIMODE_MENU 3
+#define GUIMODE_PLAY 8194
+#define GUIMODE_MENU 8195
+#define GUIMODE_WB 8199
+#define GUIMODE_FOCUS_MODE 8203 // assuming this is "AF operation" menu
+                                // but there is also AF focus point selection,
+                                // which is 61585
+#define GUIMODE_DRIVE_MODE 8202
+#define GUIMODE_PICTURE_STYLE 8197
+// not yet found:
+#define GUIMODE_Q_UNAVI 0x18
+#define GUIMODE_FLASH_AE 0x22
+#define GUIMODE_PICQ 6
+
+#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_PLAY)
+#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_MENU)
 
 // In SetGUIRequestMode, look at what code calls NotifyGUIEvent(9, something)...
 // But this is very different in 850D.  Earlier cams passed a value that was mapped
@@ -155,19 +166,10 @@ DryOS base    user_start                                 sys_objs_start    sys_s
 #define NUM_PICSTYLES 10 // guess, but seems to be always 9 for old cams, 10 for new
 
 #define MIN_MSLEEP 11
-#define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_PLAY)
-#define MENU_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_MENU)
-#define GUIMODE_WB 5
-#define GUIMODE_FOCUS_MODE 9
-#define GUIMODE_DRIVE_MODE 8
-#define GUIMODE_PICTURE_STYLE 4
-#define GUIMODE_Q_UNAVI 0x18
-#define GUIMODE_FLASH_AE 0x22
-#define GUIMODE_PICQ 6
 
 // Definitely wrong / hacks / no testing at all:
-#define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x0) // wrong, no idea (this address may be written to,
-                                          // value is chosen so it fails safely on D78 (MMU blocks 0x0)
+extern int winsys_bmp_dirty_bit_neg;
+#define WINSYS_BMP_DIRTY_BIT_NEG MEM(&winsys_bmp_dirty_bit_neg) // faked via function_overrides.c
 #define FOCUS_CONFIRMATION (*(int*)0x4444) // wrong, focusinfo looks really different 50D -> 200D
 #define YUV422_LV_BUFFER_DISPLAY_ADDR 0x0 // it expects this to be pointer to address
 #define YUV422_HD_BUFFER_DMA_ADDR 0x0 // it expects this to be shamem_read(some_DMA_ADDR)

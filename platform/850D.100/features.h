@@ -1,4 +1,4 @@
-#define CONFIG_HELLO_WORLD
+//#define CONFIG_HELLO_WORLD
 
 #define FEATURE_VRAM_RGBA
 

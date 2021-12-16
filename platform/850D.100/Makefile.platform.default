@@ -39,8 +39,8 @@ ROMBASEADDR     = 0xE0040000
 # we run code from this address.
 #
 # user_mem end is 2848c0 on 850D 1.0.0
-RESTARTSTART    = 0x002428c0
-# 0x42000 back
+RESTARTSTART    = 0x002418c0
+# 0x43000 back
 #RESTARTSTART    = 0x002728c0
 # 0x12000 back, only useful for tiny builds
 

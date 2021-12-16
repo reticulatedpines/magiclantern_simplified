@@ -634,7 +634,7 @@ struct audio_level
 static inline int16_t
 audio_read_level( int channel )
 {
-        #if defined(CONFIG_R) || defined(CONFIG_EOSRP) || defined (CONFIG_M50)
+        #ifdef CONFIG_DIGIC_VIII // confirmed to crash on R, RP, M50, 850D
         //kitor FIXME: Hard crash on R. Address is not valid anymore?
         //      Skip for now.
         return 0;

@@ -6151,6 +6151,20 @@ static struct longpress set_longpress = {
 };
 #endif
 
+#if defined(CONFIG_850D)
+// This cam toggles GUI control lock with Trash button,
+// and sends a different button code depending on state of the lock.
+// There doesn't seem to be a single code for Trash,
+// so I'm using long press Q.
+static struct longpress q_longpress = {
+    .long_btn_press     = BGMT_TRASH,   // long press (500ms) opens ML menu.
+    .short_btn_press    = BGMT_Q,       // short press => do a regular Q
+    .short_btn_unpress  = BGMT_UNPRESS_Q,
+    .pos_x = 680,   /* in LiveView */
+    .pos_y = 350,   /* above ExpSim */
+};
+#endif
+
 #if defined(CONFIG_EOSM)
 static struct longpress erase_longpress = {
     .long_btn_press     = BGMT_TRASH,           /* long press (500ms) opens ML menu */
@@ -6183,7 +6197,7 @@ int handle_ml_menu_erase(struct event *event)
 //    DryosDebugMsg(0, 15, "event->param 0x%x", event->param);
 
 // SJE logging GUIMODE
-//    DryosDebugMsg(0, 15, "guimode: %d", CURRENT_GUI_MODE);
+    DryosDebugMsg(0, 15, "guimode: %d", CURRENT_GUI_MODE);
 
 #if 0
 // SJE bubbles hack for fun
@@ -6353,6 +6367,24 @@ int handle_longpress_events(struct event * event)
     else if (event->param == BGMT_UNPRESS_SET)
     {
         set_longpress.pressed = 0;
+    }
+#endif
+
+#if defined(CONFIG_850D)
+    // trigger menu by a long press on Q
+    if (event->param == BGMT_Q)
+    {
+        if (gui_state == GUISTATE_IDLE && !gui_menu_shown() && !IS_FAKE(event))
+        {
+            q_longpress.pressed = 1;
+            q_longpress.count = 0;
+            delayed_call(20, longpress_check, &q_longpress);
+            return 0;
+        }
+    }
+    else if (event->param == BGMT_UNPRESS_Q)
+    {
+        q_longpress.pressed = 0;
     }
 #endif
 
