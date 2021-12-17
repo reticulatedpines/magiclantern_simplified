@@ -1,4 +1,12 @@
 #define FEATURE_VRAM_RGBA
+
+//enable XCM only in full build
+#ifndef ML_MINIMAL_OBJ
+#define CONFIG_COMPOSITOR_XCM
+// DEDICATED_LAYER not yet implemented
+//#define CONFIG_COMPOSITOR_DEDICATED_LAYER
+#endif
+
 #define FEATURE_SHOW_SHUTTER_COUNT
 #define FEATURE_SHOW_TOTAL_SHOTS
 
@@ -7,4 +15,3 @@
 #undef CONFIG_TSKMON
 #undef CONFIG_PROP_REQUEST_CHANGE
 #undef CONFIG_AUTOBACKUP_ROM
-

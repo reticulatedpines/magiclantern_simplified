@@ -1,32 +1,13 @@
 /** \file
  * VRAM Compositor interface
  */
-/*
- * kitor: So I found a compositor on EOSR
- * Uses up to 6 RGBA input layers, but Canon ever allocates only two.
+
+/**
+ * There's a hardware accelerated compositor running on Digic 6+ cameras.
+ * It has couple of variants (pure Ximr, XCM) - see further comments.
  *
- * This uses RGBA layers that @coon noticed on RP long time ago.
- *
- * Layers are stored from bottom (0) to top (5). Canon uses 0 for GUI
- * and 1 for overlays in LV mode (focus overlay)
- *
- * I was able to create own layer(s), drawn above two Canon pre-allocated ones.
- * This PoC will allocate one new layer on top of existing two, and use that
- * buffer to draw on screen.
- *
- * Tested (briefly) on LV, menus, during recording, playback, also on HDMI.
- *
- * The only caveat that I was able to catch was me calling redraw while GUI
- * also wanted to redraw screen. This "glitched" by showing partially rendered
- * frame. Shouldn't be an issue while we have a control over GUI events.
- *
- * But since we don't have to constantly redraw until we want to update the
- * screen - there's no need to fight with Canon code.
- *
- * For drawing own LV overlays it should be enough to disable layers 0 (GUI)
- * and maybe 1 (AF points, AF confirmation).
- * LV calls redraw very often, so probably we don't need to call it ourselves
- * in that mode.
+ * For more detailed explanation on how this was discovered, look at forums:
+ * https://www.magiclantern.fm/forum/index.php?topic=26024
  */
 
 /**
@@ -59,8 +40,11 @@
 extern void      refreshVrmsSurface();
 extern uint32_t  display_refresh_needed;
 
-// Store our Input Layer ID.
-int _rgb_vram_layer = 0;
+/**
+ * Stores our layer ID. Defaults to Canon GUI layer, so in case
+ * alocation failed - everything falls back to non-compositing behaviour.
+ */
+int _rgb_vram_layer_id = CANON_GUI_LAYER_ID;
 
 /**
  * Not sure if sync_caches() call is needed. It was when I was drawing
@@ -77,7 +61,7 @@ void _compositor_force_redraw()
 void compositor_layer_clear()
 {
     // abort if we draw over Canon GUI layer
-    if(_rgb_vram_layer == 0)
+    if(_rgb_vram_layer_id == CANON_GUI_LAYER_ID)
         return;
 
     bzero32(rgb_vram_info->bitmap_data, BMP_VRAM_SIZE*4);
@@ -103,8 +87,7 @@ struct MARV *_compositor_create_layer()
     pNewLayer->signature    = 0x5652414D;  // MARV
     pNewLayer->bitmap_data  = pBitmapData;
     pNewLayer->opacity_data = 0x0;
-    // 0x5040100 is used by D78. Some early D6 use a different value
-    pNewLayer->flags        = 0x5040100;   // bitmask (?) for RGBA
+    pNewLayer->flags        = XIMR_FLAGS_LAYER_RGBA; // see compositor.h
     pNewLayer->width        = (uint32_t)bmp_w;
     pNewLayer->height       = (uint32_t)bmp_h;
     // Probably pmem is not needed. No issues observed so far.
@@ -155,9 +138,9 @@ void rgba_fill(uint32_t color, int x, int y, int w, int h)
  * VMIX_LayersEnableArr  Controls if layer with given ID is displayed or not.
  *                       Set up just after XCM_LayersArr is populated.
  */
-extern struct MARV *RENDERER_LayersArr[XCM_MAX_LAYERS];
-extern struct MARV *VMIX_LayersArr[XCM_MAX_LAYERS];
-extern uint32_t     VMIX_LayersEnableArr[XCM_MAX_LAYERS];
+extern struct MARV *RENDERER_LayersArr[XIMR_MAX_LAYERS];
+extern struct MARV *VMIX_LayersArr[XIMR_MAX_LAYERS];
+extern uint32_t     VMIX_LayersEnableArr[XIMR_MAX_LAYERS];
 #endif // CONFIG_R
 
 void compositor_set_visibility(int state)
@@ -166,7 +149,7 @@ void compositor_set_visibility(int state)
      * We either didn't setup layer, or layer setup failed and we draw to
      * Canon GUI layer. Either way, abort - as this was probably not intended.
      */
-    if(_rgb_vram_layer == 0)
+    if(_rgb_vram_layer_id == CANON_GUI_LAYER_ID)
         return;
 
 #ifdef CONFIG_R
@@ -177,7 +160,7 @@ void compositor_set_visibility(int state)
      * refreshVrmsSurface() regenerate XimrContext on every redraw, so we can't
      * just use XCM functions to toggle layer off.
      */
-    VMIX_LayersEnableArr[_rgb_vram_layer] = state;
+    VMIX_LayersEnableArr[_rgb_vram_layer_id] = state;
 #else
     DryosDebugMsg(0, 15, "compositor_set_visibility not implemented yet!");
 #endif // CONFIG_R
@@ -194,7 +177,7 @@ int compositor_layer_setup()
     // So far it seems that default GUI layer is always 0
     int newLayerID = 0;
 #ifdef CONFIG_R
-    for(int i = 0; i < XCM_MAX_LAYERS; i++)
+    for(int i = 0; i < XIMR_MAX_LAYERS; i++)
     {
         if(RENDERER_LayersArr[i] == NULL)
             break;
@@ -206,10 +189,10 @@ int compositor_layer_setup()
 #endif // CONFIG_R
 
     DryosDebugMsg(0, 15, "Found %d layers", newLayerID);
-    if(newLayerID >= XCM_MAX_LAYERS)
+    if(newLayerID >= XIMR_MAX_LAYERS)
     {
         DryosDebugMsg(0, 15, "Too many layers: %d/%d, aborting!",
-                newLayerID, XCM_MAX_LAYERS);
+                newLayerID, XIMR_MAX_LAYERS);
         return 1;
     }
 
@@ -240,7 +223,7 @@ int compositor_layer_setup()
 
     // save rgb_vram_info as last step, in case something above fails.
     rgb_vram_info   = pNewLayer;
-    _rgb_vram_layer = newLayerID;
+    _rgb_vram_layer_id = newLayerID;
 
     // erase buffer and force redraw
     compositor_layer_clear();
@@ -248,8 +231,8 @@ int compositor_layer_setup()
 }
 
 /*
- // TODO: Write implementationf for pure Ximr, if we ever want it.
- #elif defined(CONFIG_COMPOSITOR_XIMR)
+// TODO: Write implementationf for pure Ximr, if we ever want it.
+#elif defined(CONFIG_COMPOSITOR_XIMR)
 */
 #endif // CONFIG_COMPOSITOR_XCM
 

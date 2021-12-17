@@ -185,9 +185,41 @@ THUMB_FN(0xe00e3ab0,  task_trampoline)    // see comment below:
  */
 THUMB_FN(0xe03c9114, _get_task_info_by_id) // called from function using "StackDump" string
 
-/** General FEATURE_VRAM_RGBA stubs **/
+/**
+ * RGBA / Compositor functions and structures
+ */
+
+/**
+ * Things needed for CONFIG_COMPOSITOR_XCM.
+ *
+ * RP uses two layers (GUI, focus overlays). WINSYS code swaps pointer in
+ * WINSYS structure (one we know as _rgb_vram_info) to select which layer to
+ * draw.
+ *
+ * With FEATURE_COMPOSITOR_XCM we ask XCM via XCM_GetSourceSurface to give us
+ * pointer to layer 0, which is more reliable.
+ */
+THUMB_FN(0xe010efa4, XCM_GetSourceSurface)          // by debug message
+//THUMB_FN(0xe010ed6c, XCM_MakeContext)             // by debug message. Not used in code, left for reference below.
+DATA_PTR(    0xFF78, _pXCM);                        // param1 to XCM_MakeContext() when called from refreshVrmsSurface()
+
+/**
+ * Stubs needed for CONFIG_XCM_DEDICATED_LAYER
+ */
+THUMB_FN(0xe0254b0c, refreshVrmsSurface);           // by debug message.
+DATA_PTR(    0xFF74, display_refresh_needed)        // Easy to spot in refreshVrmsSurface()
+
+/**
+ * General FEATURE_VRAM_RGBA stubs
+ *
+ * _rgb_vram_info is a pointer to first Canon RGBA buffer (GUI).
+ * On RP this is set up by RENDERER_InitializeScreen(), after MARVs are created:
+ * 'rgb_vram_info = RENDERER_LayersArr[0];'
+ */
+//THUMB_FN(0xe0331492, RENDERER_InitializeScreen)   // by debug message. Not used in code, left for reference above.
 THUMB_FN(0xe010c180, XimrExe);                      // In RefreshVrmsSurface, just before "XimrExe" debug message
 DATA_PTR(    0xff60, winsys_sem);                   // Used in RefreshVrmsSurface around XimrExe call
+DATA_PTR(    0xFF1C, _rgb_vram_info);
 
 /** Uncategorized **/
 DATA_PTR(   0x12928,  sd_device)                    // Used as parameter in DryosDebugMsg with "EVICE_POWER_CYCLE bPowerDown=%d" string
@@ -199,9 +231,6 @@ THUMB_FN(0xe06f0358,  _LoadCalendarFromRTC)         // function call after "hand
 THUMB_FN(0xe0596920, _prop_cleanup)                         // function call after "faChangeCBR(ID=%#lx)" string
 THUMB_FN(0xe059638e,  prop_register_slave)                  // function call after "sdsActivate" string
 THUMB_FN(0xe059645c, _prop_request_change)                  // function call after "update inner version string. \"%s\"" string
-
-DATA_PTR(    0xFF1C, _rgb_vram_info); // there is no string string reference nearby by there is a function which returns the 
-                                      // pointer at e03316b0. This function can also be found on other cameras.
 
 // *** CONTINUE HERE! ***
  
