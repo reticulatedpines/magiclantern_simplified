@@ -1,8 +1,16 @@
 //#define CONFIG_HELLO_WORLD
 
 #define FEATURE_VRAM_RGBA
+
 #define FEATURE_SHOW_SHUTTER_COUNT
 #define FEATURE_SHOW_TOTAL_SHOTS
+
+// mostly working - task display is too crowded.
+// Maybe CPU usage should update faster?
+#define CONFIG_TSKMON
+#define FEATURE_SHOW_TASKS
+#define FEATURE_SHOW_CPU_USAGE
+#define FEATURE_SHOW_GUI_EVENTS
 
 // prevent ML attempting stack unwinding in some cases.
 // This does not yet work (assumes ARM, not Thumb).  Alex recommends
