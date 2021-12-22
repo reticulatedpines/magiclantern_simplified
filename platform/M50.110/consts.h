@@ -85,9 +85,20 @@
 //#define LVAE_ISO_HIS    (*(uint8_t* )(LVAE_STRUCT+0xXX)) // no idea, not referenced in ./src?!
 //#define LVAE_ISO_SPEED  (*(uint8_t* )(LVAE_STRUCT+0xXX))  //WRONG, not sure how to follow
 
+/*
+ * kitor: DIGIC 8 has no PROP_LV_OUTPUT_TYPE (PROP_HOUTPUT_TYPE in ML source)
+ * I looked around LiveViewApp and found `LvInfoToggle_Update()` which updates
+ * variable to represent currently display overlays. Look at R conts.h for more
+ * details.
+ */
+#define LV_OVERLAYS_MODE MEM(0x13CC8)
 
-/* PROPABLY WRONG: Some hacks for early porting */
+/* There's no `DispOperator_PropertyMasterSetDisplayTurnOffOn()` like on EOSR.
+ * PropID 80040083 is also not referenced anywhere.
+ * GUILockTask does DISP_MuteOnOSDLineVram() and DISP_MuteOnOSDPanelVram()
+ * so maybe values stored by those two combined can be used instead. */
 #define DISPLAY_IS_ON               1
+
 /* WRONG! */
 #define HALFSHUTTER_PRESSED         0
 /* kitor: I was unable to find any related stuff from 200D
