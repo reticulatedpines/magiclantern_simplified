@@ -32,8 +32,11 @@ const uint32_t prop_handler_deny[] =
 
     PROP_ISO, // possible crash?
 
-    PROP_LENS_STATIC_DATA, // ML assert about size of prop
-    PROP_LV_AFFRAME, // ML assert about size of prop
+    //PROP_LENS_STATIC_DATA, // ML assert about size of prop, I think this
+                             // should get fixed when Kitor's changes to lens
+                             // structs are merged
+    //PROP_LV_AFFRAME, // ML assert, len is 1620 and expect max 128.
+                       // Non fatal, leaving enabled to remind me to fix it.
 };
 
 // allow writes / allow prop_request_change() for these:
