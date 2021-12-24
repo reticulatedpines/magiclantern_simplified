@@ -1828,9 +1828,6 @@ void _prop_lv_lens_request_update()
 #endif
 
 #ifdef CONFIG_DIGIC_VIII
-#define DYNAMIC_FLAG_ST2_MF    0x80  // true -> MF, false -> AF
-#define DYNAMIC_FLAG_ST3_IS    0x0F  // looks PROP_LV_LENS_STABILIZE equiv.
-
 PROP_HANDLER( PROP_LENS_DYNAMIC_DATA )
 {
     if(len != sizeof(struct prop_lens_dynamic_data))
@@ -1838,10 +1835,10 @@ PROP_HANDLER( PROP_LENS_DYNAMIC_DATA )
 
     const struct prop_lens_dynamic_data * const _dynamic = (void*) buf;
     lens_info.focal_len        = _dynamic->FL;
-    lens_info.IS               = (_dynamic->st3 & DYNAMIC_FLAG_ST3_IS);
+    lens_info.IS               = (_dynamic->st3 & 0xF); //last 8 bits looks like PROP_LV_LENS_STABILIZE equiv.
 
     // This can be used to fake PROP_AF_MODE. Works only on lenses with physical AF/MF switch.
-    //af_mode = (_dynamic->st2 & DYNAMIC_FLAG_ST2_MF) ? AF_MODE_MANUAL_FOCUS : AF_MODE_ONE_SHOT;
+    //af_mode = (_dynamic->st2 & 0x80) ? AF_MODE_MANUAL_FOCUS : AF_MODE_ONE_SHOT; // true -> MF, false -> AF
 
     /*
     // Disabled for now. Requires lens_info rewrite due to storage size change
