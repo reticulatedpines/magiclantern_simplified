@@ -3565,28 +3565,41 @@ static void draw_zoom_overlay(int dirty)
 
 int liveview_display_idle()
 {
-#ifdef CONFIG_DIGIC_678
-    extern struct dialog* LiveViewApp_dialog;
+// Common conditions required across all generations
+    if( !DISPLAY_IS_ON
+        || !LV_NON_PAUSED
+        || !job_state_ready_to_take_pic()
+        || menu_active_and_not_hidden()
+        || mirror_down
+        || gui_state != GUISTATE_IDLE
+        || CURRENT_GUI_MODE > 3
+        #ifdef CURRENT_GUI_MODE_2
+        || CURRENT_GUI_MODE_2 > 3
+        #endif
+        )
+        return 0;
 
-/**
- * kitor TODO: contains a lot of duplicates from D45 code.
- * Do we want to keep it that way? Seems cleaner to me.
- */
-    return
-        LV_NON_PAUSED &&
-        DISPLAY_IS_ON &&
-        !menu_active_and_not_hidden() &&
-        LiveViewApp_dialog &&
-        gui_state == GUISTATE_IDLE &&
-        CURRENT_GUI_MODE <= 3 &&
-        job_state_ready_to_take_pic() &&
-        !mirror_down;
+#ifdef CONFIG_DIGIC_678
+/* For Digic 6 and up. Check if LiveViewApp dialog pointer is not null.
+ * This is true only in LV.
+ * Maybe this can be backported to below Digic 6 - needs research. */
+    extern struct dialog* LiveViewApp_dialog;
+    return LiveViewApp_dialog;
 #else
+/* Original checks for Digic 5 and below. Check gui_task_list (one way linked
+ * list of dialogs in z-order) to see if top dialog is one we expect in LV.
+ *
+ * Old method falls apart for new models, as those seem to split functionality
+ * between multiple "apps" (already visible for 5d3/6d cases below)
+ * and on D6+ models LvApp is not on list at all.
+ *
+ * As an ridiculous example, EOS R topmost dialog is one for touchbar input(!)
+ */
     struct gui_task * current = gui_task_list.current;
     struct dialog * dialog = current->priv;
     extern thunk LiveViewApp_handler;
 
-    #if defined(CONFIG_5D3) || defined(CONFIG_M50)
+    #if defined(CONFIG_5D3)
     extern thunk LiveViewLevelApp_handler;
     #elif defined(CONFIG_DIGIC_V)
     extern thunk LiveViewShutterApp_handler;
@@ -3600,33 +3613,21 @@ int liveview_display_idle()
     extern uintptr_t new_LiveViewApp_handler;
     #endif
 
-    return
-        LV_NON_PAUSED && 
-        DISPLAY_IS_ON &&
-        !menu_active_and_not_hidden() && 
-        (// gui_menu_shown() || // force LiveView when menu is active, but hidden
-            ( gui_state == GUISTATE_IDLE && 
-              (dialog->handler == (dialog_handler_t) &LiveViewApp_handler 
-                  #if defined(CONFIG_LVAPP_HACK_RELOC)
-                  || dialog->handler == (dialog_handler_t) new_LiveViewApp_handler
-                  #endif
-                  #if defined(CONFIG_5D3) || defined (CONFIG_M50)
-                  || dialog->handler == (dialog_handler_t) &LiveViewLevelApp_handler
-                  #endif
-                  #if defined(CONFIG_6D)
-                  || dialog->handler == (dialog_handler_t) &LiveViewWifiApp_handler
-                  #endif
-                  //~ for this, check value of get_current_dialog_handler()
-                  #if defined(CONFIG_DIGIC_V) && !defined(CONFIG_5D3)
-                  || dialog->handler == (dialog_handler_t) &LiveViewShutterApp_handler
-                  #endif
-              ) &&
-            CURRENT_GUI_MODE <= 3 && 
-            #ifdef CURRENT_GUI_MODE_2
-            CURRENT_GUI_MODE_2 <= 3 &&
+    return (
+            // dialog handlers that we consider as "LiveView"
+            dialog->handler == (dialog_handler_t) &LiveViewApp_handler
+            #if defined(CONFIG_LVAPP_HACK_RELOC)
+            || dialog->handler == (dialog_handler_t) new_LiveViewApp_handler
             #endif
-            job_state_ready_to_take_pic() &&
-            !mirror_down )
+            #if defined(CONFIG_5D3)
+            || dialog->handler == (dialog_handler_t) &LiveViewLevelApp_handler
+            #endif
+            #if defined(CONFIG_6D)
+            || dialog->handler == (dialog_handler_t) &LiveViewWifiApp_handler
+            #endif
+            #if defined(CONFIG_DIGIC_V) && !defined(CONFIG_5D3)
+            || dialog->handler == (dialog_handler_t) &LiveViewShutterApp_handler
+            #endif
         );
 #endif
 }
