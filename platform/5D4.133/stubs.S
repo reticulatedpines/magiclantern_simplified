@@ -119,6 +119,7 @@ ARM32_FN(0xfe4c4c30,  dialog_redraw)
 
 /** Dialog handlers **/
 THUMB_FN(0xfe59c176,  ErrForCamera_handler)                 // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
+DATA_PTR(0x11ba8,     LiveViewApp_dialog) // in StartLiveViewApp()
 THUMB_FN(0xfe4024a4,  LiveViewApp_handler)
 THUMB_FN(0xfe6effe9,  LiveViewLevelApp_handler)
 THUMB_FN(0xfe6f0c68,  LiveViewShutterApp_handler)

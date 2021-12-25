@@ -185,6 +185,7 @@
                                         // the equiv of which is 0xdf00b114 (and was easier to find)
     THUMB_FN(0xe059c1a0,  prop_deliver) // used near "UNKNOWN PROPERTY ID " in call to DryosDebugMsg
     THUMB_FN(0xe059bcaa,  prop_register_slave)
+    DATA_PTR(0xeb80,      LiveViewApp_dialog) // in StartLiveViewApp()
     THUMB_FN(0xe0421974,  LiveViewApp_handler) // DebugMsg: "StartLiveViewApp(%#x)", address passed to CreateDialogBox
     THUMB_FN(0xe087690c,  LiveViewShutterApp_handler) // DebugMsg: "StartLiveViewShutterApp", address passed to CreateDialogBox
     THUMB_FN(0xe08b565c,  PlayMovieGuideApp_handler) // "PlayMovieGuide_Start" 

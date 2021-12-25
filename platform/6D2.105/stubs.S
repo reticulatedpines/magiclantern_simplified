@@ -166,6 +166,7 @@ THUMB_FN(0xdf00b615,  msg_queue_create) // CreateMessageQueue - In 50D, msg_queu
 
 THUMB_FN(0xe04e520c,  prop_deliver)
 THUMB_FN(0xe04e4ca6,  prop_register_slave) // "pRegisterSlave"
+DATA_PTR(0xea8c,      LiveViewApp_dialog) // in StartLiveViewApp()
 THUMB_FN(0xe03a1c00,  LiveViewApp_handler) // DebugMsg: "StartLiveViewApp(%#x)", address passed to CreateDialogBox
 THUMB_FN(0xe07bc900,  LiveViewShutterApp_handler) // DebugMsg: "StartLiveViewShutterApp", address passed to CreateDialogBox
 THUMB_FN(0xe054383a,  PlayMovieGuideApp_handler) // "StartPlayMovieGuideApp" 
