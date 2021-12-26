@@ -75,7 +75,7 @@ static void vram_update_luts()
 }
 
 struct vram_info vram_lv = {
-    .pitch = 720 * 2,
+    .pitch = 720 * 2, // UYVY is 2 bytes per pixel
     .width = 720,
     .height = 480,
 };
@@ -275,20 +275,35 @@ void _update_vram_params()
     // we only know the HD buffer for now... let's try to pretend it can be used as LV :)
     vram_lv.width = 768; // real width is 1024 in yuv411, but ML code assumes yuv422
     vram_lv.height = 680;
-    vram_lv.pitch = vram_lv.width * 2;    
+    vram_lv.pitch = vram_lv.width * 2;
     os.x0 = 0;
     //~ os.y0 = 0;
-    os.y0 = lv ? 0 : 48; 
+    os.y0 = lv ? 0 : 48;
     os.x_ex = 720;
     //~ os.y_ex = 480;
-    os.y_ex = 480 - os.y0;    
+    os.y_ex = 480 - os.y0;
     os.x_max = os.x0 + os.x_ex;
     os.y_max = os.y0 + os.y_ex;
     os.off_43 = 0;
     os.off_169 = 0;
-    os.off_1610 = 0;     
+    os.off_1610 = 0;
     //~ os.off_169 = (os.y_ex - os.y_ex * 4/3 * 9/16) / 2;
     //~ os.off_1610 = (os.y_ex - os.y_ex * 4/3 * 10/16) / 2;
+#elif defined(CONFIG_200D)
+    vram_lv.width = 736; // 720, but 16 pixels of noise after each line
+    // Do I need all of the following lines?  Nobody knows.
+    // This should probably be per cam, not bodged into a src/ file
+    vram_lv.height = 480;
+    vram_lv.pitch = vram_lv.width * 2;
+    os.x0 = 0;
+    os.y0 = 0;
+    os.x_ex = 720;
+    os.y_ex = 480;
+    os.x_max = os.x0 + os.x_ex;
+    os.y_max = os.y0 + os.y_ex;
+    os.off_43 = 0;
+    os.off_169 = 0;
+    os.off_1610 = 0;
        
 #else
     #ifdef CONFIG_1100D
@@ -511,7 +526,7 @@ struct vram_info * get_yuv422_vram()
 {
     // SJE FIXME quick hack to diagnose crash in take_screenshot(),
     // I think YUV422_LV_BUFFER_1 or similar are junk values
-    #if defined(CONFIG_200D) || defined(CONFIG_R) || defined(CONFIG_EOSRP)
+    #if defined(CONFIG_R) || defined(CONFIG_EOSRP)
     return NULL;
     #endif
 

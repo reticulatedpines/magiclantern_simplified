@@ -103,11 +103,32 @@
 #define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x56500000+0x30) // wrong, no idea (this address may be written to,
                                                       // value is chosen because it's probably safe on 200D
 #define FOCUS_CONFIRMATION (*(int*)0x4444) // wrong, focusinfo looks really different 50D -> 200D
-#define YUV422_LV_BUFFER_DISPLAY_ADDR 0x0 // it expects this to be pointer to address
+
+// srmGetShootMemAreaAddress() has a switch / case
+// where it can return the addresses of the image buffers.
+// For 200D 1.0.1, if param1 == 7.  This varies per cam.
+// param2 selects which buffer.  Find the right value, then in Ghidra,
+// use ShowConstantUse script to find the caller with that value,
+// and see if it stores this anywhere.  On D678, the common pattern
+// seems to be there's a main struct for RscMgr, which has sub-structs
+// for different systems.  One of these relates to the IMG_VRAM buffers
+// as shown by smemShowMemFix.
+//
+// You want to find an expression such that it resolves to the
+// address of the right LV buffer.  Not yet sure which is this buffer;
+// I resolve to the first one.
+#define YUV422_LV_BUFFER_DISPLAY_ADDR (*((int *)(*(int *)0x48f8) + 0xd9)) // good luck, have fun
+// If you find the main RscMgr struct, the first member is a pointer
+// to some memory, which contains what you want.  Can dump via shell
+// or run_test() in debug.c
+
 #define YUV422_HD_BUFFER_DMA_ADDR 0x0 // it expects this to be shamem_read(some_DMA_ADDR)
-#define YUV422_LV_BUFFER_1 0x41B00000
-#define YUV422_LV_BUFFER_2 0x5C000000
-#define YUV422_LV_BUFFER_3 0x5F600000
+
+// These are listed by smemShowFix as IMG_VRAM1, 2, 3
+#define YUV422_LV_BUFFER_1 0x5F3EFE00
+#define YUV422_LV_BUFFER_2 0x5F7F5400
+#define YUV422_LV_BUFFER_3 0x5FBFAA00
+
 #define YUV422_LV_PITCH 1440
 #define LV_BOTTOM_BAR_DISPLAYED 0x0 // wrong, fake bool
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"

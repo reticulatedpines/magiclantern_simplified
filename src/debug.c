@@ -451,9 +451,22 @@ static void test_task(void *size)
 }
 #endif
 
+void mem_to_file(char *name, uint32_t addr, uint32_t size)
+{
+    FILE *f = NULL;
+    f = FIO_CreateFile(name);
+    if (!f)
+        return;
+    FIO_WriteFile(f, addr, size);
+    FIO_CloseFile(f);
+}
+
+int yuv_dump_sec = 0;
 static void run_test()
 {
     DryosDebugMsg(0, 15, "run_test fired");
+//    yuv_dump_sec = 5; // triggers dump
+
 #if 0
     if (is_hooked)
     {
@@ -774,6 +787,39 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
                 take_screenshot(SCREENSHOT_FILENAME_AUTO, SCREENSHOT_BMP | SCREENSHOT_YUV);
         }
         #endif
+
+#ifdef CONFIG_200D
+        // SJE FIXME hack code to dump probably YUV buffers
+        // (areas listed in smemShowFix with YUV in name)
+        if (yuv_dump_sec)
+        {
+            info_led_blink(1, 20, 1000 - 20 - 200);
+            yuv_dump_sec--;
+            if (!yuv_dump_sec)
+            {
+                char path[100];
+
+                // addr, size
+                uint32_t regions[] = {
+                    //0x5755A800, 0x00088000, // SUSANYUV
+                    0x57642800, 0x000AD400, // YUV Thumb
+                    0x55F06000, 0x000AD400, // HDR/GIS_YUV Thumb
+                    0x4C809200, 0x000AD400, // INDEV_YUV Thumb
+                    0x5BA7DC00, 0x000AD400, // DP_YUV Thumb
+                    0x413A7000, 0x002F7C00, // BITMAP VRAM
+                    0x5F3EFE00, 0x00405600, // IMG_VRAM1
+                    0x5F7F5400, 0x00405600, // IMG_VRAM2
+                    0x5FBFAA00, 0x00405600, // IMG_VRAM3
+                };
+
+                for (int i = 0; i < sizeof(regions) / 4; i += 2)
+                {
+                    snprintf(path, sizeof(path), "%x.yuv", regions[i]);
+                    mem_to_file(path, regions[i], regions[i + 1]);
+                }
+            }
+        }
+#endif
 
         #ifdef CONFIG_RESTORE_AFTER_FORMAT
         if (MENU_MODE)
