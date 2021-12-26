@@ -97,6 +97,9 @@ THUMB_FN(0xe004b1ee,  gui_enqueue_message) // via string "warning! QueueLength="
 DATA_PTR(    0x72258,  bmp_vram_info)                  // first VRAM buffer. */
 // DATA_PTR(    0x72254,  bmp_vram_info2)              // second VRAM buffer */
 
+THUMB_FN(0xe010efa4, XCM_GetSourceSurface)
+DATA_PTR(    0xFF78, _pXCM);  // FF5C (VRAM_INFO) + 1C (pXCM)
+
 /** DMA **/
 // THUMB_FN(0xE03DC006,  dma_memcpy)
 
