@@ -170,8 +170,8 @@ THUMB_FN(0xe0590524,  DeleteMemorySuite)                    // Function call bef
 THUMB_FN(0xe05907b0,  CreateMemorySuite)                    // Function call before "FM_AsyncWriteFile S %d" string
 THUMB_FN(0xe058fdf6,  CreateMemoryChunk)                    // Called inside function where "DpCreatePackMemory 0x%x %d" string is used
 
-THUMB_FN(0xe052d7c6,  SRM_AllocateMemoryResourceFor1stJob)  // function call before take sempahore call before "SRM_AllocateMemoryResourceFor1stJob failed [%#x]" string
-THUMB_FN(0xe05304bc,  SRM_FreeMemoryResourceFor1stJob)      // second function call below "MEM1 is NULL" string in else block
+// THUMB_FN(0xe052d7c6,  SRM_AllocateMemoryResourceFor1stJob)  // function call before take sempahore call before "SRM_AllocateMemoryResourceFor1stJob failed [%#x]" string
+// THUMB_FN(0xe05304bc,  SRM_FreeMemoryResourceFor1stJob)      // second function call below "MEM1 is NULL" string in else block
 
 /** Tasks **/
 DATA_PTR(    0x410c,  task_dispatch_hook) // hard to explain how to find. Compare to R
