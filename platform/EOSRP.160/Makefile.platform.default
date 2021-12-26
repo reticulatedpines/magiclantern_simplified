@@ -9,7 +9,7 @@ ROMBASEADDR     = 0xE0040000
 #          ("meminfo -m" in drysh)    ("memmap" in drysh)
 # Default: 0x000dc878 - 0x001f0ec0, 0x000dc870 - 0x001f1190 (total size 0x114920)
 # Patched: 0x000dc878 - 0x001b0ec0, 0x000dc870 - 0x001b1190 (256K reserved for ML)
-RESTARTSTART = 0x0017c600
+RESTARTSTART = 0x00179500
 
 # Cortex A9, binaries loaded as Thumb
 CFLAG_USER = -mthumb -mlong-calls

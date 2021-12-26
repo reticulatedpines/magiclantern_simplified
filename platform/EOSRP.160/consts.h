@@ -24,7 +24,7 @@
 #define PTR_SYS_OBJS_OFFSET            0xe00401dc   // offset from DryOS base to sys_obj start
 #define PTR_DRYOS_BASE                 0xe00401bc
 
-#define ML_MAX_USER_MEM_STOLEN 0x40000 // True max differs per cam, 0x40000 has been tested on
+#define ML_MAX_USER_MEM_STOLEN 0x44000 // True max differs per cam, 0x40000 has been tested on
                                        // the widest range of D678 cams with no observed problems,
                                        // but not all cams have been tested!
 
@@ -33,7 +33,7 @@
                                     // They hard-code things to be directly after sys_mem.
                                     // Other cams have some space, e.g. 200D 1.0.1
 
-#define ML_RESERVED_MEM 0x40000 // Can be lower than ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE,
+#define ML_RESERVED_MEM 0x43000 // Can be lower than ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE,
                                 // but must not be higher; sys_objs would get overwritten by ML code.
                                 // Must be larger than MemSiz reported by build for magiclantern.bin
 
