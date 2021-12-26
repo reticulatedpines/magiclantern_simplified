@@ -13,3 +13,9 @@
  * even if just one buffer is requested.
  */
 #define CONFIG_MEMORY_SRM_NOT_WORKING
+
+/* has LV */
+#define CONFIG_LIVEVIEW
+
+/* enable state objects hooks */
+#define CONFIG_STATE_OBJECT_HOOKS
