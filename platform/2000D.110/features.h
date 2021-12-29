@@ -1,0 +1,5 @@
+
+// for early porting
+#undef CONFIG_CRASH_LOG
+#undef CONFIG_PROP_REQUEST_CHANGE
+#undef CONFIG_AUTOBACKUP_ROM
