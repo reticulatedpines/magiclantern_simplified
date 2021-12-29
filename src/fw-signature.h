@@ -39,6 +39,7 @@
 #define SIG_77D_102  0x6dd89c83 // from e0040000
 #define SIG_750D_110 0xf005931a // from FC0A0000
 #define SIG_850D_100 0xad55d877 // from e0040000
+#define SIG_2000D_110 0x70ca4ca6 // from FE0C0000
 
 static uint32_t compute_signature(uint32_t * start, uint32_t num)
 {
