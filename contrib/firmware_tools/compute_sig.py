@@ -33,10 +33,10 @@ def parse_args():
                         help="path to rom file")
     parser.add_argument("-s", "--start", default=0x0,
                         type=functools.partial(int, base=0),
-                        help="offset for start of checksum")
-    parser.add_argument("-l", "--length", default=0x10000,
+                        help="offset for start of checksum (often, 0xc0000 for old cams, 0x40000 for new)")
+    parser.add_argument("-l", "--length", default=0x40000,
                         type=functools.partial(int, base=0),
-                        help="length of region to checksum")
+                        help="length of region to checksum, default: 0x40000")
 
     args = parser.parse_args()
 
