@@ -30,8 +30,10 @@ int hibr_should_record_wav() { return cfg_hibr_wav_record; }
 int hibr_should_record_wav() { return 0; }
 #endif
 
+#ifdef FEATURE_REC_INDICATOR
 static int time_indic_warning = 120;
 static unsigned int time_indic_font  = FONT(FONT_MED, COLOR_RED, COLOR_BLACK );
+#endif
 
 static int measured_bitrate = 0; // mbps
 //~ int free_space_32k = 0;

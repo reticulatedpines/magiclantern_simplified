@@ -61,7 +61,9 @@ static struct recursive_lock * shoot_task_rlock = NULL;
 
 static CONFIG_INT( "shoot.num", pics_to_take_at_once, 0);
 static CONFIG_INT( "shoot.af",  shoot_use_af, 0 );
+#if defined(FEATURE_SNAP_SIM) || defined(CONFIG_PROP_REQUEST_CHANGE)
 static int snap_sim = 0;
+#endif
 
 void move_lv_afframe(int dx, int dy);
 void display_trap_focus_info();
@@ -137,8 +139,10 @@ static CONFIG_INT( "interval.scripts", interval_scripts, 0); //1 bash, 2 ms-dos,
 #define INTERVAL_TRIGGER_HALF_SHUTTER 1
 #define INTERVAL_TRIGGER_TAKE_PIC 2
 
+#ifdef FEATURE_INTERVALOMETER
 static int intervalometer_pictures_taken = 0;
 static int intervalometer_next_shot_time = 0;
+#endif
 
 
 #define TRAP_NONE    0
@@ -4697,14 +4701,14 @@ static int hdr_shutter_release(int ev_x8)
         ev_x8 = hdr_iso_shift(ev_x8);
 
         // apply EV correction in both "domains" (milliseconds and EV)
+#ifdef CONFIG_BULB
         int ms = raw2shutter_ms(lens_info.raw_shutter);
-        #ifdef CONFIG_BULB
         if(hdr_first_shot_bulb)
         {
             ms = bulb_duration*1000;
         }
-        #endif
         int msc = ms * roundf(1000.0f * powf(2, ev_x8 / 8.0f))/1000;
+#endif
         
         int rs = lens_info.raw_shutter;
         #ifdef CONFIG_BULB
@@ -6025,8 +6029,6 @@ shoot_task( void* unused )
 
         // same for motion detect
         int mdx = motion_detect && (liveview_display_idle() || (lv && !DISPLAY_IS_ON)) && NOT_RECORDING && !gui_menu_shown() && !intervalometer_running;
-        #else
-        int mdx = 0;
         #endif
 
         #ifdef FEATURE_TRAP_FOCUS

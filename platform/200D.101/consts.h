@@ -131,7 +131,8 @@
 #define div_maybe(a,b) ((a)/(b))
 // see mvrGetBufferUsage, which is not really safe to call => err70
 // macros copied from arm-console
-#define MVR_BUFFER_USAGE 0 /* obviously wrong, don't try and record video
+#define MVR_BUFFER_USAGE 70 // wrong, but needs to be non-zero to avoid a compiler warning
+       /* obviously wrong, don't try and record video
        // div_maybe(-100*MEM(236 + MVR_190_STRUCT) - \
        // 100*MEM(244 + MVR_190_STRUCT) - 100*MEM(384 + MVR_190_STRUCT) - \
        // 100*MEM(392 + MVR_190_STRUCT) + 100*MEM(240 + MVR_190_STRUCT) + \

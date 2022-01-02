@@ -21,12 +21,13 @@
  * Boston, MA  02110-1301, USA.
  */
 
- #include <dryos.h>
- #include <property.h>
- #include <bmp.h>
- #include <config.h>
- #include <consts.h>
- #include <lens.h>
+#include <dryos.h>
+#include <property.h>
+#include <bmp.h>
+#include <config.h>
+#include <consts.h>
+#include <lens.h>
+#include <edmac.h>
 
 extern int _WINSYS_BMP_DIRTY_BIT_NEG = 0;
 

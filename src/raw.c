@@ -895,7 +895,7 @@ static int raw_update_params_work()
         skip_top    = 26;
         skip_left   = zoom ? 0 : 256;
         #endif
-		
+
         dbg_printf("LV raw buffer: %x (%dx%d)\n", raw_info.buffer, width, height);
         dbg_printf("Skip left:%d right:%d top:%d bottom:%d\n", skip_left, skip_right, skip_top, skip_bottom);
 #else

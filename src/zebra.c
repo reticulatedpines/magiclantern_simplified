@@ -175,7 +175,9 @@ static CONFIG_INT( "transparent.overlay", transparent_overlay, 0);
 static CONFIG_INT( "transparent.overlay.x", transparent_overlay_offx, 0);
 static CONFIG_INT( "transparent.overlay.y", transparent_overlay_offy, 0);
 static CONFIG_INT( "transparent.overlay.autoupd", transparent_overlay_auto_update, 0);
+#ifdef FEATURE_GHOST_IMAGE
 static int transparent_overlay_hidden = 0;
+#endif
 
 static CONFIG_INT( "global.draw",   global_draw, 3 );
 
@@ -467,7 +469,9 @@ int get_global_draw_setting() // whatever is set in menu
 /** Store the waveform data for each of the WAVEFORM_WIDTH bins with
  * 128 levels
  */
+#ifdef FEATURE_WAVEFORM
 static uint8_t* waveform = 0;
+#endif
 #define WAVEFORM_UNSAFE(x,y) (waveform[(x) + (y) * WAVEFORM_WIDTH])
 #define WAVEFORM(x,y) (waveform[COERCE((x), 0, WAVEFORM_WIDTH-1) + COERCE((y), 0, WAVEFORM_HEIGHT-1) * WAVEFORM_WIDTH])
 
@@ -3757,7 +3761,9 @@ void draw_histogram_and_waveform(int allow_play)
     if (!liveview_display_idle() && !(PLAY_OR_QR_MODE && allow_play) && !gui_menu_shown()) return;
     if (is_zoom_mode_so_no_zebras()) return;
 
+#if defined(FEATURE_HISTOGRAM) || defined(FEATURE_WAVEFORM)
     int screen_layout = get_screen_layout();
+#endif
 
 #ifdef FEATURE_HISTOGRAM
     if( hist_draw && !WAVEFORM_FULLSCREEN)
@@ -3819,7 +3825,9 @@ clearscreen_task( void* unused )
 
     TASK_LOOP
     {
+#ifdef FEATURE_CLEAR_OVERLAYS
 clearscreen_loop:
+#endif
         msleep(100);
 
         //~ bmp_printf(FONT_MED, 100, 100, "%d %d %d", idle_countdown_display_dim, idle_countdown_display_off, idle_countdown_globaldraw);

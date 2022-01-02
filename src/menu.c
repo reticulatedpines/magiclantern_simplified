@@ -5666,8 +5666,6 @@ menu_task( void* unused )
     while (!ml_started)
         msleep(100);
     
-    extern int ml_gui_initialized;
-
     debug_menu_init();
     
     int initial_mode = 0; // shooting mode when menu was opened (if changed, menu should close)

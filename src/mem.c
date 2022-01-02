@@ -1051,8 +1051,8 @@ static void guess_free_mem_task(void *priv, int delta)
         STR_APPEND(shoot_malloc_frag_desc, mb%10 ? "%s%d.%d" : "%s%d", total ? "+" : "", mb/10, mb%10);
         total += chunkAvail;
 
-        int start = MEMORY_MAP_ADDRESS_TO_INDEX(chunkAddress);
-        int width = MEMORY_MAP_ADDRESS_TO_INDEX(chunkAvail);
+        uint32_t start = MEMORY_MAP_ADDRESS_TO_INDEX(chunkAddress);
+        uint32_t width = MEMORY_MAP_ADDRESS_TO_INDEX(chunkAvail);
 
         if ((start < sizeof(memory_map)) && (start + width < sizeof(memory_map)))
         {
@@ -1094,8 +1094,8 @@ static void guess_free_mem_task(void *priv, int delta)
         ASSERT(chunkAvail == srm_buffer_size);
         printf("srm buffer: %x ... %x\n", chunkAddress, chunkAddress + chunkAvail - 1);
 
-        int start = MEMORY_MAP_ADDRESS_TO_INDEX(chunkAddress);
-        int width = MEMORY_MAP_ADDRESS_TO_INDEX(chunkAvail);
+        uint32_t start = MEMORY_MAP_ADDRESS_TO_INDEX(chunkAddress);
+        uint32_t width = MEMORY_MAP_ADDRESS_TO_INDEX(chunkAvail);
 
         if ((start < sizeof(memory_map)) && (start + width < sizeof(memory_map)))
         {

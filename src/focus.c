@@ -897,7 +897,9 @@ int is_manual_focus()
     return (af_mode & 0xF) == AF_MODE_MANUAL_FOCUS;
 }
 
+#if defined(FEATURE_TRAP_FOCUS) || defined(FEATURE_MAGIC_ZOOM)
 static int trap_focus_autoscaling = 1;
+#endif
 
 #ifdef FEATURE_TRAP_FOCUS
 int handle_trap_focus(struct event * event)

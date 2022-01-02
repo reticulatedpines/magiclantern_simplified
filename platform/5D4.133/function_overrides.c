@@ -5,6 +5,7 @@
 #include <consts.h>
 #include <lens.h>
 #include <tasks.h>
+#include <edmac.h>
 
 uint32_t shamem_read(uint32_t addr)
 {

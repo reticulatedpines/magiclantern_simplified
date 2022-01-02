@@ -11,6 +11,7 @@
 #include <consts.h>
 #include <lens.h>
 #include <tasks.h>
+#include <edmac.h>
 
 // fake WINSYS_BMP_DIRTY_BIT_NEG
 int winsys_bmp_dirty_bit_neg = 0;

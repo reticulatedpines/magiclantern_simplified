@@ -301,8 +301,8 @@ static void prop_reset_ack(uint32_t property)
 #ifdef CONFIG_DIGIC_678
 static int is_prop_allowed(uint32_t property)
 {
-    for(uint32_t i = 0;
-        i < sizeof(prop_write_allow) / sizeof(*prop_write_allow);
+    for(int32_t i = 0;
+        i < (int32_t)(sizeof(prop_write_allow) / sizeof(*prop_write_allow));
         i++)
     {
         if (prop_write_allow[i] == property)
@@ -340,11 +340,11 @@ void prop_request_change(unsigned property, const void* addr, size_t len)
 {
 #ifdef CONFIG_PROP_REQUEST_CHANGE
 
-	#if defined(CONFIG_40D)
-	if (property != PROP_AFPOINT) {
-		return;
-	}
-	#endif
+    #if defined(CONFIG_40D)
+    if (property != PROP_AFPOINT) {
+        return;
+    }
+    #endif
 
     #if defined(CONFIG_DIGIC_V) && defined(CONFIG_FULLFRAME)
     if (property == PROP_VIDEO_MODE) // corrupted video headers on 5D3

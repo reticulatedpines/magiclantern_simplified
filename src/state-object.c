@@ -152,9 +152,9 @@ static int FAST stateobj_lv_spy(struct state_object * self, int x, int input, in
         lv_vsync_signal();
 #elif defined(CONFIG_600D)
     if (self == EVF_STATE && old_state == 5) {  
-		//600D Goes 3 - 4 - 5 5 and 3 ever 1/2 frame
+        //600D Goes 3 - 4 - 5 5 and 3 ever 1/2 frame
         lv_vsync_signal();
-	}
+    }
 #endif
     // sync display filters (for these, we need to redirect display buffers
     #ifdef DISPLAY_STATE

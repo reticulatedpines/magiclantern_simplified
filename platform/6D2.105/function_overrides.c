@@ -11,6 +11,7 @@
 #include <consts.h>
 #include <lens.h>
 #include <tasks.h>
+#include <edmac.h>
 
 void LoadCalendarFromRTC(struct tm *tm)
 {

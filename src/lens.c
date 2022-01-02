@@ -46,7 +46,9 @@
 #include "powersave.h"
 
 // for movie logging
+#ifdef FEATURE_MOVIE_LOGGING
 static char* mvr_logfile_buffer = 0;
+#endif
 /* delay to be waited after mirror is locked */
 CONFIG_INT("mlu.lens.delay", lens_mlu_delay, 7);
 static void update_stuff();

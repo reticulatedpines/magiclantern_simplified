@@ -27,6 +27,7 @@
 #include <config.h>
 #include <consts.h>
 #include <lens.h>
+#include <edmac.h>
 
 extern int uart_printf(const char * fmt, ...);
 

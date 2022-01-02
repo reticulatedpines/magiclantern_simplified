@@ -168,6 +168,7 @@ static MENU_UPDATE_FUNC(crop_display_submenu)
     MENU_SET_ICON(MNI_DICE, (num_cropmarks<<16) + index);
 }
 
+#ifdef FEATURE_CROPMARKS
 static struct menu_entry cropmarks_menu[] = {
     {
         .name = "Cropmarks",
@@ -204,6 +205,7 @@ static struct menu_entry cropmarks_menu[] = {
         },
     },
 };
+#endif
 
 static void cropmark_draw_from_cache()
 {

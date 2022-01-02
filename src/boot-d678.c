@@ -222,12 +222,12 @@ copy_and_restart(int offset)
 
     // Copy the firmware to somewhere safe in memory
     const uint8_t *const firmware_start = (void *)ROMBASEADDR;
-    const uint8_t *const cstart_start = (uint32_t)cstart & 0xfffffffe;
     const uint32_t firmware_len = FIRMWARE_ENTRY_LEN;
     uint8_t *const new_image = (void *)RELOCADDR;
 
     blob_memcpy(new_image, firmware_start, firmware_start + firmware_len);
 #if defined(CSTART_LEN)
+    const uint8_t *const cstart_start = (uint8_t *)((uint32_t)cstart & 0xfffffffe);
     blob_memcpy(new_image + firmware_len,
                 cstart_start,
                 cstart_start + CSTART_LEN);
