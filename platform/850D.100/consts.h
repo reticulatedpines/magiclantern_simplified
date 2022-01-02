@@ -171,11 +171,20 @@ DryOS base    user_start                                 sys_objs_start    sys_s
 extern int winsys_bmp_dirty_bit_neg;
 #define WINSYS_BMP_DIRTY_BIT_NEG MEM(&winsys_bmp_dirty_bit_neg) // faked via function_overrides.c
 #define FOCUS_CONFIRMATION (*(int*)0x4444) // wrong, focusinfo looks really different 50D -> 200D
-#define YUV422_LV_BUFFER_DISPLAY_ADDR 0x0 // it expects this to be pointer to address
+
+#define DISP_VRAM_STRUCT_PTR ((int *)(*(int *)0xaff0)) // used many DISP related places, "CurrentImgAddr : %#08x"
+                                                       // is a good string as this gets us the pointers to current buffers.
+                                                       // param1 is DisplayOut (HDMI, EVF, LCD?)
+// SJE FIXME probably the constant 0xa8 should be dependent on what display is in use.
+// Choices are 0xa0, a8 or b0.  a8 tested to work for LCD
+#define YUV422_LV_BUFFER_DISPLAY_ADDR (*(DISP_VRAM_STRUCT_PTR + (0xa8 / 4)))
+
 #define YUV422_HD_BUFFER_DMA_ADDR 0x0 // it expects this to be shamem_read(some_DMA_ADDR)
-#define YUV422_LV_BUFFER_1 0x0
-#define YUV422_LV_BUFFER_2 0x0
-#define YUV422_LV_BUFFER_3 0x0
+
+#define YUV422_LV_BUFFER_1 0x9F420000 // these three are IMG_VRAM1, 2, 3 in smemShowFix
+#define YUV422_LV_BUFFER_2 0x9F814800
+#define YUV422_LV_BUFFER_3 0x9FC09000
+
 #define YUV422_LV_PITCH 1440
 #define LV_BOTTOM_BAR_DISPLAYED 0x0 // wrong, fake bool
 //#define MALLOC_FREE_MEMORY 0

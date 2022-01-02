@@ -5,6 +5,10 @@
 #define FEATURE_SHOW_SHUTTER_COUNT
 #define FEATURE_SHOW_TOTAL_SHOTS
 
+#define FEATURE_SCREENSHOT
+
+#define FEATURE_DONT_CLICK_ME
+
 // mostly working - task display is too crowded.
 // Maybe CPU usage should update faster?
 #define CONFIG_TSKMON

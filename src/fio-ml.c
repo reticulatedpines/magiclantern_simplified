@@ -553,8 +553,14 @@ int FIO_WriteFile( FILE* stream, const void* ptr, size_t count )
         /* overhead is minimal (see selftest.mo for benchmark) */
         sync_caches();
     }
-
+#ifdef CONFIG_MEM_2GB
+    // Not all mem is cacheable on these cams, and FIO_WriteFile
+    // requires uncacheable address, or errors:
+    // [FSU] WARN Please Designate Uncacheable Addr!!!!!!
+    return _FIO_WriteFile(stream, UNCACHEABLE(ptr), count);
+#else
     return _FIO_WriteFile(stream, ptr, count);
+#endif
 }
 
 FILE* FIO_CreateFileOrAppend(const char* name)

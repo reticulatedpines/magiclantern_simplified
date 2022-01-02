@@ -104,23 +104,12 @@
                                                       // value is chosen because it's probably safe on 200D
 #define FOCUS_CONFIRMATION (*(int*)0x4444) // wrong, focusinfo looks really different 50D -> 200D
 
-// srmGetShootMemAreaAddress() has a switch / case
-// where it can return the addresses of the image buffers.
-// For 200D 1.0.1, if param1 == 7.  This varies per cam.
-// param2 selects which buffer.  Find the right value, then in Ghidra,
-// use ShowConstantUse script to find the caller with that value,
-// and see if it stores this anywhere.  On D678, the common pattern
-// seems to be there's a main struct for RscMgr, which has sub-structs
-// for different systems.  One of these relates to the IMG_VRAM buffers
-// as shown by smemShowMemFix.
-//
-// You want to find an expression such that it resolves to the
-// address of the right LV buffer.  Not yet sure which is this buffer;
-// I resolve to the first one.
-#define YUV422_LV_BUFFER_DISPLAY_ADDR (*((int *)(*(int *)0x48f8) + 0xd9)) // good luck, have fun
-// If you find the main RscMgr struct, the first member is a pointer
-// to some memory, which contains what you want.  Can dump via shell
-// or run_test() in debug.c
+#define DISP_VRAM_STRUCT_PTR ((int *)(*(int *)0x7b64)) // used many DISP related places, "CurrentImgAddr : %#08x"
+                                                       // is a good string as this gets us the pointers to current buffers.
+                                                       // param1 is DisplayOut (HDMI, EVF, LCD?)
+// SJE FIXME probably the constant 0x78 should be dependent on what display is in use.
+// Choices are 0x70, 74 or 78.  78 tested to work for LCD
+#define YUV422_LV_BUFFER_DISPLAY_ADDR (*(DISP_VRAM_STRUCT_PTR + (0x78 / 4)))
 
 #define YUV422_HD_BUFFER_DMA_ADDR 0x0 // it expects this to be shamem_read(some_DMA_ADDR)
 

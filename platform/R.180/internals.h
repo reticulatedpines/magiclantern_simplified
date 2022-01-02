@@ -13,7 +13,7 @@
 
 /** disable SRM for now
  * in current state SRM_AllocateMemoryResourceFor1stJob makes camera crash
- * even if just one buffer is requrested.
+ * even if just one buffer is requested.
  */
 #define CONFIG_MEMORY_SRM_NOT_WORKING
 
@@ -22,3 +22,8 @@
 
 /* enable state objects hooks */
 #define CONFIG_STATE_OBJECT_HOOKS
+
+/** Large total memory, leading to unusual memory mapping,
+ * CACHEABLE / UNCACHEABLE changes
+ */
+#define CONFIG_MEM_2GB

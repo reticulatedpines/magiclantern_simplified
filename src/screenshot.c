@@ -199,6 +199,10 @@ int take_screenshot( char* filename, uint32_t mode )
     struct vram_info *vram_info = get_yuv422_vram();
     if (vram_info != NULL)
         lvram = vram_info->vram;
+#ifdef CONFIG_DIGIC_678 // SJE FIXME confirmed on 7 and 8 only
+    if (YUV422_LV_BUFFER_DISPLAY_ADDR == 0x01000000) // indicates uninit buffer
+        lvram = NULL;
+#endif
 
     if (!lvram)
     {

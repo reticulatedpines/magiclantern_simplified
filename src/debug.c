@@ -466,6 +466,10 @@ static void run_test()
 {
     DryosDebugMsg(0, 15, "run_test fired");
 //    yuv_dump_sec = 5; // triggers dump
+#if 0
+    DryosDebugMsg(0, 15, "D_V_S_P: 0x%x", DISP_VRAM_STRUCT_PTR);
+    DryosDebugMsg(0, 15, "L_B_D_A: 0x%x", YUV422_LV_BUFFER_DISPLAY_ADDR);
+#endif
 
 #if 0
     if (is_hooked)
@@ -788,7 +792,8 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
         }
         #endif
 
-#ifdef CONFIG_200D
+#if defined(CONFIG_200D) || defined(CONFIG_850D)
+//#ifdef CONFIG_850D
         // SJE FIXME hack code to dump probably YUV buffers
         // (areas listed in smemShowFix with YUV in name)
         if (yuv_dump_sec)
@@ -801,15 +806,16 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
 
                 // addr, size
                 uint32_t regions[] = {
-                    //0x5755A800, 0x00088000, // SUSANYUV
-                    0x57642800, 0x000AD400, // YUV Thumb
-                    0x55F06000, 0x000AD400, // HDR/GIS_YUV Thumb
-                    0x4C809200, 0x000AD400, // INDEV_YUV Thumb
-                    0x5BA7DC00, 0x000AD400, // DP_YUV Thumb
-                    0x413A7000, 0x002F7C00, // BITMAP VRAM
-                    0x5F3EFE00, 0x00405600, // IMG_VRAM1
-                    0x5F7F5400, 0x00405600, // IMG_VRAM2
-                    0x5FBFAA00, 0x00405600, // IMG_VRAM3
+                #ifdef CONFIG_200D
+                    *(DISP_VRAM_STRUCT_PTR + (0x70 / 4)), 0x00405600,
+                    *(DISP_VRAM_STRUCT_PTR + (0x74 / 4)), 0x00405600,
+                    *(DISP_VRAM_STRUCT_PTR + (0x78 / 4)), 0x00405600,
+                    //0x5f3efe00, 0x00405600, // IMG_VRAM1
+                    //0x5f7f5400, 0x00405600, // IMG_VRAM2
+                    //0x5fbfaa00, 0x00405600, // IMG_VRAM3
+                #elif defined(CONFIG_850D)
+                    0x9F420000, 0x003F4800, // IMG_VRAM1
+                #endif
                 };
 
                 for (int i = 0; i < sizeof(regions) / 4; i += 2)

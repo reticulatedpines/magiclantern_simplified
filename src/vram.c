@@ -289,7 +289,9 @@ void _update_vram_params()
     os.off_1610 = 0;
     //~ os.off_169 = (os.y_ex - os.y_ex * 4/3 * 9/16) / 2;
     //~ os.off_1610 = (os.y_ex - os.y_ex * 4/3 * 10/16) / 2;
-#elif defined(CONFIG_200D)
+#elif defined(CONFIG_200D) || defined(CONFIG_850D)
+    // SJE FIXME we should pull this from the DISP Vram struct or similar,
+    // at runtime.  At least for D678.
     vram_lv.width = 736; // 720, but 16 pixels of noise after each line
     // Do I need all of the following lines?  Nobody knows.
     // This should probably be per cam, not bodged into a src/ file
@@ -458,7 +460,8 @@ static inline void * get_yuv422buffer(int offset)
     return (void*)CACHEABLE(YUV422_LV_BUFFER_DISPLAY_ADDR); // Good enough
     #else
     
-    if (YUV422_LV_BUFFER_DISPLAY_ADDR == 0)
+    if (YUV422_LV_BUFFER_DISPLAY_ADDR == 0 ||
+        YUV422_LV_BUFFER_DISPLAY_ADDR == 0x01000000) // Digic 7 uses this to mean uninit
     {
         /* YUV buffer not initialized, can't display anything here */
         return 0;
@@ -526,9 +529,9 @@ struct vram_info * get_yuv422_vram()
 {
     // SJE FIXME quick hack to diagnose crash in take_screenshot(),
     // I think YUV422_LV_BUFFER_1 or similar are junk values
-    #if defined(CONFIG_R) || defined(CONFIG_EOSRP)
+#if defined(CONFIG_R) || defined(CONFIG_EOSRP)
     return NULL;
-    #endif
+#endif
 
     vram_params_update_if_dirty();
     
@@ -538,7 +541,7 @@ struct vram_info * get_yuv422_vram()
         return &vram_lv;
     }
 
-    #ifdef CONFIG_DISPLAY_FILTERS
+#ifdef CONFIG_DISPLAY_FILTERS
     int d = display_filter_enabled();
     if (d)
     {
@@ -548,9 +551,9 @@ struct vram_info * get_yuv422_vram()
         vram_lv.vram = (void*)(d == 1 ? dst_buf : src_buf);
         return &vram_lv;
     }
-    #endif
+#endif
 
-    #ifdef CONFIG_500D // workaround for issue 1108 - zebras flicker on first clip
+#ifdef CONFIG_500D // workaround for issue 1108 - zebras flicker on first clip
     
     if (lv && !is_movie_mode()) first_video_clip = 0; // starting in photo mode is OK
     
@@ -559,7 +562,7 @@ struct vram_info * get_yuv422_vram()
         vram_lv.vram = CACHEABLE(get_lcd_422_buf());
         return &vram_lv;
     }
-    #endif
+#endif
 
     extern int lv_paused;
     if (gui_state == GUISTATE_PLAYMENU || lv_paused || QR_MODE)
