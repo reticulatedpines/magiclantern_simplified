@@ -1792,18 +1792,7 @@ PROP_HANDLER( PROP_LV_LENS )
 #if defined(CONFIG_DIGIC_VI) || defined(CONFIG_DIGIC_VII)
 PROP_HANDLER( PROP_LV_LENS_D67 )
 {
-    ASSERT(len <= sizeof(struct prop_lv_lens));
-    memcpy(&lv_lens_raw, buf, sizeof(struct prop_lv_lens));
-
-    const struct prop_lv_lens * const lv_lens = (void*) buf;
-    lens_info.focal_len     = bswap16( lv_lens->focal_len );
-    lens_info.focus_dist    = bswap16( lv_lens->focus_dist );
-    lens_info.focus_pos     = (int16_t) bswap16( lv_lens->focus_pos );
-
-    if (lens_info.focal_len > 1000) // bogus values
-        lens_info.focal_len = 0;
-
-    _lens_dynamic_data_post_update();
+    PROP_HANDLER_CALL(PROP_LV_LENS);
 }
 #endif
 

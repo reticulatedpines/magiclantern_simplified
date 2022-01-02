@@ -679,6 +679,9 @@ void _prop_handler_##id( \
         unsigned                len \
 ) \
 
+// Allow calling the underlying handler function, can be useful
+// if two properties use the same handling logic, one can call the other.
+#define PROP_HANDLER_CALL(id) _prop_handler_##id(id, token, buf, len)
 
 #define PROP_INT(id,name) \
 volatile uint32_t name; \

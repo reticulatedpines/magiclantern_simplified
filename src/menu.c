@@ -6197,7 +6197,7 @@ int handle_ml_menu_erase(struct event *event)
 //    DryosDebugMsg(0, 15, "event->param 0x%x", event->param);
 
 // SJE logging GUIMODE
-    DryosDebugMsg(0, 15, "guimode: %d", CURRENT_GUI_MODE);
+//    DryosDebugMsg(0, 15, "guimode: %d", CURRENT_GUI_MODE);
 
 #if 0
 // SJE bubbles hack for fun
