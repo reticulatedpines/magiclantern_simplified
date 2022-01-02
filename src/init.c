@@ -554,8 +554,8 @@ static int my_assert_handler(char* msg, char* file, int line, int arg4)
     uart_printf("[SJE] my_assert_msg: %s", assert_msg);
 #else
     backtrace_getstr(assert_msg + len, sizeof(assert_msg) - len);
-    request_crash_log(1);
 #endif
+    request_crash_log(1);
     return old_assert_handler(msg, file, line, arg4);
 }
 

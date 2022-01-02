@@ -465,10 +465,13 @@ int yuv_dump_sec = 0;
 static void run_test()
 {
     DryosDebugMsg(0, 15, "run_test fired");
-//    yuv_dump_sec = 5; // triggers dump
-#if 0
-    DryosDebugMsg(0, 15, "D_V_S_P: 0x%x", DISP_VRAM_STRUCT_PTR);
-    DryosDebugMsg(0, 15, "L_B_D_A: 0x%x", YUV422_LV_BUFFER_DISPLAY_ADDR);
+#ifdef CONFIG_200D
+    // trigger an assert
+    extern void debug_assert(char *msg, char *file, int line);
+    debug_assert("LIFE == FAIR", "this file", 1);
+    // or the following will trigger an exception on MMU cams
+    int crash_now_please = *(int *)0x0;
+    DryosDebugMsg(0, 15, "not unused: 0x%x", crash_now_please);
 #endif
 
 #if 0
