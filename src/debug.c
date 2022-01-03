@@ -470,8 +470,8 @@ static void run_test()
     extern void debug_assert(char *msg, char *file, int line);
     debug_assert("LIFE == FAIR", "this file", 1);
     // or the following will trigger an exception on MMU cams
-    int crash_now_please = *(int *)0x0;
-    DryosDebugMsg(0, 15, "not unused: 0x%x", crash_now_please);
+//    int crash_now_please = *(int *)0x0;
+//    DryosDebugMsg(0, 15, "not unused: 0x%x", crash_now_please);
 #endif
 
 #if 0
