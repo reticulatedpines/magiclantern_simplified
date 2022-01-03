@@ -362,3 +362,9 @@ DATA_PTR(   0x13874,  LiveViewApp_dialog)                   // in StartLiveViewA
 // THUMB_FN(0x,  UnregisterEDmacPopCBR)
 // THUMB_FN(0x,  SetEDmac)
 // THUMB_FN(0x,  StartEDmac)
+
+/*
+ * Stubs needed only for experiments in test_features.c
+ * Do not port to other models unless you want to.
+ */
+THUMB_FN(0xe04db4e8, DISP_SetHighLight)
