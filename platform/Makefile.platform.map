@@ -26,7 +26,8 @@ PLATFORM_MAP = \
     M50.110 \
     R.180 \
     EOSRP.160 \
-
+    R6.150 \
+    
 # SJE these need RESTARTSTART determining for new style boot process,
 # but I don't have roms
 #    7D2.104 \

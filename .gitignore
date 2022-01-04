@@ -1,6 +1,7 @@
 syntax: glob
 Makefile.*.user
 Makefile.user
+.lds
 *.gpr
 *.gar
 *.bin
