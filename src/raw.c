@@ -145,8 +145,17 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 
 #ifndef DEFAULT_RAW_BUFFER_SIZE
 /* todo: figure out how much Canon code allocates for their LV RAW buffer - how? */
-#warning FIXME: using dummy DEFAULT_RAW_BUFFER_SIZE
-#define DEFAULT_RAW_BUFFER_SIZE (9*1024*1024)
+    #if defined(CONFIG_100D) || defined(CONFIG_650D) || defined(CONFIG_6D) || \
+        defined(CONFIG_600D)
+        // I don't know good values for these cams and I want to suppress
+        // this warning for them.  They've been reporting it for many years,
+        // presumably not a real problem, but may be a useful warning for new ports.
+        //
+        // A better value does still want finding for these cams.
+    #else
+        #warning FIXME: using dummy DEFAULT_RAW_BUFFER_SIZE
+    #endif
+    #define DEFAULT_RAW_BUFFER_SIZE (9*1024*1024)
 #endif
 
 
