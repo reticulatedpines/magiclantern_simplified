@@ -455,6 +455,13 @@ void yuv422_buffer_check()
 
 static inline void * get_yuv422buffer(int offset)
 {
+    // This function assumes the cam is triple-buffered, but not
+    // all cams are, hence the special casing.
+    //
+    // FIXME: make this cleaner, probably use platform/99D/internals.h
+    // to state how many buffers a given cam uses and make the selection
+    // logic more general.  Maybe mod arithmetic, not a switch.
+
     /* 5D3 1.2.3 has quad-buffered LV, so the old switch can't work */
     #if defined(CONFIG_1100D) || defined(CONFIG_6D) || defined(CONFIG_5D3_123)
     return (void*)CACHEABLE(YUV422_LV_BUFFER_DISPLAY_ADDR); // Good enough
@@ -466,6 +473,12 @@ static inline void * get_yuv422buffer(int offset)
         /* YUV buffer not initialized, can't display anything here */
         return 0;
     }
+
+    // D678 are double-buffered for LV.  Can't put in similar prior block
+    // because we want the 0x01000000 check.
+    #ifdef CONFIG_DIGIC_678
+    return (void*)CACHEABLE(YUV422_LV_BUFFER_DISPLAY_ADDR);
+    #endif
 
     if (YUV422_LV_BUFFER_DISPLAY_ADDR == YUV422_LV_BUFFER_1)
        offset += 0;
