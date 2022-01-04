@@ -114,12 +114,51 @@
 //#define LVAE_ISO_HIS    (*(uint8_t* )(LVAE_STRUCT+0xXX)) // no idea, not referenced in ./src?!
 //#define LVAE_ISO_SPEED  (*(uint8_t* )(LVAE_STRUCT+0xXX))  //WRONG, not sure how to follow
 
-#define YUV422_LV_BUFFER_1 0x9F230000
-#define YUV422_LV_BUFFER_2 0x9F624800
-#define YUV422_LV_BUFFER_3 0x9FA19000
-#define YUV422_LV_PITCH    1024
+/*
+ * On EOS R UYVY Image buffers are hardcoded to be (see VramRead e00cd1c6):
+ * for EVF   : 1280x720
+ * for Panel : 1024x682
+ * for HDMI  : Either FHD or UHD depending on connected display
+ * HDMI is referenced as "Line" in Canon functions.
+ *
+ * Buffers used for regular display are available in smemShowFix output.
+ * IMG_VRAM1, IMG_VRAM2, IMG_VRAM3
+ *
+ * Ones used for clean HDMI output while Clean HDMI is enabled can be found
+ * via `VramState` evproc:
+ *
+ *     *************** Panel ***************
+ *     ,,0x9f230000,0x9f624800,0x9fa19000
+ *
+ *     *************** Evf ***************
+ *     ,,0x00000000,0x00000000,0x00000000
+ *
+ *     *************** Line ***************
+ *     ,,0x76087000,0x7744d800,0x78814000
+ *
+ * At the same moment there can be at most two outputs enabled:
+ * Panel, EVF, HDMI, Panel+CleanHDMI, EVF+CleanHDMI.
+ *
+ * I think for now we can just ignore CleanHDMI buffers.
+ */
 
-#define YUV422_LV_BUFFER_DISPLAY_ADDR 0x0 // it expects this to be pointer to address
+// Note that all three regular buffers are in Uncacheable-only region!
+#define YUV422_LV_BUFFER_1   0x9F230000 // For CleanHDMI 0x76087000
+#define YUV422_LV_BUFFER_2   0x9F624800 // For CleanHDMI 0x7744d800
+#define YUV422_LV_BUFFER_3   0x9FA19000 // For CleanHDMI 0x78814000
+
+#define DISP_VRAM_STRUCT_PTR *(int *)0x9ed0             // DispVram structure
+#define DV_DISP_TYPE  *((int *)(DISP_VRAM_STRUCT_PTR + 0xC))   // Display type mask
+#define DV_VRAM_LINE  *((int *)(DISP_VRAM_STRUCT_PTR + 0xA4))  // Pointer to LV buffer for Panel output
+#define DV_VRAM_PANEL *((int *)(DISP_VRAM_STRUCT_PTR + 0xAC))  // Pointer to LV buffer for EVF output
+#define DV_VRAM_EVF   *((int *)(DISP_VRAM_STRUCT_PTR + 0xB4))  // Pointer to LV buffer for HDMI output
+
+/* Hardcoded to Panel for now. It would be easier if we can replace this with a
+ * function call that would be put into functon_overrides.c. Then we could just
+ * define full structs there instead of playing with pointers */
+#define YUV422_LV_BUFFER_DISPLAY_ADDR DV_VRAM_PANEL
+#define YUV422_LV_PITCH               1024       // depends on display type
+
 #define YUV422_HD_BUFFER_DMA_ADDR 0x0 // it expects this to be shamem_read(some_DMA_ADDR)
 
 /* WRONG! */
