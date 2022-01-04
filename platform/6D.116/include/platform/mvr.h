@@ -73,7 +73,7 @@ struct mvr_config
 	uint32_t		x68a4;                  // 0xe8, 68a4
 	uint32_t		x68a8;                  // 0xec, 68a8
 	uint32_t		x68ac;                  // 0xf0, 68ac
-	uint32_t		actual_qscale_maybe;   // 0xf4, 68b0
+	int32_t		actual_qscale_maybe;   // 0xf4, 68b0
 	uint32_t		actual_qscale_maybe2;   // 0xf8, 68b4
 	uint32_t		actual_qscale_maybe1;    // 0xfc, 68b8
 	uint32_t		IOptSize;               // 0x100, 68bc
