@@ -65,6 +65,10 @@ platform/all/autoexec-all
 platform/all/autoexec-fir
 platform/all/ML
 platform/all/zip
+minimal/*/autoexec
+minimal/*/magiclantern
+minimal/*/magiclantern.lds
+minimal/*/xor_chk
 doc/*.aux
 doc/*.out
 doc/*.pdf
