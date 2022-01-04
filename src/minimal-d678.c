@@ -12,7 +12,6 @@ extern void sysmem_info(void);
 extern void smemShowFix(void);
 extern void font_draw(uint32_t, uint32_t, uint32_t, uint32_t, char*);
 
-static uint32_t disp_xres = 0;
 static uint8_t *disp_framebuf = NULL;
 static char *vram_next = NULL;
 static char *vram_current = NULL;
@@ -98,15 +97,16 @@ static void DUMP_ASM dump_task()
     //char *vram_current = NULL;
     vram_current = NULL;
 
-    // find screen dimensions from MARV struct
-    unsigned int x_max = *(int *)(vram1 + 0x10);
-    disp_xres = x_max;
-    unsigned int y_max = *(int *)(vram1 + 0x14);
     if (vram_next == vram1)
         vram_current = vram2;
     else
         vram_current = vram1;
 #if 0
+    // find screen dimensions from MARV struct
+    static uint32_t disp_xres = 0;
+    unsigned int x_max = *(int *)(vram1 + 0x10);
+    unsigned int y_max = *(int *)(vram1 + 0x14);
+    disp_xres = x_max;
     DryosDebugMsg(0, 15, "SJE x_max, y_max: (%d, %d)", x_max, y_max);
     DryosDebugMsg(0, 15, "SJE vram1, vram2: (%08x, %08x)", vram1, vram2);
     DryosDebugMsg(0, 15, "SJE vram1->bmp, vram2->bmp: (%08x, %08x)",
@@ -364,7 +364,7 @@ void disp_set_pixel(int x, int y, int c)
 
 #ifndef CONFIG_5D4
 /* dummy */
-int FIO_WriteFile( FILE* stream, const void* ptr, size_t count ) { };
+int FIO_WriteFile( FILE* stream, const void* ptr, size_t count ) { return 0; };
 #endif
 
 void ml_assert_handler(char* msg, char* file, int line, const char* func) { };
