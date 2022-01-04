@@ -257,7 +257,7 @@ null_pointer_check()
             *(int*)0 = value_at_zero;
 
             /* which task caused this error? */
-            int id = tskmon_last_task ? tskmon_last_task->taskId : -1;
+            uint32_t id = tskmon_last_task ? tskmon_last_task->taskId : (uint32_t)-1;
             const char *task_name = tskmon_last_task ? tskmon_last_task->name : "?";
 
             // Ignore Canon null pointer bugs (let's hope they are harmless...)

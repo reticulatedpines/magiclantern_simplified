@@ -218,7 +218,9 @@ reloc(
         if( load == LOAD_INSTR )
         {
             uint32_t reg_base   = (instr >> 16) & 0xF;
+        #if !defined(CONFIG_MAGICLANTERN) // avoid unused variable warning
             uint32_t reg_dest   = (instr >> 12) & 0xF;
+        #endif
             int32_t offset      = (instr >>  0) & 0xFFF;
 
             if( reg_base != REG_PC )

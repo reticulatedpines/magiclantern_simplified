@@ -173,7 +173,7 @@ static CONFIG_INT( "zoom.focus_ring", zoom_focus_ring, 0);
 static CONFIG_INT_EX( "bulb.duration", bulb_duration, 5, bulb_duration_change);
 static CONFIG_INT   ( "bulb.timer", bulb_timer, 0);
 static CONFIG_INT   ( "bulb.display.mode", bulb_display_mode, 0);
-#else
+#elif defined(CONFIG_BULB)
 static int bulb_duration = 0;
 static int bulb_display_mode = 0;
 #endif
@@ -259,10 +259,12 @@ const char* format_time_hours_minutes_seconds(int seconds)
     return msg;
 }
 
+#ifdef CONFIG_BULB
 int get_bulb_shutter_raw_equiv()
 {
     return shutterf_to_raw(bulb_duration);
 }
+#endif
 
 static inline void seconds_clock_update();
 
@@ -4580,7 +4582,9 @@ int take_a_pic(int should_af)
         if (is_bulb_mode())
         {
             /* bulb mode? take a bulb exposure with bulb timer settings */
+            #ifdef CONFIG_BULB
             canceled = bulb_take_pic(bulb_duration * 1000);
+            #endif
         }
         else
         {

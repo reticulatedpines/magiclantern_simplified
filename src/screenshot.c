@@ -27,7 +27,7 @@ int take_screenshot( char* filename, uint32_t mode )
     uint32_t *lvram = NULL;
     struct vram_info *vram_info = get_yuv422_vram();
     if (vram_info != NULL)
-        lvram = vram_info->vram;
+        lvram = (uint32_t *)vram_info->vram;
     
     if (!lvram)
     {

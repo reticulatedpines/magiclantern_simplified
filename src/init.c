@@ -535,7 +535,12 @@ static int my_assert_handler(char* msg, char* file, int line, int arg4)
 {
     uint32_t lr = read_lr();
 
+#ifdef CONFIG_DIGIC_678
+    // compiler warning on unused len
+    snprintf(assert_msg, sizeof(assert_msg),
+#else
     int len = snprintf(assert_msg, sizeof(assert_msg), 
+#endif
         "ASSERT: %s\n"
         "at %s:%d, %s:%x\n"
         "lv:%d mode:%d\n\n", 

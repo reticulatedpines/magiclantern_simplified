@@ -3376,7 +3376,7 @@ static void draw_zoom_overlay(int dirty)
 
     // select buffer where MZ should be written (camera-specific, guesswork)
     #if defined(CONFIG_5D2) || defined(CONFIG_EOSM) || defined(CONFIG_50D)
-    #warning FIXME: this method uses busy waiting, which causes high CPU usage and overheating when using Magic Zoom
+    // FIXME: this method uses busy waiting, which causes high CPU usage and overheating when using Magic Zoom
     void busy_vsync(int hd, int timeout_ms)
     {
         int timeout_us = timeout_ms * 1000;
@@ -3588,7 +3588,7 @@ int liveview_display_idle()
  * This is true only in LV.
  * Maybe this can be backported to below Digic 6 - needs research. */
     extern struct dialog* LiveViewApp_dialog;
-    return LiveViewApp_dialog;
+    return (int)LiveViewApp_dialog;
 #else
 /* Original checks for Digic 5 and below. Check gui_task_list (one way linked
  * list of dialogs in z-order) to see if top dialog is one we expect in LV.

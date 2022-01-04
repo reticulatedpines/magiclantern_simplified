@@ -255,6 +255,11 @@ static int handle_Q_button_equiv(struct event * event)
         return 1;
     }
 
+// stop compiler warning when none of the cases are defined
+#if defined(BGMT_Q_ALT) || defined(BGMT_RATE) || defined(CONFIG_5D2) || \
+    defined(CONFIG_7D) || defined(CONFIG_50D) || defined(CONFIG_500D) || \
+    defined(CONFIG_5DC)
+
     switch (event->param)
     {
 #ifdef BGMT_Q_ALT
@@ -279,6 +284,7 @@ static int handle_Q_button_equiv(struct event * event)
         fake_simple_button(BGMT_Q);
         return 0;
     }
+#endif
     
     return 1;
 }

@@ -843,13 +843,13 @@ static int raw_update_params_work()
         #endif
 
         #ifdef CONFIG_500D
-        #warning FIXME: are these values correct for 1080p or 720p? (which of them?)
+        // FIXME: are these values correct for 1080p or 720p? (which of them?)
         skip_top    = 24;
         skip_left   = zoom ? 64 : 74;
         #endif
 
         #if defined(CONFIG_550D) || defined(CONFIG_600D)
-        #warning FIXME: are these values correct for 720p and crop modes?
+        // FIXME: are these values correct for 720p and crop modes?
         skip_top    = 26;
         skip_left   = zoom ? 0 : 152;
         skip_right  = zoom ? 0 : 2;
@@ -874,7 +874,7 @@ static int raw_update_params_work()
         #endif
 
         #if defined(CONFIG_650D) || defined(CONFIG_EOSM)
-        #warning FIXME: are these values correct for 720p and crop modes?
+        // FIXME: are these values correct for 720p and crop modes?
         skip_top    = 28;
         skip_left   = 74;
         skip_right  = 0;
@@ -891,15 +891,13 @@ static int raw_update_params_work()
         #endif
 
         #ifdef CONFIG_7D
-        #warning FIXME: are these values correct for 720p and crop modes?
+        // FIXME: are these values correct for 720p and crop modes?
         skip_top    = 26;
         skip_left   = zoom ? 0 : 256;
         #endif
 
         dbg_printf("LV raw buffer: %x (%dx%d)\n", raw_info.buffer, width, height);
         dbg_printf("Skip left:%d right:%d top:%d bottom:%d\n", skip_left, skip_right, skip_top, skip_bottom);
-#else
-#warning RAW FEATURES WILL NOT WORK IN LIVEVIEW ON THIS BUILD
 #endif
     }
     else if (QR_MODE) // image review after taking pics

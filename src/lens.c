@@ -2503,6 +2503,7 @@ static void bv_expsim_shift()
         
         if (is_bulb_mode()) // try to perform expsim in bulb mode, based on bulb timer setting
         {
+            #ifdef CONFIG_BULB
             int tv = get_bulb_shutter_raw_equiv() + tv_fps_shift;
             if (tv < SHUTTER_1_30)
             {
@@ -2517,6 +2518,7 @@ static void bv_expsim_shift()
                 bv_apply_iso(bv_iso);
                 return;
             }
+            #endif
         }
         else
         {
