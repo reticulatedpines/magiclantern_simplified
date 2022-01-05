@@ -17,5 +17,5 @@
 /* has LV */
 #define CONFIG_LIVEVIEW
 
-/* enable state objects hooks */
-#define CONFIG_STATE_OBJECT_HOOKS
+/* hooking EFV_STATE ends with EvfCap crashes, requires investigation */
+//#define CONFIG_STATE_OBJECT_HOOKS

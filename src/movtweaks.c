@@ -238,7 +238,9 @@ void force_liveview()
     info_led_off();
 
     /* make sure LiveView is up and running */
+    #ifdef CONFIG_STATE_OBJECT_HOOKS
     wait_lv_frames(3);
+    #endif
 #endif
 }
 
