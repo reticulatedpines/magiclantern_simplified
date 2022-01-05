@@ -380,9 +380,20 @@ PROP_HANDLER(PROP_TERMINATE_SHUT_REQ)
 }
 
 #ifdef CONFIG_DIGIC_VIII //kitor: Confirmed R, RP, M50
+
 PROP_HANDLER(PROP_SHUTDOWN_REASON)
 {
     DryosDebugMsg(0, 15, "SHUTDOWN REASON %d", buf[0]);
+
+#ifdef FEATURE_CLOSE_SHUTTER_ON_SHUTDOWN
+    extern int close_shutter_on_shutdown;
+
+    if (close_shutter_on_shutdown) {
+      if (buf[0] == 2)
+        call("FA_MechaShutterClose");
+    }
+#endif
+
     if (buf[0] != 0)  ml_shutdown();
 }
 #endif
