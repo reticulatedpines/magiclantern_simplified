@@ -63,7 +63,7 @@ static void DUMP_ASM my_DebugMsg(int class, int level, char* fmt, ...)
     uint32_t us_timer = MEM(0xD400000C);
 #endif
 
-    char* task_name = get_current_task_name();
+    const char *task_name = get_current_task_name();
     
     /* Canon's vsnprintf doesn't know %20s */
     char task_name_padded[11] = "           ";
@@ -89,6 +89,7 @@ static void DUMP_ASM my_DebugMsg(int class, int level, char* fmt, ...)
 }
 
 
+#ifdef CONFIG_ISR_LOGGING
 /* comment out one of these to see anything in QEMU */
 /* on real hardware, more interrupts are expected */
 static char* isr_names[0x200] = {
@@ -169,6 +170,7 @@ static char* isr_names[0x200] = {
     [0x189] = "ICAPCHx",
     [0x18B] = "WdtInt",
 };
+#endif
 
 static void mpu_decode(const char * in, char * out, int max_len);
 static char mpu_msg[768];   /* max message size: 0xFF * 3 */
@@ -176,15 +178,14 @@ static char mpu_msg[768];   /* max message size: 0xFF * 3 */
 /* DIGIC 7/8: this runs on both CPU cores */
 static void pre_isr_log(uint32_t isr)
 {
-//#ifdef CONFIG_DIGIC_VI
+#ifdef CONFIG_ISR_LOGGING
     extern const uint32_t isr_table_handler[];
     extern const uint32_t isr_table_param[];
+    const char * name = isr_names[isr & 0x1FF];
     uint32_t handler = isr_table_handler[2 * isr];
     uint32_t arg     = isr_table_param  [2 * isr];
-//#endif
-
-    const char * name = isr_names[isr & 0x1FF];
-//    DryosDebugMsg(0, 15, ">>> INT-%03Xh %s %X(%X)", isr, name ? name : "", handler, arg);
+    DryosDebugMsg(0, 15, ">>> INT-%03Xh %s %X(%X)", isr, name ? name : "", handler, arg);
+#endif
 
     /* DIGIC 7: MPU messages arrive on the first core only,
      * but some of these interrupts are also triggered on second core */
@@ -213,8 +214,10 @@ static void pre_isr_log(uint32_t isr)
 /* DIGIC 7/8: this runs on both CPU cores */
 static void post_isr_log(uint32_t isr)
 {
+#ifdef CONFIG_ISR_LOGGING
     const char * name = isr_names[isr & 0x1FF];
-//    DryosDebugMsg(0, 15, "<<< INT-%03Xh %s", isr, name ? name : "");
+    DryosDebugMsg(0, 15, "<<< INT-%03Xh %s", isr, name ? name : "");
+#endif
 
     /* CPU check is here just in case, for future models */
     if ((isr == 0x147) && (get_cpu_id() == 0))
