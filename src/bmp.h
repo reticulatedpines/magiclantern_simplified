@@ -57,9 +57,12 @@ extern struct MARV *rgb_vram_info;
 #ifdef CONFIG_COMPOSITOR_XCM
 extern void* _pXCM;
 extern struct MARV *XCM_GetSourceSurface(void *pXCM, uint32_t layer_id);
-#else
-extern struct MARV *_rgb_vram_info;
 #endif
+/**
+ * _rgb_vram_info stubs is not needed in CONFIG_COMPOSITOR_XCM,
+ * but it breaks minimal builds that do not support compositor stuff.
+ */
+extern struct MARV *_rgb_vram_info;
 inline uint8_t *rgb_vram_preinit()
 {
 #ifdef CONFIG_COMPOSITOR_XCM
