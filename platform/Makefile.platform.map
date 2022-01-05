@@ -2,8 +2,6 @@ PLATFORM_MAP = \
     5D3.113 \
     5D3.123 \
     5D2.212 \
-    5DS.111 \
-    5DSR.112 \
     5D4.133 \
     6D.116 \
     6D2.105 \
@@ -26,6 +24,10 @@ PLATFORM_MAP = \
     M50.110 \
     R.180 \
     EOSRP.160 \
+
+# SJE lots of noisy warnings, not fixing yet
+#    5DS.111 \
+#    5DSR.112 \
 
 # SJE these need RESTARTSTART determining for new style boot process,
 # but I don't have roms
