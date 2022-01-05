@@ -123,6 +123,9 @@ static int state_matrix[num_states][num_inputs];
 #endif
 
 static int (*StateTransition)(void*,int,int,int,int) = 0;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+// without this, warns on unused old_state, in some configurations
 static int FAST stateobj_lv_spy(struct state_object * self, int x, int input, int z, int t)
 {
     int old_state = self->current_state;
@@ -234,6 +237,7 @@ static int FAST stateobj_lv_spy(struct state_object * self, int x, int input, in
     #endif
     return ans;
 }
+#pragma GCC diagnostic pop
 
 #ifdef CONFIG_5DC
 static int stateobj_em_spy(struct state_object * self, int x, int input, int z, int t)
