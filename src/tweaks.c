@@ -669,8 +669,8 @@ static void protect_image_task()
     fake_simple_button(BGMT_PRESS_SET);
     fake_simple_button(BGMT_UNPRESS_SET);
     msleep(100);
-    intptr_t h = get_current_dialog_handler();
-    if (h == (intptr_t)0xffb6aebc) // ?! null code here...
+    void *h = get_current_dialog_handler();
+    if (h == (void *)0xffb6aebc) // ?! null code here...
     {
         StopPlayProtectGuideApp();
     }
