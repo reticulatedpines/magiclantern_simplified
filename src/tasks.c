@@ -351,7 +351,7 @@ MENU_UPDATE_FUNC(tasks_print)
 
 static void ml_shutdown()
 {
-#ifdef FEATURE_PRE_SHUTDOWN
+#ifdef FEATURE_PLATFORM_PRE_SHUTDOWN
     extern void platform_pre_shutdown();
     platform_pre_shutdown();
 #endif
