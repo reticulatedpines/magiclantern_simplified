@@ -1025,9 +1025,9 @@ int FAST module_exec_cbr(unsigned int type)
     for(int mod = 0; mod < MODULE_COUNT_MAX; mod++)
     {
         module_cbr_t *cbr = module_list[mod].cbr;
-        if(module_list[mod].valid && cbr)
+        if(module_list[mod].valid)
         {
-            while(cbr->name)
+            while(cbr && cbr->name)
             {
                 if(cbr->type == type)
                 {
