@@ -29,6 +29,15 @@
 
 #include "config.h"
 
+void platform_pre_shutdown() {
+#ifdef FEATURE_CLOSE_SHUTTER_ON_SHUTDOWN
+    extern int close_shutter_on_shutdown;
+
+    if (close_shutter_on_shutdown)
+        call("FA_MechaShutterClose");
+#endif
+}
+
 #ifdef FEATURE_CLOSE_SHUTTER_ON_SHUTDOWN
 CONFIG_INT("experimental.close_shutter_on_shutdown", close_shutter_on_shutdown, 0);
 
@@ -49,7 +58,6 @@ static struct menu_entry test_features_debug_menu[] = {
 	},
    },
 };
-
 #endif // FEATURE_CLOSE_SHUTTER_ON_SHUTDOWN
 
 static void test_features_init()

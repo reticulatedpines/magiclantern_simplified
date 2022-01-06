@@ -351,6 +351,11 @@ MENU_UPDATE_FUNC(tasks_print)
 
 static void ml_shutdown()
 {
+#ifdef FEATURE_PRE_SHUTDOWN
+    extern void platform_pre_shutdown();
+    platform_pre_shutdown();
+#endif
+
     check_pre_shutdown_flag();
 #ifdef FEATURE_CROP_MODE_HACK
     movie_crop_hack_disable();
@@ -359,16 +364,6 @@ static void ml_shutdown()
     
     info_led_on();
     _card_led_on();
-
-#ifdef FEATURE_CLOSE_SHUTTER_ON_SHUTDOWN
-    extern int close_shutter_on_shutdown;
-
-    if (close_shutter_on_shutdown) {
-      if (buf[0] == 2)
-        call("FA_MechaShutterClose");
-    }
-#endif
-
     restore_af_button_assignment_at_shutdown();
 #ifdef FEATURE_GPS_TWEAKS
     gps_tweaks_shutdown_hook();
@@ -390,11 +385,9 @@ PROP_HANDLER(PROP_TERMINATE_SHUT_REQ)
 }
 
 #ifdef CONFIG_DIGIC_VIII //kitor: Confirmed R, RP, M50
-
 PROP_HANDLER(PROP_SHUTDOWN_REASON)
 {
     DryosDebugMsg(0, 15, "SHUTDOWN REASON %d", buf[0]);
-
     if (buf[0] != 0)  ml_shutdown();
 }
 #endif
