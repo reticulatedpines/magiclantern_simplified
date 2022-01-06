@@ -359,6 +359,16 @@ static void ml_shutdown()
     
     info_led_on();
     _card_led_on();
+
+#ifdef FEATURE_CLOSE_SHUTTER_ON_SHUTDOWN
+    extern int close_shutter_on_shutdown;
+
+    if (close_shutter_on_shutdown) {
+      if (buf[0] == 2)
+        call("FA_MechaShutterClose");
+    }
+#endif
+
     restore_af_button_assignment_at_shutdown();
 #ifdef FEATURE_GPS_TWEAKS
     gps_tweaks_shutdown_hook();
@@ -384,15 +394,6 @@ PROP_HANDLER(PROP_TERMINATE_SHUT_REQ)
 PROP_HANDLER(PROP_SHUTDOWN_REASON)
 {
     DryosDebugMsg(0, 15, "SHUTDOWN REASON %d", buf[0]);
-
-#ifdef FEATURE_CLOSE_SHUTTER_ON_SHUTDOWN
-    extern int close_shutter_on_shutdown;
-
-    if (close_shutter_on_shutdown) {
-      if (buf[0] == 2)
-        call("FA_MechaShutterClose");
-    }
-#endif
 
     if (buf[0] != 0)  ml_shutdown();
 }
