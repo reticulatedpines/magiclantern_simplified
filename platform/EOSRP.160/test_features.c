@@ -29,13 +29,6 @@
 
 #include "config.h"
 
-void platform_pre_shutdown() {
-    extern int close_shutter_on_shutdown;
-
-    if (close_shutter_on_shutdown)
-        call("FA_MechaShutterClose");
-}
-
 CONFIG_INT("experimental.close_shutter_on_shutdown", close_shutter_on_shutdown, 0);
 
 static struct menu_entry test_features_debug_menu[] = {
@@ -62,6 +55,11 @@ static void test_features_init()
 }
 
 INIT_FUNC(__FILE__, test_features_init);
+
+void platform_pre_shutdown() {
+    if (close_shutter_on_shutdown)
+        call("FA_MechaShutterClose");
+}
 
 #endif // !CONFIG_HELLO_WORLD
 
