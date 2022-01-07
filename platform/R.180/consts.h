@@ -118,7 +118,9 @@
  * On EOS R UYVY Image buffers are hardcoded to be (see VramRead e00cd1c6):
  * for EVF   : 1280x720
  * for Panel : 1024x682
- * for HDMI  : Either FHD or UHD depending on connected display
+ * for HDMI  : 736x480, 1280x720, 1920x1080, 3840x2160 depending on output.
+ *             HDMI resolution is selected based on type field from DispDev
+ *             structure (9ec8 + 0x18)
  * HDMI is referenced as "Line" in Canon functions.
  *
  * Buffers used for regular display are available in smemShowFix output.
@@ -149,9 +151,9 @@
 
 #define DISP_VRAM_STRUCT_PTR *(int *)0x9ed0             // DispVram structure
 #define DV_DISP_TYPE  *((int *)(DISP_VRAM_STRUCT_PTR + 0xC))   // Display type mask
-#define DV_VRAM_LINE  *((int *)(DISP_VRAM_STRUCT_PTR + 0xA4))  // Pointer to LV buffer for Panel output
-#define DV_VRAM_PANEL *((int *)(DISP_VRAM_STRUCT_PTR + 0xAC))  // Pointer to LV buffer for EVF output
-#define DV_VRAM_EVF   *((int *)(DISP_VRAM_STRUCT_PTR + 0xB4))  // Pointer to LV buffer for HDMI output
+#define DV_VRAM_LINE  *((int *)(DISP_VRAM_STRUCT_PTR + 0xA4))  // Pointer to LV buffer for HDMI output
+#define DV_VRAM_PANEL *((int *)(DISP_VRAM_STRUCT_PTR + 0xAC))  // Pointer to LV buffer for Panel output
+#define DV_VRAM_EVF   *((int *)(DISP_VRAM_STRUCT_PTR + 0xB4))  // Pointer to LV buffer for EVF output
 
 /* Hardcoded to Panel for now. It would be easier if we can replace this with a
  * function call that would be put into functon_overrides.c. Then we could just
