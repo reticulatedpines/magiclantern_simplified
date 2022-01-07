@@ -30,12 +30,10 @@
 #include "config.h"
 
 void platform_pre_shutdown() {
-#ifdef FEATURE_CLOSE_SHUTTER_ON_SHUTDOWN
     extern int close_shutter_on_shutdown;
 
     if (close_shutter_on_shutdown)
         call("FA_MechaShutterClose");
-#endif
 }
 
 CONFIG_INT("experimental.close_shutter_on_shutdown", close_shutter_on_shutdown, 0);
@@ -46,7 +44,6 @@ static struct menu_entry test_features_debug_menu[] = {
         .select   = menu_open_submenu,
         .help     = "Temporary features, not integrated into main codebase yet.",
         .children = (struct menu_entry[]) {
-#ifdef FEATURE_CLOSE_SHUTTER_ON_SHUTDOWN
             {
                 .name    = "Close shutter on camera shutdown",
                 .priv    = &close_shutter_on_shutdown,
@@ -54,7 +51,6 @@ static struct menu_entry test_features_debug_menu[] = {
                 .choices = (const char *[]) {"OFF", "ON"},
                 .help    = "Close shutter when turning off camera for sensor dust protection."
             },
-#endif // FEATURE_CLOSE_SHUTTER_ON_SHUTDOWN
             MENU_EOL,
 	},
    },

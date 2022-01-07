@@ -351,7 +351,11 @@ MENU_UPDATE_FUNC(tasks_print)
 
 static void ml_shutdown()
 {
-#ifdef FEATURE_PLATFORM_PRE_SHUTDOWN
+#ifdef CONFIG_EOSRP
+    // FIXME: this should be promoted to a FEATURE flag,
+    // or the shutter close feature should be directly
+    // added here, or both:
+
     extern void platform_pre_shutdown();
     platform_pre_shutdown();
 #endif
