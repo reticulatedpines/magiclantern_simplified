@@ -106,6 +106,64 @@ DryOS base    user_start                                 sys_objs_start    sys_s
 
 #define NUM_PICSTYLES 10 // guess, but seems to be always 9 for old cams, 10 for new
 
+/*
+ * On EOS RP UYVY Image buffers are hardcoded to be (see VramRead e00ea5f4):
+ * for EVF   : 1024x768
+ * for Panel : 736x480, 720x480 is active image area
+ * for HDMI  : 736x480, 1280x720, 1920x1080, 3840x2160 depending on output.
+ *             HDMI resolution is selected based on type field from DispDev
+ *             structure (a3c8 + 0x18)
+ * HDMI is referenced as "Line" in Canon functions.
+ *
+ * Buffers used for regular display are available in smemShowFix output.
+ * IMG_VRAM1, IMG_VRAM2, IMG_VRAM3
+ *
+ * Ones used for clean HDMI output while Clean HDMI is enabled can be found
+ * via `VramState` evproc:
+ *
+ *     *************** Panel ***************
+ *     ,,0x9f230000,0x9f624800,0x9fa19000
+ *
+ *     *************** Evf ***************
+ *     ,,0x00000000,0x00000000,0x00000000
+ *
+ *     *************** Line ***************
+ *     ,,0x76087000,0x7744d800,0x78814000
+ *
+ *     ***************  ***************
+ *     ,,0x00000000,0x00000000,0x00000000
+ *
+ *     *************** FHD ***************
+ *     ,,0x00000000,0x00000000,0x00000000
+ *
+ * Last two lines are a mystery, don't appear on M50/R, so far they
+ * are always zero. "UHD" entry is also possible in output.
+ *
+ * At the same moment there can be at most two outputs enabled:
+ * Panel, EVF, HDMI, Panel+CleanHDMI, EVF+CleanHDMI.
+ *
+ * I think for now we can just ignore CleanHDMI buffers.
+ */
+
+// Note that all three regular buffers are in Uncacheable-only region!
+#define YUV422_LV_BUFFER_1   0x9F230000 // For CleanHDMI 0x76087000
+#define YUV422_LV_BUFFER_2   0x9F624800 // For CleanHDMI 0x7744d800
+#define YUV422_LV_BUFFER_3   0x9FA19000 // For CleanHDMI 0x78814000
+
+#define DISP_VRAM_STRUCT_PTR *(int *)0xa3d0             // DispVram structure
+#define DV_DISP_TYPE  *((int *)(DISP_VRAM_STRUCT_PTR + 0xC))   // Display type mask
+#define DV_VRAM_LINE  *((int *)(DISP_VRAM_STRUCT_PTR + 0xA4))  // Pointer to LV buffer for HDMI output
+#define DV_VRAM_PANEL *((int *)(DISP_VRAM_STRUCT_PTR + 0xAC))  // Pointer to LV buffer for Panel output
+#define DV_VRAM_EVF   *((int *)(DISP_VRAM_STRUCT_PTR + 0xB4))  // Pointer to LV buffer for EVF output
+
+/* Hardcoded to Panel for now. It would be easier if we can replace this with a
+ * function call that would be put into functon_overrides.c. Then we could just
+ * define full structs there instead of playing with pointers */
+#define YUV422_LV_BUFFER_DISPLAY_ADDR DV_VRAM_PANEL
+#define YUV422_LV_PITCH               736       // depends on display type
+
+#define YUV422_HD_BUFFER_DMA_ADDR 0x0 // it expects this to be shamem_read(some_DMA_ADDR)
+
 #define XIMR_CONTEXT 0x00c0f310
 
 /* WRONG: copied straight from 200d/50d */
@@ -116,12 +174,6 @@ extern int _WINSYS_BMP_DIRTY_BIT_NEG;
 
 #define WINSYS_BMP_DIRTY_BIT_NEG MEM(&_WINSYS_BMP_DIRTY_BIT_NEG) // WINSYS_BMP_DIRTY_BIT_NEG MEM(0x4444+0x30) // wrong, no idea
 #define FOCUS_CONFIRMATION (*(int*)0) // FOCUS_CONFIRMATION (*(int*)0x4444) // wrong, focusinfo looks really different 50D -> 200D
-#define YUV422_LV_BUFFER_DISPLAY_ADDR 0x0 // it expects this to be pointer to address
-#define YUV422_HD_BUFFER_DMA_ADDR 0x0 // it expects this to be shamem_read(some_DMA_ADDR)
-#define YUV422_LV_BUFFER_1 0 // 0x41B00000
-#define YUV422_LV_BUFFER_2 0 // 0x5C000000
-#define YUV422_LV_BUFFER_3 0 // 0x5F600000
-#define YUV422_LV_PITCH 1440
 #define LV_BOTTOM_BAR_DISPLAYED 0x0 // wrong, fake bool
 // below definitely wrong, just copied from 50D
 #define FRAME_SHUTTER *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x56)
