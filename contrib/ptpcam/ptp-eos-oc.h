@@ -1,6 +1,12 @@
 #ifndef _PTP_EOS_OC_H
 #define _PTP_EOS_OC_H
 // Canon EOS OC
+#define PTP_OC_CANON_ExecuteEventProc 0x9052
+#define PTP_OC_CANON_GetEventProcReturnData 0x9053
+#define PTP_OC_CANON_IsEventProcRunning 0x9057
+#define PTP_OC_CANON_QuerySizeOfTransparentMemory 0x9058
+#define PTP_OC_CANON_LoadTransparentMemory 0x9059
+#define PTP_OC_CANON_SaveTransparentMemory 0x905a
 #define PTP_OC_CANON_GetStorageIDS 0x9101
 #define PTP_OC_CANON_GetStorageInfo 0x9102
 #define PTP_OC_CANON_GetObjectInfo 0x9103
@@ -81,12 +87,17 @@
 #define PTP_OC_CANON_ceresTruncateFileValue 0x91d2
 #define PTP_OC_CANON_ceresSEndScanningResult 0x91e3
 #define PTP_OC_CANON_ceresSEndHostInfo 0x91e4
+#define PTP_OC_CANON_NotifyAdapterStatus 0x91e6
 #define PTP_OC_CANON_ceresNotifyNetworkError 0x91e8
+#define PTP_OC_CANON_AdapterTransferProgress 0x91e9
 #define PTP_OC_CANON_ceresRequestAdapterProperty 0x91ea
 #define PTP_OC_CANON_ceresSEndWpsPinCode 0x91ec
 #define PTP_OC_CANON_ceresSEndWizardInfo 0x91ed
 #define PTP_OC_CANON_ceresSEndBtSearchResult 0x91ef
+#define PTP_OC_CANON_TransferComplete2 0x91f0
+#define PTP_OC_CANON_CancelTransfer2 0x91f1
 #define PTP_OC_CANON_ceresGetUpdateFileData 0x91f2
+#define PTP_OC_CANON_NotifyUpdateProgress 0x91f3
 #define PTP_OC_CANON_ceresSEndFactoryProperty 0x91f5
 #define PTP_OC_CANON_ceresSEndGpsInfo 0x91f7
 #define PTP_OC_CANON_ceresSEndBtPairingResult 0x91f8
