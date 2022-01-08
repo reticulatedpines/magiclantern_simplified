@@ -1325,6 +1325,10 @@ get_all_files (int busn, int devn, short force, int overwrite)
 	close_camera(&ptp_usb, &params, dev);
 }
 
+static int opcodeCmpFunc (const void* a, const void* b) {
+   return ( *(uint16_t*)a - *(uint16_t*)b );
+}
+
 void
 list_operations (int busn, int devn, short force)
 {
@@ -1339,20 +1343,27 @@ list_operations (int busn, int devn, short force)
 	if (open_camera(busn, devn, force, &ptp_usb, &params, &dev)<0)
 		return;
 	printf("Camera: %s\n",params.deviceinfo.Model);
+
+	uint16_t* opsSupportedSorted = malloc(sizeof(uint16_t) * params.deviceinfo.OperationsSupported_len);
+
+	for (i=0; i<params.deviceinfo.OperationsSupported_len; i++)
+		opsSupportedSorted[i] = params.deviceinfo.OperationsSupported[i];
+
+	qsort(opsSupportedSorted, params.deviceinfo.OperationsSupported_len, sizeof(uint16_t), opcodeCmpFunc);
+
 	for (i=0; i<params.deviceinfo.OperationsSupported_len; i++)
 	{
-		name=ptp_get_operation_name(&params,
-			params.deviceinfo.OperationsSupported[i]);
+		name=ptp_get_operation_name(&params, opsSupportedSorted[i]);
 
 		if (name==NULL)
-			printf("  0x%04x: UNKNOWN\n",
-				params.deviceinfo.OperationsSupported[i]);
+			printf("  0x%04x: UNKNOWN\n", opsSupportedSorted[i]);
 		else
-			printf("  0x%04x: %s\n",
-				params.deviceinfo.OperationsSupported[i],name);
+			printf("  0x%04x: %s\n", opsSupportedSorted[i],name);
 	}
-	close_camera(&ptp_usb, &params, dev);
 
+	free(opsSupportedSorted);
+
+	close_camera(&ptp_usb, &params, dev);
 }
 
 void
