@@ -99,6 +99,42 @@
  * so maybe values stored by those two combined can be used instead. */
 #define DISPLAY_IS_ON               1
 
+/*
+ * On M50 UYVY Image buffers are hardcoded to be (see VramRead e009ccd6):
+ * for EVF   : 1024x768
+ * for Panel : 736x480, 720x480 is active image area
+ * for HDMI  : 736x480, 1280x720, 1920x1080, 3840x2160 depending on output.
+ *             HDMI resolution is selected based on type field from DispDev
+*              structure (8e00 + 0x18)
+ * HDMI is referenced as "Line" in Canon functions.
+ *
+ * Buffers used for regular display are available in smemShowFix output.
+ * IMG_VRAM1, IMG_VRAM2, IMG_VRAM3
+ *
+ * Different to R there's no Clean HDMI output. But DispVram looks similar to
+ * R, so who knows...
+ */
+
+#define YUV422_LV_BUFFER_1   0x7F41C000
+#define YUV422_LV_BUFFER_2   0x7F810800
+#define YUV422_LV_BUFFER_3   0x7FC05000
+
+// Offsets found via DISP_GetImageAddress() helper that prints
+// "CurrentImgAddr : %#08x"
+#define DISP_VRAM_STRUCT_PTR *(int *)0x8e08            // DispVram structure
+#define DV_DISP_TYPE  *((int *)(DISP_VRAM_STRUCT_PTR + 0xC))   // Display type mask
+#define DV_VRAM_LINE  *((int *)(DISP_VRAM_STRUCT_PTR + 0xA8))  // Pointer to LV buffer for HDMI output
+#define DV_VRAM_PANEL *((int *)(DISP_VRAM_STRUCT_PTR + 0xB0))  // Pointer to LV buffer for Panel output
+#define DV_VRAM_EVF   *((int *)(DISP_VRAM_STRUCT_PTR + 0xB8))  // Pointer to LV buffer for EVF	 output
+
+/* Hardcoded to Panel for now. It would be easier if we can replace this with a
+ * function call that would be put into functon_overrides.c. Then we could just
+ * define full structs there instead of playing with pointers */
+#define YUV422_LV_BUFFER_DISPLAY_ADDR DV_VRAM_PANEL
+#define YUV422_LV_PITCH               736       // depends on display type
+
+#define YUV422_HD_BUFFER_DMA_ADDR 0x0 // it expects this to be shamem_read(some_DMA_ADDR)
+
 /* WRONG! */
 #define HALFSHUTTER_PRESSED         0
 /* kitor: I was unable to find any related stuff from 200D
@@ -130,12 +166,6 @@
 
     #define WINSYS_BMP_DIRTY_BIT_NEG MEM(0x4444+0x30) // wrong, no idea
     #define FOCUS_CONFIRMATION (*(int*)0x4444) // wrong, focusinfo looks really different 50D -> 200D
-    #define YUV422_LV_BUFFER_DISPLAY_ADDR 0x0 // it expects this to be pointer to address
-    #define YUV422_HD_BUFFER_DMA_ADDR 0x0 // it expects this to be shamem_read(some_DMA_ADDR)
-    #define YUV422_LV_BUFFER_1 0x41B00000
-    #define YUV422_LV_BUFFER_2 0x5C000000
-    #define YUV422_LV_BUFFER_3 0x5F600000
-    #define YUV422_LV_PITCH 1440
     #define LV_BOTTOM_BAR_DISPLAYED 0x0 // wrong, fake bool
 // below definitely wrong, just copied from 50D
     #define FRAME_SHUTTER *(uint8_t*)(MEM(LV_STRUCT_PTR) + 0x56)

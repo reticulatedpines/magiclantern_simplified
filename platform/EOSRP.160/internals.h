@@ -19,3 +19,8 @@
 
 /* enable state objects hooks */
 #define CONFIG_STATE_OBJECT_HOOKS
+
+/** Large total memory, leading to unusual memory mapping,
+ * CACHEABLE / UNCACHEABLE changes
+ */
+#define CONFIG_MEM_2GB

@@ -17,9 +17,8 @@
 #define FEATURE_SHOW_CPU_USAGE
 #define FEATURE_SHOW_GUI_EVENTS
 
-#undef CONFIG_CRASH_LOG
-#undef CONFIG_PROP_REQUEST_CHANGE
-#undef CONFIG_AUTOBACKUP_ROM
+#define CONFIG_ADDITIONAL_VERSION
+#define FEATURE_SCREENSHOT
 
 // enable global draw
 #define FEATURE_GLOBAL_DRAW
@@ -27,3 +26,7 @@
 
 //~kitor: add bootdisk menu for easier testing on foreign camera :)
 #define FEATURE_BOOTFLAG_MENU
+
+#undef CONFIG_CRASH_LOG
+#undef CONFIG_PROP_REQUEST_CHANGE
+#undef CONFIG_AUTOBACKUP_ROM
