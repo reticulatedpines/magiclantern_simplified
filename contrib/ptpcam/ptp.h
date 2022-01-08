@@ -688,6 +688,22 @@ typedef struct _PTPCANONFolderEntry PTPCANONFolderEntry;
 #define PTP_DPC_NIKON_OptimizeImage		        0xD140
 #define PTP_DPC_NIKON_Saturation		        0xD142
 
+/* Microsoft extension device property codes */
+#define PTP_DPC_MTP_SecureTime                          0xD101
+#define PTP_DPC_MTP_DeviceCertificate                   0xD102
+#define PTP_DPC_MTP_RevocationInfo                      0xD103
+#define PTP_DPC_MTP_SynchronizationPartner              0xD401
+#define PTP_DPC_MTP_DeviceFriendlyName                  0xD402
+#define PTP_DPC_MTP_VolumeLevel                         0xD403
+#define PTP_DPC_MTP_DeviceIcon                          0xD405
+#define PTP_DPC_MTP_SessionInitiatorInfo                0xD406
+#define PTP_DPC_MTP_PerceivedDeviceType                 0xD407
+#define PTP_DPC_MTP_PlaybackRate                        0xD410
+#define PTP_DPC_MTP_PlaybackObject                      0xD411
+#define PTP_DPC_MTP_PlaybackContainerIndex              0xD412
+#define PTP_DPC_MTP_PlaybackPosition                    0xD413
+#define PTP_DPC_MTP_PlaysForSureID                      0xD131
+
 /* Device Property Form Flag */
 
 #define PTP_DPFF_None			0x00

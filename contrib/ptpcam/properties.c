@@ -115,6 +115,16 @@ static struct {
 static struct {
 	uint16_t dpc;
 	const char *txt;
+} ptp_device_properties_MICROSOFT[] = {
+        {PTP_DPC_MTP_DeviceFriendlyName,   N_("Device Friendly Name")},
+        {PTP_DPC_MTP_SessionInitiatorInfo, N_("Session Initiator Info")},
+        {PTP_DPC_MTP_PerceivedDeviceType,  N_("Perceived Device Type")},
+	{0,NULL}
+};
+
+static struct {
+	uint16_t dpc;
+	const char *txt;
 } ptp_device_properties_CANON[] = {
 	{PTP_DPC_CANON_BeepMode,	N_("CANON Beep Mode")},
 	{PTP_DPC_CANON_UnixTime,	N_("CANON Time measured in"
@@ -272,7 +282,11 @@ ptp_prop_getname(PTPParams* params, uint16_t dpc)
 				if (ptp_device_properties_EK[i].dpc==dpc)
 					return (ptp_device_properties_EK[i].txt);
 			break;
-
+		case PTP_VENDOR_MICROSOFT:
+			for (i=0; ptp_device_properties_MICROSOFT[i].txt!=NULL; i++)
+				if (ptp_device_properties_MICROSOFT[i].dpc==dpc)
+					return (ptp_device_properties_MICROSOFT[i].txt);
+			break;
 		case PTP_VENDOR_CANON:
 			for (i=0; ptp_device_properties_CANON[i].txt!=NULL; i++)
 				if (ptp_device_properties_CANON[i].dpc==dpc)
