@@ -1672,6 +1672,11 @@ ptp_get_operation_name(PTPParams* params, uint16_t oc)
                 uint16_t oc;
                 const char *txt;
         } ptp_operations_MICROSOFT[] = {
+                {PTP_OC_MTP_GetObjectPropsSupported,       N_("MICROSOFT MTP GetObjectPropsSupported")},
+                {PTP_OC_MTP_GetObjectPropDesc,             N_("MICROSOFT MTP GetObjectPropDesc")},
+                {PTP_OC_MTP_GetObjectPropValue,            N_("MICROSOFT MTP GetObjectPropValue")},
+                {PTP_OC_MTP_SetObjectPropValue,            N_("MICROSOFT MTP SetObjectPropValue")},
+                {PTP_OC_MTP_GetObjPropList,                N_("MICROSOFT MTP GetObjPropList")},
                 {PTP_OC_CANON_AFCancel,                    N_("CANON EOS AFCancel")},
                 {PTP_OC_CANON_BulbEnd,                     N_("CANON EOS BulbEnd")},
                 {PTP_OC_CANON_BulbStart,                   N_("CANON EOS BulbStart")},
