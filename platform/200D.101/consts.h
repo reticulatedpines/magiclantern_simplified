@@ -104,9 +104,9 @@
                                                       // value is chosen because it's probably safe on 200D
 #define FOCUS_CONFIRMATION (*(int*)0x4444) // wrong, focusinfo looks really different 50D -> 200D
 
-#define DISP_VRAM_STRUCT_PTR ((int *)(*(int *)0x7b64)) // used many DISP related places, "CurrentImgAddr : %#08x"
-                                                       // is a good string as this gets us the pointers to current buffers.
-                                                       // param1 is DisplayOut (HDMI, EVF, LCD?)
+#define DISP_VRAM_STRUCT_PTR ((unsigned int *)(*(int *)0x7b64)) // used many DISP related places, "CurrentImgAddr : %#08x"
+                                                                // is a good string as this gets us the pointers to current buffers.
+                                                                // param1 is DisplayOut (HDMI, EVF, LCD?)
 // SJE FIXME probably the constant 0x78 should be dependent on what display is in use.
 // Choices are 0x70, 74 or 78.  78 tested to work for LCD
 #define YUV422_LV_BUFFER_DISPLAY_ADDR (*(DISP_VRAM_STRUCT_PTR + (0x78 / 4)))

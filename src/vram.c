@@ -556,9 +556,12 @@ static int fastrefresh_direction = 0;
 static unsigned old_buffer_pos = 0;
 
 void guess_fastrefresh_direction() {
-    if (old_buffer_pos == YUV422_LV_BUFFER_DISPLAY_ADDR) return;
-    if (old_buffer_pos == YUV422_LV_BUFFER_1 && YUV422_LV_BUFFER_DISPLAY_ADDR == YUV422_LV_BUFFER_2) fastrefresh_direction = 1;
-    if (old_buffer_pos == YUV422_LV_BUFFER_1 && YUV422_LV_BUFFER_DISPLAY_ADDR == YUV422_LV_BUFFER_3) fastrefresh_direction = 0;
+    if (old_buffer_pos == YUV422_LV_BUFFER_DISPLAY_ADDR)
+        return;
+    if (old_buffer_pos == YUV422_LV_BUFFER_1 && YUV422_LV_BUFFER_DISPLAY_ADDR == YUV422_LV_BUFFER_2)
+        fastrefresh_direction = 1;
+    if (old_buffer_pos == YUV422_LV_BUFFER_1 && YUV422_LV_BUFFER_DISPLAY_ADDR == YUV422_LV_BUFFER_3)
+        fastrefresh_direction = 0;
     old_buffer_pos = YUV422_LV_BUFFER_DISPLAY_ADDR;
 }
 

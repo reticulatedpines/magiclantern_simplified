@@ -121,11 +121,11 @@
 
 // Offsets found via DISP_GetImageAddress() helper that prints
 // "CurrentImgAddr : %#08x"
-#define DISP_VRAM_STRUCT_PTR *(int *)0x8e08            // DispVram structure
-#define DV_DISP_TYPE  *((int *)(DISP_VRAM_STRUCT_PTR + 0xC))   // Display type mask
-#define DV_VRAM_LINE  *((int *)(DISP_VRAM_STRUCT_PTR + 0xA8))  // Pointer to LV buffer for HDMI output
-#define DV_VRAM_PANEL *((int *)(DISP_VRAM_STRUCT_PTR + 0xB0))  // Pointer to LV buffer for Panel output
-#define DV_VRAM_EVF   *((int *)(DISP_VRAM_STRUCT_PTR + 0xB8))  // Pointer to LV buffer for EVF	 output
+#define DISP_VRAM_STRUCT_PTR *(unsigned int *)0x8e08            // DispVram structure
+#define DV_DISP_TYPE  *((unsigned int *)(DISP_VRAM_STRUCT_PTR + 0xC))   // Display type mask
+#define DV_VRAM_LINE  *((unsigned int *)(DISP_VRAM_STRUCT_PTR + 0xA8))  // Pointer to LV buffer for HDMI output
+#define DV_VRAM_PANEL *((unsigned int *)(DISP_VRAM_STRUCT_PTR + 0xB0))  // Pointer to LV buffer for Panel output
+#define DV_VRAM_EVF   *((unsigned int *)(DISP_VRAM_STRUCT_PTR + 0xB8))  // Pointer to LV buffer for EVF	 output
 
 /* Hardcoded to Panel for now. It would be easier if we can replace this with a
  * function call that would be put into functon_overrides.c. Then we could just

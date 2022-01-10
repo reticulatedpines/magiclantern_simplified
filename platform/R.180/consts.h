@@ -149,11 +149,11 @@
 #define YUV422_LV_BUFFER_2   0x9F624800 // For CleanHDMI 0x7744d800
 #define YUV422_LV_BUFFER_3   0x9FA19000 // For CleanHDMI 0x78814000
 
-#define DISP_VRAM_STRUCT_PTR *(int *)0x9ed0             // DispVram structure
-#define DV_DISP_TYPE  *((int *)(DISP_VRAM_STRUCT_PTR + 0xC))   // Display type mask
-#define DV_VRAM_LINE  *((int *)(DISP_VRAM_STRUCT_PTR + 0xA4))  // Pointer to LV buffer for HDMI output
-#define DV_VRAM_PANEL *((int *)(DISP_VRAM_STRUCT_PTR + 0xAC))  // Pointer to LV buffer for Panel output
-#define DV_VRAM_EVF   *((int *)(DISP_VRAM_STRUCT_PTR + 0xB4))  // Pointer to LV buffer for EVF output
+#define DISP_VRAM_STRUCT_PTR *(unsigned int *)0x9ed0             // DispVram structure
+#define DV_DISP_TYPE  *((unsigned int *)(DISP_VRAM_STRUCT_PTR + 0xC))   // Display type mask
+#define DV_VRAM_LINE  *((unsigned int *)(DISP_VRAM_STRUCT_PTR + 0xA4))  // Pointer to LV buffer for HDMI output
+#define DV_VRAM_PANEL *((unsigned int *)(DISP_VRAM_STRUCT_PTR + 0xAC))  // Pointer to LV buffer for Panel output
+#define DV_VRAM_EVF   *((unsigned int *)(DISP_VRAM_STRUCT_PTR + 0xB4))  // Pointer to LV buffer for EVF output
 
 /* Hardcoded to Panel for now. It would be easier if we can replace this with a
  * function call that would be put into functon_overrides.c. Then we could just

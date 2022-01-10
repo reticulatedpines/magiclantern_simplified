@@ -172,9 +172,9 @@ extern int winsys_bmp_dirty_bit_neg;
 #define WINSYS_BMP_DIRTY_BIT_NEG MEM(&winsys_bmp_dirty_bit_neg) // faked via function_overrides.c
 #define FOCUS_CONFIRMATION (*(int*)0x4444) // wrong, focusinfo looks really different 50D -> 200D
 
-#define DISP_VRAM_STRUCT_PTR ((int *)(*(int *)0xaff0)) // used many DISP related places, "CurrentImgAddr : %#08x"
-                                                       // is a good string as this gets us the pointers to current buffers.
-                                                       // param1 is DisplayOut (HDMI, EVF, LCD?)
+#define DISP_VRAM_STRUCT_PTR ((unsigned int *)(*(int *)0xaff0)) // used many DISP related places, "CurrentImgAddr : %#08x"
+                                                                // is a good string as this gets us the pointers to current buffers.
+                                                                // param1 is DisplayOut (HDMI, EVF, LCD?)
 // SJE FIXME probably the constant 0xa8 should be dependent on what display is in use.
 // Choices are 0xa0, a8 or b0.  a8 tested to work for LCD
 #define YUV422_LV_BUFFER_DISPLAY_ADDR (*(DISP_VRAM_STRUCT_PTR + (0xa8 / 4)))
