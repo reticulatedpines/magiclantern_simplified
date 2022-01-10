@@ -173,14 +173,16 @@ bool FAST is_movie_mode()
 
 volatile int shutter_count = 0;
 volatile int shutter_count_plus_lv_actuations = 0;
-volatile int total_shots_count = 0;
 #ifdef CONFIG_DIGIC_VIII
-//kitor: Confirmed R, RP, M50. Not checked on DSLRs. See comment in property.h
+volatile int total_shots_count  = 0;
+volatile int total_mirror_count = 0;
+
+// Digic 8 and up replace PROP_SHUTTER_COUNTER with PROP_MECHA_COUNTER.
+// See descriptions in property.h to learn more.
 PROP_HANDLER(PROP_MECHA_COUNTER)
 {
-    shutter_count = buf[0];
-    //I don't have access to any DSLR to find if it's stored anywhere.
-    //Maybe old property holds for SLRs and new ones are just for MILCs?
+    shutter_count = buf[0];      // TotalShutter
+    total_mirror_count = buf[1]; // TotalMirror
 
 #ifdef CONFIG_EOSRP
     // coon: Firmware of RP has a bug which leads into a very huge shutter count number.
@@ -191,12 +193,14 @@ PROP_HANDLER(PROP_MECHA_COUNTER)
     shutter_count -= 1086947309;
 #endif
 
+    // We don't have this info anymore, so just set both to the same value
     shutter_count_plus_lv_actuations = shutter_count;
 }
-//kitor: New on D8, total counter including silent shoots.
+
+// New info on D8, total counter including silent shoots.
 PROP_HANDLER(PROP_RELEASE_COUNTER)
 {
-    total_shots_count = buf[0];
+    total_shots_count = buf[0]; // TotalShoot
 }
 #else
 PROP_HANDLER(PROP_SHUTTER_COUNTER)

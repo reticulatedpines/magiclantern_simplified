@@ -866,14 +866,18 @@ static MENU_UPDATE_FUNC(image_buf_display)
 }
 #endif
 
-#ifdef FEATURE_SHOW_SHUTTER_COUNT
 static MENU_UPDATE_FUNC(shuttercount_display)
 {
+#ifdef CONFIG_DIGIC_VIII // Digic 8 and up
+    // just shutter count value
+    MENU_SET_VALUE("%d", shutter_count);
+#else
     MENU_SET_VALUE(
         "%dK = %d+%d",
         (shutter_count_plus_lv_actuations + 500) / 1000,
         shutter_count, shutter_count_plus_lv_actuations - shutter_count
     );
+#endif
 
     if (shutter_count_plus_lv_actuations > CANON_SHUTTER_RATING*2)
     {
@@ -892,15 +896,25 @@ static MENU_UPDATE_FUNC(shuttercount_display)
         MENU_SET_WARNING(MENU_WARN_INFO, "You may get around %d.", CANON_SHUTTER_RATING);
     }
 }
-#endif
 
-#ifdef FEATURE_SHOW_TOTAL_SHOTS
-static MENU_UPDATE_FUNC(totalshots_display)
+#ifdef CONFIG_DIGIC_VIII // Digic 8 and up
+static MENU_UPDATE_FUNC(totalshutter_display)
 {
-    MENU_SET_VALUE(
-        "%d (%d+%d)",
-        total_shots_count, shutter_count, total_shots_count - shutter_count
-    );
+    MENU_SET_VALUE("%d", shutter_count);
+    MENU_SET_WARNING(
+        MENU_WARN_ADVICE,
+        "May drift a bit - check after restart for accurate values.");
+}
+static MENU_UPDATE_FUNC(totalmirror_display)
+{
+    MENU_SET_VALUE("%d", total_mirror_count);
+    MENU_SET_WARNING(
+        MENU_WARN_ADVICE,
+        "May drift a bit - check after restart for accurate values.");
+}
+static MENU_UPDATE_FUNC(totalshoot_display)
+{
+    MENU_SET_VALUE("%d", total_shots_count);
     MENU_SET_WARNING(
         MENU_WARN_ADVICE,
         "May drift a bit - check after restart for accurate values.");
@@ -1265,28 +1279,37 @@ static struct menu_entry debug_menus[] = {
 #ifdef FEATURE_SHOW_SHUTTER_COUNT
     {
         .name = "Shutter Count",
-        .select = menu_open_submenu,
         .update = shuttercount_display,
-        .help = "Number of pics taken + number of LiveView actuations",
         //.essential = FOR_MOVIE | FOR_PHOTO,
+        #ifdef CONFIG_DIGIC_VIII // Digic 8 and up
+        .help = "Number of shutter actions. Open submenu to learn more.",
+        .select = menu_open_submenu,
         .submenu_width = 710,
         .children =  (struct menu_entry[]) {
             {
-                .name = "Shutter Count",
-                .update = shuttercount_display,
+                .name = "Total Shutter",
+                .update = totalshutter_display,
                 .icon_type = IT_ALWAYS_ON,
-                .help = "Number of pics taken + number of LiveView actuations",
+                .help = "Number of mechanical shutter actions (incl. sensor cleaning)",
             },
-            #ifdef FEATURE_SHOW_TOTAL_SHOTS
+            {
+                .name = "Total Mirror",
+                .update = totalmirror_display,
+                .icon_type = IT_ALWAYS_ON,
+                .help = "Number of mirror move actions (DSLR, 0 on mirrorless)",
+            },
             {
                 .name = "Total Shots",
-                .update = totalshots_display,
+                .update = totalshoot_display,
                 .icon_type = IT_ALWAYS_ON,
-                .help = "Number of shots, including silent (electronic) shutter",
+                .help = "Number of photos made. Incl. silent (electronic) shots",
             },
-            #endif
             MENU_EOL,
         },
+        #else // no submenu, classic style
+        .help = "Number of pics taken + number of LiveView actuations",
+        .icon_type = IT_ALWAYS_ON,
+        #endif
     },
 #endif
 

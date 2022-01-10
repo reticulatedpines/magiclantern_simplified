@@ -544,16 +544,18 @@
 //~ #define PROP_CARD2_CLUSTER_SIZE 0x2010007
 #define PROP_SHUTTER_COUNTER 0x80030029
 
-/* EOS R does not use old shutter counter property.
- * There's a new family of functions with mecha* names.
+/* PROP_MECHA_COUNTER holds two values: TotalShutter and TotalMirror
+ * PROP_RELEASE_COUNTER holds one value: TotalShoot
  *
- * There seems to be no `shutter_count_plus_lv_actuations` equiv on R,
- * which makes sense for mirrorless, but this shall be verified on Digic 8 DSLR.
+ * TotalShutter increases on shutter actuations - mecha shoots and manually
+ * started sensor cleaning (by 3). On R5/R6 (but not R ?!) it also increases
+ * by 1 on each turn on/off (which closes shutter on those models)
  *
- * 0x12000002 is also Mecha related (see InitMechaCnt()), I was unable to find
- * the name / purpose.
+ * TotalMirror is referenced only on DSLRs (but available with value of 0 on
+ * mirrorless) and it self explaining.
  *
- * PROP_RELEASE_COUNTER counts also silent (electronic) shutter shots.
+ * TotalShoot is "total pictures made". Increases with both mecha shoots and
+ * builtin silent pictures.
  */
 #define PROP_MECHA_COUNTER    0x12000001
 #define PROP_RELEASE_COUNTER  0x12000003

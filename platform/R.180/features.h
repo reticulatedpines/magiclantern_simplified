@@ -12,7 +12,6 @@
 #define FEATURE_DONT_CLICK_ME
 
 #define FEATURE_SHOW_SHUTTER_COUNT
-#define FEATURE_SHOW_TOTAL_SHOTS
 
 // working but incomplete, some allocators don't report
 // anything yet as they're faked / not yet found
