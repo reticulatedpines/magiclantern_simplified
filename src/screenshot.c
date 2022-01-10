@@ -24,10 +24,10 @@ int take_screenshot( char* filename, uint32_t mode )
     int save_yuv = mode & SCREENSHOT_YUV;
     
     uint8_t *bvram = bmp_vram();
-    uint32_t *lvram = NULL;
+    uint8_t *lvram = NULL;
     struct vram_info *vram_info = get_yuv422_vram();
     if (vram_info != NULL)
-        lvram = (uint32_t *)vram_info->vram;
+        lvram = vram_info->vram;
     
     if (!lvram)
     {
@@ -195,7 +195,7 @@ int take_screenshot( char* filename, uint32_t mode )
     int save_yuv = mode & SCREENSHOT_YUV;
 
     uint8_t *bvram = bmp_vram();
-    uint32_t *lvram = NULL;
+    uint8_t *lvram = NULL;
     struct vram_info *vram_info = get_yuv422_vram();
     if (vram_info != NULL)
         lvram = vram_info->vram;
@@ -240,9 +240,7 @@ int take_screenshot( char* filename, uint32_t mode )
         {
             int p = 0;
             uint8_t Y = 0; int8_t U = 0; int8_t V = 0;
-            uint32_t pal = 0;
-            uint8_t opacity = 0;
-            uint32_t R, G, B, A;
+            int R, G, B, A;
             uint32_t colour;
 
             if (save_bmp)
