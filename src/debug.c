@@ -457,7 +457,7 @@ void mem_to_file(char *name, uint32_t addr, uint32_t size)
     f = FIO_CreateFile(name);
     if (!f)
         return;
-    FIO_WriteFile(f, addr, size);
+    FIO_WriteFile(f, (uint32_t *)addr, size);
     FIO_CloseFile(f);
 }
 
@@ -818,7 +818,7 @@ debug_loop_task( void* unused ) // screenshot, draw_prop
                 #endif
                 };
 
-                for (int i = 0; i < sizeof(regions) / 4; i += 2)
+                for (uint32_t i = 0; i < sizeof(regions) / 4; i += 2)
                 {
                     snprintf(path, sizeof(path), "%x.yuv", regions[i]);
                     mem_to_file(path, regions[i], regions[i + 1]);
