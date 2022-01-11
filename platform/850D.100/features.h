@@ -15,11 +15,14 @@
 #define FEATURE_SHOW_CPU_USAGE
 #define FEATURE_SHOW_GUI_EVENTS
 
-// prevent ML attempting stack unwinding in some cases.
-// This does not yet work (assumes ARM, not Thumb).  Alex recommends
-// a good looking fix:
+// Not all of this feature works yet, stack unwinding is disabled
+// in code.  Current approach assumes ARM and makes assumptions
+// that crash.
+//
+// Alex recommends a good looking fix:
 // http://www.mcternan.me.uk/ArmStackUnwinding/
-#undef CONFIG_CRASH_LOG
+#define CONFIG_CRASH_LOG
+
 #undef CONFIG_PROP_REQUEST_CHANGE
 #undef CONFIG_ADDITIONAL_VERSION
 #undef CONFIG_AUTOBACKUP_ROM

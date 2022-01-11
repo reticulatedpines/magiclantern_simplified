@@ -465,7 +465,7 @@ int yuv_dump_sec = 0;
 static void run_test()
 {
     DryosDebugMsg(0, 15, "run_test fired");
-#ifdef CONFIG_200D
+#if defined(CONFIG_200D) || defined(CONFIG_850D)
     // trigger an assert
     extern void debug_assert(char *msg, char *file, int line);
     debug_assert("LIFE == FAIR", "this file", 1);

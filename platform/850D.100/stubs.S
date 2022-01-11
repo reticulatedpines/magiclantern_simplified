@@ -215,7 +215,7 @@
     THUMB_FN(0xe058b7cc,  dialog_redraw) // Found via checking xrefs to "pDialog->pSignature == pcSignature"
 //THUMB_FN(0xe04b3739,  CreateResLockEntry) // via xrefs to a pointer to "ResInfo"
 //THUMB_FN(0xe04b3b59,  LockEngineResources) //  Down a bit from CreateResLockEntry, start v similar but end is different.
-//THUMB_FN(0xe06217f1,  ErrForCamera_handler) // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
+THUMB_FN(0xe08fd1dc,  ErrForCamera_handler) // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
 
 THUMB_FN(0x0,  fsuDecodePartitionTable)
 
