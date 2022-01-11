@@ -1,4 +1,4 @@
 # RP 1.6.0
 
-MODEL=EOSRP
+MODEL=RP
 include ../Makefile.platform

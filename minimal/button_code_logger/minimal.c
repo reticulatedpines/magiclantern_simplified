@@ -177,7 +177,7 @@ void ml_gui_main_task()
         #if defined(CONFIG_550D) || defined(CONFIG_7D)
         msg_queue_receive(gui_main_struct.msg_queue_550d, &event, 0);
         gui_main_struct.counter_550d--;
-        #elif defined(CONFIG_R) || defined(CONFIG_EOSRP) || defined(CONFIG_850D)
+        #elif defined(CONFIG_R) || defined(CONFIG_RP) || defined(CONFIG_850D)
         msg_queue_receive(gui_main_struct.msg_queue_eosr, &event, 0);
         gui_main_struct.counter_550d--;
         #elif defined(CONFIG_M50)

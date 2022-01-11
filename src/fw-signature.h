@@ -29,7 +29,7 @@
 #define SIG_M50_102  0x3b70901c // from E0040000
 #define SIG_M50_110  0x05EDBC80 // from E0040000
 #define SIG_R_180    0x1474d0f5 // from E0040000
-#define SIG_EOSRP_160 0xECDDA78C // from E0040000
+#define SIG_RP_160   0xECDDA78C // from E0040000
 #define SIG_5D4_112  0xf3316d96 // from FE0A0000
 #define SIG_5D4_133  0x40b85a84 // from FE0A0000
 #define SIG_5DS_111  0x6f867e6a // from FE0A0000

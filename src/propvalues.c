@@ -184,7 +184,7 @@ PROP_HANDLER(PROP_MECHA_COUNTER)
     shutter_count = buf[0];      // TotalShutter
     total_mirror_count = buf[1]; // TotalMirror
 
-#ifdef CONFIG_EOSRP
+#ifdef CONFIG_RP
     // coon: Firmware of RP has a bug which leads into a very huge shutter count number.
     // Regarding to a user of the forum who read out the shutter count on a fresh RP
     // with only one photo taken, the offset seems to be 1086947309 so this value needs

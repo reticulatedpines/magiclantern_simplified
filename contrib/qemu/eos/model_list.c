@@ -687,7 +687,7 @@ struct eos_model_desc eos_model_list[] = {
         .dedicated_movie_mode   = 0,
     },
     {
-        .name                   = MODEL_NAME_EOSRP,
+        .name                   = MODEL_NAME_RP,
         .digic_version          = 8,
         .ram_size               = 0x40000000,   /* unknown. assuming 1GB for now */
         .card_led_address       = 0xD01300D4,

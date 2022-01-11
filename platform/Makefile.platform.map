@@ -23,7 +23,7 @@ PLATFORM_MAP = \
     EOSM.202 \
     M50.110 \
     R.180 \
-    EOSRP.160 \
+    RP.160 \
 
 # SJE lots of noisy warnings, not fixing yet
 #    5DS.111 \

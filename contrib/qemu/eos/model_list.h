@@ -43,7 +43,7 @@
 #define MODEL_NAME_800D "800D"
 #define MODEL_NAME_EOSM5 "EOSM5"
 #define MODEL_NAME_EOSM50 "EOSM50"
-#define MODEL_NAME_EOSRP "EOSRP"
+#define MODEL_NAME_RP "RP"
 
 enum { ram_extra_array_len = 2 };
 

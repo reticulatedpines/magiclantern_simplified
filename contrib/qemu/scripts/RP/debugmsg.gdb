@@ -1,12 +1,12 @@
-# ./run_canon_fw.sh EOSRP -d debugmsg
-# ./run_canon_fw.sh EOSRP -d debugmsg -s -S & arm-none-eabi-gdb -x EOSRP/debugmsg.gdb
+# ./run_canon_fw.sh RP -d debugmsg
+# ./run_canon_fw.sh RP -d debugmsg -s -S & arm-none-eabi-gdb -x RP/debugmsg.gdb
 
 source -v debug-logging.gdb
 
 # To get debugging symbols from Magic Lantern, uncomment one of these:
-#symbol-file ../magiclantern_simplified/platform/EOSRP.160/magiclantern
-#symbol-file ../magiclantern_simplified/platform/EOSRP.160/autoexec
-#symbol-file ../magiclantern_simplified/platform/EOSRP.160/stubs.o
+#symbol-file ../magiclantern_simplified/platform/RP.160/magiclantern
+#symbol-file ../magiclantern_simplified/platform/RP.160/autoexec
+#symbol-file ../magiclantern_simplified/platform/RP.160/stubs.o
 # !!!
 
 macro define CURRENT_TASK 0x1028

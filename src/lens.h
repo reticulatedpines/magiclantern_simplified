@@ -224,7 +224,7 @@ SIZE_CHECK_STRUCT( prop_lv_lens, 58 );
  * right between models. For easier debugging I left those paddings filled in.
  */
 
-#if defined(CONFIG_M50) || defined(CONFIG_R) || defined(CONFIG_EOSRP) || defined (CONFIG_250D)
+#if defined(CONFIG_M50) || defined(CONFIG_R) || defined(CONFIG_RP) || defined (CONFIG_250D)
 // variants M50, R + RP, 250D combined
 struct prop_lens_static_data
 {
@@ -241,7 +241,7 @@ struct prop_lens_static_data
         uint8_t                 lens_firm_ver[3];
         uint8_t                 field_vision;
         uint8_t                 lens_type;
-#if defined(CONFIG_R) || defined(CONFIG_EOSRP)
+#if defined(CONFIG_R) || defined(CONFIG_RP)
         uint8_t                _pad_01;                        // padding exists on R,RP
 #endif // !defined(CONFIG_250D) || !defined(CONFIG_M50)
         uint8_t                 lens_name_len;
@@ -457,7 +457,7 @@ struct prop_lens_dynamic_data {
 #ifdef CONFIG_R6
         uint8_t                _r6_01[6];         // only on R6, some extra fields?
 #endif
-#if defined(CONFIG_R6) || defined(CONFIG_R) || defined(CONFIG_EOSRP)
+#if defined(CONFIG_R6) || defined(CONFIG_R) || defined(CONFIG_RP)
         uint8_t                 abstat;           // lens abberation related; exists only on R series
 #endif
         uint8_t                 st1;
@@ -475,7 +475,7 @@ struct prop_lens_dynamic_data {
         uint8_t                 ZmSt3;
         uint8_t                 ZmSt4;
         uint8_t                _pad_05[4];        // M50, R, RP, 250D, 850D, R6
-#if defined(CONFIG_R) || defined(CONFIG_EOSRP) || defined(CONFIG_R6)
+#if defined(CONFIG_R) || defined(CONFIG_RP) || defined(CONFIG_R6)
         uint8_t                _pad_05a;          // R, RP, R6 (alignment?)
 #endif
         uint16_t                ts_shift;         // via ShootingInfoEx
@@ -498,7 +498,7 @@ struct prop_lens_dynamic_data {
 
 #if defined(CONFIG_R6)
 SIZE_CHECK_STRUCT( prop_lens_dynamic_data, 0x94 );
-#elif defined(CONFIG_850D) || defined(CONFIG_R) || defined(CONFIG_EOSRP)
+#elif defined(CONFIG_850D) || defined(CONFIG_R) || defined(CONFIG_RP)
 SIZE_CHECK_STRUCT( prop_lens_dynamic_data, 0x90);
 #elif defined(CONFIG_250D)
 SIZE_CHECK_STRUCT( prop_lens_dynamic_data, 0x8C);
