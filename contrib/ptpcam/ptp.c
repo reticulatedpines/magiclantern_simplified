@@ -1943,7 +1943,7 @@ int ptp_chdk_reboot_fw_update(char *path, PTPParams* params, PTPDeviceInfo* devi
   return ret;
 }
 
-char* ptp_chdk_get_memory(int start, int num, PTPParams* params, PTPDeviceInfo* deviceinfo)
+void* ptp_chdk_get_memory(int start, int num, PTPParams* params, PTPDeviceInfo* deviceinfo)
 {
   uint16_t ret;
   PTPContainer ptp;

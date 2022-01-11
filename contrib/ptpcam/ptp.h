@@ -1018,7 +1018,7 @@ int ptp_chdk_shutdown_hard(PTPParams* params, PTPDeviceInfo* deviceinfo);
 int ptp_chdk_shutdown_soft(PTPParams* params, PTPDeviceInfo* deviceinfo);
 int ptp_chdk_reboot(PTPParams* params, PTPDeviceInfo* deviceinfo);
 int ptp_chdk_reboot_fw_update(char *path, PTPParams* params, PTPDeviceInfo* deviceinfo);
-char* ptp_chdk_get_memory(int start, int num, PTPParams* params, PTPDeviceInfo* deviceinfo);
+void* ptp_chdk_get_memory(int start, int num, PTPParams* params, PTPDeviceInfo* deviceinfo);
 int ptp_chdk_set_memory_long(int addr, int val, PTPParams* params, PTPDeviceInfo* deviceinfo);
 int ptp_chdk_call(int *args, int size, int *ret, PTPParams* params, PTPDeviceInfo* deviceinfo);
 int* ptp_chdk_get_propcase(int start, int num, PTPParams* params, PTPDeviceInfo* deviceinfo);
