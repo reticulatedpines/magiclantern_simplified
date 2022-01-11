@@ -2368,7 +2368,7 @@ void ptp_chdk_print_script_message(ptp_chdk_script_msg *msg) {
   // 
   switch(msg->subtype) {
     case PTP_CHDK_TYPE_UNSUPPORTED:
-      printf("unsupported data type: ",msg->data);
+      printf("unsupported data type: %d",msg->subtype);
       fwrite(msg->data,msg->size,1,stdout); // may not be null terminated
       break;
 
