@@ -910,8 +910,6 @@ protocol version history
 2.0 - return PTP_CHDK_TYPE_TABLE for tables instead of TYPE_STRING, allow return of empty strings
 */
 
-#define PTP_OC_CHDK 0x9999
-
 // N.B.: unused parameters should be set to 0
 enum ptp_chdk_command {
   PTP_CHDK_Version = 0,     // return param1 is major version number

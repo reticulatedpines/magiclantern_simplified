@@ -1950,7 +1950,7 @@ void* ptp_chdk_get_memory(int start, int num, PTPParams* params, PTPDeviceInfo* 
   char *buf = NULL;
 
   PTP_CNT_INIT(ptp);
-  ptp.Code=PTP_OC_CHDK;
+  ptp.Code=PTP_OC_CANON_CHDK;
   ptp.Nparam=3;
   ptp.Param1=PTP_CHDK_GetMemory;
   ptp.Param2=start;
@@ -1972,7 +1972,7 @@ char* ptp_chdk_gdb_upload(PTPParams* params, PTPDeviceInfo* deviceinfo)
   char *buf = NULL;
 
   PTP_CNT_INIT(ptp);
-  ptp.Code=PTP_OC_CHDK;
+  ptp.Code=PTP_OC_CANON_CHDK;
   ptp.Nparam=2;
   ptp.Param1=PTP_CHDK_GDBStub_Upload;
   ptp.Param2=1024;
@@ -1993,7 +1993,7 @@ int ptp_chdk_gdb_download(char *buf, PTPParams* params, PTPDeviceInfo* deviceinf
   PTPContainer ptp;
 
   PTP_CNT_INIT(ptp);
-  ptp.Code=PTP_OC_CHDK;
+  ptp.Code=PTP_OC_CANON_CHDK;
   ptp.Nparam=2;
   ptp.Param1=PTP_CHDK_GDBStub_Download;
   ptp.Param2=strlen(buf);
@@ -2014,7 +2014,7 @@ int ptp_chdk_set_memory_long(int addr, int val, PTPParams* params, PTPDeviceInfo
   char *buf = (char *) &val;
 
   PTP_CNT_INIT(ptp);
-  ptp.Code=PTP_OC_CHDK;
+  ptp.Code=PTP_OC_CANON_CHDK;
   ptp.Nparam=3;
   ptp.Param1=PTP_CHDK_SetMemory;
   ptp.Param2=addr;
@@ -2034,7 +2034,7 @@ int ptp_chdk_call(int *args, int size, int *ret, PTPParams* params, PTPDeviceInf
   PTPContainer ptp;
 
   PTP_CNT_INIT(ptp);
-  ptp.Code=PTP_OC_CHDK;
+  ptp.Code=PTP_OC_CANON_CHDK;
   ptp.Nparam=2;
   ptp.Param1=PTP_CHDK_CallFunction;
   ptp.Param2=size;
@@ -2073,7 +2073,7 @@ int ptp_chdk_upload(char *local_fn, char *remote_fn, PTPParams* params, PTPDevic
   int s,l;
 
   PTP_CNT_INIT(ptp);
-  ptp.Code=PTP_OC_CHDK;
+  ptp.Code=PTP_OC_CANON_CHDK;
   ptp.Nparam=1;
   ptp.Param1=PTP_CHDK_UploadFile;
 
@@ -2116,7 +2116,7 @@ int ptp_chdk_download(char *remote_fn, char *local_fn, PTPParams* params, PTPDev
   FILE *f;
 
   PTP_CNT_INIT(ptp);
-  ptp.Code=PTP_OC_CHDK;
+  ptp.Code=PTP_OC_CANON_CHDK;
   ptp.Nparam=2;
   ptp.Param1=PTP_CHDK_TempData;
   ptp.Param2=0;
@@ -2128,7 +2128,7 @@ int ptp_chdk_download(char *remote_fn, char *local_fn, PTPParams* params, PTPDev
   }
 
   PTP_CNT_INIT(ptp);
-  ptp.Code=PTP_OC_CHDK;
+  ptp.Code=PTP_OC_CANON_CHDK;
   ptp.Nparam=1;
   ptp.Param1=PTP_CHDK_DownloadFile;
 
@@ -2179,7 +2179,7 @@ int ptp_chdk_exec_lua(char *script, int get_result, PTPParams* params, PTPDevice
   PTPContainer ptp;
 
   PTP_CNT_INIT(ptp);
-  ptp.Code=PTP_OC_CHDK;
+  ptp.Code=PTP_OC_CANON_CHDK;
   ptp.Nparam=2;
   ptp.Param1=PTP_CHDK_ExecuteScript;
   ptp.Param2=PTP_CHDK_SL_LUA;
@@ -2237,7 +2237,7 @@ int ptp_chdk_get_version(PTPParams* params, PTPDeviceInfo* deviceinfo, int *majo
   PTPContainer ptp;
 
   PTP_CNT_INIT(ptp);
-  ptp.Code=PTP_OC_CHDK;
+  ptp.Code=PTP_OC_CANON_CHDK;
   ptp.Nparam=1;
   ptp.Param1=PTP_CHDK_Version;
   r=ptp_transaction(params, &ptp, PTP_DP_NODATA, 0, NULL);
@@ -2256,7 +2256,7 @@ int ptp_chdk_get_script_status(PTPParams* params, PTPDeviceInfo* deviceinfo, int
   PTPContainer ptp;
 
   PTP_CNT_INIT(ptp);
-  ptp.Code=PTP_OC_CHDK;
+  ptp.Code=PTP_OC_CANON_CHDK;
   ptp.Nparam=1;
   ptp.Param1=PTP_CHDK_ScriptStatus;
   r=ptp_transaction(params, &ptp, PTP_DP_NODATA, 0, NULL);
@@ -2274,7 +2274,7 @@ int ptp_chdk_get_script_support(PTPParams* params, PTPDeviceInfo* deviceinfo, in
   PTPContainer ptp;
 
   PTP_CNT_INIT(ptp);
-  ptp.Code=PTP_OC_CHDK;
+  ptp.Code=PTP_OC_CANON_CHDK;
   ptp.Nparam=1;
   ptp.Param1=PTP_CHDK_ScriptSupport;
   r=ptp_transaction(params, &ptp, PTP_DP_NODATA, 0, NULL);
@@ -2298,7 +2298,7 @@ int ptp_chdk_write_script_msg(PTPParams* params, PTPDeviceInfo* deviceinfo, char
 	return 0;
   }
   PTP_CNT_INIT(ptp);
-  ptp.Code=PTP_OC_CHDK;
+  ptp.Code=PTP_OC_CANON_CHDK;
   ptp.Nparam=2;
   ptp.Param1=PTP_CHDK_WriteScriptMsg;
   ptp.Param2=script_id; // TODO test don't care ?
@@ -2320,7 +2320,7 @@ int ptp_chdk_read_script_msg(PTPParams* params, PTPDeviceInfo* deviceinfo,ptp_ch
   PTPContainer ptp;
 
   PTP_CNT_INIT(ptp);
-  ptp.Code=PTP_OC_CHDK;
+  ptp.Code=PTP_OC_CANON_CHDK;
   ptp.Nparam=1;
   ptp.Param1=PTP_CHDK_ReadScriptMsg;
   char *data = NULL;
