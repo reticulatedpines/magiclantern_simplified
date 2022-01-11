@@ -1045,5 +1045,6 @@ typedef struct {
 
 int ptp_chdk_print_all_script_messages(PTPParams* params, PTPDeviceInfo* deviceinfo);
 int ptp_chdk_write_script_msg(PTPParams* params, PTPDeviceInfo* deviceinfo, char *data, unsigned size, int *status);
+void ptp_chdk_print_script_message(ptp_chdk_script_msg* msg);
 
 #endif /* __PTP_H__ */
