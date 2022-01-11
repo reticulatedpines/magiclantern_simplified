@@ -30,6 +30,8 @@
 
 #ifdef WIN32
 #include <winsock2.h>
+#else
+#include <unistd.h>
 #endif
 
 #ifdef ENABLE_NLS
