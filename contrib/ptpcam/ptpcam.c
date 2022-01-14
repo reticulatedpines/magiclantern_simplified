@@ -2514,7 +2514,7 @@ int recvtimeout ( int s, char *buf, int len, int timeout )
 }
 
 
-unsigned int gdb_loop (int socket)
+void gdb_loop (int socket)
 {
     char buffer[8192];
     while(1)
