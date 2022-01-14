@@ -3349,7 +3349,7 @@ int chdk(int busn, int devn, short force)
                         }
                         
                         rate = 1000000.0f / (avgDelta / maxVal);
-                        printf("Overflows: %i µsec (avg: %f), maxVal = 0x%08X, tickRate = %f Hz\n", delta, avgDelta, maxVal, rate);
+                        printf("Overflows: %i sec (avg: %f), maxVal = 0x%08X, tickRate = %f Hz\n", delta, avgDelta, maxVal, rate);
                     }
                 }
                 
