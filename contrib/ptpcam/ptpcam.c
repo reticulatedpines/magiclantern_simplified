@@ -29,6 +29,7 @@
 #include <sys/types.h>
 #include <utime.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <fcntl.h>
 #ifndef WIN32
 #include <sys/mman.h>
