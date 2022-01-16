@@ -42,7 +42,7 @@ THUMB_FN(0xE010021e,  init_task)                            /* USER_MEM size che
 /** Tasks **/
 DATA_PTR(    0x1010,  current_interrupt)                    /*  "Interrupt". "Vector      : 0x%lx\n" */
 // DATA_PTR(    0x1028,  current_task)                      /* from task_create; pointer to the current task structure */
-THUMB_FN(0xE0549952,  msleep)                               /* argument is always multiple of 10 */
+THUMB_FN(0xe07bffce,  msleep)                               /* argument is always multiple of 10 */
 THUMB_FN(0XE07BC6AE,  task_create)                          /* used to start TaskMain, GuiMainTask etc */
 // NSTUB( 0x40CC, task_max)
 
