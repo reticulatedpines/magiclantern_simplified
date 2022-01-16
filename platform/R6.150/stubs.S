@@ -58,7 +58,7 @@ THUMB_FN(0xE0921984, _malloc)                               /* see [cpuprof], "c
 
 
 //THUMB_FN(0xE054D31C,  uart_printf)
-THUMB_FN(0xE006463C,  vsnprintf)                            /* called by LogFile_printf(..., "*Data Lost*\n", ...); the one called by DebugMsg only knows %s */
+THUMB_FN(0xe0123258,  vsnprintf)                            /* called by LogFile_printf(..., "*Data Lost*\n", ...); the one called by DebugMsg only knows %s */
 
 /** Semaphores **/
 //THUMB_FN(0xE07D7F90,  create_named_semaphore)               /* SystemIF::KerSem.c, values 0x5e and 0x62, before take_semaphore  */
@@ -70,8 +70,8 @@ THUMB_FN(0xE07D808C,  take_semaphore)                       /* SystemIF::KerSem.
 //DATA_PTR( 0x14B568, _pXCM); 
  
 /** General FEATURE_VRAM_RGBA stubs **/
-THUMB_FN(0xE0182080, XimrExe);                              //In VMIX_TransferRectangleToVram, just before "XimrExe" debug message
-DATA_PTR(    (0x18394+4), winsys_sem);                           //Used in VMIX_TransferRectangleToVram as first arg of take_semaphore()
+THUMB_FN(0xe01a1c04, XimrExe);                              //In VMIX_TransferRectangleToVram, just before "XimrExe" debug message
+DATA_PTR( (0x18394+4), winsys_sem);                           //Used in VMIX_TransferRectangleToVram as first arg of take_semaphore()
 
 
 /*
