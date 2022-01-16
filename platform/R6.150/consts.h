@@ -32,7 +32,7 @@
 // Used for copying and modifying ROM code before transferring control.
 // Approximately: look at BR_ macros for the highest address, subtract ROMBASEADDR,
 // align up.  This may not be exactly enough.  See boot-d678.c for longer explanation.
-#define FIRMWARE_ENTRY_LEN 0x228
+#define FIRMWARE_ENTRY_LEN 0x2A2
 
 #if ML_RESERVED_MEM > ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE
 #error "ML_RESERVED_MEM too big to fit!"
