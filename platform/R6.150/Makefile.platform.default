@@ -34,7 +34,7 @@ ROMBASEADDR     = 0xE0100000
 #
 # It's a sensible precaution to pick a value that's well aligned,
 # we run code from this address.
-RESTARTSTART    = 0x0017C000
+RESTARTSTART    = 0x00259E00
 
 # Cortex A9, binaries loaded as Thumb
 CFLAG_USER = -mthumb -mlong-calls
