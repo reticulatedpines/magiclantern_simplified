@@ -1,0 +1,292 @@
+ID         0x414FC091
+  Revision             0x1 1
+  Part                 0xC09 3081
+  ARM Arch             0xF 15
+  Variant              0x4 4
+  Implementor          0x41 65
+Cache type 0x83338003
+  Icache min words/line 0x3 3 [8]
+  (zero)               0x0 0
+  L1 Icache policy     0x2 2
+  Dcache min words/line 0x3 3 [8]
+  Exclusives Reservation Granule 0x3 3 [8]
+  Cache Writeback Granule 0x3 3 [8]
+  (zero)               0x0 0
+  (register format)    0x4 4
+TCM type   0x00000000
+  (raw value)          0x0 0
+TLB type   0x00000404
+  TLB                  0x0 0 [Unified TLB]
+  TLB entries          0x2 2 [256]
+  -                    0x0 0
+  Lockable unified or data entries 0x4 4
+  Lockable instruction entries 0x0 0
+  (zero)               0x0 0
+TTBCR      0x00000007
+  N                    0x7 7 [TTBR0 table size 128 bytes]
+  (zero)               0x0 0
+  TTBR0 walks disabled 0x0 0
+  TTBR1 walks disabled 0x0 0
+  (zero)               0x0 0
+  Long descriptors     0x0 0
+TTBR0      0xDFFC4800
+  IRGN[1]              0x0 0
+  Shareable            0x0 0
+  (impl. defined)      0x0 0
+  RGN (Outer cacheability) 0x0 0
+  NOS (Inner shareable) 0x0 0
+  IRGN[0]              0x0 0
+  Table address        0x1BFF890 29358224 [0xdffc4800]
+TTBR1      0xDFFC0000
+  IRGN[1]              0x0 0
+  Shareable            0x0 0
+  (impl. defined)      0x0 0
+  RGN (Outer cacheability) 0x0 0
+  NOS (Inner shareable) 0x0 0
+  IRGN[0]              0x0 0
+  Table address        0x1BFF800 29358080 [0xdffc0000]
+Multiprocessor ID 0x80000000
+  (raw value)          0x80000000 -2147483648
+Revision ID 0x00000000
+  (raw value)          0x0 0
+Processor feature 0 0x00001231
+  ARM inst set         0x1 1
+  Thumb inst set       0x3 3
+  Jazelle inst set     0x2 2
+  ThumbEE inst set     0x1 1
+  -                    0x0 0
+Processor feature 1 0x00000011
+  Programmers' model   0x1 1
+  Security extensions  0x1 1
+  Microcontr. prog model 0x0 0
+  Virt. extensions     0x0 0
+  Generic timer ext.   0x0 0
+  -                    0x0 0
+Debug feature 0x00010444
+  Coproc. dbg model    0x4 4
+  Coproc. secure dbg model 0x4 4
+  Memory-mapped dbg model 0x4 4
+  Coproc. trace model  0x0 0
+  Memory-mapped trace model 0x1 1
+  Debug model M        0x0 0
+  Perf. monitors       0x0 0
+  -                    0x0 0
+Aux feature 0x00000000
+  (raw value)          0x0 0
+Mem model feature 0 0x00100103
+  VMSA support         0x3 3
+  PMSA support         0x0 0
+  Cache coherence      0x1 1
+  Outer shareable      0x0 0
+  TCM support          0x0 0
+  Auxiliary registers  0x1 1
+  FCSE support         0x0 0
+  -                    0x0 0
+Mem model feature 1 0x20000000
+  L1 Harvard cache VA  0x0 0
+  L1 unified cache VA  0x0 0
+  L1 Harvard cache s/w 0x0 0
+  L1 unified cache s/w 0x0 0
+  L1 Harvard cache     0x0 0
+  L1 unified cache     0x0 0
+  L1 cache test & clean 0x0 0
+  Branch predictor     0x2 2
+Mem model feature 2 0x01230000
+  L1 Harvard fg prefetch 0x0 0
+  L1 Harvard bg prefetch 0x0 0
+  L1 Harvard range     0x0 0
+  Harvard TLB          0x0 0
+  Unified TLB          0x3 3
+  Mem barrier          0x2 2
+  WFI stall            0x1 1
+  HW access flag       0x0 0
+Mem model feature 3 0x00102111
+  Cache maintain MVA   0x1 1 [Supported]
+  Cache maintain set/way 0x1 1 [Supported]
+  Branch predictor maintenance 0x1 1 [Invalidate all]
+  Maintenance broadcast 0x2 2
+  -                    0x0 0
+  Transl. table coherent walk 0x1 1
+  Cached memory size   0x0 0 [4 GByte]
+  Supersection support 0x0 0 [Supported]
+ISA feature 0 0x00101111
+  Swap instrs          0x1 1
+  Bitcount instrs      0x1 1
+  Bitfield instrs      0x1 1
+  CmpBranch instrs     0x1 1
+  Coproc instrs        0x0 0
+  Debug instrs         0x1 1
+  Divide instrs        0x0 0
+  -                    0x0 0
+ISA feature 1 0x13112111
+  Endian instrs        0x1 1
+  Exception instrs     0x1 1
+  Exception AR instrs  0x1 1
+  Extend instrs        0x2 2
+  IfThen instrs        0x1 1
+  Immediate instrs     0x1 1
+  Interwork instrs     0x3 3
+  Jazelle instrs       0x1 1
+ISA feature 2 0x21232041
+  LoadStore instrs     0x1 1
+  Memhint instrs       0x4 4
+  MultiAccess Interruptible instructions 0x0 0
+  Mult instrs          0x2 2
+  MultS instrs         0x3 3
+  MultU instrs         0x2 2
+  PSR AR instrs        0x1 1
+  Reversal instrs      0x2 2
+ISA feature 3 0x11112131
+  Saturate instrs      0x1 1
+  SIMD instrs          0x3 3
+  SVC instrs           0x1 1
+  SynchPrim instrs     0x2 2
+  TabBranch instrs     0x1 1
+  ThumbCopy instrs     0x1 1
+  TrueNOP instrs       0x1 1
+  T2 Exec Env instrs   0x1 1
+ISA feature 4 0x00011142
+  Unprivileged instrs  0x2 2
+  WithShifts instrs    0x4 4
+  Writeback instrs     0x1 1
+  SMC instrs           0x1 1
+  Barrier instrs       0x1 1
+  SynchPrim_instrs_frac 0x0 0
+  PSR_M instrs         0x0 0
+  -                    0x0 0
+ISA feature 5 0x00000000
+  -                    0x0 0
+Cache level ID 0x09200003
+  Cache type, level1   0x3 3 [Separate Icache, Dcache]
+  Cache type, level2   0x0 0 [no cache]
+  Cache type, level3   0x0 0 [no cache]
+  Cache type, level4   0x0 0 [no cache]
+  Cache type, level5   0x0 0 [no cache]
+  Cache type, level6   0x0 0 [no cache]
+  Cache type, level7   0x0 0 [no cache]
+  Level of unification Inner Shareable 0x1 1
+  Level of coherency   0x1 1
+  Level of unification 0x1 1
+  (zero)               0x0 0
+Cache size ID reg (data, level0) 0x700FE019
+  Line size in words   0x1 1 [8]
+  Associativity        0x3 3 [4]
+  Number of sets       0x7F 127 [128]
+  Write allocation     0x1 1
+  Read allocation      0x1 1
+  Write back           0x1 1
+  Write through        0x0 0
+Cache size ID reg (inst, level0) 0x201FE019
+  Line size in words   0x1 1 [8]
+  Associativity        0x3 3 [4]
+  Number of sets       0xFF 255 [256]
+  Write allocation     0x0 0
+  Read allocation      0x1 1
+  Write back           0x0 0
+  Write through        0x0 0
+SCTLR      0x40C5187D
+  MMU Enable           0x1 1
+  Strict Align         0x0 0
+  Data or Unified Cache Enable 0x1 1
+  CP15 Barrier Enable  0x1 1
+  - (SBO)              0x7 7
+  - (SBZ)              0x0 0
+  SWP/SWPB Enable      0x0 0
+  Branch Pred Enable   0x1 1
+  ICache Enable        0x1 1
+  High Vector          0x0 0
+  Round Robin          0x0 0
+  - (SBZ)              0x0 0
+  - (SBO)              0x1 1
+  HA flag              0x0 0
+  - (SBO)              0x1 1
+  WXN (virt. ext. only) 0x0 0
+  UWXN (virt. ext. only) 0x0 0
+  FIQ Enable           0x0 0
+  - (SBO)              0x3 3
+  VE                   0x0 0
+  CPSR E               0x0 0
+  - (SBZ)              0x0 0
+  NMFI                 0x0 0
+  TRE                  0x0 0
+  AFE                  0x0 0
+  Thumb exceptions     0x1 1
+  - (SBZ)              0x0 0
+ACTLR      0x00000045
+  Cache & TLB maint. broadcast 0x1 1
+  L2 prefetch enable   0x0 0
+  L1 prefetch enable   0x1 1
+  Write full line of zeroes 0x0 0
+  (zero)               0x0 0
+  SMP                  0x1 1
+  Exclusive cache      0x0 0
+  Alloc in one way     0x0 0
+  Parity on            0x0 0
+  -                    0x0 0
+ACTLR2     0x00000701
+  (raw value)          0x701 1793
+CPACR      0xC0000000
+  (zero)               0x0 0
+  CP10 access permission 0x0 0
+  CP11 access permission 0x0 0
+  (zero)               0x0 0
+  D32DIS               0x1 1
+  ASEDIS               0x1 1
+DACR       0x0000C000
+  (raw value)          0xC000 49152
+NSACR (sec. ext. only) 0x55555555
+  (raw value)          0x55555555 1431655765
+DBGDIDR    0x35137041
+  Revision             0x1 1
+  Variant              0x4 4
+  - (RAZ)              0x70 112
+  Version              0x3 3 [v7 full]
+  Context              0x1 1 [2]
+  BRP                  0x5 5 [6]
+  WRP                  0x3 3 [4]
+DBGDRAR    0x00000000
+  Valid                0x0 0
+  - (UNK)              0x0 0
+  Address              0x0 0 [0x00000000]
+DBGDSAR    0x00030000
+  Valid                0x0 0
+  - (UNK)              0x0 0
+  Address              0x30 48 [0x00030000]
+DBGDSCR    0x03008002
+  HALTED               0x0 0
+  RESTARTED            0x1 1
+  MOE                  0x0 0
+  SDABORT_l            0x0 0
+  ADABORT_l            0x0 0
+  UND_l                0x0 0
+  FS                   0x0 0
+  DBGack               0x0 0
+  INTdis               0x0 0
+  UDCCdis              0x0 0
+  ITRen                0x0 0
+  HDBGen               0x0 0
+  MDBGen               0x1 1
+  SPIDdis              0x0 0
+  SPNIDdis             0x0 0
+  NS                   0x0 0
+  ADAdiscard           0x0 0
+  ExtDCCmode           0x0 0
+  - (SBZ)              0x0 0
+  InstrCompl_l         0x1 1
+  PipeAdv              0x1 1
+  TXfull_l             0x0 0
+  RXfull_l             0x0 0
+  - (SBZ)              0x0 0
+  TXfull               0x0 0
+  RXfull               0x0 0
+  - (SBZ)              0x0 0
+Config base addr reg 0xC1000000
+  (raw value)          0xC1000000 -1056964608
+PLEIDR     0x00000000
+  (raw value)          0x0 0
+TLB lockdown reg 0x00000000
+  (raw value)          0x0 0
+PRRR       0x00098AA4
+  (raw value)          0x98AA4 625316
+NMRR       0x44E048E0
+  (raw value)          0x44E048E0 1155549408
