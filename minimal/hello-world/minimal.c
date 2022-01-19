@@ -129,9 +129,13 @@ static void hello_world()
 
     while(1)
     {
-        MEM(CARD_LED_ADDRESS) = LEDON;
-        msleep(500);
+	#if defined(CARD_LED_ADDRESS) && defined(LEDON)
+	MEM(CARD_LED_ADDRESS) = LEDON;
+	#endif
+	msleep(500);
+	#if defined(CARD_LED_ADDRESS) && defined(LEDOFF)
         MEM(CARD_LED_ADDRESS) = LEDOFF;
+	#endif
         msleep(500);
         
         font_draw(120, 75, COLOR_WHITE, 3, "Hello, World!");
@@ -162,9 +166,13 @@ void boot_post_init_task(void)
     { // can't display anything, blink led to indicate sadness
         while(1)
         {
+ 	    #if defined(CARD_LED_ADDRESS) && defined(LEDON)
             MEM(CARD_LED_ADDRESS) = LEDON;
+	    #endif
             msleep(150);
+	    #if defined(CARD_LED_ADDRESS) && defined(LEDOFF)
             MEM(CARD_LED_ADDRESS) = LEDOFF;
+	    #endif
             msleep(150);
         }
     }

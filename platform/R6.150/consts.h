@@ -2,7 +2,7 @@
  *  EOS R6 1.5.0 consts
  */
 
-#define CARD_LED_ADDRESS            0xD22390C2   /* based on work by coon */
+//#define CARD_LED_ADDRESS            0xD22390C2   /* based on work by coon */
 #define LEDON                       0x24D0002
 #define LEDOFF                      0x24D0003
 
