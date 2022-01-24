@@ -56,9 +56,10 @@ extern float powf(float x, float y);
 
 /** Create a new user level task.
  *
- * The arguments are not really known yet.
+ * Return value is ((int16_t unknown << 16)|(uint16_t task_id)) << 1
+ * i.e., to extract out task_id you do: (val >> 1) & 0xffff
  */
-extern struct task *
+extern uint32_t
 task_create(
         const char *name,
         uint32_t priority,
@@ -72,8 +73,11 @@ task_create(
  *
  * As task_create() but with additional arg for
  * selecting CPU
+ *
+ * Return value is ((int16_t unknown << 16)|(uint16_t task_id)) << 1
+ * i.e., to extract out task_id you do: (val >> 1) & 0xffff
  */
-extern struct task *
+extern uint32_t
 task_create_ex(
         const char *name,
         uint32_t priority,
