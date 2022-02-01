@@ -2,9 +2,9 @@
  *  EOS R6 1.5.0 consts
  */
 
-//#define CARD_LED_ADDRESS            0xD22390C2   /* based on work by coon */
+#define CARD_LED_ADDRESS            0xD22390C0   /* based on work by coon */
 #define LEDON                       0x24D0002
-#define LEDOFF                      0x24D0003
+#define LEDOFF                      0x24C0003
 
 // lorenzo: updated for r6 150
 #define BR_ICACHE_INV_1     0xE0100062   /* first call to icache_invalidate, before cstart */

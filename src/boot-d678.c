@@ -9,6 +9,7 @@
 #if !defined(CONFIG_DIGIC_678)
     #error "Expected D678"
 #endif
+#include"blink.h"
 
 /** These are called when new tasks are created */
 static int my_init_task(int a, int b, int c, int d);
@@ -232,7 +233,6 @@ copy_and_restart(int offset)
                 cstart_start,
                 cstart_start + CSTART_LEN);
 #endif
-
 #ifdef CONFIG_DIGIC_78
     // Fix cache maintenance calls before cstart
     patch_thumb_branch(BR_DCACHE_CLN_1, (uint32_t)my_dcache_clean);
@@ -256,7 +256,7 @@ copy_and_restart(int offset)
     uint32_t reloc_cstart = reloc_addr((uint32_t)cstart_start);
     patch_thumb_branch(BR_CSTART, reloc_cstart | 0x1);
 #endif
-
+ 
     // if firmware_entry calls code in the cstart reloc'd region,
     // we also need to patch that
 #if defined(CONFIG_750D) || defined(CONFIG_5D4) // maybe this should be CONFIG_DIGIC_VI
@@ -280,9 +280,11 @@ copy_and_restart(int offset)
     // so we can instead skip them.
     thunk __attribute__((long_call)) reloc_entry = (thunk)(RELOCADDR + 0xc + 1);
 #elif defined(CONFIG_DIGIC_78)
+//blink(500); // OK
     thunk __attribute__((long_call)) reloc_entry = (thunk)(RELOCADDR + 1);
 #endif
     qprint("[BOOT] jumping to relocated startup code at "); qprintn((uint32_t)reloc_entry); qprint("\n");
+blink(500); //OK
     reloc_entry();
 
     // Unreachable

@@ -144,7 +144,7 @@ static void busy_wait(int n)
             k++;
 }
 
-static void blink(int n)
+ void blink(int n)
 {
     while (1)
     {
@@ -265,7 +265,7 @@ cstart( void )
         MEM(LEDBLUE) = LEDON;
         MEM(LEDRED)  = LEDON; // do we need the red too ?
     #elif defined(CARD_LED_ADDRESS) && defined(LEDON) // A more portable way, hopefully
-        MEM(CARD_LED_ADDRESS) = LEDON;
+	MEM(CARD_LED_ADDRESS) = LEDON;
     #endif
 
     blob_memcpy(
@@ -304,6 +304,7 @@ cstart( void )
         set_S_TX_DATA(0x20040);
       #endif
     #endif
+
     #ifdef CONFIG_DIGIC_VI
       #ifdef CONFIG_5D4
         MEM(0xD20B0270) = 0xC0003;
@@ -354,8 +355,10 @@ cstart( void )
        sooner or later. So, we have copied it to RESTARTSTART, and will tell Canon code not to touch it
        (usually by resizing some memory allocation pool and choosing RESTARTSTART in the newly created space).
     */
+
     qprint("[boot] copy_and_restart "); qprintn(RESTARTSTART); qprint("\n");
     void __attribute__((long_call)) (*copy_and_restart)() = (void*) RESTARTSTART;
+//blink(500);
     copy_and_restart();
 
     // Unreachable

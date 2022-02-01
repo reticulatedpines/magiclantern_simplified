@@ -4,7 +4,7 @@ A tentative to print "hello world"
 
 target minimal/hello-world
 
-Does compile but gives black screen, and camera is freezing, **must remove the battery.**
+Does compile and blinks sdcard. Nice, expensive and decorative for your next christmas
 
 progress or crash here: https://discord.com/channels/671072748985909258/761652283724922880
 
