@@ -118,6 +118,7 @@ static void my_bzero32(void *buf, size_t len)
 
 static void my_create_init_task(struct dryos_init_info *dryos, uint32_t init_task, uint32_t c)
 {
+#if 0	
     // We wrap Canon's create_init_task, allowing us to modify the
     // struct that it takes, which holds a bunch of OS info.
     // We adjust sizes of memory regions to reserve space for ML.
@@ -178,11 +179,13 @@ static void my_create_init_task(struct dryos_init_info *dryos, uint32_t init_tas
     dryos->sys_objs_start += sys_offset_increase;
     dryos->sys_objs_end += sys_offset_increase;
     dryos->sys_mem_start += sys_offset_increase;
-
+#endif
+//blink(500); // OK
     create_init_task(dryos, init_task, c);
 
     return;
 
+        goto fail;
 fail:
     while(1); // SJE FIXME kitor wants to do cool stuff here
 }
@@ -284,7 +287,7 @@ copy_and_restart(int offset)
     thunk __attribute__((long_call)) reloc_entry = (thunk)(RELOCADDR + 1);
 #endif
     qprint("[BOOT] jumping to relocated startup code at "); qprintn((uint32_t)reloc_entry); qprint("\n");
-blink(500); //OK
+//blink(500); //OK
     reloc_entry();
 
     // Unreachable

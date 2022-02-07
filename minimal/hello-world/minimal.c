@@ -8,6 +8,7 @@
 #include "font_direct.h"
 #include "imgconv.h"
 
+#include "blink.h"
 struct task *first_task = NULL; // needed to build due to usage in function_overrides.c
                                 // for D678 cams, not used
 
@@ -121,10 +122,11 @@ static void run_test()
 
 static void hello_world()
 {
+	blink(200);
     /* wait for display to initialize */
     while (!_bmp_vram_raw())
     {
-        msleep(100);
+        msleep(500);
     }
 
     while(1)
@@ -176,6 +178,7 @@ void boot_post_init_task(void)
             msleep(150);
         }
     }
+	//blink(500); / ok
     // initialise to transparent, this allows us to draw over
     // existing screen, rather than replace it, due to checks
     // in refresh_yuv_from_rgb()
