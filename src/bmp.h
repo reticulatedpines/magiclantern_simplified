@@ -67,7 +67,7 @@ inline uint8_t *rgb_vram_preinit()
 {
 #ifdef CONFIG_COMPOSITOR_XCM
     // Get address of MARV for layer 0 from XCM
-    rgb_vram_info = XCM_GetSourceSurface(_pXCM, 0);
+    rgb_vram_info = _pXCM ? XCM_GetSourceSurface(_pXCM, 0) : NULL;
 #else
     // Get address of MARV used by WINSYS to draw GUI
     struct MARV *MARV = _rgb_vram_info;
