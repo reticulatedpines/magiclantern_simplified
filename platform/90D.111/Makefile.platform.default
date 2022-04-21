@@ -1,0 +1,57 @@
+# 90D 1.1.1
+
+#CANON_NAME_FIR  = CCF18101.FIR
+FIRMWARE_ID     = 0x80000417
+#UPDATE_NAME_FIR = LOG_850D.FIR
+ROMBASEADDR     = 0xE0040000
+
+#CONFIG_MMIO_TRACE = y
+
+# We can get space for ML both by shrinking Canon's "user_mem" malloc heap
+# by changing its end address, and by moving the sys_mem and sys_objs regions
+# upwards; creating a gap in the middle.
+#
+# Some info is available from drysh:
+#          ("meminfo -m" in drysh)    ("memmap" in drysh)
+#
+# See e01cac2e on 200D 1.0.1 for most of the names, but note e01ca9ca
+# calls user_mem "Heap".
+#
+# SJE TODO: add Ghidra structs to platform/200D ?  These have the field names.
+#
+# Canon also use names like user_mem_max, but sometimes this is len, not max.
+# I use len or size when it's treated as a length.
+#
+# See e004010c for where these values are used to calc / position the regions.
+# boot-d78.c adjusts these constants before the code runs.
+#
+# Presumably, if too much mem is stolen from user_mem, or sys region
+# is moved too far upwards, Bad Things happen.
+#
+# We could calculate RESTARTSTART at runtime, but the build system currently
+# needs a value for it, I believe because magiclantern binary is not PIC.
+# Consequently, you need to work this out, and you need to ensure it's
+# compatible with the limits defined in consts.h, see ML_MAX_* and
+# ML_RESERVED_MEM.  This is a sensible default:
+# *PTR_DRYOS_BASE + *PTR_SYS_OBJS_OFFSET - 0x40000
+#
+# It's a sensible precaution to pick a value that's well aligned,
+# we run code from this address.
+#
+# user_mem end is XXXXXXX on 90D 1.1.1
+#RESTARTSTART    = 0x002418c0
+
+# Cortex A9, binaries loaded as Thumb
+PLATFORM_ARCH = armv7-a
+CFLAG_USER += -mthumb -mlong-calls
+
+# these should be removed when porting starts
+#ifeq ($(ML_SRC_PROFILE),generic)
+#ML_SRC_PROFILE  = minimal
+#ML_MINIMAL_OBJ  = minimal-d678.o
+#ML_SRC_EXTRA_OBJS += log-d678.o stdio.o function_overrides.o
+#endif
+
+ML_BOOT_OBJ     = boot-d678.o
+ML_SRC_EXTRA_OBJS += function_overrides.o
+
