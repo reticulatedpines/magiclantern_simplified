@@ -20,6 +20,43 @@
 // also ensure this is covered.
 #define FIRMWARE_ENTRY_LEN 0x1000
 
+#define CANON_ORIG_MMU_TABLE_ADDR 0xe0000000 // Yes, this is the rom start, yes, there is code there.
+                                             // I assume ARM MMU alignment magic means this is okay,
+                                             // presumably the tables themselves don't use the early part.
+                                             // I don't have an exact ref in ARM manual.
+
+// On 850D, the region 0x547bd800:0x57c4e500 is not used under light pressure.
+// Can navigate menus, LV on/off, take pictures, take video, playback video.
+// Not fully proven safe but good enough for light usage.
+#define ML_MMU_TABLE_ADDR 0x44e60000 // Our replacement TTBR0 table base address.
+                                     // Must be 0x4000 aligned or the Canon MMU copy routines
+                                     // will fail.
+                                     //
+                                     // You can use low or high mirrored (uncache / cache) addresses,
+                                     // but the table contains absolute address for itself,
+                                     // so you should ensure all accesses to the table consistently
+                                     // use the same mirror.
+                                     //
+                                     // Must be a memory region that DryOS will NEVER write to.
+                                     // If it does, super bad things will happen, the entire VA -> PA
+                                     // mapping system will change and everything will explode.
+                                     //
+                                     // Be very careful about finding an unused memory region
+                                     // before attempting this.
+
+#define ML_MMU_L2_TABLE_ADDR 0x44e65000 // Start of space where we will build MMU L2 table,
+                                        // for mapping ROM addresses to our replacement code.
+                                        //
+                                        // Must not overlap with base table!  So far this
+                                        // has size 0x4900.
+                                        //
+                                        // Must be 0x400 aligned.
+                                        //
+                                        // I think these are size 0x400, not well checked.
+
+#define ML_MMU_64k_PAGE_01 0x44e70000 // some space to copy a ROM page into, where
+                                      // it can be edited and remapped
+
 #define HALFSHUTTER_PRESSED 0 // doesn't seem similar to 200D.  Perhaps gone, like R?
 
 #define DRYOS_ASSERT_HANDLER 0x4000 // Used early in a function I've named debug_assert

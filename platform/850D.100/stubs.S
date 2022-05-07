@@ -38,7 +38,7 @@
 
 /** Tasks **/
     THUMB_FN(0xe03812ce,  task_create)            /* used to start TaskMain, GuiMainTask etc */
-//THUMB_FN(0xdf008f0b,  task_create_ex)         /* as task_create, but allows selecting CPU for task*/
+    THUMB_FN(0xe03814e6,  task_create_ex)         /* as task_create, but allows selecting CPU for task*/
     THUMB_FN(0xe059a902,  msleep)                 /* argument is always multiple of 10 */
     DATA_PTR(    0x1028,  current_task)           /* from task_create; pointer to the current task structure */
     DATA_PTR(    0x1010,  current_interrupt)      /* from interrupt handler (VBAR + 0x18); where the interrupt ID is stored */
@@ -260,6 +260,12 @@ THUMB_FN(0x0,  fsuDecodePartitionTable)
 //THUMB_FN(0xe021ded9, WinSys_AllocateMemory)
 //THUMB_FN(0xe021df7d, WinSys_FreeMemory)
 
+THUMB_FN(0xe0004a26, change_mmu_tables) // Updates TTBRs and does TLB maintenance
+THUMB_FN(0xe000b9de, copy_mmu_tables) // copies from one location to another,
+                                      // fixing up addresses held in table start,
+                                      // and doing cache maintenance
+THUMB_FN(0xe000baf0, mmu_table_routine2) // Some kind of CPU<->CPU comms?
+                                         // Uses c11007b0 and c1100730
 
 // SJE not yet sure how this one works on 850D,
 // looks quite different or I'm reading it wrong

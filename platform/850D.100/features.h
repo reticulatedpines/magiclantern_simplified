@@ -8,6 +8,8 @@
 
 #define FEATURE_DONT_CLICK_ME
 
+//#define CONFIG_MARK_UNUSED_MEMORY_AT_STARTUP
+
 // mostly working - task display is too crowded.
 // Maybe CPU usage should update faster?
 #define CONFIG_TSKMON
