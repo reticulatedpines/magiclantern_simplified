@@ -32,6 +32,10 @@
 /* Common internals
  * Careful - they cannot be overridden from internals.h!
  */
+#ifdef CONFIG_DIGIC_78
+  #define CONFIG_DUAL_CORE // distinct from Dual Digic, which is two CPUs on the same board,
+                           // this is real dual core, shared memory, L2 caches etc.
+#endif
 
 #ifdef CONFIG_DIGIC_678
   /* All recent models use new-style DryOS task hooks */
