@@ -31,10 +31,10 @@
     NSTUB(ROMBASEADDR, firmware_entry)
     THUMB_FN(0xe0040104,  cstart)                 /* calls bzero32 and create_init_task(..., init_task, ...)  MFD: PROBABLY SAME */
     THUMB_FN(0xe05cd190,  bzero32)                /* zeros out a data structure  MFD:UPDATED WITH NEW VALUE*/
-    THUMB_FN(0xe02e04bc,  create_init_task)       /* low-level DryOS initialization MFD: PROBABLY SAME*/
+    THUMB_FN(0xe0363018,  create_init_task)       /* low-level DryOS initialization MFD:UPDATED WITH NEW VALUE*/
     THUMB_FN(0xe0040236,  init_task)              /* USER_MEM size checking, dmSetup, termDriverInit, stdlibSetup etc  MFD: PROBABLY SAME*/
     THUMB_FN(0xe05cbe00,  dcache_clean)           /* loop with MCR p15 c7,c10,1; DSB   MFD: UPDATED WITH NEW VALUE */
-    THUMB_FN(0xe05cbe7c,  icache_invalidate)      /* loop with MCR p15 c7,c5,1; c7,c1,6; c7,c1,0; ISB   MFD:UPDATED WITH NEW VALUE*/
+    THUMB_FN(0xe05cbe70,  icache_invalidate)      /* loop with MCR p15 c7,c5,1; c7,c1,6; c7,c1,0; ISB   MFD:UPDATED WITH NEW VALUE*/
 
 /** Tasks **/
     THUMB_FN(0xe0642626,  task_create)            /* used to start TaskMain, GuiMainTask etc MFD: UPDATED WITH POSSIBLE ENTRY */
@@ -50,7 +50,7 @@
     THUMB_FN(0xe018c13c,  malloc_info)            /* Malloc Information MFD: UPDATED WITH POSSIBLE ENTRY */
     THUMB_FN(0xe018c1d4,  sysmem_info)            /* System Memory Information MFD: UPDATED WITH POSSIBLE ENTRY */
     THUMB_FN(0xe017f194,  memmap_info)            /* Exception vector, DRYOS system memory etc   MFD: UPDATED WITH POSSIBLE ENTRY */
-    THUMB_FN(0xe011c2e8,  smemShowFix)            /* Common Lower, Common Upper etc FD: UPDATED WITH POSSIBLE ENTRY  VERY LOW CONFIDENCE */
+    THUMB_FN(0xe011c2e8,  smemShowFix)            /* Common Lower, Common Upper etc MFD: Probably not exist */
 
 /** Memory allocation **/
     THUMB_FN(0xe05bcd74, _AllocateMemory)      /*MFD: UPDATED WITH POSSIBLE ENTRY */
@@ -58,12 +58,12 @@
     THUMB_FN(0xe05bcbfe,  GetMemoryInformation)   /* called from AllocateMemory MFD: UPDATED WITH POSSIBLE ENTRY  */
     THUMB_FN(0xe05bcbd2,  GetSizeOfMaxRegion)    /*MFD: UPDATED WITH POSSIBLE ENTRY */
     THUMB_FN(0xe05bc818, _alloc_dma_memory)			/*MFD: UPDATED WITH POSSIBLE ENTRY */
-    THUMB_FN(0xe05bc80c, _free_dma_memory)			/*MFD: UPDATED WITH POSSIBLE ENTRY */
+    THUMB_FN(0xe05bc81e, _free_dma_memory)			/*MFD: UPDATED WITH POSSIBLE ENTRY */
 #THUMB_FN(0xE0693B23,  malloc)
 #THUMB_FN(0xE0693B5B,  free)
 
 /** Debug messages **/
-    THUMB_FN(0xe05cc3e4,  DryosDebugMsg)          /* /*MFD: UPDATED WITH POSSIBLE ENTRY */ //lots of debug messages; format string is third argument */
+    THUMB_FN(0xe05cc3e4,  DryosDebugMsg)          /* /*MFD: UPDATED WITH POSSIBLE ENTRY  lots of debug messages; format string is third argument */
 
 /** DMA **/
     THUMB_FN(0xe05f73a2,  dma_memcpy)  /*MFD: UPDATED WITH POSSIBLE ENTRY */
@@ -72,7 +72,7 @@
     THUMB_FN(0xe05b2f0e,  call)                   /* many functions called by name (lv_start, lv_stop etc) */   /*MFD: UPDATED WITH POSSIBLE ENTRY */
 
 /** File I/O **/
-    THUMB_FN(0xe05aeb54, _FIO_OpenFile)			/*MFD: UPDATED WITH POSSIBLE ENTRY  --low confidence*/
+    THUMB_FN(0xe05aeb54, _FIO_OpenFile)			/*MFD: UPDATED WITH POSSIBLE ENTRY  */
     THUMB_FN(0xe05aec06, _FIO_CreateFile) /*MFD: UPDATED WITH POSSIBLE ENTRY */
     THUMB_FN(0xe05aefde, _FIO_ReadFile)		/*MFD: UPDATED WITH POSSIBLE ENTRY  --low confidence*/
     THUMB_FN(0xe05af190, _FIO_WriteFile)     /*MFD: UPDATED WITH POSSIBLE ENTRY */
@@ -106,6 +106,18 @@
 //THUMB_FN(0xe05b0d64,  FIO_UnMount)    /*MFD: UPDATED WITH POSSIBLE ENTRY added just in case*/
 //THUMB_FN(0xe05af262,  FIO_ChainW)    /*MFD: UPDATED WITH POSSIBLE ENTRY added just in case*/
 //THUMB_FN(0xe05b04d8,  FIO_CreateDirEx)    /*MFD: UPDATED WITH POSSIBLE ENTRY added just in case*/
+//THUMB_FN(0xe05af73e,  ----)    /*MFD: UPDATED WITH POSSIBLE ENTRY added just in case*/
+//THUMB_FN(0xe05af73e,  ----)    /*MFD: UPDATED WITH POSSIBLE ENTRY added just in case*/
+//THUMB_FN(0xe05af73e,  ----)    /*MFD: UPDATED WITH POSSIBLE ENTRY added just in case*/
+//THUMB_FN(0xe05af73e,  ----)    /*MFD: UPDATED WITH POSSIBLE ENTRY added just in case*/
+//THUMB_FN(0xe05af73e,  ----)    /*MFD: UPDATED WITH POSSIBLE ENTRY added just in case*/
+//THUMB_FN(0xe05af73e,  ----)    /*MFD: UPDATED WITH POSSIBLE ENTRY added just in case*/
+//THUMB_FN(0xe05af73e,  ----)    /*MFD: UPDATED WITH POSSIBLE ENTRY added just in case*/
+//THUMB_FN(0xe05af73e,  ----)    /*MFD: UPDATED WITH POSSIBLE ENTRY added just in case*/
+//THUMB_FN(0xe05af73e,  ----)    /*MFD: UPDATED WITH POSSIBLE ENTRY added just in case*/
+
+
+
 
 
 
@@ -117,9 +129,9 @@
 
 /** GUI **/
 //THUMB_FN(0xe04044ce,  GUI_Control) // Looks missing on 850D, possibly same as R 
-    THUMB_FN(0xee059377e,  SetGUIRequestMode) // Code is quite different from earlier cams, not a big switch? MFD: UPDATED WITH POSSIBLE ENTRY. CODE IS A LITTLE DIFFERENT
+    THUMB_FN(0xe059377e,  SetGUIRequestMode) // Code is quite different from earlier cams, not a big switch? MFD: UPDATED WITH POSSIBLE ENTRY. CODE IS A LITTLE DIFFERENT
                                              // Possibly weird decomp?  Param is the same though, maybe it still works
-    THUMB_FN(0xee057c5d0,  gui_init_end) // DNE on R, but does on 850D MFD: UPDATED WITH POSSIBLE ENTRY
+    THUMB_FN(0xe057c5d0,  gui_init_end) // DNE on R, but does on 850D MFD: UPDATED WITH POSSIBLE ENTRY
     THUMB_FN(0xe020b240,  gui_main_task)    //MFD: UPDATED WITH POSSIBLE ENTRY
     THUMB_FN(0xe020b376,  gui_enqueue_message) // "warning! QueueLength=%d" MFD: UPDATED WITH POSSIBLE ENTRY LOW CONFIDENCE
 
@@ -140,15 +152,15 @@
 /** MPU communication **/
     THUMB_FN(0xe008ba68,  mpu_send) // "InterCom::Siodriver.c" //MFD: UPDATED WITH POSSIBLE ENTRY CODE IS A LITTLE DIFFERENT
     THUMB_FN(0xe0641e4c,  mpu_recv) // "ReceiveCBR : Unknown Command" //MFD: ReceiveCBR : Unknown Command IS THERE, HOWEVER THE CODE IS QUITE DIFFERENT
-    DATA_PTR(    0xafa4,  mpu_recv_cbr) // search for Direct Refs to mpu_recv address, function pointer should be found,
+    DATA_PTR(    0x02354930,  mpu_recv_cbr) // search for Direct Refs to mpu_recv address, function pointer should be found, //MFD: UPDATED WITH POSSIBLE value
                                         // find the function that uses it, which stores it; address where stored is mpu_recv_cbr
-    DATA_PTR(   0x5b808,  mpu_send_ring_buffer)      // ring buffer used in mpu_send
-    DATA_PTR(    0xaf98,  mpu_send_ring_buffer_tail) // ring buffer index incremented in mpu_send
-    DATA_PTR(   0x5b6c8,  mpu_recv_ring_buffer)      // ring buffer used in SIO3_ISR, subroutine that processes two chars at a time
-    DATA_PTR(    0xafb0,  mpu_recv_ring_buffer_tail) // ring buffer index incremented in the above subroutine
+    DATA_PTR(   0x76160,  mpu_send_ring_buffer)      // ring buffer used in mpu_send //MFD: UPDATED WITH POSSIBLE value
+    DATA_PTR(    0xaf98,  mpu_send_ring_buffer_tail) // ring buffer index incremented in mpu_send MFD: same
+    DATA_PTR(   0x76020,  mpu_recv_ring_buffer)      // ring buffer used in SIO3_ISR, subroutine that processes two chars at a time //MFD: UPDATED WITH POSSIBLE
+    DATA_PTR(    0xafb0,  mpu_recv_ring_buffer_tail) // ring buffer index incremented in the above subroutine //MFD: UPDATED WITH POSSIBLE value
 
 /** Misc **/
-    THUMB_FN(0xe0069bf8,  vsnprintf)              /* called near dmstart; references "01234567", "0123456789", "0123456789abcdef" //MFD: UPDATED WITH POSSIBLE ENTRY
+    THUMB_FN(0xe0069bf8,  vsnprintf)              /* called near dmstart; references "01234567", "0123456789", "0123456789abcdef" MFD: UPDATED WITH POSSIBLE ENTRY
                                                  and "0123456789ABCDEF"; second arg is size; the one called by DebugMsg only knows %s */
 
 // SJE stuff found during investigation, maybe not needed for ML
@@ -162,9 +174,9 @@
 
 // UNSURE or untested
     THUMB_FN(0xe00b0822,  get_task_by_id) // called indirectly by task_create and functions using string "TASK Name" //MFD: updated with possible entry
-    THUMB_FN(0xe0397950, _get_task_info_by_id)  //MFD: updated with possible entry
-    NSTUB(    0x50c4,  dm_names) // in DebugMsg, before the 1st loop target
-    NSTUB(   0x14514,  sd_device) // in sdReadBlk, probably 0xe02b6fa2.  Lots of refs
+    THUMB_FN(0xe0397950, _get_task_info_by_id)  //MFD: updated with possible entry  //MFD: updated with possible entry
+    NSTUB(    0x0234e5c4,  dm_names) // in DebugMsg, before the 1st loop target //MFD: updated with possible entry
+    NSTUB(   0x0235e09c,  sd_device) // in sdReadBlk, probably 0xe02b6fa2.  Lots of refs //MFD: updated with possible entry
                                   // to 0x1fd7c, some to 0x1fd80
     NSTUB(    0x53ec,  gui_main_struct) // See function using "Queue Clear event" string, e00c55b6
                                         // There's a base of struct, and some refs to fields via offsets.
@@ -172,7 +184,7 @@
 //THUMB_FN(0xe00c54ab,  GUI_ChangeMode) // "GUI_ChangeMode:%d" string
     THUMB_FN(0xe0592018,  DispSensorStart) // 0x86f4 looks to be a bool for whether Sensor is started  //MFD: REPLACED WITH POSSIBLE Entry
     THUMB_FN(0xe05bb740,  DeleteMemorySuite)   //MFD: REPLACED WITH POSSIBLE Entry
-    THUMB_FN(0xe0599ec0,  CreateMemorySuite)    //MFD: REPLACED WITH POSSIBLE Entry
+    THUMB_FN(0xe05bb9cc,  CreateMemorySuite)    //MFD: REPLACED WITH POSSIBLE Entry
     THUMB_FN(0xe05bb012,  CreateMemoryChunk) // called from CreateMemorySuite  //MFD: REPLACED WITH POSSIBLE Entry
 
 //NSTUB(0xe05bb6c2,  GetSizeOfMemorySuite) // not needed, but I found it along the way //MFD: REPLACED WITH POSSIBLE Entry
@@ -212,14 +224,14 @@
     THUMB_FN(0xe05b2b60,  msg_queue_create) // CreateMessageQueue - In 50D, msg_queue_create calls 0xff866424,
                                         // the equiv of which is 0xdf00b114 (and was easier to find) MDF: REPLACED WITH POSSIBLE ENTRY
     THUMB_FN(0xe05bdea8,  prop_deliver) // used near "UNKNOWN PROPERTY ID " in call to DryosDebugMsg   MDF: REPLACED WITH POSSIBLE ENTRY
-    THUMB_FN(0xe05bd9b2,  prop_register_slave)  // MFD: REPLACED WITH POSSIBLE Entry
+    THUMB_FN(0xe05bd9b2,  prop_register_slave)   //MFD: REPLACED WITH POSSIBLE Entry
     DATA_PTR(0xeb80,      LiveViewApp_dialog) // in StartLiveViewApp()
-    THUMB_FN(0xe044ffae,  LiveViewApp_handler) // DebugMsg: "StartLiveViewApp(%#x)", address passed to CreateDialogBox MFD: REPLACED WITH POSSIBLE Entry
+    THUMB_FN(0xe04518e8,  LiveViewApp_handler) // DebugMsg: "StartLiveViewApp(%#x)", address passed to CreateDialogBox MFD: REPLACED WITH POSSIBLE Entry
     THUMB_FN(0xe07a3bd0,  LiveViewShutterApp_handler) // DebugMsg: "StartLiveViewShutterApp", address passed to CreateDialogBox  MFD: REPLACED WITH POSSIBLE Entry
     THUMB_FN(0xe032c6c0,  PlayMovieGuideApp_handler) // "PlayMovieGuide_Start"    MFD: REPLACED WITH POSSIBLE Entry
     THUMB_FN(0xe0561afa,  PlayMain_handler) // DebugMsg: "StartPlayMain", address passed to CreateDialogBox  MFD: REPLACED WITH POSSIBLE Entry low confidence. code is quite different
     THUMB_FN(0xe0704a2e,  ShootOlcApp_handler) // near "StopShootOlcApp PopPalette(%d)" MFD: REPLACED WITH POSSIBLE Entry
-    THUMB_FN(0x0e08dd04e,  GetCFnData) // "GetCFnData" Function sig is different but the body looks similar.  MFD: REPLACED WITH POSSIBLE Entry
+    THUMB_FN(0xe08dd04e,  GetCFnData) // "GetCFnData" Function sig is different but the body looks similar.  MFD: REPLACED WITH POSSIBLE Entry
                                       // Looks like the inner functions use registers the outer doesn't, which confuses Ghidra
                                       // re how many args outer takes.
     THUMB_FN(0xe08dc6d0,  SetCFnData) // There are some "SetCFnData" related strings MFD: REPLACED WITH POSSIBLE Entry
@@ -236,12 +248,12 @@
     THUMB_FN(0xe05519ec,  SRM_FreeMemoryResourceFor1stJob) // find refs to "pMessage", there are several similar looking functions using it,
                                                            // this is my best guess - this one has pPriorMessage and sets offset 8
                                                            // in the struct to 0, offset 0x10 to param1
-														   //MDF: REPLACED WITH POSSIBLE ENTRY
+														 //  MDF: REPLACED WITH POSSIBLE ENTRY
     THUMB_FN(0xe05bdf5c, _prop_cleanup) // "./Multicast/PropertyMgr.c" check funcs that ref this string  MDF: REPLACED WITH POSSIBLE ENTRY
     THUMB_FN(0xe05cb5a4,  CreateRecursiveLock) // via "KerRLock.c", CRL() calls a function that regs this string, not many do  MDF: REPLACED WITH POSSIBLE ENTRY
     THUMB_FN(0xe05a9478,  AcquireRecursiveLock)  //MDF: REPLACED WITH POSSIBLE ENTRY
     THUMB_FN(0xe05a9542,  ReleaseRecursiveLock)  //MDF: REPLACED WITH POSSIBLE ENTRY
-    THUMB_FN(0xe058b7cc,  dialog_redraw) // Found via checking xrefs to "pDialog->pSignature == pcSignature"
+    THUMB_FN(0xe059758e,  dialog_redraw) // Found via checking xrefs to "pDialog->pSignature == pcSignature"  //MDF: REPLACED WITH POSSIBLE ENTRY
 //THUMB_FN(0xe04b3739,  CreateResLockEntry) // via xrefs to a pointer to "ResInfo"
 //THUMB_FN(0xe04b3b59,  LockEngineResources) //  Down a bit from CreateResLockEntry, start v similar but end is different.
 //THUMB_FN(0xe06217f1,  ErrForCamera_handler) // ERR70, ERR80 etc (DlgErrForCamera.c, AJ_DIALOG.HANDLER_DlgErrForCamera.c)
@@ -253,7 +265,7 @@ THUMB_FN(0x0,  fsuDecodePartitionTable)
                                   // (we don't use this, but instead calculate it during early init,
                                   //  to save backporting this stub for all older cams)
     NSTUB(    0x4108,  task_max)
-    NSTUB(    0x115c0,  gui_task_list) // Strings have changed or been removed compared to earlier cams.
+    NSTUB(    0x0235b190,  gui_task_list) // Strings have changed or been removed compared to earlier cams.  //MDF: REPLACED WITH POSSIBLE ENTRY
                                        // Found via checking all call sites of CreateRecursiveLock()
                                        // and comparing with 200d until similar code found.
                                        // gui_task_list is lock related
@@ -262,9 +274,9 @@ THUMB_FN(0x0,  fsuDecodePartitionTable)
 
 // These are required on Digic 678
     THUMB_FN(0xe02c08ec, RefreshVrmsSurface) // "Call RefreshVrmsSurface" / "XimrExe"  MDF: REPLACED WITH POSSIBLE ENTRY
-    DATA_PTR(   0x11738,  display_refresh_needed) // if 0, RefreshVrmsSurface() does nothing
+    DATA_PTR(   0x0235b308,  display_refresh_needed) // if 0, RefreshVrmsSurface() does nothing
     THUMB_FN(0xe0194248, XimrExe) // trigger Ximr unit to execute (HW compositor, partially understood) MDF: REPLACED WITH POSSIBLE ENTRY
-    DATA_PTR(   0x11724,  winsys_sem)
+    DATA_PTR(   0x0235b2f4,  winsys_sem)
 
 // These are not strictly required, although recent dev work has added dependencies;
 // these likely should be removed before a "real" release
