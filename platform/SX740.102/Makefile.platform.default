@@ -49,4 +49,4 @@ PLATFORM_ARCH = armv7-a
 #endif
 
 ML_BOOT_OBJ     = boot-d678.o
-ML_SRC_EXTRA_OBJS += function_overrides.o
+ML_SRC_EXTRA_OBJS += function_overrides.o  test_features.o
