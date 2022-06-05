@@ -69,7 +69,7 @@ DATA_PTR(    0xFDFC,  bmp_vram_info)                        /* first YUV VRAM bu
 THUMB_FN(0xE0563314,  DryosDebugMsg)                        /* lots of debug messages; format string is third argument */
 
 /** Dumper **/
-THUMB_FN(0xE13192D8,  dump_file)                            /* tries to save a file to either "A:/%s" or "B:/%s"; calls FIO_RemoveFile/CreateFile/WriteFile/CloseFile/Flush */
+THUMB_FN(0xe00bd69e,  dump_file)                            // shouldn't be used, gone from newer models
 
 /** Eventprocs (call by name) **/
 THUMB_FN(0xE0553072,  call)                                 /* used in ElectricCurrentFirm */
@@ -329,8 +329,8 @@ DATA_PTR(   0x13874,  LiveViewApp_dialog)                   // in StartLiveViewA
  * UNUSED but referenced elsewhere
  **/
 //THUMB_FN(0xe0780cb8,  ctrlman_dispatch_event)
-//THUMB_FN(, WINSYS_CreateDialogBox_wrapper)                // Equiv. of `CreateDialogBox()`. Forces layer ID to 0 (GUI)
-//THUMB_FN(, WINSYS_CreateDialogBox)                        // Actual logic. Takes one more argument than CreateDialogBox() (layer ID)
+//THUMB_FN(e0541da6, WINSYS_CreateDialogBox_wrapper)        // Equiv. of `CreateDialogBox()`. Forces layer ID to 0 (GUI)
+//THUMB_FN(e0541b80, WINSYS_CreateDialogBox)                // Actual logic. Takes one more argument than CreateDialogBox() (layer ID)
                                                             // On R, Layer 1 is used only by StartLiveViewAFFrameApp()
 
 /**

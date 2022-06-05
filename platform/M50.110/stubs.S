@@ -69,7 +69,7 @@ DATA_PTR(    0xFC20,  bmp_vram_info)                        /* first VRAM buffer
 THUMB_FN(0xE0577FD0,  DryosDebugMsg)                        /* lots of debug messages; format string is third argument */
 
 /** Dumper **/
-THUMB_FN(0xE12FA534,  dump_file)                            /* tries to save a file to either "A:/%s" or "B:/%s"; calls FIO_RemoveFile/CreateFile/WriteFile/CloseFile/Flush */
+THUMB_FN(0xe00db9e6,  dump_file)                            // shouldn't be used, gone from newer models
 
 /** Eventprocs (call by name) **/
 THUMB_FN(0xE05722C6 ,  call)                                 /* many functions called by name (lv_start, lv_stop etc) */
