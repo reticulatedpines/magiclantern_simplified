@@ -3,6 +3,7 @@
 //enable XCM only in full build
 #ifndef ML_MINIMAL_OBJ
 #define CONFIG_COMPOSITOR_XCM
+#define CONFIG_COMPOSITOR_DEDICATED_LAYER
 #endif
 
 // Don't Click Me menu looks to be intended as a place

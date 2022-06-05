@@ -123,9 +123,9 @@ void rgba_fill(uint32_t color, int x, int y, int w, int h)
  * Implementation specific to XCM
  */
 
-#ifdef CONFIG_R
+#if defined(CONFIG_R) || defined(CONFIG_SX740)
 /*
- * Structures specific to EOSR
+ * Structures specific to EOS R / PowerShot SX740
  *
  * RENDERER_LayersArr    holds MARV struct pointers to layers created by
  *                       RENDERER_InitializeScreen(). Those are layers created
@@ -135,13 +135,16 @@ void rgba_fill(uint32_t color, int x, int y, int w, int h)
  *                       Entries from array above are copied in (what I called)
  *                       Initialize_Renedrer() after RENDERER_InitializeScreen()
  *                       and VMIX_InitializeScreen() are done.
+ * EOS R only:
  * VMIX_LayersEnableArr  Controls if layer with given ID is displayed or not.
  *                       Set up just after XCM_LayersArr is populated.
  */
 extern struct MARV *RENDERER_LayersArr[XIMR_MAX_LAYERS];
 extern struct MARV *VMIX_LayersArr[XIMR_MAX_LAYERS];
+#if defined(CONFIG_R)
 extern uint32_t     VMIX_LayersEnableArr[XIMR_MAX_LAYERS];
 #endif // CONFIG_R
+#endif // CONFIG_R || CONFIG_SX740
 
 void compositor_set_visibility(int state)
 {
@@ -162,6 +165,7 @@ void compositor_set_visibility(int state)
      */
     VMIX_LayersEnableArr[_rgb_vram_layer_id] = state;
 #else
+    // SX740 should also use XimrContext layer setings directly
     DryosDebugMsg(0, 15, "compositor_set_visibility not implemented yet!");
 #endif // CONFIG_R
     //do we want to call redraw, or leave it to the caller?
@@ -176,7 +180,7 @@ int compositor_layer_setup()
 {
     // So far it seems that default GUI layer is always 0
     int newLayerID = 0;
-#ifdef CONFIG_R
+#if defined(CONFIG_R) || defined(CONFIG_SX740)
     for(int i = 0; i < XIMR_MAX_LAYERS; i++)
     {
         if(RENDERER_LayersArr[i] == NULL)
@@ -207,19 +211,21 @@ int compositor_layer_setup()
      * for that.
      */
 
-#ifdef CONFIG_R
-    // EOS R specific
+#if defined(CONFIG_R) || defined(CONFIG_SX740)
+    // EOS R / SX740 specific
 
     // add new layer to compositor layers array
     RENDERER_LayersArr[newLayerID] = pNewLayer;
     VMIX_LayersArr[newLayerID] = pNewLayer;
 
+#if defined(CONFIG_R)
     // enable new layer - just in case (all were enabled by default on R180)
     VMIX_LayersEnableArr[newLayerID] = 1;
+#endif // CONFIG_R
 #else
     DryosDebugMsg(0, 15, "Not implemented yet");
     return 1;
-#endif // CONFIG_R
+#endif // CONFIG_R || CONFIG_SX740
 
     // save rgb_vram_info as last step, in case something above fails.
     rgb_vram_info   = pNewLayer;
