@@ -73,7 +73,7 @@ static int handle_buttons(struct event * event)
     extern int ml_started;
     if (!ml_started) return 1;
 
-
+    DryosDebugMsg(0,15,"event: %08x", event->param);
     if (handle_common_events_by_feature(event) == 0) return 0;
 
     return 1;
@@ -120,7 +120,7 @@ void ml_gui_main_task()
         #elif defined(CONFIG_R) || defined(CONFIG_RP) || defined(CONFIG_850D)
         msg_queue_receive(gui_main_struct.msg_queue_eosr, &event, 0);
         gui_main_struct.counter_550d--;
-        #elif defined(CONFIG_M50)
+        #elif defined(CONFIG_M50) || defined(CONFIG_SX740)
         msg_queue_receive(gui_main_struct.msg_queue_m50, &event, 0);
         gui_main_struct.counter_550d--;
         #else

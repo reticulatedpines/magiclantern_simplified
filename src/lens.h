@@ -212,11 +212,11 @@ SIZE_CHECK_STRUCT( prop_lv_lens, 58 );
  * PROP_LENS_DYNAMIC_DATA = PROP_LV_LENS + ???
  *
  * Those are quite huge, they size depend on camera.
- * So far we have data from M50, 250D, 850D, R, RP and (bonus) R6.
- *             M50      R     RP    250D   850D    R6
- * STATIC     0x138   0x184  0x184  0x180  0x1C8  0x1C8
- * DYNAMIC    0x84    0x90   0x90   0x8C   0x90   0x94
- * DryOS ICU   P2      P4     P4     P5     P8     P9
+ * So far we have data from M50, SX740, 250D, 850D, R, RP and (bonus) R6.
+ *             M50   SX740    R     RP    250D   850D    R6
+ * STATIC     0x138  0x178  0x184  0x184  0x180  0x1C8  0x1C8
+ * DYNAMIC    0x84   0x8C   0x90   0x90   0x8C   0x90   0x94
+ * DryOS ICU   P2     P3     P4     P4     P5     P8     P9
  *
  * A lot of PROP_LENS_STATIC_DATA can be decoded via `readid` evshell function.
  *
@@ -224,8 +224,8 @@ SIZE_CHECK_STRUCT( prop_lv_lens, 58 );
  * right between models. For easier debugging I left those paddings filled in.
  */
 
-#if defined(CONFIG_M50) || defined(CONFIG_R) || defined(CONFIG_RP) || defined (CONFIG_250D)
-// variants M50, R + RP, 250D combined
+#if defined(CONFIG_M50) || defined(CONFIG_SX740) || defined(CONFIG_R) || defined(CONFIG_RP) || defined (CONFIG_250D)
+// variants M50, SX740, R + RP, 250D combined
 struct prop_lens_static_data
 {
         uint8_t                 attached;
@@ -305,6 +305,8 @@ struct prop_lens_static_data
 
 #if defined(CONFIG_M50)
 SIZE_CHECK_STRUCT( prop_lens_static_data, 0x138 );
+//#elif defined(CONFIG_SX740) kitor FIXME: enable
+//SIZE_CHECK_STRUCT( prop_lens_static_data, 0x178 );
 #elif defined(CONFIG_250D)
 SIZE_CHECK_STRUCT( prop_lens_static_data, 0x180 );
 #else  // R, RP
@@ -423,7 +425,7 @@ struct prop_lens_dynamic_data {
         uint16_t                jsstep;
         uint8_t                _pad_02[4];        // M50, R, RP, 250D, 850D, R6
         uint16_t                IDC;
-#if !defined(CONFIG_M50) && !defined(CONFIG_250D)
+#if !defined(CONFIG_M50) && !defined(CONFIG_250D) && !defined(CONFIG_SX740)
         uint8_t                _pad_03[2];        // R, RP, 850D, R6; not on M50, 250D (alignment?)
 #endif
         uint16_t                po;
@@ -500,7 +502,7 @@ struct prop_lens_dynamic_data {
 SIZE_CHECK_STRUCT( prop_lens_dynamic_data, 0x94 );
 #elif defined(CONFIG_850D) || defined(CONFIG_R) || defined(CONFIG_RP)
 SIZE_CHECK_STRUCT( prop_lens_dynamic_data, 0x90);
-#elif defined(CONFIG_250D)
+#elif defined(CONFIG_250D) || defined(CONFIG_SX740)
 SIZE_CHECK_STRUCT( prop_lens_dynamic_data, 0x8C);
 #elif defined(CONFIG_M50)
 SIZE_CHECK_STRUCT( prop_lens_dynamic_data, 0x84);
