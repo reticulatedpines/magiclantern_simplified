@@ -2,9 +2,9 @@ name: Build Magic Lantern
 
 on:
   push:
-    branches: [ gh-actions ]
+    branches: [ dev ]
   pull_request:
-    branches: [ gh-actions ]
+    branches: [ dev ]
 
 jobs:
   build:
