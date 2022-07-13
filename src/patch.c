@@ -8,6 +8,12 @@
 #include <bmp.h>
 #include <console.h>
 
+// Digic 678X can't do cache lockdown, which this patching system is based on.
+// Note that patch.c and cache.c both can provide sync_caches(), with patch.c
+// preserving cache hacks / cache patches through a sync.  We link against both files.
+// cache.c provides a weak symbol, so it will get used on D678X, but not D45.
+#ifdef CONFIG_DIGIC_45
+
 #undef PATCH_DEBUG
 
 #ifdef PATCH_DEBUG
@@ -1346,3 +1352,4 @@ static void patch_simple_init()
 
 INIT_FUNC("patch", patch_simple_init);
 
+#endif

@@ -187,14 +187,8 @@ ML_SRC_OBJS = \
 	raw.o \
 	chdk-dng.o \
 	edmac-memcpy.o \
+	patch.o \
 	cache.o
-# patch.o is potentially dangerous on Digic7!
-# Triggers usage of cache_locked(), which causes Qemu to crash,
-# and may be wrong on Digic7.  The cache.o above provides the
-# same required symbol, allegedly in a less dangerous (though
-# still untested way)
-#	patch.o \
-
 
 ML_OBJS-y += $(ML_SRC_OBJS)
 

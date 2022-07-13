@@ -3,20 +3,20 @@
 
 #ifdef __ARM__
 
-
+#ifdef CONFIG_DIGIC_45
 /*
- * Canon cameras appear to use the ARMv5 946E.
+ * Canon cameras prior to Digic 6 appear to use the ARMv5 946E.
  * (Confirmed on: 550D, ... )
  *
  * This processor supports a range of cache sizes from no cache (0KB) or
  * 4KB to 1MB in powers of 2. Instruction(icache) and data(dcache) cache sizes
- * can be independent and can not be changed at run time.
+ * can be independent and cannot be changed at run time.
  *
  * A cache line is 32 bytes / 8 words / 8 instructions.
- * 	byte address 	(Addr[1:0] = 2 bits)
- * 	word address 	(Addr[4:2] = 2 bits)
- * 	index 			(Addr[i+4:5] = i bits)
- * 	address TAG 	(Addr[31:i+5] = 27 - i bits)
+ *  byte address    (Addr[1:0] = 2 bits)
+ *  word address    (Addr[4:2] = 2 bits)
+ *  index           (Addr[i+4:5] = i bits)
+ *  address TAG     (Addr[31:i+5] = 27 - i bits)
  * Where 'i' is the size of the cache index in bits.
  *
  * There are 2^i cache lines.
@@ -35,6 +35,26 @@
  * to be cleaned because it cannot be written to.
  *
  * Dcache is automatically disabled and flushed on reset.
+ */
+
+/*
+ * We don't use this file for D678X.
+ *
+ * Digic 6 cams use ARMv7-R, Digic 7, 8 and X ARMv7-A.
+ * These cpus - at least in Qemu - do not support cache lockdown.
+ * Some physical cams have been tested and attempts to use cache lockdown
+ * trigger hard crashes.  Arm ARM v7-AR states that cache lockdown
+ * may be implemented, but how it works is implementation defined.
+ *
+ * "With the ARMv7 abstraction of the hierarchical memory model, for CP15 c9,
+ *  all encodings with CRm = {c0-c2, c5-c8} are reserved for implementation defined
+ *  cache, branch predictor and TCM operations"
+ *
+ * Therefore, possibly it exists on these cams, but we don't yet know
+ * how to use it.  Or, it doesn't exist.
+ *
+ * However - these cams have MMU, so we care much less about cache lockdown;
+ * it's not necessary for patching ROM contents.
  */
 
 #define TYPE_DCACHE 0
@@ -447,29 +467,9 @@ static void dcache_lock()
 
 /* these are the "public" functions. please use only these if you are not sure what the others are for */
 
-#if !defined(CONFIG_DIGIC_678)
-// FIXME SJE, this wants proving / disproving for compatibility with Digic7,
-// and maybe replacing with a known good version for ARMv7-A (and -R).
 static uint32_t cache_locked()
 {
     uint32_t status = 0;
-    // e.g. see:
-    // https://developer.arm.com/documentation/ddi0406/cb/Appendixes/ARMv4-and-ARMv5-Differences/System-Control-coprocessor--CP15-support/CP15-c9--cache-lockdown-support
-
-    // For 200D (Digic7), this may be relevant:
-    // https://developer.arm.com/documentation/ddi0406/cb/System-Level-Architecture/Common-Memory-System-Architecture-Features/Caches-and-branch-predictors/Cache-behavior?lang=en#CBHFDAJB
-    // "For an ARMv7 implementation:
-    //
-    //  There is no requirement to support cache lockdown.
-    //
-    //  If cache lockdown is supported, the lockdown mechanism is implementation defined. However key properties of the interaction of lockdown with the architecture must be described in the implementation documentation.
-    //
-    //  The Cache Type Register does not hold information about lockdown."
-    // 
-    // Might this explain Qemu triggering UndefinedInstruction for the following line?
-    //
-    // Also: 
-    // "With the ARMv7 abstraction of the hierarchical memory model, for CP15 c9, all encodings with CRm = {c0-c2, c5-c8} are reserved for implementation defined cache, branch predictor and TCM operations"
     asm volatile ("\
        /* get lockdown status */\
        MRC p15, 0, %0, c9, c0, 1\r\n\
@@ -477,7 +477,6 @@ static uint32_t cache_locked()
     
     return status;
 }
-#endif
 
 static void cache_lock()
 {
@@ -520,5 +519,6 @@ static uint32_t cache_fake(uint32_t address, uint32_t data, uint32_t type)
 #endif
 }
 
+#endif // CONFIG_DIGIC_45
 #endif /* __ARM__ */
 #endif
