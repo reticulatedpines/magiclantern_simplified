@@ -339,7 +339,8 @@ module_symbol_##NAME = { \
 /* e.g. if (is_camera("5D3", "1.2.3")) { adtg_write_addr = 0x1234 } */
 /* also if (is_camera("DIGIC", "5")) { ... } */
 /* see propvalues.c */
-extern int is_camera(const char * model, const char * version);
+extern int is_camera(const char *model, const char *version);
+extern int get_digic_version(void);
 
 #ifdef MODULE
 #include "module_strings.h"

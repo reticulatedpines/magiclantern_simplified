@@ -1098,32 +1098,27 @@ static void stub_test_model_id()
     // model, firmware version
     TEST_MSG("[INFO] Camera model: %s %s (0x%X %s)\n", camera_model, firmware_version, camera_model_id, __camera_model_short);
 
-    TEST_FUNC_CHECK(is_camera("DIGIC", "*"), == 1);
     TEST_FUNC_CHECK(is_camera(__camera_model_short, firmware_version), == 1);
 
     if (is_camera("5D3", "*"))
     {
         TEST_FUNC_CHECK(is_camera("5D2", "*"), == 0);
-        TEST_FUNC_CHECK(is_camera("DIGIC", "4"), == 0);
-        TEST_FUNC_CHECK(is_camera("DIGIC", "5"), == 1);
+        TEST_FUNC_CHECK(get_digic_version(), == 5);
     }
     else if (is_camera("60D", "*"))
     {
         TEST_FUNC_CHECK(is_camera("600D", "*"), == 0);
-        TEST_FUNC_CHECK(is_camera("DIGIC", "5"), == 0);
-        TEST_FUNC_CHECK(is_camera("DIGIC", "4"), == 1);
+        TEST_FUNC_CHECK(get_digic_version(), == 4);
     }
     else if (is_camera("80D", "*"))
     {
         TEST_FUNC_CHECK(is_camera("70D", "*"), == 0);
-        TEST_FUNC_CHECK(is_camera("DIGIC", "5"), == 0);
-        TEST_FUNC_CHECK(is_camera("DIGIC", "6"), == 1);
+        TEST_FUNC_CHECK(get_digic_version(), == 6);
     }
     else if (is_camera("200D", "*"))
     {
         TEST_FUNC_CHECK(is_camera("100D", "*"), == 0);
-        TEST_FUNC_CHECK(is_camera("DIGIC", "6"), == 0);
-        TEST_FUNC_CHECK(is_camera("DIGIC", "7"), == 1);
+        TEST_FUNC_CHECK(get_digic_version(), == 7);
     }
 }
 

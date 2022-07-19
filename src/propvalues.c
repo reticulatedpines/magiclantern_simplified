@@ -19,46 +19,34 @@ char camera_serial[32];
 
 /* is_camera("5D3", "1.2.3") - will check for a specific camera / firmware version */
 /* is_camera("5D3", "*") - will accept all firmware versions */
-/* is_camera("DIGIC", "5") - will accept all DIGIC 5 models */
 /* todo: possibly other classifications? */
-int is_camera(const char * model, const char * version)
+int is_camera(const char *model, const char *version)
 {
-    if (streq(model, "DIGIC"))
-    {
-        if (streq(version, "*"))
-        {
-            /* only DIGIC models supported */
-            return 1;
-        }
-
-        if (strlen(version) != 1)
-        {
-            /* only one-digit DIGIC version check is currently supported, i.e. no 4+ or similar */
-            return 0;
-        }
-
-        #if   defined(CONFIG_DIGIC_II)
-        return version[0] == '2';
-        #elif defined(CONFIG_DIGIC_III)
-        return version[0] == '3';
-        #elif defined(CONFIG_DIGIC_IV)
-        return version[0] == '4';
-        #elif defined(CONFIG_DIGIC_V)
-        return version[0] == '5';
-        #elif defined(CONFIG_DIGIC_VI)
-        return version[0] == '6';
-        #elif defined(CONFIG_DIGIC_VII)
-        return version[0] == '7';
-        #elif defined(CONFIG_DIGIC_VIII)
-        return version[0] == '8';
-        #else
-        #error FIXME: no CONFIG_DIGIC_version defined.
-        #endif
-    }
-
-    return 
+    return
         streq(__camera_model_short, model) &&                         /* check camera model */
         (streq(firmware_version, version) || streq(version, "*"));    /* check firmware version */
+}
+
+// returns digic version as int
+int get_digic_version(void)
+{
+        #if defined(CONFIG_DIGIC_II)
+        return 2;
+        #elif defined(CONFIG_DIGIC_III)
+        return 3;
+        #elif defined(CONFIG_DIGIC_IV)
+        return 4;
+        #elif defined(CONFIG_DIGIC_V)
+        return 5;
+        #elif defined(CONFIG_DIGIC_VI)
+        return 6;
+        #elif defined(CONFIG_DIGIC_VII)
+        return 7;
+        #elif defined(CONFIG_DIGIC_VIII)
+        return 8;
+        #else
+        #error "FIXME: no CONFIG_DIGIC_version defined, or unknown CONFIG_DIGIC_version"
+        #endif
 }
 
 PROP_HANDLER(PROP_CAM_MODEL)
