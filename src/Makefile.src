@@ -187,6 +187,7 @@ ML_SRC_OBJS = \
 	raw.o \
 	chdk-dng.o \
 	edmac-memcpy.o \
+	cache_hacks.o \
 	patch.o \
 	cache.o
 
