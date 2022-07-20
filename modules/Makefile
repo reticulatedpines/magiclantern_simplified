@@ -35,7 +35,7 @@ clean: $(MODULES_CLEAN_ALL_TARGETS)
 
 install: | prepare_install_dir
 install: all
-	$(CP) $(MODULES_DIR)/*/*.mo $(INSTALL_MODULES_DIR)/
+	$(PYTHON3) copy_modules_with_satisfied_deps.py $(INSTALL_MODULES_DIR) $(ML_MODULES)
 
 $(MODULES_INSTALL_ALL_TARGETS) $(MODULES_CLEAN_ALL_TARGETS) $(MODULES_ALL_TARGETS) $(MODULES_ALL_TARGETS_DELETE_IF_FAILED):
 	$(call call_make_rule, $(MODULES_DIR))

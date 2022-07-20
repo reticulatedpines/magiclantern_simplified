@@ -92,7 +92,7 @@ dump_asm: all
 %.sym: %.mo
 	$(call build,EXPORTS,$(READELF) -sW $< | grep GLOBAL | grep -v UND | grep -v COM | grep -v "__module_.*$(MODULE_NAME)" | $(AWK) "{print \$$2 \" \" \$$8;}" | sort > $@ && cat $@)
 %.dep: %.mo
-	$(call build,DEPENDS,$(READELF) -sW $< | $(GREP) GLOBAL | $(GREP) 00000000 | $(GREP) UND | $(AWK) "{print \$$8;}" | sort > $@ && cd $(MODULES_DIR) && $(PYTHON) checkdep.py $(MODULE_NAME))
+	$(call build,DEPENDS,$(READELF) -sW $< | $(GREP) GLOBAL | $(GREP) 00000000 | $(GREP) UND | $(AWK) "{print \$$8;}" | sort > $@)
 
 modules_install_dir: install_prepare
 	$(call build,MKDIR,$(MKDIR) -p $(INSTALL_MODULES_DIR))
