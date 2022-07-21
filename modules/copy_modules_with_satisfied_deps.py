@@ -86,6 +86,9 @@ def copy_good_modules(module_names, cam_dir, dest_dir):
     cannot_sat_m = {m for m in modules if m.deps - all_syms}
     can_sat_m = modules - cannot_sat_m
 
+    for m in cannot_sat_m:
+        m.unsatisfied_deps = m.deps - all_syms
+
     # Try to find required symbols, initially only from ML exports.
     # As we find modules where all dependencies are satisfied,
     # we add their symbols to those we can use, because these
@@ -111,9 +114,11 @@ def copy_good_modules(module_names, cam_dir, dest_dir):
     unsat_m = {m for m in can_sat_m if m.unsatisfied_deps}
     sat_m = can_sat_m - unsat_m
 
-    print("These modules cannot be included (not possible to meet deps):")
+    print("These modules cannot be included (not possible to meet listed deps):")
     for m in cannot_sat_m:
         print("%s " % m.name)
+        for d in m.unsatisfied_deps:
+            print("\t%s" % d)
     print("\nThese modules will not be included (deps not solved):")
     for m in unsat_m:
         print("%s " % m.name)
