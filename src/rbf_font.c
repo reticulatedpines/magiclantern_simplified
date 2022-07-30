@@ -27,6 +27,16 @@ struct font font_dynamic[MAX_DYN_FONTS+1];
 static char *dyn_font_name[MAX_DYN_FONTS+1];
 uint32_t dyn_fonts = 0;
 
+#ifdef CONFIG_NO_BFNT
+/* kitor: Those replace entries in platform consts.h for DIGIC6+
+ *        that does not use BMP fonts anymore.  */
+uint8_t *BFNT_CHAR_CODES;
+uint8_t *BFNT_BITMAP_OFFSET;
+uint8_t *BFNT_BITMAP_DATA;
+
+bfnt_font* BFNT_FONT;
+#endif
+
 //-------------------------------------------------------------------
 
 static font *new_font() {

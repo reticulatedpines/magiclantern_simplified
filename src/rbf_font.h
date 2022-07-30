@@ -30,11 +30,11 @@ typedef struct
 #ifdef CONFIG_NO_BFNT
 /* kitor: Those replace entries in platform consts.h for DIGIC6+
  *        that does not use BMP fonts anymore.  */
-uint8_t *BFNT_CHAR_CODES;
-uint8_t *BFNT_BITMAP_OFFSET;
-uint8_t *BFNT_BITMAP_DATA;
+extern uint8_t *BFNT_CHAR_CODES;
+extern uint8_t *BFNT_BITMAP_OFFSET;
+extern uint8_t *BFNT_BITMAP_DATA;
 
-bfnt_font* BFNT_FONT;
+extern bfnt_font* BFNT_FONT;
 #endif
 
 //-------------------------------------------------------------------
