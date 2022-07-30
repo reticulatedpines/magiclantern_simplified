@@ -35,7 +35,6 @@
 #include "zebra.h"
 #include "cropmarks.h"
 #include "battery.h"
-#include "lens.h"
 #include "shoot.h"
 #include "hdr.h"
 #include "fps.h"
