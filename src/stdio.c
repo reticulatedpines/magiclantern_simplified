@@ -54,9 +54,9 @@ int iscntrl(int x) { return strchr("\x07\x08\r\n\x0C\x0B\x09",x)!=0; }
 
 int
 snprintf(
-    char *          buf,
-    size_t          max_len,
-    const char *        fmt,
+    char *buf,
+    size_t max_len,
+    const char *fmt,
     ...
 )
 {
@@ -72,6 +72,29 @@ snprintf(
     // of being written to the array, and a null byte is written at the end of the bytes actually written into the array.
     
     // Canon vsnprintf will write max_len + 1 bytes, so we need to pass max_len - 1.
+
+    // Canon "vsnprintf" is not really vsnprintf().  It will *always* write the \0 through the buf pointer,
+    // so you *MUST NOT* use it with max_len 0 and a null pointer to determine how long the buffer needs to be.
+    // On D45 cams, this works, because they have writable memory at 0.  D678X this crashes.
+
+    // These cases will crash on MMU cams due to null pointer deref.
+    // ML code doesn't tend to check snprintf() return value for error :(
+    // But at least this makes it possible in the future.
+    if (buf == NULL)
+    {
+        return -1;
+    }
+    if (fmt == NULL)
+    {
+        return -2;
+    }
+// SJE TODO: what cases should we abort on here?
+// Canon vsnprintf doesn't handle 0, maybe 1 is bad
+// because we decrement before passing?
+//    if (max_len == 0)
+//    {
+//        return -3;
+//    }
 
     va_list         ap;
     va_start( ap, fmt );

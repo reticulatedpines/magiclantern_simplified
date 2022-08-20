@@ -710,7 +710,10 @@ static MENU_UPDATE_FUNC(config_preset_update)
         }
         else
         {
-            MENU_SET_RINFO("%s->%s", current_preset_name, current_mode_name);
+            if (current_preset_name)
+            {
+                MENU_SET_RINFO("%s->%s", current_preset_name, current_mode_name);
+            }
             if (config_selected_by_mode[0])
             {
                 MENU_SET_HELP("Camera was started in %s; restart to load the config for %s.", config_selected_by_mode, current_mode_name);
