@@ -1358,7 +1358,7 @@ void bmp_flip_ex(uint8_t* dst, uint8_t* src, uint8_t* mirror, int voffset)
 
 static void palette_disable(uint32_t disabled)
 {
-    #if defined(CONFIG_VXWORKS) | defined(FEATURE_VRAM_RGBA)
+    #if defined(CONFIG_VXWORKS) || defined(FEATURE_VRAM_RGBA)
     return; // see set_ml_palette
     #endif
 
