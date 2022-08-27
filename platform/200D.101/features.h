@@ -18,6 +18,11 @@
 // dumping all the images that old cams support
 #define FEATURE_SCREENSHOT
 
+// cam doesn't expose call("TurnOnDisplay"),
+// (or TurnOffDisplay), so we must find stubs
+// and call directly
+#define CONFIG_NO_DISPLAY_CALLS
+
 // Testing disabling 30min LV timer.
 // This requires prop_request_change!
 // Also requires LV and State objects; but you

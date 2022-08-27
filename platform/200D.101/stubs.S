@@ -139,6 +139,10 @@ DATA_PTR(    0xfd7c,  winsys_sem)
 DATA_PTR(    0xfec8,  bmp_vsync_cbr)
 THUMB_FN(0xe049e96c,  BmpVsyncCallBack)
 
+// call("TurnOffDisplay") returns -1 on 200D, no longer exists?
+THUMB_FN(0xe048fcac, _turn_off_display)
+THUMB_FN(0xe048fc98, _turn_on_display)
+
 // SJE unsure stuff: currently majority copied from 50D (I have roms for this),
 // or 100D (more modern, presumably sort of similar)
 //

@@ -26,13 +26,15 @@
 // Medium confidence:
 #define DISPLAY_SENSOR_POWERED (*(int *))(0xc640) // c638 looks like base of struct, not sure on the fields.
                                                   // From 0xe014969e
-#define DISPLAY_IS_ON (*(int *)0xc650) // unsure if this is backlight, menu, or what.
+//#define DISPLAY_IS_ON (*(int *)0xc650) // unsure if this is backlight, menu, or what.
                                        // But seems when I can view menu, it's 1, when I can't it's 0.
                                        // See 0xe0149562, which looks to check other variables
                                        // to see when screen should be turned on or off?
                                        //
                                        // Should probably do more work to find a value via a similar
                                        // route to other cams.
+#define DISPLAY_IS_ON (*(int *)0xc68c) // This is 2 when display is on, in Menu, LV and Play,
+                                       // 0 otherwise.
 //#define MALLOC_STRUCT 0x6de60 // via memMap, find the referenced struct point and scroll forwards
                               // through xrefs to that location, looking at R/W patterns.
                               // That leads to ff018c5c in 50D, e0583d44 in 200D.

@@ -465,7 +465,7 @@ int yuv_dump_sec = 0;
 static void run_test()
 {
     DryosDebugMsg(0, 15, "run_test fired");
-#if defined(CONFIG_200D) || defined(CONFIG_850D)
+#if 0 && (defined(CONFIG_200D) || defined(CONFIG_850D))
     // trigger an assert
     extern void debug_assert(char *msg, char *file, int line);
     debug_assert("LIFE == FAIR", "this file", 1);
@@ -2078,12 +2078,33 @@ int handle_buttons_being_held(struct event * event)
     return 1;
 }
 
+void turn_on_display(void)
+{
+    #if defined(CONFIG_DIGIC_45)
+    call("TurnOnDisplay");
+    #elif defined(CONFIG_NO_DISPLAY_CALLS)
+    extern void _turn_on_display(void);
+    _turn_on_display();
+    #endif
+}
+
+void turn_off_display(void)
+{
+    #if defined(CONFIG_DIGIC_45)
+    call("TurnOffDisplay");
+    #elif defined(CONFIG_NO_DISPLAY_CALLS)
+    extern void _turn_off_display(void);
+    _turn_off_display();
+    #endif
+}
+
 // those functions seem not to be thread safe
 // calling them from gui_main_task seems to sync them with other Canon calls properly
-int handle_tricky_canon_calls(struct event * event)
+int handle_tricky_canon_calls(struct event *event)
 {
     // fake ML events are always negative numbers
-    if (event->param >= 0) return 1;
+    if (event->param >= 0)
+        return 1;
 
     //~ static int k; k++;
     //~ bmp_printf(FONT_LARGE, 50, 50, "[%d] tricky call: %d ", k, event->param); msleep(1000);
@@ -2096,10 +2117,16 @@ int handle_tricky_canon_calls(struct event * event)
             break;
         #endif
         case MLEV_TURN_ON_DISPLAY:
-            if (!DISPLAY_IS_ON) call("TurnOnDisplay");
+            if (!DISPLAY_IS_ON)
+            {
+                turn_on_display();
+            }
             break;
         case MLEV_TURN_OFF_DISPLAY:
-            if (DISPLAY_IS_ON) call("TurnOffDisplay");
+            if (DISPLAY_IS_ON)
+            {
+                turn_off_display();
+            }
             break;
         /*case MLEV_ChangeHDMIOutputSizeToVGA:
             ChangeHDMIOutputSizeToVGA();
