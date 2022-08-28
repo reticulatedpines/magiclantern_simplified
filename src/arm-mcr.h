@@ -188,6 +188,26 @@ static u32 get_ccsidr(void)
     return ccsidr;
 }
 
+#ifdef CONFIG_MMU
+static u32 get_ttbr0(void)
+{
+    u32 ttbr0;
+
+    /* Read TTBR0 */
+    asm volatile ("mrc p15, 0, %0, c2, c0, 0" : "=r" (ttbr0));
+    return ttbr0;
+}
+
+static u32 get_ttbr1(void)
+{
+    u32 ttbr1;
+
+    /* Read TTBR1 */
+    asm volatile ("mrc p15, 0, %0, c2, c0, 1" : "=r" (ttbr1));
+    return ttbr1;
+}
+#endif
+
 static void set_csselr(u32 level, u32 type)
 {   u32 csselr = level << 1 | type;
 
