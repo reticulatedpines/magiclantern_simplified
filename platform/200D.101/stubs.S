@@ -34,6 +34,7 @@ THUMB_FN(0xDF00D299,  bzero32)                /* zeros out a data structure */
 THUMB_FN(0xDF006515,  create_init_task)       /* low-level DryOS initialization */
 THUMB_FN(0xE0040225,  init_task)              /* USER_MEM size checking, dmSetup, termDriverInit, stdlibSetup etc */
 THUMB_FN(0xE06BE169,  dcache_clean)           /* loop with MCR p15 c7,c10,1; DSB */
+THUMB_FN(0xe0013dcc,  dcache_clean_multicore) /* loop writing to c11007b0, called after dcache_clean by copy_mmu_tables() */
 THUMB_FN(0xE06BE23D,  icache_invalidate)      /* loop with MCR p15 c7,c5,1; c7,c1,6; c7,c1,0; ISB */
 
 /** Tasks **/
@@ -303,7 +304,16 @@ THUMB_FN(0xe025e949, XimrContextInputLayerSetDimensions)
 THUMB_FN(0xe021ded9, WinSys_AllocateMemory)
 THUMB_FN(0xe021df7d, WinSys_FreeMemory)
 
-
+// MMU related, required by CONFIG_MMU features
+THUMB_FN(0xe0004a5a, change_mmu_tables) // Updates TTBRs and does TLB maintenance
+THUMB_FN(0xe0013cc4, copy_mmu_tables) // copies from one location to another,
+                                      // fixing up addresses held in table start,
+                                      // and doing cache maintenance
+// slightly MMU related, used by CONFIG_MMU_EARLY_REMAP
+ARM32_FN(0xe001654c, memcpy_dryos) // useful in early contexts when we don't have
+                                   // dietlibc or newlib, and can't use stdio memcpy64 because
+                                   // that wants ML assert handling initialised.
+THUMB_FN(0xe00138c2,  early_printf) // printf compatible with bootloader context
 
 
 DATA_PTR(   0xfd84,  bmp_vram_info) // function e04a044c looks relevant, see refs to 0x3c0 and 0x21c; 960x540
