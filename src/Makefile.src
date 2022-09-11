@@ -239,6 +239,10 @@ ML_SRC_REBOOT_OBJ = reboot.o \
 	disp_direct.o font_direct.o \
 	strlen.o strcmp.o gcc-libgcc.a \
 	cache.o \
+# footer.o must be the last object linked in autoexec.bin,
+# or xor_chk can fail due to unexpected global objects
+# being placed later than footer_magic
+ML_SRC_REBOOT_OBJ += \
 	footer.o
 endif
 
