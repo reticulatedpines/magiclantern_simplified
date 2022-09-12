@@ -167,6 +167,62 @@
 #define LEDON                       0x20D0002
 #define LEDOFF                      0x20C0003
 
+#define CANON_ORIG_MMU_TABLE_ADDR 0xe0000000 // Yes, this is the rom start, yes, there is code there.
+                                             // I assume ARM MMU alignment magic means this is okay,
+                                             // presumably the tables themselves don't use the early part.
+                                             // I don't have an exact ref in ARM manual.
+
+// On 200D, the region 0x4390dd00:0x43b5ac00 is not used under light pressure.
+// Can navigate menus, LV on/off, take pictures, take video, playback video.
+// Not fully proven safe but good enough for light usage.
+//
+// In order to support runtime MMU patches, we want two locations to store
+// MMU translation tables, so we can edit one without disturbing the one
+// in active use, then swap.  Some cams work from a ram copy, which could
+// possibly be used as one of this pair.  I have not implemented this.
+#define MMU_L1_TABLE_01_ADDR 0x43910000 // A replacement TTBR0 table base addresses.
+#define MMU_L1_TABLE_02_ADDR 0x43918000 // Must be 0x4000 aligned or the Canon MMU copy routines
+                                        // will fail.
+                                        //
+                                        // You can use low or high mirrored (uncache / cache) addresses,
+                                        // but the table contains absolute address for itself,
+                                        // so you should ensure all accesses to the table consistently
+                                        // use the same mirror.
+                                        //
+                                        // Must be a memory region that DryOS will NEVER write to.
+                                        // If it does, super bad things will happen, the entire VA -> PA
+                                        // mapping system will change and everything will explode.
+                                        //
+                                        // Be very careful about finding an unused memory region
+                                        // before attempting this.
+
+#define MMU_MAX_L2_TABLES 0x6 // Each L2 table can remap 1MB of mem, 0x100000 aligned.
+
+#define MMU_L2_TABLES_START_ADDR 0x43914c00 // Start of space where we will build MMU L2 tables,
+                                            // for mapping ROM addresses to our replacement code.
+                                            //
+                                            // Must not overlap with base table!  Canon seems to always
+                                            // have these as size 0x4900.
+                                            //
+                                            // Must be 0x400 aligned.
+                                            //
+                                            // These are size 0x400 and you need two per 1MB ROM region
+                                            // that you're remapping, one for active, one for inactive
+                                            // translation tables.
+                                            //
+                                            // This example is placed in between the L1 table regions,
+                                            // which is enough space for 13 L2 tables, hence a max of 6.
+
+#define MMU_L2_PAGES_INFO_START_ADDR 0x43920000 // holds the metadata, this region needs to be
+                                                // sizeof(struct mmu_L2_page_info) * MMU_MAX_L2_TABLES * 2
+
+#define MMU_MAX_64k_PAGES_REMAPPED 0x3
+#define MMU_64k_PAGES_START_ADDR 0x43930000 // Space for 64kB pages in RAM, that ROM pages are mapped to.
+                                            // Multiple patches in the same region only need one page.
+                                            // Must be 0x10000 aligned.
+                                            //
+                                            // You must ensure this region is unused by DryOS,
+                                            // with size 0x10000 * MMU_MAX_64k_PAGES_REMAPPED
 
 #define BR_DCACHE_CLN_1   0xE0040068   /* first call to dcache_clean, before cstart */
 #define BR_ICACHE_INV_1   0xE0040072   /* first call to icache_invalidate, before cstart */
