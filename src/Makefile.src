@@ -119,6 +119,8 @@ ML_OBJS-y += \
 
 ML_SRC_OBJS = \
 	backtrace.o \
+	mmu_utils.o \
+	patch_mmu.o \
 	$(ML_BOOT_OBJ) \
 	$(ML_INIT_OBJ) \
 	fio-ml.o \

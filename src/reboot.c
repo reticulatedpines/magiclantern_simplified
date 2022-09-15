@@ -36,6 +36,17 @@
 /* we need this ASM block to be the first thing in the file */
 #pragma GCC optimize ("-fno-reorder-functions")
 
+// SJE I believe the above comment is incorrect and the pragma
+// doesn't keep the ASM block at the start of the file.
+// I think the .text / _start stuff in the asm does that.
+// I believe the reason it wants to be first is because the
+// build system uses that to locate it at the start of
+// autoexec.bin.
+//
+// Local tests show that functions above this point still get
+// placed later in the object file.  This means we can call
+// functions from asm if we want.
+
 /* polyglot startup code that works if loaded as either ARM or Thumb */
 asm(
     ".text\n"
@@ -55,7 +66,7 @@ asm(
 
 /* this does not compile on DIGIC 5 and earlier */
 #if defined(CONFIG_DIGIC_VII) || defined(CONFIG_DIGIC_VIII)
-    "MRC    p15,0,R0,c0,c0,5\n" /* refuse to run on cores other than #0 */
+    "MRC    p15,0,R0,c0,c0,5\n" /* refuse to run ML on cores other than #0 */
     "ANDS.W R0, R0, #3\n"       /* read the lowest 2 bits of the MPIDR register */
     "ITTT   NE\n"               /* check if CPU ID is nonzero (i.e. other cores) */
     "LDRNE  R0, rombaseaddr\n"  /* jump to main firmware if running from other cores */
