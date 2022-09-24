@@ -109,6 +109,8 @@ DATA_PTR(    0x4034,  post_isr_hook)
 DATA_PTR(   0x6CC10,  isr_table_handler)
 DATA_PTR(   0x6CC14,  isr_table_param)
 THUMB_FN(0xE0137001,  cli_spin_lock)          /* used in AllocateMemory/FreeMemory and others */
+THUMB_FN(0xe0137048,  send_software_interrupt) // int 10 is used by DryOS to sleep/wake cpu1
+//THUMB_FN(0xe0004d30,  wfi_sinkhole) // used to make cpu wait for int 10
 
 /** MPU communication **/
 THUMB_FN(0xE01C7657,  mpu_send)                  // "dwSize < TXBD_DATA_SIZE"

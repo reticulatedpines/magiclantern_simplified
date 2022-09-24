@@ -12,6 +12,7 @@
                                              // range, brute forced it by logging them to disk with digic6-dumper
                                              // while pressing halfshutter on and off.
 #define DRYOS_ASSERT_HANDLER 0x4000 // Used early in a function I've named debug_assert_maybe
+#define DRYOS_SGI_HANDLERS_PTR 0x402c // holds pointer to base of SGI handlers (each is 8 bytes, a pointer and something else)
 #define CURRENT_GUI_MODE (*(int*)0x6624) // see SetGUIRequestMode, 0x65c8 + 0x5c on 200D
 #define GUIMODE_PLAY 2
 #define GUIMODE_MENU 3
