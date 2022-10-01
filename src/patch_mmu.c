@@ -282,7 +282,6 @@ int insert_hook_code_thumb_mmu(uintptr_t patch_addr, uintptr_t target_function, 
     return 0;
 }
 
-extern uint32_t copy_mmu_tables(uint32_t dest_addr);
 extern void change_mmu_tables(uint8_t *ttbr0, uint8_t *ttbr1, uint32_t cpu_id);
 // Sets up structures required for remapping via MMU,
 // and applies compile-time specified patches from platform/XXD/include/platform/mmu_patches.h
