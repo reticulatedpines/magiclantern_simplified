@@ -130,4 +130,12 @@ extern void* edmac_memcpy(void* dest, void* srce, size_t n);
 int GetFreeMemForAllocateMemory();
 int GetFreeMemForMalloc();
 
+// aligned malloc, for when the start address must be aligned to some boundary,
+// e.g. MMU routines
+void *malloc_aligned(size_t len, uint32_t alignment);
+
+// aligned free, takes an aligned pointer, finds the block it's within,
+// and frees it.
+void free_aligned(void *ptr);
+
 #endif
