@@ -216,7 +216,7 @@ void replace_rom_page(uint32_t romaddr, uint32_t ramaddr, uint32_t l2addr, uint3
 // l1addr: address of Canon-style MMU tables
 // l2addr: L2 table to be placed at this address (0x400-byte alignment)
 // flags: L2 table entry flags
-void replace_section_with_l2_tbl(uint32_t romaddr, uint32_t l1addr, uint32_t l2addr, uint32_t flags)
+void replace_section_with_l2_table(uint32_t romaddr, uint32_t l1addr, uint32_t l2addr, uint32_t flags)
 {
     // make a L2 table
     create_l2_table(romaddr, l2addr, flags);

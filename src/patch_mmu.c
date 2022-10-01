@@ -6,7 +6,7 @@
 #include <patch.h>
 #include "mmu_utils.h"
 
-#ifdef CONFIG_MMU_EARLY_REMAP
+#if defined(CONFIG_MMU_EARLY_REMAP) || defined(CONFIG_MMU_REMAP)
 
 #ifndef CONFIG_DIGIC_78
 #error "So far, we've only seen MMU on Digic 7 and up.  This file makes that assumption re assembly, you'll need to fix something"
@@ -14,6 +14,14 @@
 
 #ifndef CONFIG_MMU
 #error "Attempting to build patch_mmu.c but cam not listed as having an MMU - this is probably a mistake"
+#endif
+
+#if defined(CONFIG_MMU_EARLY_REMAP) && defined(CONFIG_MMU_REMAP)
+#error "At most one of CONFIG_MMU_REMAP and CONFIG_MMU_EARLY_REMAP can be defined"
+// There's nothing technical stopping us doing both but you can only have
+// one MMU table in use, so what do you do when you change mode?
+// Migrate the early table into the later one?  Possible, but mildly annoying code
+// and currently I have no use-case for this (early remap is purely a debug / dev tool so far).
 #endif
 
 #include "platform/mmu_patches.h"
@@ -177,10 +185,10 @@ int apply_data_patch(struct mmu_config *mmu_conf,
     if (target_page->in_use == 0)
     { // this wipes the L2 table so we must only do it the first time
       // we map a page in this section
-        replace_section_with_l2_tbl(patch->patch_addr,
-                                    (uint32_t)mmu_conf->L1_table,
-                                    (uint32_t)target_page->l2_mem,
-                                    flags_new);
+        replace_section_with_l2_table(patch->patch_addr,
+                                      (uint32_t)mmu_conf->L1_table,
+                                      (uint32_t)target_page->l2_mem,
+                                      flags_new);
         target_page->in_use = 1;
     }
 
@@ -394,4 +402,4 @@ void init_remap_mmu(void)
 
     return;
 }
-#endif // CONFIG_MMU_EARLY_REMAP
+#endif // CONFIG_MMU_EARLY_REMAP || CONFIG_MMU_REMAP
