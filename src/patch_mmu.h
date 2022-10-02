@@ -2,6 +2,8 @@
 #define _patch_mmu_h_
 // Memory patching, using MMU on supported cams.
 
+#include "mmu_utils.h"
+
 struct region_patch
 {
     uint32_t patch_addr; // Address of start of edited content; the VA to patch.
@@ -54,6 +56,9 @@ struct mmu_config
 // with a clearer name and backed by MMU.
 int insert_hook_code_thumb_mmu(uintptr_t patch_addr, uintptr_t target_function, const char *description);
 
+extern char *mmu_64k_pages_start;
+extern struct mmu_config mmu_conf;
+extern uint32_t mmu_globals_initialised;
 // Sets up structures required for remapping via MMU,
 // and applies compile-time specified patches from platform/XXD/include/platform/mmu_patches.h
 void init_remap_mmu(void);

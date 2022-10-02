@@ -282,26 +282,121 @@ int insert_hook_code_thumb_mmu(uintptr_t patch_addr, uintptr_t target_function, 
     return 0;
 }
 
+char *mmu_64k_pages_start = NULL;
+struct mmu_config mmu_conf = {NULL, NULL};
+uint32_t mmu_globals_initialised = 0;
+static void init_mmu_globals(void *unused)
+{
+    if (mmu_globals_initialised)
+        return;
+    if (get_cpu_id() != 0)
+        return;
+
+    // get space for the actual L1 table
+    uint8_t *mmu_L1_table = NULL;
+    #if defined(CONFIG_MMU_EARLY_REMAP)
+    mmu_L1_table = (uint8_t *)MMU_L1_TABLE_01_ADDR;
+    #elif defined(CONFIG_MMU_REMAP)
+    mmu_L1_table = malloc_aligned(MMU_TABLE_SIZE, 0x4000);
+    #endif
+    if (mmu_L1_table == NULL)
+        return;
+    mmu_conf.L1_table = mmu_L1_table;
+
+    // copy and fixup Canon original tables to our location
+    uint32_t rom_base_addr = ROMBASEADDR & 0xff000000;
+    int32_t align_fail = copy_mmu_tables_ex((uint32_t)mmu_conf.L1_table,
+                                            rom_base_addr,
+                                            MMU_TABLE_SIZE);
+    if (align_fail != 0)
+        goto bail;
+
+    // get space for info about the L2 tables
+    struct mmu_L2_page_info *mmu_L2_page_info = NULL;
+    #if defined(CONFIG_MMU_EARLY_REMAP)
+    mmu_L2_page_info = (struct mmu_L2_page_info *)MMU_L2_PAGES_INFO_START_ADDR;
+    #elif defined(CONFIG_MMU_REMAP)
+    uint32_t mmu_L2_page_info_size = MMU_MAX_L2_TABLES * sizeof(struct mmu_L2_page_info);
+    mmu_L2_page_info = malloc(mmu_L2_page_info_size);
+    #endif
+    if (mmu_L2_page_info == NULL)
+        goto bail;
+    mmu_conf.L2_tables = mmu_L2_page_info;
+
+    // initialise L2 page info
+    #if defined(CONFIG_MMU_EARLY_REMAP)
+    // no memset available
+    uint8_t *mmu_L2_tables = (uint8_t *)MMU_L2_TABLES_START_ADDR;
+    if (mmu_L2_tables == NULL)
+        goto bail2;
+    for (uint32_t i = 0; i < MMU_MAX_L2_TABLES; i++)
+    {
+        for (uint8_t j = 0; j < 16; j++)
+        {
+            mmu_conf.L2_tables[i].phys_mem[j] = NULL;
+        }
+        mmu_conf.L2_tables[i].l2_mem = (mmu_L2_tables + (i * MMU_L2_TABLE_SIZE));
+        mmu_conf.L2_tables[i].virt_page_mapped = 0x0;
+        mmu_conf.L2_tables[i].in_use = 0x0;
+    }
+    #elif defined(CONFIG_MMU_REMAP)
+    uint8_t *mmu_L2_tables = malloc_aligned(MMU_MAX_L2_TABLES * MMU_L2_TABLE_SIZE, 0x400);
+    if (mmu_L2_tables == NULL)
+        goto bail2;
+    memset(mmu_L2_page_info, '\0', mmu_L2_page_info_size);
+    for (uint32_t i = 0; i < MMU_MAX_L2_TABLES; i++)
+    {
+        mmu_conf.L2_tables[i].l2_mem = (mmu_L2_tables + (i * MMU_L2_TABLE_SIZE));
+    }
+    #endif
+
+    // get space for 64k page remaps
+    #if defined(CONFIG_MMU_EARLY_REMAP)
+    mmu_64k_pages_start = (char *)MMU_64k_PAGES_START_ADDR;
+    #elif defined(CONFIG_MMU_REMAP)
+    mmu_64k_pages_start = malloc_aligned(MMU_MAX_64k_PAGES_REMAPPED * 0x10000, 0x10000);
+    #endif
+    if (mmu_64k_pages_start == NULL)
+        goto bail3;
+
+    mmu_globals_initialised = 1;
+    return;
+
+bail3:
+    #ifdef CONFIG_MMU_REMAP
+    free_aligned(mmu_L2_tables);
+    #endif
+    mmu_L2_tables = NULL;
+
+bail2:
+    #ifdef CONFIG_MMU_REMAP
+    free(mmu_L2_page_info);
+    #endif
+    mmu_L2_page_info = NULL;
+
+bail:
+    #ifdef CONFIG_MMU_REMAP
+    free_aligned(mmu_L1_table);
+    #endif
+    mmu_L1_table = NULL;
+
+    return;
+}
+
+// make init.c start this task early on, allowing later code
+// to use our RAM MMU tables.  mmu_globals_initialised is a bool
+// for ensuring setup completed okay.
+TASK_CREATE("init_mmu_globals", init_mmu_globals, 0, 0x1d, 0x1000);
+
 extern void change_mmu_tables(uint8_t *ttbr0, uint8_t *ttbr1, uint32_t cpu_id);
-// Sets up structures required for remapping via MMU,
-// and applies compile-time specified patches from platform/XXD/include/platform/mmu_patches.h
+
 void init_remap_mmu(void)
 {
-    // SJE FIXME I don't like all the while(1) error "handling".
-    // I did this partly because we can't signal well here, partly because
-    // this code used to be in bootloader context where we can't signal well at all.
-    // Could change this to return int and handle errors at a higher level.
-    // Could use early_printf().
-    // Could fix the old code for giving a GUI error for early problems.
     static uint32_t mmu_remap_cpu0_init = 0;
     static uint32_t mmu_remap_cpu1_init = 0;
 
-    static struct mmu_config mmu_config_active = {NULL, NULL};
-//    static struct mmu_config mmu_config_inactive = {NULL, NULL};
-
     uint32_t cpu_id = get_cpu_id();
     uint32_t cpu_mmu_offset = MMU_TABLE_SIZE - 0x100 + cpu_id * 0x80;
-    uint32_t rom_base_addr = ROMBASEADDR & 0xff000000;
 
     // Both CPUs want to use the updated MMU tables, but
     // only one wants to do the setup.
@@ -312,74 +407,27 @@ void init_remap_mmu(void)
         if (mmu_remap_cpu0_init == 0)
         {
             mmu_remap_cpu0_init = 1;
-            mmu_config_active.L1_table = (uint8_t *)MMU_L1_TABLE_01_ADDR;
-//            mmu_config_inactive.L1_table = (uint8_t *)MMU_L1_TABLE_02_ADDR;
-            mmu_config_active.L2_tables = (struct mmu_L2_page_info *)MMU_L2_PAGES_INFO_START_ADDR;
-//            mmu_config_inactive.L2_tables = (struct mmu_L2_page_info *)(MMU_L2_PAGES_INFO_START_ADDR
-//                                            + sizeof(struct mmu_L2_page_info) * MMU_MAX_L2_TABLES);
-            // Copy original table to ram copies.
-            //
-            // We can't use a simple copy, the table stores absolute addrs
-            // related to where it is located.  There's a DryOS func that
-            // does copy + address fixups, but that hardcodes 0xe000.0000 as the src.
-            int32_t align_fail = copy_mmu_tables_ex((uint32_t)mmu_config_active.L1_table,
-                                                    rom_base_addr,
-                                                    MMU_TABLE_SIZE);
-            if (align_fail != 0)
-                while(1); // maybe we can jump to Canon fw instead?
-/*
-            align_fail = copy_mmu_tables_ex((uint32_t)mmu_config_inactive.L1_table,
-                                            rom_base_addr,
-                                            MMU_TABLE_SIZE);
-            if (align_fail != 0)
-                while(1); // maybe we can jump to Canon fw instead?
-*/
+            init_mmu_globals(0);
 
-            // memset and calloc are not available this early, init our L2 page info manually
-            uint8_t *mmu_L2_tables = (uint8_t *)MMU_L2_TABLES_START_ADDR;
-
-            uint32_t i = 0;
-            for (i = 0; i < MMU_MAX_L2_TABLES; i++)
+            for (uint32_t i = 0; i != COUNT(mmu_data_patches); i++)
             {
-                for (uint8_t j = 0; j < 16; j++)
-                {
-                    mmu_config_active.L2_tables[i].phys_mem[j] = NULL;
-//                        mmu_config_inactive.L2_tables[i].phys_mem[j] = NULL;
-                }
-                mmu_config_active.L2_tables[i].l2_mem = (mmu_L2_tables + (i * MMU_L2_TABLE_SIZE));
-                mmu_config_active.L2_tables[i].virt_page_mapped = 0x0;
-                mmu_config_active.L2_tables[i].in_use = 0x0;
-
-//                    mmu_config_inactive.L2_tables[i].l2_mem = (mmu_L2_tables + ((i + MMU_MAX_L2_TABLES) * MMU_L2_TABLE_SIZE));
-//                    mmu_config_inactive.L2_tables[i].virt_page_mapped = 0x0;
-//                    mmu_config_inactive.L2_tables[i].in_use = 0x0;
-            }
-
-            for (i = 0; i != COUNT(mmu_data_patches); i++)
-            {
-                if (apply_data_patch(&mmu_config_active, &mmu_data_patches[i]) < 0)
-                    while(1);
-/*
-                if (apply_data_patch(&mmu_config_inactive, &mmu_data_patches[i]) < 0)
-                    while(1);
-*/
-            }
-
-            for (i = 0; i != COUNT(mmu_code_patches); i++)
-            {
-                if (apply_code_patch(&mmu_config_active, &mmu_code_patches[i]) < 0)
+                if (apply_data_patch(&mmu_conf, &mmu_data_patches[i]) < 0)
                     while(1);
             }
-            // SJE FIXME do inactive equiv for code patches here,
-            // if we're doing that at all
+
+            for (uint32_t i = 0; i != COUNT(mmu_code_patches); i++)
+            {
+                if (apply_code_patch(&mmu_conf, &mmu_code_patches[i]) < 0)
+                    while(1);
+            }
 
             #ifdef CONFIG_QEMU
             // qprintf the results for debugging
             #endif
 
             // update TTBRs (this DryOS function also triggers TLBIALL)
-            change_mmu_tables(mmu_config_active.L1_table + cpu_mmu_offset,
-                              mmu_config_active.L1_table,
+            change_mmu_tables(mmu_conf.L1_table + cpu_mmu_offset,
+                              mmu_conf.L1_table,
                               cpu_id);
         }
     }
@@ -393,8 +441,8 @@ void init_remap_mmu(void)
                 msleep(100);
             }
             // update TTBRs (this DryOS function also triggers TLBIALL)
-            change_mmu_tables(mmu_config_active.L1_table + cpu_mmu_offset,
-                              mmu_config_active.L1_table,
+            change_mmu_tables(mmu_conf.L1_table + cpu_mmu_offset,
+                              mmu_conf.L1_table,
                               cpu_id);
         }
     }

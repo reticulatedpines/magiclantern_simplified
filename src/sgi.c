@@ -2,6 +2,7 @@
 
 #include "config-defines.h"
 #include "consts.h"
+#include "tasks.h"
 #include "sgi.h"
 
 // A file for SGI related code.  As far as I know this is available
@@ -10,15 +11,7 @@
 // Some functions are only used by inter-CPU comms code,
 // those should be guarded with CONFIG_DUAL_CORE.
  
-#if defined(CONFIG_DUAL_CORE) && defined(CONFIG_MMU_REMAP)
-// The SGI mechanism is related to GIC and likely exists on all cams that have it.
-// So, it's probably not dependent on dual core, but, I'm currently only using it
-// for dual core actions, hence the guard.
-// 
-// Similar reasoning for CONFIG_MMU_REMAP, currently this code is only
-// used for waking cpu1 after cpu0 suspends it, to make editing MMU safer.
-int sgi_wake_pending = 0;
-
+#if defined(CONFIG_DIGIC_678)
 // Takes a function pointer, attempts to install that function
 // as an SGI handler.  Returns the index of the handler, which
 // is the associated SGI number, i.e., the interrupt to generate
@@ -67,9 +60,34 @@ int register_sgi_handler(void (*handler_func)(void))
     return -1;
 }
 
+#if defined(CONFIG_DUAL_CORE) && defined(CONFIG_MMU_REMAP)
+// The SGI mechanism is related to GIC and likely exists on all cams that have it.
+// So, it's probably not dependent on dual core, but, I'm currently only using it
+// for dual core actions, hence the guard.
+//
+// Similar reasoning for CONFIG_MMU_REMAP, currently this code is only
+// used for waking cpu1 after cpu0 suspends it, to make editing MMU safer.
+int sgi_wake_pending = 0;
+
+// Used to record which entry is the SGI handler we're using
+// to wake cpu1
+int sgi_wake_handler_index = 0;
+
 void sgi_wake_handler(void)
 {
     sgi_wake_pending = 1;
 }
 
+// Run as an early task to register a handler for waking cpu1.
+// Used by MMU code to sleep/wake cpu1 during MMU table changes.
+static void register_wake_handler(void *unused)
+{
+    sgi_wake_handler_index = register_sgi_handler(sgi_wake_handler);
+}
+
+// make init.c start this task early on
+TASK_CREATE("reg_wake_handler", register_wake_handler, 0, 0x1c, 0x400);
+
 #endif // CONFIG_DUAL_CORE && CONFIG_MMU_REMAP
+
+#endif // CONFIG_DIGIC_678
