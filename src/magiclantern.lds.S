@@ -56,42 +56,49 @@ SECTIONS
 
     .data : {
         /* List of DryOS tasks to be over-ridden */
+        // TASK_OVERRIDE() places things here
         . = ALIGN(8);
         _task_overrides_start = .;
         *(.task_overrides);
         _task_overrides_end = .;
 
         /* List of magiclantern user tasks to be started  */
+        // TASK_CREATE() places things here
         . = ALIGN(8);
         _tasks_start = .;
         *(.tasks)
         _tasks_end = .;
 
         /* List of magiclantern init funcs to be called  */
+        // INIT_FUNC() places things here
         . = ALIGN(8);
         _init_funcs_start = .;
         *(.init_funcs)
         _init_funcs_end = .;
 
         /* List of PTP handlers to be installed */
+        // REGISTER_PTP_HANDLER() places things here
         . = ALIGN(8);
         _ptp_handlers_start = .;
         *(.ptp_handlers)
         _ptp_handlers_end = .;
 
         /* Configuration parameters to be assigned */
+        // CONFIG_INT(), CONFIG_INT_EX(), CONFIG_ARRAY_ELEMENT()
         . = ALIGN(8);
         _config_vars_start = .;
         *(.config_vars)
         _config_vars_end = .;
 
         /* Property handlers */
+        // REGISTER_PROP_HANDLER() places things here
         . = ALIGN(8);
         _prop_handlers_start = .;
         *(.prop_handlers)
         _prop_handlers_end = .;
 
         /* Module symbols that may be called from core code */
+        // MODULE_FUNCTION() places things here
         . = ALIGN(8);
         _module_symbols_start = .;
         *(.module_symbols)
