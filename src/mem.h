@@ -7,6 +7,9 @@
 #ifndef _mem_h_
 #define _mem_h_
 
+#include <stddef.h>
+#include <stdint.h>
+
 /* this file needs to get included in dryos.h to replace old malloc / AllocateMemory calls */
 
 /* not used; will be replaced by macros in order to get calling context (file and line) */

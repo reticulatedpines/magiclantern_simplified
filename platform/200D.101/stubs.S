@@ -60,8 +60,8 @@ THUMB_FN(0xDF0079E3,  GetMemoryInformation)   /* called from AllocateMemory */
 THUMB_FN(0xDF0079B7,  GetSizeOfMaxRegion)
 THUMB_FN(0xDF00AC55, _alloc_dma_memory)
 THUMB_FN(0xDF00AC81, _free_dma_memory)
-THUMB_FN(0xE0693B23,  malloc)
-THUMB_FN(0xE0693B5B,  free)
+//THUMB_FN(0xE0693B23,  malloc)
+//THUMB_FN(0xE0693B5B,  free)
 
 /** Debug messages **/
 THUMB_FN(0xDF006E6D,  DryosDebugMsg)          /* lots of debug messages; format string is third argument */

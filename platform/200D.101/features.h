@@ -50,6 +50,7 @@
 //#define CONFIG_MMU_EARLY_REMAP
 
 // Enable remapping ROM pages to RAM, after DryOS is initialised.
+#define CONFIG_SGI_HANDLERS
 #define CONFIG_MMU_REMAP
 
 // prevent ML attempting stack unwinding in some cases.

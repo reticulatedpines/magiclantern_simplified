@@ -160,7 +160,7 @@ void *malloc_aligned(size_t len, uint32_t alignment)
     if (alloc_count >= MAX_ALIGNED_ALLOCS)
         return NULL; // too many aligned allocs to track
 
-    void *raw_ptr = malloc(len + alignment);
+    void *raw_ptr = _malloc(len + alignment);
     if (raw_ptr == NULL)
         return NULL; // DryOS malloc failed
 
@@ -207,7 +207,7 @@ void free_aligned(void *ptr)
         if (aligned_allocs[i].start <= ptr_val
             && aligned_allocs[i].start + aligned_allocs[i].len > ptr_val)
         {
-            free((void *)aligned_allocs[i].start);
+            _free((void *)aligned_allocs[i].start);
             aligned_allocs[i].start = 0;
             aligned_allocs[i].len = 0;
             alloc_count--;
