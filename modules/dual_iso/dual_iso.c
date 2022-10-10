@@ -193,14 +193,19 @@ static int isoless_enable(uint32_t start_addr, int size, int count, uint32_t* ba
             start_addr = (uint32_t) local_buf + 2; /* our numbers are aligned at 16 bits, but not at 32 */
         }
         
-        // get original values, wanted to check we're patching the right thing
-        // (on some cams, FRAME_CMOS_ISO_START is not fixed so this will
-        //  work intermittently, we want to detect when this happens so we
-        //  only patch when it points to ISO table info).  I think 650d and 700d
-        // are known to do this.  The real fix is find one level higher and get the
-        // real pointer to the table.
+        // Get original values, used for sanity testing the address points at
+        // tables of CMOS / ADTG values.
+        // On some cams, FRAME_CMOS_ISO_START is not a fixed address so this will
+        // work intermittently, we want to detect when this happens so we
+        // only patch when it points to ISO table info.
+        // I think 650d and 700d are known to do this.  The real fix is find
+        // one level higher and get the pointer to the table, rather than
+        // the variable table address directly.
+
+        // We can't read values directly on ARMv5 due to unaligned read behaviour
+        // interacting with do_patch() / read_value() behaviour.
         for (int i = 0; i < count; i++)
-            backup[i] = *(uint32_t *)(start_addr + size * i);
+            backup[i] = read_value((uint32_t *)(start_addr + size * i), 0);
 
         /* sanity check first */
         int prev_iso = 0;
@@ -244,7 +249,7 @@ static int isoless_enable(uint32_t start_addr, int size, int count, uint32_t* ba
         }
 
         // patch the stored ISO table to use our dual-iso values
-        uint32_t patch_word;
+        uint32_t patch_value;
         uint32_t cmos_bits;
         for (int i = 0; i < count; i++)
         {
@@ -255,10 +260,10 @@ static int isoless_enable(uint32_t start_addr, int size, int count, uint32_t* ba
                 cmos_bits |= 1 << (CMOS_FLAG_BITS + CMOS_ISO_BITS + CMOS_ISO_BITS);
 
             // keep the bits that aren't CMOS bits
-            patch_word = backup[i] & (~cmos_bits_mask);
+            patch_value = backup[i] & (~cmos_bits_mask);
 
-            patch_word |= cmos_bits; // add the CMOS bits from our target ISO
-            patch_memory(start_addr + i * size, backup[i], patch_word, "dual_iso: CMOS[0] gains");
+            patch_value |= cmos_bits; // add the CMOS bits from our target ISO
+            patch_memory(start_addr + i * size, backup[i], patch_value, "dual_iso: CMOS[0] gains");
         }
 
         if (is_7d) /* commit the changes on master */
