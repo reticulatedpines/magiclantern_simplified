@@ -28,10 +28,10 @@
 /* for patching a single 32-bit integer (RAM or ROM, data or code) */
 struct patch
 {
-    uint32_t* addr;                 /* first memory address to patch (RAM or ROM) */
+    uint32_t *addr;                 /* first memory address to patch (RAM or ROM) */
     uint32_t backup;                /* old value (to undo the patch) */
     uint32_t patched_value;         /* value after patching */
-    const char * description;       /* will be displayed in the menu as help text */
+    const char *description;        /* will be displayed in the menu as help text */
     unsigned is_instruction: 1;     /* if 1, we have patched an instruction (needs extra care with the instruction cache) */
 };
 
@@ -142,7 +142,7 @@ void sync_caches()
 }
 
 /* low-level routines */
-uint32_t read_value(uint32_t* addr, int is_instruction)
+uint32_t read_value(uint32_t *addr, int is_instruction)
 {
 #ifdef CONFIG_QEMU
     goto read_from_ram;
@@ -193,15 +193,15 @@ read_from_ram:
     switch ((uintptr_t)addr & 3)
     {
         case 0b00:
-            return *(volatile uint32_t*) addr;
+            return *(volatile uint32_t *)addr;
         case 0b10:
-            return *(volatile uint16_t*) addr;
+            return *(volatile uint16_t *)addr;
         default:
-            return *(volatile uint8_t*)  addr;
+            return *(volatile uint8_t *)addr;
     }
 }
 
-static int do_patch(uint32_t* addr, uint32_t value, int is_instruction)
+static int do_patch(uint32_t *addr, uint32_t value, int is_instruction)
 {
     dbg_printf("Patching %x from %x to %x\n", addr, read_value(addr, is_instruction), value);
 
@@ -255,20 +255,20 @@ write_to_ram:
     switch ((uintptr_t)addr & 3)
     {
         case 0b00:
-            *(volatile uint32_t*)addr = value;
+            *(volatile uint32_t *)addr = value;
             break;
         case 0b10:
-            *(volatile uint16_t*)addr = value;
+            *(volatile uint16_t *)addr = value;
             break;
         default:
-            *(volatile uint8_t*) addr = value;
+            *(volatile uint8_t *)addr = value;
             break;
     }
     
     return 0;
 }
 
-static char * error_msg(int err)
+static char *error_msg(int err)
 {
     static char msg[128];
     
@@ -297,7 +297,7 @@ static char * error_msg(int err)
  * Simple patches
  * ==============
  */
-static uint32_t get_patch_current_value(struct patch * p)
+static uint32_t get_patch_current_value(struct patch *p)
 {
     return read_value(p->addr, p->is_instruction);
 }
@@ -307,10 +307,10 @@ static int patch_memory_work(
     uint32_t old_value,
     uint32_t new_value,
     uint32_t is_instruction,
-    const char * description
+    const char *description
 )
 {
-    uint32_t* addr = (uint32_t*)_addr;
+    uint32_t *addr = (uint32_t *)_addr;
     int err = E_PATCH_OK;
     
     /* ensure thread safety */
@@ -391,7 +391,7 @@ static int reapply_cache_patch(int p)
     
     if (current != patched)
     {
-        void* addr = patches[p].addr;
+        void *addr = patches[p].addr;
         dbg_printf("Re-applying %x -> %x (changed to %x)\n", addr, patched, current);
         cache_fake((uint32_t) addr, patched, patches[p].is_instruction ? TYPE_ICACHE : TYPE_DCACHE);
 
@@ -460,7 +460,7 @@ static void check_cache_lock_still_needed()
 
 int unpatch_memory(uintptr_t _addr)
 {
-    uint32_t* addr = (uint32_t*) _addr;
+    uint32_t *addr = (uint32_t *)_addr;
     int err = E_UNPATCH_OK;
     uint32_t old_int = cli();
 
@@ -538,7 +538,7 @@ int patch_memory(
     uintptr_t addr,
     uint32_t old_value,
     uint32_t new_value,
-    const char * description
+    const char *description
 )
 {
     return patch_memory_work(addr, old_value, new_value, 0, description);
@@ -548,7 +548,7 @@ int patch_instruction(
     uintptr_t addr,
     uint32_t old_value,
     uint32_t new_value,
-    const char * description
+    const char *description
 )
 {
     return patch_memory_work(addr, old_value, new_value, 1, description);
@@ -559,7 +559,7 @@ int patch_instruction(
  * ====================
  */
 
-int patch_engio_list(uint32_t * engio_list, uint32_t patched_register, uint32_t patched_value, const char * description)
+int patch_engio_list(uint32_t *engio_list, uint32_t patched_register, uint32_t patched_value, const char *description)
 {
     while (*engio_list != 0xFFFFFFFF)
     {
@@ -576,7 +576,7 @@ int patch_engio_list(uint32_t * engio_list, uint32_t patched_register, uint32_t 
     return E_PATCH_REG_NOT_FOUND;
 }
 
-int unpatch_engio_list(uint32_t * engio_list, uint32_t patched_register)
+int unpatch_engio_list(uint32_t *engio_list, uint32_t patched_register)
 {
     while (*engio_list != 0xFFFFFFFF)
     {
@@ -657,7 +657,7 @@ static int check_jump_range(uint32_t pc, uint32_t dest)
     return 1;
 }
 
-int patch_hook_function(uintptr_t addr, uint32_t orig_instr, patch_hook_function_cbr logging_function, const char * description)
+int patch_hook_function(uintptr_t addr, uint32_t orig_instr, patch_hook_function_cbr logging_function, const char *description)
 {
     int err = 0;
 
@@ -683,7 +683,7 @@ int patch_hook_function(uintptr_t addr, uint32_t orig_instr, patch_hook_function
         goto end;
     }
     
-    union logging_hook_code * hook = &logging_hooks[logging_slot];
+    union logging_hook_code *hook = &logging_hooks[logging_slot];
     
     /* check the jumps we are going to use */
     /* fixme: use long jumps? */
@@ -759,7 +759,7 @@ static MENU_UPDATE_FUNC(patch_update)
     /* => extract module_name and display it as short description */
     char short_desc[16];
     snprintf(short_desc, sizeof(short_desc), "%s", patches[p].description);
-    char* sep = strchr(short_desc, ':');
+    char *sep = strchr(short_desc, ':');
     if (sep) *sep = 0;
     MENU_SET_RINFO("%s", short_desc);
 
@@ -784,7 +784,7 @@ static MENU_UPDATE_FUNC(patch_update)
     }
 
     /* some detailed info */
-    void* addr = patches[p].addr;
+    void *addr = patches[p].addr;
     MENU_SET_WARNING(MENU_WARN_INFO, "0x%X: 0x%X -> 0x%X.", addr, backup, val);
     
     /* was this patch overwritten by somebody else? */
@@ -866,7 +866,7 @@ static MENU_UPDATE_FUNC(patches_update)
 #define PATCH_ENTRY(i) \
         { \
             .name = "(empty)", \
-            .priv = (void*)i, \
+            .priv = (void *)i, \
             .update = patch_update, \
             .shidden = 1, \
         }

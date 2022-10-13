@@ -45,14 +45,14 @@
 
 // Reads value at address, truncated according to alignment of addr.
 // E.g. reads from 0x1001 return only 1 byte.
-uint32_t read_value(uint32_t* addr, int is_instruction);
+uint32_t read_value(uint32_t *addr, int is_instruction);
 
 /* simple data patch */
 int patch_memory(
     uintptr_t addr,             /* patched address (32 bits) */
     uint32_t old_value,         /* old value before patching (if it differs, the patch will fail) */
     uint32_t new_value,         /* new value */
-    const char* description     /* what does this patch do? example: "raw_rec: slowdown dialog timers" */
+    const char *description     /* what does this patch do? example: "raw_rec: slowdown dialog timers" */
                                 /* note: you must provide storage for the description string */
                                 /* a string literal will do; a local variable where you sprintf will not work */
 );
@@ -63,8 +63,8 @@ int unpatch_memory(uintptr_t addr);
 /* patch a ENGIO register in a FFFFFFFF-terminated list */
 /* this will also prevent Canon code from changing that register to some other value (*) */
 /* (*) this will only work for Canon code that looks up the register in a list, sets the value if found, and does no error checking */
-int patch_engio_list(uint32_t * engio_list, uint32_t patched_register, uint32_t patched_value, const char * description);
-int unpatch_engio_list(uint32_t * engio_list, uint32_t patched_register);
+int patch_engio_list(uint32_t *engio_list, uint32_t patched_register, uint32_t patched_value, const char *description);
+int unpatch_engio_list(uint32_t *engio_list, uint32_t patched_register);
 
 /******************************
  * Instruction (code) patches *
@@ -76,7 +76,7 @@ int patch_instruction(
     uintptr_t addr,
     uint32_t old_value,
     uint32_t new_value,
-    const char* description
+    const char *description
 );
 
 /* to undo, use unpatch_memory(addr) */
@@ -101,12 +101,12 @@ int patch_instruction(
  * 
  * credits: Maqs
  */
-typedef void (*patch_hook_function_cbr)(uint32_t* regs, uint32_t* stack, uint32_t pc);
+typedef void (*patch_hook_function_cbr)(uint32_t *regs, uint32_t *stack, uint32_t pc);
 
 /* to be called only from a patch_hook_function_cbr */
 #define PATCH_HOOK_CALLER() (regs[13]-4)    /* regs[13] contains LR, not SP */
 
-int patch_hook_function(uintptr_t addr, uint32_t orig_instr, patch_hook_function_cbr logging_function, const char * description);
+int patch_hook_function(uintptr_t addr, uint32_t orig_instr, patch_hook_function_cbr logging_function, const char *description);
 
 /* to undo, use unpatch_memory(addr) */
 
