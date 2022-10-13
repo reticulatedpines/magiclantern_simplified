@@ -290,8 +290,9 @@ static int isoless_disable(uint32_t start_addr, int size, int count, uint32_t* b
         start_addr = (uint32_t) local_buf + 2;
     }
 
-    /* just undo our patch */
-    unpatch_memory(start_addr);
+    // undo our patches
+    for (int i = 0; i < count; i++)
+        unpatch_memory(start_addr + i * size);
     
     if (is_7d) /* commit the changes on master */
     {
@@ -682,6 +683,92 @@ static struct menu_entry isoless_menu[] =
     },
 };
 
+// ISO is applied to sensor data via ADTG / CMOS chip.
+// Many cams allow setting this per line, so we can capture two ISOs
+// simultaneously.
+//
+// The CMOS ISO table is held in ram and used to map
+// ISO selected by the OS into amplification per sensor line.
+//
+// We want the location of the ram copy, to modify it,
+// but this is held in heap, so the address varies sometimes
+// (depending on different factors including Canon mode
+// settings, prefs etc).
+//
+// Early in boot on 550D (and others?), a DMA copy happens from
+// the asset rom, specifically 0xf8910000.  There is some kind of
+// linked-list struct associated with the copy, which holds
+// the DMA src addr as well as the dst addr.  Therefore, we
+// can find the ram addr by searching for the fixed rom addr.
+//
+// An even nicer way might be to walk the linked list of
+// structs, but I don't know where they start.
+static uint32_t get_photo_cmos_iso_start_550d(void)
+{
+    // The linked-lists seem to start near 0x3d0000.
+    // It can be found around 0x2dd0, seem to be quite
+    // a few system related pointers there.  0x800000
+    // seems easily enough to always find our target.
+    uint32_t addr = 0x3d0000;
+    uint32_t max_search_addr = 0x800000;
+
+    uint32_t rom_copy_start = 0xf8910000;
+    uint32_t ram_copy_start = 0;
+
+    // search for DMA src addr, to find our dst addr
+    for (; addr < max_search_addr; addr += 4)
+    {
+        if (*(uint32_t *)addr == rom_copy_start)
+        {
+            // A bunch of checks to give us higher confidence
+            // we found the right value.  So far, none of these
+            // have been required; the first hit is the correct
+            // one.  But these are cheap checks, and should avoid
+            // ever finding a random match on the 32-bit DMA addr value.
+
+            uint32_t *probe = (uint32_t *)addr;
+            // we expect to find 2 copies of the DMA src addr nearby
+            if (probe[0] != probe[4])
+                continue;
+            if (probe[0] != probe[5])
+                continue;
+
+            ram_copy_start = probe[6] + 0xde4;
+            // we expect this to be Uncacheable
+            if (ram_copy_start == (uint32_t)CACHEABLE(ram_copy_start))
+                continue;
+
+            // we expect the next field to be the original addr
+            // before it was rounded up to meet DMA alignment
+            // (not sure on exact alignment)
+            if ((probe[6] & 0xfffff800) != (probe[7] & 0xfffff800))
+                continue;
+
+            // passed all checks, stop search
+            qprintf("Found ram_copy_start, 0x%08x: 0x%08x\n",
+                    &probe[6], ram_copy_start);
+            printf("r_c_s %08x: %08x\n",
+                   &probe[6], ram_copy_start);
+            break;
+        }
+    }
+    if (*(uint32_t *)addr != rom_copy_start || addr >= max_search_addr)
+    {
+        qprintf("Failed to find rom_copy_start!\n");
+        printf("Failed to find r_c_s!\n");
+        return 0; // failed to find target
+    }
+
+#if 1 // SJE FIXME remove this, it's debug code!
+    // dump the table to check contents in case we later throw isoless err()
+    FILE* f = FIO_CreateFile("ML/LOGS/iso_tabl.bin");
+    FIO_WriteFile(f, (uint32_t *)ram_copy_start, 0x2000);
+    FIO_CloseFile(f);
+#endif
+
+    return ram_copy_start;
+}
+
 static unsigned int isoless_init()
 {
     if (is_camera("5D3", "1.1.3") || is_camera("5D3", "1.2.3"))
@@ -799,10 +886,6 @@ static unsigned int isoless_init()
     {
         is_550d = 1;
 
-        FRAME_CMOS_ISO_START = 0x40695494; // CMOS register 0000 - for LiveView, ISO 100 (check in movie mode, not photo!)
-        FRAME_CMOS_ISO_COUNT =          6; // from ISO 100 to 3200
-        FRAME_CMOS_ISO_SIZE  =         30; // distance between ISO 100 and ISO 200 addresses, in bytes
-
         //  00 0000 406941E4  = 100
         //  00 0024 406941F6  = 200
         //  00 0048 40694208  = 400
@@ -810,9 +893,13 @@ static unsigned int isoless_init()
         //  00 0090 4069422C  = 1600
         //  00 00B4 4069423E  = 3200
 
-        PHOTO_CMOS_ISO_START = 0x406941E4; // CMOS register 0000 - for photo mode, ISO 100
+        PHOTO_CMOS_ISO_START = get_photo_cmos_iso_start_550d(); // CMOS register 0000 - for photo mode, ISO 100
         PHOTO_CMOS_ISO_COUNT =          6; // from ISO 100 to 3200
         PHOTO_CMOS_ISO_SIZE  =         18; // distance between ISO 100 and ISO 200 addresses, in bytes
+
+        FRAME_CMOS_ISO_START = PHOTO_CMOS_ISO_START + 0x12b0; // CMOS register 0000 - for LiveView, ISO 100 (check in movie mode, not photo!)
+        FRAME_CMOS_ISO_COUNT =          6; // from ISO 100 to 3200
+        FRAME_CMOS_ISO_SIZE  =         30; // distance between ISO 100 and ISO 200 addresses, in bytes
 
         CMOS_ISO_BITS = 3;
         CMOS_FLAG_BITS = 2;
