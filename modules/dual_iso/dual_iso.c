@@ -95,7 +95,8 @@ static int is_5d2 = 0;
 static int is_50d = 0;
 static int is_6d = 0;
 static int is_60d = 0;
-static int is_100d = 0; 
+static int is_100d = 0;
+static int is_200d = 0;
 static int is_500d = 0;
 static int is_550d = 0;
 static int is_600d = 0;
@@ -183,6 +184,9 @@ static int isoless_enable(uint32_t start_addr, int size, int count, uint32_t* ba
 {
         /* for 7D */
         int start_addr_0 = start_addr;
+
+        if (start_addr == 0)
+            return 5;
         
         if (is_7d) /* start_addr is on master */
         {
@@ -945,6 +949,22 @@ static unsigned int isoless_init()
         CMOS_FLAG_BITS = 2;
         CMOS_EXPECTED_FLAG = 3;
     }
+    else if (is_camera("200D", "1.0.1"))
+    {
+        is_200d = 1;
+
+        FRAME_CMOS_ISO_START = 0;
+        FRAME_CMOS_ISO_COUNT = 6;
+        FRAME_CMOS_ISO_SIZE  = 34;
+
+        PHOTO_CMOS_ISO_START = 0;
+        PHOTO_CMOS_ISO_COUNT = 6;
+        PHOTO_CMOS_ISO_SIZE  = 20;
+
+        CMOS_ISO_BITS = 3;
+        CMOS_FLAG_BITS = 2;
+        CMOS_EXPECTED_FLAG = 3;
+    }
     else if (is_camera("700D", "1.1.5"))
     {
         is_700d = 1;    
@@ -1032,9 +1052,6 @@ static unsigned int isoless_init()
         CMOS_FLAG_BITS = 5;
         CMOS_EXPECTED_FLAG = 0;
     }
-
-
-
 
     if (FRAME_CMOS_ISO_START || PHOTO_CMOS_ISO_START)
     {
