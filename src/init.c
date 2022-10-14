@@ -51,7 +51,7 @@ extern void platform_post_init();
 #endif
 
 #if defined(CONFIG_MMU_EARLY_REMAP)
-#include "patch_mmu.h"
+#include "patch.h"
 #endif
 
 static int _hold_your_horses = 1; // 0 after config is read

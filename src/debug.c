@@ -461,10 +461,72 @@ void mem_to_file(char *name, uint32_t addr, uint32_t size)
     FIO_CloseFile(f);
 }
 
+#if 0 && defined(CONFIG_200D) && defined(CONFIG_MMU_REMAP)
+#include "sgi.h"
+#include "cpu.h"
+#include "patch_mmu.h"
+#include "mmu_utils.h"
+extern int uart_printf(const char *fmt, ...);
+extern int send_software_interrupt(uint32_t interrupt, uint32_t cpu_id);
+extern int apply_data_patch(struct mmu_config *, struct region_patch *);
+extern void change_mmu_tables(uint8_t *ttbr0, uint8_t *ttbr1, uint32_t cpu_id);
+
+static const unsigned char earl_grey_str[] = "Earl Grey, hot";
+
+#if CONFIG_FW_VERSION == 101 // ensure our hard-coded patch addresses are not broken
+                             // by a FW upgrade
+struct region_patch mmu_data_patches_debug[] =
+{
+    {
+        // replace "Dust Delete Data" with "Earl Grey, hot",
+        // as a low risk (non-code) test that MMU remapping works.
+        .patch_addr = 0xf00d84e7,
+        .orig_content = NULL,
+        .patch_content = earl_grey_str,
+        .size = sizeof(earl_grey_str),
+        .description = "Tea"
+    }
+};
+
+static void test_patch(void *unused)
+{
+    uint32_t cpu_id = get_cpu_id();
+    DryosDebugMsg(0, 15, "Post-patch, %d: 0x%x", cpu_id, *(int *)0xf00d84e7);
+}
+
+#endif // CONFIG_FW_VERSION == 101
+#endif // 200D && REMAP
+
 int yuv_dump_sec = 0;
 static void run_test()
 {
     DryosDebugMsg(0, 15, "run_test fired");
+
+#if 0 && defined(CONFIG_550D)
+    // try to walk to the CMOS ISO tables, logging the steps along the way
+
+    info_led_on();
+    FILE* f = FIO_CreateFile("ML/LOGS/iso_hunt.log");
+    // CMOS ISO table is setup by a DMA read from f8910000,
+    // but the dst is a heap address and not reliably predictable.
+    // The DMA src addr is recorded in some linked-list struct, possibly
+    // property related.  That struct also holds the dst addr.
+    uint32_t addr = 0x3d0000;
+    while (*(uint32_t *)addr != 0xf8910000
+           && addr < 0x800000)
+    {
+        addr += 4;
+    }
+    if (*(uint32_t *)addr != 0xf8910000)
+        goto close;
+    my_fprintf(f, "Found f8910000: 0x%08x\n", addr);
+    my_fprintf(f, "+0x18: 0x%08x\n", *(uint32_t *)(addr + 0x18));
+
+close:
+    FIO_CloseFile(f);
+    info_led_off();
+#endif
+
 #if 0 && (defined(CONFIG_200D) || defined(CONFIG_850D))
     // trigger an assert
     extern void debug_assert(char *msg, char *file, int line);

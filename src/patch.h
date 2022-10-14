@@ -3,16 +3,16 @@
 /* Features:
  * - Keep track of all memory patches
  * - Patch a single address at a time
- * - Undo the patches (built-in undo storage for simple patches)
+ * - Undo the patches
  * - Menu display
  */
 
 /* Design goals:
  * - Traceability: be able to see and review all patched addresses from menu
  * - Safety checking: do not patch if the memory contents is not what you expected
- * - Minimally invasive: only lock down cache when there's some ROM address to patch, and unlock it when it's no longer needed
+ * - Minimally invasive: for Digic 4 and 5, only lock down cache when there's some ROM address to patch, and unlock it when it's no longer needed
  * - Troubleshooting: automatically check whether the patch is still active or it was overwritten
- * - Versatility: cover a wide range of situations (bit patching, scaling, offset) with the same API
+ * - Unified interface: same external APIs for D45 and D78X patching, despite internal mechanism differing
  * 
  * Please do not patch memory directly; use these functions instead (especially for patches that can be undone at runtime).
  * RAM patches applied at boot time can be hardcoded for now (this may change).
@@ -113,4 +113,21 @@ int patch_hook_function(uintptr_t addr, uint32_t orig_instr, patch_hook_function
 /* cache sync helper */
 int _patch_sync_caches(int also_data);
 
-#endif
+#if defined(CONFIG_MMU_EARLY_REMAP) || defined(CONFIG_MMU_REMAP)
+
+struct mmu_config
+{
+    uint8_t *L1_table; // single region of size MMU_TABLE_SIZE
+    struct mmu_L2_page_info *L2_tables; // struct, not direct access to L2 mem, so we can
+                                        // easily track which pages are mapped where.
+};
+
+extern struct mmu_config mmu_conf;
+
+// Sets up structures required for remapping via MMU,
+// and applies compile-time specified patches from platform/XXD/include/platform/mmu_patches.h
+void init_remap_mmu(void);
+
+#endif // EARLY_REMAP || REMAP
+
+#endif // _patch_h_

@@ -5,7 +5,7 @@
 #include "cpu.h"
 #include "mmu_utils.h"
 #include "sgi.h"
-#include "patch_mmu.h"
+#include "patch.h"
 #include "arm-mcr.h"
  
 // A file for code that manipulates CPU functionality.
