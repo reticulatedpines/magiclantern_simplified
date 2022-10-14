@@ -185,12 +185,12 @@ void *malloc_aligned(size_t len, uint32_t alignment)
     aligned_allocs[i].len = len;
     alloc_count++;
 
-    DryosDebugMsg(0, 15, "raw_ptr_val: 0x%x", raw_ptr_val);
+    //DryosDebugMsg(0, 15, "raw_ptr_val: 0x%x", raw_ptr_val);
     if (raw_ptr_val % alignment != 0)
     {
         raw_ptr_val += alignment - raw_ptr_val % alignment;
     }
-    DryosDebugMsg(0, 15, "raw_ptr_val: 0x%x", raw_ptr_val);
+    //DryosDebugMsg(0, 15, "raw_ptr_val: 0x%x", raw_ptr_val);
 
     return (void *)raw_ptr_val;
 }
