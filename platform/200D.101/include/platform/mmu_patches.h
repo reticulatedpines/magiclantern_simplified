@@ -1,7 +1,7 @@
 #ifndef __PLATFORM_MMU_PATCHES_H__
 #define __PLATFORM_MMU_PATCHES_H__
 
-#include "patch_mmu.h"
+#include "patch.h"
 
 static const unsigned char earl_grey_str[] = "Earl Grey, hot";
 static const unsigned char engage_str[] = "Engage!";
