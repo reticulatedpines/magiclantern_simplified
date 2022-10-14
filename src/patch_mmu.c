@@ -453,4 +453,71 @@ void init_remap_mmu(void)
 
     return;
 }
+
+
+//
+// external API declared in patch.h
+//
+
+uint32_t read_value(uint32_t *addr, int is_instruction)
+{
+    // On D45 this is more complicated (the name read_value() is quite deceptive!)
+    // We keep this function to provide the same API
+    return *addr;
+}
+
+// simple data patch
+int patch_memory(uintptr_t addr, // patched address (32 bits)
+                 uint32_t old_value, // old value before patching (if it differs, the patch will fail)
+                 uint32_t new_value,
+                 const char *description) // what does this patch do? example: "raw_rec: slowdown dialog timers"
+                                          // note: you must provide storage for the description string
+                                          // a string literal will do; a local variable where you sprintf will not work
+{
+    return 0; // SJE FIXME
+}
+
+// undo the patching done by one of the above calls
+int unpatch_memory(uintptr_t addr)
+{
+    return 0; // SJE FIXME
+}
+
+// patch a ENGIO register in a FFFFFFFF-terminated list
+// this will also prevent Canon code from changing that register to some other value (*)
+// (*) this will only work for Canon code that looks up the register in a list, sets the value if found, and does no error checking
+int patch_engio_list(uint32_t *engio_list, uint32_t patched_register, uint32_t patched_value, const char *description)
+{
+    return 0; // SJE FIXME
+}
+
+int unpatch_engio_list(uint32_t *engio_list, uint32_t patched_register)
+{
+    return 0; // SJE FIXME
+}
+
+/******************************
+ * Instruction (code) patches *
+ ******************************/
+
+// patch an executable instruction (will clear the instruction cache)
+// same arguments as patch_memory
+int patch_instruction(uintptr_t addr,
+                      uint32_t old_value,
+                      uint32_t new_value,
+                      const char *description)
+{
+    return patch_memory(addr, old_value, new_value, description);
+}
+// to undo, use unpatch_memory(addr)
+
+int _patch_sync_caches(int also_data)
+{
+    return 0; // SJE FIXME
+}
+
+//
+// end external API
+//
+
 #endif // CONFIG_MMU_EARLY_REMAP || CONFIG_MMU_REMAP
