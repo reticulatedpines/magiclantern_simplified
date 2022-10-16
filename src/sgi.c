@@ -78,15 +78,12 @@ void sgi_wake_handler(void)
     sgi_wake_pending = 1;
 }
 
-// Run as an early task to register a handler for waking cpu1.
+// Register a handler for waking cpu1.
 // Used by MMU code to sleep/wake cpu1 during MMU table changes.
-static void register_wake_handler(void *unused)
+void register_wake_handler(void)
 {
     sgi_wake_handler_index = register_sgi_handler(sgi_wake_handler);
 }
-
-// make init.c start this task early on
-TASK_CREATE("reg_wake_handler", register_wake_handler, 0, 0x1c, 0x400);
 
 #endif // CONFIG_DUAL_CORE && CONFIG_MMU_REMAP
 

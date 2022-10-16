@@ -33,6 +33,7 @@ void sgi_wake_handler(void);
 
 void suspend_cpu1(void);
 void suspend_cpu1_then_update_mmu(void);
+void register_wake_handler(void);
 #endif // CONFIG_DUAL_CORE && CONFIG_MMU_REMAP
 
 #endif // CONFIG_DIGIC_678

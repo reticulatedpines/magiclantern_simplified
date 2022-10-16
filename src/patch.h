@@ -126,7 +126,7 @@ extern struct mmu_config mmu_conf;
 
 // Sets up structures required for remapping via MMU,
 // and applies compile-time specified patches from platform/XXD/include/platform/mmu_patches.h
-void init_remap_mmu(void);
+int mmu_init(void);
 
 #endif // EARLY_REMAP || REMAP
 

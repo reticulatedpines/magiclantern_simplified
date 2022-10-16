@@ -4,6 +4,8 @@
 #include <dryos.h>
 #include "patch.h"
 #include "mmu_utils.h"
+#include "sgi.h"
+#include "cpu.h"
 
 #if defined(CONFIG_MMU_EARLY_REMAP) || defined(CONFIG_MMU_REMAP)
 
@@ -289,7 +291,7 @@ struct mmu_config mmu_conf = {NULL, NULL};
 
 static char *mmu_64k_pages_start = NULL;
 static uint32_t mmu_globals_initialised = 0;
-static void init_mmu_globals(void *unused)
+static void init_mmu_globals(void)
 {
     if (mmu_globals_initialised)
         return;
@@ -387,14 +389,30 @@ bail:
     return;
 }
 
-// make init.c start this task early on, allowing later code
-// to use our RAM MMU tables.  mmu_globals_initialised is a bool
-// for ensuring setup completed okay.
-TASK_CREATE("init_mmu_globals", init_mmu_globals, 0, 0x1d, 0x1000);
-
 extern void change_mmu_tables(uint8_t *ttbr0, uint8_t *ttbr1, uint32_t cpu_id);
 
-void init_remap_mmu(void)
+// applies compile-time specified patches from platform/XXD/include/platform/mmu_patches.h
+static int apply_platform_patches(void)
+{
+    // SJE FIXME these should use patch_memory() so that patch manager
+    // is aware of them
+
+    for (uint32_t i = 0; i != COUNT(mmu_data_patches); i++)
+    {
+        if (apply_data_patch(&mmu_conf, &mmu_data_patches[i]) < 0)
+            return -1;
+    }
+
+    for (uint32_t i = 0; i != COUNT(mmu_code_patches); i++)
+    {
+        if (apply_code_patch(&mmu_conf, &mmu_code_patches[i]) < 0)
+            return -2;
+    }
+    return 0;
+}
+
+#ifdef CONFIG_MMU_EARLY_REMAP
+static int init_remap_mmu(void)
 {
     static uint32_t mmu_remap_cpu0_init = 0;
     static uint32_t mmu_remap_cpu1_init = 0;
@@ -410,20 +428,13 @@ void init_remap_mmu(void)
         // Don't call it twice from the same CPU, in simultaneously scheduled tasks.
         if (mmu_remap_cpu0_init == 0)
         {
-            mmu_remap_cpu0_init = 1;
-            init_mmu_globals(0);
+            init_mmu_globals();
 
-            for (uint32_t i = 0; i != COUNT(mmu_data_patches); i++)
-            {
-                if (apply_data_patch(&mmu_conf, &mmu_data_patches[i]) < 0)
-                    while(1);
-            }
+            if (!mmu_globals_initialised)
+                return -1;
 
-            for (uint32_t i = 0; i != COUNT(mmu_code_patches); i++)
-            {
-                if (apply_code_patch(&mmu_conf, &mmu_code_patches[i]) < 0)
-                    while(1);
-            }
+            if (apply_platform_patches() < 0)
+                return -2;
 
             #ifdef CONFIG_QEMU
             // qprintf the results for debugging
@@ -433,17 +444,29 @@ void init_remap_mmu(void)
             change_mmu_tables(mmu_conf.L1_table + cpu_mmu_offset,
                               mmu_conf.L1_table,
                               cpu_id);
+            mmu_remap_cpu0_init = 1;
         }
     }
     else
-    {
+    { // this code is a relic of when I was remapping both CPUs MMU
+      // on cams that allow both cores to run the very early code,
+      // by triggering this function in boot-d678.c.  Digic 7 doesn't
+      // allow that and this init code got moved later, where only cpu0
+      // is running.  So the following should never get called, but
+      // is left in case we want to do that very early remapping on D8X cams.
         if (mmu_remap_cpu1_init == 0)
         {
             mmu_remap_cpu1_init = 1;
-            while(mmu_remap_cpu0_init == 0)
+            int32_t max_sleep = 900;
+            while(mmu_remap_cpu0_init == 0
+                  && !mmu_globals_initialised
+                  && max_sleep > 0)
             {
+                max_sleep -= 100;
                 msleep(100);
             }
+            if (max_sleep < 0) // presumably an error during cpu0 MMU init, don't remap cpu1
+                return -4;
             // update TTBRs (this DryOS function also triggers TLBIALL)
             change_mmu_tables(mmu_conf.L1_table + cpu_mmu_offset,
                               mmu_conf.L1_table,
@@ -451,9 +474,67 @@ void init_remap_mmu(void)
         }
     }
 
-    return;
+    return 0;
 }
+#endif // CONFIG_MMU_EARLY_REMAP
 
+int mmu_init(void)
+{
+    qprintf(" ==== in mmu_init\n");
+    if (mmu_globals_initialised)
+        return 0; // presumably, mmu_init() was already called
+
+    uint32_t cpu_id = get_cpu_id();
+    if (cpu_id != 0)
+        return -1;
+
+#ifdef CONFIG_MMU_EARLY_REMAP
+    return init_remap_mmu();
+#else // implicitly, CONFIG_MMU_REMAP
+
+    init_mmu_globals();
+
+    if (!mmu_globals_initialised)
+    {
+        DryosDebugMsg(0, 15, "Init MMU tables failed");
+        return -2;
+    }
+    DryosDebugMsg(0, 15, "Init MMU tables success!");
+
+    register_wake_handler();
+    if (sgi_wake_handler_index == 0)
+        return -3;
+    DryosDebugMsg(0, 15, "Registered cpu1 wake handler");
+
+    // apply patches, but don't switch to the new table
+    if (apply_platform_patches() < 0)
+        return -4;
+
+    // cpu0 schedules cpu1 to cli + wfi
+    task_create_ex("sleep_cpu", 0x1c, 0x400, suspend_cpu1_then_update_mmu, 0, 1);
+
+    // cpu0 waits for task to be entered
+    if (wait_for_cpu1_to_suspend(1500) < 0)
+        return -5; // failed to suspend cpu1
+
+    // cpu0 cli, update ttbrs, wake cpu1, sei
+
+    uint32_t cpu_mmu_offset = MMU_TABLE_SIZE - 0x100 + cpu_id * 0x80;
+    uint32_t old_int = cli();
+    // update TTBRs (this DryOS function also triggers TLBIALL)
+    change_mmu_tables(mmu_conf.L1_table + cpu_mmu_offset,
+                       mmu_conf.L1_table,
+                       cpu_id);
+    DryosDebugMsg(0, 15, "MMU tables swapped");
+    msleep(500);
+
+    // cpu0 wakes cpu1, which updates ttbrs, sei
+    extern int send_software_interrupt(uint32_t interrupt, uint32_t cpu_id);
+    send_software_interrupt(sgi_wake_handler_index, 1);
+    sei(old_int);
+    return 0;
+#endif // implicitly, CONFIG_MMU_REMAP
+}
 
 //
 // external API declared in patch.h
