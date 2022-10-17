@@ -77,7 +77,7 @@ void suspend_cpu1_then_update_mmu(void)
 
     uint32_t cpu_mmu_offset = MMU_TABLE_SIZE - 0x100 + cpu_id * 0x80;
 
-    DryosDebugMsg(0, 15, "CPU1 sleeping");
+    qprintf("CPU1 sleeping");
     uint32_t old_int = cli();
     cpu1_suspended = 1;
     while (sgi_wake_pending == 0)
@@ -85,7 +85,7 @@ void suspend_cpu1_then_update_mmu(void)
         asm("dsb #0xf");
         asm("wfi");
     }
-    DryosDebugMsg(0, 15, "CPU1 awoke");
+    qprintf("CPU1 awoke");
 
     // update TTBRs (this DryOS function also triggers TLBIALL)
     change_mmu_tables(mmu_conf.L1_table + cpu_mmu_offset,
