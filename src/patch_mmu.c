@@ -57,6 +57,7 @@ struct mmu_L2_page_info
 
 #include "platform/mmu_patches.h"
 
+extern int send_software_interrupt(uint32_t interrupt, uint32_t cpu_id);
 extern void *memcpy_dryos(void *dst, const void *src, uint32_t count);
 //extern void early_printf(char *fmt, ...);
 
@@ -174,15 +175,9 @@ struct mmu_L2_page_info *find_L2_for_patch(struct region_patch *patch,
 //
 // NB this function doesn't update TTBR registers.
 // It does invalidate relevant cache entries.
-// It *doesn't* do this in a technically safe way;
-// We don't disable interrupts etc, so cache info could go
-// stale before we update TTBRs.
-// FIXME - probably with locks, cli/sei wrapping,
-// including getting cpu0 to sleep cpu1 before, wake after.
-// Note even then that's not fully safe; a task may be scheduled
-// that is paused, but executing code that is about to be patched.
-// It would wake up to find the instructions had altered and state
-// was inconsistent.  This is hard to handle reliably.
+//
+// You shouldn't call this directly, instead use patch_memory(),
+// which handles sleep/wake of cpu1, and ensuring it also takes the patch.
 int apply_data_patch(struct mmu_config *mmu_conf,
                      struct region_patch *patch)
 {
@@ -195,6 +190,12 @@ int apply_data_patch(struct mmu_config *mmu_conf,
     flags_new |= (flags_ram & L2_LARGEPAGE_MEMTYPE_MASK);
 
     uint32_t aligned_patch_addr = patch->patch_addr & 0xffff0000;
+
+    // SJE TODO: check if the patch address is in RAM.
+    // If so, we don't want to waste our limited remap memory
+    // and should edit it directly.  We still want to use patch manager
+    // APIs for this, so there's a unified interface.
+    // See IS_ROM_PTR() and usage in patch.c
 
     struct mmu_L2_page_info *target_page = find_L2_for_patch(patch,
                                                              mmu_conf->L2_tables,
@@ -480,7 +481,6 @@ static int init_remap_mmu(void)
 
 int mmu_init(void)
 {
-    qprintf(" ==== in mmu_init\n");
     if (mmu_globals_initialised)
         return 0; // presumably, mmu_init() was already called
 
@@ -499,12 +499,12 @@ int mmu_init(void)
         DryosDebugMsg(0, 15, "Init MMU tables failed");
         return -2;
     }
-    DryosDebugMsg(0, 15, "Init MMU tables success!");
+    //DryosDebugMsg(0, 15, "Init MMU tables success!");
 
     register_wake_handler();
     if (sgi_wake_handler_index == 0)
         return -3;
-    DryosDebugMsg(0, 15, "Registered cpu1 wake handler");
+    //DryosDebugMsg(0, 15, "Registered cpu1 wake handler");
 
     // apply patches, but don't switch to the new table
     if (apply_platform_patches() < 0)
@@ -525,11 +525,9 @@ int mmu_init(void)
     change_mmu_tables(mmu_conf.L1_table + cpu_mmu_offset,
                        mmu_conf.L1_table,
                        cpu_id);
-    DryosDebugMsg(0, 15, "MMU tables swapped");
-    msleep(500);
+    //DryosDebugMsg(0, 15, "MMU tables swapped");
 
     // cpu0 wakes cpu1, which updates ttbrs, sei
-    extern int send_software_interrupt(uint32_t interrupt, uint32_t cpu_id);
     send_software_interrupt(sgi_wake_handler_index, 1);
     sei(old_int);
     return 0;
@@ -547,6 +545,114 @@ uint32_t read_value(uint32_t *addr, int is_instruction)
     return *addr;
 }
 
+// You probably don't want to call this directly.
+// This is used by patch_memory() after it decides what kind
+// of memory is at the address, since on D78X we must use
+// different routes for RAM and ROM changes.
+static int patch_memory_rom(uintptr_t addr, // patched address (32 bits)
+                            uint32_t old_value, // old value before patching (if it differs, the patch will fail)
+                            uint32_t new_value,
+                            const char *description) // what does this patch do? example: "raw_rec: slowdown dialog timers"
+                                                     // note: you must provide storage for the description string
+                                                     // a string literal will do; a local variable where you sprintf will not work
+{
+    uint32_t cpu_id = get_cpu_id();
+    if (cpu_id != 0)
+        return -1;
+
+    if (sgi_wake_handler_index == 0)
+        return -2;
+
+    if (!mmu_globals_initialised)
+        return -3;
+
+    // SJE FIXME apply_data_patch() may modify MMU tables.  If they are accessed when in
+    // an inconsistent state, this can cause a halt due to bad MMU translation.
+    //
+    // For now, do the cpu1 suspend dance for every patch.  Later we expect to take
+    // patchsets, and apply_patchset() should do the dance once per set.
+
+    // cpu0 schedules cpu1 to cli + wfi
+    task_create_ex("sleep_cpu", 0x1c, 0x400, suspend_cpu1_then_update_mmu, 0, 1);
+
+    // cpu0 waits for task to be entered
+    if (wait_for_cpu1_to_suspend(500) < 0)
+        return -4; // failed to suspend cpu1
+
+    // cpu0 cli, update ttbrs, wake cpu1, sei
+
+    uint32_t cpu_mmu_offset = MMU_TABLE_SIZE - 0x100 + cpu_id * 0x80;
+    uint32_t old_int = cli();
+
+    // Translate old ML patch format to MMU format.
+    // Note this will go out of scope when function ends,
+    // but apply_data_patch() should have copied all it needs.
+    // Horrible, but future patchset work will tidy this up.
+    struct region_patch patch = { .patch_addr = addr,
+                                  .orig_content = NULL,
+                                  .patch_content = (uint8_t *)&new_value,
+                                  .size = 4,
+                                  .description = description };
+    apply_data_patch(&mmu_conf, &patch);
+
+    // update TTBRs (this DryOS function also triggers TLBIALL)
+    change_mmu_tables(mmu_conf.L1_table + cpu_mmu_offset,
+                      mmu_conf.L1_table,
+                      cpu_id);
+    qprintf("MMU tables updated");
+
+    // cpu0 wakes cpu1, which updates ttbrs, sei
+    send_software_interrupt(sgi_wake_handler_index, 1);
+    sei(old_int);
+
+    // SJE TODO we could be more selective about the cache flush,
+    // if so, take care to ensure cpu1 also updates.  See apply_data_patch(),
+    // which does already flush cache selectively, so can probably re-use
+    // that logic, but it also wants to run on cpu1.
+    _sync_caches();
+    return 0;
+}
+
+static int patch_memory_ram(uintptr_t addr, // patched address (32 bits)
+                            uint32_t old_value, // old value before patching (if it differs, the patch will fail)
+                            uint32_t new_value,
+                            const char *description) // what does this patch do? example: "raw_rec: slowdown dialog timers"
+                                                     // note: you must provide storage for the description string
+                                                     // a string literal will do; a local variable where you sprintf will not work
+{
+    uint32_t cpu_id = get_cpu_id();
+    if (cpu_id != 0)
+        return -1;
+
+    if (sgi_wake_handler_index == 0)
+        return -2;
+
+    // For now, do the cpu1 suspend dance for every patch.  Later we expect to take
+    // patchsets, and apply_patchset() should do the dance once per set.
+
+    // cpu0 schedules cpu1 to cli + wfi
+    task_create_ex("sleep_cpu", 0x1c, 0x400, suspend_cpu1, 0, 1);
+
+    // cpu0 waits for task to be entered
+    if (wait_for_cpu1_to_suspend(500) < 0)
+        return -4; // failed to suspend cpu1
+
+    // cpu0 cli, patch ram, wake cpu1, sei
+
+    uint32_t old_int = cli();
+
+    *(uint32_t *)addr = new_value;
+
+    // cpu0 wakes cpu1, which will sei
+    send_software_interrupt(sgi_wake_handler_index, 1);
+    sei(old_int);
+
+    // SJE TODO we could be more selective about the cache flush,
+    // if so, take care to ensure cpu1 also updates
+    _sync_caches();
+    return 0;
+}
+
 // simple data patch
 int patch_memory(uintptr_t addr, // patched address (32 bits)
                  uint32_t old_value, // old value before patching (if it differs, the patch will fail)
@@ -555,7 +661,13 @@ int patch_memory(uintptr_t addr, // patched address (32 bits)
                                           // note: you must provide storage for the description string
                                           // a string literal will do; a local variable where you sprintf will not work
 {
-    return 0; // SJE FIXME
+    // SJE FIXME we can probably do much better detection logic
+    // by lightweight parsing MMU tables to get region status.
+    // This would also allow us to detect and avoid patching device memory.
+    if (IS_ROM_PTR(addr))
+        return patch_memory_rom(addr, old_value, new_value, description);
+    else
+        return patch_memory_ram(addr, old_value, new_value, description);
 }
 
 // undo the patching done by one of the above calls
