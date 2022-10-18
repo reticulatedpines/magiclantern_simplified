@@ -180,6 +180,22 @@ static void bulk_cb(uint32_t *parm, uint32_t address, uint32_t length)
     *parm = 0;
 }
 
+static int patch_cmos_iso_values_200d(uint32_t start_addr, int size, int count, uint32_t *backup)
+{
+    if (backup == NULL)
+        return -1;
+
+    for (int i = 0; i < count; i++)
+    {
+        uint32_t patch_value = 0x0b444000; // 0xRRR ABCD 0, middle 4 are ISO values, RRR is CMOS register
+        uint32_t patch_addr = start_addr + i * size;
+        if (((*(uint32_t *)patch_addr) & 0xfff00000) == 0x0b400000) // sanity check
+            patch_memory(patch_addr, backup[i], patch_value, "dual_iso: CMOS[0] gains");
+    }
+
+    return 0;
+}
+
 static int isoless_enable(uint32_t start_addr, int size, int count, uint32_t* backup)
 {
         /* for 7D */
@@ -210,6 +226,16 @@ static int isoless_enable(uint32_t start_addr, int size, int count, uint32_t* ba
         // interacting with do_patch() / read_value() behaviour.
         for (int i = 0; i < count; i++)
             backup[i] = read_value((uint32_t *)(start_addr + size * i), 0);
+
+        // SJE FIXME this is rather ugly.  Can we use any of the sanity
+        // checks below?  Needs investigating.  Can we find appropriate
+        // CMOS_IS_BITS etc, or is the data format too different?
+        // Might want splitting into D45 / D678 paths.
+        if (is_200d)
+        {
+            patch_cmos_iso_values_200d(start_addr, size, count, backup);
+            return 0;
+        }
 
         /* sanity check first */
         int prev_iso = 0;
@@ -323,7 +349,11 @@ static unsigned int isoless_refresh(unsigned int ctx)
     if (!job_state_ready_to_take_pic())
         return 0;
 
-    take_semaphore(isoless_sem, 0);
+    // SJE TODO gain better understanding of why modern digic cams,
+    // apparently including 1300D, fail to take the sem if 2nd param is 0.
+    // On prior cams, 0 works fine.  But there are other uses with 0 on D678
+    // that seem okay!  E.g. the menu sem.
+    take_semaphore(isoless_sem, 1);
 
     static uint32_t backup_lv[20];
     static uint32_t backup_ph[20];
@@ -763,18 +793,79 @@ static uint32_t get_photo_cmos_iso_start_550d(void)
         return 0; // failed to find target
     }
 
-#if 1 // SJE FIXME remove this, it's debug code!
-    // dump the table to check contents in case we later throw isoless err()
-    FILE* f = FIO_CreateFile("ML/LOGS/iso_tabl.bin");
-    FIO_WriteFile(f, (uint32_t *)ram_copy_start, 0x2000);
-    FIO_CloseFile(f);
-#endif
+    return ram_copy_start;
+}
+
+// Find the RAM copy of the CMOS ISO tables.
+//
+// See get_photo_cmos_iso_start_550d for longer comments that
+// should still mostly apply here too, including comments inside
+// the function body.
+static uint32_t get_photo_cmos_iso_start_200d(void)
+{
+    uint32_t addr = 0x3e0000;
+    uint32_t max_search_addr = 0xa00000;
+
+    uint32_t rom_copy_start = 0xe1980000;
+    uint32_t ram_copy_start = 0;
+
+    // search for DMA src addr, to find our dst addr
+    for (; addr < max_search_addr; addr += 4)
+    {
+        if (*(uint32_t *)addr == rom_copy_start)
+        {
+            // A bunch of checks to give us higher confidence
+            // we found the right value.  So far, none of these
+            // have been required; the first hit is the correct
+            // one.  But these are cheap checks, and should avoid
+            // ever finding a random match on the 32-bit DMA addr value.
+
+            uint32_t *probe = (uint32_t *)addr;
+            // we expect to find 2 copies of the DMA src addr nearby
+            if (probe[0] != probe[4])
+                continue;
+            if (probe[0] != probe[5])
+                continue;
+
+            // can't test the following properly until we can apply RAM patches
+            // directly.  Doesn't work via MMU (system reads via DMA, ignoring MMU?).
+            ram_copy_start = probe[6] + 0x19c0; // not sure which this is, but not photo capture ISO table
+//            ram_copy_start = probe[6] + 0x4538; // not photo capture ISO table
+//            ram_copy_start = probe[6] + 0x4fb8; // also not photo.  We might need a combo?
+            // we expect this to be Uncacheable
+            if (ram_copy_start == (uint32_t)CACHEABLE(ram_copy_start))
+                continue;
+
+            // 200d doesn't keep the orig unaligned address
+//            if ((probe[6] & 0xfffff800) != (probe[7] & 0xfffff800))
+//                continue;
+
+            // we expect to find the original ISO value
+            if (*(uint32_t *)ram_copy_start != 0x0b400000)
+                continue;
+
+            // passed all checks, stop search
+            qprintf("Found ram_copy_start, 0x%08x: 0x%08x\n",
+                    &probe[6], ram_copy_start);
+            printf("r_c_s %08x: %08x\n",
+                   &probe[6], ram_copy_start);
+            break;
+        }
+    }
+    if (*(uint32_t *)addr != rom_copy_start || addr >= max_search_addr)
+    {
+        qprintf("Failed to find rom_copy_start!\n");
+        printf("Failed to find r_c_s!\n");
+        return 0; // failed to find target
+    }
 
     return ram_copy_start;
 }
 
 static unsigned int isoless_init()
 {
+    isoless_sem = create_named_semaphore("isoless_sem", 0);
+
     if (is_camera("5D3", "1.1.3") || is_camera("5D3", "1.2.3"))
     {
         FRAME_CMOS_ISO_START = 0x40452C72; // CMOS register 0000 - for LiveView, ISO 100 (check in movie mode, not photo!)
@@ -953,13 +1044,23 @@ static unsigned int isoless_init()
     {
         is_200d = 1;
 
+        //PHOTO_CMOS_ISO_START = 0xe19819c0; // this is the ROM copy
+        PHOTO_CMOS_ISO_START = get_photo_cmos_iso_start_200d(); // this returns the RAM copy
+        PHOTO_CMOS_ISO_COUNT = 18; // Actually seems like 24, although that is higher than I can explain.
+                                   // Other dual-iso code hardcodes some arrays at size 20 so I limit here.
+        PHOTO_CMOS_ISO_SIZE  = 36;
+        DryosDebugMsg(0, 15, " ==== addr: 0x%08x", PHOTO_CMOS_ISO_START);
+/*
+        //PHOTO_CMOS_ISO_START = 0xe1984538; // this is the ROM copy
+        PHOTO_CMOS_ISO_START = get_photo_cmos_iso_start_200d(); // this returns the RAM copy
+        PHOTO_CMOS_ISO_COUNT = 18; // Actually seems like 24, although that is higher than I can explain.
+                                   // Other dual-iso code hardcodes some arrays at size 20 so I limit here.
+        PHOTO_CMOS_ISO_SIZE  = 112; // 0x70
+*/
+
         FRAME_CMOS_ISO_START = 0;
         FRAME_CMOS_ISO_COUNT = 6;
-        FRAME_CMOS_ISO_SIZE  = 34;
-
-        PHOTO_CMOS_ISO_START = 0;
-        PHOTO_CMOS_ISO_COUNT = 6;
-        PHOTO_CMOS_ISO_SIZE  = 20;
+        FRAME_CMOS_ISO_SIZE  = 36;
 
         CMOS_ISO_BITS = 3;
         CMOS_FLAG_BITS = 2;
