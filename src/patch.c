@@ -244,7 +244,7 @@ static int do_patch(uint32_t *addr, uint32_t value, int is_instruction)
 #ifdef CONFIG_QEMU
 write_to_ram:
 #endif
-    // On ARMv5, unaligned writes via ldr succeed, but the address is rounded down
+    // On ARMv5, unaligned writes via str succeed, but the address is rounded down
     // before use.
     //
     // This means writes to unaligned addresses will store the value at
