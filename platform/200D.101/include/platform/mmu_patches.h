@@ -148,7 +148,6 @@ struct function_hook_patch mmu_code_patches[] =
         .target_function_addr = (uint32_t)hook_edmac_related_01,
         .description = "None"
     }
-*/
     {
         .patch_addr = 0xe01c7656, // mpu_send, for logging
         .orig_content = {0x2d, 0xe9, 0xf0, 0x41, 0xff, 0x29, 0x0e, 0x46}, // used as a check before applying patch
@@ -161,7 +160,7 @@ struct function_hook_patch mmu_code_patches[] =
         .target_function_addr = (uint32_t)hook_mpu_recv,
         .description = "Log MPU recv"
     }
-
+*/
 };
 
 #endif // 200D FW_VERSION 101
