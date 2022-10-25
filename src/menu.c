@@ -6008,8 +6008,8 @@ menu_help_go_to_selected_entry(
 static void menu_show_version(void)
 {
     big_bmp_printf(FONT(FONT_MED, 60, MENU_BG_COLOR_HEADER_FOOTER),  10,  480 - font_med.height * 3,
-        "Magic Lantern version : %s\n"
-        "Mercurial changeset   : %s\n"
+        "Magic Lantern version: %s\n"
+        "Git commit: %s\n"
         "Built on %s by %s.",
         build_version,
         build_id,
