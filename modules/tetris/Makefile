@@ -1,5 +1,5 @@
 # Force format
-$(info $(shell astyle --style=allman tetris.c ptetris.h))
+#$(info $(shell astyle --style=allman tetris.c ptetris.h))
 
 TOP_DIR=../..
 MODULE_NAME=tetris
