@@ -124,20 +124,33 @@ static void dump_rom_task(void* priv, int unused)
     msleep(200);
     FILE * f = NULL;
 
+// Digic 6 doesn't have ROM0
+#if defined(CONFIG_DIGIC_45) || defined(CONFIG_DIGIC_78)
     f = FIO_CreateFile("ML/LOGS/ROM0.BIN");
     if (f)
     {
         bmp_printf(FONT_LARGE, 0, 60, "Writing ROM0");
+    #if defined(CONFIG_DIGIC_45)
         FIO_WriteFile(f, (void*) 0xF0000000, 0x01000000);
+    #elif defined(CONFIG_DIGIC_78)
+        FIO_WriteFile(f, (void*) 0xE0000000, 0x04000000); // max seen so far
+    #endif
         FIO_CloseFile(f);
     }
     msleep(200);
+#endif
 
     f = FIO_CreateFile("ML/LOGS/ROM1.BIN");
     if (f)
     {
         bmp_printf(FONT_LARGE, 0, 60, "Writing ROM1");
+    #if defined(CONFIG_DIGIC_45)
         FIO_WriteFile(f, (void*) 0xF8000000, 0x01000000);
+    #elif defined(CONFIG_DIGIC_6)
+        FIO_WriteFile(f, (void*) 0xFE000000, 0x02000000);
+    #elif defined(CONFIG_DIGIC_78)
+        FIO_WriteFile(f, (void*) 0xF0000000, 0x02000000); // max seen so far
+    #endif
         FIO_CloseFile(f);
     }
     msleep(200);
@@ -497,10 +510,194 @@ static void test_patch(void *unused)
 #endif // CONFIG_FW_VERSION == 101
 #endif // 200D && REMAP
 
+#if 0 && defined(CONFIG_200D)
+extern int uart_printf(const char *fmt, ...);
+void print_match(uint32_t addr)
+{
+    for (uint32_t offset = 0x0; offset < 0x40; offset += 0x10)
+    {
+        uart_printf("0x%08x: ", addr + offset);
+        for (uint32_t i = 0; i < 0x10; i += 4)
+        {
+            uart_printf("%02x %02x %02x %02x ",
+                        *(uint8_t *)(addr + offset + i),
+                        *(uint8_t *)(addr + offset + i + 1),
+                        *(uint8_t *)(addr + offset + i + 2),
+                        *(uint8_t *)(addr + offset + i + 3)
+                      );
+        }
+        uart_printf("\n");
+    }
+    uart_printf("\n");
+}
+
+void dump_match(uint32_t addr)
+{
+    FILE* f = FIO_CreateFileOrAppend("ML/LOGS/iso_hunt.log");
+    // CMOS ISO table is setup by a DMA read from f8910000,
+    // but the dst is a heap address and not reliably predictable.
+    // The DMA src addr is recorded in some linked-list struct, possibly
+    // property related.  That struct also holds the dst addr.
+
+    my_fprintf(f, "Orig addr: 0x%08x\n", addr);
+    addr = addr & 0xfffffff0;
+    for (uint32_t offset = 0x0; offset < 0x100; offset += 0x10)
+    {
+        my_fprintf(f, "0x%08x: ", addr + offset);
+        for (uint32_t i = 0; i < 0x10; i += 4)
+        {
+            my_fprintf(f, "%02x %02x %02x %02x ",
+                        *(uint8_t *)(addr + offset + i),
+                        *(uint8_t *)(addr + offset + i + 1),
+                        *(uint8_t *)(addr + offset + i + 2),
+                        *(uint8_t *)(addr + offset + i + 3)
+                      );
+        }
+        my_fprintf(f, "\n");
+    }
+    FIO_CloseFile(f);
+}
+
+static uint32_t ___get_photo_cmos_iso_start_200d(void)
+{
+    uint32_t addr = 0x3e0000;
+    uint32_t max_search_addr = 0xa00000;
+
+    uint32_t rom_copy_start = 0xe1980000;
+    uint32_t ram_copy_start = 0;
+
+    // search for DMA src addr, to find our dst addr
+    for (; addr < max_search_addr; addr += 4)
+    {
+        if (*(uint32_t *)addr == rom_copy_start)
+        {
+            // A bunch of checks to give us higher confidence
+            // we found the right value.  So far, none of these
+            // have been required; the first hit is the correct
+            // one.  But these are cheap checks, and should avoid
+            // ever finding a random match on the 32-bit DMA addr value.
+
+            uint32_t *probe = (uint32_t *)addr;
+            // we expect to find 2 copies of the DMA src addr nearby
+            if (probe[0] != probe[4])
+                continue;
+            if (probe[0] != probe[5])
+                continue;
+            DryosDebugMsg(0, 15, "Found DMA addr copies");
+
+//            ram_copy_start = probe[6] + 0x4538;
+            ram_copy_start = probe[6] + 0x4fb8;
+            // we expect this to be Uncacheable
+            if (ram_copy_start == (uint32_t)CACHEABLE(ram_copy_start))
+                continue;
+
+            // we expect to find the original ISO value
+            if (*(uint32_t *)ram_copy_start != 0x0b400000)
+                continue;
+
+            // passed all checks, stop search
+            DryosDebugMsg(0, 15, "Found ram_copy_start, 0x%08x: 0x%08x",
+                          &probe[6], ram_copy_start);
+            break;
+        }
+    }
+    if (*(uint32_t *)addr != rom_copy_start || addr >= max_search_addr)
+    {
+        DryosDebugMsg(0, 15, "Failed to find rom_copy_start!");
+        return 0; // failed to find target
+    }
+
+#if 1 // SJE FIXME remove this, it's debug code!
+    // dump the table to check contents in case we later throw isoless err()
+    FILE* f = FIO_CreateFile("ML/LOGS/iso_tabl.bin");
+    FIO_WriteFile(f, (uint32_t *)ram_copy_start, 0x2000);
+    FIO_CloseFile(f);
+#endif
+
+    return ram_copy_start;
+}
+#endif
+
 int yuv_dump_sec = 0;
 static void run_test()
 {
     DryosDebugMsg(0, 15, "run_test fired");
+
+#if 0 && defined(CONFIG_200D)
+    #include "patch.h"
+
+    // Three candidate CMOS ISO tables, RAM addresses
+    // (not stable in theory but are for my cam, real code
+    // should search for these)
+    // 0x21f9dc0: +0x19c0, size 36, count 24
+    // 0x21fc938: +0x4538, size 112 / 0x70, count 24
+    // 0x21fd3b8: +0x4fb8, size 112 / 0x70, count 24
+
+    msleep(100);
+    uint32_t *p = NULL;
+    for (p = (uint32_t *)0x2000; p < (uint32_t *)0x2800000; p++)
+    {
+        if (p[0] == 0x0b400000
+            && p[1] == 0x0cc03333
+            && p[2] == 0x0d001f1f
+            && p[3] == 0x0d401f1f)
+        {
+            //DryosDebugMsg(0, 15, "Match: 0x%08x", p);
+            print_match((uint32_t)p);
+        }
+    }
+    //DryosDebugMsg(0, 15, " ==== Search finished ====", p);
+
+    for (p = (uint32_t *)0x2000; p < (uint32_t *)0x2800000; p++)
+    {
+        if (p[0] == 0x0b400000
+            && p[1] == 0x0cc03333
+            && p[2] == 0xffffffff
+            && p[3] == 0x03080201)
+        {
+            //DryosDebugMsg(0, 15, "Match: 0x%08x", p);
+            print_match((uint32_t)p);
+        }
+    }
+    //DryosDebugMsg(0, 15, " ==== Search finished ====", p);
+/*
+    uint32_t addr, size, count;
+    for (addr = 0x21f9dc0, size = 36, count = 24; count > 0; count--)
+    {
+        if ((*(uint32_t *)addr & 0xfff00000) == 0x0b400000)
+            patch_memory(addr, *(uint32_t *)addr, 0x0b444000, NULL);
+        addr += size;
+    }
+*/
+
+
+#endif
+
+#if 0 && defined(CONFIG_200D)
+    //___get_photo_cmos_iso_start_200d();
+    DryosDebugMsg(0, 15, "0x421fc938: 0x%08x", *(uint32_t *)0x421fc938);
+    DryosDebugMsg(0, 15, "0x21fc938:  0x%08x", *(uint32_t *)0x21fc938);
+
+/*
+    info_led_on();
+    // CMOS ISO table is setup by a DMA read from f8910000,
+    // but the dst is a heap address and not reliably predictable.
+    // The DMA src addr is recorded in some linked-list struct, possibly
+    // property related.  That struct also holds the dst addr.
+    uint32_t addr = 0x300000;
+    while (addr <  0x3000000)
+    {
+        if (*(uint32_t *)addr == 0x0b400000
+            && *(uint32_t *)(addr + 4) == 0x0cc03333)
+        {
+            DryosDebugMsg(0, 15, "Possible match: 0x%08x\n", addr);
+            dump_match(addr);
+        }
+        addr += 4;
+    }
+    info_led_off();
+*/
+#endif
 
 #if 0 && defined(CONFIG_550D)
     // try to walk to the CMOS ISO tables, logging the steps along the way
@@ -767,8 +964,8 @@ static void save_crash_log()
     {
         my_fprintf(f, "%s\n", get_assert_msg());
         my_fprintf(f,
-            "Magic Lantern version : %s\n"
-            "Mercurial changeset   : %s\n"
+            "Magic Lantern version: %s\n"
+            "Git commit: %s\n"
             "Built on %s by %s.\n",
             build_version,
             build_id,
@@ -1224,7 +1421,13 @@ static struct menu_entry debug_menus[] = {
         .name        = "Dump ROM and RAM",
         .priv        = dump_rom_task,
         .select      = run_in_separate_task,
+    #if defined(CONFIG_DIGIC_45)
         .help = "ROM0.BIN:F0000000, ROM1.BIN:F8000000, RAM4.BIN"
+    #elif defined(CONFIG_DIGIC_6)
+        .help = "ROM0.BIN:      NA, ROM1.BIN:FE000000, RAM4.BIN"
+    #elif defined(CONFIG_DIGIC_78)
+        .help = "ROM0.BIN:E0000000, ROM1.BIN:F0000000, RAM4.BIN"
+    #endif
     },
     {
         .name        = "Dump image buffers",
