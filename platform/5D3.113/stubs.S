@@ -112,7 +112,7 @@ NSTUB(0xC0220000,  camera_engine)
 
 /** Debug messages **/
 NSTUB(   0x24B60,  dm_names)
-NSTUB(0xFF9E4AD8 - RAM_OFFSET,  DryosDebugMsg)
+NSTUB(    0x5b90,  DryosDebugMsg) // 0xFF9E4AD8 - RAM_OFFSET
 NSTUB(0xFF9E4E40 - RAM_OFFSET,  dm_set_store_level)
 
 /** Dialog API **/

@@ -116,7 +116,7 @@ NSTUB(0xFFA57740 - RAM_OFFSET,  dma_memcpy)                 // AJ_HP_Copy_n_DMA_
 
 /** Debug messages **/
 NSTUB(   0x241BC,  dm_names)
-NSTUB(0xFFA50C3C - RAM_OFFSET,  DryosDebugMsg)
+NSTUB(    0x395c,  DryosDebugMsg) // 0xFFA50C3C - RAM_OFFSET
 NSTUB(0xFFA50FA8 - RAM_OFFSET,  dm_set_store_level)         // Not so sure
 
 /** Dialog API **/

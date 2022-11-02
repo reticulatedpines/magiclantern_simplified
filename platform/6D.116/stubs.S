@@ -115,7 +115,7 @@ NSTUB(0xFFCDEE1C - RAM_OFFSET,  dma_memcpy)                 // Slower?
 
 /** Debug messages **/
 NSTUB(   0x758D8,  dm_names)
-NSTUB(0xFFCD82B0 - RAM_OFFSET,  DryosDebugMsg)
+NSTUB(    0x67c8,  DryosDebugMsg) // 0xFFCD82B0 - RAM_OFFSET
 NSTUB(0xFFCD861C - RAM_OFFSET,  dm_set_store_level)
 
 /** Dialog API **/

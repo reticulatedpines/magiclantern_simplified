@@ -126,7 +126,7 @@ NSTUB(0xC0220000,  camera_engine)                           // HDMIDetectISR
 
 /** Debug messages **/
 NSTUB(   0x24A70,  dm_names)
-NSTUB(0xFF9F6350 - RAM_OFFSET,  DryosDebugMsg)
+NSTUB(    0x5b90,  DryosDebugMsg) // 0xFF9F6350 - RAM_OFFSET
 NSTUB(0xFF9F66B8 - RAM_OFFSET,  dm_set_store_level)
 
 /** Dialog API **/

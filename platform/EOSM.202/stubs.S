@@ -109,7 +109,7 @@ NSTUB(0xFFA741D0 - RAM_OFFSET,  dma_memcpy)
 
 /** Debug messages **/
 NSTUB(   0x3EC7C,  dm_names)
-NSTUB(0xFFA6D664 - RAM_OFFSET,  DryosDebugMsg)
+NSTUB(    0x40d4,  DryosDebugMsg) // 0xFFA6D664 - RAM_OFFSET
 NSTUB(0xFFA6D9D0 - RAM_OFFSET,  dm_set_store_level)
 
 /** Dialog API **/
