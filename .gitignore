@@ -3,6 +3,7 @@ Makefile.*.user
 Makefile.user
 *.gpr
 *.gar
+*.qcow2
 *.bin
 *.elf
 *.o

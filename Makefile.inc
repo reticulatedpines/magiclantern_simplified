@@ -90,6 +90,9 @@ magiclantern-$(VERSION).zip: install installer_check installdoc
 zip:: | prepare_zip
 zip:: magiclantern-$(VERSION).zip print_build_info
 
+sd.qcow2: zip
+	$(PYTHON3) $(PLATFORM_PATH)/create_disk_image_from_zip.py magiclantern-$(VERSION).zip
+
 install_qemu:: | prepare_zip
 install_qemu:: install
 	$(call build,MTOOLS,cd $(QEMU_PATH)/; ./mtools_copy_ml.sh $(INSTALL_DIR))
@@ -97,6 +100,7 @@ install_qemu:: install
 clean::
 	$(call rm_dir, zip)
 	$(call rm_files, *.zip)
+	$(call rm_files, sd.qcow2 cf.qcow2 guestmount.pid)
 
 FORCE:
 
