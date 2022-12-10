@@ -22,7 +22,7 @@ There's a lot more below, about how to keep things consistent and readable for M
 
 So, don't worry too much - we will teach you, so you can skip reading it if you don't mind us telling you to change things later on.
 
-###Important note
+### Important note
 This repo is a fork.  However, the official repo is in practice unmaintained.  This repo's primary focus is getting ML working on newer cameras: Digic 6 and later, this begins with 5D mark IV, 750D, 200D era.  We also try to not break existing support.  Bug fixes or enhancements to old or new cams are welcome if there is reasonable confidence we don't break well supported cams.
 
 # Important resources & contact info
@@ -94,7 +94,7 @@ Most commits relate to a subarea.  Use a prefix on the message to indicate this.
 
 Give maintainers enough information so that they can understand the purpose and scope of the change and test correctness.
 
-Commits should hold a self-contained unit of work.  This can cover a change in multiple files, but should not include multiple unrelated changes in one commit.  If working on a large feature, avoid single large commits where possible; build up the feature you're working on in pieces.  Each piece 
+Commits should hold a self-contained unit of work.  This can cover a change in multiple files, but should not include multiple unrelated changes in one commit.  If working on a large feature, avoid single large commits where possible; build up the feature you're working on in pieces.
 
 If you find a bug or mistake in your work, don't have one commit with the mistake and one undoing it: remove both commits before attempting PR.
 
@@ -103,7 +103,8 @@ Our code is not, and cannot, be self-documenting.  In many places the code depen
 
 Give enough information so that your code can be understood and tested by someone else.
 
-E.g. "Here we sleep for 50ms to give the mirror time to settle, without this the 99D errors with MechERR NG on UART".
+E.g.:  
+"Here we sleep for 50ms to give the mirror time to settle, without this the 99D errors with MechERR NG on UART".
 
 ### Making good changes
 Changes intended for one cam must not break things for other cams.
