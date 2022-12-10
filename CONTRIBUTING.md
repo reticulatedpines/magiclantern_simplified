@@ -131,4 +131,5 @@ Tests to run before commits:
 Tests to run before merges to dev:
 
   - as above, plus:
+  - completed, user-accessible features should be tested extensively on a physical cam
   - (qemu tests when they exist)
