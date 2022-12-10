@@ -1,6 +1,0 @@
-There are only two long-lived branches, dev and stable.
-Stable holds only tested, "known-good" builds.
-Stable is updated only via rebase from dev.
-No dev work happens directly on dev.
-All dev work happens in branches from dev.
-Branches move back into dev by first rebasing from dev, then merging.
