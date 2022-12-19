@@ -90,7 +90,8 @@ magiclantern-$(VERSION).zip: install installer_check installdoc
 zip:: | prepare_zip
 zip:: magiclantern-$(VERSION).zip print_build_info
 
-sd.qcow2: zip
+disk_image: zip
+	cd $(PLATFORM_PATH)/$(ML_MODEL_DIR)
 	$(PYTHON3) $(PLATFORM_PATH)/create_disk_image_from_zip.py magiclantern-$(VERSION).zip
 
 install_qemu:: | prepare_zip

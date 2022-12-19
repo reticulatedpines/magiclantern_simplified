@@ -122,7 +122,7 @@ def parse_args():
     magiclantern-Nightly.blah.200D.zip, use guestmount to
     create a qemu disk image with the contents, ready for emulation.
 
-    Expected only to be called by the build system, via 'make sd.qcow2'
+    Expected only to be called by the build system, via 'make disk_image'
     """
     parser = argparse.ArgumentParser(description=description)
 
