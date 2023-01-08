@@ -39,7 +39,7 @@
 #endif
 
 //address of XimrContext structure to redraw in FEATURE_VRAM_RGBA
-#define XCM_PTR 0x14B568 // XCM stored at (uint32_t *)XCM_PTR. XCM is 0x0183e000
+#define pXCM 0x14B568 // XCM stored at (uint32_t *)XCM_PTR. XCM is 0x0183e000
 // https://discord.com/channels/671072748985909258/761652283724922880/931680105284141089
 #define XIMR_CONTEXT (0x0183e000+0x10) // look for LDR R0, =0x14B568; LDR R1, =(uart_printf+1); LDR R0, [R0]. then R0 is XCM
 // #define XIMR_CONTEXT (((uint32_t *)XCM_PTR)+0x10)

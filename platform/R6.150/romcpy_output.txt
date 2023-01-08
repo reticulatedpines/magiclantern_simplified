@@ -1,8 +1,0 @@
-from Kitor:
-dd if=ROM0.BIN of=EOSR6.0x4000.bin bs=1 skip=$((0x1FAED90)) count=$((0xF68F8))
-dd if=ROM0.BIN of=EOSR6.0xDFFC0000.bin bs=1 skip=$((0x0)) count=$((0x4900))
-dd if=ROM0.BIN of=EOSR6.0xDFFC4A00.bin bs=1 skip=$((0x68CE8)) count=$((0xB0))
-dd if=ROM0.BIN of=EOSR6.0xDFFC4B00.bin bs=1 skip=$((0x68AFC)) count=$((0x40))
-dd if=ROM0.BIN of=EOSR6.0xDFFC5000.bin bs=1 skip=$((0x82D80)) count=$((0x410))
-dd if=ROM0.BIN of=EOSR6.0xDFFDF200.bin bs=1 skip=$((0x831A8)) count=$((0x2D80))
-dd if=ROM0.BIN of=EOSR6.0x40002000.bin bs=1 skip=$((0x85F28)) count=$((0x78))
