@@ -796,6 +796,81 @@ static uint32_t get_photo_cmos_iso_start_550d(void)
     return ram_copy_start;
 }
 
+// See the variant for 550d above, that largely applies here.
+// 650d however holds the tables in SFDATA.BIN / serial flash.
+// The copy actions are visible in qemu logs with EEPROM-DMA prefix.
+// I see a copy to 40470f00 of len bb860 covering the ISO tables
+// (and I assume a lot of other stuff).
+static uint32_t get_photo_cmos_iso_start_650d(void)
+{
+    // 650D has different structs related to DMA transfers
+    // (because it's SF transfer?).  The struct for this transfer
+    // ends up persistently in I think heap, somewhere in the
+    // 0x4XXXXX region.  I've seen anywhere from 450000 to 4a0000.
+    //
+    // That struct contains the src addr, always 340000 in my testing
+    // (I assume this is fixed for a given rom version but don't know,
+    // the value is logged in the EEPROM-DMA string in qemu).
+    //
+    // ROM function ff122548() builds the struct.
+
+    uint32_t addr = 0x300000;
+    uint32_t max_search_addr = 0x600000;
+
+    uint32_t rom_copy_start = 0x340000;
+    uint32_t ram_copy_start = 0;
+
+    // search for DMA src addr, to find our dst addr
+    for (; addr < max_search_addr; addr += 4)
+    {
+        if (*(uint32_t *)addr == rom_copy_start)
+        {
+            // A bunch of checks to give us higher confidence
+            // we found the right value.  So far, none of these
+            // have been required; the first hit is the correct
+            // one.  But these are cheap checks, and should avoid
+            // ever finding a random match on the 32-bit DMA addr value.
+
+            uint32_t *probe = (uint32_t *)addr;
+            // we expect to find 4 copies of the DMA src addr nearby
+            if (probe[0] != probe[1])
+                continue;
+            if (probe[0] != probe[4])
+                continue;
+            if (probe[0] != probe[5])
+                continue;
+
+            // probe[6] is expected to hold the aligned start
+            // of the dest heap address.  PHOTO_CMOS_ISO_START
+            // is offset by 0x1244.
+            ram_copy_start = probe[6] + 0x1244;
+            // we expect this to be Uncacheable
+            if (ram_copy_start == (uint32_t)CACHEABLE(ram_copy_start))
+                continue;
+
+            // we expect the next field to be the original addr
+            // before it was rounded up to meet DMA alignment
+            // (0x100 aligned on this 650D version)
+            if ((probe[6] & 0xfffff800) != (probe[7] & 0xfffff800))
+                continue;
+
+            // passed all checks, stop search
+            qprintf("Found ram_copy_start, 0x%08x: 0x%08x\n",
+                    &probe[6], ram_copy_start);
+            printf("r_c_s %08x: %08x\n",
+                   &probe[6], ram_copy_start);
+            break;
+        }
+    }
+    if (*(uint32_t *)addr != rom_copy_start || addr >= max_search_addr)
+    {
+        qprintf("Failed to find rom_copy_start!\n");
+        printf("Failed to find r_c_s!\n");
+        return 0; // failed to find target
+    }
+
+    return ram_copy_start;
+}
 // Find the RAM copy of the CMOS ISO tables.
 //
 // See get_photo_cmos_iso_start_550d for longer comments that
@@ -1084,15 +1159,16 @@ static unsigned int isoless_init()
     }
     else if (is_camera("650D", "1.0.4"))
     {
-        is_650d = 1;    
+        // ISO values are 0x0803, 0x0827 style
+        is_650d = 1;
 
-        FRAME_CMOS_ISO_START = 0x404a038e;
-        FRAME_CMOS_ISO_COUNT =          6;
-        FRAME_CMOS_ISO_SIZE  =       0x22;
-
-        PHOTO_CMOS_ISO_START = 0x4049f144;
+        PHOTO_CMOS_ISO_START = get_photo_cmos_iso_start_650d();
         PHOTO_CMOS_ISO_COUNT =          6;
         PHOTO_CMOS_ISO_SIZE  =       0x10;
+
+        FRAME_CMOS_ISO_START = PHOTO_CMOS_ISO_START + 0x124a;
+        FRAME_CMOS_ISO_COUNT =          6;
+        FRAME_CMOS_ISO_SIZE  =       0x22;
 
         CMOS_ISO_BITS = 3;
         CMOS_FLAG_BITS = 2;
