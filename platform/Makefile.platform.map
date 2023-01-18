@@ -24,8 +24,10 @@ PLATFORM_MAP = \
     M50.110 \
     R.180 \
     RP.160 \
-    R6.150 \
     SX740.102 \
+
+# SJE via lclevy, only builds minimal/hello-world so not enabled here
+#    R6.150 \
 
 # SJE lots of noisy warnings, not fixing yet
 #    5DS.111 \
