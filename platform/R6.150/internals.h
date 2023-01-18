@@ -1,8 +1,11 @@
 /**
- * Camera internals for EOS R 1.8.0
+ * Camera internals for EOS R6 1.5.0
  */
 
 /** This camera has a DIGIC VIII chip */
+// Actually, Digic X, see WIP for proper support:
+// https://github.com/reticulatedpines/magiclantern_simplified/pull/62
+// but this is not yet ready for merge
 #define CONFIG_DIGIC_VIII
 
 /** Digic 8 does not have bitmap font in ROM, try to load it from card **/

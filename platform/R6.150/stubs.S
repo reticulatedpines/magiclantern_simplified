@@ -62,15 +62,16 @@ THUMB_FN(0xE0123258,  vsnprintf)                            /* called by LogFile
 THUMB_FN(0xE07D8106,  give_semaphore)                       /* SystemIF::KerSem.c, values 0x133 and 0x136, just after take_semaphore   */
 THUMB_FN(0xE07D808C,  take_semaphore)                       /* SystemIF::KerSem.c, values 0x162 and 0x167   */
 
+DATA_PTR(  0x14b568, _pXCM) // param1 to XCM_MakeContext() when called from refreshVrmsSurface()
 
 /** General FEATURE_VRAM_RGBA stubs **/
 THUMB_FN(0xe01a1c04, XimrExe);                              //In RefreshVrmsSurface, just before "XimrExe" debug message
-DATA_PTR(    0x0x18394+4, winsys_sem);                           //Used in RefreshVrmsSurface around XimrExe call
+DATA_PTR(   0x18398, winsys_sem);                           //Used in RefreshVrmsSurface around XimrExe call
 
 /*
  * Pointer to first Canon RGBA buffer (GUI). On R this is set up by
  * RENDERER_InitializeScreen function, just after MARVs are created.
  */
-DATA_PTR(    0x18354+0x10, _rgb_vram_info);
+DATA_PTR(    0x18364, _rgb_vram_info);
 
 
