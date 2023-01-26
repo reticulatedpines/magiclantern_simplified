@@ -545,7 +545,7 @@ static int my_assert_handler(char* msg, char* file, int line, int arg4)
 {
     uint32_t lr = read_lr();
 
-#ifdef CONFIG_DIGIC_678
+#ifdef CONFIG_DIGIC_678X
     // compiler warning on unused len
     snprintf(assert_msg, sizeof(assert_msg),
 #else
@@ -560,7 +560,7 @@ static int my_assert_handler(char* msg, char* file, int line, int arg4)
     );
 // SJE FIXME: assert handling is buggy on modern Digic.
 // Disable some of it here and do quick hack output:
-#ifdef CONFIG_DIGIC_678
+#ifdef CONFIG_DIGIC_678X
     uart_printf("[SJE] my_assert_msg: %s", assert_msg);
 #else
     backtrace_getstr(assert_msg + len, sizeof(assert_msg) - len);
@@ -581,7 +581,7 @@ void ml_assert_handler(char* msg, char* file, int line, const char* func)
     );
 // SJE FIXME: assert handling is buggy on modern Digic.
 // Disable some of it here and do quick hack output:
-#ifdef CONFIG_DIGIC_678
+#ifdef CONFIG_DIGIC_678X
     uart_printf("[SJE] ml_assert_msg: %s", assert_msg);
 #endif
     backtrace_getstr(assert_msg + len, sizeof(assert_msg) - len);

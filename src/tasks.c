@@ -322,7 +322,7 @@ MENU_UPDATE_FUNC(tasks_print)
                 task_id, short_name, task_attr.pri, task_attr.wait_id, mem_percent, 0, task_attr.state);
             #endif
 
-            #if defined(CONFIG_60D) || defined(CONFIG_7D) || defined(CONFIG_DIGIC_V) || defined(CONFIG_DIGIC_678)
+            #if defined(CONFIG_60D) || defined(CONFIG_7D) || defined(CONFIG_DIGIC_V) || defined(CONFIG_DIGIC_678X)
             y += font_small.height - ((tasks_show_flags & 1) ? 1 : 0); // too many tasks - they don't fit on the screen :)
             #else
             y += font_small.height;
@@ -388,7 +388,7 @@ PROP_HANDLER(PROP_TERMINATE_SHUT_REQ)
     if (buf[0] == 0)  ml_shutdown();
 }
 
-#ifdef CONFIG_DIGIC_VIII //kitor: Confirmed R, RP, M50
+#if defined(CONFIG_DIGIC_8X)
 PROP_HANDLER(PROP_SHUTDOWN_REASON)
 {
     DryosDebugMsg(0, 15, "SHUTDOWN REASON %d", buf[0]);

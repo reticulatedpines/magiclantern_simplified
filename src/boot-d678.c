@@ -6,7 +6,7 @@
 #include "boot.h"
 #include "boot-d678.h"
 
-#if !defined(CONFIG_DIGIC_678)
+#if !defined(CONFIG_DIGIC_678X)
     #error "Expected D678"
 #endif
 
@@ -117,7 +117,7 @@ static void my_bzero32(void *buf, size_t len)
 
 static void my_create_init_task(struct dryos_init_info *dryos, uint32_t init_task, uint32_t c)
 {
-#ifdef CONFIG_R5
+#ifdef CONFIG_DIGIC_X
     // DIGIC X re-use the same memory range for coprocessors and autoexec.bin
     //
     // On regular first stage boot, that memory chunk is initialized, then
@@ -252,7 +252,7 @@ copy_and_restart(int offset)
                 cstart_start + CSTART_LEN);
 #endif
 
-#ifdef CONFIG_DIGIC_78
+#ifdef CONFIG_DIGIC_78X
     // Fix cache maintenance calls before cstart
     patch_thumb_branch(BR_DCACHE_CLN_1, (uint32_t)my_dcache_clean);
     patch_thumb_branch(BR_DCACHE_CLN_2, (uint32_t)my_dcache_clean);
@@ -298,7 +298,7 @@ copy_and_restart(int offset)
     // The first few instructions do nothing apart from switch mode to Thumb,
     // so we can instead skip them.
     thunk __attribute__((long_call)) reloc_entry = (thunk)(RELOCADDR + 0xc + 1);
-#elif defined(CONFIG_DIGIC_78)
+#elif defined(CONFIG_DIGIC_78X)
     thunk __attribute__((long_call)) reloc_entry = (thunk)(RELOCADDR + 1);
 #endif
     qprint("[BOOT] jumping to relocated startup code at "); qprintn((uint32_t)reloc_entry); qprint("\n");

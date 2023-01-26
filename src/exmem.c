@@ -486,7 +486,7 @@ struct memSuite* _srm_malloc_suite(int num_requested_buffers)
         return 0;
     }
 
-#ifdef CONFIG_DIGIC_678
+#ifdef CONFIG_DIGIC_678X
     enum BUF_COUNT {BUF_COUNT = 4};
     // SJE any higher than 4 on 200D (other D678 untested)
     // and we hit the err case in the later for num_buffers loop,

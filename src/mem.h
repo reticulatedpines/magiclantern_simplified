@@ -75,7 +75,7 @@ extern void * calloc(size_t nmemb, size_t size);
 #define IS_ML_PTR(val) (((uintptr_t)(val) > (uintptr_t)0x1000) && ((uintptr_t)(val) < (uintptr_t)0x20000000))
 #if defined(CONFIG_DIGIC_2345)
     #define IS_ROM_PTR(val) ((uintptr_t)(val) > (uintptr_t)0xF0000000)
-#elif defined(CONFIG_DIGIC_78)
+#elif defined(CONFIG_DIGIC_78X)
     #define IS_ROM_PTR(val) ((uintptr_t)(val) > (uintptr_t)0xE0000000)
 #endif
 

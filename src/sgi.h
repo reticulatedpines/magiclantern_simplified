@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#ifdef CONFIG_DIGIC_678
+#ifdef CONFIG_DIGIC_678X
 // A file for SGI related code.  As far as I know this is available
 // on all D678X, as they have ARM GIC.
 //
@@ -36,6 +36,6 @@ void suspend_cpu1_then_update_mmu(void);
 void register_wake_handler(void);
 #endif // CONFIG_DUAL_CORE && CONFIG_MMU_REMAP
 
-#endif // CONFIG_DIGIC_678
+#endif // CONFIG_DIGIC_678X
 
 #endif //_sgi_h_

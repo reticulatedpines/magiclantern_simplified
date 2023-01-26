@@ -9,7 +9,7 @@
 
 #if defined(CONFIG_MMU_EARLY_REMAP) || defined(CONFIG_MMU_REMAP)
 
-#ifndef CONFIG_DIGIC_78
+#ifndef CONFIG_DIGIC_78X
 #error "So far, we've only seen MMU on Digic 7 and up.  This file makes that assumption re assembly, you'll need to fix something"
 #endif
 

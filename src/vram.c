@@ -545,7 +545,7 @@ static inline void * get_yuv422buffer(int offset)
 
     // D678 are double-buffered for LV.  Can't put in similar prior block
     // because we want the 0x01000000 check.
-    #ifdef CONFIG_DIGIC_678
+    #ifdef CONFIG_DIGIC_678X
     return (void*)CACHEABLE(YUV422_LV_BUFFER_DISPLAY_ADDR);
     #endif
 

@@ -153,14 +153,16 @@ inline uint8_t *bmp_vram_raw() {
     #define SET_4BIT_PIXEL(p, x, color) *(char*)(p) = ((x) % 2) ? ((*(char*)(p) & 0x0F) | (D2V(color) << 4)) : ((*(char*)(p) & 0xF0) | (D2V(color) & 0x0F))
 
 #else // dryos
-    // kitor: Still works for RGB buffers in 200D and EOSR
-    #if defined(CONFIG_R5)
+    #if defined(CONFIG_DIGIC_X)
+    // kitor FIXME: R5 has different layer size and position...
+    // this is a temporary integration before a proper one will be developed
     #define BMP_W_PLUS   872
     #define BMP_W_MINUS -152
     #define BMP_H_PLUS   510
     #define BMP_H_MINUS -30
     #define BMP_LAYER_WIDTH 2048
     #else
+    // kitor: Still works for RGB buffers in 200D and EOSR
     #define BMP_W_PLUS   840
     #define BMP_W_MINUS -120
     #define BMP_H_PLUS   510
@@ -495,7 +497,7 @@ int bfnt_draw_char(int c, int px, int py, int fg, int bg);
 int bfnt_char_get_width(int c);
 
 // kitor TODO? if CONFIG_NO_BFNT and font was loaded, this should work anyway, right?
-#if !defined(CONFIG_DIGIC_678)
+#if !defined(CONFIG_DIGIC_678X)
 // Canon built-in icons (CanonGothic font)
 #define ICON_TAB 0xa496ee
 #define ICON_PRINT 0xac96ee

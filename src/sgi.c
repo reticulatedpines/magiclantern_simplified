@@ -11,7 +11,7 @@
 // Some functions are only used by inter-CPU comms code,
 // those should be guarded with CONFIG_DUAL_CORE.
  
-#if defined(CONFIG_DIGIC_678) && defined(CONFIG_SGI_HANDLERS)
+#if defined(CONFIG_DIGIC_678X) && defined(CONFIG_SGI_HANDLERS)
 // Takes a function pointer, attempts to install that function
 // as an SGI handler.  Returns the index of the handler, which
 // is the associated SGI number, i.e., the interrupt to generate
@@ -87,4 +87,4 @@ void register_wake_handler(void)
 
 #endif // CONFIG_DUAL_CORE && CONFIG_MMU_REMAP
 
-#endif // CONFIG_DIGIC_678
+#endif // CONFIG_DIGIC_678X

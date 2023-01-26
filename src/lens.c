@@ -1228,7 +1228,8 @@ PROP_HANDLER( PROP_MVR_REC_START )
     #endif
 }
 
-#ifdef CONFIG_DIGIC_VIII //confirmed R, RP, M50
+#if defined(CONFIG_DIGIC_8X)
+//confirmed R, RP, M50
 PROP_HANDLER( PROP_LENS_STATIC_DATA )
 {
     ASSERT(len == sizeof(struct prop_lens_static_data));
@@ -1763,8 +1764,8 @@ void _lens_dynamic_data_post_update()
     update_stuff();
 }
 
-#if !defined(CONFIG_DIGIC_VIII)
-// DIGIC8 uses PROP_LENS_DYNAMIC_DATA
+#if !defined(CONFIG_DIGIC_VIII) && !defined(CONFIG_DIGIC_X)
+// DIGIC8+ uses PROP_LENS_DYNAMIC_DATA
 /* only used for requesting a refresh of PROP_LV_LENS;
  * raw data is model-dependent, do not use directly */
 static struct prop_lv_lens lv_lens_raw;
@@ -1817,7 +1818,7 @@ void _prop_lv_lens_request_update()
 }
 #endif
 
-#ifdef CONFIG_DIGIC_VIII
+#if defined(CONFIG_DIGIC_8X)
 PROP_HANDLER( PROP_LENS_DYNAMIC_DATA )
 {
     if(len != sizeof(struct prop_lens_dynamic_data))
@@ -2762,7 +2763,7 @@ static LVINFO_UPDATE_FUNC(picq_update)
 
     if (!is_movie_mode())
     {
-#ifdef CONFIG_DIGIC_VIII
+#if defined(CONFIG_DIGIC_8X)
 /* via R.180, confirmed RP.160; M50 and 850D have the same set of modes:
  * L        03030100   .XX .... ..XX .... ...X .... ....
  * l        03020100   .XX .... ..X. .... ...X .... ....
@@ -2792,9 +2793,9 @@ static LVINFO_UPDATE_FUNC(picq_update)
         int rawsize = pic_quality & 0xF;
         int jpegtype = pic_quality >> 24;
         int jpegsize = (pic_quality >> 8) & 0xFF;
-#endif //CONFIG_DIGIC_VIII
+#endif //CONFIG_DIGIC_VIII + CONFIG_DIGIC_X
         snprintf(buffer, sizeof(buffer), "%s%s%s",
-#ifdef CONFIG_DIGIC_VIII
+#if defined(CONFIG_DIGIC_8X)
             raw ? (rawsize ? "RAW" : "CRAW") : "",  // just two options on D8
 #else
             rawsize == 1 ? "mRAW" : rawsize == 2 ? "sRAW" : rawsize == 7 ? "sRAW1" : rawsize == 8 ? "sRAW2" : raw ? "RAW" : "",

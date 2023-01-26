@@ -159,7 +159,7 @@ struct dialog_list
 
 
 /** Dialog box gui elements */
-#ifdef CONFIG_DIGIC_678
+#ifdef CONFIG_DIGIC_678X
 // Verified on 750D (D6), 200D (D7), M50, R, RP, 250D (D8)
 struct dialog {
     char * type;                                        // Signature, pointer to "DIALOG" string
@@ -179,10 +179,10 @@ struct dialog {
     uint32_t                 pos_y;
     uint32_t                 pos_w;
     uint32_t                 pos_h;
-#ifdef CONFIG_DIGIC_VIII
+#if defined(CONFIG_DIGIC_8X)
     uint32_t                 flag_1;                    // Set either 0 or 1. Defaults to 0.
     uint32_t                 flag_2;                    // Set either 0 or 1. Defaults to 0.
-#endif // CONFIG_DIGIC_VIII
+#endif // CONFIG_DIGIC_VIII + CONFIG_DIGIC_X
     struct gui_task *        controller;                // CtrlServ object. We call it gui_task
     void *                   dlgItem_related_1;
     uint32_t                 unk_01;
@@ -248,7 +248,7 @@ struct dialog {
     uint32_t                 unk_38;
     uint32_t                 unk_39;
     uint32_t                 unk_40;
-#ifdef CONFIG_DIGIC_VIII                                // DIGIC8
+#if defined(CONFIG_DIGIC_8X)
     uint32_t                 _refresh_x;                // Region used as arguments passed to WINSYS_RegisterRefreshRectangle_maybe
     uint32_t                 _refresh_y;                // which updates refresh_[xywh] conditionally from those values.
     uint32_t                 _refresh_w;
@@ -259,11 +259,11 @@ struct dialog {
     uint32_t                 rotationAngle;             // Guess: GUI can render rotated 90 degrees (EVF)
     //uint32_t               field_0x122;               // Those two exists on RP and later. We don't use them, and
     //uint32_t               field_0x124;               // do not create struct so I left them commented out.
-#endif // CONFIG_DIGIC_VIII
+#endif // CONFIG_DIGIC_VIII + CONFIG_DIGIC_X
 };
 
-#ifdef CONFIG_DIGIC_VIII
-// RP, 250D is 0x128, but we left two commented out as they are not needed
+#if defined(CONFIG_DIGIC_8X)
+// RP, 250D and newer are 0x128, but we left two commented out as they are not needed
 SIZE_CHECK_STRUCT( dialog, 0x120 );
 #else
 // verified on 750D, 200D

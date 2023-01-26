@@ -39,7 +39,7 @@ static void DUMP_ASM my_DebugMsg(int class, int level, char* fmt, ...)
     }
 #endif
 
-#if defined(CONFIG_DIGIC_VII) || defined(CONFIG_DIGIC_VIII)
+#if defined(CONFIG_DIGIC_78X)
     static volatile uint32_t lock;
     uint32_t old = cli_spin_lock(&lock);
 #else
@@ -53,7 +53,7 @@ static void DUMP_ASM my_DebugMsg(int class, int level, char* fmt, ...)
         while(1);
     }
 
-#if defined(CONFIG_DIGIC_VII) || defined(CONFIG_DIGIC_VIII)
+#if defined(CONFIG_DIGIC_78X)
     len += snprintf( buf+len, buf_size-len, "[%d] ", get_cpu_id());
 #endif
 
@@ -80,7 +80,7 @@ static void DUMP_ASM my_DebugMsg(int class, int level, char* fmt, ...)
 
     len += snprintf( buf+len, buf_size-len, "\n" );
 
-#if defined(CONFIG_DIGIC_VII) || defined(CONFIG_DIGIC_VIII)
+#if defined(CONFIG_DIGIC_78X)
     sei_spin_unlock(&lock, old);
 #else
     sei(old);

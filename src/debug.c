@@ -125,14 +125,14 @@ static void dump_rom_task(void* priv, int unused)
     FILE * f = NULL;
 
 // Digic 6 doesn't have ROM0
-#if defined(CONFIG_DIGIC_45) || defined(CONFIG_DIGIC_78)
+#if defined(CONFIG_DIGIC_45) || defined(CONFIG_DIGIC_78X)
     f = FIO_CreateFile("ML/LOGS/ROM0.BIN");
     if (f)
     {
         bmp_printf(FONT_LARGE, 0, 60, "Writing ROM0");
     #if defined(CONFIG_DIGIC_45)
         FIO_WriteFile(f, (void*) 0xF0000000, 0x01000000);
-    #elif defined(CONFIG_DIGIC_78)
+    #elif defined(CONFIG_DIGIC_78X)
         FIO_WriteFile(f, (void*) 0xE0000000, 0x04000000); // max seen so far
     #endif
         FIO_CloseFile(f);
@@ -148,7 +148,7 @@ static void dump_rom_task(void* priv, int unused)
         FIO_WriteFile(f, (void*) 0xF8000000, 0x01000000);
     #elif defined(CONFIG_DIGIC_6)
         FIO_WriteFile(f, (void*) 0xFE000000, 0x02000000);
-    #elif defined(CONFIG_DIGIC_78)
+    #elif defined(CONFIG_DIGIC_78X)
         FIO_WriteFile(f, (void*) 0xF0000000, 0x02000000); // max seen so far
     #endif
         FIO_CloseFile(f);
@@ -1130,7 +1130,7 @@ static MENU_UPDATE_FUNC(image_buf_display)
 
 static MENU_UPDATE_FUNC(shuttercount_display)
 {
-#ifdef CONFIG_DIGIC_VIII // Digic 8 and up
+#if defined(CONFIG_DIGIC_8X)
     // just shutter count value
     MENU_SET_VALUE("%d", shutter_count);
 #else
@@ -1159,7 +1159,7 @@ static MENU_UPDATE_FUNC(shuttercount_display)
     }
 }
 
-#ifdef CONFIG_DIGIC_VIII // Digic 8 and up
+#if defined(CONFIG_DIGIC_8X)
 static MENU_UPDATE_FUNC(totalshutter_display)
 {
     MENU_SET_VALUE("%d", shutter_count);
@@ -1425,7 +1425,7 @@ static struct menu_entry debug_menus[] = {
         .help = "ROM0.BIN:F0000000, ROM1.BIN:F8000000, RAM4.BIN"
     #elif defined(CONFIG_DIGIC_6)
         .help = "ROM0.BIN:      NA, ROM1.BIN:FE000000, RAM4.BIN"
-    #elif defined(CONFIG_DIGIC_78)
+    #elif defined(CONFIG_DIGIC_78X)
         .help = "ROM0.BIN:E0000000, ROM1.BIN:F0000000, RAM4.BIN"
     #endif
     },
@@ -1549,7 +1549,7 @@ static struct menu_entry debug_menus[] = {
         .name = "Shutter Count",
         .update = shuttercount_display,
         //.essential = FOR_MOVIE | FOR_PHOTO,
-        #ifdef CONFIG_DIGIC_VIII // Digic 8 and up
+        #if defined(CONFIG_DIGIC_8X)
         .help = "Number of shutter actions. Open submenu to learn more.",
         .select = menu_open_submenu,
         .submenu_width = 710,

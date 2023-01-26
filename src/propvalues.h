@@ -79,10 +79,10 @@ extern int dofpreview;
 extern int display_sensor;
 extern int shutter_count;
 extern int shutter_count_plus_lv_actuations;
-#ifdef CONFIG_DIGIC_VIII // Digic 8 and up
+#if defined(CONFIG_DIGIC_8X)
 extern int total_shots_count;
 extern int total_mirror_count;
-#endif // CONFIG_DIGIC_VIII
+#endif // CONFIG_DIGIC_VIII + CONFIG_DIGIC_X
 extern int ae_mode_movie;
 extern int ext_monitor_hdmi;
 extern int _ext_monitor_rca;

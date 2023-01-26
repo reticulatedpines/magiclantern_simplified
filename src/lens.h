@@ -205,15 +205,14 @@ SIZE_CHECK_STRUCT( prop_lv_lens, 58 );
 
 #endif
 
-#ifdef CONFIG_DIGIC_VIII
-// TODO: expand for DIGIC X in future
+#if defined(CONFIG_DIGIC_8X)
 /* Digic 8 brings new properties:
  * PROP_LENS_STATIC_DATA  = PROP_LENS + PROP_LENS_NAME + ???
  * PROP_LENS_DYNAMIC_DATA = PROP_LV_LENS + ???
  *
  * Those are quite huge, they size depend on camera.
- * So far we have data from M50, SX740, 250D, 850D, R, RP and (bonus) R6.
- *             M50   SX740    R     RP    250D   850D    R6
+ * So far we have data from following models:
+ *             M50   SX740    R     RP    250D   850D   R5/R6
  * STATIC     0x138  0x178  0x184  0x184  0x180  0x1C8  0x1C8
  * DYNAMIC    0x84   0x8C   0x90   0x90   0x8C   0x90   0x94
  * DryOS ICU   P2     P3     P4     P4     P5     P8     P9
@@ -510,7 +509,7 @@ SIZE_CHECK_STRUCT( prop_lens_dynamic_data, 0x84);
 #error No PROP_LENS_DYNAMIC_DATA defined for built cam model
 #endif // /unknown model
 
-#endif // CONFIG_DIGIC_VIII
+#endif // CONFIG_DIGIC_VIII + CONFIG_DIGIC_X
 
 struct prop_focus
 {

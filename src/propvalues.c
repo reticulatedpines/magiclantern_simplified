@@ -44,6 +44,8 @@ int get_digic_version(void)
         return 7;
         #elif defined(CONFIG_DIGIC_VIII)
         return 8;
+        #elif defined(CONFIG_DIGIC_X)
+        return 10;
         #else
         #error "FIXME: no CONFIG_DIGIC_version defined, or unknown CONFIG_DIGIC_version"
         #endif
@@ -81,17 +83,15 @@ volatile PROP_INT(PROP_LV_DISPSIZE, lv_dispsize);
 volatile PROP_INT(PROP_LIVE_VIEW_VIEWTYPE, _expsim);
 volatile PROP_INT(PROP_EFIC_TEMP, efic_temp);
 volatile PROP_INT(PROP_GUI_STATE, gui_state);
-#ifdef CONFIG_DIGIC_678
+#ifdef CONFIG_DIGIC_678X
 // confirmed 750D, 200D, R
 volatile PROP_INT(PROP_PIC_QUALITY2, pic_quality);
 #else
 volatile PROP_INT(PROP_PIC_QUALITY, pic_quality);
 #endif
 volatile PROP_INT(PROP_AVAIL_SHOT, avail_shot);
-#if defined(CONFIG_DIGIC_VIII)
-/* R uses PROP_LVAF_MODE. However code suggests that both may be used
- * on DSLRs. When both are enabled, there's a race, so this is left to
- * be tested on 250D/850D/etc. */
+#if defined(CONFIG_DIGIC_8X)
+/* new approach on DIGIC8+ */
 volatile PROP_INT(PROP_LVAF_MODE, af_mode);
 #else
 volatile PROP_INT(PROP_AF_MODE, af_mode);
@@ -161,7 +161,7 @@ bool FAST is_movie_mode()
 
 volatile int shutter_count = 0;
 volatile int shutter_count_plus_lv_actuations = 0;
-#ifdef CONFIG_DIGIC_VIII
+#if defined(CONFIG_DIGIC_8X)
 volatile int total_shots_count  = 0;
 volatile int total_mirror_count = 0;
 

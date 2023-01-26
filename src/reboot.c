@@ -65,7 +65,7 @@ asm(
     "loaded_as_thumb:\n"        /* you may insert Thumb-specific code here */
 
 /* this does not compile on DIGIC 5 and earlier */
-#if defined(CONFIG_DIGIC_VII) || defined(CONFIG_DIGIC_VIII)
+#if defined(CONFIG_DIGIC_VII) || defined(CONFIG_DIGIC_VIII)  || defined(CONFIG_DIGIC_X)
     "MRC    p15,0,R0,c0,c0,5\n" /* refuse to run ML on cores other than #0 */
     "ANDS.W R0, R0, #3\n"       /* read the lowest 2 bits of the MPIDR register */
     "ITTT   NE\n"               /* check if CPU ID is nonzero (i.e. other cores) */
@@ -288,7 +288,7 @@ cstart( void )
     sync_caches();
 
     #ifdef CONFIG_MARK_UNUSED_MEMORY_AT_STARTUP
-      #ifdef CONFIG_DIGIC_VIII
+      #if defined(CONFIG_DIGIC_8X)
         /* EOS R has 2 GiB of RAM, but memory above BFE00000 has special meaning. */
         /* RscMgr shows used memory regions until BEE10000. */
         /* Without this trick, RAM content until BFE00000 looks like electrical noise. */
@@ -330,8 +330,7 @@ cstart( void )
         // The difference is that it has to have thumb bit set.
         // So far only 850D is known to use it on Digic 8
         MEM(0xBFE01FC4) = ROMBASEADDR | 0x1;
-    #elif defined(CONFIG_R5) || defined(CONFIG_R6)
-        // TODO: Replace with CONFIG_DIGIC_X when defined.
+    #elif defined(CONFIG_DIGIC_X)
         // Digic X uses similar 1st stage loader to Digic 8 "new style" one.
         // Memory locations are different, it is 0xDFFxxxxx range now.
         MEM(0xDFFC4FA0) = ROMBASEADDR | 0x1;
@@ -349,7 +348,7 @@ cstart( void )
 
     #if 0
       qprint("[boot] jump to main firmware: "); qprintn(ROMBASEADDR); qprint("\n");
-      #if defined(CONFIG_DIGIC_VII) || defined(CONFIG_DIGIC_VIII)
+      #if defined(CONFIG_DIGIC_78X)
         void __attribute__((long_call)) (*main_firmware)() = (void*) (ROMBASEADDR | 1);
       #else
         void __attribute__((long_call)) (*main_firmware)() = (void*) ROMBASEADDR;

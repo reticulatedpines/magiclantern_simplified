@@ -1,7 +1,7 @@
 #ifndef __BOOT_D678_h
 #define __BOOT_D678_H_
 
-#ifdef CONFIG_DIGIC_678
+#ifdef CONFIG_DIGIC_678X
 struct dryos_init_info
 {
     uint32_t sys_mem_start;

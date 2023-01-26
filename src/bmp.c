@@ -205,7 +205,7 @@ void refresh_yuv_from_rgb(void)
         }
     }
     else{
-#ifdef CONFIG_R5
+#ifdef CONFIG_DIGIC_X
         // kitor FIXME this is the loop altered to work with 2048x1080 layers.
         // Resolution needs confirmation on R6.
         //

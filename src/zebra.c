@@ -3583,7 +3583,7 @@ int liveview_display_idle()
         )
         return 0;
 
-#ifdef CONFIG_DIGIC_678
+#ifdef CONFIG_DIGIC_678X
 /* For Digic 6 and up. Check if LiveViewApp dialog pointer is not null.
  * This is true only in LV.
  * Maybe this can be backported to below Digic 6 - needs research. */
@@ -3925,7 +3925,7 @@ BMP_LOCK (
     }
 #endif
 
-#ifdef CONFIG_DIGIC_678
+#ifdef CONFIG_DIGIC_678X
 /**
  * kitor: On D678 apps handlers that are in our interest either doesn't show up
  * on `gui_task_list` at all, or are buried down on the list (would require
@@ -3988,7 +3988,7 @@ BMP_LOCK (
             clrscr(); // out of luck, fallback
         }
     }
-#endif //CONFIG_DIGIC_678
+#endif //CONFIG_DIGIC_678X
 )
 
     // ask other stuff to redraw

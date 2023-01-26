@@ -1085,7 +1085,7 @@ static void guess_free_mem_task(void *priv, int delta)
     max_shoot_malloc_mem = 0;
     max_shoot_malloc_frag_mem = 0;
 
-#ifdef CONFIG_DIGIC_678
+#ifdef CONFIG_DIGIC_678X
     // SJE only tested on 200D, but there, trying to create
     // a task with a too large stack via stack_size_crit()
     // triggers Err 70.  128 it gets glitchy, 256 dies hard.
@@ -1211,7 +1211,7 @@ static void guess_free_mem_task(void *priv, int delta)
     /* mallocs can resume now */
     give_semaphore(mem_sem);
 
-#ifdef CONFIG_DIGIC_678
+#ifdef CONFIG_DIGIC_678X
 // SJE FIXME the old code crashes on new Digic,
 // because it tries to read from forbidden regions.
 //
@@ -1326,7 +1326,7 @@ static MENU_UPDATE_FUNC(meminfo_display)
                 { (uint32_t) bmp_vram_idle(),           "BMI" },    /* "idle" BMP buffer (back buffer) */
                 { (uint32_t) bmp_vram_real(),           "BMP" },    /* current BMP buffer (displayed on the screen) */
                 { YUV422_LV_BUFFER_DISPLAY_ADDR,        "LVD" },    /* current LV YUV buffer (displayed) */
-#ifndef CONFIG_DIGIC_678
+#ifndef CONFIG_DIGIC_678X
 // These addresses are not yet known for modern Digic.  They may not
 // even exist as the drawing routines are changed significantly by Ximr.
                 { shamem_read(REG_EDMAC_WRITE_LV_ADDR), "LVW" },    /* LV YUV buffer being written by EDMAC */

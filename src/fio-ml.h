@@ -90,15 +90,15 @@ struct fio_file {
         //! 0x10 == directory, 0x22 
         uint16_t                mode;           // off_0x00;
         uint16_t                off_0x02;
-        #ifdef CONFIG_DIGIC_78
+        #ifdef CONFIG_DIGIC_78X
         uint32_t                off_0x04;
         #endif
         uint32_t                size;
-        #ifdef CONFIG_DIGIC_78
+        #ifdef CONFIG_DIGIC_78X
         uint32_t                off_0x0C;
         #endif
         uint32_t                timestamp;      // off_0x08;
-        #ifdef CONFIG_DIGIC_78
+        #ifdef CONFIG_DIGIC_78X
         uint32_t                timestamp2;
         #else
         uint32_t                off_0x0c;

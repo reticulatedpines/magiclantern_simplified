@@ -68,7 +68,7 @@ task_create(
         void *arg
 );
 
-#ifdef CONFIG_DIGIC_78
+#ifdef CONFIG_DIGIC_78X
 /** Create a new user level task on a given CPU.
  *
  * As task_create() but with additional arg for
@@ -136,7 +136,7 @@ struct tm {
         char    *tm_zone;       /* timezone abbreviation */
 };
 
-#if defined(CONFIG_DIGIC_78) || defined(CONFIG_5D4) // probably DryOS ver based really?
+#if defined(CONFIG_DIGIC_78X) || defined(CONFIG_5D4) // probably DryOS ver based really?
 void LoadCalendarFromRTC(struct tm *tm);
 extern void _LoadCalendarFromRTC(struct tm *tm, uint32_t a, uint32_t b, uint32_t c);
 #elif defined(CONFIG_DIGIC_VI)

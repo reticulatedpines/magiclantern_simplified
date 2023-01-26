@@ -26,14 +26,14 @@
 
 #include "dryos.h"
 
-#ifdef CONFIG_DIGIC_678
+#ifdef CONFIG_DIGIC_678X
 int get_task_info_by_id(int, int, void*);
 extern int _get_task_info_by_id(int, void*);
 #else
 extern int get_task_info_by_id(int, int, void*);
 #endif
 
-#ifdef CONFIG_DIGIC_678
+#ifdef CONFIG_DIGIC_678X
 // SJE - I believe this has changed because ARMv6 introduced RFE,
 // which Digic7 is using to restore context when task switching.
 // See 200D, 1.0.1, e0274f3a onwards.
@@ -87,7 +87,7 @@ struct task
                                                    // Comparison against taskId is done with full 32 in *some*
                                                    // APIs though, at least on D678, so the upper bits
                                                    // mean something different.
-#ifdef CONFIG_DIGIC_678 // Maybe D678X? Confirmed on 750D (D6), 200D (D7), M50, R, RP (D8)
+#ifdef CONFIG_DIGIC_678X // Confirmed on 750D (D6), 200D (D7), M50, R, RP (D8)
         uint32_t            unknown_09; // 0x44, 4
 #endif
         uint8_t             unknown_0a; // 0x44 / 0x48, 1
@@ -98,7 +98,7 @@ struct task
         uint8_t         sleepReason;    // 0x49 / 0x4d, 1
         uint8_t             unknown_0d; // 0x4a / 0x4e, 1
         uint8_t             unknown_0e; // 0x4b / 0x4f, 1
-#ifdef CONFIG_DIGIC_78 // Maybe D78X? DNE on D6, exists on D7, D8
+#ifdef CONFIG_DIGIC_78X // DNE on D6, exists on D7, D8
         uint8_t         cpu_requested; // 0x50, 1 // SJE working theory: which CPU can
                                                   // take the task.  0xff means any.
         uint8_t         cpu_assigned; // 0x51, 1  // Which CPU has taken the task,
@@ -116,7 +116,7 @@ struct task
 };
 
 
-#ifdef CONFIG_DIGIC_678
+#ifdef CONFIG_DIGIC_678X
 // NB, these fields get copied from a struct task,
 // and the effective types seems to change.  I guess this
 // is just down to alignment of the structs (the asm loads a byte,
@@ -140,7 +140,7 @@ struct task_attr_str {
   unsigned int stack;
   unsigned int size;
   unsigned int used;
-#ifdef CONFIG_DIGIC_78
+#ifdef CONFIG_DIGIC_78X
   unsigned int cpu_requested;
   unsigned int cpu_assigned;
 #endif
@@ -276,7 +276,7 @@ static inline const char * get_current_task_name()
     else
     {
         static char isr[] = "**INT-00h**";
-#if defined(CONFIG_DIGIC_VI) || defined(CONFIG_DIGIC_VII) || defined(CONFIG_DIGIC_VIII)
+#if defined(CONFIG_DIGIC_678X)
         int i = current_interrupt;
 #else
         int i = current_interrupt >> 2;

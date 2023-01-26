@@ -50,7 +50,7 @@ struct bmp_vram_info
         uint8_t *               vram2;
 };
 extern struct bmp_vram_info bmp_vram_info[];
-#elif defined(CONFIG_DIGIC_678)
+#elif defined(CONFIG_DIGIC_678X)
 /* https://www.magiclantern.fm/forum/index.php?topic=17360.msg212411#msg212411 */
 struct MARV
 {
