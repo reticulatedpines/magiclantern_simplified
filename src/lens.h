@@ -313,7 +313,7 @@ SIZE_CHECK_STRUCT( prop_lens_static_data, 0x180 );
 SIZE_CHECK_STRUCT( prop_lens_static_data, 0x184 );
 #endif // size check M50, R, RP, 250D
 
-#elif defined(CONFIG_850D) || defined(CONFIG_R6)
+#elif defined(CONFIG_850D) || defined(CONFIG_R6) || defined(CONFIG_R5)
 /* new struct variant reorders some fields as compared to previous
  * thus making a separate definition */
 struct prop_lens_static_data
@@ -347,10 +347,10 @@ struct prop_lens_static_data
         uint8_t                 bcfInfo;
         uint8_t                 lens_id_1292;
         uint8_t                 emd_hot_limit;
-#if defined(CONFIG_R6)
+#if defined(CONFIG_R6) || defined(CONFIG_R5)
         uint8_t                 aberationControl;              // DNE on 850D
         uint8_t                 _pad_01;
-#endif // defined(CONFIG_R6)
+#endif // defined(CONFIG_R6) || defined(CONFIG_R5)
         uint16_t                zoom_pos_size;
         uint16_t                focus_pos_size;
         uint16_t                fine_focus_size;
@@ -364,9 +364,9 @@ struct prop_lens_static_data
         uint8_t                 extendMagnificationVal;
         uint8_t                _unk_05;
         uint16_t                ois_shift_max;
-#if defined(CONFIG_R6)
+#if defined(CONFIG_R6) || defined(CONFIG_R5)
         uint8_t                 colorBalance;                  // DNE on 850D
-#endif // defined(CONFIG_R6)
+#endif // defined(CONFIG_R6) || defined(CONFIG_R5)
         uint8_t                 pza_exists;
         uint8_t                 pza_id[5];
         uint8_t                 pza_firm_ver[3];
@@ -416,7 +416,7 @@ struct prop_lens_dynamic_data {
         uint16_t                AVMAX;            // ShootingInfoEx: avmax
 #if !defined(CONFIG_M50)
         uint16_t                AVD;              // Not referenced in M50
-#if defined(CONFIG_R6) || defined(CONFIG_850D)
+#if defined(CONFIG_R6)  || defined(CONFIG_R5) || defined(CONFIG_850D)
         uint16_t                NowAvRF;          // Referenced 850D, R6
 #endif
         uint16_t                NowAvEF;          // Not referenced in M50. Before 850D named just NowAv
@@ -456,10 +456,10 @@ struct prop_lens_dynamic_data {
         uint16_t                fineFocusPos;     // ShootingInfoEx: fine_focus_pos
         uint16_t                HighResoZoomPos;  // ShootingInfoEx: high_res_zoom_pos
         uint16_t                HighResoFocusPos; // ShootingInfoEx: high_res_focus_pos
-#ifdef CONFIG_R6
+#if defined(CONFIG_R6) || defined(CONFIG_R5)
         uint8_t                _r6_01[6];         // only on R6, some extra fields?
 #endif
-#if defined(CONFIG_R6) || defined(CONFIG_R) || defined(CONFIG_RP)
+#if defined(CONFIG_R6) || defined(CONFIG_R5) || defined(CONFIG_R) || defined(CONFIG_RP)
         uint8_t                 abstat;           // lens abberation related; exists only on R series
 #endif
         uint8_t                 st1;
@@ -477,7 +477,7 @@ struct prop_lens_dynamic_data {
         uint8_t                 ZmSt3;
         uint8_t                 ZmSt4;
         uint8_t                _pad_05[4];        // M50, R, RP, 250D, 850D, R6
-#if defined(CONFIG_R) || defined(CONFIG_RP) || defined(CONFIG_R6)
+#if defined(CONFIG_R) || defined(CONFIG_RP) || defined(CONFIG_R6) || defined(CONFIG_R5)
         uint8_t                _pad_05a;          // R, RP, R6 (alignment?)
 #endif
         uint16_t                ts_shift;         // via ShootingInfoEx
@@ -491,14 +491,14 @@ struct prop_lens_dynamic_data {
         uint8_t                 LENSEr;           // not mentioned on 850D
 #if defined(CONFIG_M50)
         uint8_t                _pad_07[7];        // M50
-#elif defined(CONFIG_R6)
+#elif defined(CONFIG_R6) || defined(CONFIG_R5)
         uint8_t                _pad_07[11];       // R6
 #else
         uint8_t                _pad_07[15];       // 850D, 250D, R, RP
 #endif
 };
 
-#if defined(CONFIG_R6)
+#if defined(CONFIG_R6) || defined(CONFIG_R5)
 SIZE_CHECK_STRUCT( prop_lens_dynamic_data, 0x94 );
 #elif defined(CONFIG_850D) || defined(CONFIG_R) || defined(CONFIG_RP)
 SIZE_CHECK_STRUCT( prop_lens_dynamic_data, 0x90);

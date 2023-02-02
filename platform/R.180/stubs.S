@@ -82,7 +82,7 @@ THUMB_FN(0xE053AF42,  CancelTimer)                          /* CancelRefreshTime
 
 /** Memory allocation **/
 //THUMB_FN(0xE0552814, _AllocateMemory)                       /* NG AllocateMemory */
-//THUMB_FN(0XE05529CC, _FreeMemory)                           /* uses the same heap */
+//THUMB_FN(0xE05529CC, _FreeMemory)                           /* uses the same heap */
 //THUMB_FN(0xE055269E,  GetMemoryInformation)                 /* called from AllocateMemory */
 //THUMB_FN(0xE0552672,  GetSizeOfMaxRegion)                   /* same */
 THUMB_FN(0xE0552274, _alloc_dma_memory)                     /* allocates 64 bytes more, aligns at 32 and sets the uncacheable bit */

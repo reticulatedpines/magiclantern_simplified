@@ -414,6 +414,15 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
     -1149, 10000,   2238,  10000,   5680, 10000
 #endif
 
+#ifdef CONFIG_R5 // from https://github.com/LibRaw/LibRaw src/tables/colordata.cpp
+    // { LIBRAW_CAMERAMAKER_Canon, "EOS R5", 0, 0,
+    //  { 9766,-2953,-1254,-4276,12116,2433,-437,1336,5131 } },
+    #define CAM_COLORMATRIX1 \
+     9766, 10000,   -2953, 10000,  -1254, 10000, \
+    -4276, 10000,   12116, 10000,   2433, 10000, \
+     -437, 10000,    1336, 10000,   5131, 10000
+#endif
+
 #ifdef CONFIG_M50 // from https://github.com/LibRaw/LibRaw src/tables/colordata.cpp
     // { LIBRAW_CAMERAMAKER_Canon, "EOS M50", 0, 0,
     //   { 8532,-701,-1167,-4095,11879,2508,-797,2424,7010 } },
@@ -541,6 +550,11 @@ static int dynamic_ranges[] = {1255, 1237, 1188, 1120, 1045, 964, 883, 785, 685,
 
 #ifdef CONFIG_RP
 static int dynamic_ranges[] = {1105, 1086, 1065, 1038, 1000, 936, 846, 773, 676, 585, 499};
+#endif
+
+// TODO: DxO graph is corrupted, so leaving R values for now
+#ifdef CONFIG_R5
+static int dynamic_ranges[] = {1255, 1237, 1188, 1120, 1045, 964, 883, 785, 685, 599, 507};
 #endif
 
 /** M50 data missing from DxO.

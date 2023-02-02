@@ -154,10 +154,18 @@ inline uint8_t *bmp_vram_raw() {
 
 #else // dryos
     // kitor: Still works for RGB buffers in 200D and EOSR
+    #if defined(CONFIG_R5)
+    #define BMP_W_PLUS   872
+    #define BMP_W_MINUS -152
+    #define BMP_H_PLUS   510
+    #define BMP_H_MINUS -30
+    #define BMP_LAYER_WIDTH 2048
+    #else
     #define BMP_W_PLUS   840
     #define BMP_W_MINUS -120
     #define BMP_H_PLUS   510
     #define BMP_H_MINUS -30
+    #endif
 
     #define BMPPITCH 960
     #define BMP_VRAM_SIZE (960*540)

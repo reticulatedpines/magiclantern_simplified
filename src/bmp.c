@@ -205,6 +205,29 @@ void refresh_yuv_from_rgb(void)
         }
     }
     else{
+#ifdef CONFIG_R5
+        // kitor FIXME this is the loop altered to work with 2048x1080 layers.
+        // Resolution needs confirmation on R6.
+        //
+        // I think this could be used as general solution?
+        // Shall we use per-camera constants in bmp.c? Or maybe get this at runtime
+        // from Ximr / XCM?
+        uint32_t *rgb_row = rgb_data;
+        for (uint y = 0; y < BMP_H_PLUS - BMP_H_MINUS; y++ )
+        {
+            rgb_data = rgb_row;
+            for(uint x = 0; x < BMPPITCH; x++ )
+            {
+                uint32_t rgb = indexed2rgb(*b);
+                if ((rgb && 0xff000000) == 0x00000000)
+                    rgb_data++;
+                else
+                    *rgb_data++ = rgb;
+                b++;
+            }
+            rgb_row = rgb_row + BMP_LAYER_WIDTH;
+        }
+#else
         for (size_t n = 0; n < BMP_VRAM_SIZE; n++)
         {
             // limited alpha support, if dest pixel would be full alpha,
@@ -217,6 +240,7 @@ void refresh_yuv_from_rgb(void)
                 *rgb_data++ = rgb;
             b++;
         }
+#endif
     }
 
     // trigger Ximr to render to OSD from RGB buffer
