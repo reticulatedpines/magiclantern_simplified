@@ -44,6 +44,30 @@ void refresh_yuv_from_rgb(void)
         return;
     }
 
+#ifdef CONFIG_R5
+#define DEST_BUF_WIDTH 2048
+    // kitor FIXME this is the loop altered to work with 2048x1080 layers.
+    // Resolution needs confirmation on R6.
+    //
+    // I think this could be used as general solution?
+    // Shall we use per-camera constants in bmp.c? Or maybe get this at runtime
+    // from Ximr / XCM?
+    uint32_t *rgb_row = rgb_data;
+    for (uint y = 0; y < BMP_H_PLUS - BMP_H_MINUS; y++ )
+    {
+        rgb_data = rgb_row;
+        for(uint x = 0; x < BMP_W_PLUS - BMP_W_MINUS; x++ )
+        {
+            uint32_t rgb = indexed2rgb(*b);
+            if ((rgb && 0xff000000) == 0x00000000)
+                rgb_data++;
+            else
+                *rgb_data++ = rgb;
+            b++;
+        }
+        rgb_row = rgb_row + DEST_BUF_WIDTH;
+    }
+#else
     //SJE FIXME benchmark this loop, it probably wants optimising
     for (size_t n = 0; n < BMP_VRAM_SIZE; n++)
     {
@@ -57,6 +81,7 @@ void refresh_yuv_from_rgb(void)
             *rgb_data++ = rgb;
         b++;
     }
+#endif
 
     // trigger Ximr to render to OSD from RGB buffer
 #ifdef CONFIG_DIGIC_VI
@@ -133,8 +158,9 @@ static void hello_world()
         msleep(500);
         MEM(CARD_LED_ADDRESS) = LEDOFF;
         msleep(500);
-        
-        font_draw(120, 75, COLOR_WHITE, 3, "Hello, World!");
+
+        // text position adjusted to count from visible area bounds.
+        font_draw(120 - BMP_W_MINUS, 75 - BMP_H_MINUS, COLOR_WHITE, 3, "Hello, World!");
         #ifdef FEATURE_VRAM_RGBA
         refresh_yuv_from_rgb();
         #endif

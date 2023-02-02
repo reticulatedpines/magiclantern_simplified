@@ -30,6 +30,7 @@
 #define SIG_M50_110  0x05EDBC80 // from E0040000
 #define SIG_R_180    0x1474d0f5 // from E0040000
 #define SIG_RP_160   0xECDDA78C // from E0040000
+#define SIG_R5_152   0xf10e9902 // from E0100000
 #define SIG_R6_150   0x129372a8 // from E0100000
 #define SIG_5D4_112  0xf3316d96 // from FE0A0000
 #define SIG_5D4_133  0x40b85a84 // from FE0A0000

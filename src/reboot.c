@@ -326,14 +326,26 @@ cstart( void )
       #endif
     #endif
     #ifdef CONFIG_850D
-        // not the same addresses as other D8 (R, RP, M50 at least), and it requires
-        // you store the address with thumb bit set, other D8 add one to stored value.
+        // Digic 8 "new style" first stage loader uses just a single pointer for startup.
+        // The difference is that it has to have thumb bit set.
+        // So far only 850D is known to use it on Digic 8
         MEM(0xBFE01FC4) = ROMBASEADDR | 0x1;
-        // looks like setting the flag is replaced by a cache sync
+    #elif defined(CONFIG_R5) || defined(CONFIG_R6)
+        // TODO: Replace with CONFIG_DIGIC_X when defined.
+        // Digic X uses similar 1st stage loader to Digic 8 "new style" one.
+        // Memory locations are different, it is 0xDFFxxxxx range now.
+        MEM(0xDFFC4FA0) = ROMBASEADDR | 0x1;
     #elif defined(CONFIG_DIGIC_VIII)
-        MEM(0xBFE01FC8) = ROMBASEADDR;  /* required by EOS R; possibly also by M50 etc */
-        MEM(0xBFE01FC4) = 0x10;         /* guess: start the second core at the above address */
+        // DIGIC 8 "older style" first stage bootloader require those two to be set.
+        // Code sets thumb bit before branch, so it can be left as ROMBASEADDR
+        // M50, R, RP, 250D, M6 II, PS SX740...
+        MEM(0xBFE01FC4) = 0x10;         // unknown meaning
+        MEM(0xBFE01FC8) = ROMBASEADDR;  // pointer used by 2nd core to run 2nd stage loader
     #endif
+
+    // Newer models do it after writing 2nd core boot address
+    // It won't hurt on those who don't.
+    sync_caches();
 
     #if 0
       qprint("[boot] jump to main firmware: "); qprintn(ROMBASEADDR); qprint("\n");

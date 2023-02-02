@@ -117,6 +117,25 @@ static void my_bzero32(void *buf, size_t len)
 
 static void my_create_init_task(struct dryos_init_info *dryos, uint32_t init_task, uint32_t c)
 {
+#ifdef CONFIG_R5
+    // DIGIC X re-use the same memory range for coprocessors and autoexec.bin
+    //
+    // On regular first stage boot, that memory chunk is initialized, then
+    // decision is made where to go next: autoexex, firmware update, fromutil,
+    // main firmware...
+    //
+    // If any file is loaded from card, it not only uses that buffer to load,
+    // but Canon code also erases all unused part of a buffer.
+    //
+    // This call executes the function that originally initializes that memory.
+    // Call is required here (and not in reboot.c) for safety reasons - reboot.c
+    // runs still from buffer in question.
+    // Here we already run from relocated code, so it is safe to reinitialize
+    // memory.
+    extern void reinit_autoexec_memory(void);
+    reinit_autoexec_memory();
+#endif
+
     // We wrap Canon's create_init_task, allowing us to modify the
     // struct that it takes, which holds a bunch of OS info.
     // We adjust sizes of memory regions to reserve space for ML.

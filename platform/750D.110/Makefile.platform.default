@@ -20,11 +20,5 @@ RESTARTSTART    = 0x00299e00
 CFLAG_USER += -mthumb -mlong-calls
 PLATFORM_ARCH = armv7-r
 
-# these should be removed when porting starts
-#ifeq ($(ML_SRC_PROFILE),generic)
-#ML_SRC_PROFILE  = minimal
-#ML_MINIMAL_OBJ  = minimal-d6.o
-#endif
-
 ML_BOOT_OBJ = boot-d678.o
 ML_SRC_EXTRA_OBJS += function_overrides.o

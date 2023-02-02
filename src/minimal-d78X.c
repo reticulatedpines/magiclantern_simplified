@@ -1,15 +1,15 @@
 /** \file
- * Minimal test code for DIGIC 7 & 8
+ * Minimal test code for DIGIC 7, 8, X
  * ROM dumper & other experiments
  */
 
 #include "dryos.h"
 
-extern void dump_file(char* name, uint32_t addr, uint32_t size);
 extern void memmap_info(void);
 extern void malloc_info(void);
 extern void sysmem_info(void);
 extern void smemShowFix(void);
+extern void res_memshow(int);
 
 static void led_blink(int times, int delay_on, int delay_off)
 {
@@ -34,6 +34,7 @@ extern int uart_printf(const char * fmt, ...);
 extern void * _alloc_dma_memory(size_t);
 extern void _free_dma_memory(void *);
 
+
 #define FIO_CreateFile _FIO_CreateFile
 extern FILE* _FIO_CreateFile(const char* filename );
 
@@ -53,13 +54,13 @@ static void backup_region(char *file, uint32_t base, uint32_t length)
     FILE *handle = NULL;
     uint32_t size = 0;
     uint32_t pos = 0;
-    
+
     /* already backed up that region? */
     if((FIO_GetFileSize( file, &size ) == 0) && (size == length) )
     {
         return;
     }
-    
+
     /* no, create file and store data */
 
     void* buf = malloc(BACKUP_BLOCKSIZE);
@@ -72,15 +73,15 @@ static void backup_region(char *file, uint32_t base, uint32_t length)
       while(pos < length)
       {
          uint32_t blocksize = BACKUP_BLOCKSIZE;
-        
+
           if(length - pos < blocksize)
           {
               blocksize = length - pos;
           }
-          
+
           /* copy to RAM before saving, because ROM is slow and may interfere with LiveView */
           memcpy(buf, &((uint8_t*)base)[pos], blocksize);
-          
+
           FIO_WriteFile(handle, buf, blocksize);
           pos += blocksize;
 
@@ -90,7 +91,7 @@ static void backup_region(char *file, uint32_t base, uint32_t length)
       FIO_CloseFile(handle);
       FIO_Flush(file);
     }
-    
+
     free(buf);
 }
 
@@ -101,36 +102,17 @@ static void DUMP_ASM dump_task()
     /* LED blinking test */
     led_blink(2, 500, 500);
 
-#if 0
-    void (*SetLED)(int led, int action) = (void *) 0xE0764D59;  /* EOS R 1.1.0 */
-    for (int i = 0; i < 13; i++)
-    {
-        qprintf("LED %d\n", i);
-        SetLED(i, 0);   /* LED ON */
-        msleep(1000);
-        SetLED(i, 1);   /* LED OFF */
-        msleep(1000);
-    }
-#endif
-
     /* print memory info on QEMU console */
     memmap_info();
     malloc_info();
     sysmem_info();
+#ifdef CONFIG_DIGIC_X
+    /* DIGIC X has new RscMgr, `res_memshow` is the new function*/
+    res_memshow(1);
+    res_memshow(2);
+#else
     smemShowFix();
-
-
-    /* dump ROM (this method gives garbage on M50, why?) */
-    //dump_file("ROM0.BIN", 0xE0000000, 0x02000000);
-    //dump_file("ROM1.BIN", 0xF0000000, 0x02000000); // - might be slow
-
-    /* dump ROM */
-    backup_region("B:/ROM0.BIN", 0xE0000000, 0x02000000);
-    backup_region("B:/ROM1.BIN", 0xF0000000, 0x01000000);
- 
-    /* dump RAM */
-    //dump_file("RAM4.BIN", 0x40000000, 0x40000000); // - large file; decrease size if it locks up
-    //dump_file("DF00.BIN", 0xDF000000, 0x00010000); // - size unknown; try increasing
+#endif
 
 #ifdef CONFIG_MARK_UNUSED_MEMORY_AT_STARTUP
     /* wait for the user to exercise the camera a bit */
@@ -156,14 +138,9 @@ static void DUMP_ASM dump_task()
             }
         }
 
-        //DryosDebugMsg(0, 15, "%08X-%08X: %s", start, end, empty ? "maybe unused" : "used");
         uart_printf("%08X-%08X: %s\n", start, end, empty ? "maybe unused" : "used");
     }
 #endif
-
-    /* attempt to take a picture */
-    //call("Release");
-    //msleep(2000);
 
     /* save a diagnostic log */
     call("dumpf");
