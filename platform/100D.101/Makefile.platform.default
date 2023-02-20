@@ -9,6 +9,7 @@ ifeq ($(ML_SRC_PROFILE),generic)
 # Load ML at the beginning of the AllocateMemory pool
 # default 0x44C000 - 0xC3C000, patched to 0x4E0000 - 0xC3C000 (592K for us).
 RESTARTSTART    = 0x44C100
+ML_BOOT_OBJ = boot-d45-am.o
 else
 # Load ML at user_mem_start (aka heap start / DRY_HEAP_START / malloc memory pool)
 # The malloc memory pool will be pushed to the right, so it will start after our BSS.
