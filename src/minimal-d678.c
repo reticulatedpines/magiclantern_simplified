@@ -160,7 +160,7 @@ static void DUMP_ASM dump_task()
     log_start();
 #endif
 
-#if 1
+#if 0
 
     // MPU events are logged to file in log-d678.c,
     // use halfshutter to demark when other buttons
@@ -332,7 +332,7 @@ static void DUMP_ASM dump_task()
 #endif
 
     /* save a diagnostic log */
-    log_finish();
+//    log_finish();
     call("dumpf");
 }
 
@@ -340,7 +340,7 @@ static void DUMP_ASM dump_task()
 void boot_pre_init_task(void)
 {
 #ifdef LOG_EARLY_STARTUP
-    log_start();
+//    log_start();
 #endif
 }
 
@@ -348,7 +348,7 @@ void boot_pre_init_task(void)
 void boot_post_init_task(void)
 {
 #ifndef LOG_EARLY_STARTUP
-    log_start();
+//    log_start();
 #endif
 
     msleep(1000);
