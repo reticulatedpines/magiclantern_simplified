@@ -85,8 +85,9 @@ static void dump_bytes(uint32_t address, uint32_t len)
 static void DUMP_ASM dump_task()
 {
     // LED blinking test
-    led_blink(3, 500, 200);
+    led_blink(30, 500, 200);
 
+#if 0
     //while(MEM(0xFD8C) == 0)
     //{
     //    led_blink(1, 100, 100);
@@ -101,6 +102,8 @@ static void DUMP_ASM dump_task()
         vram_current = vram2;
     else
         vram_current = vram1;
+#endif
+
 #if 0
     // find screen dimensions from MARV struct
     static uint32_t disp_xres = 0;
