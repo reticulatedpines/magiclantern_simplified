@@ -33,9 +33,6 @@ NSTUB( ROMBASEADDR, firmware_entry )
 THUMB_FN(0xfe0a0af8,  pre_cstart_func) // needed to easily patch for compacting firmware_entry and cstart regions
 THUMB_FN(0xfe0a0b18,  cstart)
 ARM32_FN(0x8000a3a4,  bzero32)
-//ARM32_FN(0xfe6510d0,  create_init_task) // Using this instead of the thunk target below,
-                                          // triggers a hang.  Cause unknown, but concerning.
-                                          // See https://github.com/reticulatedpines/magiclantern_simplified/issues/88
 THUMB_FN(0x80000f78,  create_init_task)
 THUMB_FN(0xfe0a1980,  init_task)
 

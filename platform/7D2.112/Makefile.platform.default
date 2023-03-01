@@ -17,7 +17,7 @@ RESTARTSTART    = 0x00299e00
 
 
 # Cortex R4
-CFLAG_USER += -mlong-calls
+CFLAG_USER += -mthumb -mlong-calls
 PLATFORM_ARCH = armv7-r
 
 # these should be removed when porting starts
