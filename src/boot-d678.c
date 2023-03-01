@@ -219,7 +219,7 @@ static void my_icache_invalidate(uint32_t addr, uint32_t size, uint32_t keep1, u
     icache_invalidate(addr, size, keep1, keep2);
 }
 
-#if defined(CONFIG_750D) || defined(CONFIG_5D4) // maybe this should be CONFIG_DIGIC_VI
+#if defined CONFIG_DIGIC_VI // seen on 5D4, 750D, 7D2, 80D
 static void my_pre_cstart_func(void)
 {
     extern void pre_cstart_func(void);
@@ -278,7 +278,7 @@ copy_and_restart(int offset)
 
     // if firmware_entry calls code in the cstart reloc'd region,
     // we also need to patch that
-#if defined(CONFIG_750D) || defined(CONFIG_5D4) // maybe this should be CONFIG_DIGIC_VI
+#if defined CONFIG_DIGIC_VI // seen on 750D, 5D4, 7D2, 80D
     patch_thumb_branch(BR_PRE_CSTART, (uint32_t)my_pre_cstart_func);
 #endif
 

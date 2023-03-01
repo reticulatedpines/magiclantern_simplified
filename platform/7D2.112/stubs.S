@@ -30,23 +30,25 @@
 
 /** Startup **/
 NSTUB( ROMBASEADDR, firmware_entry )
+THUMB_FN(0xfe0a0af8,  pre_cstart_func) // needed to easily patch for compacting firmware_entry and cstart regions
 THUMB_FN(0xfe0a0b18,  cstart)
-ARM32_FN(0xfe6510c8,  bzero32) // could use the Thumb version at 8000a3a4
-ARM32_FN(0xfe6510d0,  create_init_task) // unthunked Thumb at 80000f78
+ARM32_FN(0x8000a3a4,  bzero32)
+//ARM32_FN(0xfe6510d0,  create_init_task) // Using this instead of the thunk target below,
+                                          // triggers a hang.  Cause unknown, but concerning.
+                                          // See https://github.com/reticulatedpines/magiclantern_simplified/issues/88
+THUMB_FN(0x80000f78,  create_init_task)
 THUMB_FN(0xfe0a1980,  init_task)
 
 /** Tasks **/
 // 80001358 is get_task_info_by_id(), useful for finding task related addresses
 // 80001632 is get_task_by_id()
 // 0x2795c is first_task
-    DATA_PTR(   0x277bc,  current_interrupt) // Wrong, can't find it.  Usage in code doesn't seem critical (task debugging, mostly)
-                                             // 5D4 associates this with "Vector", a string that 7D2 doesn't have.
-                                             // Possibly this has been removed?
-                                             // It has a value in 7D2 1.0.4 stubs however.  I don't have that rom.
-                                             // I've set this to have the same offset that has from current_task.
+//DATA_PTR(   0x277b8,  interrupt_level)
+DATA_PTR(   0x277bc,  current_interrupt) // See fe0a153c(), this refs both current_interrupt and interrupt_level.
+                                         // It's read from d4011000, this was consistent on 3 Digic 6 cams I checked.
 DATA_PTR(   0x277dc,  current_task)
-THUMB_FN(0x19b0,  msleep)
-ARM32_FN(0xfe651214,  task_create) // unthunked Thumb at 1a60
+THUMB_FN(    0x19b0,  msleep)
+THUMB_FN(    0x1a60,  task_create) // unthunked Thumb at 1a60
 
 /*
     // Interrupts

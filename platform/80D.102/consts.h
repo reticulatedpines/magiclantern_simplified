@@ -6,13 +6,17 @@
 #define LEDON                       0x4D0002
 #define LEDOFF                      0x4C0003
 
+#define BR_PRE_CSTART   0xfe0a00a4 // call to function just before cstart
+#define BR_CSTART       0xfe0a00fe // b.w to cstart, end of firmware_entry
 #define BR_BZERO32        0xFE0D318A
 #define BR_CREATE_ITASK   0xFE0D31DE
 
-// Used for copying and modifying ROM code before transferring control.
-// Approximately: look at BR_ macros for the highest address, subtract ROMBASEADDR,
-// align up.  This may not be exactly enough.  See boot-d678.c for longer explanation.
-#define FIRMWARE_ENTRY_LEN 0x33300
+// Constants for copying and modifying ROM code before transferring control,
+// see boot-d678.c
+// If you define CSTART_LEN boot logic does more complicated things and
+// may save you space; this is only needed on some cams (D6 only so far).
+#define FIRMWARE_ENTRY_LEN 0x140
+#define CSTART_LEN 0xa0
 
 #define ML_MAX_USER_MEM_STOLEN 0x40000 // SJE: let's assume D6 can steal the same as D78 from user_mem
                                        // I'm not very confident on this, early mem stuff is significantly
