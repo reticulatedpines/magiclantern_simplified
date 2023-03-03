@@ -349,6 +349,15 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
      -593, 10000,     1772, 10000,    6198, 10000
 #endif
 
+#ifdef CONFIG_7D2
+    //{ LIBRAW_CAMERAMAKER_Canon, "EOS 7D Mark II", 0, 0x3510,
+    //  { 7268,-1082,-969,-4186,11839,2663,-825,2029,5839 } },
+    #define CAM_COLORMATRIX1                     \
+     7268, 10000,     -1082, 10000,    -969, 10000,\
+    -4186, 10000,    11839, 10000,    2663, 10000, \
+     -825, 10000,     2029, 10000,    5839, 10000
+#endif
+
 #ifdef CONFIG_77D
     // { LIBRAW_CAMERAMAKER_Canon, "EOS 77D", 0, 0,
     //   { 7377,-742,-998,-4235,11981,2549,-673,1918,5538 } },
@@ -585,6 +594,10 @@ static int dynamic_ranges[] = {1060, 1063, 1037, 982, 901, 831, 718, 622, 536};
 
 #ifdef CONFIG_7D
 static int dynamic_ranges[] = {1112, 1108, 1076, 1010, 902, 826, 709, 622};
+#endif
+
+#ifdef CONFIG_7D2
+static int dynamic_ranges[] = {1111, 1109, 1072, 1006, 953, 886, 781, 696, 596, 493};
 #endif
 
 #ifdef CONFIG_77D

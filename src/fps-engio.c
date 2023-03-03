@@ -232,6 +232,9 @@ static void fps_read_current_timer_values();
 #elif defined(CONFIG_5D4)
     #define TG_FREQ_BASE 32000000 //copy from 700D
     #define FPS_TIMER_A_MIN (fps_timer_a_orig)
+#elif defined(CONFIG_7D2)
+    #define TG_FREQ_BASE 32000000 //copy from 5D4 - probably wrong, see forums
+    #define FPS_TIMER_A_MIN (fps_timer_a_orig)
 #elif defined(CONFIG_EOSM)
     #define TG_FREQ_BASE 32000000
     #define FPS_TIMER_A_MIN (ZOOM ? 666 : MV1080CROP ? 532 : 520)

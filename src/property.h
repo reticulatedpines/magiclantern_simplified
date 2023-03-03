@@ -356,6 +356,11 @@
 #define PROP_MOVIE_REC_VOLUME 0x2050017 //Len 4, Vol00Vol
 #define PROP_HEADPHONE_PHYSICAL_CONNECT 0x80030055
 #endif
+
+#ifdef CONFIG_7D2
+#define PROP_MLU 0x80000047 // SJE FIXME check this is really the same as 6d and 5d3
+#endif
+
 /** Job progress
  * 0xB == capture end?
  * 0xA == start face catch pass?

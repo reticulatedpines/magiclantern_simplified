@@ -181,4 +181,4 @@
 
 //address of XimrContext structure to redraw in FEATURE_VRAM_RGBA
 //0x5d138 + 0x10 is pointer to XimrContext struct
-#define XIMR_CONTEXT ((void*)0x5d138)
+#define XIMR_CONTEXT ((void*)0x5d148)
