@@ -375,6 +375,26 @@ THUMB_FN(0xdf00325d,  task_trampoline)
 //NSTUB(0xFF9686C8,  mvrSetFullHDOptSize)
 //NSTUB(0xFF968874,  mvrFixQScale)
 
+// Sockets
+THUMB_FN(0xe071d880,  socket_create);
+THUMB_FN(0xe071d8b8,  socket_bind);
+THUMB_FN(0xe071d8f2,  socket_connect);
+THUMB_FN(0xe071d92c,  socket_listen);
+THUMB_FN(0xe071db7a,  socket_shutdown);
+THUMB_FN(0xe071d960,  socket_accept);
+THUMB_FN(0xe071d99a,  socket_recv);
+THUMB_FN(0xe071d9d8,  socket_recvfrom);
+THUMB_FN(0xe071da20,  socket_send);
+THUMB_FN(0xe071da3a,  socket_sendto);
+THUMB_FN(0xe071da80,  socket_setsockopt);
+THUMB_FN(0xe071dac4,  socket_getsockopt);
+THUMB_FN(0xe0714a20,  socket_close_caller);
+THUMB_FN(0xe07321f4,  socket_convertfd);
+THUMB_FN(0xe0714b1c,  socket_select_caller); // not the actual select function as this needs the fd converted
+
+THUMB_FN(0xe036d59c,  wlan_connect);
+
+
 // SJE maybe 0xe007e056 is important.  This loops doing a "DmacCh" related function, and that gets us
 // to 0x36bf0 - there's a few functions there that ref edmac related strings!
 // 
