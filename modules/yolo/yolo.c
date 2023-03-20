@@ -17,6 +17,44 @@ static int dummy_uart_printf(const char *fmt, ...)
 }
 extern WEAK_FUNC(dummy_uart_printf) int uart_printf(const char *fmt, ...);
 
+// This assumes a digic 678X cam.
+// Currently this module won't init unless you're a 200D,
+// so that's fine.
+static void get_screen(uint8_t *yuv_buf, uint32_t buf_size, uint32_t *width, uint32_t *height)
+{
+    uint8_t *lvram = NULL;
+    struct vram_info *vram_info = get_yuv422_vram();
+
+    if (vram_info != NULL)
+        lvram = vram_info->vram;
+
+// skipping this for now, it's in consts.h, not sure on a nice way
+// to pull this in.  We can just send back uninit data I suppose
+//    if (YUV422_LV_BUFFER_DISPLAY_ADDR == 0x01000000) // indicates uninit buffer
+//        lvram = NULL;
+
+    if (lvram == NULL)
+        return;
+
+    uint32_t vram_size = vram_lv.height * vram_lv.pitch; // SJE FIXME does screenshot have this wrong?
+                                                         // It allocates width * pitch, which seems incorrect
+                                                         // (but always bigger than needed, so won't crash)
+    *width = vram_lv.width;
+    *height = vram_lv.height;
+    if (vram_size <= buf_size)
+    {
+        memcpy(yuv_buf, lvram, vram_size);
+    }
+    else
+    {
+        uart_printf("vram too big: 0x%x\n", vram_size);
+        uart_printf("height, width, pitch: %d, %d, %d\n",
+                    vram_lv.height, vram_lv.width, vram_lv.pitch);
+        // copy what we can
+        memcpy(yuv_buf, lvram, buf_size);
+    }
+}
+
 static void yolo_task(struct sockaddr_in *sockaddr)
 {
     int socket = socket_create(1, 1, 0); // SJE FIXME make these named constants 
@@ -33,7 +71,38 @@ static void yolo_task(struct sockaddr_in *sockaddr)
         return;
     }
 
-    socket_send(socket, "Hello", 6, 0);
+    // LV is YUV encoded, 2 bytes per pixel.  Reserve enough space for standard LV size,
+    // plus a small amount for our Type, Length prefix.
+    uint32_t total_size = (736 * 480 * 2) + 5;
+    uint32_t data_size = total_size - 5;
+    uint8_t *yuv_buf = malloc(total_size);
+    if (yuv_buf == NULL)
+        return;
+
+    uint32_t height, width;
+    TASK_LOOP
+    {
+        msleep(5000); // this limits frame rate sent
+
+        width = 0;
+        height = 0;
+        get_screen(yuv_buf + 5, data_size, &width, &height);
+
+        if (width > 0)
+        {
+            uint32_t yuv_size = width * height * 2;
+            if (yuv_size > data_size)
+            {
+                uart_printf("yuv_sz > data_sz: %d, %d\n", yuv_size, data_size);
+                yuv_size = data_size; // shouldn't happen, send truncated image if it does
+            }
+            *yuv_buf = 1; // A type field, should I want to extend this.  1 indicates
+                          // the data is YUV.
+            *((uint32_t *)(yuv_buf + 1)) = yuv_size; // size of following data
+            socket_send(socket, yuv_buf, yuv_size + 5, 0);
+        }
+    }
+
     socket_close_caller(socket_convertfd(socket));
 }
 
@@ -153,13 +222,13 @@ unsigned int yolo_init()
     if (get_config(&config) < 0)
         return -1;
 
-
+/*
     uart_printf("%s\n", config.SSID);
     uart_printf("%s\n", config.passphrase);
     uart_printf("%s\n", config.client_IP);
     uart_printf("0x%x\n", config.server_IP);
     uart_printf("%d\n", config.server_port);
-
+*/
 
     static struct sockaddr_in sockaddr; // we pass this to yolo_task, static so it remains valid
     sockaddr.sin_family = SOCK_FAMILY_IPv4;
