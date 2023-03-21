@@ -10,6 +10,8 @@
 
 #include "yolo.h"
 
+static const uint32_t SERVER_RESP_MAX = 256;
+
 // allow compiling module if uart_printf stub isn't defined
 static int dummy_uart_printf(const char *fmt, ...)
 {
@@ -55,6 +57,85 @@ static void get_screen(uint8_t *yuv_buf, uint32_t buf_size, uint32_t *width, uin
     }
 }
 
+// parse the detection data from yolo_server.py and draw
+// appropriate rectangles
+static void display_detections(uint8_t *server_data)
+{
+    int type, count;
+    int colours[] = {COLOR_YELLOW, COLOR_RED, COLOR_CYAN, COLOR_GREEN1, COLOR_ORANGE};
+    int colour_index = 0;
+
+    type = server_data[0];
+    if (type == 1)
+    {
+        count = server_data[1];
+        if (count < 0)
+            return;
+
+        // clear the middle of the screen, preserve the borders where ML draws info stuff
+        bmp_fill(0x0, 30, 32, 660, 414);
+//        bmp_draw_rect(COLOR_BLACK, 30, 32, 660, 414);
+
+        uint8_t *payload = server_data + 6;
+        uint16_t x, y, w, h;
+        for (int n = count; n > 0; n--)
+        {
+            char *name = (char *)payload;
+            int name_len = strlen(name);
+            payload += (name_len + 1);
+
+            x = *(uint16_t *)(payload + 0);
+            y = *(uint16_t *)(payload + 2);
+            w = *(uint16_t *)(payload + 4);
+            h = *(uint16_t *)(payload + 6);
+
+            uart_printf("detection: %s", name);
+            uart_printf("\n\t %d, %d, %d, %d\n", x, y, w, h);
+
+            // only draw if the co-ords are sensibly inside the screen
+            // (drawing outside is buffer overflow!)
+            if (y > 30 && x > 30 && y < 450 && x < 700
+                && (x + w < 700) && (y + h < 450))
+            {
+                bmp_printf(FONT_MED, x, y - 30, name);
+                bmp_draw_rect(COLOR_BLACK, x - 4, y - 4, w + 8, h + 8);
+                bmp_draw_rect(colours[colour_index], x - 3, y - 3, w + 6, h + 6);
+                bmp_draw_rect(colours[colour_index], x - 2, y - 2, w + 4, h + 4);
+                bmp_draw_rect(colours[colour_index], x - 1, y - 1, w + 2, h + 2);
+                bmp_draw_rect(COLOR_BLACK, x, y, w, h);
+                colour_index++;
+                colour_index = colour_index % COUNT(colours);
+            }
+
+            payload += 8;
+        }
+    }
+    return;
+}
+
+// Get detection results from server.  See yolo_server.py.
+static void get_detections(int socket, uint8_t *server_data)
+{
+    uint32_t recv_size;
+    recv_size = socket_recv(socket, server_data, SERVER_RESP_MAX - 1, 0);
+
+    if (recv_size < 6) // minimum size given the data format
+    {
+        uart_printf("err, socket_recv: %d\n", recv_size);
+        server_data[0] = 0; // prevents parsing of bad data
+        return;
+    }
+    uint32_t data_size = *(uint32_t *)(server_data + 2);
+    if (data_size + 6 != recv_size)
+    {
+        uart_printf("err, data_size / recv_size mismatch: %d, %d\n",
+                    data_size, recv_size);
+        server_data[0] = 0; // prevents parsing of bad data
+        return;
+    }
+    uart_printf("socket_recv: %d\n", recv_size);
+}
+
 static void yolo_task(struct sockaddr_in *sockaddr)
 {
     int socket = socket_create(1, 1, 0); // SJE FIXME make these named constants 
@@ -80,9 +161,11 @@ static void yolo_task(struct sockaddr_in *sockaddr)
         return;
 
     uint32_t height, width;
+    uint8_t server_data[SERVER_RESP_MAX];
+    memset(server_data, '\0', SERVER_RESP_MAX);
     TASK_LOOP
     {
-        msleep(5000); // this limits frame rate sent
+        msleep(100); // this limits frame rate sent
 
         width = 0;
         height = 0;
@@ -100,6 +183,12 @@ static void yolo_task(struct sockaddr_in *sockaddr)
                           // the data is YUV.
             *((uint32_t *)(yuv_buf + 1)) = yuv_size; // size of following data
             socket_send(socket, yuv_buf, yuv_size + 5, 0);
+            msleep(100);
+
+            server_data[0] = 0;
+            get_detections(socket, server_data);
+            if (server_data[0] == 1)
+                display_detections(server_data);
         }
     }
 
