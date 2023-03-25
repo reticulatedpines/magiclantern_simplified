@@ -18,16 +18,14 @@
 #define FIRMWARE_ENTRY_LEN 0x140
 #define CSTART_LEN 0xa0
 
-#define ML_MAX_USER_MEM_STOLEN 0x40000 // SJE: let's assume D6 can steal the same as D78 from user_mem
-                                       // I'm not very confident on this, early mem stuff is significantly
-                                       // different on D6...
+#define ML_MAX_USER_MEM_STOLEN 0x46000 // SJE: let's assume 80D can steal the same as 750D and friends
 
 #define ML_MAX_SYS_MEM_INCREASE 0x0 // More may be VERY unsafe!  Increasing this pushes sys_mem
                                     // higher in memory, on some cams that is known to cause problems;
                                     // They hard-code things to be directly after sys_mem.
                                     // Other cams have some space, e.g. 200D 1.0.1
 
-#define ML_RESERVED_MEM 0x40000 // Can be lower than ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE,
+#define ML_RESERVED_MEM 0x45000 // Can be lower than ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE,
                                 // but must not be higher; sys_objs would get overwritten by ML code.
                                 // Must be larger than MemSiz reported by build for magiclantern.bin
 
