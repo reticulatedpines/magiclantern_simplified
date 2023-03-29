@@ -43,17 +43,32 @@ static void get_screen(uint8_t *yuv_buf, uint32_t buf_size, uint32_t *width, uin
                                                          // (but always bigger than needed, so won't crash)
     *width = vram_lv.width;
     *height = vram_lv.height;
-    if (vram_size <= buf_size)
+    if (vram_size <= buf_size * 2) // buf is expected to be half size, we discard chroma bytes
     {
-        memcpy(yuv_buf, lvram, vram_size);
+        // let's assume vram width is always a multiple of 8
+        uint32_t *src = (uint32_t *)lvram;
+        uint32_t *dst = (uint32_t *)yuv_buf;
+
+        uint32_t s1, s2, d;
+        while (src < (uint32_t *)(lvram + vram_size))
+        {
+            // keep the 4 luminance bytes for every 8 bytes in orig yuv buffer
+            s1 = *src;
+            s2 = *(src + 1);
+            d =  (s1 & 0x0000ff00) >> 8;
+            d |= (s1 & 0xff000000) >> 16;
+            d |= (s2 & 0x0000ff00) << 8;
+            d |= (s2 & 0xff000000);
+            src += 2;
+            *dst = d;
+            dst++;
+        }
     }
     else
     {
         uart_printf("vram too big: 0x%x\n", vram_size);
         uart_printf("height, width, pitch: %d, %d, %d\n",
                     vram_lv.height, vram_lv.width, vram_lv.pitch);
-        // copy what we can
-        memcpy(yuv_buf, lvram, buf_size);
     }
 }
 
@@ -133,7 +148,7 @@ static void get_detections(int socket, uint8_t *server_data)
         server_data[0] = 0; // prevents parsing of bad data
         return;
     }
-    uart_printf("socket_recv: %d\n", recv_size);
+//    uart_printf("socket_recv: %d\n", recv_size);
 }
 
 static void yolo_task(struct sockaddr_in *sockaddr)
@@ -152,9 +167,10 @@ static void yolo_task(struct sockaddr_in *sockaddr)
         return;
     }
 
-    // LV is YUV encoded, 2 bytes per pixel.  Reserve enough space for standard LV size,
-    // plus a small amount for our Type, Length prefix.
-    uint32_t total_size = (736 * 480 * 2) + 5;
+    // LV is YUV encoded, 2 bytes per pixel.  YOLO works fine on b&w,
+    // so we can halve required bandwidth by only sending luminance channel.
+    // Get space for this, plus a small amount for our Type, Length prefix.
+    uint32_t total_size = (736 * 480) + 5;
     uint32_t data_size = total_size - 5;
     uint8_t *yuv_buf = malloc(total_size);
     if (yuv_buf == NULL)
@@ -165,7 +181,8 @@ static void yolo_task(struct sockaddr_in *sockaddr)
     memset(server_data, '\0', SERVER_RESP_MAX);
     TASK_LOOP
     {
-        msleep(100); // this limits frame rate sent
+        msleep(20); // this limits frame rate sent,
+                    // but I find this is dominated by the slow network speed
 
         width = 0;
         height = 0;
@@ -173,7 +190,7 @@ static void yolo_task(struct sockaddr_in *sockaddr)
 
         if (width > 0)
         {
-            uint32_t yuv_size = width * height * 2;
+            uint32_t yuv_size = width * height;
             if (yuv_size > data_size)
             {
                 uart_printf("yuv_sz > data_sz: %d, %d\n", yuv_size, data_size);
@@ -183,7 +200,7 @@ static void yolo_task(struct sockaddr_in *sockaddr)
                           // the data is YUV.
             *((uint32_t *)(yuv_buf + 1)) = yuv_size; // size of following data
             socket_send(socket, yuv_buf, yuv_size + 5, 0);
-            msleep(100);
+            msleep(20);
 
             server_data[0] = 0;
             get_detections(socket, server_data);

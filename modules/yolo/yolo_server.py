@@ -157,7 +157,14 @@ def init_YOLO():
     global net
     net = cv.dnn.readNetFromDarknet(os.path.join(darknet_dir, "cfg", "yolov3.cfg"),
                                     os.path.join(darknet_dir, "yolov3.weights"))
-    net.setPreferableBackend(cv.dnn.DNN_BACKEND_OPENCV)
+
+    # these two lines use Nvidia GPU hw accel,
+    # cv.cuda.getCudaEnabledDeviceCount() must return > 0
+    net.setPreferableBackend(cv.dnn.DNN_BACKEND_CUDA)
+    net.setPreferableTarget(cv.dnn.DNN_TARGET_CUDA)
+
+    # this is generic, swap them over if you can't use hw accel
+#    net.setPreferableBackend(cv.dnn.DNN_BACKEND_OPENCV)
 
 
 def get_detections(data):
@@ -166,8 +173,8 @@ def get_detections(data):
     return a list of Box namedtuples for the objects.
     """
     yuv = np.frombuffer(data, dtype=np.uint8)
-    yuv = yuv.reshape(480, 736, 2)
-    bgr = cv.cvtColor(yuv, cv.COLOR_YUV2BGR_UYVY)
+    yuv = yuv.reshape(480, 736, 1)
+    bgr = cv.cvtColor(yuv, cv.COLOR_GRAY2BGR)
 
     classes = open(os.path.join(darknet_dir, "cfg", "coco.names")).read().strip().split("\n")
 
@@ -223,13 +230,14 @@ def get_detections(data):
                 h = 2
             high_conf_boxes.append(Box(classes[classIDs[i]], x, y, w, h))
 
-    return high_conf_boxes
+    # sorting makes the box colour stable on the cam
+    return sorted(high_conf_boxes, key=lambda b: (b.name, b.x))
 
 
 def show_yuv(data):
     yuv = np.frombuffer(data, dtype=np.uint8)
-    yuv = yuv.reshape(480, 736, 2)
-    bgr = cv2.cvtColor(yuv, cv2.COLOR_YUV2BGR_UYVY)
+    yuv = yuv.reshape(480, 736, 1)
+    bgr = cv2.cvtColor(yuv, cv2.COLOR_GRAY2BGR)
     cv2.imshow("frame", bgr)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
