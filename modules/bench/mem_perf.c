@@ -16,6 +16,11 @@
 
 #include "../plot/plot.h"
 
+// ARMv7 doesn't have cache locking, make this a nop on those platforms,
+// so the dependency is met and module can be included on those cams
+extern WEAK_FUNC(ret_0) void dcache_unlock();
+extern WEAK_FUNC(ret_0) void icache_unlock();
+
 static uint32_t mem_perf_runtime = 50; /* msec */
 
 static void mem_perf_asm_128(uint32_t address, uint32_t size, uint32_t loops)
