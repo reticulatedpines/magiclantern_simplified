@@ -69,7 +69,7 @@ struct task
 //      type            name            offset, size
         struct task    *prev_task;      // 0x00, 4   // SJE not sure what these two fields are used for,
         struct task    *next_task;      // 0x04, 4   // but they're doubly-linked lists of tasks
-        uint32_t        run_prio;       // 0x08, 4
+        uint32_t        run_prio;       // 0x08, 4   // lower value is higher priority
         void           *entry;          // 0x0c, 4
         uint32_t        arg;            // 0x10, 4
         uint32_t        waitObjId;      // 0x14, 4
