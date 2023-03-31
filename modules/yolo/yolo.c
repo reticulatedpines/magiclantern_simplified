@@ -160,12 +160,24 @@ static void yolo_task(struct sockaddr_in *sockaddr)
         return;
     }
 
+    int retries = 0;
     int res = socket_connect(socket, sockaddr, sizeof(*sockaddr));
-    if (res < 0)
+    while (retries < 3)
     {
-        uart_printf("err, connect res: %d\n", res);
-        return;
+        if (res < 0)
+        {
+            uart_printf("err, connect res: %d\n", res);
+        }
+        else
+        {
+            uart_printf("connect success\n");
+            break;
+        }
+        msleep(900);
+        retries++;
     }
+    if (res < 0)
+        return;
 
     // LV is YUV encoded, 2 bytes per pixel.  YOLO works fine on b&w,
     // so we can halve required bandwidth by only sending luminance channel.
@@ -253,16 +265,16 @@ static int get_config(struct network_config *config)
     //
     // Each line must be null-terminated.
     // First line is SSID, second is passphrase,
-    // third is IP that cam requests.  This is a dotted decimal string,
-    // because the API wants it that way.
-    // Fourth is server IP.  This is as a decimal string, because we
-    // want this one as a number.
-    // Fifth is server port, as a string.
+    // Third is client IP that cam requests.  This is a decimal string.
+    // Fourth is server IP.  This is as a decimal string.
+    // Fifth is gateway IP.  A decimal string.
+    // Sixth is server port, as a string.
     //
     // some_wifi_name
     // hunter22
-    // 192.168.1.3
-    // 2399250624      // 192.168.1.143
+    // 1711384768   // 192.168.1.102
+    // 2399250624   // 192.168.1.143
+    // 1040296128   // 192.168.1.62
     // 3451
     strncpy(config->SSID, config_buf, sizeof(config->SSID));
     config->SSID[sizeof(config->SSID) - 1] = '\0';
@@ -283,9 +295,8 @@ static int get_config(struct network_config *config)
         goto ret_err;
     i++;
 
-    strncpy(config->client_IP, config_buf + i, sizeof(config->client_IP));
-    config->client_IP[sizeof(config->client_IP) - 1] = '\0';
-    null_max += sizeof(config->client_IP);
+    config->client_IP = atoi(config_buf + i);
+    null_max += 10; // length of INT_MAX as a string
     while (i < null_max && config_buf[i] != '\0')
         i++;
     if (config_buf[i] != '\0')
@@ -293,6 +304,14 @@ static int get_config(struct network_config *config)
     i++;
 
     config->server_IP = atoi(config_buf + i);
+    null_max += 10; // length of INT_MAX as a string
+    while (i < null_max && config_buf[i] != '\0')
+        i++;
+    if (config_buf[i] != '\0')
+        goto ret_err;
+    i++;
+
+    config->gateway_IP = atoi(config_buf + i);
     null_max += 10; // length of INT_MAX as a string
     while (i < null_max && config_buf[i] != '\0')
         i++;
@@ -369,9 +388,13 @@ unsigned int yolo_init()
     call("wlanpoweron");
     call("wlanup");
     call("wlanchk");
-    call("wlanipset", config.client_IP); // Some values are not respected, on my network.  It seems I have to pick
+//    call("wlanipset", config.client_IP); // Some values are not respected, on my network.  It seems I have to pick
                                          // a "static" IP that is in the valid range for dhcp IPs on my router.
                                          // Probably there is a way to configure this.
+                                         //
+                                         // Might be because we're setting IP before we connect to AP?
+
+
     int res = wlan_connect(wifi_settings);
     free(wifi_settings); // wlan_connect copies this to some global then never uses it again
     if (res != 0)
@@ -379,6 +402,15 @@ unsigned int yolo_init()
         // 1 might be all errors, seen for bad pass and bad SSID
         uart_printf(" ==== error from wlan_connect: %d\n", res);
         return -1;
+    }
+
+    // set our IP and gateway
+    nif_setup(0);
+    res = set_IP_address(0, config.client_IP, 0x00ffffff, config.gateway_IP);
+    if (res != 0)
+    {
+        uart_printf(" ==== error from set_IP_address: %d\n", res);
+        uart_printf("ip, gw: 0x%x, 0x%x\n", config.client_IP, config.gateway_IP);
     }
 
     // some function pointer that changes after Lime core

@@ -393,6 +393,10 @@ THUMB_FN(0xe07321f4,  socket_convertfd);
 THUMB_FN(0xe0714b1c,  socket_select_caller); // not the actual select function as this needs the fd converted
 
 THUMB_FN(0xe036d59c,  wlan_connect);
+THUMB_FN(0xe0715828, set_IP_address); // sets both client IP and gateway IP
+THUMB_FN(0xe07159e8, nif_setup); // initialises network interface, set_IP_address() fails if this hasn't been called,
+                                 // even if wlan_connect has already succeeded.  So I guess this is at a different layer.
+                                 // wlanipset calls this for us, but that doesn't set gateway IP.
 
 
 // SJE maybe 0xe007e056 is important.  This loops doing a "DmacCh" related function, and that gets us

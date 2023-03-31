@@ -64,5 +64,7 @@ struct wlan_settings
 SIZE_CHECK_STRUCT(wlan_settings, 0xfc);
 
 int wlan_connect(struct wlan_settings *settings);
+int nif_setup(int interface); // interface is a guess, only seen it called with 0. ret value is error code, 0 is no error
+int set_IP_address(int interface, uint32_t client_IP, uint32_t subnet_mask, uint32_t gateway_IP);
 
 #endif
