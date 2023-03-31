@@ -2,7 +2,7 @@
 
 import os
 import argparse
-import socket            
+import socket
 import binascii
 import struct
 import time
@@ -32,67 +32,82 @@ def main():
 
         s.bind(("", args.port))
         s.listen()
-         
-        client, addr = s.accept()
-        print("Cam connected to server, from: ", addr)
 
-        i = 0
-        # This relates to MTU on your network, too large and packets
-        # will get split in an inefficient way.
-        max_recv = 1460
-        msg = client.recv(max_recv)
-        len_left = 0
-        is_frame_start = True
         while True:
-            # The cam sends one frame of LV at a time, using data format:
-            # uint8_t type, currently unused.
-            # uint32_t size of following data.
-            # array of uint8_t data, comprising UYVY data from liveview.
-            #
-            # Every frame we receive, we send back detected objects
-            # (code will deadlock if no response is sent).
-            if is_frame_start:
-                start_time = time.time_ns() // 1000000
-                t = msg[0:1]
-                total_len = struct.unpack("<L", msg[1:5])[0]
-                print("\nFrame size: %d" % total_len)
-                data = msg[5:]
-                len_left = total_len - len(data)
-                is_frame_start = False
-            else:
-                # continuing data, no TL prefix
-                msg_len = len(msg)
-                if len_left < max_recv:
-                    pass
-                    #print("low left, len(msg): %d" % msg_len)
-                len_left -= msg_len
-                data += msg
+            try:
+                print("Listening for client")
+                client, addr = s.accept()
+                client.settimeout(10.0)
+                print("Cam connected to server, from: ", addr)
 
-            if len_left < 0:
-                print("len_left went negative!")
-                break
-
-            if len_left == 0:
-                # we got a complete frame
-                end_time = time.time_ns() // 1000000
-                print("Time for frame: %d ms" % (end_time - start_time))
-                
-                detections = yolo_detect(data)
-                response = create_response(detections)
-                #print(binascii.hexlify(response))
-                client.send(response)
-
+                i = 0
+                # This relates to MTU on your network, too large and packets
+                # will get split in an inefficient way.
+                max_recv = 1460
+                msg = client.recv(max_recv)
+                len_left = 0
                 is_frame_start = True
-                read_len = max_recv
-            elif len_left > max_recv:
-                read_len = max_recv
-            elif len_left > 0:
-                read_len = len_left
+                while True:
+                    # The cam sends one frame of LV at a time, using data format:
+                    # uint8_t type, currently unused.
+                    # uint32_t size of following data.
+                    # array of uint8_t data, comprising UYVY data from liveview.
+                    #
+                    # Every frame we receive, we send back detected objects
+                    # (code will deadlock if no response is sent).
+                    if is_frame_start:
+                        is_frame_start = False
+                        start_time = time.time_ns() // 1000000
+                        if len(msg) == 0:
+                            print("saw 0 len msg, continuing")
+                            continue
+                        t = msg[0:1]
+                        total_len = struct.unpack("<L", msg[1:5])[0]
+                        print("\nFrame size: %d" % total_len)
+                        data = msg[5:]
+                        len_left = total_len - len(data)
+                    elif len(msg) == 0:
+                        # not frame start, 0 len data, can indicate recv is reading
+                        # from a closed socket
+                        print("saw 0 len msg, not at frame start")
+                        client.close()
+                        break
+                    else:
+                        # continuing data, no TL prefix
+                        msg_len = len(msg)
+                        if len_left < max_recv:
+                            pass
+                            #print("low left, len(msg): %d" % msg_len)
+                        len_left -= msg_len
+                        data += msg
 
-            #print("Reading %d bytes, left %d" % (read_len, len_left))
-            msg = client.recv(read_len)
+                    if len_left < 0:
+                        print("len_left went negative!")
+                        break
 
-        client.close()
+                    if len_left == 0:
+                        # we got a complete frame
+                        end_time = time.time_ns() // 1000000
+                        print("Time for frame: %d ms" % (end_time - start_time))
+
+                        detections = yolo_detect(data)
+                        response = create_response(detections)
+                        #print(binascii.hexlify(response))
+                        client.send(response)
+
+                        is_frame_start = True
+                        read_len = max_recv
+                    elif len_left > max_recv:
+                        read_len = max_recv
+                    elif len_left > 0:
+                        read_len = len_left
+
+                    #print("Reading %d bytes, left %d" % (read_len, len_left))
+                    msg = client.recv(read_len)
+            except socket.timeout:
+                print("got timeout")
+                client.close()
+
     client.close()
 
 
