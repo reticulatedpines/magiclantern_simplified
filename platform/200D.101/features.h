@@ -39,6 +39,9 @@
 #define FEATURE_SHOW_CPU_USAGE
 #define FEATURE_SHOW_GUI_EVENTS
 
+// optionally sticky halfshutter
+#define FEATURE_STICKY_HALFSHUTTER
+
 // enable global draw
 #define FEATURE_GLOBAL_DRAW
 #define FEATURE_CROPMARKS
