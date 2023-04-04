@@ -138,10 +138,37 @@ void __attribute__((noreturn,noinline,naked,aligned(4)))hook_mpu_recv(void)
     );
 }
 
+// The function we're replacing returns (1, 1),
+// we want to return (1, 0) to force the wifi to be high power.
+// 200D rom only gives us these two options, but the struct that's being filled in
+// clearly takes a range of values.  We might be able to get even more power...  or
+// possibly force the part out of spec and break it, who knows?
+void __attribute__((noreturn,noinline,naked,aligned(4)))wifi_power_high(void)
+{
+    // unusually, nothing to save/restore, original function is this:
+    // 01 22           movs       r2,#0x1
+    // 02 60           str        r2,[r0,#0x0] // r0 is chip_index
+    // 0a 60           str        r2,[r1,#0x0] // r1 is is_low_power
+    // 70 47           bx         lr
+
+    asm(
+        "mov r2, #0x1\n"
+        "str r2, [r0, #0x0]\n"
+        "mov r2, #0x0\n"
+        "str r2, [r1, #0x0]\n"
+        "bx lr\n"
+    );
+}
 
 struct function_hook_patch mmu_code_patches[] =
 {
 /*
+    {
+        .patch_addr = 0xe071f174, // get_wifi_power(chip_index, is_low_power) - always sets power to low, let's override to non-low
+        .orig_content = {0x01, 0x22, 0x02, 0x60, 0x0a, 0x60, 0x70, 0x47}, // used as a check before applying patch
+        .target_function_addr = (uint32_t)wifi_power_high,
+        .description = "Force Wifi power non-low"
+    }
     {
         .patch_addr = 0x35782, // edmac_related_01, trying to determine function
         .orig_content = {0xf0, 0xb5, 0x0d, 0x00, 0x8b, 0xb0, 0x07, 0x46}, // used as a check before applying patch
