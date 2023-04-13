@@ -190,7 +190,7 @@ static void module_update_core_symbols(TCCState* state)
 //
 // Copying in the version in tcc/tcc.h, which is terribly ugly just for
 // finding the module load address.  There must be a better way.
-#if 1
+#if 0
 #include <setjmp.h>
 #define addr_t uint32_t
 #define IO_BUF_SIZE 8192
