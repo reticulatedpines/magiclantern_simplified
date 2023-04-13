@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 import struct, sys
 
 # from http://stackoverflow.com/questions/35988/c-like-structures-in-python
@@ -8,7 +8,7 @@ class Bunch:
 
 # RBF loading code from rbfEditor, rebUtils.py
 # http://freecode.com/projects/rbfeditor
-_FNT_HDR_MAGIC  = '\xE0\x0E\xF0\x0D\x03\x00\x00\x00'
+_FNT_HDR_MAGIC  = b'\xE0\x0E\xF0\x0D\x03\x00\x00\x00'
 _FNT_HDR_SIZE   = 0x74
 _FNT_MAX_NAME   = 64
 
@@ -40,10 +40,10 @@ def rbf_load(file):
         self.wTable     = []
         self.cTable     = []
 
-        self.width = int(8 * self._charSize / self.height)
+        self.width = int(8 * self._charSize // self.height)
         self.charCount = self._charLast - self.charFirst + 1
 
-        charlist = xrange(0, self.charCount)
+        charlist = list(range(0, self.charCount))
         file.seek(self._wmapAddr)
         for char in charlist:
             self.wTable.append(struct.unpack('=B', file.read(1))[0])

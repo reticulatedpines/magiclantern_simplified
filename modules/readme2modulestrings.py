@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # extract module strings from README.rst
 
 import sys, re
@@ -14,13 +14,13 @@ def run(cmd):
         p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out = p.communicate()
         if p.returncode or out[1]:
-            print >> sys.stderr, cmd
-            print >> sys.stderr, out[0]
-            print >> sys.stderr, out[1]
+            print(cmd, file=sys.stderr)
+            print(out[0].decode(), file=sys.stderr)
+            print(out[1].decode(), file=sys.stderr)
             exit(1)
-        return out[0]
+        return out[0].decode()
     except:
-        print >> sys.stderr, sys.exc_info()
+        print(sys.exc_info(), file=sys.stderr)
         exit(1)
 
 # see http://gcc.gnu.org/bugzilla/show_bug.cgi?id=37506 for how to place some strings in a custom section
@@ -38,19 +38,19 @@ def c_repr(name):
 strings = []
 def add_string(name, value):
     a = chr(ord('a') + len(strings))
-    print "static char __module_string_%s_name [] MODULE_STRINGS_SECTION = %s;" % (a, c_repr(name))
-    print "static char __module_string_%s_value[] MODULE_STRINGS_SECTION = %s;" % (a, c_repr(value))
+    print("static char __module_string_%s_name [] MODULE_STRINGS_SECTION = %s;" % (a, c_repr(name)))
+    print("static char __module_string_%s_value[] MODULE_STRINGS_SECTION = %s;" % (a, c_repr(value)))
 
     strings.append((name, value))
 
 def declare_string_section():
-    print
-    print "#define MODULE_STRINGS() \\"
-    print('  MODULE_STRINGS_START() \\')
+    print("")
+    print("#define MODULE_STRINGS() \\")
+    print("  MODULE_STRINGS_START() \\")
     for i, s in enumerate(strings):
         a = chr(ord('a') + i)
-        print "    MODULE_STRING(__module_string_%s_name, __module_string_%s_value) \\" % (a, a)
-    print('  MODULE_STRINGS_END()')
+        print("    MODULE_STRING(__module_string_%s_name, __module_string_%s_value) \\" % (a, a))
+    print("  MODULE_STRINGS_END()")
     
 def is_command_available(name):
     """Check if command `name` is on PATH."""
@@ -63,10 +63,10 @@ def get_command_of(commands):
     for command in commands: 
         if is_command_available(command) == True:
             return command
-    print >> sys.stderr, "\nCould not find " + "/".join(commands) + "."
+    print("\nCould not find " + "/".join(commands) + ".", sys.stderr)
     if "rst2html" in commands:
-        print >> sys.stderr, "Please install python-docutils (pip install docutils)."
-    print >> sys.stderr, ""
+        print("Please install python-docutils (pip install docutils).", file=sys.stderr)
+    print("", file=sys.stderr)
     exit(1)
 
 inp = open("README.rst").read().replace("\r\n", "\n")
@@ -99,13 +99,13 @@ for l in lines[2:]:
         tags[name] = value
 
 if "Author" not in tags and "Authors" not in tags:
-    print >> sys.stderr, "Warning: 'Author/Authors' tag is missing. You should tell the world who wrote your module ;)"
+    print("Warning: 'Author/Authors' tag is missing. You should tell the world who wrote your module ;)", file=sys.stderr)
 
 if "License" not in tags:
-    print >> sys.stderr, "Warning: 'License' tag is missing. Under what conditions we can use your module? Can we publish modified versions?"
+    print("Warning: 'License' tag is missing. Under what conditions we can use your module? Can we publish modified versions?", file=sys.stderr)
 
 if "Summary" not in tags:
-    print >> sys.stderr, "Warning: 'Summary' tag is missing. It should be displayed as help in the Modules tab."
+    print("Warning: 'Summary' tag is missing. It should be displayed as help in the Modules tab.", file=sys.stderr)
 
 # extract readme body:
 # intro -> "Description" tag;
@@ -117,7 +117,7 @@ rst2htmlCommand = get_command_of(rst2htmlCommands)
 
 # render the RST as html -> txt without the metadata tags
 # sed command at end is because Windows inserts CR characters all over the place. Removing them should be benign on other platforms. 
-txt = run('cat README.rst | grep -v -E "^:([^:])+:.+$" | ' + rst2htmlCommand + ' | python2 ../html2text.py -b 700 | sed "s/\r$//"')
+txt = run('cat README.rst | grep -v -E "^:([^:])+:.+$" | ' + rst2htmlCommand + ' | python3 ../html2text.py -b 700 | sed "s/\r$//"')
 
 desc = ""
 last_str = "Description"
@@ -129,13 +129,13 @@ for p in txt.strip("\n").split("\n")[2:]:
         add_string(last_str, desc)
         desc = ""
         last_str = "Help page %d" % help_page_num
-        print >> sys.stderr, "Help page %d: %s" % (help_page_num, p.strip('# '))
+        print("Help page %d: %s" % (help_page_num, p.strip('# ')), file=sys.stderr)
         lines_per_page = 0
         p = p[2:].strip()
     desc += "%s\n" % p
     lines_per_page += 1
     if lines_per_page > 18:
-        print >> sys.stderr, "Too many lines per page\n"
+        print("Too many lines per page\n", file=sys.stderr)
         exit(1)
 
 add_string(last_str, desc)

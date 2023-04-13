@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """html2text: Turn HTML into equivalent Markdown-structured text."""
 __version__ = "3.1"
 __author__ = "Aaron Swartz (me@aaronsw.com)"
@@ -132,8 +132,8 @@ def unescape(s):
 def onlywhite(line):
     """Return true if the line does only consist of whitespace characters."""
     for c in line:
-        if c is not ' ' and c is not '  ':
-            return c is ' '
+        if c != ' ' and c != '  ':
+            return c == ' '
     return line
 
 def optwrap(text):
@@ -217,7 +217,7 @@ def google_nest_count(style):
     """calculate the nesting count of google doc lists"""
     nest_count = 0
     if 'margin-left' in style:
-        nest_count = int(style['margin-left'][:-2]) / GOOGLE_LIST_INDENT
+        nest_count = int(style['margin-left'][:-2]) // GOOGLE_LIST_INDENT
     return nest_count
 
 def google_has_height(style):
