@@ -371,7 +371,7 @@ version.o: $(PLATFORM_DIR)/version.c
 $(PLATFORM_DIR)/version.c: FORCE
 	$(call build,"VERSION",echo "const char build_version[] = \"$(VERSION)\";") > $@
 #	@echo 'const char build_id[] = "'`hg id`'";' >> $@
-	@echo -n 'const char build_id[] = "' >> $@
+	@printf 'const char build_id[] = "' >> $@
 	$(BUILD_TOOLS_DIR)/git_summary.py >> $@
 	@echo '";' >> $@
 	@echo 'const char build_date[] ="'`$(DATE) "+%Y-%m-%d %H:%M:%S %Z"`'";' >> $@
@@ -387,7 +387,7 @@ $(PLATFORM_DIR)/version.bin: FORCE
 	@echo 'Camera   : $(MODEL)' >> $@
 	@echo 'Firmware : $(FW_VERSION)' >> $@
 #	@echo 'Changeset: '`hg id` >> $@
-	@echo -n 'Commit: ' >> $@
+	@printf 'Commit: ' >> $@
 	$(BUILD_TOOLS_DIR)/git_summary.py >> $@
 	@echo '' >> $@
 	@echo 'Built on : '`date -u "+%Y-%m-%d %H:%M:%S"`' by '`whoami`@`hostname` >> $@
