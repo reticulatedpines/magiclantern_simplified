@@ -176,7 +176,7 @@ CCACHE=ccache
 GREP=grep
 MV=mv
 AWK=awk
-PYTHON=python2
+PYTHON=python3
 PYTHON3=python3
 RST2LATEX=rst2latex.py
 

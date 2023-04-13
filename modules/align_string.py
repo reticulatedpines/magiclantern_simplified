@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 '''
 align_string.py
 
@@ -67,13 +67,13 @@ def align_paragraph(paragraph, width, debug=0):
     elif type(paragraph) == type(tuple()):
         lines.extend(list(paragraph))
     else:
-        raise TypeError, 'Unsopported paragraph type: %r' % type(paragraph)
+        raise TypeError('Unsopported paragraph type: %r' % type(paragraph))
 
     flatten_para = ' '.join(lines)
 
     splitted = textwrap.wrap(flatten_para, width) 
     if debug:
-        print 'textwrap:\n%s\n' % '\n'.join(splitted)
+        print('textwrap:\n%s\n' % '\n'.join(splitted))
 
     wrapped = list()
     while len(splitted) > 0:
@@ -86,7 +86,7 @@ def align_paragraph(paragraph, width, debug=0):
         wrapped.append(aligned)
 
     if debug:
-        print 'textwrap & align_string:\n%s\n' % '\n'.join(wrapped)
+        print('textwrap & align_string:\n%s\n' % '\n'.join(wrapped))
 
     return wrapped
 
