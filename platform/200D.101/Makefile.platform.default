@@ -40,6 +40,7 @@ ROMBASEADDR     = 0xE0040000
 RESTARTSTART    = 0x001b7600
 
 # Cortex A9, binaries loaded as Thumb
+# MIDR: 0x414fc091, see get_cpu_info() in arm-mcr.h
 PLATFORM_ARCH = armv7-a
 CFLAG_USER += -mthumb -mlong-calls
 

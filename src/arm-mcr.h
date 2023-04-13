@@ -542,6 +542,23 @@ static inline uint32_t get_cpu_id( void )
 #endif
 }
 
+// get MIDR: Main ID Register, holds cpu identification info
+static inline uint32_t get_cpu_info(void)
+{
+#if defined(CONFIG_DIGIC_678X)
+    // bad ifdef guard, really this should be something like CONFIG_ARMv7
+    uint32_t cpu_info;
+    asm __volatile__ (
+        "MRC p15, 0, %0, c0, c0, 0\n" // read MIDR register
+        : "=&r"(cpu_info));
+    return cpu_info;
+#else
+    // Haven't looked up how to get this for ARMv5 etc, don't care at this point
+    return 0;
+#endif
+}
+
+
 #if defined(CONFIG_DIGIC_VII) || defined(CONFIG_DIGIC_VIII) || defined(CONFIG_DIGIC_X)
 
 /* Canon stub; used in AllocateMemory/FreeMemory and others */
