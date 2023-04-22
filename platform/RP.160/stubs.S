@@ -228,7 +228,7 @@ DATA_PTR(    0xFF1C, _rgb_vram_info);
 DATA_PTR(   0x12928,  sd_device)                    // Used as parameter in DryosDebugMsg with "EVICE_POWER_CYCLE bPowerDown=%d" string
 THUMB_FN(0xe06f0358,  _LoadCalendarFromRTC)         // function call after "handle_LOCAL_PLUSMOVIEAUTO_REGIST_HANDLE NewCreate Handle"
                                                     // "Private" as it now has more arguments, needs a wrapper.
-//THUMB_FN(0x,  ErrForCamera_handler)                 // ERR70, ERR80 etc (DlgErrForCamera.c)
+THUMB_FN(0xe088400e,  ErrForCamera_handler)         // ERR70, ERR80 etc (DlgErrForCamera.c)
 
 NSTUB(    0x40D0,  task_max)
 
