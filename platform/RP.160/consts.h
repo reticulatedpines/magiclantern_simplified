@@ -37,6 +37,8 @@
 #define MALLOC_STRUCT 0x2A030
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"
 
+#define DRYOS_ASSERT_HANDLER 0x4000               // from debug_assert function, hard to miss
+
 #define CURRENT_GUI_MODE (*(int*)0x7a50) // see SetGUIRequestMode
 
 #define GUIMODE_PLAY 8194
