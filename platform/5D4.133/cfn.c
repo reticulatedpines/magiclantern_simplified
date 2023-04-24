@@ -1,24 +1,27 @@
 #include <dryos.h>
 #include <property.h>
+#include <cfn-generic.h>
 
-// look on camera menu or review sites to get custom function numbers
+// on 5D4 these are not CFn, but in main menus
+GENERIC_GET_ALO
+GENERIC_GET_HTP
+GENERIC_GET_MLU
+//GENERIC_SET_MLU
 
-// 1,3 was definitely wrong, as camera complained on UART
-int get_htp() { return 0; }
-void set_htp(int value) { }
+// SJE FIXME need to fill in more stuff here
 
-// not in CFn anyore, shoot menu, 3rd section, 2nd option
-int get_alo() { return 0; }
-void set_alo(int value) { }
+static int8_t some_cfn[0x2f];
+/*
+PROP_HANDLER(0x80010007)
+{
+    ASSERT(len == 0x2f);
+    memcpy(some_cfn, buf, 0x2f);
+}
+*/
 
-//int get_mlu() { return GetCFnData(0, 0); }
-int get_mlu() { return 0; }
-void set_mlu(int value) { }
-
-//int cfn_get_af_button_assignment() { return GetCFnData(0, 0); }
-int cfn_get_af_button_assignment() { return 0; }
-void cfn_set_af_button(int value) { }
-
-//int get_af_star_swap() { return GetCFnData(0, 0); }
-int get_af_star_swap() { return 0; }
-void set_af_star_swap(int value) { }
+int cfn_get_af_button_assignment() { return some_cfn[9]; }
+void cfn_set_af_button(int value)
+{
+    some_cfn[9] = COERCE(value, 0, 2);
+//    prop_request_change(0x80010007, some_cfn, 0x2f);
+}

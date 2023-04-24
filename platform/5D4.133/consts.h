@@ -29,7 +29,7 @@
 #define GUIMODE_MENU 3
 
 //address of XimrContext structure to redraw in FEATURE_VRAM_RGBA
-#define XIMR_CONTEXT 0x4d1fc // see 0xfc444ff0, check setup for that call
+#define XIMR_CONTEXT 0x4d1fc // see 0xfe444ff0, check setup for that call
 
 // In bindGUIEventFromGUICBR, look for "LV Set" => arg0 = 8
 // Next, in SetGUIRequestMode, look at what code calls NotifyGUIEvent(8, something)

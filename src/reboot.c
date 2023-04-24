@@ -307,11 +307,9 @@ cstart( void )
       #ifdef CONFIG_DIGIC_IV    /* 7D */
         MEM(0xC0A00024) = 0x80000010; // send SSTAT for master processor, so it is in right state for rebooting
       #endif
-      #ifdef CONFIG_5D4
-        //
-      #elif defined(CONFIG_DIGIC_VI) // 5DS, 5DSR, 7D2 do this, but 5D4 doesn't.
-                                     // See 7D2 1.1.2 fe024ae0, the large switch statement,
-                                     // case 0x78, calls fe028f7c
+      #if defined(CONFIG_DIGIC_VI) // 5DS, 5DSR, 7D2 do this.
+                                   // See 7D2 1.1.2 fe024ae0, the large switch statement,
+                                   // case 0x78, calls fe028f7c
         set_S_TX_DATA(0x20040);
       #endif
     #endif

@@ -100,11 +100,10 @@ NSTUB(0x4bd0,  gui_main_struct)
 //NSTUB(0x????????, _audio_ic_write)                          // str:Reg_0x_02X_Data_04x
 
 /** Bitmap **/
-DATA_PTR(    0xfdfc,  bmp_vram_info)                 /* first VRAM buffer, used right after DISP_SetUpdateOSDVram */
-
-/** From 1.0.2 **/
+// struct base fde4
+DATA_PTR(    0xfdf4,  winsys_sem) // Exists, so this is not a D7+ thing as previously thought, DryOS ver instead?
 DATA_PTR(    0xfdf8, _rgb_vram_info)
-DATA_PTR(    0xfdf4,  winsys_sem)
+DATA_PTR(    0xfdfc,  bmp_vram_info)
 THUMB_FN(0xfe1fd630,  XimrExe)
 
 /** DMA **/
@@ -177,7 +176,7 @@ THUMB_FN(0xfe129c46,  dump_file)
 
 /** MPU communication **/
 // 5D4 has two mpu_send functions, each with own ring buffer.
-// no idea how they're used yet - one per digic, dual digic cam?
+// no idea how they're used yet, possibly related to secondary digic?
 THUMB_FN(0xfe292f12,  mpu_send)                             // "dwSize < TXBD_DATA_SIZE"
 DATA_PTR(   0x3300c,  mpu_send_ring_buffer)                 // ring buffer used in mpu_send
 DATA_PTR(    0x7a2c,  mpu_send_ring_buffer_tail)            // ring buffer index incremented in mpu_send
