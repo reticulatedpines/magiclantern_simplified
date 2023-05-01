@@ -3,8 +3,8 @@ ML_SETUP_DISABLE_USER_CONFIGS=y
 ML_SETUP_EXTENSION=modules
 
 # SJE FIXME - this is a hack.  We force arch to old Digic, so that modules
-# will build there.  They still don't run on new Digic and forcing this
-# arch could mean they never will - need a proper solution
+# will build there.  They also run on ARMv7-A, but there are real differences
+# between these archs and I haven't investigated if any could be relevant.
 PLATFORM_ARCH = armv5te
 
 include $(TOP_DIR)/Makefile.setup
