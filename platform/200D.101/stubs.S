@@ -122,8 +122,10 @@ DATA_PTR(   0x87998,  mpu_recv_ring_buffer)      // ring buffer used in SIO3_ISR
 DATA_PTR(    0x799C,  mpu_recv_ring_buffer_tail) // ring buffer index incremented in the above subroutine
 
 /** Misc **/
-THUMB_FN(0xE11C7CF9,  vsnprintf)              /* called near dmstart; references "01234567", "0123456789", "0123456789abcdef"
-                                                 and "0123456789ABCDEF"; second arg is size; the one called by DebugMsg only knows %s */
+THUMB_FN(0xe00764f0,  vsnprintf) // references "01234567", "0123456789", "0123456789abcdef" and "0123456789ABCDEF"; second arg is size.
+                                 // There's a somewhat vsnprintf-like at df009038, which only understands %s, not e.g. %x, don't use it.
+                                 // There's another at e11c7cf8 which has an unusual "ERROR" string.
+
 
 // SJE stuff found during investigation, maybe not needed for ML
 // but I wanted to call by name
