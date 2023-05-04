@@ -15,16 +15,8 @@
 #define BR_BZERO32          0xe0100138   /* called from cstart */
 #define BR_CREATE_ITASK     0xe010019a   /* called from cstart */
 
-#define ML_MAX_USER_MEM_STOLEN  0x49000
-#define ML_MAX_SYS_MEM_INCREASE 0x0
-#define ML_RESERVED_MEM         0x48000
-
 // from dryos bootloader to init_task + a little bit of overhead just in case
 #define FIRMWARE_ENTRY_LEN 0x1000
-
-#if ML_RESERVED_MEM > ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE
-#error "ML_RESERVED_MEM too big to fit!"
-#endif
 
 /* "Malloc Information" */
 #define MALLOC_STRUCT 0xffcf0

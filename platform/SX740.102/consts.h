@@ -16,26 +16,11 @@
 #define BR_CREATE_ITASK     0xE00401aC   /* called from cstart */
 
 
-#define ML_MAX_USER_MEM_STOLEN 0x48000  // True max differs per cam, 0x40000 has been tested on
-                                        // the widest range of D678 cams with no observed problems,
-                                        // but not all cams have been tested!
-
-#define ML_MAX_SYS_MEM_INCREASE 0x0 // More may be VERY unsafe!  Increasing this pushes sys_mem
-                                    // higher in memory, at some point that must cause Bad Things,
-                                    // consequences unknown.  0x40000 has been tested, a little...
-
-#define ML_RESERVED_MEM 0x47000  // Can be lower than ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE,
-                                 // but must not be higher; sys_objs would get overwritten by ML code.
-                                 // Must be larger than MemSiz reported by build for magiclantern.bin
-
 // Used for copying and modifying ROM code before transferring control.
 // Approximately: look at BR_ macros for the highest address, subtract ROMBASEADDR,
 // align up.  This may not be exactly enough.  See boot-d678.c for longer explanation.
 #define FIRMWARE_ENTRY_LEN 0x230 // 0x220 should be enough, but better safe than sorry
 
-#if ML_RESERVED_MEM > ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE
-#error "ML_RESERVED_MEM too big to fit!"
-#endif
 
 /* "Malloc Information" */
 #define MALLOC_STRUCT 0x5B748

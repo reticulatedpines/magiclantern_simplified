@@ -5,36 +5,8 @@ UPDATE_NAME_FIR = D_M50110.FIR
 FIRMWARE_ID     = 0x00000412
 ROMBASEADDR     = 0xE0040000
 
-# We can get space for ML both by shrinking Canon's "user_mem" malloc heap
-# by changing its end address, and by moving the sys_mem and sys_objs regions
-# upwards; creating a gap in the middle.
-#
-# Some info is available from drysh:
-#          ("meminfo -m" in drysh)    ("memmap" in drysh)
-#
-# See mkcfg (e009e11c on M50.110) for most of the names, but note memmap (e009deb8)
-# calls user_mem "Heap".
-#
-# Canon also use names like user_mem_max, but sometimes this is len, not max.
-# I use len or size when it's treated as a length.
-#
-# See firmware entry function for where these values are used to calc / position
-# the regions.
-# boot-d678.c adjusts these constants before the code runs.
-#
-# Presumably, if too much mem is stolen from user_mem, or sys region
-# is moved too far upwards, Bad Things happen.
-#
-# We could calculate RESTARTSTART at runtime, but the build system currently
-# needs a value for it, I believe because magiclantern binary is not PIC.
-# Consequently, you need to work this out, and you need to ensure it's
-# compatible with the limits defined in consts.h, see ML_MAX_* and
-# ML_RESERVED_MEM.  This is a sensible default:
-# *PTR_DRYOS_BASE + *PTR_SYS_OBJS_OFFSET - 0x40000
-#
-# It's a sensible precaution to pick a value that's well aligned,
-# we run code from this address.
-RESTARTSTART    = 0x001AA000
+# user_mem_start from cstart struct. Align to 0x10 up
+RESTARTSTART    = 0xdc870
 
 # Cortex A9, binaries loaded as Thumb
 CFLAG_USER = -mthumb -mlong-calls

@@ -3,8 +3,8 @@
 FIRMWARE_ID     = 0x80000421
 ROMBASEADDR     = 0xE0100000
 
-# default user_mem_start 0x197a28, size 0x112d70 => end 0x2aa798
-RESTARTSTART    = 0x00262790
+# user_mem_start from cstart struct. Align to 0x10 up
+RESTARTSTART    = 0x197a30 # 0x197a28 in ROM
 
 # Cortex A9, binaries loaded as Thumb
 CFLAG_USER = -mthumb -mlong-calls

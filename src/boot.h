@@ -62,16 +62,11 @@ static int my_init_task(int a, int b, int c, int d)
 
     // Prepare to call Canon's init_task
     init_task_func init_task_func = &init_task;
-    
+
 #ifdef BOOT_USE_INIT_TASK_PATCHED
     /* use a patched version of Canon's init_task */
     /* this call will also tell us how much memory we have reserved for autoexec.bin */
     init_task_func = init_task_patched();
-#endif
-
-#ifdef ML_RESERVED_MEM // define this if we can't autodetect the reserved memory size
-    ml_reserved_mem = ML_RESERVED_MEM;
-    qprintf("[BOOT] using ML_RESERVED_MEM.\n");
 #endif
 
     qprintf("[BOOT] reserved %d bytes for ML (used %d)\n", ml_reserved_mem, ml_used_mem);

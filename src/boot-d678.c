@@ -140,62 +140,64 @@ static void my_create_init_task(struct dryos_init_info *dryos, uint32_t init_tas
     // struct that it takes, which holds a bunch of OS info.
     // We adjust sizes of memory regions to reserve space for ML.
     //
-    // This may, depending on consts.h for the cam, move up both
-    // sys_objs start and sys_mem start.
-    // The effects of this have not been fully tested.
+    // We reserve space before DryOS user_mem, this means the start
+    // address is fixed per cam, by RESTARTSTART in
+    // platform/99D/Makefile.platform.default.
 
     // replace Canon's init_task with ours
     init_task = (uint32_t)my_init_task;
 
-    // Reserve memory by reducing the user_mem pool and, if necessary for the
-    // requested size, moving up the start of sys_objs and sys_mem.
-    // ML goes in the gap.  RESTARTSTART defines the start address of the gap,
-    // ML_RESERVED_MEM the size.
-    ml_reserved_mem = ML_RESERVED_MEM;
-
-    // align up to 8, DryOS does this for the various mem regions
-    // that we are adjusting.
-    if (ml_reserved_mem % 8 != 0)
-        ml_reserved_mem += 8 - ml_reserved_mem % 8;
-
-    if (RESTARTSTART > dryos->sys_objs_start)
-    {   // I don't know of a reason to extend user_mem or leave a gap so this
-        // is probably a mistake.
-        qprint("[BOOT] unexpected RESTARTSTART address > sys_objs_start\n");
-        goto fail;
-    }
-
-    // the RESTARTSTART > sys_objs_start guard means mem to steal from user will be positive
-    uint32_t steal_from_user_size = dryos->sys_objs_start - RESTARTSTART;
-    if (steal_from_user_size > ML_MAX_USER_MEM_STOLEN)
+    // user_mem_start must have the same alignment as the code section
+    // of the ELF used during building ML binaries, or things like relocs don't work.
+    if(dryos->user_mem_start % ELF_ALIGNMENT != 0)
     {
-        qprint("[BOOT] RESTARTSTART possibly unsafe, too much stolen from user_mem: ");
-        qprintn(steal_from_user_size); qprint("\n");
+        qprint("[BOOT] user_mem_start is not aligned to "); qprintn(ELF_ALIGNMENT); qprint(", adjusting\n");
+        qprint("       before: user_mem_start = "); qprintn(dryos->user_mem_start); qprint("\n");
+        qprint("       before: user_mem_size  = "); qprintn(dryos->user_mem_len); qprint("\n");
+        uint32_t align_diff = dryos->user_mem_start % ELF_ALIGNMENT;
+        dryos->user_mem_start += align_diff;
+        dryos->user_mem_len -= align_diff;
+        qprint("        after: user_mem_start = "); qprintn(dryos->user_mem_start); qprint("\n");
+        qprint("        after: user_mem_size  = "); qprintn(dryos->user_mem_len); qprint("\n\n");
+    }
+
+    // check if RESTARTSTART is correct
+    // note - this will fail to print due to... misalignment. Catch 22.
+    if (RESTARTSTART != dryos->user_mem_start)
+    {
+        qprint("[BOOT] Wrong or unaligned RESTARTSTART address!\n\n");
+        qprint("[BOOT] RESTARTSTART: "); qprintn(RESTARTSTART); qprint("\n");
+        qprint("[BOOT]     expected: "); qprintn(dryos->user_mem_start); qprint("\n");
         goto fail;
     }
 
-    int32_t sys_offset_increase = ml_reserved_mem - steal_from_user_size;
-    if (sys_offset_increase < 0)
-    { // user mem is enough, no need to move sys mem
-        sys_offset_increase = 0;
-    }
-    if (sys_offset_increase > ML_MAX_SYS_MEM_INCREASE)
-    {   // SJE 0x40000 is the most I've tested, and only on 200D
-        qprint("[BOOT] sys_offset_increase possibly unsafe, not tested this high, aborting: ");
-        qprintn(sys_offset_increase); qprint("\n");
-        goto fail;
-    }
-
+    // steal memory from user_mem
+    ml_reserved_mem = (uintptr_t)_bss_end - dryos->user_mem_start;
     qprint("[BOOT] reserving memory: "); qprintn(ml_reserved_mem); qprint("\n");
-    qprint("before: user_mem_size = "); qprintn(dryos->user_mem_len); qprint("\n");
-    // shrink user_mem
-    dryos->user_mem_len -= steal_from_user_size;
-    qprint(" after: user_mem_size = "); qprintn(dryos->user_mem_len); qprint("\n");
+    qprint("       before: user_mem_start = "); qprintn(dryos->user_mem_start); qprint("\n");
+    qprint("       before: user_mem_size  = "); qprintn(dryos->user_mem_len); qprint("\n");
 
-    // move sys_mem later in ram
-    dryos->sys_objs_start += sys_offset_increase;
-    dryos->sys_objs_end += sys_offset_increase;
-    dryos->sys_mem_start += sys_offset_increase;
+    // shrink user_mem
+    dryos->user_mem_start += ml_reserved_mem;
+    dryos->user_mem_len -= ml_reserved_mem;
+    qprint("        after: user_mem_start = "); qprintn(dryos->user_mem_start); qprint("\n");
+    qprint("        after: user_mem_size  = "); qprintn(dryos->user_mem_len); qprint("\n");
+
+    if (dryos->user_mem_len < MINIMUM_USER_MEM_LEFT)
+    {
+        qprint("[BOOT] Not enough user mem is left, aborting!");
+        qprint("[BOOT] "); qprintn(dryos->user_mem_len);
+        qprint(" >  "); qprintn(MINIMUM_USER_MEM_LEFT); qprint(")\n");
+        goto fail;
+    }
+
+    if ( (dryos->user_mem_start + dryos->user_mem_len > dryos->sys_objs_start) ||
+         (RESTARTSTART + ml_reserved_mem > dryos->user_mem_start) ||
+         (RESTARTSTART + ml_reserved_mem > dryos->sys_objs_start) )
+    {
+        qprint("[BOOT] User mem math gone wrong, aborting!");
+        goto fail;
+    }
 
     create_init_task(dryos, init_task, c);
 
