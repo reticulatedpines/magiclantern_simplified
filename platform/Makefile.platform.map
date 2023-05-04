@@ -8,8 +8,6 @@ PLATFORM_MAP = \
     7D2.112 \
     50D.109 \
     60D.111 \
-    77D.102 \
-    80D.102 \
     200D.101 \
     500D.111 \
     550D.109 \
@@ -31,6 +29,11 @@ PLATFORM_MAP = \
 
 # SJE via lclevy, only builds minimal/hello-world so not enabled here
 #    R6.150 \
+
+# kitor: disabled for now, as those will be updated to newest firmwares soon anyway
+#        + I don't have old roms to check new restartstart value
+#    77D.102 \
+#    80D.102 \
 
 # SJE lots of noisy warnings, not fixing yet
 #    5DS.111 \
