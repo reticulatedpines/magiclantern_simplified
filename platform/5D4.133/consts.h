@@ -18,25 +18,6 @@
 #define FIRMWARE_ENTRY_LEN 0x140
 #define CSTART_LEN 0xa0
 
-#define ML_MAX_USER_MEM_STOLEN 0x47000 // This lowers DryOS max heap in order
-                                       // to reserve space for ML.  Too much and
-                                       // DryOS will malfunction.
-
-#define ML_MAX_SYS_MEM_INCREASE 0x0 // It's only safe to increase this on cams that
-                                    // have a gap after sys_mem.  200D seems to, for example,
-                                    // but some cams hard-code a buffer that starts at
-                                    // the exact end of sys_mem, so it's not safe to move up.
-
-#define ML_RESERVED_MEM 0x46000 // Can be lower than ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE,
-                                // but must not be higher; sys_objs would get overwritten by ML code.
-                                // Must be larger than MemSiz reported by build for magiclantern.bin
-                                // RESTARTSTART must be somewhere in the stolen region, and must
-                                // allow MemSiz to be fit in the region.
-
-#if ML_RESERVED_MEM > ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE
-#error "ML_RESERVED_MEM too big to fit!"
-#endif
-
 #define MALLOC_STRUCT 0x21750
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C))
 
