@@ -22,21 +22,6 @@
 #define FIRMWARE_ENTRY_LEN 0x140
 #define CSTART_LEN 0xa0
 
-#define ML_MAX_USER_MEM_STOLEN 0x47000 // SJE: let's assume 7D2 can steal the same as 750D
-
-#define ML_MAX_SYS_MEM_INCREASE 0x0 // More may be VERY unsafe!  Increasing this pushes sys_mem
-                                    // higher in memory, on some cams that is known to cause problems;
-                                    // They hard-code things to be directly after sys_mem.
-                                    // Other cams have some space, e.g. 200D 1.0.1
-
-#define ML_RESERVED_MEM 0x46000 // Can be lower than ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE,
-                                // but must not be higher; sys_objs would get overwritten by ML code.
-                                // Must be larger than MemSiz reported by build for magiclantern.bin
-
-#if ML_RESERVED_MEM > ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE
-#error "ML_RESERVED_MEM too big to fit!"
-#endif
-
 /* "Malloc Information" */
 #define MALLOC_STRUCT 0x41b50                    // from get_malloc_info, helper of malloc_info
 #define MALLOC_FREE_MEMORY (MEM(MALLOC_STRUCT + 8) - MEM(MALLOC_STRUCT + 0x1C)) // "Total Size" - "Allocated Size"

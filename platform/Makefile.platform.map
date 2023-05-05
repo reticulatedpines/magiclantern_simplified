@@ -38,10 +38,6 @@ PLATFORM_MAP = \
 #    5DS.111 \
 #    5DSR.112 \
 
-# SJE these need RESTARTSTART determining for new style boot process,
-# but I don't have roms
-#    7D2.104 \
-
 # SJE FIXME 7D builds are broken, not sure why.  Cam seems very quirky, unsure
 # it's well supported even by mainline.  Disabling for now so I can easily
 # build all cams from platform/ - a useful test
