@@ -4,11 +4,8 @@ CANON_NAME_FIR  = 5DSR0112.FIR
 FIRMWARE_ID     = 0x80000401
 ROMBASEADDR     = 0xFE0A0000
 
-# Shrink Canon's malloc heap by changing its start address (identical to 80D)
-#          ("meminfo -m" in drysh)    ("memmap" in drysh)
-# Default: 0x001cc408 - 0x002e0c18, 001cc400 - 002e0df4 (total size 0x1149f4)
-# Patched: variable   - 0x002e0c18, variable - 002e0df4 (reserved according to autoexec.bin size + BSS)
-RESTARTSTART    = 0x001CC400
+# user_mem_start from cstart struct. Align to 0x10 up
+RESTARTSTART    = 0x1cc400
 
 # Cortex R4
 CFLAG_USER += -mlong-calls

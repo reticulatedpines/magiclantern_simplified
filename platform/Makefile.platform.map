@@ -25,6 +25,8 @@ PLATFORM_MAP = \
     R5.152 \
     SX740.102 \
     SX70.111 \
+    5DSR.112 \
+
 
 # SJE via lclevy, only builds minimal/hello-world so not enabled here
 #    R6.150 \
@@ -36,7 +38,6 @@ PLATFORM_MAP = \
 
 # SJE lots of noisy warnings, not fixing yet
 #    5DS.111 \
-#    5DSR.112 \
 
 # SJE FIXME 7D builds are broken, not sure why.  Cam seems very quirky, unsure
 # it's well supported even by mainline.  Disabling for now so I can easily
