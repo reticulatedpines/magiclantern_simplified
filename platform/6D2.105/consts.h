@@ -152,45 +152,11 @@
 #define PTR_SYS_OBJS_OFFSET         0xe00401d4   // offset from DryOS base to sys_obj start
 #define PTR_DRYOS_BASE              0xe00401b4
 
-#define ML_MAX_USER_MEM_STOLEN 0x47000 // True max differs per cam, 0x40000 has been tested on
-                                       // the widest range of D678 cams with no observed problems,
-                                       // but not all cams have been tested!
-
-// On some cams, e.g. 200D, there is a gap after sys_mem that we can steal from.
-// Some cams, e.g. 750D, do not have this and moving it up conflicts with
-// other hard-coded uses of the region - DO NOT do this.
-// Check for xrefs into the region before attempting this.
-#define ML_MAX_SYS_MEM_INCREASE 0x0
-
-#define ML_RESERVED_MEM 0x46000 // Can be lower than ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE,
-                                // but must not be higher; sys_objs would get overwritten by ML code.
-                                // Must be larger than MemSiz reported by build for magiclantern.bin
-
 // Used for copying and modifying ROM code before transferring control.
 // Look in BR_ macros for the highest address, subtract ROMBASEADDR, align up.
 // On 6D2 there is an extra call, the code of which is after cstart, so we must
 // also ensure this is covered.
 #define FIRMWARE_ENTRY_LEN 0x300
-
-/*
-Before patching:
-DryOS base    user_start                       sys_objs_start    sys_start
-    |-------------|--------------------------------|---------------|--------------------->
-                   <-------  user_mem_size ------->                 <---- sys_len ------->
-    ---------------- sys_objs_offset ------------->
-    ---------------- sys_mem_offset ------------------------------>
-
-After patching, user mem reduced and sys mem moved up
-DryOS base    user_start                                 sys_objs_start    sys_start
-    |-------------|-------------------|<-- ml_reserved_mem -->|---------------|--------------------->
-                   <- user_mem_size ->                                         <---- sys_len ------->
-    ---------------- sys_objs_offset ------------------------>
-    ---------------- sys_mem_offset ----------------------------------------->
-*/
-
-#if ML_RESERVED_MEM > ML_MAX_USER_MEM_STOLEN + ML_MAX_SYS_MEM_INCREASE
-#error "ML_RESERVED_MEM too big to fit!"
-#endif
 
 //address of XimrContext structure to redraw in FEATURE_VRAM_RGBA
 #define XIMR_CONTEXT 0x9b01c
