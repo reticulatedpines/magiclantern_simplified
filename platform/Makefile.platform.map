@@ -36,9 +36,6 @@ PLATFORM_MAP = \
 #    77D.102 \
 #    80D.102 \
 
-# SJE lots of noisy warnings, not fixing yet
-#    5DS.111 \
-
 # SJE FIXME 7D builds are broken, not sure why.  Cam seems very quirky, unsure
 # it's well supported even by mainline.  Disabling for now so I can easily
 # build all cams from platform/ - a useful test
