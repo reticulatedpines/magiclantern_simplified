@@ -10,17 +10,17 @@
  */
 /*
  * Copyright (C) 2009 Trammell Hudson <hudson+ml@osresearch.net>
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the
  * Free Software Foundation, Inc.,
@@ -95,7 +95,7 @@ extern struct lens_info lens_info;
 
 #define DOF_DIFFRACTION_LIMIT_REACHED 1
 
-#if defined(CONFIG_6D) || defined(CONFIG_5D3_123) || defined(CONFIG_100D) || defined(CONFIG_750D) || defined(CONFIG_7D2)
+#if defined(CONFIG_6D) || defined(CONFIG_5D3_123) || defined(CONFIG_100D) || defined(CONFIG_750D) || defined(CONFIG_80D) || defined(CONFIG_7D2)
 struct prop_lv_lens
 {
         uint32_t                lens_rotation; // Identical Doesn't Change
@@ -530,7 +530,7 @@ struct prop_picstyle_settings
         int32_t         color_tone; // -4..4
         uint32_t        off_0x10;   // deadbeaf?!
         uint32_t        off_0x14;   // deadbeaf?!
-} __attribute__((aligned,packed));  
+} __attribute__((aligned,packed));
 
 SIZE_CHECK_STRUCT( prop_picstyle_settings, 0x18 );
 
@@ -563,7 +563,7 @@ extern void bv_apply_iso();
 extern void bv_update_lensinfo();
 extern void bv_auto_update();
 
-/* these will retry until exposure change is confirmed 
+/* these will retry until exposure change is confirmed
  * (used for hdr bracketing; to be renamed, since they are also useful for other purposes)
  * they return true on success
  */
@@ -579,8 +579,8 @@ int lens_take_pictures( int wait_to_finish, int allow_af, int duration );
 /** Will return 1 on success, 0 on error */
 extern int
 lens_focus(
-        int num_steps, 
-        int stepsize, 
+        int num_steps,
+        int stepsize,
         int wait,
         int extra_delay
 );
@@ -618,7 +618,7 @@ void lens_set_custom_wb_gains(int gain_R, int gain_G, int gain_B);
 // sprintf("%d,", round(12800 ./ 2.^([56:-1:0]./8)))
                                //~ 100,109,119,130,141,154,168,183,200,218,238,259,283,308,336,367,400,436,476,519,566,617,673,734,800,872,951,1037,1131,1234,1345,1467,1600,1745,1903,2075,2263,2468,2691,2934,3200,3490,3805,4150,4525,4935,5382,5869,6400,6979,7611,12800,25600};
 static const uint16_t values_iso[] = {0,100,110,115,125,140,160,170,185,200,220,235,250,280,320,350,380,400,435,470,500,560,640,700,750,800,860,930,1000,1100,1250,1400,1500,1600,1750,1900,2000,2250,2500,2800,3000,3200,3500,3750,4000,4500,5000,5500,6000,6400,12800,25600};
-static const uint8_t  codes_iso[]  = {0, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98,  99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120,  128,  136}; 
+static const uint8_t  codes_iso[]  = {0, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98,  99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120,  128,  136};
 
 // measured from 5D3 in movie mode with expo override, and rounded manually to match Canon values
 // at long exposures, the real durations are 32 seconds and 16 seconds; don't round those, since it may be important to know if you are using the intervalometer
@@ -713,7 +713,7 @@ void kelvin_toggle( void* priv, int sign );
 #define MAX_ISO_BV 120
 #endif
 
-// max ISO that can be set via FRAME_ISO 
+// max ISO that can be set via FRAME_ISO
 // I think it's the same as max analog ISO
 // todo: ask Guillermo Luijk :)
 #if defined(CONFIG_DIGIC_V)

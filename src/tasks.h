@@ -6,17 +6,17 @@
  */
 /*
  * Copyright (C) 2009 Trammell Hudson <hudson+ml@osresearch.net>
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the
  * Free Software Foundation, Inc.,
@@ -144,8 +144,14 @@ struct task_attr_str {
   unsigned int cpu_requested;
   unsigned int cpu_assigned;
 #endif
+#ifdef CONFIG_80D
+  unsigned int unk1;
+  unsigned int unk2;
+#endif
   unsigned int context;
+#ifndef CONFIG_80D
   unsigned int unknown_13;
+#endif
   char *name;
 }; // size = 0x34 (D6) 0x3c (D78)
 #else

@@ -8,6 +8,7 @@ PLATFORM_MAP = \
     7D2.112 \
     50D.109 \
     60D.111 \
+    80D.103 \
     200D.101 \
     500D.111 \
     550D.109 \
@@ -34,7 +35,6 @@ PLATFORM_MAP = \
 # kitor: disabled for now, as those will be updated to newest firmwares soon anyway
 #        + I don't have old roms to check new restartstart value
 #    77D.102 \
-#    80D.102 \
 
 # SJE FIXME 7D builds are broken, not sure why.  Cam seems very quirky, unsure
 # it's well supported even by mainline.  Disabling for now so I can easily

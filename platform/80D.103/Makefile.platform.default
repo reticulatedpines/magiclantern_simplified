@@ -1,0 +1,16 @@
+# 80D 1.0.3
+
+CANON_NAME_FIR  = 80D00103.FIR
+FIRMWARE_ID     = 0x80000350
+UPDATE_NAME_FIR = BOOT_80D.FIR
+ROMBASEADDR     = 0xFE0A0000
+
+# user_mem_start from cstart struct. Align to 0x10 up
+RESTARTSTART    = 0x1cc400
+
+# Cortex R4
+CFLAG_USER += -mthumb -mlong-calls
+PLATFORM_ARCH = armv7-r
+
+ML_BOOT_OBJ     = boot-d678.o
+ML_SRC_EXTRA_OBJS += function_overrides.o
