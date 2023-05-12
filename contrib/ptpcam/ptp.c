@@ -34,6 +34,19 @@
 #include <unistd.h>
 #endif
 
+#ifndef UINTPTR_MAX
+    #error "No UINTPTR_MAX available, cannot safely build"
+#endif
+#if UINTPTR_MAX != 0xffffffff
+    #error "This code assumes 32-bit pointers, refusing to build."
+// This code was clearly intended for a 32-bit host, making assumptions
+// about pointer width in a few places, and packing values into buffers.
+// Is it possible to overflow buffers on cam if the host is 64-bit?
+// Looks plausible to me, so, I'm disabling such builds.
+// I might be wrong, feel free to confirm this and/or fix the code
+// to be portable.
+#endif
+
 #ifdef ENABLE_NLS
 #  include <libintl.h>
 #  undef _
