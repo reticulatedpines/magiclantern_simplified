@@ -1,4 +1,4 @@
-# 77D 1.0.2
+# 77D 1.1.0
 
 MODEL=77D
 include ../Makefile.platform

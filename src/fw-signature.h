@@ -41,6 +41,7 @@
 #define SIG_80D_102  0x74d93d11 // from FE0A0000
 #define SIG_80D_103  0x98ec1433 // from FE0A0000
 #define SIG_77D_102  0x6dd89c83 // from e0040000
+#define SIG_77D_110  0x301679a8 // from e0040000
 #define SIG_750D_110 0xf005931a // from FC0A0000
 #define SIG_850D_100 0xad55d877 // from e0040000
 #define SIG_SX740_102 0x53535fe8 // from e0040000

@@ -289,7 +289,7 @@ void _update_vram_params()
     os.off_1610 = 0;
     //~ os.off_169 = (os.y_ex - os.y_ex * 4/3 * 9/16) / 2;
     //~ os.off_1610 = (os.y_ex - os.y_ex * 4/3 * 10/16) / 2;
-#elif defined(CONFIG_80D) || defined(CONFIG_200D) || defined(CONFIG_850D)
+#elif defined(CONFIG_80D) || defined(CONFIG_200D) || defined(CONFIG_77D) || defined(CONFIG_850D)
     // SJE FIXME we should pull this from the DISP Vram struct or similar,
     // at runtime.  At least for D678.
     vram_lv.width = 736; // 720, but 16 pixels of noise after each line
