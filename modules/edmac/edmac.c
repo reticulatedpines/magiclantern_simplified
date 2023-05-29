@@ -625,7 +625,7 @@ static void FAST edmac_spy_poll(int last_expiry, void* unused)
      *    this step stored extra infos at indices 5 and 6)
      */
     edmac_states[edmac_index][CLK_IDX] = start_clock;
-    edmac_states[edmac_index][TSK_IDX] = (uint32_t) current_task->name;
+    edmac_states[edmac_index][TSK_IDX] = (uint32_t)get_current_task_name();
     edmac_states[edmac_index][OVH_IDX] = GET_DIGIC_TIMER() - start_clock;
     edmac_states[edmac_index][XTR_IDX] = edmac_extra_index;
     edmac_index++;

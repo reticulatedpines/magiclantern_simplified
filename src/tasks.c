@@ -45,6 +45,11 @@ return "?";
     return name;
 }
 
+int get_current_task_id()
+{
+    return current_task->taskId;
+}
+
 #ifndef CONFIG_VXWORKS
 #ifdef CONFIG_TSKMON
 #if defined(FEATURE_SHOW_CPU_USAGE) || defined(FEATURE_SHOW_TASKS)
