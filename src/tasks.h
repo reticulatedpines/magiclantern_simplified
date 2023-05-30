@@ -149,7 +149,7 @@ struct task
     struct context  *context;       // 0x50, 4
 };
 SIZE_CHECK_STRUCT(task, 0x54);
-#elif defined(CONFIG_TASK_STRUCT_V3)
+#elif defined(CONFIG_TASK_STRUCT_V2_SMP)
 // This version has dual-core fields, seen starting
 // with D7.
 struct task
@@ -176,19 +176,19 @@ struct task
                                                // APIs though, at least on D678, so the upper bits
                                                // mean something different.
     uint32_t            unknown_09; // 0x44, 4
-    uint8_t             unknown_0a; // 0x44 / 0x48, 1
-    int8_t          currentState;   // 0x45 / 0x49, 1
-    uint8_t             unknown_0b; // 0x46 / 0x4a, 1
-    uint8_t         yieldRequest;   // 0x47 / 0x4b, 1
-    uint8_t             unknown_0c; // 0x48 / 0x4c, 1
-    uint8_t         sleepReason;    // 0x49 / 0x4d, 1
-    uint8_t             unknown_0d; // 0x4a / 0x4e, 1
-    uint8_t             unknown_0e; // 0x4b / 0x4f, 1
-    uint8_t         cpu_requested; // 0x50, 1 // Which CPU can take the task.  0xff means any.
-    uint8_t         cpu_assigned; // 0x51, 1  // Which CPU has taken the task,
-                                              // 0xff means not yet taken.
-                                              // See df0028a2, 200D 1.0.1, which
-                                              // I believe is "int get_task_for_cpu(int cpu_id)"
+    uint8_t             unknown_0a; // 0x48, 1
+    int8_t          currentState;   // 0x49, 1
+    uint8_t             unknown_0b; // 0x4a, 1
+    uint8_t         yieldRequest;   // 0x4b, 1
+    uint8_t             unknown_0c; // 0x4c, 1
+    uint8_t         sleepReason;    // 0x4d, 1
+    uint8_t             unknown_0d; // 0x4e, 1
+    uint8_t             unknown_0e; // 0x4f, 1
+    uint8_t         cpu_requested;  // 0x50, 1 // Which CPU can take the task.  0xff means any.
+    uint8_t         cpu_assigned;   // 0x51, 1 // Which CPU has taken the task,
+                                               // 0xff means not yet taken.
+                                               // See df0028a2, 200D 1.0.1, which
+                                               // I believe is "int get_task_for_cpu(int cpu_id)"
     uint8_t             unknown_11; // 0x52, 1
     uint8_t             unknown_12; // 0x53, 1
     struct context  *context;       // 0x54, 4
