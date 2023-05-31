@@ -146,3 +146,7 @@
 
 /** Focus commands are not confirmed in LiveView (lens_focus - requires pfAfComplete_counter stub) */
 #define CONFIG_FOCUS_COMMANDS_PROP_NOT_CONFIRMED
+
+#define CONFIG_NEW_TASK_STRUCTS
+#define CONFIG_TASK_STRUCT_V1
+#define CONFIG_TASK_ATTR_STRUCT_V2

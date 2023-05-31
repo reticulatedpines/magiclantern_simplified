@@ -17,3 +17,7 @@
 
 /* enable state objects hooks */
 #define CONFIG_STATE_OBJECT_HOOKS
+
+#define CONFIG_NEW_TASK_STRUCTS
+#define CONFIG_TASK_STRUCT_V2_SMP
+#define CONFIG_TASK_ATTR_STRUCT_V5
