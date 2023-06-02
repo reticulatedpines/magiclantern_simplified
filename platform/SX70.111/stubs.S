@@ -45,6 +45,7 @@ DATA_PTR(    0x1028,  current_task)                         /* from task_create;
 THUMB_FN(0xE05197fA,  msleep)                               /* argument is always multiple of 10 */
 THUMB_FN(0xE038B12A,  task_create)                          /* used to start TaskMain, GuiMainTask etc */
 NSTUB(       0x40D0,  task_max)                             /* 6th field in sysconfig struct */
+THUMB_FN(0xe034ba48,  get_task_info_by_id)
 
 /** Debug messages **/
 THUMB_FN(0xE0532B04,  DryosDebugMsg)                        /* lots of debug messages; format string is third argument */

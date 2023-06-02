@@ -2,6 +2,7 @@
  * based on dm-spy-experiments  code */
 
 #include "dryos.h"
+#include "tasks.h"
 #include "log-d678.h"
 #include "io_trace.h"
 

@@ -6,6 +6,7 @@
 // * AJ for the idea of shutting down ML tasks manually, rather than letting DryOS do this job
 
 #include "dryos.h"
+#include "task_utils.h"
 #include "property.h"
 #include "bmp.h"
 #include "tskmon.h"
@@ -17,38 +18,6 @@
 #include "lens.h"
 
 int ml_shutdown_requested = 0;
-
-const char * get_task_name_from_id(int id)
-{
-#if defined(CONFIG_VXWORKS)
-return "?";
-#endif
-    if(id < 0) {
-        return "?";
-    }
-    // This looks like returning local vars, but ISO C99 6.4.5.5 says
-    // string literals have "static storage duration", and 6.2.4.3
-    // defines that as "Its lifetime is the entire execution of the program
-    // and its stored value is initialized only once, prior to program startup"
-    //
-    // So it's okay.
-
-    char *name = "?";
-    struct task_attr_str task_attr = {0};
-
-    int r = get_task_info_by_id(1, id & 0xff, &task_attr);
-    if (r == 0) {
-        if (task_attr.name != NULL) {
-            name = task_attr.name;
-        }
-    }
-    return name;
-}
-
-int get_current_task_id()
-{
-    return current_task->taskId;
-}
 
 #ifndef CONFIG_VXWORKS
 #ifdef CONFIG_TSKMON

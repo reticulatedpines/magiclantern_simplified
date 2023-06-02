@@ -84,7 +84,8 @@ ML_OBJS-y = \
 	$(ML_MINIMAL_OBJ) \
 	cache.o \
 	font_direct.o \
-	$(PLATFORM_DIR)/stubs.o
+	task_utils.o \
+	$(PLATFORM_DIR)/stubs.o \
 
 else ifeq ($(ML_SRC_PROFILE),installer)
 ML_INSTALLER_OBJS = \
@@ -118,6 +119,7 @@ ML_OBJS-y += \
 	version.o
 
 ML_SRC_OBJS = \
+	task_utils.o \
 	backtrace.o \
 	sgi.o \
 	cpu.o \
