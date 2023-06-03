@@ -13,3 +13,7 @@
  * even if just one buffer is requested.
  */
 #define CONFIG_MEMORY_SRM_NOT_WORKING
+
+#define CONFIG_NEW_TASK_STRUCTS
+#define CONFIG_TASK_STRUCT_V2_SMP
+#define CONFIG_TASK_ATTR_STRUCT_V5

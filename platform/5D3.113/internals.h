@@ -154,3 +154,7 @@
 
 /** Hide Canon bottom bar from DebugMsg hook */
 #define CONFIG_LVAPP_HACK_DEBUGMSG
+
+#define CONFIG_NEW_TASK_STRUCTS
+#define CONFIG_TASK_STRUCT_V2
+#define CONFIG_TASK_ATTR_STRUCT_V2
