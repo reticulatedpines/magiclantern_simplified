@@ -96,7 +96,7 @@ extern struct lens_info lens_info;
 #define DOF_DIFFRACTION_LIMIT_REACHED 1
 
 #if defined(CONFIG_6D) || defined(CONFIG_5D3_123) || defined(CONFIG_100D) || defined(CONFIG_750D) \
-    || defined(CONFIG_80D) || defined(CONFIG_7D2) || defined(CONFIG_70D)
+    || defined(CONFIG_80D) || defined(CONFIG_7D2) || defined(CONFIG_70D) || defined(CONFIG_5D4)
 struct prop_lv_lens
 {
         uint32_t                lens_rotation; // Identical Doesn't Change
