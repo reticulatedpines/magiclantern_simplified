@@ -134,3 +134,7 @@
 
 /** Use joystick for one-finger menu navigation */
 //~ #define CONFIG_JOY_CENTER_ACTIONS
+
+#define CONFIG_NEW_TASK_STRUCTS
+#define CONFIG_TASK_STRUCT_V2
+#define CONFIG_TASK_ATTR_STRUCT_V3
