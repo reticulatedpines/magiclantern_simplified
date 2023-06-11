@@ -136,3 +136,7 @@
 
 /** likely similar to 550D, but not tested */
 //~ #define CONFIG_FOCUS_COMMANDS_PROP_NOT_CONFIRMED
+
+#define CONFIG_NEW_TASK_STRUCTS
+#define CONFIG_TASK_STRUCT_V2
+#define CONFIG_TASK_ATTR_STRUCT_V2

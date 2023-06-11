@@ -28,15 +28,14 @@ PLATFORM_MAP = \
     SX740.102 \
     SX70.111 \
     5DSR.112 \
+    7D.203 \
 
 
 # SJE via lclevy, only builds minimal/hello-world so not enabled here
 #    R6.150 \
 
-# SJE FIXME 7D builds are broken, not sure why.  Cam seems very quirky, unsure
-# it's well supported even by mainline.  Disabling for now so I can easily
-# build all cams from platform/ - a useful test
-#    7D.203 \
+# SJE FIXME 7D Master build is broken, related to dcache symbol name,
+# might just need a rename.  Low prio to fix, this is the secondary digic.
 #    7D_MASTER.203 \
 
 
