@@ -60,7 +60,6 @@ extern int get_task_info_by_id(int, int, void*);
     }; // 0x40 bytes
 #endif
 
-#ifdef CONFIG_NEW_TASK_STRUCTS
 // ==== WARNING ====
 // This code looks sane if you're used to thinking about building cams.
 // But modules don't set this.  That means they always use the old structs,
@@ -195,7 +194,13 @@ struct task
     uint32_t            unknown_13; // 0x58, 4
 };
 SIZE_CHECK_STRUCT(task, 0x5c);
-#endif
+#else
+    #ifdef FW_VERSION // slight hack, the intent is to check
+                      // if we're building in a cam context, modules
+                      // also include this file and the error is not relevant there.
+        #error "You must determine which task struct version to use and define it in internals.h"
+    #endif
+#endif // CONFIG_TASK_STRUCT_VX
 
 #if defined(CONFIG_TASK_ATTR_STRUCT_V1)
 // Early ML code defines this struct as size 0x28, with an "id" field
@@ -281,118 +286,12 @@ struct task_attr_str {
 };
 SIZE_CHECK_STRUCT(task_attr_str, 0x3c);
 #else
-#error "You must determine which task and task_attr version to use and define it in internals.h"
-#endif
-
-#else // not CONFIG_NEW_TASK_STRUCTS
-struct task
-{
-//      type            name            offset, size
-        struct task    *prev_task;      // 0x00, 4   // SJE not sure what these two fields are used for,
-        struct task    *next_task;      // 0x04, 4   // but they're doubly-linked lists of tasks
-        uint32_t        run_prio;       // 0x08, 4   // lower value is higher priority
-        void           *entry;          // 0x0c, 4
-        uint32_t        arg;            // 0x10, 4
-        uint32_t        waitObjId;      // 0x14, 4
-        uint32_t            unknown_03; // 0x18, 4
-        uint32_t        stackStartAddr; // 0x1c, 4
-        uint32_t        stackSize;      // 0x20, 4
-        char           *name;           // 0x24, 4
-        uint32_t            unknown_04; // 0x28, 4
-        uint32_t            unknown_05; // 0x2c, 4
-        struct task    *self;           // 0x30, 4
-        uint32_t            unknown_06; // 0x34, 4
-        uint32_t            unknown_07; // 0x38, 4
-        uint32_t            unknown_08; // 0x3c, 4
-        uint32_t        taskId;         // 0x40, 4 // size 4, but low 16-bits are used as task index.
-                                                   // Comparison against taskId is done with full 32 in *some*
-                                                   // APIs though, at least on D678, so the upper bits
-                                                   // mean something different.
-#if defined(CONFIG_DIGIC_678X) || defined(CONFIG_70D) // Confirmed on 750D (D6), 200D (D7), M50, R, RP (D8)
-        uint32_t            unknown_09; // 0x44, 4
-#endif
-        uint8_t             unknown_0a; // 0x44 / 0x48, 1
-        int8_t          currentState;   // 0x45 / 0x49, 1
-        uint8_t             unknown_0b; // 0x46 / 0x4a, 1
-        uint8_t         yieldRequest;   // 0x47 / 0x4b, 1
-        uint8_t             unknown_0c; // 0x48 / 0x4c, 1
-        uint8_t         sleepReason;    // 0x49 / 0x4d, 1
-        uint8_t             unknown_0d; // 0x4a / 0x4e, 1
-        uint8_t             unknown_0e; // 0x4b / 0x4f, 1
-#ifdef CONFIG_DIGIC_78X // DNE on D6, exists on D7, D8
-        uint8_t         cpu_requested; // 0x50, 1 // SJE working theory: which CPU can
-                                                  // take the task.  0xff means any.
-        uint8_t         cpu_assigned; // 0x51, 1  // Which CPU has taken the task,
-                                                  // 0xff means not yet taken.
-                                                  // See df0028a2, 200D 1.0.1, which
-                                                  // I believe is "int get_task_for_cpu(int cpu_id)"
-        uint8_t             unknown_11; // 0x52, 1
-        uint8_t             unknown_12; // 0x53, 1
-        struct context  *context;       // 0x54, 4
-        uint32_t            unknown_13; // 0x58, 4
-#else // D6 ends with *context
-        struct context  *context;       // 0x4c, 4
-#endif
-                                        // 0x50 / 0x5c // sizeof struct
-};
-
-
-#ifdef CONFIG_DIGIC_678X
-// NB, these fields get copied from a struct task,
-// and the effective types seems to change.  I guess this
-// is just down to alignment of the structs (the asm loads a byte,
-// but stores a word).
-//
-// SJE FIXME - I have updated this struct purely from reversing,
-// it is currently only lightly tested.  I also haven't audited current ML
-// usage of this struct.  It has new fields now, which old code
-// might not populate, and DryOS might require, etc.
-//
-// kitor: Digic 6 is single core. Uses new structure, but without CPU fields.
-struct task_attr_str {
-  unsigned int state;
-  unsigned int pri;
-  unsigned int unknown_0b;
-
-  unsigned int entry;
-  unsigned int args;
-  unsigned int wait_id;
-  unsigned int flags;
-  unsigned int stack;
-  unsigned int size;
-  unsigned int used;
-#ifdef CONFIG_DIGIC_78X
-  unsigned int cpu_requested;
-  unsigned int cpu_assigned;
-#endif
-#ifdef CONFIG_80D
-  unsigned int unk1;
-  unsigned int unk2;
-#endif
-  unsigned int context;
-#ifndef CONFIG_80D
-  unsigned int unknown_13;
-#endif
-  char *name;
-}; // size = 0x34 (D6) 0x3c (D78)
-#else
-struct task_attr_str {
-  unsigned int entry;
-  unsigned int args;
-  unsigned int stack;
-  unsigned int size;
-  unsigned int used; // 0x10
-  void* name;
-  unsigned int off_18;
-  unsigned int flags;
-  unsigned char wait_id;
-  unsigned char pri;
-  unsigned char state;
-  unsigned char fpu;
-  unsigned int id;
-}; // size = 0x28
-#endif
-#endif // CONFIG_NEW_TASK_STRUCTS
+    #ifdef FW_VERSION // slight hack, the intent is to check
+                      // if we're building in a cam context, modules
+                      // also include this file and the error is not relevant there.
+        #error "You must determine which task_attr struct version to use and define it in internals.h"
+    #endif
+#endif // CONFIG_TASK_ATTR_STRUCT_VX
 
 extern struct task *first_task;
 
