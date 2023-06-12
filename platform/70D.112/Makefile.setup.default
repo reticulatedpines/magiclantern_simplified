@@ -1,0 +1,8 @@
+#Makefile for 70D
+
+#we keep rec indicators enabled but
+#bitrate stuff is disabled in features.h
+ML_BITRATE_OBJ = bitrate-5d3.o
+ML_SRC_EXTRA_OBJS = \
+	afma.o \
+	reloc.o \

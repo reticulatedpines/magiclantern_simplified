@@ -30,6 +30,11 @@ uint32_t edmac_write_chan = 0x06; /* 1, 4, 6, 10 */
 #elif defined(CONFIG_6D) || defined(CONFIG_5D3)
 uint32_t edmac_read_chan = 0x19;  /* Read: 0 5 7 11 14 15 */
 uint32_t edmac_write_chan = 0x11; /* Write: 6 8 15 */
+#elif defined(CONFIG_70D)
+// 70D uses same read and write channels as 6D and 5D3
+// just keep it separate with the comments
+uint32_t edmac_read_chan = 0x19;  /* Read decimal: 8 25 29 42 43 - hex: 0x08 0x19 0x1D 0x2A 0x2B*/
+uint32_t edmac_write_chan = 0x11; /* Write decimal: 6 17 33 - hex: 0x06 0x11 0x21*/
 #elif defined(CONFIG_7D)
 uint32_t edmac_read_chan = 0x0A;  /*Read 0x19 0x0D 0x0B 0x0A(82MB/S)*/
 uint32_t edmac_write_chan = 0x06; /* Write 0x5 0x6 0x4 (LV) */

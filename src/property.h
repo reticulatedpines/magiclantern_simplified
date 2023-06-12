@@ -130,7 +130,7 @@
 #if defined(CONFIG_60D) || defined(CONFIG_7D)
     #define DRIVE_HISPEED_CONTINUOUS 4
     #define DRIVE_CONTINUOUS 5
-#elif defined(CONFIG_5D3)
+#elif defined(CONFIG_5D3) || defined(CONFIG_70D)
     #define DRIVE_HISPEED_CONTINUOUS 4
     #define DRIVE_CONTINUOUS 5
     #define DRIVE_SILENT 0x13
@@ -322,6 +322,7 @@
 #define PROP_HTP 0x8000004a
 
 #if defined(CONFIG_5D3)
+#define PROP_HTP 0x8000004a
 #define PROP_MULTIPLE_EXPOSURE 0x0202000c
 #define PROP_MLU 0x80000047
 #endif
@@ -338,8 +339,18 @@
 
 #endif
 
+// verified with prop spy
+#ifdef CONFIG_70D
+#define PROP_HI_ISO_NR 0x80000049
+#define PROP_HTP 0x8000004a
+#define PROP_MULTIPLE_EXPOSURE 0x0202000c
+#define PROP_MULTIPLE_EXPOSURE_SETTING 0x8000003F
+#define PROP_MLU 0x80000047
+#endif
+
 #ifdef CONFIG_6D //May work for others.
 #define PROP_HI_ISO_NR 0x80000049 //Len 4, 4 is multishot
+#define PROP_HTP 0x8000004a
 #define PROP_MULTIPLE_EXPOSURE 0x0202000c
 #define PROP_MULTIPLE_EXPOSURE_SETTING 0x8000003F
 #define PROP_MLU 0x80000047

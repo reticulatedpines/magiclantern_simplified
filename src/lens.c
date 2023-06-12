@@ -62,7 +62,7 @@ static CONFIG_INT("movie.log", movie_log, 0);
 #ifdef CONFIG_FULLFRAME
 #define SENSORCROPFACTOR 10
 #define crop_info 0
-#elif defined(CONFIG_600D)
+#elif defined(CONFIG_600D) || defined(CONFIG_70D)
 static PROP_INT(PROP_DIGITAL_ZOOM_RATIO, digital_zoom_ratio);
 #define DIGITAL_ZOOM ((is_movie_mode() && video_mode_crop && video_mode_resolution == 0) ? digital_zoom_ratio : 100)
 #define SENSORCROPFACTOR (16 * DIGITAL_ZOOM / 100)
@@ -578,6 +578,12 @@ static volatile int lv_focus_requests = 0;
 static volatile int lv_focus_done = 1;
 static volatile int lv_focus_error = 0;
 
+// 70D focus features don't play well with this and
+// soft limit is reached very quickly
+// see http://www.magiclantern.fm/forum/index.php?topic=14309.msg152551#msg152551
+// skipping the check helps but for e.g. focus stacking is still buggy
+// and takes 1 behind and 1 before all others afterwards are before at the same
+// position no matter what's set in menu
 PROP_HANDLER( PROP_LV_FOCUS_DONE )
 {
     /* turn off the LED we enabled in lens_focus */

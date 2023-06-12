@@ -82,6 +82,7 @@ static int cam_6d = 0;
 static int cam_600d = 0;
 static int cam_650d = 0;
 static int cam_7d = 0;
+static int cam_70d = 0;
 static int cam_700d = 0;
 static int cam_60d = 0;
 static int cam_100d = 0;
@@ -1206,6 +1207,7 @@ static void hack_liveview(int unhack)
             cam_6d   ? 0xFF52C684 :
             cam_eos_m ? 0xFF539C1C :
             cam_700d ? 0xFF52BB60 :
+            cam_70d ? 0xff558ff0 :
             cam_7d  ? 0xFF345788 :
             cam_60d ? 0xff36fa3c :
             cam_100d ? 0xFF542580 :
@@ -2479,6 +2481,7 @@ static unsigned int raw_rec_init()
     cam_600d  = is_camera("600D", "1.0.2");
     cam_650d  = is_camera("650D", "1.0.4");
     cam_7d    = is_camera("7D",   "2.0.3");
+    cam_70d   = is_camera("70D",  "1.1.2");
     cam_700d  = is_camera("700D", "1.1.5");
     cam_60d   = is_camera("60D",  "1.1.1");
     cam_100d  = is_camera("100D", "1.0.1");

@@ -308,7 +308,7 @@ struct task
                                                    // Comparison against taskId is done with full 32 in *some*
                                                    // APIs though, at least on D678, so the upper bits
                                                    // mean something different.
-#ifdef CONFIG_DIGIC_678X // Confirmed on 750D (D6), 200D (D7), M50, R, RP (D8)
+#if defined(CONFIG_DIGIC_678X) || defined(CONFIG_70D) // Confirmed on 750D (D6), 200D (D7), M50, R, RP (D8)
         uint32_t            unknown_09; // 0x44, 4
 #endif
         uint8_t             unknown_0a; // 0x44 / 0x48, 1

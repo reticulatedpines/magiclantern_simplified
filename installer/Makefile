@@ -12,6 +12,7 @@ SUPPORTED_INSTALLERS := \
     700D.115 \
     EOSM.202 \
     7D.203 \
+    70D.112 \
     100D.101 \
 
 # this need some more work: 5DC.111

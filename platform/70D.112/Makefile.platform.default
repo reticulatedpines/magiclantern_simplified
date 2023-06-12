@@ -1,0 +1,21 @@
+# 70D 1.1.2
+
+ifeq ($(FW_VERSION),112)
+CANON_NAME_FIR = 70D00112.FIR
+ROMBASEADDR = 0xFF0C0000
+PLATFORM_ARCH = armv5te
+
+ifeq ($(ML_SRC_PROFILE),generic)
+# Load ML at the beginning of the AllocateMemory pool
+# default 0x44C000 - 0xD3C000, patched to 0x4E0000 - 0xD3C000 (592K for us).
+RESTARTSTART = 0x44C100
+ML_BOOT_OBJ = boot-d45-am.o
+else
+# Load ML at user_mem_start (aka heap start / DRY_HEAP_START / malloc memory pool)
+# The malloc memory pool will be pushed to the right, so it will start after our BSS.
+# user_mem_start: FF0C1C64: 0xFAE30
+RESTARTSTART = 0xFAF00
+endif
+
+#End of FW_VERSION == 112
+endif

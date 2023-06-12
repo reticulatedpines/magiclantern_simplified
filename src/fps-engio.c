@@ -211,7 +211,9 @@ static void fps_read_current_timer_values();
 //~ #define FPS_TIMER_B_MIN (fps_timer_b_orig-100)
 #define FPS_TIMER_B_MIN fps_timer_b_orig // it might go lower than that, but it causes trouble high shutter speeds
 
-#define ZOOM (lv_dispsize > 1)
+// 70D (and probably 6D too) as stated also in raw.c:
+// ... reports 129 = 0x81 for zoom x1, and it behaves just like plain (unzoomed) LiveView
+#define ZOOM (lv_dispsize > 1 && lv_dispsize < 129)
 #define MV1080 (is_movie_mode() && video_mode_resolution == 0)
 #define MV720 (is_movie_mode() && video_mode_resolution == 1)
 #define MV480 (is_movie_mode() && video_mode_resolution == 2)
@@ -284,6 +286,9 @@ static void fps_read_current_timer_values();
 #elif defined(CONFIG_550D) || defined(CONFIG_600D) || defined(CONFIG_60D)
     #define TG_FREQ_BASE 28800000
     #define FPS_TIMER_A_MIN MIN(fps_timer_a_orig - (ZOOM ? 0 : 10), ZOOM ? 734 : video_mode_crop ? (video_mode_resolution == 2 ? 400 : 560) : 0x21A)
+#elif defined(CONFIG_70D)
+    #define TG_FREQ_BASE 32000000
+    #define FPS_TIMER_A_MIN (fps_timer_a_orig)
 #endif
 
 // these can change timer B with another method, more suitable for high FPS
@@ -486,7 +491,10 @@ int get_current_shutter_reciprocal_x1000()
     float shutter = frame_duration * (max - blanking) / max;
     return (int)(1.0 / shutter * 1000);
 
-#elif defined(FRAME_SHUTTER_TIMER)
+// TODO: Cleanup 70D once fps override feature is fixed
+// till then use the fallback. Do it this way to have fast ettr
+// and keep frame_shutter timer enabled in consts.h
+#elif defined(FRAME_SHUTTER_TIMER) && !defined(CONFIG_70D)
     int timer = FRAME_SHUTTER_TIMER;
 
     #ifdef FEATURE_SHUTTER_FINE_TUNING

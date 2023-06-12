@@ -68,7 +68,7 @@
 #include <util.h>
 #include <edmac.h>
 #include <edmac-memcpy.h>
-#include <cache_hacks.h>
+#include <patch.h>
 #include <string.h>
 #include <shoot.h>
 #include <powersave.h>
@@ -106,6 +106,7 @@ static uint32_t cam_6d = 0;
 static uint32_t cam_600d = 0;
 static uint32_t cam_650d = 0;
 static uint32_t cam_7d = 0;
+static uint32_t cam_70d = 0;
 static uint32_t cam_700d = 0;
 static uint32_t cam_60d = 0;
 static uint32_t cam_100d = 0;
@@ -1739,6 +1740,7 @@ static void hack_liveview(int32_t unhack)
             cam_6d   ? 0xFF52C684 :
             cam_eos_m ? 0xFF539C1C :
             cam_700d ? 0xFF52BB60 :
+            cam_70d ? 0xff558ff0 :
             cam_7d  ? 0xFF345788 :
             cam_60d ? 0xff36fa3c :
             cam_100d ? 0xFF542580 :
@@ -1749,23 +1751,27 @@ static void hack_liveview(int32_t unhack)
         uint32_t dialog_refresh_timer_orig_instr = 0xe3a00032; /* mov r0, #50 */
         uint32_t dialog_refresh_timer_new_instr  = 0xe3a00a02; /* change to mov r0, #8192 */
 
-        if (*(volatile uint32_t*)dialog_refresh_timer_addr != dialog_refresh_timer_orig_instr)
-        {
-            /* something's wrong */
-            NotifyBox(1000, "Hack error at %x:\nexpected %x, got %x", dialog_refresh_timer_addr, dialog_refresh_timer_orig_instr, *(volatile uint32_t*)dialog_refresh_timer_addr);
-            beep_custom(1000, 2000, 1);
-            dialog_refresh_timer_addr = 0;
-        }
-
         if (dialog_refresh_timer_addr)
         {
             if (!unhack) /* hack */
             {
-                cache_fake(dialog_refresh_timer_addr, dialog_refresh_timer_new_instr, TYPE_ICACHE);
+                int err = patch_instruction(
+                    dialog_refresh_timer_addr, dialog_refresh_timer_orig_instr, dialog_refresh_timer_new_instr,
+                    "mlv_rec: slow down Canon dialog refresh timer"
+                );
+
+                if (err)
+                {
+                    NotifyBox(1000, "Hack error at %x:\nexpected %x, got %x",
+                              dialog_refresh_timer_addr,
+                              dialog_refresh_timer_orig_instr,
+                              *(volatile uint32_t*)dialog_refresh_timer_addr);
+                    beep_custom(1000, 2000, 1);
+                }
             }
             else /* unhack */
             {
-                cache_fake(dialog_refresh_timer_addr, dialog_refresh_timer_orig_instr, TYPE_ICACHE);
+                unpatch_memory(dialog_refresh_timer_addr);
             }
         }
     }
@@ -4212,6 +4218,7 @@ static unsigned int raw_rec_init()
     cam_600d  = is_camera("600D", "1.0.2");
     cam_650d  = is_camera("650D", "1.0.4");
     cam_7d    = is_camera("7D",   "2.0.3");
+    cam_70d   = is_camera("70D",  "1.1.2");
     cam_700d  = is_camera("700D", "1.1.5");
     cam_60d   = is_camera("60D",  "1.1.1");
     cam_100d  = is_camera("100D", "1.0.1");

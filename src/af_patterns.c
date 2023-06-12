@@ -216,7 +216,7 @@ void play_zoom_center_on_selected_af_point()
         x += IMGPLAY_ZOOM_POS_DELTA_X;
         n++;
     }
-#if defined(CONFIG_7D)
+#if defined(CONFIG_7D) || defined(CONFIG_70D)
     if (af_point == AF_POINT_TT)
     {
         y -= 2*IMGPLAY_ZOOM_POS_DELTA_Y;

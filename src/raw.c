@@ -134,6 +134,10 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #define DEFAULT_RAW_BUFFER MEM(0x76d6c + 0x2C)
 #endif
 
+#ifdef CONFIG_70D
+#define DEFAULT_RAW_BUFFER MEM(0x7CFEC + 0x30)
+#endif
+
 #ifdef CONFIG_100D
 #define DEFAULT_RAW_BUFFER MEM(0x6733C + 0x40)
 #endif
@@ -356,6 +360,15 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
      7268, 10000,     -1082, 10000,    -969, 10000,\
     -4186, 10000,    11839, 10000,    2663, 10000, \
      -825, 10000,     2029, 10000,    5839, 10000
+#endif
+
+#ifdef CONFIG_70D
+    //~ { "Canon EOS 70D", 0, 0x3bc7,
+    //~ { 7034,-804,-1014,-4420,12564,2058,-851,1994,5758 } },
+    #define CAM_COLORMATRIX1                     \
+     7034, 10000,     -804, 10000,    -1014, 10000,\
+    -4420, 10000,    12564, 10000,    2058, 10000, \
+     -851, 10000,     1994, 10000,    5758, 10000
 #endif
 
 #ifdef CONFIG_77D
@@ -618,6 +631,10 @@ static int dynamic_ranges[] = {1111, 1109, 1072, 1006, 953, 886, 781, 696, 596, 
 
 #ifdef CONFIG_77D
 static int dynamic_ranges[] = {1246, 1196, 1105, 1014, 927, 844, 758, 660, 566, 468};
+#endif
+
+#ifdef CONFIG_70D
+static int dynamic_ranges[] = {1091, 1070, 1046, 986, 915, 837, 746, 655, 555};
 #endif
 
 static int autodetect_black_level(int* black_mean, int* black_stdev);
@@ -963,6 +980,12 @@ static int raw_update_params_work()
         skip_left   = zoom ? 0 : 256;
         #endif
 
+        #if defined(CONFIG_70D)
+        skip_top    = 28;
+        skip_left   = 144; // 146 could work, too
+        skip_right  = zoom ? 0 : 8;
+        #endif
+
         dbg_printf("LV raw buffer: %x (%dx%d)\n", raw_info.buffer, width, height);
         dbg_printf("Skip left:%d right:%d top:%d bottom:%d\n", skip_left, skip_right, skip_top, skip_bottom);
 #endif
@@ -1057,6 +1080,12 @@ static int raw_update_params_work()
         #ifdef CONFIG_7D /* very similar to 5D2 */
         skip_left = 158;
         skip_top = 50;
+        #endif
+
+        #ifdef CONFIG_70D
+        skip_left = 142;
+        skip_top = 52;
+        skip_right = 8;
         #endif
 
         dbg_printf("Photo raw buffer: %x (%dx%d)\n", raw_info.buffer, width, height);

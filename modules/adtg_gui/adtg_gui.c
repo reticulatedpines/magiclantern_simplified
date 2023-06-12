@@ -1033,6 +1033,14 @@ static unsigned int adtg_gui_init()
         ADTG_WRITE_FUNC = 0xFF2C9788; //"[REG] @@@@@@@@@@@@ Start ADTG[CS:%lx]"
         CMOS_WRITE_FUNC = 0xFF2C997C; //"[REG] ############ Start CMOS"
     }
+    else if (is_camera("70D", "1.1.2"))
+    {
+        ADTG_WRITE_FUNC = 0x2684c; //"[REG] @@@@@@@@@@@@ Start ADTG[CS:%lx]"
+        CMOS_WRITE_FUNC = 0x26b54; //"[REG] ############ Start CMOS"
+        // following work on iso-research branch
+        // ENGIO_WRITE_FUNC = 0xff2bc6c4;  // from stubs
+        // ENG_DRV_OUT_FUNC = 0xff2bc3ac;
+    }
     else if (is_camera("50D", "1.0.9")) // http://www.magiclantern.fm/forum/index.php?topic=6751.msg63322#msg63322
     {
         ADTG_WRITE_FUNC = 0xFFA11FDC;

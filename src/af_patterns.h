@@ -50,6 +50,34 @@ LLL LL L  C  R  RR  RRR
 #define AF_POINT_RR   0x44e00 // Right-right
 #define AF_POINT_RRR  0x45000 // Right-right-right
 
+#elif defined(CONFIG_70D)        // 70D focus points
+/*
+          TT
+   TLL TL T  TR TRR
+LLL LL L  C  R  RR  RRR
+   BLL BL B  BR  BRR
+          BB
+*/
+#define AF_POINT_C    0x4a00 // Center
+#define AF_POINT_T    0x2a00 // Top
+#define AF_POINT_TT   0xa00 // Top
+#define AF_POINT_B    0x6a00 // Bottom
+#define AF_POINT_BB   0x8a00 // Bottom
+#define AF_POINT_TL   0x2800 // Top-left
+#define AF_POINT_TLL  0x2600 // Top-left-left
+#define AF_POINT_TR   0x2c00 // Top-right
+#define AF_POINT_TRR  0x2e00 // Top-right-right
+#define AF_POINT_BL   0x6800 // Bottom-left
+#define AF_POINT_BLL  0x6600 // Bottom-left-left
+#define AF_POINT_BR   0x6c00 // Bottom-right
+#define AF_POINT_BRR  0x6e00 // Bottom-right-right
+#define AF_POINT_L    0x4800 // Left
+#define AF_POINT_LL   0x4600 // Left-left
+#define AF_POINT_LLL  0x4400 // Left-left-left
+#define AF_POINT_R    0x4c00 // Right
+#define AF_POINT_RR   0x4e00 // Right-right
+#define AF_POINT_RRR  0x5000 // Right-right-right
+
 #elif defined(CONFIG_6D)
 /*
           T
