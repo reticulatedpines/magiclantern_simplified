@@ -256,15 +256,15 @@ static void draw_test_pattern(int colour)
     uint8_t *b = bmp_vram();
 
     // draw a rectangle on the exact visible border
-    for (int y=30; y < 510; y++)
+    for (int y=0; y < 480; y++)
     {
-        bmp_putpixel_fast(b, 120, y, colour);
-        bmp_putpixel_fast(b, 839, y, colour);
+        bmp_putpixel_fast(b, 0, y, colour);
+        bmp_putpixel_fast(b, 719, y, colour);
     }
-    for (int x=120; x < 840; x++)
+    for (int x=0; x < 720; x++)
     {
-        bmp_putpixel_fast(b, x, 30, colour);
-        bmp_putpixel_fast(b, x, 509, colour);
+        bmp_putpixel_fast(b, x, 0, colour);
+        bmp_putpixel_fast(b, x, 479, colour);
     }
 }
 
@@ -344,8 +344,6 @@ static void hello_world()
         //DryosDebugMsg(0, 15, "display mode: %d", display_output_mode);
         DryosDebugMsg(0, 15, "colour: %d", colour);
         draw_test_pattern(colour);
-
-        bmp_fill(6, 140, 200, 40, 1);
 
         ml_refresh_display_needed = 1;
         msleep(200);
@@ -461,7 +459,7 @@ static void my_big_init_task()
     dumper_bootflag();
     return;
 #endif
-   
+
     call("DisablePowerSave");
     _ml_cbr_init();
 #ifdef CONFIG_MMU_REMAP
