@@ -29,7 +29,8 @@
 const uint32_t prop_handler_deny[] =
 {
     PROP_MVR_REC_START, // probably related to MVR stubs being all wrong
-    PROP_ISO // FIXME not a confirmed problem, trying to debug early crash
+    PROP_ISO, // FIXME not a confirmed problem, trying to debug early crash
+    PROP_LV_AFFRAME, // ML asserts
 };
 
 // allow writes / allow prop_request_change() for these:
