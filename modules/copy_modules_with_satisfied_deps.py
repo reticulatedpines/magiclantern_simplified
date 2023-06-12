@@ -122,6 +122,8 @@ def copy_good_modules(module_names, cam_dir, dest_dir):
     print("\nThese modules will not be included (deps not solved):")
     for m in unsat_m:
         print("%s " % m.name)
+        for d in m.unsatisfied_deps:
+            print("\t%s" % d)
     print("\nThese modules will be included (deps met):")
     for m in sat_m:
         print("%s " % m.name)
@@ -135,6 +137,7 @@ def copy_good_modules(module_names, cam_dir, dest_dir):
         # there's a module with a deeper dependency chain than before?
         #
         # Break the build so someone fixes this.
+        print("Failing build due to unsolved module dependencies")
         sys.exit(6)
 
 class ModuleError(Exception):
