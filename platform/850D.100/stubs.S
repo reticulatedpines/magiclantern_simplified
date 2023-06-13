@@ -111,6 +111,8 @@ THUMB_FN(0xe070ad32,  CancelDateTimer)
 //DATA_PTR(   0x6CC10,  isr_table_handler)
 //DATA_PTR(   0x6CC14,  isr_table_param)
 THUMB_FN(0xe01af0f0,  cli_spin_lock)          /* used in AllocateMemory/FreeMemory and others */
+THUMB_FN(0xe00f292c,  send_software_interrupt) // int 10 is used by DryOS to sleep/wake cpu.
+                                               // Func writes to 0xc1001f00
 
 /** MPU communication **/
 THUMB_FN(0xe00c13f8,  mpu_send) // "InterCom::Siodriver.c"
@@ -231,8 +233,12 @@ DATA_PTR(   0x11738,  display_refresh_needed) // if 0, RefreshVrmsSurface() does
 THUMB_FN(0xe00da090, XimrExe) // trigger Ximr unit to execute (HW compositor, partially understood)
 DATA_PTR(   0x11724,  winsys_sem)
 
+THUMB_FN(0xe00ddee0,  XCM_GetSourceSurface)
+DATA_PTR(  0x12dd58, _pXCM)
+
 // These are not strictly required, although recent dev work has added dependencies;
 // these likely should be removed before a "real" release
+THUMB_FN(0xe0006612, early_printf)
 THUMB_FN(0xe05952d0, uart_printf)
 #NSTUB(0xdf008c7c, uart_printf) // Thunked equivalent of the above.  Note, ARM, not Thumb.
                                // Both seem to work the same.
