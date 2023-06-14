@@ -114,5 +114,7 @@ modules/dual_iso/cr2hdr*
 modules/*/module_strings.h
 modules/mlv_rec/mlv_dump
 modules/mlv_rec/raw2dng
+developer_guide/developer_guide.html
+developer_guide/developer_guide.pdf
 
 syntax: regexp

@@ -1,0 +1,20 @@
+.center img {        
+  display:block;
+  margin-left:auto;
+  margin-right:auto;
+}
+
+@font-face {
+    src: local("DejaVuSans");
+    font-family: 'DejaVuSans';
+}
+
+html {
+    font-family: 'DejaVuSans';
+    line-height: 1.45em;
+}
+
+.title {
+    text-align: center;
+}
+

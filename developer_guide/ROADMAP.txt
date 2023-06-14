@@ -1,0 +1,68 @@
+End goal is a .md file per section, and some scripting that
+generates a PDF from that, with an auto-generated TOC.
+
+Filename format is something like:
+00_01_credits.md
+We glob the filenames and generate in order, the intention
+being the numbers can be used to generate chapter and section
+headings, the rest of the name being the section title.
+
+Keep the docs in tree, so devs have a single place for everything,
+and we have a better chance of keeping things in sync.
+
+Go through HACKING.rst to take the relevant parts.
+
+====
+
+Cover page
+Credits (get old dev names from doc/CREDITS.txt, combine with new people)
+Intro
+
+DryOS - this should list the parts of DryOS it's important for devs to be aware of / understand
+    Task based, real-time, interrupt driven
+    Task scheduler - incl what priorities mean
+    Message passing - incl controlling peripherals
+    State machine stuff?
+
+Hardware
+    Multiple processors; a distributed system connected by messages and shared memory
+    Different digic gens ARM
+        Important quirks per generation
+    ICU, MPU, network, JPCORE, etc
+    DMA controller - has channels which can be remapped
+
+Magiclantern - the code that runs on the cam
+    Architecture
+        Boot process, incl diagram
+        Major resident parts
+            Init task hijack?
+            OS task hijack (TASK_OVERRIDE)
+            Persistent ML tasks?
+            Assert handler(s)
+            Interrupt handler(s)?
+        Per cam stuff
+            platform dirs
+            FEATURE vs CONFIG vs internals.h
+        Modules
+            Presumed rationale
+            Limitations / problems
+
+    Build guide
+        Requirements
+        platform make, make zip        
+        Extra options
+            CONFIG_QEMU - enable extra debug logging when run in Qemu, incompatible with phys cam
+    Debugging
+        bmp_printf
+        console_puts - looks useful but it's disabled by undef CONSOLE_DEBUG, why?
+        DryosDebugMsg - dumpf() allegedly writes these to disk?  Needs checking
+        uart_printf
+        early_printf
+        LED blinking
+        Qemu
+
+Qemu-eos - forked Qemu with additional EOS support
+    Qemu regression testing system - check if ML or Qemu changes broke expected behaviour
+    run_qemu.py - simplify Qemu CLI, expose various debug logging options
+
+
