@@ -89,6 +89,7 @@ installer/*/*.lds
 doc/Cropmarks550D.png
 plugins/loader.c
 contrib/ptpcam/ptpcam
+contrib/make-bootable/exfat_sum
 loader.c
 doc/cam
 INSTALL.tex-e
@@ -106,6 +107,7 @@ modules/*/hginfo.tmp
 modules/*/module_strings.h
 modules/raw_rec/raw2dng
 modules/raw_rec/raw2dng.exe
+modules/tcc/localsyms
 tcc/localsyms
 src/menuindexentries.h
 modules/dual_iso/cr2hdr*
