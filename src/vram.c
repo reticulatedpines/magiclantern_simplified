@@ -376,6 +376,20 @@ void _update_vram_params()
     os.off_43 = 0;
     os.off_169 = 0;
     os.off_1610 = 0;
+#elif defined(CONFIG_SX70)
+    // false, depends on Panel, HDMI.
+    vram_lv.width = 640;
+    vram_lv.height = 480;
+    vram_lv.pitch = vram_lv.width * 2;
+    os.x0 = 0;
+    os.y0 = 0;
+    os.x_ex = 720;
+    os.y_ex = 480;
+    os.x_max = os.x0 + os.x_ex;
+    os.y_max = os.y0 + os.y_ex;
+    os.off_43 = 0;
+    os.off_169 = 0;
+    os.off_1610 = 0;
 #else
     #ifdef CONFIG_1100D
         vram_lv.width  = 720;

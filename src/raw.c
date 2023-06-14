@@ -473,6 +473,15 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
      -797, 10000,    2424, 10000,   7010, 10000
 #endif
 
+#ifdef CONFIG_SX70
+    // copy from EOS R, as there's no data available now
+    #define CAM_COLORMATRIX1 \
+     8532, 10000,    -701, 10000,  -1167, 10000, \
+    -4095, 10000,   11879, 10000,   2508, 10000, \
+     -797, 10000,    2424, 10000,   7010, 10000
+#endif
+
+
 struct raw_info raw_info = {
     .api_version = 1,
     .bits_per_pixel = 14,
@@ -606,6 +615,13 @@ static int dynamic_ranges[] = {1255, 1237, 1188, 1120, 1045, 964, 883, 785, 685,
  *  For now I just copied R
  */
 #ifdef CONFIG_SX740
+static int dynamic_ranges[] = {1255, 1237, 1188, 1120, 1045, 964, 883, 785, 685, 599};
+#endif
+
+/** SX70 data missing from DxO.
+ *  For now I just copied R
+ */
+#ifdef CONFIG_SX70
 static int dynamic_ranges[] = {1255, 1237, 1188, 1120, 1045, 964, 883, 785, 685, 599};
 #endif
 

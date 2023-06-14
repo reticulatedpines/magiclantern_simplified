@@ -109,15 +109,15 @@ void ml_gui_main_task()
     int index = 0;
     void* funcs[GMT_NFUNCS];
     memcpy(funcs, (void*)GMT_FUNCTABLE, 4*GMT_NFUNCS);
-    
+
     gui_init_end(); // no params?
-    
+
     while(1)
     {
         #if defined(CONFIG_550D) || defined(CONFIG_7D)
         msg_queue_receive(gui_main_struct.msg_queue_550d, &event, 0);
         gui_main_struct.counter_550d--;
-        #elif defined(CONFIG_R) || defined(CONFIG_RP) || defined(CONFIG_850D) || defined (CONFIG_R5)
+        #elif defined(CONFIG_R) || defined(CONFIG_RP) || defined(CONFIG_850D) || defined (CONFIG_R5) || defined(CONFIG_SX70)
         msg_queue_receive(gui_main_struct.msg_queue_eosr, &event, 0);
         gui_main_struct.counter_550d--;
         #elif defined(CONFIG_M50) || defined(CONFIG_SX740)
@@ -167,6 +167,6 @@ void ml_gui_main_task()
         if (f != NULL)
             f(event);
     }
-} 
+}
 
 TASK_OVERRIDE( gui_main_task, ml_gui_main_task);
