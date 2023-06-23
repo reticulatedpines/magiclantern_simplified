@@ -91,7 +91,7 @@ extern int folder_number;
 extern int file_number_also;
 extern int drive_mode;
 extern int strobo_firing;
-extern int lvaf_mode;
+extern int lv_af_system;
 extern int image_review_time;
 extern int lv_disp_mode;
 extern int mirror_down;

@@ -191,7 +191,6 @@
 #define PROP_DEFAULT_BRACKET    0x8002000A
 #define PROP_PARTIAL_SETTING    0x8002000B
 #define PROP_EMPOWER_OFF        0x80030007      // 1 == prohibit, 2 == permit
-#define PROP_LVAF_550D          0x8004001d      // 0 = shutter killer, 1 = live mode, 2 = face detect; introduced by a1ex on 550D branch
 
 #define PROP_ACTIVE_SWEEP_STATUS 0x8002000C     // 1 == cleaning sensor?
 
@@ -548,10 +547,13 @@
 
 #define PROP_INFO_BUTTON_FUNCTION 0x02070006
 
-#define PROP_CONTINUOUS_AF_MODE 0x80000042
-#define PROP_CONTINUOUS_AF_VALID 0x80000043 //also toggles servo
+#define PROP_LIVE_VIEW_AF_SYSTEM        0x8004001D // 0 = quick AF, 1 = live mode, 2 = face detect, 3 = multi
+#define PROP_CONTINUOUS_AF              0x80040040 // bool, new models only, photo mode only
+#define PROP_MOVIE_SERVO_AF             0x80000042 // old name: PROP_CONTINUOUS_AF_MODE, bool, new models only
+#define PROP_MOVIE_SERVO_AF_VALID       0x80000043 // old name: PROP_CONTINUOUS_AF_VALID, to MPU only?
+#define PROP_SHUTTER_AF_DURING_RECORD   0x8000003C // old name: PROP_MOVIE_REC_AF
+
 #define PROP_REGISTRATION_DATA_UPDATE_FUNC 0x80000044 // custom slave cBr?
-#define PROP_MOVIE_REC_AF 0x8000003C
 
 // #define PROP_AF_CURRENT_AISERVO_STYLE 0x8004004B
 

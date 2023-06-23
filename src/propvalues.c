@@ -84,21 +84,23 @@ volatile PROP_INT(PROP_LIVE_VIEW_VIEWTYPE, _expsim);
 volatile PROP_INT(PROP_EFIC_TEMP, efic_temp);
 volatile PROP_INT(PROP_GUI_STATE, gui_state);
 #ifdef CONFIG_DIGIC_678X
-// confirmed 750D, 200D, R
-volatile PROP_INT(PROP_PIC_QUALITY2, pic_quality);
+    // confirmed 750D, 200D, R
+    volatile PROP_INT(PROP_PIC_QUALITY2, pic_quality);
 #else
-volatile PROP_INT(PROP_PIC_QUALITY, pic_quality);
+    volatile PROP_INT(PROP_PIC_QUALITY, pic_quality);
 #endif
 volatile PROP_INT(PROP_AVAIL_SHOT, avail_shot);
 #if defined(CONFIG_DIGIC_8X)
-/* new approach on DIGIC8+ */
-volatile PROP_INT(PROP_LVAF_MODE, af_mode);
+    // old kitor comment says there's a race, possibly to do with
+    // lvaf_mode name?  Confirm this is sane on e.g. R and 850D
+    volatile PROP_INT(PROP_LVAF_MODE, af_mode);
 #else
-volatile PROP_INT(PROP_AF_MODE, af_mode);
+    volatile PROP_INT(PROP_AF_MODE, af_mode);
 #endif
 volatile PROP_INT(PROP_METERING_MODE, metering_mode);
 volatile PROP_INT(PROP_DRIVE, drive_mode);
 volatile PROP_INT(PROP_STROBO_FIRING, strobo_firing);
+volatile PROP_INT(PROP_LIVE_VIEW_AF_SYSTEM, lv_af_system); // e.g. face detect
 volatile PROP_INT(PROP_IMAGE_REVIEW_TIME, image_review_time);
 volatile PROP_INT(PROP_MIRROR_DOWN, mirror_down);
 volatile PROP_INT(PROP_LCD_BRIGHTNESS, backlight_level);

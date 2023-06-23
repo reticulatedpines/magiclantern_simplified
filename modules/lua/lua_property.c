@@ -294,8 +294,6 @@ static int handle_prop_string(lua_State * L, const char * name)
     else if(!strcmp(name, "PARTIAL_SETTING")) prop_id = PROP_PARTIAL_SETTING;
     /// @tfield property EMPOWER_OFF
     else if(!strcmp(name, "EMPOWER_OFF")) prop_id = PROP_EMPOWER_OFF;
-    /// @tfield property LVAF_MODE
-    else if(!strcmp(name, "LVAF_MODE")) prop_id = PROP_LVAF_MODE;
     /// @tfield property ACTIVE_SWEEP_STATUS
     else if(!strcmp(name, "ACTIVE_SWEEP_STATUS")) prop_id = PROP_ACTIVE_SWEEP_STATUS;
     /// @tfield property EFIC_TEMP
@@ -462,14 +460,18 @@ static int handle_prop_string(lua_State * L, const char * name)
     else if(!strcmp(name, "DIGITAL_ZOOM_RATIO")) prop_id = PROP_DIGITAL_ZOOM_RATIO;
     /// @tfield property INFO_BUTTON_FUNCTION
     else if(!strcmp(name, "INFO_BUTTON_FUNCTION")) prop_id = PROP_INFO_BUTTON_FUNCTION;
-    /// @tfield property CONTINUOUS_AF_MODE
-    else if(!strcmp(name, "CONTINUOUS_AF_MODE")) prop_id = PROP_CONTINUOUS_AF_MODE;
-    /// @tfield property CONTINUOUS_AF_VALID
-    else if(!strcmp(name, "CONTINUOUS_AF_VALID")) prop_id = PROP_CONTINUOUS_AF_VALID;
+    /// @tfield property PROP_LIVE_VIEW_AF_SYSTEM
+    else if(!strcmp(name, "PROP_LIVE_VIEW_AF_SYSTEM")) prop_id = PROP_LIVE_VIEW_AF_SYSTEM;
+    /// @tfield property PROP_CONTINUOUS_AF
+    else if(!strcmp(name, "PROP_CONTINUOUS_AF")) prop_id = PROP_CONTINUOUS_AF;
+    /// @tfield property PROP_MOVIE_SERVO_AF
+    else if(!strcmp(name, "PROP_MOVIE_SERVO_AF")) prop_id = PROP_MOVIE_SERVO_AF;
+    /// @tfield property PROP_MOVIE_SERVO_AF_VALID
+    else if(!strcmp(name, "PROP_MOVIE_SERVO_AF_VALID")) prop_id = PROP_MOVIE_SERVO_AF_VALID;
+    /// @tfield property PROP_SHUTTER_AF_DURING_RECORD
+    else if(!strcmp(name, "PROP_SHUTTER_AF_DURING_RECORD")) prop_id = PROP_SHUTTER_AF_DURING_RECORD;
     /// @tfield property REGISTRATION_DATA_UPDATE_FUNC
     else if(!strcmp(name, "REGISTRATION_DATA_UPDATE_FUNC")) prop_id = PROP_REGISTRATION_DATA_UPDATE_FUNC;
-    /// @tfield property MOVIE_REC_AF
-    else if(!strcmp(name, "MOVIE_REC_AF")) prop_id = PROP_MOVIE_REC_AF;
     /// @tfield property LIMITED_TV_VALUE_AT_AUTOISO
     else if(!strcmp(name, "LIMITED_TV_VALUE_AT_AUTOISO")) prop_id = PROP_LIMITED_TV_VALUE_AT_AUTOISO;
     /// @tfield property LOUDNESS_BUILT_IN_SPEAKER
