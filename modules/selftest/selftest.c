@@ -599,12 +599,15 @@ static void stub_test_file_io()
     uint32_t size;
     TEST_FUNC_CHECK(FIO_GetFileSize("test.dat", &size), == 0);
     TEST_FUNC_CHECK(size, == 0x20000);
-    void* p;
-    TEST_FUNC_CHECK(p = (void*)_alloc_dma_memory(0x20000), != 0);
-    TEST_FUNC_CHECK(f = FIO_OpenFile("test.dat", O_RDONLY | O_SYNC), != 0);
-    TEST_FUNC_CHECK(FIO_ReadFile(f, p, 0x20000), == 0x20000);
+    void *p = NULL;
+    TEST_FUNC_CHECK(p = (void*)fio_malloc(0x20000), != 0);
+    if (p) {
+        TEST_FUNC_CHECK(f = FIO_OpenFile("test.dat", O_RDONLY | O_SYNC), != 0);
+        TEST_FUNC_CHECK(FIO_ReadFile(f, p, 0x20000), == 0x20000);
+    }
+
     TEST_VOID(FIO_CloseFile(f));
-    TEST_VOID(_free_dma_memory(p));
+    TEST_VOID(fio_free(p));
 
     {
         int count = 0;
