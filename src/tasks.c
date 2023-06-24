@@ -326,7 +326,7 @@ MENU_UPDATE_FUNC(tasks_print)
 static void leds_on()
 {
     _card_led_on();
-    info_led_on();
+//    info_led_on(); // crashes on 5D2, 500D, possibly also 50D
     delayed_call(20, leds_on, 0);
 }
 
@@ -367,6 +367,7 @@ PROP_HANDLER(PROP_TERMINATE_SHUT_REQ)
     if (buf[0] == 0)
     {
         /* keep the LEDs on until shutdown completes */
+        info_led_on();
         delayed_call(20, leds_on, 0);
 
         ml_shutdown();
@@ -381,6 +382,7 @@ PROP_HANDLER(PROP_ABORT)
     if (buf[0] == 1)
     {
         /* keep the LEDs on until shutdown completes */
+        info_led_on();
         delayed_call(20, leds_on, 0);
 
         #if defined(CONFIG_MODULES)
