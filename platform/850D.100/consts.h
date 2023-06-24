@@ -154,7 +154,6 @@
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED 0
 #define INFO_BTN_NAME "INFO"
 #define Q_BTN_NAME "Q/SET"
-#define ARROW_MODE_TOGGLE_KEY "FUNC"
 
 // "SDPowerOn" / "SDPowerOff", passed to DryosDebugMsg in a function
 // that changes states for several devices (presumably not all LEDs?).
