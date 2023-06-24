@@ -95,7 +95,6 @@
 #define AUDIO_MONITORING_HEADPHONES_CONNECTED 0
 #define INFO_BTN_NAME               "INFO"
 #define Q_BTN_NAME                  "Q"
-#define ARROW_MODE_TOGGLE_KEY       "WiFi" //?
 
 #define MIN_MSLEEP 11
 #define PLAY_MODE (gui_state == GUISTATE_PLAYMENU && CURRENT_GUI_MODE == GUIMODE_PLAY)
