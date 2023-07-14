@@ -280,37 +280,18 @@ static size_t shoot_malloc_autodetect_contig(uint32_t requested_size)
 REQUIRES(mem_sem)
 struct memSuite *_shoot_malloc_suite(size_t size)
 {
+    //qprintf("_shoot_malloc_suite(%x)\n", size);
+
     if(size)
     {
         /* allocate exact memory size */
-        return shoot_malloc_suite_int(size, 0);
+        return shoot_malloc_suite_int(size);
     }
     else
     {
-        /* allocate some backup that will service the queued allocation request that fails during the loop */
-        int backup_size = 8 * 1024 * 1024;
-        int max_size = 0;
-        struct memSuite *backup = shoot_malloc_suite_int(backup_size, 0);
-
-        for(int size = 4; size < 1024; size += 4)
-        {
-            struct memSuite *testSuite = shoot_malloc_suite_int(size * 1024 * 1024, 1);
-            if(testSuite)
-            {
-                _shoot_free_suite(testSuite);
-                max_size = size * 1024 * 1024;
-            }
-            else
-            {
-                break;
-            }
-        }
-        /* now free the backup suite. this causes the queued allocation before to get finished. as we timed out, it will get freed immediately in exmem.c:allocCBR */
-        _shoot_free_suite(backup);
-        
-        /* allocating max_size + backup_size was reported to fail sometimes */
-        struct memSuite * hSuite = shoot_malloc_suite_int(max_size + backup_size - 1024 * 1024, 1);
-
+        /* allocate as much as we can */
+        size_t max_size = shoot_malloc_autodetect();
+        struct memSuite * hSuite = shoot_malloc_suite_int(max_size);
         shoot_full_suite = hSuite;
         return hSuite;
     }
