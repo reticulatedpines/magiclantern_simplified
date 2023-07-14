@@ -817,9 +817,9 @@ static int raw_lv_get_resolution(int* width, int* height)
         *height = 727;
     }
 #endif
+    return 1;
 
-
-#else
+#else // ~CONFIG_EDMAC_RAW_SLURP
     /* autodetect raw size from EDMAC */
     uint32_t lv_raw_height = shamem_read(RAW_LV_EDMAC+4);
     uint32_t lv_raw_size = shamem_read(RAW_LV_EDMAC+8);
