@@ -1307,8 +1307,8 @@ menu_update_placeholder(struct menu * menu, struct menu_entry * new_entry)
 }
 
 
-EXCLUDES(menu_sem)
-void menu_add(
+static REQUIRES(menu_sem)
+void menu_add_internal(
     const char *        name,
     struct menu_entry * new_entry,
     int                 count
@@ -1439,8 +1439,8 @@ void menu_add(
     }
 }
 
-void 
-menu_add(
+EXCLUDES(menu_sem)
+void menu_add(
     const char *        name,
     struct menu_entry * new_entry,
     int                 count
