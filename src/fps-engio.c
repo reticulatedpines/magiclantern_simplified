@@ -818,7 +818,7 @@ static void calc_rolling_shutter(int * line_ns, int * frame_us, int * frame_perc
 static MENU_UPDATE_FUNC(fps_print)
 {
     static int last_inactive = 0;
-    int t = get_ms_clock_value_fast();
+    int t = get_ms_clock();
 
     int frame_readout_time_percent;
     calc_rolling_shutter(0, 0, &frame_readout_time_percent, 0, 0);
