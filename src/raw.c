@@ -94,26 +94,20 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #endif
 
 #ifdef CONFIG_5D3_113
-//~ #define DEFAULT_RAW_BUFFER MEM(0x2600C + 0x2c)
-//~ #define DEFAULT_RAW_BUFFER_SIZE (9*1024*1024)
+/* MEM(0x2600C + 0x2c) = 0x4B152000; appears free until 0x4CE00000 */
+#define DEFAULT_RAW_BUFFER MEM(0x2600C + 0x2c)
+#define DEFAULT_RAW_BUFFER_SIZE (0x4CDF0000 - 0x4B152000)
 #endif
 
 #ifdef CONFIG_5D3_123
-//~ #define DEFAULT_RAW_BUFFER MEM(0x25f1c + 0x34)
-//~ #define DEFAULT_RAW_BUFFER_SIZE (9*1024*1024)   /* incorrect? */
-#endif
-
-#ifdef CONFIG_5D3
 /* MEM(0x25f1c + 0x34) (0x4d31a000) is used near 0x4d600000 in photo mode
- * that means, after 2.9MB (in the middle of our raw buffer)
- * the data structure appears to be re-initialized as soon as leaving LiveView
- * let's use from 0x4d600100; next buffer is at 0x4ee00000
- * to check: our raw buffer shouldn't be overwritten when pausing LiveView
- * or when recording H.264 or when doing anything else in LiveView
- * (it will be overwritten when taking a sequence of burst pictures) 
+ * that's probably just because the memory layout changes
+ * next buffer is at 0x4ee00000; can we assume it can be safely reused by us?
+ * (Free Memory dialog, memory map with CONFIG_MARK_UNUSED_MEMORY_AT_STARTUP)
  */
-#define DEFAULT_RAW_BUFFER  0x4d600100
-#define DEFAULT_RAW_BUFFER_SIZE (0x4ee00000 - 0x4d600100)
+#define DEFAULT_RAW_BUFFER MEM(0x25f1c + 0x34)
+#define DEFAULT_RAW_BUFFER_SIZE (0x4e000000 - 0x4d31a000)
+#endif
 
 #ifdef CONFIG_650D
 #define DEFAULT_RAW_BUFFER MEM(0x25B00 + 0x3C)
@@ -125,6 +119,10 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #define DEFAULT_RAW_BUFFER_SIZE (0x47F00000 - 0x46798080)
 #endif
 
+#ifdef CONFIG_EOSM
+#define DEFAULT_RAW_BUFFER MEM(0x404E4 + 0x44)
+#define DEFAULT_RAW_BUFFER_SIZE (0x47F00000 - 0x46798080)
+#endif
 
 #ifdef CONFIG_6D
 #define DEFAULT_RAW_BUFFER MEM(0x76d6c + 0x2C)
@@ -134,11 +132,6 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #ifdef CONFIG_70D
 #define DEFAULT_RAW_BUFFER MEM(0x7CFEC + 0x30)
 #define DEFAULT_RAW_BUFFER_SIZE (0x4CFF0000 - 0x4B328000)
-#endif
-
-#ifdef CONFIG_EOSM
-#define DEFAULT_RAW_BUFFER MEM(0x404E4 + 0x44)
-#define DEFAULT_RAW_BUFFER_SIZE (0x47F00000 - 0x46798080)
 #endif
 
 #ifdef CONFIG_100D
@@ -153,17 +146,8 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 
 #ifndef DEFAULT_RAW_BUFFER_SIZE
 /* todo: figure out how much Canon code allocates for their LV RAW buffer - how? */
-    #if defined(CONFIG_100D) || defined(CONFIG_650D) || defined(CONFIG_6D) || \
-        defined(CONFIG_600D)
-        // I don't know good values for these cams and I want to suppress
-        // this warning for them.  They've been reporting it for many years,
-        // presumably not a real problem, but may be a useful warning for new ports.
-        //
-        // A better value does still want finding for these cams.
-    #else
-        #warning FIXME: using dummy DEFAULT_RAW_BUFFER_SIZE
-    #endif
-    #define DEFAULT_RAW_BUFFER_SIZE (9*1024*1024)
+#warning FIXME: using dummy DEFAULT_RAW_BUFFER_SIZE
+#define DEFAULT_RAW_BUFFER_SIZE (9*1024*1024)
 #endif
 
 /* for higher resolutions we'll allocate a new buffer, as needed */
@@ -230,52 +214,13 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 
 #ifdef CONFIG_DIGIC_V
 #define RAW_TYPE_REGISTER 0xC0F37014
+#define PREFERRED_RAW_TYPE 0x10         /* CCD; also valid for DIGIC 6 */
 #else
 #define RAW_TYPE_REGISTER 0xC0F08114    /* PACK32_ISEL */
+#define PREFERRED_RAW_TYPE 0x5          /* DIGIC 4: CCD */
 #endif
 
 #define SHAD_GAIN_REGISTER 0xC0F08030
-
-#ifdef CONFIG_5D3
-/**
- * Renato [http://www.magiclantern.fm/forum/index.php?topic=5614.msg41070#msg41070]:
- * "Best images in: 17, 35, 37, 39, 81, 83, 99"
- * "Good but sprinkles of many colors: 5, 7, 8, 9, 11, 13, 15..."
- * 
- * jonzero [http://www.magiclantern.fm/forum/index.php?topic=5614.msg42140#msg42140]:
- * "Normal image with a few color pixels - NO BANDING: 5, 7, 8, 9, 11, 13, 15..."
- * 
- * First set may have vertical stripes (variable), but no bad pixels
- * Second set has bad pixels (easy to correct), and no vertical stripes on some cameras (but still present on others)
- * note: values are off by 1
- */
-#define PREFERRED_RAW_TYPE 16
-#endif
-
-/**
- * RAW_TYPE 78 (and others) have a frame-wide green pattern on them
- * ACR can clear them but also kills some details and does not do
- * a good job in general. TL;DR Use pink dot remover.
- * http://www.magiclantern.fm/forum/index.php?topic=6658.0
- */
-
-#ifdef CONFIG_60D
-#define PREFERRED_RAW_TYPE 5
-#endif
-
-#ifdef CONFIG_700D
-#define PREFERRED_RAW_TYPE 0x10
-#endif
-
-#ifdef CONFIG_6D
-#define PREFERRED_RAW_TYPE 0x10
-#endif
-
-/*
-#ifdef CONFIG_650D
-#define PREFERRED_RAW_TYPE 78
-#endif
-*/
 
 static int lv_raw_type = PREFERRED_RAW_TYPE;
 static int lv_raw_gain = 0;
@@ -746,6 +691,7 @@ extern void reverse_bytes_order(char* buf, int count);
 static void * raw_allocated_lv_buffer = 0;
 static void * raw_lv_buffer = 0;
 static int raw_lv_buffer_size = 0;
+#endif
 
 /* our default LiveView buffer (which can be DEFAULT_RAW_BUFFER or allocated) */
 static void* raw_get_default_lv_buffer()
@@ -1228,19 +1174,6 @@ int raw_update_params_work()
         raw_capture_info.binning_x  = 3; raw_capture_info.skipping_x = 0;
 #ifdef CONFIG_5D3
         raw_capture_info.skipping_y = 0; raw_capture_info.binning_y  = mv720 ? 5 : 3;
-#else
-        raw_capture_info.binning_y  = 1; raw_capture_info.skipping_y = mv720 ? 4 : 2;
-#endif
-        raw_capture_info.offset_x   =    raw_capture_info.offset_y   = SHRT_MIN;
-    }
-    dbg_printf(
-        "Subsampling mode: %dB%dSx%dB%dS (%dx%d %d.%02d)\n",
-        raw_capture_info.binning_x, raw_capture_info.skipping_x,
-        raw_capture_info.binning_y, raw_capture_info.skipping_y,
-        raw_capture_info.sensor_res_x, raw_capture_info.sensor_res_y,
-        raw_capture_info.sensor_crop / 100, raw_capture_info.sensor_crop % 100
-    );
-
 #elif CONFIG_EOSM
         raw_capture_info.binning_y  = 1; raw_capture_info.skipping_y = (mv720 || !RECORDING_H264) ? 4 : 2;
 #else
