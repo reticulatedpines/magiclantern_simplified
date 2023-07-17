@@ -1269,8 +1269,8 @@ static void DUMP_ASM test_loop(void (*func)(int))
     /* task 1 (higher priority) will start later, to interrupt task 0 */
     msleep(id ? 300 : 200);
 
-    int t0 = get_ms_clock_value();
-    while (get_ms_clock_value() - t0 < 500)
+    int t0 = get_ms_clock();
+    while (get_ms_clock() - t0 < 500)
     {
         /* assume there are 2 tasks running, with IDs 0 and 1 */
         /* record how many times the other task ran during our test function */

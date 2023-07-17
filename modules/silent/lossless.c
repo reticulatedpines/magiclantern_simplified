@@ -382,7 +382,7 @@ int lossless_compress_raw_rectangle(
     TTL_SetFlags(0x10000);
 
     /* time the operation */
-    start_time = get_us_clock_value();
+    start_time = get_us_clock();
 
     /* this starts the EDmac channels */
     TTL_Start(&TTL_Args);
@@ -392,7 +392,7 @@ int lossless_compress_raw_rectangle(
 
     if (verbose >= 2)
     {
-        uint32_t stop_time = get_us_clock_value();
+        uint32_t stop_time = get_us_clock();
         printf("[TTL] Elapsed time: %d us\n", (int)(stop_time - start_time));
     }
 

@@ -1291,8 +1291,8 @@ cleanup:
         /* image review setting from Canon menu */
         /* fixme: use the same code as "classic" full-res pics */
         int preview_delay = image_review_time * 1000;
-        int t0 = get_ms_clock_value();
-        while (get_ms_clock_value() - t0 < preview_delay &&
+        int t0 = get_ms_clock();
+        while (get_ms_clock() - t0 < preview_delay &&
                !get_halfshutter_pressed())
         {
             msleep(10);
