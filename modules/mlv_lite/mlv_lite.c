@@ -42,8 +42,7 @@
  * Boston, MA  02110-1301, USA.
  */
 
-static int show_graph = 0;
-static int show_edmac = 0;
+#define __MLV_LITE_C__
 
 #include <module.h>
 #include <dryos.h>
@@ -157,6 +156,7 @@ static CONFIG_INT("raw.use.srm.memory", use_srm_memory, 1);
 static CONFIG_INT("raw.small.hacks", small_hacks, 1);
 
 static CONFIG_INT("raw.h264.proxy", h264_proxy_menu, 0);
+static CONFIG_INT("raw.sync_beep", sync_beep, 1);
 
 static CONFIG_INT("raw.output_format", output_format, 3);
 #define OUTPUT_14BIT_NATIVE 0
@@ -258,8 +258,6 @@ static int raw_digital_gain_ok()
 #define INDICATOR_ON_SCREEN  2
 #define INDICATOR_RAW_BUFFER 3
 
-static GUARDED_BY(GuiMainTask)  int show_graph = 0;
-
 /* auto-choose the indicator style based on global draw settings */
 /* GD off: only "on screen" works, obviously */
 /* GD on: place it on the info bars to be minimally invasive */
@@ -340,9 +338,6 @@ static volatile                 int force_new_buffer = 0;           /* if some o
 static GUARDED_BY(LiveViewTask) int writing_queue[COUNT(slots)+1];  /* queue of completed frames (slot indices) waiting to be saved */
 static GUARDED_BY(LiveViewTask) int writing_queue_tail = 0;         /* place captured frames here */
 static GUARDED_BY(RawRecTask)   int writing_queue_head = 0;         /* extract frames to be written from here */ 
-
-/* for compress_task */
-static struct msg_queue * compress_mq = 0;
 
 static GUARDED_BY(LiveViewTask) int frame_count = 0;                /* how many frames we have processed */
 static GUARDED_BY(LiveViewTask) int skipped_frames = 0;             /* how many frames we had to drop (only done during pre-recording) */
@@ -1356,7 +1351,7 @@ static void * alloc_fullsize_buffer(struct memSuite * mem_suite, int fullres_buf
 }
 
 static REQUIRES(settings_sem)
-static void add_reserved_slots(void * ptr, int n)
+void add_reserved_slots(void * ptr, int n)
 {
     /* each group has some additional (empty) slots,
      * to be used when frames are compressed
@@ -2354,6 +2349,34 @@ void free_slot(int slot_index)
 
 static REQUIRES(LiveViewTask)
 void FAST pre_record_discard_frame()
+{
+    /* discard old frames */
+    /* also adjust frame_count so all frames start from 1,
+     * just like the rest of the code assumes */
+
+    for (int i = 0; i < total_slot_count; i++)
+    {
+        /* at the moment of this call, there should be no slots in progress */
+        ASSERT(slots[i].status != SLOT_CAPTURING);
+
+        /* first frame is "pre_record_first_frame" */
+        if (slots[i].status == SLOT_FULL)
+        {
+            if (slots[i].frame_number == pre_record_first_frame)
+            {
+                free_slot(i);
+                frame_count--;
+            }
+            else if (slots[i].frame_number > pre_record_first_frame)
+            {
+                slots[i].frame_number--;
+                ((mlv_vidf_hdr_t*)slots[i].ptr)->frameNumber
+                    = slots[i].frame_number - 1;
+            }
+        }
+    }
+}
+
 static REQUIRES(LiveViewTask)
 void FAST pre_record_queue_frames()
 {
@@ -2459,6 +2482,15 @@ void frame_add_checks(int slot_index)
     ASSERT(after_frame <= last_valid);
     *(volatile uint32_t*) frame_end = FRAME_SENTINEL; /* this will be overwritten by EDMAC */
     *(volatile uint32_t*) after_frame = FRAME_SENTINEL; /* this shalt not be overwritten */
+}
+
+static void frame_fake_edmac_check(int slot_index)
+{
+    ASSERT(slots[slot_index].ptr);
+    void* ptr = slots[slot_index].ptr + VIDF_HDR_SIZE;
+    uint32_t edmac_size = (slots[slot_index].payload_size + 3) & ~3;
+    uint32_t* after_frame = ptr + edmac_size;
+    *(volatile uint32_t*) after_frame = FRAME_SENTINEL;
 }
 
 static REQUIRES(RawRecTask)
@@ -2628,7 +2660,7 @@ static void compress_task()
         void* out_ptr = slots[slot_index].ptr + VIDF_HDR_SIZE;
         void* fullSizeBuffer = fullsize_buffers[fullsize_index];
 
-        edmac_start_clock = MEM(0xC0242014);
+        edmac_start_clock = GET_DIGIC_TIMER();
 
         if (OUTPUT_COMPRESSION)
         {
@@ -2965,7 +2997,18 @@ void init_mlv_chunk_headers(struct raw_info * raw_info)
     mlv_set_type((mlv_hdr_t *)&rawc_hdr, "RAWC");
     mlv_set_timestamp((mlv_hdr_t *)&rawc_hdr, mlv_start_timestamp);
     rawc_hdr.blockSize = sizeof(mlv_rawc_hdr_t);
-    rawc_hdr.raw_capture_info = raw_capture_info;
+
+    /* copy all fields from raw_capture_info */
+    rawc_hdr.sensor_res_x = raw_capture_info.sensor_res_x;
+    rawc_hdr.sensor_res_y = raw_capture_info.sensor_res_y;
+    rawc_hdr.sensor_crop  = raw_capture_info.sensor_crop;
+    rawc_hdr.reserved     = raw_capture_info.reserved;
+    rawc_hdr.binning_x    = raw_capture_info.binning_x;
+    rawc_hdr.skipping_x   = raw_capture_info.skipping_x;
+    rawc_hdr.binning_y    = raw_capture_info.binning_y;
+    rawc_hdr.skipping_y   = raw_capture_info.skipping_y;
+    rawc_hdr.offset_x     = raw_capture_info.offset_x;
+    rawc_hdr.offset_y     = raw_capture_info.offset_y;
 
     /* overwrite bpp relevant information */
     rawi_hdr.raw_info.bits_per_pixel = BPP;
@@ -2984,10 +3027,6 @@ void init_mlv_chunk_headers(struct raw_info * raw_info)
     mlv_fill_rtci(&rtci_hdr, mlv_start_timestamp);
     mlv_fill_wbal(&wbal_hdr, mlv_start_timestamp);
     
-    /* WAVI will be valid only if we record sound; otherwise NULL and zeroed out */
-    memset(&wavi_hdr, 0, sizeof(mlv_wavi_hdr_t));
-    mlv_fill_wavi(&wavi_hdr, mlv_start_timestamp);
-
     /* init MLV header for each frame (VIDF) */
     memset(&vidf_hdr, 0, sizeof(mlv_vidf_hdr_t));
     mlv_set_type((mlv_hdr_t*)&vidf_hdr, "VIDF");
@@ -3106,11 +3145,7 @@ int write_frames(FILE** pf, void* ptr, int group_size, int num_frames)
         }
     }
     
-    int t0 = get_ms_clock();
-    if (!last_write_timestamp) last_write_timestamp = t0;
-    idle_time += t0 - last_write_timestamp;
     int r = FIO_WriteFile(f, ptr, group_size);
-    last_write_timestamp = get_ms_clock();
 
     if (r != group_size) /* 4GB limit or card full? */
     {
@@ -3180,6 +3215,8 @@ int write_frames(FILE** pf, void* ptr, int group_size, int num_frames)
     
     return 1;
 }
+
+extern thunk ErrCardForLVApp_handler;
 
 /* note: called from raw_video_rec_task */
 /* vsync does not run at this time, so we can take its role momentarily */
@@ -3311,18 +3348,6 @@ void raw_video_rec_task()
     {
         beep();
     }
-
-    hack_liveview(0);
-    liveview_hacked = 1;
-
-    /* this will enable the vsync CBR and the other task(s) */
-    raw_recording_state = RAW_RECORDING;
-
-    /* try a sync beep (not very precise, but better than nothing) */
-    beep();
-
-    /* signal that we are starting */
-    raw_rec_cbr_starting();
 
     /* signal start of recording to the compression task */
     msg_queue_post(compress_mq, INT_MAX);
@@ -3496,7 +3521,7 @@ void raw_video_rec_task()
             goto abort;
         }
         
-        last_write_timestamp = get_ms_clock_value();
+        last_write_timestamp = get_ms_clock();
         writing_time += last_write_timestamp - t0;
 
         /* for detecting early stops */
@@ -3808,12 +3833,6 @@ static struct menu_entry raw_video_menu[] =
                 .max = COUNT(aspect_ratio_presets_num) - 1,
                 .update = aspect_ratio_update,
                 .choices = aspect_ratio_choices,
-            },
-            {
-                .name = "Bit depth",
-                .priv = &bpp_index,
-                .max = 2,
-                .choices = CHOICES("10bpp", "12bpp", "14bpp"),
             },
             {
                 .name       = "Data format",
@@ -4357,7 +4376,5 @@ MODULE_CONFIGS_START()
     MODULE_CONFIG(warm_up)
     MODULE_CONFIG(sync_beep)
     MODULE_CONFIG(output_format)
-    MODULE_CONFIG(bpp)
-    MODULE_CONFIG(bpp_index)
     MODULE_CONFIG(h264_proxy_menu)
 MODULE_CONFIGS_END()
