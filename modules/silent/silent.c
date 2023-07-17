@@ -511,7 +511,7 @@ write_error:
     return 0;
 }
 
-static int save_lossless_dng(char * filename, struct raw_info * raw_info, struct memSuite * optional_aux_memsuite)
+static int save_lossless_dng(char * filename, struct raw_info * raw_info)
 {
     struct raw_info out_raw_info = *raw_info;
 
@@ -553,33 +553,6 @@ static int save_lossless_dng(char * filename, struct raw_info * raw_info, struct
     }
 
     shoot_free_suite(out_suite);
-    return ok;
-}
-
-{
-    struct raw_info out_raw_info = *raw_info;
-
-    /* fixme: may fail */
-    /* workaround: if available, use a pre-allocated buffer (optional) */
-    struct memSuite * out_suite = (optional_aux_memsuite)
-         ? optional_aux_memsuite
-         : shoot_malloc_suite_contig(MIN(raw_info->frame_size, 32*1024*1024));
-
-    if (!out_suite)
-    {
-        bmp_printf( FONT_MED, 0, 83, "Malloc error");
-        return 0;
-    }
-
-    out_raw_info.frame_size = lossless_compress_raw(raw_info, out_suite);
-    out_raw_info.buffer = GetMemoryAddressOfMemoryChunk(GetFirstChunkFromSuite(out_suite));
-
-    int ok = save_dng(filename, &out_raw_info);
-    if (!ok) bmp_printf( FONT_MED, 0, 83, "DNG save error (card full?)");
-
-    if (!optional_aux_memsuite)
-        shoot_free_suite(out_suite);
-
     return 1;
 }
 
@@ -1031,7 +1004,6 @@ silent_pic_take_lv(int interactive)
     /* (gui_uilock doesn't seem to work in this case, because shutter
      * is already pressed; but allocating the entire SRM memory does!)
      */
-    struct memSuite * hSuiteX = 0;
 
     memset(sp_frames, 0, sizeof(sp_frames));
 
@@ -1267,23 +1239,12 @@ silent_pic_take_lv(int interactive)
             mlv_file_frame_number = 0;
         }
     }
-    else
-    {
-        if (is_intervalometer_running())
-            idle_force_powersave_now();
-        
-        local_raw_info.buffer = sp_frames[0];
-        bmp_printf(FONT_MED, 0, 60, "Saving %d x %d...", local_raw_info.jpeg.width, local_raw_info.jpeg.height);
-        ok = silent_pic_save_file(&local_raw_info, 0, hSuiteX);
-        redraw();
-    }
     
 cleanup:
     sp_running = 0;
     sp_buffer_count = 0;
-    if (hSuiteX) shoot_free_suite(hSuiteX);
-    if (hSuite2) shoot_free_suite(hSuite2);
     if (hSuite1) srm_free_suite(hSuite1);
+    if (hSuite2) shoot_free_suite(hSuite2);
     if (raw_flag) raw_lv_release();
 
     if (image_review_time)
