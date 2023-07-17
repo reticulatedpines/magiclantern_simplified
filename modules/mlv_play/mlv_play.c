@@ -2875,26 +2875,6 @@ static unsigned int mlv_play_init()
     
     mlv_play_sem = create_named_semaphore("mlv_play_running", 1);
     
-    /* now check for the needed decompression functions */
-    if (is_camera("5D3", "1.1.3"))
-    {
-        Setup_DecodeLosslessRawPath = (void*)0xFF3CB010;
-        Start_DecodeLosslessPath = (void*)0xFF3CB0D8;
-        Cleanup_DecodeLosslessPath = (void*)0xFF3CB23C;
-    }
-    if (is_camera("700D", "1.1.4"))
-    {
-        Setup_DecodeLosslessRawPath = (void*)0xFF4294DC;
-        Start_DecodeLosslessPath = (void*)0xFF4295A4;
-        Cleanup_DecodeLosslessPath = (void*)0xFF429708;
-    }
-    
-    /* all functions known? having the semaphore is an indicator we can decompress */
-    if(Setup_DecodeLosslessRawPath && Start_DecodeLosslessPath && Cleanup_DecodeLosslessPath)
-    {
-        mlv_play_decomp_sem = create_named_semaphore("mlv_play_decomp_sem", 0);
-    }
-    
     return 0;
 }
 
