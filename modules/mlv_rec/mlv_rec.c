@@ -2553,7 +2553,18 @@ static int32_t mlv_write_rawc(FILE* f)
     mlv_set_type((mlv_hdr_t *)&rawc, "RAWC");
     mlv_set_timestamp((mlv_hdr_t *)&rawc, mlv_start_timestamp);
     rawc.blockSize = sizeof(mlv_rawc_hdr_t);
-    rawc.raw_capture_info = raw_capture_info;
+
+    /* copy all fields from raw_capture_info */
+    rawc.sensor_res_x = raw_capture_info.sensor_res_x;
+    rawc.sensor_res_y = raw_capture_info.sensor_res_y;
+    rawc.sensor_crop  = raw_capture_info.sensor_crop;
+    rawc.reserved     = raw_capture_info.reserved;
+    rawc.binning_x    = raw_capture_info.binning_x;
+    rawc.skipping_x   = raw_capture_info.skipping_x;
+    rawc.binning_y    = raw_capture_info.binning_y;
+    rawc.skipping_y   = raw_capture_info.skipping_y;
+    rawc.offset_x     = raw_capture_info.offset_x;
+    rawc.offset_y     = raw_capture_info.offset_y;
 
     return mlv_write_hdr(f, (mlv_hdr_t *)&rawc);
 }
