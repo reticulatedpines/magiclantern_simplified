@@ -4,6 +4,7 @@
 #ifndef ML_MINIMAL_OBJ
 #define CONFIG_COMPOSITOR_XCM
 #define CONFIG_COMPOSITOR_DEDICATED_LAYER
+#define CONFIG_COMPOSITOR_XCM_V1
 #endif
 
 // Don't Click Me menu looks to be intended as a place

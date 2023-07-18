@@ -3,8 +3,8 @@
 //enable XCM only in full build
 #ifndef ML_MINIMAL_OBJ
 #define CONFIG_COMPOSITOR_XCM
-// DEDICATED_LAYER not yet implemented
-//#define CONFIG_COMPOSITOR_DEDICATED_LAYER
+#define CONFIG_COMPOSITOR_DEDICATED_LAYER
+#define CONFIG_COMPOSITOR_XCM_V2
 #endif
 
 #define FEATURE_SHOW_SHUTTER_COUNT

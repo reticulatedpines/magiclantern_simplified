@@ -57,6 +57,10 @@ struct MARV
     uint32_t signature;         /* MARV - VRAM reversed */
     uint8_t * bitmap_data;      /* either UYVY or UYVY + opacity */
     uint8_t * opacity_data;     /* optional; if missing, it's interleaved in bitmap_data */
+    #ifdef CONFIG_DIGIC_X
+    uint32_t memif_1;           /* meaning unknown, seems to be set as 0xFFFFFFFF */
+    uint64_t ibus_addr;         /* 64 bit IBus address for bitmap_data? */
+    #endif
     uint32_t flags;             /* unknown */
     uint32_t width;             /* X resolution; may be larger than screen size */
     uint32_t height;            /* Y resolution; may be larger than screen size */

@@ -228,13 +228,22 @@ THUMB_FN(0xe07f40f0, _LoadCalendarFromRTC)
 
 
 // These are required on Digic 678
-THUMB_FN(0xe074623c, RefreshVrmsSurface) // "Call RefreshVrmsSurface" / "XimrExe"
-DATA_PTR(   0x11738,  display_refresh_needed) // if 0, RefreshVrmsSurface() does nothing
+
 THUMB_FN(0xe00da090, XimrExe) // trigger Ximr unit to execute (HW compositor, partially understood)
 DATA_PTR(   0x11724,  winsys_sem)
-
 THUMB_FN(0xe00ddee0,  XCM_GetSourceSurface)
 DATA_PTR(  0x12dd58, _pXCM)
+
+/**
+ * Stubs needed for CONFIG_XCM_DEDICATED_LAYER
+ */
+THUMB_FN(0xe074623c, refreshVrmsSurface)            // "VMIX_TransferRectangleToVram"
+DATA_PTR(   0x11738, display_refresh_needed)        // if 0, RefreshVrmsSurface() does nothing
+DATA_PTR(  0x12dbb0, RENDERER_LayersMetadata);      // accessed in for loop in RENDERER_InitializeScreen()
+THUMB_FN(0xe00ddc2c, XCM_SetSourceSurface);
+THUMB_FN(0xe00ddf14, XCM_SetSourceArea);
+THUMB_FN(0xe07465cc, XOC_SetLayerEnable);
+THUMB_FN(0xe00de668, XCM_SetColorMatrixType);
 
 // These are not strictly required, although recent dev work has added dependencies;
 // these likely should be removed before a "real" release

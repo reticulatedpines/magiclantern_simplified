@@ -179,6 +179,30 @@ THUMB_FN(0xE0110BD0, XimrExe);                              // In RefreshVrmsSur
 DATA_PTR(    0xFB88, winsys_sem);                           // Used in RefreshVrmsSurface around XimrExe call
 DATA_PTR(    0xFB38, _rgb_vram_info);
 
+/**
+ * Things needed for CONFIG_COMPOSITOR_XCM.
+ *
+ * RP uses two layers (GUI, focus overlays). WINSYS code swaps pointer in
+ * WINSYS structure (one we know as _rgb_vram_info) to select which layer to
+ * draw.
+ *
+ * With FEATURE_COMPOSITOR_XCM we ask XCM via XCM_GetSourceSurface to give us
+ * pointer to layer 0, which is more reliable.
+ */
+THUMB_FN(0xe01171e8, XCM_GetSourceSurface)          // by debug message
+//THUMB_FN(0xe0116fb0, XCM_MakeContext)             // by debug message. Not used in code, left for reference below.
+DATA_PTR(    0xfba0, _pXCM);                        // param1 to XCM_MakeContext() when called from refreshVrmsSurface()
+
+/**
+ * Stubs needed for CONFIG_XCM_DEDICATED_LAYER
+ */
+THUMB_FN(0xe0234aac, refreshVrmsSurface);           // by debug message.
+DATA_PTR(    0xfb9c, display_refresh_needed)        // Easy to spot in refreshVrmsSurface()
+DATA_PTR(   0x6aaac, RENDERER_LayersMetadata);      // accessed in for loop in RENDERER_InitializeScreen()
+THUMB_FN(0xe01171ae, XCM_SetSourceSurface);
+THUMB_FN(0xe0117218, XCM_SetSourceArea);
+THUMB_FN(0xe0234e2c, XOC_SetLayerEnable);
+
 /** Wrong on purpose **/
 DATA_PTR(       0x0,  LCD_Palette)                          // D6+ do use palletes to draw GUI, but it is hw rendered into RGBA
 

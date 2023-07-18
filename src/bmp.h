@@ -31,6 +31,7 @@
 #include "dryos.h"
 #include "font.h"
 #include "rbf_font.h"
+#include "compositor.h"
 
 extern int bmp_enabled;
 
@@ -54,10 +55,6 @@ inline uint8_t* bmp_vram_raw() { return bmp_vram_info[1].vram2; }
  * arbitrary layer on runtime (eg with compositor enabled)
  */
 extern struct MARV *rgb_vram_info;
-#ifdef CONFIG_COMPOSITOR_XCM
-extern void* _pXCM;
-extern struct MARV *XCM_GetSourceSurface(void *pXCM, uint32_t layer_id);
-#endif
 /**
  * _rgb_vram_info stubs is not needed in CONFIG_COMPOSITOR_XCM,
  * but it breaks minimal builds that do not support compositor stuff.
@@ -153,7 +150,7 @@ inline uint8_t *bmp_vram_raw() {
     #define SET_4BIT_PIXEL(p, x, color) *(char*)(p) = ((x) % 2) ? ((*(char*)(p) & 0x0F) | (D2V(color) << 4)) : ((*(char*)(p) & 0xF0) | (D2V(color) & 0x0F))
 
 #else // dryos
-    #if defined(CONFIG_DIGIC_X)
+    #if defined(CONFIG_DIGIC_X) && !defined(CONFIG_COMPOSITOR_DEDICATED_LAYER)
     // kitor FIXME: R5 has different layer size and position...
     // this is a temporary integration before a proper one will be developed
     #define BMP_W_PLUS   872

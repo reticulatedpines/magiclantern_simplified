@@ -281,9 +281,9 @@ DATA_PTR(    0xFE6C, display_refresh_needed)                // Easy to spot in r
  * Structures needed for CONFIG_XCM_DEDICATED_LAYER. Specific for EOS R only!
  * See https://www.magiclantern.fm/forum/index.php?topic=26024
  */
-DATA_PTR(   0x6EFA0, RENDERER_LayersArr);
-DATA_PTR(   0x6F2A4, VMIX_LayersArr);
-DATA_PTR(   0x6F2BC, VMIX_LayersEnableArr);
+DATA_PTR(   0x6EFA0, RENDERER_Layers);
+DATA_PTR(   0x6F2A4, VMIX_Layers);
+DATA_PTR(   0x6F2BC, VMIX_LayersEnable);
 
 /**
  * General FEATURE_VRAM_RGBA stubs

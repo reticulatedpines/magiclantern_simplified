@@ -217,11 +217,11 @@ DATA_PTR(    0xF450, display_refresh_needed)                // Easy to spot in r
 
 /**
  * Structures needed for CONFIG_XCM_DEDICATED_LAYER. Specific for SX740 only!
- * Differs from R by not having VMIX_LayersEnableArr.
+ * Differs from R by not having VMIX_LayersEnable.
  * See https://www.magiclantern.fm/forum/index.php?topic=26024
  */
-DATA_PTR(   0x9FCAC, RENDERER_LayersArr);
-DATA_PTR(   0x9FFB0, VMIX_LayersArr);
+DATA_PTR(   0x9FCAC, RENDERER_Layers);
+DATA_PTR(   0x9FFB0, VMIX_Layers);
 
 /**
  * General FEATURE_VRAM_RGBA stubs

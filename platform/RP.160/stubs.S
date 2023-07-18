@@ -211,6 +211,10 @@ DATA_PTR(    0xFF78, _pXCM);                        // param1 to XCM_MakeContext
  */
 THUMB_FN(0xe0254b0c, refreshVrmsSurface);           // by debug message.
 DATA_PTR(    0xFF74, display_refresh_needed)        // Easy to spot in refreshVrmsSurface()
+DATA_PTR(   0x720f0, RENDERER_LayersMetadata);
+THUMB_FN(0xe010ef6a, XCM_SetSourceSurface);
+THUMB_FN(0xe010efd4, XCM_SetSourceArea);
+THUMB_FN(0xe0254e8c, XOC_SetLayerEnable);
 
 /**
  * General FEATURE_VRAM_RGBA stubs
