@@ -922,7 +922,10 @@ int raw_update_params_work()
         }
         #endif
 
+        #ifdef CONFIG_EDMAC_RAW_SLURP
         raw_lv_realloc_buffer();
+        #endif
+
         raw_info.buffer = raw_get_default_lv_buffer();
 
         if (!raw_info.buffer)
@@ -2391,8 +2394,9 @@ static void raw_lv_enable()
 #endif
 #endif
 
-
+#ifdef CONFIG_EDMAC_RAW_SLURP
     raw_lv_realloc_buffer();
+#endif
 }
 
 static void raw_lv_disable()
@@ -2540,7 +2544,12 @@ void raw_lv_request_digital_gain(int gain)
     {
         lv_raw_gain = gain;
         raw_info.white_level = get_default_white_level();
+#ifdef BLACK_LEVEL
+        // SJE FIXME this is clearly an ugly hack.  BLACK_LEVEL is set
+        // if EVF_STATE exists, which it doesn't for at least 5D2, so the build fails here.
+        // But this hack presumably means it's uninit?  Or something stupid and wrong.
         raw_info.black_level = BLACK_LEVEL;
+#endif
     }
     else
     {

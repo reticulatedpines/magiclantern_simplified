@@ -844,7 +844,15 @@ void digic_iso_step()
         {
             /* don't touch settings that may alter the raw buffer */
             /* just set the ISO boost register */
+#ifdef CONFIG_EDMAC_RAW_SLURP
+// SJE FIXME.  Not sure this is appropriate, it's just a quick hack fix.
+// _raw_lv_get_iso_post_gain() isn't built in raw.c unless this CONFIG is set,
+// so without the guard here, some cams fail to build, e.g. 5D2.
+//
+// But what should the fix really be?  Is ignoring this multipler to total_movie_gain
+// sane?
             total_movie_gain *= _raw_lv_get_iso_post_gain();
+#endif
 
             if (total_movie_gain != 1024)
             {
