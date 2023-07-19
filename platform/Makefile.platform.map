@@ -1,16 +1,19 @@
 PLATFORM_MAP = \
+    5D2.212 \
     5D3.113 \
     5D3.123 \
-    5D2.212 \
     5D4.133 \
+    5DSR.112 \
     6D.116 \
     6D2.105 \
+    7D.203 \
     7D2.112 \
     50D.109 \
     60D.111 \
-    77D.110 \
     70D.112 \
+    77D.110 \
     80D.103 \
+    100D.101 \
     200D.101 \
     500D.111 \
     550D.109 \
@@ -19,24 +22,20 @@ PLATFORM_MAP = \
     700D.115 \
     750D.110 \
     850D.100 \
-    100D.101 \
     1100D.105 \
     EOSM.202 \
     M50.110 \
     R.180 \
-    RP.160 \
     R5.152 \
-    SX740.102 \
+    RP.160 \
     SX70.111 \
-    5DSR.112 \
-    7D.203 \
-
+    SX740.102 \
 
 # SJE via lclevy, only builds minimal/hello-world so not enabled here
 #    R6.150 \
 
-# SJE FIXME 7D Master build is broken, related to dcache symbol name,
-# might just need a rename.  Low prio to fix, this is the secondary digic.
+# SJE FIXME 7D Master build is broken, looks like it always has been.
+# Low prio to fix, this is the secondary digic.
 #    7D_MASTER.203 \
 
 

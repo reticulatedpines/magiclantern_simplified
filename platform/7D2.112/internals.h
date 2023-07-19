@@ -18,6 +18,10 @@
 // enable state objects hooks
 #define CONFIG_STATE_OBJECT_HOOKS
 
+// SRM is untested, this define is to allowing building
+// without SRM_BUFFER_SIZE being found
+#define CONFIG_MEMORY_SRM_NOT_WORKING
+
 // SJE FIXME this is intended as temporary, so I can commit the code
 // without needing to find versions for all cams.  Once all cams
 // are converted and tested, we should retire CONFIG_NEW_TASK_STRUCTS
