@@ -450,23 +450,6 @@ static GUARDED_BY(mem_sem) struct
 /* used to know when allocation was done */
 static struct semaphore *srm_alloc_sem = 0;
 
-/* providers of dummy stubs for builds with disabled SRM */
-#ifdef CONFIG_MEMORY_SRM_NOT_WORKING
-void SRM_AllocateMemoryResourceFor1stJob(
-    void (*callback)(void** dst_ptr, void* raw_buffer, uint32_t raw_buffer_size),
-    void** dst_ptr)
-{
-    DryosDebugMsg(0, 15, "SRM_AllocateMemoryResourceFor1stJob disabled");
-}
-void SRM_FreeMemoryResourceFor1stJob(
-    void* raw_buffer,
-    int unk1_zero,
-    int unk2_zero)
-{
-    DryosDebugMsg(0, 15, "SRM_FreeMemoryResourceFor1stJob disabled");
-}
-#endif // CONFIG_MEMORY_SRM_NOT_WORKING
-
 // SJE FIXME: disable SRM stuff if it's known to not work on a cam.
 // This removes the need to find SRM_BUFFER_SIZE in order to build.
 #ifndef CONFIG_MEMORY_SRM_NOT_WORKING
