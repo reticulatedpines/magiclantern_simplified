@@ -1005,6 +1005,7 @@ void shoot_free_suite(struct memSuite * hSuite)
     give_semaphore(mem_sem);
 }
 
+#ifndef CONFIG_MEMORY_SRM_NOT_WORKING
 struct memSuite * srm_malloc_suite(int num_requested_buffers)
 {
     take_semaphore(mem_sem, 0);
@@ -1019,6 +1020,7 @@ void srm_free_suite(struct memSuite * suite)
     _srm_free_suite(suite);
     give_semaphore(mem_sem);
 }
+#endif // ~CONFIG_MEMORY_SRM_NOT_WORKING
 
 struct memSuite * shoot_malloc_suite_contig(size_t size)
 {
@@ -1170,6 +1172,7 @@ static void guess_free_mem_task(void *priv, int delta)
     exmem_clear(shoot_suite, 0);
     _shoot_free_suite(shoot_suite);
 
+#ifndef CONFIG_MEMORY_SRM_NOT_WORKING
     /* test the new SRM job allocator */
     struct memSuite *srm_suite = _srm_malloc_suite(0);
     
@@ -1212,6 +1215,7 @@ static void guess_free_mem_task(void *priv, int delta)
 
     exmem_clear(srm_suite, 0);
     _srm_free_suite(srm_suite);
+#endif // ~CONFIG_MEMORY_SRM_NOT_WORKING
 
     /* mallocs can resume now */
     give_semaphore(mem_sem);

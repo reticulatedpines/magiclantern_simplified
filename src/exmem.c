@@ -465,8 +465,11 @@ void SRM_FreeMemoryResourceFor1stJob(
 {
     DryosDebugMsg(0, 15, "SRM_FreeMemoryResourceFor1stJob disabled");
 }
-#endif
+#endif // CONFIG_MEMORY_SRM_NOT_WORKING
 
+// SJE FIXME: disable SRM stuff if it's known to not work on a cam.
+// This removes the need to find SRM_BUFFER_SIZE in order to build.
+#ifndef CONFIG_MEMORY_SRM_NOT_WORKING
 /* called from RscMgr task */
 static REQUIRES(RscMgr)
 void srm_malloc_cbr(void** dst_ptr, void* raw_buffer, uint32_t raw_buffer_size)
@@ -790,6 +793,7 @@ int _srm_get_free_space()
 
     return free_space;
 }
+#endif // ~CONFIG_MEMORY_SRM_NOT_WORKING
 
 static void exmem_init()
 {
