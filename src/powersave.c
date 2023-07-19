@@ -74,7 +74,11 @@ int ResumeLiveView()
         )
         while (sensor_cleaning) msleep(100);
         if (lv) set_lv_zoom(lv_zoom_before_pause);
+#ifdef CONFIG_STATE_OBJECT_HOOKS
         wait_lv_frames(1);
+#else
+        msleep(100);
+#endif
         ans = 1;
     }
     lv_paused = 0;
