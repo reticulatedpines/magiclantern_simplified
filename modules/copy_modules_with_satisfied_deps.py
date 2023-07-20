@@ -89,6 +89,33 @@ def copy_good_modules(module_names, cam_dir, dest_dir):
     for m in cannot_sat_m:
         m.unsatisfied_deps = m.deps - all_syms
 
+    # If a module has any dependency that can only be met
+    # by a module that itself cannot have its deps met,
+    # then the first module also cannot meet its deps.
+    # Rule this class out.
+    #
+    # Surely there's a nicer alg for this but the total
+    # number of modules is small so it is at least fast enough.
+    can_sat_m_orig = can_sat_m.copy() # needed so we can modify can_sat_m during the loop
+    for m in can_sat_m_orig:
+        exclude_m = False
+        for m2 in cannot_sat_m:
+            possibly_bad_deps = m.deps - (m.deps - m2.syms)
+            for d in possibly_bad_deps:
+                # m2 cannot meet its deps and provides a symbol that m needs,
+                # is it the only provider?
+                other_providers = {p for p in can_sat_m if d in p.syms}
+                if not other_providers:
+                    # at least one dep cannot be provided
+                    exclude_m = True
+                    break
+            if exclude_m:
+                break
+        if exclude_m:
+            m.unsatisfied_deps = m.deps - available_syms
+            cannot_sat_m.add(m)
+            can_sat_m.remove(m)
+
     # Try to find required symbols, initially only from ML exports.
     # As we find modules where all dependencies are satisfied,
     # we add their symbols to those we can use, because these
