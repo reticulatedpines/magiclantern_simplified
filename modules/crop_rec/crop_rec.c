@@ -544,8 +544,17 @@ static void FAST cmos_hook(uint32_t* regs, uint32_t* stack, uint32_t pc)
         }
     }
 
+    /* menu overrides */
+    if (cmos1_lo || cmos1_hi)
+    {
+        cmos_new[1] = PACK12(cmos1_lo,cmos1_hi);
+    }
 
-    
+    if (cmos2)
+    {
+        cmos_new[2] = cmos2;
+    }
+
     /* copy data into a buffer, to make the override temporary */
     /* that means: as soon as we stop executing the hooks, values are back to normal */
     static uint16_t copy[512];
@@ -1405,6 +1414,10 @@ static void update_patch()
         {
             patch_hook_function(CMOS_WRITE, MEM_CMOS_WRITE, &cmos_hook, "crop_rec: CMOS[1,2,6] parameters hook");
             patch_hook_function(ADTG_WRITE, MEM_ADTG_WRITE, &adtg_hook, "crop_rec: ADTG[8000,8806] parameters hook");
+            if (ENGIO_WRITE)
+            {
+                patch_hook_function(ENGIO_WRITE, MEM_ENGIO_WRITE, engio_write_hook, "crop_rec: video timers hook");
+            }
             patch_active = 1;
         }
     }
@@ -1415,6 +1428,10 @@ static void update_patch()
         {
             unpatch_memory(CMOS_WRITE);
             unpatch_memory(ADTG_WRITE);
+            if (ENGIO_WRITE)
+            {
+                unpatch_memory(ENGIO_WRITE);
+            }
             patch_active = 0;
             crop_preset = 0;
         }
@@ -1912,6 +1929,9 @@ static unsigned int crop_rec_init()
         ADTG_WRITE = 0x11640;
         MEM_ADTG_WRITE = 0xE92D47F0;
         
+        ENGIO_WRITE = is_camera("5D3", "1.2.3") ? 0xFF290F98 : 0xFF28CC3C;
+        MEM_ENGIO_WRITE = 0xE51FC15C;
+
         is_5D3 = 1;
         crop_presets                = crop_presets_5d3;
         crop_rec_menu[0].choices    = crop_choices_5d3;
