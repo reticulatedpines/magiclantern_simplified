@@ -113,7 +113,7 @@ static int cam_5d3_123 = 0;
  * use roughly 10% increments
  **/
 
-static int resolution_presets_x[] = {  640,  960,  1280,  1600,  1920,  2240,  2560,  2880,  3072,  3520,  4096,  5796 };
+static const int resolution_presets_x[] = {  640,  960,  1280,  1600,  1920,  2240,  2560,  2880,  3072,  3520,  4096,  5796 };
 #define  RESOLUTION_CHOICES_X CHOICES("640","960","1280","1600","1920","2240","2560","2880","3072","3520","4096","5796")
 
 static const int aspect_ratio_presets_num[]      = {   5,    4,    3,       8,      25,     239,     235,      22,    2,     185,     16,    5,    3,    4,    12,    1175,    1,    1 };
@@ -293,7 +293,6 @@ static GUARDED_BY(GuiMainTask)  int frame_offset_delta_y = 0;
 #define RAW_PRE_RECORDING 4
 
 static volatile int raw_recording_state = RAW_IDLE;
-static GUARDED_BY(LiveVHiPrioTask) int raw_previewing = 0;
 
 #define RAW_IS_IDLE      (raw_recording_state == RAW_IDLE)
 #define RAW_IS_PREPARING (raw_recording_state == RAW_PREPARING)
@@ -317,7 +316,7 @@ struct frame_slot
         SLOT_RESERVED,      /* it may become available when resizing the previous slots */
         SLOT_CAPTURING,     /* in progress */
         SLOT_LOCKED,        /* locked by some other module */
-        SLOT_FULL,          /* contains image data (can be fully captured or in progress - test with frame_check_saved) */
+        SLOT_FULL,          /* contains fully captured image data */
         SLOT_WRITING        /* it's being saved to card */
     } status;
 };
@@ -526,6 +525,12 @@ void mlv_rec_release_slot(int32_t slot, uint32_t write)
     }
 }
 
+/* set the timestamp relative to recording start */
+void mlv_rec_set_rel_timestamp(mlv_hdr_t *hdr, uint64_t timestamp)
+{
+    hdr->timestamp = timestamp - mlv_start_timestamp;
+}
+
 /* queuing of blocks from other modules */
 uint32_t mlv_rec_queue_block(mlv_hdr_t *hdr)
 {
@@ -613,8 +618,11 @@ static int calc_res_y(int res_x, int max_res_y, int num, int den, float squeeze)
 static REQUIRES(LiveViewTask)
 void update_cropping_offsets()
 {
-    int sx = raw_info.active_area.x1 + (max_res_x - res_x) / 2;
-    int sy = raw_info.active_area.y1 + (max_res_y - res_y) / 2;
+    int left_margin = (raw_info.active_area.x1 + 7) & ~7;
+    int top_margin  = (raw_info.active_area.y1 + 1) & ~1;
+
+    int sx = left_margin + (max_res_x - res_x) / 2;
+    int sy = top_margin  + (max_res_y - res_y) / 2;
 
     if (FRAMING_PANNING)
     {
@@ -651,8 +659,8 @@ void update_resolution_params()
 {
     /* max res X */
     /* make sure we don't get dead pixels from rounding */
-    int left_margin = (raw_info.active_area.x1 + 7) / 8 * 8;
-    int right_margin = (raw_info.active_area.x2) / 8 * 8;
+    int left_margin  = (raw_info.active_area.x1 + 7) & ~7;   /* ceil rounding to multiple of 8 pixels */
+    int right_margin = (raw_info.active_area.x2 + 0) & ~7;   /* floor rounding */
     int max = (right_margin - left_margin);
     
     /* max image width is modulo 2 bytes and 8 pixels */
@@ -1051,7 +1059,7 @@ static MENU_UPDATE_FUNC(aspect_ratio_update_info)
         int num = aspect_ratio_presets_num[aspect_ratio_index];
         int den = aspect_ratio_presets_den[aspect_ratio_index];
         int sq100 = (int)roundf(squeeze_factor*100);
-        int res_y_corrected = calc_res_y(res_x, max_res_y, num, den, 1.0f);
+        int res_y_corrected = calc_res_y(res_x, max_res_y*squeeze_factor, num, den, 1.0f);
         MENU_SET_HELP("%dx%d. Stretch by %s%d.%02dx to get %dx%d (%s) in post.", res_x, res_y, FMT_FIXEDPOINT2(sq100), res_x, res_y_corrected, aspect_ratio_choices[aspect_ratio_index]);
     }
 }
@@ -1627,9 +1635,11 @@ static void show_buffer_status()
             }
 
             int color = slots[i].status == SLOT_FREE      ? COLOR_GRAY(10) :
+                        slots[i].is_meta                  ? COLOR_BLUE :
                         slots[i].status == SLOT_WRITING   ? COLOR_GREEN1 :
                         slots[i].status == SLOT_FULL      ? COLOR_LIGHT_BLUE :
                         slots[i].status == SLOT_RESERVED  ? COLOR_GRAY(50) :
+                        slots[i].status == SLOT_LOCKED    ? COLOR_YELLOW :
                                                             COLOR_RED ;
 
             uint32_t x1 = (uint32_t) slots[i].ptr - chunk_start;
@@ -1913,7 +1923,7 @@ void show_recording_status()
                 rl_icon_width = bfnt_draw_char(
                     ICON_ML_MOVIE,
                     rl_x, rl_y,
-                    rl_color, COLOR_BG_DARK
+                    rl_color, NO_BG_ERASE
                 );
 
                 /* Display the Status */
@@ -2416,7 +2426,7 @@ void pre_record_discard_frame_if_no_free_slots()
 }
 
 static REQUIRES(LiveViewTask)
-void pre_record_vsync_step()
+void FAST pre_record_vsync_step()
 {
     if (raw_recording_state == RAW_RECORDING)
     {
@@ -2561,7 +2571,7 @@ static void FAST edmac_spy_poll(int last_expiry, void* unused)
     if (wr < buf || wr > end) return;
 
     /* plot the read and write pointers */
-    uint32_t clock = MEM(0xC0242014);
+    uint32_t clock = GET_DIGIC_TIMER();
     uint32_t r_active = MEM(edmac_read_base);
     uint32_t w_active = MEM(edmac_wraw_base);
     int x  = 50 + (clock - edmac_start_clock) * 512 / edmac_frame_duration;
@@ -2951,21 +2961,6 @@ static ml_cbr_action h264_proxy_snd_rec_cbr (const char *event, void *data)
     return ML_CBR_CONTINUE;
 }
 
-static char* get_wav_file_name(char* raw_movie_filename)
-{
-    /* same name as movie, but with wav extension */
-    static char wavfile[100];
-    snprintf(wavfile, sizeof(wavfile), raw_movie_filename);
-    int len = strlen(wavfile);
-    wavfile[len-4] = '.';
-    wavfile[len-3] = 'W';
-    wavfile[len-2] = 'A';
-    wavfile[len-1] = 'V';
-    /* prefer SD card for saving WAVs (should be faster on 5D3) */
-    if (is_dir("B:/")) wavfile[0] = 'B';
-    return wavfile;
-}
-
 static REQUIRES(RawRecTask)
 void init_mlv_chunk_headers(struct raw_info * raw_info)
 {
@@ -3242,6 +3237,7 @@ void raw_video_rec_task()
     raw_recording_state = RAW_PREPARING;
     give_semaphore(settings_sem);
 
+    mlv_rec_call_cbr(MLV_REC_EVENT_PREPARING, NULL);
     /* locals */
     FILE* f = 0;
     int last_block_size = 0; /* for detecting early stops */
@@ -3289,18 +3285,6 @@ void raw_video_rec_task()
 
     /* disable Canon's powersaving (30 min in LiveView) */
     powersave_prohibit();
-
-    /* create a backup file, to make sure we can save the file footer even if the card is full */
-    char backup_filename[100];
-    snprintf(backup_filename, sizeof(backup_filename), "%s/backup.raw", get_dcim_dir());
-    FILE* bf = FIO_CreateFile(backup_filename);
-    if (!bf)
-    {
-        bmp_printf( FONT_MED, 30, 50, "File create error");
-        goto cleanup;
-    }
-    FIO_WriteFile(bf, (void*)0x40000000, 512*1024);
-    FIO_CloseFile(bf);
 
     /* wait for two frames to be sure everything is refreshed */
     wait_lv_frames(2);
@@ -3608,16 +3592,13 @@ abort_and_check_early_stop:
     
     /* done, this will stop the vsync CBR and the copying task */
     raw_recording_state = RAW_FINISHING;
+    mlv_rec_call_cbr(MLV_REC_EVENT_STOPPING, NULL);
 
     /* wait until the other tasks calm down */
     wait_lv_frames(2);
 
-    /* exclusive edmac access no longer needed */
-    if (output_format == OUTPUT_14BIT_NATIVE)
-    {
-        edmac_memcpy_res_unlock();
-    }
-    
+    /* signal end of recording to the compression task */
+    msg_queue_post(compress_mq, INT_MIN);
 
     set_recording_custom(CUSTOM_RECORDING_NOT_RECORDING);
 
@@ -3629,8 +3610,6 @@ abort_and_check_early_stop:
         /* PauseLiveView breaks UI locks - why? */
         gui_uilock(UILOCK_EVERYTHING);
     }
-    /* end the compression task */
-    msg_queue_post(compress_mq, 0xFFFFFFFF);
 
     /* write all queued blocks, if any */
     uint32_t msg_count = 0;
@@ -3651,12 +3630,6 @@ abort_and_check_early_stop:
             /* free the block */
             free(block);
         }
-    }
-
-    if (!RECORDING_H264)
-    {
-        /* faster writing speed that way */
-        PauseLiveView();
     }
 
     /* write remaining frames */
@@ -3763,6 +3736,7 @@ cleanup:
     ResumeLiveView();
     redraw();
     raw_recording_state = RAW_IDLE;
+    mlv_rec_call_cbr(MLV_REC_EVENT_STOPPED, NULL);
 }
 
 static REQUIRES(GuiMainTask)
@@ -4107,7 +4081,8 @@ unsigned int raw_rec_keypress_cbr(unsigned int key)
     return 1;
 }
 
-static unsigned int raw_rec_keypress_cbr_raw(unsigned int raw_event)
+static REQUIRES(GuiMainTask)
+unsigned int raw_rec_keypress_cbr_raw(unsigned int raw_event)
 {
     struct event * event = (struct event *) raw_event;
 
