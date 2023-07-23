@@ -918,7 +918,7 @@ FILE **load_all_chunks(char *base_filename, int *entries)
 
 void show_usage(char *executable)
 {
-    print_msg(MSG_INFO, "Usage: %s [-o output_file] [-rscd] [-l compression_level(0-9)] <inputfile>\n", executable);
+    print_msg(MSG_INFO, "Usage: %s [options] <inputfile>\n", executable);
     print_msg(MSG_INFO, "Parameters:\n");
     print_msg(MSG_INFO, "  -o output_file      write video data into a MLV file\n");
     print_msg(MSG_INFO, "  -v                  verbose output\n");
@@ -1033,44 +1033,44 @@ void print_capture_info(mlv_rawc_hdr_t * rawc)
     );
     print_msg(
         MSG_INFO, "      sensor res      %dx%d\n",
-        rawc->raw_capture_info.sensor_res_x,
-        rawc->raw_capture_info.sensor_res_y
+        rawc->sensor_res_x,
+        rawc->sensor_res_y
     );
     print_msg(
         MSG_INFO, "      sensor crop     %d.%02d (%s)\n",
-        rawc->raw_capture_info.sensor_crop / 100,
-        rawc->raw_capture_info.sensor_crop % 100,
-        rawc->raw_capture_info.sensor_crop == 100 ? "Full frame" : 
-        rawc->raw_capture_info.sensor_crop == 162 ? "APS-C" : "35mm equiv"
+        rawc->sensor_crop / 100,
+        rawc->sensor_crop % 100,
+        rawc->sensor_crop == 100 ? "Full frame" :
+        rawc->sensor_crop == 162 ? "APS-C" : "35mm equiv"
     );
     
-    int sampling_x = rawc->raw_capture_info.binning_x + rawc->raw_capture_info.skipping_x;
-    int sampling_y = rawc->raw_capture_info.binning_y + rawc->raw_capture_info.skipping_y;
+    int sampling_x = rawc->binning_x + rawc->skipping_x;
+    int sampling_y = rawc->binning_y + rawc->skipping_y;
     
     print_msg(
         MSG_INFO, "      sampling        %dx%d (",
         sampling_y, sampling_x
     );
     print_sampling_info(
-        rawc->raw_capture_info.binning_y,
-        rawc->raw_capture_info.skipping_y,
+        rawc->binning_y,
+        rawc->skipping_y,
         "line"
     );
     print_msg(MSG_INFO, ", ");
     print_sampling_info(
-        rawc->raw_capture_info.binning_x,
-        rawc->raw_capture_info.skipping_x,
+        rawc->binning_x,
+        rawc->skipping_x,
         "column"
     );
     print_msg(MSG_INFO, ")\n");
 
-    if (rawc->raw_capture_info.offset_x != -32768 &&
-        rawc->raw_capture_info.offset_y != -32768)
+    if (rawc->offset_x != -32768 &&
+        rawc->offset_y != -32768)
     {
         print_msg(
             MSG_INFO, "      offset          %d,%d\n",
-            rawc->raw_capture_info.offset_x,
-            rawc->raw_capture_info.offset_y
+            rawc->offset_x,
+            rawc->offset_y
         );
     }
 }
@@ -1335,7 +1335,7 @@ int main (int argc, char *argv[])
         AUTOPSY_DUMP_HEX = 1,
         AUTOPSY_DUMP_ASCII = 2
     };
-    
+
     /* return/status codes for block handler functions */
     typedef enum 
     {
@@ -2369,7 +2369,7 @@ read_headers:
                                 print_msg(MSG_INFO, "\n");
                                 break;
                             }
-                            
+
                             case AUTOPSY_DUMP_ASCII:
                             {
                                 print_msg(MSG_INFO, "--- ASCII display ---\n");
@@ -2383,9 +2383,9 @@ read_headers:
                                 break;
                             }
                         }
-                        
+
                         free(autopsy_buf);
-                        
+
                         /* when extracting block types, keep rolling, there might be more */
                         if(autopsy_mode != AUTOPSY_EXTRACT_TYPE)
                         {
@@ -2414,7 +2414,7 @@ read_headers:
                         file_set_pos(autopsy_handle, 0, SEEK_END);
                         uint32_t autopsy_size = file_get_pos(autopsy_handle);
                         file_set_pos(autopsy_handle, 0, SEEK_SET);
-                        
+
                         switch(autopsy_content)
                         {
                             case AUTOPSY_HEADER:
@@ -2422,27 +2422,27 @@ read_headers:
                                 /* to replace header, read original block and replace data */
                                 mlv_hdr_t *autopsy_block = malloc(mlv_block->blockSize);
                                 mlv_hdr_t *autopsy_header = malloc(autopsy_size);
-                                
+
                                 if(!autopsy_block || !autopsy_header)
                                 {
                                     print_msg(MSG_ERROR, "Failed to allocate buffer for data to extract\n");
                                     goto abort;
                                 }
-                                
+
                                 /* read original block from input file */
                                 if(fread(autopsy_block, mlv_block->blockSize, 1, in_file) != 1)
                                 {
                                     print_msg(MSG_ERROR, "Failed to read data from input file\n");
                                     goto abort;
                                 }
-                        
+
                                 /* read new header from autopsy file */
                                 if(fread(autopsy_header, autopsy_size, 1, autopsy_handle) != 1)
                                 {
                                     print_msg(MSG_ERROR, "Failed to read data from autopsy file\n");
                                     goto abort;
                                 }
-                                
+
                                 /* patch autopsy header to match block size */
                                 int old_header_size = get_header_size(autopsy_block);
                                 
@@ -2451,7 +2451,7 @@ read_headers:
                                     print_msg(MSG_ERROR, "Error: Unknown block type '%c%c%c%c', cannot determine its header size.\n", autopsy_block->blockType[0], autopsy_block->blockType[1], autopsy_block->blockType[2], autopsy_block->blockType[3]);
                                     goto abort;
                                 }
-                                
+
                                 /* calculate new block size from payload length */
                                 int payload_size = autopsy_block->blockSize - old_header_size;
                                 autopsy_header->blockSize = autopsy_size + payload_size;
@@ -2462,24 +2462,24 @@ read_headers:
                                     print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
                                     goto abort;
                                 }
-                                
+
                                 /* write original payload */
                                 if(fwrite(&((uint8_t*)autopsy_block)[old_header_size], payload_size, 1, out_file) != 1)
                                 {
                                     print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
                                     goto abort;
                                 }
-                                
+
                                 free(autopsy_block);
                                 free(autopsy_header);
                                 break;
                             }
-                                
+
                             case AUTOPSY_PAYLOAD:
                             {
                                 /* read original header and use payload from autopsy file */
                                 int header_size = get_header_size(mlv_block);
-                                
+
                                 if(!header_size)
                                 {
                                     print_msg(MSG_ERROR, "Error: Unknown block type '%c%c%c%c', cannot determine its header size.\n", mlv_block->blockType[0], mlv_block->blockType[1], mlv_block->blockType[2], mlv_block->blockType[3]);
@@ -2530,44 +2530,41 @@ read_headers:
                                 free(autopsy_payload);
                                 break;
                             }
-
-                            case AUTOPSY_DUMP_HEX:
+                            
+                            case AUTOPSY_BLOCK:
                             {
-                                print_msg(MSG_INFO, "--- Hex display ---\n");
-                                print_msg(MSG_INFO, "   Block: %c%c%c%c\n", buf.blockType[0], buf.blockType[1], buf.blockType[2], buf.blockType[3]);
-                                print_msg(MSG_INFO, "  Offset: 0x%08" PRIx64 "\n", position);
-                                print_msg(MSG_INFO, "  Number: %d\n", blocks_processed);
-                                print_msg(MSG_INFO, "    Size: %d\n", buf.blockSize);
-
-                                hexdump((char *)&autopsy_buf[start], length, start);
-                                print_msg(MSG_INFO, "--------------------\n");
-                                print_msg(MSG_INFO, "\n");
-                                break;
-                            }                            
-
-                            case AUTOPSY_DUMP_ASCII:
-                            {
-                                print_msg(MSG_INFO, "--- ASCII display ---\n");
-                                print_msg(MSG_INFO, "   Block: %c%c%c%c\n", buf.blockType[0], buf.blockType[1], buf.blockType[2], buf.blockType[3]);
-                                print_msg(MSG_INFO, "  Offset: 0x%08" PRIx64 "\n", position);
-                                print_msg(MSG_INFO, "  Number: %d\n", blocks_processed);
-                                print_msg(MSG_INFO, "    Size: %d\n", buf.blockSize);
-                                print_msg(MSG_INFO, " Content: \"%s\"\n", &autopsy_buf[start]);
-                                print_msg(MSG_INFO, "---------------------\n");
-                                print_msg(MSG_INFO, "\n");
+                                mlv_hdr_t *autopsy_block = malloc(autopsy_size);
+                                
+                                if(!autopsy_block)
+                                {
+                                    print_msg(MSG_ERROR, "Failed to allocate buffer for data to extract\n");
+                                    goto abort;
+                                }
+                                
+                                /* read new header from autopsy file */
+                                if(fread(autopsy_block, autopsy_size, 1, autopsy_handle) != 1)
+                                {
+                                    print_msg(MSG_ERROR, "Failed to read data from autopsy file\n");
+                                    goto abort;
+                                }
+                                
+                                if(fwrite(autopsy_block, autopsy_size, 1, out_file) != 1)
+                                {
+                                    print_msg(MSG_ERROR, "Failed writing into .MLV file\n");
+                                    goto abort;
+                                }
+                                free(autopsy_block);
                                 break;
                             }
                         }
                         
-                        free(autopsy_buf);
+                        fclose(autopsy_handle);
                         
-                        /* when extracting block types, keep rolling, there might be more */
-                        if(autopsy_mode != AUTOPSY_EXTRACT_TYPE)
-                        {
-                            goto abort;
-                        }
-                        break;
+                        goto skip_block;
                     }
+                }                
+            }
+        }
 
         /* file header */
         if(!memcmp(mlv_block->blockType, "MLVI", 4))
@@ -2796,8 +2793,8 @@ read_headers:
                         print_msg(MSG_ERROR, "AUDF: Failed writing into .WAV file\n");
                         return PROCESS_ERROR;
                     }
-                    
-                    wav_file_size += frame_size;
+                
+                    wav_data_size += frame_size;
                 }
                 
                 audf_frames_processed++;
@@ -3427,32 +3424,10 @@ read_headers:
                         {
                             struct raw_info raw_info;
 
-                            int frame_filename_len = strlen(output_filename) + 32;
-                            char *frame_filename = malloc(frame_filename_len);
-                            snprintf(frame_filename, frame_filename_len, "%s%06d.dng", output_filename, block_hdr.frameNumber);
-
                             lua_handle_hdr_data(lua_state, mlv_block->blockType, "_data_write_dng", &block_hdr, sizeof(block_hdr), frame_buffer, frame_size);
 
-                            raw_info.api_version = lv_rec_footer.raw_info.api_version;
-                            raw_info.height = lv_rec_footer.raw_info.height;
-                            raw_info.width = lv_rec_footer.raw_info.width;
-                            raw_info.pitch = lv_rec_footer.raw_info.pitch;
-                            raw_info.bits_per_pixel = lv_rec_footer.raw_info.bits_per_pixel;
-                            raw_info.black_level = lv_rec_footer.raw_info.black_level;
-                            raw_info.white_level = lv_rec_footer.raw_info.white_level;
-                            raw_info.jpeg.x = lv_rec_footer.raw_info.jpeg.x;
-                            raw_info.jpeg.y = lv_rec_footer.raw_info.jpeg.y;
-                            raw_info.jpeg.width = lv_rec_footer.raw_info.jpeg.width;
-                            raw_info.jpeg.height = lv_rec_footer.raw_info.jpeg.height;
-                            raw_info.exposure_bias[0] = lv_rec_footer.raw_info.exposure_bias[0];
-                            raw_info.exposure_bias[1] = lv_rec_footer.raw_info.exposure_bias[1];
-                            raw_info.cfa_pattern = lv_rec_footer.raw_info.cfa_pattern;
-                            raw_info.calibration_illuminant1 = lv_rec_footer.raw_info.calibration_illuminant1;
-                            memcpy(raw_info.color_matrix1, lv_rec_footer.raw_info.color_matrix1, sizeof(raw_info.color_matrix1));
-                            memcpy(raw_info.dng_active_area, lv_rec_footer.raw_info.dng_active_area, sizeof(raw_info.dng_active_area));
-                            raw_info.dynamic_range = lv_rec_footer.raw_info.dynamic_range;
-                            raw_info.frame_size = frame_size;
-                            raw_info.buffer = frame_buffer;
+                            /* copy over raw info from camera type to native (potentially x64) type */
+                            raw_info_from_camera(&raw_info, &lv_rec_footer.raw_info);
                             
                             /* patch raw info if black and/or white fix specified or bit depth changed */
                             fix_black_white_level(&raw_info.black_level, &raw_info.white_level, &raw_info.bits_per_pixel, bit_depth, black_fix, white_fix, verbose);
@@ -3494,7 +3469,9 @@ read_headers:
                             frame_info.info_str             = info_string;
                             frame_info.rawi_hdr.xRes        = lv_rec_footer.xRes;
                             frame_info.rawi_hdr.yRes        = lv_rec_footer.yRes;
-                            frame_info.rawi_hdr.raw_info    = raw_info;
+                            
+                            /* copy over raw info from native (potentially x64) to camera type */
+                            raw_info_to_camera(&frame_info.rawi_hdr.raw_info, &raw_info);
                             /******************************************************/
 
                             /* init and process 'dng_data' raw buffers or use original compressed/uncompressed ones */
@@ -3504,6 +3481,8 @@ read_headers:
                                    uncompressed or is going to be compressed/recompressed */
                                 case UNCOMPRESSED_RAW:
                                 case COMPRESSED_RAW:
+                                    frame_info.frame_buffer = frame_buffer;
+                                    frame_info.frame_buffer_size = frame_buffer_size;
                                     dng_init_data(&frame_info, &dng_data);
                                     dng_process_data(&frame_info, &dng_data);
                                     break;
@@ -3645,39 +3624,12 @@ read_headers:
                             int frame_filename_len = strlen(output_filename) + 32;
                             char *frame_filename = malloc(frame_filename_len);
                             snprintf(frame_filename, frame_filename_len, "%s%06d.dng", output_filename, block_hdr.frameNumber);
+                            lua_handle_hdr_data(lua_state, mlv_block->blockType, "_data_write_dng", &block_hdr, sizeof(block_hdr), frame_buffer, frame_buffer_size);
                             frame_info.dng_filename = frame_filename;
 
-                            lua_handle_hdr_data(lua_state, mlv_block->blockType, "_data_write_dng", &block_hdr, sizeof(block_hdr), frame_buffer, frame_buffer_size);
-
-                            /* set MLV metadata into DNG tags */
-                            dng_set_framerate_rational(main_header.sourceFpsNom, main_header.sourceFpsDenom);
-                            dng_set_shutter(expo_info.shutterValue, 1000000);
-                            dng_set_aperture(lens_info.aperture, 100);
-                            dng_set_camname((char*)unique_camname);
-                            dng_set_description((char*)info_string);
-                            dng_set_lensmodel((char*)lens_info.lensName);
-                            dng_set_focal(lens_info.focalLength, 1);
-                            dng_set_iso(expo_info.isoValue);
-
-                            //dng_set_wbgain(1024, wbal_info.wbgain_r, 1024, wbal_info.wbgain_g, 1024, wbal_info.wbgain_b);
-
-                            /* calculate the time this frame was taken at, i.e., the start time + the current timestamp. this can be off by a second but it's better than nothing */
-                            int ms = 0.5 + mlv_block->timestamp / 1000.0;
-                            int sec = ms / 1000;
-                            ms %= 1000;
-                            // FIXME: the struct tm doesn't have tm_gmtoff on Linux so the result might be wrong?
-                            struct tm tm;
-                            tm.tm_sec = rtci_info.tm_sec + sec;
-                            tm.tm_min = rtci_info.tm_min;
-                            tm.tm_hour = rtci_info.tm_hour;
-                            tm.tm_mday = rtci_info.tm_mday;
-                            tm.tm_mon = rtci_info.tm_mon;
-                            tm.tm_year = rtci_info.tm_year;
-                            tm.tm_wday = rtci_info.tm_wday;
-                            tm.tm_yday = rtci_info.tm_yday;
-                            tm.tm_isdst = rtci_info.tm_isdst;
-
-                            if(mktime(&tm) != -1)
+                            dng_init_header(&frame_info, &dng_data);
+                            
+                            if(!dng_save(&frame_info, &dng_data))
                             {
                                 print_msg(MSG_ERROR, "VIDF: Failed writing into .DNG file\n");
                                 if(relaxed)
@@ -4105,7 +4057,7 @@ read_headers:
                         print_msg(MSG_ERROR, "Failed writing into .WAV file\n");
                         goto abort;
                     }
-
+                    
                     /* init WAV data size, will be grow later block by block (AUDF) */
                     wav_data_size = 0;
                     wav_header_size = file_get_pos(out_file_wav); /* same as sizeof(struct wav_header) */

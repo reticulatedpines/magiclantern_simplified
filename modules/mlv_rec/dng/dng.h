@@ -47,6 +47,10 @@ struct frame_info
     char * dng_filename;
     int fps_override;     // switch "-A fpsx1000"
 
+    /* buffer where the image is stored as the camera-written RAWI isn't suitable for x64 systems */
+    void *frame_buffer;
+    int frame_buffer_size;
+
     /* flags */
     int deflicker_target; // "--deflicker=value"
     int vertical_stripes; // 0 - "--no-stripes", 1 - no switch (default), 2 - "--force-stripes"

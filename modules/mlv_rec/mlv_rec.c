@@ -181,7 +181,6 @@ static int32_t res_x = 0;
 static int32_t res_y = 0;
 static int32_t max_res_x = 0;
 static int32_t max_res_y = 0;
-static int32_t sensor_res_x = 0;
 static float squeeze_factor = 0;
 static int32_t frame_size = 0;
 static int32_t skip_x = 0;
@@ -1797,12 +1796,6 @@ static void hack_liveview(int32_t unhack)
         call("lv_ae",           unhack ? 1 : 0);  /* for old cameras */
         call("lv_wb",           unhack ? 1 : 0);
 
-        if (cam_50d && !(hdmi_code >= 5) && !unhack)
-        {
-            /* not sure how to unhack this one, and on 5D2 it crashes */
-            call("lv_af_fase_addr", 0); //Turn off face detection
-        }
-
         /* change dialog refresh timer from 50ms to 8192ms */
         uint32_t dialog_refresh_timer_addr = /* in StartDialogRefreshTimer */
             cam_50d ? 0xffa84e00 :
@@ -2321,11 +2314,6 @@ static unsigned int FAST raw_rec_vsync_cbr(unsigned int unused)
         return 0;
     }
     
-    if(!mlv_video_enabled || !is_movie_mode())
-    {
-        return 0;
-    }
-    
 	/* other modules can ask for some frames to skip, e.g. for syncing audio */
     if(skip_frames > 0)
     {
@@ -2664,73 +2652,6 @@ static uint32_t raw_get_next_filenum()
     sei(old_int);
 
     return fileNum;
-}
-
-static int write_mlv_vers_blocks(FILE *f)
-{
-    int mod = -1;
-    int error = 0;
-    
-    do
-    {
-        /* get next loaded module id */
-        mod = module_get_next_loaded(mod);
-        
-        /* make sure thats a valid one */
-        if(mod >= 0)
-        {
-            /* fetch information from module loader */
-            const char *mod_name = module_get_name(mod);
-            const char *mod_build_date = module_get_string(mod, "Build date");
-            const char *mod_last_update = module_get_string(mod, "Last update");
-            
-            if(mod_name != NULL)
-            {
-                /* just in case that ever happens */
-                if(mod_build_date == NULL)
-                {
-                    mod_build_date = "(no build date)";
-                }
-                if(mod_last_update == NULL)
-                {
-                    mod_last_update = "(no version)";
-                }
-                
-                /* separating the format string allows us to measure its length for malloc */
-                const char *fmt_string = "%s built %s; commit %s";
-                int buf_length = strlen(fmt_string) + strlen(mod_name) + strlen(mod_build_date) + strlen(mod_last_update) + 1;
-                char *version_string = malloc(buf_length);
-                
-                /* now build the string */
-                snprintf(version_string, buf_length, fmt_string, mod_name, mod_build_date, mod_last_update);
-                
-                /* and finally remove any newlines, they are annoying */
-                for(unsigned int pos = 0; pos < strlen(version_string); pos++)
-                {
-                    if(version_string[pos] == '\n')
-                    {
-                        version_string[pos] = ' ';
-                    }
-                }
-                
-                /* let the mlv helpers build the block for us */
-                mlv_vers_hdr_t *hdr = NULL;
-                mlv_build_vers(&hdr, mlv_start_timestamp, version_string);
-                
-                /* try to write to output file */
-                if(FIO_WriteFile(f, hdr, hdr->blockSize) != (int)hdr->blockSize)
-                {
-                    error = 1;
-                }
-                
-                /* free both temporary string and allocated mlv block */
-                free(version_string);
-                free(hdr);
-            }
-        }
-    } while(mod >= 0 && !error);
-    
-    return error;
 }
 
 static void raw_prepare_chunk(FILE *f, mlv_file_hdr_t *hdr)
@@ -3622,8 +3543,7 @@ static void raw_video_rec_task()
 
                     /* hack working for one writer only */
                     current_write_speed[returned_job->writer] = rate*100/1024;
-
-                    trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: write took: %8d �s (%6d KiB/s), %9d bytes, %3d blocks, slot %3d, mgmt %6d �s, offset 0x%08X",
+                    trace_write(raw_rec_trace_ctx, "<-- WRITER#%d: write took: %8d usec (%6d KiB/s), %9d bytes, %3d blocks, slot %3d, mgmt %6d usec, offset 0x%08X",
                         returned_job->writer, write_time, rate, returned_job->block_size, returned_job->block_len, returned_job->block_start, mgmt_time, returned_job->file_offset);
 
                     /* update statistics */

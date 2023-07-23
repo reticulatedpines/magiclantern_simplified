@@ -842,9 +842,8 @@ void dng_init_data(struct frame_info * frame_info, struct dng_data * dng_data)
     else
     {
         /* if raw data 16 bit already (-b 16) */
-        dng_data->image_buf = frame_info->rawi_hdr.raw_info.buffer;
+        dng_data->image_buf = frame_info->frame_buffer;
         frame_info->pack_bits = 0;
-
     }
 }
 
