@@ -201,7 +201,8 @@ static size_t largest_chunk_size(struct memSuite *hSuite)
     return max_size;
 }
 
-static size_t shoot_malloc_autodetect()
+static REQUIRES(mem_sem)
+size_t shoot_malloc_autodetect()
 {
     /* allocate some backup that will service the queued allocation request that fails during the loop */
     size_t backup_size = 4 * 1024 * 1024;
@@ -235,7 +236,8 @@ static size_t shoot_malloc_autodetect()
     return max_size;
 }
 
-static size_t shoot_malloc_autodetect_contig(uint32_t requested_size)
+static REQUIRES(mem_sem)
+size_t shoot_malloc_autodetect_contig(uint32_t requested_size)
 {
     /* allocate some backup that will service the queued allocation request that fails during the loop */
     size_t backup_size = 1024 * 1024;
@@ -331,7 +333,7 @@ struct memSuite * _shoot_malloc_suite_contig(size_t size)
     
     AllocateContinuousMemoryResource(size, allocCBR, (unsigned int)suite_info, 0x50);
 
-    int r = take_semaphore(suite_info->sem, 100);
+    int r = take_semaphore_nc(suite_info->sem, 100);
     if (r)
     {
         suite_info->timed_out = 1;
