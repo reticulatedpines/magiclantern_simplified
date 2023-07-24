@@ -6162,6 +6162,11 @@ static void longpress_check(int timer, void * opaque)
     }
     else if (longpress->count < 15 && !longpress->pressed)
     {
+        if (!gui_menu_shown())
+        {
+            return;
+        }
+
         if (!longpress->short_cbr || longpress->short_cbr())
         {
             /* optional short press ( < 300 ms) */
@@ -6657,7 +6662,7 @@ static void menu_reload_flags(char* filename)
     free(buf);
 }
 
-#define CFG_APPEND(fmt, ...) ({ cfglen += snprintf(cfg + cfglen, CFG_SIZE - cfglen, fmt, ## __VA_ARGS__); })
+#define CFG_APPEND(fmt, ...) do { cfglen += snprintf(cfg + cfglen, CFG_SIZE - cfglen, fmt, ## __VA_ARGS__); } while(0)
 #define CFG_SIZE (256*1024)
 
 static int menu_save_unloaded_flags(char* filename, char * cfg, int cfglen)
