@@ -249,6 +249,50 @@ typedef struct raw_info raw_info_t;
 
 extern struct raw_info raw_info;
 
+static inline void raw_info_to_camera(raw_info_t *dst, struct raw_info *src)
+{
+    dst->api_version = src->api_version;
+    dst->height = src->height;
+    dst->width = src->width;
+    dst->pitch = src->pitch;
+    dst->bits_per_pixel = src->bits_per_pixel;
+    dst->black_level = src->black_level;
+    dst->white_level = src->white_level;
+    dst->jpeg.x = src->jpeg.x;
+    dst->jpeg.y = src->jpeg.y;
+    dst->jpeg.width = src->jpeg.width;
+    dst->jpeg.height = src->jpeg.height;
+    dst->exposure_bias[0] = src->exposure_bias[0];
+    dst->exposure_bias[1] = src->exposure_bias[1];
+    dst->cfa_pattern = src->cfa_pattern;
+    dst->calibration_illuminant1 = src->calibration_illuminant1;
+    memcpy(dst->color_matrix1, src->color_matrix1, sizeof(dst->color_matrix1));
+    memcpy(dst->dng_active_area, src->dng_active_area, sizeof(dst->dng_active_area));
+    dst->dynamic_range = src->dynamic_range;
+}
+
+static inline void raw_info_from_camera(struct raw_info *dst, raw_info_t *src)
+{
+    dst->api_version = src->api_version;
+    dst->height = src->height;
+    dst->width = src->width;
+    dst->pitch = src->pitch;
+    dst->bits_per_pixel = src->bits_per_pixel;
+    dst->black_level = src->black_level;
+    dst->white_level = src->white_level;
+    dst->jpeg.x = src->jpeg.x;
+    dst->jpeg.y = src->jpeg.y;
+    dst->jpeg.width = src->jpeg.width;
+    dst->jpeg.height = src->jpeg.height;
+    dst->exposure_bias[0] = src->exposure_bias[0];
+    dst->exposure_bias[1] = src->exposure_bias[1];
+    dst->cfa_pattern = src->cfa_pattern;
+    dst->calibration_illuminant1 = src->calibration_illuminant1;
+    memcpy(dst->color_matrix1, src->color_matrix1, sizeof(dst->color_matrix1));
+    memcpy(dst->dng_active_area, src->dng_active_area, sizeof(dst->dng_active_area));
+    dst->dynamic_range = src->dynamic_range;
+}
+
 /* image capture parameters */
 struct raw_capture_info {
     /* sensor attributes: resolution, crop factor */
