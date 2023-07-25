@@ -302,7 +302,7 @@ static void FAST font_draw_char(font *rbf_font, int x, int y, char *cdata, int w
             {
                 if(cdata[yy*width/8+xx/8] & (1<<(xx%8)))
                 {
-                  bmp_putpixel_fast(bmp, x+xx, y+yy, fg);
+                    bmp_putpixel_fast(bmp, x+xx, y+yy, fg);
                 }
             }
         }
