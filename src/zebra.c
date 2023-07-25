@@ -4593,6 +4593,13 @@ static void make_overlay()
 
 static void show_overlay()
 {
+    const char * overlay_filename = "ML/DATA/overlay.dat";
+    if (!is_file(overlay_filename))
+    {
+        /* no overlay configured yet */
+        return;
+    }
+
     get_yuv422_vram();
     uint8_t * const bvram = bmp_vram_real();
     if (!bvram) return;
@@ -4600,7 +4607,7 @@ static void show_overlay()
     clrscr();
 
     int size = 0;
-    void * overlay = read_entire_file("ML/DATA/overlay.dat", &size);
+    void * overlay = read_entire_file(overlay_filename, &size);
     if (!overlay)
     {
         ASSERT(0);
@@ -4615,7 +4622,7 @@ static void show_overlay()
         uint8_t * const m_row = (uint8_t*)( overlay + ym * BMPPITCH);  // 1 pixel
         uint8_t* bp;  // through bmp vram
         uint8_t* mp;  // through our overlay
-        if (ym < 0 || ym > 480) continue;
+        if (ym < 0 || ym >= 480) continue;
 
         for (int x = os.x0; x < os.x_max; x++)
         {
