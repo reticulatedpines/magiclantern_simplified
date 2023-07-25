@@ -1448,6 +1448,14 @@ int handle_arrow_keys(struct event * event)
     }
     #endif
     
+    #ifdef CONFIG_70D
+    if (BGMT_PRESS_METERING_OR_AFAREA)
+    {
+        arrow_key_mode_toggle();
+        return 1;
+    }
+    #endif
+
     #ifdef CONFIG_50D
     if (event->param == BGMT_FUNC)
     {
@@ -2044,7 +2052,11 @@ static struct menu_entry key_menus[] = {
         .update = arrow_key_check,
         .submenu_width = 650,
         .help = "Choose functions for arrows keys. Toggle w. " ARROW_MODE_TOGGLE_KEY ".",
+        #if defined(CONFIG_70D)
+        .depends_on = DEP_MOVIE_MODE,
+        #else
         .depends_on = DEP_LIVEVIEW,
+        #endif
         .children =  (struct menu_entry[]) {
             #ifdef CONFIG_AUDIO_CONTROLS
             {
