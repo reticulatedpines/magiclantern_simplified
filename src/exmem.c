@@ -434,6 +434,10 @@ void exmem_test()
 
 /* SRM job memory */
 
+// SJE FIXME: disable SRM stuff if it's known to not work on a cam.
+// This removes the need to find SRM_BUFFER_SIZE in order to build.
+#ifndef CONFIG_MEMORY_SRM_NOT_WORKING
+
 /* These buffers must be freed in the same order as allocated. */
 /* To keep things simple, let's allocate the entire SRM memory on first call (all or nothing) */
 static GUARDED_BY(mem_sem) int srm_allocated = 0;
@@ -452,9 +456,6 @@ static GUARDED_BY(mem_sem) struct
 /* used to know when allocation was done */
 static struct semaphore *srm_alloc_sem = 0;
 
-// SJE FIXME: disable SRM stuff if it's known to not work on a cam.
-// This removes the need to find SRM_BUFFER_SIZE in order to build.
-#ifndef CONFIG_MEMORY_SRM_NOT_WORKING
 /* called from RscMgr task */
 static REQUIRES(RscMgr)
 void srm_malloc_cbr(void** dst_ptr, void* raw_buffer, uint32_t raw_buffer_size)
@@ -784,7 +785,9 @@ static void exmem_init()
 {
     alloc_sem = create_named_semaphore(0,0);
     free_sem = create_named_semaphore(0,0);
+#ifndef CONFIG_MEMORY_SRM_NOT_WORKING
     srm_alloc_sem = create_named_semaphore(0,0);
+#endif
 }
 
 INIT_FUNC("exmem", exmem_init);
