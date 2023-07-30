@@ -255,9 +255,9 @@ static int handle_Q_button_equiv(struct event * event)
     {
 #ifdef BGMT_Q_ALT_
     case BGMT_Q_ALT_:
-#endif
         fake_simple_button(BGMT_Q);
         return 0;
+#endif
     }
 
     if (!gui_menu_shown())
