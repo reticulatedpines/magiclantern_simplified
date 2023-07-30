@@ -222,7 +222,11 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 
 #define SHAD_GAIN_REGISTER 0xC0F08030
 
+
+#ifdef CONFIG_EDMAC_RAW_SLURP
 static int lv_raw_type = PREFERRED_RAW_TYPE;
+#endif
+
 static int lv_raw_gain = 0;
 
 /** 
