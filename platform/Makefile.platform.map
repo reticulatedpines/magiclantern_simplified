@@ -6,7 +6,6 @@ PLATFORM_MAP = \
     5DSR.112 \
     6D.116 \
     6D2.105 \
-    7D.203 \
     7D2.112 \
     50D.109 \
     60D.111 \
@@ -35,7 +34,12 @@ PLATFORM_MAP = \
 #    R6.150 \
 
 # SJE FIXME 7D Master build is broken, looks like it always has been.
-# Low prio to fix, this is the secondary digic.
+# Low prio to fix, this is the secondary digic.  However, 7D lists
+# 7D_MASTER as a dep for the "all" target, which means "make zip" for 7D
+# works, but "make" does not.  I don't know if there's a run-time
+# dependency and you really need both on your cam for it to work,
+# so I'm disabling both (no devs have a 7D so we can't test)
+#    7D.203 \
 #    7D_MASTER.203 \
 
 
