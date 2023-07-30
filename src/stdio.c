@@ -84,10 +84,16 @@ snprintf(
     {
         return -1;
     }
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wnonnull-compare"
+// we can't control how this is used at runtime, so,
+// suppress gcc's annoying warning.  I don't know why it believes
+// it must be non-null.
     if (fmt == NULL)
     {
         return -2;
     }
+#pragma GCC diagnostic pop
 // SJE TODO: what cases should we abort on here?
 // Canon vsnprintf doesn't handle 0, maybe 1 is bad
 // because we decrement before passing?
