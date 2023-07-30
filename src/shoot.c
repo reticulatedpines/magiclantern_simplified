@@ -694,7 +694,6 @@ PROP_HANDLER(PROP_LV_DISPSIZE)
 {
     /* note: 0x81 is a special screen before zooming in, on newer cameras */
     int zoom = buf[0];
-    int new_zoom = zoom;
 
     ASSERT(zoom == 1 || zoom == 0x81 || zoom == 5 || zoom == 10);
     zoom_sharpen_step();
@@ -703,6 +702,7 @@ PROP_HANDLER(PROP_LV_DISPSIZE)
 
 #ifdef FEATURE_LV_ZOOM_SETTINGS
 #ifdef CONFIG_ZOOM_X1
+    int new_zoom = zoom;
     /* FIXME: this duplicates functionality in handle_zoom_x5_x10
      * that one works well, but only when triggered from the zoom button
      * for touch-screen controls, this works reasonably well,
