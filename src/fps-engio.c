@@ -550,12 +550,12 @@ int get_current_shutter_reciprocal_x1000()
     //
     // This function returns 1/EA and does all calculations on integer numbers, so actual computations differ slightly.
 
-    #warning FIXME: consider defining FRAME_SHUTTER_BLANKING_READ
+    //#warning FIXME: consider defining FRAME_SHUTTER_BLANKING_READ
     /* this might use old FPS timer values updated by fps_task */
     /* it's not thread-safe to re-read them here again */
     return get_shutter_reciprocal_x1000(shutter_r_x1000, fps_timer_a, fps_timer_a_orig, fps_timer_b, fps_timer_b_orig);
 #else
-    #warning FIXME: consider defining FRAME_SHUTTER_BLANKING_READ
+    //#warning FIXME: consider defining FRAME_SHUTTER_BLANKING_READ
     // fallback to APEX units
     if (!lens_info.raw_shutter) return 0;
     return (int) roundf(powf(2.0f, (lens_info.raw_shutter - 136) / 8.0f) * 1000.0f * 1000.0f);
