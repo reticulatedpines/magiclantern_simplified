@@ -84,6 +84,19 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
  * dump_file(filename, raw_buffer, 7*something...)
  */
 
+// partial instruction on how to find DEFAULT_RAW_BUFFER_SIZE, from here:
+// https://foss.heptapod.net/magic-lantern/magic-lantern/-/commit/e799e89f67877825c6a4dc2868f87bed1196432b
+// Usage:
+// - compile with CONFIG_MARK_UNUSED_MEMORY_AT_STARTUP (config-defines.h)
+// - open the console (Debug menu) and enable something that uses LiveView RAW features (raw video, raw histogram etc)
+// - test by starting the camera in all video modes (photo, 1080p, 720p, crop, x5 etc)
+// - take a screenshot or write down the console messages
+//
+// Also read around here: https://www.magiclantern.fm/forum/index.php?topic=5601.msg196632#msg196632
+//
+// NB: instructions not tested with current code...  If they work,
+// please remove this part of the comment.
+
 #ifdef CONFIG_60D
 #define DEFAULT_RAW_BUFFER MEM(MEM(0x5028))
 #define DEFAULT_RAW_BUFFER_SIZE (0x49F00000 - 0x48332200)   /* ~28MB, really? */
