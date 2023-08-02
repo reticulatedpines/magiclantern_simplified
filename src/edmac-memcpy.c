@@ -343,6 +343,12 @@ void* edmac_memcpy(void* dst, void* src, size_t length)
 #endif
 
 /** this method bypasses Canon's lv_save_raw and slurps the raw data directly from connection #0 */
+#ifndef CONFIG_EDMAC_RAW_SLURP
+// mlv_lite requires the symbol to exist regardless of RAW_SLURP support,
+// this value makes edmac_start_spy() fail to start (good, since it requires RAW_SLURP to work)
+uint32_t raw_write_chan = 0xffffffff;
+#endif
+
 #ifdef CONFIG_EDMAC_RAW_SLURP
 
 #if defined(CONFIG_5D3)

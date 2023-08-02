@@ -2590,7 +2590,8 @@ static void edmac_start_spy()
     edmac_read_base = edmac_get_base(OUTPUT_COMPRESSION ? 8 : edmac_read_chan);
     edmac_wraw_base = edmac_get_base(raw_write_chan);
     edmac_frame_duration = 1e9 / fps_get_current_x1000();
-    if (show_edmac && !edmac_spy_active && !RAW_IS_IDLE)
+    if (show_edmac && !edmac_spy_active && !RAW_IS_IDLE
+        && edmac_read_base != 0xffffffff && edmac_wraw_base != 0xffffffff)
     {
         edmac_spy_active = 1;
         SetHPTimerAfterNow(LOG_INTERVAL, edmac_spy_poll, edmac_spy_poll, 0);
