@@ -41,9 +41,3 @@ $(MODULES_INSTALL_ALL_TARGETS) $(MODULES_CLEAN_ALL_TARGETS) $(MODULES_ALL_TARGET
 	$(call call_make_rule, $(MODULES_DIR))
 
 .PHONY: $(MODULES_ALL_TARGETS)
-
-# force sequential execution at top level
-# fixme: modules cannot be safely built in parallel, as dependency checks may fail
-# e.g. mlv_snd depends on mlv_rec, but the former usually gets compiled quicker
-# however, parallel build will still be used within each module
-.NOTPARALLEL:
