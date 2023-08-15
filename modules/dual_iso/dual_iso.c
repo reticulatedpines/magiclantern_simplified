@@ -776,9 +776,10 @@ static uint32_t get_photo_cmos_iso_start_550d(void)
                 continue;
 
             // we expect the next field to be the original addr
-            // before it was rounded up to meet DMA alignment
-            // (not sure on exact alignment)
-            if ((probe[6] & 0xfffff800) != (probe[7] & 0xfffff800))
+            // before it was rounded up to meet DMA alignment,
+            // which looks to be 0x100 though I'm not sure.
+            uint32_t aligned_val = probe[7] + (-probe[7] & 0xff);
+            if (probe[6] != aligned_val)
                 continue;
 
             // passed all checks, stop search
@@ -854,14 +855,13 @@ static uint32_t get_photo_cmos_iso_start_650d(void)
             // we expect the next field to be the original addr
             // before it was rounded up to meet DMA alignment
             // (0x100 aligned on this 650D version)
-            if ((probe[6] & 0xfffff800) != (probe[7] & 0xfffff800))
+            uint32_t aligned_val = probe[7] + (-probe[7] & 0xff);
+            if (probe[6] != aligned_val)
                 continue;
 
             // passed all checks, stop search
             qprintf("Found ram_copy_start, 0x%08x: 0x%08x\n",
                     &probe[6], ram_copy_start);
-            printf("r_c_s %08x: %08x\n",
-                   &probe[6], ram_copy_start);
             break;
         }
     }
@@ -925,8 +925,6 @@ static uint32_t get_photo_cmos_iso_start_200d(void)
             // passed all checks, stop search
             qprintf("Found ram_copy_start, 0x%08x: 0x%08x\n",
                     &probe[6], ram_copy_start);
-            printf("r_c_s %08x: %08x\n",
-                   &probe[6], ram_copy_start);
             break;
         }
     }
@@ -1128,7 +1126,9 @@ static unsigned int isoless_init()
         PHOTO_CMOS_ISO_COUNT =          6; // from ISO 100 to 3200
         PHOTO_CMOS_ISO_SIZE  =         18; // distance between ISO 100 and ISO 200 addresses, in bytes
 
-        FRAME_CMOS_ISO_START = PHOTO_CMOS_ISO_START + 0x12b0; // CMOS register 0000 - for LiveView, ISO 100 (check in movie mode, not photo!)
+        FRAME_CMOS_ISO_START = 0;
+        if (PHOTO_CMOS_ISO_START != 0)
+            FRAME_CMOS_ISO_START = PHOTO_CMOS_ISO_START + 0x12b0; // CMOS register 0000 - for LiveView, ISO 100 (check in movie mode, not photo!)
         FRAME_CMOS_ISO_COUNT =          6; // from ISO 100 to 3200
         FRAME_CMOS_ISO_SIZE  =         30; // distance between ISO 100 and ISO 200 addresses, in bytes
 
@@ -1227,7 +1227,9 @@ static unsigned int isoless_init()
         PHOTO_CMOS_ISO_COUNT =          6;
         PHOTO_CMOS_ISO_SIZE  =       0x10;
 
-        FRAME_CMOS_ISO_START = PHOTO_CMOS_ISO_START + 0x124a;
+        FRAME_CMOS_ISO_START = 0;
+        if (PHOTO_CMOS_ISO_START != 0)
+            FRAME_CMOS_ISO_START = PHOTO_CMOS_ISO_START + 0x124a;
         FRAME_CMOS_ISO_COUNT =          6;
         FRAME_CMOS_ISO_SIZE  =       0x22;
 
