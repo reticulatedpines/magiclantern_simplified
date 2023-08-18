@@ -264,6 +264,7 @@ PROP_HANDLER(id) { \
 /* load all available modules. will be used on magic lantern boot */
 void module_load_all(void);
 void module_unload_all(void);
+void toggle_module_enabled(int mod_number);
 
 /* explicitely load a standalone module. this is comparable to an executable */
 void *module_load(char *filename);
@@ -274,6 +275,7 @@ unsigned int module_get_symbol(void *module, char *symbol);
 /* those are used by e.g. mlv_lite to surf the loaded modules and their versions */
 int module_get_next_loaded(int mod_number);
 const char* module_get_string(int mod_number, const char* name);
+int module_get_number(const char *name);
 const char* module_get_name(int mod_number);
 
 /* execute all callback routines of given type. maybe it will get extended to support varargs */

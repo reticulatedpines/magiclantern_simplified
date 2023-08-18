@@ -1351,15 +1351,34 @@ int module_display_filter_update()
     return 0;
 }
 
-static MENU_SELECT_FUNC(module_menu_update_select)
+// Toggles the enable status of a module.
+// Won't take effect until next restart, see _module_load_all()
+void toggle_module_enabled(int mod_number)
 {
     char enable_file[FIO_MAX_PATH_LENGTH];
-    int mod_number = (int) priv;
     
+    if (mod_number < 0 || mod_number > MODULE_COUNT_MAX)
+        return;
+
     module_list[mod_number].enabled = !module_list[mod_number].enabled;
     snprintf(enable_file, sizeof(enable_file), "%s%s.en", get_config_dir(), module_list[mod_number].name);
     config_flag_file_setting_save(enable_file, module_list[mod_number].enabled);
     ASSERT(is_file(enable_file) == module_list[mod_number].enabled);
+}
+
+static MENU_SELECT_FUNC(module_menu_update_select)
+{
+    int mod_number = (int)priv;
+    toggle_module_enabled(mod_number);
+
+    // SJE FIXME hack - quick hack to make dual_iso enable
+    // toggle on mlv_lite, due to the dep
+    //const char *mod_name = module_get_name(mod_number);
+    //if (strcmp("dual_iso", mod_name) == 0)
+    //{
+    //    int mlv_lite_number = module_get_number("mlv_lite");
+    //    toggle_module_enabled(mlv_lite_number);
+    //}
 }
 
 static int startswith(const char* str, const char* prefix)
@@ -1585,6 +1604,21 @@ const char* module_get_string(int mod_number, const char* name)
     }
     
     return NULL;
+}
+
+// returns -1 if name cannot be found
+int module_get_number(const char *name)
+{
+    int i = 0;
+    while(i < MODULE_COUNT_MAX)
+    {
+        if (strcmp(name, module_list[i].name) == 0)
+        {
+            return i;
+        }
+        i++;
+    }
+    return -1;
 }
 
 const char* module_get_name(int mod_number)
