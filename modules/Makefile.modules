@@ -30,17 +30,6 @@ MODULE_STRINGS   = module_strings.h
 
 all:: $(MODULE_OUTPUT) $(MODULE_SYM) $(MODULE_DEP)
 nodep:: $(MODULE_OUTPUT) $(MODULE_SYM)
-delete_if_failed:
-	@echo ""
-	@echo "Building module $(MODULE_NAME)..."
-	@$(MAKE) all --no-print-directory || { \
-		echo ""; \
-		echo "********************************************************"; \
-		echo "WARNING: module $(MODULE_NAME) failed to build, deleting"; \
-		echo "********************************************************"; \
-		echo ""; \
-		$(MAKE) clean; \
-	 }
 
 -include $(MODULE_DEPS)
 

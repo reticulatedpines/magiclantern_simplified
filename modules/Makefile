@@ -21,12 +21,10 @@ MODULES_CLEAN_ALL_TARGETS = $(call targets_rules, $(ML_MODULES), clean)
 
 MODULES_INSTALL_ALL_TARGETS = $(call targets_rules, $(ML_MODULES), install)
 
-MODULES_ALL_TARGETS_DELETE_IF_FAILED = $(call targets_rules, $(ML_MODULES), delete_if_failed)
-
 all:
 	@+$(MAKE) --silent all_silent
 
-all_silent: $(MODULES_ALL_TARGETS_DELETE_IF_FAILED)
+all_silent: $(MODULES_ALL_TARGETS)
 
 # run module-specific clean rules
 # also run a generic clean, just in case there are any modules left over
@@ -37,7 +35,7 @@ install: | prepare_install_dir
 install: all
 	$(PYTHON3) copy_modules_with_satisfied_deps.py $(INSTALL_MODULES_DIR) $(ML_MODULES)
 
-$(MODULES_INSTALL_ALL_TARGETS) $(MODULES_CLEAN_ALL_TARGETS) $(MODULES_ALL_TARGETS) $(MODULES_ALL_TARGETS_DELETE_IF_FAILED):
+$(MODULES_INSTALL_ALL_TARGETS) $(MODULES_CLEAN_ALL_TARGETS) $(MODULES_ALL_TARGETS):
 	$(call call_make_rule, $(MODULES_DIR))
 
 .PHONY: $(MODULES_ALL_TARGETS)
