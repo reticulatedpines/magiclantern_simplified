@@ -90,6 +90,7 @@ class Module:
         with tempfile.NamedTemporaryFile() as dep_file:
             for d in self.required_mods:
                 mod_name_data += d.encode("utf8") + b"\0"
+            mod_name_data += b"\0" # 0 length string to mark end of array
             dep_file.write(mod_name_data)
             dep_file.flush()
             objcopy_invoke = [objcopy,
