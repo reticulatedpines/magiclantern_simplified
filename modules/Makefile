@@ -22,7 +22,7 @@ MODULES_CLEAN_ALL_TARGETS = $(call targets_rules, $(ML_MODULES), clean)
 MODULES_INSTALL_ALL_TARGETS = $(call targets_rules, $(ML_MODULES), install)
 
 all:
-	@+$(MAKE) --silent all_silent
+	@+$(MAKE) --silent all_silent && $(PYTHON3) mark_cross_module_deps.py $(OBJCOPY) $(ML_MODULES)
 
 all_silent: $(MODULES_ALL_TARGETS)
 
