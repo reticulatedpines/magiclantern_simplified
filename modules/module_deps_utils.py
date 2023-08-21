@@ -52,19 +52,28 @@ class Module:
     def add_cross_module_deps(self, modules):
         """
         Compares the exports of the given list of modules, to the
-        required dependencies of this module.  If matches are found,
+        required dependencies of this module.  If unique matches are found,
         record that in self.required_modules.
 
         This can be used at runtime to automatically load required
         modules.
+
+        If there are multiple matches for the same export, this means
+        we could load multiple modules (mlv_rec and mlv_lite do this, in a
+        way that I believe is buggy).  We don't know which the user
+        would prefer, so, we record nothing, preventing automatic loading.
         """
         non_self_mods = [m for m in modules if m.name != self.name]
-        module_exports = {} # dict of "exportName:moduleName"
+        module_exports = {} # dict of "exportName:[moduleName, moduleName]"
         for m in non_self_mods:
             for s in m.syms:
-                module_exports[s] = m.name
+                if s in module_exports:
+                    module_exports[s].append(m.name)
+                else:
+                    module_exports[s] = [m.name]
 
-        required_mods = {module_exports[d] for d in self.deps if d in module_exports}
+        required_mods = {module_exports[d][0] for d in self.deps
+                         if d in module_exports and len(module_exports[d]) == 1}
         self.required_mods = required_mods
 
     def add_module_dep_section(self, objcopy):
