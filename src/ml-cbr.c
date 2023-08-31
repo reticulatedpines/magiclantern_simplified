@@ -62,17 +62,23 @@ static inline int fast_compare(const char * fst, const char * snd)
 
 static inline struct cbr_node_arena * create_node_arena()
 {
-   struct cbr_node_arena * result = (struct cbr_node_arena *) malloc(sizeof (struct cbr_node_arena));
-   result->next = NULL;
-   memset(result->pool, 0, NODE_POOL_SIZE * sizeof(result->pool[0]));
-   return result;
+    struct cbr_node_arena * result = (struct cbr_node_arena *) malloc(sizeof (struct cbr_node_arena));
+    if (result != NULL)
+    {
+        result->next = NULL;
+        memset(result->pool, 0, NODE_POOL_SIZE * sizeof(result->pool[0]));
+    }
+    return result;
 }
 
 static inline struct cbr_record_arena * create_record_arena()
 {
     struct cbr_record_arena * result = (struct cbr_record_arena *) malloc(sizeof (struct cbr_record_arena));
-    result->next = NULL;
-    memset(result->pool, 0, RECORD_POOL_SIZE * sizeof(result->pool[0]));
+    if (result != NULL)
+    {
+        result->next = NULL;
+        memset(result->pool, 0, RECORD_POOL_SIZE * sizeof(result->pool[0]));
+    }
     return result;
 }
 
@@ -138,7 +144,7 @@ int insert_cbr(struct cbr_record * record, cbr_func cbr, unsigned int prio) {
     struct cbr_node * new_node = find_free_node();
     if (new_node == NULL) {
         struct cbr_node_arena * new_arena = expand_cbr_node_pool();
-        if (new_arena == NULL || &(new_arena->pool[0]) == NULL) {
+        if (new_arena == NULL) {
             return -1;
         } else {
             new_node = &(new_arena->pool[0]);
@@ -199,7 +205,7 @@ int ml_register_cbr(const char * event, cbr_func cbr, unsigned int prio) {
     struct cbr_record * record = find_record(event, 1);
     if (record == NULL) {
         struct cbr_record_arena * new_arena = expand_cbr_record_pool();
-        if (new_arena == NULL || &(new_arena->pool[0]) == NULL) {
+        if (new_arena == NULL) {
             retval = -1;
             goto end;
         } else {
