@@ -324,7 +324,23 @@ null_pointer_check()
             {
                 STR_APPEND(msg, "pc=%8x lr=%8x stack=%x+0x%x\n", tskmon_last_task->context->pc, tskmon_last_task->context->lr, tskmon_last_task->stackStartAddr, tskmon_last_task->stackSize);
                 STR_APPEND(msg, "entry=%x(%x)\n", tskmon_last_task->entry, tskmon_last_task->arg);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+// GCC 11 and 12 warn about "accidental" null pointer usage.  See e.g.
+// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105523
+// 13 is supposed to improve heuristics that might stop the false-positive here.
+// In either case, we are explicitly reading from 0, so the pragma seems appropriate.
+// On D45 arch, 0 page is always mapped.
+// D678 it is not, but they are already excluded by prior #ifndef CONFIG_DIGIC_678X
                 STR_APPEND(msg, "%8x %8x %8x %8x\n%8x %8x %8x %8x\n", *(uint32_t*)0, *(uint32_t*)4, *(uint32_t*)8, *(uint32_t*)0xc, *(uint32_t*)0x10, *(uint32_t*)0x14, *(uint32_t*)0x18, *(uint32_t*)0x1c);
+#pragma GCC diagnostic pop
+// However...  we're also suppressing possible warnings about usage of the msg array!
+// When we get to gcc 13, let's see if we can remove the above pragma.
+#ifdef __GNUC__
+    #if __GNUC__ > 12
+        #error "Please check if the preceding pragma is no longer required"
+    #endif
+#endif
             }
 
             ml_crash_message(msg);
