@@ -40,7 +40,7 @@ void __attribute__((noreturn,noinline,naked))hook_uart_printf(void)
     fp = FIO_CreateFileOrAppend("uart_log.bin");
     if (fp != NULL)
     {
-        FIO_WriteFile(fp, 0x2c724, 0x100);
+        FIO_WriteFile(fp, (char *)0x2c724, 0x100);
         FIO_CloseFile(fp);
     }
 
