@@ -432,7 +432,7 @@ static void print_set_maindial_hint(int set)
         {
             info_led_off();
             #ifdef CONFIG_TOUCHSCREEN
-            #warning FIXME: dialog_redraw breaks touchscreen functionality in PLAY mode, why?! (issue #2901)
+            //FIXME: dialog_redraw breaks touchscreen functionality in PLAY mode, why?! (issue #2901)
             bmp_idle_copy(1, 0);
             #else
             redraw();
