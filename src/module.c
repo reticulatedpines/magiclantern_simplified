@@ -533,7 +533,9 @@ static void _module_load_all(uint32_t list_only)
             memset(module_name, 0x00, sizeof(module_name));
             strncpy(module_name, file.name, MODULE_NAME_LENGTH);
             strncpy(module_list[module_cnt].filename, file.name, MODULE_FILENAME_LENGTH);
-            snprintf(module_list[module_cnt].long_filename, sizeof(module_list[module_cnt].long_filename), "%s%s", MODULE_PATH, module_list[module_cnt].filename);
+            snprintf(module_list[module_cnt].long_filename,
+                     sizeof(module_list[module_cnt].long_filename),
+                     "%s%s", MODULE_PATH, file.name);
 
             uint32_t pos = 0;
             while(module_name[pos])
