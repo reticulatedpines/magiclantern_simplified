@@ -2,6 +2,7 @@
 #define _module_h_
 
 #include <stdint.h>
+#include "ml-cbr.h"
 
 #define MODULE_PATH                   "ML/MODULES/"
 
@@ -147,7 +148,10 @@ typedef struct
     const char *name;
     const char *symbol;
     unsigned int type;
-    unsigned int (*handler) (unsigned int);
+    union {
+        unsigned int (*handler) (unsigned int);
+        ml_cbr_action (*named_handler) (const char *, void *);
+    };
     unsigned int ctx;
 } module_cbr_t;
 
@@ -215,7 +219,7 @@ typedef struct
 #define MODULE_CBRS_START_(prefix,modname)                      MODULE_CBRS_START__(prefix,modname)
 #define MODULE_CBRS_START__(prefix,modname)                     module_cbr_t prefix##modname[] = {
 #define MODULE_CBR(cb_type,cbr,context)                         { .name = #cb_type, .symbol = #cbr, .type = cb_type,   .handler = cbr, .ctx = context },
-#define MODULE_NAMED_CBR(cb_name,cbr)                           { .name = cb_name,  .symbol = #cbr, .type = CBR_NAMED, .handler = (void*)cbr, .ctx = 0       },
+#define MODULE_NAMED_CBR(cb_name,cbr)                           { .name = cb_name,  .symbol = #cbr, .type = CBR_NAMED, .named_handler = cbr, .ctx = 0       },
 #define MODULE_CBRS_END()                                           { (void *)0, (void *)0, 0, (void *)0, 0 }\
                                                                 };
                                                             

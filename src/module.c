@@ -824,8 +824,9 @@ static void _module_load_all(uint32_t list_only)
                     /* register "named" callbacks through ml-cbr */
                     if(cbr->type == CBR_NAMED)
                     {
-                        printf("  [i] ml-cbr '%s' 0%08X (%s)\n", cbr->name, cbr->handler, cbr->symbol);
-                        ml_register_cbr(cbr->name, (cbr_func)cbr->handler, 0);
+                        printf("  [i] ml-cbr '%s' 0%08X (%s)\n",
+                               cbr->name, cbr->named_handler, cbr->symbol);
+                        ml_register_cbr(cbr->name, cbr->named_handler, 0);
                     }
                     else
                     {
@@ -887,7 +888,7 @@ static void _module_unload_all(void)
                 /* unregister "named" callbacks through ml-cbr */
                 if(cbr->type == CBR_NAMED)
                 {
-                    ml_unregister_cbr(cbr->name, (cbr_func)cbr->handler);
+                    ml_unregister_cbr(cbr->name, cbr->named_handler);
                 }
                 cbr++;
             }
