@@ -1379,7 +1379,7 @@ static MENU_SELECT_FUNC(module_menu_update_select)
     // We're enabling a module, check if it depends on any others.
     // If so, also enable those.
 
-    const char *mod_name = module_list[mod_number].long_filename;
+    char *mod_name = module_list[mod_number].long_filename;
 
     extern void *tcc_load_offline_section(char *filename, char *section_name);
     char *mod_deps = tcc_load_offline_section(mod_name, ".module_deps");
