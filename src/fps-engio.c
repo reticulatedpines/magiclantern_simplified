@@ -165,7 +165,9 @@ static CONFIG_INT("fps.sync.shutter", fps_sync_shutter, 0);
 #ifdef FEATURE_FPS_RAMPING
 static CONFIG_INT("fps.ramp", fps_ramp, 0);
 static CONFIG_INT("fps.ramp.duration", fps_ramp_duration, 3);
+#ifdef FEATURE_FPS_OVERRIDE
 static int fps_ramp_timings[] = {1, 2, 5, 15, 30, 60, 120, 300, 600, 1200, 1800};
+#endif
 static int fps_ramp_up = 0;
 #else
 #define fps_ramp 0
@@ -1645,7 +1647,6 @@ static void fps_check_refresh()
 }
 
 #ifdef FEATURE_FPS_OVERRIDE
-
 #ifdef CONFIG_FPS_UPDATE_FROM_EVF_STATE
 static int fps_video_mode_changed()
 {
@@ -1691,7 +1692,7 @@ static void fps_disable_timers_evfstate()
     fps_timerA_override = fps_timerB_override = 0;
 }
 
-#endif
+#endif // CONFIG_FPS_UPDATE_FROM_EVF_STATE
 
 // do all FPS changes from this task only - to avoid trouble ;)
 static void fps_task()
