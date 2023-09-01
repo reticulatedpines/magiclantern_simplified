@@ -159,7 +159,7 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 
 #ifndef DEFAULT_RAW_BUFFER_SIZE
 /* todo: figure out how much Canon code allocates for their LV RAW buffer - how? */
-#warning FIXME: using dummy DEFAULT_RAW_BUFFER_SIZE
+#pragma message "FIXME: using dummy DEFAULT_RAW_BUFFER_SIZE"
 #define DEFAULT_RAW_BUFFER_SIZE (9*1024*1024)
 #endif
 
