@@ -305,7 +305,7 @@ struct prop_lens_static_data
 };
 
 #if defined(CONFIG_SX740)
-#warning FIXME: SX740 prop_lens_static_data is not implemented
+#pragma message "FIXME: SX740 prop_lens_static_data is not implemented"
 #endif
 #if defined(CONFIG_M50)
 SIZE_CHECK_STRUCT( prop_lens_static_data, 0x138 );
