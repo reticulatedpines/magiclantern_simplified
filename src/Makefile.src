@@ -218,11 +218,6 @@ ML_OBJS-y += \
 	io_trace.o
 endif
 
-# Allow devs to make warnings break builds
-ifeq ($(FATAL_WARNINGS),y)
-CFLAGS += -Werror
-endif
-
 ML_OBJS-y += $(ML_SRC_EXTRA_OBJS)
 
 ifdef ML_SRC_EXCLUDE_OBJS

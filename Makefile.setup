@@ -57,6 +57,11 @@ ifeq ($(TARGET_COMPILER), arm-gcc)
 	CFLAGS += -Os -march=$(PLATFORM_ARCH) -D__ARM__
 endif
 
+# Allow devs to make warnings break builds
+ifeq ($(FATAL_WARNINGS),y)
+CFLAGS += -Werror
+endif
+
 CFLAGS +=\
 	$(FLAGS) \
 	-Wall \
