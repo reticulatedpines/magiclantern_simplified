@@ -1675,6 +1675,11 @@ static void mlv_play_start_fps_timer(uint32_t fps_nom, uint32_t fps_denom)
     {
         case 2:
             mlv_play_frame_dividers[1]++;
+            // SJE this falls through.  Is it supposed to?  It's always
+            // been this way, there are no comments, so I don't know.
+            // I do want to stop the GCC warning though.  So:
+            //
+            // fall through
         case 1:
             mlv_play_frame_dividers[0]++;
         default:
