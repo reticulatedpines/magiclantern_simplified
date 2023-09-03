@@ -198,7 +198,7 @@ static MENU_UPDATE_FUNC(post_deflicker_update)
 
 PROP_HANDLER(PROP_GUI_STATE)
 {
-    int* data = buf;
+    uint32_t *data = buf;
     if (data[0] == GUISTATE_QR)
     {
         post_deflicker_step();
