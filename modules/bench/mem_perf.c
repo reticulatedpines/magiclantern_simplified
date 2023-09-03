@@ -114,7 +114,7 @@ static void mem_perf_test(uint32_t address)
         if(plot)
         {
             /* update the plot */
-            plot_add(coll, block_size / 1024.0f, speed);
+            plot_add(coll, (double)(block_size / 1024.0f), (double)speed);
             plot_autorange(coll, plot);
             
             /* add some borders top and bottom */
