@@ -214,8 +214,17 @@ typedef struct
 #define MODULE_STRINGS_START__(prefix,modname)                  module_strpair_t prefix##modname[] MODULE_STRINGS_SECTION = {
 #define MODULE_STRING(field,value)                                  { field, value },
 #define MODULE_STRINGS_END()                                        { (const char *)0, (const char *)0 }\
-                                                                };                                                                
-#define MODULE_CBRS_START()                                     MODULE_CBRS_START_(MODULE_CBR_PREFIX,MODULE_NAME)
+                                                                };
+
+// SJE FIXME - I spent many hours trying to work out why the following
+// throws a missing braces warning.  Barely possibly a gcc bug?
+// Can't understand why in this code, couldn't generate a simpler
+// test case that repro'd.
+// Hack: ignore the warning.  Would like to fix / remove this.
+#define MODULE_CBRS_START() \
+    _Pragma("GCC diagnostic push") \
+    _Pragma("GCC diagnostic ignored \"-Wmissing-braces\"") \
+                                                                MODULE_CBRS_START_(MODULE_CBR_PREFIX,MODULE_NAME)
 #define MODULE_CBRS_START_(prefix,modname)                      MODULE_CBRS_START__(prefix,modname)
 #define MODULE_CBRS_START__(prefix,modname)                     module_cbr_t prefix##modname[] = {
 #define MODULE_CBR(cb_type,cbr,context)                         { .name = #cb_type, .symbol = #cbr, .type = cb_type,   .handler = cbr, .ctx = context },
@@ -228,7 +237,8 @@ typedef struct
 #define MODULE_CONFIGS_START__(prefix,modname)                  module_config_t prefix##modname[] = {
 #define MODULE_CONFIG(cfg)                                      { .name = #cfg, .ref = &__config_##cfg },
 #define MODULE_CONFIGS_END()                                        { (void *)0, (void *)0 }\
-                                                                };
+                                                                };\
+    _Pragma("GCC diagnostic pop")
                                                                 
 #define MODULE_PROPHANDLERS_START()                             MODULE_PROPHANDLERS_START_(MODULE_PROPHANDLERS_PREFIX,MODULE_NAME,MODULE_PROPHANDLER_PREFIX)
 #define MODULE_PROPHANDLERS_START_(prefix,modname,ph_prefix)    MODULE_PROPHANDLERS_START__(prefix,modname,ph_prefix)
