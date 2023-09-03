@@ -1705,22 +1705,15 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
     uint32_t frame_size = 0;
     uint32_t frame_count = 0;
     mlv_xref_hdr_t *block_xref = NULL;
-    mlv_lens_hdr_t lens_block;
-    mlv_rawi_hdr_t rawi_block;
-    mlv_rtci_hdr_t wavi_block;
-    mlv_rtci_hdr_t rtci_block;
-    mlv_file_hdr_t main_header;
+    mlv_lens_hdr_t lens_block = {0};
+    mlv_rawi_hdr_t rawi_block = {0};
+    mlv_wavi_hdr_t wavi_block = {0};
+    mlv_rtci_hdr_t rtci_block = {0};
+    mlv_file_hdr_t main_header = {0};
 
     void *mlv_play_decomp_buf = NULL;
     struct memSuite *mlv_play_decomp_suite = NULL;
 
-    /* make sure there is no crap in stack variables */
-    memset(&lens_block, 0x00, sizeof(mlv_lens_hdr_t));
-    memset(&rawi_block, 0x00, sizeof(mlv_rawi_hdr_t));
-    memset(&wavi_block, 0x00, sizeof(mlv_rawi_hdr_t));
-    memset(&rtci_block, 0x00, sizeof(mlv_rtci_hdr_t));
-    memset(&main_header, 0x00, sizeof(mlv_file_hdr_t));
-    
     /* read footer information and update global variables, will seek automatically */
     if(chunk_count < 1 || !mlv_play_is_mlv(chunk_files[0]))
     {
