@@ -655,7 +655,7 @@ static const char * format_date_size( unsigned size, unsigned timestamp )
 
     while (bmp_string_width(MENU_FONT, sizestr) < 100)
     {
-        void* memmove(void*, void*, int);
+        void* memmove(void*, const void*, unsigned int);
         memmove(sizestr + 1, sizestr, sizeof(sizestr) - 1);
         sizestr[0] = ' ';
         sizestr[sizeof(sizestr)-1] = '\0';
