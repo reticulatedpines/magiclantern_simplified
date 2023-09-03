@@ -499,7 +499,7 @@ static const char *match (MatchState *ms, const char *s, const char *p) {
             }
             case '+':  /* 1 or more repetitions */
               s++;  /* 1 match already done */
-              /* go through */
+              /* fall through */
             case '*':  /* 0 or more repetitions */
               s = max_expand(ms, s, p, ep);
               break;
@@ -1250,7 +1250,7 @@ static int str_pack (lua_State *L) {
         totalsize += len + 1;
         break;
       }
-      case Kpadding: luaL_addchar(&b, LUA_PACKPADBYTE);  /* go through */
+      case Kpadding: luaL_addchar(&b, LUA_PACKPADBYTE);  /* fall through */
       case Kpaddalign: case Knop:
         arg--;  /* undo increment */
         break;
