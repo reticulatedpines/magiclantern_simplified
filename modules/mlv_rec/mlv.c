@@ -35,7 +35,7 @@ extern uint32_t raw_rec_trace_ctx;
 
 extern uint64_t get_us_clock();
 extern char *strcpy(char *dest, const char *src);
-extern char *strncpy(char *dest, const char *src, int n);
+extern char *strncpy(char *dest, const char *src, unsigned int n);
 extern const char* get_picstyle_name(int raw_picstyle);
 
 extern struct prop_picstyle_settings picstyle_settings[];
