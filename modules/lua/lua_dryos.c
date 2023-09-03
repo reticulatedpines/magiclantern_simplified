@@ -172,7 +172,7 @@ static int luaCB_dryos_call(lua_State * L)
     }
     else if(lua_isnumber(L, 2))
     {
-        float arg = lua_tonumber(L, 2);
+        double arg = lua_tonumber(L, 2);
         result = call(function_name, arg);
     }
     else if(lua_isstring(L, 2))
