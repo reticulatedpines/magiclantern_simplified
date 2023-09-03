@@ -69,8 +69,8 @@ int execve(const char *filename, char *const argv [], char *const envp[]) __THRO
 int execlp(const char *file, const char *arg, ...) __THROW;
 int execv(const char *path, char *const argv[]) __THROW;
 int execvp(const char *file, char *const argv[]) __THROW;
-int execl(const char *path, ...) __THROW;
-int execle(const char *path, ...) __THROW;
+int execl(const char *path, const char *arg, ...) __THROW;
+int execle(const char *path, const char *arg, ...) __THROW;
 
 pid_t getpid(void) __THROW __pure;
 
