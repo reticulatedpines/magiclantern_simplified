@@ -906,8 +906,9 @@ static int str_format (lua_State *L) {
 #endif
         case 'e': case 'E': case 'f':
         case 'g': case 'G': {
+          lua_Number n = luaL_checknumber(L, arg);
           addlenmod(form, LUA_NUMBER_FRMLEN);
-          nb = snprintf(buff, 65536, form, luaL_checknumber(L, arg));
+          nb = snprintf(buff, 65536, form, (LUAI_UACNUMBER)n);
           break;
         }
         case 'q': {
