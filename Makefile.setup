@@ -62,21 +62,35 @@ ifeq ($(FATAL_WARNINGS),y)
 CFLAGS += -Werror
 endif
 
+# TODO I like these but they're a fair amount of effort to add:
+#	-Wcast-qual
+#	-Wshadow
+#	-Wwrite-strings
+#	-Wundef
+#	-Wformat NB to enable, only need to remove -Wno-format below
+# These are good, but not as valuable and / or very high effort to enable:
+#	-Wconversion
+# This one is a pain, but would have some value:
+# - We're memory constrained so reordering (and manually adding padding)
+#   to our structs to avoid padding is nice
+# - We should audit for "packed" attribute and see if we can remove
+#   via reordering / padding, access to packed is slower / more code
+#	-Wpadded
 CFLAGS +=\
 	$(FLAGS) \
 	-Wall \
 	-Wextra \
+	-Werror-implicit-function-declaration \
+	-Wdouble-promotion \
+	-Winline \
 	-Wno-unused-parameter \
 	-Wno-unused-function \
-	-Werror-implicit-function-declaration \
-	-Wno-missing-field-initializers \
 	-Wno-format \
-	-Wdouble-promotion \
 	-ffast-math \
 	-fsingle-precision-constant \
 	-fno-builtin-printf \
+	-fno-common \
 	-std=gnu99 \
-	-Winline \
 	-I$(PLATFORM_INC) \
 	-I$(PLATFORM_INC)/include \
 	-I$(SRC_DIR) \
