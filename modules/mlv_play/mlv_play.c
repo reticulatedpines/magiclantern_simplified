@@ -1497,8 +1497,8 @@ static void mlv_play_render_task(uint32_t priv)
         {
             mlv_play_render_frame(buffer_paused);
             // keep this sleep only with legacy framed preview engine (seems useless):
-			if( get_framed_preview_param( FRAMED_PREVIEW_PARAM__TIMING ) == FRAMED_PREVIEW_PARAM__TIMING__LEGACY )
-				msleep( 100 );
+            if( get_framed_preview_param( FRAMED_PREVIEW_PARAM__TIMING ) == FRAMED_PREVIEW_PARAM__TIMING__LEGACY )
+                msleep( 100 );
             continue;
         }
         
