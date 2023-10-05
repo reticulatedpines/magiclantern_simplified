@@ -19,6 +19,7 @@ Credits (get old dev names from doc/CREDITS.txt, combine with new people)
 Intro
 
 DryOS - this should list the parts of DryOS it's important for devs to be aware of / understand
+    ITRON v4 based
     Task based, real-time, interrupt driven
     Task scheduler - incl what priorities mean
     Message passing - incl controlling peripherals
@@ -34,6 +35,10 @@ Hardware
 Magiclantern - the code that runs on the cam
     Architecture
         Boot process, incl diagram
+            Camera boot flag
+            Bootable card
+            autoexec.bin
+            Injecting ML then transferring control to DryOS
         Major resident parts
             Init task hijack?
             OS task hijack (TASK_OVERRIDE)
