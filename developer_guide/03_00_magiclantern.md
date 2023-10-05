@@ -84,5 +84,4 @@ More information about how and where ML injects into DryOS are in the next secti
 
 ## Build guide
 
-<div style="page-break-after: always; visibility: hidden"/>
-<div style="visibility: visible"/>
+<div style="page-break-after: always; visibility: hidden"></div>
