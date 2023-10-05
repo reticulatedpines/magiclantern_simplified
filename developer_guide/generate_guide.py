@@ -12,16 +12,19 @@ def main():
     if not check_prereqs():
         sys.exit(-1)
 
-    input_markdown_files = glob.glob("*.md")
+    input_markdown_files = sorted(glob.glob("*.md"))
+    print(input_markdown_files)
 
     pandoc_pdf_command = ["pandoc", "--pdf-engine", "weasyprint",
                           "-c", "style.css",
                           "--metadata", "title=Magic Lantern Developer Guide",
+                          "--number-sections",
                           "-s", "-o", "developer_guide.pdf"]
 
     pandoc_html_command = ["pandoc",
                            "-c", "style.css",
                            "--metadata", "title=Magic Lantern Developer Guide",
+                           "--number-sections",
                            "-s", "-o", "developer_guide.html"]
 
     pandoc_pdf_command.extend(input_markdown_files)
