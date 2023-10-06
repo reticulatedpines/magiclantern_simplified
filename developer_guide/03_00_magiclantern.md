@@ -38,7 +38,9 @@ It's important to understand how the boot process works if you're interested in 
 
 DryOS always starts execution at offset 0 of autoexec.bin, and this always occurs at 0x800\_0000 in ram.  This code is in reboot.c, located via symbol name "\_start".  The early asm code does some safety checks, and if they pass transfers control to cstart(), in the same file.
 
-cstart() checks that we're running on the expected cam, erroring if not.  Assuming success, we copy a large portion of autoexec.bin to another location, because the 0x800\_0000 area is used for multiple purposes - later on, DryOS will re-use this region and delete our initial code.  That copy happens here:
+cstart() checks that we're running on the expected cam, erroring if not.  Assuming success, we copy a large portion of autoexec.bin to another location, because the 0x800\_0000 area is used for multiple purposes - later on, DryOS will re-use this region and delete our initial code.  The destination for the copy is cam specific, it must be somewhere safe that the OS won't touch.  Finding such a location is made easier by the fact that we can modify OS initialisation, often we can steal memory from the OS heap, meaning ML will be located before or after heap space.
+
+That copy happens here:
 
 ```
      blob_memcpy(
