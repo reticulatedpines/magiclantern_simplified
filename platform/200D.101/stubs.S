@@ -112,6 +112,22 @@ THUMB_FN(0xE0137001,  cli_spin_lock)          /* used in AllocateMemory/FreeMemo
 THUMB_FN(0xe0137048,  send_software_interrupt) // int 10 is used by DryOS to sleep/wake cpu1
 //THUMB_FN(0xe0004d30,  wfi_sinkhole) // used to make cpu wait for int 10
 
+THUMB_FN(   0x34b5a, _request_RPC) // allows CPU0 or CPU1 to pass a func pointer and param
+                                   // to the other for RPC.
+                                   // Passing a NULL func pointer, will suspend the other
+                                   // CPU until it becomes non-NULL.
+                                   // DryOS seems to use this to deliberately sleep a CPU
+                                   // in some exceptional cases (e.g. asserts).
+                                   //
+                                   // Don't call this directly, because if you do,
+                                   // and you forget to call clear_RPC_request(),
+                                   // the target CPU will repeatedly call the func pointer
+                                   // as fast as possible, forever.
+                                   // Instead use request_RPC().
+
+THUMB_FN(   0x34b7a,  clear_RPC_request) // reset the request to prevent calling
+                                         // the function forever
+
 /** MPU communication **/
 THUMB_FN(0xE01C7657,  mpu_send)                  // "dwSize < TXBD_DATA_SIZE"
 THUMB_FN(0xE056314F,  mpu_recv)                  // passed as last argument by InitializeIntercom and eventually stored into mpu_recv_cbr
