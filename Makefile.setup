@@ -66,7 +66,6 @@ endif
 #	-Wcast-qual
 #	-Wshadow
 #	-Wwrite-strings
-#	-Wundef
 #	-Wformat NB to enable, only need to remove -Wno-format below
 # These are good, but not as valuable and / or very high effort to enable:
 #	-Wconversion
@@ -83,6 +82,7 @@ CFLAGS +=\
 	-Werror-implicit-function-declaration \
 	-Wdouble-promotion \
 	-Winline \
+	-Wundef \
 	-Wno-unused-parameter \
 	-Wno-unused-function \
 	-Wno-format \
@@ -129,10 +129,14 @@ _defined_configs = $(filter CONFIG_%, $(.VARIABLES))
 $(foreach config, $(_defined_configs), $(eval $(call ensureCorrectValue,$(config))))
 # Functionality that disables all CONFIG_* entries
 ifeq ($(ML_SETUP_DISABLE_USER_CONFIGS),y)
-#show_config_values=$(foreach c, $(defined_configs), $(c)=$($(c)))
-#$(warning before setting to NO $(show_config_values))
-$(foreach config, $(_defined_configs), $(eval $(config)=n))
-#$(warning after setting to NO $(show_config_values))
+#show_config_values=$(foreach c, $(_defined_configs), $(c)=$($(c)))
+#$(warning before changing settings: $(show_config_values))
+# Some variables are 1/0, some are y/n, we must respect type
+c_vals=$(foreach c,$(_defined_configs),$(c)=$($(c)))
+c_vals_force_n=$(patsubst %=y,%=n,$(c_vals))
+c_vals_force_0=$(patsubst %=1,%=0,$(c_vals_force_n))
+#$(foreach c, $(c_vals_force_0), $(warning $(c)))
+$(foreach c, $(c_vals_force_0), $(eval $(c)))
 endif
 
 -include Makefile.setup.default

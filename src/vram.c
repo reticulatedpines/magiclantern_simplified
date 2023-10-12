@@ -418,7 +418,7 @@ void _update_vram_params()
     bm2lv.sy = 1024 * vram_lv.height / (480-52);
     bm2lv.tx = 0;
     bm2lv.ty = -26;
-#elif CONFIG_40D
+#elif defined(CONFIG_40D) // FIXME gcc 12 has elifdef: we can make this nicer when that's the minimum required
     bm2lv.sx = 1024 * vram_lv.width / 720;
     bm2lv.sy = 1024 * vram_lv.height / 480;
     //~ bm2lv.sy = 1024 * vram_lv.height / (480-48);    

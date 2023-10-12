@@ -91,12 +91,12 @@ extern int menu_redraw_blocked;
  
 info_elem_t info_config_dynamic[FLEXINFO_DYNAMIC_ENTRIES];
 
-//#define i_want_to_test_flexinfo_bars 1
 
 info_elem_t info_config_liveview[] =
 {
     { .config = { { INFO_TYPE_CONFIG } } },
     
+#define i_want_to_test_flexinfo_bars 0
 #if i_want_to_test_flexinfo_bars
 
     /* entry 1, top bar */
