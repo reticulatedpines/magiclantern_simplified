@@ -620,61 +620,12 @@ static uint32_t ___get_photo_cmos_iso_start_200d(void)
 
 #if 1 && defined(CONFIG_200D)
 extern int uart_printf(const char *fmt, ...);
-extern int clear_RPC_request(void);
-
-struct RPC_args_t
-{
-    void (*RPC_func)(void *);
-    void *RPC_arg; // argument to be passed to above func
-};
-
-// This sem guards against having multiple RPC
-// requests in flight at once.  Technically, this
-// is redundant, on the cams I've checked.  DryOS
-// disables interrupts and uses locking to ensure
-// only one RPC request occurs at once (and the data
-// is kept in a global so it simply wouldn't work).
-//
-// However, this is conceptually the right thing to
-// do (we don't know how a given cam will behave).
-//
-// In order to ensure clear_RPC_request() gets called,
-// we wrap the real target func in do_RPC().  The args
-// to that are passed in, and setup by cpu0, the code runs
-// on cpu1.  The args must remain valid for the
-// lifetime of the RPC request.
-// The semaphore also ensures that.
-static struct semaphore *RPC_sem;
-static struct RPC_args_t RPC_args = {0};
+#include "dryos_rpc.h"
 
 static void print_success(void *param)
 {
     int cpu_id = get_cpu_id();
     DryosDebugMsg(0, 15, "cpu %d ran func", cpu_id);
-}
-
-static void do_RPC(void *args)
-{
-    struct RPC_args_t *a = (struct RPC_args_t *)args;
-    a->RPC_func(a->RPC_arg);
-    clear_RPC_request();
-    RPC_args.RPC_func = 0;
-    RPC_args.RPC_arg = 0;
-    give_semaphore(RPC_sem);
-}
-
-// The DryOS _request_RPC() will call the passed function forever,
-// if you don't manually clear the request.  We wrap this via
-// do_RPC() to avoid mistakes.
-//
-// Note the param must fit in a single reg, _request_RPC() can only be used
-// to call funcs taking 1 param, since the func pointer is called via "blx r1".
-// Notably, ARM calling convention will pack small structs into r0-r3.
-static int request_RPC(struct RPC_args_t *args)
-{
-    extern int _request_RPC(void (*f)(void *), void *o);
-    int status = _request_RPC(do_RPC, (void *)args);
-    return status;
 }
 #endif
 

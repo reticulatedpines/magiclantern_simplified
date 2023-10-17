@@ -121,6 +121,7 @@ ML_OBJS-y += \
 ML_SRC_OBJS = \
 	task_utils.o \
 	backtrace.o \
+	dryos_rpc.o \
 	sgi.o \
 	cpu.o \
 	mmu_utils.o \
