@@ -113,21 +113,8 @@ int patch_hook_function(uintptr_t addr, uint32_t orig_instr, patch_hook_function
 /* cache sync helper */
 int _patch_sync_caches(int also_data);
 
-#if defined(CONFIG_MMU_EARLY_REMAP) || defined(CONFIG_MMU_REMAP)
-
-struct mmu_config
-{
-    uint8_t *L1_table; // single region of size MMU_TABLE_SIZE
-    struct mmu_L2_page_info *L2_tables; // struct, not direct access to L2 mem, so we can
-                                        // easily track which pages are mapped where.
-};
-
-extern struct mmu_config mmu_conf;
-
-// Sets up structures required for remapping via MMU,
-// and applies compile-time specified patches from platform/XXD/include/platform/mmu_patches.h
-int mmu_init(void);
-
-#endif // EARLY_REMAP || REMAP
+#if defined(CONFIG_MMU_REMAP)
+#include "patch_mmu.h"
+#endif // CONFIG_MMU_REMAP
 
 #endif // _patch_h_

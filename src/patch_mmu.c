@@ -4,10 +4,11 @@
 #include <dryos.h>
 #include "patch.h"
 #include "mmu_utils.h"
+#include "dryos_rpc.h"
 #include "sgi.h"
 #include "cpu.h"
 
-#if defined(CONFIG_MMU_EARLY_REMAP) || defined(CONFIG_MMU_REMAP)
+#if defined(CONFIG_MMU_REMAP)
 
 #ifndef CONFIG_DIGIC_78X
 #error "So far, we've only seen MMU on Digic 7 and up.  This file makes that assumption re assembly, you'll need to fix something"
@@ -17,43 +18,19 @@
 #error "Attempting to build patch_mmu.c but cam not listed as having an MMU - this is probably a mistake"
 #endif
 
-#if defined(CONFIG_MMU_EARLY_REMAP) && defined(CONFIG_MMU_REMAP)
-#error "At most one of CONFIG_MMU_REMAP and CONFIG_MMU_EARLY_REMAP can be defined"
-// There's nothing technical stopping us doing both but you can only have
-// one MMU table in use, so what do you do when you change mode?
-// Migrate the early table into the later one?  Possible, but mildly annoying code
-// and currently I have no use-case for this (early remap is purely a debug / dev tool so far).
+#if !defined(CONFIG_ALLOC_MEM_START)
+// If AllocMem start is defined, we assume MMU tables should be located there.
+// Otherwise we reserve space in magiclantern.bin:
+// 0x10000 for 1 remapped page, (0x10000 aligned)
+//  0x4900 for the L1 table, (0x4000 aligned)
+//   0x300 padding
+//   0x400 per L2 table (0x400 aligned) // need one per 1MB region containing remaps
+// sizeof(struct mmu_L2_page_info)
+static uint8_t generic_mmu_space[MMU_PAGE_SIZE + MMU_L1_TABLE_SIZE
+                                 + 0x300 + MMU_L2_TABLE_SIZE
+                                 + sizeof(struct mmu_L2_page_info)]
+               __attribute__((aligned(0x10000)));
 #endif
-
-struct region_patch
-{
-    uint32_t patch_addr; // Address of start of edited content; the VA to patch.
-                         // memcpy((void *)patch_addr, orig_content, size) would undo the patch,
-                         // but unpatch_region() should be used, not memcpy directly, so that
-                         // book-keeping of patches is handled correctly (and consistently
-                         // with existing patch.c functions).
-    uint8_t *orig_content; // Copy of original content, before patching.
-    const uint8_t *patch_content; // Patch data that will overwrite orig data.
-    uint32_t size; // Length of patched region in bytes.
-    const char *description; // What is the patch for?  Shows in ML menus.
-};
-
-struct function_hook_patch
-{
-    uint32_t patch_addr; // VA to patch.
-    uint8_t orig_content[8]; // Used as a check before applying patch.
-    uint32_t target_function_addr;
-    const char *description;
-};
-
-struct mmu_L2_page_info
-{
-    uint8_t *phys_mem[16]; // 16 possible 0x10000 pages of backing ram
-    uint8_t *l2_mem; // L2 table used for remapping into this page,
-                     // size MMU_L2_TABLE_SIZE.
-    uint32_t virt_page_mapped; // what 0x100000-aligned VA page addr is mapped here
-    uint32_t in_use; // currently used to back a ROM->RAM mapping?
-};
 
 #include "platform/mmu_patches.h"
 
@@ -82,10 +59,10 @@ int assign_64k_to_L2_table(struct region_patch *patch,
     uint8_t **pages = L2_page->phys_mem;
     if (pages[i] == NULL)
     {
-        if (backing_page_index >= MMU_MAX_64k_PAGES_REMAPPED)
+        if (backing_page_index >= global_mmu_conf.max_64k_pages_remapped)
             return -1;
 
-        pages[i] = (uint8_t *)(MMU_64k_PAGES_START_ADDR + MMU_PAGE_SIZE * backing_page_index);
+        pages[i] = global_mmu_conf.phys_mem_pages + MMU_PAGE_SIZE * backing_page_index;
         qprintf("Rom->Ram copy: 0x%08x, 0x%08x\n", pages[i], patch->patch_addr & 0xffff0000);
         memcpy_dryos(pages[i],
                      (uint8_t *)(patch->patch_addr & 0xffff0000),
@@ -109,8 +86,9 @@ int assign_64k_to_L2_table(struct region_patch *patch,
 // Returns info on the L2 table that should be use for the patch.
 // Which ram page within that region can be determined by masking
 // the patch address, an L2 table handles 1MB of ram and can have
-// up to 16 associated 64k ram pages assigned (depending on
-// MMU_MAX_64k_PAGES_REMAPPED).
+// up to 16 associated 64k ram pages assigned.  This depends on
+// global_mmu_conf.max_64k_pages_remapped, which is a limit
+// across *all* L2 tables.
 //
 // Returns NULL if no page can be found; this means there are too
 // many patches for the pages, all are in use and the patch
@@ -189,6 +167,8 @@ int apply_data_patch(struct mmu_config *mmu_conf,
     uint32_t flags_new = flags_rom & ~L2_LARGEPAGE_MEMTYPE_MASK;
     flags_new |= (flags_ram & L2_LARGEPAGE_MEMTYPE_MASK);
 
+    qprintf("patch->patch_addr: 0x%08x\n\n", (uint32_t)(patch->patch_addr));
+
     uint32_t aligned_patch_addr = patch->patch_addr & 0xffff0000;
 
     // SJE TODO: check if the patch address is in RAM.
@@ -199,7 +179,7 @@ int apply_data_patch(struct mmu_config *mmu_conf,
 
     struct mmu_L2_page_info *target_page = find_L2_for_patch(patch,
                                                              mmu_conf->L2_tables,
-                                                             MMU_MAX_L2_TABLES);
+                                                             mmu_conf->max_L2_tables);
 
     if (target_page == NULL)
     {
@@ -209,7 +189,7 @@ int apply_data_patch(struct mmu_config *mmu_conf,
 
     // add page to tables
     qprintf("Doing TT edit: 0x%08x\n", aligned_patch_addr);
-    qprintf("Target L2: 0x%08x\n", target_page->l2_mem);
+    qprintf("Target L2: 0x%08x\n", target_page->L2_table);
 
     qprintf("Splitting L1 for: 0x%08x\n", patch->patch_addr);
     // point containing L1 table entry to our L2
@@ -219,7 +199,7 @@ int apply_data_patch(struct mmu_config *mmu_conf,
       // we map a page in this section
         replace_section_with_l2_table(patch->patch_addr,
                                       (uint32_t)mmu_conf->L1_table,
-                                      (uint32_t)target_page->l2_mem,
+                                      (uint32_t)target_page->L2_table,
                                       flags_new);
         target_page->in_use = 1;
     }
@@ -230,7 +210,7 @@ int apply_data_patch(struct mmu_config *mmu_conf,
     qprintf("Phys mem: 0x%08x\n", target_page->phys_mem[i]);
     replace_rom_page(aligned_patch_addr,
                      (uint32_t)target_page->phys_mem[i],
-                     (uint32_t)target_page->l2_mem,
+                     (uint32_t)target_page->L2_table,
                      flags_new);
 
     // Edit patch region in RAM copy
@@ -239,14 +219,14 @@ int apply_data_patch(struct mmu_config *mmu_conf,
                  patch->size);
 
     // sync caches over edited table region
-    dcache_clean((uint32_t)target_page->l2_mem, MMU_L2_TABLE_SIZE);
-    dcache_clean_multicore((uint32_t)target_page->l2_mem, MMU_L2_TABLE_SIZE);
+    dcache_clean((uint32_t)target_page->L2_table, MMU_L2_TABLE_SIZE);
+    dcache_clean_multicore((uint32_t)target_page->L2_table, MMU_L2_TABLE_SIZE);
 
     // ensure icache takes new code if relevant
     icache_invalidate(patch->patch_addr, MMU_PAGE_SIZE);
 
-    dcache_clean((uint32_t)mmu_conf->L1_table, MMU_TABLE_SIZE);
-    dcache_clean_multicore((uint32_t)mmu_conf->L1_table, MMU_TABLE_SIZE);
+    dcache_clean((uint32_t)mmu_conf->L1_table, MMU_L1_TABLE_SIZE);
+    dcache_clean_multicore((uint32_t)mmu_conf->L1_table, MMU_L1_TABLE_SIZE);
 
     dcache_clean((uint32_t)target_page->phys_mem[i], MMU_PAGE_SIZE);
     dcache_clean(aligned_patch_addr, MMU_PAGE_SIZE);
@@ -288,9 +268,206 @@ int apply_code_patch(struct mmu_config *mmu_conf,
     return apply_data_patch(mmu_conf, &hook_patch);
 }
 
-struct mmu_config mmu_conf = {NULL, NULL};
+struct mmu_config global_mmu_conf = {0};
 
-static char *mmu_64k_pages_start = NULL;
+// Given a region described by start_addr and size,
+// attempts to fit required MMU structures inside it.
+// The more space, the more pages will be available
+// to simultaneously remap.  We use 64kB pages for a
+// guesstimated tradeoff between flexibility and speed.
+//
+// Below a minimum size, it isn't possible to remap,
+// and a negative value will be returned to signify error.
+//
+// This adjusts global_mmu_conf, but doesn't do any
+// copying / setup of MMU structs themselves.
+int calc_mmu_globals(uint32_t start_addr, uint32_t size)
+{
+    // absolute minimum size is 1 64kB page (0x10000),
+    // 1 L1 table (0x4900), 1 L2 table (0x400) and
+    // 1 struct to track metadata.  In that order we
+    // need 0x300 padding to meet alignment for L2 table.
+    uint32_t min_required_space = MMU_PAGE_SIZE + MMU_L1_TABLE_SIZE
+                                  + 0x300 + MMU_L2_TABLE_SIZE
+                                  + sizeof(struct mmu_L2_page_info);
+    if (size < min_required_space)
+        return -1;
+
+    // We have various alignment requirements.  We can work from
+    // either end of the region.  Find the end needing the smallest
+    // change to fit our highest alignment req.
+    uint32_t start_adjust = MMU_PAGE_SIZE - (start_addr & (MMU_PAGE_SIZE - 1));
+    if (start_adjust == MMU_PAGE_SIZE)
+        start_adjust = 0;
+
+    uint32_t end_addr = start_addr + size;
+    uint32_t end_adjust = end_addr & (MMU_PAGE_SIZE - 1);
+    uint32_t aligned_end = end_addr & ~(MMU_PAGE_SIZE - 1);
+
+    int fill_forwards = 1;
+    uint32_t aligned_start = start_addr + start_adjust;
+    uint32_t aligned_space = end_addr - start_addr - start_adjust;
+    if (end_adjust < start_adjust)
+    {
+        fill_forwards = 0;
+        aligned_space = aligned_end - start_addr;
+    }
+
+    qprintf("Start, size, end: %x, %x\n", start_addr, size, end_addr);
+    qprintf("start_adj, end_adj: %x, %x\n", start_adjust, end_adjust);
+    qprintf("Fill, space: %d, %x\n",
+            fill_forwards, aligned_space);
+
+    if (aligned_space < min_required_space)
+        return -2;
+
+    // Now we know it's possible to fit some set of structs
+    // in the available space.  We have some fixed things, and
+    // some variable things.
+    //
+    // There's a single 0x4900 size, 0x4000 aligned region,
+    // the L1 table.
+    //
+    // Every remap in a unique 0x10_0000 VA region requires
+    // an L2 table, size 0x400, 0x400 aligned, and we have
+    // some metadata for each L2 table (no specific alignment
+    // requirements, it contains pointers and dwords, so, 4).
+    //
+    // Every page we remap requires a 0x1_0000 region,
+    // which must be 0x1_0000 aligned.
+    //
+    // For example, if you want to remap 0xe003_2000,
+    // you need an L2 table for the 0xe000_0000:0xe010_0000
+    // region, and some 0x1_0000 aligned block that will hold
+    // the new content for 0xe003_0000:0xe004_0000.
+    //
+    // If you then want to edit 0xe003_3000, no new
+    // space is required.  If you want to edit 0xe004_1000,
+    // you need a new 64k page, but you don't need a new L2
+    // table.
+
+    // Our strategy for using the space is fairly simple.
+    //
+    // There's never any point having more L2 tables
+    // than 64k pages.  L2 tables are small, so we waste
+    // little if we have one for every possible 64k page,
+    // even if some end up unused.
+    //
+    // Therefore, try and fit as many 64k pages as possible,
+    // backing off one page if needed to fit the other structs.
+
+    uint8_t *L2_tables = NULL;
+    uint32_t num_64k_pages = aligned_space / MMU_PAGE_SIZE;
+    qprintf("num pages: %d\n", num_64k_pages);
+    int reqs_met = 0;
+    while(!reqs_met && num_64k_pages > 0)
+    {
+        global_mmu_conf.max_64k_pages_remapped = num_64k_pages;
+        global_mmu_conf.max_L2_tables = num_64k_pages;
+        if (fill_forwards)
+        {
+            global_mmu_conf.phys_mem_pages = (uint8_t *)aligned_start;
+            global_mmu_conf.L1_table = (uint8_t *)(aligned_start
+                                        + MMU_PAGE_SIZE * num_64k_pages);
+            uint32_t L1_table_end = (uint32_t)global_mmu_conf.L1_table + MMU_L1_TABLE_SIZE;
+
+            // pad to align on 0x400 for L2 tables
+            L2_tables = (uint8_t *)ROUND_UP(L1_table_end, MMU_L2_TABLE_SIZE);
+            uint32_t L2_tables_end = (uint32_t)L2_tables
+                                        + sizeof(MMU_L2_TABLE_SIZE) * num_64k_pages;
+
+            // need space for L2 info structs.  These are small
+            // and may fit in the padding gap
+            struct mmu_L2_page_info *L2_info_start = NULL;
+            if ((uint32_t)L2_tables - L1_table_end
+                > sizeof(struct mmu_L2_page_info) * num_64k_pages)
+            {
+                L2_info_start = (struct mmu_L2_page_info *)L1_table_end;
+            }
+            else
+            {
+                L2_info_start = (struct mmu_L2_page_info *)L2_tables_end;
+            }
+            uint32_t L2_info_end = (uint32_t)L2_info_start
+                                    + sizeof(struct mmu_L2_page_info) * num_64k_pages;
+            global_mmu_conf.L2_tables = L2_info_start;
+
+            // check if the proposed arrangement goes outside available space
+            if ((L2_info_end <= end_addr)
+                && (L2_tables_end <= end_addr))
+            { // everything fits, exit the loop
+                qprintf("met reqs, fill forwards\n");
+                reqs_met = 1;
+            }
+        }
+        else
+        {
+            uint32_t phys_mem_start = (aligned_end - MMU_PAGE_SIZE * num_64k_pages);
+            if (phys_mem_start < start_addr)
+                continue;
+            global_mmu_conf.phys_mem_pages = (uint8_t *)phys_mem_start;
+
+            // L2 tables align well with the start of the 64k pages
+            L2_tables = (uint8_t *)(phys_mem_start - MMU_L2_TABLE_SIZE * num_64k_pages);
+            if ((uint32_t)L2_tables < start_addr)
+                continue;
+
+            // L1 table before those
+            global_mmu_conf.L1_table = (uint8_t *)(ROUND_DOWN(
+                            (uint32_t)L2_tables - MMU_L1_TABLE_SIZE, MMU_L1_TABLE_ALIGN));
+            if ((uint32_t)global_mmu_conf.L1_table < start_addr)
+                continue;
+
+            // L1 table is a weird size so there will be a gap,
+            // try and fit things in it.
+            uint32_t L1_table_end = (uint32_t)global_mmu_conf.L1_table + MMU_L1_TABLE_SIZE;
+            uint32_t L2_tables_start = (uint32_t)L2_tables;
+            struct mmu_L2_page_info *L2_info_start = NULL;
+            if (L2_tables_start - L1_table_end
+                > sizeof(struct mmu_L2_page_info) * num_64k_pages)
+            {
+                L2_info_start = (struct mmu_L2_page_info *)L1_table_end;
+            }
+            else
+            {
+                L2_info_start = (struct mmu_L2_page_info *)(global_mmu_conf.L1_table
+                                    - (sizeof(struct mmu_L2_page_info) * num_64k_pages));
+            }
+            if ((uint32_t)L2_info_start < start_addr)
+                continue;
+            global_mmu_conf.L2_tables = L2_info_start;
+            qprintf("met reqs, fill backwards\n");
+            reqs_met = 1;
+        }
+        qprintf("reducing pages\n");
+        num_64k_pages--; // this is intended to happen max of once
+    }
+
+    qprintf("mmu_config:\n");
+    qprintf("L1_table:   0x%x\n", global_mmu_conf.L1_table);
+    qprintf("max_L2_tab:   %d\n", global_mmu_conf.max_L2_tables);
+    qprintf("L2 tables:  0x%x\n", L2_tables);
+    qprintf("L2 structs: 0x%x\n", global_mmu_conf.L2_tables);
+    qprintf("max_64k:      %d\n", global_mmu_conf.max_64k_pages_remapped);
+    qprintf("phys_mem:   0x%x\n", global_mmu_conf.phys_mem_pages);
+
+    // initialise L2 page info
+    if (L2_tables == NULL)
+        return -4;
+    for (uint32_t i = 0; i < global_mmu_conf.max_L2_tables; i++)
+    {
+        for (uint8_t j = 0; j < 16; j++)
+        {
+            global_mmu_conf.L2_tables[i].phys_mem[j] = NULL;
+        }
+        global_mmu_conf.L2_tables[i].L2_table = (L2_tables + (i * MMU_L2_TABLE_SIZE));
+        global_mmu_conf.L2_tables[i].virt_page_mapped = 0x0;
+        global_mmu_conf.L2_tables[i].in_use = 0x0;
+    }
+
+    return 0;
+}
+
 static uint32_t mmu_globals_initialised = 0;
 static void init_mmu_globals(void)
 {
@@ -299,95 +476,27 @@ static void init_mmu_globals(void)
     if (get_cpu_id() != 0)
         return;
 
-    // get space for the actual L1 table
-    uint8_t *mmu_L1_table = NULL;
-    #if defined(CONFIG_MMU_EARLY_REMAP)
-    mmu_L1_table = (uint8_t *)MMU_L1_TABLE_01_ADDR;
-    #elif defined(CONFIG_MMU_REMAP)
-    mmu_L1_table = malloc_aligned(MMU_TABLE_SIZE, 0x4000);
-    #endif
-    if (mmu_L1_table == NULL)
+#if defined(CONFIG_ALLOC_MEM_START)
+    // use AllocMem pool
+#else
+    // use space within magiclantern.bin
+    int res = calc_mmu_globals((uint32_t)generic_mmu_space,
+                               sizeof(generic_mmu_space));
+#endif
+    if (res != 0)
+    {
+        qprintf("calc_mmu_globals ret: %d\n", res);
         return;
-    mmu_conf.L1_table = mmu_L1_table;
+    }
 
     // copy and fixup Canon original tables to our location
-    uint32_t rom_base_addr = ROMBASEADDR & 0xff000000;
-    int32_t align_fail = copy_mmu_tables_ex((uint32_t)mmu_conf.L1_table,
-                                            rom_base_addr,
-                                            MMU_TABLE_SIZE);
+    int32_t align_fail = copy_mmu_tables_ex((uint32_t)global_mmu_conf.L1_table,
+                                            CANON_ORIG_MMU_TABLE_ADDR,
+                                            MMU_L1_TABLE_SIZE);
     if (align_fail != 0)
-        goto bail;
-
-    // get space for info about the L2 tables
-    struct mmu_L2_page_info *mmu_L2_page_info = NULL;
-    #if defined(CONFIG_MMU_EARLY_REMAP)
-    mmu_L2_page_info = (struct mmu_L2_page_info *)MMU_L2_PAGES_INFO_START_ADDR;
-    #elif defined(CONFIG_MMU_REMAP)
-    uint32_t mmu_L2_page_info_size = MMU_MAX_L2_TABLES * sizeof(struct mmu_L2_page_info);
-    mmu_L2_page_info = malloc(mmu_L2_page_info_size);
-    #endif
-    if (mmu_L2_page_info == NULL)
-        goto bail;
-    mmu_conf.L2_tables = mmu_L2_page_info;
-
-    // initialise L2 page info
-    #if defined(CONFIG_MMU_EARLY_REMAP)
-    // no memset available
-    uint8_t *mmu_L2_tables = (uint8_t *)MMU_L2_TABLES_START_ADDR;
-    if (mmu_L2_tables == NULL)
-        goto bail2;
-    for (uint32_t i = 0; i < MMU_MAX_L2_TABLES; i++)
-    {
-        for (uint8_t j = 0; j < 16; j++)
-        {
-            mmu_conf.L2_tables[i].phys_mem[j] = NULL;
-        }
-        mmu_conf.L2_tables[i].l2_mem = (mmu_L2_tables + (i * MMU_L2_TABLE_SIZE));
-        mmu_conf.L2_tables[i].virt_page_mapped = 0x0;
-        mmu_conf.L2_tables[i].in_use = 0x0;
-    }
-    #elif defined(CONFIG_MMU_REMAP)
-    uint8_t *mmu_L2_tables = malloc_aligned(MMU_MAX_L2_TABLES * MMU_L2_TABLE_SIZE, 0x400);
-    if (mmu_L2_tables == NULL)
-        goto bail2;
-    memset(mmu_L2_page_info, '\0', mmu_L2_page_info_size);
-    for (uint32_t i = 0; i < MMU_MAX_L2_TABLES; i++)
-    {
-        mmu_conf.L2_tables[i].l2_mem = (mmu_L2_tables + (i * MMU_L2_TABLE_SIZE));
-    }
-    #endif
-
-    // get space for 64k page remaps
-    #if defined(CONFIG_MMU_EARLY_REMAP)
-    mmu_64k_pages_start = (char *)MMU_64k_PAGES_START_ADDR;
-    #elif defined(CONFIG_MMU_REMAP)
-    mmu_64k_pages_start = malloc_aligned(MMU_MAX_64k_PAGES_REMAPPED * 0x10000, 0x10000);
-    #endif
-    if (mmu_64k_pages_start == NULL)
-        goto bail3;
+        return;
 
     mmu_globals_initialised = 1;
-    return;
-
-bail3:
-    #ifdef CONFIG_MMU_REMAP
-    free_aligned(mmu_L2_tables);
-    #endif
-    mmu_L2_tables = NULL;
-
-bail2:
-    #ifdef CONFIG_MMU_REMAP
-    free(mmu_L2_page_info);
-    #endif
-    mmu_L2_page_info = NULL;
-
-bail:
-    #ifdef CONFIG_MMU_REMAP
-    free_aligned(mmu_L1_table);
-    #endif
-    mmu_L1_table = NULL;
-
-    return;
 }
 
 extern void change_mmu_tables(uint8_t *ttbr0, uint8_t *ttbr1, uint32_t cpu_id);
@@ -400,26 +509,30 @@ static int apply_platform_patches(void)
 
     for (uint32_t i = 0; i != COUNT(mmu_data_patches); i++)
     {
-        if (apply_data_patch(&mmu_conf, &mmu_data_patches[i]) < 0)
+        if (apply_data_patch(&global_mmu_conf, &mmu_data_patches[i]) < 0)
             return -1;
     }
 
     for (uint32_t i = 0; i != COUNT(mmu_code_patches); i++)
     {
-        if (apply_code_patch(&mmu_conf, &mmu_code_patches[i]) < 0)
+        if (apply_code_patch(&global_mmu_conf, &mmu_code_patches[i]) < 0)
             return -2;
     }
     return 0;
 }
 
-#ifdef CONFIG_MMU_EARLY_REMAP
+// called via RPC only, cpu0 triggers on cpu1
+static void change_mmu_tables_cpu1(void *)
+{
+
+}
+
 static int init_remap_mmu(void)
 {
     static uint32_t mmu_remap_cpu0_init = 0;
-    static uint32_t mmu_remap_cpu1_init = 0;
 
     uint32_t cpu_id = get_cpu_id();
-    uint32_t cpu_mmu_offset = MMU_TABLE_SIZE - 0x100 + cpu_id * 0x80;
+    uint32_t cpu_mmu_offset = MMU_L1_TABLE_SIZE - 0x100 + cpu_id * 0x80;
 
     // Both CPUs want to use the updated MMU tables, but
     // only one wants to do the setup.
@@ -442,42 +555,23 @@ static int init_remap_mmu(void)
             #endif
 
             // update TTBRs (this DryOS function also triggers TLBIALL)
-            change_mmu_tables(mmu_conf.L1_table + cpu_mmu_offset,
-                              mmu_conf.L1_table,
+            change_mmu_tables(global_mmu_conf.L1_table + cpu_mmu_offset,
+                              global_mmu_conf.L1_table,
                               cpu_id);
             mmu_remap_cpu0_init = 1;
-        }
-    }
-    else
-    { // this code is a relic of when I was remapping both CPUs MMU
-      // on cams that allow both cores to run the very early code,
-      // by triggering this function in boot-d678.c.  Digic 7 doesn't
-      // allow that and this init code got moved later, where only cpu0
-      // is running.  So the following should never get called, but
-      // is left in case we want to do that very early remapping on D8X cams.
-        if (mmu_remap_cpu1_init == 0)
-        {
-            mmu_remap_cpu1_init = 1;
-            int32_t max_sleep = 900;
-            while(mmu_remap_cpu0_init == 0
-                  && !mmu_globals_initialised
-                  && max_sleep > 0)
-            {
-                max_sleep -= 100;
-                msleep(100);
-            }
-            if (max_sleep < 0) // presumably an error during cpu0 MMU init, don't remap cpu1
-                return -4;
-            // update TTBRs (this DryOS function also triggers TLBIALL)
-            change_mmu_tables(mmu_conf.L1_table + cpu_mmu_offset,
-                              mmu_conf.L1_table,
-                              cpu_id);
+
+            // I wanted to trigger cpu1 remap via request_RPC()
+            // here, but this causes memory errors.  Looks like
+            // something triggers an allocation before those
+            // subsystems are initialised?  Not sure what.
+            //
+            // Instead, we can hijack init1, still letting us remap
+            // before cpu1 starts tasks.
         }
     }
 
     return 0;
 }
-#endif // CONFIG_MMU_EARLY_REMAP
 
 int mmu_init(void)
 {
@@ -488,10 +582,9 @@ int mmu_init(void)
     if (cpu_id != 0)
         return -1;
 
-#ifdef CONFIG_MMU_EARLY_REMAP
     return init_remap_mmu();
-#else // implicitly, CONFIG_MMU_REMAP
 
+#if 0
     init_mmu_globals();
 
     if (!mmu_globals_initialised)
@@ -519,7 +612,7 @@ int mmu_init(void)
 
     // cpu0 cli, update ttbrs, wake cpu1, sei
 
-    uint32_t cpu_mmu_offset = MMU_TABLE_SIZE - 0x100 + cpu_id * 0x80;
+    uint32_t cpu_mmu_offset = MMU_L1_TABLE_SIZE - 0x100 + cpu_id * 0x80;
     uint32_t old_int = cli();
     // update TTBRs (this DryOS function also triggers TLBIALL)
     change_mmu_tables(mmu_conf.L1_table + cpu_mmu_offset,
@@ -581,7 +674,7 @@ static int patch_memory_rom(uintptr_t addr, // patched address (32 bits)
 
     // cpu0 cli, update ttbrs, wake cpu1, sei
 
-    uint32_t cpu_mmu_offset = MMU_TABLE_SIZE - 0x100 + cpu_id * 0x80;
+    uint32_t cpu_mmu_offset = MMU_L1_TABLE_SIZE - 0x100 + cpu_id * 0x80;
     uint32_t old_int = cli();
 
     // Translate old ML patch format to MMU format.
@@ -593,11 +686,11 @@ static int patch_memory_rom(uintptr_t addr, // patched address (32 bits)
                                   .patch_content = (uint8_t *)&new_value,
                                   .size = 4,
                                   .description = description };
-    apply_data_patch(&mmu_conf, &patch);
+    apply_data_patch(&global_mmu_conf, &patch);
 
     // update TTBRs (this DryOS function also triggers TLBIALL)
-    change_mmu_tables(mmu_conf.L1_table + cpu_mmu_offset,
-                      mmu_conf.L1_table,
+    change_mmu_tables(global_mmu_conf.L1_table + cpu_mmu_offset,
+                      global_mmu_conf.L1_table,
                       cpu_id);
     qprintf("MMU tables updated");
 
@@ -713,4 +806,4 @@ int _patch_sync_caches(int also_data)
 // end external API
 //
 
-#endif // CONFIG_MMU_EARLY_REMAP || CONFIG_MMU_REMAP
+#endif // CONFIG_MMU_REMAP

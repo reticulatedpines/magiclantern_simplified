@@ -4,7 +4,7 @@
 #include "dryos.h"
 #include "dryos_rpc.h"
 
-#if defined(CONFIG_DIGIC_78X) && defined(CONFIG_DUAL_CORE)
+#if defined(CONFIG_DIGIC_78X) && defined(CONFIG_RPC)
 
 // This sem guards against having multiple RPC
 // requests in flight at once.  Technically, this
@@ -23,7 +23,7 @@
 // lifetime of the RPC request.
 // The semaphore also ensures that;
 // use it to guard accesses to RPC_args.
-struct semaphore *RPC_sem;
+struct semaphore *RPC_sem; // initialised in boot_pre_init_task()
 struct RPC_args RPC_args = {0};
 
 // The DryOS _request_RPC() will call the passed function forever,
@@ -52,4 +52,4 @@ void do_RPC(void *args)
     give_semaphore(RPC_sem);
 }
 
-#endif // CONFIG_DIGIC_78X && CONFIG_DUAL_CORE
+#endif // CONFIG_DIGIC_78X && CONFIG_RPC

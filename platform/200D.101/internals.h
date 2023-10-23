@@ -5,6 +5,9 @@
 /** This camera has a DIGIC VII chip */
 #define CONFIG_DIGIC_VII
 
+// has inter-core RPC (so far this has always been dependent on SGI, 0xc)
+#define CONFIG_RPC
+
 // Cam has MMU (by itself, does nothing, see CONFIG_MMU_REMAP
 // and CONFIG_MMU_EARLY_REMAP)
 #define CONFIG_MMU

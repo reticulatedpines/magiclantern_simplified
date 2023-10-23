@@ -618,14 +618,29 @@ static uint32_t ___get_photo_cmos_iso_start_200d(void)
 }
 #endif
 
-#if 1 && defined(CONFIG_200D)
-extern int uart_printf(const char *fmt, ...);
-#include "dryos_rpc.h"
 
-static void print_success(void *param)
+#if 1 && defined(CONFIG_200D)
+#include "dryos_rpc.h"
+#include "patch.h"
+#include "mmu_utils.h"
+extern int uart_printf(const char *fmt, ...);
+extern void change_mmu_tables(uint8_t *ttbr0, uint8_t *ttbr1, uint32_t cpu_id);
+void print_test()
 {
     int cpu_id = get_cpu_id();
-    DryosDebugMsg(0, 15, "cpu %d ran func", cpu_id);
+    uart_printf("cpu%d: %s\n", cpu_id, 0xf0048842);
+}
+
+static void change_mmu_tables_cpu1(void *arg)
+{
+    uint32_t cpu_id = get_cpu_id();
+    uint32_t cpu_mmu_offset = MMU_L1_TABLE_SIZE - 0x100 + cpu_id * 0x80;
+
+    struct mmu_config *mmu_conf = (struct mmu_config *)arg;
+    // update TTBRs (this DryOS function also triggers TLBIALL)
+    change_mmu_tables(mmu_conf->L1_table + cpu_mmu_offset,
+                      mmu_conf->L1_table,
+                      cpu_id);
 }
 #endif
 
@@ -635,29 +650,20 @@ static void run_test()
     DryosDebugMsg(0, 15, "run_test fired");
 
 #if 1 && defined(CONFIG_200D)
-    static int first_time = 1;
-    if (first_time)
-    {
-        RPC_sem = create_named_semaphore("RPC", 1);
-    }
+    // print string from cpu0 and cpu1
+    uart_printf("cpu0: %s\n", 0xf0048842);
+    msleep(50);
+    task_create_ex("t_print", 0x1c, 0x400, print_test, 0, 1);
 
+    msleep(50);
     int res = take_semaphore(RPC_sem, 0);
-
-    if (res == 0) // got semaphore, no RPC in progress
+    if (res == 0)
     {
-        RPC_args.RPC_func = &print_success;
-        RPC_args.RPC_arg = (void *)666;
-
-        int32_t status; // -1 is failure
-        status = request_RPC(&RPC_args);
-        //bmp_printf(FONT_MED, 20, 50, "Suspend status: %d", suspend_status);
-        uart_printf("RPC req status: %d\n", status);
+        RPC_args.RPC_func = &change_mmu_tables_cpu1;
+        RPC_args.RPC_arg = &global_mmu_conf;
+        request_RPC(&RPC_args);
+        task_create_ex("t_print", 0x1c, 0x400, print_test, 0, 1);
     }
-    else
-    {
-        uart_printf("RPC sem fail\n");
-    }
-
 #endif
 
 }

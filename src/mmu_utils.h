@@ -2,10 +2,15 @@
 #define _mmu_utils_h_
 
 #define L2_LARGEPAGE_MEMTYPE_MASK (0x700c)
-#define MMU_TABLE_SIZE (0x4900)
+#define MMU_L1_TABLE_SIZE (0x4900)
+#define MMU_L1_TABLE_ALIGN (0x4000)
 #define MMU_L2_TABLE_SIZE (0x400)
 #define MMU_PAGE_SIZE (0x10000)
 #define MMU_SECTION_SIZE (0x100000)
+
+// round an integer x to alignment s
+#define ROUND_UP(x, s) ((((x) + (s) - 1) / (s)) * (s))
+#define ROUND_DOWN(x, s) (((x)) & (~(s - 1)))
 
 extern void dcache_clean(uint32_t addr, uint32_t size);
 extern void icache_invalidate(uint32_t addr, uint32_t size);
