@@ -154,7 +154,7 @@ extern void DryosDebugMsg(int,int,const char *,...);
 extern int GetCFnData(int group, int number);
 extern void SetCFnData(int group, int number, int value);
 
-#if CONFIG_DEBUGMSG || defined(CONFIG_QEMU)
+#if defined(CONFIG_DEBUGMSG) || defined(CONFIG_QEMU)
         #define DebugMsg(a,b,fmt,...) { DryosDebugMsg(a,b,fmt, ## __VA_ARGS__); }
 #else
         #define DebugMsg(a,b,fmt,...) { }
