@@ -138,7 +138,8 @@ DATA_PTR(   0x87998,  mpu_recv_ring_buffer)      // ring buffer used in SIO3_ISR
 DATA_PTR(    0x799C,  mpu_recv_ring_buffer_tail) // ring buffer index incremented in the above subroutine
 
 /** Misc **/
-THUMB_FN(0xe00764f0,  vsnprintf) // references "01234567", "0123456789", "0123456789abcdef" and "0123456789ABCDEF"; second arg is size.
+THUMB_FN(0xdf009338,  vsnprintf)
+//THUMB_FN(0xe00764f0,  vsnprintf) // references "01234567", "0123456789", "0123456789abcdef" and "0123456789ABCDEF"; second arg is size.
                                  // There's a somewhat vsnprintf-like at df009038, which only understands %s, not e.g. %x, don't use it.
                                  // There's another at e11c7cf8 which has an unusual "ERROR" string.
 
