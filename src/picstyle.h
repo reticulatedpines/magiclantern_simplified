@@ -27,10 +27,12 @@ int lens_get_from_other_picstyle_color_tone(int index);
     #error this should no longer be in consts.h
 #endif
 
+#if defined(NUM_PICSTYLES)
 #if NUM_PICSTYLES == 9      /* old cameras */
     #define PROP_PICSTYLE_SETTINGS(i) (PROP_PICSTYLE_SETTINGS_STANDARD - 1 + i)
 #elif NUM_PICSTYLES == 10   /* new cameras also have the "Auto" picture style */
     #define PROP_PICSTYLE_SETTINGS(i) ((i) == 1 ? PROP_PICSTYLE_SETTINGS_AUTO : PROP_PICSTYLE_SETTINGS_STANDARD - 2 + i)
 #endif
+#endif // NUM_PICSTYLES
 
 #endif
