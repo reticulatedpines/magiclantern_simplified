@@ -532,38 +532,6 @@ static void init_mmu_globals(void)
 
     mmu_globals_initialised = 1;
 
-#if defined(CONFIG_ALLOCATE_MEMORY_POOL)
-    // Now we must patch the Alloc Mem start constant,
-    // or DryOS will clobber ML memory (which we're currently running from!).
-    // We don't need to do this on cpu1, both cpus use the same AllocMem
-    // pool which cpu0 inits.
-    //
-    // We can't use patch_memory() because that uses
-    // our SGI handler to get cpu1 to take the patch,
-    // and that isn't installed this early.
-    uint32_t new_AM_start = RESTARTSTART + ALLOC_MEM_STOLEN;
-
-    uint32_t cpu_id = get_cpu_id();
-    uint32_t cpu_mmu_offset = MMU_L1_TABLE_SIZE - 0x100 + cpu_id * 0x80;
-    uint32_t old_int = cli();
-
-    struct region_patch patch = { .patch_addr = PTR_ALLOC_MEM_START,
-                                  .orig_content = NULL,
-                                  .patch_content = (uint8_t *)&new_AM_start,
-                                  .size = 4,
-                                  .description = NULL };
-    res = apply_data_patch(&global_mmu_conf, &patch);
-
-    // update TTBRs (this DryOS function also triggers TLBIALL)
-    change_mmu_tables(global_mmu_conf.L1_table + cpu_mmu_offset,
-                      global_mmu_conf.L1_table,
-                      cpu_id);
-    qprintf("MMU tables updated\n");
-    sei(old_int);
-    _sync_caches();
-
-    qprintf("AM start patch res: %d\n", res);
-#endif
 }
 
 // applies compile-time specified patches from platform/XXD/include/platform/mmu_patches.h
@@ -612,17 +580,41 @@ static int init_remap_mmu(void)
             if (!mmu_globals_initialised)
                 return -1;
 
+            #if defined(CONFIG_ALLOCATE_MEMORY_POOL)
+                // We must patch the Alloc Mem start constant,
+                // or DryOS will clobber ML memory (which we're currently running from!)
+                // when it inits the AM system (inside Canon's init1 task,
+                // we are running just before that).
+                //
+                // We don't need to do this on cpu1, both cpus use the same AllocMem
+                // pool which cpu0 inits.
+                //
+                // We can't use patch_memory() because that uses
+                // our SGI handler to get cpu1 to take the patch,
+                // and that isn't installed this early.
+                uint32_t new_AM_start = RESTARTSTART + ALLOC_MEM_STOLEN;
+
+
+                struct region_patch patch = { .patch_addr = PTR_ALLOC_MEM_START,
+                                              .orig_content = NULL,
+                                              .patch_content = (uint8_t *)&new_AM_start,
+                                              .size = 4,
+                                              .description = NULL };
+                int res = apply_data_patch(&global_mmu_conf, &patch);
+                qprintf("AM start patch res: %d\n", res);
+            #endif
+
+            // Perform any hard-coded patches in include/platform/mmu_patches.h
             if (apply_platform_patches() < 0)
                 return -2;
 
-            #ifdef CONFIG_QEMU
-            // qprintf the results for debugging
-            #endif
-
             // update TTBRs (this DryOS function also triggers TLBIALL)
+            uint32_t old_int = cli();
             change_mmu_tables(global_mmu_conf.L1_table + cpu_mmu_offset,
                               global_mmu_conf.L1_table,
                               cpu_id);
+            sei(old_int);
+            _sync_caches();
             mmu_remap_cpu0_init = 1;
 
             // I wanted to trigger cpu1 remap via request_RPC()
