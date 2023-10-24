@@ -176,6 +176,8 @@
 // e0040f00 e5 f3 c2 e8  blx  init_AllocateMemory_system
 #define PTR_ALLOC_MEM_START 0xe00412c8 // pointer to 0x46_c000, start of AllocMem region
 #define ALLOC_MEM_STOLEN 0x80000 // 512kB for ML
+#define PTR_INIT1_TASK      0xe00403a8 // pointer to address of init1_task
+                                       // used for create_task_ex() call by cpu0 (0xe0040221)
 
 #define CANON_ORIG_MMU_TABLE_ADDR 0xe0000000 // Yes, this is the rom start, yes, there is code there.
                                              // I assume ARM MMU alignment magic means this is okay,

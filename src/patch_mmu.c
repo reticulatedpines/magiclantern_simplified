@@ -560,6 +560,43 @@ static void change_mmu_tables_cpu1(void *)
 
 }
 
+// cpu0 uses create_task_ex(init1_task, <etc>) to start tasks etc
+// on cpu1.
+//
+// init_remap_mmu() may trigger init1_task_wrapper to be called,
+// by modifying the memory holding the address used by cpu0
+// for the call param.  This is dependent on CONFIG_INIT1_HIJACK.
+//
+// This gives us a convenient place to make cpu1 take our
+// updated MMU tables.
+//
+// Therefore, any changes to memory made here (or earlier),
+// should be visible to all cpu1 tasks.
+#ifdef CONFIG_INIT1_HIJACK
+static void init1_task_wrapper(void)
+{
+    // get orig value of init1_task()
+    void (*init1_task)(void) = *(void(*)(void))(*(uint32_t *)PTR_INIT1_TASK);
+    // possibly not needed, but we are about to change the content
+    // read through PTR_INIT1_TASK so let's ensure we get orig value
+    asm(
+        "dsb;"
+    );
+
+    // update TTBRs, handover to the real init1_task
+    uint32_t cpu_id = get_cpu_id();
+    uint32_t cpu_mmu_offset = MMU_L1_TABLE_SIZE - 0x100 + cpu_id * 0x80;
+    uint32_t old_int = cli();
+    change_mmu_tables(global_mmu_conf.L1_table + cpu_mmu_offset,
+                      global_mmu_conf.L1_table,
+                      cpu_id);
+    sei(old_int);
+    _sync_caches();
+
+    init1_task();
+}
+#endif // CONFIG_INIT1_HIJACK
+
 static int init_remap_mmu(void)
 {
     static uint32_t mmu_remap_cpu0_init = 0;
@@ -581,28 +618,38 @@ static int init_remap_mmu(void)
                 return -1;
 
             #if defined(CONFIG_ALLOCATE_MEMORY_POOL)
-                // We must patch the Alloc Mem start constant,
-                // or DryOS will clobber ML memory (which we're currently running from!)
-                // when it inits the AM system (inside Canon's init1 task,
-                // we are running just before that).
-                //
-                // We don't need to do this on cpu1, both cpus use the same AllocMem
-                // pool which cpu0 inits.
-                //
-                // We can't use patch_memory() because that uses
-                // our SGI handler to get cpu1 to take the patch,
-                // and that isn't installed this early.
-                uint32_t new_AM_start = RESTARTSTART + ALLOC_MEM_STOLEN;
+            // We must patch the Alloc Mem start constant,
+            // or DryOS will clobber ML memory (which we're currently running from!)
+            // when it inits the AM system (inside Canon's init1 task,
+            // we are running just before that).
+            //
+            // We don't need to do this on cpu1, both cpus use the same AllocMem
+            // pool which cpu0 inits.
+            //
+            // We can't use patch_memory() because that uses
+            // our SGI handler to get cpu1 to take the patch,
+            // and that isn't installed this early.
+            uint32_t new_AM_start = RESTARTSTART + ALLOC_MEM_STOLEN;
 
-
-                struct region_patch patch = { .patch_addr = PTR_ALLOC_MEM_START,
-                                              .orig_content = NULL,
-                                              .patch_content = (uint8_t *)&new_AM_start,
-                                              .size = 4,
-                                              .description = NULL };
-                int res = apply_data_patch(&global_mmu_conf, &patch);
-                qprintf("AM start patch res: %d\n", res);
+            struct region_patch patch = { .patch_addr = PTR_ALLOC_MEM_START,
+                                          .orig_content = NULL,
+                                          .patch_content = (uint8_t *)&new_AM_start,
+                                          .size = 4,
+                                          .description = NULL };
+            int res = apply_data_patch(&global_mmu_conf, &patch);
+            qprintf("AM start patch res: %d\n", res);
             #endif
+
+            #ifdef CONFIG_INIT1_HIJACK
+            uint32_t init1_task_wrapper_addr = (uint32_t)init1_task_wrapper | 0x1;
+            struct region_patch patch2 = { .patch_addr = PTR_INIT1_TASK,
+                                           .orig_content = NULL,
+                                           .patch_content = (uint8_t *)&init1_task_wrapper_addr,
+                                           .size = 4,
+                                           .description = NULL };
+            res = apply_data_patch(&global_mmu_conf, &patch2);
+            qprintf("init1 patch res: %d\n", res);
+            #endif // CONFIG_INIT1_HIJACK
 
             // Perform any hard-coded patches in include/platform/mmu_patches.h
             if (apply_platform_patches() < 0)
