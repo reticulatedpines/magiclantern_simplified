@@ -169,6 +169,14 @@
 #define LEDON                       0x20D0002
 #define LEDOFF                      0x20C0003
 
+// This is the address of the location that *stores*
+// the Allocate Mem start addr.  Looks like this on 200D 1.0.1:
+// e0040efc f1 49        ldr  r1=>DAT_00d6c000,[PTR_DAT_e00412c4]
+// e0040efe f2 48        ldr  r0=>DAT_0046c000,[PTR_DAT_e00412c8]
+// e0040f00 e5 f3 c2 e8  blx  init_AllocateMemory_system
+#define PTR_ALLOC_MEM_START 0xe00412c8 // pointer to 0x46_c000, start of AllocMem region
+#define ALLOC_MEM_STOLEN 0x80000 // 512kB for ML
+
 #define CANON_ORIG_MMU_TABLE_ADDR 0xe0000000 // Yes, this is the rom start, yes, there is code there.
                                              // I assume ARM MMU alignment magic means this is okay,
                                              // presumably the tables themselves don't use the early part.

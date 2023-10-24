@@ -18,7 +18,7 @@
 #error "Attempting to build patch_mmu.c but cam not listed as having an MMU - this is probably a mistake"
 #endif
 
-#if !defined(CONFIG_ALLOC_MEM_START)
+#if !defined(PTR_ALLOC_MEM_START)
 // If AllocMem start is defined, we assume MMU tables should be located there.
 // Otherwise we reserve space in magiclantern.bin:
 // 0x10000 for 1 remapped page, (0x10000 aligned)
@@ -313,7 +313,7 @@ int calc_mmu_globals(uint32_t start_addr, uint32_t size)
         aligned_space = aligned_end - start_addr;
     }
 
-    qprintf("Start, size, end: %x, %x\n", start_addr, size, end_addr);
+    qprintf("Start, size, end: %x, %x, %x\n", start_addr, size, end_addr);
     qprintf("start_adj, end_adj: %x, %x\n", start_adjust, end_adjust);
     qprintf("Fill, space: %d, %x\n",
             fill_forwards, aligned_space);
@@ -404,19 +404,19 @@ int calc_mmu_globals(uint32_t start_addr, uint32_t size)
         {
             uint32_t phys_mem_start = (aligned_end - MMU_PAGE_SIZE * num_64k_pages);
             if (phys_mem_start < start_addr)
-                continue;
+                goto cont;
             global_mmu_conf.phys_mem_pages = (uint8_t *)phys_mem_start;
 
             // L2 tables align well with the start of the 64k pages
             L2_tables = (uint8_t *)(phys_mem_start - MMU_L2_TABLE_SIZE * num_64k_pages);
             if ((uint32_t)L2_tables < start_addr)
-                continue;
+                goto cont;
 
             // L1 table before those
             global_mmu_conf.L1_table = (uint8_t *)(ROUND_DOWN(
                             (uint32_t)L2_tables - MMU_L1_TABLE_SIZE, MMU_L1_TABLE_ALIGN));
             if ((uint32_t)global_mmu_conf.L1_table < start_addr)
-                continue;
+                goto cont;
 
             // L1 table is a weird size so there will be a gap,
             // try and fit things in it.
@@ -434,11 +434,12 @@ int calc_mmu_globals(uint32_t start_addr, uint32_t size)
                                     - (sizeof(struct mmu_L2_page_info) * num_64k_pages));
             }
             if ((uint32_t)L2_info_start < start_addr)
-                continue;
+                goto cont;
             global_mmu_conf.L2_tables = L2_info_start;
             qprintf("met reqs, fill backwards\n");
             reqs_met = 1;
         }
+    cont:
         qprintf("reducing pages\n");
         num_64k_pages--; // this is intended to happen max of once
     }
@@ -476,8 +477,19 @@ static void init_mmu_globals(void)
     if (get_cpu_id() != 0)
         return;
 
-#if defined(CONFIG_ALLOC_MEM_START)
-    // use AllocMem pool
+#if defined(CONFIG_ALLOCATE_MEMORY_POOL)
+    // use AllocMem pool: this requires RESTARTSTART
+    // to be set appropriately to locate ML there.
+    // PTR_ALLOC_MEM_START must be earlier,
+    // size for MMU stuff is (RESTARTSTART - PTR_ALLOC_MEM_START)
+    uint32_t orig_AM_start = *(uint32_t *)PTR_ALLOC_MEM_START;
+    if (RESTARTSTART <= orig_AM_start)
+        return;
+    uint32_t mmu_space = RESTARTSTART - orig_AM_start;
+
+    int res = calc_mmu_globals(orig_AM_start,
+                               mmu_space);
+
 #else
     // use space within magiclantern.bin
     int res = calc_mmu_globals((uint32_t)generic_mmu_space,
@@ -494,12 +506,65 @@ static void init_mmu_globals(void)
                                             CANON_ORIG_MMU_TABLE_ADDR,
                                             MMU_L1_TABLE_SIZE);
     if (align_fail != 0)
+    {
+#if defined(CONFIG_ALLOCATE_MEMORY_POOL)
+        // We're now in a tricky situation.  MMU table setup
+        // failed, but we want to patch an AllocMem constant.
+        // Without this, DryOS will initialise AM with ML code
+        // in the middle of the region, which causes their tasks
+        // to fail (I assume due to heap corruption, it doesn't
+        // emul far enough for me to check thoroughly).
+        //
+        // We can't easily zero the region and abort, because...
+        // this code is already running there.
+        //
+        // Practically though, this should never happen,
+        // only if the L1 table isn't 0x4000 aligned,
+        // and we control that.
+        while(1)
+        {
+            info_led_blink(4, 200, 200);
+            msleep(1000);
+        }
+#endif
         return;
+    }
 
     mmu_globals_initialised = 1;
-}
 
-extern void change_mmu_tables(uint8_t *ttbr0, uint8_t *ttbr1, uint32_t cpu_id);
+#if defined(CONFIG_ALLOCATE_MEMORY_POOL)
+    // Now we must patch the Alloc Mem start constant,
+    // or DryOS will clobber ML memory (which we're currently running from!).
+    // We don't need to do this on cpu1, both cpus use the same AllocMem
+    // pool which cpu0 inits.
+    //
+    // We can't use patch_memory() because that uses
+    // our SGI handler to get cpu1 to take the patch,
+    // and that isn't installed this early.
+    uint32_t new_AM_start = RESTARTSTART + ALLOC_MEM_STOLEN;
+
+    uint32_t cpu_id = get_cpu_id();
+    uint32_t cpu_mmu_offset = MMU_L1_TABLE_SIZE - 0x100 + cpu_id * 0x80;
+    uint32_t old_int = cli();
+
+    struct region_patch patch = { .patch_addr = PTR_ALLOC_MEM_START,
+                                  .orig_content = NULL,
+                                  .patch_content = (uint8_t *)&new_AM_start,
+                                  .size = 4,
+                                  .description = NULL };
+    res = apply_data_patch(&global_mmu_conf, &patch);
+
+    // update TTBRs (this DryOS function also triggers TLBIALL)
+    change_mmu_tables(global_mmu_conf.L1_table + cpu_mmu_offset,
+                      global_mmu_conf.L1_table,
+                      cpu_id);
+    qprintf("MMU tables updated\n");
+    sei(old_int);
+    _sync_caches();
+
+    qprintf("AM start patch res: %d\n", res);
+#endif
+}
 
 // applies compile-time specified patches from platform/XXD/include/platform/mmu_patches.h
 static int apply_platform_patches(void)

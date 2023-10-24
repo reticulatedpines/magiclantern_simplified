@@ -46,6 +46,7 @@ struct mmu_config
 };
 
 extern struct mmu_config global_mmu_conf; // in patch_mmu.c
+extern void change_mmu_tables(uint8_t *ttbr0, uint8_t *ttbr1, uint32_t cpu_id);
 
 // Sets up structures required for remapping via MMU,
 // and applies compile-time specified patches from platform/XXD/include/platform/mmu_patches.h

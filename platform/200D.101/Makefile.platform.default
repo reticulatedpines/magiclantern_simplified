@@ -8,12 +8,18 @@ ROMBASEADDR     = 0xE0040000
 #CONFIG_MMIO_TRACE = y
 
 # user_mem_start from cstart struct. Align to 0x10 up
-RESTARTSTART    = 0x000e1bd0
+#RESTARTSTART = 0x000e1bd0
+
+# copying ML to AllocMem region, see PTR_ALLOC_MEM_START
+RESTARTSTART = 0x4d0000 # Aligning the end at 0x10000 allows
+                        # more efficient packing for preceding
+                        # MMU structs
 
 # Cortex A9, binaries loaded as Thumb
 # MIDR: 0x414fc091, see get_cpu_info() in arm-mcr.h
 PLATFORM_ARCH = armv7-a
 CFLAG_USER += -mthumb -mlong-calls
 
-ML_BOOT_OBJ     = boot-d678.o
+#ML_BOOT_OBJ     = boot-d678.o
+ML_BOOT_OBJ     = boot-d678-am.o
 ML_SRC_EXTRA_OBJS += function_overrides.o

@@ -66,7 +66,6 @@ int wait_for_cpu1_to_suspend(int32_t timeout)
     return 0;
 }
 
-extern void change_mmu_tables(uint8_t *ttbr0, uint8_t *ttbr1, uint32_t cpu_id);
 void suspend_cpu1_then_update_mmu(void)
 {
     uint32_t cpu_id = get_cpu_id();

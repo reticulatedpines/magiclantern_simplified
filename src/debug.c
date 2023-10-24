@@ -619,7 +619,7 @@ static uint32_t ___get_photo_cmos_iso_start_200d(void)
 #endif
 
 
-#if 1 && defined(CONFIG_200D)
+#if 1 && defined(CONFIG_MMU_REMAP) && defined(CONFIG_200D)
 #include "dryos_rpc.h"
 #include "patch.h"
 #include "mmu_utils.h"
@@ -649,7 +649,7 @@ static void run_test()
 {
     DryosDebugMsg(0, 15, "run_test fired");
 
-#if 1 && defined(CONFIG_200D)
+#if 1 && defined(CONFIG_MMU_REMAP) && defined(CONFIG_200D)
     // print string from cpu0 and cpu1
     uart_printf("cpu0: %s\n", 0xf0048842);
     msleep(50);
