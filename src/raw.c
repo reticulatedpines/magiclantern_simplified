@@ -2332,44 +2332,517 @@ static void FAST raw_preview_fast_work(void* raw_buffer, void* lv_buffer, int y1
     free(lv2rx);
 }
 
-void FAST raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int y1, int y2, int quality)
-{
-    if (raw_info.bits_per_pixel != 14)
-        return;
 
+// *** cached ultrafast preview:
+//
+// The purpose is to reduce as much as possible the computation time required to perform the framed RAW
+// preview rendering in LiveView in order to save CPU time to do other tasks (e.g.: recording RAW data).
+//
+// This is achieved by precomputing everything possible, notably the RAW buffer offsets and the RGB
+// gamma transformations, so the drawing itself may consist in the lightest possible loop doing linear
+// accesses to data, thanks to simple pointer dereferencing.
+//
+// By doing this in colored and grayscale preview we instantly get a smoother preview (both previewing &
+// during recording), allowing us to potentially reducing the sleep times defined to leave enough headroom
+// for the CPU to record the RAW data.
+//
+// The cache precomputation is managed by simply computing a determinant value that may change when
+// selecting a new RAW video resolution.
+
+
+// ultrafast cache structure:
+typedef struct
+{
+    // used to determine if we need to (re)init the cache:
+    uint64_t determinant;
+    
+    // raw offsets pointer:
+    uint32_t * p_raw_offsets;
+    // pointer to the last useful data in the buffer:
+    const uint32_t * p_raw_offsets_last;
+    
+    // pointer to the first useful offset in LV:
+    uint32_t p_first_lv_offset;
+    
+    // gamma LUT for red & blue channels (RGB) and for green channel (RGB & luminance in grayscale):
+    // [memory footprint] 2 slot x 1024 values x 8bits = 2KB
+    uint8_t gamma_rb[ 1024 ];
+    uint8_t gamma_g[ 1024 ];
+    
+    // raw width stride, used to go from even to odd lines:
+    uint32_t rawStride;
+}
+preview_ultrafast_cache;
+
+// unique preview ultrafast cache:
+static preview_ultrafast_cache g_preview_ultrafast_cache = {
+    .determinant = 0,   // voided before first initialization
+    .p_raw_offsets = 0  // must be allocated the very first time
+};
+
+
+// preview statistics structure:
+typedef struct
+{
+    // how many frame do we want to draw before dumping averaged statistics?
+    const int dump_frame_count;
+    
+    // time point (ms) set before the first framed preview draw call:
+    int clock_before_first_draw_ms;
+    
+    // cumulated time (ms) of preview draw calls:
+    int cumulated_draw_time_ms;
+    
+    // currently drawn preview frame count:
+    int drawn_frame_count;
+}
+preview_statistics;
+
+// unique preview statistics:
+static preview_statistics g_preview_statistics = {
+    .dump_frame_count = 100,            // dump every 100 frame
+    .clock_before_first_draw_ms = 0,
+    .cumulated_draw_time_ms = 0,
+    .drawn_frame_count = 0 
+};
+
+// reset statistics:
+void reset_preview_statistics()
+{
+    g_preview_statistics.clock_before_first_draw_ms = 0;
+    g_preview_statistics.cumulated_draw_time_ms = 0;
+    g_preview_statistics.drawn_frame_count = 0;
+}
+
+
+// preview ultrafast parameters container:
+static int g_framed_preview_param[ 7 ];
+
+void set_framed_preview_param( const int _param, const int _value )
+{
+    g_framed_preview_param[ _param ] = _value;
+}
+
+int get_framed_preview_param( const int _param )
+{
+    return g_framed_preview_param[ _param ];
+}
+
+
+// ultrafast preview cache initialization:
+static bool FAST init_preview_ultrafast_cache( const int _y1, const int _y2, const bool _quarter )
+{
+    // notation shortcut:
+    preview_ultrafast_cache * puc = &g_preview_ultrafast_cache;
+   
+    // precompute gamma conversions, using a 10bits (1024 values) LUT converted to 14 bits color data.
+    // red & blue components are converted over 11bits while green remains on 10bits to follow a
+    // 2-1-2 (R-G-B) pattern and get a proper white balance.
+    // red, green & blue components are using a x² ramp and stored on 8bits (256 values)
+    float gamma_ev = 0, gamma = 0;
+    for( int i = 0; i < 1024; i++ ) {
+        
+        // get gamma in ev range:
+        gamma_ev = raw_to_ev( i << 4 );
+        
+        // 8-bits gamma value for red & blue:
+        gamma = ( COERCE( gamma_ev + 11, 0, 10 ) * 255 ) / 10;
+        puc->gamma_rb[ i ] = ( gamma * gamma ) / 255;
+        
+        // 8-bits gamma value for green:
+        gamma = ( COERCE( gamma_ev + 10, 0, 10 ) * 255 ) / 10;
+        puc->gamma_g[ i ] = ( gamma * gamma ) / 255;
+    }
+   
+    // remember current RAW data stride (used to switch from even to odd rows):
+    puc->rawStride = raw_info.width >> 3;
+
+    // create RAW offset buffer the very first time, using the maximum LV (half) resolution:
+    // [memory footprint] ( half LV width [720 / 2] ) x LV height [480] x 32bits (offset) = 675KB
+    if( puc->p_raw_offsets == 0 ) {
+        puc->p_raw_offsets = malloc( ( ( vram_lv.width * vram_lv.height ) >> 1 ) * sizeof( uint32_t ) );
+        if( puc->p_raw_offsets == 0 ) {
+            printf( "ERROR: ultrafast cache allocation failure!\n" );
+            return false; // memory allocation failure
+        }
+    }
+    // point to the data origin to feed the buffer:
+    uint32_t * p_raw_offsets = puc->p_raw_offsets;
+   
+    // compute left and right boundaries:
+    int x1 = COERCE( RAW2LV_X( preview_rect_x ), 0, vram_lv.width );
+    int x2 = COERCE( RAW2LV_X( preview_rect_x + preview_rect_w ), 0, vram_lv.width );
+    if( x2 < x1 ) {
+        return false; // wtf?
+    }
+    
+    // cache LV to RAW horizontal transformations (same for all the rows):
+    int * p_lv2raw_x = malloc( vram_lv.width * sizeof( int ) );
+    if( p_lv2raw_x == 0 ) {
+        return false; // allocation failure
+    }
+    for( int x = x1; x < x2; x++ ) {
+        p_lv2raw_x[ x ] = LV2RAW_X( x ) & ~1;
+    }
+    
+    // reset first useful LV offset for subsequent set:
+    puc->p_first_lv_offset = 0;
+    
+    // offset shifting & pixel skiping values depends of half or quarter resolution:
+    const int lv_offset_shift = _quarter ? 3 : 2;
+    const int lv_pixel_skip = _quarter ? 4 : 2;
+    
+    // for each useful LV row:
+    for( int y = _y1; y < _y2; y++ ) {
+        
+        // compute RAW vertical position:
+        int yr = LV2RAW_Y( y ) & ~1;
+        // nothing to do if outside boundaries:
+        if( yr <= preview_rect_y || yr >= preview_rect_y + preview_rect_h ) {
+            continue;
+        }
+            
+        // remember the first useful offset in LiveView, then we will increment linearly:
+        if( puc->p_first_lv_offset == 0 )
+            puc->p_first_lv_offset = ( y * ( vram_lv.width << 1 ) ) >> lv_offset_shift;
+        
+        // for each LV column (half or quarter LV horizontal resolution):
+        for( int x = 0; x < vram_lv.width; x += lv_pixel_skip ) {
+            
+            // outside horizontal boudaries, set offset to null:
+            if( x < x1 || x >= x2 ) {
+                *p_raw_offsets++ = ( uint32_t ) -1;
+                continue;
+            }
+            
+            // compute RAW buffer offset, pointing to the red component of the 1st of the 8 pixel groups:
+            *p_raw_offsets++ = ( p_lv2raw_x[ x ] + yr * raw_info.width ) >> 3;
+        }
+    }
+    
+    // release LV to RAW cache:
+    free( p_lv2raw_x );
+    
+    // save last useful pointer to RAW offset:
+    puc->p_raw_offsets_last = p_raw_offsets;
+       
+    // done:
+    return true;
+}
+
+
+// optimize a bit the RGB to YUV422 conversion routine:
+__attribute__( ( always_inline ) ) static uint32_t _rgb2yuv422_rec709( const int _r, const int _g, const int _b )
+{
+    // Y computation from RGB:
+    int y = ( 217 * _r + 732 * _g + 73 * _b ) >> 10;
+    if( y > 255 ) y = 255;
+    
+    // Y computation from RGB:
+    int u = ( -117 * _r - 394 * _g + 512 * _b ) / 1024;
+    if( u < -128 ) u = -128; else if( u > 127 ) u = 127;
+    
+    // V computation from RGB:
+    int v = ( 512 * _r -465 * _g - 46 * _b ) / 1024;
+    if( v < -128 ) v = -128; else if( v > 127 ) v = 127;
+    
+    // YUV422 computation:
+    return ( u & 0xFF ) | ( y << 8 ) | ( ( v & 0xFF ) << 16 ) | ( y << 24 );
+}
+
+
+// template definitions for the drawing routine itself (covers both color/grayscale, half/quarter resolution):
+
+#define T_PREVIEW_ULTRAFAST_DRAW_READ_COLOR                                                        \
+    /* point to the RAW red value on the current even line: */                                     \
+    p_raw_pointer = p_raw_buffer + raw_offset;                                                     \
+    /* get red value: */                                                                           \
+    r = *( p_gamma_rb + ( p_raw_pointer->a >> 4 ) );                                               \
+    /* get green & blue values on the next odd line: */                                            \
+    p_raw_pointer += rawStride;                                                                    \
+    /* get green value: */                                                                         \
+    g = *( p_gamma_g + ( p_raw_pointer->a >> 4 ) );                                                \
+    /* get blue value: */                                                                          \
+    b = *( p_gamma_rb + ( ( ( p_raw_pointer->b_hi << 12 ) | p_raw_pointer->b_lo ) >> 4 ) );        \
+                                                                                                   \
+    /* RGB conversion to YUV422: */                                                                \
+    yuv = _rgb2yuv422_rec709( r, g, b )
+
+    
+#define T_PREVIEW_ULTRAFAST_DRAW_READ_GRAYSCALE                                                    \
+    /* compute Y component based over the green component (closest odd line) in the RAW buffer, */ \
+    /* using gamma LUT: */                                                                         \
+    y = *( p_gamma_g + ( ( p_raw_buffer + raw_offset )->a >> 4 ) )
+
+
+#define T_PREVIEW_ULTRAFAST_DRAW_WRITE_COLOR_HALF                                                  \
+    /* set YUV data in the LV buffer (one YUV422 32-bits pixels): */                               \
+    *p_lv_buffer++ = yuv
+
+
+#define T_PREVIEW_ULTRAFAST_DRAW_WRITE_COLOR_QUARTER                                               \
+    /* set YUV data in the LV buffer (2 duplicated YUV422 32-bits pixels): */                      \
+    *p_lv_buffer++ = ( yuv << 32 ) | yuv
+
+    
+#define T_PREVIEW_ULTRAFAST_DRAW_WRITE_GRAYSCALE_HALF                                              \
+    /* set YUV data in the LV buffer (1 pixel of 32-bits YUV422 grayscale data, */                 \
+    /* meaning two times the same Y value with no chrominance data): */                            \
+    *p_lv_buffer++ = ( y << 8 ) | ( y << 24 )
+
+    
+#define T_PREVIEW_ULTRAFAST_DRAW_WRITE_GRAYSCALE_QUARTER                                           \
+    /* set YUV data in the LV buffer (2 pixels duplication of 32-bits YUV422 grayscale data, */    \
+    /* meaning two times the same Y value with no chrominance data): */                            \
+    *p_lv_buffer++ = ( y << 8 ) | ( y << 24 ) | ( y << 40 ) | ( y << 56 )
+
+
+#define T_PREVIEW_ULTRAFAST_DRAW( _LV_POINTER_TYPE, _READ_FN, _WRITE_FN )                          \
+    /* get LV buffer pointer: */                                                                   \
+    register _LV_POINTER_TYPE * p_lv_buffer = p_lv_buffer_void;                                    \
+                                                                                                   \
+    /* set LV buffer at its first useful position: */                                              \
+    p_lv_buffer += puc->p_first_lv_offset;                                                         \
+                                                                                                   \
+    /* fast linear access: */                                                                      \
+    while( p_raw_offsets != p_raw_offsets_last ) {                                                 \
+                                                                                                   \
+        /* get RAW offset: */                                                                      \
+        raw_offset = *p_raw_offsets++;                                                             \
+                                                                                                   \
+        /* offset is null, skip this pixel (left & right black bars): */                           \
+        if( raw_offset == ( uint32_t ) -1 ) {                                                      \
+            p_lv_buffer++;                                                                         \
+            continue;                                                                              \
+        }                                                                                          \
+                                                                                                   \
+        /* variable read function: */                                                              \
+        _READ_FN;                                                                                  \
+                                                                                                   \
+        /* variable feed function */                                                               \
+        _WRITE_FN;                                                                                 \
+    }
+
+
+// ultra fast preview generic drawing routine:
+static void FAST draw_preview_ultrafast( const void * _p_raw_buffer, const void * _p_lv_buffer, const int _y1, const int _y2, const bool _reinit, const bool _grayscale, const bool _quarter )
+{   
+    // notation shortcut:
+    const preview_ultrafast_cache * const puc = &g_preview_ultrafast_cache;
+   
+    // init cache if needed (determined externally):
+    if( _reinit && !init_preview_ultrafast_cache( _y1, _y2, _quarter ) ) {
+        return; // fail to init ultrafast cache
+    }
+   
+    // get LV buffer pointer:
+    register void * p_lv_buffer_void = CACHEABLE( _p_lv_buffer );
+    if( p_lv_buffer_void == 0 ) {
+        return; // unavailable buffer
+    }
+   
+    // get cacheable RAW buffer pointer:
+    const struct raw_pixblock * p_raw_buffer = CACHEABLE( _p_raw_buffer );
+    if( p_raw_buffer == 0 ) {
+        return; // unavailable buffer
+    }
+    
+    // [grayscale] we need to point directly to an odd line:
+    if( _grayscale ) {
+        p_raw_buffer += puc->rawStride;
+    }
+
+    // [color] independent r, g, & b components:
+    int r = 0, g = 0, b = 0;
+    // [color] combined 32bits YUV value (stored on 64bits for subsequent shift):
+    int64_t yuv = 0;
+    // [grayscale] Y component (luminance) of the YUV422 LV output buffer:
+    int64_t y = 0;
+    
+    // pointer to precomputed RAW offsets:
+    const uint32_t * p_raw_offsets = puc->p_raw_offsets;
+    if( p_raw_offsets == 0 ) {
+        return; // ultrafast preview cache not initialized
+    }
+    // point to last RAW offset:
+    const uint32_t * const p_raw_offsets_last = puc->p_raw_offsets_last;
+    
+    // [color] pointer to RAW data, used to switch between R, G & B components on even & odd lines:
+    register const struct raw_pixblock * p_raw_pointer = 0;
+    
+    // [color] RAW stride used to switch from even to odd lines:
+    const uint32_t rawStride = puc->rawStride;
+    
+    // [color] pointer to red+blue gamma LUT:
+    const uint8_t * const p_gamma_rb = puc->gamma_rb;
+    // pointer to green gamma LUT:
+    const uint8_t * const p_gamma_g = puc->gamma_g;
+    
+    // RAW offet value:
+    uint32_t raw_offset = 0;
+   
+    // quarter resolution:
+    if( _quarter ) {
+        // [grayscale]:
+        if( _grayscale ) {
+            T_PREVIEW_ULTRAFAST_DRAW( uint64_t, T_PREVIEW_ULTRAFAST_DRAW_READ_GRAYSCALE, T_PREVIEW_ULTRAFAST_DRAW_WRITE_GRAYSCALE_QUARTER );
+            return;
+        }
+        // [color]:
+        T_PREVIEW_ULTRAFAST_DRAW( uint64_t, T_PREVIEW_ULTRAFAST_DRAW_READ_COLOR, T_PREVIEW_ULTRAFAST_DRAW_WRITE_COLOR_QUARTER );        
+        return;
+    }
+    
+    // half resolution:
+    // [grayscale]:
+    if( _grayscale ) {
+        T_PREVIEW_ULTRAFAST_DRAW( uint32_t, T_PREVIEW_ULTRAFAST_DRAW_READ_GRAYSCALE, T_PREVIEW_ULTRAFAST_DRAW_WRITE_GRAYSCALE_HALF );
+        return;
+    }
+    // [color]:
+    T_PREVIEW_ULTRAFAST_DRAW( uint32_t, T_PREVIEW_ULTRAFAST_DRAW_READ_COLOR, T_PREVIEW_ULTRAFAST_DRAW_WRITE_COLOR_HALF );
+}
+
+
+// printf doesn't seems to be able to dump float value, so here's a function that splits
+// a float value to a "x.y" string, with 3 numbers after the dot:
+char * format_float( const double _value, char * _buffer, const size_t _buffer_len )
+{
+    const int left = ( int ) _value;
+    const int right = ( ( int )( _value * 1000 ) ) - ( left * 1000 );
+    snprintf( _buffer, _buffer_len - 1, "%d.%d", left, right );
+    return _buffer;
+}
+
+
+// updated drawing routine with an additional recording parameter:
+void FAST raw_preview_fast_ex2( void * _p_raw_buffer, void * _p_lv_buffer, int _y1, int _y2, int _quality, const bool _recording )
+{
+    // only support 14-bits data:
+    if( raw_info.bits_per_pixel != 14 ) {
+        return;
+    }
+
+    // check if the YUV buffer is initialized:
     yuv422_buffer_check();
 
-    if (raw_buffer == (void*)-1)
-        raw_buffer = (void*)raw_info.buffer;
+    // set default values if needed:
+    _p_raw_buffer = ( _p_raw_buffer == ( void * ) -1 ) ? ( void * ) raw_info.buffer : _p_raw_buffer;
+    _p_lv_buffer = ( _p_lv_buffer == ( void * ) -1 ) ? ( void * ) YUV422_LV_BUFFER_DISPLAY_ADDR : _p_lv_buffer;
+    _y1 = ( _y1 == -1 ) ? BM2LV_Y( os.y0 ) : _y1;
+    _y2 = ( _y2 == -1 ) ? BM2LV_Y( os.y_max ) : _y2;
+    _quality = ( _quality == -1 ) ? RAW_PREVIEW_ADAPTIVE : _quality;
+    
+    // determine final style & resolution:
+    int style = -1;
+    int resolution = -1;
+    
+    // forced colored/half resolution:
+    if( _quality == RAW_PREVIEW_COLOR_HALFRES ) {
+        style = FRAMED_PREVIEW_PARAM__STYLE__COLORED;
+        resolution = FRAMED_PREVIEW_PARAM__RESOLUTION_HALF;
+    }
+    else
+    // forced grayscaled/quarter resolution:
+    if( _quality == RAW_PREVIEW_GRAY_ULTRA_FAST ) {
+        style = FRAMED_PREVIEW_PARAM__STYLE__GRAYSCALED;
+        resolution = FRAMED_PREVIEW_PARAM__RESOLUTION_QUARTER;
+    }
+    // adaptive quality, depends of idle/recording settings:
+    else{
+        
+        // recording state:
+        if( _recording ) {
+            style = g_framed_preview_param[ FRAMED_PREVIEW_PARAM__RECORDING_STYLE ];
+            resolution = g_framed_preview_param[ FRAMED_PREVIEW_PARAM__RECORDING_RESOLUTION ];
+        }
+        // non-recording (idle) states:
+        else {
+            style = g_framed_preview_param[ FRAMED_PREVIEW_PARAM__IDLE_STYLE ];
+            resolution = g_framed_preview_param[ FRAMED_PREVIEW_PARAM__IDLE_RESOLUTION ];
+        }
 
-    if (lv_buffer == (void*)-1)
-        lv_buffer = (void*)YUV422_LV_BUFFER_DISPLAY_ADDR;
+        // legacy engine, the resolution depends of style (colored: half, grayscaled: quarter):
+        // note anyway this updated resolution parameter will not be used by legacy code
+        if( g_framed_preview_param[ FRAMED_PREVIEW_PARAM__ENGINE ] == FRAMED_PREVIEW_PARAM__ENGINE__LEGACY ) {
+            resolution = ( style == FRAMED_PREVIEW_PARAM__STYLE__COLORED ) ? FRAMED_PREVIEW_PARAM__RESOLUTION_HALF : FRAMED_PREVIEW_PARAM__RESOLUTION_QUARTER;
+        }
+    }
+    
+    // compute the current determinant value based over RAW state & framed preview configuration:
+    const uint64_t ultrafast_determinant =
+        ( preview_rect_x * preview_rect_y ) + ( preview_rect_w * preview_rect_h ) +
+        ( raw_info.black_level * raw_info.white_level ) + ( _y1 * _y2 ) +
+        ( ( style << 2 ) | ( resolution << 1 ) | g_framed_preview_param[ FRAMED_PREVIEW_PARAM__ENGINE ] );
 
-    if (y1 == -1)
-        y1 = BM2LV_Y(os.y0);
-
-    if (y2 == -1)
-        y2 = BM2LV_Y(os.y_max);
-
-    if (quality == -1)
-        quality = 0;
-
-    switch (quality)
-    {
-        case RAW_PREVIEW_GRAY_ULTRA_FAST:
-            raw_preview_fast_work(raw_buffer, lv_buffer, y1, y2);
-            break;
-
-        case RAW_PREVIEW_COLOR_HALFRES:
-        default:
-            raw_preview_color_work(raw_buffer, lv_buffer, y1, y2);
-            break;
+    // different determinant? then we need to reinit the preview cache:
+    const bool reinit_preview_cache = ultrafast_determinant != g_preview_ultrafast_cache.determinant;
+    
+    // do we have to compute & dump preview statistics?
+    const bool dump_preview_statistics = g_framed_preview_param[ FRAMED_PREVIEW_PARAM__STATISTICS ];
+    
+    // framed preview statistics computation:
+    int clock_before_draw_ms = 0, clock_after_draw_ms = 0;
+    if( !reinit_preview_cache && dump_preview_statistics ) {
+        clock_before_draw_ms = get_ms_clock();
+        if( g_preview_statistics.clock_before_first_draw_ms == 0 )
+            g_preview_statistics.clock_before_first_draw_ms = clock_before_draw_ms;
+    }
+    
+    // call legacy drawing routing:
+    if( g_framed_preview_param[ FRAMED_PREVIEW_PARAM__ENGINE ] == FRAMED_PREVIEW_PARAM__ENGINE__LEGACY ) {
+        // colored (half resolution):
+        if( style == FRAMED_PREVIEW_PARAM__STYLE__COLORED ) {
+            raw_preview_color_work( _p_raw_buffer, _p_lv_buffer, _y1, _y2 );
+        }
+        // grayscaled (quarter resolution):
+        else {
+            raw_preview_fast_work( _p_raw_buffer, _p_lv_buffer, _y1, _y2 );
+        }
+    }
+    // call ultrafast (unique) drawing routine:
+    else {
+        draw_preview_ultrafast( _p_raw_buffer, _p_lv_buffer, _y1, _y2, reinit_preview_cache, style == FRAMED_PREVIEW_PARAM__STYLE__GRAYSCALED, resolution == FRAMED_PREVIEW_PARAM__RESOLUTION_QUARTER );
+    }
+    
+    // framed preview statistics computation & dump:
+    if( !reinit_preview_cache && dump_preview_statistics ) {
+        clock_after_draw_ms = get_ms_clock();
+        g_preview_statistics.cumulated_draw_time_ms += ( clock_after_draw_ms - clock_before_draw_ms );
+        if( ++g_preview_statistics.drawn_frame_count == g_preview_statistics.dump_frame_count ) {
+            const double drawn_frame_count = g_preview_statistics.drawn_frame_count;
+            const double preview_routine_duration_ms = ( ( double ) g_preview_statistics.cumulated_draw_time_ms ) / drawn_frame_count;
+            const double display_fps = drawn_frame_count * 1000 / ( ( double ) ( clock_after_draw_ms - g_preview_statistics.clock_before_first_draw_ms ) );
+            char ms_buffer[ 32 ], fps_buffer[ 32 ];
+            printf( "[Framed preview] %sms %sfps\n", format_float( preview_routine_duration_ms, ms_buffer, 32 ), format_float( display_fps, fps_buffer, 32 ) );
+            reset_preview_statistics();
+        }
+    }
+        
+    // we've just reconfigured ultrafast cache:
+    if( reinit_preview_cache ) {
+        
+        // save new determinant:
+        g_preview_ultrafast_cache.determinant = ultrafast_determinant;
+        
+        // reset statistics to avoid bad values:
+        reset_preview_statistics();
+        
+        // cleanup the whole liveview, implicitly creating black bars where needed:
+        memset( CACHEABLE( _p_lv_buffer ), 0, ( vram_lv.width * vram_lv.height ) << 1 );
     }
 }
 
+
+void FAST raw_preview_fast_ex( void * _p_raw_buffer, void * _p_lv_buffer, const int _y1, const int _y2, int const _quality )
+{
+    raw_preview_fast_ex2( _p_raw_buffer, _p_lv_buffer, _y1, _y2, _quality, false );
+}
+
+
 void FAST raw_preview_fast()
 {
-    raw_preview_fast_ex((void*)-1, (void*)-1, -1, -1, -1);
+    raw_preview_fast_ex2( ( void * ) -1, ( void * ) -1, -1, -1, -1, false );
 }
 
 #ifdef CONFIG_RAW_LIVEVIEW

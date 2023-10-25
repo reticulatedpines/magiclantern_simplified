@@ -113,6 +113,42 @@ int raw_blue_pixel_bright(int x, int y);
 #define GRAY_PROJECTION_BRIGHT_ONLY      0x100 /* you can also analyze the bright exposure (suitable for shadows, SNR... */
 #define GRAY_PROJECTION_DARK_AND_BRIGHT  0x200 /* warning: might be more accurate on regular images, but has undefined behavior on dual ISO images */
 
+// framed preview parameters:
+#define FRAMED_PREVIEW_PARAM__ENGINE                0    // engine type to use to deal with framed preview
+#define FRAMED_PREVIEW_PARAM__IDLE_STYLE            1    // style to apply when idle
+#define FRAMED_PREVIEW_PARAM__IDLE_RESOLUTION       2    // resolution to apply when idle
+#define FRAMED_PREVIEW_PARAM__RECORDING_STYLE       3    // style to apply when recording
+#define FRAMED_PREVIEW_PARAM__RECORDING_RESOLUTION  4    // resolution to apply when recording
+#define FRAMED_PREVIEW_PARAM__TIMING                5    // timing policy
+#define FRAMED_PREVIEW_PARAM__STATISTICS            6    // statistics dump state
+
+// framed preview engine values:
+#define FRAMED_PREVIEW_PARAM__ENGINE__LEGACY        0    // "legacy" engine
+#define FRAMED_PREVIEW_PARAM__ENGINE__ULTRAFAST     1    // ultrafast (cached) engine
+
+// framed preview style values:
+#define FRAMED_PREVIEW_PARAM__STYLE__COLORED        0    // colored display
+#define FRAMED_PREVIEW_PARAM__STYLE__GRAYSCALED     1    // grayscaled display (faster)
+
+// framed preview resolution values:
+#define FRAMED_PREVIEW_PARAM__RESOLUTION_HALF       0    // half resolution (more accurate)
+#define FRAMED_PREVIEW_PARAM__RESOLUTION_QUARTER    1    // quarter resolution (faster)
+
+// framed preview timing values:
+#define FRAMED_PREVIEW_PARAM__TIMING__LEGACY        0    // "legacy" timing (regular sleep statements)
+#define FRAMED_PREVIEW_PARAM__TIMING__TEMPERED      1    // tempered timing policy, affecting idle only
+#define FRAMED_PREVIEW_PARAM__TIMING__AGRESSIVE     2    // agressive timing, affecting also recording
+
+// framed preview statistics values:
+#define FRAMED_PREVIEW_PARAM__STATISTICS_OFF        0    // deactivated statistics console dump
+#define FRAMED_PREVIEW_PARAM__STATISTICS_ON         1    // activated statistics console dump
+
+// change the value of a given framed preview parameter:
+void set_framed_preview_param( const int _param, const int _value );
+
+// get the current value of a given framed preview parameter:
+int get_framed_preview_param( const int _param );
+
 /* input: 0 - 16384 (valid range: from black level to white level) */
 /* output: -14 ... 0 */
 float raw_to_ev(int raw);
@@ -122,9 +158,15 @@ int ev_to_raw(float ev);
 void raw_preview_fast();
 
 /* pass -1 if default value for some parameter is fine */
-void raw_preview_fast_ex(void* raw_buffer, void* lv_buffer, int start_line, int end_line, int quality);
-#define RAW_PREVIEW_COLOR_HALFRES   0   /* 360x480 color, pretty slow */
-#define RAW_PREVIEW_GRAY_ULTRA_FAST 1   /* 180x240, aims to be real-time */
+void raw_preview_fast_ex( void * _p_raw_buffer, void * _p_lv_buffer, int _y1, int _y2, int _quality );
+
+// possible quality values:
+#define RAW_PREVIEW_COLOR_HALFRES   0    // 360x480 color, pretty slow
+#define RAW_PREVIEW_GRAY_ULTRA_FAST 1    // 180x240, aims to be real-time
+#define RAW_PREVIEW_ADAPTIVE        2    // choice depends on idle & recording framed preview settings
+
+// updated framed preview drawing routine, requiring an additional recording state:
+void raw_preview_fast_ex2( void * _p_raw_buffer, void * _p_lv_buffer, const int _y1, const int _y2, const int _quality, const bool _recording );
 
 /* request/release/check LiveView RAW flag (lv_save_raw) */
 /* you have to call request/release in pairs (be careful not to request once and release twice) */
