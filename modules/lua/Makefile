@@ -13,7 +13,8 @@ UMM_O= umm_malloc/umm_malloc.o
 # define the module name - make sure name is max 8 characters
 MODULE_NAME=lua
 MODULE_OBJS=$(LUA_SRC)/ml-lua-shim.o $(CORE_O) $(LIB_O) $(LUA_LIB_O) lua.o dietlibc.a $(UMM_O)
-MODULE_CFLAGS += -DLUA_32BITS -DLUA_COMPAT_FLOATSTRING -Idietlibc/include/
+MODULE_CFLAGS += -DLUA_32BITS -DLUA_COMPAT_FLOATSTRING -Idietlibc/include/ \
+    -Wno-undef
 
 # include modules environment
 include $(TOP_DIR)/modules/Makefile.modules
