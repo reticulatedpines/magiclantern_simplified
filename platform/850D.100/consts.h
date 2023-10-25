@@ -25,52 +25,6 @@
                                              // presumably the tables themselves don't use the early part.
                                              // I don't have an exact ref in ARM manual.
 
-// On 850D, the region 0x547bd800:0x57c4e500 is not used under light pressure.
-// Can navigate menus, LV on/off, take pictures, take video, playback video.
-// Not fully proven safe but good enough for light usage.
-#define MMU_L1_TABLE_01_ADDR 0x44e60000 // Our replacement TTBR0 table base address.
-                                        // Must be 0x4000 aligned or the Canon MMU copy routines
-                                        // will fail.
-                                        //
-                                        // You can use low or high mirrored (uncache / cache) addresses,
-                                        // but the table contains absolute address for itself,
-                                        // so you should ensure all accesses to the table consistently
-                                        // use the same mirror.
-                                        //
-                                        // Must be a memory region that DryOS will NEVER write to.
-                                        // If it does, super bad things will happen, the entire VA -> PA
-                                        // mapping system will change and everything will explode.
-                                        //
-                                        // Be very careful about finding an unused memory region
-                                        // before attempting this.
-
-#define MMU_MAX_L2_TABLES 0x4
-#define MMU_L2_TABLES_START_ADDR 0x44e65000 // Start of space where we will build MMU L2 tables,
-                                            // for mapping ROM addresses to our replacement code.
-                                            //
-                                            // Must not overlap with base table!  Canon seems to always
-                                            // have these as size 0x4900.
-                                            //
-                                            // Must be 0x400 aligned.
-                                            //
-                                            // These are size 0x400 and you need two per 1MB ROM region
-                                            // that you're remapping, one for active, one for inactive
-                                            // translation tables.
-                                            //
-                                            // 4 L2 tables takes 0x400 * 4 * 2 = 0x2000
-
-#define MMU_L2_PAGES_INFO_START_ADDR 0x44e6a000 // holds the metadata, this region needs to be
-                                                // sizeof(struct mmu_L2_page_info) * MMU_MAX_L2_TABLES * 2
-
-#define MMU_MAX_64k_PAGES_REMAPPED 0x3
-#define MMU_64k_PAGES_START_ADDR 0x44e70000 // Space for 64kB pages in RAM, that ROM pages are mapped to.
-                                            // Multiple patches in the same region only need one page.
-                                            // Must be 0x10000 aligned.
-                                            //
-                                            // You must ensure this region is unused by DryOS,
-                                            // with size 0x10000 * MMU_MAX_64k_PAGES_REMAPPED
-
-
 #define HALFSHUTTER_PRESSED 0 // doesn't seem similar to 200D.  Perhaps gone, like R?
 
 #define DRYOS_ASSERT_HANDLER 0x4000 // Used early in a function I've named debug_assert
