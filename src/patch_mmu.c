@@ -688,48 +688,6 @@ int mmu_init(void)
         return -1;
 
     return init_remap_mmu();
-
-#if 0
-    init_mmu_globals();
-
-    if (!mmu_globals_initialised)
-    {
-        DryosDebugMsg(0, 15, "Init MMU tables failed");
-        return -2;
-    }
-    //DryosDebugMsg(0, 15, "Init MMU tables success!");
-
-    register_wake_handler();
-    if (sgi_wake_handler_index == 0)
-        return -3;
-    //DryosDebugMsg(0, 15, "Registered cpu1 wake handler");
-
-    // apply patches, but don't switch to the new table
-    if (apply_platform_patches() < 0)
-        return -4;
-
-    // cpu0 schedules cpu1 to cli + wfi
-    task_create_ex("sleep_cpu", 0x1c, 0x400, suspend_cpu1_then_update_mmu, 0, 1);
-
-    // cpu0 waits for task to be entered
-    if (wait_for_cpu1_to_suspend(1500) < 0)
-        return -5; // failed to suspend cpu1
-
-    // cpu0 cli, update ttbrs, wake cpu1, sei
-
-    uint32_t cpu_mmu_offset = MMU_L1_TABLE_SIZE - 0x100 + cpu_id * 0x80;
-    uint32_t old_int = cli();
-    // update TTBRs (this DryOS function also triggers TLBIALL)
-    change_mmu_tables(mmu_conf.L1_table + cpu_mmu_offset,
-                       mmu_conf.L1_table,
-                       cpu_id);
-    //DryosDebugMsg(0, 15, "MMU tables swapped");
-
-    // cpu0 wakes cpu1, which updates ttbrs, sei
-    send_software_interrupt(sgi_wake_handler_index, 1 << 1);
-    sei(old_int);
-    return 0;
-#endif // implicitly, CONFIG_MMU_REMAP
 }
 
 //
