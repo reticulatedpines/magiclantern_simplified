@@ -34,7 +34,8 @@ static uint8_t generic_mmu_space[MMU_PAGE_SIZE + MMU_L1_TABLE_SIZE
 
 #include "platform/mmu_patches.h"
 
-extern int send_software_interrupt(uint32_t interrupt, uint32_t cpu_id);
+// This function expects a bitfield of cpu_ids. Bit 0 is cpu0, bit 1 cpu1, etc.
+extern int send_software_interrupt(uint32_t interrupt, uint32_t shifted_cpu_id);
 extern void *memcpy_dryos(void *dst, const void *src, uint32_t count);
 //extern void early_printf(char *fmt, ...);
 
@@ -725,7 +726,7 @@ int mmu_init(void)
     //DryosDebugMsg(0, 15, "MMU tables swapped");
 
     // cpu0 wakes cpu1, which updates ttbrs, sei
-    send_software_interrupt(sgi_wake_handler_index, 1);
+    send_software_interrupt(sgi_wake_handler_index, 1 << 1);
     sei(old_int);
     return 0;
 #endif // implicitly, CONFIG_MMU_REMAP
@@ -799,7 +800,7 @@ static int patch_memory_rom(uintptr_t addr, // patched address (32 bits)
     qprintf("MMU tables updated");
 
     // cpu0 wakes cpu1, which updates ttbrs, sei
-    send_software_interrupt(sgi_wake_handler_index, 1);
+    send_software_interrupt(sgi_wake_handler_index, 1 << 1);
     sei(old_int);
 
     // SJE TODO we could be more selective about the cache flush,
@@ -841,7 +842,7 @@ static int patch_memory_ram(uintptr_t addr, // patched address (32 bits)
     *(uint32_t *)addr = new_value;
 
     // cpu0 wakes cpu1, which will sei
-    send_software_interrupt(sgi_wake_handler_index, 1);
+    send_software_interrupt(sgi_wake_handler_index, 1 << 1);
     sei(old_int);
 
     // SJE TODO we could be more selective about the cache flush,
