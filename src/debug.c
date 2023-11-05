@@ -656,14 +656,13 @@ static void run_test()
     task_create_ex("t_print", 0x1c, 0x400, print_test, 0, 1);
 
     msleep(50);
-    int res = take_semaphore(RPC_sem, 0);
-    if (res == 0)
-    {
-        RPC_args.RPC_func = &change_mmu_tables_cpu1;
-        RPC_args.RPC_arg = &global_mmu_conf;
-        request_RPC(&RPC_args);
-        task_create_ex("t_print", 0x1c, 0x400, print_test, 0, 1);
-    }
+    struct RPC_args RPC_args;
+    RPC_args.RPC_func = &change_mmu_tables_cpu1;
+    RPC_args.RPC_arg = &global_mmu_conf;
+    int res = request_RPC(&RPC_args);
+    if (res != 0)
+        uart_printf("cpu0 failed to request_RPC()");
+    task_create_ex("t_print", 0x1c, 0x400, print_test, 0, 1);
 #endif
 
 }
