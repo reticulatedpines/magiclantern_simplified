@@ -31,14 +31,6 @@ else
     $(info Please configure a valid ARM cross-compiler.)
     $(info If arm-$(ARM_ABI)-gcc is in your executable path, it will be used.)
     $(info )
-    $(info Preferred: gcc 5_4-2016q3 32-bit from https://launchpad.net/gcc-arm-embedded)
-    $(info Also fine: gcc-arm-embedded 6.x, Linaro arm-eabi 7.x, gcc-arm-none-eabi from Ubuntu,)
-    $(info gcc-arm-embedded from team-gcc-arm-embedded PPA on Ubuntu, others may work as well.)
-    $(info )
-    $(info For GDB+QEMU, you *must* use a 32-bit version, e.g. gdb-arm-none-eabi:i386,)
-    $(info gcc-arm-embedded:i386 from PPA, 32-bit arm-none-eabi-gdb from gcc-arm-embedded.)
-    $(info Unfortunately, Linaro's arm-eabi-gdb does not work, whether 32 or 64 bit.)
-    $(info )
     $(error )
 endif
 
