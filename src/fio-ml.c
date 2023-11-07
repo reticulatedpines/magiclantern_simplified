@@ -9,18 +9,18 @@
 
 #define CARD_DRIVE_INIT(_letter, _type) { .drive_letter = _letter, .type = _type,  .cluster_size = 0, .free_space_raw = 0, .file_number = 0, .folder_number = 0, }
 
-static struct card_info available_cards[] = { CARD_DRIVE_INIT("A","CF"), CARD_DRIVE_INIT("B", "SD"), CARD_DRIVE_INIT("C","EXT") };
+static struct card_info possible_cards[] = { CARD_DRIVE_INIT("A","CF"), CARD_DRIVE_INIT("B", "SD"), CARD_DRIVE_INIT("C","EXT") };
 
 #if defined(CONFIG_CF_SLOT)
-static struct card_info * ML_CARD = &available_cards[CARD_A];
+static struct card_info * ML_CARD = &possible_cards[CARD_A];
 #else
-static struct card_info * ML_CARD = &available_cards[CARD_B];
+static struct card_info * ML_CARD = &possible_cards[CARD_B];
 #endif
 
 #if defined(CONFIG_DUAL_SLOT) || defined(CONFIG_CF_SLOT)
-static struct card_info * SHOOTING_CARD = &available_cards[CARD_A];
+static struct card_info * SHOOTING_CARD = &possible_cards[CARD_A];
 #else
-static struct card_info * SHOOTING_CARD = &available_cards[CARD_B];
+static struct card_info * SHOOTING_CARD = &possible_cards[CARD_B];
 #endif
 
 // File I/O wrappers for handling the dual card slot on 5D3
@@ -61,12 +61,46 @@ struct card_info* get_shooting_card()
 struct card_info* get_card(int cardId)
 {
     ASSERT(cardId >= 0 && cardId < 3);
-    return &available_cards[cardId];
+    return &possible_cards[cardId];
+}
+
+struct actual_cards_t *get_actual_cards()
+{
+    static struct actual_cards_t actual_cards = {0, {NULL, NULL}};
+    // init the actual cards the first time:
+    if (actual_cards.count == 0)
+    {
+        for (int i = 0; i < 2; i++)
+        {
+            struct card_info *p_card_info = get_card(i);
+            // check if drive is accessible:
+            char drive[8];
+            snprintf(drive, 7, "%s:/", p_card_info->drive_letter);
+            if (!is_dir(drive))
+            {
+                continue;
+            }
+            // reference active cards and increment actual card count:
+            actual_cards.infos[actual_cards.count++] = p_card_info;
+            // compute card total space:
+            p_card_info->free_space_MB = ((uint64_t)get_free_space_32k(p_card_info)) >> 5;
+            uint64_t dcim_size_MB = get_folder_size_MB(get_dcim_dir_ex(p_card_info));
+            p_card_info->total_space_MB = p_card_info->free_space_MB + dcim_size_MB;
+        }
+    }
+    return &actual_cards;
 }
 
 int get_free_space_32k(const struct card_info* card)
 {
     return card->free_space_raw * (card->cluster_size>>10) / (32768>>10);
+}
+
+void update_free_space(struct card_info *_p_card_info)
+{
+    // approximate free space based of total space and current DCIM folder content size:
+    uint64_t dcim_size_MB = get_folder_size_MB(get_dcim_dir_ex(_p_card_info));
+    _p_card_info->free_space_MB = _p_card_info->total_space_MB - dcim_size_MB;
 }
 
 
@@ -151,8 +185,8 @@ void _card_tweaks()
 #ifdef CONFIG_5D3
     if (card_test_enabled)
     {
-        if (available_cards[CARD_A].free_space_raw > 10) card_test(&available_cards[CARD_A]);
-        if (available_cards[CARD_B].free_space_raw > 10) card_test(&available_cards[CARD_B]);
+        if (possible_cards[CARD_A].free_space_raw > 10) card_test(&possible_cards[CARD_A]);
+        if (possible_cards[CARD_B].free_space_raw > 10) card_test(&possible_cards[CARD_B]);
         
         /* if it reaches this point, the cards are OK */
         card_test_enabled = 0;
@@ -223,17 +257,17 @@ void _find_ml_card()
 
     if (ml_cf && !ml_sd)
     {
-        ML_CARD = &available_cards[CARD_A];
+        ML_CARD = &possible_cards[CARD_A];
     }
     else if (!ml_cf && ml_sd)
     {
-        ML_CARD = &available_cards[CARD_B];
+        ML_CARD = &possible_cards[CARD_B];
     }
     else if (ml_cf && ml_sd)
     {
         /* still ambiguity? */
         /* we know Canon loads autoexec.bin from the SD card first */
-        ML_CARD = &available_cards[CARD_B];
+        ML_CARD = &possible_cards[CARD_B];
         startup_warning("ML on both cards, loading from SD.");
     }
     else
@@ -245,9 +279,9 @@ void _find_ml_card()
 PROP_HANDLER(PROP_CARD_SELECT)
 {
     int card_select = buf[0] - 1;
-    if (card_select >= 0 && card_select < COUNT(available_cards))
+    if (card_select >= 0 && card_select < COUNT(possible_cards))
     {
-        SHOOTING_CARD = &available_cards[card_select];
+        SHOOTING_CARD = &possible_cards[card_select];
         return;
     }
     ASSERT(0);
@@ -255,62 +289,62 @@ PROP_HANDLER(PROP_CARD_SELECT)
 
 PROP_HANDLER(PROP_CLUSTER_SIZE_A)
 {
-    available_cards[CARD_A].cluster_size = buf[0];
+    possible_cards[CARD_A].cluster_size = buf[0];
 }
 
 PROP_HANDLER(PROP_CLUSTER_SIZE_B)
 {
-    available_cards[CARD_B].cluster_size = buf[0];
+    possible_cards[CARD_B].cluster_size = buf[0];
 }
 
 PROP_HANDLER(PROP_CLUSTER_SIZE_C)
 {
-    available_cards[CARD_C].cluster_size = buf[0];
+    possible_cards[CARD_C].cluster_size = buf[0];
 }
 
 PROP_HANDLER(PROP_FREE_SPACE_A)
 {
-    available_cards[CARD_A].free_space_raw = buf[0];
+    possible_cards[CARD_A].free_space_raw = buf[0];
 }
 
 PROP_HANDLER(PROP_FREE_SPACE_B)
 {
-    available_cards[CARD_B].free_space_raw = buf[0];
+    possible_cards[CARD_B].free_space_raw = buf[0];
 }
 
 PROP_HANDLER(PROP_FREE_SPACE_C)
 {
-    available_cards[CARD_C].free_space_raw = buf[0];
+    possible_cards[CARD_C].free_space_raw = buf[0];
 }
 
 PROP_HANDLER(PROP_FILE_NUMBER_A)
 {
-    available_cards[CARD_A].file_number = buf[0];
+    possible_cards[CARD_A].file_number = buf[0];
 }
 
 PROP_HANDLER(PROP_FILE_NUMBER_B)
 {
-    available_cards[CARD_B].file_number = buf[0];
+    possible_cards[CARD_B].file_number = buf[0];
 }
 
 PROP_HANDLER(PROP_FILE_NUMBER_C)
 {
-    available_cards[CARD_C].file_number = buf[0];
+    possible_cards[CARD_C].file_number = buf[0];
 }
 
 PROP_HANDLER(PROP_FOLDER_NUMBER_A)
 {
-    available_cards[CARD_A].folder_number = buf[0];
+    possible_cards[CARD_A].folder_number = buf[0];
 }
 
 PROP_HANDLER(PROP_FOLDER_NUMBER_B)
 {
-    available_cards[CARD_B].folder_number = buf[0];
+    possible_cards[CARD_B].folder_number = buf[0];
 }
 
 PROP_HANDLER(PROP_FOLDER_NUMBER_C)
 {
-    available_cards[CARD_C].folder_number = buf[0];
+    possible_cards[CARD_C].folder_number = buf[0];
 }
 
 PROP_HANDLER(PROP_DCIM_DIR_SUFFIX)
@@ -323,10 +357,36 @@ const char * get_dcim_dir_suffix()
     return dcim_dir_suffix;
 }
 
+const char *get_dcim_dir_ex(struct card_info *_p_card_info)
+{
+    snprintf(dcim_dir, sizeof(dcim_dir), "%s:/DCIM/%03d%s", _p_card_info->drive_letter, _p_card_info->folder_number, dcim_dir_suffix);
+    return dcim_dir;
+}
+
 const char* get_dcim_dir()
 {
-    snprintf(dcim_dir, sizeof(dcim_dir), "%s:/DCIM/%03d%s", SHOOTING_CARD->drive_letter, SHOOTING_CARD->folder_number, dcim_dir_suffix);
-    return dcim_dir;
+    return get_dcim_dir_ex(SHOOTING_CARD);
+}
+
+uint64_t get_folder_size_MB(const char *_folder)
+{
+    struct fio_file file;
+    struct fio_dirent *dirent = FIO_FindFirstEx(_folder, &file);
+    if (IS_ERROR(dirent))
+    {
+        return 0;
+    }
+    uint64_t cumulated_size_KB = 0;
+    do
+    {
+        if (file.name[0] == 0 || file.name[0] == '.' || (file.mode & ATTR_DIRECTORY))
+        {
+            continue;
+        }
+        cumulated_size_KB += ((uint64_t)file.size) >> 10;
+    } while (FIO_FindNextEx(dirent, &file) == 0);
+    FIO_FindClose(dirent);
+    return cumulated_size_KB >> 10;
 }
 
 static void fixup_filename(char* new_filename, const char* old_filename, int size)
@@ -822,8 +882,8 @@ static void fio_init()
     #endif
     
     #ifdef CARD_A_MAKER
-    available_cards[CARD_A].maker = (char*) CARD_A_MAKER;
-    available_cards[CARD_A].model = (char*) CARD_A_MODEL;
+    possible_cards[CARD_A].maker = (char*) CARD_A_MAKER;
+    possible_cards[CARD_A].model = (char*) CARD_A_MODEL;
     #endif
 }
 

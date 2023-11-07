@@ -2935,25 +2935,40 @@ static LVINFO_UPDATE_FUNC(fps_update)
 
 static LVINFO_UPDATE_FUNC(free_space_update)
 {
-    LVINFO_BUFFER(8);
-    
+    LVINFO_BUFFER(14);
+    // worst case "SD:999 CF:999"
+
     if (RECORDING)
     {
         /* leave space for the recording indicators */
         return;
     }
 
-    int free_space_32k = get_free_space_32k(get_shooting_card());
+    // get actual card list:
+    struct actual_cards_t *p_actual_cards = get_actual_cards();
 
-    int fsg = free_space_32k >> 15;
-    int fsgr = free_space_32k - (fsg << 15);
-    int fsgf = (fsgr * 10) >> 15;
+    // update free space:
+    for (int i = 0; i < p_actual_cards->count; i++)
+    {
+        update_free_space(p_actual_cards->infos[i]);
+    }
 
-    snprintf(buffer, sizeof(buffer), 
-        "%d.%dGB",
-        fsg,
-        fsgf
-    );
+    // setup display for 1 slot:
+    struct card_info *p_card_1 = p_actual_cards->infos[0];
+    int free_space_card_1_GB = (int)p_card_1->free_space_MB >> 10;
+    free_space_card_1_GB = (free_space_card_1_GB > 999) ? 999 : free_space_card_1_GB;
+    if (p_actual_cards->count == 1)
+    {
+        snprintf(buffer, sizeof(buffer), "%s:%d", p_card_1->type, free_space_card_1_GB);
+    }
+    // setup display for 2 slots:
+    else
+    {
+        struct card_info *p_card_2 = p_actual_cards->infos[1];
+        int free_space_card_2_GB = (int)p_card_2->free_space_MB >> 10;
+        free_space_card_2_GB = (free_space_card_2_GB > 999) ? 999 : free_space_card_2_GB;
+        snprintf(buffer, sizeof(buffer), "%s:%d %s:%d", p_card_1->type, free_space_card_1_GB, p_card_2->type, free_space_card_2_GB);
+    }
 }
 
 static LVINFO_UPDATE_FUNC(mode_update)
@@ -3299,7 +3314,7 @@ static struct lvinfo_item info_items[] = {
         .name = "Temperature",
         .which_bar = LV_TOP_BAR_ONLY,
         .update = temp_update,
-        .priority = 1,
+        .priority = -1,
     },
     {
         .name = "MVI number",
