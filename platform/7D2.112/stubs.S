@@ -35,6 +35,7 @@ THUMB_FN(0xfe0a0b18,  cstart)
 ARM32_FN(0x8000a3a4,  bzero32)
 THUMB_FN(0x80000f78,  create_init_task)
 THUMB_FN(0xfe0a1980,  init_task)
+THUMB_FN(0xfe0a01fe,  dcache_clean) // not used during 7D2 startup
 
 // Tasks
 // 80001358 is get_task_info_by_id(), useful for finding task related addresses
