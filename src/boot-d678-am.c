@@ -183,6 +183,16 @@ static void my_create_init_task(struct dryos_init_info *dryos, uint32_t init_tas
 
     ml_reserved_mem = ALLOC_MEM_STOLEN;
 
+#if defined(CONFIG_INCREASE_MAX_TASKS) && CONFIG_INCREASE_MAX_TASKS > 0
+// Some cams are very close to task_max, and additional ML tasks
+// can cause asserts.  Steal space from user_mem to increase the task limit.
+// We want to increase size of sys objs pool, tasks live there.
+// Later DryOS code does various size checks of the pools, see
+// df003570(dryos_init_info *param_1) on 200D 1.0.1
+    dryos->user_mem_len -= sizeof(struct task) * CONFIG_INCREASE_MAX_TASKS;
+    dryos->sys_objs_start -= sizeof(struct task) * CONFIG_INCREASE_MAX_TASKS;
+    dryos->task_max += CONFIG_INCREASE_MAX_TASKS;
+#endif
     create_init_task(dryos, init_task, c);
 
     return;

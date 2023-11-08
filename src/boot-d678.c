@@ -144,6 +144,17 @@ static void my_create_init_task(struct dryos_init_info *dryos, uint32_t init_tas
     // address is fixed per cam, by RESTARTSTART in
     // platform/99D/Makefile.platform.default.
 
+    // basic tests on layout of regions
+    if(dryos->sys_objs_start < dryos->sys_mem_start
+       && dryos->user_mem_start < dryos->sys_objs_start)
+    { // good
+    }
+    else
+    { // bad: we make assumptions that assume the ordering
+      // is user_mem, sys_objs, sys_mem
+        goto fail;
+    }
+
     // replace Canon's init_task with ours
     init_task = (uint32_t)my_init_task;
 
@@ -180,6 +191,16 @@ static void my_create_init_task(struct dryos_init_info *dryos, uint32_t init_tas
     // shrink user_mem
     dryos->user_mem_start += ml_reserved_mem;
     dryos->user_mem_len -= ml_reserved_mem;
+#if defined(CONFIG_INCREASE_MAX_TASKS) && CONFIG_INCREASE_MAX_TASKS > 0
+// Some cams are very close to task_max, and additional ML tasks
+// can cause asserts.  Steal more space to increase the task limit.
+// We want to increase size of sys objs pool, tasks live there.
+// Later DryOS code does various size checks of the pools, see
+// df003570(dryos_init_info *param_1) on 200D 1.0.1
+    dryos->user_mem_len -= sizeof(struct task) * CONFIG_INCREASE_MAX_TASKS;
+    dryos->sys_objs_start -= sizeof(struct task) * CONFIG_INCREASE_MAX_TASKS;
+    dryos->task_max += CONFIG_INCREASE_MAX_TASKS;
+#endif
     qprint("        after: user_mem_start = "); qprintn(dryos->user_mem_start); qprint("\n");
     qprint("        after: user_mem_size  = "); qprintn(dryos->user_mem_len); qprint("\n");
 

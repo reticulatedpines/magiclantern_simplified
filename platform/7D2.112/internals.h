@@ -22,6 +22,10 @@
 // without SRM_BUFFER_SIZE being found
 #define CONFIG_MEMORY_SRM_NOT_WORKING
 
+// Cam has very few spare tasks for ML, steal more mem
+// during boot to raise the limit
+#define CONFIG_INCREASE_MAX_TASKS 4
+
 // SJE FIXME this is intended as temporary, so I can commit the code
 // without needing to find versions for all cams.  Once all cams
 // are converted and tested, we should retire CONFIG_NEW_TASK_STRUCTS

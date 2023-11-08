@@ -39,6 +39,8 @@ struct dryos_init_info
     uint32_t user_mem_len;
     uint32_t sys_objs_start;
     uint32_t sys_objs_end;
+    uint32_t prio_max;
+    uint32_t task_max;
 
 /* more fields are here but we don't use them.
    D45 cams are shorter, look to be missing one
@@ -47,8 +49,6 @@ struct dryos_init_info
    Since we only use pointer to this struct,
    we never reserve space for it and don't care.
 
-    uint32_t prio_max;
-    uint32_t task_max;
     uint32_t semaphore_max;
     uint32_t event_max;
     uint32_t message_q_max;
