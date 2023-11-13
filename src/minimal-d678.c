@@ -16,6 +16,10 @@ static uint8_t *disp_framebuf = NULL;
 static char *vram_next = NULL;
 static char *vram_current = NULL;
 
+#ifdef CARD_LED_ADDRESS
+// deliberately put here, not just around usage,
+// so anyone trying to build the more "diagnostic" builds
+// gets an error
 static void led_blink(int times, int delay_on, int delay_off)
 {
     for (int i = 0; i < times; i++)
@@ -26,6 +30,7 @@ static void led_blink(int times, int delay_on, int delay_off)
         msleep(delay_off);
     }
 }
+#endif
 
 static uint32_t rgb2yuv422(uint8_t r, uint8_t g, uint8_t b)
 {
@@ -59,9 +64,7 @@ static void print_dword_from_address(uint32_t address)
             font_draw(80, 120, 0xff000000, scale, result);
             disp_framebuf = (uint8_t *)*(uint32_t *)(vram_next + 4);
             font_draw(80, 120, 0xff000000, scale, result);
-            MEM(CARD_LED_ADDRESS) = LEDON;
-            msleep(100);
-            MEM(CARD_LED_ADDRESS) = LEDOFF;
+            led_blink(1, 100, 100);
         }
     }
 }
@@ -87,199 +90,8 @@ static void DUMP_ASM dump_task()
     // LED blinking test
     led_blink(30, 500, 200);
 
-#if 0
-    //while(MEM(0xFD8C) == 0)
-    //{
-    //    led_blink(1, 100, 100);
-    //}
-    char *vram1 = (char *)MEM(0xFD84);
-    char *vram2 = (char *)MEM(0xFD88);
-    char *vram_next = (char *)MEM(0xFD8C);
-    //char *vram_current = NULL;
-    vram_current = NULL;
-
-    if (vram_next == vram1)
-        vram_current = vram2;
-    else
-        vram_current = vram1;
-#endif
-
-#if 0
-    // find screen dimensions from MARV struct
-    static uint32_t disp_xres = 0;
-    unsigned int x_max = *(int *)(vram1 + 0x10);
-    unsigned int y_max = *(int *)(vram1 + 0x14);
-    disp_xres = x_max;
-    DryosDebugMsg(0, 15, "SJE x_max, y_max: (%d, %d)", x_max, y_max);
-    DryosDebugMsg(0, 15, "SJE vram1, vram2: (%08x, %08x)", vram1, vram2);
-    DryosDebugMsg(0, 15, "SJE vram1->bmp, vram2->bmp: (%08x, %08x)",
-                         (uint32_t *)*(uint32_t *)(vram1 + 4), (uint32_t *)*(uint32_t *) (vram2 + 4));
-#endif
-
     msleep(1000); // sometimes crashes on boot?
     // maybe shouldn't write to LED until OS is up?
-#if 0
-    while(1) {
-        if (MEM(0x5354) == 1) {
-            MEM(CARD_LED_ADDRESS) = LEDON;
-
-            log_finish();
-            log_start();
-        }
-        else {
-            MEM(CARD_LED_ADDRESS) = LEDOFF;
-        }
-        msleep(100);
-    }
-#endif
-
-#if 0
-    log_finish();
-    log_start();
-    // Try to call UtilSTG_AutoDebugFuncOn()
-    void (*UtilSTG_AutoDebugFuncOn)(void);
-    UtilSTG_AutoDebugFuncOn = (void (*)(void))0xe0437f1f;
-    UtilSTG_AutoDebugFuncOn();
-
-    // requires STGDBG99.TXT on root of card, with content:
-    // 00000000:  66 66 66 66 31 31 31 31  00 00 00 00 00 00 00 00  ffff1111........
-    // 00000010:  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ................
-    // 00000020:  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ................
-    // 00000030:  00 00 ff ff ff ff -- --  -- -- -- -- -- -- -- --  ......----------
-
-    // Why not try some Storage tests?
-    /*
-    void (*TestSTG_SpeedClasstest)(void);
-    TestSTG_SpeedClasstest = (void (*)(void))0xe02c2ec1;
-    TestSTG_SpeedClasstest();
-    */
-    // fills the card with TESTxx.BIN files with weird content (copies of rom data?)
-    //
-    void (*TestSTG_GetSDWriteSpeed)(void);
-    TestSTG_GetSDWriteSpeed = (void (*)(void))0xe02c294d;
-    TestSTG_GetSDWriteSpeed();
-
-    log_finish();
-    log_start();
-#endif
-
-#if 0
-
-    // MPU events are logged to file in log-d678.c,
-    // use halfshutter to demark when other buttons
-    // are pressed, e.g., "press HS, press left, press HS"
-    uint8_t halfshutter_state = 0;
-    uint8_t count = 0;
-    while(count < 10)
-    {
-        if (MEM(0x5354) != halfshutter_state)
-        { // then HS changed state
-            halfshutter_state = !halfshutter_state;
-            if (!halfshutter_state)
-            {
-                DryosDebugMsg(0, 15, "SJE HS went low\n");
-                log_finish();
-                log_start();
-                count++;
-            }
-        }
-        msleep(50);
-    }
-#endif
-
-#if 0
-    led_blink(3, 200, 200);
-
-    //if *(int *) c638 to +3c maybe
-
-    DryosDebugMsg(0, 15, "SJE pre-test");
-    struct tm tm;
-    LoadCalendarFromRTC(&tm);
-    DryosDebugMsg(0, 15, "SJE post-test: %d", tm.tm_mday);
-#endif
-
-
-#if 0
-    // dump the DF region by avoiding DMA,
-    // it's assumed DMA access to that region is forbidden.
-    uint32_t *dest = (uint32_t *)0x56500000;
-    memcpy(dest, (uint32_t *)0xdf000000, 0x200000);
-    dump_file("DF000000.BIN", (uint32_t)dest, 0x00200000);
-    //dump_file("DF200000.BIN", 0xdf200000, 0x00200000);
-
-    led_blink(3, 200, 200);
-#endif
-
-#if 0
-    led_blink(3, 200, 200);
-    msleep(2000);
-    dump_file("EARLY01.BIN", 0x00004000, 0x00200000);
-    led_blink(3, 200, 200);
-    msleep(2000);
-    dump_file("EARLY02.BIN", 0x00004000, 0x00200000);
-    led_blink(3, 200, 200);
-    msleep(2000);
-    dump_file("EARLY03.BIN", 0x00004000, 0x00200000);
-    led_blink(3, 200, 200);
-    msleep(2000);
-    dump_file("EARLY04.BIN", 0x00004000, 0x00200000);
-#endif
-    
-#if 0
-    led_blink(3, 200, 200);
-    uint32_t colours[16] = {0xff000000,
-                            0x00ff0000,
-                            0x0000ff00,
-                            0xff000000,
-                            0x00ff0000,
-                            0x0000ff00,
-                            0xff000000,
-                            0x00ff0000,
-                            0x0000ff00,
-                            0xff000000,
-                            0x00ff0000,
-                            0x0000ff00,
-                            0xff000000,
-                            0x00ff0000,
-                            0x0000ff00,
-                            0xff000000
-                            };
-    char *p1 = "Y\0A\0S\0S\0S";
-    char *p2 = "Q\0U\0E\0E\0N";
-    uint8_t scale = 12;
-    for(int i=0; i<1; i++) {
-        disp_framebuf = (uint8_t *)*(uint32_t *)(vram_current + 4);
-        //disp_framebuf = (uint8_t *)*(uint32_t *)(vram_next + 4);
-        //disp_set_pixel(x, y, 0xffff0000);
-        for (int i = 0; i < 5; i++)
-        {
-            font_draw(80 + (8*i*scale), 120, colours[i], scale, p1 + i*2);
-            font_draw(80 + (8*i*scale), 320, colours[i], scale, p2 + i*2);
-        }
-        msleep(100);
-    }
-    
-    led_blink(5, 100, 100);
-#endif
-
-
-#if 0
-    /* print memory info on QEMU console */
-    malloc_info();
-    sysmem_info();
-    smemShowFix();
-
-    /* dump ROM1 */
-    dump_file("ROM1.BIN", 0xFC000000, 0x02000000);
-
-    /* dump RAM */
-    dump_file("ATCM.BIN", 0x00000000, 0x00004000);
-    dump_file("BTCM.BIN", 0x80000000, 0x00010000);
-  //dump_file("RAM4.BIN", 0x40000000, 0x40000000);    - runs out of space in QEMU
-    dump_file("BFE0.BIN", 0xBFE00000, 0x00200000);
-    dump_file("DFE0.BIN", 0xDFE00000, 0x00200000);
-  //dump_file("EE00.BIN", 0xEE000000, 0x02000000);    - unknown, may crash 
-#endif
 
 #if 0
 //#ifdef CONFIG_MARK_UNUSED_MEMORY_AT_STARTUP

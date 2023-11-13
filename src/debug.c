@@ -80,12 +80,16 @@ draw_prop_reset( void * priv )
 
 void _card_led_on()
 {
+#ifdef CARD_LED_ADDRESS
     *(volatile uint32_t*) (CARD_LED_ADDRESS) = (LEDON);
+#endif
 }
 
 void _card_led_off()
 {
+#ifdef CARD_LED_ADDRESS
     *(volatile uint32_t*) (CARD_LED_ADDRESS) = (LEDOFF);
+#endif
 }
 
 void info_led_on()

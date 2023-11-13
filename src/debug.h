@@ -95,8 +95,6 @@ extern void dumpf( void );
 extern void dm_set_store_level( uint32_t class, uint32_t level );
 extern void dm_set_print_level( uint32_t class, uint32_t level );
 
-extern void card_led_on();
-extern void card_led_off();
 extern bool get_halfshutter_pressed();
 
 extern void
