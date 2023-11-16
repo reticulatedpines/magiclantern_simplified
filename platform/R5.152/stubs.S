@@ -66,9 +66,6 @@ THUMB_FN(0xe07ef2bc, _FIO_FindFirstEx)                      // Storage::Storage.
 THUMB_FN(0xe07ef3cc,  FIO_FindNextEx)                       // Storage::Storage.c NextEnt
 THUMB_FN(0xe07ef48c,  FIO_FindClose)                        // Storage::Storage.c CloseEnt
 
-/** Bitmap **/
-DATA_PTR(    0xFDFC,  bmp_vram_info)                        // first YUV VRAM buffer, used right after DISP_SetUpdateOSDVram
-
 /** Debug messages **/
 THUMB_FN(0xe0814a9c,  DryosDebugMsg)                        // Easy to catch in init task: "InitializeIntercom", "CreateSequencer"
 
