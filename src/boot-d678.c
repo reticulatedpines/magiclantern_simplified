@@ -305,17 +305,27 @@ copy_and_restart(int offset)
                 cstart_start + CSTART_LEN);
 #endif
 
+#if defined(BR_CSTART) && defined(BR_BR_CSTART)
+    #error "Defining both BR_CSTART AND BR_BR_CSTART doesn't make sense"
+#endif
+
 #ifdef CONFIG_DIGIC_78X
     // Fix cache maintenance calls before cstart
     patch_thumb_branch(BR_DCACHE_CLN_1, (uint32_t)my_dcache_clean);
     patch_thumb_branch(BR_DCACHE_CLN_2, (uint32_t)my_dcache_clean);
     patch_thumb_branch(BR_ICACHE_INV_1, (uint32_t)my_icache_invalidate);
     patch_thumb_branch(BR_ICACHE_INV_2, (uint32_t)my_icache_invalidate);
+    #if defined(CONFIG_XF605) // possibly all DV?
+    patch_thumb_branch(BR_DCACHE_CLN_3, (uint32_t)my_dcache_clean);
+    patch_thumb_branch(BR_ICACHE_INV_3, (uint32_t)my_icache_invalidate);
+    #endif
 
-    // On D78, there's an indirect branch to branch to cstart,
+    // On D78X, there's an indirect branch to branch to cstart,
     // the first branch goes to absolute cstart original address.
     // Patch the setup for that into a relative branch to our reloc'd cstart.
+    #if defined(BR_BR_CSTART)
     patch_thumb_branch(BR_BR_CSTART, reloc_addr((uint32_t)cstart));
+    #endif
 
     /* there are two more functions in cstart that don't require patching */
     /* the first one is within the relocated code; it initializes the per-CPU data structure at VA 0x1000 */
@@ -326,7 +336,9 @@ copy_and_restart(int offset)
     // if we're compacting firmware_entry and cstart,
     // we need to patch the jump
     uint32_t reloc_cstart = reloc_addr((uint32_t)cstart_start);
+    #if defined(BR_CSTART)
     patch_thumb_branch(BR_CSTART, reloc_cstart | 0x1);
+    #endif
 #endif
 
     // if firmware_entry calls code in the cstart reloc'd region,
