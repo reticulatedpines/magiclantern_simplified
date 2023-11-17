@@ -468,11 +468,12 @@ static int get_default_white_level()
 #endif
 
 #ifdef CONFIG_SX70
-    // copy from EOS R, as there's no data available now
+    // { LIBRAW_CAMERAMAKER_Canon, "PowerShot SX70 HS", 0, 0,
+    //   { 18285,-8907,-1951,-1845,10688,1323,364,1101,5139 } },
     #define CAM_COLORMATRIX1 \
-     8532, 10000,    -701, 10000,  -1167, 10000, \
-    -4095, 10000,   11879, 10000,   2508, 10000, \
-     -797, 10000,    2424, 10000,   7010, 10000
+    18285, 10000,   -8907, 10000,  -1951, 10000, \
+    -1845, 10000,   10688, 10000,   1323, 10000, \
+      364, 10000,    1101, 10000,   5139, 10000
 #endif
 
 struct raw_info GUARDED_BY(raw_sem) raw_info = {
