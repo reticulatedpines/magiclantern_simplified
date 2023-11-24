@@ -476,6 +476,14 @@ static int get_default_white_level()
       364, 10000,    1101, 10000,   5139, 10000
 #endif
 
+#ifdef CONFIG_XF605
+    // copy from EOS R, as there's no data available now
+    #define CAM_COLORMATRIX1 \
+     8532, 10000,    -701, 10000,  -1167, 10000, \
+    -4095, 10000,   11879, 10000,   2508, 10000, \
+     -797, 10000,    2424, 10000,   7010, 10000
+#endif
+
 struct raw_info GUARDED_BY(raw_sem) raw_info = {
     .api_version = 1,
     .bits_per_pixel = 14,
@@ -645,6 +653,11 @@ static int dynamic_ranges[] = {1246, 1196, 1105, 1014, 927, 844, 758, 660, 566, 
 
 #ifdef CONFIG_70D
 static int dynamic_ranges[] = {1091, 1070, 1046, 986, 915, 837, 746, 655, 555};
+#endif
+
+#ifdef CONFIG_XF605
+// DxO does not list this cam, copy from R:
+static int dynamic_ranges[] = {1255, 1237, 1188, 1120, 1045, 964, 883, 785, 685, 599, 507};
 #endif
 
 static int autodetect_black_level(int* black_mean, int* black_stdev);

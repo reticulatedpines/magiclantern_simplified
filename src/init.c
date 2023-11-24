@@ -461,12 +461,20 @@ static void my_big_init_task()
     return;
 #endif
 
+#ifdef CONFIG_XF605
+    uart_printf("hello from ML, before early tasks");
+#endif
+
     call("DisablePowerSave");
     _ml_cbr_init();
     menu_init();
     debug_init();
     call_init_funcs(); // among other things, this initialises modules
     msleep(200); // leave some time for property handlers to run
+
+#ifdef CONFIG_XF605
+    uart_printf("hello from ML, after early tasks");
+#endif
 
     /**
      * kitor FIXME: disabling rom dump for D678 as it uses different addresses
@@ -514,6 +522,10 @@ static void my_big_init_task()
     }
     
     msleep(500);
+#ifdef CONFIG_XF605
+    uart_printf("hello from ML, after late tasks");
+#endif
+
     ml_started = 1;
 }
 

@@ -225,7 +225,7 @@ SIZE_CHECK_STRUCT( prop_lv_lens, 58 );
  * right between models. For easier debugging I left those paddings filled in.
  */
 
-#if defined(CONFIG_M50) || defined(CONFIG_SX70) || defined(CONFIG_SX740) || defined(CONFIG_R) || defined(CONFIG_RP) || defined (CONFIG_250D)
+#if defined(CONFIG_M50) || defined(CONFIG_SX70) || defined(CONFIG_SX740) || defined(CONFIG_R) || defined(CONFIG_RP) || defined (CONFIG_250D) || defined(CONFIG_XF605)
 // variants M50, SX740, R + RP, 250D combined
 struct prop_lens_static_data
 {
@@ -302,20 +302,28 @@ struct prop_lens_static_data
 #else
         uint8_t                _unk_08[13];                    // Not referenced in readid
 #endif
+#if defined(CONFIG_XF605)
+// FIXME struct is unknown, all preceding fields may be junk.
+// Size is known however.  See prop_request_change() usage
+// for PROP_LENS_STATIC_DATA.
+        uint8_t                _unk_09[0x14c];
+#endif
 };
 
-#if defined(CONFIG_SX740)
-#pragma message "FIXME: SX740 prop_lens_static_data is not implemented"
-#endif
-#if defined(CONFIG_M50)
-SIZE_CHECK_STRUCT( prop_lens_static_data, 0x138 );
-//#elif defined(CONFIG_SX740) kitor FIXME: enable
-//SIZE_CHECK_STRUCT( prop_lens_static_data, 0x178 );
-#elif defined(CONFIG_250D) || defined(CONFIG_SX70)
-SIZE_CHECK_STRUCT( prop_lens_static_data, 0x180 );
-#else  // R, RP, SX70
-SIZE_CHECK_STRUCT( prop_lens_static_data, 0x184 );
-#endif // size check M50, R, RP, 250D
+    #if defined(CONFIG_SX740)
+        #pragma message "FIXME: SX740 prop_lens_static_data is not implemented"
+    #endif
+    #if defined(CONFIG_M50)
+        SIZE_CHECK_STRUCT( prop_lens_static_data, 0x138 );
+        //#elif defined(CONFIG_SX740) kitor FIXME: enable
+        //SIZE_CHECK_STRUCT( prop_lens_static_data, 0x178 );
+    #elif defined(CONFIG_250D) || defined(CONFIG_SX70)
+        SIZE_CHECK_STRUCT( prop_lens_static_data, 0x180 );
+    #elif defined(CONFIG_XF605)
+        SIZE_CHECK_STRUCT( prop_lens_static_data, 0x2d0 );
+    #else  // R, RP, SX70
+        SIZE_CHECK_STRUCT( prop_lens_static_data, 0x184 );
+    #endif // size check M50, R, RP, 250D
 
 #elif defined(CONFIG_850D) || defined(CONFIG_R6) || defined(CONFIG_R5)
 /* new struct variant reorders some fields as compared to previous
@@ -500,6 +508,9 @@ struct prop_lens_dynamic_data {
 #else
         uint8_t                _pad_07[15];       // 850D, 250D, R, RP
 #endif
+#if defined(CONFIG_XF605)
+        uint8_t                _pad_08[0x136]; // 0x1c4 total
+#endif
 };
 
 #if defined(CONFIG_R5) || defined(CONFIG_R6)
@@ -510,6 +521,12 @@ SIZE_CHECK_STRUCT( prop_lens_dynamic_data, 0x90);
 SIZE_CHECK_STRUCT( prop_lens_dynamic_data, 0x8C);
 #elif defined(CONFIG_M50)
 SIZE_CHECK_STRUCT( prop_lens_dynamic_data, 0x84);
+#elif defined(CONFIG_XF605)
+// FIXME the dynamic and static structs for XF605 are almost certainly very wrong.
+// Couldn't find a nice debug function that dumped the names of the fields.
+// This is just to let a build compile and shouldn't be used.  The sizes are
+// believed to be correct.
+SIZE_CHECK_STRUCT( prop_lens_dynamic_data, 0x1c4); // see e.g. 1ed6ecae on XF605 1.0.1
 #else  // unknown model
 #error No PROP_LENS_DYNAMIC_DATA defined for built cam model
 #endif // /unknown model

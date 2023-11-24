@@ -142,7 +142,9 @@ static CONFIG_INT("menu.junkie", junkie_mode, 0);
 
 static int is_customize_selected();
 
+#if !defined(CONFIG_XF605)
 extern void CancelDateTimer();
+#endif
 
 #define CAN_HAVE_PICKBOX(entry) (                               \
     (entry)->max > (entry)->min &&                              \
@@ -5667,8 +5669,9 @@ static void menu_open()
     if (lv && EXT_MONITOR_CONNECTED)
         clrscr();
 
+#if !defined(CONFIG_XF605)
     CancelDateTimer();
-
+#endif
     menu_redraw_full();
 }
 

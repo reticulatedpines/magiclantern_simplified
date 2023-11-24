@@ -1261,7 +1261,6 @@ PROP_HANDLER( PROP_LENS_STATIC_DATA )
     ASSERT(len == sizeof(struct prop_lens_static_data));
 
     const struct prop_lens_static_data * _static = (void*) buf;
-
     strncpy( lens_info.name, _static->lens_name, sizeof(lens_info.name) );
     lens_info.name[sizeof(lens_info.name) - 1] = '\0'; //null terminate
 
