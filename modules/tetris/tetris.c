@@ -10,11 +10,12 @@
 uint32_t pt_colors[] =
 {
     COLOR_WHITE, /* Background color */
-    COLOR_RED,
+    COLOR_BLUE,
     COLOR_GREEN1,
     COLOR_ORANGE,
-    COLOR_DARK_RED,
+    COLOR_RED,
     COLOR_MAGENTA,
+    COLOR_LIGHT_BLUE,
 };
 
 // bmp manually drawing seems very slow
@@ -32,14 +33,12 @@ extern int menu_redraw_blocked;
 
 void tetris_task()
 {
-    int sleeploop = 0;
+    clrscr();
 
     pt_reset();
     running = 1;
     TASK_LOOP
     {
-        clrscr();
-
         while (!running)
         {
             msleep(1);
@@ -47,14 +46,14 @@ void tetris_task()
 
         pt_render();
 
-        bmp_printf(FONT_LARGE, 300, 10, "Score: %d", pt.score);
-        bmp_printf(FONT_LARGE, 300, 70, "Press [Q] to Quit");
+        bmp_printf(FONT_LARGE, 400, 10, "Score: %d", pt.score);
+        bmp_printf(FONT_LARGE, 400, 70, "Press [Q] to Quit");
 
         msleep(200);
 
         if (pt_step())
         {
-            bmp_printf(FONT_LARGE, 300, 70 + 60, "Game Over");
+            bmp_printf(FONT_LARGE, 400, 70 + 60, "Game Over");
             goto quit;
         }
     }

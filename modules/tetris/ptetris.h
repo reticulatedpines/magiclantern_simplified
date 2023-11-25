@@ -2,6 +2,7 @@
 #define PTETRIS_H
 
 #include <stdint.h>
+#include <string.h>
 #include <stdio.h>
 
 // Max array size
@@ -21,7 +22,7 @@
 	int pt_rand(int max) {
 		pt_rand_x += 7;
 		pt_rand_x *= 0x87654321;
-		return pt_rand_x & max;
+		return pt_rand_x % max;
 	}
 
 	#define PT_RAND(x) pt_rand(x)
@@ -35,7 +36,7 @@ struct PtRuntime {
 	int score;
 }pt = {
 	16,
-	16,
+	20,
 	20,
 	0,
 };
@@ -84,8 +85,8 @@ struct PtBlock {
 		},
 		{
 			{0, 0, 0, 0},
-			{5, 5, 0, 0},
-			{0, 5, 5, 0},
+			{6, 6, 0, 0},
+			{0, 6, 6, 0},
 			{0, 0, 0, 0},
 		},
 	}
@@ -95,7 +96,7 @@ struct PtField {
 	uint8_t b[PT_MAX_WIDTH][PT_MAX_HEIGHT];
 };
 
-struct PtField pt_main_field = {0};
+struct PtField pt_main_field;
 
 enum PtShift {
 	PT_NORMAL = 0,
@@ -111,6 +112,14 @@ enum PtButton {
 	PT_ROT,
 	PT_QUIT,
 };
+
+void pt_reset() {
+	memset(&pt_main_field, 0, sizeof(pt_main_field));
+	pt_blocks.curr = 0;
+	pt_blocks.x = 4;
+	pt_blocks.y = 0;
+	pt.score = 0;
+}
 
 #ifndef PT_CUSTOM_DRAW_BLOCK
 void pt_draw_block(int bx, int by, int col) {
