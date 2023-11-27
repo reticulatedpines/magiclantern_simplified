@@ -29,14 +29,14 @@
 
 .text
 
-#define RAM_OFFSET 0xFF9DEF48 // some functions are copied to RAM at around ff0c009c; they have to be called from RAM...
+//#define RAM_OFFSET 0xFF9DEF48 // some functions are copied to RAM at around ff0c009c; they have to be called from RAM...
 
 
 /** Startup **/
 NSTUB( ROMBASEADDR, firmware_entry )
 NSTUB(0xFF0C1C0C,  cstart)
-NSTUB(0xFF9FB390 - RAM_OFFSET,  bzero32)
-NSTUB(0xFF9E1E00 - RAM_OFFSET,  create_init_task)
+NSTUB(   0x1C448,  bzero32)
+NSTUB(    0x2EB8,  create_init_task)
 NSTUB(0xFF0C520C,  init_task)
 NSTUB(   0x468B8,  additional_version)
 
@@ -108,12 +108,12 @@ NSTUB(   0x42D7C,  bmp_vram_info)                           // look in SetBitmap
 NSTUB(0xC0220000,  camera_engine)
 
 /** DMA **/
-// NSTUB(0xFF9EB650 - RAM_OFFSET, dma_memcpy)
+// NSTUB(0xc708, dma_memcpy)
 
 /** Debug messages **/
 NSTUB(   0x24B60,  dm_names)
-NSTUB(    0x5b90,  DryosDebugMsg) // 0xFF9E4AD8 - RAM_OFFSET
-NSTUB(0xFF9E4E40 - RAM_OFFSET,  dm_set_store_level)
+NSTUB(    0x5b90,  DryosDebugMsg)
+NSTUB(    0x5EF8,  dm_set_store_level)
 
 /** Dialog API **/
 NSTUB(0xFF44D5F0,  dialog_redraw)
@@ -142,17 +142,17 @@ NSTUB(0xFF4B6930,  ShootOlcApp_handler)                     // AJ_DIALOG.HANDLER
 // NSTUB(    ???,  ReverseDisplay)                          /* present on 60D.111, 600D.102, 650D.104, 550D.109, 1100D.105, 700D.113 */
 
 /** EDMAC **/
-NSTUB(0xFF9F19A4 - RAM_OFFSET,  AbortEDmac)
-NSTUB(0xFF9F16B0 - RAM_OFFSET,  ConnectReadEDmac)
-NSTUB(0xFF9F15EC - RAM_OFFSET,  ConnectWriteEDmac)
-NSTUB(0xFF9F1B2C - RAM_OFFSET,  RegisterEDmacAbortCBR)
-NSTUB(0xFF9F1A44 - RAM_OFFSET,  RegisterEDmacCompleteCBR)
-NSTUB(0xFF9F1BC0 - RAM_OFFSET,  RegisterEDmacPopCBR)
-NSTUB(0xFF9F1540 - RAM_OFFSET,  SetEDmac)
-NSTUB(0xFF9F1858 - RAM_OFFSET,  StartEDmac)
-NSTUB(0xFF9F1B68 - RAM_OFFSET,  UnregisterEDmacAbortCBR)
-NSTUB(0xFF9F1A80 - RAM_OFFSET,  UnregisterEDmacCompleteCBR)
-NSTUB(0xFF9F1BFC - RAM_OFFSET,  UnregisterEDmacPopCBR)
+NSTUB(   0x12A5C,  AbortEDmac)
+NSTUB(   0x12768,  ConnectReadEDmac)
+NSTUB(   0x126A4,  ConnectWriteEDmac)
+NSTUB(   0x12BE4,  RegisterEDmacAbortCBR)
+NSTUB(   0x12AFC,  RegisterEDmacCompleteCBR)
+NSTUB(   0x12C78,  RegisterEDmacPopCBR)
+NSTUB(   0x125F8,  SetEDmac)
+NSTUB(   0x12910,  StartEDmac)
+NSTUB(   0x12C20,  UnregisterEDmacAbortCBR)
+NSTUB(   0x12B38,  UnregisterEDmacCompleteCBR)
+NSTUB(   0x12CB4,  UnregisterEDmacPopCBR)
 
 /** Electronic Level **/
 NSTUB(0xFF272050,  GUI_SetRollingPitchingLevelStatus)       // RequestRollingPitching - no side effects :)
@@ -173,16 +173,16 @@ NSTUB(0xFF13B68C,  call)
 // NSTUB(    ???,  TryPostStageEvent_end)                   /* present on 6D.113, 650D.104, EOSM.202, 700D.113 */
 
 /** ExMem **/
-NSTUB(0xFF9EA048 - RAM_OFFSET,  AddMemoryChunk)             // called before " 32(Src,bytes,Unit)=(%#lx,%#lx,%#lx)" in many places; see also hAddSuite
+NSTUB(    0xB100,  AddMemoryChunk)             // called before " 32(Src,bytes,Unit)=(%#lx,%#lx,%#lx)" in many places; see also hAddSuite
 NSTUB(0xFF13C180,  AllocateContinuousMemoryResource)        // m_pfContAllocMemoryCBR
 NSTUB(0xFF13C134,  AllocateMemoryResource)                  // m_pfAllocMemoryCBR
-NSTUB(0xFF9E954C - RAM_OFFSET,  CreateMemoryChunk)          // called from CreateMemorySuite
-NSTUB(0xFF9E9D6C - RAM_OFFSET,  CreateMemorySuite)
-NSTUB(0xFF9E9B64 - RAM_OFFSET,  DeleteMemorySuite)
+NSTUB(    0xA604,  CreateMemoryChunk)          // called from CreateMemorySuite
+NSTUB(    0xAE24,  CreateMemorySuite)
+NSTUB(    0xAC1C,  DeleteMemorySuite)
 NSTUB(0xFF13C298,  FreeMemoryResource)                      // m_pfFreeMemoryCBR
-NSTUB(0xFF9EA118 - RAM_OFFSET,  GetFirstChunkFromSuite)
-NSTUB(0xFF9E9AF0 - RAM_OFFSET,  GetMemoryAddressOfMemoryChunk)
-NSTUB(0xFF9EA8B4 - RAM_OFFSET,  GetNextMemoryChunk)
+NSTUB(    0xB1D0,  GetFirstChunkFromSuite)
+NSTUB(    0xABA8,  GetMemoryAddressOfMemoryChunk)
+NSTUB(    0xB96C,  GetNextMemoryChunk)
 NSTUB(0xFF0EEAA8,  SRM_AllocateMemoryResourceFor1stJob)
 NSTUB(0xFF0F1D58,  SRM_FreeMemoryResourceFor1stJob)
 
@@ -199,10 +199,10 @@ NSTUB(0xFF0F1D58,  SRM_FreeMemoryResourceFor1stJob)
 
 /** GUI timers **/
 NSTUB(0xFF4A4730,  CancelDateTimer)                         // Look for "CancelDateTimer" or "StopDateTimer" (7D)
-NSTUB(0xFF9EC8C8 - RAM_OFFSET,  CancelTimer)                // called from CancelUnaviFeedBackTimer and many others
-NSTUB(0xFF9E6160 - RAM_OFFSET,  SetHPTimerAfterNow)
-NSTUB(0xFF9E6250 - RAM_OFFSET,  SetHPTimerNextTick)
-NSTUB(0xFF9EC6C8 - RAM_OFFSET,  SetTimerAfter)              // called from StartUnaviFeedBackTimer and many others
+NSTUB(    0xD980,  CancelTimer)                // called from CancelUnaviFeedBackTimer and many others
+NSTUB(    0x7218,  SetHPTimerAfterNow)
+NSTUB(    0x7308,  SetHPTimerNextTick)
+NSTUB(    0xD780,  SetTimerAfter)              // called from StartUnaviFeedBackTimer and many others
 
 /** H264 Encoder **/
 // NSTUB(    ???,  mvrFixQScale)                            /* present on 7D.203, 500D.111, 60D.111, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
@@ -212,13 +212,12 @@ NSTUB(0xFF9EC6C8 - RAM_OFFSET,  SetTimerAfter)              // called from Start
 // NSTUB(    ???,  mvr_config)                              /* present on 7D.203, 500D.111, 60D.111, 6D.113, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 1100D.105, EOSM.202, 700D.113 */
 
 /** Interrupts **/
-NSTUB(0xFFA02C54 - RAM_OFFSET,  post_isr_hook)
-NSTUB(0xFFA02C50 - RAM_OFFSET,  pre_isr_hook)
+NSTUB(   0x23D0C,  post_isr_hook)
+NSTUB(   0x23D08,  pre_isr_hook)
 // NSTUB(    ???,  isr_table_handler)                       /* present on 7D_MASTER.203 */
 // NSTUB(    ???,  isr_table_param)                         /* present on 7D_MASTER.203 */
 
 /** LCD Sensor **/
-// NSTUB(0xff9b1be0 - RAM_OFFSET, LightMeasure_n_Callback_r0) - looks a bit different, disabling for now
 // NSTUB(    ???,  DispSensorStart)                         /* present on 500D.111, 50D.109, 5D2.212, 600D.102, 650D.104, 550D.109, 700D.113 */
 
 /** Making the card bootable **/
@@ -228,21 +227,21 @@ NSTUB(0xFF5BB2C8,  fsuDecodePartitionTable)                 // AJ_fsuGetPart_rel
 // NSTUB(    ???,  cf_device)                               /* present on 550D.109, 60D.111, 7D.203, 1100D.105, 500D.111, 5D2.212, 50D.109 */
 
 /** Memory allocation **/
-NSTUB(0xFF9E8688 - RAM_OFFSET,  GetMemoryInformation)
-NSTUB(0xFF9E8634 - RAM_OFFSET,  GetSizeOfMaxRegion)
-NSTUB(0xFF9E88E8 - RAM_OFFSET, _AllocateMemory)
-NSTUB(0xFF9E8C84 - RAM_OFFSET, _FreeMemory)
-NSTUB(0xFF9F6EE4 - RAM_OFFSET, _alloc_dma_memory)
+NSTUB(    0x9740,  GetMemoryInformation)
+NSTUB(    0x96EC,  GetSizeOfMaxRegion)
+NSTUB(    0x99A0, _AllocateMemory)
+NSTUB(    0x9D3C, _FreeMemory)
+NSTUB(   0x17F9C, _alloc_dma_memory)
 NSTUB(0xFF0C8144, _free)                                    // see "can't malloc"
-NSTUB(0xFF9F6F18 - RAM_OFFSET, _free_dma_memory)
+NSTUB(   0x17FD0, _free_dma_memory)
 NSTUB(0xFF0C80EC, _malloc)
 // NSTUB(    ???,  free_dma_memory)                         /* present on 7D_MASTER.203 */
 
 /** Message queues **/
-NSTUB(0xFF9F37F4 - RAM_OFFSET,  msg_queue_count)
-NSTUB(0xFF9EB104 - RAM_OFFSET,  msg_queue_create)
-NSTUB(0xFF9F37B4 - RAM_OFFSET,  msg_queue_post)
-NSTUB(0xFF9F35C8 - RAM_OFFSET,  msg_queue_receive)
+NSTUB(   0x148AC,  msg_queue_count)
+NSTUB(    0xC1BC,  msg_queue_create)
+NSTUB(   0x1486C,  msg_queue_post)
+NSTUB(   0x14680,  msg_queue_receive)
 
 /** PTP **/
 NSTUB(0xFF3F4F54,  ptp_register_handler)
@@ -263,9 +262,9 @@ NSTUB(0xFF12340C,  prop_register_slave)
 // NSTUB(    ???,  RequestRPC)                              /* present on 7D.203, 7D_MASTER.203 */
 
 /** Recursive locks **/
-NSTUB(0xFF9F3900 - RAM_OFFSET,  AcquireRecursiveLock)       // AJ_KernelDry_KerRLock.c
-NSTUB(0xFF9EB2EC - RAM_OFFSET,  CreateRecursiveLock)
-NSTUB(0xFF9F3A14 - RAM_OFFSET,  ReleaseRecursiveLock)       // AJ_KernelDry_KerRLock.c_p2
+NSTUB(   0x149B8,  AcquireRecursiveLock)       // AJ_KernelDry_KerRLock.c
+NSTUB(    0xC3A4,  CreateRecursiveLock)
+NSTUB(   0x14ACC,  ReleaseRecursiveLock)       // AJ_KernelDry_KerRLock.c_p2
 
 /** ResLock **/
 NSTUB(0xFF290B94,  CreateResLockEntry)
@@ -273,30 +272,30 @@ NSTUB(0xFF29105C,  LockEngineResources)
 NSTUB(0xFF291200,  UnLockEngineResources)
 
 /** Semaphores **/
-NSTUB(0xFF9E7368 - RAM_OFFSET,  create_named_semaphore)
-NSTUB(0xFF9E75B4 - RAM_OFFSET,  give_semaphore)
-NSTUB(0xFF9E74C8 - RAM_OFFSET,  take_semaphore)
+NSTUB(    0x8420,  create_named_semaphore)
+NSTUB(    0x866C,  give_semaphore)
+NSTUB(    0x8580,  take_semaphore)
 
 /** Task info **/
 NSTUB(   0x25114,  task_max)
-NSTUB(0xFF9F8860 - RAM_OFFSET,  get_task_info_by_id)            // AJ_task_trampoline_related_p10
+NSTUB(   0x19918,  get_task_info_by_id)            // AJ_task_trampoline_related_p10
 NSTUB(   0x23E14,  current_task)
 NSTUB(     0x674,  current_interrupt)                       // in interrupt handler (0x18), where MEM(C0201004) is stored
 
 /** Task sleep **/
-NSTUB(0xFF9E79A4 - RAM_OFFSET,  msleep)
+NSTUB(    0x8A5C,  msleep)
 
 /** Tasks **/
 NSTUB(   0x23D00,  task_dispatch_hook)
-NSTUB(0xFF9E7A58 - RAM_OFFSET,  task_create)
-NSTUB(0xFF9ECD70 - RAM_OFFSET,  task_trampoline)
+NSTUB(    0x8B10,  task_create)
+NSTUB(    0xDE28,  task_trampoline)
 // NSTUB(    ???,  current_task_ctx)                        /* present on 7D.203 */
 // NSTUB(    ???,  next_task_ctx)                           /* present on 7D.203 */
 
 /** Misc **/
 NSTUB(0xFF4827D4,  FSUunMountDevice)
 NSTUB(0xFF135F10,  LoadCalendarFromRTC)
-NSTUB(0xFF9F4F3C - RAM_OFFSET,  vsnprintf)
+NSTUB(   0x15FF4,  vsnprintf)
 NSTUB(0x23F4C,     terminateShutdown_save_settings)
 NSTUB(0x23F50,     terminateAbort_save_settings)
 // NSTUB(    ???,  EnableImagePhysicalScreenParameter)      /* present on 7D.203, 50D.109, 5D2.212 */
@@ -311,10 +310,10 @@ NSTUB(0x23F50,     terminateAbort_save_settings)
 ///NSTUB(0xFF309C68,  FIO_SeekFile)
 ///NSTUB(0xff19d7e8, GUI_GetFirmVersion)
 ///NSTUB(0xFF195084, GUI_SetRollingPitchingLevelStatus_bad) // has side effects
-///NSTUB(0xFF9E9ED8 - RAM_OFFSET, GetNumberOfChunks)
-///NSTUB(0xFF9E9A90 - RAM_OFFSET, GetRemainOfMemoryChunk)
-///NSTUB(0xFF9E9AC0 - RAM_OFFSET, GetSizeOfMemoryChunk)
-///NSTUB(0xFF9E9DF8 - RAM_OFFSET, GetSizeOfMemorySuite)
+///NSTUB(0xaf90, GetNumberOfChunks)
+///NSTUB(0xab48, GetRemainOfMemoryChunk)
+///NSTUB(0xab78, GetSizeOfMemoryChunk)
+///NSTUB(0xaeb0, GetSizeOfMemorySuite)
 ///NSTUB(0xff2f3f8c, MuteOff_0)
 ///NSTUB(0xff2f3f44, MuteOn_0)
 ///NSTUB(0xff1064c8, PD_RemoteRelease)
@@ -325,7 +324,7 @@ NSTUB(0x23F50,     terminateAbort_save_settings)
 ///NSTUB(0xFF5766D0,  PackMem_RegisterEDmacPopCBRForMemorySuite)
 ///NSTUB(0xFF576348,  PackMem_SetEDmacForMemorySuite)
 ///NSTUB(0xFF57645C,  PackMem_StartEDmac)
-///NSTUB(0xFF9F19EC - RAM_OFFSET,  PopEDmac)
+///NSTUB(0x12aa4,  PopEDmac)
 ///NSTUB(0xFF46D03C,  RedrawDisplay)
 ///NSTUB(0xff12e110, SetBitmapVramAddress)
 ///NSTUB(0xFF123DE4, _prop_get_value)                          // unsafe
@@ -333,8 +332,8 @@ NSTUB(0x23F50,     terminateAbort_save_settings)
 ///NSTUB(0xFF0C10E0,  cli_save)
 ///NSTUB(0xff144a3c, copy_malloc_info_maybe)
 ///NSTUB(0xff44a668, ctrlman_dispatch_event)
-///NSTUB(0xFF9E7410 - RAM_OFFSET,  delete_semaphore)
-///NSTUB(0xFF9E4DD8 - RAM_OFFSET,  dm_set_print_level)
+///NSTUB(0x84c8,  delete_semaphore)
+///NSTUB(0x5e90,  dm_set_print_level)
 ///NSTUB(0xff44a7b8, gui_task_create)
 ///NSTUB(0xFF44A870, gui_task_destroy)
 ///NSTUB(0xff13b630, register_func)

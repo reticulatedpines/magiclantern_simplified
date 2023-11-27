@@ -28,7 +28,7 @@
 #include <stub.h>
 
 .text
-#define RAM_OFFSET 0xFFA9C4B8                               // (0xFFA9DDB8-0x1900)
+//#define RAM_OFFSET 0xFFA9C4B8                               // (0xFFA9DDB8-0x1900)
 
 /** Startup **/
 NSTUB( ROMBASEADDR, firmware_entry )
@@ -241,8 +241,8 @@ NSTUB(    0x7458,  take_semaphore)
 
 /** Task info **/
 NSTUB(    0x259C,  get_current_task)
-NSTUB(0xFFAABFD8 - RAM_OFFSET,  get_obj_attr)               // AJ_checks_if_Process_id_created_by_Dryos
-NSTUB(0xFFAE833C - RAM_OFFSET,  get_task_info_by_id)            // AJ_task_trampoline_related_p10
+NSTUB(    0xFB20,  get_obj_attr)               // AJ_checks_if_Process_id_created_by_Dryos
+NSTUB(   0x4BE84,  get_task_info_by_id)            // AJ_task_trampoline_related_p10
 NSTUB(   0x6669C,  task_max)
 NSTUB(   0x652AC,  current_task)
 NSTUB(     0x64C,  current_interrupt)                       // in interrupt handler (0x18), where MEM(C0201004) is stored
@@ -256,6 +256,6 @@ NSTUB(   0x652C0,  task_dispatch_hook)                      // task_trampoline -
 NSTUB(    0xD070,  task_trampoline)
 
 /** Misc **/
-NSTUB(0xFFAD5048 - RAM_OFFSET,  vsnprintf)
+NSTUB(   0x38B90,  vsnprintf)
 NSTUB(0xFF13A87C,  LoadCalendarFromRTC)
 NSTUB(0xFFAA4070,  GetTaskName)
