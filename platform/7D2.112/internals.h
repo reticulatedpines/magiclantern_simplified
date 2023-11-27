@@ -31,4 +31,4 @@
 
 // This camera has BULB mode
 #define CONFIG_BULB
-#define CONFIG_SEPAEATE_BULB_MODE // has "B" mode
+#define CONFIG_SEPARATE_BULB_MODE // has "B" mode
