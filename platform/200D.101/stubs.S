@@ -433,7 +433,10 @@ THUMB_FN(0xe07159e8, nif_setup); // initialises network interface, set_IP_addres
 //NSTUB(0xFF97D794, _EngDrvOut)
 //NSTUB(0xFF97D7F8,  shamem_read) // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr
 //NSTUB(0xFF97D904, _engio_write)
-//NSTUB(0xFFA6CE4C,  UnLockEngineResources)
+
+THUMB_FN(0xe00c0484,  mem_to_mem_edmac_copy)
+
+//THUMB_FN(0xe04b39c0,  UnLockEngineResources)
 
 // SJE couldn't find it, some other cameras don't have it, looks like
 // audio-common.c has a static array for that.

@@ -128,7 +128,7 @@ int GetFreeMemForMalloc()
 // where we don't return the real start of the block,
 // but later need to know it to use free_aligned()
 // with the returned pointer.
-struct alloc_str
+struct aligned_alloc
 {
     uint32_t start;
     uint32_t len;
@@ -136,7 +136,7 @@ struct alloc_str
 // Because we need to track them, and because aligned allocs
 // can be much less space efficient, limit these to a small number.
 #define MAX_ALIGNED_ALLOCS 16
-static struct alloc_str aligned_allocs[MAX_ALIGNED_ALLOCS] = {{0, 0}};
+static struct aligned_alloc aligned_allocs[MAX_ALIGNED_ALLOCS] = {{0, 0}};
 static uint32_t alloc_count = 0;
 
 // As malloc(), but takes an alignment.  The returned pointer
