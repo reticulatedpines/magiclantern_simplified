@@ -79,6 +79,7 @@ extern uint32_t edmac_write_chan;
 extern uint32_t edmac_read_chan;
 
 static void decompress_init();
+
 int lossless_init()
 {
     if (is_camera("5D3", "1.1.3"))
@@ -145,6 +146,7 @@ int lossless_init()
         TTL_Stop        = (void *) 0xFF428440;  /* called right after sssStopMem1ToRawPath */
         TTL_Finish      = (void *) 0xFF429328;  /* called next; calls UnlockEngineResources and returns output size from JpCoreCompleteCBR */
     }
+
     if (is_camera("100D", "1.0.1"))
     {
         /* ProcessTwoInTwoOutJpegath, 100D 1.0.1 */
@@ -240,8 +242,8 @@ int lossless_init()
             0x2002d,    /* Write connection 45 (compressed output) */
           //0x20016,    /* Write connection 22 (for WR2 - not used) */
             0x50034,
-          //0x5002d,    /* workaround, TTL_Prepare stucks otherwise if called in LV */
-            0x50010,
+          //0x5002d,    /* ArcziPL: workaround, TTL_Prepare stucks otherwise if called in LV */
+          //0x50010,    /* ArcziPL: workaround, TTL_Prepare stucks otherwise if compiled with FEATURE_FPS_OVERRIDE defined */
             0x90001,
             0x230000,
             0x160000,

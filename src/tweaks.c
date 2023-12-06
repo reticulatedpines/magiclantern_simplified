@@ -3419,7 +3419,11 @@ void display_filter_step(int k)
 #endif
 
 #ifdef CONFIG_KILL_FLICKER
+#if defined(CONFIG_50D)
 CONFIG_INT("kill.canon.gui", kill_canon_gui_mode, 1);
+#else
+CONFIG_INT("kill.canon.gui", kill_canon_gui_mode, 0);
+#endif
 #endif
 
 extern int clearscreen;

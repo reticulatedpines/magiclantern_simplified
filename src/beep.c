@@ -473,7 +473,7 @@ static void wav_record(char* filename, int show_progress)
     audio_recording = 1;
     audio_recording_start_time = get_seconds_clock();
     
-#if defined(CONFIG_7D) || defined(CONFIG_6D) || defined(CONFIG_EOSM) || defined(CONFIG_70D)
+#if defined(CONFIG_7D) || defined(CONFIG_6D) || defined(CONFIG_70D) || defined(CONFIG_EOSM)
     /* experimental for 7D now, has to be made generic */
     /* Enable audio Device */
     void SoundDevActiveIn (uint32_t);
@@ -491,7 +491,7 @@ static void wav_record(char* filename, int show_progress)
         msleep(100);
         if (show_progress) record_show_progress();
     }
-#if defined(CONFIG_7D) || defined(CONFIG_6D) || defined(CONFIG_EOSM) || defined(CONFIG_70D)
+#if defined(CONFIG_7D) || defined(CONFIG_6D) || defined(CONFIG_70D) || defined(CONFIG_EOSM)
     /* experimental for 7D now, has to be made generic */
     /* Disable Audio */
     void SoundDevShutDownIn();

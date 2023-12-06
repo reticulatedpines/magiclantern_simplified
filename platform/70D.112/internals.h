@@ -125,14 +125,20 @@
 /** FIO_RenameFile works **/
 #define CONFIG_FIO_RENAMEFILE_WORKS
 
-// FPS updates from evf state do not work atm on 70D
-// #define CONFIG_FPS_UPDATE_FROM_EVF_STATE
+// FPS override: change timers from EVF state */
+#define CONFIG_FPS_UPDATE_FROM_EVF_STATE
+
+/** FPS override: Canon changes FPS registers often; we need to undo their changes asap; no idea if needed for 70D */
+#define CONFIG_FPS_AGGRESSIVE_UPDATE
 
 #define CONFIG_REC709
 
 /** We have access to raw data in both photo mode and in LiveView */
 #define CONFIG_RAW_PHOTO
 #define CONFIG_RAW_LIVEVIEW
+
+/** Disable canon drawing in LiveView, mainly for having clean preview when using crop_rec presets **/
+#define CONFIG_KILL_FLICKER
 
 /** We can adjust AFMA (AF microadjustment) */
 #define CONFIG_AFMA
@@ -145,7 +151,7 @@
 #define CONFIG_AFMA_WIDE_TELE
 
 /** Hide Canon bottom bar from DebugMsg hook */
-//#define CONFIG_LVAPP_HACK_DEBUGMSG
+#define CONFIG_LVAPP_HACK_DEBUGMSG
 
 /** Workaround for menu timeout in LiveView */
 #define CONFIG_MENU_TIMEOUT_FIX

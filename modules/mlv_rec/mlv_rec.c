@@ -1811,6 +1811,7 @@ static void hack_liveview(int32_t unhack)
             cam_70d ? 0xff558ff0 :
             cam_7d  ? 0xFF345788 :
             cam_60d ? 0xff36fa3c :
+            cam_70d ? 0xFF558FF0 :
             cam_100d ? 0xFF542580 :
             cam_500d ? 0xFF2ABEF8 :
             cam_1100d ? 0xFF373384 :
@@ -1830,10 +1831,7 @@ static void hack_liveview(int32_t unhack)
 
                 if (err)
                 {
-                    NotifyBox(1000, "Hack error at %x:\nexpected %x, got %x",
-                              dialog_refresh_timer_addr,
-                              dialog_refresh_timer_orig_instr,
-                              *(volatile uint32_t*)dialog_refresh_timer_addr);
+                    NotifyBox(1000, "Hack error at %x:\nexpected %x, got %x", dialog_refresh_timer_addr, dialog_refresh_timer_orig_instr, *(volatile uint32_t*)dialog_refresh_timer_addr);
                     beep_custom(1000, 2000, 1);
                 }
             }
@@ -4341,6 +4339,7 @@ static unsigned int raw_rec_init()
     cam_70d   = is_camera("70D",  "1.1.2");
     cam_700d  = is_camera("700D", "1.1.5");
     cam_60d   = is_camera("60D",  "1.1.1");
+    cam_70d   = is_camera("70D",  "1.1.2");
     cam_100d  = is_camera("100D", "1.0.1");
     cam_500d  = is_camera("500D", "1.1.1");
     cam_1100d = is_camera("1100D", "1.0.5");

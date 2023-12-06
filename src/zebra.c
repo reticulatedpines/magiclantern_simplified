@@ -3336,7 +3336,7 @@ static void draw_zoom_overlay(int dirty)
     if (!get_global_draw()) return;
     //~ if (gui_menu_shown()) return;
     if (!bmp_is_on()) return;
-    if (lv_dispsize != 1) return;
+    if (lv_dispsize > 5 || lv_dispsize < 1) return; // Magic Zoom will work in x1 and x5 modes
     //~ if (get_halfshutter_pressed() && clearscreen != 2) return;
     if (RECORDING_H264_STARTING) return;
     

@@ -137,6 +137,9 @@
 #define CONFIG_RAW_LIVEVIEW
 #define CONFIG_RAW_PHOTO
 
+/** Disable canon drawing in LiveView, mainly for having clean preview when using crop_rec presets **/
+#define CONFIG_KILL_FLICKER
+
 /** We can control audio settings from ML **/
 //~ #define CONFIG_AUDIO_CONTROLS
 

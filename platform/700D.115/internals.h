@@ -128,6 +128,9 @@
 #define CONFIG_RAW_PHOTO
 #define CONFIG_RAW_LIVEVIEW
 
+/** Disable canon drawing in LiveView, mainly for having clean preview when using crop_rec presets **/
+#define CONFIG_KILL_FLICKER
+
 /** Zoom on half-shutter may cause black pictures.
  *  Workaround: block the shutter button while switching zoom, to avoid the race condition
  *  todo: find a proper fix that does not prevent picture taking

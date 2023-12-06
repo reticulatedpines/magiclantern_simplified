@@ -71,9 +71,9 @@
 #define GMT_GUICMD_OPEN_SLOT_COVER 91
 #define GMT_GUICMD_LOCK_OFF 89
 
-// Arrow Toggling in Movie mode by AF-AREA-MODE-BUTTON or METERING-BUTTON (unreliable)
-//#define BGMT_METERING_OR_AFAREA (lv && event->type == 0 && event->param == 0x69 && event->arg == 9)
-//#define BGMT_PRESS_METERING_OR_AFAREA (BGMT_METERING_OR_AFAREA && (*(int*)(event->obj) & 0x4000020))
+// Arrow Toggling in Movie mode by AF-AREA-MODE-BUTTON or METERING-BUTTON 
+#define BGMT_METERING_OR_AFAREA (lv && event->type == 0 && event->param == 0x69 && event->arg == 9)
+#define BGMT_PRESS_METERING_OR_AFAREA (BGMT_METERING_OR_AFAREA && (*(int*)(event->obj) & 0x4000020))
 //#define BGMT_UNPRESS_METERING_OR_AFAREA (BGMT_METERING_OR_AFAREA && (*(int*)(event->obj) & 0x20) == 9)
 
 #define BTN_ZEBRAS_FOR_PLAYBACK BGMT_LIGHT // what button to use for zebras in Play mode

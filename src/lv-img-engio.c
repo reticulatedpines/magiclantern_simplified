@@ -11,6 +11,7 @@
 #include "config.h"
 #include "math.h"
 #include "fps.h"
+#include "raw.h"
 #include "focus.h"
 #include "beep.h"
 #include "raw.h"

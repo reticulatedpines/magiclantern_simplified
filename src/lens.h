@@ -535,7 +535,7 @@ struct prop_picstyle_settings
         int32_t         color_tone; // -4..4
         uint32_t        off_0x10;   // deadbeaf?!
         uint32_t        off_0x14;   // deadbeaf?!
-} __attribute__((aligned,packed));
+} __attribute__((packed));  
 
 SIZE_CHECK_STRUCT( prop_picstyle_settings, 0x18 );
 

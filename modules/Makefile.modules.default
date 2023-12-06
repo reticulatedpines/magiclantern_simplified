@@ -21,3 +21,5 @@ ML_MODULES ?= \
 	crop_rec \
 	edmac \
 	yolo \
+	sd_uhs \
+	hdmi_out \

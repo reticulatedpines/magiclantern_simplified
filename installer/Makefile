@@ -14,6 +14,7 @@ SUPPORTED_INSTALLERS := \
     7D.203 \
     70D.112 \
     100D.101 \
+    70D.112 \
 
 # this need some more work: 5DC.111
 

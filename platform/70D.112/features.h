@@ -12,7 +12,7 @@
 // Tried it for a felt hundred hours
 // TIMER_B has untraceable problems
 // Using TIMER_A_ONLY causes banding / patterns 
-#undef FEATURE_FPS_OVERRIDE
+// #undef FEATURE_FPS_OVERRIDE
 
 /* see comments in lens.c */
 #undef FEATURE_FOLLOW_FOCUS

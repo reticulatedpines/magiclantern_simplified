@@ -354,7 +354,11 @@ uint32_t raw_write_chan = 0xffffffff;
 #if defined(CONFIG_5D3)
 uint32_t raw_write_chan = 0x4;  /* 0x12 gives corrupted frames on 1.2.3, http://www.magiclantern.fm/forum/index.php?topic=10443 */
 #elif defined(EVF_STATE)
-uint32_t raw_write_chan = 0x12; /* 60D and newer, including all DIGIC V */
+/* channel 0x12 is being used by Canon when connecting to HDMI, LiveView freezes after sometime when RAW video is activated
+   also it's being used when clearing preview artifacts in x5 mode in crop_rec.c, LiveView also freezes in this case, 0x3 works
+   just fine, same performance as 0x18 (no corrupted frames), not being used by Canon in any case?, it was tested on DIGIC 5
+   models: 650D / 700D / EOSM / 100D, should work on EOS M2 too, FIXME: NOT tested on DIGIC 4 like 600D and 60D   */
+uint32_t raw_write_chan = 0x3; /* 60D and newer, including all DIGIC V */
 #endif
 
 static void edmac_slurp_complete_cbr (void* ctx)

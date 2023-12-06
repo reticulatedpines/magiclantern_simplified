@@ -146,6 +146,8 @@ typedef struct
     screen_msg_t messages;
     uint16_t xRes;
     uint16_t yRes;
+    uint8_t  yBinSkip;
+    uint8_t  xBinSkip;
     uint16_t bitDepth;
     uint16_t blackLevel;
     uint16_t whiteLevel;
@@ -1445,6 +1447,9 @@ static void check_dup_frame(frame_buf_t *buffer)
     }
 }
 
+static int binning_skipping_y = 0;
+static int binning_skipping_x = 0;
+
 static void mlv_play_render_frame(frame_buf_t *buffer)
 {
     raw_info.buffer = buffer->frameBufferAligned;
@@ -1453,8 +1458,10 @@ static void mlv_play_render_frame(frame_buf_t *buffer)
     raw_info.white_level = buffer->whiteLevel;
     raw_set_geometry(buffer->xRes, buffer->yRes, 0, 0, 0, 0);
 
-    /* fixme: read aspect ratio from metadata */
-    raw_force_aspect_ratio(1, 1);
+    binning_skipping_y = buffer->yBinSkip;
+    binning_skipping_x = buffer->xBinSkip;
+
+    raw_force_aspect_ratio(binning_skipping_x, binning_skipping_y);
     
     if(raw_twk_available())
     {
@@ -1705,14 +1712,23 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
     uint32_t frame_size = 0;
     uint32_t frame_count = 0;
     mlv_xref_hdr_t *block_xref = NULL;
-    mlv_lens_hdr_t lens_block = {0};
-    mlv_rawi_hdr_t rawi_block = {0};
-    mlv_wavi_hdr_t wavi_block = {0};
-    mlv_rtci_hdr_t rtci_block = {0};
-    mlv_file_hdr_t main_header = {0};
+    mlv_lens_hdr_t lens_block;
+    mlv_rawi_hdr_t rawi_block;
+    mlv_rawc_hdr_t rawc_block;
+    mlv_rtci_hdr_t wavi_block;
+    mlv_rtci_hdr_t rtci_block;
+    mlv_file_hdr_t main_header;
 
     void *mlv_play_decomp_buf = NULL;
     struct memSuite *mlv_play_decomp_suite = NULL;
+
+    /* make sure there is no crap in stack variables */
+    memset(&lens_block, 0x00, sizeof(mlv_lens_hdr_t));
+    memset(&rawi_block, 0x00, sizeof(mlv_rawi_hdr_t));
+    memset(&rawc_block, 0x00, sizeof(mlv_rawc_hdr_t));
+    memset(&wavi_block, 0x00, sizeof(mlv_rawi_hdr_t));
+    memset(&rtci_block, 0x00, sizeof(mlv_rtci_hdr_t));
+    memset(&main_header, 0x00, sizeof(mlv_file_hdr_t));
 
     /* read footer information and update global variables, will seek automatically */
     if(chunk_count < 1 || !mlv_play_is_mlv(chunk_files[0]))
@@ -1883,6 +1899,18 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             frame_size = rawi_block.xRes * rawi_block.yRes * rawi_block.raw_info.bits_per_pixel / 8;
             bits_per_pixel = rawi_block.raw_info.bits_per_pixel;
         }
+        else if(!memcmp(buf.blockType, "RAWC", 4))
+        {
+            if(FIO_ReadFile(in_file, &rawc_block, sizeof(mlv_rawc_hdr_t)) != sizeof(mlv_rawc_hdr_t))
+            {
+                bmp_printf(FONT_MED, 30, 190, "File ends prematurely during RAWC");
+                beep();
+                msleep(1000);
+                break;
+            }
+            binning_skipping_y = raw_capture_info.binning_y + raw_capture_info.skipping_y;
+            binning_skipping_x = raw_capture_info.binning_x + raw_capture_info.skipping_x;
+        }
         else if(!memcmp(buf.blockType, "WAVI", 4))
         {
             if(FIO_ReadFile(in_file, &wavi_block, sizeof(mlv_wavi_hdr_t)) != sizeof(mlv_wavi_hdr_t))
@@ -2003,6 +2031,8 @@ static void mlv_play_mlv(char *filename, FILE **chunk_files, uint32_t chunk_coun
             /* update dimensions */
             buffer->xRes = rawi_block.xRes;
             buffer->yRes = rawi_block.yRes;
+            buffer->xBinSkip = rawc_block.binning_x + rawc_block.skipping_x;
+            buffer->yBinSkip = rawc_block.binning_y + rawc_block.skipping_y;
             buffer->bitDepth = rawi_block.raw_info.bits_per_pixel;
             buffer->blackLevel = rawi_block.raw_info.black_level;
             buffer->whiteLevel = rawi_block.raw_info.white_level;

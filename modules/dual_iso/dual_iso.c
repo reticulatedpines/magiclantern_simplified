@@ -373,7 +373,7 @@ static unsigned int isoless_refresh(unsigned int ctx)
     int setting_changed = (sig != prev_sig);
     prev_sig = sig;
     
-    if (enabled_lv && setting_changed)
+    if (enabled_lv && (setting_changed || lv_dispsize == 10))
     {
         isoless_disable(FRAME_CMOS_ISO_START, FRAME_CMOS_ISO_SIZE, FRAME_CMOS_ISO_COUNT, backup_lv);
         enabled_lv = 0;
@@ -392,7 +392,7 @@ static unsigned int isoless_refresh(unsigned int ctx)
         if (err) { NotifyBox(10000, "ISOless PH err(%d)", err); enabled_ph = 0; }
     }
     
-    if (isoless_hdr && raw_mv && !enabled_lv && FRAME_CMOS_ISO_START)
+    if (isoless_hdr && raw_mv && !enabled_lv && FRAME_CMOS_ISO_START && lv_dispsize != 10)
     {
         enabled_lv = 1;
         int err = isoless_enable(FRAME_CMOS_ISO_START, FRAME_CMOS_ISO_SIZE, FRAME_CMOS_ISO_COUNT, backup_lv);
@@ -606,6 +606,9 @@ static MENU_UPDATE_FUNC(isoless_check)
     if (mvi && !FRAME_CMOS_ISO_START)
         MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Dual ISO does not work in movie mode on your camera.");
     
+    if (mvi &&lv_dispsize == 10)
+		MENU_SET_WARNING(MENU_WARN_NOT_WORKING, "Dual ISO is temporarily disabled in x10 mode to check focus easily.");
+
     if (!raw)
         menu_set_warning_raw(entry, info);
 }

@@ -5904,7 +5904,8 @@ void select_menu(char* name, int entry_index)
     //~ menu_damage = 1;
 }
 
-static void select_menu_recursive(struct menu * selected_menu, const char * entry_name)
+static REQUIRES(menu_sem)
+void select_menu_recursive(struct menu * selected_menu, const char * entry_name)
 {
     printf("select_menu %s -> %s\n", selected_menu->name, entry_name);
 
@@ -6162,11 +6163,6 @@ static void longpress_check(int timer, void * opaque)
     }
     else if (longpress->count < 15 && !longpress->pressed)
     {
-        if (!gui_menu_shown())
-        {
-            return;
-        }
-
         if (!longpress->short_cbr || longpress->short_cbr())
         {
             /* optional short press ( < 300 ms) */
