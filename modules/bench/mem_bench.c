@@ -308,8 +308,13 @@ static void mem_benchmark_task()
                       (intptr_t)CACHEABLE(buf1),   bufsize, 0, 0, 0);
     mem_benchmark_run("read64 uncacheable  ", &y, bufsize, mem_test_read64_wrapper,
                       (intptr_t)UNCACHEABLE(buf1), bufsize, 0, 0, 0);
-    mem_benchmark_run("bmp_fill to idle buf", &y, 720*480, mem_test_bmp_fill,
-                      0, 0, 720, 480, 0);
+    if (get_digic_version() < 6)
+    {
+        // On modern cams, FEATURE_VRAM_RGBA, there's no idle buffer,
+        // so this fill would erase the benchmark result before the screenshot.
+        mem_benchmark_run("bmp_fill to idle buf", &y, 720*480, mem_test_bmp_fill,
+                          0, 0, 720, 480, 0);
+    }
 
     bmp_fill(COLOR_BLACK, 0, 0, 720, font_large.height);
     bmp_printf(FONT_LARGE, 0, 0, "Benchmark complete.");
