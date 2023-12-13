@@ -59,7 +59,7 @@
 
 #define CANON_SHUTTER_RATING 200000
 
-#define DISPLAY_IS_ON ((MEM(0x027e98) & 0x100) ? 0 : 1)  // found at 0xfe0b6824 : MEM(0x027e98) == 0x10001(on) 0x10101(off)
+#define DISPLAY_IS_ON (!(char)(MEM(0x27e99)))  // found at 0xfe0b6824 : MEM(0x027e98) == 0x10001(on) 0x10101(off)
 
 #define GMT_FUNCTABLE 0xfe658084           // from gui_main_task
 #define GMT_NFUNCS 0x7                  // size of table above
