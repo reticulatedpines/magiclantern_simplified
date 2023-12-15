@@ -197,6 +197,23 @@ DATA_PTR(    0x2f10c,  bmp_vram_info)
 // Wrong on purpose
 DATA_PTR(       0x0,  LCD_Palette)                          // D6 has no indexed RGB buffers.
 
+// DMA
+// dma_memcpy() doesn't work on this cam, it hits the "Nothing DMA ch now!" case,
+// perhaps this system isn't initialised?
+//THUMB_FN(0xfe3b921c,  dma_memcpy) // BLTDMA
+//
+// These all exist...  but on Omar:
+//THUMB_FN(0x8000626a EngDrvOut);
+//THUMB_FN(0x800062a4 EngDrvBits);
+//THUMB_FN(0x800062ba EngDrvOuts);
+//THUMB_FN(0x80006298 shamem_read);
+//THUMB_FN(0x800063c2 StartEDmac);
+//THUMB_FN(0x80006498 edmac_set_addr);
+//THUMB_FN(0x800064c2 edmac_set_size);
+//THUMB_FN(0x80006bfe ConnectWriteEDmac);
+//THUMB_FN(0x80006c10 ConnectReadEDmac);
+//THUMB_FN(0x80006c42 RegisterEDmacCompleteCBR);
+
 // App handlers
 //
 // Those can usually be found by looking at function address passed to
