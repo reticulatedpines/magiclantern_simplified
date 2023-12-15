@@ -666,6 +666,7 @@ static void run_test()
     // I don't know what they are yet, but apparently less than 4k.
     uint32_t slab_size = 1 << 18; // 256kB
 //    uint32_t slab_size = 1 << 22; // 4MB
+//    uint32_t slab_size = 1 << 23; // 8MB
     uint32_t region_size = slab_size / 2;
     uint8_t *slab = malloc_aligned(slab_size, 0x1000);
 // Dirty hack for testing large transfers on 200d:
@@ -678,13 +679,25 @@ static void run_test()
     uint8_t *dst = slab;
     uint8_t *src = slab + region_size;
 
-    memset(dst, 0, region_size);
-    memset(src, 0xa5, region_size);
     // Use Uncacheable addresses, and flush read cache before read.
     // Unsure if required, but old ML code does this and I've only
     // observed Uncache addresses being used on 200d.
     dst = UNCACHEABLE(dst);
+    src = UNCACHEABLE(src);
+
+    // initialise content.  The markers allow
+    // detecting overwrites when memcmp'ing the regions.
+    memset(dst, 0, region_size);
+    memset(dst, 0x11, 2); // start marker
+    memset(dst + region_size - 2, 0x22, 2); // end marker
+
+    memset(src, 0xa5, region_size);
+    memset(src, 0x33, 2); // start marker
+    memset(src + region_size - 2, 0x44, 2); // end marker
     sync_caches();
+
+    DryosDebugMsg(0, 15, "region_size: 0x%x", region_size);
+    DryosDebugMsg(0, 15, "dst, src: 0x%x, 0x%x", dst, src);
     DryosDebugMsg(0, 15, "Pre-copy, *dst, *src: 0x%x, 0x%x",
                   *(uint32_t *)dst,
                   *(uint32_t *)src);
@@ -733,6 +746,9 @@ static void run_test()
     // Because the region has no associated memory address, it's position-independent.
     // If your copy doesn't change the shape of the region, you can use the same struct
     // for dst and src.
+
+// known good
+/*
     struct edmac_info region = {
         .off1a = 0,
         .off1b = 0,
@@ -753,6 +769,26 @@ static void run_test()
         .ya = 0,
         .yb = 63, // 64 rows
         .xn = 0,
+        .yn = 0
+    };
+*/
+
+    // Let's try many cols, incl. one xb col, no rows.  Assume region_size 128kB == 0x20000,
+    // that factors to (0xff * 0x200) + 0x200
+    //
+    // This one works!
+// known good
+    struct edmac_info region = {
+        .off1a = 0,
+        .off1b = 0,
+        .off2a = 0,
+        .off2b = 0,
+        .off3 = 0,
+        .xa = 0x200, // "regular" col width
+        .xb = 0x200, // "irregular" col width
+        .ya = 0,
+        .yb = 0,
+        .xn = 0xff, // 0xff regular columns
         .yn = 0
     };
 
@@ -803,6 +839,7 @@ static void run_test()
     before = get_ms_clock();
     mem_to_mem_edmac_copy(&m2m_copy_info);
     after = get_ms_clock();
+
     DryosDebugMsg(0, 15, "Post-copy, *dst, *src: 0x%x, 0x%x",
                   *(uint32_t *)dst,
                   *(uint32_t *)src);
