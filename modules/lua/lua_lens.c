@@ -51,6 +51,9 @@ static int luaCB_lens_index(lua_State * L)
     /// Get whether or not auto focus is enabled.
     // @tfield bool af readonly
     else if(!strcmp(key, "af")) lua_pushboolean(L, !is_manual_focus());
+    // Check if Live View and AF is enabled and AF is in continuous mode. Useful for lens.focus()
+    // @tfield bool continuous_af readonly
+    else if(!strcmp(key, "continuous_af")) lua_pushboolean(L, is_continuous_af());
     /// Get the current auto focus mode (may be model-specific, see PROP\_AF\_MODE in property.h).
     // @tfield int af_mode readonly
     else if(!strcmp(key, "af_mode")) lua_pushinteger(L, af_mode);
@@ -72,7 +75,7 @@ static int luaCB_lens_index(lua_State * L)
 static int luaCB_lens_newindex(lua_State * L)
 {
     LUA_PARAM_STRING_OPTIONAL(key, 2, "");
-    if(!strcmp(key, "name") || !strcmp(key, "focal_length") || !strcmp(key, "focus_distance") || !strcmp(key, "hyperfocal") || !strcmp(key, "dof_near") || !strcmp(key, "dof_far") || !strcmp(key, "af"))
+    if(!strcmp(key, "name") || !strcmp(key, "focal_length") || !strcmp(key, "focus_distance") || !strcmp(key, "hyperfocal") || !strcmp(key, "dof_near") || !strcmp(key, "dof_far") || !strcmp(key, "af") || !strcmp(key, "continuous_af"))
     {
         return luaL_error(L, "'%s' is readonly!", key);
     }
@@ -245,6 +248,7 @@ static const char * lua_lens_fields[] =
     "dof_near",
     "dof_far",
     "af",
+    "continuous_af",
     "af_mode",
     NULL
 };
