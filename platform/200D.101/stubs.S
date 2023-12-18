@@ -68,6 +68,20 @@ THUMB_FN(0xDF006E6D,  DryosDebugMsg)          /* lots of debug messages; format 
 
 /** DMA **/
 THUMB_FN(0xE01B3297,  dma_memcpy)
+//
+// The following are believed correct, though not yet tested.
+// They're left commented for now, because ML code needs these to build,
+// and we currently have safe dummy functions in function_overrides.c
+//
+// Now we have real things found, we need to check func sigs are unchanged,
+// usage, etc.  Certainly things have changed.
+//
+//THUMB_FN(0x35392, StartEDmac);
+//THUMB_FN(0x35486, edmac_set_addr);
+//THUMB_FN(0x35506, edmac_set_size);
+//THUMB_FN(0x3649c, ConnectWriteEDmac);
+//THUMB_FN(0x364f0, ConnectReadEDmac);
+//THUMB_FN(0x3678e, RegisterEDmacCompleteCBR);
 
 /** Eventprocs (call by name) **/
 THUMB_FN(0xE04BDB8F,  call)                   /* many functions called by name (lv_start, lv_stop etc) */
@@ -415,25 +429,8 @@ THUMB_FN(0xe07159e8, nif_setup); // initialises network interface, set_IP_addres
                                  // even if wlan_connect has already succeeded.  So I guess this is at a different layer.
                                  // wlanipset calls this for us, but that doesn't set gateway IP.
 
-
-// SJE maybe 0xe007e056 is important.  This loops doing a "DmacCh" related function, and that gets us
-// to 0x36bf0 - there's a few functions there that ref edmac related strings!
-// 
-//NSTUB(0xFF97C8D4,  SetEDmac)
-//NSTUB(0xFF97C8F0,  ConnectWriteEDmac)
-//NSTUB(0xFF97C918,  ConnectReadEDmac)
-//NSTUB(0xFF97C938,  StartEDmac)
-//NSTUB(0xFF97C9E4,  AbortEDmac)
-//NSTUB(0xFF97CA84,  RegisterEDmacCompleteCBR)
-//NSTUB(0xFF97CA98,  UnregisterEDmacCompleteCBR)
-//NSTUB(0xFF97CAAC,  RegisterEDmacAbortCBR)
-//NSTUB(0xFF97CAE4,  UnregisterEDmacAbortCBR)
-//NSTUB(0xFF97CB14,  RegisterEDmacPopCBR)
-//NSTUB(0xFF97CB28,  UnregisterEDmacPopCBR)
-//NSTUB(0xFF97D794, _EngDrvOut)
-//NSTUB(0xFF97D7F8,  shamem_read) // AJ_0x8FB0_engio_struct_n_R0_manipulation_to_get_ptr
-//NSTUB(0xFF97D904, _engio_write)
-//NSTUB(0xFFA6CE4C,  UnLockEngineResources)
+THUMB_FN(0xe00c0484,  mem_to_mem_edmac_copy)
+//THUMB_FN(0xe04b39c0,  UnLockEngineResources)
 
 // SJE couldn't find it, some other cameras don't have it, looks like
 // audio-common.c has a static array for that.
