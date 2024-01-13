@@ -97,8 +97,8 @@ struct semaphore {;} CAPABILITY("mutex");
 
 extern struct semaphore *
 create_named_semaphore(
-        const char *            name,
-        int                     initial_value
+        const char *name,
+        int starts_unlocked // 0 is initially locked, 1 unlocked.  Any other value is an error
 );
 
 extern int
