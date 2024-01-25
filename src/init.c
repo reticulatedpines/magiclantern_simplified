@@ -473,7 +473,7 @@ static void my_big_init_task()
      * and offsets. I feel those should be per generation, or maybe per camera
      * as R has different rom size than RP in same gen...
      */
-    #if defined(CONFIG_AUTOBACKUP_ROM)
+    #if defined(CONFIG_AUTOBACKUP_ROM) && !defined(CONFIG_QEMU)
     /* backup ROM first time to be prepared if anything goes wrong. choose low prio */
     /* On 5D3, this needs to run after init functions (after card tests) */
     task_create("ml_backup", 0x1f, 0x4000, backup_rom_task, 0 );
