@@ -137,6 +137,8 @@
 
 #define MVR_992_STRUCT (*(void**)0x1DF4)
 
+#define DEFAULT_RAW_BUFFER MEM(MEM(0x4C64)) // how much do we have allocated?
+#define DEFAULT_RAW_BUFFER_SIZE 8*1024*1024 // is this really overwritten by other code? needs some investigation
 
 //Same as 600D
 #define REG_EDMAC_WRITE_LV_ADDR 0xc0f04308

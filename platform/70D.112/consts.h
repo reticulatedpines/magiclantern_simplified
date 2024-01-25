@@ -47,6 +47,9 @@
 #define YUV422_LV_BUFFER_2 0x5F637800
 #define YUV422_LV_BUFFER_3 0x5EE17800
 
+#define DEFAULT_RAW_BUFFER MEM(0x7CFEC + 0x30)
+#define DEFAULT_RAW_BUFFER_SIZE (0x4CFF0000 - 0x4B328000)
+
 // 70D "digic dump"
 // LV_ADDR compared to results posted by a1ex from: 
 // http://www.magiclantern.fm/forum/index.php?topic=2803.msg12100#msg12100

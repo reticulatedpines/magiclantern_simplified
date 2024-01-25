@@ -71,9 +71,18 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 
 /*********************** Camera-specific constants ****************************/
 
+// SJE this section used to have LV buffer and EDMAC related things,
+// ifdef'd per cam.  That was a bad idea, so I've moved them into platform/XXD.
+//
+// More of the later stuff (e.g. CAM_COLORMATRIX) should also move to be per
+// cam.  But for now, I'm just touching EDMAC related code.
 #ifdef CONFIG_EDMAC_RAW_SLURP
-/* undefine so we don't use it by mistake */
-#undef RAW_LV_EDMAC
+    #if defined(RAW_LV_EDMAC)
+        // avoid using bad value for RAW_LV_EDMAC, shouldn't be
+        // used with RAW_SLURP
+        // (SJE don't know if this can happen, modernising old guard)
+        #error "RAW_LV_EDMAC shouldn't be defined at this point"
+    #endif
 
 /* hardcode Canon's raw buffer directly */
 /* you can find it from lv_raw_dump, arg1 passed to dump_file:
@@ -97,66 +106,6 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 // NB: instructions not tested with current code...  If they work,
 // please remove this part of the comment.
 
-#ifdef CONFIG_60D
-#define DEFAULT_RAW_BUFFER MEM(MEM(0x5028))
-#define DEFAULT_RAW_BUFFER_SIZE (0x49F00000 - 0x48332200)   /* ~28MB, really? */
-#endif
-
-#ifdef CONFIG_600D
-#define DEFAULT_RAW_BUFFER MEM(MEM(0x51FC))
-#endif
-
-#ifdef CONFIG_5D3_113
-/* MEM(0x2600C + 0x2c) = 0x4B152000; appears free until 0x4CE00000 */
-#define DEFAULT_RAW_BUFFER MEM(0x2600C + 0x2c)
-#define DEFAULT_RAW_BUFFER_SIZE (0x4CDF0000 - 0x4B152000)
-#endif
-
-#ifdef CONFIG_5D3_123
-/* MEM(0x25f1c + 0x34) (0x4d31a000) is used near 0x4d600000 in photo mode
- * that's probably just because the memory layout changes
- * next buffer is at 0x4ee00000; can we assume it can be safely reused by us?
- * (Free Memory dialog, memory map with CONFIG_MARK_UNUSED_MEMORY_AT_STARTUP)
- */
-#define DEFAULT_RAW_BUFFER MEM(0x25f1c + 0x34)
-#define DEFAULT_RAW_BUFFER_SIZE (0x4e000000 - 0x4d31a000)
-#endif
-
-#ifdef CONFIG_650D
-#define DEFAULT_RAW_BUFFER MEM(0x25B00 + 0x3C)
-#define DEFAULT_RAW_BUFFER_SIZE (0x47F00000 - 0x46798080)
-#endif
-
-#ifdef CONFIG_700D
-#define DEFAULT_RAW_BUFFER MEM(0x25B0C + 0x3C)
-#define DEFAULT_RAW_BUFFER_SIZE (0x47F00000 - 0x46798080)
-#endif
-
-#ifdef CONFIG_EOSM
-#define DEFAULT_RAW_BUFFER MEM(0x404E4 + 0x44)
-#define DEFAULT_RAW_BUFFER_SIZE (0x47F00000 - 0x46798080)
-#endif
-
-#ifdef CONFIG_6D
-#define DEFAULT_RAW_BUFFER MEM(0x76d6c + 0x2C)
-#define DEFAULT_RAW_BUFFER_SIZE (0x4CFF0000 - 0x4B328000)
-#endif
-
-#ifdef CONFIG_70D
-#define DEFAULT_RAW_BUFFER MEM(0x7CFEC + 0x30)
-#define DEFAULT_RAW_BUFFER_SIZE (0x4CFF0000 - 0x4B328000)
-#endif
-
-#ifdef CONFIG_100D
-#define DEFAULT_RAW_BUFFER MEM(0x6733C + 0x40)
-#define DEFAULT_RAW_BUFFER_SIZE (0x46CC0000 - 0x46798100)
-#endif
-
-#ifdef CONFIG_1100D
-#define DEFAULT_RAW_BUFFER MEM(MEM(0x4C64))     /* how much do we have allocated? */
-#define DEFAULT_RAW_BUFFER_SIZE 8*1024*1024     /* is this really overwritten by other code? needs some investigation */
-#endif
-
 #ifndef DEFAULT_RAW_BUFFER_SIZE
 /* todo: figure out how much Canon code allocates for their LV RAW buffer - how? */
 #pragma message "FIXME: using dummy DEFAULT_RAW_BUFFER_SIZE"
@@ -169,23 +118,13 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 #define CONFIG_ALLOCATE_RAW_LV_BUFFER
 #define RAW_LV_BUFFER_ALLOC_SIZE (SRM_BUFFER_SIZE - 0x1000)
 
-
 #else // "Traditional" RAW LV buffer detection (no CONFIG_EDMAC_RAW_SLURP)
 
 /**
  * LiveView raw buffer address
  * To find it, call("lv_save_raw") and look for an EDMAC channel that becomes active (Debug menu)
  **/
-
-#if defined(CONFIG_5D2) || defined(CONFIG_50D)
-#define RAW_LV_EDMAC 0xC0F04508
-#endif
-
-#if defined(CONFIG_500D) || defined(CONFIG_550D) || defined(CONFIG_7D)
-#define RAW_LV_EDMAC 0xC0F26008
-#endif
-
-#if defined(CONFIG_DIGIC_V) || defined(CONFIG_600D) || defined(CONFIG_60D)
+#if !defined(RAW_LV_EDMAC) && defined(CONFIG_DIGIC_V)
 /* probably all new cameras use this address */
 #define RAW_LV_EDMAC 0xC0F26208
 #endif
@@ -2095,7 +2034,7 @@ int _raw_lv_get_iso_post_gain()
     return 1;
 }
 
-#endif
+#endif // CONFIG_EDMAC_RAW_SLURP
 
 int raw_lv_settings_still_valid()
 {
@@ -2106,7 +2045,7 @@ int raw_lv_settings_still_valid()
     if (w != raw_info.width || h != raw_info.height) return 0;
     return 1;
 }
-#endif
+#endif // CONFIG_RAW_LIVEVIEW
 
 /* For accessing the pixels in a struct raw_pixblock, faster than via raw_get_pixel */
 /* todo: move in raw.h? */
@@ -2579,7 +2518,7 @@ void raw_lv_request_digital_gain(int gain)
     give_semaphore(raw_sem);
 }
 
-#endif
+#endif // CONFIG_RAW_LIVEVIEW
 
 /* may not be correct on 4:3 screens */
 /* ratios are optional - if zero, they are taken from raw_capture_info */

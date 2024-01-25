@@ -60,7 +60,12 @@
 #define YUV422_LV_BUFFER_1 0x40d07800 
 #define YUV422_LV_BUFFER_2 0x4c233800
 #define YUV422_LV_BUFFER_3 0x4f11d800
- 
+
+#define DEFAULT_RAW_BUFFER MEM(MEM(0x51FC))
+#if !defined(CONFIG_EDMAC_RAW_SLURP)
+    #define RAW_LV_EDMAC 0xC0F26208
+#endif
+
 #define REG_EDMAC_WRITE_LV_ADDR 0xc0f04308 // SDRAM address of LV buffer (aka VRAM)
 #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04208 // SDRAM address of HD buffer (aka YUV)
 
