@@ -1829,7 +1829,10 @@ void _prop_lv_lens_request_update()
 {
 #if defined(CONFIG_DIGIC_VI) || defined(CONFIG_DIGIC_VII)
     // this will make PROP_LV_LENS update itself outside LV mode on D67 models.
-    call("msub.lensdata");
+    // But it will spam uart with EvtMainSubRequestLensData
+// SJE FIXME this is far too annoying to enable during dev,
+// but may be wanted later (can we make it quieter?)
+//    call("msub.lensdata");
 #elif defined(CONFIG_DIGIC_45)
     /* this property is normally active only in LiveView
      * however, the MPU can be tricked into sending its value outside LiveView as well
