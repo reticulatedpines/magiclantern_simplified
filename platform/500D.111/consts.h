@@ -34,7 +34,7 @@
 //~ #define YUV422_LV_HEIGHT_RCA 540
 //~ #define YUV422_LV_HEIGHT_HDMI 1080
 
-#define RAW_LV_EDMAC 0xC0F26008
+#define RAW_LV_EDMAC_CHANNEL_ADDR 0xC0F26000
 
 #define REG_EDMAC_WRITE_LV_ADDR 0xc0f26208 // SDRAM address of LV buffer (aka VRAM)
 #define REG_EDMAC_WRITE_HD_ADDR 0xc0f04008 // SDRAM address of HD buffer (aka YUV)

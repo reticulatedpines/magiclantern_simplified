@@ -26,6 +26,7 @@
 #include "lens.h"
 #include "module.h"
 #include "menu.h"
+#include "edmac.h"
 #include "edmac-memcpy.h"
 #include "imgconv.h"
 #include "console.h"
@@ -76,12 +77,16 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
 //
 // More of the later stuff (e.g. CAM_COLORMATRIX) should also move to be per
 // cam.  But for now, I'm just touching EDMAC related code.
+#if defined(RAW_LV_EDMAC)
+    #error "RAW_LV_EDMAC has been retired.  See RAW_LV_EDMAC_CHANNEL_ADDR"
+#endif
+
 #ifdef CONFIG_EDMAC_RAW_SLURP
-    #if defined(RAW_LV_EDMAC)
-        // avoid using bad value for RAW_LV_EDMAC, shouldn't be
+    #if defined(RAW_LV_EDMAC_CHANNEL_ADDR)
+        // avoid using bad value for RAW_LV_EDMAC_CHANNEL_ADDR, shouldn't be
         // used with RAW_SLURP
         // (SJE don't know if this can happen, modernising old guard)
-        #error "RAW_LV_EDMAC shouldn't be defined at this point"
+        #error "RAW_LV_EDMAC_CHANNEL_ADDR shouldn't be defined at this point"
     #endif
 
 /* hardcode Canon's raw buffer directly */
@@ -124,9 +129,15 @@ static int (*dual_iso_get_dr_improvement)() = MODULE_FUNCTION(dual_iso_get_dr_im
  * LiveView raw buffer address
  * To find it, call("lv_save_raw") and look for an EDMAC channel that becomes active (Debug menu)
  **/
-#if !defined(RAW_LV_EDMAC) && defined(CONFIG_DIGIC_V)
+#if !defined(RAW_LV_EDMAC_CHANNEL_ADDR) && defined(CONFIG_DIGIC_V)
 /* probably all new cameras use this address */
-#define RAW_LV_EDMAC 0xC0F26208
+#define RAW_LV_EDMAC_CHANNEL_ADDR 0xC0F26200
+#endif
+
+
+#ifdef CONFIG_RAW_LIVEVIEW
+// volatile because this points at some OS managed MMIO
+static volatile struct edmac_mmio *raw_lv_edmac = (struct edmac_mmio *)RAW_LV_EDMAC_CHANNEL_ADDR;
 #endif
 
 #endif  /* no CONFIG_EDMAC_RAW_SLURP */
@@ -653,7 +664,7 @@ static int raw_lv_buffer_size = 0;
 static void* raw_get_default_lv_buffer()
 {
 #if !defined(CONFIG_EDMAC_RAW_SLURP)
-    return CACHEABLE(shamem_read(RAW_LV_EDMAC));
+    return CACHEABLE(shamem_read((uint32_t)&(raw_lv_edmac->ram_addr)));
 #else
     return CACHEABLE(raw_lv_buffer);
 #endif
@@ -723,8 +734,8 @@ static int raw_lv_get_resolution(int* width, int* height)
 
 #else // ~CONFIG_EDMAC_RAW_SLURP
     /* autodetect raw size from EDMAC */
-    uint32_t lv_raw_height = shamem_read(RAW_LV_EDMAC+4);
-    uint32_t lv_raw_size = shamem_read(RAW_LV_EDMAC+8);
+    uint32_t lv_raw_height = shamem_read((uint32_t)&(raw_lv_edmac->yn_xn)); // yn_xn??  For height??
+    uint32_t lv_raw_size = shamem_read((uint32_t)&(raw_lv_edmac->yb_xb));
     if (!lv_raw_size) return 0;
 
     int pitch = lv_raw_size & 0xFFFF;
@@ -1981,7 +1992,7 @@ void FAST raw_lv_redirect_edmac(void* ptr)
     #ifdef CONFIG_EDMAC_RAW_SLURP
     redirected_raw_buffer = (void*) CACHEABLE(ptr);
     #else
-    MEM(RAW_LV_EDMAC) = (intptr_t) CACHEABLE(ptr);
+    raw_lv_edmac->ram_addr = (uint32_t)CACHEABLE(ptr);
     #endif
 }
 

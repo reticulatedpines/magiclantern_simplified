@@ -62,6 +62,36 @@ struct edmac_info
     unsigned int yn;
 };
 
+// For some more, not terribly clear info, see:
+// https://magiclantern.fandom.com/wiki/Register_Map#EDMAC
+// near "SDRAM destination offset"
+struct edmac_mmio
+{
+    // This represents an EDmac "channel", also called a "port"
+    // from Digic 8 onwards.  These are very likely not really 0x100
+    // in size, probably the DMA controller aligns to this value
+    // for hardware reasons.  I sized it that way to allow easy
+    // pointer increment, etc.
+    uint32_t dma_state;
+    uint32_t dma_flags;
+    uint32_t ram_addr;
+    uint32_t yn_xn;
+    uint32_t yb_xb;
+    uint32_t ya_xa;
+    uint32_t off1b;
+    uint32_t off2b;
+    uint32_t off1a;
+    uint32_t off2a;
+    uint32_t off3;
+    uint32_t unk_01;
+    uint32_t irq_reason;
+    uint32_t irq_state_related;
+    uint32_t unk_02;
+    uint32_t unk_03;
+    uint32_t fencing_related_maybe;
+    uint32_t unk_04[0x2f]; // some of this is padding, but I don't know how much
+};
+SIZE_CHECK_STRUCT(edmac_mmio, 0x100);
 
 void EDMAC_Register_Complete_CBR(unsigned int channel, void (*cbr)(), unsigned int ctx);
 void SetEDmac(unsigned int channel, void *address, struct edmac_info *ptr, int flags);
