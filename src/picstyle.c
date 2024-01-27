@@ -55,41 +55,41 @@ struct prop_picstyle_settings picstyle_settings[NUM_PICSTYLES + 1];
 // prop_register_slave is much more difficult to use than copy/paste...
 
 PROP_HANDLER( PROP_PICSTYLE_SETTINGS_AUTO ) {
-    memcpy(&picstyle_settings[1], buf, 24);
+    memcpy(&picstyle_settings[1], buf, sizeof(*picstyle_settings));
 }
 
 PROP_HANDLER( PROP_PICSTYLE_SETTINGS_STANDARD ) {
-    memcpy(&picstyle_settings[2], buf, 24);
+    memcpy(&picstyle_settings[2], buf, sizeof(*picstyle_settings));
 }
 
 PROP_HANDLER( PROP_PICSTYLE_SETTINGS_PORTRAIT ) {
-    memcpy(&picstyle_settings[3], buf, 24);
+    memcpy(&picstyle_settings[3], buf, sizeof(*picstyle_settings));
 }
 
 PROP_HANDLER( PROP_PICSTYLE_SETTINGS_LANDSCAPE ) {
-    memcpy(&picstyle_settings[4], buf, 24);
+    memcpy(&picstyle_settings[4], buf, sizeof(*picstyle_settings));
 }
 
 PROP_HANDLER( PROP_PICSTYLE_SETTINGS_NEUTRAL ) {
-    memcpy(&picstyle_settings[5], buf, 24);
+    memcpy(&picstyle_settings[5], buf, sizeof(*picstyle_settings));
 }
 
 PROP_HANDLER( PROP_PICSTYLE_SETTINGS_FAITHFUL ) {
-    memcpy(&picstyle_settings[6], buf, 24);
+    memcpy(&picstyle_settings[6], buf, sizeof(*picstyle_settings));
 }
 
 PROP_HANDLER( PROP_PICSTYLE_SETTINGS_MONOCHROME ) {
-    memcpy(&picstyle_settings[7], buf, 24);
+    memcpy(&picstyle_settings[7], buf, sizeof(*picstyle_settings));
 }
 
 PROP_HANDLER( PROP_PICSTYLE_SETTINGS_USERDEF1 ) {
-    memcpy(&picstyle_settings[8], buf, 24);
+    memcpy(&picstyle_settings[8], buf, sizeof(*picstyle_settings));
 }
 
 PROP_HANDLER( PROP_PICSTYLE_SETTINGS_USERDEF2 ) {
-    memcpy(&picstyle_settings[9], buf, 24);
+    memcpy(&picstyle_settings[9], buf, sizeof(*picstyle_settings));
 }
 
 PROP_HANDLER( PROP_PICSTYLE_SETTINGS_USERDEF3 ) {
-    memcpy(&picstyle_settings[10], buf, 24);
+    memcpy(&picstyle_settings[10], buf, sizeof(*picstyle_settings));
 }
