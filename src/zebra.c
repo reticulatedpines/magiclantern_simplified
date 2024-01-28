@@ -526,6 +526,7 @@ static inline void waveform_add_pixel(int x, int Y)
 }
 #endif
 
+#if defined(FEATURE_HISTOGRAM)
 static void
 hist_build()
 {
@@ -535,9 +536,7 @@ hist_build()
 
     int x,y;
 
-    #ifdef FEATURE_HISTOGRAM
     memset(&histogram, 0, sizeof(histogram));
-    #endif
 
     #ifdef FEATURE_WAVEFORM
     if (waveform_draw)
@@ -589,12 +588,10 @@ hist_build()
 
             int Y = UYVY_GET_AVG_Y(pixel);
             
-            #ifdef FEATURE_HISTOGRAM
             if (hist_draw && !histogram.is_raw)
             {
                 hist_add_pixel(pixel, Y);
             }
-            #endif
             
             #ifdef FEATURE_WAVEFORM
             if (waveform_draw) 
@@ -614,7 +611,8 @@ hist_build()
         }
     }
 }
-#endif
+#endif // FEATURE_HISTOGRAM
+#endif // FEATURE_HISTOGRAM || FEATURE_WAVEFORM || FEATURE_VECTORSCOPE
 
 #ifdef FEATURE_RAW_ZEBRAS
 
@@ -865,7 +863,7 @@ static MENU_UPDATE_FUNC(raw_zebra_update)
     if (raw_zebra_enable)
         MENU_SET_WARNING(MENU_WARN_INFO, "Will use RAW RGB zebras %safter taking a pic.", raw_zebra_enable == 1 ? "in LiveView and " : "");
 }
-#endif
+#endif // FEATURE_RAW_ZEBRAS
 
 /* used for auto bracketing */
 int get_under_and_over_exposure(int thr_lo, int thr_hi, int* under, int* over)
@@ -940,7 +938,7 @@ static int zebra_rgb_solid_color(int underexposed, int clipR, int clipG, int cli
         default: return 0;
     }
 }
-#endif
+#endif // FEATURE_ZEBRA
 
 #ifdef FEATURE_WAVEFORM
 /** Draw the waveform image into the bitmap framebuffer.
@@ -1030,7 +1028,7 @@ waveform_draw_image(
         bmp_draw_rect(60, x_origin-1, y_origin-1, WAVEFORM_WIDTH*WAVEFORM_FACTOR+1, height+1);
     }
 }
-#endif
+#endif // FEATURE_WAVEFORM
 
 static int fps_ticks = 0;
 
@@ -3727,9 +3725,9 @@ void draw_histogram_and_waveform(int allow_play)
     if (0
         || hist_draw
         || waveform_draw
-#if defined(FEATURE_VECTORSCOPE)
+    #if defined(FEATURE_VECTORSCOPE)
         || vectorscope_should_draw()
-#endif
+    #endif
         )
     {
         hist_build(); /* also updates waveform and vectorscope */
@@ -4043,7 +4041,7 @@ void update_lv_fps() // to be called every 10 seconds
 // Items which need a high FPS
 // Magic Zoom, Focus Peaking, zebra*, spotmeter*, false color*
 // * = not really high FPS, but still fluent
- static void
+static void
 livev_hipriority_task( void* unused )
 {
     msleep(1000);
@@ -4120,10 +4118,12 @@ livev_hipriority_task( void* unused )
             // 70D has problems with RAW zebras
             // TODO: Adjust with appropriate internals-config: CONFIG_NO_RAW_ZEBRAS
             // (is this name good?  We already have FEATURE_RAW_ZEBRAS...  what's the distinction?)
-            #if !defined(CONFIG_70D)
+            #if !defined(CONFIG_70D) && defined(FEATURE_RAW_ZEBRAS)
             if (zebra_draw && raw_zebra_enable == 1) raw_needed = 1;        /* raw zebras: always */
             #endif
+            #if defined(FEATURE_HISTOGRAM)
             if (hist_draw && RAW_HISTOGRAM_ENABLED) raw_needed = 1;          /* raw hisogram (any kind) */
+            #endif
             if (spotmeter_draw && spotmeter_formula == 3) raw_needed = 1;   /* spotmeter, units: raw */
         }
 
