@@ -324,7 +324,7 @@ int ftoa(char *s, float n) {
     } else if (n == 0.0) {
         strcpy(s, "0");
     } else {
-        int digit, m, m1;
+        int digit, m, m1 = 0;
         char *c = s;
         int neg = (n < 0);
         if (neg)
