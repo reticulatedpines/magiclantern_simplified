@@ -176,14 +176,16 @@ static volatile struct edmac_mmio *raw_lv_edmac = (struct edmac_mmio *)RAW_LV_ED
  */
 
 #ifdef CONFIG_DIGIC_V
-#define RAW_TYPE_REGISTER 0xC0F37014
-#define PREFERRED_RAW_TYPE 0x10         /* CCD; also valid for DIGIC 6 */
-#else
-#define RAW_TYPE_REGISTER 0xC0F08114    /* PACK32_ISEL */
-#define PREFERRED_RAW_TYPE 0x5          /* DIGIC 4: CCD */
+    #define RAW_TYPE_REGISTER 0xC0F37014
+    #define PREFERRED_RAW_TYPE 0x10         /* CCD; also valid for DIGIC 6 */
+#elif defined(CONFIG_DIGIC_IV)
+    #define RAW_TYPE_REGISTER 0xC0F08114    /* PACK32_ISEL */
+    #define PREFERRED_RAW_TYPE 0x5          /* DIGIC 4: CCD */
 #endif
 
-#define SHAD_GAIN_REGISTER 0xC0F08030
+#if defined(CONFIG_DIGIC_IV) || defined(CONFIG_DIGIC_V)
+    #define SHAD_GAIN_REGISTER 0xC0F08030
+#endif
 
 
 #ifdef CONFIG_EDMAC_RAW_SLURP
@@ -684,7 +686,7 @@ static int raw_lv_get_resolution(int* width, int* height)
   #ifdef CONFIG_DIGIC_V
     uint32_t top_left  = shamem_read(0xC0F06800);
     uint32_t bot_right = shamem_read(0xC0F06804);
-  #else
+  #elif defined(CONFIG_DIGIC_IV)
     uint32_t top_left  = shamem_read(0xC0F06084);
     uint32_t bot_right = shamem_read(0xC0F06088);
   #endif
@@ -697,7 +699,7 @@ static int raw_lv_get_resolution(int* width, int* height)
     const int column_factor = 1;
   #elif defined(CONFIG_DIGIC_V) /* checked 6D, 650D, 700D, M, 100D */
     const int column_factor = 4;
-  #else /* most DIGIC 4; checked 60D, 600D, 550D, 5D2, 50D, 7D, 1100D, 1200D, 1300D */
+  #elif defined(CONFIG_DIGIC_IV) /* most DIGIC 4; checked 60D, 600D, 550D, 5D2, 50D, 7D, 1100D, 1200D, 1300D */
     const int column_factor = 2;
   #endif
 
@@ -1274,7 +1276,12 @@ int raw_update_params_work()
          * Canon's guess may be up to 0.38 EV below the true value - or maybe more?
          * http://www.magiclantern.fm/forum/index.php?topic=20579.msg190437#msg190437
          */
+        #if defined(CONFIG_DIGIC_45)
         int canon_white = shamem_read(0xC0F12054) >> 16;
+        #elif defined(CONFIG_DIGIC_678X)
+        // at least on 200D, this is no longer at shamem + 12054
+        int canon_white = 12000; // it's used for initial estimate only
+        #endif
         raw_info.white_level = autodetect_white_level(canon_white);
         raw_info.dynamic_range = compute_dynamic_range(black_mean, black_stdev_x100, raw_info.white_level);
         printf("White level: %d -> %d\n", canon_white, raw_info.white_level);
@@ -2432,6 +2439,9 @@ void raw_lv_update()
         if (lv && lv_dispsize > 1 && DISPLAY_IS_ON)
         {
             /* todo: enqueue it in a vsync hook? */
+            #if defined(CONFIG_DIGIC_678X)
+                #error "Need to find equiv for 0xc0f08114"
+            #endif
             EngDrvOutLV(0xc0f08114, 0);
         }
         #endif
@@ -2473,7 +2483,12 @@ void raw_lv_request_bpp(int bpp)
     take_semaphore(raw_sem, 0);
 
     /* raw bit depth setup is done from PACK32_MODE register (mask 0x131) */
-    const uint32_t PACK32_MODE = 0xC0F08094;
+    #if defined(CONFIG_DIGIC_45)
+        const uint32_t PACK32_MODE = 0xC0F08094;
+    #elif defined(CONFIG_200D)
+        const uint32_t PACK32_MODE = 0xd0008094; // plausible from rom, e.g. e0159eee on 200d 1.0.1,
+                                                 // compare 5d3 1.2.3 ff57c7c8
+    #endif
     enum {
         MODE_16BIT = 0x130,
         MODE_14BIT = 0x030,
