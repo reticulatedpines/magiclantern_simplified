@@ -119,7 +119,11 @@ void edmac_memcpy_res_unlock()
     UnLockEngineResources(resLock);
 }
 
-void* edmac_copy_rectangle_cbr_start(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h, void (*cbr_r)(void*), void (*cbr_w)(void*), void *cbr_ctx)
+void* edmac_copy_rectangle_cbr_start(void* dst, void* src,
+                                     int src_width, int src_x, int src_y,
+                                     int dst_width, int dst_x, int dst_y,
+                                     int w, int h,
+                                     void (*cbr_r)(void*), void (*cbr_w)(void*), void *cbr_ctx)
 {
     /* dmaFlags: 16 (DIGIC 5) or 4 (DIGIC 4) bytes per transfer
      * in order to successfully stop the EDMAC transfer,
@@ -218,14 +222,27 @@ void edmac_copy_rectangle_adv_finish()
     edmac_copy_rectangle_adv_cleanup();
 }
 
-void* edmac_copy_rectangle_adv_start(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h)
+void* edmac_copy_rectangle_adv_start(void* dst, void* src,
+                                     int src_width, int src_x, int src_y,
+                                     int dst_width, int dst_x, int dst_y,
+                                     int w, int h)
 {
-    return edmac_copy_rectangle_cbr_start(dst, src, src_width, src_x, src_y, dst_width, dst_x, dst_y, w, h, &edmac_read_complete_cbr, &edmac_write_complete_cbr, NULL);
+    return edmac_copy_rectangle_cbr_start(dst, src,
+                                          src_width, src_x, src_y,
+                                          dst_width, dst_x, dst_y,
+                                          w, h,
+                                          &edmac_read_complete_cbr, &edmac_write_complete_cbr, NULL);
 }
 
-void* edmac_copy_rectangle_adv(void* dst, void* src, int src_width, int src_x, int src_y, int dst_width, int dst_x, int dst_y, int w, int h)
+void* edmac_copy_rectangle_adv(void* dst, void* src,
+                               int src_width, int src_x, int src_y,
+                               int dst_width, int dst_x, int dst_y,
+                               int w, int h)
 {
-    void* ans = edmac_copy_rectangle_adv_start(dst, src, src_width, src_x, src_y, dst_width, dst_x, dst_y, w, h);
+    void* ans = edmac_copy_rectangle_adv_start(dst, src,
+                                               src_width, src_x, src_y,
+                                               dst_width, dst_x, dst_y,
+                                               w, h);
     if (ans) edmac_copy_rectangle_adv_finish();
     return ans;
 }
@@ -264,7 +281,10 @@ void* edmac_memset(void* dst, int value, size_t length)
     memset(dst + leading, value, blocksize);
     
     /* now copy the first line over the next lines */
-    edmac_copy_rectangle_adv_start(dst + leading + blocksize, dst + leading, 0, 0, 0, blocksize, 0, 0, blocksize, copies);
+    edmac_copy_rectangle_adv_start(dst + leading + blocksize, dst + leading,
+                                   0, 0, 0,
+                                   blocksize, 0, 0,
+                                   blocksize, copies);
     
     /* leading or trailing bytes that edmac cannot handle? */
     if(leading)
@@ -324,7 +344,10 @@ void* edmac_memcpy_start(void* dst, void* src, size_t length)
         return ret;
     }
     
-    return edmac_copy_rectangle_adv_start(dst, src, blocksize, 0, 0, blocksize, 0, 0, blocksize, length / blocksize);
+    return edmac_copy_rectangle_adv_start(dst, src,
+                                          blocksize, 0, 0,
+                                          blocksize, 0, 0,
+                                          blocksize, length / blocksize);
 }
 
 void edmac_memcpy_finish()
