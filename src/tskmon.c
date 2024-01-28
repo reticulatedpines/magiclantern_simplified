@@ -336,8 +336,9 @@ null_pointer_check()
 #pragma GCC diagnostic pop
 // However...  we're also suppressing possible warnings about usage of the msg array!
 // When we get to gcc 13, let's see if we can remove the above pragma.
+// EDIT: 13 did not fix it.  Bump the check to 14.
 #ifdef __GNUC__
-    #if __GNUC__ > 12
+    #if __GNUC__ > 13
         #error "Please check if the preceding pragma is no longer required"
     #endif
 #endif
