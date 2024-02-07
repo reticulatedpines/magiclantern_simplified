@@ -76,12 +76,12 @@ THUMB_FN(0xE01B3297,  dma_memcpy)
 // Now we have real things found, we need to check func sigs are unchanged,
 // usage, etc.  Certainly things have changed.
 //
-//THUMB_FN(0x35392, StartEDmac);
-//THUMB_FN(0x35486, edmac_set_addr);
-//THUMB_FN(0x35506, edmac_set_size);
-//THUMB_FN(0x3649c, ConnectWriteEDmac);
-//THUMB_FN(0x364f0, ConnectReadEDmac);
-//THUMB_FN(0x3678e, RegisterEDmacCompleteCBR);
+//THUMB_FN(0x35392, StartEDmac)
+//THUMB_FN(0x35486, edmac_set_addr)
+//THUMB_FN(0x35506, edmac_set_size)
+//THUMB_FN(0x3649c, ConnectWriteEDmac)
+//THUMB_FN(0x364f0, ConnectReadEDmac)
+//THUMB_FN(0x3678e, RegisterEDmacCompleteCBR)
 
 /** Eventprocs (call by name) **/
 THUMB_FN(0xE04BDB8F,  call)                   /* many functions called by name (lv_start, lv_stop etc) */
@@ -406,27 +406,27 @@ THUMB_FN(0xdf00325d,  task_trampoline)
 //NSTUB(0xFF968874,  mvrFixQScale)
 
 // Sockets
-THUMB_FN(0xe071d880,  socket_create);
-THUMB_FN(0xe071d8b8,  socket_bind);
-THUMB_FN(0xe071d8f2,  socket_connect);
-THUMB_FN(0xe071d92c,  socket_listen);
-THUMB_FN(0xe071db7a,  socket_shutdown);
-THUMB_FN(0xe071d960,  socket_accept);
-THUMB_FN(0xe071d99a,  socket_recv);
-THUMB_FN(0xe071d9d8,  socket_recvfrom);
-THUMB_FN(0xe071da20,  socket_send);
-THUMB_FN(0xe071da3a,  socket_sendto);
-THUMB_FN(0xe071da80,  socket_setsockopt);
-THUMB_FN(0xe071dac4,  socket_getsockopt);
-THUMB_FN(0xe0714a20,  socket_close_caller);
-THUMB_FN(0xe07321f4,  socket_convertfd);
-THUMB_FN(0xe0714b1c,  socket_select_caller); // not the actual select function as this needs the fd converted
+THUMB_FN(0xe071d880,  socket_create)
+THUMB_FN(0xe071d8b8,  socket_bind)
+THUMB_FN(0xe071d8f2,  socket_connect)
+THUMB_FN(0xe071d92c,  socket_listen)
+THUMB_FN(0xe071db7a,  socket_shutdown)
+THUMB_FN(0xe071d960,  socket_accept)
+THUMB_FN(0xe071d99a,  socket_recv)
+THUMB_FN(0xe071d9d8,  socket_recvfrom)
+THUMB_FN(0xe071da20,  socket_send)
+THUMB_FN(0xe071da3a,  socket_sendto)
+THUMB_FN(0xe071da80,  socket_setsockopt)
+THUMB_FN(0xe071dac4,  socket_getsockopt)
+THUMB_FN(0xe0714a20,  socket_close_caller)
+THUMB_FN(0xe07321f4,  socket_convertfd)
+THUMB_FN(0xe0714b1c,  socket_select_caller) // not the actual select function as this needs the fd converted
 
-THUMB_FN(0xe036d59c,  wlan_connect);
-THUMB_FN(0xe0715828, set_IP_address); // sets both client IP and gateway IP
-THUMB_FN(0xe07159e8, nif_setup); // initialises network interface, set_IP_address() fails if this hasn't been called,
-                                 // even if wlan_connect has already succeeded.  So I guess this is at a different layer.
-                                 // wlanipset calls this for us, but that doesn't set gateway IP.
+THUMB_FN(0xe036d59c,  wlan_connect)
+THUMB_FN(0xe0715828, set_IP_address) // sets both client IP and gateway IP
+THUMB_FN(0xe07159e8, nif_setup) // initialises network interface, set_IP_address() fails if this hasn't been called,
+                                // even if wlan_connect has already succeeded.  So I guess this is at a different layer.
+                                // wlanipset calls this for us, but that doesn't set gateway IP.
 
 THUMB_FN(0xe00c0484,  mem_to_mem_edmac_copy)
 THUMB_FN(0xe032a86e, _get_fps_register_b)
